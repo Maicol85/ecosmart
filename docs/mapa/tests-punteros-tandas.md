@@ -260,3 +260,33 @@ de cada una está en `docs/mapa/pant7-vd-cia-globos.md` § 7.
 
 Las fichas, con las cinco trampas de método que costaron una corrida cada una, en
 `docs/mapa/tests-fichas-656.md`.
+
+---
+
+## Tanda PANT-9 (2026-11-04) — las siete pantallas de congénitas y el valve-in-valve de TAVI
+
+**Seis casos nuevos, TC-662 a TC-667.** Sus fichas están en archivo propio:
+`docs/mapa/tests-fichas-662.md` —porque `tests-fichas.md` está en 34.237 B, al techo—.
+
+| Caso | Qué fija |
+|---|---|
+| **TC-662** | Fontan en tres columnas, las seis casillas de complicaciones con su lógica, y las dos notas en su globo |
+| **TC-663** | Eisenmenger en tres columnas, **la franja roja arriba y visible**, y las cuatro notas en su globo |
+| **TC-664** | Ebstein en tres columnas, el párrafo de la sección, la nota de las áreas y **la caja roja** en sus globos |
+| **TC-665** | DSAV, CVPA, ductus y VAP en tres columnas; la línea de diseño del DSAV **fuera** de la pantalla y **fuera** del globo |
+| **TC-666** | el contrato de la hoja de estilos: los dos cortes por su **valor**, el piso dentro de la media query, y que las clases son propias de estas siete secciones |
+| **TC-667** | la opción de valve-in-valve, su texto de papel y las dos parejas de sincronía en los dos sentidos, con la condición del Laboratorio |
+
+**Casos viejos adaptados, con su motivo:** **TC-471** y **TC-500** (el registro de globos, 123 →
+**140**), **TC-502 (C3)** (las tarjetas sin ficha en Referencias, 50 → **67**, nombradas una por
+una) y **TC-535 (K0/K1/K2)** (los globos de 44×44, 44 → **61**).
+
+⚠️ **Y DOS CONDICIONES NACIERON DEL BARRIDO DE MUTACIONES, porque eran huecos reales:** **TC-666
+(D1b)** —nada afirmaba que la regla **base** de la fila sea de una sola columna, así que declarar la
+conclusión a la derecha **fuera** de toda media query sobrevivía— y **TC-663 (B5)**, que miraba sólo
+el bloque «Qué mide» del globo, así que mover la franja roja al bloque «A tener en cuenta»
+sobrevivía.
+
+El arnés de mutaciones es `scripts/_mut_pant9.py`: **41 mutaciones, 41 muertas**, cada una
+declarando **su** caso. Siete no revierten nada: la aplican **de más**, porque las condiciones que
+las matan son controles negativos.

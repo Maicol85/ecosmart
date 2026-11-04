@@ -10604,3 +10604,69 @@ ESC/EACTS 2025 de valvulopatías **no cubre esta lesión**, censado por la propi
 | prótesis mecánica | «no la nombran» | **reoperación I · C** | este archivo | ídem — la premisa se corrige |
 
 **Ningún corte, ningún umbral y ninguna opción de la aplicación se movieron por esta lectura.**
+## La tanda PANT-9 — notas de trabajo (2026-11-04)
+
+**Esta tanda NO leyó ninguna fuente nueva y NO agregó ninguna cita**, y es por lo que hizo: los
+commits 1 a 7 **mueven** textos que la aplicación ya tenía, de la pantalla a su globo ⓘ, palabra
+por palabra; el commit 8 agrega una opción a un selector; y el commit 9 es un inventario de solo
+lectura de lo que ya existe.
+
+### Cambios de evidencia
+
+| Qué | Antes | Después | De dónde sale |
+|---|---|---|---|
+| ninguno | — | — | **la tabla va vacía a propósito**: ni un corte, ni un umbral, ni una clase, ni un nivel, ni una tabla, ni un folio se movieron |
+
+Lo único que se verificó contra el registro es el **respaldo** de los diecisiete textos que pasaron
+al globo: se buscó en este archivo y en el código antes de moverlos, y **ninguno lo tenía
+anotado**. Los diecisiete están listados, con su ubicación anterior y su texto literal, en
+`docs/PENDIENTES.md` → **P9-a**.
+
+### El texto de pantalla que salió de la pantalla y NO fue al globo
+
+La línea inicial de la sección **«Defecto del septo auriculoventricular»**. Salió porque cuenta una
+decisión de **diseño** y no un dato clínico, que es lo que la orden fija. Queda acá, palabra por
+palabra, para que no se pierda:
+
+> «La **FEVI** y el **DTSVI** de esta sección son los del estudio (**AI / VI**): no se vuelven a
+> pedir acá. Dos lugares donde escribir el mismo número es la vía más corta a que la pantalla y el
+> informe firmado digan cosas distintas.»
+
+En la pantalla queda el rótulo **«FEVI y DTSVI — del estudio»**, que es lo que el médico necesita
+saber mirando el campo. Verificado: la frase ya no está en el cuerpo de la sección y **no pasó a
+ninguna entrada del registro de globos**.
+
+### La frase que lleva una conducta, y por qué se movió igual
+
+El párrafo inicial de la **ventana aortopulmonar** termina con «**ESC 2020: cierre indicado
+siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).**» Por la regla de esta tanda
+—«si no tiene respaldo anotado o afirma una conducta, IGUAL se mueve al ⓘ (NO se borra nada) y lo
+listás»— se movió completo al globo del título y quedó declarado en **P9-a**. El globo es el lugar
+donde esta casa pone guías, clases y conductas, así que la frase queda donde corresponde; lo que
+**no** existe es una sección de Evidencia de la ventana aortopulmonar donde esa recomendación
+pudiera vivir con su clase y su folio (ver `docs/INVENTARIO_EVIDENCIA_CONGENITAS.md`).
+
+### Dos premisas de la orden que la medición dio por falsas
+
+1. **«Las secciones sin Evidencia: por ejemplo DAP, VAP, DSAV, CVPA, estenosis pulmonar, Fallot,
+   Ebstein, Eisenmenger, Fontan, FOP, coartación si faltara.»** El **ductus**, la **coartación**, la
+   **estenosis pulmonar**, la **Fallot** y el **FOP** sí tienen sección de Evidencia, registrada en
+   `IND_SECS` y verificada abriéndola con su escenario. Las que **no** tienen son seis: Ebstein,
+   Eisenmenger, Fontan, DSAV, CVPA y la ventana aortopulmonar.
+2. **El corte de la conclusión a la derecha no cae donde la cuenta a mano lo ponía.** La primera
+   versión lo puso en **1220 px**; medido en Chrome, a 1220 px la columna más angosta mide **192 px**,
+   por debajo del piso de 200 que la orden fija. El corte medido es **1260 px**, donde la columna
+   mide 205,3. La cuenta a mano olvidaba los dos rellenos de 28 px —el del cuerpo y el del cuadro
+   con su borde de 2 px—.
+
+### El censo que sostiene el inventario de la Evidencia
+
+`docs/INVENTARIO_EVIDENCIA_CONGENITAS.md` se midió con `scripts/_probe_pant9evid.mjs`, que para cada
+sección siembra el **mismo escenario** que usa **TC-322** —el caso que recorre `IND_SECS` y exige
+que cada sección tenga el suyo—, abre el panel y cuenta sobre el DOM emitido. Veinte siembras.
+
+⚠️ **DOS TRAMPAS DE MÉTODO, PAGADAS Y DECLARADAS.** (1) La primera versión contaba los `<details>`
+**anidados** de los globos del glosario como secciones, y daba **28 secciones donde hay dos**: lo
+que se cuenta son los de **primer nivel** de `#indic-cuerpo`. (2) El censo de guías y folios iba
+sobre `innerText`, y un `<details>` **cerrado** no aporta `innerText`: daba **cero guías** en
+secciones que sí las nombran. Se hace sobre `textContent`.

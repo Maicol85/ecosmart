@@ -117,6 +117,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el ESQUEMA DE CIRCULACIÓN de la sangre de la TGA** —sus seis escenarios, las dos exclusiones de comunicación, la punta de flecha que depende de la dirección que la app guarda, la animación colgada del 3D, el corte de 1200 px o su ⓘ—, **la CONCLUSIÓN de la TGA en la columna izquierda**, o **la salida `papel` que saca la conducta del informe, del PDF y del PPT** | `docs/mapa/tga3-esquema-circulacion.md` |
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
 | **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
+| **Tocar una de las SIETE PANTALLAS de congenitas que la tanda PANT-9 redisenio** —Fontan, Eisenmenger, Ebstein, defecto del septo auriculoventricular, conexión venosa pulmonar anómala parcial, ductus o ventana aortopulmonar—: sus tres columnas por tema, el reparto de cada campo, los DOS cortes de 900 y 1.260 px, la tarjeta gris de conclusión, los **diecisiete textos que pasaron al globo** —la caja roja de Celermajer incluida—, o la **opción de valve-in-valve de TAVI** con su sincronía de morfología y su condición del Laboratorio | `docs/mapa/pant9-congenitas-columnas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
 | **Tocar la PANTALLA de «CIA / CIV», el ANCHO del dibujo del VD, el MOLDE de una sección de válvula del panel de Evidencia —su franja ámbar, sus tarjetas de datos, sus preguntas por tema o su pregunta de SÍNTOMAS con su ⓘ—, la sección ÚNICA de la mitral del ETE, los criterios TEER lado a lado, la frase de dato faltante del FORRESTER fuera del papel o los dos rótulos de la PROFUNDIDAD DE COAPTACIÓN** | `docs/mapa/pant6-pantallas-molde.md` |
 | **Tocar el DIBUJO DE SOBRECARGA DEL VD de Hemodinámica** —su motor portado de la demo, su ancho derivado del esquema valvular, los dos rótulos, la línea del TAPSE, el botón de pausa o la fase quieta—, **el Forrester al lado de los valores**, o la PANTALLA del derrame y el taponamiento, de la CIA y la CIV lado a lado, de la Fallot reparada en tres columnas, de constricción contra restricción, el ORDEN del ETE mitral con sus dos puertas, o los ESTADIOS de la AHA/ACC 2020 de las cuatro válvulas que faltaban | `docs/mapa/pant5-pantallas-vd.md` |
@@ -202,9 +203,16 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,39 MB / 158.880 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
-  cierre de la tanda **PANT-8**, sobre el árbol ya sellado y commiteado: sello
-  **`v20261104-0623`**, md5 **`0aece97f`**. El diff de la tanda son **466 líneas agregadas y 25
+  sin frameworks. Hoy **11,41 MB / 159.235 líneas**, medido con `wc -c` y `wc -l` el 2026-11-04 al
+  cierre de la tanda **PANT-9**, sobre el árbol ya sellado: sello **`v20261104-0832`**, md5
+  **`2a135ab1`**. El diff de la tanda son **812 líneas agregadas y 457 quitadas**, medido con
+  `git diff --numstat` contra `244530d`, con **cero** `innerHTML`, `eval` o `new Function` nuevos y
+  cero claves ni contraseñas, y con los **17** bloques de JS inline parseando.
+  ⚠️ **POR QUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las dos
+  formas que esta casa manda: `git show 244530d:index.html` da **158.880** líneas, **11.389.617**
+  bytes y el md5 **`0aece97f`**, los tres idénticos a lo que el renglón decía. **El renglón se
+  mide al final**, con `wc -l` sobre el archivo sellado.
+  (Antes: 11,39 MB / 158.880 al cierre de PANT-8, sello `v20261104-0623`, md5 `0aece97f`.) El diff de esa tanda son **466 líneas agregadas y 25
   quitadas**, medido con `git diff --numstat` contra `afed3e8`, con **cero** `innerHTML`, `eval` o
   `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR CUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las dos
@@ -618,6 +626,226 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### Las siete pantallas de congénitas en tres columnas y el valve-in-valve de TAVI — «PANT-9» (2026-11-04)
+
+- **DIEZ commits —contados con `git log 244530d..HEAD` AL CERRAR— y los NUEVE de código se
+  hicieron enteros.** `5eef69c` (1) · `015c110` (2) · `f2a5b52` (3) · `e6922e9` (4) · `9028d2c`
+  (5) · `2064875` (6) · `2ef07bf` (7) · `a42b063` (8) · `7894c91` (9) · el de cobertura y
+  documentación. Sello **`v20261104-0832`**, md5 de `index.html` **`2a135ab1`**. Al empezar,
+  `origin/main` = `HEAD` = **`244530d`**, el cierre de PANT-8, ya publicado, con md5 `0aece97f`,
+  sello `v20261104-0623` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P8-d**.
+  ⚠️ **POR QUINTA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 244530d:index.html` da **158.880** líneas,
+  **11.389.617** bytes y el md5 **`0aece97f`**, los tres idénticos a lo que el renglón decía.
+
+- **SIETE PANTALLAS, UNA POR UNA, Y NINGÚN MOLDE GENÉRICO.** Fontan, Eisenmenger, Ebstein, defecto
+  del septo auriculoventricular, conexión venosa pulmonar anómala parcial, ductus y ventana
+  aortopulmonar, cada una con su inventario y su A/B. **Ningún campo, ningún id, ningún valor,
+  ninguna opción, ningún cálculo y ninguna conclusión se movieron**: el censo de ids de cada
+  sección es idéntico antes y después —18, 12, 17, 10, 9, 6 y 6—.
+
+- **LOS DOS CORTES SON UNA MEDICIÓN Y NO UNA PREFERENCIA, Y EL PRIMERO QUE ESCRIBÍ ESTABA MAL.**
+  El ancho útil del cuerpo de una sección es la ventana menos 210 px, y de ahí salen 28 px de
+  relleno del cuerpo, 28 del cuadro con su borde de 2 px, los 360 de la tarjeta de conclusión y
+  los tres huecos: cada columna mide **(ventana − 660) / 3**. La primera versión puso el corte en
+  **1220 px** por una cuenta que olvidaba los dos rellenos; medido en Chrome, ahí la columna más
+  angosta da **192 px**, por debajo del piso de 200. El corte es **1260**, donde da **205,3**.
+  Entre 900 y 1259 px las tres columnas se quedan y la conclusión baja a todo el ancho; por debajo
+  de 900 todo se apila. **El piso va DENTRO de la media query**, que es la lección de PANT-8.
+
+- **ALTO DE CADA SECCIÓN, HEAD → AHORA, a 1440 px:** Fontan 783,0 → **460,3**; Eisenmenger 550,8 →
+  **529,1**; Ebstein 814,0 → **531,3**; DSAV 409,5 → **353,3**; CVPA 416,5 → **365,3**; ductus
+  313,0 → **237,3**; VAP 324,0 → **276,3**. **Las siete bajan.**
+  ⚠️ **PERO POR DEBAJO DEL CORTE SEIS SUBEN, Y SE DECLARA** (**P9-e**): ahí la conclusión va en su
+  tarjeta a todo el ancho —con su relleno, su borde y el botón— y se suman los tres títulos de
+  grupo. **Ebstein es la única que baja en los cinco anchos**, de 1.582,0 a **1.192,6** a 390 px,
+  porque era la que más desperdiciaba espacio. **No se cambió la disposición para compensarlo.**
+
+- **DIECISIETE TEXTOS PASARON AL GLOBO ⓘ, PALABRA POR PALABRA**, y el registro pasa de **123 a
+  140** entradas. Dos del Fontan, cuatro de Eisenmenger, tres de Ebstein, cuatro del DSAV, tres de
+  la CVPA y uno de la ventana aortopulmonar. **Se buscó el respaldo de los diecisiete antes de
+  moverlos y ninguno lo tenía anotado**, así que los diecisiete van a **P9-a** con su ubicación
+  anterior y su texto literal. **Ninguno lleva ficha en Referencias**, que es la convención de las
+  entradas que no citan un corte de guía con su folio.
+
+- **LAS CITAS NO SE PERDIERON, Y SE MIDIÓ DE LAS DOS FORMAS.** El cuerpo de Ebstein pasa de **DOS**
+  menciones de la ESC 2020 a cero y sus globos las traen las dos, más la referencia de Celermajer;
+  el de la CVPA y el de la VAP, de una a cero, y su globo la trae. **El total es el mismo que en
+  HEAD en las tres.**
+
+- ⚠️ **LA CAJA ROJA DE EBSTEIN ES UN AVISO QUE EVITA UN ERROR, y se reporta aparte.** Dice que el
+  índice de Celermajer es orientativo y **no una indicación**, que por ecocardiografía sobreestima
+  la severidad (κ=0,39), que se derivó en 28 neonatos y que no figura en la ESC 2020. Entra
+  **completa** en el bloque «A tener en cuenta» del globo del grupo, con sus cuatro cortes y su
+  origen. **Pierde sus colores propios** porque el globo usa el estilo estándar, que es lo que la
+  orden fija.
+
+- ⚠️ **Y LA ÚNICA FRASE CON UNA CONDUCTA SE MOVIÓ IGUAL, QUE ES LA REGLA DE LA TANDA.** «ESC 2020:
+  cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger)», del párrafo de
+  la ventana aortopulmonar: **no se borró nada**, se movió al globo y quedó listada en **P9-a**.
+
+- **LO QUE NO PASÓ AL GLOBO, Y POR QUÉ.** La **franja roja de contraindicaciones de Eisenmenger**
+  se queda arriba, a todo el ancho y visible: es decisión **expresa** del médico. Verificada
+  presente, con su texto completo, y verificado que **ninguna entrada del registro la contiene**.
+  Y la **línea inicial del DSAV** salió de la pantalla y **no fue al globo**: cuenta una decisión
+  de **diseño** —por qué la FEVI y el DTSVI no se vuelven a pedir ahí— y está copiada en
+  `docs/fuentes/FUENTES.md` y en el mensaje del commit 4. En la pantalla queda el rótulo **«FEVI y
+  DTSVI — del estudio»**.
+
+- ⚠️ **EL GLOBO DEL TÍTULO NO VA DENTRO DEL ENCABEZADO DEL ACORDEÓN, y es una decisión medida**
+  (**P9-g**): `.sacc-hdr` **es un `<button>`**, y un botón dentro de otro es marcado inválido que
+  el navegador reparenta. Va como primer elemento del cuerpo, en la barra de encabezado del cuadro,
+  inmediatamente debajo del título, y **no se repite el título**.
+
+- **EL VALVE-IN-VALVE DE TAVI: UNA SOLA OPCIÓN NUEVA, Y CIERRA P8-d.** `ete_tavi_morf` gana
+  `protesis_bio` → «Prótesis biológica previa (valve-in-valve)». No se agrega prótesis mecánica ni
+  ninguna otra, no se quita ninguna y no se cambia el texto de las que estaban.
+  ⚠️ **Y HUBO QUE AGREGARLA A `TAVI_TXT.morf`, QUE NO ES OPCIONAL:** la línea del emisor es
+  `TAVI_TXT.morf[morf] || morf`, así que una morfología sin texto publica su **token crudo** en el
+  informe firmado — el defecto que la tanda VAL-PPT ya pagó con el acrónimo del TEER. Verificado:
+  `protesis_bio` **no** aparece en el informe, ni en el PDF, ni en el PPT, ni en el EN SUMA.
+
+- **DOS PAREJAS SINCRONIZADAS Y UNA PARADA.** Se unen `bicuspide` con «Bicúspide» y `protesis_bio`
+  con «Prótesis biológica». **NO** se une `tricuspide` con «Trivalva normal», que es el criterio de
+  P8-d: la segunda afirma que la válvula es **normal**.
+  ⚠️ **EL SENTIDO VÁLVULAS → TAVI ES CONDICIONAL, Y ES UNA CONSECUENCIA MEDIDA** (**P9-d**):
+  `_labUsaTavi` nombra **`ete_tavi_morf`** entre sus predicados, así que con el espejo simétrico
+  **todo estudio con la válvula aórtica bicúspide pasaría a contar como «Con TAVI»** en el filtro
+  del Laboratorio, que está **fuera** de esta tanda. Medido: con «Bicúspide» en Válvulas y el
+  módulo sin usar, `_labUsaTavi` da **false** en los dos árboles; con `ete_tavi_morf` cargado da
+  **true**. Es la misma forma y el mismo motivo que la sincronía de la raíz de PANT-8, y
+  `ete_tavi_morf` entra en la exclusión de `_taviModuloEnUso` para que **el espejo no se autorice a
+  sí mismo**.
+  ⚠️ **Y AL VACIAR LA MORFOLOGÍA DE TAVI, LA DE VÁLVULAS NO SE VACÍA** (**P9-c**): `va_morf` **no
+  tiene** opción vacía, así que lo único escribible sería «Trivalva normal», que **afirma** que la
+  válvula es normal. Un borrado no puede convertirse en una afirmación clínica.
+
+- **LA ÚNICA DIFERENCIA DE PAPEL DE LA TANDA, CON SUS DOS EJEMPLOS, Y ES LA QUE EL PUNTO 8d
+  AUTORIZA.** A/B final contra HEAD con el PDF y el PPT generados de verdad: **29 escenas
+  comparables, 4.089 claves, DIECINUEVE diferencias de superficie firmada y TODAS en DOS escenas**;
+  las otras **27 dan CERO**, `p9vacio` y `p9ajeno` incluidas. Las dos son la sincronía haciendo
+  llegar al papel un dato que hoy no llega: con `ete_tavi_morf` en «Bicúspide» y nada más, el
+  informe pasa de «Válvula aórtica de morfología normal» a «Válvula aórtica **bicúspide**» y el EN
+  SUMA de «Estudio sin alteraciones…» a «**Válvula aórtica bicúspide**»; y con la opción **nueva**
+  el informe describe la válvula como protésica y, con el módulo integrado, agrega su frase propia:
+  «**Válvula aórtica sobre prótesis biológica previa.** Anillo aórtico 24 mm.», presente también en
+  el PDF y en el PPT.
+  ⚠️ **LA ESCENA DE LA OPCIÓN NUEVA SE MIDE SÓLO EN EL ÁRBOL NUEVO**, y se declara: poner un valor
+  que HEAD no tiene deja el selector en cadena vacía y daría una **diferencia falsa** donde el
+  cambio no puede actuar.
+
+- **EL INVENTARIO DE LA EVIDENCIA DE LAS CONGÉNITAS (commit 9) NO TOCA `index.html`**, verificado
+  con el md5 idéntico antes y después, y **dio vuelta dos premisas de la orden**: el **ductus**, la
+  **coartación**, la **estenosis pulmonar**, la **Fallot** y el **FOP** **sí** tienen sección de
+  Evidencia. Las que **no** tienen son **seis**: Ebstein, Eisenmenger, Fontan, DSAV, CVPA y la
+  ventana aortopulmonar, medido con su denominador —con sus campos cargados el panel abre **CERO**
+  secciones de primer nivel—. Las quince que existen quedan medidas una por una: la transposición
+  con **doce** preguntas, la CIA y la CIV con **nueve**, el FOP con **diecinueve** corchetes, y el
+  ductus, la coartación y la miocardiopatía hipertrófica obstructiva con **cero** preguntas. **La
+  Evidencia no llega al papel**, medido en las veinte siembras.
+
+- **41/41 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con el md5 **idéntico**
+  antes y después (`868883ce`). **Siete de las cuarenta y una no revierten nada: la aplican de
+  más**, porque las condiciones que las matan son controles negativos.
+  ⚠️ **TRES SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON TRES COSAS DISTINTAS. DOS ERAN HUECOS
+  REALES.** (1) Nada afirmaba que la regla **base** de la fila sea de **una** columna: (D1) miraba
+  el **prefijo**, así que declarar la conclusión a la derecha **fuera** de toda media query —o sea
+  a la derecha también en el teléfono— seguía empezando con `minmax(0,1fr)` y pasaba en verde.
+  Nació **TC-666 (D1b)**. (2) **TC-663 (B5)** miraba sólo el bloque «Qué mide» del globo, así que
+  mover la franja roja al bloque «A tener en cuenta» —que es donde la pondría quien quisiera
+  pasarla al globo— sobrevivía: hoy mira `tit`, `lee`, `ojo` y `fuente`. **Y la tercera estaba mal
+  escrita**: su ancla no coincidía por una palabra.
+
+- **SEIS CASOS NUEVOS, TC-662 a TC-667**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 185 condiciones y NINGUNA por excepción**, verificado en un worktree
+  alternando sólo `index.html`.
+  ⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, POR VIGÉSIMA PRIMERA TANDA SEGUIDA**, y
+  esta vez en un comentario que yo mismo acababa de escribir para explicar una condición nueva:
+  dos acentos graves alrededor de un identificador, dentro del cuerpo de un caso, que es un
+  template literal. **`node --check` lo cazó**, y el control que quedó es contar los acentos graves
+  de los seis casos y exigir el número exacto —doce, dos por caso—.
+  ⚠️ **Y UNA TRAMPA DE MÉTODO QUE LA MEMORIA DE ESTA CASA YA DOCUMENTA: `page.evaluate` con una
+  CADENA descarta el argumento.** La primera sonda de inventario pasaba la lista de secciones como
+  segundo argumento y la leía `undefined` en los dos árboles. La lista se inyecta dentro del
+  template.
+
+- **CUATRO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-471** y **TC-500** (el
+  registro de globos, 123 → **140**), **TC-502 (C3)** (las tarjetas sin ficha en Referencias, 50 →
+  **67**, nombradas una por una, así que el día que una consiga ficha el caso se pone rojo) y
+  **TC-535 (K0/K1/K2)** (los globos de 44×44, 44 → **61**).
+  ⚠️ **Y LOS DIECISIETE GLOBOS NUEVOS DAN 44×44 CON LOS CINCO PUNTOS PROPIOS**, también el del
+  grupo «Índice de Celermajer», que vive dentro del título de su columna y **hace crecer esa fila a
+  44 px** — que es la decisión de la casa: sin márgenes negativos, el contenedor crece y nada queda
+  tapado.
+
+- ⚠️ **DOS DEFECTOS PROPIOS QUE COSTARON UNA MEDICIÓN CADA UNO.** (1) **Un `</div>` de más cerró
+  `app-content` antes de tiempo**: el ancho del cuerpo de la sección cayó de 1.230 a **920 px** y
+  todo lo que sigue a Fontan —el pie del corazón 3D, las otras pestañas, el pie de acciones— se
+  convirtió en **hermano** de `app-content` dentro del `app-shell` flex. El DOM quedaba
+  **balanceado**, así que ni el conteo de `<div>` ni la lectura lo encontraron: lo encontró medir la
+  **cadena de padres**. Es el modo de falla que esta casa ya documenta cuatro veces. (2) **El
+  comando que agregaba las entradas al registro de globos nunca se ejecutó** —lo rechazó el shell—
+  y **mi verificación se dejó engañar**: busqué el nombre de la clave en **todo** el archivo, y la
+  clave también aparece en el marcado. Hay que buscarla en la **región del registro**.
+  ⚠️ **Y UN TERCERO, DE PANTALLA:** el `margin:0` en línea del botón «Ver criterios» **le gana** al
+  `margin-left:auto` de su clase, y el botón quedaba pegado a la izquierda —medido, x=225 en vez
+  del borde derecho—. Lo fija **TC-662 (H5)**.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia** en las claves comparadas: las siete secciones en **tres
+  columnas** en los dieciséis, con la conclusión **a la derecha** a 1440 y **debajo** por debajo del
+  corte; la franja roja de Eisenmenger **visible y fuera de la fila** en los dieciséis; el selector
+  de TAVI con su opción nueva; **cero** desplazamiento horizontal, **cero** textos recortados y
+  **cero errores de página**. Los seis globos medidos abren en **44×44**, cierran por las **tres
+  vías**, abren **dentro de la pantalla** y su cuerpo sale en **11 px**, con el mismo número de
+  caracteres en los dos motores.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`. El único error de consola es el del arnés —`ERR_FILE_NOT_FOUND` y la fuente
+  local—, que es lo que la tanda D2 ya documenta.
+
+- **Línea base al cierre: suite 676/682**, en **trece lotes** cubriendo los **682 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  ejecutado: **682 de 682**—, en UNA sola pasada sobre el árbol sellado, con el pendrive
+  `DISK_IMG` **verificado al abrir, en los TRECE lotes y al cerrar** (quince verificaciones) y el
+  md5 de `index.html` **idéntico** antes y después (`2a135ab1`). Los rojos son **TC-223, TC-376,
+  TC-390 y TC-406**, los cuatro de siempre, más **TC-182 y TC-551**, los dos intermitentes que la
+  orden anticipa: **corridos aislados, TC-182 pasa 4 de 4 y TC-551 pasa 6 de 6**, verificado.
+  **Ningún rojo nuevo.**
+  ⚠️ **Y TC-551 ME HIZO MEDIR MAL UNA VEZ, Y LA CAUSA ES DEPENDENCIA DE ORDEN.** Corrido JUNTO a
+  TC-182 —`--solo TC-182,TC-551`— dio **1 verde de 4**, y corrido SOLO da **6 de 6**; contra HEAD,
+  en un worktree con el mismo archivo de casos, pasa **4 de 4**. Es lo que **COR-f** ya declara:
+  ese caso mide el chorro de la orejuela sin pausar la animación. **Un intermitente no se
+  caracteriza corriéndolo con otro caso al lado.**
+  ⚠️ **Y LA CORRIDA COMPLETA DIO 675/682 CON UN ROJO MÁS, QUE ERA EL DÍA QUE ESE CASO
+  ANUNCIABA: TC-658.** Su grupo (H) es el guardián de la **parada de P8-d** —PANT-8 lo escribió
+  para fijar que la intersección de los dos juegos de valores era vacía y que ninguno escribía en
+  el otro— y esta tanda cierra P8-d por orden expresa del médico. **Las dos condiciones quedan
+  INVERTIDAS y el grupo gana TRES más**, así que queda más fuerte: (H1) sigue exigiendo que
+  Válvulas no escriba sin el módulo en uso, (H1b) que sí escriba con el módulo en uso, (H2) que
+  TAVI escriba siempre, y (H3) y (H4) que el par de «Trivalva normal» **siga parado**. **Su lote
+  entero vuelve a dar 55/55** corrido de nuevo, así que no había dependencia de orden.
+  ⚠️ **Y EL CENSO NO LO ENCONTRÓ**: grapeé la suite por el nombre de lo que toqué —la morfología,
+  `ete_tavi_morf`, `va_morf`— y ese grupo lo dice con otras palabras, «la morfología queda
+  parada». Es el modo de falla que este archivo ya documenta una docena de veces.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves y **censo de campos 1004** en las 30 escenas: **cero campos guardados nuevos**
+  y ningún id cambiado. **Sin huérfanos nuevos.**
+- **CELULAR: 58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+
+- **Dónde está todo:** `docs/mapa/pant9-congenitas-columnas.md` (**mapa NUEVO**, 19,6 KB), las
+  fichas de los seis casos en `docs/mapa/tests-fichas-662.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), el puntero en `docs/mapa/tests-punteros-tandas.md` —medido
+  ANTES de escribir: 18,6 → 20,7 KB—, `docs/INVENTARIO_EVIDENCIA_CONGENITAS.md` (**documento
+  NUEVO**, el inventario de solo lectura del commit 9), `docs/fuentes/FUENTES.md` → «La tanda
+  PANT-9» con su tabla «Cambios de evidencia» **vacía a propósito** y el texto de pantalla que salió
+  de la pantalla, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
+  `docs/GUIA_PRUEBA_PANT9.md` → la guía manual en **22** pasos, y `docs/PENDIENTES.md` → **OCHO**
+  cosas declaradas (**P9-a** a **P9-h**) más el cierre de **P8-d**.
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `tests-fichas.md` (34.237 B) NO se tocaron.**
+
 ### La pantalla de TAVI, las referencias del VD y el molde de la pulmonar — «PANT-8» (2026-11-04)
 
 - **OCHO commits —contados con `git log afed3e8..HEAD` AL CERRAR— y los SIETE de código y

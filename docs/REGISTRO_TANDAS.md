@@ -1024,3 +1024,41 @@ de tracto de salida donde la guía publica tres (**P8-f**).
 
 **Cierra:** **P7-a** (las referencias del VD y de la AP) y la mitad de **P7-b** / **P6-a** (el
 molde de la válvula pulmonar).
+
+---
+
+### PANT-9 — las siete pantallas de congénitas en tres columnas, y el valve-in-valve de TAVI (2026-11-04)
+
+| commit | fecha | título |
+|---|---|---|
+| `5eef69c` | 2026-11-04 | PANT9-1: la circulacion de Fontan en tres columnas con la conclusion a la derecha |
+| `015c110` | 2026-11-04 | PANT9-2: el sindrome de Eisenmenger en tres columnas con la franja roja arriba |
+| `f2a5b52` | 2026-11-04 | PANT9-3: la anomalia de Ebstein en tres columnas, con el parrafo y la caja roja en su globo |
+| `e6922e9` | 2026-11-04 | PANT9-4: el defecto del septo auriculoventricular en tres columnas |
+| `9028d2c` | 2026-11-04 | PANT9-5: la conexion venosa pulmonar anomala parcial en tres columnas |
+| `2064875` | 2026-11-04 | PANT9-6: el ductus arterioso permeable en tres columnas |
+| `2ef07bf` | 2026-11-04 | PANT9-7: la ventana aortopulmonar en tres columnas, con su parrafo en el globo |
+| `a42b063` | 2026-11-04 | PANT9-8: la opcion de valve-in-valve en TAVI y la sincronia de morfologia |
+| `7894c91` | 2026-11-04 | PANT9-9: el inventario de SOLO LECTURA de la Evidencia de las congenitas |
+| + el de cobertura y documentación | 2026-11-04 | PANT9-10 |
+
+**Qué cambió.** Siete pantallas de cardiopatías congénitas —Fontan, Eisenmenger, Ebstein, defecto
+del septo auriculoventricular, conexión venosa pulmonar anómala parcial, ductus y ventana
+aortopulmonar— pasan a **tres columnas de campos por tema** con la **conclusión en una tarjeta gris
+de 360 px a la derecha** desde los 1.260 px de ventana, con la conclusión debajo entre 900 y 1.259
+y todo apilado por debajo de 900. **Diecisiete textos** explicativos pasaron de la pantalla a su
+globo ⓘ, palabra por palabra, y el registro de globos pasa de 123 a 140 entradas. El selector de
+morfología de TAVI gana **una** opción, «Prótesis biológica previa (valve-in-valve)», y se
+sincroniza con la morfología de Válvulas en dos parejas, con el sentido Válvulas → TAVI
+**condicional** al módulo en uso por el filtro del Laboratorio.
+
+**Lo que NO cambió.** Ningún campo, ningún id, ningún valor existente, ningún cálculo, ningún corte
+y ninguna conclusión. Cero campos guardados nuevos (censo 1004), Excel en 441 columnas con las
+mismas claves, y el papel **idéntico** a HEAD en las 30 escenas del A/B salvo las dos que la
+sincronía de morfología de TAVI autoriza, con su ejemplo.
+
+**Lo que quedó pendiente.** `docs/PENDIENTES.md` → **P9-a** a **P9-h**: los diecisiete textos
+movidos sin respaldo anotado y el que lleva una conducta; las seis pantallas que siguen sin
+Evidencia; el borrado que no puede vaciar `va_morf`; el filtro «Con TAVI» del Laboratorio; el alto
+que sube por debajo del corte; las columnas desparejas de Ebstein; el globo del título fuera del
+encabezado del acordeón; y lo que sigue.

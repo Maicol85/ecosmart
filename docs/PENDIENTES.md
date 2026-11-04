@@ -1,5 +1,152 @@
 # EcoSmart — pendientes vivos
 
+## P9-a · Los diecisiete textos que pasaron al globo sin respaldo anotado, y el que lleva una conducta
+
+La regla de la tanda PANT-9 manda mover cada texto explicativo al globo ⓘ **palabra por palabra**,
+y listar acá los que **no tienen su respaldo anotado** en `docs/fuentes/FUENTES.md` ni en el código,
+o los que **afirman una conducta**. Se buscó el respaldo de los diecisiete antes de moverlos:
+**ninguno** lo tenía anotado. Ninguno se borró y ninguno se reescribió.
+
+| Clave del globo | Dónde estaba | Texto, palabra por palabra |
+|---|---|---|
+| `cc9-fontan-sat` | nota de 10 px bajo «Saturacion O₂ (%)» del Fontan | «Normal sin fenestracion: >93-95 %.» |
+| `cc9-fontan-iav` | nota de 10 px bajo «Insuficiencia AV sistémica» | «En Fontan es marcador de disfuncion del ventriculo sistemico.» |
+| `cc9-eisen-sat` | nota de 10 px bajo «Saturacion O₂ en reposo (%)» | «<90 % → riesgo fetal critico. Embarazo practicamente imposible con <85 %. Mortalidad materna >50 %.» |
+| `cc9-eisen-sin` | nota de 10 px bajo «Sincope» | «Marcador de mal pronostico.» |
+| `cc9-eisen-hem` | nota de 10 px bajo «Hemoptisis» | «Riesgo de episodio masivo y fatal.» |
+| `cc9-eisen-per` | nota de 10 px bajo «Derrame pericárdico» | «El derrame pericardico asocia peor pronostico en Eisenmenger.» |
+| `cc9-ebs-sec` | párrafo inicial de la sección de Ebstein | «Desplazamiento apical del velo septal tricuspídeo con atrialización del ventrículo derecho. Menos del 1 % de las cardiopatías congénitas, y la principal causa de insuficiencia tricuspídea congénita severa. Asociación frecuente con FOP o CIA y con vías accesorias. Umbral diagnóstico: desplazamiento ≥8 mm/m² de superficie corporal.» |
+| `cc9-ebs-cel` (bloque «Qué mide») | nota de 10 px del grupo «Índice de Celermajer» | «Las cinco áreas se trazan en apical 4 cámaras y en TELEDIÁSTOLE. No son las mismas que las áreas auriculares del estudio, que se miden en telesístole (aurícula máxima) para evaluar tamaño de cámara — por eso son campos aparte.» |
+| `cc9-ebs-cel` (bloque «A tener en cuenta») | **la CAJA ROJA** del índice | ver abajo, en «los avisos que evitan un error» |
+| `cc9-ebs-cia` | nota de 10 px bajo la saturación en reposo de Ebstein | «La cianosis es uno de los desencadenantes de intervención que lista la ESC 2020 en la anomalía de Ebstein. Por debajo de 90 % indica shunt derecha-izquierda significativo a través de la comunicación interauricular.» |
+| `cc9-dsav-comp` | nota de 10 px bajo «Tamaño del componente ventricular (mm)» | «Sólo en el tipo completo.» |
+| `cc9-dsav-down` | nota de 10 px bajo «Síndrome de Down» | «Presente en buena parte de los DSAV completos del adulto.» |
+| `cc9-dsav-rav` | nota de 10 px bajo «Regurgitación de la válvula AV izquierda» | «Marcador de severidad y principal indicación quirúrgica.» |
+| `cc9-dsav-rvp` | nota de 10 px bajo «Resistencia vascular pulmonar (UW)» | «Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.» |
+| `cc9-cvpa-sec` | párrafo inicial de la sección de CVPA | «En el adulto sólo se ve la forma parcial: la total es una emergencia neonatal. El tipo de CIA y la dilatación del ventrículo derecho son los del estudio (secciones CIA/CIV y VD / AD): no se vuelven a pedir acá.» |
+| `cc9-cvpa-dren` | nota de 10 px bajo «Drenaje» | «El drenaje a cava superior es el más frecuente y suele asociar CIA de seno venoso.» |
+| `cc9-cvpa-qp` | nota de 10 px bajo «Qp/Qs estimado por eco» | «El eco subestima el shunt en esta lesión: la resonancia es el método de referencia (ESC 2020).» |
+| `cc9-vap-sec` | párrafo inicial de la sección de VAP | «Comunicación directa entre la aorta ascendente y la arteria pulmonar principal. Menos del 1 % de las cardiopatías congénitas. A diferencia del ductus no tiene variante restrictiva relevante en el adulto: el defecto es proximal y de gran calibre, así que la repercusión hemodinámica se asume salvo prueba en contra. **ESC 2020: cierre indicado siempre, salvo hipertensión pulmonar irreversible (Eisenmenger).**» |
+
+⚠️ **EL ÚNICO QUE AFIRMA UNA CONDUCTA ES `cc9-vap-sec`**: «ESC 2020: cierre indicado siempre, salvo
+hipertensión pulmonar irreversible (Eisenmenger)». Por la regla de la tanda **no se borró** —se
+movió igual al globo— y queda listado acá. La frase ya estaba en la pantalla antes de esta tanda;
+lo que cambia es que ahora vive en el globo y no en el cuerpo. **La decisión de qué hacer con ella
+es del médico**: el globo es el lugar donde esta casa pone guías, clases y conductas, así que
+moverla ahí la deja en su lugar correcto, pero la ventana aortopulmonar **no tiene sección de
+Evidencia** donde esa recomendación pudiera vivir con su clase y su folio (ver
+`docs/INVENTARIO_EVIDENCIA_CONGENITAS.md`).
+
+⚠️ **Y NINGUNO DE LOS DIECISIETE LLEVA FICHA EN REFERENCIAS**, que es la convención de las entradas
+que no citan un corte de guía con su folio. Son textos que ya estaban en la pantalla y que esta
+tanda movió sin reescribirlos ni agregarles una fuente que no tuvieran; una ficha publicaría un
+criterio que no existe. Lo fija **TC-502 (C3)**, que los nombra uno por uno: el día que uno
+consiga ficha, el caso se pone rojo.
+
+### Los avisos que evitan un error, reportados aparte
+
+**La CAJA ROJA del índice de Celermajer** (Ebstein) es un aviso que evita un error del usuario: dice
+que el índice es orientativo y **no una indicación**. Pasó al bloque «A tener en cuenta» del globo
+del grupo, **completa y palabra por palabra**:
+
+> «El índice es orientativo, no una indicación. Por ecocardiografía sobreestima la severidad
+> (concordancia con resonancia κ=0,39; sólo el índice por RMC correlacionó con la capacidad
+> funcional). Se derivó en una serie de 28 neonatos — el «100 %» del grado IV son 5 pacientes de
+> 5 — y no figura en la ESC 2020, cuyas indicaciones de cirugía en Ebstein son clínicas. Cortes:
+> I <0,5 · II 0,50-0,99 · III 1,00-1,49 · IV ≥1,5. Origen: Celermajer DS et al., JACC
+> 1992;19:1041-6.»
+
+**Pierde sus colores propios** —el borde rojo y el fondo rojo tenue— porque el globo usa el estilo
+estándar, que es lo que la orden fija. **Queda para el médico decidir** si un aviso de este peso
+debería seguir visible en la pantalla en vez de detrás de un globo.
+
+**Las cuatro notas de Eisenmenger** también son avisos de peso clínico —la saturación por debajo de
+90 %, el síncope, la hemoptisis y el derrame pericárdico—, y las cuatro pasaron al globo porque la
+orden lo dice campo por campo. **La franja roja de contraindicaciones NO pasó**, por decisión
+expresa del médico, y se quedó arriba, a todo el ancho y visible.
+
+## P9-b · Seis pantallas de congénitas siguen sin sección de Evidencia
+
+Medido en el commit 9, con su denominador: con los campos de cada una cargados, el panel de
+Evidencia abre **CERO** secciones de primer nivel para Ebstein, Eisenmenger, Fontan, DSAV, CVPA y
+la ventana aortopulmonar. El inventario completo —con los campos que una Evidencia podría leer en
+cada una, sin proponer preguntas ni diseño— está en
+**`docs/INVENTARIO_EVIDENCIA_CONGENITAS.md`**, que esta tanda escribió para que la próxima se
+escriba con datos.
+
+⚠️ **Y DOS PREMISAS DE LA ORDEN SON FALSAS:** el ductus, la coartación, la estenosis pulmonar y la
+Fallot **sí** tienen sección. Lo que les falta es otra cosa: el ductus, la coartación y la
+miocardiopatía hipertrófica obstructiva tienen **cero preguntas**, y la Fallot cubre **sólo** la
+insuficiencia pulmonar.
+
+## P9-c · Al vaciar la morfología de TAVI, la de Válvulas no se vacía
+
+`va_morf` **no tiene opción vacía** —lo midió PANT-A—, así que lo único escribible al borrar
+`ete_tavi_morf` sería «Trivalva normal», que **afirma** que la válvula es normal. Un borrado no
+puede convertirse en una afirmación clínica, así que el espejo no escribe nada en esa dirección.
+Medido y fijado por **TC-667 (D5)**, y la mutación 40 del barrido lo ejercita.
+
+**La decisión que queda:** si `va_morf` debería tener opción vacía. Hoy un formulario en blanco
+**afirma** que la válvula aórtica es trivalva normal, y eso llega al papel —es el mismo problema
+que `INVENTARIO_MASAS.md` declara para `masa_presente`—. Agregarla es un cambio de vocabulario de
+un campo guardado que esta tanda tiene prohibido.
+
+## P9-d · El sentido Válvulas → TAVI es condicional por el filtro del Laboratorio
+
+`_labUsaTavi` nombra `ete_tavi_morf` entre sus predicados de texto, así que con el espejo simétrico
+**todo estudio con la válvula aórtica bicúspide pasaría a contar como «Con TAVI»** en el filtro de
+cohorte del Laboratorio. Medido: con «Bicúspide» en Válvulas y el módulo de TAVI sin usar,
+`_labUsaTavi` da **false** en los dos árboles; con `ete_tavi_morf` cargado da **true**.
+
+El Laboratorio está fuera de esta tanda, así que la sincronía quedó **condicional**, con la misma
+forma y el mismo predicado (`_taviModuloEnUso`) que la sincronía de la raíz aórtica de PANT-8.
+**La decisión que queda es del médico:** si el filtro «Con TAVI» del Laboratorio debería mirar
+sólo los campos de sizing y de control —y no la morfología, la calcificación y la distribución—,
+que es además lo que **P8-g** ya declara por otro camino.
+
+## P9-e · Por debajo del corte de 1260 px, seis de las siete pantallas quedan más altas
+
+Medido en los cinco anchos y declarado en `docs/mapa/pant9-congenitas-columnas.md` § 2. A 1440 px
+las siete bajan; por debajo de 1260 px la conclusión va en su tarjeta **a todo el ancho** —lo que
+agrega su relleno, su borde y el botón— y se suman los **tres títulos de grupo**. Ebstein es la
+única que baja en los cinco anchos.
+
+**No se cambió la disposición para compensarlo**, porque la disposición la fija la orden. **La
+decisión que queda:** si por debajo del corte la tira de conclusión debería volver a su forma
+anterior —una `calc-box` pelada, sin tarjeta— en vez de conservar la tarjeta gris.
+
+## P9-f · Las columnas de Ebstein no quedan parejas
+
+A 1440 px miden **285,3 / 290,0 / 379,3** px de alto: la tercera queda **94 px** más alta que la
+primera porque tiene seis campos contra cuatro. **No se reordenaron campos para igualarlas**, que
+es lo que la orden pide. Las otras seis secciones quedan parejas dentro de ±60 px.
+
+## P9-g · El globo del título no va dentro del encabezado del acordeón
+
+El encabezado de una sección de congénitas (`.sacc-hdr`) **es un `<button>`**: un botón dentro de
+otro es marcado inválido y el navegador lo reparenta, lo que rompe la maqueta. El globo del título
+va como primer elemento del cuerpo, en la barra de encabezado del cuadro, **inmediatamente debajo**
+del título del acordeón, y **no se repite el título** porque la orden no pide agregarlo.
+
+**La decisión que queda:** si el médico prefiere que esa barra repita el nombre corto de la sección
+al lado del globo. Hoy el globo va solo, con su `aria-label` nombrando la sección y lo que explica.
+
+## P9-h · Lo que esta tanda no alcanzó a hacer
+
+Nada de la orden quedó afuera: los **nueve** commits de código y el de cobertura se hicieron
+enteros. Lo que sigue, por orden de lo que la propia orden nombra:
+
+- **La Evidencia de las congénitas** — el inventario está hecho (commit 9); las decisiones del § 3
+  de `docs/INVENTARIO_EVIDENCIA_CONGENITAS.md` son del médico.
+- **Pleura y pulmón**, **Masas** y **FOP** — los inventarios de PANT-8 (`P8-h`) siguen con sus
+  **nueve** decisiones esperando.
+- **El cuadro de notas de la orejuela y el de la aorta del ETE** — `P7-d`: son dos `<textarea>`
+  donde el médico escribe, son campos guardados y su contenido llega al informe, así que no son el
+  recuadro de texto explicativo que la orden describía.
+- **La prótesis mitral sin molde de Evidencia** — `P8-e`, con sus dos motivos medidos y su
+  propuesta en una línea.
+- **El estado de `_labUsaTavi`** — `P8-g` y `P9-d` arriba.
+
 
 ## P3-a · El caso «casilla de abajo tildada y ninguna lesión marcada» de CIA / CIV
 

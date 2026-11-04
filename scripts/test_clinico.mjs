@@ -66708,8 +66708,14 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no lo que la
        condicion afirma sobre el marcado de esa pestania. Se le exige la clave, igual que a las
        dos anteriores, asi que sacarla vuelve a ponerlo en rojo. */
-    Object.keys(VINFO).length === 123 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
-      && ('tavi-calc' in VINFO),
+    /* ADAPTADO EN PANT-9 (commits 1 a 8): 123 -> 140. Entran los DIECISIETE globos de la
+       tanda: los textos que las SIETE pantallas de congenitas movieron de la pantalla a su
+       globo -dos del Fontan, cuatro de Eisenmenger, tres de Ebstein, cuatro del DSAV, tres
+       de la CVPA y uno de la ventana aortopulmonar-. NINGUNO esta en Valvulas, que es la
+       pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no lo que
+       la condicion afirma sobre el marcado de esa pestania. */
+    Object.keys(VINFO).length === 140 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+      && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -78152,7 +78158,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      este completo-: cambia el denominador. */
   /* ADAPTADO EN PANT-8 (commit 4): 122 -> 123 por tavi-calc. Es el denominador del registro,
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 123 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 140 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78185,7 +78191,9 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tv-sec del modulo de arritmia ventricular,
        esub-sec, esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec,
        tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 123,
+    /* ADAPTADO EN PANT-9: 123 -> 140, por los diecisiete globos de los textos que las siete
+       pantallas de congenitas movieron de la pantalla a su globo. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 140,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79528,7 +79536,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      calcificacion- y no un corte que la aplicacion aplique, asi que una ficha publicaria el
      mismo contenido dos veces, que es la regla R4. La lista las sigue nombrando una por una,
      que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: cincuenta tarjetas sin boton, porque Referencias no tiene esa entrada',
+    /* ADAPTADA (TANDA PANT-9, commits 1 a 7, 04/11/2026): 50 -> 67. Las DIECISIETE nuevas
+       son los globos de los textos que las siete pantallas de congenitas movieron de la
+       pantalla a su globo. NINGUNO lleva ficha en Referencias, y es deliberado: son textos
+       que YA ESTABAN en la pantalla y que esta tanda movio sin reescribirlos ni agregarles
+       una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
+       Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
+       limite que declara no cambia; cambia su denominador. */
+  ex.push(['(C3) LIMITE DECLARADO: sesenta y siete tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79546,7 +79561,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        El limite que esta condicion declara no cambia; cambia su denominador, y la lista las
        sigue nombrando una por una, que es lo que hace que el dia que una consiga ficha el caso
        se ponga rojo. */
-    sinBoton.join(',') === 'amilo-score,cc-3d,co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
+    sinBoton.join(',') === 'amilo-score,cc-3d,'
+      + 'cc9-cvpa-dren,cc9-cvpa-qp,cc9-cvpa-sec,'
+      + 'cc9-dsav-comp,cc9-dsav-down,cc9-dsav-rav,cc9-dsav-rvp,'
+      + 'cc9-ebs-cel,cc9-ebs-cia,cc9-ebs-sec,'
+      + 'cc9-eisen-hem,cc9-eisen-per,cc9-eisen-sat,cc9-eisen-sin,'
+      + 'cc9-fontan-iav,cc9-fontan-sat,cc9-vap-sec,'
+      + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
       + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
       + 'mca-eco,mca-score,mca-sec,mca-vi,'
@@ -92134,12 +92155,24 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      ventriculo derecho y el del signo 60-60, los dos con la clase vinfo-btn-44. Medidos: los
      dos dan 44x44 y 5 de 5 puntos propios en los cuatro anchos. */
   /* ADAPTADA (PANT-8, commit 4): 43 -> 44 por tavi-calc, que nace con vinfo-btn-44. */
-  ex.push(['(K0) DENOMINADOR: los CUARENTA Y CUATRO globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 44 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los cuarenta y cuatro miden 44x44 tambien con el mouse',
-    tapK.length === 44 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADO EN LA TANDA PANT-9 (2026-11-04): CUARENTA Y CUATRO -> SESENTA Y UNO. Los
+     DIECISIETE nuevos son los globos de los textos que las siete pantallas de congenitas
+     movieron de la pantalla a su globo, y los diecisiete nacen con la clase vinfo-btn-44 y
+     SIN margenes negativos. Lo que estas tres condiciones exigen no cambia; lo que cambia es
+     cuantos globos tienen que cumplirlo, y el conteo ES el denominador: agregar uno sin la
+     clase pone esto en rojo.
+     ⚠️ LOS DIECISIETE VIVEN EN ACORDEONES DE C. CONGENITAS QUE NACEN PLEGADOS, y el helper
+     de este grupo ya los abre: clickea el encabezado, le saca la animacion y le pone
+     max-height:none al cuerpo. Medido: los diecisiete dan 44x44 y los CINCO puntos dan el
+     propio boton, tambien el del grupo «Indice de Celermajer», que vive dentro del titulo de
+     su columna y hace crecer esa fila a 44 px -que es la decision de la casa: sin margenes
+     negativos, el contenedor crece y nada queda tapado-. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y UN globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 61 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y uno miden 44x44 tambien con el mouse',
+    tapK.length === 61 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 44 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 61 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -112484,11 +112517,30 @@ caso('TC-658', 'Tanda PANT-8: la sincronia de TAVI con Aorta / AI en los dos sen
   ex.push(['(G1) el anillo NO escribe el TSVI', V('diam_tsvi_ao'), '']);
   limpiar(); S('ete_tavi_vmax', '2.1');
   ex.push(['(G2) la Vmax post-TAVI NO escribe la de la nativa', V('vmax_ao'), '']);
-  /* ── (H) LA MORFOLOGIA QUEDA PARADA: la interseccion de los dos juegos de valores es VACIA ── */
+  /* ── (H) LA MORFOLOGIA YA NO ESTA PARADA — INVERTIDO EN LA TANDA PANT-9 (04/11/2026) ──
+     ⚠️ ES EL DIA QUE ESTE GRUPO ANUNCIABA. PANT-8 lo escribio para fijar la PARADA que dejo
+     declarada en P8-d: la interseccion de los dos juegos de valores era VACIA y ninguno de los
+     dos selectores escribia en el otro. La tanda PANT-9, por orden EXPRESA del medico, cierra
+     P8-d: agrega la opcion de valve-in-valve y sincroniza DOS parejas -las dos bicuspides y la
+     opcion nueva con la bioprotesis-.
+     LAS DOS CONDICIONES SE INVIERTEN Y GANAN UNA TERCERA, asi que el grupo queda MAS FUERTE y
+     puede volver a fallar por cualquiera de los dos lados: (H1) sigue exigiendo que Valvulas NO
+     escriba cuando el modulo de TAVI no esta en uso -que es la condicion que protege al filtro
+     del Laboratorio-, (H1b) exige que SI escriba con el modulo en uso, y (H2) exige que TAVI
+     escriba SIEMPRE, que es el sentido incondicional. Lo que NO cambia es la parada de
+     «Trivalva normal», que (G3) de abajo sigue vigilando. */
   limpiar(); S('va_morf', 'Bicúspide');
-  ex.push(['(H1) Valvulas NO escribe la morfologia de TAVI', V('ete_tavi_morf'), '']);
+  ex.push(['(H1) sin el modulo de TAVI en uso, Valvulas NO escribe la morfologia de TAVI', V('ete_tavi_morf'), '']);
+  limpiar(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Bicúspide');
+  ex.push(['(H1b) con el modulo en uso, SI la escribe', V('ete_tavi_morf'), 'bicuspide']);
   limpiar(); S('ete_tavi_morf', 'bicuspide');
-  ex.push(['(H2) y TAVI NO escribe la de Valvulas', V('va_morf'), 'Trivalva normal']);
+  ex.push(['(H2) y TAVI escribe la de Valvulas SIEMPRE: el campo del estudio es el dueno', V('va_morf'), 'Bicúspide']);
+  /* El par que SIGUE parado, que es el criterio de P8-d: «Trivalva normal» afirma que la valvula
+     es NORMAL y «Tricuspide» afirma solo el numero de velos. */
+  limpiar(); S('ete_tavi_morf', 'tricuspide');
+  ex.push(['(H3) PARADO: «tricuspide» NO escribe «Trivalva normal»', V('va_morf'), 'Trivalva normal']);
+  limpiar(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Trivalva normal');
+  ex.push(['(H4) PARADO: ni «Trivalva normal» escribe «tricuspide»', V('ete_tavi_morf'), '']);
   limpiar();
   return { extra: EXP };
 `);
@@ -112622,6 +112674,596 @@ caso('TC-661', 'Tanda PANT-8: la estenosis pulmonar estrena el molde de Evidenci
   ex.push(['(F1) DENOMINADOR: con una protesis la seccion se abre', !!p, true]);
   ex.push(['(F2) y NO tiene molde: su categoria es un voto y la decide el medico', !!(p && p.molde), false]);
   ex.push(['(F3) CONTROL: conserva sus filas clinicas', p ? (p.clinica.length >= 4) : false, true]);
+  return { extra: EXP };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA PANT-9 (2026-11-04) — las SIETE pantallas de congenitas en tres columnas con la
+   conclusion a la derecha, los textos que pasaron al globo, y la opcion de valve-in-valve de
+   TAVI con su sincronia de morfologia.
+
+   ⚠️ COMO SE MIDE LA MAQUETA, Y NO ES GEOMETRIA. El arnes arranca Chrome SIN --window-size, o
+   sea a unos 756 px, por DEBAJO del corte de 900: ahi las tres columnas estan apiladas a
+   proposito. Asi que lo que estos casos miden es la REGLA de la hoja de estilos y la
+   ESTRUCTURA del marcado; la geometria a los cuatro anchos la miden las sondas
+   _probe_pant9pant.mjs y _probe_pant9wk.mjs, que tienen el canal del navegador.
+   ⚠️ Y LA REGLA SE LEE DEL TEXTO DE LOS <style>, no de document.styleSheets: en este arnes
+   cssRules devuelve VACIO -leccion de PANT-7-. Delimitar el bloque de una media query por
+   balance de llaves se DESALINEA en cuanto un comentario de la hoja menciona «900 px», y esta
+   hoja tiene varios: lo que se hace es buscar el SELECTOR y preguntar si la media query mas
+   cercana HACIA ATRAS declara ese ancho, acumulando TODAS las coincidencias.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-662', 'Tanda PANT-9: la circulacion de Fontan en tres columnas con la conclusion a la derecha, las seis complicaciones en dos columnas con su logica intacta, y las dos notas de 10 px en su globo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const card = document.getElementById('sacc-cc-fontan');
+  ex.push(['(A0) DENOMINADOR: la tarjeta de Fontan existe', !!card, true]);
+  const body = card ? card.querySelector('.sacc-body') : null;
+  const cuadro = card ? card.querySelector('.cc9-cuadro') : null;
+  const fila = card ? card.querySelector('.cc9-fila') : null;
+  const cols = card ? card.querySelector('.cc9-cols') : null;
+  const concl = card ? card.querySelector('.cc9-concl') : null;
+  ex.push(['(A1) el cuerpo lleva el cuadro con borde de acento', !!cuadro, true]);
+  ex.push(['(A2) y dentro la fila de la disposicion, con su id propio', fila ? fila.id : 'NO', 'fontan-fila']);
+  ex.push(['(A3) la fila tiene DOS hijos: las columnas y la conclusion', fila ? fila.children.length : 0, 2]);
+  ex.push(['(A4) el PRIMER hijo son las columnas', (fila && fila.children[0] === cols), true]);
+  ex.push(['(A5) y el SEGUNDO la tarjeta de conclusion', (fila && fila.children[1] === concl), true]);
+  ex.push(['(A6) TRES columnas', cols ? cols.children.length : 0, 3]);
+  /* ── (B) el reparto de campos por columna, uno por uno ── */
+  const colIds = cols ? Array.prototype.map.call(cols.children, (c) => Array.prototype.map.call(
+    c.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id).join(',')) : [];
+  const colH = cols ? Array.prototype.map.call(cols.children, (c) => {
+    const h = c.querySelector('.cc9-h'); return h ? h.textContent.trim() : 'SIN TITULO' }) : [];
+  ex.push(['(B1) titulo de la columna 1', colH[0] || 'NO', 'Circuito y ventrículo sistémico']);
+  ex.push(['(B2) titulo de la columna 2', colH[1] || 'NO', 'Saturación y función']);
+  ex.push(['(B3) titulo de la columna 3', colH[2] || 'NO', 'Congestión y complicaciones']);
+  ex.push(['(B4) campos de la columna 1', colIds[0] || 'NO',
+    'fontan_tipo,fontan_fenestracion,fontan_vs_morfologia,fontan_vs_fevi,fontan_vs_fac']);
+  ex.push(['(B5) campos de la columna 2', colIds[1] || 'NO',
+    'fontan_saturacion,fontan_it_grado,fontan_clase_nyha,fontan_arritmia']);
+  ex.push(['(B6) campos de la columna 3, con las seis casillas al final', colIds[2] || 'NO',
+    'fontan_derrame_pleural,fontan_ascitis,fontan_comp_ninguna,fontan_comp_epp,fontan_comp_bronq,fontan_comp_fald,fontan_comp_trombo,fontan_comp_otra']);
+  /* ── (C) el censo de ids de la seccion NO cambio ── */
+  const ids = card ? Array.prototype.map.call(card.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id) : [];
+  ex.push(['(C1) la seccion tiene DIECIOCHO ids, los mismos que antes del rediseno', ids.length, 18]);
+  ex.push(['(C2) y la casilla oculta de integrar sigue adentro', ids.indexOf('fontan_incluir_chk') > -1, true]);
+  /* ── (D) la conclusion y el boton ── */
+  ex.push(['(D1) la tira de conclusion vive DENTRO de la tarjeta de conclusion',
+    !!(concl && concl.querySelector('#fontan-resultado')), true]);
+  const bInt = concl ? concl.querySelector('.btn-integrar') : null;
+  ex.push(['(D2) y el boton de integrar tambien', !!bInt, true]);
+  ex.push(['(D3) el boton conserva su casilla', bInt ? bInt.getAttribute('data-ete-chk') : 'NO', 'fontan_incluir_chk']);
+  ex.push(['(D4) y esta centrado por su envoltorio propio',
+    !!(concl && concl.querySelector('.cc9-concl-btn')), true]);
+  /* ── (E) las SEIS casillas en dos columnas, con su logica intacta ── */
+  const chk2 = card ? card.querySelector('.cc9-chk2') : null;
+  ex.push(['(E0) DENOMINADOR: la grilla de casillas existe y conserva su id', chk2 ? chk2.id : 'NO', 'fontan-complicaciones']);
+  ex.push(['(E1) con las SEIS casillas', chk2 ? chk2.querySelectorAll('input[type=checkbox]').length : 0, 6]);
+  const CK = (id) => document.getElementById(id);
+  const marcar = (id) => { const e = CK(id); if (!e) return; e.checked = true;
+    e.dispatchEvent(new Event('change', { bubbles: true })) };
+  const estado = () => ['fontan_comp_ninguna','fontan_comp_epp','fontan_comp_bronq','fontan_comp_fald',
+    'fontan_comp_trombo','fontan_comp_otra'].map((k) => (CK(k) || {}).checked ? '1' : '0').join('');
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  marcar('fontan_comp_epp'); marcar('fontan_comp_fald');
+  ex.push(['(E2) DENOMINADOR: dos complicaciones marcadas se quedan marcadas', estado(), '010100']);
+  marcar('fontan_comp_ninguna');
+  ex.push(['(E3) «Sin complicaciones» apaga las otras cinco, que es la logica que ya tenia', estado(), '100000']);
+  marcar('fontan_comp_bronq');
+  ex.push(['(E4) y marcar una complicacion apaga «Sin complicaciones»', estado(), '001000']);
+  /* ── (F) los DOS globos nuevos, con su texto, y el texto AUSENTE del cuerpo ── */
+  const g = (k) => card ? card.querySelector('[data-vinfo="' + k + '"]') : null;
+  ex.push(['(F1) el globo de la saturacion existe', !!g('cc9-fontan-sat'), true]);
+  ex.push(['(F2) y el de la insuficiencia AV sistemica', !!g('cc9-fontan-iav'), true]);
+  ex.push(['(F3) los dos son el glifo estandar U+24D8',
+    (g('cc9-fontan-sat') || {}).textContent === '\\u24d8' && (g('cc9-fontan-iav') || {}).textContent === '\\u24d8', true]);
+  ex.push(['(F4) y llevan la clase del piso tactil de 44 px',
+    !!(g('cc9-fontan-sat') || {}).classList && g('cc9-fontan-sat').classList.contains('vinfo-btn-44')
+    && g('cc9-fontan-iav').classList.contains('vinfo-btn-44'), true]);
+  const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(F5) DENOMINADOR: el registro de globos existe', !!REG, true]);
+  ex.push(['(F6) la nota de la saturacion esta en su entrada, palabra por palabra',
+    REG && REG['cc9-fontan-sat'] ? REG['cc9-fontan-sat'].lee : 'NO',
+    'Normal sin fenestracion: >93-95\\u00a0%.']);
+  ex.push(['(F7) y la de la insuficiencia AV sistemica en la suya',
+    REG && REG['cc9-fontan-iav'] ? REG['cc9-fontan-iav'].lee : 'NO',
+    'En Fontan es marcador de disfuncion del ventriculo sistemico.']);
+  const txt = body ? (body.textContent || '') : '';
+  ex.push(['(F8) la nota de la saturacion YA NO esta en el cuerpo de la pantalla',
+    txt.indexOf('Normal sin fenestracion') > -1, false]);
+  ex.push(['(F9) ni la de la insuficiencia AV sistemica',
+    txt.indexOf('marcador de disfuncion del ventriculo sistemico') > -1, false]);
+  /* ── (G) CONTROL POSITIVO: los rotulos de los dos campos SI siguen en el cuerpo ── */
+  ex.push(['(G1) CONTROL: el rotulo de la saturacion sigue en la pantalla', txt.indexOf('Saturacion O') > -1, true]);
+  ex.push(['(G2) CONTROL: y el de la insuficiencia AV sistemica', txt.indexOf('Insuficiencia AV sist') > -1, true]);
+  /* ── (H) «Ver criterios» en el encabezado, a la derecha ── */
+  const hdr = card ? card.querySelector('.cc9-hdrbar') : null;
+  ex.push(['(H1) el cuadro tiene barra de encabezado', !!hdr, true]);
+  const vc = hdr ? hdr.querySelector('button') : null;
+  ex.push(['(H2) con el boton «Ver criterios»', vc ? (vc.textContent || '').indexOf('Ver criterios') > -1 : false, true]);
+  ex.push(['(H3) que lleva la clase que lo manda a la derecha', vc ? vc.classList.contains('cc9-hdr-der') : false, true]);
+  ex.push(['(H4) y conserva su llamada', vc ? (vc.getAttribute('onclick') || '') : 'NO', "critAbrir('fontan')"]);
+  ex.push(['(H5) el boton NO lleva un margin en linea, que le ganaria al margin-left:auto',
+    vc ? /margin/.test(vc.getAttribute('style') || '') : true, false]);
+  return { extra: EXP };
+`);
+
+caso('TC-663', 'Tanda PANT-9: el sindrome de Eisenmenger en tres columnas con la franja roja de contraindicaciones arriba y VISIBLE, y sus cuatro notas en su globo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const card = document.getElementById('sacc-cc-eisen');
+  ex.push(['(A0) DENOMINADOR: la tarjeta de Eisenmenger existe', !!card, true]);
+  const body = card ? card.querySelector('.sacc-body') : null;
+  const cuadro = card ? card.querySelector('.cc9-cuadro') : null;
+  const fila = card ? card.querySelector('.cc9-fila') : null;
+  const cols = card ? card.querySelector('.cc9-cols') : null;
+  const concl = card ? card.querySelector('.cc9-concl') : null;
+  ex.push(['(A1) el cuadro existe', !!cuadro, true]);
+  ex.push(['(A2) la fila lleva su id propio', fila ? fila.id : 'NO', 'eisen-fila']);
+  ex.push(['(A3) con DOS hijos', fila ? fila.children.length : 0, 2]);
+  ex.push(['(A4) TRES columnas', cols ? cols.children.length : 0, 3]);
+  /* ── (B) LA FRANJA ROJA: arriba, FUERA de la fila y VISIBLE. Decision expresa del medico. ── */
+  let franja = null;
+  if (cuadro) Array.prototype.forEach.call(cuadro.children, (c) => {
+    if ((c.textContent || '').indexOf('Contraindicaciones absolutas') > -1) franja = c });
+  ex.push(['(B1) la franja de contraindicaciones es hija DIRECTA del cuadro', !!franja, true]);
+  ex.push(['(B2) y NO esta dentro de la fila de columnas',
+    !!(fila && fila.contains(franja)), false]);
+  ex.push(['(B3) va ANTES de la fila', franja && fila ?
+    (Array.prototype.indexOf.call(cuadro.children, franja) < Array.prototype.indexOf.call(cuadro.children, fila)) : false, true]);
+  ex.push(['(B4) su texto esta COMPLETO, con las tres contraindicaciones',
+    franja ? ((franja.textContent || '').indexOf('embarazo') > -1
+      && (franja.textContent || '').indexOf('correccion quirurgica cardiaca del defecto') > -1
+      && (franja.textContent || '').indexOf('ejercicio extenuante') > -1) : false, true]);
+  /* ⚠️ MIRA EL TEXTO COMPLETO DE LA ENTRADA Y NO SOLO el bloque «Que mide», y nacio del
+     barrido de mutaciones: la version anterior miraba solo ese bloque, asi que mover la franja
+     roja al bloque «A tener en
+     cuenta» -que es donde la pondria quien quisiera pasarla al globo- la dejaba pasar. */
+  ex.push(['(B5) y NO paso al registro de globos: ninguna entrada la contiene, en NINGUNO de sus bloques',
+    (function () { const R = (typeof VINFO !== 'undefined') ? VINFO : {};
+      return Object.keys(R).some((k) => { const d = R[k] || {};
+        const t = String(d.tit || '') + String(d.lee || '') + String(d.ojo || '') + String(d.fuente || '');
+        return t.indexOf('Contraindicaciones absolutas') > -1 }) })(), false]);
+  /* ── (C) el reparto de campos ── */
+  const colIds = cols ? Array.prototype.map.call(cols.children, (c) => Array.prototype.map.call(
+    c.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id).join(',')) : [];
+  const colH = cols ? Array.prototype.map.call(cols.children, (c) => {
+    const h = c.querySelector('.cc9-h'); return h ? h.textContent.trim() : 'SIN TITULO' }) : [];
+  ex.push(['(C1) titulo de la columna 1', colH[0] || 'NO', 'Lesión y saturación']);
+  ex.push(['(C2) titulo de la columna 2', colH[1] || 'NO', 'Presión pulmonar y ventrículo derecho']);
+  ex.push(['(C3) titulo de la columna 3', colH[2] || 'NO', 'Clínica']);
+  ex.push(['(C4) campos de la columna 1', colIds[0] || 'NO',
+    'eis_lesion_base,eis_saturacion_reposo,eis_saturacion_ejercicio']);
+  ex.push(['(C5) campos de la columna 2', colIds[1] || 'NO',
+    'eis_psap,eis_pdap,eis_it_vel,eis_vd_funcion']);
+  ex.push(['(C6) campos de la columna 3', colIds[2] || 'NO',
+    'eis_clase_nyha,eis_sincope,eis_hemoptisis,eis_pericardio']);
+  const ids = card ? Array.prototype.map.call(card.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id) : [];
+  ex.push(['(C7) la seccion tiene DOCE ids, los mismos que antes del rediseno', ids.length, 12]);
+  /* ── (D) los CUATRO globos, con su texto, y el texto ausente del cuerpo ── */
+  const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(D0) DENOMINADOR: el registro existe', !!REG, true]);
+  const PARES = [
+    ['cc9-eisen-sat', 'riesgo fetal critico', '<90'],
+    ['cc9-eisen-sin', 'Marcador de mal pronostico.', 'Marcador de mal pronostico'],
+    ['cc9-eisen-hem', 'Riesgo de episodio masivo y fatal.', 'Riesgo de episodio masivo y fatal'],
+    ['cc9-eisen-per', 'El derrame pericardico asocia peor pronostico en Eisenmenger.', 'asocia peor pronostico']
+  ];
+  const txt = body ? (body.textContent || '') : '';
+  PARES.forEach((p, n) => {
+    ex.push(['(D' + (n + 1) + 'a) el globo ' + p[0] + ' esta en la pantalla',
+      !!(card && card.querySelector('[data-vinfo="' + p[0] + '"]')), true]);
+    ex.push(['(D' + (n + 1) + 'b) su texto esta en el registro',
+      REG && REG[p[0]] ? (String(REG[p[0]].lee || '').indexOf(p[1]) > -1) : false, true]);
+    ex.push(['(D' + (n + 1) + 'c) y YA NO esta en el cuerpo de la pantalla', txt.indexOf(p[2]) > -1, false]);
+  });
+  /* ── (E) CONTROL POSITIVO: los rotulos siguen ── */
+  ex.push(['(E1) CONTROL: el rotulo del sincope sigue en la pantalla', txt.indexOf('Sincope') > -1, true]);
+  ex.push(['(E2) CONTROL: y el del derrame pericardico', txt.indexOf('Derrame peric') > -1, true]);
+  /* ── (F) «Ver criterios» en el encabezado, a la derecha ── */
+  const hdr = card ? card.querySelector('.cc9-hdrbar') : null;
+  const vc = hdr ? hdr.querySelector('button') : null;
+  ex.push(['(F1) «Ver criterios» vive en la barra de encabezado',
+    vc ? (vc.textContent || '').indexOf('Ver criterios') > -1 : false, true]);
+  ex.push(['(F2) con la clase que lo manda a la derecha', vc ? vc.classList.contains('cc9-hdr-der') : false, true]);
+  ex.push(['(F3) y conserva su llamada', vc ? (vc.getAttribute('onclick') || '') : 'NO', "critAbrir('eisen')"]);
+  return { extra: EXP };
+`);
+
+caso('TC-664', 'Tanda PANT-9: la anomalia de Ebstein en tres columnas, con el parrafo de la seccion, la nota de las cinco areas y la CAJA ROJA del indice en sus globos', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const card = document.getElementById('sacc-cc-ebs');
+  ex.push(['(A0) DENOMINADOR: la tarjeta de Ebstein existe', !!card, true]);
+  const body = card ? card.querySelector('.sacc-body') : null;
+  const fila = card ? card.querySelector('.cc9-fila') : null;
+  const cols = card ? card.querySelector('.cc9-cols') : null;
+  const concl = card ? card.querySelector('.cc9-concl') : null;
+  ex.push(['(A1) la fila lleva su id propio', fila ? fila.id : 'NO', 'ebs-fila']);
+  ex.push(['(A2) con DOS hijos', fila ? fila.children.length : 0, 2]);
+  ex.push(['(A3) TRES columnas', cols ? cols.children.length : 0, 3]);
+  /* ── (B) el reparto ── */
+  const colIds = cols ? Array.prototype.map.call(cols.children, (c) => Array.prototype.map.call(
+    c.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id).join(',')) : [];
+  const colH = cols ? Array.prototype.map.call(cols.children, (c) => {
+    const h = c.querySelector('.cc9-h'); return h ? h.textContent.replace('\\u24d8','').trim() : 'SIN TITULO' }) : [];
+  ex.push(['(B1) titulo de la columna 1', colH[0] || 'NO', 'Válvula y ventrículo derecho']);
+  ex.push(['(B2) titulo de la columna 2', colH[1] || 'NO', 'Índice de Celermajer']);
+  ex.push(['(B3) titulo de la columna 3', colH[2] || 'NO', 'Arritmias y situación clínica']);
+  ex.push(['(B4) campos de la columna 1', colIds[0] || 'NO',
+    'ebs_desplazamiento,ebs_atrializacion,ebs_it_ro,ebs_func_vd']);
+  ex.push(['(B5) campos de la columna 2: las cinco areas y el de solo lectura', colIds[1] || 'NO',
+    'ebs_area_ad,ebs_area_vd_atrial,ebs_area_vd_func,ebs_area_ai,ebs_area_vi,ebs_areas_ro']);
+  ex.push(['(B6) campos de la columna 3', colIds[2] || 'NO',
+    'ebs_tsv,ebs_vias,ebs_sintomas,ebs_saturacion,ebs_ejercicio,ebs_progresion']);
+  ex.push(['(B7) el indexado por superficie, que es calculado, sigue en la columna 1',
+    !!(cols && cols.children[0] && cols.children[0].querySelector('#ebs-desp-idx')), true]);
+  const ids = card ? Array.prototype.map.call(card.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id) : [];
+  ex.push(['(B8) la seccion tiene DIECISIETE ids, los mismos que antes del rediseno', ids.length, 17]);
+  /* ── (C) la columna del indice: las areas en DOS columnas y la tira del resultado DEBAJO ── */
+  const g2 = cols && cols.children[1] ? cols.children[1].querySelector('.cc9-g2') : null;
+  ex.push(['(C1) las seis entradas del indice van en una grilla de dos columnas', !!g2, true]);
+  ex.push(['(C2) con sus SEIS campos', g2 ? g2.querySelectorAll('input[id]').length : 0, 6]);
+  const cel = cols && cols.children[1] ? cols.children[1].querySelector('#ebs-celermajer') : null;
+  ex.push(['(C3) la tira del resultado vive en esa columna', !!cel, true]);
+  ex.push(['(C4) y va DESPUES de la grilla de areas', (function () {
+    if (!g2 || !cel) return false;
+    const caja = cel.closest('.calc-box');
+    const col = cols.children[1];
+    return Array.prototype.indexOf.call(col.children, g2) < Array.prototype.indexOf.call(col.children, caja) })(), true]);
+  ex.push(['(C5) la tira conserva su rotulo', (function () {
+    const r = cel ? cel.closest('.calc-row') : null;
+    const l = r ? r.querySelector('.calc-lbl') : null;
+    return l ? l.textContent.trim() : 'NO' })(), 'Índice de Celermajer']);
+  /* ── (D) los TRES globos: el del titulo, el del grupo y el de la cianosis ── */
+  const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(D0) DENOMINADOR: el registro existe', !!REG, true]);
+  const hdr = card ? card.querySelector('.cc9-hdrbar') : null;
+  const gsec = hdr ? hdr.querySelector('[data-vinfo="cc9-ebs-sec"]') : null;
+  ex.push(['(D1) el globo del TITULO vive en la barra de encabezado', !!gsec, true]);
+  ex.push(['(D2) esta seccion NO tiene «Ver criterios», asi que el encabezado lleva solo el globo',
+    hdr ? hdr.querySelectorAll('button').length : 0, 1]);
+  const ggrp = cols && cols.children[1] ? cols.children[1].querySelector('[data-vinfo="cc9-ebs-cel"]') : null;
+  ex.push(['(D3) el globo del GRUPO vive en el titulo de la columna del indice',
+    !!(ggrp && ggrp.closest('.cc9-h')), true]);
+  const gcia = cols && cols.children[2] ? cols.children[2].querySelector('[data-vinfo="cc9-ebs-cia"]') : null;
+  ex.push(['(D4) el globo de la cianosis vive en el rotulo de la saturacion',
+    !!(gcia && gcia.closest('label')), true]);
+  /* ── (E) los textos: en su globo y FUERA del cuerpo ── */
+  const txt = body ? (body.textContent || '') : '';
+  ex.push(['(E1) el parrafo de la seccion esta en su entrada',
+    REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('Desplazamiento apical del velo septal') > -1) : false, true]);
+  ex.push(['(E2) con su umbral diagnostico',
+    REG && REG['cc9-ebs-sec'] ? (String(REG['cc9-ebs-sec'].lee || '').indexOf('Umbral diagn') > -1) : false, true]);
+  ex.push(['(E3) y YA NO esta en el cuerpo', txt.indexOf('Desplazamiento apical del velo septal') > -1, false]);
+  ex.push(['(E4) la nota de las cinco areas esta en el globo del grupo',
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].lee || '').indexOf('TELEDI') > -1) : false, true]);
+  ex.push(['(E5) y YA NO esta en el cuerpo', txt.indexOf('apical 4 c') > -1, false]);
+  /* LA CAJA ROJA: es un AVISO QUE EVITA UN ERROR y va en el bloque «A tener en cuenta». */
+  ex.push(['(E6) la CAJA ROJA esta en el bloque ojo del globo del grupo',
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('El \\u00edndice es orientativo, no una indicaci\\u00f3n') > -1) : false, true]);
+  ex.push(['(E7) con sus cuatro cortes',
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('I <0,5') > -1) : false, true]);
+  ex.push(['(E8) y con su origen',
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('Celermajer DS') > -1) : false, true]);
+  ex.push(['(E9) la caja roja YA NO esta en el cuerpo', txt.indexOf('El \\u00edndice es orientativo') > -1, false]);
+  ex.push(['(E10) la nota de la cianosis esta en su globo',
+    REG && REG['cc9-ebs-cia'] ? (String(REG['cc9-ebs-cia'].lee || '').indexOf('cianosis') > -1) : false, true]);
+  ex.push(['(E11) y YA NO esta en el cuerpo', txt.indexOf('es uno de los desencadenantes') > -1, false]);
+  /* ── (F) CONTROL POSITIVO: la cita de la ESC 2020 NO se perdio, cambio de lugar ── */
+  const todo = (REG ? Object.keys(REG).filter((k) => k.indexOf('cc9-ebs-') === 0)
+    .map((k) => String((REG[k] || {}).lee || '') + String((REG[k] || {}).ojo || '')).join(' ') : '');
+  ex.push(['(F1) CONTROL: los globos de Ebstein citan la ESC 2020 DOS veces, que es lo que el cuerpo tenia',
+    (todo.match(/ESC 2020/g) || []).length, 2]);
+  ex.push(['(F2) CONTROL: y el cuerpo ya no la cita ninguna vez', (txt.match(/ESC 2020/g) || []).length, 0]);
+  /* ── (G) la conclusion a la derecha ── */
+  ex.push(['(G1) la tira Conclusion vive en la tarjeta de conclusion',
+    !!(concl && concl.querySelector('#ebs-concl')), true]);
+  ex.push(['(G2) y el boton de integrar tambien',
+    concl ? ((concl.querySelector('.btn-integrar') || {}).getAttribute ? concl.querySelector('.btn-integrar').getAttribute('data-ete-chk') : 'NO') : 'NO',
+    'ebs_incluir_chk']);
+  return { extra: EXP };
+`);
+
+caso('TC-665', 'Tanda PANT-9: el DSAV, la CVPA, el ductus y la ventana aortopulmonar en tres columnas, con la linea de disenio del DSAV FUERA de la pantalla y los seis textos en su globo', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const REG = (typeof VINFO !== 'undefined') ? VINFO : null;
+  ex.push(['(A0) DENOMINADOR: el registro de globos existe', !!REG, true]);
+  const SECS = [
+    ['dsav', 'dsav-fila', 10, ['Tipo y anatomía','Regurgitación AV y función del VI','Hemodinámica'],
+      ['dsav_tipo,dsav_dssd_mm,dsav_down','dsav_regurg_av_izq,dsav_regurg_av_der,dsav_vi_ro','dsav_qp_qs,dsav_htp,dsav_rvp_uw'], 0],
+    ['cvpa', 'cvpa-fila', 9, ['Anatomía','Hemodinámica','Clínica y datos del estudio'],
+      ['cvpa_venas_numero,cvpa_conexion,cvpa_lado','cvpa_qp_qs,cvpa_htp','cvpa_sintomas,cvpa_cia_ro,cvpa_vd_ro'], 1],
+    ['dap', 'dap-fila', 6, ['Tipo y tamaño','Shunt','Gradiente y presión'],
+      ['dap_tipo,dap_diam','dap_dir,dap_vmax','dap_paps'], 0],
+    ['vap', 'vap-fila', 6, ['Tipo y tamaño','Shunt','Presión pulmonar'],
+      ['vap_tipo,vap_diam','vap_dir','vap_htp,vap_paps_ro'], 1]
+  ];
+  SECS.forEach((S) => {
+    const k = S[0];
+    const card = document.getElementById('sacc-cc-' + k);
+    ex.push(['(A-' + k + ') DENOMINADOR: la tarjeta existe', !!card, true]);
+    const fila = card ? card.querySelector('.cc9-fila') : null;
+    const cols = card ? card.querySelector('.cc9-cols') : null;
+    const concl = card ? card.querySelector('.cc9-concl') : null;
+    ex.push(['(B-' + k + ') la fila lleva su id propio', fila ? fila.id : 'NO', S[1]]);
+    ex.push(['(C-' + k + ') con DOS hijos: columnas y conclusion', fila ? fila.children.length : 0, 2]);
+    ex.push(['(D-' + k + ') TRES columnas', cols ? cols.children.length : 0, 3]);
+    const colH = cols ? Array.prototype.map.call(cols.children, (c) => {
+      const h = c.querySelector('.cc9-h'); return h ? h.textContent.replace('\\u24d8','').trim() : 'SIN TITULO' }) : [];
+    ex.push(['(E-' + k + ') los tres titulos de grupo', colH.join(' | '), S[3].join(' | ')]);
+    const colIds = cols ? Array.prototype.map.call(cols.children, (c) => Array.prototype.map.call(
+      c.querySelectorAll('input[id],select[id],textarea[id]'), (e) => e.id).join(',')) : [];
+    ex.push(['(F-' + k + ') el reparto de campos por columna', colIds.join(' | '), S[4].join(' | ')]);
+    const ids = card ? card.querySelectorAll('input[id],select[id],textarea[id]').length : 0;
+    ex.push(['(G-' + k + ') el censo de ids no cambio', ids, S[2]]);
+    ex.push(['(H-' + k + ') la conclusion vive en la tarjeta de la derecha',
+      !!(concl && concl.querySelector('.calc-box')), true]);
+    ex.push(['(I-' + k + ') y el boton de integrar tambien', !!(concl && concl.querySelector('.btn-integrar')), true]);
+    const hdr = card ? card.querySelector('.cc9-hdrbar') : null;
+    ex.push(['(J-' + k + ') la barra de encabezado existe solo si hay globo de titulo o Ver criterios',
+      hdr ? hdr.querySelectorAll('button').length : 0, S[5]]);
+  });
+  /* ── (K) EL DUCTUS CONSERVA SUS DOS TIRAS ── */
+  const cdap = document.getElementById('sacc-cc-dap');
+  const cndap = cdap ? cdap.querySelector('.cc9-concl') : null;
+  ex.push(['(K1) el ductus lleva LAS DOS tiras en su tarjeta de conclusion',
+    !!(cndap && cndap.querySelector('#dap-qpqs') && cndap.querySelector('#dap-concl')), true]);
+  ex.push(['(K2) el gradiente calculado se queda en la columna 3, con su leyenda',
+    (function () { const cols = cdap ? cdap.querySelector('.cc9-cols') : null;
+      const c3 = cols ? cols.children[2] : null;
+      return !!(c3 && c3.querySelector('#dap-gmax') && (c3.textContent || '').indexOf('4 \\u00d7 Vmax') > -1) })(), true]);
+  /* ── (L) LA LINEA DE DISENIO DEL DSAV SALIO DE LA PANTALLA Y NO FUE AL GLOBO ── */
+  const bdsav = (function () { const c = document.getElementById('sacc-cc-dsav');
+    const b = c ? c.querySelector('.sacc-body') : null; return b ? (b.textContent || '') : '' })();
+  ex.push(['(L1) la frase de las dos puertas YA NO esta en la pantalla',
+    bdsav.indexOf('la v\\u00eda m\\u00e1s corta') > -1, false]);
+  ex.push(['(L2) y NO paso a ninguna entrada del registro: cuenta una decision de disenio',
+    (function () { const R = REG || {};
+      return Object.keys(R).some((x) => (String((R[x] || {}).lee || '') + String((R[x] || {}).ojo || '')).indexOf('la v\\u00eda m\\u00e1s corta') > -1) })(), false]);
+  ex.push(['(L3) CONTROL POSITIVO: en la pantalla queda el rotulo que dice de donde sale el dato',
+    bdsav.indexOf('FEVI y DTSVI') > -1, true]);
+  ex.push(['(L4) y ese rotulo dice que es del estudio', bdsav.indexOf('del estudio') > -1, true]);
+  /* ── (M) LOS SEIS TEXTOS QUE SI PASARON AL GLOBO ── */
+  const MOV = [
+    ['cc9-dsav-comp', 'dsav', 'S\\u00f3lo en el tipo completo.', 'S\\u00f3lo en el tipo completo'],
+    ['cc9-dsav-down', 'dsav', 'Presente en buena parte de los DSAV completos del adulto.', 'buena parte de los DSAV'],
+    ['cc9-dsav-rav', 'dsav', 'Marcador de severidad y principal indicaci\\u00f3n quir\\u00fargica.', 'principal indicaci\\u00f3n quir'],
+    ['cc9-dsav-rvp', 'dsav', 'Por cateterismo. Es lo que decide sobre el cierre, no la PSAP del eco.', 'no la PSAP del eco'],
+    ['cc9-cvpa-dren', 'cvpa', 'El drenaje a cava superior es el m\\u00e1s frecuente', 'cava superior es el m'],
+    ['cc9-cvpa-qp', 'cvpa', 'El eco subestima el shunt en esta lesi\\u00f3n', 'subestima el shunt']
+  ];
+  MOV.forEach((m, n) => {
+    const card = document.getElementById('sacc-cc-' + m[1]);
+    ex.push(['(M' + (n + 1) + 'a) el globo ' + m[0] + ' esta en su pantalla',
+      !!(card && card.querySelector('[data-vinfo="' + m[0] + '"]')), true]);
+    ex.push(['(M' + (n + 1) + 'b) su texto esta en el registro',
+      REG && REG[m[0]] ? (String(REG[m[0]].lee || '').indexOf(m[2]) > -1) : false, true]);
+    const b = card ? card.querySelector('.sacc-body') : null;
+    ex.push(['(M' + (n + 1) + 'c) y YA NO esta en el cuerpo', b ? ((b.textContent || '').indexOf(m[3]) > -1) : true, false]);
+  });
+  /* ── (N) LOS DOS PARRAFOS DE SECCION: CVPA y VAP ── */
+  const PAR = [
+    ['cc9-cvpa-sec', 'cvpa', 'En el adulto s\\u00f3lo se ve la forma parcial', 'En el adulto s'],
+    ['cc9-vap-sec', 'vap', 'Comunicaci\\u00f3n directa entre la aorta ascendente', 'Comunicaci\\u00f3n directa entre la aorta']
+  ];
+  PAR.forEach((m, n) => {
+    const card = document.getElementById('sacc-cc-' + m[1]);
+    const hdr = card ? card.querySelector('.cc9-hdrbar') : null;
+    ex.push(['(N' + (n + 1) + 'a) el globo del titulo vive en la barra de encabezado',
+      !!(hdr && hdr.querySelector('[data-vinfo="' + m[0] + '"]')), true]);
+    ex.push(['(N' + (n + 1) + 'b) su parrafo esta en el registro',
+      REG && REG[m[0]] ? (String(REG[m[0]].lee || '').indexOf(m[2]) > -1) : false, true]);
+    const b = card ? card.querySelector('.sacc-body') : null;
+    ex.push(['(N' + (n + 1) + 'c) y YA NO esta en el cuerpo', b ? ((b.textContent || '').indexOf(m[3]) > -1) : true, false]);
+  });
+  /* LA CONDUCTA DE LA VENTANA AORTOPULMONAR: se MOVIO y no se borro, que es la regla P9-a. */
+  ex.push(['(N3) la conducta de la ventana aortopulmonar SIGUE EN LA APLICACION, en su globo',
+    REG && REG['cc9-vap-sec'] ? (String(REG['cc9-vap-sec'].lee || '').indexOf('cierre indicado siempre') > -1) : false, true]);
+  /* ── (O) CONTROL NEGATIVO: el ductus NO tiene ningun globo, porque no tenia textos ── */
+  ex.push(['(O1) CONTROL: el ductus no tiene ningun globo en su seccion',
+    (function () { const c = document.getElementById('sacc-cc-dap');
+      return c ? c.querySelectorAll('.vinfo-btn').length : -1 })(), 0]);
+  ex.push(['(O2) CONTROL: y ninguna de las siete secciones de la tanda tiene «Ver criterios» salvo Fontan y Eisenmenger',
+    ['fontan','eisen','ebs','dsav','cvpa','dap','vap'].filter((k) => {
+      const c = document.getElementById('sacc-cc-' + k);
+      if (!c) return false;
+      return Array.prototype.some.call(c.querySelectorAll('button'), (b) => (b.textContent || '').indexOf('Ver criterios') > -1) }).join(','),
+    'fontan,eisen']);
+  return { extra: EXP };
+`);
+
+caso('TC-666', 'Tanda PANT-9: los DOS cortes de la disposicion de las siete pantallas de congenitas, declarados en media queries explicitas y con el piso DENTRO de la media query', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  /* ⚠️ LA REGLA SE LEE DEL TEXTO DE LOS <style>: en este arnes document.styleSheets[i].cssRules
+     devuelve VACIO. Y el bloque de una media query NO se delimita por balance de llaves, que se
+     desalinea en cuanto un comentario de la hoja menciona un ancho: lo que se hace es buscar el
+     SELECTOR y preguntar si la media query mas cercana HACIA ATRAS declara ese ancho. */
+  let CSS = '';
+  Array.prototype.forEach.call(document.querySelectorAll('style'), (s) => { CSS += (s.textContent || '') + '\\n' });
+  ex.push(['(A0) DENOMINADOR: la hoja de estilos se leyo y no esta vacia', CSS.length > 20000, true]);
+  const sinCom = CSS.replace(/\\/\\*[^]*?\\*\\//g, ' ');
+  ex.push(['(A1) DENOMINADOR: el texto sin comentarios sigue teniendo las clases de la tanda',
+    sinCom.indexOf('.cc9-fila') > -1 && sinCom.indexOf('.cc9-cols') > -1, true]);
+  /* Para un selector dado, el ancho de la media query mas cercana hacia atras. */
+  const mqDe = (sel) => {
+    const res = [];
+    let i = sinCom.indexOf(sel);
+    while (i > -1) {
+      const antes = sinCom.slice(0, i);
+      const j = antes.lastIndexOf('@media');
+      const k = antes.lastIndexOf('}');
+      /* si hay un cierre DESPUES del ultimo @media, el selector no esta dentro de esa query */
+      let anc = 'fuera';
+      if (j > -1) {
+        const cab = sinCom.slice(j, j + 60);
+        const m = cab.match(/min-width\\s*:\\s*([0-9]+)px/);
+        if (m && k < j) anc = m[1];
+      }
+      res.push(anc);
+      i = sinCom.indexOf(sel, i + 1);
+    }
+    return res;
+  };
+  /* ── (B) EL CORTE DE LAS TRES COLUMNAS: 900 px ── */
+  const b = mqDe('.cc9-cols{grid-template-columns:repeat(3');
+  ex.push(['(B1) DENOMINADOR: la regla de las tres columnas existe UNA vez', b.length, 1]);
+  ex.push(['(B2) y esta DENTRO de una media query de 900 px', b[0] || 'NO', '900']);
+  /* ── (C) EL CORTE DE LA CONCLUSION A LA DERECHA: 1260 px, MEDIDO y no elegido ── */
+  const c = mqDe('.cc9-fila{grid-template-columns:minmax(0,1fr) 360px');
+  ex.push(['(C1) DENOMINADOR: la regla de la conclusion a la derecha existe UNA vez', c.length, 1]);
+  ex.push(['(C2) y esta DENTRO de una media query de 1260 px, que es el ancho donde la columna mas angosta llega a 200 px',
+    c[0] || 'NO', '1260']);
+  ex.push(['(C3) el corte NO es 1220: ahi la columna mide 192 px, medido',
+    /min-width\\s*:\\s*1220px/.test(sinCom), false]);
+  /* ── (D) LA BASE: una columna FUERA de toda media query, que es el apilado ── */
+  const d1 = mqDe('.cc9-fila{display:grid;grid-template-columns:minmax(0,1fr)');
+  ex.push(['(D1) la fila nace en UNA columna, fuera de toda media query', d1.join(','), 'fuera']);
+  /* ⚠️ (D1b) NACIO DEL BARRIDO DE MUTACIONES. (D1) mira el PREFIJO de la regla base, asi que una
+     regla base con los 360 px agregados -o sea la conclusion a la derecha SIEMPRE, tambien en el
+     telefono- seguia empezando con minmax(0,1fr) y la condicion seguia diciendo «fuera». Lo que
+     hacia falta es afirmar que la regla BASE es de una sola columna. */
+  ex.push(['(D1b) y esa regla base NO declara los 360 px de la conclusion: el apilado es el estado de partida',
+    (function () { const m = sinCom.match(/\\.cc9-fila\\{display:grid;[^}]*\\}/);
+      return m ? /360px/.test(m[0]) : 'NO ENCUENTRA LA REGLA' })(), false]);
+  const d2 = mqDe('.cc9-cols{display:grid;grid-template-columns:minmax(0,1fr)');
+  ex.push(['(D2) y las columnas tambien', d2.join(','), 'fuera']);
+  /* ── (E) EL PISO DE LAS COLUMNAS VA DENTRO DE LA MEDIA QUERY ── */
+  ex.push(['(E1) ninguna regla de .cc9-col declara un min-width en pixeles fuera de la media query',
+    /\\.cc9-col[^}]*min-width\\s*:\\s*[0-9]+px/.test(sinCom), false]);
+  /* ── (F) LA TARJETA DE CONCLUSION ── */
+  ex.push(['(F1) la tarjeta de conclusion es gris: usa la variable de encabezado de seccion',
+    /\\.cc9-concl\\{[^}]*background:var\\(--section-head\\)/.test(sinCom), true]);
+  ex.push(['(F2) y el cuadro de la seccion lleva el borde de 2 px en el color de acento',
+    /\\.cc9-cuadro\\{border:2px solid var\\(--accent\\)/.test(sinCom), true]);
+  ex.push(['(F3) los titulos de grupo van en mayusculas y en el color de acento',
+    /\\.cc9-h\\{[^}]*text-transform:uppercase/.test(sinCom) && /\\.cc9-h\\{[^}]*color:var\\(--accent2\\)/.test(sinCom), true]);
+  ex.push(['(F4) y NO bajan de 11 px, que es el piso de letra de esta casa en pantalla',
+    (function () { const m = sinCom.match(/\\.cc9-h\\{[^}]*font-size:([0-9.]+)px/); return m ? Number(m[1]) >= 11 : false })(), true]);
+  ex.push(['(F5) el boton de «Ver criterios» del encabezado va a la derecha por margin-left auto',
+    /\\.cc9-hdrbar > \\.cc9-hdr-der\\{[^}]*margin-left:auto/.test(sinCom), true]);
+  /* ── (G) CONTROL NEGATIVO: las clases son PROPIAS de estas siete secciones ── */
+  const usan = ['fontan','eisen','ebs','dsav','cvpa','dap','vap'].filter((k) => {
+    const c2 = document.getElementById('sacc-cc-' + k); return !!(c2 && c2.querySelector('.cc9-fila')) });
+  ex.push(['(G1) las SIETE secciones de la tanda llevan la fila', usan.join(','), 'fontan,eisen,ebs,dsav,cvpa,dap,vap']);
+  ex.push(['(G2) CONTROL: ninguna otra parte del documento lleva .cc9-fila',
+    document.querySelectorAll('.cc9-fila').length, 7]);
+  ex.push(['(G3) CONTROL: ni .cc9-cuadro', document.querySelectorAll('.cc9-cuadro').length, 7]);
+  ex.push(['(G4) CONTROL: la TGA, que esta tanda NO toca, sigue con su propia fila',
+    !!document.getElementById('tga-fila'), true]);
+  ex.push(['(G5) CONTROL: y no lleva ninguna clase de la tanda',
+    (function () { const f = document.getElementById('tga-fila');
+      return f ? (f.classList.contains('cc9-fila') || !!f.closest('.cc9-cuadro')) : true })(), false]);
+  /* ── (H) la grilla de dos columnas de las casillas y de las areas ── */
+  ex.push(['(H1) la grilla de las casillas de complicaciones es de DOS columnas',
+    /\\.cc9-chk2\\{[^}]*repeat\\(2,minmax\\(0,1fr\\)\\)/.test(sinCom), true]);
+  ex.push(['(H2) y la de las areas de Celermajer tambien',
+    /\\.cc9-g2\\{[^}]*repeat\\(2,minmax\\(0,1fr\\)\\)/.test(sinCom), true]);
+  return { extra: EXP };
+`);
+
+caso('TC-667', 'Tanda PANT-9: la opcion de valve-in-valve en la morfologia de TAVI, su texto de papel y la sincronia con la morfologia de Valvulas en los dos sentidos, con la condicion del Laboratorio', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const T = document.getElementById('ete_tavi_morf');
+  const V = document.getElementById('va_morf');
+  ex.push(['(A0) DENOMINADOR: los dos selectores existen', !!T && !!V, true]);
+  /* ── (A) LA OPCION NUEVA ── */
+  const opT = T ? Array.prototype.map.call(T.options, (o) => o.value).join(',') : 'NO';
+  ex.push(['(A1) el selector de TAVI tiene las tres de antes mas la nueva', opT,
+    ',tricuspide,bicuspide,cuadricuspide,protesis_bio']);
+  const opNueva = T ? Array.prototype.filter.call(T.options, (o) => o.value === 'protesis_bio')[0] : null;
+  ex.push(['(A2) y su rotulo nombra el procedimiento', opNueva ? opNueva.text : 'NO',
+    'Pr\\u00f3tesis biol\\u00f3gica previa (valve-in-valve)']);
+  const opV = V ? Array.prototype.map.call(V.options, (o) => o.value).join(',') : 'NO';
+  ex.push(['(A3) CONTROL: el selector de Valvulas NO cambio', opV,
+    'Trivalva normal,Bic\\u00faspide,Calcificada,Reum\\u00e1tica,Pr\\u00f3tesis biol\\u00f3gica,Pr\\u00f3tesis mec\\u00e1nica,TAVI,Endocarditis,Carcinoide']);
+  /* ── (B) EL TEXTO DE PAPEL: sin el, el emisor publica el TOKEN CRUDO ── */
+  const TX = (typeof TAVI_TXT !== 'undefined') ? TAVI_TXT : null;
+  ex.push(['(B0) DENOMINADOR: el mapa de textos existe', !!(TX && TX.morf), true]);
+  ex.push(['(B1) la opcion nueva tiene texto de papel', TX && TX.morf ? (TX.morf.protesis_bio || 'NO') : 'NO',
+    'sobre pr\\u00f3tesis biol\\u00f3gica previa']);
+  ex.push(['(B2) y describe, sin nombrar guia ni conducta',
+    TX && TX.morf ? /guia|gu\\u00eda|Clase|indicad|recomend/i.test(String(TX.morf.protesis_bio || '')) : true, false]);
+  ex.push(['(B3) CONTROL: las tres de antes conservan su texto',
+    TX && TX.morf ? [TX.morf.tricuspide, TX.morf.bicuspide, TX.morf.cuadricuspide].join(',') : 'NO',
+    'tric\\u00faspide,bic\\u00faspide,cuadric\\u00faspide']);
+  /* ── (C) LA TABLA DE PAREJAS: DOS, y las dos inequivocas ── */
+  const P = (typeof TAVI_MORF_PARES !== 'undefined') ? TAVI_MORF_PARES : null;
+  ex.push(['(C0) DENOMINADOR: la tabla de parejas existe', !!P, true]);
+  ex.push(['(C1) con DOS parejas', P ? P.length : 0, 2]);
+  ex.push(['(C2) la primera une las dos bicuspides', P ? (P[0].tavi + '->' + P[0].va) : 'NO', 'bicuspide->Bic\\u00faspide']);
+  ex.push(['(C3) y la segunda la opcion nueva con la bioprotesis', P ? (P[1].tavi + '->' + P[1].va) : 'NO',
+    'protesis_bio->Pr\\u00f3tesis biol\\u00f3gica']);
+  ex.push(['(C4) CONTROL: «Trivalva normal» NO esta en la tabla, porque afirma que la valvula es NORMAL',
+    P ? P.some((x) => x.va.indexOf('Trivalva') > -1) : true, false]);
+  ex.push(['(C5) CONTROL: ni «cuadricuspide», que no tiene equivalente',
+    P ? P.some((x) => x.tavi === 'cuadricuspide') : true, false]);
+  /* ── (D) LA SINCRONIA. Se despachan los eventos del gesto real. ── */
+  ex.push(['(D0) DENOMINADOR: el sincronizador existe', typeof taviMorfSync === 'function', true]);
+  ex.push(['(D0b) DENOMINADOR: y el predicado del modulo en uso tambien', typeof _taviModuloEnUso === 'function', true]);
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO';
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
+  const par = () => (T ? T.value : '?') + '|' + (V ? V.value : '?');
+  const limpio = () => { try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {} };
+  /* sentido TAVI -> VALVULAS: incondicional */
+  limpio(); S('ete_tavi_morf', 'bicuspide');
+  ex.push(['(D1) TAVI bicuspide escribe Bicuspide en Valvulas', par(), 'bicuspide|Bic\\u00faspide']);
+  limpio(); S('ete_tavi_morf', 'protesis_bio');
+  ex.push(['(D2) y la opcion nueva escribe la bioprotesis', par(), 'protesis_bio|Pr\\u00f3tesis biol\\u00f3gica']);
+  limpio(); S('ete_tavi_morf', 'tricuspide');
+  ex.push(['(D3) CONTROL: «tricuspide» no escribe nada: Valvulas queda en su valor por omision',
+    par(), 'tricuspide|Trivalva normal']);
+  limpio(); S('ete_tavi_morf', 'cuadricuspide');
+  ex.push(['(D4) CONTROL: ni «cuadricuspide»', par(), 'cuadricuspide|Trivalva normal']);
+  /* vaciar TAVI: Valvulas NO se vacia, porque no tiene opcion vacia */
+  limpio(); S('ete_tavi_morf', 'bicuspide'); S('ete_tavi_morf', '');
+  ex.push(['(D5) al vaciar TAVI, Valvulas se queda con su valor: no tiene opcion vacia y poner «Trivalva normal» AFIRMARIA que la valvula es normal',
+    par(), '|Bic\\u00faspide']);
+  /* sentido VALVULAS -> TAVI: CONDICIONAL al modulo en uso */
+  limpio();
+  ex.push(['(E0) DENOMINADOR: con el formulario limpio el modulo de TAVI NO esta en uso', _taviModuloEnUso(), false]);
+  S('va_morf', 'Bic\\u00faspide');
+  ex.push(['(E1) sin el modulo en uso, Valvulas NO escribe en TAVI: es la condicion que protege al Laboratorio',
+    par(), '|Bic\\u00faspide']);
+  limpio(); S('ete_tavi_anillo_diam', '24');
+  ex.push(['(E2) DENOMINADOR: con un campo propio de TAVI cargado, el modulo SI esta en uso', _taviModuloEnUso(), true]);
+  S('va_morf', 'Bic\\u00faspide');
+  ex.push(['(E3) y entonces Valvulas SI escribe en TAVI', par(), 'bicuspide|Bic\\u00faspide']);
+  limpio(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Pr\\u00f3tesis biol\\u00f3gica');
+  ex.push(['(E4) tambien en la pareja de la bioprotesis', par(), 'protesis_bio|Pr\\u00f3tesis biol\\u00f3gica']);
+  limpio(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Trivalva normal');
+  ex.push(['(E5) CONTROL: «Trivalva normal» no escribe en TAVI', par(), '|Trivalva normal']);
+  limpio(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Calcificada');
+  ex.push(['(E6) CONTROL: ni «Calcificada»', par(), '|Calcificada']);
+  limpio(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+  ex.push(['(E7) CONTROL: ni «Protesis mecanica»', par(), '|Pr\\u00f3tesis mec\\u00e1nica']);
+  /* pasar de un valor con equivalente a uno SIN equivalente no borra el otro lado */
+  limpio(); S('ete_tavi_anillo_diam', '24'); S('va_morf', 'Bic\\u00faspide'); S('va_morf', 'Calcificada');
+  ex.push(['(E8) pasar de «Bicuspide» a «Calcificada» NO borra el lado de TAVI: un valor sin equivalente no escribe y no borra',
+    par(), 'bicuspide|Calcificada']);
+  /* ── (F) EL ESPEJO NO SE AUTORIZA A SI MISMO ── */
+  limpio(); S('ete_tavi_morf', 'bicuspide');
+  ex.push(['(F1) con SOLO la morfologia de TAVI puesta, el modulo NO cuenta como en uso: el espejo queda excluido del predicado',
+    _taviModuloEnUso(), false]);
+  /* ── (G) SIEMBRA MUDA: como repone un estudio guardado. Nada se mueve. ── */
+  limpio();
+  (function () { const e = document.getElementById('ete_tavi_morf'); if (e) e.value = 'bicuspide' })();
+  ex.push(['(G1) una siembra MUDA en TAVI no escribe en Valvulas', par(), 'bicuspide|Trivalva normal']);
+  limpio(); S('ete_tavi_anillo_diam', '24');
+  (function () { const e = document.getElementById('va_morf'); if (e) e.value = 'Bic\\u00faspide' })();
+  ex.push(['(G2) y una siembra MUDA en Valvulas no escribe en TAVI', par(), '|Bic\\u00faspide']);
+  /* ── (H) EL LABORATORIO: la morfologia de TAVI es predicado de su filtro ── */
+  ex.push(['(H0) DENOMINADOR: el predicado del Laboratorio existe', typeof _labUsaTavi === 'function', true]);
+  ex.push(['(H1) con la morfologia de TAVI cargada, el estudio cuenta como «Con TAVI»',
+    _labUsaTavi({ campos: { ete_tavi_morf: 'bicuspide' } }), true]);
+  ex.push(['(H2) y sin ella no: es por esto que el sentido Valvulas -> TAVI es condicional',
+    _labUsaTavi({ campos: { va_morf: 'Bic\\u00faspide' } }), false]);
+  limpio();
   return { extra: EXP };
 `);
 
