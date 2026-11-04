@@ -10380,3 +10380,227 @@ hojas 18 y 20 de Lang 2015 —las ramas de la arteria pulmonar—.
 | registro de globos | 120 claves | **122** |
 | mapeo a Referencias (`VINFO_REF`) | 48 entradas | **50** |
 | **ningún corte, umbral, clase ni nivel se movió** | — | verificado uno por uno |
+
+---
+
+## La tanda PANT-8 (2026-11-04)
+
+Todo lo que sigue se leyó **EN IMAGEN**, con el **folio comprobado en el pie impreso** de cada
+hoja. Nada se parafrasea de memoria y ninguna frase se copia del original.
+
+### Reglas de folio comprobadas en esta tanda
+
+| documento | regla | comprobada en |
+|---|---|---|
+| ESC/EACTS 2025 de valvulopatías (`ehaf194`, edición publicada de 102 hojas) | folio = hoja + 4634 | hojas 29→4663, 32→4666, 34→4668, 35→4669, 36→4670, 63→4697, 66→4700 |
+| ASE 2025 de estandarización del informe (Taub, *JASE* 2025;38(9)) | folio impreso | hoja 5 → **739** |
+| ASE 2025 de corazón derecho (Mukherjee) | folio = hoja + 140 | hojas 5→145, 9→149, 11→151 |
+| Lang 2015 de cuantificación de cámaras, **traducción al español** | folio = hoja | hoja 27 → **27** |
+| ESC 2020 de congénitas del adulto (Baumgartner), edición **inglesa** | folio = hoja + 562 | hojas 29→591, 46→**608** |
+
+⚠️ **EL ARCHIVO DE LA ESC/EACTS 2025 QUE SE USÓ ES EL PUBLICADO Y NO EL PREPRINT.** La biblioteca
+tiene dos PDF de 102 hojas: el que lleva el folio impreso en el pie —4668 en la hoja 34— y uno
+cuyo pie numera 1 a 102, que es el *advance article*. **Se cita del primero.**
+
+### El puntaje de calcio de la válvula aórtica — ESC/EACTS 2025, hoja 29, folio 4663
+
+> Por encima de **2000 unidades Agatston en el varón** y de **1200 en la mujer**: estenosis
+> aórtica severa, con sensibilidad y especificidad cercanas al **85 %**. Umbrales más
+> específicos: por encima de **3000** en el varón y de **1600** en la mujer. La estenosis severa
+> es **poco probable** por debajo de **1600** en el varón y de **800** en la mujer. Hace falta
+> interpretarlo con cautela en la válvula **bicúspide**, en la **amiloidosis** concomitante y en
+> la estenosis predominantemente **fibrótica** —posreumática, por radiación e inflamatoria—,
+> donde puede haber estenosis severa sin calcificación pronunciada.
+
+La misma hoja, apartado de planificación del procedimiento: la **tomografía** es la herramienta de
+elección para evaluar la anatomía valvular, incluido el tamaño del anillo, las dimensiones de la
+raíz y de la aorta ascendente, y **la extensión y la distribución de la calcificación de la
+válvula y del tracto de salida**, más la distancia de los ostios coronarios al plano anular.
+
+⚠️ **UNA PREMISA DE LA ORDEN NO SE REPRODUCE, Y ESTÁ MEDIDA.** La orden sitúa esos cortes en «la
+nota al pie de la **Figura 7**, hoja 32, folio 4666». La hoja 32 **no contiene la cadena
+«calcific» ni una sola vez**: su Figura 7 es la de la indicación de intervención (TAVI Clase I /
+SAVR Clase I). Los dos cortes sí aparecen en una figura, pero es la **FIGURA 6** de la **hoja 30 =
+folio 4664**, «Integrative imaging assessment of patients with aortic stenosis», donde
+`AVCS >1200 AU (female) >2000 AU (male)` es un nodo del árbol que lleva a «Severe AS». Y en
+ninguno de los dos lugares la guía rotula eso «calcificación severa»: lo que rotula es **estenosis
+severa**.
+
+### La ASE desaconseja graduar la calcificación — Tabla 1, hoja 5, folio 739
+
+De la tabla «Stylistic dos and don'ts», tercera fila:
+
+| columna | contenido (parafraseado) |
+|---|---|
+| **Do** | usar la terminología y la graduación que la guía define cuando existen, y terminología propia del laboratorio cuando no hay una nomenclatura universal |
+| **Don't** | graduar una entidad cuando los grados **no existen** en las guías vigentes |
+| **Ejemplo — Discouraged** | «mild, moderate, or severe aortic valve calcification» — **salvo que el laboratorio tenga su propia definición interna** |
+
+⚠️ **LA LIGADURA «fi» ES UNA TRAMPA DE MÉTODO Y ME HIZO DECLARAR FALSA UNA PREMISA VERDADERA.**
+Ese PDF escribe «calciﬁcation» con la ligadura **U+FB01**, así que buscar la cadena `calcifi`
+devolvió **cero** en los tres archivos de la carpeta y concluí que la frase no existía. Leída en
+imagen, la tabla la dice palabra por palabra. Es la hermana del guión de fin de línea que este
+archivo ya documenta, y es exactamente por lo que la casa manda leer en imagen. **El censo se
+rehízo normalizando ligaduras.**
+
+### El censo: ninguna fuente gradúa la calcificación aórtica
+
+Barridos los **246 PDF** de la biblioteca, normalizando ligaduras y des-hifenando el fin de línea,
+con **control positivo** —«aortic valve» aparece en **153 de los 246**—. **Veinticinco**
+coincidencias, y ninguna es una clasificación con grados de la calcificación de la válvula
+aórtica:
+
+| qué apareció | dónde | qué es |
+|---|---|---|
+| «severe valve calcification» como criterio | ESC/EACTS 2025 (folio 4670), ESC 2020 de congénitas, AHA/ACC 2020 | el término **se usa** y **no se define** con grados |
+| «mild, moderate, or severe aortic valve calcification» | ASE 2025 de estandarización, folio 739 | la **desaconseja** |
+| puntaje de calcio > 1300 AU en la mujer | Manzo R y cols., *Diagnostics* **2023**;13:2527 | **revisión**, no guía: discrepa con el 1200 de la guía de 2025 |
+| «calcification grade 1/2/3» | JAH3-8-e012031 | es el score de **Cormier** de la válvula **MITRAL** en comisurotomía percutánea |
+
+### La elección entre TAVI y cirugía — ESC/EACTS 2025
+
+**Hoja 34, folio 4668** — los factores anatómicos y técnicos que llevaron a excluir pacientes de
+los ensayos que compararon TAVI con cirugía (Figura 9), todos **cualitativos**:
+
+- dimensiones anulares fuera de lo que admiten los dispositivos disponibles;
+- **calcificaciones excesivas o voluminosas** del anillo o del tracto de salida, que aumentan el
+  riesgo de fuga paravalvular y de rotura anular;
+- riesgo aumentado de obstrucción coronaria.
+
+Y sobre la válvula bicúspide, en la misma hoja: suma complejidad al TAVI por la **calcificación
+asimétrica** de los velos y la forma **elíptica** del anillo, más la falta de estandarización del
+tamaño de la prótesis; la **calcificación marcada de los velos, sobre todo junto con un rafe
+calcificado**, se asocia a más riesgo de lesión de la raíz, fuga paravalvular y mortalidad.
+
+**Hoja 36, folio 4670** — tres recomendaciones leídas en imagen en su tabla, con su clase y su
+nivel en la columna de color:
+
+| recomendación | clase | nivel |
+|---|---|---|
+| TAVI en pacientes de **70 años o más** con estenosis de válvula **tricúspide**, si la anatomía es adecuada | **I** | **A** |
+| Cirugía en menores de 70 años, si el riesgo quirúrgico es bajo | I | B |
+| TAVI **puede considerarse** en la estenosis de válvula **bicúspide** severa, en pacientes con riesgo quirúrgico aumentado y anatomía adecuada | **IIb** | **B** |
+
+**Hoja 66, folio 4700** — el valve-in-valve:
+
+| recomendación | clase | nivel |
+|---|---|---|
+| Valve-in-valve transfemoral en **posición aórtica**, en disfunción significativa de una **bioprótesis**, con riesgo quirúrgico intermedio o alto y anatomía y prótesis adecuadas, evaluado por el Heart Team | **IIa** | **B** |
+| Valve-in-valve transvenoso mitral o tricuspídeo, riesgo intermedio o alto, anatomía adecuada | IIa | B |
+| **Falla de prótesis MECÁNICA**: **reoperación** en el paciente sintomático con disfunción no atribuible a trombosis | **I** | **C** |
+
+⚠️ **PARA LA PRÓTESIS MECÁNICA LA GUÍA NO OFRECE VALVE-IN-VALVE: PRESCRIBE REOPERACIÓN.** La
+orden decía «las guías no lo nombran»; medido, el caso sí está tratado y lo que indica es otra
+cosa.
+
+### El tronco y las ramas de la arteria pulmonar, y el tracto de salida del VD — ASE 2025
+
+**Tabla 1, hoja 5, folio 145** (leída en imagen):
+
+| parámetro | normal | leve | moderado | severo |
+|---|---|---|---|---|
+| **PA, cm** (tronco) | ≤ 2,5 | > 2,5 a ≤ 3,0 | > 3,0 a ≤ 3,5 | > 3,5 |
+| RVOT PLAX, cm | < 3,3 | ≥ 3,3 a ≤ 3,5 | > 3,5 a ≤ 3,9 | > 3,9 |
+| RVOT PSAX proximal, cm | < 3,4 | ≥ 3,4 a ≤ 3,8 | > 3,8 a ≤ 4,1 | > 4,1 |
+| RVOT PSAX distal, cm | < 2,9 | ≥ 2,9 a ≤ 3,0 | > 3,0 a ≤ 3,3 | > 3,3 |
+
+⚠️ **LA FILA DEL TRONCO SE LLAMA «PA, cm»**: buscar «pulmonary artery» en esa hoja encuentra sólo
+la lista de abreviaturas del pie.
+
+**Tabla 2, hoja 9, folio 149** — los sitios de medida:
+
+- **Tracto de salida proximal**: en telediástole, en eje largo —de la pared libre al tabique, por
+  delante de la válvula aórtica, y en ese plano se lo llama RVIDD— o en eje corto —de la pared
+  libre a la pared aórtica anterior, por encima de la válvula aórtica, perpendicular a la
+  cavidad—. **Las mediciones del tracto de salida pueden diferir hasta un 40 % entre planos.**
+- **Tracto de salida distal**: desde la vista de eje corto de la bifurcación, de la pared aórtica
+  lateral a la pared libre del tracto, justo por delante del anillo pulmonar, en telediástole.
+  La propia guía lo señala como **el menos variable**.
+- **Arteria pulmonar**: las dimensiones se miden desde la vista de eje corto de la bifurcación, en
+  telediástole. El **tronco**, a mitad de camino entre el **anillo pulmonar** y la bifurcación.
+  Las **ramas derecha e izquierda**, en su **porción proximal**, también en telediástole.
+
+**Texto de la arteria pulmonar, hoja 10, folio 150:**
+
+- se evalúa desde el eje corto a la altura de la válvula aórtica, angulando hacia arriba hasta ver
+  el tronco y la bifurcación proximal; el diámetro se mide en telediástole a mitad de camino entre
+  la **válvula** pulmonar y la bifurcación (la Tabla 2 dice «anillo»: las dos redacciones conviven
+  en el mismo documento);
+- un diámetro telediastólico **por encima de 25 mm** por ecocardiografía bidimensional es
+  **anormal**;
+- por **tomografía** el valor normativo es del diámetro **sistólico**: **29 mm** en el varón y
+  **27 mm** en la mujer; por **resonancia**, de **21 a 33 mm** en el varón y de **19 a 31** en la
+  mujer. La guía pide tener en cuenta que la variabilidad entre técnicas viene del momento del
+  ciclo en que se mide;
+- un cociente **tronco / aorta ascendente ≥ 1** identifica hipertensión pulmonar con
+  **sensibilidad 84,3 %** y **especificidad 83,9 %**;
+- un tronco dilatado es un hallazgo **inespecífico**: aparece en la hipertensión pulmonar de
+  cualquier grupo, en la enfermedad pulmonar crónica, en las enfermedades del tejido conectivo
+  —Marfan, Ehlers-Danlos—, en la embolia pulmonar aguda y crónica y en las cardiopatías
+  congénitas;
+- por vía transesofágica hay varias vistas que permiten evaluar el tronco **y sus ramas
+  principales**.
+
+⚠️ **PARA LAS RAMAS LA GUÍA DA EL SITIO Y NO UN VALOR NORMAL.** La Tabla 1, que es la que publica
+los grados, tiene **una sola fila** de arteria pulmonar —la del tronco— y **ninguna** de las
+ramas. No se inventó ninguno.
+
+### El tracto de salida del VD en la guía de 2015 — Lang, Tabla 8, hoja 27, folio 27
+
+| parámetro | media ± DE | rango normal |
+|---|---|---|
+| Diámetro TSVD en eje largo (mm) | 25 ± 2,5 | **20 a 30** |
+| Diámetro proximal TSVD (mm) | 28 ± 3,5 | **21 a 35** |
+| Diámetro distal TSVD (mm) | 22 ± 2,5 | **17 a 27** |
+
+⚠️ **ESA TABLA NO ESTÁ EN LA CAPA DE TEXTO DEL PDF: ES UNA IMAGEN.** Extraer texto devuelve su
+título y su nota al pie **sin un solo número**. Hubo que renderizarla, que es lo que este archivo
+ya documenta para Baumgartner 2009 y Wilkins 1988.
+⚠️ **EN LA BIBLIOTECA SÓLO ESTÁ LA TRADUCCIÓN AL ESPAÑOL** de esta guía, censado por contenido.
+La advertencia de esta casa sobre las traducciones que omiten palabras vale también acá.
+
+**LA DIFERENCIA ENTRE LAS DOS GUÍAS SE MUESTRA Y NO SE RESUELVE, con la más nueva primero:** los
+techos de normalidad del tracto de salida son **33, 34 y 29 mm** en la de 2025 y **30, 35 y 27** en
+la de 2015. Y la de 2015 publica además un **piso** del rango normal, que la de 2025 no tiene.
+
+**Y un renglón que la orden pide:** fuera del tracto de salida, **ninguna de las dos guías publica
+un diámetro del ventrículo derecho en eje corto**. Los tres que publican —basal, medio y
+longitudinal— son de la vista apical de cuatro cámaras, verificado en las dos tablas.
+
+### Qué síntomas cuentan en la estenosis pulmonar — ESC 2020, apartado 4.8.2, hoja 46, folio 608
+
+La guía **sí** los enumera, y los enumera **por nivel de la obstrucción**, que es justo la otra
+pregunta que esa sección del panel hace:
+
+| nivel | qué dice |
+|---|---|
+| **Valvular** | la estenosis leve y la moderada suelen ser asintomáticas; la **severa** puede presentarse con **disnea y capacidad de ejercicio reducida**, y el pronóstico es peor |
+| **Subinfundibular / infundibular** | el adulto con ventrículo derecho de doble cámara puede estar asintomático o presentar **disnea, molestia torácica, mareo o síncope durante el esfuerzo** |
+| **Supravalvular** | asintomático, o **disnea y capacidad de ejercicio reducida**; suele reconocerse en el contexto de ciertos síndromes o al estudiar una sospecha de hipertensión pulmonar |
+
+⚠️ **ES LA DIFERENCIA CON LOS SEIS GLOBOS DE SÍNTOMAS ANTERIORES**, donde quien los nombraba era
+la AHA/ACC y la ESC decía «sintomático» a secas. Y acá **no hay dos fuentes que comparar**: la
+ESC/EACTS 2025 de valvulopatías **no cubre esta lesión**, censado por la propia sección del panel.
+
+### Cambios de evidencia
+
+| qué | antes | ahora | dónde | por qué |
+|---|---|---|---|---|
+| criterio de la calcificación aórtica | sin declarar | globo `tavi-calc` | pantalla de TAVI | la pregunta del médico |
+| puntaje de calcio por sexo | no estaba | 2000 / 1200, 3000 / 1600, 1600 / 800 | ese globo | ESC/EACTS 2025, folio 4663 |
+| la ASE desaconseja graduar | no estaba | lo dice el globo | ese globo | ASE 2025, folio 739 |
+| discrepancia 1200 / 1300 en la mujer | no estaba | se muestra sin resolver | ese globo | guía 2025 contra revisión 2023 |
+| tronco de la AP, cuatro grados | no estaba | ≤2,5 / >2,5-3,0 / >3,0-3,5 / >3,5 | Referencias, VD | ASE 2025, folio 145 |
+| tronco, sitio de medida y corte de 25 mm | no estaba | lo dice la ficha | Referencias, VD | ASE 2025, folios 149 y 150 |
+| cociente tronco / aorta ≥ 1 con su rendimiento | no estaba | 84,3 % y 83,9 % | Referencias, VD | ASE 2025, folio 150 |
+| ramas de la AP | no estaba | **sin valor normal publicado** | Referencias, VD | ASE 2025, folios 149 y 150 |
+| los tres TSVD, cuatro grados cada uno | no estaba | tres filas × cuatro | Referencias, VD | ASE 2025, folio 145 |
+| el aviso del 40 % entre planos | no estaba | lo dice la ficha | Referencias, VD | ASE 2025, folio 149 |
+| los tres TSVD de la guía de 2015 | no estaba | media ± DE y rango | Referencias, VD | Lang 2015, folio 27 |
+| síntomas de la estenosis pulmonar | no estaba | globo `epsintomas`, por nivel | panel de Evidencia | ESC 2020, folio 608 |
+| TAVI en bicúspide | no estaba | **IIb · B**, sólo reportado | este archivo | ESC/EACTS 2025, folio 4670 |
+| TAVI en trivalva ≥ 70 años | no estaba | **I · A**, sólo reportado | este archivo | ídem |
+| valve-in-valve en bioprótesis | no estaba | **IIa · B**, sólo reportado | este archivo | ESC/EACTS 2025, folio 4700 |
+| prótesis mecánica | «no la nombran» | **reoperación I · C** | este archivo | ídem — la premisa se corrige |
+
+**Ningún corte, ningún umbral y ninguna opción de la aplicación se movieron por esta lectura.**

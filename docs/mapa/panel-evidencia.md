@@ -313,3 +313,20 @@ motivo en `docs/PENDIENTES.md` → **P6-a**, y con **TC-649 (F1)** como guardiá
 
 **Todo lo demás —la franja, el corte del estado corto, el ámbar, la pregunta de síntomas con
 cualquier etiología y los seis globos— está en `docs/mapa/pant6-pantallas-molde.md` § 3.**
+
+---
+
+## El molde en la estenosis pulmonar, y la prótesis mitral que sigue parada (PANT-8, 04/11/2026)
+
+`_indEP` estrena el molde con **`est: null`**: PANT-6 y PANT-7 la frenaron porque «no tiene fila
+de estadio», y medido eso **no** es un impedimento —el molde lo admite desde el día uno y la fila
+que **dice** que no hay estadio ya existía desde PANT-5—. Son **cinco** preguntas, no cuatro, en
+**una** columna y dos grupos tomados de las notas de las propias filas; las dos filas de solo
+lectura de su lista clínica pasan a los **datos**, y los grupos se arman **por clave** con
+`_indPorClave`. Su pregunta de síntomas estrena el globo `epsintomas`.
+
+**La prótesis mitral sigue parada**, y ahora con dos motivos medidos: el vacío de su columna está
+del lado contrario (**−131,3 px** a 1440, contra **+282,1** de la pulmonar) y su categoría es el
+voto de **seis** criterios de obstrucción, no un grado. Ver `P8-e`, con la propuesta concreta.
+
+Todo en `docs/mapa/pant8-tavi-referencias.md` § 6.

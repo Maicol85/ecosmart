@@ -246,3 +246,17 @@ globos de 44 × 44, 41 → **43**), **TC-502 (C1)** (el mapeo a Referencias, 48 
 Los seis caen contra HEAD por **69 condiciones y ninguna por excepción**. **35/35 mutaciones
 dirigidas muertas** (`scripts/_mut_pant7.py`); siete sobrevivieron al primer barrido y el análisis
 de cada una está en `docs/mapa/pant7-vd-cia-globos.md` § 7.
+
+## PANT-8 (2026-11-04) — la pantalla de TAVI, las referencias del VD y el molde de la pulmonar
+
+| caso | qué fija |
+|---|---|
+| **TC-656** | los dos botones de TAVI: cada uno en su esquina, pintados enteros con `cc-pane-on` y con su marca a salvo del barrido de `showTab` |
+| **TC-657** | el panel Post-TAVI en tres columnas desde 900 px, con los campos en el grupo que ya tenían |
+| **TC-658** | la sincronía de TAVI con Aorta / AI en los dos sentidos, con el estudio como dueño y el módulo como puerta |
+| **TC-659** | el globo de la calcificación: ninguna fuente la gradúa, sin conducta y sin clase |
+| **TC-660** | Referencias del VD con el tronco y las ramas de la arteria pulmonar y los tres TSVD |
+| **TC-661** | el molde de Evidencia en la estenosis pulmonar, sin fila de estadio; la prótesis mitral **NO** se toca |
+
+Las fichas, con las cinco trampas de método que costaron una corrida cada una, en
+`docs/mapa/tests-fichas-656.md`.

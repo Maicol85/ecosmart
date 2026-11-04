@@ -992,3 +992,35 @@ equivocado**) y `P6-d` (**`vdscRotulos()` nunca existió**). `P6-f` sigue abiert
 techo), `docs/fuentes/FUENTES.md` → «La tanda PANT-7» con los cuatro documentos en sus ocho ubicaciones,
 cada folio comprobado en el pie impreso, `docs/GUIA_PRUEBA_PANT7.md` (22 pasos) y `docs/PENDIENTES.md` →
 **P7-a** a **P7-k**.
+
+---
+
+## PANT-8 — la pantalla de TAVI, las referencias del VD y el molde de la pulmonar (2026-11-04)
+
+Sobre `afed3e8` (cierre de PANT-7, ya publicado, md5 `77a4558a`, sello `v20261104-0136`).
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| commit | fecha | qué |
+|---|---|---|
+| `81bca7d` | 2026-11-04 | PANT8-1: los dos botones de TAVI, uno en cada esquina y pintados enteros |
+| `7430079` | 2026-11-04 | PANT8-2: el panel Post-TAVI en tres columnas |
+| `c7911ae` | 2026-11-04 | PANT8-3: la sincronia de TAVI con Aorta / AI, un dato y dos puertas |
+| `3023f36` | 2026-11-04 | PANT8-4: el globo de la calcificacion de la valvula aortica |
+| `d683dce` | 2026-11-04 | PANT8-5: Referencias del tronco y las ramas de la AP y de los tres TSVD |
+| `3947d72` | 2026-11-04 | PANT8-6: el molde de Evidencia en la estenosis pulmonar. La protesis mitral se PARA |
+| `d98349f` | 2026-11-04 | PANT8-7: tres inventarios de solo lectura para los proximos reDisenios |
+
+**Qué cambió, en tres líneas.** Los dos botones de TAVI pasan a las dos esquinas, pintados enteros
+con una clase propia que `showTab` no barre, y dejan de medir 0 × 0 en el teléfono; el panel
+Post-TAVI se reordena en tres columnas desde 900 px y el sizing pre-TAVI queda sincronizado con
+Aorta / AI en los dos sentidos, con el estudio como dueño; y entran el globo de la calcificación,
+las referencias del tronco y las ramas de la arteria pulmonar y de los tres tractos de salida, y
+el molde de Evidencia en la estenosis pulmonar.
+
+**Lo que se paró y se reportó:** el estado de los botones no sobrevive a guardar y reabrir
+(**P8-a**); la morfología de TAVI y la de Válvulas no comparten un solo valor (**P8-d**); la
+prótesis mitral sigue sin molde, ahora con dos motivos medidos (**P8-e**); y la app tiene un campo
+de tracto de salida donde la guía publica tres (**P8-f**).
+
+**Cierra:** **P7-a** (las referencias del VD y de la AP) y la mitad de **P7-b** / **P6-a** (el
+molde de la válvula pulmonar).

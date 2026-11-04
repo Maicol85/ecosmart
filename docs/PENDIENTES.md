@@ -13227,3 +13227,137 @@ preguntándole a `_vInfoBtnDe(clave, btn)` con el segundo botón en la mano, sin
   que `ROT_LARGO` / `ROT_CORTO` eran código muerto y el comentario que decía que elegía «medido
   con getBBox a los cuatro anchos» era falso.
 - **`P6-f`** — sigue abierto, ahora con su medición: pasa a ser **`P7-c`**.
+
+## P8-a · El estado de los botones de TAVI no sobrevive a guardar y reabrir
+
+**Parado por la propia orden**, cuyo punto 1b dice: «si hoy NO se guarda y para que sobreviva a
+guardar y reabrir hiciera falta un campo guardado nuevo, PARÁ esa parte».
+
+Medido en HEAD: el panel a la vista **no** se guardaba con el estudio ni antes ni ahora — lo
+decidía el `display` que `eteTaviTab` escribía, sin ningún campo detrás. Hoy lo decide
+`_eteTaviPane`, una variable de **módulo**, así que sobrevive al cambio de pantalla —que es el
+defecto que el médico reportó— y **no** a recargar ni a reabrir un estudio: al cargar vuelve a
+«Pre-TAVI», igual que antes.
+
+**Lo que costaría:** un campo guardado nuevo (censo 1004 → 1005) y, si se quiere en la planilla,
+una columna de Excel (441 → 442). Las dos cosas están prohibidas en esta tanda.
+
+**La pregunta para el médico:** ¿querés que el estudio recuerde qué panel estabas mirando? Es un
+dato de interfaz, no clínico, así que hoy la aplicación no guarda ninguno igual.
+
+## P8-b · El panel Post-TAVI queda MÁS ALTO a 1000 y a 900 px, y es aritmética
+
+Medido con los quince campos cargados: el alto del panel pasa de **896,4 a 953,4 px a 1000** y de
+**938,3 a 969,3 a 900**. A 1440 px **baja** de 855,7 a 770,7.
+
+**La causa es aritmética y no un defecto:** en una columna de 251 px entra **un** campo por fila,
+así que la columna de gradientes —seis campos— ocupa seis filas contra las dos que ocupaba su
+`grid-4` a lo ancho. Es el mismo precio que PANT-3 declaró para `#mch-cols` y PANT-7 para Wilkins.
+
+**Lo que NO se hizo, y por qué:** subir el corte por encima de 1000 px dejaría la pantalla sin las
+tres columnas justo en el ancho de una laptop, que es donde el médico pidió verlas.
+
+## P8-c · Barra horizontal a 900 y 899 px, PREEXISTENTE
+
+Medido en los dos árboles y en los **dos** paneles de TAVI, incluido el panel Pre, que esta tanda
+no toca ahí: `scrollX` vale **30 px a 900** y **31 a 899**, idéntico en HEAD. A 1440, 1000, 768 y
+390 px vale **cero**.
+
+Es preexistente y **no se tocó**: no es de esta pantalla —aparece con el panel Pre, que conserva
+su maqueta— y perseguirlo es otra orden. Queda declarado porque la regla de la casa prohíbe la
+barra horizontal y alguien que mida a 900 px va a encontrarla.
+
+## P8-d · La morfología de TAVI y la de Válvulas NO comparten un solo valor
+
+El punto 3c pide sincronizar «sólo para las opciones que EXISTEN en los dos selectores (mismo
+valor, mismo significado)». **Medido, la intersección de los dos juegos de valores es VACÍA.**
+
+| `va_morf` (Válvulas) | `ete_tavi_morf` (TAVI) |
+|---|---|
+| `Trivalva normal` | `tricuspide` |
+| `Bicúspide` | `bicuspide` |
+| `Calcificada` | — |
+| `Reumática` | — |
+| `Prótesis biológica` | — |
+| `Prótesis mecánica` | — |
+| `TAVI` | — |
+| `Endocarditis` | — |
+| `Carcinoide` | — |
+| — | `cuadricuspide` |
+
+Válvulas usa el **texto en español** como valor y TAVI usa **fichas en minúscula**: «Bicúspide» y
+`bicuspide` **no son el mismo valor**. Y de los dos pares con el mismo significado, sólo uno es
+inequívoco: **«Trivalva normal» afirma que la válvula es NORMAL** y «Tricúspide» afirma sólo el
+número de velos — y en un paciente que va a TAVI la válvula no es normal.
+
+**Medido, en los cuatro casos ninguno de los dos selectores escribe ni borra nada del otro.**
+
+⚠️ **Y UNA COSA QUE EL MÉDICO SEÑALA Y LA APLICACIÓN NO PUEDE REGISTRAR:** dijo que el TAVI sí se
+hace «en una válvula protésica o biológica previa (procedimiento valve in valve)», y
+`ete_tavi_morf` **no tiene ninguna opción de prótesis**. Hoy un valve-in-valve no se puede
+consignar en la morfología de TAVI.
+
+**La decisión es del médico**, que es lo que la orden dice: agregar o quitar opciones lo decide
+él. Las dos salidas posibles son unificar el vocabulario de los dos selectores, o agregarle a
+TAVI las opciones que le faltan.
+
+## P8-e · La prótesis mitral sigue sin molde de Evidencia, ahora con DOS motivos medidos
+
+Cierra la mitad de **P7-b** / **P6-a**: la **válvula pulmonar** estrena el molde. La **prótesis
+mitral** sigue parada, y ahora la parada tiene medición:
+
+1. **El defecto que el molde corrige NO se reproduce.** Con el panel maximizado, el vacío de la
+   columna izquierda —la del eco frente a la de preguntas— es **−131,3 px a 1440 y −292,4 a
+   1000**: la columna del eco es la **larga** y el hueco está del otro lado. En la pulmonar era
+   **+282,1 y +52,2**, que es la dirección que el molde arregla.
+2. **La franja exige una decisión clínica.** Esta sección no tiene grado: tiene `disf`, una
+   compuerta que vota. ⚠️ **Y LA PREMISA DE LA ORDEN ESTÁ CORTA: no son cuatro criterios sino
+   SEIS en un OR** — el veredicto de obstrucción de `vmProtEOA`, la insuficiencia en grado 4, la
+   vena contracta, el gradiente medio, la velocidad máxima y el tiempo de hemipresión.
+
+**PROPUESTA, para cerrarlo en una línea:** la franja diría **«Disfunción protésica significativa»**
+o **«Sin disfunción protésica significativa con lo cargado»**, que es **lo mismo** que `disf` ya
+decide y ya usa para elegir qué recomendación publicar — no sería una regla nueva ni un voto
+nuevo, sólo poner en el titular el veredicto que la sección ya toma. **TC-649 (F1)** sigue siendo
+el guardián, y hoy exige las dos mitades: que la pulmonar **sí** lo tenga y que la prótesis mitral
+**no**, así que puede volver a fallar por cualquiera de los dos lados.
+
+## P8-f · La app tiene UN campo de tracto de salida del VD y la guía publica TRES
+
+La guía de 2025 publica **tres** diámetros del tracto de salida, cada uno con su plano y sus
+cuatro grados —eje largo, eje corto proximal y eje corto distal—. La aplicación tiene **un** solo
+campo, `tsvd_diametro`, rotulado «Diám. TSVD», que **no declara el plano** y **no se gradúa**: es
+insumo del Qp y del Qp/Qs.
+
+**Reportado y NO tocado**, que es lo que la orden manda: cambiar eso es agregar campos y una
+graduación, o sea contenido clínico. La ficha de Referencias que esta tanda agrega ya publica los
+tres con su plano, así que el dato está disponible para decidir.
+
+## P8-g · `_labUsaTavi` ya daba positivo en estudios sin TAVI, y es preexistente
+
+Medido: una escena con `ea_dtsvi`, `itv_tsvi` e `itv_ao` cargados y **ningún** campo de TAVI da
+`_labUsaTavi` en **true**, en HEAD y en el árbol nuevo. La causa es que `eaTaviEspejar` llena
+`ete_tavi_ava` desde la ecuación de continuidad, y `ete_tavi_ava` está entre los predicados de esa
+función.
+
+O sea que el filtro «Con TAVI» del Laboratorio ya cuenta estudios que no tienen TAVI. **No se
+tocó** —el Laboratorio está fuera de esta tanda— y es justamente por este predicado que la
+sincronía del commit 3 se hizo **condicional**: con el espejo simétrico se habrían sumado todos
+los estudios con la raíz aórtica medida.
+
+## P8-h · Tres inventarios con sus decisiones esperando
+
+Los tres documentos del commit 7 cierran con una lista de decisiones que le tocan al médico y que
+**esta tanda no toma**:
+
+- `docs/INVENTARIO_PLEURA_Y_PULMON.md` — **cinco**: si el derrame pleural es un dato con dos
+  puertas; si hace falta medir cada pleura en milímetros; si «tabicado» y «loculado» son la misma
+  palabra; si el posoperatorio debería registrar deslizamiento, líneas A y zonas; y si el
+  neumotórax se deduce o se consigna.
+- `docs/INVENTARIO_MASAS.md` — **cuatro**: si «Masas» se muda a la pestaña Otros; si
+  `masa_presente` debería tener opción vacía —hoy un formulario en blanco **afirma** que no hay
+  masas, y eso llega al informe—; si la aplicación debería orientar el diagnóstico diferencial; y
+  si la masa debería tener sección de Evidencia.
+- `docs/INVENTARIO_PULMON_INTERACTIVO.md` — **cuatro**: si el dibujo del pulmón se reusa o se hace
+  uno nuevo; si debería mostrar la consolidación y el neumotórax; si las seis zonas de líneas B
+  deberían verse; y que **primero** hay que resolver la severidad por lado.

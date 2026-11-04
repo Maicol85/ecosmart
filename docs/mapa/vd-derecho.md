@@ -447,3 +447,21 @@ Tres cosas de esta pestaña se movieron:
   el primer botón del documento.
 
 Todo en `docs/mapa/pant7-vd-cia-globos.md` § 3.
+
+---
+
+## El tronco y las ramas de la arteria pulmonar, y los tres TSVD, en Referencias (PANT-8, 04/11/2026)
+
+La ficha del VD de **Referencias** pasa de **48 a 70 filas**: el tronco con sus cuatro grados, su
+sitio de medida, el corte de 25 mm y el cociente con la aorta ascendente; las **ramas**, que
+llevan el sitio y **no** un valor normal porque la guía no lo publica; los **tres** diámetros del
+tracto de salida con sus cuatro grados y el aviso de que pueden diferir hasta un **40 %** entre
+planos; y los tres de la guía de 2015 para comparar, sin resolver la diferencia.
+
+**Ningún corte de pantalla se movió:** `ip_ap_diam` conserva su `IP_AP_BANDA` de [5, 80] y el
+corte de 25 mm de los signos de HTP; `tsvd_diametro` sigue siendo insumo del Qp sin graduar.
+
+⚠️ **LA APP TIENE UN CAMPO DE TRACTO DE SALIDA Y LA GUÍA PUBLICA TRES** —ver `P8-f`—.
+
+Todo en `docs/mapa/pant8-tavi-referencias.md` § 5, y las fuentes en
+`docs/fuentes/FUENTES.md` → «La tanda PANT-8».

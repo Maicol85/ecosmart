@@ -64222,8 +64222,13 @@ caso('TC-451', 'Evidencia: los dos ⓘ de termino abren su tarjeta completa y an
          de los sintomas de la insuficiencia aortica. Y ese caso HIZO SU TRABAJO: la primera
          version de los dos globos de sintomas compartia el aria-label «Que sintomas cuentan», o
          sea la clave que hace que abrir uno no abra el otro. Hoy cada uno nombra su valvula. */
-      ex.push(['el registro tiene las OCHO entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
-        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','iasintomas','impsintomas','imssintomas','itsintomas','score_eco']) &&
+      /* ⚠️ ADAPTADO (PANT-8, commit 6, 04/11/2026): OCHO -> NUEVE. La entrada nueva es
+         epsintomas, el globo de que sintomas cuentan en la estenosis pulmonar, que la septima
+         valvula estrena junto con su molde. La condicion sigue EXIGIENDO que cada etiqueta sea
+         PROPIA y DISTINTA, que es lo que hace que abrir uno no abra el otro: es el invariante que
+         este caso cazo cuando dos globos compartieron clave con «Que sintomas cuentan» a secas. */
+      ex.push(['el registro tiene las NUEVE entradas y cada ⓘ es un <button> con aria-label PROPIO y distinto',
+        JSON.stringify(ids) === JSON.stringify(['cormier','easintomas','emsintomas','epsintomas','iasintomas','impsintomas','imssintomas','itsintomas','score_eco']) &&
         b0.every(b => b.tagName === 'BUTTON' && b.getAttribute('aria-haspopup') === 'dialog') &&
         etqs.length === 3 && (new Set(etqs)).size === 3 && etqs.every(e => e && e.trim()),
         'ids=' + JSON.stringify(ids) + ' etiquetas=' + JSON.stringify(etqs) +
@@ -66698,7 +66703,13 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ADAPTADO EN PANT-7 (c3): 120 -> 122. Entran vd-tei -el globo del indice de Tei del
        ventriculo derecho- y tep-6060 -el del signo 60/60-. La condicion ademas EXIGE que las
        dos claves esten, asi que sacar una vuelve a ponerla en rojo. */
-    Object.keys(VINFO).length === 122 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO),
+    /* ADAPTADO EN PANT-8 (commit 4): 122 -> 123. Entra tavi-calc, el globo que dice de donde
+       sale el criterio de calcificacion de la valvula aortica. NO esta en Valvulas, que es la
+       pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no lo que la
+       condicion afirma sobre el marcado de esa pestania. Se le exige la clave, igual que a las
+       dos anteriores, asi que sacarla vuelve a ponerlo en rojo. */
+    Object.keys(VINFO).length === 123 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+      && ('tavi-calc' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -75041,7 +75052,12 @@ caso('TC-492', 'Tanda M: las DIECISEIS FICHAS nuevas del registro de evidencia d
          folio 28—, dos documentos que esa seccion no citaba. Nacen verificadas, asi que el
          control de que la bibliografia sale SOLO de fichas verificadas sigue en pie, y la
          condicion gana los dos documentos nombrados para que no alcance con el total. */
-      refs.ad.bib === 3 && refs.vd2.bib === 4 && refs.ao2.bib === 4
+      /* ⚠️ ADAPTADO (PANT-8, commit 5, 04/11/2026): vd2 pasa de CUATRO entradas a OCHO. Las
+         cuatro nuevas son DIM-VD-007 a DIM-VD-010 —el tronco de la arteria pulmonar, sus ramas,
+         los tres diametros del tracto de salida y los de la guia de 2015—. Nacen verificadas, asi
+         que el control de que la bibliografia sale SOLO de fichas verificadas sigue en pie, y la
+         condicion conserva los DOS documentos nombrados para que no alcance con el total. */
+      refs.ad.bib === 3 && refs.vd2.bib === 8 && refs.ao2.bib === 4
         && String(refs.vd2.txt||'').indexOf('2019') > -1
         && String(refs.vd2.txt||'').indexOf('2022') > -1
         && String(refs.ao2.txt||'').indexOf('Figura 13') > -1 && String(refs.ao2.txt||'').indexOf('Tabla 14') > -1,
@@ -75947,7 +75963,10 @@ caso('TC-494', 'Tanda VS: el VD, la AD, la VCI y la RAIZ AORTICA alineados a la 
     /* ⚠️ ADAPTADO (PANT-7, commit 3): la bibliografia de ref-vd2 pasa de DOS entradas a CUATRO
        por las fichas FUN-VD-009 y FUN-VD-010, que citan dos documentos que esa seccion no
        citaba. Las DOCE barras no se mueven, y eso es lo que esta condicion sigue vigilando. */
-    refs.vd2.barras === 12 && refs.vd2.bib === 4 && refs.ad.bib === 3 && refs.ao2.bib === 4,
+    /* ⚠️ ADAPTADO (PANT-8, commit 5): la bibliografia de ref-vd2 pasa de CUATRO entradas a OCHO
+       por las fichas DIM-VD-007 a DIM-VD-010. LAS DOCE BARRAS NO SE MUEVEN, y eso es lo que esta
+       condicion sigue vigilando: las veintidos filas nuevas son de TABLA y ninguna dibuja barra. */
+    refs.vd2.barras === 12 && refs.vd2.bib === 8 && refs.ad.bib === 3 && refs.ao2.bib === 4,
     'barras=' + refs.vd2.barras + ' bib ad/vd2/ao2=' + refs.ad.bib + '/' + refs.vd2.bib + '/' + refs.ao2.bib]);
 
   /* ══ (h) · EL REGISTRO ══ */
@@ -78131,7 +78150,9 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec, tdf-eco y
      tdf-vol. Lo que esta condicion afirma no cambia -que el mecanismo exista y que el registro
      este completo-: cambia el denominador. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 122 entradas',
+  /* ADAPTADO EN PANT-8 (commit 4): 122 -> 123 por tavi-calc. Es el denominador del registro,
+     no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 123 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78164,7 +78185,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tv-sec del modulo de arritmia ventricular,
        esub-sec, esub-grad, easv-sec, easv-grad, mca-sec, mca-eco, mca-vi, mca-score, tdf-sec,
        tdf-eco y tdf-vol. NINGUNA esta en Valvulas, que es la pestania que este caso mide. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 122,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 123,
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79501,7 +79522,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      en prosa, sin crear una ficha nueva -escribir una seria publicar el mismo contenido dos
      veces, que es la regla R4-. La lista las sigue nombrando una por una, que es lo que hace que
      el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: cuarenta y nueve tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ADAPTADA (TANDA PANT-8, commit 4, 04/11/2026): 49 -> 50. La entrada nueva es tavi-calc, el
+     globo de la calcificacion de la valvula aortica. NO tiene ficha en Referencias y es
+     deliberado: su contenido es un CENSO -ninguna fuente de la biblioteca gradua la
+     calcificacion- y no un corte que la aplicacion aplique, asi que una ficha publicaria el
+     mismo contenido dos veces, que es la regla R4. La lista las sigue nombrando una por una,
+     que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
+  ex.push(['(C3) LIMITE DECLARADO: cincuenta tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79524,7 +79551,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
       + 'mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
-      + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,'
+      + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,tv-sec,va-morf-tipos,'
       + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp,'
@@ -92106,12 +92133,13 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   /* ADAPTADO EN PANT-7 (c3): 41 -> 43. Entran los dos globos nuevos, el del indice de Tei del
      ventriculo derecho y el del signo 60-60, los dos con la clase vinfo-btn-44. Medidos: los
      dos dan 44x44 y 5 de 5 puntos propios en los cuatro anchos. */
-  ex.push(['(K0) DENOMINADOR: los CUARENTA Y TRES globos llevan la clase, tienen geometria y estan EN VISTA',
-    tapK.length === 43 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los cuarenta y tres miden 44x44 tambien con el mouse',
-    tapK.length === 43 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ADAPTADA (PANT-8, commit 4): 43 -> 44 por tavi-calc, que nace con vinfo-btn-44. */
+  ex.push(['(K0) DENOMINADOR: los CUARENTA Y CUATRO globos llevan la clase, tienen geometria y estan EN VISTA',
+    tapK.length === 44 && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
+  ex.push(['(K1) los cuarenta y cuatro miden 44x44 tambien con el mouse',
+    tapK.length === 44 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 43 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 44 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -111452,8 +111480,18 @@ caso('TC-649', 'Tanda PANT-6: el molde en la insuficiencia aortica, la estenosis
   const PM = abrir('_indProtM', { vm_morf:'Prótesis mecánica', em_gmedio:'8', avm_cont:'1.4' });
   ex.push(['(F0) DENOM: las dos secciones que se pararon ABREN en su escena, que es lo que hace que (F1) pueda fallar',
     [EP.abre ? 'EP' : 'EP-NO-ABRE', PM.abre ? 'PM' : 'PM-NO-ABRE'].join(','), 'EP,PM']);
-  ex.push(['(F1) CONTROL: y las dos siguen SIN molde — parado y reportado en P6-a',
-    [EP.molde ? 'EP' : '', PM.molde ? 'PM' : ''].filter(Boolean).join(',') || 'ninguna', 'ninguna']);
+  /* ⚠️ INVERTIDA EN PANT-8 (commit 6, 04/11/2026), Y ES EL DIA QUE ESTE CASO ANUNCIABA. Era el
+     guardian de la parada de P6-a y afirmaba que las DOS seguian sin molde. La estenosis
+     pulmonar lo estrena: PANT-6 y PANT-7 la frenaron porque «no tiene fila de estadio», y
+     medido eso NO es un impedimento -el molde admite est nulo desde el dia uno y la fila que
+     DICE que no hay estadio ya existia-. La PROTESIS MITRAL sigue parada, con dos motivos
+     medidos: el vacio de su columna esta del lado contrario (-131,3 px a 1440) y su categoria es
+     el voto de SEIS criterios de obstruccion, no un grado, asi que que va en la franja lo decide
+     el medico.
+     LA CONDICION QUEDA MAS FUERTE Y NO ADAPTADA HACIA ABAJO: exige que la pulmonar SI lo tenga
+     y que la protesis mitral NO, asi que puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(F1) la pulmonar estrena el molde y la protesis mitral sigue SIN el — P6-a, mitad cerrada',
+    [EP.molde ? 'EP' : '', PM.molde ? 'PM' : ''].filter(Boolean).join(',') || 'ninguna', 'EP']);
   /* (G) EL PAPEL NO SE MUEVE con las cinco valvulas cargadas a la vez. */
   __t.limpiar();
   VAL.forEach(v => Object.keys(v.campos).forEach(k => S(k, v.campos[k])));
@@ -112218,6 +112256,374 @@ caso('TC-655', 'Tanda PANT-7: todos los carteles de los globos usan la letra de 
 
 
 
+
+
+/* ══ TANDA PANT-8 ══ Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo, y un caso agregado despues de el no se ejecuta -la suite imprime
+   «0/0 sin regresiones» sobre un caso que nunca corrio-. */
+
+caso('TC-656', 'Tanda PANT-8: los dos botones de TAVI, uno en cada esquina, pintados enteros y con su marca a salvo del barrido de showTab', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const g = (id) => document.getElementById(id);
+  /* ── DENOMINADOR: la seccion existe y abre ── */
+  try { showTab('ete') } catch(e) {}
+  const sec = g('ete-seccion-tavi');
+  ex.push(['(A0) DENOMINADOR: la seccion de TAVI existe', !!sec, true]);
+  if (sec && getComputedStyle(sec).display === 'none') { try { toggleEteSeccion('tavi') } catch(e) {} }
+  ex.push(['(A1) DENOMINADOR: la seccion esta abierta', sec ? getComputedStyle(sec).display !== 'none' : false, true]);
+  const bPre = g('ete-tavi-tab-pre'), bPost = g('ete-tavi-tab-post');
+  ex.push(['(A2) DENOMINADOR: los dos botones existen', !!(bPre && bPost), true]);
+  /* ── (B) CADA BOTON EN SU PROPIA BARRA, Y LAS DOS CON cc-lesbar ── */
+  const barPre = bPre ? bPre.closest('.subtabs-wrap') : null;
+  const barPost = bPost ? bPost.closest('.subtabs-wrap') : null;
+  ex.push(['(B1) el boton Pre vive en su propia barra', !!barPre && barPre !== barPost, true]);
+  ex.push(['(B2) la barra del Pre justifica a la izquierda', barPre ? barPre.style.justifyContent : 'NO', 'flex-start']);
+  ex.push(['(B3) la barra del Post justifica a la derecha', barPost ? barPost.style.justifyContent : 'NO', 'flex-end']);
+  /* cc-lesbar NO es cosmetica: sin ella la media query de 768 px esconde la .tabs-row y el
+     panel Post-TAVI no se puede alcanzar desde un telefono. */
+  ex.push(['(B4) la barra del Pre lleva cc-lesbar', barPre ? barPre.classList.contains('cc-lesbar') : false, true]);
+  ex.push(['(B5) la barra del Post lleva cc-lesbar', barPost ? barPost.classList.contains('cc-lesbar') : false, true]);
+  const fila = barPre ? barPre.parentElement : null;
+  ex.push(['(B6) las dos barras cuelgan de la misma fila', !!(fila && barPost && fila.contains(barPost)), true]);
+  ex.push(['(B7) y esa fila es ete-tavi-btnfila', fila ? fila.className : 'NO', 'ete-tavi-btnfila']);
+  /* ── (C) EL ESTADO ES PROPIO Y NO .active ── */
+  ex.push(['(C0) DENOMINADOR: el dueno del estado existe', typeof _eteTaviPane !== 'undefined', true]);
+  ex.push(['(C1) DENOMINADOR: el pintor existe', typeof eteTaviPaneSync === 'function', true]);
+  try { eteTaviTab('pre') } catch(e) {}
+  ex.push(['(C2) con Pre a la vista, su boton lleva cc-pane-on', bPre ? bPre.classList.contains('cc-pane-on') : false, true]);
+  ex.push(['(C3) CONTROL: y el del Post NO', bPost ? bPost.classList.contains('cc-pane-on') : true, false]);
+  ex.push(['(C4) ninguno usa la clase active, que showTab barre', (bPre && bPre.classList.contains('active')) || (bPost && bPost.classList.contains('active')), false]);
+  ex.push(['(C5) aria-pressed sigue al estado', bPre ? bPre.getAttribute('aria-pressed') : 'NO', 'true']);
+  /* ── (D) EL BOTON TRAE SU PANEL, Y EL OTRO SE ESCONDE ── */
+  try { bPost.click() } catch(e) {}
+  ex.push(['(D1) tras tocar Post, su panel se ve', g('ete-tavi-pane-post') ? getComputedStyle(g('ete-tavi-pane-post')).display !== 'none' : false, true]);
+  ex.push(['(D2) y el del Pre se esconde', g('ete-tavi-pane-pre') ? getComputedStyle(g('ete-tavi-pane-pre')).display : 'NO', 'none']);
+  ex.push(['(D3) el pintado se mudo al Post', bPost ? bPost.classList.contains('cc-pane-on') : false, true]);
+  /* ── (E) LA MARCA SOBREVIVE AL CAMBIO DE PANTALLA. Es el defecto que el medico reporto: en
+     HEAD showTab barre .active de TODO .tab-btn del documento y el boton quedaba oscuro con su
+     panel todavia a la vista. ── */
+  try { showTab('valvulas') } catch(e) {}
+  try { showTab('ete') } catch(e) {}
+  ex.push(['(E1) tras cambiar de pantalla, el Post conserva cc-pane-on', bPost ? bPost.classList.contains('cc-pane-on') : false, true]);
+  ex.push(['(E2) y su panel sigue a la vista', g('ete-tavi-pane-post') ? getComputedStyle(g('ete-tavi-pane-post')).display !== 'none' : false, true]);
+  /* ⚠️ (E3) NACIO DE UNA MUTACION QUE SOBREVIVIO. (E1) no puede fallar si el pintor deja de
+     correr: la clase cc-pane-on es PROPIA y showTab no la barre, asi que el estado sobrevive
+     solo. Lo que compra el llamado desde eteTaviSync -que esta en RECALC_MODULOS- es reponer el
+     pintado despues de una ruta de RESTAURACION, que puebla sin disparar eventos. Se simula
+     corrompiendo el DOM a mano y corriendo el embudo. */
+  try { bPost.classList.remove('cc-pane-on'); g('ete-tavi-pane-pre').style.display = '' } catch(e) {}
+  try { (typeof RECALC_MODULOS === 'function' ? RECALC_MODULOS() : []).forEach(function(fn){
+    try { if (typeof window[fn] === 'function') window[fn]() } catch(e) {} }) } catch(e) {}
+  ex.push(['(E3) el embudo de restauracion repone el pintado', bPost ? bPost.classList.contains('cc-pane-on') : false, true]);
+  ex.push(['(E4) y vuelve a esconder el panel que no esta a la vista', g('ete-tavi-pane-pre') ? getComputedStyle(g('ete-tavi-pane-pre')).display : 'NO', 'none']);
+  /* ── (F) CONTROL NEGATIVO: los botones de CIA / CIV no se movieron ── */
+  const bCia = g('ete-shunt-tab-cia'), bCiv = g('ete-shunt-tab-civ');
+  ex.push(['(F0) DENOMINADOR: los dos botones de CIA / CIV existen', !!(bCia && bCiv), true]);
+  const barCia = bCia ? bCia.closest('.subtabs-wrap') : null;
+  ex.push(['(F1) CONTROL: la barra de la CIA NO lleva la clase de TAVI', barCia ? barCia.classList.contains('ete-tavi-btnbar') : true, false]);
+  ex.push(['(F2) CONTROL: la barra de la CIA conserva cc-lesbar', barCia ? barCia.classList.contains('cc-lesbar') : false, true]);
+  /* ── (G) EL PINTOR NO ESCRIBE NINGUN CAMPO DEL ESTUDIO ── */
+  /* ⚠️ LOS CAMPOS SE FIJAN ANTES DE LA FOTO, Y LO DESTAPO UNA MUTACION QUE SOBREVIVIO: el
+     pintor corre al cargar la pagina -esta en RECALC_MODULOS-, asi que una escritura suya ya
+     dejo el campo escrito antes de que el caso fotografie y las dos fotos salen iguales. Es el
+     freno que tapa al que se muta. */
+  try { const _c = g('ete_tavi_calc'); if (_c) _c.value = 'severa';
+        const _v = g('ete_tavi_valsalva'); if (_v) _v.value = '41' } catch(e) {}
+  const antes = Array.prototype.slice.call(document.querySelectorAll('[id^=ete_tavi_]'))
+    .map(e => e.id + '=' + (e.type === 'checkbox' ? (e.checked ? 1 : 0) : String(e.value || ''))).join('|');
+  try { eteTaviPaneSync(); eteTaviPaneSync() } catch(e) {}
+  const desp = Array.prototype.slice.call(document.querySelectorAll('[id^=ete_tavi_]'))
+    .map(e => e.id + '=' + (e.type === 'checkbox' ? (e.checked ? 1 : 0) : String(e.value || ''))).join('|');
+  ex.push(['(G0) DENOMINADOR: hay campos de TAVI que mirar', antes.length > 40, true]);
+  ex.push(['(G1) dos pasadas del pintor no mueven un solo campo', desp === antes, true]);
+  return { extra: EXP };
+`);
+
+caso('TC-657', 'Tanda PANT-8: el panel Post-TAVI en tres columnas desde 900 px, con los campos en el grupo que ya tenian', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const g = (id) => document.getElementById(id);
+  try { showTab('ete') } catch(e) {}
+  const sec = g('ete-seccion-tavi');
+  if (sec && getComputedStyle(sec).display === 'none') { try { toggleEteSeccion('tavi') } catch(e) {} }
+  try { eteTaviTab('post') } catch(e) {}
+  const cols = g('ete-tavi-post-cols');
+  ex.push(['(A0) DENOMINADOR: el contenedor de las tres columnas existe', !!cols, true]);
+  ex.push(['(A1) tiene TRES hijos', cols ? cols.children.length : 0, 3]);
+  /* ── (B) EL REPARTO DE LOS CAMPOS: cada uno en su columna, por id ── */
+  const enCol = (id) => { const e = g(id); if (!e || !cols) return -1;
+    for (let i = 0; i < cols.children.length; i++) if (cols.children[i].contains(e)) return i;
+    return -1 };
+  ex.push(['(B1) el tipo de protesis esta en la columna 1', enCol('ete_tavi_pro_tipo'), 0]);
+  ex.push(['(B2) la posicion tambien', enCol('ete_tavi_pro_pos'), 0]);
+  ex.push(['(B3) el gradiente medio esta en la columna 2', enCol('ete_tavi_gmedio'), 1]);
+  ex.push(['(B4) el AT tambien', enCol('ete_tavi_at'), 1]);
+  ex.push(['(B5) la vena contracta esta en la columna 3', enCol('ete_tavi_vc_ancho'), 2]);
+  ex.push(['(B6) el flujo reverso tambien', enCol('ete_tavi_flujo_rev'), 2]);
+  /* ── (C) EL CUARTO GRUPO SE QUEDA DEBAJO, A TODO EL ANCHO ── */
+  ex.push(['(C1) la extension circunferencial NO entra en las columnas', enCol('ete_tavi_ext_circ'), -1]);
+  ex.push(['(C2) ni la nota del medico', enCol('ete_tavi_nota_medico'), -1]);
+  ex.push(['(C3) ni el lienzo del jet', enCol('ete-tavi-epc'), -1]);
+  const sig = cols ? cols.nextElementSibling : null;
+  ex.push(['(C4) y lo que sigue a las columnas es el titulo del jet',
+    sig ? ((sig.textContent || '').indexOf('Localizaci') > -1) : false, true]);
+  /* ── (D) EL CORTE VA EN UNA MEDIA QUERY EXPLICITA DE 900 px ──
+     ⚠️ LAS REGLAS SE LEEN DEL TEXTO DE LOS <style> Y NO DE document.styleSheets[i].cssRules,
+     que en este arnes devuelve vacio. Y la media query NO se delimita por balance de llaves:
+     un comentario de la hoja que mencione «900 px» desalinea el conteo. Lo que se hace es
+     buscar el SELECTOR y preguntar si la media query mas cercana HACIA ATRAS declara ese
+     ancho, acumulando TODAS las coincidencias -un mismo selector tiene la regla de fuera y la
+     de la media query-. */
+  let css = '';
+  Array.prototype.slice.call(document.querySelectorAll('style')).forEach(s => { css += s.textContent || '' });
+  ex.push(['(D0) DENOMINADOR: se leyo la hoja de estilos', css.length > 20000, true]);
+  const anchoDe = (sel) => { const out = [];
+    let i = css.indexOf(sel);
+    while (i > -1) { const atras = css.lastIndexOf('@media', i);
+      const corte = css.lastIndexOf('}', i);
+      const mq = (atras > -1 && atras > corte - 4000) ? css.slice(atras, css.indexOf(')', atras) + 1) : '';
+      out.push(mq); i = css.indexOf(sel, i + 1) }
+    return out };
+  const mqs = anchoDe('#ete-tavi-post-cols { grid-template-columns:repeat(3');
+  ex.push(['(D1) la regla de tres columnas existe', mqs.length > 0, true]);
+  ex.push(['(D2) y su media query declara 900px',
+    mqs.filter(m => m.indexOf('min-width: 900px') > -1).length > 0, true]);
+  /* El piso de 170 px de los campos va DENTRO de la media query: afuera regia tambien por
+     debajo del corte y dejaba tres campos por fila donde grid-4 deja cuatro. */
+  const mqs2 = anchoDe('#ete-tavi-post-cols .ete-tavi-pcol > .grid-2');
+  ex.push(['(D3) el piso de los campos esta dentro de una media query de 900px',
+    mqs2.filter(m => m.indexOf('min-width: 900px') > -1).length > 0, true]);
+  /* ── (E) CONTROL NEGATIVO: el panel Pre no se toco ── */
+  ex.push(['(E1) CONTROL: el panel Pre no tiene contenedor de columnas',
+    !!(g('ete-tavi-pane-pre') && g('ete-tavi-pane-pre').querySelector('#ete-tavi-post-cols')), false]);
+  ex.push(['(E2) CONTROL: la morfologia sigue en el panel Pre',
+    !!(g('ete-tavi-pane-pre') && g('ete-tavi-pane-pre').contains(g('ete_tavi_morf'))), true]);
+  return { extra: EXP };
+`);
+
+caso('TC-658', 'Tanda PANT-8: la sincronia de TAVI con Aorta / AI en los dos sentidos, con el estudio como dueno y el modulo como puerta', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const g = (id) => document.getElementById(id);
+  const V = (id) => { const e = g(id); return e ? String(e.value || '') : 'NO' };
+  const S = (id, v) => { const e = g(id); if (!e) return 0; e.value = v;
+    e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return 1 };
+  /* ⚠️ va_morf Y ete_tavi_morf TAMBIEN SE REPONEN, Y LO DESTAPO ESTE MISMO CASO: la prueba
+     (H2) leia «Bicuspide» en va_morf y acusaba a la sincronia, cuando lo que pasaba es que la
+     prueba (H1) lo habia dejado puesto. va_morf NO tiene opcion vacia: su valor por omision
+     es «Trivalva normal», asi que reponerlo es ponerle ESE valor y no la cadena vacia. */
+  const limpiar = () => { ['ete_tavi_valsalva','ete_tavi_ust','ete_tavi_ao_asc','ao_sin','ao_st','ao_tub',
+    'ete_tavi_calc','ete_tavi_anillo_diam','ete_tavi_morf','ete_tavi_vmax','vmax_ao','diam_tsvi_ao']
+      .forEach(id => { const e = g(id); if (e) e.value = '' });
+    const vm = g('va_morf'); if (vm) vm.value = 'Trivalva normal';
+    const c = g('ete_tavi_incluir_chk'); if (c) c.checked = false; };
+  ex.push(['(A0) DENOMINADOR: la funcion dueno existe', typeof taviAoSync === 'function', true]);
+  ex.push(['(A1) DENOMINADOR: la tabla de parejas tiene TRES', (typeof TAVI_AO_PARES !== 'undefined') ? TAVI_AO_PARES.length : 0, 3]);
+  ex.push(['(A2) DENOMINADOR: el predicado del modulo existe', typeof _taviModuloEnUso === 'function', true]);
+  /* ── (B) TAVI -> ESTUDIO ES INCONDICIONAL, en las tres parejas ── */
+  limpiar(); S('ete_tavi_valsalva', '38');
+  ex.push(['(B1) el seno de Valsalva llega a la aorta', V('ao_sin'), '38']);
+  limpiar(); S('ete_tavi_ust', '32');
+  ex.push(['(B2) la union sinotubular llega', V('ao_st'), '32']);
+  limpiar(); S('ete_tavi_ao_asc', '36');
+  ex.push(['(B3) la aorta ascendente llega', V('ao_tub'), '36']);
+  /* ── (C) ESTUDIO -> TAVI SOLO CON EL MODULO EN USO. Es el CONTROL NEGATIVO que decide la
+     forma: _labUsaTavi nombra ete_tavi_valsalva y ete_tavi_ao_asc, asi que con el espejo
+     simetrico todo estudio con la raiz medida contaria como «Con TAVI» en el Laboratorio. ── */
+  limpiar(); S('ao_sin', '40');
+  ex.push(['(C1) CONTROL NEGATIVO: sin el modulo en uso, TAVI NO se escribe', V('ete_tavi_valsalva'), '']);
+  /* ⚠️ TOLERANTE AL ARBOL VIEJO: contra HEAD esta funcion no existe y llamarla a pelo mata el
+     caso con un ReferenceError, que no dice que invariante se rompio. Es la leccion de TC-546. */
+  ex.push(['(C2) CONTROL: y el modulo sigue sin usarse',
+    (typeof _taviModuloEnUso === 'function') ? _taviModuloEnUso() : 'sin fn', false]);
+  limpiar(); S('ete_tavi_calc', 'severa'); S('ao_sin', '40');
+  ex.push(['(C3) con el modulo en uso, el estudio escribe en TAVI', V('ete_tavi_valsalva'), '40']);
+  /* ── (D) BORRAR BORRA, en los dos sentidos ── */
+  limpiar(); S('ete_tavi_valsalva', '38'); S('ete_tavi_valsalva', '');
+  ex.push(['(D1) borrar en TAVI borra en la aorta', V('ao_sin'), '']);
+  limpiar(); S('ete_tavi_calc', 'severa'); S('ao_sin', '40'); S('ao_sin', '');
+  ex.push(['(D2) borrar en la aorta borra en TAVI', V('ete_tavi_valsalva'), '']);
+  /* ── (E) A MEDIO ESCRIBIR NO SE PROPAGA ── */
+  /* ⚠️ SE LLAMA AL DUENO DIRECTO Y NO SE MIDE TRAS LA CADENA DE EVENTOS, Y LO DECIDIO UNA
+     MEDICION. Con el gesto completo el valor a medio escribir no llega al otro campo NI CON LA
+     GUARDA ROTA -algo de la cadena que dispara la escritura lo normaliza-, asi que la condicion
+     pasaba en verde sobre la mutacion. Medido en el navegador con la guarda rota y llamando al
+     dueno: ao_sin recibe «-» y recibe «abc». Los dos campos son de texto -numdec los convierte-,
+     asi que nada los sanea solos. */
+  limpiar(); g('ete_tavi_valsalva').value = '-';
+  try { taviAoSync('tavi', 'ete_tavi_valsalva') } catch(e) {}
+  ex.push(['(E1) un signo menos solo no cruza', V('ao_sin'), '']);
+  limpiar(); g('ete_tavi_valsalva').value = 'abc';
+  try { taviAoSync('tavi', 'ete_tavi_valsalva') } catch(e) {}
+  ex.push(['(E1b) ni un texto que no es un numero', V('ao_sin'), '']);
+  /* ── (F) EL RECONCILIADOR: los dos cargados y DISTINTOS no se pisan, y es idempotente.
+     La siembra va MUDA -asignando .value sin despachar eventos-, que es como pueblan las rutas
+     de restauracion: con el gesto real el espejo ya corre y los dos lados quedan iguales. ── */
+  ex.push(['(F0) DENOMINADOR: el reconciliador existe', typeof taviAoReconciliar === 'function', true]);
+  limpiar(); S('ete_tavi_calc', 'severa');
+  g('ete_tavi_valsalva').value = '38'; g('ao_sin').value = '44';
+  try { taviAoReconciliar() } catch(e) {}
+  ex.push(['(F1) con los dos cargados y distintos, TAVI no se mueve', V('ete_tavi_valsalva'), '38']);
+  ex.push(['(F2) ni la aorta', V('ao_sin'), '44']);
+  limpiar(); g('ete_tavi_valsalva').value = '38';
+  try { taviAoReconciliar() } catch(e) {}
+  ex.push(['(F3) con uno vacio lo completa, aunque el modulo no este en uso', V('ao_sin'), '38']);
+  try { taviAoReconciliar(); taviAoReconciliar() } catch(e) {}
+  ex.push(['(F4) y es IDEMPOTENTE en tres pasadas', V('ete_tavi_valsalva') + '/' + V('ao_sin'), '38/38']);
+  /* ⚠️ (F5) NACIO DE UNA MUTACION QUE SOBREVIVIO: (F3) mide el sentido INCONDICIONAL -TAVI
+     hacia el estudio- y ninguna condicion miraba la guarda del sentido inverso DENTRO del
+     reconciliador, que es la que evita que un estudio viejo con la raiz medida pase a contar
+     como «Con TAVI» en el Laboratorio al reabrirlo. */
+  limpiar(); g('ao_sin').value = '40';
+  try { taviAoReconciliar() } catch(e) {}
+  ex.push(['(F5) CONTROL NEGATIVO: el reconciliador NO escribe en TAVI sin el modulo en uso', V('ete_tavi_valsalva'), '']);
+  /* ── (G) LAS QUE NO SE UNEN ── */
+  limpiar(); S('ete_tavi_anillo_diam', '24');
+  ex.push(['(G1) el anillo NO escribe el TSVI', V('diam_tsvi_ao'), '']);
+  limpiar(); S('ete_tavi_vmax', '2.1');
+  ex.push(['(G2) la Vmax post-TAVI NO escribe la de la nativa', V('vmax_ao'), '']);
+  /* ── (H) LA MORFOLOGIA QUEDA PARADA: la interseccion de los dos juegos de valores es VACIA ── */
+  limpiar(); S('va_morf', 'Bicúspide');
+  ex.push(['(H1) Valvulas NO escribe la morfologia de TAVI', V('ete_tavi_morf'), '']);
+  limpiar(); S('ete_tavi_morf', 'bicuspide');
+  ex.push(['(H2) y TAVI NO escribe la de Valvulas', V('va_morf'), 'Trivalva normal']);
+  limpiar();
+  return { extra: EXP };
+`);
+
+caso('TC-659', 'Tanda PANT-8: el globo de la calcificacion dice que ninguna fuente la gradua, sin conducta y sin clase', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  ex.push(['(A0) DENOMINADOR: el registro de globos existe', typeof VINFO !== 'undefined', true]);
+  const V = (typeof VINFO !== 'undefined') ? VINFO['tavi-calc'] : null;
+  ex.push(['(A1) la clave tavi-calc esta registrada', !!V, true]);
+  const txt = V ? String(V.lee || '') : '';
+  ex.push(['(A2) DENOMINADOR: su texto tiene cuerpo', txt.length > 1500, true]);
+  /* ── (B) EL BOTON, con el glifo y el area tactil estandar ── */
+  const b = document.querySelector('[data-vinfo="tavi-calc"]');
+  ex.push(['(B1) el boton existe', !!b, true]);
+  ex.push(['(B2) y lleva la clase del area tactil de 44 px', b ? b.classList.contains('vinfo-btn-44') : false, true]);
+  ex.push(['(B3) con el glifo estandar U+24D8', b ? (b.textContent || '').trim() : 'NO', '\\u24D8']);
+  ex.push(['(B4) y su etiqueta no esta vacia', b ? (b.getAttribute('aria-label') || '').length > 10 : false, true]);
+  /* el boton va al lado del campo de la calcificacion, no suelto */
+  const campo = document.getElementById('ete_tavi_calc');
+  const fg = campo ? campo.closest('.fg') : null;
+  ex.push(['(B5) vive en el mismo campo que la calcificacion', !!(fg && b && fg.contains(b)), true]);
+  /* ── (C) EL CONTENIDO: lo que el censo encontro y lo que NO ── */
+  const n = (s) => (txt.split(s).length - 1);
+  ex.push(['(C1) dice que ninguna fuente publica una clasificacion con grados', n('Ninguna de las fuentes') > 0, true]);
+  ex.push(['(C2) dice que la graduacion queda a criterio de quien informa', n('criterio de quien informa') > 0, true]);
+  ex.push(['(C3) trae el corte del varon', n('2000') > 0, true]);
+  /* ⚠️ LA CONDICION MIRA LA FRASE Y NO EL CARTEL ENTERO, Y LO DESTAPO UNA MUTACION QUE
+     SOBREVIVIO: «1200» aparece DOS veces -en el corte y en el parrafo de la discrepancia-, asi
+     que sacarlo de uno dejaba el otro y la condicion pasaba en verde. */
+  ex.push(['(C4) y el de la mujer, en la MISMA frase que el del varon',
+    n('2000 unidades Agatston en el varón y de 1200 en la mujer') > 0, true]);
+  ex.push(['(C5) dice que son cortes de severidad de la ESTENOSIS', n('no grados de calcificaci') > 0, true]);
+  ex.push(['(C6) muestra la diferencia entre fuentes sin resolverla', n('1300') > 0, true]);
+  ex.push(['(C7) y nombra los cuatro folios leidos', n('4663') > 0 && n('4664') > 0 && n('4668') > 0 && n('739') > 0, true]);
+  /* ── (D) SIN CONDUCTA, SIN CLASE Y SIN REVISION PENDIENTE ── */
+  ex.push(['(D1) cero clases de recomendacion', n('Clase I') + n('Clase II'), 0]);
+  ex.push(['(D2) cero verbos de conducta', n('se recomienda') + n('recomendad') + n('considerar la intervenci'), 0]);
+  ex.push(['(D3) cero frases de revision pendiente', n('pendiente de revisi') + n('sin validar') + n('a confirmar por'), 0]);
+  /* ── (E) CONTROL NEGATIVO: ninguna opcion del campo cambio ── */
+  const ops = campo ? Array.prototype.slice.call(campo.options).map(o => o.value).join('|') : 'NO';
+  ex.push(['(E1) CONTROL: el campo conserva sus cuatro opciones', ops, '|leve|moderada|severa']);
+  return { extra: EXP };
+`);
+
+caso('TC-660', 'Tanda PANT-8: Referencias del VD publica el tronco y las ramas de la arteria pulmonar y los tres diametros del tracto de salida', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  try { showTab('referencias') } catch(e) {}
+  try { if (typeof refSubShow === 'function') refSubShow('dim') } catch(e) {}
+  try { if (typeof toggleRef === 'function') toggleRef('vd2') } catch(e) {}
+  try { if (typeof evRefPintar === 'function') evRefPintar('vd2') } catch(e) {}
+  const host = document.getElementById('ref-vd2-cuerpo');
+  ex.push(['(A0) DENOMINADOR: el cuerpo de la ficha del VD existe', !!host, true]);
+  const filas = host ? host.querySelectorAll('tr').length : 0;
+  /* ⚠️ EL DENOMINADOR ES EL CONTEO DE FILAS: sin el, un cero de contenido no se distingue de una
+     tabla que no se pinto. En HEAD eran 48; con las 22 nuevas son 70. */
+  ex.push(['(A1) DENOMINADOR: la tabla se pinto con sus filas', filas > 40, true]);
+  const t = host ? (host.textContent || '').replace(/\\s+/g, ' ') : '';
+  const n = (s) => (t.split(s).length - 1);
+  /* ── (B) EL TRONCO: sus cuatro grados, el corte de 25 mm y el cociente ── */
+  ex.push(['(B1) el tronco tiene fila propia', n('Tronco de la AP') > 0, true]);
+  ex.push(['(B2) con su normal', n('2,5 cm') > 0, true]);
+  ex.push(['(B3) con su banda severa', n('3,5 cm') > 0, true]);
+  ex.push(['(B4) el corte de 25 mm por 2D', n('25 mm') > 0, true]);
+  ex.push(['(B5) y el cociente con la aorta ascendente', n('aorta ascendente') > 0, true]);
+  /* ── (C) LAS RAMAS: el sitio si, el valor normal NO. Es el contenido, no un hueco ── */
+  ex.push(['(C1) las ramas tienen fila propia', n('Ramas derecha e izquierda') > 0, true]);
+  ex.push(['(C2) y dice que NO hay valor normal publicado', n('sin valor normal publicado') > 0, true]);
+  /* ── (D) LOS TRES TSVD, cada uno con sus cuatro grados ── */
+  ex.push(['(D1) el eje largo', n('TSVD eje largo') >= 4, true]);
+  ex.push(['(D2) el eje corto proximal', n('TSVD eje corto proximal') >= 4, true]);
+  ex.push(['(D3) el eje corto distal', n('TSVD eje corto distal') >= 4, true]);
+  ex.push(['(D4) con el normal del eje largo', n('3,3 cm') > 0, true]);
+  ex.push(['(D5) y el del distal', n('2,9 cm') > 0, true]);
+  /* ── (E) LA GUIA DE 2015, para comparar, con su rango y sin resolver la diferencia ── */
+  ex.push(['(E1) trae los rangos de 2015', n('rango normal de 2015') >= 3, true]);
+  ex.push(['(E2) con el del eje largo', n('20 a 30 mm') > 0, true]);
+  /* ── (F) SIN CONDUCTA Y SIN REVISION PENDIENTE ── */
+  ex.push(['(F1) cero verbos de conducta', n('se recomienda') + n('debe considerarse'), 0]);
+  ex.push(['(F2) cero frases de revision pendiente', n('pendiente de revisi') + n('sin validar'), 0]);
+  /* ── (G) CONTROL NEGATIVO: los cortes de pantalla no se movieron ── */
+  ex.push(['(G1) CONTROL: la banda de plausibilidad de la AP sigue en 5 a 80',
+    (typeof IP_AP_BANDA !== 'undefined') ? IP_AP_BANDA.join('-') : 'NO', '5-80']);
+  ex.push(['(G2) CONTROL: el campo del TSVD sigue sin graduar',
+    !!document.getElementById('tsvd_diametro'), true]);
+  return { extra: EXP };
+`);
+
+caso('TC-661', 'Tanda PANT-8: la estenosis pulmonar estrena el molde de Evidencia sin fila de estadio, y la protesis mitral NO se toca', `
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]), 'esperado ' + String(t[2]) + ' | hallado ' + String(t[1])]) };
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return 0;
+    if (e.options && v !== '' && !Array.prototype.some.call(e.options, x => x.value === String(v) || x.text === String(v))) {
+      const op = document.createElement('option'); op.value = String(v); op.textContent = String(v); e.appendChild(op) }
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles:true }));
+    e.dispatchEvent(new Event('change', { bubbles:true })); return 1 };
+  /* ── DENOMINADOR: la seccion no existe sin una estenosis al menos moderada ── */
+  ex.push(['(A0) DENOMINADOR: el constructor existe', typeof _indEP === 'function', true]);
+  let r0 = null; try { r0 = _indEP() } catch(e) {}
+  ex.push(['(A1) DENOMINADOR: con el formulario vacio la seccion NO se abre', r0, null]);
+  S('vp_gmax', '70'); S('vp_vmax', '4.2'); S('ep_nivel', 'Valvular');
+  try { if (typeof calcVP === 'function') calcVP() } catch(e) {}
+  let r = null; try { r = _indEP() } catch(e) {}
+  ex.push(['(A2) DENOMINADOR: con el gradiente severo la seccion se abre', !!r, true]);
+  /* ── (B) EL MOLDE ── */
+  ex.push(['(B1) la seccion publica molde', !!(r && r.molde), true]);
+  const m = r ? (r.molde || {}) : {};
+  ex.push(['(B2) con su categoria', m.cat ? String(m.cat.txt || '') : 'NO', 'Estenosis pulmonar severa']);
+  /* La guia no publica estadios para esta lesion: el molde admite est nulo desde el dia uno. */
+  ex.push(['(B3) y SIN fila de estadio', m.est, null]);
+  ex.push(['(B4) la franja de datos trae las nueve filas', m.datos ? m.datos.length : 0, 9]);
+  /* ── (C) LAS PREGUNTAS: cinco, en UNA columna, en dos grupos ── */
+  ex.push(['(C1) UNA sola columna, porque son seis o menos', m.cols ? m.cols.length : 0, 1]);
+  const grupos = (m.cols && m.cols[0]) ? m.cols[0].map(x => x.tit).join('|') : 'NO';
+  ex.push(['(C2) con sus dos grupos', grupos, 'Indicación|Criterios del asintomático']);
+  const nPreg = (m.cols && m.cols[0]) ? m.cols[0].reduce((a, x) => a + (x.filas || []).length, 0) : 0;
+  ex.push(['(C3) y CINCO preguntas repartidas', nPreg, 5]);
+  /* ── (D) EL GLOBO DE SINTOMAS ── */
+  const sx = (r && r.clinica) ? r.clinica.filter(f => f && f.ctrl && f.ctrl.clave === 'ep.sintomas')[0] : null;
+  ex.push(['(D1) la pregunta de sintomas existe', !!sx, true]);
+  ex.push(['(D2) y lleva su globo', sx ? String(sx.term || '') : 'NO', 'epsintomas']);
+  /* ── (E) CONTROL NEGATIVO: la clinica NO se toco ── */
+  ex.push(['(E1) CONTROL: la lista clinica conserva sus siete filas', r ? r.clinica.length : 0, 7]);
+  ex.push(['(E2) CONTROL: las dos filas de solo lectura siguen en la clinica',
+    r ? r.clinica.filter(f => f && !f.ctrl && !f.origen).length : 0, 2]);
+  /* ── (F) LA PROTESIS MITRAL SE PARO: su seccion NO tiene molde ── */
+  ex.push(['(F0) DENOMINADOR: su constructor existe', typeof _indProtM === 'function', true]);
+  S('vm_morf', 'Prótesis biológica');
+  let p = null; try { p = _indProtM() } catch(e) {}
+  ex.push(['(F1) DENOMINADOR: con una protesis la seccion se abre', !!p, true]);
+  ex.push(['(F2) y NO tiene molde: su categoria es un voto y la decide el medico', !!(p && p.molde), false]);
+  ex.push(['(F3) CONTROL: conserva sus filas clinicas', p ? (p.clinica.length >= 4) : false, true]);
+  return { extra: EXP };
+`);
 
 try {
   const s = await servir(); servidor = s.srv;
