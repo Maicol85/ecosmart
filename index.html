@@ -17198,7 +17198,7 @@ z
             <option value="">—</option><option value="tricuspide">Tricúspide</option>
             <option value="bicuspide">Bicúspide</option><option value="cuadricuspide">Cuadricúspide</option>
           </select></div>
-        <div class="fg"><label>Calcificación</label>
+        <div class="fg"><label>Calcificación <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tavi-calc" aria-expanded="false" aria-label="De dónde sale el criterio de calcificación de la válvula aórtica" onclick="vInfoClic(this)">&#9432;</button></label>
           <select id="ete_tavi_calc" onchange="eteTaviSync()">
             <option value="">—</option><option value="leve">Leve</option>
             <option value="moderada">Moderada</option><option value="severa">Severa</option>
@@ -47036,6 +47036,44 @@ const VINFO = Object.freeze({
      la lectura: la app gradúa una plastia y un TEER con los criterios de la válvula NATIVA, que
      es lo que la decisión del médico pide, y lo que estos textos hacen es decir con qué se
      gradúa y cuáles son los límites que la fuente declara. Sin conducta y sin clase. */
+  /* ══ DE DONDE SALE EL CRITERIO DE CALCIFICACION — tanda PANT-8, commit 4 (2026-11-04) ═══════
+     PREGUNTA DEL MEDICO (03/11/2026): «Para definir la calcificacion, no se de donde sale el
+     criterio, si es subjetivo del medico o hay alguna clasificacion».
+     LA RESPUESTA ES UN CENSO, y por eso el globo la da con esas palabras. Censadas las 246
+     fuentes de la biblioteca, normalizando las LIGADURAS tipograficas y des-hifenando el fin de
+     linea, con control positivo -«aortic valve» aparece en 153 de los 246 archivos-: NINGUNA
+     publica una clasificacion con grados de la calcificacion de la valvula aortica, ni por
+     ecocardiografia ni por tomografia. Lo que hay es (a) el puntaje de calcio, que gradua la
+     SEVERIDAD DE LA ESTENOSIS y no la calcificacion, y (b) descriptores CUALITATIVOS para
+     planificar el TAVI.
+     ⚠️ LA LIGADURA «fi» ES UNA TRAMPA DE METODO Y COSTO UNA MEDICION: el PDF de la ASE escribe
+        «calciﬁcation» con la ligadura U+FB01, asi que buscar la cadena «calcifi» devolvio CERO
+        sobre un documento que la dice. La frase se leyo EN IMAGEN, que es lo que la manda la
+        casa; el censo se rehizo normalizando. Es la hermana del guion de fin de linea que este
+        archivo ya documenta.
+     ⚠️ ESTE GLOBO NO AGREGA NI MUEVE NINGUN CORTE, NINGUNA OPCION Y NINGUNA REGLA. El campo
+        `ete_tavi_calc` tiene TRES lectores, censados: su propio select, el parrafo del informe y
+        el predicado `_labUsaTavi`. Ni un calculo depende de el.
+     Cuatro reglas de folio, comprobadas en el pie impreso de cada hoja:
+       · ESC/EACTS 2025 de valvulopatias (ehaf194)              — folio = hoja + 4634
+       · ASE 2025 de estandarizacion del informe (Taub, JASE 38) — folio 739 impreso en la hoja 5
+     Todo PARAFRASEADO en español; ninguna frase se copia. Sin conducta y sin clase. */
+  'tavi-calc': { tit: 'La calcificación de la válvula aórtica', ancho: 460, lee:
+      'DE DÓNDE SALE EL CRITERIO. Ninguna de las fuentes de esta biblioteca publica una clasificación con grados —leve, moderada, severa— de la calcificación de la válvula aórtica, ni por ecocardiografía ni por tomografía. La graduación de este campo queda a criterio de quien informa: las fuentes no la definen con grados.\n'
+    + 'La guía de estandarización del informe de la Sociedad Americana de Ecocardiografía lo dice en su Tabla 1: desaconseja escribir «calcificación valvular aórtica leve, moderada o severa» salvo que el laboratorio tenga su propia definición interna, y como regla general desaconseja graduar una entidad cuando la guía vigente no publica grados. Folio 739.\n'
+    + '\nLO QUE SÍ EXISTE: EL PUNTAJE DE CALCIO POR TOMOGRAFÍA. Son cortes de severidad de la ESTENOSIS, no grados de calcificación, y se miden con el método de Agatston, por sexo. Guía europea de 2025, folio 4663:\n'
+    + '· Por encima de 2000 unidades Agatston en el varón y de 1200 en la mujer: estenosis aórtica severa, con sensibilidad y especificidad cercanas al 85 %.\n'
+    + '· Umbrales más específicos: por encima de 3000 en el varón y de 1600 en la mujer.\n'
+    + '· La estenosis severa es poco probable por debajo de 1600 en el varón y de 800 en la mujer.\n'
+    + '· La misma guía pide cautela en la válvula bicúspide, en la amiloidosis concomitante y en la estenosis predominantemente fibrótica —posreumática, por radiación e inflamatoria—, donde puede haber estenosis severa sin calcificación pronunciada.\n'
+    + 'Los mismos dos cortes son un nodo de su Figura 6, el árbol de evaluación integrada de la estenosis aórtica, folio 4664.\n'
+    + '\nUNA DIFERENCIA ENTRE FUENTES, QUE SE MUESTRA Y NO SE RESUELVE, LA MÁS NUEVA PRIMERO. El corte de la mujer: la guía europea de 2025 escribe más de 1200 unidades (folio 4663); una revisión de 2023 sobre la evaluación ecocardiográfica de la estenosis aórtica escribe más de 1300. El del varón coincide en 2000 en las dos.\n'
+    + '\nPARA EL TAVI, LA GUÍA DESCRIBE LA CALCIFICACIÓN EN TÉRMINOS CUALITATIVOS Y SIN GRADOS. Folio 4668:\n'
+    + '· Calcificaciones excesivas o voluminosas del anillo o del tracto de salida aumentan el riesgo de fuga paravalvular y de rotura anular.\n'
+    + '· En la válvula bicúspide, la calcificación asimétrica de los velos suma complejidad, junto con la forma elíptica del anillo.\n'
+    + '· La calcificación marcada de los velos, sobre todo junto con un rafe calcificado, se asocia a más riesgo de lesión de la raíz aórtica, fuga paravalvular y mortalidad.\n'
+    + 'La tomografía multicorte es la herramienta de elección para ver la extensión y la distribución de la calcificación de la válvula y del tracto de salida, folio 4663.\n'
+    + '\nY LA GUÍA USA LA PALABRA «SEVERA» SIN DEFINIRLA. En su tabla de la estenosis aórtica aparece la expresión «calcificación valvular severa, idealmente evaluada por tomografía», junto con una progresión de la velocidad máxima de 0,3 m/s por año o más: usa el término y no publica los grados que lo definirían. Folio 4670.' },
   'vm-morf-tipos': { tit: 'La plastia y el TEER mitral', ancho: 460, lee:
       'PLASTIA MITRAL. La insuficiencia residual se evalúa con los mismos principios que una válvula nativa, y una plastia lograda no deja más que una insuficiencia leve.\n'
     + 'Para la estenosis mitral iatrogénica, el documento de ecocardiografía transesofágica para decisiones quirúrgicas da un gradiente medio por encima de 6 mmHg junto con un área menor de 1,8 cm², y advierte que la fibrilación auricular, la taquicardia y el gasto cardíaco alto o bajo mueven el gradiente.\n'
@@ -155724,8 +155762,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0522';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793780550495;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0534';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793781257320;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -155811,7 +155849,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0522</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0534</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
