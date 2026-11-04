@@ -748,6 +748,81 @@ impecable.
   ⚠️ **TC-451 FUE EL QUE CAZÓ QUE DOS GLOBOS COMPARTÍAN CLAVE**, con «Qué síntomas cuentan» a
   secas: hoy cada etiqueta nombra su válvula.
 
+- **A/B FINAL contra HEAD, con el PDF y el PPT generados de verdad: 64 escenas, 73.072 claves y
+  28.224 celdas de Excel. SEIS diferencias de superficie firmada, y las seis son las autorizadas**
+  —las **dos** escenas del Forrester **sin** datos, donde «faltan el índice cardíaco y la presión
+  capilar pulmonar estimada» pasa a **«no determinable»** en el texto del módulo, en la hoja del
+  PDF y en la diapositiva—. Las otras **62 escenas dan CERO**, y entre ellas están los tres
+  controles que importan: **`p6forrDos`** —la misma sección **con** los dos datos, **750
+  caracteres idénticos byte por byte**—, `p6iaAjeno` y `p4ajeno`. Las **seis** escenas con molde y
+  las **dos** del TEER integradas: **cero**. Las **396** de pantalla son el control positivo.
+  ⚠️ **«no determinable» NO es una frase nueva: es el fallback que esa línea YA usaba** cuando el
+  span estaba vacío, preexistente en HEAD con cinco apariciones.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves y **campos 1004** en las 63 escenas con datos: **cero campos guardados nuevos
+  y cero columnas**. **Sin huérfanos nuevos.** **Cero** `innerHTML`, `eval` o `new Function`
+  nuevos en el diff, y cero claves.
+  ⚠️ **Y EL BARRIDO DE `/sharp-edges` SOBRE EL PROPIO DIFF NO ENCONTRÓ NADA**, medido: las
+  **cuatro** salidas de HTML del molde pasan por `_critEsc` —que escapa `&`, `<`, `>` y `"`— y el
+  diff no tiene una sola interpolación cruda.
+- **CELULAR: 58 hallazgos a 360 px y 66 a 390, con 17 ALTA en cada ancho** — la línea base exacta
+  que la orden declara. **No empeoró.**
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia entre motores** en las veintidós claves comparadas: la CIA
+  y la CIV en **590 / 590 px** lado a lado con el borde de **2 px**, el botón dentro de su cuadro,
+  el cuadro común fuera de la fila, **cero** campos deshabilitados, la PSAP por IT **una** vez y
+  **cero** recorte del cuerpo del acordeón; el dibujo del VD en **520 × 683,9** con el rótulo más
+  chico en **12,26 px** y la lista de criterios con sus **nueve** filas; el Forrester **en la
+  pantalla y NO en el módulo**; los dos cuadros del TEER con los dos rótulos **distintos**; la
+  mitral del ETE en **tres** columnas con tres hijos, el cuadro de desfavorables fuera y el
+  **alias** respondiendo; el molde con sus franjas, sus **diez** tarjetas de datos, sus columnas de
+  preguntas y la **pregunta de síntomas presente con la etiología calcificada**; el papel en
+  **636** caracteres **idéntico a HEAD**; **cero** desplazamiento horizontal y **cero** textos
+  recortados.
+  **El mismo cruce contra HEAD es el control, y reproduce las dos premisas de la orden exactas:**
+  la CIV en **0 px**, `lado=false`, `borde=0px`, el botón fuera de su cuadro, el cuadro común
+  dentro de la fila, la PSAP por IT **dos** veces, el dibujo en **110 × 144,7** con la letra en
+  **2,59 px**, la lista en **cero** filas, el Forrester **sí** en el módulo, el TEER sin columnas,
+  la mitral sin fusionar, el alias **sin responder** y **cero** secciones con molde.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **El único error de consola, en los dos árboles y en los dos motores, es del arnés**:
+  `ERR_FILE_NOT_FOUND`, porque la sonda carga de una copia en el temporal. Es lo que la tanda D2 ya
+  documenta; el árbol vivo da cero.
+  ⚠️ **Y SU PRIMERA VERSIÓN TIRÓ LOS DIECISÉIS CRUCES** por un ternario anidado sin cerrar.
+  `node --check` del `.mjs` **no lo ve**, porque el cuerpo es un template literal: lo que lo caza
+  es `new Function('return ' + cuerpo)` sobre lo que va entre los acentos graves.
+
+- ⚠️ **LA LETRA DEL DIBUJO DEL VD QUEDA POR DEBAJO DE 12 px A 1000 Y A 390 px, Y LA TABLA QUE
+  ESCRIBÍ PRIMERO ESTABA MAL.** Medido en los dieciséis cruces: **520 px → 12,26** a 1440, **343,8
+  → 8,11** a 1000, **520 → 12,26** a 768 —apilado, al tope— y **328 → 7,74** a 390. Mi primera
+  versión de **P6-b** decía «~400 px y ~9,4 px» a 1000 y «por encima de 12 px» a 768 y 390: los
+  tres eran estimados y el de 390 estaba **del lado equivocado del corte**. Las dos salidas
+  posibles mueven el corte que la orden fija o tocan el dibujo, que la orden prohíbe.
+
+- **Línea base al cierre: suite 656/664**, en **doce lotes** cubriendo los **664 casos distintos**
+  —contados nombre por nombre, con una guarda que compara lo listado con lo distinto y otra que
+  compara los ejecutados: **664 de 664**—, en UNA sola pasada sobre el árbol sellado, con el
+  pendrive `DISK_IMG` **verificado al abrir, en los DOCE lotes y al cerrar** (catorce
+  verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y después
+  (`bb6adf41`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-551**, el intermitente declarado, más **TC-99, TC-100 y TC-490**. **Ningún rojo nuevo.**
+  ⚠️ **LOS TRES ESTÁN CARACTERIZADOS, Y UNO ME HIZO EQUIVOCAR.** **TC-99 y TC-100** pasan aislados
+  **y con su lote entero repetido** —el lote 4 vuelve a dar **56/56**—, en los dos órdenes posibles
+  entre ellos. **TC-490** es un intermitente **PREEXISTENTE**: **2 rojas de 4 contra HEAD** con su
+  caso original, **3 de 4** en el árbol nuevo sin adaptar y **3 de 4** adaptado, siempre con la
+  misma firma —sus propios denominadores del chorro: «con chorro:» vacío y «SIN ORIGEN» en las ocho
+  cámaras—.
+  ⚠️ **MI PRIMERA MEDICIÓN DE TC-490 DIJO QUE ERA MÍO, Y ERA UNA SOLA CORRIDA DE CADA LADO** —verde
+  en HEAD, rojo en mi árbol—. Con cuatro de cada lado se ve que los dos fallan. **Un intermitente
+  no se caracteriza con una corrida.**
+  **Se adaptó igual, y por un motivo que no es el intermitente:** el caso comprobaba el
+  **elemento** `ete-seccion-mediciones-mitral` antes de llamar al toggle, y ese contenedor ya no
+  existe, así que sin la adaptación la segunda sección **nunca se abre**. El alias del commit 4
+  cubre la llamada, no una guarda que busque el id viejo.
+
+
 - **Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` (**mapa NUEVO**, 17,4 KB), las fichas
   de los seis casos en `docs/mapa/tests-fichas-644.md` (**archivo propio**, porque
   `tests-fichas.md` está a menos de 1 KB del techo), **cinco mapas con un puntero cada uno**

@@ -866,6 +866,24 @@ emisión ni el enganche— y nacieron **(A2)**, **(A3)**, **(A3b)**, **(B1b)**, 
 sobrevivió al segundo barrido **sobre un denominador vacío**: el control de las dos secciones
 paradas las llamaba en una escena donde las dos devuelven `null`.
 
+**Línea base al cierre:** **suite 656/664**, en doce lotes cubriendo los **664 casos distintos**
+(**664 de 664 ejecutados**), con el pendrive `DISK_IMG` verificado al abrir, en los doce lotes y al
+cerrar, y el md5 de `index.html` idéntico antes y después (**`bb6adf41`**). Rojos: **TC-223,
+TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551**, el intermitente declarado, más
+**TC-99, TC-100 y TC-490**, los tres caracterizados como intermitentes y **ninguno de esta tanda**
+—TC-99 y TC-100 pasan aislados y con su lote repetido (56/56), y TC-490 da **2 rojas de 4 contra
+HEAD**, 3 de 4 sin adaptar y 3 de 4 adaptado—. **Ningún rojo nuevo.**
+⚠️ **Mi primera medición de TC-490 dijo que era mío, y era UNA corrida de cada lado.** Un
+intermitente no se caracteriza con una corrida.
+**Semgrep 124 WARNING / 0 ERROR**, **Excel 441** columnas con las mismas claves, **censo 1004** sin
+un campo guardado nuevo, **sin huérfanos nuevos**, celular **58 a 360 px y 66 a 390 con 17 ALTA**
+(la línea base exacta), y **Chrome y WebKit idénticos en los dieciséis cruces** sin una sola
+diferencia entre motores. El **A/B final de 64 escenas** da **SEIS** diferencias de superficie
+firmada, las seis de la frase del Forrester que el commit 6a autoriza, con 62 escenas en cero.
+Sello **`v20261103-2018`**, **11,30 MB / 157.812 líneas**, diff **1.447 / 427** contra `c42d9e3`.
+**Son DIECISÉIS commits**: los diez de código más seis de cobertura y documentación.
+**El push lo corre Maicol.**
+
 **Dónde está todo:** `docs/mapa/pant6-pantallas-molde.md` (**mapa nuevo**, 17,4 KB),
 `docs/mapa/tests-fichas-644.md` (archivo propio), `docs/fuentes/FUENTES.md` → «La tanda PANT-6»
 con las cinco tablas transcritas columna por columna y los seis folios comprobados en el pie

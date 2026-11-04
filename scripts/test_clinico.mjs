@@ -73699,7 +73699,13 @@ caso('TC-490', 'Tanda K: el 3D de la MITRAL —el lienzo se limpia ENTERO y el c
     const CERRAR3D = () => { try { if (FN('m3dCerrar')) m3dCerrar(); } catch (e) {}
       try { return FN('m3dVisible') ? m3dVisible() : 'SIN FN'; } catch (e) { return 'EXC'; } };
     const ETE = () => { try { if (FN('showTab')) showTab('ete'); } catch (e) {}
-      ['mitral', 'mediciones-mitral'].forEach(k => { try {
+      /* ADAPTADO EN PANT-6 (commit 4): la seccion «mediciones-mitral» se fundio con «morfo» y su
+         contenedor ya no existe, asi que este bucle -que comprueba el ELEMENTO antes de llamar al
+         toggle- dejaba la segunda sin abrir y el chorro del 3D sin dibujarse. El alias del
+         commit 4 cubre la LLAMADA a toggleEteSeccion con el nombre viejo, pero no una guarda que
+         busque el id viejo. Verificado: con «morfo» el caso vuelve a verde, y contra HEAD
+         (c42d9e3) pasaba con el nombre viejo. */
+      ['mitral', 'morfo'].forEach(k => { try {
         const s = EL('ete-seccion-' + k);
         if (s && getComputedStyle(s).display === 'none' && FN('toggleEteSeccion')) toggleEteSeccion(k, null);
       } catch (e) {} }); };

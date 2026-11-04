@@ -152,3 +152,23 @@ Las dos escenas devolvían `null`, o sea un denominador vacío que se lee como �
 ⚠️ **Y `leer()` DEVUELVE UNA FORMA COMPLETA EN LOS DOS CAMINOS.** La primera versión devolvía
 `{err}` a secas y la primera condición que leía `.filas` mataba el caso por **excepción**, que no
 dice qué invariante se rompió. Es la lección de TC-546.
+
+---
+
+## Los tres casos viejos que la corrida completa destapó, y por qué ninguno es de esta tanda
+
+- **TC-99 y TC-100** (cardio-oncología) salieron rojos en el lote 4 y **pasan corridos aislados**
+  y **con su lote entero repetido** —vuelve a dar **56/56**—, en los dos órdenes posibles entre
+  ellos. Intermitentes, no reproducibles, **no se tocaron**.
+- **TC-490** (el 3D de la mitral y contractilidad) es un intermitente **PREEXISTENTE**, medido
+  cuatro veces de cada lado: **2 rojas de 4 contra HEAD** con su caso original, **3 de 4** en el
+  árbol nuevo **sin adaptar** y **3 de 4** **adaptado**. Siempre la misma condición y la misma
+  firma: sus propios denominadores del chorro —«con chorro:» vacío y «SIN ORIGEN» en las ocho
+  cámaras—.
+  ⚠️ **MI PRIMERA MEDICIÓN DIJO QUE ERA MÍO, Y ERA UNA SOLA CORRIDA DE CADA LADO:** verde en HEAD y
+  rojo en mi árbol. Con cuatro de cada lado se ve que los dos árboles fallan. **Un intermitente no
+  se caracteriza con una corrida.**
+  **Se adaptó igual, y por un motivo que no es el intermitente:** su helper `ETE()` comprobaba el
+  **elemento** `ete-seccion-mediciones-mitral` antes de llamar al toggle, y ese contenedor ya no
+  existe, así que sin la adaptación la segunda sección **nunca se abre**. El alias del commit 4
+  cubre la **llamada** con el nombre viejo, pero no una guarda que busque el **id** viejo.

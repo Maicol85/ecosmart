@@ -12942,22 +12942,26 @@ que el día que entren el caso se pone rojo y hay que decidirlo a propósito.
 
 ## P6-b · La letra del dibujo del VD a 1000 y a 390 px
 
-El commit 2 fija el ancho en **520 px** porque es lo que lleva el rótulo más chico a **12,26 px**,
-y eso se cumple a 1440. Por debajo, el dibujo toma el ancho de su columna:
+El commit 2 fija el tope en **520 px** porque es lo que lleva el rótulo más chico a **12,26 px**,
+y eso se cumple a 1440 px y —apilado— a 768. Por debajo, el dibujo toma el ancho que le queda y la
+tipografía del SVG escala con él. **Medido en Chrome y en WebKit, que coinciden valor por valor:**
 
 | ancho de ventana | dibujo | rótulo más chico |
 |---|---|---|
-| 1440 | 520 px (el tope) | **12,26 px** |
-| 1000 | ~400 px | **~9,4 px** |
-| 768 y 390 | ancho completo, apilado | por encima de 12 px |
+| 1440 | **520 px** (el tope) | **12,26 px** ✓ |
+| 1000 | **343,8 px** (la columna del 45 %) | **8,11 px** ✗ |
+| 768 | **520 px** (apilado, al tope) | **12,26 px** ✓ |
+| 390 | **328 px** (apilado, el ancho que hay) | **7,74 px** ✗ |
 
-O sea que **entre 900 y ~1180 px el rótulo queda por debajo del piso de 12 px**, y es el único
-tramo donde pasa. Las dos salidas posibles —bajar el corte de la maqueta de 900 a 1180, o escalar
-la tipografía del SVG con su ancho— mueven algo que la orden fija (el corte) o tocan el dibujo
-(que la orden prohíbe). **No se tocó.**
+⚠️ **ESTA TABLA DECÍA OTRA COSA Y LA CORRIGIÓ LA MEDICIÓN.** La primera versión afirmaba «~400 px
+y ~9,4 px» a 1000 y «por encima de 12 px» a 768 y 390: los tres números eran estimados y el de 390
+estaba **del lado equivocado del corte**. Los de arriba salen de
+`scripts/_probe_pant6wk.mjs`, que multiplica el `font-size` de cada `<text>` por
+ancho/`viewBox` —que es la única forma de saber a cuántos píxeles se ve— en los dieciséis cruces.
 
-**Cómo medirlo:** abrir la sección por su encabezado, leer el `getBoundingClientRect().width` de
-`#vdsc-svg` y multiplicar el `font-size` de cada `<text>` por ancho/`viewBox`.
+Las dos salidas posibles —bajar el corte de la maqueta de 900 a ~1180 px, o escalar la tipografía
+del SVG con su ancho— mueven algo que la orden fija (el corte) o tocan el dibujo (que la orden
+prohíbe). **No se tocó.**
 
 ## P6-c · La franja rosa vacía de los criterios TEER no se reproduce como defecto
 
@@ -13003,3 +13007,42 @@ Medido **antes** de escribirle el puntero: 33.526 B, y con el puntero quedó en 
 techo de esta casa es ~35 KB. **La próxima tanda que necesite escribirle tiene que partirlo**, como
 se hizo con `panel-evidencia.md` y con `tests.md` en AJUSTES-3. Siguen esperando
 `congenitas-otros.md` (34.540 B, no se tocó) y `valvulas.md` (33.863 B).
+
+## P6-i · Los seis globos de síntomas miden 17 × 12 px, y es la convención del panel
+
+Medido en los dieciséis cruces: los seis marcadores de término nuevos miden **17 × 12 px**, muy por
+debajo del piso táctil de 44 px de esta casa. **No es una regresión de esta tanda:** los dos
+marcadores que ya existían —`score_eco` y `cormier`— miden **17,3 × 11,5 px** en HEAD, verificado
+con la misma sonda sobre el árbol anterior.
+
+**Y es una decisión escrita, no un olvido.** El comentario de `_indCtrlHTML` lo dice: el marcador
+vive **inline dentro de la oración** del criterio y la regla táctil global infla todo `button` a
+44 px de alto, así que ahí **rompería el renglón**. Por eso el marcador no es un `button` normal
+sino un `role="button"` inline, y por eso tiene su propia rama de teclado —que `/sharp-edges`
+pidió— para que Enter y Espacio lo abran.
+
+**Lo que esta tanda cambia es la escala:** los marcadores pasan de **dos** a **ocho**. Si alguna vez
+se decide subirlos al piso táctil, hay que hacerlo para los ocho a la vez y resolver el renglón, y
+eso es una decisión de diseño. **No se tocó.**
+
+## P6-j · TC-99, TC-100 y TC-490 son INTERMITENTES, y ninguno es de esta tanda
+
+Los tres salieron rojos en la corrida completa y los tres están caracterizados como manda este
+archivo: mismo directorio, mismos scripts, alternando sólo `index.html`.
+
+- **TC-99 y TC-100** pasan **corridos aislados** y pasan **con su lote entero repetido** —el lote 4
+  vuelve a dar **56/56**—, en los dos órdenes posibles entre ellos. Son intermitentes y no se
+  reproducen.
+- **TC-490** es un intermitente **PREEXISTENTE**, y hubo que medirlo cuatro veces de cada lado
+  porque una sola corrida engaña: **2 rojas de 4 contra HEAD** (`c42d9e3`) con su caso original,
+  **3 de 4** en el árbol nuevo con el caso **sin adaptar** y **3 de 4** con el caso **adaptado**.
+  Siempre la misma condición y la misma firma: sus propios denominadores del chorro del 3D de la
+  mitral —«con chorro:» vacío y «SIN ORIGEN» en las ocho cámaras—.
+  ⚠️ **MI PRIMERA MEDICIÓN DIJO QUE ERA MÍO, Y ERA UNA SOLA CORRIDA DE CADA LADO:** verde en HEAD y
+  rojo en mi árbol. Con cuatro de cada lado se ve que los dos árboles fallan. **Un intermitente no
+  se caracteriza con una corrida.**
+  **La adaptación se queda igual**, y por un motivo que no es el intermitente: el caso comprobaba
+  el **elemento** `ete-seccion-mediciones-mitral` antes de llamar al toggle, y ese contenedor ya no
+  existe, así que sin la adaptación la segunda sección **nunca se abre**. El alias del commit 4
+  cubre la llamada, no una guarda que busque el id viejo.
+
