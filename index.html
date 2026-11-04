@@ -11006,7 +11006,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           </thead>
           <tbody>
             <tr>
-              <td><b>Vegetaci&oacute;n</b></td>
+              <td><b>Vegetaci&oacute;n</b>
+                <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="masa-ref-ei"
+                        aria-expanded="false"
+                        aria-label="G&eacute;rmenes seg&uacute;n el contexto, indicaciones quir&uacute;rgicas y riesgo emb&oacute;lico de la endocarditis"
+                        onclick="vInfoClic(this)">&#9432;</button></td>
               <td>Lado auricular de las v&aacute;lvulas auriculoventriculares y lado ventricular de la a&oacute;rtica, aunque puede afectar cualquier cara.</td>
               <td>Ecotextura gris, parecida a la del miocardio; forma amorfa, desflecada o lobulada, y con menos frecuencia lineal o redondeada. Las curadas suelen quedar m&aacute;s ecog&eacute;nicas y calcificadas.</td>
               <td>Oscilante, ca&oacute;tica, de alta frecuencia e <b>independiente del movimiento valvular</b>; si es grande, prolapsa al ventr&iacute;culo en di&aacute;stole.</td>
@@ -49564,6 +49568,56 @@ const VINFO = Object.freeze({
   /* ══ EL GLOBO DEL TITULO DE LA TABLA DE DIFERENCIALES — PANT-11, commit 9a ═══════════════
      Lo que la orden manda poner aca y NO en el cuerpo de la tabla: que estudio complementario
      conviene cuando hay dudas. Parafraseado, con guia, edicion, hoja y folio. */
+  /* ══ EL GLOBO DE LA FILA DE LA VEGETACION — PANT-11, commit 9b ═══════════════════════════
+     Tres partes, las tres PARAFRASEADAS y con su guia, su edicion, su hoja y su folio, los dos
+     comprobados en el pie impreso. Ni una frase copiada.
+     ⚠️ LA REGLA DE FOLIO DE LA ESC 2023 DE ENDOCARDITIS es folio = hoja + 3947, comprobada en
+        DOS hojas leidas en imagen a 210 ppp: la 44 da 3991 y la 60 da 4007.
+     ⚠️ LA DIFERENCIA DE CORTE ENTRE LAS TRES GUIAS SE MUESTRA Y NO SE RESUELVE, que es la
+        regla de esta casa. */
+  'masa-ref-ei': {
+    ancho: 460,
+    tit: 'Endocarditis: gérmenes, cirugía y riesgo embólico',
+    lee: 'GÉRMENES SEGÚN EL CONTEXTO. Sobre válvula nativa, el registro europeo da '
+       + 'Staphylococcus aureus en el 31 %, estreptococos orales en el 17 % y estafilococos '
+       + 'coagulasa-negativos en el 11 %. Sobre prótesis, la guía separa la endocarditis '
+       + 'PRECOZ —sobre todo S. aureus, S. epidermidis y microorganismos nosocomiales, '
+       + 'gramnegativos u hongos— de la TARDÍA, donde predominan los estreptococos y los '
+       + 'estafilococos. En los dispositivos implantables, los estafilococos son los más '
+       + 'frecuentes, seguidos de enterococos, estreptococos y Cutibacterium acnes; los hongos '
+       + 'son excepcionales. En el usuario de drogas inyectables y en la endocarditis derecha '
+       + 'predomina S. aureus; los estreptococos son infrecuentes y se ven sobre todo en '
+       + 'alcohólicos y diabéticos, y Candida albicans en el inmunodeprimido.',
+    ojo: 'INDICACIONES QUIRÚRGICAS, CON SU PLAZO. La guía define emergencia como dentro de las '
+       + '24 horas, urgente como dentro de 3 a 5 días y no urgente como dentro del mismo '
+       + 'ingreso. Por insuficiencia cardíaca: emergencia (Clase I · Nivel B) con insuficiencia '
+       + 'aguda severa, obstrucción o fístula que causan edema pulmonar refractario o shock, y '
+       + 'urgente (I · B) con insuficiencia aguda severa u obstrucción con síntomas o con signos '
+       + 'ecocardiográficos de mala tolerancia hemodinámica. Por infección no controlada: '
+       + 'urgente (I · B) con absceso, falso aneurisma, fístula, vegetación que crece, '
+       + 'dehiscencia protésica o bloqueo auriculoventricular nuevo; urgente o no urgente '
+       + '(I · C) por hongos o microorganismos multirresistentes; urgente a considerar (IIa · B) '
+       + 'con hemocultivos positivos más de una semana o sepsis persistente pese al antibiótico '
+       + 'adecuado. Por prevención de embolia: urgente (I · B) con vegetación persistente de '
+       + '10 mm o más tras uno o más episodios embólicos, y urgente (I · C) con vegetación de '
+       + '10 mm o más junto a otra indicación de cirugía. '
+       + 'En la endocarditis DERECHA, la guía recomienda cirugía (I · C) con vegetaciones '
+       + 'tricuspídeas residuales de más de 20 mm tras émbolos pulmonares sépticos recurrentes, '
+       + 'y prefiere reparar la válvula antes que reemplazarla cuando se pueda (IIa · B). '
+       + 'RIESGO EMBÓLICO. El tamaño y la movilidad de la vegetación son los dos predictores '
+       + 'que las fuentes publican, y EL CORTE DE TAMAÑO CAMBIA ENTRE GUÍAS, lo que se muestra '
+       + 'sin resolver: 10 mm o más en la europea de 2023, más de 10 mm en la americana de 2020 '
+       + '—que ahí lo gradúa Clase 2b · Nivel B-NR— y más de 10 a 15 mm en el documento de la '
+       + 'sociedad de ecocardiografía de 2016. '
+       + 'En la biblioteca NO hay ningún score de riesgo embólico validado: la guía europea cita '
+       + 'uno (Hubert y cols., su referencia 470) que no está entre las fuentes.',
+    fuente: 'ESC 2023 de endocarditis infecciosa — gérmenes en las hojas 19, 53, 55 y 59 '
+          + '(folios 3966, 4000, 4002 y 4006); Recommendation Table 12, hoja 44, folio 3991; '
+          + 'Recommendation Table 21, hoja 60, folio 4007. Regla de folio = hoja + 3947, '
+          + 'comprobada en el pie impreso de las hojas 44 y 60. '
+          + 'ACC/AHA 2020 de valvulopatías — recomendación 10, hoja 91, folio e162. '
+          + 'ASE 2016 de fuente embolígena — hoja 19, folio 19.'
+  },
   'masa-ref': {
     ancho: 440,
     tit: 'Qué estudio complementario conviene cuando hay dudas',
@@ -158207,8 +158261,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1523';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793816592665;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-1526';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793816781542;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -158294,7 +158348,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1523</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1526</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

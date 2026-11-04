@@ -162,6 +162,27 @@ for (const w of [1440, 1000, 768, 390]) {
                cierra: [cerr1, cerr2, cerr3].join('/'), chars: txt.length,
                folio: /folio/.test(txt) ? 'SI' : 'NO' };
     })()`);
+    /* El globo de la FILA de la vegetacion (commit 9b). */
+    r.globoEI = await page.evaluate(`(() => {
+      const b = document.querySelector('[data-vinfo="masa-ref-ei"]');
+      if (!b) return { error: 'NO EXISTE' };
+      b.scrollIntoView({ block: 'center' });
+      const r0 = b.getBoundingClientRect();
+      b.click();
+      const c = document.getElementById('vinfo-card');
+      const ab = c ? getComputedStyle(c).display !== 'none' : false;
+      const t = c ? String(c.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+      b.click(); const c1 = c ? getComputedStyle(c).display === 'none' : false;
+      b.click(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      const c2 = c ? getComputedStyle(c).display === 'none' : false;
+      b.click(); document.body.click();
+      const c3 = c ? getComputedStyle(c).display === 'none' : false;
+      return { caja: Math.round(r0.width) + 'x' + Math.round(r0.height), abrio: ab,
+               cierra: [c1, c2, c3].join('/'), chars: t.length,
+               cortes: ['10 mm o más', 'más de 10 mm', 'más de 10 a 15 mm'].filter((k) => t.indexOf(k) >= 0).length,
+               folios: ['3991', '4007', 'e162', '3966'].filter((k) => t.indexOf(k) >= 0).length,
+               sinScore: t.indexOf('no hay ningún score') >= 0 || t.indexOf('NO hay ningún score') >= 0 };
+    })()`);
     r._errores = errs;
     res[w + 'px_' + tema] = r;
     await ctx.close();
