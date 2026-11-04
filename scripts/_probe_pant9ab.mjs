@@ -214,11 +214,18 @@ const ESCENAS = {
      Los dos pares que la orden manda probar y los dos controles sin equivalente. */
   p9tvBi:    { campos: { va_morf:'Bicúspide' } },
   p9tvBiT:   { campos: { ete_tavi_morf:'bicuspide' } },
-  p9tvViv:   { campos: { ete_tavi_morf:'viv_biologica' } },
+  p9tvViv:   { campos: { ete_tavi_morf:'protesis_bio' } },
   p9tvBio:   { campos: { va_morf:'Prótesis biológica' } },
   p9tvTri:   { campos: { va_morf:'Trivalva normal' } },
   p9tvTriT:  { campos: { ete_tavi_morf:'tricuspide' } },
   p9tvCuad:  { campos: { ete_tavi_morf:'cuadricuspide' } },
+  /* La escena que muestra LA FRASE PROPIA de la opcion nueva en el papel: el modulo de
+     TAVI integrado, con el sizing minimo. En HEAD la opcion NO EXISTE, asi que poner su
+     valor deja el selector vacio -la trampa de medir un A/B con una opcion que el arbol
+     viejo no tiene-: esta escena se mide SOLO en el arbol nuevo y su antes es «la opcion
+     no se podia consignar». */
+  p9tvVivInt: { campos: M(BASE,{ ete_tavi_morf:'protesis_bio', ete_tavi_anillo_diam:'24' }),
+    chk:['ete_tavi_incluir_chk'] },
   p9tvMec:   { campos: { va_morf:'Prótesis mecánica' } },
   /* El control negativo: un estudio con datos de OTRAS pestanias y nada de congenitas. */
   p9ajeno: { campos: { im_vc:'8', ea_dtsvi:'20', itv_tsvi:'20', itv_ao:'100', vmax_ao:'4.5',

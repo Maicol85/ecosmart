@@ -8469,7 +8469,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                bioprótesis—. En las otras tres se sacó (2026-09-27) porque ahí no hay nada con qué
                confundirse. Lo que impide que el paréntesis llegue al dato es el `value` explícito;
                antes de tocar cualquiera de los dos, leer `VALV_PROT_OPCIONES`. Lo fija TC-289. -->
-          <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
+          <select id="va_morf" onchange="valvProtSync();taviMorfSync('va','va_morf')"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
       </div>
       <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
@@ -17244,9 +17244,12 @@ z
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Válvula aórtica nativa</div>
       <div class="grid-3">
         <div class="fg"><label>Morfología</label>
-          <select id="ete_tavi_morf" onchange="eteTaviSync()">
+          <select id="ete_tavi_morf" onchange="eteTaviSync();taviMorfSync('tavi','ete_tavi_morf')">
             <option value="">—</option><option value="tricuspide">Tricúspide</option>
             <option value="bicuspide">Bicúspide</option><option value="cuadricuspide">Cuadricúspide</option>
+            <!-- La opcion nueva de PANT-9: hasta esta tanda un valve-in-valve no se podia
+                 consignar en la morfologia de TAVI, que es lo que P8-d dejo declarado. -->
+            <option value="protesis_bio">Prótesis biológica previa (valve-in-valve)</option>
           </select></div>
         <div class="fg"><label>Calcificación <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tavi-calc" aria-expanded="false" aria-label="De dónde sale el criterio de calcificación de la válvula aórtica" onclick="vInfoClic(this)">&#9432;</button></label>
           <select id="ete_tavi_calc" onchange="eteTaviSync()">
@@ -27607,7 +27610,10 @@ window.TAVI_AO_PARES = TAVI_AO_PARES;
 function _taviModuloEnUso() {
   const c = document.getElementById('ete_tavi_incluir_chk');
   if (c && c.checked) return true;
-  const espejos = TAVI_AO_PARES.map(function (pr) { return pr.tavi });
+  /* ** `ete_tavi_morf` ENTRA EN LA EXCLUSION DESDE PANT-9, y por el mismo motivo que los tres
+     de arriba: desde esta tanda tambien es espejo, y si contara, el primer valor copiado haria
+     que el modulo pareciera en uso y el espejo se autorizaria a si mismo. */
+  const espejos = TAVI_AO_PARES.map(function (pr) { return pr.tavi }).concat(['ete_tavi_morf']);
   const campos = document.querySelectorAll('[id^="ete_tavi_"]');
   for (let i = 0; i < campos.length; i++) {
     const e = campos[i];
@@ -27647,6 +27653,82 @@ function taviAoSync(origen, id) {
   } finally { _taviAoEnCurso = false; }
 }
 window.taviAoSync = taviAoSync;
+/* == LA SINCRONIA DE LA MORFOLOGIA DE TAVI CON LA DE VALVULAS (PANT-9, commit 8) =============
+   DECISION DEL MEDICO (04/11/2026), sobre lo que PANT-8 dejo parado en P8-d: hoy el selector de
+   morfologia de TAVI no permite consignar una protesis previa, y el medico dijo que el TAVI si
+   se hace «en una valvula protesica o biologica previa (procedimiento valve in valve)».
+
+   LA OPCION NUEVA ES UNA SOLA: «Protesis biologica previa (valve-in-valve)». NO se agrega
+   protesis mecanica ni ninguna otra, no se quita ninguna y no se cambia el texto de las que ya
+   estaban, que es lo que la orden fija.
+
+   DOS PAREJAS, Y LAS DOS INEQUIVOCAS:
+     · `bicuspide` de TAVI con «Bicuspide» de Valvulas: las dos afirman el numero de velos.
+     · `protesis_bio` de TAVI con «Protesis biologica» de Valvulas: las dos afirman que la
+       valvula aortica de este paciente ES una bioprotesis. El rotulo de Valvulas dice «Protesis
+       biologica (SAVR)» y el de TAVI «previa», que es la misma valvula vista desde los dos lados
+       del procedimiento.
+   LA QUE NO SE UNE, Y ES EL CRITERIO DE P8-d: `tricuspide` de TAVI con «Trivalva normal» de
+   Valvulas. «Trivalva normal» afirma que la valvula es NORMAL y «Tricuspide» afirma solo el
+   numero de velos; en un paciente que va a TAVI la valvula no es normal. Las otras seis
+   opciones de Valvulas y la `cuadricuspide` de TAVI no tienen equivalente.
+
+   ** EL SENTIDO VALVULAS -> TAVI ES CONDICIONAL, Y ES UNA CONSECUENCIA MEDIDA, igual que en la
+   sincronia de la raiz de PANT-8. `_labUsaTavi` nombra `ete_tavi_morf` entre sus predicados de
+   texto, asi que con el espejo simetrico TODO estudio con la valvula aortica bicuspide pasaria a
+   contar como «Con TAVI» en el filtro de cohorte del Laboratorio. El Laboratorio esta FUERA de
+   esta tanda. La regla que queda es la de siempre: EL CAMPO DEL ESTUDIO ES EL DUENO -lo que se
+   elige en TAVI va SIEMPRE a Valvulas- y el inverso corre solo cuando el modulo de TAVI YA ESTA
+   EN USO.
+
+   ** AL VACIAR LA MORFOLOGIA DE TAVI, LA DE VALVULAS NO SE VACIA, y no es un olvido: `va_morf`
+   NO TIENE opcion vacia -lo midio PANT-A-, asi que lo unico que se podria escribir ahi es
+   «Trivalva normal», que AFIRMA que la valvula es normal. Un borrado no puede convertirse en una
+   afirmacion clinica. Queda declarado en docs/PENDIENTES.md -> P9-c. */
+const TAVI_MORF_PARES = Object.freeze([
+  Object.freeze({ tavi: 'bicuspide',    va: 'Bicúspide' }),
+  Object.freeze({ tavi: 'protesis_bio', va: 'Prótesis biológica' })
+]);
+window.TAVI_MORF_PARES = TAVI_MORF_PARES;
+
+let _taviMorfEnCurso = false;
+/* Un dato, dos puertas, gana la ultima edicion. `origen` es 'tavi' o 'va'. Un valor SIN
+   equivalente en el otro selector no escribe nada y no borra nada. */
+function taviMorfSync(origen, id) {
+  if (_taviMorfEnCurso) return;
+  if (id !== 'ete_tavi_morf' && id !== 'va_morf') return;
+  const a = document.getElementById('ete_tavi_morf');
+  const b = document.getElementById('va_morf');
+  if (!a || !b) return;
+  const desdeTavi = (origen === 'tavi');
+  if (!desdeTavi && !_taviModuloEnUso()) return;
+  const src = desdeTavi ? a : b, dst = desdeTavi ? b : a;
+  const vs = String(src.value || '');
+  const pr = TAVI_MORF_PARES.filter(function (x) { return (desdeTavi ? x.tavi : x.va) === vs })[0];
+  let destino = null;
+  if (pr) {
+    destino = desdeTavi ? pr.va : pr.tavi;
+  } else if (vs === '' && desdeTavi) {
+    /* Vaciar TAVI no vacia Valvulas: ver el comentario de arriba. */
+    return;
+  } else {
+    /* Valor sin equivalente: no escribe nada y no borra nada. */
+    return;
+  }
+  if (dst.value === destino) return;
+  /* El valor tiene que EXISTIR como opcion del destino: poner uno que no esta deja el select en
+     cadena vacia, que es la trampa que esta casa ya documenta. */
+  let hay = false;
+  for (let i = 0; i < dst.options.length; i++) { if (dst.options[i].value === destino) hay = true }
+  if (!hay) return;
+  _taviMorfEnCurso = true;
+  try {
+    dst.value = destino;
+    dst.dispatchEvent(new Event('input', { bubbles: true }));
+    dst.dispatchEvent(new Event('change', { bubbles: true }));
+  } finally { _taviMorfEnCurso = false; }
+}
+window.taviMorfSync = taviMorfSync;
 
 /* ══ AL CARGAR UN ESTUDIO GUARDADO ════════════════════════════════════════════════════════════
    Entra en `RECALC_MODULOS`, que es el embudo de las cinco rutas de restauracion, y NO en
@@ -102337,7 +102419,12 @@ window.eteShuntSyncSiExiste = eteShuntSyncSiExiste;
    TAVI — pre/post y regurgitación paravalvular
    ══════════════════════════════════════════════════════════════════════════ */
 const TAVI_TXT = {
-  morf:{tricuspide:'tricúspide',bicuspide:'bicúspide',cuadricuspide:'cuadricúspide'},
+  /* ** EL VALOR NUEVO DE PANT-9 TIENE QUE ESTAR ACA. La linea del emisor es
+     TAVI_TXT.morf[morf] || morf, asi que una morfologia sin texto publica su TOKEN CRUDO en
+     el informe firmado -el defecto que la tanda VAL-PPT ya pago con el acronimo del TEER-.
+     El texto describe y no nombra guia ni conducta. */
+  morf:{tricuspide:'tricúspide',bicuspide:'bicúspide',cuadricuspide:'cuadricúspide',
+        protesis_bio:'sobre prótesis biológica previa'},
   calc:{leve:'leve',moderada:'moderada',severa:'severa'},
   distrib:{simetrica:'distribución simétrica',asimetrica:'distribución asimétrica'},
   tipo:{balon:'balón expandible',auto:'auto expandible'},
@@ -156197,8 +156284,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-0757';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793789866058;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-0805';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793790353589;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -156284,7 +156371,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0757</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-0805</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
