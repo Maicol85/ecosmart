@@ -110127,8 +110127,17 @@ caso('TC-626', 'Tanda PANT-3 (adaptado en PANT-12): el boton 3D del corazon maes
   try { cc3dTextoSync() } catch (e) {}
   await esperar(200);
   const f2 = faltan();
-  ex.push(['(D2) con la coartacion y la miocardiopatia cargadas las nombra como no dibujadas',
-    f2.indexOf('CoAo') >= 0 && f2.indexOf('MCH') >= 0, true]);
+  /* ⚠️ ADAPTADO EN PANT-14 (commit 4): LA COARTACION YA SE DIBUJA, asi que dejo de caer en la
+     lista de «cargadas y no dibujadas». Pero acá se carga SOLO su diametro de istmo, sin la
+     situacion que define si es nativa o reparada, asi que no se dibuja TAMPOCO: cae en la otra
+     lista, la de «cargadas con una opcion que el dibujo no distingue». La condicion queda MAS
+     FUERTE que antes: exige que ya NO este entre las faltantes, que SI este nombrada por su
+     situacion ausente, y que la miocardiopatia siga entre las faltantes. */
+  ex.push(['(D2) la miocardiopatia sigue entre las no dibujadas', f2.indexOf('MCH') >= 0, true]);
+  ex.push(['(D2b) la coartacion YA NO cae entre las no dibujadas: el modulo la dibuja',
+    /no dibujadas todav[ií]a:[^.]*CoAo/.test(f2), false]);
+  ex.push(['(D2c) y con el istmo cargado SIN la situacion la linea dice que falta consignarla',
+    f2.indexOf('coartación (falta consignar si es nativa o reparada)') >= 0, true]);
   EXP.push(['(D3) CONTROL NEGATIVO: con la CIA y el ductus CARGADOS no los nombra, porque SI los dibuja',
     f2.indexOf('CIA') < 0 && f2.indexOf('DAP') < 0, 'linea=' + f2.slice(0, 140)]);
 
@@ -116738,8 +116747,21 @@ caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
   const EL = (id) => document.getElementById(id);
   __t.limpiar();
-  const aRgb = (x) => { const m = String(x || '').match(/rgba?\(([^)]+)\)/);
-    if (!m) return null; const q = m[1].split(',').map(Number); return { r:q[0], g:q[1], b:q[2] } };
+  /* ⚠️ _cm3d NO ESTA EN window: es un const de nivel de script, asi que vive en el
+     ambito lexico global y se alcanza por su nombre pelado, no por window. Medido: con
+     window._cm3d el guardia cortaba y el caso media sobre un DENOMINADOR VACIO -cero
+     variantes dibujadas- que se lee igual que «todo bien». */
+  const S3 = () => { try { return (typeof _cm3d !== 'undefined') ? _cm3d : null } catch (e) { return null } };
+  /* ⚠️ SIN EXPRESION REGULAR, Y NO ES UN GUSTO: el cuerpo de un caso es un template literal, asi
+     que una barra invertida SIMPLE no sobrevive -/rgba?\(/ llegaba como /rgba?(/ y el parentesis
+     pasaba a ser un grupo-. El resultado era NaN en los tres canales, y con NaN la comparacion
+     «es negro» y la de contraste dan FALSO: las condiciones pasaban sobre NADA. Un pase vacuo.
+     Se parsea con indexOf y split, que no tienen escapes. */
+  const aRgb = (x) => { const t = String(x || ''); const i = t.indexOf('('), j = t.indexOf(')');
+    if (i < 0 || j < i) return null;
+    const q = t.slice(i + 1, j).split(',').map((v) => parseFloat(v));
+    if (q.length < 3 || q.some((v) => !isFinite(v))) return null;
+    return { r:q[0], g:q[1], b:q[2] } };
   const lum = (c) => { const f = (v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) };
     return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b) };
   const contr = (a, b) => { if (!a || !b) return null; const l1 = lum(a), l2 = lum(b);
@@ -116761,7 +116783,7 @@ caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus
   /* ── (C) el esquema dibujado, caja por caja ── */
   const svg = EL('cm3d-schsvg');
   ex.push(['(C0 DENOM) el SVG del esquema existe', !!svg, true]);
-  const dib = (bv) => { if (!svg || !window._cm3d) return 'NO';
+  const dib = (bv) => { if (!svg || !S3()) return 'NO';
     _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = bv; _cm3d.S.mods = {}; _cm3d.S.ck = {};
     svg.innerHTML = 'CENTINELA';
     try { cmSchRender(true) } catch (e) { return 'EXC ' + String(e).slice(0, 60) }
@@ -116796,7 +116818,7 @@ caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus
   ['jat','ras','cc'].forEach((bv) => {
     ex.push(['(D3) la variante ' + bv + ' tambien dibuja', dib(bv), 'ok']) });
   /* ── (E) la letra de la valvula dorada del Ebstein, que es una tinta fija ── */
-  if (window._cm3d) { _cm3d.S.base = 'ebs'; _cm3d.S.bv.ebs = 'std'; _cm3d.S.mods = {}; _cm3d.S.ck = {};
+  if (S3()) { _cm3d.S.base = 'ebs'; _cm3d.S.bv.ebs = 'std'; _cm3d.S.mods = {}; _cm3d.S.ck = {};
     try { cmSchRender(true) } catch (e) {} }
   const dorada = svg ? Array.prototype.filter.call(svg.querySelectorAll('circle'),
     (c) => { const f = aRgb(getComputedStyle(c).fill); return f && f.r > 180 && f.g > 150 && f.b < 110 })[0] : null;
@@ -116858,8 +116880,11 @@ caso('TC-694', 'Tanda PANT-14 (commit 2): el boton «Incluir en el PDF» del cor
   await esperar(320);
   ex.push(['(C1 CONTROL) en «Explorar» el boton esta APAGADO', b ? b.disabled : 'NO', true]);
   const av1 = n ? n.textContent.trim() : '';
-  ex.push(['(C1b) y su aviso es el de «Explorar», distinto del anterior',
-    (av1.indexOf('Explorar') >= 0) + '/' + (av1 !== av0), 'true/true']);
+  /* ⚠️ EL AVISO DE «Explorar» NO CONTIENE LA PALABRA «Explorar»: dice que el boton esta
+     disponible solo en «Segun el estudio» y que lo que se explora es didactico. Se busca por lo
+     que de verdad dice, que es lo que el medico lee. */
+  ex.push(['(C1b) y su aviso es el del modo didactico, distinto del anterior',
+    (av1.indexOf('didáctico') >= 0) + '/' + (av1 !== av0), 'true/true']);
   /* con una CIA cargada y en «Segun el estudio»: se activa */
   gesto('ete_cia_tipo', 'secundum');
   await esperar(260);
@@ -116880,11 +116905,17 @@ caso('TC-694', 'Tanda PANT-14 (commit 2): el boton «Incluir en el PDF» del cor
   /* el aviso NUNCA queda vacio en un estado apagado */
   ex.push(['(B7) los dos avisos de apagado tienen texto',
     (av0.length > 20) + '/' + (av1.length > 20), 'true/true']);
-  /* ── (C3) «Nuevo estudio» apaga la inclusion ── */
-  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  /* ── (C3) al quedarse el estudio sin lesiones el boton se apaga solo ──
+     ⚠️ NO SE MIDE CON limpiarCampos(true): ese camino es el de la suite y no apaga el registro
+     de inclusion. Lo que se mide es la regla del boton: se le saca la lesion y el boton tiene
+     que volver a apagarse con su aviso, que es lo que el medico ve al borrar el dato. */
+  gesto('ete_cia_tipo', '');
   await esperar(520);
-  ex.push(['(C3 CONTROL) tras limpiar, la inclusion esta apagada',
-    (typeof esqEstaIncluido === 'function') ? esqEstaIncluido('cm3d') : 'NO FN', false]);
+  try { if (typeof cmPdfSync === 'function') cmPdfSync() } catch (e) {}
+  await esperar(220);
+  ex.push(['(C3 CONTROL) al sacarle la lesion el boton se APAGA', b ? b.disabled : 'NO', true]);
+  ex.push(['(C3b) y su aviso vuelve a decir que no hay nada para incluir',
+    n ? (n.textContent.indexOf('No hay lesiones cargadas') >= 0) : 'NO', true]);
   return { extra: EXP };
   })();
 `);
@@ -116904,6 +116935,11 @@ caso('TC-695', 'Tanda PANT-14 (commit 3): el corazon maestro aplica para la tran
                  'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
   const EL = (id) => document.getElementById(id);
   __t.limpiar();
+  /* ⚠️ _cm3d NO ESTA EN window: es un const de nivel de script, asi que vive en el
+     ambito lexico global y se alcanza por su nombre pelado, no por window. Medido: con
+     window._cm3d el guardia cortaba y el caso media sobre un DENOMINADOR VACIO -cero
+     variantes dibujadas- que se lee igual que «todo bien». */
+  const S3 = () => { try { return (typeof _cm3d !== 'undefined') ? _cm3d : null } catch (e) { return null } };
   ex.push(['(A0 DENOM) tga3dEscena existe', typeof window.tga3dEscena === 'function', true]);
   ex.push(['(A1 DENOM) cmBloqueado existe', typeof window.cmBloqueado === 'function', true]);
   const bloq = (typeof window.cmBloqueado === 'function') ? window.cmBloqueado : null;
@@ -116920,7 +116956,7 @@ caso('TC-695', 'Tanda PANT-14 (commit 3): el corazon maestro aplica para la tran
   });
   /* ── (C) la obstruccion subaortica ── */
   const anillosGrises = (bv, obs) => {
-    if (!window._cm3d || typeof cmEscena !== 'function') return 'NO';
+    if (!S3() || typeof cmEscena !== 'function') return 'NO';
     _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = bv; _cm3d.S.mods = {}; _cm3d.S.ck = obs ? { tobs:true } : {};
     let sc = null; try { sc = cmEscena(_cm3d.S) } catch (e) { return 'EXC ' + String(e).slice(0, 50) }
     if (!sc) return 'NULA';
@@ -116934,7 +116970,7 @@ caso('TC-695', 'Tanda PANT-14 (commit 3): el corazon maestro aplica para la tran
   ex.push(['(C1 CONTROL) sin la casilla la d-TGA no agrega ningun anillo',
     anillosGrises('d', false), 0]);
   /* el rotulo del anillo */
-  if (window._cm3d && typeof cmEscena === 'function') {
+  if (S3() && typeof cmEscena === 'function') {
     _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = 'd'; _cm3d.S.mods = {}; _cm3d.S.ck = { tobs:true };
     let sc = null; try { sc = cmEscena(_cm3d.S) } catch (e) {}
     const lb = sc ? (sc.lb || []).map((l) => l[0]).join('|') : '';
@@ -116971,7 +117007,11 @@ caso('TC-696', 'Tanda PANT-14 (commits 4 a 6): el Fallot reparado, la coartacion
   __t.limpiar();
   ex.push(['(A0 DENOM) cmDesdeEstudio existe', typeof window.cmDesdeEstudio === 'function', true]);
   ex.push(['(A1 DENOM) _cmSecsOn existe', typeof window._cmSecsOn === 'function', true]);
-  const CAMPOS = ['tdf_func_vd','ip_grado','tdf_civ_residual','tdf_ep_stent','coa_istmo',
+  /* ⚠️ tdf_grad_tsvd ENTRA EN LA LISTA DE LIMPIEZA, y sin el las sub-escenas de abajo
+     arrastraban el Fallot: su predicado es la funcion del VD O ese gradiente, y la escena (B3)
+     lo carga. Desde ahi el Fallot quedaba como base y bloqueaba la estenosis pulmonar, asi que
+     seis condiciones daban «fal|op» donde esperaban el corazon normal. */
+  const CAMPOS = ['tdf_func_vd','tdf_grad_tsvd','ip_grado','tdf_civ_residual','tdf_ep_stent','coa_istmo',
     'coa_situacion','ep_nivel','ep_vmax','esub_tipo','esub_ia_asociada','easv_tipo',
     'dsav_tipo','dsav_regurg_av_izq','ebs_desplazamiento','it_grado','fontan_tipo',
     'fontan_fenestracion','fontan_saturacion'];
@@ -117071,6 +117111,11 @@ caso('TC-697', 'Tanda PANT-14 (commit 6): con mas de una anatomia de base cargad
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
   const EL = (id) => document.getElementById(id);
   __t.limpiar();
+  /* ⚠️ _cm3d NO ESTA EN window: es un const de nivel de script, asi que vive en el
+     ambito lexico global y se alcanza por su nombre pelado, no por window. Medido: con
+     window._cm3d el guardia cortaba y el caso media sobre un DENOMINADOR VACIO -cero
+     variantes dibujadas- que se lee igual que «todo bien». */
+  const S3 = () => { try { return (typeof _cm3d !== 'undefined') ? _cm3d : null } catch (e) { return null } };
   const BASES = [
     { n:'tga',  b:'tga',  id:'tga_tipo',          v:'dtga' },
     { n:'fal',  b:'fal',  id:'tdf_func_vd',       v:'normal' },
@@ -117137,6 +117182,9 @@ caso('TC-698', 'Tanda PANT-14: cmDesdeEstudio SOLO LEE —recorrerla con cada le
   const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
   const EL = (id) => document.getElementById(id);
   __t.limpiar();
+  /* ⚠️ _cm3d NO ESTA EN window: es un const de nivel de script, asi que se alcanza por su
+     nombre pelado. Con window._cm3d el caso caia por excepcion. */
+  const S3 = () => { try { return (typeof _cm3d !== 'undefined') ? _cm3d : null } catch (e) { return null } };
   const foto = () => { const o = {};
     document.querySelectorAll('input[id],select[id],textarea[id]').forEach((e) => {
       o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '') });
@@ -117158,16 +117206,18 @@ caso('TC-698', 'Tanda PANT-14: cmDesdeEstudio SOLO LEE —recorrerla con cada le
     const antes = foto();
     ex.push(['(A0 DENOM) hay campos que contar', Object.keys(antes).length > 500, true]);
     try { cmDesdeEstudio(); cmDesdeEstudio() } catch (e) {}
-    if (_cm3d && (_cm3d.S.base !== 'norm' || Object.keys(_cm3d.S.mods).length)) dibujadas++;
+    if (S3() && (_cm3d.S.base !== 'norm' || Object.keys(_cm3d.S.mods).length)) dibujadas++;
     const despues = foto();
     movidosTotal += Object.keys(antes).filter((k) => antes[k] !== despues[k]).length;
   }
   ex.push(['(B0 DENOM) las siete siembras dejan una lesion dibujada', dibujadas, 7]);
   ex.push(['(B1) y recorrerlas no movio UN SOLO campo del estudio', movidosTotal, 0]);
   /* ── (C) los denominadores de la tanda ── */
+  /* ⚠️ LAS COLUMNAS SE CUENTAN CON _labExcelRow, que es como las cuenta el resto de la suite:
+     LAB_XLS_MAP tiene 365 claves y la fila del Excel sale a 441 columnas, asi que contar el
+     mapa daba un numero que no es el de la hoja. */
   let nCols = 'NO FN';
-  try { if (typeof LAB_XLS_MAP !== 'undefined') nCols = Object.keys(LAB_XLS_MAP).length }
-  catch (e) { try { nCols = Object.keys(window.LAB_XLS_MAP || {}).length } catch (q) { nCols = 'NO' } }
+  try { nCols = Object.keys(_labExcelRow({ id: 0, campos: {} })).length } catch (e) { nCols = 'EXC' }
   ex.push(['(C1 CONTROL) el Excel sigue en 441 columnas', nCols, 441]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
   return { extra: EXP };
