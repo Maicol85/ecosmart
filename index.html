@@ -21345,6 +21345,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                 <span><span class="cm3d-sw" style="background:#d8433b"></span>oxigenada</span>
                 <span><span class="cm3d-sw" style="background:#e08a1e"></span>comunicaciones y parches</span>
                 <span><span class="cm3d-sw" style="background:#8d8d88"></span>obstrucci&oacute;n</span>
+                <!-- PANT-14b: la entrada del tunel aparece SOLO cuando hay un tunel dibujado.
+                     La prende y la apaga `cmTunelLeySync`, que es su dueno unico. -->
+                <span id="cm3d-leg2-tun" hidden><span class="cm3d-sw" style="background:#8b5cf6"></span>t&uacute;nel quir&uacute;rgico</span>
                 <span>T tric&uacute;spide &middot; M mitral</span>
               </div>
               <p class="cm3d-ref" id="cm3d-schcap"></p>
@@ -21356,6 +21359,8 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <span><span class="cm3d-sw" style="background:#e08a1e"></span>CIV, parches y suturas</span>
             <span><span class="cm3d-sw" style="background:#9a9a95"></span>obstrucci&oacute;n</span>
             <span><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
+            <!-- PANT-14b: idem, en la leyenda del 3D. -->
+            <span id="cm3d-leg-tun" hidden><span class="cm3d-sw" style="background:#8b5cf6"></span>t&uacute;nel quir&uacute;rgico</span>
           </div>
           <!-- Las combinaciones frecuentes, DEBAJO del dibujo y con sus siglas: el nombre
                completo va en el title y en la etiqueta accesible, y la fuente sigue en el ⓘ. -->
@@ -103032,7 +103037,22 @@ window.tgaSync = tgaSync; window.tgaConclusion = tgaConclusion;
    `tga_cirugia`, que escribe el medico. */
 const TGA3D_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 const TGA3D_SRI = 'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==';
-const TGA3D_C = Object.freeze({ blue: 0x2f6fd0, red: 0xd8433b, grey: 0x9a9a95, orange: 0xe08a1e });
+/* ⚠️ `violet` ES EL COLOR DE UNA ESTRUCTURA QUIRURGICA COMPLEJA -PANT-14b, commit 6-.
+   PEDIDO DEL MEDICO (05/11/2026): en el switch auricular «se forma un tunel que no entiendo bien
+   de donde a donde va»; que el diagrama se entienda y que las estructuras complejas como el
+   tunel lleven otro color, por ejemplo violeta.
+   ⚠️ VA EN UNA SOLA CONSTANTE CON NOMBRE, y es un pedido expreso: el medico va a revisar despues
+   los otros tuneles -el Rastelli y el Fontan- para ver si cambian de color, y con el valor
+   escrito en cada lugar eso serian tres ediciones y una de ellas se queda vieja. Cambiarlo es
+   esta linea.
+   EL VALOR: 0x8b5cf6, un violeta que se distingue del azul 0x2f6fd0 y del rojo 0xd8433b por su
+   tono, no por su claridad, asi que se lee igual en el tema de dia y en el de noche -el lienzo
+   3D no cambia de fondo con el tema-. */
+const TGA3D_C = Object.freeze({ blue: 0x2f6fd0, red: 0xd8433b, grey: 0x9a9a95, orange: 0xe08a1e,
+                                violet: 0x8b5cf6 });
+/* El mismo violeta para el esquema plano, en su notacion de CSS: es el MISMO color y por eso
+   sale del MISMO numero, no de un literal escrito dos veces. */
+const TGA_ESQ_VIOLETA = '#' + TGA3D_C.violet.toString(16).padStart(6, '0');
 const TGA3D_ALTO = 420;
 /* Los textos de la demo, con UNA poda declarada: las oraciones «Que mirar: …» NO se implementan.
    Es la decision (b) del medico —son de ejemplo y hay que verificarlas contra las guias de
@@ -103137,7 +103157,13 @@ const TGA_ESQ_DEF = Object.freeze({
           BL:['Túnel','(cavas)','b','o'], BR:['VI','','b'] },
     fl:[['M80 250V206','b'],['M120 180H178','b'],['M260 180H282V23H242','b'],['M220 38V76','r'],
         ['M180 100H122','r'],['M40 100H18V265H58','r']],
-    v:[[150,180,'M'],[151,100,'T']], ao:[18,191], ap:[282,92] }),
+    v:[[150,180,'M'],[151,100,'T']], ao:[18,191], ap:[282,92],
+    /* ⚠️ `tun` SON LOS DOS TRAMOS DE `fl` QUE PASAN POR DENTRO DEL TUNEL -PANT-14b, commit 6c-,
+       y van como DATO y no como dos numeros escritos en el codigo del dibujo: el tramo 1 lleva
+       la sangre de las cavas a la valvula mitral y el 4 la de las venas pulmonares a la
+       tricuspide. Es la unica anatomia con tunel en este esquema; el dia que otra lo tenga, se
+       le agrega su propia lista. */
+    tun:[1, 4] }),
   /* ⚠️ EL JATENE USA LOS TRAZADOS DEL CORAZON NORMAL, y eso es lo correcto y no un atajo: el
      switch arterial reconecta los grandes vasos, asi que la circulacion vuelve a ir en serie.
      Lo que lo distingue son las tres marcas naranjas de `ex`: las dos lineas de sutura de la
@@ -103197,7 +103223,12 @@ function _tgaEsqCol(c) {
 function _tgaEsqCav(k, d) {
   const p = TGA_ESQ_BX[k], x = p[0], y = p[1], w = TGA_ESQ_W, h = TGA_ESQ_H;
   const c = _tgaEsqCol(d[2]), tunel = (d[3] === 'o');
-  const brd = tunel ? 'var(--tga-esq-naranja)' : c;
+  /* ⚠️ EL BORDE DE LA CAJA DEL TUNEL PASA A VIOLETA -PANT-14b, commit 6c-. Era naranja, que en
+     este esquema significa «comunicacion o parche»: el tunel del switch auricular no es ninguna
+     de las dos, es una pared cosida que cruza las dos corrientes, y el medico pidio que las
+     estructuras complejas lleven su propio color. El valor sale de `TGA_ESQ_VIOLETA`, que es el
+     MISMO numero que el violeta del 3D: un solo lugar para cambiarlo. */
+  const brd = tunel ? TGA_ESQ_VIOLETA : c;
   let s = '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" ' +
           'fill="var(--bg)" stroke="' + brd + '" stroke-width="' + (tunel ? 2 : 1.5) + '"' +
           (tunel ? ' stroke-dasharray="4 3"' : '') + '/>';
@@ -103296,6 +103327,21 @@ function tgaEsqCuerpo(k, sh) {
   }
   ['TL', 'TR', 'BL', 'BR'].forEach(function (c) { s += _tgaEsqCav(c, D.box[c]) });
   if (D.ex) s += D.ex.join('');
+  /* ══ EL CAMINO DEL TUNEL, EN VIOLETA Y POR DEBAJO -PANT-14b, commit 6c- ═══════════════════
+     PEDIDO DEL MEDICO: que el esquema del switch auricular se entienda de un vistazo y que el
+     tunel lleve su color.
+     ⚠️ ES UN TRAZO DE FONDO Y NO EL COLOR DE LA FLECHA, y es una decision: en este esquema las
+     flechas punteadas SON la sangre -azul la poco oxigenada, rojo la oxigenada-, asi que
+     pintarlas de violeta perderia el dato de que sangre corre por ahi. El violeta va DEBAJO,
+     mas ancho y semitransparente, como la pared que envuelve ese tramo. Es la misma regla que el
+     3D aplica: la pared en violeta, la sangre con su color.
+     Va DESPUES de las cajas y ANTES de las flechas del flujo, que es lo que lo deja por debajo:
+     en SVG manda el orden de pintado. */
+  if (D.tun) {
+    D.tun.forEach(function (i) { const f = D.fl[i]; if (!f) return;
+      s += '<path d="' + f[0] + '" fill="none" stroke="' + TGA_ESQ_VIOLETA + '" stroke-width="9" ' +
+           'stroke-linecap="round" opacity="0.38"/>' });
+  }
   /* Las flechas del flujo. La clase es la que anima el bucle. */
   D.fl.forEach(function (f) {
     s += '<path class="tga-esq-fl" d="' + f[0] + '" fill="none" stroke="' + _tgaEsqCol(f[1]) +
@@ -104640,7 +104686,10 @@ function _cmVistaDe(){let M=_cm3d.S.mods;if(M.coa||M.dap){return -0.75;}if(M.civ
    `_cm3dVistaSet`, que es un setter y no una referencia al grupo. Con el grupo expuesto,
    cualquier cosa podria rotarlo sin pasar por el dueno. */
 function cmVista() { if (typeof _cm3dVistaSet === 'function') _cm3dVistaSet(_cmVistaDe()) }
-function _cmCambio(rv){_cm3d.S.src='';_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();if(rv){cmVista();}}
+function _cmCambio(rv){_cm3d.S.src='';_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();if(rv){cmVista();}
+  /* PANT-14b: la leyenda del tunel tambien en «Explorar», que no pasa por `cm3dDerivar`. */
+  try { if (typeof cmTunelLeySync === 'function') cmTunelLeySync() } catch (e) {}
+  try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}}
 function cmSetBase(k){_cm3d.S.base=k;Object.keys(_cm3d.S.mods).forEach(function(m){if(cmBloqueado(m, _cm3d.S)){delete _cm3d.S.mods[m];}});_cmCambio(true);}
 /* ══ LAS DOS LISTAS DE «EXPLORAR» -PANT-13, commit 2- ══════════════════════════════════════
    Portadas de la demo v13 aprobada. Una FILA por opcion -la marca, la sigla y el nombre-, con
@@ -105658,10 +105707,30 @@ function cm3dDerivar() {
     try { cmVista() } catch (e) {}
     try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}
   }
+  try { if (typeof cmTunelLeySync === 'function') cmTunelLeySync() } catch (e) {}
   try { cmPdfSync() } catch (e) {}
   try { cc3dTextoSync() } catch (e) {}
 }
 window.cm3dDerivar = cm3dDerivar;
+
+/* ══ LA LEYENDA DEL TUNEL, SOLO CUANDO HAY UN TUNEL DIBUJADO (PANT-14b, commit 6b) ═════════
+   ⚠️ UN SOLO DUENO DE LA PREGUNTA, y los DOS lugares de la leyenda -la del 3D y la del esquema-
+   lo consultan: con la pregunta escrita dos veces, el dia que otra anatomia tenga tunel una de
+   las dos leyendas se queda sin su entrada. Hoy el unico tunel que el dibujo pinta en violeta es
+   el del switch auricular; el Rastelli y el Fontan tienen el suyo y el medico va a decidir
+   despues si cambian de color -docs/PENDIENTES.md P14b-g-, y ese dia esta funcion es la que
+   crece, no las dos leyendas. */
+function cmHayTunel() {
+  try { return !!(_cm3d && _cm3d.S && _cm3d.S.base === 'tga' && _cm3d.S.bv.tga === 'mus') }
+  catch (e) { return false }
+}
+window.cmHayTunel = cmHayTunel;
+function cmTunelLeySync() {
+  const on = cmHayTunel();
+  ['cm3d-leg-tun', 'cm3d-leg2-tun'].forEach(function (id) {
+    const e = document.getElementById(id); if (e) e.hidden = !on });
+}
+window.cmTunelLeySync = cmTunelLeySync;
 
 /* El embudo de los espejos y el de la restauracion llaman SIEMPRE al dueno unico. */
 function cm3dEstudioSync() { cm3dDerivar(); }
@@ -105966,9 +106035,20 @@ function tga3dEscena(anat, cir, sh) {
               { p:_t3cat(P.PAP_T, P.PAP_R.slice(1)), c:C.blue, r:P.PAR, from:'R' },
               { p:P.PAP_L, c:C.blue, r:P.PBR });
     s.fl.push({ p:_t3cat(bl, P.PAP_T, P.PAP_L), c:C.blue }, { p:_t3cat(rd, P.AO_ANT), c:C.red });
-    s.ex.push({ t:'tube', p:bl.slice(0,5), r:0.17, c:C.blue, op:0.5, in:true },
-              { t:'tube', p:rd.slice(2,7), r:0.17, c:C.red, op:0.5, in:true });
-    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_ANT[2]], ['AP',P.PAP_T[1]]);
+    /* ⚠️ LAS PAREDES DE LOS DOS CAMINOS DEL TUNEL VAN EN VIOLETA -PANT-14b, commit 6-, y las
+       PARTICULAS que corren por dentro conservan sus colores: el azul de la sangre poco
+       oxigenada y el rojo de la oxigenada viven en `s.fl`, que no se toca. Antes la pared tenia
+       el color de la sangre que lleva adentro, asi que el tunel se veia como un vaso mas y no
+       como lo que es: una pared cosida que cruza las dos corrientes.
+       LA GEOMETRIA Y EL RECORRIDO NO CAMBIAN: son los mismos `bl` y `rd` de siempre, con los
+       mismos indices y el mismo radio. Lo unico que cambia es `c`. */
+    s.ex.push({ t:'tube', p:bl.slice(0,5), r:0.17, c:C.violet, op:0.5, in:true },
+              { t:'tube', p:rd.slice(2,7), r:0.17, c:C.violet, op:0.5, in:true });
+    /* Y cada camino dice de donde viene: el que lleva la sangre de las cavas hacia la valvula
+       mitral y el que lleva la de las venas pulmonares hacia la tricuspide. Las palabras son las
+       de `TGA3D_CIRC.mus`, que es el recorrido que la app ya publica: no se escribe texto nuevo. */
+    s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_ANT[2]], ['AP',P.PAP_T[1]],
+              ['Túnel cavas', bl[2]], ['Túnel venas pulm.', rd[4]]);
   }
   if (a === 'ltga') {
     s.ar.push({ p:_t3cat(P.AO_LT), c:C.red, r:P.AOR, br:1, from:'R' },
@@ -161102,8 +161182,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1430';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793899837960;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1439';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793900340796;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161189,7 +161269,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1430</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1439</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
