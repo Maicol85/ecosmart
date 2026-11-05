@@ -103503,7 +103503,7 @@ window.cc3dPieSync = cc3dPieSync;
    dibujadas» mientras el dibujo las muestra. La lista y el dibujo preguntan lo MISMO
    -`_CC_SECS`-, asi que no pueden discrepar. */
 const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga', 'tdf', 'coa',
-                                   'esub', 'easv']);
+                                   'esub', 'easv', 'dsav', 'ebs', 'fontan']);
 /* ⚠️ LA TRANSPOSICION SALE DE LA LISTA DE «no dibujadas» POR SU PROPIA PUERTA. Si se la deja
    caer ahi, la linea dice las dos cosas a la vez —«Cargadas y no dibujadas todavia: TGA» y «La
    transposicion tiene su propio diagrama»—, que se contradicen. Lo que es cierto es lo segundo:
@@ -103547,9 +103547,18 @@ function cc3dTextoSync() {
   }
   const r = cc3dNoDibujadas();
   const partes = [];
+  /* ⚠️ «TODAS LAS LESIONES CARGADAS ESTAN DIBUJADAS» SOLO SE DICE SI ES CIERTO -PANT-14,
+     commit 6-. Hasta esta tanda esa frase salia en cuanto `falta` estaba vacia, y desde que el
+     modulo dibuja las anatomias de base con un ORDEN DE PRIORIDAD eso dejo de alcanzar: con una
+     transposicion y un Fallot cargados las dos secciones estan en `CC3D_DIBUJA`, asi que `falta`
+     quedaba vacia y la linea afirmaba que estaba todo dibujado al lado de «No se dibujan juntas
+     — Fallot…», que es lo contrario. Medido en los diez pares. Ahora la frase se dice solo
+     cuando las TRES listas estan vacias, y lo que no se dibuja se lista siempre. */
+  const _omN = (_cm3d && _cm3d.omitidas) ? _cm3d.omitidas.length : 0;
+  const _chN = (_cm3d && _cm3d.chocan) ? _cm3d.chocan.length : 0;
   if (!r.hay) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
   else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
-  else partes.push('Todas las lesiones cargadas están dibujadas.');
+  else if (!_omN && !_chN) partes.push('Todas las lesiones cargadas están dibujadas.');
   /* ⚠️ LA FRASE «La transposicion tiene su propio diagrama, en su seccion» SE RETIRO EN PANT-13
      (commit 4): dejo de ser cierta el dia que el modulo la dibuja como su sexta base. La
      transposicion pasa a `CC3D_DIBUJA`, asi que la linea de arriba ya la cuenta entre las
@@ -103562,7 +103571,9 @@ function cc3dTextoSync() {
                 cvpa:'conexión venosa anómala', eisen:'Eisenmenger',
                 coa:'coartación (falta consignar si es nativa o reparada)',
                 ep:'estenosis pulmonar (falta consignar el nivel)',
-                ea:'estenosis subaórtica o supravalvular' };
+                ea:'estenosis subaórtica o supravalvular',
+                dsav:'defecto del septo AV (falta consignar el tipo)',
+                fontan:'Fontan (falta consignar el tipo)' };
   if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.length) {
     partes.push('Cargadas con una opción que el dibujo no distingue: '
       + _cm3d.omitidas.map(function (k) { return ROT[k] || k }).join(', ') + '.');
@@ -105158,7 +105169,10 @@ window._cmSecsOn = _cmSecsOn;
    cargada se dibuja la primera y las otras se listan. El orden es el que el medico fijo. */
 const CM_BASE_PRIO = Object.freeze([
   Object.freeze({ b:'tga',  sec:'tga',    lbl:'transposición' }),
-  Object.freeze({ b:'fal',  sec:'tdf',    lbl:'Fallot' })
+  Object.freeze({ b:'fal',  sec:'tdf',    lbl:'Fallot' }),
+  Object.freeze({ b:'dsav', sec:'dsav',   lbl:'defecto del septo AV' }),
+  Object.freeze({ b:'ebs',  sec:'ebs',    lbl:'Ebstein' }),
+  Object.freeze({ b:'fon',  sec:'fontan', lbl:'Fontan' })
 ]);
 /* Un grado consignado y distinto de «sin» o «ausente». Es la regla que la orden fija para los
    CUATRO chorros, y el centinela de «sin grado» NO es el mismo campo en cada selector: el de la
@@ -105275,6 +105289,44 @@ function cmDesdeEstudio() {
   /* ⚠️ NO SE DEDUCE DE «Seno coronario dilatado»: son dos hallazgos distintos -un seno coronario
      se dilata por muchas causas- y el medico lo pidio asi. */
   if (CH('otr_var_vcsip')) S.mods.vcs = 'std';
+
+  /* ── EL DEFECTO DEL SEPTO AURICULOVENTRICULAR -PANT-14, commit 6- ────────────────────────
+     ⚠️ LA OPCION DE LA PESTANIA SE LLAMA `intermedio` Y LA VARIANTE DEL MODULO `tra`
+     -transicional-: son el mismo tipo con dos nombres, y la traduccion vive aca, en un solo
+     lugar. `noesp` no tiene variante: la lesion NO se dibuja y la linea lo dice.
+     La casilla de insuficiencia AV izquierda sale de `dsav_regurg_av_izq` con cualquier grado
+     distinto de «no». */
+  if (elegida === 'dsav') {
+    const DSAV_VAR = { parcial:'par', intermedio:'tra', completo:'com' };
+    const v = DSAV_VAR[V('dsav_tipo')];
+    if (v) {
+      S.base = 'dsav'; S.bv.dsav = v;
+      if (_cmGrado(V('dsav_regurg_av_izq'), ['no'])) S.ck.iav = true;
+    } else { omit.push('dsav') }
+  }
+  /* ── LA ANOMALIA DE EBSTEIN -PANT-14, commit 6- ───────────────────────────────────────────
+     SIN VARIANTES: la valvula desplazada y la zona atrializada son el dibujo de la base.
+     ⚠️ EL GRADO DE INSUFICIENCIA TRICUSPIDEA SE LEE DE `it_grado`, QUE ES SU DUENIO, Y NO DEL
+     ESPEJO `ebs_it_ro`: es la leccion que esta casa ya pago leyendo un centinela como si fuera
+     un valor. Y su centinela de «sin grado» es el CERO, no una frase, al contrario que el de la
+     insuficiencia pulmonar del Fallot. */
+  if (elegida === 'ebs') {
+    S.base = 'ebs'; S.bv.ebs = 'std';
+    if (_cmGrado(V('it_grado'), ['0'])) S.ck.eit = true;
+  }
+  /* ── LA CIRCULACION DE FONTAN -PANT-14, commit 6- ─────────────────────────────────────────
+     `noesp` no tiene variante: no se dibuja y se lista.
+     ⚠️ LA CASILLA DE FENESTRACION EXISTE SOLO EN EL CONDUCTO EXTRACARDIACO Y EN EL TUNEL
+     LATERAL -`CM_BCK` no tiene `fon_atr`-, y es correcto: el Fontan atriopulmonar no lleva
+     conducto fenestrado. Se enciende SOLO con `presente`: «cerrada» dice que ya no esta. */
+  if (elegida === 'fon') {
+    const FON_VAR = { extra:'ext', tunel:'tun', ap:'atr' };
+    const v = FON_VAR[V('fontan_tipo')];
+    if (v) {
+      S.base = 'fon'; S.bv.fon = v;
+      if (v !== 'atr' && V('fontan_fenestracion') === 'presente') S.ck.fen = true;
+    } else { omit.push('fontan') }
+  }
 
   /* ── LA ESTENOSIS PULMONAR -PANT-14, commit 5- ───────────────────────────────────────────
      ⚠️ ESTA LESION NO TIENE ENTRADA EN `_CC_SECS` -censado el registro entero, es la unica de
@@ -160726,8 +160778,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-0910';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793880625211;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0923';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793881391483;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160813,7 +160865,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0910</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0923</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -58,6 +58,35 @@ const CASOS = [
   /* CONFLICTO: las dos cargadas -se dibuja la subaortica y la otra se lista */
   { n:'eaDos',     campos:[['esub_tipo','membrana'],['easv_tipo','reloj']],
     esperado:{ base:'norm', bv:null, ck:{}, mods:{ea:'sub'} } },
+  /* ── commit 6: el defecto AV, Ebstein y Fontan ── */
+  { n:'dsavPar',   campos:[['dsav_tipo','parcial']],
+    esperado:{ base:'dsav', bv:'par', ck:{}, mods:{} } },
+  { n:'dsavTra',   campos:[['dsav_tipo','intermedio']],
+    esperado:{ base:'dsav', bv:'tra', ck:{}, mods:{} } },
+  { n:'dsavCom',   campos:[['dsav_tipo','completo'],['dsav_regurg_av_izq','severa']],
+    esperado:{ base:'dsav', bv:'com', ck:{iav:true}, mods:{} } },
+  /* CONTROL NEGATIVO: sin el tipo no se dibuja y se lista */
+  { n:'dsavNoesp', campos:[['dsav_tipo','noesp']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['dsav'] } },
+  { n:'ebstein',   campos:[['ebs_desplazamiento','14']],
+    esperado:{ base:'ebs', bv:'std', ck:{}, mods:{} } },
+  { n:'ebsteinIT', campos:[['ebs_desplazamiento','14'],['it_grado','4']],
+    esperado:{ base:'ebs', bv:'std', ck:{eit:true}, mods:{} } },
+  /* CONTROL NEGATIVO: el cero de it_grado NO es un grado */
+  { n:'ebsteinIT0',campos:[['ebs_desplazamiento','14'],['it_grado','0']],
+    esperado:{ base:'ebs', bv:'std', ck:{}, mods:{} } },
+  { n:'fonExt',    campos:[['fontan_tipo','extra'],['fontan_fenestracion','presente']],
+    esperado:{ base:'fon', bv:'ext', ck:{fen:true}, mods:{} } },
+  { n:'fonTun',    campos:[['fontan_tipo','tunel']],
+    esperado:{ base:'fon', bv:'tun', ck:{}, mods:{} } },
+  { n:'fonAtr',    campos:[['fontan_tipo','ap'],['fontan_fenestracion','presente']],
+    esperado:{ base:'fon', bv:'atr', ck:{}, mods:{} } },
+  /* CONTROL NEGATIVO: la fenestracion CERRADA no enciende la casilla */
+  { n:'fonCerr',   campos:[['fontan_tipo','extra'],['fontan_fenestracion','cerrada']],
+    esperado:{ base:'fon', bv:'ext', ck:{}, mods:{} } },
+  /* CONTROL NEGATIVO: sin el tipo no se dibuja y se lista */
+  { n:'fonNoesp',  campos:[['fontan_tipo','noesp'],['fontan_saturacion','92']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['fontan'] } },
   /* CONTROL NEGATIVO: el estudio vacio dibuja el corazon normal y no lista nada */
   { n:'vacio',     campos:[], esperado:{ base:'norm', bv:null, ck:{}, mods:{} } },
 ];
