@@ -103203,10 +103203,19 @@ function _tgaEsqDirCom(id) {
   const v = (typeof _ccSv === 'function') ? _ccSv(id) : '';
   return (v === 'id' || v === 'di' || v === 'bi') ? v : '';
 }
-function tgaEsqSVG(k, sh) {
+/* ⚠️ EL CUERPO SALE A FUNCION PROPIA -PANT-14b, commit 4-, y es lo que hace que el esquema del
+   modulo del corazon maestro sea el MISMO que el de esta pestania por CONSTRUCCION y no por
+   comparacion: su `<svg id="cm3d-schsvg">` ya existe en el marcado con este mismo `viewBox`, asi
+   que lo que necesita es el marcado de ADENTRO. `tgaEsqSVG` queda como el envoltorio.
+   DECISION DEL MEDICO (05/11/2026): para la transposicion queda el esquema que la app ya tenia
+   en la pestania. Con dos motores -el de aca y el que `cmSchRender` portó de la demo v13- las
+   tres diferencias que `docs/PENDIENTES.md` P14-d midio -el tamanio de letra, el rotulo de cada
+   comunicacion y el sentido de la flecha del cortocircuito- volverian el dia que uno de los dos
+   se toque. Con un dueno unico no pueden volver. */
+function tgaEsqCuerpo(k, sh) {
   const D = TGA_ESQ_DEF[k];
   if (!D) return '';
-  let s = '<svg viewBox="' + TGA_ESQ_VB + '" role="img" aria-labelledby="tga-esq-alt">';
+  let s = '';
   s += '<defs>';
   ['b', 'r'].forEach(function (c) {
     s += '<marker id="' + TGA_ESQ_MK[c] + '" viewBox="0 0 10 10" refX="8" refY="5" ' +
@@ -103311,8 +103320,14 @@ function tgaEsqSVG(k, sh) {
          '" class="tga-esq-rot" paint-order="stroke" stroke="var(--bg3)" stroke-width="3.5" ' +
          'stroke-linejoin="round" fill="' + l[3] + '">' + _tgaEsqTxt(l[0]) + '</text>';
   });
-  s += '</svg>';
   return s;
+}
+window.tgaEsqCuerpo = tgaEsqCuerpo;
+/* El envoltorio: el `<svg>` que la pestania escribe por `innerHTML` dentro de su contenedor. */
+function tgaEsqSVG(k, sh) {
+  const c = tgaEsqCuerpo(k, sh);
+  if (!c) return '';
+  return '<svg viewBox="' + TGA_ESQ_VB + '" role="img" aria-labelledby="tga-esq-alt">' + c + '</svg>';
 }
 /* ⚠️ LA LINEA DE TEXTO SE ARMA CON LAS PALABRAS QUE LA APP YA USA, y ninguna sale de la demo.
    El nombre del escenario sale de `TGA_ESQ_NOM`, que repite los rotulos del selector de tipo y
@@ -104812,6 +104827,44 @@ function cmSchRender(forzar) {
   const svg = document.getElementById('cm3d-schsvg'), caja = document.getElementById('cm3d-sch');
   if (!svg || !caja || (caja.hidden && !forzar)) return;
   const B = _cm3d.S.base, BV = _cm3d.S.bv[B], M = _cm3d.S.mods, K = _cm3d.S.ck, eis = !!M.eis;
+  /* ══ LA TRANSPOSICION DIBUJA EL ESQUEMA DE SU PESTANIA -PANT-14b, commit 4- ══════════════
+     DECISION DEL MEDICO (05/11/2026): para la transposicion queda el esquema que la app ya
+     tenia en la pestania. NO se replica su salida: se llama a `tgaEsqCuerpo`, que es su DUENO
+     UNICO, con las MISMAS entradas -su clave de escenario y sus tres comunicaciones-. Asi la
+     equivalencia que el commit 4b exige es exacta por CONSTRUCCION, y el dia que un rotulo o un
+     tamanio de letra de ese esquema cambie, cambia en los dos a la vez.
+     LA CLAVE sale de `CM_TGA_VAR` y `_tga3dClave`, que son los duenos del par anatomia+cirugia:
+     escribir la traduccion de nuevo aca seria el segundo dueno del mismo par.
+     LAS TRES COMUNICACIONES se arman EXACTAMENTE como `_cmEscenaTGA` las arma para el 3D -la
+     CIV residual cuenta como interventricular-, asi que el 3D y su esquema no pueden mostrar
+     dos pacientes distintos. Las dos exclusiones -la CIA con el switch auricular y la CIV con
+     el Rastelli- las aplica `tgaEsqCuerpo` adentro, que es donde la regla ya vivia.
+     ⚠️ LA OBSTRUCCION SUBAORTICA ES LA UNICA DIFERENCIA ESPERADA Y SE DIBUJA APARTE: el
+     esquema de la pestania nunca la dibujo y el medico decidio que el modulo si. Su barra gris
+     se agrega DESPUES del cuerpo delegado, con la posicion por variante de la demo v13. */
+  if (B === 'tga' && typeof tgaEsqCuerpo === 'function' && typeof CM_TGA_VAR !== 'undefined') {
+    const _v = CM_TGA_VAR[BV] || CM_TGA_VAR.d;
+    const _k = (typeof _tga3dClave === 'function') ? _tga3dClave(_v[0], _v[1]) : _v[0];
+    const _sh = { asd: !!M.cia, vsd: !!(M.civ || K.tciv), pda: !!M.dap };
+    let _c = tgaEsqCuerpo(_k, _sh);
+    if (_c) {
+      if (K.tobs) {
+        const _ob = ({ dtga:[22,112], mus:[22,112], ras:[146,150], ltga:[210,208], jat:[210,208] })[_k] || [210,208];
+        _c += '<rect x="' + _ob[0] + '" y="' + _ob[1] + '" width="20" height="6" rx="2" fill="'
+            + CM_SCH_G + '"/><text x="' + (_ob[0] + 24) + '" y="' + (_ob[1] + 6)
+            + '" font-size="9.5" fill="' + cmSchPal().texto2
+            + '" class="cm3d-ts" font-weight="600">obstr. subaórtica</text>';
+      }
+      svg.innerHTML = _c;
+      const _nm = [];
+      _nm.push((CM_SIB.tga || ['TGA'])[0]);
+      CM_MODS.forEach(function (m) { if (M[m[0]]) { _nm.push((CM_SIG[m[0]] || [m[0]])[0]) } });
+      svg.setAttribute('aria-label', 'Esquema de circulación: ' + _nm.join(', '));
+      const _cp = document.getElementById('cm3d-schcap'), _ci = document.getElementById('cm3d-circ');
+      if (_cp) { _cp.textContent = _ci ? _ci.textContent : '' }
+      return;
+    }
+  }
   const Bc = CM_SCH_B, Rc = CM_SCH_R, Oc = CM_SCH_O, Gc = CM_SCH_G, Yc = CM_SCH_Y;
   const P = cmSchPal();
   const BX = { TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] };
@@ -161013,8 +161066,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1355';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793897756409;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1413';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793898838414;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161100,7 +161153,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1355</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1413</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
