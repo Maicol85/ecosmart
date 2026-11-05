@@ -28,6 +28,11 @@ const CASOS = [
   { n:'dap',     sub:'congenitas',  campos:[['dap_tipo','restrictivo']] },
   { n:'tga',     sub:'congenitas2', campos:[['tga_tipo','dtga']] },
   { n:'vacio',   sub:'congenitas',  campos:[] },
+  /* los CUATRO estudios del commit 7: las lesiones que esta tanda conecta */
+  { n:'p14fallot', sub:'congenitas2', campos:[['tdf_func_vd','normal'],['ip_grado','Severa'],['tdf_civ_residual','si'],['tdf_ep_stent','si']] },
+  { n:'p14coaEa',  sub:'congenitas',  campos:[['coa_istmo','8'],['coa_situacion','nativa'],['esub_tipo','membrana']] },
+  { n:'p14dsav',   sub:'congenitas2', campos:[['dsav_tipo','completo'],['dsav_regurg_av_izq','severa']] },
+  { n:'p14fontan', sub:'congenitas2', campos:[['fontan_tipo','extra'],['fontan_fenestracion','presente']] },
 ];
 
 const CUERPO = (caso) => `(async () => {

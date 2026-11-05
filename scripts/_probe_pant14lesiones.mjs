@@ -87,6 +87,39 @@ const CASOS = [
   /* CONTROL NEGATIVO: sin el tipo no se dibuja y se lista */
   { n:'fonNoesp',  campos:[['fontan_tipo','noesp'],['fontan_saturacion','92']],
     esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['fontan'] } },
+  /* ── commit 7: las lesiones que PANT-12 y PANT-13 ya habian conectado, como CONTROL de que
+     esta tanda no las movio, mas las seis combinaciones frecuentes ── */
+  { n:'cia',       campos:[['ete_cia_tipo','secundum']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{cia:'sec'} } },
+  { n:'civ',       campos:[['ete_civ_tipo','muscular']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{civ:'mus'} } },
+  { n:'dap',       campos:[['dap_tipo','restrictivo']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{dap:'std'} } },
+  { n:'vap',       campos:[['vap_tipo','i']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{vap:'prox'} } },
+  { n:'cvpa',      campos:[['cvpa_conexion','vcs']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{cvpa:'cs'} } },
+  { n:'vcs',       campos:[['otr_var_vcsip','si']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{vcs:'std'} } },
+  { n:'eisen',     campos:[['eis_lesion_base','civ']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{civ:'pm',eis:'std'} } },
+  { n:'tga',       campos:[['tga_tipo','dtga']],
+    esperado:{ base:'tga', bv:'d', ck:{}, mods:{} } },
+  { n:'tgaObs',    campos:[['tga_tipo','dtga'],['tga_obstr_subaortica','si']],
+    esperado:{ base:'tga', bv:'d', ck:{tobs:true}, mods:{} } },
+  /* las SEIS combinaciones frecuentes */
+  { n:'cmb1',      campos:[['ete_cia_tipo','secundum'],['ete_civ_tipo','perimembranosa'],['dap_tipo','silente']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{cia:'sec',civ:'pm',dap:'std'} } },
+  { n:'cmb2',      campos:[['ete_cia_tipo','sv_vcs'],['cvpa_conexion','vcs'],['otr_var_vcsip','si']],
+    esperado:{ base:'norm', bv:null, ck:{svs:true}, mods:{cia:'sv',cvpa:'cs',vcs:'std'} } },
+  { n:'cmb3',      campos:[['ete_cia_tipo','secundum'],['ep_nivel','Valvular']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{cia:'sec',ep:'valv'} } },
+  { n:'cmb4',      campos:[['coa_istmo','8'],['coa_situacion','nativa'],['esub_tipo','membrana']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{coa:'nat',ea:'sub'} } },
+  { n:'cmb5',      campos:[['tdf_func_vd','normal'],['ip_grado','Severa'],['tdf_civ_residual','si']],
+    esperado:{ base:'fal', bv:'op', ck:{ip:true,rciv:true}, mods:{} } },
+  { n:'cmb6',      campos:[['ebs_desplazamiento','16'],['it_grado','4'],['ete_cia_tipo','secundum'],['ete_cia_dir','di']],
+    esperado:{ base:'ebs', bv:'std', ck:{eit:true}, mods:{cia:'sec'} } },
   /* CONTROL NEGATIVO: el estudio vacio dibuja el corazon normal y no lista nada */
   { n:'vacio',     campos:[], esperado:{ base:'norm', bv:null, ck:{}, mods:{} } },
 ];
@@ -115,9 +148,14 @@ const CUERPO = (caso, muda) => `(async () => {
                ex:ex.join(' | '), fl:fl.join(' | '), ar:ar.join(' | '), lb:lb.join(' | ') };
     } catch (e) { return { ERR: String(e).slice(0, 110) } }
   };
-  const estado = () => ({ base:_cm3d.S.base, bv:JSON.stringify(_cm3d.S.bv), mods:JSON.stringify(_cm3d.S.mods),
-                          ck:JSON.stringify(_cm3d.S.ck), omit:JSON.stringify(_cm3d.omitidas||[]),
-                          chocan:JSON.stringify(_cm3d.chocan||[]) });
+  /* ⚠️ LOS OBJETOS SE COMPARAN COMO CONJUNTO ORDENADO DE PARES Y NO CON JSON.stringify: el orden
+     de las claves es el de INSERCION, asi que el mismo estado armado en otro orden salia
+     distinto. Lo destapo la combinacion de coartacion y estenosis subaortica, que el estudio
+     inserta al reves que la escena de control. Es la trampa que PANT-5 pago con el censo de campos. */
+  const ord = o => JSON.stringify(Object.keys(o || {}).sort().map(k => [k, o[k]]));
+  const estado = () => ({ base:_cm3d.S.base, bv:ord(_cm3d.S.bv), mods:ord(_cm3d.S.mods),
+                          ck:ord(_cm3d.S.ck), omit:JSON.stringify((_cm3d.omitidas||[]).slice().sort()),
+                          chocan:JSON.stringify((_cm3d.chocan||[]).slice().sort()) });
   /* ── 1. la foto del formulario vacio ── */
   const antes = foto();
   /* ── 2. cargar los campos, con el gesto real o con una siembra muda ── */
