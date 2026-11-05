@@ -77198,7 +77198,16 @@ function generarPDFReal(_aj) {
   if (typeof imgSlots !== 'undefined') {
     imgSlots.forEach((s, i) => {
       if (!s || !s.dataURL || s.videoId || s.noPdf) return;
-      if (i === _oaiSlotUsado || i === _oaiEsqIdx || i === _tga3dEsqIdx) return;
+      /* ⚠️ `_cm3dEsqIdx` ESTABA FALTANDO EN ESTA LISTA, Y ES EL DIBUJO DOBLE QUE EL MEDICO
+         REPORTO -PANT-14b, commit 3-. PANT-13 agrego la entrada `cm3d` al registro de
+         diagramas y su recolector -que deja su indice en `_cm3dEsqIdx`- y no la agrego aca, asi
+         que el MISMO dibujo salia dos veces: una como su tile en «Diagramas del estudio» y otra
+         como captura en «Imagenes del estudio». Medido con el PDF generado de verdad: TRES
+         imagenes y el mismo dataURL repetido -la de 93 mm de ancho, que es el ancho de la
+         pagina de imagenes-. Hoy sale UNA sola vez.
+         ⚠️ ESTA LISTA ES CERRADA: todo diagrama de familia `cc` que viaje por `imgSlots` tiene
+         que estar aca, o se imprime dos veces. */
+      if (i === _oaiSlotUsado || i === _oaiEsqIdx || i === _tga3dEsqIdx || i === _cm3dEsqIdx) return;
       _caps.push({ i: i, slot: s, ampliada: !!s.ampliada });
     });
   }
@@ -105001,7 +105010,9 @@ const CM_PDF_AVISO = Object.freeze({
   explorar:'«Incluir en el PDF» está disponible solo en «Según el estudio»: lo que se explora es didáctico y no es un dato del paciente.',
   vacio:'No hay lesiones cargadas en las pestañas: no hay nada para incluir.',
   tga:'Este estudio tiene una transposición cargada: su dibujo se incluye desde la sección «Transposición de grandes arterias», que tiene su propio botón.',
-  on:'El PDF llevará este dibujo, armado con lo cargado en las pestañas.' });
+  /* PANT-14b: el aviso dice las DOS cosas que pasan, porque el esquema depende de su propio
+     boton y eso no se adivina mirando el boton del PDF. */
+  on:'El PDF llevará este dibujo, armado con lo cargado en las pestañas; con el esquema de circulación abierto lleva también el esquema.' });
 /* ⚠️ «HAY ALGO CARGADO» SE LE PREGUNTA AL ESTUDIO Y NO AL ESTADO DEL DIBUJO: en «Explorar» el
    estado trae lo que el medico eligio, que es justo lo que no cuenta. Se arma el estado del
    estudio con `cmDesdeEstudio` -que SOLO LEE- y se mira ese. */
@@ -105105,7 +105116,16 @@ let _cmEsqPdfTo = null;
    `TGA_ESQ_PDF_AR`, que ya estaba bien. */
 const CM_ESQ_PDF_AR = 290 / 300;
 const CM_ESQ_PDF_W = 600, CM_ESQ_PDF_H = 580;
-function cmEsqPdfOn() { return (typeof esqEstaIncluido === 'function') && esqEstaIncluido('cm3d') }
+/* ⚠️ Y EL ESQUEMA DE CIRCULACION ENTRA SOLO SI SU BOTON ESTA ABIERTO -PANT-14b, commit 3-.
+   PEDIDO DEL MEDICO: el PDF lleva solo el 3D si el esquema no esta marcado, y el 3D mas el
+   esquema si lo esta. Hasta esta tanda entraba SIEMPRE: medido, con el boton cerrado el PDF
+   traia igual su imagen de 45x43 mm. El dueno del estado abierto es `_cm3d.sch`, el MISMO que
+   el boton escribe y que `cmSchSet` gobierna: con una segunda bandera el papel y la pantalla
+   podrian decir cosas distintas.
+   ⚠️ ESE ESTADO NO SE GUARDA CON EL ESTUDIO, y es a proposito: agregarlo seria un campo nuevo,
+   que esta orden prohibe. Queda declarado en docs/PENDIENTES.md -P14b-d-. */
+function cmEsqPdfOn() { return (typeof esqEstaIncluido === 'function') && esqEstaIncluido('cm3d')
+                        && !!(_cm3d && _cm3d.sch) }
 /* ⚠️ PASA POR `esqRasterizar`, QUE ES EL DUENIO UNICO, Y NO POR UN `new Image()` PROPIO. Fuera
    del documento NO existen las variables de CSS, asi que un `fill="var(--card)"` cae en NEGRO:
    es el defecto que PANT-2 pago con un esquema negro, y `esqSvgParaRaster` -que esa funcion
@@ -160993,8 +161013,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1343';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793897001388;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1355';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793897756409;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161080,7 +161100,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1343</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1355</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
