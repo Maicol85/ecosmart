@@ -317,3 +317,20 @@ La rama que devuelve el préstamo se conserva en `cc3dCerrar`, con su motivo esc
 nunca (ahora `_cc3d.padre` es `null`) y queda porque es la única forma de deshacer uno.
 
 Ver `docs/mapa/pant12-corazon-maestro.md`.
+
+---
+
+## Lo que la tanda PANT-14b movió (2026-11-05) → `docs/mapa/p14b-estado-puerta-tunel.md`
+
+- **El recuadro de dibujo de esta pestaña se retiró de la vista.** `#tga-3d-box` queda en el DOM con
+  `display:none` —no se borra: sus ids los leen el recolector del PDF, cinco funciones de la pestaña
+  y varios casos de la suite— y en su lugar está `#tga-ver3d`, que llama a `tgaVer3D()`, que delega
+  en `cc3dAbrir`. **La librería 3D ya no se carga desde acá**: los scripts de three en el documento
+  pasan de 1 a 0.
+- **El cuerpo del esquema salió a `tgaEsqCuerpo`**, su dueño único, y `tgaEsqSVG` quedó como el
+  envoltorio. El módulo del corazón maestro **lo llama** con las mismas entradas, así que los dos
+  esquemas no pueden divergir.
+- **Sus colores se resuelven al dibujar** (`tgaEsqResolver`), por la regla fija del proyecto.
+- **El túnel del switch auricular va en violeta**, con sus dos rótulos y su entrada condicional en
+  la leyenda. Las partículas conservan sus colores.
+- **El aviso «Este estudio tiene una transposición cargada…» ya no se escribe** por ningún camino.

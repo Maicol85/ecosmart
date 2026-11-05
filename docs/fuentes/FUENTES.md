@@ -11279,3 +11279,78 @@ paciente** que difieren.
 | 5 | «Corazon normal» → «Corazón normal» y el resto de las tildes del módulo y del diagrama del pulmón | — (ortografía) | Todo lo demás |
 
 **Ninguna cita nueva. Ninguna cita movida. Ningún folio agregado.**
+
+---
+
+## La tanda PANT-14b (2026-11-05) — el estado del módulo, «un dato una sola puerta», el PDF, el retiro de la transposición y el túnel violeta
+
+⚠️ **ESTA TANDA NO ABRIÓ UN SOLO PDF DE GUÍA, y se declara.** No agregó ni cambió un corte, un
+umbral, una clase, un nivel, una tabla ni un folio. **La tabla «Cambios de evidencia» está vacía a
+propósito.**
+
+Lo único clínico que toca es **cuándo una sección de congénitas entra al informe**, y eso es una
+decisión del médico del 05/11/2026, no una lectura de guía: si se carga un dato que identifica la
+lesión, la lesión está presente. Las frases del informe **no se reescribieron**: lo único que cambia
+es QUÉ secciones entran, y el predicado es el que `_CC_SECS` ya tenía.
+
+### Notas de trabajo (R1)
+
+**El inventario de «un dato, una sola puerta»** está en
+`docs/INVENTARIO_UN_DATO_UNA_PUERTA_P14B.md`: las **19** secciones de `_CC_SECS`, su interruptor de
+presencia, los campos que las identifican y la tabla de las cuatro combinaciones antes y después.
+Las 19 tienen interruptor y los 19 selects identificatorios tienen su opción cero vacía.
+
+**El texto que se repuso.** El globo ⓘ del esquema de circulación —clave `tga-esq` del registro—
+vivía dentro del recuadro retirado de la pestaña de la transposición, así que con el recuadro
+oculto su botón quedó sin caja. Se repuso en el encabezado del esquema del módulo, **con la misma
+clave y sin cambiar una palabra**: dice que el esquema es ilustrativo y que no es una imagen del
+estudio, que es un aviso que evita un error. Lo destapó TC-624, no la lectura.
+
+**El texto que salió de la pantalla.** El aviso «Este estudio tiene una transposición cargada: su
+dibujo se incluye desde la sección «Transposición de grandes arterias», que tiene su propio botón»
+dejó de escribirse por los dos caminos que lo escribían. Su constante —`CM_PDF_AVISO.tga`— queda en
+el archivo sin uso y declarada en `docs/PENDIENTES.md` → **P13-c**. Dejó de ser cierto: esa sección
+ya no tiene su propio botón.
+
+**El texto que cambió, una sola frase.** El aviso de la inclusión en el PDF pasa de «El PDF llevará
+este dibujo, armado con lo cargado en las pestañas.» a «El PDF llevará este dibujo, armado con lo
+cargado en las pestañas; con el esquema de circulación abierto lleva también el esquema.» Es un
+aviso de pantalla y dice lo que la app hace: el esquema depende de su propio botón y eso no se
+adivina mirando el botón del PDF.
+
+**Los dos rótulos del túnel** —«Túnel cavas» y «Túnel venas pulm.»— salen de las palabras de
+`TGA3D_CIRC.mus`, el recorrido que la app ya publica: «cavas → tunel → valvula mitral → VI →
+arteria pulmonar · venas pulmonares → valvula tricuspide → VD → aorta». **No se escribió texto
+clínico nuevo.**
+
+### Cambios de evidencia
+
+| qué | antes | después |
+|---|---|---|
+| *(ninguno)* | — | — |
+
+**Ningún corte, umbral, clase, nivel, tabla o folio se movió.** Verificado con el A/B de 64 escenas
+contra HEAD: las únicas siete escenas con diferencia de papel son las que cargan el dato de una
+congénita con su casilla de integrar apagada, y lo que cambia ahí es que la sección **entra**, con
+las frases que ya tenía.
+
+### Notas de trabajo del barrido de mutaciones (R1)
+
+El barrido de la tanda —`scripts/_mut_p14b.py`, **37 de 37 muertas**— dejó tres mediciones que no
+son de evidencia clínica pero que valen para la próxima vez:
+
+1. **Un `display` computado no sirve para medir si un panel está cerrado cuando su padre se
+   esconde.** `#cc3d-panel` es hijo de `#cc3d-wrap`, y el envoltorio se esconde al salir de
+   congénitas: el computado da «none» pase lo que pase. Lo que lo dice es el `display` **en
+   línea**, la clase y la bandera del módulo.
+2. **Una condición que llama al dueño con la mano no prueba que la app lo llame.** Las dos
+   condiciones de la leyenda del túnel invocaban `cmTunelLeySync()` ellas mismas, así que romper
+   las **dos** puertas de la app pasaba en verde. Es la variante suave de la trampa que TC-519
+   pagó entera.
+3. **Una condición que busca el nombre del dueño DENTRO del texto de la función no mide la
+   delegación.** Apagar la rama con un `if (false &&` o poner un `return` antes de la llamada
+   deja el nombre escrito ahí. Lo que mide es el marcado **emitido**, o tocar el botón de verdad.
+
+Y una equivalencia que se declara en `docs/PENDIENTES.md` → **P14b-j**: la validación y el
+respaldo del resolvedor de colores son inalcanzables con el marcado que la app emite, así que
+ninguna mutación los puede hacer observables.

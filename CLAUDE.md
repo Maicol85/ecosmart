@@ -122,6 +122,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PAPEL de la anomalía de Ebstein o del síndrome de Eisenmenger, la casilla «(no se visualiza VCI)», el TDE y el TRIV del Doppler mitral, las dos profundidades de coaptación, el DERRAME PLEURAL POR LADO del eco pulmonar con su sincronía con el posoperatorio, el DIBUJO DEL PULMÓN, o las MASAS en la pestaña Otros con su tabla de diferenciales y las dos fichas de Referencias nuevas** | `docs/mapa/pant11-vci-pulmon-masas.md` |
 | **Tocar una de las SIETE PANTALLAS de congenitas que la tanda PANT-9 redisenio** —Fontan, Eisenmenger, Ebstein, defecto del septo auriculoventricular, conexión venosa pulmonar anómala parcial, ductus o ventana aortopulmonar—: sus tres columnas por tema, el reparto de cada campo, los DOS cortes de 900 y 1.260 px, la tarjeta gris de conclusión, los **diecisiete textos que pasaron al globo** —la caja roja de Celermajer incluida—, o la **opción de valve-in-valve de TAVI** con su sincronía de morfología y su condición del Laboratorio | `docs/mapa/pant9-congenitas-columnas.md` |
 | **Tocar el CORAZON MAESTRO en 3D** —el motor modular con sus cinco anatomías de base y sus diez lesiones, las reglas de compatibilidad, los dos modos, la tabla lateral, el globo, o la lectura de las pestañas— **o la casilla «Vena cava superior izquierda persistente»** | `docs/mapa/pant12-corazon-maestro.md` · el inventario del 3D anterior en `docs/INVENTARIO_CORAZON_MAESTRO.md` |
+| **Tocar el ESTADO del corazón maestro** —por qué arrancaba con el estudio viejo, el dueño único que lo deriva, «Nuevo estudio», el acceso a las congénitas—, **el INTERRUPTOR de presencia de una sección de congénitas que se enciende solo**, **el PDF con un solo dibujo y su esquema según el botón ◫**, **el RETIRO del recuadro de la transposición con su «Ver en 3D»**, **el TÚNEL violeta del switch auricular** o **el ANILLO de la obstrucción subaórtica** | `docs/mapa/p14b-estado-puerta-tunel.md` |
 | **Tocar los COLORES del esquema de circulación del corazón maestro** —por qué salían las cajas negras, `cmSchPal` y sus respaldos por tema, dónde se redibuja—, **las REGLAS DE COMPATIBILIDAD de la transposición en el módulo**, la **obstrucción subaórtica**, o **lo que «Según el estudio» LEE de cada pestaña** —el Fallot reparado, la coartación, la estenosis pulmonar, las dos aórticas, el defecto AV, Ebstein y Fontan—, la **única base con su orden de prioridad** o la **línea de lo no dibujado** | `docs/mapa/pant14-esquema-lesiones.md` · el inventario campo por campo en `docs/INVENTARIO_SEGUN_EL_ESTUDIO_P14.md` |
 | **Tocar «EXPLORAR» del corazon maestro** —sus tres zonas con su corte de 1260 px, los botones finos de 30 px con area tactil de 44, las combinaciones por sigla o el esquema de circulacion—, **su boton «Incluir en el PDF»**, **la TRANSPOSICION como sexta anatomia de base**, **la tabla de diferenciales de MASAS cerrada y sus textos neutros**, **el BRONCOGRAMA en puntitos con el boton del PDF del pulmon**, o **las VARIANTES ANATOMICAS en grilla compacta** | `docs/mapa/pant13-explorar-tga-masas.md` |
 | **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
@@ -209,9 +210,26 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,80 MB / 163.420 líneas**, medido con `wc -c` y `wc -l` el 2026-11-05 al
-  cierre de la tanda **PANT-13**, sobre el árbol ya sellado: sello **`v20261105-0008`**, md5
-  **`00825a73`**. El diff de la tanda son **1.148 líneas agregadas y 263 quitadas**, medido con
+  sin frameworks. Hoy **11,86 MB / 164.219 líneas**, medido con `wc -c` y `wc -l` el 2026-11-05 al
+  cierre de la tanda **PANT-14b**, sobre el árbol ya sellado: sello **`v20261105-1629`**, md5
+  **`f6eb884f`**. El diff de PANT-14b son **536 líneas agregadas y 46 quitadas**, medido con
+  `git diff --numstat` contra `4ebeee4`, de las que **492** no son comentario, con **cero** `eval(`
+  y `new Function` nuevos, **un** `innerHTML` nuevo —el del esquema de la transposición, que recibe
+  el marcado que `tgaEsqCuerpo` arma con constantes de este archivo y cuyos colores pasan por
+  `tgaEsqResolver`, que **valida** cada valor contra un patrón de color antes de que entre— y cero
+  claves ni contraseñas.
+  ⚠️ **Y ESE SELLO ES EL SEGUNDO: el árbol se reselló al cerrar.** El primero, `v20261105-1510`
+  con md5 `8a28881b`, es el que la suite y el barrido de mutaciones midieron hasta que ese barrido
+  destapó una redundancia —`cm3dReset` cerraba el panel que `limpiarCampos` ya cerraba 433 líneas
+  antes— y hubo que retirarla; la suite se rehizo entera sobre el árbol nuevo.
+  ⚠️ **Y EL RENGLÓN QUE PANT-14b ENCONTRÓ ESTABA UNA TANDA ATRÁS**, por primera vez en doce: decía
+  **11,80 MB / 163.420 líneas** con el sello `v20261105-0008` y el md5 `00825a73`, que son los de
+  **PANT-13**, mientras el árbol que se abrió era el cierre de PANT-14 —`4ebeee4`, con **163.729**
+  líneas, **11.821.949** bytes y md5 **`ae21bc42`**, los tres verificados con
+  `git show 4ebeee4:index.html`—. PANT-14 escribió su delta en su propia sección y no tocó éste,
+  que es el que se lee para presupuestar contexto. **309 líneas de diferencia.** **Medirlo con
+  `wc -c`, `wc -l` y `md5` antes de presupuestar contexto**, no leer esto.
+  (Antes: 11,80 MB / 163.420 al cierre de PANT-13, sello `v20261105-0008`, md5 `00825a73`.) El diff de la tanda son **1.148 líneas agregadas y 263 quitadas**, medido con
   `git diff --numstat` contra `866482f`, de las que **1.044** no son comentario, con **UN**
   `innerHTML` nuevo —que recibe una cadena armada **sólo con constantes de este archivo** y no un
   dato del paciente, y lo declara en su comentario—, cero `eval(` y `new Function`, cero claves ni
@@ -720,6 +738,315 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El estado del corazón maestro, «un dato una sola puerta», el PDF y el túnel violeta — «PANT-14b» (2026-11-05)
+
+- **ONCE commits —contados con `git log 4ebeee4..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los OCHO puntos de la orden se hicieron enteros.** `ab13461` (1) ·
+  `e923255` (2) · `9709412` (3) · `6756a2e` (4) · `ac34cba` (5) · `d155034` (6) · `a5df629` (7) ·
+  `e77763a` (8a, los casos apenas parsean) · `96e963e` (8b, los nueve viejos adaptados) ·
+  `b1a425c` (8c, el barrido de mutaciones con sus once condiciones nuevas y la redundancia que
+  destapó) · **éste** (8d, la documentación). El commit 8 se partió a propósito: **el archivo de
+  casos se commitea apenas parsea**, que es la lección que esta casa pagó perdiéndolo entero con
+  un `git checkout --`. Sello **`v20261105-1629`**, md5 de `index.html` **`f6eb884f`**.
+  ⚠️ **EL ÁRBOL SE RESELLÓ, Y LO PIDIÓ EL BARRIDO DE MUTACIONES.** El primer sello,
+  `v20261105-1510` con md5 `8a28881b`, es el que la suite midió hasta que el barrido destapó que
+  `cm3dReset` cerraba el panel que `limpiarCampos` —su único llamador— ya cerraba 433 líneas
+  antes. Retirada la redundancia, se reselló y **la suite se rehizo entera** sobre el árbol nuevo.
+  El commit 8d **NO vuelve a sellar**, porque no toca `index.html`: su md5 al cerrar es el del
+  sello, verificado antes y después de la suite.
+  Al empezar, `origin/main` = `HEAD` = **`4ebeee4`**, el cierre de PANT-14, ya publicado, con md5
+  `ae21bc42`, sello `v20261105-1004` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  Cierra **P13-c**.
+
+- ⚠️ **EL DEFECTO MÁS GRANDE QUE CERRÓ, Y SU CAUSA SON DOS LÍNEAS.** El médico reportó que el
+  corazón maestro arrancaba con el estudio VIEJO. Reproducido entero con
+  `scripts/_probe_p14b_estado.mjs` y el **gesto real** —sin llamar a `cmDesdeEstudio` a mano, que
+  es la trampa que la sonda de PANT-14 pagaba: **fabricaba el recálculo que la app no hace**—, en
+  el recorrido (A) a (I):
+  · cargar un Ebstein, «Nuevo estudio», cargar una CIA y reabrir dejaba `base=ebs` con su dibujo
+    de dos objetos y **la CIA sin dibujar**;
+  · y en DOS escenarios la línea decía **«Sin lesiones cargadas que dibujar: se muestra el corazón
+    normal»** AL LADO de un dibujo de **cuatro y de siete** objetos del estudio viejo, que es la
+    contradicción que esta casa documenta como lección y que el médico vio con esas palabras;
+  · un Fallot cargado después de una transposición seguía en `base=tga`;
+  · y tras «Nuevo estudio» el envoltorio del botón «Ver en 3D» quedaba `display:block` con el botón
+    en **103×44 px en la pantalla Paciente**.
+  **LA CAUSA:** `cm3dEstudioSync` salía temprano con `if (!_cm3dVisible()) return`, y `cm3dSync`
+  —que es lo que `cc3dAbrir` llama— **repinta `_cm3d.S` SIN derivarlo**. Con el panel cerrado
+  —como queda al salir de congénitas y tras «Nuevo estudio»— nada recalculaba. Y `irATabPaciente`
+  existe justamente para **no** pasar por `showTab`, que es quien llama a `cc3dPieSync`.
+  **EL ARREGLO: un dueño único, `cm3dDerivar`**, que lee las pestañas y publica de una sola pasada
+  todo lo que describe el estado —el dibujo, el esquema, la línea y el botón del PDF con su aviso—.
+  **La derivación NO depende de que el módulo se vea**: lo que necesita la librería es el
+  repintado, no la lectura.
+
+- **DOS ARREGLOS MÁS QUE LA MEDICIÓN DESTAPÓ, los dos del punto 1d.** Con una velocidad pulmonar y
+  su nivel cargados el dibujo mostraba el cono de la estenosis mientras la línea decía «Sin
+  lesiones cargadas»: `cc3dNoDibujadas` pregunta a `_CC_SECS` y **la estenosis pulmonar no tiene
+  entrada ahí** —lo que PANT-14 ya documenta—. Hoy esa frase se dice **sólo si el estado derivado
+  no dibuja nada**, que es el mismo predicado del botón del PDF. Y la estenosis pulmonar sin nivel
+  tiene su propia frase y nombra su sección; **el nivel NO se asume** → **P14b-b**.
+
+- **EL ACCESO A LAS CONGÉNITAS, CON LA MISMA REGLA QUE LA PESTAÑA.** `cc3dAcceso` pregunta por
+  `eeGetMode` y `eeModOn('congenitas')`, que es lo que gobierna el botón «🧬 C. Congénitas» con su
+  `data-mod`. **Falla ABIERTO** a propósito: lo que decide es una pantalla, no un dato. Medido en
+  tres escenarios: en Modo Básico y con el módulo apagado en Config, el botón da **0×0**, el panel
+  `display:none`, **CERO** scripts de three.js en el documento y `window.THREE` sin cargar.
+
+- **UN DATO, UNA SOLA PUERTA — DECISIÓN DEL MÉDICO (05/11/2026).** El DIBUJO miraba los datos y el
+  INFORME miraba el interruptor: **dos puertas para el mismo dato**. El ejemplo del médico, con el
+  texto exacto: con «Ostium secundum» cargado y el interruptor apagado, el informe **no** nombraba
+  la CIA y el EN SUMA decía «Estudio sin alteraciones estructurales ni funcionales
+  significativas»; hoy el informe agrega «**CIA tipo ostium secundum.**»
+  **EL PREDICADO ES UNO SOLO Y NO SE CREÓ UN SEGUNDO**: el de `_CC_SECS`, y la lista de campos
+  identificatorios se lee **del código de su propio `pred`**. `ccPuertaSync` sólo ENCIENDE el
+  interruptor que ya existe, y va **PRIMERO** de los dos embudos: los pintores LEEN el interruptor.
+  **El inventario**: `_CC_SECS` tiene **19** entradas y **las 19 tienen interruptor** —cero sin
+  él—, y los 19 selects identificatorios tienen su **opción cero vacía**, verificado uno por uno.
+  **MEDIDO EN LAS DIECINUEVE**, con el gesto real y el informe emitido de verdad: el interruptor
+  pasa de OFF a ON, el **apagado a mano se respeta** en las 19, un dato identificatorio NUEVO lo
+  vuelve a encender en las dieciséis que tienen un segundo campo, y por la vía **muda** —reabrir un
+  estudio guardado— también se enciende. **Nada reescribe lo guardado.**
+  ⚠️ **ES LA ÚNICA ENTRADA DE `ESPEJOS_VIVOS` QUE ESCRIBE UN CAMPO DEL ESTUDIO**, declarada:
+  escribe UN solo campo, el de su propia sección. Y las **tres marcas** de runtime entran en las
+  **DOS listas** de «Nuevo estudio», que es la lección que el D-11 pagó con `data-espejo`.
+
+- ⚠️ **UNA CONSECUENCIA QUE SE PARÓ: el Laboratorio clasifica el grado diastólico leyendo el TEXTO
+  del informe, y dos frases de congénitas lo disparan en falso.** Medido en las 19 secciones: una
+  sola la dispara por sí misma —el ductus con la opción «**restrictivo**», porque el regex pide
+  `/grado III|restrictivo/` y matchea la palabra suelta: devuelve «III» sobre un paciente cuya
+  línea de diastólica dice textualmente «Función diastólica no clasificable con los datos
+  cargados»—. La segunda la destapó el A/B: la frase del índice de Celermajer del Ebstein,
+  «Relación de áreas en cuatro cámaras 0.92 — **grado II**». Es un falso positivo **preexistente**
+  de esa heurística; lo que esta tanda cambia es que ahora se alcanza en más estudios. **El
+  Laboratorio está fuera de alcance**, así que no se tocó → **P14b-e**, con la corrección de una
+  línea.
+
+- **EL DIBUJO DOBLE DEL PDF, Y LA CAUSA ES DE UNA LÍNEA.** Medido con el PDF generado de verdad:
+  traía **TRES imágenes y UNA duplicada**, el mismo dataURL dos veces. El bucle que recoge las
+  capturas excluye los diagramas ya estampados con la lista
+  `i === _oaiSlotUsado || i === _oaiEsqIdx || i === _tga3dEsqIdx`, y **`_cm3dEsqIdx` NO ESTABA
+  AHÍ**: PANT-13 agregó la entrada `cm3d` y su recolector y no la agregó a esa lista. **La lista
+  ahora se declara CERRADA.**
+  Y **el esquema entraba SIEMPRE, con su botón cerrado**. Hoy `cmEsqPdfOn` pregunta también por
+  `_cm3d.sch`. Medido: esquema cerrado → **UNA** imagen de 71×71 mm; abierto → **DOS**, de 45×45 y
+  45×43; casilla apagada → **CERO** imágenes y 44 textos, **idéntico a HEAD**. Cero duplicadas y
+  cero muestras negras en las dos, con el esquema contado píxel por píxel: 33,3 % no blanco y
+  **0,0 % de negro** —16 de 348.000, el suavizado de los trazos—.
+
+- **EL ESQUEMA DE LA TRANSPOSICIÓN SALE DEL DUEÑO ÚNICO DE SU PESTAÑA, Y LA EQUIVALENCIA ES EXACTA
+  POR CONSTRUCCIÓN.** El cuerpo salió a `tgaEsqCuerpo` y el módulo **la llama** con las mismas
+  entradas; `tgaEsqSVG` quedó como su envoltorio. **50 de 50 escenas IGUALES, cero distintas**
+  —cinco variantes × cinco juegos de comunicaciones × la obstrucción sí y no—, comparando cada
+  `rect`, `path`, `circle`, `text` y `marker` con su posición, su texto, su **tamaño de letra** y
+  sus **colores resueltos**, con 31 nodos de cada lado como denominador. La obstrucción subaórtica
+  es la única diferencia esperada: 2 nodos con ella y **cero** sin ella.
+  **Las otras cinco bases no se movieron**: 50 escenas con su firma completa, cero distintas.
+  **Y el raster del PDF es IDÉNTICO al de la pestaña**, píxel por píxel: 35,7 % no blanco, cero
+  negro puro y los **mismos cuatro colores dominantes con los mismos conteos exactos**.
+
+- **EL RETIRO DEL DIBUJO VIEJO, CON LAS DOS CONDICIONES CUMPLIDAS.** `#tga-3d-box` queda en el DOM
+  con `display:none` —**no se borra**: sus ids los leen el recolector del PDF, cinco funciones de
+  esa pestaña y varios casos— y en su lugar está el botón «Ver en 3D», que **delega** en
+  `cc3dAbrir`. La sección baja de **1230×833 a 1230×434** px a 1440, de 806×1356 a **806×432** a
+  1000, de 734×1556 a **734×475** a 768 y de 356×1769 a **356×526** a 390. El botón mide **103×44**
+  en los cuatro anchos. **La librería 3D ya no se carga desde ahí**: los scripts de three en el
+  documento pasan de **1 a 0**.
+  ⚠️ **LA GUARDA DE LA TRANSPOSICIÓN DEL BOTÓN DEL PDF ESTABA EN DOS LUGARES Y SACARLA DE UNO SOLO
+  NO ALCANZÓ.** Medido: con la guarda retirada sólo del pintor, el botón quedaba **ACTIVO** y el
+  clic **no incluía nada**, con el aviso de la transposición escrito al lado —porque `cmIncluirPDF`
+  tenía su propia copia—. Es la lección del D-11. Con las dos retiradas: incluido, slot 0, «✓
+  Incluido en el PDF» y **UNA** sola imagen de 71×71 mm en el PDF.
+
+- **EL TÚNEL DEL SWITCH AURICULAR EN VIOLETA, CON EL COLOR EN UNA SOLA CONSTANTE.** Las dos paredes
+  pasan de `0x2f6fd0` y `0xd8433b` —el color de la sangre que llevan adentro— a **`0x8b5cf6` las
+  dos**, y **las partículas conservan sus colores**: el flujo sale idéntico en las cinco variantes.
+  Los rótulos pasan de 6 a 8, con «Túnel cavas» y «Túnel venas pulm.», **de las palabras de
+  `TGA3D_CIRC.mus`**: no se escribió texto clínico nuevo. La **geometría y el recorrido no
+  cambian**. La leyenda «túnel quirúrgico» aparece **sólo** con un túnel dibujado, con
+  `cmHayTunel` como dueño único: prendida en `mus` y apagada en las otras cuatro y en el control de
+  una base sin túnel.
+  En el **esquema plano** la caja del túnel pasa de borde naranja a violeta y los dos tramos llevan
+  un trazo violeta ancho **POR DEBAJO** de la flecha: ahí las flechas punteadas SON la sangre, así
+  que pintarlas de violeta perdería el dato de qué sangre corre. Los dos índices van **como dato**.
+  ⚠️ **EL CONTRASTE SE MIDIÓ Y SE DECLARA COMO ES:** la **luminancia** da 1,15 contra el azul y
+  1,04 contra el rojo —bajo, y a propósito, porque los tres son colores de relleno de tono medio—.
+  Lo que los distingue es el **TONO**: **42°** del azul y **105°** del rojo, con distancia euclídea
+  en RGB de 101 y 204. **42° del azul puede ser poco para una deuteranopia** → **P14b-h**.
+
+- ⚠️ **LA PREMISA DEL ANILLO DE LA OBSTRUCCIÓN SUBAÓRTICA ERA FALSA: el médico NO lo veía.**
+  Contados en el lienzo los píxeles del gris de obstrucción, en las cinco variantes, en los dos
+  estados de «Por dentro» y con el control negativo de la casilla en «No»: el anillo **estaba** en
+  la escena —`enEscena` 1 con «Sí» y 0 con «No»— y aportaba un delta de **CERO** píxeles en el gris
+  estricto y de **0 a 4** en el laxo, sobre unos **45.000** opacos.
+  **El arreglo no inventa geometría clínica**: la posición sale del **origen de la aorta de la
+  propia escena** —la arteria roja que `tga3dEscena` acaba de armar, cuyo primer punto es su raíz—,
+  0,30 por debajo; sin `rx` ni `ry` queda en el plano que la cámara mira de frente; y lleva la
+  **prioridad de render** que la orden nombra, que son dos banderas de dibujado y la lleva **sólo
+  quien la pide**. Medido después, con «Por dentro» **apagado**: **+97, +90, +92, +92 y +82
+  píxeles** en las cinco. **Nada más se movió**: 75 escenas del 3D con su firma completa, cero
+  distintas.
+  ⚠️ **LO QUE NO CERRÓ:** «Por dentro» viene **encendido** por omisión, y ahí la d-TGA y el Jatene
+  siguen aportando menos de 30 píxeles → **P14b-i**, con los números.
+  ⚠️ **Y MI PRIMERA MEDICIÓN FUE FALSA Y PLAUSIBLE, declarada:** pausaba el bucle ANTES de esperar,
+  y con el bucle pausado el lienzo conserva el cuadro ANTERIOR, así que la cuenta salía la de la
+  escena de antes y el caso no se distinguía del control. **El dibujo se quieta con la FRECUENCIA
+  EN CERO**, que deja el bucle renderizando.
+
+- ⚠️ **DOS DEFECTOS DE LA APP QUE LOS CASOS VIEJOS DESTAPARON, NO LA LECTURA.**
+  **TC-693 se puso rojo y tenía razón:** al delegar el esquema, el marcado del módulo volvió a
+  traer **46 `var()` en atributos** y **SEIS cajas** que ese caso cuenta como negras. Ese esquema
+  pintaba sus cuatro cavidades y sus dos válvulas con `fill="var(--bg)"`, o sea **el FONDO DE LA
+  PÁGINA** —rgb(15,17,23) en el tema oscuro—, así que sólo se distinguían por su borde. Y viola la
+  **REGLA FIJA** del proyecto. Arreglado con `tgaEsqResolver`, una sola pasada al final del cuerpo,
+  con la paleta del módulo —que ya trae sus respaldos por tema y **valida** el valor—: **cero
+  `var()`** y cero cajas negras en los dieciséis cruces.
+  **Y TC-624 destapó una PÉRDIDA DE CONTENIDO:** el globo ⓘ que explica el esquema vivía dentro del
+  recuadro retirado, así que su botón quedó sin caja y la tarjeta no abría. Ese texto dice que el
+  esquema es ilustrativo y que no es una imagen del estudio. Se repuso en el encabezado del esquema
+  del **módulo**, con la **misma clave** del registro: un solo dueño para los dos botones.
+
+- **SEIS CASOS NUEVOS, TC-699 a TC-704**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 51 condiciones y NINGUNA por excepción**, verificado en un worktree
+  alternando sólo `index.html` con el mismo archivo de casos: 11, 10, 3, 11, 12 y 4.
+  ⚠️ **TRES DEFECTOS DE MIS PROPIOS CASOS, los tres de la primera corrida:** el cuerpo de un caso
+  se envuelve en una función **NO async**, así que los cuatro que usan `await` caían con «await is
+  only valid in async functions»; **el contrato del runner es `[descripción, BOOLEANO,
+  diagnóstico]`** y yo escribí `[desc, valor, esperado]`, así que una condición cuyo valor era
+  **0** —justo los controles negativos— **fallaba aunque el valor fuera correcto**, y una con
+  cualquier valor distinto de cero **pasaba sin comparar nada** —la misma clase de error que
+  MARFAN-2 documenta; la conversión va en UN lugar por caso y se prueba con su control positivo, su
+  control negativo **y el caso del cero** antes de usarse—; y el acento grave dentro de mi propio
+  comentario, por **decimoctava** tanda seguida, que `node --check` cazó.
+
+- **NUEVE CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-623** (bloques B, C, F e
+  I — **INVERTIDO**, y es el día que ese caso anunciaba: afirmaba que «con datos cargados y el
+  botón APAGADO la CIA no entra al informe», que era la regla (v) de PANT-3; queda **más fuerte**,
+  y su bloque F conserva lo que vigilaba —que cada lesión tiene su propia compuerta— apagando la
+  CIV a mano), **TC-688** (bloque G — **INVERTIDO**, el día que ese bloque anunciaba; (D3) a los
+  DOS estados del botón del esquema; gana **(G4)**, que quita lo que encendió, porque dejarlo
+  incluido se lo heredaba TC-694 —medido, pasaba de verde a rojo—), **TC-619** (A3 — **INVERTIDA**,
+  y la da vuelta una **regla fija** del proyecto y no una preferencia), **TC-603** (I8 — el color
+  resuelto), **TC-562** (C3 — los dos rótulos del túnel), **TC-601** (B5/B6 — la fila pasa de dos
+  hijos a tres, con (B5b) y (B5c) nuevas), **TC-624** (D0 — pasa a ser un denominador de verdad:
+  exige que alguno de los dos botones del globo se pueda **TOCAR**) y **TC-694**, que vuelve a
+  verde solo.
+
+- **Línea base al cierre: suite 713/719**, en **catorce lotes** cubriendo los **719 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo distinto y
+  otra que compara lo ejecutado: **719 de 719**—, en UNA sola pasada sobre el árbol **resellado**,
+  con el pendrive `DISK_IMG` **verificado al abrir, en los CATORCE lotes y al cerrar** (dieciséis
+  verificaciones) y el md5 de `index.html` **idéntico** antes y después (`f6eb884f`). Los rojos
+  son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551 y TC-557**, los dos
+  intermitentes declarados: corridos aislados, **TC-551 pasa 2 de 2** y **TC-557 pasa 2 de 4**,
+  con la firma `00000 44x44` de `elementFromPoint` fuera del viewport que `TGA-h` documenta y
+  cayendo **idéntico contra HEAD**, verificado. **TC-358 salió VERDE.** **Ningún rojo nuevo.**
+  ⚠️ **Y UNA CORRIDA ANTERIOR SE ENVENENÓ Y SE DECLARA: DOS PROCESOS SOBRE EL MISMO LOG.** El
+  primer lanzamiento pareció morir en el lote 3 —el `nohup … &` desde la herramienta de shell no
+  sobrevive al envoltorio, que es lo que **C2A-h** ya documenta—, se relanzó, y el primero **seguía
+  vivo**: las cabeceras de lote del log se entrelazan (LOTE 5 dos veces, LOTE 4 después del 5) y
+  el contador decía «1124 de 719». Se cortaron **por PID exacto** (19745, 17861, 17859), se
+  verificó que el árbol vivo no se había tocado —md5 idéntico al del sello— y la suite se rehizo
+  **de una sola pasada**. Es justo lo que esta casa prohíbe, y lo delata **el conteo de cabeceras
+  de lote**: catorce son catorce.
+
+- **A/B FINAL contra HEAD, con el PDF y el PPT generados de verdad: 64 escenas, y las SIETE con
+  diferencia de papel son las autorizadas** —los siete controles `*Apa`, las escenas que cargan el
+  dato de una congénita con su casilla de integrar APAGADA—. Las otras **57 dan CERO**, `p9vacio` y
+  `p9ajeno` incluidas, y **cero diferencias de pantalla**. **Excel 441** con las **mismas 441
+  claves** en las siete, y las celdas que cambian son las dos de texto que espejan el informe y el
+  EN SUMA. **Censo de campos 1010 idéntico** en las 64, con el mismo juego de claves: cero campos
+  guardados nuevos.
+  ⚠️ **Y ESE CERO ES UN CONTROL NEGATIVO PARA CINCO DE LOS SIETE COMMITS, y se declara:** ninguna
+  de esas 64 escenas abre el módulo ni enciende la casilla del PDF. Lo que los prueba son las once
+  sondas de la tanda.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), con **DOS** diferencias entre motores y las dos de métrica de fuente: 5 px en el
+  ancho del botón «Ver en 3D» (103 contra 108) y los cinco textos recortados que Chrome ve y WebKit
+  no. **Esos cinco son IDÉNTICOS en HEAD** —son nodos `<text>` de un SVG, preexistentes—,
+  verificado elemento por elemento. En los dieciséis: el recuadro viejo en `display:none`, el botón
+  nuevo en 44 px de alto, three.js **sin cargar** desde la pestaña, el interruptor de la CIA
+  **encendido solo**, el módulo en `base=tga`/`mus`, el esquema con sus **35** nodos y **CERO**
+  `var()`, **3** nodos en violeta, **2** tubos violetas, **2** rótulos de túnel, el anillo gris con
+  su prioridad, las **dos** leyendas prendidas, el botón del PDF **activo** y sin el aviso de la
+  transposición, el globo del esquema en **44×44**, **cero** desplazamiento horizontal y **CERO
+  errores de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+
+- **37/37 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el árbol vivo, con el
+  md5 **idéntico** antes y después, en 4 min 37 s. Cada mutación declara **su** caso, y el reparto
+  es limpio: nueve matan a TC-699, seis a TC-700, tres a TC-701, cinco a TC-702, seis a TC-703,
+  cuatro a TC-704, y una cada uno a TC-535, TC-623, TC-676 y TC-693. **Cinco de las treinta y
+  siete no revierten nada: la aplican de más**, porque las condiciones que las matan son controles
+  negativos, y **dos rompen las dos mitades a la vez**, que es la lección del D-11.
+  ⚠️ **LA PRIMERA PASADA DIO 21 DE 38, Y ES LA PARTE QUE VALE: los diecisiete sobrevivientes se
+  repartieron en tres clases.** **ONCE eran huecos reales** y nacieron once condiciones —TC-699
+  (B0 DENOM), (B4) reescrita, (H4), (I4) y (K1); TC-700 (C1b), (D1b), (D1d) y (B1c); TC-702 (A2b),
+  (D3) y (B3b); y TC-703 (D1b)—, y tres de esos once son el mismo modo de falla que esta casa ya
+  documenta: **el caso cerraba el panel a mano** antes de medir que se cierre, **leía la clase del
+  botón 700 ms después** —cuando el embudo de los espejos ya lo repintó— y **llamaba al dueño de
+  la leyenda con la mano**, así que romper las dos puertas de la app pasaba en verde. **TRES eran
+  anclas que miran el TEXTO de la función** y no lo que emite: apagar la rama con un `if (false &&`
+  o poner un `return` antes de la llamada deja el nombre del dueño escrito ahi. **Y una fue un
+  `display` COMPUTADO sobre un hijo cuyo padre se esconde**, que da «none» pase lo que pase.
+  ⚠️ **UNA REDUNDANCIA RETIRADA, y la destapó la mutación que rompía LAS DOS mitades y seguía
+  sobreviviendo:** `cm3dReset` cerraba el panel, y su **único** llamador es `limpiarCampos`, que ya
+  lo cerraba **433 líneas antes** —el `cc3dCerrar()` que una tanda anterior puso junto al de
+  `v2dCerrar`—, así que era la **tercera** copia de la misma acción, con la del pintor del pie. Lo
+  que **sí** es propio de esa función —reponer el MODO y apagar el esquema, que ningún otro camino
+  hacía— se queda, y la mutación 05 lo mata.
+  ⚠️ **Y TRES EQUIVALENCIAS DECLARADAS:** la 09 mutaba una rama **inalcanzable** de `cc3dAcceso`
+  —el `return true` final, que sólo corre si `eeModOn` no existe—; la 21 estaba **mal dirigida**,
+  porque la condición que la mata es (C2) de TC-702 y no TC-701; y la **24 se retiró**: la
+  validación y el respaldo del resolvedor de colores son inalcanzables con el marcado que la app
+  emite —las SEIS variables que usa las cubre `MAPA`—, así que ninguna mutación los puede hacer
+  observables. Lo que sostiene al resolvedor es la **23**, que sí muere → **P14b-j**.
+
+- **CUATRO CASOS VIEJOS MÁS ADAPTADOS, y los cuatro los destapó la corrida completa o el barrido.**
+  **TC-515 (G2)** —**invertida**, y es el día que ese caso anunciaba: afirmaba que el renglón de la
+  excursión del aneurisma lo emite «Otros», y el `fop_asa_mm` que su estudio guardado trae **es**
+  un campo identificatorio del FOP en `_CC_SECS`, así que al reabrir el interruptor se enciende
+  solo y «Otros» se calla —que es lo que (C2) del mismo caso ya fija—. **Medido con
+  `_probe_p14b_asia.mjs`: el dato NO se pierde y NO se duplica**, el informe publica «Foramen oval
+  permeable, con aneurisma del septum con excursión de 13 mm hacia la aurícula derecha.» **una
+  sola vez** y el EN SUMA también; gana **(G3)**, que exige que apagando el interruptor a mano
+  «Otros» lo recupere, así que puede fallar por los DOS lados. **TC-557 (A4)** —misma causa con la
+  coartación: «sin integrar» se montaba NO tocando el interruptor, y hoy se **apaga de verdad**,
+  con **(A4b)** nueva midiendo el encendido automático—. **TC-535 (K0)(K1)(K2)** —los globos de
+  44×44, de 64 a **65**: el nuevo no es una clave nueva, es el **segundo** botón de `tga-esq`, el
+  que se repuso en el encabezado del esquema del módulo—. Y **TC-676 (D2)**, que exigía que
+  `vciNoVisSync` fuera el **primero** de `RECALC_MODULOS` y hoy exige el orden declarado de las dos
+  primeras **y** que corra antes de cada lector de la cava, que es lo que de verdad importa.
+  ⚠️ **TRES DE LOS CUATRO PASAN CONTRA HEAD**, verificado en un worktree alternando sólo
+  `index.html` con el mismo archivo de casos: no eran intermitentes ni dependencia de orden, eran
+  consecuencias autorizadas de esta tanda.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Excel 441** columnas con
+  las mismas claves. **Censo de campos 1010**, el mismo juego: cero nuevos y cero perdidos. **Sin
+  huérfanos nuevos.** **Los 15 bloques de JS inline parsean.**
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — medido contra HEAD con
+  el mismo script en un worktree: **idéntico, no empeoró**.
+
+- **`index.html` pasó de 11,82 MB / 163.729 líneas a 11,86 MB / 164.219** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar, sobre el árbol **resellado**. (MB de 10⁶.) **Los 15 bloques de JS
+  inline parsean.**
+
+- **Dónde está todo:** `docs/mapa/p14b-estado-puerta-tunel.md` (**mapa NUEVO**, 14,1 KB),
+  `docs/INVENTARIO_UN_DATO_UNA_PUERTA_P14B.md` (**documento NUEVO**, el inventario de solo lectura
+  del commit 2a), **tres mapas con un puntero cada uno** —medidos ANTES de escribir:
+  `pant14-esquema-lesiones.md` 15,2 → 16,8 KB, `tga-diagrama-3d.md` 19,7 → 20,8 y
+  `tests-punteros-tandas.md` 29,2 → 31,4—, `docs/fuentes/FUENTES.md` → «La tanda PANT-14b», que
+  **declara que la tanda no abrió un solo PDF de guía** y trae su tabla «Cambios de evidencia»
+  **vacía a propósito**, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda,
+  `docs/GUIA_PRUEBA_PANT14B.md` → la guía manual en **22** pasos, y `docs/PENDIENTES.md` →
+  **DIEZ** cosas declaradas (**P14b-a** a **P14b-j**) más el cierre de **P13-c**.
+  El mapa quedó en **19,3 KB** con la sección 10, la del barrido.
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `tests-fichas.md` (34.237 B) NO se tocaron**, y siguen
+  esperando a que alguien los parta → **P13-e**.
+
 ### El esquema negro, el botón del PDF, la transposición y las siete lesiones — «PANT-14» (2026-11-05)
 
 - **ONCE commits —contados con `git log dc65d2f..HEAD` AL CERRAR, y el commit que escribe este

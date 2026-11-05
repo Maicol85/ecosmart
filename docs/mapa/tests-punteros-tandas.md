@@ -391,3 +391,31 @@ menos de 1 KB del techo). El mapa de la tanda es `docs/mapa/pant12-corazon-maest
 Las fichas están en `docs/mapa/tests-fichas-686.md` (archivo propio: `tests-fichas.md` está a
 menos de 1 KB del techo → `docs/PENDIENTES.md` → **P13-e**). El mapa de la tanda es
 `docs/mapa/pant13-explorar-tga-masas.md`.
+
+---
+
+## PANT-14b (2026-11-05) — seis casos nuevos y nueve viejos adaptados
+
+| caso | qué fija |
+|---|---|
+| **TC-699** | el módulo deriva su estado de las pestañas en vivo, no sobrevive a «Nuevo estudio», la línea no se contradice con el dibujo, la estenosis pulmonar sin nivel nombra su sección, y el botón y el panel viven sólo dentro de las congénitas |
+| **TC-700** | el interruptor de presencia se enciende solo, el informe incluye la sección, el apagado a mano se respeta, y las tres marcas mueren con «Nuevo estudio» |
+| **TC-701** | el slot del módulo queda fuera de las capturas y el esquema entra al PDF sólo con su botón abierto |
+| **TC-702** | el esquema de la transposición sale del dueño único de la pestaña, el recuadro viejo está oculto, «Ver en 3D» existe, y el botón del PDF ya no se apaga con transposición —por sus DOS mitades— |
+| **TC-703** | el túnel en violeta con sus dos rótulos, las partículas con su color y la leyenda condicional |
+| **TC-704** | el anillo por debajo del origen de la aorta, orientado a la cámara y con prioridad de render, y ningún otro anillo la lleva |
+
+Los seis **caen contra `4ebeee4` por 51 condiciones y ninguna por excepción**.
+
+**Adaptados, con el motivo en el caso:** **TC-623** (bloques B, C, F e I — **INVERTIDO**, el día que
+ese caso anunciaba), **TC-688** (bloque G — **INVERTIDO**; (D3) a los dos estados; gana (G4) que
+quita lo que encendió), **TC-619** (A3 — **INVERTIDA** por una regla fija del proyecto), **TC-603**
+(I8 — el color resuelto), **TC-562** (C3 — los dos rótulos), **TC-601** (B5/B6 — la fila pasa a tres
+hijos), **TC-624** (D0 — el denominador exige que el globo se pueda TOCAR), y **TC-694**, que vuelve
+a verde solo.
+
+⚠️ **Tres defectos de mis propios casos, los tres de la primera corrida:** el cuerpo de un caso se
+envuelve en una función **no async**, así que `await` tira; el contrato del runner es
+`[descripción, BOOLEANO, diagnóstico]` y escribirlo como `[desc, valor, esperado]` hace que una
+condición cuyo valor es **0** falle aunque sea correcta y que cualquier valor distinto de cero pase
+sin comparar nada; y el acento grave dentro de un comentario, por decimoctava tanda seguida.

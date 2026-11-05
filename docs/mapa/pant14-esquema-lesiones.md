@@ -252,3 +252,26 @@ nace cerrado, así que una condición que empareje cajas con textos por su caja 
 **todos en el origen** y no empareja ninguno: pasa sobre nada. La geometría del esquema se compara
 por **atributos** (`x`, `y`, `width`, `height`, `cx`, `cy`), que son exactos y no necesitan
 maquetado.
+
+---
+
+## Lo que la tanda PANT-14b movió (2026-11-05) → `docs/mapa/p14b-estado-puerta-tunel.md`
+
+**Lo que de este mapa dejó de ser cierto:**
+
+- **El estado del módulo ya no se conserva.** `cm3dDerivar` es el dueño único y lo deriva de las
+  pestañas en vivo; `cm3dEstudioSync` le delega y `cm3dReset` lo deja sin estado con «Nuevo
+  estudio». Antes `cm3dEstudioSync` salía temprano con el panel cerrado y `cm3dSync` repintaba el
+  estado del paciente **anterior**.
+- **El dibujo viejo de la transposición SE RETIRÓ** (cierra **P13-c**): su recuadro queda en el DOM
+  con `display:none` y en su lugar está el botón «Ver en 3D». Lo habilitó unificar los dos esquemas
+  en `tgaEsqCuerpo` —50 de 50 escenas iguales— y el PDF con un solo bloque.
+- **El botón del PDF del módulo ya NO se apaga con una transposición cargada**: con el recuadro
+  retirado es el único. La guarda estaba en DOS lugares —`cmPdfSync` y `cmIncluirPDF`— y sacarla de
+  uno solo dejaba el botón activo sin incluir nada.
+- **El anillo de la obstrucción subaórtica cambió de posición**: ya no sale de la tabla por variante
+  de la demo v13 sino del **origen de la aorta de la propia escena**, y lleva prioridad de render.
+  Este mapa decía que su posición venía de la demo «número por número», y la medición mostró que
+  así **no se veía**: 0 a 4 píxeles sobre 45.000.
+- **El esquema de la transposición resuelve sus colores al dibujar**, por la regla fija del
+  proyecto: antes escribía `var()` en atributos y sus cajas se pintaban con el fondo de la página.

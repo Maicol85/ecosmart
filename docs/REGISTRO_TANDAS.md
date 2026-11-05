@@ -1259,3 +1259,63 @@ nueva** en `CLAUDE.md` —«Ningún texto habla mal de las guías»— con su ce
 diferencias sobre 160**, todas de una sola causa medida —las reglas de compatibilidad de la demo
 son más estrictas que las del 3D de hoy—, así que la condición que la orden pone no se cumplió.
 Declarado en `docs/PENDIENTES.md` → **P13-c**, con la decisión que le toca al médico.
+
+---
+
+## PANT-14b — el estado del corazón maestro, «un dato una sola puerta», el PDF, el retiro de la transposición y el túnel violeta (2026-11-05)
+
+**Línea base al abrir:** `origin/main` = `HEAD` = `4ebeee4`, el cierre de PANT-14, ya publicado,
+con sello `v20261105-1004` y md5 `ae21bc42`. Pendrive `DISK_IMG` montado.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Los ocho puntos de código se hicieron enteros.** Ningún campo guardado nuevo, ninguna columna de
+Excel, censo de campos idéntico.
+
+| commit | qué |
+|---|---|
+| 1 | el módulo **deriva** su estado de las pestañas en vivo, con `cm3dDerivar` como dueño único; `cm3dReset` lo deja sin estado con «Nuevo estudio»; el botón y el panel viven sólo dentro de las congénitas, con la misma regla de acceso que la pestaña |
+| 2 | **un dato, una sola puerta**: el interruptor de presencia de una sección se enciende solo con su dato identificatorio, y el dibujo y el informe leen el MISMO predicado de `_CC_SECS` |
+| 3 | el PDF lleva **un solo** bloque de dibujo, y el esquema de circulación sólo con su botón abierto |
+| 4 | el esquema de la transposición del módulo sale de `tgaEsqCuerpo`, el **dueño único** de la pestaña |
+| 5 | el **retiro** del recuadro de dibujo de la pestaña de la transposición, con «Ver en 3D» en su lugar |
+| 6 | el **túnel** del switch auricular en violeta, con su leyenda condicional y sus dos rótulos |
+| 7 | el **anillo** de la obstrucción subaórtica, por debajo del origen de la aorta y con prioridad de render |
+| 8a-c | cobertura y documentación |
+
+**Lo más grande que cerró:** el módulo arrancaba con el estudio viejo y en dos escenarios la línea
+decía «Sin lesiones cargadas que dibujar» al lado de un dibujo de cuatro y de siete objetos del
+paciente anterior. La causa, en dos líneas: `cm3dEstudioSync` salía temprano con el panel cerrado y
+`cm3dSync` repinta sin derivar.
+
+**Las premisas que NO se reprodujeron**, y las tres las explicaba el estado viejo: la coartación
+«nativa» **sí** se dibuja; la velocidad pulmonar de 3,5 sin nivel no dibuja y es lo correcto; y el
+médico **no** veía el anillo de la obstrucción subaórtica —0 a 4 píxeles sobre 45.000—.
+
+**Lo que paró:** nada de los ocho puntos. Lo declarado son **diez** cosas en
+`docs/PENDIENTES.md` (**P14b-a** a **P14b-j**), más el **cierre de P13-c**.
+
+**El barrido de mutaciones: 37 de 37 muertas**, en worktree y nunca sobre el árbol vivo, con el
+md5 idéntico antes y después, cada mutación declarando su caso. ⚠️ **Su primera pasada dio 21 de
+38**, y los diecisiete sobrevivientes dieron **once condiciones nuevas** —TC-699 (B0), (B4)
+reescrita, (H4), (I4) y (K1); TC-700 (C1b), (D1b), (D1d) y (B1c); TC-702 (A2b), (D3) y (B3b); y
+TC-703 (D1b)—, **una redundancia retirada** —`cm3dReset` cerraba el panel que `limpiarCampos`, su
+único llamador, ya cerraba 433 líneas antes: la tercera copia de la misma acción— y **tres
+equivalencias declaradas**, con la 24 retirada y escrita en **P14b-j**.
+
+**Verificación:** suite **713/719** en catorce lotes de 55 sobre el árbol **resellado**, 719 de
+719 ejecutados y el pendrive verificado dieciséis veces, con los cuatro rojos de siempre más
+TC-551 y TC-557, los dos intermitentes declarados; **37/37 mutaciones dirigidas muertas**; Semgrep
+124 WARNING / 0 ERROR; Excel 441 con las mismas claves y sólo dos a cuatro **celdas** distintas en
+las siete escenas autorizadas; censo 1010 con el mismo juego; sin huérfanos nuevos; los 15 bloques
+de JS inline parseando; celular idéntico a HEAD (59 y 67 hallazgos con 18 ALTA); A/B de 64 escenas
+y 12.852 claves con **56 diferencias de papel en SIETE escenas, las autorizadas** y las otras 57 en
+cero, `vacio` y `ajeno` incluidas; y Chrome y WebKit coincidiendo en los dieciséis cruces, con dos
+diferencias de motor y las dos de métrica de fuente.
+⚠️ **Una corrida de la suite se envenó por DOS procesos sobre el mismo log** —el `nohup … &`
+desde la herramienta de shell no sobrevive al envoltorio y el relanzamiento convivió con el
+primero, que seguía vivo—: se cortaron por PID exacto, se verificó que el árbol vivo no se había
+tocado y se rehizo de una sola pasada. Lo delata el **conteo de cabeceras de lote**.
+
+**Dónde está todo:** `docs/mapa/p14b-estado-puerta-tunel.md` (mapa nuevo),
+`docs/INVENTARIO_UN_DATO_UNA_PUERTA_P14B.md`, `docs/GUIA_PRUEBA_PANT14B.md`,
+`docs/fuentes/FUENTES.md` → «La tanda PANT-14b», y los seis casos nuevos TC-699 a TC-704.

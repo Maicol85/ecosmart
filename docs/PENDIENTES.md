@@ -1,5 +1,179 @@
 # EcoSmart — pendientes vivos
 
+## P14b-j · Dos defensas del resolvedor de colores que ninguna mutación puede hacer observable
+
+**Qué se encontró.** El resolvedor `tgaEsqResolver` tiene dos defensas que el barrido de
+mutaciones de esta tanda **no pudo matar**, y la medición dice por qué: la **validación** del
+valor (`COLOR_OK`) y el **respaldo** (`TGA_ESQ_RESP[nom] || P.texto2`) sólo se alcanzan cuando
+`getComputedStyle` devuelve un valor vacío o que no es un color, y las **seis** variables que el
+marcado del esquema usa —`--bg`, `--bg3`, `--card`, `--border`, `--text`, `--text2`— las cubre el
+mapa de la propia función o resuelven bien en el documento. Con el marcado que la app emite, las
+dos ramas son **inalcanzables**.
+
+**Qué puede causar.** Nada hoy. El día que el esquema use una variable nueva que no esté en el
+mapa y que el tema no declare, esas dos ramas son lo que impide que un `var()` sin valor llegue al
+atributo y el dibujo salga negro —el defecto que PANT-14 pagó con `--card`—.
+
+**Cómo se corrige / qué falta.** Nada que corregir: se declara. Lo que sostiene al resolvedor es la
+mutación **23**, que lo apaga entero y muere con TC-693 contándole los `var()`. Es el mismo
+razonamiento con que **P13-f** declara el globo dentro del botón: un invariante que el parser
+garantiza no se puede fingir con una mutación. Si alguna vez se quiere cobertura directa, hace
+falta una variable de prueba declarada en ninguno de los dos temas, y eso es contenido del marcado.
+
+---
+
+## P14b-a · El acceso a las congénitas SÍ tiene una regla, y es la que se usó
+
+La orden pedía parar esta parte si la app no tenía una regla de acceso. **La tiene**, y no hubo que
+parar nada: el botón «🧬 C. Congénitas» lleva `data-mod="congenitas"` y lo gobierna `applyViewMode`
+—en Modo Básico se esconde todo `button[data-mod]`, y en Avanzado cada uno según `eeModOn`—.
+`cc3dAcceso()` pregunta por **esa misma** regla.
+
+**Falla ABIERTO** a propósito: si los dos helpers no existieran, el módulo se ve. Lo que esto decide
+es una pantalla y no un dato, y un módulo que desaparece por un helper ausente se lee como una app
+rota.
+
+**Medido** en tres escenarios con `scripts/_probe_p14b_acceso.mjs`: en Modo Básico y con el módulo
+apagado en Config, el botón da 0×0, el panel `display:none`, **cero** scripts de three.js en el
+documento y `window.THREE` sin cargar. Y la regla coincide con el estado del botón de la pestaña en
+los tres.
+
+---
+
+## P14b-b · El nivel de la estenosis pulmonar NO se asume, y la línea lo pide
+
+Con una velocidad pulmonar cargada y **sin** el nivel, la lesión no se dibuja y la línea dice:
+
+> Estenosis pulmonar: falta consignar el nivel en la sección de estenosis pulmonar.
+
+**No se asume «valvular»**, y es deliberado: dar por sentado dónde está la obstrucción es inventar
+un dato clínico. PANT-14 ya midió que el predicado de esa lesión no puede ser «su campo no está
+vacío» —sin tocar nada `ep_nivel` vale «No especificado»—.
+
+**Decisión del médico**: si quiere que una velocidad alta sin nivel se dibuje con un nivel por
+omisión, cuál.
+
+---
+
+## P14b-c · Ninguna sección quedó parada por el punto 2c
+
+La orden manda parar la sección cuyo informe no dependa de un interruptor sino de lógica más
+profunda. **Medido en las diecinueve**: en las diecinueve el informe depende del interruptor, así
+que no hubo ninguna que dejar afuera. La tabla de las cuatro combinaciones está en
+`docs/INVENTARIO_UN_DATO_UNA_PUERTA_P14B.md`.
+
+**Lo que sí queda a confirmar por el médico**, y la orden lo pide explícitamente: que el **apagado
+a mano se respete** hasta que se cargue otro dato identificatorio o se vuelva a encender. Está
+implementado así y medido en las diecinueve.
+
+---
+
+## P14b-d · El estado del esquema de circulación abierto NO se guarda con el estudio
+
+El PDF lleva el esquema **sólo si el botón ◫ está abierto al generarlo**. Ese estado vive en
+`_cm3d.sch`, que es memoria de sesión: quien guarde el estudio con el esquema abierto y lo reabra
+se encuentra el esquema cerrado, y el PDF llevará sólo el 3D.
+
+**No se agregó un campo**, porque esta orden lo prohíbe. **Decisión del médico**: si lo quiere
+guardado, es un campo guardado nuevo y una columna que decidir.
+
+---
+
+## P14b-e · El Laboratorio clasifica el grado diastólico leyendo el TEXTO del informe, y dos frases de congénitas lo disparan en falso
+
+`_labDiastGrado(inf)` busca en el informe, con `/grado\s*III|restrictivo/i` y
+`/grado\s*II\b|pseudonormal/i`. Desde que más secciones de congénitas entran al papel, **dos frases
+lo disparan**:
+
+| la frase | lo que devuelve | lo que el informe dice de la diastólica |
+|---|---|---|
+| «Ductus arterioso permeable **restrictivo**» | `'III'` | «Función diastólica no clasificable con los datos cargados» |
+| «Relación de áreas en cuatro cámaras 0.92 — **grado II**» (índice de Celermajer del Ebstein) | `'II'` | la misma frase |
+
+**Medido en las diecinueve secciones**: una sola la dispara por sí misma —el ductus con la opción
+«restrictivo»—; la del Ebstein la destapó el A/B.
+
+Es un **falso positivo PREEXISTENTE** de esa heurística de texto libre; lo que esta tanda cambia es
+que ahora se alcanza en más estudios. **El Laboratorio está fuera del alcance de esta orden, así
+que no se tocó.**
+
+**Lo que afecta**: la columna «Grado disfunción diastólica» del Excel y la distribución del
+Laboratorio. **No** el informe, el EN SUMA, el PDF ni el PPT.
+
+**La corrección sería de una línea**: anclar los dos tokens a principio de oración, como esa misma
+función ya hace con los cuatro de la BSE y con el de la ASE/EACVI 2016 —su propio comentario
+explica por qué—. Es una decisión del médico porque **reclasifica estudios ya guardados**, que no
+se migran.
+
+---
+
+## P14b-f · El esquema del PDF se rasteriza con los colores del tema oscuro
+
+El esquema de circulación que entra al PDF se rasteriza con los colores de la pantalla, así que en
+el tema oscuro sus cajas salen con el fondo de tarjeta sobre el papel blanco. **Medido**: 33 % de
+píxeles no blancos, **0,0 % de negro puro** —16 píxeles de 348.000, que es el suavizado de los
+trazos— y el color dominante es el fondo de tarjeta.
+
+El esquema del módulo y el de la pestaña dan el **mismo** raster, píxel por píxel y con los mismos
+cuatro colores dominantes y los mismos conteos exactos: no es algo que esta tanda introduzca.
+
+**Decisión del médico**: si quiere que el esquema del papel se rasterice en tema claro. Es un
+cambio de color del papel y no está en esta orden.
+
+---
+
+## P14b-g · Los otros dos túneles quirúrgicos conservan su color
+
+El túnel del **switch auricular** pasó a violeta. Los otros dos siguen con el color de la sangre que
+llevan:
+
+| dónde | qué se dibuja hoy |
+|---|---|
+| **Rastelli** | dos tubos grises translúcidos más el trazado rojo que va del ventrículo izquierdo a la aorta. Medido: sus tubos siguen en `0x2f6fd0` y `0xd8433b`. |
+| **Fontan** | su conducto, con los colores de su propia rama. |
+
+**El color está en UNA sola constante** —`TGA3D_C.violet`, y `TGA_ESQ_VIOLETA` sale del mismo
+número—, así que cambiarlo para otro túnel es una línea más en `cmHayTunel()` y la lista de tramos
+de su variante. **Decisión del médico**, que dijo que los iba a revisar después.
+
+---
+
+## P14b-h · El violeta se separa del azul por 42 grados de tono
+
+**Medido**: el contraste de **luminancia** del violeta es 1,15 contra el azul y 1,04 contra el
+rojo. Es bajo, y es a propósito: los tres son colores de relleno de tono medio. Lo que los
+distingue es el **tono** —42° del azul y 105° del rojo— y la distancia euclídea en RGB —101 y 204—.
+
+⚠️ **42 grados del azul puede ser poco para una deuteranopia o una protanopia.** No se cambió: el
+violeta lo eligió el médico. **Decisión suya** si quiere un tono más separado del azul o una
+diferencia que no dependa del color —un trazo punteado en la pared del túnel, por ejemplo—.
+
+---
+
+## P14b-i · El anillo de la obstrucción subaórtica con «Por dentro» encendido
+
+Con «Por dentro» **apagado** el anillo aporta entre **82 y 97 píxeles** del gris de obstrucción en
+las cinco variantes. Con «Por dentro» **encendido** —que es el estado por omisión— la d-TGA y el
+Jatene siguen aportando menos de 30:
+
+| variante | apagado | encendido (estricto / laxo) |
+|---|---|---|
+| d-TGA | +97 | +0 / +1 |
+| Jatene | +90 | +0 / +27 |
+| Mustard | +92 | +14 / +161 |
+| Rastelli | +92 | +14 / +198 |
+| ccTGA | +82 | +47 / +263 |
+
+Ahí las cáscaras se vuelven translúcidas y el anillo queda teñido. Hacerlo visible también en esa
+vista exige **o** moverlo fuera de su sitio anatómico —y entonces deja de ser subaórtico— **o**
+cambiar cómo se pintan las cáscaras translúcidas, que es tocar el motor del dibujo entero. Las dos
+son decisiones del médico.
+
+**Antes de esta tanda no se veía en ninguna de las dos vistas**: 0 a 4 píxeles en las cinco.
+
+---
+
+
 ## P14-a · Con qué modo abre el módulo del corazón maestro, y qué sí puede confundir
 
 **Medido**, en cuatro escenarios (CIA + CIV, ductus, transposición y estudio vacío), al abrirlo y
@@ -151,7 +325,22 @@ Por pedido expreso del médico, y es la segunda tanda que lo declara (venía de 
 Sigue en `OTR_VAR_IDS` igual, porque `otrVarNotaSync` pregunta por la caja antes de tocarla; el
 caso **TC-692 (D1)** y **(D2)** fijan las dos mitades.
 
-## P13-c · El dibujo de la transposición NO se retiró de su pestaña, y la medición es lo que lo para
+## P13-c · [CERRADO 2026-11-05] El dibujo de la transposición SÍ se retiró, y lo que queda es código sin uso
+
+**Cerrado por PANT-14b (commits 4 y 5).** Lo que impedía el retiro era que el esquema del módulo y
+el de la pestaña eran dos dibujos distintos —P14-d lo midió en 0 de 25 escenas iguales—. El commit
+4 los unificó en un **dueño único**, `tgaEsqCuerpo`, al que los dos llaman: la equivalencia pasó a
+ser exacta por construcción y se midió en **50 de 50 escenas iguales**, con la obstrucción
+subaórtica como única diferencia esperada. El commit 5 retiró el recuadro.
+
+**Lo que queda sin uso y NO se borró**, que es lo que la orden pide: el marcado de `#tga-3d-box`
+entero con sus ids —los leen el recolector del PDF, cinco funciones de esa pestaña y varios casos
+de la suite—, `CM_PDF_AVISO.tga`, y el motor y el escenario viejos, que ya no se cargan desde ahí
+porque con `display:none` el lienzo no tiene `offsetParent`. **Retirarlo es una tanda propia.**
+
+La nota original queda abajo para el día que alguien quiera leer por qué estuvo abierto tanto:
+
+## P13-c (nota original) · El dibujo de la transposición NO se retiró de su pestaña, y la medición es lo que lo para
 
 El punto 4d de la orden condiciona el retiro a que la equivalencia escena por escena dé **cero
 diferencias**. Medido con `scripts/_probe_pant13equiv.mjs`, comparando el escenario que el módulo
