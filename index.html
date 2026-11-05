@@ -103498,7 +103498,11 @@ window.cc3dPieSync = cc3dPieSync;
    el modulo la dibuja como su sexta anatomia de base, asi que ya no «tiene su propio diagrama».
    `CC3D_PROPIO` queda VACIA y no se retira: es la puerta por la que sale cualquier seccion que
    el dia de manana vuelva a tener dibujo aparte. */
-const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga']);
+/* ⚠️ `tdf` y `coa` SE AGREGAN EN PANT-14 (commit 4): el modulo ya las dibuja desde el estudio,
+   asi que dejarlas afuera haria que la linea las siguiera listando como «cargadas y no
+   dibujadas» mientras el dibujo las muestra. La lista y el dibujo preguntan lo MISMO
+   -`_CC_SECS`-, asi que no pueden discrepar. */
+const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga', 'tdf', 'coa']);
 /* ⚠️ LA TRANSPOSICION SALE DE LA LISTA DE «no dibujadas» POR SU PROPIA PUERTA. Si se la deja
    caer ahi, la linea dice las dos cosas a la vez —«Cargadas y no dibujadas todavia: TGA» y «La
    transposicion tiene su propio diagrama»—, que se contradicen. Lo que es cierto es lo segundo:
@@ -103551,8 +103555,11 @@ function cc3dTextoSync() {
      dibujadas y no hay nada que agregar. */
   /* Lo que esta cargado y su opcion no tiene variante en el dibujo, y lo que choca por las
      reglas de compatibilidad. Las dos listas las arma `cmDesdeEstudio`, que es su dueno. */
+  /* ⚠️ TODA CLAVE QUE `cmDesdeEstudio` PUEDA PONER EN `omitidas` TIENE QUE ESTAR ACA, o la
+     linea publica la sigla interna en vez del nombre de la lesion. Las nuevas son de PANT-14. */
   const ROT = { cia:'CIA', civ:'CIV', dap:'ductus', vap:'ventana aortopulmonar',
-                cvpa:'conexión venosa anómala', eisen:'Eisenmenger' };
+                cvpa:'conexión venosa anómala', eisen:'Eisenmenger',
+                coa:'coartación (falta consignar si es nativa o reparada)' };
   if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.length) {
     partes.push('Cargadas con una opción que el dibujo no distingue: '
       + _cm3d.omitidas.map(function (k) { return ROT[k] || k }).join(', ') + '.');
@@ -105121,6 +105128,44 @@ document.addEventListener('keydown', function (ev) {
    ⚠️ LO QUE LA PESTANIA NO TIENE NO SE INVENTA: una opcion sin variante equivalente cae en el
    valor por omision que la demo ya trae -el primero de su lista- o no se dibuja, y la linea de
    debajo del dibujo lo dice. */
+/* ══ «CARGADA» SE LE PREGUNTA AL REGISTRO DEL LABORATORIO -PANT-14, commit 4- ═══════════════
+   `_CC_SECS` es el dueno unico de «esta leccion esta cargada en el estudio»: lo usan el filtro
+   de cohorte, las tarjetas del Laboratorio y la propia linea de «cargadas y no dibujadas» de
+   este modulo. Preguntarle a el, y no escribir un predicado nuevo, es lo que garantiza que la
+   linea de abajo del dibujo y lo que el dibujo hace no puedan discrepar: si una seccion cuenta
+   como cargada para el registro y el modulo la dibuja, entra en `CC3D_DIBUJA` y la linea deja
+   de listarla, todo con la MISMA pregunta.
+   ⚠️ SE CONSTRUYE EL MISMO OBJETO `inf` QUE `cc3dNoDibujadas`, con el mismo barrido y la misma
+   exclusion de `_noEsDelEstudio`: dos formas de armarlo serian dos denominadores. */
+function _cmSecsOn() {
+  const campos = {};
+  try {
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    });
+  } catch (e) { return {} }
+  const inf = { campos: campos }, out = { _campos: campos };
+  try { _CC_SECS.forEach(function (sc) { try { out[sc.k] = !!sc.pred(inf) } catch (x) { out[sc.k] = false } }) }
+  catch (e) {}
+  return out;
+}
+window._cmSecsOn = _cmSecsOn;
+/* Las anatomias de BASE que el estudio puede traer, EN ORDEN DE PRIORIDAD: si hay mas de una
+   cargada se dibuja la primera y las otras se listan. El orden es el que el medico fijo. */
+const CM_BASE_PRIO = Object.freeze([
+  Object.freeze({ b:'tga',  sec:'tga',    lbl:'transposición' }),
+  Object.freeze({ b:'fal',  sec:'tdf',    lbl:'Fallot' })
+]);
+/* Un grado consignado y distinto de «sin» o «ausente». Es la regla que la orden fija para los
+   CUATRO chorros, y el centinela de «sin grado» NO es el mismo campo en cada selector: el de la
+   insuficiencia pulmonar es la frase «Sin insuficiencia» y el de la tricuspidea es el cero. */
+function _cmGrado(v, sinGrado) {
+  const x = String(v == null ? '' : v).trim();
+  if (!x) return false;
+  return sinGrado.indexOf(x) < 0;
+}
+
 const CM_MAPA = Object.freeze({
   cia:  Object.freeze({ campo:'ete_cia_tipo',   mapa: Object.freeze({ secundum:'sec', primum:'pri', sv_vcs:'sv' }), omision:'sec' }),
   civ:  Object.freeze({ campo:'ete_civ_tipo',   mapa: Object.freeze({ perimembranosa:'pm', muscular:'mus', infundibular:'sal', inlet:'ent' }), omision:'pm' }),
@@ -105163,6 +105208,35 @@ function cmDesdeEstudio() {
     }
   }
 
+  /* ══ LAS ANATOMIAS DE BASE DEL ESTUDIO -PANT-14, commit 4- ══════════════════════════════
+     SE DIBUJA UNA SOLA, por el orden de prioridad que el medico fijo, y las otras se listan.
+     La transposicion ya decidio arriba con `tgaEjes`, que es su dueno; las demas se le preguntan
+     a `_CC_SECS`. `otras` alimenta la linea de abajo del dibujo. */
+  const ON = _cmSecsOn();
+  const otrasBases = [];
+  let elegida = (S.base === 'tga') ? 'tga' : '';
+  CM_BASE_PRIO.forEach(function (bp) {
+    if (!ON[bp.sec]) return;
+    if (!elegida) { elegida = bp.b; return }
+    if (elegida !== bp.b) otrasBases.push(bp.lbl);
+  });
+  /* ── LA TETRALOGIA DE FALLOT ──────────────────────────────────────────────────────────────
+     ⚠️ LA VARIANTE SE FIJA EN «OPERADO» SIN PREGUNTAR, y es la unica del modulo que se fija sin
+     dato: la pestania de la app es la de la Fallot REPARADA -su propio titulo lo dice- y no
+     tiene ningun campo que diga si se opero. Asi que «Fallot sin operar» NO SE DIBUJA NUNCA
+     desde el estudio: queda solo en «Explorar». Es la regla que la orden fija.
+     LAS TRES CASILLAS salen de los campos que describen cada residual; la cuarta -«VD
+     dilatado»- QUEDA PARADA y se declara en docs/PENDIENTES.md: ningun campo de la pestania
+     dice que el VD este dilatado -`tdf_func_vd` es la FUNCION y `tdf_vtdvdi` un volumen cuyo
+     umbral es un criterio clinico-, y decidir un umbral para encender una casilla del dibujo no
+     esta en esta orden. */
+  if (elegida === 'fal') {
+    S.base = 'fal'; S.bv.fal = 'op';
+    if (_cmGrado(V('ip_grado'), ['Sin insuficiencia'])) S.ck.ip = true;
+    if (V('tdf_civ_residual') === 'si') S.ck.rciv = true;
+    if (V('tdf_ep_stent') === 'si') S.ck.rest = true;
+  }
+
   /* ── las cinco lesiones del mapa ───────────────────────────────────────────────────────── */
   Object.keys(CM_MAPA).forEach(function (k) {
     const r = CM_MAPA[k], v = V(r.campo);
@@ -105192,6 +105266,24 @@ function cmDesdeEstudio() {
   /* ⚠️ NO SE DEDUCE DE «Seno coronario dilatado»: son dos hallazgos distintos -un seno coronario
      se dilata por muchas causas- y el medico lo pidio asi. */
   if (CH('otr_var_vcsip')) S.mods.vcs = 'std';
+
+  /* ── LA COARTACION DE AORTA -PANT-14, commit 4- ───────────────────────────────────────────
+     `coa_situacion` es el campo que dice si es NATIVA o REPARADA, y es el que define la variante
+     del dibujo. El registro cuenta la coartacion como cargada por `coa_loc` o `coa_istmo`, asi
+     que un estudio puede tenerla cargada SIN esa situacion: ahi NO SE DIBUJA y la linea lo dice,
+     que es la regla de «lo que la pestania no tiene no se inventa».
+     Las tres opciones de reparada -recoartacion, post stent y post cirugia- son todas `rep`, y
+     la casilla «Recoartacion» se enciende solo con la primera, que es la que lo afirma.
+     Las otras dos casillas del modulo -«Colaterales» en la nativa y «Aneurisma» en la reparada-
+     QUEDAN PARADAS: la pestania no tiene campo para ninguna. Declarado en PENDIENTES.md. */
+  if (ON.coa) {
+    const sit = V('coa_situacion');
+    if (sit === 'nativa') { S.mods.coa = 'nat' }
+    else if (sit === 'recoartacion' || sit === 'post_stent' || sit === 'post_cirugia') {
+      S.mods.coa = 'rep';
+      if (sit === 'recoartacion') S.ck.rec = true;
+    } else { omit.push('coa') }
+  }
 
   /* ── Eisenmenger, como modificador ─────────────────────────────────────────────────────── */
   const eisBase = V('eis_lesion_base');
@@ -105224,6 +105316,9 @@ function cmDesdeEstudio() {
     const r = cmBloqueado(k, S);
     if (r) { delete S.mods[k]; chocan.push(k + ': ' + r) }
   });
+  /* Las anatomias de base que quedaron afuera por el orden de prioridad. Van en `chocan`, que
+     es la lista que la linea publica como «No se dibujan juntas». */
+  otrasBases.forEach(function (l) { chocan.push(l + ': no se dibuja junto con ' + (CM_SIB[S.base] ? CM_SIB[S.base][1] : S.base)) });
   _cm3d.omitidas = omit;
   _cm3d.chocan = chocan;
   return { mods: S.mods, omitidas: omit, chocan: chocan };
@@ -160574,8 +160669,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-0850';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793879416880;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0901';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793880077953;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160661,7 +160756,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0850</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0901</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
