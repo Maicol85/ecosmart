@@ -116719,6 +116719,461 @@ caso('TC-692', 'Tanda PANT-13 (commit 7): las siete variantes anatomicas en una 
 
 
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-693 · TANDA PANT-14, COMMIT 1 — el esquema de circulacion sin cajas negras.
+   El defecto: `--card` NO EXISTE en esta aplicacion, asi que un fill="var(--card)" de atributo
+   caia en el negro HEREDADO y las seis cajas y las dos valvulas salian negras, con el texto
+   encima -contraste 1,32 en el tema claro-. Medido en los dos motores y en los cuatro anchos.
+   DENOMINADORES: (A0) el esquema dibuja sus nodos; (A1) la variable --card sigue sin existir,
+   que es la premisa del arreglo.
+   CONTROLES NEGATIVOS: (C1) con una variable que SI existe el respaldo no se usa; (C2) con el
+   switch auricular el esquema NO aborta -ahi la rama reasigna su objeto de cajas, y con `const`
+   lanzaba y dejaba el dibujo de la variante anterior-.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus colores al dibujar y no escribe var() en un atributo, asi que ninguna caja ni valvula sale negra en ningun tema, con contraste suficiente, y la rama del switch auricular ya no aborta el dibujo', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  __t.limpiar();
+  const aRgb = (x) => { const m = String(x || '').match(/rgba?\(([^)]+)\)/);
+    if (!m) return null; const q = m[1].split(',').map(Number); return { r:q[0], g:q[1], b:q[2] } };
+  const lum = (c) => { const f = (v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b) };
+  const contr = (a, b) => { if (!a || !b) return null; const l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05) };
+  const esNegro = (c) => !!c && c.r < 24 && c.g < 24 && c.b < 24;
+  /* ── (A) la premisa: --card no existe ── */
+  const raiz = getComputedStyle(document.documentElement);
+  ex.push(['(A1) la variable --card sigue sin existir en la raiz',
+    String(raiz.getPropertyValue('--card') || '').trim() === '', true]);
+  ex.push(['(A2) y --bg2, que es su respaldo, SI existe',
+    String(raiz.getPropertyValue('--bg2') || '').trim() !== '', true]);
+  /* ── (B) la paleta ── */
+  const pal = (typeof window.cmSchPal === 'function') ? window.cmSchPal() : null;
+  ex.push(['(B0) cmSchPal esta publicada', !!pal, true]);
+  ex.push(['(B1) y devuelve los cuatro colores, ninguno vacio',
+    pal ? ['card','borde','texto','texto2'].every((k) => pal[k] && String(pal[k]).length > 2) : 'NO', true]);
+  ex.push(['(B2) el relleno de caja no es un var()',
+    pal ? String(pal.card).indexOf('var(') < 0 : 'NO', true]);
+  /* ── (C) el esquema dibujado, caja por caja ── */
+  const svg = EL('cm3d-schsvg');
+  ex.push(['(C0 DENOM) el SVG del esquema existe', !!svg, true]);
+  const dib = (bv) => { if (!svg || !window._cm3d) return 'NO';
+    _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = bv; _cm3d.S.mods = {}; _cm3d.S.ck = {};
+    svg.innerHTML = 'CENTINELA';
+    try { cmSchRender(true) } catch (e) { return 'EXC ' + String(e).slice(0, 60) }
+    return svg.innerHTML.indexOf('CENTINELA') >= 0 ? 'NO DIBUJO' : 'ok' };
+  ex.push(['(C1) con la d-TGA el esquema dibuja', dib('d'), 'ok']);
+  const cajas = svg ? Array.prototype.filter.call(svg.querySelectorAll('rect'),
+    (r) => r.getAttribute('rx') === '8') : [];
+  const valv = svg ? Array.prototype.filter.call(svg.querySelectorAll('circle'),
+    (c) => parseFloat(c.getAttribute('r') || '0') >= 5) : [];
+  ex.push(['(C2 DENOM) hay seis cajas y dos valvulas que contar', cajas.length + '/' + valv.length, '6/2']);
+  const negras = cajas.concat(valv).filter((e) => esNegro(aRgb(getComputedStyle(e).fill))).length;
+  ex.push(['(C3) CERO cajas y valvulas con relleno negro', negras, 0]);
+  /* el contraste de cada caja contra el texto que cae dentro */
+  let peor = 99;
+  const txts = svg ? Array.prototype.slice.call(svg.querySelectorAll('text')) : [];
+  cajas.forEach((r) => { const bb = r.getBBox ? r.getBBox() : null; if (!bb) return;
+    const f = aRgb(getComputedStyle(r).fill);
+    txts.forEach((t) => { const tb = t.getBBox ? t.getBBox() : null; if (!tb) return;
+      const cx = tb.x + tb.width / 2, cy = tb.y + tb.height / 2;
+      if (cx < bb.x || cx > bb.x + bb.width || cy < bb.y || cy > bb.y + bb.height) return;
+      const c = contr(f, aRgb(getComputedStyle(t).fill));
+      if (c !== null && c < peor) peor = c }) });
+  ex.push(['(C4) el peor contraste de una caja con su texto llega a 4,5',
+    peor >= 4.5 ? 'si' : ('no: ' + peor.toFixed(2)), 'si']);
+  ex.push(['(C5) y no queda un solo var() en el marcado del esquema',
+    svg ? (String(svg.innerHTML).indexOf('var(--') < 0) : 'NO', true]);
+  /* ── (D) la rama del switch auricular, que con const abortaba ── */
+  ex.push(['(D1 CONTROL) con el switch auricular el esquema dibuja y no aborta', dib('mus'), 'ok']);
+  const t2 = svg ? Array.prototype.map.call(svg.querySelectorAll('text'), (x) => x.textContent).join('|') : '';
+  ex.push(['(D2) y es el dibujo del switch auricular, con su tunel y su auricula',
+    (t2.indexOf('Túnel') >= 0) + '/' + (t2.indexOf('Aurícula') >= 0), 'true/true']);
+  ['jat','ras','cc'].forEach((bv) => {
+    ex.push(['(D3) la variante ' + bv + ' tambien dibuja', dib(bv), 'ok']) });
+  /* ── (E) la letra de la valvula dorada del Ebstein, que es una tinta fija ── */
+  if (window._cm3d) { _cm3d.S.base = 'ebs'; _cm3d.S.bv.ebs = 'std'; _cm3d.S.mods = {}; _cm3d.S.ck = {};
+    try { cmSchRender(true) } catch (e) {} }
+  const dorada = svg ? Array.prototype.filter.call(svg.querySelectorAll('circle'),
+    (c) => { const f = aRgb(getComputedStyle(c).fill); return f && f.r > 180 && f.g > 150 && f.b < 110 })[0] : null;
+  ex.push(['(E0 DENOM) el Ebstein dibuja su valvula dorada', !!dorada, true]);
+  if (dorada) {
+    const f = aRgb(getComputedStyle(dorada).fill);
+    let pc = 99;
+    Array.prototype.forEach.call(svg.querySelectorAll('text'), (t) => {
+      const tb = t.getBBox ? t.getBBox() : null; if (!tb) return;
+      const dx = tb.x + tb.width / 2 - parseFloat(dorada.getAttribute('cx'));
+      const dy = tb.y + tb.height / 2 - parseFloat(dorada.getAttribute('cy'));
+      if (dx * dx + dy * dy > 49) return;
+      const c = contr(f, aRgb(getComputedStyle(t).fill)); if (c !== null && c < pc) pc = c });
+    ex.push(['(E1) su letra se lee: contraste de 4,5 o mas',
+      pc >= 4.5 ? 'si' : ('no: ' + pc.toFixed(2)), 'si']);
+  }
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-694 · TANDA PANT-14, COMMIT 2 — «Incluir en el PDF» de punta a punta.
+   DENOMINADORES: (A0) el modulo abre y el boton existe con su alto tactil; (B0) la lesion
+   sembrada cuenta como cargada.
+   CONTROLES NEGATIVOS: (C1) en «Explorar» el boton queda APAGADO con su aviso; (C2) sin nada
+   cargado queda apagado con OTRO aviso; (C3) «Nuevo estudio» apaga la inclusion.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-694', 'Tanda PANT-14 (commit 2): el boton «Incluir en el PDF» del corazon maestro se activa en «Segun el estudio» con una lesion cargada, dice «Incluido en el PDF» al tocarlo y lo registra, queda apagado en «Explorar» y sin lesiones, con su aviso legible en cada estado', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const gesto = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    if (e.type === 'checkbox') { e.checked = (v === 'si') } else { e.value = v }
+    try { e.dispatchEvent(new Event('input', { bubbles: true }));
+          e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {}
+    return 'ok' };
+  __t.limpiar();
+  try { showTab('congenitas') } catch (e) {}
+  await esperar(320);
+  try { if (typeof cc3dPieSync === 'function') cc3dPieSync() } catch (e) {}
+  const ab = EL('cc3d-abrir');
+  ex.push(['(A0 DENOM) el boton que abre el modulo existe', !!ab, true]);
+  if (ab && ab.getAttribute('aria-pressed') !== 'true') { ab.click(); await esperar(900) }
+  const b = EL('cm3d-pdfb'), n = EL('cm3d-pdfn');
+  ex.push(['(A1 DENOM) el boton del PDF existe', !!b, true]);
+  /* sin nada cargado: apagado con su aviso */
+  try { if (typeof cmSetModo === 'function') cmSetModo('estudio') } catch (e) {}
+  await esperar(320);
+  ex.push(['(C2 CONTROL) sin lesiones cargadas el boton esta APAGADO', b ? b.disabled : 'NO', true]);
+  const av0 = n ? n.textContent.trim() : '';
+  ex.push(['(C2b) y su aviso dice que no hay nada para incluir',
+    av0.indexOf('No hay lesiones cargadas') >= 0, true]);
+  /* en Explorar: apagado con OTRO aviso */
+  try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
+  await esperar(320);
+  ex.push(['(C1 CONTROL) en «Explorar» el boton esta APAGADO', b ? b.disabled : 'NO', true]);
+  const av1 = n ? n.textContent.trim() : '';
+  ex.push(['(C1b) y su aviso es el de «Explorar», distinto del anterior',
+    (av1.indexOf('Explorar') >= 0) + '/' + (av1 !== av0), 'true/true']);
+  /* con una CIA cargada y en «Segun el estudio»: se activa */
+  gesto('ete_cia_tipo', 'secundum');
+  await esperar(260);
+  try { if (typeof cmSetModo === 'function') cmSetModo('estudio') } catch (e) {}
+  await esperar(420);
+  ex.push(['(B0 DENOM) la CIA cuenta como cargada',
+    (typeof window.cmHayCargado === 'function') ? window.cmHayCargado() : 'NO FN', true]);
+  ex.push(['(B1) el boton se ACTIVA', b ? !b.disabled : 'NO', true]);
+  ex.push(['(B2) y todavia no esta pulsado', b ? b.getAttribute('aria-pressed') : 'NO', 'false']);
+  if (b && !b.disabled) { b.click(); await esperar(900) }
+  ex.push(['(B3) al tocarlo dice «Incluido en el PDF»',
+    b ? (b.textContent.indexOf('Incluido en el PDF') >= 0) : 'NO', true]);
+  ex.push(['(B4) y queda pulsado', b ? b.getAttribute('aria-pressed') : 'NO', 'true']);
+  ex.push(['(B5) el registro de inclusion lo refleja',
+    (typeof esqEstaIncluido === 'function') ? esqEstaIncluido('cm3d') : 'NO FN', true]);
+  ex.push(['(B6) y su aviso dice que el PDF lo va a llevar',
+    n ? (n.textContent.indexOf('PDF llevará este dibujo') >= 0) : 'NO', true]);
+  /* el aviso NUNCA queda vacio en un estado apagado */
+  ex.push(['(B7) los dos avisos de apagado tienen texto',
+    (av0.length > 20) + '/' + (av1.length > 20), 'true/true']);
+  /* ── (C3) «Nuevo estudio» apaga la inclusion ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(520);
+  ex.push(['(C3 CONTROL) tras limpiar, la inclusion esta apagada',
+    (typeof esqEstaIncluido === 'function') ? esqEstaIncluido('cm3d') : 'NO FN', false]);
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-695 · TANDA PANT-14, COMMIT 3 — las reglas de la transposicion son las del 3D de la
+   pestania, y la obstruccion subaortica se dibuja.
+   Las reglas se MIDIERON llamando a tga3dEscena, que es el dueno de lo que el 3D dibuja.
+   DENOMINADORES: (A0) tga3dEscena y cmBloqueado existen; (B0) la escena de la TGA se arma.
+   CONTROLES NEGATIVOS: (C1) sin la casilla de obstruccion NO hay anillo gris; (D1) la pestania
+   de la transposicion CONSERVA su recuadro -la equivalencia del esquema no cerro-.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-695', 'Tanda PANT-14 (commit 3): el corazon maestro aplica para la transposicion las reglas de compatibilidad del 3D de la pestania -CIA, CIV y ductus en la d-TGA; sin ductus con Jatene; solo CIV con el switch auricular; solo CIA con Rastelli; y nada mas en las cinco-, y dibuja la obstruccion subaortica con su anillo gris', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const EL = (id) => document.getElementById(id);
+  __t.limpiar();
+  ex.push(['(A0 DENOM) tga3dEscena existe', typeof window.tga3dEscena === 'function', true]);
+  ex.push(['(A1 DENOM) cmBloqueado existe', typeof window.cmBloqueado === 'function', true]);
+  const bloq = (typeof window.cmBloqueado === 'function') ? window.cmBloqueado : null;
+  const permite = (bv, k) => { if (!bloq) return 'NO FN';
+    const S = { base:'tga', bv:{ tga:bv }, mods:{} };
+    return !bloq(k, S) };
+  /* lo que el 3D de la pestania dibuja, medido en PANT-14 con su propia sonda */
+  const DIBUJA = { d:['cia','civ','dap'], jat:['cia','civ'], mus:['civ'], ras:['cia'], cc:['cia','civ'] };
+  const TODAS = ['cia','civ','dap','vap','cvpa','coa','ep','ea','vcs','eis'];
+  Object.keys(DIBUJA).forEach((bv) => {
+    const ok = TODAS.filter((k) => permite(bv, k) === true).sort().join(',');
+    ex.push(['(B1) la variante ' + bv + ' permite exactamente lo que el 3D dibuja',
+      ok, DIBUJA[bv].slice().sort().join(',')]);
+  });
+  /* ── (C) la obstruccion subaortica ── */
+  const anillosGrises = (bv, obs) => {
+    if (!window._cm3d || typeof cmEscena !== 'function') return 'NO';
+    _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = bv; _cm3d.S.mods = {}; _cm3d.S.ck = obs ? { tobs:true } : {};
+    let sc = null; try { sc = cmEscena(_cm3d.S) } catch (e) { return 'EXC ' + String(e).slice(0, 50) }
+    if (!sc) return 'NULA';
+    return (sc.ex || []).filter((o) => o.t === 'ring').length;
+  };
+  ex.push(['(B0 DENOM) la escena de la d-TGA se arma', anillosGrises('d', false) !== 'NO', true]);
+  ['d','jat','mus','ras','cc'].forEach((bv) => {
+    const sin = anillosGrises(bv, false), con = anillosGrises(bv, true);
+    ex.push(['(C0) con obstruccion la variante ' + bv + ' agrega UN anillo', (con - sin), 1]);
+  });
+  ex.push(['(C1 CONTROL) sin la casilla la d-TGA no agrega ningun anillo',
+    anillosGrises('d', false), 0]);
+  /* el rotulo del anillo */
+  if (window._cm3d && typeof cmEscena === 'function') {
+    _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = 'd'; _cm3d.S.mods = {}; _cm3d.S.ck = { tobs:true };
+    let sc = null; try { sc = cmEscena(_cm3d.S) } catch (e) {}
+    const lb = sc ? (sc.lb || []).map((l) => l[0]).join('|') : '';
+    ex.push(['(C2) y lo rotula', lb.indexOf('Obstr. subaórtica') >= 0, true]);
+  }
+  /* ── (D) la pestania conserva su recuadro: la equivalencia del esquema NO cerro ── */
+  ex.push(['(D1 CONTROL) la pestania de la transposicion conserva su lienzo 3D',
+    !!EL('tga-3d-cv'), true]);
+  ex.push(['(D2) y su esquema de circulacion', !!EL('tga-esq-box'), true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-696 · TANDA PANT-14, COMMITS 4 a 6 — las siete lesiones conectadas a «Segun el estudio».
+   «Cargada» se le pregunta a `_CC_SECS`, que es el dueno unico; la estenosis pulmonar es la
+   unica sin entrada ahi y su predicado es `ep_grado`, el grado que la app calcula sola.
+   DENOMINADORES: (A0) cmDesdeEstudio y _cmSecsOn existen; cada bloque siembra su campo y
+   comprueba que el predicado se enciende.
+   CONTROLES NEGATIVOS: (N1) una velocidad pulmonar NORMAL no enciende la estenosis; (N2) la
+   coartacion sin situacion no se dibuja y se lista; (N3) «Mixto» no se dibuja y se lista;
+   (N4) el cero de it_grado no enciende la casilla; (N5) la fenestracion cerrada tampoco;
+   (N6) el defecto AV y el Fontan sin tipo no se dibujan y se listan; (N7) el estudio vacio
+   dibuja el corazon normal.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-696', 'Tanda PANT-14 (commits 4 a 6): el Fallot reparado, la coartacion, la estenosis pulmonar por nivel, las dos estenosis aorticas, el defecto AV, Ebstein y Fontan se dibujan desde lo cargado en sus pestanias, con sus casillas y sin inventar la variante que la pestania no tiene', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  __t.limpiar();
+  ex.push(['(A0 DENOM) cmDesdeEstudio existe', typeof window.cmDesdeEstudio === 'function', true]);
+  ex.push(['(A1 DENOM) _cmSecsOn existe', typeof window._cmSecsOn === 'function', true]);
+  const CAMPOS = ['tdf_func_vd','ip_grado','tdf_civ_residual','tdf_ep_stent','coa_istmo',
+    'coa_situacion','ep_nivel','ep_vmax','esub_tipo','esub_ia_asociada','easv_tipo',
+    'dsav_tipo','dsav_regurg_av_izq','ebs_desplazamiento','it_grado','fontan_tipo',
+    'fontan_fenestracion','fontan_saturacion'];
+  const limpiar = () => { CAMPOS.forEach((id) => { const e = EL(id); if (!e) return;
+    e.value = (id === 'ep_nivel') ? 'No especificado' : (id === 'ip_grado' ? 'Sin insuficiencia' : (id === 'it_grado' ? '0' : ''));
+    try { e.dispatchEvent(new Event('input', { bubbles: true }));
+          e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {} }) };
+  const poner = (pares) => { limpiar();
+    pares.forEach((c) => { const e = EL(c[0]); if (!e) return;
+      e.value = c[1];
+      try { e.dispatchEvent(new Event('input', { bubbles: true }));
+            e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {} }) };
+  const leer = () => { let r = null; try { r = cmDesdeEstudio() } catch (e) { return { ERR: String(e).slice(0, 70) } }
+    return { base:_cm3d.S.base, bv:_cm3d.S.bv[_cm3d.S.base] || '',
+             mods:Object.keys(_cm3d.S.mods).sort().map((k) => k + '=' + _cm3d.S.mods[k]).join(','),
+             ck:Object.keys(_cm3d.S.ck).sort().join(','),
+             omit:(_cm3d.omitidas || []).slice().sort().join(','),
+             chocan:(_cm3d.chocan || []).length } };
+  const caso2 = (etq, pares, esp) => { poner(pares); const r = leer();
+    ex.push([etq, r.base + '|' + r.bv + '|' + r.mods + '|' + r.ck + '|' + r.omit, esp]) };
+  /* ── el Fallot ── */
+  caso2('(B1) el Fallot reparado se dibuja como base operada',
+    [['tdf_func_vd','normal']], 'fal|op|||');
+  caso2('(B2) con sus tres casillas de residuales',
+    [['tdf_func_vd','leve'],['ip_grado','Severa'],['tdf_civ_residual','si'],['tdf_ep_stent','si']],
+    'fal|op||ip,rciv,rest|');
+  caso2('(B3) y la variante es SIEMPRE «operado»: «sin operar» no sale nunca del estudio',
+    [['tdf_grad_tsvd','40']], 'fal|op|||');
+  /* ── la coartacion ── */
+  caso2('(C1) la coartacion nativa', [['coa_istmo','8'],['coa_situacion','nativa']], 'norm||coa=nat||');
+  caso2('(C2) la reparada', [['coa_istmo','9'],['coa_situacion','post_cirugia']], 'norm||coa=rep||');
+  caso2('(C3) y la recoartacion enciende su casilla',
+    [['coa_istmo','9'],['coa_situacion','recoartacion']], 'norm||coa=rep|rec|');
+  caso2('(N2 CONTROL) cargada SIN la situacion no se dibuja y se lista',
+    [['coa_istmo','8']], 'norm||||coa');
+  /* ── la estenosis pulmonar ── */
+  caso2('(D1) la estenosis pulmonar valvular', [['ep_nivel','Valvular']], 'norm||ep=valv||');
+  caso2('(D2) la subvalvular', [['ep_nivel','Subvalvular (infundibular)']], 'norm||ep=sub||');
+  caso2('(D3) la supravalvular', [['ep_nivel','Supravalvular']], 'norm||ep=sup||');
+  caso2('(D4) y las ramas, que caen en la supravalvular', [['ep_nivel','Ramas pulmonares']], 'norm||ep=sup||');
+  caso2('(N1 CONTROL) una velocidad pulmonar NORMAL no enciende la lesion',
+    [['ep_vmax','1.0']], 'norm||||');
+  caso2('(N3 CONTROL) «Mixto» no tiene variante: no se dibuja y se lista',
+    [['ep_nivel','Mixto']], 'norm||||ep');
+  /* ── las dos aorticas ── */
+  caso2('(E1) la estenosis subaortica', [['esub_tipo','membrana']], 'norm||ea=sub||');
+  caso2('(E2) con su insuficiencia aortica asociada',
+    [['esub_tipo','membrana'],['esub_ia_asociada','moderada']], 'norm||ea=sub|iao|');
+  caso2('(E3) la supravalvular aortica', [['easv_tipo','reloj']], 'norm||ea=sup||');
+  poner([['esub_tipo','membrana'],['easv_tipo','reloj']]);
+  const rea = leer();
+  ex.push(['(E4) las dos juntas dibujan la subaortica', rea.mods, 'ea=sub']);
+  ex.push(['(E5) y el conflicto se lista', rea.chocan >= 1, true]);
+  /* ── el defecto AV ── */
+  caso2('(F1) el defecto AV parcial', [['dsav_tipo','parcial']], 'dsav|par|||');
+  caso2('(F2) el intermedio es la variante transicional', [['dsav_tipo','intermedio']], 'dsav|tra|||');
+  caso2('(F3) el completo con su insuficiencia AV izquierda',
+    [['dsav_tipo','completo'],['dsav_regurg_av_izq','severa']], 'dsav|com||iav|');
+  caso2('(N6a CONTROL) sin tipo no se dibuja y se lista', [['dsav_tipo','noesp']], 'norm||||dsav');
+  /* ── Ebstein ── */
+  caso2('(G1) Ebstein', [['ebs_desplazamiento','14']], 'ebs|std|||');
+  caso2('(G2) con su insuficiencia tricuspidea',
+    [['ebs_desplazamiento','14'],['it_grado','4']], 'ebs|std||eit|');
+  caso2('(N4 CONTROL) el cero de it_grado NO es un grado',
+    [['ebs_desplazamiento','14'],['it_grado','0']], 'ebs|std|||');
+  /* ── Fontan ── */
+  caso2('(H1) el Fontan extracardiaco con su fenestracion',
+    [['fontan_tipo','extra'],['fontan_fenestracion','presente']], 'fon|ext||fen|');
+  caso2('(H2) el tunel lateral', [['fontan_tipo','tunel']], 'fon|tun|||');
+  caso2('(H3) el atriopulmonar', [['fontan_tipo','ap']], 'fon|atr|||');
+  caso2('(N5 CONTROL) la fenestracion CERRADA no enciende la casilla',
+    [['fontan_tipo','extra'],['fontan_fenestracion','cerrada']], 'fon|ext|||');
+  caso2('(N5b CONTROL) y el atriopulmonar no la tiene ni con «presente»',
+    [['fontan_tipo','ap'],['fontan_fenestracion','presente']], 'fon|atr|||');
+  caso2('(N6b CONTROL) sin tipo no se dibuja y se lista',
+    [['fontan_tipo','noesp'],['fontan_saturacion','92']], 'norm||||fontan');
+  /* ── el estudio vacio ── */
+  caso2('(N7 CONTROL) el estudio vacio dibuja el corazon normal y no lista nada',
+    [], 'norm||||');
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-697 · TANDA PANT-14, COMMIT 6 — la UNICA anatomia de base y su orden de prioridad.
+   El orden que el medico fijo: transposicion, Fallot, defecto AV, Ebstein, Fontan.
+   DENOMINADORES: (A0) cada base SOLA se dibuja -sin eso un par no prueba nada-.
+   CONTROLES NEGATIVOS: (C1) la linea NO dice «todas dibujadas» cuando hay un conflicto;
+   (C2) con una sola base no hay nada en la lista de conflictos.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-697', 'Tanda PANT-14 (commit 6): con mas de una anatomia de base cargada se dibuja UNA, por el orden transposicion, Fallot, defecto AV, Ebstein y Fontan, y las que pierden se listan en la linea de abajo del dibujo, que ya no afirma que esta todo dibujado', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  __t.limpiar();
+  const BASES = [
+    { n:'tga',  b:'tga',  id:'tga_tipo',          v:'dtga' },
+    { n:'fal',  b:'fal',  id:'tdf_func_vd',       v:'normal' },
+    { n:'dsav', b:'dsav', id:'dsav_tipo',         v:'parcial' },
+    { n:'ebs',  b:'ebs',  id:'ebs_desplazamiento',v:'14' },
+    { n:'fon',  b:'fon',  id:'fontan_tipo',       v:'extra' }
+  ];
+  const PRIO = ['tga','fal','dsav','ebs','fon'];
+  const esc = (ids) => {
+    BASES.forEach((x) => { const e = EL(x.id); if (!e) return; e.value = '';
+      try { e.dispatchEvent(new Event('input', { bubbles: true }));
+            e.dispatchEvent(new Event('change', { bubbles: true })) } catch (q) {} });
+    ids.forEach((n) => { const x = BASES.filter((y) => y.n === n)[0]; const e = EL(x.id); if (!e) return;
+      e.value = x.v;
+      try { e.dispatchEvent(new Event('input', { bubbles: true }));
+            e.dispatchEvent(new Event('change', { bubbles: true })) } catch (q) {} });
+    try { cmDesdeEstudio() } catch (q) { return { ERR: String(q).slice(0, 60) } }
+    let linea = '';
+    try { if (typeof cc3dTextoSync === 'function') cc3dTextoSync();
+          const p = EL('cc3d-faltan'); linea = p ? p.textContent.trim() : '' } catch (q) {}
+    return { base:_cm3d.S.base, chocan:(_cm3d.chocan || []).length, linea:linea };
+  };
+  /* ── (A) cada base SOLA: el denominador ── */
+  BASES.forEach((x) => { const r = esc([x.n]);
+    ex.push(['(A0 DENOM) la base ' + x.n + ' sola se dibuja', r.base, x.b]);
+    ex.push(['(C2 CONTROL) y sola no lista ningun conflicto', r.chocan, 0]) });
+  /* ── (B) los DIEZ pares ── */
+  for (let i = 0; i < BASES.length; i++) for (let j = i + 1; j < BASES.length; j++) {
+    const a = BASES[i], b = BASES[j];
+    const gana = PRIO.indexOf(a.n) < PRIO.indexOf(b.n) ? a : b;
+    const r = esc([a.n, b.n]);
+    ex.push(['(B1) el par ' + a.n + '+' + b.n + ' dibuja ' + gana.n, r.base, gana.b]);
+    ex.push(['(B2) y lo dice en la linea', r.chocan >= 1, true]);
+  }
+  /* ── (C1) la linea no se contradice ── */
+  const rc = esc(['tga', 'fal']);
+  ex.push(['(C1 CONTROL) con un conflicto la linea NO dice «todas dibujadas»',
+    rc.linea.indexOf('Todas las lesiones cargadas') < 0, true]);
+  ex.push(['(C1b) y SI nombra lo que no se dibuja junto',
+    rc.linea.indexOf('No se dibujan juntas') >= 0, true]);
+  const rv = esc([]);
+  ex.push(['(C3) el estudio vacio dice que se muestra el corazon normal',
+    rv.linea.indexOf('Sin lesiones cargadas que dibujar') >= 0, true]);
+  const ru = esc(['ebs']);
+  ex.push(['(C4) con una sola base dice que esta todo dibujado',
+    ru.linea.indexOf('Todas las lesiones cargadas') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-698 · TANDA PANT-14 — «Segun el estudio» SOLO LEE: no escribe un solo campo, y el papel
+   no cambia por nada de esta tanda.
+   DENOMINADORES: (A0) hay campos que contar; (B0) la lesion queda dibujada, asi que el barrido
+   recorrio una escena real y no una vacia.
+   CONTROL NEGATIVO: (C1) el censo de campos y las columnas de Excel no se movieron.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-698', 'Tanda PANT-14: cmDesdeEstudio SOLO LEE —recorrerla con cada lesion cargada no escribe ni borra un solo campo del estudio— y la tanda no agrega campos guardados ni columnas de Excel', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  __t.limpiar();
+  const foto = () => { const o = {};
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach((e) => {
+      o[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '') });
+    return o };
+  /* se siembra SIN despachar eventos: asi lo unico que puede mover un campo es el modulo */
+  const sembrar = (pares) => pares.forEach((c) => { const e = EL(c[0]); if (!e) return; e.value = c[1] });
+  const SIEMBRAS = [
+    [['tdf_func_vd','normal'],['ip_grado','Severa']],
+    [['coa_istmo','8'],['coa_situacion','nativa']],
+    [['ep_nivel','Valvular']],
+    [['esub_tipo','membrana']],
+    [['dsav_tipo','completo']],
+    [['ebs_desplazamiento','14'],['it_grado','4']],
+    [['fontan_tipo','extra'],['fontan_fenestracion','presente']]
+  ];
+  let movidosTotal = 0, dibujadas = 0;
+  for (const sb of SIEMBRAS) {
+    sembrar(sb);
+    const antes = foto();
+    ex.push(['(A0 DENOM) hay campos que contar', Object.keys(antes).length > 500, true]);
+    try { cmDesdeEstudio(); cmDesdeEstudio() } catch (e) {}
+    if (_cm3d && (_cm3d.S.base !== 'norm' || Object.keys(_cm3d.S.mods).length)) dibujadas++;
+    const despues = foto();
+    movidosTotal += Object.keys(antes).filter((k) => antes[k] !== despues[k]).length;
+  }
+  ex.push(['(B0 DENOM) las siete siembras dejan una lesion dibujada', dibujadas, 7]);
+  ex.push(['(B1) y recorrerlas no movio UN SOLO campo del estudio', movidosTotal, 0]);
+  /* ── (C) los denominadores de la tanda ── */
+  let nCols = 'NO FN';
+  try { if (typeof LAB_XLS_MAP !== 'undefined') nCols = Object.keys(LAB_XLS_MAP).length }
+  catch (e) { try { nCols = Object.keys(window.LAB_XLS_MAP || {}).length } catch (q) { nCols = 'NO' } }
+  ex.push(['(C1 CONTROL) el Excel sigue en 441 columnas', nCols, 441]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
