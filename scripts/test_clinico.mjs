@@ -100831,7 +100831,9 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
               POSOPERATORIO, de familia propia y DOS tercios de franja. El conteo ES el
               denominador: agregar una fila sin adaptarlo pone esto en rojo, que es lo que se
               quiere. */
-           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (9 filas)']);
+           /* ⚠️ ADAPTADO 2026-11-04 («PANT-13», commit 3): 9 -> 10. La nueva es el CORAZON
+              MAESTRO en 3D, de familia cc -como la CIA y la transposicion- y media franja. */
+           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (10 filas)']);
   if (!hay) return { extra: EXP };
 
   const forma = (r) => r.hojas.map(h => h.map(it =>
@@ -100844,7 +100846,9 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
            PDF_DIAG_REG.map(d => d.k + '/' + d.w + '/' + d.fam).join(' '),
            /* ADAPTADO 2026-10-31 (TGA-2): el esquema 3D de la transposicion entra al FINAL,
               detras de la CIA, con la misma familia cc y media franja. */
-           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc pop/2/pop']);
+           /* ADAPTADO 2026-11-04 (PANT-13, commit 3): el corazon maestro entra detras del
+              esquema 3D de la transposicion, con la misma familia cc y media franja. */
+           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc cm3d/1/cc pop/2/pop']);
 
   /* ── (E2) R-2: Contractilidad y SGL PRIMERO, juntos, a todo el ancho ── */
   ex.push(['(E2) R-2: contr va primero y a franja completa',
@@ -101379,8 +101383,11 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
      esquema del POSOPERATORIO, que es de familia propia. Lo que esta condicion vigila es la
      posicion relativa del 3D de la transposicion, asi que se le pregunta por ella y no por el
      final de la lista: sigue yendo DETRAS de la CIA. */
-  ex.push(['(H2) y va DETRAS de la CIA, con el esquema del posoperatorio cerrando el registro',
-           REG.map(d => d.k).slice(-3).join(','), 'cia,tga3d,pop']);
+  /* ⚠️ ADAPTADA EN PANT-13 (commit 3): entre el 3D de la transposicion y el del posoperatorio
+     entro el CORAZON MAESTRO, tambien de familia cc. Lo que esta condicion vigila sigue siendo
+     la posicion relativa del 3D de la transposicion: detras de la CIA. */
+  ex.push(['(H2) y va DETRAS de la CIA, con el corazon maestro y el posoperatorio detras',
+           REG.map(d => d.k).slice(-4).join(','), 'cia,tga3d,cm3d,pop']);
   const pk = FN('pdfDiagPack') ? FN('pdfDiagPack')(['contr', 'cia', 'tga3d'], []) : { hojas: [] };
   ex.push(['(H3) los dos congenitos comparten franja y entran en una hoja',
            pk.hojas.length + ': ' + pk.hojas.map(h => h.map(i => i.ids.join('+')).join(' | ')).join(' // '),
