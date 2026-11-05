@@ -103502,7 +103502,8 @@ window.cc3dPieSync = cc3dPieSync;
    asi que dejarlas afuera haria que la linea las siguiera listando como «cargadas y no
    dibujadas» mientras el dibujo las muestra. La lista y el dibujo preguntan lo MISMO
    -`_CC_SECS`-, asi que no pueden discrepar. */
-const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga', 'tdf', 'coa']);
+const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga', 'tdf', 'coa',
+                                   'esub', 'easv']);
 /* ⚠️ LA TRANSPOSICION SALE DE LA LISTA DE «no dibujadas» POR SU PROPIA PUERTA. Si se la deja
    caer ahi, la linea dice las dos cosas a la vez —«Cargadas y no dibujadas todavia: TGA» y «La
    transposicion tiene su propio diagrama»—, que se contradicen. Lo que es cierto es lo segundo:
@@ -103559,7 +103560,9 @@ function cc3dTextoSync() {
      linea publica la sigla interna en vez del nombre de la lesion. Las nuevas son de PANT-14. */
   const ROT = { cia:'CIA', civ:'CIV', dap:'ductus', vap:'ventana aortopulmonar',
                 cvpa:'conexión venosa anómala', eisen:'Eisenmenger',
-                coa:'coartación (falta consignar si es nativa o reparada)' };
+                coa:'coartación (falta consignar si es nativa o reparada)',
+                ep:'estenosis pulmonar (falta consignar el nivel)',
+                ea:'estenosis subaórtica o supravalvular' };
   if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.length) {
     partes.push('Cargadas con una opción que el dibujo no distingue: '
       + _cm3d.omitidas.map(function (k) { return ROT[k] || k }).join(', ') + '.');
@@ -105188,6 +105191,12 @@ function cmDesdeEstudio() {
   const S = _cm3d.S;
   S.base = 'norm'; S.mods = {}; S.ck = {}; S.src = ''; S.dir = {};
   const omit = [];   /* lo que esta cargado y el dibujo todavia no puede mostrar */
+  /* ⚠️ `chocan` SE DECLARA ACA ARRIBA Y NO JUNTO A LAS REGLAS DE COMPATIBILIDAD, y lo destapo un
+     caso de prueba: las dos estenosis aorticas cargadas a la vez escriben un conflicto ANTES de
+     ese punto, y con la declaracion abajo caia en la ZONA MUERTA del `const` -«Cannot access
+     chocan before initialization»-, que aborta la funcion entera. Es la leccion que PANT-13
+     pago con una exposicion de solo lectura cuarenta lineas antes de su `const`. */
+  const chocan = [];   /* lo que no se dibuja junto con otra cosa, con su motivo */
 
   /* ── LA TRANSPOSICION, LA SEXTA BASE -PANT-13, commit 4- ───────────────────────────────────
      ⚠️ LA VARIANTE NO SE DEDUCE DE DOS CAMPOS A MANO: se le pregunta a `tgaEjes`, que es el
@@ -105267,6 +105276,55 @@ function cmDesdeEstudio() {
      se dilata por muchas causas- y el medico lo pidio asi. */
   if (CH('otr_var_vcsip')) S.mods.vcs = 'std';
 
+  /* ── LA ESTENOSIS PULMONAR -PANT-14, commit 5- ───────────────────────────────────────────
+     ⚠️ ESTA LESION NO TIENE ENTRADA EN `_CC_SECS` -censado el registro entero, es la unica de
+     las siete sin duenio ahi-, asi que su predicado se escribe aca. Y NO PUEDE SER «su campo no
+     esta vacio»: medido, sin tocar nada `ep_nivel` vale «No especificado», `ep_etiologia` vale
+     «No especificada» y `ep_grado` vale «sin», y sus opciones no llevan atributo `value`. Un
+     predicado por campo vacio daria verdadero en TODOS los estudios, que es el defecto que
+     `_CC_SECS` ya documenta para `fop_acv`.
+     LO QUE SE PREGUNTA ES `ep_grado`, que es el grado que la app calcula sola desde la velocidad
+     y es su forma de decir «hay una estenosis pulmonar y es de este grado». Medido: con la
+     velocidad vacia y con 1,0 m/s vale «sin»; con 1,8 «Leve», con 3,5 «Moderada» y con 4,5
+     «Severa». Asi que una velocidad pulmonar NORMAL -que se mide en todos los estudios- NO
+     enciende la lesion, que es justo lo que hay que evitar. Se suman el nivel y la etiologia
+     consignados, porque consignarlos tambien afirma que hay una estenosis.
+     EL NIVEL define la variante. «Ramas pulmonares» cae en `sup`, que en el modulo se llama
+     «Supravalvular o de ramas». «Mixto» y «No especificado» NO tienen variante unica: la lesion
+     NO se dibuja y la linea lo dice, que es el ejemplo que la orden pone. */
+  const epGrado = V('ep_grado'), epNivel = V('ep_nivel'), epEtio = V('ep_etiologia');
+  const epHay = (epGrado !== '' && epGrado !== 'sin')
+             || (epNivel !== '' && epNivel !== 'No especificado')
+             || (epEtio !== '' && epEtio !== 'No especificada');
+  if (epHay) {
+    const EP_VAR = { 'Valvular':'valv', 'Subvalvular (infundibular)':'sub',
+                     'Supravalvular':'sup', 'Ramas pulmonares':'sup' };
+    const v = EP_VAR[epNivel];
+    if (v) { S.mods.ep = v } else { omit.push('ep') }
+  }
+
+  /* ── LA ESTENOSIS SUBAORTICA Y LA SUPRAVALVULAR AORTICA -PANT-14, commit 5- ───────────────
+     Son DOS secciones de la app y UNA sola lesion del dibujo -`ea`, con sus dos variantes-, asi
+     que con las dos cargadas solo una se puede dibujar: es un conflicto y se lista con su
+     motivo. Se dibuja la SUBAORTICA, que es la primera variante del registro del modulo; la
+     eleccion es el orden propio del modulo y no una prioridad clinica, y queda declarada.
+     Las CUATRO opciones de cada selector caen en la MISMA variante, asi que «no especificado»
+     no impide dibujarla: lo que la variante necesita es saber si es subaortica o supravalvular,
+     y eso lo dice la seccion en la que el medico cargo el dato.
+     La casilla `iao` sale de `esub_ia_asociada` con cualquier grado distinto de «no». La
+     supravalvular NO TIENE campo de insuficiencia aortica asociada -censado-, asi que con ella
+     la casilla queda apagada. Declarado en docs/PENDIENTES.md. */
+  if (ON.esub && ON.easv) {
+    S.mods.ea = 'sub';
+    chocan.push('estenosis supravalvular aórtica: no se dibuja junto con la subaórtica');
+    if (_cmGrado(V('esub_ia_asociada'), ['no'])) S.ck.iao = true;
+  } else if (ON.esub) {
+    S.mods.ea = 'sub';
+    if (_cmGrado(V('esub_ia_asociada'), ['no'])) S.ck.iao = true;
+  } else if (ON.easv) {
+    S.mods.ea = 'sup';
+  }
+
   /* ── LA COARTACION DE AORTA -PANT-14, commit 4- ───────────────────────────────────────────
      `coa_situacion` es el campo que dice si es NATIVA o REPARADA, y es el que define la variante
      del dibujo. El registro cuenta la coartacion como cargada por `coa_loc` o `coa_istmo`, asi
@@ -105311,7 +105369,6 @@ function cmDesdeEstudio() {
   });
 
   /* ── las reglas de compatibilidad: se dibuja lo que se pueda y la linea lo dice ─────────── */
-  const chocan = [];
   Object.keys(S.mods).slice().forEach(function (k) {
     const r = cmBloqueado(k, S);
     if (r) { delete S.mods[k]; chocan.push(k + ': ' + r) }
@@ -160669,8 +160726,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-0901';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793880077953;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0910';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793880625211;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160756,7 +160813,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0901</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0910</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

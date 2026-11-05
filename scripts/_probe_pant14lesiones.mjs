@@ -31,6 +31,33 @@ const CASOS = [
   /* CONTROL NEGATIVO: cargada sin la situacion -no se dibuja y la linea lo dice- */
   { n:'coaSinSit', campos:[['coa_istmo','8']],
     esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['coa'] } },
+  /* ── commit 5: la estenosis pulmonar y las dos aorticas ── */
+  { n:'epValv',    campos:[['ep_nivel','Valvular'],['ep_vmax','3.5']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ep:'valv'} } },
+  { n:'epSub',     campos:[['ep_nivel','Subvalvular (infundibular)']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ep:'sub'} } },
+  { n:'epSup',     campos:[['ep_nivel','Supravalvular']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ep:'sup'} } },
+  { n:'epRamas',   campos:[['ep_nivel','Ramas pulmonares']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ep:'sup'} } },
+  /* CONTROL NEGATIVO: con grado pero SIN nivel no se dibuja y la linea lo dice */
+  { n:'epSinNivel',campos:[['ep_vmax','3.5']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['ep'] } },
+  /* CONTROL NEGATIVO: una velocidad pulmonar NORMAL no enciende la lesion */
+  { n:'epNormal',  campos:[['ep_vmax','1.0']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{} } },
+  /* CONTROL NEGATIVO: «Mixto» no tiene variante unica */
+  { n:'epMixto',   campos:[['ep_nivel','Mixto']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{}, omit:['ep'] } },
+  { n:'esub',      campos:[['esub_tipo','membrana']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ea:'sub'} } },
+  { n:'esubIAo',   campos:[['esub_tipo','membrana'],['esub_ia_asociada','moderada']],
+    esperado:{ base:'norm', bv:null, ck:{iao:true}, mods:{ea:'sub'} } },
+  { n:'easv',      campos:[['easv_tipo','reloj']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ea:'sup'} } },
+  /* CONFLICTO: las dos cargadas -se dibuja la subaortica y la otra se lista */
+  { n:'eaDos',     campos:[['esub_tipo','membrana'],['easv_tipo','reloj']],
+    esperado:{ base:'norm', bv:null, ck:{}, mods:{ea:'sub'} } },
   /* CONTROL NEGATIVO: el estudio vacio dibuja el corazon normal y no lista nada */
   { n:'vacio',     campos:[], esperado:{ base:'norm', bv:null, ck:{}, mods:{} } },
 ];
