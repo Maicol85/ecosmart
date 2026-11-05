@@ -21338,7 +21338,20 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                       aria-label="Mostrar el esquema de circulaci&oacute;n" title="Esquema de circulaci&oacute;n">&#9707;</button>
             </div>
             <div class="cm3d-sch" id="cm3d-sch" hidden>
-              <div class="cm3d-schh">Esquema de circulaci&oacute;n</div>
+              <!-- ⚠️ EL GLOBO DEL ESQUEMA SE REPONE ACA (PANT-14b, commit 8), y lo destapo un caso
+                   de prueba: TC-624 abre el ⓘ `tga-esq` y con el recuadro de la pestania oculto su
+                   boton quedo sin caja, asi que la tarjeta no abria. Ese texto explica que es el
+                   esquema y que no es una imagen del estudio: perderlo de vista seria perder un
+                   aviso que evita un error.
+                   ⚠️ ES LA MISMA CLAVE DEL REGISTRO -`tga-esq`- y no un texto nuevo: un solo dueno
+                   para los dos botones, que es lo que PANT-7 dejo funcionando cuando una clave
+                   tiene dos botones en dos pantallas. -->
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="cm3d-schh" style="flex:1 1 auto;">Esquema de circulaci&oacute;n</span>
+                <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tga-esq"
+                        aria-label="Qué muestra el esquema de circulación"
+                        onclick="vInfoClic(this,event)">&#9432;</button>
+              </div>
               <svg id="cm3d-schsvg" viewBox="0 0 300 290" width="100%" role="img" aria-label="Esquema de circulaci&oacute;n"></svg>
               <div class="cm3d-leg2">
                 <span><span class="cm3d-sw" style="background:#2f6fd0"></span>poco oxigenada</span>
@@ -103384,8 +103397,44 @@ function tgaEsqCuerpo(k, sh) {
          '" class="tga-esq-rot" paint-order="stroke" stroke="var(--bg3)" stroke-width="3.5" ' +
          'stroke-linejoin="round" fill="' + l[3] + '">' + _tgaEsqTxt(l[0]) + '</text>';
   });
-  return s;
+  /* ⚠️ UNA SOLA PASADA AL FINAL, y no un color resuelto en cada linea: asi el dia que se agregue
+     una pieza no hay que acordarse de resolverla, y el marcado que sale de aca NO lleva un solo
+     `var()`. Es la regla fija del proyecto y lo que TC-693 cuenta. */
+  return tgaEsqResolver(s);
 }
+/* ══ LOS COLORES SE RESUELVEN AL DIBUJAR (PANT-14b, commit 8) ══════════════════════════════
+   ⚠️ ES UNA REGLA FIJA DE ESTE PROYECTO: «un dibujo NO escribe `var()` en un atributo; resuelve
+   el color al dibujar, desde los estilos calculados, con un respaldo explicito por tema».
+   ⚠️ Y LO CAZO UN CASO DE PRUEBA, NO LA LECTURA: TC-693, que PANT-14 escribio justamente para
+   eso, se puso rojo al delegar este esquema en el modulo -«6 cajas con relleno negro» y «queda
+   un var() en el marcado»-. La causa: este esquema pintaba sus cuatro cavidades y sus dos
+   valvulas con `fill="var(--bg)"`, o sea el FONDO DE LA PAGINA: en el tema oscuro es
+   rgb(15,17,23) y las cajas solo se distinguian por su borde. El esquema propio del modulo ya
+   habia resuelto esa pregunta en PANT-14 con `--bg2`, que es el fondo de TARJETA.
+   LA PALETA ES LA DEL MODULO -`cmSchPal`-, que ya trae sus respaldos por tema y VALIDA el valor
+   antes de que entre al marcado: un solo dueno de los colores de los dos esquemas.
+   Los tres colores de la circulacion -azul, rojo y naranja- se resuelven igual, con su literal
+   como respaldo, que es el mismo numero que la hoja de estilos declara. */
+const TGA_ESQ_RESP = Object.freeze({ '--tga-esq-azul':'#2f6fd0', '--tga-esq-rojo':'#d8433b',
+                                     '--tga-esq-naranja':'#e08a1e' });
+function tgaEsqResolver(txt) {
+  let t = String(txt == null ? '' : txt);
+  if (t.indexOf('var(--') < 0) return t;
+  const P = (typeof cmSchPal === 'function') ? cmSchPal()
+          : { card:'#181c27', borde:'#2a3050', texto:'#e8ecf4', texto2:'#9aa3bc' };
+  const MAPA = { '--bg':P.card, '--bg3':P.card, '--card':P.card, '--border':P.borde,
+                 '--text':P.texto, '--text2':P.texto2 };
+  const COLOR_OK = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\/ +-]*\)|[a-zA-Z]{3,24})$/;
+  let cs = null; try { cs = getComputedStyle(document.documentElement) } catch (e) { cs = null }
+  return t.replace(/var\(\s*(--[A-Za-z0-9_-]+)\s*\)/g, function (todo, nom) {
+    if (MAPA[nom]) return MAPA[nom];
+    let x = '';
+    if (cs) { try { x = String(cs.getPropertyValue(nom) || '').trim() } catch (e) { x = '' } }
+    if (x && COLOR_OK.test(x)) return x;
+    return TGA_ESQ_RESP[nom] || P.texto2;
+  });
+}
+window.tgaEsqResolver = tgaEsqResolver;
 window.tgaEsqCuerpo = tgaEsqCuerpo;
 /* El envoltorio: el `<svg>` que la pestania escribe por `innerHTML` dentro de su contenedor. */
 function tgaEsqSVG(k, sh) {
@@ -161208,8 +161257,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1449';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793900955664;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1510';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793902214611;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161295,7 +161344,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1449</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1510</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

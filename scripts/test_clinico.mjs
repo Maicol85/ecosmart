@@ -101310,8 +101310,13 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
     return 'ar' + e.ar.length + ' fl' + e.fl.length + ' ex' + e.ex.length + ' ' + e.lb.map(x => x[0]).join('/'); };
   ex.push(['(C1) corazon normal', firma('norm', ''), 'ar3 fl3 ex0 AD/AI/VD/VI/Ao/AP']);
   ex.push(['(C2) d-TGA sin cirugia', firma('dtga', ''), 'ar3 fl3 ex0 AD/AI/VD/VI/Ao/AP']);
-  ex.push(['(C3) d-TGA con switch auricular: dos tuneles mas',
-           firma('dtga', 'auricular'), 'ar3 fl3 ex2 AD/AI/VD/VI/Ao/AP']);
+  /* ⚠️ ADAPTADO EN PANT-14b (commit 6): los dos caminos del tunel ganaron su ROTULO —«Tunel
+     cavas» y «Tunel venas pulm.»—, que es lo que el medico pidio para entender de donde a donde
+     va. La condicion queda MAS FUERTE que antes: exige los dos rotulos nuevos Y que los seis de
+     siempre sigan, asi que puede fallar por los dos lados. */
+  ex.push(['(C3) d-TGA con switch auricular: dos tuneles mas, cada uno con su rotulo',
+           firma('dtga', 'auricular'),
+           'ar3 fl3 ex2 AD/AI/VD/VI/Ao/AP/Túnel cavas/Túnel venas pulm.']);
   ex.push(['(C4) L-TGA: los ventriculos se rotulan como morfologicos',
            firma('ltga', ''), 'ar3 fl3 ex0 AD/AI/VI morf./VD morf./Ao/AP']);
   ex.push(['(C5) CONTROL NEGATIVO: con L-TGA la cirugia no cambia la escena',
@@ -107504,12 +107509,21 @@ caso('TC-601', 'Tanda TGA-3: la conclusion de la TGA vive en la columna izquierd
   const g = EL('tga-campos');
   ex.push(['(B4) es el ULTIMO hijo de la grilla',
            g ? (g.children[g.children.length - 1] === caja) : 'NO HAY', true]);
-  /* ── 3 · #tga-fila SIGUE CON DOS HIJOS: lo que deja la maqueta de 900 px intacta ────────── */
-  ex.push(['(B5) la fila tiene exactamente DOS hijos',
-           EL('tga-fila') ? EL('tga-fila').children.length : 'NO HAY', 2]);
-  ex.push(['(B6) los dos hijos son la grilla y el recuadro del 3D',
-           EL('tga-fila') ? Array.prototype.map.call(EL('tga-fila').children, function (c) { return c.id; }).join(',') : 'NO HAY',
-           'tga-campos,tga-3d-box']);
+  /* ── 3 · #tga-fila: TRES hijos desde PANT-14b ───────────────────────────────────────────── */
+  /* ⚠️ ADAPTADO EN PANT-14b (commit 5): el recuadro de dibujo de esta pestania se retiro de la
+     vista y en su lugar quedo el boton «Ver en 3D», que es un hijo mas de la fila. El recuadro
+     NO se borro —sus ids los leen el recolector del PDF y varios casos—, asi que la fila pasa de
+     dos hijos a tres. La condicion queda MAS FUERTE: exige los tres, el orden, y que el recuadro
+     siga en el documento pero OCULTO, asi que puede fallar por los dos lados. */
+  ex.push(['(B5) la fila tiene exactamente TRES hijos',
+           EL('tga-fila') ? EL('tga-fila').children.length : 'NO HAY', 3]);
+  ex.push(['(B5b) el recuadro viejo sigue en el documento pero OCULTO',
+           EL('tga-3d-box') ? getComputedStyle(EL('tga-3d-box')).display : 'NO HAY', 'none']);
+  ex.push(['(B5c) y el boton «Ver en 3D» esta en su lugar', !!EL('tga-ver3d'), true]);
+  ex.push(['(B6) los tres hijos son la grilla, el boton «Ver en 3D» y el recuadro del 3D',
+           EL('tga-fila') ? Array.prototype.map.call(EL('tga-fila').children, function (c) {
+             return c.id || (c.querySelector('#tga-ver3d') ? 'ver3d' : ''); }).join(',') : 'NO HAY',
+           'tga-campos,ver3d,tga-3d-box']);
   /* ── 4 · LA REGLA DE ANCHO COMPLETO EXISTE EN LA HOJA DE ESTILOS ──────────────────────────
      La geometria no se puede medir a 756 px, pero la REGLA si: si alguien la saca, la
      conclusion cae en una de las dos columnas de la grilla y parte los campos. */
@@ -107713,8 +107727,12 @@ caso('TC-603', 'Tanda TGA-3: el esquema de circulacion dibuja el escenario que l
            cav(), 'VD,Aurícula,Túnel,VI']);
   pon('tga_tipo', 'dtga'); pon('tga_cirugia', 'jatene'); await esperar(420);
   ex.push(['(I7) Jatene: vuelve al circuito en serie', cav(), 'VD,AI,AD,VI']);
+  /* ⚠️ ADAPTADA EN PANT-14b (commit 8): el esquema resuelve sus colores al dibujar, por la regla
+     fija del proyecto, asi que el marcado ya no dice «naranja» sino el valor de esa variable.
+     Lo que la condicion vigila —que las suturas del Jatene se dibujen y en SU color— no se
+     movio: se busca el color resuelto, que la hoja de estilos declara en #e08a1e. */
   ex.push(['(I8) Jatene: dibuja las marcas naranjas de las suturas',
-           html().indexOf('naranja') >= 0, true]);
+           (html().indexOf('e08a1e') >= 0) || (html().indexOf('224, 138, 30') >= 0), true]);
   pon('tga_cirugia', 'rastelli'); await esperar(420);
   ex.push(['(I9) Rastelli: las cavidades del corazon normal', cav(), 'VD,AI,AD,VI']);
   pon('tga_tipo', 'cctga'); pon('tga_cirugia', ''); await esperar(420);
@@ -109026,8 +109044,20 @@ caso('TC-619', 'Tanda PANT-2: el esquema que va al PDF se rasteriza con los colo
   let tx = '';
   try { tx = svg ? new XMLSerializer().serializeToString(svg) : '' } catch (e) { tx = '' }
   const nVarDom = tx.split('var(--').length - 1;
-  ex.push(['(A3) DENOM: su marcado del DOM USA variables de CSS -ahi si existen-',
-    nVarDom > 20, true]);
+  /* ⚠️ INVERTIDA EN PANT-14b (commit 8), Y LA DA VUELTA UNA REGLA FIJA DEL PROYECTO, no una
+     preferencia. Este denominador decia «su marcado del DOM USA variables de CSS» y era cierto
+     cuando se escribio; desde PANT-14 CLAUDE.md fija que «un dibujo NO escribe var() en un
+     atributo: resuelve el color al dibujar, desde los estilos calculados, con un respaldo
+     explicito por tema», y PANT-14b hizo que este esquema la cumpla —lo cazo TC-693 al ponerse
+     rojo cuando el modulo paso a delegar en el, con «6 cajas con relleno negro»: las cuatro
+     cavidades y las dos valvulas se pintaban con el FONDO DE LA PAGINA, rgb(15,17,23)—.
+     La condicion queda MAS FUERTE: exige CERO variables en el DOM Y que los colores resueltos
+     sean colores escribibles, asi que puede fallar por los dos lados. */
+  ex.push(['(A3) el marcado del DOM NO deja una sola variable de CSS sin resolver',
+    nVarDom, 0]);
+  ex.push(['(A3b) y lo que quedo son colores escribibles, no cadenas vacias',
+    (tx.match(/fill="[^"]*"/g) || []).filter(function (a) {
+      return /fill="(#|rgb|hsl|[a-zA-Z]{3,})/.test(a) }).length > 8, true]);
   /* (B) EL ARREGLO: fuera del documento no existen, asi que se resuelven antes de serializar. */
   const res = (typeof window.esqSvgParaRaster === 'function') ? window.esqSvgParaRaster(tx) : tx;
   ex.push(['(B1) el marcado que se rasteriza no deja NINGUNA variable sin resolver',
@@ -109740,24 +109770,38 @@ caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan 
   ex.push(['(A3) la CIA nace sin marcar', chk('ete_cia_activa'), 0]);
   ex.push(['(A4) la CIV nace sin marcar', chk('ete_civ_activa'), 0]);
 
-  /* (B) CON DATOS Y SIN MARCAR NO SE EMITE NADA. Es la regla (v) del pedido del medico. */
+  /* (B) ⚠️ INVERTIDA EN PANT-14b (commit 2), Y ES EL DIA QUE ESTE CASO ANUNCIABA. Decia «con
+     datos cargados y el boton APAGADO la CIA no entra al informe», que era la regla (v) del
+     pedido del medico de PANT-3 y era cierto cuando se escribio. La DECISION DEL MEDICO del
+     05/11/2026 la revierte: un dato que identifica la lesion -el tipo de CIA- dice que la lesion
+     esta presente, asi que el interruptor se enciende SOLO y la seccion entra al informe. El
+     dibujo y el informe leen el MISMO predicado y ya no hay dos puertas para el mismo dato.
+     LA CONDICION QUEDA MAS FUERTE: exige que se encienda solo, que el boton se pinte y que la
+     seccion entre al informe Y al EN SUMA, asi que puede fallar por los dos lados. */
   S('nombre', 'Prueba 623'); S('ci', '623');
   S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '18'); S('ete_cia_tam_min', '14');
-  await esperar(350);
+  await esperar(650);
   const b1 = inf(), bs1 = suma();
   ex.push(['(B0) DENOM: el informe se emitio', b1.length > 50, true]);
-  ex.push(['(B1) con datos cargados y el boton APAGADO la CIA no entra al informe',
-    b1.indexOf('CIA tipo ostium secundum') >= 0, false]);
-  ex.push(['(B2) ni al EN SUMA', bs1.indexOf('CIA ostium secundum') >= 0, false]);
+  ex.push(['(B1) con el tipo cargado el interruptor de la CIA se enciende SOLO',
+    chk('ete_cia_activa'), 1]);
+  ex.push(['(B1b) y el boton se pinta ENTERO, no solo el borde',
+    relleno('ete-shunt-tab-cia'), 'con relleno']);
+  ex.push(['(B2) la CIA entra al informe sin tocar nada',
+    b1.indexOf('CIA tipo ostium secundum') >= 0, true]);
+  ex.push(['(B3) y al EN SUMA', bs1.indexOf('CIA ostium secundum') >= 0, true]);
 
-  /* (C) UN TOQUE: se pinta ENTERO y la lesion entra al informe SIN la casilla de abajo. */
-  ex.push(['(C0) DENOM: antes del toque el boton no tiene relleno', relleno('ete-shunt-tab-cia'), 'sin relleno']);
-  clic('ete-shunt-tab-cia'); await esperar(350);
-  ex.push(['(C1) el campo de la CIA queda marcado', chk('ete_cia_activa'), 1]);
-  ex.push(['(C2) y el boton se pinta ENTERO, no solo el borde', relleno('ete-shunt-tab-cia'), 'con relleno']);
+  /* (C) ⚠️ EL APAGADO A MANO SE RESPETA, que es la otra mitad de la decision: el medico puede
+     desmarcar la lesion con el dato todavia cargado, y entonces sale del informe. */
+  clic('ete-shunt-tab-cia'); await esperar(650);
+  ex.push(['(C1) al tocarlo se desmarca', chk('ete_cia_activa'), 0]);
+  ex.push(['(C2) y el boton pierde el relleno', relleno('ete-shunt-tab-cia'), 'sin relleno']);
   const c1 = inf(), cs1 = suma();
-  ex.push(['(C3) la CIA entra al informe sin el boton de abajo', c1.indexOf('CIA tipo ostium secundum') >= 0, true]);
-  ex.push(['(C4) y al EN SUMA', cs1.indexOf('CIA ostium secundum') >= 0, true]);
+  ex.push(['(C3 CONTROL) la CIA sale del informe y el apagado se respeta',
+    c1.indexOf('CIA tipo ostium secundum') >= 0, false]);
+  ex.push(['(C4 CONTROL) y del EN SUMA', cs1.indexOf('CIA ostium secundum') >= 0, false]);
+  /* y se vuelve a encender para lo que sigue, que mide el estado puesto */
+  clic('ete-shunt-tab-cia'); await esperar(400);
   ex.push(['(C5) la casilla de abajo sigue apagada', chk('ete_shunt_incluir_chk'), 0]);
   ex.push(['(C6) y la hoja APARTE del PDF sigue vacia', hoja('cia'), 0]);
 
@@ -109777,17 +109821,25 @@ caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan 
   ex.push(['(E2) ahora SI hay hoja aparte de la CIA', hoja('cia') > 20, true]);
   ex.push(['(E3) y el informe sigue describiendo la CIA', e1.indexOf('CIA tipo ostium secundum') >= 0, true]);
 
-  /* (F) CONTROL NEGATIVO: datos de CIV cargados SIN marcar su boton, con la casilla de abajo
-     ENCENDIDA. La CIV no se emite y la CIA si: cada lesion tiene su propia compuerta. */
+  /* (F) ⚠️ ADAPTADA EN PANT-14b (commit 2), por el mismo hecho que (B): cargar el tipo de CIV
+     ahora ENCIENDE su interruptor solo, asi que la CIV entra al informe sin tocar nada. Lo que
+     este bloque vigila —que CADA LESION TIENE SU PROPIA COMPUERTA— se conserva y queda mas
+     fuerte: se apaga la CIV A MANO y se comprueba que sale del informe mientras la CIA, que
+     sigue marcada, se queda. Con una sola compuerta compartida eso no podria pasar. */
   S('ete_civ_tipo', 'muscular'); S('ete_civ_tam', '6');
-  await esperar(350);
-  const f1 = inf(), fs1 = suma();
+  await esperar(650);
+  const f0 = inf();
   ex.push(['(F0) DENOM: la CIV tiene datos cargados',
     String((document.getElementById('ete_civ_tipo') || {}).value || ''), 'muscular']);
-  ex.push(['(F1) CONTROL NEGATIVO: la CIV sin marcar NO entra al informe aunque la casilla de abajo este encendida',
+  ex.push(['(F0b) y su interruptor se encendio solo', chk('ete_civ_activa'), 1]);
+  ex.push(['(F0c) asi que la CIV entra al informe', f0.indexOf('CIV muscular') >= 0, true]);
+  /* se apaga la CIV a mano: su compuerta es propia y la de la CIA no se mueve */
+  clic('ete-shunt-tab-civ'); await esperar(650);
+  const f1 = inf(), fs1 = suma();
+  ex.push(['(F1 CONTROL) apagada a mano, la CIV NO entra al informe aunque la casilla de abajo este encendida',
     f1.indexOf('CIV muscular') >= 0, false]);
-  ex.push(['(F2) ni al EN SUMA', fs1.indexOf('CIV muscular') >= 0, false]);
-  ex.push(['(F3) ni a la hoja aparte', hoja('civ'), 0]);
+  ex.push(['(F2 CONTROL) ni al EN SUMA', fs1.indexOf('CIV muscular') >= 0, false]);
+  ex.push(['(F3 CONTROL) ni a la hoja aparte', hoja('civ'), 0]);
   ex.push(['(F4) y la CIA, que SI esta marcada, sigue entrando', f1.indexOf('CIA tipo ostium secundum') >= 0, true]);
 
   /* (G) DESMARCAR NO BORRA LOS DATOS NI ESCONDE EL PANEL. */
@@ -109809,9 +109861,21 @@ caso('TC-623', 'Tanda PANT-3: los botones CIA y CIV marcan la lesion, se pintan 
   /* (I) LA PASTILLA DEL ENCABEZADO SIGUE A LAS MARCAS Y NO A LA CASILLA. */
   const bdg = document.getElementById('ete_shunt_badge');
   ex.push(['(I0) DENOM: la pastilla existe', !!bdg, true]);
-  ex.push(['(I1) con las dos lesiones sin marcar y la casilla ENCENDIDA la pastilla esta apagada',
+  /* ⚠️ ADAPTADA EN PANT-14b (commit 2): llegado a este punto la CIV esta marcada -su tipo esta
+     cargado y el interruptor se encendio solo en (F)-, asi que la pastilla esta VISIBLE. Lo que
+     el bloque vigila es que la pastilla siga a las MARCAS y no a la casilla de abajo, y eso se
+     prueba igual: se apagan las dos a mano y la pastilla se apaga con la casilla encendida. */
+  /* el estado se FIJA antes de medir y no se hereda de los bloques anteriores: un caso que
+     hereda estado no prueba lo que dice. */
+  if (chk('ete_civ_activa') === 0) { clic('ete-shunt-tab-civ'); await esperar(450) }
+  ex.push(['(I1) con una lesion marcada la pastilla esta encendida',
+    bdg ? (bdg.hidden ? 'oculta' : 'visible') : 'NO EXISTE', 'visible']);
+  if (chk('ete_cia_activa') === 1) { clic('ete-shunt-tab-cia'); await esperar(450) }
+  if (chk('ete_civ_activa') === 1) { clic('ete-shunt-tab-civ'); await esperar(450) }
+  ex.push(['(I1b CONTROL) con las dos apagadas a mano y la casilla ENCENDIDA la pastilla se apaga',
     bdg ? (bdg.hidden ? 'oculta' : 'visible') : 'NO EXISTE', 'oculta']);
-  clic('ete-shunt-tab-civ'); await esperar(300);
+  ex.push(['(I1c DENOM) y la casilla de abajo sigue encendida', chk('ete_shunt_incluir_chk'), 1]);
+  clic('ete-shunt-tab-civ'); await esperar(400);
   ex.push(['(I2) y con una lesion marcada se enciende',
     bdg ? (bdg.hidden ? 'oculta' : 'visible') : 'NO EXISTE', 'visible']);
 
@@ -109938,8 +110002,26 @@ caso('TC-624', 'Tanda PANT-3: los rotulos del esquema de la TGA no quedan tapado
   const sec = document.getElementById('sacc-cc-tga');
   if (sec && !sec.classList.contains('open')) { const h = sec.querySelector('.sacc-hdr'); if (h) h.click() }
   await esperar(400);
-  const bt = document.querySelector('[data-vinfo="tga-esq"]');
-  ex.push(['(D0) DENOM: el globo del esquema existe', !!bt, true]);
+  /* ⚠️ ADAPTADO EN PANT-14b (commit 5 y 8): el recuadro de dibujo de esta pestania se retiro de
+     la VISTA, asi que su boton ⓘ quedo sin caja y _vInfoColocar sale por su guarda. El mismo
+     texto se repuso en el esquema del MODULO, con la MISMA clave del registro, y es el que el
+     medico puede tocar. El caso busca el boton que TIENE caja —abriendo el modulo si hace
+     falta—, que es la unica forma de medir lo que el medico ve.
+     ⚠️ Y (D0) PASA A SER UN DENOMINADOR DE VERDAD: antes alcanzaba con que el elemento
+     existiera; ahora exige que ALGUNO de los dos se pueda tocar. */
+  const _vis = (e) => { if (!e) return false; const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 };
+  let bt = Array.prototype.filter.call(document.querySelectorAll('[data-vinfo="tga-esq"]'), _vis)[0] || null;
+  if (!bt) {
+    try { showTab('congenitas') } catch (e) {}
+    await esperar(350);
+    const ab = document.getElementById('cc3d-abrir'); if (ab) ab.click();
+    await esperar(2600);
+    try { if (typeof cmSchSet === 'function') cmSchSet(true) } catch (e) {}
+    await esperar(600);
+    bt = Array.prototype.filter.call(document.querySelectorAll('[data-vinfo="tga-esq"]'), _vis)[0] || null;
+  }
+  ex.push(['(D0) DENOM: el globo del esquema existe y se puede tocar', !!bt, true]);
   if (bt) {
     bt.scrollIntoView({ block: 'center' }); bt.click(); await esperar(250);
     const c = document.getElementById('vinfo-card');
@@ -116181,8 +116263,20 @@ caso('TC-688', 'Tanda PANT-13 (commit 3): «Incluir en el PDF» del corazon maes
   const l1 = leer();
   ex.push(['(D1) al tocarlo queda incluido', l1.inc, true]);
   ex.push(['(D2) con su rotulo y su aria', (l1.txt.indexOf('Incluido') >= 0) + '/' + l1.aria, 'true/true']);
-  ex.push(['(D3) y el esquema de circulacion se rasterizo con el',
+  /* ⚠️ ADAPTADA EN PANT-14b (commit 3): el esquema de circulacion entraba SIEMPRE al PDF, con su
+     boton cerrado -medido: el PDF traia igual su imagen de 45x43 mm-. El medico pidio que lleve
+     solo el 3D si el esquema no esta marcado, y el 3D mas el esquema si lo esta. La condicion
+     queda MAS FUERTE: mide los DOS estados del boton, asi que puede fallar por los dos lados. */
+  ex.push(['(D3) con el esquema CERRADO no se rasteriza su imagen',
+    FN('cmEsqPdfData') ? !!(window.cmEsqPdfData() || {}).data : 'NO', false]);
+  if (FN('cmSchSet')) { try { window.cmSchSet(true) } catch (e) {} }
+  await esperar(400);
+  if (FN('cmEsqPdfRaster')) { try { window.cmEsqPdfRaster(true) } catch (e) {} }
+  await esperar(1400);
+  ex.push(['(D3b) y con el esquema ABIERTO si',
     FN('cmEsqPdfData') ? !!(window.cmEsqPdfData() || {}).data : 'NO', true]);
+  if (FN('cmSchSet')) { try { window.cmSchSet(false) } catch (e) {} }
+  await esperar(300);
   /* ── (E) EL PDF LLEVA LA VERSION DEL ESTUDIO, no la explorada ── */
   const linea0 = FN('cmLineaPDF') ? window.cmLineaPDF() : 'NO';
   ex.push(['(E0) DENOM: la linea del PDF describe lo cargado', linea0, 'CIA, CIV']);
@@ -116212,18 +116306,36 @@ caso('TC-688', 'Tanda PANT-13 (commit 3): «Incluir en el PDF» del corazon maes
   ex.push(['(F2) el boton queda apagado', leer().dis, true]);
   ex.push(['(F3) y lo dice', String((n || {}).textContent || '').indexOf('No hay lesiones') >= 0, true]);
 
-  /* ── (G) CON UNA TRANSPOSICION CARGADA: apagado, porque su seccion tiene su propio boton ── */
+  /* ── (G) ⚠️ INVERTIDO EN PANT-14b (commit 5), Y ES EL DIA QUE ESTE BLOQUE ANUNCIABA ────────
+     Decia «con una transposicion cargada el boton del modulo queda apagado, porque su seccion
+     tiene su propio boton», y era la regla de PANT-13: el recuadro de la pestania de la TGA
+     seguia ahi y encender los dos llevaba el MISMO dibujo al PDF dos veces. El commit 5 retiro
+     ese recuadro —con la equivalencia del esquema medida en 50 de 50 escenas iguales—, asi que
+     el del modulo es el UNICO y funciona igual con transposicion que sin ella. Es el «no me
+     deja incluir en el PDF» que el medico reporto.
+     LAS TRES CONDICIONES QUEDAN MAS FUERTES: exigen que el boton se active, que el aviso ya NO
+     mande a la otra seccion y que el GESTO incluya de verdad —las DOS mitades de la guarda, que
+     es lo que sacarla de una sola no alcanzaba: medido, el boton quedaba activo y el clic no
+     incluia nada—. */
   S('tga_tipo', 'dtga');
   if (FN('cm3dEstudioSync')) window.cm3dEstudioSync();
   if (FN('cmPdfSync')) window.cmPdfSync();
   await esperar(650);
   ex.push(['(G0) DENOM: ahora SI hay algo cargado', FN('cmHayCargado') ? window.cmHayCargado() : 'NO', true]);
-  ex.push(['(G1) y aun asi el boton del modulo queda apagado', leer().dis, true]);
-  ex.push(['(G2) porque su dibujo se incluye desde la seccion de la transposicion',
-    String((n || {}).textContent || '').indexOf('transposici') >= 0, true]);
-  ex.push(['(G3) y el gesto tambien lo respeta, no solo el pintor',
-    (function () { if (!FN('cmIncluirPDF')) return 'NO';
-      try { window.cmIncluirPDF(); } catch (e) {}
+  ex.push(['(G1) con una transposicion cargada el boton del modulo esta ACTIVO', leer().dis, false]);
+  ex.push(['(G2) y su aviso ya NO manda a la seccion de la transposicion',
+    String((n || {}).textContent || '').indexOf('transposici') >= 0, false]);
+  ex.push(['(G3) y el GESTO incluye de verdad, no solo el pintor lo permite',
+    await (async function () { if (!FN('cmIncluirPDF')) return 'NO';
+      try { await window.cmIncluirPDF(); } catch (e) {}
+      await esperar(500);
+      return FN('esqEstaIncluido') ? window.esqEstaIncluido('cm3d') : 'NO' })(), true]);
+  /* ⚠️ Y SE QUITA LO QUE ESTE BLOQUE ENCENDIO: desde el commit 5 este caso SI puede incluir, y
+     dejarlo incluido se lo hereda el caso siguiente. Medido: TC-694 pasaba de verde a rojo. */
+  ex.push(['(G4) y al tocarlo otra vez se quita',
+    await (async function () { if (!FN('cmIncluirPDF')) return 'NO';
+      try { await window.cmIncluirPDF(); } catch (e) {}
+      await esperar(500);
       return FN('esqEstaIncluido') ? window.esqEstaIncluido('cm3d') : 'NO' })(), false]);
 
   /* ── (H) EL REGISTRO DEL PDF ── */
@@ -117291,6 +117403,7 @@ caso('TC-698', 'Tanda PANT-14: cmDesdeEstudio SOLO LEE —recorrerla con cada le
    paciente de antes.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado de las pestanias EN VIVO —al abrir el panel, con «Nuevo estudio», al restaurar y ante cualquier cambio—, no sobrevive al estudio anterior, la linea no se contradice con el dibujo, y el boton y el panel viven SOLO dentro de las congenitas', `
+  return (async () => {
   const EL = (i) => document.getElementById(i);
   const esperar = (ms) => new Promise(z => setTimeout(z, ms));
   const ex = [];
@@ -117388,7 +117501,10 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
     EL('cc3d-wrap') ? getComputedStyle(EL('cc3d-wrap')).display : 'x', 'block']);
   /* ── (I) el acceso: la misma regla que la pestania ── */
   ex.push(['(I1 DENOM) la regla de acceso existe', typeof cc3dAcceso, 'function']);
-  ex.push(['(I2) y con el modulo habilitado da verdadero', cc3dAcceso(), true]);
+  /* ⚠️ CON GUARDA: contra un arbol donde la regla no existe, llamarla a pelo mata el caso por
+     EXCEPCION y una excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  ex.push(['(I2) y con el modulo habilitado da verdadero',
+    (typeof cc3dAcceso === 'function') ? cc3dAcceso() : 'SIN FN', true]);
   ex.push(['(I3) y es la misma que gobierna el boton de la pestania',
     (typeof eeModOn === 'function') && (typeof eeGetMode === 'function'), true]);
   /* ── (J) el dueno unico existe y es el que el embudo llama ── */
@@ -117400,7 +117516,22 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
   ex.push(['(J5) y el de la restauracion tambien',
     (RECALC_MODULOS() || []).indexOf('cm3dEstudioSync') >= 0, true]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -117412,6 +117543,7 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
    CAE CONTRA EL ARBOL ANTERIOR: ahi el interruptor no se encendia nunca solo.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una seccion de congenitas se enciende SOLO cuando un campo identificatorio toma valor, el informe y el EN SUMA la incluyen, el apagado a mano se respeta, y el dibujo y el informe leen el MISMO predicado de _CC_SECS', `
+  return (async () => {
   const EL = (i) => document.getElementById(i);
   const esperar = (ms) => new Promise(z => setTimeout(z, ms));
   const ex = [];
@@ -117496,7 +117628,22 @@ caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una se
   let quedan = 0;
   document.querySelectorAll('[data-ccpuerta-off],[data-ccpuerta-vi],[data-ccpuerta-on]').forEach(function () { quedan++ });
   ex.push(['(G2) y tras «Nuevo estudio» no queda ninguna marca viva', quedan, 0]);
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -117508,6 +117655,7 @@ caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una se
    capturas, y el esquema entraba con su boton cerrado.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-701', 'Tanda PANT-14b (commit 3): el slot del corazon maestro queda FUERA de las capturas de «Imagenes del estudio» —asi el PDF lleva un solo bloque— y el esquema de circulacion entra al PDF SOLO con su boton abierto', `
+  return (async () => {
   const EL = (i) => document.getElementById(i);
   const esperar = (ms) => new Promise(z => setTimeout(z, ms));
   const ex = [];
@@ -117547,7 +117695,22 @@ caso('TC-701', 'Tanda PANT-14b (commit 3): el slot del corazon maestro queda FUE
   ex.push(['(D1) el aviso de la inclusion nombra el esquema',
     String(CM_PDF_AVISO.on || '').indexOf('esquema de circulaci') >= 0, true]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -117559,6 +117722,7 @@ caso('TC-701', 'Tanda PANT-14b (commit 3): el slot del corazon maestro queda FUE
    PDF quedaba apagado con una transposicion cargada.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la transposicion del modulo sale de tgaEsqCuerpo —el dueno unico que la pestania tambien usa— y el recuadro de dibujo de esa pestania se retiro de la vista, con un boton «Ver en 3D» en su lugar y sin cargar la libreria 3D desde ahi', `
+  return (async () => {
   const EL = (i) => document.getElementById(i);
   const esperar = (ms) => new Promise(z => setTimeout(z, ms));
   const ex = [];
@@ -117605,7 +117769,22 @@ caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la 
   ex.push(['(D1) el modulo dibuja la transposicion', _cm3d.S.base, 'tga']);
   ex.push(['(D2) con la variante del switch auricular', _cm3d.S.bv.tga, 'mus']);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -117617,14 +117796,19 @@ caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la 
    CAE CONTRA EL ARBOL ANTERIOR: ahi las paredes eran azul y roja y la leyenda no existia.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tunel del switch auricular se dibujan en VIOLETA con su rotulo, las particulas conservan sus colores, la leyenda del tunel aparece SOLO cuando hay un tunel dibujado, y el color sale de UNA sola constante', `
+  return (async () => {
   const EL = (i) => document.getElementById(i);
   const esperar = (ms) => new Promise(z => setTimeout(z, ms));
   const ex = [];
   /* ── (A) el color, en una sola constante ── */
   ex.push(['(A0 DENOM) la paleta del 3D existe', typeof TGA3D_C, 'object']);
   ex.push(['(A1) y tiene el violeta del tunel', typeof TGA3D_C.violet, 'number']);
+  /* ⚠️ LAS DOS CONSTANTES CON GUARDA, por el mismo motivo que TC-699: contra un arbol que no
+     las tiene, leerlas a pelo mata el caso por excepcion. */
+  const _VI = (typeof TGA3D_C !== 'undefined' && TGA3D_C.violet) ? TGA3D_C.violet : null;
+  const _VE = (typeof TGA_ESQ_VIOLETA !== 'undefined') ? String(TGA_ESQ_VIOLETA).toLowerCase() : 'SIN CONST';
   ex.push(['(A2) el violeta del esquema sale del MISMO numero',
-    String(TGA_ESQ_VIOLETA).toLowerCase(), '#' + TGA3D_C.violet.toString(16)]);
+    _VE, _VI ? ('#' + _VI.toString(16)) : 'SIN CONST-x']);
   /* ── (B) la escena del switch auricular ── */
   const esc = (v, ck) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v;
     _cm3d.S.mods = {}; _cm3d.S.ck = ck || {};
@@ -117634,7 +117818,7 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
   const tub = (s) => (s && s.ex ? s.ex.filter(function (x) { return x.t === 'tube' }) : []);
   ex.push(['(B1 DENOM) y tiene dos tubos', tub(s1).length, 2]);
   ex.push(['(B2) los dos en violeta',
-    tub(s1).filter(function (x) { return x.c === TGA3D_C.violet }).length, 2]);
+    tub(s1).filter(function (x) { return _VI && x.c === _VI }).length, 2]);
   ex.push(['(B3) las particulas conservan sus colores',
     (s1.fl || []).every(function (f) { return f.c === TGA3D_C.blue || f.c === TGA3D_C.red }), true]);
   const rot = (s) => (s && s.lb ? s.lb.map(function (l) { return l[0] }) : []);
@@ -117645,7 +117829,7 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
   /* ── (C) el control: las otras cuatro variantes ── */
   let otrosVioleta = 0;
   ['d', 'jat', 'ras', 'cc'].forEach(function (v) {
-    otrosVioleta += tub(esc(v)).filter(function (x) { return x.c === TGA3D_C.violet }).length });
+    otrosVioleta += tub(esc(v)).filter(function (x) { return _VI && x.c === _VI }).length });
   ex.push(['(C1 CONTROL) las otras cuatro variantes no tienen un tubo violeta', otrosVioleta, 0]);
   /* ── (D) la leyenda condicional, con su dueno unico ── */
   ex.push(['(D0 DENOM) el dueno de la pregunta existe', typeof cmHayTunel, 'function']);
@@ -117665,13 +117849,29 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
     EL('cm3d-leg2-tun') ? EL('cm3d-leg2-tun').hidden : 'x', true]);
   /* ── (E) el esquema plano: el borde del tunel y su camino, en violeta ── */
   ex.push(['(E1) la definicion del switch auricular declara sus tramos de tunel',
-    (TGA_ESQ_DEF.mus.tun || []).length, 2]);
+    ((typeof TGA_ESQ_DEF !== 'undefined' && TGA_ESQ_DEF.mus && TGA_ESQ_DEF.mus.tun) || []).length, 2]);
   ex.push(['(E2) y el pintor de la caja usa el violeta',
-    String(_tgaEsqCav).indexOf('TGA_ESQ_VIOLETA') >= 0, true]);
+    (typeof _tgaEsqCav === 'function') && String(_tgaEsqCav).indexOf('TGA_ESQ_VIOLETA') >= 0, true]);
   ex.push(['(E3 CONTROL) ninguna otra variante declara tramos de tunel',
-    ['norm','dtga','jat','ras','ltga'].filter(function (k) { return !!(TGA_ESQ_DEF[k] || {}).tun }).length, 0]);
+    ['norm','dtga','jat','ras','ltga'].filter(function (k) {
+      return !!((typeof TGA_ESQ_DEF !== 'undefined' ? (TGA_ESQ_DEF[k] || {}) : {}).tun) }).length, 0]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -117683,6 +117883,7 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
    CAE CONTRA EL ARBOL ANTERIOR: ahi el anillo iba en una posicion transcripta y sin prioridad.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 caso('TC-704', 'Tanda PANT-14b (commit 7): el anillo de la obstruccion subaortica se ubica POR DEBAJO del origen de la aorta de la propia escena, orientado hacia la camara y con prioridad de render sobre las estructuras opacas, y ningun otro anillo del modulo la lleva', `
+  return (async () => {
   const ex = [];
   const esc = (v, obs) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v;
     _cm3d.S.mods = {}; _cm3d.S.ck = obs ? { tobs: true } : {};
@@ -117724,7 +117925,22 @@ caso('TC-704', 'Tanda PANT-14b (commit 7): el anillo de la obstruccion subaortic
   ex.push(['(D1) el motor del modulo mira la bandera',
     String(cm3dInit).indexOf('e.pri') >= 0, true]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  return { extra: ex };
+  /* ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico] Y NO [desc, valor,
+     esperado], y esta es la correccion: la primera version de estos seis casos escribia el valor
+     encontrado en el segundo lugar, asi que una condicion cuyo valor era 0 -justo los controles
+     negativos- FALLABA aunque el valor fuera el correcto, y una cuyo valor era cualquier cosa
+     distinta de cero PASABA sin comparar nada. Es la misma clase de error que MARFAN-2 documenta.
+     La conversion va en UN solo lugar y se prueba con su control positivo y su control negativo
+     ANTES de usarse, que es la regla de la casa. */
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
 `);
 
 
