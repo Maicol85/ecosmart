@@ -85806,14 +85806,38 @@ caso('TC-515', 'Tanda D3: la excursion del aneurisma se puede cargar DESDE «Otr
     __t.limpiar();
     __t.reabrir(gu.estudioId);
     const gEstado = { otr: V3('otr-asia-mm'), fop: V3('fop_asa_mm'), frase: FRASE3().txt,
-                      otrInf: OTR3().inf };
+                      otrInf: OTR3().inf, chkFop: (function(){ const e = EL3('fop_incluir_chk');
+                        return e ? !!e.checked : 'NO EXISTE'; })(),
+                      inf: RENG(__t.informe().inf) };
     ex.push(['(G1) al reabrir, el espejo repone la excursion desde el dueno y la frase sale',
       gEstado.otr === '13' && gEstado.fop === '13' &&
       gEstado.frase === 'excursión de 13 mm hacia la aurícula derecha',
-      JSON.stringify(gEstado)]);
-    ex.push(['(G2) y el renglon del informe la publica',
-      String(gEstado.otrInf || '').indexOf('con excursión de 13 mm hacia la aurícula derecha') > -1,
-      String(gEstado.otrInf)]);
+      JSON.stringify({ otr: gEstado.otr, fop: gEstado.fop, frase: gEstado.frase })]);
+    /* ADAPTADA EN LA PANT-14b (2026-11-05). Antes exigía que el renglon lo emitiera «Otros»
+       (otrHallazgos). Desde «un dato, una sola puerta» el fop_asa_mm que este estudio trae
+       ES un campo identificatorio del FOP en _CC_SECS, así que al reabrir el interruptor del
+       FOP se enciende SOLO y «Otros» se calla — que es exactamente lo que (C2) de este mismo
+       caso ya fija. Lo que importa no es QUIEN lo emite sino que el dato NO se pierda y NO se
+       duplique, y eso es lo que (G2) mide ahora. Medido con _probe_p14b_asia.mjs: el informe
+       publica «Foramen oval permeable, con aneurisma del septum con excursión de 13 mm hacia la
+       aurícula derecha.» una sola vez, y el EN SUMA tambien. Queda MAS FUERTE que antes: exige
+       el dato, exige que no se repita, y (G3) exige que apagando el interruptor a mano «Otros»
+       lo recupere — así puede volver a fallar por los DOS lados. */
+    ex.push(['(G2) y el informe la publica UNA sola vez, por el emisor que corresponda',
+      gEstado.inf.indexOf('con excursión de 13 mm hacia la aurícula derecha') > -1 &&
+      (gEstado.inf.match(/13 mm/g) || []).length === 1,
+      gEstado.chkFop + ' | ' + gEstado.inf.slice(0, 200)]);
+    /* (G3) el apagado a mano se respeta y «Otros» recupera su renglon, con la MISMA excursion. */
+    const gApa = (function(){ const e = EL3('fop_incluir_chk');
+      if (!e || !e.checked) return { ok:false, why:'el interruptor no quedo encendido' };
+      e.checked = false;
+      try { e.dispatchEvent(new Event('change', { bubbles:true })); } catch (x) {}
+      return { ok:true }; })();
+    const gTrasApa = gApa.ok ? { otr: OTR3(), inf: RENG(__t.informe().inf) } : null;
+    ex.push(['(G3) apagando el interruptor a mano, «Otros» recupera el renglon con la misma excursion',
+      !!gTrasApa && gTrasApa.otr.n === 1 &&
+      String(gTrasApa.otr.inf || '').indexOf('con excursión de 13 mm hacia la aurícula derecha') > -1,
+      gTrasApa ? (gTrasApa.otr.n + ' | ' + String(gTrasApa.otr.inf)) : JSON.stringify(gApa)]);
     try { __t.borrar(gu.estudioId); } catch (e) {}
   }
 
@@ -92398,13 +92422,22 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      vigila no se movio —los 64 miden 44x44 y dan sus cinco puntos propios— y queda MAS FUERTE:
      (K0) exige ademas que el sin clave sea exactamente ese, asi que un globo nuevo que se
      olvide su data-vinfo pone el caso en rojo. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y CUATRO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapK.length === 64 && tapK.filter((x) => !x.k).length === 1
+  /* ADAPTADO (PANT-14b, commit 5): 64 -> 65. El globo nuevo NO es una clave nueva del
+     registro: la tanda retiro el recuadro viejo de la transposicion, y el boton del globo que
+     explica su esquema vivia DENTRO de ese recuadro, asi que quedo sin caja y la tarjeta no
+     abria -lo encontro TC-624, no la lectura-. Se repuso en el encabezado del esquema del
+     MODULO con la MISMA clave del registro, tga-esq, asi que esa clave tiene ahora DOS botones
+     y un solo dueno. Lo que estas tres condiciones exigen no cambia; cambia cuantos botones
+     tienen que cumplirlo, y el conteo ES el denominador: agregar uno sin la clase pone esto en
+     rojo. Los TRES numeros se mueven JUNTOS. Medido: los 65 dan 44x44, enVista y 5 de 5 puntos
+     propios, y el unico sin clave sigue siendo el del corazon maestro. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y CINCO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapK.length === 65 && tapK.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44') && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y cuatro miden 44x44 tambien con el mouse',
-    tapK.length === 64 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y cinco miden 44x44 tambien con el mouse',
+    tapK.length === 65 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 64 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 65 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -100259,10 +100292,35 @@ caso('TC-557', 'Tanda AJUSTES-2: la coartacion en el papel sin recomendaciones n
     a3.indexOf('con criterios de significaci\\u00f3n por Doppler (mayor de 20 mmHg)') > -1,
     a3.replace(/\\n/g, ' / ').slice(0, 200)]);
 
-  /* (A4) EL EN SUMA SIN INTEGRAR lleva la clausula, que es la otra redaccion que pidio. */
+  /* (A4) EL EN SUMA SIN INTEGRAR lleva la clausula, que es la otra redaccion que pidio.
+     ADAPTADA (PANT-14b, commit 2): y es el dia que esta condicion anunciaba. Hasta hoy
+     «sin integrar» se montaba NO tocando el interruptor; desde «un dato, una sola puerta» el
+     coa_istmo que esta escena carga ES un campo identificatorio de la coartacion en _CC_SECS,
+     asi que el interruptor se enciende SOLO y el EN SUMA lo emite la seccion integrada -con
+     los MISMOS numeros y otro formato: «Coartacion de aorta nativa - istmo 8 mm - gradiente
+     medio 25 mmHg - con criterios...»-. Es la consecuencia que la orden autoriza. El escenario
+     «sin integrar» sigue existiendo y es el apagado A MANO, que commit 2 garantiza que se
+     respeta: por eso ahora se apaga de verdad. Queda MAS FUERTE: (A4) mide el apagado a mano y
+     (A4b) el encendido automatico, asi que puede fallar por los DOS lados. */
   await coaEscena({ coa_istmo: '8', coa_gmedio: '25' }, { coa_situacion: 'nativa' }, false);
   infEn('estandar');
+  const a4auto = suma();
+  const a4sw = (function () { const c = EL('coart_incluir_chk');
+    if (!c) return 'NO EXISTE';
+    if (!c.checked) return 'YA ESTABA APAGADO';
+    try { if (F('eteInclToggle')) eteInclToggle('coart_incluir_chk');
+      else { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })) } } catch (x) {}
+    return c.checked ? 'NO SE APAGO' : 'apagado a mano'; })();
+  await esperar(320);
+  infEn('estandar');
   const a4 = suma();
+  ex.push(['(A4b) con el dato cargado el interruptor se enciende SOLO y el EN SUMA lo emite la seccion, con los mismos numeros',
+    a4sw === 'apagado a mano' &&
+    a4auto.indexOf('Coartaci\u00f3n de aorta nativa') > -1 &&
+    a4auto.indexOf('istmo 8 mm') > -1 && a4auto.indexOf('gradiente medio 25 mmHg') > -1 &&
+    a4auto.indexOf('con criterios de significaci\u00f3n por Doppler (mayor de 20 mmHg)') > -1,
+    a4sw + ' | ' + (a4auto.split(String.fromCharCode(10))
+      .filter(function (x) { return x.indexOf('Coartaci') > -1; })[0] || 'sin linea')]);
   ex.push(['(A4) el EN SUMA no integrado: «Coartación de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg), con criterios…»',
     a4.indexOf('Coartaci\\u00f3n de aorta nativa (istmo 8 mm, gradiente medio 25 mmHg), con criterios de significaci\\u00f3n por Doppler (mayor de 20 mmHg).') > -1,
     (a4.match(/Coartaci[^\\n]*/) || ['sin linea'])[0]]);
@@ -114734,9 +114792,22 @@ caso('TC-676', 'Tanda PANT-11 (commit 3): el circulito «(no se visualiza VCI)»
   ex.push(['(D1) correr el reconciliador dos veces no pierde el valor guardado',
     (function () { const a = document.getElementById('vci_diam');
       return (a && String(a.dataset.vciprev) === '23') ? 'si' : 'no'; })(), 'si']);
-  ex.push(['(D2) y va PRIMERO en RECALC_MODULOS, antes de todo lo que lee la cava',
+  /* ADAPTADA (PANT-14b, commit 2b): antes exigia que vciNoVisSync fuera el PRIMERO de la
+     lista. Desde «un dato, una sola puerta», ccPuertaSync va primero -y tiene que ir primero:
+     ENCIENDE el interruptor de presencia que los pintores LEEN, asi que un pintor que corra
+     antes pintaria con el interruptor del paciente anterior-. ccPuertaSync NO lee la cava: no
+     toca ni vci_diam ni vci_colapso, verificado. El invariante que esta condicion protege no se
+     movio y queda MAS FUERTE: exige el orden declarado de las dos primeras Y que vciNoVisSync
+     corra antes de CADA lector de la cava, que es lo que de verdad importa y lo que «primero»
+     solo garantizaba de rebote. */
+  ex.push(['(D2) ccPuertaSync va PRIMERO -enciende el interruptor que los pintores leen- y vciNoVisSync sigue, antes de todo lo que lee la cava',
     (function () { const L = (typeof RECALC_MODULOS === 'function') ? RECALC_MODULOS() : RECALC_MODULOS;
-      return (L && L[0]) ? L[0] : 'NO HAY LISTA'; })(), 'vciNoVisSync']);
+      if (!L || !L.length) return 'NO HAY LISTA';
+      const iVci = L.indexOf('vciNoVisSync');
+      if (L[0] !== 'ccPuertaSync' || iVci !== 1) return 'orden=' + L.slice(0, 3).join(',');
+      const lectores = ['dptSync', 'cvrSync', 'calcVD', 'popSync', 'hcSync'];
+      const antes = lectores.filter(function (f) { const i = L.indexOf(f); return i > -1 && i < iVci; });
+      return antes.length ? 'lectores ANTES: ' + antes.join(',') : 'si'; })(), 'si']);
   /* ⚠️ (D3) NACIO DE UNA MUTACION QUE SOBREVIVIO, y el motivo es un freno que tapa al que se
      muta: el GESTO llama a calcPmAD por su cuenta, en su lista de ocho recalculadores, asi que
      sacar la llamada de adentro del reconciliador no se nota por el camino del gesto. El camino
@@ -117437,16 +117508,34 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
   ex.push(['(A2) y la linea dice que esta todo dibujado',
     linea().indexOf('Todas las lesiones cargadas') >= 0, true]);
   /* ── (B) «Nuevo estudio» lo deja sin estado y cierra el panel ── */
-  try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e) {}
-  await esperar(250);
+  /* DENOMINADOR DE (B4) Y (B5), Y LO DESTAPO UNA MUTACION QUE SOBREVIVIO (PANT-14b): el caso
+     CERRABA el panel a mano y dejaba el modo en «Segun el estudio» antes de limpiar, asi que
+     «el panel quedo cerrado» y «el modo volvio» no podian fallar pase lo que pase. Ahora el
+     panel se deja ABIERTO y el modo en «Explorar», que es el estado en que el medico lo deja,
+     y las dos condiciones miden de verdad lo que «Nuevo estudio» repone. */
+  const bAbierto = (function () { const q = EL('cc3d-panel');
+    return q ? getComputedStyle(q).display : 'x'; })();
+  try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
+  await esperar(350);
+  const bModoAntes = (function () { try { return _cm3d.modo } catch (e) { return 'EXC' } })();
+  ex.push(['(B0 DENOM) antes de limpiar el panel esta ABIERTO y el modo en «Explorar» —si no, (B4) y (B5) no pueden fallar: ' + bAbierto + '/' + bModoAntes,
+    bAbierto !== 'none' && bModoAntes === 'explorar', true]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
   await esperar(650);
   const e2 = estado();
   ex.push(['(B1) tras limpiar el estudio el modulo vuelve al corazon normal', e2.base, 'norm']);
   ex.push(['(B2) sin una sola lesion sumada', e2.mods, '']);
   ex.push(['(B3) y sin una sola casilla encendida', e2.ck, '']);
-  ex.push(['(B4) el panel quedo cerrado',
-    EL('cc3d-panel') ? getComputedStyle(EL('cc3d-panel')).display : 'x', 'none']);
+  /* (B4) EL PANEL QUEDO CERRADO, MEDIDO EN SU PROPIO ESTADO Y NO EN EL display COMPUTADO.
+     Lo destapo una mutacion que sobrevivio con sus DOS mitades rotas: #cc3d-panel es hijo de
+     #cc3d-wrap, y el envoltorio se esconde al salir de congenitas, asi que el display computado
+     del panel da «none» pase lo que pase - la condicion no podia fallar. Lo que de verdad dice
+     si esta cerrado es su display EN LINEA, su clase y la bandera del modulo. */
+  ex.push(['(B4) el panel quedo cerrado, en su propio estado',
+    (function () { const q = EL('cc3d-panel'); if (!q) return 'x';
+      const ab = (function () { try { return !!_cc3d.abierto } catch (e) { return 'EXC' } })();
+      return q.style.display + '|' + (q.classList.contains('cc3d-ab') ? 'ab' : 'cerrado') + '|' + ab; })(),
+    'none|cerrado|false']);
   ex.push(['(B5) y el modo volvio a «Segun el estudio»', e2.modo, 'estudio']);
   /* ── (C) el control: el dibujo del estudio vacio no tiene objetos ── */
   ex.push(['(C1 CONTROL) el estudio vacio no dibuja ningun objeto', objetos(), 0]);
@@ -117499,6 +117588,74 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
   await esperar(400);
   ex.push(['(H3 CONTROL) y en congenitas vuelve a verse',
     EL('cc3d-wrap') ? getComputedStyle(EL('cc3d-wrap')).display : 'x', 'block']);
+  /* (H4) Y POR irATabPaciente, QUE ES EL CAMINO QUE NO PASA POR showTab. Nacio de una
+     mutacion que sobrevivio: (H1) a (H3) navegan con showTab, que ya llamaba al pintor del
+     pie, asi que sacarle la llamada a irATabPaciente no se notaba. Es el camino de «Nuevo
+     estudio», y ahi el boton se quedaba a la vista en la pantalla Paciente. */
+  const h4 = await (async function () {
+    try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+    await esperar(260);
+    const antes = (function () { const q = EL('cc3d-wrap');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    try { if (typeof irATabPaciente === 'function') irATabPaciente() } catch (e) {}
+    await esperar(320);
+    const desp = (function () { const q = EL('cc3d-wrap');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    return { antes: antes, desp: desp };
+  })();
+  ex.push(['(H4) por irATabPaciente el envoltorio se esconde, que es el camino que no pasa por showTab: ' + h4.antes + ' -> ' + h4.desp,
+    h4.antes !== 'none' && h4.desp === 'none', true]);
+  /* (I4) LA PUERTA SE CIERRA POR LAS DOS MITADES, y nacio de una mutacion que sobrevivio:
+     (I1) a (I3) miden que la regla EXISTA y que con el modulo habilitado de verdadero, asi que
+     abrir la puerta no se notaba. Con el modulo de congenitas apagado en Config el pie no se ve
+     Y cc3dAbrir no abre, aunque alguien llame a la funcion. */
+  const i4 = await (async function () {
+    /* el modulo se apaga en el MISMO dueno que eeModOn lee: la clave ett_modules. Asi la
+       condicion no depende de un setter que la app no tiene. */
+    const prev = (function () { try { return localStorage.getItem('ett_modules') } catch (e) { return null } })();
+    const poner = (vv) => { try { const m = JSON.parse(localStorage.getItem('ett_modules') || '{}');
+      m.congenitas = vv; localStorage.setItem('ett_modules', JSON.stringify(m)) } catch (e) {} };
+    try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e) {}
+    poner(false); await esperar(360);
+    try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+    await esperar(300);
+    const acc = (function () { try { return cc3dAcceso() } catch (e) { return 'EXC' } })();
+    const pie = (function () { const q = EL('cc3d-wrap');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    try { if (typeof cc3dAbrir === 'function') cc3dAbrir() } catch (e) {}
+    await esperar(320);
+    const pan = (function () { const q = EL('cc3d-panel');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    try { if (prev === null) localStorage.removeItem('ett_modules');
+          else localStorage.setItem('ett_modules', prev) } catch (e) {}
+    await esperar(240);
+    try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+    await esperar(300);
+    const accOn = (function () { try { return cc3dAcceso() } catch (e) { return 'EXC' } })();
+    return { acc: acc, pie: pie, pan: pan, accOn: accOn };
+  })();
+  ex.push(['(I4) con el modulo apagado el acceso da falso, el envoltorio no se ve y cc3dAbrir NO abre: ' + JSON.stringify(i4),
+    i4.acc === false && i4.pie === 'none' && i4.pan === 'none' && i4.accOn === true, true]);
+  /* (K1) EL ESQUEMA SE REPINTA AL DERIVAR, y nacio de una mutacion que sobrevivio: ninguna
+     condicion miraba que cm3dDerivar lo repinte, asi que sacarle la llamada no se notaba. */
+  const k1 = await (async function () {
+    try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+    await esperar(260);
+    abrir(); await esperar(700);
+    try { if (typeof cmSchSet === 'function') cmSchSet(true) } catch (e) {}
+    await esperar(420);
+    const q = EL('cm3d-schsvg');
+    const n0 = q ? q.querySelectorAll('*').length : -1;
+    V('ebs_desplazamiento', '');
+    V('ete_cia_tipo', 'secundum');
+    try { if (typeof cm3dDerivar === 'function') cm3dDerivar() } catch (e) {}
+    await esperar(460);
+    const n1 = q ? q.querySelectorAll('*').length : -1;
+    const al = q ? String(q.getAttribute('aria-label') || '') : '';
+    return { n0: n0, n1: n1, al: al };
+  })();
+  ex.push(['(K1) con el esquema abierto, derivar lo repinta con lo que hay cargado: ' + JSON.stringify(k1),
+    k1.n1 > 0 && k1.al.indexOf('Esquema de circulaci\u00f3n') === 0 && k1.al.indexOf('CIA') > -1, true]);
   /* ── (I) el acceso: la misma regla que la pestania ── */
   ex.push(['(I1 DENOM) la regla de acceso existe', typeof cc3dAcceso, 'function']);
   /* ⚠️ CON GUARDA: contra un arbol donde la regla no existe, llamarla a pelo mata el caso por
@@ -117581,6 +117738,13 @@ caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una se
   const sinCia = inf();
   ex.push(['(C2 CONTROL) y el informe no nombra la CIA',
     sinCia.indexOf('CIA tipo') < 0, true]);
+  /* (C1b) EL CONTROL CORRIENDO EL DUENO DE VERDAD, y nacio de una mutacion que sobrevivio:
+     limpiarCampos NO pasa por RECALC_MODULOS, asi que (C1) medía un interruptor que nadie
+     habia vuelto a evaluar - un predicado roto que diera verdadero siempre pasaba en verde. */
+  try { if (typeof ccPuertaSync === 'function') ccPuertaSync() } catch (e) {}
+  await esperar(400);
+  ex.push(['(C1b) CONTROL: corriendo el dueno sin un solo dato, el interruptor sigue apagado',
+    !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), false]);
   try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
   await esperar(300);
   ex.push(['(B0 DENOM) el campo del tipo de CIA existe', V('ete_cia_tipo', 'secundum'), true]);
@@ -117589,6 +117753,17 @@ caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una se
     !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), true]);
   const conCia = inf();
   ex.push(['(B2) y el informe la nombra', conCia.indexOf('CIA tipo ostium secundum') >= 0, true]);
+  /* (B1b) Y EL BOTON QUE MUESTRA EL ESTADO SE REPINTA EN LA MISMA PASADA. Nacio de una mutacion
+     que sobrevivio: un interruptor que se enciende y un boton que sigue apagado son dos cosas
+     que dicen lo contrario, y ninguna condicion lo miraba. */
+  const b1b = (function () {
+    const b = EL('ete-shunt-tab-cia');
+    if (!b) return 'SIN BOTON';
+    return (b.className || '') + '|' + String(b.getAttribute('aria-pressed'));
+  })();
+  ex.push(['(B1b) y el boton de la lesion muestra el estado encendido: ' + b1b,
+    b1b === 'SIN BOTON' ? 'SIN BOTON'
+      : (b1b.indexOf('cc-les-on') > -1 || b1b.indexOf('true') > -1), true]);
   ex.push(['(B3) el EN SUMA dejo de decir que no hay alteraciones',
     suma().indexOf('Estudio sin alteraciones') < 0, true]);
   /* ── (D) el apagado A MANO se respeta ── */
@@ -117599,6 +117774,44 @@ caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una se
   ex.push(['(D1 CONTROL) el apagado a mano se respeta', !!(sw && sw.checked), false]);
   ex.push(['(D2) y el informe vuelve a no nombrar la CIA',
     inf().indexOf('CIA tipo') < 0, true]);
+  /* (D1b) Y SOBREVIVE A OTRA PASADA DEL DUENO, que es donde el apagado a mano de verdad se
+     prueba: nacio de tres mutaciones que sobrevivieron, porque poner .checked a mano no
+     dispara ningun evento y ccPuertaSync no volvia a correr - el apagado no podia pisarse. */
+  try { if (typeof ccPuertaSync === 'function') ccPuertaSync() } catch (e) {}
+  await esperar(400);
+  ex.push(['(D1b) tras otra pasada del dueno, el apagado a mano sigue respetado',
+    !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), false]);
+  /* (D1c) Y UN DATO IDENTIFICATORIO NUEVO LO VUELVE A ENCENDER: la firma cambia, asi que el
+     apagado a mano caduca. Sin esto, no borrar el apagado ante una firma nueva pasaba en verde. */
+  V('ete_cia_tipo', 'sv_vcs');
+  try { if (typeof ccPuertaSync === 'function') ccPuertaSync() } catch (e) {}
+  await esperar(420);
+  ex.push(['(D1c) y un dato identificatorio NUEVO lo vuelve a encender',
+    !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), true]);
+  /* (D1d) Y LA MARCA DEL APAGADO A MANO QUEDA LIMPIA. Nacio de una mutacion que sobrevivio, y
+     lo que esa mutacion ensenia es que el borrado ante una firma nueva es la SEGUNDA red: la
+     comparacion es por firma, asi que una marca vieja deja de coincidir sola. Lo que no se nota
+     sin esta condicion es que la marca se acumule. */
+  ex.push(['(D1d) y la marca del apagado a mano quedo limpia, no vieja',
+    (function () { const q = EL('ete_cia_activa');
+      return q ? (q.dataset.ccpuertaOff === undefined ? 'limpia' : q.dataset.ccpuertaOff) : 'x'; })(),
+    'limpia']);
+  /* (B1c) EL BOTON SE REPINTA EN LA MISMA PASADA DEL DUENO, leido SIN esperar. Nacio de una
+     mutacion que sobrevivio: (B1b) lee la clase 700 ms despues, y en ese rato el embudo de los
+     espejos ya corrio su propio pintor, que la repone - el freno que tapa al que se muta. */
+  const b1c = (function () {
+    const q = EL('ete_cia_activa'), b = EL('ete-shunt-tab-cia');
+    if (!q || !b) return 'SIN NODOS';
+    q.checked = false; b.classList.remove('cc-les-on'); b.setAttribute('aria-pressed', 'false');
+    delete q.dataset.ccpuertaOff; delete q.dataset.ccpuertaVi; delete q.dataset.ccpuertaOn;
+    try { ccPuertaSync() } catch (e) { return 'EXC' }
+    return (q.checked ? 'on' : 'off') + '|' + (b.classList.contains('cc-les-on') ? 'pintado' : 'apagado');
+  })();
+  ex.push(['(B1c) el dueno enciende el interruptor Y repinta el boton en la MISMA pasada: ' + b1c,
+    b1c, 'on|pintado']);
+  V('ete_cia_tipo', 'secundum');
+  try { if (typeof ccPuertaSync === 'function') ccPuertaSync() } catch (e) {}
+  await esperar(300);
   /* ── (E) un dato identificatorio NUEVO lo vuelve a encender ── */
   try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
   await esperar(250);
@@ -117765,6 +117978,75 @@ caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la 
     String(cmPdfSync).indexOf('tgaEjes') < 0, true]);
   ex.push(['(C4) y el manejador de la inclusion tampoco',
     String(cmIncluirPDF).indexOf('tgaEjes') < 0, true]);
+  /* (A2b) Y LA DELEGACION SE MIDE EN EL MARCADO EMITIDO, no en el texto de la funcion. Nacio de
+     una mutacion que sobrevivio: (A2) busca el nombre del dueno dentro de cmSchRender, y apagar
+     la rama con un if (false && deja el nombre escrito ahi, asi que pasaba en verde. */
+  const a2b = await (async function () {
+    try { if (typeof cmSchSet === 'function') cmSchSet(true) } catch (e) {}
+    await esperar(520);
+    const q = EL('cm3d-schsvg');
+    if (!q) return { no: 'SIN SVG' };
+    const firma = Array.prototype.map.call(q.querySelectorAll('*'), function (e2) {
+      return String(e2.tagName).toLowerCase() + ':' + (e2.getAttribute('x') || '') + ',' + (e2.getAttribute('y') || ''); }).join('|');
+    let duenio = '';
+    try { duenio = String(tgaEsqCuerpo('mus', { asd:false, vsd:false, pda:false }) || '') } catch (e2) { duenio = 'EXC' }
+    const d = document.createElement('div'); d.innerHTML = duenio;
+    const firmaD = Array.prototype.map.call(d.querySelectorAll('*'), function (e2) {
+      return String(e2.tagName).toLowerCase() + ':' + (e2.getAttribute('x') || '') + ',' + (e2.getAttribute('y') || ''); }).join('|');
+    return { n: q.querySelectorAll('*').length, nd: d.querySelectorAll('*').length,
+             igual: firma.indexOf(firmaD) === 0,
+             f1: firma.slice(0, 90), f2: firmaD.slice(0, 90),
+             bv: (function(){ try { return _cm3d.S.bv.tga } catch (e3) { return 'x' } })(),
+             mods: (function(){ try { return Object.keys(_cm3d.S.mods||{}).join(',') } catch (e3) { return 'x' } })(),
+             vars: (function () { let c = 0, i = duenio.indexOf('var(--');
+               while (i > -1) { c++; i = duenio.indexOf('var(--', i + 1) } return c })() };
+  })();
+  ex.push(['(A2b) el esquema EMITIDO por el modulo arranca con los mismos nodos que el dueno, y sin un var(): ' + JSON.stringify(a2b),
+    !a2b.no && a2b.n > 0 && a2b.nd > 0 && a2b.igual === true && a2b.vars === 0, true]);
+  /* (D3) LA BARRA DE LA OBSTRUCCION SUBAORTICA ENTRA AL ESQUEMA DEL MODULO. Nacio de una
+     mutacion que sobrevivio: ninguna condicion la miraba, asi que apagarla pasaba en verde. */
+  const d3 = await (async function () {
+    /* SIN SALIR DE CONGENITAS: al salir, el pintor del pie CIERRA el panel -la regla del
+       commit 1-, y con el panel cerrado cmSchRender no corre y el esquema se queda con lo
+       anterior. El campo existe en el documento aunque su pestania no se vea. */
+
+    const sel = EL('tga_obstr_subaortica');
+    if (!sel) return { no: 'SIN CAMPO' };
+    const q = EL('cm3d-schsvg');
+    const n0 = q ? q.querySelectorAll('*').length : -1;
+    sel.value = 'si';
+    try { sel.dispatchEvent(new Event('change', { bubbles:true })) } catch (e2) {}
+    await esperar(300);
+
+
+    try { if (typeof cm3dDerivar === 'function') cm3dDerivar() } catch (e2) {}
+    await esperar(520);
+    const txt = q ? String(q.innerHTML || '') : '';
+    return { n0: n0, n1: q ? q.querySelectorAll('*').length : -1,
+             barra: txt.indexOf('obstr. sub') > -1, val: sel.value,
+             ck: (function(){ try { return JSON.stringify(_cm3d.S.ck) } catch (e3) { return 'x' } })(),
+             base: (function(){ try { return _cm3d.S.base } catch (e3) { return 'x' } })() };
+  })();
+  ex.push(['(D3) con la obstruccion cargada el esquema del modulo lleva su barra: ' + JSON.stringify(d3),
+    d3.no ? 'SIN CAMPO' : (d3.barra === true && d3.n1 > d3.n0), true]);
+  /* (B3b) Y EL BOTON «Ver en 3D» ABRE EL PANEL DE VERDAD, no solo nombra al dueno en su codigo.
+     Nacio de una mutacion que sobrevivio: (B3) busca cc3dAbrir dentro de la funcion, y un
+     un return antes de la llamada deja el nombre escrito ahi. */
+  const b3b = await (async function () {
+    try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e2) {}
+    await esperar(260);
+    try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e2) {}
+    await esperar(300);
+    const antes = (function () { const q = EL('cc3d-panel');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    const b = EL('tga-ver3d'); if (!b) return { no: 'SIN BOTON' };
+    b.click(); await esperar(1200);
+    const desp = (function () { const q = EL('cc3d-panel');
+      return q ? getComputedStyle(q).display : 'x'; })();
+    return { antes: antes, desp: desp };
+  })();
+  ex.push(['(B3b) tocando «Ver en 3D» el panel del modulo se abre: ' + JSON.stringify(b3b),
+    b3b.no ? 'SIN BOTON' : (b3b.antes === 'none' && b3b.desp !== 'none'), true]);
   /* ── (D) el estado del modulo deriva la transposicion ── */
   ex.push(['(D1) el modulo dibuja la transposicion', _cm3d.S.base, 'tga']);
   ex.push(['(D2) con la variante del switch auricular', _cm3d.S.bv.tga, 'mus']);
@@ -117839,6 +118121,24 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
     EL('cm3d-leg-tun') ? !EL('cm3d-leg-tun').hidden : 'x', true]);
   ex.push(['(D2) y la del esquema tambien',
     EL('cm3d-leg2-tun') ? !EL('cm3d-leg2-tun').hidden : 'x', true]);
+  /* (D1b) Y SUBE SIN LLAMAR AL DUENO A MANO, que es lo que (D1) y (D2) no podian ver: ellas
+     llaman a cmTunelLeySync() ellas mismas, asi que sacarle la llamada a las DOS puertas de la
+     app pasaba en verde. Esta condicion usa las puertas reales: la de «Segun el estudio»
+     (cm3dDerivar) y la de «Explorar» (el cambio de base). */
+  const d1b = (function () {
+    const g1 = EL('cm3d-leg-tun'), g2 = EL('cm3d-leg2-tun');
+    if (!g1 || !g2) return 'SIN LEYENDA';
+    g1.hidden = true; g2.hidden = true;
+    try { if (typeof cmSetBase === 'function') cmSetBase('tga') } catch (e) {}
+    try { if (typeof cmSetVar === 'function') cmSetVar('tga', 'mus') } catch (e) {}
+    const porExplorar = (!g1.hidden && !g2.hidden) ? 'si' : 'no';
+    g1.hidden = true; g2.hidden = true;
+    try { if (typeof cm3dDerivar === 'function') cm3dDerivar() } catch (e) {}
+    const porEstudio = (!g1.hidden && !g2.hidden) ? 'si' : 'no';
+    return porExplorar + '|' + porEstudio;
+  })();
+  ex.push(['(D1b) la leyenda sube por una de las dos puertas de la app, sin llamar al dueno a mano: ' + d1b,
+    d1b === 'SIN LEYENDA' ? 'SIN LEYENDA' : (String(d1b).indexOf('si') > -1), true]);
   esc('ras');
   try { cmTunelLeySync() } catch (e) {}
   ex.push(['(C2 CONTROL) con el Rastelli la leyenda del tunel queda apagada',

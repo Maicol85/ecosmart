@@ -105817,7 +105817,14 @@ window.cm3dEstudioSync = cm3dEstudioSync;
    `limpiarCampos` no lo tocaba -lo que un caso de la suite ya documenta-, asi que un medico que
    dejo el modulo en «Explorar» abria el estudio siguiente con el dibujo que el eligio. */
 function cm3dReset() {
-  try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e) {}
+  /* ⚠️ ACA NO SE CIERRA EL PANEL, Y LO DESTAPO UNA MUTACION QUE SOBREVIVIO CON SUS DOS MITADES
+     ROTAS (PANT-14b, barrido). Esta funcion la llama UN solo lugar, `limpiarCampos`, y
+     `limpiarCampos` ya cerraba el panel 433 lineas antes -el `cc3dCerrar()` que una tanda
+     anterior puso junto al de `v2dCerrar`-, asi que un cierre aca era la TERCERA copia de la
+     misma accion: la de esa linea, la del pintor del pie al salir de congenitas y esta. Dos
+     mecanismos para el mismo trabajo son como se llega a que arreglar uno deje el otro roto sin
+     que nada avise, que es la leccion que el D-10 pago cinco veces. Lo que SI es propio de esta
+     funcion es reponer el MODO y apagar el esquema, que ningun otro camino hacia. */
   try { if (_cm3d) { _cm3d.modo = 'estudio'; _cm3d.sch = false; } } catch (e) {}
   try { if (typeof cmSchSet === 'function') cmSchSet(false) } catch (e) {}
   try { if (typeof cmSetModo === 'function' && _cm3dVisible()) { cmSetModo('estudio'); return } } catch (e) {}
@@ -161257,8 +161264,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1510';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793902214611;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1629';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793906954069;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161344,7 +161351,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1510</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1629</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
