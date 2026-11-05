@@ -115796,6 +115796,856 @@ caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado
   return { extra: EXP };
   })();
 `);
+/* ══ TANDA PANT-13 ══ Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo, y un caso agregado despues de el NO se ejecuta -la suite imprime
+   «0/0 sin regresiones» sobre un caso que nunca corrio-. */
+caso('TC-686', 'Tanda PANT-13 (commit 1): el lienzo del corazon maestro sigue al ancho de su recuadro en cada cuadro, asi que las etiquetas no se despegan del dibujo; y el texto visible del modulo y del diagrama del pulmon lleva sus tildes', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const Q = String.fromCharCode(39);
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    (b) => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    if (e.type === 'checkbox') { e.checked = !!v } else { e.value = v }
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    e.dispatchEvent(new Event('input', { bubbles: true })); return 'ok' };
+
+  /* ── (A) EL CONTRATO DEL MOTOR: el reajuste existe en el cuadro, no solo en el resize ── */
+  const src = (function () { let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('script:not([src])'), (s) => { t += s.textContent || '' });
+    return t })();
+  ex.push(['(A0) DENOM: el motor del corazon maestro es alcanzable en el documento',
+    src.indexOf('function cm3dInit()') >= 0, true]);
+  const cuerpo = (function () { const i = src.indexOf('function cm3dInit()');
+    return i < 0 ? '' : src.slice(i, i + 14000) })();
+  ex.push(['(A1) el motor guarda el ancho con que dibujo la ultima vez',
+    /let\\s+rw\\s*=\\s*W/.test(cuerpo), true]);
+  ex.push(['(A2) y lo compara EN EL CUADRO, reajustando el lienzo y la camara',
+    /if\\(w!==rw\\)\\{rw=w;rd\\.setSize\\(w,Hh\\);cam\\.aspect=w\\/Hh;cam\\.updateProjectionMatrix\\(\\);\\}/.test(cuerpo.replace(/\\s+/g, '')), true]);
+  ex.push(['(A3) el oyente de resize tambien pone en hora ese ancho',
+    /rw\\s*=\\s*w2/.test(cuerpo), true]);
+
+  /* ── (B) EN EL NAVEGADOR: el lienzo mide lo que su recuadro, en los dos modos ── */
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
+  await esperar(360);
+  const bot = EL('cc3d-abrir'); if (bot) bot.click();
+  await esperar(2900);
+  const medir = () => { const h = EL('cm3d-cv'); if (!h) return null;
+    const cv = h.querySelector('canvas'); if (!cv) return null;
+    const pr = Math.min(2, window.devicePixelRatio || 1);
+    const cq = cv.getBoundingClientRect(), hq = h.getBoundingClientRect();
+    return { rend: Math.round(cv.width / pr), host: Math.round(h.clientWidth),
+             cssW: Math.round(cq.width), desb: Math.round(cq.left + cq.width - hq.right) } };
+  const m0 = medir();
+  ex.push(['(B0) DENOM: el lienzo existe y tiene ancho', m0 ? (m0.host > 100) : 'NO HAY LIENZO', true]);
+  ex.push(['(B1) al abrir, el renderer mide lo que el recuadro', m0 ? (m0.rend === m0.host) : 'NO', true]);
+  /* ⚠️ EL CAMBIO DE ANCHO SE FUERZA Y NO SE PIDE AL CAMBIO DE MODO, Y ES UNA MEDICION: la suite
+     corre Chrome a unos 756 px, donde la rejilla del modulo va en DOS columnas con el centro a
+     todo el ancho, asi que el recuadro mide LO MISMO en los dos modos y el denominador salia
+     vacio. Lo que esta condicion tiene que ejercitar es un cambio de ancho SIN resize de
+     ventana, que es el escenario del defecto: se le acota el contenedor y se mira si el
+     renderer lo sigue. La geometria por modo la miden las sondas a los cuatro anchos. */
+  const host = EL('cm3d-cv');
+  const padre = host ? host.parentElement : null;
+  if (padre) padre.style.maxWidth = '420px';
+  await esperar(700);
+  const m1 = medir();
+  ex.push(['(B2) DENOM: el recuadro CAMBIO de ancho sin resize de ventana',
+    (m0 && m1) ? (m1.host < m0.host - 50) : 'NO', true]);
+  ex.push(['(B3) y el renderer lo siguio: es lo que esta tanda arregla',
+    m1 ? (m1.rend === m1.host) : 'NO', true]);
+  ex.push(['(B4) el lienzo NO desborda su recuadro', m1 ? (m1.desb <= 1) : 'NO', true]);
+  if (padre) padre.style.maxWidth = '';
+  await esperar(700);
+  const m2 = medir();
+  ex.push(['(B5) y al volver a su ancho tambien', m2 ? (m2.rend === m2.host) : 'NO', true]);
+  ex.push(['(B6) DENOM: volvio al ancho de antes', (m0 && m2) ? (m2.host === m0.host) : 'NO', true]);
+
+  /* ── (C) LAS TILDES DEL MODULO ── */
+  const vis = (raiz) => { if (!raiz) return '';
+    let t = '';
+    const w = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, null);
+    let n; while ((n = w.nextNode())) { const p = n.parentElement;
+      if (p && p.tagName !== 'SCRIPT' && p.tagName !== 'STYLE') t += ' ' + n.nodeValue }
+    raiz.querySelectorAll('[title],[aria-label]').forEach((e) => {
+      ['title', 'aria-label'].forEach((a) => { if (e.hasAttribute(a)) t += ' ' + e.getAttribute(a) });
+    });
+    return t };
+  /* ⚠️ POR PALABRA COMPLETA Y NO POR SUBCADENA: «pulmon» casa con «pulmonar», que se escribe
+     SIN tilde y es correcta -el modulo nombra la conexion venosa pulmonar anomala-. Medido: la
+     condicion acusaba al modulo por una palabra bien escrita. */
+  const SIN = ['corazon', 'Corazon', 'Que muestra', 'lineas B', 'consolidacion', 'aereo', 'pulmon',
+               'unico'];
+  const falta = (t, p) => new RegExp('(^|[^A-Za-zÀ-ÿ])' + p + '($|[^A-Za-zÀ-ÿ])').test(t);
+  const tm = vis(EL('cc3d-wrap')) + ' ' + vis(EL('cc3d-panel'));
+  ex.push(['(C0) DENOM: el texto visible del modulo se leyo', tm.length > 200, true]);
+  ex.push(['(C1) el modulo no tiene una sola palabra sin tilde',
+    SIN.filter((p) => falta(tm, p)).join(','), '']);
+  ex.push(['(C2) y su titulo lleva la tilde', tm.indexOf('Corazón en 3D') >= 0, true]);
+  ex.push(['(C3) y la etiqueta accesible de su globo tambien',
+    tm.indexOf('Qué muestra este dibujo') >= 0 || tm.indexOf('Qué muestra el corazón') >= 0, true]);
+
+  /* ── (D) LAS TILDES DEL DIAGRAMA DEL PULMON, con su denominador sembrado ── */
+  try { const b2 = bq('showTab(' + Q + 'pericardio' + Q); if (b2) b2.click() } catch (e) {}
+  await esperar(420);
+  S('pua_derrame', 'si'); S('pua_derrame_der', 'moderado');
+  S('pua_lineasb', 'presentes'); S('pua_z_ant_d', true);
+  S('pua_consol', 'si'); S('pua_consol_lado', 'der'); S('pua_consol_bronco', 'con');
+  S('pua_punto', 'si'); S('pua_desliz_lado', 'derecho');
+  if (FN('pulDibSync')) window.pulDibSync();
+  await esperar(420);
+  const dsc = String((EL('pul-dib-desc') || {}).textContent || '');
+  ex.push(['(D0) DENOM: la descripcion del diagrama tiene texto', dsc.length > 60, true]);
+  ex.push(['(D1) y no tiene una sola palabra sin tilde',
+    SIN.filter((p) => falta(dsc, p)).join(','), '']);
+  ex.push(['(D2) dice «lineas B» con tilde', dsc.indexOf('líneas B') >= 0, true]);
+  ex.push(['(D3) y «consolidacion con broncograma aereo» con las tres',
+    dsc.indexOf('consolidación con broncograma aéreo') >= 0, true]);
+  ex.push(['(D4) y «punto pulmon» con tilde', dsc.indexOf('punto pulmón') >= 0, true]);
+
+  /* ── (E) EL CAMPO DE FRECUENCIA ES CORTO, y la regla lo gana por especificidad ── */
+  const est = (function () { let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('style'), (s) => { t += s.textContent || '' });
+    return t })();
+  ex.push(['(E0) DENOM: las hojas de estilo del documento se leyeron', est.length > 10000, true]);
+  ex.push(['(E1) la regla del campo va con input. y no con la clase sola: la global vale (0,1,1)',
+    est.indexOf('input.cm3d-fcin') >= 0, true]);
+  ex.push(['(E2) y lo fija dentro de la fila flex', /input\\.cm3d-fcin[^}]*flex:\\s*0\\s+0\\s+78px/.test(est), true]);
+  ex.push(['(E3) CONTROL NEGATIVO: la clase sola ya NO alcanza y no quedo declarada',
+    /(^|[^.a-zA-Z])\\.cm3d-fcin\\s*\\{/.test(est), false]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-687', 'Tanda PANT-13 (commit 2): «Explorar» en tres zonas con sus DOS listas y sin la tabla lateral, las combinaciones con siglas y su nombre completo, los botones finos con area tactil de 44 px, y el esquema de circulacion con sus cajas, sus flechas y la inversion con Eisenmenger', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const Q = String.fromCharCode(39);
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    (b) => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
+  await esperar(360);
+  const bot = EL('cc3d-abrir'); if (bot) bot.click();
+  await esperar(2900);
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  ex.push(['(A0) DENOM: el estado del modulo es alcanzable', !!st, true]);
+  const bExp = Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'),
+    (b) => b.getAttribute('data-m') === 'explorar')[0];
+  if (bExp) bExp.click();
+  await esperar(650);
+
+  /* ── (A) LAS TRES ZONAS Y LA ESTRUCTURA ── */
+  ex.push(['(A1) la rejilla de las tres zonas existe', !!EL('cm3d-shell'), true]);
+  ex.push(['(A2) con «Base» a la izquierda y «Se suma» a la derecha, las dos a la vista',
+    (EL('cm3d-pl') ? (EL('cm3d-pl').hidden ? 'oculta' : 'visible') : 'NO') + '/' +
+    (EL('cm3d-pr') ? (EL('cm3d-pr').hidden ? 'oculta' : 'visible') : 'NO'), 'visible/visible']);
+  ex.push(['(A3) y la fila de combinaciones DEBAJO del dibujo, dentro del centro',
+    (function () { const c = EL('cm3d-cbw'), m = EL('cm3d-mid');
+      return (c && m && m.contains(c)) ? 'dentro' : 'fuera' })(), 'dentro']);
+  ex.push(['(A4) la tabla lateral de PANT-12 y sus filas ya NO existen',
+    (EL('cm3d-side') ? 1 : 0) + document.querySelectorAll('.cm3d-srow').length, 0]);
+  ex.push(['(A5) ni las filas de botones grandes ni su linea de motivo',
+    (EL('cm3d-ctl') ? 1 : 0) + (EL('cm3d-note') ? 1 : 0) + (EL('cm3d-fila') ? 1 : 0), 0]);
+  /* la regla de la rejilla, que es lo observable a cualquier ancho */
+  const est = (function () { let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('style'), (s) => { t += s.textContent || '' });
+    return t })();
+  ex.push(['(A6) DENOM: las hojas de estilo se leyeron', est.length > 10000, true]);
+  const mq = (ancho, sel) => { const re = new RegExp('@media[^{]*min-width:\\\\s*' + ancho + 'px[^{]*\\\\{([\\\\s\\\\S]{0,900})', 'g');
+    let m, out = [];
+    while ((m = re.exec(est))) { if (m[1].indexOf(sel) >= 0) out.push(m[1].slice(m[1].indexOf(sel), m[1].indexOf(sel) + 220)) }
+    return out.join(' || ') };
+  ex.push(['(A7) las TRES columnas arrancan en 1260 px y no en 1000, que es la medicion del commit',
+    /230px/.test(mq(1260, '#cm3d-shell')), true]);
+  ex.push(['(A8) y por debajo de 1260 el centro va a todo el ancho, desde 560 px',
+    /grid-column:1 \\/ -1/.test(mq(560, '#cm3d-mid')) || /grid-column:1\\/-1/.test(mq(560, '#cm3d-mid').replace(/\\s/g, '')), true]);
+  ex.push(['(A9) CONTROL NEGATIVO: a 1000 px NO hay una regla de tres columnas',
+    /230px/.test(mq(1000, '#cm3d-shell')), false]);
+
+  /* ── (B) LAS DOS LISTAS, SUS SIGLAS Y SUS COMBINACIONES ── */
+  const fB = document.querySelectorAll('#cm3d-baseb .cm3d-rw');
+  const fM = document.querySelectorAll('#cm3d-modb .cm3d-rw');
+  ex.push(['(B1) la lista «Base» trae SEIS filas y «Se suma» DIEZ', fB.length + '/' + fM.length, '6/10']);
+  ex.push(['(B2) las dieciseis traen su sigla y su linea',
+    Array.prototype.filter.call([].concat(Array.prototype.slice.call(fB), Array.prototype.slice.call(fM)),
+      (b) => String((b.querySelector('.cm3d-sg1') || {}).textContent || '').length > 1
+          && String((b.querySelector('.cm3d-nm') || {}).textContent || '').length > 5).length, 16]);
+  ex.push(['(B3) las SEIS combinaciones se rotulan con su sigla',
+    Array.prototype.map.call(document.querySelectorAll('#cm3d-presb .cm3d-chip'), (e) => e.textContent).join(','),
+    'CIA+CIV+DAP,CIA+CVPA+VCSI,CIA+EP,Coa+EA,Ebs+CIA,CIV+DAP+Eis']);
+  ex.push(['(B4) y las seis traen el nombre completo en el title Y en la etiqueta accesible',
+    Array.prototype.filter.call(document.querySelectorAll('#cm3d-presb .cm3d-chip'),
+      (e) => String(e.getAttribute('title') || '').length > 8
+          && String(e.getAttribute('aria-label') || '').length > 8).length, 6]);
+  ex.push(['(B5) la fuente de cada combinacion sigue en el registro, no en el boton',
+    (function () { const P = window.CM_PRES || [];
+      return P.length + '/' + P.filter((p) => String(p.src || '').length > 20).length })(), '6/6']);
+
+  /* ── (C) LOS BOTONES FINOS: 30 px de alto visible y 44 de area tactil ── */
+  const fFal = Array.prototype.filter.call(fB,
+    (b) => String((b.querySelector('.cm3d-sg1') || {}).textContent || '') === 'Fallot')[0];
+  if (fFal) fFal.click();
+  await esperar(420);
+  const chips = document.querySelectorAll('#cm3d-baseb .cm3d-sub .cm3d-chip');
+  ex.push(['(C0) DENOM: la base elegida abrio su sub-bloque con sus variantes', chips.length, 2]);
+  ex.push(['(C1) con la sigla de cada variante',
+    Array.prototype.map.call(chips, (e) => e.textContent).join(','), 'Sin operar,Operado']);
+  ex.push(['(C2) el area tactil la da un ::after absoluto y NO un margen negativo',
+    /\\.cm3d-chip::after[^}]*position:absolute/.test(est.replace(/\\s+/g, '')) ||
+    /\\.cm3d-chip::after\\{content:.{0,8};position:absolute/.test(est.replace(/\\s+/g, '')), true]);
+  ex.push(['(C3) que suma 7 px arriba y 7 abajo sobre los 30 visibles: 44',
+    (function () { const m = /\\.cm3d-chip::after\\{[^}]*top:-7px;bottom:-7px/.exec(est.replace(/\\s+/g, ''));
+      const h = /\\.cm3d-chip\\{[^}]*min-height:30px/.test(est.replace(/\\s+/g, ''));
+      return (m ? 1 : 0) + (h ? 1 : 0) })(), 2]);
+
+  /* ── (D) EL ESQUEMA DE CIRCULACION ── */
+  const fN = Array.prototype.filter.call(fB,
+    (b) => String((b.querySelector('.cm3d-sg1') || {}).textContent || '') === 'Normal')[0];
+  if (fN) fN.click();
+  await esperar(400);
+  ex.push(['(D0) el esquema nace CERRADO', EL('cm3d-sch') ? EL('cm3d-sch').hidden : 'NO', true]);
+  ex.push(['(D1) y su boton lo declara', EL('cm3d-esb') ? EL('cm3d-esb').getAttribute('aria-expanded') : 'NO', 'false']);
+  const esb = EL('cm3d-esb'); if (esb) esb.click();
+  await esperar(600);
+  ex.push(['(D2) el boton lo abre', EL('cm3d-sch') ? !EL('cm3d-sch').hidden : 'NO', true]);
+  ex.push(['(D3) con su aria siguiendolo', esb ? esb.getAttribute('aria-expanded') : 'NO', 'true']);
+  const sv = EL('cm3d-schsvg');
+  ex.push(['(D4) DENOM: el esquema dibujo', sv ? (sv.querySelectorAll('*').length > 20) : 'NO', true]);
+  ex.push(['(D5) con las SEIS cajas: los dos pulmones, las cuatro cavidades y el cuerpo',
+    sv ? sv.querySelectorAll('rect').length : 'NO', 6]);
+  ex.push(['(D6) y las cuatro cavidades rotuladas',
+    sv ? ['VD', 'AI', 'AD', 'VI'].filter((t) => Array.prototype.some.call(sv.querySelectorAll('text'),
+      (e) => String(e.textContent || '').trim() === t)).length + '/4' : 'NO', '4/4']);
+  ex.push(['(D7) las marcas T y M de las valvulas',
+    sv ? ['T', 'M'].filter((t) => Array.prototype.some.call(sv.querySelectorAll('text'),
+      (e) => String(e.textContent || '').trim() === t)).length + '/2' : 'NO', '2/2']);
+  ex.push(['(D8) y TODOS sus tubos llevan flecha',
+    sv ? (function () { const f = sv.querySelectorAll('.cm3d-fl');
+      return f.length + '/' + Array.prototype.filter.call(f, (p) => p.getAttribute('marker-end')).length })() : 'NO', '6/6']);
+
+  /* ── (E) LA INVERSION CON EISENMENGER: la MISMA lesion, la flecha al reves ── */
+  const dCiv = () => { const s2 = EL('cm3d-schsvg'); if (!s2) return 'NO';
+    const p = Array.prototype.filter.call(s2.querySelectorAll('.cm3d-fl'),
+      (x) => x.getAttribute('stroke') === '#e08a1e')[0];
+    return p ? p.getAttribute('d') : 'SIN COMUNICACION' };
+  if (st) { st.S.base = 'norm'; st.S.mods = { civ: 'pm' }; st.S.ck = {};
+    if (FN('cm3dSync')) window.cm3dSync(); if (FN('cmSchRender')) window.cmSchRender() }
+  await esperar(420);
+  const d1 = dCiv();
+  ex.push(['(E0) DENOM: la CIV sola se dibuja en el esquema', d1 !== 'SIN COMUNICACION' && d1 !== 'NO', true]);
+  ex.push(['(E1) va del VI al VD, de izquierda a derecha', d1, 'M180 164L120 116']);
+  if (st) { st.S.mods = { civ: 'pm', eis: 'std' };
+    if (FN('cm3dSync')) window.cm3dSync(); if (FN('cmSchRender')) window.cmSchRender() }
+  await esperar(420);
+  ex.push(['(E2) y con Eisenmenger la flecha se INVIERTE', dCiv(), 'M120 116L180 164']);
+  ex.push(['(E3) CONTROL NEGATIVO: no es que el esquema dibuje siempre lo mismo',
+    dCiv() !== d1, true]);
+
+  /* ── (F) EL MOVIMIENTO: su dueno es el de la pausa del modulo, no uno propio ── */
+  const src = (function () { let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('script:not([src])'), (s) => { t += s.textContent || '' });
+    return t })();
+  ex.push(['(F1) las lineas se mueven con la MISMA pausa y el MISMO movimiento reducido del modulo',
+    /function cmSchFrame[\\s\\S]{0,420}_cm3d\\.pausado[\\s\\S]{0,120}_cm3dReducido/.test(src), true]);
+  if (st) { st.S.mods = {}; }
+  if (esb) esb.click();
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-688', 'Tanda PANT-13 (commit 3): «Incluir en el PDF» del corazon maestro — apagado en «Explorar», apagado sin nada cargado, apagado con una transposicion cargada, y encendido con lesiones; el PDF lleva la version del estudio aunque se este explorando otra cosa; y sin campo guardado nuevo', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const Q = String.fromCharCode(39);
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    (b) => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    if (e.type === 'checkbox') { e.checked = !!v } else { e.value = v }
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    e.dispatchEvent(new Event('input', { bubbles: true })); return 'ok' };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(320);
+  /* sembrar dos comunicaciones en su pestania */
+  try { const b0 = bq('ccSubTab(' + Q + 'congenitas2' + Q); if (b0) b0.click() } catch (e) {}
+  await esperar(260);
+  ex.push(['(A0) DENOM: las dos comunicaciones se sembraron',
+    S('ete_cia_tipo', 'secundum') + '/' + S('ete_civ_tipo', 'perimembranosa'), 'ok/ok']);
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
+  await esperar(380);
+  const bot = EL('cc3d-abrir'); if (bot) bot.click();
+  await esperar(2900);
+  const b = EL('cm3d-pdfb'), n = EL('cm3d-pdfn');
+  ex.push(['(A1) el boton y su aviso existen, en la barra de herramientas',
+    (b ? 1 : 0) + (n ? 1 : 0) + '/2', '2/2']);
+  ex.push(['(A2) y el boton NO es campo del estudio: lo saca el prefijo del modulo',
+    (FN('_noEsDelEstudio') && b) ? window._noEsDelEstudio(b.id) : 'NO', true]);
+  ex.push(['(A3) DENOM: el estudio tiene algo cargado', FN('cmHayCargado') ? window.cmHayCargado() : 'NO', true]);
+
+  /* ── (B) EN «SEGUN EL ESTUDIO» CON LESIONES: habilitado y apagado ── */
+  const leer = () => ({ dis: b ? b.disabled : 'NO', txt: b ? String(b.textContent || '') : 'NO',
+    aria: b ? b.getAttribute('aria-pressed') : 'NO', inc: FN('esqEstaIncluido') ? window.esqEstaIncluido('cm3d') : 'NO' });
+  const l0 = leer();
+  ex.push(['(B1) con lesiones cargadas el boton esta habilitado', l0.dis, false]);
+  ex.push(['(B2) y declara que todavia no se incluyo', l0.aria + '/' + l0.inc, 'false/false']);
+
+  /* ── (C) EN «EXPLORAR»: APAGADO, con su aviso ── */
+  const bExp = Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'),
+    (x) => x.getAttribute('data-m') === 'explorar')[0];
+  if (bExp) bExp.click();
+  await esperar(600);
+  ex.push(['(C1) en «Explorar» el boton queda APAGADO', leer().dis, true]);
+  ex.push(['(C2) y dice que lo explorado es didactico y no es un dato del paciente',
+    String((n || {}).textContent || '').indexOf('did') >= 0
+      && String((n || {}).textContent || '').indexOf('Seg') >= 0, true]);
+  const bEst = Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'),
+    (x) => x.getAttribute('data-m') !== 'explorar')[0];
+  if (bEst) bEst.click();
+  await esperar(600);
+  ex.push(['(C3) y al volver se habilita otra vez', leer().dis, false]);
+
+  /* ── (D) SE ENCIENDE Y SE APAGA ── */
+  if (b) b.click();
+  await esperar(1300);
+  const l1 = leer();
+  ex.push(['(D1) al tocarlo queda incluido', l1.inc, true]);
+  ex.push(['(D2) con su rotulo y su aria', (l1.txt.indexOf('Incluido') >= 0) + '/' + l1.aria, 'true/true']);
+  ex.push(['(D3) y el esquema de circulacion se rasterizo con el',
+    FN('cmEsqPdfData') ? !!(window.cmEsqPdfData() || {}).data : 'NO', true]);
+  /* ── (E) EL PDF LLEVA LA VERSION DEL ESTUDIO, no la explorada ── */
+  const linea0 = FN('cmLineaPDF') ? window.cmLineaPDF() : 'NO';
+  ex.push(['(E0) DENOM: la linea del PDF describe lo cargado', linea0, 'CIA, CIV']);
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  if (bExp) bExp.click();
+  await esperar(520);
+  if (st) { st.S.base = 'ebs'; st.S.mods = { coa: 'nat' };
+    if (FN('cm3dSync')) window.cm3dSync() }
+  await esperar(520);
+  ex.push(['(E1) DENOM: el medico esta explorando OTRA cosa',
+    st ? (st.S.base + '/' + JSON.stringify(st.S.mods)) : 'NO', 'ebs/{"coa":"nat"}']);
+  ex.push(['(E2) y la linea del PDF sigue siendo la del ESTUDIO',
+    FN('cmLineaPDF') ? window.cmLineaPDF() : 'NO', 'CIA, CIV']);
+  ex.push(['(E3) sin mover lo que el medico estaba mirando',
+    st ? (st.S.base + '/' + JSON.stringify(st.S.mods)) : 'NO', 'ebs/{"coa":"nat"}']);
+  if (bEst) bEst.click();
+  await esperar(560);
+  if (b) b.click();
+  await esperar(900);
+  ex.push(['(E4) al tocarlo otra vez se quita', FN('esqEstaIncluido') ? window.esqEstaIncluido('cm3d') : 'NO', false]);
+
+  /* ── (F) SIN NADA CARGADO: apagado con su aviso ── */
+  S('ete_cia_tipo', ''); S('ete_civ_tipo', '');
+  if (FN('cm3dEstudioSync')) window.cm3dEstudioSync();
+  await esperar(700);
+  ex.push(['(F1) DENOM: el estudio quedo sin nada cargado', FN('cmHayCargado') ? window.cmHayCargado() : 'NO', false]);
+  ex.push(['(F2) el boton queda apagado', leer().dis, true]);
+  ex.push(['(F3) y lo dice', String((n || {}).textContent || '').indexOf('No hay lesiones') >= 0, true]);
+
+  /* ── (G) CON UNA TRANSPOSICION CARGADA: apagado, porque su seccion tiene su propio boton ── */
+  S('tga_tipo', 'dtga');
+  if (FN('cm3dEstudioSync')) window.cm3dEstudioSync();
+  if (FN('cmPdfSync')) window.cmPdfSync();
+  await esperar(650);
+  ex.push(['(G0) DENOM: ahora SI hay algo cargado', FN('cmHayCargado') ? window.cmHayCargado() : 'NO', true]);
+  ex.push(['(G1) y aun asi el boton del modulo queda apagado', leer().dis, true]);
+  ex.push(['(G2) porque su dibujo se incluye desde la seccion de la transposicion',
+    String((n || {}).textContent || '').indexOf('transposici') >= 0, true]);
+  ex.push(['(G3) y el gesto tambien lo respeta, no solo el pintor',
+    (function () { if (!FN('cmIncluirPDF')) return 'NO';
+      try { window.cmIncluirPDF(); } catch (e) {}
+      return FN('esqEstaIncluido') ? window.esqEstaIncluido('cm3d') : 'NO' })(), false]);
+
+  /* ── (H) EL REGISTRO DEL PDF ── */
+  const REG = Array.isArray(window.PDF_DIAG_REG) ? window.PDF_DIAG_REG : [];
+  const reg = REG.filter((d) => d.k === 'cm3d')[0] || null;
+  ex.push(['(H1) el diagrama esta en el registro, como congenito y de media franja',
+    reg ? (reg.fam + '/' + reg.w) : 'NO ESTA', 'cc/1']);
+  ex.push(['(H2) y va DETRAS del esquema 3D de la transposicion',
+    REG.map((d) => d.k).join(',').indexOf('tga3d,cm3d') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+caso('TC-689', 'Tanda PANT-13 (commit 4): la transposicion como SEXTA anatomia de base del corazon maestro — sus cinco variantes con los textos que la app ya tiene, sus dos casillas, las reglas de compatibilidad de la demo, la lectura de su pestania, y el dibujo de la pestania que NO se retiro', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const Q = String.fromCharCode(39);
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    (b) => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    if (e.type === 'checkbox') { e.checked = !!v } else { e.value = v }
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+    e.dispatchEvent(new Event('input', { bubbles: true })); return 'ok' };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(300);
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
+  await esperar(380);
+  const bot = EL('cc3d-abrir'); if (bot) bot.click();
+  await esperar(2900);
+  const st = FN('_cm3dEstado') ? window._cm3dEstado() : null;
+  ex.push(['(A0) DENOM: el estado y las dos funciones de escenario son alcanzables',
+    (st ? 1 : 0) + (FN('cmEscena') ? 1 : 0) + (FN('tga3dEscena') ? 1 : 0) + '/3', '3/3']);
+
+  /* ── (A) EL MODELO ── */
+  const B = window.CM_BASES || [];
+  ex.push(['(A1) la transposicion es la SEXTA anatomia de base',
+    B.length + '/' + (B[5] ? B[5][0] : 'NO'), '6/tga']);
+  ex.push(['(A2) con sus CINCO variantes', (window.CM_BVARS && window.CM_BVARS.tga)
+    ? window.CM_BVARS.tga.map((v) => v[0]).join(',') : 'NO', 'd,jat,mus,ras,cc']);
+  ex.push(['(A3) y sus dos casillas en las cinco',
+    (function () { const C = window.CM_BCK || {};
+      return ['d', 'jat', 'mus', 'ras', 'cc'].filter((v) => (C['tga_' + v] || []).length === 2).length + '/5' })(), '5/5']);
+
+  /* ── (B) LA GEOMETRIA ES LA MISMA FUNCION, no una copia ── */
+  const src = (function () { let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('script:not([src])'), (s) => { t += s.textContent || '' });
+    return t })();
+  ex.push(['(B1) el modulo LLAMA a tga3dEscena y no porta la geometria',
+    /function _cmEscenaTGA[\\s\\S]{0,900}tga3dEscena\\(/.test(src), true]);
+  if (st) { st.S.base = 'tga'; st.S.bv.tga = 'd'; st.S.mods = {}; st.S.ck = {} }
+  const eA = FN('tga3dEscena') ? window.tga3dEscena('dtga', '', { asd: false, vsd: false, pda: false }) : null;
+  const eB = (st && FN('cmEscena')) ? window.cmEscena(st.S) : null;
+  const red = (v) => (typeof v === 'number') ? Number(v.toFixed(4)) : v;
+  const fir = (o) => o ? JSON.stringify({ ch: o.ch, ar: o.ar, fl: o.fl, ex: o.ex, lb: o.lb }, (k, v) => red(v)) : 'NULO';
+  ex.push(['(B2) DENOM: el escenario de la transposicion tiene geometria', (fir(eA) || '').length > 400, true]);
+  ex.push(['(B3) y el que arma el modulo es IDENTICO campo por campo', fir(eA) === fir(eB), true]);
+
+  /* ── (C) LAS CINCO VARIANTES DIBUJAN, con los textos que la app ya tiene ── */
+  const porVar = {};
+  ['d', 'jat', 'mus', 'ras', 'cc'].forEach((v) => {
+    if (!st) return;
+    st.S.bv.tga = v; st.S.mods = {}; st.S.ck = {};
+    const e2 = window.cmEscena(st.S);
+    porVar[v] = { ar: (e2.ar || []).length, fl: (e2.fl || []).length,
+                  info: String(e2.info || '').length, circ: String(e2.circ || '').length };
+  });
+  ex.push(['(C1) las cinco dibujan arterias y corrientes',
+    Object.keys(porVar).filter((v) => porVar[v].ar >= 3 && porVar[v].fl >= 3).length + '/5', '5/5']);
+  ex.push(['(C2) y las cinco traen su texto y su recorrido, de los registros de la transposicion',
+    Object.keys(porVar).filter((v) => porVar[v].info > 60 && porVar[v].circ > 25).length + '/5', '5/5']);
+  ex.push(['(C3) y esos textos son los MISMOS que su propio recuadro publica',
+    (function () { if (!st) return 'NO';
+      st.S.bv.tga = 'mus'; const e3 = window.cmEscena(st.S);
+      const T = window.TGA3D_INFO || null;
+      if (!T) { return (String(e3.info || '').indexOf('Switch auricular') === 0) ? 'ok' : 'distinto' }
+      return (String(e3.info || '') === String(T.mus || '')) ? 'ok' : 'distinto' })(), 'ok']);
+
+  /* ── (D) LA CIV RESIDUAL DIBUJA Y LA OBSTRUCCION SUBAORTICA NO, que es lo que la app hace hoy ── */
+  if (st) { st.S.bv.tga = 'd'; st.S.mods = {}; st.S.ck = {} }
+  const n0 = st ? (window.cmEscena(st.S).ex || []).length : 'NO';
+  if (st) { st.S.ck = { tciv: true } }
+  const n1 = st ? (window.cmEscena(st.S).ex || []).length : 'NO';
+  if (st) { st.S.ck = { tciv: true, tobs: true } }
+  const n2 = st ? (window.cmEscena(st.S).ex || []).length : 'NO';
+  ex.push(['(D1) la CIV residual agrega un extra al dibujo', (n1 > n0), true]);
+  ex.push(['(D2) y la obstruccion subaortica NO agrega ninguno: la app no la dibuja', n2, n1]);
+
+  /* ── (E) LAS REGLAS DE COMPATIBILIDAD, portadas de la demo tal cual ── */
+  const apag = (v) => { if (!st) return 'NO';
+    st.S.bv.tga = v; st.S.mods = {};
+    return ['cia', 'civ', 'dap', 'vap', 'cvpa', 'coa', 'ep', 'ea', 'vcs', 'eis']
+      .filter((k) => !!window.cmBloqueado(k, st.S)).join(',') };
+  ex.push(['(E1) la d-TGA admite las tres comunicaciones y la cava izquierda',
+    apag('d'), 'vap,cvpa,coa,ep,ea,eis']);
+  ex.push(['(E2) el Jatene admite todo menos el Eisenmenger', apag('jat'), 'eis']);
+  ex.push(['(E3) el switch auricular solo admite la cava izquierda',
+    apag('mus'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
+  ex.push(['(E4) el Rastelli tambien: ahi la CIV ya ES el tunel',
+    apag('ras'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
+  ex.push(['(E5) y la ccTGA tambien', apag('cc'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
+  ex.push(['(E6) CONTROL NEGATIVO: sobre el corazon normal no se apaga ninguna de las diez',
+    (function () { if (!st) return 'NO'; st.S.base = 'norm'; st.S.mods = {};
+      return ['cia', 'civ', 'dap', 'vap', 'cvpa', 'coa', 'ep', 'ea', 'vcs', 'eis']
+        .filter((k) => !!window.cmBloqueado(k, st.S)).join(',') })(), '']);
+
+  /* ── (F) AL CAMBIAR DE VARIANTE, la lesion elegida se saca sola ── */
+  if (st) { st.S.base = 'tga'; st.S.bv.tga = 'd'; st.S.mods = { cia: 'sec' };
+    try { if (FN('cmSetBase')) window.cmSetBase('tga') } catch (e) {} }
+  await esperar(350);
+  ex.push(['(F0) DENOM: con d-TGA la CIA se puede elegir',
+    (function () { if (!st) return 'NO'; st.S.bv.tga = 'd'; st.S.mods = { cia: 'sec' };
+      return !window.cmBloqueado('cia', st.S) })(), true]);
+  ex.push(['(F1) y al pasar a Mus/Sen queda bloqueada',
+    (function () { if (!st) return 'NO'; st.S.bv.tga = 'mus';
+      return !!window.cmBloqueado('cia', st.S) })(), true]);
+
+  /* ── (G) «SEGUN EL ESTUDIO» LEE SU PESTANIA ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(320);
+  try { const b2 = bq('ccSubTab(' + Q + 'congenitas2' + Q); if (b2) b2.click() } catch (e) {}
+  await esperar(240);
+  ex.push(['(G0) DENOM: la pestania se sembro',
+    S('tga_tipo', 'dtga') + S('tga_cirugia', 'rastelli') + S('tga_civ_residual', 'si'), 'okokok']);
+  if (FN('cmDesdeEstudio')) window.cmDesdeEstudio();
+  await esperar(300);
+  ex.push(['(G1) el modulo lee la base y la variante de la pestania',
+    st ? (st.S.base + '/' + st.S.bv.tga) : 'NO', 'tga/ras']);
+  ex.push(['(G2) y la casilla de la CIV residual', st ? JSON.stringify(st.S.ck) : 'NO', '{"tciv":true}']);
+  ex.push(['(G3) la variante NO se deduce a mano: sale de tgaEjes, que es su dueno unico',
+    /function cmDesdeEstudio[\\s\\S]{0,2200}tgaEjes\\(\\)/.test(src), true]);
+  ex.push(['(G4) el switch auricular se lee del TIPO y no del campo de cirugia',
+    (function () { if (!st || !FN('cmDesdeEstudio')) return 'NO';
+      S('tga_tipo', 'mustard'); S('tga_cirugia', '');
+      window.cmDesdeEstudio(); return st.S.bv.tga })(), 'mus']);
+  ex.push(['(G5) y la ccTGA tambien',
+    (function () { if (!st || !FN('cmDesdeEstudio')) return 'NO';
+      S('tga_tipo', 'cctga'); window.cmDesdeEstudio(); return st.S.bv.tga })(), 'cc']);
+
+  /* ── (H) LA LINEA DE ABAJO: la transposicion YA NO «tiene su propio diagrama» ── */
+  S('tga_tipo', 'dtga');
+  if (FN('cc3dTextoSync')) window.cc3dTextoSync();
+  await esperar(320);
+  const lin = String((EL('cc3d-faltan') || {}).textContent || '');
+  ex.push(['(H0) DENOM: la linea se escribio', lin.length > 20, true]);
+  ex.push(['(H1) ya NO dice que tiene su propio diagrama', lin.indexOf('propio diagrama') >= 0, false]);
+  ex.push(['(H2) ni la lista como no dibujada', /no dibujadas todav[ií]a: *TGA/.test(lin), false]);
+  ex.push(['(H3) porque entro a la lista de las DIBUJADAS',
+    (window.CC3D_DIBUJA || []).indexOf('tga') >= 0, true]);
+
+  /* ── (I) EL DIBUJO DE LA PESTANIA NO SE RETIRO: la equivalencia no cerro ── */
+  ex.push(['(I1) el recuadro del 3D de la transposicion sigue en su seccion', !!EL('tga-3d-cv'), true]);
+  ex.push(['(I2) y su esquema de circulacion tambien', !!EL('tga-esq-box'), true]);
+  ex.push(['(I3) con su propio boton de PDF', !!EL('tga-3d-pdf'), true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-690 · TANDA PANT-13, COMMIT 5 — la tabla de diferenciales de Masas, cerrada, y los textos
+   neutros.
+   DENOMINADORES: (A0) la seccion de Masas se abre -sin eso todo su arbol informa 0 px, que es un
+   denominador vacio-; (C0) la tabla tiene filas que contar.
+   CONTROLES NEGATIVOS: (E2) el censo SABE encontrar una frase que juzga una guia, sembrada a
+   mano y retirada enseguida: sin eso, un cero no se distingue de una sonda que no mira nada;
+   (B3) el globo abre y la tabla NO se cierra -que es por lo que el globo queda FUERA del boton-.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-690', 'Tanda PANT-13 (commit 5): la tabla de diferenciales de Masas nace CERRADA con el mecanismo de «Patrones de Strain» —su boton con aria-expanded, su flecha y su cuerpo escondido—, el globo queda FUERA del boton, el contenido de la tabla no se perdio, los tres textos quedaron neutros, y en la seccion no queda una frase que juzgue una guia contra otra', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const TXT = (e) => String((e && e.textContent) || '').split(String.fromCharCode(10)).join(' ');
+  const CH = (n) => String.fromCharCode(n);
+
+  __t.limpiar();
+  try { showTab('otros') } catch (e) {}
+  await esperar(320);
+  /* La seccion vive en un acordeon y nace cerrada: sin abrirla, todo su arbol mide 0 px. */
+  try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('masas', null) } catch (e) {}
+  await esperar(420);
+  const sec = EL('otr-sub-masas');
+  ex.push(['(A0) DENOM: la seccion de Masas existe y su cuerpo tiene alto',
+    !!sec && sec.getBoundingClientRect().height > 100, true]);
+
+  /* ── (A) NACE CERRADA, CON EL MECANISMO DE «Patrones de Strain» ── */
+  const tog = EL('masa-ref-tog'), cue = EL('masa-ref-cuerpo');
+  ex.push(['(A1) el boton de la tabla y su cuerpo existen', (!!tog) + '/' + (!!cue), 'true/true']);
+  ex.push(['(A2) y el cuerpo nace ESCONDIDO',
+    cue ? getComputedStyle(cue).display : 'NO', 'none']);
+  ex.push(['(A3) con aria-expanded en false, que es lo que el lector de pantalla lee',
+    tog ? tog.getAttribute('aria-expanded') : 'NO', 'false']);
+  ex.push(['(A4) y la flecha apuntando a la derecha',
+    (function () { if (!tog) return 'NO'; const c = tog.querySelector('.igacc-chev');
+      return c ? TXT(c).trim() : 'NO CHEV' })(), CH(9654)]);
+  ex.push(['(A5) el boton se puede tocar: 44 px de alto o mas',
+    tog ? (tog.getBoundingClientRect().height >= 44) : 'NO', true]);
+  const glo = sec ? sec.querySelector('[data-vinfo="masa-ref"]') : null;
+  ex.push(['(A6) el globo de la seccion esta FUERA del boton: un boton dentro de otro es marcado invalido',
+    (!!glo) + '/' + (glo && tog ? tog.contains(glo) : 'NO'), 'true/false']);
+
+  /* ── (B) ABRE Y CIERRA, Y EL GLOBO NO LA CIERRA ── */
+  if (tog) tog.click();
+  await esperar(260);
+  ex.push(['(B1) al tocarlo la tabla se ve, con su aria y su flecha',
+    (cue ? getComputedStyle(cue).display : 'NO') + '/' +
+    (tog ? tog.getAttribute('aria-expanded') : 'NO') + '/' +
+    (function () { const c = tog ? tog.querySelector('.igacc-chev') : null;
+      return c ? TXT(c).trim() : 'NO' })(), 'block/true/' + CH(9660)]);
+  if (glo) glo.click();
+  await esperar(260);
+  ex.push(['(B3) CONTROL NEGATIVO: abrir la ayuda NO cierra la tabla',
+    cue ? getComputedStyle(cue).display : 'NO', 'block']);
+  try { if (typeof vInfoCerrar === 'function') vInfoCerrar() } catch (e) {}
+  await esperar(200);
+
+  /* ── (C) EL CONTENIDO NO SE PERDIO ── */
+  const tab = cue ? cue.querySelector('table.masa-ref-tabla') : null;
+  const filas = tab ? tab.querySelectorAll('tbody tr').length : 0;
+  const celdas = tab ? tab.querySelectorAll('tbody td').length : 0;
+  ex.push(['(C0) DENOM: la tabla tiene filas que contar', filas > 0, true]);
+  ex.push(['(C1) sus SIETE filas y sus 49 celdas siguen', filas + '/' + celdas, '7/49']);
+  const ttab = TXT(tab);
+  ex.push(['(C2) y sus fuentes con su folio tambien',
+    (ttab.indexOf('folio') >= 0) + '/' + (ttab.indexOf('ASE 2016') >= 0), 'true/true']);
+
+  /* ── (D) LOS TRES TEXTOS, NEUTROS ── */
+  ex.push(['(D1) la fila de la protesis ya NO juzga a las dos fuentes',
+    (ttab.indexOf('no coinciden') >= 0) + '/' + (ttab.indexOf('sin resolver') >= 0), 'false/false']);
+  ex.push(['(D2) y cada una dice lo suyo, en su propia oracion',
+    ttab.indexOf('La ASE 2024 de pr') >= 0, true]);
+  ex.push(['(D3) la fila de las variantes normales ya NO dice que ninguna fuente publica una regla',
+    ttab.indexOf('Ninguna fuente de la biblioteca publica') >= 0, false]);
+  ex.push(['(D4) y dice lo que la fuente SI dice',
+    ttab.indexOf('entre las estructuras normales') >= 0, true]);
+  ex.push(['(D5) la nota de las excrecencias de Lambl nombra a su fuente y no habla de ella',
+    (ttab.indexOf('indistinguibles por ecocardiograf') >= 0) + '/' +
+    (ttab.indexOf('no hay forma de distinguir') >= 0), 'true/false']);
+
+  /* ── (E) EL CENSO DE LA SECCION, CON SU CONTROL NEGATIVO ── */
+  const PROHIB = ['no coinciden', 'sin resolver', 'se muestran sin resolver', 'discrepan',
+    'no se encontr', 'Ninguna fuente de la biblioteca publica', 'CAMBIA ENTRE GUIAS'];
+  const censar = () => { const t = TXT(sec);
+    return PROHIB.filter((f) => t.indexOf(f) >= 0).join(' | ') };
+  ex.push(['(E1) en toda la seccion de Masas no queda una frase que juzgue una guia', censar(), '']);
+  const cen = document.createElement('div');
+  cen.id = 'pant13-centinela';
+  cen.textContent = 'Dos fuentes que no coinciden, y se muestran sin resolver.';
+  if (sec) sec.appendChild(cen);
+  await esperar(120);
+  const vio = censar();
+  if (cen.parentNode) cen.parentNode.removeChild(cen);
+  ex.push(['(E2) CONTROL NEGATIVO: la sonda SABE encontrarlas -centinela sembrado a mano-',
+    vio.length > 0, true]);
+  await esperar(120);
+  ex.push(['(E3) y el centinela se retiro, asi que (E1) sigue valiendo', censar(), '']);
+
+  /* ── (F) EL ESTADO ABIERTO NO ES UN CAMPO DEL ESTUDIO ── */
+  ex.push(['(F1) la tabla no agrega ningun campo guardado: su estado vive en el DOM',
+    document.querySelectorAll('input[id^="masa-ref"], input[id^="masa_ref"]').length, 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-691 · TANDA PANT-13, COMMIT 6 — el broncograma aereo en puntitos, y el boton del PDF del
+   diagrama del pulmon.
+   DENOMINADORES: (A0) el diagrama existe y dibujo; (B0) con consolidacion hay una mancha donde
+   recortar los puntos.
+   CONTROLES NEGATIVOS: (B4) sin broncograma no se dibuja un solo punto; (D4) el campo del PDF se
+   vacia con «Nuevo estudio», asi que no se filtra al paciente siguiente.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-691', 'Tanda PANT-13 (commit 6): el broncograma aereo del diagrama del pulmon se dibuja en PUNTITOS recortados por la mancha y con el radio decreciendo por orden de bronquio, y el diagrama tiene su boton «Incluir el diagrama en el PDF» con su campo oculto, que se vacia con «Nuevo estudio»', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const S = (id, v) => { const e = EL(id); if (!e) return 'NO ' + id;
+    e.value = v; try { e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {}
+    return 'ok' };
+
+  __t.limpiar();
+  try { showTab('pulmon') } catch (e) {}
+  await esperar(320);
+  /* El diagrama vive en la pestania del eco pulmonar. Si su contenedor no se ve, todo su arbol
+     informa 0 px y el conteo de nodos da cero sin que eso diga nada. */
+  const svg = EL('pul-dib-svg');
+  ex.push(['(A0) DENOM: el diagrama del pulmon existe', !!svg, true]);
+
+  /* ── (B) EL BRONCOGRAMA, EN PUNTITOS ── */
+  /* Los tres campos del eco pulmonar avanzado: la presencia, el LADO -sin lado la mancha no se
+     dibuja y el grupo de los puntos no existe- y el broncograma. El disparador es pulAvUI. */
+  S('pua_consol', 'si');
+  S('pua_consol_lado', 'der');
+  S('pua_consol_bronco', 'con');
+  if (FN('pulAvUI')) window.pulAvUI();
+  if (FN('pulDibSync')) window.pulDibSync();
+  await esperar(420);
+  const gb = svg ? Array.prototype.filter.call(svg.querySelectorAll('g[clip-path]'),
+    (g) => String(g.getAttribute('fill') || '').indexOf('bg2') >= 0)[0] : null;
+  ex.push(['(B0) DENOM: con consolidacion hay un grupo recortado donde van los puntos', !!gb, true]);
+  const pts = gb ? gb.querySelectorAll('circle') : [];
+  ex.push(['(B1) el broncograma se dibuja en PUNTOS y no en lineas',
+    (pts.length > 10) + '/' + (gb ? gb.querySelectorAll('path').length : 'NO'), 'true/0']);
+  ex.push(['(B2) RECORTADOS por la mancha de la consolidacion: un punto afuera no se ve',
+    gb ? (String(gb.getAttribute('clip-path') || '').indexOf('url(') === 0) : 'NO', true]);
+  const radios = Array.prototype.map.call(pts, (c) => parseFloat(c.getAttribute('r')));
+  const rmax = Math.max.apply(null, radios), rmin = Math.min.apply(null, radios);
+  ex.push(['(B3) y el radio decrece con el orden del bronquio, igual que el grosor de las lineas',
+    (rmax > rmin) + '/' + rmax.toFixed(1) + '/' + rmin.toFixed(1), 'true/2.1/1.5']);
+  S('pua_consol_bronco', 'sin');
+  if (FN('pulAvUI')) window.pulAvUI();
+  if (FN('pulDibSync')) window.pulDibSync();
+  await esperar(420);
+  ex.push(['(B4) CONTROL NEGATIVO: sin broncograma no se dibuja un solo punto',
+    (function () { const g2 = svg ? Array.prototype.filter.call(svg.querySelectorAll('g[clip-path]'),
+      (g) => String(g.getAttribute('fill') || '').indexOf('bg2') >= 0)[0] : null;
+      return g2 ? g2.querySelectorAll('circle').length : 0 })(), 0]);
+
+  /* ── (C) EL BOTON DEL PDF ── */
+  const bt = EL('pul-dib-pdf-toggle'), hd = EL('pul_dib_pdf');
+  ex.push(['(C1) el boton y su campo oculto existen', (!!bt) + '/' + (!!hd), 'true/true']);
+  ex.push(['(C2) y el campo es oculto, asi que no ocupa lugar en la pantalla',
+    hd ? hd.type : 'NO', 'hidden']);
+  ex.push(['(C3) DENOM: arranca apagado', FN('pulDibPdfOn') ? window.pulDibPdfOn() : 'NO', false]);
+  if (FN('togglePulDibPDF')) window.togglePulDibPDF();
+  await esperar(700);
+  ex.push(['(D1) al tocarlo queda incluido', FN('pulDibPdfOn') ? window.pulDibPdfOn() : 'NO', true]);
+  ex.push(['(D2) y el boton lo dice, no solo el campo',
+    bt ? (String(bt.className || '').indexOf('btn-ghost') < 0 ||
+          String(bt.getAttribute('aria-pressed') || '') === 'true') : 'NO', true]);
+  ex.push(['(D3) y el diagrama se rasterizo con el: el PDF tiene algo que estampar',
+    (function () { const d = FN('pulDibPdfData') ? window.pulDibPdfData() : null;
+      return !!(d && d.data) })(), true]);
+  if (FN('togglePulDibPDF')) window.togglePulDibPDF();
+  await esperar(300);
+  ex.push(['(D4) y al tocarlo otra vez se apaga, y no queda nada que estampar',
+    (FN('pulDibPdfOn') ? window.pulDibPdfOn() : 'NO') + '/' +
+    (function () { const d = FN('pulDibPdfData') ? window.pulDibPdfData() : null;
+      return !!(d && d.data) })(), 'false/false']);
+  if (FN('togglePulDibPDF')) window.togglePulDibPDF();
+  await esperar(600);
+  ex.push(['(E0) DENOM: queda encendido antes de vaciar',
+    FN('pulDibPdfOn') ? window.pulDibPdfOn() : 'NO', true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(420);
+  ex.push(['(E1) CONTROL NEGATIVO: «Nuevo estudio» lo vacia, asi que no se filtra al paciente siguiente',
+    (hd ? String(hd.value || '') : 'NO') + '/' +
+    (FN('pulDibPdfOn') ? window.pulDibPdfOn() : 'NO'), '/false']);
+  return { extra: EXP };
+  })();
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-692 · TANDA PANT-13, COMMIT 7 — las variantes anatomicas en una grilla compacta, con el
+   detalle que aparece solo cuando hace falta.
+   DENOMINADORES: (A0) la seccion de variantes se abre; (B0) las seis cajas de detalle existen.
+   CONTROLES NEGATIVOS: (E1) las notas de ASIA y de la circunfleja NO se esconden -son del mismo
+   registro y NO son variantes: ahi estuvo el defecto que un caso viejo cazo-; (C1) un estudio
+   viejo con el detalle cargado y la casilla apagada lo sigue mostrando.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-692', 'Tanda PANT-13 (commit 7): las siete variantes anatomicas en una grilla compacta de una, dos o tres columnas segun el ancho, con el «Detalle (opcional)» que aparece solo con la casilla marcada o con texto ya cargado, sin cambiar un id ni borrar un valor, y sin tocar las notas de ASIA ni de la circunfleja', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio «' + t[1] + '» · esperado «' + t[2] + '»']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const EL = (id) => document.getElementById(id);
+  const FN = (n) => (typeof window[n] === 'function') ? window[n] : null;
+  const VIS = (id) => { const e = EL(id); return e ? (getComputedStyle(e).display !== 'none') : 'NO' };
+  const MARCAR = (id, v) => { const e = EL(id); if (!e) return 'NO';
+    e.checked = !!v; try { e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {}
+    return 'ok' };
+
+  __t.limpiar();
+  try { showTab('otros') } catch (e) {}
+  await esperar(320);
+  try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('variantes', null) } catch (e) {}
+  await esperar(420);
+  const sec = EL('otr-sub-variantes');
+  ex.push(['(A0) DENOM: la seccion de variantes existe y su cuerpo tiene alto',
+    !!sec && sec.getBoundingClientRect().height > 100, true]);
+
+  /* ── (A) LA GRILLA Y SUS SIETE CELDAS ── */
+  const gr = sec ? sec.querySelector('.otr-var-grid') : null;
+  ex.push(['(A1) la grilla existe', !!gr, true]);
+  ex.push(['(A2) con una celda por variante: SIETE',
+    gr ? gr.querySelectorAll('.otr-var-celda').length : 'NO', 7]);
+  const IDS = window.OTR_VAR_IDS || [];
+  ex.push(['(A3) y los siete ids son los de siempre: ninguno cambio',
+    Array.prototype.join.call(IDS, ','),
+    'otr_var_eustaquio,otr_var_chiari,otr_var_lipo,otr_var_tendones,otr_var_lambl,otr_var_senocor,otr_var_vcsip']);
+  ex.push(['(A4) las siete casillas siguen existiendo con esos ids',
+    Array.prototype.filter.call(IDS, (id) => !EL(id)).join(','), '']);
+  ex.push(['(A5) y cada rotulo se puede tocar: 44 px de alto o mas',
+    (function () { if (!gr) return 'NO';
+      const ls = gr.querySelectorAll('.otr-var-lab');
+      return Array.prototype.filter.call(ls, (l) => l.getBoundingClientRect().height < 44).length })(), 0]);
+
+  /* ── (B) EL DETALLE APARECE SOLO CUANDO HACE FALTA ── */
+  const CON = ['otr_var_eustaquio', 'otr_var_chiari', 'otr_var_lipo', 'otr_var_tendones',
+    'otr_var_lambl', 'otr_var_senocor'];
+  ex.push(['(B0) DENOM: las SEIS cajas de detalle existen',
+    CON.filter((id) => !EL(id + '_nota')).join(','), '']);
+  if (FN('otrVarNotaSync')) window.otrVarNotaSync();
+  await esperar(200);
+  ex.push(['(B1) con el formulario vacio las seis estan escondidas',
+    CON.filter((id) => VIS(id + '_nota') === true).join(','), '']);
+  MARCAR('otr_var_lipo', true);
+  await esperar(240);
+  ex.push(['(B2) al marcar una, SU detalle aparece', VIS('otr_var_lipo_nota'), true]);
+  ex.push(['(B3) y las otras cinco siguen escondidas',
+    CON.filter((id) => id !== 'otr_var_lipo' && VIS(id + '_nota') === true).join(','), '']);
+  const nl = EL('otr_var_lipo_nota');
+  if (nl) nl.value = 'de 18 mm, sin obstruir la cava';
+  MARCAR('otr_var_lipo', false);
+  await esperar(240);
+  ex.push(['(B4) al desmarcarla con texto cargado el detalle NO se esconde: esconderlo seria perder el dato de vista',
+    VIS('otr_var_lipo_nota'), true]);
+  ex.push(['(B5) y el valor no se borro: la funcion solo muestra y esconde',
+    nl ? String(nl.value || '') : 'NO', 'de 18 mm, sin obstruir la cava']);
+  if (nl) nl.value = '';
+  if (FN('otrVarNotaSync')) window.otrVarNotaSync();
+  await esperar(200);
+  ex.push(['(B6) y vaciado el texto con la casilla apagada, se vuelve a esconder',
+    VIS('otr_var_lipo_nota'), false]);
+
+  /* ── (C) UN ESTUDIO VIEJO: el detalle cargado y la casilla apagada ── */
+  const nc = EL('otr_var_chiari_nota');
+  if (nc) nc.value = 'red extensa';
+  MARCAR('otr_var_chiari', false);
+  if (FN('otrVarNotaSync')) window.otrVarNotaSync();
+  await esperar(240);
+  ex.push(['(C1) CONTROL NEGATIVO: un estudio viejo con el detalle cargado y la casilla apagada lo sigue mostrando',
+    VIS('otr_var_chiari_nota'), true]);
+  if (nc) nc.value = '';
+
+  /* ── (D) LA CAVA IZQUIERDA SIGUE SIN CAJA DE DETALLE ── */
+  ex.push(['(D1) la cava superior izquierda persistente sigue sin detalle: seria otro campo guardado',
+    !!EL('otr_var_vcsip_nota'), false]);
+  ex.push(['(D2) y aun asi esta en la lista, porque la funcion pregunta por la caja antes de tocarla',
+    Array.prototype.indexOf.call(IDS, 'otr_var_vcsip') >= 0, true]);
+
+  /* ── (E) LO QUE LA FUNCION NO TIENE QUE TOCAR ── */
+  if (FN('otrVarNotaSync')) window.otrVarNotaSync();
+  await esperar(200);
+  ex.push(['(E1) CONTROL NEGATIVO: la nota del aneurisma del septum y la de la circunfleja NO se esconden',
+    VIS('otr_asia_nota') + '/' + VIS('otr_rac_nota'), 'true/true']);
+
+  /* ── (F) EL REPARTO EN COLUMNAS, LEIDO DE LA HOJA DE ESTILOS ──
+     Las reglas se leen del TEXTO de los style y no de document.styleSheets, que en este arnes
+     devuelve vacio. Es la leccion de PANT-7. */
+  const css = Array.prototype.map.call(document.querySelectorAll('style'),
+    (s) => String(s.textContent || '')).join(String.fromCharCode(10));
+  const trozo = (sel) => { const i = css.indexOf(sel); return i < 0 ? '' : css.slice(i, i + 160) };
+  ex.push(['(F1) la regla base de la grilla es de UNA columna',
+    trozo('.otr-var-grid {').indexOf('minmax(0,1fr)') >= 0, true]);
+  ex.push(['(F2) y los dos repartos por ancho estan declarados: dos y tres columnas',
+    (css.indexOf('.otr-var-grid { grid-template-columns:repeat(2,') >= 0) + '/' +
+    (css.indexOf('.otr-var-grid { grid-template-columns:repeat(3,') >= 0), 'true/true']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+
+
+
 
 
 

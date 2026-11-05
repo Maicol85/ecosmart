@@ -103526,6 +103526,9 @@ function cc3dNoDibujadas() {
   return { falta: falta, dib: dib, hay: (falta.length + dib.length) > 0 };
 }
 window.cc3dNoDibujadas = cc3dNoDibujadas;
+/* PANT-13: las dos listas, de solo lectura: un caso de la suite cuenta que la transposicion
+   paso de «tiene su propio diagrama» a estar entre las dibujadas. */
+window.CC3D_DIBUJA = CC3D_DIBUJA; window.CC3D_PROPIO = CC3D_PROPIO;
 
 function cc3dTextoSync() {
   const pp = document.getElementById('cc3d-faltan');
@@ -104415,6 +104418,9 @@ window.cmEscena = cmEscena; window.cmBloqueado = cmBloqueado;
 /* Los tres registros de datos se exponen de solo lectura, igual que `OTR_HALL`: los leen los
    casos de la suite para contar lo que la tabla y las combinaciones publican. */
 window.CM_TBB = CM_TBB; window.CM_TBM = CM_TBM; window.CM_PRES = CM_PRES;
+/* PANT-13: los tres registros del MODELO, tambien de solo lectura y por el mismo motivo: los
+   leen los casos de la suite para contar las anatomias de base, sus variantes y sus casillas. */
+window.CM_BASES = CM_BASES; window.CM_BVARS = CM_BVARS; window.CM_BCK = CM_BCK;
 window._cm3dEstado = function () { return _cm3d };
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
@@ -104463,6 +104469,11 @@ const CM_SIG = Object.freeze({
 const CM_SIB = Object.freeze({ norm:['Normal','corazón normal'], fal:['Fallot','tetralogía de Fallot'],
   dsav:['DSAV','defecto del septo auriculoventricular'], ebs:['Ebstein','anomalía de Ebstein'],
   fon:['Fontan','circulación de Fontan'], tga:['TGA','transposición de grandes arterias'] });
+/* PANT-13: los dos registros de siglas, de solo lectura y por el mismo motivo que los de
+   arriba: los leen los casos de la suite. Van ACA, DESPUES de declararse: puestos junto a los
+   otros, cuarenta lineas mas arriba, caen en la zona muerta del `const` y abortan el bloque de
+   script entero, dejando sin inicializar todo lo declarado mas abajo. */
+window.CM_SIG = CM_SIG; window.CM_SIB = CM_SIB;
 /* Las siglas de cada variante, para los botones finos. */
 const CM_SHORT = Object.freeze({ cia_sec:'O.S.', cia_pri:'O.P.', cia_sv:'SVS',
   civ_pm:'Perimemb', civ_mus:'Musc', civ_sal:'Outlet', civ_ent:'Inlet',
@@ -160458,8 +160469,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2350';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793847030547;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0008';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793848116779;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160545,7 +160556,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2350</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0008</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
