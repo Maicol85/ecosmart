@@ -722,11 +722,16 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### El esquema negro, el botón del PDF, la transposición y las siete lesiones — «PANT-14» (2026-11-05)
 
-- **DIEZ commits —contados con `git log dc65d2f..HEAD` AL CERRAR, y el commit que escribe este
+- **ONCE commits —contados con `git log dc65d2f..HEAD` AL CERRAR, y el commit que escribe este
   número entra en la cuenta— y los OCHO puntos de la orden se tocaron, con el 3e PARADO por
   medición.** `cb3b08b` (1) · `9da2ba3` (2) · `5033a47` (3) · `c76e161` (4) · `0c664af` (5) ·
   `b5c8c2f` (6) · `a336661` (7) · `b131e64` (8a, cobertura) · `aca82a3` (8b, los casos en verde)
-  · **éste** (8c, documentación). El commit 8 se partió en tres a propósito: el archivo de casos
+  · `c43e332` (8c, documentación) · **éste** (8d, el sello).
+  ⚠️ **Y ESTE NÚMERO ESTUVO MAL UNA VEZ**: el 8c decía que no volvía a sellar `index.html` «porque
+  no lo toca», y era falso por un renglón — el resellado previo a la suite había quedado SIN
+  COMMITEAR, así que el 8d lo trae. El árbol que la verificación midió es el que queda commiteado:
+  md5 `ae21bc42`, verificado antes y después de la suite. Es la lección que PANT-11 y PANT-12 ya
+  dejaron escrita: **se cuenta con `git log` al final**. El commit 8 se partió en tres a propósito: el archivo de casos
   **se commitea apenas parsea**, que es la lección que esta casa pagó perdiéndolo entero con un
   `git checkout --`. Sello **`v20261105-1004`**, md5 de `index.html` **`ae21bc42`**.
   Al empezar, `origin/main` = `HEAD` = **`dc65d2f`**, el cierre de PANT-13, ya publicado, con md5
