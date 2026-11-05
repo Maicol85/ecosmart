@@ -1,5 +1,41 @@
 # Mapa — los casos de prueba, tanda por tanda
 
+
+## PANT-14 (2026-11-05) — el esquema negro, el botón del PDF, la transposición y las siete lesiones
+
+Seis casos nuevos, **TC-693 a TC-698**. Mapa: `docs/mapa/pant14-esquema-lesiones.md`.
+**34 de 34** mutaciones dirigidas muertas (`scripts/_mut_pant14.py`), con md5 idéntico antes y
+después; los seis caen contra HEAD por **80 condiciones y ninguna por excepción**.
+
+| caso | qué fija | reparto de mutaciones |
+|---|---|---|
+| **TC-693** | el esquema sin cajas negras: la premisa (`--card` no existe), la paleta resuelta al dibujar, las seis cajas y las dos válvulas sin relleno negro, el contraste de cada caja con su texto, cero `var()` en el marcado, las cinco variantes dibujando y la letra de la válvula dorada | 6 |
+| **TC-694** | el botón del PDF: apagado sin lesiones y en «Explorar» con dos avisos distintos y con texto, activo con una CIA, «Incluido en el PDF» con su registro, y apagado al sacarle la lesión | 3 |
+| **TC-695** | las reglas de la transposición: las cinco variantes permiten exactamente lo que el 3D de la pestaña dibuja, la obstrucción subaórtica con su anillo y su rótulo, y la pestaña conserva su recuadro | 6 |
+| **TC-696** | las siete lesiones conectadas, con sus casillas y **siete controles negativos** | 15 |
+| **TC-697** | la única base: las cinco solas como denominador y los **diez pares** con su prioridad, y la línea que ya no se contradice | 3 |
+| **TC-698** | solo lectura: siete siembras mudas y cero campos movidos, con su denominador | 1 |
+
+### Las tres trampas que estos casos pagaron
+
+1. **`_cm3d` no está en `window`**: es un `const` de nivel de script, así que se alcanza por su
+   nombre pelado. Con `window._cm3d` el guardia corta y el caso mide sobre un **denominador
+   vacío**, que se lee igual que «todo bien».
+2. **`getBBox()` dentro de un subárbol en `display:none` devuelve ceros.** El panel del esquema
+   nace cerrado, así que emparejar cajas con textos por su caja medida los encuentra **todos en
+   el origen**: la condición pasa sobre nada. La geometría se compara por **atributos**.
+3. **La barra invertida simple no sobrevive al template literal**: `/rgba?\(...)/` llega con el
+   paréntesis convertido en grupo, el parseo del color da **NaN**, y con NaN tanto «es negro» como
+   el contraste dan **falso**. Un **pase vacuo**. Se parsea con `indexOf` y `split`.
+
+### Caso viejo adaptado
+
+**TC-626 (D2)**: la coartación **ya se dibuja**, así que deja de caer en la lista de «cargadas y
+no dibujadas». Con el istmo cargado y **sin** la situación cae en la otra lista. La condición queda
+**más fuerte**: exige que ya no esté entre las faltantes, que **sí** esté nombrada por su situación
+ausente y que la miocardiopatía siga entre las faltantes.
+
+---
 > **Salió de `tests.md` el 31/10/2026 (tanda AJUSTES-3, commit 5).** Ese mapa estaba en
 > **34,6 KB**, a menos de 500 bytes del techo de ~35 KB que `ecosmart/CLAUDE.md` fija, y
 > `TGA2-g` lo dejó declarado. Lo que se movió acá es la **cola de punteros por tanda**: una

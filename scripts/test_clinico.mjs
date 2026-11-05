@@ -115797,8 +115797,16 @@ caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado
     lin.indexOf('tiene su propio diagrama') >= 0, false]);
   ex.push(['(F2) y NO la lista como no dibujada, que seria decir dos cosas contradictorias',
     /no dibujadas todav[ií]a: *TGA/.test(lin), false]);
-  ex.push(['(F1b) la linea dice que lo cargado esta dibujado',
-    lin.indexOf('dibujadas') >= 0 || lin.indexOf('dibujado') >= 0, true]);
+  /* ⚠️ ADAPTADO EN PANT-14 (commit 6): la linea se lee DESPUES de recalcular, que es lo que la
+     app hace siempre -cm3dEstudioSync llama a cmDesdeEstudio y enseguida a cc3dTextoSync-.
+     Desde esta tanda la frase «Todas las lesiones cargadas estan dibujadas» sale SOLO si las tres
+     listas de lo no dibujado estan vacias, y esas listas las llena cmDesdeEstudio: leyendo la
+     linea sin recalcular se veia el estado que dejo la escena anterior. */
+  try { if (FN('cmDesdeEstudio')) window.cmDesdeEstudio(); if (FN('cc3dTextoSync')) window.cc3dTextoSync() } catch (e) {}
+  const lin2 = String((EL('cc3d-faltan') || {}).textContent || '');
+  ex.push(['(F1b DENOM) la linea se reescribio tras recalcular', lin2.length > 20, true]);
+  ex.push(['(F1b) y dice que lo cargado esta dibujado',
+    lin2.indexOf('dibujadas') >= 0 || lin2.indexOf('dibujado') >= 0, true]);
 
   /* ── (G) SOLO LEE: ningun campo se mueve ── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
@@ -116306,21 +116314,37 @@ caso('TC-689', 'Tanda PANT-13 (commit 4): la transposicion como SEXTA anatomia d
   if (st) { st.S.ck = { tciv: true, tobs: true } }
   const n2 = st ? (window.cmEscena(st.S).ex || []).length : 'NO';
   ex.push(['(D1) la CIV residual agrega un extra al dibujo', (n1 > n0), true]);
-  ex.push(['(D2) y la obstruccion subaortica NO agrega ninguno: la app no la dibuja', n2, n1]);
+  /* ⚠️ INVERTIDA EN PANT-14 (commit 3b), por decision del medico del 05/11/2026: la obstruccion
+     subaortica SI se dibuja, con un anillo gris cuya posicion por variante sale de la demo v13.
+     Antes esta condicion fijaba que NO se dibujaba, que es lo que PANT-13 habia medido. La
+     condicion queda mas fuerte: exige el anillo de mas, y no solo que el total no cambie. */
+  ex.push(['(D2) y la obstruccion subaortica agrega UN anillo: el modulo SI la dibuja', n2, n1 + 1]);
 
   /* ── (E) LAS REGLAS DE COMPATIBILIDAD, portadas de la demo tal cual ── */
   const apag = (v) => { if (!st) return 'NO';
     st.S.bv.tga = v; st.S.mods = {};
     return ['cia', 'civ', 'dap', 'vap', 'cvpa', 'coa', 'ep', 'ea', 'vcs', 'eis']
       .filter((k) => !!window.cmBloqueado(k, st.S)).join(',') };
-  ex.push(['(E1) la d-TGA admite las tres comunicaciones y la cava izquierda',
-    apag('d'), 'vap,cvpa,coa,ep,ea,eis']);
-  ex.push(['(E2) el Jatene admite todo menos el Eisenmenger', apag('jat'), 'eis']);
-  ex.push(['(E3) el switch auricular solo admite la cava izquierda',
-    apag('mus'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
-  ex.push(['(E4) el Rastelli tambien: ahi la CIV ya ES el tunel',
-    apag('ras'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
-  ex.push(['(E5) y la ccTGA tambien', apag('cc'), 'cia,civ,dap,vap,cvpa,coa,ep,ea,eis']);
+  /* ⚠️ LAS CINCO QUEDAN INVERTIDAS EN PANT-14 (commit 3a), Y ES EL DIA QUE ESTE CASO ANUNCIABA.
+     Nacieron en PANT-13 fijando las reglas de la DEMO v13, y el medico decidio el 05/11/2026 que
+     para la transposicion valgan las del 3D DE LA PESTANIA, para que la comparacion con el dibujo
+     viejo de cero diferencias. PANT-14 las midio llamando a tga3dEscena, que es el dueno de lo
+     que ese 3D dibuja: la d-TGA dibuja las tres comunicaciones; el Jatene la CIA y la CIV y NO el
+     ductus; el switch auricular SOLO la CIV; el Rastelli SOLO la CIA; y la ccTGA la CIA y la CIV.
+     Y todo lo demas queda apagado en las cinco, INCLUIDA la cava izquierda, porque tga3dEscena
+     recibe unicamente las tres comunicaciones y no sabe dibujar nada mas.
+     Las condiciones quedan MAS FUERTES: antes solo decian que algunas estaban apagadas, ahora
+     fijan la lista EXACTA de las diez en cada variante, asi que pueden fallar por los dos lados. */
+  ex.push(['(E1) la d-TGA admite SOLO las tres comunicaciones',
+    apag('d'), 'vap,cvpa,coa,ep,ea,vcs,eis']);
+  ex.push(['(E2) el Jatene, la CIA y la CIV: el 3D de la pestania no dibuja el ductus ahi',
+    apag('jat'), 'dap,vap,cvpa,coa,ep,ea,vcs,eis']);
+  ex.push(['(E3) el switch auricular SOLO la CIV: el tabique auricular se reseco',
+    apag('mus'), 'cia,dap,vap,cvpa,coa,ep,ea,vcs,eis']);
+  ex.push(['(E4) el Rastelli SOLO la CIA: ahi la CIV ya ES el tunel',
+    apag('ras'), 'civ,dap,vap,cvpa,coa,ep,ea,vcs,eis']);
+  ex.push(['(E5) y la ccTGA, la CIA y la CIV',
+    apag('cc'), 'dap,vap,cvpa,coa,ep,ea,vcs,eis']);
   ex.push(['(E6) CONTROL NEGATIVO: sobre el corazon normal no se apaga ninguna de las diez',
     (function () { if (!st) return 'NO'; st.S.base = 'norm'; st.S.mods = {};
       return ['cia', 'civ', 'dap', 'vap', 'cvpa', 'coa', 'ep', 'ea', 'vcs', 'eis']
@@ -116796,16 +116820,26 @@ caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus
   ex.push(['(C2 DENOM) hay seis cajas y dos valvulas que contar', cajas.length + '/' + valv.length, '6/2']);
   const negras = cajas.concat(valv).filter((e) => esNegro(aRgb(getComputedStyle(e).fill))).length;
   ex.push(['(C3) CERO cajas y valvulas con relleno negro', negras, 0]);
-  /* el contraste de cada caja contra el texto que cae dentro */
-  let peor = 99;
+  /* ⚠️ LA POSICION SALE DE LOS ATRIBUTOS Y NO DE getBBox, y eso lo destapo una mutacion que
+     SOBREVIVIA: el panel del esquema nace CERRADO, y getBBox() dentro de un subarbol en
+     display:none devuelve CEROS. Con todas las cajas y todos los textos en el origen, ningun
+     texto caia dentro de ninguna caja: el peor contraste se quedaba en su valor inicial y la
+     condicion pasaba sobre NADA. Es la leccion (o) de la orden. Los atributos son exactos y no
+     necesitan maquetado. */
+  const nAt = (e, a2) => parseFloat(e.getAttribute(a2) || 'NaN');
   const txts = svg ? Array.prototype.slice.call(svg.querySelectorAll('text')) : [];
-  cajas.forEach((r) => { const bb = r.getBBox ? r.getBBox() : null; if (!bb) return;
+  let peor = 99, pares = 0;
+  cajas.forEach((r) => {
+    const x = nAt(r, 'x'), y = nAt(r, 'y'), w = nAt(r, 'width'), h = nAt(r, 'height');
+    if (!isFinite(x) || !isFinite(w)) return;
     const f = aRgb(getComputedStyle(r).fill);
-    txts.forEach((t) => { const tb = t.getBBox ? t.getBBox() : null; if (!tb) return;
-      const cx = tb.x + tb.width / 2, cy = tb.y + tb.height / 2;
-      if (cx < bb.x || cx > bb.x + bb.width || cy < bb.y || cy > bb.y + bb.height) return;
+    txts.forEach((t) => { const tx = nAt(t, 'x'), ty = nAt(t, 'y');
+      if (!isFinite(tx) || !isFinite(ty)) return;
+      if (tx < x || tx > x + w || ty < y || ty > y + h) return;
       const c = contr(f, aRgb(getComputedStyle(t).fill));
+      pares++;
       if (c !== null && c < peor) peor = c }) });
+  ex.push(['(C4 DENOM) hay pares caja-texto que comparar', pares >= 6, true]);
   ex.push(['(C4) el peor contraste de una caja con su texto llega a 4,5',
     peor >= 4.5 ? 'si' : ('no: ' + peor.toFixed(2)), 'si']);
   ex.push(['(C5) y no queda un solo var() en el marcado del esquema',
@@ -116823,18 +116857,21 @@ caso('TC-693', 'Tanda PANT-14 (commit 1): el esquema de circulacion resuelve sus
   const dorada = svg ? Array.prototype.filter.call(svg.querySelectorAll('circle'),
     (c) => { const f = aRgb(getComputedStyle(c).fill); return f && f.r > 180 && f.g > 150 && f.b < 110 })[0] : null;
   ex.push(['(E0 DENOM) el Ebstein dibuja su valvula dorada', !!dorada, true]);
+  let pc = 99, nLetras = 0;
   if (dorada) {
     const f = aRgb(getComputedStyle(dorada).fill);
-    let pc = 99;
+    const cx0 = parseFloat(dorada.getAttribute('cx')), cy0 = parseFloat(dorada.getAttribute('cy'));
     Array.prototype.forEach.call(svg.querySelectorAll('text'), (t) => {
-      const tb = t.getBBox ? t.getBBox() : null; if (!tb) return;
-      const dx = tb.x + tb.width / 2 - parseFloat(dorada.getAttribute('cx'));
-      const dy = tb.y + tb.height / 2 - parseFloat(dorada.getAttribute('cy'));
-      if (dx * dx + dy * dy > 49) return;
+      const tx = parseFloat(t.getAttribute('x') || 'NaN'), ty = parseFloat(t.getAttribute('y') || 'NaN');
+      if (!isFinite(tx) || !isFinite(ty)) return;
+      const dx = tx - cx0, dy = ty - cy0;
+      if (dx * dx + dy * dy > 64) return;
+      nLetras++;
       const c = contr(f, aRgb(getComputedStyle(t).fill)); if (c !== null && c < pc) pc = c });
-    ex.push(['(E1) su letra se lee: contraste de 4,5 o mas',
-      pc >= 4.5 ? 'si' : ('no: ' + pc.toFixed(2)), 'si']);
   }
+  ex.push(['(E0b DENOM) y su letra esta encima: hay algo que comparar', nLetras >= 1, true]);
+  ex.push(['(E1) su letra se lee: contraste de 4,5 o mas',
+    pc >= 4.5 ? 'si' : ('no: ' + pc.toFixed(2)), 'si']);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
   return { extra: EXP };
   })();
@@ -117040,6 +117077,24 @@ caso('TC-696', 'Tanda PANT-14 (commits 4 a 6): el Fallot reparado, la coartacion
     'fal|op||ip,rciv,rest|');
   caso2('(B3) y la variante es SIEMPRE «operado»: «sin operar» no sale nunca del estudio',
     [['tdf_grad_tsvd','40']], 'fal|op|||');
+  /* ⚠️ (B2b) DISTINGUE EL DUENO DEL GRADO DE SU ESPEJO, y nacio de una mutacion que SOBREVIVIA:
+     con el gesto real la app pone al dia tdf_ip_ro desde ip_grado, asi que leer el espejo da
+     el MISMO valor y cambiar uno por el otro no se nota -el freno que tapa al que se muta-. Acá
+     el grado se siembra MUDO, sin despachar nada, que es el camino de restaurar un estudio: el
+     espejo queda vacio y solo leyendo al dueno la casilla se enciende. */
+  limpiar();
+  (function () { const e = EL('tdf_func_vd'); if (e) { e.value = 'normal';
+      try { e.dispatchEvent(new Event('change', { bubbles: true })) } catch (x) {} } })();
+  /* el espejo se vacia a mano: es el estado en que lo deja restaurar un estudio guardado, donde
+     el valor se asigna sin disparar el evento que pone los espejos al dia */
+  (function () { const e = EL('tdf_ip_ro'); if (e) e.value = '' })();
+  (function () { const e = EL('ip_grado'); if (e) e.value = 'Severa' })();
+  const espejo = EL('tdf_ip_ro') ? String(EL('tdf_ip_ro').value || '') : 'NO';
+  const rMudo = leer();
+  ex.push(['(B2b DENOM) sembrado mudo, el espejo de la IP quedo vacio', espejo === '', true]);
+  ex.push(['(B2b) y la casilla se enciende leyendo al dueno del grado y no al espejo',
+    rMudo.ck, 'ip']);
+
   /* ── la coartacion ── */
   caso2('(C1) la coartacion nativa', [['coa_istmo','8'],['coa_situacion','nativa']], 'norm||coa=nat||');
   caso2('(C2) la reparada', [['coa_istmo','9'],['coa_situacion','post_cirugia']], 'norm||coa=rep||');

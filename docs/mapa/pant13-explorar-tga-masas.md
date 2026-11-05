@@ -220,3 +220,29 @@ de tocarla.
   diferencias medidas.
 - **El globo de la cava superior izquierda persistente** sigue sin escribirse (→ **P13-b**).
 - **Los seis textos que quedan** fuera de la regla nueva, uno por uno (→ **P13-a**).
+
+---
+
+## Puntero — PANT-14 (2026-11-05)
+
+Lo que esta tanda dejó y PANT-14 midió o cambió:
+
+- **El esquema de circulación salía con las seis cajas y las dos válvulas NEGRAS**, y la causa es
+  que **`--card` no existe en esta aplicación**: PANT-13 lo portó de la demo v13 escribiendo
+  `fill="var(--card)"` en un atributo de presentación. Medido: 53 elementos negros en cada uno de
+  los 16 cruces, en los **dos** motores. También afectaba al esquema que se rasteriza para el PDF.
+- **Y la rama del switch auricular abortaba el dibujo**: la demo declara su objeto de cajas con
+  `var` y esa rama lo reasigna; portado como `const` lanzaba «Assignment to constant variable».
+- **Las reglas de compatibilidad de la transposición estaban equivocadas en cuatro de las cinco
+  variantes**: eran las de la demo v13 y no las del 3D de la pestaña. PANT-14 las midió llamando a
+  `tga3dEscena` y las reemplazó: las 160 escenas pasan de 23 diferencias sin obstrucción a **0**.
+- **La obstrucción subaórtica ahora SÍ se dibuja** (decisión del médico del 05/11/2026), con el
+  anillo de la demo v13. Es la única diferencia esperada con el dibujo viejo.
+- **El dibujo de la transposición sigue sin retirarse** (P13-c): la equivalencia del **esquema**
+  no cierra, y PANT-14 lo midió escena por escena — **0 de 25 iguales**, por tamaño de letra,
+  rótulos y sentido de las flechas. Ver `P14-d`.
+- **«Según el estudio» pasó de leer cinco lesiones y la transposición a leer también** el Fallot
+  reparado, la coartación, la estenosis pulmonar, las dos estenosis aórticas, el defecto del septo
+  auriculoventricular, Ebstein y Fontan.
+
+Mapa de esa tanda: `docs/mapa/pant14-esquema-lesiones.md`.

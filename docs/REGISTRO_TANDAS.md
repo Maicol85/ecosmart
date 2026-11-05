@@ -1,5 +1,54 @@
 # EcoSmart — registro de tandas
 
+
+## PANT-14 — el esquema negro, el botón del PDF, la transposición y las siete lesiones (2026-11-05)
+
+**Nueve commits**, los ocho de la orden y el de cierre. Sello **`v20261105-1004`**.
+Al empezar, `origin/main` = `HEAD` = **`dc65d2f`** (cierre de PANT-13), sello `v20261105-0008`,
+md5 `00825a73`. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| commit | qué hizo |
+|---|---|
+| `cb3b08b` (1) | el esquema de circulación ya no sale con las cajas negras: `cmSchPal` resuelve los colores al dibujar, con respaldo por tema; redibuja al cambiar de tema y de ancho; la letra de la válvula dorada pasa a tinta fija |
+| `9da2ba3` (2) | «Incluir en el PDF» de punta a punta: **funciona, y no se cambió una línea** |
+| `5033a47` (3) | las reglas de la transposición pasan a ser las del 3D de la pestaña; la obstrucción subaórtica se dibuja; **el dibujo viejo NO se retira** |
+| `c76e161` (4) | el inventario de las siete pestañas, y el Fallot y la coartación conectados |
+| `0c664af` (5) | la estenosis pulmonar y las dos estenosis aórticas |
+| `b5c8c2f` (6) | el defecto AV, Ebstein y Fontan, y las reglas de conjunto |
+| `a336661` (7) | la verificación de conjunto: 92 escenas, el A/B del PDF de cuatro estudios |
+| `b131e64` (8a) | cobertura: seis casos nuevos, TC-693 a TC-698 |
+| `aca82a3` (8b) | los seis en verde: tres defectos propios que la corrida destapó |
+| **éste** (8c) | documentación, mapa, pendientes y sello |
+
+### Lo que cerró
+
+- **El esquema negro, con su causa en una línea**: `--card` no existe en esta aplicación, así que
+  un `fill="var(--card)"` de atributo cae en el negro heredado. 53 elementos negros por cruce en
+  los 16 cruces, contraste 1,32 → **0 negros y 5,93**. El esquema del PDF estaba igual de roto.
+- **Un segundo defecto del esquema, preexistente**: la rama del switch auricular reasigna un
+  objeto declarado `const` y **abortaba el dibujo entero**.
+- **Las reglas de la transposición**: estaban equivocadas en cuatro de las cinco variantes.
+  160 escenas, **0 diferencias sin obstrucción** (HEAD tenía 23).
+- **Las siete lesiones conectadas**: Fallot, coartación, estenosis pulmonar, las dos aórticas,
+  defecto AV, Ebstein y Fontan. 92 de 92 escenas iguales a «Explorar».
+- **La única base con su orden de prioridad**, medida en los diez pares.
+- **La línea que se contradecía**: decía «todas dibujadas» al lado de «no se dibujan juntas».
+
+### Lo que NO se hizo, y por qué
+
+- **El dibujo de la transposición no se retiró** (3e): la equivalencia del **esquema de
+  circulación** no cierra — son dos dibujos distintos, con tamaños de letra, rótulos y sentidos de
+  flecha diferentes, 0 de 25 escenas iguales. → `P13-c` y `P14-d`.
+- **Cuatro casillas del dibujo** que ninguna pestaña puede encender → `P14-b`.
+
+### Los denominadores
+
+Suite, Semgrep **124 WARNING / 0 ERROR**, Excel **441** columnas, censo de campos **994 y 1010**
+según la escena, **sin huérfanos nuevos**, celular **59 a 360 px y 67 a 390 con 18 ALTA** en cada
+ancho —idéntico a HEAD—, **34 de 34** mutaciones dirigidas muertas con md5 idéntico antes y
+después, y **cero campos guardados nuevos y cero columnas de Excel**.
+
+---
 > **Un solo archivo, un bloque por tanda, para que otra herramienta lo lea.** Cada bloque trae el
 > nombre de la tanda, su fecha, los códigos y títulos de sus commits, tres líneas de qué cambió y
 > lo que quedó pendiente. Creado por la tanda **CONG-2A** (punto 5b).

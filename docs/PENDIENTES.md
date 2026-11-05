@@ -1,5 +1,121 @@
 # EcoSmart — pendientes vivos
 
+## P14-a · Con qué modo abre el módulo del corazón maestro, y qué sí puede confundir
+
+**Medido**, en cuatro escenarios (CIA + CIV, ductus, transposición y estudio vacío), al abrirlo y
+al reabrirlo: **el módulo abre SIEMPRE en «Según el estudio»**. No se cae en «Explorar» por
+accidente, así que por ese lado no hay confusión posible.
+
+**Lo que sí puede confundir, y queda como está porque es deliberado:** el **panel se cierra al
+salir de la pestaña de congénitas** (`cc3dPieSync` lo hace a propósito, para que un panel abierto
+no se quede con el recuadro prestado). Así que el médico que abre el módulo, se va a otra
+sub-pestaña a cargar el dato y vuelve, **se encuentra el panel cerrado** y tiene que volver a
+abrirlo con «🫀 Ver en 3D». Es la explicación más probable de «el botón aún no funciona».
+
+**Y con una transposición cargada el botón del módulo queda APAGADO** con su aviso, que es la
+regla que PANT-13 dejó y que sigue en pie porque el dibujo de la pestaña no se retiró (**P13-c**).
+
+**Decisión del médico**: si quiere que el panel sobreviva al cambio de sub-pestaña, es un cambio
+de `cc3dPieSync` y hay que pedirlo.
+
+---
+
+## P14-b · Cuatro casillas del dibujo que ninguna pestaña puede encender
+
+Son casillas que el módulo sabe dibujar y que **ningún campo del estudio sostiene**. Quedan
+apagadas siempre desde «Según el estudio»; en «Explorar» se pueden marcar a mano.
+
+| casilla | dónde | por qué no se enciende |
+|---|---|---|
+| **«VD dilatado»** (`rvd`) | Fallot operado | Ningún campo dice que el VD esté **dilatado**: `tdf_func_vd` es la **función** y `tdf_vtdvdi` un **volumen** cuyo umbral (160 ml/m², ESC 2020) es un **criterio clínico**. Elegir un umbral para encender una casilla del dibujo no está en la orden. |
+| **«Colaterales»** (`col`) | coartación nativa | No hay campo. `coa_diast_anterogrado` es un **signo de significación**, no colaterales. |
+| **«Aneurisma»** (`ane`) | coartación reparada | No hay campo. |
+| **insuficiencia aórtica** (`iao`) | estenosis **supravalvular** | Censado: la sección supravalvular **no tiene** campo de insuficiencia aórtica asociada. La **subaórtica** sí (`esub_ia_asociada`), y por ahí se enciende. |
+
+**Decisión del médico**: cuál de las cuatro quiere que se derive de un umbral (y cuál), o si
+prefiere un campo nuevo en la pestaña. Las dos cosas son contenido clínico y las decide él.
+
+---
+
+## P14-c · Las dos estenosis aórticas son UNA lesión del dibujo, y con las dos cargadas gana la subaórtica
+
+`ea` es una sola lesión del módulo con dos variantes (`sub` y `sup`), así que con las **dos**
+secciones cargadas sólo una se puede dibujar. Se dibuja la **subaórtica** y el conflicto se lista
+con su motivo.
+
+**La elección es el orden propio del registro del módulo** (`CM_MODS` lista `sub` antes de `sup`)
+y **no una prioridad clínica**. Si el médico quiere otra —por ejemplo la de gradiente medio más
+alto, o la supravalvular primero— es una decisión suya.
+
+---
+
+## P14-d · El esquema del módulo y el de la pestaña de la transposición son dos dibujos distintos
+
+Es lo que impide retirar el dibujo viejo (**P13-c**), y ahora está medido escena por escena con
+`scripts/_probe_pant14tgaesq.mjs`: **0 de 25 escenas iguales** comparando cada `rect`, `path`,
+`circle` y `text` con su posición y su texto.
+
+Las tres diferencias, en todas las escenas:
+1. **el tamaño de letra**: el módulo pone **12 px** en el título de cada caja y **9** en el
+   subtítulo; la pestaña pone **15 y 12**. Y las posiciones difieren en un punto (y=27 contra 28).
+2. **el rótulo de cada comunicación**: el módulo escribe «CIA O.S.» y «CIV perim.»; la pestaña no
+   rotula la comunicación.
+3. **el sentido de la flecha** del cortocircuito, que sale invertido entre los dos
+   (`M180 116L120 164` contra `M120 164L180 116`).
+
+**Lo que falta para poder retirar el recuadro viejo** es unificar los dos esquemas en un **dueño
+único**, y eso es una tanda propia: hay que decidir cuál de las dos redacciones y cuál de los dos
+tamaños de letra manda, y eso lo decide el médico.
+
+---
+
+## P14-e · La geometría del esquema contra la demo: la cifra de PANT-13 no se reproduce
+
+La orden de PANT-14 pide conservar las «36 de 36 escenas» que PANT-13 declara. **Medido con la
+sonda de PANT-13 sobre HEAD, antes de tocar nada: da 0 iguales y 36 distintas**, y la causa es la
+**misma en las 36** y es ajena a esta tanda: el texto «Pulmones» de la demo **no lleva atributo
+`fill`** y el de la app sí, así que la comparación con color nunca pudo dar cero.
+
+**Lo que sí está medido y es lo que esa cifra protege**: la **geometría y los rótulos** no se
+movieron. `scripts/_probe_pant14demo.mjs` compara los dos lados **sin** `fill`, `stroke` ni
+`class`: **36 de 36 iguales, en HEAD y en el árbol nuevo**.
+
+La normalización de la sonda de PANT-13 se extendió a los colores ya resueltos, así que su
+veredicto es **el mismo en los dos árboles** y no empeoró.
+
+---
+
+## P14-f · Reabrir un estudio guardado por `editarInforme` no se puede medir en este arnés
+
+Es la misma limitación que **PANT-7** declara, y el **denominador** lo dice: tras llamar a
+`editarInforme(id)` el **nombre del paciente también vuelve vacío**, así que lo que falla es el
+montaje de la sonda y no la app.
+
+**Lo que sí está medido** y cubre el mismo mecanismo: el camino **mudo** de los 46 escenarios de
+`_probe_pant14lesiones.mjs` —se asigna el valor sin despachar ningún evento y lo que repuebla es
+el embudo de `RECALC_MODULOS`, que es exactamente lo que hace abrir un estudio guardado—: los 46
+dan la escena correcta. Y el guardado con la casilla encendida sí se midió: un estudio guardado y
+la inclusión persistida.
+
+El paso de reabrir queda en la **guía de prueba manual** (`docs/GUIA_PRUEBA_PANT14.md`, paso 22).
+
+---
+
+## P14-g · Cinco apariciones de `var(--card)` en la hoja de estilos, sin tocar
+
+El censo que destapó el esquema negro encontró que **`--card` no existe en esta aplicación**, y
+además del esquema la usan **cinco reglas de CSS** del módulo del corazón maestro (la tabla
+lateral, los botones de base y de lesión, el chip y el pie). Ahí el `var()` inválido no cae en
+negro —`background` no es heredada, así que cae en su valor inicial, transparente— pero **tampoco
+pinta el fondo que la regla quiso**.
+
+No se tocaron: son cinco fondos de pantalla, el defecto es cosmético y cambiar un color de la
+pantalla del módulo no está en esta orden. **Lo correcto sería cambiarlas a `var(--bg2)`**, que es
+el fondo de tarjeta que sí existe, o declarar `--card` en los dos temas.
+
+---
+
+
 ## P13-a · Los SEIS textos que quedan tras el censo de la regla nueva, y por qué NINGUNO cae bajo ella
 
 La regla nueva —«Ningún texto habla mal de las guías»— se censó **en el navegador y no por

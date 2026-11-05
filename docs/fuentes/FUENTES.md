@@ -1,5 +1,74 @@
 <!-- registro armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 
+## La tanda PANT-14 (2026-11-05)
+
+### ⚠️ Esta tanda NO abrió un solo PDF de guía, y se declara
+
+Ninguno de los ocho commits agrega, cambia ni retira un corte, un umbral, una clase, un nivel,
+una tabla, un folio ni una frase clínica. Lo que toca son **colores de un esquema**, **reglas de
+compatibilidad de un dibujo** medidas contra el propio código de la app, y la **lectura** de
+campos que ya existen. Por eso la tabla «Cambios de evidencia» de abajo está **vacía a propósito**.
+
+El único texto clínico que entra al dibujo es el rótulo **«Obstr. subaórtica»**, que sale de
+`docs/3d/demo_corazon_maestro_v13_aprobado.html` —la demo que el médico aprobó— palabra por
+palabra, y los **textos del ⓘ** del módulo, que ya estaban y no se tocaron.
+
+### Cambios de evidencia
+
+*(vacía a propósito: esta tanda no escribe ni mueve contenido clínico)*
+
+### Las mediciones que sostienen la tanda
+
+Todas en el navegador, con sus denominadores y sus controles. Ninguna sale de un PDF.
+
+| qué se midió | cómo | resultado |
+|---|---|---|
+| **`--card` no existe** | `getPropertyValue` en la raíz, en la caja y en el SVG, más un rect de prueba con `var(--border)` | **cadena vacía** en los tres; `--border` sí resuelve (`rgb(42,48,80)`) |
+| el esquema negro | relleno **calculado** de cada caja y válvula, 16 cruces × 7 estados | **53 negras por cruce**, peor contraste **1,32** |
+| tras el arreglo | ídem | **0 negras**, peor contraste **5,93**, 0 errores |
+| el esquema del PDF | **píxeles** del JPEG que `esqRasterizar` devuelve, dentro de cada caja | **0 de 6 negras**; control positivo: **6 de 6** |
+| la rama del switch auricular | centinela sembrado en el SVG, cinco variantes | HEAD: **1 nodo, 0 textos**; nuevo: **30 nodos** con sus textos |
+| qué dibuja el 3D viejo | `tga3dEscena` con cada par y cada combinación, huella contra la escena sin ninguna | la tabla del mapa |
+| la equivalencia | 160 escenas, escenario campo por campo | HEAD **23** distintas sin obstrucción; nuevo **0** |
+| los dos esquemas | 25 escenas, cada `rect`, `path`, `circle` y `text` | **0 de 25 iguales** |
+| la geometría contra la demo | 36 escenas, sin `fill`, `stroke` ni `class` | **36 de 36 iguales** en los dos árboles |
+| `ep_grado` contra la velocidad | barrido de 1,0 a 4,5 m/s | vacía y **1,0 → «sin»**; 1,8 Leve, 3,5 Moderada, 4,5 Severa |
+| cada lesión contra «Explorar» | 46 escenarios × gesto y siembra muda | **92 de 92 iguales** |
+| la única base | los **diez pares** más las cinco solas | 10 de 10 y 5 de 5 |
+| el PDF | documento generado de verdad, cuatro estudios, HEAD y nuevo | apagado **idéntico carácter por carácter**; encendido **3 imágenes** contra 0 |
+
+### Notas de trabajo
+
+**Dos defectos del esquema, los dos de portar la demo v13.** El primero es `--card`, que la demo
+declara y esta app no. El segundo es `var` contra `const`: la demo declara su objeto de cajas con
+`var` y la rama del switch auricular **lo reasigna entero**, así que portado como `const` lanzaba
+y `cmSchRender` abortaba. Los dos son del mismo tipo: **lo que una demo da por sentado de su
+propio entorno no viaja con el código que se porta.**
+
+**Y un modo de falla de la verificación, que es la lección que la orden de esta tanda pone
+primero.** La prueba de PANT-13 comparó la **geometría** del esquema entre Chrome y WebKit y dio
+36 de 36: no podía ver el negro, porque el negro no mueve un solo punto. Toda prueba visual de
+esta tanda mide **colores** —relleno calculado o muestra de píxeles— y no sólo posiciones.
+
+**Tres trampas del arnés, pagadas.**
+1. `_cm3d` **no está en `window`**: es un `const` de nivel de script, así que se alcanza por su
+   nombre pelado. Con `window._cm3d` el guardia corta y la medición sale sobre un denominador
+   vacío, que se lee igual que «todo bien».
+2. **`getBBox()` dentro de un subárbol en `display:none` devuelve ceros**, así que emparejar cajas
+   con textos por su caja medida los encuentra todos en el origen y no empareja ninguno: la
+   condición pasa sobre nada. La geometría del esquema se compara por **atributos**.
+3. **La barra invertida simple no sobrevive al template literal** del cuerpo de un caso:
+   `/rgba?\(...)/` llega con el paréntesis convertido en grupo, el parseo del color devuelve NaN
+   en los tres canales, y con NaN tanto «es negro» como el contraste dan **falso**. Las
+   condiciones pasaban sobre nada. Se parsea con `indexOf` y `split`, sin una sola expresión
+   regular.
+
+**El botón del encabezado no genera el PDF**: abre la tarjeta «Revisión de severidades», y el
+documento sale al confirmarla. **Guardar pasa por la misma tarjeta.** Sin ese clic el espía mide
+cero y la superposición abierta bloquea todo lo que viene después.
+
+---
+
 # Registro de fuentes verificadas
 
 **Antes de abrir un PDF de una guía, mirá acá.** Si el dato ya está verificado —documento, folio y la
