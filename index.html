@@ -69965,6 +69965,11 @@ function limpiarCampos(silencioso) {
      estudio» dejaba el VD dilatado y el chorro del paciente ANTERIOR sobre un formulario vacío.
      Va DESPUÉS de que los campos ya están borrados: la función los lee del DOM. */
   if (typeof vdscSync === 'function') { try { vdscSync(); } catch (e) {} }
+  /* PANT-14b: el corazon maestro CIERRA su panel y vuelve a cero, por el mismo motivo que el
+     Forrester y el dibujo del VD de arriba: `limpiarCampos` no pasa por `RECALC_MODULOS`, asi
+     que sin esto «Nuevo estudio» dejaba el dibujo y el modo del paciente ANTERIOR. Va al final,
+     con los campos ya borrados: `cm3dDerivar` los lee del DOM. */
+  if (typeof cm3dReset === 'function') { try { cm3dReset(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -70066,6 +70071,12 @@ function irATabPaciente() {
     if (btn) btn.classList.add('active');
     // Mismo efecto que showTab: abre los acordeones de la sección que ya tengan datos.
     if (typeof secAutoOpen === 'function') secAutoOpen('tab-datos');
+    /* ⚠️ Y EL PIE DEL CORAZON MAESTRO SE SINCRONIZA, QUE ES LO QUE ESTE HELPER NO HACIA
+       -PANT-14b, commit 1-. `showTab` llama a `cc3dPieSync`; este helper existe justamente
+       para NO pasar por `showTab`, asi que el envoltorio del boton «Ver en 3D» se quedaba
+       VISIBLE en la pantalla Paciente tras «Nuevo estudio». Medido: `display:block` y el boton
+       en 103x44 px donde no va. El pie se ve SOLO en las dos sub-pestanias de congenitas. */
+    if (typeof cc3dPieSync === 'function') { try { cc3dPieSync(); } catch (e) {} }
     window.scrollTo(0, 0);
   } catch (e) { console.warn('[irATabPaciente]', e); }
 }
@@ -103457,13 +103468,33 @@ function cc3dEnCongenitas() {
     return !!(sc && sc.classList.contains('active'));
   });
 }
+/* ⚠️ EL ACCESO A LAS CONGENITAS, CON LA MISMA REGLA QUE LA PESTANIA -PANT-14b, commit 1-.
+   PEDIDO DEL MEDICO: hay usuarios que no tienen acceso a las congenitas, y ni el boton ni el
+   panel ni el motor 3D deben verse -ni cargarse- para ellos.
+   LA REGLA NO SE INVENTA: es la que la app ya usa para el boton «🧬 C. Congénitas», que lleva
+   `data-mod="congenitas"` y lo gobierna `applyViewMode` -en Modo Basico se esconde todo
+   `button[data-mod]`, y en Avanzado cada uno segun `eeModOn`-. Preguntarlo aca con un segundo
+   criterio seria el dia que los dos digan cosas distintas.
+   FALLA ABIERTO a proposito: si los dos helpers no existieran, el modulo se ve. Lo que esto
+   decide es una pantalla, no un dato, y un modulo que desaparece por un helper ausente se lee
+   como una app rota.
+   ⚠️ Y LA LIBRERIA 3D TAMPOCO SE BAJA: con el envoltorio en `display:none` el lienzo no tiene
+   `offsetParent`, asi que `_cm3dVisible()` da falso y `cm3dBoot` sale por su guarda. */
+function cc3dAcceso() {
+  try {
+    if (typeof eeGetMode === 'function' && eeGetMode() === 'basico') return false;
+    if (typeof eeModOn === 'function') return !!eeModOn('congenitas');
+  } catch (e) {}
+  return true;
+}
+window.cc3dAcceso = cc3dAcceso;
 /* El pie se ve SOLO en las dos sub-pestanias de congenitas, y al salir el panel se cierra: un
    panel abierto que se queda con el recuadro prestado dejaria la seccion de la transposicion sin
    su diagrama al volver. */
 function cc3dPieSync() {
   const w = document.getElementById('cc3d-wrap');
   if (!w) return;
-  const en = cc3dEnCongenitas();
+  const en = cc3dAcceso() && cc3dEnCongenitas();
   w.classList.toggle('cc3d-ver', en);
   /* ⚠️ EL `display` SE ESCRIBE EN LINEA ADEMAS DE LA CLASE, Y NO ES REDUNDANCIA: ES EL DUENO.
      Medido: con la clase sola, el envoltorio salia VISIBLE en las pestanias donde no va, pero
@@ -103556,7 +103587,18 @@ function cc3dTextoSync() {
      cuando las TRES listas estan vacias, y lo que no se dibuja se lista siempre. */
   const _omN = (_cm3d && _cm3d.omitidas) ? _cm3d.omitidas.length : 0;
   const _chN = (_cm3d && _cm3d.chocan) ? _cm3d.chocan.length : 0;
-  if (!r.hay) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
+  /* ⚠️ «SIN LESIONES CARGADAS» SE DICE SOLO SI NO HAY NADA DIBUJADO, Y LO DESTAPO LA MEDICION
+     DEL RECORRIDO -PANT-14b, commit 1-. `r.hay` le pregunta a `_CC_SECS`, y la estenosis
+     pulmonar NO TIENE ENTRADA ahi -lo que PANT-14 ya documenta-, asi que con una velocidad y un
+     nivel cargados el dibujo mostraba el cono de la estenosis mientras la linea afirmaba «Sin
+     lesiones cargadas que dibujar: se muestra el corazon normal». Medido: `mods='ep'` y un
+     objeto en la escena con esa frase al lado.
+     LA LINEA Y EL DIBUJO SALEN DEL MISMO CALCULO: lo que decide es el estado DERIVADO, que es
+     lo que el dibujo pinta, y no un segundo registro. Es el mismo predicado que `cmHayCargado`
+     usa para el boton del PDF. */
+  const _dibujaAlgo = !!(_cm3d && _cm3d.S && ((_cm3d.S.base !== 'norm')
+                      || Object.keys(_cm3d.S.mods || {}).length > 0));
+  if (!r.hay && !_dibujaAlgo) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
   else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
   else if (!_omN && !_chN) partes.push('Todas las lesiones cargadas están dibujadas.');
   /* ⚠️ LA FRASE «La transposicion tiene su propio diagrama, en su seccion» SE RETIRO EN PANT-13
@@ -103570,13 +103612,22 @@ function cc3dTextoSync() {
   const ROT = { cia:'CIA', civ:'CIV', dap:'ductus', vap:'ventana aortopulmonar',
                 cvpa:'conexión venosa anómala', eisen:'Eisenmenger',
                 coa:'coartación (falta consignar si es nativa o reparada)',
-                ep:'estenosis pulmonar (falta consignar el nivel)',
+
                 ea:'estenosis subaórtica o supravalvular',
                 dsav:'defecto del septo AV (falta consignar el tipo)',
                 fontan:'Fontan (falta consignar el tipo)' };
-  if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.length) {
+  /* ⚠️ LA ESTENOSIS PULMONAR SIN NIVEL TIENE SU PROPIA FRASE -PANT-14b, commit 1-, y NO se
+     mezcla con las demas: lo que le falta no es una opcion que el dibujo no distinga, es el
+     campo que dice DONDE esta la obstruccion. La frase nombra su seccion para que el medico
+     sepa adonde ir, y el nivel NO se asume: dar por sentado «valvular» seria inventar un dato
+     clinico. Queda declarado en docs/PENDIENTES.md -P14b-b- para que el medico decida. */
+  const _omSinEp = (_cm3d && _cm3d.omitidas) ? _cm3d.omitidas.filter(function (k) { return k !== 'ep' }) : [];
+  if (_cm3d && _cm3d.omitidas && _cm3d.omitidas.indexOf('ep') >= 0) {
+    partes.push('Estenosis pulmonar: falta consignar el nivel en la sección de estenosis pulmonar.');
+  }
+  if (_omSinEp.length) {
     partes.push('Cargadas con una opción que el dibujo no distingue: '
-      + _cm3d.omitidas.map(function (k) { return ROT[k] || k }).join(', ') + '.');
+      + _omSinEp.map(function (k) { return ROT[k] || k }).join(', ') + '.');
   }
   if (_cm3d && _cm3d.chocan && _cm3d.chocan.length) {
     partes.push('No se dibujan juntas — ' + _cm3d.chocan.join(' · ') + '.');
@@ -103590,6 +103641,9 @@ window.cc3dTextoSync = cc3dTextoSync;
 function cc3dAbrir() {
   const pan = document.getElementById('cc3d-panel');
   if (!pan) return;
+  /* Sin acceso a las congenitas no se abre, aunque alguien llame a la funcion: el boton no se
+     ve, pero la puerta se cierra por las dos. */
+  if (!cc3dAcceso()) return;
   _cc3d.abierto = true;
   pan.classList.add('cc3d-ab');
   pan.style.display = 'block';          /* dueno del display, por el mismo motivo que el envoltorio */
@@ -103599,6 +103653,12 @@ function cc3dAbrir() {
      `cm3dSync` baja la libreria la primera vez y repinta las siguientes; es el dueno unico del
      repintado y no una copia. La transposicion conserva su recuadro y su boton intactos: son
      dos dibujos de dos preguntas distintas. */
+  /* ⚠️ EL ESTADO SE DERIVA ANTES DE PINTAR -PANT-14b, commit 1-. `cm3dSync` repinta lo que
+     `_cm3d.S` tenga: sin esta linea, abrir el panel mostraba el estudio ANTERIOR, que es el
+     defecto que el medico reporto y que esta medido. Y el modo vuelve a «Segun el estudio»:
+     lo elegido en «Explorar» se descarta al abrir, que es lo que la orden fija. */
+  try { if (_cm3d && _cm3d.modo !== 'estudio' && typeof cmSetModo === 'function') { cmSetModo('estudio') }
+        else if (typeof cm3dDerivar === 'function') { cm3dDerivar() } } catch (e) {}
   try { if (typeof cm3dSync === 'function') cm3dSync() } catch (e) {}
   cc3dTextoSync();
 }
@@ -105448,16 +105508,57 @@ window.cmDesdeEstudio = cmDesdeEstudio;
 /* El boton del PDF sigue al estudio: si el medico carga o borra una lesion, pasa de apagado a
    encendido -o al reves- sin que haya que tocar el modulo. Cuelga del MISMO embudo que el
    repintado, que es su dueno unico. */
-function cm3dEstudioSync() {
-  if (!_cm3d || _cm3d.modo !== 'estudio') return;
-  if (!_cm3dVisible()) return;
-  cmDesdeEstudio();
-  try { cm3dBuild() } catch (e) {}
-  try { cmVista() } catch (e) {}
+/* ══ EL DUENIO UNICO DEL ESTADO DEL MODULO -PANT-14b, commit 1- ════════════════════════════
+   ⚠️ ANTES DE ESTA TANDA EL ESTADO SOBREVIVIA AL ESTUDIO, Y ESTA MEDIDO. `cm3dEstudioSync`
+   salia temprano con `if (!_cm3dVisible()) return`, y `cm3dSync` -que es lo que `cc3dAbrir`
+   llama- repinta `_cm3d.S` SIN derivarlo. Con el panel cerrado -que es como queda al salir de
+   congenitas y tras «Nuevo estudio»- nada recalculaba, asi que al reabrirlo el modulo pintaba
+   el estado del paciente ANTERIOR. Medido con `scripts/_probe_p14b_estado.mjs` sobre el arbol
+   anterior: cargar un Ebstein, «Nuevo estudio», cargar una CIA y reabrir dejaba `base=ebs` con
+   su dibujo de dos objetos y la CIA sin dibujar; y en dos escenarios la linea decia «Sin
+   lesiones cargadas que dibujar» AL LADO de un dibujo de cuatro y de siete objetos del estudio
+   viejo, que es la contradiccion que esta casa documenta como leccion.
+
+   LA REGLA: el estado se DERIVA de las pestanias y no se conserva. `cm3dDerivar` es la unica
+   funcion que lo hace, y publica de una sola pasada todo lo que lo describe -el dibujo, el
+   esquema, la linea de estado y el boton del PDF con su aviso-, asi que no pueden discrepar.
+   ⚠️ LA DERIVACION NO DEPENDE DE QUE EL MODULO SE VEA, y es el centro del arreglo: lo que
+   necesita la libreria es el REPINTADO, no la lectura. La linea y el boton se escriben siempre;
+   el motor se toca solo cuando hay algo que repintar.
+   ⚠️ EN «EXPLORAR» NO SE DERIVA NADA: ahi el dibujo es el que el medico eligio y pisarlo con el
+   estudio seria borrarle lo que estaba mirando. */
+function cm3dDerivar() {
+  if (!_cm3d) return;
+  if (_cm3d.modo !== 'estudio') { try { cc3dTextoSync() } catch (e) {}
+                                  try { cmPdfSync() } catch (e) {} return }
+  try { cmDesdeEstudio() } catch (e) {}
+  if (_cm3dVisible()) {
+    try { cm3dBuild() } catch (e) {}
+    try { cmVista() } catch (e) {}
+    try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}
+  }
   try { cmPdfSync() } catch (e) {}
   try { cc3dTextoSync() } catch (e) {}
 }
+window.cm3dDerivar = cm3dDerivar;
+
+/* El embudo de los espejos y el de la restauracion llaman SIEMPRE al dueno unico. */
+function cm3dEstudioSync() { cm3dDerivar(); }
 window.cm3dEstudioSync = cm3dEstudioSync;
+
+/* ⚠️ «NUEVO ESTUDIO» CIERRA EL PANEL Y LO DEJA SIN ESTADO -PANT-14b, commit 1-.
+   `limpiarCampos` NO pasa por `RECALC_MODULOS`, asi que sin esto el estado derivado del
+   paciente anterior se quedaba entero. Y el MODO tambien se repone: vive en memoria y
+   `limpiarCampos` no lo tocaba -lo que un caso de la suite ya documenta-, asi que un medico que
+   dejo el modulo en «Explorar» abria el estudio siguiente con el dibujo que el eligio. */
+function cm3dReset() {
+  try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e) {}
+  try { if (_cm3d) { _cm3d.modo = 'estudio'; _cm3d.sch = false; } } catch (e) {}
+  try { if (typeof cmSchSet === 'function') cmSchSet(false) } catch (e) {}
+  try { if (typeof cmSetModo === 'function' && _cm3dVisible()) { cmSetModo('estudio'); return } } catch (e) {}
+  cm3dDerivar();
+}
+window.cm3dReset = cm3dReset;
 
 /* ══ EL CABLEADO DE LOS CONTROLES, UNA SOLA VEZ ════════════════════════════════════════════
    Va colgado del PRIMER pintado del modulo y no del arranque de la pagina: los elementos
@@ -160778,8 +160879,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1004';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793883860137;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1328';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793896128838;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160865,7 +160966,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1004</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1328</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -161431,6 +161532,10 @@ function applyViewMode(){
      Config no pasa por `showTab` —el otro camino que lo reconstruye—, asi que sin esto el
      drawer seguia ofreciendo el modulo hasta la proxima navegacion. */
   if (typeof window.ecoDrawerBuild === 'function') { try { window.ecoDrawerBuild() } catch (e) {} }
+  /* Y el pie del corazon maestro, por el mismo motivo que el drawer: apagar el modulo de
+     congenitas en Config NO pasa por `showTab`, que es el otro camino que lo repinta, asi que
+     sin esto el boton «Ver en 3D» se quedaba a la vista hasta la proxima navegacion. */
+  if (typeof cc3dPieSync === 'function') { try { cc3dPieSync() } catch (e) {} }
 }
 /* La tarjeta de conexión por red se repinta acá además de en `cfgOnShow`: sin esto, apretar
    «Modo Básico» con Config ABIERTO la dejaba en pantalla hasta reabrir la pestaña. Es el par
