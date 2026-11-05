@@ -115354,7 +115354,7 @@ caso('TC-682', 'Tanda PANT-12 (commit 4): el corazon maestro tiene motor y lienz
   return { extra: EXP };
   })();
 `);
-caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio» por omision y sin controles ni tabla; «Explorar» con sus cinco anatomias, sus diez lesiones y sus seis combinaciones; la tabla lateral con sus veintiuna filas; y lo elegido ahi NO sobrevive al cambio de modo', `
+caso('TC-683', 'Tanda PANT-12 (commit 5), adaptado en PANT-13 (commit 2): los dos modos, con «Segun el estudio» por omision y sin las dos listas; «Explorar» con sus cinco anatomias, sus diez lesiones y sus seis combinaciones con sigla; la tabla lateral RETIRADA; y lo elegido ahi NO sobrevive al cambio de modo', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -115365,8 +115365,14 @@ caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio�
   const OCULTO = (id) => { const e = EL(id); return e ? (e.hidden ? 'oculto' : 'visible') : 'NO EXISTE' };
 
   /* ── (A0) DENOMINADOR ── */
+  /* ⚠️ ADAPTADO EN PANT-13 (commit 2): el rediseno de «Explorar» retiro cm3d-ctl -las filas
+     de botones grandes- y cm3d-side -la tabla lateral-, y puso en su lugar las DOS listas
+     cm3d-pl y cm3d-pr con la barra de herramientas en el centro. El invariante no cambia:
+     las piezas de los dos modos existen. */
   ex.push(['(A0) las piezas de los dos modos existen',
-    ['cm3d-ctl', 'cm3d-side', 'cm3d-estb', 'cm3d-sidebody', 'cm3d-ib', 'cm3d-ip'].filter(EL).length + '/6', '6/6']);
+    ['cm3d-pl', 'cm3d-pr', 'cm3d-estb', 'cm3d-shell', 'cm3d-ib', 'cm3d-ip'].filter(EL).length + '/6', '6/6']);
+  ex.push(['(A0b) y las de PANT-12 que el rediseno retiro ya no estan',
+    ['cm3d-ctl', 'cm3d-side', 'cm3d-sidebody', 'cm3d-note', 'cm3d-fila'].filter(EL).length, 0]);
   ex.push(['(A1) hay DOS botones de modo, con su clase propia y no .active',
     document.querySelectorAll('.cm3d-md').length, 2]);
   /* ⚠️ La clase propia es lo que impide que showTab se los lleve: hace un querySelectorAll
@@ -115401,8 +115407,10 @@ caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio�
      clic afuera lo deja cerrado, asi que una medicion posterior ve un estado ya resuelto y no
      el de arranque. */
   ex.push(['(A6) el modo que abre por omision es «Segun el estudio»', st ? st.modo : 'NO', 'estudio']);
-  ex.push(['(A7) con los controles y la tabla ocultos',
-    OCULTO('cm3d-ctl') + '/' + OCULTO('cm3d-side'), 'oculto/oculto']);
+  /* ⚠️ ADAPTADO EN PANT-13 (commit 2): lo que se esconde en «Segun el estudio» son las dos
+     listas y la fila de combinaciones, no los controles ni la tabla, que ya no existen. */
+  ex.push(['(A7) con las dos listas y las combinaciones ocultas',
+    OCULTO('cm3d-pl') + '/' + OCULTO('cm3d-pr') + '/' + OCULTO('cm3d-cbw'), 'oculto/oculto/oculto']);
   ex.push(['(A8) y la linea que lo explica a la vista', OCULTO('cm3d-estb'), 'visible']);
   ex.push(['(A9) y su boton declara el globo cerrado',
     EL('cm3d-ib') ? EL('cm3d-ib').getAttribute('aria-expanded') : 'NO', 'false']);
@@ -115411,23 +115419,41 @@ caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio�
   const bE = bModo('explorar'); if (bE) bE.click();
   await esperar(420);
   ex.push(['(B1) el modo queda en explorar', st ? st.modo : 'NO', 'explorar']);
-  ex.push(['(B2) los controles se ven', OCULTO('cm3d-ctl'), 'visible']);
-  ex.push(['(B3) y la tabla lateral tambien', OCULTO('cm3d-side'), 'visible']);
-  ex.push(['(B4) con CINCO botones de anatomia de base', document.querySelectorAll('#cm3d-baseb button').length, 5]);
-  ex.push(['(B5) DIEZ de lesiones que se suman', document.querySelectorAll('#cm3d-modb button').length, 10]);
-  ex.push(['(B6) y SEIS de combinaciones frecuentes', document.querySelectorAll('#cm3d-presb button').length, 6]);
-  const filas = document.querySelectorAll('#cm3d-sidebody .cm3d-srow');
-  ex.push(['(B7) la tabla lateral tiene 5 + 10 + 6 = 21 filas', filas.length, 21]);
-  ex.push(['(B8) y TODAS traen su linea', Array.prototype.filter.call(filas,
-    b => String((b.querySelector('.cm3d-srd') || {}).textContent || '').length > 5).length, 21]);
-  ex.push(['(B9) las tres secciones estan rotuladas',
-    Array.prototype.map.call(document.querySelectorAll('#cm3d-sidebody .cm3d-sidet'), e => e.textContent).join('|'),
-    'Anatomía de base|Lesiones que se suman|Combinaciones frecuentes']);
+  /* ⚠️ ADAPTADO EN PANT-13 (commit 2): «Explorar» pasa a DOS LISTAS -«Base» a la izquierda y
+     «Se suma» a la derecha- con las combinaciones debajo del dibujo, y la TABLA LATERAL se
+     retiro por pedido del medico: repetia lo mismo. Los conteos no cambian -cinco anatomias,
+     diez lesiones, seis combinaciones- y la linea de cada una sigue estando, ahora DENTRO de su
+     propia fila: sus textos son los mismos CM_TBB y CM_TBM que la tabla publicaba. */
+  ex.push(['(B2) la lista «Base» se ve', OCULTO('cm3d-pl'), 'visible']);
+  ex.push(['(B3) y la lista «Se suma» tambien', OCULTO('cm3d-pr'), 'visible']);
+  ex.push(['(B3b) la tabla lateral de PANT-12 ya NO existe', EL('cm3d-side') ? 'existe' : 'no', 'no']);
+  const filasB = document.querySelectorAll('#cm3d-baseb .cm3d-rw');
+  const filasM = document.querySelectorAll('#cm3d-modb .cm3d-rw');
+  ex.push(['(B4) con CINCO filas de anatomia de base', filasB.length, 5]);
+  ex.push(['(B5) DIEZ de lesiones que se suman', filasM.length, 10]);
+  ex.push(['(B6) y SEIS botones de combinaciones frecuentes', document.querySelectorAll('#cm3d-presb .cm3d-chip').length, 6]);
+  ex.push(['(B7) las quince filas traen su SIGLA', Array.prototype.filter.call(
+    [].concat(Array.prototype.slice.call(filasB), Array.prototype.slice.call(filasM)),
+    b => String((b.querySelector('.cm3d-sg1') || {}).textContent || '').length > 1).length, 15]);
+  ex.push(['(B8) y TODAS traen su linea', Array.prototype.filter.call(
+    [].concat(Array.prototype.slice.call(filasB), Array.prototype.slice.call(filasM)),
+    b => String((b.querySelector('.cm3d-nm') || {}).textContent || '').length > 5).length, 15]);
+  ex.push(['(B9) las dos listas y las combinaciones estan rotuladas',
+    Array.prototype.map.call(document.querySelectorAll('#cm3d-shell .cm3d-ph, #cm3d-shell .cm3d-ph2'), e => e.textContent).join('|'),
+    'Base|Combinaciones frecuentes|Se suma']);
+  ex.push(['(B10) las seis combinaciones se rotulan con su SIGLA',
+    Array.prototype.map.call(document.querySelectorAll('#cm3d-presb .cm3d-chip'), e => e.textContent).join(','),
+    'CIA+CIV+DAP,CIA+CVPA+VCSI,CIA+EP,Coa+EA,Ebs+CIA,CIV+DAP+Eis']);
+  ex.push(['(B11) y las seis traen el nombre completo en el title y en la etiqueta accesible',
+    Array.prototype.filter.call(document.querySelectorAll('#cm3d-presb .cm3d-chip'),
+      e => String(e.getAttribute('title') || '').length > 8 && String(e.getAttribute('aria-label') || '').length > 8).length, 6]);
 
   /* ── (C) TOCAR UNA FILA LA APLICA, Y LAS QUE NO SE COMBINAN QUEDAN APAGADAS CON SU MOTIVO ── */
-  const fila = (t) => Array.prototype.filter.call(document.querySelectorAll('#cm3d-sidebody .cm3d-srow'),
-    b => String((b.querySelector('.cm3d-srn') || {}).textContent || '').indexOf(t) === 0)[0];
-  const fEb = fila('Anomal'); if (fEb) fEb.click();
+  /* ⚠️ ADAPTADO EN PANT-13: las filas viven ahora en las dos listas y se nombran por su SIGLA
+     -«Ebstein», «Eisenmenger», «Normal»- y no por el nombre largo de la tabla retirada. */
+  const fila = (t) => Array.prototype.filter.call(document.querySelectorAll('#cm3d-baseb .cm3d-rw, #cm3d-modb .cm3d-rw'),
+    b => String((b.querySelector('.cm3d-sg1') || {}).textContent || '').indexOf(t) === 0)[0];
+  const fEb = fila('Ebstein'); if (fEb) fEb.click();
   await esperar(360);
   ex.push(['(C1) tocar la fila de Ebstein la aplica', st ? st.S.base : 'NO', 'ebs']);
   const fEis = fila('Eisenmenger');
@@ -115437,7 +115463,7 @@ caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio�
     fEis ? (String(fEis.textContent || '').indexOf('no se combina') >= 0
             || String(fEis.textContent || '').indexOf('No se combina') >= 0) : 'NO', true]);
   /* CONTROL NEGATIVO: sobre el corazon normal esa misma fila NO esta apagada. */
-  const fN = fila('Coraz'); if (fN) fN.click();
+  const fN = fila('Normal'); if (fN) fN.click();
   await esperar(360);
   const fEis2 = fila('Eisenmenger');
   ex.push(['(C4) CONTROL NEGATIVO: sobre el corazon normal la fila de Eisenmenger esta habilitada',
@@ -115452,8 +115478,8 @@ caso('TC-683', 'Tanda PANT-12 (commit 5): los dos modos, con «Segun el estudio�
   ex.push(['(D1) al volver a «Segun el estudio» no queda nada de lo explorado',
     st ? JSON.stringify(st.S.mods) : 'NO', '{}']);
   ex.push(['(D2) ni la anatomia de base', st ? st.S.base : 'NO', 'norm']);
-  ex.push(['(D3) y los controles y la tabla se esconden',
-    OCULTO('cm3d-ctl') + '/' + OCULTO('cm3d-side'), 'oculto/oculto']);
+  ex.push(['(D3) y las dos listas se esconden',
+    OCULTO('cm3d-pl') + '/' + OCULTO('cm3d-pr'), 'oculto/oculto']);
 
   /* ── (E) EL GLOBO: cerrado por omision y por las TRES vias ── */
   const ib = EL('cm3d-ib'), ip = EL('cm3d-ip');

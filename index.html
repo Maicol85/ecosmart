@@ -1760,8 +1760,93 @@
      con `flex-wrap` el punto de quiebre depende del ancho que le quede a la tarjeta y entonces
      «desde 900 px» deja de ser medible. El piso de la columna va DENTRO de la media query. */
   #cm3d-box { margin-top:4px; }
-  #cm3d-fila { display:block; }
-  #cm3d-col { min-width:0; }
+  /* ══ LAS TRES ZONAS DE «EXPLORAR» -PANT-13, commit 2- ══════════════════════════════════
+     A la izquierda «Base», en el centro la barra y el dibujo, a la derecha «Se suma», y debajo
+     del dibujo las combinaciones frecuentes. Portado de la demo v13 aprobada.
+     ⚠️ LOS CORTES VAN SOBRE LA VENTANA Y CON `min-width`, que es la regla fija de la casa, y el
+     PISO de cada columna va DENTRO de su media query. La demo los escribe con `max-width`; acá
+     se invierten para que la regla base sea la de una columna.
+     ⚠️ Y EN «SEGUN EL ESTUDIO» LA REJILLA ES DE UNA COLUMNA, con `.cm3d-solo`: las dos listas
+     no se muestran porque el dibujo no se edita ahí. */
+  #cm3d-shell { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; align-items:start; }
+  #cm3d-shell.cm3d-solo { grid-template-columns:minmax(0,1fr); }
+  @media (min-width: 560px) {
+    #cm3d-shell:not(.cm3d-solo) { grid-template-columns:minmax(200px,1fr) minmax(200px,1fr); }
+    #cm3d-shell:not(.cm3d-solo) > #cm3d-mid { grid-column:1 / -1; order:-1; }
+  }
+  /* ⚠️ LAS TRES ZONAS ARRANCAN EN 1260 px Y NO EN 1000, Y ES UNA MEDICION, NO UNA PREFERENCIA.
+     Con las dos listas de 230 px, sus dos huecos de 12 y los rellenos, el centro mide la ventana
+     menos unos 750 px. A 1000 px eso deja 322 px de centro y, con el esquema de circulacion
+     abierto -que ocupa 300-, el DIBUJO quedaba en 14 px: medido en Chrome. A 1260 el centro
+     mide 510 y el dibujo 202, que es el piso de 200 px de la casa; a 1440, 746 y 438.
+     Entre 560 y 1259 px el centro va a TODO el ancho y arriba, donde el dibujo tiene de 400 a
+     1000 px y el esquema entra al lado sin apretarlo. Es el mismo conflicto que la tanda TGA-3
+     resolvio para el esquema de la transposicion, y con el mismo numero que PANT-9. */
+  @media (min-width: 1260px) {
+    #cm3d-shell:not(.cm3d-solo) { grid-template-columns:230px minmax(200px,1fr) 230px; }
+    #cm3d-shell:not(.cm3d-solo) > #cm3d-mid { grid-column:auto; order:0; }
+  }
+  #cm3d-mid { min-width:0; }
+  .cm3d-pnl { background:var(--bg2); border:0.5px solid var(--border); border-radius:12px;
+              padding:8px; max-height:760px; overflow:auto; }
+  .cm3d-ph { font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+             color:var(--text2); margin:8px 4px 4px; }
+  .cm3d-ph:first-child { margin-top:2px; }
+  /* Una fila de lista: la marca, la sigla y el nombre, con el motivo cuando está apagada. */
+  .cm3d-rw { display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+             margin:0 0 3px; padding:4px 8px; min-height:44px; height:auto; font-size:11px;
+             background:var(--card); color:var(--text); border:0.5px solid var(--border);
+             border-radius:8px; cursor:pointer; }
+  .cm3d-rw[aria-pressed="true"] { background:var(--bg3, var(--bg2)); border-color:var(--accent2); }
+  .cm3d-rw:disabled { opacity:0.55; cursor:default; }
+  .cm3d-mk { font-size:13px; color:var(--accent2); width:16px; text-align:center; flex:none; }
+  .cm3d-sg1 { font-weight:700; color:var(--text); flex:none; white-space:nowrap; }
+  .cm3d-nm { font-size:10px; color:var(--text2); line-height:1.25; min-width:0; }
+  .cm3d-sub { margin:0 0 6px 24px; display:flex; flex-wrap:wrap; gap:6px 4px; align-items:center; }
+  /* ⚠️ EL BOTON FINO SE VE EN 30 px Y SU AREA TACTIL MIDE 44, y la da un `::after` ABSOLUTO y
+     no un margen negativo: un margen de -7 px taparía 7 px del control de arriba y del de
+     abajo. Es el patrón de `.pac-id-mk` y de la fila de miniaturas. */
+  .cm3d-chip { min-height:30px; padding:0 9px; font-size:10.5px; position:relative;
+               background:var(--card); color:var(--text); border:0.5px solid var(--border);
+               border-radius:8px; cursor:pointer; }
+  .cm3d-chip::after { content:''; position:absolute; left:0; right:0; top:-7px; bottom:-7px; }
+  .cm3d-chip[aria-pressed="true"] { background:var(--accent2); border-color:var(--accent2);
+                                    color:#fff; font-weight:700; }
+  .cm3d-ck { font-size:10.5px; display:flex; align-items:center; gap:4px; min-height:44px;
+             color:var(--text2); cursor:pointer; }
+  /* La barra de herramientas, en UNA linea y con corte a otra solo si no cabe. */
+  .cm3d-tb { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 8px; }
+  .cm3d-segm { display:inline-flex; border:0.5px solid var(--border); border-radius:8px;
+               overflow:hidden; }
+  .cm3d-segm button { border:0; border-radius:0; min-height:44px; padding:4px 12px;
+                      font-size:11px; background:var(--card); color:var(--text); cursor:pointer; }
+  .cm3d-segm button[aria-pressed="true"] { background:var(--accent2); color:#fff; font-weight:700; }
+  .cm3d-tbn { min-width:44px; min-height:44px; font-size:14px; }
+  .cm3d-tg { display:inline-flex; align-items:center; gap:4px; font-size:10.5px;
+             color:var(--text2); min-height:44px; cursor:pointer; }
+  .cm3d-cbw { margin:10px 0 0; }
+  .cm3d-ph2 { display:block; font-size:9px; font-weight:700; letter-spacing:.04em;
+              text-transform:uppercase; color:var(--text2); margin:0 0 4px; }
+  .cm3d-cbrow { display:flex; flex-wrap:wrap; gap:6px; }
+  /* ══ EL ESQUEMA DE CIRCULACION, AL LADO DEL DIBUJO ═════════════════════════════════════
+     Se abre con el botón de abajo a la derecha del dibujo. Al lado desde 760 px de ANCHO DE
+     VENTANA; por debajo, apilado. Mismo estilo que el esquema de la transposición. */
+  .cm3d-vw { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; }
+  @media (min-width: 760px) {
+    .cm3d-vw.cm3d-vw-on { grid-template-columns:minmax(200px,1fr) 300px; }
+  }
+  .cm3d-cvw { position:relative; }
+  .cm3d-esb { position:absolute; right:8px; bottom:8px; min-width:44px; min-height:44px;
+              font-size:16px; color:var(--accent2); background:var(--card);
+              border:0.5px solid var(--border); border-radius:8px; cursor:pointer; }
+  .cm3d-sch { background:var(--bg2); border:0.5px solid var(--border); border-radius:12px;
+              padding:8px; }
+  .cm3d-schh { font-size:11px; font-weight:700; color:var(--accent2); margin:0 0 4px; }
+  #cm3d-schsvg { display:block; width:100%; height:auto; }
+  .cm3d-sch .cm3d-tp { fill:var(--text); }
+  .cm3d-sch .cm3d-ts { fill:var(--text2); }
+  .cm3d-leg2 { font-size:10px; color:var(--text2); display:flex; flex-wrap:wrap;
+               gap:2px 8px; margin-top:4px; }
   .cm3d-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:0 0 8px;
               font-size:11px; color:var(--text2); }
   .cm3d-lab { display:inline-flex; align-items:center; gap:6px; min-height:44px; cursor:pointer; }
@@ -1804,29 +1889,10 @@
   .cm3d-sg[aria-pressed="true"] { background:var(--accent2); color:#fff; border-color:var(--accent2); }
   .cm3d-sg:disabled { opacity:0.45; cursor:default; }
   .cm3d-estb { font-size:11px; line-height:1.5; color:var(--text2); margin:0 0 8px; }
-  .cm3d-note { font-size:10.5px; line-height:1.5; color:var(--text2); margin:0 0 8px; }
-  .cm3d-side { background:var(--bg2); border:0.5px solid var(--border); border-radius:12px;
-               padding:10px; margin-top:10px; }
-  .cm3d-sideh { font-size:12px; font-weight:700; color:var(--accent2); margin:0 0 6px; }
-  .cm3d-sidet { font-size:9px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
-                color:var(--text2); margin:10px 0 4px; }
-  .cm3d-srow { display:block; width:100%; text-align:left; margin:0 0 4px; padding:6px 8px;
-               min-height:44px; background:var(--card); color:var(--text);
-               border:0.5px solid var(--border); border-radius:8px; cursor:pointer; }
-  .cm3d-srow[aria-pressed="true"] { background:var(--accent2); border-color:var(--accent2); }
-  .cm3d-srow[aria-pressed="true"] .cm3d-srn,
-  .cm3d-srow[aria-pressed="true"] .cm3d-srd { color:#fff; }
-  .cm3d-srow:disabled { opacity:0.5; cursor:default; }
-  .cm3d-srn { display:block; font-size:11px; font-weight:700; color:var(--text); }
-  .cm3d-srd { display:block; font-size:10.5px; color:var(--text2); line-height:1.35; }
-  @media (min-width: 900px) {
-    /* La tabla a la DERECHA del dibujo, con su propio scroll, SOLO en modo Explorar: en
-       «Segun el estudio» la tabla esta oculta y la columna ocupa todo el ancho. */
-    #cm3d-fila.cm3d-con-tabla { display:flex; align-items:flex-start; gap:14px; }
-    #cm3d-fila.cm3d-con-tabla > #cm3d-col { flex:1 1 auto; min-width:300px; }
-    #cm3d-fila.cm3d-con-tabla > .cm3d-side { flex:0 0 300px; margin-top:0;
-                                             max-height:720px; overflow:auto; }
-  }
+  /* ⚠️ LA TABLA LATERAL DE PANT-12 SE RETIRO EN PANT-13 (commit 2), por pedido del médico:
+     repetía lo que las dos listas dicen y «Explorar» quedaba saturado. Sus textos verificados
+     NO se perdieron: `CM_TBB` y `CM_TBM` son ahora el nombre de cada fila de las dos listas. */
+  .cm3d-pdfn { font-size:10.5px; color:var(--text2); margin:0 0 6px; line-height:1.45; }
   /* ══ LA PANTALLA DE MCH EN TRES COLUMNAS (PANT-3, commit 5b) ═══════════════════════════════
      Tres columnas tematicas con los grupos que la seccion YA tenia -hipertrofia, obstruccion y
      factores de riesgo de muerte subita- y, debajo, los dos cuadros lado a lado. El corte va
@@ -21175,57 +21241,76 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
          caso de la suite que cuenta con que el hueco exista. -->
     <div id="cc3d-host"></div>
     <div id="cm3d-box">
-      <!-- ══ LOS DOS MODOS (PANT-12, commit 5) ═══════════════════════════════════════════════
-           «Segun el estudio» abre por omision: el corazon se arma solo con los datos cargados y
-           no se edita aca. «Explorar» abre los controles y la tabla lateral.
+      <!-- ══ EL AVISO DEL MODO «SEGUN EL ESTUDIO» ════════════════════════════════════════════
+           Los DOS BOTONES de modo pasaron, en PANT-13 (commit 2), a la barra de herramientas del
+           centro: la fila propia que tenian era una de las que saturaban la pantalla.
            ⚠️ CLASE PROPIA `cm3d-md` Y NO `.active`: `showTab` hace un
            querySelectorAll('.tab-btn') sobre TODO el documento y le saca `.active` a lo que
            encuentre, que es el defecto que PANT-3 cerro para CIA/CIV y PANT-8 para TAVI. -->
-      <div class="cm3d-row">
-        <span class="cm3d-tit">Modo</span>
-        <button type="button" class="btn btn-ghost cm3d-sg cm3d-md" data-m="estudio" aria-pressed="true">Seg&uacute;n el estudio</button>
-        <button type="button" class="btn btn-ghost cm3d-sg cm3d-md" data-m="explorar" aria-pressed="false">Explorar</button>
-      </div>
-      <p class="cm3d-estb" id="cm3d-estb"><span id="cm3d-estbt">El coraz&oacute;n se arma solo con lo cargado en las pesta&ntilde;as de cong&eacute;nitas y no se edita ac&aacute;. &laquo;Explorar&raquo; abre los controles para experimentar: lo que se elija ah&iacute; es did&aacute;ctico, no se guarda con el estudio y no entra al informe.</span></p>
-      <div id="cm3d-fila">
-        <div id="cm3d-col">
-          <!-- Los controles de la anatomia de base, de las lesiones que se suman y de las
-               combinaciones frecuentes. Los pinta `cmRenderCtl`, que es su dueno unico. -->
-          <div id="cm3d-ctl" hidden>
-            <div class="cm3d-row"><span class="cm3d-tit">Anatom&iacute;a de base</span><span id="cm3d-baseb"></span></div>
-            <div class="cm3d-row" id="cm3d-basevarrow" hidden><span class="cm3d-tit">Vista</span><span id="cm3d-basevar"></span></div>
-            <div class="cm3d-row"><span class="cm3d-tit">Se suma</span><span id="cm3d-modb"></span></div>
-            <p class="cm3d-note" id="cm3d-note" hidden></p>
-            <div id="cm3d-mods"></div>
-            <div class="cm3d-row"><span class="cm3d-tit">Combinaciones frecuentes</span><span id="cm3d-presb"></span></div>
+      <p class="cm3d-estb" id="cm3d-estb"><span id="cm3d-estbt">El coraz&oacute;n se arma solo con lo cargado en las pesta&ntilde;as de cong&eacute;nitas y no se edita ac&aacute;. &laquo;Explorar&raquo; abre las listas para experimentar: lo que se elija ah&iacute; es did&aacute;ctico, no se guarda con el estudio y no entra al informe.</span></p>
+      <!-- ══ LAS TRES ZONAS DE «EXPLORAR» (PANT-13, commit 2) ════════════════════════════════
+           Portadas de la demo v13 aprobada: a la izquierda «Base» -seleccion unica, con sus
+           vistas y casillas SOLO debajo de la base elegida-, en el centro la barra y el dibujo,
+           y a la derecha «Se suma» -una fila con casilla por lesion, con sus variantes y
+           casillas SOLO debajo de la fila activa-. Las combinaciones frecuentes van DEBAJO del
+           dibujo, con sus siglas.
+           ⚠️ SE RETIRARON la tabla lateral «Lesiones y combinaciones» y las filas de botones
+           grandes de PANT-12: repetian lo mismo que las listas, y el medico midio que
+           «Explorar» quedaba saturado. Los TEXTOS verificados de esa tabla -`CM_TBB` y
+           `CM_TBM`- no se perdieron: son el nombre de cada fila de las dos listas. -->
+      <div id="cm3d-shell">
+        <aside class="cm3d-pnl" id="cm3d-pl" aria-label="Anatom&iacute;a de base">
+          <div class="cm3d-ph">Base</div><div id="cm3d-baseb"></div>
+        </aside>
+        <section id="cm3d-mid">
+          <!-- La barra de herramientas, en UNA linea: los dos modos, la vista de frente, la
+               pausa, «Por dentro», «Nombres», la frecuencia cardiaca corta, el boton del PDF
+               -que el commit 3 cablea- y el globo. -->
+          <div class="cm3d-tb">
+            <span class="cm3d-segm"><button type="button" class="cm3d-md" data-m="estudio" aria-pressed="true">Seg&uacute;n el estudio</button><button type="button" class="cm3d-md" data-m="explorar" aria-pressed="false">Explorar</button></span>
+            <button type="button" class="btn btn-ghost cm3d-tbn" id="cm3d-frente" aria-label="Vista de frente" title="Vista de frente">&#10226;</button>
+            <button type="button" class="btn btn-ghost cm3d-tbn" id="cm3d-pausar" aria-pressed="false" aria-label="Pausar o seguir el latido" title="Pausar">&#9208;</button>
+            <label class="cm3d-tg"><input type="checkbox" id="cm3d-ins" data-ui checked> Por dentro</label>
+            <label class="cm3d-tg"><input type="checkbox" id="cm3d-nom" data-ui checked> Nombres</label>
+            <label class="cm3d-tg" for="cm3d-fc">FC <input type="number" id="cm3d-fc" data-ui inputmode="numeric" value="70" min="30" max="200" class="cm3d-fcin" aria-label="Frecuencia card&iacute;aca en latidos por minuto"></label>
+            <button type="button" class="btn btn-ghost cm3d-tbn cm3d-pdfb" id="cm3d-pdfb" data-ui aria-pressed="false" disabled>Incluir en el PDF</button>
+            <button type="button" class="vinfo-btn vinfo-btn-44" id="cm3d-ib" aria-expanded="false"
+                    aria-controls="cm3d-ip" aria-label="Qu&eacute; muestra este dibujo">&#9432;</button>
           </div>
-          <!-- Los controles del dibujo. Los cinco llevan `data-ui`, que es la TERCERA de las
-               listas paralelas: sin el, `secAutoOpen` abriria esta seccion sola al entrar a la
-               pestania, porque las dos casillas nacen marcadas y la frecuencia trae 70. -->
-          <div class="cm3d-row">
-            <label class="cm3d-lab"><input type="checkbox" id="cm3d-ins" data-ui checked> Ver por dentro</label>
-            <label class="cm3d-lab"><input type="checkbox" id="cm3d-nom" data-ui checked> Nombres</label>
-            <label class="cm3d-lab" for="cm3d-fc">Frecuencia card&iacute;aca (lpm)</label>
-            <input type="number" id="cm3d-fc" data-ui inputmode="numeric" value="70" min="30" max="200" class="cm3d-fcin">
-            <button type="button" class="btn btn-ghost cm3d-btn" id="cm3d-pausar">Pausar</button>
-            <button type="button" class="btn btn-ghost cm3d-btn" id="cm3d-frente">Vista de frente</button>
+          <p class="cm3d-pdfn" id="cm3d-pdfn"></p>
+          <!-- El dibujo y, al lado, el esquema de circulacion que abre el boton de abajo a la
+               derecha. Al lado desde 760 px de ancho de ventana; por debajo, apilado. -->
+          <div class="cm3d-vw" id="cm3d-vw">
+            <div class="cm3d-cvw">
+              <div class="cm3d-cv" id="cm3d-cv" role="img"
+                   aria-label="Modelo en 3D del coraz&oacute;n y los grandes vasos con la combinaci&oacute;n de lesiones elegida; se rota arrastrando"></div>
+              <button type="button" class="cm3d-esb" id="cm3d-esb" data-ui aria-expanded="false"
+                      aria-label="Mostrar el esquema de circulaci&oacute;n" title="Esquema de circulaci&oacute;n">&#9707;</button>
+            </div>
+            <div class="cm3d-sch" id="cm3d-sch" hidden>
+              <div class="cm3d-schh">Esquema de circulaci&oacute;n</div>
+              <svg id="cm3d-schsvg" viewBox="0 0 300 290" width="100%" role="img" aria-label="Esquema de circulaci&oacute;n"></svg>
+              <div class="cm3d-leg2">
+                <span><span class="cm3d-sw" style="background:#2f6fd0"></span>poco oxigenada</span>
+                <span><span class="cm3d-sw" style="background:#d8433b"></span>oxigenada</span>
+                <span><span class="cm3d-sw" style="background:#e08a1e"></span>comunicaciones y parches</span>
+                <span><span class="cm3d-sw" style="background:#8d8d88"></span>obstrucci&oacute;n</span>
+                <span>T tric&uacute;spide &middot; M mitral</span>
+              </div>
+              <p class="cm3d-ref" id="cm3d-schcap"></p>
+            </div>
           </div>
-          <div class="cm3d-cv" id="cm3d-cv" role="img"
-               aria-label="Modelo en 3D del coraz&oacute;n y los grandes vasos con la combinaci&oacute;n de lesiones elegida; se rota arrastrando"></div>
           <div class="cm3d-leg">
             <span><span class="cm3d-sw" style="background:#2f6fd0"></span>sangre poco oxigenada</span>
             <span><span class="cm3d-sw" style="background:#d8433b"></span>sangre oxigenada</span>
             <span><span class="cm3d-sw" style="background:#e08a1e"></span>CIV, parches y suturas</span>
             <span><span class="cm3d-sw" style="background:#9a9a95"></span>obstrucci&oacute;n</span>
             <span><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
-            <!-- El globo estandar de la casa: glifo U+24D8 en un boton de 44 px. Abre y cierra
-                 el panel de abajo, cerrado por omision, por sus TRES vias. -->
-            <button type="button" class="vinfo-btn vinfo-btn-44" id="cm3d-ib" aria-expanded="false"
-                    aria-controls="cm3d-ip" aria-label="Qu&eacute; muestra este dibujo"
-                    style="margin-left:auto;">&#9432;</button>
           </div>
-          <!-- El panel de los cuatro textos del dibujo. Nace OCULTO y lo abre el globo del
-               commit 5: en este commit el motor ya los calcula y los escribe aca. -->
+          <!-- Las combinaciones frecuentes, DEBAJO del dibujo y con sus siglas: el nombre
+               completo va en el title y en la etiqueta accesible, y la fuente sigue en el ⓘ. -->
+          <div class="cm3d-cbw" id="cm3d-cbw"><span class="cm3d-ph2">Combinaciones frecuentes</span><div id="cm3d-presb" class="cm3d-cbrow"></div></div>
+          <!-- El panel de los cuatro textos del dibujo. Nace OCULTO y lo abre el globo. -->
           <div class="cm3d-ip" id="cm3d-ip" hidden>
             <p class="cm3d-circ" id="cm3d-circ"></p>
             <p class="cm3d-inf" id="cm3d-inf"></p>
@@ -21237,15 +21322,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                `cc3dNoDibujadas`, que lee el registro `_CC_SECS` del Laboratorio: es el dueno
                unico de «esta lesion esta cargada» y no una segunda lista. -->
           <p id="cc3d-faltan" style="font-size:10.5px;color:var(--text2);margin:8px 0 0;line-height:1.5;"></p>
-        </div>
-        <!-- ══ LA TABLA LATERAL ══════════════════════════════════════════════════════════════
-             «Lesiones y combinaciones»: la anatomia de base, las lesiones que se suman y las
-             combinaciones frecuentes, cada fila con su linea. Tocar una fila la aplica; las que
-             no se combinan quedan apagadas con su motivo. La pinta `cmRenderSide`.
-             Desde 900 px va a la DERECHA del dibujo con su propio scroll; por debajo, apilada. -->
-        <aside class="cm3d-side" id="cm3d-side" hidden aria-label="Lesiones y combinaciones">
-          <div class="cm3d-sideh">Lesiones y combinaciones</div>
-          <div id="cm3d-sidebody"></div>
+        </section>
+        <aside class="cm3d-pnl" id="cm3d-pr" aria-label="Lesiones que se suman">
+          <div class="cm3d-ph">Se suma</div><div id="cm3d-modb"></div>
         </aside>
       </div>
     </div>
@@ -103821,7 +103900,7 @@ function cmEscena(S) {
    casillas-, y es lo unico que `cmEscena` necesita. No es un campo del estudio y no se persiste
    por ningun camino. */
 const _cm3d = { cargando:false, listo:false, fallo:false, pausado:false, fc:70, ins:true, noms:true,
-  modo:'estudio',
+  modo:'estudio', sch:false,
   S: { base:'norm', bv:{ fal:'sin', dsav:'par', ebs:'std', fon:'ext' }, mods:{}, ck:{}, src:'' } };
 
 /* Escritor de los textos del dibujo, con guarda: en este commit el panel del globo existe
@@ -104105,7 +104184,9 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
   _cm3dVistaSet = function (y) { root.rotation.set(0.05, y, 0) };
   _cm3dInsSet = function () { setIns() };
   _cm3dNomsSet = function () { lbs.forEach(function (l) { l.el.style.display = _cm3d.noms ? '' : 'none' }) };
-  cm3dBuild = build;
+  /* ⚠️ EL ESQUEMA SE CUELGA DEL `build`, igual que en la demo: asi TODO gesto que repinta el
+     dibujo repinta el esquema, sin que nadie tenga que acordarse de llamarlo. */
+  cm3dBuild = function () { build(); try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {} };
   build();
   /* ⚠️ EL RELOJ EN HORA JUSTO ANTES DE ARRANCAR EL BUCLE: la tercera guarda. Entre el
      `performance.now()` de la declaracion y este punto se construyo toda la geometria, que son
@@ -104125,6 +104206,9 @@ function cm3dSync() {
   if (!_cm3dVisible()) return;
   if (!_cm3d.listo) { cm3dBoot(); return }
   try { cm3dBuild() } catch (e) {}
+  /* El esquema se repinta con el MISMO estado y en la misma pasada que el dibujo: con dos
+     puertas podrian quedar mostrando dos anatomias distintas del mismo paciente. */
+  try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}
 }
 window.cm3dSync = cm3dSync;
 window.cmEscena = cmEscena; window.cmBloqueado = cmBloqueado;
@@ -104159,17 +104243,58 @@ function _cmVistaDe(){let M=_cm3d.S.mods;if(M.coa||M.dap){return -0.75;}if(M.civ
 function cmVista() { if (typeof _cm3dVistaSet === 'function') _cm3dVistaSet(_cmVistaDe()) }
 function _cmCambio(rv){_cm3d.S.src='';_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();if(rv){cmVista();}}
 function cmSetBase(k){_cm3d.S.base=k;Object.keys(_cm3d.S.mods).forEach(function(m){if(cmBloqueado(m, _cm3d.S)){delete _cm3d.S.mods[m];}});_cmCambio(true);}
-function cmRenderSide(){
-  let sb=document.getElementById('cm3d-sidebody');sb.textContent='';
-  function sec(t){let h=document.createElement('div');h.className = 'cm3d-sidet';h.textContent=t;sb.appendChild(h);}
-  function row(name,desc,on,fn,dis,why){let b=document.createElement('button');b.type='button';b.className = 'cm3d-srow';b.setAttribute('aria-pressed',on?'true':'false');if(dis){b.disabled=true;b.title=why||'';}else{b.addEventListener('click',fn);}
-    let n=document.createElement('span');n.className = 'cm3d-srn';n.textContent=name;let d=document.createElement('span');d.className = 'cm3d-srd';d.textContent=dis?('No se combina: '+why):desc;b.appendChild(n);b.appendChild(d);sb.appendChild(b);}
-  sec('Anatomía de base');
-  CM_TBB.forEach(function(b){row(b[1],b[2],_cm3d.S.base===b[0],function(){cmSetBase(b[0]);});});
-  sec('Lesiones que se suman');
-  CM_TBM.forEach(function(m){let why=cmBloqueado(m[0], _cm3d.S);row(m[1],m[2],!!_cm3d.S.mods[m[0]],function(){let mm=CM_MODS.filter(function(x){return x[0]===m[0];})[0];if(_cm3d.S.mods[m[0]]){delete _cm3d.S.mods[m[0]];}else{_cm3d.S.mods[m[0]]=mm[2][0][0];}_cmCambio(true);},!!why,why);});
-  sec('Combinaciones frecuentes');
-  CM_PRES.forEach(function(p){let b=document.createElement('button');b.type='button';b.className = 'cm3d-srow';let n=document.createElement('span');n.className = 'cm3d-srn';n.textContent=p.n;let d=document.createElement('span');d.className = 'cm3d-srd';d.textContent=p.src.split(' (')[0].slice(0,120)+(p.src.length>120?'…':'');b.appendChild(n);b.appendChild(d);b.addEventListener('click',function(){cmAplicarPres(p);});sb.appendChild(b);});
+/* ══ LAS DOS LISTAS DE «EXPLORAR» -PANT-13, commit 2- ══════════════════════════════════════
+   Portadas de la demo v13 aprobada. Una FILA por opcion -la marca, la sigla y el nombre-, con
+   sus variantes y sus casillas en un sub-bloque que aparece SOLO debajo de la fila activa.
+   ⚠️ LA TABLA LATERAL DE PANT-12 SE RETIRO: repetia lo que estas listas dicen. Sus textos
+   verificados contra las guias son ahora el NOMBRE de cada fila -`CM_TBB` y `CM_TBM`-, asi que
+   no se perdio ninguno y no hay texto clinico nuevo.
+   ⚠️ EL MOTIVO POR EL QUE UNA FILA ESTA APAGADA VA EN LA PROPIA FILA, que es como lo hace la
+   demo: hasta PANT-12 iba en una linea aparte debajo de los botones, y ahi el medico tenia que
+   buscar a cual de los diez se referia. */
+const CM_SIG = Object.freeze({
+  cia:['CIA','comunicación interauricular'], civ:['CIV','comunicación interventricular'],
+  dap:['DAP','ductus arterioso'], vap:['VAP','ventana aortopulmonar'],
+  cvpa:['CVPA','conexión venosa pulmonar anómala parcial'], coa:['Coa','coartación de aorta'],
+  ep:['EP','estenosis pulmonar'], ea:['EA','estenosis subaórtica o supravalvular'],
+  vcs:['VCSI','cava superior izquierda persistente'], eis:['Eisenmenger','invierte los cortocircuitos'] });
+const CM_SIB = Object.freeze({ norm:['Normal','corazón normal'], fal:['Fallot','tetralogía de Fallot'],
+  dsav:['DSAV','defecto del septo auriculoventricular'], ebs:['Ebstein','anomalía de Ebstein'],
+  fon:['Fontan','circulación de Fontan'] });
+/* Las siglas de cada variante, para los botones finos. */
+const CM_SHORT = Object.freeze({ cia_sec:'O.S.', cia_pri:'O.P.', cia_sv:'SVS',
+  civ_pm:'Perimemb', civ_mus:'Musc', civ_sal:'Outlet', civ_ent:'Inlet',
+  vap_prox:'Prox', vap_dis:'Distal', coa_nat:'Nativa', coa_rep:'Reparada',
+  ep_valv:'Valvular', ep_sub:'Subvalv', ep_sup:'Supravalv', ea_sub:'SubAo', ea_sup:'SupraAo',
+  fal_sin:'Sin operar', fal_op:'Operado', dsav_par:'Parcial', dsav_tra:'Transic.',
+  dsav_com:'Completo', fon_ext:'Extracard.', fon_tun:'Túnel', fon_atr:'Atriopulm.' });
+/* Las siglas de cada combinacion frecuente. El nombre completo sigue en `CM_PRES[i].n` y la
+   fuente en `.src`, que es lo que publica el globo: ninguna de las dos se toca. */
+const CM_PRESSG = Object.freeze({ 'CIA + CIV + ductus':'CIA+CIV+DAP',
+  'CIA + conexión venosa anómala + cava izquierda':'CIA+CVPA+VCSI',
+  'CIA + estenosis pulmonar':'CIA+EP', 'Coartación + estenosis subaórtica':'Coa+EA',
+  'Ebstein + CIA':'Ebs+CIA', 'CIV + ductus + Eisenmenger':'CIV+DAP+Eis' });
+function _cmDesc(reg, k) { const f = reg.filter(function (x) { return x[0] === k })[0]; return f ? f[2] : '' }
+function _cmFila(parent, marca, sigla, nombre, on, fn, dis, why, titulo) {
+  const b = document.createElement('button'); b.type = 'button';
+  b.className = 'cm3d-rw'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (dis) { b.disabled = true; b.title = 'No se combina: ' + why }
+  else { b.addEventListener('click', fn); if (titulo) { b.title = titulo } }
+  const m = document.createElement('span'); m.className = 'cm3d-mk';
+  m.textContent = marca; m.setAttribute('aria-hidden', 'true');
+  const g = document.createElement('span'); g.className = 'cm3d-sg1'; g.textContent = sigla;
+  const n = document.createElement('span'); n.className = 'cm3d-nm';
+  n.textContent = dis ? ('no se combina: ' + why) : nombre;
+  b.appendChild(m); b.appendChild(g); b.appendChild(n); parent.appendChild(b); return b;
+}
+function _cmSub(parent) { const d = document.createElement('div'); d.className = 'cm3d-sub'; parent.appendChild(d); return d }
+/* El boton fino con sigla: se VE en 30 px y su area tactil mide 44 por el `::after` de su CSS.
+   El nombre completo va en el title y en la etiqueta accesible. */
+function _cmChip(parent, txt, on, fn, full) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'cm3d-chip';
+  b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = txt;
+  if (full) { b.title = full; b.setAttribute('aria-label', full) }
+  b.addEventListener('click', fn); parent.appendChild(b); return b;
 }
 function cmAplicarPres(p){_cm3d.S.base=p.b;_cm3d.S.mods={};Object.keys(p.m).forEach(function(k){_cm3d.S.mods[k]=p.m[k];});_cm3d.S.ck={};if(p.k){Object.keys(p.k).forEach(function(k){_cm3d.S.ck[k]=p.k[k];});}_cm3d.S.src=p.src;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;cmRenderCtl();cm3dBuild();cmVista();}
 /* ══ LOS DOS MODOS ══════════════════════════════════════════════════════════════════════════
@@ -104180,44 +104305,230 @@ function cmAplicarPres(p){_cm3d.S.base=p.b;_cm3d.S.mods={};Object.keys(p.m).forE
    `cmDesdeEstudio`, que es su dueno unico. */
 function cmSetModo(m) {
   _cm3d.modo = m;
-  const ctl = document.getElementById('cm3d-ctl'), sd = document.getElementById('cm3d-side'),
-        eb = document.getElementById('cm3d-estb');
-  if (ctl) ctl.hidden = (m === 'estudio');
-  if (sd) sd.hidden = (m === 'estudio');
+  const pl = document.getElementById('cm3d-pl'), pr = document.getElementById('cm3d-pr'),
+        eb = document.getElementById('cm3d-estb'), cbw = document.getElementById('cm3d-cbw'),
+        sh = document.getElementById('cm3d-shell');
+  /* Las dos listas y las combinaciones son de «Explorar»: el dibujo del estudio no se edita. */
+  if (pl) pl.hidden = (m === 'estudio');
+  if (pr) pr.hidden = (m === 'estudio');
+  if (cbw) cbw.hidden = (m === 'estudio');
   if (eb) eb.hidden = (m !== 'estudio');
-  const fila = document.getElementById('cm3d-fila');
-  if (fila) fila.classList.toggle('cm3d-con-tabla', m === 'explorar');
+  if (sh) sh.classList.toggle('cm3d-solo', m === 'estudio');
   Array.prototype.forEach.call(document.querySelectorAll('.cm3d-md'), function (b) {
     b.setAttribute('aria-pressed', b.getAttribute('data-m') === m ? 'true' : 'false') });
   if (m === 'estudio') { cmDesdeEstudio(); }
   cmRenderCtl(); cm3dBuild(); cmVista();
+  if (typeof cmPdfSync === 'function') { try { cmPdfSync() } catch (e) {} }
   if (typeof cc3dTextoSync === 'function') { try { cc3dTextoSync() } catch (e) {} }
 }
 function cmRenderCtl(){
-  let bb=document.getElementById('cm3d-baseb');bb.textContent='';
-  CM_BASES.forEach(function(b){_cmBtn(bb,b[1],_cm3d.S.base===b[0],function(){cmSetBase(b[0]);});});
-  let bvr=document.getElementById('cm3d-basevarrow'),bv=document.getElementById('cm3d-basevar');bv.textContent='';
-  let vars=CM_BVARS[_cm3d.S.base],ck=CM_BCK[_cm3d.S.base+'_'+_cm3d.S.bv[_cm3d.S.base]];
-  if(vars||ck){bvr.hidden=false;
-    if(vars){vars.forEach(function(v){_cmBtn(bv,v[1],_cm3d.S.bv[_cm3d.S.base]===v[0],function(){_cm3d.S.bv[_cm3d.S.base]=v[0];_cmCambio(false);});});}
-    if(ck){ck.forEach(function(c){_cmChk(bv,c[1],_cm3d.S.ck[c[0]],function(on){_cm3d.S.ck[c[0]]=on;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;_cm3d.S.src='';cm3dBuild();});});}
-  }else{bvr.hidden=true;}
-  let mb=document.getElementById('cm3d-modb');mb.textContent='';let bl=[];
-  CM_MODS.forEach(function(m){let r=cmBloqueado(m[0], _cm3d.S);if(r){bl.push(m[1]+': '+r);}_cmBtn(mb,m[1],!!_cm3d.S.mods[m[0]],function(){if(_cm3d.S.mods[m[0]]){delete _cm3d.S.mods[m[0]];}else{_cm3d.S.mods[m[0]]=m[2][0][0];}_cmCambio(true);},!!r,r);});
-  let nt=document.getElementById('cm3d-note');if(bl.length){nt.hidden=false;nt.textContent='No se combinan con esta selección: '+bl.join(' · ');}else{nt.hidden=true;}
-  let md=document.getElementById('cm3d-mods');md.textContent='';
-  CM_MODS.forEach(function(m){let v=_cm3d.S.mods[m[0]];if(!v){return;}
-    let multi=m[2].length>1,cks=CM_MCK[m[0]+'_'+v]||CM_MCK[m[0]];
-    if(!multi&&!cks){return;}
-    let row=document.createElement('div');row.className = 'cm3d-row';let sp=document.createElement('span');sp.className = 'cm3d-tit';sp.textContent=m[1];row.appendChild(sp);
-    let box=document.createElement('span');row.appendChild(box);
-    if(multi){m[2].forEach(function(x){_cmBtn(box,x[1],v===x[0],function(){_cm3d.S.mods[m[0]]=x[0];_cmCambio(false);});});}
-    if(cks){cks.forEach(function(c){_cmChk(box,c[1],_cm3d.S.ck[c[0]],function(on){_cm3d.S.ck[c[0]]=on;_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;_cm3d.S.src='';cm3dBuild();});});}
-    md.appendChild(row);});
-  cmRenderSide();
-  let pb=document.getElementById('cm3d-presb');pb.textContent='';
-  CM_PRES.forEach(function(p){_cmBtn(pb,p.n,false,function(){cmAplicarPres(p);});});
+  /* ── «Base»: una fila por anatomia, con su vista y sus casillas SOLO debajo de la elegida ── */
+  const bb = document.getElementById('cm3d-baseb');
+  if (bb) { bb.textContent = '';
+    CM_BASES.forEach(function (b) {
+      const k = b[0], on = (_cm3d.S.base === k), sg = (CM_SIB[k] || [k, ''])[0];
+      _cmFila(bb, on ? '\u25cf' : '\u25cb', sg, _cmDesc(CM_TBB, k), on,
+        function () { cmSetBase(k) }, false, '', b[1]);
+      if (!on) return;
+      const vars = CM_BVARS[k], ck = CM_BCK[k + '_' + _cm3d.S.bv[k]];
+      if (!vars && !ck) return;
+      const sb = _cmSub(bb);
+      if (vars) vars.forEach(function (v) {
+        _cmChip(sb, CM_SHORT[k + '_' + v[0]] || v[1], _cm3d.S.bv[k] === v[0], function () {
+          _cm3d.S.bv[k] = v[0];
+          Object.keys(_cm3d.S.mods).forEach(function (m) { if (cmBloqueado(m, _cm3d.S)) delete _cm3d.S.mods[m] });
+          _cmCambio(true);
+        }, v[1]) });
+      if (ck) ck.forEach(function (c) {
+        _cmChk(sb, c[1], _cm3d.S.ck[c[0]], function (on2) {
+          _cm3d.S.ck[c[0]] = on2; _cm3d.ins = true;
+          document.getElementById('cm3d-ins').checked = true; _cm3d.S.src = ''; cm3dBuild();
+        }) });
+    });
+  }
+  /* ── «Se suma»: una fila con casilla por lesion, con su variante y sus casillas debajo ── */
+  const mb = document.getElementById('cm3d-modb');
+  if (mb) { mb.textContent = '';
+    CM_MODS.forEach(function (m) {
+      const k = m[0], why = cmBloqueado(k, _cm3d.S), on = !!_cm3d.S.mods[k];
+      const sg = (CM_SIG[k] || [m[1], ''])[0];
+      _cmFila(mb, on ? '\u2611' : '\u2610', sg, _cmDesc(CM_TBM, k), on, function () {
+        if (_cm3d.S.mods[k]) { delete _cm3d.S.mods[k] } else { _cm3d.S.mods[k] = m[2][0][0] }
+        _cmCambio(true);
+      }, !!why, why, m[1]);
+      if (!on) return;
+      const v = _cm3d.S.mods[k], multi = (m[2].length > 1), cks = CM_MCK[k + '_' + v] || CM_MCK[k];
+      if (!multi && !cks) return;
+      const sb = _cmSub(mb);
+      if (multi) m[2].forEach(function (x) {
+        _cmChip(sb, CM_SHORT[k + '_' + x[0]] || x[1], v === x[0],
+          function () { _cm3d.S.mods[k] = x[0]; _cmCambio(false) }, x[1]) });
+      if (cks) cks.forEach(function (c) {
+        _cmChk(sb, c[1], _cm3d.S.ck[c[0]], function (on2) {
+          _cm3d.S.ck[c[0]] = on2; _cm3d.ins = true;
+          document.getElementById('cm3d-ins').checked = true; _cm3d.S.src = ''; cm3dBuild();
+        }) });
+    });
+  }
+  /* ── Las combinaciones frecuentes, con su sigla y su nombre completo en el title ── */
+  const pb = document.getElementById('cm3d-presb');
+  if (pb) { pb.textContent = '';
+    CM_PRES.forEach(function (p) {
+      _cmChip(pb, CM_PRESSG[p.n] || p.n, false, function () { cmAplicarPres(p) }, p.n) });
+  }
 }
+
+/* ══ EL ESQUEMA DE CIRCULACION DEL CORAZON MAESTRO -PANT-13, commit 2- ═════════════════════
+   Portado de la demo v13 aprobada con SU geometria y SUS rotulos, y con el estilo del esquema
+   de circulacion de la transposicion que la app ya tiene: cajas Pulmones, VD, AI, AD, VI y
+   Cuerpo, tubos punteados con flecha, marcas T y M en las valvulas, leyenda y la linea escrita
+   de la circulacion debajo.
+   ⚠️ SE ARMA CON EL MISMO ESTADO QUE EL DIBUJO 3D -`_cm3d.S`-, y no con uno propio: con dos
+   estados, el esquema y el 3D de la misma caja podrian mostrar dos anatomias distintas del
+   mismo paciente. Es la decision que la tanda TGA-3 ya tomo para el esquema de la transposicion.
+   ⚠️ Y SE DIBUJA CON `innerHTML` sobre una cadena armada SOLO con constantes de este archivo y
+   numeros: ni un dato del paciente entra aca. */
+const CM_SCH_B = '#2f6fd0', CM_SCH_R = '#d8433b', CM_SCH_O = '#e08a1e',
+      CM_SCH_G = '#8d8d88', CM_SCH_Y = '#d9b92e';
+function cmSchRender() {
+  const svg = document.getElementById('cm3d-schsvg'), caja = document.getElementById('cm3d-sch');
+  if (!svg || !caja || caja.hidden) return;
+  const B = _cm3d.S.base, BV = _cm3d.S.bv[B], M = _cm3d.S.mods, K = _cm3d.S.ck, eis = !!M.eis;
+  const Bc = CM_SCH_B, Rc = CM_SCH_R, Oc = CM_SCH_O, Gc = CM_SCH_G, Yc = CM_SCH_Y;
+  const BX = { TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] };
+  const box = { TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] };
+  let fl = [['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],
+            ['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r']];
+  let valves = [[80,140,'T',''],[220,139,'M','']];
+  let lab = [['cavas',88,232],['venas pulm.',226,60],['AP',92,62],['Ao',228,240]];
+  const ex = [], oc = [], bars = [], txt = [];
+  const col = function (c) { return c === 'b' ? Bc : (c === 'r' ? Rc : Oc) };
+  const conn = function (p, l, lx, ly) { oc.push([p, l, lx, ly]) };
+  const bar = function (x, y, w, h, c, l, lx, ly, a) { bars.push([x, y, w, h, c || Gc, l, lx, ly, a || 'start']) };
+  const T = function (x, y, t, a, fs, f) { txt.push([x, y, t, a || 'start', fs || 9, f || 'var(--text2)']) };
+  const sc = function (k, lbl) { return ({ civ_pm:'perim.', civ_mus:'musc.', civ_sal:'outlet', civ_ent:'inlet' })[k] || CM_SHORT[k] || lbl };
+  /* ── Eisenmenger y las sobrecargas ── */
+  if (eis || (B === 'fal' && BV === 'sin') || M.ep) { box.TL[1] = 'hipertrófico' }
+  if (M.ea || M.coa === 'nat') { box.BR[1] = 'hipertrófico' }
+  if (eis) { lab[2][0] = 'AP dilatada'; lab[2][1] = 96 }
+  /* ── la anatomia de base ── */
+  if (B === 'fal') {
+    if (BV === 'sin') {
+      bar(70,56,20,6,Gc,'EP',94,62); lab[2][0] = '';
+      conn('M120 116L180 164','CIV',122,106);
+      T(228,240,'Ao cabalga','start',9); lab[3][0] = '';
+    } else {
+      ex.push('<path d="M150 96V160" stroke="' + Oc + '" stroke-width="9" opacity=".35" fill="none"/>');
+      T(156,176,'parche','start',9);
+      if (K.rciv) { conn('M180 164L120 116','CIV residual',112,172) }
+      if (K.rest) { bar(70,56,20,6,Gc,'estenosis',94,62) }
+      if (K.ip) { fl.push(['M104 40V76','b','dash']); T(108,62,'IP','start',9) }
+      if (K.rvd) { box.TL[1] = 'dilatado' }
+    }
+  }
+  if (B === 'dsav') {
+    const big = (BV === 'com');
+    conn(eis ? 'M120 164L180 116' : 'M180 116L120 164','CIA primum',124,178);
+    if (BV === 'tra') { conn(eis ? 'M120 116L180 164' : 'M180 164L120 116','CIV',122,106) }
+    if (big) { valves = []; bars.push([40,133,220,5,Oc,'',0,0,'start']);
+      T(44,150,'válvula AV común','start',9,Oc);
+      conn(eis ? 'M120 116L180 164' : 'M180 164L120 116','CIV',122,106) }
+    if (BV === 'par') { T(226,150,'hendidura','start',8.5,Oc) }
+    if (K.iav) { fl.push(['M232 156V124','r','dash']); T(236,142,'IAV','start',9) }
+  }
+  if (B === 'ebs') {
+    box.BL[1] = 'dilatada'; box.TL[1] = 'atrializado';
+    valves = [[80,150,'T','y'],[220,139,'M','']];
+    T(44,134,'válvula desplazada','start',8.5,'#b8960f');
+    if (K.eit) { fl.push(['M98 124V156','b','dash']); T(104,142,'IT','start',9) }
+  }
+  if (B === 'fon') {
+    fl = [['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r']];
+    lab = [['venas pulm.',226,60],['Ao',228,240]];
+    valves = [[220,139,'M','']];
+    box.TL = ['VD','excluido','b','x'];
+    T(86,66,'\u2715 tronco cerrado','start',9);
+    if (BV === 'atr') { fl.push(['M80 250V206','b']); fl.push(['M40 180H18V23H58','b']);
+      box.BL = ['AD','dilatada','b']; lab.push(['cavas',88,232]); T(22,100,'AD \u2192 AP','start',9) }
+    else { fl.push(['M80 250V240H18V23H58','b']); box.BL = ['AD','excluida','b','x'];
+      T(22,130, BV === 'tun' ? 'túnel lateral' : 'conducto','start',9,Oc);
+      ex.push('<circle cx="18" cy="60" r="4" fill="' + Oc + '"/>');
+      if (K.fen) { conn('M18 190H40','fenestración',22,206) } }
+  }
+  /* ── las lesiones que se suman ── */
+  if (M.cia) { conn((eis || B === 'ebs') ? 'M120 164L180 116' : 'M180 116L120 164','CIA ' + sc('cia_' + M.cia,''),124,178) }
+  if (M.civ) { conn(eis ? 'M120 116L180 164' : 'M180 164L120 116','CIV ' + sc('civ_' + M.civ,''),122,106) }
+  if (M.dap) { conn(eis ? 'M80 52L220 236' : 'M220 236L80 52','DAP',100,48) }
+  if (M.vap) { conn(eis ? 'M80 70L220 212' : 'M220 212L80 70','VAP',186,206) }
+  if (M.cvpa) { fl.push(['M60 23H22V236H76','r']); T(26,120,'VP der. \u2192 cava','start',9);
+    if (K.svs) { conn('M180 116L120 164','CIA SV',126,152) } }
+  if (M.vcs) { fl.push(['M50 250V206','b']); T(30,226,'VCSI','end',9) }
+  if (M.coa === 'nat') { bar(210,236,20,6,Gc,'Coa',236,242) }
+  if (M.coa === 'rep') { bar(210,236,20,6,Oc,'reparada',236,242);
+    if (K.rec) { bar(210,226,20,4,Gc,'recoart.',236,232) } }
+  if (M.ep === 'valv') { bar(70,70,20,6,Gc,'EP valv.',94,76) }
+  if (M.ep === 'sub') { bar(70,84,20,6,Gc,'EP sub.',94,92) }
+  if (M.ep === 'sup') { bar(70,46,20,6,Gc,'EP sup.',94,50) }
+  if (M.ea === 'sub') { bar(210,208,20,6,Gc,'EA sub',234,214) }
+  if (M.ea === 'sup') { bar(210,222,20,6,Gc,'EA sup',234,228) }
+  if (K.iao && M.ea) { fl.push(['M244 238V206','r','dash']); T(250,226,'IAo','start',9) }
+  /* ── el dibujo ── */
+  let d = '<defs>';
+  [['cmmb',Bc],['cmmr',Rc],['cmmo',Oc]].forEach(function (m) {
+    d += '<marker id="' + m[0] + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9Z" fill="' + m[1] + '"/></marker>' });
+  d += '</defs>';
+  d += '<rect x="60" y="8" width="180" height="30" rx="8" fill="var(--card)" stroke="var(--border)"/><text x="150" y="27" text-anchor="middle" font-size="12" class="cm3d-tp">Pulmones</text>';
+  d += '<rect x="60" y="250" width="180" height="30" rx="8" fill="var(--card)" stroke="var(--border)"/><text x="150" y="269" text-anchor="middle" font-size="12" class="cm3d-tp">Cuerpo</text>';
+  oc.forEach(function (c) {
+    d += '<path class="cm3d-fl" d="' + c[0] + '" fill="none" stroke="' + Oc + '" stroke-width="3" stroke-dasharray="5 3" stroke-linecap="round" marker-end="url(#cmmo)"/><text x="' + c[2] + '" y="' + c[3] + '" font-size="9.5" fill="' + Oc + '" font-weight="600">' + c[1] + '</text>' });
+  ['TL','TR','BL','BR'].forEach(function (k) {
+    const q = box[k], x = BX[k][0], y = BX[k][1], w = 80, h = 44, c = col(q[2]),
+          exc = (q[3] === 'x'), ora = (q[3] === 'o');
+    const gr = ((k === 'TL' && box.TL[1] === 'hipertrófico') || (k === 'BR' && box.BR[1] === 'hipertrófico')) ? 3 : (ora ? 2 : 1.5);
+    d += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="var(--card)" stroke="' + (exc ? Gc : (ora ? Oc : c)) + '" stroke-width="' + gr + '"' + ((exc || ora) ? ' stroke-dasharray="4 3"' : '') + '/>';
+    if (q[1]) { d += '<text x="' + (x + w / 2) + '" y="' + (y + 19) + '" text-anchor="middle" font-size="12" font-weight="600" class="cm3d-tp">' + q[0] + '</text><text x="' + (x + w / 2) + '" y="' + (y + 33) + '" text-anchor="middle" font-size="9" class="cm3d-ts">' + q[1] + '</text>' }
+    else { d += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-size="12" font-weight="600" class="cm3d-tp">' + q[0] + '</text>' }
+  });
+  ex.forEach(function (e) { d += e });
+  fl.forEach(function (f) { const c = col(f[1]), m = (f[1] === 'b') ? 'cmmb' : 'cmmr';
+    d += '<path class="cm3d-fl" d="' + f[0] + '" fill="none" stroke="' + c + '" stroke-width="3" stroke-dasharray="' + (f[2] === 'dash' ? '3 4' : '6 4') + '" stroke-linecap="round" marker-end="url(#' + m + ')"/>' });
+  bars.forEach(function (b) { d += '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" rx="2" fill="' + b[4] + '"/>';
+    if (b[5]) { d += '<text x="' + b[6] + '" y="' + b[7] + '" text-anchor="' + b[8] + '" font-size="9.5" class="cm3d-ts" font-weight="600">' + b[5] + '</text>' } });
+  valves.forEach(function (v) { const oro = (v[3] === 'y');
+    d += '<circle cx="' + v[0] + '" cy="' + v[1] + '" r="7" fill="' + (oro ? Yc : 'var(--card)') + '" stroke="' + (oro ? '#b8960f' : 'var(--text)') + '" stroke-width="1.2"/><text x="' + v[0] + '" y="' + (v[1] + 3.5) + '" text-anchor="middle" font-size="9" class="cm3d-tp">' + v[2] + '</text>' });
+  lab.forEach(function (l) { if (l[0]) { d += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="9" class="cm3d-ts">' + l[0] + '</text>' } });
+  txt.forEach(function (t) { d += '<text x="' + t[0] + '" y="' + t[1] + '" text-anchor="' + t[3] + '" font-size="' + t[4] + '" fill="' + t[5] + '" font-weight="600">' + t[2] + '</text>' });
+  svg.innerHTML = d;
+  const nom = []; if (B !== 'norm') { nom.push((CM_SIB[B] || [B])[0]) }
+  CM_MODS.forEach(function (m) { if (M[m[0]]) { nom.push((CM_SIG[m[0]] || [m[0]])[0]) } });
+  svg.setAttribute('aria-label', 'Esquema de circulación: ' + (nom.length ? nom.join(', ') : 'corazón normal'));
+  const cap = document.getElementById('cm3d-schcap'), ci = document.getElementById('cm3d-circ');
+  if (cap) { cap.textContent = ci ? ci.textContent : '' }
+}
+window.cmSchRender = cmSchRender;
+function cmSchSet(on) {
+  const sch = document.getElementById('cm3d-sch'), vw = document.getElementById('cm3d-vw'),
+        b = document.getElementById('cm3d-esb');
+  if (!sch || !vw) return;
+  _cm3d.sch = !!on;
+  sch.hidden = !on;
+  vw.classList.toggle('cm3d-vw-on', !!on);
+  if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on) cmSchRender();
+}
+window.cmSchSet = cmSchSet;
+/* El movimiento de las lineas, con la MISMA regla de pausa y de movimiento reducido que el
+   resto del modulo: `_cm3d.pausado` es su dueno unico y `_cm3dReducido` su preferencia. */
+function cmSchFrame(ts) {
+  const sch = document.getElementById('cm3d-sch');
+  if (sch && !sch.hidden && !_cm3d.pausado && !_cm3dReducido()) {
+    const off = (-((ts / 45) % 10)).toFixed(1);
+    Array.prototype.forEach.call(document.querySelectorAll('#cm3d-schsvg .cm3d-fl'),
+      function (p) { p.setAttribute('stroke-dashoffset', off) });
+  }
+  requestAnimationFrame(cmSchFrame);
+}
+requestAnimationFrame(cmSchFrame);
 
 /* ══ EL GLOBO, CON SUS TRES VIAS DE CIERRE ═════════════════════════════════════════════════
    ⚠️ NO SE REUSA `vInfoClic`: ese abre la tarjeta compartida `#vinfo-card`, que es un cartel
@@ -104391,14 +104702,20 @@ function cm3dCablear() {
   fc.addEventListener('input', function () { const n = parseFloat(this.value);
     _cm3d.fc = isNaN(n) ? 0 : Math.max(30, Math.min(200, n)) });
   pz.addEventListener('click', function () { _cm3d.pausado = !_cm3d.pausado;
-    this.textContent = _cm3d.pausado ? 'Seguir' : 'Pausar' });
+    this.textContent = _cm3d.pausado ? '\u25b6' : '\u23f8';
+    this.setAttribute('aria-pressed', _cm3d.pausado ? 'true' : 'false');
+    this.title = _cm3d.pausado ? 'Seguir' : 'Pausar' });
   if (ib) ib.addEventListener('click', function (ev) { cmInfoTog(ev) });
+  /* El boton del esquema de circulacion, abajo a la derecha del dibujo. */
+  const esb = document.getElementById('cm3d-esb');
+  if (esb) esb.addEventListener('click', function () { cmSchSet(!_cm3d.sch) });
   Array.prototype.forEach.call(document.querySelectorAll('.cm3d-md'), function (b) {
     b.addEventListener('click', function () { cmSetModo(b.getAttribute('data-m')) }) });
   /* ⚠️ CON `prefers-reduced-motion` TODO QUIETO, y es la regla de diseno de la casa: la pausa se
      pone ANTES del primer cuadro, asi que las particulas y el latido no se mueven ni una vez. */
   if (_cm3dReducido()) { _cm3d.pausado = true; _cm3d.fc = 0;
-    pz.textContent = 'Seguir'; fc.value = '0'; }
+    pz.textContent = '\u25b6'; pz.setAttribute('aria-pressed', 'true'); pz.title = 'Seguir';
+    fc.value = '0'; }
   cmSetModo(_cm3d.modo);
 }
 window.cm3dCablear = cm3dCablear;
@@ -159599,8 +159916,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2222';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793841778311;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2245';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793843137616;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -159686,7 +160003,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2222</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2245</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
