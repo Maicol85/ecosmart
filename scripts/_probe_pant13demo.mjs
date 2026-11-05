@@ -52,11 +52,21 @@ const ESC = [
   ['cmb5', 'ebs', 'std', { cia: 'sec' }, { eit: true }],
   ['cmb6', 'norm', null, { civ: 'pm', dap: 'std', eis: 'std' }, {}],
 ];
-/* normaliza lo que difiere a proposito: los ids de marcador y los nombres de variable CSS */
+/* normaliza lo que difiere a proposito: los ids de marcador y los nombres de variable CSS.
+   ⚠️ PANT-14, commit 1: LA APP YA NO ESCRIBE `var()` EN UN ATRIBUTO. Los colores del esquema
+   se resuelven al dibujar -porque `--card` no existe en esta aplicacion y un `var()` sin valor
+   dejaba las seis cajas y las dos valvulas NEGRAS, medido en los dos motores-, asi que donde la
+   demo pone `var(--card)` la app pone ya el hexadecimal del tema. Se normalizan los CUATRO
+   valores del tema oscuro -que es en el que esta sonda corre- a los mismos tokens, y la clase
+   propia de la letra de la valvula dorada a la de la demo. Sin esto las 36 escenas salian
+   distintas por el color y no por su contenido, que es justo lo que esta sonda no mide. */
 const norm = t => String(t || '')
   .replace(/url\(#cmm([bro])\)/g, 'url(#m$1)')
   .replace(/id="cmm([bro])"/g, 'id="m$1"')
+  .replace(/class="cm3d-tp-f"/g, 'class="cm3d-tp"')
   .replace(/class="cm3d-(tp|ts|fl)"/g, 'class="$1"')
+  .replace(/#181c27/gi, 'VSURF').replace(/#2a3050/gi, 'VBORD')
+  .replace(/#9aa3bc/gi, 'VTS').replace(/#e8ecf4/gi, 'VTP').replace(/#1a2233/gi, 'VTP')
   .replace(/var\(--card\)/g, 'VSURF').replace(/var\(--surface-1\)/g, 'VSURF')
   .replace(/var\(--border\)/g, 'VBORD').replace(/var\(--border-strong\)/g, 'VBORD')
   .replace(/var\(--text2\)/g, 'VTS').replace(/var\(--ts\)/g, 'VTS')

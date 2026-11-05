@@ -104358,6 +104358,10 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
   window.addEventListener('resize', function () {
     const w2 = host.clientWidth || 640; rw = w2; rd.setSize(w2, Hh);
     cam.aspect = w2 / Hh; cam.updateProjectionMatrix();
+    /* El esquema se redibuja con el ancho -PANT-14, commit 1-: sus colores se resuelven al
+       dibujar desde los estilos calculados de su contenedor, y una regla de CSS por ancho
+       podria cambiarlos. Sale por la guarda de `hidden` si el panel esta cerrado. */
+    if (typeof cmSchRender === 'function') { try { cmSchRender() } catch (e) {} }
   });
   /* El repintado se publica para que lo llamen los controles y el modo «Segun el estudio», y
      con el los TRES setters que el motor tiene que exponer. Son setters y no referencias al
@@ -104611,6 +104615,56 @@ function cmRenderCtl(){
    numeros: ni un dato del paciente entra aca. */
 const CM_SCH_B = '#2f6fd0', CM_SCH_R = '#d8433b', CM_SCH_O = '#e08a1e',
       CM_SCH_G = '#8d8d88', CM_SCH_Y = '#d9b92e';
+/* ══ LA PALETA DEL ESQUEMA -PANT-14, commit 1- ═══════════════════════════════════════════════
+   ⚠️ EL ESQUEMA SALIA CON LAS SEIS CAJAS Y LAS DOS VALVULAS NEGRAS, y la causa es de una linea:
+   `--card` NO EXISTE EN ESTA APLICACION. Medido en los dos motores, en los dos temas y en los
+   cuatro anchos: `getPropertyValue('--card')` devuelve la cadena VACIA en la raiz, en la caja y
+   en el propio SVG, mientras `--border`, `--text` y `--text2` SI resuelven. Un `var()` sin valor
+   y sin respaldo es invalido en tiempo de computo, asi que `fill` -que es una propiedad
+   HEREDADA- cae en el negro que viene de la raiz, y `stroke` cae en `none`.
+   Por eso el medico veia Pulmones, VD, AI, AD, VI y Cuerpo negros con el texto encima: los
+   textos llevan las clases `.cm3d-tp` y `.cm3d-ts`, cuyas reglas de CSS resuelven bien, asi que
+   quedaban en su color sobre un fondo negro -contraste 1,32 en el tema claro-. Las flechas y la
+   leyenda se veian bien porque usan los hexadecimales literales de arriba.
+   Es el mismo defecto que POP-B pago con `--amber` y PANT-2 con el esquema que se rasterizaba.
+   LA REGLA QUE QUEDA: el esquema NO escribe `var()` en un atributo de presentacion. Los colores
+   se resuelven ACA, al dibujar, desde los estilos calculados de su contenedor, y cada uno lleva
+   su respaldo explicito por tema. Asi tambien sale bien el marcado que se rasteriza para el PDF,
+   que vive fuera del documento y donde ninguna variable existe. */
+/* ⚠️ LA LETRA DE LA VALVULA DORADA NO SIGUE AL TEMA, Y ES UNA MEDICION: el circulo de la
+   valvula desplazada del Ebstein lleva un amarillo FIJO -`CM_SCH_Y`- en los dos temas, asi que
+   con la letra en el color del texto quedaba en 1,62 de contraste de noche -blanco sobre
+   amarillo-. Es preexistente y la orden de esta tanda pide que la T y la M se lean. La tinta es
+   fija y oscura, como el borde `#b8960f` que ese mismo circulo ya tenia fijo.
+   Su clase es `cm3d-tp-f` -y no `cm3d-tp`- para que la regla de la hoja, que pinta con
+   `var(--text)`, no se la vuelva a llevar al color del tema. */
+const CM_SCH_TINTA = '#1a2233';
+const CM_SCH_RESP = {
+  claro: { card:'#ffffff', borde:'#d6dce6', texto:'#1a2233', texto2:'#5b6478' },
+  oscuro:{ card:'#181c27', borde:'#2a3050', texto:'#e8ecf4', texto2:'#9aa3bc' }
+};
+function cmSchPal() {
+  const claro = document.documentElement.classList.contains('light-mode');
+  const r = CM_SCH_RESP[claro ? 'claro' : 'oscuro'];
+  let cs = null;
+  try { const c = document.getElementById('cm3d-sch') || document.documentElement; cs = getComputedStyle(c) } catch (e) { cs = null }
+  /* ⚠️ EL VALOR SE VALIDA ANTES DE ENTRAR AL MARCADO. El esquema se arma con `innerHTML`, y
+     aunque lo que sale de una variable de CSS es una constante de ESTE archivo y no un dato del
+     paciente, un valor con comillas rompe el atributo. Solo pasa lo que es un color escribible:
+     hexadecimal, rgb()/rgba(), hsl()/hsla() o un nombre de color. Cualquier otra cosa cae en el
+     respaldo, que es lo que esta funcion existe para garantizar. */
+  const COLOR_OK = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\/ +-]*\)|[a-zA-Z]{3,24})$/;
+  const v = function (nom, resp) {
+    if (!cs) return resp;
+    let x = '';
+    try { x = String(cs.getPropertyValue(nom) || '').trim() } catch (e) { x = '' }
+    return (x && COLOR_OK.test(x)) ? x : resp;
+  };
+  /* `--card` no existe: su respaldo es el fondo de tarjeta de la app, que si existe -`--bg2`-. */
+  return { card: v('--card', v('--bg2', r.card)), borde: v('--border', r.borde),
+           texto: v('--text', r.texto), texto2: v('--text2', r.texto2) };
+}
+window.cmSchPal = cmSchPal;
 /* `forzar` dibuja aunque el panel este CERRADO, y hace falta: el medico puede incluir el dibujo
    en el PDF sin haber abierto nunca el esquema, y con la guarda de `hidden` el SVG quedaba VACIO
    al rasterizarse -medido: la imagen salia 100 % blanca, cero pixeles de dibujo-. Para el camino
@@ -104620,6 +104674,7 @@ function cmSchRender(forzar) {
   if (!svg || !caja || (caja.hidden && !forzar)) return;
   const B = _cm3d.S.base, BV = _cm3d.S.bv[B], M = _cm3d.S.mods, K = _cm3d.S.ck, eis = !!M.eis;
   const Bc = CM_SCH_B, Rc = CM_SCH_R, Oc = CM_SCH_O, Gc = CM_SCH_G, Yc = CM_SCH_Y;
+  const P = cmSchPal();
   const BX = { TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] };
   const box = { TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] };
   let fl = [['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],
@@ -104630,7 +104685,7 @@ function cmSchRender(forzar) {
   const col = function (c) { return c === 'b' ? Bc : (c === 'r' ? Rc : Oc) };
   const conn = function (p, l, lx, ly) { oc.push([p, l, lx, ly]) };
   const bar = function (x, y, w, h, c, l, lx, ly, a) { bars.push([x, y, w, h, c || Gc, l, lx, ly, a || 'start']) };
-  const T = function (x, y, t, a, fs, f) { txt.push([x, y, t, a || 'start', fs || 9, f || 'var(--text2)']) };
+  const T = function (x, y, t, a, fs, f) { txt.push([x, y, t, a || 'start', fs || 9, f || P.texto2]) };
   const sc = function (k, lbl) { return ({ civ_pm:'perim.', civ_mus:'musc.', civ_sal:'outlet', civ_ent:'inlet' })[k] || CM_SHORT[k] || lbl };
   /* ── LA TRANSPOSICION -PANT-13, commit 4-, portada de la demo v13 tal cual: es el MISMO
      esquema que la transposicion tiene en su pestania, con sus cinco variantes. `bid` marca la
@@ -104734,26 +104789,26 @@ function cmSchRender(forzar) {
   [['cmmb',Bc],['cmmr',Rc],['cmmo',Oc]].forEach(function (m) {
     d += '<marker id="' + m[0] + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9Z" fill="' + m[1] + '"/></marker>' });
   d += '</defs>';
-  d += '<rect x="60" y="8" width="180" height="30" rx="8" fill="var(--card)" stroke="var(--border)"/><text x="150" y="27" text-anchor="middle" font-size="12" fill="var(--text)" class="cm3d-tp">Pulmones</text>';
-  d += '<rect x="60" y="250" width="180" height="30" rx="8" fill="var(--card)" stroke="var(--border)"/><text x="150" y="269" text-anchor="middle" font-size="12" fill="var(--text)" class="cm3d-tp">Cuerpo</text>';
+  d += '<rect x="60" y="8" width="180" height="30" rx="8" fill="' + P.card + '" stroke="' + P.borde + '"/><text x="150" y="27" text-anchor="middle" font-size="12" fill="' + P.texto + '" class="cm3d-tp">Pulmones</text>';
+  d += '<rect x="60" y="250" width="180" height="30" rx="8" fill="' + P.card + '" stroke="' + P.borde + '"/><text x="150" y="269" text-anchor="middle" font-size="12" fill="' + P.texto + '" class="cm3d-tp">Cuerpo</text>';
   oc.forEach(function (c) {
     d += '<path class="cm3d-fl" d="' + c[0] + '" fill="none" stroke="' + Oc + '" stroke-width="3" stroke-dasharray="5 3" stroke-linecap="round" marker-end="url(#cmmo)"/><text x="' + c[2] + '" y="' + c[3] + '" font-size="9.5" fill="' + Oc + '" font-weight="600">' + c[1] + '</text>' });
   ['TL','TR','BL','BR'].forEach(function (k) {
     const q = box[k], x = BX[k][0], y = BX[k][1], w = 80, h = 44, c = col(q[2]),
           exc = (q[3] === 'x'), ora = (q[3] === 'o');
     const gr = ((k === 'TL' && box.TL[1] === 'hipertrófico') || (k === 'BR' && box.BR[1] === 'hipertrófico')) ? 3 : (ora ? 2 : 1.5);
-    d += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="var(--card)" stroke="' + (exc ? Gc : (ora ? Oc : c)) + '" stroke-width="' + gr + '"' + ((exc || ora) ? ' stroke-dasharray="4 3"' : '') + '/>';
-    if (q[1]) { d += '<text x="' + (x + w / 2) + '" y="' + (y + 19) + '" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)" class="cm3d-tp">' + q[0] + '</text><text x="' + (x + w / 2) + '" y="' + (y + 33) + '" text-anchor="middle" font-size="9" fill="var(--text2)" class="cm3d-ts">' + q[1] + '</text>' }
-    else { d += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-size="12" font-weight="600" fill="var(--text)" class="cm3d-tp">' + q[0] + '</text>' }
+    d += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="' + P.card + '" stroke="' + (exc ? Gc : (ora ? Oc : c)) + '" stroke-width="' + gr + '"' + ((exc || ora) ? ' stroke-dasharray="4 3"' : '') + '/>';
+    if (q[1]) { d += '<text x="' + (x + w / 2) + '" y="' + (y + 19) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + P.texto + '" class="cm3d-tp">' + q[0] + '</text><text x="' + (x + w / 2) + '" y="' + (y + 33) + '" text-anchor="middle" font-size="9" fill="' + P.texto2 + '" class="cm3d-ts">' + q[1] + '</text>' }
+    else { d += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2 + 4) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + P.texto + '" class="cm3d-tp">' + q[0] + '</text>' }
   });
   ex.forEach(function (e) { d += e });
   fl.forEach(function (f) { const c = col(f[1]), m = (f[1] === 'b') ? 'cmmb' : 'cmmr';
     d += '<path class="cm3d-fl" d="' + f[0] + '" fill="none" stroke="' + c + '" stroke-width="3" stroke-dasharray="' + (f[2] === 'dash' ? '3 4' : '6 4') + '" stroke-linecap="round" marker-end="url(#' + m + ')"/>' });
   bars.forEach(function (b) { d += '<rect x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" rx="2" fill="' + b[4] + '"/>';
-    if (b[5]) { d += '<text x="' + b[6] + '" y="' + b[7] + '" text-anchor="' + b[8] + '" font-size="9.5" class="cm3d-ts" font-weight="600">' + b[5] + '</text>' } });
+    if (b[5]) { d += '<text x="' + b[6] + '" y="' + b[7] + '" text-anchor="' + b[8] + '" font-size="9.5" fill="' + P.texto2 + '" class="cm3d-ts" font-weight="600">' + b[5] + '</text>' } });
   valves.forEach(function (v) { const oro = (v[3] === 'y');
-    d += '<circle cx="' + v[0] + '" cy="' + v[1] + '" r="7" fill="' + (oro ? Yc : 'var(--card)') + '" stroke="' + (oro ? '#b8960f' : 'var(--text)') + '" stroke-width="1.2"/><text x="' + v[0] + '" y="' + (v[1] + 3.5) + '" text-anchor="middle" font-size="9" fill="var(--text)" class="cm3d-tp">' + v[2] + '</text>' });
-  lab.forEach(function (l) { if (l[0]) { d += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="9" fill="var(--text2)" class="cm3d-ts">' + l[0] + '</text>' } });
+    d += '<circle cx="' + v[0] + '" cy="' + v[1] + '" r="7" fill="' + (oro ? Yc : P.card) + '" stroke="' + (oro ? '#b8960f' : P.texto) + '" stroke-width="1.2"/><text x="' + v[0] + '" y="' + (v[1] + 3.5) + '" text-anchor="middle" font-size="9" fill="' + (oro ? CM_SCH_TINTA : P.texto) + '" class="cm3d-tp-f">' + v[2] + '</text>' });
+  lab.forEach(function (l) { if (l[0]) { d += '<text x="' + l[1] + '" y="' + l[2] + '" font-size="9" fill="' + P.texto2 + '" class="cm3d-ts">' + l[0] + '</text>' } });
   txt.forEach(function (t) { d += '<text x="' + t[0] + '" y="' + t[1] + '" text-anchor="' + t[3] + '" font-size="' + t[4] + '" fill="' + t[5] + '" font-weight="600">' + t[2] + '</text>' });
   svg.innerHTML = d;
   const nom = []; if (B !== 'norm') { nom.push((CM_SIB[B] || [B])[0]) }
@@ -111012,6 +111067,11 @@ function toggleTheme() {
   /* El canvas del VI 3D no hereda las variables CSS: hay que releerlas y repintar a mano, o la
      brújula se queda con el color del tema anterior y en claro queda ilegible. */
   if (typeof lv3dAlCambiarTema === 'function') lv3dAlCambiarTema();
+  /* Y el esquema de circulacion del corazon maestro, por el mismo motivo: sus colores se
+     resuelven AL DIBUJAR -PANT-14, commit 1-, asi que sin este repintado se queda con la
+     paleta del tema anterior. `forzar` no hace falta: con el panel cerrado no hay nada que ver
+     y el proximo `cmSchRender` lo redibuja al abrirlo. */
+  if (typeof cmSchRender === 'function') { try { cmSchRender() } catch (e) {} }
 }
 function updateThemeBtn(isLight) {
   const btn = document.getElementById('theme-toggle-btn');
@@ -160469,8 +160529,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-0008';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793848116779;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0823';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793877789198;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160556,7 +160616,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0008</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0823</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
