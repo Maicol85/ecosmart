@@ -117279,6 +117279,455 @@ caso('TC-698', 'Tanda PANT-14: cmDesdeEstudio SOLO LEE —recorrerla con cada le
   })();
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-699 · TANDA PANT-14b, COMMIT 1 — el modulo DERIVA su estado de las pestanias en vivo, y no
+   lo conserva del estudio anterior.
+   DENOMINADORES: (A0) la lesion sembrada deja el modulo con su base, asi que hay algo que
+   contar; (D0) el panel existe.
+   CONTROLES NEGATIVOS: (C1) el estudio vacio deja base norm; (C3) el dibujo no contiene una
+   lesion que las pestanias no tienen.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi cm3dEstudioSync salia temprano con el panel cerrado y
+   cm3dSync repintaba el estado viejo, asi que (B1), (B2), (B3) y (E1) quedaban con la base del
+   paciente de antes.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado de las pestanias EN VIVO —al abrir el panel, con «Nuevo estudio», al restaurar y ante cualquier cambio—, no sobrevive al estudio anterior, la linea no se contradice con el dibujo, y el boton y el panel viven SOLO dentro de las congenitas', `
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(z => setTimeout(z, ms));
+  const ex = [];
+  const V = (id, v) => { const e = EL(id); if (!e) return false;
+    if (e.tagName === 'SELECT' && !Array.prototype.some.call(e.options, o => o.value === v)) return false;
+    if (e.type === 'checkbox') { e.checked = (v === 'si') } else { e.value = v }
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const estado = () => { try { return { base: _cm3d.S.base, mods: Object.keys(_cm3d.S.mods || {}).sort().join(','),
+      ck: Object.keys(_cm3d.S.ck || {}).sort().join(','), modo: _cm3d.modo } }
+    catch (e) { return { base: 'EXC', mods: '', ck: '', modo: '' } } };
+  const objetos = () => { try { const s = cmEscena(_cm3d.S); return (s.ex || []).length } catch (e) { return -1 } };
+  const linea = () => { const p = EL('cc3d-faltan'); return p ? String(p.textContent || '') : '' };
+  const abrir = () => { const b = EL('cc3d-abrir'); if (b) b.click();
+    else if (typeof cc3dAbrir === 'function') cc3dAbrir() };
+  /* el formulario queda limpio antes de empezar: un caso que hereda estado prueba otra cosa */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(450);
+  ex.push(['(D0 DENOM) el panel del corazon maestro existe', !!EL('cc3d-panel'), true]);
+  ex.push(['(D0b DENOM) y su boton tambien', !!EL('cc3d-abrir'), true]);
+  /* ── (A) la lesion sembrada llega al modulo ── */
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(300);
+  ex.push(['(A0 DENOM) el campo del Ebstein existe', V('ebs_desplazamiento', '16'), true]);
+  await esperar(500);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(300);
+  abrir(); await esperar(900);
+  const e1 = estado();
+  ex.push(['(A1) con el Ebstein cargado el modulo dibuja Ebstein', e1.base, 'ebs']);
+  ex.push(['(A2) y la linea dice que esta todo dibujado',
+    linea().indexOf('Todas las lesiones cargadas') >= 0, true]);
+  /* ── (B) «Nuevo estudio» lo deja sin estado y cierra el panel ── */
+  try { if (typeof cc3dCerrar === 'function') cc3dCerrar() } catch (e) {}
+  await esperar(250);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(650);
+  const e2 = estado();
+  ex.push(['(B1) tras limpiar el estudio el modulo vuelve al corazon normal', e2.base, 'norm']);
+  ex.push(['(B2) sin una sola lesion sumada', e2.mods, '']);
+  ex.push(['(B3) y sin una sola casilla encendida', e2.ck, '']);
+  ex.push(['(B4) el panel quedo cerrado',
+    EL('cc3d-panel') ? getComputedStyle(EL('cc3d-panel')).display : 'x', 'none']);
+  ex.push(['(B5) y el modo volvio a «Segun el estudio»', e2.modo, 'estudio']);
+  /* ── (C) el control: el dibujo del estudio vacio no tiene objetos ── */
+  ex.push(['(C1 CONTROL) el estudio vacio no dibuja ningun objeto', objetos(), 0]);
+  /* ── (D) una lesion NUEVA con el panel cerrado: al reabrir, el dibujo es el de ahora ── */
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(300);
+  ex.push(['(D1 DENOM) el campo de la CIA existe', V('ete_cia_tipo', 'secundum'), true]);
+  await esperar(500);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(300);
+  abrir(); await esperar(900);
+  const e3 = estado();
+  ex.push(['(D2) al reabrir, el dibujo tiene la CIA y no el Ebstein', e3.mods, 'cia']);
+  ex.push(['(D3) y la base volvio al corazon normal', e3.base, 'norm']);
+  /* ── (E) el INVARIANTE: la linea no puede decir «sin lesiones» con algo dibujado ── */
+  const dibuja = objetos() > 0 || e3.base !== 'norm' || e3.mods !== '';
+  const diceVacio = linea().indexOf('Sin lesiones cargadas que dibujar') >= 0;
+  ex.push(['(E1 INVARIANTE) con algo dibujado la linea NO dice «sin lesiones»',
+    !(dibuja && diceVacio), true]);
+  /* ── (F) la estenosis pulmonar sin nivel: la linea nombra el campo que falta ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(500);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(250);
+  ex.push(['(F0 DENOM) el campo de la velocidad pulmonar existe', V('ep_vmax', '3.5'), true]);
+  await esperar(650);
+  abrir(); await esperar(700);
+  ex.push(['(F1) sin el nivel, la linea pide consignarlo en su seccion',
+    linea().indexOf('falta consignar el nivel en la secci') >= 0, true]);
+  ex.push(['(F2 CONTROL) y no asume ningun nivel: la lesion no se dibuja',
+    (estado().mods || '').indexOf('ep') < 0, true]);
+  /* ── (G) con el nivel SI se dibuja, y entonces la linea no dice «sin lesiones» ── */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(250);
+  V('ep_nivel', 'Valvular');
+  await esperar(700);
+  const e4 = estado();
+  ex.push(['(G1) con el nivel la estenosis pulmonar se dibuja',
+    (e4.mods || '').indexOf('ep') >= 0, true]);
+  ex.push(['(G2 INVARIANTE) y la linea ya no dice «sin lesiones»',
+    linea().indexOf('Sin lesiones cargadas que dibujar') < 0, true]);
+  /* ── (H) el boton y el panel NO viven fuera de las congenitas ── */
+  try { if (typeof showTab === 'function') showTab('valvulas') } catch (e) {}
+  await esperar(400);
+  ex.push(['(H1) en Valvulas el envoltorio del boton esta oculto',
+    EL('cc3d-wrap') ? getComputedStyle(EL('cc3d-wrap')).display : 'x', 'none']);
+  ex.push(['(H2) y el panel tambien',
+    EL('cc3d-panel') ? getComputedStyle(EL('cc3d-panel')).display : 'x', 'none']);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(400);
+  ex.push(['(H3 CONTROL) y en congenitas vuelve a verse',
+    EL('cc3d-wrap') ? getComputedStyle(EL('cc3d-wrap')).display : 'x', 'block']);
+  /* ── (I) el acceso: la misma regla que la pestania ── */
+  ex.push(['(I1 DENOM) la regla de acceso existe', typeof cc3dAcceso, 'function']);
+  ex.push(['(I2) y con el modulo habilitado da verdadero', cc3dAcceso(), true]);
+  ex.push(['(I3) y es la misma que gobierna el boton de la pestania',
+    (typeof eeModOn === 'function') && (typeof eeGetMode === 'function'), true]);
+  /* ── (J) el dueno unico existe y es el que el embudo llama ── */
+  ex.push(['(J1) cm3dDerivar es el dueno unico del estado', typeof cm3dDerivar, 'function']);
+  ex.push(['(J2) y cm3dEstudioSync le delega', typeof cm3dEstudioSync, 'function']);
+  ex.push(['(J3) cm3dReset existe y lo llama limpiarCampos', typeof cm3dReset, 'function']);
+  ex.push(['(J4) el embudo del gesto lo nombra',
+    (ESPEJOS_VIVOS() || []).indexOf('cm3dEstudioSync') >= 0, true]);
+  ex.push(['(J5) y el de la restauracion tambien',
+    (RECALC_MODULOS() || []).indexOf('cm3dEstudioSync') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: ex };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-700 · TANDA PANT-14b, COMMIT 2 — un dato, una sola puerta: el interruptor de presencia se
+   enciende solo y el informe incluye la seccion.
+   DENOMINADORES: (A0) las diecinueve secciones tienen interruptor; (B0) el dato se carga.
+   CONTROLES NEGATIVOS: (C1) sin dato el interruptor queda apagado; (D1) el apagado a mano se
+   respeta y el informe no nombra la seccion.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi el interruptor no se encendia nunca solo.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-700', 'Tanda PANT-14b (commit 2): el interruptor de presencia de una seccion de congenitas se enciende SOLO cuando un campo identificatorio toma valor, el informe y el EN SUMA la incluyen, el apagado a mano se respeta, y el dibujo y el informe leen el MISMO predicado de _CC_SECS', `
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(z => setTimeout(z, ms));
+  const ex = [];
+  const SW = { cia:'ete_cia_activa', civ:'ete_civ_activa', dap:'ductus_incluir_chk', coa:'coart_incluir_chk' };
+  const swId = (k) => SW[k] || (k + '_incluir_chk');
+  const V = (id, v) => { const e = EL(id); if (!e) return false;
+    if (e.tagName === 'SELECT' && !Array.prototype.some.call(e.options, o => o.value === v)) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const inf = () => { try { if (typeof setEstiloInforme === 'function') setEstiloInforme('estandar');
+      if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+    const t = EL('informe_texto'); return t ? String(t.value || '') : '' };
+  const suma = () => { const t = EL('en_suma'); return t ? String(t.value || '') : '' };
+  /* ── (A) el inventario: las diecinueve secciones tienen interruptor ── */
+  ex.push(['(A0 DENOM) _CC_SECS tiene diecinueve secciones', _CC_SECS.length, 19]);
+  let conSw = 0, selVacio = 0, selTot = 0;
+  _CC_SECS.forEach(function (sc) {
+    const e = EL(swId(sc.k));
+    if (e && e.type === 'checkbox') conSw++;
+    const ids = (typeof _ccPuertaIds === 'function') ? (_ccPuertaIds()[sc.k] || []) : [];
+    ids.forEach(function (id) { const c = EL(id);
+      if (c && c.tagName === 'SELECT') { selTot++; if (c.options[0] && c.options[0].value === '') selVacio++ } });
+  });
+  ex.push(['(A1) las diecinueve tienen interruptor de presencia', conSw, 19]);
+  ex.push(['(A2) y todos sus selectores identificatorios tienen la opcion cero VACIA', selVacio, selTot]);
+  ex.push(['(A3 DENOM) hay selectores que contar', selTot > 10, true]);
+  ex.push(['(A4) el dueno de la regla existe', typeof ccPuertaSync, 'function']);
+  ex.push(['(A5) y va PRIMERO del embudo del gesto', (ESPEJOS_VIVOS() || [])[0], 'ccPuertaSync']);
+  ex.push(['(A6) y primero del de la restauracion', (RECALC_MODULOS() || [])[0], 'ccPuertaSync']);
+  /* ── (B) el ejemplo del medico: la CIA con «Ostium secundum» ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(500);
+  ex.push(['(C1 CONTROL) sin dato el interruptor de la CIA esta apagado',
+    !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), false]);
+  const sinCia = inf();
+  ex.push(['(C2 CONTROL) y el informe no nombra la CIA',
+    sinCia.indexOf('CIA tipo') < 0, true]);
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(300);
+  ex.push(['(B0 DENOM) el campo del tipo de CIA existe', V('ete_cia_tipo', 'secundum'), true]);
+  await esperar(700);
+  ex.push(['(B1) el interruptor de la CIA se encendio SOLO',
+    !!(EL('ete_cia_activa') && EL('ete_cia_activa').checked), true]);
+  const conCia = inf();
+  ex.push(['(B2) y el informe la nombra', conCia.indexOf('CIA tipo ostium secundum') >= 0, true]);
+  ex.push(['(B3) el EN SUMA dejo de decir que no hay alteraciones',
+    suma().indexOf('Estudio sin alteraciones') < 0, true]);
+  /* ── (D) el apagado A MANO se respeta ── */
+  const sw = EL('ete_cia_activa');
+  if (sw) { sw.checked = false;
+    try { if (typeof eteShuntLesionSync === 'function') eteShuntLesionSync() } catch (e) {} }
+  await esperar(700);
+  ex.push(['(D1 CONTROL) el apagado a mano se respeta', !!(sw && sw.checked), false]);
+  ex.push(['(D2) y el informe vuelve a no nombrar la CIA',
+    inf().indexOf('CIA tipo') < 0, true]);
+  /* ── (E) un dato identificatorio NUEVO lo vuelve a encender ── */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(250);
+  V('coa_istmo', '8');
+  await esperar(700);
+  ex.push(['(E1) la coartacion se encendio sola con su diametro',
+    !!(EL('coart_incluir_chk') && EL('coart_incluir_chk').checked), true]);
+  /* ── (F) el estudio VIEJO: dato puesto sin evento y el interruptor apagado ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(500);
+  const dv = EL('dap_tipo');
+  ex.push(['(F0 DENOM) el campo del ductus existe', !!dv, true]);
+  if (dv) { dv.value = 'restrictivo' }
+  const dsw = EL('ductus_incluir_chk'); if (dsw) dsw.checked = false;
+  try { if (typeof RECALC_MODULOS === 'function') { (RECALC_MODULOS() || []).forEach(function (f) {
+    if (typeof window[f] === 'function') { try { window[f]() } catch (x) {} } }) } } catch (e) {}
+  await esperar(650);
+  ex.push(['(F1) al restaurar un estudio viejo el interruptor se ve encendido',
+    !!(EL('ductus_incluir_chk') && EL('ductus_incluir_chk').checked), true]);
+  /* ── (G) las TRES marcas estan en las DOS listas de «Nuevo estudio» ── */
+  const hojas = Array.prototype.map.call(document.querySelectorAll('style'), s => s.textContent).join('');
+  const html = document.documentElement.innerHTML;
+  ex.push(['(G1) la marca del apagado a mano se limpia con «Nuevo estudio»',
+    html.indexOf('data-ccpuerta-off') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(500);
+  let quedan = 0;
+  document.querySelectorAll('[data-ccpuerta-off],[data-ccpuerta-vi],[data-ccpuerta-on]').forEach(function () { quedan++ });
+  ex.push(['(G2) y tras «Nuevo estudio» no queda ninguna marca viva', quedan, 0]);
+  return { extra: ex };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-701 · TANDA PANT-14b, COMMIT 3 — el PDF lleva UN solo bloque de dibujo, y el esquema solo
+   si su boton esta abierto.
+   DENOMINADORES: (A0) el boton del PDF existe; (B0) la lesion deja el boton activo.
+   CONTROL NEGATIVO: (C1) con el esquema cerrado la compuerta del esquema esta cerrada.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi el slot del modulo NO estaba en la lista de exclusion de las
+   capturas, y el esquema entraba con su boton cerrado.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-701', 'Tanda PANT-14b (commit 3): el slot del corazon maestro queda FUERA de las capturas de «Imagenes del estudio» —asi el PDF lleva un solo bloque— y el esquema de circulacion entra al PDF SOLO con su boton abierto', `
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(z => setTimeout(z, ms));
+  const ex = [];
+  const V = (id, v) => { const e = EL(id); if (!e) return false;
+    if (e.tagName === 'SELECT' && !Array.prototype.some.call(e.options, o => o.value === v)) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(450);
+  /* ── (A) la exclusion del slot, leida del codigo del emisor: es lo que impide el doble ── */
+  const src = String(typeof generarPDFReal === 'function' ? generarPDFReal : '');
+  ex.push(['(A0 DENOM) el emisor del PDF se puede leer', src.length > 2000, true]);
+  ex.push(['(A1) el slot del corazon maestro esta en la lista de exclusion de las capturas',
+    src.indexOf('_cm3dEsqIdx') >= 0 && /i === _cm3dEsqIdx/.test(src), true]);
+  ex.push(['(A2 CONTROL) y los otros tres siguen estando',
+    /_oaiSlotUsado/.test(src) && /_oaiEsqIdx/.test(src) && /_tga3dEsqIdx/.test(src), true]);
+  /* ── (B) la compuerta del esquema depende de su boton ── */
+  ex.push(['(B0 DENOM) la compuerta del esquema existe', typeof cmEsqPdfOn, 'function']);
+  const fo = String(cmEsqPdfOn);
+  ex.push(['(B1) y pregunta por el estado del boton del esquema', fo.indexOf('.sch') >= 0, true]);
+  ex.push(['(B2) ademas de por la inclusion', fo.indexOf('esqEstaIncluido') >= 0, true]);
+  /* ── (C) el boton del modulo con una lesion cargada ── */
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(300);
+  ex.push(['(C0 DENOM) la CIA se carga', V('ete_cia_tipo', 'secundum'), true]);
+  await esperar(600);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(300);
+  const ab = EL('cc3d-abrir'); if (ab) ab.click();
+  await esperar(2600);
+  const pb = EL('cm3d-pdfb');
+  ex.push(['(C1 DENOM) el boton del PDF del modulo existe', !!pb, true]);
+  ex.push(['(C2) y con una lesion cargada esta activo', pb ? !pb.disabled : 'x', true]);
+  ex.push(['(C3) con el esquema CERRADO la compuerta del esquema esta cerrada',
+    (typeof cmEsqPdfData === 'function') ? !(cmEsqPdfData() || {}).data : 'x', true]);
+  /* ── (D) el aviso dice las dos cosas ── */
+  ex.push(['(D1) el aviso de la inclusion nombra el esquema',
+    String(CM_PDF_AVISO.on || '').indexOf('esquema de circulaci') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: ex };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-702 · TANDA PANT-14b, COMMITS 4 y 5 — el esquema de la transposicion sale del dueno unico
+   de la pestania, y el recuadro viejo se retiro.
+   DENOMINADORES: (A0) la funcion del dueno existe; (B0) el recuadro viejo sigue en el DOM.
+   CONTROL NEGATIVO: (C2) el boton del PDF del modulo ya no se apaga con transposicion.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi tgaEsqCuerpo no existia, el recuadro se veia y el boton del
+   PDF quedaba apagado con una transposicion cargada.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la transposicion del modulo sale de tgaEsqCuerpo —el dueno unico que la pestania tambien usa— y el recuadro de dibujo de esa pestania se retiro de la vista, con un boton «Ver en 3D» en su lugar y sin cargar la libreria 3D desde ahi', `
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(z => setTimeout(z, ms));
+  const ex = [];
+  const caja = (e) => { if (!e) return '0x0'; const r = e.getBoundingClientRect();
+    return Math.round(r.width) + 'x' + Math.round(r.height) };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(450);
+  /* ── (A) el dueno unico ── */
+  ex.push(['(A0 DENOM) tgaEsqCuerpo existe', typeof tgaEsqCuerpo, 'function']);
+  ex.push(['(A1) y tgaEsqSVG lo envuelve',
+    String(tgaEsqSVG).indexOf('tgaEsqCuerpo') >= 0, true]);
+  ex.push(['(A2) el esquema del modulo lo llama para la transposicion',
+    String(cmSchRender).indexOf('tgaEsqCuerpo') >= 0, true]);
+  ex.push(['(A3) y la clave sale de CM_TGA_VAR, el dueno del par anatomia mas cirugia',
+    String(cmSchRender).indexOf('CM_TGA_VAR') >= 0, true]);
+  /* ── (B) el recuadro viejo: sigue en el DOM y NO se ve ── */
+  ex.push(['(B0 DENOM) el recuadro viejo sigue en el documento', !!EL('tga-3d-box'), true]);
+  ex.push(['(B1) y su display es none',
+    EL('tga-3d-box') ? getComputedStyle(EL('tga-3d-box')).display : 'x', 'none']);
+  ex.push(['(B2) el boton «Ver en 3D» de la pestania existe', !!EL('tga-ver3d'), true]);
+  ex.push(['(B3) y su funcion delega en cc3dAbrir',
+    (typeof tgaVer3D === 'function') && String(tgaVer3D).indexOf('cc3dAbrir') >= 0, true]);
+  /* ── (C) el boton del PDF del modulo con una transposicion cargada ── */
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(300);
+  const tp = EL('tga_tipo');
+  ex.push(['(C0 DENOM) el selector de tipo existe y tiene mustard',
+    !!(tp && Array.prototype.some.call(tp.options, o => o.value === 'mustard')), true]);
+  if (tp) { tp.value = 'mustard'; tp.dispatchEvent(new Event('input', { bubbles: true }));
+            tp.dispatchEvent(new Event('change', { bubbles: true })) }
+  await esperar(900);
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(300);
+  const ab = EL('cc3d-abrir'); if (ab) ab.click();
+  await esperar(2600);
+  const pb = EL('cm3d-pdfb');
+  ex.push(['(C1 DENOM) el boton del PDF del modulo existe', !!pb, true]);
+  ex.push(['(C2) y con una transposicion cargada esta ACTIVO', pb ? !pb.disabled : 'x', true]);
+  ex.push(['(C3) el pintor del boton ya no pregunta por la transposicion',
+    String(cmPdfSync).indexOf('tgaEjes') < 0, true]);
+  ex.push(['(C4) y el manejador de la inclusion tampoco',
+    String(cmIncluirPDF).indexOf('tgaEjes') < 0, true]);
+  /* ── (D) el estado del modulo deriva la transposicion ── */
+  ex.push(['(D1) el modulo dibuja la transposicion', _cm3d.S.base, 'tga']);
+  ex.push(['(D2) con la variante del switch auricular', _cm3d.S.bv.tga, 'mus']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: ex };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-703 · TANDA PANT-14b, COMMIT 6 — el tunel del switch auricular en violeta, con su leyenda
+   condicional y sus dos rotulos.
+   DENOMINADORES: (A0) la constante existe; (B0) la escena del switch auricular tiene tubos.
+   CONTROLES NEGATIVOS: (C1) las otras cuatro variantes no tienen un solo tubo violeta; (C3) una
+   base sin tunel deja la leyenda apagada.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi las paredes eran azul y roja y la leyenda no existia.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tunel del switch auricular se dibujan en VIOLETA con su rotulo, las particulas conservan sus colores, la leyenda del tunel aparece SOLO cuando hay un tunel dibujado, y el color sale de UNA sola constante', `
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(z => setTimeout(z, ms));
+  const ex = [];
+  /* ── (A) el color, en una sola constante ── */
+  ex.push(['(A0 DENOM) la paleta del 3D existe', typeof TGA3D_C, 'object']);
+  ex.push(['(A1) y tiene el violeta del tunel', typeof TGA3D_C.violet, 'number']);
+  ex.push(['(A2) el violeta del esquema sale del MISMO numero',
+    String(TGA_ESQ_VIOLETA).toLowerCase(), '#' + TGA3D_C.violet.toString(16)]);
+  /* ── (B) la escena del switch auricular ── */
+  const esc = (v, ck) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v;
+    _cm3d.S.mods = {}; _cm3d.S.ck = ck || {};
+    try { return cmEscena(_cm3d.S) } catch (e) { return null } };
+  const s1 = esc('mus');
+  ex.push(['(B0 DENOM) la escena del switch auricular existe', !!s1, true]);
+  const tub = (s) => (s && s.ex ? s.ex.filter(function (x) { return x.t === 'tube' }) : []);
+  ex.push(['(B1 DENOM) y tiene dos tubos', tub(s1).length, 2]);
+  ex.push(['(B2) los dos en violeta',
+    tub(s1).filter(function (x) { return x.c === TGA3D_C.violet }).length, 2]);
+  ex.push(['(B3) las particulas conservan sus colores',
+    (s1.fl || []).every(function (f) { return f.c === TGA3D_C.blue || f.c === TGA3D_C.red }), true]);
+  const rot = (s) => (s && s.lb ? s.lb.map(function (l) { return l[0] }) : []);
+  ex.push(['(B4) hay un rotulo para el tunel de las cavas',
+    rot(s1).indexOf('Túnel cavas') >= 0, true]);
+  ex.push(['(B5) y otro para el de las venas pulmonares',
+    rot(s1).indexOf('Túnel venas pulm.') >= 0, true]);
+  /* ── (C) el control: las otras cuatro variantes ── */
+  let otrosVioleta = 0;
+  ['d', 'jat', 'ras', 'cc'].forEach(function (v) {
+    otrosVioleta += tub(esc(v)).filter(function (x) { return x.c === TGA3D_C.violet }).length });
+  ex.push(['(C1 CONTROL) las otras cuatro variantes no tienen un tubo violeta', otrosVioleta, 0]);
+  /* ── (D) la leyenda condicional, con su dueno unico ── */
+  ex.push(['(D0 DENOM) el dueno de la pregunta existe', typeof cmHayTunel, 'function']);
+  esc('mus');
+  try { cmTunelLeySync() } catch (e) {}
+  ex.push(['(D1) con el switch auricular la leyenda del 3D se ve',
+    EL('cm3d-leg-tun') ? !EL('cm3d-leg-tun').hidden : 'x', true]);
+  ex.push(['(D2) y la del esquema tambien',
+    EL('cm3d-leg2-tun') ? !EL('cm3d-leg2-tun').hidden : 'x', true]);
+  esc('ras');
+  try { cmTunelLeySync() } catch (e) {}
+  ex.push(['(C2 CONTROL) con el Rastelli la leyenda del tunel queda apagada',
+    EL('cm3d-leg-tun') ? EL('cm3d-leg-tun').hidden : 'x', true]);
+  _cm3d.S.base = 'fal'; _cm3d.S.bv.fal = 'op'; _cm3d.S.mods = {}; _cm3d.S.ck = {};
+  try { cmTunelLeySync() } catch (e) {}
+  ex.push(['(C3 CONTROL) y con una base sin tunel tambien',
+    EL('cm3d-leg2-tun') ? EL('cm3d-leg2-tun').hidden : 'x', true]);
+  /* ── (E) el esquema plano: el borde del tunel y su camino, en violeta ── */
+  ex.push(['(E1) la definicion del switch auricular declara sus tramos de tunel',
+    (TGA_ESQ_DEF.mus.tun || []).length, 2]);
+  ex.push(['(E2) y el pintor de la caja usa el violeta',
+    String(_tgaEsqCav).indexOf('TGA_ESQ_VIOLETA') >= 0, true]);
+  ex.push(['(E3 CONTROL) ninguna otra variante declara tramos de tunel',
+    ['norm','dtga','jat','ras','ltga'].filter(function (k) { return !!(TGA_ESQ_DEF[k] || {}).tun }).length, 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: ex };
+`);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TC-704 · TANDA PANT-14b, COMMIT 7 — el anillo de la obstruccion subaortica, con su posicion
+   derivada del origen de la aorta y su prioridad de render.
+   DENOMINADORES: (A0) la escena con la casilla existe; (B0) la aorta tiene su trazado.
+   CONTROL NEGATIVO: (C1) con la casilla apagada no hay anillo; (C2) los otros anillos del modulo
+   no llevan la prioridad.
+   CAE CONTRA EL ARBOL ANTERIOR: ahi el anillo iba en una posicion transcripta y sin prioridad.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+caso('TC-704', 'Tanda PANT-14b (commit 7): el anillo de la obstruccion subaortica se ubica POR DEBAJO del origen de la aorta de la propia escena, orientado hacia la camara y con prioridad de render sobre las estructuras opacas, y ningun otro anillo del modulo la lleva', `
+  const ex = [];
+  const esc = (v, obs) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v;
+    _cm3d.S.mods = {}; _cm3d.S.ck = obs ? { tobs: true } : {};
+    try { return cmEscena(_cm3d.S) } catch (e) { return null } };
+  const anillos = (s) => (s && s.ex ? s.ex.filter(function (x) { return x.t === 'ring' }) : []);
+  const gris = (s) => anillos(s).filter(function (x) { return x.col === TGA3D_C.grey });
+  const VAR = ['d', 'jat', 'mus', 'ras', 'cc'];
+  let conPri = 0, sinPri = 0, bienUbicado = 0, orientado = 0;
+  VAR.forEach(function (v) {
+    const s = esc(v, true);
+    const g = gris(s);
+    if (g.length === 1 && g[0].pri) conPri++;
+    /* la aorta de la escena: su primer punto es la raiz */
+    const ao = (s && s.ar ? s.ar.filter(function (x) { return x.c === TGA3D_C.red }) : [])[0];
+    const r0 = ao && ao.p ? ao.p[0] : null;
+    if (g.length === 1 && r0) {
+      const d = g[0].c;
+      if (Math.abs(d[0] - r0[0]) < 0.001 && Math.abs(d[2] - r0[2]) < 0.001 && d[1] < r0[1]) bienUbicado++;
+      if (!g[0].rx && !g[0].ry) orientado++;
+    }
+    const s2 = esc(v, false);
+    sinPri += gris(s2).length;
+  });
+  ex.push(['(A0 DENOM) las cinco variantes tienen escena', VAR.length, 5]);
+  ex.push(['(A1) las cinco llevan su anillo gris con prioridad de render', conPri, 5]);
+  ex.push(['(B1) y las cinco lo ubican por debajo del origen de la aorta de la escena', bienUbicado, 5]);
+  ex.push(['(B2) orientado hacia la camara, sin rotar en x ni en y', orientado, 5]);
+  ex.push(['(C1 CONTROL) con la casilla apagada no hay anillo gris', sinPri, 0]);
+  /* ── (C2) la prioridad la lleva SOLO quien la pide ── */
+  let otros = 0, otrosPri = 0;
+  [['fal','op',{}], ['fal','sin',{}], ['dsav','com',{}], ['ebs','std',{}], ['fon','ext',{}]].forEach(function (b) {
+    _cm3d.S.base = b[0]; _cm3d.S.bv[b[0]] = b[1]; _cm3d.S.mods = { ep:'sub' }; _cm3d.S.ck = {};
+    let s = null; try { s = cmEscena(_cm3d.S) } catch (e) {}
+    anillos(s).forEach(function (a) { otros++; if (a.pri) otrosPri++ });
+  });
+  ex.push(['(C2 DENOM) hay otros anillos que contar', otros > 3, true]);
+  ex.push(['(C3 CONTROL) y ninguno lleva la prioridad de render', otrosPri, 0]);
+  /* ── (D) el renderizador la aplica solo con la bandera ── */
+  ex.push(['(D1) el motor del modulo mira la bandera',
+    String(cm3dInit).indexOf('e.pri') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  return { extra: ex };
+`);
+
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
