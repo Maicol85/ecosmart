@@ -68824,7 +68824,10 @@ function RECALC_MODULOS() {
      cuando uno de los dos esta vacio; con los dos cargados y distintos no toca nada. */
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
-  return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
+  /* PANT-14b: «un dato, una sola puerta». Va PRIMERO de los dos embudos a proposito: los
+     pintores de cada seccion LEEN el interruptor, asi que encenderlo despues de ellos dejaria
+     el boton apagado hasta la pasada siguiente. */
+  return ['ccPuertaSync','vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
           'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','pulDibPdfSync','otrBurbUI','otrVarNotaSync','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
@@ -68908,7 +68911,12 @@ window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
    decorativo: `tvSync` repone los cinco espejos de arritmia ventricular y DESPUÉS llama a
    `mchSync`, `tdfSync` y `mcaSync`, que pintan a partir de ellos. */
 function ESPEJOS_VIVOS() {
-  return ['tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
+  /* PANT-14b: «un dato, una sola puerta», PRIMERO y por el mismo motivo que en el otro embudo.
+     ⚠️ ES LA UNICA ENTRADA DE ESTE REGISTRO QUE ESCRIBE UN CAMPO DEL ESTUDIO, y esta declarado:
+     la regla que excluye a `popSync` y a `calcVD` existe para los pintores que pueden pelear
+     con lo que el medico escribio, y este no pelea -enciende UN interruptor, el de su propia
+     seccion, y respeta el apagado a mano-. Es decision expresa del medico. */
+  return ['ccPuertaSync', 'tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
           'cvpaSync', 'eteShuntSync', 'calcTEP',
           'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas',
           /* B-2: el aviso del dueño único de la PAM. Lee tres pestañas —el Swan del POP,
@@ -69175,12 +69183,16 @@ function limpiarCampos(silencioso) {
   /* ⚠️ `data-vciprev` ENTRA ACA Y EN EL CUERPO DE ABAJO, que son DOS listas: agregar la marca
      al selector y olvidarse del cuerpo -o al reves- la hace sobrevivir a «Nuevo estudio» y
      mandar sobre el paciente siguiente. Es la leccion que TC-514 cobro en rojo (D-11). */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto],[data-tvderiv],[data-tvprev],[data-vciprev]').forEach(el => {
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda],[data-espejo="1"],[data-pop-mano],[data-pop-auto],[data-tvderiv],[data-tvprev],[data-vciprev],[data-ccpuerta-off],[data-ccpuerta-vi],[data-ccpuerta-on]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
     delete el.dataset.popMano; delete el.dataset.popAuto;
     delete el.dataset.tvderiv; delete el.dataset.tvprev; delete el.dataset.vciprev;
+    /* PANT-14b: las TRES marcas de «un dato, una sola puerta». Van en el selector Y aca, que
+       son dos listas: con la entrada en una sola, la marca de apagado a mano sobrevivia a
+       «Nuevo estudio» y el interruptor del paciente SIGUIENTE no se encendia. */
+    delete el.dataset.ccpuertaOff; delete el.dataset.ccpuertaVi; delete el.dataset.ccpuertaOn;
     /* ⚠️ SOLO LA MARCA DE RUNTIME, Y ESTO LO ENCONTRÓ TC-514 EN ROJO (D-11). `data-espejo` se usa
        para DOS cosas en este archivo: la marca que el reflejo de amiloidosis pone en vivo —valor
        `'1'`— y una DECLARACIÓN estática en el marcado, sin valor, que dice «este campo es un
@@ -151471,6 +151483,108 @@ const _CC_SEC_POR_K = Object.create(null);
 _CC_SECS.forEach(s => { _CC_SEC_POR_K[s.k] = s; });
 function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   UN DATO, UNA SOLA PUERTA EN LAS CONGENITAS (PANT-14b, commit 2)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+   DECISION DEL MEDICO (05/11/2026): si se carga un dato que identifica la lesion -por ejemplo
+   elegir «Ostium secundum» en la CIA-, eso indica que la lesion esta presente: el interruptor
+   de presencia de esa seccion se enciende SOLO, se dibuja en el modulo y entra al informe.
+
+   EL DEFECTO QUE CIERRA, MEDIDO: hasta esta tanda el DIBUJO miraba los datos y el INFORME
+   miraba el interruptor, o sea DOS puertas para el mismo dato. Una CIA con su tipo cargado se
+   dibujaba en el modulo y el informe no la nombraba hasta que alguien tocaba su boton.
+
+   EL PREDICADO ES UNO SOLO Y NO SE CREA UN SEGUNDO: el de `_CC_SECS`, que ya es el dueno de
+   «esta lesion esta cargada» -lo consultan el filtro de cohorte, las tarjetas del Laboratorio,
+   la linea del modulo y el dibujo-. Esta funcion solo ENCIENDE el interruptor que ya existe.
+
+   ⚠️ ESCRIBE UN CAMPO DEL ESTUDIO -el interruptor se persiste como `<id>__chk`-, asi que entra
+   en los dos embudos POR DECISION EXPRESA y no por descuido: es la unica excepcion a la regla
+   que `ESPEJOS_VIVOS` declara para los pintores que escriben campos. Lo que escribe es UN solo
+   campo, el de su propia seccion, y nunca otro.
+
+   EL APAGADO A MANO SE RESPETA, y se detecta sin tocar los diecinueve botones: se recuerda en
+   el propio elemento la FIRMA de sus campos identificatorios y si estaba marcado. Un
+   interruptor que pasa de marcado a desmarcado SIN que la firma cambie fue apagado por una
+   persona, y queda apagado hasta que la firma cambie -o sea hasta que el medico cargue otro
+   dato identificatorio- o hasta que lo vuelva a encender.
+   ⚠️ LAS TRES MARCAS SON DE RUNTIME Y NO SE PERSISTEN, y entran en las DOS listas de «Nuevo
+   estudio» -el selector Y el cuerpo-, que es la leccion que el D-11 pago con `data-espejo`.
+
+   LOS ESTUDIOS VIEJOS NO SE MIGRAN: nada reescribe lo guardado. Al reabrir uno con el dato
+   cargado y el interruptor apagado, la firma pasa de vacia a su valor, la marca se limpia y el
+   interruptor se enciende -lo que el medico ve y lo que el informe publica-, pero el registro
+   en disco no se toca hasta que el medico vuelva a guardar. */
+/* El interruptor de presencia de cada seccion. La CIA y la CIV tienen el suyo propio desde
+   PANT-3; las otras siguen la convencion `<k>_incluir_chk`, con dos excepciones de nombre que
+   son las que la app ya usaba. Medido con scripts/_probe_p14b_inv.mjs: las DIECINUEVE secciones
+   de `_CC_SECS` tienen interruptor, y los diecinueve selects identificatorios tienen su opcion
+   cero VACIA -o sea que ninguno da verdadero sobre un formulario sin tocar-. */
+const CC_PUERTA_SW = Object.freeze({ cia:'ete_cia_activa', civ:'ete_civ_activa',
+  dap:'ductus_incluir_chk', coa:'coart_incluir_chk' });
+function _ccPuertaSwId(k) { return CC_PUERTA_SW[k] || (k + '_incluir_chk'); }
+/* La firma de los campos que IDENTIFICAN la seccion. Sale del codigo de su propio `pred`, que
+   es el dueno de esa lista: escribirla de nuevo aca seria el segundo registro que esta casa
+   paga una y otra vez. Se calcula una vez y se recuerda. */
+let _CC_PUERTA_IDS = null;
+function _ccPuertaIds() {
+  if (_CC_PUERTA_IDS) return _CC_PUERTA_IDS;
+  _CC_PUERTA_IDS = Object.create(null);
+  try {
+    _CC_SECS.forEach(function (sc) {
+      const t = String(sc.pred), o = [], re = /_labCampoRaw\(i,'([a-z0-9_]+)'\)/g;
+      let m; while ((m = re.exec(t))) { if (o.indexOf(m[1]) < 0) o.push(m[1]) }
+      _CC_PUERTA_IDS[sc.k] = o;
+    });
+  } catch (e) {}
+  return _CC_PUERTA_IDS;
+}
+window._ccPuertaIds = _ccPuertaIds;
+function _ccPuertaFirma(k) {
+  const ids = _ccPuertaIds()[k] || [];
+  return ids.map(function (id) { const e = document.getElementById(id);
+    if (!e) return ''; return (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '').trim();
+  }).join('\u001f');
+}
+function ccPuertaSync() {
+  if (typeof _CC_SECS === 'undefined') return;
+  /* el estudio de ahora, armado con el formulario: es lo que `pred` espera */
+  const campos = {};
+  try {
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
+    });
+  } catch (e) { return }
+  const inf = { campos: campos };
+  let encendio = false;
+  _CC_SECS.forEach(function (sc) {
+    const sw = document.getElementById(_ccPuertaSwId(sc.k));
+    if (!sw || sw.type !== 'checkbox') return;
+    const firma = _ccPuertaFirma(sc.k);
+    const antesF = sw.dataset.ccpuertaVi, antesOn = (sw.dataset.ccpuertaOn === '1');
+    /* ¿lo apago una persona? paso de marcado a desmarcado con la MISMA firma */
+    if (antesF !== undefined && antesF === firma && antesOn && !sw.checked) {
+      sw.dataset.ccpuertaOff = firma;
+    }
+    /* una firma nueva -otro dato identificatorio- borra el apagado a mano */
+    if (antesF !== undefined && antesF !== firma) { delete sw.dataset.ccpuertaOff; }
+    let on = false;
+    try { on = !!sc.pred(inf) } catch (e) { on = false }
+    if (!on) { delete sw.dataset.ccpuertaOff; }
+    else if (!sw.checked && sw.dataset.ccpuertaOff !== firma) { sw.checked = true; encendio = true; }
+    sw.dataset.ccpuertaVi = firma;
+    sw.dataset.ccpuertaOn = sw.checked ? '1' : '0';
+  });
+  /* los botones que muestran el estado se repintan en la misma pasada: un interruptor que se
+     enciende y un boton que sigue apagado son dos cosas que dicen lo contrario. */
+  if (encendio) {
+    if (typeof eteInclSync === 'function') { try { eteInclSync() } catch (e) {} }
+    if (typeof eteShuntLesionSync === 'function') { try { eteShuntLesionSync() } catch (e) {} }
+  }
+}
+window.ccPuertaSync = ccPuertaSync;
+
 /* ══ BOTÓN 🫀 CC — abre y cierra el cuadro de análisis segmentario ═══════════════════════════
    ⚠️ TERCERA ARQUITECTURA DEL MISMO DÍA, y ésta resuelve de raíz lo que las dos anteriores
    parchaban. Decisión de Maicol. La historia importa porque las tres siguen escritas en
@@ -160879,8 +160993,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1328';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793896128838;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1343';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793897001388;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160966,7 +161080,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1328</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1343</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
