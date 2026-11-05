@@ -115436,15 +115436,22 @@ caso('TC-683', 'Tanda PANT-12 (commit 5), adaptado en PANT-13 (commit 2): los do
   ex.push(['(B3b) la tabla lateral de PANT-12 ya NO existe', EL('cm3d-side') ? 'existe' : 'no', 'no']);
   const filasB = document.querySelectorAll('#cm3d-baseb .cm3d-rw');
   const filasM = document.querySelectorAll('#cm3d-modb .cm3d-rw');
-  ex.push(['(B4) con CINCO filas de anatomia de base', filasB.length, 5]);
+  /* ⚠️ ADAPTADO EN PANT-13 (commit 4): SEIS, porque la TRANSPOSICION paso a ser la sexta
+     anatomia de base del modulo -hasta esta tanda tenia su propio 3D en su pestania-. */
+  ex.push(['(B4) con SEIS filas de anatomia de base', filasB.length, 6]);
   ex.push(['(B5) DIEZ de lesiones que se suman', filasM.length, 10]);
   ex.push(['(B6) y SEIS botones de combinaciones frecuentes', document.querySelectorAll('#cm3d-presb .cm3d-chip').length, 6]);
-  ex.push(['(B7) las quince filas traen su SIGLA', Array.prototype.filter.call(
+  /* ADAPTADO EN PANT-13 (commit 4): 15 -> 16 por la base de la transposicion. */
+  ex.push(['(B7) las dieciseis filas traen su SIGLA', Array.prototype.filter.call(
     [].concat(Array.prototype.slice.call(filasB), Array.prototype.slice.call(filasM)),
-    b => String((b.querySelector('.cm3d-sg1') || {}).textContent || '').length > 1).length, 15]);
+    b => String((b.querySelector('.cm3d-sg1') || {}).textContent || '').length > 1).length, 16]);
   ex.push(['(B8) y TODAS traen su linea', Array.prototype.filter.call(
     [].concat(Array.prototype.slice.call(filasB), Array.prototype.slice.call(filasM)),
-    b => String((b.querySelector('.cm3d-nm') || {}).textContent || '').length > 5).length, 15]);
+    b => String((b.querySelector('.cm3d-nm') || {}).textContent || '').length > 5).length, 16]);
+  ex.push(['(B8b) y la sexta base es la TRANSPOSICION, con sus cinco variantes',
+    (function () { const f = Array.prototype.filter.call(filasB,
+        b => String((b.querySelector('.cm3d-sg1') || {}).textContent || '') === 'TGA')[0];
+      if (!f) return 'NO ESTA'; f.click(); return 'ok' })(), 'ok']);
   ex.push(['(B9) las dos listas y las combinaciones estan rotuladas',
     Array.prototype.map.call(document.querySelectorAll('#cm3d-shell .cm3d-ph, #cm3d-shell .cm3d-ph2'), e => e.textContent).join('|'),
     'Base|Combinaciones frecuentes|Se suma']);
@@ -115704,10 +115711,18 @@ caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado
   try { if (FN('cc3dTextoSync')) window.cc3dTextoSync() } catch (e) {}
   const lin = String((EL('cc3d-faltan') || {}).textContent || '');
   ex.push(['(F0) DENOM: la linea se escribio', lin.length > 20, true]);
-  ex.push(['(F1) dice que la transposicion tiene su propio diagrama',
-    lin.indexOf('tiene su propio diagrama') >= 0, true]);
+  /* ⚠️ INVERTIDA EN PANT-13 (commit 4), Y ES EL DIA QUE ESTE CASO ANUNCIABA. Nacio en PANT-12
+     para fijar que la transposicion «tiene su propio diagrama, en su seccion» en vez de caer en
+     la lista de no dibujadas. Desde esta tanda el modulo la dibuja como su sexta anatomia de
+     base, asi que esa frase dejo de ser cierta y se retiro: la transposicion entro a
+     CC3D_DIBUJA y la linea la cuenta entre las dibujadas. La condicion queda mas fuerte:
+     exige que la frase NO este Y que tampoco caiga entre las no dibujadas. */
+  ex.push(['(F1) ya NO dice que la transposicion tiene su propio diagrama: el modulo la dibuja',
+    lin.indexOf('tiene su propio diagrama') >= 0, false]);
   ex.push(['(F2) y NO la lista como no dibujada, que seria decir dos cosas contradictorias',
     /no dibujadas todav[ií]a: *TGA/.test(lin), false]);
+  ex.push(['(F1b) la linea dice que lo cargado esta dibujado',
+    lin.indexOf('dibujadas') >= 0 || lin.indexOf('dibujado') >= 0, true]);
 
   /* ── (G) SOLO LEE: ningun campo se mueve ── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}

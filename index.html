@@ -103404,12 +103404,16 @@ window.cc3dPieSync = cc3dPieSync;
    ⚠️ LA TRANSPOSICION NO SE LISTA COMO «no dibujada», y es deliberado: SI se dibuja en la
    aplicacion, en su seccion. Decirle al medico que no se dibuja seria falso. Tiene su propia
    frase, que es lo unico honesto. */
-const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen']);
+/* ⚠️ LA TRANSPOSICION ENTRA A LA LISTA DE LAS DIBUJADAS -PANT-13, commit 4-: desde esta tanda
+   el modulo la dibuja como su sexta anatomia de base, asi que ya no «tiene su propio diagrama».
+   `CC3D_PROPIO` queda VACIA y no se retira: es la puerta por la que sale cualquier seccion que
+   el dia de manana vuelva a tener dibujo aparte. */
+const CC3D_DIBUJA = Object.freeze(['cia', 'civ', 'dap', 'fop', 'vap', 'cvpa', 'eisen', 'tga']);
 /* ⚠️ LA TRANSPOSICION SALE DE LA LISTA DE «no dibujadas» POR SU PROPIA PUERTA. Si se la deja
    caer ahi, la linea dice las dos cosas a la vez —«Cargadas y no dibujadas todavia: TGA» y «La
    transposicion tiene su propio diagrama»—, que se contradicen. Lo que es cierto es lo segundo:
    SI se dibuja, en su seccion. Medido: sin esta lista la linea salia con las dos frases. */
-const CC3D_PROPIO = Object.freeze(['tga']);
+const CC3D_PROPIO = Object.freeze([]);
 function cc3dNoDibujadas() {
   const campos = {};
   try {
@@ -103448,18 +103452,10 @@ function cc3dTextoSync() {
   if (!r.hay) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
   else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
   else partes.push('Todas las lesiones cargadas están dibujadas.');
-  /* La transposicion tiene su PROPIO diagrama: se dice, en vez de listarla como no dibujada. */
-  try {
-    const secTga = (typeof _CC_SECS !== 'undefined') ? _CC_SECS.filter(function (s) { return s.k === 'tga' })[0] : null;
-    if (secTga) {
-      const campos = {};
-      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
-        if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
-        campos[e.id] = (e.type === 'checkbox') ? (e.checked ? '1' : '') : String(e.value || '');
-      });
-      if (secTga.pred({ campos: campos })) partes.push('La transposición tiene su propio diagrama, en su sección.');
-    }
-  } catch (e) {}
+  /* ⚠️ LA FRASE «La transposicion tiene su propio diagrama, en su seccion» SE RETIRO EN PANT-13
+     (commit 4): dejo de ser cierta el dia que el modulo la dibuja como su sexta base. La
+     transposicion pasa a `CC3D_DIBUJA`, asi que la linea de arriba ya la cuenta entre las
+     dibujadas y no hay nada que agregar. */
   /* Lo que esta cargado y su opcion no tiene variante en el dibujo, y lo que choca por las
      reglas de compatibilidad. Las dos listas las arma `cmDesdeEstudio`, que es su dueno. */
   const ROT = { cia:'CIA', civ:'CIV', dap:'ductus', vap:'ventana aortopulmonar',
@@ -103599,9 +103595,12 @@ const CM_LBV=[-0.9,-1.0,1.0],CM_LBI=[0.9,-1.1,0.6];
 const CM_AO_FAL=[[-0.05,0.45,0.25],[0.0,1.4,0.15],[0.3,2.3,-0.05],[0.9,2.75,-0.4],[1.5,2.35,-0.7],[1.7,1.65,-0.9]];
 const CM_DESC=[[1.74,1.3,-0.95],[1.78,0.7,-1.0],[1.8,0.0,-1.0],[1.76,-0.9,-0.96]];
 const CM_AO_MID=[[1.7,1.6,-0.9],[1.74,1.3,-0.95]];
-const CM_BASES=[['norm','Corazón normal'],['fal','Tetralogía de Fallot'],['dsav','Defecto del septo AV'],['ebs','Anomalía de Ebstein'],['fon','Circulación de Fontan']];
-const CM_BVARS={fal:[['sin','Sin operar'],['op','Operado']],dsav:[['par','Parcial'],['tra','Transicional'],['com','Completo']],fon:[['ext','Conducto extracardíaco'],['tun','Túnel lateral'],['atr','Atriopulmonar']]};
-const CM_BCK={fal_op:[['ip','Insuficiencia pulmonar'],['rciv','CIV residual'],['rest','Estenosis pulmonar residual'],['rvd','VD dilatado']],dsav_par:[['iav','Insuficiencia AV izquierda']],dsav_tra:[['iav','Insuficiencia AV izquierda']],dsav_com:[['iav','Insuficiencia AV izquierda']],ebs_std:[['eit','Insuficiencia tricuspídea']],fon_ext:[['fen','Fenestración']],fon_tun:[['fen','Fenestración']]};
+/* ⚠️ LA SEXTA BASE ES LA TRANSPOSICION -PANT-13, commit 4-: hasta esta tanda tenia su propio
+   3D y su propio esquema de circulacion en su pestania, y el medico pidio que quede UNO solo. */
+const CM_BASES=[['norm','Corazón normal'],['fal','Tetralogía de Fallot'],['dsav','Defecto del septo AV'],['ebs','Anomalía de Ebstein'],['fon','Circulación de Fontan'],['tga','Transposición de grandes arterias']];
+const CM_BVARS={fal:[['sin','Sin operar'],['op','Operado']],dsav:[['par','Parcial'],['tra','Transicional'],['com','Completo']],fon:[['ext','Conducto extracardíaco'],['tun','Túnel lateral'],['atr','Atriopulmonar']],tga:[['d','d-TGA sin cirugía'],['jat','Jatene (switch arterial)'],['mus','Mustard o Senning (switch auricular)'],['ras','Rastelli'],['cc','ccTGA (corregida)']]};
+const CM_BCK={fal_op:[['ip','Insuficiencia pulmonar'],['rciv','CIV residual'],['rest','Estenosis pulmonar residual'],['rvd','VD dilatado']],dsav_par:[['iav','Insuficiencia AV izquierda']],dsav_tra:[['iav','Insuficiencia AV izquierda']],dsav_com:[['iav','Insuficiencia AV izquierda']],ebs_std:[['eit','Insuficiencia tricuspídea']],fon_ext:[['fen','Fenestración']],fon_tun:[['fen','Fenestración']],
+ tga_d:[['tciv','CIV residual'],['tobs','Obstrucción subaórtica']],tga_jat:[['tciv','CIV residual'],['tobs','Obstrucción subaórtica']],tga_mus:[['tciv','CIV residual'],['tobs','Obstrucción subaórtica']],tga_ras:[['tciv','CIV residual'],['tobs','Obstrucción subaórtica']],tga_cc:[['tciv','CIV residual'],['tobs','Obstrucción subaórtica']]};
 const CM_MODS=[['cia','CIA',[['sec','Ostium secundum'],['pri','Ostium primum'],['sv','Seno venoso superior']]],
  ['civ','CIV',[['pm','Perimembranosa'],['mus','Muscular'],['sal','De salida'],['ent','De entrada']]],
  ['dap','Ductus',[['std','Ductus arterioso']]],
@@ -103741,12 +103740,71 @@ function cmBloqueado(k, S) {
   if(b==='fal'){if(k==='civ'){return 'Fallot ya incluye la CIV';}if(k==='ep'){return 'Fallot ya incluye la obstrucción pulmonar';}if(k==='eis'){return 'Fallot no se combina con Eisenmenger';}if(k==='ea'){return 'Fallot tiene la aorta cabalgante';}}
   if(b==='dsav'){if(k==='cia'){return 'el defecto AV ya incluye la CIA primum';}if(k==='civ'){return 'el defecto AV ya incluye la CIV de entrada';}}
   if(b==='ebs'&&k==='eis'){return 'Ebstein no se combina con Eisenmenger';}
+  /* ⚠️ LAS REGLAS DE LA TRANSPOSICION, PORTADAS TAL CUAL DE LA DEMO v13: la d-TGA admite las
+     tres comunicaciones -con la corriente en los dos sentidos, como hoy- y la cava izquierda;
+     el Jatene admite todo menos el Eisenmenger; y el switch auricular, el Rastelli y la ccTGA
+     solo admiten la cava izquierda -en el Rastelli la CIV ya ES el tunel-. */
+  if(b==='tga'){let vt=S.bv.tga,blk={d:['vap','cvpa','coa','ep','ea','eis'],jat:['eis'],mus:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis'],ras:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis'],cc:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis']}[vt]||[];if(blk.indexOf(k)>=0){return 'no se dibuja con esta variante de TGA';}}
   if(b==='fon'&&['cia','civ','dap','vap','ep','eis','cvpa'].indexOf(k)>=0){return 'no aplica con la circulación de Fontan';}
   if(k==='eis'&&m.ep){return 'la estenosis pulmonar protege del Eisenmenger';}
   if(k==='ep'&&m.eis){return 'no se combina con Eisenmenger';}
   return null;
 }
+/* ══ LA TRANSPOSICION: EL MISMO ESCENARIO QUE SU PROPIO 3D -PANT-13, commit 4- ═════════════
+   ⚠️ NO SE PORTA LA GEOMETRIA DE LA DEMO: SE LLAMA A `tga3dEscena`, QUE ES LA FUNCION QUE EL 3D
+   de la transposicion ya usa. Asi la equivalencia que el punto 4d exige es EXACTA POR
+   CONSTRUCCION y no por comparacion, y el dia que un corte de la transposicion cambie, cambia
+   en los dos dibujos a la vez. Medido antes de decidirlo: los DIECINUEVE juegos de puntos de
+   `_T3` y los `CM_*` son identicos byte por byte; los cuatro colores de `TGA3D_C` estan en
+   `CM_C`; y los TRES tipos de extra que `tga3dEscena` emite -ring, sph y tube- son de los siete
+   que el motor del modulo dibuja.
+   ⚠️ Y LA DEMO ERA UNA APROXIMACION EN DOS COSAS, que es lo que la orden anticipa: para la CIV
+   residual y la obstruccion subaortica manda lo que la app dibuja HOY. Medido: la CIV residual
+   SI se dibuja -`tga3dComs` la devuelve como `vsd`, o sea una comunicacion interventricular- y
+   la obstruccion subaortica NO se dibuja en ninguna parte del 3D ni de su esquema, censado el
+   archivo entero. Declarado en docs/PENDIENTES.md. */
+const CM_TGA_VAR = Object.freeze({ d:['dtga',''], jat:['dtga','jatene'],
+  mus:['dtga','auricular'], ras:['dtga','rastelli'], cc:['ltga',''] });
+function _cmEscenaTGA(S) {
+  const v = CM_TGA_VAR[S.bv.tga] || CM_TGA_VAR.d;
+  const M = S.mods, K = S.ck;
+  /* Las comunicaciones, con la MISMA forma que `tga3dComs` publica. La CIV residual cuenta como
+     comunicacion interventricular, que es lo que la app ya hace con `tga_civ_residual`. */
+  const sh = { asd: !!M.cia, vsd: !!(M.civ || K.tciv), pda: !!M.dap };
+  const s = tga3dEscena(v[0], v[1], sh);
+  /* Los campos que el motor del modulo necesita y la transposicion no usa, en su valor neutro. */
+  s.rvShell = s.rvShell || 1; s.rvPool = s.rvPool || 1;
+  s.lvShell = s.lvShell || 1; s.lvPool = s.lvPool || 1;
+  s.raShell = s.raShell || 1; s.raPool = s.raPool || 1;
+  s.hideRPV = !!s.hideRPV;
+  /* La cava superior izquierda es la UNICA lesion que las cinco variantes admiten, y se dibuja
+     con la MISMA geometria y los MISMOS rotulos que en las otras bases: los dos tubos y su
+     corriente, copiados del bloque de `cmEscena` y no inventados. */
+  if (M.vcs) {
+    const vc = [[1.7,3.0,-0.1],[2.0,2.1,0.2],[2.05,1.1,0.05],[1.7,0.4,-0.5]];
+    const cs = [[1.7,0.4,-0.5],[0.8,0.25,-0.85],[-0.4,0.3,-0.75],[-1.0,0.35,-0.45]];
+    s.ex.push({ t:'tube', p:vc, r:0.13, c:CM_C.blue, op:0.9 },
+              { t:'tube', p:cs, r:0.2, c:CM_C.blue, op:0.8 });
+    s.fl.push({ p:_cmCat(vc, cs), c:CM_C.blue, n:7, sp:0.3 });
+    if (s.lb.length < 12) s.lb.push(['Cava izquierda', [2.55,2.0,0.2]]);
+    if (s.lb.length < 12) s.lb.push(['Seno coronario dilatado', [0.3,-0.35,-0.9]]);
+  }
+  return s;
+}
 function cmEscena(S) {
+  if (S.base === 'tga' && typeof tga3dEscena === 'function') {
+    const st = _cmEscenaTGA(S);
+    /* ⚠️ LOS TEXTOS SON LOS QUE LA APP YA TIENE PARA LA TRANSPOSICION, que es lo que la orden
+       pide: salen de `TGA3D_INFO`, `TGA3D_CIRC` y `TGA3D_REF` por la MISMA clave de escenario
+       que su propio recuadro usa -`_tga3dClave`-, asi que no hay un solo texto clinico nuevo. */
+    const v = CM_TGA_VAR[S.bv.tga] || CM_TGA_VAR.d;
+    const kv = (typeof _tga3dClave === 'function') ? _tga3dClave(v[0], v[1]) : v[0];
+    st.info = (typeof TGA3D_INFO !== 'undefined' && TGA3D_INFO[kv]) || '';
+    st.circ = (typeof TGA3D_CIRC !== 'undefined' && TGA3D_CIRC[kv]) || '';
+    st.ref = (typeof TGA3D_REF !== 'undefined' && TGA3D_REF[kv]) || '';
+    st.src = S.src || '';
+    return st;
+  }
   let s={ch:{RA:CM_C.blue,LA:CM_C.red,RV:CM_C.blue,LV:CM_C.red},ar:[],fl:[],ex:[],lb:[],rvShell:1,rvPool:1,lvShell:1,lvPool:1,raShell:1,raPool:1,hideRPV:false};
   let B=S.base,BV=S.bv[B],M=S.mods,K=S.ck,eis=!!M.eis;
   let labs={};
@@ -103928,7 +103986,7 @@ function cmEscena(S) {
    por ningun camino. */
 const _cm3d = { cargando:false, listo:false, fallo:false, pausado:false, fc:70, ins:true, noms:true,
   modo:'estudio', sch:false,
-  S: { base:'norm', bv:{ fal:'sin', dsav:'par', ebs:'std', fon:'ext' }, mods:{}, ck:{}, src:'' } };
+  S: { base:'norm', bv:{ fal:'sin', dsav:'par', ebs:'std', fon:'ext', tga:'d' }, mods:{}, ck:{}, src:'' } };
 
 /* Escritor de los textos del dibujo, con guarda: en este commit el panel del globo existe
    OCULTO y lo abre el commit 5. */
@@ -104287,7 +104345,9 @@ window._cm3dEstado = function () { return _cm3d };
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 function _cmForceIns(){_cm3d.ins = true;document.getElementById('cm3d-ins').checked=true;}
   function _cmBtn(parent,txt,pressed,fn,dis,title){let b=document.createElement('button');b.type='button';b.className = 'btn btn-ghost cm3d-sg';b.style.marginRight='6px';b.style.marginBottom='4px';b.textContent=txt;b.setAttribute('aria-pressed',pressed?'true':'false');if(dis){b.disabled=true;b.style.opacity='0.45';b.title=title||'';}else{b.addEventListener('click',fn);}parent.appendChild(b);return b;}
-function _cmChk(parent,txt,on,fn){let l=document.createElement('label');l.className = 'cm3d-lab';let i=document.createElement('input');i.type='checkbox';i.checked=!!on;i.addEventListener('change',function(){fn(this.checked);});l.appendChild(i);l.appendChild(document.createTextNode(' '+txt));parent.appendChild(l);}
+/* La casilla de un sub-bloque de las dos listas. Clase propia `cm3d-ck` y no `cm3d-lab`, que es
+   la de la barra de herramientas: dentro de una lista de 230 px la de la barra no se ve igual. */
+function _cmChk(parent,txt,on,fn){let l=document.createElement('label');l.className = 'cm3d-ck';let i=document.createElement('input');i.type='checkbox';i.checked=!!on;i.addEventListener('change',function(){fn(this.checked);});l.appendChild(i);l.appendChild(document.createTextNode(' '+txt));parent.appendChild(l);}
 function _cmVistaDe(){let M=_cm3d.S.mods;if(M.coa||M.dap){return -0.75;}if(M.civ||M.cia||_cm3d.S.base==='dsav'){return -0.65;}if(M.vcs){return -0.4;}if(M.cvpa){return 0.6;}if(_cm3d.S.base==='ebs'||_cm3d.S.base==='fon'||M.vap){return 0.5;}if(M.eis){return -0.5;}return 0;}
 /* ⚠️ `root` ES LOCAL DEL MOTOR Y NO SE SACA A MODULO: el motor lo publica como
    `_cm3dVistaSet`, que es un setter y no una referencia al grupo. Con el grupo expuesto,
@@ -104312,21 +104372,29 @@ const CM_SIG = Object.freeze({
   vcs:['VCSI','cava superior izquierda persistente'], eis:['Eisenmenger','invierte los cortocircuitos'] });
 const CM_SIB = Object.freeze({ norm:['Normal','corazón normal'], fal:['Fallot','tetralogía de Fallot'],
   dsav:['DSAV','defecto del septo auriculoventricular'], ebs:['Ebstein','anomalía de Ebstein'],
-  fon:['Fontan','circulación de Fontan'] });
+  fon:['Fontan','circulación de Fontan'], tga:['TGA','transposición de grandes arterias'] });
 /* Las siglas de cada variante, para los botones finos. */
 const CM_SHORT = Object.freeze({ cia_sec:'O.S.', cia_pri:'O.P.', cia_sv:'SVS',
   civ_pm:'Perimemb', civ_mus:'Musc', civ_sal:'Outlet', civ_ent:'Inlet',
   vap_prox:'Prox', vap_dis:'Distal', coa_nat:'Nativa', coa_rep:'Reparada',
   ep_valv:'Valvular', ep_sub:'Subvalv', ep_sup:'Supravalv', ea_sub:'SubAo', ea_sup:'SupraAo',
   fal_sin:'Sin operar', fal_op:'Operado', dsav_par:'Parcial', dsav_tra:'Transic.',
-  dsav_com:'Completo', fon_ext:'Extracard.', fon_tun:'Túnel', fon_atr:'Atriopulm.' });
+  dsav_com:'Completo', fon_ext:'Extracard.', fon_tun:'Túnel', fon_atr:'Atriopulm.',
+  tga_d:'d-TGA', tga_jat:'Jatene', tga_mus:'Mus/Sen', tga_ras:'Rastelli', tga_cc:'ccTGA' });
 /* Las siglas de cada combinacion frecuente. El nombre completo sigue en `CM_PRES[i].n` y la
    fuente en `.src`, que es lo que publica el globo: ninguna de las dos se toca. */
 const CM_PRESSG = Object.freeze({ 'CIA + CIV + ductus':'CIA+CIV+DAP',
   'CIA + conexión venosa anómala + cava izquierda':'CIA+CVPA+VCSI',
   'CIA + estenosis pulmonar':'CIA+EP', 'Coartación + estenosis subaórtica':'Coa+EA',
   'Ebstein + CIA':'Ebs+CIA', 'CIV + ductus + Eisenmenger':'CIV+DAP+Eis' });
-function _cmDesc(reg, k) { const f = reg.filter(function (x) { return x[0] === k })[0]; return f ? f[2] : '' }
+/* La linea de una fila sale del registro de textos VERIFICADOS de PANT-12 -`CM_TBB` y `CM_TBM`-,
+   y donde ese registro no tiene entrada cae en el NOMBRE COMPLETO de la lesion, que es un nombre
+   propio y no una afirmacion clinica: es el caso de la transposicion, que entro como base en
+   PANT-13 y cuya descripcion fisiologica no se inventa. */
+function _cmDesc(reg, k, resp) {
+  const f = reg.filter(function (x) { return x[0] === k })[0];
+  return (f && f[2]) ? f[2] : (resp || '');
+}
 function _cmFila(parent, marca, sigla, nombre, on, fn, dis, why, titulo) {
   const b = document.createElement('button'); b.type = 'button';
   b.className = 'cm3d-rw'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -104379,7 +104447,7 @@ function cmRenderCtl(){
   if (bb) { bb.textContent = '';
     CM_BASES.forEach(function (b) {
       const k = b[0], on = (_cm3d.S.base === k), sg = (CM_SIB[k] || [k, ''])[0];
-      _cmFila(bb, on ? '\u25cf' : '\u25cb', sg, _cmDesc(CM_TBB, k), on,
+      _cmFila(bb, on ? '\u25cf' : '\u25cb', sg, _cmDesc(CM_TBB, k, (CM_SIB[k] || ['', ''])[1]), on,
         function () { cmSetBase(k) }, false, '', b[1]);
       if (!on) return;
       const vars = CM_BVARS[k], ck = CM_BCK[k + '_' + _cm3d.S.bv[k]];
@@ -104404,7 +104472,7 @@ function cmRenderCtl(){
     CM_MODS.forEach(function (m) {
       const k = m[0], why = cmBloqueado(k, _cm3d.S), on = !!_cm3d.S.mods[k];
       const sg = (CM_SIG[k] || [m[1], ''])[0];
-      _cmFila(mb, on ? '\u2611' : '\u2610', sg, _cmDesc(CM_TBM, k), on, function () {
+      _cmFila(mb, on ? '\u2611' : '\u2610', sg, _cmDesc(CM_TBM, k, (CM_SIG[k] || ['', ''])[1]), on, function () {
         if (_cm3d.S.mods[k]) { delete _cm3d.S.mods[k] } else { _cm3d.S.mods[k] = m[2][0][0] }
         _cmCambio(true);
       }, !!why, why, m[1]);
@@ -104463,6 +104531,35 @@ function cmSchRender(forzar) {
   const bar = function (x, y, w, h, c, l, lx, ly, a) { bars.push([x, y, w, h, c || Gc, l, lx, ly, a || 'start']) };
   const T = function (x, y, t, a, fs, f) { txt.push([x, y, t, a || 'start', fs || 9, f || 'var(--text2)']) };
   const sc = function (k, lbl) { return ({ civ_pm:'perim.', civ_mus:'musc.', civ_sal:'outlet', civ_ent:'inlet' })[k] || CM_SHORT[k] || lbl };
+  /* ── LA TRANSPOSICION -PANT-13, commit 4-, portada de la demo v13 tal cual: es el MISMO
+     esquema que la transposicion tiene en su pestania, con sus cinco variantes. `bid` marca la
+     d-TGA, donde la corriente va en los DOS sentidos. ── */
+  let bid = false;
+  if (B === 'tga') {
+    const tv = BV;
+    if (tv === 'd') { bid = true; box.TL = ['VD','sistémico','b'];
+      fl = [['M80 250V206','b'],['M80 156V124','b'],['M40 100H18V265H58','b'],
+            ['M220 38V76','r'],['M220 122V156','r'],['M260 180H282V23H242','r']];
+      lab = [['cavas',88,232],['venas pulm.',226,60],['AP',262,100],['Ao',22,182]]; }
+    if (tv === 'mus') { box = { TL:['VD','sistémico','r'], TR:['Aurícula','(venas pulm.)','r'],
+        BL:['Túnel','(cavas)','b','o'], BR:['VI','','b'] };
+      fl = [['M80 250V206','b'],['M120 180H178','b'],['M260 180H282V23H242','b'],
+            ['M220 38V76','r'],['M180 100H122','r'],['M40 100H18V265H58','r']];
+      valves = [[150,180,'M',''],[151,100,'T','']];
+      lab = [['cavas',88,232],['venas pulm.',226,60],['AP',262,100],['Ao',22,182]]; }
+    if (tv === 'jat') { ex.push('<path d="M70 66H90" stroke="' + Oc + '" stroke-width="3"/>',
+        '<path d="M210 214H230" stroke="' + Oc + '" stroke-width="3"/>',
+        '<circle cx="236" cy="222" r="3" fill="' + Oc + '"/>'); }
+    if (tv === 'ras') { fl[5] = ['M180 182H150V108H18V265H58','r'];
+      ex.push('<path d="M80 78V40" stroke="' + Oc + '" stroke-width="8" opacity=".35" fill="none"/>',
+              '<path d="M150 108H40" stroke="' + Oc + '" stroke-width="9" opacity=".35" fill="none"/>');
+      lab[3] = ['Ao',22,182]; }
+    if (tv === 'cc') { box.TL = ['VI','','b']; box.BR = ['VD','sistémico','r'];
+      valves = [[80,140,'M',''],[220,139,'T','']]; }
+    if (K.tciv && !M.civ) { conn('M180 164L120 116','CIV residual',112,172) }
+    if (K.tobs) { const ob = ({ d:[22,112], mus:[22,112], ras:[146,150], cc:[210,208], jat:[210,208] })[BV] || [210,208];
+      bar(ob[0],ob[1],20,6,Gc,'obstr. subaórtica',ob[0] + 24,ob[1] + 6) }
+  }
   /* ── Eisenmenger y las sobrecargas ── */
   if (eis || (B === 'fal' && BV === 'sin') || M.ep) { box.TL[1] = 'hipertrófico' }
   if (M.ea || M.coa === 'nat') { box.BR[1] = 'hipertrófico' }
@@ -104512,9 +104609,12 @@ function cmSchRender(forzar) {
       if (K.fen) { conn('M18 190H40','fenestración',22,206) } }
   }
   /* ── las lesiones que se suman ── */
-  if (M.cia) { conn((eis || B === 'ebs') ? 'M120 164L180 116' : 'M180 116L120 164','CIA ' + sc('cia_' + M.cia,''),124,178) }
-  if (M.civ) { conn(eis ? 'M120 116L180 164' : 'M180 164L120 116','CIV ' + sc('civ_' + M.civ,''),122,106) }
-  if (M.dap) { conn(eis ? 'M80 52L220 236' : 'M220 236L80 52','DAP',100,48) }
+  if (M.cia) { conn((eis || B === 'ebs') ? 'M120 164L180 116' : 'M180 116L120 164','CIA ' + sc('cia_' + M.cia,''),124,178);
+    if (bid) { conn('M120 164L180 116','',0,0) } }
+  if (M.civ) { conn(eis ? 'M120 116L180 164' : 'M180 164L120 116','CIV ' + sc('civ_' + M.civ,''),122,106);
+    if (bid) { conn('M120 116L180 164','',0,0) } }
+  if (M.dap) { if (bid) { conn('M282 92L18 191','DAP',154,137); conn('M18 191L282 92','',0,0) }
+    else { conn(eis ? 'M80 52L220 236' : 'M220 236L80 52','DAP',100,48) } }
   if (M.vap) { conn(eis ? 'M80 70L220 212' : 'M220 212L80 70','VAP',186,206) }
   if (M.cvpa) { fl.push(['M60 23H22V236H76','r']); T(26,120,'VP der. \u2192 cava','start',9);
     if (K.svs) { conn('M180 116L120 164','CIA SV',126,152) } }
@@ -104606,6 +104706,7 @@ const CM_PDF_TXT = Object.freeze({ off:'Incluir en el PDF', on:'\u2713 Incluido 
 const CM_PDF_AVISO = Object.freeze({
   explorar:'«Incluir en el PDF» está disponible solo en «Según el estudio»: lo que se explora es didáctico y no es un dato del paciente.',
   vacio:'No hay lesiones cargadas en las pestañas: no hay nada para incluir.',
+  tga:'Este estudio tiene una transposición cargada: su dibujo se incluye desde la sección «Transposición de grandes arterias», que tiene su propio botón.',
   on:'El PDF llevará este dibujo, armado con lo cargado en las pestañas.' });
 /* ⚠️ «HAY ALGO CARGADO» SE LE PREGUNTA AL ESTUDIO Y NO AL ESTADO DEL DIBUJO: en «Explorar» el
    estado trae lo que el medico eligio, que es justo lo que no cuenta. Se arma el estado del
@@ -104633,6 +104734,13 @@ function cmPdfSync() {
   };
   if (_cm3d.modo !== 'estudio') { apagar(CM_PDF_AVISO.explorar); return }
   if (!cmHayCargado()) { apagar(CM_PDF_AVISO.vacio); return }
+  /* ⚠️ CON UNA TRANSPOSICION CARGADA EL BOTON DEL MODULO QUEDA APAGADO, Y ES LA REGLA DE LA
+     ORDEN: «para un estudio con transposicion cargada, el PDF sigue llevando el dibujo de la
+     transposicion; para los demas estudios, el del modulo». El commit 4 NO retiro el recuadro de
+     la transposicion -su equivalencia no cerro, ver docs/PENDIENTES.md P13-c-, asi que esa
+     seccion conserva su propio boton. Sin esto, un medico que enciende los dos lleva al PDF el
+     MISMO dibujo DOS veces. */
+  if (typeof tgaEjes === 'function') { try { if (tgaEjes().anat) { apagar(CM_PDF_AVISO.tga); return } } catch (e) {} }
   b.disabled = false;
   b.setAttribute('aria-pressed', inc ? 'true' : 'false');
   b.textContent = inc ? CM_PDF_TXT.on : CM_PDF_TXT.off;
@@ -104667,6 +104775,8 @@ function cmIncluirPDF() {
     return Promise.resolve({ ok:false, motivo:'modo explorar' }) }
   if (!cmHayCargado()) { if (n) n.textContent = CM_PDF_AVISO.vacio;
     return Promise.resolve({ ok:false, motivo:'sin lesiones cargadas' }) }
+  if (typeof tgaEjes === 'function') { try { if (tgaEjes().anat) { if (n) n.textContent = CM_PDF_AVISO.tga;
+    return Promise.resolve({ ok:false, motivo:'la transposicion tiene su propio boton' }) } } catch (e) {} }
   if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('cm3d')) {
     esqQuitarDelPDF('cm3d');
     _cmEsqPdf = { data:null };
@@ -104829,6 +104939,25 @@ function cmDesdeEstudio() {
   const S = _cm3d.S;
   S.base = 'norm'; S.mods = {}; S.ck = {}; S.src = ''; S.dir = {};
   const omit = [];   /* lo que esta cargado y el dibujo todavia no puede mostrar */
+
+  /* ── LA TRANSPOSICION, LA SEXTA BASE -PANT-13, commit 4- ───────────────────────────────────
+     ⚠️ LA VARIANTE NO SE DEDUCE DE DOS CAMPOS A MANO: se le pregunta a `tgaEjes`, que es el
+     DUENIO UNICO del par anatomia + cirugia de esa pestania -es quien resuelve que «mustard» y
+     «senning» YA dicen la cirugia en su propio rotulo, y que «sin dato» no es «sin cirugia»-.
+     Escribirlo de nuevo aca seria un segundo dueno del mismo par.
+     Las dos casillas salen de sus propios campos; lo que la pestania no tiene no se inventa. */
+  if (typeof tgaEjes === 'function') {
+    const ej = tgaEjes();
+    if (ej.anat) {
+      S.base = 'tga';
+      S.bv.tga = (ej.anat === 'ltga') ? 'cc'
+               : (ej.cir === 'jatene') ? 'jat'
+               : (ej.cir === 'rastelli') ? 'ras'
+               : (ej.cir === 'auricular') ? 'mus' : 'd';
+      if (V('tga_civ_residual') === 'si') S.ck.tciv = true;
+      if (V('tga_obstr_subaortica') === 'si') S.ck.tobs = true;
+    }
+  }
 
   /* ── las cinco lesiones del mapa ───────────────────────────────────────────────────────── */
   Object.keys(CM_MAPA).forEach(function (k) {
@@ -160163,8 +160292,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2258';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793843916971;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2317';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793845026099;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160250,7 +160379,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2258</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2317</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
