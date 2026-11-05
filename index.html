@@ -103833,11 +103833,39 @@ function cmBloqueado(k, S) {
   if(b==='fal'){if(k==='civ'){return 'Fallot ya incluye la CIV';}if(k==='ep'){return 'Fallot ya incluye la obstrucción pulmonar';}if(k==='eis'){return 'Fallot no se combina con Eisenmenger';}if(k==='ea'){return 'Fallot tiene la aorta cabalgante';}}
   if(b==='dsav'){if(k==='cia'){return 'el defecto AV ya incluye la CIA primum';}if(k==='civ'){return 'el defecto AV ya incluye la CIV de entrada';}}
   if(b==='ebs'&&k==='eis'){return 'Ebstein no se combina con Eisenmenger';}
-  /* ⚠️ LAS REGLAS DE LA TRANSPOSICION, PORTADAS TAL CUAL DE LA DEMO v13: la d-TGA admite las
-     tres comunicaciones -con la corriente en los dos sentidos, como hoy- y la cava izquierda;
-     el Jatene admite todo menos el Eisenmenger; y el switch auricular, el Rastelli y la ccTGA
-     solo admiten la cava izquierda -en el Rastelli la CIV ya ES el tunel-. */
-  if(b==='tga'){let vt=S.bv.tga,blk={d:['vap','cvpa','coa','ep','ea','eis'],jat:['eis'],mus:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis'],ras:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis'],cc:['cia','civ','dap','vap','cvpa','coa','ep','ea','eis']}[vt]||[];if(blk.indexOf(k)>=0){return 'no se dibuja con esta variante de TGA';}}
+  /* ══ LAS REGLAS DE LA TRANSPOSICION SON LAS DEL 3D DE LA PESTANIA -PANT-14, commit 3a- ════
+     DECISION DEL MEDICO (05/11/2026): para la transposicion valen las reglas del 3D de HOY, de
+     modo que la comparacion con el dibujo viejo de la pestania de la TGA de CERO diferencias.
+     Hasta esta tanda eran las de la demo v13, y la demo difiere del 3D en CUATRO de las cinco
+     variantes: PANT-13 midio 46 escenas distintas sobre 160 por esa sola causa.
+
+     ⚠️ NO SE LEYERON DEL CODIGO: SE MIDIERON. `scripts/_probe_pant14tgareglas.mjs` llama a
+     `tga3dEscena` -que es el dueno unico de lo que el 3D dibuja- con cada par anatomia-cirugia
+     y con cada combinacion de comunicaciones, y compara la huella de la escena contra la escena
+     sin ninguna. Lo que el 3D DIBUJA, medido:
+         d-TGA sin cirugia ...... CIA, CIV y ductus
+         d-TGA Jatene ........... CIA y CIV            (el ductus NO)
+         d-TGA switch auricular . CIV                  (la CIA NO, el ductus NO)
+         d-TGA Rastelli ......... CIA                  (la CIV NO: ya ES el tunel, el ductus NO)
+         ccTGA .................. CIA y CIV            (el ductus NO)
+     Los MOTIVOS clinicos de las dos exclusiones que ya estaban son los que PANT-13 declara: con
+     el switch auricular el tabique auricular se reseco y la sangre va por los dos tuneles que
+     esa rama dibuja; con el Rastelli esa rama ya pone un anillo en el tabique interventricular,
+     que es el tunel del ventriculo izquierdo a la aorta.
+
+     ⚠️ Y TODO LO DEMAS QUEDA BLOQUEADO EN LAS CINCO VARIANTES, incluida la CAVA IZQUIERDA. La
+     razon es que `tga3dEscena` recibe UNICAMENTE { asd, vsd, pda }: la ventana aortopulmonar, la
+     conexion venosa anomala, la coartacion, las dos estenosis, el Eisenmenger y la cava
+     izquierda NO EXISTEN para el 3D de la pestania, asi que dibujarlas en el modulo seria
+     justamente la diferencia que esta tanda viene a cerrar. Es la regla que la orden fija: si el
+     modulo permite algo que el viejo nunca dibuja, se restringe. El Jatene las permitia todas
+     menos el Eisenmenger, y la cava izquierda la permitian las cinco.
+     NINGUN DATO SE PIERDE: el campo sigue cargado y la linea de abajo del dibujo lo lista. */
+  if(b==='tga'){
+    const DIBUJA={ d:['cia','civ','dap'], jat:['cia','civ'], mus:['civ'], ras:['cia'], cc:['cia','civ'] };
+    const ok=DIBUJA[S.bv.tga]||DIBUJA.d;
+    if(ok.indexOf(k)<0){return 'no se dibuja con esta variante de TGA';}
+  }
   if(b==='fon'&&['cia','civ','dap','vap','ep','eis','cvpa'].indexOf(k)>=0){return 'no aplica con la circulación de Fontan';}
   if(k==='eis'&&m.ep){return 'la estenosis pulmonar protege del Eisenmenger';}
   if(k==='ep'&&m.eis){return 'no se combina con Eisenmenger';}
@@ -103870,18 +103898,27 @@ function _cmEscenaTGA(S) {
   s.lvShell = s.lvShell || 1; s.lvPool = s.lvPool || 1;
   s.raShell = s.raShell || 1; s.raPool = s.raPool || 1;
   s.hideRPV = !!s.hideRPV;
-  /* La cava superior izquierda es la UNICA lesion que las cinco variantes admiten, y se dibuja
-     con la MISMA geometria y los MISMOS rotulos que en las otras bases: los dos tubos y su
-     corriente, copiados del bloque de `cmEscena` y no inventados. */
-  if (M.vcs) {
-    const vc = [[1.7,3.0,-0.1],[2.0,2.1,0.2],[2.05,1.1,0.05],[1.7,0.4,-0.5]];
-    const cs = [[1.7,0.4,-0.5],[0.8,0.25,-0.85],[-0.4,0.3,-0.75],[-1.0,0.35,-0.45]];
-    s.ex.push({ t:'tube', p:vc, r:0.13, c:CM_C.blue, op:0.9 },
-              { t:'tube', p:cs, r:0.2, c:CM_C.blue, op:0.8 });
-    s.fl.push({ p:_cmCat(vc, cs), c:CM_C.blue, n:7, sp:0.3 });
-    if (s.lb.length < 12) s.lb.push(['Cava izquierda', [2.55,2.0,0.2]]);
-    if (s.lb.length < 12) s.lb.push(['Seno coronario dilatado', [0.3,-0.35,-0.9]]);
+  /* ══ LA OBSTRUCCION SUBAORTICA SI SE DIBUJA -PANT-14, commit 3b- ═══════════════════════
+     DECISION DEL MEDICO (05/11/2026). PANT-13 midio que el 3D de la pestania y su esquema NO la
+     dibujan -solo la CIV residual, como una CIV generica- y la dejo sin dibujar por eso. Ahora
+     el modulo la dibuja cuando el campo «Obstruccion subaortica» de la pestania de la TGA dice
+     que si, y ESA ES LA UNICA DIFERENCIA ESPERADA con el dibujo viejo: en la tabla de
+     equivalencia las escenas con obstruccion se listan aparte y en todas las demas la
+     diferencia tiene que ser CERO.
+     El anillo y su posicion por variante salen de la demo v13 aprobada, numero por numero, y es
+     la MISMA forma que el modulo ya dibuja para la membrana de la estenosis subaortica. El
+     esquema de circulacion ya ponia su barra gris desde PANT-13. */
+  if (K.tobs) {
+    const po = ({ jat:[0.4,0.05,-0.07], d:[-0.4,0.35,0.9], mus:[-0.4,0.35,0.9],
+                  cc:[0.9,0.35,0.6], ras:[0.45,-0.85,0.05] })[S.bv.tga] || [0.4,0.05,-0.07];
+    s.ex.push({ t:'ring', c:po, r:0.2, rx:(S.bv.tga !== 'ras'), ry:(S.bv.tga === 'ras'), col:CM_C.grey });
+    if (s.lb.length < 12) s.lb.push(['Obstr. subaórtica', [po[0]+1.0, po[1]-0.1, po[2]+0.4]]);
   }
+  /* ⚠️ LA CAVA IZQUIERDA YA NO ENTRA ACA, Y ES EL commit 3a: el 3D de la pestania no la dibuja
+     -`tga3dEscena` recibe solo las tres comunicaciones-, asi que dibujarla seria la diferencia
+     que esta tanda viene a cerrar. `cmBloqueado` la bloquea en las cinco variantes y la linea
+     de abajo del dibujo la lista. El bloque de geometria se conserva en el historial del
+     archivo; no se repone sin una orden. */
   return s;
 }
 function cmEscena(S) {
@@ -104676,7 +104713,15 @@ function cmSchRender(forzar) {
   const Bc = CM_SCH_B, Rc = CM_SCH_R, Oc = CM_SCH_O, Gc = CM_SCH_G, Yc = CM_SCH_Y;
   const P = cmSchPal();
   const BX = { TL:[40,78], TR:[180,78], BL:[40,158], BR:[180,158] };
-  const box = { TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] };
+  /* ⚠️ `let` Y NO `const`, Y ESO ES UN DEFECTO QUE SE REPRODUJO -PANT-14, commit 3-: la rama
+     del switch auricular REASIGNA este objeto entero -la demo v13 lo declara con `var`-, asi que
+     con `const` lanzaba «Assignment to constant variable» y `cmSchRender` ABORTABA. Medido en
+     HEAD y en los dos motores, sembrando un centinela en el SVG: con la variante `mus` el
+     centinela SOBREVIVIA, el esquema quedaba en UN nodo y CERO textos, mientras las otras cuatro
+     variantes dibujaban sus 28 a 30 nodos. O sea que con un Mustard o un Senning cargado el
+     esquema de circulacion NO SE DIBUJABA, y lo que quedaba a la vista era el dibujo de la
+     variante anterior. Es la otra mitad del «a veces no se dibuja bien» que el medico reporto. */
+  let box = { TL:['VD','','b'], TR:['AI','','r'], BL:['AD','','b'], BR:['VI','','r'] };
   let fl = [['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],
             ['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r']];
   let valves = [[80,140,'T',''],[220,139,'M','']];
@@ -160529,8 +160574,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-0823';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793877789198;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-0850';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793879416880;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160616,7 +160661,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0823</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-0850</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
