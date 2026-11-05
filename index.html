@@ -1766,7 +1766,12 @@
               font-size:11px; color:var(--text2); }
   .cm3d-lab { display:inline-flex; align-items:center; gap:6px; min-height:44px; cursor:pointer; }
   .cm3d-lab input[type=checkbox] { width:18px; height:18px; }
-  .cm3d-fcin { width:78px; min-height:44px; }
+  /* ⚠️ VA CON `input.` Y NO SOLO CON LA CLASE, Y ES UNA MEDICION DE ESPECIFICIDAD. La regla
+     global de los formularios es `input[type=number] { width:100% }`, que vale (0,1,1); una
+     clase sola vale (0,1,0) y PIERDE, asi que el campo salia con el ancho entero de la fila
+     -1230 px a 1440- y se llevaba una linea para el. Con `input.cm3d-fcin` empata en
+     especificidad y gana por venir despues. El `flex` lo fija dentro de la fila flex. */
+  input.cm3d-fcin { width:78px; flex:0 0 78px; min-height:44px; }
   .cm3d-btn { min-height:44px; font-size:11px; }
   .cm3d-cv { position:relative; width:100%; height:420px; background:var(--bg2);
              border-radius:8px; overflow:hidden; touch-action:none; cursor:grab; }
@@ -21149,14 +21154,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
          uno nuevo. `aria-pressed` y no `aria-expanded`: es un interruptor de dos estados. -->
     <button type="button" class="btn btn-ghost" id="cc3d-abrir" onclick="cc3dTog()"
             aria-pressed="false" aria-controls="cc3d-panel" style="min-height:44px;"
-            title="Ver el corazon en 3D con lo cargado en el estudio">&#129728; Ver en 3D</button>
+            title="Ver el coraz&oacute;n en 3D con lo cargado en el estudio">&#129728; Ver en 3D</button>
   </div>
   <div class="card" id="cc3d-panel" style="display:none;">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-      <span style="font-size:12px;font-weight:700;color:var(--accent2);flex:1;">Corazon en 3D &mdash; lo cargado en este estudio</span>
+      <span style="font-size:12px;font-weight:700;color:var(--accent2);flex:1;">Coraz&oacute;n en 3D &mdash; lo cargado en este estudio</span>
       <span style="font-size:10.5px;font-weight:700;color:var(--text2);">Esquema ilustrativo</span>
       <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="cc-3d"
-              aria-label="Que muestra el corazon en 3D" onclick="vInfoClic(this,event)">&#9432;</button>
+              aria-label="Qu&eacute; muestra el coraz&oacute;n en 3D" onclick="vInfoClic(this,event)">&#9432;</button>
       <button type="button" class="btn btn-ghost" id="cc3d-cerrar" style="min-height:44px;"
               onclick="cc3dCerrar()">Cerrar</button>
     </div>
@@ -103884,6 +103889,12 @@ function cm3dInit() {
   cam.position.set(0.1,0.0,12.5);cam.lookAt(0,-0.2,0);
   let rd=new T.WebGLRenderer({antialias:true,alpha:true});
   rd.setPixelRatio(Math.min(2,window.devicePixelRatio||1));rd.setSize(W,Hh);
+  /* ⚠️ EL ANCHO CON QUE SE DIBUJO LA ULTIMA VEZ, Y HACE FALTA. El recuadro cambia de ancho sin
+     que la ventana cambie -al pasar de «Explorar» a «Segun el estudio» la tabla lateral deja de
+     reservar sus 300 px- y hasta esta tanda el renderer conservaba el ancho viejo: medido, el
+     lienzo quedaba en 1230 px dentro de un recuadro de 916, DESBORDABA 314 px y las etiquetas,
+     que `frame` proyecta con el ancho ACTUAL, quedaban 157 px a la izquierda del corazon. */
+  let rw=W;
   host.appendChild(rd.domElement);
   scene.add(new T.HemisphereLight(0xffffff,0x6b4a40,0.65));
   let dl=new T.DirectionalLight(0xffffff,0.75);dl.position.set(3,5,8);scene.add(dl);
@@ -104058,7 +104069,11 @@ function cm3dInit() {
       });
     });
     root.updateMatrixWorld(true);
-    let w=host.clientWidth,h=Hh;
+    let w=host.clientWidth||640,h=Hh;
+    /* El reajuste en cada cuadro, que es como lo hace la demo aprobada: si el recuadro cambio de
+       ancho por cualquier motivo -el modo, el esquema, el panel-, el lienzo y la camara lo
+       siguen. Sin esto las etiquetas se despegan del dibujo. */
+    if(w!==rw){rw=w;rd.setSize(w,Hh);cam.aspect=w/Hh;cam.updateProjectionMatrix();}
     lbs.forEach(function(l){
       let v=l.p.clone().applyMatrix4(root.matrixWorld).project(cam);
       l.sx=(v.x*0.5+0.5)*w;l.sy=(-v.y*0.5+0.5)*h;
@@ -104080,7 +104095,7 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
   const bf = document.getElementById('cm3d-frente');
   if (bf) bf.addEventListener('click', function () { root.rotation.set(0.05, 0, 0) });
   window.addEventListener('resize', function () {
-    const w2 = host.clientWidth || 640; rd.setSize(w2, Hh);
+    const w2 = host.clientWidth || 640; rw = w2; rd.setSize(w2, Hh);
     cam.aspect = w2 / Hh; cam.updateProjectionMatrix();
   });
   /* El repintado se publica para que lo llamen los controles y el modo «Segun el estudio», y
@@ -116728,15 +116743,15 @@ function pulDibDescripcion(st) {
     if (st.der[k]) f.push('derrame ' + st.der[k]);
     var z = st.lb[k];
     if (z) { var zz = ['ant', 'lat', 'bas'].filter(function (x) { return z[x]; }).map(function (x) { return Z[x]; });
-      if (zz.length) f.push('lineas B ' + zz.join(', ')); }
-    if (st.cons[k]) f.push('consolidacion' + (st.bronco ? ' con broncograma aereo' : ''));
-    if (st.pnx[k]) f.push('punto pulmon presente (colapso ilustrativo)');
+      if (zz.length) f.push('líneas B ' + zz.join(', ')); }
+    if (st.cons[k]) f.push('consolidación' + (st.bronco ? ' con broncograma aéreo' : ''));
+    if (st.pnx[k]) f.push('punto pulmón presente (colapso ilustrativo)');
     return f.length ? f.join(' · ') : 'sin hallazgos dibujados';
   };
   var av = [];
-  if (st.lbSinZona) av.push('lineas B presentes sin zona marcada: no se dibujan');
-  if (st.consSinLado) av.push('consolidacion sin lado consignado: no se dibuja');
-  if (st.pnxSinLado) av.push('punto pulmon sin lado unico consignado: no se dibuja');
+  if (st.lbSinZona) av.push('líneas B presentes sin zona marcada: no se dibujan');
+  if (st.consSinLado) av.push('consolidación sin lado consignado: no se dibuja');
+  if (st.pnxSinLado) av.push('punto pulmón sin lado único consignado: no se dibuja');
   return 'Derecho: ' + lado('D') + ' · Izquierdo: ' + lado('I')
        + (av.length ? ' — ' + av.join('; ') + '.' : '.');
 }
@@ -159584,8 +159599,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-1942';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793832161715;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2222';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793841778311;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -159671,7 +159686,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-1942</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2222</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
