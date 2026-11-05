@@ -78063,6 +78063,12 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
           if (sec && getComputedStyle(sec).display === 'none' && FN('toggleEteSeccion')) window.toggleEteSeccion(k, null);
         } catch (x) {} });
       CHK('otr_burb', true); if (FN('otrBurbUI')) window.otrBurbUI();
+      /* ⚠️ ADAPTADO EN PANT-13 (commit 7): la caja de «Detalle (opcional)» de cada variante
+         aparece SOLO con su casilla marcada o con texto ya cargado, asi que hay que marcar la
+         de la red de Chiari antes de medir su caja; sin esto la condicion daba 3 de 4 sobre una
+         maqueta perfecta. Lo que vigila -que los controles no desborden ni se superpongan- no
+         cambia. */
+      CHK('otr_var_chiari', true); if (FN('otrVarNotaSync')) window.otrVarNotaSync();
       /* ⚠️ CADA PANEL SE MIDE CON EL SUYO ACTIVO, y no los cuatro de una vez: las dos
          sub-pestanas son EXCLUYENTES, asi que con «variantes» puesta el control del test de
          burbuja mide 0x0 y la condicion caeria sobre un panel perfecto. */
@@ -78078,7 +78084,13 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
       });
       return sinScroll && conCaja === 4; })(),
     (function(){ const d = document.documentElement;
-      return 'ancho=' + window.innerWidth + ' sw=' + d.scrollWidth + ' cw=' + d.clientWidth; })()]);
+      const det = ['otr_asia_nota','otr_var_chiari_nota','otr_rac_nota','otr_burb_pasaje'].map(function (i) {
+        const e = EL(i); if (!e) return i + ':NO';
+        const r = e.getBoundingClientRect();
+        return i + ':' + Math.round(r.width) + 'x' + Math.round(r.height) + '/' + getComputedStyle(e).display; }).join(' ');
+      const ck = EL('otr_var_chiari');
+      return 'ancho=' + window.innerWidth + ' sw=' + d.scrollWidth + ' cw=' + d.clientWidth
+           + ' | chk=' + (ck ? ck.checked : 'NO') + ' | ' + det; })()]);
 
   return { extra: ex };
 `);
@@ -115018,11 +115030,22 @@ caso('TC-679', 'Tanda PANT-11 (commits 8 a 11): «Masas» como TERCERA seccion d
      mismo mecanismo que la de «Patrones de Strain» del SGL. El globo masa-ref-ei vive DENTRO de
      la tabla, en la celda de la vegetacion, asi que con la tabla cerrada mide 0x0 -medido-. Se
      abre antes de medir la geometria, y antes se fija el invariante NUEVO: que nacio cerrada. */
-  ex.push(['(C-pre) la tabla de diferenciales NACE CERRADA', (function () {
+  /* ⚠️ NO SE MIDE «NACE CERRADA» A SECAS, Y ES UNA MEDICION: la suite corre todos los casos en
+     la MISMA pagina, y un caso anterior del lote puede haber abierto la tabla -medido: sola y
+     con uno delante este caso pasa, y dentro de un lote de seis daba «block/false»-. Lo que se
+     fija es el CICLO completo, que es el mismo invariante y no depende del orden: se la cierra
+     si quedo abierta, se comprueba que esta cerrada con su aria y su flecha, y se comprueba que
+     su boton la abre. */
+  { const cu = document.getElementById('masa-ref-cuerpo');
+    const tg = document.getElementById('masa-ref-tog');
+    if (cu && tg && getComputedStyle(cu).display !== 'none') { try { tg.click() } catch (e) {} } }
+  ex.push(['(C-pre) la tabla de diferenciales esta CERRADA, con su aria y su flecha', (function () {
     const cu = document.getElementById('masa-ref-cuerpo');
     const tg = document.getElementById('masa-ref-tog');
     if (!cu || !tg) return 'NO EXISTE';
-    return getComputedStyle(cu).display + '/' + tg.getAttribute('aria-expanded'); })(), 'none/false']);
+    const ch = tg.querySelector('.igacc-chev');
+    return getComputedStyle(cu).display + '/' + tg.getAttribute('aria-expanded')
+         + '/' + (ch ? ch.textContent : 'SIN FLECHA'); })(), 'none/false/\u25b6']);
   /* igToggleAcc es SINCRONICO -cambia el display en linea-, asi que no hace falta esperar; y
      este punto del caso no esta dentro de una funcion async. */
   try { const tg = document.getElementById('masa-ref-tog'); if (tg) tg.click() } catch (e) {}

@@ -10999,66 +10999,69 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label style="font-weight:600">&#129520; Variantes anat&oacute;micas</label>
             <span style="font-size:10px;color:var(--text2);">Estructuras normales prominentes. Van al informe y no al EN SUMA.</span>
           </div>
-          <div class="grid-2">
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_eustaquio" onchange="otrHallSync()">
-              <span style="font-size:12px;">V&aacute;lvula de Eustaquio prominente</span>
-            </label>
-            <input type="text" id="otr_var_eustaquio_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_chiari" onchange="otrHallSync()">
-              <span style="font-size:12px;">Red de Chiari prominente</span>
-            </label>
-            <input type="text" id="otr_var_chiari_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_lipo" onchange="otrHallSync()">
-              <span style="font-size:12px;">Hipertrofia lipomatosa del septum interauricular</span>
-            </label>
-            <input type="text" id="otr_var_lipo_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_tendones" onchange="otrHallSync()">
-              <span style="font-size:12px;">Falsos tendones del VI</span>
-            </label>
-            <input type="text" id="otr_var_tendones_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_lambl" onchange="otrHallSync()">
-              <span style="font-size:12px;">Excrecencias de Lambl</span>
-            </label>
-            <input type="text" id="otr_var_lambl_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_senocor" onchange="otrHallSync()">
-              <span style="font-size:12px;">Seno coronario dilatado</span>
-            </label>
-            <input type="text" id="otr_var_senocor_nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()">
-          </div>
-          <!-- ⚠️ LA CASILLA DE LA CAVA SUPERIOR IZQUIERDA PERSISTENTE (PANT-12, commit 3).
-               PEDIDO DEL MEDICO (04/11/2026): va al lado de la del seno coronario, con el MISMO
-               estilo, y el 3D del corazon maestro la dibuja con los datos.
-               ⚠️ VA SIN CAJA DE DETALLE Y ES DELIBERADO: las otras seis variantes llevan una
-               `<input id="..._nota">`, que es OTRO campo guardado. La orden autoriza UN solo
-               campo nuevo en toda la tanda, asi que la caja queda afuera y se reporta en
-               `docs/PENDIENTES.md` -> P12-b para que lo decida el medico. El emisor la soporta
-               sin tocarlo: `nota(id)` devuelve cadena vacia cuando el elemento no existe.
-               ⚠️ Y EL 3D NO LA DEDUCE DEL SENO CORONARIO DILATADO: son dos hallazgos distintos
-               -un seno coronario se dilata por muchas causas- y el dibujo la pide por su propia
-               casilla, que es lo que el commit 6 cablea. -->
-          <div class="fg">
-            <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600;">
-              <input type="checkbox" id="otr_var_vcsip" onchange="otrHallSync()">
-              <span style="font-size:12px;">Vena cava superior izquierda persistente</span>
-            </label>
-          </div>
+          <!-- ══ LA GRILLA COMPACTA DE VARIANTES — PANT-13, commit 7 ══════════════════════════
+               Pedido del medico con una captura: los campos estaban muy dispersos. Las siete
+               casillas pasan a una grilla de TRES columnas desde 1000 px, DOS desde 768 y una
+               por debajo, cada una en su celda de 44 px de alto como minimo.
+               ⚠️ EL «Detalle (opcional)» APARECE SOLO con la casilla marcada o con texto ya
+               cargado, y la segunda mitad NO es de adorno: un estudio viejo puede traer el
+               detalle con la casilla apagada, y esconderlo ahi seria PERDER el dato de vista.
+               Lo decide `otrVarNotaSync`, que SOLO muestra y esconde: no escribe ni borra nada.
+               ⚠️ NINGUN id, NINGUN valor guardado, NINGUN orden de emision al informe y NINGUNA
+               columna cambian: es la misma lista de siempre en otra disposicion.
+               ⚠️ LA CASILLA DE LA CAVA IZQUIERDA SIGUE SIN CAJA DE DETALLE -seria otro campo
+               guardado- y SIN globo en esta tanda, por pedido del medico: la explicacion de
+               como se ve y como se sospecha con el test de burbujas necesita una lectura de la
+               biblioteca que todavia no esta. Declarado en docs/PENDIENTES.md -> P13-b. -->
+          <div class="otr-var-grid">
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_eustaquio" onchange="otrHallSync();otrVarNotaSync()">
+                <span>V&aacute;lvula de Eustaquio prominente</span>
+              </label>
+              <input type="text" id="otr_var_eustaquio_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_chiari" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Red de Chiari prominente</span>
+              </label>
+              <input type="text" id="otr_var_chiari_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_lipo" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Hipertrofia lipomatosa del septum interauricular</span>
+              </label>
+              <input type="text" id="otr_var_lipo_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_tendones" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Falsos tendones del VI</span>
+              </label>
+              <input type="text" id="otr_var_tendones_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_lambl" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Excrecencias de Lambl</span>
+              </label>
+              <input type="text" id="otr_var_lambl_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_senocor" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Seno coronario dilatado</span>
+              </label>
+              <input type="text" id="otr_var_senocor_nota" class="otr-var-nota" maxlength="120" placeholder="Detalle (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_vcsip" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Vena cava superior izquierda persistente</span>
+              </label>
+            </div>
           </div>
           <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
             <label style="font-weight:600">&#129656; Anomal&iacute;as coronarias</label>
@@ -25309,6 +25312,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   .masa-col-h{font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;
               padding-bottom:5px;border-bottom:1px solid var(--border);}
   @media(min-width:900px){ .masa-cols{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  /* ══ LA GRILLA COMPACTA DE VARIANTES ANATOMICAS — PANT-13, commit 7 ══════════════════════
+     TRES columnas desde 1000 px, DOS desde 768 y una por debajo. Los cortes van sobre la
+     VENTANA y con `min-width`, que es la regla fija de la casa, y el PISO de cada columna va
+     DENTRO de su media query. */
+  .otr-var-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:4px 10px; }
+  @media (min-width: 768px) {
+    .otr-var-grid { grid-template-columns:repeat(2, minmax(200px,1fr)); }
+  }
+  @media (min-width: 1000px) {
+    .otr-var-grid { grid-template-columns:repeat(3, minmax(190px,1fr)); }
+  }
+  .otr-var-celda { min-width:0; }
+  .otr-var-lab { display:flex; align-items:center; gap:8px; min-height:44px; font-weight:600;
+                 cursor:pointer; }
+  .otr-var-lab span { font-size:12px; line-height:1.25; }
+  .otr-var-lab input[type=checkbox] { flex:none; }
+  /* El detalle va DEBAJO de su celda y con el ancho de la celda. */
+  input.otr-var-nota { width:100%; margin:0 0 4px; }
   /* La tabla de diferenciales: scroll horizontal PROPIO en su contenedor, nunca en la pagina. */
   .masa-ref-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .masa-ref-tabla{border-collapse:collapse;width:100%;min-width:900px;font-size:11px;line-height:1.45;}
@@ -68804,7 +68825,7 @@ function RECALC_MODULOS() {
   /* `vciNoVisSync` va PRIMERO: deja los dos campos de la VCI como corresponde ANTES de que los
      veinticinco consumidores de esta misma lista los lean. */
   return ['vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
-          'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','otrBurbUI','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
+          'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','pulDibPdfSync','otrBurbUI','otrVarNotaSync','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
              que no dispara `input`, así que al reabrir un estudio con dos PAM que difieren el
@@ -72941,6 +72962,30 @@ window.OTR_HALL = OTR_HALL; window.otrHallazgos = otrHallazgos;
 /* Un gesto en la casilla repinta el informe si ya estaba generado, igual que `dptCambio`. La caja
    de nota lo llama por su `oninput` desde el marcado. */
 function otrHallSync() { if (typeof _refrescarInformeSiGenerado === 'function') _refrescarInformeSiGenerado(); }
+/* ══ EL DETALLE DE CADA VARIANTE, SOLO CUANDO HACE FALTA — PANT-13, commit 7 ═══════════════
+   Muestra la caja de detalle de una variante si su casilla esta marcada O si ya trae texto.
+   ⚠️ LA SEGUNDA MITAD NO ES DE ADORNO: un estudio guardado antes puede traer el detalle con la
+   casilla apagada, y esconderlo ahi seria perder el dato de vista. Es la misma regla que la
+   lateralidad derivada del derrame pleural: lo que ya esta cargado no se oculta.
+   ⚠️ SOLO MUESTRA Y ESCONDE: no escribe ni borra ningun campo, asi que no migra nada y no puede
+   mover el papel. */
+/* ⚠️ LA LISTA ES SOLO DE LAS SIETE VARIANTES, Y NO `OTR_HALL`. Lo destapo TC-499 (g6): ese
+   registro trae TODOS los hallazgos de la pestania Otros -el ASIA, la anomalia coronaria, el
+   test de burbuja-, cuyas notas NO son condicionales, y recorriendolo entero esta funcion las
+   escondia a todas. Medido: la condicion contaba 2 cajas de 4 donde antes contaba 4. */
+const OTR_VAR_IDS = Object.freeze(['otr_var_eustaquio', 'otr_var_chiari', 'otr_var_lipo',
+  'otr_var_tendones', 'otr_var_lambl', 'otr_var_senocor', 'otr_var_vcsip']);
+function otrVarNotaSync() {
+  OTR_VAR_IDS.forEach(function (id) {
+    const c = document.getElementById(id);
+    const n = document.getElementById(id + '_nota');
+    if (!c || !n) return;
+    const hay = !!c.checked || String(n.value || '').trim() !== '';
+    n.style.display = hay ? '' : 'none';
+  });
+}
+window.OTR_VAR_IDS = OTR_VAR_IDS;
+window.otrVarNotaSync = otrVarNotaSync;
 window.otrHallSync = otrHallSync;
 
 /* ══ EL TEST DE BURBUJA (CORTOS11, 2026-10-17) ════════════════════════════════════════════════
@@ -160413,8 +160458,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2339';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793846349620;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2350';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793847030547;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160500,7 +160545,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2339</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2350</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
