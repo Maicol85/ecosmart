@@ -10713,6 +10713,20 @@ window.cerrarSesionReal = cerrarSesionReal;
              aria-label="Esquema frontal de los dos pulmones con la pleura, la traquea y el arbol bronquial"></svg>
         <div id="pul-dib-desc" style="font-size:11px;color:var(--text);margin-top:6px;line-height:1.45;" aria-live="polite">—</div>
         <div id="pul-dib-pie">Esquema ilustrativo: no está a escala ni mide.</div>
+        <!-- ══ «INCLUIR EN EL PDF» — PANT-13, commit 6b ═══════════════════════════════════════
+             MISMO mecanismo y MISMO estilo que «Incluir bull's eye en PDF» de Contractilidad: el
+             estado vive en un `input[type=hidden]` que ES campo del estudio -no en localStorage,
+             que «Nuevo estudio» no borra- y el boton se pinta SIEMPRE desde el, por
+             `_pdfToggleBtnState`. Guion BAJO en el id, como `contr_be_pdf`, asi que entra en los
+             barridos genericos del estudio; SIN columna de Excel, que exporta por LAB_XLS_MAP.
+             El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo repone
+             `pulDibPdfSync()` al final de esa funcion, igual que el del bull's eye.
+             El diagrama se arma con los campos del pulmon, que son datos reales del estudio: no
+             hay restriccion de modo como la del corazon maestro. -->
+        <div style="margin-top:8px;">
+          <button class="btn btn-ghost" id="pul-dib-pdf-toggle" onclick="togglePulDibPDF()">&#128196; Incluir el diagrama en el PDF</button>
+          <input type="hidden" id="pul_dib_pdf" value="">
+        </div>
       </div>
       </div><!-- /#pul-fila -->
 
@@ -69686,7 +69700,11 @@ function limpiarCampos(silencioso) {
      campo del estudio. Antes esta linea repintaba desde una clave de `localStorage` que «Nuevo
      estudio» no borraba, y por eso el boton quedaba PRENDIDO sobre un formulario en blanco. */
   { const _be = document.getElementById('contr_be_pdf'); if (_be) _be.value = ''; }
+  /* PANT-13-6b: el del diagrama del pulmon, por el MISMO motivo y con el mismo molde. */
+  { const _pb = document.getElementById('pul_dib_pdf'); if (_pb) _pb.value = ''; }
   if (typeof contrPdfSync === 'function') { try { contrPdfSync(); } catch (e) {} }
+  /* PANT-13-6b: el del diagrama del pulmon, por el MISMO motivo. */
+  if (typeof pulDibPdfSync === 'function') { try { pulDibPdfSync(); } catch (e) {} }
   /* ⚠️ CORTOS9 (2026-10-17): los otros dos toggles tambien son campos del estudio, asi que el
      barrido de arriba —que toma text y number— no los alcanza. Se vacian a mano y se repintan
      desde el estado real, igual que `contr_be_pdf`. Antes se pintaban desde una clave de
@@ -76645,6 +76663,20 @@ function generarPDFReal(_aj) {
       }
     }
   } catch (e) { console.error('[PDF] corazon maestro en 3D:', e); _cm3dEsqIdx = -1; }
+
+  /* ══ EL DIAGRAMA DE LA ECOGRAFIA PULMONAR — PANT-13, commit 6b ════════════════════════════
+     Entra si el medico lo prendio con su boton. Su imagen la rasterizo ese boton, no esta
+     funcion: aca no se rasteriza nada. */
+  try {
+    const _pd = (typeof pulDibPdfData === 'function') ? pulDibPdfData() : { data:null };
+    if (_pd && _pd.data) {
+      const _plin = [];
+      try { const _d = (typeof pulDibEstado === 'function' && typeof pulDibDescripcion === 'function')
+        ? String(pulDibDescripcion(pulDibEstado()) || '') : ''; if (_d) _plin.push(_d) } catch (e) {}
+      _plin.push('Esquema ilustrativo: no está a escala ni mide.');
+      _dg.puldib = { partes: [{ data: _pd.data, ar: PUL_DIB_PDF_AR }], linea: _plin.join('  ·  ') };
+    }
+  } catch (e) { console.error('[PDF] diagrama del pulmon:', e); }
 
   // ════════════════════════════════════════════════════════════
   // VISTA QUIRÚRGICA — VÁLVULA MITRAL (ETE) — antes de la firma
@@ -104819,7 +104851,10 @@ window.cmIncluirPDF = cmIncluirPDF;
    hoja con el 3D y SIN el esquema. Quien PUBLICA es `cmEsqPdfData`, y esa si pregunta. */
 let _cmEsqPdf = { data:null };
 let _cmEsqPdfTo = null;
-const CM_ESQ_PDF_AR = 300 / 290;
+/* ⚠️ `ar` ES ALTO / ANCHO Y NO ANCHO / ALTO, y lo midio el PDF generado de verdad: `_pdfTile`
+   hace `_h = _w * _ar`. Escrito al reves, el esquema salia achatado. Es la misma convencion que
+   `TGA_ESQ_PDF_AR`, que ya estaba bien. */
+const CM_ESQ_PDF_AR = 290 / 300;
 const CM_ESQ_PDF_W = 600, CM_ESQ_PDF_H = 580;
 function cmEsqPdfOn() { return (typeof esqEstaIncluido === 'function') && esqEstaIncluido('cm3d') }
 /* ⚠️ PASA POR `esqRasterizar`, QUE ES EL DUENIO UNICO, Y NO POR UN `new Image()` PROPIO. Fuera
@@ -117310,6 +117345,8 @@ var PUL_D_RAMAS = ['M190 205 L150 180', 'M150 180 L112 168', 'M150 180 L120 205'
 /* Las ramas que entran en la mancha, para el broncograma aereo. */
 var PUL_D_BRONINF = ['M170 300 L124 335', 'M124 335 L92 342', 'M164 350 L112 388',
                      'M154 400 L128 440', 'M164 350 L146 432'];
+/* La separacion entre los puntos del broncograma aereo, en unidades del viewBox (PANT-13, 6a). */
+var PUL_D_BRON_PASO = 7;
 /* La mancha va en la parte INFERIOR del pulmon, SIN lobulo: es la decision del medico. */
 var PUL_D_BLOB = [120, 408, 48, 62, 3.1];
 /* Los tres sectores del abanico de lineas B. El abanico de la demo va de 100 a 260 grados desde
@@ -117419,11 +117456,30 @@ function _pulDLado(svg, defs, side, st) {
     var cw = _pulDEl('g', { 'clip-path': 'url(#pulDibClipLng)' }, lg);
     _pulDEl('path', { d: d2, fill: 'var(--pul-dib-cons)', stroke: 'var(--pul-dib-consline)',
       'stroke-width': 1.2 }, cw);
-    /* BRONCOGRAMA AEREO: solo con «con». Con «sin» o «fluido» estas lineas no se dibujan. */
+    /* ══ BRONCOGRAMA AEREO EN PUNTITOS — PANT-13, commit 6a ════════════════════════════════
+       Pedido del medico con una captura: el aire se dibuja como PUNTOS pequenios y no como
+       lineas continuas. Los puntos van SIGUIENDO EL RECORRIDO de los mismos cinco bronquios que
+       las lineas dibujaban -`PUL_D_BRONINF`, que no se toca-, interpolando cada tramo: los cinco
+       son rectas «M a b L c d», asi que la interpolacion es lineal y no necesita medir el path.
+       El radio decrece con el orden del bronquio, igual que el grosor que tenian las lineas.
+       ⚠️ SIGUE RECORTADO POR EL BLOB de la consolidacion: un punto fuera de la mancha no se ve.
+       Con «sin» o «fluido» no se dibuja ninguno. */
     if (st.bronco) {
-      var bb = _pulDEl('g', { 'clip-path': 'url(#' + cid + ')', fill: 'none',
-        stroke: 'var(--bg2)', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.92 }, cw);
-      PUL_D_BRONINF.forEach(function (dd, k2) { _pulDEl('path', { d: dd, 'stroke-width': k2 === 0 ? 3.2 : 2 }, bb); });
+      var bb = _pulDEl('g', { 'clip-path': 'url(#' + cid + ')', fill: 'var(--bg2)',
+        stroke: 'none', opacity: 0.92 }, cw);
+      PUL_D_BRONINF.forEach(function (dd, k2) {
+        var m = /M\s*([-\d.]+)\s+([-\d.]+)\s*L\s*([-\d.]+)\s+([-\d.]+)/.exec(dd);
+        if (!m) return;
+        var x1 = parseFloat(m[1]), y1 = parseFloat(m[2]), x2 = parseFloat(m[3]), y2 = parseFloat(m[4]);
+        var L = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        var r = (k2 === 0) ? 2.1 : 1.5;
+        var n = Math.max(2, Math.round(L / PUL_D_BRON_PASO));
+        for (var i2 = 0; i2 <= n; i2++) {
+          var t = i2 / n;
+          _pulDEl('circle', { cx: (x1 + (x2 - x1) * t).toFixed(1),
+                              cy: (y1 + (y2 - y1) * t).toFixed(1), r: r }, bb);
+        }
+      });
     }
   }
   _pulDEl('circle', { cx: PUL_D_HX, cy: PUL_D_HY, r: 4, fill: 'var(--text2)' }, lg);
@@ -126090,11 +126146,15 @@ const PDF_DIAG_REG = Object.freeze([
      no es la hoja de congenitas, y `ete` son las valvulares. Va con `w:2` como la
      contractilidad porque su lienzo es ancho —600 x 496— y a un tercio de franja el texto de
      las cavidades no se leeria. El motor no se toca: esto es una fila y su recolector. */
-  { k:'pop',   w:2, fam:'pop', lbl:'Esquema del posoperatorio' }
+  { k:'pop',   w:2, fam:'pop', lbl:'Esquema del posoperatorio' },
+  /* PANT-13-6b: el diagrama de la ecografia pulmonar. Familia PROPIA: no es congenito ni
+     valvular ni del VI, y el posoperatorio son los de cirugia. Media franja -su lienzo es
+     vertical, 440 x 560-. Es una fila y su recolector; el motor no se toca. */
+  { k:'puldib', w:1, fam:'pul', lbl:'Ecografía pulmonar — diagrama' }
 ]);
 window.PDF_DIAG_REG = PDF_DIAG_REG;
 const PDF_DIAG_FAM = Object.freeze({ vi:'Función del VI', ete:'ETE y valvulares', cc:'Congénitas',
-  pop:'Posoperatorio de cirugía cardíaca' });
+  pop:'Posoperatorio de cirugía cardíaca', pul:'Ecografía pulmonar' });
 /* ══ LA LINEA DE TEXTO DE LA VISTA QUIRURGICA MITRAL (IMG3-4, punto 4a) ═════════════════════
    Sale SOLO de datos ya cargados: el tipo y el grado de la insuficiencia mitral, y los
    segmentos que el médico marcó en el dibujo con su lesión. Sin ninguno de los tres NO HAY
@@ -126482,6 +126542,54 @@ window.contrPdfOn = contrPdfOn; window.contrPdfSync = contrPdfSync;
    Cierra `K-3`. Mismo dueño y mismo molde que `contrPdfOn`/`contrPdfSync`/`toggleContrPDF`: el
    estado vive en un oculto del estudio y el boton se pinta SIEMPRE desde el, nunca desde una
    clave global. Las dos claves viejas de `localStorage` ya no se leen y no se migran. */
+/* ══ EL DIAGRAMA DEL PULMON — PANT-13, commit 6b ══════════════════════════════════════════
+   Mismo dueno y mismo molde que `contrPdfOn`/`contrPdfSync`/`toggleContrPDF`. */
+function pulDibPdfOn(){ const e = document.getElementById('pul_dib_pdf'); return !!e && e.value === '1'; }
+function pulDibPdfSync(){ _pdfToggleBtnState('pul-dib-pdf-toggle', pulDibPdfOn()); }
+function togglePulDibPDF(){
+  const e = document.getElementById('pul_dib_pdf');
+  if (!e) return;
+  const on = e.value !== '1';
+  e.value = on ? '1' : '';
+  pulDibPdfSync();
+  /* El SVG se rasteriza al prender, no al generar el PDF: ahi el dibujo puede no estar a la
+     vista -su pestania cerrada- y el raster saldria vacio. Es la leccion del commit 3. */
+  if (on) { try { pulDibPdfRaster(true) } catch (e2) {} } else { _pulDibPdf = { data:null } }
+  toast(on ? '📄 El diagrama del pulmón se incluirá en el PDF' : 'Diagrama del pulmón excluido del PDF');
+}
+window.pulDibPdfOn = pulDibPdfOn; window.pulDibPdfSync = pulDibPdfSync;
+window.togglePulDibPDF = togglePulDibPDF;
+/* El raster, por el DUENIO UNICO `esqRasterizar`, que resuelve las variables de CSS: fuera del
+   documento un fill="var(--pul-dib-lung)" cae en negro, que es el defecto de PANT-2. */
+let _pulDibPdf = { data:null };
+let _pulDibPdfTo = null;
+/* ⚠️ `ar` ES ALTO / ANCHO: `_pdfTile` hace `_h = _w * _ar`. El diagrama es VERTICAL -440 x 560-,
+   asi que su ar es mayor que 1. Escrito al reves, la imagen salia de 82 x 64 mm, o sea achatada
+   para un dibujo que es mas alto que ancho: medido sobre el PDF generado de verdad. */
+const PUL_DIB_PDF_AR = 560 / 440, PUL_DIB_PDF_W = 480, PUL_DIB_PDF_H = 611;
+function pulDibPdfRaster(inmediato) {
+  if (_pulDibPdfTo) { clearTimeout(_pulDibPdfTo); _pulDibPdfTo = null }
+  const cuerpo = function () {
+    if (!pulDibPdfOn()) return null;
+    const svg = document.getElementById('pul-dib-svg');
+    if (!svg || typeof esqRasterizar !== 'function') return null;
+    /* El dibujo se repinta antes de serializar: si la pestania nunca se abrio, el SVG esta
+       vacio y la imagen saldria en blanco. */
+    try { if (typeof pulDibSync === 'function') pulDibSync() } catch (e) {}
+    let txt = '';
+    try { txt = new XMLSerializer().serializeToString(svg) } catch (e) { txt = '' }
+    if (!txt) return null;
+    return esqRasterizar(txt, PUL_DIB_PDF_W, PUL_DIB_PDF_H)
+      .then(function (d) { if (d && pulDibPdfOn()) _pulDibPdf = { data:d }; return d })
+      .catch(function () { return null });
+  };
+  if (inmediato) return cuerpo() || Promise.resolve(null);
+  _pulDibPdfTo = setTimeout(cuerpo, 700);
+  return Promise.resolve(null);
+}
+window.pulDibPdfRaster = pulDibPdfRaster;
+function pulDibPdfData() { return pulDibPdfOn() ? _pulDibPdf : { data:null } }
+window.pulDibPdfData = pulDibPdfData;
 function sglPdfOn(){ const e = document.getElementById('sgl_be_pdf'); return !!e && e.value === '1'; }
 function sglPdfSync(){ _pdfToggleBtnState('sgl-pdf-toggle', sglPdfOn()); }
 function toggleSglPDF(){
@@ -160305,8 +160413,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2330';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793845832391;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2339';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793846349620;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160392,7 +160500,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2330</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2339</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -100833,7 +100833,9 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
               quiere. */
            /* ⚠️ ADAPTADO 2026-11-04 («PANT-13», commit 3): 9 -> 10. La nueva es el CORAZON
               MAESTRO en 3D, de familia cc -como la CIA y la transposicion- y media franja. */
-           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (10 filas)']);
+           /* ⚠️ ADAPTADO 2026-11-04 («PANT-13», commit 6b): 10 -> 11. La nueva es el DIAGRAMA
+              DE LA ECOGRAFIA PULMONAR, de familia propia y media franja. */
+           hay ? 'si (' + PDF_DIAG_REG.length + ' filas)' : 'NO', 'si (11 filas)']);
   if (!hay) return { extra: EXP };
 
   const forma = (r) => r.hojas.map(h => h.map(it =>
@@ -100848,7 +100850,9 @@ caso('TC-559', 'Tanda IMAGENES-3 parte B: el motor de tercios arma las hojas de 
               detras de la CIA, con la misma familia cc y media franja. */
            /* ADAPTADO 2026-11-04 (PANT-13, commit 3): el corazon maestro entra detras del
               esquema 3D de la transposicion, con la misma familia cc y media franja. */
-           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc cm3d/1/cc pop/2/pop']);
+           /* ADAPTADO 2026-11-04 (PANT-13, commit 6b): el diagrama del pulmon cierra el
+              registro, con familia propia y media franja. */
+           'contr/2/vi lv3d/1/vi eteqx/1/ete tavi/1/ete vab/1/ete oai/1/ete cia/1/cc tga3d/1/cc cm3d/1/cc pop/2/pop puldib/1/pul']);
 
   /* ── (E2) R-2: Contractilidad y SGL PRIMERO, juntos, a todo el ancho ── */
   ex.push(['(E2) R-2: contr va primero y a franja completa',
