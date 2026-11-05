@@ -336,3 +336,22 @@ globos de 44 × 44, de 61 a 63). Mutaciones: `scripts/_mut_pant11.py`, **44/44 m
 
 Las fichas están en `docs/mapa/tests-fichas-680.md` (archivo propio: `tests-fichas.md` está a
 menos de 1 KB del techo). El mapa de la tanda es `docs/mapa/pant12-corazon-maestro.md`.
+
+## La tanda PANT-13 — «Explorar», la transposición dentro del corazón maestro, Masas y el pulmón (2026-11-04 y 05)
+
+**Siete casos nuevos, uno por commit de código.** Los siete caen contra la base de la tanda
+(`866482f`) por **124 condiciones y NINGUNA por excepción**.
+
+| Caso | Qué fija |
+|---|---|
+| **TC-686** | El **lienzo sigue al ancho** de su recuadro en cada cuadro, así que las etiquetas no se despegan; y el texto visible del módulo y del diagrama del pulmón lleva sus **tildes** |
+| **TC-687** | **«Explorar» en tres zonas** con sus dos listas y sin la tabla lateral; las combinaciones con **sigla** y nombre completo; los botones finos de 30 px con **área táctil de 44**; y el **esquema de circulación** con su inversión por Eisenmenger |
+| **TC-688** | **«Incluir en el PDF» del corazón maestro**: apagado en «Explorar», sin nada cargado y con una transposición cargada; y el PDF lleva la versión **del estudio** aunque se esté explorando otra cosa |
+| **TC-689** | La **transposición como SEXTA anatomía de base**, con sus cinco variantes, sus dos casillas, las reglas de la demo, la lectura de su pestaña, y el **recuadro de la pestaña que NO se retiró** |
+| **TC-690** | La **tabla de diferenciales de Masas nace cerrada**, el globo queda **fuera** del botón, el contenido no se perdió, los tres textos quedaron neutros y en la sección **no queda** una frase que juzgue una guía |
+| **TC-691** | El **broncograma aéreo en puntitos** recortados por la mancha y con el radio por orden de bronquio; y el **botón del PDF** del diagrama con su campo oculto, que se vacía con «Nuevo estudio» |
+| **TC-692** | Las **siete variantes en grilla compacta** de una, dos o tres columnas, con el detalle que aparece sólo cuando hace falta, **sin borrar un valor** y **sin tocar** las notas de ASIA ni de la circunfleja |
+
+Las fichas están en `docs/mapa/tests-fichas-686.md` (archivo propio: `tests-fichas.md` está a
+menos de 1 KB del techo → `docs/PENDIENTES.md` → **P13-e**). El mapa de la tanda es
+`docs/mapa/pant13-explorar-tga-masas.md`.

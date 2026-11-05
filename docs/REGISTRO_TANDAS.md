@@ -1178,3 +1178,35 @@ los textos del globo verificados hoja por hoja contra las guías.
 
 **Lo que NO hizo:** la parte 2 —«Según el estudio» para las siete lesiones que el motor ya
 dibuja pero la pestaña todavía no cablea—, declarada en `docs/PENDIENTES.md` → **P12-c**.
+
+## PANT-13 — «Explorar», la transposición dentro del corazón maestro, Masas y el pulmón (2026-11-04 y 05)
+
+**Nueve commits** —contados con `git log` al cerrar, y el que escribe este número entra en la
+cuenta—, para los ocho puntos de la orden: el 8 se partió en dos, cobertura y documentación. Al
+empezar, `origin/main` = `HEAD` = `866482f`, el cierre de PANT-12, ya publicado, con md5
+`f27f4705` y sello `v20261104-1942`.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| # | Commit | Qué hizo |
+|---|---|---|
+| 1 | `0398efe` | El lienzo que sigue al ancho de su recuadro, las tildes y el campo de frecuencia |
+| 2 | `2b35ac7` | El rediseño de «Explorar» en tres zonas y el esquema de circulación |
+| 3 | `9e9fd3f` | «Incluir en el PDF» del corazón maestro, **sólo** en «Según el estudio» |
+| 4 | `a2e2f93` | La transposición de grandes arterias como **sexta anatomía de base** |
+| 5 | `e9d227a` | La tabla de Masas cerrada y los textos neutros, con la **regla nueva** en `CLAUDE.md` |
+| 6 | `19309ba` | El broncograma aéreo en **puntitos** y el botón del PDF del diagrama del pulmón |
+| 7 | `997567f` | Las variantes anatómicas en una grilla compacta |
+| 8a | `ffb762a` | Cobertura: siete casos nuevos, TC-686 a TC-692 |
+| 8b | éste | Documentación |
+
+**Lo que dejó:** un «Explorar» en tres zonas con sus combinaciones por sigla y su esquema de
+circulación al lado; la transposición dibujándose dentro del módulo **llamando a la función que su
+pestaña ya usa**; dos diagramas nuevos en el registro del PDF (`cm3d` y `puldib`); la tabla de
+Masas cerrada por omisión; el broncograma en puntos; las variantes en grilla; **un** campo
+guardado nuevo (`pul_dib_pdf`, el único de los dos autorizados que se usó); y una **regla fija
+nueva** en `CLAUDE.md` —«Ningún texto habla mal de las guías»— con su censo medido en el navegador.
+
+**Lo que NO hizo:** retirar el dibujo de la transposición de su pestaña. La equivalencia dio **46
+diferencias sobre 160**, todas de una sola causa medida —las reglas de compatibilidad de la demo
+son más estrictas que las del 3D de hoy—, así que la condición que la orden pone no se cumplió.
+Declarado en `docs/PENDIENTES.md` → **P13-c**, con la decisión que le toca al médico.

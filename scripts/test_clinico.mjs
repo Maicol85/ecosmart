@@ -70317,9 +70317,13 @@ caso('TC-480', 'Tanda Z5: el veredicto de obstruccion de la protesis mitral vota
       ex.push(['la tarjeta tiene CUATRO bloques y lleva acentos',
         r.bloques === 4 && (r.txt.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length >= 15,
         'bloques=' + r.bloques + ' acentos=' + (r.txt.match(/[\\u00e1\\u00e9\\u00ed\\u00f3\\u00fa\\u00f1]/g) || []).length]);
-      ex.push(['declara el umbral como criterio EcoSmart y dice que la guia no publica cuantos hacen falta',
-        r.txt.indexOf('Criterio EcoSmart') > -1 && r.txt.indexOf('no publica cu') > -1 &&
-        r.txt.indexOf('Tabla 11') > -1, '']);
+      /* ADAPTADO en PANT-13 (commit 5): «no publica cuantos hacen falta» dice lo que la guia
+         NO publica y cae bajo la regla nueva de CLAUDE.md. El hecho se conserva dicho en
+         positivo —«El umbral de dos es de la aplicacion»—, y el caso lo exige por los DOS
+         lados, asi que sigue pudiendo fallar si alguien repone la frase vieja. */
+      ex.push(['declara el umbral como criterio EcoSmart, dicho en positivo y sin juzgar a la guia',
+        r.txt.indexOf('Criterio EcoSmart') > -1 && r.txt.indexOf('Tabla 11') > -1 &&
+        r.txt.indexOf('es de la aplicaci') > -1 && r.txt.indexOf('no publica cu') < 0, '']);
       /* ADAPTADO el 2026-10-15 (tanda Z6, commit 1): la tarjeta tiene que describir EXACTAMENTE
          lo que la app hace, y desde hoy el gradiente medio se retira con el AEO y el DVI. La
          condicion afirma el texto nuevo Y que el viejo ya no esta, que es lo que distingue un
@@ -90689,8 +90693,12 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
        sostiene sigue en la ficha, en su ⓘ: que ese consenso no publica clase ni nivel y que sus
        enunciados llevan grado de acuerdo entre los panelistas. Y que no hay seccion de Evidencia
        de eco pulmonar lo sigue midiendo (H10), que es donde corresponde. */
-    /no publica clase ni nivel/.test(fichaPul)
-      && /grado de acuerdo entre los panelistas/.test(fichaPul), 'si']);
+    /* ADAPTADO en PANT-13 (commit 5): «no publica clase ni nivel» dice lo que la fuente NO
+       publica. Hoy la ficha lo dice en positivo —los enunciados llevan grado de acuerdo entre
+       los panelistas y la ficha no escribe ninguna clase— y el caso lo exige por los dos lados. */
+    /grado de acuerdo entre los panelistas/.test(fichaPul)
+      && /no escribe ninguna clase/.test(fichaPul)
+      && !/no publica clase ni nivel/.test(fichaPul), 'si']);
   ex.push(['(H9) EL PULSO PULMONAR NO SE AGREGO',
     fichaPul.indexOf('pulso pulmonar') < 0 && fichaPul.indexOf('Pulso pulm') < 0, 'ausente']);
   ex.push(['(H10) y NO existe una seccion de Evidencia de eco pulmonar',
@@ -101402,8 +101410,12 @@ caso('TC-562', 'Tanda TGA-2: la geometria del diagrama 3D coincide con la demo e
   /* ⚠️ ADAPTADA EN PANT-13 (commit 3): entre el 3D de la transposicion y el del posoperatorio
      entro el CORAZON MAESTRO, tambien de familia cc. Lo que esta condicion vigila sigue siendo
      la posicion relativa del 3D de la transposicion: detras de la CIA. */
-  ex.push(['(H2) y va DETRAS de la CIA, con el corazon maestro y el posoperatorio detras',
-           REG.map(d => d.k).slice(-4).join(','), 'cia,tga3d,cm3d,pop']);
+  /* ADAPTADO en PANT-13 (commit 6): el registro gana «puldib», el diagrama del pulmon, asi
+     que las ultimas CUATRO entradas ya no alcanzan. Se miran las CINCO, y el invariante que el
+     caso vigila —el corazon maestro DETRAS de la CIA y del esquema de la transposicion— no se
+     movio. */
+  ex.push(['(H2) y va DETRAS de la CIA, con el corazon maestro, el posoperatorio y el pulmon detras',
+           REG.map(d => d.k).slice(-5).join(','), 'cia,tga3d,cm3d,pop,puldib']);
   const pk = FN('pdfDiagPack') ? FN('pdfDiagPack')(['contr', 'cia', 'tga3d'], []) : { hojas: [] };
   ex.push(['(H3) los dos congenitos comparten franja y entran en una hoja',
            pk.hojas.length + ': ' + pk.hojas.map(h => h.map(i => i.ids.join('+')).join(' | ')).join(' // '),
@@ -105860,8 +105872,13 @@ caso('TC-589', 'Tanda MARFAN-1: la pantalla con dos columnas de campos y la aort
            /NO fija un m/.test(await leerGlobo('mfs-ectasia')) ? 'si' : 'NO', 'si']);
   ex.push(['(D8) el del codo dice que el articulo no dice con que se mide',
            /NO dice con qu/.test(await leerGlobo('mfs-codo')) ? 'si' : 'NO', 'si']);
-  ex.push(['(D9) el de la miopia declara la contradiccion del articulo',
-           /se contradice/.test(await leerGlobo('mfs-miopia')) ? 'si' : 'NO', 'si']);
+  /* ADAPTADO en PANT-13 (commit 5): «el articulo se contradice» juzga a la fuente y cae bajo
+     la regla nueva. El HECHO sigue entero —el mismo folio escribe el corte de las dos formas y
+     la aplicacion dice cual aplica—, dicho sin juzgarla, y el caso lo exige por los dos lados. */
+  ex.push(['(D9) el de la miopia publica las DOS redacciones del folio y dice cual aplica, sin juzgar a la fuente',
+           (function (t) { return (t.indexOf('una segunda vez') >= 0
+             && t.indexOf('La aplicaci') >= 0 && t.indexOf('se contradice') < 0) ? 'si' : 'NO' })(
+             await leerGlobo('mfs-miopia')), 'si']);
   FN('critCerrar') && critCerrar();
   return { extra: EXP };
   })();
@@ -109490,8 +109507,12 @@ caso('TC-630', 'Tanda PANT-3: las dos estenosis aorticas llevan su conclusion a 
     g.indexOf('Clase I, Nivel C') === g.lastIndexOf('Clase I, Nivel C'), true]);
   const sup = (function () { const e = V && V['easv-grad'];
     return e ? String((e.lee || '') + ' ' + (e.ojo || '') + ' ' + (e.fuente || '')) : '' })();
-  ex.push(['(D10) el globo de la supravalvular dice que la guia no publica un recuadro propio',
-    sup.indexOf('no publica un recuadro') >= 0, true]);
+  /* ADAPTADO en PANT-13 (commit 5): «la guia no publica un recuadro propio» dice lo que la
+     guia NO publica y cae bajo la regla nueva. El hecho se dice en positivo: la guia baja el
+     umbral para la obstruccion A CUALQUIER NIVEL y aca se aplica ese umbral general. Exigido
+     por los dos lados. */
+  ex.push(['(D10) el globo de la supravalvular dice que se le aplica el umbral general, sin juzgar a la guia',
+    sup.indexOf('ese umbral general') >= 0 && sup.indexOf('no publica un recuadro') < 0, true]);
   ex.push(['(D11) y trae su hoja y su folio', sup.indexOf('hoja 10, folio 572') >= 0, true]);
 
   /* (E) NINGUN CORTE SE MOVIO. */
@@ -115933,6 +115954,10 @@ caso('TC-687', 'Tanda PANT-13 (commit 2): «Explorar» en tres zonas con sus DOS
   const Q = String.fromCharCode(39);
   const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
     (b) => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  /* Limpiar PRIMERO: sin esto el modulo hereda las lesiones del caso anterior del lote y los
+     conteos del esquema salen distintos aislado y en la corrida completa. */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  await esperar(320);
   try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
   await esperar(360);
   const bot = EL('cc3d-abrir'); if (bot) bot.click();
@@ -115952,6 +115977,12 @@ caso('TC-687', 'Tanda PANT-13 (commit 2): «Explorar» en tres zonas con sus DOS
   ex.push(['(A3) y la fila de combinaciones DEBAJO del dibujo, dentro del centro',
     (function () { const c = EL('cm3d-cbw'), m = EL('cm3d-mid');
       return (c && m && m.contains(c)) ? 'dentro' : 'fuera' })(), 'dentro']);
+  /* (A5) nacio del barrido de mutaciones: M11 -la barra de herramientas en bloque en vez de
+     fila- SOBREVIVIO porque ninguna condicion la miraba. Se mide el display COMPUTADO y no la
+     regla, asi es observable en cualquier ancho -el arnes corre Chrome a ~756 px-. */
+  ex.push(['(A5) la barra de herramientas es UNA fila y no una pila',
+    (function () { const t = document.querySelector('#cm3d-mid .cm3d-tb');
+      return t ? getComputedStyle(t).display : 'NO' })(), 'flex']);
   ex.push(['(A4) la tabla lateral de PANT-12 y sus filas ya NO existen',
     (EL('cm3d-side') ? 1 : 0) + document.querySelectorAll('.cm3d-srow').length, 0]);
   ex.push(['(A5) ni las filas de botones grandes ni su linea de motivo',
@@ -116029,9 +116060,13 @@ caso('TC-687', 'Tanda PANT-13 (commit 2): «Explorar» en tres zonas con sus DOS
   ex.push(['(D7) las marcas T y M de las valvulas',
     sv ? ['T', 'M'].filter((t) => Array.prototype.some.call(sv.querySelectorAll('text'),
       (e) => String(e.textContent || '').trim() === t)).length + '/2' : 'NO', '2/2']);
-  ex.push(['(D8) y TODOS sus tubos llevan flecha',
+  /* El TOTAL de tubos depende de las lesiones marcadas, y un caso anterior del lote puede dejar
+     otras: fijarlo en 6 era una dependencia de orden -verde aislado, rojo en el lote-. Lo que
+     este caso afirma es que hay tubos y que NINGUNO queda sin flecha. */
+  ex.push(['(D8) hay tubos y NINGUNO queda sin flecha',
     sv ? (function () { const f = sv.querySelectorAll('.cm3d-fl');
-      return f.length + '/' + Array.prototype.filter.call(f, (p) => p.getAttribute('marker-end')).length })() : 'NO', '6/6']);
+      const sin = Array.prototype.filter.call(f, (p) => !p.getAttribute('marker-end')).length;
+      return (f.length > 0) + '/' + sin })() : 'NO', 'true/0']);
 
   /* ── (E) LA INVERSION CON EISENMENGER: la MISMA lesion, la flecha al reves ── */
   const dCiv = () => { const s2 = EL('cm3d-schsvg'); if (!s2) return 'NO';
@@ -116089,6 +116124,11 @@ caso('TC-688', 'Tanda PANT-13 (commit 3): «Incluir en el PDF» del corazon maes
   await esperar(380);
   const bot = EL('cc3d-abrir'); if (bot) bot.click();
   await esperar(2900);
+  /* El MODO vive en memoria y limpiarCampos no lo resetea: un caso anterior que deje
+     «Explorar» apaga el boton y (B1) cae. Verde aislado, rojo en el lote. */
+  try { const bEst = Array.prototype.filter.call(document.querySelectorAll('.cm3d-md'),
+    (x) => x.getAttribute('data-m') === 'estudio')[0]; if (bEst) bEst.click() } catch (e) {}
+  await esperar(600);
   const b = EL('cm3d-pdfb'), n = EL('cm3d-pdfn');
   ex.push(['(A1) el boton y su aviso existen, en la barra de herramientas',
     (b ? 1 : 0) + (n ? 1 : 0) + '/2', '2/2']);
@@ -116352,25 +116392,45 @@ caso('TC-690', 'Tanda PANT-13 (commit 5): la tabla de diferenciales de Masas nac
   __t.limpiar();
   try { showTab('otros') } catch (e) {}
   await esperar(320);
-  /* La seccion vive en un acordeon y nace cerrada: sin abrirla, todo su arbol mide 0 px. */
-  try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('masas', null) } catch (e) {}
-  await esperar(420);
+  /* La seccion vive en un acordeon y nace cerrada: sin abrirla, todo su arbol mide 0 px.
+     ⚠️ toggleEteSeccion ALTERNA, asi que si un caso anterior del lote la dejo ABIERTA este
+     toggle la CIERRA y el denominador da 0 px -verde aislado, rojo en el lote-. Se abre
+     comprobando el alto y se vuelve a tocar si hace falta. */
+  const abrirSec = async (nom, id) => {
+    for (let i = 0; i < 3; i++) {
+      const e = EL(id);
+      if (e && e.getBoundingClientRect().height > 100) return 'abierta';
+      try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion(nom, null) } catch (x) {}
+      await esperar(420);
+    }
+    return 'NO ABRE' };
+  await abrirSec('masas', 'otr-sub-masas');
   const sec = EL('otr-sub-masas');
   ex.push(['(A0) DENOM: la seccion de Masas existe y su cuerpo tiene alto',
     !!sec && sec.getBoundingClientRect().height > 100, true]);
 
-  /* ── (A) NACE CERRADA, CON EL MECANISMO DE «Patrones de Strain» ── */
+  /* ── (A) NACE CERRADA, CON EL MECANISMO DE «Patrones de Strain» ──
+     ⚠️ «NACE cerrada» SE MIDE SOBRE EL MARCADO QUE EL SERVIDOR ENTREGA y no sobre el DOM vivo:
+     igToggleAcc guarda su estado EN EL DOM y limpiarCampos no lo cierra, asi que un caso
+     anterior del lote que abra la tabla -TC-679 lo hace para medir su globo- deja el computado
+     en «block» y el caso salia verde aislado y rojo en la corrida completa. El marcado servido
+     es lo que el medico recibe al abrir la app, que es justo el invariante. */
+  const HTML = await fetch(location.href).then((r) => r.text()).catch(() => '');
   const tog = EL('masa-ref-tog'), cue = EL('masa-ref-cuerpo');
   ex.push(['(A1) el boton de la tabla y su cuerpo existen', (!!tog) + '/' + (!!cue), 'true/true']);
-  ex.push(['(A2) y el cuerpo nace ESCONDIDO',
-    cue ? getComputedStyle(cue).display : 'NO', 'none']);
+  ex.push(['(A0b) DENOM: el marcado servido se pudo leer', HTML.length > 100000, true]);
+  ex.push(['(A2) y el cuerpo NACE escondido, en el marcado que el servidor entrega',
+    HTML.indexOf('id="masa-ref-cuerpo" style="display:none;"') >= 0, true]);
   ex.push(['(A3) con aria-expanded en false, que es lo que el lector de pantalla lee',
-    tog ? tog.getAttribute('aria-expanded') : 'NO', 'false']);
+    HTML.indexOf('aria-expanded="false" aria-controls="masa-ref-cuerpo"') >= 0, true]);
   ex.push(['(A4) y la flecha apuntando a la derecha',
-    (function () { if (!tog) return 'NO'; const c = tog.querySelector('.igacc-chev');
-      return c ? TXT(c).trim() : 'NO CHEV' })(), CH(9654)]);
+    HTML.indexOf('<span class="igacc-chev" style="font-size:.8rem;color:var(--accent2);">&#9654;</span>') >= 0, true]);
   ex.push(['(A5) el boton se puede tocar: 44 px de alto o mas',
     tog ? (tog.getBoundingClientRect().height >= 44) : 'NO', true]);
+  /* Y para el CICLO de abrir y cerrar se normaliza el estado, por lo mismo. */
+  if (tog && cue && getComputedStyle(cue).display !== 'none') { tog.click(); await esperar(260) }
+  ex.push(['(A6b) DENOM: el estado quedo normalizado en cerrada',
+    cue ? getComputedStyle(cue).display : 'NO', 'none']);
   const glo = sec ? sec.querySelector('[data-vinfo="masa-ref"]') : null;
   ex.push(['(A6) el globo de la seccion esta FUERA del boton: un boton dentro de otro es marcado invalido',
     (!!glo) + '/' + (glo && tog ? tog.contains(glo) : 'NO'), 'true/false']);
@@ -116555,8 +116615,17 @@ caso('TC-692', 'Tanda PANT-13 (commit 7): las siete variantes anatomicas en una 
   __t.limpiar();
   try { showTab('otros') } catch (e) {}
   await esperar(320);
-  try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('variantes', null) } catch (e) {}
-  await esperar(420);
+  /* toggleEteSeccion ALTERNA: si un caso anterior la dejo abierta, este toggle la cierra y el
+     denominador da 0 px. Se abre comprobando el alto. */
+  const abrirSec = async (nom, id) => {
+    for (let i = 0; i < 3; i++) {
+      const e = EL(id);
+      if (e && e.getBoundingClientRect().height > 100) return 'abierta';
+      try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion(nom, null) } catch (x) {}
+      await esperar(420);
+    }
+    return 'NO ABRE' };
+  await abrirSec('variantes', 'otr-sub-variantes');
   const sec = EL('otr-sub-variantes');
   ex.push(['(A0) DENOM: la seccion de variantes existe y su cuerpo tiene alto',
     !!sec && sec.getBoundingClientRect().height > 100, true]);

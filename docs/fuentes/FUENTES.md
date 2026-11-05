@@ -11138,3 +11138,75 @@ hoja.** Lo que no se pudo respaldar se sacó del texto y está en `docs/PENDIENT
 | Cava izquierda: «baja por delante del hilio pulmonar izquierdo y **suele** desembocar en el seno coronario, **que se dilata**» | «cuyo drenaje puede ser al **seno coronario, a un seno coronario sin techo o a la aurícula izquierda**» | ASE h35 · 769. Lo retirado está en **P12-a** |
 | Las cuatro combinaciones con fuente: «… **A verificar por Code**.» | la cita con su hoja y su folio, sin esa frase | Verificadas en imagen. La frase no puede entrar a la app |
 | Las dos combinaciones sin fuente: «Ejemplo didáctico…» | «**Ejemplo didáctico, sin fuente**: …» | Que se lea que no tienen respaldo |
+
+---
+
+## La tanda PANT-13 (2026-11-04 y 05) — «Explorar», la transposición dentro del corazón maestro, Masas y el pulmón
+
+⚠️ **ESTA TANDA NO ABRIÓ UN SOLO PDF DE GUÍA, Y SE DECLARA.** Ninguno de sus siete commits de
+código agrega contenido clínico: lo que hacen es **disposición de pantalla** (commits 1, 2, 7),
+**mecanismo** (commits 3, 6), **reuso de una función que ya existía** (commit 4) y **redacción sin
+tocar un dato** (commit 5). Por eso su tabla «Cambios de evidencia» es de **redacción** y no de
+contenido, y **no se agregó ni se movió una sola cita, hoja, folio, tabla, clase ni nivel**.
+
+### El commit 4 no porta geometría: llama a la función que ya existe
+
+La transposición entra al corazón maestro llamando a **`tga3dEscena`**, la misma función que su
+propio 3D usa, a través del traductor `CM_TGA_VAR`. Verificado antes de decidirlo: los
+**diecinueve** juegos de puntos de `_T3` y los `CM_*` son idénticos byte por byte; los cuatro
+colores de `TGA3D_C` están en `CM_C`; y los **tres** tipos de extra que `tga3dEscena` emite
+—`ring`, `sph` y `tube`— son de los siete que el motor del módulo dibuja.
+
+Así la equivalencia que el punto 4d exige es **exacta por construcción** y no por comparación: el
+día que un corte de la transposición cambie, cambia en los dos dibujos a la vez.
+
+⚠️ **Y LA DEMO ERA UNA APROXIMACIÓN EN DOS COSAS**, que es lo que la orden anticipa, y en las dos
+manda **lo que la app dibuja HOY**:
+
+| Lo que la demo suponía | Lo que la app dibuja, medido |
+|---|---|
+| La CIV residual no se dibuja | **SÍ se dibuja**: `tga3dComs` la devuelve como `vsd`, o sea una comunicación interventricular |
+| La obstrucción subaórtica se dibuja | **NO se dibuja en ninguna parte** del 3D ni de su esquema, censado el archivo entero |
+
+### Los textos que quedaron neutros (commit 5), con lo que decían y lo que dicen
+
+La regla nueva de `CLAUDE.md` —«Ningún texto habla mal de las guías»— se aplicó a **veintisiete**
+textos: tres filas de la tabla de Masas, dos globos de la sección, y **veinticuatro** de fuera,
+dentro del tope de 25 que la orden pone. **Ningún dato cambió**: las diez hojas, los diez folios y
+las cinco tablas de la tabla de Masas salen idénticas antes y después, comparadas una por una.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Tabla de Masas, fila de la prótesis | «**Dos fuentes que no coinciden, y se muestran sin resolver.** La ASE 2016 asocia el pannus a la prótesis mecánica aórtica y el trombo a la mecánica mitral o tricuspídea. La ASE 2024 de prótesis sitúa, sobre una prótesis aórtica, el trombo en el lado aórtico y el pannus en el ventricular.» | «La ASE 2016 asocia el pannus a la prótesis **mecánica aórtica** y el trombo a la mecánica **mitral o tricuspídea**. La ASE 2024 de prótesis **describe**, sobre una prótesis aórtica, el trombo del lado **aórtico** y el pannus del **ventricular**.» |
+| Tabla de Masas, fila de las variantes normales | «**Ninguna fuente de la biblioteca publica** una regla ecocardiográfica propia para distinguirlas de una masa más allá de que son variantes.» | «La fuente las lista **entre las estructuras normales** que se confunden con una masa.» |
+| Tabla de Masas, nota de las excrecencias de Lambl | «La fuente dice expresamente que **por ecocardiografía no hay forma de distinguir** las excrecencias de Lambl de los filamentos.» | «**La ASE 2016** considera las excrecencias de Lambl y los filamentos **indistinguibles por ecocardiografía**.» |
+| Globos `masa-ref` y `masa-ref-ei`, corte de tamaño de la vegetación | «… **CAMBIA ENTRE GUIAS**, lo que se muestra sin resolver» | «**El corte de tamaño, guía por guía:**», con los **tres cortes intactos** |
+| Título de un bloque de Evidencia | «Las diferencias entre las guías, **sin resolver**» | «**Lo que publica cada guía**» |
+| Los **diecinueve** restantes de fuera de Masas | «no coinciden», «difieren», «discrepan de verdad», «se muestra sin resolver», «ninguna fuente publica», «no se encontró» | Cada fuente **en su propia oración**, con su hoja y su folio, sin comentario |
+
+⚠️ **LA NOTA DE LAMBL GANÓ PRECISIÓN Y NO LA PERDIÓ**: antes decía «la fuente» y ahora la nombra,
+**ASE 2016**, que es lo único que se agrega.
+
+### El censo se hace en el navegador y NO por grep
+
+Un grep sobre el archivo marcó **864 líneas** y la enorme mayoría eran **comentarios**, que en
+esta casa van sin tilde y sin pulir a propósito. La sonda es `scripts/_probe_pant13neutro.mjs` y
+recorre el DOM visible sin los `<script>`, el registro de globos entero —**142** claves— y la
+tabla de Masas.
+
+**Medido: Masas pasó de CINCO apariciones a CERO y el resto de la app de TREINTA textos distintos
+a SEIS.** Los seis que quedan **no caen** bajo la regla y están uno por uno en
+`docs/PENDIENTES.md` → **P13-a**: cuatro hablan de **la app** y dos de **dos mediciones del
+paciente** que difieren.
+
+### Cambios de evidencia
+
+| # | Qué cambió | Fuente | Qué NO cambió |
+|---|---|---|---|
+| 1 | Tres filas de la tabla de Masas, neutras | — (redacción) | Las diez hojas, los diez folios y las cinco tablas, idénticas |
+| 2 | Dos globos de Masas, neutros | — (redacción) | Los tres cortes de tamaño de la vegetación, intactos |
+| 3 | Veinticuatro textos de fuera de Masas, neutros | — (redacción) | Ningún corte, umbral, clase, nivel, tabla ni folio |
+| 4 | La nota de Lambl nombra a su fuente | ASE 2016 | El contenido de la frase |
+| 5 | «Corazon normal» → «Corazón normal» y el resto de las tildes del módulo y del diagrama del pulmón | — (ortografía) | Todo lo demás |
+
+**Ninguna cita nueva. Ninguna cita movida. Ningún folio agregado.**

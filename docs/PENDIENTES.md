@@ -1,5 +1,94 @@
 # EcoSmart — pendientes vivos
 
+## P13-a · Los SEIS textos que quedan tras el censo de la regla nueva, y por qué NINGUNO cae bajo ella
+
+La regla nueva —«Ningún texto habla mal de las guías»— se censó **en el navegador y no por
+grep**: un grep sobre el archivo marcó 864 líneas y la enorme mayoría eran **comentarios**, que en
+esta casa van sin tilde y sin pulir a propósito. La sonda es `scripts/_probe_pant13neutro.mjs` y
+recorre el DOM visible sin los `<script>`, el registro de globos entero y la tabla de masas.
+
+**Medido: Masas pasó de cinco apariciones a CERO y el resto de la app de TREINTA textos distintos
+a SEIS.** Los seis que quedan son éstos, y **ninguno juzga una guía contra otra**:
+
+| # | Lo que dice | Por qué NO cae bajo la regla |
+|---|---|---|
+| 1 | «esta aplicación **no publica** un valor normal» | Habla de **la app**, no de una guía |
+| 2 | «esta pantalla **NO publica** el número y lista cuáles faltan» | Ídem |
+| 3 | «este globo **no publica** cortes ni conducta» | Ídem |
+| 4 | «la aplicación **no publica** ningún veredicto de reparabilidad» | Ídem |
+| 5 | «**si difiere** del transvalvular» | Son **dos mediciones del paciente** que difieren |
+| 6 | «la app avisa **si difieren** en 3 mm o más» | Ídem |
+
+Los **veinticuatro** de fuera de Masas que SÍ se corrigieron están en
+`docs/fuentes/FUENTES.md` → «La tanda PANT-13», con su texto anterior y el nuevo.
+
+## P13-b · La cava superior izquierda persistente sigue sin globo y sin caja de detalle
+
+Por pedido expreso del médico, y es la segunda tanda que lo declara (venía de **P12-b**):
+
+- **sin caja de detalle**, porque sería otro campo guardado y esta tanda tenía un tope de dos
+  —el único que usó es `pul_dib_pdf`—;
+- **sin globo ⓘ**, porque la explicación de cómo se ve y cómo se sospecha con el test de burbujas
+  necesita una lectura de la biblioteca que todavía no está hecha. Lo que PANT-12 retiró de su
+  texto por no tener respaldo está literal en **P12-a**.
+
+Sigue en `OTR_VAR_IDS` igual, porque `otrVarNotaSync` pregunta por la caja antes de tocarla; el
+caso **TC-692 (D1)** y **(D2)** fijan las dos mitades.
+
+## P13-c · El dibujo de la transposición NO se retiró de su pestaña, y la medición es lo que lo para
+
+El punto 4d de la orden condiciona el retiro a que la equivalencia escena por escena dé **cero
+diferencias**. Medido con `scripts/_probe_pant13equiv.mjs`, comparando el escenario que el módulo
+produce con base `tga` contra el que la pestaña produce con los mismos datos:
+
+**46 diferencias sobre 160 escenarios**, y las 46 tienen **una sola causa medida**: las reglas de
+compatibilidad de la demo v13, que el módulo porta tal cual, son **más estrictas** que las que el
+3D de la transposición aplica hoy. Hay escenarios —comunicaciones sobre un switch auricular, sobre
+un Rastelli o sobre una ccTGA— que el módulo **apaga** y que la pestaña **sí dibuja**.
+
+Retirar el recuadro perdería esos escenarios, así que la sección conserva:
+
+- su recuadro (`#tga-3d-cv`), su esquema de circulación (`#tga-esq-box`) y su botón de PDF
+  (`#tga-3d-pdf`);
+- y el botón del corazón maestro queda **apagado** con una transposición cargada, para que el
+  mismo dibujo no entre al PDF dos veces.
+
+**La decisión que le toca al médico:** si las reglas de la demo son las correctas —y entonces hay
+que endurecer las del 3D de la pestaña, que es contenido clínico— o si las del 3D son las
+correctas —y entonces hay que aflojar las del módulo, apartándose de la demo que él aprobó—.
+El caso **TC-689 (I1)** a **(I3)** es el guardián de esta parada: el día que el recuadro se
+retire, se pone rojo nombrándolo.
+
+## P13-d · El corte de tres columnas de «Explorar» es 1260 px y no 1200, y lo decidió la medición
+
+La orden del commit 2 pide tres zonas «a partir de unos 1200 px». Medido en Chrome: a 1200 px las
+dos zonas laterales de 230 px, los dos huecos de 12 y el relleno del cuerpo de la sección dejan la
+columna central **por debajo** del piso de 200 px que esta casa usa. A **1260** da 205 px.
+
+Entre 560 y 1259 px el reparto es de dos columnas con el centro a todo el ancho y primero
+(`order:-1`); por debajo de 560, todo apilado. **Ninguna otra regla de la app se movió**: los tres
+cortes son propios de `#cm3d-shell`.
+
+## P13-e · Dos mapas a menos de 1 KB del techo, sin tocar
+
+`docs/mapa/congenitas-otros.md` (**34.540 B**) y `docs/mapa/tests-fichas.md` (**34.237 B**) **no
+se tocaron**, que es lo que la orden pide. Las fichas de los siete casos de esta tanda salieron a
+`docs/mapa/tests-fichas-686.md`, archivo propio, y el mapa de la tanda es nuevo.
+
+**La próxima tanda que necesite escribirles tiene que partirlos**, y es la cuarta vez seguida que
+este pendiente se escribe sin resolverse.
+
+## P13-f · Una condición de TC-690 no tiene mutación posible, y se declara
+
+**(A6)** exige que el globo de la tabla de Masas quede **fuera** del botón del acordeón. La
+mutación que la probaría —meter el globo dentro— **no se puede escribir**: un botón dentro de otro
+es marcado inválido y el navegador lo **reparenta** fuera, así que `tog.contains(glo)` devuelve
+`false` igual. O sea que el invariante lo garantiza el parser del navegador y no el código.
+
+Se declara en vez de fingir una mutación que no inyecta nada. Lo que la condición sí protege es el
+caso en que alguien escriba el marcado al revés y el navegador lo acomode de un modo que rompa el
+clic: las condiciones **(B1)** y **(B3)** lo miden —el globo abre y la tabla **no** se cierra—.
+
 ## P12-a · Lo que PANT-12 sacó de los textos del corazón maestro, LITERAL, por no tener respaldo
 
 Los textos del globo y de la tabla lateral del corazón maestro se verificaron **hoja por hoja y

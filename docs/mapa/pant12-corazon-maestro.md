@@ -141,3 +141,27 @@ La **parte 2** del corazón maestro: «Según el estudio» para Fallot, coartaci
 pulmonar, estenosis subaórtica y supravalvular, defecto del septo auriculoventricular, Ebstein y
 Fontan. El motor **ya los dibuja** —están en el modelo y se ven en «Explorar»—; lo que falta es
 el cableado desde sus pestañas. Ver `docs/PENDIENTES.md` → **P12-c**.
+
+---
+
+## 8 · Lo que la tanda PANT-13 cambió de todo esto (2026-11-04 y 05)
+
+**Siete puntos de este mapa dejaron de ser ciertos**, y el detalle está en
+`docs/mapa/pant13-explorar-tga-masas.md`:
+
+- **`CM_BASES` tiene SEIS anatomías y no cinco**: entró la **transposición de grandes arterias**,
+  con cinco variantes y dos casillas. No se portó su geometría: se llama a `tga3dEscena`, la misma
+  función que usa el 3D de su pestaña, así que la equivalencia es exacta por construcción.
+- **`CC3D_DIBUJA` tiene OCHO entradas** y **`CC3D_PROPIO` quedó vacío**: la línea de abajo ya no
+  dice que la transposición «tiene su propio diagrama», porque hoy el módulo la dibuja.
+  ⚠️ **Su recuadro NO se retiró**, y la razón está medida en `docs/PENDIENTES.md` → **P13-c**.
+- **«Explorar» se rediseñó en tres zonas** (`#cm3d-shell`) y **la tabla lateral de 21 filas se
+  retiró**, junto con sus filas de botones grandes. El § 1 de este mapa nombraba
+  `cmRenderSide()`: hoy lo que pinta son las dos listas finas y la fila de combinaciones.
+- **El módulo tiene su propio «Incluir en el PDF»** (`#cm3d-pdfb`), que funciona **sólo** en
+  «Según el estudio» y queda apagado con una transposición cargada. El lienzo lleva
+  `preserveDrawingBuffer:true` y `_cm3dCaptura` compone las etiquetas, porque sin eso el PNG sale
+  en blanco o sin un solo rótulo.
+- **El lienzo sigue al ancho de su recuadro en cada cuadro**, que es el defecto de las etiquetas
+  despegadas que el médico reportó.
+- **El campo de frecuencia mide 78 px** y ya no se lleva una fila entera.

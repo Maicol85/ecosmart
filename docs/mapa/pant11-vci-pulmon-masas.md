@@ -357,3 +357,22 @@ los textos retirados palabra por palabra, lo que cuesta la casilla de la VCI, la
 que la premisa daba por existente y no existe, los pares del pulmón que no se sincronizan, lo que
 el dibujo no muestra, la opción «pannus», el botón «Ver referencia» de los dos globos nuevos, el
 resumen de lo parado, y el hallazgo ALTA que el barrido de celular suma y es un falso positivo.
+
+---
+
+## Lo que la tanda PANT-13 cambió de Masas y del pulmón (2026-11-04 y 05)
+
+Detalle en `docs/mapa/pant13-explorar-tga-masas.md` § 5 y § 6:
+
+- **La tabla «Cómo distinguirlas (referencia)» nace CERRADA**, con el mecanismo de «Patrones de
+  Strain» del SGL: `igToggleAcc`, `#masa-ref-tog` con `aria-expanded`, su flecha `.igacc-chev` y
+  `#masa-ref-cuerpo` con `display:none`. El estado abierto **no se guarda** y el globo queda
+  **fuera** del botón.
+- **Tres textos de la tabla y dos globos quedaron neutros** por la regla nueva de `CLAUDE.md`
+  —«Ningún texto habla mal de las guías»—, **sin tocar un dato**: las diez hojas, los diez folios
+  y las cinco tablas salen idénticas.
+- **El broncograma aéreo del diagrama del pulmón se dibuja en PUNTOS y no en líneas**, con el
+  radio decreciendo por orden de bronquio (2.1 y 1.5) y **recortados por el blob** de la
+  consolidación.
+- **El diagrama del pulmón tiene su «Incluir el diagrama en el PDF»** (`#pul-dib-pdf-toggle`, con
+  el campo `pul_dib_pdf`), que es el **único campo guardado nuevo** de la tanda.

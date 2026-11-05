@@ -544,3 +544,25 @@ Está todo en `pa-pantalla-posoperatorio.md` § 8.
   dato falta:** se retira el renglón, no se cambia una frase por otra.
 
 Detalle en `docs/mapa/pant7-vd-cia-globos.md` § 2 y § 4.
+
+---
+
+## Dos diagramas nuevos en el registro del PDF — tanda PANT-13 (2026-11-04 y 05)
+
+`PDF_DIAG_REG` gana **dos** entradas, las dos de media franja:
+
+| Clave | Familia | Qué estampa | Compuerta |
+|---|---|---|---|
+| `cm3d` | `cc` (congénitas) | El **corazón maestro en 3D**, con sus etiquetas compuestas sobre el lienzo | `esqEstaIncluido('cm3d')`, y el botón sólo se habilita en «Según el estudio», con algo cargado y **sin** transposición |
+| `puldib` | `pul` (nueva) | El **diagrama del pulmón** | `pulDibPdfOn()`, o sea el campo `pul_dib_pdf` |
+
+⚠️ **EL `ar` DEL REGISTRO ES ALTO/ANCHO Y NO ANCHO/ALTO.** `_pdfTile` multiplica el ancho por `ar`
+para sacar el alto: con `560/440` invertido, la imagen del pulmón salía **82 × 64** donde tenía
+que salir **50 × 64**. `CM_ESQ_PDF_AR` vale `290/300` y `PUL_DIB_PDF_AR` vale `560/440`.
+
+⚠️ **EL ESQUEMA DE CIRCULACIÓN SE RASTERIZABA EN BLANCO**: `cmSchRender` sale temprano cuando su
+caja está `hidden`, así que hubo que darle un argumento `forzar`. Y el lienzo WebGL necesita
+`preserveDrawingBuffer:true`, porque sin él `toDataURL` devuelve un PNG **en blanco** en cuanto el
+navegador limpió el buffer.
+
+Detalle en `docs/mapa/pant13-explorar-tga-masas.md` § 3 y § 6.

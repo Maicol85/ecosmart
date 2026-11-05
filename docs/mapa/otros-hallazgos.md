@@ -361,3 +361,29 @@ encabezados de cada panel, y lo corrige el commit 8b. **Las tres secciones son H
 `#tab-otros` y cada una tiene exactamente un `h2.card-head`.**
 
 Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 8 a § 10 y **TC-679**.
+
+---
+
+## Las variantes anatómicas en grilla compacta — tanda PANT-13 (2026-11-05)
+
+Las **siete** variantes pasaron de una fila por variante a `.otr-var-grid`: **una** columna por
+omisión, **dos** desde 560 px y **tres** desde 900 px, con su rótulo de 44 px de alto mínimo y su
+«Detalle (opcional)» debajo.
+
+**El detalle aparece sólo cuando hace falta**, y lo decide `otrVarNotaSync`: con la casilla marcada
+**o** con texto ya cargado.
+
+⚠️ **LA SEGUNDA MITAD NO ES DE ADORNO**: un estudio viejo puede traer el detalle con la casilla
+apagada, y esconderlo ahí sería **perder el dato de vista**. Y la función **sólo muestra y
+esconde**: no escribe ni borra nada.
+
+⚠️ **ITERA `OTR_VAR_IDS` Y NO `OTR_HALL`**, y eso lo cazó **TC-499 (g6)**: recorriendo el registro
+entero escondía también las notas del **aneurisma del septum** y de la **circunfleja
+retroaórtica**, que no son variantes.
+
+**La cava superior izquierda persistente sigue sin caja de detalle y sin globo**, por pedido del
+médico (→ `docs/PENDIENTES.md` → **P13-b**); está en `OTR_VAR_IDS` igual, porque la función
+pregunta por la caja antes de tocarla.
+
+Ningún id, ningún valor guardado, ningún orden de emisión al informe y ninguna columna cambiaron.
+Mapa de la tanda: `docs/mapa/pant13-explorar-tga-masas.md` § 7.
