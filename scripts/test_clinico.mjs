@@ -115010,6 +115010,25 @@ caso('TC-679', 'Tanda PANT-11 (commits 8 a 11): «Masas» como TERCERA seccion d
     document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, false]);
 
   /* ── (C) LOS DOS GLOBOS NUEVOS ── */
+  /* ⚠️ ADAPTADO EN PANT-13 (commit 5a): LA TABLA NACE CERRADA, por pedido del medico, con el
+     mismo mecanismo que la de «Patrones de Strain» del SGL. El globo masa-ref-ei vive DENTRO de
+     la tabla, en la celda de la vegetacion, asi que con la tabla cerrada mide 0x0 -medido-. Se
+     abre antes de medir la geometria, y antes se fija el invariante NUEVO: que nacio cerrada. */
+  ex.push(['(C-pre) la tabla de diferenciales NACE CERRADA', (function () {
+    const cu = document.getElementById('masa-ref-cuerpo');
+    const tg = document.getElementById('masa-ref-tog');
+    if (!cu || !tg) return 'NO EXISTE';
+    return getComputedStyle(cu).display + '/' + tg.getAttribute('aria-expanded'); })(), 'none/false']);
+  /* igToggleAcc es SINCRONICO -cambia el display en linea-, asi que no hace falta esperar; y
+     este punto del caso no esta dentro de una funcion async. */
+  try { const tg = document.getElementById('masa-ref-tog'); if (tg) tg.click() } catch (e) {}
+  ex.push(['(C-pre2) y su boton la abre, con la flecha y el aria siguiendola', (function () {
+    const cu = document.getElementById('masa-ref-cuerpo');
+    const tg = document.getElementById('masa-ref-tog');
+    if (!cu || !tg) return 'NO EXISTE';
+    const ch = tg.querySelector('.igacc-chev');
+    return (getComputedStyle(cu).display !== 'none') + '/' + tg.getAttribute('aria-expanded')
+         + '/' + (ch ? ch.textContent : 'SIN FLECHA'); })(), 'true/true/\u25bc']);
   const REG = (typeof VINFO === 'undefined') ? null : VINFO;
   ex.push(['(C0) DENOMINADOR: las dos entradas estan en el registro de globos',
     REG ? ['masa-ref', 'masa-ref-ei'].filter(k => !REG[k]).join(',') : 'NO HAY REGISTRO', '']);

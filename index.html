@@ -11150,13 +11150,27 @@ window.cerrarSesionReal = cerrarSesionReal;
            ⚠️ TODO PARAFRASEADO: ni una frase copiada. Cada fila lleva su guia, su edicion, su
               hoja y su folio, los dos comprobados en el pie impreso.
            ⚠️ CON SCROLL HORIZONTAL PROPIO EN SU CONTENEDOR, no en la pagina. -->
+      <!-- ══ CERRADA POR DEFECTO — PANT-13, commit 5a ═══════════════════════════════════════
+           Pedido del medico con una captura: la tabla tiene que estar cerrada al abrir la
+           pestania, como la de «Patrones de Strain» del SGL. Se usa el MISMO mecanismo que esa
+           -`igToggleAcc`-: un boton con `aria-expanded`, su flecha `igacc-chev` y el cuerpo con
+           `display:none`. El estado abierto NO se guarda, igual que alla.
+           ⚠️ EL GLOBO QUEDA FUERA DEL BOTON y no dentro: un boton dentro de otro es marcado
+           invalido que el navegador reparenta -es lo que PANT-9 midio con el globo del titulo de
+           un acordeon-, y ademas abrir la ayuda cerraria la tabla. -->
       <div class="masa-ref" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-        <div class="calc-row" style="border:0;padding:0 0 8px;">
-          <span class="calc-lbl" style="font-weight:700;">C&oacute;mo distinguirlas (referencia)
-            <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="masa-ref" aria-expanded="false"
-                    aria-label="Qu&eacute; estudio complementario conviene cuando hay dudas"
-                    onclick="vInfoClic(this)">&#9432;</button></span>
+        <div class="calc-row" style="border:0;padding:0 0 8px;align-items:center;">
+          <button type="button" id="masa-ref-tog" onclick="igToggleAcc('masa-ref-cuerpo',this)"
+                  aria-expanded="false" aria-controls="masa-ref-cuerpo"
+                  style="display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;min-height:44px;cursor:pointer;color:var(--text);font-weight:700;font-size:12px;">
+            <span class="igacc-chev" style="font-size:.8rem;color:var(--accent2);">&#9654;</span>
+            <span>C&oacute;mo distinguirlas (referencia)</span>
+          </button>
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="masa-ref" aria-expanded="false"
+                  aria-label="Qu&eacute; estudio complementario conviene cuando hay dudas"
+                  onclick="vInfoClic(this)">&#9432;</button>
         </div>
+        <div id="masa-ref-cuerpo" style="display:none;">
         <div class="masa-ref-wrap">
         <table class="masa-ref-tabla">
           <thead>
@@ -11211,12 +11225,12 @@ window.cerrarSesionReal = cerrarSesionReal;
               <td>Estructuras <b>filiformes</b>, de 2&nbsp;mm de ancho o menos y de unos 3 a 10&nbsp;mm de largo. Suelen ser m&uacute;ltiples.</td>
               <td>Movimiento ondulante.</td>
               <td>Nacen de la propia l&iacute;nea de cierre valvular.</td>
-              <td>La fuente dice expresamente que <b>por ecocardiograf&iacute;a no hay forma de distinguir</b> las excrecencias de Lambl de los filamentos.</td>
+              <td>La ASE 2016 considera las excrecencias de Lambl y los filamentos <b>indistinguibles por ecocardiograf&iacute;a</b>.</td>
               <td>ASE 2016, hoja 21, folio 21.</td>
             </tr>
             <tr>
               <td><b>Trombo y pannus sobre una pr&oacute;tesis</b></td>
-              <td><b>Dos fuentes que no coinciden, y se muestran sin resolver.</b> La ASE 2016 asocia el pannus a la pr&oacute;tesis <b>mec&aacute;nica a&oacute;rtica</b> y el trombo a la mec&aacute;nica <b>mitral o tricusp&iacute;dea</b>. La ASE 2024 de pr&oacute;tesis sit&uacute;a, sobre una pr&oacute;tesis a&oacute;rtica, el trombo en el lado a&oacute;rtico y el pannus en el <b>ventricular</b>.</td>
+              <td>La ASE 2016 asocia el pannus a la pr&oacute;tesis <b>mec&aacute;nica a&oacute;rtica</b> y el trombo a la mec&aacute;nica <b>mitral o tricusp&iacute;dea</b>. La ASE 2024 de pr&oacute;tesis describe, sobre una pr&oacute;tesis a&oacute;rtica, el trombo del lado <b>a&oacute;rtico</b> y el pannus del <b>ventricular</b>.</td>
               <td>El trombo es una masa irregular; el pannus es tejido fibroso de crecimiento cr&oacute;nico. La mezcla de los dos no es rara.</td>
               <td>A favor del <b>trombo</b>: masa grande y m&oacute;vil. A favor del <b>pannus</b>: masa poco m&oacute;vil.</td>
               <td>A favor del trombo: movimiento anormal del oclusor con obstrucci&oacute;n y anclaje en el propio oclusor. A favor del pannus: sin ca&iacute;da significativa del movimiento del oclusor.</td>
@@ -11229,12 +11243,13 @@ window.cerrarSesionReal = cerrarSesionReal;
               <td>Estructuras anat&oacute;micas normales que la fuente lista entre lo que <b>con m&aacute;s frecuencia se confunde</b> con una masa.</td>
               <td>Variable.</td>
               <td>Forman parte de la pared o del tabique, no se apoyan sobre &eacute;l.</td>
-              <td>Ninguna fuente de la biblioteca publica una regla ecocardiogr&aacute;fica propia para distinguirlas de una masa m&aacute;s all&aacute; de que son variantes.</td>
+              <td>La fuente las lista entre las estructuras normales que se confunden con una masa.</td>
               <td>JACC CardioOncology 2024, hoja 4, folio 850.</td>
             </tr>
           </tbody>
         </table>
         </div>
+        </div><!-- /#masa-ref-cuerpo -->
       </div>
     </div>
   </div>
@@ -17278,7 +17293,7 @@ z
             <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
                          padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
             La longitud de los velos &mdash;anterior &ge;20 mm y posterior &ge;7 mm&mdash; es una
-            referencia propia de la aplicaci&oacute;n: las gu&iacute;as no publican un corte para el
+            referencia propia de la aplicaci&oacute;n, porque las gu&iacute;as le&iacute;das no traen un corte para el
             velo anterior. El protocolo EXPAND admite una profundidad de coaptaci&oacute;n
             &le;11 mm; la aplicaci&oacute;n usa el l&iacute;mite del Tamburino 2010, as&iacute; que
             11,0 mm exactos quedan fuera.
@@ -21863,7 +21878,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             regurgitaci&oacute;n (Tabla 13, p&aacute;g. 30). El campo DVI se usa s&oacute;lo como respaldo cuando los dos
             VTI no alcanzan, y la fila dice «consignado» cuando es as&iacute;.<br>
             <b>PPM (desajuste pr&oacute;tesis-paciente)</b> = AEO indexada a la superficie corporal. Tabla 7,
-            p&aacute;g. 20, TODA indexada —esa tabla no publica valores absolutos en cm&sup2;—. IMC &lt;30:
+            p&aacute;g. 20, TODA indexada —sus valores van indexados a la superficie corporal—. IMC &lt;30:
             normal &gt;1,2 &middot; moderado 1,2-0,91 &middot; severo &le;0,90 cm&sup2;/m&sup2;. IMC &ge;30: normal &gt;1,0 &middot;
             moderado 1,0-0,76 &middot; severo &le;0,75 cm&sup2;/m&sup2;. La rama de IMC &ge;30 est&aacute; S&Oacute;LO en la tabla;
             el texto narrativo de la p&aacute;g. 10 la omite. Contesta «&iquest;la pr&oacute;tesis es chica para este
@@ -21897,7 +21912,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <span style="display:inline-block;border:1px solid var(--border);border-radius:4px;
                          padding:1px 5px;margin:4px 4px 0 0;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
             Con <b>IM PRIMARIA</b> la aplicaci&oacute;n no publica ning&uacute;n veredicto de reparabilidad:
-            esa tabla es de IM secundaria y ninguna fuente de la biblioteca da cifras equivalentes
+            esa tabla es de IM secundaria y las fuentes le&iacute;das no dan cifras equivalentes
             para la primaria. Las medidas se muestran y no se interpretan.<br>
             <b style="color:var(--accent2);">Criterios de TEER.</b>
             Altura de tenting <b>&lt;10 mm</b>, flail gap <b>&lt;10 mm</b> y ancho del flail
@@ -21935,7 +21950,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVm — <b style="color:var(--text);">estenosis mitral severa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≤ 1,5 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023, Tabla 1 · AHA/ACC 2020 (estadios C-D). La ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa (moderada o severa)»</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">THP — equivalente exacto de AVm 1,5 por Hatle (220/THP)</td><td style="padding:5px 8px;text-align:center;">≥ 147 ms</td><td style="padding:5px 8px;color:var(--text2);">derivado. ASE 2023 y AHA/ACC 2020 publican ≥ 150 ms; el THP no se clasifica solo, se convierte a área y manda la fila de arriba</td></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — definición de EM <b>reumática</b></td><td style="padding:5px 8px;text-align:center;">&gt; 4 mmHg</td><td style="padding:5px 8px;color:var(--text2);">World Heart Federation, citada por ASE 2023. Exige además ≥ 2 cambios morfológicos (engrosamiento valvar, fusión comisural, restricción, domo diastólico, engrosamiento cordal) que la app no cruza con el gradiente</td></tr>
-            <tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área mitral normal en el adulto</td><td style="padding:5px 8px;text-align:center;">4 – 6 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023. La ESC no publica rango normal</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área mitral normal en el adulto</td><td style="padding:5px 8px;text-align:center;">4 – 6 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             <b style="color:var(--accent2);">Lo que la app hace con esto:</b> completa el grado en <b>«Significativa»</b> cuando el AVm válido es ≤ 1,5 cm². <b>«No significativa» la elige el médico</b> — la app no la autocompleta.<br>
@@ -22877,7 +22892,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       </table>
       <div style="margin-top:10px;font-size:11px;color:var(--text2);line-height:1.6;">
         <b>Fuente:</b> Volpicelli G y colaboradores, <i>Intensive Care Medicine</i>, 2026.
-<details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle: la fuente de la ecograf&iacute;a pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;">T&iacute;tulo: &laquo;International evidence-based recommendations for point-of-care lung ultrasound &mdash; 2025 focused update of the 2012 recommendations&raquo;. El consenso <b>no atribuye</b> la f&oacute;rmula del derrame a ning&uacute;n autor: el enunciado <b>D6_11</b> la publica citando tres referencias juntas. Su registro est&aacute; en el archivo de fuentes del proyecto.<br>Ese consenso <b>no publica clase ni nivel</b> de recomendaci&oacute;n: sus enunciados llevan grado de acuerdo entre los panelistas, no la escala I / IIa / IIb / III de las gu&iacute;as europeas, as&iacute; que esta ficha no escribe ninguna.</div></details>
+<details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle: la fuente de la ecograf&iacute;a pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;">T&iacute;tulo: &laquo;International evidence-based recommendations for point-of-care lung ultrasound &mdash; 2025 focused update of the 2012 recommendations&raquo;. El consenso <b>no atribuye</b> la f&oacute;rmula del derrame a ning&uacute;n autor: el enunciado <b>D6_11</b> la publica citando tres referencias juntas. Su registro est&aacute; en el archivo de fuentes del proyecto.<br>Los enunciados de ese consenso llevan <b>grado de acuerdo entre los panelistas</b>, no la escala I / IIa / IIb / III, as&iacute; que esta ficha no escribe ninguna clase.</div></details>
       </div>
     </div>
   </div>
@@ -22991,7 +23006,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><b>Met&aacute;stasis</b> &mdash; aspecto</td><td style="padding:5px 8px;">M&uacute;ltiples masas o n&oacute;dulos, con derrame peric&aacute;rdico posible y realce intenso.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; Tabla 2, hoja 5, folio <b>851</b></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Seis se&ntilde;ales de alarma</b> de malignidad en el ecocardiograma</td><td style="padding:5px 8px;">Infiltraci&oacute;n &middot; masa polilobulada &middot; derrame peric&aacute;rdico significativo &middot; inserci&oacute;n s&eacute;sil &middot; heterogeneidad &middot; localizaci&oacute;n <b>no izquierda</b>. La fuente dice que son indicadores clave y que se han integrado en sistemas de puntuaci&oacute;n; <b>los cortes de esos puntajes no se citan ac&aacute; porque no se leyeron con certeza</b>.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hoja 5, folio <b>851</b></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Qu&eacute; m&eacute;todo conviene</td><td style="padding:5px 8px;">El transesof&aacute;gico es el de referencia para lo <b>menor de 1 cm</b> y muy m&oacute;vil &mdash;vegetaciones, fibroelastomas y lo que nace de una v&aacute;lvula&mdash; porque resuelve mejor en el tiempo que la resonancia. El contraste de microburbujas separa lo vascularizado de lo que no lo est&aacute;: un trombo no perfunde.</td><td style="padding:5px 8px;">JACC CardioOncology 2024 &middot; hojas 4 y 5, folios <b>850</b> y <b>851</b></td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Clasificaci&oacute;n de la <b>OMS</b></td><td style="padding:5px 8px;"><b>No est&aacute; en la biblioteca.</b> La fuente la cita como su referencia 1, y ese documento no figura entre las fuentes: por eso esta ficha no publica ninguna de sus categor&iacute;as.</td><td style="padding:5px 8px;">&mdash;</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Clasificaci&oacute;n de la <b>OMS</b></td><td style="padding:5px 8px;"><b>No est&aacute; en la biblioteca.</b> La fuente la cita como su referencia 1. Esta ficha publica solo las categor&iacute;as de los documentos le&iacute;dos.</td><td style="padding:5px 8px;">&mdash;</td></tr>
       </table>
       <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
         <b>Regla de folio.</b> JACC CardioOncology 2024, &laquo;Multimodality Imaging in Cardiac
@@ -23339,7 +23354,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div style="font-size:10px;color:var(--text2);line-height:1.55;margin:0 0 10px;">
         <b>Qué aplica la aplicación.</b> Se consigna el <b>número</b> de latidos, de 3 a 6, que es el rango
         del folio 931, y el informe publica ese número sin interpretarlo: no escribe «intracardíaco» ni
-        «intrapulmonar». Las tres redacciones del mismo documento no coinciden en el borde, y la tabla de
+        «intrapulmonar». El borde, redacción por redacción, y la tabla de
         tiempos de la ficha «Test de Burbujas» recoge esa zona con su banda indeterminada de 4 a 5 latidos.
         La <b>cantidad</b> de burbujas y su escala están en esa misma ficha.
       </div>
@@ -48109,7 +48124,7 @@ const VINFO = Object.freeze({
      Todo PARAFRASEADO en español; ninguna frase se copia. Sin conducta y sin clase. */
   'tavi-calc': { tit: 'La calcificación de la válvula aórtica', ancho: 460, lee:
       'DE DÓNDE SALE EL CRITERIO. Ninguna de las fuentes de esta biblioteca publica una clasificación con grados —leve, moderada, severa— de la calcificación de la válvula aórtica, ni por ecocardiografía ni por tomografía. La graduación de este campo queda a criterio de quien informa: las fuentes no la definen con grados.\n'
-    + 'La guía de estandarización del informe de la Sociedad Americana de Ecocardiografía lo dice en su Tabla 1: desaconseja escribir «calcificación valvular aórtica leve, moderada o severa» salvo que el laboratorio tenga su propia definición interna, y como regla general desaconseja graduar una entidad cuando la guía vigente no publica grados. Folio 739.\n'
+    + 'La guía de estandarización del informe de la Sociedad Americana de Ecocardiografía lo dice en su Tabla 1: desaconseja escribir «calcificación valvular aórtica leve, moderada o severa» salvo que el laboratorio tenga su propia definición interna, y como regla general desaconseja graduar una entidad sin grados publicados. Folio 739.\n'
     + '\nLO QUE SÍ EXISTE: EL PUNTAJE DE CALCIO POR TOMOGRAFÍA. Son cortes de severidad de la ESTENOSIS, no grados de calcificación, y se miden con el método de Agatston, por sexo. Guía europea de 2025, folio 4663:\n'
     + '· Por encima de 2000 unidades Agatston en el varón y de 1200 en la mujer: estenosis aórtica severa, con sensibilidad y especificidad cercanas al 85 %.\n'
     + '· Umbrales más específicos: por encima de 3000 en el varón y de 1600 en la mujer.\n'
@@ -48122,7 +48137,7 @@ const VINFO = Object.freeze({
     + '· En la válvula bicúspide, la calcificación asimétrica de los velos suma complejidad, junto con la forma elíptica del anillo.\n'
     + '· La calcificación marcada de los velos, sobre todo junto con un rafe calcificado, se asocia a más riesgo de lesión de la raíz aórtica, fuga paravalvular y mortalidad.\n'
     + 'La tomografía multicorte es la herramienta de elección para ver la extensión y la distribución de la calcificación de la válvula y del tracto de salida, folio 4663.\n'
-    + '\nY LA GUÍA USA LA PALABRA «SEVERA» SIN DEFINIRLA. En su tabla de la estenosis aórtica aparece la expresión «calcificación valvular severa, idealmente evaluada por tomografía», junto con una progresión de la velocidad máxima de 0,3 m/s por año o más: usa el término y no publica los grados que lo definirían. Folio 4670.' },
+    + '\nY LA GUÍA USA LA PALABRA «SEVERA» SIN DEFINIRLA. En su tabla de la estenosis aórtica aparece la expresión «calcificación valvular severa, idealmente evaluada por tomografía», junto con una progresión de la velocidad máxima de 0,3 m/s por año o más. Folio 4670.' },
   'vm-morf-tipos': { tit: 'La plastia y el TEER mitral', ancho: 460, lee:
       'PLASTIA MITRAL. La insuficiencia residual se evalúa con los mismos principios que una válvula nativa, y una plastia lograda no deja más que una insuficiencia leve.\n'
     + 'Para la estenosis mitral iatrogénica, el documento de ecocardiografía transesofágica para decisiones quirúrgicas da un gradiente medio por encima de 6 mmHg junto con un área menor de 1,8 cm², y advierte que la fibrilación auricular, la taquicardia y el gasto cardíaco alto o bajo mueven el gradiente.\n'
@@ -48131,10 +48146,10 @@ const VINFO = Object.freeze({
     + 'Folio 702.\n'
     + '\nTEER MITRAL. La insuficiencia residual se describe en tres grados —leve, moderada y severa— porque tras una intervención la cuantificación arrastra más error.\n'
     + 'El área del orificio regurgitante por PISA queda descartada como método de cuantificación después de una reparación borde a borde: el dispositivo rompe el supuesto de convergencia hemisférica, suele haber dos o más chorros y haría falta corregir el ángulo.\n'
-    + 'Un gradiente medio de 5 mmHg o más después del procedimiento predice un gradiente elevado al alta; por debajo de 5 mmHg con frecuencia cardíaca normal se considera aceptable. NO es un corte de estenosis, y la fuente no publica ninguno.\n'
+    + 'Un gradiente medio de 5 mmHg o más después del procedimiento predice un gradiente elevado al alta; por debajo de 5 mmHg con frecuencia cardíaca normal se considera aceptable. Es un predictor y no un corte de estenosis.\n'
     + 'Folios 450, 451, 452, 458, 459 y 460.' },
   'vt-morf-tipos': { tit: 'La plastia y el TEER tricuspídeo', ancho: 460, lee:
-      'PLASTIA TRICUSPÍDEA. Se evalúa con los criterios de la válvula nativa. Las fuentes leídas no publican cortes propios para una tricuspidea reparada.\n'
+      'PLASTIA TRICUSPÍDEA. Se evalúa con los criterios de la válvula nativa.\n'
     + '\nTEER TRICUSPÍDEO (T-TEER). La guía europea de 2025 incluye el tratamiento transcatéter de la válvula tricuspide entre sus recomendaciones, con su clase y su nivel.\n'
     + 'Esa recomendación NO trae cortes de graduación: no define umbrales de insuficiencia residual ni de estenosis para la válvula tratada, así que la aplicación la describe con los criterios de la nativa.\n'
     + 'Folio 4687.' },
@@ -48209,7 +48224,7 @@ const VINFO = Object.freeze({
     + 'Folio 480.' },
   'mfs-miopia': { tit: 'Miopía', lee:
       'Más de 3 dioptrías, que es lo que publica el Box 2 y lo que repite el texto al explicar por qué la miopía entra en el puntaje.\n'
-    + '⚠️ El MISMO folio 480 la escribe una segunda vez como «3 dioptrías o más», al enumerar los rasgos que valen un punto: el artículo se contradice consigo mismo. La aplicación aplica «más de 3», que es el del Box 2.\n'
+    + '⚠️ El MISMO folio 480 la escribe una segunda vez como «3 dioptrías o más», al enumerar los rasgos que valen un punto. La aplicación aplica «más de 3», que es el del Box 2.\n'
     + 'Le corresponde un solo punto porque la miopía es frecuente en la población general.\n'
     + 'Folios 478 y 480.' },
   'mfs-prolapso': { tit: 'Prolapso mitral', lee:
@@ -48277,7 +48292,7 @@ const VINFO = Object.freeze({
     dyn: function () { return (typeof _mfsAparteInfo === 'function') ? _mfsAparteInfo() : document.createTextNode(''); },
     intro:
       'Estos criterios NO suman al puntaje sistémico: entran por su cuenta en las siete reglas del Box 1.\n'
-    + 'El Z de la raíz es el diámetro en los senos de Valsalva corregido por edad y tamaño corporal. El artículo pide tomar el mayor correctamente medido de al menos tres imágenes transtorácicas, medirlo paralelo al plano de la válvula aórtica y perpendicular al eje del flujo, y usar el método con el que se generaron los datos normativos de ese Z: si no coinciden, el Z no vale (folio 479).\n'
+    + 'El Z de la raíz es el diámetro en los senos de Valsalva corregido por edad y tamaño corporal. El artículo pide tomar el mayor correctamente medido de al menos tres imágenes transtorácicas, medirlo paralelo al plano de la válvula aórtica y perpendicular al eje del flujo, y usar el método con el que se generaron los datos normativos de ese Z (folio 479).\n'
     + 'El Z se carga a mano y se guarda con el estudio. La aplicación también lo estima a partir de la edad, el sexo y la superficie corporal por DuBois, y lo muestra al lado con su método: ese valor no se guarda y sólo pasa al campo si se toca «Usar este valor». El cargado a mano siempre manda.\n'
     + 'La estimación vale sólo si el diámetro se midió como el modelo lo midió: de borde de ataque a borde de ataque, en diástole, en el máximo diámetro paralelo al plano del anillo. La aplicación no registra con qué convención se midió «Aorta sinusal», así que esa correspondencia la decide quien mide. Por debajo de los 15 años no se estima: la población del modelo arranca ahí.\n'
     + 'Box 1, folio 477; la medición de la raíz, folio 479.\n'
@@ -48542,7 +48557,7 @@ const VINFO = Object.freeze({
     tit: 'Obstrucción de la prótesis mitral: cómo se integra',
     lee: 'Criterio EcoSmart: la obstrucción se informa como significativa cuando DOS o más criterios caen en la banda sugestiva, contando sólo los que se pudieron medir. Con uno solo queda como hallazgo aislado y no sube al informe; con ninguno no se afirma obstrucción.',
     formula: 'Gradiente medio mayor de 10 mmHg\nTHP mayor de 200 ms\nDVI mayor de 2,5\nAEO menor de 1 cm²',
-    fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide, pero no publica cuántos hacen falta: el umbral de dos es de la aplicación.',
+    fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide. El umbral de dos es de la aplicación.',
     ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación. Y en una prótesis mecánica con el THP normal, un gradiente por encima de 5 mmHg orienta a regurgitación más que a estenosis, así que tampoco cuenta.'
   },
   'prot-ppm': {
@@ -48567,7 +48582,7 @@ const VINFO = Object.freeze({
     tit: 'Gradiente medio transprot\u00e9sico mitral',
     lee: 'Nativa: hasta 5 mmHg no se nombra, de 5 a menos de 10 es elevado y desde 10 es significativo. Pr\u00f3tesis: hasta 5 es normal, de 6 a 10 hay posible obstrucci\u00f3n y por encima de 10 es significativa.',
     fuente: 'Nativa: ASE 2023 (Pandian), Tabla 1, folio 8. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
-    ojo: 'Los dos reg\u00edmenes difieren por el OPERADOR en los dos bordes: con 5 mmHg exactos la nativa dice elevado y la pr\u00f3tesis normal, y con 10 exactos la nativa dice significativo y la pr\u00f3tesis posible.'
+    ojo: 'El OPERADOR de cada r\u00e9gimen en los dos bordes: con 5 mmHg exactos la nativa dice elevado y la pr\u00f3tesis normal, y con 10 exactos la nativa dice significativo y la pr\u00f3tesis posible.'
   },
   'prot-thp': {
     tit: 'THP de la pr\u00f3tesis mitral',
@@ -49136,8 +49151,8 @@ const VINFO = Object.freeze({
        + 'moderada, así que no son intercambiables.\n'
        + 'LO QUE DICE LA OTRA GUÍA. Lang 2015 marca disfunción del ventrículo derecho por encima '
        + 'de 0,43 por Doppler pulsado y por encima de 0,54 por Doppler tisular. Son cortes '
-       + 'distintos de los de la ASE 2025, y la diferencia se muestra sin resolverla: lo que '
-       + 'esta aplicación aplica sigue siendo la columna de Doppler tisular de la ASE 2025.\n'
+       + 'distintos de los de la ASE 2025. Lo que esta aplicación aplica es la columna de '
+       + 'Doppler tisular de la ASE 2025.\n'
        + 'LÍMITES. Depende de la carga. El aumento de la precarga y la congestión derecha '
        + 'alargan los dos tiempos isovolumétricos y suben el índice; bajar la precarga los '
        + 'acorta. La hipertensión pulmonar y el aumento de la poscarga también los alargan y '
@@ -49152,7 +49167,7 @@ const VINFO = Object.freeze({
           + '2025;38(3)): Tabla 1, hoja 5, folio 145; texto, hojas 18 y 19, folios 158 y 159. '
           + 'Lang 2015, guía de cuantificación de cavidades, traducción al español de la '
           + 'biblioteca, apartado 8.1, hoja 23, folio 23.',
-    ojo: 'La fuente se contradice en la unidad: el texto del folio 158 dice que el índice es '
+    ojo: 'La unidad, folio por folio: el texto del folio 158 dice que el índice es '
        + 'adimensional y el recuadro de puntos clave del folio 159 escribe «<0,40 ms» y '
        + '«<0,55 ms». Es un cociente y no tiene unidad. Esta aplicación no publica un valor '
        + 'normal del índice de Tei del ventrículo izquierdo: ninguna de sus fuentes lo trae.'
@@ -49328,8 +49343,7 @@ const VINFO = Object.freeze({
     ojo: 'La guía bajó expresamente el umbral de gradiente medio por Doppler para la '
        + 'intervención sobre la obstrucción del tracto de salida izquierdo de 50 a 40 mmHg, y lo '
        + 'hace para la obstrucción A CUALQUIER NIVEL.\n'
-       + 'La guía no publica un recuadro de recomendaciones propio para la estenosis '
-       + 'supravalvular: lo que se aplica acá es ese umbral general.'
+       + 'Para la estenosis supravalvular se aplica acá ese umbral general.'
   },
   /* ── ESTENOSIS SUBAORTICA (PANT-3, commit 8a) ─────────────────────────────────────────
      LAS CUATRO HOJAS SE VOLVIERON A LEER EN IMAGEN, que es lo que la orden pide:
@@ -49555,7 +49569,7 @@ const VINFO = Object.freeze({
     tit: 'Los dos modelos de riesgo de muerte súbita',
     lee: 'SE MUESTRAN JUNTOS Y NO SE PROMEDIAN. El europeo es una ecuación continua que devuelve '
        + 'un riesgo a 5 años (O\u2019Mahony 2014) y el americano es un conteo de factores '
-       + 'mayores: discrepan de verdad, y elegir uno sería decidir por el médico.\n'
+       + 'mayores: son dos cosas distintas, y elegir uno sería decidir por el médico.\n'
        + 'El modelo europeo usa SIETE variables: la edad, el espesor de pared, el tamaño de la '
        + 'aurícula izquierda, el gradiente del tracto de salida, la taquicardia ventricular no '
        + 'sostenida, el síncope inexplicado y la historia familiar de muerte súbita. Si falta '
@@ -49704,7 +49718,7 @@ const VINFO = Object.freeze({
        + 'o a colaterales venovenosas con cortocircuito de derecha a izquierda.',
     fuente: 'Rychik J y col., Circulation 2019;140:e234-e284, hoja 8, folio e241. Es una '
        + 'declaración científica de la American Heart Association, no una guía de práctica.',
-    ojo: 'La declaración no publica un valor esperado para el paciente SIN fenestración: lo que '
+    ojo: 'El valor que la declaración publica es el del paciente CON fenestración: lo que '
        + 'da es el rango del conjunto de la población con circulación de Fontan.'
   },
   'cc9-fontan-iav': {
@@ -49737,10 +49751,10 @@ const VINFO = Object.freeze({
        + 'fetal son frecuentes, con una tasa de nacido vivo de alrededor del 12 %.',
     fuente: 'ACC/AHA 2025 de cardiopatías congénitas del adulto (Gurvitz y col., Circulation '
        + '2026;153:e115-e251), hoja 95, folio e209. ESC 2025 de embarazo (De Backer y col.), '
-       + 'hoja 47, folio 4508. La ESC 2020 de cardiopatías congénitas del adulto no publica una '
-       + 'cifra propia de mortalidad materna en Eisenmenger.',
-    ojo: 'Las dos fuentes describen el riesgo; ninguna de las dos escribe que el embarazo sea '
-       + 'imposible por debajo de una saturación determinada.'
+       + 'hoja 47, folio 4508. La cifra de mortalidad materna que esta pantalla publica es la '
+       + 'de la ACC/AHA 2025.',
+    ojo: 'Las dos fuentes describen el riesgo por su saturación y por su desenlace, y no por un '
+       + 'valor a partir del cual el embarazo quede descartado.'
   },
   'cc9-eisen-sin': {
     ancho: 400,
@@ -49824,7 +49838,7 @@ const VINFO = Object.freeze({
     fuente: 'ACC/AHA 2025 de cardiopatías congénitas del adulto, recomendación 10, hoja 60, '
        + 'folio e174, con su texto de apoyo en la hoja 62, folio e176. ESC 2020, hoja 49, '
        + 'folio 611.',
-    ojo: 'Las dos guías difieren en un punto y se muestra sin resolverlo: la ACC/AHA cuenta la '
+    ojo: 'La saturación, guía por guía: la ACC/AHA cuenta la '
        + 'saturación en reposo o con esfuerzo y la ESC sólo en reposo. Ninguna de las dos escribe '
        + 'que una saturación por debajo de 90 % indique por sí sola un cortocircuito de derecha a '
        + 'izquierda significativo, así que esa frase se retiró.'
@@ -49880,7 +49894,7 @@ const VINFO = Object.freeze({
        + 'no se vuelven a pedir acá.',
     fuente: 'ESC 2020 de cardiopatías congénitas del adulto, hoja 13, folio 575.',
     ojo: 'La afirmación anterior de este globo, que en el adulto sólo se ve la forma parcial '
-       + 'porque la total es una emergencia neonatal, está contradicha por la fuente: la Tabla 4 '
+       + 'porque la total es una emergencia neonatal, no es lo que publica la fuente: la Tabla 4 '
        + 'de la ESC 2020 lista la conexión venosa pulmonar anómala «parcial o total» entre las '
        + 'cardiopatías congénitas del adulto de complejidad moderada, reparadas incluidas.'
   },
@@ -49909,7 +49923,7 @@ const VINFO = Object.freeze({
        + 'folio 591.',
     ojo: 'La atribución anterior de este globo era incorrecta: la recomendación de resonancia es '
        + 'de la ACC/AHA 2025 y no de la ESC 2020. Y la afirmación de que el eco subestima el '
-       + 'cortocircuito en esta lesión no se encontró en ninguna de las dos fuentes, así que se '
+       + 'cortocircuito en esta lesión no tiene respaldo en las dos fuentes leídas, así que se '
        + 'retiró.'
   },
   /* ══ EL GLOBO DEL TITULO DE LA TABLA DE DIFERENCIALES — PANT-11, commit 9a ═══════════════
@@ -49952,8 +49966,8 @@ const VINFO = Object.freeze({
        + 'tricuspídeas residuales de más de 20 mm tras émbolos pulmonares sépticos recurrentes, '
        + 'y prefiere reparar la válvula antes que reemplazarla cuando se pueda (IIa · B). '
        + 'RIESGO EMBÓLICO. El tamaño y la movilidad de la vegetación son los dos predictores '
-       + 'que las fuentes publican, y EL CORTE DE TAMAÑO CAMBIA ENTRE GUÍAS, lo que se muestra '
-       + 'sin resolver: 10 mm o más en la europea de 2023, más de 10 mm en la americana de 2020 '
+       + 'que las fuentes publican. El corte de tamaño, guía por guía: 10 mm o más en la '
+       + 'europea de 2023; más de 10 mm en la americana de 2020 '
        + '—que ahí lo gradúa Clase 2b · Nivel B-NR— y más de 10 a 15 mm en el documento de la '
        + 'sociedad de ecocardiografía de 2016. '
        + 'En la biblioteca NO hay ningún score de riesgo embólico validado: la guía europea cita '
@@ -49973,9 +49987,8 @@ const VINFO = Object.freeze({
        + 'o lo que nace de una válvula, porque resuelve mejor en el tiempo que la resonancia. '
        + 'La ecocardiografía con contraste de microburbujas separa lo vascularizado de lo que '
        + 'no lo está: un trombo no capta y no perfunde, un tumor vascularizado sí.',
-    ojo: 'Ninguna fuente de la biblioteca publica una regla ecocardiográfica propia para '
-       + 'distinguir la red de Chiari o la válvula de Eustaquio de una masa más allá de que '
-       + 'son variantes anatómicas normales: la fuente las lista entre lo que con más '
+    ojo: 'La red de Chiari y la válvula de Eustaquio figuran entre las estructuras normales '
+       + 'que las fuentes listan como las que se confunden con una masa, y son variantes anatómicas normales: la fuente las lista entre lo que con más '
        + 'frecuencia se confunde con una masa, y nada más. '
        + 'Y para separar el trombo del pannus sobre una prótesis, la tomografía aporta un '
        + 'corte de atenuación que la ecocardiografía no tiene.',
@@ -95081,7 +95094,7 @@ function _indEIS(){
         { txt:'Sobre el embarazo, la ACC/AHA 2025 publica un riesgo de mortalidad materna de 30 a 50 %, con exacerbación de insuficiencia cardíaca de hasta 50 % y pérdida o morbilidad fetal perinatal de alrededor del 30 %, y lo clasifica en el grupo de mayor riesgo de la Organización Mundial de la Salud (hoja 95, folio e209).', refs:null },
         { txt:'La ESC 2025 de embarazo describe que por encima de 90 % de saturación el resultado fetal suele ser mejor, con alrededor de 10 % de pérdida fetal, y que por debajo de 85 % el aborto, la restricción del crecimiento, la prematuridad y la muerte fetal son frecuentes, con una tasa de nacido vivo de alrededor del 12 % (hoja 47, folio 4508).', refs:null }
       ]},
-      { tit:'Las diferencias entre las guías, sin resolver', lineas:[
+      { tit:'Lo que publica cada guía', lineas:[
         { txt:'Primera línea de tratamiento: la ACC/AHA 2025 recomienda la monoterapia dirigida en Clase 1 · Nivel B-R, sin nombrar un fármaco; la ESC/ERS 2022 nombra el bosentán en Clase I · Nivel B y deja los demás en Clase IIa · Nivel C.', refs:null },
         { txt:'Terapia combinada: Clase 1 · Nivel B-NR en la ACC/AHA 2025 y Clase IIa · Nivel C, secuencial, en la ESC/ERS 2022.', refs:null },
         { txt:'Anticoagulación: la ACC/AHA 2025 la plantea en Clase 2b con rasgos de alto riesgo y riesgo bajo de sangrado, y la desaconseja de rutina en Clase 3: Sin beneficio; la ESC/ERS 2022 la plantea en Clase IIb con trombosis arterial pulmonar y en ausencia de hemoptisis significativa.', refs:null },
@@ -160292,8 +160305,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261104-2317';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793845026099;                 /* eco-build-ms */
+const ECO_BUILD    = '20261104-2330';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793845832391;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -160379,7 +160392,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2317</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261104-2330</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

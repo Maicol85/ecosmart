@@ -463,6 +463,37 @@ totales idénticos. Las dos mediciones dicen lo mismo contado de dos formas.
 Un tamaño **menor** dentro de un cartel sí es legítimo donde cumple un papel propio —los 10 px
 de un pie de ficha, los 9 de un chip—, y esos no se tocan.
 
+## Ningún texto habla mal de las guías — REGLA FIJA DE MAICOL (2026-11-04)
+
+**Ningún texto de la app** —pantalla, ⓘ, Evidencia, Referencias, tablas— habla mal de las guías
+ni deja que se malinterprete lo que dicen:
+
+- **NO** dice que dos fuentes «no coinciden», «difieren», «discrepan», «se contradicen» o «se
+  muestran sin resolver».
+- **NO** compara ni juzga una fuente contra otra.
+- **NO** escribe «no se encontró», «ninguna fuente publica» ni frases parecidas sobre lo que las
+  guías **no** dicen.
+
+**Cada fuente se cita por lo que ella misma dice, en su propia oración, con su hoja y su folio.**
+Si dos fuentes dicen cosas distintas se escribe cada una por separado, sin comentario.
+
+**Lo que NO es esta regla**, y no se toca:
+- lo que la app dice de **sí misma** —«esta aplicación no publica un valor normal», «esta
+  pantalla no publica el número y lista cuáles faltan», «este globo no publica cortes ni
+  conducta»—: no habla de una guía;
+- dos **mediciones del paciente** que difieren —«si difiere del transvalvular», «la app avisa si
+  difieren en 3 mm o más»—;
+- lo que una **fuente dice de sí misma** («no validado externamente»), que es contenido
+  bibliográfico y a veces un aviso que evita un error.
+
+Aplicado por primera vez en la tanda **PANT-13** (commit 5). El censo se hace **en el navegador**
+—sobre lo que el médico lee: el DOM sin los `<script>`, el registro de globos, las fichas y la
+Evidencia— y **no por grep**: un grep sobre el archivo marcó 864 líneas y la enorme mayoría eran
+**comentarios**, que en esta casa van sin tilde y sin pulir a propósito. La sonda es
+`scripts/_probe_pant13neutro.mjs`. Medido: **Masas pasó de cinco apariciones a cero** y el resto
+de la app de **treinta textos distintos a seis**, y los seis que quedan son los que **no caen**
+bajo la regla, cada uno con su motivo en `docs/PENDIENTES.md` → **P13-a**.
+
 ## El informe va en ORACIONES SEPARADAS — REGLA FIJA DE MAICOL (2026-11-03)
 
 El texto del informe va en **oraciones separadas, una por tema**, con un orden lógico; cuando se
