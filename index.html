@@ -104105,9 +104105,27 @@ function _cmEscenaTGA(S) {
      la MISMA forma que el modulo ya dibuja para la membrana de la estenosis subaortica. El
      esquema de circulacion ya ponia su barra gris desde PANT-13. */
   if (K.tobs) {
-    const po = ({ jat:[0.4,0.05,-0.07], d:[-0.4,0.35,0.9], mus:[-0.4,0.35,0.9],
-                  cc:[0.9,0.35,0.6], ras:[0.45,-0.85,0.05] })[S.bv.tga] || [0.4,0.05,-0.07];
-    s.ex.push({ t:'ring', c:po, r:0.2, rx:(S.bv.tga !== 'ras'), ry:(S.bv.tga === 'ras'), col:CM_C.grey });
+    /* ══ EL ANILLO DE LA OBSTRUCCION SUBAORTICA -PANT-14b, commit 7- ══════════════════════
+       ⚠️ LA PREMISA DE LA ORDEN ERA FALSA Y ESTA MEDIDA: el medico NO veia este anillo. PANT-14
+       lo puso con la posicion por variante de la demo v13 y, contado en el lienzo,
+       APORTABA ENTRE 0 Y 4 PIXELES del gris de obstruccion sobre unos 45.000 opacos, en las
+       CINCO variantes y con «Por dentro» encendido y apagado -el delta contra el control con la
+       casilla en «No» era 0 en el gris estricto y de 0 a 4 en el laxo-. Quedaba dentro de la
+       masa opaca del ventriculo y de canto a la camara.
+       EL ARREGLO USA LA GEOMETRIA DE LA APP Y NO UNA POSICION INVENTADA, que es la condicion de
+       la orden: va POR DEBAJO DEL ORIGEN DE LA AORTA, y ese origen se le pregunta a la propia
+       escena -la arteria roja que `tga3dEscena` acaba de armar, cuyo primer punto es su raiz-.
+       Asi la posicion sigue a la anatomia de cada variante en vez de estar transcripta cinco
+       veces, y el dia que un trazado de la aorta cambie, el anillo lo sigue.
+       ORIENTADO HACIA LA CAMARA: sin `rx` ni `ry` el toro queda en el plano XY, que es el que la
+       camara mira de frente, asi que se ve como un anillo y no como una linea.
+       EL GRIS, EL ROTULO Y LA BARRA DEL ESQUEMA NO SE TOCAN: son los de la leyenda. */
+    const _ao = (s.ar || []).filter(function (x) { return x.c === TGA3D_C.red })[0];
+    const _r0 = (_ao && _ao.p && _ao.p[0]) ? _ao.p[0] : null;
+    const po = _r0 ? [_r0[0], _r0[1] - 0.30, _r0[2]]
+                   : (({ jat:[0.4,0.05,-0.07], d:[-0.4,0.35,0.9], mus:[-0.4,0.35,0.9],
+                         cc:[0.9,0.35,0.6], ras:[0.45,-0.85,0.05] })[S.bv.tga] || [0.4,0.05,-0.07]);
+    s.ex.push({ t:'ring', c:po, r:0.26, col:CM_C.grey, pri:true });
     if (s.lb.length < 12) s.lb.push(['Obstr. subaórtica', [po[0]+1.0, po[1]-0.1, po[2]+0.4]]);
   }
   /* ⚠️ LA CAVA IZQUIERDA YA NO ENTRA ACA, Y ES EL commit 3a: el 3D de la pestania no la dibuja
@@ -104482,7 +104500,15 @@ function cm3dInit() {
       if(e.t==='tube'){m=ttube(e.p,e.r,e.r,e.c,e.op||0.9);}
       if(e.t==='ring'){
         m=new T.Mesh(new T.TorusGeometry(e.r,(e.col===CM_C.grey?0.08:0.06),8,24),new T.MeshStandardMaterial({color:e.col||CM_C.orange,roughness:0.4}));
-        m.position.set(e.c[0],e.c[1],e.c[2]);if(e.ry){m.rotation.y=Math.PI/2;}if(e.rx){m.rotation.x=Math.PI/2;}add(m);
+        m.position.set(e.c[0],e.c[1],e.c[2]);if(e.ry){m.rotation.y=Math.PI/2;}if(e.rx){m.rotation.x=Math.PI/2;}
+        /* ⚠️ `pri` ES LA PRIORIDAD DE RENDER -PANT-14b, commit 7-, y la pide la orden: «por
+           encima de las estructuras opacas». Sin ella el anillo de la obstruccion subaortica
+           quedaba dentro de la masa del ventriculo y aportaba entre 0 y 4 pixeles al lienzo,
+           medido en las cinco variantes. Son dos banderas de dibujado y no un cambio de
+           geometria: el anillo sigue en su lugar y conserva su radio y su color.
+           Lo lleva SOLO quien lo pide, asi que los otros doce anillos del modulo no se mueven. */
+        if(e.pri){m.material.depthTest=false;m.material.depthWrite=false;m.renderOrder=10;}
+        add(m);
       }
       if(e.t==='disc'){
         m=new T.Mesh(new T.CylinderGeometry(e.r,e.r,0.05,28),new T.MeshStandardMaterial({color:CM_C.orange,roughness:0.4}));
@@ -161182,8 +161208,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1439';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793900340796;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1449';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793900955664;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161269,7 +161295,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1439</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1449</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
