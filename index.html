@@ -20831,7 +20831,25 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            ⚠️ LA LIBRERIA SE CARGA AL ABRIR LA SECCION Y NO AL ARRANCAR, con version fija y su
            hash SRI, como los otros cinco scripts de CDN de esta app. Sin internet el aviso lo
            dice y el resto de la seccion sigue funcionando. -->
-      <div class="calc-box" id="tga-3d-box" style="margin-top:12px;">
+      <!-- ⚠️ EL RECUADRO DE DIBUJO DE ESTA PESTANIA SE RETIRA DE LA VISTA (PANT-14b, commit 5).
+           DECISION DEL MEDICO (05/11/2026): tiene que quedar UN SOLO dibujo, y el que queda es el
+           del corazon maestro. La condicion que la orden pone se cumplio: el commit 4 midio la
+           equivalencia del esquema escena por escena -50 de 50 iguales, con la obstruccion
+           subaortica como unica diferencia esperada- y el commit 3 dejo el PDF con un solo
+           dibujo. El 3D ya era exacto por construccion desde PANT-14: el modulo llama a
+           `tga3dEscena`, que es el dueno unico de lo que esta pestania dibujaba.
+           ⚠️ EL MARCADO NO SE BORRA Y ES DELIBERADO, que es lo que la orden pide: se esconde. Sus
+           ids los leen el recolector del PDF, cinco funciones de esta pestania y varios casos de
+           la suite, y borrarlos de golpe es como se rompe algo en silencio. Con `display:none`
+           el lienzo no tiene `offsetParent`, asi que `_tga3dVisible()` da falso y el motor y la
+           libreria 3D YA NO SE CARGAN desde aca, que es la otra mitad de lo que la orden pide.
+           Lo que queda sin uso se declara en docs/PENDIENTES.md -P13-c-. -->
+      <div style="margin-top:12px;text-align:center;">
+        <button type="button" class="btn btn-ghost" id="tga-ver3d" style="min-height:44px;"
+                onclick="tgaVer3D()"
+                title="Abrir el corazón en 3D de congénitas con este estudio">🫀 Ver en 3D</button>
+      </div>
+      <div class="calc-box" id="tga-3d-box" style="margin-top:12px;display:none;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <span style="font-size:12px;font-weight:700;color:var(--accent2);">Diagrama 3D</span>
           <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tga-3d"
@@ -103722,6 +103740,21 @@ window.cc3dCerrar = cc3dCerrar;
 function cc3dTog() { if (_cc3d.abierto) cc3dCerrar(); else cc3dAbrir(); }
 window.cc3dTog = cc3dTog;
 
+/* ══ «VER EN 3D» DESDE LA PESTANIA DE LA TRANSPOSICION (PANT-14b, commit 5) ════════════════
+   El recuadro de dibujo de esa pestania se retiro -ver el comentario de su marcado- y en su
+   lugar quedo este boton, con el estilo del que las otras congenitas ya tienen. Abre el MISMO
+   panel y el MISMO modulo: no hay un segundo camino.
+   ⚠️ NO DUPLICA NADA DE `cc3dAbrir`: le delega. Lo unico propio es traer el panel a la vista,
+   porque el boton vive arriba en la pagina y el panel esta al final de la pestania. */
+function tgaVer3D() {
+  if (typeof cc3dAbrir !== 'function') return;
+  if (typeof cc3dAcceso === 'function' && !cc3dAcceso()) return;
+  try { cc3dAbrir() } catch (e) {}
+  try { const p = document.getElementById('cc3d-panel');
+        if (p) p.scrollIntoView({ block:'start', behavior:'smooth' }) } catch (e) {}
+}
+window.tgaVer3D = tgaVer3D;
+
 /* ══════════════════════════════════════════════════════════════════════════════════════════
    EL CORAZON MAESTRO EN 3D — EL MOTOR MODULAR Y LAS DIECISEIS LESIONES (PANT-12, commit 4)
    ══════════════════════════════════════════════════════════════════════════════════════════
@@ -105092,13 +105125,13 @@ function cmPdfSync() {
   };
   if (_cm3d.modo !== 'estudio') { apagar(CM_PDF_AVISO.explorar); return }
   if (!cmHayCargado()) { apagar(CM_PDF_AVISO.vacio); return }
-  /* ⚠️ CON UNA TRANSPOSICION CARGADA EL BOTON DEL MODULO QUEDA APAGADO, Y ES LA REGLA DE LA
-     ORDEN: «para un estudio con transposicion cargada, el PDF sigue llevando el dibujo de la
-     transposicion; para los demas estudios, el del modulo». El commit 4 NO retiro el recuadro de
-     la transposicion -su equivalencia no cerro, ver docs/PENDIENTES.md P13-c-, asi que esa
-     seccion conserva su propio boton. Sin esto, un medico que enciende los dos lleva al PDF el
-     MISMO dibujo DOS veces. */
-  if (typeof tgaEjes === 'function') { try { if (tgaEjes().anat) { apagar(CM_PDF_AVISO.tga); return } } catch (e) {} }
+  /* ⚠️ LA GUARDA DE LA TRANSPOSICION SE RETIRO (PANT-14b, commit 5), y es lo que cierra el
+     «no me deja incluir en el PDF» que el medico reporto. Hasta esta tanda, con una
+     transposicion cargada este boton quedaba APAGADO -medido- porque la pestania de la TGA
+     conservaba su propio recuadro y su propio boton, y encender los dos llevaba el MISMO dibujo
+     al PDF dos veces. Con el recuadro retirado este boton es el UNICO, asi que funciona igual
+     con transposicion que sin ella. `CM_PDF_AVISO.tga` queda declarado sin uso en
+     docs/PENDIENTES.md -P13-c-: no se borra junto con el codigo del recuadro viejo. */
   b.disabled = false;
   b.setAttribute('aria-pressed', inc ? 'true' : 'false');
   b.textContent = inc ? CM_PDF_TXT.on : CM_PDF_TXT.off;
@@ -105133,8 +105166,11 @@ function cmIncluirPDF() {
     return Promise.resolve({ ok:false, motivo:'modo explorar' }) }
   if (!cmHayCargado()) { if (n) n.textContent = CM_PDF_AVISO.vacio;
     return Promise.resolve({ ok:false, motivo:'sin lesiones cargadas' }) }
-  if (typeof tgaEjes === 'function') { try { if (tgaEjes().anat) { if (n) n.textContent = CM_PDF_AVISO.tga;
-    return Promise.resolve({ ok:false, motivo:'la transposicion tiene su propio boton' }) } } catch (e) {} }
+  /* ⚠️ LA SEGUNDA MITAD DE LA GUARDA DE LA TRANSPOSICION, RETIRADA TAMBIEN (PANT-14b, commit 5).
+     Estaba en DOS lugares -el pintor del boton y este manejador-, y sacarla de uno solo deja el
+     defecto en pie por el otro lado: medido, el boton quedaba ACTIVO y el clic no incluia nada,
+     con el aviso de la transposicion escrito al lado. Es la leccion que el D-11 pago con
+     `data-espejo` y la que este archivo repite: el selector y el cuerpo son dos listas. */
   if (typeof esqEstaIncluido === 'function' && esqEstaIncluido('cm3d')) {
     esqQuitarDelPDF('cm3d');
     _cmEsqPdf = { data:null };
@@ -161066,8 +161102,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1413';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793898838414;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-1430';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793899837960;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161153,7 +161189,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1413</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1430</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
