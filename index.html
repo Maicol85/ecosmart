@@ -62389,10 +62389,28 @@ function generarInforme(opts) {
          oraciones idénticas que sólo se distinguen por el número. El adjetivo es lo mínimo que
          las separa; la forma de la oración es la misma.
          ⚠️ CON TAVI TAMBIÉN SALE, y es correcto: la Tabla 7 de la ASE 2024 no abre ramas por tipo
-         de prótesis —es lo que el W2-B ya midió para la pantalla— y la TAVI, que NO se gradúa por
-         estenosis, sí publica su PPM. Por eso la línea NO cuelga de `_eaProtN.resumen`, que es
-         `null` justamente en la TAVI. */
-      if (_eaProtP && (_eaProtP.ppm === 'moderado' || _eaProtP.ppm === 'severo')) {
+         de prótesis —es lo que el W2-B ya midió para la pantalla— y la TAVI publica su PPM igual
+         que las otras dos.
+         (El comentario anterior agregaba «la TAVI, que NO se gradúa por estenosis» y que por eso
+         la línea no cuelga de `_eaProtN.resumen`, «que es null justamente en la TAVI». Desde
+         PANT-18-6 la TAVI SÍ se gradúa y su resumen ya no es nulo, así que ese motivo dejó de
+         valer; la línea sigue sin colgar de ahí por el motivo que queda: el PPM es otra pregunta
+         que la obstrucción y no depende de que haya veredicto.)
+
+         ⚠️ Y NO SALE CON UNA ESTENOSIS PROTÉSICA SIGNIFICATIVA (PANT-18-7, decisión del médico
+         del 07/11/2026). El informe publicaba las DOS oraciones a la vez —«con criterios que
+         sugieren estenosis protésica significativa» y, debajo, «Desajuste protésico-paciente
+         aórtico severo»—, y el EN SUMA remataba con «PPM aórtico severo.».
+         La guía define el desajuste sobre una prótesis que funciona: su Figura 13 (hoja 18, folio
+         19, leída en imagen) lo pone DENTRO de la rama de DVI normal, en la caja «Normal AVR»,
+         donde el área efectiva indexada por debajo de 0,85 separa el desajuste de un estado de
+         flujo alto. Con el DVI en la rama de estenosis, el algoritmo no llega nunca a esa caja.
+         ⚠️ ES UNA CONDICIÓN SOBRE EL VEREDICTO Y NO SOBRE EL NÚMERO: el PPM se sigue calculando y
+         la pantalla sigue publicando la AEO indexada con su categoría —la fila no se toca—. Lo
+         que se calla es la oración del papel, y sólo con `signif`: con «posible», con «falta un
+         dato», con «sin criterios» y con la TAVI que no llegue a `signif`, el papel no cambia. */
+      if (_eaProtP && (_eaProtP.ppm === 'moderado' || _eaProtP.ppm === 'severo')
+          && _eaProtP.nivel !== 'signif') {
         /* Las dos frases salen de `ppmFrases`, el mismo dueño que usa la mitral (Z5). */
         const _fAo = (typeof ppmFrases === 'function') ? ppmFrases('aortica', _eaProtP.ppm, _eaProtP.avai) : null;
         if (_fAo) { inf.push(_fAo.inf); suma.push(_fAo.suma); }
