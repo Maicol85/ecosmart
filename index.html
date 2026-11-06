@@ -1870,6 +1870,14 @@
               color:var(--text2); margin:8px 0 0; }
   .cm3d-sw { display:inline-block; width:10px; height:10px; border-radius:50%;
              margin-right:5px; vertical-align:-1px; }
+  /* Las dos muestras que comparten el naranja de la comunicacion y se distinguen por la FORMA
+     (PANT-14c, commit 3g): la trama de la sutura —las mismas lineas cruzadas que el dibujo— y el
+     punto de las coronarias reimplantadas. */
+  .cm3d-sw-trama { background:#e08a1e;
+    background-image:repeating-linear-gradient(45deg, rgba(60,38,8,0.85) 0 1px, transparent 1px 3px),
+                     repeating-linear-gradient(-45deg, rgba(60,38,8,0.85) 0 1px, transparent 1px 3px);
+    border-radius:2px; }
+  .cm3d-sw-punto { background:#e08a1e; width:6px; height:6px; margin-bottom:1px; }
   /* ⚠️ LA LETRA DEL CARTEL ES 11 px, que es la regla fija de la casa: todo cartel que abre un
      globo usa la MISMA letra de cuerpo y no se declara una propia. */
   .cm3d-ip { background:var(--bg2); border:0.5px solid var(--border); border-radius:10px;
@@ -21353,27 +21361,45 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                         onclick="vInfoClic(this,event)">&#9432;</button>
               </div>
               <svg id="cm3d-schsvg" viewBox="0 0 300 290" width="100%" role="img" aria-label="Esquema de circulaci&oacute;n"></svg>
+              <!-- La leyenda del esquema, con las MISMAS entradas y el mismo pintor que la del
+                   3D: una sola lista -`CM_LEY`- para los dos, asi que no pueden discrepar. La
+                   nota de las dos valvulas es fija y va al final, afuera de lo que se prende. -->
               <div class="cm3d-leg2">
-                <span><span class="cm3d-sw" style="background:#2f6fd0"></span>poco oxigenada</span>
-                <span><span class="cm3d-sw" style="background:#d8433b"></span>oxigenada</span>
-                <span><span class="cm3d-sw" style="background:#e08a1e"></span>comunicaciones y parches</span>
-                <span><span class="cm3d-sw" style="background:#8d8d88"></span>obstrucci&oacute;n</span>
-                <!-- PANT-14b: la entrada del tunel aparece SOLO cuando hay un tunel dibujado.
-                     La prende y la apaga `cmTunelLeySync`, que es su dueno unico. -->
-                <span id="cm3d-leg2-tun" hidden><span class="cm3d-sw" style="background:#8b5cf6"></span>t&uacute;nel quir&uacute;rgico</span>
+                <span id="cm3d-leg2-san" hidden><span class="cm3d-sw" style="background:#2f6fd0"></span>poco oxigenada</span>
+                <span id="cm3d-leg2-sano" hidden><span class="cm3d-sw" style="background:#d8433b"></span>oxigenada</span>
+                <span id="cm3d-leg2-com" hidden><span class="cm3d-sw" style="background:#e08a1e"></span>comunicaci&oacute;n</span>
+                <span id="cm3d-leg2-par" hidden><span class="cm3d-sw" style="background:#2f9e44"></span>parche</span>
+                <span id="cm3d-leg2-sut" hidden><span class="cm3d-sw cm3d-sw-trama"></span>sutura</span>
+                <span id="cm3d-leg2-cor" hidden><span class="cm3d-sw cm3d-sw-punto"></span>coronarias reimplantadas</span>
+                <span id="cm3d-leg2-obs" hidden><span class="cm3d-sw" style="background:#8d8d88"></span>obstrucci&oacute;n</span>
+                <span id="cm3d-leg2-val" hidden><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
+                <span id="cm3d-leg2-tun" hidden><span class="cm3d-sw" style="background:#7e22ce"></span>t&uacute;nel quir&uacute;rgico</span>
+                <span id="cm3d-leg2-tunc" hidden><span class="cm3d-sw" style="background:#c084fc"></span>segundo t&uacute;nel o conducto</span>
+                <span id="cm3d-leg2-vcsi" hidden><span class="cm3d-sw" style="background:#38bdf8"></span>cava izquierda persistente</span>
                 <span>T tric&uacute;spide &middot; M mitral</span>
               </div>
               <p class="cm3d-ref" id="cm3d-schcap"></p>
             </div>
           </div>
+          <!-- ⚠️ LA LEYENDA, POR ENTRADAS SEPARADAS (PANT-14c, commit 3g). Hasta esta tanda
+               «CIV, parches y suturas» nombraba tres cosas con un color; desde el commit 3 son
+               tres colores distintos. Estan TODAS en el marcado, cada una con su id, y
+               `cmLeyendaSync` prende la que esta dibujada: ningun nodo se crea ni se borra, asi
+               que los ids no cambian. La sutura lleva la MISMA trama que el dibujo y las
+               coronarias, un punto: las dos comparten el naranja de la comunicacion y lo que las
+               distingue es la forma. -->
           <div class="cm3d-leg">
-            <span><span class="cm3d-sw" style="background:#2f6fd0"></span>sangre poco oxigenada</span>
-            <span><span class="cm3d-sw" style="background:#d8433b"></span>sangre oxigenada</span>
-            <span><span class="cm3d-sw" style="background:#e08a1e"></span>CIV, parches y suturas</span>
-            <span><span class="cm3d-sw" style="background:#9a9a95"></span>obstrucci&oacute;n</span>
-            <span><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
-            <!-- PANT-14b: idem, en la leyenda del 3D. -->
-            <span id="cm3d-leg-tun" hidden><span class="cm3d-sw" style="background:#8b5cf6"></span>t&uacute;nel quir&uacute;rgico</span>
+            <span id="cm3d-leg-san" hidden><span class="cm3d-sw" style="background:#2f6fd0"></span>sangre poco oxigenada</span>
+            <span id="cm3d-leg-sano" hidden><span class="cm3d-sw" style="background:#d8433b"></span>sangre oxigenada</span>
+            <span id="cm3d-leg-com" hidden><span class="cm3d-sw" style="background:#e08a1e"></span>comunicaci&oacute;n</span>
+            <span id="cm3d-leg-par" hidden><span class="cm3d-sw" style="background:#2f9e44"></span>parche</span>
+            <span id="cm3d-leg-sut" hidden><span class="cm3d-sw cm3d-sw-trama"></span>sutura</span>
+            <span id="cm3d-leg-cor" hidden><span class="cm3d-sw cm3d-sw-punto"></span>coronarias reimplantadas</span>
+            <span id="cm3d-leg-obs" hidden><span class="cm3d-sw" style="background:#9a9a95"></span>obstrucci&oacute;n</span>
+            <span id="cm3d-leg-val" hidden><span class="cm3d-sw" style="background:#d9b92e"></span>v&aacute;lvula desplazada</span>
+            <span id="cm3d-leg-tun" hidden><span class="cm3d-sw" style="background:#7e22ce"></span>t&uacute;nel quir&uacute;rgico</span>
+            <span id="cm3d-leg-tunc" hidden><span class="cm3d-sw" style="background:#c084fc"></span>segundo t&uacute;nel o conducto</span>
+            <span id="cm3d-leg-vcsi" hidden><span class="cm3d-sw" style="background:#38bdf8"></span>cava izquierda persistente</span>
           </div>
           <!-- Las combinaciones frecuentes, DEBAJO del dibujo y con sus siglas: el nombre
                completo va en el title y en la etiqueta accesible, y la fuente sigue en el ⓘ. -->
@@ -103126,11 +103152,29 @@ const TGA3D_SRI = 'sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYd
    EL VALOR: 0x8b5cf6, un violeta que se distingue del azul 0x2f6fd0 y del rojo 0xd8433b por su
    tono, no por su claridad, asi que se lee igual en el tema de dia y en el de noche -el lienzo
    3D no cambia de fondo con el tema-. */
+/* ══ LOS DOS VIOLETAS (PANT-14c, commit 3a) ═════════════════════════════════════════════════
+   PEDIDO DEL MEDICO (06/11/2026): cuando hay DOS tuneles tienen que verse uno mas oscuro que el
+   otro. Son dos constantes con nombre y una linea para cambiar cada una.
+   LOS VALORES SALEN DE LA MEDICION QUE LA ORDEN PIDE y no de un gusto:
+     · entre si, por LUMINANCIA: 0,1003 contra 0,3474 de luminancia relativa, o sea 2,64 a 1
+       -la orden pide 1,6 a 1 como minimo-;
+     · contra el fondo, cada uno por encima de 1,5 a 1 en los dos temas -medido en el navegador
+       por la sonda de esta tanda, no calculado aca-;
+     · del azul de la sangre poco oxigenada, por TONO: 272,1 y 270,0 grados contra los 216,2 del
+       azul, o sea 55,9 y 53,8 grados. El violeta anterior -0x8b5cf6, 258,3 grados- quedaba a
+       42,1 del azul, que es justo lo que `P14b-h` dejo declarado como posiblemente poco para una
+       deuteranopia: los dos nuevos se separan mas.
+   ⚠️ `violet` CONSERVA SU NOMBRE y pasa a ser el OSCURO: lo leen el esquema plano y la leyenda,
+   asi que renombrarlo serian tres ediciones y una se queda vieja. */
 const TGA3D_C = Object.freeze({ blue: 0x2f6fd0, red: 0xd8433b, grey: 0x9a9a95, orange: 0xe08a1e,
-                                violet: 0x8b5cf6 });
-/* El mismo violeta para el esquema plano, en su notacion de CSS: es el MISMO color y por eso
-   sale del MISMO numero, no de un literal escrito dos veces. */
+                                violet: 0x7e22ce, violetClaro: 0xc084fc });
+/* Los mismos dos violetas para el esquema plano, en su notacion de CSS: son los MISMOS colores y
+   por eso salen de los MISMOS numeros, no de literales escritos dos veces. */
 const TGA_ESQ_VIOLETA = '#' + TGA3D_C.violet.toString(16).padStart(6, '0');
+const TGA_ESQ_VIOLETA_CLARO = '#' + TGA3D_C.violetClaro.toString(16).padStart(6, '0');
+/* El id del patron de la trama de sutura, con la misma convencion que los dos marcadores de
+   flecha de este esquema: un nombre propio, declarado una sola vez. */
+const TGA_ESQ_MALLA_ID = 'tga-esq-malla';
 const TGA3D_ALTO = 420;
 /* Los textos de la demo, con UNA poda declarada: las oraciones «Que mirar: …» NO se implementan.
    Es la decision (b) del medico —son de ejemplo y hay que verificarlas contra las guias de
@@ -103239,9 +103283,11 @@ const TGA_ESQ_DEF = Object.freeze({
     /* ⚠️ `tun` SON LOS DOS TRAMOS DE `fl` QUE PASAN POR DENTRO DEL TUNEL -PANT-14b, commit 6c-,
        y van como DATO y no como dos numeros escritos en el codigo del dibujo: el tramo 1 lleva
        la sangre de las cavas a la valvula mitral y el 4 la de las venas pulmonares a la
-       tricuspide. Es la unica anatomia con tunel en este esquema; el dia que otra lo tenga, se
-       le agrega su propia lista. */
-    tun:[1, 4] }),
+       tricuspide.
+       ⚠️ CADA TRAMO DICE SU TONO DESDE PANT-14c -commit 3b-: 'o' es el violeta OSCURO y 'c' el
+       CLARO, los MISMOS dos del 3D. El de las cavas va oscuro y el de las venas pulmonares
+       claro, igual que alla, asi que el dibujo y el esquema no pueden decir cosas distintas. */
+    tun:[[1, 'o'], [4, 'c']] }),
   /* ⚠️ EL JATENE USA LOS TRAZADOS DEL CORAZON NORMAL, y eso es lo correcto y no un atajo: el
      switch arterial reconecta los grandes vasos, asi que la circulacion vuelve a ir en serie.
      Lo que lo distingue son las tres marcas naranjas de `ex`: las dos lineas de sutura de la
@@ -103251,9 +103297,17 @@ const TGA_ESQ_DEF = Object.freeze({
     fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
         ['M220 122V156','r'],['M220 204V248','r']],
     v:[[80,140,'T'],[220,139,'M']], ao:[220,226], ap:[80,59],
-    ex:['<path d="M70 66H90" stroke="var(--tga-esq-naranja)" stroke-width="3"/>',
-        '<path d="M210 214H230" stroke="var(--tga-esq-naranja)" stroke-width="3"/>',
-        '<circle cx="236" cy="222" r="3" fill="var(--tga-esq-naranja)"/>'] }),
+    /* ⚠️ LAS DOS SUTURAS PASAN DE BARRA SOLIDA A RECTANGULO CON TRAMA (PANT-14c, commit 3e),
+       con la misma posicion y el mismo largo: una barra naranja solida se leia igual que una
+       comunicacion, que es el otro naranja de este esquema. La trama la da el `<pattern>` que
+       `tgaEsqCuerpo` declara en sus `<defs>`.
+       Y LA CORONARIA REIMPLANTADA gana su trazo corto: un punto suelto no dice que es un vaso. */
+    ex:['<rect x="69" y="62" width="22" height="8" rx="2" fill="url(#' + TGA_ESQ_MALLA_ID + ')" ' +
+        'stroke="var(--tga-esq-naranja)" stroke-width="0.6"/>',
+        '<rect x="209" y="210" width="22" height="8" rx="2" fill="url(#' + TGA_ESQ_MALLA_ID + ')" ' +
+        'stroke="var(--tga-esq-naranja)" stroke-width="0.6"/>',
+        '<path d="M230 222H235" stroke="var(--tga-esq-naranja)" stroke-width="1.6" fill="none"/>',
+        '<circle cx="237" cy="222" r="3" fill="var(--tga-esq-naranja)"/>'] }),
   /* ⚠️ EN EL RASTELLI LA SALIDA DEL VI VA POR LA CIV, y por eso su ultima flecha no es la del
      corazon normal: sale del VI, cruza al tabique y baja a la aorta. Las dos franjas naranjas de
      `ex` son el conducto del VD a la pulmonar y el tunel por la CIV. */
@@ -103262,8 +103316,13 @@ const TGA_ESQ_DEF = Object.freeze({
     fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b'],['M220 38V76','r'],
         ['M220 122V156','r'],['M180 182H150V108H18V265H58','r']],
     v:[[80,140,'T'],[220,139,'M']], ao:[18,191], ap:[80,59],
-    ex:['<path d="M80 78V40" stroke="var(--tga-esq-naranja)" stroke-width="8" opacity=".35" fill="none"/>',
-        '<path d="M150 108H40" stroke="var(--tga-esq-naranja)" stroke-width="9" opacity=".35" fill="none"/>'] }),
+    /* ⚠️ LOS DOS PASAN A VIOLETA (PANT-14c, commit 3b), con el MISMO reparto que el 3D: el
+       CONDUCTO del ventriculo derecho a la arteria pulmonar —el tramo vertical de la columna
+       izquierda— en violeta CLARO, y el TUNEL por la CIV hacia la aorta —el tramo horizontal—
+       en violeta OSCURO. Iban los dos en naranja, que en este esquema significa «comunicacion o
+       parche», y ninguno de los dos es eso. */
+    ex:['<path d="M80 78V40" stroke="' + TGA_ESQ_VIOLETA_CLARO + '" stroke-width="8" opacity=".35" fill="none"/>',
+        '<path d="M150 108H40" stroke="' + TGA_ESQ_VIOLETA + '" stroke-width="9" opacity=".35" fill="none"/>'] }),
   /* ══ LA TGA CORREGIDA (TGA-3, commit 5) ════════════════════════════════════════════════════
      ⚠️ EL 3D SI LA DISTINGUE, y por eso este escenario NO queda parado: `tgaEjes()` devuelve
      `anat:'ltga'` con el tipo `cctga`, y `_tga3dClave` la pasa tal cual porque la cirugia no se
@@ -103349,6 +103408,13 @@ function tgaEsqCuerpo(k, sh) {
          'markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9Z" fill="' +
          _tgaEsqCol(c) + '"/></marker>';
   });
+  /* ⚠️ EL PATRON DE LA TRAMA DE SUTURA (PANT-14c, commit 3e): lineas cruzadas sobre el naranja,
+     generadas aca y no con una imagen externa, que esta app no carga. Va en los mismos `<defs>`
+     que los dos marcadores de flecha y con la misma convencion de id que ellos. */
+  s += '<pattern id="' + TGA_ESQ_MALLA_ID + '" width="4" height="4" patternUnits="userSpaceOnUse">' +
+       '<rect width="4" height="4" fill="var(--tga-esq-naranja)"/>' +
+       '<path d="M0 0L4 4M4 0L0 4" stroke="rgba(55,34,6,0.9)" stroke-width="0.9" fill="none"/>' +
+       '</pattern>';
   s += '</defs>';
   /* Los dos organos: los pulmones arriba y el cuerpo abajo. */
   s += '<rect x="60" y="8" width="180" height="30" rx="8" fill="var(--bg3)" stroke="var(--border)"/>' +
@@ -103416,8 +103482,13 @@ function tgaEsqCuerpo(k, sh) {
      Va DESPUES de las cajas y ANTES de las flechas del flujo, que es lo que lo deja por debajo:
      en SVG manda el orden de pintado. */
   if (D.tun) {
-    D.tun.forEach(function (i) { const f = D.fl[i]; if (!f) return;
-      s += '<path d="' + f[0] + '" fill="none" stroke="' + TGA_ESQ_VIOLETA + '" stroke-width="9" ' +
+    D.tun.forEach(function (e) {
+      /* Cada entrada es `[indice, tono]`. Se admite el indice suelto por compatibilidad: ahi el
+         tono es el oscuro, que es el que esta constante tenia cuando era una sola. */
+      const i = Array.isArray(e) ? e[0] : e, to = Array.isArray(e) ? e[1] : 'o';
+      const f = D.fl[i]; if (!f) return;
+      s += '<path d="' + f[0] + '" fill="none" stroke="' +
+           (to === 'c' ? TGA_ESQ_VIOLETA_CLARO : TGA_ESQ_VIOLETA) + '" stroke-width="9" ' +
            'stroke-linecap="round" opacity="0.38"/>' });
   }
   /* Las flechas del flujo. La clase es la que anima el bucle. */
@@ -103992,10 +104063,58 @@ const CM3D_ALTO = 420;
        slot no sobrevive a `CeiboImg.guardar`, cuya lista de claves es cerrada, asi que al
        reabrir un estudio el dibujo volveria a estamparse cuadrado. */
 const CM_PDF_AR = 1.25;
+/* Cuantos pixeles de solape se toleran entre dos cajas de rotulo antes de mover la segunda. Dos
+   cajas que se tocan por un borde no son un solape que moleste; a partir de aca si. */
+const CM_LBL_TOL = 3;
+/* Cuanto por debajo del origen de la aorta, siguiendo su tangente, se ubica el anillo de la
+   obstruccion subaortica. La orden fija el rango de 0,25 a 0,35; este es el medio. */
+const CM_OBS_BAJO = 0.30;
+/* El centro y el radio del parche de la CIV del Fallot operado, en UN solo lugar: los leen el
+   disco que lo dibuja y la CIV residual, que se ubica en su borde para atravesarlo. */
+const CM_FAL_PARCHE = Object.freeze([-0.05, -0.8, 0.2]);
+const CM_FAL_PARCHE_R = 0.3;
+/* El alto del cilindro corto de una banda de sutura. */
+const CM_SUT_ALTO = 0.12;
+/* ══ LA TRAMA DE MALLA, GENERADA POR CODIGO (PANT-14c, commit 3e) ═══════════════════════════
+   Lineas cruzadas en diagonal sobre un lienzo chico, repetidas a lo largo del cilindro. Se
+   construye UNA vez y se guarda: una textura por objeto y por repintado seria un lienzo nuevo
+   en cada cuadro. Sin imagenes externas, que es la regla de esta app. */
+let _cmMallaTexCache = null;
+function _cmMallaTex(T) {
+  if (_cmMallaTexCache) return _cmMallaTexCache;
+  try {
+    const n = 32, cv = document.createElement('canvas');
+    cv.width = n; cv.height = n;
+    const x = cv.getContext('2d');
+    x.fillStyle = 'rgba(255,255,255,1)'; x.fillRect(0, 0, n, n);
+    x.strokeStyle = 'rgba(70,45,10,0.85)'; x.lineWidth = 2.2;
+    for (let i = -n; i <= n * 2; i += 8) {
+      x.beginPath(); x.moveTo(i, 0); x.lineTo(i + n, n); x.stroke();
+      x.beginPath(); x.moveTo(i + n, 0); x.lineTo(i, n); x.stroke();
+    }
+    const t = new T.CanvasTexture(cv);
+    t.wrapS = T.RepeatWrapping; t.wrapT = T.RepeatWrapping; t.repeat.set(6, 1);
+    _cmMallaTexCache = t;
+  } catch (e) { _cmMallaTexCache = null }
+  return _cmMallaTexCache;
+}
 const CM_PDF_MARGEN = 0.04;
 
 /* ══ CM-DATOS ══ (marca de extraccion de `_probe_pant12demo.mjs`: UNA sola vez en el archivo) */
-const CM_C=Object.freeze({blue:0x2f6fd0,red:0xd8433b,grey:0x9a9a95,orange:0xe08a1e,gold:0xd9b92e,valve:0xb59f62});
+/* ══ DOS COLORES NUEVOS (PANT-14c, commits 3c y 3f) ═════════════════════════════════════════
+   PEDIDO DEL MEDICO (06/11/2026): los parches en VERDE y la cava superior izquierda persistente
+   en CELESTE. Cada uno en UNA constante con nombre: una linea para cambiarlo.
+   LOS VALORES, con la medicion que la orden pide:
+     · `green` 0x2f9e44 — tono 131,4 grados: a 85 del azul de la sangre poco oxigenada, a 128
+       del rojo y a 139 de los dos violetas. Y a 22 del verde de la interfaz (--green #3ecf8e),
+       con otra claridad: no se confunden.
+     · `celeste` 0x38bdf8 — tono 198,4 grados, a 18 del azul, asi que lo que lo separa de la
+       sangre poco oxigenada NO es el tono sino la CLARIDAD: 0,4403 contra 0,1653 de luminancia
+       relativa, o sea 2,28 a 1. De los dos violetas lo separa el tono: 72 y 57 grados.
+   Los numeros de arriba son los calculados; los MEDIDOS en el navegador, en dia y noche, los
+   publica la sonda de esta tanda. */
+const CM_C=Object.freeze({blue:0x2f6fd0,red:0xd8433b,grey:0x9a9a95,orange:0xe08a1e,gold:0xd9b92e,valve:0xb59f62,
+                          green:0x2f9e44,celeste:0x38bdf8});
 function _cmCat(){const o=[];Array.prototype.forEach.call(arguments,function(a){a.forEach(function(p){const l=o[o.length-1];if(!l||l[0]!==p[0]||l[1]!==p[1]||l[2]!==p[2]){o.push(p);}});});return o;}
 const CM_SV=[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
 const CM_PVR=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.4,0.9,-0.7],[0.55,0.2,-0.3],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
@@ -104255,12 +104374,37 @@ function _cmEscenaTGA(S) {
        ORIENTADO HACIA LA CAMARA: sin `rx` ni `ry` el toro queda en el plano XY, que es el que la
        camara mira de frente, asi que se ve como un anillo y no como una linea.
        EL GRIS, EL ROTULO Y LA BARRA DEL ESQUEMA NO SE TOCAN: son los de la leyenda. */
+    /* ══ ACOSTADO Y TRANSVERSAL AL EJE DE LA AORTA (PANT-14c, commit 3d) ═════════════════
+       ⚠️ EL MEDICO REPORTO QUE SE VE «RARO»: PANT-14b lo dejo en el plano XY -sin `rx` ni `ry`-,
+       que es el que la camara mira de frente, asi que se veia como un aro de frente y no como
+       un rodete dentro de la via de salida. PEDIDO: acostado, TRANSVERSAL al eje de la aorta,
+       justo DEBAJO del anillo aortico.
+       LA REGLA, con la geometria de la propia escena y no con una posicion inventada:
+         · el ORIGEN de la aorta es el primer punto de su curva -la arteria roja que
+           `tga3dEscena` acaba de armar-;
+         · la TANGENTE en el origen es la direccion de ese primer punto al segundo;
+         · el anillo se ubica `CM_OBS_BAJO` por debajo del origen SIGUIENDO esa tangente, o sea
+           hacia atras, que es la via de salida del ventriculo que da origen a la aorta;
+         · y se ORIENTA con su normal en la direccion de esa tangente, que es lo que lo deja
+           acostado y transversal al vaso. Lo hace `nrm`, que el motor convierte en una rotacion.
+       EL RADIO sale del radio de la aorta en su origen -`a.r[0]`- con un 10 % mas, que es
+       «igual o apenas mayor» como la orden pide, y no un numero escrito a mano.
+       EL GRIS, EL ROTULO, LA BARRA DEL ESQUEMA Y LA PRIORIDAD DE RENDER NO SE TOCAN. */
     const _ao = (s.ar || []).filter(function (x) { return x.c === TGA3D_C.red })[0];
     const _r0 = (_ao && _ao.p && _ao.p[0]) ? _ao.p[0] : null;
-    const po = _r0 ? [_r0[0], _r0[1] - 0.30, _r0[2]]
+    const _r1 = (_ao && _ao.p && _ao.p[1]) ? _ao.p[1] : null;
+    let _tg = null;
+    if (_r0 && _r1) {
+      const d = [_r1[0]-_r0[0], _r1[1]-_r0[1], _r1[2]-_r0[2]];
+      const n = Math.sqrt(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+      if (n > 1e-6) _tg = [d[0]/n, d[1]/n, d[2]/n];
+    }
+    const po = (_r0 && _tg) ? [_r0[0] - _tg[0]*CM_OBS_BAJO, _r0[1] - _tg[1]*CM_OBS_BAJO, _r0[2] - _tg[2]*CM_OBS_BAJO]
+             : (_r0 ? [_r0[0], _r0[1] - CM_OBS_BAJO, _r0[2]]
                    : (({ jat:[0.4,0.05,-0.07], d:[-0.4,0.35,0.9], mus:[-0.4,0.35,0.9],
-                         cc:[0.9,0.35,0.6], ras:[0.45,-0.85,0.05] })[S.bv.tga] || [0.4,0.05,-0.07]);
-    s.ex.push({ t:'ring', c:po, r:0.26, col:CM_C.grey, pri:true });
+                         cc:[0.9,0.35,0.6], ras:[0.45,-0.85,0.05] })[S.bv.tga] || [0.4,0.05,-0.07]));
+    const _rob = (_ao && _ao.r && _ao.r[0]) ? (_ao.r[0] * 1.1) : 0.30;
+    s.ex.push({ t:'ring', c:po, r:_rob, col:CM_C.grey, pri:true, nrm:(_tg || [0,1,0]) });
     if (s.lb.length < 12) s.lb.push(['Obstr. subaórtica', [po[0]+1.0, po[1]-0.1, po[2]+0.4]]);
   }
   /* ⚠️ LA CAVA IZQUIERDA YA NO ENTRA ACA, Y ES EL commit 3a: el 3D de la pestania no la dibuja
@@ -104352,9 +104496,25 @@ function cmEscena(S) {
     }else{
       s.ar.push(NPA[0],NPA[1]);
       if(K.rest){paObs=[-0.2,1.4,0.75];}pa(14);
-      s.ex.push({t:'disc',c:[-0.05,-0.8,0.2],r:0.3,in:true},{t:'tube',p:[[-0.62,0.05,0.98],[-0.45,0.55,1.02],[-0.25,1.2,0.88]],r:0.045,c:CM_C.orange,op:1});
+      /* ⚠️ LOS DOS PARCHES PASAN A VERDE (PANT-14c, commit 3f): el DISCO que cierra la CIV y la
+         BANDA que amplia el tracto de salida del ventriculo derecho. Hasta hoy los dos iban en
+         naranja, que en este dibujo significa «comunicacion»: un parche es justo lo contrario
+         -lo que la cierra-, asi que con el mismo color el dibujo decia dos cosas con una. La
+         GEOMETRIA no cambia: mismo centro, mismo radio y mismos tres puntos. */
+      s.ex.push({t:'disc',c:CM_FAL_PARCHE,r:CM_FAL_PARCHE_R,col:CM_C.green,in:true},{t:'tube',p:[[-0.62,0.05,0.98],[-0.45,0.55,1.02],[-0.25,1.2,0.88]],r:0.045,c:CM_C.green,op:1});
       if(K.ip){s.fl.push({p:[[0.1,1.7,0.55],[-0.3,1.0,0.85],[-0.5,0.35,0.75],[-0.7,-0.4,0.5],[-0.8,-1.2,0.45]],c:CM_C.blue,n:11,sp:0.4,r:0.1});lab('Insuf. pulmonar',[-1.25,0.45,1.05]);}
-      if(K.rciv){s.ex.push({t:'ring',c:[-0.05,-1.2,0.2],r:0.1,ry:true,in:true});s.fl.push({p:[[0.4,-1.15,0.0],[0.0,-1.2,0.2],[-0.5,-1.2,0.45]],c:CM_C.red,n:4,sp:0.5});lab('CIV residual',[0.75,-1.45,0.35]);}
+      /* ⚠️ LA CIV RESIDUAL ATRAVIESA EL PARCHE (PANT-14c, commit 3f). Estaba 0,4 por DEBAJO del
+         disco, o sea como un anillo aparte, y el medico pidio que se vea pasando POR el parche.
+         El centro se deriva del parche: un punto de su BORDE, calculado de su centro y su radio
+         -el disco tiene su eje en X, asi que su borde es un circulo en el plano YZ-. La
+         corriente va a lo largo de X, que es la normal del parche, asi que CRUZA su plano. Las
+         dos cosas salen de `CM_FAL_PARCHE` y `CM_FAL_PARCHE_R`: si el parche se mueve, la CIV
+         residual lo sigue. */
+      if(K.rciv){
+        const _bo=[CM_FAL_PARCHE[0], CM_FAL_PARCHE[1]-CM_FAL_PARCHE_R*0.8, CM_FAL_PARCHE[2]+CM_FAL_PARCHE_R*0.6];
+        s.ex.push({t:'ring',c:_bo,r:0.1,ry:true,in:true});
+        s.fl.push({p:[[_bo[0]+0.45,_bo[1]+0.05,_bo[2]-0.2],_bo,[_bo[0]-0.45,_bo[1],_bo[2]+0.25]],c:CM_C.red,n:4,sp:0.5});
+        lab('CIV residual',[_bo[0]+0.8,_bo[1]-0.25,_bo[2]+0.15]);}
       if(K.rest){s.ex.push({t:'ring',c:[-0.2,1.4,0.75],r:0.3,rx:true,col:CM_C.grey});lab('Estenosis',[-1.0,1.35,1.0]);}
       lab('Parche CIV',[-0.05,-0.45,0.75]);lab('AP',[0.1,2.15,0.45]);
     }
@@ -104430,7 +104590,12 @@ function cmEscena(S) {
   if(M.vcs){
     let vc=[[1.7,3.0,-0.1],[2.0,2.1,0.2],[2.05,1.1,0.05],[1.7,0.4,-0.5]];
     let cs=[[1.7,0.4,-0.5],[0.8,0.25,-0.85],[-0.4,0.3,-0.75],[-1.0,0.35,-0.45]];
-    s.ex.push({t:'tube',p:vc,r:0.13,c:CM_C.blue,op:0.9},{t:'tube',p:cs,r:0.2,c:CM_C.blue,op:0.8});
+    /* ⚠️ LAS PAREDES DE LA VENA Y DEL SENO CORONARIO DILATADO PASAN A CELESTE (PANT-14c,
+       commit 3c). Llevaban el azul de la sangre poco oxigenada, asi que la cava izquierda se
+       leia como un vaso mas; el medico pidio que se distinga. Las PARTICULAS conservan su azul
+       -viven en `s.fl` y no se tocan-, que es la misma regla que los tuneles: la pared dice que
+       es una estructura propia, la corriente dice que sangre lleva. La geometria no cambia. */
+    s.ex.push({t:'tube',p:vc,r:0.13,c:CM_C.celeste,op:0.9},{t:'tube',p:cs,r:0.2,c:CM_C.celeste,op:0.8});
     s.fl.push({p:_cmCat(vc,cs),c:CM_C.blue,n:7,sp:0.3});
     lab('Cava izquierda',[2.55,2.0,0.2]);lab('Seno coronario dilatado',[0.3,-0.35,-0.9]);
   }
@@ -104636,6 +104801,12 @@ function cm3dInit() {
       if(e.t==='ring'){
         m=new T.Mesh(new T.TorusGeometry(e.r,(e.col===CM_C.grey?0.08:0.06),8,24),new T.MeshStandardMaterial({color:e.col||CM_C.orange,roughness:0.4}));
         m.position.set(e.c[0],e.c[1],e.c[2]);if(e.ry){m.rotation.y=Math.PI/2;}if(e.rx){m.rotation.x=Math.PI/2;}
+        /* ⚠️ `nrm` ORIENTA EL ANILLO CON SU NORMAL EN UNA DIRECCION CUALQUIERA -PANT-14c,
+           commit 3d-. Un toro nace en el plano XY, o sea con su eje en Z: esto lo gira para que
+           su eje apunte a donde `nrm` diga. Lo lleva SOLO quien lo pide, asi que `rx` y `ry` y
+           los otros doce anillos del modulo siguen exactamente como estaban. */
+        if(e.nrm){try{m.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),
+          new T.Vector3(e.nrm[0],e.nrm[1],e.nrm[2]).normalize());}catch(_e){}}
         /* ⚠️ `pri` ES LA PRIORIDAD DE RENDER -PANT-14b, commit 7-, y la pide la orden: «por
            encima de las estructuras opacas». Sin ella el anillo de la obstruccion subaortica
            quedaba dentro de la masa del ventriculo y aportaba entre 0 y 4 pixeles al lienzo,
@@ -104646,8 +104817,30 @@ function cm3dInit() {
         add(m);
       }
       if(e.t==='disc'){
-        m=new T.Mesh(new T.CylinderGeometry(e.r,e.r,0.05,28),new T.MeshStandardMaterial({color:CM_C.orange,roughness:0.4}));
+        /* El color del disco pasa a ser el que la escena pida -`e.col`-, con el naranja de antes
+           como valor por omision: el parche del Fallot operado lo pide VERDE (PANT-14c, commit
+           3f) y ningun otro disco existe hoy, asi que nada mas se mueve. */
+        m=new T.Mesh(new T.CylinderGeometry(e.r,e.r,0.05,28),new T.MeshStandardMaterial({color:e.col||CM_C.orange,roughness:0.4}));
         m.position.set(e.c[0],e.c[1],e.c[2]);m.rotation.z=Math.PI/2;add(m);
+      }
+      /* ══ LA BANDA DE SUTURA, CON TRAMA DE MALLA (PANT-14c, commit 3e) ══════════════════
+         ⚠️ EL MEDICO REPORTO QUE EN EL JATENE «no se entienden los anillos»: las dos lineas de
+         sutura se dibujaban con el MISMO toro que la obstruccion subaortica, asi que un anillo
+         naranja y un anillo gris se leian como lo mismo. PEDIDO: horizontales pero NO como
+         anillo, como una pequena malla circular.
+         ES UN CILINDRO CORTO ABIERTO -sin tapas-, perpendicular al eje del vaso, de radio apenas
+         mayor que el del vaso, semitransparente y con una textura de malla generada POR CODIGO:
+         ni una imagen externa, que esta app no carga. El eje del cilindro nace en Y, asi que
+         `nrm` lo gira hasta el eje del vaso.
+         ⚠️ NO SE REUSA EL TORO PARA NINGUNA SUTURA, que es lo que la orden pide expresamente. */
+      if(e.t==='malla'){
+        m=new T.Mesh(new T.CylinderGeometry(e.r,e.r,e.h||CM_SUT_ALTO,28,1,true),
+          new T.MeshStandardMaterial({color:e.col||CM_C.orange,roughness:0.5,side:T.DoubleSide,
+            transparent:true,opacity:0.85,map:_cmMallaTex(T)}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);
+        if(e.nrm){try{m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),
+          new T.Vector3(e.nrm[0],e.nrm[1],e.nrm[2]).normalize());}catch(_e){}}
+        add(m);
       }
       if(e.t==='zone'){
         m=new T.Mesh(new T.SphereGeometry(e.r,20,16),new T.MeshStandardMaterial({color:e.col,roughness:0.5,transparent:true,opacity:0.55,depthWrite:false}));
@@ -104732,8 +104925,38 @@ function cm3dInit() {
     lbs.forEach(function(l){
       let v=l.p.clone().applyMatrix4(root.matrixWorld).project(cam);
       l.sx=(v.x*0.5+0.5)*w;l.sy=(-v.y*0.5+0.5)*h;
-      l.el.style.left=l.sx+'px';l.el.style.top=l.sy+'px';
     });
+    /* ══ LOS ROTULOS NO SE SOLAPAN (PANT-14c, commit 3a) ══════════════════════════════════
+       ⚠️ EL MEDICO REPORTO QUE «Tunel cavas» Y «Tunel venas pulm.» SE SUPERPONEN. Es una regla
+       GENERAL y no un reacomodo de esos dos: se recorren los rotulos en orden y, si la caja de
+       uno se solapa con alguna de las anteriores en mas de `CM_LBL_TOL` pixeles, el segundo baja
+       hasta no solaparse. Baja y no sube porque el punto que el rotulo nombra queda arriba, y
+       nunca sale del recuadro: si no cabe hacia abajo, se prueba hacia arriba, y si tampoco, se
+       queda donde estaba -un rotulo movido fuera del lienzo es peor que uno solapado-.
+       LA CAJA SE MIDE DEL PROPIO ELEMENTO (`offsetWidth`/`offsetHeight`), que es el ancho real
+       del texto con su relleno: estimarlo por la cantidad de letras daria otra caja que la que
+       el navegador dibuja, y el solape se mide sobre la que se ve. */
+    (function(){
+      const ca=[];
+      lbs.forEach(function(l){
+        const lw=l.el.offsetWidth||0, lh=l.el.offsetHeight||0;
+        let y=l.sy;
+        for (let paso=0; paso<24; paso++) {
+          let choca=false;
+          for (let i=0;i<ca.length;i++) {
+            const o=ca[i];
+            if (Math.min(l.sx+lw,o.x+o.w)-Math.max(l.sx,o.x) > CM_LBL_TOL &&
+                Math.min(y+lh,o.y+o.h)-Math.max(y,o.y) > CM_LBL_TOL) { choca=true; y=o.y+o.h+2; break }
+          }
+          if (!choca) break;
+        }
+        if (y+lh > h) { y = l.sy - lh - 2 }
+        if (y < 0) { y = l.sy }
+        l.sy = y;
+        ca.push({ x:l.sx, y:y, w:lw, h:lh });
+        l.el.style.left=l.sx+'px';l.el.style.top=l.sy+'px';
+      });
+    })();
     rd.render(scene,cam);
     requestAnimationFrame(frame);
   }
@@ -104821,7 +105044,11 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
   _cm3dNomsSet = function () { lbs.forEach(function (l) { l.el.style.display = _cm3d.noms ? '' : 'none' }) };
   /* ⚠️ EL ESQUEMA SE CUELGA DEL `build`, igual que en la demo: asi TODO gesto que repinta el
      dibujo repinta el esquema, sin que nadie tenga que acordarse de llamarlo. */
-  cm3dBuild = function () { build(); try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {} };
+  /* ⚠️ Y LA LEYENDA TAMBIEN SE CUELGA DEL `build` (PANT-14c, commit 3g), por el mismo motivo
+     que el esquema: asi TODO gesto que repinta el dibujo repinta las dos leyendas, y ninguna
+     entrada puede quedar prendida sobre algo que ya no se dibuja. */
+  cm3dBuild = function () { build(); try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}
+    try { if (typeof cmLeyendaSync === 'function') cmLeyendaSync() } catch (e) {} };
   build();
   /* ⚠️ EL RELOJ EN HORA JUSTO ANTES DE ARRANCAR EL BUCLE: la tercera guarda. Entre el
      `performance.now()` de la declaracion y este punto se construyo toda la geometria, que son
@@ -105046,6 +105273,10 @@ function cmRenderCtl(){
    numeros: ni un dato del paciente entra aca. */
 const CM_SCH_B = '#2f6fd0', CM_SCH_R = '#d8433b', CM_SCH_O = '#e08a1e',
       CM_SCH_G = '#8d8d88', CM_SCH_Y = '#d9b92e';
+/* Los dos colores de PANT-14c en la notacion del esquema, salidos de los MISMOS numeros que el
+   3D usa: el verde del parche y el celeste de la cava izquierda persistente. */
+const CM_SCH_VERDE = '#' + CM_C.green.toString(16).padStart(6, '0'),
+      CM_SCH_CELESTE = '#' + CM_C.celeste.toString(16).padStart(6, '0');
 /* ══ LA PALETA DEL ESQUEMA -PANT-14, commit 1- ═══════════════════════════════════════════════
    ⚠️ EL ESQUEMA SALIA CON LAS SEIS CAJAS Y LAS DOS VALVULAS NEGRAS, y la causa es de una linea:
    `--card` NO EXISTE EN ESTA APLICACION. Medido en los dos motores, en los dos temas y en los
@@ -105204,7 +105435,10 @@ function cmSchRender(forzar) {
       conn('M120 116L180 164','CIV',122,106);
       T(228,240,'Ao cabalga','start',9); lab[3][0] = '';
     } else {
-      ex.push('<path d="M150 96V160" stroke="' + Oc + '" stroke-width="9" opacity=".35" fill="none"/>');
+      /* ⚠️ EL PARCHE EN VERDE (PANT-14c, commit 3f), el MISMO color que el disco del 3D y
+         salido del mismo numero: en naranja se leia como una comunicacion, que es lo contrario
+         de lo que un parche es. La posicion y el trazo no cambian. */
+      ex.push('<path d="M150 96V160" stroke="' + CM_SCH_VERDE + '" stroke-width="9" opacity=".45" fill="none"/>');
       T(156,176,'parche','start',9);
       if (K.rciv) { conn('M180 164L120 116','CIV residual',112,172) }
       if (K.rest) { bar(70,56,20,6,Gc,'estenosis',94,62) }
@@ -105251,7 +105485,15 @@ function cmSchRender(forzar) {
   if (M.vap) { conn(eis ? 'M80 70L220 212' : 'M220 212L80 70','VAP',186,206) }
   if (M.cvpa) { fl.push(['M60 23H22V236H76','r']); T(26,120,'VP der. \u2192 cava','start',9);
     if (K.svs) { conn('M180 116L120 164','CIA SV',126,152) } }
-  if (M.vcs) { fl.push(['M50 250V206','b']); T(30,226,'VCSI','end',9) }
+  /* ⚠️ LA CAVA IZQUIERDA PERSISTENTE, CON SU PARED EN CELESTE (PANT-14c, commit 3c). Este
+     esquema no le da una caja: le da un recorrido y su rotulo. La pared es un trazo celeste
+     ANCHO por debajo de la corriente, que es exactamente como el tunel se dibuja aca —y por el
+     mismo motivo: la pared dice que es una estructura propia, la corriente dice que sangre
+     lleva, y la corriente conserva su azul—. */
+  if (M.vcs) {
+    ex.push('<path d="M50 250V206" stroke="' + CM_SCH_CELESTE + '" stroke-width="9" opacity=".45" ' +
+            'stroke-linecap="round" fill="none"/>');
+    fl.push(['M50 250V206','b']); T(30,226,'VCSI','end',9) }
   if (M.coa === 'nat') { bar(210,236,20,6,Gc,'Coa',236,242) }
   if (M.coa === 'rep') { bar(210,236,20,6,Oc,'reparada',236,242);
     if (K.rec) { bar(210,226,20,4,Gc,'recoart.',236,232) } }
@@ -105604,29 +105846,86 @@ window.cmPapelLesiones = cmPapelLesiones;
    ⚠️ DE DONDE SALE EL COLOR DE CADA OBJETO: `tube` lo trae en `c`, los demas en `col`, y `ring`
    y `disc` sin color caen en el naranja, que es el valor por omision que el motor aplica
    (`e.col || CM_C.orange`). Escribirlo de otra forma seria una segunda regla. */
+/* ⚠️ «CIV, parches y suturas» SE PARTE EN ENTRADAS SEPARADAS (PANT-14c, commit 3g). Esa entrada
+   nombraba tres cosas con un color, y desde este commit son tres colores distintos: la
+   comunicacion sigue naranja, el parche es verde y la sutura es naranja CON TRAMA. Cada entrada
+   aparece SOLO si lo suyo esta dibujado.
+   ⚠️ EL ORDEN DE LA LISTA ES EL ORDEN EN QUE SE VEN, y la sangre va primero: es lo que el
+   dibujo tiene siempre. `id` es lo que el marcado del documento usa para cada entrada.
+   ⚠️ LAS DOS ENTRADAS NARANJAS SE DISTINGUEN POR `trama` Y NO POR EL COLOR, porque comparten el
+   color: `pide` dice que tiene que estar dibujado para que la entrada aparezca. La sutura se
+   pregunta por su TIPO de objeto -`malla`- y no por su color, que es el mismo de la
+   comunicacion: con el color se habrian prendido las dos juntas. */
 const CM_LEY = Object.freeze([
-  { c: CM_C.blue,   t: 'sangre poco oxigenada' },
-  { c: CM_C.red,    t: 'sangre oxigenada' },
-  { c: CM_C.orange, t: 'CIV, parches y suturas' },
-  { c: CM_C.grey,   t: 'obstrucción' },
-  { c: CM_C.gold,   t: 'válvula desplazada' }
+  { id:'san',  c: CM_C.blue,        t: 'sangre poco oxigenada' },
+  { id:'sano', c: CM_C.red,         t: 'sangre oxigenada' },
+  { id:'com',  c: CM_C.orange,      t: 'comunicación' },
+  { id:'par',  c: CM_C.green,       t: 'parche' },
+  { id:'sut',  c: CM_C.orange,      t: 'sutura', trama:true, tipo:'malla' },
+  { id:'cor',  c: CM_C.orange,      t: 'coronarias reimplantadas', punto:true, pide:'cor' },
+  { id:'obs',  c: CM_C.grey,        t: 'obstrucción' },
+  { id:'val',  c: CM_C.gold,        t: 'válvula desplazada' },
+  { id:'tun',  c: TGA3D_C.violet,   t: 'túnel quirúrgico' },
+  { id:'tunc', c: TGA3D_C.violetClaro, t: 'segundo túnel o conducto' },
+  { id:'vcsi', c: CM_C.celeste,     t: 'cava izquierda persistente' }
 ]);
 function cmColoresEscena(s) {
   const v = {};
   if (!s) return v;
   (s.ex || []).forEach(function (e) {
-    let c = (e.col != null) ? e.col : ((e.c != null) ? e.c : null);
+    /* ⚠️ `e.c` ES UN COLOR SOLO EN UN `tube`. En un `ring`, un `disc`, un `cone`, un `sph`, una
+       `zone` y una `leaf` es el CENTRO —un array de tres numeros— y el color va en `e.col`.
+       Escrito sin esa distincion, la entrada «comunicacion» de la leyenda NO se prendia con la
+       CIV residual del Fallot operado: su anillo no trae `col` y su `e.c` es la posicion, asi que
+       el barrido guardaba el array como si fuera un color y el naranja por omision nunca entraba.
+       Lo destapo la MEDICION del inventario, no la lectura. */
+    let c = (e.t === 'tube') ? e.c : e.col;
     if (c == null && (e.t === 'ring' || e.t === 'disc')) c = CM_C.orange;
-    if (c != null) v[c] = 1;
+    if (typeof c === 'number') v[c] = 1;
+    /* Los tipos de objeto que una entrada puede pedir por si mismos. La sutura comparte color
+       con la comunicacion, asi que preguntar por el color no la distingue. */
+    if (e.t === 'malla') v['malla'] = 1;
   });
   (s.fl || []).forEach(function (f) { if (f.c != null) v[f.c] = 1 });
   (s.ar || []).forEach(function (a) { const c = (a.col != null) ? a.col : a.c; if (c != null) v[c] = 1 });
   Object.keys(s.ch || {}).forEach(function (k) { if (s.ch[k] != null) v[s.ch[k]] = 1 });
   return v;
 }
+/* Las coronarias reimplantadas son los dos canios finos naranjas del Jatene: se las reconoce por
+   su RADIO, que es el unico tubo de 0,05 del dibujo, y no por su color, que comparten con la
+   comunicacion. Si alguna vez otro tubo naciera con ese radio, esta es la linea que cambia. */
+function _cmHayCoronarias(s) {
+  try { return (s.ex || []).some(function (e) { return e.t === 'tube' && e.r === 0.05 && e.c === CM_C.orange }) }
+  catch (e) { return false }
+}
+/* ══ LAS DOS LEYENDAS, UN SOLO PINTOR (PANT-14c, commit 3g) ═════════════════════════════════
+   Las entradas estan TODAS en el marcado, cada una con su id, y este pintor solo PRENDE y APAGA
+   la que corresponde. No se crean ni se borran nodos: asi los ids no cambian -los leen los casos
+   de la suite- y no hay un segundo lugar donde una entrada pueda nacer con otro color.
+   ⚠️ `cmTunelLeySync` SE CONSERVA Y DELEGA ACA, porque la llaman dos embudos distintos: con dos
+   funciones prendiendo entradas, el dia que una entrada se agregue una de las dos se queda
+   vieja. */
+function cmLeyendaSync() {
+  let esc = null;
+  try { esc = cmEscena(_cm3d.S) } catch (e) { esc = null }
+  const pres = {};
+  cmLeyendaPresente(esc).forEach(function (e) { pres[e.id] = 1 });
+  CM_LEY.forEach(function (e) {
+    ['cm3d-leg-', 'cm3d-leg2-'].forEach(function (pre) {
+      const n = document.getElementById(pre + e.id);
+      if (n) n.hidden = !pres[e.id];
+    });
+  });
+}
+window.cmLeyendaSync = cmLeyendaSync;
 function cmLeyendaPresente(s) {
   const v = cmColoresEscena(s);
-  return CM_LEY.filter(function (e) { return !!v[e.c] });
+  const cor = _cmHayCoronarias(s);
+  return CM_LEY.filter(function (e) {
+    if (e.pide === 'cor') return cor;
+    if (e.tipo) return !!v[e.tipo];
+    return !!v[e.c];
+  });
 }
 window.cmLeyendaPresente = cmLeyendaPresente;
 window.cmColoresEscena = cmColoresEscena;
@@ -106061,10 +106360,11 @@ function cmHayTunel() {
   catch (e) { return false }
 }
 window.cmHayTunel = cmHayTunel;
+/* ⚠️ DELEGA EN `cmLeyendaSync` DESDE PANT-14c: la entrada del tunel ya no es la unica que
+   aparece y desaparece —son once—, y la pregunta de cual se ve se la hace la escena. El nombre
+   se conserva porque lo llaman dos embudos y los casos de la suite. */
 function cmTunelLeySync() {
-  const on = cmHayTunel();
-  ['cm3d-leg-tun', 'cm3d-leg2-tun'].forEach(function (id) {
-    const e = document.getElementById(id); if (e) e.hidden = !on });
+  if (typeof cmLeyendaSync === 'function') cmLeyendaSync();
 }
 window.cmTunelLeySync = cmTunelLeySync;
 
@@ -106219,6 +106519,26 @@ function _t3cat(){ const o=[];
   Array.prototype.forEach.call(arguments,function(a){ a.forEach(function(p){ const l=o[o.length-1];
     if(!l||l[0]!==p[0]||l[1]!==p[1]||l[2]!==p[2]) o.push(p); }) });
   return o; }
+/* ══ LA TANGENTE DE UN TRAZADO EN EL PUNTO MAS CERCANO A UNO DADO (PANT-14c, commit 3e) ══════
+   La usa la banda de sutura para quedar PERPENDICULAR a su vaso: se busca el tramo del trazado
+   cuyo punto esta mas cerca del centro de la banda y se devuelve la direccion de ese tramo.
+   Asi la orientacion sale de la geometria de la propia escena y no de un vector escrito a mano:
+   el dia que un trazado cambie, la banda lo sigue. Si no se puede calcular devuelve el eje Y,
+   que es como nace el cilindro -o sea, no se gira-. */
+function _t3tang(pts, c) {
+  try {
+    let mj = 0, md = Infinity;
+    for (let j = 0; j < pts.length; j++) {
+      const d = (pts[j][0]-c[0])*(pts[j][0]-c[0]) + (pts[j][1]-c[1])*(pts[j][1]-c[1])
+              + (pts[j][2]-c[2])*(pts[j][2]-c[2]);
+      if (d < md) { md = d; mj = j }
+    }
+    const a = pts[Math.max(0, mj - 1)], b = pts[Math.min(pts.length - 1, mj + 1)];
+    const v = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
+    const n = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    return (n > 1e-6) ? [v[0]/n, v[1]/n, v[2]/n] : [0, 1, 0];
+  } catch (e) { return [0, 1, 0] }
+}
 /* ── El estado del dibujo. NADA de esto se persiste. ── */
 const _tga3d = { cargando:false, listo:false, fallo:false, ref:false, ins:false, noms:true,
                  fc:70, pausado:false, raf:0, api:null, manual:false };
@@ -106349,8 +106669,18 @@ function tga3dEscena(anat, cir, sh) {
       s.ex.push({ t:'ring', c:[0.0,-0.7,0.3], r:0.28, ry:true, in:true });
       const tun = [[0.5,-0.9,0.0],[0.0,-0.7,0.3],[-0.5,0.2,0.7],[-0.4,0.5,0.9]];
       const con = [[-1.0,-1.6,0.9],[-1.7,-0.1,0.9],[-1.5,1.6,0.6],[-0.5,2.1,-0.3],[0.5,2.0,-0.4]];
-      s.ex.push({ t:'tube', p:tun, r:0.2, c:C.red, op:0.5, in:true },
-                { t:'tube', p:con, r:0.2, c:C.blue, op:0.65 });
+      /* ⚠️ LOS DOS DEL RASTELLI TAMBIEN PASAN A VIOLETA (PANT-14c, commit 3a): el TUNEL
+         intracardiaco -del ventriculo izquierdo a la aorta por la CIV- en violeta OSCURO y el
+         CONDUCTO -del derecho a la arteria pulmonar- en violeta CLARO. Hasta hoy llevaban el
+         color de la sangre que corren adentro, asi que se leian como dos vasos mas y no como
+         las dos estructuras cosidas que son; las PARTICULAS conservan su azul y su rojo, que
+         viven en `s.fl` y no se tocan. Cierra la mitad del Rastelli de `P14b-g`.
+         Los dos rotulos salen de las palabras que `TGA3D_INFO.ras` ya usa -«un tunel ... del
+         ventriculo izquierdo a la aorta» y «un conducto ... del derecho a la arteria
+         pulmonar»-: no se escribe texto nuevo. */
+      s.ex.push({ t:'tube', p:tun, r:0.2, c:C.violet, op:0.5, in:true },
+                { t:'tube', p:con, r:0.2, c:C.violetClaro, op:0.65 });
+      s.lb.push(['Túnel VI-aorta', tun[1]], ['Conducto VD-AP', con[2]]);
       s.ar.push({ p:P.PAP_R, c:C.blue, r:P.PBR }, { p:P.PAP_L, c:C.blue, r:P.PBR });
       s.fl.push({ p:_t3cat(P.PVR, tun, P.AO_ANT.slice(1)), c:C.red },
                 { p:_t3cat(P.SV.slice(0,5), con, P.PAP_L.slice(1)), c:C.blue });
@@ -106364,8 +106694,16 @@ function tga3dEscena(anat, cir, sh) {
               { p:_t3cat(P.PAA_T, P.PAA_R.slice(1)), c:C.blue, r:P.PAR, from:'L' },
               { p:P.PAA_L, c:C.blue, r:P.PBR });
     s.fl.push({ p:_t3cat(P.SV, P.PAA_T, P.PAA_L), c:C.blue }, { p:_t3cat(P.PVR, P.AO_N), c:C.red });
-    s.ex.push({ t:'ring', c:[0.3,1.2,-0.15], r:0.3, col:C.orange },
-              { t:'ring', c:[-0.2,1.4,0.75], r:0.3, col:C.orange },
+    /* ⚠️ LAS DOS LINEAS DE SUTURA DEJAN DE SER ANILLOS (PANT-14c, commit 3e): pasan a bandas
+       horizontales con trama de malla, porque el anillo se confundia con el de la obstruccion
+       subaortica —el mismo toro, un color distinto—. La POSICION y el RADIO no cambian: son los
+       mismos tres numeros y el mismo 0,3 de la demo. La normal de cada banda es la tangente de
+       su propio vaso en ese punto, calculada de los trazados que esta rama acaba de empujar, asi
+       que la banda queda perpendicular al vaso y no en una direccion escrita a mano.
+       Las DOS CORONARIAS reimplantadas se quedan como estan: dos canios finos naranjas que salen
+       de la raiz de la neoaorta, sin rotulo, que es lo que la orden pide. */
+    s.ex.push({ t:'malla', c:[0.3,1.2,-0.15], r:0.3, col:C.orange, nrm:_t3tang(P.AO_N, [0.3,1.2,-0.15]) },
+              { t:'malla', c:[-0.2,1.4,0.75], r:0.3, col:C.orange, nrm:_t3tang(_t3cat(P.PAA_T, P.PAA_R.slice(1)), [-0.2,1.4,0.75]) },
               { t:'tube', p:[[0.32,0.8,-0.1],[0.05,0.75,0.3]], r:0.05, c:C.orange },
               { t:'tube', p:[[0.4,0.8,-0.1],[0.75,0.7,-0.35]], r:0.05, c:C.orange });
     s.lb.push(['VD',P.LBV], ['VI',P.LBI], ['Ao',P.AO_N[2]], ['AP',P.PAA_T[1]]);
@@ -106385,8 +106723,12 @@ function tga3dEscena(anat, cir, sh) {
        como lo que es: una pared cosida que cruza las dos corrientes.
        LA GEOMETRIA Y EL RECORRIDO NO CAMBIAN: son los mismos `bl` y `rd` de siempre, con los
        mismos indices y el mismo radio. Lo unico que cambia es `c`. */
+    /* ⚠️ Y LOS DOS CAMINOS SE DISTINGUEN ENTRE SI (PANT-14c, commit 3a): el de las CAVAS -que va
+       hacia la valvula mitral- en violeta OSCURO y el de las VENAS PULMONARES -hacia la
+       tricuspide- en violeta CLARO. Hasta esta tanda los dos llevaban el mismo violeta, asi que
+       con los dos dibujados no se podia decir cual era cual. La geometria no cambia. */
     s.ex.push({ t:'tube', p:bl.slice(0,5), r:0.17, c:C.violet, op:0.5, in:true },
-              { t:'tube', p:rd.slice(2,7), r:0.17, c:C.violet, op:0.5, in:true });
+              { t:'tube', p:rd.slice(2,7), r:0.17, c:C.violetClaro, op:0.5, in:true });
     /* Y cada camino dice de donde viene: el que lleva la sangre de las cavas hacia la valvula
        mitral y el que lleva la de las venas pulmonares hacia la tricuspide. Las palabras son las
        de `TGA3D_CIRC.mus`, que es el recorrido que la app ya publica: no se escribe texto nuevo. */
@@ -161525,8 +161867,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2116';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793924198113;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2158';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793926729837;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161612,7 +161954,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2116</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2158</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
