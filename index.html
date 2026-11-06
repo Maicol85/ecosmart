@@ -72968,6 +72968,60 @@ function eaProtNarrativa(P){
 }
 window.eaProtNarrativa = eaProtNarrativa;
 
+/* ══ LA TARJETA RESUMIDA (PANT-18-5) ═════════════════════════════════════════════════════════
+   El medico midio cuatro parrafos y 772 caracteres de texto corrido debajo del veredicto. Lo que
+   queda a la vista es el resultado -que no se toca-, UNA linea con el porque y hasta DOS avisos
+   cortos; todo lo demas baja a un «Ver detalle» plegado, con el texto actual IDENTICO palabra por
+   palabra.
+   ⚠️ NINGUNA AFIRMACION CLINICA NUEVA: cada linea visible dice lo que una de las salvedades del
+   plegable ya decia, con los valores que el veredicto ya calculo. Por eso el nivel `normal` NO
+   lleva conclusion: hoy su texto largo no afirma nada sobre el porque, asi que su linea publica
+   los valores y nada mas. Inventarle una conclusion seria escribir contenido clinico. */
+function _eaProtPorque(P){
+  if (!P) return '';
+  if (P.via === 'TAVI')
+    return 'El criterio específico de TAVI de la Tabla 5 compara contra un estudio basal, y esta '
+         + 'aplicación no elige ese basal.';
+  if (P.nivel === 'faltan')
+    return 'Falta ' + ((P.falta || []).join('; ')) + '.';
+  const dep = [];
+  if (P.vmax != null) dep.push('velocidad pico ' + P.vmax + ' m/s');
+  if (P.gmed != null) dep.push('gradiente medio ' + P.gmed + ' mmHg');
+  const partes = [];
+  if (dep.length)      partes.push('depende del flujo: ' + dep.join(' y '));
+  if (P.dvi != null)   partes.push('no depende del flujo: DVI ' + P.dvi.toFixed(2));
+  const cuerpo = partes.join(' · ');
+  if (P.nivel === 'signif')
+    return 'Un parámetro que depende del flujo y uno que no, los dos en rango de estenosis '
+         + 'significativa' + (cuerpo ? ' (' + cuerpo + ')' : '') + '.';
+  if (P.nivel === 'posible')
+    return 'No se cumplen las dos mitades que la tabla exige para «significativa»'
+         + (cuerpo ? ' (' + cuerpo + ')' : '') + '.';
+  return cuerpo ? (cuerpo.charAt(0).toUpperCase() + cuerpo.slice(1) + '.') : '';
+}
+
+/* Hasta DOS avisos, y solo cuando corresponde. Los dos repiten una afirmacion que el plegable ya
+   hace: el volumen sistolico contra el rango que pide la nota al pie, y que los tiempos por si
+   solos no establecen estenosis. */
+function _eaProtAvisos(P){
+  const a = [];
+  if (P && P.vsFueraDeRango && P.vs != null)
+    a.push('Volumen sistólico calculado ' + P.vs.toFixed(0) + ' mL, fuera de los '
+      + EA_PROT_VS_MIN + '-' + EA_PROT_VS_MAX + ' mL que pide la nota al pie de la tabla.');
+  if (P && P.niveles) {
+    const atMal   = P.niveles.at   && P.niveles.at   !== 'normal' && P.at   != null;
+    const atetMal = P.niveles.atet && P.niveles.atet !== 'normal' && P.atet != null;
+    if (atMal || atetMal) {
+      const q = [];
+      if (atMal)   q.push('El AT (' + P.at + ' ms)');
+      if (atetMal) q.push((q.length ? 'el' : 'El') + ' AT/ET (' + P.atet.toFixed(2) + ')');
+      a.push(q.join(' y ') + (q.length > 1 ? ' por sí solos no establecen estenosis.'
+                                           : ' por sí solo no establece estenosis.'));
+    }
+  }
+  return a.slice(0, 2);
+}
+
 function _eaProtPintar(P){
   const sevEl = document.getElementById('ea-det-sev');
   if (!sevEl) return;
@@ -72999,8 +73053,28 @@ function _eaProtPintar(P){
   const ppmEl  = document.getElementById('ea-prot-ppm');
   if (ppmRow) ppmRow.style.display = '';
   if (ppmEl) eaProtPpmSync(P);
+  /* ⚠️ EL PLEGABLE LLEVA LAS SALVEDADES COMPLETAS, SIN TOCARLES UNA PALABRA: `sal` es la MISMA
+     lista que antes se volcaba entera a la vista. Lo que cambia es donde se lee, no que se diga.
+     El molde visual es el de la Evidencia -un `details` con su `summary`-, por el mismo motivo
+     por el que alla se eligio: el medico ya sabe que ese triangulo despliega el detalle. */
   const nota = document.getElementById('ea-det-sev-nota');
-  if (nota) { nota.style.display = ''; nota.innerHTML = sal.map(_critEsc).join('<br>'); }
+  if (nota) {
+    nota.style.display = '';
+    const porque = _eaProtPorque(P);
+    const avisos = _eaProtAvisos(P);
+    let h = '';
+    if (porque) h += '<div>' + _critEsc(porque) + '</div>';
+    avisos.forEach(function (t) {
+      h += '<div style="margin-top:3px;color:var(--orange);">⚠️ ' + _critEsc(t) + '</div>'; });
+    if (sal.length) {
+      h += '<details style="margin:6px 0 0;padding:6px 8px;border:1px solid var(--border);'
+         + 'border-radius:8px;background:var(--bg2);">'
+         + '<summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:var(--accent2);'
+         + 'list-style:revert;">ⓘ Ver detalle</summary>'
+         + '<div style="margin-top:4px;">' + sal.map(_critEsc).join('<br>') + '</div></details>';
+    }
+    nota.innerHTML = h;
+  }
 }
 /* ══ LA FILA DEL PPM AORTICO SE REPINTA SOLA — cierra Z2-2 (Z5, 2026-10-15) ════════════
    Medido en HEAD con el orden de tipeado del medico —los VTI primero y el peso despues—: la fila
