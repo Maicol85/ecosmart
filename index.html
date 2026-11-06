@@ -87600,6 +87600,17 @@ const IND_REFS = Object.freeze([
      cortes distintos rige la MÁS NUEVA —ésta— y la ESC queda como línea de referencia.
      El año del título es 2025 y el de la revista 2026: la guía se llama «2025 … Guideline» y se
      publicó en Circulation en 2026. Se cita por el nombre de la guía, que es como se la busca. */
+  /* ⚠️ NO ES UNA GUÍA Y LA ENTRADA LO DICE EN SU PROPIO TEXTO (PANT-17, commit 6). Es una
+     serie de casos retrospectiva de un solo centro, y es lo único que esta biblioteca tiene
+     sobre la ventana aortopulmonar: ninguna de las dos guías de congénitas del adulto publica
+     una tabla de recomendaciones para esta lesión. La sección que la cita no publica clase ni
+     nivel justamente por eso. Regla de folio comprobada en el pie impreso de seis hojas. */
+  { k:'yakut2018apw',
+    full:'Yakut K, Tokel NK, Ozkan M, Varan B, Erdogan I, Aslamaci MS. Aortopulmonary window: ' +
+         'Clinical experience of a tertiary center. Turk Gogus Kalp Damar Cerrahisi Dergisi ' +
+         '2018;26(1):30-37. doi:10.5606/tgkdc.dergisi.2018.14880. Serie de casos retrospectiva ' +
+         'de un solo centro, 30 pacientes, mayo de 1998 a junio de 2016. ' +
+         'Regla de folio comprobada en el pie impreso de seis hojas: folio = hoja + 29.' },
   { k:'acc2025achd',
     full:'Gurvitz M, Krieger EV, Fuller S, et al. 2025 ACC/AHA/HRS/ISACHD/SCAI Guideline for ' +
          'the Management of Adults With Congenital Heart Disease: A Report of the American ' +
@@ -89051,7 +89062,13 @@ function _indPorClave(lista, claves){
 /* ⚠️ `ao` SE SUMA EN PANT-17 (commit 3b) Y NO REEMPLAZA A NADIE: la coartación es la
    primera sección de congénitas cuya guía que RIGE no es ninguna de las dos de arriba.
    Las claves viejas no se tocan, así que las diez secciones que ya existen salen igual. */
-const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020', ao:'ESC 2024 de aorta', mio:'ESC 2023' });
+/* ⚠️ `serie` NO ES UNA GUÍA, Y POR ESO LLEVA ETIQUETA PROPIA (PANT-17, commit 6). La ventana
+   aortopulmonar no tiene tabla de recomendaciones en ninguna de las dos guías de congénitas que
+   esta aplicación cita: lo que la sostiene es una serie de casos de un solo centro. La etiqueta
+   dice «serie de casos» justamente para que no se lea como una recomendación, y su badge corto
+   sale SIN clase porque `_indPregBadge` la toma de `rec` y ahí no hay ninguna que leer. */
+const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020', ao:'ESC 2024 de aorta', mio:'ESC 2023',
+  serie:'Yakut 2018 — serie de casos' });
 /* ══ LA ETIQUETA CORTA DE LA GUIA, EN LA FILA (TGA-4, commit 3b) ═══════════════════════════════
    El pedido: «una etiqueta corta de la guia ("ACC 1·B-NR"), y las preguntas rotuladas ESC 2020
    con su etiqueta en otro color». Con el detalle plegado en el ⓘ, la fila tiene que seguir
@@ -89065,7 +89082,7 @@ const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020', ao:'ESC
    SOLO la guia y nunca una clase inventada. Lo que no se puede leer no se afirma.
    ⚠️ Y NO SE DUPLICA EL DATO: el ⓘ de la fila sigue trayendo `rec` entero, con su clase, su
    nivel, su recomendacion, su hoja y su folio. La etiqueta es un resumen de lo que ya esta. */
-const IND_GUIA_CORTA = Object.freeze({ acc:'ACC', esc:'ESC', ao:'ESC-Ao', mio:'ESC-Mio' });
+const IND_GUIA_CORTA = Object.freeze({ acc:'ACC', esc:'ESC', ao:'ESC-Ao', mio:'ESC-Mio', serie:'Serie' });
 function _indPregBadge(p){
   if (!p || !p.guia || !Object.prototype.hasOwnProperty.call(IND_GUIA_CORTA, p.guia)) return null;
   const r = String(p.rec == null ? '' : p.rec);
@@ -97423,6 +97440,159 @@ function _indDAP(){
     ] };
 }
 
+/* ══ VENTANA AORTOPULMONAR — LA SECCIÓN DE EVIDENCIA (PANT-17, commit 6) ════════════════
+   ⚠️ ESTA SECCIÓN NO PUBLICA CLASE NI NIVEL, Y NO ES UN OLVIDO. Lo que la sostiene es una SERIE
+   DE CASOS de un solo centro —treinta pacientes, mayo de 1998 a junio de 2016—, y una serie no
+   gradúa recomendaciones. Por eso cada pregunta publica lo que la serie MUESTRA: el número, su
+   denominador y la población de la que sale, con la hoja y el folio del artículo.
+
+   ⚠️ LA ÚNICA PREGUNTA QUE SALE DE UNA GUÍA ES LA DEL EISENMENGER, Y TAMPOCO PUBLICA SU CLASE.
+   La recomendación 11 de la ACC/AHA 2025 (hoja 93, folio e207) dice que en el síndrome de
+   Eisenmenger el cierre de CUALQUIER cortocircuito intracardíaco o vascular no debe realizarse
+   —la frase no nombra la ventana y alcanza a cualquier cortocircuito—. En su fuente esa fila
+   lleva Clase 3: Daño · Nivel B-NR; acá no se publican porque esta sección no publica clase ni
+   nivel, y queda anotado en docs/PENDIENTES.md → P17-d para que lo decida el médico.
+
+   ⚠️ LO QUE LA PANTALLA YA TIENE NO SE PREGUNTA. El tipo, el diámetro, la dirección del
+   cortocircuito, el Qp/Qs, la hipertensión pulmonar y la PSAP estimada son campos de la pestaña
+   y viven en la tarjeta de datos de arriba, no entre las preguntas: preguntarlos otra vez sería
+   la segunda fuente que `_indOrigen` existe para evitar. Las seis preguntas son justamente lo
+   que la pantalla NO tiene.
+
+   ⚠️ Y `filas` NO ES OPCIONAL: `_indSecHTMLCuerpo` hace `r.filas.some(...)` sin guarda, así que
+   una sección sin tarjeta de datos tira dentro del bucle de `IND_SECS` —que atrapa la
+   excepción— y desaparece del panel SIN un solo error en consola. Es lo que esta misma tanda
+   pagó con la Fallot en el commit 4. */
+const VAP_PREG = Object.freeze([
+  { clave:'vap.ev.asoc', lbl:'Anomalías cardiovasculares asociadas a la ventana', guia:'serie',
+    rec:'de los 30 pacientes de la serie, 18 (60 %) tenían anomalías cardiovasculares asociadas, hoja 4, folio 33' },
+  { clave:'vap.ev.compleja', lbl:'Cardiopatía congénita compleja asociada', guia:'serie',
+    rec:'de los 30 pacientes de la serie, 7 (23 %) tenían una cardiopatía congénita compleja, hoja 4, folio 33',
+    nota:'de los cuatro pacientes que no se operaron, uno fue por una cardiopatía congénita compleja con una anomalía congénita mayor asociada (hoja 4, folio 33)' },
+  { clave:'vap.ev.eisen', lbl:'Fisiología de Eisenmenger (cortocircuito invertido)', guia:'acc',
+    rec:'en el síndrome de Eisenmenger, el cierre de cualquier cortocircuito intracardíaco o vascular NO debe realizarse —recomendación 11, hoja 93, folio e207—; la guía no nombra la ventana aortopulmonar y su frase alcanza a cualquier cortocircuito',
+    nota:'se pre-responde desde el campo «Dirección del shunt» de la pestaña de la ventana: derecha a izquierda contesta que sí e izquierda a derecha que no. Con un shunt BIDIRECCIONAL la pregunta queda sin contestar a propósito, por el mismo motivo que en el ductus: la dirección neta no se deduce del selector',
+    refLbl:'Yakut 2018 — serie de casos',
+    ref:'tres de los cuatro pacientes que no se operaron fue por síndrome de Eisenmenger (hoja 4, folio 33)' },
+  { clave:'vap.ev.novisu', lbl:'El defecto no se visualiza con claridad por ecocardiografía', guia:'serie',
+    rec:'en los tres pacientes con síndrome de Eisenmenger el defecto no se pudo identificar con el examen ecocardiográfico, y el diagnóstico se hizo durante la angiografía por cateterismo realizada para identificar la etiología de la hipertensión pulmonar, hoja 6, folio 35',
+    nota:'el diagnóstico de los 30 se hizo con ecocardiografía en 19; en 8 se sumó angiografía por cateterismo, en 1 angiotomografía y en 1 resonancia, y 1 se diagnosticó en el momento de la reparación de una interrupción del arco aórtico y un ductus (hoja 4, folio 33)' },
+  { clave:'vap.ev.rvp', lbl:'Resistencia vascular pulmonar medida por cateterismo', guia:'serie',
+    rec:'en los 26 pacientes operados la resistencia vascular pulmonar media fue de 3,7 unidades (rango 0,9 a 8), la presión media de la arteria pulmonar de 48,6 mmHg (rango 27 a 71), la presión aórtica media de 58,4 mmHg (rango 46 a 81) y el Qp/Qs de 3,7 (rango 0,6 a 6,9), hoja 5, folio 34',
+    nota:'el texto de resultados publica esa resistencia como 3,7 UI; la misma resistencia aparece además como 3,8 U/m², y acá se toma la del texto de resultados' },
+  { clave:'vap.ev.reparada', lbl:'Ventana reparada quirúrgicamente', guia:'serie',
+    rec:'se operaron 26 de los 30, todos con circulación extracorpórea bajo parada cardiopléjica: parche en 24, división más parche en 1 y división más sutura primaria en 1. La mortalidad precoz y la tardía fueron cero y hubo 2 reoperaciones (7,7 %), con un seguimiento medio de 6,4 ± 4,8 años (rango 5 meses a 16 años), hojas 4 y 5, folios 33 y 34',
+    nota:'la discusión dice que la ligadura simple no se recomienda para la reparación quirúrgica de la ventana aortopulmonar (hoja 6, folio 35)' }
+]);
+window.VAP_PREG = VAP_PREG;
+function _indVAP(){
+  const conc = _indFn('vapConclusion'), qpqs = _indFn('ccQpQsDe');
+  const C = conc ? conc() : null;
+  if (!C) return null;
+  /* Prototipo nulo por el mismo motivo que en el ductus y en el FOP: `MAPA['constructor']`
+     devuelve una función en vez de `undefined` y el `||` de respaldo no llega a correr. */
+  const TIPO = Object.assign(Object.create(null), { i:'Tipo I — proximal', ii:'Tipo II — distal', iii:'Tipo III — total' });
+  const DIR  = Object.assign(Object.create(null), { id:'Izquierda a derecha', bi:'Bidireccional', di:'Derecha a izquierda' });
+  const HTP  = Object.assign(Object.create(null), { si:'Sí', no:'No', no_eval:'No evaluada' });
+  const tipo = _indS('vap_tipo'), dir = _indS('vap_dir'), htp = _indS('vap_htp');
+  const diam = _indN('vap_diam'), paps = _indN('psap_calc');
+  const q = qpqs ? qpqs('vap') : null;
+  /* Las marcas salen de la CLAVE de la conclusión y no de los números, igual que en el ductus:
+     el reparto de pesos ya está resuelto en esa cascada y recalcularlo acá sería la segunda
+     copia del mismo criterio. */
+  const invert = C.clave === 'eisenmenger';
+  const presion = C.clave === 'htp' || C.clave === 'htp_no_eval';
+  const filas = [
+    _indFila('Tipo', tipo ? (TIPO[tipo] || tipo) : 'No consignado',
+      tipo ? 'none' : 'ask',
+      tipo ? 'la clasificación es la de Mori, que el artículo reproduce en su hoja 2, folio 31' : 'sin el tipo, la descripción anatómica queda incompleta'),
+    _indFila('Diámetro', _indNum(diam, 1, 'mm'), diam != null ? 'none' : 'ask',
+      diam != null ? '' : 'sin medir'),
+    _indFila('Dirección del shunt', dir ? (DIR[dir] || dir) : 'No consignada',
+      invert ? 'alarm' : (dir ? 'none' : 'ask'),
+      invert ? 'shunt invertido — fisiología de Eisenmenger' : ''),
+    _indFila('Qp/Qs atribuible a la ventana', _indNum(q, 2), q != null ? 'none' : 'ask',
+      q != null ? '' : 'no atribuible: hay más de un shunt con datos, o faltan los flujos del TSVI y del TSVD'),
+    _indFila('Hipertensión pulmonar', htp ? (HTP[htp] || htp) : 'No consignada',
+      presion ? 'warn' : (htp === 'no' ? 'ok' : 'ask'),
+      (htp === 'no_eval' || !htp) ? 'sin evaluar la presión pulmonar no se puede descartar la fisiología de Eisenmenger' : ''),
+    _indFila('PSAP estimada — del estudio', _indNum(paps, 0, 'mmHg'), paps != null ? 'none' : 'ask',
+      paps != null ? 'se muestra y no vota: quien decide la rama de presión pulmonar es el campo explícito de la pestaña' : 'sin estimación por insuficiencia tricuspídea')
+  ];
+  /* El mismo molde que el ductus y la coartación: `_indOrigen` por pregunta, `_indFilaOrigen`
+     para la fila y `_indPregNota` para la nota. Lo único pre-respondido desde el estudio es la
+     DIRECCIÓN del cortocircuito, y el BIDIRECCIONAL no se traduce. */
+  const _vapEisen = (dir === 'di') ? 'si' : (dir === 'id' ? 'no' : '');
+  const VAP_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  VAP_PREG.forEach(function (p) {
+    const o = _indOrigen(p.clave === 'vap.ev.eisen' ? _vapEisen : null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, VAP_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene nada de lo de arriba.'));
+  const _balVAP = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + VAP_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, nada de lo de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + VAP_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    aviso: C.txt || '',
+    clinica: clinica,
+    bloques: [
+      { tit:'Qué es, y cómo se clasifica — Yakut 2018, hojas 1 y 2, folios 30 y 31', lineas:[
+        { txt:'La ventana aortopulmonar es una cardiopatía congénita poco frecuente. Esta sección se apoya en una serie de un solo centro: treinta pacientes seguidos entre mayo de 1998 y junio de 2016, con una edad media al diagnóstico de 22,5 ± 52 meses (rango 3 días a 17 años) y una edad media a la cirugía de 8,2 ± 14,4 meses (rango 7 días a 60 meses).', refs:['yakut2018apw'] },
+        { txt:'El artículo reproduce la clasificación de Mori así: el tipo 1 es un defecto pequeño a medio camino entre las válvulas semilunares y la bifurcación pulmonar; el tipo 2 es un defecto más distal cuyo borde distal lo forma la bifurcación pulmonar, y es el que se asocia con más frecuencia al origen aórtico de la rama pulmonar derecha; y el tipo 3 es un defecto grande y confluente que compromete esencialmente todo el septo aortopulmonar (hoja 2, folio 31).', refs:['yakut2018apw'] },
+        { txt:'El artículo atribuye esa clasificación a su referencia 13, que escribe así: «Mori K, Ando M, Takao A, Ishikawa S, Imai Y. Distal type of aortopulmonary window. Report of 4 cases. Br Heart J 1978;40:681-9.».', refs:null },
+        { txt:'En esta serie, de los 26 pacientes operados el tipo 1 se consignó en 24 y el tipo 3 en dos.', refs:['yakut2018apw'] }
+      ]},
+      { tit:'Cómo se hizo el diagnóstico — Yakut 2018, hojas 4 y 6, folios 33 y 35', lineas:[
+        { txt:'De los 30 pacientes, el diagnóstico se hizo con ecocardiografía en 19; en 8 se sumó angiografía por cateterismo, en 1 angiotomografía y en 1 resonancia, y 1 se diagnosticó en el momento de la reparación de una interrupción del arco aórtico y un ductus.', refs:['yakut2018apw'] },
+        { txt:'En los tres pacientes con síndrome de Eisenmenger el defecto no se pudo identificar con el examen ecocardiográfico: se diagnosticaron durante la angiografía por cateterismo realizada para identificar la etiología de la hipertensión pulmonar (hoja 6, folio 35).', refs:['yakut2018apw'] },
+        { txt:'Dieciocho de los 30 (60 %) tenían anomalías cardiovasculares asociadas y 7 (23 %) una cardiopatía congénita compleja.', refs:['yakut2018apw'] }
+      ]},
+      { tit:'Lo que muestra la serie en los operados — Yakut 2018, hojas 4 y 5, folios 33 y 34', lineas:[
+        { txt:'Se operaron 26 de los 30, todos con circulación extracorpórea bajo parada cardiopléjica: parche en 24, división más parche en 1 y división más sutura primaria en 1.', refs:['yakut2018apw'] },
+        { txt:'Hemodinamia de los operados: Qp/Qs 3,7 (rango 0,6 a 6,9); presión media de la arteria pulmonar 48,6 mmHg (rango 27 a 71); presión aórtica media 58,4 mmHg (rango 46 a 81); resistencia vascular pulmonar media 3,7 unidades (rango 0,9 a 8); resistencia vascular sistémica media 18,1 unidades (rango 8,6 a 27,8).', refs:['yakut2018apw'] },
+        { txt:'La mortalidad precoz y la tardía fueron cero, con un seguimiento medio de 6,4 ± 4,8 años (rango 5 meses a 16 años). Hubo 2 reoperaciones sobre 26 (7,7 %).', refs:['yakut2018apw'] },
+        { txt:'Cuatro de los 30 no se operaron: tres por síndrome de Eisenmenger y uno por una cardiopatía congénita compleja con una anomalía congénita mayor asociada.', refs:['yakut2018apw'] },
+        { txt:'La discusión dice que la ligadura simple no se recomienda para la reparación quirúrgica de la ventana aortopulmonar (hoja 6, folio 35).', refs:['yakut2018apw'] }
+      ]},
+      { tit:'Lo único que publica una guía — ACC/AHA 2025, hoja 93, folio e207', lineas:[
+        { txt:'En el síndrome de Eisenmenger, el cierre de cualquier cortocircuito intracardíaco o vascular NO debe realizarse (recomendación 11). La frase alcanza a la ventana aortopulmonar porque habla de cualquier cortocircuito, sin nombrarla.', refs:['acc2025achd'] },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, hoja 93, folio e207.', refs:['acc2025achd'] },
+        _balVAP
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Lo que aplica con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : (b.g === 'Serie' ? 'Yakut 2018 — serie de casos' : b.g)) : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'yakut2018apw',
+      txt:'Esta sección se apoya en una SERIE DE CASOS de un solo centro —Yakut 2018, 30 pacientes—: por eso esta sección publica el número, su denominador y la población de la que sale cada dato, con su hoja y su folio, en vez de una clase y un nivel. La única pregunta que sale de una guía es la del síndrome de Eisenmenger, y lo dice en su propia línea.' },
+    notas: [
+      'Una serie de casos describe lo que le pasó a treinta pacientes de un solo centro: es lo que esta sección publica, y cada número viene con su denominador para que se lea como lo que es.',
+      'La clasificación de Mori es anatómica y es la que usa el selector «Tipo» de la pestaña: tipo I proximal, tipo II distal y tipo III total.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Lo de esta sección no entra al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y esto se lee acá.'
+    ] };
+}
+
 /* ── Estenosis pulmonar ────────────────────────────────────────────────────────────────────
    El grado sale de `epGradoPorGmax()`, que es la función que ya gobierna la pantalla y el
    informe. Sus cortes viven en constantes que NO están exportadas, y por eso se consume la
@@ -102418,6 +102588,13 @@ const IND_SECS = [
      y no colisiona por prefijo con ninguno de los treinta y seis. */
   { tit:'Síndrome de Eisenmenger',               fn:_indEIS },
   { tit:'Ductus arterioso permeable',            fn:_indDAP },
+  /* ⚠️ LA DEL COMMIT 6 DE PANT-17. Va PEGADA al ductus porque es el otro cortocircuito
+     sistémico-pulmonar extracardíaco, que es donde el médico la busca. El título es ÚNICO y no
+     colisiona por prefijo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su
+     título, así que un título que sea prefijo de otro —o que lo tenga por prefijo— deja una de
+     las dos sin probar. Verificado sobre los cuarenta: «Ventana aortopulmonar» no es prefijo de
+     ninguno y ninguno es prefijo suyo. */
+  { tit:'Ventana aortopulmonar',                 fn:_indVAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   /* ⚠️ LAS DOS DE LA TANDA PANT-4 (03/11/2026). Van PEGADAS a la coartación porque son las
      otras dos obstrucciones fijas del lado izquierdo, que es donde el médico las busca. Los dos
@@ -163054,8 +163231,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261106-0138';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793939885958;                 /* eco-build-ms */
+const ECO_BUILD    = '20261106-0152';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793940758148;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -163141,7 +163318,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0138</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0152</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

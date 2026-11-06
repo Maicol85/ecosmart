@@ -33,6 +33,9 @@ const ESCENAS = {
   vab:  { vab_tipo: 'fused_rl', ao_tub: '50' },
   mch:  { mch_grad_reposo: '60' },
   vap:  { vap_tipo: 'i', vap_diam: '8' },
+  vapDI:{ vap_tipo: 'iii', vap_diam: '12', vap_dir: 'di' },
+  vapID:{ vap_tipo: 'i', vap_diam: '8', vap_dir: 'id', vap_htp: 'no' },
+  vapBI:{ vap_tipo: 'ii', vap_diam: '10', vap_dir: 'bi' },
   cia:  { ete_cia_tipo: 'secundum', ete_cia_tam_max: '18' },
   ajeno:{ fevi: '60', ddvi: '48' }
 };
@@ -137,7 +140,7 @@ try {
   await pg.goto('file://' + FILE);
   await pg.waitForTimeout(1200);
   for (const [k, campos] of Object.entries(ESCENAS)) {
-    if (SOLO && k !== SOLO) continue;
+    if (SOLO && SOLO.split(',').map(x => x.trim()).indexOf(k) < 0) continue;
     try {
       res.escenas[k] = { medida: await pg.evaluate(MEDIR(campos, PROHIBIDAS)) };
       res.escenas[k].papel = await pg.evaluate(PAPEL);
