@@ -90425,13 +90425,84 @@ window.indicTermCerrar = indicTermCerrar;
 window._indTermAbrir = _indTermAbrir; window._indTermAbierto = _indTermAbierto;
 window._indTermColocar = _indTermColocar;
 
+/* ══ EL MARCO DEL RECUADRO, A UN SOLO DUENIO (PANT-17b, commit 3) ════════════════════════════
+   El recuadro de la estenosis aortica es el MODELO que el medico eligio, y desde este commit lo
+   usan dos emisores: `_indRecomHTML` -el de siempre- y `_indAdaptHTML`, el bloque «Con lo
+   contestado» de las secciones de congenitas. Con el estilo escrito dos veces, el dia que uno
+   cambie el otro se queda atras y el panel muestra dos recuadros que dicen ser lo mismo. */
+function _indCajaReco(col, tit, cuerpo){
+  return '<div style="margin-top:12px;padding:9px 11px;border-left:3px solid ' + col +
+         ';background:var(--bg2);border-radius:0 8px 8px 0;">'
+       + '<div style="font-size:10.5px;font-weight:700;color:' + col +
+         ';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">' + _critEsc(tit) + '</div>'
+       + cuerpo + '</div>';
+}
+/* El orden de una recomendacion por su clase: primero lo que se recomienda, al final lo que NO.
+   Lee la clase del propio `rec`, igual que `_indPregBadge`, asi que no hay una segunda fuente. */
+function _indClaseOrden(p){
+  const m = String(p && p.rec || '').match(/Clase\s+(III|II[ab]|II|I|[0-9][ab]?)\b/);
+  const c = m ? m[1] : '';
+  if (c === '1' || c === 'I') return 0;
+  if (c === '2a' || c === 'IIa') return 1;
+  if (c === '2b' || c === 'IIb') return 2;
+  if (c === '3' || c === 'III') return 3;
+  return 4;
+}
+function _indEsClase3(p){ return _indClaseOrden(p) === 3 }
+/* ══ «CON LO CONTESTADO»: LA EVIDENCIA ARMADA CON LAS RESPUESTAS DE ESTE PACIENTE ═════════════
+   DECISION DEL MEDICO (06 y 07/11/2026): la Evidencia se adapta al paciente. Arriba va SOLO lo
+   que las respuestas disparan; lo teorico baja al «Ver detalle».
+
+   ⚠️ NO ESCRIBE UN SOLO TEXTO CLINICO NUEVO, y eso es lo que lo vuelve seguro: la oracion, su
+   clase, su nivel, su hoja y su folio salen del campo `rec` de la propia pregunta —el mismo que
+   el ⓘ de la fila ya publicaba por `_indPregNota`— y la linea de la otra guia de `ref`. Lo unico
+   que esta funcion decide es el ORDEN y la FORMA.
+
+   ⚠️ Y ES UN SOLO EMISOR PARA LAS CATORCE SECCIONES. Cada seccion le pasa `adapt` -las preguntas
+   contestadas que si- y `faltan` -los rotulos sin contestar-; nada mas. Con una copia por seccion,
+   el reparto por clase o el rotulo de la clase III divergirian entre secciones sin que se note. */
+function _indAdaptHTML(adapt, faltan){
+  const xs = (adapt || []).filter(Boolean).slice().sort(function (a, b) {
+    const d = _indClaseOrden(a) - _indClaseOrden(b); if (d) return d;
+    return 0;
+  });
+  const col = xs.length ? IND_RECOM_COL.ind : IND_RECOM_COL.falta;
+  let c = '';
+  if (!xs.length) {
+    c += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">'
+       + 'Ninguna respuesta de este paciente sostiene todavia una recomendacion.</div>';
+  } else {
+    xs.forEach(function (p) {
+      const g = (p.guia && Object.prototype.hasOwnProperty.call(IND_GUIA_LBL, p.guia)) ? IND_GUIA_LBL[p.guia] : '';
+      const b = _indPregBadge(p);
+      /* La clase III se rotula «no recomendado», con su clase y su nivel tal como la guia los
+         imprime: el `cn` del badge sale del propio `rec` y no de una tabla aparte. */
+      const et = (_indEsClase3(p) ? 'No recomendado — ' : '') + (g || '') + (b && b.cn ? ' · ' + b.cn : '');
+      c += '<div style="margin-top:7px;">';
+      c += '<div style="font-size:11.5px;font-weight:700;line-height:1.5;color:var(--text);">'
+         + _critEsc(p.lbl) + '</div>';
+      if (et) c += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);'
+         + 'text-transform:uppercase;letter-spacing:.4px;margin-top:1px;">' + _critEsc(et) + '</div>';
+      if (p.rec) c += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:2px;">'
+         + _critEsc(String(p.rec)) + '</div>';
+      /* La otra guia va en su PROPIA oracion, con su nombre y su anio a la vista: es la regla del
+         04/11 y la misma composicion que `_indPregNota` usa en el ⓘ de la fila. */
+      if (p.ref) c += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:2px;">'
+         + _critEsc((p.refLbl || 'ESC 2020 (anterior)') + ': ' + p.ref) + '</div>';
+      if (p.ref2) c += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:2px;">'
+         + _critEsc((p.ref2Lbl || 'Referencia') + ': ' + p.ref2) + '</div>';
+      c += '</div>';
+    });
+  }
+  /* «Falta contestar», la misma linea que el recuadro modelo ya emite con `r.faltan`. */
+  const f = (faltan || []).filter(Boolean);
+  if (f.length) c += '<div style="font-size:11px;margin-top:7px;color:#D97706;">'
+    + 'Falta contestar: ' + _critEsc(f.join(' · ')) + '</div>';
+  return _indCajaReco(col, 'Con lo contestado' + (xs.length ? ' (' + xs.length + ')' : ''), c);
+}
 function _indRecomHTML(r){
   const col = IND_RECOM_COL[r.tipo] || IND_RECOM_COL.falta;
-  let h = '<div style="margin-top:12px;padding:9px 11px;border-left:3px solid ' + col +
-          ';background:var(--bg2);border-radius:0 8px 8px 0;">';
-  h += '<div style="font-size:10.5px;font-weight:700;color:' + col +
-       ';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">' + _critEsc(r.tit) + '</div>';
-  h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.txt) + '</div>';
+  let cuerpo = '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.txt) + '</div>';
   /* ⚠️ EL CORCHETE SE EMITE SÓLO SI LA RECOMENDACIÓN TRAE `ref`, y la asimetría es deliberada.
      `_indRefMarca` pinta en rojo «[referencia no registrada]» ante una clave que no está en el
      registro —que es lo correcto para una cita mal escrita— pero llamarla sin clave le pondría ese
@@ -90451,12 +90522,12 @@ function _indRecomHTML(r){
      falla probable. Mudo, eso queda como una línea que nombra la guía y no ofrece número, que es
      justo lo que el censo encontró desde la pantalla y nadie había visto en un año de código.
      Ruidoso, la primera vez que esa rama se alcanza sale en rojo. */
-  if (r.clase || r.fuente) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);">' +
+  if (r.clase || r.fuente) cuerpo += '<div style="font-size:11px;margin-top:5px;color:var(--text2);">' +
        (r.clase ? '<b>' + _critEsc(r.clase) + '</b> · ' : '') + _critEsc(r.fuente || '') +
        (r.ref ? _indRefMarca(r.ref)
               : (r.fuente ? ' <span style="color:#DC2626;font-weight:400;">[cita sin numerar]</span>' : '')) +
        '</div>';
-  if (r.faltan && r.faltan.length) h += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
+  if (r.faltan && r.faltan.length) cuerpo += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
        'Falta contestar: ' + _critEsc(r.faltan.join(' · ')) + '</div>';
   /* ⚠️ ESTA NOTA SE QUEDA VISIBLE, Y LA PRIMERA VERSIÓN DE ESTA RONDA LA MANDÓ AL DETALLE.
      Lo encontró /sharp-edges y era el defecto más grave del cambio: `r.nota` NO es contexto de la
@@ -90473,7 +90544,7 @@ function _indRecomHTML(r){
      Colapsarlas devolvía las tres a un pie de sección, detrás de un rótulo que ni siquiera dice que
      hay algo sin verificar. Al detalle va sólo `r.notas` —los párrafos de contexto del final—, que
      es lo que el pedido describe como el problema. */
-  if (r.nota) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);line-height:1.5;">' +
+  if (r.nota) cuerpo += '<div style="font-size:11px;margin-top:5px;color:var(--text2);line-height:1.5;">' +
        _critEsc(r.nota) + '</div>';
   /* EL SEGUNDO BLOQUE. Nació para la MODALIDAD —en la guía «se opera» y «se opera así» son dos
      decisiones distintas y fundirlas en un párrafo las hace leer como una sola afirmación— y desde
@@ -90483,10 +90554,10 @@ function _indRecomHTML(r){
      slot NO es, y conviene no convertirlo, es un cajón de notas: lo que entra acá lleva su propia
      clase, su propia fuente y su propio corchete, o sea que se lee como una recomendación. */
   if (r.mod) {
-    h += '<div style="margin-top:8px;padding-top:7px;border-top:1px dashed var(--border);">';
-    h += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;' +
+    cuerpo += '<div style="margin-top:8px;padding-top:7px;border-top:1px dashed var(--border);">';
+    cuerpo += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;' +
          'letter-spacing:.5px;margin-bottom:3px;">' + _critEsc(r.mod.tit || 'Modalidad') + '</div>';
-    h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.mod.txt) + '</div>';
+    cuerpo += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.mod.txt) + '</div>';
     /* La fuente viene DENTRO del objeto y no de una constante de más abajo: este render es
        genérico y `EA_FUENTE` se declara ~120 líneas después. Hoy resolvería igual —al llamarse
        ya está inicializada— pero ataría un helper compartido a una constante de una sección. */
@@ -90507,7 +90578,7 @@ function _indRecomHTML(r){
        clase evita el `<b></b>` vacío. Lo encontró /sharp-edges. */
     if (r.mod.clase || r.mod.fuente) {
       const modRef = r.mod.ref || (r.mod.fuente ? null : r.ref);
-      h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);">' +
+      cuerpo += '<div style="font-size:11px;margin-top:4px;color:var(--text2);">' +
          (r.mod.clase ? '<b>' + _critEsc(r.mod.clase) + '</b> \u00b7 ' : '') +
          _critEsc(r.mod.fuente || r.fuente || '') +
          (modRef ? _indRefMarca(modRef)
@@ -90515,11 +90586,11 @@ function _indRecomHTML(r){
     }
     /* Ídem: `_indEAModalidad` pone acá que «la Clase I A de TAVI está escrita para la válvula
        tricúspide y no se aplica», que es la condición de la fila que se está publicando. */
-    if (r.mod.nota) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
+    if (r.mod.nota) cuerpo += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
          _critEsc(r.mod.nota) + '</div>';
-    h += '</div>';
+    cuerpo += '</div>';
   }
-  return h + '</div>';
+  return _indCajaReco(col, r.tit, cuerpo);
 }
 
 /* Abre sola la sección donde hay un criterio CUMPLIDO, una alarma o un aviso. Las que sólo
@@ -90822,8 +90893,24 @@ function _indSecHTMLCuerpo(tit, r){
      `_indColsSync`, que mide la caja y escribe `data-ind-cols`. */
   const esPreg = !!r.preguntas;
   const _bloRec = function(){
-    return ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
-         + (r.recom ? _indRecomHTML(r.recom) : ''); };
+    const b = ((r.bloques && r.bloques.length) ? r.bloques.map(_indBloqueHTML).join('') : '')
+            + (r.recom ? _indRecomHTML(r.recom) : '');
+    /* ⚠️ CON `adapt`, LOS BLOQUES FIJOS BAJAN A UN PLEGABLE (PANT-17b, commit 3). Lo que arriba
+       muestra el recuadro «Con lo contestado» es lo que aplica a este paciente; lo teorico de la
+       guia -Diagnostico, Indicacion, Seguimiento y las diferencias- queda IDENTICO palabra por
+       palabra dentro de este «Ver detalle».
+       ⚠️ SE MARCA `data-ind-bloque` Y NO `data-ind-detalle`, y no es cosmetico: TC-293 cuenta UN
+       control de detalle por seccion, y con la otra marca habria dos. Es la misma solucion que
+       `b.plegado` ya usa por el mismo motivo.
+       ⚠️ Y SU ROTULO ES PROPIO -«Ver detalle de la guia»- porque `_indRepintarConservando` indexa
+       cada plegable por «summary del padre, summary»: con el mismo rotulo que el del pie, los dos
+       compartirian clave y contestar un control abriria o cerraria el otro. */
+    if (!r.adapt || !b) return b;
+    return '<details data-ind-bloque="1" style="margin:12px 0 0;padding:8px 10px;border:1px solid '
+      + 'var(--border);border-radius:8px;background:var(--bg2);">'
+      + '<summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:var(--accent2);'
+      + 'list-style:revert;">ⓘ Ver detalle de la guía</summary>'
+      + '<div style="margin-top:4px;">' + b + '</div></details>'; };
   /* ══ EL MOLDE (PANT-6, commit 3) ══════════════════════════════════════════════════════════
      Si la seccion devuelve `molde`, su cuerpo lo pinta `_indMoldeHTML` y no la grilla de
      siempre. Hoy lo devuelve UNA seccion; las otras treinta y cuatro no entran a esta rama.
@@ -90841,11 +90928,25 @@ function _indSecHTMLCuerpo(tit, r){
   const hayClin = !!(r.clinica && r.clinica.length);
   /* El boton chico de alternar una/dos columnas. NO guarda la preferencia -vive mientras el
      panel este abierto-, que es lo que la orden pide. Va solo en las secciones de preguntas. */
-  if (esPreg && hayClin) h += '<div style="text-align:right;margin:2px 0 -4px;">' +
-    '<button type="button" data-ind-colbtn="1" onclick="_indColsToggle(this)" ' +
-    'style="font-size:10px;line-height:1.6;padding:1px 8px;min-height:22px;border-radius:7px;' +
-    'border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;" ' +
-    'aria-label="Alternar entre una y dos columnas">⇔ columnas</button></div>';
+  /* ⚠️ EL CONTEO DE RESPUESTAS SALE DE LA TABLA Y PASA AL ENCABEZADO (PANT-17b, commit 3).
+     Era una FILA de la tabla de datos clinicos, y la celda del valor mide unos 60 px con el panel
+     en 820: el navegador cortaba «N en Si - N en No - N sin dato» en cada espacio y la fila salia
+     de siete lineas, que es lo que el medico reporto. Aca ocupa el ancho de la seccion, lleva
+     `white-space:nowrap` y no puede partirse. No agrega globo ni botones. */
+  const _cta = r.cuenta;
+  if (esPreg && hayClin) h += '<div style="display:flex;align-items:center;justify-content:flex-end;'
+    + 'gap:8px;margin:2px 0 -4px;">'
+    + (_cta ? '<span data-ind-cuenta="1" style="font-size:10px;line-height:1.6;color:var(--text2);'
+        + 'white-space:nowrap;">' + _critEsc(_cta.si + ' Sí · ' + _cta.no + ' No · '
+        + _cta.sd + ' sin dato') + '</span>' : '')
+    + '<button type="button" data-ind-colbtn="1" onclick="_indColsToggle(this)" '
+    + 'style="font-size:10px;line-height:1.6;padding:1px 8px;min-height:22px;border-radius:7px;'
+    + 'border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;" '
+    + 'aria-label="Alternar entre una y dos columnas">⇔ columnas</button></div>';
+  /* ⚠️ ARRIBA, LO ADAPTADO. Va ANTES de la grilla de preguntas porque es lo que el medico lee
+     primero: lo que las respuestas de ESTE paciente sostienen. Lo pinta `_indAdaptHTML`, un solo
+     emisor para las catorce secciones. */
+  if (r.adapt) h += _indAdaptHTML(r.adapt, r.faltan);
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
        (compacta ? ' data-ind-compacta="1"' : '') + (esPreg ? ' data-ind-preg="1"' : '') + '>';
   /* ══ LA SECCIÓN DE PREGUNTAS: LOS DATOS ARRIBA Y LAS PREGUNTAS DEBAJO (PANT-2, C2) ══════════
@@ -94817,17 +94918,6 @@ function _indDSAV(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + DSAV_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + DSAV_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -94857,15 +94947,16 @@ function _indDSAV(){
         { txt:'Fracción de eyección en esa misma situación: «por debajo de 60 %» en la ACC/AHA 2025 y «60 % o menos» en la ESC 2020. Con 60 exactos las dos no coinciden.', refs:null },
         { txt:'Grado de regurgitación que pide la cirugía en el paciente sintomático: severa en la ACC/AHA 2025 y moderada a severa en la ESC 2020.', refs:null },
         { txt:'Resistencia vascular pulmonar por la que se desaconseja la intervención: por encima de 10 unidades Wood en la ACC/AHA 2025 y de 5 unidades Wood o más con desaturación en el ejercicio en la ESC 2020.', refs:null },
-        { txt:'Dentro de la misma ACC/AHA 2025 el umbral del diámetro aparece de dos formas: la tabla de la hoja 43 escribe «40 mm o más» y su texto de apoyo de la hoja 44 escribe «mayor de 40 mm».', refs:null },
-        _bal
+        { txt:'Dentro de la misma ACC/AHA 2025 el umbral del diámetro aparece de dos formas: la tabla de la hoja 43 escribe «40 mm o más» y su texto de apoyo de la hoja 44 escribe «mayor de 40 mm».', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -94983,17 +95074,6 @@ function _indEBS(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + EBS_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + EBS_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -95025,15 +95105,16 @@ function _indEBS(){
         { txt:'Grado de insuficiencia tricuspídea que pide la cirugía: al menos moderada en la ACC/AHA 2025 y severa en la ESC 2020.', refs:null },
         { txt:'Qué pide cada una en el paciente asintomático: la ACC/AHA 2025 exige insuficiencia tricuspídea al menos moderada más uno de cuatro criterios; la ESC 2020, sólo dilatación derecha progresiva o reducción de la función sistólica del ventrículo derecho.', refs:null },
         { txt:'Cómo se cuenta la cianosis para el cierre aislado: la ACC/AHA 2025 la define por debajo de 90 % en reposo o con esfuerzo, y la ESC 2020 sólo en reposo.', refs:null },
-        { txt:'Clase del cierre aislado por embolia: 2b · Nivel C-LD en la ACC/AHA 2025 y IIa · Nivel C en la ESC 2020.', refs:null },
-        _bal
+        { txt:'Clase del cierre aislado por embolia: 2b · Nivel C-LD en la ACC/AHA 2025 y IIa · Nivel C en la ESC 2020.', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -95157,17 +95238,6 @@ function _indFON(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + FON_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + FON_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -95205,20 +95275,21 @@ function _indFON(){
         { txt:'Anticoagulación: la ACC/AHA 2025 separa a los pacientes con rasgos de alto riesgo —que anticoagula— de los demás, a los que indica aspirina o anticoagulación; la ESC 2020 sólo la indica con trombo, arritmia auricular o tromboembolia, y no publica recomendación para el resto.', refs:null },
         { txt:'Vasodilatadores pulmonares: la ACC/AHA 2025 los plantea para mejorar la capacidad de ejercicio, sin condición hemodinámica; la ESC 2020 pide presión o resistencia pulmonar elevadas y presión de fin de diástole ventricular normal.', refs:null },
         { txt:'Cierre de la fenestración: sólo la ESC 2020 lo recomienda, con cianosis significativa (Clase IIb · Nivel C).', refs:null },
-        { txt:'Hígado: la ACC/AHA 2025 pide imagen y laboratorio al menos una vez al año (Clase 1 · Nivel C-LD) y la ESC 2020 imagen regular (Clase IIa · Nivel C).', refs:null },
-        _bal
+        { txt:'Hígado: la ACC/AHA 2025 pide imagen y laboratorio al menos una vez al año (Clase 1 · Nivel C-LD) y la ESC 2020 imagen regular (Clase IIa · Nivel C).', refs:null }
       ]},
       { tit:'Lo que la declaración científica de la AHA de 2019 agrega — Rychik y col., Circulation 2019;140:e234-e284', lineas:[
         { txt:'No es una guía de práctica: es una declaración científica de la American Heart Association, y se cita como tal.', refs:null },
         { txt:'En reposo y respirando aire ambiente, la saturación arterial sistémica rara vez supera el 95 % y lo habitual es que esté entre 90 y 95 %; con el ejercicio suele caer por debajo de 90 % (hoja 8, folio e241).', refs:null },
         { txt:'La relación entre la insuficiencia auriculoventricular y la función ventricular va en los dos sentidos, y la insuficiencia moderada o mayor es un factor de riesgo de mortalidad a largo plazo después de la cirugía de Fontan (hoja 9, folio e242).', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -95320,17 +95391,6 @@ function _indCVPA(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + CVPA_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + CVPA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -95357,15 +95417,16 @@ function _indCVPA(){
       ]},
       { tit:'La diferencia entre las dos guías, sin resolver', lineas:[
         { txt:'La ACC/AHA 2025 tiene un apartado propio para esta lesión, con ocho recomendaciones y su corte de Qp:Qs de 1,5; la ESC 2020 no publica tabla propia y remite a los principios del cierre de la comunicación interauricular, sin un corte de Qp:Qs para la conexión anómala.', refs:null },
-        { txt:'La resonancia para el Qp:Qs es recomendación de Clase 1 · Nivel B-NR en la ACC/AHA 2025 y, en la ESC 2020, un estudio que «rara vez se necesita».', refs:null },
-        _bal
+        { txt:'La resonancia para el Qp:Qs es recomendación de Clase 1 · Nivel B-NR en la ACC/AHA 2025 y, en la ESC 2020, un estudio que «rara vez se necesita».', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -95498,17 +95559,6 @@ function _indEIS(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + EIS_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + EIS_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -95551,15 +95601,16 @@ function _indEIS(){
         { txt:'Primera línea de tratamiento: la ACC/AHA 2025 recomienda la monoterapia dirigida en Clase 1 · Nivel B-R, sin nombrar un fármaco; la ESC/ERS 2022 nombra el bosentán en Clase I · Nivel B y deja los demás en Clase IIa · Nivel C.', refs:null },
         { txt:'Terapia combinada: Clase 1 · Nivel B-NR en la ACC/AHA 2025 y Clase IIa · Nivel C, secuencial, en la ESC/ERS 2022.', refs:null },
         { txt:'Anticoagulación: la ACC/AHA 2025 la plantea en Clase 2b con rasgos de alto riesgo y riesgo bajo de sangrado, y la desaconseja de rutina en Clase 3: Sin beneficio; la ESC/ERS 2022 la plantea en Clase IIb con trombosis arterial pulmonar y en ausencia de hemoptisis significativa.', refs:null },
-        { txt:'Embarazo: Clase 3: Daño · Nivel B-NR en la ACC/AHA 2025 y Clase III · Nivel C en la ESC/ERS 2022; las dos lo desaconsejan.', refs:null },
-        _bal
+        { txt:'Embarazo: Clase 3: Daño · Nivel B-NR en la ACC/AHA 2025 y Clase III · Nivel C en la ESC/ERS 2022; las dos lo desaconsejan.', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -95695,17 +95746,6 @@ function _indCIA(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  if (CIA_PREG.length) clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _balCIA = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + CIA_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + CIA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -95742,8 +95782,7 @@ function _indCIA(){
       ]},
       { tit:'Enfermedad del ventrículo izquierdo y embolia paradójica — misma tabla, hoja 30, folio 592', lineas:[
         { txt:'Clase I · Nivel C — Con enfermedad del ventrículo izquierdo, se recomienda hacer el test con balón y sopesar con cuidado el beneficio de eliminar el cortocircuito izquierda-derecha contra el efecto negativo que el cierre puede tener por el aumento de la presión de llenado, considerando el cierre completo, el cierre fenestrado y el no cierre.', refs:null },
-        { txt:'Clase IIa · Nivel C — Ante la sospecha de embolia paradójica, excluidas las otras causas, debe considerarse el cierre independientemente del tamaño, siempre que no haya hipertensión arterial pulmonar ni enfermedad del ventrículo izquierdo.', refs:null },
-        _balCIA
+        { txt:'Clase IIa · Nivel C — Ante la sospecha de embolia paradójica, excluidas las otras causas, debe considerarse el cierre independientemente del tamaño, siempre que no haya hipertensión arterial pulmonar ni enfermedad del ventrículo izquierdo.', refs:null }
       ]},
       { tit:'Seguimiento — ESC 2020, apartado 4.1.6, hoja 31, folio 593', lineas:[
         { txt:'El control debe incluir la valoración del cortocircuito residual, el tamaño y la función del ventrículo derecho, la insuficiencia tricuspídea y la presión pulmonar por ecocardiografía, y la búsqueda de arritmias por la historia, el electrocardiograma y, sólo si está indicado, el Holter.', refs:null },
@@ -95752,14 +95791,16 @@ function _indCIA(){
         { txt:'Tras el cierre con dispositivo, el seguimiento es regular durante los dos primeros años y después, según los resultados, cada 3 a 5 años.', refs:null },
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hojas 30 y 31, folios 592 y 593.', refs:['esc2020guch'] }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
     /* ⚠️ MODO COMPACTO (TGA-4, commit 5): el MISMO molde de la transposición. El contenido no
        cambia —lo mide el conteo de citas antes y después—; cambia dónde se muestra. */
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -95944,17 +95985,6 @@ function _indCoAo(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _balCOA = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + COA_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + COA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     aviso: (C.clave === 'significativa' || C.clave === 'no_interpretable') ? C.txt : '',
     clinica: clinica,
@@ -95989,15 +96019,16 @@ function _indCoAo(){
         { txt:'Clase IIa · Nivel C — El stent debe considerarse en el normotenso con un gradiente no invasivo aumentado confirmado con medición invasiva (pico-pico de 20 mmHg o más), cuando es técnicamente factible.', refs:null },
         { txt:'Clase IIb · Nivel C — El stent puede considerarse en el normotenso con una estrechez del 50 % o más respecto del diámetro aórtico a nivel del diafragma, aunque el gradiente invasivo pico-pico sea menor de 20 mmHg, cuando es técnicamente factible.', refs:null },
         { txt:'La nota al pie c de esa tabla pide considerar la monitorización ambulatoria de la presión del brazo DERECHO para el diagnóstico de hipertensión.', refs:null },
-        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.6.4, hoja 42, folio 604.', refs:['esc2020guch'] },
-        _balCOA
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.6.4, hoja 42, folio 604.', refs:['esc2020guch'] }
       ]}
-    ]).concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (IND_GUIA_LBL[p.guia] || '') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ]),
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'esc2024ao',
@@ -96337,10 +96368,10 @@ function _mchoClinica(G){
     'mcho.ev.aidil':  (_ai == null) ? '' : (_ai > 46 ? 'si' : 'no')
   };
   const OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
-  const out = [], _si = [], _no = [], _sd = [];
+  const out = [], _si = [], _no = [], _sd = [], _siDet = [];
   MCHO_PREG.forEach(function (p) {
     const o = _indOrigen(Object.prototype.hasOwnProperty.call(RESP, p.clave) ? RESP[p.clave] : null, p.clave);
-    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p) } else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
     const f = _indFilaOrigen(p.lbl, o, OPS, function (val) {
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
@@ -96349,10 +96380,10 @@ function _mchoClinica(G){
     const b = _indPregBadge(p); if (b) f.badge = b;
     out.push(f);
   });
-  out.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  return out;
+  /* ⚠️ DEVUELVE LAS FILAS Y EL RESUMEN (PANT-17b, commit 3): el bloque «Con lo contestado»
+     necesita los objetos de pregunta y los tres conteos, y este ayudante es el unico que los
+     tiene. Con `out` a secas, la seccion se quedaba sin la linea del encabezado. */
+  return { out:out, si:_si, no:_no, sd:_sd, siDet:_siDet };
 }
 function _mchoBloques(){
   return [
@@ -96401,9 +96432,14 @@ function _indMCH(){
       cf === 'iii_iv' ? 'ok' : (cf === 'i_ii' ? 'none' : 'ask'),
       cf === 'iii_iv' ? 'es la clase que exige la indicación' : (cf === 'i_ii' ? '' : 'se registra en la sección de miocardiopatía hipertrófica'))
   ];
+  const _mchoQ = _mchoClinica(G);
   return { filas: filas,
-    clinica: _mchoClinica(G),
+    clinica: _mchoQ.out,
     bloques: _mchoBloques(),
+    /* ⚠️ Las tres piezas del formato nuevo (PANT-17b, commit 3), del resumen que el ayudante
+       publica: la fila «Respuestas» de la tabla se retiro y su conteo vive en el encabezado. */
+    cuenta: { si:_mchoQ.si.length, no:_mchoQ.no.length, sd:_mchoQ.sd.length },
+    adapt: _mchoQ.siDet, faltan: _mchoQ.sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'esc2023mioc',
@@ -96502,10 +96538,10 @@ function _indMCHSCD(){
       aneur === 'si' ? 'la guía pide decidir con el score y no sólo por el aneurisma, Clase IIa · Nivel B' : '')
   ];
 
-  const clinica = [], _si = [], _no = [], _sd = [];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
   MCH_SCD_PREG.forEach(function (p) {
     const o = _indOrigen(null, p.clave);
-    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p) } else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
     clinica.push(_indFilaOrigen(p.lbl, o, MCH_SCD_OPS, function (val) {
       /* La nota la arma `_indPregNota` (CORR-EVID-4): rótulo de la guía que rige, lo que esa
          guía manda, la línea de referencia de la OTRA y la nota de tramo. */
@@ -96514,16 +96550,12 @@ function _indMCHSCD(){
                nota: _indPregNota(p, val == null) };
     }));
   });
-  const _bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + MCH_SCD_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + MCH_SCD_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
+    /* ⚠️ Las tres piezas del formato nuevo (PANT-17b, commit 3). Esta seccion no tenia la fila
+       «Respuestas» de la tabla, asi que lo que gana es el conteo en el encabezado y el recuadro. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     bloques: [
       { tit:'Prevención secundaria — ESC 2023 de miocardiopatías, Tabla de recomendaciones 23, hoja 59, folio 3561', lineas:[
         { txt:'Clase I · Nivel B — Se recomienda implantar un desfibrilador en el paciente que sobrevivió a una parada cardíaca por taquicardia o fibrilación ventricular, o que tuvo una taquicardia ventricular sostenida espontánea con compromiso hemodinámico.', refs:null },
@@ -96540,7 +96572,6 @@ function _indMCHSCD(){
         { txt:'Clase IIb · Nivel B — Puede considerarse el desfibrilador en pacientes concretos con un riesgo estimado a 5 años entre el 4 % y el 6 %, tras la misma evaluación clínica detallada.', refs:null },
         { txt:'Clase IIb · Nivel B — En la banda de bajo riesgo (por debajo del 4 %), la presencia de realce tardío extenso —del 15 % o más— en la resonancia puede considerarse en una decisión compartida con el paciente sobre el implante profiláctico, reconociendo que no hay datos sólidos sobre el efecto de cuantificar la cicatriz en la estimación personalizada del riesgo.', refs:null },
         { txt:'Clase IIb · Nivel B — En la banda de bajo riesgo, la presencia de una fracción de eyección por debajo del 50 % puede considerarse en una decisión compartida, con la misma salvedad sobre la falta de datos sólidos.', refs:null },
-        _bal,
         { txt:'Fuente: ESC 2023 de miocardiopatías, edición inglesa, Tabla de recomendaciones 23, hojas 59 y 60, folios 3561 y 3562.', refs:['esc2023miocEn'] }
       ]},
       /* ⚠️ LA AHA/ACC ENTRA ACA PORQUE EL PPT LA DEJA DE DECIR (AJUSTES-3, 31/10/2026). La app
@@ -97377,17 +97408,6 @@ function _indDAP(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _balDAP = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + DAP_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + DAP_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     aviso: C.txt || '',
     clinica: clinica,
@@ -97419,15 +97439,16 @@ function _indDAP(){
       { tit:'Seguimiento — ESC 2020, apartado 4.4.5, hoja 36, folio 598', lineas:[
         { txt:'La evaluación ecocardiográfica debe incluir el tamaño y la función del ventrículo izquierdo, la presión de la arteria pulmonar, el cortocircuito residual y las lesiones asociadas.', refs:null },
         { txt:'Sin cortocircuito residual, con ventrículo izquierdo normal y presión pulmonar normal, no hace falta seguimiento regular después de los 6 meses.', refs:null },
-        { txt:'Con disfunción del ventrículo izquierdo o con hipertensión arterial pulmonar residual, el control va de 1 a 3 años según la gravedad, con evaluación en centros especializados.', refs:null },
-        _balDAP
+        { txt:'Con disfunción del ventrículo izquierdo o con hipertensión arterial pulmonar residual, el control va de 1 a 3 años según la gravedad, con evaluación en centros especializados.', refs:null }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -97537,17 +97558,6 @@ function _indVAP(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene nada de lo de arriba.'));
-  const _balVAP = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + VAP_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, nada de lo de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + VAP_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     aviso: C.txt || '',
     clinica: clinica,
@@ -97572,8 +97582,7 @@ function _indVAP(){
       ]},
       { tit:'Lo único que publica una guía — ACC/AHA 2025, hoja 93, folio e207', lineas:[
         { txt:'En el síndrome de Eisenmenger, el cierre de cualquier cortocircuito intracardíaco o vascular NO debe realizarse (recomendación 11). La frase alcanza a la ventana aortopulmonar porque habla de cualquier cortocircuito, sin nombrarla.', refs:['acc2025achd'] },
-        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, hoja 93, folio e207.', refs:['acc2025achd'] },
-        _balVAP
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, hoja 93, folio e207.', refs:['acc2025achd'] }
       ]}
     ].concat(_siDet.length ? [{ tit:'Lo que aplica con lo contestado (' + _siDet.length + ')',
       lineas: _siDet.map(function (p) {
@@ -97581,6 +97590,13 @@ function _indVAP(){
         const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : (b.g === 'Serie' ? 'Yakut 2018 — serie de casos' : b.g)) : '';
         return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
       }) }] : []),
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'yakut2018apw',
@@ -98933,17 +98949,6 @@ function _indCIV(){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     _civClin.push(_f);
   });
-  if (CIV_PREG.length) _civClin.unshift(_indFila('Respuestas',
-    _cSi.length + ' en Sí · ' + _cNo.length + ' en No · ' + _cSd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _balCIV = _cSi.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _cSi.length + ' de ' + CIV_PREG.length + ' (' + _cSi.join('; ') + ').'
-        + (_cSd.length ? ' Sin contestar: ' + _cSd.join('; ') + '.' : ' Las otras ' + _cNo.length + ' están contestadas que no.'), refs:null }
-    : (_cSd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _cSd.length + ' sin contestar: ' + _cSd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + CIV_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: _civClin,
     bloques: [
@@ -98969,8 +98974,7 @@ function _indCIV(){
       { tit:'Cuando la presión pulmonar está elevada — misma tabla, hoja 33, folio 595', lineas:[
         { txt:'Clase IIa · Nivel C — Con hipertensión arterial pulmonar y resistencia vascular pulmonar entre 3 y 5 UW, debe considerarse el cierre cuando persiste un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5).', refs:null },
         { txt:'Clase IIb · Nivel C — Con hipertensión arterial pulmonar y resistencia vascular pulmonar de 5 UW o más, puede considerarse el cierre cuando persiste un cortocircuito izquierda-derecha significativo (Qp/Qs mayor que 1,5), pero exige una decisión individual cuidadosa en un centro experto.', refs:null },
-        { txt:'Clase III · Nivel C — El cierre no se recomienda en la fisiología de Eisenmenger ni con hipertensión arterial pulmonar severa (resistencia de 5 UW o más) que se presenta con desaturación en el ejercicio. La nota al pie d de la tabla aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial por debajo del 90 %.', refs:null },
-        _balCIV
+        { txt:'Clase III · Nivel C — El cierre no se recomienda en la fisiología de Eisenmenger ni con hipertensión arterial pulmonar severa (resistencia de 5 UW o más) que se presenta con desaturación en el ejercicio. La nota al pie d de la tabla aclara que no hay datos para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial por debajo del 90 %.', refs:null }
       ]},
       { tit:'Seguimiento — ESC 2020, apartado 4.2.5, hoja 33, folio 595', lineas:[
         { txt:'El control debe excluir o valorar por ecocardiografía la aparición de insuficiencia aórtica o tricuspídea, el grado del cortocircuito residual, la disfunción del ventrículo izquierdo, la elevación de la presión pulmonar y la aparición de un ventrículo derecho de doble cámara.', refs:null },
@@ -98979,13 +98983,15 @@ function _indCIV(){
         { txt:'Con un defecto pequeño —nativo o residual, con ventrículo izquierdo y presión pulmonar normales y sin síntomas— y sin otra lesión, intervalos de 3 a 5 años pueden ser razonables. Tras el cierre con dispositivo, control regular los dos primeros años y después, según los resultados, cada 2 a 5 años. Tras el cierre quirúrgico sin anomalía residual, intervalos de 5 años pueden ser razonables.', refs:null },
         { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, hoja 33, folio 595.', refs:['esc2020guch'] }
       ]}
-    ].concat(_cSiDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _cSiDet.length + ')',
-      lineas: _cSiDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
     /* ⚠️ MODO COMPACTO (TGA-4, commit 5): el MISMO molde de la transposición y de la CIA. */
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_cSi.length, no:_cNo.length, sd:_cSd.length },
+    adapt: _cSiDet, faltan: _cSd,
     compacta: true,
     preguntas: true,
     /* ⚠️ LA LINEA DE GUIA NO SE MUEVE A LA ACC/AHA 2025, Y ES DELIBERADO. Esta línea publica el
@@ -99367,9 +99373,6 @@ function _indTGA(){
   /* ══ EL CONTADOR, PRIMERO (TGA-4, commit 3b-4) ══════════════════════════════════════════════
      Lo pide el médico para no tener que recorrer dieciocho filas y contarlas. Sale de los MISMOS
      tres arreglos que alimentan el balance de abajo, así que no puede decir otra cosa. */
-  if (pregs.length) clinica.unshift(_indFila('Respuestas',
-    si.length + ' en Sí · ' + no.length + ' en No · ' + sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
 
   /* ── El balance, que es la condición (5): si ninguna está en «sí», qué falta preguntar ── */
   const bloques = [];
@@ -99385,15 +99388,6 @@ function _indTGA(){
   }
   if (R) {
     const lin = R.lineas.map(function (t) { return { txt:t, refs:null } });
-    if (si.length) {
-      lin.push({ txt:'Condiciones presentes en este paciente: ' + si.length + ' de ' + pregs.length + ' (' + si.join('; ') + ').'
-        + (sd.length ? ' Sin contestar: ' + sd.join('; ') + '.' : ' Las otras ' + no.length + ' están contestadas que no.'), refs:null });
-    } else if (sd.length) {
-      lin.push({ txt:'Ninguna condición consta como presente, y quedan ' + sd.length + ' sin contestar: ' + sd.join('; ')
-        + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null });
-    } else {
-      lin.push({ txt:'Las ' + pregs.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-    }
     /* El folio sale de su propio campo y NO de recortar el título: una expresión regular sobre
        una cadena de pantalla se rompe en silencio el día que alguien le cambie un guión. */
     lin.push({ txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, ' + R.folios + '.', refs:['esc2020guch'] });
@@ -99424,21 +99418,6 @@ function _indTGA(){
   gen.push({ txt:'La ACC/AHA 2025 no publica un intervalo único: sus Tablas 37 (switch arterial, hoja 81, folio e195), 38 (Rastelli, hoja 83, folio e197) y 39 (transposición congénitamente corregida, hoja 84, folio e198) dan el intervalo de la consulta con el cardiólogo de congénitas del adulto, del electrocardiograma y del ecocardiograma transtorácico por estadio fisiológico, y van de 12 a 24 meses en el estadio A hasta 3 a 6 meses en el estadio D.', refs:['acc2025achd'] });
   gen.push({ txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartados 4.12.5, 4.12.6 y 4.13.6; ACC/AHA 2025 de cardiopatías congénitas del adulto, Tablas 37, 38 y 39.', refs:['esc2020guch','acc2025achd'] });
   bloques.push({ tit:'Seguimiento y consideraciones generales', lineas:gen });
-  /* ══ LO CONTESTADO QUE SI, JUNTO Y AL FINAL (TGA-4, commit 3b-3) ════════════════════════════
-     Una linea por pregunta con su guia, su clase y su nivel. Sale de `siDet`, que son los MISMOS
-     objetos de pregunta que pintaron las filas, y la etiqueta la arma el MISMO `_indPregBadge`
-     que la fila: dos redacciones del mismo resumen se desincronizan en cuanto una se ajuste.
-     ⚠️ SOLO SI HAY ALGUNA EN «SI». Un bloque titulado «Recomendaciones que aplican (0)» sobre un
-     panel sin contestar se lee como que no aplica ninguna, y lo que pasa es que no se pregunto:
-     eso ya lo dice el balance de arriba, con sus palabras. */
-  if (siDet.length) {
-    const _ls = siDet.map(function (p) {
-      const b = _indPregBadge(p);
-      const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-      return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-    });
-    bloques.push({ tit:'Recomendaciones que aplican con lo contestado (' + siDet.length + ')', lineas:_ls });
-  }
 
   return { filas: filas,
     clinica: clinica.length ? clinica : null,
@@ -99448,6 +99427,13 @@ function _indTGA(){
        guia— plegada en el ⓘ de la fila, que se abre DEBAJO de ella sin perder el lugar. El
        CONTENIDO no cambia: lo mide el caso de prueba contando las citas antes y despues.
        `preguntas: true` enciende ademas las dos columnas por ancho de PANEL y su boton. */
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:si.length, no:no.length, sd:sd.length },
+    adapt: siDet, faltan: sd,
     compacta: true,
     preguntas: true,
     /* ⚠️ UNA SOLA CLAVE Y NO UN ARRAY: `_indGuiaHTML` pasa `g.ref` a `_indRefMarca`, que espera
@@ -99507,10 +99493,10 @@ function _vabcClinica(){
     'vabc.ev.cxvalv':   _indS('vab_cx_valvular')
   };
   const OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
-  const out = [], _si = [], _no = [], _sd = [];
+  const out = [], _si = [], _no = [], _sd = [], _siDet = [];
   VABC_PREG.forEach(function (p) {
     const o = _indOrigen(Object.prototype.hasOwnProperty.call(VABC_RESP, p.clave) ? VABC_RESP[p.clave] : null, p.clave);
-    if (o.val === 'si') _si.push(p.lbl); else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p) } else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
     const f = _indFilaOrigen(p.lbl, o, OPS, function (val) {
       return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
                marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
@@ -99519,10 +99505,10 @@ function _vabcClinica(){
     const b = _indPregBadge(p); if (b) f.badge = b;
     out.push(f);
   });
-  out.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  return out;
+  /* ⚠️ DEVUELVE LAS FILAS Y EL RESUMEN (PANT-17b, commit 3): el bloque «Con lo contestado»
+     necesita los objetos de pregunta y los tres conteos, y este ayudante es el unico que los
+     tiene. Con `out` a secas, la seccion se quedaba sin la linea del encabezado. */
+  return { out:out, si:_si, no:_no, sd:_sd, siDet:_siDet };
 }
 function _vabcBloques(){
   return [
@@ -99596,14 +99582,19 @@ function _indVABConcl(){
   if (!C || !C.txt) return null;
   const marca = (C.clave === 'contradiccion' || C.clave === 'no_interpretable') ? 'alarm'
               : (/cirug|reemplaz/i.test(C.txt) ? 'warn' : 'ok');
+  const _vabcQ = _vabcClinica();
   return {
     /* ⚠️ LA FILA LLEVA SU CITA, y no es decoracion: el contrato del panel es que toda seccion
        publique un corchete numerado -TC-322 lo exige sobre `IND_SECS` entera-, y una fila con
        una afirmacion de guia sin cita es justamente lo que este archivo persigue. La clave es la
        misma que la linea de guia. */
     filas: [ _indFila('Según la guía', '—', marca, C.txt, ['esc2024ao']) ],
-    clinica: _vabcClinica(),
+    clinica: _vabcQ.out,
     bloques: _vabcBloques(),
+    /* ⚠️ Las tres piezas del formato nuevo (PANT-17b, commit 3), del resumen que el ayudante
+       publica: la fila «Respuestas» de la tabla se retiro y su conteo vive en el encabezado. */
+    cuenta: { si:_vabcQ.si.length, no:_vabcQ.no.length, sd:_vabcQ.sd.length },
+    adapt: _vabcQ.siDet, faltan: _vabcQ.sd,
     compacta: true,
     preguntas: true,
     /* ⚠️ LA LINEA DE UMBRALES SALE DE ACA (tanda A, punto 2e). Era palabra por palabra la de la
@@ -100634,17 +100625,6 @@ function _indTdFVD(){
     _nCinco >= 2
       ? 'la recomendación 10 pide AL MENOS DOS, y con la disfunción valvular pulmonar de grado moderado o mayor el reemplazo es razonable: Clase 2a · Nivel B-NR'
       : 'la recomendación 10 pide AL MENOS DOS de los cinco; «sin dato» no cuenta como «no»'));
-  clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const _balTDF = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + TDFVD_PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + TDFVD_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-
   return { filas: filas,
     clinica: clinica,
     bloques: [
@@ -100681,15 +100661,16 @@ function _indTdFVD(){
         { txt:'Clase IIa · Nivel C — El desfibrilador debe considerarse en pacientes seleccionados con múltiples factores de riesgo de muerte súbita.', refs:null },
         { txt:'Clase IIb · Nivel C — La ablación por catéter o la ablación quirúrgica concomitante de la taquicardia ventricular monomorfa sostenida sintomática puede considerarse en quien tiene función biventricular preservada, como alternativa al desfibrilador, siempre que se haga en centros muy experimentados y se alcancen los objetivos de ablación establecidos.', refs:null },
         { txt:'Sus notas al pie: la insuficiencia pulmonar grave es una fracción de regurgitación por resonancia mayor del 30 a 40 %; la obstrucción al menos moderada es una velocidad pico mayor de 3 m/s; el tracto de salida no nativo es el del paciente con cirugía previa con homoinjerto, injerto de vena yugular bovina, bioprótesis o conductos; y la dilatación progresiva se confirma con mediciones repetidas.', refs:null },
-        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.10, hoja 52, folio 614.', refs:['esc2020guch'] },
-        _balTDF
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.10, hoja 52, folio 614.', refs:['esc2020guch'] }
       ]}
-    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
-      lineas: _siDet.map(function (p) {
-        const b = _indPregBadge(p);
-        const et = b ? (IND_GUIA_LBL[p.guia] || '') + (b.cn ? ' · ' + b.cn : '') : '';
-        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-      }) }] : []),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -102126,33 +102107,8 @@ function _indObsPreg(PREG){
     const _b = _indPregBadge(p); if (_b) _f.badge = _b;
     clinica.push(_f);
   });
-  if (PREG.length) clinica.unshift(_indFila('Respuestas',
-    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
-    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
-  const bal = _si.length
-    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + PREG.length + ' (' + _si.join('; ') + ').'
-        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
-    : (_sd.length
-      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
-          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
-      : { txt:'Las ' + PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
-  return { clinica: clinica, siDet: _siDet, balance: bal };
+  return { clinica: clinica, siDet: _siDet, si: _si, no: _no, sd: _sd };
 }
-function _indObsAplican(siDet){
-  return siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + siDet.length + ')',
-    lineas: siDet.map(function (p) {
-      const b = _indPregBadge(p);
-      const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
-      return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
-    }) }] : [];
-}
-/* Las tres notas del pie, iguales en las dos secciones. */
-const OBS_NOTAS = Object.freeze([
-  'El gradiente que gradúa la severidad es el MEDIO. Las dos guías lo dicen, y la nota al pie c de las dos tablas de la ESC 2020 agrega que los gradientes por Doppler pueden sobrestimar la obstrucción y pueden necesitar confirmación por cateterismo.',
-  'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
-  'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
-]);
-
 function _indESUB(){
   const fn = _indFn('esubEstado');
   const r = fn ? fn() : null;
@@ -102212,10 +102168,16 @@ function _indESUB(){
       { tit:'Control: cada cuánto, y lo que cada guía dice', lineas:[
         { txt:'ACC/AHA 2025, Tabla 21, hoja 53, folio e167 — intervalos por estadio fisiológico A, B, C y D: consulta con el cardiólogo de congénitas del adulto cada 36, 24, 6 a 12 y 3 a 6 meses; electrocardiograma cada 36, 24, 12 y 12 meses; ecocardiograma transtorácico cada 36, 24, 12 y 12 meses.', refs:['acc2025achd'] },
         { txt:'ESC 2020, apartado 4.5.3.5, hojas 40 y 41, folios 602 y 603 — control regular de por vida, con ecocardiograma, en el no operado, para seguir la progresión de la obstrucción, de la insuficiencia aórtica y de la hipertrofia, la función y el tamaño del ventrículo izquierdo; y también después de operar, para detectar la reestenosis tardía, la insuficiencia aórtica progresiva y complicaciones como arritmias, bloqueo y comunicación interventricular iatrogénica. El control incluye la evaluación en centros especializados y su FRECUENCIA depende de la progresión esperada de la enfermedad.', refs:['esc2020guch'] },
-        { txt:'⚠️ Ninguna de las dos publica un intervalo ANUAL para toda la población: la ACC/AHA 2025 lo hace depender del estadio fisiológico —anual sólo en el C y el D— y la ESC 2020 no fija un número.', refs:null },
-        q.balance
+        { txt:'⚠️ Ninguna de las dos publica un intervalo ANUAL para toda la población: la ACC/AHA 2025 lo hace depender del estadio fisiológico —anual sólo en el C y el D— y la ESC 2020 no fija un número.', refs:null }
       ]}
-    ].concat(_indObsAplican(q.siDet)),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:q.si.length, no:q.no.length, sd:q.sd.length },
+    adapt: q.siDet, faltan: q.sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
@@ -102286,10 +102248,16 @@ function _indEASV(){
       { tit:'Por qué las coronarias, y las dos diferencias entre guías', lineas:[
         { txt:'La estenosis está por encima de los orificios coronarios, en la unión sinotubular, así que las coronarias quedan expuestas a la presión alta que genera la obstrucción. La estenosis ostial aumenta el riesgo de muerte súbita, sobre todo con la anestesia, y en el síndrome de Williams el electrocardiograma muchas veces no muestra signos de isquemia y el paciente puede no poder describir sus síntomas (ACC/AHA 2025, hoja 56, folio e170).', refs:['acc2025achd'] },
         { txt:'⚠️ Las dos guías no gradúan igual: la ACC/AHA 2025 escribe moderada con un gradiente medio de 20 a 40 mmHg y severa con MÁS de 40, y advierte que extrapolar esos cortes de la estenosis valvular aórtica puede ser inexacto por la variabilidad anatómica (hoja 56, folio e170); la ESC 2020 usa 40 mmHg o MÁS. La aplicación gradúa con el corte de la ESC 2020, que es el que ya sostiene el informe, y la diferencia se muestra acá sin resolverla.', refs:null },
-        { txt:'⚠️ Y no coinciden en el seguimiento: la ACC/AHA 2025 publica intervalos por estadio fisiológico (Tabla 23, hoja 56, folio e170) —consulta con el cardiólogo de congénitas del adulto cada 24, 24, 6 a 12 y 3 a 6 meses; electrocardiograma y ecocardiograma transtorácico cada 24, 24, 12 y 12 meses, con la salvedad de que el ecocardiograma de rutina puede no hacer falta si se hace resonancia para evaluar la anatomía aórtica—, mientras que la ESC 2020 pide control regular de por vida con ecocardiograma, en centros especializados, sin fijar un número (apartado 4.5.2.5, hoja 40, folio 602).', refs:null },
-        q.balance
+        { txt:'⚠️ Y no coinciden en el seguimiento: la ACC/AHA 2025 publica intervalos por estadio fisiológico (Tabla 23, hoja 56, folio e170) —consulta con el cardiólogo de congénitas del adulto cada 24, 24, 6 a 12 y 3 a 6 meses; electrocardiograma y ecocardiograma transtorácico cada 24, 24, 12 y 12 meses, con la salvedad de que el ecocardiograma de rutina puede no hacer falta si se hace resonancia para evaluar la anatomía aórtica—, mientras que la ESC 2020 pide control regular de por vida con ecocardiograma, en centros especializados, sin fijar un número (apartado 4.5.2.5, hoja 40, folio 602).', refs:null }
       ]}
-    ].concat(_indObsAplican(q.siDet)),
+    ],
+    /* ⚠️ LAS TRES PIEZAS QUE EL FORMATO NUEVO NECESITA (PANT-17b, commit 3), y las tres salen
+       de lo que esta seccion ya calculaba para la fila «Respuestas» y para la lista larga que se
+       retiraron. El emisor compartido hace el resto: `cuenta` es la linea del encabezado, `adapt`
+       son las preguntas contestadas que SI -los objetos de pregunta, con su `rec` ya redactado- y
+       `faltan` los rotulos sin contestar. */
+    cuenta: { si:q.si.length, no:q.no.length, sd:q.sd.length },
+    adapt: q.siDet, faltan: q.sd,
     compacta: true,
     preguntas: true,
     guia: { ref:'acc2025achd',
