@@ -368,6 +368,36 @@ const ESCENAS = {
                         va_prot_gmref:'14', va_prot_eoaref:'1.3',
                         peso:'75', talla:'175', gmedio_ao:'24.5', vmax_ao:'3.2',
                         ea_dtsvi:'21', ea_vtitsvi:'18', ea_vtiao:'60' } },
+  /* ══ LA FAMILIA DONDE EL COMMIT 5 CAMBIA EL PAPEL ═════════════════════════════
+     Con el TSVI de 21 mm la EOA y el DVI se mueven JUNTOS —los dos salen del cociente de los
+     dos VTI— y la EOA nunca dice nada que el DVI no diga. Lo que los separa es el DIAMETRO del
+     TSVI: con 16 mm el DVI se queda NORMAL (0,40) mientras el area cae a 0,80 cm², dos desvios
+     por debajo de la del modelo. Con el eje dependiente del flujo en significativa, la tarjeta
+     pasa de «posible» a «significativa» y con ella la frase del informe y la del EN SUMA.
+     Es la UNICA diferencia de papel que esta tanda autoriza. */
+  p19eoaCambia: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+                  campos:{ va_prot_modelo:'St. Jude Medical Standard', va_prot_tam:'23',
+                           peso:'75', talla:'175', gmedio_ao:'38', vmax_ao:'4.5',
+                           ea_dtsvi:'16', ea_vtitsvi:'18', ea_vtiao:'45' } },
+  /* el MISMO estudio sin modelo: el control que prueba que el cambio lo trae el modelo */
+  p19eoaCambiaSin: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+                     campos:{ peso:'75', talla:'175', gmedio_ao:'38', vmax_ao:'4.5',
+                              ea_dtsvi:'16', ea_vtitsvi:'18', ea_vtiao:'45' } },
+  /* y los dos controles de la regla: TAVI y modo MANUAL con los MISMOS numeros */
+  p19eoaTavi: { sel:{ va_morf:'TAVI' }, pastillas:[['aortica','esten']],
+                campos:{ va_prot_modelo:'SAPIEN 3', va_prot_tam:'All',
+                         peso:'75', talla:'175', gmedio_ao:'38', vmax_ao:'4.5',
+                         ea_dtsvi:'16', ea_vtitsvi:'18', ea_vtiao:'45' } },
+  p19eoaMan: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+               campos:{ va_prot_modelo:'Marca equis', va_prot_tam:'21',
+                        va_prot_gmref:'14', va_prot_eoaref:'1.3',
+                        peso:'75', talla:'175', gmedio_ao:'38', vmax_ao:'4.5',
+                        ea_dtsvi:'16', ea_vtitsvi:'18', ea_vtiao:'45' } },
+  /* un modelo cuya EOA esta impresa SIN desvio: tampoco entra en la regla */
+  p19eoaSinSD: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+                 campos:{ va_prot_modelo:'Edwards Mira', va_prot_tam:'25',
+                          peso:'75', talla:'175', gmedio_ao:'38', vmax_ao:'4.5',
+                          ea_dtsvi:'16', ea_vtitsvi:'18', ea_vtiao:'45' } },
   /* una EOA MEDIDA MUY POR DEBAJO de la del modelo: es la escena donde el commit 5 cambia. */
   p19modZbajo: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
                  campos:{ va_prot_modelo:'St. Jude Medical Standard', va_prot_tam:'23',

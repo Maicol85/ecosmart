@@ -48892,7 +48892,7 @@ const VINFO = Object.freeze({
     tit: 'Estenosis a\u00f3rtica prot\u00e9sica \u2014 qu\u00e9 cambia respecto de la nativa',
     lee: 'Velocidad pico \u2014 nativa: severa desde 4 m/s; pr\u00f3tesis: normal por debajo de 3, posible de 3 a 4, significativa desde 4. Gradiente medio \u2014 nativa: severa desde 40 mmHg; pr\u00f3tesis quir\u00fargica: normal por debajo de 20, posible de 20 a 34, significativa desde 35. DVI \u2014 nativa: severa por debajo de 0,25 y moderada hasta 0,50; pr\u00f3tesis: normal por encima de 0,35 y significativa por debajo de 0,25.',
     fuente: 'Nativa: EAE/ASE 2009 (Baumgartner), Tabla 3, p\u00e1g. 10. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 5, p\u00e1g. 19.',
-    ojo: 'El \u00e1rea valvular NO grad\u00faa una pr\u00f3tesis: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, y esta aplicaci\u00f3n no registra marca ni modelo. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no.'
+    ojo: 'El \u00e1rea valvular grad\u00faa una pr\u00f3tesis s\u00f3lo con el modelo cargado: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, que se carga con el bot\u00f3n «Modelo y tama\u00f1o» de la fila de morfolog\u00eda. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no.'
   },
   /* \u26a0\ufe0f LA FUENTE CITA SOLO LO QUE SE LEYO EN EL ORIGINAL (G1, 2026-10-15). Los cortes de
      insuficiencia cardiaca (0,36), de fraccion levemente reducida, de resincronizacion y de
@@ -73512,6 +73512,50 @@ function _eaProtNivel(val, normalMax, signifMin, mayorEsPeor, signifEstricto){
    ⚠️ FALLA CERRADO Y NO AFIRMA SOBRE LO NO EVALUADO. Si falta el eje flujo-independiente —que con
    la EOA fuera de juego significa: si falta el DVI— NO se puede concluir «significativa» por más
    alto que esté el gradiente: se dice qué falta. Es la misma regla que el resto del archivo. */
+/* ══ LA EOA FRENTE A LA DEL MODELO — TABLA 5, HOJA 18, FOLIO 19 (PANT-19, commit 5) ══════
+   Fila «EOA §» del bloque «Specific AVR considerations → SAVR», leida EN IMAGEN a 300 ppp con
+   el folio comprobado en el encabezado impreso, TEXTUAL:
+     Normal                        → «Reference EOA ± 1 SD»
+     Possible stenosis             → «1 SD smaller than reference EOA»
+     Suggests significant stenosis → «2 SDs smaller than reference EOA»
+   La nota «§» dice «Flow independent», asi que la EOA entra del MISMO lado que el DVI, y la nota
+   general sigue mandando: «Significant stenosis should meet at least one flow-dependent (i.e.,
+   velocity and mean gradient) and one flow-independent (i.e., EOA or DVI) parameter.»
+   ⚠️ LOS TRES TEXTOS SON CLAROS EN LO QUE GRADUAN y lo que la tabla NO resuelve son los bordes:
+   el «± 1 SD» de la columna normal se superpone con «1 SD smaller», y una EOA POR ENCIMA de la
+   del modelo no cae en ninguna de las tres. Se resuelve por COMPLEMENTO, que es la convencion de
+   la casa desde el hueco impreso del gradiente medio mitral: lo que la tabla no llama estenosis
+   NO es estenosis, y las dos columnas de estenosis dicen «smaller». Declarado en P19-b.
+   ⚠️ NO SE APLICA A TAVI —la guia le da su propia fila, de cambio respecto de un basal—, ni al
+   modo MANUAL —que no tiene desvio, y sin desvio no hay desviaciones estandar que contar—, ni a
+   un modelo cuya celda de EOA salga impresa SIN desvio. */
+const EA_PROT_EOA_Z = Object.freeze({ normalMin: -1, signifMax: -2 });
+/* Devuelve la desviacion de la EOA medida respecto de la del modelo, o null si no se puede.
+   Las CUATRO condiciones son de la orden del medico y cada una tiene su motivo:
+     1. protesis QUIRURGICA (mecanica o biologica), no TAVI;
+     2. modelo Y tamano del CATALOGO —no el modo manual—;
+     3. desvio de la EOA del modelo no nulo y mayor que cero;
+     4. AVA por continuidad calculada y sin la marca «(revisar)».
+   No lee el DOM mas que para el AVA, que es el unico dato del paciente que necesita. */
+function eaProtEOAz(){
+  const morf = (typeof sv === 'function') ? sv('va_morf') : '';
+  if (morf !== 'Prótesis mecánica' && morf !== 'Prótesis biológica') return null;
+  const E = (typeof vModEsperados === 'function') ? vModEsperados('va') : null;
+  if (!E || E.manual || !E.vals || !E.vals.eoa) return null;
+  const ref = E.vals.eoa[0], sd = E.vals.eoa[1];
+  if (ref == null || sd == null || !(+sd > 0)) return null;
+  const el = document.getElementById('ava_cont');
+  const t = el ? String(el.value || '').trim() : '';
+  if (!t || /revisar/i.test(t)) return null;
+  const ava = (typeof PF === 'function') ? PF(t) : parseFloat(t);
+  if (ava == null || !isFinite(ava) || !(ava > 0)) return null;
+  const z = (ava - (+ref)) / (+sd);
+  const nivel = (z <= EA_PROT_EOA_Z.signifMax) ? 'signif'
+              : ((z < EA_PROT_EOA_Z.normalMin) ? 'posible' : 'normal');
+  return { z:+z.toFixed(2), nivel:nivel, ava:ava, ref:+ref, sd:+sd,
+           modelo:E.nombre, tam:E.tam, folio:E.folio };
+}
+window.EA_PROT_EOA_Z = EA_PROT_EOA_Z; window.eaProtEOAz = eaProtEOAz;
 function eaProtVeredicto(){
   const n = id => { const e = document.getElementById(id); if (!e) return null;
     const x = PF(e.value); return (x != null && isFinite(x)) ? x : null; };
@@ -73616,20 +73660,29 @@ function eaProtVeredicto(){
   nv.dvi  = _dviNivel;
 
   /* La regla de integración, con los ejes que la tabla marca `†` (flujo-dependiente) y `§`
-     (flujo-independiente). La EOA es `§` y no es evaluable, así que el DVI queda solo de ese lado. */
+     (flujo-independiente). La EOA es `§` y DESDE PANT-19 es evaluable cuando hay un modelo
+     quirúrgico del catálogo con desvío: entra JUNTO al DVI, no en su lugar, que es lo que la
+     nota general exige —«at least one flow-dependent and one flow-independent parameter»—. */
+  const _eoaZ = (typeof eaProtEOAz === 'function') ? eaProtEOAz() : null;
+  nv.eoa = _eoaZ ? _eoaZ.nivel : null;
   const peor = ls => ls.indexOf('signif') > -1 ? 'signif' : (ls.indexOf('posible') > -1 ? 'posible' : (ls.length ? 'normal' : null));
   const dep   = [nv.vmax, nv.gmed].filter(Boolean);
-  const indep = [nv.dvi].filter(Boolean);
+  const indep = [nv.dvi, nv.eoa].filter(Boolean);
   const pDep = peor(dep), pIndep = peor(indep);
   let nivel, falta = [];
   if (!dep.length)   falta.push('un parámetro dependiente del flujo (velocidad pico o gradiente medio)');
-  if (!indep.length) falta.push('el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar');
+  /* Lo que falta se nombra por lo que de verdad falta: con un modelo cargado el área efectiva
+     TAMBIÉN es un eje independiente, así que decir «el DVI es el único» dejaría de ser cierto. */
+  if (!indep.length) falta.push(_eoaZ === null
+    ? 'el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado'
+    : 'un parámetro independiente del flujo (el DVI o el área efectiva frente a la del modelo)');
   if (falta.length) nivel = 'faltan';
   else if (pDep === 'signif' && pIndep === 'signif') nivel = 'signif';
   else if (pDep === 'normal' && pIndep === 'normal') nivel = 'normal';
   else nivel = 'posible';
   return { via: esTavi ? 'TAVI' : 'SAVR', niveles:nv, nivel:nivel, falta:falta, pDep:pDep, pIndep:pIndep,
-    gmed:gmed, dvi:dvi, dviNivel:_dviNivel, vmax:vmax, at:at, atet:atet, vs:vs, eoaEvaluable:false,
+    gmed:gmed, dvi:dvi, dviNivel:_dviNivel, vmax:vmax, at:at, atet:atet, vs:vs,
+    eoaEvaluable: _eoaZ !== null, eoaZ:_eoaZ,
     avai:avai, avaiMotivo:avaiMotivo, ppm:ppmAo, ppmCortes:ppmCortesAo, imc:imcAo,
     vsFueraDeRango: vs != null && (vs < EA_PROT_VS_MIN || vs > EA_PROT_VS_MAX) };
 }
@@ -73653,8 +73706,13 @@ const EA_PROT_TXT = Object.freeze({
      tabla de veredictos es justo la que alguien repone creyendo que falta. */
 });
 const EA_PROT_SALV = Object.freeze({
+  /* ⚠️ REESCRITA EN PANT-19-5. Antes cerraba con «esta aplicacion no registra marca ni modelo»,
+     que desde esta tanda es falso: el modelo se carga con el boton «Modelo y tamano». Lo que la
+     hoja dice se conserva entero —la tabla expresa la EOA respecto de la del modelo— y lo que
+     cambia es el final, que ahora dice donde se carga. */
   eoa: 'El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto ' +
-       'del valor de referencia del MODELO implantado, y esta aplicación no registra marca ni modelo. ' +
+       'del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del ' +
+       'catálogo cargado —se carga con el botón «Modelo y tamaño»—. ' +
        'El DVI queda como único eje independiente del flujo.',
   /* ⚠️ REESCRITA EN PANT-18-6. Antes cerraba con «y no se emite veredicto de estenosis», que
      desde esta tanda es falso. Lo que la hoja dice se conserva entero —las tres filas de TAVI son
@@ -73730,7 +73788,18 @@ function eaProtNarrativa(P){
     if (P.nivel !== 'normal') salv.push(EA_PROT_SALV[P.nivel]);
   }
   if (P.via === 'TAVI') salv.push(EA_PROT_SALV.tavi);
-  salv.push(EA_PROT_SALV.eoa);
+  /* PANT-19: con un modelo quirurgico del catalogo la EOA SI se evalua, y la salvedad publica
+     la desviacion en vez de explicar por que no se puede. Sin modelo, la de siempre. */
+  if (P.eoaZ) {
+    const _z = P.eoaZ;
+    const _cat = { normal:'dentro de ± 1 DE de la del modelo',
+                   posible:'1 DE por debajo de la del modelo',
+                   signif:'2 DE por debajo de la del modelo' }[_z.nivel];
+    salv.push('El área efectiva medida es de ' + _z.ava.toFixed(2) + ' cm² y la del modelo ' +
+      _z.modelo + (/^\d+$/.test(String(_z.tam)) ? (' ' + _z.tam + ' mm') : (' ' + _z.tam)) + ' es de ' +
+      _z.ref + ' ± ' + _z.sd + ' cm²: ' + (_z.z >= 0 ? '+' : '−') + Math.abs(_z.z).toFixed(1) +
+      ' DE, o sea ' + _cat + '. Es el eje independiente del flujo que la Tabla 5 expresa así.');
+  } else salv.push(EA_PROT_SALV.eoa);
   if (P.vsFueraDeRango && P.vs != null)
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
       EA_PROT_VS_MAX + ' mL para que la velocidad pico valga, y el calculado es de ' + P.vs.toFixed(0) + ' mL.');
