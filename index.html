@@ -73082,6 +73082,10 @@ function _eaProtPintar(P){
      «Task Force 2010» calculado con otra regla. Lo cazó /sharp-edges. */
   const lblEl = document.getElementById('ea-det-sev-lbl');
   if (lblEl) lblEl.textContent = '⚖️ Severidad EA protésica (ASE 2024)';
+  /* ⚠️ Y EL BOTON «Severidad» SE REPINTA DESDE ACA (PANT-18-8): es el dueno de la tarjeta, asi
+     que el boton y la tarjeta no pueden quedar en desacuerdo. Sin esta linea el boton se queda
+     con el estado de la pasada anterior hasta que algo mas llame a `refrescar`. */
+  try { if (window.valvSev && valvSev.refrescar) valvSev.refrescar('esten', 'aortica'); } catch (e) {}
   /* ── Tabla 7: el PPM aórtico. Se muestra con las TRES prótesis, TAVI incluida. ── */
   const ppmRow = document.getElementById('ea-prot-ppm-row');
   const ppmEl  = document.getElementById('ea-prot-ppm');
@@ -73160,6 +73164,10 @@ function _eaProtNotaOcultar(){
      cita falsa espejada. Un rótulo que cambia en un sentido tiene que cambiar en los dos. */
   const lbl = document.getElementById('ea-det-sev-lbl');
   if (lbl) lbl.textContent = '⚖️ Severidad EA (ESC/EACTS 2025)';
+  /* Y el boton vuelve a su estado, por el mismo motivo que el rotulo: lo que cambia en un sentido
+     tiene que cambiar en el otro. Con valvula nativa `eaProtVeredicto` devuelve null, asi que la
+     rama protesica de `refrescar` no se aplica y el boton queda como siempre estuvo. */
+  try { if (window.valvSev && valvSev.refrescar) valvSev.refrescar('esten', 'aortica'); } catch (e) {}
 }
 window._eaProtNotaOcultar = _eaProtNotaOcultar;
 window._eaProtPintar = _eaProtPintar;
@@ -110588,8 +110596,41 @@ window.valvSev = (function(){
         txt = rotulo(tipo, valv, raw); niv = nivelDe(raw);
       }
     }
+    /* ══ EL BOTON DE LA ESTENOSIS AORTICA PROTESICA SE PINTA CON EL VEREDICTO DE LA TARJETA
+       (PANT-18-8) ════════════════════════════════════════════════════════════════════════════
+       El medico lo reporto con captura: la tarjeta decia «Sugiere estenosis protésica
+       significativa» y el boton seguia amarillo. La causa esta medida en el inventario del
+       commit 1: con protesis, `clasificarEA_Vmax` y `sugerirSeveridadEA` se ABSTIENEN a proposito
+       —es el arreglo de la Fase 2, para que el informe no describa una protesis con cortes
+       nativos—, asi que `ea_grado` se queda en «sin» y este pintor cae en el neutro.
+       ⚠️ NO SE ESCRIBE `ea_grado`, Y ES LA CONDICION DE LA ORDEN: lo que cambia es el ESTADO
+       VISUAL. El valor guardado, lo que el boton escribe en el informe y su menu quedan intactos,
+       y el Excel y el papel no se enteran. Por eso esto vive en `refrescar`, que es el pintor, y
+       no en `aplicar`, que es el que escribe.
+       ⚠️ Y SOLO SI EL MEDICO NO FIJO UN GRADO A MANO: con `txt` cargado gana lo que el eligio,
+       que es la regla de toda esta pastilla. Esta rama corre unicamente cuando el campo esta en
+       su centinela, que es el estado en el que el boton no decia nada.
+       El reparto sigue al de la valvula nativa: `signif` toma el `nivel3` de la severa, `posible`
+       el `nivel2` de la moderada y `normal` el `nivel1` de la leve. Con «falta un dato» NO se
+       pinta: no se afirma nada sobre lo que no se pudo evaluar. */
+    let _protNiv = 0;
+    if (!txt && tipo === 'esten' && valv === 'aortica') {
+      try {
+        const _P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+        if (_P && _P.nivel) _protNiv = (_P.nivel === 'signif') ? 3
+                                     : (_P.nivel === 'posible') ? 2
+                                     : (_P.nivel === 'normal') ? 1 : 0;
+      } catch (e) { _protNiv = 0; }
+    }
     btn.classList.remove('nivel1','nivel2','nivel3','nivel-sig');
-    if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv);
+    if (!txt && _protNiv) {
+      /* El circulo amarillo SALE con el color: es el indicador de «sin estado» y dejarlo sobre un
+         boton rojo serian dos colores contradiciendose en el mismo control. La palabra no cambia:
+         el boton sigue diciendo «Severidad», porque el grado lo publica la tarjeta de al lado. */
+      btn.textContent = 'Severidad ▼';
+      btn.classList.add('nivel' + _protNiv);
+    }
+    else if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv);
       /* ⚠️ LA COMPUERTA ES EL TEXTO QUE EL MÉDICO LEE, NO EL TOKEN, y eso NO es un atajo: es lo
          que garantiza que el color y la palabra no se puedan desincronizar. `txt` sale de
          `rotulo()`, que es el mismo dueño que acaba de escribir el botón, así que la pastilla está
