@@ -1319,3 +1319,76 @@ tocado y se rehizo de una sola pasada. Lo delata el **conteo de cabeceras de lot
 **Dónde está todo:** `docs/mapa/p14b-estado-puerta-tunel.md` (mapa nuevo),
 `docs/INVENTARIO_UN_DATO_UNA_PUERTA_P14B.md`, `docs/GUIA_PRUEBA_PANT14B.md`,
 `docs/fuentes/FUENTES.md` → «La tanda PANT-14b», y los seis casos nuevos TC-699 a TC-704.
+
+---
+
+## PANT-14c — el PDF del corazón maestro, el diagrama del posoperatorio y los colores del 3D (2026-11-05/06)
+
+**Al abrir:** `origin/main` = `HEAD` = `741d0cc`, el cierre de PANT-14b, ya publicado, con el sello
+`v20261105-1629`, md5 de `index.html` `f6eb884f` y el pendrive `DISK_IMG` montado. El push lo corre
+Maicol: esta tanda tenía orden expresa de **no** pushear.
+
+**Lo que el médico reportó, con capturas, probando PANT-14b en Safari** — y qué pasó con cada cosa:
+
+| # | lo reportado | qué se midió | qué se hizo |
+|---|---|---|---|
+| 1 | el PDF imprime el corazón angosto y chico | **reproducido**: se estampaba cuadrado (`p.ar \|\| 1`) un lienzo de 1230 × 420 y se capturaba el lienzo entero, con el corazón en el 16,8 % del ancho | commit 1: recorte al contenido + `ar` propio. El corazón pasa de **11,9 a 31,4 mm** de ancho |
+| 2 | con ◫ abierto el PDF no incluyó el esquema | **reproducido en el orden que usó**: botón primero, ◫ después. `cmSchSet` no rasterizaba | commit 1d: `cmSchSet` rasteriza al abrir |
+| 3 | falta una explicación en texto | — | commit 1c: `cmPapelTexto` con sus cuatro partes, todas de registros que la app ya tiene |
+| 4 | el esquema del posoperatorio sale solo y vacío, con el botón encendido tras «Nuevo estudio» | **reproducido las dos mitades**: `pop_esq_pdf` es `hidden` y `limpiarCampos` no lo alcanzaba; y con la casilla encendida y cero datos el PDF emitía la hoja | commit 2 |
+| 5 | los dos rótulos del túnel se superponen; con dos túneles hay que distinguirlos | **reproducido**: `Túnel cavas × Túnel venas pulm. = 62 × 10 px` en 4 de 30 escenas | commit 3a: dos violetas medidos y una regla general de rótulos |
+| 6 | el anillo de la obstrucción se ve raro | estaba en el plano XY, de frente a la cámara | commit 3d: acostado, transversal al eje de la aorta |
+| 7 | en el Jatene no se entienden los anillos ni el punto naranja | las suturas usaban **el mismo toro** que la obstrucción | commit 3e: bandas con trama de malla, sin reusar el toro |
+| 8 | violeta también para el Rastelli; cava izquierda celeste; parches verdes | — | commit 3a, 3c y 3f |
+| 9 | un título con las siglas de lo que se dibuja | — | commit 4a |
+| 10 | la pestaña de transposición quedó con un hueco | — | commit 5 |
+| 11 | las secciones de congénitas quedan abiertas al volver | — | commit 6 |
+
+**Los siete commits** —contados con `git log 741d0cc..HEAD` al cerrar; el commit 7 entra en la
+cuenta—:
+
+| # | commit | qué cambió |
+|---|---|---|
+| 1 | `1bdba41` | el PDF del corazón maestro: imagen recortada con su proporción, el esquema que faltaba y el texto que describe lo dibujado |
+| 2 | `17228e6` | el esquema del posoperatorio deja de salir solo — «Nuevo estudio» lo apaga y sin datos no se emite |
+| 3 | `4b2e7e5` | el 3D y el esquema: dos violetas, el anillo acostado, las suturas en malla, los parches verdes, la cava celeste y la leyenda por entradas |
+| 4 | `2b882c7` | el título de lo que se dibuja, y los dos textos chicos que repetían lo que el dibujo ya muestra |
+| 5 | `142ce0a` | la pestaña de transposición sin su botón propio y sin hueco — los once campos en cuatro grupos |
+| 6 | `360c81e` | las secciones de congénitas, siempre cerradas al entrar |
+| 7 | éste | cobertura y documentación |
+
+**Lo que el commit 7 dejó:**
+
+- **Nueve casos nuevos**, TC-705 a TC-713, uno o dos por commit, con sus denominadores y sus
+  controles negativos. **Caen contra `741d0cc` por 99 condiciones y NINGUNA por excepción.**
+- **Siete casos viejos adaptados**, cada uno con el motivo escrito: TC-573, TC-601, TC-697,
+  TC-699, TC-702, TC-703 y TC-704. **Seis de los siete son el día que ellos mismos anunciaban**, y
+  once de sus condiciones quedaron **invertidas**, no borradas.
+- **Un mapa nuevo**, `docs/mapa/pant14c-pdf-colores.md`, y las fichas en
+  `docs/mapa/tests-fichas-705.md` (archivo propio).
+- ⚠️ **`docs/mapa/tests-punteros-tandas.md` cruzó el techo y se partió**: estaba en 31.438 B y el
+  bloque de esta tanda lo llevó a **36.653**. Las tandas PANT-8 a PANT-14c salieron a
+  `docs/mapa/tests-punteros-noviembre.md` (16,6 KB) y el mapa volvió a **20,7 KB**, con **cero
+  líneas perdidas** verificadas una por una. **Es otra vez la regla aplicada DESPUÉS de cruzar:
+  hay que medir el archivo MÁS lo que se le va a escribir.**
+- **NUEVE cosas declaradas** en `docs/PENDIENTES.md`: **P14c-a** a **P14c-i**, la última con lo
+  que la tanda deja para las que siguen.
+
+**La verificación de cierre:**
+
+| qué | resultado |
+|---|---|
+| **suite completa** | **728 de 728** casos ejecutados en **14 lotes**, md5 idéntico antes y después, pendrive verificado **16 veces**. Once rojos, **siete conocidos**: la línea base al cerrar es **721/728** |
+| **los cuatro rojos míos** | TC-514 (F5)(F6), TC-685 (F0)(F1b), TC-686 (A2)(A3) y TC-689 (H0) — adaptados, **once condiciones invertidas**, y sus dos lotes repetidos dan **55/55** |
+| **mutaciones** | **46/46 muertas**, en worktree, md5 idéntico antes y después |
+| **los nueve casos nuevos** | caen contra `741d0cc` por **99 condiciones** y **ninguna** por excepción |
+| **Semgrep** | **124 WARNING / 0 ERROR**, la línea base |
+| **huérfanos** | sin huérfanos nuevos |
+| **Excel** | **441** columnas con las mismas claves |
+| **campos guardados** | **ninguno nuevo**; ningún id cambió |
+| **bloques de JS inline** | **17 de 19** parsean, idéntico al árbol anterior |
+| **el diff** | **882 líneas agregadas y 140 quitadas**, **792** no comentario, **cero** `innerHTML`, `eval(` y `new Function` nuevos, cero claves |
+
+⚠️ **Y la corrida completa corrigió un error de la propia documentación de la tanda**: `P14c-b`
+afirmaba que ninguna condición de la suite sostenía que una sección con un dato del paciente se
+abriera sola, y **TC-514 (F6) lo afirmaba con todas las letras**. Corregido.

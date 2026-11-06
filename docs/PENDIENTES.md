@@ -14445,9 +14445,18 @@ congénitas: «al entrar a la pestaña, todas cerradas».
 * El cierre de las secciones de congénitas corre **después** de `secAutoOpen`, y sólo para las
   dos pestañas de congénitas. Para esas dos, entonces, la apertura automática **deja de tener
   efecto**.
-* **Censado**: la suite afirma el mecanismo que **impide** que `secAutoOpen` abra una sección
-  (`data-ui` en los tres controles del 3D de la TGA — TC-514, y los espejos de CIA/CIV — TC-513).
-  **Ninguna condición afirma que una sección con un dato del paciente se abra sola.**
+* La suite afirma el mecanismo que **impide** que `secAutoOpen` abra una sección (`data-ui` en los
+  tres controles del 3D de la TGA — TC-514, y los espejos de CIA/CIV — TC-513).
+
+⚠️ **Y ESTE PÁRRAFO DECÍA QUE NINGUNA CONDICIÓN AFIRMA QUE UNA SECCIÓN CON UN DATO SE ABRA SOLA, Y
+ERA FALSO.** Lo probó la corrida completa: **TC-514 (F6)** lo afirmaba con todas las letras —«y con
+un dato cargado la barra SÍ se abre sola»—, y **TC-514 (F5)** afirmaba además que lo abierto a mano
+**sobrevive al cambio de pestaña**. Las dos se pusieron rojas y están adaptadas, **invertidas** con
+el motivo escrito; (F6) gana **(F6b)**, el control de que `secAutoOpen` no se eliminó, y (F5) gana
+**(F5a)**, que exige que lo abierto **sin** cambiar de pestaña se quede. Mi censo las buscó por el
+nombre del mecanismo y ese caso lo dice por su efecto: es el modo de falla que `CLAUDE.md` ya
+documenta una docena de veces. **Lo que el médico pierde en congénitas, entonces, está medido y
+tiene nombre: la apertura automática de una sección con datos.**
 
 **Decisión del médico**: si quiere que en congénitas una sección con datos siga abriéndose sola
 —y entonces la regla «siempre cerradas» vale sólo para las vacías—, o si el cierre tiene que
@@ -14500,18 +14509,135 @@ El commit 5 mueve los campos y retira el botón, y **nada más**. Lo que queda e
 
 Medido el alto de la sección en las ocho combinaciones de Tipo × Cirugía, a los cuatro anchos:
 
-| ancho | HEAD (según la combinación) | ahora |
+| ancho | antes (según la combinación) | ahora |
 |---|---|---|
-| 1440 px | 434 a **524** | **476 en las ocho** |
-| 1000 px | 432 a **543** | 458 a 473 |
-| 768 px | 475 a **547** | 458 a 514 |
-| **390 px** | 526 a 652 | **699 a 804** |
+| 1440 px | 434 a **524** | **482 en las ocho** |
+| 1000 px | 432 a **543** | 464 a 479 |
+| 768 px | 475 a **547** | 464 a 521 |
+| **390 px** | 526 a 652 | **709 a 815** |
+
+> Los números de «ahora» son los de la **medición de cierre**, con la sonda abriendo la sección por
+> su botón real; una medición intermedia dio 6 a 10 px menos por el estado con que la montaba.
+> **El que vale es el de cierre.**
 
 **A 1440 px el alto deja de depender de la combinación**, que es justo el hueco que el médico
-reportó: con d-TGA bajaba de 509 a 476 y con el switch auricular de 524 a 476.
+reportó: con d-TGA bajaba de 509 a 482 y con el switch auricular de 524 a 482.
 
 ⚠️ **Por debajo del corte de 768 px sube**, entre 150 y 190 px: ahí la grilla es de **una** columna
 y a los once campos se les suman los **cuatro encabezados de grupo**. Es la misma aritmética que
 `P9-e` declaró para las siete pantallas de congénitas, y **no se cambió la disposición para
 compensarlo**: el pedido del médico es la agrupación por temas, y los cortes son los que la orden
 fija. **Decisión del médico** si en el teléfono prefiere los campos sin encabezados de grupo.
+
+---
+
+## P14c-f · El `tga_bav` cambió de lugar en el marcado, y es el precio de agrupar por temas
+
+El commit 5c reparte los once campos de la transposición en los cuatro grupos que la orden
+propone. El orden del marcado en el árbol anterior era:
+
+```
+tipo · cirugía · func_vd · dilatacion_ro · it_ro · BAV · obstr_subaortica · grad_subaortico ·
+civ_residual · civ_grad · sintomas
+```
+
+**Los dos campos CLÍNICOS —el bloqueo auriculoventricular y los síntomas— estaban SEPARADOS** por
+el bloque de la obstrucción y la CIV residual. Cualquier agrupación por tema los junta, así que
+`tga_bav` pasa del lugar **6 al 10**. Verificado id por id contra `741d0cc`: **es el único de los
+once que se mueve**, y ningún id, rótulo, opción ni valor cambió.
+
+**Lo que NO cambió, y se midió:**
+- El **orden del marcado sigue siendo el orden VISUAL** y el de tabulación, así que la pantalla no
+  miente y no hace falta un solo `tabindex` positivo —los dos `tabindex="-1"` que hay son los
+  preexistentes de los dos espejos de solo lectura, que sacan el campo del recorrido—.
+- **El PAPEL no se movió**: el emisor lee los campos **por id** y no por el orden del DOM. Lo
+  confirma el A/B, que da cero diferencias de superficie firmada en las escenas de la
+  transposición.
+
+**Lo que sí cambia para el médico**: al tabular, el bloqueo auriculoventricular se alcanza
+**después** de la obstrucción y la CIV residual, no antes. **Decisión del médico** si prefiere el
+orden anterior —lo que obliga a poner el BAV en el grupo «Obstrucción y CIV residual», donde no es
+su tema— o los campos sin encabezados de grupo.
+Fijado por **TC-573 (B1)** y **(B1b)** y por **TC-712 (F2)** y **(F2b)**.
+
+---
+
+## P14c-g · `popHayDatos` no puede ver el valor de un campo `hidden`, y eso hace su exclusión redundante
+
+`popHayDatos()` decide si el posoperatorio tiene algún dato comparando, campo por campo, su `value`
+contra su `defaultValue`. Y **en un `input type="hidden"` esos dos son el MISMO atributo**: el IDL
+`value` de un hidden refleja directamente el atributo `value` —value mode «default» del estándar—,
+así que `value !== defaultValue` **nunca** es cierto para un hidden.
+
+**Medido**, con la exclusión `if (e.id === 'pop_esq_pdf') continue;` retirada: `popHayDatos()` con
+la casilla en `'1'` **sigue dando falso**. O sea que la exclusión es **redundante** mientras el
+campo sea hidden.
+
+**Qué se hizo**: la exclusión **se queda** —declara la intención y es la única protección el día
+que el campo deje de ser hidden—, la mutación que la revertía **se retiró del barrido** declarándola
+equivalente, y **TC-707 (C3)** exige que el campo siga siendo `hidden`, que es lo que hace a (C2)
+inmune al valor. Si alguien lo cambia a `text`, (C3) se pone rojo y (C2) pasa a poder fallar.
+
+**Censado: `pop_esq_pdf` es el ÚNICO input hidden con prefijo `pop_`**, así que el predicado no
+está ignorando ningún otro dato del posoperatorio por esta causa. **TC-707 (C3b)** lo fija.
+
+⚠️ **Lo que queda para el médico**: `popHayDatos` recorre **154** elementos con ese prefijo. El día
+que haga falta un dato del posoperatorio en un campo oculto, hay que acordarse de que **el
+predicado no lo verá**.
+
+---
+
+## P14c-h · La regla de rótulos que no se solapan no se puede medir desde la suite
+
+El commit 3a agregó al bucle del dibujo un paso que corre los rótulos que se pisan. El médico
+reportó el defecto con `Túnel cavas × Túnel venas pulm. = 62 × 10 px`, y medido antes de tocar nada
+aparecía en **4 de 30** escenas: o sea en combinaciones concretas de rotación y estado.
+
+**TC-711 (A6)** cruza los **cinco** rótulos visibles del switch auricular y da **cero cruces**; con
+el paso de corrección **apagado** sigue dando cero, porque en la escena que la suite puede montar de
+forma determinista esos cinco no se pisan. La mutación que lo apagaba **se retiró del barrido**,
+declarándola inobservable desde ahí.
+
+**Qué sostiene la regla**: (A6) se queda como control de que no se solapan en la escena montable, y
+la **sonda de dos motores** (`scripts/_probe_pant14c_tga.mjs` y la de colores) los cruza en los
+dieciséis cruces de ancho y tema. **Decisión del médico** si quiere que la suite monte además una
+escena con la rotación donde el solape aparecía —haría falta fijar la cámara, que hoy ningún caso
+toca—.
+
+---
+
+## P14c-i · Lo que la tanda PANT-14c deja para las que siguen
+
+Lo que esta tanda **no** tocó y queda a la vista, sin orden de hacerse:
+
+**De esta tanda, para que el médico decida** —son las seis cosas que se pararon y se declararon—:
+
+| # | qué | dónde |
+|---|---|---|
+| 1 | el texto chico que no cae claramente en ninguna de las dos listas | **P14c-a** |
+| 2 | `secAutoOpen` contradice «siempre cerradas» en congénitas | **P14c-b** |
+| 3 | el anillo de la obstrucción aporta menos píxeles que antes, y es lo correcto | **P14c-c** |
+| 4 | lo que quedó sin tocar en la pestaña de transposición | **P14c-d** |
+| 5 | a 390 px esa sección queda más alta: el precio de agrupar | **P14c-e** |
+| 6 | el `tga_bav` cambió de lugar en el marcado | **P14c-f** |
+| 7 | `popHayDatos` no puede ver un campo `hidden` | **P14c-g** |
+| 8 | la regla de rótulos no se puede medir desde la suite | **P14c-h** |
+
+**Lo que las tandas anteriores dejaron y esta no retomó**, con su entrada propia en este archivo:
+
+- **P13-c** — la decisión sobre el recuadro de dibujo de la pestaña de la transposición, que
+  PANT-14 midió y dejó: su esquema de circulación **no** coincide con el del módulo —cero de 25
+  escenas iguales, por el tamaño de letra, los rótulos de las comunicaciones y el sentido de una
+  flecha—, así que retirarlo le cambiaría al médico el esquema que ve. PANT-14c **no lo tocó**.
+- **P13-e** — `docs/mapa/congenitas-otros.md` (34.540 B) y `docs/mapa/tests-fichas.md` (34.237 B)
+  siguen esperando a que alguien los parta. **Esta tanda no los tocó**, y en cambio tuvo que partir
+  `tests-punteros-tandas.md`, que cruzó el techo con su propio puntero.
+- **P14b-b, P14b-e, P14b-h, P14b-i, P14b-j** — los cinco de PANT-14b. El **P14b-i** —el anillo con
+  «Por dentro» encendido— queda **mejorado** por el commit 3d de esta tanda, que lo acuesta; los
+  píxeles están en **P14c-c**.
+
+⚠️ **Y una regla de método que esta tanda pagó y conviene que la próxima lea antes de armar su
+barrido**: un arnés de mutaciones que escribe el archivo **sin `flush`** reporta sobrevivencias
+falsas, porque el servidor del suite lee el archivo sin los cambios. `scripts/_mut_pant14c.py` ya
+tiene el helper `escribir()` con `flush` + `fsync`; **los arneses de las tandas anteriores NO lo
+tienen**, así que un barrido viejo relanzado tal cual puede estar midiendo de menos.

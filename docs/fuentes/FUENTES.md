@@ -11354,3 +11354,131 @@ son de evidencia clínica pero que valen para la próxima vez:
 Y una equivalencia que se declara en `docs/PENDIENTES.md` → **P14b-j**: la validación y el
 respaldo del resolvedor de colores son inalcanzables con el marcado que la app emite, así que
 ninguna mutación los puede hacer observables.
+
+---
+
+## La tanda PANT-14c (2026-11-05/06)
+
+**Esta tanda no abrió un solo PDF de guía, y se declara.** Todo lo que sus textos dicen sale de
+registros que la app ya tiene —`CM_SIG`, `CM_SIB`, `CM_SHORT`, `CM_MODS`, `CM_CIRC`, `TGA3D_INFO`
+y `TGA3D_CIRC`—, verificados por las tandas que sí leyeron el original. No se escribió un solo
+texto clínico nuevo.
+
+### Cambios de evidencia
+
+| qué | antes | después |
+|---|---|---|
+| contenido clínico nuevo | — | **ninguno** |
+| citas agregadas | — | **ninguna** |
+| citas retiradas | — | **ninguna** |
+
+### De dónde sale cada texto nuevo del papel (commit 1c)
+
+| parte del texto | registro de la app |
+|---|---|
+| el título, en siglas | `CM_SIB[k][0]`, `CM_SHORT[k_v]`, `CM_SIG[k][0]` |
+| las lesiones con su nombre completo | `CM_SIG[k][1]` («comunicación interauricular», «ductus arterioso», …) y la variante de `CM_MODS[i][2]` |
+| la línea de la circulación | `cmEscena(S).circ`, o sea `CM_CIRC` y `TGA3D_CIRC` |
+| la leyenda de lo dibujado | `CM_LEY`, que son los rótulos que las dos leyendas de pantalla ya usaban |
+
+### Los dos rótulos nuevos del Rastelli en el 3D (commit 3a)
+
+Salen de las palabras que `TGA3D_INFO.ras` ya usa —«un **túnel** lleva la sangre del **ventrículo
+izquierdo a la aorta** a través de la CIV, y un **conducto** lleva la del **derecho a la arteria
+pulmonar**»— y de la forma en que la Evidencia de esa sección nombra el segundo: «conducto
+ventrículo derecho-arteria pulmonar». Quedan en `Túnel VI-aorta` y `Conducto VD-AP`.
+
+### Las dos entradas nuevas de la leyenda (commit 3g)
+
+`parche`, `sutura` y `coronarias reimplantadas` son las tres cosas que la entrada vieja
+—«CIV, parches y suturas»— ya nombraba con un solo color; `cava izquierda persistente` es el
+nombre que `CM_SIG.vcs[1]` ya tiene. Ninguna es un nombre nuevo.
+
+### Notas de trabajo (R1)
+
+* **El fondo del lienzo del 3D se midió y no se supuso**: `rgb(24, 28, 39)` en el tema oscuro, que
+  es lo que hace comparables los contrastes de los cuatro colores nuevos.
+* **La tolerancia del recuento de píxeles por color se midió antes de usarla**: con 46 por canal,
+  los brillos de los vasos azules caían dentro del celeste y daban ~500 píxeles de base en todas
+  las escenas, incluidas las que no dibujan ninguna cava izquierda. Con 24 la base baja y lo que
+  queda es la señal. El control sigue siendo la escena sin la lesión.
+* **«Por dentro» es un dato de la escena y su valor por omisión es el de la app, encendido.**
+  Forzarlo apagado dejaba los dos túneles sin dibujar —son `in:true`— y el recuento de violeta
+  daba **cero en los dos árboles**: un denominador vacío que se lee igual que «el color no se
+  aplicó». Medido y corregido antes de reportar nada.
+
+### Los dos encabezados de grupo nuevos de la pestaña de transposición (commit 5c)
+
+«Tipo y cirugía», «Ventrículo sistémico», «Obstrucción y CIV residual» y «Clínica» son los cuatro
+grupos que **la orden del médico nombra**, y las cuatro palabras están ya en los rótulos de los
+campos que agrupan: `tga_tipo` dice «Tipo», `tga_cirugia` «Cirugía realizada», `tga_func_vd`
+«Función del VD sistémico», `tga_obstr_subaortica` «Obstrucción subaórtica» y `tga_civ_residual`
+«CIV residual». **No se escribió un solo nombre clínico nuevo.**
+
+### Las separaciones de color, medidas (commit 3a)
+
+Con `scripts/_probe_pant14c_mut.mjs`, sobre el fondo `rgb(15, 17, 23)`:
+
+| medición | valor | lo que la orden pide |
+|---|---|---|
+| luminancia relativa del violeta oscuro | 0,1004 | — |
+| luminancia relativa del violeta claro | 0,3474 | — |
+| cociente **entre los dos violetas** | **2,643** | ≥ 1,6 |
+| oscuro **contra el fondo** | **2,702** | ≥ 1,5 |
+| claro **contra el fondo** | **7,141** | ≥ 1,5 |
+| tono del azul | 216,1° | — |
+| **distancia de tono** del oscuro al azul | **55,9°** | que se distingan |
+| **distancia de tono** del claro al azul | **53,9°** | que se distingan |
+
+### El anillo de la obstrucción: la tangente contra el eje (commit 3d)
+
+Medido en las cinco variantes, con `CM_OBS_BAJO = 0,30`:
+
+| variante | separación entre el punto con tangente y el que baja en Y | tangente |
+|---|---|---|
+| d-TGA | **0,0609** | 0,049 · 0,979 · −0,196 |
+| Jatene | **0,0416** | −0,062 · 0,990 · −0,124 |
+| switch auricular | **0,0334** | −0,050 · 0,994 · −0,099 |
+| Rastelli | **0,0334** | −0,050 · 0,994 · −0,099 |
+| ccTGA | **0,0334** | 0,050 · 0,994 · −0,099 |
+
+El radio del anillo es **0,352** y el de la aorta en su origen **0,320**, o sea 1,1 veces: «igual o
+algo mayor», que es lo que la orden pide. **La tolerancia de la condición es 0,002**, muy por debajo
+de la separación más chica, así que distingue las dos formas de ubicarlo.
+
+### Notas de trabajo (R2) — las trampas que esta parte de la tanda pagó
+
+* ⚠️ **El arnés de mutaciones escribía el archivo SIN flush, y reportaba sobrevivencias FALSAS.**
+  El servidor del suite leía el `index.html` **sin los cambios**, así que el caso pasaba en verde
+  sobre una mutación que, aplicada a mano, lo pone rojo —verificado con la 21—. El mismo defecto
+  abortó la guarda de md5 en la mutación 24. Con `flush` + `fsync` las muertas pasan de **24 a 33**
+  en el mismo barrido. **Un arnés de mutaciones que escribe sin flush se lee igual que «no hay
+  cobertura».**
+* ⚠️ **En un `input type="hidden"`, `value` y `defaultValue` son el MISMO atributo** —value mode
+  «default»—, así que un predicado que compare uno contra el otro **no puede ver** el valor de un
+  hidden. Medido: con la exclusión de `pop_esq_pdf` retirada, `popHayDatos()` con la casilla en «1»
+  **sigue dando falso**. La exclusión se queda porque declara la intención y protege el día que el
+  campo deje de ser hidden, y `pop_esq_pdf` es el **único** hidden con ese prefijo, censado.
+* ⚠️ **Los rótulos del 3D del módulo cuelgan de `#cm3d-cv`** —el lienzo— **y no de `#cm3d-cvw`**:
+  con el selector acotado al segundo, la condición del de-solape contaba **cero** rótulos y se
+  auto-neutralizaba. Son **cinco** visibles con la casilla «Nombres» encendida.
+* ⚠️ **Cerrar el panel del esquema no borra lo rasterizado**: `cmEsqPdfData()` devuelve null porque
+  la compuerta se cierra, pero `_cmEsqPdf` conserva el dato, así que al reabrir reaparecía **aunque
+  el rasterizado estuviera apagado**. Es el freno que tapa al que se muta, y la condición borra la
+  variable de verdad.
+* ⚠️ **Buscar `repeat(3` en el BLOQUE de una media query no sirve**: el bloque acumula todas las
+  reglas de ese ancho del documento, y ahí hay otros selectores con ese reparto. Hay que buscarlo
+  **dentro de la regla** del selector.
+* ⚠️ **Un ancla por OFFSET DE CARACTERES envejece igual que un número de línea.** TC-686 cortaba
+  `cm3dInit` con `slice(i, i + 14000)`, y los commits 3 y 4 le agregaron código a esa función: la
+  ventana dejó de llegar a las líneas del resize y dos condiciones daban falso sobre código que no
+  se había movido. Hoy se delimita por **balance de llaves**.
+* ⚠️ **El censo falla cuando el caso dice el efecto y no el nombre.** Tres de los cuatro rojos que
+  destapó la corrida completa —TC-514, TC-685 y TC-689— afirman lo que cambió **por su efecto**
+  («la línea se escribió», «la barra SÍ se abre sola»), así que grepear por «Todas las lesiones
+  cargadas» o por `secAutoOpen` no los encontró.
+* ⚠️ **Un ancla por el nombre de una función no sirve cuando el comentario de al lado la nombra.**
+  El comentario que explica el cambio menciona `cmPapelTexto` dos veces, así que buscar el nombre
+  pelado lo encontraba aunque la expresión se hubiera reemplazado: hay que buscar la **llamada**,
+  con sus paréntesis.
+

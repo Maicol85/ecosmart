@@ -85497,17 +85497,34 @@ caso('TC-514', 'Tanda D2: el corte del aneurisma del septum con el operador ESTR
     !!(EL2('vab-anim-scrub') || {}).hasAttribute && EL2('vab-anim-scrub').hasAttribute('data-ui'), '']);
   ex.push(['(F4) y la funcion valvular DERIVADA es un espejo de Valvulas',
     !!(EL2('vab_funcion') || {}).hasAttribute && EL2('vab_funcion').hasAttribute('data-espejo'), '']);
-  /* CONTROL: lo que el medico abre a mano NO se cierra, y con un dato cargado se abre sola. */
+  /* ══ (F5) Y (F6) INVERTIDAS EN PANT-14c (commit 6), CON EL MOTIVO ESCRITO, Y ES EL DIA QUE
+     ESTE CASO ANUNCIABA ════════════════════════════════════════════════════════════════════
+     PEDIDO DEL MEDICO (06/11/2026): al ENTRAR a una pestania de congenitas se cierran TODAS sus
+     secciones, y lo que el abre se queda abierto SOLO mientras no cambie de pestania. Las dos
+     condiciones afirmaban lo contrario —(F5) que lo abierto sobrevive al cambio de pestania y
+     (F6) que secAutoOpen la abre sola—, que era cierto cuando se escribieron.
+     ⚠️ (F6) ES LA CONTRADICCION QUE LA ORDEN MANDA DECLARAR, y esta en docs/PENDIENTES.md
+     -P14c-b-: secAutoOpen NO se elimino —sigue corriendo en todas las pestanias y sus tres
+     guardas siguen afirmadas— pero para congenitas deja de tener efecto, y el precio es que ahi
+     el medico PIERDE la apertura automatica. Decision del medico si la quiere de vuelta.
+     Las dos quedan MAS FUERTES: (F5) exige que se cierre al VOLVER y que lo abierto SIN cambiar
+     de pestania se quede, asi que puede fallar por los dos lados; y (F6) exige que secAutoOpen
+     siga abriendo en una pestania que NO es de congenitas, que es el control que prueba que no
+     se elimino. */
   (function(){ const c = EL2('sacc-cc-fop');
     if (c && !c.classList.contains('open')) { const h = c.querySelector('.sacc-hdr'); if (h) h.click(); } })();
-  entrar('datos'); entrar('congenitas');
-  ex.push(['(CONTROL F5) lo que el medico abre a mano sigue abierto',
+  ex.push(['(F5a) lo que el medico abre SIN cambiar de pestania se queda abierto',
     !!(EL2('sacc-cc-fop') || {}).classList && EL2('sacc-cc-fop').classList.contains('open'), '']);
+  entrar('datos'); entrar('congenitas');
+  ex.push(['(F5) y al VOLVER a la pestania ya NO esta abierto: se cierran todas al entrar',
+    !((EL2('sacc-cc-fop') || {}).classList && EL2('sacc-cc-fop').classList.contains('open')), '']);
   __t.limpiar(); __t.set('fop_tunel','9');
   entrar('datos'); entrar('congenitas');
-  ex.push(['(CONTROL F6) y con un dato cargado la barra SI se abre sola',
-    barras('tab-congenitas').abiertas.indexOf('sacc-cc-fop') > -1,
+  ex.push(['(F6) con un dato cargado la barra TAMPOCO se abre sola: el cierre corre despues de secAutoOpen',
+    barras('tab-congenitas').abiertas.indexOf('sacc-cc-fop') < 0,
     JSON.stringify(barras('tab-congenitas').abiertas)]);
+  ex.push(['(F6b CONTROL) y secAutoOpen NO se elimino: sigue existiendo y corriendo',
+    typeof secAutoOpen === 'function' && (typeof ccSeccionesCerrar === 'function'), '']);
 
   /* == G - LA CAJA DE CONCLUSION ========================================================== */
   __t.limpiar();
@@ -103071,16 +103088,43 @@ caso('TC-573', 'Tanda CONG-2A: la pantalla de la TGA pone los campos a la izquie
   };
   ex.push(['(A0) DENOMINADOR: el acordeon de la TGA esta abierto',
            acc && acc.classList.contains('open') ? 'si' : 'NO', 'si']);
-  const zona = document.getElementById('tga-campos');
+  /* ATENCION: CASO ADAPTADO EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO, y es el dia que este
+     caso anunciaba. Nacio en la CONG-2A para fijar la maqueta de DOS COLUMNAS de #tga-campos con
+     el dibujo al lado; el pedido del medico de esta tanda es el patron de la seccion de arriba
+     -«Conexion venosa pulmonar anomala parcial»-: los once campos repartidos en CUATRO grupos con
+     encabezado dentro de #tga-grupos, tres columnas desde 1000 px, dos desde 768 y una debajo, y
+     la Conclusion a todo el ancho DEBAJO. Las condiciones de maqueta se adaptan una por una; las
+     que valen igual -los once campos en su orden, ningun tabindex, la fila de la cirugia que se
+     esconde sin borrar su valor, el parrafo corto y su texto en el globo- NO se tocan. */
+  const zona = document.getElementById('tga-grupos');
   const fila = document.getElementById('tga-fila');
-  ex.push(['(A1) DENOMINADOR: existen la fila y la grilla de campos',
+  ex.push(['(A1) DENOMINADOR: existen la fila y la grilla de grupos',
            (fila ? 'f' : '-') + (zona ? 'z' : '-'), 'fz']);
   ex.push(['(A2) DENOMINADOR: la grilla tiene caja', (caja(zona) || {}).w > 0 ? 'si' : 'NO', 'si']);
+  ex.push(['(A3) DENOMINADOR: la grilla vieja de dos columnas ya no existe',
+           !document.getElementById('tga-campos'), true]);
+  ex.push(['(A4) los CUATRO grupos con encabezado',
+           zona ? zona.querySelectorAll('.cc9-col').length : -1, 4]);
+  ex.push(['(A5) y cada uno tiene su encabezado propio',
+           zona ? zona.querySelectorAll('.cc9-col > .cc9-h').length : -1, 4]);
 
   /* (B) EL ORDEN DEL MARCADO ES EL ORDEN VISUAL, asi que la tabulacion lo sigue sin tabindex. */
   const ids = zona ? Array.prototype.map.call(zona.querySelectorAll('select[id], input[id]'), e => e.id) : [];
-  ex.push(['(B1) los once campos, en el orden que el medico pidio', ids.join(','),
-           'tga_tipo,tga_cirugia,tga_func_vd,tga_dilatacion_ro,tga_it_ro,tga_bav,tga_obstr_subaortica,tga_grad_subaortico,tga_civ_residual,tga_civ_grad,tga_sintomas']);
+  /* ATENCION: (B1) ADAPTADA EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO, Y ES EL UNICO CAMBIO
+     DE ORDEN DE LA TANDA. El pedido del medico nombra el grupo «Clinica», y los DOS campos
+     clinicos —el bloqueo auriculoventricular y los sintomas— estaban SEPARADOS por el bloque de
+     la obstruccion y la CIV residual: cualquier agrupacion por tema los junta, asi que
+     tga_bav pasa del lugar 6 al 10. Es el UNICO de los once que se mueve, verificado id por id
+     contra el arbol anterior. El orden del MARCADO sigue siendo el orden VISUAL y el de
+     tabulacion, asi que la pantalla no miente; lo que cambia es que al tabular el bloqueo se
+     llega despues de la obstruccion. Declarado en docs/PENDIENTES.md -P14c-f-, con la
+     verificacion de que el PAPEL no se movio: el emisor lee los campos por id y no por el orden
+     del DOM, y el A/B lo mide. La condicion queda MAS FUERTE: exige los once, el orden nuevo Y
+     que ninguno se haya perdido ni duplicado. */
+  ex.push(['(B1) los once campos, en el orden de la agrupacion por temas', ids.join(','),
+           'tga_tipo,tga_cirugia,tga_func_vd,tga_dilatacion_ro,tga_it_ro,tga_obstr_subaortica,tga_grad_subaortico,tga_civ_residual,tga_civ_grad,tga_bav,tga_sintomas']);
+  ex.push(['(B1b) y son once distintos: ninguno perdido ni duplicado',
+           ids.length + '/' + (new Set(ids)).size, '11/11']);
   ex.push(['(B2) y NINGUN campo lleva tabindex para forzar el orden',
            zona ? zona.querySelectorAll('select[tabindex], input[type=number][tabindex]').length : -1, 0]);
 
@@ -103107,21 +103151,50 @@ caso('TC-573', 'Tanda CONG-2A: la pantalla de la TGA pone los campos a la izquie
     return 't1=' + d(t1) + ' t2=' + d(t2) + ' acc=' + (a3 ? (a3.classList.contains('open') ? 'open' : 'CERRADO') : 'NO')
       + ' zona=' + d(z) + ' zonaW=' + (z ? Math.round(z.getBoundingClientRect().width) : -1)
       + ' ov=' + (ov ? d(ov) : 'NO') + ' op=' + (z ? (z.offsetParent ? 'si' : 'NULL') : 'NO'); };
-  ex.push(['(C1) con d-TGA salen SEIS filas', fD.length === 6 ? 6 : (fD.length + ' [' + diag() + ']'), 6]);
-  ex.push(['(C2) y son exactamente las pedidas', fD.join(' / '),
-           'tga_tipo|tga_cirugia / tga_func_vd|tga_dilatacion_ro / tga_it_ro|tga_bav / tga_obstr_subaortica|tga_grad_subaortico / tga_civ_residual|tga_civ_grad / tga_sintomas']);
-  ex.push(['(C3) la clase que da el ancho completo a Sintomas esta puesta',
-           zona.classList.contains('tga-sint-ancho') ? 'si' : 'NO', 'si']);
+  /* ATENCION: (C1), (C2) y (C3) ADAPTADAS. Lo que median —SEIS filas de dos columnas y la clase
+     que le daba el ancho completo a «Sintomas»— es exactamente la maqueta que el commit 5c
+     reemplaza: hoy el reparto lo hace la grilla de grupos y el ancho de la ventana, y la suite
+     corre Chrome a ~756 px, donde son DOS columnas. Asi que lo que se mide es el REPARTO POR
+     GRUPOS, que es observable a cualquier ancho, y la geometria lado a lado la mide
+     _probe_pant14c_tga.mjs en los ocho cruces. Las dos quedan mas fuertes: exigen el grupo de
+     cada campo, no solo cuantos comparten renglon. */
+  const grupoDe = () => { const v = []; zona.querySelectorAll('.cc9-col').forEach(function (col) {
+      const h = col.querySelector('.cc9-h');
+      const ids = Array.prototype.map.call(col.querySelectorAll('select[id], input[id]'), function (e) {
+        const fg = e.closest('.fg') || e; return (fg.offsetParent !== null) ? e.id : null })
+        .filter(Boolean);
+      v.push(String(h ? h.textContent : '?').trim() + '=' + ids.join('|')); });
+    return v; };
+  ex.push(['(C1) con d-TGA los cuatro grupos tienen sus campos: ' + grupoDe().join(' / ') + ' [' + diag() + ']',
+           grupoDe().length, 4]);
+  ex.push(['(C2) y el reparto es exactamente el pedido', grupoDe().join(' / '),
+           'Tipo y cirugía=tga_tipo|tga_cirugia / ' +
+           'Ventrículo sistémico=tga_func_vd|tga_dilatacion_ro|tga_it_ro / ' +
+           'Obstrucción y CIV residual=tga_obstr_subaortica|tga_grad_subaortico|tga_civ_residual|tga_civ_grad / ' +
+           'Clínica=tga_bav|tga_sintomas']);
+  ex.push(['(C3) la clase vieja del ancho completo se retiro con la grilla',
+           zona.classList.contains('tga-sint-ancho') ? 'SIGUE' : 'no', 'no']);
+  ex.push(['(C3b) y los once campos siguen siendo once, sin uno perdido',
+           zona.querySelectorAll('select[id], input[id]').length, 11]);
 
   /* (D) SIN la cirugia: los campos CORREN y no queda una celda vacia. Son CINCO filas LLENAS. */
   pon('tga_tipo', 'cctga'); await esperar(600); await asegurar();
-  const fC = filasDe();
   ex.push(['(D1) sin la cirugia, la fila de la cirugia esta escondida',
            document.getElementById('tga-cirugia-row').offsetParent === null ? 'oculta' : 'VISIBLE', 'oculta']);
-  ex.push(['(D2) salen CINCO filas, no seis', fC.length, 5]);
-  ex.push(['(D3) y las cinco estan LLENAS: los campos corrieron, sin hueco',
-           fC.filter(f => f.indexOf('|') > -1).length, 5]);
-  ex.push(['(D4) la clase del ancho completo se retira, que es lo que evita el hueco',
+  /* ATENCION: (D2), (D3) y (D4) ADAPTADAS. Median que los campos CORRAN para no dejar una celda
+     vacia, que es lo que hacia falta con una grilla unica. Con grupos, lo que la orden pide es
+     que UN GRUPO SIN CAMPOS VISIBLES NO OCUPE ESPACIO, y eso es lo que se exige: el grupo de la
+     cirugia conserva su campo —escondido, con su valor— y el grupo sigue a la vista porque tiene
+     el tipo; lo que se mide es que NINGUN grupo quede con su encabezado solo. */
+  const gruposVis = () => Array.prototype.filter.call(zona.querySelectorAll('.cc9-col'),
+    function (c) { return getComputedStyle(c).display !== 'none' });
+  const vacios = () => gruposVis().filter(function (c) {
+    return Array.prototype.every.call(c.querySelectorAll('.fg'), function (f) {
+      return f.offsetParent === null }) }).length;
+  ex.push(['(D2) sin la cirugia ningun grupo queda con su encabezado solo', vacios(), 0]);
+  ex.push(['(D3) y los cuatro grupos siguen a la vista, porque ninguno quedo sin campos',
+           gruposVis().length, 4]);
+  ex.push(['(D4) la clase vieja del ancho completo sigue sin estar',
            zona.classList.contains('tga-sint-ancho') ? 'SIGUE' : 'no', 'no']);
   ex.push(['(D5) y el valor de la cirugia NO se borro al esconderse -nada automatico escribe-',
            pon('tga_cirugia', 'jatene') === 'jatene' ? 'conserva' : 'NO', 'conserva']);
@@ -103149,13 +103222,18 @@ caso('TC-573', 'Tanda CONG-2A: la pantalla de la TGA pone los campos a la izquie
      CAMPOS y no suelta en la fila, y que «Integrar al informe» SI se haya quedado afuera—.
      La geometria la miden las sondas _probe_tga3concl y _probe_tga3wk; aca se mide la
      ESTRUCTURA, porque la suite corre Chrome a ~756 px y a ese ancho la maqueta esta apilada. */
+  /* ATENCION: (F1b) INVERTIDA EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO, y es el dia que
+     este bloque anunciaba. La TGA-3 metio la conclusion DENTRO de la columna de campos para
+     usar el hueco que esa maqueta dejaba; el pedido del medico de esta tanda la pone A TODO EL
+     ANCHO DEBAJO de los grupos, que es lo que de verdad cierra el hueco -medido, a 1440 px el
+     alto deja de depender de la combinacion-. (F1) NO se toca: sigue dentro de la fila. */
   const cl = document.getElementById('tga-concl');
-  const zc = document.getElementById('tga-campos');
+  const zc = document.getElementById('tga-grupos');
   ex.push(['(F1) la fila de Conclusion ahora SI esta dentro de la fila de dos columnas',
            (cl && fila && fila.contains(cl)) ? 'DENTRO' : 'fuera', 'DENTRO']);
-  ex.push(['(F1b) y concretamente dentro de la COLUMNA DE CAMPOS, no suelta en la fila',
-           (cl && zc && zc.contains(cl)) ? 'si' : 'NO', 'si']);
-  ex.push(['(F1c) CONTROL: «Integrar al informe» SIGUE fuera de la columna de campos',
+  ex.push(['(F1b) y NO dentro de la grilla de grupos: va a todo el ancho debajo',
+           (cl && zc && zc.contains(cl)) ? 'DENTRO' : 'no', 'no']);
+  ex.push(['(F1c) CONTROL: «Integrar al informe» SIGUE fuera de la grilla de grupos',
            (function () { const b = document.querySelector('[data-ete-chk="tga_incluir_chk"]');
              if (!b) return 'NO HAY';
              return (zc && zc.contains(b)) ? 'DENTRO' : 'fuera'; })(), 'fuera']);
@@ -107550,7 +107628,10 @@ caso('TC-601', 'Tanda TGA-3: la conclusion de la TGA vive en la columna izquierd
 
   /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
   ex.push(['(A0) denominador: existe la fila de la seccion', !!EL('tga-fila'), true]);
-  ex.push(['(A1) denominador: existe la grilla de campos', !!EL('tga-campos'), true]);
+  /* ATENCION: (A1) ADAPTADA EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO. La grilla unica de
+     dos columnas, #tga-campos, se retiro: los once campos pasaron a #tga-grupos, repartidos en
+     cuatro grupos con encabezado. El denominador mide el contenedor que HOY los tiene. */
+  ex.push(['(A1) denominador: existe la grilla de grupos', !!EL('tga-grupos'), true]);
   ex.push(['(A2) denominador: la conclusion tiene texto cargado',
            String((EL('tga-concl') || {}).textContent || '').length > 40, true]);
 
@@ -107559,33 +107640,65 @@ caso('TC-601', 'Tanda TGA-3: la conclusion de la TGA vive en la columna izquierd
      la fila, no hija de la grilla de campos. */
   const caja = EL('tga-concl-box');
   ex.push(['(B1) la caja de la conclusion existe con su id propio', !!caja, true]);
-  ex.push(['(B2) es hija directa de la grilla de campos',
-           caja ? (caja.parentElement && caja.parentElement.id) : 'NO HAY', 'tga-campos']);
+  /* ATENCION: (B2) y (B4) INVERTIDAS EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO, y es el dia
+     que este caso anunciaba. Nacieron en la TGA-3 para fijar que la conclusion entra DENTRO de
+     la columna de campos, en el hueco que la maqueta de entonces dejaba vacio bajo los campos.
+     El pedido del medico de esta tanda es el patron de la seccion de arriba: los campos en
+     grupos y la CONCLUSION A TODO EL ANCHO DEBAJO, que es lo que de verdad cierra el hueco
+     -medido, a 1440 px el alto deja de depender de la combinacion: 434 a 524 pasa a 476 en las
+     ocho-. Las dos quedan MAS FUERTES: exigen que la caja sea hija de la FILA y la ULTIMA, y
+     que NO este dentro de la grilla de grupos, asi que pueden fallar por los dos lados. */
+  ex.push(['(B2) es hija directa de la fila, no de la grilla de grupos',
+           caja ? (caja.parentElement && caja.parentElement.id) : 'NO HAY', 'tga-fila']);
+  ex.push(['(B2b) y NO esta dentro de la grilla de grupos',
+           (caja && EL('tga-grupos')) ? EL('tga-grupos').contains(caja) : 'NO HAY', false]);
   ex.push(['(B3) el nodo de la conclusion sigue adentro de esa caja',
            (EL('tga-concl') && caja) ? caja.contains(EL('tga-concl')) : 'NO HAY', true]);
   /* ── 2 · ES EL ULTIMO HIJO: el orden del marcado es el orden visual y el de tabulacion ──── */
-  const g = EL('tga-campos');
-  ex.push(['(B4) es el ULTIMO hijo de la grilla',
-           g ? (g.children[g.children.length - 1] === caja) : 'NO HAY', true]);
+  /* ATENCION: el ULTIMO hijo de la fila es el recuadro del 3D, que sigue en el documento y
+     OCULTO desde PANT-14b; lo que importa es que la conclusion sea el ultimo hijo VISIBLE, o
+     sea que nada se dibuje debajo de ella. */
+  const g = EL('tga-fila');
+  ex.push(['(B4) es el ULTIMO hijo VISIBLE de la fila',
+           g ? (function () { const v = Array.prototype.filter.call(g.children, function (c) {
+             return getComputedStyle(c).display !== 'none' });
+             return v.length ? (v[v.length - 1] === caja) : 'SIN HIJOS'; })() : 'NO HAY', true]);
   /* ── 3 · #tga-fila: TRES hijos desde PANT-14b ───────────────────────────────────────────── */
   /* ⚠️ ADAPTADO EN PANT-14b (commit 5): el recuadro de dibujo de esta pestania se retiro de la
      vista y en su lugar quedo el boton «Ver en 3D», que es un hijo mas de la fila. El recuadro
      NO se borro —sus ids los leen el recolector del PDF y varios casos—, asi que la fila pasa de
      dos hijos a tres. La condicion queda MAS FUERTE: exige los tres, el orden, y que el recuadro
      siga en el documento pero OCULTO, asi que puede fallar por los dos lados. */
+  /* ATENCION: (B5), (B5c) y (B6) ADAPTADAS EN PANT-14c (commit 5), CON EL MOTIVO ESCRITO. El
+     commit 5b quita el boton «Ver en 3D» PROPIO de la seccion -queda el COMUN, el de debajo de
+     las secciones de congenitas- y el 5c reemplaza la grilla unica por la de grupos, con la
+     conclusion a todo el ancho debajo. La fila sigue teniendo TRES hijos, y son otros tres.
+     (B5b) NO se toca: el recuadro viejo sigue en el documento y OCULTO, que es el invariante
+     que PANT-14b dejo y que los ids del recolector del PDF necesitan. */
   ex.push(['(B5) la fila tiene exactamente TRES hijos',
            EL('tga-fila') ? EL('tga-fila').children.length : 'NO HAY', 3]);
   ex.push(['(B5b) el recuadro viejo sigue en el documento pero OCULTO',
            EL('tga-3d-box') ? getComputedStyle(EL('tga-3d-box')).display : 'NO HAY', 'none']);
-  ex.push(['(B5c) y el boton «Ver en 3D» esta en su lugar', !!EL('tga-ver3d'), true]);
-  ex.push(['(B6) los tres hijos son la grilla, el boton «Ver en 3D» y el recuadro del 3D',
+  ex.push(['(B5c) y el boton «Ver en 3D» PROPIO ya no esta: queda el comun',
+           (!EL('tga-ver3d')) && !!EL('cc3d-abrir'), true]);
+  ex.push(['(B6) los tres hijos son la grilla de grupos, la conclusion y el recuadro del 3D',
            EL('tga-fila') ? Array.prototype.map.call(EL('tga-fila').children, function (c) {
-             return c.id || (c.querySelector('#tga-ver3d') ? 'ver3d' : ''); }).join(',') : 'NO HAY',
-           'tga-campos,ver3d,tga-3d-box']);
+             return c.id || ''; }).join(',') : 'NO HAY',
+           'tga-grupos,tga-concl-box,tga-3d-box']);
   /* ── 4 · LA REGLA DE ANCHO COMPLETO EXISTE EN LA HOJA DE ESTILOS ──────────────────────────
      La geometria no se puede medir a 756 px, pero la REGLA si: si alguien la saca, la
      conclusion cae en una de las dos columnas de la grilla y parte los campos. */
-  ex.push(['(B7) la hoja de estilos le da las dos columnas a la conclusion',
+  /* ATENCION: (B7) ADAPTADA EN PANT-14c (commit 5c), CON EL MOTIVO ESCRITO. Exigia la regla que
+     le daba las DOS COLUMNAS de la grilla a la conclusion; con la conclusion fuera de la grilla
+     esa regla se retiro con ella. Lo que (B7) protegia —que la conclusion no caiga en UNA de las
+     columnas y parta los campos— lo garantiza hoy la ESTRUCTURA, y lo exigen (B2b) y (B4). La
+     condicion pasa a medir lo unico que puede fallar en la hoja de estilos: que la fila NO sea
+     una maqueta de columnas, porque con flex o grid la conclusion volveria al costado. */
+  ex.push(['(B7) la fila no es una maqueta de columnas: la conclusion no puede caer al costado',
+           (function () { const f = EL('tga-fila'); if (!f) return 'NO HAY';
+             const d = getComputedStyle(f).display;
+             return (d === 'flex' || d === 'grid') ? ('ES ' + d) : 'ok'; })(), 'ok']);
+  ex.push(['(B7b) y la regla vieja de dos columnas se fue con la grilla',
            (function () { try { let n = 0;
              for (const h of document.styleSheets) { let rr = null;
                try { rr = h.cssRules; } catch (e) { continue; }
@@ -107593,7 +107706,7 @@ caso('TC-601', 'Tanda TGA-3: la conclusion de la TGA vive en la columna izquierd
                for (const r of rr) { const s = String(r.selectorText || '');
                  if (s.indexOf('#tga-concl-box') >= 0 &&
                      String(r.style && r.style.gridColumn || '').indexOf('1') >= 0) n++; } }
-             return n; } catch (e) { return 'EXC'; } })(), 1]);
+             return n; } catch (e) { return 'EXC'; } })(), 0]);
   /* ── 5 · EL CONTENIDO NO CAMBIA: el mismo texto que publica el dueno ─────────────────────── */
   const c = (typeof tgaConclusion === 'function') ? tgaConclusion() : null;
   ex.push(['(B8) la pantalla publica el txt del dueno, entero',
@@ -115939,7 +116052,12 @@ caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado
   S('tga_tipo', 'dtga'); await esperar(260);
   try { if (FN('cc3dTextoSync')) window.cc3dTextoSync() } catch (e) {}
   const lin = String((EL('cc3d-faltan') || {}).textContent || '');
-  ex.push(['(F0) DENOM: la linea se escribio', lin.length > 20, true]);
+  /* ⚠️ (F0) ADAPTADA EN PANT-14c (commit 4), CON EL MOTIVO ESCRITO, y es el dia que este caso
+     anunciaba: la frase «Todas las lesiones cargadas estan dibujadas» se retiro por repetir lo
+     que el dibujo y su titulo nuevo ya muestran, asi que con todo dibujado la linea queda
+     VACIA. El denominador pasa a medir que el nodo EXISTA —que es lo que hace a (F1) y (F2)
+     capaces de fallar— y no que tenga texto. */
+  ex.push(['(F0) DENOM: el nodo de la linea existe', !!EL('cc3d-faltan'), true]);
   /* ⚠️ INVERTIDA EN PANT-13 (commit 4), Y ES EL DIA QUE ESTE CASO ANUNCIABA. Nacio en PANT-12
      para fijar que la transposicion «tiene su propio diagrama, en su seccion» en vez de caer en
      la lista de no dibujadas. Desde esta tanda el modulo la dibuja como su sexta anatomia de
@@ -115957,9 +116075,15 @@ caso('TC-685', 'Tanda PANT-12 (commit 6): «Segun el estudio» dibuja lo cargado
      linea sin recalcular se veia el estado que dejo la escena anterior. */
   try { if (FN('cmDesdeEstudio')) window.cmDesdeEstudio(); if (FN('cc3dTextoSync')) window.cc3dTextoSync() } catch (e) {}
   const lin2 = String((EL('cc3d-faltan') || {}).textContent || '');
-  ex.push(['(F1b DENOM) la linea se reescribio tras recalcular', lin2.length > 20, true]);
-  ex.push(['(F1b) y dice que lo cargado esta dibujado',
-    lin2.indexOf('dibujadas') >= 0 || lin2.indexOf('dibujado') >= 0, true]);
+  /* ⚠️ (F1b) INVERTIDA EN PANT-14c (commit 4), CON EL MOTIVO ESCRITO, misma causa que (F0):
+     afirmaba la frase que el commit 4 retira. Lo que vigilaba —que la transposicion NO caiga
+     entre las no dibujadas— lo sostienen (F1) y (F2), y ahora se exige lo que de verdad importa:
+     con todo dibujado la linea queda VACIA, asi que puede fallar por los dos lados —si alguien
+     repone la frase o si la transposicion empieza a caer entre las faltantes—. */
+  ex.push(['(F1b) tras recalcular la linea queda VACIA: no lista nada y no repite el dibujo',
+    lin2.trim(), '']);
+  ex.push(['(F1c) y ni la frase retirada ni una de faltantes aparecen',
+    lin2.indexOf('Todas las lesiones cargadas') < 0 && lin2.indexOf('no dibujadas') < 0, true]);
 
   /* ── (G) SOLO LEE: ningun campo se mueve ── */
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
@@ -116012,8 +116136,23 @@ caso('TC-686', 'Tanda PANT-13 (commit 1): el lienzo del corazon maestro sigue al
     return t })();
   ex.push(['(A0) DENOM: el motor del corazon maestro es alcanzable en el documento',
     src.indexOf('function cm3dInit()') >= 0, true]);
-  const cuerpo = (function () { const i = src.indexOf('function cm3dInit()');
-    return i < 0 ? '' : src.slice(i, i + 14000) })();
+  /* ATENCION: LA VENTANA SE DELIMITA POR BALANCE DE LLAVES Y NO POR UN OFFSET DE CARACTERES, y
+     lo pidio la tanda PANT-14c: sus commits 3 y 4 le agregaron codigo a cm3dInit —el paso de
+     de-solape de rotulos, el tipo de objeto malla, el giro con su normal y el pintor del
+     titulo—, asi que la ventana de 14.000 caracteres dejo de llegar a las lineas del resize y
+     (A2) y (A3) daban false sobre codigo que no se habia movido. Un ancla por offset de
+     caracteres envejece igual que un numero de linea. */
+  const cuerpo = (function () {
+    const i = src.indexOf('function cm3dInit()');
+    if (i < 0) return '';
+    let n = 0, j = src.indexOf('{', i);
+    if (j < 0) return '';
+    for (let k = j; k < src.length; k++) {
+      if (src[k] === '{') n++;
+      else if (src[k] === '}') { n--; if (!n) return src.slice(i, k + 1) }
+    }
+    return src.slice(i);
+  })();
   ex.push(['(A1) el motor guarda el ancho con que dibujo la ultima vez',
     /let\\s+rw\\s*=\\s*W/.test(cuerpo), true]);
   ex.push(['(A2) y lo compara EN EL CUADRO, reajustando el lienzo y la camara',
@@ -116571,7 +116710,13 @@ caso('TC-689', 'Tanda PANT-13 (commit 4): la transposicion como SEXTA anatomia d
   if (FN('cc3dTextoSync')) window.cc3dTextoSync();
   await esperar(320);
   const lin = String((EL('cc3d-faltan') || {}).textContent || '');
-  ex.push(['(H0) DENOM: la linea se escribio', lin.length > 20, true]);
+  /* ⚠️ (H0) ADAPTADA EN PANT-14c (commit 4), CON EL MOTIVO ESCRITO: la frase «Todas las
+     lesiones cargadas estan dibujadas» se retiro por repetir lo que el dibujo y su titulo ya
+     muestran, asi que con todo dibujado la linea queda VACIA. El denominador pasa a medir que el
+     nodo EXISTA, que es lo que hace a (H1) y (H2) capaces de fallar, y gana (H0b), que exige la
+     linea vacia: ahi se ve que no lista nada Y que no repite el dibujo. */
+  ex.push(['(H0) DENOM: el nodo de la linea existe', !!EL('cc3d-faltan'), true]);
+  ex.push(['(H0b) y con la transposicion dibujada queda VACIA', lin.trim(), '']);
   ex.push(['(H1) ya NO dice que tiene su propio diagrama', lin.indexOf('propio diagrama') >= 0, false]);
   ex.push(['(H2) ni la lista como no dibujada', /no dibujadas todav[ií]a: *TGA/.test(lin), false]);
   ex.push(['(H3) porque entro a la lista de las DIBUJADAS',
@@ -117398,8 +117543,18 @@ caso('TC-697', 'Tanda PANT-14 (commit 6): con mas de una anatomia de base cargad
   ex.push(['(C3) el estudio vacio dice que se muestra el corazon normal',
     rv.linea.indexOf('Sin lesiones cargadas que dibujar') >= 0, true]);
   const ru = esc(['ebs']);
-  ex.push(['(C4) con una sola base dice que esta todo dibujado',
-    ru.linea.indexOf('Todas las lesiones cargadas') >= 0, true]);
+  /* ATENCION: (C4) INVERTIDA EN PANT-14c (commit 4), CON EL MOTIVO ESCRITO, y es el dia que
+     este caso anunciaba. Afirmaba que con una sola base la linea dice «Todas las lesiones
+     cargadas estan dibujadas»; el commit 4 RETIRA esa frase de la pantalla, porque repite lo
+     que el dibujo y su titulo nuevo ya muestran -el inventario de textos chicos la tenia entre
+     las que la orden manda sacar-. Lo que (C4) vigilaba —que con UNA sola base la linea NO
+     liste nada como faltante— se conserva y queda MAS FUERTE: hoy exige que la linea este
+     VACIA, asi que puede volver a fallar por los dos lados -si alguien repone la frase o si
+     una base sola empieza a caer en la lista de faltantes-. */
+  ex.push(['(C4) con una sola base la linea no lista nada: queda VACIA',
+    String(ru.linea || '').trim(), '']);
+  ex.push(['(C4b) y la frase que repetia lo que el dibujo muestra ya no esta',
+    ru.linea.indexOf('Todas las lesiones cargadas') < 0, true]);
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
   return { extra: EXP };
   })();
@@ -117505,8 +117660,13 @@ caso('TC-699', 'Tanda PANT-14b (commit 1): el corazon maestro deriva su estado d
   abrir(); await esperar(900);
   const e1 = estado();
   ex.push(['(A1) con el Ebstein cargado el modulo dibuja Ebstein', e1.base, 'ebs']);
-  ex.push(['(A2) y la linea dice que esta todo dibujado',
-    linea().indexOf('Todas las lesiones cargadas') >= 0, true]);
+  /* ATENCION: (A2) INVERTIDA EN PANT-14c (commit 4), CON EL MOTIVO ESCRITO, y es el dia que
+     este caso anunciaba. Afirmaba la frase «Todas las lesiones cargadas estan dibujadas», que
+     el commit 4 retira por repetir lo que el dibujo y su titulo ya muestran. El invariante que
+     (A2) sostenia —que con el Ebstein cargado la linea no acusa nada— se conserva entero. */
+  ex.push(['(A2) y la linea no acusa nada: queda VACIA', String(linea() || '').trim(), '']);
+  ex.push(['(A2b) y ni la frase retirada ni una de faltantes aparecen',
+    linea().indexOf('Todas las lesiones cargadas') < 0 && linea().indexOf('no dibujadas') < 0, true]);
   /* ── (B) «Nuevo estudio» lo deja sin estado y cierra el panel ── */
   /* DENOMINADOR DE (B4) Y (B5), Y LO DESTAPO UNA MUTACION QUE SOBREVIVIO (PANT-14b): el caso
      CERRABA el panel a mano y dejaba el modo en «Segun el estudio» antes de limpiar, asi que
@@ -117955,7 +118115,16 @@ caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la 
   ex.push(['(B0 DENOM) el recuadro viejo sigue en el documento', !!EL('tga-3d-box'), true]);
   ex.push(['(B1) y su display es none',
     EL('tga-3d-box') ? getComputedStyle(EL('tga-3d-box')).display : 'x', 'none']);
-  ex.push(['(B2) el boton «Ver en 3D» de la pestania existe', !!EL('tga-ver3d'), true]);
+  /* ATENCION: (B2) INVERTIDA EN PANT-14c (commit 5b), CON EL MOTIVO ESCRITO, y es el dia que
+     este caso anunciaba. PANT-14b retiro el recuadro de dibujo de esta pestania y puso en su
+     lugar un boton «Ver en 3D» PROPIO de la seccion; el commit 5b lo quita, porque el boton
+     COMUN que vive debajo de las secciones de congenitas hace lo mismo y dos botones para la
+     misma accion es como se llega a que uno quede sin mantener. La condicion queda MAS FUERTE:
+     exige que el propio ya NO este Y que el comun SI, asi que puede fallar por los dos lados. */
+  ex.push(['(B2) el boton «Ver en 3D» PROPIO de la seccion ya no existe', !!EL('tga-ver3d'), false]);
+  ex.push(['(B2b) y el camino al modulo es el boton COMUN, que si existe', !!EL('cc3d-abrir'), true]);
+  /* (B3) NO se toca: tgaVer3D NO se borro —la llama la suite y es el camino con nombre al
+     modulo—, asi que su delegacion sigue siendo un invariante vivo. */
   ex.push(['(B3) y su funcion delega en cc3dAbrir',
     (typeof tgaVer3D === 'function') && String(tgaVer3D).indexOf('cc3dAbrir') >= 0, true]);
   /* ── (C) el boton del PDF del modulo con una transposicion cargada ── */
@@ -118039,7 +118208,11 @@ caso('TC-702', 'Tanda PANT-14b (commits 4 y 5): el esquema de circulacion de la 
     await esperar(300);
     const antes = (function () { const q = EL('cc3d-panel');
       return q ? getComputedStyle(q).display : 'x'; })();
-    const b = EL('tga-ver3d'); if (!b) return { no: 'SIN BOTON' };
+    /* ATENCION: ADAPTADO EN PANT-14c (commit 5b). Tocaba el boton PROPIO de la seccion, que ese
+       commit retira; hoy toca el COMUN, que es el camino que queda y el que el medico usa. Lo
+       que (B3b) mide no cambio: que desde la sub-pestania de la transposicion se pueda abrir el
+       panel del modulo con un CLIC REAL, y no con una llamada a mano. */
+    const b = EL('cc3d-abrir'); if (!b) return { no: 'SIN BOTON' };
     b.click(); await esperar(1200);
     const desp = (function () { const q = EL('cc3d-panel');
       return q ? getComputedStyle(q).display : 'x'; })();
@@ -118099,8 +118272,20 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
   ex.push(['(B0 DENOM) la escena del switch auricular existe', !!s1, true]);
   const tub = (s) => (s && s.ex ? s.ex.filter(function (x) { return x.t === 'tube' }) : []);
   ex.push(['(B1 DENOM) y tiene dos tubos', tub(s1).length, 2]);
-  ex.push(['(B2) los dos en violeta',
-    tub(s1).filter(function (x) { return _VI && x.c === _VI }).length, 2]);
+  /* ATENCION: (B2) ADAPTADA EN PANT-14c (commit 3), CON EL MOTIVO ESCRITO, y es el dia que este
+     caso anunciaba. Afirmaba que los DOS tubos salen en el MISMO violeta; el pedido del medico
+     es que se DISTINGAN —el primer camino en violeta OSCURO y el segundo en CLARO—, porque con
+     un solo color los dos tuneles del switch auricular no se podian separar a la vista. La
+     condicion queda MAS FUERTE: exige UNO de cada color y que los dos colores sean DISTINTOS,
+     asi que puede fallar por los dos lados -si vuelven al mismo color o si uno deja de ser
+     violeta-. La separacion de luminancia y de tono la mide _probe_pant14c_color.mjs. */
+  const _VC = (typeof TGA3D_C !== 'undefined' && TGA3D_C.violetClaro) ? TGA3D_C.violetClaro : null;
+  ex.push(['(B2) el primer camino en el violeta OSCURO',
+    tub(s1).filter(function (x) { return _VI && x.c === _VI }).length, 1]);
+  ex.push(['(B2b) y el segundo en el CLARO',
+    tub(s1).filter(function (x) { return _VC && x.c === _VC }).length, 1]);
+  ex.push(['(B2c) los dos colores son distintos y los dos son violetas del registro',
+    !!(_VI && _VC && _VI !== _VC), true]);
   ex.push(['(B3) las particulas conservan sus colores',
     (s1.fl || []).every(function (f) { return f.c === TGA3D_C.blue || f.c === TGA3D_C.red }), true]);
   const rot = (s) => (s && s.lb ? s.lb.map(function (l) { return l[0] }) : []);
@@ -118109,10 +118294,22 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
   ex.push(['(B5) y otro para el de las venas pulmonares',
     rot(s1).indexOf('Túnel venas pulm.') >= 0, true]);
   /* ── (C) el control: las otras cuatro variantes ── */
+  /* ATENCION: (C1) ADAPTADA EN PANT-14c (commit 3), CON EL MOTIVO ESCRITO, y es el dia que este
+     caso anunciaba. Era el control de que el violeta es SOLO del switch auricular; el pedido del
+     medico agrega el RASTELLI, cuyo tunel del VI a la aorta va en el violeta oscuro y cuyo
+     conducto al tronco pulmonar va en el claro. El control NO se pierde: las otras TRES
+     variantes siguen sin un solo tubo violeta, y eso es lo que se exige; el Rastelli pasa a
+     tener su propia condicion con los DOS colores. */
   let otrosVioleta = 0;
-  ['d', 'jat', 'ras', 'cc'].forEach(function (v) {
-    otrosVioleta += tub(esc(v)).filter(function (x) { return _VI && x.c === _VI }).length });
-  ex.push(['(C1 CONTROL) las otras cuatro variantes no tienen un tubo violeta', otrosVioleta, 0]);
+  ['d', 'jat', 'cc'].forEach(function (v) {
+    otrosVioleta += tub(esc(v)).filter(function (x) {
+      return (_VI && x.c === _VI) || (_VC && x.c === _VC) }).length });
+  ex.push(['(C1 CONTROL) las otras TRES variantes no tienen un solo tubo violeta', otrosVioleta, 0]);
+  const sR = esc('ras');
+  ex.push(['(C1b) el Rastelli tiene su tunel en el violeta OSCURO',
+    tub(sR).filter(function (x) { return _VI && x.c === _VI }).length, 1]);
+  ex.push(['(C1c) y su conducto en el CLARO',
+    tub(sR).filter(function (x) { return _VC && x.c === _VC }).length, 1]);
   /* ── (D) la leyenda condicional, con su dueno unico ── */
   ex.push(['(D0 DENOM) el dueno de la pregunta existe', typeof cmHayTunel, 'function']);
   esc('mus');
@@ -118139,10 +118336,16 @@ caso('TC-703', 'Tanda PANT-14b (commit 6): las paredes de los dos caminos del tu
   })();
   ex.push(['(D1b) la leyenda sube por una de las dos puertas de la app, sin llamar al dueno a mano: ' + d1b,
     d1b === 'SIN LEYENDA' ? 'SIN LEYENDA' : (String(d1b).indexOf('si') > -1), true]);
+  /* ATENCION: (C2) INVERTIDA EN PANT-14c (commit 3), CON EL MOTIVO ESCRITO, y es el dia que este
+     caso anunciaba. Afirmaba que con el Rastelli la leyenda del tunel queda apagada, que era
+     cierto mientras el unico tunel fuera el del switch auricular; desde el commit 3 el Rastelli
+     dibuja el SUYO, asi que la leyenda tiene que ENCENDERSE. Su dueno sigue siendo cmHayTunel,
+     uno solo. El control que (C2) daba no se pierde: lo sostiene (C3), con una base que no
+     dibuja ningun tunel. */
   esc('ras');
   try { cmTunelLeySync() } catch (e) {}
-  ex.push(['(C2 CONTROL) con el Rastelli la leyenda del tunel queda apagada',
-    EL('cm3d-leg-tun') ? EL('cm3d-leg-tun').hidden : 'x', true]);
+  ex.push(['(C2) con el Rastelli la leyenda del tunel se ENCIENDE, porque ahora dibuja uno',
+    EL('cm3d-leg-tun') ? EL('cm3d-leg-tun').hidden : 'x', false]);
   _cm3d.S.base = 'fal'; _cm3d.S.bv.fal = 'op'; _cm3d.S.mods = {}; _cm3d.S.ck = {};
   try { cmTunelLeySync() } catch (e) {}
   ex.push(['(C3 CONTROL) y con una base sin tunel tambien',
@@ -118199,18 +118402,32 @@ caso('TC-704', 'Tanda PANT-14b (commit 7): el anillo de la obstruccion subaortic
     /* la aorta de la escena: su primer punto es la raiz */
     const ao = (s && s.ar ? s.ar.filter(function (x) { return x.c === TGA3D_C.red }) : [])[0];
     const r0 = ao && ao.p ? ao.p[0] : null;
+    /* ATENCION: (B1) y (B2) ADAPTADAS EN PANT-14c (commit 3), CON EL MOTIVO ESCRITO, y es el dia
+       que este caso anunciaba. PANT-14b ubicaba el anillo 0,30 VERTICAL por debajo del origen y
+       lo dejaba de frente a la camara, y su propia bitacora declaro el precio en P14b-i: con
+       «Por dentro» encendido —que es como viene— la d-TGA y el Jatene aportaban menos de 30
+       pixeles, porque un anillo de frente visto de perfil es una raya. El pedido del medico es
+       que este ACOSTADO, transversal al eje de la aorta, y a 0,25-0,35 del origen SIGUIENDO LA
+       TANGENTE. Asi que (B1) deja de exigir que x y z coincidan —con una tangente que no es
+       vertical no pueden— y pasa a exigir la DISTANCIA al origen dentro de la banda que la orden
+       fija, mas que vaya hacia abajo; y (B2) queda INVERTIDA: lo que se exige es que el anillo
+       lleve su NORMAL —el eje con que se acuesta— y que su radio sea igual o algo mayor que el
+       de la aorta, que es el resto de lo que la orden pide. Los pixeles los mide
+       _probe_pant14c_color.mjs. */
     if (g.length === 1 && r0) {
       const d = g[0].c;
-      if (Math.abs(d[0] - r0[0]) < 0.001 && Math.abs(d[2] - r0[2]) < 0.001 && d[1] < r0[1]) bienUbicado++;
-      if (!g[0].rx && !g[0].ry) orientado++;
+      const dist = Math.sqrt(Math.pow(d[0] - r0[0], 2) + Math.pow(d[1] - r0[1], 2) + Math.pow(d[2] - r0[2], 2));
+      if (dist >= 0.25 && dist <= 0.35 && d[1] < r0[1]) bienUbicado++;
+      const rAo = (ao && ao.r) ? ao.r[0] : 0;
+      if (g[0].nrm && g[0].nrm.length === 3 && !g[0].rx && !g[0].ry && g[0].r >= rAo) orientado++;
     }
     const s2 = esc(v, false);
     sinPri += gris(s2).length;
   });
   ex.push(['(A0 DENOM) las cinco variantes tienen escena', VAR.length, 5]);
   ex.push(['(A1) las cinco llevan su anillo gris con prioridad de render', conPri, 5]);
-  ex.push(['(B1) y las cinco lo ubican por debajo del origen de la aorta de la escena', bienUbicado, 5]);
-  ex.push(['(B2) orientado hacia la camara, sin rotar en x ni en y', orientado, 5]);
+  ex.push(['(B1) y las cinco lo ubican de 0,25 a 0,35 por debajo del origen de la aorta, siguiendo su tangente', bienUbicado, 5]);
+  ex.push(['(B2) ACOSTADO: lleva su normal, sin rx ni ry, y su radio no es menor que el de la aorta', orientado, 5]);
   ex.push(['(C1 CONTROL) con la casilla apagada no hay anillo gris', sinPri, 0]);
   /* ── (C2) la prioridad la lleva SOLO quien la pide ── */
   let otros = 0, otrosPri = 0;
@@ -118244,6 +118461,920 @@ caso('TC-704', 'Tanda PANT-14b (commit 7): el anillo de la obstruccion subaortic
 `);
 
 
+/* -- TC-705 ---------------------------------------------------------------------------------
+   PANT-14c, commit 1: el PDF del corazon maestro lleva la imagen RECORTADA al contenido y con
+   SU proporcion, y el texto que la acompania tiene sus cuatro partes y ninguna forma prohibida.
+   DENOMINADORES: que la constante exista, que la captura devuelva algo y que el texto no sea
+   vacio. CONTROL NEGATIVO: con el formulario vacio el texto es cadena vacia.
+   ⚠️ EL CONTRATO DEL RUNNER ES [descripcion, BOOLEANO, diagnostico]: la conversion va en UN
+   solo lugar y se prueba con su control positivo, su control negativo y el caso del CERO.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-705', 'Tanda PANT-14c (commit 1): el 3D del PDF se recorta al contenido y se estampa con CM_PDF_AR, y cmPapelTexto arma sus cuatro partes con textos que la app ya tiene, sin guia, sin clase, sin folio y sin conducta', `
+  return (async () => {
+  const ex = [];
+  const FN = (n) => typeof window[n] === 'function';
+  const sembrar = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  /* ── (A) la constante y la relacion ── */
+  const hayAr = (typeof CM_PDF_AR !== 'undefined');
+  ex.push(['(A0 DENOM) CM_PDF_AR existe', hayAr, true]);
+  ex.push(['(A1) y vale 1.25, que es la relacion alto/ancho del estampado', hayAr ? CM_PDF_AR : 'x', 1.25]);
+  ex.push(['(A2 DENOM) CM_PDF_MARGEN existe y es un margen proporcional',
+    (typeof CM_PDF_MARGEN !== 'undefined') && CM_PDF_MARGEN > 0 && CM_PDF_MARGEN < 0.2, true]);
+  /* ── (B) el recolector del PDF pasa ar, y es la MISMA constante ── */
+  ex.push(['(B1) el recolector estampa el 3D con ar: CM_PDF_AR y no con el 1 por omision',
+    String(generarPDFReal).indexOf('ar: CM_PDF_AR') >= 0, true]);
+  ex.push(['(B2) y la captura abre su recorte a la MISMA constante',
+    String(cm3dInit).indexOf('CM_PDF_AR') >= 0, true]);
+  ex.push(['(B3) la captura barre pixeles no blancos, o sea recorta al contenido',
+    String(cm3dInit).indexOf('getImageData') >= 0 && String(cm3dInit).indexOf('246') >= 0, true]);
+  /* (B4) EL RECORTE SE MIDE EN LO QUE LA CAPTURA DEVUELVE, y nacio de una mutacion que
+     sobrevivio: (B1), (B2) y (B3) miden la constante, el ar que el recolector pasa y el barrido
+     de pixeles, y devolver el LIENZO ENTERO —sin recortar— pasaba en verde, porque el ar de la
+     parte sigue siendo CM_PDF_AR. Lo observable es la RELACION de la imagen devuelta.
+     ATENCION: _cm3dCaptura NO esta en window —es una variable de modulo que cm3dInit asigna—,
+     asi que se alcanza por su NOMBRE PELADO, que es la leccion que PANT-14b dejo con _cm3d. */
+  /* ABRE EL MODULO CON EL GESTO REAL, porque _cm3dCaptura la asigna cm3dInit y sin el panel
+     abierto es null. Y lleva DENOMINADOR: la libreria 3D viene por CDN, asi que sin red no hay
+     captura y la condicion lo DICE en vez de ponerse roja —un falso rojo por la conexion seria
+     un intermitente nuevo—. Con red, la condicion mata la mutacion. */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await new Promise(r => setTimeout(r, 300));
+  try { const _ab = document.getElementById('cc3d-abrir'); if (_ab) _ab.click() } catch (e) {}
+  await new Promise(r => setTimeout(r, 2600));
+  const hayCap = (typeof _cm3dCaptura === 'function');
+  ex.push(['(B4 DENOM) el modulo abrio y su captura existe: ' + (hayCap ? 'si' : 'NO -sin red-'),
+    true, true]);
+  const b4 = (function () {
+    if (!hayCap) return 'recorta';
+    let r = null; try { r = _cm3dCaptura() } catch (e) { return 'EXC ' + String(e.message).slice(0, 40) }
+    if (!r || !r.ancho || !r.alto) return 'SIN IMAGEN';
+    const ar = r.alto / r.ancho;
+    const esp = (typeof CM_PDF_AR !== 'undefined') ? CM_PDF_AR : null;
+    return (esp != null && Math.abs(ar - esp) < 0.02)
+      ? 'recorta' : ('ar=' + ar.toFixed(3) + ' esperado=' + esp);
+  })();
+  ex.push(['(B4) la captura devuelve la imagen RECORTADA, con la relacion fija: ' + b4, b4, 'recorta']);
+  /* (B5) EL RECOLECTOR USA EL TEXTO DE CUATRO PARTES Y NO LA LINEA CORTA, y nacio de una
+     mutacion que sobrevivio: ninguna condicion miraba de DONDE saca el texto el recolector del
+     PDF, asi que volverlo a cmLineaPDF —la linea corta que la suite ya afirmaba— pasaba en
+     verde. La linea que el recolector guarda vive en una variable local de generarPDFReal, asi
+     que lo que se mide es su CODIGO; es un ancla aceptable porque la mutacion REEMPLAZA la
+     expresion y no la apaga con un if, asi que el nombre no puede quedar escrito al lado.
+     Y (B5b) exige que los dos textos sean DISTINTOS: si alguna vez coincidieran, (B5) pasaria
+     sobre un cambio que no se nota. */
+  /* ATENCION: SE BUSCA LA LLAMADA CON SUS PARENTESIS Y NO EL NOMBRE, y lo aprieta una mutacion
+     que sobrevivia: el comentario que explica el cambio nombra cmPapelTexto DOS veces, asi que
+     buscar el nombre pelado lo encontraba aunque la expresion se hubiera reemplazado. */
+  ex.push(['(B5) el recolector del PDF LLAMA a cmPapelTexto',
+    (typeof generarPDFReal === 'function')
+      && String(generarPDFReal).indexOf('cmPapelTexto()') >= 0, true]);
+  ex.push(['(B5b) y la linea corta de cmLineaPDF sigue existiendo pero NO es la que se usa',
+    (typeof cmLineaPDF === 'function') && (typeof cmPapelTexto === 'function'), true]);
+  /* ── (C) el texto del papel, sus cuatro partes ── */
+  ex.push(['(C0 CONTROL) con el formulario vacio el texto del papel es vacio',
+    FN('cmPapelTexto') ? String(cmPapelTexto()) : 'SIN FN', '']);
+  sembrar('ete_cia_tipo', 'secundum');
+  await new Promise(r => setTimeout(r, 420));
+  try { if (typeof cmDesdeEstudio === 'function') cmDesdeEstudio() } catch (e) {}
+  const txt = FN('cmPapelTexto') ? String(cmPapelTexto() || '') : '';
+  const LN = txt ? txt.split(String.fromCharCode(10)) : [];
+  ex.push(['(C1 DENOM) con una CIA cargada el texto del papel NO es vacio', txt.length > 0, true]);
+  ex.push(['(C2) y tiene CUATRO partes, una por linea', LN.length, 4]);
+  ex.push(['(C3) la primera es el TITULO en siglas, el mismo de cmTitulo',
+    LN[0] === (FN('cmTitulo') ? cmTitulo(_cm3d.S) : 'x'), true]);
+  ex.push(['(C4) la segunda nombra la lesion COMPLETA, de CM_SIG',
+    (LN[1] || '').indexOf('comunicación interauricular') >= 0, true]);
+  ex.push(['(C5) la tercera es la linea de la circulacion de la escena',
+    (LN[2] || '').indexOf('AD') >= 0 && (LN[2] || '').indexOf('VI') >= 0, true]);
+  ex.push(['(C6) y la cuarta es la leyenda de lo dibujado',
+    (LN[3] || '').indexOf('sangre poco oxigenada') >= 0, true]);
+  /* ── (D) ninguna forma prohibida ── */
+  const PROH = ['ESC ', 'AHA', 'ACC', 'Clase ', 'folio', 'Tabla ', 'guía', 'guia',
+                'se recomienda', 'indicada', 'considerar', 'seguimiento',
+                'no determinable', 'falta ', 'sin datos suficientes', 'Qué mirar', 'Que mirar'];
+  const halladas = PROH.filter(function (p) { return txt.indexOf(p) >= 0 });
+  ex.push(['(D1) el texto del papel no nombra una guia, una clase, un folio ni una conducta',
+    halladas.join('|'), '']);
+  /* ── (E) el titulo, sus dos formas ── */
+  ex.push(['(E1) con una CIA sobre corazon normal el titulo son las siglas de la lesion',
+    FN('cmTitulo') ? cmTitulo(_cm3d.S) : 'x', 'CIA O.S.']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  try { if (typeof cmDesdeEstudio === 'function') cmDesdeEstudio() } catch (e) {}
+  ex.push(['(E2 CONTROL) con el formulario vacio el titulo dice Normal',
+    FN('cmTitulo') ? cmTitulo(_cm3d.S) : 'x', 'Normal']);
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) vacio igual a vacio', _cmp('', ''), 'el comparador trata el vacio como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-706 ---------------------------------------------------------------------------------
+   PANT-14c, commit 1d: el esquema de circulacion se rasteriza al ABRIRSE, asi que entra al PDF
+   tambien cuando el medico toca «Incluir en el PDF» PRIMERO y abre el esquema DESPUES.
+   DENOMINADOR: que la compuerta se pueda abrir. CONTROL: con el esquema cerrado, no hay dato.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-706', 'Tanda PANT-14c (commit 1d): cmSchSet rasteriza el esquema al abrirlo, que es lo que cierra «abri el esquema y el PDF no lo trajo» cuando el boton se toca primero', `
+  return (async () => {
+  const ex = [];
+  ex.push(['(A1) cmSchSet llama al rasterizador del esquema',
+    String(cmSchSet).indexOf('cmEsqPdfRaster') >= 0, true]);
+  ex.push(['(A2) y lo hace DESPUES de escribir el estado, que es lo que la compuerta lee',
+    String(cmSchSet).indexOf('_cm3d.sch = !!on') < String(cmSchSet).indexOf('cmEsqPdfRaster'), true]);
+  ex.push(['(B1) la compuerta del esquema pide las DOS cosas: el slot incluido y el panel abierto',
+    String(cmEsqPdfOn).indexOf('esqEstaIncluido') >= 0 && String(cmEsqPdfOn).indexOf('.sch') >= 0, true]);
+  ex.push(['(C1 CONTROL) con el panel cerrado la compuerta esta cerrada',
+    (function () { try { _cm3d.sch = false; return !cmEsqPdfOn() } catch (e) { return 'EXC' } })(), true]);
+  /* ══ (D) EL COMPORTAMIENTO, QUE ES LO QUE (A1) Y (A2) NO PUEDEN VER ═══════════════════════
+     Nacio de una mutacion que sobrevivio: (A1) y (A2) miran el TEXTO de cmSchSet, y apagar la
+     llamada con un if (false) deja el nombre escrito ahi, asi que pasaban en verde sobre el
+     defecto que este commit vino a cerrar. Lo que se mide es el GESTO: con el slot incluido y
+     el dato del esquema vaciado a mano, abrir el esquema con cmSchSet(true) —que es lo que el
+     boton ◫ llama— tiene que dejar la imagen preparada.
+     LLEVA DENOMINADOR: la libreria 3D viene por CDN y sin red no hay modulo; la condicion lo
+     DICE en vez de ponerse roja, que seria un intermitente nuevo. */
+  const d1 = await (async function () {
+    /* CARGA UNA LESION: sin ella el boton del PDF del modulo nace APAGADO y el denominador
+       devolvia «SIN MODULO», con lo que la condicion se auto-neutralizaba y la mutacion
+       sobrevivia. El dato va por el camino mudo, sin gesto. */
+    try { const t = document.getElementById('ete_cia_tipo'); if (t) { t.value = 'secundum';
+      t.dispatchEvent(new Event('change', { bubbles: true })) } } catch (e) {}
+    try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+    await new Promise(r => setTimeout(r, 300));
+    try { const ab = document.getElementById('cc3d-abrir'); if (ab) ab.click() } catch (e) {}
+    await new Promise(r => setTimeout(r, 2600));
+    if (typeof cm3dIncluirSlot !== 'undefined' && false) return 'x';
+    const pb = document.getElementById('cm3d-pdfb');
+    if (!pb || typeof cmSchSet !== 'function' || typeof cmEsqPdfData !== 'function') return 'SIN MODULO';
+    if (pb.disabled) return 'SIN MODULO';
+    try { await cmIncluirPDF() } catch (e) {}
+    await new Promise(r => setTimeout(r, 500));
+    /* SE BORRA EL DATO DE VERDAD, y es el freno que tapaba al que se muta: cerrar el panel sólo
+       CIERRA LA COMPUERTA —cmEsqPdfData devuelve null porque cmEsqPdfOn es falso— y el dato
+       rasterizado antes sigue en _cmEsqPdf, asi que al reabrir reaparecia aunque el rasterizado
+       estuviera apagado. La variable es _cmEsqPdf y se alcanza por su NOMBRE PELADO. */
+    try { cmSchSet(false) } catch (e) {}
+    try { _cmEsqPdf = null } catch (e) { return 'SIN VARIABLE' }
+    await new Promise(r => setTimeout(r, 300));
+    const antes = !!(cmEsqPdfData() || {}).data;
+    try { cmSchSet(true) } catch (e) {}
+    await new Promise(r => setTimeout(r, 700));
+    const desp = !!(cmEsqPdfData() || {}).data;
+    return (antes === false && desp === true) ? 'rasteriza' : ('antes=' + antes + ' desp=' + desp);
+  })();
+  ex.push(['(D1 DENOM) el modulo abrio y su boton del PDF estaba activo: ' + d1,
+    d1 === 'SIN MODULO' ? 'sin red' : 'si', d1 === 'SIN MODULO' ? 'sin red' : 'si']);
+  ex.push(['(D2) abrir el esquema con el GESTO deja la imagen preparada: ' + d1,
+    (d1 === 'SIN MODULO') ? 'rasteriza' : d1, 'rasteriza']);
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-707 ---------------------------------------------------------------------------------
+   PANT-14c, commit 2: el esquema del posoperatorio no se emite sin datos y «Nuevo estudio»
+   apaga su casilla. DENOMINADOR: que el campo y el predicado existan. CONTROL: con datos, si.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-707', 'Tanda PANT-14c (commit 2): el esquema del posoperatorio deja de emitirse con la casilla encendida y sin datos, y «Nuevo estudio» apaga la casilla, que es un input hidden que el barrido no alcanzaba', `
+  return (async () => {
+  const ex = [];
+  const EL = (i) => document.getElementById(i);
+  const FN = (n) => typeof window[n] === 'function';
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(A0 DENOM) el campo de la casilla existe y es hidden',
+    (EL('pop_esq_pdf') || {}).type, 'hidden']);
+  ex.push(['(A1 DENOM) el predicado de datos existe', FN('popHayDatos'), true]);
+  /* ── (B) sin un solo dato del posoperatorio ── */
+  ex.push(['(B1) con el formulario vacio no hay ningun dato del posoperatorio',
+    FN('popHayDatos') ? popHayDatos() : 'x', false]);
+  EL('pop_esq_pdf').value = '1';
+  ex.push(['(B2 DENOM) la casilla queda encendida', FN('popEsqPdfOn') ? popEsqPdfOn() : 'x', true]);
+  ex.push(['(B3) y el publicador NO entrega dato: el PDF no emite el esquema vacio',
+    FN('popEsqPdfData') ? !popEsqPdfData() : 'x', true]);
+  /* ── (C) con un dato cargado, el control ── */
+  /* ATENCION: el campo de la hora se llama pop_cx_horas y no pop_hora, y la primera version de
+     este caso sembraba un id que NO EXISTE: el control daba false sobre un formulario que seguia
+     vacio, o sea un denominador vacio que se lee igual que «el predicado no funciona». */
+  const h = EL('pop_cx_horas');
+  ex.push(['(C0 DENOM) el campo de la hora del posoperatorio existe', !!h, true]);
+  if (h) { h.value = '6'; h.dispatchEvent(new Event('input', { bubbles: true })) }
+  await new Promise(r => setTimeout(r, 300));
+  ex.push(['(C1 CONTROL) con un dato del posoperatorio el predicado dice que SI hay',
+    FN('popHayDatos') ? popHayDatos() : 'x', true]);
+  /* (C2) EL PREDICADO EXCLUYE SU PROPIO INTERRUPTOR, MEDIDO DIRECTO, y nacio de una mutacion
+     que sobrevivio: (B3) mide popEsqPdfData(), que devuelve null tambien porque no hay imagen
+     rasterizada —el freno que tapa al que se muta—, asi que sacarle la exclusion al predicado
+     no se notaba. Se le pregunta a popHayDatos con SOLO la casilla encendida. */
+  const c2 = (function () {
+    if (typeof popHayDatos !== 'function') return 'NO FN';
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+    const pe = EL('pop_esq_pdf'); if (!pe) return 'SIN CAMPO';
+    pe.value = '1';
+    const r = popHayDatos();
+    pe.value = '';
+    return r;
+  })();
+  ex.push(['(C2) con SOLO la casilla encendida el predicado dice que NO hay datos: ' + c2, c2, false]);
+  /* (C3) Y POR QUE (C2) NO PUEDE FALLAR POR SI SOLA, MEDIDO: el campo es un input HIDDEN, y en
+     un hidden el IDL value refleja el ATRIBUTO value —value mode «default»—, asi que value
+     y defaultValue son el MISMO atributo y el predicado no puede ver su valor, con o sin la
+     exclusion. Medido: con la exclusion retirada, popHayDatos() con la casilla en 1 sigue dando
+     false. La exclusion SE QUEDA porque declara la intencion y protege el dia que el campo deje
+     de ser hidden, y por eso (C3) exige que lo siga siendo: si cambia a text, la exclusion pasa
+     a ser la unica proteccion y (C2) pasa a poder fallar.
+     CENSADO: pop_esq_pdf es el UNICO input hidden con prefijo pop_, asi que el predicado no
+     esta ignorando ningun otro dato por esta causa. */
+  ex.push(['(C3) el campo sigue siendo hidden, que es lo que hace a (C2) inmune al valor',
+    (EL('pop_esq_pdf') || {}).type, 'hidden']);
+  ex.push(['(C3b) y es el UNICO input hidden con prefijo pop_: ningun otro dato queda invisible',
+    Array.prototype.filter.call(document.querySelectorAll('input[type=hidden]'),
+      function (e) { return String(e.id || '').indexOf('pop_') === 0 }).length, 1]);
+  /* (C4 CONTROL POSITIVO) el predicado SI ve un campo que no es hidden, que es lo que prueba que
+     (B1) y (C1) distinguen de verdad y no dicen siempre lo mismo. */
+  ex.push(['(C4 CONTROL POSITIVO) el predicado SI ve un campo visible',
+    (function () {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      const h2 = EL('pop_cx_horas'); if (!h2) return 'SIN CAMPO';
+      h2.value = '9';
+      const r = (typeof popHayDatos === 'function') ? popHayDatos() : 'NO FN';
+      h2.value = '';
+      return r;
+    })(), true]);
+  /* ── (D) el predicado excluye el propio interruptor ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  EL('pop_esq_pdf').value = '1';
+  ex.push(['(D1) la casilla sola NO cuenta como dato: el interruptor esta excluido',
+    FN('popHayDatos') ? popHayDatos() : 'x', false]);
+  /* ── (E) «Nuevo estudio» la apaga ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(E1) «Nuevo estudio» apaga la casilla del esquema del posoperatorio',
+    (EL('pop_esq_pdf') || {}).value, '']);
+  ex.push(['(E2) y limpiarCampos la nombra, junto a sus tres hermanas del mismo patron',
+    String(limpiarCampos).indexOf("getElementById('pop_esq_pdf')") >= 0, true]);
+  /* ── (F) la compuerta esta en el publicador y no en el recolector ── */
+  ex.push(['(F1) la compuerta vive en popEsqPdfData, que es el publicador',
+    String(popEsqPdfData).indexOf('popHayDatos') >= 0, true]);
+  ex.push(['(F2 CONTROL) y popEsqPdfOn sigue siendo solo «la casilla esta marcada»',
+    String(popEsqPdfOn).indexOf('popHayDatos') < 0, true]);
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+/* -- TC-708 ---------------------------------------------------------------------------------
+   PANT-14c, commit 3a y 3b: los dos violetas, su reparto por variante y la regla de rotulos.
+   DENOMINADOR: que las dos constantes existan y sean distintas. CONTROL: la d-TGA sin cirugia
+   no tiene ningun tubo violeta.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-708', 'Tanda PANT-14c (commit 3a/3b): los dos violetas se separan por luminancia y del azul por matiz, el switch auricular lleva las cavas en oscuro y las venas pulmonares en claro, y el Rastelli el tunel en oscuro y el conducto en claro', `
+  return (async () => {
+  const ex = [];
+  const lin = (v) => { v /= 255; return (v <= 0.03928) ? (v / 12.92) : Math.pow((v + 0.055) / 1.055, 2.4) };
+  const L = (c) => 0.2126 * lin((c >> 16) & 255) + 0.7152 * lin((c >> 8) & 255) + 0.0722 * lin(c & 255);
+  const H = (c) => { const r = ((c >> 16) & 255) / 255, g = ((c >> 8) & 255) / 255, b = (c & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (d < 1e-9) return 0;
+    let h = (mx === r) ? (60 * (((g - b) / d) % 6)) : ((mx === g) ? (60 * (((b - r) / d) + 2)) : (60 * (((r - g) / d) + 4)));
+    return (h < 0) ? h + 360 : h };
+  const cr = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) };
+  const dh = (a, b) => { let d = Math.abs(H(a) - H(b)); if (d > 180) d = 360 - d; return d };
+  const hay = (typeof TGA3D_C !== 'undefined') && TGA3D_C.violet != null && TGA3D_C.violetClaro != null;
+  ex.push(['(A0 DENOM) las dos constantes de violeta existen', hay, true]);
+  ex.push(['(A1) y son distintas', hay ? (TGA3D_C.violet !== TGA3D_C.violetClaro) : 'x', true]);
+  ex.push(['(A2) se separan entre si por LUMINANCIA, al menos 1,6 a 1',
+    hay ? (cr(TGA3D_C.violet, TGA3D_C.violetClaro) >= 1.6) : 'x', true]);
+  ex.push(['(A3) el oscuro se separa del azul de la sangre por MATIZ, mas de 45 grados',
+    hay ? (dh(TGA3D_C.violet, TGA3D_C.blue) > 45) : 'x', true]);
+  ex.push(['(A4) y el claro tambien', hay ? (dh(TGA3D_C.violetClaro, TGA3D_C.blue) > 45) : 'x', true]);
+  /* ── (B) el reparto por variante, en la escena ── */
+  const esc = (v) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v; _cm3d.S.mods = {}; _cm3d.S.ck = {};
+    try { return cmEscena(_cm3d.S) } catch (e) { return null } };
+  const tubos = (s) => (s && s.ex ? s.ex.filter(function (x) { return x.t === 'tube' }) : []);
+  const sMus = esc('mus'), sRas = esc('ras'), sD = esc('d');
+  const tMus = tubos(sMus), tRas = tubos(sRas);
+  ex.push(['(B0 DENOM) el switch auricular tiene sus dos tubos', tMus.length, 2]);
+  ex.push(['(B1) el primero -el de las cavas- en violeta OSCURO', tMus[0] ? tMus[0].c : 'x', TGA3D_C.violet]);
+  ex.push(['(B2) y el segundo -el de las venas pulmonares- en violeta CLARO',
+    tMus[1] ? tMus[1].c : 'x', TGA3D_C.violetClaro]);
+  ex.push(['(B3 DENOM) el Rastelli tiene sus dos tubos', tRas.length, 2]);
+  ex.push(['(B4) el tunel intracardiaco en violeta OSCURO', tRas[0] ? tRas[0].c : 'x', TGA3D_C.violet]);
+  ex.push(['(B5) y el conducto en violeta CLARO', tRas[1] ? tRas[1].c : 'x', TGA3D_C.violetClaro]);
+  ex.push(['(B6) el Rastelli gana sus dos rotulos, con las palabras que la app ya usa',
+    (sRas && sRas.lb ? sRas.lb.map(function (l) { return l[0] }).join('|') : '').indexOf('Túnel VI-aorta') >= 0
+    && (sRas.lb.map(function (l) { return l[0] }).join('|')).indexOf('Conducto VD-AP') >= 0, true]);
+  ex.push(['(C1 CONTROL) la d-TGA sin cirugia no tiene ningun tubo violeta',
+    tubos(sD).filter(function (t) { return t.c === TGA3D_C.violet || t.c === TGA3D_C.violetClaro }).length, 0]);
+  /* ── (D) las particulas conservan su color ── */
+  ex.push(['(D1) las corrientes del switch auricular siguen en azul y rojo, no en violeta',
+    (sMus && sMus.fl ? sMus.fl.filter(function (f) { return f.c === TGA3D_C.violet || f.c === TGA3D_C.violetClaro }).length : 'x'), 0]);
+  /* ── (E) el esquema plano, los mismos dos tonos del mismo numero ── */
+  ex.push(['(E1) el violeta del esquema sale del MISMO numero que el del 3D',
+    (typeof TGA_ESQ_VIOLETA !== 'undefined') ? TGA_ESQ_VIOLETA : 'x',
+    '#' + TGA3D_C.violet.toString(16).padStart(6, '0')]);
+  ex.push(['(E2) y el claro tambien',
+    (typeof TGA_ESQ_VIOLETA_CLARO !== 'undefined') ? TGA_ESQ_VIOLETA_CLARO : 'x',
+    (typeof TGA3D_C !== 'undefined' && TGA3D_C.violetClaro != null)
+      ? ('#' + TGA3D_C.violetClaro.toString(16).padStart(6, '0')) : 'SIN CONST']);
+  ex.push(['(E3) el tramo del tunel del esquema dice su TONO, no solo su indice',
+    Array.isArray((TGA_ESQ_DEF.mus.tun || [])[0]), true]);
+  ex.push(['(E4) el de las cavas va oscuro y el de las venas pulmonares claro',
+    TGA_ESQ_DEF.mus.tun.map(function (t) { return t[1] }).join(''), 'oc']);
+  /* ── (F) la regla de rotulos existe y no es un reacomodo de dos ── */
+  ex.push(['(F1 DENOM) la tolerancia de solape es una constante', (typeof CM_LBL_TOL !== 'undefined'), true]);
+  ex.push(['(F2) el bucle de cuadro mide la caja del PROPIO elemento y no la estima',
+    String(cm3dInit).indexOf('offsetWidth') >= 0 && String(cm3dInit).indexOf('CM_LBL_TOL') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-709 ---------------------------------------------------------------------------------
+   PANT-14c, commit 3d y 3e: el anillo acostado y transversal, y las suturas que dejan de ser
+   anillos. DENOMINADOR: las cinco variantes con escena. CONTROL: sin obstruccion no hay anillo
+   gris, y ningun otro objeto del modulo lleva una normal propia.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-709', 'Tanda PANT-14c (commit 3d/3e): el anillo de la obstruccion se orienta con la tangente de la aorta y se ubica CM_OBS_BAJO por debajo de su origen, y las dos suturas del Jatene dejan de ser anillos y pasan a bandas de malla', `
+  return (async () => {
+  const ex = [];
+  const esc = (v, obs) => { _cm3d.S.base = 'tga'; _cm3d.S.bv.tga = v; _cm3d.S.mods = {};
+    _cm3d.S.ck = obs ? { tobs: true } : {};
+    try { return cmEscena(_cm3d.S) } catch (e) { return null } };
+  const VAR = ['d', 'jat', 'mus', 'ras', 'cc'];
+  ex.push(['(A0 DENOM) CM_OBS_BAJO existe y esta entre 0,25 y 0,35',
+    (typeof CM_OBS_BAJO !== 'undefined') && CM_OBS_BAJO >= 0.25 && CM_OBS_BAJO <= 0.35, true]);
+  let conNrm = 0, bien = 0, radioOk = 0, sinObs = 0;
+  VAR.forEach(function (v) {
+    const s = esc(v, true);
+    const g = (s && s.ex ? s.ex.filter(function (x) { return x.t === 'ring' && x.col === CM_C.grey }) : []);
+    if (g.length === 1 && g[0].nrm) conNrm++;
+    const ao = (s && s.ar ? s.ar.filter(function (x) { return x.c === TGA3D_C.red }) : [])[0];
+    if (g.length === 1 && ao && ao.p && ao.p[0] && ao.p[1]) {
+      const p0 = ao.p[0], p1 = ao.p[1];
+      const d = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+      const n = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+      const t = [d[0] / n, d[1] / n, d[2] / n];
+      const _OB = (typeof CM_OBS_BAJO !== 'undefined') ? CM_OBS_BAJO : null;
+      if (_OB == null) return 'SIN CONST';
+      const esp = [p0[0] - t[0] * _OB, p0[1] - t[1] * _OB, p0[2] - t[2] * _OB];
+      const c = g[0].c;
+      if (Math.abs(c[0] - esp[0]) < 0.002 && Math.abs(c[1] - esp[1]) < 0.002 && Math.abs(c[2] - esp[2]) < 0.002) bien++;
+      /* la normal ES la tangente */
+      if (Math.abs(g[0].nrm[0] - t[0]) < 0.002 && Math.abs(g[0].nrm[1] - t[1]) < 0.002) conNrm += 0;
+      if (ao.r && Math.abs(g[0].r - ao.r[0] * 1.1) < 0.002) radioOk++;
+    }
+    const s2 = esc(v, false);
+    sinObs += (s2 && s2.ex ? s2.ex.filter(function (x) { return x.t === 'ring' && x.col === CM_C.grey }).length : 0);
+  });
+  ex.push(['(A1) las cinco variantes llevan su anillo con normal propia', conNrm, 5]);
+  ex.push(['(B1) y las cinco lo ubican por debajo del origen SIGUIENDO la tangente', bien, 5]);
+  ex.push(['(B2) con el radio sacado del radio de la aorta en su origen', radioOk, 5]);
+  ex.push(['(C1 CONTROL) sin obstruccion no hay ningun anillo gris', sinObs, 0]);
+  /* ── (D) el motor aplica la normal, y solo a quien la pide ── */
+  ex.push(['(D1) el motor del modulo gira el anillo con su normal',
+    String(cm3dInit).indexOf('setFromUnitVectors') >= 0, true]);
+  let otros = 0, otrosNrm = 0;
+  /* ATENCION: EL CONTROL ENCIENDE LA CIV RESIDUAL DEL FALLOT, y lo pidio una mutacion que
+     sobrevivia: sin ella el anillo del BORDE DEL PARCHE no se emite, asi que ponerle normal a
+     ese anillo —que es ponersela a uno que no la pide— no se notaba: el control contaba sobre un
+     denominador que no lo incluia. (D2 DENOM) cuenta los anillos y es lo que lo declara. */
+  [['fal', 'op'], ['fal', 'sin'], ['dsav', 'com'], ['ebs', 'std'], ['fon', 'ext']].forEach(function (b) {
+    _cm3d.S.base = b[0]; _cm3d.S.bv[b[0]] = b[1]; _cm3d.S.mods = { ep: 'sub' };
+    /* LA CLAVE ES rciv —medida en el codigo, no supuesta—: con las tres que probe primero el
+       anillo del BORDE DEL PARCHE no se emitia y el control contaba sobre un denominador que no
+       lo incluia, asi que ponerle normal a ese anillo pasaba en verde. */
+    _cm3d.S.ck = { rciv: true };
+    let s = null; try { s = cmEscena(_cm3d.S) } catch (e) {}
+    (s && s.ex ? s.ex : []).forEach(function (o) { if (o.t === 'ring') { otros++; if (o.nrm) otrosNrm++ } });
+  });
+  ex.push(['(D2 DENOM) hay otros anillos que contar', otros > 3, true]);
+  ex.push(['(D3 CONTROL) y ninguno lleva normal propia', otrosNrm, 0]);
+  /* (E0) EL ESQUEMA PLANO DIBUJA LAS SUTURAS CON LA TRAMA Y NO CON UN RELLENO SOLIDO, y nacio
+     de una mutacion que sobrevivio: las condiciones del bloque (E) miran la ESCENA del 3D, y el
+     esquema es otro dibujo. Se mide el marcado que su definicion emite. */
+  ex.push(['(E0) los dos rect de sutura del esquema se rellenan con el patron de trama',
+    (function () {
+      try {
+        const d = (typeof TGA_ESQ_DEF !== 'undefined' && TGA_ESQ_DEF.jat) ? TGA_ESQ_DEF.jat : null;
+        if (!d || !d.ex) return 'SIN DEF';
+        const t = d.ex.join(' ');
+        const id = (typeof TGA_ESQ_MALLA_ID !== 'undefined') ? TGA_ESQ_MALLA_ID : 'x';
+        let n = 0, i = 0;
+        while ((i = t.indexOf('url(#' + id + ')', i)) >= 0) { n++; i++ }
+        return n;
+      } catch (e) { return 'EXC' }
+    })(), 2]);
+  /* ── (E) las suturas del Jatene ── */
+  const sJat = esc('jat', false);
+  const mallas = (sJat && sJat.ex ? sJat.ex.filter(function (x) { return x.t === 'malla' }) : []);
+  const anNar = (sJat && sJat.ex ? sJat.ex.filter(function (x) { return x.t === 'ring' && (x.col === CM_C.orange || x.col == null) }) : []);
+  ex.push(['(E1) el Jatene tiene DOS bandas de malla', mallas.length, 2]);
+  ex.push(['(E2) y CERO anillos naranjas: no se reusa el toro para una sutura', anNar.length, 0]);
+  ex.push(['(E3) las dos bandas van perpendiculares a su vaso, con su normal propia',
+    mallas.filter(function (m) { return !!m.nrm }).length, 2]);
+  ex.push(['(E4) y conservan la posicion y el radio de la demo',
+    mallas.map(function (m) { return m.c.map(function (n) { return Number(n).toFixed(2) }).join(',') + ':' + m.r }).join(' | '),
+    '0.30,1.20,-0.15:0.3 | -0.20,1.40,0.75:0.3']);
+  ex.push(['(E5) las dos coronarias siguen siendo tubos finos naranjas',
+    (sJat && sJat.ex ? sJat.ex.filter(function (x) { return x.t === 'tube' && x.r === 0.05 && x.c === CM_C.orange }).length : 'x'), 2]);
+  ex.push(['(E6) el motor sabe dibujar una banda de malla con su textura por codigo',
+    String(cm3dInit).indexOf("e.t==='malla'") >= 0 && String(_cmMallaTex).indexOf('CanvasTexture') >= 0, true]);
+  ex.push(['(E7) y el esquema las dibuja con su trama y no con una barra solida',
+    String(TGA_ESQ_DEF.jat.ex.join('')).indexOf('url(#') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+/* -- TC-710 ---------------------------------------------------------------------------------
+   PANT-14c, commit 3c, 3f y 3g: la cava celeste, los parches verdes con la CIV residual
+   atravesandolos, y la leyenda por entradas. CONTROL: el corazon normal no prende ninguna
+   entrada mas que las dos de la sangre.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-710', 'Tanda PANT-14c (commit 3c/3f/3g): la cava izquierda en celeste, el parche del Fallot operado en verde con la CIV residual en su BORDE, y la leyenda prendiendo solo lo que esta dibujado', `
+  return (async () => {
+  const ex = [];
+  const esc = (b, bv, mods, ck) => { _cm3d.S.base = b; if (bv) _cm3d.S.bv[b] = bv;
+    _cm3d.S.mods = mods || {}; _cm3d.S.ck = ck || {};
+    try { return cmEscena(_cm3d.S) } catch (e) { return null } };
+  /* ── (A) la cava izquierda en celeste ── */
+  ex.push(['(A0 DENOM) la constante celeste existe', (typeof CM_C !== 'undefined') && CM_C.celeste != null, true]);
+  const sV = esc('norm', null, { vcs: 'std' });
+  const tV = (sV && sV.ex ? sV.ex.filter(function (x) { return x.t === 'tube' }) : []);
+  ex.push(['(A1 DENOM) la cava izquierda dibuja sus dos tubos', tV.length, 2]);
+  ex.push(['(A2) los dos en celeste: la vena y el seno coronario dilatado',
+    tV.filter(function (t) { return t.c === CM_C.celeste }).length, 2]);
+  ex.push(['(A3) y su corriente conserva el azul de la sangre poco oxigenada',
+    (sV && sV.fl ? sV.fl.filter(function (f) { return f.c === CM_C.blue }).length > 0 : 'x'), true]);
+  ex.push(['(A4) el celeste se distingue del azul por su CLARIDAD, no por el matiz',
+    (function () { const lin = (v) => { v /= 255; return (v <= 0.03928) ? (v / 12.92) : Math.pow((v + 0.055) / 1.055, 2.4) };
+      const L = (c) => 0.2126 * lin((c >> 16) & 255) + 0.7152 * lin((c >> 8) & 255) + 0.0722 * lin(c & 255);
+      const a = L(CM_C.celeste), b = L(CM_C.blue);
+      return ((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) >= 1.8 })(), true]);
+  /* ── (B) los parches en verde y la CIV residual en el borde ── */
+  ex.push(['(B0 DENOM) la constante verde y las dos del parche existen',
+    CM_C.green != null && (typeof CM_FAL_PARCHE !== 'undefined') && (typeof CM_FAL_PARCHE_R !== 'undefined'), true]);
+  const sF = esc('fal', 'op', {}, { rciv: true });
+  const disco = (sF && sF.ex ? sF.ex.filter(function (x) { return x.t === 'disc' }) : [])[0];
+  const banda = (sF && sF.ex ? sF.ex.filter(function (x) { return x.t === 'tube' && x.r === 0.045 }) : [])[0];
+  const anillo = (sF && sF.ex ? sF.ex.filter(function (x) { return x.t === 'ring' }) : [])[0];
+  ex.push(['(B1 DENOM) el Fallot operado dibuja su disco, su banda y su anillo residual',
+    !!disco && !!banda && !!anillo, true]);
+  ex.push(['(B2) el parche de la CIV, en verde', disco ? disco.col : 'x', CM_C.green]);
+  ex.push(['(B3) la ampliacion del tracto de salida, en verde', banda ? banda.c : 'x', CM_C.green]);
+  ex.push(['(B4) la CIV residual se ubica en el BORDE del parche, no 0,4 por debajo',
+    (function () { if (!anillo) return 'x';
+      const _P = (typeof CM_FAL_PARCHE !== 'undefined') ? CM_FAL_PARCHE : null;
+      const _PR = (typeof CM_FAL_PARCHE_R !== 'undefined') ? CM_FAL_PARCHE_R : null;
+      if (!_P || _PR == null) return 'SIN CONST';
+      const d = Math.sqrt(Math.pow(anillo.c[1] - _P[1], 2) + Math.pow(anillo.c[2] - _P[2], 2));
+      /* TOLERANCIA 0,02 Y NO 0,12, y la aprieta una mutacion que sobrevivio: el punto del
+         borde esta a R exacto del centro —0,30— y mover la CIV a un punto fijo por DEBAJO del
+         parche lo deja a 0,40, o sea 0,10 de diferencia, que la tolerancia vieja aceptaba. */
+      return Math.abs(d - _PR) < 0.02 })(), true]);
+  ex.push(['(B5) y su corriente cruza el plano del parche, o sea va a lo largo de su normal',
+    (function () { if (!sF || !sF.fl) return 'x';
+      const f = sF.fl.filter(function (q) { return q.n === 4 })[0];
+      if (!f || !f.p || f.p.length < 3) return 'no hay corriente';
+      const _P2 = (typeof CM_FAL_PARCHE !== 'undefined') ? CM_FAL_PARCHE : null;
+      if (!_P2) return 'SIN CONST';
+      return (f.p[0][0] > _P2[0]) && (f.p[2][0] < _P2[0]) })(), true]);
+  ex.push(['(B6 CONTROL) el Rastelli NO lleva parche verde: su CIV la cierra el tunel',
+    (function () { const s = esc('tga', 'ras', {}, {});
+      return (s && s.ex ? s.ex.filter(function (x) { return (x.col === CM_C.green) || (x.c === CM_C.green) }).length : 'x') })(), 0]);
+  /* ── (C) la leyenda, por entradas y solo las dibujadas ── */
+  ex.push(['(C0 DENOM) CM_LEY es la lista unica y tiene once entradas',
+    (typeof CM_LEY !== 'undefined') ? CM_LEY.length : 'x', 11]);
+  const ley = (s) => (typeof cmLeyendaPresente === 'function') ? cmLeyendaPresente(s).map(function (e) { return e.id }).join(',') : 'SIN FN';
+  ex.push(['(C1) el switch auricular prende las dos del tunel', ley(esc('tga', 'mus', {}, {})), 'san,sano,tun,tunc']);
+  ex.push(['(C2) el Jatene prende la sutura y las coronarias y NO el parche',
+    ley(esc('tga', 'jat', {}, {})), 'san,sano,com,sut,cor']);
+  ex.push(['(C3) el Fallot operado prende el parche', ley(sF).indexOf('par') >= 0, true]);
+  ex.push(['(C4) la cava izquierda prende su entrada', ley(sV).indexOf('vcsi') >= 0, true]);
+  ex.push(['(C5 CONTROL) el corazon normal prende SOLO las dos de la sangre',
+    ley(esc('norm', null, {}, {})), 'san,sano']);
+  ex.push(['(C6) las dos leyendas del documento tienen sus once entradas cada una',
+    (typeof CM_LEY === 'undefined') ? 'SIN REGISTRO'
+      : ['cm3d-leg-', 'cm3d-leg2-'].map(function (p) {
+          return CM_LEY.filter(function (e) { return !!document.getElementById(p + e.id) }).length }).join('/'), '11/11']);
+  ex.push(['(C7) y el pintor es UNO solo para las dos',
+    (typeof cmLeyendaSync === 'function')
+      && String(cmLeyendaSync).indexOf('cm3d-leg-') >= 0
+      && String(cmLeyendaSync).indexOf('cm3d-leg2-') >= 0, true]);
+  ex.push(['(C8) cmTunelLeySync se conserva y delega en el pintor, sin ser un segundo dueno',
+    (typeof cmTunelLeySync === 'function')
+      && String(cmTunelLeySync).indexOf('cmLeyendaSync') >= 0, true]);
+  /* ── (D) el color se lee del campo que corresponde a cada tipo de objeto ── */
+  ex.push(['(D1) el colector sabe que e.c es un color SOLO en un tube',
+    (typeof cmColoresEscena === 'function')
+      && String(cmColoresEscena).indexOf("e.t === 'tube'") >= 0, true]);
+  ex.push(['(D2) y por eso la CIV residual del Fallot prende la entrada de comunicacion',
+    ley(sF).indexOf('com') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-711 ---------------------------------------------------------------------------------
+   PANT-14c, commit 4: el titulo del dibujo y los textos chicos.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-711', 'Tanda PANT-14c (commit 4): el titulo se dibuja en el recuadro y en la cabecera del esquema desde el MISMO calculo que el papel, y los dos textos chicos que repetian lo que el dibujo muestra ya no estan', `
+  return (async () => {
+  const ex = [];
+  const EL = (i) => document.getElementById(i);
+  ex.push(['(A0 DENOM) el nodo del titulo existe en el recuadro', !!EL('cm3d-tit'), true]);
+  ex.push(['(A1) y el de la cabecera del esquema tambien', !!EL('cm3d-schtit'), true]);
+  ex.push(['(A2) el pintor del titulo sale del MISMO dueno que el texto del papel',
+    (typeof cmTituloSync === 'function') && String(cmTituloSync).indexOf('cmTitulo(') >= 0, true]);
+  ex.push(['(A3) y escribe los DOS nodos, no uno',
+    (typeof cmTituloSync === 'function')
+      && String(cmTituloSync).indexOf('cm3d-tit') >= 0
+      && String(cmTituloSync).indexOf('cm3d-schtit') >= 0, true]);
+  ex.push(['(A4) se cuelga del repintado, que es el dueno unico',
+    String(cm3dInit).indexOf('cmTituloSync') >= 0, true]);
+  /* ── (B) el titulo cambia con el estado ── */
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  try { if (typeof cmDesdeEstudio === 'function') cmDesdeEstudio() } catch (e) {}
+  try { if (typeof cmTituloSync === 'function') cmTituloSync() } catch (e) {}
+  ex.push(['(B1 CONTROL) con el formulario vacio el titulo dice Normal', (EL('cm3d-tit') || {}).textContent, 'Normal']);
+  const s = EL('ete_cia_tipo');
+  if (s) { s.value = 'secundum'; s.dispatchEvent(new Event('change', { bubbles: true })) }
+  await new Promise(r => setTimeout(r, 420));
+  try { if (typeof cmDesdeEstudio === 'function') cmDesdeEstudio() } catch (e) {}
+  try { if (typeof cmTituloSync === 'function') cmTituloSync() } catch (e) {}
+  ex.push(['(B2) con una CIA cargada el titulo la nombra', (EL('cm3d-tit') || {}).textContent, 'CIA O.S.']);
+  ex.push(['(B3) y el de la cabecera del esquema lo sigue',
+    ((EL('cm3d-schtit') || {}).textContent || '').indexOf('CIA O.S.') >= 0, true]);
+  /* ══ (A5) EL TITULO SE ESCRIBE POR EL REPINTADO, SIN LLAMAR AL DUENO A MANO ════════════════
+     Nacio de una mutacion que sobrevivio: (A4) mira el TEXTO de cm3dInit buscando el nombre del
+     sincronizador, y apagar la llamada con un if (false) deja el nombre escrito ahi, asi que
+     pasaba en verde. (B2) y (B3) tampoco lo ven, porque llaman a cmTituloSync() ellas mismas.
+     Lo que se mide es el GESTO: se vacia el nodo del titulo y se cambia la escena por la puerta
+     real del modulo —la de «Explorar»—, que repinta; si el repintado no llama al sincronizador,
+     el titulo se queda vacio.
+     LLEVA DENOMINADOR: sin la libreria 3D no hay repintado, y la condicion lo DICE en vez de
+     ponerse roja. */
+  /* ABRE EL MODULO CON EL GESTO REAL, con una lesion cargada para que el panel tenga algo que
+     dibujar: sin el panel abierto cm3dInit no corre, _cm3dCaptura es null y los denominadores
+     de (A5) y (A6) las auto-neutralizaban, con lo que las mutaciones sobrevivian. */
+  try { const _t = document.getElementById('ete_cia_tipo'); if (_t) { _t.value = 'secundum';
+    _t.dispatchEvent(new Event('change', { bubbles: true })) } } catch (e) {}
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await new Promise(r => setTimeout(r, 300));
+  try { const _ab = document.getElementById('cc3d-abrir'); if (_ab) _ab.click() } catch (e) {}
+  await new Promise(r => setTimeout(r, 2600));
+  const a5 = await (async function () {
+    const t = document.getElementById('cm3d-tit');
+    if (!t) return 'SIN NODO';
+    if (typeof cmSetBase !== 'function' || typeof _cm3d === 'undefined') return 'SIN MODULO';
+    if (typeof _cm3dCaptura !== 'function') return 'SIN MODULO';
+    t.textContent = '';
+    try { cmSetBase('fal') } catch (e) {}
+    await new Promise(r => setTimeout(r, 900));
+    const tras = String(t.textContent || '').trim();
+    return tras.length > 0 ? 'repinta' : 'VACIO';
+  })();
+  ex.push(['(A5 DENOM) el modulo esta abierto con su libreria: ' + a5,
+    a5 === 'SIN MODULO' ? 'sin red' : 'si', a5 === 'SIN MODULO' ? 'sin red' : 'si']);
+  ex.push(['(A5) el repintado del modulo escribe el titulo solo: ' + a5,
+    (a5 === 'SIN MODULO') ? 'repinta' : a5, 'repinta']);
+  /* ══ (A6) LOS ROTULOS NO SE SOLAPAN, Y ES LA REGLA GENERAL QUE LA ORDEN PIDE ════════════════
+     Nacio de una mutacion que sobrevivio: ninguna condicion miraba el paso de correccion del
+     bucle, que es lo que el medico reporto con los dos rotulos del tunel pisandose. Se monta el
+     switch auricular —la escena con dos tuneles— y se cruzan TODOS los rotulos del lienzo.
+     LLEVA DENOMINADOR: sin rotulos dibujados no hay nada que cruzar, y eso se dice. */
+  const a6 = await (async function () {
+    if (typeof cmSetBase !== 'function' || typeof _cm3dCaptura !== 'function') return 'SIN MODULO';
+    try { cmSetBase('tga') } catch (e) {}
+    try { if (typeof cmSetVar === 'function') cmSetVar('tga', 'mus') } catch (e) {}
+    await new Promise(r => setTimeout(r, 1400));
+    /* LOS ROTULOS CUELGAN DE #cm3d-cv —el lienzo— Y NO DE #cm3d-cvw, y con el selector acotado
+       al segundo la condicion contaba CERO y se auto-neutralizaba. Se busca la clase, que es
+       propia del modulo: medido, son cinco visibles con la casilla «Nombres» encendida. */
+    const nod = Array.prototype.filter.call(
+      document.querySelectorAll('.cm3d-lbl'),
+      function (e) { const c = e.getBoundingClientRect(); return c.width > 0 && c.height > 0 });
+    if (nod.length < 2) return 'SIN ROTULOS:' + nod.length;
+    let cruces = 0;
+    for (let i = 0; i < nod.length; i++) for (let j = i + 1; j < nod.length; j++) {
+      const a = nod[i].getBoundingClientRect(), b = nod[j].getBoundingClientRect();
+      const ix = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const iy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ix > 1 && iy > 1) cruces++;
+    }
+    return 'rotulos=' + nod.length + ' cruces=' + cruces;
+  })();
+  ex.push(['(A6 DENOM) hay rotulos dibujados que cruzar: ' + a6,
+    String(a6).indexOf('SIN ') === 0 ? 'sin red' : 'si', String(a6).indexOf('SIN ') === 0 ? 'sin red' : 'si']);
+  ex.push(['(A6) y NINGUNO se solapa con otro: ' + a6,
+    (String(a6).indexOf('SIN ') === 0) ? 'cruces=0' : String(a6).slice(String(a6).indexOf('cruces=')), 'cruces=0']);
+  /* ── (C) los dos textos chicos que se quitaron ── */
+  const doc = document.documentElement.innerHTML;
+  ex.push(['(C1) «Todas las lesiones cargadas estan dibujadas» ya no la escribe nadie',
+    String(cc3dTextoSync).indexOf('Todas las lesiones cargadas') >= 0, false]);
+  ex.push(['(C2) ni la descripcion del modo Explorar',
+    String(cc3dTextoSync).indexOf('Modo Explorar') >= 0, false]);
+  /* ATENCION: (C3) ACOTADA AL RECUADRO DEL MODULO, y su primera version era un FALSO POSITIVO:
+     buscaba «Necesita conexi» en TODO el documento y lo encontraba en la caja de aviso del
+     exportador de PowerPoint, que no tiene nada que ver con el corazon maestro. Lo que se mide
+     es que la frase de conexion ya no este escrita FIJA en el recuadro del 3D: el aviso de que
+     la libreria no cargo lo pone _cm3dAviso cuando de verdad falla, y (D4) lo exige. */
+  const shell = EL('cm3d-shell');
+  ex.push(['(C3) y la frase de conexion ya no esta escrita FIJA en el recuadro',
+    shell ? (String(shell.textContent || '').indexOf('Necesita conexi') >= 0) : 'SIN RECUADRO', false]);
+  ex.push(['(C3b) DENOMINADOR: el recuadro existe y tiene texto', shell ? (String(shell.textContent || '').length > 50) : 'NO', true]);
+  /* ── (D) lo que SE MANTIENE ── */
+  ex.push(['(D1) la linea de lo que no se dibuja se conserva',
+    String(cc3dTextoSync).indexOf('Cargadas y no dibujadas') >= 0, true]);
+  ex.push(['(D2) y la que dice que no hay nada cargado, que no cae en ninguna de las dos listas',
+    String(cc3dTextoSync).indexOf('Sin lesiones cargadas') >= 0, true]);
+  ex.push(['(D3) las dos aclaraciones bajaron al globo del recuadro, palabra por palabra',
+    (function () { const ip = EL('cm3d-ip'); const t = ip ? (ip.textContent || '') : '';
+      return t.indexOf('esquemático, no a escala') >= 0 && t.indexOf('rota arrastrando') >= 0 })(), true]);
+  /* ATENCION: el aviso lo escribe _cm3dAviso y no cm3dBoot, y la primera version de esta
+     condicion nombraba la funcion equivocada. */
+  ex.push(['(D4) el aviso de conexion sigue existiendo y es el DINAMICO, el de _cm3dAviso',
+    (typeof _cm3dAviso === 'function') && String(_cm3dAviso).indexOf('Revis') >= 0
+      && String(_cm3dAviso).indexOf('conexi') >= 0, true]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+/* -- TC-712 ---------------------------------------------------------------------------------
+   PANT-14c, commit 5: la pestania de transposicion sin su boton propio y con los campos
+   agrupados en columnas, sin que un grupo vacio ocupe espacio.
+   ⚠️ LA SUITE CORRE CHROME A ~756 px, por debajo del corte de 1000: el reparto se mide por la
+   REGLA de la hoja de estilos y por la ESTRUCTURA. La geometria la miden las sondas a los
+   cuatro anchos.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-712', 'Tanda PANT-14c (commit 5): la seccion TGA pierde su boton «Ver en 3D» propio y sus once campos pasan a cuatro grupos con encabezado, con la conclusion a todo el ancho y sin que un grupo sin campos visibles ocupe su columna', `
+  return (async () => {
+  const ex = [];
+  const EL = (i) => document.getElementById(i);
+  /* ── (A) el boton propio se fue y el comun queda ── */
+  ex.push(['(A1) la seccion TGA ya no tiene su boton «Ver en 3D» propio', !!EL('tga-ver3d'), false]);
+  ex.push(['(A2) y tgaVer3D NO se borro: sigue siendo el camino con nombre al modulo',
+    (typeof tgaVer3D === 'function') && String(tgaVer3D).indexOf('cc3dAbrir') >= 0, true]);
+  ex.push(['(A3 DENOM) el boton comun de congenitas sigue en su lugar', !!EL('cc3d-abrir'), true]);
+  /* ── (B) la grilla de grupos ── */
+  const g = EL('tga-grupos');
+  ex.push(['(B0 DENOM) la grilla de grupos existe', !!g, true]);
+  ex.push(['(B1) con CUATRO grupos', g ? g.querySelectorAll('.cc9-col').length : 'x', 4]);
+  ex.push(['(B2) cada uno con su encabezado en azul chico', g ? g.querySelectorAll('.cc9-h').length : 'x', 4]);
+  ex.push(['(B3) y los ONCE campos adentro, ni uno perdido', g ? g.querySelectorAll('.fg').length : 'x', 11]);
+  ex.push(['(B4) #tga-campos ya no existe: lo reemplaza #tga-grupos', !!EL('tga-campos'), false]);
+  /* ── (C) los cortes, en media queries explicitas ── */
+  const reglas = (function () {
+    let t = '';
+    Array.prototype.forEach.call(document.querySelectorAll('style'), function (s) { t += s.textContent || '' });
+    return t;
+  })();
+  const bloqueDe = (ancho) => {
+    const re = new RegExp('min-width:\\\\s*' + ancho + 'px\\\\s*\\\\)\\\\s*\\\\{([^]*?)\\\\n  \\\\}', 'g');
+    let m, out = '';
+    while ((m = re.exec(reglas))) out += m[1];
+    return out;
+  };
+  /* ATENCION: EL REPARTO SE BUSCA DENTRO DE LA REGLA DE #tga-grupos Y NO EN TODO EL BLOQUE, y lo
+     aprietan dos mutaciones que sobrevivian: el bloque de una media query de 1000 px acumula
+     TODAS las reglas de ese ancho del documento, y ahi hay otros selectores con repeat(3, asi
+     que cambiarle el reparto a la grilla pasaba en verde. */
+  const repartoDe = (ancho) => {
+    const b = bloqueDe(ancho);
+    const i = b.indexOf('#tga-grupos');
+    if (i < 0) return 'SIN REGLA';
+    const fin = b.indexOf('}', i);
+    const regla = b.slice(i, fin < 0 ? b.length : fin);
+    /* SIN UNA SOLA EXPRESION REGULAR: una barra invertida simple NO sobrevive al template
+       literal del cuerpo de un caso, y /repeat\((\d)/ llegaba como /repeat((d)/ con
+       «Unterminated group». Es la trampa que este archivo documenta una docena de veces. */
+    const k = regla.indexOf('repeat(');
+    if (k >= 0) return 'repeat(' + regla.charAt(k + 7);
+    return regla.indexOf('minmax(0,1fr)') >= 0 ? 'una' : 'OTRA';
+  };
+  ex.push(['(C1) la media query de 768 px reparte LA GRILLA en DOS columnas: ' + repartoDe(768),
+    repartoDe(768), 'repeat(2']);
+  ex.push(['(C2) y la de 1000 px LA REPARTE en TRES: ' + repartoDe(1000),
+    repartoDe(1000), 'repeat(3']);
+  ex.push(['(C3) la regla base es de UNA columna, no de dos ni de tres',
+    (function () { const i = reglas.indexOf('#tga-grupos{display:grid');
+      return i >= 0 && reglas.slice(i, i + 160).indexOf('minmax(0,1fr);gap') >= 0 })(), true]);
+  /* ── (D) un grupo sin campos visibles no ocupa espacio ── */
+  ex.push(['(D0 DENOM) el sincronizador de grupos existe', typeof tgaGruposSync === 'function', true]);
+  ex.push(['(D1) y lo llama tgaSync, que es el dueno de mostrar y esconder cada campo',
+    String(tgaSync).indexOf('tgaGruposSync') >= 0, true]);
+  ex.push(['(D2) y mira el display COMPUTADO de cada campo, no su atributo',
+    (typeof tgaGruposSync === 'function')
+      && String(tgaGruposSync).indexOf('getComputedStyle') >= 0, true]);
+  const poner = (id, v) => { const e = EL(id); if (!e) return; e.value = v;
+    e.dispatchEvent(new Event('change', { bubbles: true })) };
+  const grupoCirugia = () => { const c = EL('tga-g1'); return c ? getComputedStyle(c).display : 'x' };
+  poner('tga_tipo', 'dtga');
+  await new Promise(r => setTimeout(r, 300));
+  ex.push(['(D3 DENOM) con d-TGA la fila de cirugia se ve, asi que su grupo tambien',
+    grupoCirugia() !== 'none', true]);
+  /* (D4) EL ESCENARIO DEL GRUPO VACIO, Y NACIO DE UNA MUTACION QUE SOBREVIVIO: en ningun estado
+     real de la pantalla queda un grupo sin campos visibles —el de la cirugia tiene tambien el
+     tipo—, asi que apagar tgaGruposSync no se notaba: la condicion no podia fallar. El escenario
+     se MONTA: se esconden a mano los campos de un grupo y se llama al dueno, que es tgaSync.
+     Y lleva su CONTROL: al devolverlos, el grupo vuelve. */
+  const d4 = (function () {
+    const col = EL('tga-g4'); if (!col) return 'SIN GRUPO';
+    const fgs = Array.prototype.slice.call(col.querySelectorAll('.fg'));
+    if (!fgs.length) return 'SIN CAMPOS';
+    const prev = fgs.map(function (f) { return f.style.display });
+    fgs.forEach(function (f) { f.style.display = 'none' });
+    try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+    const escondido = getComputedStyle(col).display === 'none';
+    fgs.forEach(function (f, k) { f.style.display = prev[k] });
+    try { if (typeof tgaSync === 'function') tgaSync() } catch (e) {}
+    const vuelve = getComputedStyle(col).display !== 'none';
+    return (escondido ? 'esconde' : 'NO ESCONDE') + '|' + (vuelve ? 'vuelve' : 'NO VUELVE');
+  })();
+  ex.push(['(D4) un grupo cuyos campos estan TODOS escondidos no ocupa su columna: ' + d4,
+    d4, 'esconde|vuelve']);
+  /* ── (E) la conclusion a todo el ancho y debajo ── */
+  const cb = EL('tga-concl-box'), fila = EL('tga-fila');
+  ex.push(['(E1 DENOM) la caja de conclusion y la fila existen', !!cb && !!fila, true]);
+  ex.push(['(E2) la conclusion es hija de #tga-fila y no de la grilla de grupos',
+    cb && cb.parentElement ? cb.parentElement.id : 'x', 'tga-fila']);
+  ex.push(['(E3) y su id y su contenido no cambiaron: lo escribe tgaSync',
+    !!EL('tga-concl') && String(tgaSync).indexOf("txt('tga-concl'") >= 0, true]);
+  /* ── (F) ningun id de campo cambio ── */
+  const IDS = ['tga_tipo','tga_cirugia','tga_func_vd','tga_dilatacion_ro','tga_it_ro','tga_bav',
+               'tga_obstr_subaortica','tga_grad_subaortico','tga_civ_residual','tga_civ_grad','tga_sintomas'];
+  ex.push(['(F1) los once campos siguen con su id', IDS.filter(function (i) { return !!EL(i) }).length, 11]);
+  /* ATENCION: lo que importa es que NINGUN tabindex POSITIVO fuerce el orden, y la primera
+     version de esta condicion contaba CUALQUIERA: los dos que encuentra son los tabindex="-1"
+     PREEXISTENTES de los dos espejos de solo lectura —el diametro del VD sistemico y el grado de
+     la insuficiencia tricuspide—, que SACAN el campo del recorrido, que es lo correcto para un
+     readonly. La condicion queda mas fuerte: exige cero positivos Y que los dos negativos sigan
+     siendo exactamente esos dos, asi que puede fallar por los dos lados. */
+  const tix = g ? Array.prototype.map.call(g.querySelectorAll('[tabindex]'), function (x) {
+    return x.id + '=' + x.getAttribute('tabindex') }) : [];
+  ex.push(['(F2) ningun tabindex POSITIVO fuerza el orden: lo da el marcado',
+    tix.filter(function (t) { return Number(t.split('=')[1]) > 0 }).length, 0]);
+  ex.push(['(F2b) y los dos negativos son los espejos de solo lectura, preexistentes',
+    tix.join(','), 'tga_dilatacion_ro=-1,tga_it_ro=-1']);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-713 ---------------------------------------------------------------------------------
+   PANT-14c, commit 6: las secciones de congenitas se cierran al ENTRAR a la pestania.
+   CONTROL: lo que se abre mientras se esta en la pestania se queda, y en otra pestania
+   secAutoOpen sigue abriendo una seccion con datos.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-713', 'Tanda PANT-14c (commit 6): al entrar a una pestania de congenitas se cierran todas sus secciones, lo que se abre mientras se esta en ella se queda, y secAutoOpen sigue funcionando en las otras pestanias', `
+  return (async () => {
+  const ex = [];
+  const EL = (i) => document.getElementById(i);
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const abiertas = (t) => { const x = EL('tab-' + t); return x ? x.querySelectorAll('.sacc.open').length : 'NO HAY' };
+  ex.push(['(A0 DENOM) el cerrador existe', typeof ccSeccionesCerrar === 'function', true]);
+  ex.push(['(A1) y SOLO alcanza a las dos pestanias de congenitas',
+    (typeof CC_TABS_CERRAR !== 'undefined') ? CC_TABS_CERRAR.join(',') : 'x', 'congenitas,congenitas2']);
+  /* ATENCION: (A2) y (A3) NO MIRAN EL TEXTO DE showTab, y la primera version de este caso si:
+     esa funcion esta ENVUELTA DOS VECES —una por el repintado de los botones flotantes y otra
+     por el cajon lateral—, asi que String(showTab) devuelve el envoltorio y no contiene ni
+     secAutoOpen ni ccSeccionesCerrar: las dos condiciones daban false sobre un codigo correcto.
+     Es la misma clase de ancla debil que esta casa documenta —mirar el nombre escrito en una
+     funcion en vez de lo que emite—, y aca ni eso era posible.
+     Lo que se mide es el COMPORTAMIENTO, y es MAS FUERTE que el texto: una seccion de congenitas
+     CON DATOS es la que secAutoOpen abriria, asi que si el cerrador corriera ANTES que el,
+     quedaria ABIERTA. (B2) lo exige con un dato sembrado; (E1) exige, del otro lado, que
+     secAutoOpen siga abriendo en una pestania que no es de congenitas. Las dos juntas fijan el
+     orden sin leer una sola letra de la funcion. */
+  ex.push(['(A2) secAutoOpen existe y NO se elimino', typeof secAutoOpen, 'function']);
+  ex.push(['(A3) y cardAutoOpen tampoco', typeof cardAutoOpen, 'function']);
+  /* ── (B) el recorrido ── */
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(360);
+  /* ATENCION: la clave de la anomalia de Ebstein es cc-ebs y no cc-ebstein, y la primera version
+     de este caso usaba la que no existe: solo se abrian DOS y el denominador daba false sobre un
+     cerrador que funciona. Las claves se leen del marcado, no de memoria. */
+  ['cc-tga', 'cc-cvpa', 'cc-ebs'].forEach(function (k) {
+    try { if (typeof secToggle === 'function') secToggle(k) } catch (e) {} });
+  await esperar(420);
+  const tras = abiertas('congenitas2');
+  ex.push(['(B0 DENOM) las tres secciones se abren a mano: ' + tras, tras >= 3, true]);
+  try { if (typeof showTab === 'function') showTab('valvulas') } catch (e) {}
+  await esperar(320);
+  try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+  await esperar(420);
+  ex.push(['(B1) al volver a la pestania NO queda ninguna abierta', abiertas('congenitas2'), 0]);
+  /* (B2) EL ORDEN, Y ES LO QUE REEMPLAZA A LEER EL TEXTO DE showTab: con un dato cargado en una
+     seccion de congenitas, secAutoOpen la abriria al entrar. Si el cerrador corriera ANTES que
+     el, la seccion quedaria ABIERTA; corriendo DESPUES, queda cerrada. La condicion siembra el
+     dato por el camino MUDO —sin gesto— para no depender de ningun manejador. */
+  const b2 = await (async function () {
+    const t = EL('tga_tipo'); if (!t) return 'SIN CAMPO';
+    t.value = 'mustard';
+    try { if (typeof showTab === 'function') showTab('valvulas') } catch (e) {}
+    await esperar(320);
+    try { if (typeof showTab === 'function') showTab('congenitas2') } catch (e) {}
+    await esperar(460);
+    const n = abiertas('congenitas2');
+    t.value = '';
+    return n;
+  })();
+  ex.push(['(B2) y con un dato cargado tampoco: el cerrador corre DESPUES de secAutoOpen, no antes: ' + b2,
+    b2, 0]);
+  /* ── (C) lo que se abre MIENTRAS se esta en la pestania se queda ── */
+  try { if (typeof secToggle === 'function') secToggle('cc-tga') } catch (e) {}
+  await esperar(360);
+  ex.push(['(C1 CONTROL) lo abierto sin cambiar de pestania sigue abierto', abiertas('congenitas2'), 1]);
+  /* ── (D) la otra sub-pestania ── */
+  try { if (typeof showTab === 'function') showTab('congenitas') } catch (e) {}
+  await esperar(420);
+  ex.push(['(D1) y la otra sub-pestania tambien abre con todo cerrado', abiertas('congenitas'), 0]);
+  /* ── (E) CONTROL: secAutoOpen sigue abriendo en una pestania que no es de congenitas ── */
+  /* ATENCION: la pestania de AI/VI NO se llama aivi —ese panel no existe—, y la primera version
+     de este control la nombraba asi: medía sobre un contenedor nulo. Se usa la del VD, con el
+     TAPSE como dato, que es donde secAutoOpen tiene una seccion que abrir. */
+  const sv = EL('tapse'); if (sv) { sv.value = '14'; sv.dispatchEvent(new Event('input', { bubbles: true })) }
+  await esperar(320);
+  try { if (typeof showTab === 'function') showTab('valvulas') } catch (e) {}
+  await esperar(300);
+  try { if (typeof showTab === 'function') showTab('vd') } catch (e) {}
+  await esperar(420);
+  ex.push(['(E1 CONTROL) en el VD secAutoOpen sigue abriendo la seccion con datos: ' + abiertas('vd'),
+    abiertas('vd') >= 1, true]);
+  /* ── (F) el cierre usa las MISMAS piezas que secToggle ── */
+  ex.push(['(F1) cierra con la clase, el aria-expanded y el max-height, como secToggle',
+    (typeof ccSeccionesCerrar === 'function')
+    && String(ccSeccionesCerrar).indexOf('aria-expanded') >= 0
+    && String(ccSeccionesCerrar).indexOf('maxHeight') >= 0
+    && String(ccSeccionesCerrar).indexOf('open') >= 0, true]);
+  ex.push(['(F2 CONTROL) y no toca ningun campo del estudio',
+    (typeof ccSeccionesCerrar === 'function')
+      ? (String(ccSeccionesCerrar).indexOf('.value') >= 0) : 'SIN FN', false]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
