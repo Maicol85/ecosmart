@@ -1,3 +1,22 @@
+## PANT-17b — la transparencia del 3D, la Evidencia que se arma con lo contestado y el control de las diez secciones (2026-11-06)
+
+**Seis commits.** La transparencia del corazon maestro (el material de malla de alambre pasa a un
+sombreado de silueta con alfa por pixel); el inventario del formato y el control de las diez
+secciones, de solo lectura; el formato nuevo de la Evidencia de congenitas en diecisiete
+secciones, con un solo emisor; y el control, que agrego ocho recomendaciones leidas en imagen y
+dos preguntas nuevas.
+
+- **Lo medido**: el centro de una estructura sin color deja ver del **95,1 % al 100 %** de lo que
+  se ve con esa estructura oculta, contra **2,9 % a 80,9 %** con la malla anterior, en 40
+  mediciones por tema y por motor. El contenido visible de la Evidencia del ductus con 10 Si y 3
+  No baja de **2.582 a 2.145 px** a 1440 y de **4.838 a 3.827** a 390.
+- **Cobertura**: TC-720, TC-721 y TC-722 nuevos; **24/24** mutaciones dirigidas muertas; trece
+  casos viejos adaptados.
+- **Papel**: CERO diferencias de superficie firmada.
+- **Donde esta**: `docs/mapa/pant17b-transparencia-evidencia.md`,
+  `docs/INVENTARIO_EVIDENCIA_P17B.md`, `docs/CONTROL_EVIDENCIA_P17B.md`,
+  `docs/GUIA_PRUEBA_PANT17B.md`, `docs/PENDIENTES.md` → P17b-a a P17b-f.
+
 # EcoSmart — registro de tandas
 
 

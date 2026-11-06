@@ -102117,6 +102117,20 @@ function _indObsPreg(PREG){
   });
   return { clinica: clinica, siDet: _siDet, si: _si, no: _no, sd: _sd };
 }
+/* ⚠️ ESTA CONSTANTE VOLVIO A SU LUGAR (PANT-17b, commit 6): el commit 3 retiro el ayudante
+   `_indObsAplican`, que habia quedado sin llamadores, borrando desde su `function` HASTA LA
+   FUNCION SIGUIENTE — y entre las dos vivia esto. `_indESUB` y `_indEASV` lanzaban
+   «OBS_NOTAS is not defined» y las dos secciones desaparecian del panel SIN un error visible,
+   porque el bucle de `IND_SECS` atrapa la excepcion. Lo encontro TC-322, que es justo el caso
+   que exige que TODAS las secciones del registro abran. Es el mismo modo de falla que PANT-3
+   pago cortando un bloque «hasta el siguiente»: se corta por BALANCE, no por el vecino. */
+/* Las tres notas del pie, iguales en las dos secciones. */
+const OBS_NOTAS = Object.freeze([
+  'El gradiente que gradúa la severidad es el MEDIO. Las dos guías lo dicen, y la nota al pie c de las dos tablas de la ESC 2020 agrega que los gradientes por Doppler pueden sobrestimar la obstrucción y pueden necesitar confirmación por cateterismo.',
+  'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+  'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
+]);
+
 function _indESUB(){
   const fn = _indFn('esubEstado');
   const r = fn ? fn() : null;
@@ -163339,8 +163353,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261106-0223';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793942621889;                 /* eco-build-ms */
+const ECO_BUILD    = '20261106-0912';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793967172622;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -163426,7 +163440,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0223</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0912</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

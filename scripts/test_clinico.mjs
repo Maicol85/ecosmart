@@ -93064,7 +93064,18 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
            van DESPUES de los datos— se mide igual descontandolo. */
         /* El atributo va en el BOTON y no en el div que lo envuelve: preguntarselo al hijo
            directo daba falso y la condicion seguia contando el envoltorio. Costo una corrida. */
-        const utiles = hijos.filter(function (x) { return !x.querySelector('[data-ind-colbtn]') });
+        /* ADAPTADO el 2026-11-06 (tanda PANT-17b, commit 3): en las secciones de CONGENITAS que
+           se convirtieron al formato nuevo, el recuadro «Con lo contestado» va ARRIBA, antes de
+           la grilla — es la decision del medico del 06 y 07/11 y es el cambio central de esa
+           tanda. Ese recuadro NO es un bloque de recomendaciones de la guia: es lo que las
+           respuestas de ESTE paciente sostienen, y lo teorico bajo a un plegable. Asi que se
+           descuenta igual que el boton de columnas, y lo que esta condicion sigue vigilando
+           —que los BLOQUES de la guia vayan DESPUES de los datos— se mide sin tocarlo. */
+        const utiles = hijos.filter(function (x) {
+          if (x.querySelector('[data-ind-colbtn]')) return false;
+          const t0 = N(x.textContent).slice(0, 18);
+          if (t0.indexOf('Con lo contestado') === 0) return false;
+          return true });
         const iG = utiles.indexOf(cuerpo ? cuerpo.querySelector('[data-ind-grid]') : null);
         return { t: N((d.querySelector('summary') || {}).textContent).slice(0, 28), i: iG }; })
       .filter(o => o.i !== 0);
@@ -101934,17 +101945,30 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
              conCtrl: _ctrl, hdrs: _hdrs,
              otras: (R.clinica || []).length - _ctrl - _hdrs,
              bloques: (R.bloques || []).length, cl: cl, lin: lin,
+             /* ⚠️ PANT-17b: los rotulos de las preguntas se publican aparte, porque la lista larga
+                que los repetia dentro de los bloques se retiro. El control positivo de las frases
+                mira las dos cosas: lo que el bloque dice y lo que la pregunta pregunta. */
+             lbls: (R.clinica || []).map(function (f) { return String(f && f.lbl || '') }).join(' ; '),
              /* Las marcas, SOLO de las preguntas: el contador y los rotulos no son respuestas. */
              marcas: (R.clinica || []).filter(function (f) { return !!f.ctrl })
                        .map(function (f) { return f.marca }).join(','),
-             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
+             bal: (function () {
+               /* ⚠️ PANT-17b, commit 3: el parrafo de balance salio del panel y su contenido vive en
+                  el recuadro «Con lo contestado». Se arma de adapt y de faltan, que son los DATOS
+                  con que la seccion alimenta ese recuadro, asi que la condicion mide lo mismo que
+                  antes -que el panel distinga «si», «no» y «sin dato»- sin depender del DOM. */
+               const _a = (R.adapt || []), _f = (R.faltan || []);
+               return 'Con lo contestado (' + _a.length + ') '
+                    + _a.map(function (q) { return String(q && q.lbl || '') }).join(' ; ')
+                    + (_f.length ? ' Falta contestar: ' + _f.join(' ; ') : '');
+             })() }; };
 
   montar('dtga', 'auricular');
   const A = leer();
   ex.push(['(A1) switch auricular: once recomendaciones de la tabla, por clase',
            A.cl ? (A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III) : 'NULL', '6/3/1/1']);
-  ex.push(['(A2) DIECIOCHO preguntas con botonera, CUATRO rotulos de grupo y UNA fila de contador',
-    A.conCtrl + '/' + A.hdrs + '/' + A.otras, '18/4/1']);
+  ex.push(['(A2) DIECIOCHO preguntas con botonera, CUATRO rotulos de grupo y NINGUNA fila de contador: salio al encabezado (PANT-17b)',
+    A.conCtrl + '/' + A.hdrs + '/' + A.otras, '18/4/0']);
   ex.push(['(A3) y TRES bloques: el de la guia que rige, el de la anterior y el general', A.bloques, 3]);
 
   montar('dtga', 'jatene');
@@ -101974,14 +101998,14 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
   const B0 = leer();
   ex.push(['(B1) sin contestar nada, las DIECIOCHO marcas son «falta el dato»',
            B0.marcas, 'ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
-  ex.push(['(B2) y el balance dice cuantas faltan',
-           tiene(B0.bal, 'quedan 18 sin contestar'), 'si']);
+  ex.push(['(B2) y el recuadro dice que ninguna respuesta lo sostiene y que falta contestar (PANT-17b)',
+           tiene(B0.bal, 'Con lo contestado (0)') + tiene(B0.bal, 'Falta contestar'), 'sisi']);
   try { _indClin['tga.ev.baffuga'] = 'si'; _indClin['tga.ev.cianosis'] = 'no'; } catch (e) {}
   const B1 = leer();
   ex.push(['(B3) contestada «si» la marca es de aviso y contestada «no» es de medido',
            B1.marcas, 'ask,ask,ask,ask,ask,ask,warn,none,ask,ask,ask,ask,ask,ask,ask,ask,ask,ask']);
   ex.push(['(C1) el balance cuenta la presente y NOMBRA las que faltan',
-           tiene(B1.bal, 'Condiciones presentes en este paciente: 1 de 18') + tiene(B1.bal, 'Sin contestar'), 'sisi']);
+           tiene(B1.bal, 'Con lo contestado (1)') + tiene(B1.bal, 'Falta contestar'), 'sisi']);
   /* El tercer estado se distingue de los otros DOS: la contestada «no» no entra en las
      presentes y tampoco en la lista de lo que falta contestar. Esa doble ausencia es lo que
      prueba que «no» y «sin dato» no son lo mismo. */
@@ -102019,8 +102043,8 @@ caso('TC-565', 'Tanda TGA-2: el panel de Evidencia de la transposicion publica l
   montar('dtga', 'auricular');
   const P = leer();
   ex.push(['(E5) CONTROL POSITIVO: las cuatro frases SI estan en el panel',
-           tiene(P.lin.join(' '), 'stent cubierto') + tiene(P.lin.join(' '), 'túnel auricular') +
-           tiene(P.lin.join(' '), 'folio 619') + tiene(P.lin.join(' '), 'centro especializado'), 'sisisisi']);
+           tiene(P.lin.join(' ') + ' ' + P.lbls, 'stent cubierto') + tiene(P.lin.join(' ') + ' ' + P.lbls, 'túnel auricular') +
+           tiene(P.lin.join(' ') + ' ' + P.lbls, 'folio 619') + tiene(P.lin.join(' ') + ' ' + P.lbls, 'centro especializado'), 'sisisisi']);
 
   /* ── (F) lo contestado no viaja con el estudio ── */
   try { _indClin['tga.ev.baffuga'] = 'si'; } catch (e) {}
@@ -102096,10 +102120,23 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
     return { aplica: true, filas: R.filas || [], preg: _ctrl2.length,
              conCtrl: _ctrl2.length,
              otras: (R.clinica || []).length - _ctrl2.length,
-             bloques: (R.bloques || []).length, cl: cl, lin: lin, guia: R.guia ? R.guia.ref : 'SIN GUIA',
+             bloques: (R.bloques || []).length, cl: cl, lin: lin,
+             /* ⚠️ PANT-17b: los rotulos de las preguntas se publican aparte, porque la lista larga
+                que los repetia dentro de los bloques se retiro. El control positivo de las frases
+                mira las dos cosas: lo que el bloque dice y lo que la pregunta pregunta. */
+             lbls: (R.clinica || []).map(function (f) { return String(f && f.lbl || '') }).join(' ; '), guia: R.guia ? R.guia.ref : 'SIN GUIA',
              notas: (R.notas || []).filter(Boolean),
              marcas: _ctrl2.map(function (f) { return f.marca }).join(','),
-             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0 || t.indexOf('contestadas y ninguna') >= 0; })[0] || 'SIN BALANCE' }; };
+             bal: (function () {
+               /* ⚠️ PANT-17b, commit 3: el parrafo de balance salio del panel y su contenido vive en
+                  el recuadro «Con lo contestado». Se arma de adapt y de faltan, que son los DATOS
+                  con que la seccion alimenta ese recuadro, asi que la condicion mide lo mismo que
+                  antes -que el panel distinga «si», «no» y «sin dato»- sin depender del DOM. */
+               const _a = (R.adapt || []), _f = (R.faltan || []);
+               return 'Con lo contestado (' + _a.length + ') '
+                    + _a.map(function (q) { return String(q && q.lbl || '') }).join(' ; ')
+                    + (_f.length ? ' Falta contestar: ' + _f.join(' ; ') : '');
+             })() }; };
 
   /* ══ (A) LA COMUNICACION INTERAURICULAR ══ */
   limpiar();
@@ -102108,7 +102145,7 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(A1) DENOMINADOR: la escena despierta la seccion', A.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(A2) las nueve filas de la tabla, por clase',
            A.cl.I + '/' + A.cl.IIa + '/' + A.cl.IIb + '/' + A.cl.III, '5/2/1/1']);
-  ex.push(['(A3) CATORCE preguntas con botonera y UNA fila de contador', A.conCtrl + '/' + A.otras, '14/1']);
+  ex.push(['(A3) CATORCE preguntas con botonera y NINGUNA fila de contador: salio al encabezado (PANT-17b)', A.conCtrl + '/' + A.otras, '14/0']);
   ex.push(['(A4) CINCO bloques: el de la guia que rige y los cuatro de la anterior', A.bloques, 5]);
   ex.push(['(A5) el tipo y el tamano se LEEN, no se preguntan',
            (function () { const f = A.filas.filter(function (x) { return x.lbl.indexOf('Tipo de comunicación') === 0 })[0];
@@ -102125,9 +102162,9 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   try { _indClin['cia.ev.rvp25'] = 'si'; _indClin['cia.ev.vi'] = 'no'; } catch (e) {}
   const A2 = leer(sCIA);
   ex.push(['(A10) los TRES estados se distinguen', A2.marcas, 'ask,ask,ask,warn,ask,ask,ask,none,ask,ask,ask,ask,ask,ask']);
-  ex.push(['(A11) y el balance cuenta la presente', tiene(A2.bal, 'Condiciones presentes en este paciente: 1 de 14'), 'si']);
+  ex.push(['(A11) y el balance cuenta la presente', tiene(A2.bal, 'Con lo contestado (1)'), 'si']);
   ex.push(['(C3) CONTROL NEGATIVO: la contestada «no» sigue fuera de las presentes y no vacia lo que falta',
-           tiene(A2.bal, 'Sin contestar') + tiene(A2.bal, 'Enfermedad del ventrículo izquierdo'), 'sino']);
+           tiene(A2.bal, 'Falta contestar') + tiene(A2.bal, 'Enfermedad del ventrículo izquierdo'), 'sino']);
 
   /* ══ (B) LA COMUNICACION INTERVENTRICULAR ══ */
   limpiar();
@@ -102136,7 +102173,7 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   ex.push(['(B1) DENOMINADOR: la escena despierta la seccion', B.aplica ? 'si' : 'NO', 'si']);
   ex.push(['(B2) las seis filas de la tabla, por clase',
            B.cl.I + '/' + B.cl.IIa + '/' + B.cl.IIb + '/' + B.cl.III, '1/3/1/1']);
-  ex.push(['(B3) CATORCE preguntas con botonera y UNA fila de contador', B.conCtrl + '/' + B.otras, '14/1']);
+  ex.push(['(B3) CATORCE preguntas con botonera y NINGUNA fila de contador: salio al encabezado (PANT-17b)', B.conCtrl + '/' + B.otras, '14/0']);
   ex.push(['(B4) CUATRO bloques: el de la guia que rige y los tres de la anterior', B.bloques, 4]);
   ex.push(['(B5) las tres filas de solo lectura viejas ahora se contestan, y ninguna quedo como texto muerto',
            (function () { const R = sCIV.fn(); const lbls = (R.clinica || []).map(function (x) { return x.lbl });
@@ -102151,7 +102188,7 @@ caso('TC-566', 'Tanda TGA-2: los paneles de Evidencia de la comunicacion interau
   try { _indClin['civ.ev.endocarditis'] = 'si'; } catch (e) {}
   const B2 = leer(sCIV);
   ex.push(['(B9) contestada una, su marca cambia y el balance la cuenta',
-           B2.marcas + ' · ' + (tiene(B2.bal, 'Condiciones presentes en este paciente: 1 de 14')),
+           B2.marcas + ' · ' + (tiene(B2.bal, 'Con lo contestado (1)')),
            'ask,ask,ask,ask,ask,ask,ask,ask,ask,warn,ask,ask,ask,ask · si']);
 
   /* ══ (E) EL PAPEL ══ */
@@ -102231,9 +102268,22 @@ caso('TC-567', 'Tanda TGA-2 + AJUSTES-3: la tabla de recomendaciones 23 de la ES
       if (t.indexOf('Clase IIa') === 0) cl.IIa++; if (t.indexOf('Clase IIb') === 0) cl.IIb++; });
     return { aplica: true, filas: R.filas || [], preg: (R.clinica || []).length,
              conCtrl: (R.clinica || []).filter(function (f) { return !!f.ctrl }).length,
-             bloques: (R.bloques || []).length, cl: cl, lin: lin, guia: R.guia ? R.guia.ref : 'SIN GUIA',
+             bloques: (R.bloques || []).length, cl: cl, lin: lin,
+             /* ⚠️ PANT-17b: los rotulos de las preguntas se publican aparte, porque la lista larga
+                que los repetia dentro de los bloques se retiro. El control positivo de las frases
+                mira las dos cosas: lo que el bloque dice y lo que la pregunta pregunta. */
+             lbls: (R.clinica || []).map(function (f) { return String(f && f.lbl || '') }).join(' ; '), guia: R.guia ? R.guia.ref : 'SIN GUIA',
              marcas: (R.clinica || []).map(function (f) { return f.marca }).join(','),
-             bal: lin.filter(function (t) { return t.indexOf('sin contestar') >= 0 || t.indexOf('Condiciones presentes') >= 0; })[0] || 'SIN BALANCE' }; };
+             bal: (function () {
+               /* ⚠️ PANT-17b, commit 3: el parrafo de balance salio del panel y su contenido vive en
+                  el recuadro «Con lo contestado». Se arma de adapt y de faltan, que son los DATOS
+                  con que la seccion alimenta ese recuadro, asi que la condicion mide lo mismo que
+                  antes -que el panel distinga «si», «no» y «sin dato»- sin depender del DOM. */
+               const _a = (R.adapt || []), _f = (R.faltan || []);
+               return 'Con lo contestado (' + _a.length + ') '
+                    + _a.map(function (q) { return String(q && q.lbl || '') }).join(' ; ')
+                    + (_f.length ? ' Falta contestar: ' + _f.join(' ; ') : '');
+             })() }; };
 
   limpiar();
   pon('mch_espesor', '18'); pon('mch_grad_valsalva', '70'); pon('mch_cf', 'iii_iv');
@@ -102291,7 +102341,7 @@ caso('TC-567', 'Tanda TGA-2 + AJUSTES-3: la tabla de recomendaciones 23 de la ES
   const B = leer();
   ex.push(['(B2) los tres estados se distinguen', B.marcas, 'ask,warn,none']);
   ex.push(['(B3) CONTROL NEGATIVO: la contestada «no» no entra en las presentes',
-           tiene(B.bal, 'Condiciones presentes en este paciente: 1 de 3') + tiene(B.bal, 'Sin contestar'), 'sisi']);
+           tiene(B.bal, 'Con lo contestado (1)') + tiene(B.bal, 'Falta contestar'), 'sisi']);
 
   /* ── (C) EL PPT SIGUE PARADO, y aca se dice por que ── */
   limpiar();
@@ -108891,24 +108941,24 @@ caso('TC-616', 'Tanda TGA-4: el panel de Evidencia de la transposicion es compac
   const cuenta = (t) => { let c = 0, i = 0; while ((i = txt.indexOf(t, i)) >= 0) { c++; i++ } return c };
   ex.push(['(E1) la frase de que no se guarda se dice UNA vez', cuenta('no se guarda con el estudio'), 1]);
   /* (F) EL CONTADOR y los TRES ESTADOS, con su control negativo. */
-  ex.push(['(F1) el contador arranca en cero y cero', txt.indexOf('0 en Sí · 0 en No · 18 sin dato') >= 0, true]);
+  ex.push(['(F1) el contador arranca en cero y cero', txt.indexOf('0 Sí · 0 No · 18 sin dato') >= 0, true]);
   const tocar = async (clave, val) => {
     const b = document.querySelector('[data-ind-clin="' + clave + '"][data-ind-val="' + val + '"]');
     if (b) b.click(); await esperar(120); return !!b;
   };
   ex.push(['(F2) DENOM: se pudo contestar la primera pregunta', await tocar('tga.ev.icprog', 'si'), true]);
   n = sec(); let t2 = n ? String(n.textContent || '') : '';
-  ex.push(['(F3) el contador lo registra', t2.indexOf('1 en Sí · 0 en No · 17 sin dato') >= 0, true]);
-  ex.push(['(F4) y la lista de recomendaciones que aplican sale con su numero',
-    t2.indexOf('Recomendaciones que aplican con lo contestado (1)') >= 0, true]);
+  ex.push(['(F3) el contador lo registra', t2.indexOf('1 Sí · 0 No · 17 sin dato') >= 0, true]);
+  ex.push(['(F4) y el recuadro «Con lo contestado» sale con su numero (PANT-17b: reemplaza a la lista larga)',
+    t2.indexOf('Con lo contestado (1)') >= 0, true]);
   /* ⚠️ EL CONTROL NEGATIVO DE LA ORDEN: «sin dato» NO cuenta como «no». Si contara, el
      contador diria «0 en Sí · 1 en No · 17 sin dato». */
   ex.push(['(F5) DENOM: se pudo tocar el tercer estado', await tocar('tga.ev.icprog', '__sd'), true]);
   n = sec(); t2 = n ? String(n.textContent || '') : '';
   ex.push(['(F6) CONTROL NEGATIVO: «sin dato» vuelve a sin dato y NO cuenta como «no»',
-    t2.indexOf('0 en Sí · 0 en No · 18 sin dato') >= 0, true]);
-  ex.push(['(F7) y la lista de recomendaciones desaparece',
-    t2.indexOf('Recomendaciones que aplican con lo contestado') >= 0, false]);
+    t2.indexOf('0 Sí · 0 No · 18 sin dato') >= 0, true]);
+  ex.push(['(F7) y el recuadro vuelve a decir que ninguna respuesta lo sostiene',
+    t2.indexOf('Con lo contestado (') >= 0, false]);
   /* (H) ⚠️ EL ⓘ SE ABRE DEBAJO DE LA FILA Y LA FILA NO CRECE. En modo compacto el rotulo es la
      celda golosa y la del ⓘ queda en treinta pixeles: sin la regla que lo saca de la celda, la
      nota se dibuja en una tira de 103 px de ancho por 590 de alto y la fila pasa de 55 a 637
@@ -109050,7 +109100,8 @@ caso('TC-618', 'Tanda TGA-4: la CIA y la CIV usan el panel compacto con el mismo
              grupos: n.querySelectorAll('[data-ind-grupo]').length,
              frase: cuenta(txt, 'no se guarda con el estudio'),
              clase: cuenta(txt, 'Clase '), folio: cuenta(txt, 'folio '),
-             contador: txt.indexOf(' en Sí · ') >= 0 ? 'si' : 'no',
+             /* PANT-17b: el conteo vive en el encabezado y dice «N Si - N No - N sin dato» */
+             contador: txt.indexOf(' Sí · ') >= 0 && txt.indexOf(' sin dato') >= 0 ? 'si' : 'no',
              bot: filas[0] ? filas[0].querySelectorAll('button[data-ind-clin]').length : 0 };
   };
   /* ── LA CIA ── */
@@ -109074,7 +109125,10 @@ caso('TC-618', 'Tanda TGA-4: la CIA y la CIV usan el panel compacto con el mismo
   ex.push(['(A9) y el contador esta', A.contador, 'si']);
   /* ⚠️ EL CONTEO DE CITAS ES EL INVARIANTE: el commit cambia donde se muestra, no que se dice.
      Los numeros son los medidos ANTES de la tanda, con la seccion desplegada. */
-  ex.push(['(A10) el conteo de «Clase» de la CIA no cambio', A.clase, 52]);
+  /* ⚠️ ADAPTADA (PANT-17b, commit 4): el bloque de la CIA gana la recomendacion 2 de la ACC/AHA
+     -evaluacion del riesgo con especialistas en hipertension pulmonar, Clase 1 · Nivel B-NR, hoja
+     35, folio e149-, leida en imagen. Una «Clase» mas, y el resto no se movio. */
+  ex.push(['(A10) el conteo de «Clase» de la CIA sube en UNA: la recomendacion 2 de la ACC/AHA', A.clase, 53]);
   ex.push(['(A11) y el de «folio» tampoco', A.folio, 35]);
   /* ── LA CIV ── */
   if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
@@ -109093,7 +109147,7 @@ caso('TC-618', 'Tanda TGA-4: la CIA y la CIV usan el panel compacto con el mismo
   ex.push(['(B5) cada una lleva su etiqueta de guia', B.badges, 14]);
   ex.push(['(B6) SIN grupos', B.grupos, 0]);
   ex.push(['(B7) la frase del pie se dice UNA vez', B.frase, 1]);
-  ex.push(['(B8) el conteo de «Clase» de la CIV no cambio', B.clase, 19]);
+  ex.push(['(B8) el conteo de «Clase» de la CIV sube en UNA: la recomendacion 3 de la ACC/AHA (PANT-17b, commit 4)', B.clase, 20]);
   ex.push(['(B9) y el de «folio» tampoco', B.folio, 10]);
   /* ── EL CONTROL: LA BICUSPIDE comparte el molde y NO se toca ── */
   if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
@@ -110889,12 +110943,18 @@ caso('TC-635', 'Tanda PANT-4: la conclusion de pantalla de las dos estenosis no 
   ex.push(['(C9) y el tercero pone el centinela de sin dato, no una cadena vacia',
     (pA.length && pA[0].ctrl.ops.length === 3 && typeof IND_SD_VAL !== 'undefined')
       ? pA[0].ctrl.ops[2].v === IND_SD_VAL : 'NO HAY', true]);
-  /* «SIN DATO» NO ES «NO»: la fila de resumen lo dice. */
-  const res = (A && A.clinica ? A.clinica : []).filter(function (f) { return f && !f.ctrl })[0];
-  ex.push(['(C10) la fila de resumen dice que sin dato no cuenta como no',
-    res && String(res.nota || '').indexOf('no cuenta como «no»') >= 0, true]);
+  /* «SIN DATO» NO ES «NO», Y DESDE PANT-17b LO DICE EL CONTEO DEL ENCABEZADO Y NO UNA FILA.
+     ⚠️ ADAPTADA: la fila de resumen salio de la tabla -su celda mide unos 60 px y partia el texto
+     en siete lineas-, y el conteo vive ahora en el campo cuenta, que es lo que el emisor pinta
+     en el encabezado de la seccion. La condicion mide lo mismo sobre la pieza que hoy lo publica,
+     y gana una mitad: que NINGUNA fila de la tabla vuelva a llamarse asi. */
+  const res = A && A.cuenta;
+  ex.push(['(C10) el conteo del encabezado distingue los TRES estados',
+    res ? (typeof res.si === 'number' && typeof res.no === 'number' && typeof res.sd === 'number') : 'NO HAY', true]);
+  ex.push(['(C10b) y ninguna fila de la tabla se llama «Respuestas»',
+    (A && A.clinica ? A.clinica : []).filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(C11) y arranca con las SIETE sin contestar',
-    res ? String(res.val).indexOf('7 sin dato') >= 0 : 'NO HAY', true]);
+    res ? res.sd : 'NO HAY', 7]);
   /* LAS CITAS: las dos secciones citan las DOS guias, con hoja y folio. */
   const tA = JSON.stringify(A), tB = JSON.stringify(B);
   [['(C12)','folio e166'],['(C13)','folio 603'],['(C14)','hoja 52'],['(C15)','hoja 41']].forEach(function (p) {
@@ -114094,8 +114154,13 @@ caso('TC-669', 'Tanda PANT-10: la Evidencia de Defecto del septo auriculoventric
   /* ── (B) LAS PREGUNTAS ── */
   /* El DSAV tiene TRECE preguntas y la primera version de este caso decia doce: se corrige
      el CASO, no la aplicacion, porque el numero real es el que la seccion publica. */
-  ex.push(['(B1) tiene 13 preguntas mas la fila de Respuestas', clin.length, 13 + 1]);
-  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B1) tiene 14 preguntas y NINGUNA fila de Respuestas: el conteo salio de la tabla al encabezado (PANT-17b, commit 3)', clin.length, 14]);
+  /* ⚠️ INVERTIDA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla porque su celda
+     mide unos 60 px y partia el texto en siete lineas. El conteo vive ahora en el encabezado de la
+     seccion, en UNA linea, y la condicion exige las dos mitades: que ninguna fila se llame asi y
+     que el encabezado la traiga. Puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(B2) NINGUNA fila de la tabla se llama «Respuestas»',
+    clin.filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
     String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
   ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
@@ -114194,8 +114259,13 @@ caso('TC-670', 'Tanda PANT-10: la Evidencia de Anomalía de Ebstein -sus filas d
   const bloq  = (r && r.bloques) ? r.bloques : [];
   ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
   /* ── (B) LAS PREGUNTAS ── */
-  ex.push(['(B1) tiene 12 preguntas mas la fila de Respuestas', clin.length, 12 + 1]);
-  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B1) tiene 12 preguntas y NINGUNA fila de Respuestas: el conteo salio de la tabla al encabezado (PANT-17b, commit 3)', clin.length, 12]);
+  /* ⚠️ INVERTIDA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla porque su celda
+     mide unos 60 px y partia el texto en siete lineas. El conteo vive ahora en el encabezado de la
+     seccion, en UNA linea, y la condicion exige las dos mitades: que ninguna fila se llame asi y
+     que el encabezado la traiga. Puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(B2) NINGUNA fila de la tabla se llama «Respuestas»',
+    clin.filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
     String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
   ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
@@ -114299,8 +114369,13 @@ caso('TC-671', 'Tanda PANT-10: la Evidencia de Circulación de Fontan -sus filas
   const bloq  = (r && r.bloques) ? r.bloques : [];
   ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
   /* ── (B) LAS PREGUNTAS ── */
-  ex.push(['(B1) tiene 14 preguntas mas la fila de Respuestas', clin.length, 14 + 1]);
-  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B1) tiene 14 preguntas y NINGUNA fila de Respuestas: el conteo salio de la tabla al encabezado (PANT-17b, commit 3)', clin.length, 14]);
+  /* ⚠️ INVERTIDA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla porque su celda
+     mide unos 60 px y partia el texto en siete lineas. El conteo vive ahora en el encabezado de la
+     seccion, en UNA linea, y la condicion exige las dos mitades: que ninguna fila se llame asi y
+     que el encabezado la traiga. Puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(B2) NINGUNA fila de la tabla se llama «Respuestas»',
+    clin.filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
     String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
   ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
@@ -114399,8 +114474,13 @@ caso('TC-672', 'Tanda PANT-10: la Evidencia de Conexión venosa pulmonar anómal
   const bloq  = (r && r.bloques) ? r.bloques : [];
   ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
   /* ── (B) LAS PREGUNTAS ── */
-  ex.push(['(B1) tiene 9 preguntas mas la fila de Respuestas', clin.length, 9 + 1]);
-  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B1) tiene 10 preguntas y NINGUNA fila de Respuestas: el conteo salio de la tabla al encabezado (PANT-17b, commit 3)', clin.length, 10]);
+  /* ⚠️ INVERTIDA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla porque su celda
+     mide unos 60 px y partia el texto en siete lineas. El conteo vive ahora en el encabezado de la
+     seccion, en UNA linea, y la condicion exige las dos mitades: que ninguna fila se llame asi y
+     que el encabezado la traiga. Puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(B2) NINGUNA fila de la tabla se llama «Respuestas»',
+    clin.filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
     String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
   ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
@@ -114499,8 +114579,13 @@ caso('TC-673', 'Tanda PANT-10: la Evidencia de Síndrome de Eisenmenger -sus fil
   const bloq  = (r && r.bloques) ? r.bloques : [];
   ex.push(['(A2) DENOMINADOR: publica su franja de datos del estudio', filas.length >= 6, true]);
   /* ── (B) LAS PREGUNTAS ── */
-  ex.push(['(B1) tiene 14 preguntas mas la fila de Respuestas', clin.length, 14 + 1]);
-  ex.push(['(B2) la primera fila es el recuento de Respuestas', (clin[0] || {}).lbl, 'Respuestas']);
+  ex.push(['(B1) tiene 14 preguntas y NINGUNA fila de Respuestas: el conteo salio de la tabla al encabezado (PANT-17b, commit 3)', clin.length, 14]);
+  /* ⚠️ INVERTIDA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla porque su celda
+     mide unos 60 px y partia el texto en siete lineas. El conteo vive ahora en el encabezado de la
+     seccion, en UNA linea, y la condicion exige las dos mitades: que ninguna fila se llame asi y
+     que el encabezado la traiga. Puede volver a fallar por cualquiera de los dos lados. */
+  ex.push(['(B2) NINGUNA fila de la tabla se llama «Respuestas»',
+    clin.filter(function (f) { return f && f.lbl === 'Respuestas' }).length, 0]);
   ex.push(['(B3) y declara que «sin dato» no cuenta como «no»',
     String((clin[0] || {}).nota || '').indexOf('no cuenta como') > -1, true]);
   ex.push(['(B4) por tener mas de 6 preguntas va en DOS columnas', !!(r && r.preguntas), true]);
@@ -119499,8 +119584,10 @@ caso('TC-714', 'Tanda PANT-17 (commit 3a): el ductus publica trece preguntas de 
   S('dap_tipo', 'no_restrictivo'); S('dap_diam', '4');
   const r0 = lee();
   ex.push(['(B1 DENOM) con el ductus cargado SI abre', !!(r0 && r0.clinica), true]);
-  ex.push(['(B2) y publica las trece preguntas mas la fila de respuestas',
-    r0 ? r0.clinica.length : -1, 14]);
+  /* ⚠️ ADAPTADA (PANT-17b, commit 3): la fila «Respuestas» salio de la tabla al encabezado, asi
+     que la tabla publica las trece preguntas y nada mas. */
+  ex.push(['(B2) y publica las trece preguntas, sin la fila de respuestas',
+    r0 ? r0.clinica.length : -1, 13]);
   ex.push(['(B3) la seccion es compacta y declara que tiene preguntas',
     r0 ? (!!r0.compacta && !!r0.preguntas) : false, true]);
   /* LA PRE-RESPUESTA, POR SUS TRES VALORES. La fila pre-respondida NO trae botonera. */
@@ -119929,6 +120016,355 @@ caso('TC-719', 'Tanda PANT-17 (commit 7): tocar una estructura del corazon maest
                 ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
   ex.forEach(function (t) { _out.push(_conv(t)) });
   return { extra: _out };
+  })();
+`);
+
+/* -- TC-720 ---------------------------------------------------------------------------------
+   PANT-17b, commit 1. La transparencia de una estructura sin color del corazon maestro.
+   Mide POR PIXELES y no por geometria -un contorno no mueve un solo punto, que es la leccion de
+   PANT-14- comparando TRES cuadros del MISMO dibujo: todo normal, la estructura sin color, y la
+   MISMA estructura oculta por completo. Trae su CONTROL POSITIVO adentro: repone el material de
+   malla de alambre que PANT-17 dejaba y vuelve a medir, y ahi el interior tiene que ensuciarse.
+   DENOMINADORES: el lienzo existe, hay piezas tocables y la silueta no esta vacia. */
+caso('TC-720', 'Tanda PANT-17b (commit 1): una estructura sin color del corazon maestro deja ver lo que tiene detras -el centro casi del todo transparente y solo la silueta con halo-, y con la malla de alambre anterior no', `
+  /* El cuerpo se envuelve en una IIFE ASYNC: la funcion que lo recibe NO es async, asi que un
+     await suelto tira «await is only valid in async functions». Es la leccion de MARFAN-2. */
+  return (async () => {
+  const ex = [];
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const Q2 = String.fromCharCode(39);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  try { const b1 = bq('showTab(' + Q2 + 'congenitas' + Q2); if (b1) b1.click() } catch (e) {}
+  await esperar(420);
+  const ab = document.getElementById('cc3d-abrir'); if (ab) ab.click();
+  await esperar(4200);
+  const host = document.getElementById('cm3d-cv');
+  const cv = host ? host.querySelector('canvas') : null;
+  ex.push(['(A0 DENOM) el lienzo del corazon maestro existe', !!cv, true]);
+  ex.push(['(A1 DENOM) las piezas del dibujo son alcanzables', typeof window._cm3dPiezas, 'function']);
+  const piezas = (typeof window._cm3dPiezas === 'function') ? window._cm3dPiezas() : null;
+  const st = (typeof _cm3dEstado === 'function') ? _cm3dEstado() : null;
+  if (!cv || !piezas || !st) { ex.push(['(A2) sin lienzo no se mide nada', 'sin lienzo', 'ok']); return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]), 'esperado ' + t[2] + ', hallado ' + t[1]]) } }
+  try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
+  st.S.base = 'tga'; st.S.bv = Object.assign({}, st.S.bv, { tga: 'd' }); st.S.mods = {}; st.S.ck = {};
+  st.fc = 0; st.ins = false;
+  try { window.cm3dSync() } catch (e) {}
+  try { _cm3dInsSet() } catch (e) {}
+  try { _cm3dVistaSet(0.6) } catch (e) {}
+  await esperar(700);
+  /* el fondo real del recuadro: los tres cuadros se componen sobre el, que es lo que se ve */
+  const bgDe = (e) => { while (e) { const c = getComputedStyle(e).backgroundColor;
+    if (c && c.indexOf('rgba(0, 0, 0, 0)') < 0 && c !== 'transparent') return c; e = e.parentElement } return 'rgb(255,255,255)' };
+  const mm = (bgDe(host).match(/[0-9]+/g) || ['255','255','255']).map(Number);
+  const foto = () => { const o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height;
+    const x = o.getContext('2d');
+    x.fillStyle = 'rgb(' + mm[0] + ',' + mm[1] + ',' + mm[2] + ')'; x.fillRect(0, 0, o.width, o.height);
+    x.drawImage(cv, 0, 0);
+    try { return x.getImageData(0, 0, o.width, o.height) } catch (e) { return null } };
+  /* la pieza mas gruesa, que es una cavidad */
+  let obj = null, rmax = -1;
+  piezas.forEach(function (ob) {
+    if (!ob || !ob.isMesh || !ob.visible) return;
+    if (ob.userData && ob.userData.cmNoTocar) return;
+    if (!(ob.userData && ob.userData.cmK)) return;
+    const g = ob.geometry; if (!g) return;
+    if (!g.boundingSphere) { try { g.computeBoundingSphere() } catch (e) {} }
+    const r = (g.boundingSphere ? g.boundingSphere.radius : 0);
+    if (r > rmax) { rmax = r; obj = ob }
+  });
+  ex.push(['(A2 DENOM) hay una pieza tocable para apagar', !!obj, true]);
+  if (!obj) return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]), 'esperado ' + t[2] + ', hallado ' + t[1]]) };
+  const medir = async () => {
+    const A = foto();
+    obj.visible = false; await esperar(220); const C = foto(); obj.visible = true;
+    st.sinColor[obj.userData.cmK] = 1; try { _cm3dInsSet() } catch (e) {}
+    await esperar(220); const B = foto();
+    delete st.sinColor[obj.userData.cmK]; try { _cm3dInsSet() } catch (e) {}
+    await esperar(120);
+    if (!A || !B || !C) return null;
+    const w = A.width, h = A.height, a = A.data, b = B.data, c = C.data;
+    const dif = (d1, d2, i) => Math.max(Math.abs(d1[i] - d2[i]), Math.abs(d1[i+1] - d2[i+1]), Math.abs(d1[i+2] - d2[i+2]));
+    const difBg = (d, i) => Math.max(Math.abs(d[i] - mm[0]), Math.abs(d[i+1] - mm[1]), Math.abs(d[i+2] - mm[2]));
+    const S = new Uint8Array(w * h); let n = 0;
+    for (let q = 0; q < w * h; q++) { if (dif(a, c, q * 4) > 12) { S[q] = 1; n++ } }
+    let E = S;
+    for (let it = 0; it < 4; it++) { const N = new Uint8Array(w * h);
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const q = y * w + x;
+        if (E[q] && E[q-1] && E[q+1] && E[q-w] && E[q+w]) N[q] = 1 } E = N }
+    let dTot = 0, dOk = 0, iTot = 0, iCam = 0, halo = 0;
+    for (let q = 0; q < w * h; q++) { if (!S[q]) continue; const i = q * 4;
+      const atras = difBg(c, i) > 12, cambia = dif(b, c, i) > 28;
+      if (E[q]) { iTot++; if (cambia) iCam++; if (atras) { dTot++; if (!cambia) dOk++ } }
+      if (cambia) halo++ }
+    return { silueta: n, centroPct: dTot ? Math.round(1000 * dOk / dTot) / 10 : null, dTot: dTot,
+             intPct: iTot ? Math.round(1000 * iCam / iTot) / 10 : null, iTot: iTot, halo: halo };
+  };
+  const m1 = await medir();
+  ex.push(['(B0 DENOM) la silueta de la estructura no esta vacia', !!(m1 && m1.silueta > 500), true]);
+  ex.push(['(B1 DENOM) y hay estructuras DETRAS de ella que contar', !!(m1 && m1.dTot > 50), true]);
+  ex.push(['(B2) el centro deja ver al menos el 95 % de lo que se ve con la estructura oculta',
+    !!(m1 && m1.centroPct !== null && m1.centroPct >= 95), true]);
+  ex.push(['(B3) y lo que cambia en el interior es menos del 10 % del area',
+    !!(m1 && m1.intPct !== null && m1.intPct < 10), true]);
+  ex.push(['(B4) el halo existe: hay pixeles de contorno', !!(m1 && m1.halo > 50), true]);
+  /* ⚠️ CONTROL POSITIVO: con la malla de alambre que PANT-17 dejaba, el interior se ensucia. */
+  const T = window.THREE;
+  let malla = null;
+  try { malla = new T.MeshBasicMaterial({ color: 0x8a93a8, wireframe: true, transparent: true, opacity: 0.55, depthWrite: false }) } catch (e) {}
+  ex.push(['(C0 DENOM) se pudo construir el material de malla del control', !!malla, true]);
+  let m2 = null;
+  if (malla) {
+    const orig = obj.material;
+    const parche = () => { if (st.sinColor[obj.userData.cmK]) obj.material = malla; else obj.material = orig };
+    /* se apaga a mano, sin pasar por el aplicador, para que el material del control sobreviva */
+    const medir2 = async () => {
+      const A = foto();
+      obj.visible = false; await esperar(220); const C = foto(); obj.visible = true;
+      obj.material = malla; await esperar(220); const B = foto();
+      obj.material = orig; await esperar(120);
+      if (!A || !B || !C) return null;
+      const w = A.width, h = A.height, a = A.data, b = B.data, c = C.data;
+      const dif = (d1, d2, i) => Math.max(Math.abs(d1[i] - d2[i]), Math.abs(d1[i+1] - d2[i+1]), Math.abs(d1[i+2] - d2[i+2]));
+      const difBg = (d, i) => Math.max(Math.abs(d[i] - mm[0]), Math.abs(d[i+1] - mm[1]), Math.abs(d[i+2] - mm[2]));
+      const S = new Uint8Array(w * h);
+      for (let q = 0; q < w * h; q++) if (dif(a, c, q * 4) > 12) S[q] = 1;
+      let E = S;
+      for (let it = 0; it < 4; it++) { const N = new Uint8Array(w * h);
+        for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const q = y * w + x;
+          if (E[q] && E[q-1] && E[q+1] && E[q-w] && E[q+w]) N[q] = 1 } E = N }
+      let dTot = 0, dOk = 0, iTot = 0, iCam = 0;
+      for (let q = 0; q < w * h; q++) { if (!S[q] || !E[q]) continue; const i = q * 4;
+        const atras = difBg(c, i) > 12, cambia = dif(b, c, i) > 28;
+        iTot++; if (cambia) iCam++; if (atras) { dTot++; if (!cambia) dOk++ } }
+      return { centroPct: dTot ? Math.round(1000 * dOk / dTot) / 10 : null,
+               intPct: iTot ? Math.round(1000 * iCam / iTot) / 10 : null, dTot: dTot };
+    };
+    m2 = await medir2();
+  }
+  ex.push(['(C1 CONTROL POSITIVO) con la malla de alambre el centro deja ver MENOS del 95 %',
+    !!(m2 && m2.centroPct !== null && m2.centroPct < 95), true]);
+  ex.push(['(C2 CONTROL POSITIVO) y el interior se ensucia MUCHO mas que con el sombreado',
+    !!(m1 && m2 && m2.intPct !== null && m1.intPct !== null && m2.intPct > m1.intPct + 20), true]);
+  /* ⚠️ LA CARA ENTRA EN LA CONDICION PORQUE UNA MUTACION SOBREVIVIO SIN ELLA: con las dos caras
+     el halo se duplica sobre la misma pieza y ninguna otra condicion lo veia. */
+  ex.push(['(D1) el material de sin color NO es de alambre, no escribe profundidad y dibuja UNA cara', (function () {
+    st.sinColor[obj.userData.cmK] = 1; try { _cm3dInsSet() } catch (e) {}
+    const t = obj.material && obj.material.type, wf = !!(obj.material && obj.material.wireframe);
+    const dw = obj.material ? obj.material.depthWrite : null;
+    const tr = obj.material ? obj.material.transparent : null;
+    const sd = obj.material ? obj.material.side : null;
+    delete st.sinColor[obj.userData.cmK]; try { _cm3dInsSet() } catch (e) {}
+    return t + '/' + wf + '/' + dw + '/' + tr + '/' + (sd === (window.THREE ? window.THREE.FrontSide : 0));
+  })(), 'ShaderMaterial/false/false/true/true']);
+  ex.push(['(D2 CONTROL NEGATIVO) sin apagarla, la estructura conserva SU material',
+    (obj.material && obj.material.type) !== 'ShaderMaterial', true]);
+  return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', hallado ' + JSON.stringify(t[1])]) };
+  })();
+`);
+
+/* -- TC-721 ---------------------------------------------------------------------------------
+   PANT-17b, commit 3. La Evidencia de congenitas se arma con lo contestado.
+   Mide las cuatro reglas sobre el ductus, que es el caso de las capturas del medico: el conteo
+   en UNA linea del encabezado, el recuadro «Con lo contestado» armado EN VIVO, el «Ver detalle
+   de la guia» con los bloques fijos adentro, y el parrafo de balance y la lista larga ausentes.
+   DENOMINADORES: la seccion abre, tiene botoneras y el recuadro existe.
+   CONTROL NEGATIVO: con todo sin contestar el recuadro no sostiene ninguna recomendacion. */
+caso('TC-721', 'Tanda PANT-17b (commit 3): la Evidencia del ductus publica arriba SOLO lo que las respuestas disparan, el conteo en una linea del encabezado y lo teorico plegado, sin el parrafo de balance ni la lista larga', `
+  return (async () => {
+  const ex = [];
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  [['dap_tipo', 'no_restrictivo'], ['dap_diam', '4']].forEach(function (kv) {
+    const e = document.getElementById(kv[0]); if (!e) return; e.value = kv[1];
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })) });
+  Object.keys(window).forEach(function (k) { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } });
+  try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e) {}
+  try { indicAbrir() } catch (e) {}
+  await esperar(320);
+  document.querySelectorAll('*').forEach(function (e) { e.style.transition = 'none' });
+  const sec = () => { const c = document.getElementById('indic-cuerpo'); if (!c) return null;
+    let r = null;
+    [].slice.call(c.querySelectorAll('details')).filter(d => !d.parentElement.closest('details'))
+      .forEach(d => { const u = d.querySelector('summary');
+        if (!r && u && /[Dd]uctus/.test(u.textContent || '')) r = d });
+    if (r) r.open = true; return r };
+  const caja = (d) => { let o = null;
+    [].slice.call(d.querySelectorAll('div')).forEach(x => { if (o) return;
+      if (/^Con lo contestado/i.test((x.textContent || '').trim())) {
+        const pp = x.parentElement;
+        if (pp && /border-left/.test(pp.getAttribute('style') || '')) o = pp } });
+    return o };
+  const grupos = (d) => { const g = [];
+    [].slice.call(d.querySelectorAll('button')).forEach(b => {
+      /* sin expresion regular: la barra invertida no sobrevive al template literal */
+      const _t = (b.textContent || '').trim();
+      if (_t !== 'S\u00ed' && _t !== 'No' && _t !== '?') return;
+      const pp = b.parentElement; if (pp && g.indexOf(pp) < 0) g.push(pp) });
+    return g };
+  const d0 = sec();
+  ex.push(['(A0 DENOM) la seccion del ductus abre', !!d0, true]);
+  if (!d0) return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]), 'esperado ' + t[2] + ', hallado ' + t[1]]) };
+  ex.push(['(A1 DENOM) y tiene botoneras de tres estados', grupos(d0).length > 5, true]);
+  /* (B) la linea del conteo: UNA sola, en el encabezado y sin desbordar */
+  const cta = d0.querySelector('[data-ind-cuenta]');
+  ex.push(['(B1) el conteo vive en el encabezado de la seccion', !!cta, true]);
+  ex.push(['(B2) y no quedo ninguna fila de la tabla llamada Respuestas',
+    (d0.textContent || '').indexOf('Respuestas') >= 0, false]);
+  /* ⚠️ EL ALTO ENTRA EN LA CONDICION PORQUE UNA MUTACION SOBREVIVIO SIN EL: sacandole el nowrap
+     el texto ENVUELVE en vez de desbordar, asi que el ancho no lo delata y la fila crece igual,
+     que es justo el defecto que el medico reporto. Se miden las dos cosas. */
+  ex.push(['(B3) el conteo cabe en UNA linea: no desborda a lo ancho Y no crece a lo alto',
+    !!(cta && cta.scrollWidth <= cta.getBoundingClientRect().width + 2
+       && cta.getBoundingClientRect().height <= 22), true]);
+  /* (C) el parrafo de balance y la lista larga, FUERA */
+  ex.push(['(C1) el parrafo «Condiciones presentes en este paciente» ya no esta',
+    (d0.textContent || '').indexOf('Condiciones presentes en este paciente') >= 0, false]);
+  ex.push(['(C2) la lista «Recomendaciones que aplican con lo contestado» tampoco',
+    (d0.textContent || '').indexOf('Recomendaciones que aplican con lo contestado') >= 0, false]);
+  /* (D) el «Ver detalle de la guia», con los bloques fijos adentro y marcado como bloque */
+  let det = null;
+  [].slice.call(d0.querySelectorAll('details[data-ind-bloque]')).forEach(x => {
+    const u = x.querySelector('summary');
+    if (u && /Ver detalle de la gu/.test(u.textContent || '')) det = x });
+  ex.push(['(D1) hay un «Ver detalle de la guia» plegado', !!det, true]);
+  ex.push(['(D2) y trae adentro las oraciones de los bloques fijos',
+    !!(det && (det.textContent || '').indexOf('Clase') >= 0 && (det.textContent || '').length > 600), true]);
+  ex.push(['(D3) se marca data-ind-bloque y NO data-ind-detalle: TC-293 cuenta UN control de detalle',
+    d0.querySelectorAll('details[data-ind-detalle]').length, 1]);
+  /* (E) el recuadro, EN VIVO */
+  const est = () => { const d = sec(); const c = d ? caja(d) : null;
+    if (!c) return { sin: 1 };
+    const t = (c.textContent || '').trim();
+    /* el numero se parsea con indexOf, por el mismo motivo */
+    const _p = t.indexOf('Con lo contestado (');
+    let _n = 0;
+    if (_p >= 0) { const _q = t.indexOf(')', _p); _n = parseInt(t.slice(_p + 19, _q), 10) || 0 }
+    return { n: _n, falta: /Falta contestar:/.test(t),
+             vacio: /Ninguna respuesta de este paciente/.test(t), largo: t.length } };
+  const e0 = est();
+  ex.push(['(E0 DENOM) el recuadro «Con lo contestado» existe', !e0.sin, true]);
+  ex.push(['(E1 CONTROL NEGATIVO) sin contestar nada, ninguna recomendacion se sostiene', !!e0.vacio, true]);
+  ex.push(['(E2) y dice lo que falta contestar', !!e0.falta, true]);
+  const clic = (i, q) => { const d = sec(); const g = grupos(d); if (i >= g.length) return false;
+    const b = [].slice.call(g[i].querySelectorAll('button')).filter(x => (x.textContent || '').trim() === q)[0];
+    if (!b) return false; b.click(); return true };
+  ex.push(['(E3 DENOM) se pudo contestar la primera pregunta', clic(0, 'S\u00ed'), true]);
+  await esperar(300);
+  const e1 = est();
+  ex.push(['(E4) al contestar que SI, su oracion entra al recuadro', e1.n, 1]);
+  ex.push(['(E5) y el recuadro crece', e1.largo > e0.largo, true]);
+  clic(0, 'No'); await esperar(300);
+  const e2 = est();
+  ex.push(['(E6) al pasarla a NO, desaparece', e2.n, 0]);
+  clic(0, '?'); await esperar(300);
+  const e3 = est();
+  ex.push(['(E7) y con «?» el recuadro vuelve EXACTO al estado inicial', e3.largo, e0.largo]);
+  return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', hallado ' + JSON.stringify(t[1])]) };
+  })();
+`);
+
+/* -- TC-722 ---------------------------------------------------------------------------------
+   PANT-17b, commits 4 y 5. Las recomendaciones que el control de las diez secciones agrego, con
+   su clase, su nivel y su folio, leidos en imagen. Dos son preguntas -el defecto del septo
+   auriculoventricular y la conexion venosa pulmonar anomala parcial, esta de CLASE III- y las
+   demas entran al bloque fijo porque su seccion esta en el tope de catorce preguntas.
+   CONTROL NEGATIVO: ninguna trae una forma de las que la regla del 04/11 prohibe. */
+caso('TC-722', 'Tanda PANT-17b (commits 4 y 5): las recomendaciones nuevas de la CIA, la CIV, el defecto del septo AV, el Fontan y la conexion venosa anomala, con su clase, su nivel y su folio', `
+  return (async () => {
+  const ex = [];
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  [['ete_cia_tipo', 'secundum'], ['ete_cia_tam_max', '18'], ['ete_civ_tipo', 'perimembranosa'],
+   ['dsav_tipo', 'completo'], ['cvpa_venas_numero', '1'], ['fontan_tipo', 'extra']].forEach(function (kv) {
+    const e = document.getElementById(kv[0]); if (!e) return; e.value = kv[1];
+    e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })) });
+  Object.keys(window).forEach(function (k) { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } });
+  try { if (typeof indicCerrar === 'function') indicCerrar() } catch (e) {}
+  try { indicAbrir() } catch (e) {}
+  await esperar(340);
+  const una = (re) => { const c = document.getElementById('indic-cuerpo'); if (!c) return null;
+    let r = null;
+    [].slice.call(c.querySelectorAll('details')).filter(d => !d.parentElement.closest('details'))
+      .forEach(d => { const u = d.querySelector('summary');
+        if (!r && u && re.test(u.textContent || '')) r = d });
+    if (r) { r.open = true; [].slice.call(r.querySelectorAll('details')).forEach(x => { x.open = true }) }
+    return r };
+  const T = (d) => d ? (d.textContent || '') : '';
+  const cia = una(/Comunicaci\u00f3n interauricular/), civ = una(/Comunicaci\u00f3n interventricular/);
+  const dsav = una(/Defecto del septo/), cvpa = una(/Conexi\u00f3n venosa/), fon = una(/Fontan/);
+  ex.push(['(A0 DENOM) las cinco secciones abren',
+    [cia, civ, dsav, cvpa, fon].filter(Boolean).length, 5]);
+  /* (B) CIA: la recomendacion 2 de la ACC/AHA, hoja 35, folio e149 */
+  ex.push(['(B1) la CIA publica la recomendacion 2: especialistas en hipertension pulmonar',
+    T(cia).indexOf('especialistas en hipertensi\u00f3n pulmonar, para mejorar los resultados') >= 0, true]);
+  ex.push(['(B2) con su clase y su nivel', T(cia).indexOf('Clase 1 \u00b7 Nivel B-NR \u2014 Sin reparar y con hipertensi') >= 0, true]);
+  ex.push(['(B3) y su folio', T(cia).indexOf('e149') >= 0, true]);
+  /* (C) CIV: la recomendacion 3, hoja 39, folio e153 */
+  ex.push(['(C1) la CIV publica la recomendacion 3: seguimiento por especialistas',
+    T(civ).indexOf('experiencia en cardiopat\u00edas cong\u00e9nitas del adulto y en hipertensi\u00f3n pulmonar') >= 0, true]);
+  ex.push(['(C2) con su clase y su nivel', T(civ).indexOf('Clase 1 \u00b7 Nivel C-LD \u2014 Reparada o no') >= 0, true]);
+  ex.push(['(C3) y su folio', T(civ).indexOf('e153') >= 0, true]);
+  /* (D) el defecto del septo AV gana su PREGUNTA, y la seccion llega al tope de catorce */
+  const bot = (d) => { const g = [];
+    [].slice.call(d.querySelectorAll('button')).forEach(b => {
+      /* sin expresion regular: la barra invertida no sobrevive al template literal */
+      const _t = (b.textContent || '').trim();
+      if (_t !== 'S\u00ed' && _t !== 'No' && _t !== '?') return;
+      const pp = b.parentElement; if (pp && g.indexOf(pp) < 0) g.push(pp) });
+    return g };
+  ex.push(['(D1) el defecto del septo AV tiene catorce preguntas', bot(dsav).length, 14]);
+  ex.push(['(D2) y una es la de la hipertension pulmonar con expertos',
+    T(dsav).indexOf('Hipertensi\u00f3n arterial pulmonar, reparado o no') >= 0, true]);
+  ex.push(['(D3) con su folio', T(dsav).indexOf('e156') >= 0, true]);
+  /* (E) la conexion venosa anomala gana la de CLASE III, y se rotula «No recomendado» */
+  ex.push(['(E1) la conexion venosa anomala tiene diez preguntas', bot(cvpa).length, 10]);
+  ex.push(['(E2) y una es la de clase III',
+    T(cvpa).indexOf('apenas agrandado, con Qp:Qs por debajo de 1,5') >= 0, true]);
+  const cajaDe = (d) => { let o = null;
+    [].slice.call(d.querySelectorAll('div')).forEach(x => { if (o) return;
+      if (/^Con lo contestado/i.test((x.textContent || '').trim())) {
+        const pp = x.parentElement;
+        if (pp && /border-left/.test(pp.getAttribute('style') || '')) o = pp } });
+    return o };
+  const g = bot(cvpa);
+  const b = g.length ? [].slice.call(g[g.length - 1].querySelectorAll('button')).filter(x => (x.textContent || '').trim() === 'S\u00ed')[0] : null;
+  ex.push(['(E3 DENOM) se pudo contestar la pregunta de clase III', !!b, true]);
+  if (b) b.click();
+  await esperar(320);
+  const c2 = cajaDe(una(/Conexi\u00f3n venosa/));
+  const t2 = c2 ? (c2.textContent || '') : '';
+  ex.push(['(E4) contestada que SI, entra al recuadro rotulada «No recomendado»',
+    t2.indexOf('No recomendado') >= 0, true]);
+  ex.push(['(E5) con su clase', t2.indexOf('Clase 3') >= 0, true]);
+  ex.push(['(E6) y su folio', t2.indexOf('e159') >= 0, true]);
+  /* (F) el Fontan: cuatro recomendaciones mas en el bloque, y SIGUE en catorce preguntas */
+  ex.push(['(F1) el Fontan sigue en catorce preguntas: esta en el tope', bot(fon).length, 14]);
+  ex.push(['(F2) y su bloque trae las cuatro nuevas',
+    ['hemodin\u00e1mica sea aceptable (recomendaci\u00f3n 3)',
+     'falsos negativos y los falsos positivos (recomendaci\u00f3n 7)',
+     'estimulaci\u00f3n auricular, programada para minimizar',
+     'revisi\u00f3n pretrasplante a cargo de un comit\u00e9'].filter(x => T(fon).indexOf(x) >= 0).length, 4]);
+  ex.push(['(F3) con su folio', T(fon).indexOf('e201') >= 0, true]);
+  /* (G) CONTROL NEGATIVO de la regla del 04/11 sobre lo que esta tanda ESCRIBIO */
+  const nuevas = ['especialistas en hipertensi\u00f3n pulmonar, para mejorar los resultados',
+    'experiencia en cardiopat\u00edas cong\u00e9nitas del adulto y en hipertensi\u00f3n pulmonar',
+    'hemodin\u00e1mica sea aceptable (recomendaci\u00f3n 3)',
+    'revisi\u00f3n pretrasplante a cargo de un comit\u00e9'];
+  const PROH = ['no coincid', 'difieren', 'discrepan', 'se contradicen', 'no se encontr', 'ninguna fuente'];
+  const todo = T(cia) + T(civ) + T(dsav) + T(cvpa) + T(fon);
+  let malas = 0;
+  nuevas.forEach(function (fr) { const i = todo.indexOf(fr); if (i < 0) return;
+    const ven = todo.slice(Math.max(0, i - 160), i + fr.length + 160).toLowerCase();
+    PROH.forEach(function (x) { if (ven.indexOf(x) >= 0) malas++ }) });
+  ex.push(['(G1 CONTROL NEGATIVO) ninguna oracion nueva trae una forma que la regla del 04/11 prohibe', malas, 0]);
+  return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', hallado ' + JSON.stringify(t[1])]) };
   })();
 `);
 

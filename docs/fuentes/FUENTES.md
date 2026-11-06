@@ -11580,3 +11580,64 @@ el conducto del ventrículo derecho a la arteria pulmonar (el selector de la apl
 ese valor); las ocho hojas que no se abrieron (ESC 2023 47, 48, 51 y 55; Ommen 32, 33, 34 y 38);
 y las Clase I y Clase III que falten en las diez secciones de control. Todo en **P17-a**,
 **P17-b** y **P17-c**.
+
+## La tanda PANT-17b (2026-11-06)
+
+**CINCO hojas leidas EN IMAGEN a 200 ppp, con el folio comprobado en el pie impreso de cada
+una.** El renderizado se hizo con PyMuPDF sobre una copia; la biblioteca no se toco.
+
+| documento | hoja | pie impreso | que trae |
+|---|---|---|---|
+| ACC/AHA 2025 de congenitas del adulto (Gurvitz) | 35 | «February 24, 2026  **e149**» | apartado 4.1.1, tabla de la CIA: 13 recomendaciones |
+| ACC/AHA 2025 | 39 | «**e153**» | apartado 4.1.2, tabla de la CIV: 7 recomendaciones |
+| ACC/AHA 2025 | 42 | «**e156**» | apartado 4.1.3, tabla del defecto del septo auriculoventricular |
+| ACC/AHA 2025 | 45 | «**e159**» | tabla de conexiones venosas pulmonares anomalas (continuacion) |
+| ACC/AHA 2025 | 87 | «**e201**» | apartado 4.4.5, tabla del Fontan: 23 recomendaciones |
+| ESC 2020 de congenitas del adulto (inglesa) | 40 | «**602**» | tabla de intervencion en la estenosis supravalvular aortica |
+| ESC 2020 | 41 | «**603**» | tabla de intervencion en la estenosis subaortica |
+| ESC 2020 | 57 | «**619**» | tabla de intervencion tras la operacion de switch auricular |
+
+Las dos reglas de folio quedan comprobadas una vez mas: **ACC/AHA folio = hoja + 114** (hoja 35 →
+e149, 39 → e153, 42 → e156, 45 → e159, 87 → e201) y **ESC 2020 folio = hoja + 562** (hoja 40 →
+602, 41 → 603, 57 → 619).
+
+⚠️ **El pie de las hojas interiores de la guia americana dice «2026 ACHD Guideline»**, que es el
+anio del numero de *Circulation* (2026;153:e115-e251). El titulo oficial dice 2025 y el nombre
+**«ACC/AHA 2025» no se renombra**, que es lo que `P17-e` decidio en PANT-17.
+
+### Lo que se transcribio, y que se escribio con ello
+
+| recomendacion, como la hoja la imprime | clase | donde entro |
+|---|---|---|
+| CIA n.º 2 — «Adults with an unrepaired ASD and PAH should undergo risk assessment and management in consultation with pulmonary hypertension specialists to improve outcomes» | 1 · B-NR | bloque fijo de la CIA |
+| CIV n.º 3 — «Adults with a VSD (repaired or unrepaired) and PAH should be followed by specialists with expertise in ACHD and pulmonary hypertension to reduce morbidity and mortality» | 1 · C-LD | bloque fijo de la CIV |
+| DSAV n.º 2 — «Adults with an AVSD (repaired or unrepaired) and PAH should be managed by clinicians with pulmonary hypertension expertise to improve outcomes» | 1 · C-LD | **pregunta** nueva del defecto del septo AV |
+| CVPA n.º 8 — «For adults with APVCs who have a normal to mildly enlarged right ventricle and whose Qp:Qs is <1.5, surgical repair is not indicated, given the absence of data to support benefit» | **3: No Benefit** · B-NR | **pregunta** nueva de la conexion venosa anomala |
+| Fontan n.º 3 — cateterismo en el candidato a paliacion o a conversion | 1 · C-EO | bloque fijo del Fontan |
+| Fontan n.º 7 — protocolos de angiotomografia que eviten falsos negativos y positivos | 1 · C-EO | bloque fijo del Fontan |
+| Fontan n.º 14 — estimulacion auricular programada para minimizar la ventricular | 1 · B-NR | bloque fijo del Fontan |
+| Fontan n.º 16 — revision pretrasplante por un comite multidisciplinario | 1 · C-EO | bloque fijo del Fontan |
+
+Las ocho estan **parafraseadas en espaniol**; ninguna textual pasa de quince palabras.
+
+### Lo que se leyo y NO hizo falta escribir
+
+- **ESC 2020, hoja 41, folio 603** — la Clase I · C de la estenosis subaortica (sintomas y
+  gradiente medio de 40 mmHg o mas, o insuficiencia aortica severa) **ya estaba** en la app.
+- **ESC 2020, hoja 40, folio 602** — la Clase I · C de la supravalvular (sintomas y gradiente
+  medio de 40 mmHg o mas) **ya estaba**.
+- **ESC 2020, hoja 57, folio 619** — la Clase III · C del switch auricular («el cerclaje de la
+  arteria pulmonar en el adulto, como entrenamiento del ventriculo izquierdo con switch arterial
+  posterior, no se recomienda») **ya estaba**, escrita «cerclaje» y no «banding».
+
+### Cambios de evidencia
+
+| que | antes | despues |
+|---|---|---|
+| CIA, recomendaciones publicadas | 12 | **13** |
+| CIV, recomendaciones publicadas | 6 | **7** |
+| Defecto del septo AV, preguntas | 13 | **14** |
+| Conexion venosa anomala, preguntas | 9 | **10** |
+| Fontan, recomendaciones publicadas | 9 | **13** |
+| Un corte, un umbral, un grado o una clase que se moviera | — | **ninguno** |
+

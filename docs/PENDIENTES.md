@@ -1,5 +1,88 @@
 # EcoSmart — pendientes vivos
 
+## P17b-a · Lo que se LEYO en imagen y NO hizo falta escribir
+
+Las cinco hojas se leyeron a 200 ppp con el folio comprobado en el pie impreso, y DOS de las
+recomendaciones del indice de la orden resultaron ya presentes en la app, como **linea de
+referencia de la otra guia** (`ref`) y no como `rec`:
+
+- **Estenosis subaortica** — ESC 2020, hoja 41, folio 603, Clase I · Nivel C: «en el paciente
+  sintomatico (espontaneo o en la prueba de esfuerzo) con gradiente medio Doppler de 40 mmHg o
+  mas, o insuficiencia aortica severa, la cirugia esta recomendada». Ya esta, en la pregunta de
+  sintomas. **No se escribio nada.**
+- **Estenosis supravalvular aortica** — ESC 2020, hoja 40, folio 602, Clase I · Nivel C:
+  «en el paciente con sintomas (espontaneos o en la prueba de esfuerzo) y gradiente medio Doppler
+  de 40 mmHg o mas, la cirugia esta recomendada». Ya esta, por el mismo camino. **Tampoco.**
+
+Ninguna fila se saco por no coincidir con su hoja: el indice de la orden coincidio con las cinco
+hojas leidas, recomendacion por recomendacion.
+
+## P17b-b · Las secciones que NO se convirtieron al formato nuevo, y por que
+
+Se convirtieron **diecisiete**. Quedaron sin convertir las que no tienen con que armar el
+recuadro:
+
+- **`_indFOP`** (foramen oval permeable) y **`_indVABEsBicuspide`** (valvula aortica bicuspide —
+  aorta ascendente): no arman una lista de preguntas contestadas que si, asi que no hay nada que
+  el recuadro pueda listar. Tampoco tenian la fila «Respuestas», censado.
+- **`_indTdFIP`** (Fallot reparada — insuficiencia pulmonar) y **`_indAo`** (aorta toracica): no
+  tienen preguntas de tres estados.
+
+Ninguna de las cuatro perdio nada: su contenido sale igual que antes.
+
+## P17b-c · Lo que NO entro por el tope de catorce preguntas
+
+Son recomendaciones que la app **publica en su bloque fijo** —o sea el medico las lee en el «Ver
+detalle de la guia»— pero que NO ganan una pregunta propia, porque su seccion ya tiene catorce.
+El tope no esta en ninguna constante: es la convencion de las ordenes de esta casa.
+
+| seccion | recomendacion | clase | hoja y folio |
+|---|---|---|---|
+| CIA | ACC/AHA n.º 2 · especialistas en hipertension pulmonar | 1 · B-NR | hoja 35, folio e149 |
+| CIA | ACC/AHA n.º 1 · definir el defecto con RMC, ETE o TC | 1 · B-NR | hoja 35, folio e149 |
+| CIA | ACC/AHA n.º 3 · buscar hipertension arterial pulmonar | 1 · C-EO | hoja 35, folio e149 |
+| CIV | ACC/AHA n.º 3 · seguimiento por especialistas | 1 · C-LD | hoja 39, folio e153 |
+| CIV | ACC/AHA n.º 1 · buscar hipertension arterial pulmonar | 1 · B-NR | hoja 39, folio e153 |
+| CIV | ACC/AHA n.º 9 · no cerrar con Qp:Qs por debajo de 1,5 | **3: Sin beneficio** · B-NR | hoja 39, folio e153 |
+| Eisenmenger | ACC/AHA n.º 11 · no cerrar ningun cortocircuito | **3: Daño** · B-NR | hoja 93, folio e207 |
+| Fontan | ACC/AHA n.º 3, 7, 14 y 16 | 1 | hoja 87, folio e201 |
+
+**Decide el medico**: subir el tope en esas secciones, o dejarlas como estan.
+
+## P17b-d · Formas que la regla del 04/11 prohibe y que esta tanda NO introdujo
+
+Medido sobre el diff: de 277 lineas realmente nuevas, **cero** traen una de esas formas. Pero el
+censo del panel las encuentra en las secciones de congenitas, y son **preexistentes** —las
+escribio PANT-17—: el titulo de bloque «Las diferencias entre las dos guias, sin resolver» y la
+frase «Con 60 exactos las dos no coinciden». Verificado que estan identicas en el arbol anterior.
+No se tocaron: cambiar esos textos es contenido clinico y no estaba en esta orden. **Decide el
+medico** si se reescriben, como PANT-13 hizo con los treinta de aquella tanda.
+
+## P17b-e · El contraste del halo en el tema claro llega a 2,93 y no a 3 a 1
+
+La orden pide que el halo mantenga al menos 3 a 1 contra el fondo del recuadro, y a la vez fija el
+color en el valor del commit 7 (`0x8a93a8`). Las dos cosas no se pueden cumplir a la vez, y esta
+medido: en el tema oscuro el pico del halo da **5,24 a 5,53**, y en el claro —donde el fondo
+efectivo es blanco puro— da **2,44 a 3,08**, con **2,93** sobre una cavidad. El maximo teorico de
+ese gris contra blanco es 3,08, asi que el color no llega.
+
+**Se mantuvo el color que la orden fija y se declara la medicion.** Si el medico quiere que pase
+de 3 a 1 en los dos temas, el gris tiene que oscurecerse: con `0x6f788c` da **4,43** contra el
+blanco y **3,84** contra el fondo oscuro, los dos por encima del piso. Es un cambio de una
+constante con nombre, `CM_SC_GRIS`.
+
+⚠️ Y la premisa de la orden —«sigue siendo de al menos 3 a 1»— **no se reproduce**: el material de
+malla de PANT-17, a opacidad 0,55, tampoco llegaba.
+
+## P17b-f · La captura del PDF estampa el cuadro que se esta viendo
+
+La orden dice que con dos estructuras sin color «la imagen sale con todos los colores». Medido
+generando la captura de verdad: estampa **el cuadro que se ve**, que es el contrato que ese boton
+ya tenia y que `P17-d` declara desde PANT-17. Con el sombreado nuevo la diferencia es minima
+—los pixeles de color pasan de 33.849 a 33.671, el 99,5 %— porque una estructura sin color deja
+ver lo que tiene detras; con la malla anterior la imagen quedaba cruzada por la rejilla.
+**No se cambio nada**: hacer que la captura reponga los colores contradice `P17-d`.
+
 ## P17-a · Lo que se LEYO y NO se escribio, por no poder verificarlo
 
 **Que se encontro.** La regla central de PANT-17 dice que nada clinico sale de la memoria: cada

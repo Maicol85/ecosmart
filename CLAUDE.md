@@ -486,6 +486,31 @@ navegador, sobre lo que el médico puede leer —el DOM sin los `<script>`, las 
 el archivo con patrones estrictos cuyos hallazgos se inspeccionan a mano. La sonda es
 `scripts/_probe_pant3rev.mjs`.
 
+## El nombre de la guia americana de congenitas es «ACC/AHA 2025» — FIJO (2026-11-06)
+
+**No se renombra a 2026**, y el motivo esta medido: su **titulo oficial impreso** dice 2025 y su
+**copyright** dice 2025; el «2026» que aparece en el pie de las hojas interiores —«2026 ACHD
+Guideline»— es el anio del **numero de *Circulation*** (2026;153:e115-e251, 24 de febrero de
+2026), no el de la guia. PANT-17 paro el renombre por eso (`P17-e`) y PANT-17b volvio a verlo en
+el pie de las hojas 35, 39, 42, 45 y 87 al leerlas en imagen. Las **197** apariciones de
+`ACC/AHA 2025` en `index.html` y las **100** de `docs/` se quedan como estan.
+
+## Un dibujo sin color se dibuja con un ALFA POR PIXEL, no con una malla — REGLA FIJA (2026-11-06)
+
+Cuando una estructura de un dibujo tiene que verse **sin color pero dejando ver lo que tiene
+detras**, el material NO es de alambre (`wireframe`), ni una geometria de aristas, ni un relleno
+plano con opacidad baja: es un **sombreado propio** cuyo alfa se calcula por pixel del angulo
+entre la normal de la superficie y la direccion hacia la camara, de modo que el **centro queda
+casi del todo transparente y solo la silueta lleva un halo fino**. Lleva `transparent`,
+`depthWrite` en **falso** —para no tapar lo de atras— y **cara delantera solamente**, para que el
+halo no se duplique con la cara de atras de la misma pieza.
+
+**Y se mide por PIXELES**, comparando TRES cuadros del mismo dibujo: todo normal, la estructura
+sin color, y la misma estructura **oculta por completo**. Los tres se componen sobre el fondo real
+del recuadro antes de contar. Un contorno no mueve un solo punto, asi que una comparacion de
+geometria no lo ve — es la leccion de PANT-14, y PANT-17 la volvio a pagar dejando una rejilla
+gris que el medico vio y ninguna prueba.
+
 ## Todo cartel ⓘ usa la MISMA letra — REGLA FIJA DE MAICOL (2026-11-04)
 
 El cuerpo de **todas** las tarjetas que abre un globo ⓘ se ve en el mismo tamaño de letra: el
