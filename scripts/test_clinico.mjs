@@ -119383,17 +119383,23 @@ caso('TC-713', 'Tanda PANT-14c (commit 6): al entrar a una pestania de congenita
 caso('TC-714', 'Tanda PANT-17 (commit 3a): el ductus publica trece preguntas de tres estados, se pre-responde SOLO la direccion, el bidireccional queda sin contestar y nada de eso llega al papel', `
   return (async () => {
   const ex = [];
+  /* ⚠️ ACCESORES CON GUARDA, y no es cosmetico: contra un arbol que todavia no tiene
+     estos registros una referencia a pelo mata el caso por EXCEPCION, y un caso que cae por
+     excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  const _g = (f, d) => { try { const v = f(); return (v === undefined || v === null) ? d : v } catch (e) { return d } };
+  const PREG = _g(() => DAP_PREG, []);
+
   const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return true };
   const lee = () => { try { return _indDAP() } catch (e) { return { ERR: String(e).slice(0, 90) } } };
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  ex.push(['(A0 DENOM) el registro de preguntas existe', typeof DAP_PREG, 'object']);
-  ex.push(['(A1) y trae TRECE preguntas', DAP_PREG.length, 13]);
+  ex.push(['(A0 DENOM) el registro de preguntas existe', typeof PREG, 'object']);
+  ex.push(['(A1) y trae TRECE preguntas', PREG.length, 13]);
   ex.push(['(A2) cada pregunta tiene clave, rotulo, guia y recomendacion',
-    DAP_PREG.filter(p => p.clave && p.lbl && p.guia && p.rec).length, 13]);
+    PREG.filter(p => p.clave && p.lbl && p.guia && p.rec).length, 13]);
   ex.push(['(A3) y ninguna clave se repite',
-    new Set(DAP_PREG.map(p => p.clave)).size, 13]);
+    new Set(PREG.map(p => p.clave)).size, 13]);
   /* DENOMINADOR: sin datos del ductus la seccion NO abre, asi que todo lo de abajo mide algo. */
   ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
   S('dap_tipo', 'no_restrictivo'); S('dap_diam', '4');
@@ -119446,14 +119452,20 @@ caso('TC-714', 'Tanda PANT-17 (commit 3a): el ductus publica trece preguntas de 
 caso('TC-715', 'Tanda PANT-17 (commit 3b): la coartacion publica trece preguntas, pre-responde cinco desde el estudio y su guia que rige es la ESC 2024 de aorta', `
   return (async () => {
   const ex = [];
+  /* ⚠️ ACCESORES CON GUARDA, y no es cosmetico: contra un arbol que todavia no tiene
+     estos registros una referencia a pelo mata el caso por EXCEPCION, y un caso que cae por
+     excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  const _g = (f, d) => { try { const v = f(); return (v === undefined || v === null) ? d : v } catch (e) { return d } };
+  const PREG = _g(() => COA_PREG, []);
+
   const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return true };
   const lee = () => { try { return _indCoAo() } catch (e) { return { ERR: String(e).slice(0, 90) } } };
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  ex.push(['(A0 DENOM) el registro existe', typeof COA_PREG, 'object']);
-  ex.push(['(A1) y trae TRECE preguntas', COA_PREG.length, 13]);
-  ex.push(['(A2) ninguna clave se repite', new Set(COA_PREG.map(p => p.clave)).size, 13]);
+  ex.push(['(A0 DENOM) el registro existe', typeof PREG, 'object']);
+  ex.push(['(A1) y trae TRECE preguntas', PREG.length, 13]);
+  ex.push(['(A2) ninguna clave se repite', new Set(PREG.map(p => p.clave)).size, 13]);
   ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
   S('coa_vmax', '3.2');
   const r0 = lee();
@@ -119464,8 +119476,16 @@ caso('TC-715', 'Tanda PANT-17 (commit 3b): la coartacion publica trece preguntas
   S('coa_situacion', 'nativa'); S('coa_hta', 'si');
   S('coa_gradiente_picopico', '28'); S('coa_estenosis_relativa', '60');
   const r1 = lee();
-  ex.push(['(C1) con los cuatro campos cargados quedan OCHO contestables',
-    conBot(r1), 8]);
+  /* ⚠️ SE CUENTA POR ROTULO Y NO POR BOTONERA. Una pregunta pre-respondida desde el estudio
+     sale como fila SIN botonera, asi que contar botoneras mide «cuantas quedan por contestar»
+     y no «cuantas publica la seccion»: las dos cosas valen, pero son distintas. */
+  const pres = (r) => PREG.filter(p => (r && r.clinica || []).some(f => f && String(f.lbl) === p.lbl)).length;
+  ex.push(['(C1a) la seccion publica una fila por cada una de las trece', pres(r1), 13]);
+  /* Con los cuatro campos cargados hay CUATRO pre-respondidas: la quinta —la cola diastolica—
+     necesita su propio campo, que esta escena no siembra. Es el control de que la
+     pre-respuesta sale del DATO y no de la seccion. */
+  ex.push(['(C1b) y quedan NUEVE contestables, porque la cola diastolica no esta sembrada',
+    conBot(r1), 9]);
   ex.push(['(C2) la seccion es compacta y con preguntas',
     r1 ? (!!r1.compacta && !!r1.preguntas) : false, true]);
   ex.push(['(C3) y la guia que rige es la ESC 2024 de aorta',
@@ -119473,14 +119493,17 @@ caso('TC-715', 'Tanda PANT-17 (commit 3b): la coartacion publica trece preguntas
   /* LOS NUMEROS DE LOS DOS CORTES, por sus dos lados. */
   S('coa_gradiente_picopico', '12'); S('coa_estenosis_relativa', '30');
   const r2 = lee();
-  const val = (r, re) => { const f = (r && r.clinica) ? r.clinica.filter(x => x && re.test(String(x.lbl)))[0] : null;
-    return f ? String(f.val) : 'NO ESTA' };
+  /* El valor se busca POR CLAVE del registro y no por una expresion regular sobre el rotulo:
+     un rotulo es texto de pantalla y se reescribe; la clave es el contrato. */
+  const val = (r, clave) => { const p = PREG.filter(x => x.clave === clave)[0];
+    const f = (p && r && r.clinica) ? r.clinica.filter(x => x && String(x.lbl) === p.lbl)[0] : null;
+    return f ? (f.ctrl ? 'CONTESTABLE' : String(f.val)) : 'NO ESTA' };
   ex.push(['(D1) con 28 mmHg el gradiente pico a pico contesta que SI',
-    val(r1, /pico a pico/), 'S' + String.fromCharCode(237)]);
-  ex.push(['(D2 CONTROL NEGATIVO) con 12 mmHg contesta que NO', val(r2, /pico a pico/), 'No']);
+    val(r1, 'coa.ev.picopico20'), 'S' + String.fromCharCode(237)]);
+  ex.push(['(D2 CONTROL NEGATIVO) con 12 mmHg contesta que NO', val(r2, 'coa.ev.picopico20'), 'No']);
   ex.push(['(D3) con 60 % el estrechamiento contesta que SI',
-    val(r1, /estrechamiento/), 'S' + String.fromCharCode(237)]);
-  ex.push(['(D4 CONTROL NEGATIVO) con 30 % contesta que NO', val(r2, /estrechamiento/), 'No']);
+    val(r1, 'coa.ev.estrech50'), 'S' + String.fromCharCode(237)]);
+  ex.push(['(D4 CONTROL NEGATIVO) con 30 % contesta que NO', val(r2, 'coa.ev.estrech50'), 'No']);
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
   const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
     return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
@@ -119509,25 +119532,37 @@ caso('TC-715', 'Tanda PANT-17 (commit 3b): la coartacion publica trece preguntas
 caso('TC-716', 'Tanda PANT-17 (commit 4): la Fallot reparada tiene una segunda seccion con tarjeta de datos propia y la estenosis pulmonar suma las condiciones de la ACC/AHA 2025', `
   return (async () => {
   const ex = [];
+  /* ⚠️ ACCESORES CON GUARDA, y no es cosmetico: contra un arbol que todavia no tiene
+     estos registros una referencia a pelo mata el caso por EXCEPCION, y un caso que cae por
+     excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  const _g = (f, d) => { try { const v = f(); return (v === undefined || v === null) ? d : v } catch (e) { return d } };
+  const PREG = _g(() => TDFVD_PREG, []);
+  const PEPA = _g(() => EP_PREG_ACC, []);
+  const SECS = _g(() => IND_SECS, []);
+
   const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return true };
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  /* LOS DOS TITULOS SON DISTINTOS Y NINGUNO ES PREFIJO DEL OTRO: IND_SECS busca la seccion
+  /* LOS DOS TITULOS SON DISTINTOS Y NINGUNO ES PREFIJO DEL OTRO: SECS busca la seccion
      por el PREFIJO de su titulo, asi que un titulo que sea prefijo de otro deja una sin probar. */
-  const tits = IND_SECS.map(s => s.tit);
-  ex.push(['(A0 DENOM) IND_SECS tiene secciones', tits.length > 30, true]);
+  const tits = SECS.map(s => s.tit);
+  ex.push(['(A0 DENOM) SECS tiene secciones', tits.length > 30, true]);
   ex.push(['(A1) ninguno de los titulos se repite', new Set(tits).size, tits.length]);
   const pref = tits.filter((a, i) => tits.some((b, j) => i !== j && b.indexOf(a) === 0));
   ex.push(['(A2) y ninguno es prefijo de otro', pref.join(' | '), '']);
   ex.push(['(A3) la seccion del VD de la Fallot esta registrada',
     tits.filter(t => /Fallot reparada . ventr/.test(t)).length, 1]);
-  ex.push(['(A4 DENOM) el registro de sus preguntas existe', typeof TDFVD_PREG, 'object']);
+  ex.push(['(A4 DENOM) el registro de sus preguntas existe', typeof PREG, 'object']);
   ex.push(['(A5) y ninguna clave se repite',
-    new Set(TDFVD_PREG.map(p => p.clave)).size, TDFVD_PREG.length]);
-  ex.push(['(B0 DENOM) sin datos la seccion del VD no abre', _indTdFVD(), null]);
+    new Set(PREG.map(p => p.clave)).size, PREG.length]);
+  /* Esta usa _gx y no _g: _g sustituye el null por su valor por omision, y aca el NULL es
+     justamente lo que (B0) mide —que sin datos la seccion no abre—. */
+  const _gx = (f) => { try { return f() } catch (e) { return 'EXCEPCION' } };
+  const vd = () => _gx(() => _indTdFVD());
+  ex.push(['(B0 DENOM) sin datos la seccion del VD no abre', vd(), null]);
   S('tdf_sintomas', 'si');
-  const r = _indTdFVD();
+  const r = vd();
   ex.push(['(B1 DENOM) con sintomas SI abre', !!r, true]);
   /* ⚠️ LA CONDICION QUE IMPORTA: sin la tarjeta de datos la seccion desaparece del panel en silencio. */
   ex.push(['(B2) y trae tarjeta de datos, que NO es opcional',
@@ -119536,16 +119571,17 @@ caso('TC-716', 'Tanda PANT-17 (commit 4): la Fallot reparada tiene una segunda s
   /* Se emparejan por ROTULO y no por el conteo de botoneras: una pregunta pre-respondida
      desde el estudio sale como fila sin botonera, asi que contar botoneras mediria otra cosa. */
   ex.push(['(B4) y publica una fila por cada pregunta del registro',
-    r ? TDFVD_PREG.filter(p => r.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
-    TDFVD_PREG.length]);
+    r ? PREG.filter(p => r.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
+    PREG.length]);
   /* LA ESTENOSIS PULMONAR: la tercera columna de condiciones de la ACC/AHA. */
   S('vp_gmax', '70');
-  const ep = _indEP();
+  const ep = _g(() => _indEP(), null);
   ex.push(['(C0 DENOM) la estenosis pulmonar abre con el gradiente', !!ep, true]);
-  ex.push(['(C1 DENOM) el registro de la ACC existe', typeof EP_PREG_ACC, 'object']);
+  ex.push(['(C1 DENOM) el registro de la ACC existe', typeof PEPA, 'object']);
+  /* Por ROTULO, por el mismo motivo que (B4): una pregunta pre-respondida no trae botonera. */
   ex.push(['(C2) y sus preguntas estan en la lista clinica de la seccion',
-    ep ? EP_PREG_ACC.filter(p => ep.clinica.some(f => f && f.ctrl && f.ctrl.clave === p.clave)).length : -1,
-    EP_PREG_ACC.length]);
+    ep ? PEPA.filter(p => ep.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
+    PEPA.length]);
   ex.push(['(C3) la seccion nombra la ACC/AHA 2025',
     ep ? (ep.bloques || []).some(b => /ACC.AHA 2025/.test(String(b.tit))) : false, true]);
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -119575,32 +119611,42 @@ caso('TC-716', 'Tanda PANT-17 (commit 4): la Fallot reparada tiene una segunda s
 caso('TC-717', 'Tanda PANT-17 (commit 5): la conclusion de la bicuspide y la MCH obstructiva ganan preguntas, y las dos secciones vecinas siguen intactas', `
   return (async () => {
   const ex = [];
+  /* ⚠️ ACCESORES CON GUARDA, y no es cosmetico: contra un arbol que todavia no tiene
+     estos registros una referencia a pelo mata el caso por EXCEPCION, y un caso que cae por
+     excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  const _g = (f, d) => { try { const v = f(); return (v === undefined || v === null) ? d : v } catch (e) { return d } };
+  const PVAB = _g(() => VABC_PREG, []);
+  const PMCH = _g(() => MCHO_PREG, []);
+
   const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return true };
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
   ex.push(['(A0 DENOM) los dos registros existen',
-    (typeof VABC_PREG) + '/' + (typeof MCHO_PREG), 'object/object']);
+    (typeof PVAB) + '/' + (typeof PMCH), 'object/object']);
   ex.push(['(A1) y ninguna clave se repite en el de la bicuspide',
-    new Set(VABC_PREG.map(p => p.clave)).size, VABC_PREG.length]);
+    new Set(PVAB.map(p => p.clave)).size, PVAB.length]);
   ex.push(['(A2) ni en el de la miocardiopatia',
-    new Set(MCHO_PREG.map(p => p.clave)).size, MCHO_PREG.length]);
+    new Set(PMCH.map(p => p.clave)).size, PMCH.length]);
   /* LA BICUSPIDE */
   S('vab_tipo', 'fused_rl'); S('ao_tub', '50');
-  const vc = _indVABConcl(), va = _indVAB();
+  const vc = _g(() => _indVABConcl(), null), va = _g(() => _indVAB(), null);
   ex.push(['(B0 DENOM) la conclusion de la bicuspide abre', !!vc, true]);
   ex.push(['(B1) y publica preguntas', vc ? !!vc.preguntas : false, true]);
-  ex.push(['(B2) tantas como su registro',
-    vc ? vc.clinica.filter(f => f && f.ctrl).length : -1, VABC_PREG.length]);
+  /* Por ROTULO: una pregunta pre-respondida desde el estudio sale sin botonera. */
+  ex.push(['(B2) una fila por cada pregunta de su registro',
+    vc ? PVAB.filter(p => vc.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
+    PVAB.length]);
   ex.push(['(B3 CONTROL) la seccion de aorta ascendente de la bicuspide abre', !!va, true]);
   ex.push(['(B4 CONTROL) y NO publica preguntas', va ? !!va.preguntas : true, false]);
   /* LA MIOCARDIOPATIA */
   S('mch_grad_reposo', '60'); S('mch_siv', '22');
-  const mo = _indMCH(), ms = _indMCHSCD();
+  const mo = _g(() => _indMCH(), null), ms = _g(() => _indMCHSCD(), null);
   ex.push(['(C0 DENOM) la MCH obstructiva abre', !!mo, true]);
   ex.push(['(C1) y publica preguntas', mo ? !!mo.preguntas : false, true]);
-  ex.push(['(C2) tantas como su registro',
-    mo ? mo.clinica.filter(f => f && f.ctrl).length : -1, MCHO_PREG.length]);
+  ex.push(['(C2) una fila por cada pregunta de su registro',
+    mo ? PMCH.filter(p => mo.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
+    PMCH.length]);
   ex.push(['(C3 CONTROL) la de muerte subita abre', !!ms, true]);
   ex.push(['(C4 CONTROL) y NO publica preguntas', ms ? !!ms.preguntas : true, false]);
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -119630,6 +119676,14 @@ caso('TC-717', 'Tanda PANT-17 (commit 5): la conclusion de la bicuspide y la MCH
 caso('TC-718', 'Tanda PANT-17 (commit 6): la ventana aortopulmonar publica seis preguntas de una serie de casos, SIN clase ni nivel, y el bidireccional no se traduce', `
   return (async () => {
   const ex = [];
+  /* ⚠️ ACCESORES CON GUARDA, y no es cosmetico: contra un arbol que todavia no tiene
+     estos registros una referencia a pelo mata el caso por EXCEPCION, y un caso que cae por
+     excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+  const _g = (f, d) => { try { const v = f(); return (v === undefined || v === null) ? d : v } catch (e) { return d } };
+  const PREG = _g(() => VAP_PREG, []);
+  const SECS = _g(() => IND_SECS, []);
+  const REFS = _g(() => IND_REFS, []);
+
   const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return true };
@@ -119642,13 +119696,13 @@ caso('TC-718', 'Tanda PANT-17 (commit 6): la ventana aortopulmonar publica seis 
     (r.notas || []).forEach(x => t.push(String(x)));
     return t.join(String.fromCharCode(10)) };
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
-  ex.push(['(A0 DENOM) el registro existe', typeof VAP_PREG, 'object']);
-  ex.push(['(A1) y trae SEIS preguntas', VAP_PREG.length, 6]);
-  ex.push(['(A2) ninguna clave se repite', new Set(VAP_PREG.map(p => p.clave)).size, 6]);
-  ex.push(['(A3) la seccion esta registrada en IND_SECS',
-    IND_SECS.filter(s => s.tit === 'Ventana aortopulmonar').length, 1]);
+  ex.push(['(A0 DENOM) el registro existe', typeof PREG, 'object']);
+  ex.push(['(A1) y trae SEIS preguntas', PREG.length, 6]);
+  ex.push(['(A2) ninguna clave se repite', new Set(PREG.map(p => p.clave)).size, 6]);
+  ex.push(['(A3) la seccion esta registrada en SECS',
+    SECS.filter(s => s.tit === 'Ventana aortopulmonar').length, 1]);
   ex.push(['(A4) y la entrada bibliografica de la serie existe',
-    IND_REFS.filter(r => r.k === 'yakut2018apw').length, 1]);
+    REFS.filter(r => r.k === 'yakut2018apw').length, 1]);
   ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
   S('vap_tipo', 'i'); S('vap_diam', '8');
   const r0 = lee();
@@ -119715,13 +119769,14 @@ caso('TC-719', 'Tanda PANT-17 (commit 7): tocar una estructura del corazon maest
   await esperar(420);
   const ab = document.getElementById('cc3d-abrir'); if (ab) ab.click();
   await esperar(4200);
-  const host = document.getElementById('cm3d-cv');
-  const cv = host ? host.querySelector('canvas') : null;
+  const host = document.getElementById('cm3d-cv') || document.createElement('div');
+  const cv = host.querySelector('canvas');
   ex.push(['(A0 DENOM) el lienzo del corazon maestro existe', !!cv, true]);
   ex.push(['(A1 DENOM) el estado del modulo es alcanzable', typeof _cm3dEstado, 'function']);
   const st = (typeof _cm3dEstado === 'function') ? _cm3dEstado() : null;
   ex.push(['(A2) y trae el conjunto de lo apagado', st ? (typeof st.sinColor) : 'x', 'object']);
-  ex.push(['(A3) que arranca VACIO', st ? Object.keys(st.sinColor).length : -1, 0]);
+  const _ks = () => { try { return Object.keys(st.sinColor) } catch (e) { return null } };
+  ex.push(['(A3) que arranca VACIO', _ks() ? _ks().length : -1, 0]);
   if (st) { st.fc = 0; st.ins = false;
     try { if (typeof _cm3dInsSet === 'function') _cm3dInsSet() } catch (e) {} }
   try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
@@ -119735,14 +119790,15 @@ caso('TC-719', 'Tanda PANT-17 (commit 7): tocar una estructura del corazon maest
     host.dispatchEvent(ev('pointerdown', x0, y0));
     host.dispatchEvent(ev('pointermove', x1, y1));
     host.dispatchEvent(ev('pointerup', x1, y1)) };
-  const n = () => st ? Object.keys(st.sinColor).length : -1;
+  const n = () => { const k = _ks(); return k ? k.length : -1 };
   /* (1) ARRASTRE: cuarenta pixeles. NO puede apagar nada. */
   gesto(px, py, px + 40, py + 18); await esperar(120);
   ex.push(['(B1 CONTROL NEGATIVO) un arrastre de 40 px no apaga nada', n(), 0]);
   /* (2) TOQUE sobre el centro del lienzo, donde SIEMPRE hay corazon. */
   gesto(px, py, px, py); await esperar(120);
   ex.push(['(B2) un toque apaga UNA estructura', n(), 1]);
-  const k1 = st ? Object.keys(st.sinColor)[0] : '';
+  const k1 = (_ks() || [''])[0];
+  ex.push(['(B2b) y la clave apagada no esta vacia', k1.length > 0, true]);
   /* (3) EL MISMO TOQUE se la devuelve. */
   gesto(px, py, px, py); await esperar(120);
   ex.push(['(B3) y el mismo toque se la devuelve', n(), 0]);
@@ -119754,12 +119810,14 @@ caso('TC-719', 'Tanda PANT-17 (commit 7): tocar una estructura del corazon maest
   ex.push(['(C1) al cambiar de anatomia el conjunto se vacia', n(), 0]);
   /* (5) EL REPINTADO DEL MISMO DIBUJO CONSERVA LO APAGADO. */
   gesto(px, py, px, py); await esperar(120);
-  const n5 = n();
+  const n5 = n(); const kA = (_ks() || [''])[0];
   try { if (typeof cm3dSync === 'function') cm3dSync() } catch (e) {}
   await esperar(300);
   ex.push(['(C2 DENOM) habia algo apagado antes del repintado', n5, 1]);
   ex.push(['(C3) y un repintado del MISMO dibujo lo conserva', n(), 1]);
-  ex.push(['(C4) con la misma clave', st ? Object.keys(st.sinColor)[0] : '', k1 ? Object.keys(st.sinColor)[0] : '']);
+  /* La clave se compara contra la de ANTES DEL REPINTADO y no contra la del primer toque:
+     entre medio la escena cambio, y justamente por eso el conjunto se vacio. */
+  ex.push(['(C4) y es la MISMA clave que antes del repintado', (_ks() || ['x'])[0], kA || 'y']);
   /* (6) NADA MAS CAMBIA: ni un boton dentro del recuadro del dibujo. */
   ex.push(['(D1) el recuadro del dibujo no gano botones',
     host.querySelectorAll('button').length, 0]);
