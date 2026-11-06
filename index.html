@@ -87683,6 +87683,44 @@ const IND_REFS = Object.freeze([
          'amiloidosis cardíaca relacionada con TTR, Clase I · Nivel B—; y Tabla 5 de ' +
          'recomendaciones, sobre resonancia magnética cardíaca —el seguimiento seriado y la ' +
          'evaluación de la respuesta terapéutica en la amiloidosis cardíaca, Clase IIa · Nivel C—.' },
+  /* ⚠️ LAS SEIS REFERENCIAS PRIMARIAS DE LA TABLA 69 DE LA ESC 2024 (PANT-17, commit 3b).
+     DECISIÓN DEL MÉDICO (06/11/2026): cuando la fila de la ESC trae un superíndice, la
+     bibliografía de la sección incluye esa referencia con su cita completa tal como la guía la
+     escribe; cuando NO lo trae, no se escribe nada. Las seis se leyeron EN IMAGEN a 300 ppp en
+     la lista de referencias de la edición inglesa: 1534 a 1537 en la hoja 162, 1468 en la 160 y
+     300 en la 133.
+     ⚠️ Y LA PRIMERA FILA TRAE DOS Y NO UNA: el superíndice impreso es «1534,1535». */
+  { k:'ao1534',
+    full:'Padang R, Dennis M, Semsarian C, Bannon PG, Tanous DJ, Celermajer DS, et al. Detection ' +
+         'of serious complications by MR imaging in asymptomatic young adults with repaired ' +
+         'coarctation of the aorta. Heart Lung Circ 2014;23:332-8. ' +
+         'Referencia 1534 de la ESC 2024 de aorta, citada por la primera fila de su Tabla 69.' },
+  { k:'ao1535',
+    full:'Bhatt AB, Lantin-Hermoso MR, Daniels CJ, Jaquiss R, Landis BJ, Marino BS, et al. ' +
+         'Isolated coarctation of the aorta: current concepts and perspectives. Front Cardiovasc ' +
+         'Med 2022;9:817866. Referencia 1535 de la ESC 2024 de aorta, citada por la primera fila ' +
+         'de su Tabla 69 junto con la 1534.' },
+  { k:'ao1536',
+    full:'Erben Y, Oderich GS, Verhagen HJM, Witsenburg M, van den Hoven AT, Debus ES, et al. ' +
+         'Multicenter experience with endovascular treatment of aortic coarctation in adults. ' +
+         'J Vasc Surg 2019;69:671-9.e1. Referencia 1536 de la ESC 2024 de aorta, citada por la ' +
+         'fila de reparación en el hipertenso de su Tabla 69.' },
+  { k:'ao1537',
+    full:'Meijs TA, Warmerdam EG, Slieker MG, Krings GJ, Molenschot MMC, Meijboom FJ, et al. ' +
+         'Medium-term systemic blood pressure after stenting of aortic coarctation: a systematic ' +
+         'review and meta-analysis. Heart 2019;105:1464-70. Referencia 1537 de la ESC 2024 de ' +
+         'aorta, citada por la fila del tratamiento endovascular en el hipertenso con estrechez ' +
+         'mayor del 50 % de su Tabla 69.' },
+  { k:'ao1468',
+    full:'Baumgartner H, De Backer J, Babu-Narayan SV, Budts W, Chessa M, Diller G-P, et al. ' +
+         '2020 ESC Guidelines for the management of adult congenital heart disease. Eur Heart J ' +
+         '2021;42:563-645. Referencia 1468 de la ESC 2024 de aorta, citada por la fila del ' +
+         'tratamiento endovascular en el normotenso de su Tabla 69.' },
+  { k:'ao300',
+    full:'McEvoy JW, Touyz RM, McCarthy CP, Bruno RM, Brouwers S, Canavan MD, et al. 2024 ESC ' +
+         'Guidelines for the management of elevated blood pressure and hypertension. Eur Heart J ' +
+         '2024. Referencia 300 de la ESC 2024 de aorta, citada por la fila de tratamiento de la ' +
+         'hipertensión de su Tabla 69.' },
   { k:'esc2024ao',
     full:'ESC 2024 — Guía para el manejo de las enfermedades aórticas y arteriales periféricas. ' +
          'Sociedad Europea de Cardiología. Incluye la tabla de recomendaciones modificadas, donde ' +
@@ -88933,7 +88971,10 @@ function _indPorClave(lista, claves){
    coinciden —la resistencia vascular pulmonar entre 2 y 3 unidades Wood es el caso— se DICE
    que no coinciden y no se inventa un tramo intermedio ni una pregunta que no esté en ninguna
    de las dos hojas. Es la regla R6 aplicada a un hueco entre dos documentos. */
-const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020' });
+/* ⚠️ `ao` SE SUMA EN PANT-17 (commit 3b) Y NO REEMPLAZA A NADIE: la coartación es la
+   primera sección de congénitas cuya guía que RIGE no es ninguna de las dos de arriba.
+   Las claves viejas no se tocan, así que las diez secciones que ya existen salen igual. */
+const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020', ao:'ESC 2024 de aorta' });
 /* ══ LA ETIQUETA CORTA DE LA GUIA, EN LA FILA (TGA-4, commit 3b) ═══════════════════════════════
    El pedido: «una etiqueta corta de la guia ("ACC 1·B-NR"), y las preguntas rotuladas ESC 2020
    con su etiqueta en otro color». Con el detalle plegado en el ⓘ, la fila tiene que seguir
@@ -88947,7 +88988,7 @@ const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020' });
    SOLO la guia y nunca una clase inventada. Lo que no se puede leer no se afirma.
    ⚠️ Y NO SE DUPLICA EL DATO: el ⓘ de la fila sigue trayendo `rec` entero, con su clase, su
    nivel, su recomendacion, su hoja y su folio. La etiqueta es un resumen de lo que ya esta. */
-const IND_GUIA_CORTA = Object.freeze({ acc:'ACC', esc:'ESC' });
+const IND_GUIA_CORTA = Object.freeze({ acc:'ACC', esc:'ESC', ao:'ESC-Ao' });
 function _indPregBadge(p){
   if (!p || !p.guia || !Object.prototype.hasOwnProperty.call(IND_GUIA_CORTA, p.guia)) return null;
   const r = String(p.rec == null ? '' : p.rec);
@@ -88970,8 +89011,17 @@ function _indPregNota(p, sinDato){
   else if (p.rec) partes.push(p.rec);
   if (p.nota) partes.push(p.nota);
   /* La línea de referencia de la otra guía (E-2). Va SIEMPRE que exista, también cuando la
-     pregunta está contestada: es parte de lo que el médico tiene que poder leer. */
-  if (p.ref) partes.push('ESC 2020 (anterior): ' + p.ref);
+     pregunta está contestada: es parte de lo que el médico tiene que poder leer.
+     ⚠️ EL RÓTULO DEJA DE ESTAR ESCRITO A MANO (PANT-17, commit 3). Hasta hoy decía siempre
+     «ESC 2020 (anterior)», que era cierto mientras la guía que regía fuera la americana en
+     TODAS las secciones con dos guías. La coartación rompe eso: ahí rige la ESC 2024 de aorta
+     y las líneas de referencia son la ACC/AHA y la ESC 2020. `refLbl` sólo se usa cuando la
+     pregunta lo trae, así que las diez secciones que ya existen —ninguna lo trae, censado—
+     publican exactamente la misma frase que antes.
+     ⚠️ Y `ref2` ES UNA SEGUNDA LÍNEA, NO UNA FRASE MÁS LARGA: la regla del 04/11 pide que cada
+     fuente se cite en su PROPIA oración. Pegar las dos en una sola sería compararlas. */
+  if (p.ref) partes.push((p.refLbl || 'ESC 2020 (anterior)') + ': ' + p.ref);
+  if (p.ref2) partes.push((p.ref2Lbl || 'Referencia') + ': ' + p.ref2);
   if (p.tramo) partes.push('Nota: ' + p.tramo);
   /* E-4, dicho en la fila y no sólo en el balance de abajo. */
   if (sinDato) partes.push('Sin dato no cuenta como «no»: mientras no se conteste, esta condición no sostiene ninguna recomendación');
@@ -95635,6 +95685,88 @@ function _indCIA(){
    firmado. Dos cosas que ella sabe y este panel tiene que repetir: el criterio de la guía es el
    gradiente pico-pico INVASIVO, y la cola diastólica basta sola. Y la casilla de la cola sólo
    afirma: desmarcada significa a la vez «la busqué y no está» y «no la busqué». */
+/* ══ COARTACIÓN DE AORTA — EL CUESTIONARIO (PANT-17, commit 3b) ════════════════════════════
+   Hasta hoy esta sección tenía CERO preguntas y tres filas clínicas que decían «—» y no se
+   podían contestar. El molde es el de `_indCIA`, y no se reescribió.
+
+   LA GUÍA QUE RIGE ES LA ESC 2024 DE AORTA, que es la que ya la rige hoy —es la única que el
+   cuerpo de esta sección nombra— y es lo que la orden del médico fija. La ACC/AHA 2025 y la
+   ESC 2020 van en las líneas de referencia de cada pregunta, cada una con SUS propios números.
+   Es la primera sección de congénitas cuya guía que rige no es ninguna de las dos de siempre:
+   por eso `IND_GUIA_LBL` suma la clave `ao` y `_indPregNota` deja de escribir a mano el rótulo
+   de la línea de referencia.
+
+   LAS TRES FUENTES, LEÍDAS EN IMAGEN A 200 ppp, CON EL FOLIO COMPROBADO EN EL PIE IMPRESO:
+     · ESC 2024 de aorta, edición INGLESA, apartado 10.3.1, «Recommendation Table 69»: hoja 111
+       → folio 3648 (folio = hoja + 3537). Seis filas; cinco traen superíndice de referencia y
+       sus citas completas están en el registro de arriba (`ao1534` a `ao300`).
+     · ACC/AHA de cardiopatías congénitas del adulto, apartado 4.2.6: hoja 57 → folio e171
+       (folio = hoja + 114). Nueve recomendaciones, la Tabla 24 de intervalos y la Tabla 25 de
+       rasgos de significación hemodinámica. Los dos números del texto de apoyo se leyeron en su
+       propia hoja: hoja 58 → folio e172 y hoja 59 → folio e173.
+     · ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, apartado 4.6.4: hoja 42
+       → folio 604 (folio = hoja + 562). Cuatro filas, ninguna con superíndice.
+
+   ⚠️ LOS CUATRO FOLIOS QUE ESTA SECCIÓN YA CITABA —80, 119, 120 y 121— SON DE LA EDICIÓN DE LA
+   SEC y no se tocan: es lo que la tanda G declaró al unificar `AO_EV_FTE`. Lo que esta tanda
+   agrega lleva la hoja y el folio de la edición INGLESA. */
+const COA_PREG = Object.freeze([
+  { clave:'coa.ev.hta', lbl:'Hipertensión arterial', guia:'ao',
+    rec:'Clase I · Nivel C — la reparación de la coartación o de la recoartación, quirúrgica o endovascular, está indicada en el hipertenso con un gradiente no invasivo aumentado entre miembros superiores e inferiores confirmado con medición invasiva, con preferencia por el stent cuando es técnicamente factible; y Clase I · Nivel C — se recomienda tratar la hipertensión según las guías de hipertensión de la Sociedad Europea de Cardiología, Tabla 69, hoja 111, folio 3648',
+    nota:'se pre-responde desde el campo «Hipertensión arterial» de la pestaña de la coartación',
+    refLbl:'ACC/AHA 2025',
+    ref:'con coartación nativa o reparada e hipertensión SIN coartación hemodinámicamente significativa, el tratamiento médico dirigido por guías está recomendado para mantener controlada la presión en reposo y la ambulatoria: Clase 1 · Nivel B-NR, recomendación 9 (hoja 57, folio e171)',
+    ref2Lbl:'ESC 2020',
+    ref2:'la reparación en el hipertenso con gradiente no invasivo aumentado confirmado con medición invasiva es Clase I · Nivel C (hoja 42, folio 604)' },
+  { clave:'coa.ev.picopico20', lbl:'Gradiente invasivo pico-pico mayor de 20 mmHg', guia:'ao',
+    rec:'Clase I · Nivel C — con hipertensión, es el número que confirma el gradiente no invasivo aumentado y con el que la reparación está indicada; y Clase IIa · Nivel C — en el normotenso con gradiente no invasivo aumentado confirmado, el tratamiento endovascular debe considerarse, Tabla 69, hoja 111, folio 3648',
+    nota:'se pre-responde desde el campo «Gradiente pico-pico» de la pestaña de la coartación, con el operador de esta guía: mayor que 20 mmHg',
+    refLbl:'ACC/AHA 2025',
+    ref:'su Tabla 25 lista el gradiente pico-pico por cateterismo mayor de 20 mmHg entre los rasgos que sugieren significación hemodinámica, y con una coartación anatómica y hemodinámicamente significativa la cirugía o el stent están recomendados: Clase 1 · Nivel B-NR, recomendación 8 (hoja 57, folio e171)',
+    ref2Lbl:'ESC 2020',
+    ref2:'su número es un gradiente pico-pico de 20 mmHg o más (hoja 42, folio 604)' },
+  { clave:'coa.ev.estrech50', lbl:'Estrechez mayor del 50 % respecto del diámetro aórtico a nivel del diafragma', guia:'ao',
+    rec:'Clase IIa · Nivel C — en el hipertenso, el tratamiento endovascular debe considerarse aunque el gradiente invasivo pico-pico sea menor de 20 mmHg, cuando es técnicamente factible, Tabla 69, hoja 111, folio 3648',
+    nota:'se pre-responde desde el campo «Estenosis relativa» de la pestaña de la coartación, con el operador de esta guía: mayor del 50 %',
+    ref2Lbl:'ESC 2020',
+    ref2:'con una estrechez del 50 % o más, el stent debe considerarse en el hipertenso (Clase IIa · Nivel C) y puede considerarse en el normotenso (Clase IIb · Nivel C), aunque el gradiente invasivo pico-pico sea menor de 20 mmHg (hoja 42, folio 604)' },
+  { clave:'coa.ev.cola', lbl:'Cola diastólica en la aorta descendente o flujo diastólico anterógrado en la aorta abdominal', guia:'ao',
+    rec:'el apartado 10.3.1.1 lo publica como hallazgo que sugiere una estrechez significativa, y remite a su Figura 44 para los criterios; esa oración no lleva clase ni nivel, hoja 111, folio 3648',
+    nota:'se pre-responde desde la casilla «Flujo diastólico anterógrado» de la pestaña de la coartación. La casilla desmarcada NO contesta que no: no distingue «lo busqué y no está» de «no lo busqué»',
+    refLbl:'ACC/AHA 2025',
+    ref:'su Tabla 25 lista el perfil Doppler con cola diastólica en la aorta descendente y flujo diastólico anterógrado en la aorta abdominal entre los rasgos que sugieren significación hemodinámica (hoja 57, folio e171)' },
+  { clave:'coa.ev.nativarep', lbl:'Coartación nativa o reparada', guia:'ao',
+    rec:'Clase I · Nivel B — está recomendado el seguimiento de por vida, con imagen regular de la aorta por tomografía o resonancia cada 3 a 5 años, adaptada al estado clínico y a las imágenes previas, Tabla 69, hoja 111, folio 3648',
+    nota:'se pre-responde desde el campo «Situación» de la pestaña de la coartación: cualquiera de sus cuatro valores contesta que sí',
+    refLbl:'ACC/AHA 2025',
+    ref:'en la no reparada la imagen seccional está recomendada para determinar la gravedad y delinear la anatomía de la aorta torácica, y en la reparada la imagen seccional periódica está recomendada para buscar recoartación, aneurisma de la raíz o de la aorta ascendente y complicaciones de la reparación: Clase 1 · Nivel B-NR, recomendaciones 1 y 2 (hoja 57, folio e171)' },
+  { clave:'coa.ev.presion3', lbl:'Presión arterial medida en los dos brazos y en un miembro inferior', guia:'ao',
+    rec:'Clase I · Nivel C — está recomendado medirla así, Tabla 69, hoja 111, folio 3648',
+    refLbl:'ACC/AHA 2025',
+    ref:'la medición en reposo en miembros superiores e inferiores está recomendada como parte de la evaluación clínica de rutina, para buscar hipertensión y coartación residual o recurrente: Clase 1 · Nivel B-NR, recomendación 3 (hoja 57, folio e171)' },
+  { clave:'coa.ev.gradmmss', lbl:'Gradiente de presión sistólica entre miembros superiores e inferiores mayor de 20 mmHg', guia:'acc',
+    rec:'su Tabla 25 lo lista entre los rasgos que sugieren significación hemodinámica, y con una coartación anatómica y hemodinámicamente significativa la cirugía o el stent están recomendados para prevenir la disfunción irreversible del ventrículo izquierdo por la sobrecarga crónica de presión: Clase 1 · Nivel B-NR, recomendación 8, hoja 57, folio e171',
+    ref2Lbl:'ESC 2020',
+    ref2:'su apartado 4.6.5 escribe que un gradiente de presión sistólica de 20 mmHg o más entre miembros superiores e inferiores indica recoartación y obliga a una evaluación invasiva (hoja 42, folio 604)' },
+  { clave:'coa.ev.indiceistmico', lbl:'Índice ístmico por angio-RM o angio-TC menor de 0,5 a 0,7', guia:'acc',
+    rec:'su Tabla 25 lo lista entre los rasgos que sugieren significación hemodinámica, que es lo que sostiene la recomendación 8 de cirugía o stent, Clase 1 · Nivel B-NR, hoja 57, folio e171' },
+  { clave:'coa.ev.colaterales', lbl:'Arterias colaterales en la angiografía', guia:'acc',
+    rec:'su Tabla 25 las lista entre los rasgos que sugieren significación hemodinámica, hoja 57, folio e171',
+    nota:'el apartado 10.3.1.1 de la ESC 2024 de aorta escribe que, con colaterales o con la función del ventrículo izquierdo disminuida, el gradiente y el índice tobillo-brazo pueden subestimar la gravedad (hoja 111, folio 3648)' },
+  { clave:'coa.ev.mapa', lbl:'Se dispone de monitorización ambulatoria de la presión arterial de 24 horas', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 4 — es razonable para diagnosticar la hipertensión y controlar la respuesta al tratamiento, hoja 57, folio e171',
+    ref2Lbl:'ESC 2020',
+    ref2:'la nota al pie c de su tabla pide considerar la monitorización ambulatoria del brazo DERECHO para el diagnóstico de hipertensión (hoja 42, folio 604)' },
+  { clave:'coa.ev.htaej', lbl:'Hipertensión inducida por el ejercicio', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 5 — la prueba de esfuerzo es razonable para buscarla, hoja 57, folio e171',
+    nota:'el texto de apoyo de la hoja 58 (folio e172) la define como una presión arterial sistólica en el pico del ejercicio por encima de 210 mmHg en el varón y por encima de 190 mmHg en la mujer' },
+  { clave:'coa.ev.sintesf', lbl:'Síntomas de esfuerzo', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 6 — es razonable evaluar enfermedad coronaria para guiar el manejo, hoja 57, folio e171' },
+  { clave:'coa.ev.htasinsignif', lbl:'Hipertensión arterial sin coartación hemodinámicamente significativa', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 9 — el tratamiento médico dirigido por guías está recomendado para mantener controlada la presión en reposo y la ambulatoria, hoja 57, folio e171',
+    nota:'el texto de apoyo de la hoja 59 (folio e173) fija el objetivo de presión arterial sistólica por debajo de 130 mmHg' }
+]);
+window.COA_PREG = COA_PREG;
 function _indCoAo(){
   const conc = _indFn('coaConclusion'), gmax = _indFn('coaGmax');
   const C = conc ? conc() : null;
@@ -95684,15 +95816,98 @@ function _indCoAo(){
          + (_coaOperado ? ' Este estudio consigna una coartación ya tratada, así que la recomendación aplica hoy.' : ''),
       refs: ['esc2024ao'] }],
     nota:'El informe y la conclusión de la app son DESCRIPTIVOS: la periodicidad de los controles se publica acá y no en el papel firmado.' }];
-  return { filas: filas, bloques: _coaBloques,
+  /* ══ LAS PREGUNTAS (PANT-17, commit 3b) ═══════════════════════════════════════════════════
+     CINCO de las trece se pre-responden desde campos que la pantalla de la coartación ya tiene,
+     con `_indOrigen`, que es el mismo helper de las otras secciones. Los operadores son los de
+     la guía que RIGE: el gradiente pico-pico MAYOR que 20 mmHg y la estrechez MAYOR del 50 %.
+     ⚠️ LA CASILLA DE LA COLA DIASTÓLICA SÓLO AFIRMA, y es la misma salvedad que la fila de datos
+     de arriba ya escribe: desmarcada significa a la vez «la busqué y no está» y «no la busqué»,
+     así que contesta «sí» marcada y NADA desmarcada. Traducirla a «no» sería convertir un campo
+     que nadie tocó en una afirmación clínica. */
+  const _coaNum = function (id, op, umbral) {
+    const v = _indN(id);
+    if (v == null) return '';
+    return (op === 'gt' ? (v > umbral) : (v < umbral)) ? 'si' : 'no';
+  };
+  const COA_RESP = {
+    'coa.ev.hta': _indS('coa_hta'),
+    'coa.ev.picopico20': _coaNum('coa_gradiente_picopico', 'gt', 20),
+    'coa.ev.estrech50': _coaNum('coa_estenosis_relativa', 'gt', 50),
+    'coa.ev.cola': cola ? 'si' : '',
+    'coa.ev.nativarep': _coaSit ? 'si' : ''
+  };
+  const COA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  COA_PREG.forEach(function (p) {
+    const o = _indOrigen(Object.prototype.hasOwnProperty.call(COA_RESP, p.clave) ? COA_RESP[p.clave] : null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, COA_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _balCOA = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + COA_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + COA_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
     aviso: (C.clave === 'significativa' || C.clave === 'no_interpretable') ? C.txt : '',
-    clinica: [
-      _indFila('Hipertensión arterial', '—', 'ask', 'es CONDICIÓN de la Clase I, no un factor más; sin ella la indicación baja a IIa'),
-      _indFila('Gradiente invasivo pico-a-pico ≥ 20 mmHg', '—', 'ask', 'es el número que la guía exige, y no lo da el ecocardiograma'),
-      _indFila('Estrechamiento ≥ 50 % respecto de la aorta a nivel del diafragma', '—', 'ask', 'permite intervenir aun con gradiente invasivo < 20 mmHg')
-    ],
-    guia: { ref:'esc2020guch',
-      txt:'Reparación Clase I · Nivel C en pacientes HIPERTENSOS con gradiente no invasivo aumentado CONFIRMADO por medición invasiva (pico-a-pico ≥ 20 mmHg), con preferencia por el tratamiento percutáneo cuando es técnicamente posible.' },
+    clinica: clinica,
+    bloques: _coaBloques.concat([
+      { tit:'Evaluación y tratamiento — ESC 2024 de aorta, Tabla 69, hoja 111, folio 3648', lineas:[
+        { txt:'Clase I · Nivel B — En la coartación nativa o reparada está recomendado el seguimiento de por vida, con imagen regular de la aorta por tomografía o resonancia cada 3 a 5 años, adaptada al estado clínico y a los hallazgos de imagen previos.', refs:['ao1534','ao1535'] },
+        { txt:'Clase I · Nivel C — La reparación de la coartación o de la recoartación, quirúrgica o endovascular, está indicada en el hipertenso con un gradiente no invasivo aumentado entre miembros superiores e inferiores —índice tobillo-brazo disminuido— confirmado con medición invasiva (pico-pico mayor de 20 mmHg), con preferencia por el stent cuando es técnicamente factible.', refs:['ao1536'] },
+        { txt:'Clase I · Nivel C — En la coartación está recomendado medir la presión arterial en los dos brazos y en un miembro inferior.', refs:null },
+        { txt:'Clase I · Nivel C — Está recomendado tratar la hipertensión según las guías de hipertensión de la Sociedad Europea de Cardiología.', refs:['ao300'] },
+        { txt:'Clase IIa · Nivel C — El tratamiento endovascular debe considerarse en el hipertenso con una estrechez mayor del 50 % respecto del diámetro aórtico a nivel del diafragma, aunque el gradiente invasivo pico-pico sea menor de 20 mmHg, cuando es técnicamente factible.', refs:['ao1537'] },
+        { txt:'Clase IIa · Nivel C — El tratamiento endovascular debe considerarse en el normotenso con un gradiente no invasivo aumentado confirmado con un gradiente invasivo pico-pico mayor de 20 mmHg, cuando es técnicamente factible.', refs:['ao1468'] },
+        { txt:'El apartado 10.3.1.2 de la misma hoja escribe que en la coartación nativa y en la recoartación el stent cubierto es el tratamiento de primera elección, y que el injerto de interposición es la cirugía preferida cuando el stent es menos adecuado.', refs:null },
+        { txt:'Fuente: ESC 2024 de enfermedades aórticas y arteriales periféricas, edición inglesa, apartado 10.3.1, Tabla 69, hoja 111, folio 3648.', refs:['esc2024ao'] }
+      ]},
+      { tit:'Diagnóstico y tratamiento — ACC/AHA 2025 (línea de referencia), apartado 4.2.6, hoja 57, folio e171', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — En la coartación no reparada, la imagen seccional está recomendada para determinar la gravedad y delinear la anatomía de la aorta torácica (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — En la coartación reparada, la imagen seccional periódica está recomendada para buscar recoartación, aneurisma de la raíz o de la aorta ascendente y complicaciones vasculares de la reparación: aneurisma focal, pseudoaneurisma, disección y fractura del stent (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — La medición de la presión arterial en reposo en miembros superiores e inferiores está recomendada como parte de la evaluación clínica de rutina, para buscar hipertensión y coartación residual o recurrente (recomendación 3).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — La monitorización ambulatoria de la presión arterial es razonable para diagnosticar la hipertensión y controlar la respuesta al tratamiento (recomendación 4).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — La prueba de esfuerzo es razonable para buscar hipertensión inducida por el ejercicio (recomendación 5). El texto de apoyo de la hoja 58, folio e172, la define como una presión sistólica en el pico del ejercicio por encima de 210 mmHg en el varón y por encima de 190 mmHg en la mujer.', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con síntomas de esfuerzo, es razonable evaluar enfermedad coronaria para guiar el manejo (recomendación 6).', refs:null },
+        { txt:'Clase 2b · Nivel B-NR — El cribado de aneurismas intracraneales por angiografía por resonancia o por tomografía cerebral puede considerarse para guiar el manejo (recomendación 7).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — En la coartación nativa o reparada, la cirugía o el stent percutáneo están recomendados ante una coartación anatómica y hemodinámicamente significativa, para prevenir la disfunción irreversible del ventrículo izquierdo por la sobrecarga crónica de presión (recomendación 8).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con hipertensión y sin coartación hemodinámicamente significativa, el tratamiento médico dirigido por guías está recomendado para mantener controlada la presión en reposo y la ambulatoria (recomendación 9). El texto de apoyo de la hoja 59, folio e173, fija el objetivo de presión sistólica por debajo de 130 mmHg.', refs:null },
+        { txt:'Su Tabla 25 lista los rasgos que sugieren significación hemodinámica: un gradiente de presión sistólica entre miembro superior e inferior mayor de 20 mmHg; por ecocardiografía, un gradiente medio Doppler mayor de 20 mmHg, un gradiente máximo instantáneo corregido mayor de 20 mmHg y un perfil Doppler con cola diastólica en la aorta descendente y flujo diastólico anterógrado en la aorta abdominal; por cateterismo, un gradiente pico-pico mayor de 20 mmHg; y por angiografía por resonancia o tomografía, un índice ístmico menor de 0,5 a 0,7 y arterias colaterales.', refs:null },
+        { txt:'Las dos notas de esa tabla: los gradientes pueden ser menores con disfunción del ventrículo izquierdo, estenosis aórtica grave o colaterales extensas, y de los gradientes Doppler el MEDIO es el que mejor aproxima el pico-pico del cateterismo; y en la coartación reparada los gradientes Doppler pueden estar elevados aun sin estrechez, por la menor distensibilidad arterial y la recuperación de presión.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.2.6, hojas 57, 58 y 59, folios e171, e172 y e173.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Intervención — ESC 2020 (línea de referencia), apartado 4.6.4, hoja 42, folio 604', lineas:[
+        { txt:'Clase I · Nivel C — La reparación de la coartación o de la recoartación, quirúrgica o por catéter, está indicada en el hipertenso con un gradiente no invasivo aumentado entre miembros superiores e inferiores confirmado con medición invasiva (pico-pico de 20 mmHg o más), con preferencia por el tratamiento por catéter cuando es técnicamente factible.', refs:null },
+        { txt:'Clase IIa · Nivel C — El stent debe considerarse en el hipertenso con una estrechez del 50 % o más respecto del diámetro aórtico a nivel del diafragma, aunque el gradiente invasivo pico-pico sea menor de 20 mmHg, cuando es técnicamente factible.', refs:null },
+        { txt:'Clase IIa · Nivel C — El stent debe considerarse en el normotenso con un gradiente no invasivo aumentado confirmado con medición invasiva (pico-pico de 20 mmHg o más), cuando es técnicamente factible.', refs:null },
+        { txt:'Clase IIb · Nivel C — El stent puede considerarse en el normotenso con una estrechez del 50 % o más respecto del diámetro aórtico a nivel del diafragma, aunque el gradiente invasivo pico-pico sea menor de 20 mmHg, cuando es técnicamente factible.', refs:null },
+        { txt:'La nota al pie c de esa tabla pide considerar la monitorización ambulatoria de la presión del brazo DERECHO para el diagnóstico de hipertensión.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.6.4, hoja 42, folio 604.', refs:['esc2020guch'] },
+        _balCOA
+      ]}
+    ]).concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (IND_GUIA_LBL[p.guia] || '') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'esc2024ao',
+      txt:'Las indicaciones de esta sección salen de TRES guías: la ESC 2024 de enfermedades aórticas y arteriales periféricas (apartado 10.3.1, Tabla 69, hoja 111, folio 3648), que es la que rige, y la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.2.6, hoja 57, folio e171) y la ESC 2020 de cardiopatías congénitas del adulto (apartado 4.6.4, hoja 42, folio 604), que quedan como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
     notas: [
       /* ⚠️ ESTA LÍNEA Y LA SIGUIENTE SON LO QUE EL TRABAJO «H» SACÓ DEL INFORME Y DEL EN SUMA.
          El dato está verificado en el original: ESC 2024 de enfermedad arterial periférica y
@@ -95706,7 +95921,9 @@ function _indCoAo(){
       'El seguimiento por imagen de la Tabla 69 está arriba, en el bloque de recomendaciones. La ecocardiografía anual que lo acompaña sale de la Figura 44 (folio 120), que es el algoritmo de seguimiento del mismo documento.',
       'Sin hipertensión arterial, el mismo gradiente invasivo ≥ 20 mmHg es Clase IIa C.',
       'Se puede intervenir con gradiente invasivo < 20 mmHg: un estrechamiento ≥ 50 % respecto del diámetro aórtico a nivel del diafragma es Clase IIa C en el hipertenso y IIb C en el normotenso.',
-      'El gradiente de arriba es Bernoulli simplificado y no descuenta la velocidad proximal, que en la coartación suele estar elevada: sobreestima.'
+      'El gradiente de arriba es Bernoulli simplificado y no descuenta la velocidad proximal, que en la coartación suele estar elevada: sobreestima.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
     ] };
 }
 
@@ -96821,6 +97038,67 @@ function _indCrit(lista, k){ const e = lista && lista.find(x => x.k === k); retu
    El aviso va SIEMPRE, y es deliberado: a diferencia de la coartación —donde el gradiente por
    Doppler no alcanza para concluir nada—, acá la conclusión de la app es el hallazgo. Dejarla
    detrás de un acordeón cerrado haría que el panel mostrara menos que el informe. */
+/* ══ DUCTUS ARTERIOSO PERMEABLE — EL CUESTIONARIO (PANT-17, commit 3a) ═══════════════════════
+   Hasta hoy esta sección tenía CERO preguntas, no nombraba NINGUNA guía en su cuerpo y sus tres
+   filas clínicas eran marcadores de posición que decían «—» y no se podían contestar. El molde
+   es el de `_indCIA` y el de `_indCIV`, y no se reescribió.
+
+   LA GUÍA QUE RIGE ES LA ACC/AHA, y es una medición y no una preferencia: las DIEZ secciones de
+   congénitas que publican las dos guías —CIA, CIV, subaórtica, supravalvular, transposición,
+   defecto del septo auriculoventricular, Ebstein, Fontan, conexión venosa anómala parcial y
+   Eisenmenger— apuntan su `guia.ref` a la americana. La ESC 2020 va en la línea de referencia
+   de cada pregunta, con SUS propios números.
+
+   LAS DOS FUENTES, LEÍDAS EN IMAGEN A 200 ppp, CON EL FOLIO COMPROBADO EN EL PIE IMPRESO:
+     · ACC/AHA de cardiopatías congénitas del adulto, apartado 4.1.5, tabla «Recommendations for
+       Patent Ductus Arteriosus»: hoja 46 → folio e160 y hoja 47 → folio e161 (folio = hoja + 114,
+       comprobado también en la hoja 1 → e115). Nueve recomendaciones.
+     · ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, apartado 4.4.4, tabla
+       «Recommendations for intervention in patent ductus arteriosus»: hoja 36 → folio 598
+       (folio = hoja + 562). Cinco filas, NINGUNA con superíndice de referencia, así que —por la
+       decisión del médico del 06/11— no se le agrega ninguna referencia primaria.
+
+   ⚠️ NINGUNA PREGUNTA DICE LO QUE LA OTRA GUÍA NO DICE. La regla del 04/11 lo prohíbe, y la
+   regla «una pregunta, una guía» ya lo resuelve: la pregunta que sale de una sola hoja no lleva
+   línea de referencia, y con eso alcanza. */
+const DAP_PREG = Object.freeze([
+  { clave:'dap.ev.agrandiz', lbl:'Agrandamiento de las cavidades izquierdas atribuible al ductus', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 5 — con un cortocircuito neto de izquierda a derecha y sin hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos), el cierre para eliminar el cortocircuito está recomendado para mejorar los resultados clínicos, hoja 47, folio e161',
+    ref:'la condición equivalente es la sobrecarga de volumen del ventrículo izquierdo, que su nota al pie c define como agrandamiento del ventrículo izquierdo con volumen latido aumentado; ahí el cierre es Clase I · Nivel C independientemente de los síntomas (hoja 36, folio 598)' },
+  { clave:'dap.ev.netoid', lbl:'Cortocircuito neto de izquierda a derecha', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 5, y Clase 2a · Nivel C-LD, recomendación 6: es condición de las dos, hoja 47, folio e161',
+    nota:'se pre-responde desde el campo «Dirección del shunt» de la pestaña del ductus: izquierda a derecha contesta que sí y derecha a izquierda que no. Con un shunt BIDIRECCIONAL la pregunta queda sin contestar a propósito, porque la dirección neta no se deduce del selector' },
+  { clave:'dap.ev.rvp2', lbl:'Resistencia vascular pulmonar de 2 unidades Wood o menos, sin hipertensión arterial pulmonar', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 5 — es lo que la guía escribe como «sin evidencia de hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos)», hoja 47, folio e161',
+    ref:'su Clase I · Nivel C pide que no haya signos no invasivos de presión pulmonar elevada o, si los hay, una resistencia vascular pulmonar por debajo de 3 unidades Wood confirmada por cateterismo (hoja 36, folio 598)' },
+  { clave:'dap.ev.rvp25', lbl:'Resistencia vascular pulmonar mayor de 2 y menor de 5 unidades Wood', guia:'acc',
+    rec:'Clase 2a · Nivel C-LD, recomendación 6 — con agrandamiento izquierdo atribuible al ductus y cortocircuito neto de izquierda a derecha, el cierre es razonable para mejorar los resultados clínicos, hoja 47, folio e161',
+    ref:'con una resistencia de 3 a 5 unidades Wood y un cortocircuito izquierda-derecha significativo (Qp:Qs mayor que 1,5), el cierre debe considerarse: Clase IIa · Nivel C (hoja 36, folio 598)' },
+  { clave:'dap.ev.rvp58', lbl:'Resistencia vascular pulmonar de 5 a 8 unidades Wood', guia:'acc',
+    rec:'Clase 2b · Nivel C-EO, recomendación 7 — el cierre puede considerarse si la resistencia baja por debajo de 5 unidades Wood al iniciar el tratamiento de la hipertensión arterial pulmonar, hoja 47, folio e161',
+    ref:'con 5 unidades Wood o más y un cortocircuito izquierda-derecha significativo (Qp:Qs mayor que 1,5), el cierre puede considerarse, pero se requiere una decisión individual cuidadosa en un centro experto: Clase IIb · Nivel C (hoja 36, folio 598)' },
+  { clave:'dap.ev.rvpbaja5', lbl:'La resistencia vascular pulmonar baja por debajo de 5 unidades Wood al iniciar el tratamiento de la hipertensión arterial pulmonar', guia:'acc',
+    rec:'Clase 2b · Nivel C-EO, recomendación 7 — es la condición con la que el cierre puede considerarse en la hipertensión arterial pulmonar moderada, hoja 47, folio e161' },
+  { clave:'dap.ev.rvp10', lbl:'Resistencia vascular pulmonar mayor de 10 unidades Wood', guia:'acc',
+    rec:'Clase 3: Daño · Nivel C-LD, recomendación 9 — el cierre NO debe realizarse, para no sumar morbilidad ni mortalidad, hoja 47, folio e161' },
+  { clave:'dap.ev.eisen', lbl:'Fisiología de Eisenmenger', guia:'acc',
+    rec:'Clase 3: Daño · Nivel C-LD, recomendación 9 — el cierre NO debe realizarse, hoja 47, folio e161',
+    ref:'el cierre no se recomienda en la fisiología de Eisenmenger: Clase III · Nivel C (hoja 36, folio 598)' },
+  { clave:'dap.ev.desat', lbl:'Desaturación de los miembros inferiores con el ejercicio', guia:'esc',
+    rec:'Clase III · Nivel C — el cierre no se recomienda, hoja 36, folio 598',
+    nota:'la nota al pie d de esa tabla dice que hay datos limitados para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial de oxígeno por debajo del 90 %' },
+  { clave:'dap.ev.sinrep', lbl:'Asintomático, sin agrandamiento de la aurícula ni del ventrículo izquierdos y sin endarteritis previa', guia:'acc',
+    rec:'Clase 3: Sin beneficio · Nivel C-EO, recomendación 8 — el cierre no aporta beneficio, hoja 47, folio e161' },
+  { clave:'dap.ev.hap', lbl:'Hipertensión arterial pulmonar', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 1 — el manejo corresponde a un especialista en cardiopatías congénitas del adulto junto con clínicos con experiencia en hipertensión pulmonar, hoja 46, folio e160; y Clase 2a · Nivel C-LD, recomendación 4 — la oclusión de prueba del ductus con balón puede ser útil para cuantificar la resistencia vascular pulmonar e identificar a los candidatos al cierre, hoja 47, folio e161',
+    nota:'el texto de apoyo de la misma hoja define la hipertensión arterial pulmonar como resistencia vascular pulmonar de 2 unidades Wood o más, presión media de la arteria pulmonar de 20 mmHg o más y presión capilar pulmonar de 15 mmHg o menos',
+    ref:'ante signos no invasivos de presión pulmonar elevada —presión sistólica pulmonar calculada por encima de 40 mmHg, o signos indirectos cuando no se puede estimar— el cateterismo es necesario para determinar la resistencia vascular pulmonar (hoja 36, folio 598)' },
+  { clave:'dap.ev.norep', lbl:'Ductus no reparado', guia:'acc',
+    rec:'Clase 1 · Nivel C-EO, recomendación 2 — debe evaluarse la hipertensión arterial pulmonar para guiar el tratamiento; y Clase 1 · Nivel C-EO, recomendación 3 — deben evaluarse la función del ventrículo izquierdo y el tamaño de las cavidades izquierdas con ecocardiografía y/o resonancia, hoja 47, folio e161' },
+  { clave:'dap.ev.anatapta', lbl:'Anatomía apta para el cierre con dispositivo', guia:'esc',
+    rec:'Clase I · Nivel C — el cierre con dispositivo se recomienda como método de elección cuando es técnicamente adecuado, hoja 36, folio 598' }
+]);
+window.DAP_PREG = DAP_PREG;
 function _indDAP(){
   const conc = _indFn('dapConclusion'), gmaxF = _indFn('dapGmax'), qpqs = _indFn('ccQpQsDe');
   const C = conc ? conc() : null;
@@ -96855,19 +97133,90 @@ function _indDAP(){
       (cierre && q != null) ? 'ok' : (q != null ? 'none' : 'ask'),
       q != null ? '' : 'no atribuible: hay más de un shunt con datos, o faltan los flujos del TSVI y del TSVD')
   ];
+  /* ══ LAS PREGUNTAS (PANT-17, commit 3a) ═══════════════════════════════════════════════════
+     El mismo molde que la CIA y la CIV: `_indOrigen` por pregunta, `_indFilaOrigen` para la fila
+     y `_indPregNota` para la nota. Lo único pre-respondido desde el estudio es la DIRECCIÓN del
+     cortocircuito, que es el único de los seis campos del ductus que contesta una pregunta de la
+     tabla; los demás —resistencia vascular pulmonar, agrandamiento izquierdo, endarteritis,
+     síntomas— no son campos de esta aplicación.
+     ⚠️ EL BIDIRECCIONAL NO SE TRADUCE. `dap_dir` tiene tres valores y sólo dos contestan: `id`
+     es «sí» y `di` es «no». Mapear `bi` a cualquiera de los dos sería deducir la dirección NETA
+     de un selector que no la dice. */
+  const _dapDirResp = (dir === 'id') ? 'si' : (dir === 'di' ? 'no' : '');
+  const DAP_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  DAP_PREG.forEach(function (p) {
+    const o = _indOrigen(p.clave === 'dap.ev.netoid' ? _dapDirResp : null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, DAP_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _balDAP = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + DAP_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + DAP_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
   return { filas: filas,
     aviso: C.txt || '',
-    clinica: [
-      _indFila('Sobrecarga de volumen de las cavidades izquierdas', '—', 'ask', 'es lo que sostiene la indicación de cierre'),
-      _indFila('Resistencias pulmonares y test de vasorreactividad', '—', 'ask', 'la guía los exige antes de cerrar un ductus con hipertensión pulmonar, y no los da el ecocardiograma'),
-      _indFila('Desaturación de esfuerzo', '—', 'ask', 'define el síndrome de Eisenmenger, que contraindica el cierre')
-    ],
-    guia: { ref:'esc2020guch',
-      txt:'El cierre del ductus es Clase I · Nivel C en el paciente con sobrecarga de volumen de las cavidades izquierdas y sin hipertensión pulmonar severa, con el abordaje percutáneo como técnica de elección cuando es viable.' },
+    clinica: clinica,
+    bloques: [
+      /* El bloque de la guía que RIGE va primero, igual que en la CIA y en la CIV. */
+      { tit:'Diagnóstico — ACC/AHA 2025, apartado 4.1.5, hojas 46 y 47, folios e160 y e161', lineas:[
+        { txt:'Clase 1 · Nivel C-LD — Con un ductus y hipertensión arterial pulmonar, el manejo corresponde a un especialista en cardiopatías congénitas del adulto junto con clínicos con experiencia en hipertensión pulmonar, para reducir la morbilidad y la mortalidad (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con un ductus no reparado, debe evaluarse la hipertensión arterial pulmonar para guiar el tratamiento (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel C-EO — Con un ductus, deben evaluarse la función del ventrículo izquierdo y el tamaño de las cavidades izquierdas con ecocardiografía y/o resonancia, para guiar el tratamiento (recomendación 3).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con un ductus y hipertensión arterial pulmonar, la oclusión de prueba del ductus con balón puede ser útil para cuantificar con precisión la resistencia vascular pulmonar e identificar a los candidatos al cierre (recomendación 4).', refs:null },
+        { txt:'El texto de apoyo de la hoja 47 define la hipertensión arterial pulmonar como resistencia vascular pulmonar de 2 unidades Wood o más, presión media de la arteria pulmonar de 20 mmHg o más y presión capilar pulmonar de 15 mmHg o menos.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.1.5, hojas 46 y 47, folios e160 y e161.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Indicación de cierre — ACC/AHA 2025, misma tabla, hoja 47, folio e161', lineas:[
+        { txt:'Clase 1 · Nivel C-LD — Con agrandamiento de las cavidades izquierdas atribuible al ductus, un cortocircuito neto de izquierda a derecha y sin evidencia de hipertensión arterial pulmonar (resistencia vascular pulmonar de 2 unidades Wood o menos), el cierre para eliminar el cortocircuito está recomendado para mejorar los resultados clínicos (recomendación 5).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con las mismas condiciones y una resistencia vascular pulmonar mayor de 2 pero menor de 5 unidades Wood, el cierre es razonable para mejorar los resultados clínicos (recomendación 6).', refs:null },
+        { txt:'Clase 2b · Nivel C-EO — Con las mismas condiciones e hipertensión arterial pulmonar moderada (resistencia vascular pulmonar de 5 a 8 unidades Wood), el cierre puede considerarse si la resistencia baja por debajo de 5 unidades Wood al iniciar el tratamiento de la hipertensión arterial pulmonar (recomendación 7).', refs:null },
+        { txt:'Clase 3: Sin beneficio · Nivel C-EO — En el adulto asintomático, sin agrandamiento de la aurícula ni del ventrículo izquierdos y sin endarteritis previa, el cierre no aporta beneficio (recomendación 8).', refs:null },
+        { txt:'Clase 3: Daño · Nivel C-LD — Con síndrome de Eisenmenger o una resistencia vascular pulmonar mayor de 10 unidades Wood, el cierre NO debe realizarse, para no sumar morbilidad ni mortalidad (recomendación 9).', refs:null }
+      ]},
+      { tit:'Indicación de cierre y método — ESC 2020 (guía anterior), apartado 4.4.4, hoja 36, folio 598', lineas:[
+        { txt:'Clase I · Nivel C — Con sobrecarga de volumen del ventrículo izquierdo y sin hipertensión arterial pulmonar —sin signos no invasivos de presión pulmonar elevada, o con una resistencia vascular pulmonar por debajo de 3 unidades Wood confirmada por cateterismo si los hay—, el cierre está recomendado independientemente de los síntomas. Su nota al pie c define la sobrecarga de volumen como agrandamiento del ventrículo izquierdo con volumen latido aumentado.', refs:null },
+        { txt:'Clase I · Nivel C — El cierre con dispositivo está recomendado como método de elección cuando es técnicamente adecuado.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con hipertensión arterial pulmonar y una resistencia vascular pulmonar de 3 a 5 unidades Wood, el cierre debe considerarse cuando persiste un cortocircuito izquierda-derecha significativo (Qp:Qs mayor que 1,5).', refs:null },
+        { txt:'Clase IIb · Nivel C — Con hipertensión arterial pulmonar y una resistencia vascular pulmonar de 5 unidades Wood o más, el cierre puede considerarse cuando persiste un cortocircuito izquierda-derecha significativo (Qp:Qs mayor que 1,5), con una decisión individual cuidadosa en un centro experto.', refs:null },
+        { txt:'Clase III · Nivel C — El cierre no se recomienda en la fisiología de Eisenmenger ni con desaturación de los miembros inferiores al esfuerzo. Su nota al pie d dice que hay datos limitados para un corte preciso y que, por experiencia clínica, correspondería a una caída de la saturación arterial de oxígeno por debajo del 90 %.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.4.4, hoja 36, folio 598.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Seguimiento — ESC 2020, apartado 4.4.5, hoja 36, folio 598', lineas:[
+        { txt:'La evaluación ecocardiográfica debe incluir el tamaño y la función del ventrículo izquierdo, la presión de la arteria pulmonar, el cortocircuito residual y las lesiones asociadas.', refs:null },
+        { txt:'Sin cortocircuito residual, con ventrículo izquierdo normal y presión pulmonar normal, no hace falta seguimiento regular después de los 6 meses.', refs:null },
+        { txt:'Con disfunción del ventrículo izquierdo o con hipertensión arterial pulmonar residual, el control va de 1 a 3 años según la gravedad, con evaluación en centros especializados.', refs:null },
+        _balDAP
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (b.g === 'ACC' ? 'ACC/AHA 2025' : 'ESC 2020') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.1.5, hojas 46 y 47, folios e160 y e161), que es la que rige, y la ESC 2020 de cardiopatías congénitas del adulto (apartado 4.4.4, hoja 36, folio 598), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
     notas: [
       'El ductus SILENTE —sin soplo y sin repercusión hemodinámica— no tiene indicación de cierre.',
-      'Con hipertensión pulmonar severa, shunt invertido o desaturación de esfuerzo el cierre está contraindicado mientras no se establezca la operabilidad.',
-      'El gradiente de arriba es Bernoulli simplificado: no descuenta la velocidad proximal y sobreestima.'
+      'El gradiente de arriba es Bernoulli simplificado: no descuenta la velocidad proximal y sobreestima.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
     ] };
 }
 
@@ -162006,8 +162355,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2222';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793928147574;                 /* eco-build-ms */
+const ECO_BUILD    = '20261106-0106';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793937996021;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -162093,7 +162442,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2222</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0106</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
