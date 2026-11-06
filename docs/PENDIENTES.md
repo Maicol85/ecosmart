@@ -14921,3 +14921,91 @@ los campos numéricos de la app, no para éste.
   de prótesis, cuya sección de prótesis aórtica sigue diciendo «no aplica» —esta tanda no la tocó—.
 - Las **frases elegibles** del informe, incluido el AT/ET, que hoy no se puede elegir.
 - Después, **PANT-15** junto con Contractilidad.
+
+---
+
+## P19-a · Lo que la Tabla A4, la A1/A2 y la A3 NO imprimen como el índice decía
+
+Medido en imagen a 300 ppp en las once hojas del apéndice, con el folio comprobado en el pie
+impreso de cada una (`docs/INVENTARIO_CATALOGO_PROTESIS_P19.md` § 1c).
+
+1. **La Tabla A4 NO tiene subtítulos de sección por tipo.** El índice anticipaba «subtítulos que
+   imprimen el tipo (mecánica, biológica con soporte, sin soporte, homoinjerto)». La tabla va en
+   orden alfabético de marca y el único indicio de tipo es una **segunda línea en cursiva dentro
+   de la celda «Valve»**, que a veces es un descriptor de construcción (`Bileaflet`,
+   `Single tilting disk`, `Caged ball`, `Stented porcine`, `Stented bovine pericardial`,
+   `Stentless`, `Homograft valves`, `Tilting disk`, `Stented bioprosthesis`,
+   `Stentless bioprosthesis`, `Stented pericardial`, `Sutureless`) y a veces un **nombre
+   comercial** (`Trifecta`, `Inspiris Resilia`, `Intuity`, `Avalus`, `3F Enable`, `Epic`,
+   `Mosaic`, `Mitris`, `Trilogy`).
+   **Lo que la tanda hace con eso:** el tipo se asigna sólo cuando esa cursiva está en la lista
+   cerrada de descriptores leídos; si no, el modelo queda con tipo **«sin dato»** y la interfaz lo
+   ofrece bajo cualquier morfología de prótesis, que es lo que la orden dispone. **No se adivina
+   ningún tipo.**
+
+2. **A4 tiene 51 bloques de modelo, no «unos 45».** 211 filas de tamaño y 523 celdas con dato.
+
+3. **El tamaño de A4 no es un número de 17 a 29.** Hay nueve rangos del homoinjerto (`17-19`,
+   `19-21`, `20-21`, `20-22`, `22-23`, `22-24`, `24-27`, `25-28`) y cuatro tallas de la Sorin
+   Perceval (`S (21)`, `M (23)`, `L (25)`, `XL (27)`). **Se guarda como texto.**
+
+4. **La Tabla A3 SÍ imprime un tamaño: `All`.** El índice decía «sin tamaños».
+
+5. **En A1 y A2 ningún modelo tiene los siete tamaños.** `20, 23, 26, 29, 31, 34, todos` es el
+   conjunto de las dos tablas juntas: SAPIEN y SAPIEN XT y SAPIEN 3 llevan 20/23/26/29,
+   CoreValve 23/26/29/31 y Evolut R 23/26/29/34, cada uno más `All sizes`.
+
+6. **Dos modelos de A4 aparecen en dos bloques separados**, con el mismo nombre y el mismo tipo,
+   por corte de maquetación: `Medtronic Advantage / Bileaflet` (23-25 y después 27-29) y
+   `Medtronic-Hall / Single tilting disk` (21-27 y después 20).
+
+**Celdas que NO se cargaron por dudosas, ilegibles o cortadas:** ninguna hasta el commit 1. Las
+rarezas se cargan **como están impresas** y están declaradas: la EOA «1.9» de la Edwards Mira
+25 mm **sin desvío**, y la media «10.6 ± 5.1**)**» de la St. Jude Haem Plus 21 mm **con un
+paréntesis de más**.
+
+## P19-b · La fila de la EOA de la Tabla 5 — el commit 5
+
+Reservado para lo que la relectura en imagen de la hoja 18 (folio 19) decida sobre las tres
+categorías de la EOA. Se escribe al llegar al commit 5.
+
+## P19-c · El PPM mitral SÍ usa los cortes mitrales — no hay nada que parar
+
+La orden pedía medir si la mitral aplica los cortes mitrales de la Tabla 7 o los aórticos, y parar
+si fueran los equivocados. **Medido: usa los mitrales.** `VM_PROT_PPM_CORTES` vale
+`imcBajo {normalMin 1,2 · severoMax 0,90}` e `imcAlto {normalMin 1,0 · severoMax 0,75}`, que son
+fila por fila los de la hoja 19, folio 20. La aórtica usa los suyos (`0,85/0,65` y `0,70/0,55`).
+**Esta entrada queda cerrada el mismo día que se abre**, y no se tocó una línea.
+
+## P19-d · La Tabla A6 (SAPIEN mitral) no se carga, y es la condición del commit 6
+
+El commit 6 condiciona la carga de la A6 a que «la morfología mitral de la app tenga una opción
+que lo admita». **Medido: no la tiene.** `vm_morf` ofrece `Normal`, `Mixomatosa / Barlow`,
+`Calcificada`, `Reumática`, `Prolapso / EVMS`, `Prótesis biológica`, `Prótesis mecánica`,
+`Plastia mitral`, `TEER mitral`, `Endocarditis` e `Isquémica (disfunción/rotura músculo papilar)`:
+**ninguna opción de implante transcatéter mitral**.
+
+Y hay un segundo motivo, de estructura: el eje de la A6 **no es «modelo × tamaño»** sino
+«referencia bibliográfica × situación» (ViV, ViR, ViMAC, All), publica **un solo parámetro** —el
+gradiente medio— y lo publica unas veces como **mediana con rango** y otras como **media ± DE**,
+que no es la forma que el componente consume.
+
+**Qué haría falta para cargarla**, el día que se decida: una opción nueva en `vm_morf` —que es un
+vocabulario del informe y una decisión del médico— y un tercer juego de campos en el componente
+para el gradiente en mediana con rango.
+
+## P19-e · El botón «Modelo y tamaño» no entra en la fila de morfología de la MITRAL
+
+La orden pide el botón «en la misma fila del campo Morfología». **En la aórtica entra**: su fila
+`.valv-morf-row` es un flex con un solo hijo y **sobra sitio a la derecha del select** —774 px a
+1440, 358 a 1000 y 286 a 768—, y a 390 px el `flex-wrap` lo manda a la línea siguiente.
+
+**En la mitral no.** Su fila es `.valv-morf-row--tres`, un `grid` de
+`repeat(auto-fit,minmax(144px,1fr))` con **tres** hijos y **ancho acotado** por
+`width:calc((100% - 8px)/2 - var(--valv-sevcol))` — el ancho del botón «Insuficiencia», que
+**TC-522 vigila y pone rojo si la fila lo pasa**. Medido: a 1440 px la fila mide 483 px con tres
+celdas de 155,7, y **a 1000 px ya está en UNA columna de 275 px**. Un cuarto hijo apretaría las
+tres celdas por debajo del piso de 144 px, que es justo lo que el comentario de esa regla declara
+que no puede pasar.
+
+**No se decide acá.** Lo que el commit 7 haga con esto se escribe al llegar.
