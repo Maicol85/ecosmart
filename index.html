@@ -72718,6 +72718,41 @@ const PROT_CAT_A4_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A4', hojas:'52 a
 /* Exposicion de SOLO LECTURA, DESPUES de la declaracion (zona muerta de const). */
 window.PROT_CAT_A4 = PROT_CAT_A4; window.PROT_CAT_A4_FTE = PROT_CAT_A4_FTE;
 window.PROT_CAT_A4_COLS = PROT_CAT_A4_COLS;
+/* ══ CATALOGO DE PROTESIS AORTICAS TRANSCATETER — TABLAS A1, A2 y A3 (PANT-19, commit 3)
+   A1 «Normal Doppler echocardiographic values for percutaneous SAPIEN valves in native aortic
+   stenosis by valve size» y A2 «… for percutaneous CoreValve and Evolut R valves…», hoja 50,
+   folio 51; A3 «Doppler echocardiographic parameters for percutaneous aortic ViV at 1 year after
+   the procedure», hoja 51, folio 52. Leidas EN IMAGEN a 300 ppp, con el folio comprobado en el
+   encabezado impreso de las dos hojas. La transcripcion esta en docs/TRANSCRIPCION_TAVI_P19.md.
+   Notas al pie de A1 y A2: «NA, Not applicable.» y «Data are expressed as mean +- SD. Data are
+   modified from Hahn et al.11 with permission.» Nota de A3: «THV, Transcatheter heart valve.» y
+   «Data are expressed as mean +- SD. Data are derived from the respective publications.»
+
+   ⚠️ A1 y A2 ESTAN TRANSPUESTAS en el papel —las filas son los parametros y las columnas los
+   tamanos—: aca se guardan por modelo y tamano, que es como la interfaz las consume. No se
+   invento ni se dedujo un solo valor: cada celda sale de su cruce impreso.
+   ⚠️ «All sizes» ENTRA COMO UN TAMANO MAS, con el texto «All» que la tabla imprime.
+   ⚠️ «NA» impreso se carga como null, que es lo que la tabla dice: no aplica.
+   ⚠️ LOS CUATRO DE LA A3 SON VALVE-IN-VALVE y llevan `viv:1`: sus valores son AL ANIO del
+   procedimiento, no los de una protesis sobre una valvula nativa, asi que no se pueden mezclar
+   con los de A1 y A2. Su tamano impreso es «All» —la tabla SI trae un tamano— y la interfaz no
+   lo pide, porque hay uno solo. El superindice de referencia bibliografica que llevan pegado al
+   nombre (100, 141,229) NO es parte del nombre y se separa por el tamano de fuente. */
+const PROT_CAT_TAVI_COLS = Object.freeze(['pico','medio','eoa','dvi']);
+const PROT_CAT_TAVI = Object.freeze([
+  {n:'SAPIEN',d:'',t:'tavi',f:'51',s:[['20',null,null,null,null],['23',null,[9.92,4.27],[1.56,0.43],[0.53,0.13]],['26',null,[8.76,3.89],[1.84,0.52],[0.53,0.13]],['29',null,null,null,null],['All',null,[9.36,4.13],[1.70,0.49],[0.53,0.13]]]},
+  {n:'SAPIEN XT',d:'',t:'tavi',f:'51',s:[['20',null,null,null,null],['23',null,[10.41,3.74],[1.41,0.30],[0.52,0.10]],['26',null,[9.24,3.57],[1.74,0.42],[0.54,0.11]],['29',null,[8.36,3.14],[2.06,0.52],[0.53,0.11]],['All',null,[9.52,3.64],[1.67,0.46],[0.53,0.11]]]},
+  {n:'SAPIEN 3',d:'',t:'tavi',f:'51',s:[['20',null,[16.23,5.01],[1.22,0.22],[0.42,0.07]],['23',null,[12.79,4.65],[1.45,0.26],[0.43,0.08]],['26',null,[10.59,3.88],[1.74,0.35],[0.43,0.09]],['29',null,[9.28,3.16],[1.89,0.37],[0.40,0.09]],['All',null,[11.18,4.35],[1.66,0.38],[0.43,0.09]]]},
+  {n:'CoreValve',d:'',t:'tavi',f:'51',s:[['23',null,[14.43,5.72],[1.12,0.36],[0.44,0.09]],['26',null,[8.27,3.82],[1.74,0.49],[0.59,0.15]],['29',null,[8.85,4.17],[1.97,0.53],[0.54,0.12]],['31',null,[9.55,3.44],[2.15,0.72],[0.49,0.12]],['All',null,[8.85,4.14],[1.88,0.56],[0.55,0.13]]]},
+  {n:'Evolut R (30 d)',d:'',t:'tavi',f:'51',s:[['23',null,[14.97,7.15],[1.09,0.26],[0.42,0.04]],['26',null,[7.53,2.65],[1.69,0.40],[0.61,0.13]],['29',null,[7.85,3.08],[1.97,0.54],[0.59,0.14]],['34',null,[6.30,3.23],[2.60,0.75],[0.58,0.15]],['All',null,[7.52,3.19],[2.01,0.65],[0.59,0.14]]]},
+  {n:'CoreValve valve-in-valve',d:'',t:'tavi',viv:1,f:'52',s:[['All',[23.48,12.10],[12.89,0.20],[1.62,0.14],null]]},
+  {n:'Evolut valve-in-valve',d:'',t:'tavi',viv:1,f:'52',s:[['All',[22.43,5.72],[14.70,9.11],[1.36,0.07],null]]},
+  {n:'SAPIEN 3 valve-in-valve',d:'',t:'tavi',viv:1,f:'52',s:[['All',[33.93,10.11],[27.00,10.20],[1.07,0.32],null]]},
+  {n:'SAPIEN XT valve-in-valve',d:'',t:'tavi',viv:1,f:'52',s:[['All',[31.31,3.75],[18.02,4.22],[1.31,0.25],null]]}
+]);
+const PROT_CAT_TAVI_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A1, A2 y A3', hojas:'50 y 51', folios:'51 y 52' });
+window.PROT_CAT_TAVI = PROT_CAT_TAVI; window.PROT_CAT_TAVI_COLS = PROT_CAT_TAVI_COLS;
+window.PROT_CAT_TAVI_FTE = PROT_CAT_TAVI_FTE;
 /* ══ TABLA 7 DE LA ASE 2024, FOLIO 20 — EL PPM AORTICO (W1-5 del censo W1) ════════════════════
    «Doppler parameter criteria of aortic valve and mitral valve PPM», leída RENDERIZANDO porque el
    texto extraído devuelve `$` por `≥` y `#` por `≤`. Folio comprobado en el pie impreso
