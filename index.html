@@ -1836,6 +1836,23 @@
     .cm3d-vw.cm3d-vw-on { grid-template-columns:minmax(200px,1fr) 300px; }
   }
   .cm3d-cvw { position:relative; }
+  /* ══ EL TITULO DE LO QUE SE DIBUJA (PANT-14c, commit 4a) ══════════════════════════════════
+     Esquina superior izquierda del recuadro, superpuesto y sin capturar el puntero -el recuadro
+     se rota arrastrando por cualquier punto, asi que el titulo no puede comerse el gesto-.
+     La tipografia y el tamanio son los de un titulo de tarjeta de la app (`.card-head`: 11 px y
+     700), y lleva un fondo del color de la tarjeta con algo de transparencia para que se lea
+     sobre el dibujo en los dos temas. Se recorta con puntos suspensivos y no desborda: a 390 px
+     el recuadro mide 328 y un titulo largo saldria del lienzo. */
+  .cm3d-tit { position:absolute; left:8px; top:8px; z-index:3; pointer-events:none;
+              max-width:calc(100% - 60px); overflow:hidden; text-overflow:ellipsis;
+              white-space:nowrap; font-size:11px; font-weight:700; line-height:1.35;
+              color:var(--text); background:color-mix(in srgb, var(--card) 82%, transparent);
+              border:1px solid var(--border); border-radius:6px; padding:3px 7px; }
+  .cm3d-tit:empty { display:none; }
+  /* El mismo titulo en la cabecera del esquema, en linea y mas tenue: ahi el encabezado ya dice
+     que es, y el titulo es el dato. */
+  .cm3d-schtit { font-weight:600; color:var(--text2); margin-left:6px; }
+  .cm3d-schtit:empty { display:none; }
   .cm3d-esb { position:absolute; right:8px; bottom:8px; min-width:44px; min-height:44px;
               font-size:16px; color:var(--accent2); background:var(--card);
               border:0.5px solid var(--border); border-radius:8px; cursor:pointer; }
@@ -21342,6 +21359,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <div class="cm3d-cvw">
               <div class="cm3d-cv" id="cm3d-cv" role="img"
                    aria-label="Modelo en 3D del coraz&oacute;n y los grandes vasos con la combinaci&oacute;n de lesiones elegida; se rota arrastrando"></div>
+              <!-- ⚠️ EL TITULO DE LO QUE SE ESTA DIBUJANDO (PANT-14c, commit 4a). Superpuesto en
+                   la esquina superior izquierda del recuadro, FUERA del lienzo: asi no rota con
+                   el modelo y no entra en la captura del 3D como parte del dibujo. Lo escribe
+                   `cmTituloSync` desde `cmTitulo`, el MISMO calculo que el texto del papel usa:
+                   un solo dueno, asi que el dibujo y su titulo no pueden discrepar.
+                   `aria-hidden` porque el recuadro ya dice en su `aria-label` que es, y el
+                   titulo es la version corta de lo que la lista de abajo ya nombra. -->
+              <div class="cm3d-tit" id="cm3d-tit" aria-hidden="true"></div>
               <button type="button" class="cm3d-esb" id="cm3d-esb" data-ui aria-expanded="false"
                       aria-label="Mostrar el esquema de circulaci&oacute;n" title="Esquema de circulaci&oacute;n">&#9707;</button>
             </div>
@@ -21355,7 +21380,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                    para los dos botones, que es lo que PANT-7 dejo funcionando cuando una clave
                    tiene dos botones en dos pantallas. -->
               <div style="display:flex;align-items:center;gap:6px;">
-                <span class="cm3d-schh" style="flex:1 1 auto;">Esquema de circulaci&oacute;n</span>
+                <span class="cm3d-schh" style="flex:1 1 auto;">Esquema de circulaci&oacute;n<span class="cm3d-schtit" id="cm3d-schtit"></span></span>
                 <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="tga-esq"
                         aria-label="Qué muestra el esquema de circulación"
                         onclick="vInfoClic(this,event)">&#9432;</button>
@@ -21406,12 +21431,23 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <div class="cm3d-cbw" id="cm3d-cbw"><span class="cm3d-ph2">Combinaciones frecuentes</span><div id="cm3d-presb" class="cm3d-cbrow"></div></div>
           <!-- El panel de los cuatro textos del dibujo. Nace OCULTO y lo abre el globo. -->
           <div class="cm3d-ip" id="cm3d-ip" hidden>
+            <!-- Las dos aclaraciones que bajaron del texto chico del recuadro (PANT-14c, 4b),
+                 palabra por palabra. -->
+            <p class="cm3d-ref">Modelo en 3D esquem&aacute;tico, no a escala. Se rota arrastrando.</p>
             <p class="cm3d-circ" id="cm3d-circ"></p>
             <p class="cm3d-inf" id="cm3d-inf"></p>
             <p class="cm3d-ref" id="cm3d-ref"></p>
             <p class="cm3d-ref" id="cm3d-src"></p>
           </div>
-          <p class="cm3d-nt">Modelo en 3D esquem&aacute;tico, no a escala. Se rota arrastrando. Necesita conexi&oacute;n para cargar la librer&iacute;a 3D.</p>
+          <!-- ⚠️ ESTE TEXTO CHICO SE RETIRO (PANT-14c, commit 4b), y sus tres oraciones tienen
+               cada una su destino medido:
+                 · «esquematico, no a escala» y «se rota arrastrando» pasan al ⓘ del recuadro,
+                   que es lo que la orden pide: son dos aclaraciones que no cambian con el
+                   paciente y que el dibujo no necesita repetir debajo;
+                 · «necesita conexion para cargar la libreria 3D» NO se pierde: el aviso ya
+                   existe y es DINAMICO —`cm3dBoot` lo escribe en el propio recuadro cuando la
+                   libreria no carga—, que es «cuando falta la libreria», no siempre. Medido
+                   bloqueando el CDN. -->
           <!-- La linea de lo que esta cargado y el diagrama todavia no dibuja. La escribe
                `cc3dNoDibujadas`, que lee el registro `_CC_SECS` del Laboratorio: es el dueno
                unico de «esta lesion esta cargada» y no una segunda lista. -->
@@ -103857,10 +103893,12 @@ function cc3dTextoSync() {
   /* ⚠️ EN MODO «EXPLORAR» LA LINEA NO HABLA DEL ESTUDIO, y es lo que corresponde: ahi el dibujo
      es el que el medico eligio y no el del paciente, asi que decir «cargadas y no dibujadas»
      seria una afirmacion sobre un dibujo que no es el suyo. */
-  if (_cm3d && _cm3d.modo === 'explorar') {
-    pp.textContent = 'Modo Explorar: el dibujo es el que elegiste acá y no el del estudio. Nada de esto se guarda.';
-    return;
-  }
+  /* ⚠️ LA DESCRIPCION DEL MODO SE QUITO (PANT-14c, commit 4b): el titulo del recuadro dice que
+     se esta dibujando y el control segmentado de arriba dice en que modo esta, asi que la frase
+     repetia lo que la pantalla ya muestra. La linea se VACIA, que es lo correcto: en «Explorar»
+     el dibujo no es el del paciente y hablar de lo que el estudio tiene cargado seria una
+     afirmacion sobre un dibujo que no es el suyo. */
+  if (_cm3d && _cm3d.modo === 'explorar') { pp.textContent = ''; return }
   const r = cc3dNoDibujadas();
   const partes = [];
   /* ⚠️ «TODAS LAS LESIONES CARGADAS ESTAN DIBUJADAS» SOLO SE DICE SI ES CIERTO -PANT-14,
@@ -103885,7 +103923,10 @@ function cc3dTextoSync() {
                       || Object.keys(_cm3d.S.mods || {}).length > 0));
   if (!r.hay && !_dibujaAlgo) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
   else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
-  else if (!_omN && !_chN) partes.push('Todas las lesiones cargadas están dibujadas.');
+  /* ⚠️ «TODAS LAS LESIONES CARGADAS ESTAN DIBUJADAS» SE QUITO (PANT-14c, commit 4b): repite lo
+     que el dibujo ya muestra y lo que el titulo nombra. Lo que NO se quita es la lista de lo que
+     no se dibuja, que es informacion que el dibujo no da —y por eso las dos ramas de arriba y
+     las tres de abajo se conservan enteras—. */
   /* ⚠️ LA FRASE «La transposicion tiene su propio diagrama, en su seccion» SE RETIRO EN PANT-13
      (commit 4): dejo de ser cierta el dia que el modulo la dibuja como su sexta base. La
      transposicion pasa a `CC3D_DIBUJA`, asi que la linea de arriba ya la cuenta entre las
@@ -105048,7 +105089,8 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
      que el esquema: asi TODO gesto que repinta el dibujo repinta las dos leyendas, y ninguna
      entrada puede quedar prendida sobre algo que ya no se dibuja. */
   cm3dBuild = function () { build(); try { if (typeof cmSchRender === 'function') cmSchRender() } catch (e) {}
-    try { if (typeof cmLeyendaSync === 'function') cmLeyendaSync() } catch (e) {} };
+    try { if (typeof cmLeyendaSync === 'function') cmLeyendaSync() } catch (e) {}
+    try { if (typeof cmTituloSync === 'function') cmTituloSync() } catch (e) {} };
   build();
   /* ⚠️ EL RELOJ EN HORA JUSTO ANTES DE ARRANCAR EL BUCLE: la tercera guarda. Entre el
      `performance.now()` de la declaracion y este punto se construyo toda la geometria, que son
@@ -105918,6 +105960,22 @@ function cmLeyendaSync() {
   });
 }
 window.cmLeyendaSync = cmLeyendaSync;
+/* ══ EL TITULO DEL DIBUJO, EN LA PANTALLA (PANT-14c, commit 4a) ═════════════════════════════
+   PEDIDO DEL MEDICO (06/11/2026): un titulo corto en la esquina superior izquierda del dibujo
+   con las SIGLAS de lo que se esta dibujando, en «Segun el estudio» y en «Explorar».
+   ⚠️ SALE DEL MISMO CALCULO QUE EL TEXTO DEL PAPEL -`cmTitulo`, el dueno unico-, y es la razon
+   por la que ese dueno nacio en el commit 1: con dos construcciones, el titulo de la pantalla y
+   el del PDF podrian nombrar dos escenas distintas del mismo paciente.
+   ⚠️ LEE `_cm3d.S`, QUE ES EL ESTADO DEL DIBUJO, asi que en «Explorar» titula lo que el medico
+   eligio y en «Segun el estudio» lo que el estudio tiene: es lo que la orden pide para los dos
+   modos y sale solo, sin una segunda rama. */
+function cmTituloSync() {
+  let t = '';
+  try { t = cmTitulo(_cm3d.S) || '' } catch (e) { t = '' }
+  const a = document.getElementById('cm3d-tit'); if (a) a.textContent = t;
+  const b = document.getElementById('cm3d-schtit'); if (b) b.textContent = t ? ('  ·  ' + t) : '';
+}
+window.cmTituloSync = cmTituloSync;
 function cmLeyendaPresente(s) {
   const v = cmColoresEscena(s);
   const cor = _cmHayCoronarias(s);
@@ -161867,8 +161925,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2158';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793926729837;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2206';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793927199325;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161954,7 +162012,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2158</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2206</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
