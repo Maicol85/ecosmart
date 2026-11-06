@@ -69205,8 +69205,13 @@ function RECALC_MODULOS() {
   /* PANT-19: `vModSyncTodos` pinta la fila del modelo. Va aca ADEMAS de en el registro de
      espejos porque las rutas de restauracion pueblan asignando `.value`, que NO dispara
      `input`: sin esta entrada, abrir un estudio con modelo guardado dejaria el boton
-     diciendo «Modelo y tamano» y la fila de esperados vacia. */
-  return ['vModSyncTodos','ccPuertaSync','vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
+     diciendo «Modelo y tamano» y la fila de esperados vacia.
+     ⚠️ VA DESPUES DE `ccPuertaSync` Y DE `vciNoVisSync`, NO ANTES, y lo exige **TC-676 (D2)**:
+     esos dos encienden interruptores que los pintores LEEN, asi que el orden de las dos
+     primeras entradas es parte del contrato de esta lista. Este pintor no lee ninguno de los
+     dos —solo pinta el boton y los cuadritos—, asi que su posicion es libre y respeta la regla
+     que ya estaba. La primera version lo puso PRIMERO y puso rojo a TC-676 y a TC-700. */
+  return ['ccPuertaSync','vciNoVisSync','vModSyncTodos','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
           'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','pulDibPdfSync','otrBurbUI','otrVarNotaSync','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
@@ -69300,7 +69305,9 @@ function ESPEJOS_VIVOS() {
      y no en el de los que pelean con lo que el medico escribio. Lo necesita porque lo MEDIDO
      que publica sale de `gmedio_ao` y de `ava_cont`, que se cargan en otra parte de la
      pantalla y no disparan ningun evento sobre la fila del modelo. */
-  return ['vModSyncTodos', 'ccPuertaSync', 'tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
+  /* ⚠️ Y ACA TAMBIEN VA DESPUES de `ccPuertaSync`, por lo mismo: **TC-700 (A5) y (A6)** fijan
+     que ese es el primero del embudo del gesto Y del de la restauracion. */
+  return ['ccPuertaSync', 'vModSyncTodos', 'tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
           'cvpaSync', 'eteShuntSync', 'calcTEP',
           'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas',
           /* B-2: el aviso del dueño único de la PAM. Lee tres pestañas —el Swan del POP,
@@ -145092,7 +145099,7 @@ function _labExcelRow(inf) {
     'Modelo de prótesis aórtica': (valvEsProtesis(c.va_morf||'') ? (c.va_prot_modelo || '') : ''),
     'Tamaño de prótesis aórtica': (valvEsProtesis(c.va_morf||'') ? (c.va_prot_tam || '') : ''),
     'G. medio de referencia aórtico (mmHg)': rnd(valvProtDato('va_morf','va_prot_gmref',c),1),
-    'AEO de referencia aórtica (cm²)': rnd(valvProtDato('va_morf','va_prot_eoaref',c),2),
+    'AVA de referencia aórtica (cm²)': rnd(valvProtDato('va_morf','va_prot_eoaref',c),2),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
     'AVA (cm²)': rnd(ava,2),
@@ -146768,7 +146775,7 @@ const LAB_XLS_MAP = [
   ['Modelo de prótesis aórtica',            'va_prot_modelo', 'txt'],
   ['Tamaño de prótesis aórtica',           'va_prot_tam',    'txt'],
   ['G. medio de referencia aórtico (mmHg)', 'va_prot_gmref',  'num'],
-  ['AEO de referencia aórtica (cm²)',      'va_prot_eoaref', 'num'],
+  ['AVA de referencia aórtica (cm²)',      'va_prot_eoaref', 'num'],
   ['EA grado',               'ea_grado',       'vocab'],
   ['V. max Ao (m/s)',        'vmax_ao',        'num'],
   ['G. máx Ao (mmHg)',       'gmax_calc',      'num'],
@@ -164563,8 +164570,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261106-1452';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793987557130;                 /* eco-build-ms */
+const ECO_BUILD    = '20261106-1923';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794003807488;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -164650,7 +164657,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-1452</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-1923</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

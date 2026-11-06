@@ -322,3 +322,33 @@ Seis casos nuevos, **TC-723 a TC-728**. Las fichas están en archivo propio,
 **Cuatro casos viejos adaptados**, los cuatro el día que ellos mismos anunciaban: **TC-288** (la
 nota del AT), **TC-290** y **TC-291** (la TAVI, que no se graduaba) y **TC-303** (el EN SUMA de la
 TAVI, que reutilizaba la línea del cuerpo).
+
+## PANT-19 (2026-11-06) — TC-729 a TC-735
+
+**Fichas en `docs/mapa/tests-fichas-729.md`**, en archivo propio porque `tests-fichas.md` está en
+34.237 B.
+
+| caso | qué fija |
+|---|---|
+| TC-729 | la Tabla A4 contra su transcripción —49 modelos, 211 tamaños, 523 celdas— y las filas de control leídas en imagen |
+| TC-730 | las tablas A1, A2 y A3 de TAVI, con el «NA» como `null` y los valve-in-valve aparte |
+| TC-731 | el botón «Modelo y tamaño», las sugerencias **por palabra** sin tapar «ver todos», elegir por sugerencia y por la lista, y el Escape con su foco |
+| TC-732 | los valores esperados de la tabla, la EOA indexada predicha con los dos cortes de IMC, lo medido con su diferencia en DE y el modo manual sin desvíos inventados |
+| TC-733 | TAVI con «All» y valve-in-valve, la limpieza al cambiar de morfología y el recorrido de los cuatro campos nuevos **con sus nombres de columna** |
+| TC-734 | la EOA frente a la del modelo como eje **independiente del flujo**, con sus cinco controles negativos |
+| TC-735 | la Tabla A5 del catálogo mitral y el control de que la A6 **no** se carga |
+
+**Un caso viejo adaptado**: **TC-135**, que exige que las cuentas de columnas **básicas** y
+**totales** crezcan igual (140/441 → **144/445**). Las cuatro columnas nuevas caen como básicas
+porque el bloque de la válvula aórtica no está detrás de un checkbox de módulo.
+
+⚠️ **Y TRES más que destapó la corrida completa**, todos de aritmética de columnas o de alcance:
+**TC-477 (J)** —437 → 441, el total menos las cuatro de ESE caso—, **TC-479** —439 → 443— y
+**TC-483**, cuya condición de la media query medía **el documento entero** y lo que vigila es la
+**vista 2D**: hoy extrae el bloque de cada `@media (max-width:900px)` por balance de llaves y
+exige que ninguno toque un selector `#v2d`, que es el invariante exacto.
+
+⚠️ **Lo que el barrido de mutaciones enseñó está en `docs/mapa/pant19-catalogo-protesis.md` § 7**:
+doce sobrevivientes en **cinco** clases distintas —cinco huecos reales, dos frenos que tapaban a la
+mutación, dos pares de guardas redundantes, una mal dirigida y dos mal escritas— de las que
+salieron **nueve** condiciones nuevas.

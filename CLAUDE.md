@@ -37,6 +37,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Tocar el TIEMPO DE EYECCIÓN o el AT/ET de la prótesis AÓRTICA, la nota del AT, la tarjeta de severidad protésica, la TAVI graduada, el DESAJUSTE que no se escribe con una estenosis, o el estado visual del botón «Severidad»** | `docs/mapa/pant18-protesis-aortica.md` |
+| **Tocar el CATÁLOGO DE MODELOS Y TAMAÑOS de prótesis** —el botón «Modelo y tamaño» de la aórtica, las tres tablas de datos (A4 quirúrgica, A1/A2/A3 de TAVI y A5 mitral), los valores esperados, la EOA indexada predicha, lo medido con su diferencia en desviaciones estándar, o la EOA frente a la del modelo en la tarjeta de severidad— | `docs/mapa/pant19-catalogo-protesis.md` |
 | **Tocar el PPM aórtico del informe, el voto de los cuatro criterios de obstrucción de la prótesis mitral o los dos retiros del gradiente medio** (tandas Z, Z5 y Z6) | `docs/mapa/protesis-z-z5-z6.md` |
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
 | **Tocar la PLASTIA, el TEER o la TAVI de una válvula** —sus opciones, su graduación, los tres globos de Válvulas, su línea en el papel, sus símbolos en el dibujo del posoperatorio—, **las etiquetas del TEER fuera del papel**, o **el PPT del banco de imágenes**: la regla de disposición por área, el número opcional, la inicial, la final o el bucle con varios videos | `docs/mapa/valppt-opciones-ppt.md` |
@@ -213,9 +214,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,09 MB / 166.621 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-18**, sobre el árbol ya sellado: sello **`v20261106-1452`**, md5
-  **`f39a988f`**. El diff de PANT-18 son **369 líneas agregadas y 56 quitadas** en `index.html`,
+  sin frameworks. Hoy **12,16 MB / 167.525 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
+  cierre de la tanda **PANT-19**, sobre el árbol ya sellado: sello **`v20261106-1923`**, md5
+  **`298cc61d`**. El diff de PANT-19 son **918 líneas agregadas y 14 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `56b868b`, de las que **849** no son comentario, con
+  **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR DECIMOQUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 56b868b:index.html` da **166.621** líneas,
+  **12.088.119** bytes y el md5 **`f39a988f`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,09 MB / 166.621 al cierre de PANT-18, sello `v20261106-1452`, md5 `f39a988f`.) El diff de PANT-18 son **369 líneas agregadas y 56 quitadas** en `index.html`,
   medido con `git diff --numstat` contra `7f1380a`, con **cero** `eval(` y `new Function` nuevos,
   **SEIS** `innerHTML` nuevos y cero claves ni contraseñas. Los seis están declarados y Semgrep
   sigue en su línea base: **tres** son `badge(...)`, que pasa su texto por `escHtml`; **dos** son
@@ -799,6 +806,190 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El catálogo de prótesis por modelo y tamaño — «PANT-19» (2026-11-06)
+
+- **SIETE commits —contados con `git log 56b868b..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta—, y son siete y no ocho porque el commit 7 de la orden se PARÓ y no
+  toca una línea.** `03a307e` (1) · `39cda83` (2) · `9055ca3` (3) · `619e9bc` (4) · `316bed1`
+  (5) · `12682f9` (6) · **el 7 no toca una línea** · **éste** (8, cobertura y documentación). Sello **`v20261106-1923`**, md5
+  **`298cc61d`**. Al empezar, `origin/main` = `HEAD` = **`56b868b`**, el cierre de PANT-18, ya
+  publicado, con md5 `f39a988f` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **POR DECIMOQUINTA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 56b868b:index.html` da **166.621**
+  líneas, **12.088.119** bytes y el md5 **`f39a988f`**, los tres idénticos a lo que el renglón
+  decía.
+
+- **LAS ONCE HOJAS DEL APÉNDICE, EN IMAGEN A 300 ppp, Y LA REGLA DE FOLIO COMPROBADA EN LAS ONCE.**
+  ASE 2024 (Zoghbi, *JASE* 2024;37:2-63), 62 hojas, **folio = hoja + 1** verificado en el
+  encabezado impreso de cada una —no deducido de dos—. Tres tablas de datos: **A4** con 49
+  modelos, 211 tamaños y 523 celdas; **TAVI** (A1, A2 y A3) con 9 modelos, 29 tamaños y 78
+  celdas; **A5** con 30 modelos, 122 tamaños y 391 celdas. Las **once** filas de control del
+  índice coinciden una por una.
+  ⚠️ **LOS TRES ARCHIVOS DE ESA CARPETA SON EL MISMO DOCUMENTO CON md5 DISTINTO** —62 hojas cada
+  uno y las mismas primeras líneas en las 62—: se usa `Zoghbi_2024_Protesis.pdf`, el que leyó
+  PANT-18.
+
+- **EL SÍMBOLO ± SE LEE POR GEOMETRÍA DE GLIFO, Y ES LO QUE SOSTIENE LAS 992 CELDAS.** El PDF lo
+  codifica como el carácter **«6»**, así que la capa de texto devuelve «11 6 6» por «11 ± 6». El
+  glifo del ± mide **6,6 pt**, un dígito **4,4** y el punto decimal **2,2**: el **exceso de ancho
+  real sobre la suma de los anchos esperados** delata al símbolo, con umbral de 1,5 pt. Lee bien
+  «11 ± 6» —donde el seis es un desvío de verdad— y «21.46», que es «21.4 ±» pegado. **12 de 12
+  celdas de control contra la imagen.**
+  ⚠️ **LAS DOS REGLAS QUE PROBÉ ANTES ERAN FALSAS Y PLAUSIBLES**: «termina en 6» se comía los
+  seis legítimos (1.6 → 1.) y «ancho por carácter > 4,15» fallaba con «11», que mide exactamente
+  4,4 por carácter.
+
+- **CINCO PREMISAS DEL ÍNDICE QUE NO SE REPRODUJERON, TODAS DE ESTRUCTURA Y NINGUNA DE CELDAS**
+  (P19-a): la Tabla A4 **no tiene subtítulos de sección por tipo** —el único indicio es una
+  cursiva por fila que a veces es un descriptor de construcción y a veces un nombre comercial—;
+  son **51** bloques impresos y no «unos 45»; el tamaño **no es un número sino TEXTO** (nueve
+  rangos y cuatro tallas S/M/L/XL); la A3 **sí** imprime un tamaño, «All»; y en A1 y A2 **ningún**
+  modelo tiene los siete tamaños.
+
+- **EL TIPO NO SE ADIVINA.** Se asigna sólo a los descriptores que nombran el mecanismo o el
+  tejido, separando el nombre del descriptor **por FUENTE** (`AdvPSA183` contra
+  `Advhelvneue-italic`) y no por una lista escrita a mano. Los diez modelos sin descriptor —más
+  «Homograft valves» y «Sutureless»— quedan **SIN DATO** y se ofrecen bajo cualquier morfología de
+  prótesis, que es el lado seguro.
+
+- **EL COMPONENTE ES UNO SOLO, PARAMETRIZADO POR POSICIÓN** (`VMOD_POS`): el día que entren la
+  tricúspide y la pulmonar se agrega una entrada al registro. La tarjeta es **única** y cuelga del
+  body; a 900 px o menos es una **hoja fija abajo**. **La lista de sugerencias no se abre sola Y
+  ADEMÁS va en flujo**: flotando tapaba «No sé el modelo: ver todos y elegir», medido antes y
+  después.
+
+- **EL PAPEL CAMBIA EN UN SOLO LUGAR, Y ES EL AUTORIZADO**: con una prótesis quirúrgica del
+  catálogo cuya EOA tiene desvío, la desviación del área respecto de la del modelo entra como
+  **eje independiente del flujo JUNTO al DVI** —la nota `§` de la Tabla 5 dice «Flow
+  independent»—.
+  ⚠️ **CON EL TSVI DE 21 mm LOS DOS SE MUEVEN JUNTOS Y LA EOA NO APORTA NADA**, porque los dos
+  salen del cociente de los dos VTI: lo que los separa es el **DIÁMETRO** del TSVI, y con 16 mm el
+  DVI se queda normal mientras el área cae dos desvíos por debajo. **Un A/B que no incluya esa
+  familia de escenas da cero sin probar nada.**
+
+- **CUATRO CAMPOS GUARDADOS NUEVOS Y CUATRO COLUMNAS DE EXCEL** (441 → **445**), todos de la
+  aórtica y todos con guión **BAJO**. Recorren las siete listas, y el repintado va en **TRES**
+  columnas —`ESPEJOS_VIVOS`, `RECALC_MODULOS` y el final de `limpiarCampos`—: la tercera la cazó
+  la sonda, porque los campos sí los vacía el barrido genérico pero **el rótulo del botón** lo
+  escribe `vModSync`, que «Nuevo estudio» no llamaba.
+  ⚠️ **VAN OCULTOS CON `display:none` Y NO CON `type="hidden"`**: en un hidden el `value` y el
+  `defaultValue` son el mismo atributo y «Nuevo estudio» no los limpiaría (P14c-g).
+  ⚠️ **Y LA COLUMNA DEL ÁREA SE LLAMA «AVA de referencia aórtica (cm²)» Y NO «AEO», y lo decidió
+  un caso existente**: su condición exige que **ningún** encabezado del Excel contenga «EOA» ni
+  «AEO». Es además la sigla con la que el propio Excel ya nombra el área aórtica en la columna de
+  al lado. **El id del campo no cambió** → **P19-g**.
+
+- **LO QUE SE PARÓ Y SE REPORTA.** El **componente en la MITRAL** (commit 7): su fila de
+  morfología es un `grid` de **tres** con el ancho acotado al botón «Insuficiencia» que **TC-522
+  vigila**, y a 1000 px ya está en **una** columna de 275 px; un cuarto hijo apretaría las tres
+  celdas por debajo del piso de 144 px declarado. **Los datos mitrales SÍ quedaron cargados y
+  verificados**, así que la tanda siguiente sólo decide dónde va el botón → **P19-e**. Y la
+  **Tabla A6** (SAPIEN mitral), porque la morfología mitral no tiene ninguna opción de implante
+  transcatéter y su eje no es modelo × tamaño → **P19-d**.
+
+- **CERRADO EL MISMO DÍA QUE SE ABRIÓ**: **P19-c** —el PPM mitral **sí** usa los cortes mitrales de
+  la Tabla 7, medido—.
+
+- ⚠️ **EL DEFECTO DE MÉTODO QUE MÁS CARO SALIÓ, Y ES LA LECCIÓN QUE PANT-14b YA DEJÓ ESCRITA: LAS
+  135 CONDICIONES DE LOS SIETE CASOS ESTABAN ESCRITAS CON EL CONTRATO EQUIVOCADO.** El runner
+  evalúa `[descripción, BOOLEANO, diagnóstico]` y yo las escribí
+  `[descripción, valor, esperado, diagnóstico]`, así que **una condición con un valor truthy
+  pasaba en verde SIN comparar nada** —49, 211, 523, 110, 30, 122, 391, 219…— y una con `0`,
+  `false` o cadena vacía **fallaba teniendo el valor correcto**. Las 135 tienen exactamente cuatro
+  elementos, contadas con un parser de balance, así que la conversión va en **UN solo lugar por
+  caso** y se probó con su control positivo, su control negativo **y el caso del cero en los dos
+  sentidos** antes de usarse.
+
+- ⚠️ **Y DOS CASOS EXISTENTES OBLIGARON A CAMBIAR LA APP, NO EL CASO.** **TC-676 (D2)** y
+  **TC-700 (A5)(A6)** fijan que **`ccPuertaSync` va PRIMERO** en los dos registros de embudo
+  —enciende interruptores que los pintores LEEN—, y la primera versión puso `vModSyncTodos`
+  delante. Hoy va **después** de `ccPuertaSync` y de `vciNoVisSync`: este pintor no lee ninguno de
+  los dos, así que su posición es libre y respeta la regla que ya estaba.
+  ⚠️ **Y EL CONTADOR POR LOTE DEL ARNÉS DECÍA «0 de 55» CON LOS 55 CORRIDOS**: una **clase** de
+  caracteres con dos glifos UTF-8 multibyte —`[✓✗]`— no empareja con el `grep -E` de macOS en
+  locale C, porque ahí cada byte es un carácter. Es el hermano del `grep -c` de VAL-PPT y del
+  `wc -l` de POP-C: **el contador del arnés también se mide.**
+
+- **43/43 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, con el md5
+  del árbol vivo **idéntico** antes y después.
+  ⚠️ **EL PRIMER BARRIDO DEJÓ DOCE SOBREVIVIENTES Y SIETE ANCLAS QUE NO APLICARON, Y NINGUNA DE
+  LAS DOCE ERA «FALTA DE COBERTURA» A SECAS: se repartieron en cinco clases, cada una medida.**
+  **Cinco huecos reales**, con cinco condiciones nuevas: la búsqueda de modelos es **por palabra**
+  y «han» y «mosa» caen al principio de una, así que hizo falta «ifecta», que cae **en medio** de
+  «Trifecta»; la EOA indexada se medía por sus **cortes** y no por su **valor**; ninguna escena
+  traía un valor esperado **sin desvío impreso**; la EOA era **siempre** el peor de los dos ejes
+  independientes, así que hizo falta un TSVI de 28 mm con un VTI aórtico de 90 —DVI 0,20
+  significativo y área a 0,93 desvíos, normal—; y la guarda del `(revisar)` no tenía escena.
+  **Dos frenos que tapaban a la mutación, los dos medidos**: con el manejador de Escape del
+  componente **roto la card se cierra igual** —la app tiene su propio Escape general— y el foco
+  **ya estaba** en el botón, porque `vModElegir` lo devuelve al elegir. **Dos pares de guardas
+  redundantes**, que se tapan mutuamente: `vModSyncTodos` está en `RECALC_MODULOS` **y** en
+  `ESPEJOS_VIVOS` a propósito, y `E.manual` protege lo mismo que la guarda del desvío. **Una mal
+  dirigida**, que apuntaba al **borrador** de la tarjeta y no al dueño que llega al estudio —de
+  ella nació la mutación 43—. Y **dos mal escritas**: la de la lista flotante necesitaba moverla
+  **dentro** de la fila además del CSS, y la de la salvedad vigilaba una frase que **ya no existe
+  en el archivo**.
+  ⚠️ **Y LAS SIETE ANCLAS NO APLICARON TODAS POR LO MISMO**: en el `.py` las escribí con
+  secuencias `\uXXXX` y `index.html` tiene el **carácter real**. Más dos de contenido: hay **dos**
+  modelos «Abbott Epic» en la A4 —folio 53 y folio 58—, así que el ancla lleva el folio, y los
+  valores se imprimen con sus decimales (`[27.00,10.20]`, no `[27,10.2]`).
+
+- **SIETE CASOS NUEVOS, TC-729 a TC-735**, con sus denominadores y sus controles negativos, y los
+  siete **caen contra la línea base por 60 condiciones y NINGUNA por excepción**, verificado
+  en un worktree alternando sólo `index.html` con el mismo archivo de casos.
+
+- **Línea base al cierre: suite 745/750**, en **catorce** lotes cubriendo los **750 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  ejecutado—, en UNA sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG` **verificado al
+  abrir, en cada lote y al cerrar** y el md5 de `index.html` **idéntico** antes y después
+  (`298cc61d`). Los rojos son **TC-223, TC-376,
+  TC-390 y TC-406**, los cuatro de siempre, más **TC-557**, el intermitente que `TGA-h` declara:
+  **corrido aislado pasa 3 de 3**, verificado. **Ningún rojo nuevo.**
+  ⚠️ **Y LA CORRIDA DE CENSO DIO 732/750 CON TRECE ROJOS MÁS, LOS TRECE MÍOS**, y por eso esa
+  cifra no es la línea base: **once** son conteos de columnas del Excel —441 → 445 y el mapa
+  365 → 369— escritos con otras palabras (`'441/esta'`, `'441/0'`, `441]`, `365]`), que un censo
+  por `=== 441` **no encuentra**; **TC-483**, cuya condición de la media query medía el
+  **documento entero** y lo que vigila es la vista 2D; y **TC-676** y **TC-700**, que son los dos
+  que obligaron a cambiar la app. Los trece están cerrados y la cifra de arriba sale de la
+  corrida **limpia**, de una sola pasada sobre el mismo árbol sellado y con el archivo de casos
+  final.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  El diff de la tanda son **918 líneas agregadas y 14 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `56b868b`, de las que **849** no son comentario,
+  con **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base
+  exacta. **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), con **DOS** diferencias entre motores y las dos de métrica de fuente: 6 px en el
+  ancho del botón (239 contra 245) y 9 px en el alto de la fila (123 contra 114). En los
+  dieciséis: el botón en **44 px** de alto con los **CINCO** puntos dando el propio botón, la
+  tarjeta **flotante** a 1440 y 1000 y **hoja fija abajo** a 768 y 390, **cero** desplazamiento
+  horizontal del cuerpo, **cero** textos recortados y **CERO errores de página en los dos
+  motores**.
+- **A/B FINAL contra la base, con el PDF y el PPT generados de verdad: 92 escenas comparables y
+  NINGUNA clave de informe, EN SUMA, PDF, PPT ni Laboratorio difiere.** Las **cinco** claves que
+  cambian son el **inventario del formulario** y están en las 92: `_camposN` (994 → 998),
+  `_excelN` (**441 → 445**), `_camposClaves`, y los objetos `_campos` y `_excel`, que difieren
+  **sólo** en los cuatro ids nuevos y en las cuatro columnas nuevas, **vacíos en las 92**.
+  ⚠️ **Y LAS CINCO ESCENAS QUE EJERCITAN EL CAMBIO DEL PAPEL SÓLO EXISTEN EN EL ÁRBOL NUEVO**
+  —`p19eoaCambia`, `p19eoaCambiaSin`, `p19eoaMan`, `p19eoaSinSD` y `p19eoaTavi`—, porque el arnés
+  las agregó en el commit 5: ponerle a un campo que la base no tiene un valor daría una
+  diferencia falsa. Lo que mide el cambio del papel es `scripts/_probe_pant19eoa.mjs`, con su
+  tabla de ocho combinaciones.
+
+- **Dónde está todo:** `docs/mapa/pant19-catalogo-protesis.md` (**mapa NUEVO**, 14,9 KB), las
+  fichas de los siete casos en `docs/mapa/tests-fichas-729.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **dos mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `protesis-valvular.md` 21,2 → 22,5 KB y `tests-punteros-tandas.md` 22,6 → 24,8—,
+  `docs/INVENTARIO_CATALOGO_PROTESIS_P19.md`, las **tres** transcripciones celda por celda
+  —`docs/TRANSCRIPCION_A4_P19.md`, `docs/TRANSCRIPCION_TAVI_P19.md` y
+  `docs/TRANSCRIPCION_MITRAL_P19.md`—, `docs/fuentes/FUENTES.md` → «La tanda PANT-19» con la regla
+  de folio comprobada en las once hojas y su tabla «Cambios de evidencia»,
+  `docs/REGISTRO_TANDAS.md` → el bloque de la tanda, `docs/GUIA_PRUEBA_PANT19.md` → la guía manual
+  en **26** pasos, y `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**P19-a** a **P19-g**).
+
 ### El tiempo de eyección, el AT/ET, la TAVI graduada y el desajuste — «PANT-18» (2026-11-06)
 
 - **NUEVE commits —contados con `git log 7f1380a..HEAD` AL CERRAR, y el commit que escribe este

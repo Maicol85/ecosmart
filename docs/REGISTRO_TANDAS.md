@@ -1,3 +1,97 @@
+## PANT-19 — la protesis valvular, partes 2 y 3 de 5: el catalogo de modelos y tamanos (2026-11-06)
+
+**Ocho commits**, y el **commit 7 —el componente en la MITRAL— se paro y se reporta**. El
+inventario de solo lectura; el catalogo aortico quirurgico; el de TAVI; el componente «Modelo y
+tamano» en la aortica; la EOA frente a la del modelo en la tarjeta de severidad; el catalogo
+mitral; y la cobertura con la documentacion.
+
+- **Lo leido**: las ONCE hojas del apendice de la ASE 2024 **en imagen a 300 ppp**, con la regla
+  de folio = hoja + 1 **comprobada en el encabezado impreso de cada una**, no deducida de dos.
+  Tres tablas de datos: **A4** con 49 modelos, 211 tamanos y 523 celdas; **TAVI** (A1, A2 y A3)
+  con 9 modelos, 29 tamanos y 78 celdas; **A5** con 30 modelos, 122 tamanos y 391 celdas. Las
+  **once** filas de control del indice coinciden una por una.
+- **Como se lee el simbolo mas-menos, que el PDF codifica como el caracter «6»: por GEOMETRIA.**
+  El glifo mide 6,6 pt y un digito 4,4, asi que el exceso de ancho sobre lo esperado delata al
+  simbolo. Lee bien «11 +- 6» —donde el seis es un desvio de verdad— y «21.46», que es «21.4 +-»
+  pegado. 12 de 12 celdas de control contra la imagen.
+- **Cinco premisas del indice que NO se reprodujeron, todas de estructura y ninguna de celdas**
+  (P19-a): la Tabla A4 **no tiene subtitulos de seccion por tipo** —el unico indicio es una
+  cursiva por fila que a veces es un descriptor de construccion y a veces un nombre comercial—;
+  son 51 bloques y no «unos 45»; el tamano no es un numero sino TEXTO (hay nueve rangos y cuatro
+  tallas S/M/L/XL); la A3 **si** imprime un tamano, «All»; y en A1 y A2 ningun modelo tiene los
+  siete tamanos.
+- **El tipo NO se adivina**: se asigna solo a los descriptores que nombran el mecanismo o el
+  tejido, y los diez modelos sin descriptor —mas «Homograft valves» y «Sutureless»— quedan SIN
+  DATO y se ofrecen bajo cualquier morfologia de protesis, que es el lado seguro.
+- **El componente es UNO solo, parametrizado por posicion**: el dia que entren la tricuspide y la
+  pulmonar se agrega una entrada al registro `VMOD_POS`. La card es unica y cuelga del body, y a
+  900 px o menos es una hoja fija abajo. **La lista de sugerencias no se abre sola Y ADEMAS va en
+  flujo**: flotando tapaba «No se el modelo: ver todos y elegir», medido antes y despues.
+- **El papel cambia en UN solo lugar, y es el autorizado**: con una protesis quirurgica del
+  catalogo cuya EOA tiene desvio, la desviacion del area respecto de la del modelo entra como eje
+  independiente del flujo JUNTO al DVI. ⚠️ **Con el TSVI de 21 mm los dos se mueven juntos y la
+  EOA no aporta nada** —los dos salen del cociente de los dos VTI—: lo que los separa es el
+  DIAMETRO del TSVI, y con 16 mm el DVI se queda normal mientras el area cae dos desvios por
+  debajo. Es la unica familia de escenas donde la tarjeta cambia de resultado, y un A/B que no la
+  incluya da cero sin probar nada.
+- **CUATRO campos guardados nuevos y CUATRO columnas de Excel** (441 -> 445), todos de la aortica
+  y todos con guion BAJO. Recorren las siete listas, y el repintado va en TRES columnas —los dos
+  registros de embudo y el final de `limpiarCampos`—: la tercera la cazo la sonda, porque los
+  campos si los vacia el barrido generico pero el rotulo del boton no.
+- **Lo que se paro y se reporta**: el componente en la MITRAL (P19-e), porque su fila de
+  morfologia es un grid de tres con el ancho acotado al boton «Insuficiencia» que TC-522 vigila;
+  y la Tabla A6 (P19-d), porque la morfologia mitral no tiene ninguna opcion de implante
+  transcateter y su eje no es modelo x tamano. **Los datos mitrales SI quedaron cargados.**
+- **Cerrado el mismo dia que se abrio**: P19-c —el PPM mitral SI usa los cortes mitrales de la
+  Tabla 7—.
+- **La columna del Excel se llama «AVA de referencia aortica» y no «AEO», y lo decidio un caso
+  existente**: la condicion «(F) el Excel sigue en 441 columnas y NINGUN encabezado cambio de
+  nombre» exige que ningun encabezado contenga «EOA» ni «AEO». Es ademas la sigla con la que el
+  propio Excel ya nombra el area valvular aortica en la columna de al lado. El **id del campo no
+  cambio**. → **P19-g**.
+- **Cobertura**: **siete casos nuevos** (TC-729 a TC-735) que caen contra la linea base por
+  **60 condiciones y NINGUNA por excepcion**, y **43/43 mutaciones dirigidas muertas** en
+  worktree, con el md5 del arbol vivo identico antes y despues.
+  ⚠️ **LAS 135 CONDICIONES ESTABAN ESCRITAS CON EL CONTRATO EQUIVOCADO**, que es la leccion que
+  PANT-14b dejo escrita: el runner evalua `[descripcion, BOOLEANO, diagnostico]` y estaban
+  `[descripcion, valor, esperado, diagnostico]`, asi que una con un valor truthy pasaba en verde
+  SIN comparar nada y una con 0, false o cadena vacia fallaba teniendo el valor correcto. La
+  conversion va en UN solo lugar por caso y se probo con su control positivo, su control negativo
+  y el caso del cero en los dos sentidos.
+  ⚠️ **Y EL PRIMER BARRIDO DEJO DOCE SOBREVIVIENTES Y SIETE ANCLAS QUE NO APLICARON, en CINCO
+  clases distintas**: cinco huecos reales —con cinco condiciones nuevas—, dos frenos que tapaban
+  a la mutacion —el Escape general de la app cierra la card igual, y el foco ya estaba puesto—,
+  dos pares de guardas redundantes que se tapan mutuamente, una mal dirigida —apuntaba al
+  borrador de la tarjeta y no al dueno que llega al estudio— y dos mal escritas. Esta todo en
+  `docs/mapa/pant19-catalogo-protesis.md` § 7.
+- ⚠️ **Y DOS CASOS EXISTENTES OBLIGARON A CAMBIAR LA APP, NO EL CASO**: TC-676 (D2) y TC-700
+  (A5)(A6) fijan que `ccPuertaSync` va PRIMERO en los dos registros de embudo -enciende
+  interruptores que los pintores LEEN-, y la primera version puso `vModSyncTodos` delante. Hoy va
+  DESPUES de `ccPuertaSync` y de `vciNoVisSync`. Mas ONCE conteos de columnas del Excel adaptados
+  -441 -> 445 y el mapa 365 -> 369-, ninguno encontrado por el censo porque estan escritos con
+  otras palabras, y TC-483, cuya condicion de la media query media el DOCUMENTO ENTERO y lo que
+  vigila es la vista 2D.
+- **Linea base al cierre: suite 745/750**, en CATORCE lotes cubriendo los 750 casos distintos
+  -750 de 750 ejecutados-, en UNA sola pasada sobre el arbol sellado, con el pendrive `DISK_IMG`
+  verificado al abrir, en los catorce lotes y al cerrar, y el md5 de `index.html` IDENTICO antes
+  y despues (`298cc61d`). Los rojos son TC-223, TC-376, TC-390 y TC-406, los cuatro de siempre,
+  mas TC-557, el intermitente que `TGA-h` declara: corrido aislado pasa 3 de 3. **Ningun rojo
+  nuevo.** Semgrep **124 WARNING / 0 ERROR**. Sin huerfanos nuevos. Celular **59 a 360 px y 67 a
+  390, con 18 ALTA en cada ancho**: la linea base exacta.
+- **A/B final: 92 escenas comparables y NINGUNA clave de informe, EN SUMA, PDF, PPT ni
+  Laboratorio difiere.** Las cinco que cambian son el inventario del formulario -los cuatro
+  campos y las cuatro columnas, vacios en las 92-. Y **CHROME Y WEBKIT COINCIDEN EN LOS DIECISEIS
+  CRUCES**, con dos diferencias de metrica de fuente.
+- **Donde esta todo**: `docs/mapa/pant19-catalogo-protesis.md` (**mapa NUEVO**),
+  `docs/INVENTARIO_CATALOGO_PROTESIS_P19.md`, las tres transcripciones celda por celda
+  (`docs/TRANSCRIPCION_A4_P19.md`, `docs/TRANSCRIPCION_TAVI_P19.md`,
+  `docs/TRANSCRIPCION_MITRAL_P19.md`), las fichas de los siete casos en
+  `docs/mapa/tests-fichas-729.md` (archivo propio), los punteros en
+  `docs/mapa/protesis-valvular.md` y `docs/mapa/tests-punteros-tandas.md`,
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-19»,
+  `docs/GUIA_PRUEBA_PANT19.md` → la guia manual en **26** pasos, y `docs/PENDIENTES.md` →
+  **SIETE** cosas declaradas (**P19-a** a **P19-g**).
+
 ## PANT-18 — la protesis aortica, parte 1 de 5: el tiempo de eyeccion, el AT/ET, la TAVI graduada y el desajuste (2026-11-06)
 
 **Nueve commits.** El inventario de solo lectura; el tiempo de eyeccion y el AT/ET; la nota del AT

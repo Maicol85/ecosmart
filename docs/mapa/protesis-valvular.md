@@ -334,3 +334,23 @@ anterior, campo por campo, en `docs/INVENTARIO_PROTESIS_AORTICA_P18.md`.
 
 **Los seis cortes de la Tabla 5 que ya se aplicaban no se movieron**, y se volvieron a verificar
 en imagen: hoja 18, folio 19 comprobado en el pie impreso.
+
+---
+
+## La tanda PANT-19 (2026-11-06) — el catálogo por modelo y tamaño
+
+**El mapa de esa tanda es `docs/mapa/pant19-catalogo-protesis.md`.** Lo que hay que saber desde
+acá, en cuatro líneas:
+
+- **Hay tres catálogos de datos** leídos en imagen del apéndice de la ASE 2024: `PROT_CAT_A4`
+  (49 modelos aórticos quirúrgicos), `PROT_CAT_TAVI` (9) y `PROT_CAT_A5` (30 mitrales). Cada
+  entrada es `{n, d, t, f, s}` y cada valor `[media, desvío]` o `null`.
+- **El botón «Modelo y tamaño» está SÓLO en la aórtica**: el componente es uno y está
+  parametrizado por posición en `VMOD_POS`, así que agregar una válvula es agregar una entrada.
+  **El de la MITRAL se paró** → `docs/PENDIENTES.md` → **P19-e**.
+- **La EOA frente a la del modelo entra en la tarjeta de severidad aórtica como eje independiente
+  del flujo, JUNTO al DVI** (`eaProtEOAz`, `EA_PROT_EOA_Z`), con cuatro condiciones: prótesis
+  quirúrgica, modelo y tamaño del catálogo, desvío de la EOA mayor que cero, y AVA por continuidad
+  calculada y sin la marca «(revisar)». **Es el único lugar donde esa tanda cambia el papel.**
+- **Cuatro campos guardados y cuatro columnas de Excel** (441 → 445), todos de la aórtica. La del
+  área se llama **«AVA de referencia aórtica (cm²)»** y no «AEO» → **P19-g**.

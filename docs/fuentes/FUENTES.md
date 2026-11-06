@@ -11761,3 +11761,126 @@ de arriba pinta de amarillo.
 **Ningún corte se movió.** Los seis de la Tabla 5 que la app ya aplicaba —Vmax, AT, AT/ET,
 gradiente medio SAVR, DVI y la regla de integración— coinciden uno por uno con la imagen, igual
 que los había dejado el censo de la tanda W1.
+
+---
+
+# La tanda PANT-19 — el catálogo de prótesis por modelo y tamaño (2026-11-06)
+
+**ASE 2024 — Zoghbi W y col., «Guidelines for the Evaluation of Prosthetic Valve Function With
+Cardiovascular Imaging», *J Am Soc Echocardiogr* 2024;37:2-63.** Archivo
+`Zoghbi_2024_Protesis.pdf` de `~/Desktop/EcoSmart_Biblioteca_Fuentes/05_Protesis_valvulares/`,
+**62 hojas**. Todo lo de esta tanda se leyó **en imagen a 300 ppp** y se cruzó con la capa de
+texto por coordenadas; donde las dos difieren, manda la imagen.
+
+⚠️ **Los tres archivos de esa carpeta son el MISMO documento con md5 distinto**
+(`ASE 2024 Apendice.pdf`, `ASE protesis 2024.pdf`, `Zoghbi_2024_Protesis.pdf`): 62 hojas cada uno
+y las mismas primeras líneas en las 62. Se usa el tercero, que es el que leyó PANT-18.
+
+## La regla de folio, comprobada en las ONCE hojas del apéndice
+
+**Folio = hoja + 1**, verificado en el encabezado impreso de cada una, no deducido de dos:
+
+| hoja | lo que dice el encabezado |
+|---|---|
+| 50 | «Zoghbi et al **51**» |
+| 51 | «**52** Zoghbi et al» |
+| 52 | «Zoghbi et al **53**» |
+| 53 | «**54** Zoghbi et al» |
+| 54 | «Zoghbi et al **55**» |
+| 55 | «**56** Zoghbi et al» |
+| 56 | «Zoghbi et al **57**» |
+| 57 | «**58** Zoghbi et al» |
+| 58 | «Zoghbi et al **59**» |
+| 59 | «**60** Zoghbi et al» |
+| 60 | «Zoghbi et al **61**» |
+
+Y la Tabla 5 se releyó en la hoja 18, cuyo encabezado remata «Zoghbi et al **19**».
+
+## Lo que cada tabla imprime, y lo que NO
+
+| tabla | hojas · folios | título impreso | modelos | tamaños | celdas con dato |
+|---|---|---|---|---|---|
+| **A4** aórtica quirúrgica | 52-57 · 53-58 | «Normal Doppler echocardiographic values for surgical prosthetic aortic valves» | **49** | 211 | **523** |
+| **A1** SAPIEN | 50 · 51 | «… for percutaneous SAPIEN valves in native aortic stenosis by valve size» | 3 | 15 | — |
+| **A2** CoreValve / Evolut R | 50 · 51 | «… for percutaneous CoreValve and Evolut R valves by valve size in native aortic stenosis» | 2 | 10 | — |
+| **A3** valve-in-valve aórtico | 51 · 52 | «Doppler echocardiographic parameters for percutaneous aortic ViV at 1 year after the procedure» | 4 | 4 | — |
+| A1 + A2 + A3 | | | **9** | **29** | **78** |
+| **A5** mitral quirúrgica | 57-60 · 58-61 | «Normal Doppler echocardiographic values for surgical prosthetic mitral valves» | **30** | 122 | **391** |
+| **A6** SAPIEN mitral | 60 · 61 | «Mean Doppler echocardiographic gradients for normal SAPIEN Valves placed percutaneously in the mitral position» | **no se carga** | — | — |
+
+**Notas al pie, textuales:**
+- A4: «Data are expressed as mean ± SD. Modified from Rajani *et al.*²³¹»
+- A1 y A2: «*NA*, Not applicable.» · «Data are expressed as mean ± SD. Data are modified from Hahn *et al.*¹¹ with permission.»
+- A3: «*THV*, Transcatheter heart valve.» · «Data are expressed as mean ± SD. Data are derived from the respective publications.»
+- A5: «Data are expressed as mean ± SD. Modified from Rosenhek *et al.*²³²»
+- A6: «*NA*, Not applicable; *ViMAC*, valve–in–mitral annular calcification.» · «Data are expressed as median (IQR) or as mean ± SD. Data are in millimeters of mercury from each publication. Data for individual valve size are computed from Eleid *et al.*¹⁴⁰ None of the SAPIEN valves had >2+ MR.» · «\*Limited data, no SD reported.»
+
+## La Tabla 5, fila de la EOA — hoja 18, folio 19
+
+Bloque «Specific AVR considerations → SAVR», fila `EOA §`, **textual**:
+
+| Normal | Possible stenosis | Suggests significant stenosis |
+|---|---|---|
+| `Reference EOA ± 1 SD` | `1 SD smaller than reference EOA` | `2 SDs smaller than reference EOA` |
+
+La nota `§` dice «Flow independent». La nota general, textual: «Significant stenosis should meet
+at least one flow-dependent (i.e., velocity and mean gradient) and one flow-independent (i.e.,
+EOA or DVI) parameter.»
+
+⚠️ **Los tres textos son claros en lo que gradúan.** Lo que la tabla **no** resuelve son los
+bordes: el «± 1 SD» de la columna normal se superpone con «1 SD smaller», y una EOA **por encima**
+de la del modelo no cae en ninguna de las tres. La aplicación lo resuelve por **complemento** y lo
+declara en `docs/PENDIENTES.md` → **P19-b**.
+
+## Las diez filas de control del índice, verificadas en imagen
+
+| # | fila | lo leído | ¿coincide con el índice? |
+|---|---|---|---|
+| 1 | A4 · St. Jude Medical Standard 23 | pico 21,8 ± 7,5 · medio 13,4 ± 5,6 · EOA 1,6 ± 0,4 | ✅ |
+| 2 | A4 · Medtronic Mosaic 23 | pico 23,8 ± 11,0 · medio 13,7 ± 4,8 · EOA 1,5 ± 0,4 | ✅ |
+| 3 | A4 · Abbott Trifecta 23 | sin pico · medio 7,2 ± 2,8 · EOA 1,81 ± 0,30 | ✅ |
+| 4 | A4 · Edwards Mira 25 | EOA «1.9» **sin desvío** | ✅ |
+| 5 | A4 · St. Jude Haem Plus 21 | medio «10.6 ± 5.1**)**», con un paréntesis de más | ✅ |
+| 6 | A4 · Edwards Mosaic / Medtronic Mosaic | dos filas distintas con valores distintos | ✅ |
+| 7 | A1 · SAPIEN 3 «All sizes» | EOA 1,66 ± 0,38 · GM 11,18 ± 4,35 · DVI 0,43 ± 0,09 | ✅ |
+| 8 | A3 · SAPIEN 3 | pico 33,93 ± 10,11 · medio 27,00 ± 10,20 · EOA 1,07 ± 0,32 | ✅ |
+| 9 | A5 · Carpentier-Edwards Perimount 29 | medio 6,0 ± 1,41 · V pico 1,8 ± 0,19 · PHT 76 ± 17,9 · EOA 2,02 ± 0,57 | ✅ |
+| 10 | A5 · Hancock II y Medtronic Mosaic | impresos idénticos en las cinco columnas y los cinco tamaños | ✅ |
+| 11 | A5 · St. Jude Medical 27 | pico 11 ± 4 · medio 5 ± 1,82 · V pico 1,61 ± 0,29 · PHT 75 ± 10 · EOA 1,67 ± 0,17 | ✅ |
+
+**Las once coinciden.** Lo que no coincidió con el índice es de **estructura**, no de celdas, y
+está en **P19-a**.
+
+## Cambios de evidencia
+
+| # | qué | antes | ahora | fuente |
+|---|---|---|---|---|
+| 1 | el catálogo aórtico quirúrgico | no existía | 49 modelos, 211 tamaños, 523 celdas | A4, hojas 52-57, folios 53-58 |
+| 2 | el catálogo transcatéter | no existía | 9 modelos, 29 tamaños, 78 celdas | A1 y A2 (hoja 50, folio 51), A3 (hoja 51, folio 52) |
+| 3 | el catálogo mitral quirúrgico | no existía | 30 modelos, 122 tamaños, 391 celdas | A5, hojas 57-60, folios 58-61 |
+| 4 | la EOA como eje independiente del flujo | «no se evalúa» | se evalúa con un modelo quirúrgico del catálogo con desvío | Tabla 5, hoja 18, folio 19 |
+| 5 | la salvedad de la tarjeta | «esta aplicación no registra marca ni modelo» | «en este estudio no hay un modelo del catálogo cargado —se carga con el botón Modelo y tamaño—» | la propia aplicación |
+| 6 | el globo ⓘ `ea-prot-sev` | «El área valvular NO gradúa una prótesis … no registra marca ni modelo» | «El área valvular gradúa una prótesis sólo con el modelo cargado …» | la propia aplicación |
+| 7 | la EOA indexada predicha | no existía | EOA esperada ÷ ASC, con los cortes de la Tabla 7 por IMC | Tabla 7, hoja 19, folio 20 (ya implementada) |
+
+**Ningún corte de la aplicación se movió por esta tanda.** Los de la Tabla 7 y los de la Tabla 5
+son los que ya estaban; lo único nuevo son los tres de la fila de la EOA (−1 DE y −2 DE), que
+hasta hoy no se aplicaban.
+
+## Notas de trabajo (R1)
+
+- **El símbolo ± se lee por GEOMETRÍA**, porque el PDF lo codifica como el carácter «6». El glifo
+  mide 6,6 pt y un dígito 4,4: si el ancho real de un token supera en ~2,2 pt el ancho esperado de
+  sus caracteres, uno de sus «6» es el símbolo. Lee bien los dos casos difíciles —«11 ± 6», donde
+  el seis es un desvío de verdad, y «21.46», que es «21.4 ±» pegado—. **12 de 12** celdas de
+  control contra la imagen.
+- **El nombre y el descriptor se separan por la FUENTE del PDF** (`AdvPSA183` romana contra
+  `Advhelvneue-italic` cursiva). El PDF codifica la mayúscula inicial del span cursivo en la
+  fuente romana en siete filas de la A4 («Biocor **S**» + «tented porcine»): se repone
+  mecánicamente.
+- **El extractor de texto plano NO sirve como fuente** y se usó sólo como cruce: devuelve el ±
+  como «6» y pega los superíndices de referencia al nombre («SAPIEN XT100,230»).
+- **La cantidad de decimales que la pantalla publica puede tener un cero final menos que la
+  tabla** —«1.81 ± 0.3» donde el papel imprime «1.81 ± 0.30»—: la tabla de datos guarda el
+  **número** y JS lo serializa sin ceros no significativos. El número es el mismo; lo impreso
+  queda literal en la transcripción. Declarado en **P19-f**.

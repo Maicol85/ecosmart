@@ -14964,10 +14964,43 @@ rarezas se cargan **como están impresas** y están declaradas: la EOA «1.9» d
 25 mm **sin desvío**, y la media «10.6 ± 5.1**)**» de la St. Jude Haem Plus 21 mm **con un
 paréntesis de más**.
 
-## P19-b · La fila de la EOA de la Tabla 5 — el commit 5
+## P19-b · Los bordes de la fila de la EOA de la Tabla 5 los resuelve la aplicación
 
-Reservado para lo que la relectura en imagen de la hoja 18 (folio 19) decida sobre las tres
-categorías de la EOA. Se escribe al llegar al commit 5.
+La fila `EOA §` del bloque SAVR, leída en imagen en la hoja 18 (folio 19) con el folio comprobado
+en el encabezado impreso, dice **textual**:
+
+| Normal | Possible stenosis | Suggests significant stenosis |
+|---|---|---|
+| `Reference EOA ± 1 SD` | `1 SD smaller than reference EOA` | `2 SDs smaller than reference EOA` |
+
+**Los tres textos son claros en lo que gradúan**, así que el commit 5 **no se paró**. Lo que la
+tabla NO resuelve son dos bordes, y los resuelve la aplicación:
+
+1. **El «± 1 SD» de la columna normal se superpone con «1 SD smaller».** Una EOA exactamente
+   1 desvío por debajo cae en las dos. Se resuelve a favor de **normal**, que es lo que la columna
+   «Normal» dice con su `±`: `EA_PROT_EOA_Z.normalMin = -1` con el operador `<` para pasar a
+   posible.
+2. **Una EOA POR ENCIMA de la del modelo no cae en ninguna de las tres.** Se resuelve por
+   **complemento**: lo que la tabla no llama estenosis no es estenosis, y sus dos columnas de
+   estenosis dicen «smaller». Es la convención que esta casa ya aplica al hueco impreso del
+   gradiente medio mitral de la Tabla 11.
+
+**Lo que decide el médico, si quiere cambiarlo:** si el −1 exacto debe caer en «posible» en vez de
+en «normal». Mover ese operador es una línea (`EA_PROT_EOA_Z` y su comparación), y hay un caso que
+lo vigila: **TC-734 (E1)**.
+
+## P19-f · La pantalla publica el mismo número con un cero final menos que la tabla
+
+La tabla de datos guarda **números** y la pantalla los serializa sin ceros no significativos, así
+que donde el papel imprime «1.81 ± 0.**30**» la fila publica «1.81 ± 0.3». **Es el mismo número**
+—no se redondea ni se completa nada— y **lo impreso queda literal en la transcripción**
+(`docs/TRANSCRIPCION_A4_P19.md` y las otras dos).
+
+Se midió la alternativa antes de decidir: guardar los valores como texto cuesta unos 5 KB y
+obliga a convertir en cada cálculo. Se eligió el número.
+
+**Lo que decide el médico, si le molesta:** publicar el valor con los decimales exactos de la
+tabla, que exige guardar los valores como texto en las tres tablas.
 
 ## P19-c · El PPM mitral SÍ usa los cortes mitrales — no hay nada que parar
 
@@ -14994,6 +15027,29 @@ que no es la forma que el componente consume.
 vocabulario del informe y una decisión del médico— y un tercer juego de campos en el componente
 para el gradiente en mediana con rango.
 
+## P19-g · La columna del Excel se llama «AVA de referencia aórtica» y no «AEO»
+
+**Lo decidió un caso existente, no una preferencia.** La condición «(F) el Excel sigue en 441
+columnas y NINGÚN encabezado cambió de nombre» —del caso que cerró el renombre de EOA a AEO en
+pantalla y en el papel— exige que **ningún encabezado del Excel contenga «EOA» ni «AEO»**:
+
+```js
+return k.length === 445 && k.filter(function(c){ return /EOA|AEO/.test(c); }).length === 0 &&
+       k.indexOf('DVI mitral') > -1;
+```
+
+La orden de esta tanda autoriza las cuatro columnas y **no fija su nombre**, así que la columna
+nueva se llama **«AVA de referencia aórtica (cm²)»**, que además es la sigla con la que el propio
+Excel ya nombra el área valvular aórtica en la columna de al lado (**«AVA (cm²)»**). El `id` del
+campo guardado **no cambió** y sigue siendo `va_prot_eoaref`.
+
+**Medido al cerrar:** 445 columnas, **cero** encabezados con «EOA» o «AEO», las cuatro nuevas
+presentes y «DVI mitral» y «AVA (cm²)» intactas.
+
+**Lo que decide el médico:** si prefiere que la columna se llame «AEO de referencia aórtica», hay
+que decidir antes qué pasa con esa condición —que es la que impide que el renombre de aquella
+tanda se deshaga de a una columna—.
+
 ## P19-e · El botón «Modelo y tamaño» no entra en la fila de morfología de la MITRAL
 
 La orden pide el botón «en la misma fila del campo Morfología». **En la aórtica entra**: su fila
@@ -15008,4 +15064,18 @@ celdas de 155,7, y **a 1000 px ya está en UNA columna de 275 px**. Un cuarto hi
 tres celdas por debajo del piso de 144 px, que es justo lo que el comentario de esa regla declara
 que no puede pasar.
 
-**No se decide acá.** Lo que el commit 7 haga con esto se escribe al llegar.
+**EL COMMIT 7 SE PARÓ Y SE REPORTA, que es lo que la regla de la orden manda cuando una decisión
+no está en ella.** La orden dice «en la misma fila del campo Morfología», y en la mitral eso no se
+puede sin romper lo que la propia orden prohíbe: a 1440 px la fila mide 483 px con tres celdas de
+155,7, y un cuarto hijo del `auto-fit` las apretaría por debajo del piso de 144 px declarado —o
+las empujaría a una segunda línea, con lo que la fila pasaría a ser más alta que el botón
+«Insuficiencia», que es justo lo que TC-522 vigila—.
+
+**Lo que SÍ quedó hecho, y es la mitad del trabajo:** el catálogo mitral está cargado y verificado
+(`PROT_CAT_A5`, 30 modelos, 122 tamaños, 391 celdas, commit 6) y el componente está **parametrizado
+por posición**, así que conectarlo es agregar una entrada a `VMOD_POS` y el marcado.
+
+**Lo que decide el médico:** dónde va el botón en la mitral. Las dos opciones medidas son
+(a) una fila propia inmediatamente debajo de la de morfología, con el mismo estilo —no toca la
+fila de tres ni su ancho, y TC-522 sigue verde—, o (b) sacar el Carpentier o el tipo de IM de esa
+fila para hacerle lugar, que mueve dos campos que el médico puso ahí en la tanda AJ5.
