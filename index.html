@@ -72866,6 +72866,60 @@ const PROT_CAT_TAVI = Object.freeze([
 const PROT_CAT_TAVI_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A1, A2 y A3', hojas:'50 y 51', folios:'51 y 52' });
 window.PROT_CAT_TAVI = PROT_CAT_TAVI; window.PROT_CAT_TAVI_COLS = PROT_CAT_TAVI_COLS;
 window.PROT_CAT_TAVI_FTE = PROT_CAT_TAVI_FTE;
+/* ══ CATALOGO DE PROTESIS MITRALES QUIRURGICAS — TABLA A5 DE LA ASE 2024 (PANT-19, commit 6)
+   «Normal Doppler echocardiographic values for surgical prosthetic mitral valves», hojas 57 a 60,
+   folios 58 a 61, leida EN IMAGEN a 300 ppp y cruzada con la capa de texto por coordenadas, con
+   el folio comprobado en el encabezado impreso de las cuatro hojas.
+   Nota al pie: «Data are expressed as mean +- SD. Modified from Rosenhek et al.232»
+   La transcripcion celda por celda esta en docs/TRANSCRIPCION_MITRAL_P19.md.
+   Misma forma que PROT_CAT_A4, con DOS columnas mas: la velocidad pico y el THP.
+   ⚠️ LOS TAMANOS «27-29» Y «31-33» DE LA On-X SON TEXTO, como los imprime la tabla.
+   ⚠️ «Hancock II» y «Medtronic Mosaic» estan impresos IDENTICOS en las cinco columnas y en los
+   cinco tamanos, en hojas distintas (58 y 59). Se cargan los dos, cada uno con su folio: la
+   tabla los imprime por separado y esta casa no funde lo que la fuente separa.
+   ⚠️ LA TABLA IMPRIME UNA VEZ EL DESCRIPTOR CON MAYUSCULA —«Stented Bioprosthesis», en la fila
+   de la Carpentier-Edwards pericardial—: se carga tal como esta impreso y se reconoce como el
+   mismo descriptor de construccion que «Stented bioprosthesis».
+   ⚠️ LA TABLA A6 (SAPIEN mitral) NO SE CARGA, y es la condicion expresa del commit 6: la
+   morfologia mitral de la aplicacion no tiene ninguna opcion de implante transcateter que la
+   admita, y el eje de esa tabla no es modelo x tamano sino referencia bibliografica x situacion.
+   Ver docs/PENDIENTES.md -> P19-d. */
+const PROT_CAT_A5_COLS = Object.freeze(['pico','medio','vpico','thp','eoa']);
+const PROT_CAT_A5 = Object.freeze([
+  {n:'Abbott Epic',d:'',t:'',f:'58',s:[['27',null,[6.1,2.9],null,null,[1.4,0.7]],['29',null,[5.5,1.7],null,null,[1.5,0.5]],['31',null,[4.8,1.4],null,null,[1.6,0.3]],['33',null,[4.1,1.6],null,null,[1.5,0.3]]]},
+  {n:'Biocor',d:'Stentless bioprosthesis',t:'bio',f:'58',s:[['27',[13,1],null,null,null,null],['29',[14,2.5],null,null,null,null],['31',[11.5,0.5],null,null,null,null],['33',[12,0.5],null,null,null,null]]},
+  {n:'Bioflo pericardial',d:'Stented bioprosthesis',t:'bio',f:'58',s:[['25',[10,2],[6.3,1.5],null,null,[2,0.1]],['27',[9.5,2.6],[5.4,1.2],null,null,[2,0.3]],['29',[5,2.8],[3.6,1],null,null,[2.4,0.2]],['31',[4.0,null],[2.0,null],null,null,[2.3,null]]]},
+  {n:'Bjork-Shiley',d:'Tilting disk',t:'mec',f:'58',s:[['23',null,null,[1.7,null],[115,null],null],['25',[12,4],[6,2],[1.75,0.38],[99,27],[1.72,0.6]],['27',[10,4],[5,2],[1.6,0.49],[89,28],[1.81,0.54]],['29',[7.83,2.93],[2.83,1.27],[1.37,0.25],[79,17],[2.1,0.43]],['31',[6,3],[2,1.9],[1.41,0.26],[70,14],[2.2,0.3]]]},
+  {n:'Bjork-Shiley monostrut',d:'Tilting disk',t:'mec',f:'58',s:[['23',null,[5.0,null],[1.9,null],null,null],['25',[13,2.5],[5.57,2.3],[1.8,0.3],null,null],['27',[12,2.5],[4.53,2.2],[1.7,0.4],null,null],['29',[13,3],[4.26,1.6],[1.6,0.3],null,null],['31',[14,4.5],[4.9,1.6],[1.7,0.3],null,null]]},
+  {n:'Carbomedics',d:'Bileaflet',t:'mec',f:'58',s:[['23',null,null,[1.9,0.1],[126,7],null],['25',[10.3,2.3],[3.6,0.6],[1.3,0.1],[93,8],[2.9,0.8]],['27',[8.79,3.46],[3.46,1.03],[1.61,0.3],[89,20],[2.9,0.75]],['29',[8.78,2.9],[3.39,0.97],[1.52,0.3],[88,17],[2.3,0.4]],['31',[8.87,2.34],[3.32,0.87],[1.61,0.29],[92,24],[2.8,1.14]],['33',[8.8,2.2],[4.8,2.5],[1.5,0.2],[93,12],null]]},
+  {n:'Carpentier-Edwards',d:'Stented bioprosthesis',t:'bio',f:'59',s:[['27',null,[6,2],[1.7,0.3],[98,28],null],['29',null,[4.7,2],[1.76,0.27],[92,14],null],['31',null,[4.4,2],[1.54,0.15],[92,19],null],['33',null,[6,3],null,[93,12],null]]},
+  {n:'Carpentier-Edwards pericardial',d:'Stented Bioprosthesis',t:'bio',f:'59',s:[['27',null,[3.6,null],[1.6,null],[100,null],null],['29',null,[5.25,2.36],[1.67,0.3],[110,15],null],['31',null,[4.05,0.83],[1.53,0.1],[90,11],null],['33',null,[1.0,null],[0.8,null],[80,null],null]]},
+  {n:'Carpentier-Edwards Perimount',d:'Stented pericardial',t:'bio',f:'59',s:[['25',null,[4.0,1.0],[1.7,0.10],[67,21.5],[1.75,0.53]],['27',null,[6.3,1.65],[1.7,0.27],[74,20.6],[1.88,0.52]],['29',null,[6.0,1.41],[1.8,0.19],[76,17.9],[2.02,0.57]],['31',null,[5.5,1.06],[1.8,0.20],[80,21.8],[2.09,0.48]],['33',null,[6.1,1.86],[1.7,0.23],[77,13.2],[2.24,0.97]]]},
+  {n:'Duromedics',d:'Bileaflet',t:'mec',f:'59',s:[['27',[13,6],[5,3],[1.61,0.4],[75,12],null],['29',[10,4],[3,1],[1.40,0.25],[85,22],null],['31',[10.5,4.33],[3.3,1.36],[1.38,0.27],[81,12],null],['33',[11.2,null],[2.5,null],null,[85,null],null]]},
+  {n:'Edwards Mitris',d:'',t:'',f:'59',s:[['25',null,[4.9,1.2],null,null,[1.1,0.4]],['27',null,[4.1,1.4],null,null,[1.2,0.3]],['29',null,[4.1,1.5],null,null,[1.5,0.6]],['31',null,[3.9,2.0],null,null,[1.4,0.5]],['33',null,[3.3,1.4],null,null,[1.5,0.7]]]},
+  {n:'Hancock I or not specified',d:'Stented bioprosthesis',t:'bio',f:'59',s:[['27',[10,4],[5,2],null,null,[1.3,0.8]],['29',[7,3],[2.46,0.79],null,[115,20],[1.5,0.2]],['31',[4,0.86],[4.86,1.69],null,[95,17],[1.6,0.2]],['33',[3,2],[3.87,2],null,[90,12],[1.9,0.2]]]},
+  {n:'Hancock II',d:'Stented bioprosthesis',t:'bio',f:'59',s:[['25',null,[8.3,1.71],[2.1,0.28],[76,19.8],[1.42,0.29]],['27',null,[6.1,1.33],[2,0.28],[81,18.9],[1.62,0.47]],['29',null,[6.7,2.20],[2.0,0.31],[77,15.1],[1.83,0.68]],['31',null,[6.0,1.58],[2.0,0.32],[76,12.1],[1.70,0.41]],['33',null,[5.5,1.64],[1.9,0.50],[65,8.7],[2.71,0.77]]]},
+  {n:'Hancock pericardial',d:'Stented bioprosthesis',t:'bio',f:'59',s:[['29',null,[2.61,1.39],[1.42,0.14],[105,36],null],['31',null,[3.57,1.02],[1.51,0.27],[81,23],null]]},
+  {n:'Ionescu-Shiley',d:'Stented bioprosthesis',t:'bio',f:'59',s:[['25',null,[4.87,1.08],[1.43,0.15],[93,11],null],['27',null,[3.21,0.82],[1.31,0.24],[100,28],null],['29',null,[3.22,0.57],[1.38,0.2],[85,8],null],['31',null,[3.63,0.9],[1.45,0.06],[100,36],null]]},
+  {n:'Ionescu-Shiley low profile',d:'Stented bioprosthesis',t:'bio',f:'60',s:[['29',null,[3.31,0.96],[1.36,0.25],[80,30],null],['31',null,[2.74,0.37],[1.33,0.14],[79,15],null]]},
+  {n:'Labcor-Santiago pericardial',d:'Stented bioprosthesis',t:'bio',f:'60',s:[['25',[8.7,null],[4.5,null],null,[97,null],[2.2,null]],['27',[5.6,2.3],[2.8,1.5],null,[85,18],[2.12,0.48]],['29',[6.2,2.1],[3,1.3],null,[80,34],[2.11,0.73]]]},
+  {n:'Lillehei-Kaster',d:'Tilting disk',t:'mec',f:'60',s:[['18',null,null,[1.7,null],[140,null],null],['20',null,null,[1.7,null],[67,null],null],['22',null,null,[1.56,0.09],[94,22],null],['25',null,null,[1.38,0.27],[124,46],null]]},
+  {n:'Medtronic-Hall',d:'Tilting disk',t:'mec',f:'60',s:[['27',null,null,[1.4,null],[78,null],null],['29',null,null,[1.57,0.1],[69,15],null],['31',null,null,[1.45,0.12],[77,17],null]]},
+  {n:'Medtronic Intact Porcine',d:'Stented bioprosthesis',t:'bio',f:'60',s:[['29',null,[3.5,0.51],[1.6,0.22],null,null],['31',null,[4.2,1.44],[1.6,0.26],null,null],['33',null,[4,1.3],[1.4,0.24],null,null],['35',null,[3.2,1.77],[1.3,0.5],null,null]]},
+  {n:'Medtronic Mosaic',d:'',t:'',f:'60',s:[['25',null,[8.3,1.71],[2.1,0.28],[76,19.8],[1.42,0.29]],['27',null,[6.1,1.33],[2,0.28],[81,18.9],[1.62,0.47]],['29',null,[6.7,2.20],[2.0,0.31],[77,15.1],[1.83,0.68]],['31',null,[6.0,1.58],[2.0,0.32],[76,12.1],[1.70,0.41]],['33',null,[5.5,1.64],[1.9,0.50],[65,8.7],[2.71,0.77]]]},
+  {n:'Mitroflow',d:'Stented bioprosthesis',t:'bio',f:'60',s:[['25',null,[6.9,null],[2.0,null],[90,null],null],['27',null,[3.07,0.91],[1.5,null],[90,20],null],['29',null,[3.5,1.65],[1.43,0.29],[102,21],null],['31',null,[3.85,0.81],[1.32,0.26],[91,22],null]]},
+  {n:'Omnicarbon',d:'Tilting disk',t:'mec',f:'60',s:[['23',null,[8.0,null],null,null,null],['25',null,[6.05,1.81],[1.77,0.24],[102,16],null],['27',null,[4.89,2.05],[1.63,0.36],[105,33],null],['29',null,[4.93,2.16],[1.56,0.27],[120,40],null],['31',null,[4.18,1.4],[1.3,0.23],[134,31],null],['33',null,[4,2],null,null,null]]},
+  {n:'On-X',d:'Bileaflet',t:'mec',f:'60',s:[['25',[11.5,3.2],[5.3,2.1],null,null,[1.9,1.1]],['27-29',[10.3,4.5],[4.5,1.6],null,null,[2.2,0.5]],['31-33',[9.8,3.8],[4.8,2.4],null,null,[2.5,1.1]]]},
+  {n:'Sorin Allcarbon',d:'Tilting disk',t:'mec',f:'60',s:[['25',[15,3],[5,1],[2,0.2],[105,29],[2.2,0.6]],['27',[13,2],[4,1],[1.8,0.1],[89,14],[2.5,0.5]],['29',[10,2],[4,1],[1.6,0.2],[85,23],[2.8,0.7]],['31',[9,1],[4,1],[1.6,0.1],[88,27],[2.8,0.9]]]},
+  {n:'Sorin Bicarbon',d:'Bileaflet',t:'mec',f:'61',s:[['25',[15,0.25],[4,0.5],[1.95,0.02],[70,1],null],['27',[11,2.75],[4,0.5],[1.65,0.21],[82,20],null],['29',[12,3],[4,1.25],[1.73,0.22],[80,14],null],['31',[10,1.5],[4,1],[1.66,0.11],[83,14],null]]},
+  {n:'St. Jude Medical',d:'Bileaflet',t:'mec',f:'61',s:[['23',null,[4.0,null],[1.5,null],[160,null],[1.0,null]],['25',null,[2.5,1],[1.34,1.12],[75,4],[1.35,0.17]],['27',[11,4],[5,1.82],[1.61,0.29],[75,10],[1.67,0.17]],['29',[10,3],[4.15,1.8],[1.57,0.29],[85,10],[1.75,0.24]],['31',[12,6],[4.46,2.22],[1.59,0.33],[74,13],[2.03,0.32]]]},
+  {n:'Starr-Edwards',d:'Caged ball',t:'mec',f:'61',s:[['26',null,[10.0,null],null,null,[1.4,null]],['28',null,[7,2.75],null,null,[1.9,0.57]],['30',[12.2,4.6],[6.99,2.5],[1.7,0.3],[125,25],[1.65,0.4]],['32',[11.5,4.2],[5.08,2.5],[1.7,0.3],[110,25],[1.98,0.4]],['34',null,[5.0,null],null,null,[2.6,null]]]},
+  {n:'Stentless quadrileaflet bovine pericardial',d:'Stentless bioprosthesis',t:'bio',f:'61',s:[['26',null,[2.2,1.7],[1.6,null],[103,31],[1.7,null]],['28',null,null,[1.58,0.25],null,[1.7,0.6]],['30',null,null,[1.42,0.32],null,[2.3,0.4]]]},
+  {n:'Wessex',d:'Stented bioprosthesis',t:'bio',f:'61',s:[['29',null,[3.69,0.61],[1.66,0.17],[83,19],null],['31',null,[3.31,0.83],[1.41,0.25],[80,21],null]]}
+]);
+const PROT_CAT_A5_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A5', hojas:'57 a 60', folios:'58 a 61' });
+window.PROT_CAT_A5 = PROT_CAT_A5; window.PROT_CAT_A5_COLS = PROT_CAT_A5_COLS;
+window.PROT_CAT_A5_FTE = PROT_CAT_A5_FTE;
 /* ══ EL COMPONENTE «Modelo y tamano» (PANT-19, commit 4) ═══════════════════════════════════
    UN solo componente, parametrizado por POSICION (va, vm, y manana vt y vp): el dia que
    entren la tricuspide y la pulmonar se agrega una entrada al registro VMOD_POS y nada mas. Lo que cambia
