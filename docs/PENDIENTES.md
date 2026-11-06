@@ -1,5 +1,44 @@
 # EcoSmart — pendientes vivos
 
+## P17-e · El renombre a «ACC/AHA 2026» se paro: el titulo oficial dice 2025
+
+**Que se encontro.** La orden de PANT-17 pedia renombrar la guia americana de congenitas del
+adulto de «ACC/AHA 2025» a «ACC/AHA 2026», **solo si la hoja 1 lo confirma**, y fijaba la
+condicion exacta: «Si el titulo oficial dice 2026: se renombra. Si el titulo dice 2025 y solo la
+cabecera o el pie dicen 2026: NO renombres nada».
+
+Leidas en imagen la **hoja 1** (200 ppp) y la tira de cabecera y pie de la **hoja 35** (260 ppp)
+del archivo `gurvitz-et-al-2025-…-congenital-heart-disease-a.pdf`:
+
+- El **titulo oficial** dice **2025**: «2025 ACC/AHA/HRS/ISACHD/SCAI Guideline for the Management
+  of Adults With Congenital Heart Disease».
+- El apartado **AIM** repite «2025» dentro de las comillas del titulo.
+- La **cita sugerida por la propia AHA** empieza «… Wald RM. **2025** ACC/AHA/HRS/ISACHD/SCAI
+  guideline …» y termina «*Circulation*. **2026**;153:e115-e251».
+- El **copyright** dice «(c) 2025 by the American College of Cardiology Foundation and the
+  American Heart Association, Inc.».
+- La **cabecera corrida** de la hoja 35 dice «2026 ACHD Guideline» y su **pie** «*Circulation*.
+  2026;153:e115-e251 … February 24, 2026   e149».
+
+O sea: **2026 es el ano de la revista** (volumen, paginas, fecha del numero y cabecera corrida) y
+**2025 es el ano del titulo**. Es exactamente el segundo caso de la condicion, asi que **no se
+renombro ninguna cadena** y toda la tanda siguio usando el nombre actual de la aplicacion.
+
+**Que puede causar.** Nada hoy: la aplicacion nombra la guia como su propio titulo y su propia
+cita sugerida la nombran. Lo que queda es una ambiguedad real de la fuente, que un lector puede
+encontrar al buscar la guia por el ano del numero de *Circulation*.
+
+**Como se corrige, el dia que el medico lo decida.** El censo ya esta hecho y medido en
+`docs/INVENTARIO_RENOMBRE_ACCAHA.md`: **197** apariciones de `ACC/AHA 2025` y **2** de
+`2025 ACC/AHA` en `index.html`, **6** en el archivo de casos y **100** en `docs/` (que no se
+renombran). Las formas `AHA/ACC 2025`, `ACC/AHA 2025/26`, `Gurvitz 2025`, `Gurvitz et al., 2025`
+y `ACHD 2025` dan **cero**: no hay cadenas partidas que buscar.
+**Ojo con la sustitucion global**: hay otras guias con ano 2025 que no se tocan nunca —
+`ESC/EACTS 2025` (175), `ASE 2025` (236) y `ESC 2025` (37)—.
+
+**Lo decide el medico**, porque es el nombre con que la aplicacion cita una guia en pantalla.
+
+
 ## P14b-j · Dos defensas del resolvedor de colores que ninguna mutación puede hacer observable
 
 **Qué se encontró.** El resolvedor `tgaEsqResolver` tiene dos defensas que el barrido de
