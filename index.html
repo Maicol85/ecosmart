@@ -76753,16 +76753,26 @@ function generarPDFReal(_aj) {
     if (typeof imgSlots !== 'undefined' && typeof esqSlotIdx === 'function') {
       const _ci = esqSlotIdx('cm3d');
       if (_ci >= 0 && imgSlots[_ci] && imgSlots[_ci].dataURL && !imgSlots[_ci].noPdf) {
-        const _cl = (typeof cmLineaPDF === 'function') ? (cmLineaPDF() || '') : '';
+        /* ⚠️ EL TEXTO LO ARMA `cmPapelTexto` (PANT-14c, commit 1c) y no se escribe aca: son
+           las cuatro partes que el medico pidio —titulo, lesiones con su nombre completo, la
+           linea de la circulacion y la leyenda de lo dibujado—, todas con textos que la app ya
+           tiene. `cmLineaPDF` sigue existiendo y es la linea CORTA que la suite afirma; el
+           duenio del texto del papel es `cmPapelTexto`.
+           ⚠️ Y EL 3D PASA SU `ar` (commit 1b): hasta esta tanda esta parte no lo pasaba y
+           `_pdfTile` caia en `p.ar || 1`, o sea que estampaba CUADRADO un lienzo de 1230 x 420
+           y el corazon salia comprimido 2,9 veces a lo ancho. Es la constante `CM_PDF_AR`, la
+           misma a la que la captura abre su recorte, asi que los dos no pueden discrepar. */
+        const _cl = (typeof cmPapelTexto === 'function') ? (cmPapelTexto() || '')
+                  : ((typeof cmLineaPDF === 'function') ? (cmLineaPDF() || '') : '');
         const _ce = (typeof cmEsqPdfData === 'function') ? cmEsqPdfData() : { data:null };
-        const _cp = [{ data: imgSlots[_ci].dataURL }];
+        const _cp = [{ data: imgSlots[_ci].dataURL, ar: CM_PDF_AR }];
         const _clin = [];
         if (_cl) _clin.push(_cl);
         if (_ce && _ce.data) {
           _cp.push({ data: _ce.data, ar: CM_ESQ_PDF_AR });
           _clin.push('Esquema ilustrativo: no es una imagen del estudio ni está a escala.');
         }
-        _dg.cm3d = { partes: _cp, linea: _clin.join('  ·  ') };
+        _dg.cm3d = { partes: _cp, linea: _clin.join('\n') };
         _cm3dEsqIdx = _ci;
       }
     }
@@ -103907,6 +103917,27 @@ window.tgaVer3D = tgaVer3D;
    deriva el motor de ancho/alto, asi que esto no mueve la GEOMETRIA, que es lo que la orden
    prohibe tocar: la comparacion con la demo es sobre el ESCENARIO y no sobre pixeles. */
 const CM3D_ALTO = 420;
+/* ══ EL ESTAMPADO DEL 3D EN EL PAPEL (PANT-14c, commit 1) ═══════════════════════════════════
+   ⚠️ EL MEDICO REPORTO QUE EL PDF IMPRIME EL CORAZON «ANGOSTO Y CHICO», Y SON DOS CAUSAS
+   MEDIDAS, cada una con su numero:
+     (1) SE CAPTURABA EL LIENZO ENTERO. El recuadro del modulo ocupa el ancho del cuerpo —1230 px
+         medidos a 1440 px de ventana, 922 con el esquema abierto— y el alto es `CM3D_ALTO`, asi
+         que el corazon queda en una franja angosta: su caja de contenido mide 207 x 352 px, o
+         sea el 16,8 % del ancho, y el 8,8 % de los pixeles de la imagen no son blancos.
+     (2) SE ESTAMPABA CUADRADO. `_pdfTile` usa `p.ar || 1` y esta parte no pasaba `ar`, asi que
+         una imagen de 1230 x 420 —relacion alto/ancho 0,341— entraba en 70,8 x 70,8 mm: el
+         corazon, ya angosto, se comprimia otras 2,9 veces a lo ancho. Es la deuda que PANT-14
+         declaro para el 3D de la transposicion y dejo sin tocar.
+   LA SALIDA: la captura RECORTA al contenido con un margen proporcional y despues ABRE la caja
+   —hacia los dos lados y de forma simetrica— hasta la relacion FIJA `CM_PDF_AR`. Asi:
+     · el corazon ocupa el ancho util de su bloque y no un lienzo blanco;
+     · nada se corta por construccion: la caja solo se AGRANDA, nunca se recorta el contenido;
+     · y la relacion es una CONSTANTE que el recolector del PDF puede pasar como `ar` sin
+       guardar un dato nuevo en el slot. Esto ultimo no es un detalle: un `ar` guardado en el
+       slot no sobrevive a `CeiboImg.guardar`, cuya lista de claves es cerrada, asi que al
+       reabrir un estudio el dibujo volveria a estamparse cuadrado. */
+const CM_PDF_AR = 1.25;
+const CM_PDF_MARGEN = 0.04;
 
 /* ══ CM-DATOS ══ (marca de extraccion de `_probe_pant12demo.mjs`: UNA sola vez en el archivo) */
 const CM_C=Object.freeze({blue:0x2f6fd0,red:0xd8433b,grey:0x9a9a95,orange:0xe08a1e,gold:0xd9b92e,valve:0xb59f62});
@@ -104694,7 +104725,41 @@ host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};h
         x.fillStyle = '#1d1d1b'; x.fillText(l.t, px, py);
       });
     }
-    return { url: o.toDataURL('image/png'), ancho: o.width, alto: o.height };
+    /* ⚠️ EL RECORTE AL CONTENIDO (PANT-14c, commit 1b). Se barre la imagen compuesta buscando
+       los pixeles que NO son blancos —el corazon y el texto de los rotulos; la caja blanca de
+       cada rotulo es casi blanca y no cuenta, pero su texto si, asi que los rotulos quedan
+       dentro—. Con eso sale la caja del contenido; se le suma un margen PROPORCIONAL y se abre
+       simetricamente hasta `CM_PDF_AR`, sin salir del lienzo. Si el contenido no se encuentra
+       —un lienzo todo blanco— se devuelve el lienzo entero, que es lo que esta funcion hacia
+       hasta hoy: una captura vacia no se convierte en un recorte inventado. */
+    const rec = (function () {
+      let d;
+      try { d = x.getImageData(0, 0, o.width, o.height).data } catch (e) { return null }
+      let mnX = o.width, mxX = -1, mnY = o.height, mxY = -1;
+      for (let y2 = 0; y2 < o.height; y2++) {
+        for (let x2 = 0; x2 < o.width; x2++) {
+          const i2 = (y2 * o.width + x2) * 4;
+          if (d[i2] > 246 && d[i2 + 1] > 246 && d[i2 + 2] > 246) continue;
+          if (x2 < mnX) mnX = x2; if (x2 > mxX) mxX = x2;
+          if (y2 < mnY) mnY = y2; if (y2 > mxY) mxY = y2;
+        }
+      }
+      if (mxX < 0 || mxY < 0) return null;
+      let cw = mxX - mnX + 1, chh = mxY - mnY + 1;
+      const mg = Math.round(Math.max(cw, chh) * CM_PDF_MARGEN);
+      let cx0 = mnX - mg, cy0 = mnY - mg; cw += 2 * mg; chh += 2 * mg;
+      /* La apertura a la relacion fija: se agranda el lado que falta, repartido a los dos lados. */
+      if (chh / cw > CM_PDF_AR) { const w2 = chh / CM_PDF_AR; cx0 -= (w2 - cw) / 2; cw = w2 }
+      else { const h2 = cw * CM_PDF_AR; cy0 -= (h2 - chh) / 2; chh = h2 }
+      return { x: Math.round(cx0), y: Math.round(cy0), w: Math.round(cw), h: Math.round(chh) };
+    })();
+    if (!rec) return { url: o.toDataURL('image/png'), ancho: o.width, alto: o.height };
+    const r2 = document.createElement('canvas');
+    r2.width = rec.w; r2.height = rec.h;
+    const x2c = r2.getContext('2d');
+    x2c.fillStyle = '#ffffff'; x2c.fillRect(0, 0, r2.width, r2.height);
+    x2c.drawImage(o, rec.x, rec.y, rec.w, rec.h, 0, 0, rec.w, rec.h);
+    return { url: r2.toDataURL('image/png'), ancho: r2.width, alto: r2.height };
   };
   _cm3dVistaSet = function (y) { root.rotation.set(0.05, y, 0) };
   _cm3dInsSet = function () { setIns() };
@@ -105184,6 +105249,15 @@ function cmSchSet(on) {
   vw.classList.toggle('cm3d-vw-on', !!on);
   if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
   if (on) cmSchRender();
+  /* ⚠️ Y SE RASTERIZA ACA (PANT-14c, commit 1d), QUE ES LO QUE CIERRA «abri el esquema y el PDF
+     no lo trajo». Reproducido con el gesto real en el orden que el medico uso: tocar «Incluir en
+     el PDF» PRIMERO y abrir ◫ DESPUES. Medido en ese orden: el panel queda abierto, la compuerta
+     `cmEsqPdfOn()` queda ABIERTA —da `true`— y `cmEsqPdfData()` devuelve `data: null`, asi que el
+     PDF trae UNA sola imagen. La causa es de una linea: el unico lugar que rasterizaba era
+     `cmIncluirPDF`, y con el esquema todavia cerrado su llamada no hacia nada —la compuerta pide
+     `_cm3d.sch`—; despues nadie volvia a rasterizar, porque esta funcion solo dibujaba el SVG.
+     Va al FINAL y no antes: la compuerta lee `_cm3d.sch`, que esta funcion acaba de escribir. */
+  try { if (typeof cmEsqPdfRaster === 'function') cmEsqPdfRaster(true) } catch (e) {}
 }
 window.cmSchSet = cmSchSet;
 /* El movimiento de las lineas, con la MISMA regla de pausa y de movimiento reducido que el
@@ -105403,6 +105477,138 @@ function cmLineaPDF() {
   return linea;
 }
 window.cmLineaPDF = cmLineaPDF;
+
+/* ══ EL TITULO DEL DIBUJO, UN SOLO DUENIO (PANT-14c, commits 1c y 4a) ═══════════════════════
+   Las SIGLAS de lo que se esta dibujando: la base con su variante y las lesiones con la suya,
+   armadas con los MISMOS registros que las listas de «Explorar» —`CM_SIB`, `CM_SHORT` y
+   `CM_SIG`—, asi que no hay un solo texto nuevo. Es PURO: recibe el estado y no lo toca.
+   Lo leen el titulo superpuesto del recuadro (commit 4a), la cabecera del esquema y la primera
+   parte del texto del papel (commit 1c): un solo calculo, que es lo que impide que el dibujo y
+   lo que se dice de el discrepen. */
+function cmTitulo(S) {
+  const E = S || (_cm3d && _cm3d.S);
+  if (!E) return '';
+  const p = [];
+  const les = [];
+  CM_MODS.forEach(function (m) {
+    const v = E.mods && E.mods[m[0]];
+    if (!v) return;
+    let t = (CM_SIG[m[0]] || [m[1]])[0];
+    const sh = CM_SHORT[m[0] + '_' + v];
+    if (sh) t += ' ' + sh;
+    les.push(t);
+  });
+  /* La base va SIEMPRE salvo cuando es el corazon normal Y hay lesiones: ahi lo que el dibujo
+     muestra son las lesiones, y «Normal» delante no agrega nada. Con eso los tres ejemplos que
+     el medico escribio salen tal cual: «Mus/Sen · CIA O.S.», «Fallot Operado · IP» y «Normal». */
+  if (E.base !== 'norm' || !les.length) {
+    const bb = CM_SIB[E.base] || [E.base];
+    let base = bb[0] || E.base;
+    const bvv = E.bv && E.bv[E.base];
+    if (bvv && CM_SHORT[E.base + '_' + bvv]) base += ' ' + CM_SHORT[E.base + '_' + bvv];
+    p.push(base);
+  }
+  return p.concat(les).join('  ·  ');
+}
+window.cmTitulo = cmTitulo;
+/* Los NOMBRES COMPLETOS de las lesiones dibujadas, para el papel: `CM_SIG[k][1]` es el nombre
+   que la app ya tiene —«comunicacion interauricular», «ductus arterioso»—, y la variante sale de
+   la propia lista de `CM_MODS`. La base va con el nombre completo de `CM_SIB[k][1]`. */
+function cmPapelLesiones(S) {
+  const E = S || (_cm3d && _cm3d.S);
+  if (!E) return '';
+  const p = [];
+  if (E.base !== 'norm') {
+    const bb = CM_SIB[E.base] || [E.base, ''];
+    let t = bb[1] || bb[0];
+    /* ⚠️ EL NOMBRE DE LA VARIANTE VA TAL CUAL Y NO EN MINUSCULA: bajarlo escribia «d-tga sin
+       cirugia» por «d-TGA sin cirugia», que es una sigla desarmada. Medido en el PDF. */
+    const lv = (CM_BVARS[E.base] || []).filter(function (v) { return v[0] === (E.bv || {})[E.base] })[0];
+    if (lv) t += ' (' + lv[1] + ')';
+    p.push(t);
+  }
+  CM_MODS.forEach(function (m) {
+    const v = E.mods && E.mods[m[0]];
+    if (!v) return;
+    let t = (CM_SIG[m[0]] || [m[1]])[1] || m[1];
+    /* La variante, TAL CUAL la escribe su lista: no se le cambia una letra. Bajarla a minuscula
+       escribia «d-tga» por «d-TGA» y «jatene» por «Jatene», que son una sigla y un nombre
+       propio; y el parentesis es una etiqueta, no prosa. */
+    const lv = (m[2] || []).filter(function (o) { return o[0] === v })[0];
+    if (lv) t += ' (' + lv[1] + ')';
+    p.push(t);
+  });
+  return p.join('; ');
+}
+window.cmPapelLesiones = cmPapelLesiones;
+/* ══ LA LEYENDA DE LO QUE ESTA DIBUJADO, UN SOLO DUENIO ═════════════════════════════════════
+   Se le pregunta a la ESCENA y no al estado: se recorren los objetos que `cmEscena` devuelve y
+   se junta el color de cada uno, y de ahi salen las entradas presentes. Asi una entrada aparece
+   SOLO si su color esta dibujado de verdad, y el dia que una lesion cambie de color la leyenda
+   lo sigue sin que nadie la actualice.
+   ⚠️ DE DONDE SALE EL COLOR DE CADA OBJETO: `tube` lo trae en `c`, los demas en `col`, y `ring`
+   y `disc` sin color caen en el naranja, que es el valor por omision que el motor aplica
+   (`e.col || CM_C.orange`). Escribirlo de otra forma seria una segunda regla. */
+const CM_LEY = Object.freeze([
+  { c: CM_C.blue,   t: 'sangre poco oxigenada' },
+  { c: CM_C.red,    t: 'sangre oxigenada' },
+  { c: CM_C.orange, t: 'CIV, parches y suturas' },
+  { c: CM_C.grey,   t: 'obstrucción' },
+  { c: CM_C.gold,   t: 'válvula desplazada' }
+]);
+function cmColoresEscena(s) {
+  const v = {};
+  if (!s) return v;
+  (s.ex || []).forEach(function (e) {
+    let c = (e.col != null) ? e.col : ((e.c != null) ? e.c : null);
+    if (c == null && (e.t === 'ring' || e.t === 'disc')) c = CM_C.orange;
+    if (c != null) v[c] = 1;
+  });
+  (s.fl || []).forEach(function (f) { if (f.c != null) v[f.c] = 1 });
+  (s.ar || []).forEach(function (a) { const c = (a.col != null) ? a.col : a.c; if (c != null) v[c] = 1 });
+  Object.keys(s.ch || {}).forEach(function (k) { if (s.ch[k] != null) v[s.ch[k]] = 1 });
+  return v;
+}
+function cmLeyendaPresente(s) {
+  const v = cmColoresEscena(s);
+  return CM_LEY.filter(function (e) { return !!v[e.c] });
+}
+window.cmLeyendaPresente = cmLeyendaPresente;
+window.cmColoresEscena = cmColoresEscena;
+/* ══ EL TEXTO QUE ACOMPANIA A LA IMAGEN EN EL PAPEL (PANT-14c, commit 1c) ═══════════════════
+   PEDIDO DEL MEDICO: debajo de la imagen, un texto que DESCRIBE lo que se ve, con cuatro
+   partes, y armado SOLO con textos que la app ya tiene:
+     (1) el titulo del dibujo —`cmTitulo`, el MISMO del recuadro—;
+     (2) las lesiones dibujadas con su nombre completo —`cmPapelLesiones`—;
+     (3) la linea escrita de la circulacion de esa escena —`s.circ`, la misma que el ⓘ publica—;
+     (4) la leyenda de colores de lo que esta dibujado —`cmLeyendaPresente`, solo las presentes—.
+   ⚠️ NO ENTRA NADA MAS, y es la regla fija de la casa: ni los textos «Que mirar» del ⓘ, ni una
+   guia, ni una clase, ni una conducta, ni una frase de dato faltante. El pie «esquema
+   ilustrativo» lo agrega el recolector, igual que para la transposicion.
+   ⚠️ SE LEE EL ESTADO DEL ESTUDIO Y SE DEVUELVE TODO A SU SITIO, con el mismo guardar-y-reponer
+   que `_cmCapturaDelEstudio` y `cmLineaPDF`: lo que el medico explore no llega al papel. */
+function cmPapelTexto() {
+  if (!cmHayCargado()) return '';
+  const prev = { base:_cm3d.S.base, bv:Object.assign({}, _cm3d.S.bv),
+                 mods:Object.assign({}, _cm3d.S.mods), ck:Object.assign({}, _cm3d.S.ck), src:_cm3d.S.src };
+  let txt = '';
+  try {
+    cmDesdeEstudio();
+    const ln = [];
+    const ti = cmTitulo(_cm3d.S); if (ti) ln.push(ti);
+    const le = cmPapelLesiones(_cm3d.S); if (le) ln.push(le);
+    let esc = null;
+    try { esc = cmEscena(_cm3d.S) } catch (e) { esc = null }
+    if (esc && esc.circ) ln.push(String(esc.circ));
+    const ly = cmLeyendaPresente(esc);
+    if (ly.length) ln.push(ly.map(function (e) { return e.t }).join('  ·  '));
+    txt = ln.join('\n');
+  } catch (e) { txt = '' }
+  _cm3d.S.base = prev.base; _cm3d.S.bv = prev.bv; _cm3d.S.mods = prev.mods;
+  _cm3d.S.ck = prev.ck; _cm3d.S.src = prev.src;
+  return txt;
+}
+window.cmPapelTexto = cmPapelTexto;
 
 /* ══ EL GLOBO, CON SUS TRES VIAS DE CIERRE ═════════════════════════════════════════════════
    ⚠️ NO SE REUSA `vInfoClic`: ese abre la tarjeta compartida `#vinfo-card`, que es un cartel
@@ -161264,8 +161470,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-1629';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793906954069;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2100';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793923203338;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161351,7 +161557,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-1629</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2100</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
