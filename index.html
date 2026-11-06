@@ -27189,6 +27189,22 @@ function showTab(id) {
   if (typeof cc3dPieSync === 'function') { try { cc3dPieSync() } catch (e) {} }
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
   if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
+  /* ══ LAS SECCIONES DE CONGENITAS, SIEMPRE CERRADAS AL ENTRAR (PANT-14c, commit 6) ═════════
+     PEDIDO DEL MEDICO (06/11/2026): las secciones de congenitas se abren y, al volver a la
+     pestania, quedan abiertas; tienen que estar siempre cerradas por defecto.
+     ⚠️ EL ESTADO ABIERTO VIVE EN EL DOM -la clase `open`- Y EN NINGUN OTRO LADO: cero
+     apariciones en `localStorage` y ningun campo del estudio, censado. Lo que el medico veia
+     tiene DOS causas: la clase sobrevive al cambio de pestania, y `secAutoOpen` -la linea de
+     arriba- reabre las que tienen datos.
+     ⚠️ VA DESPUES DE `secAutoOpen` Y SOLO PARA ESTAS DOS PESTANIAS, y es una decision medida:
+     `secAutoOpen` NO se elimina -sigue corriendo en todas las pestanias y sus tres guardas
+     siguen afirmadas por la suite-, pero para congenitas deja de tener efecto. La
+     contradiccion entre las dos cosas se declara en docs/PENDIENTES.md -P14c-b- para que el
+     medico decida, que es lo que la orden pide.
+     ⚠️ Y NO TOCA EL ESTADO GUARDADO DE NINGUN ESTUDIO: esto cierra un acordeon, que es
+     pantalla. Lo que el medico abre mientras esta en la pestania se queda abierto hasta que
+     cambia de pestania. */
+  if (typeof ccSeccionesCerrar === 'function') { try { ccSeccionesCerrar(id) } catch (e) {} }
   /* La barra de las dos pestanas de congenitas se repinta ACA y no solo desde `ccSubTab`: el
      estado se deriva de cual `.tab-section` esta activa, y a esta pestana se llega tambien por
      el drawer movil, por el desplegable de avanzadas y por accesos internos. Sin esto la barra
@@ -113903,6 +113919,29 @@ function secAutoOpen(tabId) {
   });
 }
 window.secAutoOpen = secAutoOpen;
+/* ══ CERRAR TODAS LAS SECCIONES DE UNA PESTANIA DE CONGENITAS (PANT-14c, commit 6) ═════════
+   ⚠️ CIERRA CON LAS MISMAS PIEZAS QUE `secToggle`: la clase, el `aria-expanded` y el
+   `max-height` en cero con su `overflow`. Escrito con otra combinacion, un acordeon quedaria
+   con la clase quitada y el cuerpo desplegado -o al reves-, que es como se llega a una seccion
+   que no se puede volver a abrir.
+   ⚠️ LAS DOS PESTANIAS ESTAN EN UNA LISTA Y NO EN UNA CONDICION: el dia que haya una tercera
+   sub-pestania de congenitas, se agrega su id aca y no se reescribe `showTab`. */
+const CC_TABS_CERRAR = Object.freeze(['congenitas', 'congenitas2']);
+function ccSeccionesCerrar(id) {
+  if (CC_TABS_CERRAR.indexOf(String(id)) < 0) return 0;
+  const tab = document.getElementById('tab-' + id);
+  if (!tab) return 0;
+  let n = 0;
+  tab.querySelectorAll('.sacc.open').forEach(function (acc) {
+    acc.classList.remove('open');
+    const h = acc.querySelector('.sacc-hdr'); if (h) h.setAttribute('aria-expanded', 'false');
+    const b = acc.querySelector('.sacc-body');
+    if (b) { b.style.overflow = 'hidden'; b.style.maxHeight = '0' }
+    n++;
+  });
+  return n;
+}
+window.ccSeccionesCerrar = ccSeccionesCerrar;
 
 /* Hermana de `secAutoOpen` para los acordeones del patrón `toggleCard`, que son otra cosa: no
    llevan `.sacc` ni `.sacc-body`, así que aquella función nunca los vio. Sin esto, entrar a una
@@ -161967,8 +162006,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2221';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793928105155;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2222';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793928147574;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -162054,7 +162093,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2221</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2222</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
