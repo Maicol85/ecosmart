@@ -212,9 +212,16 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,06 MB / 166.284 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-17**, sobre el árbol ya sellado: sello **`v20261106-0223`**, md5
-  **`8b2343fd`**. El diff de PANT-17 son **1.358 líneas agregadas y 35 quitadas**, medido con
+  sin frameworks. Hoy **12,06 MB / 166.308 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
+  cierre de la tanda **PANT-17b**, sobre el árbol ya sellado: sello **`v20261106-0912`**, md5
+  **`37c39207`**. El diff de PANT-17b son **326 líneas agregadas y 316 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `1345340`, con **cero** `innerHTML`, `eval(` y
+  `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR DECIMOTERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 1345340:index.html` da **166.284** líneas,
+  **12.061.076** bytes y el md5 **`8b2343fd`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,06 MB / 166.284 al cierre de PANT-17, sello `v20261106-0223`, md5 `8b2343fd`.)
+  El diff de PANT-17 fueron **1.358 líneas agregadas y 35 quitadas**. El diff de PANT-17 son **1.358 líneas agregadas y 35 quitadas**, medido con
   `git diff --numstat` contra `040d89e`, de las que **1.300** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR DUODÉCIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
@@ -778,6 +785,127 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### La transparencia del 3D, la Evidencia que se arma con lo contestado y el control de las diez — «PANT-17b» (2026-11-06)
+
+- **SIETE commits —contados con `git log 1345340..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los SEIS puntos de la orden se tocaron.** `a2137a6` (1) ·
+  `c8b0119` (2) · `a2fc430` (3) · `363f88c` (4) · `1522f76` (5) · `3007eed` (6) · **éste** (7, el
+  renglón y la bitácora). Sello **`v20261106-0912`**, md5 **`37c39207`**.
+  Al empezar, `origin/main` = `HEAD` = **`1345340`**, el cierre de PANT-17, ya publicado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **EL DEFECTO QUE EL MÉDICO REPORTÓ SE REPRODUJO, Y LA CAUSA ES DE UNA LÍNEA: el material de
+  «sin color» del corazón 3D era `wireframe:true`.** Una rejilla gris que tapa lo de atrás.
+  Medido POR PÍXELES y no por geometría —un contorno no mueve un solo punto— comparando TRES
+  cuadros del MISMO dibujo —todo normal, la estructura sin color, y la MISMA estructura **oculta
+  por completo**—, los tres compuestos sobre el fondo real del recuadro: **con la malla el centro
+  deja ver del 2,9 % al 80,9 %** de lo de atrás y **con el sombreado nuevo del 95,1 % al 100 %**.
+  Las 20 de 20 mediciones de cada tema caen por debajo del 95 % con la malla y **79 de 80** lo
+  superan con el sombreado —la restante da 94,7 % en WebKit con tema claro, que es antialiasing—.
+  Lo que cambia en el interior pasa de **49,7-98,8 %** a **0-7,4 %** y el gris deja de cubrir la
+  pieza: de 1.032-8.150 píxeles a 208-1.022.
+  **LA TÉCNICA**: un sombreado propio con **alfa por píxel** del ángulo entre la normal de la
+  superficie y la dirección hacia la cámara, `depthWrite` en falso y **cara delantera solamente**.
+  **REGLA FIJA NUEVA en este archivo**, con su medición.
+
+- ⚠️ **EL CONTRASTE DEL HALO NO LLEGA A 3 A 1 EN EL TEMA CLARO, Y SE DECLARA.** La orden fija el
+  color en el valor del commit 7 **y** pide ≥3:1 en los dos temas: las dos cosas no se pueden
+  cumplir a la vez. Medido: **5,24 a 5,53** en el oscuro y **2,44 a 3,08** en el claro, con
+  **2,93** sobre una cavidad. El máximo teórico de ese gris contra blanco es 3,08. Se mantuvo el
+  color que la orden fija → **P17b-e**, con la alternativa medida (`0x6f788c` da 4,43 y 3,84).
+  ⚠️ Y la premisa «sigue siendo de al menos 3 a 1» **no se reproduce**: la malla tampoco llegaba.
+
+- **LA EVIDENCIA DE CONGÉNITAS SE ARMA CON LO CONTESTADO, EN DIECISIETE SECCIONES Y CON UN SOLO
+  EMISOR.** Arriba, el recuadro **«Con lo contestado»**, con el patrón del de la estenosis aórtica
+  —el marco salió a `_indCajaReco`, que ahora usan los DOS emisores—, que lista SOLO lo que las
+  respuestas disparan, ordenado por clase y con la clase III rotulada «no recomendado»; lo teórico
+  baja a un **«ⓘ Ver detalle de la guía»**; y el conteo de respuestas sale de la tabla y pasa al
+  encabezado, en UNA línea.
+  **NO SE ESCRIBIÓ UN SOLO TEXTO CLÍNICO**: la oración, su clase, su nivel, su hoja y su folio
+  salen del campo `rec` de la propia pregunta y la línea de la otra guía de `ref`.
+  ⚠️ **LA CAUSA DE LAS SIETE LÍNEAS DEL CONTADOR ERA LA CELDA, NO EL TEXTO**: la fila vivía en la
+  tabla de datos clínicos, cuya columna de valor mide unos 60 px con el panel en 820.
+  **Medido**: 18 pares de sección a los cuatro anchos con **CERO** oraciones de los bloques fijos
+  perdidas; el contenido visible del ductus con 10 Sí y 3 No baja de **2.582 a 2.145 px** a 1440 y
+  de **4.838 a 3.827** a 390.
+  ⚠️ **Y EL PANEL SE REPINTA AL CONTESTAR**: una lista de botoneras tomada una sola vez se
+  desprende, y del segundo clic en adelante se clickean nodos huérfanos —el conteo salía «2 Sí»
+  con diez clics—. Hay que reconsultar en cada clic.
+
+- **EL CONTROL DE LAS DIEZ SECCIONES: OCHO HOJAS LEÍDAS EN IMAGEN A 200 ppp**, con el folio
+  comprobado en el pie impreso de cada una. Entraron **ocho recomendaciones** y **dos preguntas**
+  —el defecto del septo auriculoventricular (13 → 14) y la conexión venosa pulmonar anómala
+  parcial (9 → 10, y es de **CLASE III**)—.
+  ⚠️ **TRES PREMISAS NO SE REPRODUJERON, Y LAS CORRIGE LA MEDICIÓN.** La Clase I de la ESC de la
+  estenosis **subaórtica** y de la **supravalvular** YA ESTABAN, como línea de referencia (`ref`)
+  de la pregunta de síntomas: mi censo miraba sólo `rec`. Y la **transposición** ya tiene las seis
+  del índice, incluida la de clase III —que la app escribe «cerclaje» y no «banding»—, porque
+  guarda lo suyo en `TGA_IND_RECS`, `TGA_IND_RECS_ACC` y `TGA_IND_PREG` y no en el cuerpo de
+  `_indTGA`. **Antes de declarar que algo falta hay que mirar los TRES lugares**: el `rec` de una
+  pregunta, su `ref` y los bloques fijos de la sección.
+  ⚠️ **CINCO SECCIONES ESTÁN EN EL TOPE DE 14 PREGUNTAS** —CIA, CIV, Eisenmenger, Fontan y
+  Fallot reparada—, y no hay ninguna constante que lo fije: es la convención de las órdenes. Lo
+  que les falta entra al **bloque** y no gana pregunta → **P17b-c**.
+
+- ⚠️ **EL DEFECTO QUE ME HICE Y QUE LA CORRIDA COMPLETA DESTAPÓ:** al retirar `_indObsAplican`
+  —que el commit 3 dejó sin llamadores— borré desde su `function` HASTA LA FUNCIÓN SIGUIENTE, y
+  entre las dos vivía `const OBS_NOTAS`. `_indESUB` y `_indEASV` lanzaban «OBS_NOTAS is not
+  defined» y **las dos secciones desaparecían del panel SIN un error visible**, porque el bucle de
+  `IND_SECS` atrapa la excepción. Lo encontró **TC-322**. Es el mismo modo de falla que PANT-3
+  pagó: **se corta por BALANCE, no por el vecino.**
+
+- **TRES CASOS NUEVOS, TC-720 a TC-722**, que **caen contra el árbol anterior por 25 condiciones y
+  NINGUNA por excepción**. TC-720 trae su **control positivo adentro**: repone el material de malla
+  y vuelve a medir. **24/24 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con
+  el md5 idéntico antes y después.
+  ⚠️ **DOS SOBREVIVIERON AL PRIMER BARRIDO Y LAS DOS ERAN HUECOS REALES**: nada miraba la **cara**
+  del material —con las dos caras el halo se duplica— y la condición del conteo miraba el
+  **ancho**, cuando sacándole el `nowrap` el texto **envuelve** y lo que crece es el **alto**, que
+  es justo el defecto que el médico reportó.
+
+- **TRECE CASOS VIEJOS ADAPTADOS**, cada uno con el motivo escrito: TC-669 a TC-673 (la fila
+  «Respuestas» salió de la tabla; **(B2) queda INVERTIDA**), TC-565, TC-566, TC-567 (el lector de
+  balance se arma de `adapt` y `faltan`, que son los DATOS del recuadro), TC-616, TC-618, y
+  —destapados por la corrida— TC-322, TC-537 **(B5, el día que ese caso anunciaba)**, TC-635 y
+  TC-714. **TC-293, TC-451 y TC-528 pasan sin tocar**: el invariante de UN control de detalle por
+  sección se respeta porque el plegable nuevo se marca `data-ind-bloque`.
+
+- **Línea base al cierre: suite 730/737**, en **catorce lotes** cubriendo los **737 casos
+  distintos** —con una guarda que compara lo listado con lo ejecutado: **737 de 737**—, en UNA sola
+  pasada sobre el árbol sellado, con el pendrive `DISK_IMG` **verificado al abrir, en los CATORCE
+  lotes y al cerrar** (dieciséis verificaciones) y el md5 **idéntico** antes y después
+  (`37c39207`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-551 y TC-557**, los dos intermitentes declarados, más **TC-178**.
+  ⚠️ **LOS TRES INTERMITENTES SE CARACTERIZARON**: TC-551 pasa **2 de 2** aislado; TC-557 cae
+  **IDÉNTICO contra el árbol anterior**, con la firma `00000 44x44` que `TGA-h` documenta; y
+  **TC-178 —el único que no estaba declarado— pasa 4 de 4 aislado en LOS DOS árboles**, así que es
+  intermitente dentro de su lote y no una regresión. **Ningún rojo nuevo.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 728/737 CON CUATRO ROJOS MÁS**, por eso esa cifra no es
+  la línea base: TC-322 y TC-635 por el defecto de `OBS_NOTAS`, TC-714 por el conteo de la fila
+  retirada, y TC-537 (B5). Los cuatro cerrados.
+
+- **A/B con el PDF y el PPT generados de verdad: 77 escenas, 15.504 claves y CERO diferencias de
+  superficie firmada y de datos.** Las 21 que cambian son `_evTexto` y `_evN`, el texto del propio
+  panel, que es el control positivo. **Excel 441** con las mismas claves y **censo de campos
+  idéntico**: cero campos guardados nuevos, cero columnas, ningún id cambiado.
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia**: seis secciones con el conteo en UNA línea y sin
+  desborde, seis con el recuadro y con el «Ver detalle de la guía», **UN** control de detalle por
+  sección, las cinco recomendaciones y los cinco folios presentes, **cero** párrafo de balance,
+  **cero** lista larga, **cero** fila «Respuestas», **cero** desplazamiento horizontal, **cero**
+  textos recortados y **CERO errores de consola y de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base. **Sin huérfanos nuevos.** Los 17 bloques de JS
+  inline parsean. **Celular: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la
+  línea base exacta. **No empeoró.**
+
+- **Dónde está todo:** `docs/mapa/pant17b-transparencia-evidencia.md` (**mapa NUEVO**, 5,7 KB),
+  `docs/INVENTARIO_EVIDENCIA_P17B.md` y `docs/CONTROL_EVIDENCIA_P17B.md` (los dos del commit 2, de
+  solo lectura), `docs/fuentes/FUENTES.md` → «La tanda PANT-17b» con las ocho hojas y sus dos
+  reglas de folio comprobadas en el pie impreso, `docs/REGISTRO_TANDAS.md` → el bloque de la
+  tanda, `docs/GUIA_PRUEBA_PANT17B.md` → la guía manual en **26** pasos, y `docs/PENDIENTES.md`
+  → **SEIS** cosas declaradas (**P17b-a** a **P17b-f**).
+
 ### La Evidencia de congénitas, la ventana aortopulmonar y el color al tocar — «PANT-17» (2026-11-06)
 
 - **TRECE commits —contados con `git log 040d89e..HEAD` AL CERRAR, y el commit que escribe este
