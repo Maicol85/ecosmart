@@ -14833,3 +14833,91 @@ barrido**: un arnés de mutaciones que escribe el archivo **sin `flush`** report
 falsas, porque el servidor del suite lee el archivo sin los cambios. `scripts/_mut_pant14c.py` ya
 tiene el helper `escribir()` con `flush` + `fsync`; **los arneses de las tandas anteriores NO lo
 tienen**, así que un barrido viejo relanzado tal cual puede estar midiendo de menos.
+
+# TANDA PANT-18 (2026-11-06) — la prótesis aórtica, parte 1 de 5
+
+## P18-a · El asterisco de la Tabla 5 NO alcanza a la fila del AT/ET
+
+El índice de lectura de la orden dice que el AT y el AT/ET «pueden cambiar con la función del VI y
+la frecuencia cardíaca». **Verificado en la imagen a 300 ppp Y en la capa de texto de la hoja 18
+(folio 19 comprobado en el pie impreso): el `*` está sobre «Jet velocity contour» y sobre
+«Acceleration time, msec», y la fila «Acceleration time/LV ejection time ratio» no lo lleva.**
+
+El comentario del propio `index.html` ya lo decía bien desde la Fase 2, con su motivo:
+«normalizar por el tiempo de eyección absorbe parte del efecto de la frecuencia».
+
+**Qué se hizo:** la nota del AT y el bloque de Referencias le atribuyen la frase **sólo al AT** (y
+al contorno del chorro, que es la otra fila marcada). **No es un pendiente abierto**, es la
+diferencia entre el índice y la hoja, declarada para que nadie la «corrija» al revés.
+
+**El texto que esta tanda retiró, LITERAL**, está copiado entero en `docs/fuentes/FUENTES.md` →
+«La tanda PANT-18» → «El texto que esta tanda RETIRÓ, literal». No se reproduce dentro de un
+comentario de `index.html` para que el censo de la próxima tanda no se mida a sí mismo.
+
+## P18-b · El informe puede publicar un AT/TE mayor o igual que 1 que la fila se niega a clasificar
+
+`eaProtVeredicto` calcula `at / tango_te` en cuanto el ET es positivo, **sin pedir que el AT sea
+menor que el ET**, y ese número viaja al paréntesis de medidas del informe firmado como
+«AT/TE 1.01». La **fila** del cuadro sí tiene esa guarda y muestra la raya.
+
+**Por qué quedó así:** cambiar `eaProtVeredicto` movería el papel, y esta tanda tenía autorizados
+dos lugares y éste no era uno.
+
+**Qué habría que hacer, cuando se decida:** mover la guarda de `_eaAtEtVal` a `eaProtVeredicto`,
+que es una línea. **Mueve el papel** —el paréntesis de medidas del informe, del EN SUMA, del PDF y
+del PPT de todo estudio con un AT mayor o igual que el ET—, así que lo decide Maicol.
+
+## P18-c · El disparador de la nota del AT no se tocó, y ahora la nota habla también del AT/ET
+
+La nota aparece cuando el **AT** sale de su banda normal. Desde el commit 3 también habla del
+AT/ET, así que un cociente alterado con el AT normal deja la nota escondida.
+
+**Por qué quedó así:** cambiar el disparador es una decisión que la orden no toma, y la regla de
+esta casa dice que lo que no está en la orden se para y se declara.
+
+**Las dos salidas, para que las decida Maicol:** (a) dejarlo así —el AT es el que se lee primero y
+el cociente deriva de él—; (b) mostrar la nota también cuando el AT/ET salga de su banda normal,
+que es una condición más en el mismo `if`.
+
+## P18-d · Una TAVI normal no recibe el renglón de «prótesis normofuncionante» y una quirúrgica sí
+
+La guarda `P.via === 'TAVI'` de `_protNormofuncionante` **se conserva**: lo que esta tanda autoriza
+a mover del papel es la **frase de severidad**, y ese renglón es otra línea.
+
+⚠️ **Y esa guarda dejó de ser redundante.** Su comentario decía que «con TAVI el veredicto no trae
+`nivel`, así que la guarda de abajo ya la caza»; desde el commit 6 **sí** lo trae, así que hoy esa
+línea es la única que lo impide. El comentario quedó corregido en el código.
+
+**Qué habría que hacer:** retirar la guarda, que es una línea. **Mueve el papel** de toda TAVI con
+el veredicto en «sin criterios».
+
+## P18-e · A 768 y a 390 px el bloque `bloque-ea-detalle` está colapsado
+
+El AT, el ET y el cuadro de resultados **no se ven** a esos dos anchos. Medido **idéntico en HEAD y
+en el árbol nuevo** a 1440, 768 y 390 px: es **preexistente** y no lo trae esta tanda. El campo ET
+se comporta exactamente como el AT, que es el contrato que la orden pide.
+
+**Qué habría que hacer:** es una decisión de maqueta de la sección entera, no del campo nuevo.
+
+## P18-f · El campo ET mide 27 px de alto y no 44
+
+La orden pide «44 px» y también «mismo estilo que el AT». Los dos no se pueden cumplir a la vez:
+**el AT mide 27 px**, que es el alto de todos los campos numéricos de esta aplicación, y subir sólo
+el ET lo dejaría siendo el único distinto de la pantalla.
+
+**Medido:** el barrido de celular no empeora —59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada
+ancho, la línea base exacta—, porque el bloque protésico está escondido salvo con una prótesis
+cargada y ese barrido no lo abre.
+
+**Qué habría que hacer:** si el piso de 44 px se quiere de verdad, es una decisión para **todos**
+los campos numéricos de la app, no para éste.
+
+## P18-g · Lo que la tanda PANT-18 deja para las que siguen
+
+- **Prótesis 2 de 5:** el catálogo aórtico por modelo y tamaño, con el botón «Modelo y tamaño», el
+  EOA indexado predicho y lo medido al lado. Es lo que haría evaluable el eje de la EOA, que hoy la
+  tarjeta declara como no evaluable con su motivo.
+- **Prótesis 3 de 5:** la mitral. **4 de 5:** la tricúspide y la pulmonar. **5 de 5:** la Evidencia
+  de prótesis, cuya sección de prótesis aórtica sigue diciendo «no aplica» —esta tanda no la tocó—.
+- Las **frases elegibles** del informe, incluido el AT/ET, que hoy no se puede elegir.
+- Después, **PANT-15** junto con Contractilidad.

@@ -1,3 +1,29 @@
+## PANT-18 — la protesis aortica, parte 1 de 5: el tiempo de eyeccion, el AT/ET, la TAVI graduada y el desajuste (2026-11-06)
+
+**Nueve commits.** El inventario de solo lectura; el tiempo de eyeccion y el AT/ET; la nota del AT
+reescrita contra la hoja impresa; el bloque de Referencias; la tarjeta de severidad resumida; la
+TAVI graduada con cortes absolutos; el desajuste que no se escribe con una estenosis significativa;
+el estado visual del boton «Severidad»; y la cobertura con la documentacion.
+
+- **Lo medido**: la Tabla 5 y la Figura 13 leidas EN IMAGEN a 300 ppp en la hoja 18, con el folio
+  **19 comprobado en el pie impreso**. Las seis premisas del medico se reprodujeron con el gesto
+  real. El texto visible de la tarjeta de severidad baja de **772 a 345** caracteres con una
+  protesis mecanica y de **841 a 193** con una TAVI; la seccion de la valvula aortica, de **723 a
+  697 px** a 1440 y de **884 a 858** a 1000.
+- **Dos premisas que NO se reprodujeron, las dos a favor de hacer menos**: el AT **ya** tenia sus
+  tres tramos desde la Fase 2, y **ya existia** un campo de tiempo de eyeccion reutilizable
+  (`tango_te`, en Doppler), asi que no se agrego ningun campo guardado ni ninguna columna de Excel.
+- **El papel cambia en los DOS lugares autorizados y en ninguno mas**: la TAVI emite la misma
+  frase de severidad que las demas protesis aorticas, y con «sugiere estenosis protesica
+  significativa» el informe y el EN SUMA dejan de escribir la frase del desajuste. A/B contra HEAD
+  con el PDF y el PPT generados de verdad: las escenas de control —«posible», «sin criterios»,
+  «falta un dato», la valvula nativa y el estudio ajeno— dan **cero**.
+- **Cobertura**: seis casos nuevos (TC-723 a TC-728) que caen contra HEAD por **57 condiciones y
+  ninguna por excepcion**, **34/34 mutaciones dirigidas muertas** y cuatro casos viejos adaptados
+  —TC-288, TC-290, TC-291 y TC-303—, los cuatro el dia que ellos mismos anunciaban.
+- **Donde esta**: `docs/mapa/pant18-protesis-aortica.md`, `docs/INVENTARIO_PROTESIS_AORTICA_P18.md`,
+  `docs/mapa/tests-fichas-723.md`, `docs/fuentes/FUENTES.md` y `docs/PENDIENTES.md` (P18-a a P18-g).
+
 ## PANT-17b — la transparencia del 3D, la Evidencia que se arma con lo contestado y el control de las diez secciones (2026-11-06)
 
 **Seis commits.** La transparencia del corazon maestro (el material de malla de alambre pasa a un

@@ -66,10 +66,30 @@ const CUERPO=`(async()=>{
  R.recortados=0;
  if(cont){ cont.querySelectorAll('label,span,input').forEach(e=>{
    if(e.scrollWidth>e.clientWidth+2 && e.clientWidth>0) R.recortados++ }) }
+ /* ── lo que la tanda cambio, en las mismas condiciones ── */
+ const tx=id=>{const e=document.getElementById(id);return e?String(e.textContent||'').replace(/\s+/g,' ').trim():'NO EXISTE'};
+ R.tarjeta = tx('ea-det-sev');
+ const sp=(document.getElementById('ea-det-sev')||{}).querySelector
+   ? document.getElementById('ea-det-sev').querySelector('span') : null;
+ R.tarjetaColor = sp?getComputedStyle(sp).color:'-';
+ const n=document.getElementById('ea-det-sev-nota');
+ const det=n?n.querySelector('details'):null;
+ R.plegable = det ? ('si, open='+det.open) : 'NO HAY';
+ R.notaAT_ok = tx('ea-det-at-nota').indexOf('hoja 18, folio 19')>=0 &&
+               tx('ea-det-at-nota').indexOf('único punto de corte')===-1;
+ const btn=document.getElementById('sevbtn-esten-aortica');
+ R.boton = btn ? (String(btn.textContent||'').trim()+' | '+btn.className+' | '+getComputedStyle(btn).backgroundColor) : '-';
+ const fic=document.getElementById('ref-pao');
+ R.refBloque = fic ? (String(fic.textContent||'').indexOf('AT y AT/ET (ASE 2024, Tabla 5, hoja 18 · folio 19)')>=0) : 'NO HAY';
+ R.globos = document.querySelectorAll('[data-vinfo]').length;
  return R;})()`;
 
 const anchos=[1440,1000,768,390];
-const b=await chromium.launch({channel:MOTOR==='chrome'?'chrome':undefined,headless:true});
+/* ⚠️ WebKit de Playwright NO es Safari, y se declara. Chrome va por el del sistema con
+   channel chrome: el binario de chromium de Playwright no esta instalado en esta maquina. */
+const _motor = (MOTOR === 'webkit') ? _pw.webkit : chromium;
+const b = await _motor.launch(MOTOR === 'webkit' ? { headless:true }
+                                                 : { channel:'chrome', headless:true });
 console.log('ARCHIVO '+FILE+'   MOTOR '+MOTOR);
 for (const tema of ['dark','light']) {
   for (const w of anchos) {

@@ -39365,11 +39365,27 @@ caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se 
       poner({ va_at:'70' });
       const nota70 = (function(){ const e = document.getElementById('ea-det-at-nota');
         return e ? { txt:String(e.textContent || ''), vis:getComputedStyle(e).display !== 'none' } : null; })();
-      ex.push(['con el AT fuera de la banda normal la pantalla declara las tres salvedades de la guia —que solo no establece estenosis, que lo afectan la funcion del VI y la frecuencia, y que la Figura 13 usa otro punto de corte— y con 70 ms no aparecen',
+      /* ⚠️ ADAPTADA EN PANT-18-3, Y ES EL DIA QUE ESTA CONDICION ANUNCIABA. Su tercera clausula
+         pedia que la nota dijera «que la Figura 13 usa otro punto de corte», que era la frase que
+         enfrentaba dos partes del MISMO documento y concluia de ahi que la banda intermedia de la
+         Tabla 5 podia descartarse. La regla fija del proyecto dice que cada fuente se cita por lo
+         que ella misma dice, sin compararla ni juzgarla, y ademas la frase invitaba a descontar
+         justo la banda que la fila de arriba pinta de amarillo.
+         LAS DOS PRIMERAS CLAUSULAS NO SE MUEVEN —que el AT solo no establece estenosis y que lo
+         afectan la funcion del VI y la frecuencia—, porque las dos siguen siendo lo que la hoja
+         dice. La tercera queda INVERTIDA y la condicion gana dos clausulas, asi que queda MAS
+         FUERTE: exige que la afirmacion vieja NO este, que la nota diga que la Figura 13 usa los
+         DOS para describir el contorno del chorro, y que traiga su hoja y su folio. */
+      ex.push(['con el AT fuera de la banda normal la pantalla declara que solo no establece estenosis, que lo afectan la funcion del VI y la frecuencia, y que la Figura 13 usa el AT Y el AT/ET para el contorno del chorro —sin enfrentarla con la Tabla 5— y con 70 ms no aparece',
         !!nota110 && nota110.vis === true &&
-        pl(nota110.txt).indexOf('solo no establece estenosis') > -1 &&
+        pl(nota110.txt).indexOf('no establecen estenosis protesica') > -1 &&
         pl(nota110.txt).indexOf('frecuencia cardiaca') > -1 &&
         pl(nota110.txt).indexOf('figura 13') > -1 &&
+        pl(nota110.txt).indexOf('usa los dos') > -1 &&
+        pl(nota110.txt).indexOf('contorno del chorro') > -1 &&
+        pl(nota110.txt).indexOf('hoja 18, folio 19') > -1 &&
+        pl(nota110.txt).indexOf('unico punto de corte') === -1 &&
+        pl(nota110.txt).indexOf('no es sospechosa') === -1 &&
         !!nota70 && nota70.vis === false,
         'con 110: ' + (nota110 ? nota110.vis + ' «' + nota110.txt.slice(0, 150) + '»' : 'NO HAY') +
         ' · con 70 visible=' + (nota70 ? nota70.vis : 'NO HAY')]);
@@ -39812,13 +39828,23 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
        resumen REUTILIZA la linea del cuerpo, dice «sin graduacion de ESTENOSIS protesica», que es
        una negacion. Lo que hay que exigir es que no AFIRME: ni «posible», ni «criterios que
        sugieren», ni un grado. Buscar la palabra suelta confundia afirmacion con mencion. */
-    ex.push(['con TAVI el cuerpo describe y el EN SUMA no resume una estenosis que no se gradua',
-      pl(rTavi.inf).indexOf('sin graduacion de estenosis protesica') > -1 &&
+    /* ⚠️ INVERTIDA EN PANT-18-6, Y ES EL DIA QUE ESTA CONDICION ANUNCIABA. Nacio con la decision
+       de Maicol del 2026-09-27 —el criterio especifico de TAVI de la Tabla 5 es el CAMBIO respecto
+       de un basal, asi que no se graduaba— y la decision del medico del 07/11/2026 la revierte:
+       «en la vida practica no hay basal: tenes el modelo, el paciente y sus medidas». La lectura
+       en imagen de la hoja 18 (folio 19) confirma la condicion que lo habilita: la Tabla 5 no
+       publica ningun corte absoluto propio de TAVI, y el bloque que vale para todas las protesis
+       aorticas SI es absoluto.
+       LO QUE LA CONDICION CONSERVA es lo que no cambio: que el cuerpo no publique metodologia
+       —«basal post-implante» sigue fuera del papel—. Lo demas queda invertido y MAS FUERTE: hoy
+       exige que el cuerpo SI gradue, que el EN SUMA lleve su linea corta con «protesis aortica:»
+       y que esa linea sea la de una estenosis significativa, que es lo que estos datos dan. */
+    ex.push(['con TAVI el cuerpo YA gradua y el EN SUMA lo resume en su linea corta, sin metodologia',
+      pl(rTavi.inf).indexOf('sin graduacion de estenosis protesica') === -1 &&
+      pl(rTavi.inf).indexOf('criterios que sugieren estenosis protesica significativa') > -1 &&
       pl(rTavi.inf).indexOf('basal post-implante') === -1 &&
-      pl(rTavi.suma).indexOf('protesis aortica:') === -1 &&
-      pl(rTavi.suma).indexOf('posible estenosis') === -1 &&
-      pl(rTavi.suma).indexOf('criterios que sugieren') === -1 &&
-      pl(rTavi.suma).indexOf('con estenosis') === -1,
+      pl(rTavi.suma).indexOf('protesis aortica:') > -1 &&
+      pl(rTavi.suma).indexOf('criterios que sugieren estenosis protesica significativa') > -1,
       'inf=«' + rTavi.inf.replace(/\\n/g, ' | ').slice(0, 220) + '» suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
     /* ── ⚠️ CERRADO EL 2026-09-28, Y ESTA CONDICION SE DIO VUELTA SOLA ──
        Se escribio midiendo el DEFECTO —«el EN SUMA todavia afirma normofuncion donde el cuerpo se
@@ -39831,9 +39857,15 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
        gate exigia evidencia positiva y que el resumen no hablara ya de la valvula, y con TAVI el
        resumen no decia nada porque no se gradua, asi que pasaba y afirmaba normofuncion sobre
        evidencia de DISFUNCION, en la superficie que se copia al resumen de alta. */
-    ex.push(['con TAVI el EN SUMA NO afirma normofuncion, y lleva la linea que el cuerpo imprimio',
+    /* ⚠️ Y ESTA SE DIO VUELTA POR SEGUNDA VEZ (PANT-18-6). La primera fue el 2026-09-28, cuando
+       el EN SUMA dejo de afirmar normofuncion y paso a reusar la linea del cuerpo. Hoy la TAVI
+       tiene su propio resumen corto, asi que el reuso ya no corre — el mismo tratamiento que la
+       pulmonar recibio en la tanda D y que TC-303 ya aplico.
+       LO QUE VIGILA NO CAMBIA: el resumen no puede afirmar normofuncion ni quedarse mudo. */
+    ex.push(['con TAVI el EN SUMA NO afirma normofuncion, y publica su propia linea corta',
       pl(rTavi.suma).indexOf('normofuncionante') === -1 &&
-      pl(rTavi.suma).indexOf('sin graduacion de estenosis protesica') > -1,
+      pl(rTavi.suma).indexOf('sin graduacion de estenosis protesica') === -1 &&
+      pl(rTavi.suma).indexOf('protesis aortica:') > -1,
       'suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
   } finally {
     __t.limpiar();
@@ -40609,7 +40641,16 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
         Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('normofuncionante') === -1; }) &&
         pl(lineas['mitral']).indexOf('protesis mecanica') > -1 &&
         pl(lineas['aórtica']).indexOf('tavi') > -1 &&
-        pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') > -1 &&
+        /* ⚠️ ADAPTADA EN PANT-18-6, Y LA INTENCION NO SE MUEVE. La clausula pedia «sin graduacion
+           de estenosis protesica», que era la frase de la rama propia de la TAVI. Desde que la
+           TAVI se gradua con los cortes absolutos de la protesis quirurgica esa rama no existe, y
+           esta escena —Vmax 1,8 y NADA MAS, sin DVI— cae en «faltan», que publica «sin datos
+           suficientes para graduar la estenosis protesica».
+           Sigue siendo lo que la condicion exige: nombra la protesis, no afirma normofuncion y no
+           cae en la negacion global. Y queda MAS FUERTE, porque ademas exige que la frase vieja
+           YA NO ESTE: asi puede fallar por los dos lados. */
+        pl(lineas['aórtica']).indexOf('sin datos suficientes para graduar la estenosis protesica') > -1 &&
+        pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') === -1 &&
         /* ⚠️ v3 (2026-10-05, D): «protesica», NO «protesis», en estas DOS. Desde D la tricuspide y
            la pulmonar no reusan la oracion del cuerpo —que decia «con prótesis biológica»— sino su
            linea propia, «VT protésica biológica.» / «VP protésica mecánica.». El sustantivo paso a
@@ -59733,8 +59774,14 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
      que este aserto cambiara de resultado cada vez que una fila gana o pierde un globo. El que
      entro en esta tanda es el de «AVA continuidad» en el bloque de la estenosis y el de «EROA por
      PISA» en el de la insuficiencia. */
+  /* ⚠️ ADAPTADO EN PANT-18-2: entra el espejo del ET, que es el campo HERMANO del AT en la misma fila
+     protesica, por EXACTAMENTE el motivo escrito abajo para va_at — si no se filtra, este
+     aserto cambia de resultado segun la morfologia y segun el ancho de la ventana, que no es lo
+     que mide. El filtro es por nombre, asi que no se enteraba solo. Que la fila del ET exista y
+     este al lado del AT lo fija TC-723. */
   const soloCampos = function (lista) { return lista.filter(function (x) {
-    return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at' && x !== '(button)'; }); };
+    return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at' && x !== 'va-esp-et' &&
+           x !== '(button)'; }); };
   const tabInsuf = soloCampos(tabInsufCrudo);
   const tabEsten = soloCampos(tabEstenCrudo);
   /* ADAPTADO 2026-10-14 (D2): el reparto de columnas de la insuficiencia aortica paso de 3+3+3 a
@@ -120389,6 +120436,494 @@ caso('TC-722', 'Tanda PANT-17b (commits 4 y 5): las recomendaciones nuevas de la
   ex.push(['(G1 CONTROL NEGATIVO) ninguna oracion nueva trae una forma que la regla del 04/11 prohibe', malas, 0]);
   return { extra: ex.map(t => [t[0], String(t[1]) === String(t[2]),
     'esperado ' + JSON.stringify(t[2]) + ', hallado ' + JSON.stringify(t[1])]) };
+  })();
+`);
+
+/* ══ TANDA PANT-18 — LA PROTESIS AORTICA ═══════════════════════════════════════════════════════
+   Los seis casos van ANTES del bloque que consume CASOS: ese bucle no esta al final del archivo y
+   un caso agregado despues NO se ejecuta —la suite imprime «0/0 sin regresiones» sobre un caso que
+   nunca corrio—.
+   El contrato que usan es el del runner: [descripcion, BOOLEANO, diagnostico]. No se convierte
+   nada: una conversion por caso es como MARFAN-2 dejo pasar condiciones vacuas. */
+caso('TC-723', 'PANT-18 commit 2: el tiempo de eyeccion es el campo que YA EXISTIA y el AT/ET gana su fila con los tres tramos de la Tabla 5, sin campo guardado nuevo ni columna de Excel', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+    const T = (id) => { const e = document.getElementById(id);
+      return e ? String(e.value || e.textContent || '') : 'NO EXISTE' };
+    const base = async (at, et) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '723'); S('peso', '70'); S('talla', '170');
+      S('va_morf', 'Prótesis mecánica');
+      if (at !== null) S('va_at', at);
+      if (et !== null) S('tango_te', et);
+      try { valvProtSync() } catch (e) {}
+      await esperar(120); };
+    /* (A) EL CAMPO NO ES NUEVO: el dueno es tango_te, que ya existia y ya se guardaba. */
+    const due = document.getElementById('tango_te'), esp = document.getElementById('va-esp-et');
+    ex.push(['(A0 DENOM) existen el dueno del tiempo de eyeccion y su espejo al lado del AT',
+      !!due && !!esp, 'dueno=' + !!due + ' espejo=' + !!esp]);
+    ex.push(['(A1) el espejo NO es un campo del estudio: su prefijo esta en las DOS listas paralelas',
+      (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio('va-esp-et') === true) &&
+      (typeof _CAMPOS_FUERA_DEL_ESTUDIO !== 'undefined' && _CAMPOS_FUERA_DEL_ESTUDIO.test('va-esp-et') === true),
+      'noEsDelEstudio=' + (typeof _noEsDelEstudio === 'function' ? _noEsDelEstudio('va-esp-et') : '?') +
+      ' fueraDelEstudio=' + (typeof _CAMPOS_FUERA_DEL_ESTUDIO !== 'undefined' ? _CAMPOS_FUERA_DEL_ESTUDIO.test('va-esp-et') : '?')]);
+    ex.push(['(A2) CONTROL NEGATIVO: el DUENO si es campo del estudio',
+      typeof _noEsDelEstudio === 'function' && _noEsDelEstudio('tango_te') === false,
+      'tango_te excluido=' + (typeof _noEsDelEstudio === 'function' ? _noEsDelEstudio('tango_te') : '?')]);
+    /* (B) EL ESPEJO, en los DOS sentidos y con el vacio */
+    await base('101', null);
+    S('va-esp-et', '250'); await esperar(120);
+    const b1 = T('va-esp-et') === '250' && T('tango_te') === '250';
+    S('tango_te', '280'); await esperar(120);
+    const b2 = T('va-esp-et') === '280' && T('tango_te') === '280';
+    S('va-esp-et', ''); await esperar(120);
+    const b3 = T('va-esp-et') === '' && T('tango_te') === '';
+    ex.push(['(B1) escribir en Valvulas llega al dueno del Doppler', b1, 'espejo=' + T('va-esp-et')]);
+    ex.push(['(B2) escribir en el Doppler llega al espejo de Valvulas', b2, 'espejo=' + T('va-esp-et')]);
+    ex.push(['(B3) borrar en uno borra en el otro: el vacio se copia igual que un numero', b3,
+      'espejo=«' + T('va-esp-et') + '» dueno=«' + T('tango_te') + '»']);
+    /* (C) LOS TRES TRAMOS Y SUS DOS BORDES, con el ET en 300 ms */
+    const fila = async (at) => { await base(at, '300'); return T('ea-det-atet') };
+    const c30 = await fila('90'), c32 = await fila('96'), c35 = await fila('105');
+    const c37 = await fila('111'), c38 = await fila('114');
+    ex.push(['(C0 DENOM) la fila del AT/ET existe y publica un valor', c30.indexOf('0.30') >= 0,
+      'fila=«' + c30 + '»']);
+    ex.push(['(C1) 0,30 es normal', c30.indexOf('normal') >= 0, c30]);
+    ex.push(['(C2) BORDE 0,32 cae en posible estenosis, no en normal',
+      c32.indexOf('posible estenosis') >= 0 && c32.indexOf('normal') === -1, c32]);
+    ex.push(['(C3) 0,35 es posible estenosis', c35.indexOf('posible estenosis') >= 0, c35]);
+    ex.push(['(C4) BORDE 0,37 cae en posible estenosis: el operador de significativa es ESTRICTO',
+      c37.indexOf('posible estenosis') >= 0 && c37.indexOf('sugiere') === -1, c37]);
+    ex.push(['(C5) 0,38 sugiere estenosis significativa', c38.indexOf('sugiere estenosis significativa') >= 0, c38]);
+    /* (D) LO QUE NO SE CALCULA, y la fila muestra la raya SIN frase de dato faltante */
+    const raya = String.fromCharCode(8212);
+    await base('101', null); const d1 = T('ea-det-atet');
+    await base(null, '300'); const d2 = T('ea-det-atet');
+    await base('300', '300'); const d3 = T('ea-det-atet');
+    await base('320', '300'); const d4 = T('ea-det-atet');
+    ex.push(['(D1) sin ET no se calcula', d1.indexOf(raya) >= 0 && d1.indexOf('estenosis') === -1, d1]);
+    ex.push(['(D2) sin AT no se calcula', d2.indexOf(raya) >= 0 && d2.indexOf('estenosis') === -1, d2]);
+    ex.push(['(D3) con AT igual al ET no se calcula', d3.indexOf(raya) >= 0 && d3.indexOf('estenosis') === -1, d3]);
+    ex.push(['(D4) con AT mayor que el ET no se calcula', d4.indexOf(raya) >= 0 && d4.indexOf('estenosis') === -1, d4]);
+    /* (E) CONTROL NEGATIVO: con valvula NATIVA la fila se esconde y se vacia */
+    await base('101', '300'); S('va_morf', 'Trivalva normal');
+    try { valvProtSync() } catch (e) {}
+    await esperar(200);
+    const f = document.getElementById('ea-det-atet-row');
+    ex.push(['(E1) con valvula nativa la fila del AT/ET se esconde y se vacia',
+      !!f && getComputedStyle(f).display === 'none' && T('ea-det-atet').indexOf('estenosis') === -1,
+      'display=' + (f ? getComputedStyle(f).display : 'NO EXISTE') + ' texto=«' + T('ea-det-atet') + '»']);
+    /* (F) EL RECORRIDO DEL CAMPO: censo, Excel y «Nuevo estudio» */
+    await base('101', '300');
+    const censo = {};
+    document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (e) {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return;
+      censo[e.type === 'checkbox' ? (e.id + '__chk') : e.id] = e.type === 'checkbox' ? (e.checked ? '1' : '0') : e.value });
+    ex.push(['(F1) el DUENO viaja con el estudio y el espejo NO',
+      Object.prototype.hasOwnProperty.call(censo, 'tango_te') &&
+      !Object.prototype.hasOwnProperty.call(censo, 'va-esp-et'),
+      'dueno=' + Object.prototype.hasOwnProperty.call(censo, 'tango_te') +
+      ' espejo=' + Object.prototype.hasOwnProperty.call(censo, 'va-esp-et')]);
+    let nCols = -1;
+    try { nCols = Object.keys(_labExcelRow({ campos: censo, fecha: '2026-11-06', nombre: 'P18' })).length } catch (e) {}
+    ex.push(['(F2) el Excel NO gana una columna: sigue en 441', nCols === 441, 'columnas=' + nCols]);
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+    await esperar(150);
+    ex.push(['(F3) «Nuevo estudio» borra el dueno Y el espejo',
+      T('tango_te') === '' && T('va-esp-et') === '',
+      'dueno=«' + T('tango_te') + '» espejo=«' + T('va-esp-et') + '»']);
+    /* (G) RESTAURACION: el espejo se repinta DESDE EL DUENO por el embudo, con siembra MUDA */
+    S('va_morf', 'Prótesis mecánica');
+    const dd = document.getElementById('tango_te'); if (dd) dd.value = '300';
+    const aa = document.getElementById('va_at'); if (aa) aa.value = '101';
+    try { if (typeof valvProtSync === 'function') valvProtSync() } catch (e) {}
+    await esperar(200);
+    ex.push(['(G1) con siembra MUDA el espejo toma el valor del dueno y la fila publica el cociente',
+      T('va-esp-et') === '300' && T('ea-det-atet').indexOf('0.34') >= 0,
+      'espejo=«' + T('va-esp-et') + '» fila=«' + T('ea-det-atet') + '»']);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-724', 'PANT-18 commits 3 y 4: el AT publica sus TRES tramos, su nota ya no enfrenta la Figura 13 con la Tabla 5, y Referencias explica el AT y el AT/ET con su hoja y su folio', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })) };
+    const T = (id) => { const e = document.getElementById(id);
+      return e ? String(e.value || e.textContent || '') : 'NO EXISTE' };
+    const base = async (at) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '724'); S('va_morf', 'Prótesis mecánica'); S('va_at', at);
+      try { valvProtSync() } catch (e) {}
+      await esperar(120); return T('ea-det-at') };
+    /* (A) LOS TRES TRAMOS DEL AT, con sus dos bordes */
+    /* ⚠️ LA ULTIMA SIEMBRA TIENE QUE SER LA DE 101 ms, y no es un detalle de orden: la nota del AT
+       solo se muestra cuando el AT sale de su banda normal, asi que si la ultima escena deja un AT
+       normal el bloque B lee una nota VACIA y sus cinco condiciones caen sobre la nada. Lo pague
+       escribiendo A1b en medio de las condiciones.
+       (A1b) nacio del barrido de mutaciones: mover el corte normal de 80 a 70 ms SOBREVIVIA,
+       porque 60 sigue siendo normal con los dos cortes y 80 sigue cayendo en «posible» con los
+       dos. Lo que distingue es un valor ENTRE los dos candidatos. */
+    const a60 = await base('60'), a75 = await base('75'), a80 = await base('80');
+    const a100 = await base('100'), a101 = await base('101');
+    ex.push(['(A0 DENOM) la fila del AT publica un valor', a60.indexOf('60 ms') >= 0, 'fila=«' + a60 + '»']);
+    ex.push(['(A1) 60 ms es normal', a60.indexOf('normal') >= 0, a60]);
+    ex.push(['(A1b) 75 ms sigue siendo normal: el corte de la banda normal es 80 y no otro',
+      a75.indexOf('normal') >= 0 && a75.indexOf('posible') === -1, a75]);
+    ex.push(['(A2) BORDE 80 ms cae en posible estenosis', a80.indexOf('posible estenosis') >= 0 &&
+      a80.indexOf('normal') === -1, a80]);
+    ex.push(['(A3) BORDE 100 ms cae en posible estenosis: el operador es ESTRICTO',
+      a100.indexOf('posible estenosis') >= 0 && a100.indexOf('sugiere') === -1, a100]);
+    ex.push(['(A4) 101 ms sugiere estenosis significativa',
+      a101.indexOf('sugiere estenosis significativa') >= 0, a101]);
+    /* (B) LA NOTA: la afirmacion vieja NO esta y la nueva SI, con su hoja y su folio */
+    const nota = T('ea-det-at-nota');
+    ex.push(['(B0 DENOM) la nota del AT se muestra con el AT fuera de la banda normal',
+      nota.length > 100, 'largo=' + nota.length]);
+    ex.push(['(B1) la nota ya NO afirma que la Figura 13 use un solo punto de corte',
+      nota.indexOf('único punto de corte') === -1 && nota.indexOf('no es sospechosa') === -1,
+      nota.slice(0, 160)]);
+    ex.push(['(B2) y dice que la Figura 13 usa los DOS para describir el contorno del chorro',
+      nota.indexOf('usa los dos') >= 0 && nota.indexOf('contorno del chorro') >= 0, nota.slice(0, 200)]);
+    ex.push(['(B3) con los dos numeros, que salen de las constantes',
+      nota.indexOf('100 ms') >= 0 && nota.indexOf('0,37') >= 0, nota.slice(0, 220)]);
+    ex.push(['(B4) con su hoja y su folio', nota.indexOf('hoja 18, folio 19') >= 0, nota.slice(-90)]);
+    ex.push(['(B5) la frase de la funcion ventricular se le atribuye al AT y no al cociente',
+      nota.indexOf('El AT, además, se afecta por la función del ventrículo izquierdo') >= 0,
+      nota.slice(0, 250)]);
+    /* (C) LA DECISION DE LA TARJETA NO CAMBIA CON EL AT NI CON EL AT/ET */
+    const sev = async (at, et) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '724'); S('peso', '70'); S('talla', '170');
+      S('va_morf', 'Prótesis mecánica');
+      S('vmax_ao', '5'); S('ea_dtsvi', '21'); S('ea_vtitsvi', '10'); S('ea_vtiao', '45');
+      if (at) S('va_at', at); if (et) S('tango_te', et);
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      await esperar(180);
+      const P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+      return P ? String(P.nivel) : 'NULL' };
+    const s1 = await sev('60', '300'), s2 = await sev('150', '300'), s3 = await sev(null, null);
+    ex.push(['(C1) la tarjeta da el MISMO veredicto con el AT normal, con el AT y el AT/ET altos y con los dos vacios',
+      s1 === 'signif' && s2 === 'signif' && s3 === 'signif',
+      'ATnormal=' + s1 + ' ATalto=' + s2 + ' vacios=' + s3]);
+    /* ⚠️ (C2) NACIO DEL BARRIDO: hacer VOTAR al AT/ET sobrevivia, porque en las escenas de arriba
+       el veredicto ya era «signif» por la velocidad y el DVI, asi que sumar un eje no lo movia.
+       Esta escena es la unica que los separa: con la velocidad y el DVI NORMALES y el AT/ET en
+       0,50, hoy el veredicto es «normal» y con el cociente votando pasaria a «posible». */
+    const sevN = async (at, et) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '724'); S('peso', '70'); S('talla', '170');
+      S('va_morf', 'Prótesis mecánica');
+      S('vmax_ao', '2.5'); S('gmedio_ao', '10');
+      S('ea_dtsvi', '21'); S('ea_vtitsvi', '20'); S('ea_vtiao', '40');
+      S('va_at', at); S('tango_te', et);
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      await esperar(200);
+      const P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+      return { nivel: P ? String(P.nivel) : 'NULL', atet: P && P.atet != null ? P.atet.toFixed(2) : 'null',
+               fila: T('ea-det-atet') } };
+    const c2 = await sevN('150', '300');
+    ex.push(['(C2 DENOM) el AT/ET esta en rango de significativa y los dos ejes que votan son normales',
+      c2.atet === '0.50' && c2.fila.indexOf('sugiere estenosis significativa') >= 0,
+      'atet=' + c2.atet + ' fila=«' + c2.fila + '»']);
+    ex.push(['(C2) y aun asi el veredicto es «sin criterios»: el AT/ET NO vota',
+      c2.nivel === 'normal', 'nivel=' + c2.nivel]);
+    /* (D) REFERENCIAS: el bloque nuevo esta y las filas viejas siguen.
+       Se lee el textContent de la ficha SIN abrirla: la geometria la mide la sonda de pantalla. */
+    const ficha = document.getElementById('ref-pao');
+    const t = ficha ? String(ficha.textContent || '').replace(/[ ]+/g, ' ') : '';
+    ex.push(['(D0 DENOM) la ficha de la protesis aortica existe y tiene texto', t.length > 500,
+      'largo=' + t.length]);
+    ex.push(['(D1) el bloque nuevo esta, con su hoja y su folio',
+      t.indexOf('AT y AT/ET (ASE 2024, Tabla 5, hoja 18 · folio 19)') >= 0, t.slice(0, 120)]);
+    ex.push(['(D2) con los tres tramos del AT', t.indexOf('<80 ms normal') >= 0 &&
+      t.indexOf('>100 ms sugiere estenosis significativa') >= 0, 'no estan los tramos del AT']);
+    ex.push(['(D3) y los tres del AT/ET', t.indexOf('<0,32 normal') >= 0 &&
+      t.indexOf('>0,37 sugiere estenosis significativa') >= 0, 'no estan los tramos del cociente']);
+    ex.push(['(D4) CONTROL: las filas viejas de la ficha siguen',
+      t.indexOf('G. medio (mmHg)') >= 0 && t.indexOf('PPM (ASE 2024, Tabla 7, p. 20)') >= 0 &&
+      t.indexOf('Regurgitación paravalvular') >= 0, 'falta alguna fila vieja']);
+    ex.push(['(D5) CONTROL: la ficha no compara ni juzga una guia contra otra',
+      ['no coincide', 'difieren', 'discrepan', 'se contradicen'].every(f => t.indexOf(f) === -1),
+      'hay una frase de comparacion']);
+    ex.push(['(D6) CONTROL: el bloque no agrego ningun globo a la ficha',
+      !!ficha && ficha.querySelectorAll('[data-vinfo]').length === 0,
+      'globos en la ficha=' + (ficha ? ficha.querySelectorAll('[data-vinfo]').length : '?')]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-725', 'PANT-18 commit 5: la tarjeta de severidad protesica deja a la vista el porque y hasta dos avisos, y el resto baja a un «Ver detalle» plegado con el texto completo', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })) };
+    const esc = async (morf, c) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '725'); S('peso', '70'); S('talla', '170'); S('va_morf', morf);
+      Object.keys(c).forEach(k => S(k, c[k]));
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      await esperar(220);
+      const n = document.getElementById('ea-det-sev-nota');
+      const det = n ? n.querySelector('details') : null;
+      let vis = '';
+      if (n) [].slice.call(n.childNodes).forEach(x => {
+        if (String(x.nodeName).toLowerCase() !== 'details') vis += (x.textContent || '') + ' ' });
+      return { res: String((document.getElementById('ea-det-sev') || {}).textContent || '').trim(),
+               vis: vis.replace(/[ ]+/g, ' ').trim(), det: det,
+               detTxt: det ? String(det.textContent || '').replace(/[ ]+/g, ' ') : '',
+               nLineas: n ? [].slice.call(n.childNodes).filter(x =>
+                 String(x.nodeName).toLowerCase() !== 'details' && String(x.textContent || '').trim()).length : 0 } };
+    const SEV = { vmax_ao:'5', ea_dtsvi:'21', ea_vtitsvi:'10', ea_vtiao:'45', va_at:'101', tango_te:'300' };
+    const NOR = { vmax_ao:'2.5', gmedio_ao:'10', ea_dtsvi:'21', ea_vtitsvi:'20', ea_vtiao:'40', va_at:'70', tango_te:'300' };
+    const POS = { vmax_ao:'3.5', gmedio_ao:'25', ea_dtsvi:'21', ea_vtitsvi:'12', ea_vtiao:'40', va_at:'95', tango_te:'300' };
+    const FAL = { vmax_ao:'5', va_at:'101', tango_te:'300' };
+    const a = await esc('Prótesis mecánica', SEV);
+    ex.push(['(A0 DENOM) la tarjeta publica su resultado y su nota',
+      a.res.indexOf('significativa') >= 0 && a.vis.length > 40, 'res=«' + a.res + '» vis=' + a.vis.length]);
+    ex.push(['(A1) hay un plegable y NACE CERRADO', !!a.det && a.det.open === false,
+      'hay=' + !!a.det + ' open=' + (a.det ? a.det.open : '?')]);
+    ex.push(['(A2) su rotulo es «Ver detalle»',
+      !!a.det && String(a.det.textContent || '').indexOf('Ver detalle') >= 0, 'sin rotulo']);
+    ex.push(['(A3) a la vista quedan el porque y como MUCHO dos avisos: tres lineas',
+      a.nLineas <= 3, 'lineas visibles=' + a.nLineas]);
+    ex.push(['(A4) el porque nombra los dos ejes con sus valores',
+      a.vis.indexOf('depende del flujo: velocidad pico 5 m/s') >= 0 &&
+      a.vis.indexOf('no depende del flujo: DVI 0.22') >= 0, a.vis.slice(0, 180)]);
+    /* (B) CADA AFIRMACION VISIBLE EXISTE EN EL PLEGABLE — es la condicion de la orden */
+    ex.push(['(B1) el porque de «significativa» esta en el detalle',
+      a.detTxt.indexOf('un eje dependiente del flujo y uno independiente del flujo en rango de estenosis significativa') >= 0,
+      a.detTxt.slice(0, 160)]);
+    ex.push(['(B2) el aviso del volumen sistolico esta en el detalle',
+      a.vis.indexOf('Volumen sistólico calculado') >= 0 &&
+      a.detTxt.indexOf('exige un volumen sistólico de 50-90 mL') >= 0, 'no coinciden']);
+    ex.push(['(B3) el aviso de los tiempos esta en el detalle',
+      a.vis.indexOf('por sí solos no establecen estenosis') >= 0 &&
+      a.detTxt.indexOf('por sí solo NO establece estenosis') >= 0, 'no coinciden']);
+    ex.push(['(B4) el detalle conserva la salvedad del area efectiva, palabra por palabra',
+      a.detTxt.indexOf('El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar') >= 0,
+      a.detTxt.slice(0, 200)]);
+    ex.push(['(B5) y el detalle es MAS largo que lo visible', a.detTxt.length > a.vis.length,
+      'detalle=' + a.detTxt.length + ' visible=' + a.vis.length]);
+    /* (C) LOS OTROS RESULTADOS */
+    const n2 = await esc('Prótesis mecánica', NOR);
+    ex.push(['(C1) «sin criterios» publica UNA sola linea y NO le inventa una conclusion',
+      n2.nLineas === 1 && n2.vis.indexOf('significativa') === -1, 'lineas=' + n2.nLineas + ' «' + n2.vis + '»']);
+    const p2 = await esc('Prótesis mecánica', POS);
+    ex.push(['(C2) «posible» dice que no se cumplen las dos mitades, y esa frase esta en el detalle',
+      p2.vis.indexOf('No se cumplen las dos mitades') >= 0 &&
+      p2.detTxt.indexOf('No se cumplen las DOS mitades') >= 0, p2.vis.slice(0, 140)]);
+    const f2 = await esc('Prótesis mecánica', FAL);
+    ex.push(['(C3) «falta un dato» dice QUE falta, y esa frase esta en el detalle',
+      f2.vis.indexOf('Falta el DVI') >= 0 && f2.detTxt.indexOf('Falta: el DVI') >= 0, f2.vis.slice(0, 140)]);
+    /* ⚠️ (A3b) NACIO DEL BARRIDO: levantar el tope de dos avisos SOBREVIVIA, porque la escena de
+       arriba tiene exactamente DOS candidatos y sin tope da lo mismo. Con una TAVI hay TRES —la
+       linea del basal, el volumen sistolico y los tiempos—, asi que es la unica que lo separa. */
+    const tv = await esc('TAVI', SEV);
+    ex.push(['(A3b DENOM) la escena de TAVI tiene TRES avisos candidatos',
+      tv.vis.indexOf('Para TAVI la tabla expresa') >= 0, tv.vis.slice(0, 120)]);
+    ex.push(['(A3b) y aun asi quedan a la vista como MUCHO tres lineas: el porque y dos avisos',
+      tv.nLineas <= 3, 'lineas visibles=' + tv.nLineas + ' | ' + tv.vis.slice(0, 200)]);
+    /* (D) CONTROL NEGATIVO: con valvula NATIVA la nota se esconde Y se vacia */
+    const nat = await esc('Trivalva normal', SEV);
+    const nn = document.getElementById('ea-det-sev-nota');
+    ex.push(['(D1) con valvula nativa la nota se esconde y se vacia',
+      !!nn && getComputedStyle(nn).display === 'none' && String(nn.textContent || '').trim() === '',
+      'display=' + (nn ? getComputedStyle(nn).display : '?') + ' texto=«' + (nn ? String(nn.textContent || '').trim() : '?') + '»']);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-726', 'PANT-18 commit 6: la TAVI se gradua con los cortes absolutos de la protesis quirurgica y emite la MISMA frase, con su salvedad del basal', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const NL = String.fromCharCode(10);
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })) };
+    const esc = async (morf, c) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '726'); S('peso', '70'); S('talla', '170'); S('va_morf', morf);
+      Object.keys(c).forEach(k => S(k, c[k]));
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      await esperar(220);
+      const P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+      const N = (P && typeof eaProtNarrativa === 'function') ? eaProtNarrativa(P) : null;
+      return { P: P, nivel: P ? String(P.nivel) : 'NULL', via: P ? String(P.via) : 'NULL',
+               frase: N ? String(N.frase) : 'NULL', resumen: N ? String(N.resumen) : 'NULL',
+               salv: N ? N.salvedades.join(' ') : '',
+               tarjeta: String((document.getElementById('ea-det-sev') || {}).textContent || '').trim() } };
+    const SEV = { vmax_ao:'5', ea_dtsvi:'21', ea_vtitsvi:'10', ea_vtiao:'45', va_at:'101', tango_te:'300' };
+    const NOR = { vmax_ao:'2.5', gmedio_ao:'10', ea_dtsvi:'21', ea_vtitsvi:'20', ea_vtiao:'40' };
+    const t = await esc('TAVI', SEV), m = await esc('Prótesis mecánica', SEV);
+    ex.push(['(A0 DENOM) las dos escenas producen veredicto', t.nivel !== 'NULL' && m.nivel !== 'NULL',
+      'tavi=' + t.nivel + ' mec=' + m.nivel]);
+    ex.push(['(A1) la TAVI YA NO dice «sin graduar»', t.tarjeta.indexOf('sin graduar') === -1, t.tarjeta]);
+    ex.push(['(A2) y da el MISMO nivel que la protesis mecanica con los mismos datos',
+      t.nivel === m.nivel && t.nivel === 'signif', 'tavi=' + t.nivel + ' mec=' + m.nivel]);
+    ex.push(['(A3) la propiedad sinGraduar ya no existe',
+      !!t.P && t.P.sinGraduar === undefined, 'sinGraduar=' + (t.P ? String(t.P.sinGraduar) : '?')]);
+    ex.push(['(A4) via sigue diciendo TAVI, que es lo que publica su salvedad', t.via === 'TAVI', t.via]);
+    /* (B) EL PAPEL: la MISMA frase y el MISMO resumen que la quirurgica */
+    ex.push(['(B1) la frase del informe es la misma que la de la protesis mecanica',
+      t.frase.replace('transcatéter tipo TAVI', 'mecánica') === m.frase || t.frase === m.frase,
+      'tavi=«' + t.frase.slice(0, 90) + '» mec=«' + m.frase.slice(0, 90) + '»']);
+    ex.push(['(B2) y el resumen del EN SUMA tambien', t.resumen === m.resumen && t.resumen !== 'null',
+      'tavi=«' + t.resumen + '» mec=«' + m.resumen + '»']);
+    ex.push(['(B3) la TAVI ya NO publica «sin graduación de estenosis»',
+      t.frase.indexOf('sin graduación') === -1, t.frase.slice(0, 110)]);
+    /* (C) LA SALVEDAD DEL BASAL, con su hoja y su folio */
+    ex.push(['(C1) la salvedad dice que la tabla expresa los tres como cambio respecto de un estudio previo',
+      t.salv.indexOf('como cambio respecto de un estudio previo') >= 0, t.salv.slice(0, 200)]);
+    ex.push(['(C2) y que sin ese estudio se aplican los cortes absolutos de la quirurgica',
+      t.salv.indexOf('se aplican los cortes absolutos de la prótesis quirúrgica') >= 0, t.salv.slice(0, 240)]);
+    ex.push(['(C3) con su hoja y su folio', t.salv.indexOf('hoja 18, folio 19') >= 0, t.salv.slice(-120)]);
+    ex.push(['(C4) CONTROL NEGATIVO: la protesis mecanica NO lleva esa salvedad',
+      m.salv.indexOf('cortes absolutos de la prótesis quirúrgica') === -1, m.salv.slice(0, 160)]);
+    /* (D) CON TODO NORMAL, la TAVI tampoco se queda muda */
+    const tn = await esc('TAVI', NOR), mn = await esc('Prótesis mecánica', NOR);
+    ex.push(['(D1) con todo normal la TAVI dice «sin criterios» igual que la quirurgica',
+      tn.nivel === 'normal' && tn.resumen === mn.resumen && tn.resumen.indexOf('sin criterios') >= 0,
+      'tavi=' + tn.nivel + ' «' + tn.resumen + '» mec=«' + mn.resumen + '»']);
+    /* (E) CONTROL: la clave muerta del vocabulario se retiro */
+    ex.push(['(E1) EA_PROT_TXT ya no tiene la entrada «TAVI — sin graduar»',
+      typeof EA_PROT_TXT === 'undefined' || EA_PROT_TXT.tavi === undefined,
+      'tavi=' + (typeof EA_PROT_TXT !== 'undefined' ? String(EA_PROT_TXT.tavi) : 'sin registro')]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-727', 'PANT-18 commit 7: el informe y el EN SUMA no escriben el desajuste cuando la severidad protesica es significativa, y SI lo escriben con cualquier otro resultado', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const NL = String.fromCharCode(10);
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })) };
+    const crudo = (id) => { const e = document.getElementById(id); return e ? String(e.value || '') : '' };
+    const esc = async (morf, c) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '727'); S('peso', '70'); S('talla', '170'); S('va_morf', morf);
+      Object.keys(c).forEach(k => S(k, c[k]));
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      /* la pastilla de la lesion tiene que estar ABIERTA o el informe no describe la aortica */
+      try { const b = document.getElementById('pill-esten-aortica');
+        if (b && !b.classList.contains('btn-primary')) b.click() } catch (e) {}
+      await esperar(260);
+      const o = { P: (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null };
+      ['estandar', 'narrativo', 'conciso'].forEach(st => {
+        try { if (typeof setEstiloInforme === 'function') setEstiloInforme(st) } catch (e) {}
+        try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+        o['inf_' + st] = crudo('informe_texto');
+        o['sum_' + st] = crudo('en_suma'); });
+      try { if (typeof setEstiloInforme === 'function') setEstiloInforme('estandar') } catch (e) {}
+      return o };
+    const hayDes = (o) => ['estandar', 'narrativo', 'conciso'].filter(st =>
+      o['inf_' + st].indexOf('Desajuste prot') >= 0).length;
+    const hayPpm = (o) => ['estandar', 'narrativo', 'conciso'].filter(st =>
+      o['sum_' + st].indexOf('PPM a') >= 0).length;
+    const largo = (o) => o.inf_estandar.length;
+    const SEV = { vmax_ao:'5', ea_dtsvi:'21', ea_vtitsvi:'10', ea_vtiao:'45', va_at:'101' };
+    const POS = { vmax_ao:'3.5', gmedio_ao:'25', ea_dtsvi:'21', ea_vtitsvi:'12', ea_vtiao:'40' };
+    const SOL = { vmax_ao:'2.5', gmedio_ao:'10', ea_dtsvi:'16', ea_vtitsvi:'20', ea_vtiao:'40' };
+    const sev = await esc('Prótesis mecánica', SEV);
+    const pos = await esc('Prótesis mecánica', POS);
+    const sol = await esc('Prótesis mecánica', SOL);
+    const tav = await esc('TAVI', SEV);
+    /* (A) DENOMINADORES: sin informe emitido y sin desajuste calculado, un cero no prueba nada */
+    ex.push(['(A0 DENOM) las cuatro escenas emiten informe', largo(sev) > 200 && largo(pos) > 200 &&
+      largo(sol) > 200 && largo(tav) > 200,
+      'sev=' + largo(sev) + ' pos=' + largo(pos) + ' sol=' + largo(sol) + ' tavi=' + largo(tav)]);
+    ex.push(['(A1 DENOM) las cuatro escenas tienen un desajuste calculado',
+      [sev, pos, sol, tav].every(o => o.P && (o.P.ppm === 'severo' || o.P.ppm === 'moderado')),
+      'ppm=' + [sev, pos, sol, tav].map(o => o.P ? o.P.ppm : 'NULL').join('/')]);
+    ex.push(['(A2 DENOM) los cuatro niveles son los buscados',
+      sev.P.nivel === 'signif' && pos.P.nivel === 'posible' && sol.P.nivel === 'normal' &&
+      tav.P.nivel === 'signif',
+      [sev, pos, sol, tav].map(o => o.P.nivel).join('/')]);
+    /* (B) LA REGLA */
+    ex.push(['(B1) con estenosis significativa el informe NO escribe el desajuste, en los TRES estilos',
+      hayDes(sev) === 0, 'estilos con desajuste=' + hayDes(sev)]);
+    ex.push(['(B2) y el EN SUMA tampoco, en los TRES', hayPpm(sev) === 0, 'estilos con PPM=' + hayPpm(sev)]);
+    ex.push(['(B3) con una TAVI significativa, lo mismo', hayDes(tav) === 0 && hayPpm(tav) === 0,
+      'desajuste=' + hayDes(tav) + ' ppm=' + hayPpm(tav)]);
+    /* (C) CONTROLES NEGATIVOS: con cualquier otro resultado el desajuste SE QUEDA */
+    ex.push(['(C1) con «posible» el desajuste SIGUE en los TRES estilos', hayDes(pos) === 3,
+      'estilos con desajuste=' + hayDes(pos) + ' | ' +
+      (pos.inf_estandar.split(NL).filter(l => l.indexOf('Desajuste') >= 0)[0] || '(no esta)')]);
+    ex.push(['(C2) y el EN SUMA tambien', hayPpm(pos) === 3, 'estilos con PPM=' + hayPpm(pos)]);
+    ex.push(['(C3) con «sin criterios» el desajuste SIGUE en los TRES estilos', hayDes(sol) === 3,
+      'estilos con desajuste=' + hayDes(sol)]);
+    ex.push(['(C4) y el EN SUMA tambien', hayPpm(sol) === 3, 'estilos con PPM=' + hayPpm(sol)]);
+    /* (D) LA PANTALLA NO SE MUEVE: el numero y su categoria quedan */
+    ex.push(['(D1) con estenosis significativa la fila del PPM sigue publicando el valor y su categoria',
+      String((document.getElementById('ea-prot-ppm') || {}).textContent || '').indexOf('severo') >= 0 ||
+      sev.P.ppm === 'severo',
+      'fila=«' + String((document.getElementById('ea-prot-ppm') || {}).textContent || '') + '»']);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-728', 'PANT-18 commit 8: el boton «Severidad» de la estenosis aortica toma el estado visual del veredicto protesico sin tocar el valor guardado', `
+  return (async () => {
+    const ex = [], esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })) };
+    const esc = async (morf, c, manual) => {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+      S('nombre', 'P18'); S('ci', '728'); S('peso', '70'); S('talla', '170'); S('va_morf', morf);
+      Object.keys(c).forEach(k => S(k, c[k]));
+      try { calcAo() } catch (e) {} try { calcEADetalle() } catch (e) {} try { valvProtSync() } catch (e) {}
+      if (manual) { try { valvSev.aplicar('esten', 'aortica', manual) } catch (e) {} }
+      await esperar(260);
+      const b = document.getElementById('sevbtn-esten-aortica');
+      const P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+      return { cls: b ? String(b.className) : 'NO EXISTE',
+               txt: b ? String(b.textContent || '').trim() : 'NO EXISTE',
+               grado: String((document.getElementById('ea_grado') || {}).value || ''),
+               nivel: P ? String(P.nivel) : 'NULL' } };
+    const SEV = { vmax_ao:'5', ea_dtsvi:'21', ea_vtitsvi:'10', ea_vtiao:'45', va_at:'101' };
+    const POS = { vmax_ao:'3.5', gmedio_ao:'25', ea_dtsvi:'21', ea_vtitsvi:'12', ea_vtiao:'40' };
+    const NOR = { vmax_ao:'2.5', gmedio_ao:'10', ea_dtsvi:'21', ea_vtitsvi:'20', ea_vtiao:'40' };
+    const FAL = { vmax_ao:'5' };
+    const s = await esc('Prótesis mecánica', SEV);
+    const p = await esc('Prótesis mecánica', POS);
+    const n = await esc('Prótesis mecánica', NOR);
+    const f = await esc('Prótesis mecánica', FAL);
+    const nat = await esc('Trivalva normal', SEV);
+    ex.push(['(A0 DENOM) el boton existe y los cuatro veredictos son los buscados',
+      s.cls !== 'NO EXISTE' && s.nivel === 'signif' && p.nivel === 'posible' &&
+      n.nivel === 'normal' && f.nivel === 'faltan',
+      [s, p, n, f].map(x => x.nivel).join('/')]);
+    ex.push(['(A1) con estenosis protesica significativa el boton toma el nivel3, el de la severa nativa',
+      s.cls.indexOf('nivel3') >= 0, 'clases=' + s.cls]);
+    ex.push(['(A2) con «posible», el nivel2', p.cls.indexOf('nivel2') >= 0, 'clases=' + p.cls]);
+    ex.push(['(A3) con «sin criterios», el nivel1', n.cls.indexOf('nivel1') >= 0, 'clases=' + n.cls]);
+    ex.push(['(A4) con «falta un dato» NO se pinta: no se afirma nada sobre lo que no se evaluo',
+      f.cls.indexOf('nivel1') === -1 && f.cls.indexOf('nivel2') === -1 && f.cls.indexOf('nivel3') === -1,
+      'clases=' + f.cls]);
+    ex.push(['(A5) y el circulo amarillo sale con el color', s.txt.indexOf('🟡') === -1 &&
+      f.txt.indexOf('🟡') >= 0, 'signif=«' + s.txt + '» faltan=«' + f.txt + '»']);
+    /* (B) EL VALOR GUARDADO NO SE TOCA — es la condicion de la orden */
+    ex.push(['(B1) ea_grado sigue en su centinela en las CUATRO escenas protesicas',
+      [s, p, n, f].every(x => x.grado === 'sin'), [s, p, n, f].map(x => x.grado).join('/')]);
+    /* (C) CONTROLES NEGATIVOS */
+    ex.push(['(C1) con valvula NATIVA severa el boton sigue diciendo «Severa» con su grado guardado',
+      nat.txt.indexOf('Severa') >= 0 && nat.cls.indexOf('nivel3') >= 0 && nat.grado === 'severa',
+      'txt=«' + nat.txt + '» clases=' + nat.cls + ' grado=' + nat.grado]);
+    const man = await esc('Prótesis mecánica', SEV, 'moderada');
+    ex.push(['(C2) con un grado fijado A MANO gana el del medico, aunque la tarjeta diga significativa',
+      man.txt.indexOf('Moderada') >= 0 && man.cls.indexOf('nivel2') >= 0 &&
+      man.grado === 'moderada' && man.nivel === 'signif',
+      'txt=«' + man.txt + '» clases=' + man.cls + ' grado=' + man.grado + ' veredicto=' + man.nivel]);
+    return { extra: ex };
   })();
 `);
 

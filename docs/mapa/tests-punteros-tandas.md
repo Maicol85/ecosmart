@@ -304,3 +304,21 @@ Estan en **`docs/mapa/tests-punteros-noviembre.md`**: desde PANT-8 (TC-656) hast
 
 Fichas completas en `docs/mapa/tests-fichas-714.md`. El barrido es
 `python3 scripts/_mut_pant17.py <worktree>` — **20 de 20 muertas**, con guarda de md5.
+
+## Tanda PANT-18 (2026-11-06) — la prótesis aórtica, parte 1 de 5
+
+Seis casos nuevos, **TC-723 a TC-728**. Las fichas están en archivo propio,
+`docs/mapa/tests-fichas-723.md`, porque `tests-fichas.md` está en 34.237 B.
+
+| caso | qué fija |
+|---|---|
+| TC-723 | el tiempo de eyección es el campo que ya existía, y el AT/ET gana su fila con los tres tramos y los dos bordes |
+| TC-724 | el AT con sus tres tramos, la nota corregida y el bloque de Referencias |
+| TC-725 | la tarjeta de severidad resumida, con su «Ver detalle» plegado |
+| TC-726 | la TAVI graduada con los cortes absolutos de la quirúrgica |
+| TC-727 | el desajuste omitido **sólo** con estenosis significativa |
+| TC-728 | el estado visual del botón «Severidad», sin tocar el valor guardado |
+
+**Cuatro casos viejos adaptados**, los cuatro el día que ellos mismos anunciaban: **TC-288** (la
+nota del AT), **TC-290** y **TC-291** (la TAVI, que no se graduaba) y **TC-303** (el EN SUMA de la
+TAVI, que reutilizaba la línea del cuerpo).

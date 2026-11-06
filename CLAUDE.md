@@ -36,6 +36,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la PANTALLA de las dos lesiones MITRALES**: las tres columnas de la insuficiencia, las casillas automáticas, el cuadro de referencias en tres bloques, la columna 2 de la estenosis, el mecanismo de los globos ⓘ o **el aviso de fibrilación auricular de la continuidad** | `docs/mapa/valvulas-mitral-pantalla.md` |
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
+| **Tocar el TIEMPO DE EYECCIÓN o el AT/ET de la prótesis AÓRTICA, la nota del AT, la tarjeta de severidad protésica, la TAVI graduada, el DESAJUSTE que no se escribe con una estenosis, o el estado visual del botón «Severidad»** | `docs/mapa/pant18-protesis-aortica.md` |
 | **Tocar el PPM aórtico del informe, el voto de los cuatro criterios de obstrucción de la prótesis mitral o los dos retiros del gradiente medio** (tandas Z, Z5 y Z6) | `docs/mapa/protesis-z-z5-z6.md` |
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
 | **Tocar la PLASTIA, el TEER o la TAVI de una válvula** —sus opciones, su graduación, los tres globos de Válvulas, su línea en el papel, sus símbolos en el dibujo del posoperatorio—, **las etiquetas del TEER fuera del papel**, o **el PPT del banco de imágenes**: la regla de disposición por área, el número opcional, la inicial, la final o el bucle con varios videos | `docs/mapa/valppt-opciones-ppt.md` |
@@ -212,9 +213,22 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,06 MB / 166.308 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-17b**, sobre el árbol ya sellado: sello **`v20261106-0912`**, md5
-  **`37c39207`**. El diff de PANT-17b son **326 líneas agregadas y 316 quitadas** en `index.html`,
+  sin frameworks. Hoy **12,09 MB / 166.621 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
+  cierre de la tanda **PANT-18**, sobre el árbol ya sellado: sello **`v20261106-1452`**, md5
+  **`f39a988f`**. El diff de PANT-18 son **369 líneas agregadas y 56 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `7f1380a`, con **cero** `eval(` y `new Function` nuevos,
+  **SEIS** `innerHTML` nuevos y cero claves ni contraseñas. Los seis están declarados y Semgrep
+  sigue en su línea base: **tres** son `badge(...)`, que pasa su texto por `escHtml`; **dos** son
+  la entidad literal de la raya; y **uno** es la nota de la tarjeta, que se arma con `_critEsc`
+  y reemplaza al `innerHTML` que esa misma línea ya tenía.
+  ⚠️ **Y ESTE RENGLÓN DECÍA «un `innerHTML` nuevo», QUE ERA FALSO**: lo conté de memoria sobre el
+  cambio que tenía en la cabeza —la fila del AT/ET— en vez de contarlo sobre el diff. `git diff`
+  da **seis**. Se corrigió con un `--amend` sobre el commit 9, que estaba sin pushear, que es la
+  única forma de que el número de commits no se corra otra vez.
+  ⚠️ **POR DECIMOCUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 7f1380a:index.html` da **166.308** líneas,
+  **12.064.255** bytes y el md5 **`37c39207`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,06 MB / 166.308 al cierre de PANT-17b, sello `v20261106-0912`, md5 `37c39207`.) El diff de PANT-17b son **326 líneas agregadas y 316 quitadas** en `index.html`,
   medido con `git diff --numstat` contra `1345340`, con **cero** `innerHTML`, `eval(` y
   `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR DECIMOTERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
@@ -785,6 +799,189 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El tiempo de eyección, el AT/ET, la TAVI graduada y el desajuste — «PANT-18» (2026-11-06)
+
+- **NUEVE commits —contados con `git log 7f1380a..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los OCHO de código se hicieron enteros.** `f0125ee` (1) ·
+  `2cf571b` (2) · `ae68a99` (3) · `118bcb4` (4) · `7325e18` (5) · `a3d4db4` (6) · `c6abaeb` (7) ·
+  `b98c705` (8) · **éste** (9, cobertura y documentación). Sello **`v20261106-1452`**, md5
+  **`f39a988f`**. Al empezar, `origin/main` = `HEAD` = **`7f1380a`**, el cierre de PANT-17b, ya
+  publicado, con md5 `37c39207` y el pendrive `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+- **LA GUÍA, EN IMAGEN. La Tabla 5 y la Figura 13 están las DOS en la hoja 18, folio 19.** ASE
+  2024 (Zoghbi, *JASE* 2024;37:2-63), 62 hojas, regla de folio = hoja + 1 **comprobada en el pie
+  impreso** de las dos hojas: la 18 remata «Zoghbi et al **19**» y la 19 «**20** Zoghbi et al».
+  Renderizado a 300 ppp. Las catorce filas de la Tabla 5 coinciden una por una con el índice.
+
+- ⚠️ **DOS PREMISAS QUE NO SE REPRODUJERON, Y LAS DOS A FAVOR DE HACER MENOS.**
+  1. **EL AT YA TENÍA SUS TRES TRAMOS.** La orden dice «hoy solo existe el rojo»; medido con el
+     gesto real sobre seis valores, 60 da verde «normal (< 80 ms)», 80 / 90 / 100 dan amarillo
+     «posible estenosis (80-100 ms)» y 101 / 130 dan rojo. Los dos bordes caen en «posible», que
+     es como la Tabla 5 los imprime. **El commit 3a no tenía nada que cambiar.**
+  2. **SÍ EXISTÍA UN CAMPO DE TIEMPO DE EYECCIÓN REUTILIZABLE, y está justo donde la orden manda
+     buscarlo:** `tango_te`, rótulo «T. eyectivo (ms)», en la pestaña **Doppler**. Es campo
+     guardado, tiene banda de plausibilidad `[80, 600]`, «Nuevo estudio» lo borra y **no tiene
+     columna de Excel**. Y `eaProtVeredicto` **ya** calculaba `va_at / tango_te` y ya lo
+     categorizaba con `EA_PROT_CRIT`. Así que **cero campos guardados nuevos y cero columnas**:
+     el Excel se queda en **441** y el censo en **994**, medidos en las diez escenas del A/B.
+
+- **LO QUE FALTABA DEL ET ERA LA PUERTA Y LA FILA.** El espejo `va-esp-et` va en la misma fila que
+  el AT —medido a 1440 px: AT en x 814 y ET en x 965, la MISMA y y el MISMO alto de 27 px—, con
+  guión MEDIO y su prefijo en las **dos** listas paralelas. El sincronizador es el patrón exacto
+  de `avaPlanSync`: guarda de reentrada, texto crudo y el vacío se copia. Y la fila `AT/ET` del
+  cuadro aplica los tres tramos con `EA_PROT_CRIT` y `_eaProtNivel`, que son los que el veredicto
+  ya usaba: **0,32 y 0,37 caen los dos en «posible»**, porque el operador de significativa es
+  estricto.
+  ⚠️ **LA GUARDA DE «AT MENOR QUE ET» ES DE LA FILA Y NO DEL VEREDICTO, y se declara:**
+  `eaProtVeredicto` calcula el cociente en cuanto el ET es positivo y ese número viaja al
+  paréntesis de medidas del informe FIRMADO. Cambiarlo movería el papel → **P18-b**.
+
+- **LA NOTA DEL AT ENFRENTABA DOS PARTES DEL MISMO DOCUMENTO.** Decía que la Figura 13 reduce el
+  AT a un solo corte y concluía que la banda intermedia de la Tabla 5 podía descartarse: eso
+  compara y juzga una fuente contra otra —lo que la regla fija prohíbe— y además invitaba a
+  descontar justo la banda que la fila de arriba pinta de amarillo. La nota nueva, 474 caracteres,
+  dice que el AT y el AT/ET son parámetros de apoyo, que **el AT** se afecta por la función del VI
+  y la frecuencia, y que la Figura 13 usa **los dos** para describir el contorno del chorro, con
+  su hoja y su folio. Los dos números salen de las constantes.
+  ⚠️ **«EL AT, ADEMÁS» NO ES UN ADORNO: EL ASTERISCO NO ALCANZA AL AT/ET.** Verificado en la
+  imagen **y** en la capa de texto: el `*` está sobre el contorno del chorro y sobre la fila del
+  AT, y la del cociente **no lo lleva**. El índice de la orden decía que a los dos; manda la hoja,
+  y el comentario de la app ya lo decía bien desde la Fase 2 → **P18-a**.
+  **EL CENSO SE REHIZO EN EL NAVEGADOR y no por grep:** cero apariciones de las cuatro formas de
+  la afirmación vieja sobre **310.268 caracteres**, con un control positivo de 45 «estenosis».
+  ⚠️ Y hubo que **parafrasear la cita dentro de mi propio comentario**: escrita textual, el grep
+  crudo seguía contando 1 — el censo midiéndose a sí mismo.
+
+- **LA TARJETA DE SEVERIDAD, RESUMIDA, CON EL DETALLE PALABRA POR PALABRA.** A la vista quedan el
+  resultado, UNA línea con el porqué y hasta DOS avisos; el resto baja a un «ⓘ Ver detalle»
+  plegado. Lo visible pasa de **772 a 345** caracteres con una prótesis mecánica y de **841 a
+  193** con una TAVI, y la sección baja de **723 a 697 px** a 1440 y de **884 a 858** a 1000.
+  **Ninguna afirmación clínica nueva:** cada línea visible dice lo que una salvedad del plegable
+  ya decía. El nivel `normal` **no lleva conclusión** a propósito: su texto largo no afirma nada
+  sobre el porqué, así que su línea publica los valores y nada más.
+
+- **LA TAVI SE GRADÚA, Y ESO REVIERTE LA DECISIÓN DEL 2026-09-27** (decisión del médico del
+  07/11/2026: «en la vida práctica no hay basal»). La condición del 6b se verificó en imagen y
+  **no para el commit**: la Tabla 5 **no publica ningún corte absoluto propio de TAVI** —sus tres
+  filas de TAVI son las tres de cambio respecto del basal— y el bloque «apropiado para todas las
+  prótesis aórticas» sí es absoluto. `eaProtVeredicto` ya no sale temprano, `sinGraduar` no existe
+  y `EA_PROT_TXT.tavi` se retiró por quedar sin un solo lector.
+  **Verificado uno por uno lo que el 6c pide:** con los mismos datos, la TAVI y la prótesis
+  mecánica emiten la MISMA frase en los tres estilos y la MISMA línea de EN SUMA, en los dos
+  escenarios. Seis comparaciones, seis iguales.
+  ⚠️ **UNA ASIMETRÍA QUE SE CONSERVA A PROPÓSITO:** la guarda `P.via === 'TAVI'` de
+  `_protNormofuncionante` no se toca, así que una TAVI normal no recibe el renglón de «prótesis
+  normofuncionante» que sí recibe una quirúrgica → **P18-d**. Y esa guarda **dejó de ser
+  redundante**: su comentario decía que «con TAVI el veredicto no trae `nivel`», y desde hoy sí lo
+  trae. Corregido.
+
+- **EL DESAJUSTE NO SE ESCRIBE CON UNA ESTENOSIS SIGNIFICATIVA.** El 7c no para el commit: las dos
+  frases salen de `ppmFrases`, su dueño único, y el lado aórtico la llama detrás de **un solo
+  `if`**. Lo que lo sostiene está leído en imagen: la **Figura 13 ubica el desajuste DENTRO de la
+  rama de DVI normal**, en la caja «Normal AVR», donde la EOA indexada por debajo de 0,85 lo
+  separa de un estado de flujo alto. Con el DVI en la rama de estenosis el algoritmo no llega a
+  esa caja.
+  **Es una condición sobre el veredicto y no sobre el número:** medido en HEAD y en el árbol
+  nuevo, la fila sigue publicando «0.42 cm²/m² (severo)» en las cuatro combinaciones.
+
+- **EL BOTÓN «Severidad», SOLO EL COLOR.** El 8b no para el commit: el color depende de un valor
+  guardado, pero se puede pintar sin tocarlo, porque `refrescar` es el **pintor** y `aplicar` es
+  el que escribe. `signif` toma el `nivel3` con fondo `rgb(254, 226, 226)`, **el mismo que la
+  estenosis nativa severa**; `posible` el `nivel2`, `normal` el `nivel1` y con «falta un dato`
+  **no se pinta**. Contraste 8,2 · 5,56 · 6,49 · 6,37 en los dos temas. **`ea_grado` sigue en
+  «sin» en las cuatro escenas protésicas**, y con un grado fijado a mano gana el del médico.
+
+- **EL PAPEL CAMBIA EN LOS DOS LUGARES AUTORIZADOS Y EN NINGUNO MÁS.** A/B contra HEAD con el PDF
+  y el PPT generados de verdad, 10 escenas y 2.040 claves: cambian las **cuatro** escenas de
+  estenosis significativa y de TAVI, y las **seis** de control dan **CERO** —«posible» con
+  desajuste severo, «sin criterios» con desajuste severo, «falta un dato», la mecánica normal, la
+  válvula nativa y el estudio ajeno—. **Excel 441 → 441 con el mismo juego de claves y censo de
+  campos idéntico en las diez.**
+
+- **Línea base al cierre: suite 736/743**, en **catorce lotes** cubriendo los **743 casos
+  distintos** —con una guarda que compara lo listado con lo ejecutado: **743 de 743**—, en UNA
+  sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG` **verificado al abrir, en los
+  CATORCE lotes y al cerrar** (dieciséis verificaciones) y el md5 de `index.html` **idéntico**
+  antes y después (`f39a988f`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+  siempre, más **TC-182 y TC-551**, los dos intermitentes declarados, más **TC-706**.
+  ⚠️ **TC-706 ES UN INTERMITENTE NUEVO Y NO ES DE ESTA TANDA, caracterizado como manda esta
+  casa:** pasa **4 de 4 aislado en los DOS árboles**, su lote entero vuelve a dar **28/28** al
+  repetirlo, y el diff de la tanda **no toca una línea** del corazón maestro ni de `cmSchSet`
+  —sus únicas cuatro apariciones en el diff son las dos regexes donde `cm3d-` ya era un prefijo—.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 734/743 CON DOS ROJOS MÁS, LOS DOS MÍOS**, y por eso esa
+  cifra no es la línea base: **TC-423**, cuyo filtro del recorrido del Tab excluye `va_at` **por
+  nombre** y no conocía a su campo hermano, y **TC-289**, cuya cláusula pedía la frase de la rama
+  propia de la TAVI. Los dos están adaptados y la cifra de arriba sale de la corrida **limpia**,
+  de una sola pasada sobre el mismo árbol sellado y con el archivo de casos final.
+
+- **SEIS CASOS NUEVOS, TC-723 a TC-728**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra HEAD por 57 condiciones y NINGUNA por excepción**, verificado en un worktree
+  alternando sólo `index.html` con el mismo archivo de casos.
+  **34/34 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y nunca sobre el vivo, con el md5 del árbol
+  vivo **idéntico** antes y después. **Seis de las treinta y cuatro no revierten nada: la aplican
+  de más**, porque las condiciones que las matan son controles negativos.
+  ⚠️ **CUATRO SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON DOS COSAS DISTINTAS. TRES ERAN HUECOS
+  REALES:** mover el corte normal del AT de 80 a 70 ms no rompía nada —60 es normal con los dos
+  cortes y 80 cae en «posible» con los dos, así que hacía falta un valor ENTRE los dos
+  candidatos—; hacer VOTAR al AT/ET tampoco, porque las escenas ya daban «signif» por la velocidad
+  y el DVI; y levantar el tope de dos avisos tampoco, porque esa escena tiene exactamente dos
+  candidatos y con TAVI hay tres. Nacieron **(A1b)**, **(C2 DENOM)(C2)** y **(A3b DENOM)(A3b)**.
+  **Y LA CUARTA ESTABA MAL ESCRITA:** le pegaba un `.replace` a un literal que no contiene
+  «`<details`», así que no inyectaba ningún defecto.
+
+- **CUATRO CASOS VIEJOS ADAPTADOS EN EL CENSO y DOS MÁS que destapó la corrida completa**, cada
+  uno con el motivo escrito y los seis el día que ellos mismos anunciaban: **TC-288** (la nota del
+  AT, con la tercera cláusula **invertida** y dos cláusulas nuevas), **TC-290** y **TC-291** (la
+  TAVI, que no se graduaba; TC-290 exige ahora el MISMO nivel y la MISMA cápsula que una mecánica
+  con los mismos datos), **TC-303** (el EN SUMA de la TAVI, que reutilizaba la línea del cuerpo —
+  el mismo tratamiento que la pulmonar recibió en la tanda D, y su propio comentario trae ese
+  precedente), **TC-423** y **TC-289**.
+  ⚠️ **Y DOS ERRORES MÍOS QUE LOS CASOS CAZARON:** sembré un campo inventado —el DENOMINADOR de
+  TC-290 exige que todos los campos del escenario existan— y escribí «Protesis mecanica» SIN
+  TILDES, y un valor que no es ninguna opción deja el `<select>` en cadena vacía, así que la
+  comparación se hacía contra un veredicto nulo.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  **Celular: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), **sin una sola diferencia** en las quince claves comparadas: el ET en la misma fila
+  que el AT, la fila del AT/ET con su valor, la tarjeta con su color y su plegable **cerrado**, la
+  nota con su folio y sin la afirmación vieja, el botón en `nivel3` con el rojo de la severa
+  nativa, el bloque de Referencias presente, **120 globos**, **cero** desplazamiento horizontal,
+  **cero** textos recortados y **CERO errores de página en los dos motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+  ⚠️ **A 768 y a 390 px el bloque `bloque-ea-detalle` está COLAPSADO**, así que el AT, el ET y el
+  cuadro no se ven ahí. Medido **idéntico en HEAD y en el árbol nuevo**: es PREEXISTENTE y no lo
+  trae esta tanda → **P18-e**.
+
+- ⚠️ **SEIS TRAMPAS DE MEDICIÓN QUE ESTA TANDA PAGÓ.** (1) **`informe_texto` y `en_suma` son
+  `<textarea>`**: con `textContent` el denominador sale vacío y «el informe no escribe el
+  desajuste» se lee igual que «el informe está vacío» — la primera corrida informó cero sobre un
+  informe de 0 caracteres. (2) **La pastilla de la lesión tiene que estar abierta** o el informe
+  no describe la aórtica. (3) **La sección de la válvula aórtica está a DOS niveles** y (4) **la
+  ficha de Referencias a TRES**: con uno solo sin abrir, todo informa 0 × 0 y «sin desborde» se
+  lee igual que «todo bien». (5) **`limpiarCampos` vuelve a la pestaña Paciente**, así que la
+  pestaña se abre DESPUÉS de sembrar. (6) **El último `base()` de un caso decide el denominador
+  del bloque siguiente**: una escena que deja el AT normal esconde la nota y las cinco condiciones
+  que la leen caen sobre la nada.
+  ⚠️ **Y EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, POR DECIMOQUINTA TANDA SEGUIDA**, seis
+  veces, en las sondas y en los casos. `node --check` las cazó todas; lo que las previene es
+  contar los acentos graves del bloque y exigir el número exacto.
+
+- **Dónde está todo:** `docs/mapa/pant18-protesis-aortica.md` (**mapa NUEVO**, 7,6 KB),
+  `docs/INVENTARIO_PROTESIS_AORTICA_P18.md` (el inventario de solo lectura del commit 1), las
+  fichas de los seis casos en `docs/mapa/tests-fichas-723.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), **dos mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `protesis-valvular.md` 19,7 → 21,2 KB y `tests-punteros-tandas.md` 21,2 → 22,6—,
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-18» con la Tabla 5 y la Figura 13 transcritas fila
+  por fila, la regla de folio comprobada en el pie impreso de las dos hojas, el texto retirado
+  LITERAL y la tabla «Cambios de evidencia» de diez filas, `docs/REGISTRO_TANDAS.md` → el bloque
+  de la tanda, `docs/GUIA_PRUEBA_PANT18.md` → la guía manual en **28** pasos, y
+  `docs/PENDIENTES.md` → **SIETE** cosas declaradas (**P18-a** a **P18-g**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `tests-fichas.md` (34.237 B) NO se tocaron.**
+
 ### La transparencia del 3D, la Evidencia que se arma con lo contestado y el control de las diez — «PANT-17b» (2026-11-06)
 
 - **SIETE commits —contados con `git log 1345340..HEAD` AL CERRAR, y el commit que escribe este

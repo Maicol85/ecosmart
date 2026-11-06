@@ -11641,3 +11641,123 @@ Las ocho estan **parafraseadas en espaniol**; ninguna textual pasa de quince pal
 | Fontan, recomendaciones publicadas | 9 | **13** |
 | Un corte, un umbral, un grado o una clase que se moviera | — | **ninguno** |
 
+
+## La tanda PANT-18 (2026-11-06) — la prótesis aórtica, parte 1 de 5
+
+**Documento.** ASE 2024 — Zoghbi W y col., *Recommendations for Evaluation of Prosthetic Valves
+With Echocardiography and Doppler Ultrasound*, **J Am Soc Echocardiogr 2024;37:2-63**.
+Archivo `Zoghbi_2024_Protesis.pdf` de `05_Protesis_valvulares`, 62 hojas.
+
+**Regla de folio: folio = hoja + 1, COMPROBADA EN EL PIE IMPRESO de las dos hojas leídas.**
+La hoja 18 remata «Journal of the American Society of Echocardiography · Volume 37 Number 1 ·
+Zoghbi et al **19**» y la hoja 19 «**20** · Zoghbi et al · Journal of the American Society of
+Echocardiography · January 2024». Renderizado a **300 ppp**.
+
+### Tabla 5 — hoja 18, folio 19
+
+«Doppler parameters of prosthetic valves in the aortic valve position». Las tres columnas son
+*Normal*, *Possible stenosis* y *Suggests significant stenosis*.
+
+**Bloque «Appropriate for all prosthetic aortic valves»**
+
+| parámetro | normal | posible | significativa |
+|---|---|---|---|
+| Jet velocity contour\* | Triangular, early peaking | Triangular to intermediate | Rounded, symmetric |
+| Acceleration time, msec\* | `<80` | `80-100` | `>100` |
+| Acceleration time/LV ejection time ratio | `<0.32` | `0.32-0.37` | `>0.37` |
+| Peak velocity, m/sec `†‡` | `<3` | `3-4` | `≥4` |
+
+**Bloque «Specific AVR considerations» → SAVR**
+
+| parámetro | normal | posible | significativa |
+|---|---|---|---|
+| Mean gradient, mm Hg `†` | `<20` | `20-34` | `≥35` |
+| DVI `§¶` | `>0.35` | `0.25-0.35` | `<0.25` |
+| EOA `§` | Reference EOA ± 1 SD | 1 SD smaller than reference EOA | 2 SDs smaller than reference EOA |
+
+**Bloque «TAVI (change from baseline)»**
+
+| parámetro | normal | posible | significativa |
+|---|---|---|---|
+| Mean gradient `†` | Change `<10` mm Hg from baseline | Increase of `10-19` mm Hg | Increase `≥20` mm Hg |
+| DVI `§¶` | Change `<0.1` or 20% from baseline | Decrease `0.1-0.19` or 20%-39% | Decrease `≥0.2` or `≥40%` |
+| EOA `§` | Change `<0.3` cm² or 25% | Decrease of `0.3-0.59` cm² or 25%-49% | Decrease `≥0.6` cm² or `≥50%` |
+
+**Notas al pie, textuales**
+
+- «Significant stenosis should meet at least one flow-dependent (i.e., velocity and mean gradient)
+  and one flow-independent (i.e., EOA or DVI) parameter.»
+- `*` «This can be affected by LV function and heart rate.»
+- `†` «Flow dependent.»
+- `‡` «Valid with normal stroke volume (50-90 mL) and flow rates (200-300 mL).»
+- `§` «Flow independent.»
+- `¶` «DVI calculated using VTI as in Table 4.»
+- `‖` «Baseline defined as TTE performed under stable hemodynamic conditions.»
+
+**⚠️ EL ASTERISCO NO ALCANZA A LA FILA DEL AT/ET.** El índice de lectura de la orden afirma que el
+AT y el AT/ET «pueden cambiar con la función del VI y la frecuencia cardíaca». Verificado en la
+imagen **y** en la capa de texto: el `*` está sobre «Jet velocity contour» y sobre «Acceleration
+time, msec», y la fila «Acceleration time/LV ejection time ratio» **no lo lleva**. El comentario
+del propio archivo ya lo decía bien desde la Fase 2 («está marcada sobre el AT y sobre el contorno
+del jet, y NO sobre el AT/ET»). **Lo que la app escribe se lo atribuye sólo al AT.** → `P18-a`.
+
+**⚠️ LA TABLA NO DA NINGÚN CORTE ABSOLUTO PROPIO DE TAVI.** Sus tres filas de TAVI son las tres de
+cambio respecto del basal; el contorno del chorro, el AT, el AT/ET y la velocidad pico están en el
+bloque que vale para todas las prótesis aórticas, que sí es absoluto. **No hay en la tabla una
+frase que diga si los cortes absolutos del reemplazo quirúrgico valen o no para TAVI.** Es la
+condición que el commit 6 pone, y por eso ese commit se pudo hacer.
+
+### Figura 13 — hoja 18, folio 19
+
+Pie, textual: «Algorithm for initial evaluation of elevated peak prosthetic aortic jet velocity
+incorporating DVI, jet contour, and measures of acceleration time (AT) and the ratio of AT to
+ejection time (ET). Improper PW Doppler sample volume influences both DVI and EOA calculations:
+too close to the valve will increase DVI and EOA, while too far (apical) will decrease them.»
+
+- Entrada: «Prosthetic Aortic Jet Velocity > 3 m/s»
+- **Jet Contour** → **Early Peak**: `AT < 100 ms`, `AT/ET < 0.37` · **Late Peak**: `AT > 100 ms`,
+  `AT/ET > 0.37`
+- **DVI** → `≥ 0.30` · `0.29 - 0.25` · `< 0.25`
+- Desenlaces: **Normal AVR** `§` · **Possible Stenosis** `*§` · **Stenosis** `*§`
+- Caja de **Normal AVR**: «Indexed EOA (cm²/m²): `>0.85`: High flow state; `<0.85`:
+  **Patient-prosthesis mismatch**»
+- `*` «Valve stenosis is further substantiated by EOA compared to respective reference values of
+  similar valve type and size.»
+
+**Las dos cosas que esta figura sostiene en la aplicación:** usa el AT y el AT/ET **juntos** y para
+describir el **contorno del chorro** (lo que dice la nota corregida del commit 3), y ubica el
+**desajuste protésico-paciente dentro de la rama de DVI normal**, es decir en una prótesis que no
+obstruye (lo que sostiene la regla del commit 7).
+
+### El texto que esta tanda RETIRÓ, literal
+
+La nota del AT decía, carácter por carácter:
+
+> «El AT solo NO establece estenosis protésica: la guía exige además un parámetro dependiente del
+> flujo (velocidad o gradiente medio) y uno independiente (AEO o DVI). Se afecta por la función
+> ventricular izquierda y por la frecuencia cardíaca. Corte de la Tabla 5 — el algoritmo de la
+> Figura 13 de la misma guía usa 100 ms como único punto de corte, así que la banda 80–100 ms no es
+> sospechosa por ese camino.»
+
+Se retiró la tercera oración: enfrenta dos partes del mismo documento y concluye de la comparación,
+que es lo que la regla fija del proyecto prohíbe, y además invita a descontar la banda que la fila
+de arriba pinta de amarillo.
+
+### Cambios de evidencia de esta tanda
+
+| # | qué | de dónde | hoja · folio |
+|---|---|---|---|
+| 1 | la nota del AT deja de enfrentar la Figura 13 con la Tabla 5 | Figura 13 | 18 · 19 |
+| 2 | la nota dice que la Figura 13 usa el AT **y** el AT/ET para el contorno del chorro | Figura 13 | 18 · 19 |
+| 3 | la función del VI y la frecuencia se le atribuyen **sólo al AT** | nota `*` de la Tabla 5 | 18 · 19 |
+| 4 | Referencias publica los tres tramos del AT | Tabla 5 | 18 · 19 |
+| 5 | Referencias publica los tres tramos del AT/ET | Tabla 5 | 18 · 19 |
+| 6 | Referencias publica la regla de integración de la nota general | nota general de la Tabla 5 | 18 · 19 |
+| 7 | la fila del AT/ET aplica `<0,32` / `0,32-0,37` / `>0,37` con el operador estricto | Tabla 5 | 18 · 19 |
+| 8 | la TAVI se gradúa con los cortes absolutos de la quirúrgica | bloque «todas las prótesis aórticas» + ausencia de cortes absolutos de TAVI | 18 · 19 |
+| 9 | la salvedad de TAVI dice que la tabla expresa los tres como cambio respecto de un estudio previo | bloque TAVI y nota `‖` | 18 · 19 |
+| 10 | el desajuste no se escribe con una estenosis significativa | Figura 13, caja «Normal AVR» | 18 · 19 |
+
+**Ningún corte se movió.** Los seis de la Tabla 5 que la app ya aplicaba —Vmax, AT, AT/ET,
+gradiente medio SAVR, DVI y la regla de integración— coinciden uno por uno con la imagen, igual
+que los había dejado el censo de la tanda W1.

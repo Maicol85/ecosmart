@@ -311,3 +311,26 @@ Medido: y = 429 y 437 contra y = 1306 y 1314, con los dos cuadros de referencias
 CORTOS2 que la mitral no había seguido. Del lado aórtico no se tocó nada.
 
 **`docs/mapa/e-carpentier-tricuspide-orejuela.md` § 5.**
+
+---
+
+## La tanda PANT-18 (2026-11-06) — lo que movió de la aórtica
+
+Puntero: el detalle está en **`docs/mapa/pant18-protesis-aortica.md`** (7,6 KB) y el estado
+anterior, campo por campo, en `docs/INVENTARIO_PROTESIS_AORTICA_P18.md`.
+
+- **El tiempo de eyección NO es un campo nuevo**: el dueño es `tango_te`, en Doppler, y desde esta
+  tanda tiene un espejo `va-esp-et` al lado del AT en Válvulas. Censo 994 → 994 y Excel 441 → 441.
+- **El AT/ET gana su fila** en el cuadro de resultados (`ea-det-atet`), con los tres tramos de la
+  Tabla 5 y el operador estricto en el borde de 0,37. El cálculo ya existía en `eaProtVeredicto`.
+- **El AT ya tenía sus tres tramos**: no se tocó esa cascada. Lo que cambió es su **nota**, que
+  enfrentaba la Figura 13 con la Tabla 5.
+- **La TAVI se gradúa** con los cortes absolutos de la prótesis quirúrgica: `eaProtVeredicto` ya no
+  sale temprano, `sinGraduar` no existe y `EA_PROT_TXT.tavi` se retiró. **Cambia el papel.**
+- **El desajuste no se escribe** con «sugiere estenosis protésica significativa», y es una
+  condición más en el único `if` que llama a `ppmFrases` del lado aórtico. **Cambia el papel.**
+- **El botón «Severidad»** toma el estado visual del veredicto protésico **sin escribir
+  `ea_grado`**; la rama vive en `valvSev.refrescar`, que es el pintor.
+
+**Los seis cortes de la Tabla 5 que ya se aplicaban no se movieron**, y se volvieron a verificar
+en imagen: hoja 18, folio 19 comprobado en el pie impreso.
