@@ -7195,7 +7195,14 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div>
           <div class="fg">
             <label>T. eyectivo (ms)</label>
-            <input type="number" id="tango_te" placeholder="ms" oninput="calcTango()">
+            <!-- ⚠️ UN DATO, DOS PUERTAS (PANT-18-2): este campo es el DUENO del tiempo de
+                    eyeccion y desde hoy tiene un espejo al lado del AT, en Valvulas. El `oninput`
+                    pasa por `etEditado`, que espeja y REPINTA la fila del AT/ET; con `calcTango()`
+                    pelado el espejo y la fila se quedaban viejos hasta el recalculo siguiente.
+                    `etEditado` llama a `calcTango()` adentro, asi que el indice de Tango no pierde
+                    su recalculo. Es el patron de `avaPlanEditado`: UN nombre y no dos copias de la
+                    cadena en el marcado. -->
+            <input type="number" id="tango_te" placeholder="ms" oninput="etEditado('tango_te')">
           </div>
           <div class="fg">
             <label>T. aceleración (ms)</label>
@@ -9172,6 +9179,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; tiempo de aceleraci&oacute;n, s&oacute;lo pr&oacute;tesis</span></label>
             <input type="number" id="va_at" step="1" placeholder="ms" oninput="eaAtPintar()">
           </div>
+          <!-- ⚠️ EL ET NO ES UN CAMPO NUEVO: ES UNA SEGUNDA PUERTA DE `tango_te` (PANT-18-2).
+                  El inventario del commit 1 midio que el tiempo de eyeccion YA EXISTE y que esta
+                  justo donde la orden manda buscarlo —`tango_te`, rotulo «T. eyectivo (ms)», en la
+                  pestania Doppler—: es campo guardado, tiene banda de plausibilidad [80, 600],
+                  «Nuevo estudio» lo borra, y `eaProtVeredicto` YA calcula `va_at / tango_te`.
+                  Asi que aca NO se agrega un campo guardado ni una columna de Excel: se agrega la
+                  puerta que faltaba, al lado del AT, que es donde el medico la pidio.
+                  El id va con guion MEDIO y su prefijo `va-esp-` entra en las DOS listas paralelas
+                  —`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`—, que es la convencion de
+                  `pop-esp-`: con guion BAJO seria una SEGUNDA COPIA del mismo dato viajando con el
+                  estudio, que es justo lo que `hfpep-` y `vauto-` existen para no repetir.
+                  El dueno es `tango_te` y el espejo se repinta desde el dueno en `eaAtPintar`, que
+                  cuelga de `valvProtSync` y por lo tanto del embudo de restauracion. -->
+          <div class="fg">
+            <label>ET (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; tiempo de eyecci&oacute;n, s&oacute;lo pr&oacute;tesis</span></label>
+            <input type="number" id="va-esp-et" step="1" placeholder="ms" oninput="etEditado('va-esp-et')">
+          </div>
         </div>
         <div class="calc-box">
           <!-- ⚠️ FILA NUEVA (Y2b, 2026-10-16): la VELOCIDAD PICO vota el grado integrado
@@ -9218,6 +9242,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row" id="ea-prot-ppm-row" style="display:none;"><span class="calc-lbl">PPM &mdash; AEO indexada <button type="button" class="vinfo-btn" data-vinfo="ea-prot-ppm" aria-expanded="false" aria-label="Informaci&oacute;n sobre el PPM a&oacute;rtico" onclick="vInfoClic(this)">&#9432;</button></span><span class="calc-val" id="ea-prot-ppm">&#8212;</span></div>
           <!-- La fila del AT se esconde con la misma regla que su campo: sin prótesis no aplica. -->
           <div class="calc-row" id="ea-det-at-row"><span class="calc-lbl">AT &mdash; tiempo de aceleraci&oacute;n</span><span id="ea-det-at">&#8212;</span></div>
+          <!-- La fila del AT/ET va DEBAJO de la del AT y ANTES de la nota, porque la nota habla de
+               los dos. Se esconde con la misma regla que la del AT: sin protesis no aplica. -->
+          <div class="calc-row" id="ea-det-atet-row"><span class="calc-lbl">AT/ET &mdash; relaci&oacute;n con el tiempo de eyecci&oacute;n</span><span id="ea-det-atet">&#8212;</span></div>
           <div id="ea-det-at-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
           <div class="calc-row"><span class="calc-lbl" style="font-weight:700;"><span id="ea-det-sev-lbl">&#x2696;&#xFE0F; Severidad EA (ESC/EACTS 2025)</span> <button type="button" class="vinfo-btn" data-vinfo="ea-prot-sev" aria-expanded="false" aria-label="Informaci&oacute;n sobre la severidad de la estenosis a&oacute;rtica prot&eacute;sica" onclick="vInfoClic(this)">&#9432;</button></span><span id="ea-det-sev">&#8212;</span></div>
           <!-- Salvedades del veredicto PROTÉSICO. Con válvula nativa queda oculta. -->
@@ -55263,6 +55290,46 @@ function avaPlanSync(origenId) {
 }
 window.avaPlanSync = avaPlanSync;
 
+/* ══ ET — EL TIEMPO DE EYECCION, UN DATO Y DOS PUERTAS (PANT-18-2) ════════════════════════════
+   El dueno es `tango_te`, en el Doppler aortico; el espejo es `va-esp-et`, al lado del AT en
+   Valvulas. Mismo mecanismo que `aoFcSync` y `avaPlanSync`, y por el mismo motivo: con la copia
+   escrita en cada `oninput`, el dia que una puerta cambie la otra publica otro numero del mismo
+   paciente.
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL NO ES COSMETICA: escribir `.value` con el mismo contenido
+   mueve el caret al final del campo. Se compara el TEXTO CRUDO y no el numero, para que los dos
+   muestren lo mismo caracter por caracter. Y el vacio se copia igual que un numero: borrar uno
+   borra el otro. */
+let _etEspSinc = false;
+function etEspSync(origenId) {
+  if (_etEspSinc) return null;
+  _etEspSinc = true;
+  try {
+    const a = document.getElementById('tango_te'), b = document.getElementById('va-esp-et');
+    if (!a || !b) return null;
+    const src = (origenId === 'va-esp-et') ? b : a;
+    const dst = (origenId === 'va-esp-et') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;
+    return { copio: true, valor: src.value };
+  } finally { _etEspSinc = false; }
+}
+window.etEspSync = etEspSync;
+
+/* UN nombre y no dos copias de la cadena en el marcado, que es el patron de `avaPlanEditado`:
+   las dos puertas del ET terminan aca. `calcTango()` se conserva porque el tiempo eyectivo es
+   ademas el denominador del indice de Tango, que es otro calculo y no puede perder su recalculo
+   por este cambio. */
+function etEditado(origenId) {
+  try { etEspSync(origenId); } catch (e) {}
+  if (typeof calcTango === 'function') { try { calcTango(); } catch (e) {} }
+  if (typeof eaAtPintar === 'function') { try { eaAtPintar(); } catch (e) {} }
+  /* La capsula de severidad imprime el AT/ET entre sus salvedades y el informe lo lleva en su
+     parentesis de medidas, asi que tocar el ET tiene que repintarla: es `calcEADetalle`, que es
+     quien llama a `_eaProtPintar`. */
+  if (typeof calcEADetalle === 'function') { try { calcEADetalle(); } catch (e) {} }
+}
+window.etEditado = etEditado;
+
 /* ══ PAM = PAD + (PAS − PAD) / 3 ══════════════════════════════════════════════════════════════
    Devuelve el número y nada más; quién lo muestra y quién lo escribe son los dos llamadores.
    Las TRES condiciones son del pedido: hace falta PAS, hace falta PAD, y PAS > PAD. Sin la
@@ -65717,7 +65784,13 @@ function _noEsDelEstudio(id) {
      ⚠️ EL GUION MEDIO NO ALCANZA POR SI SOLO -este barrido va por PREFIJO y no por el
      separador-, que es lo que MARFAN-1 pago con una casilla que entraba en `campos` sin que
      nadie lo viera hasta medir el censo. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|tga-3d-|cm3d-|mfs-fig-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
+  /* `va-esp-` es el ESPEJO del tiempo de eyeccion, al lado del AT de Valvulas (PANT-18-2).
+     NO es del estudio: el dato vive en `tango_te`, que es su unico dueno y el unico que viaja.
+     Persistir el espejo dejaria una segunda copia del mismo numero que al reabrir puede
+     contradecir al dueno —el motivo escrito de `hfpep-`, `vauto-` y `otr-asia-`— y seria una
+     clave nueva en TODO estudio que se guarde desde hoy. Guion MEDIO, asi que este prefijo no
+     alcanza a ningun campo del estudio, que van con guion BAJO. */
+  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|mfs-fig-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -73052,6 +73125,51 @@ document.addEventListener('DOMContentLoaded', function(){ try { _eaAtAssertUmbra
 /* Pinta la fila del AT. Corre desde el `oninput` del campo y desde `valvProtSync` —que está en
    `RECALC_MODULOS`, o sea el embudo de las cinco rutas de restauración—, así que cambiar la
    morfología o reabrir un estudio la repintan sin depender de que alguien toque el campo. */
+/* ══ AT/ET — EL COCIENTE DE LA FILA, CON SU GUARDA (PANT-18-2) ═══════════════════════════════
+   ⚠️ ESTA GUARDA ES DE LA FILA Y NO DEL VEREDICTO, Y LA DIFERENCIA ESTA DECLARADA.
+   `eaProtVeredicto` calcula `at / et` en cuanto el ET es positivo, sin pedir que el AT sea menor,
+   y ese numero viaja al parentesis de medidas del informe FIRMADO. Cambiarlo moveria el papel, y
+   esta tanda tiene autorizados otros dos lugares y no este. Asi que la guarda vive aca: la fila
+   no clasifica un cociente de 1 o mas —un tiempo de aceleracion no puede durar mas que la
+   eyeccion que lo contiene— y el informe sigue publicando lo mismo que publicaba. La asimetria
+   esta en `docs/PENDIENTES.md` → P18-b. */
+function _eaAtEtVal(){
+  const num = id => { const e = document.getElementById(id); if (!e) return null;
+    const x = PF(e.value); return (x != null && isFinite(x)) ? x : null; };
+  const at = num('va_at'), et = num('tango_te');
+  if (at == null || et == null) return null;
+  if (!(at > 0) || !(et > 0)) return null;
+  if (!(at < et)) return null;
+  return at / et;
+}
+window._eaAtEtVal = _eaAtEtVal;
+
+/* Pinta la fila del AT/ET. La llama `eaAtPintar` —y la llama ARRIBA, antes de sus cuatro salidas
+   tempranas—, asi que la fila se esconde y se vacia por todos los caminos por los que la del AT
+   lo hace. Los tres tramos salen de `EA_PROT_CRIT` y la cascada de `_eaProtNivel`, que son los
+   mismos que ya usa el veredicto: una segunda copia de la clasificacion publicaria dos lecturas
+   del mismo cociente el dia que alguien mueva un corte. */
+function eaAtEtPintar(esProt){
+  const fila = document.getElementById('ea-det-atet-row');
+  const cel  = document.getElementById('ea-det-atet');
+  if (fila) fila.style.display = esProt ? '' : 'none';
+  if (!cel) return;
+  if (!esProt) { cel.innerHTML = '&#8212;'; return; }
+  const v = _eaAtEtVal();
+  if (v == null) { cel.innerHTML = '&#8212;'; return; }
+  const txt = v.toFixed(2);
+  const nivel = _eaProtNivel(v, EA_PROT_CRIT.atet_normal_max, EA_PROT_CRIT.atet_signif_min, true, true);
+  const N = EA_PROT_CRIT.atet_normal_max.toFixed(2).replace('.', ',');
+  const G = EA_PROT_CRIT.atet_signif_min.toFixed(2).replace('.', ',');
+  if (nivel === 'normal')
+    cel.innerHTML = badge('green', txt + ' \u2014 normal (< ' + N + ')');
+  else if (nivel === 'posible')
+    cel.innerHTML = badge('yellow', txt + ' \u2014 posible estenosis (' + N + '\u2013' + G + ')');
+  else
+    cel.innerHTML = badge('red', txt + ' \u2014 sugiere estenosis significativa (> ' + G + ')');
+}
+window.eaAtEtPintar = eaAtEtPintar;
+
 function eaAtPintar(){
   const fila = document.getElementById('ea-det-at-row');
   const cel  = document.getElementById('ea-det-at');
@@ -73061,6 +73179,15 @@ function eaAtPintar(){
   const m = document.getElementById('va_morf');
   const esProt = !!m && typeof valvEsProtesis === 'function' && valvEsProtesis(m.value);
   if (fila) fila.style.display = esProt ? '' : 'none';
+  /* El espejo del ET se repinta DESDE EL DUENO antes de leer nada: esta funcion cuelga de
+     `valvProtSync`, que esta en `RECALC_MODULOS`, asi que reabrir un estudio deja el campo de
+     Valvulas con lo que `tango_te` trae. La guarda de valor igual de `etEspSync` evita el salto
+     del caret cuando el que escribio fue el propio espejo. */
+  try { etEspSync('tango_te'); } catch (e) {}
+  /* Y la fila del AT/ET se pinta ACA ARRIBA, antes de las cuatro salidas tempranas de abajo: si
+     colgara del final, un AT vacio o fuera de banda dejaria la fila con el valor del paciente
+     anterior. */
+  try { eaAtEtPintar(esProt); } catch (e) {}
   if (!esProt) { cel.innerHTML = '—'; return; }
   /* El AT pasa por su banda de plausibilidad —`va_at:[10,300]`— antes de clasificarse, y fuera de
      banda NO se clasifica: un 1100 tipeado donde van 110 no puede salir «sugiere estenosis
@@ -73487,7 +73614,11 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
    campo distinto de su valor por omision y «Nuevo estudio» PREGUNTARIA sobre un formulario
    vacio -y, peor, el autoguardado creeria que el formulario ya esta empezado y NO restauraria
    el borrador-. Es exactamente lo que la tanda TGA pago con `tga-3d-fc`. */
-var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|pop-esp-|tga-3d-|cm3d-|centro_tipo$|ecoAdvSelect$)/;
+/* `va-esp-` entra aca ADEMAS de en `_noEsDelEstudio`, y las dos hacen falta: esta decide si el
+   formulario «tiene datos». Sin esta mitad, un espejo con valor haria que «Nuevo estudio»
+   preguntara sobre un formulario vacio y que el autoguardado no restaurara el borrador — que es
+   lo que la tanda TGA pago con `tga-3d-fc`. */
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|centro_tipo$|ecoAdvSelect$)/;
 
 /* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
    la necesitan, que son la misma vista desde los dos lados:
