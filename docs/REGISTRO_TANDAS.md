@@ -3,7 +3,8 @@
 
 ## PANT-17 — la Evidencia de congénitas, la ventana aortopulmonar y el color al tocar (2026-11-06)
 
-**Once commits.** Al empezar, `HEAD` = **`040d89e`** (cierre de PANT-14c), md5 `276361e9`.
+**Trece commits**, contados con `git log 040d89e..HEAD` al cerrar, el que escribe este número incluido. Al empezar, `HEAD` =
+**`040d89e`** (cierre de PANT-14c), md5 `276361e9`.
 **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
 
 | commit | qué hizo |
@@ -19,7 +20,8 @@
 | `ee62781` (9a) | los seis casos nuevos, TC-714 a TC-719 — se commitean apenas parsean |
 | `55ed587` (9b) | los seis caen contra el árbol anterior por **56 condiciones y CERO excepciones** |
 | `abed600` (9c) | **20 de 20 mutaciones dirigidas muertas**, en worktree y con guarda de md5 |
-| éste (9d) | cobertura y documentación |
+| `25874a1` (9d) | cobertura y documentación |
+| éste (9e) | corrige el número de commits: son **trece**, contados al final |
 
 **La regla central: nada clínico salió de la memoria.** Todo lo que la tanda escribe se leyó en
 imagen a 190 ppp o más, con el folio comprobado en el pie impreso. Las seis reglas de folio y

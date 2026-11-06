@@ -755,11 +755,18 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 ### La Evidencia de congénitas, la ventana aortopulmonar y el color al tocar — «PANT-17» (2026-11-06)
 
-- **ONCE commits —contados con `git log 040d89e..HEAD` AL CERRAR, y el commit que escribe este
+- **TRECE commits —contados con `git log 040d89e..HEAD` AL CERRAR, y el commit que escribe este
   número entra en la cuenta— y los NUEVE puntos de la orden se tocaron, con el 1 PARADO por
   medición y el 8 hecho a medias y declarado.** `5bb5951` (1) · `f3f578c` (2) · `ddbcf28` (3) ·
   `f968f0b` (4) · `713012a` (5) · `04b4ee2` (6) · `8943a59` (7) · `4dbe85d` (8) · `ee62781` (9a)
-  · `55ed587` (9b) · `abed600` (9c) · **éste** (9d, la cobertura y la documentación).
+  · `55ed587` (9b) · `abed600` (9c) · `25874a1` (9d) · **éste** (9e, que corrige este número).
+  ⚠️ **ESTE NÚMERO LO ESCRIBÍ MAL DOS VECES**: primero ONCE, por contarlo ANTES de hacer el
+  último, y después DOCE, porque el commit que escribió la corrección también cuenta. `git log`
+  da **trece**, y ése es el número que este mismo commit publica — por eso se escribió con un
+  `--amend` sobre un commit sin pushear, que es la única forma de que el número no se corra otra
+  vez. Es la lección que PANT-6 dejó escrita con todas las letras y que PANT-11
+  y PANT-12 volvieron a pagar: **se cuenta con `git log` al final, y el commit que escribe el
+  número entra en la cuenta**.
   Al empezar, `HEAD` = **`040d89e`**, el cierre de PANT-14c, con md5 `276361e9` y el pendrive
   `DISK_IMG` montado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
   ⚠️ **POR DUODÉCIMA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
