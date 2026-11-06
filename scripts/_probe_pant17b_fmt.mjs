@@ -31,7 +31,7 @@ const ESC = {
   mch:  { mch_grad_reposo: '60' },
   vap:  { vap_tipo: 'i', vap_diam: '8' },
   ebs:  { ebs_desplazamiento: '12' },
-  fon:  { fontan_tipo: 'extracardiaco' },
+  fon:  { fontan_tipo: 'extra' },
   cvpa: { cvpa_venas_numero: '1' },
   eis:  { eis_lesion_base: 'civ' },
   civ:  { ete_civ_tipo: 'perimembranosa' },
