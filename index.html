@@ -65596,11 +65596,16 @@ function generarInforme(opts) {
         let P = null;
         try { P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null; } catch (e) { P = null; }
         if (!P) { reusar(V); return; }        // sin veredicto no se afirma nada: fail-closed
-        /* ⚠️ REDUNDANTE HOY, Y SE CONSERVA DECLARÁNDOLO: con TAVI el veredicto no trae `nivel`, así
-           que la guarda de abajo (`P.nivel !== 'normal'`) ya la caza y borrar ésta no cambia nada
-           —una mutación que la desactivaba SOBREVIVÍA—. Se queda porque es la que expresa la
-           intención (la app no gradúa esa prótesis) y la otra la cubre por accidente. TC-303 la
-           aísla forzando un veredicto TAVI con `nivel:'normal'`. */
+        /* ⚠️ ESTA GUARDA DEJO DE SER REDUNDANTE EN PANT-18-6, Y EL COMENTARIO ANTERIOR HAY QUE
+           LEERLO AL REVES. Decia que «con TAVI el veredicto no trae `nivel`, así que la guarda de
+           abajo ya la caza»: desde que la TAVI se gradua con los cortes absolutos de la protesis
+           quirurgica, SI trae `nivel`, y una TAVI con `nivel:'normal'` pasaria la guarda de abajo.
+           O sea que hoy esta linea es la UNICA que impide que el EN SUMA afirme «protesis
+           normofuncionante» sobre una TAVI.
+           SE CONSERVA A PROPOSITO: lo que esta tanda autoriza a mover del papel es la FRASE DE
+           SEVERIDAD, y esta es otra linea. Dejarla significa que una TAVI normal no recibe el
+           renglon de «normofuncionante» que si recibe una quirurgica normal; la asimetria esta
+           declarada en docs/PENDIENTES.md -> P18-d. TC-303 la aisla. */
         if (P.via === 'TAVI') { reusar(V); return; }
         if (P.nivel !== 'normal') { reusar(V); return; }
       }
@@ -72812,23 +72817,21 @@ function eaProtVeredicto(){
      cuando era null el helper ya había devuelto null. Se sacó junto con el epsilon, que existía
      sólo para simular el `>` que el helper ya sabe hacer. */
   /* ── Bloque específico ── */
-  if (esTavi) {
-    /* Decisión de Maicol (2026-09-27): el criterio TAVI es «change from baseline» y elegir CUÁL
-       estudio es el basal es una decisión clínica que la app no puede tomar sola. El mecanismo de
-       comparación SÍ existe —`verEvolucion` junta los estudios del mismo paciente por documento con
-       un predicado de identidad endurecido, y los ordena por fecha— pero «basal» en la tabla es el
-       estudio post-implante en condiciones hemodinámicas estables (nota `‖`), no «el anterior» ni
-       «el más viejo». Así que TAVI NO se gradúa: se publican los ejes del bloque general, que son
-       absolutos y no necesitan basal, y se declara que el criterio específico quedó pendiente. */
-    /* ⚠️ EL PPM SE PUBLICA TAMBIEN EN LA TAVI, y es deliberado: la Tabla 7 no abre ramas por tipo
-       de prótesis —su fila dice «Aortic EOA», no «SAVR»— y el desajuste protésico-paciente es
-       otra pregunta que la obstrucción. Lo que la TAVI no tiene es VEREDICTO DE ESTENOSIS, que es
-       lo que su criterio específico de la Tabla 5 exige comparar contra un basal. */
-    return { via:'TAVI', niveles:nv, gmed:gmed, dvi:dvi, dviNivel:_dviNivel, vmax:vmax, at:at,
-      atet:atet, vs:vs,
-      sinGraduar:true, eoaEvaluable:false, avai:avai, avaiMotivo:avaiMotivo,
-      ppm:ppmAo, ppmCortes:ppmCortesAo, imc:imcAo };
-  }
+  /* ⚠️ TAVI YA SE GRADUA, Y ESTO REVIERTE LA DECISION DEL 2026-09-27 (PANT-18-6, decision del
+     medico del 07/11/2026). Aca habia una salida temprana que devolvia `sinGraduar:true` y no
+     calculaba `nivel`: el criterio especifico de TAVI de la Tabla 5 es un CAMBIO respecto de un
+     basal y la aplicacion no elige ese basal, asi que no se emitia veredicto.
+     Lo que cambio es la decision, no la tabla. El medico la fundamenta en la practica: «en la
+     vida practica no hay basal: tenes el modelo, el paciente y sus medidas». Y la lectura en
+     imagen de la hoja 18 (folio 19 comprobado en el pie impreso) confirma la condicion que la
+     orden pone para hacerlo: la Tabla 5 NO publica ningun corte absoluto propio de TAVI —sus
+     tres filas de TAVI son las tres de cambio respecto del basal— y el contorno del chorro, el
+     AT, el AT/ET y la velocidad pico viven en el bloque «apropiado para todas las protesis
+     aorticas», que SI es absoluto. Asi que sin basal se aplican los cortes absolutos de la
+     protesis quirurgica, y la tarjeta y el papel lo DICEN con su hoja y su folio.
+     ⚠️ `via` SIGUE DICIENDO 'TAVI', y no es decorativo: es lo que hace que la salvedad del basal
+     se publique y lo que lee la guarda del EN SUMA de `_protNormofuncionante`. Lo unico que
+     desaparece es `sinGraduar`. */
   nv.gmed = _eaProtNivel(gmed, EA_PROT_CRIT.savr_gmed_normal_max, EA_PROT_CRIT.savr_gmed_signif_min, true);
   nv.dvi  = _dviNivel;
 
@@ -72845,7 +72848,7 @@ function eaProtVeredicto(){
   else if (pDep === 'signif' && pIndep === 'signif') nivel = 'signif';
   else if (pDep === 'normal' && pIndep === 'normal') nivel = 'normal';
   else nivel = 'posible';
-  return { via:'SAVR', niveles:nv, nivel:nivel, falta:falta, pDep:pDep, pIndep:pIndep,
+  return { via: esTavi ? 'TAVI' : 'SAVR', niveles:nv, nivel:nivel, falta:falta, pDep:pDep, pIndep:pIndep,
     gmed:gmed, dvi:dvi, dviNivel:_dviNivel, vmax:vmax, at:at, atet:atet, vs:vs, eoaEvaluable:false,
     avai:avai, avaiMotivo:avaiMotivo, ppm:ppmAo, ppmCortes:ppmCortesAo, imc:imcAo,
     vsFueraDeRango: vs != null && (vs < EA_PROT_VS_MIN || vs > EA_PROT_VS_MAX) };
@@ -72863,17 +72866,25 @@ const EA_PROT_TXT = Object.freeze({
   normal:  'Sin criterios de estenosis protésica',
   posible: 'Posible estenosis protésica',
   signif:  'Sugiere estenosis protésica significativa',
-  faltan:  'Falta un dato para aplicar la tabla',
-  tavi:    'TAVI — sin graduar'
+  faltan:  'Falta un dato para aplicar la tabla'
+  /* ⚠️ ACA VIVIA `tavi: 'TAVI — sin graduar'` (retirado en PANT-18-6). Se retira y no se deja
+     comentado como clave: desde que la TAVI se gradua con los cortes absolutos de la protesis
+     quirurgica no tiene UN SOLO lector —censado el archivo entero—, y una entrada muerta en la
+     tabla de veredictos es justo la que alguien repone creyendo que falta. */
 });
 const EA_PROT_SALV = Object.freeze({
   eoa: 'El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto ' +
        'del valor de referencia del MODELO implantado, y esta aplicación no registra marca ni modelo. ' +
        'El DVI queda como único eje independiente del flujo.',
-  tavi: 'El criterio específico de TAVI de la Tabla 5 es el CAMBIO respecto de un estudio ' +
-       'basal post-implante en condiciones hemodinámicas estables, y esta aplicación todavía no elige ' +
-       'ese basal: se publican los parámetros del bloque que la guía aplica a todas las prótesis ' +
-       'aórticas, que son de corte absoluto, y no se emite veredicto de estenosis.',
+  /* ⚠️ REESCRITA EN PANT-18-6. Antes cerraba con «y no se emite veredicto de estenosis», que
+     desde esta tanda es falso. Lo que la hoja dice se conserva entero —las tres filas de TAVI son
+     de cambio respecto de un basal— y se agrega que, sin ese estudio, se aplican los cortes
+     absolutos de la protesis quirurgica. Con su hoja y su folio, que es la regla de la casa para
+     una cita en pantalla. */
+  tavi: 'Para TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva como cambio ' +
+       'respecto de un estudio previo, con el basal definido como un estudio en condiciones ' +
+       'hemodinámicas estables; sin ese estudio se aplican los cortes absolutos de la prótesis ' +
+       'quirúrgica (ASE 2024, hoja 18, folio 19).',
   signif: 'Se cumplen las dos mitades que la tabla exige: un eje dependiente del flujo y uno ' +
        'independiente del flujo en rango de estenosis significativa.',
   posible: 'No se cumplen las DOS mitades que la tabla exige para «significativa» —un eje ' +
@@ -72916,11 +72927,11 @@ function eaProtNarrativa(P){
   const med = nums.length ? ' (' + nums.join(', ') + ')' : '';
   const salv = [];
   let frase, resumen;
-  if (P.via === 'TAVI') {
-    frase   = 'sin graduación de estenosis protésica' + med;
-    resumen = null;   // TAVI no se gradúa: no se afirma nada en el resumen
-    salv.push(EA_PROT_SALV.tavi);
-  } else if (P.nivel === 'faltan') {
+  /* ⚠️ ACA VIVIA LA RAMA DE TAVI (PANT-18-6). Emitia «sin graduación de estenosis protésica» y
+     `resumen` nulo, asi que el EN SUMA no decia nada de esa protesis. Desde la decision del
+     medico del 07/11/2026 la TAVI emite la MISMA frase y el MISMO resumen que las demas protesis
+     aorticas, y lo que conserva es su salvedad, que se empuja mas abajo con las otras. */
+  if (P.nivel === 'faltan') {
     frase   = 'sin datos suficientes para graduar la estenosis protésica' + med;
     resumen = null;
     salv.push('Para hablar de estenosis protésica significativa la Tabla 5 exige al menos un ' +
@@ -72938,6 +72949,7 @@ function eaProtNarrativa(P){
     resumen = R[P.nivel];
     if (P.nivel !== 'normal') salv.push(EA_PROT_SALV[P.nivel]);
   }
+  if (P.via === 'TAVI') salv.push(EA_PROT_SALV.tavi);
   salv.push(EA_PROT_SALV.eoa);
   if (P.vsFueraDeRango && P.vs != null)
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
@@ -72979,9 +72991,6 @@ window.eaProtNarrativa = eaProtNarrativa;
    los valores y nada mas. Inventarle una conclusion seria escribir contenido clinico. */
 function _eaProtPorque(P){
   if (!P) return '';
-  if (P.via === 'TAVI')
-    return 'El criterio específico de TAVI de la Tabla 5 compara contra un estudio basal, y esta '
-         + 'aplicación no elige ese basal.';
   if (P.nivel === 'faltan')
     return 'Falta ' + ((P.falta || []).join('; ')) + '.';
   const dep = [];
@@ -73005,6 +73014,12 @@ function _eaProtPorque(P){
    solos no establecen estenosis. */
 function _eaProtAvisos(P){
   const a = [];
+  /* La linea de TAVI va PRIMERA: es la que explica con que cortes se graduo, y con el tope de dos
+     avisos tiene que ganarle a las otras. La misma afirmacion esta entera en el plegable. */
+  if (P && P.via === 'TAVI')
+    a.push('Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio '
+      + 'respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la '
+      + 'prótesis quirúrgica.');
   if (P && P.vsFueraDeRango && P.vs != null)
     a.push('Volumen sistólico calculado ' + P.vs.toFixed(0) + ' mL, fuera de los '
       + EA_PROT_VS_MIN + '-' + EA_PROT_VS_MAX + ' mL que pide la nota al pie de la tabla.');
@@ -73035,10 +73050,11 @@ function _eaProtPintar(P){
   /* Se arma con la API del DOM y el texto va por `textContent`: son tres literales de una tabla
      congelada, pero la regla de la casa es no sumar hallazgos de Semgrep —y así el sink no existe
      en vez de existir y ser inofensivo—. */
-  const col = (P.via === 'TAVI') ? '#f59e0b'
-            : (P.nivel === 'faltan') ? 'var(--text2)' : COL[P.nivel];
-  const txt = (P.via === 'TAVI') ? EA_PROT_TXT.tavi
-            : (P.nivel === 'faltan') ? EA_PROT_TXT.faltan : TXT[P.nivel];
+  /* ⚠️ TAVI YA NO TIENE RAMA PROPIA ACA (PANT-18-6): el color y el texto salen del `nivel`, igual
+     que en una protesis quirurgica, que es lo que la decision del medico pide. Lo que distingue a
+     la TAVI es la salvedad del basal, que se publica abajo. */
+  const col = (P.nivel === 'faltan') ? 'var(--text2)' : COL[P.nivel];
+  const txt = (P.nivel === 'faltan') ? EA_PROT_TXT.faltan : TXT[P.nivel];
   sevEl.textContent = '';
   const sp = document.createElement('span');
   sp.style.color = col; sp.style.fontWeight = '700'; sp.textContent = txt;

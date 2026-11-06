@@ -39537,19 +39537,32 @@ caso('TC-290', 'Protesis aortica Fase 2: la severidad sale de la Tabla 5 de la A
         '» 35=«' + bGmed.b35 + '» · dvi 0.36=«' + bDvi.b036 + '» 0.35=«' + bDvi.b035 +
         '» 0.25=«' + bDvi.b025 + '» 0.24=«' + bDvi.b024 + '»']);
 
-      /* ── TAVI NO SE GRADUA, Y SE DICE POR QUE ──
-         Decision de Maicol (2026-09-27): el criterio especifico de TAVI de la Tabla 5 es el CAMBIO
-         respecto de un estudio basal post-implante en condiciones hemodinamicas estables —nota «‖»—
-         y elegir ese basal es una decision clinica. Se publican los ejes absolutos y no se emite
-         veredicto; publicar uno con los cortes de SAVR seria citar la fila equivocada. */
+      /* ── TAVI SI SE GRADUA, Y SE DICE CON QUE CORTES (INVERTIDA EN PANT-18-6) ──
+         ⚠️ ES EL DIA QUE ESTA CONDICION ANUNCIABA. Nacio con la decision de Maicol del 2026-09-27
+         —el criterio especifico de TAVI de la Tabla 5 es el CAMBIO respecto de un basal, asi que
+         no se emitia veredicto— y la decision del medico del 07/11/2026 la revierte: «en la vida
+         practica no hay basal: tenes el modelo, el paciente y sus medidas». La lectura en imagen
+         de la hoja 18 (folio 19) confirma la condicion que lo habilita: la Tabla 5 NO publica
+         ningun corte absoluto propio de TAVI, y el bloque «apropiado para todas las protesis
+         aorticas» SI es absoluto.
+         La condicion queda MAS FUERTE que antes: exige que la TAVI gradue, que lo haga con el
+         MISMO veredicto que una protesis mecanica con los mismos datos, que sinGraduar ya no
+         exista, y que la salvedad siga declarando el basal. Asi puede fallar por los dos lados. */
+      /* ⚠️ LA MORFOLOGIA VA CON TILDES: el value de la opcion es «Prótesis mecánica», y un valor
+         que no es ninguna opcion deja el select en cadena vacia — el veredicto sale null y la
+         comparacion se hace contra la nada. Costo una corrida. */
       const dTavi = esc('n022', { va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45' });
       const pTavi = eaProtVeredicto();
-      ex.push(['con TAVI no se emite veredicto de estenosis y la nota declara que el criterio es el CAMBIO respecto de un basal post-implante',
-        pTavi != null && pTavi.via === 'TAVI' && pTavi.sinGraduar === true &&
-        pl(dTavi.txt).indexOf('sin graduar') > -1 &&
-        pl(dTavi.txt).indexOf('sugiere') === -1 &&
+      const dMecC = esc('n022', { va_morf:'Prótesis mecánica', vmax_ao:'4.5', gmedio_ao:'45' });
+      const pMecC = eaProtVeredicto();
+      ex.push(['con TAVI SI se emite veredicto, con el mismo nivel que una protesis quirurgica con los mismos datos, y la salvedad sigue declarando el basal',
+        pTavi != null && pTavi.via === 'TAVI' && pTavi.sinGraduar === undefined &&
+        pTavi.nivel != null && pMecC != null && pTavi.nivel === pMecC.nivel &&
+        pl(dTavi.txt).indexOf('sin graduar') === -1 &&
+        pl(dTavi.txt) === pl(dMecC.txt) &&
         pl(dTavi.nota).indexOf('basal') > -1,
-        'via=' + (pTavi ? pTavi.via : 'null') + ' capsula=«' + dTavi.txt + '»']);
+        'via=' + (pTavi ? pTavi.via : 'null') + ' nivelTAVI=' + (pTavi ? pTavi.nivel : '-') +
+        ' nivelMEC=' + (pMecC ? pMecC.nivel : '-') + ' capsula=«' + dTavi.txt + '»']);
 
       /* ── ⚠️ LA VALVULA NATIVA NO VE NADA DE ESTO ──
          Es la condicion que separa «se agrego una rama» de «se rompio la cascada de siempre». El
@@ -41454,8 +41467,19 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
         'suma TAVI=' + tavi.lineas.length + ' lineas · cuerpo TAVI=«' + lineaCuerpoTavi.slice(0, 60) + '»'],
       ['⚠️ TAVI con los valores de la captura: el EN SUMA NO dice «normofuncionante»',
         !tavi.nf, tavi.suma.split(NL).join(' | ')],
-      ['y en su lugar reutiliza la linea que el cuerpo ya imprimio, sin texto nuevo',
-        tavi.lineas.indexOf(lineaCuerpoTavi) > -1, tavi.suma.split(NL).join(' | ')],
+      /* ⚠️ INVERTIDA EN PANT-18-6, CON EL MISMO TRATAMIENTO QUE LA PULMONAR RECIBIO EN LA TANDA D
+         —ver el comentario de esa condicion, cuatro mas abajo—. Hasta hoy la TAVI no se graduaba,
+         asi que su resumen era nulo y suprimir «normofuncionante» se compensaba empujando al
+         EN SUMA la oracion ENTERA del cuerpo, con sus numeros. Desde la decision del medico del
+         07/11/2026 la TAVI gradua con los cortes absolutos de la protesis quirurgica y tiene su
+         propia linea corta, asi que el reuso ya no corre.
+         La intencion no cambia —el resumen no puede afirmar normofuncion ni quedarse MUDO— y la
+         condicion queda MAS FUERTE: exige su linea corta, exige que la oracion larga del cuerpo
+         NO este, y exige que esa linea sea la MISMA que la de una protesis quirurgica. */
+      ['y en su lugar publica su propia linea corta, sin la oracion larga del cuerpo',
+        tavi.lineas.length > 0 && tavi.lineas.indexOf(lineaCuerpoTavi) === -1 &&
+        tavi.suma.indexOf('Prótesis aórtica:') > -1,
+        tavi.suma.split(NL).join(' | ')],
       ['TAVI con todo NORMAL tampoco la afirma: la app no la gradua, punto',
         !taviN.nf, taviN.suma.split(NL).join(' | ')],
       ['SAVR a la que le falta el DVI: el cuerpo dice «sin datos suficientes» y el resumen no afirma normofuncion',
