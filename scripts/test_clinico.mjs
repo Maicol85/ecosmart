@@ -119699,6 +119699,10 @@ caso('TC-718', 'Tanda PANT-17 (commit 6): la ventana aortopulmonar publica seis 
   ex.push(['(A0 DENOM) el registro existe', typeof PREG, 'object']);
   ex.push(['(A1) y trae SEIS preguntas', PREG.length, 6]);
   ex.push(['(A2) ninguna clave se repite', new Set(PREG.map(p => p.clave)).size, 6]);
+  /* NACIO DE UNA MUTACION QUE SOBREVIVIO: sin esta condicion, sacarle la guia a una
+     pregunta —que es lo que le da su etiqueta y su nota— pasaba en verde. */
+  ex.push(['(A2b) y las seis traen clave, rotulo, guia y lo que la serie muestra',
+    PREG.filter(p => p.clave && p.lbl && p.guia && p.rec).length, 6]);
   ex.push(['(A3) la seccion esta registrada en SECS',
     SECS.filter(s => s.tit === 'Ventana aortopulmonar').length, 1]);
   ex.push(['(A4) y la entrada bibliografica de la serie existe',
