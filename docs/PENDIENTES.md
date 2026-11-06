@@ -14407,3 +14407,111 @@ Los tres documentos del commit 7 cierran con una lista de decisiones que le toca
 - `docs/INVENTARIO_PULMON_INTERACTIVO.md` — **cuatro**: si el dibujo del pulmón se reusa o se hace
   uno nuevo; si debería mostrar la consolidación y el neumotórax; si las seis zonas de líneas B
   deberían verse; y que **primero** hay que resolver la severidad por lado.
+
+# TANDA PANT-14c (2026-11-05/06) — lo declarado
+
+## P14c-a · El texto chico que NO cae claramente en ninguna de las dos listas
+
+La orden del commit 4b manda quitar los textos que repiten lo que el título o el dibujo ya dicen,
+mantener los que listan lo que NO se dibuja y el aviso de conexión, y **no tocar** lo que no caiga
+claramente en una de las dos listas.
+
+**Lo medido alrededor del dibujo, texto por texto:**
+
+| texto | qué se hizo | por qué |
+|---|---|---|
+| «Todas las lesiones cargadas están dibujadas.» | **quitado** | repite lo que el dibujo muestra y lo que el título nombra |
+| «Modo Explorar: el dibujo es el que elegiste acá y no el del estudio. Nada de esto se guarda.» | **quitado** | el título dice qué se dibuja y el control segmentado dice en qué modo está |
+| «Modelo en 3D esquemático, no a escala. Se rota arrastrando.» | **movido al ⓘ** del recuadro | dos aclaraciones que no cambian con el paciente |
+| «Necesita conexión para cargar la librería 3D.» | **quitado del texto fijo**; el aviso **dinámico** de `cm3dBoot` es el que queda | la orden pide el aviso «cuando falta la librería», no siempre |
+| «Cargadas y no dibujadas todavía: …», «No se dibujan juntas — …», «falta consignar …» | **se mantienen** | listan lo que NO se dibuja, que es información que el dibujo no da |
+| **el párrafo de `#cm3d-estb`**: «El corazón se arma solo con lo cargado en las pestañas de congénitas y no se edita acá. «Explorar» abre las listas para…» | **NO se tocó** | ⚠️ **lo encontró la medición**, no el censo: es un **segundo** texto del modo, al lado del control segmentado. La orden nombra «la descripción del modo» entre lo que se quita, y la que quité es la que empezaba con «Modo Explorar» en la línea de estado. Éste explica además de dónde sale el dibujo —que se arma con lo cargado en las pestañas— y que en «Según el estudio» no se edita, que es mecanismo y no una repetición del título. **Decisión del médico.** |
+| el párrafo de `#cm3d-schcap` (la línea de la circulación debajo del esquema) | **no se tocó** | no es un texto explicativo: es el contenido de la escena, el mismo que el ⓘ publica |
+| **«Sin lesiones cargadas que dibujar: se muestra el corazón normal.»** | **NO se tocó** | ⚠️ **no cae claramente en ninguna de las dos listas.** No lista lo que no se dibuja, pero tampoco repite lo que el dibujo muestra: dice que el corazón normal que se ve **no es** un dato de este paciente, que es lo único que distingue «el estudio no tiene nada» de «el estudio tiene un corazón normal medido». Con el título en «Normal» se podría leer como redundante. **Decisión del médico.** |
+
+---
+
+## P14c-b · La apertura automática de secciones contradice «siempre cerradas», y se declara
+
+`secAutoOpen(tabId)` —que `showTab` llama en **toda** entrada a una pestaña— abre los acordeones
+que tienen un dato cargado adentro. Eso contradice de frente la regla que el médico pidió para
+congénitas: «al entrar a la pestaña, todas cerradas».
+
+**Lo que se hizo, y lo que NO:**
+
+* **`secAutoOpen` no se eliminó.** Sigue corriendo en todas las pestañas y sus tres guardas
+  —`:not([readonly])`, `:not([data-espejo])` y `:not([data-ui])`, que son las que impiden que un
+  control de interfaz abra una sección sola— siguen afirmadas por la suite.
+* El cierre de las secciones de congénitas corre **después** de `secAutoOpen`, y sólo para las
+  dos pestañas de congénitas. Para esas dos, entonces, la apertura automática **deja de tener
+  efecto**.
+* **Censado**: la suite afirma el mecanismo que **impide** que `secAutoOpen` abra una sección
+  (`data-ui` en los tres controles del 3D de la TGA — TC-514, y los espejos de CIA/CIV — TC-513).
+  **Ninguna condición afirma que una sección con un dato del paciente se abra sola.**
+
+**Decisión del médico**: si quiere que en congénitas una sección con datos siga abriéndose sola
+—y entonces la regla «siempre cerradas» vale sólo para las vacías—, o si el cierre tiene que
+alcanzar también a las otras pestañas.
+
+---
+
+## P14c-c · El anillo de la obstrucción subaórtica aporta MENOS píxeles que antes, y es lo correcto
+
+Contados los píxeles del gris de obstrucción con «Por dentro» **apagado** —que es el estado en que
+`P14b-i` lo midió—, el anillo pasa de:
+
+| variante | HEAD | ahora |
+|---|---|---|
+| d-TGA | 143 px | **86** |
+| Jatene | 140 | **64** |
+| switch auricular | 144 | **98** |
+| ccTGA | 138 | **81** |
+| Rastelli | 402 (incluye el tronco ligado) | **356** |
+
+**Aporta menos y eso es exactamente lo que «acostado» significa**: PANT-14b lo dejó en el plano XY
+—el que la cámara mira de frente—, así que se veía como un aro de frente y cubría más superficie;
+ahora está **transversal al eje de la aorta**, así que la cámara lo ve de canto. Sigue siendo
+visible: el delta contra el control sin obstrucción es **+86 px** en la d-TGA (0 → 86).
+
+**No es un defecto y no se cambió.** Si el médico lo quiere más grueso, lo que se mueve es el
+radio del tubo del toro —hoy 0,08 para el gris, en el motor del módulo—, que es una línea.
+
+---
+
+## P14c-d · Lo que esta tanda dejó sin tocar en la pestaña de transposición
+
+El commit 5 mueve los campos y retira el botón, y **nada más**. Lo que queda en pie y se declara:
+
+* **`#tga-3d-box` sigue en el DOM con `display:none`**, como PANT-14b lo dejó: sus ids los leen el
+  recolector del PDF, cinco funciones de esa pestaña y varios casos de la suite. No se borra.
+* **`tgaVer3D` no se borra** aunque su botón ya no esté: la llama la suite y queda como el camino
+  con nombre para abrir el módulo con este estudio.
+* **`#tga-campos` y la clase `tga-sint-ancho` se retiraron.** La clase existía porque los once
+  campos iban en **una** grilla de dos columnas y con la cirugía visible el ancho completo de
+  «Síntomas» cerraba la quinta fila sin hueco; con los campos en cuatro grupos no hay fila que
+  cerrar. El `grid-column` de la caja de conclusión también se fue: hoy es hija de `#tga-fila`.
+* **`#tga-fila` dejó de ser flex.** Su flex de 900 px existía para poner los campos al lado del
+  recuadro del 3D, y ese recuadro ya no se dibuja ahí. **Medido**: con flex y el recuadro oculto,
+  la caja de conclusión quedaba como **segunda columna** en vez de debajo.
+
+---
+
+## P14c-e · A 390 px la sección de transposición queda MÁS ALTA, y es el precio de la agrupación
+
+Medido el alto de la sección en las ocho combinaciones de Tipo × Cirugía, a los cuatro anchos:
+
+| ancho | HEAD (según la combinación) | ahora |
+|---|---|---|
+| 1440 px | 434 a **524** | **476 en las ocho** |
+| 1000 px | 432 a **543** | 458 a 473 |
+| 768 px | 475 a **547** | 458 a 514 |
+| **390 px** | 526 a 652 | **699 a 804** |
+
+**A 1440 px el alto deja de depender de la combinación**, que es justo el hueco que el médico
+reportó: con d-TGA bajaba de 509 a 476 y con el switch auricular de 524 a 476.
+
+⚠️ **Por debajo del corte de 768 px sube**, entre 150 y 190 px: ahí la grilla es de **una** columna
+y a los once campos se les suman los **cuatro encabezados de grupo**. Es la misma aritmética que
+`P9-e` declaró para las siete pantallas de congénitas, y **no se cambió la disposición para
+compensarlo**: el pedido del médico es la agrupación por temas, y los cortes son los que la orden
+fija. **Decisión del médico** si en el teléfono prefiere los campos sin encabezados de grupo.

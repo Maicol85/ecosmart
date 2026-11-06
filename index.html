@@ -2411,18 +2411,20 @@
     .teer-figrow > .teer-figcol { flex:1 1 100%; }
     .teer-figrow > .teer-fig { flex:0 0 auto; width:100%; max-width:220px; }
   }
-  #tga-campos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;
-                align-items:start; }
-  #tga-campos.tga-sint-ancho > #tga-sintomas-fg { grid-column:1 / -1; }
-  /* ⚠️ LA CONCLUSION VIVE DENTRO DE `#tga-campos`, Y ES PEDIDO DEL MEDICO (TGA-3, 2026-11-01).
-     Antes colgaba de la seccion a ancho completo, DEBAJO de las dos columnas, y eso dejaba un
-     hueco vacio bajo los campos: medido, 368 px de alto por 549 de ancho a 1440 px y 475 x 358
-     a 1000. Ponerla como hijo de la grilla con `grid-column:1 / -1` la mete en ese hueco sin
-     tocar la maqueta de dos columnas: `#tga-fila` sigue teniendo EXACTAMENTE DOS hijos, asi que
-     el flex de 900 px no cambia, y por debajo de 900 px queda apilada DESPUES de los campos y
-     ANTES del diagrama, que es el orden que la orden pide. Su `margin-top` sale del `gap` de la
-     grilla; el que traia en linea la separaria el doble. */
-  #tga-campos > #tga-concl-box { grid-column:1 / -1; margin-top:2px; }
+  /* ⚠️ `#tga-campos` SE RETIRO CON LA GRILLA DE GRUPOS (PANT-14c, commit 5c). Era la grilla
+     unica de dos columnas de los once campos; hoy los campos viven en `#tga-grupos`, repartidos
+     en cuatro grupos con su encabezado, y su CSS esta junto al de las otras grillas de columnas.
+     Con el retiro se van tambien `tga-sint-ancho` —la clase que le daba el ancho completo a
+     «Sintomas» para cerrar la quinta fila sin hueco, una cuenta que la grilla por grupos ya no
+     necesita— y el `grid-column` de la caja de conclusion, que ahora es un hijo propio de
+     `#tga-fila` y va a todo el ancho por la maqueta de abajo. */
+  /* ⚠️ LA CONCLUSION VA A TODO EL ANCHO, DEBAJO DE LOS GRUPOS (PANT-14c, commit 5c), que es lo
+     que la orden pide. `#tga-fila` deja de ser flex: el recuadro del 3D que estaba a su lado se
+     retiro en PANT-14b -queda en el DOM con `display:none`- asi que un flex pondria la
+     conclusion al lado de los campos en vez de debajo. Medido: con flex y el recuadro oculto,
+     `#tga-concl-box` quedaba como segunda columna. */
+  #tga-fila { display:block; }
+  #tga-fila > #tga-concl-box { margin-top:10px; }
   #tga-fila > #tga-3d-box { margin-top:12px; }
   /* ══ EL ESQUEMA DE CIRCULACION, DENTRO DEL RECUADRO DEL 3D (TGA-3) ═════════════════════════
      Los tres colores NO son nuevos: son exactamente los que la leyenda de este mismo recuadro
@@ -2449,11 +2451,9 @@
     #tga-esq-fila > #tga-3d-cv { flex:1 1 auto; min-width:0; }
     #tga-esq-fila > #tga-esq-box { flex:0 0 268px; max-width:268px; }
   }
-  @media (min-width: 900px) {
-    #tga-fila { display:flex; gap:14px; align-items:flex-start; }
-    #tga-fila > #tga-campos { flex:0 0 46%; min-width:0; }
-    #tga-fila > #tga-3d-box { flex:1 1 auto; min-width:0; margin-top:0; }
-  }
+  /* ⚠️ EL FLEX DE 900 px SE RETIRO (PANT-14c, commit 5c): existia para poner los campos al lado
+     del recuadro del 3D, y ese recuadro ya no se dibuja en esta seccion desde PANT-14b. Lo que
+     reparte en columnas ahora es `#tga-grupos`, con sus propios cortes de 768 y 1000 px. */
   /* ══ EL DESPLEGABLE DE FARMACOS ══ Cerrado por omision; el contador lo escribe `popSync`. */
   .pop-farm > summary { cursor:pointer; list-style:none; display:flex; align-items:center;
                         gap:8px; min-height:32px; margin-bottom:0; }
@@ -4664,6 +4664,20 @@ html.light-mode .amilo-root{
 }
 @media (min-width:1260px){
   .cc9-fila{grid-template-columns:minmax(0,1fr) 360px;}
+}
+/* ══ LA GRILLA DE GRUPOS DE LA TRANSPOSICION (PANT-14c, commit 5c) ══════════════════════
+   Los cortes son los que la orden fija y van en media queries EXPLICITAS, con el piso
+   DENTRO de cada una: una columna por debajo de 768 px, dos desde 768 y tres desde 1000.
+   Las columnas y sus encabezados reusan `.cc9-col` y `.cc9-h`, que es el patron de la
+   conexion venosa pulmonar anomala que la orden nombra: un solo juego de estilos. */
+#tga-grupos{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;
+  margin-bottom:10px;}
+#tga-grupos > .cc9-col{min-width:0;}
+@media (min-width:768px){
+  #tga-grupos{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (min-width:1000px){
+  #tga-grupos{grid-template-columns:repeat(3,minmax(0,1fr));}
 }
 #dpt-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start;
   margin-bottom:10px;}
@@ -20727,13 +20741,29 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.5;">
         Transposición de grandes arterias: el tipo y la cirugía describen el dibujo, la conclusión y el informe.
       </p>
-      <!-- ⚠️ `#tga-fila` ES LA MAQUETA LADO A LADO y `#tga-campos` la grilla unica de dos
-           columnas; el porque de las dos cosas esta en la hoja de estilos, junto al selector.
+      <!-- ⚠️ `#tga-fila` ES EL CONTENEDOR DE LA SECCION. Hasta PANT-14b era la maqueta LADO A
+           LADO, con los campos a la izquierda y el recuadro del 3D a la derecha; ese recuadro ya
+           no se dibuja aca, asi que hoy apila: la grilla de grupos y, debajo y a todo el ancho,
+           la conclusion. El porque esta en la hoja de estilos, junto al selector.
            Ningun `id` de campo cambio y el orden del marcado ES el orden visual, asi que la
            tabulacion lo sigue sin un solo `tabindex`. -->
       <div id="tga-fila">
-      <div id="tga-campos">
-        <div class="fg"><label>Tipo</label>
+      <!-- ══ LOS CAMPOS, AGRUPADOS EN COLUMNAS (PANT-14c, commit 5c) ═══════════════════════
+           PEDIDO DEL MEDICO (06/11/2026): al retirar el dibujo la pestania quedo con un hueco;
+           los campos pasan a una grilla agrupada como la de la conexion venosa pulmonar anomala
+           -encabezados de grupo en azul chico y `.cc9-col` para cada columna-, con TRES columnas
+           desde 1000 px, DOS desde 768 y una debajo.
+           ⚠️ NINGUN CAMPO, NINGUN id, NINGUN ROTULO Y NINGUNA OPCION SE TOCARON: los once `.fg`
+           se movieron tal cual, extraidos POR BALANCE DE ETIQUETAS y no «hasta el siguiente
+           div», que es lo que PANT-11 pago con una seccion anidada. El orden del marcado sigue
+           siendo el orden visual, asi que la tabulacion lo sigue sin un solo `tabindex`.
+           ⚠️ UN GRUPO SIN NINGUN CAMPO VISIBLE NO OCUPA ESPACIO, y lo decide `tgaGruposSync`,
+           que corre dentro de `tgaSync` -el dueno de mostrar y esconder cada campo-: con dos
+           duenos un grupo podria quedar vacio y ocupando su columna. -->
+      <div id="tga-grupos">
+          <div class="cc9-col" id="tga-g1">
+            <div class="cc9-h">Tipo y cirug&iacute;a</div>
+            <div class="fg"><label>Tipo</label>
           <select id="tga_tipo" onchange="tgaSync()">
             <option value="">—</option>
             <!-- ⚠️ `dtga` ES UN VALOR NUEVO DE UN CAMPO QUE YA EXISTE (TGA-1), no un campo ni una
@@ -20749,11 +20779,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="senning">Post-Senning</option>
           </select>
         </div>
-        <!-- ⚠️ `tga-cirugia-row` CONSERVA SU `id` AUNQUE YA NO ES UNA FILA: lo busca `tgaSync`
-             para mostrarlo y esconderlo, y renombrarlo era cambiar dos cosas en vez de una.
-             Hoy es un grupo de campo dentro de la grilla unica, asi que al esconderlo los
-             campos de abajo CORREN y no queda la celda vacia que la maqueta vieja dejaba. -->
-        <div class="fg" id="tga-cirugia-row" style="display:none;"><label>Cirugía realizada</label>
+            <div class="fg" id="tga-cirugia-row" style="display:none;"><label>Cirugía realizada</label>
           <select id="tga_cirugia" onchange="tgaSync()">
             <option value="">—</option>
             <option value="ninguna">Sin cirugía</option>
@@ -20762,11 +20788,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="rastelli">Rastelli</option>
           </select>
         </div>
-        <!-- ⚠️ ESTE GRUPO SE OCULTA CON JATENE Y CON RASTELLI, y el `id` existe para eso.
-             En esas dos cirugias el ventriculo sistemico es el izquierdo, asi que el rotulo
-             «Funcion del VD sistemico» pregunta por algo que no es. Se ESCONDE y nunca se borra:
-             nada automatico escribe en el estudio. Lo hace `tgaSync`, que es el dueno. -->
-        <div class="fg" id="tga-funcvd-fg"><label>Función del VD sistémico</label>
+          </div>
+          <div class="cc9-col" id="tga-g2">
+            <div class="cc9-h">Ventr&iacute;culo sist&eacute;mico</div>
+            <div class="fg" id="tga-funcvd-fg"><label>Función del VD sistémico</label>
           <select id="tga_func_vd" onchange="tgaSync()">
             <option value="">—</option>
             <option value="normal">Normal</option>
@@ -20775,53 +20800,48 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <option value="severa">Disfunción severa</option>
           </select>
         </div>
-        <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
+            <div class="fg"><label>Diámetro del VD sistémico (de VD / AD)</label>
           <input type="text" id="tga_dilatacion_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-      <!-- ⚠️ LA CIRUGIA SE MUESTRA SOLO CON `tga_tipo = dtga`, y el motivo no es maqueta.
-           Con `cctga` la demo aprobada IGNORA la cirugía (`var o=(a==='dtga')?op:'none'`), y con
-           `mustard` o `senning` la cirugía YA la dice el propio tipo: ofrecerla ahí dejaría
-           armar «Post-Mustard + Jatene», que es una contradicción que ningún lector podría
-           resolver. `tgaEjes()` es el dueño único de esa derivación.
-           ⚠️ LOS CUATRO VALORES AUTORIZADOS ESTAN PUBLICADOS (TGA-2). La TGA-1 había parado
-           «switch arterial (Jatene)» y «Rastelli» porque en los dos el ventrículo sistémico es
-           el IZQUIERDO y `tgaConclusion` abría el informe FIRMADO afirmando lo contrario. La
-           decisión del médico del 31/10/2026 resuelve eso por el lado del texto y no del campo:
-           con esas dos cirugías el papel DESCRIBE —tipo, cirugía y datos cargados— y no
-           interpreta, así que ninguna de las oraciones del ventrículo derecho sistémico se
-           emite. Cierra docs/PENDIENTES.md → TGA-a. -->
-        <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
+            <div class="fg"><label>IT sistémica — grado (de Válvulas)</label>
           <input type="text" id="tga_it_ro" readonly tabindex="-1" placeholder="—" style="opacity:.7;"></div>
-        <div class="fg"><label>Bloqueo AV completo</label>
-          <select id="tga_bav" onchange="tgaSync()">
-            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
-          </select>
-        </div>
-        <div class="fg"><label>Obstrucción subaórtica</label>
+          </div>
+          <div class="cc9-col" id="tga-g3">
+            <div class="cc9-h">Obstrucci&oacute;n y CIV residual</div>
+            <div class="fg"><label>Obstrucción subaórtica</label>
           <select id="tga_obstr_subaortica" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-        <div class="fg"><label>CIV residual</label>
+            <div class="fg"><label>Gradiente subaórtico (mmHg)</label><input type="number" id="tga_grad_subaortico" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+            <div class="fg"><label>CIV residual</label>
           <select id="tga_civ_residual" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No evaluada</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
-        <div class="fg" id="tga-sintomas-fg"><label>Síntomas</label>
+            <div class="fg"><label>Gradiente CIV residual (mmHg)</label><input type="number" id="tga_civ_grad" step="1" placeholder="mmHg" oninput="tgaSync()"></div>
+          </div>
+          <div class="cc9-col" id="tga-g4">
+            <div class="cc9-h">Cl&iacute;nica</div>
+            <div class="fg"><label>Bloqueo AV completo</label>
+          <select id="tga_bav" onchange="tgaSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+            <div class="fg" id="tga-sintomas-fg"><label>Síntomas</label>
           <select id="tga_sintomas" onchange="tgaSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <!-- ⚠️ LA CONCLUSION VA ACA, EN LA COLUMNA IZQUIERDA Y BAJO LOS CAMPOS, por pedido del
-             medico (TGA-3). Es el ULTIMO hijo de `#tga-campos` a proposito: el orden del marcado
-             ES el orden visual y el de tabulacion, asi que la conclusion queda despues del
-             ultimo campo sin un solo `tabindex`. Su `id` NO cambio -lo escribe `tgaSync`- y su
-             CONTENIDO tampoco: esta tanda la mueve, no la reescribe. -->
-        <div class="calc-box" id="tga-concl-box">
-          <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
-        </div>
-      </div><!-- /#tga-campos -->
+          </div>
+      </div>
+      <!-- ⚠️ LA CONCLUSION VA DEBAJO DE LOS GRUPOS Y A TODO EL ANCHO, que es lo que la orden de
+           PANT-14c pide. Sigue siendo el ULTIMO hijo antes del recuadro oculto del 3D a
+           proposito: el orden del marcado ES el orden visual y el de tabulacion, asi que la
+           conclusion queda despues del ultimo campo sin un solo `tabindex`. Su `id` NO cambio
+           -lo escribe `tgaSync`- y su CONTENIDO tampoco. -->
+      <div class="calc-box" id="tga-concl-box">
+        <div class="calc-row"><span class="calc-lbl">Conclusión</span><span id="tga-concl" class="calc-val">—</span></div>
+      </div>
       <!-- ══ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2) ══════════════════════════════════════
            Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html` SIN reinterpretar su geometria:
            los arrays de puntos, `scenario()`, el armado y la animacion son los de la demo, y la
@@ -20869,11 +20889,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            el lienzo no tiene `offsetParent`, asi que `_tga3dVisible()` da falso y el motor y la
            libreria 3D YA NO SE CARGAN desde aca, que es la otra mitad de lo que la orden pide.
            Lo que queda sin uso se declara en docs/PENDIENTES.md -P13-c-. -->
-      <div style="margin-top:12px;text-align:center;">
-        <button type="button" class="btn btn-ghost" id="tga-ver3d" style="min-height:44px;"
-                onclick="tgaVer3D()"
-                title="Abrir el corazón en 3D de congénitas con este estudio">🫀 Ver en 3D</button>
-      </div>
+      <!-- ⚠️ EL BOTON «Ver en 3D» PROPIO DE ESTA SECCION SE RETIRO (PANT-14c, commit 5b).
+           PEDIDO DEL MEDICO: queda el «Ver en 3D» COMUN, el que vive debajo de las secciones
+           de congenitas. Tener dos botones para el mismo panel es la clase de cosa que deja
+           uno de los dos sin arreglar el dia que el panel cambie. `tgaVer3D` NO se borra: la
+           llaman la suite y queda como el camino con nombre para abrir el modulo con este
+           estudio. -->
       <div class="calc-box" id="tga-3d-box" style="margin-top:12px;display:none;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <span style="font-size:12px;font-weight:700;color:var(--accent2);">Diagrama 3D</span>
@@ -20933,7 +20954,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <p id="tga-3d-estado" style="font-size:10.5px;color:var(--text2);margin:6px 0 0;line-height:1.5;"></p>
       </div><!-- /#tga-3d-box -->
       </div><!-- /#tga-fila -->
-      <!-- ⚠️ LA CONCLUSION SE MUDO ARRIBA, dentro de `#tga-campos` (TGA-3): el medico la pidio
+      <!-- ⚠️ LA CONCLUSION SE MUDO ARRIBA, debajo de la grilla de grupos (TGA-3 y PANT-14c): el medico la pidio
            en el hueco bajo los campos. El renglon que decia que iba «DEBAJO DE TODO y a ancho
            completo … el veredicto de la seccion entera, no de una de las dos columnas» describia
            la maqueta anterior y dejo de ser cierto.
@@ -103136,14 +103157,11 @@ function tgaSync(){
   const _fila = document.getElementById('tga-cirugia-row');
   const _cirVisible = (_ej.tipo === 'dtga');
   if (_fila) _fila.style.display = _cirVisible ? '' : 'none';
-  /* ⚠️ «Sintomas» OCUPA LAS DOS COLUMNAS SOLO CON LA CIRUGIA VISIBLE, y el motivo es una cuenta,
-     no una preferencia: con la cirugia hay diez campos antes, o sea cinco filas llenas, y el
-     ancho completo cierra la sexta sin hueco; sin la cirugia hay nueve, asi que «Sintomas» cae en
-     la columna 2 de la quinta fila y forzarle el ancho la empujaria a una fila propia, CREANDO el
-     hueco que la maqueta nueva viene a sacar. El dueno de las dos cosas es el mismo —esta
-     funcion—, asi que no pueden discrepar. */
-  const _camp = document.getElementById('tga-campos');
-  if (_camp) _camp.classList.toggle('tga-sint-ancho', _cirVisible);
+  /* ⚠️ EL ANCHO COMPLETO DE «Sintomas» SE RETIRO (PANT-14c, commit 5c), y con el la cuenta que
+     lo decidia. Existia porque los once campos iban en UNA grilla de dos columnas y con la
+     cirugia visible el ancho completo cerraba la quinta fila sin hueco; con los campos repartidos
+     en cuatro grupos con su encabezado, «Sintomas» es el segundo campo de su propio grupo y no
+     hay fila que cerrar. `#tga-campos` ya no existe: lo reemplaza `#tga-grupos`. */
   /* ⚠️ MISMA REGLA QUE LA FILA DE CIRUGIA: se esconde, nunca se borra. Con Jatene y con Rastelli
      el ventrículo sistémico es el izquierdo, así que el campo pregunta por algo que no existe en
      ese paciente; el valor que hubiera quedado de un tipo anterior sigue en el estudio y en el
@@ -103151,10 +103169,34 @@ function tgaSync(){
      en `tgaConclusion`: no lo publica, y está declarado. */
   const _fvd = document.getElementById('tga-funcvd-fg');
   if (_fvd) _fvd.style.display = (_ej.cir === 'jatene' || _ej.cir === 'rastelli') ? 'none' : '';
+  /* ⚠️ Y LOS GRUPOS SE ESCONDEN CON SUS CAMPOS (PANT-14c, commit 5c). Va DESPUES de las dos
+     lineas de arriba, que son las que deciden que campo se ve: un grupo cuyos campos estan
+     todos escondidos no puede quedar ocupando su columna con el encabezado solo, que es
+     exactamente el hueco que esta tanda viene a sacar. */
+  if (typeof tgaGruposSync === 'function') { try { tgaGruposSync() } catch (e) {} }
   const c = tgaConclusion();
   txt('tga-concl', c ? c.txt : '—');
   if (typeof tga3dSync === 'function') { try { tga3dSync(); } catch (e) {} }
 }
+/* ══ UN GRUPO SIN CAMPOS VISIBLES NO OCUPA ESPACIO (PANT-14c, commit 5c) ═══════════════════
+   Se le pregunta al `display` COMPUTADO de cada `.fg` del grupo y no a su atributo: el campo se
+   esconde con `style.display`, pero una regla de la hoja de estilos podria esconderlo tambien, y
+   lo que importa es si el medico lo ve. El grupo se esconde con `display:none`, que en una
+   grilla saca su pista entera. */
+function tgaGruposSync() {
+  const g = document.getElementById('tga-grupos');
+  if (!g) return;
+  Array.prototype.forEach.call(g.querySelectorAll('.cc9-col'), function (col) {
+    const fgs = col.querySelectorAll('.fg');
+    let alguno = false;
+    Array.prototype.forEach.call(fgs, function (f) {
+      f.style.display = f.style.display;  /* no se toca: solo se lee */
+      if (getComputedStyle(f).display !== 'none') alguno = true;
+    });
+    col.style.display = (fgs.length && !alguno) ? 'none' : '';
+  });
+}
+window.tgaGruposSync = tgaGruposSync;
 window.tgaSync = tgaSync; window.tgaConclusion = tgaConclusion;
 /* ══════════════ EL DIAGRAMA 3D DE LA TRANSPOSICION (TGA-2, 2026-10-31) ═══════════════════════
    Portado de `docs/3d/demo_tga_3d_esquema_aprobado.html`. Los arrays de puntos, `tga3dEscena()`,
@@ -161925,8 +161967,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2206';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793927199325;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2221';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793928105155;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -162012,7 +162054,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2206</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2221</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
