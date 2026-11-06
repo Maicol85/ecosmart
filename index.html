@@ -97315,6 +97315,69 @@ function _epAssertUmbrales(){
    estudio previo. Un TAPSE bajo de hoy no es una caída, y una IT moderada de hoy no es una
    progresión. Se pregunta, y los valores actuales van en la nota del control para que la pregunta
    se conteste mirando datos y no de memoria. */
+/* ══ ESTENOSIS PULMONAR — LAS PREGUNTAS DE LA GUÍA ESTADOUNIDENSE (PANT-17, commit 4b) ══════
+   La sección ya tenía cinco preguntas, todas de la ESC 2020, y NO publicaba un solo folio en su
+   cuerpo. Esta tanda hace dos cosas y ninguna toca lo que ya estaba: agrega el folio a las
+   citas que ya existían y suma las condiciones de la guía estadounidense, que esta sección no
+   nombraba en ninguna parte.
+
+   LA GUÍA QUE RIGE SIGUE SIENDO LA ESC 2020, y es una medición: el `guia.ref` de esta sección
+   apunta a `esc2020guch`. Las preguntas nuevas que salen SÓLO de la americana llevan su propia
+   etiqueta; donde las dos hablan del mismo punto, la europea rige y la americana va en la línea
+   de referencia, con SUS propios números.
+
+   LAS DOS FUENTES, LEÍDAS EN IMAGEN A 200 ppp, CON EL FOLIO COMPROBADO EN EL PIE IMPRESO:
+     · ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, apartado 4.8.4, tabla
+       «Recommendations for intervention in right ventricular outflow tract obstruction»: hoja 47
+       → folio 609 (folio = hoja + 562). Seis filas, ninguna con superíndice.
+     · ACC/AHA de cardiopatías congénitas del adulto (folio = hoja + 114): apartado 4.3.2,
+       estenosis pulmonar VALVULAR, hoja 62 → folio e176; Tabla 27 de gravedad y Tabla 28 de
+       seguimiento, hoja 63 → folio e177; apartado 4.3.2.1, insuficiencia pulmonar tras tratar
+       la estenosis, hoja 64 → folio e178; apartado 4.3.3, ventrículo derecho de doble cámara,
+       hoja 65 → folio e179; apartado 4.3.4, estenosis de ramas, hojas 66 y 67 → folios e180 y
+       e181.
+
+   ⚠️ EL CONDUCTO DEL VENTRÍCULO DERECHO A LA ARTERIA PULMONAR NO ENTRA, y no es un olvido: el
+   selector de nivel de esta pantalla tiene cinco valores —valvular, subvalvular infundibular,
+   supravalvular, ramas pulmonares y mixto— y NINGUNO es un conducto, así que esta sección no
+   puede saber si el paciente tiene uno. Queda declarado en PENDIENTES.md → P17-b con su hoja y
+   su folio. */
+const EP_PREG_ACC = Object.freeze([
+  { clave:'ep.ev.modgrave', lbl:'Estenosis pulmonar valvular de grado moderado o grave', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendaciones 1 y 2, y Clase 1 · Nivel C-LD, recomendación 3: es condición de las tres, hoja 62, folio e176',
+    nota:'se pre-responde desde el grado consignado en la pestaña de la estenosis pulmonar. Su Tabla 27 (hoja 63, folio e177) gradúa por el gradiente pico: leve por debajo de 36 mmHg, moderada entre 36 y 64 y grave por encima de 64 mmHg o con un gradiente medio mayor de 35 a 40 mmHg, y su nota advierte que la gravedad puede estar SUBESTIMADA con disfunción ventricular',
+    refLbl:'ESC 2020 (la que rige acá)',
+    ref:'su corte de estenosis grave es un gradiente pico Doppler mayor de 64 mmHg, y su nota al pie pide que la presión sistólica del ventrículo derecho estimada por la velocidad de la insuficiencia tricuspídea lo confirme (hoja 47, folio 609)' },
+  { clave:'ep.ev.anatapta', lbl:'Anatomía valvular favorable para la valvuloplastia con balón', guia:'esc',
+    rec:'Clase I · Nivel C — en la estenosis valvular, la valvuloplastia con balón es la intervención de elección si es anatómicamente adecuada, hoja 47, folio 609',
+    ref2Lbl:'ACC/AHA 2025',
+    ref2:'en el adulto sintomático con estenosis valvular moderada o grave y anatomía valvular favorable, la valvuloplastia con balón está recomendada para mejorar los síntomas: Clase 1 · Nivel B-NR, recomendación 1 (hoja 62, folio e176)' },
+  { clave:'ep.ev.nobalon', lbl:'No apto para la valvuloplastia con balón, o resultado subóptimo tras el balón', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 2 — en el adulto sintomático con estenosis moderada o grave, el reemplazo valvular pulmonar está recomendado para mejorar los síntomas, hoja 62, folio e176' },
+  { clave:'ep.ev.itmod', lbl:'Insuficiencia tricuspídea de grado moderado o mayor', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 3 — en el ASINTOMÁTICO con estenosis moderada o grave, la intervención valvular pulmonar está recomendada para reducir la sobrecarga de presión y mejorar la función valvular, hoja 62, folio e176',
+    nota:'se pre-responde desde el grado de insuficiencia tricuspídea del estudio, y sólo cuando esa insuficiencia fue EVALUADA: su campo nace en cero y ese cero no distingue «no hay» de «nadie la miró»',
+    refLbl:'ESC 2020 (la que rige acá)',
+    ref:'la progresión de la insuficiencia tricuspídea a al menos moderada es uno de los criterios del asintomático cuando hace falta un sustituto valvular (hoja 47, folio 609)' },
+  { clave:'ep.ev.disfvd', lbl:'Cualquier disfunción del ventrículo derecho', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 3 — en el ASINTOMÁTICO con estenosis moderada o grave, la intervención valvular pulmonar está recomendada, hoja 62, folio e176',
+    nota:'la guía estadounidense escribe «cualquier disfunción», sin graduarla' },
+  { clave:'ep.ev.ramas', lbl:'Estenosis periférica o de ramas pulmonares', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 1 del apartado 4.3.4 — el ecocardiograma y la imagen seccional, tomografía cardíaca o resonancia, están recomendados para evaluar la presión y la función sistólica del ventrículo derecho, el grado de insuficiencia tricuspídea y el grado y la localización de la estenosis, hoja 66, folio e180',
+    nota:'se pre-responde desde el campo «Nivel de la obstrucción» de la pestaña de la estenosis pulmonar',
+    refLbl:'ESC 2020 (la que rige acá)',
+    ref:'la estenosis periférica, con o sin síntomas, debe considerarse para tratamiento por catéter si hay una estrechez del diámetro mayor del 50 % y una presión sistólica del ventrículo derecho mayor de 50 mmHg, y/o una reducción de la perfusión pulmonar relacionada: Clase IIa · Nivel C (hoja 47, folio 609)' },
+  { clave:'ep.ev.ramassint', lbl:'Síntomas relacionados con la estenosis periférica o de ramas', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 2 del apartado 4.3.4 — la angioplastia con balón de la rama pulmonar y/o el implante de stent están recomendados para mejorar la hemodinamia y los síntomas, hoja 67, folio e181',
+    nota:'la nota al pie de esa tabla define la estenosis periférica aislada como una estrechez angiográfica y/o un flujo pulmonar asimétrico con una reducción mayor del 10 % en la perfusión esperada del pulmón afectado' },
+  { clave:'ep.ev.dcrv', lbl:'Ventrículo derecho de doble cámara (obstrucción subvalvular infundibular)', guia:'acc',
+    rec:'Clase 1 · Nivel C-LD, recomendación 3 del apartado 4.3.3 — con obstrucción del tracto de salida de grado moderado o mayor y síntomas de insuficiencia cardíaca, cianosis o limitación al ejercicio no explicados de otro modo, la reparación quirúrgica está recomendada para mejorar los síntomas; y Clase 2a · Nivel C-LD, recomendación 4 — en el asintomático con obstrucción GRAVE, la reparación quirúrgica es razonable, hoja 65, folio e179',
+    nota:'se pre-responde desde el campo «Nivel de la obstrucción» de la pestaña de la estenosis pulmonar. La Tabla 27 define los niveles de gravedad de la obstrucción del tracto de salida' },
+  { clave:'ep.ev.ipmod', lbl:'Insuficiencia pulmonar de grado moderado o mayor tras tratar la estenosis', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendaciones 1 y 2 del apartado 4.3.2.1 — la resonancia está recomendada para establecer la anatomía, cuantificar el grado de regurgitación y medir los volúmenes y la función sistólica del ventrículo derecho; y en el SINTOMÁTICO el reemplazo valvular pulmonar está recomendado para mejorar los síntomas, hoja 64, folio e178',
+    nota:'su Tabla 27 (hoja 63, folio e177) gradúa la insuficiencia pulmonar por la fracción de regurgitación medida por resonancia: leve por debajo del 20 %, moderada entre el 20 y el 40 % y grave por encima del 40 %' }
+]);
+window.EP_PREG_ACC = EP_PREG_ACC;
 function _indEPDatos(){
   const leer = _indLeer;
   const t = leer('tapse', 'tapse'), sp = leer('s_prime', 's_prime');
@@ -97592,6 +97655,32 @@ function _indEP(){
     _indFila('PSVD', D.psap.crudo != null ? _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
       'la fila del asintomático pide PSVD mayor de ' + EP_PSVD_ASINT + ' mmHg, y la nota al pie pide que la PSVD confirme la estenosis severa. Ninguna de las dos cosas se puede hacer acá: la PSAP estimada de esta app no tiene banda de plausibilidad')
   ];
+  /* ══ LAS CONDICIONES DE LA GUÍA ESTADOUNIDENSE (PANT-17, commit 4b) ════════════════════════
+     Se SUMAN a las cinco que ya estaban y no las tocan: las de arriba son las de la europea, que
+     es la que rige en esta sección, y éstas son las de la americana, que esta sección no
+     nombraba. Cada una lleva su etiqueta de guía, así que en la fila se lee de cuál sale.
+     ⚠️ CUATRO SE PRE-RESPONDEN Y LAS DEMÁS NO, y el reparto no es arbitrario: se pre-responde
+     sólo lo que un campo de la pantalla CONTESTA sin interpretar. El grado y el nivel son
+     selectores del estudio; la insuficiencia tricuspídea pasa por `_indITEvaluada`, porque su
+     campo nace en cero y ese cero no distingue «no hay» de «nadie la miró». */
+  const _epNiv = String(nivel || '');
+  const EP_ACC_RESP = {
+    'ep.ev.modgrave': (sev || mod) ? 'si' : '',
+    'ep.ev.itmod':    D.itEvaluada ? (D.itMod ? 'si' : 'no') : '',
+    'ep.ev.ramas':    nivelDicho ? (/^ramas/i.test(_epNiv) ? 'si' : 'no') : '',
+    'ep.ev.dcrv':     nivelDicho ? (/^subvalvular/i.test(_epNiv) ? 'si' : 'no') : ''
+  };
+  const EP_ACC_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  EP_PREG_ACC.forEach(function (p) {
+    const o = _indOrigen(Object.prototype.hasOwnProperty.call(EP_ACC_RESP, p.clave) ? EP_ACC_RESP[p.clave] : null, p.clave);
+    const _f = _indFilaOrigen(p.lbl, o, EP_ACC_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
   /* ══ EL MOLDE (PANT-8, commit 6) ═══════════════════════════════════════════════════════════
      LA PREMISA SE REPRODUCE Y ESTA MEDIDA: con el panel maximizado, la columna del eco media
      324,4 px de alto contra 606,5 de la de preguntas, o sea 282,1 px de VACIO a 1440 px y 52,2
@@ -97625,31 +97714,70 @@ function _indEP(){
     est: null,
     datos: _epDatos.map(function(f){ return { lbl:f.lbl, val:f.val, refs:f.refs || null,
         est:String(f.nota || '').split(' · ')[0] }; }),
+    /* ⚠️ EL GRUPO NUEVO VA EN `cols` Y NO ALCANZA CON EMPUJARLO A `clinica`: con molde, lo que
+       el panel dibuja son las filas que `_indPorClave` nombra, y una pregunta que no esté en
+       ninguna columna queda en el objeto y NO se ve. Las dos columnas que ya estaban no se
+       tocan: siguen con las mismas cinco claves y en el mismo orden. */
     cols: [ [ { tit:'Indicación', filas:_indPorClave(clinica, ['ep.sintomas', 'ep.sustituto']) },
               { tit:'Criterios del asintomático',
-                filas:_indPorClave(clinica, ['ep.ejercicio', 'ep.deterioro', 'ep.shunt']) } ] ],
+                filas:_indPorClave(clinica, ['ep.ejercicio', 'ep.deterioro', 'ep.shunt']) },
+              { tit:'Condiciones de la ACC/AHA 2025',
+                filas:_indPorClave(clinica, ['ep.ev.modgrave', 'ep.ev.anatapta', 'ep.ev.nobalon',
+                  'ep.ev.itmod', 'ep.ev.disfvd', 'ep.ev.ramas', 'ep.ev.ramassint', 'ep.ev.dcrv',
+                  'ep.ev.ipmod']) } ] ],
     pie: null
   };
 
   return { filas: filas, molde: molde,
     clinica: clinica,
     recom: _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, /^ramas/i.test(nivel)),
+    /* ⚠️ EL BLOQUE VISIBLE ES NUEVO EN PANT-17: hasta hoy esta sección no publicaba un solo
+       folio en su cuerpo y no nombraba la guía estadounidense en ninguna parte. */
+    bloques: [
+      { tit:'Intervención en la obstrucción del tracto de salida — ESC 2020, apartado 4.8.4, hoja 47, folio 609', lineas:[
+        { txt:'Clase I · Nivel C — En la estenosis valvular, la valvuloplastia con balón es la intervención de elección si es anatómicamente adecuada.', refs:null },
+        { txt:'Clase I · Nivel C — Siempre que NO haga falta un sustituto valvular, la intervención sobre la obstrucción a cualquier nivel está recomendada independientemente de los síntomas cuando la estenosis es grave, con un gradiente pico Doppler mayor de 64 mmHg.', refs:null },
+        { txt:'Clase I · Nivel C — Si el reemplazo valvular quirúrgico es la única opción, está indicado en el paciente con estenosis grave que está sintomático.', refs:null },
+        { txt:'Clase I · Nivel C — Si el reemplazo quirúrgico es la única opción en el paciente con estenosis grave asintomático, está indicado ante uno o más de: caída objetiva de la capacidad de ejercicio; caída de la función del ventrículo derecho y/o progresión de la insuficiencia tricuspídea a al menos moderada; presión sistólica del ventrículo derecho mayor de 80 mmHg; o cortocircuito derecha-izquierda por comunicación interauricular o interventricular.', refs:null },
+        { txt:'Clase IIa · Nivel C — La intervención con un gradiente pico Doppler menor de 64 mmHg debe considerarse ante uno o más de: síntomas relacionados con la estenosis; caída de la función del ventrículo derecho y/o insuficiencia tricuspídea progresiva a al menos moderada; o cortocircuito derecha-izquierda por comunicación interauricular o interventricular.', refs:null },
+        { txt:'Clase IIa · Nivel C — La estenosis periférica, con o sin síntomas, debe considerarse para tratamiento por catéter si hay una estrechez del diámetro mayor del 50 % y una presión sistólica del ventrículo derecho mayor de 50 mmHg, y/o una reducción de la perfusión pulmonar relacionada.', refs:null },
+        { txt:'Sus dos notas al pie: la presión sistólica del ventrículo derecho estimada por la velocidad de la insuficiencia tricuspídea debe confirmar la estenosis grave; y el umbral de intervención es MÁS ALTO cuando hace falta un sustituto valvular, porque hay que tener en cuenta los riesgos a largo plazo como la endocarditis y la reintervención por fallo de la prótesis.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.8.4, hoja 47, folio 609.', refs:['esc2020guch'] }
+      ]},
+      { tit:'Estenosis valvular — ACC/AHA 2025 (línea de referencia), apartado 4.3.2, hoja 62, folio e176', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — En el adulto sintomático con estenosis pulmonar valvular moderada o grave y anatomía valvular favorable, la valvuloplastia con balón está recomendada para mejorar los síntomas (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — En el adulto sintomático con estenosis moderada o grave no apto para el balón o con un resultado subóptimo tras el balón, el reemplazo valvular pulmonar está recomendado para mejorar los síntomas (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel C-LD — En el adulto asintomático con estenosis moderada o grave y una insuficiencia tricuspídea al menos moderada o cualquier disfunción del ventrículo derecho, la intervención valvular pulmonar está recomendada para reducir la sobrecarga de presión y mejorar la función valvular (recomendación 3).', refs:null },
+        { txt:'Clase 2a · Nivel C-EO — En el adulto asintomático con estenosis pulmonar valvular grave, la intervención es razonable para reducir la sobrecarga de presión y mejorar la función valvular (recomendación 4).', refs:null },
+        { txt:'Su Tabla 27 (hoja 63, folio e177) gradúa la estenosis por el gradiente pico: leve por debajo de 36 mmHg con velocidad pico menor de 3 m/s, moderada entre 36 y 64 mmHg con velocidad de 3 a 4 m/s, y grave por encima de 64 mmHg con velocidad mayor de 4 m/s o con un gradiente medio mayor de 35 a 40 mmHg. Su nota advierte que la gravedad puede estar subestimada con disfunción ventricular.', refs:null },
+        { txt:'La misma Tabla 27 gradúa la insuficiencia pulmonar por la fracción de regurgitación medida por resonancia: leve por debajo del 20 % con volumen menor de 30 mL, moderada entre el 20 y el 40 % con volumen de 30 a 59 mL, y grave por encima del 40 % con volumen de 60 mL.', refs:null }
+      ]},
+      { tit:'Otros niveles de obstrucción — ACC/AHA 2025 (línea de referencia), hojas 64 a 67, folios e178 a e181', lineas:[
+        { txt:'Insuficiencia pulmonar tras tratar la estenosis, apartado 4.3.2.1, hoja 64, folio e178 — Clase 1 · Nivel B-NR: con insuficiencia de grado moderado o mayor, la resonancia está recomendada para establecer la anatomía, cuantificar el grado de regurgitación y medir los volúmenes y la función sistólica del ventrículo derecho; y en el sintomático el reemplazo valvular pulmonar está recomendado para mejorar los síntomas. Clase 2a · Nivel C-LD en el asintomático con disfunción sistólica del ventrículo derecho, y Clase 2b · Nivel C-LD en el asintomático con insuficiencia tricuspídea al menos moderada y/o dilatación progresiva del ventrículo derecho o caída progresiva de la capacidad de ejercicio.', refs:null },
+        { txt:'Ventrículo derecho de doble cámara, apartado 4.3.3, hoja 65, folio e179 — Clase 1 · Nivel C-LD: con obstrucción del tracto de salida de grado moderado o mayor y síntomas de insuficiencia cardíaca, cianosis o limitación al ejercicio no explicados de otro modo, la reparación quirúrgica está recomendada para mejorar los síntomas. Clase 2a · Nivel C-LD en el asintomático con obstrucción grave, y Clase 2a para el cateterismo y para la resonancia según el caso.', refs:null },
+        { txt:'Estenosis de ramas pulmonares, apartado 4.3.4, hojas 66 y 67, folios e180 y e181 — Clase 1 · Nivel B-NR: el ecocardiograma y la imagen seccional están recomendados para evaluar la presión y la función sistólica del ventrículo derecho, el grado de insuficiencia tricuspídea y el grado y la localización de la estenosis; y con síntomas relacionados, la angioplastia con balón de la rama y/o el stent están recomendados. Clase 2a · Nivel B-NR en el asintomático con estenosis periférica aislada y cualquiera de: hipertensión del ventrículo derecho de más de la mitad de la presión sistémica, disfunción del ventrículo derecho, insuficiencia tricuspídea de grado moderado o mayor, o empeoramiento del rendimiento en el ejercicio.', refs:null },
+        { txt:'La nota al pie de esa última tabla define la estenosis periférica aislada como una estrechez angiográfica y/o un flujo pulmonar asimétrico con una reducción mayor del 10 % en la perfusión esperada del pulmón afectado.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartados 4.3.2, 4.3.2.1, 4.3.3 y 4.3.4, hojas 62 a 67, folios e176 a e181.', refs:['acc2025achd'] }
+      ]}
+    ],
     /* El umbral de la prosa sale de la constante, no de la memoria: escribirlo a mano acá era
        la copia que el comentario de arriba dice que no hay que hacer. */
     guia: { ref:'esc2020guch',
       txt:'Con un gradiente máximo por Doppler mayor de '
         + (UM != null ? UM + ' mmHg' : 'el umbral de severidad')
-        + ', la intervención sobre la obstrucción es Clase I · Nivel C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular. Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.' },
+        + ', la intervención sobre la obstrucción es Clase I · Nivel C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular (ESC 2020, apartado 4.8.4, hoja 47, folio 609). Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.' },
     notas: [
-      'La ESC/EACTS 2025 de valvulopatías NO cubre esta lesión: ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de congénitas del adulto, vigente.',
+      'La ESC/EACTS 2025 de valvulopatías NO cubre esta lesión: ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de congénitas del adulto, apartado 4.8.4, hoja 47, folio 609, vigente.',
       'Bajo el umbral: Clase IIa C con síntomas atribuibles, caída de la función del VD, progresión de la insuficiencia tricuspídea o shunt derecha-izquierda. Esa fila NO incluye la PSVD ni la capacidad de ejercicio — ésas están en la del asintomático.',
       (UM != null
         ? 'Un gradiente de exactamente ' + UM + ' mmHg no cae en ninguna fila: severa es MÁS y la Clase IIa es MENOS. El hueco es del texto de la guía, no de esta app.'
         : 'Umbral de severidad no disponible: recargar la aplicación. Sin él no se puede decir qué valor cae en qué fila.'),
-      'El umbral es de la estenosis VALVULAR: en la supravalvular, la subvalvular y la de ramas no decide la conducta. La PERIFÉRICA tiene fila propia —Clase IIa C con más del 50 % de estrechamiento y PSVD mayor de 50 mmHg— y esta app no mide ese porcentaje.',
+      'El umbral es de la estenosis VALVULAR: en la supravalvular, la subvalvular y la de ramas no decide la conducta. La PERIFÉRICA tiene fila propia —Clase IIa C con más del 50 % de estrechamiento y PSVD mayor de 50 mmHg, hoja 47, folio 609— y esta app no mide ese porcentaje.',
       'La nota al pie pide confirmar la severa con la PSVD estimada por la velocidad de insuficiencia tricuspídea. Esta app no puede: la PSAP estimada no tiene banda de plausibilidad.',
       'Con sustituto valvular el umbral es MÁS ALTO: cuenta el riesgo a largo plazo de endocarditis y de reintervención por falla de la prótesis. Por eso la tabla tiene tres filas.',
-      'El gradiente máximo instantáneo por Doppler sobreestima el pico-a-pico del cateterismo.'
+      'El gradiente máximo instantáneo por Doppler sobreestima el pico-a-pico del cateterismo.',
+      'El conducto del ventrículo derecho a la arteria pulmonar NO entra en esta sección: el selector de nivel de esta pantalla tiene cinco valores y ninguno es un conducto, así que la app no puede saber si el paciente tiene uno.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.'
     ] };
 }
 document.addEventListener('DOMContentLoaded', function(){ try { _epAssertUmbrales(); } catch (e) {} });
@@ -99838,6 +99966,237 @@ const TDF_IP_ESC = Object.freeze({
    fila. Es el mismo criterio con que se resolvió el rango de tenting de la reparabilidad mitral
    en esta misma tanda. */
 
+/* ══ FALLOT REPARADA — VENTRÍCULO DERECHO Y ARRITMIAS (PANT-17, commit 4a) ══════════════════
+   La sección que ya existía, `_indTdFIP`, cubre SÓLO la insuficiencia pulmonar, y la orden del
+   médico dice que no se rehaga: se amplía con el resto. Esta sección es ese resto —el reemplazo
+   valvular por volumen y función, la arritmia ventricular, el desfibrilador y la comunicación
+   interventricular residual— y va en una sección PROPIA y no dentro de aquélla por el mismo
+   argumento con que la miocardiopatía hipertrófica tiene dos: son dos preguntas distintas sobre
+   la misma cardiopatía, y fundirlas obliga a reescribir una sección que hoy está probada.
+
+   ⚠️ EL TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO. `IND_SECS` se recorre
+   buscando la sección por el PREFIJO de su título: «Tetralogía de Fallot reparada — ventrículo
+   derecho y arritmias» y «Tetralogía de Fallot reparada — insuficiencia pulmonar» divergen en
+   «ventrículo» contra «insuficiencia», que es la misma forma que separa a las dos de la
+   miocardiopatía hipertrófica.
+
+   LA GUÍA QUE RIGE ES LA ACC/AHA, y es una medición: la sección de la insuficiencia pulmonar del
+   Fallot apunta su `guia.ref` a `achd2025`, que es la americana. La ESC 2020 va en la línea de
+   referencia de cada pregunta, con SUS propios números.
+
+   LAS DOS FUENTES, LEÍDAS EN IMAGEN A 200 ppp, CON EL FOLIO COMPROBADO EN EL PIE IMPRESO:
+     · ACC/AHA de cardiopatías congénitas del adulto, apartado 4.3.5, tabla «Recommendations for
+       Tetralogy of Fallot»: hoja 68 → folio e182 (folio = hoja + 114). DIECISÉIS
+       recomendaciones y NINGUNA de clase 3. Sus tablas 32 y 33 están en la hoja 69 → folio e183,
+       y el tramo de riesgo moderado en la hoja 72 → folio e186.
+     · ESC 2020 de cardiopatías congénitas del adulto, edición inglesa, apartado 4.10, tabla
+       «Recommendations for intervention after repair of tetralogy of Fallot»: hoja 52 → folio
+       614 (folio = hoja + 562). OCHO filas, ninguna con superíndice de referencia, así que
+       —por la decisión del médico del 06/11— no llevan referencia primaria. */
+const TDFVD_PREG = Object.freeze([
+  { clave:'tdfvd.sintomas', lbl:'Síntomas atribuibles al Fallot reparado', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 9 — con disfunción valvular pulmonar de grado moderado o mayor, el reemplazo valvular pulmonar, quirúrgico o percutáneo, está recomendado para aliviar los síntomas, hoja 68, folio e182',
+    nota:'se pre-responde desde el campo «Síntomas» de la pestaña de la Fallot reparada',
+    ref:'el reemplazo valvular pulmonar está recomendado en el sintomático con insuficiencia pulmonar grave y/o obstrucción del tracto de salida al menos moderada: Clase I · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.dvp', lbl:'Disfunción valvular pulmonar de grado moderado o mayor', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 9, y Clase 2a · Nivel B-NR, recomendación 10: es condición de las dos, hoja 68, folio e182',
+    nota:'la nota al pie de esa tabla la define como insuficiencia pulmonar moderada —fracción de regurgitación por resonancia mayor del 25 %— o presión sistólica del ventrículo derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida',
+    ref:'su condición equivalente es insuficiencia pulmonar grave —su nota al pie c la define como fracción de regurgitación por resonancia mayor del 30 a 40 %— y/o obstrucción del tracto de salida al menos moderada, que su nota al pie d define como velocidad pico mayor de 3 m/s (hoja 52, folio 614)' },
+  { clave:'tdfvd.vtsvdi80', lbl:'Índice de volumen telesistólico del ventrículo derecho mayor de 80 mL/m²', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 10 — es uno de los cinco criterios del asintomático, y hacen falta al menos DOS, hoja 68, folio e182',
+    nota:'se pre-responde desde el campo de volumen telesistólico indexado de la pestaña de la Fallot reparada',
+    ref:'su criterio de dilatación progresiva es un índice de volumen telesistólico de 80 mL/m² o más y/o un índice telediastólico de 160 mL/m² o más, confirmado por mediciones repetidas: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.vtd2x', lbl:'Volumen telediastólico del ventrículo derecho de al menos 2 veces el del izquierdo', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 10 — es otro de los cinco criterios del asintomático, hoja 68, folio e182' },
+  { clave:'tdfvd.fevd46', lbl:'Fracción de eyección del ventrículo derecho de 46 % o menos', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 10 — es otro de los cinco criterios del asintomático, hoja 68, folio e182' },
+  { clave:'tdfvd.fevi50', lbl:'Fracción de eyección del ventrículo izquierdo de 50 % o menos', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 10 — es otro de los cinco criterios del asintomático, hoja 68, folio e182' },
+  { clave:'tdfvd.ejercicio', lbl:'Caída progresiva de la capacidad de ejercicio', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 10 — es el quinto de los criterios del asintomático, hoja 68, folio e182',
+    nota:'se pre-responde desde el campo «Capacidad de ejercicio» de la pestaña de la Fallot reparada',
+    ref:'la caída objetiva de la capacidad de ejercicio es uno de los criterios con los que el reemplazo debe considerarse en el asintomático: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.dissistprog', lbl:'Disfunción sistólica ventricular progresiva', guia:'acc',
+    rec:'Clase 2a · Nivel C-LD, recomendación 13 — con disfunción valvular pulmonar de grado moderado o mayor, el reemplazo valvular pulmonar es razonable para preservar la función ventricular, hoja 68, folio e182',
+    ref:'la disfunción sistólica progresiva del ventrículo derecho es uno de los criterios del asintomático: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.itprog', lbl:'Insuficiencia tricuspídea funcional progresiva de grado moderado o mayor con dilatación del ventrículo derecho', guia:'acc',
+    rec:'Clase 2b · Nivel C-LD, recomendación 14 — con disfunción valvular pulmonar al menos moderada, la intervención valvular pulmonar puede ser razonable para prevenir el empeoramiento de la disfunción tricuspídea y de la dilatación del ventrículo derecho, hoja 68, folio e182',
+    ref:'la progresión de la insuficiencia tricuspídea a al menos moderada es uno de los criterios del asintomático: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.tv', lbl:'Taquiarritmia ventricular que requiere tratamiento', guia:'acc',
+    rec:'Clase 2b · Nivel C-LD, recomendación 16 — con insuficiencia pulmonar de grado moderado o mayor, el reemplazo valvular pulmonar, además de la intervención electrofisiológica, puede considerarse, hoja 68, folio e182',
+    nota:'se pre-responde desde el campo «Taquicardia ventricular» de la pestaña de la Fallot reparada. La nota al pie de esa tabla define «que requiere tratamiento» como antiarrítmicos de clase I o III o amiodarona, ablación por catéter, cardioversión eléctrica, desfibrilación, terminación por estimulación o descarga del desfibrilador por arritmia ventricular sostenida',
+    ref:'con taquicardia ventricular sostenida que va a reemplazo valvular pulmonar quirúrgico o percutáneo, el mapeo por catéter y la sección de los istmos anatómicos antes o durante la intervención deben considerarse: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.altoriesgo', lbl:'Alto riesgo de muerte súbita por marcadores clínicos o por un puntaje multivariable', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 11 — la colocación de un desfibrilador es razonable, hoja 68, folio e182',
+    nota:'su Tabla 32 (hoja 69, folio e183) lista los SIETE factores de riesgo establecidos: duración del QRS de 180 ms o más, disfunción del ventrículo izquierdo o derecho de grado moderado o mayor, ventriculotomía previa, edad tardía en la reparación definitiva, taquicardia ventricular no sostenida sintomática o síntomas arrítmicos, fragmentación del QRS, y arritmia ventricular sostenida inducible en el estudio electrofisiológico invasivo. Su Tabla 33 publica tres puntajes multivariables con sus tasas anuales de eventos',
+    ref:'el desfibrilador debe considerarse en pacientes seleccionados con MÚLTIPLES factores de riesgo —disfunción del ventrículo izquierdo, taquicardia ventricular no sostenida sintomática, QRS de 180 ms o más, cicatriz extensa del ventrículo derecho en resonancia o taquicardia ventricular inducible—: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.riesgomod', lbl:'Riesgo moderado de taquicardia ventricular sostenida o de muerte súbita', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 5 — el estudio electrofisiológico invasivo es razonable para informar el manejo clínico, hoja 68, folio e182',
+    nota:'el texto de apoyo de la hoja 72 (folio e186) define el riesgo moderado como un riesgo anual estimado del 1 % al 11,5 %',
+    ref:'la evaluación electrofisiológica con estimulación eléctrica programada debe considerarse para estratificar el riesgo de muerte súbita en el paciente con factores de riesgo adicionales: Clase IIa · Nivel C (hoja 52, folio 614)' },
+  { clave:'tdfvd.civres', lbl:'Comunicación interventricular residual', guia:'esc',
+    rec:'Clase IIa · Nivel C — su cierre debe considerarse con sobrecarga de volumen significativa del ventrículo izquierdo, o si el paciente va a cirugía de la válvula pulmonar, hoja 52, folio 614',
+    nota:'se pre-responde desde el campo «CIV residual» de la pestaña de la Fallot reparada' },
+  { clave:'tdfvd.nonativo', lbl:'Tracto de salida del ventrículo derecho NO nativo (homoinjerto, injerto de vena yugular bovina, bioprótesis o conducto)', guia:'esc',
+    rec:'Clase I · Nivel C — la intervención por catéter debe preferirse si es anatómicamente factible, hoja 52, folio 614',
+    ref2Lbl:'ACC/AHA 2025',
+    ref2:'con anatomía NATIVA del tracto de salida en evaluación para una válvula pulmonar percutánea, la tomografía cardíaca está recomendada para determinar si es apta: Clase 1 · Nivel B-NR, recomendación 4 (hoja 68, folio e182)' }
+]);
+window.TDFVD_PREG = TDFVD_PREG;
+function _indTdFVD(){
+  /* La MISMA compuerta que la sección de la insuficiencia pulmonar, y por el mismo motivo:
+     `tdfConclusion` es el dueño de «este estudio tiene datos de Fallot reparada» y escribirla
+     de nuevo acá sería la segunda copia que hace que dos secciones del mismo panel discrepen
+     sobre el mismo paciente. */
+  const tdfFn = _indFn('tdfConclusion');
+  if (!tdfFn) return null;
+  let vivo = false;
+  try { vivo = tdfFn() != null; } catch (e) { vivo = false; }
+  if (!vivo) return null;
+
+  /* Los cinco campos de la pestaña que contestan una pregunta de la tabla. Los selectores de la
+     Fallot reparada tienen CUATRO valores —vacío, «No consta», «No» y «Sí»— y sólo los dos
+     últimos contestan: «No consta» es exactamente el estado que la pregunta viene a resolver, y
+     traducirlo a «no» convertiría un campo que nadie contestó en una afirmación clínica. */
+  /* ⚠️ `_vts` SE DECLARA ACÁ Y NO MÁS ABAJO: lo leen la tarjeta de datos y el mapa de
+     pre-respuestas, y un `const` leído antes de su declaración aborta el bloque de script
+     entero —la zona muerta—, con el síntoma apareciendo en otra función y a miles de líneas. */
+  const _tdfSiNo = function (id) { const v = _indS(id); return (v === 'si' || v === 'no') ? v : ''; };
+  const _vts = _indN('tdf_vtsvdi');
+  const TDFVD_RESP = {
+    'tdfvd.sintomas':  _tdfSiNo('tdf_sintomas'),
+    'tdfvd.ejercicio': _tdfSiNo('tdf_ejercicio'),
+    'tdfvd.tv':        _tdfSiNo('tdf_tv'),
+    'tdfvd.civres':    _tdfSiNo('tdf_civ_residual'),
+    'tdfvd.vtsvdi80':  (_vts == null) ? '' : (_vts > 80 ? 'si' : 'no')
+  };
+  const TDFVD_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  /* ⚠️ `filas` NO ES OPCIONAL, y costó una medición: `_indSecHTMLCuerpo` hace
+     `r.filas.some(...)` SIN guarda para decidir si la sección nace abierta, así que una sección
+     que no la traiga revienta ahí y el panel la descarta en silencio — no aparece, y la consola
+     no dice nada porque el recorrido de `IND_SECS` atrapa el error. La tarjeta de datos lee lo
+     que la pestaña de la Fallot reparada ya mide; no agrega ningún campo. */
+  const _tdfFVD = _indS('tdf_func_vd');
+  const _TDF_FVD_TXT = Object.assign(Object.create(null),
+    { normal:'Normal', leve:'Disfunción leve', moderada:'Disfunción moderada', severa:'Disfunción severa' });
+  const filas = [
+    _indFila('Función del ventrículo derecho', _tdfFVD ? (_TDF_FVD_TXT[_tdfFVD] || _tdfFVD) : 'No consignada',
+      (_tdfFVD === 'moderada' || _tdfFVD === 'severa') ? 'warn' : (_tdfFVD ? 'none' : 'ask'),
+      _tdfFVD ? '' : 'leída de la pestaña de la Fallot reparada'),
+    _indFila('Índice de volumen telesistólico del VD', _indNum(_vts, 0, 'mL/m²'),
+      (_vts != null && _vts > 80) ? 'warn' : (_vts != null ? 'none' : 'ask'),
+      (_vts != null && _vts > 80)
+        ? 'supera los 80 mL/m² que la recomendación 10 nombra como uno de sus cinco criterios'
+        : (_vts != null ? 'no supera los 80 mL/m² de la recomendación 10' : 'sin medir')),
+    _indFila('Índice de volumen telediastólico del VD', _indNum(_indN('tdf_vtdvdi'), 0, 'mL/m²'),
+      _indN('tdf_vtdvdi') != null ? 'none' : 'ask',
+      _indN('tdf_vtdvdi') != null
+        ? 'la guía europea lo nombra con un corte de 160 mL/m² entre los criterios del asintomático'
+        : 'sin medir'),
+    _indFila('Gradiente del tracto de salida del VD', _indNum(_indN('tdf_grad_tsvd'), 0, 'mmHg'),
+      _indN('tdf_grad_tsvd') != null ? 'none' : 'ask',
+      _indN('tdf_grad_tsvd') != null
+        ? 'la obstrucción al menos moderada de la guía europea es una velocidad pico mayor de 3 m/s'
+        : 'sin medir'),
+    _indFila('Fuente de los volúmenes', _indSelTxt('tdf_vol_fuente') || 'No consignada',
+      _indS('tdf_vol_fuente') ? 'none' : 'ask',
+      'los cortes de volumen de las dos guías están medidos por resonancia')
+  ];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  TDFVD_PREG.forEach(function (p) {
+    const o = _indOrigen(Object.prototype.hasOwnProperty.call(TDFVD_RESP, p.clave) ? TDFVD_RESP[p.clave] : null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, TDFVD_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+  /* El conteo de los cinco criterios del asintomático de la recomendación 10, que es el único
+     punto de esta tabla donde el número de condiciones decide la clase. Se cuenta sobre lo
+     CONTESTADO: «sin dato» no suma, que es la regla E-4. */
+  const _cinco = ['tdfvd.vtsvdi80', 'tdfvd.vtd2x', 'tdfvd.fevd46', 'tdfvd.fevi50', 'tdfvd.ejercicio'];
+  let _nCinco = 0, _sdCinco = 0;
+  _cinco.forEach(function (k) {
+    const v = _indOrigen(Object.prototype.hasOwnProperty.call(TDFVD_RESP, k) ? TDFVD_RESP[k] : null, k).val;
+    if (v === 'si') _nCinco++; else if (v !== 'no') _sdCinco++;
+  });
+  clinica.unshift(_indFila('Criterios del asintomático de la recomendación 10',
+    _nCinco + ' de 5 presentes' + (_sdCinco ? ' · ' + _sdCinco + ' sin contestar' : ''),
+    _nCinco >= 2 ? 'warn' : 'none',
+    _nCinco >= 2
+      ? 'la recomendación 10 pide AL MENOS DOS, y con la disfunción valvular pulmonar de grado moderado o mayor el reemplazo es razonable: Clase 2a · Nivel B-NR'
+      : 'la recomendación 10 pide AL MENOS DOS de los cinco; «sin dato» no cuenta como «no»'));
+  clinica.unshift(_indFila('Respuestas',
+    _si.length + ' en Sí · ' + _no.length + ' en No · ' + _sd.length + ' sin dato', 'none',
+    '«Sin dato» no cuenta como «no»: mientras una condición no se conteste, no sostiene ninguna recomendación.'));
+  const _balTDF = _si.length
+    ? { txt:'Condiciones presentes en este paciente: ' + _si.length + ' de ' + TDFVD_PREG.length + ' (' + _si.join('; ') + ').'
+        + (_sd.length ? ' Sin contestar: ' + _sd.join('; ') + '.' : ' Las otras ' + _no.length + ' están contestadas que no.'), refs:null }
+    : (_sd.length
+      ? { txt:'Ninguna condición consta como presente, y quedan ' + _sd.length + ' sin contestar: ' + _sd.join('; ')
+          + '. Mientras no se contesten, ninguna de las recomendaciones de arriba se sostiene en este paciente — «sin dato» no cuenta como «no».', refs:null }
+      : { txt:'Las ' + TDFVD_PREG.length + ' condiciones están contestadas y ninguna está presente.', refs:null });
+
+  return { filas: filas,
+    clinica: clinica,
+    bloques: [
+      { tit:'Evaluación por imagen y estudio electrofisiológico — ACC/AHA 2025, apartado 4.3.5, hoja 68, folio e182', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — El ecocardiograma está recomendado para evaluar la disfunción de la válvula pulmonar y de la tricúspide, el tamaño de la aurícula derecha, el tamaño y la función ventriculares, las comunicaciones interventriculares residuales y la estimación de la presión sistólica del ventrículo derecho, para caracterizar las secuelas hemodinámicas residuales (recomendación 1).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con secuelas hemodinámicas residuales, la resonancia está recomendada para cuantificar la función de la válvula pulmonar, el tamaño y la función ventriculares y el tamaño y el flujo de las ramas pulmonares; caracterizar la anatomía de los dos tractos de salida; cuantificar cortocircuitos residuales o flujo colateral aortopulmonar; y evaluar la fibrosis del miocardio ventricular (recomendación 2).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Ante el stent de un conducto del ventrículo derecho a la arteria pulmonar o una válvula pulmonar percutánea con plataforma expandible con balón, está indicado evaluar el riesgo de compresión coronaria (recomendación 3).', refs:null },
+        { txt:'Clase 1 · Nivel B-NR — Con anatomía nativa del tracto de salida del ventrículo derecho en evaluación para una válvula pulmonar percutánea, la tomografía cardíaca está recomendada para determinar si es apta (recomendación 4).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con riesgo moderado de taquicardia ventricular sostenida futura y/o muerte súbita, el estudio electrofisiológico invasivo es razonable para informar el manejo clínico (recomendación 5).', refs:null },
+        { txt:'Clase 2a · Nivel C-EO — Cuando lo no invasivo no alcanza, ante una arritmia, insuficiencia cardíaca, disfunción ventricular inexplicada, sospecha de hipertensión pulmonar, lesiones hemodinámicas residuales o cianosis, el cateterismo con angiografía es razonable (recomendación 6).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Ante la colocación de una válvula pulmonar, el estudio electrofisiológico invasivo previo con estimulación ventricular programada y mapeo tridimensional puede considerarse para identificar y tratar sustratos latentes de taquicardia ventricular monomorfa (recomendación 7).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — La evaluación no invasiva con electrocardiograma de 12 derivaciones, resonancia con contraste y/o angiografía por tomografía puede considerarse para caracterizar los sustratos de taquicardia ventricular (recomendación 8).', refs:null }
+      ]},
+      { tit:'Reemplazo valvular pulmonar y arritmia — ACC/AHA 2025, misma tabla, hoja 68, folio e182', lineas:[
+        { txt:'Clase 1 · Nivel B-NR — En el adulto SINTOMÁTICO con disfunción valvular pulmonar de grado moderado o mayor, el reemplazo valvular pulmonar, quirúrgico o percutáneo, está recomendado para aliviar los síntomas (recomendación 9).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — En el ASINTOMÁTICO con disfunción valvular pulmonar de grado moderado o mayor y AL MENOS DOS de: índice de volumen telesistólico del ventrículo derecho mayor de 80 mL/m², volumen telediastólico del ventrículo derecho de al menos dos veces el del izquierdo, fracción de eyección del ventrículo derecho de 46 % o menos, fracción de eyección del ventrículo izquierdo de 50 % o menos, o caída progresiva de la capacidad de ejercicio, el reemplazo valvular pulmonar es razonable para mejorar los resultados, incluido bajar el riesgo de arritmia ventricular y de muerte (recomendación 10).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con alto riesgo de muerte súbita por marcadores clínicos y/o un puntaje multivariable, la colocación de un desfibrilador es razonable (recomendación 11).', refs:null },
+        { txt:'Clase 2a · Nivel B-NR — Con terapias apropiadas del desfibrilador por taquicardia ventricular monomorfa, la ablación por catéter complementaria es razonable para reducir la carga de taquiarritmia ventricular (recomendación 12).', refs:null },
+        { txt:'Clase 2a · Nivel C-LD — Con disfunción valvular pulmonar de grado moderado o mayor y disfunción sistólica ventricular progresiva, el reemplazo valvular pulmonar es razonable para preservar la función ventricular (recomendación 13).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con disfunción valvular pulmonar al menos moderada e insuficiencia tricuspídea funcional progresiva de grado moderado o mayor asociada a dilatación del ventrículo derecho, la intervención valvular pulmonar puede ser razonable (recomendación 14).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — En pacientes seleccionados con taquicardia ventricular monomorfa hemodinámicamente tolerada relacionada con un istmo anatómico bien definido, la ablación como monoterapia puede considerarse en lugar del desfibrilador, en centros con experiencia en electrofisiología de cardiopatías congénitas del adulto (recomendación 15).', refs:null },
+        { txt:'Clase 2b · Nivel C-LD — Con insuficiencia pulmonar de grado moderado o mayor y una taquiarritmia ventricular que requiere tratamiento, el reemplazo valvular pulmonar, además de la intervención electrofisiológica, puede considerarse (recomendación 16).', refs:null },
+        { txt:'La nota al pie de esa tabla define la disfunción valvular pulmonar como insuficiencia pulmonar moderada —fracción de regurgitación por resonancia mayor del 25 %— o presión sistólica del ventrículo derecho por encima de dos tercios de la sistémica por obstrucción del tracto de salida.', refs:null },
+        { txt:'Su Tabla 32 (hoja 69, folio e183) lista los siete factores de riesgo establecidos de taquicardia ventricular monomorfa sostenida y muerte súbita: duración del QRS de 180 ms o más, disfunción del ventrículo izquierdo o derecho de grado moderado o mayor, ventriculotomía previa, edad tardía en la reparación definitiva, taquicardia ventricular no sostenida sintomática o síntomas arrítmicos, fragmentación del QRS, y arritmia ventricular sostenida inducible en el estudio electrofisiológico invasivo.', refs:null },
+        { txt:'Fuente: ACC/AHA 2025 de cardiopatías congénitas del adulto, apartado 4.3.5, hojas 68, 69 y 72, folios e182, e183 y e186.', refs:['acc2025achd'] }
+      ]},
+      { tit:'Intervención tras la reparación — ESC 2020 (línea de referencia), apartado 4.10, hoja 52, folio 614', lineas:[
+        { txt:'Clase I · Nivel C — El reemplazo valvular pulmonar está recomendado en el sintomático con insuficiencia pulmonar grave y/o obstrucción del tracto de salida del ventrículo derecho al menos moderada.', refs:null },
+        { txt:'Clase I · Nivel C — En el paciente sin tracto de salida nativo, la intervención por catéter debe preferirse si es anatómicamente factible.', refs:null },
+        { txt:'Clase IIa · Nivel C — El reemplazo valvular pulmonar debe considerarse en el asintomático con insuficiencia pulmonar grave y/o obstrucción del tracto de salida cuando hay UNO de: caída objetiva de la capacidad de ejercicio; dilatación progresiva del ventrículo derecho con índice de volumen telesistólico de 80 mL/m² o más y/o índice telediastólico de 160 mL/m² o más y/o progresión de la insuficiencia tricuspídea a al menos moderada; disfunción sistólica progresiva del ventrículo derecho; u obstrucción del tracto de salida con presión sistólica del ventrículo derecho mayor de 80 mmHg.', refs:null },
+        { txt:'Clase IIa · Nivel C — El cierre de la comunicación interventricular residual debe considerarse con sobrecarga de volumen significativa del ventrículo izquierdo, o si el paciente va a cirugía de la válvula pulmonar.', refs:null },
+        { txt:'Clase IIa · Nivel C — Con taquicardia ventricular sostenida que va a reemplazo valvular pulmonar quirúrgico o percutáneo, el mapeo por catéter y la sección de los istmos anatómicos relacionados con la taquicardia, antes o durante la intervención, deben considerarse.', refs:null },
+        { txt:'Clase IIa · Nivel C — La evaluación electrofisiológica con estimulación eléctrica programada debe considerarse para estratificar el riesgo de muerte súbita en el paciente con factores de riesgo adicionales: disfunción del ventrículo izquierdo o derecho, taquicardia ventricular no sostenida sintomática, duración del QRS de 180 ms o más, o cicatriz extensa del ventrículo derecho en resonancia.', refs:null },
+        { txt:'Clase IIa · Nivel C — El desfibrilador debe considerarse en pacientes seleccionados con múltiples factores de riesgo de muerte súbita.', refs:null },
+        { txt:'Clase IIb · Nivel C — La ablación por catéter o la ablación quirúrgica concomitante de la taquicardia ventricular monomorfa sostenida sintomática puede considerarse en quien tiene función biventricular preservada, como alternativa al desfibrilador, siempre que se haga en centros muy experimentados y se alcancen los objetivos de ablación establecidos.', refs:null },
+        { txt:'Sus notas al pie: la insuficiencia pulmonar grave es una fracción de regurgitación por resonancia mayor del 30 a 40 %; la obstrucción al menos moderada es una velocidad pico mayor de 3 m/s; el tracto de salida no nativo es el del paciente con cirugía previa con homoinjerto, injerto de vena yugular bovina, bioprótesis o conductos; y la dilatación progresiva se confirma con mediciones repetidas.', refs:null },
+        { txt:'Fuente: ESC 2020 de cardiopatías congénitas del adulto, apartado 4.10, hoja 52, folio 614.', refs:['esc2020guch'] },
+        _balTDF
+      ]}
+    ].concat(_siDet.length ? [{ tit:'Recomendaciones que aplican con lo contestado (' + _siDet.length + ')',
+      lineas: _siDet.map(function (p) {
+        const b = _indPregBadge(p);
+        const et = b ? (IND_GUIA_LBL[p.guia] || '') + (b.cn ? ' · ' + b.cn : '') : '';
+        return { txt: p.lbl + (et ? ' — ' + et : '') + '.', refs:null };
+      }) }] : []),
+    compacta: true,
+    preguntas: true,
+    guia: { ref:'acc2025achd',
+      txt:'Las indicaciones de esta sección salen de DOS guías: la ACC/AHA 2025 de cardiopatías congénitas del adulto (apartado 4.3.5, hoja 68, folio e182), que es la que rige —es la misma que rige en la sección de la insuficiencia pulmonar del Fallot—, y la ESC 2020 de cardiopatías congénitas del adulto (apartado 4.10, hoja 52, folio 614), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y año a la vista: ninguna los combina.' },
+    notas: [
+      'Esta sección es el complemento de «Tetralogía de Fallot reparada — insuficiencia pulmonar», que cubre la insuficiencia y no se tocó: acá están el volumen y la función del ventrículo derecho, la arritmia ventricular, el desfibrilador y la comunicación interventricular residual.',
+      'La tabla de la guía estadounidense no tiene ninguna recomendación de clase 3 para la tetralogía de Fallot.',
+      'Lo que se contesta en esta sección no se guarda con el estudio: vive mientras el panel esté abierto y se pierde al cerrarlo o al empezar un estudio nuevo.',
+      'Las recomendaciones de esta sección no entran al informe, al EN SUMA, al PDF ni al PPT: el papel describe lo que se midió y las indicaciones se leen acá.'
+    ] };
+}
 function _indTdFIP(){
   /* Compuerta: la sección se despierta sólo si el módulo de Fallot reparada tiene datos. Esa
      condición tiene un dueño —`tdfConclusion`, que devuelve `null` sin datos propios— y acá NO se
@@ -101765,6 +102124,12 @@ const IND_SECS = [
      `IND_SECS` se recorre buscando la sección por el PREFIJO de su título. Verificado contra los
      veintitrés anteriores. */
   { tit:'Tetralogía de Fallot reparada — insuficiencia pulmonar', fn:_indTdFIP },
+  /* ⚠️ LA DE PANT-17 (commit 4a). Va PEGADA a la de arriba porque es la misma cardiopatía
+     con otra pregunta, y no dentro de ella porque aquélla cubre la insuficiencia pulmonar y
+     está probada. Los dos títulos NO se contienen: divergen en «— ventrículo» contra
+     «— insuficiencia», que es la misma forma que separa a las dos de la miocardiopatía
+     hipertrófica, y ninguno es prefijo de otro de los treinta y cinco. */
+  { tit:'Tetralogía de Fallot reparada — ventrículo derecho y arritmias', fn:_indTdFVD },
   /* ⚠️ LA DE LA TANDA TGA-2 (31/10/2026). «Transposición de grandes arterias — indicaciones y
      seguimiento» no es prefijo de ninguno de los veinticinco anteriores ni ninguno es prefijo
      suyo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título, así que un
@@ -162355,8 +162720,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261106-0106';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793937996021;                 /* eco-build-ms */
+const ECO_BUILD    = '20261106-0123';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793939018035;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -162442,7 +162807,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0106</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261106-0123</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
