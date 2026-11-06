@@ -68447,7 +68447,50 @@ function popEsqPdfRaster() {
   }, 700);
 }
 window.popEsqPdfRaster = popEsqPdfRaster;
-function popEsqPdfData() { return popEsqPdfOn() ? _popEsqPdfData : null; }
+/* ══ «HAY ALGUN DATO DEL POSOPERATORIO» (PANT-14c, commit 2b) ═══════════════════════════════
+   LA OTRA MITAD DE LO QUE EL MEDICO REPORTO: con la casilla encendida y el posoperatorio SIN
+   UN DATO, el PDF emitia igual la pagina del esquema, con todo en «—». Medido: escena `onSin`
+   —casilla tocada, cero datos— traia UNA imagen y la etiqueta «Esquema del posoperatorio».
+   EL PREDICADO COMPARA CONTRA EL VALOR POR OMISION DEL PROPIO MARCADO —`defaultValue`,
+   `defaultChecked` y `defaultSelected`—, que es la misma pregunta que `_formTieneDatos` hace
+   para decidir si «Nuevo estudio» pregunta. Asi no hay que mantener al dia una lista de campos
+   ni de valores por omision: el dia que la pestania gane un campo, entra solo.
+   ⚠️ `pop_esq_pdf` SE EXCLUYE, y no es un detalle: es el interruptor, no un dato, y contarlo lo
+   haria autorizarse a si mismo —la misma exclusion que `_taviModuloEnUso` hace con los campos
+   que su propio espejo escribe—. Los nueve espejos `pop-esp-` van con guion MEDIO, asi que el
+   selector no los alcanza.
+   ⚠️ FALLA ABIERTO: ante cualquier error responde que SI hay. Este predicado decide si se EMITE
+   un dibujo que el medico pidio; un `catch` que devolviera `false` convertiria un fallo en un
+   diagrama perdido sin una palabra. Emitir de mas cuesta una hoja; emitir de menos cuesta lo
+   que el medico marco. Es el mismo razonamiento que `_hayAlgoSinGuardar` escribe al reves,
+   porque ahi lo que se arriesga es BORRAR. */
+function popHayDatos() {
+  try {
+    const campos = document.querySelectorAll('[id^="pop_"]');
+    for (let i = 0; i < campos.length; i++) {
+      const e = campos[i];
+      if (e.id === 'pop_esq_pdf') continue;
+      if (e.disabled || e.readOnly) continue;
+      if (e.type === 'checkbox' || e.type === 'radio') {
+        if (e.checked !== e.defaultChecked) return true;
+        continue;
+      }
+      if (e.tagName === 'SELECT') {
+        const j = e.selectedIndex;
+        if (j >= 0 && e.options[j] && !e.options[j].defaultSelected) return true;
+        continue;
+      }
+      if (String(e.value == null ? '' : e.value) !== String(e.defaultValue == null ? '' : e.defaultValue)) return true;
+    }
+    return false;
+  } catch (e) { return true }
+}
+window.popHayDatos = popHayDatos;
+/* ⚠️ LA COMPUERTA VA EN EL PUBLICADOR Y NO EN EL RECOLECTOR DEL PDF, para que todos sus
+   consumidores vean la MISMA respuesta: con la pregunta escrita en el recolector, el dia que
+   otro emisor lea este dibujo lo emitiria sin datos. `popEsqPdfOn` sigue siendo «la casilla esta
+   marcada» —es lo que el boton refleja, y el boton tiene que decir lo que el medico toco—. */
+function popEsqPdfData() { return (popEsqPdfOn() && popHayDatos()) ? _popEsqPdfData : null; }
 window.popEsqPdfData = popEsqPdfData;
 
 /* Punto de entrada único: lo llama `popSync`. Monta una vez, recalcula los datos, repinta lo
@@ -69789,6 +69832,18 @@ function limpiarCampos(silencioso) {
   { const _qx = document.getElementById('ete_qx_pdf'); if (_qx) _qx.value = ''; }
   /* `vab_pdf`, por lo mismo: es `input[type=hidden]` y el barrido de arriba no lo alcanza. */
   { const _vp = document.getElementById('vab_pdf'); if (_vp) _vp.value = ''; }
+  /* ⚠️ `pop_esq_pdf` FALTABA EN ESTA LISTA, Y ES LA MITAD DEL «sale en el informe sin que lo
+     pida» QUE EL MEDICO REPORTO (PANT-14c, commit 2). Es un `input[type=hidden]`, asi que el
+     barrido generico de arriba —que toma `text` y `number`— no lo alcanza, igual que
+     `vci_no_vis` y `pac_id_print`: sus tres hermanos del mismo patron —`contr_be_pdf`,
+     `ete_qx_pdf` y `vab_pdf`— si estaban. Medido con el recorrido completo: encender la casilla,
+     «Nuevo estudio» y «Continuar sin guardar» dejaba el campo en «1», el boton marcado y el PDF
+     emitiendo la pagina del esquema con todo en «—».
+     ⚠️ Y SE BORRA TAMBIEN LO RASTERIZADO: el dataURL vive en una variable de modulo que
+     `limpiarCampos` no toca, asi que sin esto el PDF del paciente SIGUIENTE podia llevar el
+     dibujo del anterior. No se migra nada: esto corre en «Nuevo estudio», no al restaurar. */
+  { const _pe = document.getElementById('pop_esq_pdf'); if (_pe) _pe.value = '';
+    try { if (typeof popEsqPdfSync === 'function') popEsqPdfSync() } catch (e) {} }
   /* `vab_funcion`, lo mismo desde el Y3f3: dejo de ser un `<select>` y paso a oculto, asi que el
      barrido generico tampoco lo alcanza. Sin esto, la funcion del paciente ANTERIOR sobrevivia a
      «Nuevo estudio» y `vabConclusion` la leia sobre un formulario en blanco. */
@@ -161470,8 +161525,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261105-2100';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1793923203338;                 /* eco-build-ms */
+const ECO_BUILD    = '20261105-2116';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1793924198113;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -161557,7 +161612,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2100</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261105-2116</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

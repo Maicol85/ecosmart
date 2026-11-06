@@ -270,6 +270,21 @@ const MONTAR = `((esc) => {
   ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id);
     if (m) m.style.display = 'none' });
   try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  /* ⚠️ pop_esq_pdf SE NORMALIZA A MANO EN CADA UNA, Y SE MIDIO POR QUE (PANT-14c).
+     En HEAD ese campo es un input[type=hidden] que limpiarCampos NO alcanza, asi que la PRIMERA
+     que lo enciende lo deja encendido para TODAS las que siguen: medido, en el arbol de HEAD la
+     pagina del esquema del posoperatorio aparecia en las 63 posteriores. Con el arbol nuevo
+     limpiarCampos si lo apaga, asi que sin esta linea las dos corridas no arrancan del mismo
+     estado y el A/B mostraria diferencias en todas las de abajo: seria el arnes midiendo la fuga
+     de HEAD y no lo que cada commit cambia. La fuga la mide _probe_pant14c_pop.mjs, con el boton
+     real y el recorrido de Nuevo estudio.
+     ⚠️ Y ESTE COMENTARIO NO PUEDE CONTENER LA PALABRA QUE EL RUNNER USA DE MARCADOR: el montaje
+     hace MONTAR.replace(<marcador>, JSON), y String.replace con una cadena cambia la PRIMERA
+     aparicion. Escrito con esa palabra adentro, el JSON se inyectaba en este comentario y el
+     parametro quedaba sin definir: «no esta definida». Es la trampa que TGA-4 ya documenta.
+     (Sin acentos graves: este comentario vive DENTRO del template de MONTAR.) */
+  try { const _pe = document.getElementById('pop_esq_pdf'); if (_pe) _pe.value = '';
+        if (typeof popEsqPdfSync === 'function') popEsqPdfSync() } catch (e) {}
   const S = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
     e.dispatchEvent(new Event('change', { bubbles: true })); return e.value };
