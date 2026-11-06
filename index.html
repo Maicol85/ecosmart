@@ -3258,6 +3258,77 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
     width:calc((100% - 8px)/2 - var(--valv-sevcol));}
 }
 
+
+/* ══ EL COMPONENTE «Modelo y tamano» (PANT-19) ═══════════════════════════
+   El boton vive en la MISMA fila del select de morfologia. En la AORTICA eso entra sin tocar
+   nada: `.valv-morf-row` es un flex con `flex-wrap` y deja 774 px libres a 1440 y 286 a 768;
+   a 390 px el wrap lo manda solo a la linea siguiente. Medido en el commit 1.
+   El `align-self:flex-end` lo alinea con el borde de abajo del select, que lleva su `<label>`
+   encima: sin eso el boton queda a la altura de la etiqueta.
+   La card es `position:fixed` colgada del BODY, como `#vinfo-card`: dentro de la fila heredaria
+   el sistema de coordenadas de un contenedor y el rect del boton dejaria de servir para
+   colocarla. Ni `top` ni `left` ni `width` se declaran aca: los pone solo `_vModColocar`. */
+/* La regla de arriba da `flex:0 1 420px` a todo `.fg` de la fila y gana por especificidad
+   (un id y DOS clases contra un id y una), asi que el boton salia de 420 px de ancho. Se
+   iguala el selector, y por ir despues gana este. Medido: 420 -> el ancho de su texto. */
+#tab-valvulas .valv-morf-row > .vmod-wrap{flex:0 0 auto;align-self:flex-end;margin-bottom:0;}
+#tab-valvulas .valv-morf-row > .vmod-wrap > .vmod-btn{width:auto;}
+.vmod-btn{min-height:44px;white-space:nowrap;}
+.vmod-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;min-width:0;}
+.vmod-chip{border:1px solid var(--border);background:var(--bg2);border-radius:8px;padding:4px 8px;
+  font-size:12px;line-height:1.3;color:var(--text);}
+.vmod-chip b{display:block;font-size:10px;color:var(--text2);font-weight:600;}
+.vmod-chip em{font-style:normal;font-weight:700;}
+.vmod-sub{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;justify-content:space-between;
+  font-size:11px;color:var(--text2);margin:-6px 0 10px;}
+.vmod-med{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-4px 0 10px;}
+.vmod-med .vmod-lbl{font-size:11px;color:var(--text2);font-weight:600;}
+/* El piso tactil de 44 px va en un `::after` absoluto, no en la caja: encajarlo con un margen
+   negativo taparia el campo de al lado —la leccion de `.pac-id-mk`—. */
+.vmod-mini{min-height:0;min-width:0;padding:2px 8px;border-radius:7px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font:inherit;font-size:11px;cursor:pointer;position:relative;}
+.vmod-mini::after{content:'';position:absolute;left:50%;top:50%;width:44px;height:44px;
+  transform:translate(-50%,-50%);}
+#vmod-card .vmod-fila{display:grid;grid-template-columns:1fr 150px;gap:8px;position:relative;}
+/* ⚠️ LA LISTA VA EN FLUJO Y NO SUPERPUESTA, y lo decidio una medicion: flotando sobre el
+   contenido tapaba «No se el modelo: ver todos y elegir», que es justo el enlace al que va el
+   medico que no encuentra su modelo escribiendo. En flujo EMPUJA lo de abajo y la card, que ya
+   tiene scroll interno, se encarga del resto. Es la misma razon por la que no se abre sola. */
+#vmod-card .vmod-sug{list-style:none;margin:2px 0 6px;padding:3px;background:var(--bg2);
+  border:1px solid var(--border);border-radius:8px;max-height:190px;overflow:auto;}
+#vmod-card .vmod-sug li button{width:100%;min-height:44px;text-align:left;background:transparent;
+  border:0;border-radius:6px;color:var(--text);font:inherit;font-size:12px;cursor:pointer;padding:0 8px;}
+#vmod-card .vmod-sug li button:hover{background:var(--bg3,var(--bg));}
+#vmod-card .vmod-sug mark{background:none;color:var(--accent,#3ecf8e);font-weight:800;}
+#vmod-card .vmod-link{background:none;border:0;padding:10px 0;min-height:44px;color:var(--accent,#3ecf8e);
+  font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:block;}
+#vmod-card .vmod-todos{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px;
+  padding:6px;margin-bottom:6px;background:var(--bg);}
+#vmod-card .vmod-todos h4{margin:6px 2px 2px;font-size:11px;color:var(--text2);font-weight:600;}
+#vmod-card .vmod-mod{padding:5px 2px;border-bottom:1px dashed var(--border);}
+#vmod-card .vmod-mod:last-child{border-bottom:0;}
+#vmod-card .vmod-mn{font-weight:600;font-size:12px;margin-bottom:3px;}
+#vmod-card .vmod-szs{display:flex;flex-wrap:wrap;gap:5px;}
+#vmod-card .vmod-sz{min-width:44px;min-height:44px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg2);color:var(--text);font:inherit;font-size:12px;cursor:pointer;}
+#vmod-card .vmod-manual{border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:6px;
+  background:var(--bg);}
+#vmod-card .vmod-exp{border:1px solid var(--border);border-radius:8px;padding:8px;margin:6px 0;background:var(--bg);}
+#vmod-card .vmod-exp-g{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px;}
+#vmod-card .vmod-exp-g span{display:block;font-size:11px;color:var(--text2);}
+#vmod-card .vmod-exp-g b{font-size:14px;}
+#vmod-card .vmod-pie{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+#vmod-card .vmod-x{min-width:44px;min-height:44px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:18px;cursor:pointer;}
+/* A 900 px o menos la card es una hoja fija abajo, con scroll interno y tope del 80 % de la
+   ventana. El `!important` es el unico modo de ganarle a la geometria que `_vModColocar`
+   escribe en el `style` del propio nodo. */
+@media (max-width:900px){
+  #vmod-card{left:8px !important;right:8px !important;bottom:8px !important;top:auto !important;
+    width:auto !important;max-height:80vh !important;overflow:auto !important;}
+  #vmod-card .vmod-fila{grid-template-columns:1fr;}
+}
+
 /* (3) Fila de grado final: insuficiencia a la izquierda (bajo su botón), estenosis a la derecha,
    a la misma altura. `align-items:flex-start` y no `stretch`: con el cajón del fundamento abierto
    la columna de la estenosis crece, y estirar la otra dejaría una caja vacía del mismo alto.
@@ -8736,9 +8807,30 @@ window.cerrarSesionReal = cerrarSesionReal;
                bioprótesis—. En las otras tres se sacó (2026-09-27) porque ahí no hay nada con qué
                confundirse. Lo que impide que el paréntesis llegue al dato es el `value` explícito;
                antes de tocar cualquiera de los dos, leer `VALV_PROT_OPCIONES`. Lo fija TC-289. -->
-          <select id="va_morf" onchange="valvProtSync();taviMorfSync('va','va_morf')"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
+          <select id="va_morf" onchange="valvProtSync();taviMorfSync('va','va_morf');vModMorfSync('va')"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
+        <!-- ══ «Modelo y tamano» de la valvula AORTICA (PANT-19, commit 4) ══════════════
+             El boton va en ESTA fila, a la derecha del select, y se ve solo con protesis.
+             Los cuatro campos guardados van ocultos con `display:none` y NO con `type="hidden"`:
+             en un hidden el `value` y el `defaultValue` son el MISMO atributo, asi que
+             «Nuevo estudio» no lo limpiaria (P14c-g) y el barrido de `limpiarCampos` —que toma
+             `text` y `number`— no lo alcanzaria. Llevan guion BAJO, asi que `_noEsDelEstudio`
+             —que excluye por prefijo con guion MEDIO— no los saca del estudio. -->
+        <div class="fg vmod-wrap" id="vmod-va-wrap" style="display:none;">
+          <label for="vmod-va-btn">Pr&oacute;tesis</label>
+          <button type="button" class="btn btn-ghost vmod-btn" id="vmod-va-btn"
+                  aria-expanded="false" aria-haspopup="dialog" aria-label="Modelo y tama&ntilde;o de la pr&oacute;tesis a&oacute;rtica"
+                  onclick="vModClic('va')">Modelo y tama&ntilde;o</button>
+        </div>
+        <div class="vmod-chips" id="vmod-va-chips" aria-live="polite"></div>
+        <input type="text"   id="va_prot_modelo" style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="text"   id="va_prot_tam"    style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="va_prot_gmref"  step="0.1"  style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="va_prot_eoaref" step="0.01" style="display:none;" tabindex="-1" aria-hidden="true">
+
       </div>
+      <div class="vmod-sub" id="vmod-va-sub" style="display:none;"></div>
+      <div class="vmod-med" id="vmod-va-med" style="display:none;"></div>
       <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
@@ -69110,7 +69202,11 @@ function RECALC_MODULOS() {
   /* PANT-14b: «un dato, una sola puerta». Va PRIMERO de los dos embudos a proposito: los
      pintores de cada seccion LEEN el interruptor, asi que encenderlo despues de ellos dejaria
      el boton apagado hasta la pasada siguiente. */
-  return ['ccPuertaSync','vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
+  /* PANT-19: `vModSyncTodos` pinta la fila del modelo. Va aca ADEMAS de en el registro de
+     espejos porque las rutas de restauracion pueblan asignando `.value`, que NO dispara
+     `input`: sin esta entrada, abrir un estudio con modelo guardado dejaria el boton
+     diciendo «Modelo y tamano» y la fila de esperados vacia. */
+  return ['vModSyncTodos','ccPuertaSync','vciNoVisSync','aoRaizReconciliar','taviAoReconciliar','profCoaptReconciliar',
           'puaDerrameReconciliar','puaPopReconciliar','pulDibSync','tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','asiaMmSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','vdTrivSync','etOndaESync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','vmCarpLegadoSync','vmCarpOrigenSync','vmProtBloqSync','vmMorfFitSync','vdStrainPlSync','emPdfValsSync','emCuadroRefRepintar','emContFaAvisoSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync','vdMarcaSync','vdTeiAvisoSync','tep6060Resalte','hfPepSync','hfPepPintar','viVolAutoSync','eaAvaiGradoPintar','eaPvlPintar','imPvlPintar','vdTapsePsapSync','ipApDiamSync','vdViSelSync','htpApSync','htpTablaPintar','m3dBotonSync','contrPdfSync','sglPdfSync','eteQxPdfSync','pulDibPdfSync','otrBurbUI','otrVarNotaSync','v2dCerrar','aiviSexoSync','vtDviAuto','sincronizarTEERDesdeGlobal','calcETE',
           /* `pamAvisoSync` (B-2) repinta la línea del dueño único de la PAM. Entra acá por lo
              mismo que los demás: las cinco rutas de restauración pueblan asignando `.value`,
@@ -69199,7 +69295,12 @@ function ESPEJOS_VIVOS() {
      la regla que excluye a `popSync` y a `calcVD` existe para los pintores que pueden pelear
      con lo que el medico escribio, y este no pelea -enciende UN interruptor, el de su propia
      seccion, y respeta el apagado a mano-. Es decision expresa del medico. */
-  return ['ccPuertaSync', 'tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
+  /* PANT-19: `vModSyncTodos` SOLO PINTA -el boton, los cuadritos de lo esperado, la linea de
+     abajo y lo medido-. No escribe un solo campo del estudio, asi que entra en este registro
+     y no en el de los que pelean con lo que el medico escribio. Lo necesita porque lo MEDIDO
+     que publica sale de `gmedio_ao` y de `ava_cont`, que se cargan en otra parte de la
+     pantalla y no disparan ningun evento sobre la fila del modelo. */
+  return ['vModSyncTodos', 'ccPuertaSync', 'tvSync', 'dapSync', 'coaSync', 'vapSync', 'ebsSync', 'tgaSync', 'dsavSync',
           'cvpaSync', 'eteShuntSync', 'calcTEP',
           'popHemoSync', 'popPocusSync', 'popEsqPintar', 'popConclSync', 'popDosisTodas',
           /* B-2: el aviso del dueño único de la PAM. Lee tres pestañas —el Swan del POP,
@@ -69329,6 +69430,11 @@ function limpiarCampos(silencioso) {
      anterior» que este archivo ya documenta para los spans de `calcVI`.
      Se cierra —no solo se detiene— porque no hay nada que mostrar hasta que alguien cargue. */
   if (typeof lv3dCerrar === 'function') lv3dCerrar();
+  /* PANT-19: la card de «Modelo y tamano» se cierra con «Nuevo estudio». Su estado abierto NO
+     se guarda —no es un campo— pero dejarla abierta sobre campos recien vaciados es la misma
+     clase de resto del paciente anterior que el parrafo de arriba. Los CUATRO campos del
+     modelo los borra el barrido generico, porque son `text` y `number` y no `hidden`. */
+  if (typeof vModCerrar === 'function') vModCerrar();
   /* ⚠️ Y LA CAPTURA DEL 3D CON ÉL, que es la parte que `lv3dCerrar` NO hace.
      La captura vive en memoria y sobrevive al cierre del panel A PROPÓSITO —hay que poder armar el
      informe desde otra pestaña—, así que es exactamente el tipo de cosa que termina en el informe
@@ -69603,6 +69709,13 @@ function limpiarCampos(silencioso) {
      —una fórmula anunciando con qué se calculó un número que ya no está—, que es el mismo defecto
      que los span de `im-pdf-` unas líneas más arriba. La otra columna es `RECALC_MODULOS`. */
   { if (typeof papmEstSync === 'function') { try { papmEstSync(); } catch (e) {} } }
+  /* ⚠️ LA FILA DEL MODELO NECESITA LAS DOS COLUMNAS (PANT-19, commit 4), y lo cazo la sonda de
+     esta tanda y no una lectura. Los CUATRO campos si los vacia el barrido generico —son `text`
+     y `number`—, pero el ROTULO del boton y los cuadritos de lo esperado los escribe `vModSync`,
+     que `limpiarCampos` no llama: sin esta linea «Nuevo estudio» dejaba el boton diciendo
+     «Medtronic Mosaic - 25 mm» sobre un formulario en blanco. La otra columna es
+     `RECALC_MODULOS`, para las rutas de restauracion, que es donde el caso es el inverso. */
+  { if (typeof vModSyncTodos === 'function') { try { vModSyncTodos(); } catch (e) {} } }
   /* ⚠️ EL BLOQUE DE LA FUGA PARAVALVULAR QUIRÚRGICA NECESITA LAS DOS COLUMNAS (PRO-B3), y la
      que falta acá es la VISIBILIDAD. Sus dos filas sí las deja en «—» el barrido de
      `.calc-box .calc-row span[id]` de más arriba; lo que NINGÚN barrido toca es el `display` de
@@ -72753,6 +72866,530 @@ const PROT_CAT_TAVI = Object.freeze([
 const PROT_CAT_TAVI_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A1, A2 y A3', hojas:'50 y 51', folios:'51 y 52' });
 window.PROT_CAT_TAVI = PROT_CAT_TAVI; window.PROT_CAT_TAVI_COLS = PROT_CAT_TAVI_COLS;
 window.PROT_CAT_TAVI_FTE = PROT_CAT_TAVI_FTE;
+/* ══ EL COMPONENTE «Modelo y tamano» (PANT-19, commit 4) ═══════════════════════════════════
+   UN solo componente, parametrizado por POSICION (va, vm, y manana vt y vp): el dia que
+   entren la tricuspide y la pulmonar se agrega una entrada al registro VMOD_POS y nada mas. Lo que cambia
+   por posicion vive en ese registro; el resto —la card, las sugerencias, la lista de todos, el
+   modo manual, los valores esperados y la indexada predicha— es comun.
+   ⚠️ LA CARD ES UNICA y cuelga del BODY. Una card por posicion serian dos DOM que divergen, y
+   moverla al ancla —el «prestamo» que PANT-14b documenta— deja el estado a merced de quien la
+   mueva. Se coloca bajo el boton que la abrio, como la tarjeta de los globos.
+   ⚠️ LA LISTA DE SUGERENCIAS NO SE ABRE AL ABRIR LA CARD POR CODIGO: en la demo tapaba los dos
+   enlaces de abajo. Se abre al ESCRIBIR o al tocar el campo, y se cierra al tocar afuera. */
+const VMOD_POS = Object.freeze({
+  va: Object.freeze({
+    morf:'va_morf', etq:'aórtica',
+    campos:{ modelo:'va_prot_modelo', tam:'va_prot_tam', gmref:'va_prot_gmref', eoaref:'va_prot_eoaref' },
+    /* lo MEDIDO que se compara con lo esperado: id o funcion que lo devuelve */
+    medidos:[ {k:'medio', lbl:'Gradiente medio', uni:' mmHg', id:'gmedio_ao'},
+              {k:'eoa',   lbl:'AVA por continuidad', uni:' cm²', id:'ava_cont'} ],
+    /* la EOA indexada predicha se clasifica con la MISMA funcion que la app ya usa para el PPM */
+    ppm:(eoai,imc)=>(typeof _eaPpmAoClasificar==='function')?_eaPpmAoClasificar(eoai,imc):null,
+    cortes:(imc)=>((imc!=null && imc>=VM_PROT_IMC_OBESIDAD)?EA_PROT_PPM_CORTES.imcAlto:EA_PROT_PPM_CORTES.imcBajo)
+  })
+});
+/* Las tres palabras del PPM son las de PPM_FILA_TXT, el dueno unico: un segundo juego de
+   etiquetas seria el que se queda atras el dia que una cambie. */
+const VMOD_PPM_TXT = Object.freeze({ no:'sin desajuste', moderado:'moderado', severo:'severo' });
+/* Los rotulos de cada columna, con su unidad. El ORDEN lo declara cada catalogo en su constante _COLS. */
+const VMOD_COL_TXT = Object.freeze({
+  pico:{lbl:'Gradiente pico esperado', uni:' mmHg', chip:0},
+  medio:{lbl:'Gradiente medio esperado', uni:' mmHg', chip:1},
+  eoa:{lbl:'EOA esperada', uni:' cm²', chip:1},
+  dvi:{lbl:'DVI esperado', uni:'', chip:0},
+  vpico:{lbl:'Velocidad pico esperada', uni:' m/s', chip:0},
+  thp:{lbl:'THP esperado', uni:' ms', chip:1}
+});
+let _vModPos = null;          // posicion abierta, o null
+let _vModCur = null;          // modelo elegido en la card, todavia sin confirmar
+let _vModVer = { va:true, vm:true };   // estado de «Mostrar / Ocultar», de PANTALLA y no del estudio
+
+function _vmEl(id){ return document.getElementById(id); }
+function _vmV(id){ const e=_vmEl(id); return e ? String(e.value||'').trim() : ''; }
+function _vmSet(id,v){ const e=_vmEl(id); if(e){ e.value=(v==null?'':String(v)); } }
+function _vmN(x){ const n=parseFloat(String(x==null?'':x).replace(',','.')); return isFinite(n)?n:null; }
+/* El numero se publica tal como JS lo serializa: no se agrega ni se quita precision. */
+function _vmNum(x){ return (x==null)?'':String(x); }
+function _vmPar(c){ if(!c) return null; return (c[1]==null) ? _vmNum(c[0]) : (_vmNum(c[0])+' ± '+_vmNum(c[1])); }
+function _vmNorm(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+
+/* ── que catalogo corresponde a la morfologia que hay cargada ───────────────────────────── */
+function vModCatalogo(pos){
+  const P = VMOD_POS[pos]; if(!P) return null;
+  const morf = _vmV(P.morf);
+  if (pos==='va' && morf==='TAVI')
+    return { lista:PROT_CAT_TAVI, cols:PROT_CAT_TAVI_COLS, fte:PROT_CAT_TAVI_FTE };
+  const t = (morf==='Prótesis mecánica') ? 'mec' : ((morf==='Prótesis biológica') ? 'bio' : null);
+  if (!t) return null;
+  const base = (pos==='va') ? PROT_CAT_A4 : (window.PROT_CAT_A5||[]);
+  const cols = (pos==='va') ? PROT_CAT_A4_COLS : (window.PROT_CAT_A5_COLS||[]);
+  const fte  = (pos==='va') ? PROT_CAT_A4_FTE  : (window.PROT_CAT_A5_FTE||null);
+  /* un modelo SIN TIPO se ofrece bajo cualquier morfologia de protesis: la tabla no imprime su
+     tipo y adivinarlo lo escoderia de la mitad de los pacientes. */
+  return { lista: base.filter(m => m.t===t || !m.t), cols:cols, fte:fte };
+}
+function vModBuscar(pos, nombre){
+  const C = vModCatalogo(pos); if(!C) return null;
+  return C.lista.filter(m => m.n===nombre)[0] || null;
+}
+/* ── los valores esperados del modelo y el tamano guardados ──────────────────────────────── */
+function vModEsperados(pos){
+  const P = VMOD_POS[pos]; if(!P) return null;
+  const nom = _vmV(P.campos.modelo);
+  const gm  = _vmN(_vmV(P.campos.gmref)), eo = _vmN(_vmV(P.campos.eoaref));
+  /* modo MANUAL: los dos numeros que el medico cargo. Sin desvios: no hay de donde sacarlos. */
+  if (gm!=null && eo!=null && !vModBuscar(pos,nom))
+    return { manual:true, nombre:(nom||'Referencia manual'), tam:_vmV(P.campos.tam),
+             vals:{ medio:[gm,null], eoa:[eo,null] }, fte:null, folio:null };
+  const m = vModBuscar(pos,nom); if(!m) return null;
+  const C = vModCatalogo(pos);
+  const tam = _vmV(P.campos.tam);
+  const fila = m.s.filter(f => f[0]===tam)[0] || (m.viv ? m.s[0] : null);
+  if (!fila) return null;
+  const vals = {};
+  C.cols.forEach((c,i) => { vals[c] = fila[i+1] || null; });
+  return { manual:false, nombre:m.n, desc:m.d, tam:fila[0], viv:!!m.viv, vals:vals,
+           cols:C.cols, fte:C.fte, folio:m.f };
+}
+/* ── la EOA indexada predicha, con el ASC y el IMC que la app YA calcula ──────────────────── */
+function vModIndexada(pos, eoaMedia){
+  const P = VMOD_POS[pos];
+  const bsa = (typeof getBSA==='function') ? getBSA() : null;
+  if (!bsa || eoaMedia==null) return null;
+  const imc = (typeof getIMC==='function') ? getIMC() : null;
+  const eoai = +( _vmN(eoaMedia) / bsa ).toFixed(2);
+  const r = P.ppm ? P.ppm(eoai, imc) : null;
+  return { eoai:eoai, bsa:bsa, imc:imc, ppm:(r&&r.ppm)||null, cortes:P.cortes?P.cortes(imc):null };
+}
+
+/* ── EL PINTOR: el boton, los cuadritos de la fila, la linea de abajo y lo medido ─────────── */
+function _vmChip(lbl, val, cls){
+  const s=document.createElement('span'); s.className='vmod-chip'+(cls?(' '+cls):'');
+  const b=document.createElement('b'); b.textContent=lbl; s.appendChild(b);
+  if (val && val.nodeType) s.appendChild(val); else s.appendChild(document.createTextNode(String(val)));
+  return s;
+}
+function vModSync(pos){
+  const P=VMOD_POS[pos]; if(!P) return;
+  const wrap=_vmEl('vmod-'+pos+'-wrap'), btn=_vmEl('vmod-'+pos+'-btn'),
+        chips=_vmEl('vmod-'+pos+'-chips'), sub=_vmEl('vmod-'+pos+'-sub'), med=_vmEl('vmod-'+pos+'-med');
+  if(!wrap||!btn||!chips) return;
+  const hayCat = !!vModCatalogo(pos);
+  wrap.style.display = hayCat ? '' : 'none';
+  if(!hayCat){
+    chips.textContent=''; if(sub) sub.style.display='none'; if(med) med.style.display='none';
+    /* el ROTULO se repone aunque el boton quede oculto: dejarlo con el modelo del paciente
+       anterior es el resto que vuelve a la vista en cuanto alguien elige una protesis. */
+    btn.textContent='Modelo y tama\u00f1o';
+    btn.setAttribute('aria-label','Modelo y tama\u00f1o de la pr\u00f3tesis '+P.etq);
+    if (_vModPos===pos) vModCerrar();
+    return; }
+  const E = vModEsperados(pos);
+  /* el rotulo del boton: «Nombre - tamano mm» una vez elegido */
+  if (E){
+    /* el « mm» solo con un tamano NUMERICO: la tabla tambien imprime «All», «19-21» y «XL (27)» */
+    const t = E.tam ? (' · '+E.tam+(/^\d+$/.test(E.tam)?' mm':'')) : '';
+    btn.textContent = E.nombre + t + ' ▾';
+    btn.setAttribute('aria-label','Modelo y tamaño: '+E.nombre+t);
+  } else {
+    btn.textContent = 'Modelo y tamaño';
+    btn.setAttribute('aria-label','Modelo y tamaño de la prótesis '+P.etq);
+  }
+  chips.textContent='';
+  if(sub){ sub.textContent=''; sub.style.display='none'; }
+  if(med){ med.textContent=''; med.style.display='none'; }
+  if(!E) return;
+  if(!_vModVer[pos]){
+    const b=document.createElement('button'); b.type='button'; b.className='btn btn-ghost vmod-btn';
+    b.textContent='Mostrar datos esperados';
+    b.onclick=function(){ _vModVer[pos]=true; vModSync(pos); };
+    chips.appendChild(b); return;
+  }
+  /* los cuadritos: uno por columna CON DATO. Una celda vacia no muestra su cuadrito. */
+  const cols = E.manual ? ['medio','eoa'] : E.cols;
+  cols.forEach(c=>{
+    const v=E.vals[c]; if(!v) return;
+    const d=VMOD_COL_TXT[c]; if(!d) return;
+    chips.appendChild(_vmChip(d.lbl, _vmPar(v)+d.uni));
+  });
+  /* la EOA indexada predicha, con su categoria */
+  const eo = E.vals.eoa;
+  const idx = eo ? vModIndexada(pos, eo[0]) : null;
+  if (eo && !idx)
+    chips.appendChild(_vmChip('EOA indexada predicha','falta el peso y la talla'));
+  else if (idx){
+    const em=document.createElement('em'); em.textContent=VMOD_PPM_TXT[idx.ppm]||'—';
+    const frag=document.createDocumentFragment();
+    frag.appendChild(document.createTextNode(idx.eoai.toFixed(2)+' cm²/m² · '));
+    frag.appendChild(em);
+    chips.appendChild(_vmChip('EOA indexada predicha', frag));
+  }
+  /* la linea de abajo: el tipo, el ASC, el IMC y los cortes aplicados, mas «Ocultar» */
+  if(sub){
+    const izq=document.createElement('span');
+    const partes=[];
+    if (E.manual) partes.push('Referencia manual');
+    else if (E.desc) partes.push(E.desc);
+    if (idx){
+      partes.push('ASC '+idx.bsa.toFixed(2)+' m²');
+      if (idx.imc!=null) partes.push('IMC '+idx.imc.toFixed(1)+' kg/m²');
+      if (idx.cortes) partes.push('cortes de IMC '+((idx.imc!=null&&idx.imc>=VM_PROT_IMC_OBESIDAD)?'≥ 30':'< 30')+
+        ': moderado ≤ '+idx.cortes.normalMin+' · severo ≤ '+idx.cortes.severoMax+' cm²/m²');
+    } else partes.push('falta el peso y la talla para indexar');
+    if (!E.manual && E.fte) partes.push(E.fte.guia+', Tabla '+E.fte.tabla+', hoja '+(E.folio?(+String(E.folio).split(',')[0]-1):'—')+' (folio '+E.folio+')');
+    izq.textContent = partes.join(' · ');
+    const b=document.createElement('button'); b.type='button'; b.className='vmod-mini';
+    b.textContent='Ocultar'; b.setAttribute('aria-label','Ocultar los datos esperados de la prótesis '+P.etq);
+    b.onclick=function(){ _vModVer[pos]=false; vModSync(pos); };
+    sub.appendChild(izq); sub.appendChild(b); sub.style.display='';
+  }
+  /* lo MEDIDO en este estudio, con su diferencia en desviaciones estandar */
+  if(med){
+    let hay=false;
+    const lbl=document.createElement('span'); lbl.className='vmod-lbl'; lbl.textContent='Medido en este estudio';
+    med.appendChild(lbl);
+    P.medidos.forEach(d=>{
+      const x=_vmN(_vmV(d.id)); if(x==null) return;
+      hay=true;
+      const esp=E.vals[d.k];
+      let txt=_vmNum(x)+d.uni;
+      if (esp && esp[1]!=null && +esp[1]>0){
+        const z=(x-(+esp[0]))/(+esp[1]);
+        txt += ' · '+(z>=0?'+':'−')+Math.abs(z).toFixed(1)+' DE respecto del esperado';
+      }
+      med.appendChild(_vmChip(d.lbl+' medido', txt));
+    });
+    med.style.display = hay ? '' : 'none';
+    if(!hay) med.textContent='';
+  }
+}
+/* El embudo: lo llaman el gesto, el barrido de espejos y la restauracion de un estudio. */
+function vModSyncTodos(){ Object.keys(VMOD_POS).forEach(vModSync); }
+
+/* ── LA CARD: unica, colgada del body, colocada bajo el boton que la abrio ────────────────── */
+function _vModCard(){
+  let c=_vmEl('vmod-card');
+  if(c) return c;
+  c=document.createElement('div');
+  c.id='vmod-card'; c.setAttribute('role','dialog'); c.setAttribute('tabindex','-1');
+  c.setAttribute('aria-label','Modelo y tamaño de la prótesis');
+  c.style.cssText='display:none;position:fixed;z-index:330;box-sizing:border-box;overflow:auto;'+
+    'background:var(--bg2);border:1px solid var(--border);border-radius:10px;'+
+    'box-shadow:0 14px 40px rgba(0,0,0,.45);padding:10px 12px;font-size:12px;color:var(--text);';
+  document.body.appendChild(c);
+  return c;
+}
+function _vModColocar(btn){
+  const c=_vModCard(); const r=btn.getBoundingClientRect();
+  if(!r.width && !r.height) return false;
+  /* por debajo de 900 px la hoja fija de abajo la pone el CSS con un important; aca no se
+     escribe nada que haya que deshacer despues. */
+  if (window.innerWidth<=900){ c.style.top=''; c.style.left=''; c.style.width=''; c.style.maxHeight=''; return true; }
+  const an=Math.min(620, window.innerWidth-24);
+  let x=Math.max(8, Math.min(r.left, window.innerWidth-an-8));
+  let y=r.bottom+6;
+  const alto=Math.min(window.innerHeight-y-10, Math.round(window.innerHeight*0.8));
+  if (alto<220){ y=Math.max(8, r.top-Math.min(420,window.innerHeight-20)-6); }
+  c.style.width=an+'px'; c.style.left=Math.round(x)+'px'; c.style.top=Math.round(y)+'px';
+  c.style.maxHeight=Math.max(220, Math.min(window.innerHeight-y-10, Math.round(window.innerHeight*0.8)))+'px';
+  return true;
+}
+function _vModFila(lbl, el){
+  const d=document.createElement('div'); d.className='fg';
+  const l=document.createElement('label'); l.textContent=lbl; l.setAttribute('for',el.id);
+  d.appendChild(l); d.appendChild(el); return d;
+}
+function _vModInput(id, tipo, ph){
+  const i=document.createElement('input'); i.type=tipo||'text'; i.id=id; i.autocomplete='off';
+  if(ph) i.placeholder=ph; return i;
+}
+function _vModPintarCard(){
+  const pos=_vModPos; if(!pos) return;
+  const C=vModCatalogo(pos); const c=_vModCard();
+  c.textContent='';
+  const h=document.createElement('div');
+  h.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+  const t=document.createElement('strong'); t.textContent='Modelo y tamaño';
+  const x=document.createElement('button'); x.type='button'; x.className='vmod-x';
+  x.textContent='×'; x.setAttribute('aria-label','Cerrar');
+  x.onclick=function(){ const b=_vmEl('vmod-'+pos+'-btn'); vModCerrar(); if(b) b.focus(); };
+  h.appendChild(t); h.appendChild(x); c.appendChild(h);
+  /* la fila: modelo (texto con sugerencias) y numero (select de los tamanos de ESE modelo) */
+  const fila=document.createElement('div'); fila.className='vmod-fila';
+  const inp=_vModInput('vmod-inp','text','Escribí el nombre del modelo');
+  inp.addEventListener('input', function(){ _vModDesdeTexto(); _vModSug(); _vModDraft(); });
+  inp.addEventListener('click', _vModSug);
+  const sel=document.createElement('select'); sel.id='vmod-tam'; sel.disabled=true;
+  sel.addEventListener('change', _vModDraft);
+  fila.appendChild(_vModFila('Modelo', inp));
+  fila.appendChild(_vModFila('Número (mm)', sel));
+  c.appendChild(fila);
+  /* la lista va FUERA de la fila y en flujo: dentro y superpuesta tapaba «ver todos» */
+  const ul=document.createElement('ul'); ul.className='vmod-sug'; ul.id='vmod-sug'; ul.hidden=true;
+  c.appendChild(ul);
+  /* «No se el modelo» y «Mi modelo no esta» */
+  const bT=document.createElement('button'); bT.type='button'; bT.className='vmod-link'; bT.id='vmod-btodos';
+  bT.setAttribute('aria-expanded','false');
+  bT.textContent='No sé el modelo: ver todos y elegir';
+  const dT=document.createElement('div'); dT.className='vmod-todos'; dT.id='vmod-todos'; dT.hidden=true;
+  bT.onclick=function(){ const ab=dT.hidden; dT.hidden=!ab; bT.setAttribute('aria-expanded',String(ab));
+                         if(ab) _vModTodos(); _vmEl('vmod-sug').hidden=true; };
+  c.appendChild(bT); c.appendChild(dT);
+  const bM=document.createElement('button'); bM.type='button'; bM.className='vmod-link'; bM.id='vmod-bmanual';
+  bM.setAttribute('aria-expanded','false');
+  bM.textContent='Mi modelo no está: cargar los valores a mano';
+  const dM=document.createElement('div'); dM.className='vmod-manual'; dM.id='vmod-manual'; dM.hidden=true;
+  const g=document.createElement('div'); g.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:8px;';
+  const mN=_vModInput('vmod-mnom','text','Modelo o marca');
+  const mT=_vModInput('vmod-mtam','text','mm');
+  const mG=_vModInput('vmod-mgm','number','mmHg'); mG.step='0.1'; mG.min='0';
+  const mE=_vModInput('vmod-meoa','number','cm²'); mE.step='0.01'; mE.min='0';
+  g.appendChild(_vModFila('Nombre (opcional)', mN));
+  g.appendChild(_vModFila('Número (mm, opcional)', mT));
+  g.appendChild(_vModFila('Gradiente medio de referencia (mmHg)', mG));
+  g.appendChild(_vModFila('EOA de referencia (cm²)', mE));
+  dM.appendChild(g);
+  [mN,mT,mG,mE].forEach(e=>e.addEventListener('input',_vModDraft));
+  bM.onclick=function(){ const ab=dM.hidden; dM.hidden=!ab; bM.setAttribute('aria-expanded',String(ab));
+                         _vmEl('vmod-sug').hidden=true; _vModDraft(); };
+  c.appendChild(bM); c.appendChild(dM);
+  const exp=document.createElement('div'); exp.className='vmod-exp'; exp.id='vmod-exp'; exp.hidden=true;
+  c.appendChild(exp);
+  const pie=document.createElement('div'); pie.className='vmod-pie';
+  const bE=document.createElement('button'); bE.type='button'; bE.className='btn'; bE.id='vmod-elegir';
+  bE.textContent='Elegir'; bE.disabled=true; bE.onclick=vModElegir;
+  const bQ=document.createElement('button'); bQ.type='button'; bQ.className='btn btn-ghost'; bQ.id='vmod-quitar';
+  bQ.textContent='Quitar modelo'; bQ.onclick=function(){ vModQuitar(pos); };
+  pie.appendChild(bE); pie.appendChild(bQ); c.appendChild(pie);
+  /* si ya hay un modelo guardado, la card abre con el */
+  const E=vModEsperados(pos);
+  bQ.hidden = !E;
+  if (E && !E.manual){ const m=vModBuscar(pos,E.nombre); if(m){ _vModElegirModelo(m, E.tam); } }
+  else if (E && E.manual){
+    dM.hidden=false; bM.setAttribute('aria-expanded','true');
+    mN.value=(E.nombre==='Referencia manual'?'':E.nombre); mT.value=E.tam||'';
+    mG.value=_vmNum(E.vals.medio[0]); mE.value=_vmNum(E.vals.eoa[0]);
+  }
+  _vModDraft();
+}
+
+/* ── las sugerencias: por PALABRA, sin distinguir mayusculas ni acentos, el guion separa ──── */
+function _vModSug(){
+  const pos=_vModPos; const ul=_vmEl('vmod-sug'), inp=_vmEl('vmod-inp');
+  if(!pos||!ul||!inp) return;
+  ul.textContent='';
+  /* el guion separa palabras TAMBIEN en lo escrito: sin esto «valve-in-valve» no encuentra nada */
+  const q=_vmNorm(inp.value.trim()).replace(/-/g,' ');
+  if(!q){ ul.hidden=true; return; }
+  const C=vModCatalogo(pos); if(!C){ ul.hidden=true; return; }
+  const lst=C.lista.filter(m=>(' '+_vmNorm(m.n).replace(/-/g,' ')).indexOf(' '+q)>-1)
+    .sort((a,b)=>{ const pa=_vmNorm(a.n).indexOf(q)===0?0:1, pb=_vmNorm(b.n).indexOf(q)===0?0:1;
+                   return pa-pb || a.n.localeCompare(b.n,'es'); });
+  if(!lst.length){
+    const li=document.createElement('li');
+    li.style.cssText='padding:8px;font-size:11px;color:var(--text2);';
+    li.textContent='Sin coincidencias. Probá con «ver todos» o cargá los valores a mano.';
+    ul.appendChild(li); ul.hidden=false; return;
+  }
+  lst.forEach(m=>{
+    const li=document.createElement('li'), b=document.createElement('button'); b.type='button';
+    const nn=_vmNorm(m.n), k=(' '+nn.replace(/-/g,' ')).indexOf(' '+q);
+    if (nn.length===m.n.length && k>-1){
+      b.appendChild(document.createTextNode(m.n.slice(0,k)));
+      const mk=document.createElement('mark'); mk.textContent=m.n.slice(k,k+q.length); b.appendChild(mk);
+      b.appendChild(document.createTextNode(m.n.slice(k+q.length)+(m.d?(' · '+m.d):'')));
+    } else b.textContent=m.n+(m.d?(' · '+m.d):'');
+    b.onclick=function(){ _vModElegirModelo(m); _vModDraft(); };
+    li.appendChild(b); ul.appendChild(li);
+  });
+  ul.hidden=false;
+}
+function _vModDesdeTexto(){
+  const pos=_vModPos, inp=_vmEl('vmod-inp'); if(!pos||!inp) return;
+  const C=vModCatalogo(pos); if(!C) return;
+  const q=_vmNorm(inp.value.trim());
+  const ex=C.lista.filter(m=>_vmNorm(m.n)===q)[0];
+  if(ex) _vModLlenarTam(ex); else { _vModCur=null; _vModLlenarTam(null); }
+}
+function _vModLlenarTam(m, keep){
+  const s=_vmEl('vmod-tam'); if(!s) return;
+  s.textContent='';
+  const o0=document.createElement('option'); o0.value=''; o0.textContent='—'; s.appendChild(o0);
+  if(!m){ s.disabled=true; return; }
+  _vModCur=m;
+  m.s.forEach(f=>{ const o=document.createElement('option'); o.value=f[0];
+                   o.textContent=f[0]+(/^\d+$/.test(f[0])?' mm':''); s.appendChild(o); });
+  s.disabled=false;
+  /* un valve-in-valve no pide tamano: tiene uno solo y se elige SOLO */
+  s.value = keep || (m.viv ? m.s[0][0] : '');
+}
+function _vModElegirModelo(m, tam){
+  const inp=_vmEl('vmod-inp'); if(inp) inp.value=m.n;
+  const ul=_vmEl('vmod-sug'); if(ul) ul.hidden=true;
+  const dM=_vmEl('vmod-manual'); if(dM && !dM.hidden){ dM.hidden=true; const b=_vmEl('vmod-bmanual'); if(b) b.setAttribute('aria-expanded','false'); }
+  _vModLlenarTam(m, tam);
+}
+/* ── «No se el modelo»: todos, agrupados por el descriptor que la tabla imprime ──────────── */
+function _vModTodos(){
+  const pos=_vModPos, box=_vmEl('vmod-todos'); if(!pos||!box) return;
+  box.textContent='';
+  const C=vModCatalogo(pos); if(!C) return;
+  const fams={};
+  C.lista.forEach(m=>{ const f=m.d||'Sin tipo impreso en la tabla'; (fams[f]=fams[f]||[]).push(m); });
+  Object.keys(fams).sort((a,b)=>a.localeCompare(b,'es')).forEach(f=>{
+    const h=document.createElement('h4'); h.textContent=f; box.appendChild(h);
+    fams[f].forEach(m=>{
+      const d=document.createElement('div'); d.className='vmod-mod';
+      const n=document.createElement('div'); n.className='vmod-mn'; n.textContent=m.n; d.appendChild(n);
+      const r=document.createElement('div'); r.className='vmod-szs';
+      m.s.forEach(fl=>{
+        const b=document.createElement('button'); b.type='button'; b.className='vmod-sz'; b.textContent=fl[0];
+        b.setAttribute('aria-label',m.n+' '+fl[0]+(/^\d+$/.test(fl[0])?' milímetros':''));
+        b.onclick=function(){ _vModElegirModelo(m, fl[0]); box.hidden=true;
+                              const bt=_vmEl('vmod-btodos'); if(bt) bt.setAttribute('aria-expanded','false');
+                              _vModDraft(); };
+        r.appendChild(b);
+      });
+      d.appendChild(r); box.appendChild(d);
+    });
+  });
+}
+/* ── el borrador: lo que se veria al elegir, y si «Elegir» se habilita ───────────────────── */
+function _vModDraft(){
+  const pos=_vModPos; if(!pos) return null;
+  const exp=_vmEl('vmod-exp'), bE=_vmEl('vmod-elegir');
+  const dM=_vmEl('vmod-manual');
+  let D=null;
+  if (dM && !dM.hidden){
+    const g=_vmN(_vmV('vmod-mgm')), e=_vmN(_vmV('vmod-meoa'));
+    if (g!=null && g>0 && e!=null && e>0)
+      D={manual:true, nombre:_vmV('vmod-mnom'), tam:_vmV('vmod-mtam'),
+         vals:{medio:[g,null], eoa:[e,null]}, cols:['medio','eoa']};
+  } else if (_vModCur && (_vmV('vmod-tam') || _vModCur.viv)){
+    const C=vModCatalogo(pos);
+    const tam=_vmV('vmod-tam') || _vModCur.s[0][0];
+    const fila=_vModCur.s.filter(f=>f[0]===tam)[0];
+    if (fila){ const vals={}; C.cols.forEach((c,i)=>{ vals[c]=fila[i+1]||null; });
+               D={manual:false, nombre:_vModCur.n, desc:_vModCur.d, tam:tam, viv:!!_vModCur.viv,
+                  vals:vals, cols:C.cols, fte:C.fte, folio:_vModCur.f}; }
+  }
+  if (bE) bE.disabled = !D;
+  if (exp){
+    exp.textContent='';
+    if(!D){ exp.hidden=true; return null; }
+    const g=document.createElement('div'); g.className='vmod-exp-g';
+    (D.manual?['medio','eoa']:D.cols).forEach(c=>{
+      const v=D.vals[c]; if(!v) return; const t=VMOD_COL_TXT[c]; if(!t) return;
+      const d=document.createElement('div');
+      const s=document.createElement('span'); s.textContent=t.lbl;
+      const b=document.createElement('b'); b.textContent=_vmPar(v)+t.uni;
+      d.appendChild(s); d.appendChild(b); g.appendChild(d);
+    });
+    const eo=D.vals.eoa, idx=eo?vModIndexada(pos,eo[0]):null;
+    const d2=document.createElement('div');
+    const s2=document.createElement('span'); s2.textContent='EOA indexada predicha';
+    const b2=document.createElement('b');
+    b2.textContent = idx ? (idx.eoai.toFixed(2)+' cm²/m² · '+(VMOD_PPM_TXT[idx.ppm]||'—'))
+                         : 'falta el peso y la talla';
+    d2.appendChild(s2); d2.appendChild(b2); g.appendChild(d2);
+    exp.appendChild(g);
+    const p=document.createElement('p');
+    p.style.cssText='margin:6px 0 0;font-size:11px;color:var(--text2);';
+    p.textContent = D.manual
+      ? 'Valores cargados por el médico: figuran como referencia manual.'
+      : (D.fte ? (D.fte.guia+', Tabla '+D.fte.tabla+', hoja '+(+String(D.folio).split(',')[0]-1)+' (folio '+D.folio+')') : '');
+    exp.appendChild(p);
+    exp.hidden=false;
+  }
+  return D;
+}
+
+/* ── abrir, cerrar, elegir y quitar ───────────────────────────────────────────────────────── */
+function vModAbrir(pos){
+  const btn=_vmEl('vmod-'+pos+'-btn'); if(!btn) return;
+  _vModPos=pos; _vModCur=null;
+  const c=_vModCard();
+  c.style.display='block';
+  _vModPintarCard();
+  if(!_vModColocar(btn)){ c.style.display='none'; _vModPos=null; return; }
+  btn.setAttribute('aria-expanded','true');
+  const ul=_vmEl('vmod-sug'); if(ul) ul.hidden=true;   /* NO se abre sola: taparia los enlaces */
+  if (window.innerWidth>900){ const i=_vmEl('vmod-inp'); if(i) i.focus({preventScroll:true}); }
+}
+function vModCerrar(){
+  const c=_vmEl('vmod-card'); if(c) c.style.display='none';
+  if(_vModPos){ const b=_vmEl('vmod-'+_vModPos+'-btn'); if(b) b.setAttribute('aria-expanded','false'); }
+  _vModPos=null; _vModCur=null;
+}
+function vModClic(pos){
+  const c=_vmEl('vmod-card');
+  if (c && c.style.display!=='none' && _vModPos===pos) vModCerrar(); else vModAbrir(pos);
+}
+function vModElegir(){
+  const pos=_vModPos; if(!pos) return;
+  const D=_vModDraft(); if(!D) return;
+  const P=VMOD_POS[pos];
+  if (D.manual){
+    _vmSet(P.campos.modelo, D.nombre||'');
+    _vmSet(P.campos.tam, D.tam||'');
+    _vmSet(P.campos.gmref, _vmNum(D.vals.medio[0]));
+    _vmSet(P.campos.eoaref, _vmNum(D.vals.eoa[0]));
+  } else {
+    _vmSet(P.campos.modelo, D.nombre);
+    _vmSet(P.campos.tam, D.tam);
+    _vmSet(P.campos.gmref, ''); _vmSet(P.campos.eoaref, '');
+  }
+  _vModVer[pos]=true;
+  const b=_vmEl('vmod-'+pos+'-btn');
+  vModCerrar(); vModSync(pos); if(b) b.focus();
+  if (typeof vModTrasElegir==='function') vModTrasElegir(pos);
+}
+function vModQuitar(pos){
+  const P=VMOD_POS[pos]; if(!P) return;
+  Object.keys(P.campos).forEach(k=>_vmSet(P.campos[k],''));
+  const b=_vmEl('vmod-'+pos+'-btn');
+  vModCerrar(); vModSync(pos); if(b) b.focus();
+  if (typeof vModTrasElegir==='function') vModTrasElegir(pos);
+}
+/* Cambiar la morfologia a un tipo INCOMPATIBLE limpia los campos del modelo. «Incompatible» es
+   que el modelo guardado ya no este en el catalogo que la morfologia nueva ofrece —una mecanica
+   no esta entre las biologicas ni entre las de TAVI—; un modelo SIN TIPO sobrevive a los dos,
+   porque los dos lo ofrecen. Con valvula nativa se limpia siempre: no hay catalogo. */
+function vModMorfSync(pos){
+  const P=VMOD_POS[pos]; if(!P) return;
+  const nom=_vmV(P.campos.modelo);
+  if (nom){
+    const C=vModCatalogo(pos);
+    const manual = (_vmN(_vmV(P.campos.gmref))!=null && _vmN(_vmV(P.campos.eoaref))!=null);
+    if (!C) Object.keys(P.campos).forEach(k=>_vmSet(P.campos[k],''));
+    else if (!manual && !vModBuscar(pos,nom)) Object.keys(P.campos).forEach(k=>_vmSet(P.campos[k],''));
+  }
+  if (_vModPos===pos) vModCerrar();
+  vModSync(pos);
+}
+/* Escape y tocar afuera cierran; el foco vuelve al boton. */
+document.addEventListener('keydown', function(e){
+  if (e.key==='Escape' && _vModPos){ const b=_vmEl('vmod-'+_vModPos+'-btn'); vModCerrar(); if(b) b.focus(); }
+});
+document.addEventListener('click', function(e){
+  const ul=_vmEl('vmod-sug'), inp=_vmEl('vmod-inp');
+  if (ul && !ul.hidden && !ul.contains(e.target) && e.target!==inp) ul.hidden=true;
+  if (!_vModPos) return;
+  const c=_vmEl('vmod-card'), b=_vmEl('vmod-'+_vModPos+'-btn');
+  if (c && c.contains(e.target)) return;
+  if (b && b.contains(e.target)) return;
+  vModCerrar();
+});
+window.addEventListener('resize', function(){
+  if (!_vModPos) return;
+  const b=_vmEl('vmod-'+_vModPos+'-btn'); if(b) _vModColocar(b);
+});
+window.VMOD_POS=VMOD_POS; window.VMOD_PPM_TXT=VMOD_PPM_TXT; window.VMOD_COL_TXT=VMOD_COL_TXT;
+window.vModCatalogo=vModCatalogo; window.vModBuscar=vModBuscar; window.vModEsperados=vModEsperados;
+window.vModIndexada=vModIndexada; window.vModSync=vModSync; window.vModSyncTodos=vModSyncTodos;
+window.vModAbrir=vModAbrir; window.vModCerrar=vModCerrar; window.vModClic=vModClic;
+window.vModElegir=vModElegir; window.vModQuitar=vModQuitar; window.vModMorfSync=vModMorfSync;
+
 /* ══ TABLA 7 DE LA ASE 2024, FOLIO 20 — EL PPM AORTICO (W1-5 del censo W1) ════════════════════
    «Doppler parameter criteria of aortic valve and mitral valve PPM», leída RENDERIZANDO porque el
    texto extraído devuelve `$` por `≥` y `#` por `≤`. Folio comprobado en el pie impreso
@@ -144325,6 +144962,14 @@ function _labExcelRow(inf) {
        inimportable. Los 436 encabezados no cambian. */
     'AVm (cm²)': (typeof emThpValido === 'function' && !emThpValido(c)) ? '' : rnd(num('avm_thp'),2),
     'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
+    /* PANT-19: el modelo y el tamano son TEXTO —la tabla imprime «23», «19-21» y «XL (27)»—
+       asi que salen como la morfologia y no por `valvProtDato`, que convierte a numero. Los dos
+       valores de referencia del modo MANUAL si son numeros y pasan por el mismo filtro de
+       protesis que el AT: en una valvula nativa no hay modelo que informar. */
+    'Modelo de prótesis aórtica': (valvEsProtesis(c.va_morf||'') ? (c.va_prot_modelo || '') : ''),
+    'Tamaño de prótesis aórtica': (valvEsProtesis(c.va_morf||'') ? (c.va_prot_tam || '') : ''),
+    'G. medio de referencia aórtico (mmHg)': rnd(valvProtDato('va_morf','va_prot_gmref',c),1),
+    'AEO de referencia aórtica (cm²)': rnd(valvProtDato('va_morf','va_prot_eoaref',c),2),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
     'AVA (cm²)': rnd(ava,2),
@@ -145997,6 +146642,10 @@ const LAB_XLS_MAP = [
   // 11 · Válvula aórtica
   ['Morfología aórtica',     'va_morf',        'opcion'],
   ['AT aórtico (ms)',        'va_at',          'num'],
+  ['Modelo de prótesis aórtica',            'va_prot_modelo', 'txt'],
+  ['Tamaño de prótesis aórtica',           'va_prot_tam',    'txt'],
+  ['G. medio de referencia aórtico (mmHg)', 'va_prot_gmref',  'num'],
+  ['AEO de referencia aórtica (cm²)',      'va_prot_eoaref', 'num'],
   ['EA grado',               'ea_grado',       'vocab'],
   ['V. max Ao (m/s)',        'vmax_ao',        'num'],
   ['G. máx Ao (mmHg)',       'gmax_calc',      'num'],

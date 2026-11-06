@@ -338,7 +338,41 @@ const ESCENAS = {
   p9tvMec:   { campos: { va_morf:'Prótesis mecánica' } },
   /* El control negativo: un estudio con datos de OTRAS pestanias y nada de congenitas. */
   p9ajeno: { campos: { im_vc:'8', ea_dtsvi:'20', itv_tsvi:'20', itv_ao:'100', vmax_ao:'4.5',
-                       onda_e:'110', e_sep:'5', e_lat:'6', ai_vol:'70', peso:'80', talla:'180' } }
+                       onda_e:'110', e_sep:'5', e_lat:'6', ai_vol:'70', peso:'80', talla:'180' } },
+  /* ══ PANT-19: escenas CON MODELO CARGADO ═════════════════════════════════════
+     Hasta el commit 4 el modelo NO toca una sola superficie firmada, asi que estas escenas
+     tienen que dar CERO. En el commit 5 cambian las que cumplen SUS tres condiciones -protesis
+     quirurgica, modelo del catalogo con desvio de la EOA, y AVA por continuidad calculada-, y
+     ninguna otra. Los campos del modelo NO EXISTEN en HEAD: ponerlos ahi es inocuo -el campo no
+     esta y el valor se descarta-, que es justo lo que hace de estas escenas un control util. */
+  p19modMec: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+               campos:{ va_prot_modelo:'St. Jude Medical Standard', va_prot_tam:'23',
+                        peso:'75', talla:'175', gmedio_ao:'24.5', vmax_ao:'3.2',
+                        ea_dtsvi:'21', ea_vtitsvi:'18', ea_vtiao:'60' } },
+  p19modBio: { sel:{ va_morf:'Prótesis biológica' }, pastillas:[['aortica','esten']],
+               campos:{ va_prot_modelo:'Abbott Trifecta', va_prot_tam:'23',
+                        peso:'75', talla:'175', gmedio_ao:'8', vmax_ao:'2.6',
+                        ea_dtsvi:'21', ea_vtitsvi:'20', ea_vtiao:'60' } },
+  /* el MISMO estudio SIN modelo: el control que separa «el modelo no mueve el papel» de
+     «la escena no llega a la zona». */
+  p19sinMod: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+               campos:{ peso:'75', talla:'175', gmedio_ao:'24.5', vmax_ao:'3.2',
+                        ea_dtsvi:'21', ea_vtitsvi:'18', ea_vtiao:'60' } },
+  /* TAVI con modelo y el modo MANUAL: ninguno de los dos entra en la regla del commit 5. */
+  p19modTavi: { sel:{ va_morf:'TAVI' }, pastillas:[['aortica','esten']],
+                campos:{ va_prot_modelo:'SAPIEN 3', va_prot_tam:'All',
+                         peso:'75', talla:'175', gmedio_ao:'11', vmax_ao:'2.4',
+                         ea_dtsvi:'21', ea_vtitsvi:'20', ea_vtiao:'55' } },
+  p19modMan: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+               campos:{ va_prot_modelo:'Marca equis', va_prot_tam:'21',
+                        va_prot_gmref:'14', va_prot_eoaref:'1.3',
+                        peso:'75', talla:'175', gmedio_ao:'24.5', vmax_ao:'3.2',
+                        ea_dtsvi:'21', ea_vtitsvi:'18', ea_vtiao:'60' } },
+  /* una EOA MEDIDA MUY POR DEBAJO de la del modelo: es la escena donde el commit 5 cambia. */
+  p19modZbajo: { sel:{ va_morf:'Prótesis mecánica' }, pastillas:[['aortica','esten']],
+                 campos:{ va_prot_modelo:'St. Jude Medical Standard', va_prot_tam:'23',
+                          peso:'75', talla:'175', gmedio_ao:'22', vmax_ao:'3.2',
+                          ea_dtsvi:'21', ea_vtitsvi:'18', ea_vtiao:'95' } }
 };
 const SOLO = (arg('--solo') || Object.keys(ESCENAS).join(',')).split(',').map(s => s.trim());
 
