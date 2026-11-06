@@ -73208,13 +73208,37 @@ function eaAtPintar(){
   /* Las salvedades van EN PANTALLA y no sólo en el comentario del código: son las que impiden leer
      este parámetro como un veredicto. Aparecen sólo cuando el AT salió de la banda normal, que es
      cuando el número invita a concluir algo. */
+  /* ⚠️ LA NOTA SE REESCRIBIO CONTRA LA HOJA IMPRESA (PANT-18-3), y la frase que salio no era un
+     detalle de redaccion: afirmaba que el algoritmo de la Figura 13 reduce el AT a un solo corte
+     y concluia de ahi que la banda intermedia de la Tabla 5 podia descartarse. Eso hacia dos
+     cosas que esta casa no hace.
+     (El texto retirado esta LITERAL en docs/PENDIENTES.md -> P18-a. No se reproduce aca para que
+     el censo de la proxima tanda no se mida a si mismo sobre este comentario, que es la trampa
+     que la tanda C2 documenta.) Enfrentaba dos partes del MISMO documento y sacaba una
+     conclusion de la comparacion —la regla fija dice que cada fuente se cita por lo que ella misma
+     dice, sin compararla ni juzgarla—, y ademas invitaba a descontar justo la banda que la fila de
+     arriba acababa de pintar de amarillo: la pantalla se contradecia sola.
+     Leida la hoja 18 (folio 19 comprobado en el pie impreso) a 300 ppp, la Figura 13 usa el AT y el
+     AT/ET JUNTOS y los usa para describir el CONTORNO del chorro —pico temprano con AT < 100 ms y
+     AT/ET < 0,37, tardio con AT > 100 y AT/ET > 0,37—, que es lo que la nota dice ahora.
+     ⚠️ Y EL ASTERISCO NO ALCANZA AL AT/ET. La nota al pie «This can be affected by LV function and
+     heart rate» esta marcada sobre el contorno del jet y sobre el AT, y NO sobre la fila del
+     cociente —verificado en la imagen Y en la capa de texto—, asi que la frase de la funcion
+     ventricular y la frecuencia se le atribuye SOLO al AT. El indice de lectura de la orden decia
+     que a los dos; manda la hoja. Va a docs/PENDIENTES.md -> P18-a.
+     ⚠️ EL DISPARADOR NO SE TOCO, y es deliberado: la nota sigue apareciendo cuando el AT sale de
+     su banda normal, que es cuando el numero invita a concluir algo. Que ahora hable tambien del
+     AT/ET abre la pregunta de si deberia aparecer con el cociente alterado y el AT normal, y esa
+     decision no esta en la orden: queda declarada en P18-c. */
   if (nota && at >= AT_PROT_NORMAL_MAX) {
     nota.style.display = '';
-    nota.textContent = 'El AT solo NO establece estenosis protésica: la guía exige además un ' +
-      'parámetro dependiente del flujo (velocidad o gradiente medio) y uno independiente (AEO o DVI). ' +
-      'Se afecta por la función ventricular izquierda y por la frecuencia cardíaca. ' +
-      'Corte de la Tabla 5 — el algoritmo de la Figura 13 de la misma guía usa 100 ms como único ' +
-      'punto de corte, así que la banda ' + AT_PROT_NORMAL_MAX + '–' + AT_PROT_POSIBLE_MAX + ' ms no es sospechosa por ese camino.';
+    nota.textContent = 'El AT y el AT/ET son parámetros de apoyo: por sí solos no establecen ' +
+      'estenosis protésica, porque la nota general de la Tabla 5 pide un parámetro que depende ' +
+      'del flujo (velocidad pico o gradiente medio) y otro que no (AEO o DVI). El AT, además, se ' +
+      'afecta por la función del ventrículo izquierdo y por la frecuencia cardíaca. La Figura 13 ' +
+      'de esa misma guía usa los dos —el AT con ' + AT_PROT_POSIBLE_MAX + ' ms y el AT/ET con ' +
+      EA_PROT_CRIT.atet_signif_min.toFixed(2).replace('.', ',') + '— para describir el contorno ' +
+      'del chorro (ASE 2024, hoja 18, folio 19).';
   }
 }
 window.eaAtPintar = eaAtPintar;
