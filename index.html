@@ -72628,6 +72628,96 @@ const EA_PROT_CRIT = Object.freeze({
   savr_dvi_signif_max:  0.25  // — < 0,25 sugiere significativa · 0,25-0,35 posible
   /* AEO: relativa al modelo. No se pone un número acá porque la guía no da ninguno genérico. */
 });
+/* ══ CATALOGO DE PROTESIS AORTICAS QUIRURGICAS — TABLA A4 DE LA ASE 2024 (PANT-19, commit 2)
+   «Normal Doppler echocardiographic values for surgical prosthetic aortic valves», hojas 52 a 57,
+   folios 53 a 58, leida EN IMAGEN a 300 ppp y cruzada con la capa de texto por coordenadas.
+   Regla de folio = hoja + 1, comprobada en el pie impreso de las SEIS hojas.
+   Nota al pie de la tabla: «Data are expressed as mean +- SD. Modified from Rajani et al.231»
+   La transcripcion celda por celda esta en docs/TRANSCRIPCION_A4_P19.md, y un caso de prueba
+   compara ESTA tabla contra aquella: si alguien agrega, saca o cambia una celda, se pone rojo.
+
+   FORMA DE CADA ENTRADA:
+     n = nombre como lo imprime la tabla  |  d = el descriptor en cursiva, tal como se imprime
+     t = tipo derivado del descriptor: 'mec' | 'bio' | '' (SIN DATO)
+     f = folio o folios donde vive el modelo
+     s = [ [tamano, pico, medio, eoa], ... ]  con cada valor [media, desvio] o null
+         · el TAMANO es TEXTO: la tabla imprime «19», «19-21», «S (21)» y «XL (27)»
+         · null = celda VACIA impresa («—»); desvio null = valor impreso SIN desvio
+   ⚠️ EL TIPO NO SE ADIVINA. La tabla NO trae subtitulos de seccion por tipo: el unico indicio
+   es la cursiva de cada fila, que a veces es un descriptor de construccion y a veces un nombre
+   comercial. Se asigna 'mec' solo a los tres descriptores que nombran el mecanismo (Bileaflet,
+   Single tilting disk, Caged ball) y 'bio' solo a los tres que nombran el tejido (Stented bovine
+   pericardial, Stented porcine, Stentless). «Homograft valves» y «Sutureless» describen el
+   injerto y el metodo de implante, no el material, asi que quedan SIN DATO, igual que los diez
+   modelos sin descriptor. Un modelo sin tipo se ofrece bajo CUALQUIER morfologia de protesis:
+   es el lado seguro, nunca esconde un modelo. Ver docs/PENDIENTES.md -> P19-a.
+   ⚠️ DOS RAREZAS IMPRESAS SE CARGAN TAL COMO ESTAN: la EOA de la Edwards Mira 25 mm sale
+   «1.9» SIN desvio, y la media de la St. Jude Medical Haem Plus 21 mm sale «10.6 +- 5.1)» con un
+   parentesis de mas. El numero es 5.1 y lo impreso queda literal en la transcripcion.
+   ⚠️ DOS MODELOS VENIAN PARTIDOS EN DOS BLOQUES por corte de maquetacion —Medtronic Advantage
+   y Medtronic-Hall—, con el mismo nombre, el mismo descriptor y NINGUN tamano en comun: se funden
+   sin perder una celda. «Edwards Mosaic» y «Medtronic Mosaic» NO se funden: son dos modelos
+   distintos con valores distintos, y la tabla los imprime separados. */
+/* El ORDEN de los valores de cada fila lo declara la tabla, y el consumidor lo lee de aca:
+   una tabla con otras columnas (la mitral trae velocidad pico y THP) no obliga a rellenar
+   con nulls ni a recordar un orden que no esta escrito en ninguna parte. */
+const PROT_CAT_A4_COLS = Object.freeze(['pico','medio','eoa']);
+const PROT_CAT_A4 = Object.freeze([
+  {n:'Abbott Epic',d:'',t:'',f:'53',s:[['21',null,[19.1,8.2],[1.0,0.3]],['23',null,[13.9,6.0],[1.4,0.5]],['25',null,[12.1,5.1],[1.5,0.5]],['27',null,[11.4,4.1],[1.6,0.4]],['29',null,[7.5,3.3],[2.4,1.1]]]},
+  {n:'Abbott Trifecta',d:'',t:'',f:'53',s:[['19',null,[10.7,4.6],[1.41,0.24]],['21',null,[8.1,3.5],[1.63,0.29]],['23',null,[7.2,2.8],[1.81,0.30]],['25',null,[6.2,2.7],[2.02,0.32]],['27',null,[4.8,2.0],[2.20,0.20]],['29',null,[4.7,1.6],[2.35,0.22]]]},
+  {n:'Arbor Surgical Trilogy',d:'',t:'',f:'53',s:[['21',[21,8],[11,6],[1.9,0.2]],['23',[15,7],[8,4],[2.0,0.3]]]},
+  {n:'ATS',d:'Bileaflet',t:'mec',f:'53',s:[['19',[47.0,12.6],[25.3,8.0],[1.1,0.3]],['21',[23.7,6.8],[15.9,5.0],[1.4,0.5]],['23',null,[14.4,4.9],[1.7,0.5]],['25',null,[11.3,3.7],[2.1,0.7]],['27',null,[8.4,3.7],[2.5,0.1]],['29',null,[8.0,3.0],[3.1,0.8]]]},
+  {n:'ATS AP',d:'Bileaflet',t:'mec',f:'53',s:[['18',null,[21.0,1.8],[1.2,0.3]],['20',[21.4,4.2],[11.1,3.5],[1.3,0.3]],['22',[18.7,8.3],[10.5,4.5],[1.7,0.4]],['24',[15.1,5.6],[7.5,3.1],[2.0,0.6]],['26',null,[6.0,2.0],[2.1,0.4]]]},
+  {n:'ATS 3F Enable',d:'',t:'',f:'53',s:[['21',[27.0,8.4],[15.0,4.6],[1.1,0.4]],['22',[25.7,10.8],[14.5,6.0],[1.4,0.4]],['25',[20.3,7.4],[11.4,4.0],[1.6,0.5]],['27',[16.8,6.3],[9.4,3.3],[1.9,0.5]],['29',[14.3,6.7],[7.8,3.8],[2.4,0.8]]]},
+  {n:'Baxter Perimount',d:'Stented bovine pericardial',t:'bio',f:'53',s:[['19',[32.5,8.5],[19.5,5.5],[1.3,0.2]],['21',[24.9,7.7],[13.8,4.0],[1.3,0.3]],['23',[19.9,7.4],[11.5,3.9],[1.6,0.3]],['25',[16.5,7.8],[10.7,3.8],[1.6,0.4]],['27',[12.8,5.4],[4.8,2.2],[2.0,0.4]]]},
+  {n:'Biocor',d:'Stented porcine',t:'bio',f:'53',s:[['23',[30.0,10.7],[20,6.6],[1.3,0.3]],['25',[23.0,7.9],[16,5.1],[1.7,0.4]],['27',[22.0,6.5],[15.0,3.7],[2.2,0.4]]]},
+  {n:'Extended Biocor',d:'Stentless',t:'bio',f:'53',s:[['19-21',[17.5,6.5],[9.6,3.6],[1.4,0.4]],['23',[14.7,7.3],[7.7,3.8],[1.7,0.4]],['25',[14.0,4.3],[7.4,2.5],[1.8,0.4]]]},
+  {n:'Bioflo',d:'Stented bovine pericardial',t:'bio',f:'54',s:[['19',[37.2,8.8],[26.4,5.5],[0.7,0.1]],['21',[28.7,6.2],[18.7,5.5],[1.1,0.1]]]},
+  {n:'Bjork-Shiley',d:'Single tilting disk',t:'mec',f:'54',s:[['21',[38.9,11.9],[21.8,3.4],[1.1,0.3]],['23',[28.8,11.2],[15.7,5.3],[1.3,0.3]],['25',[23.7,8.2],[13.0,5.0],[1.5,0.4]],['27',null,[10.0,2.0],[1.6,0.3]]]},
+  {n:'Carbomedics reduced',d:'Bileaflet',t:'mec',f:'54',s:[['19',[43.4,1.2],[24.4,1.2],[1.2,0.1]]]},
+  {n:'Carbomedics Standard',d:'Bileaflet',t:'mec',f:'54',s:[['19',[38.0,12.8],[18.9,8.3],[1.0,0.3]],['21',[26.8,10.1],[12.9,5.4],[1.5,0.4]],['23',[22.5,7.4],[11.0,4.6],[1.4,0.3]],['25',[19.6,7.8],[9.1,3.5],[1.8,0.4]],['27',[17.5,7.1],[7.9,3.2],[2.2,0.2]],['29',[9.1,4.7],[5.6,3.0],[3.2,1.6]]]},
+  {n:'Carbomedics Tophat',d:'Bileaflet',t:'mec',f:'54',s:[['21',[30.2,10.9],[14.9,5.4],[1.2,0.3]],['23',[24.2,7.6],[12.5,4.4],[1.4,0.4]],['25',null,[9.5,2.9],[1.6,0.32]]]},
+  {n:'Carpentier Edwards Pericardial',d:'Stented bovine pericardial',t:'bio',f:'54',s:[['19',[32.1,3.4],[24.2,8.6],[1.2,0.3]],['21',[25.7,9.9],[20.3,9.1],[1.5,0.4]],['23',[21.7,8.6],[13.0,5.3],[1.8,0.3]],['25',[16.5,5.4],[9.0,2.3],null]]},
+  {n:'Carpentier Edwards Standard',d:'Stented porcine',t:'bio',f:'54',s:[['19',[43.5,12.7],[25.6,8.0],[0.9,0.2]],['21',[27.7,7.6],[17.3,6.2],[1.5,0.3]],['23',[28.9,7.5],[16.1,6.2],[1.7,0.5]],['25',[24.0,7.1],[12.9,4.6],[1.9,0.5]],['27',[22.1,8.2],[12.1,5.5],[2.3,0.6]],['29',null,[9.9,2.9],[2.8,0.5]]]},
+  {n:'Carpentier Supra-Annular',d:'Stented porcine',t:'bio',f:'54',s:[['19',[34.1,2.7],null,[1.1,0.1]],['21',[28.0,10.5],[17.5,3.8],[1.4,0.9]],['23',[25.3,10.5],[13.4,4.5],[1.6,0.6]],['25',[24.4,7.6],[13.2,4.8],[1.8,0.4]],['27',[16.7,4.7],[8.8,2.8],[1.9,0.7]]]},
+  {n:'Cryolife',d:'Stentless',t:'bio',f:'54',s:[['19',null,[9.0,2.0],[1.5,0.3]],['21',null,[6.6,2.9],[1.7,0.4]],['23',null,[6.0,2.3],[2.3,0.2]],['25',null,[6.1,2.6],[2.6,0.2]],['27',null,[4.0,2.4],[2.8,0.3]]]},
+  {n:'Edwards Duromedics',d:'Bileaflet',t:'mec',f:'54',s:[['21',[39.0,13],null,null],['23',[32.0,8.0],null,null],['25',[26.0,10.0],null,null],['27',[24.0,10.0],null,null]]},
+  {n:'Edwards Inspiris Resilia',d:'',t:'',f:'55',s:[['19',null,[17.6,7.8],[1.1,0.2]],['21',null,[12.6,4.7],[1.3,0.3]],['23',null,[10.1,3.8],[1.6,0.4]],['25',null,[9.6,5.2],[1.8,0.5]],['27',null,[8.2,3.5],[2.2,0.6]]]},
+  {n:'Edwards Intuity',d:'',t:'',f:'55',s:[['19',null,[13.9,3.9],[1.1,0.1]],['21',null,[11.6,3.6],[1.3,0.1]],['23',null,[10.4,3.5],[1.7,0.2]],['25',null,[9.1,3.2],[1.9,0.2]],['27',null,[8.3,3.7],[2.2,0.2]]]},
+  {n:'Edwards Mira',d:'Bileaflet',t:'mec',f:'55',s:[['19',null,[18.2,5.3],[1.2,0.4]],['21',null,[13.3,4.3],[1.6,0.4]],['23',null,[14.7,2.8],[1.6,0.6]],['25',null,[13.1,3.8],[1.9,null]]]},
+  {n:'Edwards Mosaic',d:'',t:'',f:'55',s:[['21',null,[13.3,5.3],[1.4,0.4]],['23',null,[11.8,4.9],[1.6,0.5]],['25',null,[10.6,4.4],[1.8,0.5]],['27',null,[9.1,4.0],[2.0,0.5]],['29',null,[8.6,2.9],[2.3,0.6]]]},
+  {n:'Hancock',d:'Stented porcine',t:'bio',f:'55',s:[['21',[18.0,6.0],[12.0,2.0],null],['23',[16.0,2.0],[11.0,2.0],null],['25',[15.0,3.0],[10.0,3.0],null]]},
+  {n:'Hancock II',d:'Stented porcine',t:'bio',f:'55',s:[['21',null,[14.8,4.1],[1.3,0.4]],['23',[34.0,13.0],[16.6,8.5],[1.3,0.4]],['25',[22.0,5.3],[10.8,2.8],[1.6,0.4]],['29',[16.2,1.5],[8.2,1.7],[1.6,0.2]]]},
+  {n:'Homograft',d:'Homograft valves',t:'',f:'55',s:[['17-19',null,[9.7,4.2],[4.2,1.8]],['19-21',null,null,[5.4,0.9]],['20-21',null,[7.9,4.0],[3.6,2.0]],['20-22',null,[7.2,3.0],[3.5,1.5]],['22',[1.7,0.3],null,[5.8,3.2]],['22-23',null,[5.6,3.1],[2.6,1.4]],['22-24',null,null,[5.6,1.7]],['24-27',null,[6.2,2.6],[2.8,1.1]],['26',[1.4,0.6],null,[6.8,2.9]],['25-28',null,null,[6.2,2.5]]]},
+  {n:'Intact',d:'Stented porcine',t:'bio',f:'55',s:[['19',[40.4,15.4],[24.5,9.3],null],['21',[40.9,15.6],[19.6,8.1],[1.6,0.4]],['23',[32.7,9.6],[19.0,6.1],[1.6,0.4]],['25',[29.7,15.0],[17.7,7.9],[1.7,0.3]],['27',[25.0,7.6],[15.0,4.5],null]]},
+  {n:'Ionescu-Shiley',d:'Stented bovine pericardial',t:'bio',f:'56',s:[['17',[23.8,3.4],null,[0.9,0.1]],['19',[19.7,5.9],[13.3,3.9],[1.1,0.1]],['21',[26.6,9.0],null,null],['23',null,[15.6,4.4],null]]},
+  {n:'Labcor Santiago',d:'Stented bovine pericardial',t:'bio',f:'56',s:[['19',[18.6,5.0],[11.8,3.3],[1.2,0.1]],['21',[17.5,6.6],[8.2,4.5],[1.3,0.1]],['23',[14.8,5.2],[7.8,2.9],[1.8,0.2]],['25',[12.3,3.4],[6.8,2.0],[2.1,0.3]]]},
+  {n:'Labcor Synergy',d:'Stented porcine',t:'bio',f:'56',s:[['21',[24.3,8.1],[13.3,4.2],[1.1,0.3]],['23',[27.3,13.7],[15.3,6.9],[1.4,0.4]],['25',[22.5,11.9],[13.2,6.4],[1.5,0.4]],['27',[17.8,7.0],[10.6,4.6],[1.8,0.5]]]},
+  {n:'MCRI On-X',d:'Bileaflet',t:'mec',f:'56',s:[['19',[21.3,10.8],[11.8,3.4],[1.5,0.2]],['21',[16.4,5.9],[9.9,3.6],[1.7,0.4]],['23',[15.9,6.4],[8.6,3.4],[1.9,0.6]],['25',[16.5,10.2],[6.9,4.3],[2.4,0.6]]]},
+  {n:'Medtronic Advantage',d:'Bileaflet',t:'mec',f:'56',s:[['23',null,[10.4,3.1],[2.2,0.3]],['25',null,[9.0,3.7],[2.8,0.6]],['27',null,[7.6,3.6],[3.3,0.7]],['29',null,[6.1,3.8],[3.9,0.7]]]},
+  {n:'Medtronic Avalus',d:'',t:'',f:'56',s:[['19',null,[17.1,5.0],[1.11,0.25]],['21',null,[14.5,4.3],[1.25,0.25]],['23',null,[12.1,3.8],[1.47,0.32]],['25',null,[11.7,4.0],[1.57,0.31]],['27',null,[10.3,4.2],[1.77,0.41]]]},
+  {n:'Medtronic Freestyle',d:'Stentless',t:'bio',f:'56',s:[['19',null,[13.0,3.9],null],['21',null,[9.1,5.1],[1.4,0.3]],['23',[11.0,4.0],[8.1,4.6],[1.7,0.5]],['25',null,[5.3,3.1],[2.1,0.5]],['27',null,[4.6,3.1],[2.5,0.1]]]},
+  {n:'Medtronic-Hall',d:'Single tilting disk',t:'mec',f:'56',s:[['21',[26.9,10.5],[14.1,5.9],[1.1,0.2]],['23',[26.9,8.9],[13.5,4.8],[1.4,0.4]],['25',[17.1,7.0],[9.5,4.3],[1.5,0.5]],['27',[18.9,9.7],[8.7,5.6],[1.9,0.2]],['20',[34.4,13.1],[17.1,5.3],[1.2,0.5]]]},
+  {n:'Medtronic Mosaic',d:'Stented porcine',t:'bio',f:'56',s:[['21',null,[14.2,5.0],[1.4,0.4]],['23',[23.8,11.0],[13.7,4.8],[1.5,0.4]],['25',[22.5,10.0],[11.7,5.1],[1.8,0.5]],['27',null,[10.4,4.3],[1.9,0.1]],['29',null,[11.1,4.3],[2.1,0.2]]]},
+  {n:'Mitroflow',d:'Stented bovine pericardial',t:'bio',f:'57',s:[['19',[18.6,5.3],[13.1,3.3],[1.1,0.2]]]},
+  {n:'Monostrut Bjork-Shiley',d:'Single tilting disk',t:'mec',f:'57',s:[['19',null,[27.4,8.8],null],['21',[27.5,3.1],[20.5,6.2],null],['23',[20.3,0.7],[17.4,6.4],null],['25',null,[16.1,4.9],null],['27',null,[11.4,3.8],null]]},
+  {n:'Prima',d:'Stentless',t:'bio',f:'57',s:[['21',[28.8,6.0],[13.7,1.9],[1.4,0.7]],['23',[21.5,7.5],[11.5,4.9],[1.5,0.3]],['25',[22.1,12.5],[11.6,7.2],[1.8,0.5]]]},
+  {n:'Omnicarbon',d:'Single tilting disk',t:'mec',f:'57',s:[['21',[37.4,12.8],[20.4,5.4],[1.3,0.5]],['23',[28.8,9.1],[17.4,4.9],[1.5,0.3]],['25',[23.7,8.1],[13.2,4.6],[1.9,0.5]],['27',[20.1,4.2],[12.4,2.9],[2.1,0.4]]]},
+  {n:'Omniscience',d:'Single tilting disk',t:'mec',f:'57',s:[['21',[50.8,2.8],[28.2,2.2],[0.9,0.1]],['23',[39.8,8.7],[20.1,5.1],[1.0,0.1]]]},
+  {n:'Starr-Edwards',d:'Caged ball',t:'mec',f:'57',s:[['23',[32.6,12.8],[22.0,9.0],[1.1,0.2]],['24',[34.1,10.3],[22.1,7.5],[1.1,0.3]],['26',[31.8,9.0],[19.7,6.1],null],['27',[30.8,6.3],[18.5,3.7],null],['29',[29.0,9.3],[16.3,5.5],null]]},
+  {n:'Sorin Bicarbon',d:'Bileaflet',t:'mec',f:'57',s:[['19',[30.1,4.5],[16.7,2.0],[1.4,0.1]],['21',[22.0,7.1],[10.0,3.3],[1.2,0.4]],['23',[16.8,6.1],[7.7,3.3],[1.5,0.2]],['25',[11.2,3.1],[5.6,1.6],[2.4,0.3]]]},
+  {n:'Sorin Pericarbon',d:'Stentless',t:'bio',f:'57',s:[['19',[36.5,9.0],[28.9,7.3],[1.2,0.5]],['21',[28.0,13.3],[23.8,11.1],[1.3,0.6]],['23',[27.5,11.5],[23.2,7.6],[1.5,0.5]]]},
+  {n:'Sorin Perceval',d:'Sutureless',t:'',f:'57',s:[['S (21)',null,[10.1,4.2],[1.3,0.3]],['M (23)',null,[9.4,5.5],[1.5,0.4]],['L (25)',null,[8.5,4.6],[1.5,0.4]],['XL (27)',null,[9.7,4.7],[1.6,0.4]]]},
+  {n:'St. Jude Medical Haem Plus',d:'Bileaflet',t:'mec',f:'57',s:[['19',[28.5,10.7],[17.0,7.8],[1.9,0.1]],['21',[16.3,17.0],[10.6,5.1],[1.8,0.5]],['23',[16.8,7.3],[12.1,4.2],[1.7,0.5]]]},
+  {n:'St. Jude Medical Regent',d:'Bileaflet',t:'mec',f:'57',s:[['19',[20.6,12],[11.0,4.9],[1.6,0.4]],['21',[15.6,9.4],[8.0,4.8],[2.0,0.7]],['23',[12.8,6.8],[6.9,3.5],[2.3,0.9]],['25',[11.7,6.8],[5.6,3.2],[2.5,0.8]],['27',[7.9,5.5],[3.5,1.7],[3.6,0.5]]]},
+  {n:'St. Jude Medical Standard',d:'Bileaflet',t:'mec',f:'58',s:[['19',[42.0,10.0],[24.5,5.8],[1.5,0.1]],['21',[25.7,9.5],[15.2,5.0],[1.4,0.4]],['23',[21.8,7.5],[13.4,5.6],[1.6,0.4]],['25',[18.9,7.3],[11.0,5.3],[1.9,0.5]],['27',[13.7,4.2],[8.4,3.4],[2.5,0.4]],['29',[13.5,5.8],[7.0,1.7],[2.8,0.5]]]},
+  {n:'St. Jude Medical',d:'Stentless',t:'bio',f:'58',s:[['21',[22.6,14.5],[10.7,7.2],[1.3,0.6]],['23',[16.2,9.0],[8.2,4.7],[1.6,0.6]],['25',[12.7,8.2],[6.3,4.1],[1.8,0.5]],['27',[10.1,5.8],[5.0,2.9],[2.0,0.3]],['29',[7.7,4.4],[4.1,2.4],[2.4,0.6]]]}
+]);
+/* La fuente que la tarjeta cita al pie, con su hoja y su folio. */
+const PROT_CAT_A4_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A4', hojas:'52 a 57', folios:'53 a 58' });
+/* Exposicion de SOLO LECTURA, DESPUES de la declaracion (zona muerta de const). */
+window.PROT_CAT_A4 = PROT_CAT_A4; window.PROT_CAT_A4_FTE = PROT_CAT_A4_FTE;
+window.PROT_CAT_A4_COLS = PROT_CAT_A4_COLS;
 /* ══ TABLA 7 DE LA ASE 2024, FOLIO 20 — EL PPM AORTICO (W1-5 del censo W1) ════════════════════
    «Doppler parameter criteria of aortic valve and mitral valve PPM», leída RENDERIZANDO porque el
    texto extraído devuelve `$` por `≥` y `#` por `≤`. Folio comprobado en el pie impreso
