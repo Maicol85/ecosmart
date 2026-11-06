@@ -119375,6 +119375,407 @@ caso('TC-713', 'Tanda PANT-14c (commit 6): al entrar a una pestania de congenita
   return { extra: _out };
   })();
 `);
+/* -- TC-714 ---------------------------------------------------------------------------------
+   PANT-17, commit 3a: el cuestionario del ductus. Trece preguntas de tres estados, la unica
+   pre-respondida desde el estudio es la DIRECCION del cortocircuito, y el BIDIRECCIONAL NO se
+   traduce — es el control negativo del caso.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-714', 'Tanda PANT-17 (commit 3a): el ductus publica trece preguntas de tres estados, se pre-responde SOLO la direccion, el bidireccional queda sin contestar y nada de eso llega al papel', `
+  return (async () => {
+  const ex = [];
+  const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const lee = () => { try { return _indDAP() } catch (e) { return { ERR: String(e).slice(0, 90) } } };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(A0 DENOM) el registro de preguntas existe', typeof DAP_PREG, 'object']);
+  ex.push(['(A1) y trae TRECE preguntas', DAP_PREG.length, 13]);
+  ex.push(['(A2) cada pregunta tiene clave, rotulo, guia y recomendacion',
+    DAP_PREG.filter(p => p.clave && p.lbl && p.guia && p.rec).length, 13]);
+  ex.push(['(A3) y ninguna clave se repite',
+    new Set(DAP_PREG.map(p => p.clave)).size, 13]);
+  /* DENOMINADOR: sin datos del ductus la seccion NO abre, asi que todo lo de abajo mide algo. */
+  ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
+  S('dap_tipo', 'no_restrictivo'); S('dap_diam', '4');
+  const r0 = lee();
+  ex.push(['(B1 DENOM) con el ductus cargado SI abre', !!(r0 && r0.clinica), true]);
+  ex.push(['(B2) y publica las trece preguntas mas la fila de respuestas',
+    r0 ? r0.clinica.length : -1, 14]);
+  ex.push(['(B3) la seccion es compacta y declara que tiene preguntas',
+    r0 ? (!!r0.compacta && !!r0.preguntas) : false, true]);
+  /* LA PRE-RESPUESTA, POR SUS TRES VALORES. La fila pre-respondida NO trae botonera. */
+  const conBot = (r) => (r && r.clinica) ? r.clinica.filter(f => f && f.ctrl).length : -1;
+  S('dap_dir', 'id');  const rID = lee();
+  S('dap_dir', 'di');  const rDI = lee();
+  S('dap_dir', 'bi');  const rBI = lee();
+  ex.push(['(C1) izquierda a derecha pre-responde una pregunta', conBot(rID), 12]);
+  ex.push(['(C2) derecha a izquierda tambien', conBot(rDI), 12]);
+  ex.push(['(C3 CONTROL NEGATIVO) el BIDIRECCIONAL no traduce nada y deja las trece contestables',
+    conBot(rBI), 13]);
+  /* QUE pre-responde, y no solo cuantas. */
+  const fila = (r) => (r && r.clinica) ? (r.clinica.filter(f => f && /neto de izquierda a derecha/.test(String(f.lbl)))[0] || null) : null;
+  ex.push(['(C4) y lo pre-respondido es que SI con izquierda a derecha',
+    (fila(rID) || {}).val, 'S' + String.fromCharCode(237)]);
+  ex.push(['(C5) y que NO con derecha a izquierda', (fila(rDI) || {}).val, 'No']);
+  /* EL PAPEL. La Evidencia no llega a ninguna superficie firmada. */
+  S('dap_dir', 'id');
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
+    return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
+  ex.push(['(D0 DENOM) el informe se emitio y no esta vacio', pap.length > 60, true]);
+  ex.push(['(D1) y no lleva una sola clase de la Evidencia',
+    (pap.split('Clase ').length - 1) + (pap.split('Nivel ').length - 1), 0]);
+  ex.push(['(D2) ni un folio', pap.split('folio').length - 1, 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-715 ---------------------------------------------------------------------------------
+   PANT-17, commit 3b: el cuestionario de la coartacion. Trece preguntas, CINCO pre-respondidas
+   desde campos del estudio, y la guia que RIGE es la ESC 2024 de aorta.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-715', 'Tanda PANT-17 (commit 3b): la coartacion publica trece preguntas, pre-responde cinco desde el estudio y su guia que rige es la ESC 2024 de aorta', `
+  return (async () => {
+  const ex = [];
+  const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const lee = () => { try { return _indCoAo() } catch (e) { return { ERR: String(e).slice(0, 90) } } };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(A0 DENOM) el registro existe', typeof COA_PREG, 'object']);
+  ex.push(['(A1) y trae TRECE preguntas', COA_PREG.length, 13]);
+  ex.push(['(A2) ninguna clave se repite', new Set(COA_PREG.map(p => p.clave)).size, 13]);
+  ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
+  S('coa_vmax', '3.2');
+  const r0 = lee();
+  ex.push(['(B1 DENOM) con la velocidad cargada SI abre', !!(r0 && r0.clinica), true]);
+  const conBot = (r) => (r && r.clinica) ? r.clinica.filter(f => f && f.ctrl).length : -1;
+  ex.push(['(B2 CONTROL NEGATIVO) con SOLO la velocidad nada esta pre-respondido',
+    conBot(r0), 13]);
+  S('coa_situacion', 'nativa'); S('coa_hta', 'si');
+  S('coa_gradiente_picopico', '28'); S('coa_estenosis_relativa', '60');
+  const r1 = lee();
+  ex.push(['(C1) con los cuatro campos cargados quedan OCHO contestables',
+    conBot(r1), 8]);
+  ex.push(['(C2) la seccion es compacta y con preguntas',
+    r1 ? (!!r1.compacta && !!r1.preguntas) : false, true]);
+  ex.push(['(C3) y la guia que rige es la ESC 2024 de aorta',
+    (r1 && r1.guia) ? /ESC 2024/.test(String(r1.guia.txt)) : false, true]);
+  /* LOS NUMEROS DE LOS DOS CORTES, por sus dos lados. */
+  S('coa_gradiente_picopico', '12'); S('coa_estenosis_relativa', '30');
+  const r2 = lee();
+  const val = (r, re) => { const f = (r && r.clinica) ? r.clinica.filter(x => x && re.test(String(x.lbl)))[0] : null;
+    return f ? String(f.val) : 'NO ESTA' };
+  ex.push(['(D1) con 28 mmHg el gradiente pico a pico contesta que SI',
+    val(r1, /pico a pico/), 'S' + String.fromCharCode(237)]);
+  ex.push(['(D2 CONTROL NEGATIVO) con 12 mmHg contesta que NO', val(r2, /pico a pico/), 'No']);
+  ex.push(['(D3) con 60 % el estrechamiento contesta que SI',
+    val(r1, /estrechamiento/), 'S' + String.fromCharCode(237)]);
+  ex.push(['(D4 CONTROL NEGATIVO) con 30 % contesta que NO', val(r2, /estrechamiento/), 'No']);
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
+    return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
+  ex.push(['(E0 DENOM) el informe se emitio', pap.length > 60, true]);
+  ex.push(['(E1) y no lleva clase, nivel ni folio',
+    (pap.split('Clase ').length - 1) + (pap.split('Nivel ').length - 1) + (pap.split('folio').length - 1), 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-716 ---------------------------------------------------------------------------------
+   PANT-17, commit 4: la Fallot reparada gana una SEGUNDA seccion -ventriculo derecho y
+   arritmias- y la estenosis pulmonar una TERCERA columna con las condiciones de la ACC/AHA.
+   ⚠️ la clave filas NO ES OPCIONAL: _indSecHTMLCuerpo hace r.filas.some(...) sin guarda, asi que
+   una seccion sin tarjeta de datos desaparece del panel SIN un error en consola.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-716', 'Tanda PANT-17 (commit 4): la Fallot reparada tiene una segunda seccion con tarjeta de datos propia y la estenosis pulmonar suma las condiciones de la ACC/AHA 2025', `
+  return (async () => {
+  const ex = [];
+  const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  /* LOS DOS TITULOS SON DISTINTOS Y NINGUNO ES PREFIJO DEL OTRO: IND_SECS busca la seccion
+     por el PREFIJO de su titulo, asi que un titulo que sea prefijo de otro deja una sin probar. */
+  const tits = IND_SECS.map(s => s.tit);
+  ex.push(['(A0 DENOM) IND_SECS tiene secciones', tits.length > 30, true]);
+  ex.push(['(A1) ninguno de los titulos se repite', new Set(tits).size, tits.length]);
+  const pref = tits.filter((a, i) => tits.some((b, j) => i !== j && b.indexOf(a) === 0));
+  ex.push(['(A2) y ninguno es prefijo de otro', pref.join(' | '), '']);
+  ex.push(['(A3) la seccion del VD de la Fallot esta registrada',
+    tits.filter(t => /Fallot reparada . ventr/.test(t)).length, 1]);
+  ex.push(['(A4 DENOM) el registro de sus preguntas existe', typeof TDFVD_PREG, 'object']);
+  ex.push(['(A5) y ninguna clave se repite',
+    new Set(TDFVD_PREG.map(p => p.clave)).size, TDFVD_PREG.length]);
+  ex.push(['(B0 DENOM) sin datos la seccion del VD no abre', _indTdFVD(), null]);
+  S('tdf_sintomas', 'si');
+  const r = _indTdFVD();
+  ex.push(['(B1 DENOM) con sintomas SI abre', !!r, true]);
+  /* ⚠️ LA CONDICION QUE IMPORTA: sin la tarjeta de datos la seccion desaparece del panel en silencio. */
+  ex.push(['(B2) y trae tarjeta de datos, que NO es opcional',
+    !!(r && r.filas && r.filas.length), true]);
+  ex.push(['(B3) con preguntas y compacta', r ? (!!r.preguntas && !!r.compacta) : false, true]);
+  /* Se emparejan por ROTULO y no por el conteo de botoneras: una pregunta pre-respondida
+     desde el estudio sale como fila sin botonera, asi que contar botoneras mediria otra cosa. */
+  ex.push(['(B4) y publica una fila por cada pregunta del registro',
+    r ? TDFVD_PREG.filter(p => r.clinica.some(f => f && String(f.lbl) === p.lbl)).length : -1,
+    TDFVD_PREG.length]);
+  /* LA ESTENOSIS PULMONAR: la tercera columna de condiciones de la ACC/AHA. */
+  S('vp_gmax', '70');
+  const ep = _indEP();
+  ex.push(['(C0 DENOM) la estenosis pulmonar abre con el gradiente', !!ep, true]);
+  ex.push(['(C1 DENOM) el registro de la ACC existe', typeof EP_PREG_ACC, 'object']);
+  ex.push(['(C2) y sus preguntas estan en la lista clinica de la seccion',
+    ep ? EP_PREG_ACC.filter(p => ep.clinica.some(f => f && f.ctrl && f.ctrl.clave === p.clave)).length : -1,
+    EP_PREG_ACC.length]);
+  ex.push(['(C3) la seccion nombra la ACC/AHA 2025',
+    ep ? (ep.bloques || []).some(b => /ACC.AHA 2025/.test(String(b.tit))) : false, true]);
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
+    return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
+  ex.push(['(D0 DENOM) el informe se emitio', pap.length > 60, true]);
+  ex.push(['(D1) y no lleva clase, nivel ni folio',
+    (pap.split('Clase ').length - 1) + (pap.split('Nivel ').length - 1) + (pap.split('folio').length - 1), 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-717 ---------------------------------------------------------------------------------
+   PANT-17, commit 5: la conclusion de la bicuspide y la miocardiopatia hipertrofica obstructiva
+   ganan preguntas. CONTROL: _indMCHSCD y la seccion de aorta ascendente de la bicuspide
+   siguen SIN preguntas, que es lo que la orden pide expresamente.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-717', 'Tanda PANT-17 (commit 5): la conclusion de la bicuspide y la MCH obstructiva ganan preguntas, y las dos secciones vecinas siguen intactas', `
+  return (async () => {
+  const ex = [];
+  const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(A0 DENOM) los dos registros existen',
+    (typeof VABC_PREG) + '/' + (typeof MCHO_PREG), 'object/object']);
+  ex.push(['(A1) y ninguna clave se repite en el de la bicuspide',
+    new Set(VABC_PREG.map(p => p.clave)).size, VABC_PREG.length]);
+  ex.push(['(A2) ni en el de la miocardiopatia',
+    new Set(MCHO_PREG.map(p => p.clave)).size, MCHO_PREG.length]);
+  /* LA BICUSPIDE */
+  S('vab_tipo', 'fused_rl'); S('ao_tub', '50');
+  const vc = _indVABConcl(), va = _indVAB();
+  ex.push(['(B0 DENOM) la conclusion de la bicuspide abre', !!vc, true]);
+  ex.push(['(B1) y publica preguntas', vc ? !!vc.preguntas : false, true]);
+  ex.push(['(B2) tantas como su registro',
+    vc ? vc.clinica.filter(f => f && f.ctrl).length : -1, VABC_PREG.length]);
+  ex.push(['(B3 CONTROL) la seccion de aorta ascendente de la bicuspide abre', !!va, true]);
+  ex.push(['(B4 CONTROL) y NO publica preguntas', va ? !!va.preguntas : true, false]);
+  /* LA MIOCARDIOPATIA */
+  S('mch_grad_reposo', '60'); S('mch_siv', '22');
+  const mo = _indMCH(), ms = _indMCHSCD();
+  ex.push(['(C0 DENOM) la MCH obstructiva abre', !!mo, true]);
+  ex.push(['(C1) y publica preguntas', mo ? !!mo.preguntas : false, true]);
+  ex.push(['(C2) tantas como su registro',
+    mo ? mo.clinica.filter(f => f && f.ctrl).length : -1, MCHO_PREG.length]);
+  ex.push(['(C3 CONTROL) la de muerte subita abre', !!ms, true]);
+  ex.push(['(C4 CONTROL) y NO publica preguntas', ms ? !!ms.preguntas : true, false]);
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
+    return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
+  ex.push(['(D0 DENOM) el informe se emitio', pap.length > 60, true]);
+  ex.push(['(D1) y no lleva clase, nivel ni folio',
+    (pap.split('Clase ').length - 1) + (pap.split('Nivel ').length - 1) + (pap.split('folio').length - 1), 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-718 ---------------------------------------------------------------------------------
+   PANT-17, commit 6: la ventana aortopulmonar. Lo que la sostiene es una SERIE DE CASOS, asi
+   que la seccion NO publica clase ni nivel: publica el numero, su denominador y la poblacion.
+   El bidireccional NO se traduce — es el control negativo del caso.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-718', 'Tanda PANT-17 (commit 6): la ventana aortopulmonar publica seis preguntas de una serie de casos, SIN clase ni nivel, y el bidireccional no se traduce', `
+  return (async () => {
+  const ex = [];
+  const S = (i, v) => { const e = document.getElementById(i); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const lee = () => { try { return _indVAP() } catch (e) { return { ERR: String(e).slice(0, 90) } } };
+  const texto = (r) => { const t = [];
+    (r.bloques || []).forEach(b => (b.lineas || []).forEach(l => { if (l && l.txt) t.push(l.txt) }));
+    (r.clinica || []).forEach(f => { if (f && f.nota) t.push(f.nota) });
+    (r.filas || []).forEach(f => { if (f && f.nota) t.push(f.nota) });
+    if (r.guia && r.guia.txt) t.push(r.guia.txt);
+    (r.notas || []).forEach(x => t.push(String(x)));
+    return t.join(String.fromCharCode(10)) };
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  ex.push(['(A0 DENOM) el registro existe', typeof VAP_PREG, 'object']);
+  ex.push(['(A1) y trae SEIS preguntas', VAP_PREG.length, 6]);
+  ex.push(['(A2) ninguna clave se repite', new Set(VAP_PREG.map(p => p.clave)).size, 6]);
+  ex.push(['(A3) la seccion esta registrada en IND_SECS',
+    IND_SECS.filter(s => s.tit === 'Ventana aortopulmonar').length, 1]);
+  ex.push(['(A4) y la entrada bibliografica de la serie existe',
+    IND_REFS.filter(r => r.k === 'yakut2018apw').length, 1]);
+  ex.push(['(B0 DENOM) sin datos la seccion no abre', lee(), null]);
+  S('vap_tipo', 'i'); S('vap_diam', '8');
+  const r0 = lee();
+  ex.push(['(B1 DENOM) con el tipo y el diametro SI abre', !!(r0 && r0.clinica), true]);
+  ex.push(['(B2) y trae tarjeta de datos, que NO es opcional',
+    !!(r0 && r0.filas && r0.filas.length), true]);
+  ex.push(['(B3) con preguntas y compacta', r0 ? (!!r0.preguntas && !!r0.compacta) : false, true]);
+  /* LO QUE DEFINE A ESTA SECCION: ni una clase, ni un nivel. */
+  const t0 = texto(r0);
+  ex.push(['(C0 DENOM) la seccion tiene texto que censar', t0.length > 1500, true]);
+  ex.push(['(C1) y NO publica una sola clase', (t0.match(/Clase [0-9IV]/g) || []).length, 0]);
+  ex.push(['(C2) ni un solo nivel', (t0.match(/Nivel [A-C]/g) || []).length, 0]);
+  ex.push(['(C3) publica el folio del articulo', t0.indexOf('folio 35') > -1, true]);
+  ex.push(['(C4) y el de la unica guia que la toca', t0.indexOf('folio e207') > -1, true]);
+  ex.push(['(C5) nombra el denominador de la serie', t0.indexOf('30') > -1, true]);
+  /* LA PRE-RESPUESTA DE EISENMENGER, POR SUS TRES VALORES. */
+  const conBot = (r) => (r && r.clinica) ? r.clinica.filter(f => f && f.ctrl).length : -1;
+  S('vap_dir', 'di'); const rDI = lee();
+  S('vap_dir', 'id'); const rID = lee();
+  S('vap_dir', 'bi'); const rBI = lee();
+  ex.push(['(D1) derecha a izquierda pre-responde una pregunta', conBot(rDI), 5]);
+  ex.push(['(D2) izquierda a derecha tambien', conBot(rID), 5]);
+  ex.push(['(D3 CONTROL NEGATIVO) el BIDIRECCIONAL no traduce nada', conBot(rBI), 6]);
+  const fila = (r) => { const f = (r && r.clinica) ? r.clinica.filter(x => x && /Eisenmenger/.test(String(x.lbl)))[0] : null;
+    return f ? String(f.val) : 'NO ESTA' };
+  ex.push(['(D4) y con derecha a izquierda contesta que SI',
+    fila(rDI), 'S' + String.fromCharCode(237)]);
+  ex.push(['(D5) con izquierda a derecha, que NO', fila(rID), 'No']);
+  /* EL PAPEL. */
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
+  const pap = ['informe_texto', 'en_suma'].map(i => { const e = document.getElementById(i);
+    return e ? String(e.value || e.textContent || '') : '' }).join(String.fromCharCode(10));
+  ex.push(['(E0 DENOM) el informe se emitio', pap.length > 60, true]);
+  ex.push(['(E1) y no lleva clase, nivel ni folio',
+    (pap.split('Clase ').length - 1) + (pap.split('Nivel ').length - 1) + (pap.split('folio').length - 1), 0]);
+  ex.push(['(E2) ni nombra al articulo', pap.indexOf('Yakut'), -1]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
+/* -- TC-719 ---------------------------------------------------------------------------------
+   PANT-17, commit 7: el color al tocar una estructura del corazon maestro. Un toque la apaga,
+   otro se la devuelve; un ARRASTRE no apaga nada; y lo apagado se borra cuando la escena
+   cambia pero sobrevive al repintado del MISMO dibujo.
+   ------------------------------------------------------------------------------------------- */
+caso('TC-719', 'Tanda PANT-17 (commit 7): tocar una estructura del corazon maestro le saca el color, tocarla otra vez se lo devuelve, un arrastre no apaga nada y la escena nueva borra lo apagado', `
+  return (async () => {
+  const ex = [];
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const Q = String.fromCharCode(39);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const bq = (t) => Array.prototype.filter.call(document.querySelectorAll('button[onclick]'),
+    b => String(b.getAttribute('onclick')).indexOf(t) >= 0)[0];
+  try { const b1 = bq('showTab(' + Q + 'congenitas' + Q); if (b1) b1.click() } catch (e) {}
+  await esperar(420);
+  const ab = document.getElementById('cc3d-abrir'); if (ab) ab.click();
+  await esperar(4200);
+  const host = document.getElementById('cm3d-cv');
+  const cv = host ? host.querySelector('canvas') : null;
+  ex.push(['(A0 DENOM) el lienzo del corazon maestro existe', !!cv, true]);
+  ex.push(['(A1 DENOM) el estado del modulo es alcanzable', typeof _cm3dEstado, 'function']);
+  const st = (typeof _cm3dEstado === 'function') ? _cm3dEstado() : null;
+  ex.push(['(A2) y trae el conjunto de lo apagado', st ? (typeof st.sinColor) : 'x', 'object']);
+  ex.push(['(A3) que arranca VACIO', st ? Object.keys(st.sinColor).length : -1, 0]);
+  if (st) { st.fc = 0; st.ins = false;
+    try { if (typeof _cm3dInsSet === 'function') _cm3dInsSet() } catch (e) {} }
+  try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
+  await esperar(600);
+  const rc = cv ? cv.getBoundingClientRect() : null;
+  const px = rc ? Math.round(rc.left + rc.width / 2) : 0;
+  const py = rc ? Math.round(rc.top + rc.height / 2) : 0;
+  host.setPointerCapture = function () {};
+  const gesto = (x0, y0, x1, y1) => { const ev = (t, x, y) =>
+      new PointerEvent(t, { clientX: x, clientY: y, bubbles: true, pointerId: 1, isPrimary: true });
+    host.dispatchEvent(ev('pointerdown', x0, y0));
+    host.dispatchEvent(ev('pointermove', x1, y1));
+    host.dispatchEvent(ev('pointerup', x1, y1)) };
+  const n = () => st ? Object.keys(st.sinColor).length : -1;
+  /* (1) ARRASTRE: cuarenta pixeles. NO puede apagar nada. */
+  gesto(px, py, px + 40, py + 18); await esperar(120);
+  ex.push(['(B1 CONTROL NEGATIVO) un arrastre de 40 px no apaga nada', n(), 0]);
+  /* (2) TOQUE sobre el centro del lienzo, donde SIEMPRE hay corazon. */
+  gesto(px, py, px, py); await esperar(120);
+  ex.push(['(B2) un toque apaga UNA estructura', n(), 1]);
+  const k1 = st ? Object.keys(st.sinColor)[0] : '';
+  /* (3) EL MISMO TOQUE se la devuelve. */
+  gesto(px, py, px, py); await esperar(120);
+  ex.push(['(B3) y el mismo toque se la devuelve', n(), 0]);
+  /* (4) LA ESCENA CAMBIA: lo apagado se borra. */
+  gesto(px, py, px, py); await esperar(120);
+  ex.push(['(C0 DENOM) hay algo apagado antes de cambiar la escena', n(), 1]);
+  try { if (typeof cmSetBase === 'function') cmSetBase('fal') } catch (e) {}
+  await esperar(400);
+  ex.push(['(C1) al cambiar de anatomia el conjunto se vacia', n(), 0]);
+  /* (5) EL REPINTADO DEL MISMO DIBUJO CONSERVA LO APAGADO. */
+  gesto(px, py, px, py); await esperar(120);
+  const n5 = n();
+  try { if (typeof cm3dSync === 'function') cm3dSync() } catch (e) {}
+  await esperar(300);
+  ex.push(['(C2 DENOM) habia algo apagado antes del repintado', n5, 1]);
+  ex.push(['(C3) y un repintado del MISMO dibujo lo conserva', n(), 1]);
+  ex.push(['(C4) con la misma clave', st ? Object.keys(st.sinColor)[0] : '', k1 ? Object.keys(st.sinColor)[0] : '']);
+  /* (6) NADA MAS CAMBIA: ni un boton dentro del recuadro del dibujo. */
+  ex.push(['(D1) el recuadro del dibujo no gano botones',
+    host.querySelectorAll('button').length, 0]);
+  try { if (typeof limpiarCampos === 'function') limpiarCampos(true) } catch (e) {}
+  const _cmp = (a, b) => String(a) === String(b);
+  const _conv = (t) => [t[0], _cmp(t[1], t[2]),
+    'esperado ' + JSON.stringify(t[2]) + ', encontrado ' + JSON.stringify(t[1])];
+  const _out = [['(Z0 CONTROL POSITIVO del comparador) 1 igual a 1', _cmp(1, 1), 'el comparador dice que no'],
+                ['(Z1 CONTROL NEGATIVO del comparador) 0 distinto de 1', !_cmp(0, 1), 'el comparador los iguala'],
+                ['(Z2 CONTROL del comparador) 0 igual a 0', _cmp(0, 0), 'el comparador trata el cero como falso'],
+                ['(Z3 CONTROL del comparador) false igual a false', _cmp(false, false), 'el comparador trata false como distinto']];
+  ex.forEach(function (t) { _out.push(_conv(t)) });
+  return { extra: _out };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
