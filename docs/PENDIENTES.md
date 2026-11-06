@@ -1,5 +1,75 @@
 # EcoSmart — pendientes vivos
 
+## P17-a · Lo que se LEYO y NO se escribio, por no poder verificarlo
+
+**Que se encontro.** La regla central de PANT-17 dice que nada clinico sale de la memoria: cada
+cita se lee **en imagen** y su folio se comprueba en el **pie impreso**. Tres cosas que el indice
+de la orden daba por buenas no pasaron esa prueba, y por eso **no se escribieron**.
+
+1. **La fila de la TAVI sobre valvula bicuspide de la ESC/EACTS 2025.** El indice la situa en el
+   folio 4670. El PDF que la biblioteca tiene es la **version de articulo adelantado**: su
+   cabecera imprime «36» y no 4670, asi que la regla de folio de esa guia no se puede comprobar
+   en el pie de esa hoja. Y la palabra «bicuspid» aparece en esa hoja **solo en la lista de
+   abreviaturas**. No se escribio ninguna recomendacion de TAVI sobre bicuspide.
+2. **El valor normal del indice de Tei del ventriculo IZQUIERDO.** Ninguna fuente de la
+   biblioteca lo publica — censado.
+3. **El conducto del ventriculo derecho a la arteria pulmonar** en la estenosis pulmonar: la
+   ACC/AHA lo trata, pero el selector `ep_nivel` de esta aplicacion **no tiene** un valor de
+   conducto, asi que la aplicacion no puede representar al paciente del que habla esa fila.
+   Escribirla seria una recomendacion sin forma de aplicarla.
+
+**Como se corrige.** Conseguir la version paginada de la ESC/EACTS 2025 para (1); para (2), una
+fuente que publique ese valor; para (3), decidir si el selector gana una opcion, que es un
+cambio de vocabulario y lo decide el medico.
+
+## P17-b · Las hojas que no se abrieron, y por eso no entraron
+
+**Que se encontro.** De la ESC 2023 de miocardiopatias quedaron sin leer las hojas **47, 48, 51
+y 55** (eco con Valsalva, ecocardiograma transesofagico, resonancia, evitar digoxina y
+vasodilatadores, estimulacion auriculoventricular secuencial), y del Ommen 2024 las hojas **32,
+33, 34 y 38**. Sin leerlas en imagen con su folio comprobado no entran: es la regla central.
+
+**Que puede causar.** Nada incorrecto esta escrito. Lo que falta es cobertura: la seccion de
+miocardiopatia hipertrofica obstructiva publica lo que SI se leyo.
+
+**Como se corrige.** Abrir esas ocho hojas en imagen a 200 ppp o mas, comprobar el folio en el
+pie y sumar lo que corresponda a `MCHO_PREG` y a sus bloques.
+
+## P17-c · El control de las diez: falta la mitad que exige leer
+
+**Que se encontro.** El punto 8 pide controlar las diez secciones de Evidencia que esta tanda no
+reescribio contra las listas de Clase I y Clase III de sus guias, y **agregar las que falten**.
+La mitad medible esta hecha y publicada en `docs/CONTROL_EVIDENCIA_P17.md`: que clase publica
+hoy cada una y con que folios. La otra mitad —leer en imagen la tabla completa de cada lesion y
+comparar fila por fila— **no se hizo**, asi que **no se agrego ninguna recomendacion**.
+
+**Que puede causar.** Una Clase I o una Clase III que la guia publica y la seccion no, sin que
+nadie lo sepa. La tabla de partida dice de donde arranca cada una: la del foramen oval publica
+**una** Clase I, y la de la transposicion **cinco**.
+
+**Como se corrige.** Las hojas estan listadas una por una en `docs/CONTROL_EVIDENCIA_P17.md`
+seccion 3. Y las **Clase IIa de intervencion** que falten se **reportan** y no se escriben, que
+es la decision del medico del 06/11: en estas diez solo se agregan Clase I y Clase III.
+**El foramen oval no se toca**, tambien por decision expresa.
+
+## P17-d · El color al tocar: dos cosas que quedan como estan
+
+**Que se encontro.** El commit 7 agrega el color al tocar una estructura del corazon maestro, y
+dos consecuencias quedan declaradas porque decidirlas no esta en la orden.
+
+1. **No hay equivalente de teclado.** El gesto es de puntero, y la orden dice expresamente que
+   no se agrega ningun boton. Quien no pueda usar un puntero no puede apagar una estructura.
+2. **«Incluir en el PDF» estampa EL CUADRO QUE SE ESTA VIENDO**, que es el contrato que ese
+   boton ya tenia desde PANT-13: una estructura apagada entra al PDF como contorno.
+
+**Y una tercera, de la ventana aortopulmonar (commit 6):** la recomendacion 11 de la ACC/AHA
+2025 (hoja 93, folio e207) lleva en su fuente **Clase 3: Dano · Nivel B-NR**, y la seccion de la
+ventana **no los publica**, porque la orden dice que esa seccion no publica clase ni nivel. La
+frase y su folio si estan.
+
+**Como se corrige.** Las tres son decisiones del medico: un boton de teclado, una regla distinta
+para el PDF, y si la unica pregunta de la ventana que sale de una guia puede llevar su clase.
+
 ## P17-e · El renombre a «ACC/AHA 2026» se paro: el titulo oficial dice 2025
 
 **Que se encontro.** La orden de PANT-17 pedia renombrar la guia americana de congenitas del

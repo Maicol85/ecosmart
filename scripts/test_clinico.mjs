@@ -37907,8 +37907,16 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
       // ── DENOMINADOR: sin el shunt en Congenitas hay CINCO controles ──
       esc({}, {});
       const c0 = ctrls();
-      ex.push(['DENOMINADOR: sin el shunt en Congenitas hay CINCO controles, los cinco esperados',
-        c0.length === 5 && ${EP_CLAVES}.every(k => c0.indexOf(k) > -1),
+      /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): la seccion gano una TERCERA columna
+         con las nueve condiciones de la ACC/AHA 2025, que son controles tambien. Lo que este
+         caso afirma —que las CINCO de la ESC estan y que el shunt desaparece cuando se lee de
+         Congenitas— no cambia; lo que se adapta es el DENOMINADOR, y queda MAS FUERTE: ademas
+         de exigir las cinco, exige que las de la ACC lleven todas el prefijo propio, asi que
+         una condicion de la ESC que se colara entre ellas pondria el caso en rojo. */
+      const _epAcc = (a) => a.filter(k => k.indexOf('ep.ev.') === 0);
+      const _epEsc = (a) => a.filter(k => k.indexOf('ep.ev.') !== 0);
+      ex.push(['DENOMINADOR: sin el shunt en Congenitas estan los CINCO controles de la ESC, y los de la ACC van aparte',
+        _epEsc(c0).length === 5 && ${EP_CLAVES}.every(k => c0.indexOf(k) > -1) && _epAcc(c0).length > 0,
         'controles=' + c0.join(',')]);
 
       /* ── ⚠️ EL EJE QUE LA VERSION VIEJA FUNDIA ──
@@ -37976,8 +37984,8 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
       // ── CAMINO (a): el shunt se LEE de Congenitas 2 y su control manual no se dibuja ──
       esc({ ete_cia_dir:'di' }, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
       const fShE = filaDe('Shunt'), cE = ctrls();
-      ex.push(['con el shunt cargado en Congenitas la fila es LECTURA, quedan cuatro controles, y satisface la fila',
-        !!fShE && !fShE.ctrl && fShE.marca === 'ok' && cE.length === 4 &&
+      ex.push(['con el shunt cargado en Congenitas la fila es LECTURA, quedan cuatro controles de la ESC, y satisface la fila',
+        !!fShE && !fShE.ctrl && fShE.marca === 'ok' && _epEsc(cE).length === 4 &&
         cE.indexOf('ep.shunt') === -1 && clase() === 'ind / Clase I · Nivel C',
         (fShE ? fShE.marca + ' «' + fShE.val + '» ctrl=' + (!!fShE.ctrl) : 'NO HAY FILA') +
         ' · controles=' + cE.join(',') + ' · ' + clase()]);
@@ -47844,8 +47852,25 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          corchete, al pie de su bloque de recomendaciones. */
       ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'acc2025achd'],
       ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
-      ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
-      ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2020guch'],
+      /* ADAPTADO el 2026-11-06 (tanda PANT-17, commits 3a y 3b): las dos secciones ganan su
+         cuestionario y con el su linea «Segun la guia» pasa a citar la guia que RIGE, que por la
+         regla E-2 es la mas nueva de las que tratan el tema. En el ductus es la ACC/AHA 2025; en
+         la coartacion, la ESC 2024 de aorta, cuya Tabla 69 es la unica que publica criterios de
+         intervencion para esta lesion. La ESC 2020 sigue citada, con su propio corchete, al pie
+         de su bloque de recomendaciones. La ADAPTACION es de DENOMINADOR. */
+      ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'acc2025achd'],
+      ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2024ao'],
+      /* ⚠️ LA DE LA TANDA PANT-17, commit 6. Este caso exige que TODA seccion de IND_SECS tenga
+         escenario, asi que una seccion nueva lo pone en rojo NOMBRANDOLA — que es justo para lo
+         que el denominador existe. Su compuerta es vapConclusion, que basta con el tipo y el
+         diametro, y su linea «Segun la guia» cita la SERIE DE CASOS: es la unica seccion del
+         panel que no se apoya en una guia, y por eso tampoco publica clase ni nivel. */
+      ['Ventana aortopulmonar',               { vap_tipo:'i', vap_diam:'8' },                       'yakut2018apw'],
+      /* ⚠️ LA SEGUNDA SECCION DE LA FALLOT (tanda PANT-17, commit 4). Su clave es el titulo
+         LARGO: el corto es prefijo suyo, y sin esta entrada la semilla de la primera se llevaba
+         las dos. Cita la ACC/AHA 2025, que es la unica que publica recomendaciones de evaluacion
+         del ventriculo derecho y de arritmias en la Fallot reparada del adulto. */
+      ['Tetralogia de Fallot reparada — ventriculo derecho', { tdf_sintomas:'si' },                'acc2025achd'],
       /* AGREGADAS el 2026-11-03 (tanda PANT-4, commit 1e): las DOS secciones nuevas. Hasta esta
          tanda las dos lesiones no tenian Evidencia, asi que este caso no podia tener su semilla.
          Su compuerta es la misma que la del informe -que el evaluador diga que hay datos-, y su
@@ -47987,7 +48012,13 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     const sinSeed = [];
     for (let i = 0; i < IND_SECS.length; i++) {
       const titN = IND_SECS[i].tit.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      const claves = Object.keys(SEEDMAP).filter(function(pr){ return titN.indexOf(pr) === 0; });
+      /* ⚠️ EL MATCH MAS LARGO GANA (adaptado el 2026-11-06, tanda PANT-17, commit 4). Desde que
+         la Fallot reparada tiene DOS secciones, el titulo de la segunda empieza con el de la
+         primera: con el primer match, la semilla corta se llevaba las dos y la seccion nueva
+         NUNCA se medía —R.secs quedaba con 41 claves para 42 secciones, y la condicion comparaba
+         41 contra 42 sin decir cual faltaba—. Ordenando por largo, cada seccion toma SU semilla. */
+      const claves = Object.keys(SEEDMAP).filter(function(pr){ return titN.indexOf(pr) === 0; })
+        .sort(function (a, b) { return b.length - a.length; });
       if (!claves.length) { sinSeed.push(IND_SECS[i].tit); continue; }
       const pref = claves[0], campos = SEEDMAP[pref][1], esperado = SEEDMAP[pref][2];
       const S = secDe(pref);
@@ -48301,6 +48332,7 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['DENOMINADOR: TODAS las secciones de IND_SECS tienen escenario y abren',
         R.abrieron === IND_SECS.length && R.err.length === 0 && R.sinSeed.length === 0,
         'abrieron=' + R.abrieron + '/' + IND_SECS.length + ' sinEscenario=' + JSON.stringify(R.sinSeed) +
+        ' NO ABREN=' + JSON.stringify(nombres.filter(k => S[k] && S[k].abrio === false)) +
         ' malas=' + JSON.stringify(R.malas) + ' err=' + JSON.stringify(R.err)],
       ['las secciones traen su CRITERIO cargado, no solo el corchete',
         R.todasTxt === true && R.ningunaNoCargada === true,
@@ -88324,9 +88356,15 @@ caso('TC-521', 'Tanda AJ4: la raiz aortica con UN SOLO criterio de dilatacion en
          las dos de Clase IIa · Nivel C de la Tabla 68, y esta tanda las publica a las dos. */
       && lVab.filter(l => l.indexOf('Clase IIa \\u00b7 Nivel C') === 0).length === 2,
     JSON.stringify(lVab.map(l => l.slice(0, 40)))]);
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 5): la seccion de conclusion gano su
+     cuestionario y con el sus notas, asi que el conteo «=== 1» dejo de medir el invariante. Lo
+     que este control afirma —que la conclusion de la app no se dice DOS veces— pasa a medirse
+     donde vive: NINGUNA de las dos secciones repite esa frase, y las dos tienen al menos una
+     nota (sin eso la condicion pasaria en verde sobre una lista vacia). */
   ex.push(['(G3) el panel ya NO dice dos veces la conclusion de la app',
     !!rVab && (rVab.notas || []).every(n => String(n).indexOf('Conclusi\\u00f3n de la app') === -1)
-      && !!rCon && (rCon.notas || []).length === 1,
+      && !!rCon && (rCon.notas || []).length >= 1
+      && (rCon.notas || []).every(n => String(n).indexOf('Conclusi\\u00f3n de la app') === -1),
     'notasVab=' + ((rVab && rVab.notas) || []).length + ' notasCon=' + ((rCon && rCon.notas) || []).length]);
   ex.push(['(G4) ni repite la frase del fenotipo de raiz en las dos secciones',
     (((rCon && rCon.notas) || []).filter(n => String(n).indexOf('fenotipo ascendente') > -1).length === 0),
@@ -89358,11 +89396,22 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
      le toca a ESTE escenario: que la seccion de Fallot marque su grilla, y que la unica grilla
      compacta DESPIERTA sea la suya. El conteo de las ocho lo mide TC-537, con un escenario que
      las despierta a todas. */
-  ex.push(['(C1) la seccion marca su grilla como compacta, y es la unica compacta DESPIERTA en este escenario',
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): este escenario despierta ahora DOS
+     compactas, porque la Fallot reparada tiene una SEGUNDA seccion —ventriculo derecho y
+     arritmias— que abre con los mismos datos y tambien usa el molde. Lo que (C1) afirma no
+     cambia: que la seccion de la insuficiencia pulmonar marque SU grilla. El conteo pasa a
+     exigir que las despiertas sean las DOS de Fallot y ninguna otra, que es mas fuerte que
+     «una sola». */
+  const _compDesp = Array.prototype.slice.call(
+    document.querySelectorAll('#indic-cuerpo [data-ind-compacta]'));
+  const _compFallot = _compDesp.filter(function (g) {
+    const d = g.closest('details'), su = d ? d.querySelector('summary') : null;
+    return /Fallot/.test((su || {}).textContent || '') });
+  ex.push(['(C1) la seccion marca su grilla como compacta, y las compactas DESPIERTAS en este escenario son SOLO las dos de Fallot',
     !!grid && grid.getAttribute('data-ind-compacta') === '1'
-      && document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length === 1,
+      && _compDesp.length === 2 && _compFallot.length === 2,
     'compacta=' + (grid ? grid.getAttribute('data-ind-compacta') : '?') + ' despiertas=' +
-      document.querySelectorAll('#indic-cuerpo [data-ind-compacta]').length]);
+      _compDesp.length + ' deFallot=' + _compFallot.length]);
   ex.push(['(C2) trae las dos columnas: filas del eco y preguntas que el eco no mide',
     !!grid && grid.getAttribute('data-ind-dos') === '1'
       && !!S.querySelector('[data-ind-col="eco"]') && !!S.querySelector('[data-ind-col="clin"]'),
@@ -89442,8 +89491,12 @@ caso('TC-528', 'Tanda AJ6-2: la Evidencia de la Fallot reparada con las recomend
   const conCompacta = otras.filter(d => d.querySelector('[data-ind-compacta]'));
   /* ADAPTADO en la tanda A (commit A-4): el rotulo decia «del panel» y lo que mide es «de las
      DESPIERTAS en este escenario». Ver (C1). */
-  ex.push(['(E1) CONTROL NEGATIVO: ninguna otra seccion DESPIERTA en este escenario quedo compacta',
-    conCompacta.length === 1 && /Fallot/.test((conCompacta[0].querySelector('summary') || {}).textContent || ''),
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): las compactas despiertas son DOS y las
+     DOS son de Fallot. El control negativo sigue siendo el mismo —ninguna seccion AJENA quedo
+     compacta— y queda mas fuerte: antes alcanzaba con que la primera lo fuera. */
+  ex.push(['(E1) CONTROL NEGATIVO: ninguna seccion AJENA DESPIERTA en este escenario quedo compacta',
+    conCompacta.length === 2 && conCompacta.every(function (d) {
+      return /Fallot/.test((d.querySelector('summary') || {}).textContent || '') }),
     'n=' + conCompacta.length + ' secs=' + otras.length]);
   const diast = seccion(/diast|Diast/);
   ex.push(['(E2) y una seccion vecina con notas sigue mostrando la prosa al lado del estado, sin plegarla',
@@ -90878,8 +90931,12 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
      Fontan, la conexion venosa pulmonar anomala parcial y el sindrome de Eisenmenger. La
      ADAPTACION es de DENOMINADOR y no de contrato: el invariante -que las tres de la tanda J
      sigan ahi- no cambia. */
-  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son CUARENTA, y las tres de la tanda J siguen ahi',
-    IND_SECS.length === 40
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commits 4 y 6): el panel gana DOS secciones —la
+     Fallot reparada de ventriculo derecho y arritmias, y la ventana aortopulmonar—. Es una
+     adaptacion de DENOMINADOR: lo que este control afirma, que las tres de la tanda J siguen
+     ahi, no cambia. */
+  ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son CUARENTA Y DOS, y las tres de la tanda J siguen ahi',
+    IND_SECS.length === 42
       && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
@@ -92874,8 +92931,11 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     ex.push(['(D1) DENOMINADOR: los campos de los ocho modulos entraron todos',
       sets.length === 0, sets.length ? 'no entraron: ' + sets.join(' · ') : 'entraron los 49']);
     const nComp = cu ? cu.querySelectorAll('[data-ind-compacta]').length : -1;
-    ex.push(['(D2) DENOMINADOR: las OCHO secciones compactas estan despiertas a la vez',
-      nComp === 8, 'grillas compactas=' + nComp]);
+    /* ADAPTADO el 2026-11-06 (tanda PANT-17, commits 4 y 5): este escenario despierta ahora
+       DIEZ compactas, porque la Fallot reparada gano su segunda seccion y la conclusion de la
+       bicuspide paso a usar el molde. Es una adaptacion de DENOMINADOR. */
+    ex.push(['(D2) DENOMINADOR: las DIEZ secciones compactas estan despiertas a la vez',
+      nComp === 10, 'grillas compactas=' + nComp]);
     ex.push(['(D2b) DENOMINADOR: las DIECISIETE preguntas del panel quedaron contestadas',
       clics.length === 0, clics.length ? 'no entraron: ' + clics.join(' · ') : 'las diecisiete']);
     ex.push(['(D3) DENOMINADOR: el panel pinto texto, y el globo guarda mas que lo visible',
@@ -92997,7 +93057,15 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       .filter(d => d.tagName === 'DETAILS' && d.querySelector('[data-ind-compacta]'))
       .map(d => { const cuerpo = d.querySelector('summary').nextElementSibling;
         const hijos = cuerpo ? [].slice.call(cuerpo.children) : [];
-        const iG = hijos.indexOf(cuerpo ? cuerpo.querySelector('[data-ind-grid]') : null);
+        /* ADAPTADO el 2026-11-06 (tanda PANT-17): el boton «⇔ columnas» NO cuenta. Lo emite
+           _indSecHTMLCuerpo antes de la grilla en TODA seccion de preguntas desde PANT-2, asi
+           que desde que hay secciones compactas CON preguntas el indice crudo da 1 sin que las
+           recomendaciones se hayan movido. Lo que esta condicion afirma —que las recomendaciones
+           van DESPUES de los datos— se mide igual descontandolo. */
+        /* El atributo va en el BOTON y no en el div que lo envuelve: preguntarselo al hijo
+           directo daba falso y la condicion seguia contando el envoltorio. Costo una corrida. */
+        const utiles = hijos.filter(function (x) { return !x.querySelector('[data-ind-colbtn]') });
+        const iG = utiles.indexOf(cuerpo ? cuerpo.querySelector('[data-ind-grid]') : null);
         return { t: N((d.querySelector('summary') || {}).textContent).slice(0, 28), i: iG }; })
       .filter(o => o.i !== 0);
     ex.push(['(B5) en las ocho compactas la grilla de datos es lo PRIMERO del cuerpo, y las recomendaciones van despues',
@@ -93009,10 +93077,22 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       try { window[k]() } catch (e) {} } });
     try { indicRender() } catch (e) {}
     const PTs = TODO(document.getElementById('indic-cuerpo'));
-    ex.push(['(B1b) con sintomas prendidos aparece la Clase 1 · Nivel B-NR, y la Clase 2a se apaga',
-      PTs.indexOf('Clase 1 · Nivel B-NR') > -1 && PTs.indexOf('Clase 2a · Nivel B-NR') < 0,
-      'clase1=' + (PTs.indexOf('Clase 1 · Nivel B-NR') > -1)
-      + ' clase2a=' + (PTs.indexOf('Clase 2a · Nivel B-NR') > -1)]);
+    /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): se mide SOBRE LA SECCION y no sobre el
+       panel entero. Con los sintomas prendidos despierta tambien la segunda seccion de Fallot
+       —ventriculo derecho y arritmias—, que publica sus propias Clase 2a, asi que buscar en
+       todo el cuerpo encontraba una Clase 2a que NO es la que esta condicion vigila. Lo que
+       afirma no cambia: en la seccion de la insuficiencia pulmonar la 2a se apaga. */
+    const _secIP = (function () {
+      const ds = [].slice.call(document.querySelectorAll('#indic-cuerpo details'));
+      const d = ds.filter(function (x) {
+        const su = x.querySelector('summary');
+        return su && /Fallot reparada/.test(su.textContent || '')
+                  && !/ventr/.test(su.textContent || '') })[0];
+      return d ? TODO(d) : PTs })();
+    ex.push(['(B1b) con sintomas prendidos aparece la Clase 1 · Nivel B-NR, y la Clase 2a se apaga EN SU SECCION',
+      _secIP.indexOf('Clase 1 · Nivel B-NR') > -1 && _secIP.indexOf('Clase 2a · Nivel B-NR') < 0,
+      'clase1=' + (_secIP.indexOf('Clase 1 · Nivel B-NR') > -1)
+      + ' clase2a=' + (_secIP.indexOf('Clase 2a · Nivel B-NR') > -1)]);
     ex.push(['(B1c) y la europea pasa de su Clase IIa · Nivel C a su Clase I · Nivel C del sintomatico',
       PTs.indexOf('Clase I · Nivel C — El reemplazo de la válvula pulmonar está indicado en el paciente sintomático') > -1,
       'presente=' + (PTs.indexOf('está indicado en el paciente sintomático') > -1)]);
@@ -113212,21 +113292,35 @@ caso('TC-661', 'Tanda PANT-8: la estenosis pulmonar estrena el molde de Evidenci
   ex.push(['(B2) con su categoria', m.cat ? String(m.cat.txt || '') : 'NO', 'Estenosis pulmonar severa']);
   /* La guia no publica estadios para esta lesion: el molde admite est nulo desde el dia uno. */
   ex.push(['(B3) y SIN fila de estadio', m.est, null]);
-  ex.push(['(B4) la franja de datos trae las nueve filas', m.datos ? m.datos.length : 0, 9]);
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): la seccion suma las condiciones de la
+     ACC/AHA 2025 en una TERCERA columna, y con ellas tres filas de datos mas. Es una adaptacion
+     de DENOMINADOR: lo que este caso afirma —que la seccion estrena el molde SIN fila de estadio
+     y que la protesis mitral no se toca— no cambia. */
+  ex.push(['(B4) la franja de datos trae las doce filas', m.datos ? m.datos.length : 0, 12]);
   /* ── (C) LAS PREGUNTAS: cinco, en UNA columna, en dos grupos ── */
   ex.push(['(C1) UNA sola columna, porque son seis o menos', m.cols ? m.cols.length : 0, 1]);
   const grupos = (m.cols && m.cols[0]) ? m.cols[0].map(x => x.tit).join('|') : 'NO';
-  ex.push(['(C2) con sus dos grupos', grupos, 'Indicación|Criterios del asintomático']);
+  ex.push(['(C2) con sus TRES grupos, el tercero el de la ACC/AHA',
+    grupos, 'Indicación|Criterios del asintomático|Condiciones de la ACC/AHA 2025']);
   const nPreg = (m.cols && m.cols[0]) ? m.cols[0].reduce((a, x) => a + (x.filas || []).length, 0) : 0;
-  ex.push(['(C3) y CINCO preguntas repartidas', nPreg, 5]);
+  ex.push(['(C3) y ONCE preguntas repartidas', nPreg, 11]);
   /* ── (D) EL GLOBO DE SINTOMAS ── */
   const sx = (r && r.clinica) ? r.clinica.filter(f => f && f.ctrl && f.ctrl.clave === 'ep.sintomas')[0] : null;
   ex.push(['(D1) la pregunta de sintomas existe', !!sx, true]);
   ex.push(['(D2) y lleva su globo', sx ? String(sx.term || '') : 'NO', 'epsintomas']);
   /* ── (E) CONTROL NEGATIVO: la clinica NO se toco ── */
-  ex.push(['(E1) CONTROL: la lista clinica conserva sus siete filas', r ? r.clinica.length : 0, 7]);
+  /* ADAPTADO el 2026-11-06 (tanda PANT-17, commit 4): la lista clinica suma las nueve
+     condiciones de la ACC/AHA. El CONTROL se reescribe para que siga midiendo lo mismo: las
+     SIETE filas de la ESC siguen ahi, y las de la ACC se distinguen por su prefijo propio. */
+  /* Se descartan POR ROTULO contra el registro de la ACC y no por la clave del control: tres de
+     sus nueve preguntas se pre-responden desde el estudio y salen como fila SIN control, asi que
+     filtrar por clave dejaba tres adentro. Es la misma trampa de denominador que la tanda
+     documenta en TC-714 a TC-718. */
+  const _lblAcc = (typeof EP_PREG_ACC !== 'undefined') ? EP_PREG_ACC.map(p => p.lbl) : [];
+  const _epEsc661 = r ? r.clinica.filter(f => _lblAcc.indexOf(String(f && f.lbl)) < 0) : [];
+  ex.push(['(E1) CONTROL: la lista clinica conserva sus siete filas de la ESC', _epEsc661.length, 7]);
   ex.push(['(E2) CONTROL: las dos filas de solo lectura siguen en la clinica',
-    r ? r.clinica.filter(f => f && !f.ctrl && !f.origen).length : 0, 2]);
+    _epEsc661.filter(f => f && !f.ctrl && !f.origen).length, 2]);
   /* ── (F) LA PROTESIS MITRAL SE PARO: su seccion NO tiene molde ── */
   ex.push(['(F0) DENOMINADOR: su constructor existe', typeof _indProtM === 'function', true]);
   S('vm_morf', 'Prótesis biológica');

@@ -60,6 +60,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
 | **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
+| **Tocar un CUESTIONARIO de Evidencia de congénitas** —el ductus, la coartación, la Fallot reparada del VD, la estenosis pulmonar, la conclusión de la bicúspide, la miocardiopatía hipertrófica obstructiva o la VENTANA AORTOPULMONAR—, **o el COLOR AL TOCAR una estructura del corazón maestro** | `docs/mapa/pant17-evidencia-congenitas.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` · la anatomía de una sección, su catálogo y los dos procedimientos en `docs/mapa/panel-evidencia-secciones.md` |
 | **Tocar un TEXTO de la pantalla de Evidencia o de una ficha de Referencias**: las OCHO secciones compactas y su orden, qué nota va al ⓘ y qué va a `FUENTES.md`, la cita única al final del bloque, `_popNotas`, el mensaje del Forrester y su frontera con el informe, o las tres fichas tocadas | `docs/mapa/a-evidencia-textos.md` |
 | **Tocar el REGISTRO DE CITAS del panel**: `IND_REFS`, el marcador `ecosmart`, el allowlist `IND_REF_IDX` o la numeración por sección | `docs/mapa/panel-evidencia-citas.md` |
@@ -211,9 +212,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **11,91 MB / 164.961 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-14c**, sobre el árbol ya sellado: sello **`v20261105-2222`**, md5
-  **`276361e9`**. El diff de PANT-14c son **882 líneas agregadas y 140 quitadas**, medido con
+  sin frameworks. Hoy **12,06 MB / 166.284 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
+  cierre de la tanda **PANT-17**, sobre el árbol ya sellado: sello **`v20261106-0223`**, md5
+  **`8b2343fd`**. El diff de PANT-17 son **1.358 líneas agregadas y 35 quitadas**, medido con
+  `git diff --numstat` contra `040d89e`, de las que **1.300** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR DUODÉCIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 040d89e:index.html` da **164.961** líneas,
+  **11.910.440** bytes y el md5 **`276361e9`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 11,91 MB / 164.961 al cierre de PANT-14c, sello `v20261105-2222`, md5 `276361e9`.) El diff de PANT-14c son **882 líneas agregadas y 140 quitadas**, medido con
   `git diff --numstat` contra `741d0cc`, de las que **792** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR UNDÉCIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las dos
@@ -746,6 +753,209 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### La Evidencia de congénitas, la ventana aortopulmonar y el color al tocar — «PANT-17» (2026-11-06)
+
+- **ONCE commits —contados con `git log 040d89e..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los NUEVE puntos de la orden se tocaron, con el 1 PARADO por
+  medición y el 8 hecho a medias y declarado.** `5bb5951` (1) · `f3f578c` (2) · `ddbcf28` (3) ·
+  `f968f0b` (4) · `713012a` (5) · `04b4ee2` (6) · `8943a59` (7) · `4dbe85d` (8) · `ee62781` (9a)
+  · `55ed587` (9b) · `abed600` (9c) · **éste** (9d, la cobertura y la documentación).
+  Al empezar, `HEAD` = **`040d89e`**, el cierre de PANT-14c, con md5 `276361e9` y el pendrive
+  `DISK_IMG` montado. **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **POR DUODÉCIMA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 040d89e:index.html` da **164.961**
+  líneas, **11.910.440** bytes y el md5 **`276361e9`**, los tres idénticos a lo que decía.
+
+- **LA REGLA CENTRAL: NADA CLÍNICO SALIÓ DE LA MEMORIA.** Todo lo que esta tanda escribe se leyó
+  **en imagen** a 190 ppp o más, con el **folio comprobado en el pie impreso** de la hoja. Las
+  seis reglas de folio están en `docs/fuentes/FUENTES.md` → «La tanda PANT-17», comprobadas en
+  treinta y una hojas entre las seis fuentes.
+
+- **EL COMMIT 1 SE PARÓ, Y ESO ES LO CORRECTO: el título oficial de la guía americana dice
+  2025.** La orden pedía renombrarla a «ACC/AHA 2026» **sólo si la hoja 1 lo confirma**. Leídas
+  en imagen la hoja 1 y la tira de cabecera y pie de la hoja 35: el **título** dice 2025, el
+  **copyright** dice 2025, y 2026 es el año del **número de *Circulation*** (153:e115-e251, 24 de
+  febrero de 2026) — que es exactamente el segundo caso de la condición. **No se renombró ni una
+  cadena.** El censo quedó hecho igual, para que el día que se decida no haya que repetirlo:
+  **197** apariciones de `ACC/AHA 2025` en `index.html`, 2 de `2025 ACC/AHA`, 6 en los casos y
+  100 en `docs/`; y **cero** de `AHA/ACC 2025`, `Gurvitz 2025` y las otras cuatro formas → no hay
+  cadenas partidas que buscar. → **P17-e**.
+
+- ⚠️ **TRES COSAS QUE EL ÍNDICE DE LA ORDEN DABA POR BUENAS Y LA HOJA IMPRESA DESMINTIÓ.** El
+  superíndice de la fila 1 de la **Tabla 69** de la ESC 2024 no es «1534»: es **«1534,1535»**,
+  dos referencias y no una. Las filas de su **Tabla 68** no llevan un superíndice cada una:
+  llevan **de dos a siete**. Y la **Tabla 20** de la ESC 2023 tiene una **séptima fila** que el
+  índice omite — la reparación mitral IIa·C con insuficiencia moderada a grave **tras** una
+  miectomía aislada.
+
+- **SEIS SECCIONES DEL PANEL GANAN CUESTIONARIO Y UNA ES NUEVA.** Ductus (13 preguntas),
+  coartación (13), **Fallot reparada — ventrículo derecho y arritmias** (sección NUEVA, 14),
+  estenosis pulmonar (una tercera columna con 9 condiciones de la ACC/AHA), conclusión de la
+  bicúspide (11), miocardiopatía hipertrófica obstructiva (13) y **ventana aortopulmonar**
+  (sección NUEVA, 6). `IND_SECS` pasa de **40 a 42**.
+
+- **LA VENTANA AORTOPULMONAR ES LA ÚNICA SECCIÓN DEL PANEL QUE NO PUBLICA CLASE NI NIVEL, y no
+  es un olvido.** Lo que la sostiene es una **serie de casos** de un solo centro —Yakut 2018, 30
+  pacientes, mayo de 1998 a junio de 2016—, y una serie no gradúa recomendaciones: cada pregunta
+  publica el **número**, su **denominador** y la **población**, con la hoja y el folio del
+  artículo. Medido: `clases` = **0** en las cuatro escenas de la ventana, contra **52** en la
+  sección de la CIA que corre al lado.
+  La **única** pregunta que sale de una guía es la del Eisenmenger —ACC/AHA 2025, hoja 93, folio
+  **e207**, recomendación 11: el cierre de **cualquier** cortocircuito intracardíaco o vascular
+  no debe realizarse; la guía no nombra la ventana y su frase alcanza a cualquier cortocircuito—
+  y **tampoco publica su clase**: en su fuente lleva Clase 3: Daño · Nivel B-NR → **P17-d**.
+  La **referencia 13 (Mori)** se reproduce tal como el artículo la escribe, **sin corchete**: ese
+  documento no está en la biblioteca y lo que no se leyó no se cita.
+
+- ⚠️ **`filas` NO ES OPCIONAL, Y ESTA TANDA LO PAGÓ.** `_indSecHTMLCuerpo` hace `r.filas.some(...)`
+  **sin guarda**, así que una sección sin tarjeta de datos tira dentro del bucle de `IND_SECS`
+  —que atrapa la excepción— y **desaparece del panel sin un solo error en consola**. Le pasó a
+  `_indTdFVD` en el commit 4. Lo fijan TC-716 (B2) y TC-718 (B2), y las mutaciones M07 y M15.
+
+- **EL BIDIRECCIONAL NO SE TRADUCE, ni en el ductus ni en la ventana, y es el control negativo de
+  los dos casos.** `di` contesta que sí, `id` que no, y **`bi` queda sin contestar a propósito**:
+  la dirección neta no se deduce del selector. Medido por las botoneras: 6 sin dirección, 5 con
+  `di`, 5 con `id` y **6 con `bi`**.
+
+- **EL COLOR AL TOCAR: el contorno es la propia malla, no un casco invertido.** Un casco necesita
+  además una pasada de profundidad que escriba sin color, y eso ocluiría las partículas y los
+  charcos que se ven DENTRO de las cámaras — o sea cambiaría más que el color. Con la malla, la
+  pieza conserva su posición, su escala, su latido y su visibilidad.
+  **El aplicador cuelga de `setIns` y no de `build`**, porque `setIns` **reasigna** el material
+  de las cámaras en cada pasada y es el **único embudo** por el que pasan los dos caminos.
+  **La clave es el ordinal entre los hijos del grupo y lo apagado se borra cuando la escena
+  cambia**: con otra anatomía el ordinal 7 deja de ser la misma arteria.
+  **El toque se separa del arrastre por la distancia**: menos de **6 px**.
+
+- **MEDIDO POR PÍXELES Y NO POR GEOMETRÍA** —un contorno no mueve un solo punto, que es la
+  lección de PANT-14—, con el dibujo quieto por **frecuencia en cero** y no por pausa: los
+  píxeles del gris de contorno pasan de **0 a 208** al tocar y vuelven a **0** al tocar otra vez,
+  y la **firma del cuadro** tras el segundo toque es **idéntica** a la de antes del primero.
+  **Control negativo:** un arrastre de 40 px deja el conjunto **vacío**. Censo de campos **1104
+  antes y 1104 después**, y **cero** botones nuevos en el recuadro.
+
+- ⚠️ **EL COMMIT 8 SE HIZO A MEDIAS, Y SE DECLARA.** Su mitad medible está en
+  `docs/CONTROL_EVIDENCIA_P17.md`: qué clase publica hoy cada una de las diez secciones que esta
+  tanda no reescribió, y con qué folios —CIA 18 Clase I / 5 Clase III, CIV 6/3, DSAV 15/4,
+  Ebstein 15/0, Fontan 25/0, CVPA 11/1, Eisenmenger 13/12, FOP 1/0, MCH muerte súbita 5/1,
+  transposición 5/0—. La otra mitad —leer en imagen la tabla completa de cada lesión y comparar
+  fila por fila— **no se hizo**, así que **no se agregó ninguna recomendación** → **P17-c**.
+  ⚠️ **Y SU PRIMERA CORRIDA ABRIÓ 14 DE 42 SECCIONES Y SEIS DE LAS DIEZ QUEDARON SIN MEDIR**,
+  porque la siembra usaba ids inventados: los reales son `ete_civ_tipo`, `ebs_desplazamiento`,
+  `fontan_tipo`, `cvpa_venas_numero`, `eis_lesion_base` y `fop_shunt_reposo`. Un conteo sobre una
+  sección que no abrió se lee igual que «esa sección no publica nada».
+
+- **SEIS CASOS NUEVOS, TC-714 a TC-719**, y los seis **caen contra `040d89e` por 56 condiciones y
+  NINGUNA por excepción**, verificado en un worktree alternando sólo `index.html` con el mismo
+  archivo de casos.
+  ⚠️ **LA PRIMERA VERSIÓN CAÍA POR EXCEPCIÓN LOS SEIS, y eso no es caer**: un caso que revienta
+  con un `ReferenceError` no dice **qué** invariante se rompió. Es la lección de TC-546. Se cerró
+  con accesores con guarda, **`_g`** para los registros y **`_gx`** para las funciones.
+  ⚠️ **Y `_g` NO SIRVE DONDE EL NULL ES EL DATO**: sustituye el null por su valor por omisión, y
+  en (B0) de TC-716 el **null es justamente lo que se mide** —que sin datos la sección no abre—.
+  ⚠️ **CUATRO CONDICIONES MÍAS MEDÍAN SOBRE EL DENOMINADOR EQUIVOCADO: contaban BOTONERAS**, y
+  una pregunta pre-respondida desde el estudio sale como fila **sin** botonera. Las cuatro pasan
+  a emparejar por **rótulo** contra el registro, y el valor se busca por **clave**: un rótulo es
+  texto de pantalla y se reescribe; la clave es el contrato.
+
+- **20/20 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el árbol vivo, con el
+  md5 **idéntico** antes y después. **Cinco de las veinte no revierten nada: la aplican de más**,
+  porque las condiciones que las matan son controles negativos.
+  ⚠️ **TRES SOBREVIVIERON AL PRIMER BARRIDO Y ME DIJERON DOS COSAS DISTINTAS.** **M01 y M12 eran
+  huecos reales**: renombrar la clave de una pregunta no rompía nada, porque las condiciones
+  contaban el largo del registro. Hoy las dos le **sacan la guía** a una pregunta —que es lo que
+  le da su etiqueta y su nota— y nació **TC-718 (A2b)**. **M11 estaba mal escrita**: agregaba un
+  `const` sin usar, o sea no inyectaba ningún defecto.
+  ⚠️ **Y EL BARRIDO ESCRIBE CON `flush` + `fsync`**: sin eso el servidor del suite lee el
+  `index.html` **sin** los cambios y la mutación sale «sobrevivió» sobre un defecto que, aplicado
+  a mano, pone el caso en rojo — lo que PANT-14c pagó con nueve sobrevivencias falsas.
+
+- ⚠️ **OCHO CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito, Y LOS OCHO LOS DESTAPÓ LA
+  CORRIDA COMPLETA.** **TC-284** y **TC-661** (la estenosis pulmonar suma la tercera columna: sus
+  conteos pasan a separar las de la ESC de las de la ACC por su prefijo, y el control queda **más
+  fuerte**), **TC-322** (las dos secciones nuevas necesitan escenario, y **el match más largo
+  gana**: desde que la Fallot tiene dos secciones, la semilla corta se llevaba las dos y la nueva
+  **nunca se medía**), **TC-521** (el conteo de notas deja de ser el invariante y pasa a medirse
+  donde vive: ninguna de las dos secciones repite la conclusión de la app), **TC-528** y
+  **TC-537** (las compactas despiertas pasan de una a dos y de ocho a diez; el conteo queda **más
+  fuerte**, porque exige que las dos sean de Fallot y ninguna ajena) y **TC-533** (`IND_SECS` de
+  40 a 42).
+  ⚠️ **Y DOS DE SUS CONDICIONES ESTABAN MIDIENDO OTRA COSA DESDE ANTES, y se corrigieron:**
+  **TC-537 (B5)** contaba el botón «⇔ columnas» —que `_indSecHTMLCuerpo` emite antes de la
+  grilla en **toda** sección de preguntas desde PANT-2— como si fuera una recomendación; y
+  **(B1b)** buscaba «Clase 2a» en el **panel entero**, así que la segunda sección de Fallot le
+  daba una Clase 2a que no es la que vigila. Las dos pasan a medir donde corresponde.
+  ⚠️ **Y EL ATRIBUTO DEL BOTÓN VA EN EL BOTÓN Y NO EN EL `div` QUE LO ENVUELVE**: preguntárselo
+  al hijo directo daba falso y la condición seguía contando el envoltorio. Costó una corrida.
+
+- ⚠️ **UNA CORRIDA COMPLETA SE ENVENENÓ POR MI CULPA Y SE DECLARA: edité el archivo de casos
+  mientras corría.** Cada lote es un `node` nuevo, así que los primeros trece midieron el archivo
+  viejo y el catorceavo no arrancó —se encontró el archivo con un error de sintaxis a medio
+  editar—: **715 de 734 ejecutados**. Esa corrida vale como **censo** de qué casos viejos rompía
+  la tanda, y **no** como línea base. La línea base sale de la corrida **limpia**, de una sola
+  pasada sobre el árbol sellado y con el archivo de casos final.
+
+- **Línea base al cierre: suite 727/734**, en **catorce lotes** cubriendo los **734 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  distinto: **734 de 734** ejecutados—, en UNA sola pasada sobre el árbol sellado, con el
+  pendrive `DISK_IMG` **verificado al abrir, en los CATORCE lotes y al cerrar** (dieciséis
+  verificaciones, listando nombres reales) y el md5 de `index.html` **idéntico** antes y después
+  (`8b2343fd`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-358, TC-551 y TC-557**, los tres intermitentes declarados. **Ningún rojo nuevo.**
+  ⚠️ **Y LOS TRES SE CARACTERIZARON COMO MANDA ESTA CASA** —mismo directorio, mismos scripts,
+  alternando sólo `index.html`—: **TC-551 pasa corrido aislado**; **TC-557 cae IDÉNTICO contra
+  `040d89e`**, con la misma firma `00000 44x44` de `elementFromPoint` fuera del viewport que
+  `TGA-h` documenta; y **TC-358 da 1 verde de 4 en LOS DOS árboles**, con el mismo diagnóstico
+  «NO HAY jsPDF» — que es la carrera de `pdfTxt` que `E-h` declara. **Una corrida de cada lado
+  no caracteriza un intermitente**, y por eso son cuatro.
+
+- **A/B contra `040d89e`, con el PDF y el PPT generados de verdad: 76 escenas, 15.504 claves, y
+  CERO diferencias de superficie firmada.** Informe en los tres estilos, EN SUMA, las **441**
+  columnas de Excel clave por clave, los campos, el Laboratorio por sus ocho funciones dueñas,
+  el PDF en sus seis plantillas y el PPT. **Excel 441 → 441 y censo de campos 994 → 994 en las
+  76**, sin una sola escena que difiera: **cero campos guardados nuevos y cero columnas**.
+  Las **20** diferencias de pantalla son el control positivo, y las veinte están en claves del
+  panel de Evidencia: el ductus pasa de 3 a 19 filas, la ventana aparece —de 0 a 13, con su
+  título— y la bicúspide de 3 a 16.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px
+  × dos temas), **sin una sola diferencia entre motores**: la ventana con sus **6** preguntas y
+  **CERO clases**, el ductus con **12** contestables de 13 —la decimotercera pre-respondida—,
+  **cero** formas prohibidas por las reglas fijas, **cero** desplazamiento horizontal, **cero**
+  textos recortados y **CERO errores de página en los dos motores**.
+  **El mismo cruce contra `040d89e` es el control**, y en los dieciséis la ventana **no existe**
+  y el ductus publica **cero** preguntas.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  El diff de la tanda son **1.358 líneas agregadas y 35 quitadas**, de las que **1.300** no son
+  comentario, con **cero** `innerHTML`, `eval(` o `new Function` nuevos y cero claves ni
+  contraseñas. **Cero ids nuevos en el marcado.**
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — medido contra
+  `040d89e` con el mismo script: **idéntico, no empeoró**.
+
+- **`index.html` pasó de 11,91 MB / 164.961 líneas a 12,06 MB / 166.284** — medido con `wc -c` y
+  `wc -l` DESPUÉS de sellar. (MB de 10⁶.) Sello **`v20261106-0223`**, md5 **`8b2343fd`**.
+  ⚠️ **EL ÁRBOL SE SELLÓ ANTES DE LA VERIFICACIÓN Y EL COMMIT 9d LLEVA ESE SELLO SIN VOLVER A
+  SELLAR.** Lo único que ese commit cambia de `index.html` son las tres líneas del sello, que ya
+  estaban puestas cuando corrieron la suite, el A/B, los dos motores y el celular: su md5 al
+  cerrar es **`8b2343fd`**, el mismo que midió todo. Así el árbol que la verificación midió es
+  exactamente el que queda commiteado, y no hay líneas de diferencia que declarar.
+
+- **Dónde está todo:** `docs/mapa/pant17-evidencia-congenitas.md` (**mapa NUEVO**, 6,4 KB), las
+  fichas de los seis casos en `docs/mapa/tests-fichas-714.md` (**archivo propio**, porque
+  `tests-fichas.md` está en 34,2 KB), el puntero en `docs/mapa/tests-punteros-tandas.md`
+  —medido ANTES de escribir: 20,7 → 21,6 KB—, `docs/INVENTARIO_RENOMBRE_ACCAHA.md`,
+  `docs/INVENTARIO_EVIDENCIA_P17.md`, `docs/INVENTARIO_COLOR_AL_TOCAR_P17.md`,
+  `docs/CONTROL_EVIDENCIA_P17.md`, `docs/fuentes/FUENTES.md` → «La tanda PANT-17» con las seis
+  reglas de folio comprobadas en treinta y una hojas y la tabla «Cambios de evidencia» de diez
+  filas, `docs/REGISTRO_TANDAS.md` → el bloque de la tanda, `docs/GUIA_PRUEBA_PANT17.md` → la
+  guía manual en **26** pasos, y `docs/PENDIENTES.md` → **CINCO** cosas declaradas (**P17-a** a
+  **P17-e**).
+  ⚠️ **`congenitas-otros.md` (34.540 B) y `tests-fichas.md` (34.237 B) NO se tocaron**, y siguen
+  esperando a que alguien los parta.
+
 ### El PDF del corazón maestro, el diagrama del posoperatorio y los colores del 3D — «PANT-14c» (2026-11-05 y 06)
 
 - **SIETE commits —contados con `git log 741d0cc..HEAD` AL CERRAR, y el commit que escribe este

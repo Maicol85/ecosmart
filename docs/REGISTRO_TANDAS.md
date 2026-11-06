@@ -1,6 +1,46 @@
 # EcoSmart — registro de tandas
 
 
+## PANT-17 — la Evidencia de congénitas, la ventana aortopulmonar y el color al tocar (2026-11-06)
+
+**Once commits.** Al empezar, `HEAD` = **`040d89e`** (cierre de PANT-14c), md5 `276361e9`.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+| commit | qué hizo |
+|---|---|
+| `5bb5951` (1) | el renombre a «ACC/AHA 2026» **se PARA**: el título oficial dice 2025 y sólo la revista dice 2026 → `P17-e` |
+| `f3f578c` (2) | inventario y plan de la Evidencia de congénitas (**solo lectura**, md5 idéntico) |
+| `ddbcf28` (3) | el cuestionario del ductus (13) y el de la coartación (13, cinco pre-respondibles) |
+| `f968f0b` (4) | la Fallot reparada gana una **segunda** sección —VD y arritmias— y la estenosis pulmonar una tercera columna |
+| `713012a` (5) | la conclusión de la bicúspide (11) y la MCH obstructiva (13); `_indMCHSCD` y la aorta ascendente de la VAB **intactas** |
+| `04b4ee2` (6) | **la ventana aortopulmonar**: sección nueva de seis preguntas, SIN clase ni nivel, desde una serie de casos |
+| `8943a59` (7) | **el color al tocar** una estructura del corazón maestro |
+| `4dbe85d` (8) | el control de las diez secciones (**solo lectura**); la mitad que exige leer queda en `P17-c` |
+| `ee62781` (9a) | los seis casos nuevos, TC-714 a TC-719 — se commitean apenas parsean |
+| `55ed587` (9b) | los seis caen contra el árbol anterior por **56 condiciones y CERO excepciones** |
+| `abed600` (9c) | **20 de 20 mutaciones dirigidas muertas**, en worktree y con guarda de md5 |
+| éste (9d) | cobertura y documentación |
+
+**La regla central: nada clínico salió de la memoria.** Todo lo que la tanda escribe se leyó en
+imagen a 190 ppp o más, con el folio comprobado en el pie impreso. Las seis reglas de folio y
+las transcripciones están en `docs/fuentes/FUENTES.md` → «La tanda PANT-17».
+
+**Tres cosas que el índice daba por buenas y la hoja impresa desmintió:** el superíndice de la
+fila 1 de la Tabla 69 de la ESC 2024 son **dos** referencias y no una; las filas de su Tabla 68
+llevan **de dos a siete** superíndices, no uno; y la Tabla 20 de la ESC 2023 tiene una **séptima
+fila** que el índice omite.
+
+**Lo que NO se escribió, y por qué:** la TAVI sobre bicúspide de la ESC/EACTS 2025 (el PDF de la
+biblioteca es la versión adelantada: su pie imprime «36» y no 4670), el valor normal del Tei del
+ventrículo izquierdo (ninguna fuente lo publica) y el conducto del VD a la pulmonar (el selector
+de la aplicación no tiene ese valor). En `P17-a`.
+
+**Dónde está todo:** `docs/mapa/pant17-evidencia-congenitas.md` (mapa NUEVO),
+`docs/INVENTARIO_RENOMBRE_ACCAHA.md`, `docs/INVENTARIO_EVIDENCIA_P17.md`,
+`docs/INVENTARIO_COLOR_AL_TOCAR_P17.md`, `docs/CONTROL_EVIDENCIA_P17.md`,
+`docs/GUIA_PRUEBA_PANT17.md` (26 pasos) y `docs/PENDIENTES.md` → **P17-a** a **P17-e**.
+
+
 ## PANT-14 — el esquema negro, el botón del PDF, la transposición y las siete lesiones (2026-11-05)
 
 **Nueve commits**, los ocho de la orden y el de cierre. Sello **`v20261105-1004`**.

@@ -11482,3 +11482,101 @@ de la separación más chica, así que distingue las dos formas de ubicarlo.
   pelado lo encontraba aunque la expresión se hubiera reemplazado: hay que buscar la **llamada**,
   con sus paréntesis.
 
+
+---
+
+## La tanda PANT-17 (2026-11-06) — la Evidencia de congénitas, la ventana aortopulmonar y el color al tocar
+
+**Regla central de la tanda: nada clínico salió de la memoria.** Todo lo que esta tanda escribe
+se leyó **en imagen** a 190 ppp o más, con el **folio comprobado en el pie impreso** de la hoja.
+Lo que no pasó esa prueba no se escribió y está en `docs/PENDIENTES.md` → **P17-a** y **P17-b**.
+
+### Las reglas de folio, comprobadas en el pie impreso
+
+| documento | regla | comprobada en |
+|---|---|---|
+| ACC/AHA 2025 de congénitas del adulto (Gurvitz) | folio = e(hoja + 114) | hojas 35, 42, 43, 46, 47, 57, 68, 87, 93 |
+| ESC 2020 de congénitas del adulto | folio = hoja + 562 | hojas 35, 36, 42, 49, 65 |
+| ESC 2024 de aorta, edición **inglesa** | folio = hoja + 3537 | hojas 26, 105, 110, 111 |
+| ESC 2023 de miocardiopatías | folio = hoja + 3502 | hojas 52, 54 |
+| AHA/ACC 2024 de miocardiopatía hipertrófica (Ommen) | folio = e(hoja + 1238) | hojas 26, 29 |
+| **Yakut 2018, ventana aortopulmonar** | **folio = hoja + 29** | **hojas 1 a 6** |
+
+### El renombre que se paró — hoja 1 de la ACC/AHA
+
+El **título oficial** dice **2025**; la **cabecera corrida** y el **pie** dicen 2026, que es el
+año del número de *Circulation* (153:e115-e251, 24 de febrero de 2026). Es el segundo caso de la
+condición que la orden fija, así que **no se renombró ninguna cadena**. El censo completo está
+en `docs/INVENTARIO_RENOMBRE_ACCAHA.md` y la entrada viva en **P17-e**.
+
+### Tres cosas que el índice daba por buenas y la hoja impresa desmintió
+
+* **ESC 2024, Tabla 69, fila 1** — el superíndice no es «1534» sino **«1534,1535»**: son dos
+  referencias y no una.
+* **ESC 2024, Tabla 68** — sus filas no llevan un superíndice cada una: llevan **de dos a siete**.
+* **ESC 2023, Tabla 20 (reducción septal)** — tiene una **séptima fila** que el índice omite: la
+  reparación mitral IIa·C con insuficiencia moderada a grave **tras** una miectomía aislada.
+
+### Yakut 2018 — la ventana aortopulmonar, transcripta
+
+Yakut K, Tokel NK, Ozkan M, Varan B, Erdogan I, Aslamaci MS. «Aortopulmonary window: Clinical
+experience of a tertiary center». *Turk Gogus Kalp Damar Cerrahisi Dergisi* 2018;26(1):30-37.
+doi:10.5606/tgkdc.dergisi.2018.14880. **Serie de casos retrospectiva de un solo centro.**
+
+* **Hoja 1 = folio 30.** Treinta pacientes, mayo de 1998 a junio de 2016. Edad media al
+  diagnóstico 22,5 ± 52 meses (3 días a 17 años); a la cirugía 8,2 ± 14,4 meses (7 días a 60
+  meses); seguimiento medio 6,4 ± 4,8 años (5 meses a 16 años).
+* **Hoja 2 = folio 31, clasificación de Mori, literal:** «Type 1 is a small defect midway between
+  the semilunar valves and the pulmonary bifurcation; type 2 is a more distal defect, the distal
+  border of which is formed by the pulmonary bifurcation. This type is more commonly associated
+  with aortic origin of the right pulmonary artery; and type 3, a large, confluent defect
+  involving essentially the entire aortopulmonary septum.»
+* **Hojas 4 y 5 = folios 33 y 34.** Diagnóstico: ecocardiografía en 19; más angiografía por
+  cateterismo en 8; más angiotomografía en 1; más resonancia en 1; y 1 durante la reparación de
+  una interrupción del arco aórtico y un ductus. Anomalías asociadas 18/30 (60 %); cardiopatía
+  compleja 7/30 (23 %). No operados 4 — tres por Eisenmenger y uno por cardiopatía compleja con
+  una anomalía congénita mayor. Operados 26, todos con circulación extracorpórea bajo parada
+  cardiopléjica: parche 24, división más parche 1, división más sutura primaria 1. Mortalidad
+  precoz y tardía **cero**; 2 reoperaciones (7,7 %). Hemodinamia de los operados: Qp/Qs 3,7
+  (0,6-6,9); PAP media 48,6 mmHg (27-71); presión aórtica media 58,4 mmHg (46-81); RVP media 3,7
+  unidades (0,9-8); RVS media 18,1 unidades (8,6-27,8).
+* **Hoja 6 = folio 35, dos frases literales:** «The defect was unable to be identified by
+  echocardiographic examination in three patients with Eisenmenger syndrome. These patients were
+  diagnosed during catheter angiography to identify the etiology of pulmonary hypertension.» y
+  «Simple ligation is not recommended for the surgical repair of APW.»
+* **Hoja 8, referencia 13, tal como el artículo la escribe:** «Mori K, Ando M, Takao A, Ishikawa
+  S, Imai Y. Distal type of aortopulmonary window. Report of 4 cases. Br Heart J 1978;40:681-9.»
+  Ese documento **no está en la biblioteca**, así que se reproduce como texto y **sin corchete**.
+* **Diferencias internas del propio artículo, que se usan del texto de resultados y no se
+  comentan:** la resistencia pulmonar aparece como 3,7 UI y además como 3,8 U/m²; la
+  valvuloplastia, a los 14 meses y además a los dos años.
+* **Lo único que una guía publica sobre esta lesión**, verificado en imagen: ACC/AHA 2025, hoja
+  93, folio **e207**, recomendación 11 — en el síndrome de Eisenmenger el cierre de **cualquier**
+  cortocircuito intracardíaco o vascular no debe realizarse. La guía no nombra la ventana y su
+  frase alcanza a cualquier cortocircuito. En su fuente la fila lleva Clase 3: Daño · Nivel B-NR;
+  la sección no los publica → **P17-d**.
+
+### Cambios de evidencia
+
+| qué | antes | después | fuente |
+|---|---|---|---|
+| Ductus — Evidencia | sin cuestionario | 13 preguntas de tres estados | ACC/AHA 2025 hojas 46-47 (e160-e161); ESC 2020 hoja 36 (598) |
+| Coartación — Evidencia | sin cuestionario | 13 preguntas, 5 pre-respondibles | ESC 2024 Tabla 69 hoja 111 (3648); ACC/AHA 2025 hoja 57 (e171); ESC 2020 hoja 42 (604) |
+| Fallot reparada | una sección | **dos**: la nueva, de ventrículo derecho y arritmias | ACC/AHA 2025 hoja 68 (e182) |
+| Estenosis pulmonar | dos columnas | **tres**: las condiciones de la ACC/AHA | ACC/AHA 2025 |
+| Bicúspide — conclusión | sin preguntas | 11 preguntas | ESC 2024 Tabla 68 hojas 110-111 (3647-3648) |
+| MCH obstructiva | sin preguntas | 13 preguntas | ESC 2023 Tablas 18 y 20, hojas 52 y 54 (3554 y 3556) |
+| **Ventana aortopulmonar** | **sin Evidencia** | **sección nueva, 6 preguntas, SIN clase ni nivel** | **Yakut 2018** + ACC/AHA 2025 hoja 93 (e207) |
+| ESC 2024 Tabla 69, fila 1 | un superíndice | **dos**: 1534 y 1535 | hoja 111, folio 3648 |
+| ESC 2023 Tabla 20 | seis filas | **siete** | hoja 54, folio 3556 |
+| Control de las diez secciones | sin censo | censo por clase y por folio | `docs/CONTROL_EVIDENCIA_P17.md` |
+
+### Lo que esta tanda NO escribió, y por qué
+
+La TAVI sobre bicúspide de la ESC/EACTS 2025 (el PDF de la biblioteca es la versión adelantada y
+su pie imprime «36», no 4670; «bicuspid» aparece en esa hoja sólo en las abreviaturas); el valor
+normal del índice de Tei del ventrículo izquierdo (ninguna fuente de la biblioteca lo publica);
+el conducto del ventrículo derecho a la arteria pulmonar (el selector de la aplicación no tiene
+ese valor); las ocho hojas que no se abrieron (ESC 2023 47, 48, 51 y 55; Ommen 32, 33, 34 y 38);
+y las Clase I y Clase III que falten en las diez secciones de control. Todo en **P17-a**,
+**P17-b** y **P17-c**.

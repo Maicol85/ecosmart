@@ -290,3 +290,17 @@ de cada una está en `docs/mapa/pant7-vd-cia-globos.md` § 7.
 
 Estan en **`docs/mapa/tests-punteros-noviembre.md`**: desde PANT-8 (TC-656) hasta PANT-14c
 (TC-713), con sus adaptados y sus repartos de mutaciones.
+
+## Tanda PANT-17 (2026-11-06) — la Evidencia de congénitas, la ventana y el color al tocar
+
+| caso | qué fija | lo matan |
+|---|---|---|
+| TC-714 | el cuestionario del ductus: 13 preguntas, la dirección pre-responde, el bidireccional no | M01, M02, M03, M20 |
+| TC-715 | la coartación: 13 preguntas, cuatro pre-respuestas, la ESC 2024 de aorta rige | M04, M05, M06 |
+| TC-716 | la Fallot del VD con su tarjeta de datos, y la tercera columna de la estenosis pulmonar | M07, M08, M09 |
+| TC-717 | la bicúspide y la MCH ganan preguntas; las dos secciones vecinas, intactas | M10, M11 |
+| TC-718 | la ventana aortopulmonar: seis preguntas y **cero clases** | M12, M13, M14, M15, M16 |
+| TC-719 | el color al tocar: toque, vuelta, arrastre, escena nueva y repintado | M17, M18, M19 |
+
+Fichas completas en `docs/mapa/tests-fichas-714.md`. El barrido es
+`python3 scripts/_mut_pant17.py <worktree>` — **20 de 20 muertas**, con guarda de md5.
