@@ -22611,6 +22611,70 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
       </div>
 
+      <!-- ══ LA TABLA 15 Y LA TABLA 19 EN REFERENCIAS (PANT-20, commit 7) ══════════════
+           Las dos fichas son NUEVAS: medido en el commit 1, la sub-pestana de protesicas tenia
+           CINCO fichas -aortica, mitral, trombosis, valve-in-valve y endocarditis- y NINGUNA de
+           protesis pulmonar ni tricuspide, aunque la aplicacion aplica esas dos tablas desde la
+           tanda PRO-C1 (VP_PROT_T15 y VT_PROT_T19).
+           ⚠️ VAN DENTRO DE `ref-protesicas`, asi que `REF_SUBTAB` NO se toca: ese registro reubica
+           el CONTENEDOR entero y no cada ficha, y `valv` ya lo lista. Una ficha puesta fuera del
+           contenedor existiria, se abriria desde su encabezado y el buscador la indexaria, pero
+           el medico que navegue por las solapas no la encontraria nunca -la leccion que
+           `constriccion` dejo en la tanda J-. La primera version de este commit las dejo afuera
+           y lo cazo la medicion, no la lectura.
+           Mismo molde que las dos fichas de arriba y que el bloque que PANT-18 dejo en la
+           aortica. Todo leido EN IMAGEN a 300 ppp, con el folio comprobado en el pie o el
+           encabezado impreso. SIN globos nuevos, sin comparar una fuente con otra y sin tocar
+           una sola linea de la logica de graduacion ni del papel. -->
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ppulm',this)">
+          🟢 Prótesis Pulmonar — ASE 2024 <span style="float:right;">▶</span>
+        </h2>
+        <div id="ref-ppulm" style="display:none;" class="card-body">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 15, hoja 32 · folio 33</div>
+          <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Posible obstrucción</th></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — bioprótesis (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;3,2</td><td style="padding:5px 8px;text-align:center;">&ge;3,2</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — homoinjerto (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;2,5</td><td style="padding:5px 8px;text-align:center;">&ge;2,5</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — bioprótesis (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">&ge;20</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — homoinjerto (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;15</td><td style="padding:5px 8px;text-align:center;">&ge;15</td></tr>
+          </table>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> sus dos columnas son «normal» y «posible obstrucción», y no publica una tercera de obstrucción severa. Los valores suponen un volumen sistólico del ventrículo derecho normal, y advierte que el Doppler continuo puede ser difícil por la posición del homoinjerto o de la bioprótesis, así que conviene usar planos paraesternales y supraesternales fuera de eje.
+            <br><br>
+            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A7 (hoja 61 · folio 62), y en esta aplicación se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas. Esa tabla expresa sus datos como media con desvío estándar o como mediana con rango intercuartílico, y en varias filas publica un límite superior en vez de un valor central.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ptric',this)">
+          🟣 Prótesis Tricúspide — ASE 2024 <span style="float:right;">▶</span>
+        </h2>
+        <div id="ref-ptric" style="display:none;" class="card-body">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 19, hoja 35 · folio 36</div>
+          <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Bioprotésica</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Mecánica</th></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico de E (m/s)</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td><td style="padding:5px 8px;text-align:center;">&ge;1,9</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&ge;9</td><td style="padding:5px 8px;text-align:center;">&ge;6</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Tiempo de hemipresión (ms)</td><td style="padding:5px 8px;text-align:center;">&ge;200</td><td style="padding:5px 8px;text-align:center;">&ge;130</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área efectiva (cm²)</td><td style="padding:5px 8px;text-align:center;">&lt;1,5</td><td style="padding:5px 8px;text-align:center;">&lt;2,0</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Índice de velocidad Doppler</td><td style="padding:5px 8px;text-align:center;">&ge;3,3</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td></tr>
+          </table>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> son parámetros <i>sugestivos</i> de estenosis protésica, y se valoran en ausencia de insuficiencia aórtica o tricuspídea. El límite superior normal del índice de velocidad Doppler varía con el tamaño y el tipo de la prótesis. El VTI del cociente es el de la prótesis tricuspídea.
+            <br><br>
+            <b style="color:var(--accent2);">La velocidad de E, en dos unidades:</b> la guía la imprime en metros por segundo y esta aplicación la pide en centímetros por segundo, que es la unidad del ecógrafo y la del campo que ya existía. Son el mismo número: 2,1 m/s equivale a 210 cm/s y 1,9 a 190.
+            <br><br>
+            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A9 (hoja 62 · folio 63), con el tiempo de hemipresión, el gradiente medio, la velocidad de E, el VTI, el cociente de VTI y el área por ecuación de continuidad, indexada y sin indexar. Se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas.
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
