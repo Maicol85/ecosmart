@@ -176,6 +176,28 @@ const casoAbierto = (id, nombre, motivo, fn) => CASOS.push({ id, nombre, fn, abi
    dispara ningun evento, que es la trampa numero uno de esta app. */
 const PRELUDIO = `
   window.__t = {
+    /* ══ PANT-22 · INCLUIR UN SECTOR AVANZADO EN EL INFORME, IDEMPOTENTE ═══════════════════════
+       Desde la tanda PANT-22 (07 y 08/11/2026, decision de Maicol) una seccion de Evidencia de un
+       sector AVANZADO no existe si el sector no esta incluido en el informe. Los casos que miden
+       esas secciones tienen que incluirlo en su escena, y por eso el helper vive en el harness y
+       no copiado en cada uno: con una linea por caso, el que se olvide falla con un diagnostico
+       que no apunta a su propia causa.
+       ⚠️ ES IDEMPOTENTE Y ESO NO ES UN ADORNO: amiloIntegrar es un TOGGLE, asi que llamarlo sobre
+       un sector YA integrado lo RETIRA. Medido en TC-537: el bloque (D6b) volvia a integrar
+       hemodinamica y la dejaba afuera -«integrar=1 · integrado=false»- con su texto intacto en
+       736 caracteres, porque retirar no borra el textarea.
+       Devuelve que quedo integrado y que no, para que el caso pueda declararlo en su denominador. */
+    avInc(ks) {
+      const out = { ok: [], falta: [] };
+      (Array.isArray(ks) ? ks : [ks]).forEach(k => {
+        try {
+          if (typeof amiloIntegrar !== 'function' || typeof amiloIntegrado !== 'function') { out.falta.push(k + '=SIN FN'); return }
+          if (!amiloIntegrado(k)) amiloIntegrar(k);
+          if (amiloIntegrado(k)) out.ok.push(k); else out.falta.push(k);
+        } catch (e) { out.falta.push(k + '=' + String(e.message).slice(0, 40)) }
+      });
+      return out;
+    },
     /* ⚠️ DEVUELVE EL VISOR AL ESTADO DE ARRANQUE. Lo llama el RUNNER entre casos, no los casos.
 
        Hasta que el ✕ conservo lo medido, este reset salia gratis: cineCerrar() llamaba a
@@ -84181,6 +84203,11 @@ caso('TC-510', 'Tanda C: el score de TEP con el TAPSE a <16 y la pestana VD inta
   /* ══ (H) LA EVIDENCIA DEL TEP ═══════════════════════════════════════════════════════════ */
   const evid = function (resp) {
     escena({ tapse:'12', vmax_it:'3.8', tep_vdvi:'1.3', tep_mcconnell:'si', tep_signo6060:'si', tep_tabique_d:'no' });
+    /* ADAPTADO en la tanda PANT-22 (commit 3): la seccion de Evidencia de la tromboembolia pulmonar es de un
+       sector AVANZADO y desde esa tanda no existe si el sector no esta incluido en el informe
+       (decision de Maicol, 07 y 08/11/2026). La escena lo incluye con __t.avInc, que es
+       idempotente porque amiloIntegrar es un toggle. Lo que este bloque vigila no se movio. */
+    __t.avInc('tep');
     try { indicAbrir(); } catch (e) { return { hay:false, t:'ABORTO ' + e.message, btns:0 }; }
     Object.keys(resp).forEach(function (k) {
       const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + resp[k] + '"]');
@@ -90742,6 +90769,11 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
       && txtCO.indexOf('cada 2 ciclos') > -1 && txtCO.indexOf('HFA-ICOS') > -1, 'si']);
 
   pon({ co_farmaco:'radioterapia', co_fevi_basal:'62', co_fevi_actual:'58', co_edad:'58', co_riesgo_cv:'1' });
+  /* ADAPTADO en la tanda PANT-22 (commit 3): la seccion de Evidencia de la cardiotoxicidad es de un sector
+     AVANZADO y desde esa tanda no existe si el sector no esta incluido en el informe (decision
+     de Maicol, 07 y 08/11/2026). Se incluye con __t.avInc, que es idempotente porque
+     amiloIntegrar es un toggle. Lo que este bloque vigila no se movio. */
+  __t.avInc('conco');
   abrirPanel2();
   const evC = evSec2('Cardiotoxicidad por tratamiento oncol\\u00f3gico');
   ex.push(['(E6) la Evidencia de cardio-oncologia existe y cita la ESC 2022 de cardio-oncologia',
@@ -91663,6 +91695,11 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
   /* ⚠️ EL PANEL SE ABRE UNA VEZ POR ESCENA: indicAbrir borra las respuestas, al abrir Y al
      cerrar; y quien engancha el oyente de los botones es _indClinCablear, a la que llama
      indicAbrir y NO indicRender. Sin abrir, un click no escribe nada. */
+  /* ADAPTADO en la tanda PANT-22 (commit 3): la seccion de Evidencia de el posoperatorio de cirugia cardiaca es de un sector
+     AVANZADO y desde esa tanda no existe si el sector no esta incluido en el informe (decision
+     de Maicol, 07 y 08/11/2026). Se incluye con __t.avInc, que es idempotente porque
+     amiloIntegrar es un toggle. Lo que este bloque vigila no se movio. */
+  __t.avInc('pop');
   indicAbrir();
   const P1 = secPanel('Posoperatorio');
   ex.push(['(F4) sin contestar, publica «Lo que falta contestar» y NINGUNA recomendacion graduada del sindrome',
@@ -91702,6 +91739,8 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
      EVALUAR -que es otro mensaje-. Con los cinco evaluados, el conteo es el que se quiere medir. */
   __t.limpiar();
   pon({ pop_cx_tipo:'cabg', pop_pleura_der:'ausente', pop_pleura_izq:'ausente' });
+  /* PANT-22 (commit 3): pon() limpia, y la limpieza retira la inclusion del sector. */
+  __t.avInc('pop');
   indicAbrir();
   clinClic('pop.fiebre','si'); clinClic('pop.dolor','no');
   clinClic('pop.roce','no'); clinClic('pop.pcr','no');
@@ -91714,6 +91753,8 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
       && PU.txt.indexOf('Clase I · Nivel B') === -1,
     PU.err || PU.txt.slice(0, 520)]);
   pon({ pop_cx_tipo:'valvular' });
+  /* PANT-22 (commit 3): idem, por el mismo motivo. */
+  __t.avInc('pop');
   indicAbrir();
   const P3 = secPanel('Posoperatorio');
   indicCerrar();
@@ -92033,6 +92074,11 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   /* ══ (B) HF-PEFF — la presion de llenado normal en reposo ════════════════════════════════ */
   __t.limpiar();
   pon({ nombre:'AJ7 HFPEFF', ci:'2', e_sep:'6', e_lat:'7', onda_e:'95', siv:'13' });
+  /* ADAPTADO en la tanda PANT-22 (commit 3): la seccion es de un sector AVANZADO y desde esa
+     tanda no existe si el sector no esta incluido en el informe (decision de Maicol, 07 y
+     08/11/2026). Se incluye con __t.avInc, idempotente porque amiloIntegrar es un toggle.
+     Lo que este bloque vigila no se movio. */
+  __t.avInc('hfpeff');
   /* ⚠️ EL PANEL SE ABRE UNA SOLA VEZ: indicAbrir() BORRA las respuestas, al abrir Y al
      cerrar, asi que abrirlo antes de cada respuesta deja viva solo la ULTIMA. */
   try { if (F('indicAbrir')) indicAbrir(); } catch (e) {}
@@ -92475,6 +92521,8 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
     v21 === 'VCI > 20 mm → el grado lo define cuántos vasos están severos: uno → 2, dos o más → 3.', v21]);
   const secI = (function(){ __t.limpiar();
     pon({ nombre:'AJ7 VExUS', ci:'8', vci_diam:'24', vexus_sh:'2', vexus_pv:'2' });
+    /* PANT-22 (commit 3): VExUS es un sector avanzado y su Evidencia necesita la inclusion. */
+    __t.avInc('vexus');
     try { if (F('indicAbrir')) indicAbrir(); } catch (e) {}
     const cu = EL2('indic-cuerpo'); if (!cu) return '';
     let hit = ''; Array.prototype.forEach.call(cu.children, (d) => {
@@ -93080,7 +93128,11 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     /* ⚠️ IDEMPOTENTE, Y SE MIDIO POR QUE: amiloIntegrar es un TOGGLE, asi que llamarlo sobre un
        sector YA integrado lo RETIRA. Con la version sin guarda, el bloque (D6b) de mas abajo
        volvia a integrar hemodinamica y lo dejaba afuera: «integrar=1 · integrado=false». */
-    ['dpt','cvr','hemo','ett','alg','pop'].forEach(k => {
+    /* ⚠️ SON LOS NUEVE SECTORES QUE ESTA ESCENA PUEDE DESPERTAR, y no seis: con el commit 3 de
+       PANT-22 las TRECE secciones de sector avanzado respetan el interruptor, asi que tambien
+       hacen falta el HFA-PEFF, VExUS, la hipertension pulmonar y la cardiotoxicidad para que las DIEZ
+       compactas de (D2) esten despiertas a la vez. */
+    ['dpt','cvr','hemo','ett','alg','pop','hfpeff','vexus','htp','conco'].forEach(k => {
       try { if (typeof amiloIntegrar === 'function' && !amiloIntegrado(k)) amiloIntegrar(k) } catch (e) {} });
     /* ⚠️ EL PANEL SE ABRE CON indicAbrir, NO CON indicRender, Y NO ES UN DETALLE:
        _indClinCablear corre desde indicAbrir, y sin el los clics de las preguntas no hacen
@@ -95637,6 +95689,11 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
       ' injuriaVieja=' + (inf2.indexOf('Riesgo de injuria renal aguda aumentado') > -1)]);
 
     /* ── La Evidencia de VExUS: sin conducta por grado ── */
+    /* ADAPTADO en la tanda PANT-22 (commit 3): la seccion de Evidencia de VExUS es de un
+       sector AVANZADO y desde esa tanda no existe si el sector no esta incluido en el informe
+       (decision de Maicol, 07 y 08/11/2026). La escena lo incluye con __t.avInc, que es
+       idempotente porque amiloIntegrar es un toggle. Lo que este bloque vigila no se movio. */
+    __t.avInc('vexus');
     try { if (F('indicRender')) indicRender() } catch (e) {}
     await esperar(250);
     const secV = (() => { let hit = '';
@@ -95718,7 +95775,14 @@ caso('TC-544', 'C1: VExUS dice lo que la Figura 7 de Rola 2021 rotula y su Evide
     /* ══════════════════════════════════════════════════════════════════════════════════════
        (C) LOS TRES MENSAJES DEL FORRESTER, Y SU COINCIDENCIA CON LA EVIDENCIA
        ══════════════════════════════════════════════════════════════════════════════════════ */
-    const filaEv = () => { try { if (F('indicRender')) indicRender() } catch (e) {}
+    /* ADAPTADO en la tanda PANT-22 (commit 3): la fila del Forrester vive en la seccion de
+       Evidencia del PERFIL HEMODINAMICO, que es de un sector avanzado y desde esa tanda no existe
+       sin la inclusion. Se incluye DENTRO del lector, porque cada escena de este bloque arranca
+       con una limpieza que retira la integracion: puesto afuera, el denominador C2 daba falso en
+       las dos escenas con dato. El invariante que el bloque mide -que la capsula y la fila digan
+       EXACTAMENTE lo mismo, y que con el estudio vacio no haya fila- no se movio. */
+    const filaEv = () => { __t.avInc('hemo');
+      try { if (F('indicRender')) indicRender() } catch (e) {}
       let hit = '';
       document.querySelectorAll('#indic-cuerpo tr').forEach(tr => {
         const c = tr.querySelectorAll('td, th');

@@ -104752,9 +104752,12 @@ const IND_SECS = [
      NI NINGUNO ES PREFIJO SUYO: verificado contra los cuarenta y cuatro anteriores; «Pr\u00f3tesis
      pulmonar» y «Estenosis pulmonar» divergen en la primera letra. */
   { tit:'Pr\u00f3tesis pulmonar',                     fn:_indProtP },
-  { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
-  { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP },
-  { tit:'Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF', fn:_indHFPEFF },
+  { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP, av:'tep' },
+  /* `av`: del sector avanzado «Evaluacion de sobrecarga del VD». */
+  { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP, av:'htp' },
+  /* `av`: del sector avanzado «Probabilidad de HTP». */
+  { tit:'Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF', fn:_indHFPEFF, av:'hfpeff' },
+  /* `av`: del sector avanzado «Score HFA-PEFF». */
   { tit:'Comunicación interauricular',           fn:_indCIA },
   { tit:'Comunicación interventricular',         fn:_indCIV },
   /* ⚠️ LA DEL COMMIT 2 DE PANT-10 (04/11/2026). Va PEGADA a la CIA y la CIV porque el defecto
@@ -104815,9 +104818,12 @@ const IND_SECS = [
      VEINTE ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su titulo, asi
      que un titulo que sea prefijo de otro deja una de las dos sin probar. Verificado: ninguno de
      los veintitres se contiene. */
-  { tit:'Ecocardiograma transesofágico — trombo en la orejuela izquierda', fn:_indETETrombo },
-  { tit:'Reparabilidad de la válvula mitral', fn:_indReparMV },
-  { tit:'Ateroma aórtico — prevención', fn:_indAtero },
+  { tit:'Ecocardiograma transesofágico — trombo en la orejuela izquierda', fn:_indETETrombo, av:'oai' },
+  /* `av`: del sector avanzado «Mediciones OAI, del ETE: su compuerta es oai_trombo, que vive en #ete-seccion-oai». */
+  { tit:'Reparabilidad de la válvula mitral', fn:_indReparMV, av:'etem' },
+  /* `av`: del sector avanzado «Mediciones ETE de la valvula mitral: sus tres campos viven en #ete-seccion-morfo». */
+  { tit:'Ateroma aórtico — prevención', fn:_indAtero, av:'aoete' },
+  /* `av`: del sector avanzado «Mediciones Aorta del ETE: ao_grado_atero vive en #ete-seccion-aorta». */
   /* ⚠️ LA DE LA TANDA I-E4, Y SU TITULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO:
      `IND_SECS` se recorre buscando la sección por el PREFIJO de su título. Verificado contra los
      veintitrés anteriores. */
@@ -104838,11 +104844,13 @@ const IND_SECS = [
      VEINTICUATRO ANTERIORES: `IND_SECS` se recorre buscando la seccion por el PREFIJO de su
      titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
      Verificado contra los veinticuatro y entre si. */
-  { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri },
+  { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri, av:'dpt' },
+  /* `av`: del sector avanzado «Derrame pericardico / Taponamiento». */
   { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr, av:'cvr' },
   /* `av`: la seccion es del sector avanzado «Constricción vs Restricción» y sin el sector
      incluido en el informe no existe. Es una de las TRES que el medico reporto. */
-  { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus },
+  { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus, av:'vexus' },
+  /* `av`: del sector avanzado «VEXUS - congestion venosa». */
   /* ⚠️ LA DE LA TANDA J2 (24/10/2026), Y SU TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES
      PREFIJO SUYO: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título.
      Verificado contra los veintisiete anteriores: ninguno empieza con «Perfil». */
@@ -104850,7 +104858,8 @@ const IND_SECS = [
   /* `av`: del sector avanzado «Perfil hemodinámico». La segunda de las tres del medico. */
   /* ⚠️ NINGUNO DE LOS DOS TÍTULOS ES PREFIJO DE OTRO NI DE LOS VEINTISIETE ANTERIORES.
      Verificado: ninguno empieza con «Perfil» ni con «Cardiotoxicidad». */
-  { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco },
+  { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco, av:'conco' },
+  /* `av`: del sector avanzado «Cardio-Oncologia». */
   /* ⚠️ «Amiloidosis cardíaca — algoritmo diagnóstico» no es prefijo de ninguno de los
      veintinueve anteriores ni ninguno es prefijo suyo. Verificado. */
   { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil, av:['ett','alg'] },
@@ -104862,7 +104871,8 @@ const IND_SECS = [
      ninguno es prefijo suyo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su
      título, así que un título que sea prefijo de otro deja una de las dos sin probar. Verificado
      contra los treinta: ninguno empieza con «Posoperatorio». */
-  { tit:'Posoperatorio de cirugía cardíaca', fn:_indPOP }
+  { tit:'Posoperatorio de cirugía cardíaca', fn:_indPOP, av:'pop' }
+  /* `av`: del sector avanzado «PostCEC - Cirugia Cardiaca». */
 ];
 
 function indicRender(){
