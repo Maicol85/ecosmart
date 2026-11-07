@@ -121979,7 +121979,42 @@ caso('TC-738', 'PANT-20 commit 4: el componente Modelo y tamano en la MITRAL, co
         [cl(1, 25).cortes.normalMin, cl(1, 25).cortes.severoMax,
          cl(1, 31).cortes.normalMin, cl(1, 31).cortes.severoMax].join(','), '1.2,0.9,1,0.75',
         'cortes = ' + JSON.stringify([cl(1, 25).cortes, cl(1, 31).cortes])]);
-      ex.push(['(D3) CONTROL NEGATIVO: sin indexada no hay categoria', String(cl(null, 25).ppm), 'null',
+      /* (D4) EL HUECO QUE DESTAPO LA MUTACION 18, y es el que mas importa de este bloque: las
+       condiciones de arriba llaman al clasificador mitral DIRECTO, asi que cambiar el que la
+       ENTRADA de la mitral usa -poniendole el aortico, que existe y tambien devuelve una
+       categoria- pasaba en verde. Esta ata la publicacion al dueno. La escena se BUSCA en vez
+       de adivinarse: los cortes mitrales (0.90 / 1.20) y los aorticos (0.65 / 0.85) coinciden
+       en casi todo el rango, asi que hay que dar con un peso y una talla donde difieran -y si
+       no se da con ninguno, el denominador lo dice en vez de pasar sobre la nada-. */
+    const ao = F('_eaPpmAoClasificar'), ixf = F('vModIndexada'), espf = F('vModEsperados');
+    let disc = null;
+    if (cl && ao && ixf && espf) {
+      [['Carbomedics', '27'], ['Abbott Epic', '27'], ['St. Jude Medical Standard', '27']].forEach(mt => {
+        if (disc) return;
+        S('vm_prot_modelo', mt[0]); S('vm_prot_tam', mt[1]);
+        const esp = espf('vm');
+        const E = (esp && esp.vals && esp.vals.eoa) ? esp.vals.eoa[0] : null;
+        if (E == null) return;
+        [['95', '195'], ['85', '190'], ['75', '185'], ['65', '175'], ['58', '165']].forEach(pt => {
+          if (disc) return;
+          S('peso', pt[0]); S('talla', pt[1]);
+          const r = ixf('vm', E);
+          if (!r || r.eoai == null) return;
+          const a1 = (cl(r.eoai, r.imc) || {}).ppm, a2 = (ao(r.eoai, r.imc) || {}).ppm;
+          if (a1 !== a2) disc = { mod: mt[0], pt: pt, eoai: r.eoai, imc: r.imc,
+                                  mit: a1, aor: a2, pub: r.ppm };
+        });
+      });
+    }
+    ex.push(['(D4 DENOMINADOR) hay una escena donde el clasificador MITRAL y el AORTICO dan distinto',
+      !!disc, disc ? ('modelo ' + disc.mod + ' peso ' + disc.pt[0] + ' talla ' + disc.pt[1] +
+      ' indexada ' + disc.eoai + ' imc ' + disc.imc + ': mitral ' + disc.mit + ' aortico ' + disc.aor)
+      : 'NINGUNA de las quince combinaciones probadas los separa']);
+    ex.push(['(D4) el componente de la mitral publica el veredicto MITRAL y NO el aortico',
+      disc ? [String(disc.pub), String(disc.pub !== disc.aor)].join('|') : 'SIN ESCENA',
+      disc ? [String(disc.mit), 'true'].join('|') : 'SIN ESCENA',
+      disc ? ('publicado ' + disc.pub + ' · mitral ' + disc.mit + ' · aortico ' + disc.aor) : '-']);
+    ex.push(['(D3) CONTROL NEGATIVO: sin indexada no hay categoria', String(cl(null, 25).ppm), 'null',
         'sin = ' + JSON.stringify(cl(null, 25))]);
     }
     /* SIN PESO NI TALLA NO HAY EOA INDEXADA */

@@ -60,7 +60,10 @@ MUT = [
   [("  const c = (imc != null && imc >= VM_PROT_IMC_OBESIDAD)\n          ? VM_PROT_PPM_CORTES.imcAlto : VM_PROT_PPM_CORTES.imcBajo;\n  return { cortes: c,\n           ppm: eoai <= c.severoMax ? 'severo' : (eoai > c.normalMin ? 'no' : 'moderado') };","  const c = VM_PROT_PPM_CORTES.imcBajo;\n  return { cortes: c,\n           ppm: eoai <= c.severoMax ? 'severo' : (eoai > c.normalMin ? 'no' : 'moderado') };")]),
  ('20 cambiar la morfologia mitral deja de limpiar el modelo','TC-738',
   [("vmProtBloqSync();vmMorfFitSync();vModMorfSync('vm')",'vmProtBloqSync();vmMorfFitSync()')]),
- ('21 la sugerencia pasa a buscar en cualquier posicion y no al principio de una palabra','TC-738',
+# La 21 estaba MAL DIRIGIDA: la linea es la del componente UNICO, compartida con la aortica, y la
+# condicion que la mata es (B3b) de TC-731 -"ifecta", que cae en MEDIO de "Trifecta"-. Declararla a
+# TC-738 la dejaba sobreviviendo sobre cobertura que ya existia.
+ ('21 la sugerencia pasa a buscar en cualquier posicion y no al principio de una palabra','TC-731',
   [("  const lst=C.lista.filter(m=>(' '+_vmNorm(m.n).replace(/-/g,' ')).indexOf(' '+q)>-1)",'  const lst=C.lista.filter(m=>_vmNorm(m.n).indexOf(q)>-1)')]),
  ('22 el boton se ve tambien con valvula nativa','TC-738',
   [("  wrap.style.display = hayCat ? '' : 'none';","  wrap.style.display = '';")]),
@@ -99,8 +102,10 @@ MUT = [
   [('Tabla 15, hoja 32 · folio 33','Tabla 15, hoja 32')]),
  ('39 la tricuspide publica el tramo de la OTRA tabla','TC-741',
   [('&ge;200</td>','&ge;20</td>')]),
+# La 40 estaba MAL ESCRITA: cambiaba el ROTULO de la fila y la fila seguia ahi, asi que (G5) -que
+# cuenta filas con celda de dato- no podia fallar. Ahora BORRA el <tr> entero.
  ('40 la pulmonar pierde una de sus cuatro filas','TC-741',
-  [('Gradiente medio — homoinjerto (mmHg)','Gradiente medio homoinjerto')]),
+  [('<tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — homoinjerto (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;15</td><td style="padding:5px 8px;text-align:center;">&ge;15</td></tr>','')]),
 ]
 
 orig = open(IDX,encoding='utf-8').read()
