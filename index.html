@@ -97160,7 +97160,7 @@ const EBS_PREG = Object.freeze([
   { clave:'ebs.ev.arritmSint', lbl:'Arritmia sintomatica', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — el estudio electrofisiologico esta recomendado para evaluar sustratos de ablacion, incluidas las vias accesorias multiples o de alto riesgo, hoja 59, folio e173', ref:'con arritmias sintomaticas o preexcitacion en el electrocardiograma, el estudio electrofisiologico seguido de ablacion -si es factible- o el tratamiento quirurgico de las arritmias en caso de cirugia cardiaca planeada esta recomendado, Clase I · Nivel C (hoja 49, folio 611)' },
   { clave:'ebs.ev.preexc', lbl:'Preexcitacion ventricular en el electrocardiograma', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 1 — la guia la nombra como preexcitacion ventricular ASINTOMATICA, junto con la arritmia sintomatica, hoja 59, folio e173', nota:'su texto de apoyo (hoja 62, folio e176) agrega que alrededor de un tercio de los adultos con Ebstein y preexcitacion ventricular tienen vias accesorias multiples, asociadas a riesgo alto de muerte subita', ref:'misma condicion, Clase I · Nivel C (hoja 49, folio 611)' },
   { clave:'ebs.ev.viaAlto', lbl:'Via accesoria de alto riesgo, o vias accesorias multiples', guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 7 — la ablacion por cateter esta recomendada para reducir el riesgo de muerte subita, hoja 60, folio e174', nota:'su texto de apoyo (hoja 62, folio e176) remite la definicion de via de alto riesgo a un documento de consenso previo, y dice que la interrupcion quirurgica se reserva para el paciente en quien varios intentos de ablacion no tuvieron exito', ref:'la ESC 2020 no publica una recomendacion propia con esta condicion dentro de Ebstein' },
-  { clave:'ebs.ev.arritmRec', lbl:'Arritmias recurrentes', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 — en el paciente ASINTOMATICO con insuficiencia tricuspidea al menos moderada, la intervencion quirurgica puede ser beneficiosa cuando ademas hay agrandamiento progresivo del ventriculo derecho, desaturacion sistemica por cortocircuito auricular de derecha a izquierda, arritmias recurrentes o embolia paradojica, hoja 60, folio e174', ref:'en el asintomatico la ESC 2020 pide solo dilatacion derecha progresiva o reduccion de la funcion sistolica del ventriculo derecho, Clase IIa · Nivel C (hoja 49, folio 611)', tramo:'las dos guias no piden lo mismo en el asintomatico: la ACC/AHA 2025 exige insuficiencia tricuspidea al menos moderada mas uno de cuatro criterios, y la ESC 2020 solo la dilatacion o la disfuncion' },
+  { clave:'ebs.ev.arritmRec', lbl:'Arritmias recurrentes', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 — en el paciente ASINTOMATICO con insuficiencia tricuspidea al menos moderada, la intervencion quirurgica puede ser beneficiosa cuando ademas hay agrandamiento progresivo del ventriculo derecho, desaturacion sistemica por cortocircuito auricular de derecha a izquierda, arritmias recurrentes o embolia paradojica, hoja 60, folio e174', ref:'en el asintomatico la ESC 2020 pide solo dilatacion derecha progresiva o reduccion de la funcion sistolica del ventriculo derecho, Clase IIa · Nivel C (hoja 49, folio 611)', tramo:'en el asintomatico la ACC/AHA 2025 exige insuficiencia tricuspidea al menos moderada mas uno de cuatro criterios. La ESC 2020 pide la dilatacion o la disfuncion' },
   { clave:'ebs.ev.desatShunt', lbl:'Desaturacion sistemica por cortocircuito auricular de derecha a izquierda', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 — es uno de los cuatro criterios del paciente asintomatico con insuficiencia tricuspidea al menos moderada, hoja 60, folio e174', ref:'la ESC 2020 no usa esta condicion como indicacion de cirugia; la saturacion en reposo por debajo de 90 % aparece solo para el cierre AISLADO de la comunicacion interauricular o del foramen oval, Clase IIb · Nivel C (hoja 49, folio 611)' },
   { clave:'ebs.ev.embparad', lbl:'Embolia paradojica, o embolismo sistemico documentado', guia:'acc', rec:'Clase 2a · Nivel B-NR, recomendacion 8 -como criterio de cirugia en el asintomatico- y Clase 2b · Nivel C-LD, recomendacion 10 -con comunicacion interauricular o foramen oval, el cierre aislado puede considerarse despues de una evaluacion hemodinamica-, hoja 60, folio e174', ref:'con embolismo sistemico documentado, probablemente por embolia paradojica, el cierre aislado con dispositivo DEBE considerarse, Clase IIa · Nivel C (hoja 49, folio 611)', tramo:'la ACC/AHA 2025 publica el cierre aislado por embolia en Clase 2b. La ESC 2020, en Clase IIa' },
   { clave:'ebs.ev.cianosisProb', lbl:'La cianosis es el problema principal', guia:'esc', rec:'Clase IIb · Nivel C — el cierre aislado con dispositivo de la comunicacion interauricular o del foramen oval puede considerarse, pero requiere una evaluacion cuidadosa antes de la intervencion para excluir que induzca un aumento de la presion en la auricula derecha o una caida del gasto cardiaco, hoja 49, folio 611', ref:'la ACC/AHA 2025 situa el cierre aislado por cianosis o embolia paradojica en Clase 2b · Nivel C-LD, despues de una evaluacion hemodinamica (recomendacion 10, hoja 60, folio e174), y define la cianosis como saturacion por debajo de 90 % en reposo O CON ESFUERZO (hoja 62, folio e176)', tramo:'la ESC 2020 cuenta la saturacion solo en reposo y la ACC/AHA 2025 en reposo o con esfuerzo' },
@@ -104230,14 +104230,14 @@ const ESUB_PREG = Object.freeze([
   { clave:'esub.ev.sint', lbl:'Síntomas atribuibles a la estenosis subaórtica, espontáneos o en la prueba de esfuerzo', guia:'acc',
     rec:'Clase 1 · Nivel C-EO, recomendación 2 — con síntomas atribuibles a la estenosis subaórtica, la reparación quirúrgica está recomendada para aliviarlos, hoja 52, folio e166',
     ref:'con síntomas, espontáneos o en la prueba de esfuerzo, y gradiente medio de 40 mmHg o más, o insuficiencia aórtica severa, la cirugía está recomendada: Clase I · Nivel C (hoja 41, folio 603)',
-    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 no agrega ningún umbral de gradiente a esta condición y la ESC 2020 sí' },
+    tramo:'la ACC/AHA 2025 publica esta condición sin umbral de gradiente. La ESC 2020 le agrega uno' },
   { clave:'esub.ev.sintdud', lbl:'Síntomas dudosos, que no se pueden atribuir a la lesión sin una prueba de esfuerzo', guia:'acc',
     rec:'Clase 2b · Nivel C-EO, recomendación 1 — puede considerarse la prueba de esfuerzo para evaluar la respuesta fisiológica y determinar si los síntomas son atribuibles a la estenosis subaórtica, hoja 52, folio e166',
     nota:'la ESC 2020 no publica una recomendación propia para esta condición' },
   { clave:'esub.ev.hvi', lbl:'Hipertrofia marcada del ventrículo izquierdo', guia:'esc',
     rec:'Clase IIa · Nivel C — en el paciente asintomático, con gradiente medio de 40 mmHg o más e hipertrofia marcada, debe considerarse la cirugía, hoja 41, folio 603',
     nota:'ACC/AHA 2025 (más nueva): con disfunción o hipertrofia del ventrículo izquierdo en el contexto de la estenosis subaórtica, la reparación puede considerarse, Clase 2b · Nivel C-LD, recomendación 3, hoja 52, folio e166',
-    tramo:'las dos no piden lo mismo: la ESC 2020 condiciona esta fila a un gradiente medio de 40 mmHg o más y la ACC/AHA 2025 no pone umbral de gradiente' },
+    tramo:'la ESC 2020 condiciona esta fila a un gradiente medio de 40 mmHg o más. La ACC/AHA 2025 la publica sin umbral de gradiente' },
   { clave:'esub.ev.disfvi', lbl:'Disfunción sistólica del ventrículo izquierdo atribuible a la lesión (fracción de eyección menor del 50 %)', guia:'esc',
     rec:'Clase IIa · Nivel C — en el paciente asintomático, con gradiente medio menor de 40 mmHg y fracción de eyección menor del 50 %, debe considerarse la cirugía, hoja 41, folio 603',
     nota:'ACC/AHA 2025 (más nueva): con disfunción del ventrículo izquierdo, la reparación puede considerarse, Clase 2b · Nivel C-LD, recomendación 3, hoja 52, folio e166' },
@@ -104250,7 +104250,7 @@ const ESUB_PREG = Object.freeze([
   { clave:'esub.ev.iaprog', lbl:'Progresión documentada de la insuficiencia aórtica, que pasa a ser más que leve', guia:'esc',
     rec:'Clase IIb · Nivel C — en el paciente asintomático, con progresión documentada de la insuficiencia aórtica que pasa a ser más que leve, puede considerarse la cirugía para prevenir una progresión mayor, hoja 41, folio 603',
     nota:'ACC/AHA 2025 (más nueva): en el paciente asintomático con estenosis subaórtica e insuficiencia aórtica al menos leve, la reparación puede considerarse para prevenir la progresión de la insuficiencia, Clase 2b · Nivel C-LD, recomendación 4, hoja 52, folio e166',
-    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 se conforma con una insuficiencia al menos leve y la ESC 2020 pide que se documente su progresión a más que leve' }
+    tramo:'la ACC/AHA 2025 pide una insuficiencia al menos leve. La ESC 2020 pide que se documente su progresión a más que leve' }
 ]);
 window.ESUB_PREG = ESUB_PREG;
 
@@ -104258,7 +104258,7 @@ const EASV_PREG = Object.freeze([
   { clave:'easv.ev.sint', lbl:'Síntomas atribuibles a la obstrucción (disnea de esfuerzo, angina o síncope), espontáneos o en la prueba de esfuerzo', guia:'acc',
     rec:'Clase 1 · Nivel B-NR, recomendación 3 — con síntomas o función sistólica ventricular disminuida por la estenosis, la reparación quirúrgica está recomendada para aliviar los síntomas y preservar la función ventricular, hoja 55, folio e169',
     ref:'con síntomas y gradiente medio de 40 mmHg o más la cirugía está recomendada, Clase I · Nivel C; y con gradiente medio menor de 40 mmHg basta que los síntomas sean atribuibles a la obstrucción —disnea de esfuerzo, angina o síncope—, también Clase I · Nivel C (hoja 40, folio 602)',
-    tramo:'las dos no piden lo mismo: la ACC/AHA 2025 no agrega umbral de gradiente a esta condición y la ESC 2020 parte sus dos filas en 40 mmHg' },
+    tramo:'la ACC/AHA 2025 publica esta condición sin umbral de gradiente. La ESC 2020 parte sus dos filas en 40 mmHg' },
   { clave:'easv.ev.isquemia', lbl:'Síntomas de isquemia con estenosis de los ostios coronarios', guia:'acc',
     rec:'Clase 1 · Nivel C-LD, recomendación 4 — con estenosis de los ostios coronarios y síntomas de isquemia, corresponde la revascularización coronaria para aliviar los síntomas y preservar la función ventricular, hoja 55, folio e169',
     nota:'la ESC 2020 no publica una recomendación propia para esta condición; su fila de gradiente medio menor de 40 mmHg incluye «cirugía necesaria por enfermedad coronaria significativa», que es otra condición' },
@@ -165712,8 +165712,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261107-0025';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794021943767;                 /* eco-build-ms */
+const ECO_BUILD    = '20261107-1057';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794059820529;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -165799,7 +165799,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261107-0025</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261107-1057</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

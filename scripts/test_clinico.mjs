@@ -121224,6 +121224,523 @@ caso('TC-728', 'PANT-18 commit 8: el boton «Severidad» de la estenosis aortica
   })();
 `);
 
+/* == TANDA PANT-22 == Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no
+   esta al final del archivo y un caso agregado despues NO SE EJECUTA -la suite imprime
+   «0/0 sin regresiones» sobre algo que nunca corrio-.
+   TODOS usan __t.avInc y no amiloIntegrar pelado: amiloIntegrar es un TOGGLE, asi que llamarlo
+   sobre un sector ya integrado lo RETIRA. El helper del harness es idempotente. */
+
+caso('TC-748', 'PANT-22 commits 2 y 3: el ayudante de inclusion -incluido, no incluido y lista de claves-, y las TRECE secciones de sector avanzado declaradas en IND_SECS', `
+  const ex = [];
+  __t.limpiar();
+  const F = n => typeof window[n] === 'function';
+  /* ⚠️ ACCESOR CON GUARDA, Y NO LA LLAMADA PELADA: contra el arbol anterior a esta tanda
+     _indSectorIncluido NO EXISTE, y llamarlo a pelo mata el caso con un ReferenceError que no
+     dice QUE invariante se rompio. Es la leccion de TC-546. Devuelve el centinela 'NO EXISTE',
+     que ninguna condicion confunde con true ni con false. */
+  const SI = av => { try { return (typeof _indSectorIncluido === 'function')
+      ? _indSectorIncluido(av) : 'NO EXISTE' } catch (e) { return 'EXC ' + String(e.message).slice(0, 40) } };
+
+  ex.push(['(A0) DENOMINADOR: el ayudante y el interruptor del informe existen los dos',
+    F('_indSectorIncluido') && F('amiloIntegrado') && F('amiloIntegrar') && F('amiloSecs'),
+    'ayudante=' + F('_indSectorIncluido') + ' amiloIntegrado=' + F('amiloIntegrado')]);
+
+  const SECTORES = ['tep','htp','hfpeff','oai','etem','aoete','dpt','cvr','vexus','hemo','conco','pop'];
+  const sinNada = SECTORES.filter(k => SI(k) === true);
+  ex.push(['(B1) CONTROL NEGATIVO: sin integrar nada, el ayudante dice NO a los doce sectores de clave unica',
+    sinNada.length === 0, 'dicen SI sin estar integrados: ' + JSON.stringify(sinNada)]);
+  ex.push(['(B2) y tampoco a la amiloidosis, que tiene DOS claves',
+    SI(['ett','alg']) === false && SI('ett') === false,
+    'lista=' + SI(['ett','alg']) + ' ett=' + SI('ett')]);
+  ex.push(['(B3) una seccion SIN sector declarado no se filtra: el ayudante devuelve true con null',
+    SI(null) === true && SI(undefined) === true,
+    'null=' + SI(null) + ' undefined=' + SI(undefined)]);
+
+  const r1 = __t.avInc('cvr');
+  ex.push(['(C0) DENOMINADOR: el sector de la constriccion quedo integrado',
+    r1.ok.length === 1 && r1.falta.length === 0,
+    'ok=' + JSON.stringify(r1.ok) + ' falta=' + JSON.stringify(r1.falta)]);
+  ex.push(['(C1) el ayudante dice SI al sector integrado',
+    SI('cvr') === true, 'cvr=' + SI('cvr')]);
+  const otros = SECTORES.filter(k => k !== 'cvr' && SI(k) === true);
+  ex.push(['(C2) y NO a ninguno de los otros once: integrar uno no enciende a los demas',
+    otros.length === 0, 'tambien dicen SI: ' + JSON.stringify(otros)]);
+  /* ⚠️ NACIO DEL BARRIDO (mutacion 05): con UN solo sector integrado, leer el campo persistido
+     #am-integrados -cuyo valor es «cvr»- da el mismo resultado que leer el interruptor, asi que la
+     mutacion sobrevivia. Con DOS integrados el campo vale «hemo,cvr» y una comparacion por
+     igualdad falla: eso es lo que distingue leer el dueno de leer su serializacion. */
+  __t.avInc('hemo');
+  ex.push(['(C3) con DOS sectores integrados el ayudante dice SI a los dos: lee el interruptor y no el campo persistido',
+    SI('cvr') === true && SI('hemo') === true,
+    'campo=«' + ((document.getElementById('am-integrados') || {}).value || '') + '» cvr=' + SI('cvr') + ' hemo=' + SI('hemo')]);
+
+  __t.limpiar();
+  const r2 = __t.avInc('alg');
+  ex.push(['(D0) DENOMINADOR: la segunda hoja de la amiloidosis quedo integrada',
+    r2.ok.length === 1, 'ok=' + JSON.stringify(r2.ok)]);
+  ex.push(['(D1) con UNA sola de las dos claves, el ayudante dice SI a la amiloidosis',
+    SI(['ett','alg']) === true, 'lista=' + SI(['ett','alg'])]);
+  ex.push(['(D2) y la OTRA clave sola sigue en NO, que es lo que prueba que no es un alias',
+    SI('ett') === false, 'ett=' + SI('ett')]);
+
+  __t.limpiar();
+  __t.avInc('hemo');
+  const antes = SI('hemo');
+  try { if (F('amiloRetirar')) amiloRetirar('hemo') } catch (e) {}
+  ex.push(['(E1) retirar el sector apaga el ayudante',
+    antes === true && SI('hemo') === false,
+    'antes=' + antes + ' despues=' + SI('hemo')]);
+
+  const AV = (typeof IND_SECS !== 'undefined') ? IND_SECS.filter(x => x.av != null) : [];
+  ex.push(['(F1) son TRECE las secciones con sector declarado, ni una mas ni una menos',
+    AV.length === 13, 'con av=' + AV.length + ' : ' + JSON.stringify(AV.map(x => x.tit.slice(0, 26)))]);
+  const KS = amiloSecs().map(x => x.k);
+  const malas = [];
+  AV.forEach(x => { (Array.isArray(x.av) ? x.av : [x.av]).forEach(k => {
+    if (KS.indexOf(k) < 0) malas.push(x.tit.slice(0,20) + ' -> ' + k) }) });
+  ex.push(['(F2) y TODA clave declarada existe en amiloSecs: una clave mal tipeada dejaria la seccion invisible para siempre',
+    malas.length === 0, 'claves que no existen: ' + JSON.stringify(malas)]);
+  const usadas = {}; AV.forEach(x => { (Array.isArray(x.av) ? x.av : [x.av]).forEach(k => { usadas[k] = 1 }) });
+  ex.push(['(F3) los sectores wilk y teer siguen SIN seccion de Evidencia',
+    !usadas.wilk && !usadas.teer, 'wilk=' + !!usadas.wilk + ' teer=' + !!usadas.teer]);
+  /* ⚠️ NACIO DEL BARRIDO (mutaciones 10, 15 y 16): (F2) solo pedia que la clave EXISTIERA en
+     amiloSecs, asi que conectar la cardiotoxicidad al sector de la orejuela -o dejar la
+     amiloidosis con UNA de sus dos hojas- pasaba en verde. Esta condicion fija el MAPEO completo
+     por el prefijo del titulo, que es como el panel busca cada seccion. */
+  const MAPA = [
+    ['Tromboembolia pulmonar', 'tep'], ['Hipertensi', 'htp'],
+    ['Insuficiencia card', 'hfpeff'], ['Ecocardiograma transesof', 'oai'],
+    ['Reparabilidad de la v', 'etem'], ['Ateroma a', 'aoete'],
+    ['Derrame peric', 'dpt'], ['Constricci', 'cvr'],
+    ['Congesti', 'vexus'], ['Perfil hemodin', 'hemo'],
+    ['Cardiotoxicidad', 'conco'], ['Amiloidosis', 'ett,alg'],
+    ['Posoperatorio', 'pop']];
+  const mal2 = [];
+  MAPA.forEach(par => {
+    const sec = AV.filter(x => x.tit.indexOf(par[0]) === 0)[0];
+    if (!sec) { mal2.push(par[0] + ': no esta en IND_SECS con av'); return }
+    const got = (Array.isArray(sec.av) ? sec.av : [sec.av]).join(',');
+    if (got !== par[1]) mal2.push(par[0] + ': av=' + got + ' y le toca ' + par[1]);
+  });
+  ex.push(['(F4) cada una de las TRECE secciones esta conectada a SU sector, y no a otro',
+    mal2.length === 0, JSON.stringify(mal2)]);
+  __t.limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-749', 'PANT-22 commit 2: el caso del medico -TAPSE bajo y E/e-prima elevado SIN incluir ningun sector- no abre NINGUNA seccion de sector avanzado, y las no avanzadas no se mueven', `
+  const ex = [];
+  const F = n => typeof window[n] === 'function';
+  /* ⚠️ SIN UNA SOLA EXPRESION REGULAR, Y SE MIDIO POR QUE: el cuerpo de un caso es un template
+     literal, asi que la barra invertida de /BARRAs+/ NO sobrevive y llega como /s+/ -que reemplaza
+     las «s» por espacios-. Medido: «Estenosis aortica» llegaba como «E teno i aortica» y el
+     titulo no matcheaba ninguna seccion. Lo mismo con el rango de diacriticos. Se normaliza
+     recorriendo los codigos, que no necesita escapes. */
+  const N = t => { const s0 = String(t || ''); let o = '', sp = false;
+    for (let i = 0; i < s0.length; i++) { const c = s0.charCodeAt(i);
+      if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) { if (!sp) { o += ' '; sp = true } }
+      else { o += s0.charAt(i); sp = false } }
+    return o.trim(); };
+  const SIN = t => { const s0 = String(t || '').normalize('NFD'); let o = '';
+    for (let i = 0; i < s0.length; i++) { const c = s0.charCodeAt(i);
+      if (c < 768 || c > 879) o += s0.charAt(i) }
+    return o; };
+  const abrir = () => { try { if (F('indicAbrir')) indicAbrir(); else indicRender() } catch (e) {} };
+  const secs = () => Array.prototype.slice.call(document.querySelectorAll('#indic-cuerpo > details'))
+    .map(d => { const s = d.querySelector('summary'); return s ? N(s.textContent) : '?' });
+  const AV_TIT = ['Tromboembolia pulmonar', 'Hipertension pulmonar', 'Insuficiencia cardiaca con',
+    'Ecocardiograma transesofagico', 'Reparabilidad de la valvula mitral', 'Ateroma aortico',
+    'Derrame pericardico y taponamiento', 'Constriccion pericardica', 'Congestion venosa sistemica',
+    'Perfil hemodinamico', 'Cardiotoxicidad por tratamiento', 'Amiloidosis cardiaca',
+    'Posoperatorio de cirugia'];
+  const avanzadas = () => secs().map(SIN).filter(t => AV_TIT.some(a => t.indexOf(a) === 0));
+  const calcs = () => { Object.keys(window).forEach(k => {
+    if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } }) };
+
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  __t.set('tapse', '14'); __t.set('onda_e', '95'); __t.set('e_sep', '5'); __t.set('e_lat', '7');
+  calcs();
+  ex.push(['(A0) DENOMINADOR: ningun sector avanzado quedo integrado al sembrar',
+    amiloSecs().filter(x => amiloIntegrado(x.k)).length === 0,
+    'integrados=' + JSON.stringify(amiloSecs().filter(x => amiloIntegrado(x.k)).map(x => x.k))]);
+  ex.push(['(A0b) DENOMINADOR: los campos del eco basal entraron',
+    __t.val('tapse') === '14' && __t.val('onda_e') === '95',
+    'tapse=' + __t.val('tapse') + ' onda_e=' + __t.val('onda_e')]);
+  abrir();
+  const av0 = avanzadas();
+  ex.push(['(A1) EL CASO DEL MEDICO: el panel NO abre ninguna seccion de sector avanzado',
+    av0.length === 0, 'abrieron igual: ' + JSON.stringify(av0)]);
+  const cu0 = document.getElementById('indic-cuerpo');
+  const txt0 = cu0 ? SIN(N(cu0.textContent)) : '';
+  ex.push(['(A2) y muestra el mensaje que la app YA tenia para el panel sin secciones',
+    txt0.indexOf('Sin criterios de intervencion') > -1, 'texto=' + txt0.slice(0, 90)]);
+
+  __t.avInc('cvr');
+  abrir();
+  const av1 = avanzadas();
+  ex.push(['(B1) CONTROL POSITIVO: con la constriccion incluida, SU seccion aparece',
+    av1.filter(t => t.indexOf('Constriccion pericardica') === 0).length === 1,
+    'avanzadas=' + JSON.stringify(av1)]);
+  ex.push(['(B2) y sigue siendo la UNICA: incluir una no trae las otras doce',
+    av1.length === 1, 'avanzadas=' + JSON.stringify(av1)]);
+  try { if (F('amiloRetirar')) amiloRetirar('cvr') } catch (e) {}
+  abrir();
+  ex.push(['(B3) y retirar el sector la hace desaparecer',
+    avanzadas().length === 0, 'quedaron=' + JSON.stringify(avanzadas())]);
+  /* ⚠️ NACIO DEL BARRIDO (mutacion 10): dejar la amiloidosis declarando UNA de sus dos hojas
+     sobrevivia, porque (D1) de TC-748 prueba el AYUDANTE con una lista y no el REGISTRO. Aca se
+     integra la SEGUNDA hoja -el algoritmo diagnostico- y se exige que la seccion aparezca: con
+     av:['ett'] a secas, no aparece. */
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  /* la compuerta de la seccion pide un dato PROPIO del modulo de amiloidosis */
+  __t.set('ett-septo', '14'); __t.set('ett-pp', '14'); __t.set('ett-rwt', '1');
+  calcs();
+  __t.avInc('alg');
+  abrir();
+  ex.push(['(B4) con la SEGUNDA hoja de la amiloidosis integrada, su seccion aparece igual',
+    avanzadas().filter(t => t.indexOf('Amiloidosis cardiaca') === 0).length === 1,
+    'integrado alg=' + amiloIntegrado('alg') + ' ett=' + amiloIntegrado('ett')
+      + ' avanzadas=' + JSON.stringify(avanzadas())]);
+
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  __t.set('vmax_ao', '4.5'); __t.set('gmedio_ao', '45'); __t.set('peso', '75'); __t.set('talla', '175');
+  calcs(); abrir();
+  const sv = secs().map(SIN);
+  ex.push(['(C1) DENOMINADOR: con una estenosis aortica severa, su seccion -que NO es de sector avanzado- abre igual',
+    sv.filter(t => t.indexOf('Estenosis aortica') === 0).length === 1, 'secciones=' + JSON.stringify(sv)]);
+  ex.push(['(C2) y ninguna de sector avanzado se cuela en esa escena',
+    avanzadas().length === 0, 'avanzadas=' + JSON.stringify(avanzadas())]);
+
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  __t.set('ete_cia_tipo', 'secundum'); __t.set('ete_cia_tam_max', '20'); __t.set('ete_cia_dir', 'id');
+  calcs(); abrir();
+  ex.push(['(C3) DENOMINADOR: con una comunicacion interauricular, su seccion de congenitas abre igual',
+    secs().map(SIN).filter(t => t.indexOf('Comunicacion interauricular') === 0).length === 1,
+    'secciones=' + JSON.stringify(secs())]);
+  __t.limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-750', 'PANT-22 commit 2: el dato del estudio SIGUE sincronizado en el sector avanzado aunque su Evidencia no exista, por el gesto real y por una siembra muda', `
+  const ex = [];
+  const F = n => typeof window[n] === 'function';
+  const calcs = () => { Object.keys(window).forEach(k => {
+    if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } }) };
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  __t.set('tapse', '14'); __t.set('onda_e', '95'); __t.set('e_sep', '5'); __t.set('e_lat', '7');
+  __t.set('peso', '75'); __t.set('talla', '175'); __t.set('hemo_fc', '70');
+  __t.set('diam_tsvi', '22'); __t.set('itv_tsvi', '22');
+  calcs();
+
+  ex.push(['(A0) DENOMINADOR: ningun sector esta integrado, que es la escena del medico',
+    amiloSecs().filter(x => amiloIntegrado(x.k)).length === 0,
+    'integrados=' + JSON.stringify(amiloSecs().filter(x => amiloIntegrado(x.k)).map(x => x.k))]);
+  const ic = __t.txt('hemo-ic'), gc = __t.txt('hemo-gc');
+  ex.push(['(A1) el perfil hemodinamico SIGUE calculando su indice cardiaco y su gasto',
+    String(ic).indexOf('—') < 0 && String(ic).length > 0 && String(gc).length > 0,
+    'ic=«' + ic + '» gc=«' + gc + '»']);
+  let cvr = null; try { cvr = F('cvrEstado') ? cvrEstado() : null } catch (e) { cvr = 'EXC' }
+  ex.push(['(A2) y el modulo de constriccion SIGUE recibiendo el dato',
+    !!cvr && cvr !== 'EXC' && typeof cvr === 'object',
+    'cvrEstado=' + (cvr === 'EXC' ? 'EXC' : (cvr ? 'objeto con ' + Object.keys(cvr).length + ' claves' : 'null'))]);
+  let hf = null; try { hf = F('hfapeffScore') ? hfapeffScore(false) : null } catch (e) { hf = 'EXC' }
+  ex.push(['(A3) y el score HFA-PEFF SIGUE puntuando',
+    !!hf && hf !== 'EXC' && typeof hf.total === 'number',
+    'total=' + (hf && hf !== 'EXC' ? hf.total : String(hf))]);
+
+  __t.limpiar();
+  __t.set('nombre', 'P22'); __t.set('ci', '22');
+  const mudo = (id, v) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id; e.value = v; return 'ok' };
+  const ids = ['tapse','onda_e','e_sep','e_lat','peso','talla','hemo_fc','diam_tsvi','itv_tsvi'];
+  const vals = ['14','95','5','7','75','175','70','22','22'];
+  const falt = ids.map((id, i) => mudo(id, vals[i])).filter(r => String(r).indexOf('NO EXISTE') === 0);
+  ex.push(['(B0) DENOMINADOR: los nueve campos de la siembra muda existen',
+    falt.length === 0, 'faltan: ' + JSON.stringify(falt)]);
+  try { if (F('_recalcModulos')) _recalcModulos('tc750') } catch (e) {}
+  calcs();
+  const ic2 = __t.txt('hemo-ic');
+  ex.push(['(B1) por la via MUDA el dato tambien llega al sector',
+    String(ic2).indexOf('—') < 0 && String(ic2).length > 0, 'ic=«' + ic2 + '»']);
+  ex.push(['(B2) y el sector SIGUE sin estar integrado: la sincronizacion no lo enciende',
+    amiloIntegrado('hemo') === false, 'integrado=' + amiloIntegrado('hemo')]);
+  /* ⚠️ NACIO DEL BARRIDO (mutacion 17): las condiciones de arriba miden el dato ANTES de abrir el
+     panel, y los calc* que corren despues lo repintan -el freno que tapa al que se muta-. Una
+     mutacion que apague el CALCULO del sector al armar el panel sobrevivia. Aca se abre el panel
+     y se vuelve a medir SIN recalcular nada. */
+  try { if (F('indicAbrir')) indicAbrir(); else indicRender() } catch (e) {}
+  const ic3 = __t.txt('hemo-ic'), gc3 = __t.txt('hemo-gc');
+  ex.push(['(C1) y DESPUES de armar el panel el dato del sector sigue en su lugar',
+    String(ic3).indexOf('—') < 0 && String(ic3).length > 0
+      && String(gc3).indexOf('—') < 0 && String(gc3).length > 0,
+    'ic=«' + ic3 + '» gc=«' + gc3 + '»']);
+  __t.limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-751', 'PANT-22 commits 4 y 5: ningun texto de la Evidencia ni de Referencias dice que dos fuentes no coinciden, con control positivo y el denominador declarado, y cada numero y cada folio siguen estando', `
+  const ex = [];
+  const F = n => typeof window[n] === 'function';
+  /* Sin expresiones regulares: el cuerpo de un caso es un template literal y la barra invertida
+     no sobrevive. Ver la nota de TC-749. */
+  const N = t => { const s0 = String(t || ''); let o = '', sp = false;
+    for (let i = 0; i < s0.length; i++) { const c = s0.charCodeAt(i);
+      if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) { if (!sp) { o += ' '; sp = true } }
+      else { o += s0.charAt(i); sp = false } }
+    return o.trim(); };
+  const SIN = t => { const s0 = String(t || '').normalize('NFD'); let o = '';
+    for (let i = 0; i < s0.length; i++) { const c = s0.charCodeAt(i);
+      if (c < 768 || c > 879) o += s0.charAt(i) }
+    return o; };
+  const calcs = () => { Object.keys(window).forEach(k => {
+    if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } }) };
+  /* ⚠️ «coincide con» NO ENTRA EN LA LISTA, y se declara: la usan las REGLAS DE FOLIO -«el folio
+     impreso coincide con la hoja del PDF»-, que dicen como se numera una fuente y no la comparan
+     con otra. Queda en P22-a. */
+  const PROH = ['no coincide', 'no coinciden', 'difieren', 'discrepan', 'se contradicen',
+    'se contradice', 'sin resolver', 'tercera voz', 'cae de un lado distinto',
+    'sale de la columna', 'ninguna fuente', 'no se encontr'];
+  /* ⚠️ «no gradua» Y «no dicen lo mismo» SOLO VALEN PARA LAS NOTAS DE TRAMO, y se midio por que:
+     en una seccion de valvula «no gradua» aparece nueve veces hablando de lo que un gradiente, un
+     cociente o una tabla HACEN -«esta lista no gradua ni concluye», «el cociente de VTI no gradua
+     la obstruccion»-, que es lo que la app dice de si misma y la regla excluye. En una nota de
+     tramo el sujeto es SIEMPRE una guia, asi que ahi la forma si es una ausencia dicha como
+     hallazgo. Entro por el barrido (mutacion 28). */
+  const PROH_TRAMO = PROH.concat(['no gradua', 'no grad' + String.fromCharCode(250) + 'a',
+    'no dicen lo mismo', 'no piden lo mismo']);
+  const censar = t => { const b = String(t || '').toLowerCase(); return PROH.filter(f => b.indexOf(f) > -1) };
+
+  /* ⚠️ EL CONTROL POSITIVO VA PRIMERO: si el censo no detecta la cadena VIEJA, lo que mida
+     despues no prueba nada. Las seis son las que los commits 4 y 5 retiraron. */
+  const VIEJAS = [
+    'de modo que el 2,2 justo cae de un lado distinto del que resuelve la clasificacion original',
+    'los dos libros de referencia no coinciden en un rango unico',
+    'Las dos definiciones de desajuste protesico-paciente mitral de la misma guia no coinciden',
+    'Para un IMC de 30 o mas las dos versiones se contradicen',
+    'Y hay una tercera voz: la ESC/EACTS 2025 dice',
+    'las dos guias no coinciden sobre como ese ensayo lo definio'];
+  const noDet = VIEJAS.filter(v => censar(v).length === 0);
+  ex.push(['(A0) CONTROL POSITIVO: el censo detecta las SEIS cadenas viejas',
+    noDet.length === 0, 'no detectadas: ' + JSON.stringify(noDet)]);
+
+  const abrir = () => { try { if (F('indicAbrir')) indicAbrir(); else indicRender() } catch (e) {} };
+  const secTxt = tit => { let hit = null;
+    Array.prototype.forEach.call(document.querySelectorAll('#indic-cuerpo > details'), d => {
+      const su = d.querySelector('summary');
+      if (!hit && su && SIN(N(su.textContent)).indexOf(tit) === 0) {
+        d.open = true;
+        Array.prototype.forEach.call(d.querySelectorAll('details'), x => { x.open = true });
+        hit = N(d.textContent); } });
+    return hit; };
+
+  __t.limpiar();
+  __t.set('nombre','P22'); __t.set('ci','22');
+  __t.set('peso','75'); __t.set('talla','175'); __t.set('hemo_fc','70');
+  __t.set('diam_tsvi','22'); __t.set('itv_tsvi','22');
+  __t.set('onda_e','95'); __t.set('e_sep','5'); __t.set('e_lat','7');
+  __t.avInc('hemo');
+  calcs(); abrir();
+  const tHemo = secTxt('Perfil hemodinamico');
+  ex.push(['(B0) DENOMINADOR: la seccion de hemodinamica esta abierta y tiene mas de 4.000 caracteres',
+    !!tHemo && tHemo.length > 4000, 'chars=' + (tHemo ? tHemo.length : 0)]);
+  ex.push(['(B1) y NO trae una sola de las formas que la regla del 04/11 prohibe',
+    !!tHemo && censar(tHemo).length === 0,
+    'halladas: ' + JSON.stringify(tHemo ? censar(tHemo) : 'SIN SECCION')]);
+  const VH = ['2,5', '4,0', '2,2', '18', 'folio 30', 'folio 2', 'folio 162', 'folio 1125',
+    '1.170', '270', '37', '1.100', '700', '1.600', 'folio 260', 'folio 375'];
+  const faltH = VH.filter(v => !tHemo || tHemo.indexOf(v) < 0);
+  ex.push(['(B2) y los DIECISEIS numeros y folios que tenia siguen estando, uno por uno',
+    faltH.length === 0, 'perdidos: ' + JSON.stringify(faltH)]);
+
+  __t.limpiar();
+  __t.set('nombre','P22'); __t.set('ci','22');
+  __t.set('vm_morf', 'Pr' + String.fromCharCode(243) + 'tesis biol' + String.fromCharCode(243) + 'gica');
+  __t.set('peso','75'); __t.set('talla','175');
+  __t.set('em_gmedio','7'); __t.set('em_vmax','2.1'); __t.set('thp','150');
+  calcs(); abrir();
+  const tPm = secTxt('Protesis mitral');
+  ex.push(['(C0) DENOMINADOR: la seccion de protesis mitral esta abierta y tiene mas de 4.000 caracteres',
+    !!tPm && tPm.length > 4000, 'chars=' + (tPm ? tPm.length : 0) + ' morf=' + __t.val('vm_morf')]);
+  ex.push(['(C1) y NO trae una sola de las formas que la regla prohibe',
+    !!tPm && censar(tPm).length === 0,
+    'halladas: ' + JSON.stringify(tPm ? censar(tPm) : 'SIN SECCION')]);
+  /* ⚠️ LOS CORTES SE MIDEN EN SU PROPIA LINEA Y NO EN LA SECCION ENTERA, y lo midio el barrido
+     (mutacion 26): el «0,75», el «1,2» y la «Tabla 7» aparecen en VARIOS lugares de la seccion,
+     asi que vaciar la linea de las dos definiciones seguia encontrandolos en otra parte y la
+     mutacion sobrevivia. Se busca la ORACION y se exigen sus ocho cortes dentro de ella. */
+  const iDef = tPm ? tPm.indexOf('El texto de la gu') : -1;
+  const linDef = (iDef > -1) ? tPm.slice(iDef, iDef + 420) : '';
+  ex.push(['(C2) DENOMINADOR: la linea de las dos definiciones del desajuste esta en la seccion',
+    linDef.length > 200 && linDef.indexOf('Tabla 7') > -1,
+    'chars=' + linDef.length + ' txt=' + linDef.slice(0, 110)]);
+  const VM = ['1,2', '0,90', '1,0', '0,75', '30'];
+  const faltM = VM.filter(v => linDef.indexOf(v) < 0);
+  ex.push(['(C2b) y sus cinco cortes siguen enteros DENTRO de esa linea',
+    faltM.length === 0, 'perdidos: ' + JSON.stringify(faltM) + ' en: ' + linDef.slice(0, 200)]);
+  const VM2 = ['Tabla 7', 'Clase 1'];
+  const faltM2 = VM2.filter(v => !tPm || tPm.indexOf(v) < 0);
+  ex.push(['(C2c) y la seccion sigue citando su Tabla 7 y su clase',
+    faltM2.length === 0, 'perdidos: ' + JSON.stringify(faltM2)]);
+  /* ⚠️ EL UNICO VALOR QUE SALIO EN TODA LA TANDA, y esta declarado en P22-a: el «1,1» era el del
+     EJEMPLO que ilustraba la contradiccion y no vive en ningun otro lado de la seccion. Esta
+     condicion lo FIJA: el dia que alguien reponga el ejemplo, se pone roja. */
+  ex.push(['(C3) y el «1,1 cm2/m2» del ejemplo que comparaba las dos definiciones ya NO esta',
+    !!tPm && tPm.indexOf('1,1 cm') < 0, 'sigue el ejemplo del 1,1']);
+  /* ⚠️ «coincide con» NO ESTA EN LA LISTA DE FORMAS -la usan las reglas de folio-, asi que las
+     dos lineas que decian «La ACC/AHA 2020 COINCIDE CON LA EUROPEA en la estenosis protesica
+     sintomatica severa» se fijan por su redaccion nueva. Sin esto, reponer esa comparacion
+     sobrevivia al barrido. */
+  ex.push(['(C4) la linea de la ACC/AHA de la protesis mitral dice lo que ELLA indica y no la compara con la europea',
+    !!tPm && tPm.indexOf('coincide con la europea') < 0
+      && tPm.indexOf('La ACC/AHA 2020 indica la reintervenci') > -1
+      && tPm.indexOf('Clase 1') > -1 && tPm.indexOf('B-NR') > -1,
+    'compara=' + (!!tPm && tPm.indexOf('coincide con la europea') > -1)
+      + ' redaccion nueva=' + (!!tPm && tPm.indexOf('La ACC/AHA 2020 indica la reintervenci') > -1)]);
+
+  /* ⚠️ NACIERON DEL BARRIDO (mutaciones 33 y 34): el censo miraba SOLO hemodinamica y la protesis
+     mitral, asi que reponer el «ninguna guia de la biblioteca publica un recuento asi» de la
+     constriccion o el «ninguna fuente de la biblioteca» de la reparabilidad mitral pasaba en
+     verde. Las dos secciones entran al censo con su propia escena. */
+  __t.limpiar();
+  __t.set('nombre','P22'); __t.set('ci','22');
+  __t.set('tapse','14'); __t.set('onda_e','95'); __t.set('e_sep','5'); __t.set('e_lat','7');
+  __t.avInc('cvr');
+  calcs(); abrir();
+  const tCvr = secTxt('Constriccion pericardica');
+  ex.push(['(F0) DENOMINADOR: la seccion de constriccion esta abierta y tiene mas de 3.000 caracteres',
+    !!tCvr && tCvr.length > 3000, 'chars=' + (tCvr ? tCvr.length : 0)]);
+  ex.push(['(F1) y NO declara que ninguna guia publica un recuento asi',
+    !!tCvr && tCvr.indexOf('Ninguna gu') < 0 && tCvr.indexOf('ninguna gu') < 0,
+    'halladas=' + (!!tCvr && (tCvr.indexOf('inguna gu') > -1))]);
+  ex.push(['(F2) y sigue diciendo que el recuento es una regla propia, con su Figura S1',
+    !!tCvr && tCvr.indexOf('regla propia de la aplicaci') > -1 && tCvr.indexOf('Figura S1') > -1,
+    'regla propia=' + (!!tCvr && tCvr.indexOf('regla propia de la aplicaci') > -1)]);
+
+  __t.limpiar();
+  __t.set('nombre','P22'); __t.set('ci','22');
+  __t.set('ete_prof_coapt','12');
+  __t.avInc('etem');
+  calcs(); abrir();
+  const tRep = secTxt('Reparabilidad de la valvula mitral');
+  ex.push(['(G0) DENOMINADOR: la seccion de reparabilidad esta abierta y tiene mas de 1.500 caracteres',
+    !!tRep && tRep.length > 1500, 'chars=' + (tRep ? tRep.length : 0)]);
+  ex.push(['(G1) y NO declara que ninguna fuente de la biblioteca publica cifras equivalentes',
+    !!tRep && tRep.indexOf('inguna fuente de la biblioteca') < 0,
+    'hallada=' + (!!tRep && tRep.indexOf('inguna fuente de la biblioteca') > -1)]);
+  /* ⚠️ EL TEXTO DE LA PANTALLA SE MIDE EN SU CONSTANTE Y NO EN LA SECCION, y se midio por que: la
+     linea de la insuficiencia mitral PRIMARIA solo entra a la Evidencia con esa lesion cargada, y
+     la constante REPAR_PRIM_TXT es la que pinta la pantalla -que es donde vive la otra mitad del
+     par-. Medirla ahi la cubre en las dos escenas. */
+  const rpt = (typeof REPAR_PRIM_TXT === 'string') ? REPAR_PRIM_TXT : 'NO EXISTE';
+  ex.push(['(G2) DENOMINADOR: la constante del texto de reparabilidad primaria existe',
+    rpt !== 'NO EXISTE' && rpt.length > 60, 'chars=' + rpt.length]);
+  ex.push(['(G3) y NO declara una ausencia de fuente, y sigue diciendo que es un criterio propio',
+    rpt.indexOf('inguna fuente de la biblioteca') < 0
+      && rpt.indexOf('criterio propio de la aplicaci') > -1,
+    'txt=' + rpt.slice(0, 130)]);
+
+  /* los registros de datos de congenitas: las notas de tramo */
+  const REG = ['CIA_PREG','CIV_PREG','DSAV_PREG','EBS_PREG','FON_PREG','CVPA_PREG','EIS_PREG',
+    'DAP_PREG','COA_PREG','TDFVD_PREG','VAP_PREG','ESUB_PREG','EASV_PREG','VABC_PREG','MCH_SCD_PREG'];
+  let nTramos = 0; const tramosMalos = [];
+  REG.forEach(n => { const R = window[n]; if (!Array.isArray(R)) return;
+    R.forEach(q => { if (!q || !q.tramo) return; nTramos++;
+      const h = PROH_TRAMO.filter(f => String(q.tramo).toLowerCase().indexOf(f) > -1);
+      if (h.length) tramosMalos.push(n + '/' + q.clave + ': ' + JSON.stringify(h)) }) });
+  ex.push(['(D0) DENOMINADOR: hay notas de tramo que censar',
+    nTramos > 5, 'tramos=' + nTramos]);
+  ex.push(['(D1) ninguna nota de tramo trae una forma que la regla prohibe',
+    tramosMalos.length === 0, JSON.stringify(tramosMalos)]);
+
+  /* la ficha de Referencias del foramen oval */
+  try { if (F('showTab')) showTab('refs') } catch (e) {}
+  const refs = document.getElementById('tab-refs');
+  if (refs) Array.prototype.forEach.call(refs.querySelectorAll('details'), d => { d.open = true });
+  const tRef = refs ? N(refs.textContent) : '';
+  ex.push(['(E0) DENOMINADOR: la pestania Referencias esta abierta y tiene mas de 20.000 caracteres',
+    tRef.length > 20000, 'chars=' + tRef.length]);
+  ex.push(['(E1) y NO dice que dos guias no coinciden',
+    tRef.indexOf('no coinciden') < 0 && tRef.indexOf('no coincide') < 0,
+    'noCoinciden=' + (tRef.indexOf('no coinciden') > -1) + ' noCoincide=' + (tRef.indexOf('no coincide') > -1)]);
+  const VR = ['10 microburbujas', 'definido de manera variable', 'folio e411', 'folio e413'];
+  const faltR = VR.filter(v => tRef.indexOf(v) < 0);
+  ex.push(['(E2) y los numeros y folios de la ficha del foramen oval siguen estando',
+    faltR.length === 0, 'perdidos: ' + JSON.stringify(faltR)]);
+  /* ⚠️ LA FICHA DEL TRACTO DE SALIDA DEL VD SE MIDE EN SU REGISTRO Y NO EN EL DOM, y se midio por
+     que: las fichas de EV_REG las PINTA evRefPintar al abrir su subpestania, asi que con la
+     pestania Referencias abierta y las seis subpestanias cerradas su texto NO esta en el
+     documento -medido: 88.054 caracteres y cero apariciones de «techos de normalidad»-. Buscarla
+     ahi daba un falso rojo sobre un registro intacto. */
+  const vd010 = (typeof EV_REG !== 'undefined' && Array.isArray(EV_REG))
+    ? EV_REG.filter(x => x && x.id === 'DIM-VD-010')[0] : null;
+  ex.push(['(E3) DENOMINADOR: la ficha del tracto de salida del VD existe en el registro',
+    !!vd010 && String(vd010.valor || '').length > 200,
+    'id=' + (vd010 ? vd010.id : 'NO EXISTE') + ' chars=' + (vd010 ? String(vd010.valor || '').length : 0)]);
+  ex.push(['(E4) y YA NO dice que los techos difieren ni que la diferencia se muestra sin resolver',
+    !!vd010 && censar(vd010.valor).length === 0,
+    'halladas: ' + JSON.stringify(vd010 ? censar(vd010.valor) : 'SIN FICHA')]);
+  const VD010 = ['33, 34 y 29', '25', '2,5', '20 a 30', '28', '3,5', '21 a 35', '22', '17 a 27'];
+  const faltVd = VD010.filter(v => !vd010 || String(vd010.valor || '').indexOf(v) < 0);
+  ex.push(['(E5) y los NUEVE numeros de sus tres diametros, con los de la guia de 2025, siguen estando',
+    faltVd.length === 0, 'perdidos: ' + JSON.stringify(faltVd)]);
+  __t.limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-752', 'PANT-22: la Evidencia sigue sin llegar al papel -con el sector integrado y el panel abierto-, el Excel sigue en 457 columnas y el censo de campos no se movio', `
+  const ex = [];
+  const F = n => typeof window[n] === 'function';
+  const calcs = () => { Object.keys(window).forEach(k => {
+    if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') { try { window[k]() } catch (e) {} } }) };
+  const abrir = () => { try { if (F('indicAbrir')) indicAbrir(); else indicRender() } catch (e) {} };
+
+  __t.limpiar();
+  __t.set('nombre','P22'); __t.set('ci','22');
+  __t.set('peso','75'); __t.set('talla','175'); __t.set('hemo_fc','70');
+  __t.set('diam_tsvi','22'); __t.set('itv_tsvi','22');
+  __t.set('tapse','14'); __t.set('onda_e','95'); __t.set('e_sep','5'); __t.set('e_lat','7');
+  /* los TRES sectores de las capturas, integrados: es el maximo de papel que esta escena produce */
+  const r = __t.avInc(['cvr','hemo','ett','alg']);
+  calcs();
+  ex.push(['(A0) DENOMINADOR: los cuatro sectores quedaron integrados',
+    r.ok.length === 4, 'ok=' + JSON.stringify(r.ok) + ' falta=' + JSON.stringify(r.falta)]);
+  abrir();
+  const cu = document.getElementById('indic-cuerpo');
+  ex.push(['(A0b) DENOMINADOR: el panel esta abierto y tiene secciones',
+    !!cu && cu.querySelectorAll('#indic-cuerpo > details').length > 0,
+    'secciones=' + (cu ? cu.querySelectorAll('#indic-cuerpo > details').length : 0)]);
+
+  const inf = __t.informe();
+  const papel = String(inf.inf || '') + ' ' + String(inf.suma || '');
+  ex.push(['(A1) DENOMINADOR: el informe se emitio y tiene texto',
+    papel.length > 200, 'chars=' + papel.length]);
+  /* ⚠️ LO QUE LA EVIDENCIA PUBLICA Y EL PAPEL NO PUEDE LLEVAR: el rotulo de una guia, una clase,
+     una tabla y un folio. Es el invariante de siempre y esta tanda no lo movio. */
+  const PANEL = ['Clase I', 'Clase 1', 'Clase IIa', 'Clase 2a', 'folio', 'Tabla 7', 'Tabla 1',
+    'ESC/ERS 2022', 'ACC/AHA 2025', 'Shock Trial', 'Lo que falta contestar',
+    'Lo que cada gu' + String.fromCharCode(237) + 'a publica'];
+  const fugas = PANEL.filter(f => papel.indexOf(f) > -1);
+  ex.push(['(A2) el informe y el EN SUMA NO llevan nada del panel: ni clase, ni tabla, ni folio, ni el nombre de una guia',
+    fugas.length === 0, 'fugas: ' + JSON.stringify(fugas)]);
+
+  ex.push(['(B1) el Excel sigue en 457 columnas',
+    (F('_labExcelRow') ? Object.keys(_labExcelRow({ campos:{}, id:'x' })).length : -1) === 457,
+    'columnas=' + (F('_labExcelRow') ? Object.keys(_labExcelRow({ campos:{}, id:'x' })).length : 'SIN FN')]);
+  /* ⚠️ NINGUN ENCABEZADO DEL EXCEL PUEDE NOMBRAR UN SECTOR INTEGRADO: esta tanda no agrega ni
+     quita una columna, y esta condicion lo fija por su juego de claves. */
+  const cols = F('_labExcelRow') ? Object.keys(_labExcelRow({ campos:{}, id:'x' })) : [];
+  ex.push(['(B2) y ninguna columna nueva nombra la inclusion de un sector',
+    cols.filter(c => String(c).toLowerCase().indexOf('integrad') > -1
+                  || String(c).toLowerCase().indexOf('evidencia') > -1).length === 0,
+    'sospechosas=' + JSON.stringify(cols.filter(c => String(c).toLowerCase().indexOf('integrad') > -1))]);
+  __t.limpiar();
+  return { extra: ex };
+`);
+
 /* ══ TANDA PANT-19 ══ Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no
    esta al final del archivo y un caso agregado despues NO SE EJECUTA —la suite imprime
    «0/0 sin regresiones» sobre algo que nunca corrio—. */
