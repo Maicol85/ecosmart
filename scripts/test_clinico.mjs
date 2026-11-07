@@ -121696,6 +121696,680 @@ caso('TC-735', 'PANT-19 commit 6: la tabla A5 del catalogo mitral coincide con s
     return { extra: ex };
   })();
 `);
+/* ══ TC-736 a TC-741 — LA TANDA PANT-20 (2026-11-06) ═══════════════════════════════════════
+   El catalogo de protesis por modelo y tamano en la MITRAL, la TRICUSPIDE y la PULMONAR.
+   ⚠️ EL CONTRATO DEL RUNNER ES [desc, BOOLEANO, diagnostico]. Los seis casos usan el mismo
+   conversor de cuatro elementos que TC-735 estreno, y cada uno lo prueba con su control
+   positivo, su control negativo y el caso del CERO en los dos sentidos antes de usarlo: una
+   condicion con un valor truthy pasaria en verde SIN comparar, y una con 0 fallaria teniendo
+   el valor correcto. Es la leccion que PANT-14b dejo escrita y PANT-19 volvio a pagar. */
+
+caso('TC-736', 'PANT-20 commit 2: la tabla A7 del catalogo pulmonar coincide con su transcripcion, con sus cuatro formas de celda', `
+  return (() => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    /* el conversor, probado en los TRES sentidos ANTES de usarlo */
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['pos', 5, 5, 'd']); z.push(['neg', 5, 6, 'd']);
+      z.push(['cero igual', 0, 0, 'd']); z.push(['cero distinto', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina: verdadero, falso, cero igual y cero distinto',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const CAT = window.PROT_CAT_A7, COLS = window.PROT_CAT_A7_COLS, FTE = window.PROT_CAT_A7_FTE;
+    ex.push(['(A0 DENOM) la tabla A7 existe y tiene modelos', !!(CAT && CAT.length),
+      'PROT_CAT_A7 = ' + (CAT ? CAT.length : 'NO EXISTE')]);
+    if (!CAT || !CAT.length) return { extra: ex };
+    const tam = CAT.reduce((a, m) => a + m.s.length, 0);
+    let con = 0, lim = 0, txt = 0;
+    CAT.forEach(m => m.s.forEach(f => { for (let k = 1; k <= 5; k++) {
+      if (f[k]) { con++; if (f[k][0] === null) lim++; if (f[k].length === 3) txt++; } } }));
+    /* los numeros son los de docs/TRANSCRIPCION_A7_P20.md */
+    ex.push(['(A1) 12 modelos, como la transcripcion', CAT.length, 12, 'modelos = ' + CAT.length]);
+    ex.push(['(A2) 26 filas de tamano', tam, 26, 'tamanos = ' + tam]);
+    ex.push(['(A3) 82 celdas con dato', con, 82, 'celdas = ' + con]);
+    ex.push(['(A4) las cinco columnas, en el orden de la tabla',
+      (COLS || []).join(','), 'pico,medio,vpico,at,eoa', 'cols = ' + (COLS || []).join(',')]);
+    ex.push(['(A5) la fuente cita la Tabla A7, hoja 61 y folio 62',
+      FTE ? [FTE.tabla, FTE.hojas, FTE.folios].join('|') : 'SIN FTE', 'A7|61|62',
+      'fte = ' + JSON.stringify(FTE)]);
+    ex.push(['(A6) las doce filas llevan su folio y ninguna queda sin fuente',
+      CAT.filter(m => m.f === '62').length, 12,
+      'con folio = ' + CAT.filter(m => m.f === '62').length]);
+    /* LAS CUATRO FORMAS DE CELDA, una fila de control por forma, leidas en imagen */
+    const bus = (n, t) => { const m = CAT.filter(x => x.n === n)[0];
+      return m ? (m.s.filter(f => f[0] === t)[0] || null) : null; };
+    const sj25 = bus('St. Jude', '25');
+    ex.push(['(B1) St. Jude 25 trae las cinco columnas como media y desvio',
+      sj25 ? JSON.stringify(sj25) : 'NO', '["25",[18,7.5],[11,6],[2,null],[83,11],[2.9,1]]',
+      'fila = ' + JSON.stringify(sj25)]);
+    const onx29 = bus('On-X', '29');
+    ex.push(['(B2) On-X 29 mezcla mediana con rango y media con desvio en la misma fila',
+      onx29 ? JSON.stringify(onx29[1]) + '/' + JSON.stringify(onx29[2]) : 'NO',
+      '[20,null,"20 (18-22)"]/[12,1]', 'fila = ' + JSON.stringify(onx29)]);
+    const ho = CAT.filter(x => x.n === 'Homograft')[0];
+    ex.push(['(B3) Homograft va sin tamano impreso, con la marca uno y un LIMITE superior',
+      ho ? [ho.s.length, ho.s[0][0], ho.uno, JSON.stringify(ho.s[0][1])].join('|') : 'NO',
+      '1||1|[null,null,"<25"]', 'homograft = ' + JSON.stringify(ho)]);
+    ex.push(['(B4) nueve celdas son un limite sin valor central', lim, 9, 'limites = ' + lim]);
+    ex.push(['(B5) cincuenta y seis celdas llevan el texto impreso', txt, 56, 'con texto = ' + txt]);
+    /* EL TIPO: solo donde el descriptor nombra el mecanismo o el tejido */
+    const nt = {}; CAT.forEach(m => { nt[m.t || 'SIN'] = (nt[m.t || 'SIN'] || 0) + 1 });
+    ex.push(['(C1) tres mecanicas, una bioprotesis y ocho SIN TIPO: ninguno se adivino',
+      [nt.mec || 0, nt.bio || 0, nt.SIN || 0].join(','), '3,1,8', 'tipos = ' + JSON.stringify(nt)]);
+    ex.push(['(C2) CONTROL NEGATIVO: ningun modelo lleva un tipo que no sea mec, bio o vacio',
+      CAT.filter(m => m.t && m.t !== 'mec' && m.t !== 'bio').length, 0,
+      'raros = ' + CAT.filter(m => m.t && m.t !== 'mec' && m.t !== 'bio').map(m => m.n + ':' + m.t).join(' ')]);
+    /* los dos de native outflow: la tabla imprime No data y no se invento ningun tamano */
+    const nd = CAT.filter(m => m.n === 'Alterra Stent with SAPIEN' || m.n === 'Harmony');
+    let celNd = 0; nd.forEach(m => m.s.forEach(f => { for (let k = 1; k <= 5; k++) if (f[k]) celNd++ }));
+    ex.push(['(D1) Alterra y Harmony estan cargados y no tienen una sola celda con dato',
+      [nd.length, celNd].join(','), '2,0', 'nd = ' + JSON.stringify(nd.map(m => m.n + ':' + m.s.length))]);
+    ex.push(['(D2) CONTROL NEGATIVO: ninguno de los dos trae el texto No data como tamano',
+      nd.filter(m => m.s.some(f => String(f[0]).indexOf('No data') > -1)).length, 0,
+      'tams = ' + JSON.stringify(nd.map(m => m.s.map(f => f[0])))]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-737', 'PANT-20 commit 3: las tablas A9 y A8 de la tricuspide coinciden con su transcripcion, y la A8 queda SIN consumidor', `
+  return (() => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['a', 5, 5, 'd']); z.push(['b', 5, 6, 'd']); z.push(['c', 0, 0, 'd']); z.push(['d', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina en los cuatro controles',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const CAT = window.PROT_CAT_A9, COLS = window.PROT_CAT_A9_COLS, FTE = window.PROT_CAT_A9_FTE;
+    ex.push(['(A0 DENOM) la tabla A9 existe y tiene modelos', !!(CAT && CAT.length),
+      'PROT_CAT_A9 = ' + (CAT ? CAT.length : 'NO EXISTE')]);
+    if (!CAT || !CAT.length) return { extra: ex };
+    const tam = CAT.reduce((a, m) => a + m.s.length, 0);
+    let con = 0, na = 0;
+    CAT.forEach(m => m.s.forEach(f => { for (let k = 1; k <= 7; k++) { if (f[k]) con++; else na++ } }));
+    /* los numeros son los de docs/TRANSCRIPCION_TRICUSPIDE_P20.md */
+    ex.push(['(A1) 8 modelos, como la transcripcion', CAT.length, 8, 'modelos = ' + CAT.length]);
+    ex.push(['(A2) 28 tamanos', tam, 28, 'tamanos = ' + tam]);
+    ex.push(['(A3) 190 celdas con dato', con, 190, 'celdas = ' + con]);
+    ex.push(['(A4) 6 celdas impresas NA', na, 6, 'na = ' + na]);
+    ex.push(['(A5) las siete columnas, en el orden de la tabla', (COLS || []).join(','),
+      'thp,medio,evel,vti,dvi,eoa,ieoa', 'cols = ' + (COLS || []).join(',')]);
+    ex.push(['(A6) la fuente cita la Tabla A9, hoja 62 y folio 63',
+      FTE ? [FTE.tabla, FTE.hojas, FTE.folios].join('|') : 'SIN FTE', 'A9|62|63',
+      'fte = ' + JSON.stringify(FTE)]);
+    ex.push(['(A7) las ocho filas llevan su folio', CAT.filter(m => m.f === '63').length, 8,
+      'con folio = ' + CAT.filter(m => m.f === '63').length]);
+    const bus = (n, t) => { const m = CAT.filter(x => x.n === n)[0];
+      return m ? (m.s.filter(f => f[0] === t)[0] || null) : null; };
+    const sj27 = bus('St. Jude Medical Standard', '27');
+    ex.push(['(B1) St. Jude Medical Standard 27 trae sus siete parametros', sj27 ? JSON.stringify(sj27) : 'NO',
+      '["27",[77,14.6],[2.4,1.27],[1.1,0.32],[25,7],[1.2,0.33],[2.54,0.64],[1.52,0.34]]',
+      'fila = ' + JSON.stringify(sj27)]);
+    const hc31 = bus('Medtronic Hancock II', '31');
+    ex.push(['(B2) el THP de la Hancock II 31 esta impreso NA y se cargo null',
+      hc31 ? String(hc31[1]) : 'NO', 'null', 'fila = ' + JSON.stringify(hc31)]);
+    const cep33 = bus('Carpentier Edwards Perimount', '33');
+    ex.push(['(B3) el THP de la Perimount 33, impreso sin espacio tras el simbolo, es 137 mas menos 53',
+      cep33 ? JSON.stringify(cep33[1]) : 'NO', '[137,53]', 'fila = ' + JSON.stringify(cep33)]);
+    const nt = {}; CAT.forEach(m => { nt[m.t || 'SIN'] = (nt[m.t || 'SIN'] || 0) + 1 });
+    ex.push(['(C1) tres mecanicas y cinco bioprotesis: los ocho tienen tipo',
+      [nt.mec || 0, nt.bio || 0, nt.SIN || 0].join(','), '3,5,0', 'tipos = ' + JSON.stringify(nt)]);
+    /* LA TABLA A8: cargada, con su propia forma, y SIN consumidor */
+    const A8 = window.PROT_CAT_A8;
+    ex.push(['(D0 DENOM) la tabla A8 existe', !!A8, 'A8 = ' + (A8 ? 'si' : 'NO EXISTE')]);
+    if (A8) {
+      ex.push(['(D1) su gradiente medio es 3.8 mas menos 2, y su EOA y su velocidad estan en NR',
+        [JSON.stringify(A8.medio), String(A8.eoa), String(A8.vpico)].join('|'),
+        '[3.8,2]|null|null', 'a8 = ' + JSON.stringify(A8)]);
+      ex.push(['(D2) trae sus dos sub-filas por tamano', (A8.porTam || []).length, 2,
+        'porTam = ' + JSON.stringify(A8.porTam)]);
+      ex.push(['(D3) NO tiene la forma del catalogo: no trae lista de modelos',
+        Array.isArray(A8) || !!A8.s, false, 'esArray = ' + Array.isArray(A8) + ' tiene s = ' + !!A8.s]);
+    }
+    const TB = window.VMOD_TABLA || {};
+    ex.push(['(D4) la A8 NO esta en el registro de tablas del componente: queda sin consumidor',
+      Object.keys(TB).filter(k => TB[k] === 'PROT_CAT_A8').length, 0,
+      'VMOD_TABLA = ' + JSON.stringify(TB)]);
+    /* CONTROL NEGATIVO del motivo: la morfologia tricuspide no tiene opcion transcateter */
+    const selT = document.getElementById('vt_morf');
+    const ops = selT ? Array.prototype.map.call(selT.options, o => o.value || o.textContent) : [];
+    const trans = ops.filter(o => { const s = String(o).toLowerCase();
+      return s.indexOf('transcat') > -1 || s.indexOf('viv') > -1 || s.indexOf('vir') > -1; });
+    ex.push(['(D5) CONTROL NEGATIVO: vt_morf no ofrece ninguna opcion de implante transcateter',
+      trans.length, 0, 'opciones = ' + ops.join(' / ')]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-738', 'PANT-20 commit 4: el componente Modelo y tamano en la MITRAL, con el boton en una fila PROPIA y la grilla de tres de TC-522 intacta', `
+  return (async () => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['a', 5, 5, 'd']); z.push(['b', 5, 6, 'd']); z.push(['c', 0, 0, 'd']); z.push(['d', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina en los cuatro controles',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = n => (typeof window[n] === 'function') ? window[n] : null;
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+    const V = id => { const e = document.getElementById(id); return e ? String(e.value || '') : 'NO EXISTE' };
+    const T = id => { const e = document.getElementById(id);
+      return e ? String(e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE' };
+    const VIS = id => { const e = document.getElementById(id);
+      return !!e && getComputedStyle(e).display !== 'none' };
+    const abrir = async (morf, peso, talla) => {
+      try { __t.limpiar() } catch (e) {}
+      try { if (F('showTab')) showTab('valvulas') } catch (e) {}
+      const d = document.getElementById('ete-seccion-valv-mitral');
+      if (d && getComputedStyle(d).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('valv-mitral');
+      S('nombre', 'P20'); S('ci', '20');
+      if (peso !== null) S('peso', peso === undefined ? '75' : peso);
+      if (talla !== null) S('talla', talla === undefined ? '175' : talla);
+      if (morf) S('vm_morf', morf);
+      await esperar(320);
+    };
+    const chips = () => { const c = document.getElementById('vmod-vm-chips');
+      return c ? Array.prototype.map.call(c.querySelectorAll('.vmod-chip'),
+        x => String(x.textContent).replace(/\\s+/g, ' ').trim()) : [] };
+    await abrir('Normal');
+    const sel = document.getElementById('vm_morf');
+    ex.push(['(A0 DENOM) la seccion mitral abre y el select de morfologia tiene geometria',
+      !!sel && sel.getBoundingClientRect().width > 0,
+      'select = ' + (sel ? Math.round(sel.getBoundingClientRect().width) : 'NO') + ' px']);
+    ex.push(['(A1) con valvula NATIVA el boton no se ve', VIS('vmod-vm-wrap'), false,
+      'visible = ' + VIS('vmod-vm-wrap')]);
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    const btn = document.getElementById('vmod-vm-btn');
+    const rb = btn ? btn.getBoundingClientRect() : null;
+    ex.push(['(A2) con protesis el boton se ve y mide 44 px de alto',
+      [VIS('vmod-vm-wrap'), rb ? Math.round(rb.height) : 0].join(','), 'true,44',
+      'visible = ' + VIS('vmod-vm-wrap') + ' alto = ' + (rb ? Math.round(rb.height) : 'NO')]);
+    /* LA FILA PROPIA Y TC-522: la grilla de tres no se toca */
+    const fp = document.querySelector('#tab-valvulas .valv-morf-row.vmod-row');
+    const tres = document.querySelector('#tab-valvulas .valv-morf-row--tres');
+    ex.push(['(A3 DENOM) existen las dos filas y las dos tienen geometria',
+      !!fp && !!tres && fp.getBoundingClientRect().width > 0 && tres.getBoundingClientRect().width > 0,
+      'propia = ' + (fp ? Math.round(fp.getBoundingClientRect().width) : 'NO') +
+      ' tres = ' + (tres ? Math.round(tres.getBoundingClientRect().width) : 'NO')]);
+    ex.push(['(A4) el boton NO esta dentro de la grilla de tres: la fila es HERMANA',
+      !!(tres && fp) && !tres.contains(btn), true,
+      'contiene = ' + (!!(tres && btn) && tres.contains(btn))]);
+    const hijos = tres ? Array.prototype.filter.call(tres.children, c => c.classList && c.classList.contains('fg'))
+      .map(c => (c.querySelector('select') || {}).id || '?') : [];
+    ex.push(['(A5) la grilla de tres conserva sus TRES hijos, con los ids que TC-522 fija',
+      hijos.join(','), 'vm_morf,vm_tipo_im,vm_carp', 'hijos = ' + hijos.join(',')]);
+    /* LA SUGERENCIA POR PALABRA */
+    if (F('vModAbrir')) vModAbrir('vm');
+    await esperar(150);
+    const esc = (txt) => { const i = document.getElementById('vmod-inp'); if (!i) return false;
+      i.value = txt; i.dispatchEvent(new Event('input', { bubbles: true })); return true };
+    const sug = () => { const u = document.getElementById('vmod-sug');
+      return (!u || u.hidden) ? [] : Array.prototype.map.call(u.querySelectorAll('button'),
+        b => String(b.textContent).trim()) };
+    ex.push(['(B0 DENOM) la card abrio y la lista de sugerencias NO se abre sola',
+      [VIS('vmod-card'), sug().length].join(','), 'true,0',
+      'card = ' + VIS('vmod-card') + ' sug = ' + sug().length]);
+    esc('st'); await esperar(60);
+    const st = sug();
+    ex.push(['(B1) la busqueda por palabra con st trae St. Jude Medical y Starr-Edwards',
+      st.length >= 2 && st.join(' ').indexOf('St. Jude Medical') > -1
+        && st.join(' ').indexOf('Starr-Edwards') > -1, 'st = ' + st.join(' | ')]);
+    esc('zzz'); await esperar(60);
+    ex.push(['(B2) CONTROL NEGATIVO: una consulta sin coincidencias no propone ningun modelo',
+      sug().filter(t => t.indexOf('Sin coincidencias') < 0).length, 0, 'zzz = ' + sug().join(' | ')]);
+    if (F('vModCerrar')) vModCerrar();
+    /* LOS VALORES ESPERADOS CONTRA LA TABLA */
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    S('vm_prot_modelo', 'Carbomedics'); S('vm_prot_tam', '27');
+    if (F('vModSync')) vModSync('vm');
+    await esperar(120);
+    const E = F('vModEsperados') ? vModEsperados('vm') : null;
+    const mod = (window.PROT_CAT_A5 || []).filter(m => m.n === 'Carbomedics')[0];
+    const fila = mod ? mod.s.filter(f => f[0] === '27')[0] : null;
+    const cols = window.PROT_CAT_A5_COLS || [];
+    ex.push(['(C0 DENOM) la Carbomedics 27 existe en la tabla y el componente la encuentra',
+      !!fila && !!E && E.nombre === 'Carbomedics' && E.tam === '27',
+      'fila = ' + JSON.stringify(fila) + ' esp = ' + (E ? E.nombre + '/' + E.tam : 'NO')]);
+    if (E && fila) {
+      const iguales = cols.every((c, i) => JSON.stringify(E.vals[c] || null) === JSON.stringify(fila[i + 1] || null));
+      ex.push(['(C1) los cinco valores esperados salen de la tabla, celda por celda', iguales, true,
+        'esp = ' + JSON.stringify(cols.map(c => E.vals[c])) + ' tabla = ' + JSON.stringify(fila.slice(1))]);
+      ex.push(['(C2) la fila publica su folio, que es el de la hoja leida', E.folio, '58', 'folio = ' + E.folio]);
+    }
+    /* LA EOA INDEXADA PREDICHA Y LOS DOS CORTES DE IMC DE LA TABLA 7 */
+    const cl = F('_vmPpmClasificar');
+    ex.push(['(D0 DENOM) la mitral usa su propio clasificador de PPM', !!cl,
+      'clasificador = ' + (cl ? 'si' : 'NO EXISTE')]);
+    if (cl) {
+      ex.push(['(D1) LA MISMA EOA indexada cambia de categoria con el corte de IMC: 1,05 es moderado por debajo de 30 y sin desajuste de 30 para arriba',
+        [cl(1.05, 25).ppm, cl(1.05, 31).ppm].join(','), 'moderado,no',
+        'imc 25 = ' + cl(1.05, 25).ppm + ' imc 31 = ' + cl(1.05, 31).ppm]);
+      ex.push(['(D2) los cortes son los mitrales de la Tabla 7 y no los aorticos',
+        [cl(1, 25).cortes.normalMin, cl(1, 25).cortes.severoMax,
+         cl(1, 31).cortes.normalMin, cl(1, 31).cortes.severoMax].join(','), '1.2,0.9,1,0.75',
+        'cortes = ' + JSON.stringify([cl(1, 25).cortes, cl(1, 31).cortes])]);
+      ex.push(['(D3) CONTROL NEGATIVO: sin indexada no hay categoria', String(cl(null, 25).ppm), 'null',
+        'sin = ' + JSON.stringify(cl(null, 25))]);
+    }
+    /* SIN PESO NI TALLA NO HAY EOA INDEXADA */
+    await abrir('Pr\\u00f3tesis biol\\u00f3gica', '', '');
+    S('vm_prot_modelo', 'Abbott Epic'); S('vm_prot_tam', '27');
+    if (F('vModSync')) vModSync('vm');
+    await esperar(120);
+    const sinPT = chips().filter(t => t.indexOf('indexada') > -1).join(' ');
+    ex.push(['(E1) sin peso ni talla la EOA indexada predicha no publica numero y dice que faltan',
+      sinPT.indexOf('falta el peso y la talla') > -1 && sinPT.indexOf('cm\\u00b2/m\\u00b2') < 0,
+      'chip = ' + sinPT]);
+    await abrir('Pr\\u00f3tesis biol\\u00f3gica');
+    S('vm_prot_modelo', 'Abbott Epic'); S('vm_prot_tam', '27');
+    if (F('vModSync')) vModSync('vm');
+    await esperar(120);
+    const conPT = chips().filter(t => t.indexOf('indexada') > -1).join(' ');
+    ex.push(['(E2) CONTROL: con peso y talla el mismo modelo SI publica la indexada con su categoria',
+      conPT.indexOf('cm\\u00b2/m\\u00b2') > -1 && conPT.indexOf('falta') < 0, 'chip = ' + conPT]);
+    /* LO MEDIDO, CON EL SIGNO DE LA DIFERENCIA */
+    S('em_gmedio', '12'); if (F('vModSync')) vModSync('vm'); await esperar(120);
+    const med = document.getElementById('vmod-vm-med');
+    const mt = med ? String(med.textContent).replace(/\\s+/g, ' ') : '';
+    ex.push(['(F1) el gradiente medio medido se compara con el esperado y la diferencia sale en desviaciones',
+      mt.indexOf('Gradiente medio medido') > -1 && mt.indexOf('DE respecto del esperado') > -1,
+      'medido = ' + mt]);
+    /* EL MODO MANUAL */
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    S('vm_prot_modelo', 'Marca X'); S('vm_prot_tam', '27');
+    S('vm_prot_gmref', '5.5'); S('vm_prot_eoaref', '1.8');
+    if (F('vModSync')) vModSync('vm');
+    await esperar(120);
+    const Em = F('vModEsperados') ? vModEsperados('vm') : null;
+    ex.push(['(G1) con los dos valores a mano y un nombre que no esta en la tabla, el componente entra en modo manual',
+      Em ? [Em.manual, Em.nombre, JSON.stringify(Em.vals.medio), JSON.stringify(Em.vals.eoa)].join('|') : 'NO',
+      'true|Marca X|[5.5,null]|[1.8,null]', 'manual = ' + JSON.stringify(Em)]);
+    ex.push(['(G2) la linea de abajo lo declara como referencia manual',
+      T('vmod-vm-sub').indexOf('Referencia manual') > -1, 'sub = ' + T('vmod-vm-sub')]);
+    /* CAMBIAR LA MORFOLOGIA A UN TIPO INCOMPATIBLE LIMPIA EL MODELO */
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    S('vm_prot_modelo', 'Bjork-Shiley'); S('vm_prot_tam', '25');
+    if (F('vModSync')) vModSync('vm');
+    await esperar(100);
+    const antes = V('vm_prot_modelo');
+    S('vm_morf', 'Pr\\u00f3tesis biol\\u00f3gica'); await esperar(300);
+    ex.push(['(H1) pasar de mecanica a biologica limpia un modelo mecanico',
+      [antes, V('vm_prot_modelo')].join('|'), 'Bjork-Shiley|', 'antes = ' + antes + ' despues = ' + V('vm_prot_modelo')]);
+    S('vm_morf', 'Normal'); await esperar(300);
+    ex.push(['(H2) con valvula nativa el boton se esconde y el modelo queda vacio',
+      [VIS('vmod-vm-wrap'), V('vm_prot_modelo')].join('|'), 'false|',
+      'visible = ' + VIS('vmod-vm-wrap') + ' modelo = ' + V('vm_prot_modelo')]);
+    /* NUEVO ESTUDIO */
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    S('vm_prot_modelo', 'Carbomedics'); S('vm_prot_tam', '27');
+    if (F('vModSync')) vModSync('vm'); await esperar(100);
+    const rotAntes = T('vmod-vm-btn');
+    try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {}
+    await esperar(350);
+    ex.push(['(I0 DENOM) antes de Nuevo estudio el boton anunciaba el modelo del paciente',
+      rotAntes.indexOf('Carbomedics') > -1, 'rotulo = ' + rotAntes]);
+    ex.push(['(I1) Nuevo estudio vacia los CUATRO campos y repone el rotulo del boton',
+      [V('vm_prot_modelo'), V('vm_prot_tam'), V('vm_prot_gmref'), V('vm_prot_eoaref'),
+       T('vmod-vm-btn').indexOf('Carbomedics') > -1].join('|'), '||||false',
+      'campos = ' + [V('vm_prot_modelo'), V('vm_prot_tam'), V('vm_prot_gmref'), V('vm_prot_eoaref')].join(',') +
+      ' rotulo = ' + T('vmod-vm-btn')]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-739', 'PANT-20 commit 5: el componente en la TRICUSPIDE publica la EOA indexada SIN categoria y convierte la velocidad de E de m/s a cm/s', `
+  return (async () => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['a', 5, 5, 'd']); z.push(['b', 5, 6, 'd']); z.push(['c', 0, 0, 'd']); z.push(['d', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina en los cuatro controles',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = n => (typeof window[n] === 'function') ? window[n] : null;
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+    const VIS = id => { const e = document.getElementById(id);
+      return !!e && getComputedStyle(e).display !== 'none' };
+    const txtDe = id => { const e = document.getElementById(id);
+      return e ? String(e.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE' };
+    const chips = () => { const c = document.getElementById('vmod-vt-chips');
+      return c ? Array.prototype.map.call(c.querySelectorAll('.vmod-chip'),
+        x => String(x.textContent).replace(/\\s+/g, ' ').trim()) : [] };
+    const abrir = async (morf) => {
+      try { __t.limpiar() } catch (e) {}
+      try { if (F('showTab')) showTab('valvulas') } catch (e) {}
+      const d = document.getElementById('ete-seccion-valv-tricuspide');
+      if (d && getComputedStyle(d).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('valv-tricuspide');
+      S('nombre', 'P20'); S('ci', '20'); S('peso', '75'); S('talla', '175');
+      if (morf) S('vt_morf', morf);
+      await esperar(320);
+    };
+    await abrir('Normal');
+    ex.push(['(A0 DENOM) la seccion tricuspide abre y su select tiene geometria',
+      !!document.getElementById('vt_morf') &&
+      document.getElementById('vt_morf').getBoundingClientRect().width > 0,
+      'select = ' + (document.getElementById('vt_morf') ?
+        Math.round(document.getElementById('vt_morf').getBoundingClientRect().width) : 'NO')]);
+    ex.push(['(A1) con valvula nativa el boton no se ve', VIS('vmod-vt-wrap'), false,
+      'visible = ' + VIS('vmod-vt-wrap')]);
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    const b = document.getElementById('vmod-vt-btn');
+    ex.push(['(A2) con protesis se ve y mide 44 px de alto',
+      [VIS('vmod-vt-wrap'), b ? Math.round(b.getBoundingClientRect().height) : 0].join(','), 'true,44',
+      'alto = ' + (b ? Math.round(b.getBoundingClientRect().height) : 'NO')]);
+    /* EL BOTON VA EN LA MISMA FILA QUE EL SELECT, al reves que en la mitral */
+    const selT = document.getElementById('vt_morf');
+    const filaT = selT ? selT.closest('.valv-morf-row') : null;
+    ex.push(['(A3) el boton comparte la fila con el select, como en la aortica',
+      !!(filaT && b) && filaT.contains(b), true,
+      'misma fila = ' + (!!(filaT && b) && filaT.contains(b))]);
+    /* LOS VALORES ESPERADOS, CON LA EOA INDEXADA DE LA TABLA */
+    S('vt_prot_modelo', 'Carbomedics Standard'); S('vt_prot_tam', '31');
+    if (F('vModSync')) vModSync('vt');
+    await esperar(130);
+    const E = F('vModEsperados') ? vModEsperados('vt') : null;
+    const mod = (window.PROT_CAT_A9 || []).filter(m => m.n === 'Carbomedics Standard')[0];
+    const fila = mod ? mod.s.filter(f => f[0] === '31')[0] : null;
+    const cols = window.PROT_CAT_A9_COLS || [];
+    ex.push(['(B0 DENOM) la Carbomedics Standard 31 existe y el componente la encuentra',
+      !!fila && !!E && E.nombre === 'Carbomedics Standard' && E.tam === '31',
+      'fila = ' + JSON.stringify(fila) + ' esp = ' + (E ? E.nombre + '/' + E.tam : 'NO')]);
+    if (E && fila) {
+      ex.push(['(B1) los siete valores esperados salen de la tabla, celda por celda',
+        cols.every((c, i) => JSON.stringify(E.vals[c] || null) === JSON.stringify(fila[i + 1] || null)), true,
+        'esp = ' + JSON.stringify(cols.map(c => E.vals[c]))]);
+    }
+    const ch = chips().join('  ');
+    ex.push(['(B2) publica la EOA indexada ESPERADA, que es la de la propia serie',
+      ch.indexOf('EOA indexada esperada') > -1, 'chips = ' + ch]);
+    /* LA DECISION 6: la indexada PREDICHA sale SOLO como numero */
+    const pred = chips().filter(t => t.indexOf('EOA indexada predicha') > -1).join(' ');
+    const PAL = ['sin desajuste', 'moderado', 'severo'];
+    ex.push(['(C0 DENOM) la EOA indexada predicha se publica', pred.length > 0, 'chip = ' + pred]);
+    ex.push(['(C1) sale SOLO como numero: ninguna de las tres palabras del desajuste',
+      PAL.filter(p => pred.indexOf(p) > -1).length, 0, 'chip = ' + pred]);
+    ex.push(['(C2) la entrada del registro va sin clasificador y sin cortes',
+      [String((window.VMOD_POS.vt || {}).ppm), String((window.VMOD_POS.vt || {}).cortes)].join(','),
+      'null,null', 'vt = ppm ' + String((window.VMOD_POS.vt || {}).ppm)]);
+    ex.push(['(C3) CONTROL NEGATIVO: la MITRAL, que si tiene cortes, SI publica una de las tres palabras',
+      !!(window.VMOD_POS.vm || {}).ppm, true, 'vm ppm = ' + typeof (window.VMOD_POS.vm || {}).ppm]);
+    ex.push(['(C4) y la linea de abajo no publica el IMC, porque sin cortes no elige ninguna rama',
+      txtDe('vmod-vt-sub').indexOf('IMC') < 0, 'sub = ' + txtDe('vmod-vt-sub')]);
+    /* LA CONVERSION DE UNIDAD: la tabla en m/sec, el campo en cm/s */
+    const medTxt = () => { const c = document.getElementById('vmod-vt-med');
+      return c ? String(c.textContent).replace(/\\s+/g, ' ') : '' };
+    const got = {};
+    for (const v of ['140', '178', '121', '102']) {
+      S('et_e_vmax', v); if (F('vModSync')) vModSync('vt'); await esperar(110);
+      const t = medTxt(); const i = t.indexOf('E medida');
+      got[v] = i > -1 ? t.slice(i, i + 60) : 'SIN CHIP';
+    }
+    ex.push(['(D0 DENOM) el esperado de esa fila es 1.4 mas menos 0.19 m/s',
+      fila ? JSON.stringify(fila[cols.indexOf('evel') + 1]) : 'NO', '[1.4,0.19]',
+      'evel = ' + (fila ? JSON.stringify(fila[cols.indexOf('evel') + 1]) : 'NO')]);
+    ex.push(['(D1) 140 cm/s es el esperado exacto: cero desviaciones',
+      got['140'].indexOf('0.0 DE') > -1, 'chip = ' + got['140']]);
+    ex.push(['(D2) 178 cm/s son DOS desviaciones por encima, no veinte: la conversion se hizo',
+      got['178'].indexOf('+2.0 DE') > -1, 'chip = ' + got['178']]);
+    ex.push(['(D3) 121 cm/s es UNA desviacion por debajo', got['121'].indexOf('1.0 DE') > -1,
+      'chip = ' + got['121']]);
+    ex.push(['(D4) CONTROL NEGATIVO: 102 cm/s son DOS por debajo y el signo es el otro',
+      got['102'].indexOf('\\u22122.0 DE') > -1 || got['102'].indexOf('-2.0 DE') > -1,
+      'chip = ' + got['102']]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-740', 'PANT-20 commit 6: el componente en la PULMONAR publica lo IMPRESO -limites y medianas con rango- y los modelos sin tamano se eligen solos', `
+  return (async () => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['a', 5, 5, 'd']); z.push(['b', 5, 6, 'd']); z.push(['c', 0, 0, 'd']); z.push(['d', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina en los cuatro controles',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = n => (typeof window[n] === 'function') ? window[n] : null;
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+    const VIS = id => { const e = document.getElementById(id);
+      return !!e && getComputedStyle(e).display !== 'none' };
+    const chips = () => { const c = document.getElementById('vmod-vp-chips');
+      return c ? Array.prototype.map.call(c.querySelectorAll('.vmod-chip'),
+        x => String(x.textContent).replace(/\\s+/g, ' ').trim()) : [] };
+    const abrir = async (morf) => {
+      try { __t.limpiar() } catch (e) {}
+      try { if (F('showTab')) showTab('valvulas') } catch (e) {}
+      const d = document.getElementById('ete-seccion-valv-pulmonar');
+      if (d && getComputedStyle(d).display === 'none' && F('toggleEteSeccion')) toggleEteSeccion('valv-pulmonar');
+      S('nombre', 'P20'); S('ci', '20'); S('peso', '75'); S('talla', '175');
+      if (morf) S('vp_morf', morf);
+      await esperar(320);
+    };
+    await abrir('Normal');
+    ex.push(['(A0 DENOM) la seccion pulmonar abre y su select tiene geometria',
+      !!document.getElementById('vp_morf') &&
+      document.getElementById('vp_morf').getBoundingClientRect().width > 0,
+      'select = ' + (document.getElementById('vp_morf') ?
+        Math.round(document.getElementById('vp_morf').getBoundingClientRect().width) : 'NO')]);
+    ex.push(['(A1) con valvula nativa el boton no se ve', VIS('vmod-vp-wrap'), false,
+      'visible = ' + VIS('vmod-vp-wrap')]);
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    const b = document.getElementById('vmod-vp-btn');
+    ex.push(['(A2) con protesis se ve y mide 44 px de alto',
+      [VIS('vmod-vp-wrap'), b ? Math.round(b.getBoundingClientRect().height) : 0].join(','), 'true,44',
+      'alto = ' + (b ? Math.round(b.getBoundingClientRect().height) : 'NO')]);
+    /* LO IMPRESO: medianas con rango */
+    S('vp_prot_modelo', 'Carbomedics'); S('vp_prot_tam', '23');
+    if (F('vModSync')) vModSync('vp');
+    await esperar(130);
+    const ch = chips().join('  ');
+    ex.push(['(B0 DENOM) la Carbomedics 23 publica sus cuadritos', chips().length >= 5,
+      'chips = ' + chips().length + ' :: ' + ch]);
+    ex.push(['(B1) publica la MEDIANA CON SU RANGO tal como la tabla la imprime, y no el valor solo',
+      ch.indexOf('19 (17-20)') > -1 && ch.indexOf('78 (70-85)') > -1,
+      'chips = ' + ch]);
+    ex.push(['(B2) y la columna que la tabla imprime como valor unico sale sin rango',
+      ch.indexOf('Gradiente medio esperado12 mmHg') > -1, 'chips = ' + ch]);
+    /* LO IMPRESO: limites superiores, y que de un limite no sale ni DE ni indexada */
+    await abrir('Pr\\u00f3tesis biol\\u00f3gica');
+    S('vp_prot_modelo', 'Homograft'); S('vp_prot_tam', '');
+    if (F('vModSync')) vModSync('vp');
+    await esperar(130);
+    const ch2 = chips().join('  ');
+    ex.push(['(C0 DENOM) el Homograft publica sus tres cuadritos SIN pedir tamano',
+      chips().length, 3, 'chips = ' + ch2]);
+    ex.push(['(C1) publica los LIMITES tal como la tabla los imprime', ch2.indexOf('<25') > -1
+      && ch2.indexOf('<15') > -1 && ch2.indexOf('<2.5') > -1, 'chips = ' + ch2]);
+    ex.push(['(C2) de un limite NO sale una EOA indexada predicha: no hay valor central',
+      ch2.indexOf('indexada') < 0, 'chips = ' + ch2]);
+    S('ep_gmedio', '9'); if (F('vModSync')) vModSync('vp'); await esperar(110);
+    const med = document.getElementById('vmod-vp-med');
+    const mt = med ? String(med.textContent).replace(/\\s+/g, ' ') : '';
+    ex.push(['(C3) lo medido se publica, pero de un limite NO sale una diferencia en desviaciones',
+      mt.indexOf('Gradiente medio medido') > -1 && mt.indexOf('DE respecto') < 0, 'medido = ' + mt]);
+    /* LA DECISION 6 TAMBIEN ACA */
+    await abrir('Pr\\u00f3tesis mec\\u00e1nica');
+    S('vp_prot_modelo', 'St. Jude'); S('vp_prot_tam', '21');
+    if (F('vModSync')) vModSync('vp'); await esperar(130);
+    const pred = chips().filter(t => t.indexOf('EOA indexada predicha') > -1).join(' ');
+    ex.push(['(D0 DENOM) la St. Jude 21 publica su EOA indexada predicha', pred.length > 0,
+      'chip = ' + pred]);
+    ex.push(['(D1) sale SOLO como numero, sin ninguna de las tres palabras del desajuste',
+      ['sin desajuste', 'moderado', 'severo'].filter(p => pred.indexOf(p) > -1).length, 0,
+      'chip = ' + pred]);
+    /* SOLO TRES MEDIDOS: la app no tiene campo de AT ni de area de la PROTESIS pulmonar */
+    const P = (window.VMOD_POS || {}).vp;
+    ex.push(['(E1) la pulmonar declara TRES medidos y son los tres campos que existen',
+      P ? P.medidos.map(m => m.k + ':' + m.id).join(',') : 'NO',
+      'pico:ep_gmax,medio:ep_gmedio,vpico:ep_vmax', 'medidos = ' + (P ? JSON.stringify(P.medidos.map(m => m.id)) : 'NO')]);
+    ex.push(['(E2) CONTROL NEGATIVO: no hay ningun campo de AT ni de area de la protesis pulmonar',
+      ['vp_at', 'ep_at', 'vp_eoa', 'ep_eoa', 'ep_avp'].filter(id => !!document.getElementById(id)).length, 0,
+      'existen = ' + ['vp_at', 'ep_at', 'vp_eoa', 'ep_eoa', 'ep_avp'].filter(id => !!document.getElementById(id)).join(',')]);
+    /* LA MARCA uno: cuatro modelos sin tamano impreso */
+    const unos = (window.PROT_CAT_A7 || []).filter(m => m.uno);
+    ex.push(['(F1) cuatro modelos de la A7 llevan la marca uno y ninguno tiene tamano impreso',
+      [unos.length, unos.filter(m => m.s[0][0] === '').length].join(','), '4,4',
+      'uno = ' + unos.map(m => m.n).join(' | ')]);
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-741', 'PANT-20: los DOCE campos nuevos recorren las siete listas, el Excel pasa a 457 columnas sin tocar las 445 anteriores y el PAPEL no cambia', `
+  return (async () => {
+    const ex = [];
+    const _push = ex.push.bind(ex);
+    ex.push = t => _push(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+    const _pr = [];
+    { const z = []; const _z = z.push.bind(z);
+      z.push = t => _z(t.length >= 4 ? [t[0], String(t[1]) === String(t[2]), t[3]] : t);
+      z.push(['a', 5, 5, 'd']); z.push(['b', 5, 6, 'd']); z.push(['c', 0, 0, 'd']); z.push(['d', 0, 1, 'd']);
+      _pr.push(z[0][1] === true, z[1][1] === false, z[2][1] === true, z[3][1] === false); }
+    ex.push(['(Z) el conversor discrimina en los cuatro controles',
+      _pr.join(',') === 'true,true,true,true', 'controles = ' + _pr.join(',')]);
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = n => (typeof window[n] === 'function') ? window[n] : null;
+    const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+      e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+    const V = id => { const e = document.getElementById(id); return e ? String(e.value || '') : 'NO EXISTE' };
+    const IDS = ['vm_prot_modelo', 'vm_prot_tam', 'vm_prot_gmref', 'vm_prot_eoaref',
+                 'vt_prot_modelo', 'vt_prot_tam', 'vt_prot_gmref', 'vt_prot_eoaref',
+                 'vp_prot_modelo', 'vp_prot_tam', 'vp_prot_gmref', 'vp_prot_eoaref'];
+    /* (A) LOS DOCE EXISTEN, son del estudio y van ocultos SIN type hidden */
+    ex.push(['(A0 DENOM) los doce campos existen en el documento',
+      IDS.filter(id => !!document.getElementById(id)).length, 12,
+      'faltan = ' + IDS.filter(id => !document.getElementById(id)).join(',')]);
+    const hid = IDS.filter(id => { const e = document.getElementById(id); return e && e.type === 'hidden' });
+    ex.push(['(A1) NINGUNO es type hidden: en un hidden el valor y el valor por omision son el mismo atributo y Nuevo estudio no lo limpiaria',
+      hid.length, 0, 'hidden = ' + hid.join(',')]);
+    const vis = IDS.filter(id => { const e = document.getElementById(id);
+      return e && getComputedStyle(e).display !== 'none' });
+    ex.push(['(A2) los doce van ocultos con display none', vis.length, 0, 'visibles = ' + vis.join(',')]);
+    const fuera = F('_noEsDelEstudio') ? IDS.filter(id => _noEsDelEstudio(id)) : [];
+    ex.push(['(A3) ninguno queda FUERA del estudio: llevan guion bajo y el filtro excluye por guion medio',
+      fuera.length, 0, 'fuera = ' + fuera.join(',')]);
+    /* (B) EL EXCEL: 457 columnas, las 445 anteriores iguales y ningun encabezado con EOA ni AEO */
+    const row = F('_labExcelRow') ? _labExcelRow({ campos: {} }) : null;
+    ex.push(['(B0 DENOM) la fila de Excel se arma', !!row, 'row = ' + (row ? Object.keys(row).length : 'NO')]);
+    if (row) {
+      const K = Object.keys(row);
+      ex.push(['(B1) el Excel pasa a 457 columnas, o sea 445 mas las doce nuevas', K.length, 457,
+        'columnas = ' + K.length]);
+      const nuevas = ['Modelo de pr\\u00f3tesis mitral', 'Tama\\u00f1o de pr\\u00f3tesis mitral',
+        'G. medio de referencia mitral (mmHg)', 'AVm de referencia mitral (cm\\u00b2)',
+        'Modelo de pr\\u00f3tesis tric\\u00fAspide'.replace('\\u00fA', '\\u00fa'), 'Tama\\u00f1o de pr\\u00f3tesis tric\\u00faspide',
+        'G. medio de referencia tric\\u00faspide (mmHg)', 'AVT de referencia tric\\u00faspide (cm\\u00b2)',
+        'Modelo de pr\\u00f3tesis pulmonar', 'Tama\\u00f1o de pr\\u00f3tesis pulmonar',
+        'G. medio de referencia pulmonar (mmHg)', '\\u00c1rea de referencia pulmonar (cm\\u00b2)'];
+      ex.push(['(B2) las doce columnas nuevas estan, con su nombre exacto',
+        nuevas.filter(c => K.indexOf(c) > -1).length, 12,
+        'faltan = ' + nuevas.filter(c => K.indexOf(c) < 0).join(' | ')]);
+      ex.push(['(B3) ningun encabezado contiene EOA ni AEO, que es lo que un caso existente exige',
+        K.filter(c => c.indexOf('EOA') > -1 || c.indexOf('AEO') > -1).length, 0,
+        'con sigla = ' + K.filter(c => c.indexOf('EOA') > -1 || c.indexOf('AEO') > -1).join(' | ')]);
+      ex.push(['(B4) CONTROL: las columnas vecinas de siempre siguen ahi',
+        ['DVI mitral', 'AVA (cm\\u00b2)', 'Morfolog\\u00eda mitral'].filter(c => K.indexOf(c) > -1).length, 3,
+        'vecinas = ' + ['DVI mitral', 'AVA (cm\\u00b2)', 'Morfolog\\u00eda mitral'].filter(c => K.indexOf(c) > -1).join(' | ')]);
+    }
+    /* (C) EL FILTRO DE PROTESIS: en una valvula nativa no hay modelo que informar */
+    const camposCon = {};
+    IDS.forEach(id => { camposCon[id] = (id.indexOf('modelo') > -1) ? 'XX'
+      : (id.indexOf('tam') > -1 ? '27' : '1') });
+    const rowNat = F('_labExcelRow') ? _labExcelRow({ campos: Object.assign({}, camposCon,
+      { vm_morf: 'Normal', vt_morf: 'Normal', vp_morf: 'Normal' }) }) : null;
+    const rowPro = F('_labExcelRow') ? _labExcelRow({ campos: Object.assign({}, camposCon,
+      { vm_morf: 'Pr\\u00f3tesis mec\\u00e1nica', vt_morf: 'Pr\\u00f3tesis mec\\u00e1nica',
+        vp_morf: 'Pr\\u00f3tesis mec\\u00e1nica' }) }) : null;
+    if (rowNat && rowPro) {
+      ex.push(['(C1) con valvula NATIVA las tres columnas de modelo salen vacias',
+        [rowNat['Modelo de pr\\u00f3tesis mitral'], rowNat['Modelo de pr\\u00f3tesis tric\\u00faspide'],
+         rowNat['Modelo de pr\\u00f3tesis pulmonar']].join('|'), '||',
+        'nativa = ' + JSON.stringify([rowNat['Modelo de pr\\u00f3tesis mitral'],
+          rowNat['Modelo de pr\\u00f3tesis tric\\u00faspide'], rowNat['Modelo de pr\\u00f3tesis pulmonar']])]);
+      ex.push(['(C2) CONTROL: con PROTESIS las tres traen el modelo',
+        [rowPro['Modelo de pr\\u00f3tesis mitral'], rowPro['Modelo de pr\\u00f3tesis tric\\u00faspide'],
+         rowPro['Modelo de pr\\u00f3tesis pulmonar']].join('|'), 'XX|XX|XX',
+        'protesis = ' + JSON.stringify([rowPro['Modelo de pr\\u00f3tesis mitral'],
+          rowPro['Modelo de pr\\u00f3tesis tric\\u00faspide'], rowPro['Modelo de pr\\u00f3tesis pulmonar']])]);
+    }
+    /* (D) EL IMPORTADOR: los doce estan en el mapa de pares */
+    const MAP = window.LAB_XLS_IMPORT || window.LAB_XLS_PARES || null;
+    let enMapa = 0, mapaTxt = 'SIN MAPA';
+    if (Array.isArray(MAP)) { enMapa = MAP.filter(p => IDS.indexOf(p[1]) > -1).length;
+      mapaTxt = 'mapa de ' + MAP.length + ' pares'; }
+    else { /* el mapa no esta expuesto: se busca en el texto de la funcion de importacion */
+      const f = F('importarExcel') || F('_labImportar') || null;
+      const src = f ? String(f) : '';
+      enMapa = IDS.filter(id => src.indexOf(id) > -1).length;
+      mapaTxt = f ? 'por el texto del importador' : 'sin importador expuesto';
+    }
+    ex.push(['(D1) los doce estan en el mapa del importador, o el mapa no se puede inspeccionar desde aca',
+      enMapa === 12 || mapaTxt.indexOf('SIN MAPA') > -1 || mapaTxt.indexOf('sin importador') > -1,
+      'en mapa = ' + enMapa + ' (' + mapaTxt + ')']);
+    /* (E) NUEVO ESTUDIO limpia los doce */
+    try { __t.limpiar() } catch (e) {}
+    try { if (F('showTab')) showTab('valvulas') } catch (e) {}
+    S('vm_morf', 'Pr\\u00f3tesis mec\\u00e1nica'); S('vt_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+    S('vp_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+    IDS.forEach(id => S(id, (id.indexOf('modelo') > -1) ? 'XX' : (id.indexOf('tam') > -1 ? '27' : '2')));
+    await esperar(250);
+    const llenos = IDS.filter(id => V(id) !== '').length;
+    ex.push(['(E0 DENOM) los doce quedaron cargados antes de limpiar', llenos, 12, 'llenos = ' + llenos]);
+    try { if (F('limpiarCampos')) limpiarCampos(true) } catch (e) {}
+    await esperar(350);
+    const quedan = IDS.filter(id => V(id) !== '');
+    ex.push(['(E1) Nuevo estudio vacia los DOCE', quedan.length, 0, 'quedan = ' + quedan.join(',')]);
+    /* (F) EL PAPEL NO CAMBIA: con los doce cargados, el informe no los nombra */
+    try { __t.limpiar() } catch (e) {}
+    try { if (F('showTab')) showTab('valvulas') } catch (e) {}
+    S('nombre', 'P20'); S('ci', '20'); S('peso', '75'); S('talla', '175');
+    S('vm_morf', 'Pr\\u00f3tesis mec\\u00e1nica'); S('vt_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+    S('vp_morf', 'Pr\\u00f3tesis mec\\u00e1nica');
+    S('vm_prot_modelo', 'Carbomedics'); S('vm_prot_tam', '27');
+    S('vt_prot_modelo', 'St. Jude Medical Standard'); S('vt_prot_tam', '29');
+    S('vp_prot_modelo', 'St. Jude'); S('vp_prot_tam', '21');
+    await esperar(300);
+    const inf = __t.informe();
+    const texto = String((inf && (inf.texto || inf.informe || inf)) || '');
+    const suma = String((inf && inf.suma) || '');
+    ex.push(['(F0 DENOM) el informe se emitio y tiene texto', texto.length > 60,
+      'largo = ' + texto.length]);
+    const MARCAS = ['Carbomedics', 'St. Jude Medical Standard', 'Tabla A5', 'Tabla A7', 'Tabla A9',
+                    'ASE 2024', 'folio 58', 'folio 62', 'folio 63', 'indexada predicha',
+                    'DE respecto del esperado'];
+    const enPapel = MARCAS.filter(m => texto.indexOf(m) > -1 || suma.indexOf(m) > -1);
+    ex.push(['(F1) NADA del catalogo llega al informe ni al EN SUMA: ni un modelo, ni una tabla, ni un folio',
+      enPapel.length, 0, 'en el papel = ' + enPapel.join(' | ')]);
+    ex.push(['(F2) CONTROL: el informe SI describe las valvulas protesicas, o sea que el denominador no esta vacio',
+      texto.indexOf('r\\u00f3tesis') > -1 || texto.indexOf('rotesis') > -1,
+      'informe = ' + texto.slice(0, 160)]);
+    return { extra: ex };
+  })();
+`);
 
 try {
   const s = await servir(); servidor = s.srv;
