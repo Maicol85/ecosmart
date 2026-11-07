@@ -9967,9 +9967,27 @@ window.cerrarSesionReal = cerrarSesionReal;
            Lo único que cambia es que deja de ocupar el ancho entero (978 px a 1200). -->
       <div class="valv-morf-row">
       <div class="fg"><label>Morfología pulmonar</label>
-        <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>No especificada</option></select>
+        <select id="vp_morf" onchange="vpSync();valvProtSync();vModMorfSync('vp')"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>No especificada</option></select>
       </div>
+        <!-- ══ «Modelo y tamano» de la valvula PULMONAR (PANT-20, commit 6) ═════════
+             EL BOTON VA EN ESTA FILA, como en la aortica y en la tricuspide: es un
+             `.valv-morf-row` FLEX con UN solo hijo y deja 774 px libres a 1440 y 286 a 768,
+             medido en el commit 1. Los cuatro campos van ocultos con `display:none` y NO con
+             `type="hidden"` (P14c-g), y con guion BAJO. -->
+        <div class="fg vmod-wrap" id="vmod-vp-wrap" style="display:none;">
+          <label for="vmod-vp-btn">Pr&oacute;tesis</label>
+          <button type="button" class="btn btn-ghost vmod-btn" id="vmod-vp-btn"
+                  aria-expanded="false" aria-haspopup="dialog" aria-label="Modelo y tama&ntilde;o de la pr&oacute;tesis pulmonar"
+                  onclick="vModClic('vp')">Modelo y tama&ntilde;o</button>
+        </div>
+        <div class="vmod-chips" id="vmod-vp-chips" aria-live="polite"></div>
+        <input type="text"   id="vp_prot_modelo" style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="text"   id="vp_prot_tam"    style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vp_prot_gmref"  step="0.1"  style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vp_prot_eoaref" step="0.01" style="display:none;" tabindex="-1" aria-hidden="true">
       </div>
+      <div class="vmod-sub" id="vmod-vp-sub" style="display:none;"></div>
+      <div class="vmod-med" id="vmod-vp-med" style="display:none;"></div>
       <!-- Campos de PRÓTESIS pulmonar (Fase 1), con los DOS que agrega el PRO-C1 (2026-10-17).
            ⚠️ EL GRADIENTE MEDIO NO ES EL MÁXIMO, y por eso hace falta un campo. La app tenía
            `ep_vmax` y `ep_gmax` —el gradiente MÁXIMO, derivado de 4·V² por `calcVP`— y la
@@ -73161,6 +73179,22 @@ const VMOD_POS = Object.freeze({
               {k:'dvi',   lbl:'DVI', uni:'', id:'vt_dvi'},
               {k:'eoa',   lbl:'\u00c1rea por continuidad', uni:' cm\u00b2', id:'et_avt'} ],
     ppm:null, cortes:null
+  }),
+  /* ══ LA PULMONAR (PANT-20, commit 6) ═════════════════════════════════════
+     SIN `ppm` NI `cortes`, por la decision 6: la Tabla 7 no publica cortes de EOA indexada
+     pulmonar, asi que la indexada predicha sale SOLO como numero.
+     ⚠️ SOLO TRES MEDIDOS, y es una medicion y no un olvido: la A7 trae cinco columnas, pero la
+     aplicacion NO tiene un campo de tiempo de aceleracion NI de area de la PROTESIS pulmonar.
+     El AT que existe (`vd_tap`, en VD/AD) es el del tracto de salida nativo y darlo por el de la
+     protesis seria suponerlo. Sus cuadritos de valor ESPERADO si aparecen -son de la tabla-; lo
+     que no aparece es su «medido». Ver docs/PENDIENTES.md -> P20-c. */
+  vp: Object.freeze({
+    morf:'vp_morf', etq:'pulmonar',
+    campos:{ modelo:'vp_prot_modelo', tam:'vp_prot_tam', gmref:'vp_prot_gmref', eoaref:'vp_prot_eoaref' },
+    medidos:[ {k:'pico',  lbl:'Gradiente pico', uni:' mmHg', id:'ep_gmax'},
+              {k:'medio', lbl:'Gradiente medio', uni:' mmHg', id:'ep_gmedio'},
+              {k:'vpico', lbl:'Velocidad pico', lblMed:'Velocidad pico medida', uni:' m/s', id:'ep_vmax'} ],
+    ppm:null, cortes:null
   })
 });
 /* Las tres palabras del PPM son las de PPM_FILA_TXT, el dueno unico: un segundo juego de
@@ -73192,7 +73226,11 @@ function _vmSet(id,v){ const e=_vmEl(id); if(e){ e.value=(v==null?'':String(v));
 function _vmN(x){ const n=parseFloat(String(x==null?'':x).replace(',','.')); return isFinite(n)?n:null; }
 /* El numero se publica tal como JS lo serializa: no se agrega ni se quita precision. */
 function _vmNum(x){ return (x==null)?'':String(x); }
-function _vmPar(c){ if(!c) return null; return (c[1]==null) ? _vmNum(c[0]) : (_vmNum(c[0])+' ± '+_vmNum(c[1])); }
+/* El TERCER elemento de una celda es el TEXTO IMPRESO, y manda cuando esta: la Tabla A7 imprime
+   medianas con rango («11 (8-17)») y limites superiores («<15») que no son «valor +- desvio».
+   Publicarlo tal cual es lo unico que no pierde ni inventa nada. */
+function _vmPar(c){ if(!c) return null; if(c[2]) return String(c[2]);
+                    return (c[1]==null) ? _vmNum(c[0]) : (_vmNum(c[0])+' ± '+_vmNum(c[1])); }
 function _vmNorm(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 
 /* ── que catalogo corresponde a la morfologia que hay cargada ───────────────────────────── */
@@ -73233,7 +73271,10 @@ function vModEsperados(pos){
   const m = vModBuscar(pos,nom); if(!m) return null;
   const C = vModCatalogo(pos);
   const tam = _vmV(P.campos.tam);
-  const fila = m.s.filter(f => f[0]===tam)[0] || (m.viv ? m.s[0] : null);
+  /* `uno` es la hermana de `viv`: un modelo con UNA sola fila y SIN tamano impreso -el
+     homoinjerto, las bioprotesis genericas y los dos de «native outflow» de la A7- no pide
+     tamano, igual que un valve-in-valve. */
+  const fila = m.s.filter(f => f[0]===tam)[0] || ((m.viv||m.uno) ? m.s[0] : null);
   if (!fila) return null;
   const vals = {};
   C.cols.forEach((c,i) => { vals[c] = fila[i+1] || null; });
@@ -73525,11 +73566,13 @@ function _vModLlenarTam(m, keep){
   const o0=document.createElement('option'); o0.value=''; o0.textContent='—'; s.appendChild(o0);
   if(!m){ s.disabled=true; return; }
   _vModCur=m;
-  m.s.forEach(f=>{ const o=document.createElement('option'); o.value=f[0];
+  /* una fila con el tamano VACIO no genera opcion: duplicaria el «—» de arriba. */
+  m.s.forEach(f=>{ if(!f[0]) return;
+                   const o=document.createElement('option'); o.value=f[0];
                    o.textContent=f[0]+(/^\d+$/.test(f[0])?' mm':''); s.appendChild(o); });
-  s.disabled=false;
-  /* un valve-in-valve no pide tamano: tiene uno solo y se elige SOLO */
-  s.value = keep || (m.viv ? m.s[0][0] : '');
+  s.disabled = (s.options.length<=1);
+  /* un valve-in-valve -y un modelo sin tamano impreso- no pide tamano: se elige SOLO */
+  s.value = keep || ((m.viv||m.uno) ? m.s[0][0] : '');
 }
 function _vModElegirModelo(m, tam){
   const inp=_vmEl('vmod-inp'); if(inp) inp.value=m.n;
@@ -73573,7 +73616,7 @@ function _vModDraft(){
     if (g!=null && g>0 && e!=null && e>0)
       D={manual:true, nombre:_vmV('vmod-mnom'), tam:_vmV('vmod-mtam'),
          vals:{medio:[g,null], eoa:[e,null]}, cols:['medio','eoa']};
-  } else if (_vModCur && (_vmV('vmod-tam') || _vModCur.viv)){
+  } else if (_vModCur && (_vmV('vmod-tam') || _vModCur.viv || _vModCur.uno)){
     const C=vModCatalogo(pos);
     const tam=_vmV('vmod-tam') || _vModCur.s[0][0];
     const fila=_vModCur.s.filter(f=>f[0]===tam)[0];
@@ -145437,6 +145480,13 @@ function _labExcelRow(inf) {
        columna no se emitía nunca, así que el dato se perdía en el ida y vuelta y la entrada de
        importación era inalcanzable —la plantilla deriva sus columnas de esta función—. */
     'DVI pulmonar': rnd(valvProtDato('vp_morf','vp_dvi',c),2),
+    /* PANT-20: el modelo y el tamano pulmonares son TEXTO -la A7 imprime «21», «12-22» y
+       «16 (<=20)»-. La columna del area se llama «Area de referencia pulmonar» y no «EOA»: un
+       caso existente exige que ningun encabezado del Excel contenga «EOA» ni «AEO» (P19-g). */
+    'Modelo de prótesis pulmonar': (valvEsProtesis(c.vp_morf||'') ? (c.vp_prot_modelo || '') : ''),
+    'Tamaño de prótesis pulmonar': (valvEsProtesis(c.vp_morf||'') ? (c.vp_prot_tam || '') : ''),
+    'G. medio de referencia pulmonar (mmHg)': rnd(valvProtDato('vp_morf','vp_prot_gmref',c),1),
+    'Área de referencia pulmonar (cm²)': rnd(valvProtDato('vp_morf','vp_prot_eoaref',c),2),
     'Morfología pulmonar': c.vp_morf || '',
     'EP grado': c.ep_grado || '', 'EP nivel': c.ep_nivel || '', 'EP etiología': c.ep_etiologia || '',
     'IP grado': c.ip_grado || '', 'IP etiología': c.ip_etiologia || '',
@@ -147069,6 +147119,10 @@ const LAB_XLS_MAP = [
   /* Pulmonar (2026-09-16). Las SEIS van juntas: exportar la etiología de una insuficiencia
      cuyo grado no viaja daría una planilla que no se puede leer sola. */
   ['Morfología pulmonar',    'vp_morf',        'opcion'],
+  ['Modelo de prótesis pulmonar',              'vp_prot_modelo', 'txt'],
+  ['Tamaño de prótesis pulmonar',              'vp_prot_tam',    'txt'],
+  ['G. medio de referencia pulmonar (mmHg)',   'vp_prot_gmref',  'num'],
+  ['Área de referencia pulmonar (cm²)',        'vp_prot_eoaref', 'num'],
   ['DVI pulmonar',           'vp_dvi',         'num'],
   ['EP grado',               'ep_grado',       'opcion'],
   ['EP nivel',               'ep_nivel',       'opcion'],
