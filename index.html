@@ -9408,7 +9408,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
       <div class="valv-morf-row">
         <div class="fg"><label>Morfología VT <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="vt-morf-tipos" aria-expanded="false" aria-label="Qué dice la fuente de la plastia y del TEER tricuspídeo, y qué no define" onclick="vInfoClic(this)">&#9432;</button></label>
-          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia tricuspídea</option><option>TEER tricuspídeo (T-TEER)</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <select id="vt_morf" onchange="valvProtSync();vModMorfSync('vt')"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia tricuspídea</option><option>TEER tricuspídeo (T-TEER)</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
           <!-- ⚠️ ACÁ VIVÍA UNA NOTA DIDÁCTICA Y SE BORRÓ (2026-10-07, orden de Maicol): «Funcional
                / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.» Era un
                `<span>` sin `id` y sin un solo lector —censo del archivo, de los tests y de las
@@ -9419,7 +9419,27 @@ window.cerrarSesionReal = cerrarSesionReal;
                (causa más frecuente de IT)» habría puesto una frase de manual dentro de un documento
                firmado y dentro de una celda de datos. -->
         </div>
+        <!-- ══ «Modelo y tamano» de la valvula TRICUSPIDE (PANT-20, commit 5) ════════
+             EL BOTON VA EN ESTA FILA, a la derecha del select, como en la aortica y al reves que
+             en la mitral: esta fila es un `.valv-morf-row` FLEX con UN solo hijo y deja 774 px
+             libres a 1440, 358 a 1000 y 286 a 768; a 390 el `flex-wrap` lo baja solo. Medido en
+             el commit 1. El problema que obligo a darle fila propia a la mitral NO aparece aca.
+             Los cuatro campos guardados van ocultos con `display:none` y NO con `type="hidden"`
+             (P14c-g), y con guion BAJO para que `_noEsDelEstudio` no los saque del estudio. -->
+        <div class="fg vmod-wrap" id="vmod-vt-wrap" style="display:none;">
+          <label for="vmod-vt-btn">Pr&oacute;tesis</label>
+          <button type="button" class="btn btn-ghost vmod-btn" id="vmod-vt-btn"
+                  aria-expanded="false" aria-haspopup="dialog" aria-label="Modelo y tama&ntilde;o de la pr&oacute;tesis tricusp&iacute;dea"
+                  onclick="vModClic('vt')">Modelo y tama&ntilde;o</button>
+        </div>
+        <div class="vmod-chips" id="vmod-vt-chips" aria-live="polite"></div>
+        <input type="text"   id="vt_prot_modelo" style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="text"   id="vt_prot_tam"    style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vt_prot_gmref"  step="0.1"  style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vt_prot_eoaref" step="0.01" style="display:none;" tabindex="-1" aria-hidden="true">
       </div>
+      <div class="vmod-sub" id="vmod-vt-sub" style="display:none;"></div>
+      <div class="vmod-med" id="vmod-vt-med" style="display:none;"></div>
       <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
@@ -73120,6 +73140,27 @@ const VMOD_POS = Object.freeze({
               {k:'eoa',   lbl:'AVm por continuidad', uni:' cm\u00b2', id:'avm_cont'} ],
     ppm:(eoai,imc)=>(typeof _vmPpmClasificar==='function')?_vmPpmClasificar(eoai,imc):null,
     cortes:(imc)=>((imc!=null && imc>=VM_PROT_IMC_OBESIDAD)?VM_PROT_PPM_CORTES.imcAlto:VM_PROT_PPM_CORTES.imcBajo)
+  }),
+  /* ══ LA TRICUSPIDE (PANT-20, commit 5) ═══════════════════════════════════
+     SIN `ppm` NI `cortes`, y es la decision 6 del medico: la Tabla 7 NO publica cortes de EOA
+     indexada tricuspide, asi que la «EOA indexada predicha» sale SOLO como numero, sin
+     categoria y sin rotulo. Inventar una categoria seria publicar un corte que ninguna hoja
+     respalda.
+     ⚠️ LA VELOCIDAD DE E LLEVA `fac:100`: la Tabla A9 la imprime en m/sec y el campo de la
+     aplicacion (`et_e_vmax`) esta en cm/s. La conversion se hace UNA vez, aca, para comparar lo
+     medido con lo esperado; el cuadrito del valor esperado sigue publicando la unidad de la
+     tabla. Es la misma regla que `VT_PROT_T19` aplica a su corte. */
+  vt: Object.freeze({
+    morf:'vt_morf', etq:'tricusp\u00eddea',
+    campos:{ modelo:'vt_prot_modelo', tam:'vt_prot_tam', gmref:'vt_prot_gmref', eoaref:'vt_prot_eoaref' },
+    medidos:[ {k:'medio', lbl:'Gradiente medio', uni:' mmHg', id:'et_gmedio'},
+              {k:'thp',   lbl:'THP', uni:' ms', id:'et_thp'},
+              {k:'evel',  lbl:'Velocidad pico de E', lblMed:'Velocidad pico de E medida',
+               uni:' cm/s', id:'et_e_vmax', fac:100},
+              {k:'vti',   lbl:'VTI de entrada', uni:' cm', id:'et_vti_diast'},
+              {k:'dvi',   lbl:'DVI', uni:'', id:'vt_dvi'},
+              {k:'eoa',   lbl:'\u00c1rea por continuidad', uni:' cm\u00b2', id:'et_avt'} ],
+    ppm:null, cortes:null
   })
 });
 /* Las tres palabras del PPM son las de PPM_FILA_TXT, el dueno unico: un segundo juego de
@@ -73143,7 +73184,7 @@ const VMOD_COL_TXT = Object.freeze({
 });
 let _vModPos = null;          // posicion abierta, o null
 let _vModCur = null;          // modelo elegido en la card, todavia sin confirmar
-let _vModVer = { va:true, vm:true };   // estado de «Mostrar / Ocultar», de PANTALLA y no del estudio
+let _vModVer = { va:true, vm:true, vt:true, vp:true };   // estado de «Mostrar / Ocultar», de PANTALLA y no del estudio
 
 function _vmEl(id){ return document.getElementById(id); }
 function _vmV(id){ const e=_vmEl(id); return e ? String(e.value||'').trim() : ''; }
@@ -73266,11 +73307,17 @@ function vModSync(pos){
   if (eo && !idx)
     chips.appendChild(_vmChip('EOA indexada predicha','falta el peso y la talla'));
   else if (idx){
-    const em=document.createElement('em'); em.textContent=VMOD_PPM_TXT[idx.ppm]||'—';
-    const frag=document.createDocumentFragment();
-    frag.appendChild(document.createTextNode(idx.eoai.toFixed(2)+' cm²/m² · '));
-    frag.appendChild(em);
-    chips.appendChild(_vmChip('EOA indexada predicha', frag));
+    /* DECISION 6 del medico: una posicion SIN cortes publicados -la tricuspide y la pulmonar, que
+       la Tabla 7 no cubre- publica SOLO el numero. Una categoria ahi seria un corte inventado. */
+    if (idx.ppm==null){
+      chips.appendChild(_vmChip('EOA indexada predicha', idx.eoai.toFixed(2)+' cm²/m²'));
+    } else {
+      const em=document.createElement('em'); em.textContent=VMOD_PPM_TXT[idx.ppm]||'—';
+      const frag=document.createDocumentFragment();
+      frag.appendChild(document.createTextNode(idx.eoai.toFixed(2)+' cm²/m² · '));
+      frag.appendChild(em);
+      chips.appendChild(_vmChip('EOA indexada predicha', frag));
+    }
   }
   /* la linea de abajo: el tipo, el ASC, el IMC y los cortes aplicados, mas «Ocultar» */
   if(sub){
@@ -73280,7 +73327,8 @@ function vModSync(pos){
     else if (E.desc) partes.push(E.desc);
     if (idx){
       partes.push('ASC '+idx.bsa.toFixed(2)+' m²');
-      if (idx.imc!=null) partes.push('IMC '+idx.imc.toFixed(1)+' kg/m²');
+      /* el IMC se publica solo donde ELIGE una rama de cortes: sin cortes no decide nada. */
+      if (idx.imc!=null && idx.cortes) partes.push('IMC '+idx.imc.toFixed(1)+' kg/m²');
       if (idx.cortes) partes.push('cortes de IMC '+((idx.imc!=null&&idx.imc>=VM_PROT_IMC_OBESIDAD)?'≥ 30':'< 30')+
         ': moderado ≤ '+idx.cortes.normalMin+' · severo ≤ '+idx.cortes.severoMax+' cm²/m²');
     } else partes.push(eo ? 'falta el peso y la talla para indexar'
@@ -73307,8 +73355,12 @@ function vModSync(pos){
       hay=true;
       const esp=E.vals[d.k];
       let txt=_vmNum(x)+d.uni;
-      if (esp && esp[1]!=null && +esp[1]>0){
-        const z=(x-(+esp[0]))/(+esp[1]);
+      /* `fac` lleva lo ESPERADO a la unidad del CAMPO antes de restar: la Tabla A9 imprime la
+         velocidad de E en m/sec y el campo esta en cm/s. Sin esto la diferencia saldria en
+         decenas de desvios sobre un valor normal. */
+      const _f = d.fac || 1;
+      if (esp && esp[1]!=null && (+esp[1])*_f>0){
+        const z=(x-(+esp[0])*_f)/((+esp[1])*_f);
         txt += ' · '+(z>=0?'+':'−')+Math.abs(z).toFixed(1)+' DE respecto del esperado';
       }
       /* `lblMed` existe porque «Velocidad pico medido» no se dice: una etiqueta cuyo genero
@@ -73545,7 +73597,8 @@ function _vModDraft(){
     const d2=document.createElement('div');
     const s2=document.createElement('span'); s2.textContent='EOA indexada predicha';
     const b2=document.createElement('b');
-    b2.textContent = idx ? (idx.eoai.toFixed(2)+' cm²/m² · '+(VMOD_PPM_TXT[idx.ppm]||'—'))
+    b2.textContent = idx ? (idx.eoai.toFixed(2)+' cm²/m²'
+                            + (idx.ppm==null ? '' : (' · '+(VMOD_PPM_TXT[idx.ppm]||'—'))))
                          : 'falta el peso y la talla';
     d2.appendChild(s2); d2.appendChild(b2); g.appendChild(d2);
     exp.appendChild(g);
@@ -145341,6 +145394,14 @@ function _labExcelRow(inf) {
     'IAo_I (Leve)': bin(gIA,'leve'), 'IAo_II (Moderada)': bin(gIA,'moderada'), 'IAo_III (Severa)': bin(gIA,'severa'),
     'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'THP IAo (ms)': rnd(num('ia_pht'),0),
     'DVI tricuspídeo': rnd(valvProtDato('vt_morf','vt_dvi',c),2),
+    /* PANT-20: el modelo y el tamano tricuspides son TEXTO, como los de la mitral y la aortica.
+       ⚠️ LA COLUMNA DEL AREA SE LLAMA «AVT de referencia tricuspide» y no «EOA»: un caso
+       existente exige que NINGUN encabezado del Excel contenga «EOA» ni «AEO» (P19-g), y «AVT»
+       es la sigla con la que la propia aplicacion nombra el area tricuspidea. */
+    'Modelo de prótesis tricúspide': (valvEsProtesis(c.vt_morf||'') ? (c.vt_prot_modelo || '') : ''),
+    'Tamaño de prótesis tricúspide': (valvEsProtesis(c.vt_morf||'') ? (c.vt_prot_tam || '') : ''),
+    'G. medio de referencia tricúspide (mmHg)': rnd(valvProtDato('vt_morf','vt_prot_gmref',c),1),
+    'AVT de referencia tricúspide (cm²)': rnd(valvProtDato('vt_morf','vt_prot_eoaref',c),2),
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
@@ -147000,6 +147061,10 @@ const LAB_XLS_MAP = [
 
   // 12 · Válvula tricúspide y presiones pulmonares
   ['Morfología tricúspide',  'vt_morf',        'opcion'],
+  ['Modelo de prótesis tricúspide',             'vt_prot_modelo', 'txt'],
+  ['Tamaño de prótesis tricúspide',             'vt_prot_tam',    'txt'],
+  ['G. medio de referencia tricúspide (mmHg)',  'vt_prot_gmref',  'num'],
+  ['AVT de referencia tricúspide (cm²)',        'vt_prot_eoaref', 'num'],
   ['DVI tricuspídeo',        'vt_dvi',         'num'],
   /* Pulmonar (2026-09-16). Las SEIS van juntas: exportar la etiología de una insuficiencia
      cuyo grado no viaja daría una planilla que no se puede leer sola. */
