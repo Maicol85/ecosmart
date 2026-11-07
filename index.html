@@ -104682,6 +104682,44 @@ function _indEstNoHay(lesion){
     nota:'la AHA/ACC 2020 publica tablas de estadios para la estenosis y la insuficiencia aórticas, la estenosis mitral, las dos insuficiencias mitrales y la insuficiencia tricuspídea. Para ' + lesion + ' no hay tabla de estadios en esa guía, así que esta sección no publica ninguno' };
 }
 
+/* ══ UN SECTOR AVANZADO SOLO GENERA EVIDENCIA SI ESTA INCLUIDO EN EL INFORME ═════════════════
+   DECISION DE MAICOL (07 y 08/11/2026). El medico cargo un TAPSE bajo y un E/e' elevado -dos
+   datos del eco BASAL, que se miden en todos los estudios- sin haber incluido en el informe
+   ningun sector avanzado, y el panel le armo igual «Constriccion pericardica», «Perfil
+   hemodinamico» y «Amiloidosis cardiaca». Medido en HEAD: las tres aparecian, y al integrar cada
+   uno de los dieciseis sectores de a uno la lista del panel salia IDENTICA, o sea que la
+   condicion de aparicion ignoraba el interruptor por completo.
+
+   Lo que esta funcion decide es SOLO si la seccion EXISTE. No toca el dato: la sincronizacion
+   sigue llevandolo al sector, que es intencional, y el informe sigue sin escribir nada de un
+   sector no incluido, que tambien esta bien. Lo que cambia es que la Evidencia dejo de concluir
+   sobre un sector que el medico no abrio.
+
+   ⚠️ LEE EL MISMO INTERRUPTOR QUE LEE EL INFORME, Y NO UNA COPIA DEL CRITERIO. El dueno unico de
+   «este sector esta en el informe» es `amiloIntegrado(k)` -el bloque `#am-wrap-<k>` visible-, que
+   es el que `amiloEnInforme()` consulta para armar la hoja del PDF y el que `#am-integrados`
+   persiste con el estudio. Con un predicado propio aca, el dia que ese interruptor cambie el
+   panel y el informe discreparian sobre el mismo sector.
+
+   ⚠️ LA LLAMADA ES PELADA, SIN `typeof`, Y ES DELIBERADO. Es el mismo fail-closed que
+   `amiloEnInforme` aplica a `omitir`: si `amiloIntegrado` no existiera, un `typeof` devolveria
+   falso en silencio y -segun como se escribiera la guarda- podria volver a publicar la seccion;
+   pelada tira `ReferenceError`, lo caza el try/catch de `indicRender` y la seccion no se pinta.
+   Las dos formas de fallar terminan del mismo lado, que es el que el medico pidio.
+
+   ⚠️ UN SECTOR PUEDE TENER VARIAS HOJAS. La amiloidosis son DOS entradas de `amiloSecs` -`ett`,
+   el score por ecocardiografia, y `alg`, el algoritmo diagnostico- y el ETE son CINCO. Incluir
+   cualquiera de ellas es haber abierto ese sector, asi que el ayudante acepta una clave o una
+   lista y alcanza con UNA. Con «todas» una amiloidosis evaluada solo por score se quedaria sin su
+   Evidencia. */
+function _indSectorIncluido(av){
+  if (av == null) return true;
+  const ks = Array.isArray(av) ? av : [av];
+  for (let i = 0; i < ks.length; i++) { if (amiloIntegrado(ks[i])) return true; }
+  return false;
+}
+window._indSectorIncluido = _indSectorIncluido;
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   /* ⚠️ LA DE PANT-21 (commit 3). Va PEGADA a la estenosis aórtica y no al final: es la que OCUPA
@@ -104801,18 +104839,25 @@ const IND_SECS = [
      titulo, asi que un titulo que sea prefijo de otro deja una de las dos sin probar.
      Verificado contra los veinticuatro y entre si. */
   { tit:'Derrame pericárdico y taponamiento', fn:_indDerrPeri },
-  { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr },
+  { tit:'Constricción pericárdica — diagnóstico', fn:_indConstr, av:'cvr' },
+  /* `av`: la seccion es del sector avanzado «Constricción vs Restricción» y sin el sector
+     incluido en el informe no existe. Es una de las TRES que el medico reporto. */
   { tit:'Congestión venosa sistémica — VExUS', fn:_indVexus },
   /* ⚠️ LA DE LA TANDA J2 (24/10/2026), Y SU TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES
      PREFIJO SUYO: `IND_SECS` se recorre buscando la sección por el PREFIJO de su título.
      Verificado contra los veintisiete anteriores: ninguno empieza con «Perfil». */
-  { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo },
+  { tit:'Perfil hemodinámico — presiones y resistencias estimadas por eco', fn:_indHemo, av:'hemo' },
+  /* `av`: del sector avanzado «Perfil hemodinámico». La segunda de las tres del medico. */
   /* ⚠️ NINGUNO DE LOS DOS TÍTULOS ES PREFIJO DE OTRO NI DE LOS VEINTISIETE ANTERIORES.
      Verificado: ninguno empieza con «Perfil» ni con «Cardiotoxicidad». */
   { tit:'Cardiotoxicidad por tratamiento oncológico — graduación y seguimiento', fn:_indConco },
   /* ⚠️ «Amiloidosis cardíaca — algoritmo diagnóstico» no es prefijo de ninguno de los
      veintinueve anteriores ni ninguno es prefijo suyo. Verificado. */
-  { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil },
+  { tit:'Amiloidosis cardíaca — algoritmo diagnóstico', fn:_indAmil, av:['ett','alg'] },
+  /* `av` con DOS claves: la amiloidosis tiene dos hojas en `amiloSecs` -el score por
+     ecocardiografia y el algoritmo diagnostico- y la seccion lee datos de las dos
+     (`ett-*` y `alg-ett-score`), asi que incluir cualquiera de las dos es haber abierto el
+     sector. La tercera de las tres del medico. */
   /* ⚠️ «Posoperatorio de cirugía cardíaca» no es prefijo de ninguno de los TREINTA anteriores ni
      ninguno es prefijo suyo: `IND_SECS` se recorre buscando la sección por el PREFIJO de su
      título, así que un título que sea prefijo de otro deja una de las dos sin probar. Verificado
@@ -104847,7 +104892,16 @@ function indicRender(){
        desaparecía con «revisar la consola», donde no había NADA escrito: el médico veía una válvula
        menos y el que fuera a mirar no encontraba ni el nombre de la sección. Lo encontró
        /sharp-edges sobre este diff. */
-    try { r = s.fn(); if (r) hs = _indSecHTML(s.tit, r); }
+    /* ⚠️ EL AYUDANTE SE CONSULTA ACA Y EN NINGUN OTRO LADO, que es lo que lo hace UN mecanismo y
+       no trece copias de un `if` al principio de cada seccion. `indicRender` es el UNICO punto por
+       el que el panel se arma -lo llaman `indicAbrir` y `_indRepintarConservando`, censado-, asi
+       que una seccion de un sector no incluido no llega a existir por ningun camino.
+       VA DENTRO DEL `try` y antes de `s.fn()`: si `amiloIntegrado` no existiera, el
+       `ReferenceError` lo caza el `catch` de abajo y la seccion tampoco se pinta -el fail-closed
+       que el docstring de `_indSectorIncluido` declara-. Y el `return` de esta linea NO cuenta
+       como fallo: la seccion no esta caida, esta fuera de alcance. */
+    try { if (s.av != null && !_indSectorIncluido(s.av)) return;
+          r = s.fn(); if (r) hs = _indSecHTML(s.tit, r); }
     catch (e) { fallos++; console.error('[IND] la sección «' + s.tit + '» lanzó y no se pinta:', e); return; }
     if (!r) return;
     n++;

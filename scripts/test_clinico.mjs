@@ -90671,8 +90671,20 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
   const clic2 = (k, v) => { const b = document.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
     if (!b) return 'NO HAY BOTON ' + k + '=' + v; b.click(); return 'ok'; };
 
+  /* ADAPTADO en la tanda PANT-22 (commit 2), y es el dia que este bloque anunciaba. Hasta hoy
+     la seccion de Evidencia del perfil hemodinamico se armaba con solo tener los span de
+     calcHemo calculados, o sea con datos del eco BASAL y sin que el medico hubiera incluido el
+     sector en el informe. Por decision de Maicol (07 y 08/11/2026) un sector avanzado solo
+     genera su Evidencia si esta incluido, asi que la escena de este bloque INTEGRA el sector:
+     lo que el bloque vigila -que la seccion exista, que cite la ASE 2025 y que publique sus dos
+     recomendaciones sin clase inventada- no se movio, y se sigue midiendo igual.
+     El control de que SIN integrar no exista lo lleva el caso nuevo de esa tanda. */
+  if (F('amiloIntegrar')) { try { if (!amiloIntegrado('hemo')) amiloIntegrar('hemo') } catch (e) {} }
   abrirPanel2();
   const evH = evSec2('Perfil hemodin\\u00e1mico');
+  ex.push(['(D0) DENOMINADOR: el sector del perfil hemodinamico quedo INTEGRADO al informe',
+    (function(){ try { return amiloIntegrado('hemo') === true } catch (e) { return false } })(),
+    'integrado=' + (function(){ try { return String(amiloIntegrado('hemo')) } catch (e) { return 'EXC' } })()]);
   ex.push(['(D1) la Evidencia de hemodinamica existe y cita la ASE 2025 de corazon derecho',
     !!evH && evH.biblio.indexOf('aseDer2025') > -1, evH ? JSON.stringify(evH.biblio) : 'NO HAY SECCION']);
   ex.push(['(D2) publica las DOS recomendaciones del folio 167 sobre que informar, sin clase ni nivel inventados',
@@ -90830,8 +90842,20 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
     const s = evSec2('Amiloidosis card\\u00edaca');
     cerrarPanel2();
     return { r1:r1, r2:r2, txt: s ? s.txt : 'NO HAY SECCION', biblio: s ? s.biblio : [] }; };
+  /* ADAPTADO en la tanda PANT-22 (commit 2), por el mismo motivo que el bloque (D) de arriba:
+     la Evidencia de amiloidosis es de un sector avanzado y desde esta tanda no existe sin que el
+     sector este incluido en el informe. La amiloidosis tiene DOS hojas en amiloSecs -el score por
+     ecocardiografia y el algoritmo diagnostico- y alcanza con una; se integran las dos para que
+     el cuestionario de los cuatro escenarios se pueda contestar sin depender de cual quedo.
+     Lo que el bloque vigila no se movio. */
+  if (F('amiloIntegrar')) { try { if (!amiloIntegrado('ett')) amiloIntegrar('ett');
+                                   if (!amiloIntegrado('alg')) amiloIntegrar('alg') } catch (e) {} }
   abrirPanel2();
   const evA0 = evSec2('Amiloidosis card\\u00edaca');
+  ex.push(['(G0) DENOMINADOR: el sector de amiloidosis quedo INTEGRADO al informe',
+    (function(){ try { return amiloIntegrado('ett') || amiloIntegrado('alg') } catch (e) { return false } })(),
+    'ett=' + (function(){ try { return String(amiloIntegrado('ett')) } catch (e) { return 'EXC' } })() +
+    ' alg=' + (function(){ try { return String(amiloIntegrado('alg')) } catch (e) { return 'EXC' } })()]);
   ex.push(['(G1) la Evidencia de amiloidosis existe y cita el documento de posicion y a Boldrini',
     !!evA0 && evA0.biblio.indexOf('gpAmiloid2021') > -1 && evA0.biblio.indexOf('boldrini2020') > -1,
     evA0 ? JSON.stringify(evA0.biblio) : 'NO HAY SECCION']);
@@ -90870,6 +90894,12 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
     abrir('algo-result');
     try { selGrado(2) } catch (e) {}
     try { selProteinas('negativo') } catch (e) {}
+    /* ADAPTADO en la tanda PANT-22 (commit 2): este bloque arranca con __t.limpiar(), que RETIRA
+       la integracion que el bloque (G) de arriba dejo puesta, asi que el sector hay que volver a
+       integrarlo aca. Sin esto la seccion no existe y la condicion cae por su denominador en vez
+       de por el invariante que mide -que el dato cargado en el modulo se LEE y no se pregunta-. */
+    if (F('amiloIntegrar')) { try { if (!amiloIntegrado('ett')) amiloIntegrar('ett');
+                                     if (!amiloIntegrado('alg')) amiloIntegrar('alg') } catch (e) {} }
     abrirPanel2();
     const sMod = evSec2('Amiloidosis cardíaca');
     cerrarPanel2();
@@ -93037,6 +93067,21 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     ].forEach(p => S(p[0], p[1]));
     Object.keys(window).forEach(k => { if (/^calc[A-Z]/.test(k) && typeof window[k] === 'function') {
       try { window[k]() } catch (e) {} } });
+    /* ADAPTADO en la tanda PANT-22 (commit 2), y es el dia que este escenario anunciaba. Cinco
+       de las secciones que esta escena despierta son de un sector AVANZADO -el pericardio, la
+       constriccion, el perfil hemodinamico, la amiloidosis y el posoperatorio-, y por decision
+       de Maicol (07 y 08/11/2026) una seccion de sector avanzado no existe si el sector no esta
+       incluido en el informe. La escena INTEGRA esos sectores, que es lo que este caso ya hacia
+       implicitamente al dar por hecho que la seccion estaba: lo que vigila -que las compactas
+       no publiquen una nota de trabajo ni un nombre interno, que cada recomendacion lleve su
+       clase y que el papel no reciba nada del panel- no se movio.
+       La amiloidosis se integra por sus DOS hojas, que es lo que deja contestar su cuestionario.
+       El control de que SIN integrar no existan lo lleva el caso nuevo de esa tanda. */
+    /* ⚠️ IDEMPOTENTE, Y SE MIDIO POR QUE: amiloIntegrar es un TOGGLE, asi que llamarlo sobre un
+       sector YA integrado lo RETIRA. Con la version sin guarda, el bloque (D6b) de mas abajo
+       volvia a integrar hemodinamica y lo dejaba afuera: «integrar=1 · integrado=false». */
+    ['dpt','cvr','hemo','ett','alg','pop'].forEach(k => {
+      try { if (typeof amiloIntegrar === 'function' && !amiloIntegrado(k)) amiloIntegrar(k) } catch (e) {} });
     /* ⚠️ EL PANEL SE ABRE CON indicAbrir, NO CON indicRender, Y NO ES UN DETALLE:
        _indClinCablear corre desde indicAbrir, y sin el los clics de las preguntas no hacen
        nada. Con indicRender a secas las ramas de recomendacion que dependen de una respuesta
@@ -93102,8 +93147,14 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
        informe». Con el bloque sin integrar, el informe no contiene nada de ese modulo, asi que
        buscarle fugas da verde por construccion. Lo cazo la mutacion M15 del barrido dirigido:
        meterle un «folio 1125» a esa funcion SOBREVIVIO. */
+    /* ADAPTADO en la tanda PANT-22 (commit 2): amiloIntegrar es un TOGGLE, y desde que la escena
+       de este caso integra los sectores avanzados para que sus secciones de Evidencia existan,
+       esta llamada sin guarda RETIRABA el que ya estaba puesto. Medido: «integrar=1 ·
+       integrado=false» con el texto del bloque intacto en 736 caracteres, porque retirar no borra
+       el textarea. Con la guarda el invariante queda MAS fuerte: ya no depende del estado previo,
+       exige que al llegar aca el sector este integrado y que su texto exista. */
     const integro = (function(){ try { if (typeof amiloIntegrar === 'function') {
-      amiloIntegrar('hemo'); return 1 } return 'SIN amiloIntegrar' } catch (e) { return String(e).slice(0, 60) } })();
+      if (!amiloIntegrado('hemo')) amiloIntegrar('hemo'); return 1 } return 'SIN amiloIntegrar' } catch (e) { return String(e).slice(0, 60) } })();
     const EST = {};
     ['estandar', 'narrativo', 'conciso'].forEach(st => {
       try { setEstiloInforme(st) } catch (e) {}
@@ -93432,6 +93483,12 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     ex.push(['(N4) la capsula del modulo nombra el dato que falta, igual que la fila de la Evidencia',
       N(__t.txt('hemo-forrester')) === 'falta la presión capilar pulmonar estimada',
       'capsula=' + N(__t.txt('hemo-forrester'))]);
+    /* ADAPTADO en la tanda PANT-22 (commit 2): este bloque arranca con __t.limpiar(), que deja el
+       sector del perfil hemodinamico SIN integrar, y desde esta tanda su seccion de Evidencia no
+       existe sin la inclusion. (N4) mide la CAPSULA del modulo, que no depende de eso, y (N5) la
+       FILA de la Evidencia, que si: sin integrar, (N5) caia por su denominador en vez de por el
+       invariante que mide -que la capsula y la fila digan LO MISMO sobre el mismo estudio-. */
+    try { if (typeof amiloIntegrar === 'function' && !amiloIntegrado('hemo')) amiloIntegrar('hemo') } catch (e) {}
     try { indicRender() } catch (e) {}
     /* ⚠️ ESTA SE MIDE SOBRE TODO Y NO SOBRE VIS, Y EL MOTIVO ES DEL PRODUCTO: en esta
        escena ninguna fila de la seccion hemodinamica marca ✅ ni 🔴 —son «—» y «❓»—, asi que
