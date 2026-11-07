@@ -39819,14 +39819,27 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
     esc({ va_morf:'Calcificada', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
       vmax_ao:'4.5', gmedio_ao:'45' });
     const secNat = (typeof _indEA === 'function') ? _indEA() : null;
-    ex.push(['el panel de Evidencia declara que sus filas no aplican a una protesis y NO recomienda nada, mientras con valvula nativa sigue publicando la conducta de siempre',
-      secProt != null && secProt.recom && secProt.recom.tipo === 'no' &&
-      pl(secProt.recom.tit).indexOf('no aplica') > -1 &&
-      pl(JSON.stringify(secProt)).indexOf('savr') === -1 &&
+    /* ADAPTADO el 2026-11-07 (tanda PANT-21, commit 3), Y ES EL DIA QUE ESTE CASO ANUNCIABA.
+       Afirmaba que con una protesis _indEA publica una tarjeta «Protesis aortica: esta seccion
+       no aplica», cuyo texto decia «esa es otra tabla, la de reintervencion, QUE ESTA APLICACION
+       TODAVIA NO IMPLEMENTA». Esa tabla es la Recommendation Table 17 y desde esta tanda tiene su
+       propia seccion, _indProtA, asi que _indEA devuelve null -igual que las tres secciones
+       mitrales NATIVAS con una protesis mitral- y la que ocupa su lugar es la de protesis.
+       LA CONDICION QUEDA INVERTIDA Y MAS FUERTE: ya no alcanza con que la seccion nativa se calle;
+       ahora exige ademas que la de protesis EXISTA, que publique sus preguntas y que NO cuele
+       ninguna recomendacion de valvula nativa. Asi puede fallar por los DOS lados. */
+    const secProtA = (typeof _indProtA === 'function') ? (function(){
+      esc({ va_morf:'Prótesis mecánica', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
+        vmax_ao:'4.5', gmedio_ao:'45' });
+      try { return _indProtA() } catch (e) { return null } })() : null;
+    ex.push(['con una protesis la seccion de estenosis aortica NATIVA se calla y la de PROTESIS ocupa su lugar, con sus preguntas y sin colar una conducta de valvula nativa',
+      secProt === null &&
+      secProtA != null && Array.isArray(secProtA.clinica) && secProtA.clinica.length > 0 &&
+      pl(JSON.stringify(secProtA)).indexOf('savr') === -1 &&
       secNat != null && secNat.recom && secNat.recom.tipo !== 'no',
-      'protesis: tipo=' + (secProt && secProt.recom ? secProt.recom.tipo : 'null') +
-      ' tit=«' + (secProt && secProt.recom ? secProt.recom.tit : '') +
-      '» · nativa: tipo=' + (secNat && secNat.recom ? secNat.recom.tipo : 'null')]);
+      'nativa con protesis=' + (secProt === null ? 'null' : 'PUBLICA') +
+      ' · protesica preguntas=' + (secProtA && secProtA.clinica ? secProtA.clinica.length : 'NO EXISTE') +
+      ' · nativa: tipo=' + (secNat && secNat.recom ? secNat.recom.tipo : 'null')]);
 
     /* ── SIN VEREDICTO NO SE RESUME NADA ──
        Con TAVI —que no se gradua— y con un dato faltante, cualquier linea en el EN SUMA se leeria
@@ -47907,6 +47920,19 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          cortes de las filas. Por eso es la unica seccion cuyo guia.ref NO sale [1], y por eso la
          condicion arrancanEn1 tuvo que reapuntarse al invariante de verdad. */
       ['Protesis mitral',                     { vm_morf:'Prótesis mecánica' },                      'esc2025vc'],
+      /* ADAPTADO el 2026-11-07 (tanda PANT-21, commits 3, 5 y 6): las TRES secciones de protesis
+         NUEVAS. Este caso exige un escenario por seccion de IND_SECS y por eso se pone en rojo
+         tanto al BORRAR una seccion como al AGREGARLA, que es justo para lo que su denominador
+         existe. El campo de cada una es el MINIMO que abre su compuerta: la morfologia protesica
+         de su valvula, que es valvEsProtesis de su campo _morf en las tres.
+         Su primer corchete es la guia que RIGE cada una: la ESC/EACTS 2025 en la aortica y la
+         tricuspide, y la ACC/AHA 2025 de congenitas en la pulmonar, que es la decision del medico
+         del 07 y el 08/11/2026 -la Tabla 17 de la ESC/EACTS no tiene ninguna fila de protesis
+         pulmonar-. Y ningun titulo es prefijo de otro: «Protesis aortica», «Protesis mitral»,
+         «Protesis tricuspide» y «Protesis pulmonar» divergen en su segunda palabra. */
+      ['Protesis aortica',                    { va_morf:'Prótesis mecánica' },                      'esc2025vc'],
+      ['Protesis tricuspide',                 { vt_morf:'Prótesis mecánica' },                      'esc2025vc'],
+      ['Protesis pulmonar',                   { vp_morf:'Prótesis mecánica' },                      'acc2025achd'],
       ['Insuficiencia aortica',               { ia_grado:'4' },                                 'esc2025vc'],
       ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
       ['Estenosis pulmonar',                  { vp_gmax:'70' },                                     'esc2020guch'],
@@ -91046,7 +91072,11 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
      adaptacion de DENOMINADOR: lo que este control afirma, que las tres de la tanda J siguen
      ahi, no cambia. */
   ex.push(['(L4) CONTROL: las secciones del panel de Evidencia son CUARENTA Y DOS, y las tres de la tanda J siguen ahi',
-    IND_SECS.length === 42
+    /* ADAPTADO el 2026-11-07 (tanda PANT-21): 42 -> 45. Las tres secciones nuevas son las de
+       protesis AORTICA (commit 3), TRICUSPIDE (commit 5) y PULMONAR (commit 6). Es adaptacion de
+       DENOMINADOR y no de contrato: lo que este caso vigila -que el registro no pierda una
+       seccion- no se movio. */
+    IND_SECS.length === 45
       && IND_SECS.some(s => s.tit.indexOf('Derrame peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Constricci\\u00f3n peric') === 0)
       && IND_SECS.some(s => s.tit.indexOf('Congesti\\u00f3n venosa') === 0),
@@ -122473,6 +122503,521 @@ caso('TC-741', 'PANT-20: los DOCE campos nuevos recorren las siete listas, el Ex
       'globos = ' + document.querySelectorAll('#ref-ppulm [data-vinfo], #ref-ptric [data-vinfo]').length]);
     return { extra: ex };
   })();
+`);
+
+/* ══ PANT-21 (2026-11-07) — LA EVIDENCIA DE PROTESIS, UNA SECCION POR VALVULA ═══════════════
+   Los seis casos de la tanda. Leen el OBJETO que devuelven las cuatro funciones de seccion y el
+   HTML que el emisor compartido arma con el, y NO el textContent del panel: la suite corre Chrome
+   sin --window-size, o sea a unos 756 px, que esta por debajo del corte de dos columnas del panel,
+   asi que la maqueta se mide por la REGLA y la ESTRUCTURA. La geometria a los cuatro anchos la
+   miden las sondas _probe_pant21orden.mjs, _probe_pant21prot.mjs y _probe_pant21wk.mjs.
+
+   ⚠️ LOS CUATRO ACCESORES LLEVAN GUARDA, y no es estilo: contra el arbol anterior _indProtA,
+   _indProtT y _indProtP NO EXISTEN, y llamarlas a pelo mata el caso con un ReferenceError. Un
+   caso que cae por excepcion no dice QUE invariante se rompio. Es la leccion de TC-546. */
+
+caso('TC-742', 'PANT-21: la seccion de Evidencia de la PROTESIS AORTICA — aparece solo con su valvula, el orden de los bloques, y la recomendacion con su clase, su nivel y su folio', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const llamar = (n) => { const f = g(n); if (!f) return 'NO EXISTE'; try { return f() } catch (e) { return 'ERR:' + e.message } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+
+  /* (A0) DENOMINADOR: la funcion existe y el registro de preguntas esta cargado. */
+  const PREG = (function () { try { return window.PROTA_PREG || null } catch (e) { return null } })();
+  ex.push(['(A0) DENOMINADOR: _indProtA existe y PROTA_PREG trae sus DOCE preguntas',
+    !!g('_indProtA') && Array.isArray(PREG) && PREG.length === 12,
+    'fn=' + !!g('_indProtA') + ' preg=' + (Array.isArray(PREG) ? PREG.length : 'NO EXISTE')]);
+
+  /* (A1) CONTROL NEGATIVO: con valvula NATIVA la seccion no existe. */
+  limpiar(); S('va_morf', 'Trivalva normal'); S('vmax_ao', '4.5');
+  const nat = llamar('_indProtA');
+  ex.push(['(A1) CONTROL NEGATIVO: con valvula aortica NATIVA la seccion de protesis NO existe',
+    nat === null, 'devolvio=' + (nat === null ? 'null' : (typeof nat)) ]);
+
+  /* (A2) y la de estenosis aortica NATIVA sigue publicando con una valvula nativa severa. */
+  const natEA = llamar('_indEA');
+  ex.push(['(A2) DENOMINADOR: con valvula nativa severa la seccion de estenosis aortica SI publica',
+    esObj(natEA) && Array.isArray(natEA.filas) && natEA.filas.length > 0,
+    'EA nativa=' + (esObj(natEA) ? natEA.filas.length + ' filas' : String(natEA))]);
+
+  /* (A3) con una protesis: la de protesis existe y la NATIVA se calla. */
+  limpiar(); S('va_morf', 'Prótesis mecánica'); S('vmax_ao', '4.5'); S('gmedio_ao', '45');
+  const pro = llamar('_indProtA'), eaConProt = llamar('_indEA');
+  ex.push(['(A3) con una protesis aortica la seccion de PROTESIS existe y la NATIVA devuelve null',
+    esObj(pro) && eaConProt === null,
+    'protesis=' + (esObj(pro) ? 'ok' : String(pro)) + ' nativa=' + (eaConProt === null ? 'null' : 'PUBLICA')]);
+
+  /* (A4) las tres morfologias protesicas abren la seccion; una plastia no es una protesis. */
+  const porMorf = {};
+  ['Prótesis mecánica', 'Prótesis biológica', 'TAVI', 'Calcificada'].forEach(m => {
+    limpiar(); S('va_morf', m); S('vmax_ao', '4.5');
+    porMorf[m] = !!esObj(llamar('_indProtA'));
+  });
+  ex.push(['(A4) mecanica, biologica y TAVI abren la seccion; una morfologia nativa NO',
+    porMorf['Prótesis mecánica'] === true && porMorf['Prótesis biológica'] === true &&
+    porMorf['TAVI'] === true && porMorf['Calcificada'] === false,
+    JSON.stringify(porMorf)]);
+
+  /* (A5) EL ORDEN DE LOS BLOQUES, medido sobre el HTML que el emisor compartido arma. */
+  limpiar(); S('va_morf', 'Prótesis mecánica'); S('vmax_ao', '3.5'); S('gmedio_ao', '26');
+  S('peso', '75'); S('talla', '175'); S('diam_tsvi', '26'); S('itv_tsvi', '28'); S('itv_ao', '85');
+  const r1 = llamar('_indProtA');
+  const h1 = (function () { const f = g('_indSecHTML'); if (!f || !esObj(r1)) return ''; try { return f('Prótesis aórtica', r1) } catch (e) { return 'ERR' } })();
+  const pos = (t, d) => { const i = h1.indexOf(t); return i < 0 ? -1 : i };
+  const iGrid = pos('data-ind-grid'), iCont = pos('Con lo contestado'),
+        iCau = pos('Causas posibles del gradiente alto'), iDet = pos('data-ind-bloque'),
+        iBib = pos('Bibliograf');
+  ex.push(['(A5) el orden es preguntas, «Con lo contestado», causas y la bibliografia al final',
+    h1.length > 0 && iGrid > -1 && iCont > iGrid && iCau > iCont && iBib > iCau,
+    'grid=' + iGrid + ' contestado=' + iCont + ' causas=' + iCau + ' detalle=' + iDet + ' biblio=' + iBib]);
+
+  /* (A6) la seccion trae ordenProt, que es lo que enciende ese orden. */
+  ex.push(['(A6) la seccion declara ordenProt, que es el marcador del orden de protesis',
+    esObj(r1) && r1.ordenProt === true, 'ordenProt=' + (esObj(r1) ? String(r1.ordenProt) : 'NO EXISTE')]);
+
+  /* (A7) contestar «Si» publica la recomendacion con su clase, su nivel y su folio. */
+  try { _indClin['prota.disf'] = 'si' } catch (e) {}
+  const r2 = llamar('_indProtA');
+  const h2 = (function () { const f = g('_indSecHTML'); if (!f || !esObj(r2)) return ''; try { return f('Prótesis aórtica', r2) } catch (e) { return 'ERR' } })();
+  const tramo = (function () { const i = h2.indexOf('Con lo contestado'); const j = h2.indexOf('data-ind-grid', i);
+    return i < 0 ? '' : h2.slice(i, j > i ? j : i + 2500) })();
+  ex.push(['(A7) contestar Si publica la recomendacion con su clase, su nivel y su folio',
+    tramo.indexOf('Clase I') > -1 && tramo.indexOf('Nivel C') > -1 &&
+    tramo.indexOf('folio 4700') > -1 && tramo.indexOf('ESC') > -1 && tramo.indexOf('EACTS 2025') > -1,
+    'tramo=' + tramo.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 170)]);
+
+  /* (A8) con «?» la recomendacion desaparece y el recuadro lo dice. */
+  try { _indClin['prota.disf'] = IND_SD_VAL } catch (e) {}
+  const r3 = llamar('_indProtA');
+  const h3 = (function () { const f = g('_indSecHTML'); if (!f || !esObj(r3)) return ''; try { return f('Prótesis aórtica', r3) } catch (e) { return 'ERR' } })();
+  const tramo3 = (function () { const i = h3.indexOf('Con lo contestado'); const j = h3.indexOf('data-ind-grid', i);
+    return i < 0 ? '' : h3.slice(i, j > i ? j : i + 2500) })();
+  ex.push(['(A8) con «?» esa recomendacion ya no se publica y el recuadro dice que ninguna respuesta la sostiene',
+    tramo3.indexOf('folio 4700') === -1 && tramo3.indexOf('Ninguna respuesta') > -1,
+    'tramo=' + tramo3.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 140)]);
+  try { _indClin['prota.disf'] = null; delete _indClin['prota.disf'] } catch (e) {}
+
+  /* (A9) la pre-respuesta desde el campo de la fuga: significa EXACTAMENTE lo mismo. */
+  const nPreg = o => (esObj(o) && Array.isArray(o.clinica)) ? o.clinica.filter(f => f && f.ctrl).length : -1;
+  limpiar(); S('va_morf', 'Prótesis mecánica'); S('vmax_ao', '4.5');
+  const sinFuga = nPreg(llamar('_indProtA'));
+  S('ea_pvl_origen', 'central');
+  const fugaCen = nPreg(llamar('_indProtA'));
+  S('ea_pvl_origen', 'paraval');
+  const fugaPar = nPreg(llamar('_indProtA'));
+  ex.push(['(A9) la fuga se pre-responde desde su campo: con «central» su control NI SE DIBUJA, y con «paravalvular» aparecen sus dos preguntas condicionales',
+    sinFuga === 7 && fugaCen === 6 && fugaPar === 8,
+    'sin=' + sinFuga + ' central=' + fugaCen + ' paravalvular=' + fugaPar]);
+
+  /* (A10) CONTROL NEGATIVO de la regla del 04/11: ninguna forma prohibida. */
+  const PROH = ['pendiente de revisi', 'de ejemplo', 'no coinciden', 'difieren', 'discrepan',
+    'no se encontr', 'ninguna fuente'];
+  const txt1 = h1.replace(/<[^>]*>/g, ' ').toLowerCase();
+  ex.push(['(A10) CONTROL NEGATIVO: la seccion no trae ninguna de las formas que la regla del 04/11 prohibe',
+    txt1.length > 500 && PROH.filter(f => txt1.indexOf(f) > -1).length === 0,
+    'largo=' + txt1.length + ' halladas=' + JSON.stringify(PROH.filter(f => txt1.indexOf(f) > -1))]);
+  limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-743', 'PANT-21: el bloque de CAUSAS de la protesis aortica — aparece y desaparece con el veredicto de la pantalla, y su marca automatica cambia con el DVI y la EOA indexada', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const llamar = n => { const f = g(n); if (!f) return 'NO EXISTE'; try { return f() } catch (e) { return 'ERR:' + e.message } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+  const sembrar = o => { limpiar(); Object.keys(o).forEach(k => S(k, o[k])); };
+  const cau = () => { const r = llamar('_indProtA'); if (!esObj(r)) return null;
+    return Array.isArray(r.causas) ? r.causas : null };
+  const marcaDe = (cs, clave) => { if (!Array.isArray(cs)) return 'SIN BLOQUE';
+    const c = cs.filter(x => x && x.clave === clave)[0]; return c ? c.marca : 'NO ESTA' };
+  const ver = () => { const f = g('eaProtVeredicto'); if (!f) return {}; try { return f() || {} } catch (e) { return {} } };
+
+  const HIPER = { va_morf:'Prótesis mecánica', peso:'75', talla:'175', vmax_ao:'3.5',
+                  gmedio_ao:'26', diam_tsvi:'26', itv_tsvi:'28', itv_ao:'85' };
+  const DESAJ = { va_morf:'Prótesis mecánica', peso:'110', talla:'185', vmax_ao:'3.5',
+                  gmedio_ao:'26', diam_tsvi:'19', itv_tsvi:'28', itv_ao:'85' };
+  const BAJO  = { va_morf:'Prótesis mecánica', peso:'75', talla:'175', vmax_ao:'3.5',
+                  gmedio_ao:'26', diam_tsvi:'22', itv_tsvi:'18', itv_ao:'85' };
+  const NORM  = { va_morf:'Prótesis mecánica', peso:'75', talla:'175', vmax_ao:'2.2',
+                  gmedio_ao:'10', diam_tsvi:'22', itv_tsvi:'26', itv_ao:'50' };
+  const SIGN  = { va_morf:'Prótesis mecánica', peso:'75', talla:'175', vmax_ao:'4.5',
+                  gmedio_ao:'42', diam_tsvi:'20', itv_tsvi:'14', itv_ao:'90' };
+
+  /* (B0) DENOMINADOR: las cinco escenas caen donde el caso supone. Sin esto, un bloque ausente
+     no se distingue de una escena que nunca llego a «posible». */
+  sembrar(HIPER); const vH = ver();
+  sembrar(DESAJ); const vD = ver();
+  sembrar(BAJO);  const vB = ver();
+  sembrar(NORM);  const vN = ver();
+  sembrar(SIGN);  const vS = ver();
+  ex.push(['(B0) DENOMINADOR: las escenas caen en el nivel que el caso supone, con su DVI y su EOA indexada',
+    vH.nivel === 'posible' && vD.nivel === 'posible' && vB.nivel === 'posible' &&
+    vN.nivel === 'normal' && vS.nivel === 'signif' &&
+    vH.dvi >= 0.30 && vH.avai > 0.85 && vD.dvi >= 0.30 && vD.avai < 0.85 && vB.dvi < 0.30,
+    'hiper=' + vH.nivel + '/' + vH.dvi + '/' + vH.avai + ' desaj=' + vD.nivel + '/' + vD.dvi + '/' + vD.avai +
+    ' bajo=' + vB.nivel + '/' + vB.dvi + ' normal=' + vN.nivel + ' signif=' + vS.nivel]);
+
+  /* (B1) el bloque aparece SOLO con «posible». */
+  sembrar(HIPER); const cH = cau();
+  sembrar(NORM);  const cN = cau();
+  sembrar(SIGN);  const cS = cau();
+  limpiar(); S('va_morf', 'Prótesis mecánica'); const cV = cau();
+  ex.push(['(B1) el bloque de causas aparece con «posible» y NO con «normal», «signif» ni «faltan»',
+    Array.isArray(cH) && cH.length === 5 && cN === null && cS === null && cV === null,
+    'posible=' + (Array.isArray(cH) ? cH.length : String(cH)) + ' normal=' + String(cN) +
+    ' signif=' + String(cS) + ' vacia=' + String(cV)]);
+
+  /* (B2) CONTROL POSITIVO: con el area indexada ALTA se marca el hiperflujo y se descarta el desajuste. */
+  sembrar(HIPER); const m1 = cau();
+  ex.push(['(B2) con el cociente en 0,30 o mas y el area indexada por ENCIMA de 0,85 se marca el HIPERFLUJO y se descarta el desajuste',
+    marcaDe(m1, 'hiperflujo') === 'ok' && marcaDe(m1, 'desajuste') === 'none',
+    'hiperflujo=' + marcaDe(m1, 'hiperflujo') + ' desajuste=' + marcaDe(m1, 'desajuste')]);
+
+  /* (B3) CONTROL NEGATIVO del anterior: el MISMO cociente con el area BAJA da vuelta las dos. */
+  sembrar(DESAJ); const m2 = cau();
+  ex.push(['(B3) con el MISMO cociente y el area indexada por DEBAJO de 0,85 se marca el DESAJUSTE y se descarta el hiperflujo',
+    marcaDe(m2, 'desajuste') === 'ok' && marcaDe(m2, 'hiperflujo') === 'none',
+    'hiperflujo=' + marcaDe(m2, 'hiperflujo') + ' desajuste=' + marcaDe(m2, 'desajuste')]);
+
+  /* (B4) CONTROL NEGATIVO: por debajo de 0,30 la figura no decide ninguna de las dos. */
+  sembrar(BAJO); const m3 = cau();
+  ex.push(['(B4) CONTROL NEGATIVO: con el cociente por DEBAJO de 0,30 ninguna de las cinco se marca sola',
+    Array.isArray(m3) && m3.length === 5 && m3.filter(c => c.marca === 'ask').length === 5,
+    'marcas=' + (Array.isArray(m3) ? m3.map(c => c.clave + ':' + c.marca).join(' ') : String(m3))]);
+
+  /* (B5) las OTRAS TRES causas nunca se marcan solas: la figura no las decide con ningun numero. */
+  const otras = ['medicion', 'obstruccion', 'subvalvular'];
+  const sueltas = [m1, m2, m3].map(c => otras.map(k => marcaDe(c, k)).join(',')).join(' | ');
+  ex.push(['(B5) las otras tres causas quedan como TEXTO en las tres escenas: la guia no las decide con un numero que la app tenga',
+    [m1, m2, m3].every(c => otras.every(k => marcaDe(c, k) === 'ask')), sueltas]);
+
+  /* (B6) el bloque cita su hoja y su folio, y no inventa ningun corte de graduacion. */
+  const txtC = Array.isArray(m1) ? m1.map(c => c.txt).join(' ') : '';
+  ex.push(['(B6) las cinco causas citan la hoja y el folio de la ASE 2024 que las sostiene',
+    /hoja 18, folio 19/.test(txtC) && /hoja 9, folio 10/.test(txtC) && txtC.length > 400,
+    'largo=' + txtC.length + ' ' + txtC.slice(0, 110)]);
+  limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-744', 'PANT-21: la protesis MITRAL — las doce filas de la Tabla 17 siguen ahi, el orden nuevo, y su bloque de causas con el veredicto «posible»', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const llamar = n => { const f = g(n); if (!f) return 'NO EXISTE'; try { return f() } catch (e) { return 'ERR:' + e.message } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+
+  /* (C0) DENOMINADOR Y GUARDIAN DE LA PARADA DEL COMMIT 4a: las DOCE filas de la Tabla 17 que
+     alcanzan a la posicion mitral ya estaban en PROTM_REC_2025 antes de esta tanda, cada una con
+     su clase. Por eso el 4a se paro y no se agrego ni una pregunta. Si alguna desaparece, o si
+     alguien agrega una decimotercera creyendo que falta, este caso lo dice. */
+  const REC = (function () { try { return PROTM_REC_2025 || null } catch (e) { return null } })();
+  const ESP = { pvl_ht:'Clase I · Nivel C', pvl_reop:'Clase I · Nivel C', pvl_tc:'Clase IIa · Nivel B',
+    mec_reop:'Clase I · Nivel C', bio_reint:'Clase I · Nivel C', viv_mitral:'Clase IIa · Nivel B',
+    asint_reop:'Clase IIa · Nivel C', tromb_img:'Clase I · Nivel C', tromb_mec:'Clase I · Nivel B',
+    tromb_emb:'Clase IIa · Nivel C', tromb_bio:'Clase I · Nivel B', tromb_halt:'Clase IIa · Nivel B' };
+  const malas = REC ? Object.keys(ESP).filter(k => !REC[k] || REC[k].c !== ESP[k]) : ['SIN REGISTRO'];
+  ex.push(['(C0) DENOMINADOR: las DOCE filas de la Tabla 17 que alcanzan a la mitral estan en PROTM_REC_2025 con su clase y su nivel',
+    REC != null && malas.length === 0 && Object.keys(REC).length === 12,
+    'n=' + (REC ? Object.keys(REC).length : 'null') + ' discrepan=' + JSON.stringify(malas)]);
+
+  /* (C1) la seccion declara el orden de protesis. */
+  limpiar(); S('vm_morf', 'Prótesis mecánica'); S('em_gmedio', '6');
+  const r0 = llamar('_indProtM');
+  ex.push(['(C1) la seccion mitral declara ordenProt, que es lo que le pone el orden nuevo',
+    esObj(r0) && r0.ordenProt === true, 'ordenProt=' + (esObj(r0) ? String(r0.ordenProt) : String(r0))]);
+
+  /* (C2) y NO trae cuenta, a proposito: dos de sus seis preguntas no se contestan con Si o No. */
+  ex.push(['(C2) la seccion mitral NO declara cuenta: dos de sus preguntas no se contestan con Si o No',
+    esObj(r0) && r0.cuenta == null, 'cuenta=' + (esObj(r0) ? JSON.stringify(r0.cuenta) : '?')]);
+
+  /* (C3) las SEIS preguntas protm.* siguen siendo las mismas. */
+  const claves = esObj(r0) && Array.isArray(r0.clinica)
+    ? r0.clinica.filter(f => f && f.ctrl).map(f => f.ctrl.clave) : [];
+  ex.push(['(C3) las preguntas del estado inicial son las CUATRO de siempre, con sus mismas claves',
+    claves.length === 4 && claves.join(',') === 'protm.sintomas,protm.peri,protm.tromb,protm.riesgo',
+    'claves=' + claves.join(',')]);
+
+  /* (C4) el bloque de causas aparece SOLO con «posible». */
+  const obstrY = () => { const f = g('vmProtEOA'); if (!f) return 'NO EXISTE'; try { return (f() || {}).obstr } catch (e) { return 'ERR' } };
+  const cau = () => { const r = llamar('_indProtM'); return esObj(r) && Array.isArray(r.causas) ? r.causas : null };
+  limpiar(); S('vm_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175');
+  S('em_gmedio', '7'); S('em_vmax', '2.1'); S('thp', '150');
+  const oPos = obstrY(), cPos = cau();
+  limpiar(); S('vm_morf', 'Prótesis mecánica'); S('peso', '75'); S('talla', '175');
+  S('em_gmedio', '3'); S('em_vmax', '1.5'); S('thp', '70');
+  const oNor = obstrY(), cNor = cau();
+  limpiar(); S('vm_morf', 'Prótesis mecánica'); S('peso', '75'); S('talla', '175');
+  S('em_gmedio', '14'); S('em_vmax', '2.8'); S('thp', '260');
+  const oSig = obstrY(), cSig = cau();
+  ex.push(['(C4) DENOMINADOR Y CONDICION: los tres veredictos caen donde el caso supone, y el bloque de causas aparece SOLO con «posible»',
+    oPos === 'posible' && oNor === 'normal' && oSig === 'significativa' &&
+    Array.isArray(cPos) && cPos.length === 4 && cNor === null && cSig === null,
+    'posible=' + oPos + '/' + (Array.isArray(cPos) ? cPos.length : String(cPos)) +
+    ' normal=' + oNor + '/' + String(cNor) + ' signif=' + oSig + '/' + String(cSig)]);
+
+  /* (C5) NINGUNA se marca sola: la guia da para la mitral una lista y no un algoritmo. */
+  ex.push(['(C5) CONTROL NEGATIVO: ninguna de las cuatro causas mitrales se marca sola',
+    Array.isArray(cPos) && cPos.filter(c => c.marca === 'ask').length === 4,
+    'marcas=' + (Array.isArray(cPos) ? cPos.map(c => c.clave + ':' + c.marca).join(' ') : String(cPos))]);
+
+  /* (C6) y las cuatro citan la hoja y el folio que las sostiene. */
+  const t = Array.isArray(cPos) ? cPos.map(c => c.txt).join(' ') : '';
+  ex.push(['(C6) las cuatro causas mitrales citan la hoja 24, folio 25 de la ASE 2024',
+    (t.match(/hoja 24, folio 25/g) || []).length === 4,
+    'citas=' + (t.match(/hoja 24, folio 25/g) || []).length]);
+
+  /* (C7) EL ORDEN: sin «Con lo contestado», las causas van DESPUES de la conclusion. */
+  limpiar(); S('vm_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175');
+  S('em_gmedio', '7'); S('em_vmax', '2.1'); S('thp', '150');
+  const rP = llamar('_indProtM');
+  const hP = (function () { const f = g('_indSecHTML'); if (!f || !esObj(rP)) return ''; try { return f('Prótesis mitral', rP) } catch (e) { return 'ERR' } })();
+  const titRec = (esObj(rP) && rP.recom && rP.recom.tit) ? String(rP.recom.tit) : '';
+  const iG = hP.indexOf('data-ind-grid'), iR = titRec ? hP.indexOf(titRec) : -1,
+        iC = hP.indexOf('Causas posibles del gradiente alto'), iB = hP.indexOf('Bibliograf');
+  ex.push(['(C7) sin «Con lo contestado», las causas van DESPUES de la conclusion de la seccion y antes de la bibliografia',
+    iG > -1 && iR > iG && iC > iR && iB > iC && hP.indexOf('Con lo contestado') === -1,
+    'grid=' + iG + ' recom(' + titRec + ')=' + iR + ' causas=' + iC + ' biblio=' + iB]);
+
+  /* (C8) el modelo del catalogo NO entra en la Evidencia. */
+  limpiar(); S('vm_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175');
+  S('em_gmedio', '7'); S('em_vmax', '2.1'); S('thp', '150');
+  const sinMod = JSON.stringify(llamar('_indProtM'));
+  S('vm_prot_modelo', 'Hancock II'); S('vm_prot_tam', '29');
+  const conMod = JSON.stringify(llamar('_indProtM'));
+  ex.push(['(C8) CONTROL NEGATIVO: cargar el modelo y el tamanio del catalogo NO cambia una coma de la Evidencia',
+    sinMod.length > 100 && sinMod === conMod,
+    'sinModelo=' + sinMod.length + ' conModelo=' + conMod.length]);
+  limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-745', 'PANT-21: la seccion de Evidencia de la PROTESIS TRICUSPIDE, con el valve-in-valve TRANSVENOSO y sin bloque de causas', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const llamar = n => { const f = g(n); if (!f) return 'NO EXISTE'; try { return f() } catch (e) { return 'ERR:' + e.message } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+
+  const PREG = (function () { try { return window.PROTT_PREG || null } catch (e) { return null } })();
+  ex.push(['(D0) DENOMINADOR: _indProtT existe y PROTT_PREG trae sus DOCE preguntas',
+    !!g('_indProtT') && Array.isArray(PREG) && PREG.length === 12,
+    'fn=' + !!g('_indProtT') + ' preg=' + (Array.isArray(PREG) ? PREG.length : 'NO EXISTE')]);
+
+  /* (D1) CONTROL NEGATIVO: una plastia y un TEER tricuspideo NO son protesis. */
+  const abre = m => { limpiar(); S('vt_morf', m); return !!esObj(llamar('_indProtT')) };
+  const porM = { bio: abre('Prótesis biológica'), mec: abre('Prótesis mecánica'),
+                 plastia: abre('Plastia tricuspídea'), normal: abre('Normal') };
+  ex.push(['(D1) la seccion abre con las dos protesis y NO con una plastia ni con la valvula normal',
+    porM.bio === true && porM.mec === true && porM.plastia === false && porM.normal === false,
+    JSON.stringify(porM)]);
+
+  /* (D2) el valve-in-valve que publica es el TRANSVENOSO, no el transfemoral de la aortica. */
+  const txtP = Array.isArray(PREG) ? PREG.map(p => p.rec + ' ' + (p.ref || '')).join(' ') : '';
+  ex.push(['(D2) el valve-in-valve de esta seccion es el TRANSVENOSO; el transfemoral es el de la posicion aortica y no aparece',
+    /transvenoso/.test(txtP) && !/transfemoral en posici/.test(txtP) && /Clase IIa · Nivel B/.test(txtP),
+    'transvenoso=' + /transvenoso/.test(txtP) + ' transfemoral=' + /transfemoral/.test(txtP)]);
+
+  /* (D3) NO lleva bloque de causas, en NINGUNO de los tres veredictos de la Tabla 19. */
+  const obstrY = () => { const f = g('vtProtObstr'); if (!f) return 'NO EXISTE'; try { return (f() || {}).obstr } catch (e) { return 'ERR' } };
+  const cau = () => { const r = llamar('_indProtT'); return esObj(r) && r.causas ? r.causas : null };
+  limpiar(); S('vt_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175'); S('et_gmedio', '10');
+  const oA = obstrY(), cA = cau();
+  limpiar(); S('vt_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175'); S('et_gmedio', '5');
+  const oS = obstrY(), cS = cau();
+  limpiar(); S('vt_morf', 'Prótesis biológica'); S('peso', '75'); S('talla', '175');
+  S('et_gmedio', '10'); S('et_e_vmax', '220');
+  const oE = obstrY(), cE = cau();
+  ex.push(['(D3) DENOMINADOR Y CONDICION: los tres veredictos de la Tabla 19 caen donde el caso supone y en NINGUNO hay bloque de causas',
+    oA === 'aislado' && oS === 'sin' && oE === 'estenosis' && !cA && !cS && !cE,
+    'aislado=' + oA + '/' + String(cA) + ' sin=' + oS + '/' + String(cS) + ' estenosis=' + oE + '/' + String(cE)]);
+
+  /* (D4) y la seccion DICE por que no la trae. */
+  limpiar(); S('vt_morf', 'Prótesis biológica'); S('et_gmedio', '10');
+  const r = llamar('_indProtT');
+  const notas = esObj(r) && Array.isArray(r.notas)
+    ? r.notas.map(n => (typeof n === 'string' ? n : n.txt)).join(' ') : '';
+  ex.push(['(D4) la seccion declara que la Tabla 19 publica cortes y no causas, en vez de callarse',
+    /Tabla 19/.test(notas) && /cortes y no causas/.test(notas),
+    'notas=' + notas.slice(0, 150)]);
+
+  /* (D5) el orden y los folios. */
+  const h = (function () { const f = g('_indSecHTML'); if (!f || !esObj(r)) return ''; try { return f('Prótesis tricúspide', r) } catch (e) { return 'ERR' } })();
+  const iG = h.indexOf('data-ind-grid'), iC = h.indexOf('Con lo contestado'), iB = h.indexOf('Bibliograf');
+  ex.push(['(D5) el orden es preguntas, «Con lo contestado» y la bibliografia al final, y el folio 4700 esta',
+    iG > -1 && iC > iG && iB > iC && h.indexOf('folio 4700') > -1,
+    'grid=' + iG + ' contestado=' + iC + ' biblio=' + iB + ' folio4700=' + (h.indexOf('folio 4700') > -1)]);
+  limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-746', 'PANT-21: la seccion de Evidencia de la PROTESIS PULMONAR — rige la ACC/AHA 2025 de congenitas, la ESC 2020 va como referencia, y la ESC/EACTS 2025 NO se usa', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const llamar = n => { const f = g(n); if (!f) return 'NO EXISTE'; try { return f() } catch (e) { return 'ERR:' + e.message } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+
+  const PREG = (function () { try { return window.PROTP_PREG || null } catch (e) { return null } })();
+  ex.push(['(E0) DENOMINADOR: _indProtP existe y PROTP_PREG trae sus ONCE preguntas',
+    !!g('_indProtP') && Array.isArray(PREG) && PREG.length === 11,
+    'fn=' + !!g('_indProtP') + ' preg=' + (Array.isArray(PREG) ? PREG.length : 'NO EXISTE')]);
+
+  /* (E1) CONTROL NEGATIVO: con la pulmonar nativa la seccion no existe. */
+  limpiar(); S('vp_morf', 'Normal'); S('ep_gmedio', '22');
+  const nat = llamar('_indProtP');
+  limpiar(); S('vp_morf', 'Prótesis biológica'); S('ep_gmedio', '22');
+  const pro = llamar('_indProtP');
+  ex.push(['(E1) con la valvula pulmonar NATIVA la seccion no existe, y con una protesis si',
+    nat === null && esObj(pro), 'nativa=' + String(nat) + ' protesis=' + (esObj(pro) ? 'ok' : String(pro))]);
+
+  /* (E2) LAS DOS GUIAS, cada una con sus propias preguntas. */
+  const porGuia = {};
+  (PREG || []).forEach(p => { porGuia[p.guia] = (porGuia[p.guia] || 0) + 1 });
+  ex.push(['(E2) las once preguntas se reparten entre la ACC/AHA 2025 y la ESC 2020, y ninguna combina las dos',
+    porGuia.acc === 6 && porGuia.esc === 5 && Object.keys(porGuia).length === 2,
+    JSON.stringify(porGuia)]);
+
+  /* (E3) la ESC/EACTS 2025 NO se usa en esta seccion: su Tabla 17 no tiene fila pulmonar. */
+  const txtP = Array.isArray(PREG) ? PREG.map(p => p.rec + ' ' + (p.ref || '') + ' ' + (p.nota || '')).join(' ') : '';
+  ex.push(['(E3) CONTROL NEGATIVO: ninguna pregunta de la pulmonar cita la ESC/EACTS 2025 ni su folio 4700',
+    txtP.length > 500 && txtP.indexOf('ESC/EACTS') === -1 && txtP.indexOf('folio 4700') === -1,
+    'largo=' + txtP.length + ' eacts=' + (txtP.indexOf('ESC/EACTS') > -1) + ' 4700=' + (txtP.indexOf('folio 4700') > -1)]);
+
+  /* (E4) y los folios que SI cita son los que se leyeron en imagen. */
+  ex.push(['(E4) las preguntas citan el folio e189 de la ACC/AHA 2025 y el folio 622 de la ESC 2020',
+    /folio e189/.test(txtP) && /folio 622/.test(txtP),
+    'e189=' + /folio e189/.test(txtP) + ' 622=' + /folio 622/.test(txtP)]);
+
+  /* (E5) la seccion lo DICE, y no lleva bloque de causas. */
+  const notas = esObj(pro) && Array.isArray(pro.notas)
+    ? pro.notas.map(n => (typeof n === 'string' ? n : n.txt)).join(' ') : '';
+  ex.push(['(E5) la seccion declara que la ESC/EACTS 2025 no publica ninguna fila de protesis pulmonar, y no trae bloque de causas',
+    /no publica ninguna fila de pr/.test(notas) && !pro.causas,
+    'causas=' + String(esObj(pro) ? pro.causas : '?') + ' nota=' + notas.slice(0, 120)]);
+
+  /* (E6) el nombre de la guia americana de congenitas NO se renombra. */
+  ex.push(['(E6) la guia americana de congenitas se nombra «ACC/AHA 2025» y no 2026',
+    (function () { try { return IND_GUIA_LBL.acc === 'ACC/AHA 2025' } catch (e) { return false } })() &&
+    txtP.indexOf('ACC/AHA 2026') === -1,
+    'lbl=' + (function () { try { return IND_GUIA_LBL.acc } catch (e) { return 'ERR' } })()]);
+  limpiar();
+  return { extra: ex };
+`);
+
+caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a ninguna otra seccion, un solo control de detalle por seccion, y la Evidencia no llega al papel', `
+  const ex = [];
+  const g = n => { try { return (typeof window[n] === 'function') ? window[n] : null } catch (e) { return null } };
+  const esObj = x => x && typeof x === 'object';
+  const S = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  const limpiar = () => { try { limpiarCampos(true) } catch (e) {} try { _indClinLimpiar() } catch (e) {} };
+
+  /* (F0) DENOMINADOR: IND_SECS tiene sus 45 secciones y CUATRO declaran ordenProt. */
+  limpiar();
+  S('va_morf', 'Prótesis mecánica'); S('vm_morf', 'Prótesis mecánica');
+  S('vt_morf', 'Prótesis mecánica'); S('vp_morf', 'Prótesis mecánica');
+  S('vmax_ao', '4.5'); S('em_gmedio', '6'); S('et_gmedio', '10'); S('ep_gmedio', '22');
+  const conOrden = [], sinOrden = [];
+  try {
+    IND_SECS.forEach(sec => {
+      let r = null; try { r = sec.fn() } catch (e) { r = null }
+      if (!r) return;
+      (r.ordenProt === true ? conOrden : sinOrden).push(sec.tit);
+    });
+  } catch (e) {}
+  ex.push(['(F0) DENOMINADOR: con las cuatro protesis cargadas, SOLO las cuatro secciones de protesis declaran ordenProt',
+    conOrden.length === 4 && conOrden.join(' | ').indexOf('Prótesis aórtica') > -1 &&
+    conOrden.join(' | ').indexOf('Prótesis mitral') > -1 &&
+    conOrden.join(' | ').indexOf('Prótesis tricúspide') > -1 &&
+    conOrden.join(' | ').indexOf('Prótesis pulmonar') > -1 &&
+    sinOrden.length > 0,
+    'conOrden=' + JSON.stringify(conOrden) + ' otras=' + sinOrden.length]);
+
+  /* (F1) CONTROL NEGATIVO: en una seccion SIN ordenProt, «Con lo contestado» sigue ARRIBA de las
+     preguntas, que es el orden de las cuarenta y una restantes. */
+  limpiar(); S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '18');
+  const sinOrdenCon = (function () {
+    try {
+      for (const sec of IND_SECS) {
+        let r = null; try { r = sec.fn() } catch (e) { r = null }
+        if (r && r.ordenProt !== true && r.adapt && r.preguntas) return { sec: sec, r: r };
+      }
+    } catch (e) {}
+    return null; })();
+  const hC = (function () { const f = g('_indSecHTML'); if (!f || !sinOrdenCon) return '';
+    try { return f(sinOrdenCon.sec.tit, sinOrdenCon.r) } catch (e) { return 'ERR' } })();
+  const cG = hC.indexOf('data-ind-grid'), cC = hC.indexOf('Con lo contestado');
+  ex.push(['(F1) CONTROL NEGATIVO: en una seccion sin ordenProt, «Con lo contestado» sigue ARRIBA de la grilla',
+    hC.length > 500 && cC > -1 && cG > -1 && cC < cG,
+    'seccion=' + (sinOrdenCon ? sinOrdenCon.sec.tit : 'NINGUNA') + ' contestado=' + cC + ' grid=' + cG + ' largo=' + hC.length]);
+
+  /* (F2) UN SOLO control de detalle por seccion, tambien en las de protesis. */
+  limpiar(); S('va_morf', 'Prótesis mecánica'); S('vmax_ao', '3.5'); S('gmedio_ao', '26');
+  S('peso', '75'); S('talla', '175'); S('diam_tsvi', '26'); S('itv_tsvi', '28'); S('itv_ao', '85');
+  const rA = (function () { const f = g('_indProtA'); if (!f) return null; try { return f() } catch (e) { return null } })();
+  const hA = (function () { const f = g('_indSecHTML'); if (!f || !esObj(rA)) return ''; try { return f('Prótesis aórtica', rA) } catch (e) { return 'ERR' } })();
+  const nDet = (hA.match(/data-ind-detalle/g) || []).length;
+  const nBlo = (hA.match(/data-ind-bloque/g) || []).length;
+  ex.push(['(F2) la seccion de protesis aortica emite UN solo control de detalle y a lo sumo UN plegable de bloque',
+    nDet === 1 && nBlo <= 1, 'detalle=' + nDet + ' bloque=' + nBlo]);
+
+  /* (F3) LA EVIDENCIA NO LLEGA AL PAPEL. Se contesta todo lo contestable de las cuatro secciones
+     y se compara el informe, el EN SUMA y el Excel antes y despues. */
+  limpiar();
+  S('nombre', 'P21'); S('ci', '21');
+  S('va_morf', 'Prótesis mecánica'); S('vm_morf', 'Prótesis mecánica');
+  S('vt_morf', 'Prótesis mecánica'); S('vp_morf', 'Prótesis mecánica');
+  S('vmax_ao', '3.5'); S('gmedio_ao', '26'); S('peso', '75'); S('talla', '175');
+  S('diam_tsvi', '26'); S('itv_tsvi', '28'); S('itv_ao', '85');
+  S('em_gmedio', '7'); S('em_vmax', '2.1'); S('thp', '150');
+  S('et_gmedio', '10'); S('ep_gmedio', '22');
+  const papel = () => { try { generarInforme() } catch (e) {}
+    const i = document.getElementById('informe_texto'), s2 = document.getElementById('en_suma');
+    let xls = '';
+    try { xls = JSON.stringify(_labExcelRow ? _labExcelRow() : null) } catch (e) { xls = 'ERR' }
+    return [(i ? i.value : 'NO'), (s2 ? s2.value : 'NO'), xls].join('\u0001'); };
+  const antes = papel();
+  try {
+    ['prota', 'protm', 'prott', 'protp'].forEach(pre => {
+      const fn = { prota:'PROTA_PREG', prott:'PROTT_PREG', protp:'PROTP_PREG' }[pre];
+      const L = fn ? (window[fn] || []) : [];
+      L.forEach(p => { _indClin[p.clave] = 'si' });
+    });
+    ['protm.sintomas', 'protm.peri', 'protm.tromb'].forEach(k => { _indClin[k] = 'si' });
+    _indClin['protm.riesgo'] = 'alto';
+  } catch (e) {}
+  const despues = papel();
+  ex.push(['(F3) contestar TODAS las preguntas de las cuatro secciones de protesis no mueve el informe, el EN SUMA ni el Excel',
+    antes.length > 200 && antes === despues,
+    'largo=' + antes.length + ' iguales=' + (antes === despues)]);
+
+  /* (F4) DENOMINADOR del anterior: las respuestas SI entraron. */
+  const nResp = (function () { try { return Object.keys(_indClin).length } catch (e) { return -1 } })();
+  ex.push(['(F4) DENOMINADOR: las respuestas se registraron de verdad, asi que el cero de arriba no es de una memoria vacia',
+    nResp >= 30, 'respuestas=' + nResp]);
+
+  /* (F5) y nada de lo contestado se guarda con el estudio. */
+  const campos = (function () { try { const o = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(e => {
+      if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)) return; o[e.id] = 1 }); return Object.keys(o).length } catch (e) { return -1 } })();
+  const hayClin = (function () { try { return Object.keys(_indClin).filter(k => document.getElementById(k)).length } catch (e) { return -1 } })();
+  ex.push(['(F5) ninguna clave de respuesta del panel es un campo del estudio',
+    campos > 500 && hayClin === 0, 'campos=' + campos + ' clavesQueSonCampo=' + hayClin]);
+  try { _indClinLimpiar() } catch (e) {}
+  limpiar();
+  return { extra: ex };
 `);
 
 try {
