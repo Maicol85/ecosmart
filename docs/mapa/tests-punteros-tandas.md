@@ -352,3 +352,44 @@ exige que ninguno toque un selector `#v2d`, que es el invariante exacto.
 doce sobrevivientes en **cinco** clases distintas —cinco huecos reales, dos frenos que tapaban a la
 mutación, dos pares de guardas redundantes, una mal dirigida y dos mal escritas— de las que
 salieron **nueve** condiciones nuevas.
+
+---
+
+## PANT-20 (2026-11-06) — el catálogo en la mitral, la tricúspide y la pulmonar
+
+| caso | qué fija |
+|---|---|
+| **TC-736** | la Tabla A7 contra su transcripción (12 / 26 / 82) y sus **cuatro formas de celda** |
+| **TC-737** | las Tablas A9 (8 / 28 / 190 / 6) y A8, y que la **A8 queda sin consumidor** |
+| **TC-738** | el componente en la **mitral**, con la fila propia y **TC-522 intacto**; los dos cortes de IMC |
+| **TC-739** | la **tricúspide**: la decisión 6 (sólo el número) y la conversión de m/s a cm/s |
+| **TC-740** | la **pulmonar**: lo impreso —límites y medianas— y la marca `uno` |
+| **TC-741** | los **doce campos**, el Excel de **457** y que el **papel no cambia** |
+
+Las fichas, con sus denominadores y sus controles negativos, en
+`docs/mapa/tests-fichas-736.md`.
+
+**Casos viejos adaptados:** los **139** conteos de `=== 445` del Excel pasan a `457`, más
+`esperadas.length === 441` → `453` en el caso del G2, cada uno con su comentario de adaptación.
+
+⚠️ **Y UN DEFECTO DEL PROPIO SCRIPT DE ADAPTACIÓN, QUE VALE PARA LA PRÓXIMA**: el marcador con el
+que protegí `TC-445` de la sustitución **contenía «445»**, así que el propio regex lo pisó y dejó
+el caso llamándose `@@TC457@@` — o sea **TC-445 desapareció de la suite** sin un solo error. Lo
+cazó contar los casos distintos contra la línea base (755 en vez de 756). **Un marcador de
+protección no puede contener lo que se va a reemplazar.**
+
+### PANT-20 · dos lecciones más del barrido de mutaciones
+
+**Una mutación sobre una línea COMPARTIDA se declara al caso que la cubre, no al de la tanda.**
+La mutación 21 de PANT-20 rompía la búsqueda por palabra del componente «Modelo y tamaño», que es
+**uno solo** para las cuatro posiciones: la condición que la mata es **(B3b) de TC-731**, escrita
+por PANT-19 para la aórtica —«ifecta» cae en MEDIO de «Trifecta», y es lo único que separa
+«buscar por palabra» de «buscar en cualquier posición»—. Declarada al caso de la tanda nueva
+sobrevivía **sobre cobertura que ya existía**, que es indistinguible de un hueco.
+
+**Una mutación que cambia un RÓTULO no borra una fila.** La 40 reemplazaba el texto de la fila de
+la ficha pulmonar y la fila seguía ahí, así que la condición que cuenta filas con celda de dato no
+podía fallar. Para probar «pierde una fila» hay que borrar el `<tr>` entero.
+
+⚠️ **Y los comentarios del arnés van con `#`:** escribir `/* */` en un archivo de Python lo deja
+sin parsear, con el error apuntando al primer carácter no ASCII del comentario.

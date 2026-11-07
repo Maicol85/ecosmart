@@ -301,3 +301,18 @@ el final de `limpiarCampos` (con `true`).
 DVI vary by valve size and type» — la app no tiene el tamaño de la prótesis.
 Y la densidad del jet tricuspídeo vuelve a la raya al vaciar su selector. →
 `docs/mapa/borrado-referencias.md`
+
+---
+
+## El catálogo por modelo y tamaño de la tricúspide y la pulmonar (PANT-20, 2026-11-06)
+
+Los cortes de obstrucción de esta página —`VT_PROT_T19` y `VP_PROT_T15`— **no se movieron**, y la
+esta tanda los verificó **fila por fila** contra la imagen de las hojas 35 (folio 36) y 32 (folio 33):
+coinciden.
+
+Lo que se sumó son los **valores esperados por modelo y tamaño**, que son otra cosa: la **Tabla
+A9** (8 modelos, 28 tamaños) y la **Tabla A7** (12 modelos, 26 tamaños), con el botón «Modelo y
+tamaño» en la fila del select de cada una. Y **dos fichas nuevas de Referencias** con esas dos
+tablas de obstrucción, que hasta hoy la app aplicaba sin poder consultarlas.
+
+→ `docs/mapa/pant20-catalogo-tri-pulm.md`

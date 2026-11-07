@@ -1,3 +1,68 @@
+## PANT-20 — la protesis valvular, parte 4 de 5: el catalogo en la MITRAL, la TRICUSPIDE y la PULMONAR (2026-11-06)
+
+**DOCE commits** -contados con `git log 694e9e3..HEAD` al cerrar, y el que escribe este numero
+entra en la cuenta-, y los **siete de codigo se hicieron enteros**. El inventario de solo lectura; el
+catalogo pulmonar (A7); el tricuspide (A9 y A8); el componente en la mitral, en la tricuspide y en
+la pulmonar; las dos tablas de obstruccion en Referencias; y la cobertura con la documentacion.
+
+- **Lo leido**: CINCO hojas de la ASE 2024 **en imagen a 300 ppp**, con la regla de folio = hoja+1
+  comprobada en el **pie** impreso de las pares y en el **encabezado** de las impares. Tabla 15
+  (hoja 32, folio 33), Tabla 19 (hoja 35, folio 36), Tablas A7 y A8 (hoja 61, folio 62) y Tabla A9
+  (hoja 62, folio 63). Dos tablas de datos: **A7** con 12 modelos, 26 filas y 82 celdas, y **A9**
+  con 8 modelos, 28 tamanos y 196 celdas (190 con dato y 6 impresas «NA»).
+- **El hallazgo que obligo a extender la forma del dato: la A7 no tiene UNA forma de celda sino
+  CUATRO.** Conviven media mas-menos DE, MEDIANA CON RANGO INTERCUARTILICO, valor unico y LIMITE
+  SUPERIOR, y su propia nota al pie declara solo las dos primeras. La celda gano un TERCER elemento
+  opcional con el TEXTO IMPRESO, que se carga solo cuando lo impreso no es «valor» ni
+  «valor mas-menos desvio» y que la pantalla publica tal cual: asi no se pierde ni se inventa nada.
+  Medido: 9 celdas de limite y 56 con texto impreso. De un limite NO sale ni una diferencia en
+  desviaciones ni una EOA indexada. → **P20-a**.
+- **Seis premisas del indice que no se reprodujeron**, todas medidas: la A8 no es «modelo x tamano»
+  sino «referencia x situacion» y dos de sus tres columnas numericas estan en «NR»; la A9 esta
+  TRANSPUESTA y trae ademas la EOA indexada de la propia serie; el tamano de la A7 no es siempre un
+  numero; la Tabla 7 efectivamente no da cortes de EOA indexada para esas dos valvulas; y —la mas
+  importante— **la aplicacion NO gradua la protesis tricuspide ni pulmonar con cortes de valvula
+  nativa**: usa VT_PROT_T19 y VP_PROT_T15, que coinciden FILA POR FILA con lo leido en imagen. Lo
+  que si faltaba es que esas dos tablas no tenian ficha en Referencias.
+- **Donde va el boton en cada valvula, y por que.** En la TRICUSPIDE y la PULMONAR va en la MISMA
+  fila del select, como en la aortica: su fila es un flex con UN solo hijo y deja 774 px libres a
+  1440, 358 a 1000 y 286 a 768. En la MITRAL va en una FILA PROPIA debajo —la decision 5 del medico
+  y la opcion (a) que P19-e dejo medida—, porque su fila es un grid de tres con el ancho acotado al
+  boton «Insuficiencia». **TC-522 sigue verde POR CONSTRUCCION**: la fila nueva es HERMANA, y la
+  grilla de tres conserva sus tres hijos y su ancho exacto en los cuatro anchos.
+- **Un dueno unico para el PPM mitral.** La regla vivia DENTRO de `vmProtEOA`, que lee del DOM, asi
+  que el componente no podia usarla sin copiarla. Se extrajo `_vmPpmClasificar`, con la misma forma
+  que la aortica, sin mover una sola salida: su guarda NO exige «mayor que cero», al reves que
+  aquella, porque agregarla cambiaria el resultado de un area de cero.
+- **La decision 6 del medico, aplicada**: sin cortes publicados para la tricuspide ni la pulmonar,
+  la «EOA indexada predicha» sale SOLO como numero, y el IMC deja de publicarse donde no elige
+  ninguna rama de cortes.
+- **La velocidad de E se convierte UNA vez.** La A9 la imprime en m/sec y el campo esta en cm/s. El
+  medido lleva `fac:100`. Medido con Carbomedics Standard 31 (1,4 +- 0,19 m/s = 140 +- 19 cm/s):
+  140 da +0.0 DE, 178 da +2.0, 121 da -1.0 y 102 da -2.0.
+- **Un defecto de texto del componente de PANT-19, corregido**: sin area en la tabla la linea de
+  abajo decia «falta el peso y la talla para indexar», o sea afirmaba que faltaba un dato del
+  paciente que SI estaba cargado. Lo destapo la A5 y alcanza igual a la A4. → **P20-d**.
+- **DOCE campos guardados nuevos y DOCE columnas de Excel**, 445 -> 457, con las 445 anteriores
+  iguales y CERO encabezados con «EOA» o «AEO» (P19-g). Censo de campos 1004 -> 1016.
+- **Dos fichas nuevas en Referencias**: la sub-pestana de protesicas pasa de CINCO a SIETE. Van
+  DENTRO del contenedor, asi que REF_SUBTAB no se toca. **La primera version las dejo afuera y lo
+  cazo la medicion, no la lectura.**
+- **La verificacion de cierre.** **40/40 mutaciones dirigidas muertas** en worktree y nunca sobre
+  el vivo, con el md5 del vivo identico antes y despues; el primer barrido dejo tres
+  sobrevivientes y fueron **un hueco real** -de ahi nacio (D4), que ata la publicacion del PPM
+  mitral a su dueno-, **una mal dirigida** -la mata (B3b) de TC-731, de PANT-19- y **una mal
+  escrita**. Los seis casos nuevos **caen contra 694e9e3 por 52 condiciones y NINGUNA por
+  excepcion**. A/B de **104 escenas**: las 2.808 diferencias son el **inventario** -doce campos,
+  doce columnas y tres conteos- y **cero** de informe, EN SUMA, PDF, PPT ni Laboratorio.
+  **Semgrep 124/0**, sin huerfanos nuevos. **Dieciseis cruces** en dos motores con **una** sola
+  diferencia entre ellos, de 3 px de ancho de boton. **Celular 59 y 67 con 18 ALTA**, la linea
+  base exacta.
+
+- **Lo que quedo declarado**: la A8 cargada y sin consumidor (**P20-b**); la pulmonar comparando
+  tres de sus cinco columnas, porque no hay campo de AT ni de area de la protesis pulmonar
+  (**P20-c**); y la Tabla A6 afuera (**P20-e**).
+
 ## PANT-19 — la protesis valvular, partes 2 y 3 de 5: el catalogo de modelos y tamanos (2026-11-06)
 
 **Ocho commits**, y el **commit 7 —el componente en la MITRAL— se paro y se reporta**. El

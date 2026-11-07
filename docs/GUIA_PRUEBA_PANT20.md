@@ -3,7 +3,7 @@
 > El catálogo de prótesis por modelo y tamaño en la **mitral**, la **tricúspide** y la
 > **pulmonar**, y las dos tablas de obstrucción en Referencias.
 >
-> **22 pasos, un dato por línea.** Abrí `index.html` en Chrome con la ventana en **1440 px** salvo
+> **24 pasos, un dato por línea.** Abrí `index.html` en Chrome con la ventana en **1440 px** salvo
 > donde diga otra cosa, y poné **peso 75** y **talla 175** en la pestaña «Paciente» antes de
 > empezar: sin eso no hay superficie corporal y la EOA indexada no se calcula.
 

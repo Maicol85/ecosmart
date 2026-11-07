@@ -1,5 +1,105 @@
 <!-- registro armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 
+## La tanda PANT-20 (2026-11-06) — el catálogo en la mitral, la tricúspide y la pulmonar
+
+**Guía única: ASE 2024**, Zoghbi W y col., *J Am Soc Echocardiogr* 2024;37:2-63. Archivo
+`Zoghbi_2024_Protesis.pdf` (62 hojas). Los tres archivos de esa carpeta son el **mismo
+documento**, que es lo que PANT-19 ya declaró.
+
+### La regla de folio, comprobada hoja por hoja
+
+**folio = hoja + 1.** Las hojas **pares** llevan el número en el **pie** («Volume 37 Number 1 ·
+Zoghbi et al · N») y las **impares** en el **encabezado** («N · Zoghbi et al · Journal of the
+American Society of Echocardiography · January 2024»). **Las cinco hojas de esta tanda se leyeron
+EN IMAGEN a 300 ppp** y la capa de texto sólo se usó para cruzar.
+
+| tabla | título impreso | hoja | **folio** | comprobado en |
+|---|---|---|---|---|
+| **Tabla 15** | *Parameters for prosthetic pulmonary valve stenosis* | 32 | **33** | pie: «Zoghbi et al **33**» |
+| **Tabla 19** | *Doppler parameters suggestive of prosthetic TV stenosis* | 35 | **36** | encabezado |
+| **Tabla A7** | *Normal Doppler echocardiographic values for prosthetic pulmonary valves* | 61 | **62** | encabezado: «**62** · Zoghbi et al» |
+| **Tabla A8** | *Transcatheter tricuspid ViV and ViR* | 61 | **62** | la misma hoja |
+| **Tabla A9** | *Normal Doppler echocardiographic values for prosthetic TVs* | 62 | **63** | pie: «Zoghbi et al **63**» |
+
+### Las transcripciones
+
+Celda por celda, con lo impreso literal: `docs/TRANSCRIPCION_A7_P20.md` y
+`docs/TRANSCRIPCION_TRICUSPIDE_P20.md`.
+
+| | modelos | tamaños | celdas con dato | vacías / «NA» |
+|---|---|---|---|---|
+| **A7** | 12 | 26 | **82** | 48 |
+| **A9** | 8 | 28 | **190** | 6 («NA») |
+
+### Las notas al pie, literales
+
+- **A7:** «*AT*, Acceleration time of the prosthetic valve.» y «Data are expressed as mean ± SD
+  **or as median (IQR)**.»
+- **A8:** «*NR*, Not reported.»
+- **A9:** «*CON*, Continuity equation; *iEOA*, indexed EOA; *MG*, mean gradient; *VTI*,
+  velocity-time integral; *TVP*, TV prosthesis.» y «Data are mean ± SD. Data for mechanical and
+  bioprosthetic TVs are from Blauwet et al.¹⁹²·²⁰²»
+- **Tabla 15:** «*Measurements assume normal RV stroke volume. Accurate CW Doppler may be
+  challenging because of the position of the homograft or bioprosthetic valve; important to use
+  off-axis parasternal and suprasternal views. Normal values for various prosthetic PVs are shown
+  in Appendix Table A7.»
+- **Tabla 19:** «*VTI_PrTV*, VTI through the prosthetic TV.» y «*Assessed in the absence of AR or
+  TR. Upper limits of normal DVI vary by valve size and type.»
+
+### Las dos tablas de obstrucción, transcritas
+
+**Tabla 15** (hoja 32, folio 33) — dos columnas, `Normal` y `Possible obstruction`:
+
+| parámetro | Normal | Possible obstruction |
+|---|---|---|
+| Peak velocity | < 3,2 m/s (bioprótesis) · < 2,5 m/s (homoinjerto) | ≥ 3,2 · ≥ 2,5 |
+| Mean gradient | < 20 mm Hg (bioprótesis) · < 15 mm Hg (homoinjerto) | ≥ 20 · ≥ 15 |
+
+**Tabla 19** (hoja 35, folio 36) — dos columnas, `Bioprosthetic` y `Mechanical`:
+
+| parámetro | Bioprosthetic | Mechanical |
+|---|---|---|
+| Peak E velocity, m/sec | ≥ 2,1 | ≥ 1,9 |
+| Mean gradient, mm Hg | ≥ 9 | ≥ 6 |
+| PHT, msec | ≥ 200 | ≥ 130 |
+| EOA, cm² | < 1,5 | < 2,0 |
+| DVI (VTI_PrTV/VTI_LVOT) | ≥ 3,3 | ≥ 2,1 |
+
+**Las dos coinciden FILA POR FILA con lo que la aplicación ya aplicaba** (`VP_PROT_T15` y
+`VT_PROT_T19`, desde la tanda PRO-C1). **No se movió un solo corte.**
+
+### Lo que NO coincidió con el índice de la orden
+
+1. **La A7 no tiene una sola forma de celda: tiene CUATRO.** Media ± DE, **mediana con rango
+   intercuartílico**, valor único y **límite superior** (`<25`, `<15`, `<2,2`). Su nota al pie
+   declara sólo las dos primeras. → **P20-a**.
+2. **La A8 no es «modelo × tamaño»**: su eje es **referencia bibliográfica × situación**, con una
+   sola referencia y un solo parámetro numérico; el área y la velocidad pico están impresas «NR».
+   → **P20-b**.
+3. **La A9 está TRANSPUESTA** —los modelos son columnas— y trae además la **EOA indexada de la
+   propia serie**, que no es la «EOA indexada predicha» que el componente calcula.
+4. **El tamaño de la A7 no es siempre un número**: hay rangos (`12-22`) y dos con paréntesis y el
+   símbolo ≤ (`16 (≤20)`, `18 (≤22)`).
+5. **La Tabla 7 no da cortes de EOA indexada tricúspide ni pulmonar: confirmado**, y por eso rige
+   la decisión 6 del médico.
+6. **La premisa del commit 7 no se reprodujo, y a favor:** la app **no** gradúa la prótesis
+   tricúspide ni pulmonar con cortes de válvula nativa. Lo que faltaba es que esas dos tablas no
+   tenían ficha en Referencias.
+
+### Cambios de evidencia
+
+| qué | antes | ahora | fuente |
+|---|---|---|---|
+| catálogo de prótesis pulmonar | no existía | **12 modelos, 26 tamaños, 82 celdas** | Tabla A7, hoja 61 · folio 62 |
+| catálogo de prótesis tricúspide | no existía | **8 modelos, 28 tamaños, 190 celdas** | Tabla A9, hoja 62 · folio 63 |
+| ViV/ViR tricúspide transcatéter | no existía | cargada, **sin consumidor** | Tabla A8, hoja 61 · folio 62 |
+| el catálogo mitral (A5) | cargado desde PANT-19, **sin interfaz** | **conectado** | Tabla A5, hojas 57-60 · folios 58-61 |
+| ficha de prótesis pulmonar en Referencias | **no existía** | Tabla 15 con sus dos columnas | hoja 32 · folio 33 |
+| ficha de prótesis tricúspide en Referencias | **no existía** | Tabla 19 con sus cinco parámetros | hoja 35 · folio 36 |
+| los cortes de obstrucción protésica | `VT_PROT_T19` y `VP_PROT_T15` | **idénticos: no se movió ninguno** | verificados fila por fila en imagen |
+| la EOA indexada predicha tricúspide y pulmonar | no existía | **sólo el número, sin categoría** | la Tabla 7 no publica cortes para ellas |
+| el mensaje de la EOA indexada sin área en la tabla | «falta el peso y la talla para indexar» | «la tabla no publica el área para este modelo» | ninguna: corrige una afirmación falsa |
+
 ## La tanda PANT-14 (2026-11-05)
 
 ### ⚠️ Esta tanda NO abrió un solo PDF de guía, y se declara

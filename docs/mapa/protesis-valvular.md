@@ -354,3 +354,20 @@ acá, en cuatro líneas:
   calculada y sin la marca «(revisar)». **Es el único lugar donde esa tanda cambia el papel.**
 - **Cuatro campos guardados y cuatro columnas de Excel** (441 → 445), todos de la aórtica. La del
   área se llama **«AVA de referencia aórtica (cm²)»** y no «AEO» → **P19-g**.
+
+---
+
+## El catálogo por modelo y tamaño llegó a las cuatro válvulas (PANT-20, 2026-11-06)
+
+El componente «Modelo y tamaño» que PANT-19 dejó en la **aórtica** se conectó a la **mitral**, la
+**tricúspide** y la **pulmonar**. `VMOD_POS` pasa de una entrada a cuatro y `VMOD_TABLA` es el
+dueño único del mapeo posición → catálogo.
+
+- **Dónde va el botón en cada una**, y por qué la mitral necesita una fila propia mientras las
+  otras tres entran en la fila del select → `docs/mapa/pant20-catalogo-tri-pulm.md` § 5.
+- **Las dos tablas nuevas** —A7 pulmonar y A9 tricúspide— con sus conteos y sus cuatro formas de
+  celda → § 1 a § 4 de ese mapa.
+- **Los doce campos guardados y las doce columnas de Excel** (445 → 457) → § 7.
+- **Las dos fichas de Referencias** con las Tablas 15 y 19 → § 8.
+- **El dueño único del PPM mitral**, `_vmPpmClasificar`, extraído de `vmProtEOA` sin mover una
+  salida → § 6a.

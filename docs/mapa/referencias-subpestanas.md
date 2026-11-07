@@ -464,3 +464,18 @@ de las otras sesenta y siete: ninguna de estas dos fichas publica el mismo conte
 **P11-g**.
 
 Ver `docs/mapa/pant11-vci-pulmon-masas.md` § 10 y **TC-679 (D)**.
+
+---
+
+## La sub-pestaña de prótesis pasó de CINCO fichas a SIETE (PANT-20, 2026-11-06)
+
+`ref-protesicas` suma «Prótesis Pulmonar — ASE 2024» (Tabla 15, hoja 32 · folio 33) y «Prótesis
+Tricúspide — ASE 2024» (Tabla 19, hoja 35 · folio 36).
+
+⚠️ **VAN DENTRO DEL CONTENEDOR `ref-protesicas`, así que `REF_SUBTAB` NO SE TOCA**: ese registro
+reubica el **contenedor** entero y no cada ficha, y `valv` ya lo lista. La primera versión las
+dejó **afuera** y lo cazó la medición: una ficha fuera del contenedor existe, se abre desde su
+encabezado y el buscador la indexa, pero el médico que navegue por las solapas no la encuentra
+nunca — la lección que `constriccion` dejó en la tanda J.
+
+→ `docs/mapa/pant20-catalogo-tri-pulm.md` § 8

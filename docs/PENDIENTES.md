@@ -1,5 +1,88 @@
 # EcoSmart — pendientes vivos
 
+## P20-a · La Tabla A7 no tiene UNA forma de celda, sino CUATRO
+
+Leída en imagen a 300 ppp en la hoja 61, folio 62 comprobado en el encabezado impreso. La propia
+nota al pie declara **dos** —«Data are expressed as mean ± SD or as median (IQR)»— y la tabla usa
+**cuatro**:
+
+| forma | ejemplo impreso | cómo se carga |
+|---|---|---|
+| media ± DE | `16 ± 5` | `[16, 5]` |
+| **mediana con rango intercuartílico** | `11 (8-17)` | `[11, null, '11 (8-17)']` |
+| valor único | `2.2` | `[2.2, null]` |
+| **límite superior** | `<15` | `[null, null, '<15']` |
+
+**Lo que la tanda hizo con eso, y es una decisión de FORMA y no clínica:** la celda ganó un
+**tercer elemento opcional** con el **texto impreso**, que se carga sólo cuando lo impreso no es
+«valor» ni «valor ± desvío», y que la pantalla publica **tal cual**. Así no se pierde nada de lo
+impreso y no se inventa nada. Medido sobre el bloque cargado: **9** celdas de límite y **56** con
+texto impreso, sobre 82.
+
+**La consecuencia, declarada:** un **límite no tiene valor central**, así que de él no sale ni una
+diferencia en desviaciones estándar ni una EOA indexada predicha. Lo fija **TC-740 (C2)** y
+**(C3)**.
+
+**Lo que decide el médico, si quiere otra cosa:** si una mediana con rango debería publicarse
+también como el número solo, o si un límite debería tomarse como valor de referencia. Hoy la
+pantalla publica lo impreso y no decide por él.
+
+## P20-b · La Tabla A8 queda cargada y SIN consumidor
+
+`PROT_CAT_A8` está cargada y verificada (TC-737, bloque D), y **nadie la lee**. Tres motivos
+medidos, los tres iguales a los que **P19-d** dio para la A6:
+
+1. **Su eje no es «modelo × tamaño» sino «referencia bibliográfica × situación»**: una sola
+   referencia (McElhinney y col.²⁰³, n = 306) y un solo parámetro numérico.
+2. **Dos de sus tres columnas numéricas están impresas «NR»** —el área y la velocidad pico—.
+3. **La morfología tricúspide de la aplicación no tiene ninguna opción de implante
+   transcatéter**: `vt_morf` ofrece `Prótesis biológica`, `Prótesis mecánica`,
+   `Plastia tricuspídea` y `TEER tricuspídeo (T-TEER)`, y ninguna es un ViV ni un ViR. Lo mide
+   **TC-737 (D5)** como control negativo.
+
+Es la misma situación que `PROT_CAT_A5`, que estuvo cargada desde PANT-19 hasta esta tanda.
+
+**Qué haría falta el día que se decida:** una opción nueva en `vt_morf` —que es un vocabulario
+del informe y una decisión del médico— y un lector para la forma de esa tabla.
+
+## P20-c · La pulmonar compara TRES de las cinco columnas, y no es un olvido
+
+La Tabla A7 trae cinco columnas y el componente publica el **valor esperado** de las cinco. Lo que
+publica sólo para tres es **lo medido con su diferencia**, porque **la aplicación no tiene un campo
+de tiempo de aceleración ni de área de la PRÓTESIS pulmonar**. Censado: no existen `vp_at`,
+`ep_at`, `vp_eoa`, `ep_eoa` ni `ep_avp`. Lo fija **TC-740 (E2)** como control negativo.
+
+**El AT que sí existe es `vd_tap`**, en la pestaña VD / AD, y es el tiempo de aceleración del
+**tracto de salida nativo**. Darlo por el de la prótesis sería suponerlo, así que no se usó.
+
+**Lo que decide el médico:** si hay que agregar un campo de AT y otro de área de la prótesis
+pulmonar. Son dos campos guardados y dos columnas de Excel, o sea una decisión suya.
+
+## P20-d · El mensaje de la EOA indexada decía que faltaba un dato del paciente que SÍ estaba
+
+**Defecto del componente de PANT-19, corregido en esta tanda.** Sin área en la tabla, la línea de
+abajo publicaba «falta el peso y la talla para indexar», o sea afirmaba que faltaba un dato del
+paciente que estaba cargado. **Lo destapó la Tabla A5**, que trae muchas celdas de área vacías
+—Carbomedics 23 es una—, pero el defecto alcanza igual a la A4 de la aórtica.
+
+Hoy distingue los dos casos y el vocabulario es el de `VP_PROT_SIN_COL`: con área en la tabla y sin
+peso ni talla dice lo de siempre; sin área dice **«la tabla no publica el área para este modelo»**.
+
+## P20-e · La Tabla A6 sigue afuera, y P19-d sigue abierto
+
+La **Tabla A6** (SAPIEN mitral) **no se cargó**, que es lo que la orden de esta tanda dispone. Sus
+dos motivos son los de **P19-d** y ninguno cambió: la morfología mitral no tiene opción de implante
+transcatéter, y su eje no es modelo × tamaño.
+
+## P20-f · Lo que sigue, cuando se retome la serie de prótesis
+
+Esta tanda es la **parte 4 de 5**. Queda:
+
+1. **La Evidencia de prótesis**, con la **Tabla 17 de la versión FINAL de la ESC/EACTS 2025**
+   —archivo «2025 ESC:EACTS Guidelines for the management of valvular heart Disease. .pdf», hoja
+   66, folio 4700—, más la ACC/AHA 2020 y las guías de congénitas para la pulmonar.
+2. Después, **PANT-15** junto con Contractilidad y el ⓘ de la cava izquierda persistente.
+
 ## P17b-a · Lo que se LEYO en imagen y NO hizo falta escribir
 
 Las cinco hojas se leyeron a 200 ppp con el folio comprobado en el pie impreso, y DOS de las

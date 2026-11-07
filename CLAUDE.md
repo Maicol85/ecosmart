@@ -214,9 +214,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,16 MB / 167.525 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-19**, sobre el árbol ya sellado: sello **`v20261106-1923`**, md5
-  **`298cc61d`**. El diff de PANT-19 son **918 líneas agregadas y 14 quitadas** en `index.html`,
+  sin frameworks. Hoy **12,20 MB / 167.918 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
+  cierre de la tanda **PANT-20**, sobre el árbol ya sellado: sello **`v20261106-2156`**, md5
+  **`a99b0db9`**. El diff de PANT-20 son **426 líneas agregadas y 33 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `694e9e3`, de las que **400** no son comentario, con
+  **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR DECIMOSEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 694e9e3:index.html` da **167.525** líneas,
+  **12.160.653** bytes y el md5 **`298cc61d`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,16 MB / 167.525 al cierre de PANT-19, sello `v20261106-1923`, md5 `298cc61d`.) El diff de PANT-19 son **918 líneas agregadas y 14 quitadas** en `index.html`,
   medido con `git diff --numstat` contra `56b868b`, de las que **849** no son comentario, con
   **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR DECIMOQUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
@@ -806,6 +812,219 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### El catálogo en la mitral, la tricúspide y la pulmonar — «PANT-20» (2026-11-06 y 07)
+
+- **DOCE commits —contados con `git log 694e9e3..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los SIETE de código se hicieron enteros.** `e189031` (1) ·
+  `2ab58d5` (2) · `45a0b04` (3) · `f1663a5` (4) · `4ca40fc` (5) · `05032c5` (6) · `97f249c` (7)
+  · `3a93fd7` (8a, los casos apenas parsean) · `72ad932` (8b, la cobertura de las dos fichas) ·
+  `411e0d7` (8c, el sello) · `1dc29f0` (8d, lo que el barrido destapó) · **éste** (8e, cobertura
+  y documentación). Sello **`v20261106-2156`**, md5 **`a99b0db9`**. Al empezar, `origin/main` =
+  `HEAD` = **`694e9e3`**, el cierre de PANT-19, ya publicado, con md5 `298cc61d` y el pendrive
+  `DISK_IMG` montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **EL COMMIT 8c SELLA ANTES DE LA VERIFICACIÓN Y LOS DOS ÚLTIMOS NO VUELVEN A SELLAR**,
+  porque no tocan `index.html`: así el árbol que la suite, el barrido, el A/B, los dos motores y
+  el celular midieron es exactamente el que queda commiteado, y no hay tres líneas de diferencia
+  que declarar al cerrar. Es la forma que POP-B y PANT-17 dejaron escrita.
+  ⚠️ **POR DECIMOSÉPTIMA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 694e9e3:index.html` da **167.525**
+  líneas, **12.160.653** bytes y el md5 **`298cc61d`**, los tres idénticos a lo que decía.
+
+- **LAS CINCO TABLAS, EN IMAGEN A 300 ppp, Y LA REGLA DE FOLIO COMPROBADA EN CADA HOJA.**
+  ASE 2024 (Zoghbi, *JASE* 2024;37:2-63), **folio = hoja + 1**, comprobado en el **pie** impreso
+  de las hojas pares y en el **encabezado** de las impares, hoja por hoja y no deducido de dos.
+  **A7** (hoja 61, folio 62): 12 modelos, 26 filas de tamaño, **82** celdas con dato. **A9**
+  (hoja 62, folio 63): 8 modelos, 28 tamaños, **190** celdas más **6** «NA» impresos. **A8**
+  (hoja 61, folio 62). **Tabla 15** (hoja 32, folio 33) y **Tabla 19** (hoja 35, folio 36), las
+  dos de obstrucción protésica.
+
+- ⚠️ **EL ± SE LEE POR SU FUENTE, Y ES MÁS BARATO QUE LA GEOMETRÍA DE PANT-19.** El PDF lo
+  codifica como el carácter **«6»**, que es por lo que la capa de texto devuelve «11 6 6» por
+  «11 ± 6». PANT-19 lo resolvió midiendo el **exceso de ancho** del glifo, con umbral; esta tanda
+  encontró la razón: el ± es un **token aparte con fuente `AdvPS586B`**, distinta de la de los
+  dígitos (`AdvPSA183`), así que se separa **por el nombre de la fuente** y sin umbral.
+
+- ⚠️ **CUATRO PREMISAS NO SE REPRODUJERON, Y LAS CUATRO SON DE ESTRUCTURA.**
+  1. **La A7 tiene CUATRO formas de celda y la orden supone una** —y su propia nota al pie
+     declara dos—: media con desvío, **mediana con rango intercuartílico**, valor único y
+     **límite superior**. La celda del catálogo era `[media, desvío]`; ganó un **tercer elemento
+     opcional** con el texto impreso, que la pantalla publica **tal cual**. Medido: **9** celdas
+     de límite y **56** con texto impreso sobre 82. Un **límite no tiene valor central**, así que
+     no da diferencia en desviaciones ni EOA indexada predicha → **P20-a**.
+  2. **La A8 no es modelo × tamaño: es referencia × situación**, dos de sus tres columnas
+     numéricas dicen «NR» y `vt_morf` **no tiene opción de implante transcatéter**. Se cargó con
+     **su propia forma** y **sin un solo consumidor** → **P20-b**.
+  3. **La A9 está TRANSPUESTA**, y asignar columna a modelo por la cercanía del encabezado falla
+     en **2 de 4** bloques: hubo que leerla en la imagen.
+  4. **La pulmonar tiene sólo TRES campos medidos**: no existe en la app un campo de tiempo de
+     aceleración ni de área para una prótesis pulmonar → **P20-c**.
+
+- **EL BOTÓN DE LA MITRAL VA EN SU PROPIA FILA, Y ESO DEJA A TC-522 EN VERDE POR CONSTRUCCIÓN.**
+  Su fila de morfología es un `grid` de **tres** con el ancho acotado al botón «Insuficiencia»
+  que ese caso vigila, y un cuarto hijo apretaría las tres celdas por debajo de su piso —que es
+  justo lo que PANT-19 midió para pararlo (**P19-e**)—. La fila nueva es **hermana** de la de
+  tres, con `margin-top:-6px`, y los anchos de la grilla salen **idénticos** a los cuatro anchos
+  (483 / 275 / 706 / 328 px), medido antes y después.
+
+- **UN SOLO COMPONENTE PARA LAS CUATRO POSICIONES, Y LO QUE SE AGREGA ES UNA ENTRADA POR
+  VÁLVULA.** `VMOD_POS` pasa de una a cuatro entradas y el catálogo se elige por **`VMOD_TABLA`**,
+  un dueño único nuevo: el día que entre otra posición se agrega una fila. **El repintado no hubo
+  que tocarlo en ninguna de las tres columnas** —`ESPEJOS_VIVOS`, `RECALC_MODULOS` y el final de
+  `limpiarCampos`—, porque `vModSyncTodos` recorre `Object.keys(VMOD_POS)`.
+
+- **EL PPM MITRAL SALIÓ A SU DUEÑO ÚNICO, `_vmPpmClasificar`.** Estaba dentro de `vmProtEOA`, y
+  la entrada de la mitral lo necesita desde el componente: con la regla copiada, los dos lados
+  podrían graduar distinto el mismo desajuste el día que un corte se mueva.
+  **La tricúspide y la pulmonar NO publican PPM** —ninguna de sus tablas da el área indexada
+  esperada—, así que su entrada lo declara en `null` y el pintor publica en su lugar la **EOA
+  indexada predicha** a secas, **sin veredicto**.
+
+- **LA CONVERSIÓN DE UNIDAD ES DEL CAMPO Y NO DE LA TABLA.** La A9 publica la velocidad pico de
+  la onda E en **m/s** y el campo de la app está en **cm/s**: la entrada declara `fac:100` y el
+  pintor convierte la media **y el desvío** antes de restar. Medido con la Carbomedics Standard
+  31, que espera 1,4 ± 0,19 m/s: **140 da +0.0 DE, 178 da +2.0, 121 da −1.0 y 102 da −2.0**.
+  ⚠️ **Sin convertir el desvío, 178 habría dado «+20 DE»**, que es un número que ningún eco
+  produce y que el médico habría leído como un error de la aplicación.
+
+- **DOCE CAMPOS GUARDADOS NUEVOS Y DOCE COLUMNAS DE EXCEL** (445 → **457**), cuatro por válvula,
+  todos con guión **BAJO** y **ocultos con `display:none`** y no con `type="hidden"`: en un
+  hidden el `value` y el `defaultValue` son el mismo atributo y «Nuevo estudio» no los limpiaría
+  (**P14c-g**). Recorren las **siete** listas y sólo dos necesitaron tocarse —la salida del Excel
+  y el mapa del importador—; las otras cinco los toman por su prefijo.
+  ⚠️ **NINGÚN ENCABEZADO DEL EXCEL CONTIENE «EOA» NI «AEO»**, que es la condición que un caso
+  existente exige desde PANT-19: las columnas de área se llaman «AVm de referencia mitral»,
+  «AVT de referencia tricúspide» y «Área de referencia pulmonar».
+
+- ⚠️ **LA PREMISA DEL COMMIT 7 SE DESMINTIÓ A FAVOR DE LA APP, Y ESO CAMBIÓ LO QUE HABÍA QUE
+  HACER.** La orden supone que la tricúspide y la pulmonar se graduaban con cortes de válvula
+  **nativa**; medido, la app ya aplica `VT_PROT_T19` y `VP_PROT_T15`, que son las dos tablas de
+  **prótesis** y coinciden **fila por fila** con las imágenes. Lo que faltaba eran las **fichas
+  de Referencias**: la subpestaña de protésicas pasa de **cinco a siete**, las dos nuevas nacen
+  cerradas, con su hoja, su folio y el folio de su tabla de valores esperados, y **sin un globo
+  nuevo**.
+
+- ⚠️ **EL DEFECTO QUE ME HICE EN EL COMMIT 7 Y QUE CAZÓ LA SONDA: las dos fichas quedaron FUERA
+  del contenedor.** Mi ancla cerraba a la vez la tarjeta de endocarditis **y** el contenedor
+  `ref-protesicas`, así que las fichas existían, el buscador las indexaba y el médico que
+  navegara por las solapas **no las encontraba nunca**. Se revirtió con
+  `git show HEAD:index.html > index.html` y se rehízo con un ancla de seis líneas. **Lo fija
+  (G2) de TC-741**, que pregunta por `contains` y no por existencia.
+  ⚠️ **Y UN SEGUNDO, DE PLANTILLA: `TFILA1` CONTIENE `FILA1`.** `replace('FILA1', …)` corrompió
+  la tabla de la tricúspide —publicaba las filas de la pulmonar con «T» sueltas—. Se cerró con
+  marcadores únicos y un aserto de que cada uno aparece exactamente una vez y ninguno queda.
+
+- ⚠️ **EL DEFECTO MÁS CARO DE LA TANDA FUE MÍO Y SE LLEVÓ UN CASO ENTERO: UN MARCADOR DE
+  PROTECCIÓN NO PUEDE CONTENER LO QUE SE VA A REEMPLAZAR.** Al pasar los conteos del Excel de
+  445 a 457 protegí el nombre `TC-445` con el marcador `@@TC445@@` —que **contiene** «445»—, así
+  que la expresión regular lo reescribió a `@@TC457@@` y la restitución dejó
+  `caso('@@TC457@@', …)`: **el caso desapareció de la suite**. Lo encontró **contar los casos
+  distintos** —755 contra 756— y no la lectura. La lección quedó escrita en
+  `docs/mapa/tests-punteros-tandas.md`.
+
+- **40/40 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, en 2,2 min, con
+  el md5 del árbol vivo **idéntico** antes y después (`a99b0db9`). Cada mutación declara **su**
+  caso y el reparto es limpio: TC-736 **8** · TC-737 **6** · TC-738 **8** · TC-739 **5** ·
+  TC-740 **4** · TC-741 **8** · TC-731 **1**. Las 40 anclas aparecen **exactamente una vez** en
+  `index.html`, verificado **antes** de correr el barrido —que es lo que PANT-19 pagó con siete
+  anclas que no aplicaron por escribirlas con secuencias `\uXXXX` en vez del carácter real—.
+  ⚠️ **EL PRIMER BARRIDO DEJÓ TRES SOBREVIVIENTES Y LAS TRES DIJERON COSAS DISTINTAS.** **Un
+  hueco real**: la 18 le pone a la entrada de la mitral el clasificador de PPM **aórtico** —que
+  existe, está expuesto y también devuelve una categoría—, y las condiciones (D0) a (D3) llaman
+  al clasificador mitral **directo**, así que ninguna ataba la **publicación** a su dueño; nació
+  **(D4)**, que **busca su escena en vez de adivinarla**: los cortes mitrales (0,90 y 1,20) y los
+  aórticos (0,65 y 0,85) coinciden en casi todo el rango, así que recorre tres modelos por cinco
+  pares de peso y talla hasta dar con uno donde los dos veredictos difieran, y **si ninguno los
+  separa el denominador lo DICE**. **Una mal dirigida**: la 21 rompe la búsqueda por palabra del
+  componente **único**, y la mata **(B3b) de TC-731**, de PANT-19 —«ifecta» cae en MEDIO de
+  «Trifecta»—, así que declarada al caso de esta tanda sobrevivía **sobre cobertura que ya
+  existía**. **Y una mal escrita**: la 40 cambiaba el **rótulo** de una fila de la ficha pulmonar
+  y la fila seguía ahí, así que la condición que cuenta filas con celda de dato no podía fallar.
+  ⚠️ **Y arreglar el arnés costó una corrida por un resbalón propio:** los dos comentarios nuevos
+  se escribieron con `/* */`, que en un archivo de Python **no es un comentario**.
+
+- **SEIS CASOS NUEVOS, TC-736 a TC-741**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra `694e9e3` por 52 condiciones y NINGUNA por excepción**, verificado en un
+  worktree alternando sólo `index.html` con el mismo archivo de casos. **Los cinco adaptados
+  también caen ahí**, que es lo que confirma que discriminan.
+
+- **CINCO CASOS VIEJOS ADAPTADOS, los cinco conteos de inventario y los cinco míos**: **TC-135**
+  y **TC-479** (las columnas del Excel), **TC-502** y **TC-509** (las fichas de Referencias,
+  38 → **40**, y el reparto de la solapa Válvulas, 12 → **14**) y **TC-632**.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  El diff de la tanda son **426 líneas agregadas y 33 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `694e9e3`, de las que **400** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+
+- **Línea base al cierre: suite 750/756**, en **catorce** lotes cubriendo los **756 casos
+  distintos** —contados nombre por nombre, con una guarda que compara lo listado con lo
+  ejecutado: **756 de 756**—, en UNA sola pasada sobre el árbol sellado, con el pendrive
+  `DISK_IMG` **verificado al abrir, en cada uno de los catorce lotes y al cerrar** (dieciséis
+  verificaciones) y el md5 de `index.html` **idéntico** antes y después (`a99b0db9`). Los rojos
+  son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551 y TC-557**, los
+  dos intermitentes declarados: **TC-551 pasa 2 de 2 corrido aislado** —el chorro de la orejuela
+  sin pausar la animación, que `COR-f` documenta— y **TC-557 cae IDÉNTICO contra `694e9e3`**, con
+  la firma `00000 44x44` de `elementFromPoint` fuera del viewport que `TGA-h` declara, así que no
+  es de esta tanda. **Ningún rojo nuevo, y los seis casos nuevos en verde.**
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 745/756 CON CINCO ROJOS MÁS, LOS CINCO MÍOS**, y por eso
+  esa cifra no es la línea base: **TC-135**, **TC-479**, **TC-502**, **TC-509** y **TC-632**, los
+  cinco conteos de inventario. Están adaptados y la cifra de arriba sale de la corrida **limpia**,
+  de una sola pasada sobre el mismo árbol sellado y con el archivo de casos final.
+
+- **A/B contra `694e9e3`, con el PDF y el PPT generados de verdad: 104 escenas, 127.696 claves y
+  47.528 celdas de Excel. Las 2.808 diferencias de superficie firmada son el INVENTARIO DEL
+  FORMULARIO y nada más**, y las tres clases son el mismo hecho: **1.248** son los doce campos
+  nuevos (104 × 12), **1.248** las doce columnas nuevas y **312** los tres conteos (`_camposN`,
+  `_camposClaves`, `_excelN`). **Ninguna clave de informe, EN SUMA, PDF, PPT ni Laboratorio
+  difiere**, verificado clave por clave con un barrido que las clasifica una por una: **CERO
+  «otras»**. Los doce traen valor en **6** escenas —las que cargan un modelo— y están **vacíos en
+  98**; `p20sinMod` es el control y da cero. **Excel 445 → 457 con doce agregadas y CERO
+  perdidas**; campos **998 → 1010**, los doce autorizados y **ninguno perdido**.
+  ⚠️ **Y SUS «0 DIFERENCIAS DE PANTALLA» SON UN CONTROL NEGATIVO, Y SE DECLARA**: ese arnés no
+  abre el componente ni mira su tarjeta. Lo que lo mide son `scripts/_probe_pant20mod.mjs` y la
+  sonda de dos motores.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), con **UNA** diferencia entre motores y es de métrica de fuente: **3 px** en el ancho
+  del botón (128 contra 131). En los dieciséis: las **tres** secciones abiertas, los **tres**
+  botones en **44 px de alto**, **ajeno=0 en los 48** —ningún toque cae en otro control—, la fila
+  **propia** del botón mitral **hermana** de la grilla de tres, esa grilla con sus **tres** hijos
+  `vm_morf, vm_tipo_im, vm_carp` intactos, la tarjeta **flotante** a 1440 y 1000 y **hoja fija
+  abajo** a 768 y 390, **dentro** de la pantalla, cerrando con **Escape** y **devolviendo el foco
+  al botón**, las **siete** fichas con la pulmonar y la tricúspide **dentro** del contenedor y
+  **cerradas**, **cero** desplazamiento horizontal, **cero** textos recortados y **CERO errores de
+  consola y de página**.
+  **El mismo cruce contra `694e9e3` es el control, y reproduce las premisas**: los tres botones
+  **NO EXISTEN**, la fila propia en falso, **cinco** fichas con cero pulmonar y cero tricúspide,
+  y la grilla de tres **idéntica** —o sea que TC-522 no se movió—, con el mismo `scrollH=0` y
+  `recortados=0`.
+  ⚠️ **El único error de consola de ese árbol es del arnés**, `ERR_FILE_NOT_FOUND`, porque se
+  carga de una copia en el temporal: lo que la tanda D2 ya documenta. El árbol vivo da **cero** en
+  los dieciséis.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  ⚠️ **Y LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO**: los tres botones
+  informaban **0×0** y la tarjeta no abría en los dieciséis cruces, que se lee igual que «el
+  componente no está». Faltaba abrir las tres secciones con `toggleEteSeccion` sobre los ids
+  `ete-seccion-valv-*`. Se validó el cuerpo en **un** cruce antes de gastar la corrida entera.
+
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base
+  exacta. **No empeoró.**
+
+- **Dónde está todo:** `docs/mapa/pant20-catalogo-tri-pulm.md` (**mapa NUEVO**, 14,2 KB),
+  `docs/INVENTARIO_PROTESIS_P20.md`, las **dos** transcripciones celda por celda
+  —`docs/TRANSCRIPCION_A7_P20.md` y `docs/TRANSCRIPCION_TRICUSPIDE_P20.md`—, las fichas de los
+  seis casos en `docs/mapa/tests-fichas-736.md` (**archivo propio**, porque `tests-fichas.md`
+  está a menos de 1 KB del techo), **cuatro mapas con un puntero cada uno** —medidos ANTES de
+  escribir: `protesis-valvular.md` 23,4 KB, `referencias-subpestanas.md` 28,2,
+  `tests-punteros-tandas.md` 27,4 y `protesis-tri-pulm.md` 19,1—, `docs/fuentes/FUENTES.md` →
+  «La tanda PANT-20» con la regla de folio comprobada en cada hoja, las notas al pie literales,
+  las dos tablas de obstrucción transcritas y su tabla «Cambios de evidencia»,
+  `docs/REGISTRO_TANDAS.md` → el bloque de la tanda, `docs/GUIA_PRUEBA_PANT20.md` → la guía
+  manual en **24** pasos, y `docs/PENDIENTES.md` → **SEIS** cosas declaradas (**P20-a** a
+  **P20-f**).
+
 ### El catálogo de prótesis por modelo y tamaño — «PANT-19» (2026-11-06)
 
 - **SIETE commits —contados con `git log 56b868b..HEAD` AL CERRAR, y el commit que escribe este
