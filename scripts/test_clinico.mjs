@@ -122988,6 +122988,11 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
   S('va_morf', 'Prótesis mecánica'); S('vm_morf', 'Prótesis mecánica');
   S('vt_morf', 'Prótesis mecánica'); S('vp_morf', 'Prótesis mecánica');
   S('vmax_ao', '4.5'); S('em_gmedio', '6'); S('et_gmedio', '10'); S('ep_gmedio', '22');
+  /* ⚠️ Y UNA SECCION AJENA ABIERTA A PROPOSITO, que nacio del barrido: sin ella, ponerle
+     ordenProt a una seccion de congenitas pasaba en verde porque esa seccion no se abria en esta
+     escena y nunca entraba a la cuenta. El defecto del septo auriculoventricular es la que TC-322
+     ya siembra con estos dos campos. */
+  S('dsav_tipo', 'completo'); S('dsav_qp_qs', '2.1');
   const conOrden = [], sinOrden = [];
   try {
     IND_SECS.forEach(sec => {
@@ -123001,8 +123006,10 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
     conOrden.join(' | ').indexOf('Prótesis mitral') > -1 &&
     conOrden.join(' | ').indexOf('Prótesis tricúspide') > -1 &&
     conOrden.join(' | ').indexOf('Prótesis pulmonar') > -1 &&
-    sinOrden.length > 0,
-    'conOrden=' + JSON.stringify(conOrden) + ' otras=' + sinOrden.length]);
+    sinOrden.length > 0 &&
+    sinOrden.join(' | ').indexOf('Defecto del septo auriculoventricular') > -1,
+    'conOrden=' + JSON.stringify(conOrden) + ' otras=' + sinOrden.length +
+    ' dsavSinOrden=' + (sinOrden.join(' | ').indexOf('Defecto del septo auriculoventricular') > -1)]);
 
   /* (F1) CONTROL NEGATIVO: en una seccion SIN ordenProt, «Con lo contestado» sigue ARRIBA de las
      preguntas, que es el orden de las cuarenta y una restantes. */
