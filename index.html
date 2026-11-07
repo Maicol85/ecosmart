@@ -3274,6 +3274,10 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 #tab-valvulas .valv-morf-row > .vmod-wrap{flex:0 0 auto;align-self:flex-end;margin-bottom:0;}
 #tab-valvulas .valv-morf-row > .vmod-wrap > .vmod-btn{width:auto;}
 .vmod-btn{min-height:44px;white-space:nowrap;}
+/* La fila PROPIA del boton (PANT-20): hereda el flex de `.valv-morf-row` y solo se pega a la de
+   arriba. No declara ancho ni columnas, asi que no puede tocar la grilla de tres que TC-522
+   vigila. Sin contenido visible la fila no ocupa alto, porque sus dos hijos nacen vacios. */
+#tab-valvulas .valv-morf-row.vmod-row{margin-top:-6px;}
 .vmod-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;min-width:0;}
 .vmod-chip{border:1px solid var(--border);background:var(--bg2);border-radius:8px;padding:4px 8px;
   font-size:12px;line-height:1.3;color:var(--text);}
@@ -7649,7 +7653,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                Con una vena contracta cargada funciona —el voto leve pisa al severo del jet—; con
                el jet como único parámetro, el grado nativo sobrevive. Ver la nota de
                `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync();vmProtBloqSync();vmMorfFitSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia mitral</option><option>TEER mitral</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM();m3dBotonSync();vmProtBloqSync();vmMorfFitSync();vModMorfSync('vm')"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Plastia mitral</option><option>TEER mitral</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- ══ TIPO DE IM Y CARPENTIER — AJ5-1 (2026-10-24, decisión de Maicol) ═══════════
@@ -7693,6 +7697,33 @@ window.cerrarSesionReal = cerrarSesionReal;
                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();vmCarpIrAlEte()}"></div>
         </div>
       </div>
+      <!-- ══ «Modelo y tamano» de la valvula MITRAL (PANT-20, commit 4) ══════════════
+           EL BOTON VA EN UNA FILA PROPIA, debajo de la de morfologia, y es la decision 5 del
+           medico y la opcion (a) que P19-e dejo medida. En la AORTICA el boton entra en la misma
+           fila porque esa es un flex con un solo hijo y sobran 774 px a 1440; en la MITRAL la fila
+           es `.valv-morf-row--tres`, un grid de tres hijos con el ancho ACOTADO al boton
+           «Insuficiencia» (483 px a 1440), y a 1000 px ya esta en UNA columna de 275: un cuarto
+           hijo apretaria las tres celdas por debajo del piso de 144 px declarado.
+           ⚠️ ESTA FILA ES HERMANA Y NO TOCA LA DE ARRIBA: TC-522 cuenta los hijos de
+           `.valv-morf-row--tres` (A2) y mide su ancho contra el del boton (A3), asi que sigue
+           verde POR CONSTRUCCION. Medido antes y despues.
+           Los cuatro campos guardados van ocultos con `display:none` y NO con `type="hidden"`
+           (P14c-g), y llevan guion BAJO para que `_noEsDelEstudio` no los saque del estudio. -->
+      <div class="valv-morf-row vmod-row">
+        <div class="fg vmod-wrap" id="vmod-vm-wrap" style="display:none;">
+          <label for="vmod-vm-btn">Pr&oacute;tesis</label>
+          <button type="button" class="btn btn-ghost vmod-btn" id="vmod-vm-btn"
+                  aria-expanded="false" aria-haspopup="dialog" aria-label="Modelo y tama&ntilde;o de la pr&oacute;tesis mitral"
+                  onclick="vModClic('vm')">Modelo y tama&ntilde;o</button>
+        </div>
+        <div class="vmod-chips" id="vmod-vm-chips" aria-live="polite"></div>
+        <input type="text"   id="vm_prot_modelo" style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="text"   id="vm_prot_tam"    style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vm_prot_gmref"  step="0.1"  style="display:none;" tabindex="-1" aria-hidden="true">
+        <input type="number" id="vm_prot_eoaref" step="0.01" style="display:none;" tabindex="-1" aria-hidden="true">
+      </div>
+      <div class="vmod-sub" id="vmod-vm-sub" style="display:none;"></div>
+      <div class="vmod-med" id="vmod-vm-med" style="display:none;"></div>
       <div class="valv-pills-row" style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
@@ -72358,10 +72389,13 @@ function vmProtEOA(src) {
        permisivo, y acá peso y talla siempre están —el EOA indexado necesita la BSA, que sale de los
        mismos dos campos—, así que la rama sin IMC es inalcanzable por construcción y queda como
        defensa. `getBSA` y `getIMC` leen `peso` y `talla`: si falta uno, no hay ninguno de los dos. */
-    const c = (R.imc != null && R.imc >= VM_PROT_IMC_OBESIDAD)
-            ? VM_PROT_PPM_CORTES.imcAlto : VM_PROT_PPM_CORTES.imcBajo;
-    R.ppmCortes = c;
-    R.ppm = R.eoaI <= c.severoMax ? 'severo' : (R.eoaI > c.normalMin ? 'no' : 'moderado');
+    /* PANT-20: la regla vive en `_vmPpmClasificar`, que es su DUENO UNICO desde que el
+       componente «Modelo y tamano» de la mitral tambien la necesita. Dos copias serian las
+       que divergen el dia que un corte se mueva. La funcion NO cambia el resultado: es el
+       mismo cociente, los mismos cortes y los mismos operadores, extraidos tal cual. */
+    const _p = _vmPpmClasificar(R.eoaI, R.imc);
+    R.ppmCortes = _p.cortes;
+    R.ppm = _p.ppm;
   }
   return R;
 }
@@ -72377,6 +72411,21 @@ window.vmProtEOA = vmProtEOA;
    ⚠️ LA SUPERFICIE CORPORAL SE LE PREGUNTA A `getBSA`, que es su dueño unico, y no se deduce de
    que el indexado este vacio: el indexado tambien falta cuando falta el area, y con los dos
    derivados del mismo hueco la fila no podria distinguirlos. */
+/* ══ EL PPM MITRAL, DUENO UNICO (PANT-20) ════════════════════════════════════
+   Misma forma que `_eaPpmAoClasificar`, a proposito: `normalMin` EXCLUSIVO y `severoMax`
+   INCLUSIVO. Los cortes son los de la Tabla 7 de la ASE 2024, folio 20, fila «Mitral EOA», y
+   P19-c ya verifico que son los mitrales y no los aorticos. NO SE TOCA NINGUNO.
+   ⚠️ LA GUARDA NO EXIGE `> 0`, al reves que la aortica, y es deliberado: `vmProtEOA` ya decide
+   cuando llamarla (`R.eoa != null && R.bsa`) y agregar esa condicion CAMBIARIA el resultado de
+   un area de cero, que hoy sale «severo». Esta extraccion no mueve una sola salida. */
+function _vmPpmClasificar(eoai, imc) {
+  if (eoai == null || !isFinite(eoai)) return { ppm: null, cortes: null };
+  const c = (imc != null && imc >= VM_PROT_IMC_OBESIDAD)
+          ? VM_PROT_PPM_CORTES.imcAlto : VM_PROT_PPM_CORTES.imcBajo;
+  return { cortes: c,
+           ppm: eoai <= c.severoMax ? 'severo' : (eoai > c.normalMin ? 'no' : 'moderado') };
+}
+window._vmPpmClasificar = _vmPpmClasificar;
 const PPM_FILA_TXT = Object.freeze({ no:'sin desajuste', moderado:'moderado', severo:'severo' });
 function ppmFilaTxt(indexada, grado, faltan, cortesAltos) {
   if (indexada != null && grado)
@@ -73054,6 +73103,23 @@ const VMOD_POS = Object.freeze({
     /* la EOA indexada predicha se clasifica con la MISMA funcion que la app ya usa para el PPM */
     ppm:(eoai,imc)=>(typeof _eaPpmAoClasificar==='function')?_eaPpmAoClasificar(eoai,imc):null,
     cortes:(imc)=>((imc!=null && imc>=VM_PROT_IMC_OBESIDAD)?EA_PROT_PPM_CORTES.imcAlto:EA_PROT_PPM_CORTES.imcBajo)
+  }),
+  /* ══ LA MITRAL (PANT-20, commit 4) ════════════════════════════════════════
+     Los CUATRO campos medidos existen los cuatro y NO se creo ninguno. `avm_cont` escribe su
+     valor con la unidad pegada y a veces con la marca «(revisar)»: `_vmN` hace parseFloat y lo
+     lee bien, que es lo mismo que la aortica hace con `ava_cont`.
+     El PPM sale de `_vmPpmClasificar`, el DUENO UNICO que esta tanda extrajo de `vmProtEOA`:
+     con una copia propia aca, el dia que un corte de la Tabla 7 se mueva, la pastilla de la
+     pantalla y este cuadrito dirian cosas distintas del mismo paciente. */
+  vm: Object.freeze({
+    morf:'vm_morf', etq:'mitral',
+    campos:{ modelo:'vm_prot_modelo', tam:'vm_prot_tam', gmref:'vm_prot_gmref', eoaref:'vm_prot_eoaref' },
+    medidos:[ {k:'medio', lbl:'Gradiente medio', uni:' mmHg', id:'em_gmedio'},
+              {k:'vpico', lbl:'Velocidad pico', lblMed:'Velocidad pico medida', uni:' m/s', id:'em_vmax'},
+              {k:'thp',   lbl:'THP', uni:' ms', id:'em_thp_display'},
+              {k:'eoa',   lbl:'AVm por continuidad', uni:' cm\u00b2', id:'avm_cont'} ],
+    ppm:(eoai,imc)=>(typeof _vmPpmClasificar==='function')?_vmPpmClasificar(eoai,imc):null,
+    cortes:(imc)=>((imc!=null && imc>=VM_PROT_IMC_OBESIDAD)?VM_PROT_PPM_CORTES.imcAlto:VM_PROT_PPM_CORTES.imcBajo)
   })
 });
 /* Las tres palabras del PPM son las de PPM_FILA_TXT, el dueno unico: un segundo juego de
@@ -73066,7 +73132,14 @@ const VMOD_COL_TXT = Object.freeze({
   eoa:{lbl:'EOA esperada', uni:' cm²', chip:1},
   dvi:{lbl:'DVI esperado', uni:'', chip:0},
   vpico:{lbl:'Velocidad pico esperada', uni:' m/s', chip:0},
-  thp:{lbl:'THP esperado', uni:' ms', chip:1}
+  thp:{lbl:'THP esperado', uni:' ms', chip:1},
+  /* PANT-20: las cuatro columnas que suman la A7 y la A9. «esperada» es el valor que la TABLA
+     publica para ese modelo; la «EOA indexada PREDICHA» es otra cosa —la EOA esperada dividida
+     por el ASC DEL PACIENTE— y por eso lleva otra palabra. */
+  at:{lbl:'AT esperado', uni:' ms', chip:0},
+  evel:{lbl:'Velocidad pico de E esperada', uni:' m/s', chip:0},
+  vti:{lbl:'VTI esperado', uni:' cm', chip:0},
+  ieoa:{lbl:'EOA indexada esperada', uni:' cm\u00b2/m\u00b2', chip:1}
 });
 let _vModPos = null;          // posicion abierta, o null
 let _vModCur = null;          // modelo elegido en la card, todavia sin confirmar
@@ -73082,6 +73155,10 @@ function _vmPar(c){ if(!c) return null; return (c[1]==null) ? _vmNum(c[0]) : (_v
 function _vmNorm(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 
 /* ── que catalogo corresponde a la morfologia que hay cargada ───────────────────────────── */
+/* Que catalogo le toca a cada posicion. La aortica con TAVI va aparte, arriba. */
+const VMOD_TABLA = Object.freeze({ va:'PROT_CAT_A4', vm:'PROT_CAT_A5',
+                                   vt:'PROT_CAT_A9', vp:'PROT_CAT_A7' });
+window.VMOD_TABLA = VMOD_TABLA;
 function vModCatalogo(pos){
   const P = VMOD_POS[pos]; if(!P) return null;
   const morf = _vmV(P.morf);
@@ -73089,9 +73166,12 @@ function vModCatalogo(pos){
     return { lista:PROT_CAT_TAVI, cols:PROT_CAT_TAVI_COLS, fte:PROT_CAT_TAVI_FTE };
   const t = (morf==='Prótesis mecánica') ? 'mec' : ((morf==='Prótesis biológica') ? 'bio' : null);
   if (!t) return null;
-  const base = (pos==='va') ? PROT_CAT_A4 : (window.PROT_CAT_A5||[]);
-  const cols = (pos==='va') ? PROT_CAT_A4_COLS : (window.PROT_CAT_A5_COLS||[]);
-  const fte  = (pos==='va') ? PROT_CAT_A4_FTE  : (window.PROT_CAT_A5_FTE||null);
+  /* PANT-20: una tabla por posicion. El registro es el DUENO UNICO del mapeo y evita la
+     cascada de ternarios que la cuarta valvula habria vuelto ilegible. */
+  const T = VMOD_TABLA[pos]; if(!T) return null;
+  const base = window[T]||[];
+  const cols = window[T+'_COLS']||[];
+  const fte  = window[T+'_FTE']||null;
   /* un modelo SIN TIPO se ofrece bajo cualquier morfologia de protesis: la tabla no imprime su
      tipo y adivinarlo lo escoderia de la mitad de los pacientes. */
   return { lista: base.filter(m => m.t===t || !m.t), cols:cols, fte:fte };
@@ -73203,7 +73283,13 @@ function vModSync(pos){
       if (idx.imc!=null) partes.push('IMC '+idx.imc.toFixed(1)+' kg/m²');
       if (idx.cortes) partes.push('cortes de IMC '+((idx.imc!=null&&idx.imc>=VM_PROT_IMC_OBESIDAD)?'≥ 30':'< 30')+
         ': moderado ≤ '+idx.cortes.normalMin+' · severo ≤ '+idx.cortes.severoMax+' cm²/m²');
-    } else partes.push('falta el peso y la talla para indexar');
+    } else partes.push(eo ? 'falta el peso y la talla para indexar'
+                          /* PANT-20: SIN AREA EN LA TABLA el motivo NO es el peso ni la talla, y
+                             decirlo asi afirma que falta un dato del paciente que SI esta
+                             cargado. Lo destapo la A5, que trae muchas celdas de area vacias
+                             -Carbomedics 23 es una-, pero el defecto es del commit 4 de PANT-19
+                             y alcanza igual a la A4. El vocabulario es el de `VP_PROT_SIN_COL`. */
+                          : 'la tabla no publica el \u00e1rea para este modelo');
     if (!E.manual && E.fte) partes.push(E.fte.guia+', Tabla '+E.fte.tabla+', hoja '+(E.folio?(+String(E.folio).split(',')[0]-1):'—')+' (folio '+E.folio+')');
     izq.textContent = partes.join(' · ');
     const b=document.createElement('button'); b.type='button'; b.className='vmod-mini';
@@ -73225,7 +73311,9 @@ function vModSync(pos){
         const z=(x-(+esp[0]))/(+esp[1]);
         txt += ' · '+(z>=0?'+':'−')+Math.abs(z).toFixed(1)+' DE respecto del esperado';
       }
-      med.appendChild(_vmChip(d.lbl+' medido', txt));
+      /* `lblMed` existe porque «Velocidad pico medido» no se dice: una etiqueta cuyo genero
+         no cierra con el sufijo trae la suya. Sin el, el sufijo de siempre. */
+      med.appendChild(_vmChip(d.lblMed || (d.lbl+' medido'), txt));
     });
     med.style.display = hay ? '' : 'none';
     if(!hay) med.textContent='';
@@ -145180,6 +145268,17 @@ function _labExcelRow(inf) {
        lado de un área se lee como la procedencia DEL ÁREA. Una columna de procedencia sólo
        significa algo pegada al valor que describe. Reportado el 2026-09-29. */
     'DVI mitral (fuente)': _dviMit.fuente,
+    /* PANT-20: el modelo y el tamano mitrales son TEXTO -la A5 imprime «27», «27-29» y «31-33»-
+       asi que salen como la morfologia y no por `valvProtDato`, que convierte a numero. Los dos
+       valores de referencia del modo MANUAL si son numeros y pasan por el mismo filtro de
+       protesis: en una valvula nativa no hay modelo que informar.
+       ⚠️ LA COLUMNA DEL AREA SE LLAMA «AVm de referencia mitral» y no «EOA»: un caso existente
+       exige que NINGUN encabezado del Excel contenga «EOA» ni «AEO» (P19-g), y «AVm» es ademas
+       la sigla con la que este mismo Excel ya nombra el area mitral. */
+    'Modelo de prótesis mitral': (valvEsProtesis(c.vm_morf||'') ? (c.vm_prot_modelo || '') : ''),
+    'Tamaño de prótesis mitral': (valvEsProtesis(c.vm_morf||'') ? (c.vm_prot_tam || '') : ''),
+    'G. medio de referencia mitral (mmHg)': rnd(valvProtDato('vm_morf','vm_prot_gmref',c),1),
+    'AVm de referencia mitral (cm²)': rnd(valvProtDato('vm_morf','vm_prot_eoaref',c),2),
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
     'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
@@ -146870,6 +146969,10 @@ const LAB_XLS_MAP = [
 
   // 10 · Válvula mitral
   ['Morfología mitral',      'vm_morf',        'opcion'],
+  ['Modelo de prótesis mitral',             'vm_prot_modelo', 'txt'],
+  ['Tamaño de prótesis mitral',             'vm_prot_tam',    'txt'],
+  ['G. medio de referencia mitral (mmHg)',  'vm_prot_gmref',  'num'],
+  ['AVm de referencia mitral (cm²)',        'vm_prot_eoaref', 'num'],
   ['DVI mitral',             'vm_dvi',         'num'],
   ['IM grado',               'im_grado',       'vocab'],
   ['VC IM (mm)',             'im_vc',          'num'],
