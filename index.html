@@ -3973,17 +3973,33 @@ html.light-mode .amilo-root{
 #indic-card [data-ind-preg="1"] .ind-ctrl-btn{min-height:32px;min-width:0;position:relative}
 #indic-card [data-ind-preg="1"] .ind-ctrl-btn::after{content:'';position:absolute;left:0;right:0;
   top:50%;transform:translateY(-50%);height:44px}
-/* ══ EL ⓘ DE UNA PREGUNTA SE ABRE DEBAJO DE SU FILA, NO DENTRO DE SU CELDA ═══════════════════
-   (TGA-4, commit 3b-2). En modo compacto el rotulo es la celda golosa y la del ⓘ queda en
-   TREINTA pixeles: abriendo el detalle ahi, la nota se dibujaba en una tira de 103 px de ancho
-   por 590 de alto y la fila crecia de 55 a 637 px -medido-. Ilegible, y encima empuja todo lo
-   de abajo, que es justo «perder el lugar».
+/* ══ EL ⓘ DE UNA FILA SE ABRE DEBAJO DE SU FILA, NO DENTRO DE SU CELDA ═══════════════════════
+   (TGA-4, commit 3b-2; PANT-23, commit 3). En modo compacto el rotulo es la celda golosa y la
+   del ⓘ queda en TREINTA pixeles: abriendo el detalle ahi, la nota se dibujaba en una tira de
+   103 px de ancho por 590 de alto y la fila crecia de 55 a 637 px -medido-. Ilegible, y encima
+   empuja todo lo de abajo, que es justo «perder el lugar».
    Con la nota en posicion absoluta cuelga del ⓘ, se lee a ancho util y LA FILA NO CRECE: la
    lista no salta y el medico sigue viendo donde estaba. La celda es el bloque de contencion.
-   Va SOLO en las secciones de preguntas: las ocho compactas anteriores no llevan el marcador y
-   su ⓘ sigue exactamente como estaba. */
-#indic-card [data-ind-grid][data-ind-preg="1"] td:nth-child(3){position:relative}
-#indic-card [data-ind-grid][data-ind-preg="1"] [data-ind-info][open] > div{
+   ⚠️ VA EN TODAS LAS SECCIONES, Y HASTA PANT-23 IBA SOLO EN LAS DE PREGUNTAS. Las dos reglas
+   estaban acotadas a `[data-ind-preg="1"]`, asi que las secciones compactas y las que no
+   declaran preguntas se quedaban con la nota DENTRO de la celda: 105 de los 473 globos del
+   panel, en diecisiete secciones. Eso es lo que el medico reporto el 07/11/2026 sobre
+   Hemodinamica -medido ahi mismo: la fila de 43 a 637 px y el texto en una tira de 56 px-, y la
+   decision del 08/11 es que TODOS los globos de la Evidencia abran el cajon del MODELO, que es
+   justo este. Se quita la acotacion y no se agrega un mecanismo nuevo: `_indInfoHTML` emite el
+   mismo `<details>` que emitia, con el mismo texto, el mismo `aria-label` y el mismo
+   `aria-expanded`, y sus cuatro puertas de cierre las sigue gobernando `_indInfoCablear`.
+   ⚠️ Y LA REGLA DE `position:relative` ALCANZA A LOS 473 PORQUE LOS 473 ESTAN EN LA TERCERA
+   CELDA de su fila, censado en el commit 1: `_indInfoHTML` tiene un solo lugar de llamada
+   —`_indFilaHTML`, su celda de nota— y no hay una variante escondida. Si alguna vez un globo
+   saliera de otra celda, se quedaria sin bloque de contencion y colgaria del `#indic-card`:
+   seguiria flotando, pero en el lugar equivocado.
+   ⚠️ LO QUE NO SE TOCA SON LAS DOS REGLAS DE `.ind-ctrl-btn` DE ARRIBA, que tambien estan
+   acotadas a `[data-ind-preg="1"]`. Ahi la acotacion es una correccion medida —sin ella las
+   secciones de SEIS O MENOS preguntas bajaban su fila mas alta de 55 a 45 px— y la orden de
+   esta tanda manda no mover esos cortes. */
+#indic-card [data-ind-grid] td:nth-child(3){position:relative}
+#indic-card [data-ind-grid] [data-ind-info][open] > div{
   position:absolute;right:0;top:100%;z-index:3;
   width:600px;max-width:76vw;margin-top:2px;
   background:var(--bg2);border:1px solid var(--border);border-radius:8px;
@@ -3996,6 +4012,24 @@ html.light-mode .amilo-root{
     column-gap:18px;align-items:start;
   }
   #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]) [data-ind-col="clin"] > div:first-child{margin-top:0}
+  /* ⚠️ Y EN ESTA GRILLA EL CAJON DEL GLOBO NO PUEDE MEDIR 600 px, Y ESTA MEDIDO (PANT-23,
+     commit 3). Esta es la UNICA grilla del panel que se parte en dos columnas por el ancho de la
+     VENTANA y no por el del PANEL, asi que con el panel sin maximizar sus filas miden **373 px**
+     -medido a 1200, 1440 y 1920 px de ventana, las tres iguales porque el panel siempre mide
+     820-. El cajon cuelga del borde derecho de su celda, que es el de la columna: con 600 px de
+     ancho su borde izquierdo caia en x=111 mientras el panel empieza en x=310, o sea el texto se
+     dibujaba FUERA del panel, sobre el fondo del overlay. Lo pagaron 15 de los 16 globos de la
+     Tetralogia de Fallot reparada - insuficiencia pulmonar, la unica seccion que entra a esta
+     regla.
+     ⚠️ NO ES UN MECANISMO NUEVO NI UNA VARIANTE: es el mismo `max-width` que la regla del modelo
+     ya trae -alla es `76vw`- aplicado a una columna mas angosta. El `position`, el anclaje, el
+     `z-index`, el texto, el `aria` y las cuatro puertas de cierre son los del modelo.
+     ⚠️ Y 360 px NO ES UN NUMERO AL AZAR: es el ancho de fila medido -373- menos un margen, asi
+     que el cajon queda DENTRO de su propia columna en los tres anchos de ventana y tambien con
+     el panel maximizado, donde la fila crece a 553, 673 y 913 px. Es mas ancho que el que el
+     modelo usa en el celular -296 px a 390-. Si alguna vez esta grilla cortara por el ancho del
+     PANEL, como el resto, esta regla deja de hacer falta. */
+  #indic-card [data-ind-grid][data-ind-dos="1"][data-ind-compacta="1"]:not([data-ind-preg="1"]) [data-ind-info][open] > div{max-width:360px}
 }
 @media (min-width:1000px){
   /* ⚠️ `:not([data-ind-preg="1"])` NO ES DECORACION, Y LO DESTAPO UNA MEDICION (PANT-2, C2). Esta
