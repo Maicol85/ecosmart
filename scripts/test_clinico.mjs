@@ -123775,8 +123775,17 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
     'conOrden=' + JSON.stringify(conOrden) + ' otras=' + sinOrden.length +
     ' dsavSinOrden=' + (sinOrden.join(' | ').indexOf('Defecto del septo auriculoventricular') > -1)]);
 
-  /* (F1) CONTROL NEGATIVO: en una seccion SIN ordenProt, «Con lo contestado» sigue ARRIBA de las
-     preguntas, que es el orden de las cuarenta y una restantes. */
+  /* (F1) ADAPTADO -INVERTIDO- el 2026-11-07 (tanda PANT-23, commit 2), y es el dia que esta
+     condicion anunciaba. Afirmaba que en una seccion SIN ordenProt «Con lo contestado» sigue
+     ARRIBA de las preguntas, que era el orden de las cuarenta y una restantes. La decision del
+     medico del 08/11/2026 extiende el orden del MODELO -la estenosis aortica- a las 45 secciones:
+     las preguntas primero, el recuadro despues y el «Ver detalle» abajo. Asi que hoy exige lo
+     CONTRARIO -que tambien ahi el recuadro vaya DEBAJO de la grilla- y puede fallar por los dos
+     lados: si alguien le devuelve la compuerta a _indSecHTMLCuerpo, esta condicion cae.
+     Lo que la condicion SIGUE vigilando es lo que le daba sentido: que las dos familias de
+     seccion -con ordenProt y sin el- pongan el recuadro en el MISMO lugar, o sea que la opcion
+     dejo de gobernar el orden. (F1b) sigue garantizando que la seccion elegida es de la otra
+     familia; sin eso, esta condicion podria estar midiendo una de protesis y no distinguir nada. */
   limpiar(); S('ete_cia_tipo', 'secundum'); S('ete_cia_tam_max', '18');
   const sinOrdenCon = (function () {
     try {
@@ -123789,8 +123798,8 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
   const hC = (function () { const f = g('_indSecHTML'); if (!f || !sinOrdenCon) return '';
     try { return f(sinOrdenCon.sec.tit, sinOrdenCon.r) } catch (e) { return 'ERR' } })();
   const cG = hC.indexOf('data-ind-grid'), cC = hC.indexOf('Con lo contestado');
-  ex.push(['(F1) CONTROL NEGATIVO: en una seccion sin ordenProt, «Con lo contestado» sigue ARRIBA de la grilla',
-    hC.length > 500 && cC > -1 && cG > -1 && cC < cG,
+  ex.push(['(F1) en una seccion SIN ordenProt, «Con lo contestado» va TAMBIEN DEBAJO de la grilla: la opcion dejo de gobernar el orden',
+    hC.length > 500 && cC > -1 && cG > -1 && cC > cG,
     'seccion=' + (sinOrdenCon ? sinOrdenCon.sec.tit : 'NINGUNA') + ' contestado=' + cC + ' grid=' + cG + ' largo=' + hC.length]);
 
   /* (F2) UN SOLO control de detalle por seccion, tambien en las de protesis. */
@@ -123814,9 +123823,9 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
   ex.push(['(F2c) con ordenProt «Con lo contestado» va DEBAJO de la grilla y no encima',
     aG > -1 && aC > aG, 'grid=' + aG + ' contestado=' + aC]);
 
-  /* (F1b) y la seccion ajena que el control negativo usa NO declara ordenProt: si alguien se lo
-     pone, su «Con lo contestado» se le va para abajo y (F1) deja de distinguir nada. */
-  ex.push(['(F1b) CONTROL NEGATIVO: esa seccion ajena NO declara ordenProt',
+  /* (F1b) y la seccion que (F1) usa NO declara ordenProt: si alguien se lo pone, (F1) deja de
+     medir las DOS familias y pasa a medir dos veces la misma. Es el denominador de (F1). */
+  ex.push(['(F1b) DENOMINADOR: esa seccion NO declara ordenProt, asi que (F1) mide la OTRA familia',
     !!sinOrdenCon && sinOrdenCon.r.ordenProt !== true,
     'seccion=' + (sinOrdenCon ? sinOrdenCon.sec.tit : 'NINGUNA') +
     ' ordenProt=' + (sinOrdenCon ? String(sinOrdenCon.r.ordenProt) : '?')]);
@@ -124026,6 +124035,580 @@ caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que exis
   return { extra: F };
   })();
 `);
+
+/* == TANDA PANT-23 == Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo y un caso agregado despues de el NO SE EJECUTA.
+   ⚠️ NI UN ACENTO GRAVE NI UNA EXPRESION REGULAR EN EL CUERPO, y las dos cosas estan pagadas por
+   este archivo: el cuerpo es un template literal, asi que un acento grave lo cierra y una barra
+   invertida de una expresion regular se consume -con /\s+/g llegando como /s+/g y reemplazando
+   las eses por espacios-. Los normalizadores recorren charCodeAt y las busquedas van por indexOf. */
+caso('TC-754', 'PANT-23 commit 2: el orden de los bloques de la Evidencia — las preguntas, despues «Con lo contestado», despues el «Ver detalle» y la bibliografia al final, en TODAS las secciones y con el modelo de la estenosis aortica', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const G = n => (typeof window[n] === 'function') ? window[n] : null;
+  const SEC = G('_indSecHTML');
+  q('(A0 DENOM) el emisor comun de una seccion existe y IND_SECS esta cargado',
+    !!SEC && typeof IND_SECS !== 'undefined' && IND_SECS.length > 40,
+    'emisor=' + !!SEC + ' secciones=' + (typeof IND_SECS !== 'undefined' ? IND_SECS.length : 'NO EXISTE'));
+  if (!SEC) return { extra: F };
+
+  const sinTilde = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o };
+  /* el indice del recuadro se busca por su ROTULO, que es el que _indCajaReco escribe */
+  const ROT = 'Con lo contestado';
+
+  const ESCENAS = [
+    { ete_cia_tipo:'secundum', ete_cia_tam_max:'18', ete_civ_tipo:'perimembranosa',
+      dap_tipo:'no_restrictivo', dap_diam:'4', coa_vmax:'3.2',
+      esub_tipo:'membrana', esub_gradiente_medio:'45', easv_tipo:'reloj', easv_gradiente_medio:'45' },
+    { dsav_tipo:'completo', dsav_qp_qs:'2.1', ebs_desplazamiento:'22', ebs_func_vd:'moderada',
+      fontan_tipo:'tunel', fontan_saturacion:'90', cvpa_venas_numero:'2', cvpa_conexion:'vcs',
+      eis_lesion_base:'civ', eis_saturacion_reposo:'84', vap_tipo:'i', vap_diam:'8' },
+    { mch_grad_reposo:'60', mch_aneurisma_apical:'si', vab_tipo:'fused_rl', ao_tub:'50',
+      tdf_sintomas:'si', tga_tipo:'mustard' },
+    { va_morf:'Prótesis mecánica', vt_morf:'Prótesis mecánica', vp_morf:'Prótesis mecánica',
+      vm_morf:'Prótesis mecánica' },
+    { vmax_ao:'4.5', gmedio_ao:'45', ava_cont:'0.8', peso:'75', talla:'175' }
+  ];
+
+  const medidas = {}; const errores = [];
+  for (const E of ESCENAS) {
+    __t.limpiar();
+    __t.set('nombre', 'P23'); __t.set('ci', '23232323');
+    Object.keys(E).forEach(k => { try { __t.set(k, E[k]) } catch (e) {} });
+    await esp(360);
+    for (let i = 0; i < IND_SECS.length; i++) {
+      const S = IND_SECS[i];
+      let r = null, h = '';
+      try { r = S.fn(); if (r) h = SEC(S.tit, r) } catch (e) { errores.push(S.tit.slice(0, 24)); continue }
+      if (!r || !h || h.length < 300) continue;
+      if (medidas[S.tit]) continue;
+      medidas[S.tit] = {
+        adapt: !!r.adapt, ordenProt: !!r.ordenProt, molde: !!r.molde, recom: !!r.recom,
+        iGrid: h.indexOf('data-ind-grid'),
+        iCon: h.indexOf(ROT),
+        nCon: h.split(ROT).length - 1,
+        iVerDet: h.indexOf('data-ind-detalle'),
+        iBlo: h.indexOf('data-ind-bloque'),
+        iBib: h.indexOf('data-ind-biblio'),
+        /* el recuadro de la recomendacion se ubica por su rotulo, que es el r.tit que
+           _indRecomHTML le pasa a _indCajaReco */
+        iRecom: (r.recom && r.recom.tit) ? h.indexOf(r.recom.tit) : -1,
+        preg: h.indexOf('data-ind-preg'),
+        declaraPreg: !!r.preguntas, declaraOP: !!r.ordenProt,
+        largo: h.length
+      };
+    }
+  }
+  const nombres = Object.keys(medidas);
+  /* ⚠️ VEINTICINCO Y NO CUARENTA Y CINCO, Y ES UNA MEDICION: estas cinco escenas despiertan 25
+     de las 45 secciones de IND_SECS. Lo que importa es que despiertan LAS VEINTE que traen el
+     recuadro -las diecisiete de congenitas y las tres de protesis con adapt-, que es el
+     denominador que este caso necesita. Las otras veinte piden campos de otros modulos y su
+     cobertura de seccion-por-seccion la da TC-322, que exige una semilla por cada una. */
+  q('(A1 DENOM) se midieron al menos veinticinco secciones distintas y ninguna lanzo',
+    nombres.length >= 25 && errores.length === 0,
+    'medidas=' + nombres.length + ' lanzaron=' + JSON.stringify(errores));
+
+  const conCaja = nombres.filter(k => medidas[k].adapt);
+  q('(A2 DENOM) y LAS VEINTE que traen el recuadro «Con lo contestado» estan entre ellas',
+    conCaja.length === 20, 'con recuadro=' + conCaja.length + ' de ' + nombres.length +
+    ' : ' + JSON.stringify(conCaja.map(k => k.slice(0, 22))));
+
+  const arriba = conCaja.filter(k => !(medidas[k].iGrid > -1 && medidas[k].iCon > medidas[k].iGrid));
+  q('(B1) EL ORDEN: en TODAS las secciones con recuadro, «Con lo contestado» va DESPUES de la grilla de preguntas',
+    arriba.length === 0,
+    arriba.length ? 'con el recuadro arriba: ' + JSON.stringify(arriba.map(k => k.slice(0, 26))) : 'las ' + conCaja.length + ' en orden');
+
+  const antesDet = conCaja.filter(k => { const m = medidas[k];
+    return m.iVerDet > -1 && !(m.iCon < m.iVerDet) });
+  q('(B2) y ANTES del «Ver detalle» del pie',
+    antesDet.length === 0, 'fuera de orden: ' + JSON.stringify(antesDet.map(k => k.slice(0, 26))));
+
+  const bibUlt = nombres.filter(k => { const m = medidas[k];
+    return m.iBib > -1 && !(m.iBib > m.iVerDet && (m.iCon < 0 || m.iBib > m.iCon) && m.iBib > m.iGrid) });
+  q('(B3) y la bibliografia es lo ULTIMO de la seccion, en las ' + nombres.length + ' medidas',
+    bibUlt.length === 0, 'fuera de orden: ' + JSON.stringify(bibUlt.map(k => k.slice(0, 26))));
+
+  const dosVeces = conCaja.filter(k => medidas[k].nCon !== 1);
+  q('(B4) el recuadro sale UNA sola vez por seccion: con dos emisores sus corchetes se numerarian dos veces',
+    dosVeces.length === 0,
+    'con otro numero de recuadros: ' + JSON.stringify(dosVeces.map(k => k.slice(0, 20) + '=' + medidas[k].nCon)));
+
+  /* (C) EL MODELO */
+  const EA = nombres.filter(k => sinTilde(k).indexOf('Estenosis aortica') === 0)[0];
+  q('(C0 DENOM) la seccion de la estenosis aortica se midio y es la que devuelve molde',
+    !!EA && medidas[EA].molde === true, 'seccion=' + (EA || 'NO SE MIDIO'));
+  if (EA) { const m = medidas[EA];
+    q('(C1) EL MODELO: la grilla primero, el recuadro de la recomendacion despues, el «Ver detalle» y la bibliografia al final',
+      m.iGrid > -1 && m.iVerDet > m.iGrid && m.iBib > m.iVerDet,
+      'grid=' + m.iGrid + ' verDetalle=' + m.iVerDet + ' biblio=' + m.iBib);
+    q('(C2) y el modelo NO trae el recuadro «Con lo contestado»: concluye con su recomendacion',
+      m.adapt === false && m.recom === true, 'adapt=' + m.adapt + ' recom=' + m.recom);
+    /* (C3) NACIO DEL BARRIDO (mutacion 06): las condiciones de arriba miran donde caen el «Ver
+       detalle» y la bibliografia, y mover la RECOMENDACION del modelo arriba de su cuerpo no
+       toca ninguno de los dos, asi que la mutacion sobrevivia. El recuadro de la recomendacion
+       es el bloque que la decision del medico pone DESPUES de las preguntas, y es el que define
+       el orden del modelo: se mide por su posicion en el HTML. */
+    q('(C3) y su RECOMENDACION se emite DESPUES del cuerpo con los datos y las preguntas, no antes',
+      m.iRecom > -1 && m.iRecom > m.iGrid,
+      'recomendacion=' + m.iRecom + ' grid=' + m.iGrid); }
+
+  /* (D) CONTROL NEGATIVO: una seccion sin adapt no recibe ningun recuadro */
+  const sinAdapt = nombres.filter(k => !medidas[k].adapt);
+  const inventado = sinAdapt.filter(k => medidas[k].nCon > 0);
+  q('(D1 CONTROL NEGATIVO) las ' + sinAdapt.length + ' secciones SIN «Con lo contestado» no reciben ninguno',
+    sinAdapt.length >= 4 && inventado.length === 0,
+    'sin adapt=' + sinAdapt.length + ' con recuadro inventado: ' + JSON.stringify(inventado.map(k => k.slice(0, 22))));
+
+  /* (E) ordenProt ya NO gobierna el lugar del recuadro */
+  const conOP = conCaja.filter(k => medidas[k].ordenProt);
+  const sinOP = conCaja.filter(k => !medidas[k].ordenProt);
+  q('(E0 DENOM) hay secciones con recuadro de los DOS tipos: con la opcion ordenProt y sin ella',
+    conOP.length >= 3 && sinOP.length >= 10,
+    'conOrdenProt=' + conOP.length + ' sinOrdenProt=' + sinOP.length);
+  q('(E1) las dos familias ponen el recuadro en el MISMO lugar relativo: la opcion dejo de gobernar donde va',
+    conOP.every(k => medidas[k].iCon > medidas[k].iGrid)
+      && sinOP.every(k => medidas[k].iCon > medidas[k].iGrid),
+    'conOP mal=' + conOP.filter(k => medidas[k].iCon < medidas[k].iGrid).length +
+    ' sinOP mal=' + sinOP.filter(k => medidas[k].iCon < medidas[k].iGrid).length);
+
+  /* (G) NACIO DEL BARRIDO (mutacion 08): poner ordenProt en TODAS las secciones no mueve el
+     recuadro -ya esta abajo en las 45- pero SI les da el molde de preguntas a las veinticinco
+     que no lo declaran, que es media pantalla de maqueta cambiada. La orden de esta tanda manda
+     no mover la maqueta de las secciones de seis o menos preguntas, asi que el invariante es
+     que el marcador de preguntas salga SOLO donde la seccion lo declara. */
+  /* el MODELO lo declara por su propia via: devuelve molde, y _indMoldeHTMLSec marca su grilla
+     como seccion de preguntas porque su maqueta ES la de preguntas. Es la tercera via valida y
+     no una excepcion: la condicion cuenta las TRES. */
+  const pide = m => !!(m.declaraPreg || m.declaraOP || m.molde);
+  const moldeAjeno = nombres.filter(k => !pide(medidas[k]) && medidas[k].preg > -1);
+  const moldePropio = nombres.filter(k => pide(medidas[k]) && medidas[k].preg > -1);
+  const noPiden = nombres.filter(k => !pide(medidas[k]));
+  q('(G0 DENOM) hay secciones de los dos tipos: las que piden el molde de preguntas y las que no',
+    moldePropio.length >= 15 && noPiden.length >= 4,
+    'con molde=' + moldePropio.length + ' sin pedirlo=' + noPiden.length);
+  q('(G1) el molde de preguntas sale SOLO en las secciones que lo declaran: la maqueta de las demas no se movio',
+    moldeAjeno.length === 0,
+    'con molde sin declararlo: ' + JSON.stringify(moldeAjeno.map(k => k.slice(0, 24))));
+
+  /* (F) EL GESTO REAL: el panel abierto por su boton y la posicion EN PANTALLA */
+  __t.limpiar();
+  __t.set('nombre', 'P23'); __t.set('ci', '23232323');
+  ['ete_cia_tipo','ete_civ_tipo','dap_tipo','coa_vmax'].forEach(() => {});
+  __t.set('ete_cia_tipo', 'secundum'); __t.set('ete_cia_tam_max', '18');
+  __t.set('ete_civ_tipo', 'perimembranosa');
+  __t.set('dap_tipo', 'no_restrictivo'); __t.set('dap_diam', '4');
+  __t.set('coa_vmax', '3.2');
+  await esp(420);
+  const btn = document.getElementById('indic-btn');
+  q('(F0 DENOM) el boton del panel existe', !!btn, 'existe=' + !!btn);
+  if (btn) {
+    const ov0 = document.getElementById('indic-overlay');
+    if (!ov0 || getComputedStyle(ov0).display === 'none') { btn.click(); await esp(420) }
+    else { try { indicRender() } catch (e) {} await esp(260) }
+    const secs = Array.prototype.slice.call(document.querySelectorAll('#indic-cuerpo > details'));
+    const vistas = [];
+    secs.forEach(d => { d.open = true });
+    await esp(200);
+    secs.forEach(d => {
+      const g = d.querySelector('[data-ind-grid]');
+      let caja = null;
+      Array.prototype.slice.call(d.querySelectorAll('div[style]')).forEach(x => { if (caja) return;
+        const st = x.getAttribute('style') || '';
+        if (st.indexOf('border-left:3px solid') < 0) return;
+        const t0 = x.firstElementChild ? String(x.firstElementChild.textContent || '').trim() : '';
+        if (t0.indexOf(ROT) === 0) caja = x });
+      if (!g || !caja) return;
+      const rg = g.getBoundingClientRect(), rcj = caja.getBoundingClientRect();
+      const tit = String((d.querySelector('summary') || {}).textContent || '').trim().slice(0, 26);
+      vistas.push({ tit: tit, ok: rcj.top >= rg.bottom - 1,
+        gTop: Math.round(rg.top), gBot: Math.round(rg.bottom), cTop: Math.round(rcj.top) });
+    });
+    q('(F1 DENOM) con el gesto real se midieron al menos TRES secciones con recuadro en el panel',
+      vistas.length >= 3, 'medidas=' + vistas.length + ' secciones del panel=' + secs.length);
+    const malPos = vistas.filter(v => !v.ok);
+    q('(F2) y en pantalla el recuadro empieza DEBAJO de donde termina la grilla, no encima',
+      vistas.length >= 3 && malPos.length === 0,
+      malPos.length ? JSON.stringify(malPos) : JSON.stringify(vistas.map(v => v.tit)));
+    /* (F3) CONTROL NEGATIVO del gesto: se mueve una caja ARRIBA de su grilla a mano y la
+       condicion de posicion tiene que CAER. Sin esto, (F2) podria estar comparando dos
+       rectangulos vacios y pasar en verde sobre un panel que no se dibujo. */
+    let cayo = null;
+    for (const d of secs) {
+      const g = d.querySelector('[data-ind-grid]');
+      let caja = null;
+      Array.prototype.slice.call(d.querySelectorAll('div[style]')).forEach(x => { if (caja) return;
+        const st = x.getAttribute('style') || '';
+        if (st.indexOf('border-left:3px solid') < 0) return;
+        const t0 = x.firstElementChild ? String(x.firstElementChild.textContent || '').trim() : '';
+        if (t0.indexOf(ROT) === 0) caja = x });
+      if (!g || !caja || !g.parentNode) continue;
+      g.parentNode.insertBefore(caja, g);
+      await esp(140);
+      const rg = g.getBoundingClientRect(), rcj = caja.getBoundingClientRect();
+      cayo = !(rcj.top >= rg.bottom - 1);
+      break;
+    }
+    q('(F3 CONTROL NEGATIVO) moviendo una caja arriba de su grilla a mano, la condicion de posicion CAE',
+      cayo === true, 'cayo=' + cayo);
+    try { indicRender() } catch (e) {}
+    await esp(240);
+    const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
+  }
+  return { extra: F };
+  })()
+`);
+
+caso('TC-755', 'PANT-23 commit 3: todos los globos de la Evidencia abren el cajon flotante del modelo — la fila no crece, el texto no se dibuja dentro de la celda y cierra de las tres formas', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const sinTilde = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o };
+  const N = t => { const s = String(t == null ? '' : t); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) { sp = true; continue }
+      if (sp && o) o += ' '; sp = false; o += s.charAt(i) } return o };
+  const rc = e => { if (!e) return null; const r = e.getBoundingClientRect();
+    return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width),
+             h: Math.round(r.height), r: Math.round(r.right) } };
+  const abrir = async () => { const b = document.getElementById('indic-btn'); if (!b) return false;
+    const ov = document.getElementById('indic-overlay');
+    if (!ov || getComputedStyle(ov).display === 'none') { b.click(); await esp(420) }
+    else { try { indicRender() } catch (e) {} await esp(260) }
+    return true };
+  const cerrar = async () => { const ov = document.getElementById('indic-overlay');
+    if (ov) ov.style.display = 'none'; await esp(60) };
+  const sec = pref => Array.prototype.slice.call(document.querySelectorAll('#indic-cuerpo > details'))
+    .filter(d => { const u = d.querySelector('summary');
+      return u && sinTilde(N(u.textContent)).indexOf(sinTilde(pref)) === 0 })[0] || null;
+
+  /* ⚠️ EL position SE COPIA A UNA CADENA CON EL GLOBO ABIERTO. El objeto de getComputedStyle es
+     VIVO: leerlo despues de cerrar el globo devuelve el valor del elemento cerrado -static para
+     todos- y la medicion sale entera en rojo sobre un panel perfecto. Costo una corrida. */
+  const medir = async (d, j) => {
+    const infos = Array.prototype.slice.call(d.querySelectorAll('details[data-ind-info]'));
+    const dd = infos[j]; if (!dd) return null;
+    const sm = dd.querySelector('summary'); if (!sm) return null;
+    const fila = dd.closest('tr'), td = dd.closest('td');
+    /* ⚠️ SE LLEVA LA FILA A LA VISTA ANTES DE MEDIR, Y NO ES COSMETICO. El cuerpo del panel
+       tiene overflow:auto: con la fila fuera de la parte visible, elementFromPoint sobre el
+       centro del cajon devuelve lo que haya en esa coordenada del viewport -otra cosa- y la
+       condicion del apilado da falso sobre un cajon correcto. Y es, ademas, el gesto real: el
+       medico llega a la fila desplazando la lista. */
+    /* el aria-expanded se lee ANTES de tocar nada: _indInfoSync lo pone en false al CERRAR, asi
+       que leerlo despues de abrir y cerrar devuelve false aunque el marcado nazca diciendo true.
+       Nacio del barrido (mutacion 25). */
+    const ariaVirgen = sm.getAttribute('aria-expanded');
+    try { sm.scrollIntoView({ block: 'center' }) } catch (e) {}
+    await esp(120);
+    const fila0 = rc(fila), td0 = rc(td);
+    const a0 = fila0, t0 = td0;
+    sm.click(); await esp(170);
+    const caja = dd.querySelector('div');
+    const cs = caja ? getComputedStyle(caja) : null;
+    const pos = cs ? String(cs.position) : 'SIN CAJA';
+    const a1 = rc(fila), c1 = rc(caja);
+    const rf = fila ? fila.getBoundingClientRect() : null;
+    const filaBot = rf ? Math.round(rf.bottom) : null;
+    let arriba = null;
+    if (caja) { const rb = caja.getBoundingClientRect();
+      if (rb.width > 4 && rb.height > 4) {
+        const x = Math.round(rb.left + rb.width / 2), y = Math.round(rb.top + 6);
+        if (x >= 0 && y >= 0 && x < innerWidth && y < innerHeight) {
+          const el = document.elementFromPoint(x, y);
+          arriba = !!(el && (el === caja || caja.contains(el))); }
+        else arriba = 'fuera del viewport'; } }
+    const txt = N(caja ? caja.textContent : '');
+    const abierto = !!dd.open;
+    sm.click(); await esp(130);
+    return { pos: pos, abierto: abierto, cerro: !dd.open, txt: txt,
+             ariaVirgen: ariaVirgen,
+             filaBot: filaBot, arriba: arriba,
+             filaH: [a0 ? a0.h : null, a1 ? a1.h : null, rc(fila) ? rc(fila).h : null],
+             filaW: [a0 ? a0.w : null, a1 ? a1.w : null],
+             caja: c1, celda: t0,
+             et: N(sm.getAttribute('aria-label')), aria: sm.getAttribute('aria-expanded'),
+             nInfo: infos.length };
+  };
+
+  /* ══ (A) EL CASO DEL MEDICO: Hemodinamica ══ */
+  __t.limpiar();
+  __t.set('nombre', 'P23'); __t.set('ci', '23232323');
+  __t.set('onda_e', '95'); __t.set('e_sep', '6'); __t.set('e_lat', '8'); __t.set('tapse', '14');
+  const inc = __t.avInc('hemo');
+  await esp(430);
+  q('(A0 DENOM) el sector de hemodinamica quedo incluido en el informe: sin eso su seccion no existe',
+    inc.ok.length === 1 && inc.falta.length === 0,
+    'ok=' + JSON.stringify(inc.ok) + ' falta=' + JSON.stringify(inc.falta));
+  await abrir();
+  const dh = sec('Perfil hemodinamico');
+  q('(A1 DENOM) la seccion del perfil hemodinamico abre en el panel',
+    !!dh, 'existe=' + !!dh);
+  if (dh) {
+    dh.open = true; await esp(200);
+    const nH = dh.querySelectorAll('details[data-ind-info]').length;
+    q('(A2 DENOM) y tiene al menos CUATRO globos de nota: sin denominador, contar cero parece seguro',
+      nH >= 4, 'globos=' + nH);
+    const g0 = await medir(dh, 0);
+    q('(A3 DENOM) el primer globo se abrio con el gesto real',
+      !!g0 && g0.abierto === true, 'abierto=' + (g0 ? g0.abierto : 'NO SE MIDIO'));
+    if (g0) {
+      q('(B1) EL CAJON: el texto del globo de Hemodinamica se dibuja en posicion ABSOLUTA, no dentro de la celda',
+        g0.pos === 'absolute', 'position=' + g0.pos);
+      q('(B2) LA FILA NO CRECE al abrirlo, que es lo que el medico reporto: pasaba de 43 a 637 px',
+        g0.filaH[0] !== null && g0.filaH[1] !== null && g0.filaH[1] <= g0.filaH[0] + 1,
+        'alto antes=' + g0.filaH[0] + ' con el globo abierto=' + g0.filaH[1] + ' despues de cerrar=' + g0.filaH[2]);
+      q('(B3) y su ANCHO tampoco cambia',
+        g0.filaW[0] !== null && Math.abs(g0.filaW[1] - g0.filaW[0]) <= 1,
+        'ancho antes=' + g0.filaW[0] + ' despues=' + g0.filaW[1]);
+      q('(B4) el cajon se lee a ancho util: excede su celda o mide 200 px o mas',
+        !!g0.caja && (g0.caja.w >= 200 || (g0.celda && g0.caja.w > g0.celda.w + 2)),
+        'caja=' + JSON.stringify(g0.caja) + ' celda=' + JSON.stringify(g0.celda));
+      q('(B5) y el globo volvio a cerrarse tocandolo otra vez',
+        g0.cerro === true, 'cerro=' + g0.cerro);
+      /* (B7) EL CAJON CUELGA DE SU PROPIA FILA. Sin esto, mover el bloque de contencion a otra
+         celda -o quitarlo- deja el cajon absoluto respecto del panel: sigue flotando, la fila
+         sigue sin crecer y las dos condiciones de arriba pasan en verde con el texto dibujado
+         en el lugar equivocado. Se mide contra el borde INFERIOR de su fila. */
+      q('(B7) el cajon cuelga de su propia fila: su borde de arriba cae junto al de abajo de la fila',
+        !!g0.caja && !!g0.filaBot && Math.abs(g0.caja.y - g0.filaBot) <= 10,
+        'arriba del cajon=' + (g0.caja ? g0.caja.y : '?') + ' abajo de la fila=' + g0.filaBot);
+      /* (B8) Y QUEDA ARRIBA EN EL APILADO. Sin el z-index el cajon se dibuja DEBAJO de las filas
+         siguientes: visible a medias y sin poder seleccionar su texto. */
+      q('(B8) y queda arriba en el apilado: lo que hay en su centro es el propio cajon',
+        g0.arriba === true, 'elementFromPoint en el centro del cajon=' + g0.arriba);
+      q('(B6) lleva su etiqueta accesible con el rotulo de la fila y declara su estado',
+        g0.et.length > 10 && g0.aria === 'false',
+        'etiqueta=' + g0.et.slice(0, 50) + ' aria-expanded cerrado=' + g0.aria);
+      q('(B6b) y NACE declarando que esta cerrado, antes de que nadie lo toque',
+        g0.ariaVirgen === 'false', 'aria-expanded recien pintado=' + g0.ariaVirgen);
+    }
+    /* (C) CONTROL NEGATIVO: sin el marcador que la regla de CSS pide, vuelve el defecto */
+    const grid = dh.querySelector('[data-ind-grid]');
+    q('(C0 DENOM) la grilla de la seccion lleva el marcador que la regla del cajon necesita',
+      !!grid, 'existe=' + !!grid);
+    if (grid) {
+      grid.removeAttribute('data-ind-grid');
+      await esp(140);
+      const gn = await medir(dh, 0);
+      q('(C1 CONTROL NEGATIVO) quitandole el marcador, el cajon vuelve a dibujarse DENTRO de la celda',
+        !!gn && gn.pos === 'static', 'position sin marcador=' + (gn ? gn.pos : 'NO SE MIDIO'));
+      q('(C2 CONTROL NEGATIVO) y la fila vuelve a estirarse, que es el defecto que esta tanda cierra',
+        !!gn && gn.filaH[1] > gn.filaH[0] + 20,
+        'alto antes=' + (gn ? gn.filaH[0] : '?') + ' con el globo abierto=' + (gn ? gn.filaH[1] : '?'));
+      grid.setAttribute('data-ind-grid', '1');
+      await esp(120);
+      const gv = await medir(dh, 0);
+      q('(C3) devolviendo el marcador vuelve el cajon y la fila deja de crecer',
+        !!gv && gv.pos === 'absolute' && gv.filaH[1] <= gv.filaH[0] + 1,
+        'position=' + (gv ? gv.pos : '?') + ' alto=' + (gv ? JSON.stringify(gv.filaH) : '?'));
+    }
+    /* (D) LAS TRES FORMAS DE CIERRE */
+    const infos = Array.prototype.slice.call(dh.querySelectorAll('details[data-ind-info]'));
+    if (infos.length > 1) {
+      const d0 = infos[0], s0 = d0.querySelector('summary');
+      s0.click(); await esp(150); const ab1 = !!d0.open;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await esp(150); const tEsc = !!d0.open;
+      s0.click(); await esp(150); const ab2 = !!d0.open;
+      const cu = document.getElementById('indic-cuerpo'); if (cu) cu.click();
+      await esp(150); const tAfu = !!d0.open;
+      q('(D1) el cajon cierra con ESCAPE', ab1 === true && tEsc === false,
+        'abrio=' + ab1 + ' tras Escape=' + tEsc);
+      q('(D2) y cierra TOCANDO AFUERA', ab2 === true && tAfu === false,
+        'abrio=' + ab2 + ' tras tocar afuera=' + tAfu);
+      s0.click(); await esp(150);
+      const s1 = infos[1].querySelector('summary'); s1.click(); await esp(170);
+      q('(D3) y UNA SOLA queda abierta: abrir la segunda cierra la primera',
+        d0.open === false && infos[1].open === true,
+        'primera=' + d0.open + ' segunda=' + infos[1].open);
+      /* (D4) contestar una pregunta con un globo abierto no rompe la seccion */
+      const bt = dh.querySelector('.ind-ctrl-btn');
+      let err = '';
+      if (bt) { try { bt.click() } catch (e) { err = String(e.message).slice(0, 50) } await esp(360) }
+      q('(D4) con un globo abierto se puede contestar una pregunta y la seccion sigue ahi',
+        err === '' && !!sec('Perfil hemodinamico'),
+        'error=«' + err + '» seccion=' + !!sec('Perfil hemodinamico'));
+    }
+  }
+  await cerrar();
+
+  /* ══ (E) EL MODELO: la estenosis aortica se comporta IGUAL ══ */
+  __t.limpiar();
+  __t.set('nombre', 'P23'); __t.set('ci', '23232323');
+  __t.set('vmax_ao', '4.5'); __t.set('gmedio_ao', '45'); __t.set('ava_cont', '0.8');
+  __t.set('peso', '75'); __t.set('talla', '175');
+  await esp(430);
+  await abrir();
+  const de = sec('Estenosis aortica');
+  q('(E0 DENOM) la seccion de la estenosis aortica abre en el panel', !!de, 'existe=' + !!de);
+  if (de) {
+    de.open = true; await esp(200);
+    const ge = await medir(de, 0);
+    q('(E1 DENOM) su primer globo se abrio con el gesto real',
+      !!ge && ge.abierto === true, 'abierto=' + (ge ? ge.abierto : '?'));
+    if (ge) q('(E2) EL MODELO: absoluto, la fila no crece y se lee a ancho util — el mismo cajon que ahora usan todos',
+      ge.pos === 'absolute' && ge.filaH[1] <= ge.filaH[0] + 1 && ge.caja.w >= 200,
+      'position=' + ge.pos + ' alto=' + JSON.stringify(ge.filaH) + ' ancho del cajon=' + ge.caja.w);
+    /* (E3) NACIO DEL BARRIDO (mutacion 18): el z-index del cajon solo se nota en una seccion de
+       PREGUNTAS, porque ahi los botones de respuesta llevan position:relative y pintan por orden
+       de documento: sin el z-index, el cajon de una fila queda DEBAJO de los botones de las
+       filas siguientes. En Hemodinamica los botones no son posicionados, asi que (B8) no puede
+       verlo. El modelo es justo una seccion de preguntas. */
+    if (ge) q('(E3) y el cajon del MODELO queda arriba en el apilado, por encima de los botones de las filas de abajo',
+      ge.arriba === true, 'elementFromPoint en el centro del cajon=' + ge.arriba);
+  }
+  await cerrar();
+  return { extra: F };
+  })()
+`);
+
+caso('TC-756', 'PANT-23: el censo de la Evidencia — 45 secciones, los globos de nota en la tercera celda de su fila y ninguna seccion con el recuadro arriba de las preguntas', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const G = n => (typeof window[n] === 'function') ? window[n] : null;
+  const SEC = G('_indSecHTML');
+  q('(A0 DENOM) IND_SECS esta cargado y el emisor comun existe',
+    typeof IND_SECS !== 'undefined' && !!SEC,
+    'secciones=' + (typeof IND_SECS !== 'undefined' ? IND_SECS.length : 'NO EXISTE'));
+  if (!SEC) return { extra: F };
+  q('(A1) son CUARENTA Y CINCO las secciones de IND_SECS: una seccion nueva tiene que declarar su orden y su globo',
+    IND_SECS.length === 45, 'IND_SECS=' + IND_SECS.length);
+
+  /* ⚠️ EL EMISOR DE LA NOTA TIENE UN SOLO LUGAR DE LLAMADA Y SU CELDA ES LA TERCERA. Si alguna
+     vez un globo saliera de otra celda se quedaria sin bloque de contencion y el cajon colgaria
+     del panel en el lugar equivocado: seguiria flotando y nadie lo notaria. */
+  const cont = document.createElement('div');
+  cont.id = 'tc756cont'; document.body.appendChild(cont);
+  const ESCENAS = [
+    { ete_cia_tipo:'secundum', ete_cia_tam_max:'18', ete_civ_tipo:'perimembranosa',
+      dap_tipo:'no_restrictivo', dap_diam:'4', coa_vmax:'3.2',
+      esub_tipo:'membrana', esub_gradiente_medio:'45', easv_tipo:'reloj', easv_gradiente_medio:'45' },
+    { dsav_tipo:'completo', dsav_qp_qs:'2.1', ebs_desplazamiento:'22', ebs_func_vd:'moderada',
+      fontan_tipo:'tunel', fontan_saturacion:'90', cvpa_venas_numero:'2', cvpa_conexion:'vcs',
+      eis_lesion_base:'civ', eis_saturacion_reposo:'84', vap_tipo:'i', vap_diam:'8' },
+    { mch_grad_reposo:'60', mch_aneurisma_apical:'si', vab_tipo:'fused_rl', ao_tub:'50',
+      tdf_sintomas:'si', tga_tipo:'mustard' },
+    { va_morf:'Prótesis mecánica', vt_morf:'Prótesis mecánica', vp_morf:'Prótesis mecánica',
+      vmax_ao:'4.5', gmedio_ao:'45', ava_cont:'0.8', peso:'75', talla:'175' },
+    /* la estenosis mitral va en su propia escena: es la que trae los terminos del glosario
+       -Cormier y el score ecocardiografico- y la morfologia protesica de la mitral la tapa */
+    { avm_plan:'1.2', im_grado:'4', ia_grado:'4', it_grado:'4' }
+  ];
+  const vistas = {}; let nInfo = 0, nTerm = 0, enTercera = 0, fueraDeTercera = [];
+  for (const E of ESCENAS) {
+    __t.limpiar();
+    __t.set('nombre', 'P23'); __t.set('ci', '23232323');
+    Object.keys(E).forEach(k => { try { __t.set(k, E[k]) } catch (e) {} });
+    await esp(360);
+    for (let i = 0; i < IND_SECS.length; i++) {
+      const S = IND_SECS[i];
+      if (vistas[S.tit]) continue;
+      let r = null, h = '';
+      try { r = S.fn(); if (r) h = SEC(S.tit, r) } catch (e) { continue }
+      if (!r || !h || h.length < 300) continue;
+      cont.innerHTML = h;
+      const infos = Array.prototype.slice.call(cont.querySelectorAll('details[data-ind-info]'));
+      const terms = Array.prototype.slice.call(cont.querySelectorAll('button[data-ind-term]'));
+      nInfo += infos.length; nTerm += terms.length;
+      infos.forEach(dd => { const td = dd.closest('td');
+        const ok = !!(td && td.parentNode && Array.prototype.indexOf.call(td.parentNode.children, td) === 2);
+        if (ok) enTercera++; else fueraDeTercera.push(S.tit.slice(0, 22)) });
+      vistas[S.tit] = { adapt: !!r.adapt, nInfo: infos.length };
+    }
+  }
+  cont.parentNode.removeChild(cont);
+  const nom = Object.keys(vistas);
+  q('(B0 DENOM) se censaron al menos veinticuatro secciones y al menos doscientos globos de nota',
+    nom.length >= 24 && nInfo >= 200, 'secciones=' + nom.length + ' globos=' + nInfo);
+  q('(B1) TODOS los globos de nota viven en la TERCERA celda de su fila, sin excepcion',
+    fueraDeTercera.length === 0 && enTercera === nInfo,
+    'en la tercera=' + enTercera + ' de ' + nInfo + ' fuera: ' + JSON.stringify(fueraDeTercera));
+  q('(B2) y el glosario sigue siendo un componente aparte, con sus propios botones',
+    nTerm >= 5, 'botones de termino=' + nTerm);
+
+  /* (C) la regla del cajon ya NO esta acotada a las secciones de preguntas */
+  const hojas = Array.prototype.slice.call(document.styleSheets);
+  let conPreg = 0, sinPreg = 0, reglas = 0, leidas = 0;
+  hojas.forEach(h => { let rs = null; try { rs = h.cssRules } catch (e) { return }
+    if (!rs) return; leidas++;
+    /* ⚠️ NO SE PUEDE PREGUNTAR if (R.cssRules) Y SEGUIR DE LARGO, Y ESTA MEDIDO: desde que
+       Chrome soporta anidamiento de CSS, una CSSStyleRule COMUN tambien tiene cssRules -una
+       lista vacia, que es un objeto y por lo tanto verdadera-, asi que el continue se comia
+       TODAS las reglas de estilo: de 1.471 reglas la sonda visitaba TRES y daba cero sobre una
+       hoja de estilos entera. Se recorre el grupo SOLO si tiene reglas adentro, y el selector se
+       mira siempre. Costo una corrida. */
+    const rec = l => { for (let i = 0; i < l.length; i++) { const R = l[i];
+      if (R.cssRules && R.cssRules.length) rec(R.cssRules);
+      /* ⚠️ Y LA ACOTACION SE MIDE EN POSITIVO: el selector de la regla que acota el ancho del
+         cajon en la grilla de dos columnas lleva :not([data-ind-preg="1"]), o sea NOMBRA el
+         atributo para EXCLUIRLO. Buscandolo a secas, esa regla se contaba como acotada y la
+         condicion daba 1 y 1 sobre un panel correcto. Se le quitan los :not() antes de mirar. */
+      let sel = String(R.selectorText || '');
+      if (sel.indexOf('[data-ind-info][open]') < 0) continue;
+      while (true) { const i0 = sel.indexOf(':not(');
+        if (i0 < 0) break;
+        const i1 = sel.indexOf(')', i0);
+        if (i1 < 0) break;
+        sel = sel.slice(0, i0) + sel.slice(i1 + 1); }
+      reglas++;
+      if (sel.indexOf('data-ind-preg') > -1) conPreg++; else sinPreg++; } };
+    rec(rs) });
+  q('(C0 DENOM) se pudo leer la hoja de estilos y hay al menos una regla del cajon',
+    leidas > 0 && reglas > 0, 'hojas leidas=' + leidas + ' reglas del cajon=' + reglas);
+  q('(C1) la regla que hace flotar la nota NO esta acotada a las secciones de preguntas',
+    sinPreg > 0 && conPreg === 0,
+    'reglas sin la acotacion=' + sinPreg + ' con la acotacion=' + conPreg);
+  /* ⚠️ Y LAS DE LA BOTONERA SIGUEN ACOTADAS: ahi la acotacion es una correccion medida de PANT-2
+     -sin ella las secciones de seis o menos preguntas bajaban su fila mas alta de 55 a 45 px- y
+     esta tanda no la toca. Sin esta condicion, quitarle la acotacion a las cuatro reglas de una
+     vez pasaria en verde. */
+  let btnConPreg = 0, btnSinPreg = 0;
+  hojas.forEach(h => { let rs = null; try { rs = h.cssRules } catch (e) { return }
+    if (!rs) return;
+    const rec = l => { for (let i = 0; i < l.length; i++) { const R = l[i];
+      if (R.cssRules && R.cssRules.length) rec(R.cssRules);
+      const sel = String(R.selectorText || '');
+      if (sel.indexOf('ind-ctrl-btn') < 0) continue;
+      if (sel.indexOf('data-ind-preg') > -1) btnConPreg++; else btnSinPreg++; } };
+    rec(rs) });
+  q('(C2) las reglas del alto de la botonera SIGUEN acotadas a las secciones de preguntas',
+    btnConPreg >= 2, 'acotadas=' + btnConPreg + ' sin acotar=' + btnSinPreg);
+  /* (C3) LA GRILLA DE DOS COLUMNAS ACOTA EL ANCHO DEL CAJON, y es lo que lo deja DENTRO del
+     panel. Esa grilla se parte por el ancho de la VENTANA y no por el del PANEL, asi que sus
+     filas miden 373 px con el panel en 820: un cajon de 600 px anclado al borde derecho de su
+     celda empieza en x=111 mientras el panel empieza en 310, o sea el texto se dibuja FUERA.
+     Se mide el VALOR declarado y no la geometria: la geometria depende del ancho de la ventana
+     con que corra la suite, y esta condicion tiene que valer siempre. */
+  let topeCaj = null;
+  hojas.forEach(h => { let rs = null; try { rs = h.cssRules } catch (e) { return }
+    if (!rs) return;
+    const rec = l => { for (let i = 0; i < l.length; i++) { const R = l[i];
+      if (R.cssRules && R.cssRules.length) rec(R.cssRules);
+      const sel = String(R.selectorText || '');
+      if (sel.indexOf('[data-ind-info][open]') < 0) continue;
+      if (sel.indexOf('data-ind-compacta') < 0) continue;
+      const v = R.style ? String(R.style.maxWidth || '') : '';
+      if (v) topeCaj = v; } };
+    rec(rs) });
+  const topeN = topeCaj ? parseInt(topeCaj, 10) : null;
+  q('(C3) la grilla de dos columnas acota el ancho del cajon a 400 px o menos, para que no se dibuje fuera del panel',
+    topeN !== null && topeN > 0 && topeN <= 400, 'max-width declarado=' + topeCaj);
+
+  /* (D) ninguna seccion con el recuadro arriba */
+  const arriba = nom.filter(k => vistas[k].adapt === true).length;
+  q('(D0 DENOM) el censo alcanzo las VEINTE secciones con recuadro',
+    arriba === 20, 'con recuadro=' + arriba);
+  return { extra: F };
+  })()
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
