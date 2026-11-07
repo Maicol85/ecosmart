@@ -92584,10 +92584,17 @@ function _indSecHTMLCuerpo(tit, r){
      ⚠️ Y VA ANTES DE `_bloRec()`, que es lo que deja la bibliografia ultima: el acumulador de
      citas se puebla mientras se pinta, asi que una causa que cita se numera en el orden en que se
      lee. Moverlo despues le daria a sus corchetes los numeros del detalle. */
-  if (ordenProt) {
-    if (r.adapt) h += _indAdaptHTML(r.adapt, r.faltan);
-    if (r.causas) h += _indCausasHTML(r.causas, r.causasNota);
-  }
+  if (ordenProt && r.adapt) h += _indAdaptHTML(r.adapt, r.faltan);
+  /* ⚠️ LAS CAUSAS VAN DESPUES DE LO QUE LA SECCION CONCLUYE, Y ESO SON DOS LUGARES DISTINTOS
+     SEGUN QUE PUBLIQUE LA SECCION (PANT-21, commit 4). La decision del medico pone las causas
+     entre «Con lo contestado» y el «Ver detalle»; «Con lo contestado» es `adapt` en las secciones
+     que lo traen —la aortica, la tricuspide y la pulmonar— y es `recom` en la MITRAL, que concluye
+     con su cascada `_protmRecom` desde antes de esta tanda. Con `adapt`, `_bloRec()` es el «Ver
+     detalle» y las causas van ANTES; sin `adapt`, `_bloRec()` ES la conclusion visible y las
+     causas van DESPUES. Emitirlas siempre en el mismo punto dejaria la lista de causas por encima
+     de la conclusion en la mitral, que es leerla antes de saber que se concluyo. */
+  const _causasH = (ordenProt && r.causas) ? _indCausasHTML(r.causas, r.causasNota) : '';
+  if (r.adapt) h += _causasH;
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
      lo que se acaba de leer, y arriba se leería como el titular de la sección. Desde la tanda A
      no tiene excepciones: el modo compacto dejó de invertir el orden. */
@@ -92597,6 +92604,7 @@ function _indSecHTMLCuerpo(tit, r){
      conclusión va DEBAJO de los datos que la sostienen. Las secciones que no traen `bloques` ni
      `recom` no emiten nada acá. */
   h += _bloRec();
+  if (!r.adapt) h += _causasH;
   return _indSecPie(h, r);
 
 }
@@ -95540,6 +95548,37 @@ function _indProtA(){
 }
 window._indProtA = _indProtA;
 
+/* ══ LAS CAUSAS POSIBLES DEL GRADIENTE ALTO EN LA POSICION MITRAL — PANT-21, commit 4b ═════
+   Las cuatro salen de UNA sola frase de la ASE 2024, leida en imagen en la hoja 24, folio 25:
+   «las causas de estenosis de una protesis mitral son degeneracion valvular, trombosis valvular,
+   formacion de pannus y vegetaciones grandes». Ninguna agrega un criterio de graduacion.
+
+   ⚠️ NINGUNA SE MARCA SOLA, Y NO ES UN OLVIDO. La guia da para la mitral una LISTA, no un
+   algoritmo: a diferencia de la Figura 13 de la posicion aortica —que separa el hiperflujo del
+   desajuste con el cociente de VTI y el area efectiva indexada—, aca no hay ningun numero de los
+   que la app tiene que decida cual de las cuatro es. `decide` devuelve `null` para las cuatro y
+   las cuatro salen con ❓, que es «falta el dato, o no lo aporta el ecocardiograma». Marcar una
+   sin ese respaldo seria inventar el algoritmo. Declarado en docs/PENDIENTES.md → P21-a.
+
+   ⚠️ Y LA SECCION SIGUE PUBLICANDO SU NOTA DE LAS MISMAS CAUSAS EN EL «Ver detalle», a proposito:
+   esa nota esta SIEMPRE, y este bloque solo con el veredicto «posible». Retirarla dejaria al
+   medico sin la enumeracion justo en los dos estados —«normal» y «significativa»— en que el
+   bloque no se muestra. */
+const PROTM_CAUSAS = Object.freeze([
+  { clave:'degeneracion', lbl:'Degeneración valvular',
+    txt:'La guía enumera la degeneración valvular como la primera de las causas de estenosis de una prótesis mitral. ASE 2024, hoja 24, folio 25.',
+    refs:[PROTM_REF_ASE] },
+  { clave:'trombosis', lbl:'Trombosis valvular',
+    txt:'La trombosis valvular es la segunda de esa enumeración, y la guía agrega que el transesofágico y la tomografía identifican la causa mejor que el transtorácico. ASE 2024, hoja 24, folio 25.',
+    refs:[PROTM_REF_ASE] },
+  { clave:'pannus', lbl:'Formación de pannus',
+    txt:'La formación de pannus es la tercera, y para distinguirla del trombo la guía señala a la tomografía como la más sensible. ASE 2024, hoja 24, folio 25.',
+    refs:[PROTM_REF_ASE] },
+  { clave:'vegetacion', lbl:'Vegetaciones grandes',
+    txt:'La enumeración se cierra con las vegetaciones grandes. ASE 2024, hoja 24, folio 25.',
+    refs:[PROTM_REF_ASE] }
+]);
+
 function _indProtM(){
   /* ⚠️ COMPUERTA ÚNICA Y PRIMERA LÍNEA. Todo lo de abajo asume una prótesis: los cortes, los
      textos y la cascada entera son de la Tabla 11/13 y de la Table 17, no de válvula nativa. */
@@ -95840,6 +95879,15 @@ function _indProtM(){
        Alguna de las tres / Ninguna—. Un contador con esos rotulos diria algo que las botoneras no
        dicen. El emisor ya trata `cuenta` ausente: omite el span y deja el boton de columnas. */
     ordenProt: true,
+    /* ⚠️ EL BLOQUE DE CAUSAS, SOLO CON EL VEREDICTO «POSIBLE» (PANT-21, commit 4b). Es el estado
+       en que la causa del gradiente todavia no esta decidida: con «significativa» o con «normal»
+       el veredicto YA concluyo, y con `null` no hay ningun criterio medido con que empezar.
+       `P.obstr` es el veredicto que `vmProtEOA()` publica, que es su duenio: se LEE y no se
+       recalcula. */
+    causas: (P && P.obstr === 'posible') ? _indCausas(PROTM_CAUSAS, function () { return null; }) : null,
+    causasNota: (P && P.obstr === 'posible')
+      ? 'Esta lista no grad\u00faa ni concluye: es lo que la ASE 2024 enumera para la estenosis de una pr\u00f3tesis mitral. Ninguna se marca sola, porque la gu\u00eda da para esta posici\u00f3n una lista y no un algoritmo con el que esta aplicaci\u00f3n pueda decidir cu\u00e1l es.'
+      : '',
     aviso: _protDom ? '' :
       'El ETE consigna una prótesis mitral y la pestaña Válvulas no (' + (_indS('vm_morf') || 'sin morfología consignada') +
       '). Con esa discordancia el AEO, la relación VTI y el PPM no se calculan, y el grado de insuficiencia se graduó con los cortes de válvula NATIVA. Corregir la morfología en Válvulas.',
