@@ -62649,9 +62649,9 @@ function generarInforme(opts) {
       const _normoT = !!_eaProtN.normoTavi && !insE && _normoRpvOk;
       inf.push(_normoT
         ? estiloPick(
-          `VAo ${_vaAdj} ${EA_PROT_NORMO.frase}.`,
-          `Válvula aórtica ${_vaAdj} ${EA_PROT_NORMO.frase}.`,
-          `La válvula aórtica ${_vaEs} ${EA_PROT_NORMO.frase}.`)
+          `VAo ${_vaAdj} ${_eaProtN.normoFrase}.`,
+          `Válvula aórtica ${_vaAdj} ${_eaProtN.normoFrase}.`,
+          `La válvula aórtica ${_vaEs} ${_eaProtN.normoFrase}.`)
         : estiloPick(
           `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
           `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
@@ -74076,7 +74076,28 @@ function eaProtVeredicto(){
     return n('ea_dvi_display');
   })();
   const at   = n('va_at'),  et   = n('tango_te');
-  const atet = (at != null && et != null && et > 0) ? (at / et) : null;
+  /* ⚠️ EL COCIENTE TIENE UN SOLO DUENO DESDE PANT-24, Y ESO CIERRA P18-b. DECISION DEL MEDICO
+     (08/11/2026): el AT es una PARTE del tiempo de eyeccion, asi que el cociente NUNCA puede ser
+     mayor o igual que 1. Aca vivia `(at != null && et != null && et > 0) ? (at / et) : null`, sin
+     pedir que el AT fuera menor, y ese numero viajaba al parentesis de medidas del informe
+     FIRMADO como «AT/TE 1.67» mientras la fila del cuadro mostraba la raya: dos superficies con
+     dos lecturas del mismo cociente, que es lo que P18-b declaraba.
+     Hoy se LEE `_eaAtEtVal()`, que es el dueno de la fila y ya trae la guarda. Con eso, un
+     cociente de 1 o mas vale `null` y desaparece de golpe de las CUATRO superficies que lo
+     publicaban -el parentesis del informe en los tres estilos, el EN SUMA, el PDF y el PPT-, del
+     aviso de pantalla y del plegable de «Ver detalle», y `niveles.atet` queda en `null`, asi que
+     no participa en ningun aviso. En ningun VOTO no participaba ya: `dep` son la velocidad pico
+     y el gradiente medio, `indep` el DVI y el area efectiva, y el cociente no entra en ninguna
+     de las dos listas.
+     ⚠️ CON EL COCIENTE MENOR QUE 1 NO CAMBIA NADA: `_eaAtEtVal` devuelve `at / et`, el mismo
+     numero que esta linea calculaba. */
+  /* ⚠️ LA LLAMADA VA PELADA, SIN `typeof`, y se midio que se puede: las dos funciones estan en
+     el MISMO bloque de <script> -el 56 de los 19 bloques inline-, y `_eaAtEtVal` es una
+     declaracion de funcion, o sea esta izada, asi que existe desde antes de que esta corra. Con
+     un `typeof` que no empareje el cociente saldria `null` en silencio y eso se leeria igual que
+     «el AT es mayor que el ET»; pelada tira `ReferenceError` el dia que alguien la mueva de
+     bloque, y eso se ve. */
+  const atet = _eaAtEtVal();
   const vs   = n('vs_calc');
 
   /* ── Tabla 7: PPM AORTICO. Se LEE el AVA indexada que `calcAo` ya publicó, no se recalcula ──
@@ -74265,7 +74286,9 @@ function _eaProtSalvTiempos(P){
       '(< 80 ms), y por sí solo NO establece estenosis: su fila no lleva ninguna de las dos marcas ' +
       'que la nota general exige. Puede además estar afectado por la función del VI y la frecuencia cardíaca.');
   if (P && P.niveles && P.niveles.atet && P.niveles.atet !== 'normal' && P.atet != null)
-    s.push('El cociente AT/tiempo eyectivo es de ' + P.atet.toFixed(2) + ', fuera del rango normal ' +
+    /* El decimal con COMA: esta salvedad la consume `_eaProtPintar`, que es PANTALLA —el plegable
+       de «Ver detalle»—, y la propia frase escribe su corte «< 0,32» con coma (PANT-24). */
+    s.push('El cociente AT/tiempo eyectivo es de ' + P.atet.toFixed(2).replace('.', ',') + ', fuera del rango normal ' +
       '(< 0,32), y tampoco vota por sí solo.');
   return s;
 }
@@ -74340,7 +74363,17 @@ function eaProtNarrativa(P){
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
       EA_PROT_VS_MAX + ' mL para que la velocidad pico valga, y el calculado es de ' + P.vs.toFixed(0) + ' mL.');
   _eaProtSalvTiempos(P).forEach(s => salv.push(s));
+  /* ⚠️ Y LA FRASE DE «normofuncionante» LLEVA EL PARENTESIS DE MEDIDAS, QUE ES LA REGLA FIJA DE
+     ESTA CASA: «ningun numero medido puede desaparecer al retirar una mencion». Lo destapo la
+     escena de Vmax 2,0 en el commit 3 de esta tanda: emitiendo «normofuncionante» a secas, el
+     papel perdia «(Vmax 2 m/s)», o sea una medicion del estudio. Con `med` pegado, la escena SIN
+     ningun dato —la que la decision del medico fija palabra por palabra— sigue dando
+     exactamente «… tipo TAVI normofuncionante.», porque ahi `med` es la cadena vacia; y la
+     escena con datos normales publica el numero que se midio.
+     El EN SUMA sigue SIN numeros, que es el contrato de `resumen` dos ramas mas arriba: «un
+     resumen que repita seis numeros deja de ser un resumen». */
   return { frase: frase, resumen: resumen, salvedades: salv, normoTavi: _normoTavi,
+    normoFrase: EA_PROT_NORMO.frase + med,
     /* ⚠️ LA CITA YA NO VA AL INFORME (2026-09-28). El comentario anterior decía lo contrario y hay
        que leerlo al revés: el argumento —quien lo lea en seis meses necesita saber con qué regla se
        clasificó— sigue siendo cierto, y la respuesta pasó a ser la PANTALLA y el panel de Evidencia,
@@ -74414,7 +74447,9 @@ function _eaProtAvisos(P){
     if (atMal || atetMal) {
       const q = [];
       if (atMal)   q.push('El AT (' + P.at + ' ms)');
-      if (atetMal) q.push((q.length ? 'el' : 'El') + ' AT/ET (' + P.atet.toFixed(2) + ')');
+      /* El decimal con COMA: es pantalla, y el resto de la frase y los cortes de la fila ya van
+         con coma (PANT-24). */
+      if (atetMal) q.push((q.length ? 'el' : 'El') + ' AT/ET (' + P.atet.toFixed(2).replace('.', ',') + ')');
       a.push(q.join(' y ') + (q.length > 1 ? ' por sí solos no establecen estenosis.'
                                            : ' por sí solo no establece estenosis.'));
     }
@@ -74625,6 +74660,21 @@ document.addEventListener('DOMContentLoaded', function(){ try { _eaAtAssertUmbra
    no clasifica un cociente de 1 o mas —un tiempo de aceleracion no puede durar mas que la
    eyeccion que lo contiene— y el informe sigue publicando lo mismo que publicaba. La asimetria
    esta en `docs/PENDIENTES.md` → P18-b. */
+/* ⚠️ EL DUENO DEL «POR QUE»: el cociente es IMPOSIBLE, no falta (PANT-24, commit 3). Devuelve
+   verdadero solo cuando los DOS campos traen un numero positivo y el AT no es menor que el ET
+   —o sea cuando el dato esta y es imposible—, y falso cuando falta alguno de los dos, que es
+   «no hay dato» y sigue mostrando la raya. Lee los campos con el MISMO lector que `_eaAtEtVal`,
+   asi que no puede discrepar con el sobre el mismo par de valores. */
+function _eaAtEtRevisar(){
+  const num = id => { const e = document.getElementById(id); if (!e) return null;
+    const x = PF(e.value); return (x != null && isFinite(x)) ? x : null; };
+  const at = num('va_at'), et = num('tango_te');
+  if (at == null || et == null) return false;
+  if (!(at > 0) || !(et > 0)) return false;
+  return !(at < et);
+}
+window._eaAtEtRevisar = _eaAtEtRevisar;
+
 function _eaAtEtVal(){
   const num = id => { const e = document.getElementById(id); if (!e) return null;
     const x = PF(e.value); return (x != null && isFinite(x)) ? x : null; };
@@ -74647,9 +74697,20 @@ function eaAtEtPintar(esProt){
   if (fila) fila.style.display = esProt ? '' : 'none';
   if (!cel) return;
   if (!esProt) { cel.innerHTML = '&#8212;'; return; }
+  /* ⚠️ LA FILA DISTINGUE «no hay dato» DE «el AT no puede durar mas que el ET» (PANT-24,
+     commit 3; decision del medico del 08/11/2026). `_eaAtEtVal` devuelve `null` en los dos
+     casos, y eso alcanzaba mientras la fila solo tenia que callarse; desde que la decision pide
+     un texto propio hace falta saber POR QUE es null. `_eaAtEtRevisar()` lo dice, y es el UNICO
+     que lo dice: la fila no vuelve a leer los dos campos por su cuenta. */
+  if (_eaAtEtRevisar()) { cel.innerHTML = badge('gray', 'Revisar los valores'); return; }
   const v = _eaAtEtVal();
   if (v == null) { cel.innerHTML = '&#8212;'; return; }
-  const txt = v.toFixed(2);
+  /* ⚠️ EL DECIMAL DE ESTA FILA VA CON COMA (PANT-24). Salia `1.67` con punto al lado de sus
+     propios cortes escritos `0,32` y `0,37`, que es lo que el medico vio. Es la MISMA conversion
+     que las dos lineas de abajo ya hacen con los umbrales. NO se toca el `toFixed(2)` del
+     parentesis de medidas del informe: eso es PAPEL, y el papel de esta tanda tiene dos
+     diferencias autorizadas y esta no es una. Queda listado en P24-c. */
+  const txt = v.toFixed(2).replace('.', ',');
   const nivel = _eaProtNivel(v, EA_PROT_CRIT.atet_normal_max, EA_PROT_CRIT.atet_signif_min, true, true);
   const N = EA_PROT_CRIT.atet_normal_max.toFixed(2).replace('.', ',');
   const G = EA_PROT_CRIT.atet_signif_min.toFixed(2).replace('.', ',');
