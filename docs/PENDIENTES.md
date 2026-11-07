@@ -13595,3 +13595,63 @@ que ya estaba pintado.** Es el mismo modo de falla que TC-751 (E4) cobró.
 **Ninguna de esas se tocó, a propósito.** Lo que la tanda 2 tiene que medir, si el médico quiere
 ampliar el alcance, es si alguna de la primera fila debería reescribirse igual — y eso es una
 decisión suya, no de una tanda.
+<!-- L1:INDICE -->
+
+# TANDA LIMPIEZA-1 (2026-11-08) — lo declarado
+
+## L1-a · Los bloques que quedaron en el original ante la duda, y la decision que falta
+
+La regla de oro de la orden es que **ante la duda el bloque queda en el original**, y
+de ahi salen cuatro cosas que **el medico decide**:
+
+1. **Las 41 secciones de nivel 1 de este archivo se titulan «lo declarado y NO tocado» y
+   sus items no dicen que esten cerrados**, asi que quedaron enteras: **423 bloques de
+   nivel 2, 593.100 bytes**, sin una sola marca de cierre. Varias son de mediados de
+   octubre y es probable que tandas posteriores hayan cerrado parte, pero **el texto no lo
+   dice** y la orden prohibe decidirlo por mi cuenta. Lo archivable con el criterio de la
+   orden fue el **12,3 %** del archivo. Si el medico quiere una segunda camada, el camino
+   es recorrer esas secciones y marcar lo cerrado con su tanda, que es lo que el criterio
+   necesita.
+2. **Los 40 bloques de nivel 2 mezclados** —algun sub-item cerrado y otros no, 315.721
+   bytes— se quedan, y de ellos salieron solo sus sub-items cerrados.
+3. **Los 24 ids que aparecen dos o tres veces** —el item y una entrada posterior que lo
+   cierra— se quedaron **enteros** aca, aunque una de sus apariciones estuviera cerrada,
+   para que un `grep` de un id no devuelva dos archivos: `AJ3-b`, `AJ3-c`, `AJ3-d`,
+   `D-4`, `D-6`, `G-a`, `G-c`, `G-e`, `H-1`, `H-2`, `IMG3-a`, `IMG3-g`, `L-1`, `L-2`,
+   `L-3`, `L-4`, `L-5`, `P13-c`, `PRO-4`, `TGA2-b`, `Y-g`, `Z5-1`, `Z5-3`, `Z5-5`.
+4. **`docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` quedo en un solo archivo de 739.025 B.**
+   La orden deja dividirlo «si el volumen lo exige» y no se dividio: la casa ya tiene un
+   historial de 1,76 MB en un archivo consultado solo con `grep`, partirlo no baja el
+   unico riesgo real —leerlo entero, que lo evita el aviso y no el tamano— y alarga el
+   indice. **Si el medico lo prefiere partido**, el corte natural ya esta marcado en el
+   propio archivo: el tramo 1 son las lineas 1408..6447 del `CLAUDE.md` original y el
+   tramo 2 las 6485..10628.
+
+## L1-b · Lo que un caso, un script o un chequeo lee, y por eso se quedo donde estaba
+
+Medido en el commit 1 y es el hallazgo de la tanda: **ninguna herramienta lee estos
+archivos**. Cero lecturas reales de un `.md` en `scripts/`, cero `readdir` o `glob` sobre
+`docs/`, cero hooks; `docs/REGISTRO_TANDAS.md` no lo nombra ni un archivo. Aun asi, tres
+cosas obligaron a dejar algo en su lugar:
+
+1. **El sello y el renglon de tamano se quedan en `CLAUDE.md`**, en «Que es EcoSmart y
+   como se trabaja». `scripts/sellar_version.py` **no** los toca —escribe `ECO_BUILD`,
+   `ECO_BUILD_MS` y el `<span id="eco-build-sello">` de `index.html`, mas `version.json`—:
+   el chequeo «el sello coincide con CLAUDE.md» es **manual**, y es lo que esa comparacion
+   mira. Lo fija **TC-753 (C1)** a **(C4)**.
+2. **Los punteros de prosa.** `index.html` nombra `PENDIENTES` **242** veces y
+   `CLAUDE.md` **58** en sus comentarios, y `scripts/test_clinico.mjs` nombra ids como
+   `P11-a`, `J-a (cerrado)` o `D-d`. Son punteros que se siguen con `grep`, asi que la
+   regla del reparto fue que **un id vive en UNO de los dos archivos, nunca en los dos**.
+   Verificado: 856 ids distintos = 781 aca + 75 en el archivo, cero en los dos.
+3. **La tabla de mapas de la «Regla de oro» y la de «Procedencia» se quedan**: la primera
+   es el indice con el que se decide que mapa abrir y la segunda dice de que seccion del
+   historial sale cada regla. Las dos son reglas, no historia.
+
+⚠️ **Lo que esta tanda NO verifico:** que los punteros de prosa de `index.html` y de la
+suite sigan resolviendo uno por uno. Se verifico el invariante que los hace resolver —un
+id en un solo archivo, los 856 contados— y no los 242 mas 58 punteros de a uno.
+
+---
+
+<!-- /L1:INDICE -->

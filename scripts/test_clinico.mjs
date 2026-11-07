@@ -123867,6 +123867,166 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
   return { extra: ex };
 `);
 
+
+/* ══ TANDA LIMPIEZA-1 ══ El caso nuevo va ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo y un caso agregado despues de el NO SE EJECUTA —la suite imprime
+   «0/0 sin regresiones» sobre un caso que nunca corrio—.
+   ⚠️ ESTE CASO NO MIRA EL DOM: mira los DOCUMENTOS, y los lee por HTTP. El servidor estatico
+   del arnes sirve cualquier archivo bajo la raiz del proyecto, asi que un fetch('/CLAUDE.md')
+   devuelve el archivo tal como esta en disco. Es el mismo camino con que PANT-13 midio «nace
+   cerrada» sobre el marcado que el servidor entrega.
+   ⚠️ Y EL CUERPO DEVUELVE SU IIFE: «ev» lo envuelve en una funcion NO async, asi que un «await»
+   de primer nivel revienta con «await is only valid in async functions»; y sin «return» la
+   promesa se evalua y el runner dice que el caso no declara NINGUNA condicion. */
+caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que existen, el sello y el renglon de tamano siguen ahi, y los archivos de docs/archivo/ existen y no estan vacios', `
+  return (async () => {
+  const F = [];
+  const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+
+  const bajar = async (ruta) => {
+    try {
+      const r = await fetch('/' + ruta, { cache: 'no-store' });
+      if (!r.ok) return null;
+      return await r.text();
+    } catch (e) { return null; }
+  };
+
+  /* Rutas .md que un texto nombra. Se busca la subcadena '.md' y se camina hacia atras
+     mientras el caracter sea de una ruta: asi sirve igual dentro de una tabla, de una
+     oracion o de un bloque de codigo, y no depende de contar acentos graves —tres
+     seguidos abren una cerca y desincronizan cualquier conteo por pares—. */
+  const ESRUTA = (ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+    || (ch >= '0' && ch <= '9') || ch === '/' || ch === '_' || ch === '-' || ch === '.';
+  const rutasEn = (t) => {
+    const out = [];
+    let i = t.indexOf('.md');
+    while (i > -1) {
+      let a = i;
+      while (a > 0 && ESRUTA(t.charAt(a - 1))) a--;
+      const v = t.slice(a, i + 3);
+      if (v.length > 4 && v.indexOf('..') === -1 && out.indexOf(v) === -1) out.push(v);
+      i = t.indexOf('.md', i + 3);
+    }
+    return out;
+  };
+  /* control del extractor, antes de usarlo: encuentra lo que hay y NO inventa */
+  const pp = rutasEn('ver «docs/archivo/X_Y.md» y CLAUDE.md, no «docs/nada»');
+  q('(A0b) el extractor de rutas encuentra las dos que hay y ninguna mas',
+    pp.length === 2 && pp.indexOf('docs/archivo/X_Y.md') > -1 && pp.indexOf('CLAUDE.md') > -1,
+    'saco=' + pp.join(' '));
+
+  const ABRE = '<!-- L1:INDICE -->';
+  const CIERRA = '<!-- /L1:INDICE -->';
+
+  const cl = await bajar('CLAUDE.md');
+  q('(A0 DENOM) el servidor del arnes entrega CLAUDE.md y no esta vacio',
+    cl !== null && cl.length > 1000, 'largo=' + (cl === null ? 'NULO' : cl.length));
+  if (cl === null) return { extra: F };
+
+  const i1 = cl.indexOf(ABRE);
+  const i2 = cl.indexOf(CIERRA);
+  q('(A1 DENOM) CLAUDE.md abre con el bloque «Donde esta cada cosa», delimitado',
+    i1 > -1 && i2 > i1 && cl.indexOf('Donde esta cada cosa') > i1
+      && cl.indexOf('Donde esta cada cosa') < i2,
+    'abre=' + i1 + ' cierra=' + i2);
+  const idx = (i1 > -1 && i2 > i1) ? cl.slice(i1, i2) : '';
+
+  /* (B) el indice nombra solo archivos que existen */
+  const faltan = async (texto) => {
+    const malas = [];
+    const rs = rutasEn(texto);
+    for (const r of rs) {
+      const t = await bajar(r);
+      if (t === null || t.length === 0) malas.push(r);
+    }
+    return { pedidas: rs, malas: malas };
+  };
+  const b = await faltan(idx);
+  q('(B0 DENOM) el indice nombra al menos cinco archivos .md',
+    b.pedidas.length >= 5, 'nombra=' + b.pedidas.length + ' -> ' + b.pedidas.join(' '));
+  q('(B1) TODOS los archivos que el indice nombra existen y no estan vacios',
+    b.malas.length === 0, 'faltan=' + (b.malas.join(' ') || 'ninguno'));
+
+  /* (B2) CONTROL NEGATIVO: un nombre inventado en el indice hace caer la condicion. Sin esto,
+     (B1) pasaria en verde aunque el chequeo no mirara nada. */
+  const neg = await faltan(idx + ' y tambien docs/archivo/ESTE_NO_EXISTE_L1.md.');
+  q('(B2) CONTROL NEGATIVO: con un nombre inventado, la misma comprobacion FALLA',
+    neg.malas.length === 1 && neg.malas[0] === 'docs/archivo/ESTE_NO_EXISTE_L1.md',
+    'malas=' + neg.malas.join(' '));
+
+  /* (C) el sello y el renglon de tamano siguen en CLAUDE.md */
+  const SELLO = 'v20261107-1137';
+  const MD5 = '52f7573b';
+  const TAM = '12,26 MB / 168.667';
+  const tieneSello = (t) => t.indexOf(SELLO) > -1 && t.indexOf(MD5) > -1;
+  q('(C1) el sello de la ultima tanda y el md5 de index.html siguen en CLAUDE.md',
+    tieneSello(cl), 'sello=' + (cl.indexOf(SELLO) > -1) + ' md5=' + (cl.indexOf(MD5) > -1));
+  q('(C2) el renglon de tamano sigue en CLAUDE.md, con sus bytes y sus lineas',
+    cl.indexOf(TAM) > -1, 'renglon=' + (cl.indexOf(TAM) > -1));
+  q('(C3) CONTROL NEGATIVO: sin esa linea la comprobacion del sello FALLA',
+    tieneSello(cl.split(SELLO).join('vXXXXXXXX-XXXX')) === false, 'invariante del chequeo');
+
+  /* (C4) el chequeo de arranque es comparar ese sello contra el pie de index.html, y da lo
+     mismo que antes: el pie es HTML estatico, asi que se lee del DOM. */
+  const pie = (function () {
+    const e = document.getElementById('eco-build-sello');
+    return e ? (e.textContent || '').trim() : '';
+  })();
+  q('(C4) el sello del pie de index.html coincide con el de CLAUDE.md',
+    pie === SELLO, 'pie=' + pie + ' CLAUDE.md=' + SELLO);
+
+  /* (D) los archivos de docs/archivo/ existen y no estan vacios */
+  const AR = ['docs/archivo/CLAUDE_HISTORIAL_TANDAS.md',
+              'docs/archivo/PENDIENTES_CERRADOS.md'];
+  for (const r of AR) {
+    const t = await bajar(r);
+    q('(D) existe y no esta vacio: ' + r, t !== null && t.length > 10000,
+      'largo=' + (t === null ? 'NULO' : t.length));
+  }
+
+  /* (D2) y lo que archivaron esta ahi: una tanda que salio de CLAUDE.md y un id cerrado que
+     salio de PENDIENTES.md.  Es el denominador de que el movimiento ocurrio de verdad. */
+  const hist = await bajar(AR[0]);
+  const cerr = await bajar(AR[1]);
+  q('(D2) el historial archivado trae las tandas que salieron de CLAUDE.md',
+    hist !== null && hist.indexOf('PANT-19') > -1 && hist.indexOf('VAL-PPT') > -1
+      && hist.indexOf('CONG-2A') > -1,
+    'PANT-19=' + (hist !== null && hist.indexOf('PANT-19') > -1));
+  q('(D3) y CLAUDE.md ya NO las tiene, con las tres ultimas en su lugar',
+    cl.indexOf('«PANT-19»') === -1 && cl.indexOf('«VAL-PPT»') === -1
+      && cl.indexOf('«PANT-22»') > -1 && cl.indexOf('«PANT-20»') > -1,
+    'PANT19enCLAUDE=' + (cl.indexOf('«PANT-19»') > -1));
+  q('(D4) el archivo de cerrados trae un id cerrado y PENDIENTES.md ya no lo tiene',
+    cerr !== null && cerr.indexOf('W1-2 ·') > -1, 'W1-2enArchivo=' + (cerr !== null && cerr.indexOf('W1-2 ·') > -1));
+
+  /* (E) PENDIENTES.md: su indice, y lo abierto todavia adentro */
+  const pe = await bajar('docs/PENDIENTES.md');
+  q('(E0 DENOM) el servidor entrega docs/PENDIENTES.md', pe !== null && pe.length > 100000,
+    'largo=' + (pe === null ? 'NULO' : pe.length));
+  if (pe !== null) {
+    const j1 = pe.indexOf(ABRE);
+    const j2 = pe.indexOf(CIERRA);
+    q('(E1) docs/PENDIENTES.md abre con su indice, delimitado, y nombra el archivo de cerrados',
+      j1 > -1 && j2 > j1 && pe.slice(j1, j2).indexOf('docs/archivo/PENDIENTES_CERRADOS.md') > -1,
+      'abre=' + j1 + ' cierra=' + j2);
+    const peIdx = (j1 > -1 && j2 > j1) ? pe.slice(j1, j2) : '';
+    const e = await faltan(peIdx);
+    q('(E2) los archivos que el indice de PENDIENTES.md nombra existen y no estan vacios',
+      e.malas.length === 0 && e.pedidas.length >= 3,
+      'nombra=' + e.pedidas.length + ' faltan=' + (e.malas.join(' ') || 'ninguno'));
+    q('(E3) las DECISIONES DEL MEDICO pendientes siguen en docs/PENDIENTES.md',
+      pe.indexOf('P22-a') > -1 && pe.indexOf('P22-b') > -1 && pe.indexOf('P21-a') > -1
+        && pe.indexOf('P18-b') > -1 && pe.indexOf('P20-a') > -1,
+      'P22-a=' + (pe.indexOf('P22-a') > -1));
+    q('(E4) y PENDIENTES.md ya NO tiene el id cerrado que salio al archivo',
+      pe.indexOf('W1-2 ·') === -1, 'W1-2enPENDIENTES=' + (pe.indexOf('W1-2 ·') > -1));
+  }
+  /* Las condiciones van DENTRO del objeto devuelto: el array pelado hace que el runner avise
+     que el caso no declara ninguna, que es justo para lo que ese guardian esta. */
+  return { extra: F };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);

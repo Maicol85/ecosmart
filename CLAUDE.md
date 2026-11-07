@@ -871,6 +871,12 @@ impecable.
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
+**La tanda LIMPIEZA-1 (2026-11-08) no toca `index.html`** —md5 `52f7573b`, sin cambio— y no
+genera sello: la linea base sigue siendo la de PANT-22. Cuatro commits: el inventario, el
+reparto de `docs/PENDIENTES.md`, el de `CLAUDE.md` y la cobertura. `CLAUDE.md` paso de 880.308
+a **146.634 B** y `docs/PENDIENTES.md` de 1.007.449 a **888.548**, o sea de unos **472.000 a
+unos 259.000 tokens** entre los dos. Lo cubre **TC-753**; lo declarado, **L1-a** y **L1-b**.
+
 <!-- /L1:INDICE -->
 ### La Evidencia de un sector no incluido, y los textos que comparaban fuentes — «PANT-22» (2026-11-07)
 

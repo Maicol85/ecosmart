@@ -1,3 +1,64 @@
+## LIMPIEZA-1 — archivar lo cerrado de PENDIENTES.md y el historial de tandas de CLAUDE.md (2026-11-08)
+
+**Commits**: el inventario de medicion; el reparto de `docs/PENDIENTES.md`; el de `CLAUDE.md`;
+y la cobertura con la documentacion. **No toca `index.html`** —md5 **52f7573b**, el mismo antes
+y al final— y **no genera sello**: la linea base sigue siendo la de PANT-22,
+**v20261107-1137**. Al empezar, `origin/main` = `HEAD` = **0b0af04**, el cierre de PANT-22, ya
+publicado. **El push lo corre Maicol: esta tanda tenia orden expresa de NO pushear.**
+
+- **EL PROBLEMA, MEDIDO**: `CLAUDE.md` y `docs/PENDIENTES.md` sumaban **1.887.757 bytes, unos
+  472.000 tokens**, y Code los carga a los dos al arrancar. Hoy suman **1.035.182 bytes, unos
+  259.000**: **−45 %**, sin perder un byte de texto. (Los dos numeros son del arbol CERRADO, o
+  sea con lo que el commit 4 agrega: el reparto solo dejaba 146.166 y 884.694.)
+
+| archivo | antes | despues | delta |
+|---|---:|---:|---|
+| `CLAUDE.md` | 880.308 B / 10.627 lineas | **146.634 B / 1.493** | **−83,3 %** |
+| `docs/PENDIENTES.md` | 1.007.449 B / 15.373 | **888.548 B / 13.657** | **−11,8 %** |
+| `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` | — | 739.025 B / 9.233 | nuevo |
+| `docs/archivo/PENDIENTES_CERRADOS.md` | — | 142.436 B / 2.396 | nuevo |
+
+- **EL HALLAZGO DEL COMMIT 1: ninguna herramienta lee estos archivos.** Cero lecturas reales de
+  un `.md` en `scripts/`, cero `readdir` o `glob` sobre `docs/`, cero hooks, y
+  `docs/REGISTRO_TANDAS.md` no lo nombra ni un archivo. Las 20 menciones de `CLAUDE.md` y las 8
+  de `PENDIENTES` en `scripts/` son **prosa en comentarios**. `sellar_version.py` **no** toca
+  `CLAUDE.md`: el chequeo «el sello coincide con CLAUDE.md» es **manual**.
+- **LO QUE SI OBLIGA SON LOS PUNTEROS DE PROSA**: `index.html` nombra `PENDIENTES` **242** veces
+  y `CLAUDE.md` **58** en sus comentarios. De ahi la regla del reparto: **un id vive en UNO de
+  los dos archivos, nunca en los dos** — 856 ids distintos = 781 abiertos + 75 cerrados, cero en
+  los dos.
+- **LA REGLA DE ORO SE CUMPLIO**: todo lo que se movio se movio **textual y en su orden
+  original**. Lo unico que esta tanda escribio va entre `<!-- L1:INDICE -->` y
+  `<!-- /L1:INDICE -->`, para poder excluirlo de la comparacion.
+- ⚠️ **UN DEFECTO DE MI PROPIO PARSER, ENCONTRADO MIDIENDO Y NO LEYENDO**: el rango de un bloque
+  de nivel 2 se cortaba en su **primer hijo de nivel 3**, asi que `P3-m`, `P3-r` y `D-r` salian
+  truncados y sus hijos quedaban huerfanos. El modelo se rehizo: el extent de un nivel 2 llega
+  hasta el proximo encabezado de nivel 1 o 2, **hijos incluidos**.
+- ⚠️ **Y EL GUARDIAN DE ACENTOS GRAVES CAZO UNO ADENTRO DEL CUERPO DEL CASO NUEVO**, que habria
+  cerrado el template literal antes de tiempo. Lo previno **contar** los acentos graves del
+  bloque y exigir el numero exacto —dos, el que abre y el que cierra—, no `node --check`.
+- **PREMISA QUE NO SE REPRODUCE**: que `docs/PENDIENTES.md` sea mayormente historia cerrada. Con
+  el criterio de la orden lo archivable es el **12,3 %**; sus 41 secciones se titulan «lo
+  declarado y NO tocado» y **423 bloques de nivel 2 (593.100 B) no llevan una sola marca de
+  cierre**, asi que por la regla de oro quedan. Queda en **L1-a** para el medico.
+- **Un caso nuevo**, **TC-753**, y **DOS cosas declaradas**: **L1-a** y **L1-b**.
+
+**La verificacion de cierre:**
+
+| que | resultado |
+|---|---|
+| **reconstruccion** | tomando del manifiesto cada rango de su destino y excluyendo las lineas delimitadas, los dos originales se rearman con el md5 EXACTO: `CLAUDE.md` **493be3f4…** y `docs/PENDIENTES.md` **68effc8a…**, los mismos de `git show 8da375b:` |
+| **control negativo** | con UN byte cambiado la comprobacion cae en los dos |
+| **particion** | 4 rangos en `CLAUDE.md` y 158 en `docs/PENDIENTES.md`, sin un hueco ni un solape, y ningun destino con una linea de mas |
+| **ids** | 856 distintos = 781 + 75, **cero** en los dos archivos, cero perdidos, cero inventados |
+| **decisiones del medico** | P18-b, P18-d, P20-a a P20-c, P21-a a P21-c, P22-a y P22-b, las diez en `docs/PENDIENTES.md` |
+| **el sello** | el renglon de tamano y el sello **v20261107-1137** siguen en «Que es EcoSmart», y el pie de `index.html` sigue diciendo lo mismo: el chequeo manual da igual que antes |
+| **TC-753** | cae contra `8da375b` por **10 condiciones** y **ninguna** por excepcion |
+| **casos de control** | TC-533, TC-502, TC-535, TC-471 y TC-322: **5/5 antes y 5/5 despues** |
+| **md5 de `index.html`** | `52f7573bcc005697ac9947eac356e151`, sin cambio |
+
+---
+
 ## PANT-22 — la Evidencia, tanda 1 de 2: un sector avanzado no incluido no abre su seccion, y los textos que comparaban fuentes (2026-11-07)
 
 **Commits**: el inventario y el censo de textos; UN ayudante y las TRES secciones que el medico
