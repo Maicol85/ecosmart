@@ -347,3 +347,17 @@ del lado contrario (**−131,3 px** a 1440, contra **+282,1** de la pulmonar) y 
 voto de **seis** criterios de obstrucción, no un grado. Ver `P8-e`, con la propuesta concreta.
 
 Todo en `docs/mapa/pant8-tavi-referencias.md` § 6.
+
+---
+
+## La tanda PANT-22 (2026-11-07) — una sección de sector avanzado respeta su interruptor
+
+Una sección de Evidencia que viene de un **sector avanzado** sólo existe si el sector está
+**incluido en el informe**. El dueño es **`_indSectorIncluido(av)`**, que vive justo antes de
+`IND_SECS` y lee **`amiloIntegrado`**, el mismo interruptor que lee el informe; se consulta en
+**`indicRender`**, el único punto de armado, y la declaración es la propiedad **`av`** de la entrada
+—trece entradas la tienen—. Una sección sin `av` no se filtra.
+
+**Todo —el ayudante, las trece secciones y su clave, por qué la llamada va pelada, por qué el panel
+no necesita repintado y los veintinueve textos reescritos— está en
+`docs/mapa/pant22-evidencia-sectores.md`.**

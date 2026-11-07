@@ -88143,8 +88143,14 @@ caso('TC-520', 'Tanda AJ3 (ADAPTADO por la C2: dieciseis modulos, no diecisiete)
   /* == (F) AJ3-3 — EL RESULTADO DEL PASO 3 ================================================= */
   __t.limpiar(); set(BASE);
   let sc = null; try { sc = hfapeffScore(false); } catch (e) {}
+  /* ADAPTADO por PANT-22: resp() responde CLICKEANDO el boton dentro de indic-cuerpo, y desde
+     esta tanda la seccion del HFA-PEFF solo existe si su sector esta INCLUIDO en el informe, asi
+     que sin integrarlo el boton no se pinta y la respuesta no se registra. Lo que el bloque (F)
+     mide —la fila del RESULTADO del paso 3— no cambio. avInc es idempotente a proposito. */
+  const avHF = __t.avInc('hfpeff');
   ex.push(['(F0) DENOMINADOR: la escena da puntaje intermedio', !!sc && sc.total === 4,
     'total=' + (sc ? sc.total : 'SIN')]);
+  ex.push(['(F0b) DENOMINADOR: el sector del HFA-PEFF quedo INCLUIDO en el informe', avHF.falta.length === 0 && avHF.ok.indexOf('hfpeff') > -1, 'avInc=' + JSON.stringify(avHF)]);
   resp([['hfpeff.paso3', 'pendiente']]);
   const rPend = secHF();
   ex.push(['(F1) con el paso 3 «Pendiente» la fila del resultado NO existe',
@@ -90043,7 +90049,13 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
       && /e. lateral de 10 cm\\/s/.test(tarjEco)
       && /E\\/e. de 15/.test(tarjEco)
       && tarjEco.indexOf('folio 3303') > -1
-      && /reglas de conteo/.test(tarjEco) && /no tienen fuente/.test(tarjEco),
+      && /reglas de conteo/.test(tarjEco)
+      /* INVERTIDA por PANT-22, y es el dia que esta condicion anunciaba: exigia la frase «no
+         tienen fuente», que el commit 5 reescribio por la regla fija del 04/11 —una ausencia
+         no se declara como hallazgo—. Hoy exige la frase NUEVA y que la VIEJA ya no este, asi
+         que puede volver a fallar por los dos lados. El contenido clinico es el mismo. */
+      && tarjEco.indexOf('criterio propio de la aplicaci') > -1
+      && /no tienen fuente/.test(tarjEco) === false,
     'pantalla=' + secCvr2.slice(secCvr2.indexOf('CRITERIO DE ECOSMART'), secCvr2.indexOf('CRITERIO DE ECOSMART') + 140)
       + ' || tarjeta=' + tarjEco.slice(0, 160)]);
 
@@ -90107,7 +90119,15 @@ caso('TC-532', 'Tanda J: el taponamiento con el colapso de AD DIASTOLICO y su du
   ex.push(['(D8) las filas sin fuente van SIN corchete y lo dicen: e-prima lateral, E/e-prima y el recuento',
     !!evC2 && /criterio de EcoSmart: el e. lateral/.test(evC2.txt)
       && /Recuento de criterios/.test(evC2.txt)
-      && /Ninguna gu\\u00eda de la biblioteca publica un recuento as\\u00ed/.test(evC2.txt), evC2 ? 'ok' : '—']);
+      /* INVERTIDA por PANT-22, y es el dia que esta condicion anunciaba: exigia «Ninguna guia
+         de la biblioteca publica un recuento asi», que el commit 5 reescribio por la regla fija
+         del 04/11 —una ausencia no se declara como hallazgo—. Hoy exige la frase NUEVA, que el
+         recuento es una REGLA PROPIA de la aplicacion y por eso la fila no lleva cita, con su
+         Figura S1, Y que la vieja ya no este: puede volver a fallar por los dos lados. */
+      && /regla propia de la aplicación/.test(evC2.txt)
+      && /Figura S1/.test(evC2.txt)
+      && /Ninguna guía de la biblioteca/.test(evC2.txt) === false,
+    evC2 ? 'ok' : '—']);
   cerrarPanel();
 
   /* == (E) VEXUS ============================================================================ */
@@ -96237,7 +96257,10 @@ caso('TC-545', 'Tanda C2: el campo del derrame se llama por lo que mide y «Bali
     ex.push(['(C6) y su contenido INTEGRO vive en la tarjeta ⓘ: los dos cortes, el folio y las reglas sin fuente',
       /e. lateral de 10 cm\\/s/.test(tarEco) && /E\\/e. de 15/.test(tarEco)
         && tarEco.indexOf('folio 3303') > -1
-        && tarEco.indexOf('reglas de conteo') > -1 && tarEco.indexOf('no tienen fuente') > -1
+        && tarEco.indexOf('reglas de conteo') > -1
+        /* INVERTIDA por PANT-22, por el mismo motivo que (C8) de TC-532. */
+        && tarEco.indexOf('criterio propio de la aplicaci') > -1
+        && tarEco.indexOf('no tienen fuente') === -1
         && tarEco.indexOf('ficha de Referencias') > -1,
       tarEco.slice(0, 260)]);
 
@@ -99257,12 +99280,16 @@ caso('TC-553', 'Tanda CORRECCIONES: el informe de la orejuela publica las medida
     iA5.slice(0, 150)]);
   /* El hecho, con su fuente, en la Evidencia. */
   limpiar(); pon('oai_trombo', 'si'); await esperar(300);
+  /* ADAPTADO por PANT-22: desde esta tanda la seccion del trombo en la orejuela solo existe si
+     su sector (oai) esta INCLUIDO en el informe. El hecho que (A10) mide no cambio. */
+  const avOAI = __t.avInc('oai'); await esperar(300);
   let evTxt = '';
   try { if (F('indicRender')) indicRender(); } catch (e) {}
   await esperar(350);
   evTxt = T('indic-cuerpo');
   ex.push(['(A9) DENOMINADOR: el panel de Evidencia esta pintado',
     evTxt.length > 200, 'panel=' + evTxt.length + ' car.']);
+  ex.push(['(A9b) DENOMINADOR: el sector de la orejuela quedo INCLUIDO en el informe', avOAI.falta.length === 0 && avOAI.ok.indexOf('oai') > -1, 'avInc=' + JSON.stringify(avOAI)]);
   ex.push(['(A10) la Evidencia publica el hecho del trombo MOVIL con su fuente',
     evTxt.indexOf('trombos MOVILES'.replace('MOVILES', 'M\\u00d3VILES')) > -1 &&
     evTxt.indexOf('folio 1401') > -1,
@@ -99860,6 +99887,11 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
   ex.push(['(D0) DENOMINADOR: la escena llega a la frase del gradiente en el papel',
     iD.indexOf('gradiente AD-VD probablemente subestimado por disfunción del VD') > -1,
     (iD.split('\\n').filter(function (l) { return l.indexOf('subestimado') > -1 })[0] || 'NO ESTA').slice(0, 170)]);
+  /* ADAPTADO por PANT-22: desde esta tanda la seccion de la probabilidad de HTP solo existe
+     si su sector (htp) esta INCLUIDO en el informe. Se integra DESPUES de medir el papel, para
+     que (D0) siga midiendo el mismo informe. Lo que (D1) y (D3) miden no cambio. */
+  const avHTP = __t.avInc('htp'); await esperar(300);
+  ex.push(['(D0b) DENOMINADOR: el sector de la HTP quedo INCLUIDO en el informe', avHTP.falta.length === 0 && avHTP.ok.indexOf('htp') > -1, 'avInc=' + JSON.stringify(avHTP)]);
   let evD = '';
   try { if (F('indicRender')) indicRender() } catch (e) {}
   await esperar(400);

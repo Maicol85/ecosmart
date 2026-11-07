@@ -425,3 +425,31 @@ podía fallar. Para probar «pierde una fila» hay que borrar el `<tr>` entero.
 
 ⚠️ **Y los comentarios del arnés van con `#`:** escribir `/* */` en un archivo de Python lo deja
 sin parsear, con el error apuntando al primer carácter no ASCII del comentario.
+
+---
+
+## PANT-22 (2026-11-07) — el interruptor de la Evidencia y los textos comparativos
+
+| caso | qué fija |
+|---|---|
+| **TC-748** | `_indSectorIncluido` con una clave, con dos y con `null`; las **TRECE** secciones con `av` y su clave; `wilk` y `teer` sin sección |
+| **TC-749** | el caso del médico: sin sector incluido, **cero** secciones de sector avanzado; con uno incluido, **sólo** la suya; las no avanzadas intactas |
+| **TC-750** | el dato **sigue sincronizado** aunque su Evidencia no exista, por el gesto y por la siembra muda, y después de armar el panel |
+| **TC-751** | el censo de textos, con su **control positivo** de seis cadenas viejas y cada número y folio contados uno por uno |
+| **TC-752** | el papel sin nada del panel, Excel en **457** y el censo de campos quieto |
+
+**Adaptados, con el motivo escrito:** TC-533 (los conteos de `IND_SECS`, con **(D3) invertida**),
+TC-534, TC-535, TC-537 —**(D6b)** con la guarda de idempotencia, más fuerte que antes—, TC-544,
+TC-510, TC-349, TC-610 (**(D2) invertida**) y TC-669 a TC-673 (filtro en **(D0)** y **(D2)
+invertida** en los cinco).
+
+⚠️ **`__t.avInc` ES IDEMPOTENTE PORQUE `amiloIntegrar` ES UN TOGGLE**: llamarlo sobre un sector ya
+integrado lo **retira**, y retirar no borra el textarea, así que el síntoma no se parece a la causa.
+⚠️ **NINGUNA EXPRESIÓN REGULAR EN LOS CASOS NUEVOS**: `/\s+/` llega como `/s+/` y se come las «s».
+
+Fichas en `docs/mapa/tests-fichas-748.md`.
+
+⚠️ **Y CINCO MÁS que la corrida completa destapó, no el censo**: **TC-520**, **TC-553** y **TC-554**
+medían una sección de Evidencia de un sector avanzado **sin integrar el sector** —ganan su `avInc` y
+una condición de denominador—, y **TC-532 (C8)(D8)** y **TC-545 (C6)** quedan **INVERTIDAS**, porque
+exigían las dos frases que el commit 5 reescribió. **Los cinco pasan 5/5 contra `e727fe2`.**

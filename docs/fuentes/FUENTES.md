@@ -12141,3 +12141,132 @@ hasta hoy no se aplicaban.
   tabla** —«1.81 ± 0.3» donde el papel imprime «1.81 ± 0.30»—: la tabla de datos guarda el
   **número** y JS lo serializa sin ceros no significativos. El número es el mismo; lo impreso
   queda literal en la transcripción. Declarado en **P19-f**.
+
+---
+
+# La tanda PANT-22 (2026-11-07) — los textos que comparaban fuentes
+
+⚠️ **ESTA TANDA NO ABRIÓ UN SOLO PDF DE GUÍA, Y SE DECLARA.** No agrega contenido clínico: lo que
+hace es **retirar** de los textos ya escritos la oración o la parte que compara dos fuentes, que
+juzga una, o que declara una ausencia como hallazgo, dejando a cada fuente por lo que ella dice,
+con la **misma** hoja y el **mismo** folio que ya traía.
+
+**La regla que la gobierna es la REGLA FIJA del 2026-11-04** —«Ningún texto habla mal de las
+guías»— que nació en PANT-13. Es su **segunda** aplicación: PANT-13 la aplicó a Masas y al resto de
+la pantalla, y ésta a la **Evidencia** y a **Referencias**.
+
+## Las veintinueve cadenas
+
+### Las siete del commit 4 — Hemodinámica y prótesis mitral
+
+| # | dónde | lo que salió (literal) | lo que queda |
+|---|---|---|---|
+| 1 | nota del bloque del Forrester | «…de modo que el 2,2 justo cae **de un lado distinto** del que resuelve la clasificación original. **Del otro lado coincide**: …así que el 18 exacto tampoco está definido acá.» | «Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos y congestión cuando la presión capilar supera los 18 mmHg.» |
+| 2 | ⓘ del índice cardíaco | «**sale de la columna** del Shock Trial…, que es una **tabla comparativa de definiciones**. La tabla de fórmulas del folio 162 **no publica** el índice cardíaco» | cada fuente en su oración: la ESC/ERS 2022 con su rango de 2,5 a 4,0 (folio 30), la Tabla 1 del consenso argentino con su columna (folio 2), lo que la app hace, y de dónde salen las fórmulas (folio 162, en afirmativo) |
+| 3 | ⓘ de la resistencia vascular sistémica | «**Los dos libros de referencia no coinciden** en un rango único, y por eso…» | lo que la app hace —publicar el número sin banda— y después cada libro en su oración: 1.170 ± 270 (Tabla 11.2, folio 260) y 1.100 con intervalo de 700 a 1.600 (Tabla 19-3, folio 375) |
+| 4 | prótesis mitral, desajuste | «**Las dos definiciones … de la misma guía no coinciden**» | las dos definiciones, que ya estaban cada una en su oración con sus números |
+| 5 | ídem, ejemplo | «Para un IMC de 30 o más **las dos versiones se contradicen**: una AEO indexada de **1,1 cm²/m²** es moderada por el texto y normal por la tabla» | «La calculadora de esta aplicación aplica la **Tabla 7**, la estratificada por IMC.» |
+| 6 | ídem, ESC/EACTS 2025 | «**Y hay una tercera voz:**» | la oración entera de la guía, con su «faltan definiciones establecidas», que es lo que la fuente dice de **sí misma** y la regla excluye |
+| 7 | ídem, ACC/AHA 2020 | «**coincide con la europea en**» | «La ACC/AHA 2020 indica la reintervención quirúrgica…», con su clase, su nivel y su salvedad del valve-in-valve aórtico |
+
+### Las veintidós del commit 5
+
+| grupo | cuántas | lo que salió |
+|---|---|---|
+| títulos de bloque | 4 | «Las diferencias entre las dos guías, **sin resolver**» (×3) y su singular → **«Lo que cada guía publica»**. Las líneas y los números del bloque no se movieron |
+| tramos y notas de congénitas | 13 | la insuficiencia tricuspídea «que pide cada guía»; el umbral de resistencia (10 contra 5 unidades Wood); el tramo de **2 a 3 unidades Wood** (×3, → «lo fija cada guía en su propia línea»); la clase de la terapia combinada; la del cierre aislado por embolia; la primera línea del tratamiento dirigido; el «**no dicen lo mismo**» de la utilidad incierta; el «la ACC/AHA 2025 **no gradúa nada por encima** de 8 unidades Wood» (×2 → «**gradúa hasta** 8 unidades Wood», afirmativo y con el mismo número); la fracción de eyección con 60 exactos (×2); el Qp:Qs de 1,5 (×2); y el «**la guía no coincide consigo misma**» de la CIV |
+| válvulas y prótesis | 4 | la nota «Coincide con la europea **y con mejor nivel de evidencia** (B-NR contra C)» → «Nivel B-NR, acotada a la regurgitación protésica severa.»; la línea de la ACC/AHA de la prótesis aórtica; el «**Y discrepan** en la auricular» de la tricúspide —donde además sale «**y con clase más baja**», que es un juicio—; y «Las dos **coinciden en el número y difieren** en el nivel de evidencia» de la bicúspide |
+| Fallot, subaórtica | 4 | dos y dos |
+| «ninguna guía / ninguna fuente» | 4 | la constricción en su fila y en su ficha, y la reparabilidad mitral en la pantalla (`REPAR_PRIM_TXT`) y en su línea de Evidencia. Las cuatro pasan a decir, en afirmativo, que el recuento y el criterio son **propios de la aplicación**, con su Figura S1 |
+| sueltas | 5 | el VTI del reverso diastólico aórtico; la nota de fabricante de la orejuela y su punto de referencia del orificio; la edición 2024 de la miocardiopatía hipertrófica; y el estadio de la insuficiencia mitral secundaria («**A diferencia de la primaria**») |
+| Referencias | 1 | el foramen oval decía «las dos guías **no coinciden** sobre cómo ese ensayo lo definió». Cada una queda por lo que escribe, con su folio, y la advertencia que evita el error —que el tamaño del shunt está «definido de manera variable»— **la sostiene la propia nota al pie citada**. Las 10 microburbujas de Pristipino y las 20 del RESPECT siguen |
+
+⚠️ **Y UN ENCABEZADO, EN LA TARJETA DE CRITERIOS DE LA MIOCARDIOPATÍA HIPERTRÓFICA:** «Dónde no
+coinciden» → **«Qué dice cada guía»**. Sus **siete filas no se tocaron**: la tabla es comparativa
+**por diseño** —dos columnas, una por guía— y cada fila ya pone lo que cada guía dice en **su**
+columna. Rediseñarla no es de esta tanda → **P22-a**.
+
+## Ningún número se perdió, salvo uno, y está declarado
+
+Contado **valor por valor** contra `e727fe2` en las **diez** secciones medidas y en Referencias:
+cero folios, hojas, tablas y clases perdidas. Hemodinámica conserva sus **32** folios, 1 hoja, 11
+tablas y 3 clases; la prótesis mitral sus 4 folios, 4 hojas, 11 tablas y 9 clases.
+
+**El único valor que sale en toda la tanda es el «1,1 cm²/m²»** del ejemplo de la prótesis mitral:
+era el valor que **ilustraba la contradicción** y no vive en ningún otro lado de la sección, así que
+no se puede conservar sin conservar la comparación que la regla prohíbe. **Los cinco cortes de las
+dos definiciones —1,2, 0,90, 1,0, 0,75 y el 30 del IMC— siguen enteros.** → **P22-a**, y lo fija
+**TC-751 (C3)**.
+
+## El censo: cómo se hace y cómo NO
+
+- **Dos caminos, cada uno con su denominador declarado:** el **DOM abierto** con los globos de cada
+  fila desplegados —de 3.906 a 18.947 caracteres por sección, y 75.136 en Referencias— y las
+  **cadenas de datos** de los quince registros `*_PREG`.
+- ⚠️ **EL GREP CRUDO NO SIRVE:** con los mismos patrones devuelve **469** líneas y la enorme mayoría
+  son **comentarios**, que en esta casa van sin tilde y sin pulir a propósito. El filtro que sirve
+  cuenta comillas y se queda sólo con lo que está **dentro de una cadena literal**: **89** cadenas
+  al abrir la tanda y **46** al cerrarla.
+- **CONTROL POSITIVO**, en los dos commits: las **seis** cadenas viejas, inyectadas como texto, se
+  detectan las seis. **CONTROL NEGATIVO**: la válvula tricúspide y la reparabilidad mitral dan
+  **cero** en los **dos** árboles.
+
+### Las dos formas que quedan y NO caen bajo la regla
+
+Son **«el folio impreso coincide con la hoja del PDF»**, dos veces: es la **regla de folio** de una
+fuente —cómo se numera— y no una comparación con otra. Declarado.
+
+### Y una forma que NO entra en la lista de las secciones
+
+**«no gradúa»**, cuando el sujeto es un gradiente, un cociente o una tabla y no una guía: «esta
+lista no gradúa ni concluye» es lo que la app dice de **sí misma**. Entra sólo en el censo de
+**notas de tramo**, donde el sujeto es siempre una guía (`PROH_TRAMO`).
+
+⚠️ **TRES DENOMINADORES VACÍOS, CORREGIDOS ANTES DE CREERLE A LA MEDICIÓN:** la sonda sembraba
+`tdf_ip_rf` y `esub_grad_medio`, que **no existen** —son `ip_grado` + `tdf_func_vd` y
+`esub_gradiente_medio`—, y abría la pestaña `'referencias'`, que es **`'refs'`**. Con los tres mal,
+dos secciones y Referencias **entera** medían sobre **cero** caracteres.
+
+## Tabla «Cambios de evidencia»
+
+| # | qué | antes | después | fuente |
+|---|---|---|---|---|
+| 1 | una sección de Evidencia de sector avanzado | existía con sólo el dato basal cargado | existe **sólo** si el sector está incluido en el informe | decisión del médico, 07/11/2026 |
+| 2 | los cortes del Forrester | 2,2 y 18 | **los mismos** | Braunwald, Tabla 52-9, folio 1125 |
+| 3 | las bandas de resistencia vascular | dos, enfrentadas | **las mismas dos**, cada una en su oración | Tabla 11.2 (folio 260) y Tabla 19-3 (folio 375) |
+| 4 | las dos definiciones del desajuste mitral | las mismas, con un ejemplo que las contradecía | **las mismas**, sin el ejemplo | Tabla 7 y texto, ASE 2024 |
+| 5 | el tramo de 2 a 3 unidades Wood | «las dos guías no lo fijan igual» | «lo fija cada guía en su propia línea» | ACC/AHA 2025 y ESC 2020 |
+| 6 | el techo de resistencia de la ACC/AHA 2025 | «no gradúa nada por encima de 8» | «gradúa hasta 8 unidades Wood» | la misma, mismo número |
+| 7 | el recuento de la constricción | «ninguna guía publica un recuento así» | «es una regla propia de la aplicación» | Figura S1, ya citada |
+| 8 | el criterio de reparabilidad mitral | «ninguna fuente de la biblioteca publica cifras equivalentes» | «criterio propio de la aplicación» | la propia aplicación |
+| 9 | el tamaño del shunt del foramen oval | «las dos guías no coinciden» | cada una con su folio, y la nota al pie que dice que está «definido de manera variable» | Pristipino y RESPECT, ya citados |
+| 10 | el «1,1 cm²/m²» del ejemplo | estaba | **sale** — el único valor perdido | declarado en P22-a |
+
+## Las TRES del commit 5b — las que el censo del commit 1 no vio
+
+⚠️ **EL CENSO DEL COMMIT 1 CAPTURÓ UNA DE LAS CUATRO APARICIONES DE «ninguna guía» Y NO VIO LAS
+OTRAS TRES**, que viven en **fichas de Referencias**. El motivo está medido y es el mismo que
+TC-751 (E4) ya cobró: las fichas se pintan **al abrir su subpestaña**, y la sonda del censo midió el
+DOM de Referencias sin recorrerlas todas. Las encontró la **sonda de dos motores al cerrar la
+tanda**, con una lista de formas más amplia, y después un censo rehecho sobre los **75.136**
+caracteres de la pestaña con **todas** sus fichas abiertas.
+
+| # | dónde | lo que salió (literal) | lo que queda |
+|---|---|---|---|
+| 30 | ficha de la orejuela | «**Ninguna guía de la biblioteca publica** rangos de tamaño de dispositivo: son datos de fabricante y no recomendaciones.» | «Los rangos de tamaño de dispositivo son datos de fabricante y no recomendaciones.» |
+| 31 | ficha del taponamiento | «**Ninguna guía fija un número** de signos ecocardiográficos que lo defina.» | la oración **sale**; lo que la fuente dice queda entero: el diagnóstico es **clínico** con confirmación por ecocardiografía (Tabla 17), con sus signos y su folio 62 |
+| 32 | ficha de la constricción | «las reglas de conteo …, **que ninguna guía de la biblioteca publica**;» | «… que son una **regla propia de la aplicación**;» — la MISMA redacción que el panel ya usa para lo mismo en `cvr-ecosmart` y en la fila del recuento |
+
+⚠️ **LA 31 NO SE REEMPLAZÓ POR UNA AFIRMACIÓN NUEVA, Y ES DELIBERADO:** decir que **la aplicación**
+fija ese número sería contenido clínico nuevo y no está medido. Se retira la ausencia y se deja lo
+que la fuente afirma.
+
+**Ningún número, hoja, folio, tabla ni clase se perdió**, contado contra el árbol anterior: folios
+**2052 → 2052**, tablas **1227 → 1227** y hojas **1176 → 1176**, idénticos. El diff son **106 bytes
+menos** y **cero líneas** de diferencia.
+
+**El censo queda cerrado: Referencias pasa de TRES hallazgos a CERO** sobre 75.030 caracteres con
+todas las fichas abiertas. **Los DOS que quedan son LA MISMA cadena** contada por dos patrones, y
+**no cae** bajo la regla: va precedida literalmente por «**Lo que la tabla dice de sí misma:** sus
+dos columnas son «normal» y «posible obstrucción», y no publica una tercera de obstrucción severa»
+— lo que la **fuente dice de sí misma**, que la regla excluye.

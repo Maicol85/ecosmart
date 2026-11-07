@@ -1,3 +1,155 @@
+## PANT-22 — la Evidencia, tanda 1 de 2: un sector avanzado no incluido no abre su seccion, y los textos que comparaban fuentes (2026-11-07)
+
+**Commits**: el inventario y el censo de textos; UN ayudante y las TRES secciones que el medico
+reporto; las DIEZ restantes; las SIETE cadenas de Hemodinamica y de la protesis mitral; las
+VEINTIDOS del resto; las TRES de Referencias que el censo no vio; y la cobertura con la
+documentacion. Sello **v20261107-1137**, md5 **52f7573b**. Al empezar, `origin/main` = `HEAD` = **e727fe2**, el cierre de PANT-21, ya publicado.
+**El push lo corre Maicol: esta tanda tenia orden expresa de NO pushear.**
+
+- **LO QUE EL MEDICO REPORTO SE REPRODUJO CON EL GESTO REAL**: con un TAPSE bajo y un E/e-prima
+  elevado y **sin incluir ningun sector avanzado en el informe**, el panel abria igual las secciones
+  «Constriccion pericardica — diagnostico», «Perfil hemodinamico — presiones y resistencias
+  estimadas por eco» y «Amiloidosis cardiaca — algoritmo diagnostico». Hoy no abre **ninguna** de
+  las trece, y con el sector incluido su seccion sale **identica** a HEAD.
+
+- **UN SOLO MECANISMO EN UN SOLO LUGAR**: `_indSectorIncluido(av)`, que vive justo antes de
+  `IND_SECS`, se consulta en **`indicRender`** —el unico punto de armado, censado— y se declara con
+  la propiedad **`av`** de la entrada, el mismo patron con que `amiloSecs` declara `soloHoja` y
+  `omitir`. **TRECE** entradas la tienen; las **treinta y dos** que no son de un sector avanzado no
+  se tocan.
+  ⚠️ **LEE EL MISMO INTERRUPTOR QUE LEE EL INFORME Y NO UNA COPIA DEL CRITERIO**: `amiloIntegrado`,
+  el dueno unico. Con un predicado propio, el dia que ese interruptor cambie el panel y el informe
+  discreparian sobre el mismo sector. Y la llamada va **pelada, sin `typeof`**: si no existiera,
+  tira `ReferenceError`, lo caza el try/catch de `indicRender` y la seccion no se pinta —el mismo
+  fail-closed que `amiloEnInforme` aplica a `omitir`—.
+
+- **LA AMILOIDOSIS SON DOS CLAVES Y EL ETE CINCO**, asi que `av` acepta una lista y alcanza con
+  **UNA**. Lo fijan TC-748 (D1) y (D2): con una sola el ayudante dice si, y **la otra sola sigue en
+  NO**, que es lo que prueba que no es un alias.
+
+- **P22-b QUEDA VACIO, Y ES UNA MEDICION**: los **dieciseis** sectores comparten **UN** interruptor,
+  asi que no hubo ninguno que parar por falta de criterio. **`wilk` y `teer` no tienen seccion de
+  Evidencia** y eso no es una parada: TC-748 (F3) se pone rojo el dia que la ganen.
+
+- **EL DATO SIGUE SINCRONIZADO, QUE ES LA MITAD DEL PEDIDO**, medido por el gesto real **y** por una
+  siembra muda, y tambien **despues** de armar el panel: el perfil hemodinamico sigue calculando su
+  indice cardiaco, la constriccion sigue recibiendo el dato y el HFA-PEFF sigue puntuando, con el
+  sector **sin integrar** en las tres.
+
+- ⚠️ **EL PANEL NO NECESITO UN MECANISMO DE REPINTADO, Y SE MIDIO POR QUE**: es un overlay
+  `position:fixed` con `z-index:300` y el boton «Integrar al informe» de un sector queda **tapado**
+  por el —`document.elementFromPoint` devuelve `indic-overlay`—, asi que para incluir o sacar hay
+  que cerrar el panel y al reabrirlo se rearma. El punto 2c se cumple **por construccion** y **no se
+  agrego nada**. Con el panel sin secciones se muestra el mensaje que la app **ya tenia**: cero
+  frases nuevas.
+
+- **VEINTINUEVE CADENAS REESCRITAS**, cada fuente por lo que **ella** dice, en su propia oracion y
+  con su hoja y su folio intactos: siete en Hemodinamica y en la protesis mitral, veintidos en el
+  resto de la Evidencia y en Referencias, mas el encabezado de la tabla de `critMCH`.
+  ⚠️ **NINGUN NUMERO, HOJA, FOLIO, TABLA NI CLASE SE PERDIO**, contado **valor por valor** contra
+  HEAD en las diez secciones medidas y en Referencias. **El unico valor que sale es el «1,1 cm²/m²»**
+  del ejemplo de la protesis mitral, que vivia dentro de la oracion comparativa → **P22-a**, y lo
+  fija TC-751 (C3).
+
+- ⚠️ **EL CENSO NO SE HACE POR GREP, Y ESTA MEDIDO**: los mismos patrones devuelven **469** lineas y
+  casi todas son comentarios. El filtro que sirve cuenta comillas y se queda con lo que esta
+  **dentro de una cadena literal** —**89** al abrir la tanda, **46** al cerrarla— y se confirma en
+  el **DOM abierto** con los globos de cada fila desplegados, de 3.906 a 18.947 caracteres por
+  seccion y 75.136 en Referencias.
+  **CONTROL POSITIVO** en los dos commits: las **seis** cadenas viejas, inyectadas, se detectan las
+  seis. **CONTROL NEGATIVO**: la valvula tricuspide y la reparabilidad mitral dan cero en los **dos**
+  arboles.
+  ⚠️ **LAS DOS FORMAS QUE QUEDAN NO CAEN BAJO LA REGLA**: son «el folio impreso coincide con la hoja
+  del PDF», que es la **regla de folio** de una fuente y no una comparacion con otra.
+  ⚠️ **Y «no gradua» TIENE USOS LEGITIMOS** en las secciones de valvula, donde el sujeto es un
+  gradiente o una tabla: vive en `PROH_TRAMO` y no en `PROH`.
+
+- ⚠️ **TRES DENOMINADORES VACIOS, CORREGIDOS ANTES DE CREERLE A LA MEDICION**: la sonda sembraba
+  `tdf_ip_rf` y `esub_grad_medio`, que no existen, y abria la pestania `'referencias'`, que es
+  **`'refs'`**: con los tres mal, dos secciones y Referencias **entera** median sobre **cero**
+  caracteres. Y un **rojo falso** de TC-751 (E4): `evRefPintar` pinta las fichas **solo al abrir su
+  subpestania**, asi que el DOM de Referencias daba 88.054 caracteres con cero apariciones de lo que
+  esa condicion vigila — se mide en el **registro** `EV_REG`, con su propio denominador.
+
+- **DOS COSAS PARADAS, en P22-a**: la **tabla** de siete filas de `critMCH`, comparativa **por
+  diseno** —se le cambio el encabezado y las filas no se tocaron—, y la entrada de bibliografia
+  **`escGuchCiv`**, cuyo aviso de que el criterio de la app diverge de su fuente no se puede
+  reescribir sin declarar ese criterio como propio, que es una decision clinica.
+
+- **CINCO CASOS NUEVOS, TC-748 a TC-752**, con sus denominadores y sus controles negativos, y los
+  cinco **caen contra `e727fe2` por condiciones y NINGUNO por excepcion**.
+  ⚠️ **EL HELPER `__t.avInc` ES IDEMPOTENTE PORQUE `amiloIntegrar` ES UN TOGGLE**: llamarlo sobre un
+  sector ya integrado lo **RETIRA**. Lo pago TC-752, cuya escena dejaba hemodinamica **afuera**
+  —`integrar=1 · integrado=false`— porque el bloque (D6b) de TC-537, del mismo lote, ya la habia
+  integrado; y retirar **no borra el textarea**, asi que su texto seguia ahi en 736 caracteres y el
+  sintoma no se parecia a la causa. Las **cinco** llamadas pasan por el helper, y **(D6b) recibio la
+  misma guarda**: hoy es mas fuerte, porque ya no depende del estado que le deje el caso anterior.
+  ⚠️ **NI UNA EXPRESION REGULAR EN LOS CASOS NUEVOS, y se midio por que**: el cuerpo de un caso es un
+  template literal, asi que `/\s+/g` llega como `/s+/g` y **reemplaza las «s» por espacios**:
+  «Estenosis aortica» pasaba a «E teno i aortica» y **ningun titulo emparejaba**. Los dos
+  normalizadores recorren `charCodeAt`.
+  ⚠️ **Y EL ACENTO GRAVE DENTRO DE MI PROPIO COMENTARIO**, por decimosexta tanda seguida, en el
+  cuerpo de un caso. Lo cazo `node --check`.
+
+- **DIECISIETE BLOQUES DE CASOS VIEJOS ADAPTADOS** —cinco de ellos destapados por la corrida
+  completa y no por el censo: TC-520, TC-553 y TC-554 ganan su `avInc` con una condicion de
+  denominador, y TC-532 (C8)(D8) y TC-545 (C6) quedan **INVERTIDAS**—: **TC-533** (los
+  conteos de `IND_SECS`, con **(D3) INVERTIDA**, que es el dia que esa condicion anunciaba),
+  **TC-534**, **TC-535**, **TC-537** —(D6b) con la guarda de idempotencia—, **TC-544**, **TC-510**,
+  **TC-349** y **TC-610** (**(D2) INVERTIDA**), y **TC-669 a TC-673** (el filtro en (D0) y **(D2)
+  INVERTIDA** en los cinco).
+
+- **35/35 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, con el md5 del
+  arbol vivo **identico** antes y despues. La **36 se retiro declarada** (P22-a).
+  ⚠️ **EL PRIMER BARRIDO DEJO TRECE SOBREVIVIENTES Y SE REPARTIERON EN TRES CLASES**: **siete huecos
+  reales**, con siete condiciones nuevas; **dos equivalentes a nivel de seccion** —la condicion
+  miraba la seccion entera y la mutacion movia una oracion: hoy miden **dentro** de la oracion—; y
+  **cuatro mal escritas o mal dirigidas**.
+  ⚠️ **Y LAS ANCLAS SE VERIFICAN ANTES DE CORRER EL BARRIDO** (`--anclas`): el worktree habia quedado
+  en HEAD y las treinta y cinco daban **x0**, que se lee igual que «no hay cobertura». Se rehizo con
+  `git worktree add --detach` sobre el commit exacto.
+
+- **A/B contra `e727fe2`, con el PDF y el PPT generados de verdad: 114 escenas, 23.256 claves,
+  52.098 celdas de Excel y CERO diferencias de superficie firmada** —informe en los tres estilos, EN
+  SUMA, las **457** columnas clave por clave, los **1.010** campos, el Laboratorio, el PDF en sus
+  seis plantillas y el PPT con sus 25 textos—. **Las 61 diferencias de pantalla son el control
+  positivo**, y las 61 caen en claves del panel de Evidencia.
+
+- **Linea base al cierre: suite 761/767**, en CATORCE lotes cubriendo los **767 casos distintos**
+  —contados nombre por nombre, cero duplicados—, en UNA sola pasada sobre el arbol sellado, con el
+  pendrive `DISK_IMG` verificado al abrir, en los catorce lotes y al cerrar (dieciseis
+  verificaciones) y el md5 **identico** antes y despues (`52f7573b`). Los rojos son **TC-223,
+  TC-376, TC-390 y TC-406**, los cuatro de siempre, mas **TC-551 y TC-557**, los dos
+  intermitentes declarados. **Ningun rojo nuevo.**
+  ⚠️ **LOS DOS CARACTERIZADOS CON CUATRO CORRIDAS DE CADA LADO**: TC-551 pasa 2 de 2 aislado
+  (`COR-f`) y TC-557 da 2 rojos de 4 en el arbol nuevo y 1 de 4 contra `e727fe2`, con la misma
+  firma `00000 44x44` de `elementFromPoint` fuera del viewport (`TGA-h`).
+  ⚠️ **Y LA PRIMERA CORRIDA DIO 756/767 CON CINCO ROJOS MAS, LOS CINCO MIOS**: TC-520, TC-532,
+  TC-545, TC-553 y TC-554, los cinco adaptados. **Los cinco pasan 5/5 contra `e727fe2`** con el
+  mismo archivo de casos, asi que eran consecuencia autorizada y no una regresion.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISEIS CRUCES** (dos motores x 1440, 1000, 768 y 390 px x
+  dos temas), con **UNA sola combinacion de valores en los dieciseis**: cero secciones de sector
+  avanzado sin incluir ninguno, el mensaje que la app ya tenia, UNA con la constriccion incluida,
+  cero formas prohibidas en las tres secciones, cero desplazamiento horizontal, cero textos
+  recortados y **CERO errores de consola y de pagina en los dos motores**. El panel mide
+  820 / 820 / 744 / 366 px.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la linea base, sin un aviso nuevo. **Sin huerfanos nuevos.**
+  **Cero campos guardados nuevos**, **Excel 457** con las mismas claves y **ningun id cambio**.
+  **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la linea base exacta.
+
+- **Donde esta todo**: `docs/mapa/pant22-evidencia-sectores.md` (**mapa NUEVO**),
+  `docs/INVENTARIO_EVIDENCIA_P22.md` (el inventario de solo lectura del commit 1), las fichas de los
+  cinco casos en `docs/mapa/tests-fichas-748.md` (**archivo propio**, porque `tests-fichas.md` esta
+  en 34,2 KB), **cuatro mapas con un puntero cada uno** —medidos ANTES de escribir—,
+  `docs/fuentes/FUENTES.md` → «La tanda PANT-22» con las veintinueve cadenas y su tabla «Cambios de
+  evidencia», `docs/GUIA_PRUEBA_PANT22.md` → la guia manual en **18** pasos, y
+  `docs/PENDIENTES.md` → **P22-a** (tres textos y la mutacion retirada) y **P22-b** (vacio a
+  proposito), con las **tres premisas que no se reprodujeron** y el intermitente preexistente de
+  TC-533 (E0).
+
 ## PANT-21 — la protesis valvular, parte 5 de 5: la EVIDENCIA de protesis, una seccion por valvula (2026-11-07)
 
 **Commits**: el inventario y la lectura de las cinco guias; el orden de la seccion como opcion y

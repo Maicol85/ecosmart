@@ -131,3 +131,23 @@ tiene «Parámetro | Varón | Mujer». Declarado en `docs/PENDIENTES.md` → **A
 ## Dónde está el caso
 
 `TC-537`, con su ficha en `docs/mapa/tests-fichas-537.md`.
+
+---
+
+## La tanda PANT-22 (2026-11-07) — cada fuente en su propia oración
+
+**REGLA FIJA, aplicada por segunda vez:** ningún texto dice que dos fuentes «no coinciden»,
+«difieren» o «se contradicen», ni compara una contra otra, ni declara una ausencia como hallazgo.
+**Veintinueve** cadenas reescritas en la Evidencia y en Referencias —siete en Hemodinámica y en la
+prótesis mitral, veintidós en el resto—, con cada fuente en su propia oración y su hoja y su folio
+intactos.
+
+⚠️ **NINGÚN NÚMERO SE PERDIÓ, SALVO UNO QUE SE DECLARA:** el «1,1 cm²/m²» del ejemplo de la
+prótesis mitral, que vivía dentro de la oración comparativa (`P22-a`).
+
+⚠️ **EL CENSO NO SE HACE POR GREP:** los mismos patrones devuelven **469** líneas, casi todas
+comentarios. Se cuenta dentro de cadenas literales (**89** al abrir, **46** al cerrar) y se
+confirma en el DOM.
+
+**Las dos formas que NO están en la lista, y por qué, en
+`docs/mapa/pant22-evidencia-sectores.md` § 5.**

@@ -15256,3 +15256,118 @@ por posición**, así que conectarlo es agregar una entrada a `VMOD_POS` y el ma
 (a) una fila propia inmediatamente debajo de la de morfología, con el mismo estilo —no toca la
 fila de tres ni su ancho, y TC-522 sigue verde—, o (b) sacar el Carpentier o el tipo de IM de esa
 fila para hacerle lugar, que mueve dos campos que el médico puso ahí en la tanda AJ5.
+
+---
+
+# PANT-22 (2026-11-07) — lo declarado
+
+## P22-a — las cadenas que NO se pudieron reescribir sin contenido nuevo
+
+**Dos textos, los dos con su ubicación y su texto exacto, y un valor numérico.**
+
+### 1. La tabla de la tarjeta de criterios de la miocardiopatía hipertrófica (`critMCH`)
+
+Es **comparativa por diseño**: dos columnas, una por guía, y **siete filas** en las que cada una ya
+publica lo que **su** guía dice. Lo que se cambió es el **encabezado** —«Dónde no coinciden» →
+**«Qué dice cada guía»**— y las siete filas **no se tocaron**.
+
+Rediseñar la tabla —partirla en dos bloques, uno por guía— cambiaría la **forma** en que el médico
+lee ese criterio, y no está en la orden.
+**Lo que decide el médico:** si la tabla se parte en dos bloques o se queda comparativa con el
+encabezado nuevo.
+
+### 2. La entrada de bibliografía `escGuchCiv`
+
+Dice que **«el criterio que esta sección aplica diverge de esa tabla y la divergencia está sin
+resolver»**. Es un **aviso que evita un error** —que el médico no tome la cita por un respaldo de lo
+que la app aplica—, así que no se puede borrar; y reescribirlo en afirmativo exige **declarar el
+criterio como propio de la aplicación**, que es una decisión clínica. Su propio comentario ya dice
+«queda declarado y pendiente de decisión». **PARADO.**
+**Lo que decide el médico:** si el criterio se declara propio de la aplicación, con lo que la frase
+pasa a afirmativo como las cuatro de «ninguna guía».
+
+### 3. El «1,1 cm²/m²» del ejemplo de la prótesis mitral — el ÚNICO valor que la tanda pierde
+
+El texto decía: «Para un IMC de 30 o más **las dos versiones se contradicen**: una AEO indexada de
+**1,1 cm²/m²** es moderada por el texto y normal por la tabla». Ese 1,1 era el valor que
+**ilustraba la contradicción** y, censado, **no vive en ningún otro lado de la sección**: no se
+puede conservar sin conservar la comparación que la regla prohíbe. Los **cinco** cortes de las dos
+definiciones —1,2, 0,90, 1,0, 0,75 y el 30 del IMC— siguen enteros. Lo fija **TC-751 (C3)**, que se
+pone rojo si alguien lo repone.
+**Lo que decide el médico:** si el ejemplo vuelve escrito como un caso de la calculadora —«con un
+IMC de 30 o más y una AEO indexada de 1,1 cm²/m², esta aplicación gradúa …»—, que es contenido nuevo
+y por eso se paró.
+
+### 4. Las dos formas que quedan en el censo y NO caen bajo la regla
+
+**«el folio impreso coincide con la hoja del PDF»**, dos veces. Es la **regla de folio** de una
+fuente —cómo se numera— y no una comparación con otra. **No se tocaron, a propósito.**
+
+### 5. La mutación 35 del barrido, retirada y declarada
+
+Apuntaba al encabezado de la tabla de `critMCH`, que esta tanda cambió **sin** reescribir sus filas:
+no hay condición que pueda distinguir el encabezado nuevo del viejo sin afirmar algo sobre las siete
+filas, que es justo lo que se paró. **35 de 35 muertas** sin ella.
+
+## P22-b — sectores sin interruptor o con criterio distinto: NINGUNO
+
+**No hubo nada que parar.** Censados los **dieciséis** sectores de `amiloSecs`, **los dieciséis
+comparten UN solo interruptor**: `amiloIntegrado(k)`, el bloque `#am-wrap-<k>` visible, que es el
+mismo que `amiloEnInforme()` consulta para armar la hoja del PDF y el que `#am-integrados` persiste
+con el estudio. **El criterio de «incluido» es idéntico para todos**, así que el ayudante
+`_indSectorIncluido` no tuvo que inventar ninguno.
+
+**Dos sectores no tienen sección de Evidencia** —`wilk` y `teer`—, y eso no es una parada: no hay
+nada que filtrar. Lo fija **TC-748 (F3)**, que se pone rojo el día que ganen una.
+
+## Tres premisas de la orden que NO se reprodujeron
+
+1. **TC-322 no se rompe.** La orden anticipa que el filtro lo alcanzaría; ese caso llama a `S.fn()`
+   **directo**, sin pasar por `indicRender`, así que el filtro no lo ve. **No se adaptó.**
+2. **El panel NO necesita un mecanismo de repintado.** Es un overlay `position:fixed` con
+   `z-index:300`, y medido con `document.elementFromPoint` el botón «Integrar al informe» de un
+   sector queda **tapado** por él: para incluir o sacar un sector hay que cerrar el panel, y al
+   reabrirlo `indicRender` lo rearma. El punto 2c se cumple **por construcción** y **no se agregó
+   nada**.
+3. **«no gradúa» tiene usos legítimos** en las secciones de válvula, donde el sujeto es un gradiente
+   o una tabla. Por eso vive en `PROH_TRAMO` y no en `PROH`.
+
+## Un intermitente PREEXISTENTE, caracterizado
+
+**TC-533 (E0)** da **3 rojos de 4** contra `e727fe2` y lo mismo en el árbol nuevo, con cuatro
+corridas de cada lado. **No es de esta tanda.**
+
+## Lo que sigue — tanda 2 de la Evidencia
+
+1. **El orden «preguntas → con lo contestado → ver detalle» en TODA la Evidencia**, congénitas
+   incluidas. Hoy lo tienen sólo las cuatro secciones de prótesis, por la opción `ordenProt` que
+   PANT-21 estrenó.
+2. **Los ⓘ que abren DENTRO de la fila**, para que todos abran el cajón flotante de la estenosis
+   aórtica. **La lista de cuáles son es para que Code la mida**: no está hecha.
+3. **PANT-15**: Contractilidad y el ⓘ de la vena cava superior izquierda persistente.
+4. **El Laboratorio con la estadística de prótesis.**
+5. **Las dos decisiones del médico que siguen colgadas**: el **AT/ET ≥ 1** que el papel puede
+   publicar y la pantalla rechaza (**P18-b**), y la **TAVI normal** sin el renglón de «prótesis
+   normofuncionante» (**P18-d**).
+
+## P22-a (continuación) — lo que el censo del commit 1 no vio, y lo que NO cae bajo la regla
+
+⚠️ **TRES CADENAS SE ENCONTRARON AL CERRAR LA TANDA Y SE REESCRIBIERON EN EL COMMIT 5b**, con su
+texto literal en `docs/fuentes/FUENTES.md` → «Las TRES del commit 5b». **La causa del censo
+incompleto está medida y queda escrita para la tanda 2: las fichas de Referencias se pintan al
+abrir su subpestaña, así que un censo del DOM de esa pestaña que no las recorra todas mide sobre lo
+que ya estaba pintado.** Es el mismo modo de falla que TC-751 (E4) cobró.
+
+### Lo que queda y NO cae bajo la regla, declarado una por una
+
+| cadena | por qué no cae |
+|---|---|
+| «Lo que la tabla dice de sí misma: sus dos columnas son «normal» y «posible obstrucción», y **no publica una tercera** de obstrucción severa» | es lo que la **fuente dice de sí misma**, que la regla excluye expresamente. Va precedida de esa frase literal |
+| «esta aplicación **no publica un valor normal** ni grados de dilatación» y las otras de esa forma | es lo que **la app dice de sí misma**, y el CLAUDE.md lo nombra textualmente como ejemplo de lo que NO es esta regla |
+| `VINFO.mca-eco`: «la app avisa **si difieren** en 3 mm o más» | son **dos mediciones del paciente** que difieren, el otro ejemplo textual que el CLAUDE.md pone de lo que NO es esta regla |
+| «el folio impreso **coincide con** la hoja del PDF» (×2) | es la **regla de folio** de una fuente —cómo se numera—, no una comparación con otra |
+| «esta lista **no gradúa** ni concluye» y las de esa forma en secciones de válvula | el sujeto es un gradiente, un cociente o una tabla, no una guía |
+
+**Ninguna de esas se tocó, a propósito.** Lo que la tanda 2 tiene que medir, si el médico quiere
+ampliar el alcance, es si alguna de la primera fila debería reescribirse igual — y eso es una
+decisión suya, no de una tanda.

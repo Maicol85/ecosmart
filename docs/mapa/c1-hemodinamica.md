@@ -292,3 +292,17 @@ gráfico y dejó los otros dos declarados. Hoy no llega por ninguno.
   **TC-648 (C5c)** lo fija.
 
 **Ver `docs/mapa/pant6-pantallas-molde.md` § 6.**
+
+---
+
+## La tanda PANT-22 (2026-11-07) — los textos de Hemodinámica y el interruptor
+
+**Dos cosas.** (1) La sección «Perfil hemodinámico — presiones y resistencias estimadas por eco»
+del panel de Evidencia sólo existe si el sector **`hemo`** está incluido en el informe
+(`av: 'hemo'`); el dato sigue sincronizado igual. (2) **Cuatro** textos reescritos para que cada
+fuente hable por sí sola: la nota del Forrester, el ⓘ del índice cardíaco —con sus folios 30, 2 y
+162— y el ⓘ de la resistencia vascular sistémica, que hoy publica las dos bandas de referencia en
+dos oraciones, con su Tabla 11.2 (folio 260) y su Tabla 19-3 (folio 375).
+
+**Ningún corte se movió**: la app sigue marcando hipoperfusión con un índice cardíaco de 2,2 o menos
+y congestión por encima de 18 mmHg. Ver `docs/mapa/pant22-evidencia-sectores.md`.
