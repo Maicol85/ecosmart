@@ -72974,6 +72974,66 @@ const PROT_CAT_A7 = Object.freeze([
 const PROT_CAT_A7_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A7', hojas:'61', folios:'62' });
 window.PROT_CAT_A7 = PROT_CAT_A7; window.PROT_CAT_A7_COLS = PROT_CAT_A7_COLS;
 window.PROT_CAT_A7_FTE = PROT_CAT_A7_FTE;
+/* ══ CATALOGO DE PROTESIS TRICUSPIDES QUIRURGICAS — TABLA A9 DE LA ASE 2024 (PANT-20, commit 3)
+   «Table A9 Normal Doppler echocardiographic values for prosthetic TVs», hoja 62, folio 63, leida
+   EN IMAGEN a 300 ppp en sus cuatro bloques y cruzada con la capa de texto por coordenadas, con
+   el folio comprobado en el PIE impreso de la hoja («Zoghbi et al · 63»).
+   Notas al pie, literales: «CON, Continuity equation; iEOA, indexed EOA; MG, mean gradient; VTI,
+   velocity-time integral; TVP, TV prosthesis.» y «Data are mean +- SD. Data for mechanical and
+   bioprosthetic TVs are from Blauwet et al.192,202»
+   La transcripcion celda por celda esta en docs/TRANSCRIPCION_TRICUSPIDE_P20.md: 8 modelos, 28
+   tamanos y 196 celdas, de ellas 190 con dato y 6 impresas «NA».
+   ⚠️ LA TABLA ESTA TRANSPUESTA —los modelos son COLUMNAS y los parametros FILAS— y va en cuatro
+   bloques, cada uno con su encabezado de tipo y su propia fila «Size, mm». El reparto de cada
+   tamano a su modelo se LEYO EN IMAGEN: asignarlo por la proximidad del encabezado centrado da
+   mal en dos de los cuatro bloques, medido.
+   ⚠️ ES LA UNICA DE LAS TRES CON UNA SOLA FORMA DE CELDA: media +- DE, valor unico, o «NA», que
+   se carga como null. No hace falta el tercer elemento que la A7 si necesita.
+   ⚠️ EL TIPO SALE DEL ENCABEZADO DEL BLOQUE, que nombra el mecanismo o el tejido, asi que los
+   OCHO modelos tienen tipo: tres «Mechanical» y cinco «Bioprosthesis».
+   ⚠️ LA VELOCIDAD DE E VA EN m/sec Y EL CAMPO DE LA APP (`et_e_vmax`) EN cm/s. Es la misma
+   asimetria que `VT_PROT_T19` ya declara y resuelve: el valor se guarda en la unidad de la tabla
+   y la conversion se hace UNA vez, en el consumidor.
+   ⚠️ LA COLUMNA `ieoa` ES LA EOA INDEXADA DE LA PROPIA SERIE y NO la «EOA indexada predicha»
+   que el componente calcula (EOA esperada dividida por el ASC DEL PACIENTE). Son dos numeros
+   distintos y la pantalla los nombra distinto. */
+const PROT_CAT_A9_COLS = Object.freeze(['thp','medio','evel','vti','dvi','eoa','ieoa']);
+const PROT_CAT_A9 = Object.freeze([
+  {n:'St. Jude Medical Standard',d:'Mechanical',t:'mec',f:'63',s:[['27',[77,14.6],[2.4,1.27],[1.1,0.32],[25,7.0],[1.2,0.33],[2.54,0.64],[1.52,0.34]],['29',[100,35.2],[2.6,1.13],[1.2,0.21],[31,6.5],[1.4,0.3],[2.2,0.33],[1.21,0.13]],['31',[81,13.5],[3.3,1.21],[1.4,0.31],[30,5.1],[1.4,0.23],[2.49,0.45],[1.38,0.29]],['33',[82,18.8],[3.2,1.24],[1.3,0.22],[30,7.8],[1.5,0.33],[2.46,0.59],[1.36,0.36]]]},
+  {n:'Carbomedics Standard',d:'Mechanical',t:'mec',f:'63',s:[['31',[78,null],[4.0,1.63],[1.4,0.19],[40,11.4],[1.9,0.53],[2.01,0.51],[1.04,0.18]],['33',[98,9.7],[3.4,1.19],[1.2,0.16],[34,7.3],[1.6,0.33],[2.33,0.43],[1.25,0.35]]]},
+  {n:'Starr-Edwards',d:'Mechanical',t:'mec',f:'63',s:[['30',[132,null],[5,null],[1.5,null],[41,null],[1.5,null],[2.07,null],[1.51,null]],['32',null,[4.0,1.0],[1.5,0.44],[39,14.2],[2.0,0.68],[1.87,0.33],[0.96,0.18]],['34',[118,32.9],[5.7,1.63],[1.8,0.28],[44,7.8],[1.9,0.32],[1.81,0.48],[1.08,0.29]]]},
+  {n:'Medtronic Mosaic',d:'Bioprosthesis',t:'bio',f:'63',s:[['25',[80,null],[4.0,null],[1.6,null],[35,null],[3.2,null],[1.37,null],[0.93,null]],['27',null,[5.5,0.53],[1.6,0.17],[51,6.8],[2.2,0.4],[1.53,0.16],[0.86,0.18]],['29',[115,13.4],[6.0,2.0],[1.5,0.26],[37,0.97],[1.8,0.39],[1.96,0.39],[1.12,0.21]],['31',[144,28.6],[5.2,1.43],[1.5,0.21],[46,9.5],[2.2,0.6],[1.74,0.52],[0.95,0.29]],['33',[139,56.5],[4.3,1.3],[1.4,0.19],[40,8.6],[2.1,0.3],[2.0,0.53],[1.01,0.26]]]},
+  {n:'Carpentier Edwards Perimount',d:'Bioprosthesis',t:'bio',f:'63',s:[['29',[94,2.8],[2.0,1.41],[1.1,0.21],[29,7.1],[1.6,0.2],[2.16,0.43],[1.39,0.42]],['31',[74,26.2],[3.7,1.53],[1.2,0.2],[37,9.1],[1.7,0.35],[2.12,0.53],[1.2,0.29]],['33',[137,53],[3.9,1.07],[1.4,0.21],[38,7.9],[1.9,0.28],[1.93,0.43],[1.03,0.19]]]},
+  {n:'Carpentier Edwards Duraflex',d:'Bioprosthesis',t:'bio',f:'63',s:[['27',[130,45.4],[5.2,1.69],[1.5,0.26],[46,8.0],[2.4,0.4],[1.34,0.22],[0.78,0.15]],['29',[102,26.5],[6.0,1.95],[1.7,0.27],[47,9.6],[2.3,0.6],[1.54,0.38],[0.88,0.19]],['31',[115,40.8],[5.7,1.67],[1.5,0.27],[48,9.0],[2.3,0.53],[1.57,0.39],[0.88,0.22]],['33',[116,39.7],[5.6,2.1],[1.5,0.26],[47,10.2],[2.3,0.54],[1.69,0.44],[0.92,0.24]],['35',[83,26.5],[5.3,1.61],[1.5,0.25],[46,10.5],[2.3,0.54],[1.63,0.38],[0.88,0.22]]]},
+  {n:'St. Jude Biocor',d:'Bioprosthesis',t:'bio',f:'63',s:[['29',null,[6,null],[1.6,null],[43,null],[1.7,null],[2.84,null],[1.54,null]],['31',[106,48.5],[5.1,1.36],[1.5,0.34],[46,12.5],[2.2,0.57],[1.92,0.53],[0.99,0.19]],['33',[125,45.7],[3.9,1.2],[1.3,0.23],[39,10],[1.9,0.56],[1.88,0.49],[1.07,0.29]]]},
+  {n:'Medtronic Hancock II',d:'Bioprosthesis',t:'bio',f:'63',s:[['31',null,[5.7,1.37],[1.6,0.19],[49,8.7],[2.3,0.36],[1.4,0.21],[0.77,0.19]],['33',null,[5.5,3.54],[1.4,0.28],[50,16.3],[2.9,0.48],[1.4,0.59],[0.71,0.24]],['35',null,[5.3,0.58],[1.3,0.32],[41,2.5],[1.8,0.12],[2.11,0.23],[1.01,0.22]]]}
+]);
+const PROT_CAT_A9_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A9', hojas:'62', folios:'63' });
+window.PROT_CAT_A9 = PROT_CAT_A9; window.PROT_CAT_A9_COLS = PROT_CAT_A9_COLS;
+window.PROT_CAT_A9_FTE = PROT_CAT_A9_FTE;
+/* ══ TABLA A8 DE LA ASE 2024 — TRICUSPIDE TRANSCATETER, ViV y ViR (PANT-20, commit 3)
+   «Table A8 Transcatheter tricuspid ViV and ViR», hoja 61, folio 62, leida EN IMAGEN a 300 ppp.
+   Nota al pie, literal: «NR, Not reported.»
+   ⚠️ SE CARGA CON SU PROPIA FORMA Y NO CON LA DEL COMPONENTE, y es deliberado: su eje NO es
+   «modelo x tamano» sino «referencia bibliografica x situacion» —hay UNA referencia y UN
+   parametro numerico—, exactamente como la Tabla A6 que P19-d dejo afuera. Darle la forma del
+   catalogo seria hacerla pasar por lo que no es.
+   ⚠️ QUEDA CARGADA Y SIN CONSUMIDOR, que es lo que el commit 3 pide, porque la morfologia
+   tricuspide de la aplicacion NO TIENE NINGUNA OPCION DE IMPLANTE TRANSCATETER: `vt_morf` ofrece
+   protesis biologica, protesis mecanica, plastia y T-TEER, y ninguna es un ViV ni un ViR. Es la
+   misma situacion de `PROT_CAT_A5`, que estuvo cargada desde PANT-19 hasta esta tanda.
+   Ver docs/PENDIENTES.md -> P20-b.
+   `eoa` y `vpico` van en null porque la tabla imprime «NR» en las dos. */
+const PROT_CAT_A8 = Object.freeze({
+  ref:'McElhinney et al.', refNum:'203', f:'62',
+  n:306, viv:'ViV, n = 284 (93%)', vir:'ViR, n = 22 (7%)',
+  edad:'40 (1-86)', pvl:'Trivial or none in 83%',
+  medio:Object.freeze([3.8,2.0]), eoa:null, vpico:null,
+  porTam:Object.freeze([ Object.freeze(['≥29 mm',Object.freeze([3.6,1.8])]),
+                         Object.freeze(['<29 mm', Object.freeze([4.2,2.3])]) ])
+});
+const PROT_CAT_A8_FTE = Object.freeze({ guia:'ASE 2024', tabla:'A8', hojas:'61', folios:'62' });
+window.PROT_CAT_A8 = PROT_CAT_A8; window.PROT_CAT_A8_FTE = PROT_CAT_A8_FTE;
 /* ══ EL COMPONENTE «Modelo y tamano» (PANT-19, commit 4) ═══════════════════════════════════
    UN solo componente, parametrizado por POSICION (va, vm, y manana vt y vp): el dia que
    entren la tricuspide y la pulmonar se agrega una entrada al registro VMOD_POS y nada mas. Lo que cambia
