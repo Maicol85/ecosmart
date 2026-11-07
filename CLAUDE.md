@@ -250,14 +250,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,26 MB / 168.667 líneas**, medido con `wc -c` y `wc -l` el 2026-11-07 al cierre de la
-  tanda **PANT-22**, sobre el árbol ya sellado: sello **`v20261107-1137`**, md5 **`52f7573b`**.
+  sin frameworks. Hoy **12,27 MB / 168.717 líneas**, medido con `wc -c` y `wc -l` el 2026-11-07 al cierre de la
+  tanda **PANT-23**, sobre el árbol ya sellado: sello **`v20261107-1627`**, md5 **`224fd6ae`**.
+  El diff de PANT-23 son **72 líneas agregadas y 22 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `4c1af7d`, de las que **SIETE** no son comentario —tres selectores
+  de CSS, un `if` y las tres líneas del sello—, con **cero** `innerHTML`, `eval(` y
+  `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR VIGÉSIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 4c1af7d:index.html` da **168.667** líneas,
+  **12.264.443** bytes y el md5 **`52f7573b`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,26 MB / 168.667 al cierre de la tanda **PANT-22**, sobre el árbol ya sellado: sello
+  **`v20261107-1137`**, md5 **`52f7573b`**.
   El diff de PANT-22 son **193 líneas agregadas y 76 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `e727fe2`, de las que **168** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR DECIMONOVENA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
   dos formas que esta casa manda: `git show e727fe2:index.html` da **168.550** líneas,
-  **12.256.775** bytes y el md5 **`439f6bb0`**, los tres idénticos a lo que el renglón decía.
+  **12.256.775** bytes y el md5 **`439f6bb0`**, los tres idénticos a lo que el renglón decía.)
   (Antes: 12,26 MB / 168.550 al
   cierre de la tanda **PANT-21**, sobre el árbol ya sellado: sello **`v20261107-0025`**, md5
   **`439f6bb0`**. El diff de PANT-21 son **649 líneas agregadas y 17 quitadas** en `index.html`,
@@ -870,6 +879,18 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-23 (2026-11-07) — la Evidencia, tanda 2 de 2.** Cuatro commits (el inventario,
+el ORDEN, los GLOBOS y la cobertura en dos). Sello **`v20261107-1627`**, md5 **`224fd6ae`**. Pone el orden del
+MODELO —la estenosis aórtica— en las **17** secciones que tenían el recuadro «Con lo contestado»
+ARRIBA de las preguntas, y hace que los **473** globos de nota del panel abran el **cajón
+flotante** y no su texto dentro de la fila: eran **105 en 17 secciones** los que lo abrían adentro,
+y en Hemodinámica la fila pasaba de **43 a 637 px de alto**. **Ningún texto cambió** —28 secciones
+idénticas byte por byte y 17 permutaciones puras, 502.468 caracteres de los dos lados— y **cero
+citas se renumeraron**, porque el recuadro no emite un solo corchete. Lo cubren **TC-754**,
+**TC-755** y **TC-756**; **TC-747 (F1)** quedó **invertido**. Lo declarado, **P23-a** y **P23-b**;
+el inventario, en `docs/INVENTARIO_EVIDENCIA_P23.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT23.md`.
 
 **La tanda LIMPIEZA-1 (2026-11-08) no toca `index.html`** —md5 `52f7573b`, sin cambio— y no
 genera sello: la linea base sigue siendo la de PANT-22. Cuatro commits: el inventario, el

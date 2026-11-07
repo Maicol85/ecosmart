@@ -13655,3 +13655,124 @@ id en un solo archivo, los 856 contados— y no los 242 mas 58 punteros de a uno
 ---
 
 <!-- /L1:INDICE -->
+
+---
+
+# TANDA PANT-23 (2026-11-07) — lo declarado
+
+## P23-a · Lo que se PARÓ, y las premisas que no se reprodujeron
+
+### 1 · El cajón flotante del modelo NO TIENE una X de cierre, y no se le agregó
+
+La orden pide que el cajón «se cierre con la X, con tocar afuera y con Escape». **Medido con el
+gesto real sobre el modelo —la Evidencia de la estenosis aórtica— en las 45 secciones y en los
+cuatro anchos: cierra de TRES formas y ninguna es un botón.** Tocar el mismo ⓘ otra vez, Escape, y
+tocar afuera; las tres gobernadas por `_indInfoCablear` con un oyente único en fase de captura.
+
+**No se le agregó una X**, y el motivo es doble: la orden prohíbe expresamente crear un mecanismo
+nuevo o una variante del del modelo —«reutilizá ese mecanismo; NO crees uno nuevo ni variantes»—, y
+un botón nuevo es un nodo nuevo en **473** cajones, con su texto y su etiqueta accesible, o sea
+contenido que esta tanda no puede escribir. Queda para que el médico decida si lo quiere.
+
+### 2 · La fila de Hemodinámica se estiraba a lo ALTO, no a lo ancho
+
+La orden dice que «la fila se estira a casi toda la pantalla». **La premisa se reproduce, pero el
+eje no:** medido antes y después de abrir el ⓘ con el gesto real, el **ancho** de la fila es
+**764 px en los dos casos**, en los cuatro anchos de ventana. Lo que se estiraba era el **alto**:
+de **43 a 637 px**, catorce veces, empujando todo lo que viene debajo. Queda escrito para que nadie
+busque un defecto de ancho que no existe.
+
+### 3 · El cajón TAPA controles que están debajo, y el modelo ya lo hacía
+
+La orden pide que «el cajón no tape los enlaces ni los controles de abajo». **Un cajón que flota
+debajo de su fila tapa lo que haya debajo por construcción, y eso es del modelo, no de esta
+tanda.** Medido con el primer ⓘ y el ÚLTIMO de cada sección —88 aperturas por ancho— en los dos
+árboles:
+
+| árbol | tapa alguna botonera | tapa el «Ver detalle» | tapa la bibliografía |
+|---|---|---|---|
+| HEAD (antes de la tanda) | 13 | 6 | 2 |
+| con la tanda aplicada | 22 | 1 | 1 |
+
+Lo que sí se verificó es que nada queda inalcanzable: el cajón cierra de las tres formas, una sola
+queda abierta por vez, y con un ⓘ abierto se puede contestar una pregunta sin que la sección se
+caiga (medido en las 45). **Hacer que no tape nada exigiría cambiar el mecanismo del modelo —que
+la orden prohíbe— o empujar las filas, que es el defecto que la tanda viene a cerrar.**
+
+### 4 · El ⓘ de una fila mide 14 px de alto, en el modelo también
+
+La sección de DISEÑO pide botones de 44 px. El ⓘ de una fila es el `<summary>` de su `<details>`
+y mide **14 px de alto en las 45 secciones**, idéntico antes y después: es el del modelo. Subirlo a
+44 **cambiaría el alto de la fila**, que es justo lo que esta tanda tiene prohibido mover («la fila
+NO debe cambiar de ancho ni de alto»). **No se tocó.** El ⓘ del glosario —`data-ind-term`— sí tiene
+su piso táctil de 44 px, porque vive en la celda del rótulo y no en la de la nota.
+
+### 5 · Una grilla no podía alojar el cajón de 600 px: se le acotó el ancho
+
+La grilla de las secciones compactas con datos clínicos se parte en dos columnas por el ancho de la
+**ventana** y no por el del **panel** —`@media (min-width:1200px)`—, así que con el panel en 820 px
+sus filas miden **373 px**, medido a 1200, 1440 y 1920. Un cajón de 600 px anclado al borde derecho
+de su celda empezaba en x=111 mientras el panel empieza en 310: el texto se dibujaba **fuera del
+panel**. Lo pagaban **15 de los 16** ⓘ de la Tetralogía de Fallot reparada — insuficiencia
+pulmonar, la única sección que entra a esa regla.
+
+Se le acotó el `max-width` a **360 px** dentro de esa misma media query. **No es un mecanismo
+nuevo:** es el mismo `max-width` que la regla del modelo ya trae —allá es `76vw`— aplicado a una
+columna más angosta, y 360 sale del ancho de fila medido menos un margen. **Lo que queda abierto, y
+es decisión del médico:** si esa grilla debería cortar por el ancho del PANEL como el resto del
+panel hace, y entonces esta regla dejaría de hacer falta.
+
+### 6 · El denominador de la suite son 768 casos, y 753 de ellos son `TC-NNN`
+
+La orden da 768 como línea base y es correcto, medido: **753** casos `TC-NNN` —los ids 1 a 753,
+sin un hueco y sin un duplicado— más **15** casos `TC-GR-NN` de guardar y reabrir. Un conteo que
+sólo mire `TC-NNN` da 753 y parece que faltan quince.
+
+## P23-b · Los ⓘ FUERA del panel de Evidencia — no se tocaron
+
+Censados con `scripts/_probe_pant23fuera.mjs` con el panel cerrado: **143** glifos de ⓘ fuera del
+panel y **cero** adentro (el control). **No se tocó ninguno**, que es lo que la orden manda.
+
+| mecanismo | cuántos | qué abre |
+|---|---|---|
+| `onclick="vInfoClic(this)"` | 97 | la tarjeta flotante `#vinfo-card` |
+| `onclick="vInfoClic(this,event)"` | 22 | la misma tarjeta |
+| `onclick="event.stopPropagation();vInfoClic(...)"` | 1 | la misma tarjeta |
+| `<summary>` de una ficha de Referencias | 19 | la ficha de `tab-refs` |
+| sin `onclick` | 4 | nada: son rótulos |
+
+**120 de los 143 ya abren una tarjeta flotante**, que es el comportamiento que la decisión del
+médico pide; los 19 de Referencias son fichas desplegables de una página de consulta y no filas de
+una tabla. Por pestaña: `tab-valvulas` 35, `tab-congenitas` 25, `tab-congenitas2` 22, `tab-refs`
+19, `tab-hemodinamica` 10, `tab-ai-vi` 6, `tab-vd` 5, `tab-otros` 4, `tab-doppler` 3, `tab-ete` 3,
+`tab-cardioOnco` 2, `tab-amiloidosis` 2, `tab-pericardio` 1, `tab-contractilidad` 1, `tab-sgl` 1,
+`tab-informe` 1, y 3 sin pestaña.
+
+⚠️ **EL ⓘ QUE EL MÉDICO VIO ESTÁ DENTRO DEL PANEL, Y ESTÁ MEDIDO.** La orden deja abierta la
+posibilidad de que el de Hemodinámica pertenezca al sector y no al panel. No: el que se abría
+dentro de la fila es un `details[data-ind-info]` hijo de la sección «Perfil hemodinámico» de
+`#indic-cuerpo`. Los **10** ⓘ de la pestaña `tab-hemodinamica` son otra cosa y ya abrían
+`#vinfo-card`.
+
+⚠️ **Y UN CASO DE APILADO ES PREEXISTENTE:** el primer ⓘ de la estenosis mitral queda tapado en su
+centro por otra capa, idéntico en HEAD y con la tanda aplicada (caja en x=491, 600×51 px en los
+dos). No es de esta tanda y no se tocó.
+
+### 7 · TC-753 escribía a mano el sello de la tanda anterior, y se rompe en cada sello
+
+LIMPIEZA-1 dejó en TC-753 tres constantes escritas a mano —`v20261107-1137`, `52f7573b` y
+«12,26 MB / 168.667»— y las comparaba contra el pie de `index.html`. **La primera tanda que
+volviera a sellar lo ponía en rojo, y ésta lo hizo**: salió en la corrida completa con
+«pie=v20261107-1627 CLAUDE.md=v20261107-1137». No es una regresión: el caso afirmaba el valor de
+un sello, que por definición cambia en cada tanda.
+
+**Adaptado:** el sello ya no se escribe a mano, se **lee del pie** de `index.html`, y lo que el
+caso exige es que `CLAUDE.md` lo nombre — que es el chequeo de arranque de verdad y vale sin tocar
+el caso nunca más. **Lo que sigue a mano son el md5 y el renglón de tamaño**, porque la página no
+puede calcular el md5 de su propio archivo ni contar sus líneas: **quien selle los actualiza**, y
+eso está escrito en el propio caso.
+
+⚠️ **Y la causa de que apareciera en la corrida completa y no antes es mía:** edité `CLAUDE.md` y
+`docs/PENDIENTES.md` **mientras la suite corría**, y TC-753 los lee por HTTP. Es la lección (b) de
+la orden aplicada a los documentos y no sólo al archivo de casos: **mientras la suite corre no se
+toca nada de lo que la suite lee.**

@@ -1,3 +1,96 @@
+## PANT-23 — la Evidencia, tanda 2 de 2: el orden de los bloques y el cajon de todos los globos (2026-11-07)
+
+**Commits**: el inventario de medicion (no cambia un byte de lo que mide); el ORDEN; los GLOBOS;
+y la cobertura con la documentacion, en dos. Sello **`v20261107-1627`**, md5 **`224fd6ae`**. Al empezar,
+`origin/main` = `HEAD` = **4c1af7d**, el cierre de LIMPIEZA-1, ya publicado, con `index.html` en
+md5 `52f7573b` y el pendrive `DISK_IMG` montado. **El push lo corre Maicol: esta tanda tenia
+orden expresa de NO pushear.**
+
+⚠️ **POR VIGESIMA VEZ SEGUIDA EL RENGLON DE TAMANO QUE SE ENCONTRO ESTABA BIEN**, y se verifico de
+las dos formas que esta casa manda: `git show 4c1af7d:index.html` da **168.667** lineas,
+**12.264.443** bytes y el md5 **`52f7573b`**, los tres identicos a lo que decia.
+
+- **EL CASO DEL MEDICO, REPRODUCIDO Y MEDIDO (commit 1).** Con el gesto real, sobre las 45
+  secciones de `IND_SECS` y en cuatro anchos: **DIECISIETE** secciones tenian el recuadro «Con lo
+  contestado» ARRIBA de las preguntas —las que PANT-17b convirtio por una orden equivocada— y
+  **105 de los 473** globos de nota abrian su texto DENTRO de la fila, en diecisiete secciones. En
+  Hemodinamica la fila pasaba de **43 a 637 px de alto** con el texto en una tira de **56 px**.
+- ⚠️ **UNA PRECISION DE LA PREMISA:** el **ancho** de la fila NO cambiaba —764 px antes y
+  despues, en los cuatro anchos—. Lo que se estiraba era el **alto**. Queda en **P23-a**.
+- **EL MODELO es la estenosis aortica**, la UNICA de las 45 que devuelve `molde`: su cuerpo lo
+  pinta `_indMoldeHTMLSec` y su orden es grilla con los datos y las preguntas, el recuadro de la
+  recomendacion, el «Ver detalle» y la bibliografia al final.
+- **EL ORDEN SE CORRIGE EN UN SOLO LUGAR (commit 2).** `_indSecHTMLCuerpo` emitia `adapt` en dos
+  puntos segun la opcion `ordenProt` de PANT-21; se retira el de arriba y el de abajo pierde la
+  compuerta. **No hay un segundo emisor**: con dos lugares y una condicion el recuadro podria
+  salir dos veces y sus corchetes numerarse dos veces. Las 17 pasan al orden del modelo, las 4 de
+  protesis no se mueven y las **25 sin recuadro no reciben ninguno**, con su texto identico byte
+  por byte.
+- **NINGUN TEXTO CAMBIA, Y ESTA CONTADO**: el censo de `textContent` de las 45 secciones con todos
+  sus `details` abiertos da **28 identicas byte por byte y 17 permutaciones puras** —el mismo
+  multiconjunto de caracteres y el mismo largo—, **502.468 caracteres antes y 502.468 despues**.
+- **CERO RENUMERACION DE CITAS, y esta medido POR QUE**: de los **401** corchetes del panel,
+  **CERO** viven en el recuadro «Con lo contestado». `_indAdaptHTML` escribe sus referencias como
+  TEXTO y no llama a `_indRefMarca`, asi que mover el recuadro no puede cambiar el orden de
+  primera aparicion de nada. Los corchetes de las 45 son identicos uno por uno.
+- **EL MECANISMO DEL GLOBO NO ERA DE CODIGO, ERA UNA COMPUERTA DE CSS (commit 3).**
+  `_indInfoHTML` emite el mismo `<details>` para los 473 y tiene **un solo lugar de llamada**. Lo
+  que decidia si su texto flotaba eran DOS reglas acotadas a `[data-ind-preg="1"]`, de TGA-4, cuyo
+  propio comentario declaraba el alcance. Se les quita la acotacion: **473 de 473 en posicion
+  absoluta, CERO filas que crecen, CERO que cambian de ancho y CERO que se salen del panel**, en
+  1440, 1000, 768 y 390 px y en los dos temas.
+- ⚠️ **UNA GRILLA NO PODIA ALOJAR EL CAJON DE 600 px.** La de las secciones compactas con datos
+  clinicos se parte en dos columnas por el ancho de la VENTANA y no del PANEL, asi que sus filas
+  miden **373 px** con el panel en 820 —medido a 1200, 1440 y 1920— y el cajon se dibujaba FUERA
+  del panel en **15 de los 16** globos de la Fallot reparada - insuficiencia pulmonar. Se le acota
+  el `max-width` a **360 px** dentro de esa misma media query: el mismo `max-width` que el modelo
+  ya trae, aplicado a una columna mas angosta. Queda en **P23-a**.
+- **LO QUE NO SE TOCO**: las dos reglas de `.ind-ctrl-btn` tambien acotadas a
+  `[data-ind-preg="1"]` —ahi la acotacion es una correccion medida de PANT-2— y los **143** globos
+  de fuera del panel, **120** de los cuales ya abren una tarjeta flotante (**P23-b**).
+
+**Lo que el commit 4 dejo:**
+
+- **TRES casos nuevos**, TC-754 a TC-756, con sus denominadores y sus controles negativos.
+  **Caen contra `4c1af7d` por DIEZ condiciones y NINGUNA por excepcion**, verificado en un
+  worktree alternando solo `index.html` con el mismo archivo de casos.
+- **UN caso viejo adaptado, e INVERTIDO**: **TC-747 (F1)**, el control negativo de PANT-21, que
+  afirmaba que en una seccion sin `ordenProt` el recuadro sigue ARRIBA. Es el dia que esa
+  condicion anunciaba: hoy exige lo contrario y puede fallar por los dos lados. Su (F1b) pasa de
+  control negativo a DENOMINADOR, porque es lo que garantiza que (F1) mide la otra familia.
+- **CUATRO cosas que el barrido destapo**, y las cuatro eran cobertura que faltaba o una mutacion
+  equivalente: mover la recomendacion del MODELO arriba de su cuerpo pasaba en verde (nacio
+  **(C3)** de TC-754); darle el molde de preguntas a las 25 secciones que no lo piden tambien
+  (nacio **(G1)**); el `z-index` del cajon solo se nota en una seccion de PREGUNTAS, porque alli
+  los botones de respuesta llevan `position:relative` (nacio **(E3)** de TC-755); y el
+  `aria-expanded` se leia DESPUES de cerrar, cuando `_indInfoSync` ya lo habia puesto en false
+  (nacio **(B6b)**). **Y una quinta era EQUIVALENTE, medido**: poner el `const ordenProt` en true
+  no cambia un nodo, porque tras el commit 2 ese const se usa en un solo lugar —`_causasH`— y las
+  unicas secciones con causas son las de protesis, que ya lo traen en true. Se reemplazo por una
+  observable.
+- **NINGUN mapa nuevo y ningun puntero**: la orden de esta tanda dice «nada mas» y lo que escribe
+  es el inventario, el registro, una linea del Estado vigente, el sello, el renglon de tamano, los
+  dos items de `docs/PENDIENTES.md` y la guia de prueba.
+
+**La verificacion de cierre:**
+
+| que | resultado |
+|---|---|
+| **suite completa** | **771 de 771** casos ejecutados en **15 lotes** —catorce de 55 y uno de 1—, en UNA sola pasada sobre el arbol sellado, con el pendrive `DISK_IMG` verificado **17 veces** y el md5 de `index.html` **identico** antes y despues (`224fd6ae`). **764 verdes y 7 rojos.** De los siete, CUATRO son los de siempre -TC-223, TC-376, TC-390 y TC-406-, DOS son intermitentes declarados -TC-358 y TC-557, los dos verdes corridos aislados, igual que TC-551- y el septimo era MIO: **TC-753**, que escribia a mano el sello, el md5 y el renglon de tamano de PANT-22, asi que se ponia rojo en la primera tanda que volviera a sellar. Esta adaptado -el sello ahora se LEE del pie de index.html- y pasa 1/1 corrido aislado. **Ningun rojo nuevo**, y los tres casos nuevos en verde. La linea base al cerrar es **765/771**, y esa cifra sale de la pasada completa mas la corrida aislada del caso adaptado, no de una segunda pasada completa. |
+| **mutaciones** | **32/32 muertas**, en worktree y nunca sobre el vivo, md5 del arbol vivo identico antes y despues (`901cbd71`), con las 32 anclas verificadas ANTES de correr |
+| **los tres casos nuevos** | caen contra `4c1af7d` por **10 condiciones** y **ninguna** por excepcion |
+| **A/B del papel** | **114 escenas, 139.976 claves y 52.098 celdas de Excel: CERO diferencias de superficie firmada**, con el PDF y el PPT generados de verdad. Las **23** de pantalla son el control positivo y las 23 caen en `_evTexto`, las 23 con el mismo multiconjunto de caracteres y el mismo largo |
+| **Chrome y WebKit** | **coinciden en los OCHO cruces** -dos motores x 1440, 1000, 768 y 390 px x dos temas-: panel **820 / 820 / 744 / 366** px, **CERO** desplazamiento horizontal, **CERO** solapes, **60** textos recortados -los MISMOS 60 que HEAD da en los ocho cruces- y **CERO errores de consola y de pagina** en los dos motores. Y en el barrido de los **473** globos, WebKit da lo mismo que Chrome a 1440 y a 390: 473 absolutas, cero filas que crecen, cero que se salen del panel, cero que no cierran y cero malos, con el control negativo cayendo en los dos. WebKit de Playwright no es Safari, y se declara; Chrome va por el del sistema con `channel: 'chrome'` |
+| **Semgrep** | **124 WARNING / 0 ERROR**, la linea base |
+| **huerfanos** | sin huerfanos nuevos |
+| **Excel** | **457** columnas con las mismas claves |
+| **campos guardados** | **ninguno nuevo**; ningun id cambio |
+| **bloques de JS inline** | **17 de 19** parsean, identico al arbol anterior |
+| **celular** | **59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la linea base exacta. **No empeoro.** |
+| **el diff** | **72 lineas agregadas y 22 quitadas**, de las que **SIETE** no son comentario —tres selectores de CSS, un `if` y las tres del sello—, con **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contrasenias |
+
+---
+
 ## LIMPIEZA-1 — archivar lo cerrado de PENDIENTES.md y el historial de tandas de CLAUDE.md (2026-11-08)
 
 **Commits**: el inventario de medicion; el reparto de `docs/PENDIENTES.md`; el de `CLAUDE.md`;

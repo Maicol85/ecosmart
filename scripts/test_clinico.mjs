@@ -123963,12 +123963,27 @@ caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que exis
     neg.malas.length === 1 && neg.malas[0] === 'docs/archivo/ESTE_NO_EXISTE_L1.md',
     'malas=' + neg.malas.join(' '));
 
-  /* (C) el sello y el renglon de tamano siguen en CLAUDE.md */
-  const SELLO = 'v20261107-1137';
-  const MD5 = '52f7573b';
-  const TAM = '12,26 MB / 168.667';
+  /* (C) el sello y el renglon de tamano siguen en CLAUDE.md
+     ADAPTADO el 2026-11-07 (tanda PANT-23, commit 4b). Estas tres constantes estaban escritas a
+     mano con el sello, el md5 y el tamano de PANT-22, asi que este caso se ponia ROJO en la
+     primera tanda que volviera a sellar -y esta lo hizo, con v20261107-1627-. No es una
+     regresion: el caso afirmaba el valor de un sello, que por definicion cambia en cada tanda.
+     EL SELLO YA NO SE ESCRIBE A MANO: se lee del PIE de index.html y lo que el caso exige es que
+     CLAUDE.md lo nombre, que es el chequeo de arranque de verdad -el renglon de CLAUDE.md tiene
+     que coincidir con el arbol- y vale para siempre sin tocar el caso.
+     ⚠️ EL MD5 Y EL RENGLON DE TAMANO SIGUEN A MANO, y hay que moverlos en cada tanda que selle:
+     la pagina no puede calcular el md5 de su propio archivo ni contar sus lineas. Quien selle
+     actualiza estos dos y escribe el motivo. */
+  const SELLO = (function () {
+    const e = document.getElementById('eco-build-sello');
+    return e ? (e.textContent || '').trim() : 'SIN PIE';
+  })();
+  const MD5 = '224fd6ae';
+  const TAM = '12,27 MB / 168.717';
   const tieneSello = (t) => t.indexOf(SELLO) > -1 && t.indexOf(MD5) > -1;
-  q('(C1) el sello de la ultima tanda y el md5 de index.html siguen en CLAUDE.md',
+  q('(C0 DENOM) el pie de index.html publica un sello con la forma esperada',
+    SELLO.length === 14 && SELLO.indexOf('v2026') === 0, 'pie=' + SELLO + ' largo=' + SELLO.length);
+  q('(C1) el sello que publica el pie y el md5 de index.html estan los dos en CLAUDE.md',
     tieneSello(cl), 'sello=' + (cl.indexOf(SELLO) > -1) + ' md5=' + (cl.indexOf(MD5) > -1));
   q('(C2) el renglon de tamano sigue en CLAUDE.md, con sus bytes y sus lineas',
     cl.indexOf(TAM) > -1, 'renglon=' + (cl.indexOf(TAM) > -1));
@@ -123981,8 +123996,8 @@ caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que exis
     const e = document.getElementById('eco-build-sello');
     return e ? (e.textContent || '').trim() : '';
   })();
-  q('(C4) el sello del pie de index.html coincide con el de CLAUDE.md',
-    pie === SELLO, 'pie=' + pie + ' CLAUDE.md=' + SELLO);
+  q('(C4) el sello del pie de index.html esta nombrado en CLAUDE.md: es el chequeo de arranque',
+    pie.length > 5 && cl.indexOf(pie) > -1, 'pie=' + pie + ' esta en CLAUDE.md=' + (cl.indexOf(pie) > -1));
 
   /* (D) los archivos de docs/archivo/ existen y no estan vacios */
   const AR = ['docs/archivo/CLAUDE_HISTORIAL_TANDAS.md',
