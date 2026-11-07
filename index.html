@@ -92491,7 +92491,11 @@ function _indSecHTMLCuerpo(tit, r){
      no cambia en un solo nodo.
      Implica `preguntas` porque ese molde ES el orden que la decision pide —los datos arriba a todo
      el ancho y las preguntas debajo en dos columnas—; con dos marcadores separados una seccion
-     podria quedar con el orden nuevo y la maqueta vieja, que es medio cambio. */
+     podria quedar con el orden nuevo y la maqueta vieja, que es medio cambio.
+     ⚠️ Y DESDE PANT-23 YA NO GOBIERNA DONDE VA «Con lo contestado»: ese recuadro va DEBAJO de las
+     preguntas en TODAS las secciones, con o sin esta opcion. Lo que `ordenProt` sigue gobernando
+     son DOS cosas: que la seccion use el molde de preguntas aunque no declare `preguntas`, y que
+     el bloque de CAUSAS se emita -sin la opcion, `_indCausasHTML` no se llama-. */
   const esPreg = !!(r.preguntas || r.ordenProt);
   const ordenProt = !!r.ordenProt;
   const _bloRec = function(){
@@ -92545,10 +92549,17 @@ function _indSecHTMLCuerpo(tit, r){
     + 'style="font-size:10px;line-height:1.6;padding:1px 8px;min-height:22px;border-radius:7px;'
     + 'border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;" '
     + 'aria-label="Alternar entre una y dos columnas">⇔ columnas</button></div>';
-  /* ⚠️ ARRIBA, LO ADAPTADO. Va ANTES de la grilla de preguntas porque es lo que el medico lee
-     primero: lo que las respuestas de ESTE paciente sostienen. Lo pinta `_indAdaptHTML`, un solo
-     emisor para las catorce secciones. */
-  if (r.adapt && !ordenProt) h += _indAdaptHTML(r.adapt, r.faltan);
+  /* ⚠️ LO ADAPTADO YA NO SE EMITE ACA, Y ES LA DECISION DEL MEDICO DEL 08/11/2026 (PANT-23,
+     commit 2). «Con lo contestado» va DEBAJO de las preguntas en TODAS las secciones, con el
+     orden del MODELO -la estenosis aortica-: preguntas, el recuadro, el «Ver detalle» plegado y
+     la bibliografia al final. Hasta hoy esto lo emitia ARRIBA de la grilla en las diecisiete
+     secciones que PANT-17b convirtio, por una orden que se corrigio: el medico probo la
+     Evidencia con capturas el 07/11 y el recuadro arriba se lee como el titular de la seccion,
+     cuando lo que sostiene son las respuestas que estan DEBAJO.
+     ⚠️ SE RETIRA LA EMISION, NO SE AGREGA UNA SEGUNDA: el unico lugar que emite `adapt` es el de
+     mas abajo, el que PANT-21 ya usaba para las de protesis. Con dos lugares y una compuerta
+     existiria un estado en que el recuadro sale dos veces, y sus corchetes se numerarian dos
+     veces con numeros distintos. */
   h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') +
        (compacta ? ' data-ind-compacta="1"' : '') + (esPreg ? ' data-ind-preg="1"' : '') + '>';
   /* ══ LA SECCIÓN DE PREGUNTAS: LOS DATOS ARRIBA Y LAS PREGUNTAS DEBAJO (PANT-2, C2) ══════════
@@ -92587,14 +92598,19 @@ function _indSecHTMLCuerpo(tit, r){
   }
   }
   h += '</div>';
-  /* ══ EL ORDEN DE PROTESIS (PANT-21, commit 2) ═══════════════════════════════
-     «Con lo contestado» BAJA de encima de las preguntas a debajo de ellas, y el bloque de causas
-     entra entre ese recuadro y el «Ver detalle». Va ACA y no en `_bloRec` porque el orden de la
-     decision pone las causas ANTES del detalle plegado y DESPUES de lo contestado.
+  /* ══ EL ORDEN DE TODAS LAS SECCIONES (PANT-21, commit 2; PANT-23, commit 2) ═════════════════
+     «Con lo contestado» va DEBAJO de las preguntas, y el bloque de causas entra entre ese
+     recuadro y el «Ver detalle». Va ACA y no en `_bloRec` porque el orden de la decision pone
+     las causas ANTES del detalle plegado y DESPUES de lo contestado.
+     ⚠️ ESTE ES EL UNICO LUGAR QUE EMITE `adapt`, Y DESDE PANT-23 SIN COMPUERTA. PANT-21 lo abrio
+     para las cuatro secciones de protesis y lo dejo condicionado a `ordenProt`; la decision del
+     medico del 08/11/2026 extiende el orden del MODELO -la estenosis aortica- a las 45, asi que
+     la compuerta se fue y con ella la emision de arriba. Las VEINTICINCO secciones sin `adapt` no
+     emiten nada aca y su DOM no cambia en un solo nodo.
      ⚠️ Y VA ANTES DE `_bloRec()`, que es lo que deja la bibliografia ultima: el acumulador de
      citas se puebla mientras se pinta, asi que una causa que cita se numera en el orden en que se
      lee. Moverlo despues le daria a sus corchetes los numeros del detalle. */
-  if (ordenProt && r.adapt) h += _indAdaptHTML(r.adapt, r.faltan);
+  if (r.adapt) h += _indAdaptHTML(r.adapt, r.faltan);
   /* ⚠️ LAS CAUSAS VAN DESPUES DE LO QUE LA SECCION CONCLUYE, Y ESO SON DOS LUGARES DISTINTOS
      SEGUN QUE PUBLIQUE LA SECCION (PANT-21, commit 4). La decision del medico pone las causas
      entre «Con lo contestado» y el «Ver detalle»; «Con lo contestado» es `adapt` en las secciones
