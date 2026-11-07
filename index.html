@@ -96169,12 +96169,32 @@ function _indProtM(){
         refs:[PROTM_REF_ASE] },
       { txt:'La regurgitación protésica se evalúa mejor por ETE, sobre todo en prótesis mecánicas. Por sombra acústica y enmascaramiento del flujo en la aurícula izquierda, una regurgitación protésica significativa puede PASARSE POR ALTO con Doppler color transtorácico.',
         refs:[PROTM_REF_ASE] },
-      { txt:'Las dos definiciones de desajuste protésico-paciente mitral de la misma guía no coinciden. El texto define moderado por debajo de 1,2 cm²/m² y severo hasta 0,90 cm²/m², sin estratificar por IMC. La Tabla 7 sí estratifica: con IMC menor de 30, normal por encima de 1,2 y severo hasta 0,90; con IMC de 30 o más, normal por encima de 1,0 y severo hasta 0,75.',
+      /* ⚠️ LA PRIMERA ORACION SALIO (PANT-22, commit 4). Decia «Las dos definiciones de desajuste
+         protesico-paciente mitral de la misma guia NO COINCIDEN», que es lo que la regla del
+         04/11 prohibe. Las dos definiciones ya estaban cada una en su propia oracion con sus
+         numeros, asi que lo unico que se retira es el comentario que las enfrentaba. Los OCHO
+         numeros siguen estando: 1,2 y 0,90 del texto, y 30, 1,2, 0,90, 30, 1,0 y 0,75 de la
+         Tabla 7. */
+      { txt:'El texto de la guía define el desajuste protésico-paciente mitral moderado por debajo de 1,2 cm²/m² y severo hasta 0,90 cm²/m², sin estratificar por IMC. Su Tabla 7 lo estratifica: con IMC menor de 30, normal por encima de 1,2 y severo hasta 0,90; con IMC de 30 o más, normal por encima de 1,0 y severo hasta 0,75.',
         refs:[PROTM_REF_ASE] },
-      'La calculadora de esta aplicación aplica la TABLA 7, la estratificada por IMC. Para un IMC de 30 o más las dos versiones se contradicen: una AEO indexada de 1,1 cm²/m² es moderada por el texto y normal por la tabla.',
-      { txt:'Y hay una tercera voz: la ESC/EACTS 2025 dice que se sabe poco sobre la prevalencia y las consecuencias del desajuste en posición mitral, y que «faltan definiciones establecidas». El desajuste es un hallazgo, no una indicación: no tiene fila en la tabla de recomendaciones.',
+      /* ⚠️ LA SEGUNDA ORACION SALIO (PANT-22, commit 4). Decia «Para un IMC de 30 o mas las dos
+         versiones SE CONTRADICEN: una AEO indexada de 1,1 cm²/m² es moderada por el texto y
+         normal por la tabla», que es enfrentar dos partes de la misma fuente. Queda lo que la
+         aplicacion hace con su propio corte, que es lo que el texto de hoy ya decia.
+         ⚠️ Y SE PIERDE UN NUMERO, EL «1,1», declarado en P22-a: era el valor del EJEMPLO que
+         ilustraba la contradiccion y no vive en ningun otro lado de la seccion, asi que no se
+         puede conservar sin conservar la comparacion. Los cortes de las dos definiciones -1,2,
+         0,90, 1,0, 0,75 y el 30 del IMC- siguen enteros en la linea de arriba. */
+      'La calculadora de esta aplicación aplica la TABLA 7, la estratificada por IMC.',
+      /* ⚠️ «Y hay una tercera voz:» SALIO (PANT-22, commit 4): presentaba a las fuentes como voces
+         en disputa. La oracion de la ESC/EACTS 2025 queda entera, por lo que ELLA dice -incluido
+         el «faltan definiciones establecidas», que es lo que la fuente dice de SI MISMA y la
+         regla excluye expresamente-. */
+      { txt:'La ESC/EACTS 2025 dice que se sabe poco sobre la prevalencia y las consecuencias del desajuste en posición mitral, y que «faltan definiciones establecidas». El desajuste es un hallazgo, no una indicación: no tiene fila en la tabla de recomendaciones.',
         refs:[PROTM_REF_ESC] },
-      { txt:'La ACC/AHA 2020 coincide con la europea en la estenosis protésica sintomática severa: reintervención quirúrgica indicada, Clase 1 · Nivel B-NR, salvo riesgo alto o prohibitivo. Su fila de valve-in-valve percutáneo está escrita para la prótesis AÓRTICA y no se aplica acá.',
+      /* ⚠️ «COINCIDE CON LA EUROPEA» SALIO (PANT-22, commit 4): comparaba una fuente con otra.
+         Queda lo que la ACC/AHA 2020 indica, con su clase, su nivel y su salvedad. */
+      { txt:'La ACC/AHA 2020 indica la reintervención quirúrgica en la estenosis protésica sintomática severa, Clase 1 · Nivel B-NR, salvo riesgo alto o prohibitivo. Su fila de valve-in-valve percutáneo está escrita para la prótesis AÓRTICA y no se aplica acá.',
         refs:[PROTM_REF_AHA] },
       { txt:'Las tres causas de estenosis de una prótesis mitral son degeneración, trombosis y pannus, más las vegetaciones grandes. El ETE y la TC identifican la causa mejor que el transtorácico, y la TC es más sensible para el pannus.',
         refs:[PROTM_REF_ASE] },
@@ -103552,10 +103572,21 @@ function _indHemo(){
       'la guía publica el gasto cardíaco como el área del tracto de salida por su integral de velocidad y por la frecuencia cardíaca (folio 162). Lo escribe sobre el tracto de salida derecho; esta aplicación lo calcula sobre el izquierdo, que es donde tiene el diámetro y la integral cargados. La aritmética es la misma y el tracto, no.',
       ['aseDer2025']),
     _indFila('Índice cardíaco', ic || '—', 'none',
-      'el rango de referencia normal es 2,5 a 4,0 L/min/m² (ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30). El «2,2 o menos» con que la aplicación lo llama bajo sale de la columna del Shock Trial de la Tabla 1 del consenso argentino de shock cardiogénico (folio 2), que es una tabla comparativa de definiciones. La tabla de fórmulas del folio 162 de la guía de corazón derecho no publica el índice cardíaco: dividir el gasto por la superficie corporal es la definición del indexado.',
+      /* ⚠️ CADA FUENTE EN SU PROPIA ORACION (PANT-22, commit 4). Decia «El «2,2 o menos» … SALE DE
+         la columna del Shock Trial …, que es una tabla comparativa de definiciones. La tabla de
+         formulas del folio 162 … NO PUBLICA el indice cardiaco», o sea que contrastaba el origen
+         del corte de la aplicacion con una fuente y declaraba una ausencia de la otra como
+         hallazgo. Las dos fuentes quedan, cada una por lo que ELLA dice y con su folio, y los
+         CUATRO numeros -2,5, 4,0, 2,2- y los TRES folios -30, 2 y 162- siguen estando. */
+      'el rango de referencia normal es 2,5 a 4,0 L/min/m² (ESC/ERS 2022 de hipertensión pulmonar, tabla de valores hemodinámicos normales, folio 30). La Tabla 1 del consenso argentino de shock cardiogénico compara definiciones de shock cardiogénico, y su columna del Shock Trial publica un índice cardíaco de 2,2 o menos (folio 2). Esta aplicación lo llama bajo con ese corte. Dividir el gasto por la superficie corporal es la definición del indexado, y las fórmulas de esta sección salen de la tabla del folio 162 de la guía de corazón derecho.',
       ['escErs2022','sacShock2024']),
     _indFila('Resistencia vascular sistémica', rvs || '—', 'none',
-      'los dos libros de referencia no coinciden en un rango único, y por eso la aplicación publica el número sin banda: 1.170 ± 270 dinas-seg-cm⁻⁵ en una tabla cuyo pie aclara que es la media y la desviación estándar de 37 sujetos sin cardiopatía demostrada —no un intervalo de normalidad— (Tabla 11.2, folio 260), y 1.100 con intervalo de 700 a 1.600 en la otra (Tabla 19-3, folio 375).',
+      /* ⚠️ CADA LIBRO EN SU PROPIA ORACION (PANT-22, commit 4). Arrancaba con «los dos libros de
+         referencia NO COINCIDEN en un rango unico, y por eso …», que es decir que dos fuentes no
+         coinciden. Queda lo que la aplicacion hace -publicar el numero sin banda- y lo que cada
+         libro publica, en su oracion, con su tabla y su folio. Los numeros siguen todos: 1.170,
+         270, 37, 1.100, 700, 1.600, la Tabla 11.2 con el folio 260 y la Tabla 19-3 con el 375. */
+      'esta aplicación publica el número sin banda. Un libro de referencia da 1.170 ± 270 dinas-seg-cm⁻⁵ en una tabla cuyo pie aclara que es la media y la desviación estándar de 37 sujetos sin cardiopatía demostrada —no un intervalo de normalidad— (Tabla 11.2, folio 260). El otro da 1.100 con intervalo de 700 a 1.600 (Tabla 19-3, folio 375).',
       ['grossman2016','braunwald2016']),
     _indFila('Presión capilar pulmonar estimada por eco', pcp || '—', pcp ? 'warn' : 'ask',
       'la guía de corazón derecho publica esta misma ecuación a partir del cociente E/e\u2019 mitral y sitúa lo normal por debajo de 12 a 15 mmHg (folio 162), y en el folio 167 recomienda evitar informarla de rutina, porque el cociente E/e\u2019 promediado o medial ya entra en la valoración diastólica habitual.',
@@ -103603,7 +103634,14 @@ function _indHemo(){
   const forrLin = [
     { txt:'La clasificación nació midiendo simultáneamente el gasto cardíaco y la presión de enclavamiento capilar pulmonar, con catéter en la arteria pulmonar, en una serie amplia de pacientes con infarto agudo de miocardio (folio 1125). Ése es el escenario en el que está validada.', refs:['braunwald2016'] },
     { txt:'El libro describe la hipoperfusión como clínicamente evidente cuando el índice cardíaco cae por debajo de 2,2 L/min/m², y la congestión pulmonar cuando la presión de enclavamiento supera los 18 mmHg (folio 1125). Ninguno de los dos valores exactos queda definido.', refs:['braunwald2016'] },
-    { txt:'Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos, de modo que el 2,2 justo cae de un lado distinto del que resuelve la clasificación original. Del otro lado coincide: la congestión aparece cuando la presión capilar supera 18, así que el 18 exacto tampoco está definido acá.', refs:null },
+    /* ⚠️ LA ORACION QUE COMPARABA SALIO (PANT-22, commit 4). Decia «de modo que el 2,2 justo cae
+       de un lado distinto del que resuelve la clasificacion original. Del otro lado coincide: …
+       asi que el 18 exacto tampoco esta definido aca», que es contrastar el corte de la
+       aplicacion con el de la fuente: lo que la regla del 04/11 prohibe. Queda lo que la
+       aplicacion hace con su propio corte, en una oracion descriptiva, y los DOS numeros -el 2,2
+       y el 18- siguen estando. Lo que el libro dice de los dos valores lo afirma la linea de
+       arriba, en su propia oracion y con su folio. */
+    { txt:'Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos y congestión cuando la presión capilar supera los 18 mmHg.', refs:null },
     { txt:'El libro advierte además que los pacientes cambian de categoría con el tratamiento y, a veces, espontáneamente, y que alrededor de la cuarta parte de los que tienen un índice cardíaco por debajo de 2,2 no se reconocen clínicamente (folio 1125).', refs:['braunwald2016'] }
   ];
 

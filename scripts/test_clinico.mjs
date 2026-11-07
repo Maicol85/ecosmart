@@ -90724,11 +90724,14 @@ caso('TC-533', 'Tanda J2: el indice cardiaco en 2,19/2,2/2,21 con su globo y la 
       && /no sustituyen a la valoraci\\u00f3n hemodin\\u00e1mica invasiva/.test(evH.txt)
       && /Ninguna l\\u00ednea de esta secci\\u00f3n lleva clase ni nivel/.test(evH.txt),
     evH ? evH.txt.slice(0, 200) : '-']);
-  ex.push(['(D3) declara que el INDICE CARDIACO no figura en la tabla del folio 162',
-    /* ADAPTADO en la tanda A (commit A-2): esa linea del bloque de formulas decia palabra por
-       palabra lo que ya dice el ⓘ de la fila «Indice cardiaco», al lado de su valor, asi que la
-       regla R4 la retiro. La declaracion sigue, en el ⓘ de la fila que le corresponde. */
-    !!evH && /no publica el \\u00edndice card\\u00edaco/.test(evH.txt)
+  /* ADAPTADO en la tanda PANT-22 (commit 4), y es el dia que esta condicion anunciaba. La version
+     de la tanda A exigia la cadena «no publica el indice cardiaco», que es una AUSENCIA de una
+     fuente dicha como hallazgo: la regla del 04/11 la prohibe, y la orden de PANT-22 la nombra por
+     su nombre. Queda INVERTIDA y MAS fuerte: exige que esa forma ya NO este, que el folio 162 siga
+     citado -ningun folio se pierde- y que la definicion del indexado siga dicha en afirmativo. */
+  ex.push(['(D3) el folio 162 sigue citado y la seccion ya NO declara la ausencia del indice cardiaco',
+    !!evH && !/no publica el \\u00edndice card\\u00edaco/.test(evH.txt)
+      && /folio 162/.test(evH.txt)
       && /la definici\\u00f3n del indexado/.test(evH.txt), evH ? 'si' : '-']);
   ex.push(['(D4) y el alcance del Forrester con sus dos bordes, citando el folio 1125',
     /* ADAPTADO en la tanda A (commit A-2): regla R3, «POR DEBAJO» y «SUPERA» a minuscula. */
