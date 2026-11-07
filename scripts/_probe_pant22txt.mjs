@@ -86,8 +86,8 @@ const CUERPO = `(async () => {
              campos:{ tapse:'14', onda_e:'95', e_sep:'5', e_lat:'7' } },
     repar:{ k:['etem'], tit:'Reparabilidad de la v\\u00e1lvula mitral', campos:{ ete_prof_coapt:'12' } },
     tdfip:{ k:[], tit:'Tetralog\\u00eda de Fallot reparada \\u2014 insuficiencia pulmonar',
-            campos:{ tdf_ip_rf:'45' } },
-    esub: { k:[], tit:'Estenosis sub', campos:{ esub_grad_medio:'45' } },
+            campos:{ ip_grado:'3', tdf_func_vd:'moderada' } },
+    esub: { k:[], tit:'Estenosis sub', campos:{ esub_gradiente_medio:'45', esub_tipo:'membrana' } },
     cia:  { k:[], tit:'Comunicaci\\u00f3n interauricular',
             campos:{ ete_cia_tipo:'secundum', ete_cia_tam_max:'20', ete_cia_dir:'id' } },
     dsav: { k:[], tit:'Defecto del septo auriculoventricular',
@@ -121,9 +121,9 @@ const CUERPO = `(async () => {
   R.ctrlPositivo = VIEJAS.map(v => ({ cadena: v.slice(0, 50), detectada: censar(v).length > 0 }));
 
   /* ── (D) REFERENCIAS: la ficha del tracto de salida del VD ── */
-  try { if (typeof showTab === 'function') showTab('referencias') } catch (e) {}
+  try { if (typeof showTab === 'function') showTab('refs') } catch (e) {}
   await esperar(300);
-  const refs = document.getElementById('tab-referencias');
+  const refs = document.getElementById('tab-refs');
   if (refs) { for (let i=0;i<3;i++) Array.from(refs.querySelectorAll('details')).forEach(x => { x.open = true }); await esperar(200); }
   const txtRef = refs ? norm(refs.textContent) : '';
   R.referencias = { chars: txtRef.length, prohibidas: censar(txtRef), inv: inv(txtRef) };

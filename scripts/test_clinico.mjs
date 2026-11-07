@@ -51204,10 +51204,14 @@ caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la 
     ['  y va con el marcador ecosmart, NO con una cita de guia',
       obj !== null && Array.isArray(obj.refs) && obj.refs.length === 1 && obj.refs[0] === 'ecosmart',
       'refs=' + JSON.stringify(obj && obj.refs)],
-    /* ADAPTADO (AJ1-E6): la nota sigue declarando que el VTI no sale de una guia, y ahora dice
-       DE DONDE sale -el libro de texto-, que es mas que antes. */
-    ['  la nota dice que el VTI de 15 cm no figura en ninguna guia de la biblioteca',
-      obj !== null && obj.txt.indexOf('NO figura en ninguna guía de la biblioteca') > -1,
+    /* ADAPTADO E INVERTIDO en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+       anunciaba. La version del AJ1-E6 exigia la cadena «NO figura en ninguna guia de la
+       biblioteca», que es una AUSENCIA de fuente dicha como hallazgo: la regla del 04/11 la
+       prohibe. Queda MAS fuerte: exige que esa forma ya NO este y que la nota siga diciendo DE
+       DONDE sale el VTI -la Tabla 20-5 del libro de texto-, asi que puede fallar por los dos lados. */
+    ['  la nota ya NO declara una ausencia de fuente y sigue diciendo de donde sale el VTI de 15 cm',
+      obj !== null && obj.txt.indexOf('ninguna guía de la biblioteca') < 0
+        && obj.txt.indexOf('Tabla 20-5') > -1 && obj.txt.indexOf('15 cm') > -1,
       'txt=' + (obj && obj.txt || '').slice(0, 160)],
     ['  y nombra el corte que la ESC si publica (la VELOCIDAD, 20 cm/s) para que no se confundan',
       obj !== null && obj.txt.indexOf('20 cm/s') > -1, 'txt no nombra el 20 cm/s'],
@@ -108973,12 +108977,24 @@ caso('TC-610', 'Tanda CORR-EVID: una pregunta, una guia — las tres tablas de c
   ex.push(['(C1) E-2: toda linea de referencia cuelga de una pregunta regida por la mas nueva',
     todas.filter(q => q.ref && q.guia !== 'acc').length, 0]);
   ex.push(['(C2) DENOM: hay lineas de referencia que medir', todas.filter(q => q.ref).length > 5, true]);
-  /* (D) Las notas de tramo existen y dicen que NO coinciden, sin inventar un tramo. */
+  /* (D) Las notas de tramo existen y publican lo que dice CADA guia, sin inventar un tramo.
+     ⚠️ ADAPTADO E INVERTIDO en la tanda PANT-22 (commit 5), y es el dia que (D2) anunciaba. Esa
+     condicion exigia que TODA nota de tramo dijera «no coinciden» -o una de sus variantes-, que es
+     exactamente la forma que la regla del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna nota
+     de tramo puede traer una de esas formas, y todas tienen que NOMBRAR A LAS DOS guias, que es lo
+     que de verdad importaba -que cada una se cite por lo que ella dice-. */
   const tramos = todas.filter(q => q.tramo);
   ex.push(['(D1) DENOM: hay notas de tramo', tramos.length > 0, true]);
-  ex.push(['(D2) toda nota de tramo dice que las guias no coinciden',
-    tramos.filter(q => String(q.tramo).indexOf('no coinciden') < 0 && String(q.tramo).indexOf('no gradua') < 0
-                    && String(q.tramo).indexOf('no gradúa') < 0 && String(q.tramo).indexOf('no dicen lo mismo') < 0).length, 0]);
+  const PROH_TR = ['no coinciden', 'no coincide', 'no gradua', 'no gradúa', 'no dicen lo mismo',
+                   'difieren', 'discrepan', 'sin resolver'];
+  /* ⚠️ LA CONDICION MIDE LA FORMA, NO QUE NOMBRE A LAS DOS GUIAS, y se midio por que: no todas
+     las notas de tramo nombran a las dos -la del tramo de 2 a 3 unidades Wood remite a la linea de
+     cada una, que es donde cada guia esta citada con su clase y su folio-. Exigir los dos nombres
+     en la nota ponia en rojo seis tramos correctos. Lo que la regla del 04/11 pide es que ninguna
+     diga que las guias no coinciden, y eso es lo que se exige. */
+  ex.push(['(D2) ninguna nota de tramo dice que las guias no coinciden ni difieren',
+    tramos.filter(q => { const t = String(q.tramo);
+      return PROH_TR.some(f => t.indexOf(f) > -1); }).length, 0]);
   /* (E) El molde arma la nota con la guia VISIBLE y la referencia rotulada. */
   const n1 = (typeof _indPregNota === 'function')
     ? _indPregNota({ guia:'acc', rec:'Clase 1 · Nivel B-NR, recomendacion 5', ref:'Clase I · Nivel B' }, false) : '';
@@ -114468,13 +114484,28 @@ caso('TC-669', 'Tanda PANT-10: la Evidencia de Defecto del septo auriculoventric
      pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
   const bloqDif = S(bloq.filter(b => {
     const t = String((b || {}).tit || '');
+    /* ADAPTADO en la tanda PANT-22 (commit 5): el bloque se llamaba «Las diferencias entre las
+       dos guias, sin resolver» y pasa a «Lo que cada guia publica», porque «sin resolver» es una
+       de las formas que la regla del 04/11 prohibe. Es una adaptacion de LOCALIZACION: el bloque,
+       sus lineas y sus numeros no se movieron, y (D1) y (D2) siguen midiendo lo mismo. */
     return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('Lo que cada gu\u00eda publica') > -1
         || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
   ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
   const DIF = ['40 mm', '45 mm', 'por debajo de 60 %', '60 % o menos'];
   ex.push(['(D1) muestra los dos umbrales de diametro telesistolico y los dos operadores de la fraccion de eyeccion, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
-  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
-    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  /* ADAPTADA E INVERTIDA en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+     anunciaba: exigia que la seccion dijera «no coincide», «sin resolver» o «difieren», que son
+     tres de las formas que la regla fija del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna
+     de esas formas puede estar, y la seccion tiene que seguir NOMBRANDO a las dos guias, que es
+     lo que de verdad importaba -que cada una se cite por lo que ella dice-. Asi puede fallar por
+     los dos lados: si vuelve una forma prohibida, y si se pierde una de las dos guias. */
+  ex.push(['(D2) ninguna forma que la regla prohibe, y las DOS guias siguen nombradas',
+    todo.indexOf('no coincide') < 0 && todo.indexOf('no coinciden') < 0
+      && todo.indexOf('sin resolver') < 0 && todo.indexOf('difieren') < 0
+      && todo.indexOf('discrepan') < 0
+      && (todo.indexOf('ACC/AHA') > -1 || todo.indexOf('AHA/ACC') > -1)
+      && todo.indexOf('ESC') > -1, true]);
   ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
   /* ── (E) EL PAPEL NO LA LLEVA ── */
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -114573,7 +114604,12 @@ caso('TC-670', 'Tanda PANT-10: la Evidencia de Anomalía de Ebstein -sus filas d
      pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
   const bloqDif = S(bloq.filter(b => {
     const t = String((b || {}).tit || '');
+    /* ADAPTADO en la tanda PANT-22 (commit 5): el bloque se llamaba «Las diferencias entre las
+       dos guias, sin resolver» y pasa a «Lo que cada guia publica», porque «sin resolver» es una
+       de las formas que la regla del 04/11 prohibe. Es una adaptacion de LOCALIZACION: el bloque,
+       sus lineas y sus numeros no se movieron, y (D1) y (D2) siguen midiendo lo mismo. */
     return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('Lo que cada gu\u00eda publica') > -1
         || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
   ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
   /* ⚠️ Y AUN SOBRE EL BLOQUE LAS CUATRO CADENAS NO DISCRIMINABAN: lo encontro la mutacion 23.
@@ -114583,8 +114619,18 @@ caso('TC-670', 'Tanda PANT-10: la Evidencia de Anomalía de Ebstein -sus filas d
   const DIF = ['al menos moderada en la ACC/AHA 2025 y severa en la ESC 2020',
                'en reposo o con esfuerzo, y la ESC 2020 sólo en reposo'];
   ex.push(['(D1) muestra el grado de insuficiencia tricuspidea y como cuenta cada guia la cianosis, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
-  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
-    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  /* ADAPTADA E INVERTIDA en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+     anunciaba: exigia que la seccion dijera «no coincide», «sin resolver» o «difieren», que son
+     tres de las formas que la regla fija del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna
+     de esas formas puede estar, y la seccion tiene que seguir NOMBRANDO a las dos guias, que es
+     lo que de verdad importaba -que cada una se cite por lo que ella dice-. Asi puede fallar por
+     los dos lados: si vuelve una forma prohibida, y si se pierde una de las dos guias. */
+  ex.push(['(D2) ninguna forma que la regla prohibe, y las DOS guias siguen nombradas',
+    todo.indexOf('no coincide') < 0 && todo.indexOf('no coinciden') < 0
+      && todo.indexOf('sin resolver') < 0 && todo.indexOf('difieren') < 0
+      && todo.indexOf('discrepan') < 0
+      && (todo.indexOf('ACC/AHA') > -1 || todo.indexOf('AHA/ACC') > -1)
+      && todo.indexOf('ESC') > -1, true]);
   ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
   /* ── (E) EL PAPEL NO LA LLEVA ── */
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -114683,13 +114729,28 @@ caso('TC-671', 'Tanda PANT-10: la Evidencia de Circulación de Fontan -sus filas
      pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
   const bloqDif = S(bloq.filter(b => {
     const t = String((b || {}).tit || '');
+    /* ADAPTADO en la tanda PANT-22 (commit 5): el bloque se llamaba «Las diferencias entre las
+       dos guias, sin resolver» y pasa a «Lo que cada guia publica», porque «sin resolver» es una
+       de las formas que la regla del 04/11 prohibe. Es una adaptacion de LOCALIZACION: el bloque,
+       sus lineas y sus numeros no se movieron, y (D1) y (D2) siguen midiendo lo mismo. */
     return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('Lo que cada gu\u00eda publica') > -1
         || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
   ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
   const DIF = ['declaración científica', 'una guía de práctica'];
   ex.push(['(D1) muestra que Rychik es una declaracion cientifica de la AHA y no una guia, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
-  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
-    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  /* ADAPTADA E INVERTIDA en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+     anunciaba: exigia que la seccion dijera «no coincide», «sin resolver» o «difieren», que son
+     tres de las formas que la regla fija del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna
+     de esas formas puede estar, y la seccion tiene que seguir NOMBRANDO a las dos guias, que es
+     lo que de verdad importaba -que cada una se cite por lo que ella dice-. Asi puede fallar por
+     los dos lados: si vuelve una forma prohibida, y si se pierde una de las dos guias. */
+  ex.push(['(D2) ninguna forma que la regla prohibe, y las DOS guias siguen nombradas',
+    todo.indexOf('no coincide') < 0 && todo.indexOf('no coinciden') < 0
+      && todo.indexOf('sin resolver') < 0 && todo.indexOf('difieren') < 0
+      && todo.indexOf('discrepan') < 0
+      && (todo.indexOf('ACC/AHA') > -1 || todo.indexOf('AHA/ACC') > -1)
+      && todo.indexOf('ESC') > -1, true]);
   ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
   /* ── (E) EL PAPEL NO LA LLEVA ── */
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -114788,13 +114849,28 @@ caso('TC-672', 'Tanda PANT-10: la Evidencia de Conexión venosa pulmonar anómal
      pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
   const bloqDif = S(bloq.filter(b => {
     const t = String((b || {}).tit || '');
+    /* ADAPTADO en la tanda PANT-22 (commit 5): el bloque se llamaba «Las diferencias entre las
+       dos guias, sin resolver» y pasa a «Lo que cada guia publica», porque «sin resolver» es una
+       de las formas que la regla del 04/11 prohibe. Es una adaptacion de LOCALIZACION: el bloque,
+       sus lineas y sus numeros no se movieron, y (D1) y (D2) siguen midiendo lo mismo. */
     return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('Lo que cada gu\u00eda publica') > -1
         || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
   ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
   const DIF = ['publica una tabla de recomendaciones propia', 'rara vez se necesita'];
   ex.push(['(D1) muestra que la ESC 2020 no tiene tabla propia y remite al cierre de la comunicacion interauricular, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
-  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
-    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  /* ADAPTADA E INVERTIDA en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+     anunciaba: exigia que la seccion dijera «no coincide», «sin resolver» o «difieren», que son
+     tres de las formas que la regla fija del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna
+     de esas formas puede estar, y la seccion tiene que seguir NOMBRANDO a las dos guias, que es
+     lo que de verdad importaba -que cada una se cite por lo que ella dice-. Asi puede fallar por
+     los dos lados: si vuelve una forma prohibida, y si se pierde una de las dos guias. */
+  ex.push(['(D2) ninguna forma que la regla prohibe, y las DOS guias siguen nombradas',
+    todo.indexOf('no coincide') < 0 && todo.indexOf('no coinciden') < 0
+      && todo.indexOf('sin resolver') < 0 && todo.indexOf('difieren') < 0
+      && todo.indexOf('discrepan') < 0
+      && (todo.indexOf('ACC/AHA') > -1 || todo.indexOf('AHA/ACC') > -1)
+      && todo.indexOf('ESC') > -1, true]);
   ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
   /* ── (E) EL PAPEL NO LA LLEVA ── */
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
@@ -114893,7 +114969,12 @@ caso('TC-673', 'Tanda PANT-10: la Evidencia de Síndrome de Eisenmenger -sus fil
      pasaba en verde. Hoy se mide sobre el BLOQUE, que es donde la tanda la pone. */
   const bloqDif = S(bloq.filter(b => {
     const t = String((b || {}).tit || '');
+    /* ADAPTADO en la tanda PANT-22 (commit 5): el bloque se llamaba «Las diferencias entre las
+       dos guias, sin resolver» y pasa a «Lo que cada guia publica», porque «sin resolver» es una
+       de las formas que la regla del 04/11 prohibe. Es una adaptacion de LOCALIZACION: el bloque,
+       sus lineas y sus numeros no se movieron, y (D1) y (D2) siguen midiendo lo mismo. */
     return t.indexOf('diferencia') > -1 || t.indexOf('Lo que publica') > -1
+        || t.indexOf('Lo que cada gu\u00eda publica') > -1
         || t.indexOf('declaraci\u00f3n cient\u00edfica') > -1 || t.indexOf('Pron\u00f3stico') > -1; }));
   ex.push(['(D0) DENOMINADOR: la seccion tiene su bloque de diferencias o de fuente aparte', bloqDif.length > 100, true]);
   /* ⚠️ EL CORTE DE TAPSE VIVE EN EL BLOQUE DE RECOMENDACIONES Y NO EN EL DE DIFERENCIAS, asi
@@ -114903,8 +114984,18 @@ caso('TC-673', 'Tanda PANT-10: la Evidencia de Síndrome de Eisenmenger -sus fil
     todo.indexOf('por debajo de 16 mm y NT-proBNP por encima de 1400') > -1, true]);
   const DIF = ['bosentán', 'Clase 3: Daño', 'IIb con trombosis'];
   ex.push(['(D1) muestra la primera linea de tratamiento y la anticoagulacion, en su bloque', DIF.filter(d => bloqDif.indexOf(d) > -1).length, DIF.length]);
-  ex.push(['(D2) y lo hace en un bloque propio de diferencias, o en la nota de una pregunta',
-    todo.indexOf('no coincide') > -1 || todo.indexOf('sin resolver') > -1 || todo.indexOf('difieren') > -1, true]);
+  /* ADAPTADA E INVERTIDA en la tanda PANT-22 (commit 5), y es el dia que esta condicion
+     anunciaba: exigia que la seccion dijera «no coincide», «sin resolver» o «difieren», que son
+     tres de las formas que la regla fija del 04/11 prohibe. Queda al reves y MAS fuerte: ninguna
+     de esas formas puede estar, y la seccion tiene que seguir NOMBRANDO a las dos guias, que es
+     lo que de verdad importaba -que cada una se cite por lo que ella dice-. Asi puede fallar por
+     los dos lados: si vuelve una forma prohibida, y si se pierde una de las dos guias. */
+  ex.push(['(D2) ninguna forma que la regla prohibe, y las DOS guias siguen nombradas',
+    todo.indexOf('no coincide') < 0 && todo.indexOf('no coinciden') < 0
+      && todo.indexOf('sin resolver') < 0 && todo.indexOf('difieren') < 0
+      && todo.indexOf('discrepan') < 0
+      && (todo.indexOf('ACC/AHA') > -1 || todo.indexOf('AHA/ACC') > -1)
+      && todo.indexOf('ESC') > -1, true]);
   ex.push(['(D3) la guia que RIGE esta declarada', !!(r && r.guia && r.guia.txt), true]);
   /* ── (E) EL PAPEL NO LA LLEVA ── */
   try { if (typeof generarInforme === 'function') generarInforme() } catch (e) {}
