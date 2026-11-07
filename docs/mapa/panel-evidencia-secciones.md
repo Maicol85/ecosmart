@@ -16,6 +16,24 @@
 > `docs/mapa/panel-evidencia-terminos.md`.
 
 
+## Tres secciones nuevas de una vez, y la que ocupa el lugar de otra (PANT-21, 2026-11-07)
+
+`IND_SECS` pasa de **42 a 45**: `Prótesis aórtica`, `Prótesis tricúspide` y `Prótesis pulmonar`,
+cada una **pegada a la de su válvula nativa** porque es la que **ocupa su lugar**.
+
+⚠️ **UNA SECCIÓN QUE REEMPLAZA A OTRA COMPARTE SU PREDICADO, NO LO COPIA.** La rama de prótesis de
+`_indEA` dejó de publicar su tarjeta «esta sección no aplica» y devuelve **`null`**, con el **MISMO**
+`valvEsProtesis(_indS('va_morf'))` con que abre `_indProtA`: con dos predicados distintos existiría
+un estado en que se ven las dos, o ninguna.
+
+⚠️ **Y NINGÚN TÍTULO PUEDE SER PREFIJO DE OTRO**, porque `IND_SECS` se recorre por el prefijo del
+título: los cuatro divergen en su **segunda palabra**. Lo fija TC-742 `(A11)` y TC-745 `(D6)`, que
+nacieron del barrido de mutaciones — **sacar una sección del registro la deja fuera del panel con
+todas las demás condiciones en verde**.
+
+- **El procedimiento, sección por sección**, y qué guía rige cada una →
+  `docs/mapa/pant21-evidencia-protesis.md` § 1 y § 4.
+
 ## Qué devuelve una sección
 
 Cada `fn` de `IND_SECS` devuelve `null` (la sección no aplica y no se pinta) o un objeto:

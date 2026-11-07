@@ -63,6 +63,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
 | **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
 | **Tocar un CUESTIONARIO de Evidencia de congénitas** —el ductus, la coartación, la Fallot reparada del VD, la estenosis pulmonar, la conclusión de la bicúspide, la miocardiopatía hipertrófica obstructiva o la VENTANA AORTOPULMONAR—, **o el COLOR AL TOCAR una estructura del corazón maestro** | `docs/mapa/pant17-evidencia-congenitas.md` |
+| **Tocar la EVIDENCIA DE PRÓTESIS —aórtica, mitral, tricúspide o pulmonar—, el ORDEN de una sección de prótesis o el BLOQUE DE CAUSAS del gradiente alto**: `ordenProt`, `_indCausas`, qué guía rige cada válvula, qué causa se marca sola y por qué la tricúspide y la pulmonar no llevan bloque | `docs/mapa/pant21-evidencia-protesis.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` · la anatomía de una sección, su catálogo y los dos procedimientos en `docs/mapa/panel-evidencia-secciones.md` |
 | **Tocar un TEXTO de la pantalla de Evidencia o de una ficha de Referencias**: las OCHO secciones compactas y su orden, qué nota va al ⓘ y qué va a `FUENTES.md`, la cita única al final del bloque, `_popNotas`, el mensaje del Forrester y su frontera con el informe, o las tres fichas tocadas | `docs/mapa/a-evidencia-textos.md` |
 | **Tocar el REGISTRO DE CITAS del panel**: `IND_REFS`, el marcador `ecosmart`, el allowlist `IND_REF_IDX` o la numeración por sección | `docs/mapa/panel-evidencia-citas.md` |
@@ -214,9 +215,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,20 MB / 167.918 líneas**, medido con `wc -c` y `wc -l` el 2026-11-06 al
-  cierre de la tanda **PANT-20**, sobre el árbol ya sellado: sello **`v20261106-2156`**, md5
-  **`a99b0db9`**. El diff de PANT-20 son **426 líneas agregadas y 33 quitadas** en `index.html`,
+  sin frameworks. Hoy **12,26 MB / 168.550 líneas**, medido con `wc -c` y `wc -l` el 2026-11-07 al
+  cierre de la tanda **PANT-21**, sobre el árbol ya sellado: sello **`v20261107-0025`**, md5
+  **`439f6bb0`**. El diff de PANT-21 son **649 líneas agregadas y 17 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `e716871`, de las que **623** no son comentario, con
+  **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
+  ⚠️ **POR DECIMOCTAVA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show e716871:index.html` da **167.918** líneas,
+  **12.199.178** bytes y el md5 **`a99b0db9`**, los tres idénticos a lo que el renglón decía.
+  (Antes: 12,20 MB / 167.918 al cierre de PANT-20, sello `v20261106-2156`, md5 `a99b0db9`.) El diff de PANT-20 son **426 líneas agregadas y 33 quitadas** en `index.html`,
   medido con `git diff --numstat` contra `694e9e3`, de las que **400** no son comentario, con
   **cero** `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas.
   ⚠️ **POR DECIMOSEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
@@ -812,6 +819,189 @@ impecable.
 > secciones de REGLAS (la regla de oro con su tabla de mapas, «Qué es EcoSmart», el panel de
 > Evidencia, el protocolo de verificación, las trampas conocidas, el flujo de trabajo,
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
+### La Evidencia de prótesis, una sección por válvula — «PANT-21» (2026-11-07)
+
+- **DIEZ commits —contados con `git log e716871..HEAD` AL CERRAR, y el commit que escribe este
+  número entra en la cuenta— y los SIETE puntos de la orden se tocaron, con el 4a PARADO por
+  medición.** `3ed6627` (1) · `2a64425` (2) · `e36de3f` (3) · `4b38f74` (4) · `69a5868` (5) ·
+  `b231bd0` (6) · `438828b` (7a, los casos y el sello) · `6838911` (7b, lo que el barrido
+  destapó) · el 7c (la condición del último superviviente) · **éste** (7d, la documentación).
+  Sello **`v20261107-0025`**, md5 **`439f6bb0`**. Al empezar, `origin/main` = `HEAD` =
+  **`e716871`**, el cierre de PANT-20, ya publicado, con md5 `a99b0db9` y el pendrive `DISK_IMG`
+  montado.
+  **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+  ⚠️ **EL COMMIT 7a SELLA ANTES DE LA VERIFICACIÓN Y LOS TRES ÚLTIMOS NO VUELVEN A SELLAR**,
+  porque no tocan `index.html`: así el árbol que la suite, el barrido, el A/B, los dos motores y
+  el celular midieron es exactamente el que queda commiteado.
+
+- **LAS CINCO GUÍAS, EN IMAGEN, Y LAS CINCO REGLAS DE FOLIO COMPROBADAS EN EL PIE O LA CABECERA
+  IMPRESOS.** ESC/EACTS 2025 **final** (102 hojas, folio = hoja + 4634): la **Recommendation
+  Table 17 entera** a 300 ppp en dos tramos —hoja 66, **folio 4700** impreso en el encabezado— y
+  su **Figura 20** (hoja 65, **folio 4699**). ACC/AHA 2020 (folio = hoja + 71): hojas 79, 81 y 83,
+  folios **e150**, **e152** y **e154**. ASE 2024 (folio = hoja + 1): **Figura 13 y Tabla 5** en la
+  hoja 18, **folio 19**; la obstrucción por trombo, calcificaciones o pannus en la hoja 9, folio
+  10; las causas de estenosis mitral en la hoja 24, folio 25. ACC/AHA 2025 de congénitas (folio =
+  hoja + 114): hoja 75, **folio e189**. ESC 2020 de congénitas **inglesa** (folio = hoja + 562):
+  hoja 60, **folio 622**.
+
+- **LA TABLA 17 NO ESTÁ DIVIDIDA POR VÁLVULA, Y ESO ES LO QUE ORGANIZA LA TANDA.** Trece filas en
+  seis grupos. **Ninguna de clase III.** ⚠️ **Y NINGUNA FILA DE PRÓTESIS PULMONAR**, verificado
+  fila por fila: sus únicas posiciones nombradas son la **aórtica** (fila 6, **transfemoral**) y la
+  **mitral o tricuspídea** (fila 7, **transvenoso**). Por eso la pulmonar se arma con las guías de
+  congénitas, que es lo que la decisión del médico manda.
+
+- ⚠️ **EL COMMIT 4a SE PARÓ, Y ES UNA MEDICIÓN: a la sección mitral NO LE FALTABA NINGUNA FILA.**
+  Censado sobre el árbol anterior, `PROTM_REC_2025` ya traía **doce** claves —las doce filas de la
+  Tabla 17 que alcanzan a esa posición— con su clase y su nivel, coincidiendo fila por fila con lo
+  leído en imagen, y `PROTM_REC_AHA_2020` las **cinco** de la guía americana. No se agregó una sola
+  pregunta. **Lo fija TC-744 (C0)**, que se pone rojo tanto si una desaparece como si alguien
+  agrega una decimotercera creyendo que falta.
+
+- **TRES SECCIONES NUEVAS Y UNA AMPLIADA.** `IND_SECS` pasa de **42 a 45**: `Prótesis aórtica`
+  (12 preguntas), `Prótesis tricúspide` (12) y `Prótesis pulmonar` (11), más la mitral, que ya
+  existía. Cada una va **pegada a la de su válvula nativa** porque es la que **ocupa su lugar**.
+  ⚠️ **Ningún título es prefijo de otro ni tiene otro por prefijo**: `IND_SECS` se recorre por el
+  prefijo del título, y los cuatro divergen en su **segunda palabra**.
+
+- **LA AÓRTICA DEJA DE DECIR «esta sección no aplica».** `_indEA` devolvía una tarjeta cuyo texto
+  decía «esa es otra tabla, la de reintervención, **que esta aplicación todavía no implementa**».
+  Hoy devuelve `null` —igual que las tres mitrales nativas con una prótesis mitral— y la que ocupa
+  su lugar es `_indProtA`. ⚠️ **El predicado es el MISMO en las dos**: con dos distintos existiría
+  un estado en que se ven las dos, o ninguna.
+
+- **EL ORDEN ES UNA OPCIÓN POR SECCIÓN, `ordenProt`, Y SÓLO LAS CUATRO DE PRÓTESIS LA TRAEN.**
+  Pone el orden que el médico fijó —preguntas, «Con lo contestado», causas, «Ver detalle» plegado,
+  bibliografía— e **implica el molde de preguntas**, porque ese molde ES el orden que la decisión
+  pide. Medido: **cero diferencias de DOM en TODAS las demás secciones**, en los cuatro anchos.
+  ⚠️ **LAS CAUSAS VAN DESPUÉS DE LO QUE LA SECCIÓN CONCLUYE, Y ESO SON DOS LUGARES DISTINTOS**:
+  «Con lo contestado» es `adapt` en tres de ellas y es **`recom`** en la **mitral**, que concluye
+  con `_protmRecom` desde antes. Con `adapt` van antes del «Ver detalle»; sin `adapt`, después de
+  la conclusión visible.
+
+- **UN SOLO AYUDANTE DE CAUSAS, PARAMETRIZADO POR VÁLVULA.** `_indCausas(lista, decide)` y
+  `_indCausasHTML(cs, nota)`. `decide(clave)` devuelve **tres** estados y los tres usan los iconos
+  de la leyenda que el panel ya imprime: `true` → ✅ «la rama que el algoritmo señala», `false` →
+  — «la hermana, medida y descartada», `null` → ❓ «no decidible». ⚠️ **Sin esa distinción, una
+  causa no decidible saldría con la marca de «medido y no alcanza el criterio»**, que es una
+  afirmación que esta aplicación no puede sostener.
+
+- **QUÉ SE MARCA SOLO, Y DÓNDE NO HAY BLOQUE.** En la **aórtica**, sólo el **hiperflujo** y el
+  **desajuste**, que son las que la **Figura 13** decide con el **cociente de VTI** y la **EOA
+  indexada** que la app ya calcula. Medido con su control positivo y su negativo: con el cociente
+  en 0,33 y el área en 0,92 sale «hiperflujo ✅ · desajuste —», y con el **mismo** cociente y el
+  área en 0,39 se da vuelta; con el cociente en 0,21 las cinco salen ❓.
+  En la **mitral**, **ninguna**: la guía da una **lista** (hoja 24, folio 25) y **no un
+  algoritmo**. Y la **tricúspide** y la **pulmonar** **no llevan bloque**, porque la ASE 2024 trae
+  **una sola** enumeración de causas —la mitral— y su Tabla 19 y su Tabla 15 publican **cortes y
+  no causas**. Las dos secciones lo **DICEN** en una de sus notas. → **P21-a**.
+
+- ⚠️ **UNA PREMISA DE ARCHIVO NO SE REPRODUJO.** La orden nombra la ESC 2020 de congénitas «en
+  inglés»; el archivo `Baumgartner_2020_Cardiopatias_Congenitas.pdf` está en **español** y tiene
+  **79 hojas**, así que no cumple `folio = hoja + 562` y sus hojas 52, 60 y 61 no son las que el
+  índice describe. La inglesa es **`ESC congenitos en ingles 2020.pdf`**, 84 hojas, y su **hoja 60
+  imprime 622**. Se usó la inglesa. → **P21-a**.
+
+- ⚠️ **Y LAS DOS PARTES DEL MISMO DOCUMENTO NO USAN EL MISMO OPERADOR EN EL TROMBO GRANDE**: la
+  Tabla 17 imprime «**>10 mm**» y su Figura 20 «**≥10 mm**». Las dos leídas en imagen. La app no
+  aplica ese corte a ningún número suyo: lo publica como texto, con la forma de la tabla, que es
+  la que rige. → **P21-a**.
+
+- **UNA SOLA PREGUNTA SE PRE-RESPONDE DESDE UN CAMPO, y sólo porque significa EXACTAMENTE lo
+  mismo**: `ea_pvl_origen` en «paravalvular» o «mixta» es Sí, en «central» es No y vacío es sin
+  dato. Medido: con «central» su control **ni siquiera se dibuja** y las preguntas bajan de siete a
+  seis, que es el contrato de `_indFilaOrigen`. ⚠️ **Censado: la app NO tiene campo de síntomas, de
+  riesgo quirúrgico ni de trombosis protésica**, así que las demás se contestan a mano.
+
+- **38/38 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, con el md5 del
+  árbol vivo **idéntico** antes y después (`439f6bb0`), en 1,0 min.
+  ⚠️ **EL PRIMER BARRIDO DEJÓ DOCE SOBREVIVIENTES Y SE REPARTIERON EN CUATRO CLASES.** **Seis
+  huecos reales**, con nueve condiciones nuevas: nada miraba que la sección estuviera **registrada
+  en `IND_SECS`** —sacarla la dejaba fuera del panel con todo en verde—; faltaban las **escenas de
+  borde de la Figura 13**, así que mover el corte del cociente de 0,30 a 0,25, el del área de 0,85
+  a 0,75 y dejar de mirar el área pasaban los tres en verde; y **la cita se contaba sobre el JOIN**
+  de las cinco causas y de las once preguntas, así que quitarle la hoja y el folio a UNA seguía
+  encontrándolos en las otras. **Dos miraban el OBJETO y no el HTML**: romper lo que `ordenProt`
+  HACE pasaba en verde porque el objeto seguía igual. **Y dos estaban mal declaradas**: la del
+  orden de la mitral apuntaba al caso del emisor, y la de la sección ajena a un caso que no
+  siembra ninguna congénita. Un decimotercero sobrevivió al **segundo** barrido, y era otro hueco:
+  el control negativo **busca** la primera sección sin `ordenProt`, así que si una se lo gana la
+  búsqueda elige otra — hoy esa sección se siembra y se exige **por nombre**.
+
+- **SEIS CASOS NUEVOS, TC-742 a TC-747**, con sus denominadores y sus controles negativos, y los
+  seis **caen contra `e716871` por 35 condiciones y NINGUNA por excepción**, verificado alternando
+  sólo `index.html` con el mismo archivo de casos. Los accesores llevan guarda a propósito: contra
+  el árbol anterior tres de las cuatro funciones de sección **no existen**.
+
+- **TRES CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito**: **TC-322** (tres escenarios
+  nuevos; ese caso se pone rojo tanto al borrar una sección como al agregarla), **TC-533** (el
+  conteo de `IND_SECS`, 42 → **45**) y **TC-291**, **INVERTIDO**, y es el día que ese caso
+  anunciaba: afirmaba que con una prótesis `_indEA` publica la tarjeta «no aplica». Hoy exige que
+  la nativa se calle **y** que la de prótesis exista con sus preguntas, así que puede fallar por
+  los dos lados.
+
+- ⚠️ **TRES TRAMPAS QUE ESTA TANDA PAGÓ, Y LAS TRES SON DE ESCRITURA.** (1) **El acento grave
+  dentro de MI PROPIO comentario**, en el cuerpo de un caso — **tres veces**, y es la decimoquinta
+  tanda seguida que lo paga; lo caza `node --check` y lo previene **contar** los acentos graves del
+  cuerpo de cada caso y exigir el número exacto. (2) **La barra invertida de un literal de
+  expresión regular** no sobrevive al template literal: `/ESC\/EACTS 2025/` llegó como
+  `/ESC/EACTS 2025/` y dio «Invalid regular expression flags»; se cerró **no usando ninguna
+  expresión regular**. (3) **Los títulos de los recuadros del panel NO van en mayúsculas en el
+  HTML** —la mayúscula la pone el CSS con `text-transform`—, así que buscarlos con la forma que el
+  DOM muestra devuelve −1 sobre un recuadro que **sí** está.
+
+- **A/B contra `e716871`, con el PDF y el PPT generados de verdad: 108 escenas comparables, 22.032
+  claves y CERO diferencias de superficie firmada**, informe en los tres estilos, EN SUMA, las **457** columnas de Excel
+  clave por clave, los campos, el Laboratorio, el PDF en sus seis plantillas y el PPT. Las **96**
+  diferencias de pantalla son el control positivo, y las 96 caen en tres claves del panel de
+  Evidencia: `_evTexto`, `_evN` y `_evSecs`.
+  ⚠️ **El arnés gana CUATRO escenas propias** —una por válvula en el estado alterado que abre el
+  bloque de causas—: sin ellas el cero sería un control negativo sobre escenas que no alcanzan la
+  zona que la tanda toca.
+
+- **Línea base al cierre: suite 756/762**, en **catorce** lotes cubriendo los **762 casos
+  distintos** —contados nombre por nombre, en el orden DEL ARCHIVO y con una guarda que compara lo
+  listado con lo ejecutado—, en UNA sola pasada sobre el árbol sellado, con el pendrive `DISK_IMG`
+  **verificado al abrir, en cada uno de los catorce lotes y al cerrar** (dieciséis verificaciones)
+  y el md5 de `index.html` **idéntico** antes y después (`439f6bb0`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551 y TC-557**, los dos intermitentes declarados.
+  ⚠️ **LOS DOS SE CARACTERIZARON COMO MANDA ESTA CASA, y los dos pasan 3 DE 3 CORRIDOS AISLADOS**:
+  TC-551 es el que `COR-f` declara —mide el chorro de la orejuela sin pausar la animación— y
+  TC-557 el que `TGA-h` declara, con la firma de `elementFromPoint` fuera del viewport.
+  **Ningún rojo nuevo**, y los **seis casos nuevos y los tres adaptados en verde**.
+  ⚠️ **Y 762 LISTADOS CONTRA 762 DISTINTOS**: cero duplicados, contado nombre por nombre antes de
+  repartir los lotes.
+
+- **38/38 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, en 1,0 min, con el
+  md5 del árbol vivo **idéntico** antes y después (`439f6bb0`). Cada mutación declara **su** caso.
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), y la única diferencia entre motores es de **métrica de fuente**: de 2 a 5 px en el
+  alto de una sección. En los dieciséis: las **cuatro** secciones abriendo, el panel con sus
+  **cinco** secciones despiertas, el orden `encabezado · grid · contestado · causas · Ver detalle ·
+  bibliografía` en la aórtica y `encabezado · grid · conclusión · causas · Ver detalle ·
+  bibliografía` en la mitral, **7 / 4 / 7 / 11** preguntas contestables, **CERO** botones de
+  respuesta por debajo de 30 px de alto (21 / 8 / 21 / 33), los folios de cada sección presentes,
+  **cero** desplazamiento horizontal del cuerpo y **CERO errores de consola y de página en los dos
+  motores**.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema con
+  `channel: 'chrome'`.
+  **El mismo cruce contra `e716871` es el control, y reproduce la premisa**: el panel abre con
+  **DOS** secciones y la **única** de prótesis que existe es la **mitral**; las otras tres no están.
+  ⚠️ **Y LOS CINCO TEXTOS RECORTADOS DEL PANEL SON PREEXISTENTES**: el control da **5** en los
+  dieciséis cruces de los **dos** árboles y en los dos motores, con `scrollH` en cero en los
+  treinta y dos.
+  **Alto del contenido visible por sección, en Chrome** (la sección abierta con sus plegables
+  cerrados): aórtica **1257 / 1257 / 1300 / 2211** px a 1440, 1000, 768 y 390; mitral **1160 /
+  1160 / 1196 / 1818**; tricúspide **778 / 778 / 794 / 1328**; pulmonar **1233 / 1233 / 1472 /
+  2052**.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base, sin un aviso nuevo. **Sin huérfanos nuevos.**
+  **Cero campos guardados nuevos**, **Excel 457** con las mismas claves y **ningún id cambió**.
+  17 de 19 bloques de JS inline parsean, idéntico a HEAD.
+
 ### El catálogo en la mitral, la tricúspide y la pulmonar — «PANT-20» (2026-11-06 y 07)
 
 - **DOCE commits —contados con `git log 694e9e3..HEAD` AL CERRAR, y el commit que escribe este

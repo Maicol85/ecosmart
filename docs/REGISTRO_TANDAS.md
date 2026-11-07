@@ -1,3 +1,46 @@
+## PANT-21 — la protesis valvular, parte 5 de 5: la EVIDENCIA de protesis, una seccion por valvula (2026-11-07)
+
+**Commits**: el inventario y la lectura de las cinco guias; el orden de la seccion como opcion y
+la mitral como primer uso; la seccion de la protesis AORTICA; el bloque de causas de la MITRAL
+—con el 4a PARADO—; la seccion de la TRICUSPIDE; la de la PULMONAR; y la cobertura con la
+documentacion. Sello **v20261107-0025**.
+
+- **Lo leido, todo EN IMAGEN y con el folio comprobado en el pie o la cabecera impresos**: la
+  **Recommendation Table 17 entera** de la ESC/EACTS 2025 (hoja 66, folio 4700) a 300 ppp en dos
+  tramos —trece filas, seis grupos, **no dividida por valvula**— y su **Figura 20** (hoja 65, folio
+  4699); las filas de protesis de la **ACC/AHA 2020** (hojas 79, 81 y 83; folios e150, e152 y
+  e154); la **Figura 13** y la **Tabla 5** de la ASE 2024 (hoja 18, folio 19), su parrafo de
+  obstruccion (hoja 9, folio 10) y sus causas de estenosis mitral (hoja 24, folio 25); los
+  conductos de ventriculo derecho a arteria pulmonar de la **ACC/AHA 2025 de congenitas** (hoja 75,
+  folio e189) y de la **ESC 2020 de congenitas INGLESA** (hoja 60, folio 622).
+
+- **Lo que cambio**: `IND_SECS` pasa de **42 a 45**. Tres secciones nuevas —**Protesis aortica**,
+  **Protesis tricuspide** y **Protesis pulmonar**— mas la mitral, que ya existia y gana el orden
+  nuevo y su bloque de causas. La rama de protesis de `_indEA` deja de publicar la tarjeta «esta
+  seccion no aplica» y devuelve `null`. `IND_GUIA_LBL` gana `vhd25` y `vhd20`.
+
+- **El mecanismo**: una opcion por seccion, **`ordenProt`**, que pone el orden que el medico fijo
+  —preguntas, «Con lo contestado», causas, «Ver detalle» plegado, bibliografia— e implica el molde
+  de preguntas. Y **un solo ayudante de causas**, `_indCausas` + `_indCausasHTML`, parametrizado por
+  valvula, cuyo `decide(clave)` devuelve tres estados: la rama que el algoritmo seniala (✅), la
+  hermana medida y descartada (—) y la no decidible (❓).
+
+- **TRES PREMISAS QUE NO SE REPRODUJERON**: (1) a la seccion mitral **no le faltaba ninguna** fila
+  de la Tabla 17 —ya tenia las doce que alcanzan a esa posicion, con su clase—, asi que el 4a se
+  **paro**; (2) el archivo de la ESC 2020 de congenitas que el nombre sugiere esta en **espaniol**
+  y la edicion inglesa es otra; (3) la ASE 2024 **no da causas del gradiente alto para la
+  tricuspide ni para la pulmonar**, asi que esas dos secciones no llevan bloque y lo **dicen**.
+
+- **Lo que NO cambio**: cero campos guardados nuevos, Excel en **457** columnas, ningun id, y el
+  **papel identico** —A/B con el PDF y el PPT generados de verdad: **cero diferencias de superficie
+  firmada en las 108 escenas comparables y 22.032 claves**, con 96 de pantalla en tres claves del
+  panel como control positivo—.
+
+- **La verificacion**: suite **756/762** en catorce lotes y una sola pasada, con el pendrive
+  verificado dieciseis veces y el md5 identico antes y despues; **38/38 mutaciones dirigidas
+  muertas**; Chrome y WebKit coincidiendo en los **dieciseis** cruces con cero scroll y cero
+  errores; Semgrep **124 / 0**; celular **59 y 67 con 18 ALTA**, la linea base exacta.
+
 ## PANT-20 — la protesis valvular, parte 4 de 5: el catalogo en la MITRAL, la TRICUSPIDE y la PULMONAR (2026-11-06)
 
 **DOCE commits** -contados con `git log 694e9e3..HEAD` al cerrar, y el que escribe este numero

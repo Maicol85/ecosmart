@@ -46,9 +46,14 @@ contenido clínico nuevo—.
 
 El censo de la sección de prótesis mitral encuentra **«no coinciden»**, en una de sus trece notas:
 «Las dos definiciones de desajuste protésico-paciente mitral de la misma guía **no coinciden**».
-Verificado en el árbol anterior, donde esa forma aparece **31 veces** en todo el archivo. **No se
-tocó**: cambiar ese texto es contenido clínico y no estaba en esta orden. Es la misma clase que
-`P17b-d`. **Decide el médico** si se reescriben.
+Verificado en el árbol anterior, donde esa forma aparece **31 veces** en todo el archivo —el mismo
+número que hoy— y donde esa nota ya estaba: la escribió el commit `bbc294a`, «Evidencia: seccion
+Protesis mitral (etapa A)». **No se tocó**: cambiar ese texto es contenido clínico y no estaba en
+esta orden. Es la misma clase que `P17b-d`. **Decide el médico** si se reescriben.
+
+⚠️ **Y es la ÚNICA de las cuatro secciones que la trae**, medido en los dieciséis cruces de los dos
+motores sobre las siete formas que la regla prohíbe: la aórtica, la tricúspide y la pulmonar dan
+**cero** en los dieciséis, y la mitral da **sólo** ésa.
 
 ## P21-b · Lo que no entró por el tope de preguntas
 

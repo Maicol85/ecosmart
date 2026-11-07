@@ -24,6 +24,23 @@ informe**: ni el narrativo, ni el PDF, ni el PPT, ni el Excel lo leen.
 > Por qué eso invierte la regla del 2026-10-11 y qué hay que revisar si esa sección publicara
 > alguna vez una contraindicación: **`docs/mapa/aj6-fallot-pulmon-refs.md`**.
 
+## El ORDEN de una sección es una opción, y el bloque de CAUSAS un ayudante (PANT-21, 2026-11-07)
+
+`_indSecHTMLCuerpo` gana **`ordenProt`**, una opción por sección que la **sólo** declaran las cuatro
+de prótesis. Pone el orden que el médico fijó —preguntas → «Con lo contestado» → causas → «Ver
+detalle» plegado → bibliografía— e **implica el molde de preguntas**, porque ese molde ES el orden
+que la decisión pide. Una sección **sin** la opción sigue por el camino de siempre, sin tocarlo:
+medido, **cero diferencias de DOM en TODAS las demás secciones**, en los cuatro anchos.
+
+⚠️ **Las causas van después de lo que la sección CONCLUYE, y eso son dos lugares distintos**:
+«Con lo contestado» es `adapt` en tres de las cuatro y es **`recom`** en la **mitral**. Con `adapt`
+van antes del «Ver detalle»; sin `adapt`, después de la conclusión visible.
+
+- **El ayudante único de causas** —`_indCausas(lista, decide)` y `_indCausasHTML(cs, nota)`—, sus
+  **tres** estados de marca y por qué `null` no puede salir con la marca de «medido y descartado»
+  → `docs/mapa/pant21-evidencia-protesis.md` § 3.
+- **Las dos etiquetas nuevas de `IND_GUIA_LBL`** (`vhd25`, `vhd20`) → ese mapa § 5.
+
 ## Entradas y ciclo de vida
 
 - **`indicAbrir`** — única puerta por la que el panel se ve: `_indClinLimpiar()`, `indicRender()`,

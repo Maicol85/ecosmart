@@ -355,6 +355,38 @@ salieron **nueve** condiciones nuevas.
 
 ---
 
+## PANT-21 (2026-11-07) — la Evidencia de prótesis, una sección por válvula
+
+| caso | qué fija |
+|---|---|
+| **TC-742** | la sección **aórtica**: la compuerta con la nativa, el orden, y la recomendación con su clase, su nivel y su folio |
+| **TC-743** | el **bloque de causas** de la aórtica: su compuerta «posible» y las **tres escenas de borde** de la Figura 13 |
+| **TC-744** | la **mitral**: las **doce** filas de la Tabla 17 que ya estaban —el guardián de la parada del 4a— y su orden propio |
+| **TC-745** | la **tricúspide**: el valve-in-valve **transvenoso** y que la Tabla 19 da cortes y no causas |
+| **TC-746** | la **pulmonar**: rige la ACC/AHA 2025 de congénitas y la **ESC/EACTS 2025 NO se usa** |
+| **TC-747** | el **emisor compartido**: `ordenProt` no toca a ninguna otra sección y la Evidencia **no llega al papel** |
+
+**Las fichas de los seis** → `docs/mapa/tests-fichas-742.md` (archivo propio: `tests-fichas.md`
+está a menos de 1 KB del techo).
+
+**Tres casos viejos adaptados**: **TC-291** —**INVERTIDO**, y es el día que ese caso anunciaba:
+afirmaba que con una prótesis `_indEA` publica la tarjeta «esta sección no aplica», y hoy exige que
+la nativa se calle **y** que la de prótesis exista con sus preguntas, así que puede fallar por los
+dos lados—; **TC-322**, con tres escenarios nuevos, que se pone rojo tanto al borrar una sección
+**como al agregarla**; y **TC-533**, el conteo de `IND_SECS`, 42 → **45**.
+
+### PANT-21 · dos lecciones del barrido de mutaciones
+
+**Una condición que mira el OBJETO no prueba lo que el EMISOR hace con él.** Las condiciones del
+orden miraban el objeto que devuelve la sección, así que romper lo que `ordenProt` *hace* —que
+implique el molde de preguntas, y que «Con lo contestado» baje de la grilla— pasaba en verde.
+Nacieron `(F2b)` y `(F2c)` de TC-747, que miden el **HTML emitido**.
+
+**Una cita exigida sobre el JOIN de varias filas no puede fallar por una.** `(B6)` de TC-743 pedía
+la hoja y el folio sobre el texto de las **cinco** causas pegado, y `(E4)` de TC-746 sobre el de las
+**once** preguntas: quitárselos a **una** seguía encontrándolos en las otras. Las dos pasaron a
+exigirlos **fila por fila**, y de ahí salió `(E4b)`.
+
 ## PANT-20 (2026-11-06) — el catálogo en la mitral, la tricúspide y la pulmonar
 
 | caso | qué fija |

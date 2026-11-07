@@ -11,6 +11,22 @@ las Tablas 7, 11 y 12 y el PPM → `docs/mapa/protesis-valvular.md`.
 
 ---
 
+## Las dos ganaron sección de Evidencia, y ninguna lleva bloque de causas (PANT-21, 2026-11-07)
+
+`Prótesis tricúspide` (12 preguntas) y `Prótesis pulmonar` (11). La **tricúspide** rige por la
+Recommendation Table 17 de la ESC/EACTS 2025 —y su valve-in-valve es el **TRANSVENOSO**, la fila 7,
+no el transfemoral de la posición aórtica—; la **pulmonar**, por la **ACC/AHA 2025 de congénitas**
+(hoja 75, folio e189) con la **ESC 2020 de congénitas inglesa** (hoja 60, folio 622) como referencia,
+porque la Tabla 17 **no publica ninguna fila de prótesis pulmonar**.
+
+⚠️ **NINGUNA DE LAS DOS LLEVA BLOQUE DE CAUSAS DEL GRADIENTE ALTO, y las dos lo DICEN.** La ASE 2024
+trae **una sola** enumeración de causas —la de la posición mitral, hoja 24, folio 25— y el algoritmo
+de su Figura 13 para la aórtica; la **Tabla 19** y la **Tabla 15** publican **cortes y no causas**.
+Lo fija TC-745 `(D4)` y TC-746 `(E5)`.
+
+- **El detalle de las dos secciones y el reparto de guías** →
+  `docs/mapa/pant21-evidencia-protesis.md` § 1, § 4 y § 6.
+
 ## 1 · El reparto: `calcET` y `calcVP` NO cambiaron
 
 Es el mismo que la prótesis **mitral** ya usaba y el que hace que esta tanda sea de bajo riesgo:

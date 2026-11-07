@@ -11,6 +11,23 @@ y de las insuficiencias, que están en `docs/mapa/valvulas-mitral-pantalla.md` y
 
 ---
 
+## La Evidencia de prótesis llegó a las cuatro válvulas (PANT-21, 2026-11-07)
+
+Las recomendaciones de la **Recommendation Table 17** de la ESC/EACTS 2025 (hoja 66, folio 4700) y
+su **Figura 20** (hoja 65, folio 4699), con la **ACC/AHA 2020** como referencia, y la **pulmonar
+armada con las guías de congénitas** porque esa tabla **no trae una sola fila de prótesis
+pulmonar** —verificado fila por fila: sus únicas posiciones nombradas son la aórtica (transfemoral)
+y la mitral o tricuspídea (transvenoso)—.
+
+⚠️ **A la sección MITRAL no le faltaba ninguna fila**, y por eso el commit 4a se **paró**:
+`PROTM_REC_2025` ya traía las **doce** que alcanzan a esa posición, con su clase y su nivel. Lo fija
+**TC-744 `(C0)`**, que se pone rojo tanto si una desaparece como si alguien agrega una decimotercera.
+
+- **Las cuatro secciones, el bloque de causas del gradiente alto y qué causa se marca sola** →
+  `docs/mapa/pant21-evidencia-protesis.md`.
+- **Qué veredicto de pantalla gobierna el bloque en cada válvula** —`V.nivel === 'posible'` en la
+  aórtica, `P.obstr === 'posible'` en la mitral, y **sin bloque** en las otras dos— → ese mapa § 3.
+
 ## 1 · Qué activa la lógica de prótesis, y por válvula
 
 Cada válvula usa los criterios de prótesis cuando **su propia** morfología lo es. Las dos
