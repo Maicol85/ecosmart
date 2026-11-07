@@ -62618,10 +62618,44 @@ function generarInforme(opts) {
          entre paréntesis, y la de «sin hallazgos» con `_vaEs` suelto. Acá alcanza `_vaEs`, que ya
          es una oración con verbo y concuerda con el resto de la frase. Los otros dos estilos
          —conciso y estándar— usaban `_vaAdj` solo y NO se tocan: no tenían la duplicación. */
-      inf.push(estiloPick(
-        `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
-        `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
-        `La válvula aórtica ${_vaEs}, ${_eaProtN.frase}${_pIns}.`));
+      /* ══ LA TAVI NORMOFUNCIONANTE — PANT-24, commit 2 (decision del medico, 08/11/2026) ══
+         La marca la calcula `eaProtNarrativa`, que es el unico lugar donde viven los niveles de
+         la Tabla 5; lo que se decide ACA es la otra mitad de la condicion: que no haya
+         insuficiencia. `insE` es el dueno de esa pregunta en este bloque y ya cubre sus DOS
+         fuentes —el grado y el escalon sin grado—, asi que no se agrega un segundo predicado.
+         ⚠️ LA ORACION SE ARMA CON LOS MISMOS FRAGMENTOS QUE LA RAMA DE AL LADO, Y ES A
+         PROPOSITO: `_vaAdj` en el conciso y en el estandar, `_vaEs` en el narrativo, que es el
+         reparto que este bloque ya tenia —y que esta aca escrito porque ponerlos juntos imprimia
+         la protesis dos veces—. Lo unico que cambia es que la cola va SIN coma, porque
+         «normofuncionante» califica a la protesis y no es una segunda clausula.
+         ⚠️ Y LA RAMA DE ABAJO NO SE TOCA: con datos que gradúan, con un dato que indica
+         estenosis o con insuficiencia presente, el papel es el de HEAD, byte por byte. */
+      /* ⚠️ Y LA INSUFICIENCIA PROTESICA TIENE UNA TERCERA FUENTE QUE NO ES `insE`, Y LA ENCONTRO
+         TC-289, NO LA LECTURA. El modulo TAVI gradua su propia regurgitacion PARAVALVULAR en
+         `eteTaviRPV()`, que no pasa por `ia_grado` ni por el escalon —es el segundo de los tres
+         caminos que /sharp-edges ya habia encontrado para este mismo bloque—. Con la escena de
+         ese caso —modulo TAVI incluido, jet de 3 horas y extension circunferencial del 20 %— el
+         EN SUMA salia «TAVI normofuncionante. TAVI balón expandible, gradiente medio 12 mmHg.
+         RPV moderada.»: la frase nueva y la insuficiencia que la desmiente, en el mismo resumen.
+         Se arregla la APLICACION y no el caso, que es la regla.
+         ⚠️ CUALQUIER grado graduado bloquea, no solo el moderado o el severo: `nula` es el unico
+         estado que dice «se busco y no hay». Decidir que un jet trivial no cuenta es contenido
+         clinico y esta orden no lo decide. Falla CERRADO: ante excepcion se trata como
+         insuficiencia presente, o sea no se afirma. */
+      const _normoRpvOk = (function(){
+        try { const r = (typeof eteTaviRPV === 'function') ? eteTaviRPV() : null;
+              return !(r && !r.nula); } catch (e) { return false; }
+      })();
+      const _normoT = !!_eaProtN.normoTavi && !insE && _normoRpvOk;
+      inf.push(_normoT
+        ? estiloPick(
+          `VAo ${_vaAdj} ${EA_PROT_NORMO.frase}.`,
+          `Válvula aórtica ${_vaAdj} ${EA_PROT_NORMO.frase}.`,
+          `La válvula aórtica ${_vaEs} ${EA_PROT_NORMO.frase}.`)
+        : estiloPick(
+          `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
+          `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
+          `La válvula aórtica ${_vaEs}, ${_eaProtN.frase}${_pIns}.`));
       /* ⚠️ LAS SALVEDADES Y LA CITA YA NO VAN AL INFORME (decisión de Maicol, 2026-09-28). Eran
          justificación metodológica y estado interno de la app —número de tabla, autores, año,
          por qué un parámetro no se evalúa, qué no registra el programa—, y eso pertenece al panel
@@ -62639,7 +62673,15 @@ function generarInforme(opts) {
          código muerto y con la forma del sistema de citas numeradas. */
       /* El EN SUMA sólo afirma cuando hay veredicto: con TAVI —que no se gradúa— y con un dato
          faltante NO se resume nada, porque cualquier línea ahí se leería como una conclusión. */
-      if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
+      /* ⚠️ EL EN SUMA DE LA TAVI NORMOFUNCIONANTE SALE DE ACA, Y NO DEL BLOQUE DE «protesis
+         normofuncionante» DEL FINAL (PANT-24, commit 2). Ese bloque tiene una guarda
+         `P.via === 'TAVI'` que esta declarada en P18-d, y moverla afirmaria «normofuncionante»
+         tambien sobre una TAVI con el veredicto en «sin criterios», que es OTRA escena y no la
+         que esta orden autoriza. Emitiendo aca, esa guarda queda donde esta y el bloque del
+         final se apaga solo: «TAVI» es un token de `yaDicho` de esta valvula, asi que su
+         `yaEnSuma` lo ve y se sale por los dos caminos —con evidencia y sin ella—. Medido. */
+      if (_normoT) suma.push(EA_PROT_NORMO.suma);
+      else if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
       /* ══ PPM AÓRTICO — UNA LÍNEA, CON EL MISMO TRATAMIENTO QUE EL MITRAL (Z, 2026-10-15) ════
          Decisión de Maicol: el aórtico se calculaba y se veía SÓLO en pantalla mientras el mitral
          ya iba al papel desde la Fase 2. Se replica la forma del mitral tal cual: sale sólo con
@@ -74160,6 +74202,27 @@ const EA_PROT_TXT = Object.freeze({
      quirurgica no tiene UN SOLO lector —censado el archivo entero—, y una entrada muerta en la
      tabla de veredictos es justo la que alguien repone creyendo que falta. */
 });
+/* ══ LA TAVI SIN DATOS QUE INDIQUEN ESTENOSIS: «normofuncionante» ═══════════════════════════
+   DECISION DEL MEDICO (08/11/2026). Con la valvula aortica en protesis transcateter tipo TAVI y
+   SIN ningun dato cargado que indique estenosis o insuficiencia protesica —incluido el caso de
+   que no haya ningun dato— el informe dice que la protesis es normofuncionante, y desaparece de
+   ESE caso la frase «sin datos suficientes para graduar la estenosis protesica». CON datos
+   cargados la TAVI se gradua como hasta hoy: ni un corte ni una regla de graduacion se movio.
+   ⚠️ LAS DOS FRASES VIVEN EN UNA SOLA TABLA, por el mismo argumento que `EA_PROT_TXT` y
+   `EA_PROT_SALV` tienen escrito dos bloques mas abajo: con el literal escrito dos veces, el
+   cuerpo del informe y el EN SUMA publicarian dos lecturas del mismo hecho el dia que una se
+   reescriba. `frase` se pega a la forma de morfologia que cada estilo ya usa —`_vaAdj` en el
+   conciso y en el estandar, `_vaEs` en el narrativo— y por eso va SIN coma delante: la oracion
+   del narrativo queda «La valvula aortica presenta una protesis transcateter tipo TAVI
+   normofuncionante.», que es el texto que la decision fija.
+   ⚠️ `suma` NO dice «Protesis aortica:» como las otras tres ramas, y es la decision textual:
+   dice «TAVI normofuncionante.». Y eso ADEMAS apaga el bloque de «protesis normofuncionante»
+   del final por el mecanismo que ya existe —«TAVI» es un token de `yaDicho` de esta valvula—,
+   asi que no hay un segundo renglon ni hace falta una guarda nueva. */
+const EA_PROT_NORMO = Object.freeze({
+  frase: 'normofuncionante',
+  suma:  'TAVI normofuncionante.'
+});
 const EA_PROT_SALV = Object.freeze({
   /* ⚠️ REESCRITA EN PANT-19-5. Antes cerraba con «esta aplicacion no registra marca ni modelo»,
      que desde esta tanda es falso: el modelo se carga con el boton «Modelo y tamano». Lo que la
@@ -74243,6 +74306,24 @@ function eaProtNarrativa(P){
     if (P.nivel !== 'normal') salv.push(EA_PROT_SALV[P.nivel]);
   }
   if (P.via === 'TAVI') salv.push(EA_PROT_SALV.tavi);
+  /* ⚠️ EL EMISOR PUBLICA UNA MARCA Y NO LA ORACION, Y SE MIDIO POR QUE. La condicion de la
+     decision es «sin ningun dato cargado que indique estenosis O INSUFICIENCIA protesica», y la
+     insuficiencia tiene DOS fuentes —el grado `ia_grado` y el escalon sin grado, que con la
+     pastilla abierta y sin grado emite «con insuficiencia»—, las dos conocidas en el bloque del
+     informe y ninguna aca. Con un predicado propio de la insuficiencia en este lado habria dos
+     duenos de la misma pregunta, y el dia que uno se mueva el papel diria «normofuncionante, con
+     insuficiencia severa».
+     ⚠️ Y NO ALCANZA CON `nivel === 'faltan'`: medido, con Vmax 4,5 y gradiente medio 45 SIN DVI
+     el nivel TAMBIEN es «faltan» —falta el eje independiente— y los dos ejes medidos estan en
+     rango de estenosis significativa. Llamar normofuncionante a eso es el defecto que
+     /sharp-edges ya cazo una vez en el bloque del EN SUMA de esta misma valvula. Asi que se
+     exige que NINGUN nivel medido salga de «normal»: los que no se midieron son `null` y no
+     cuentan, los que se midieron tienen que estar normales. Falla CERRADO —un nivel inesperado
+     NO es «normal», asi que no afirma—. */
+  const _normoTavi = P.via === 'TAVI' && P.nivel === 'faltan' && (function(){
+    const nv = P.niveles || {};
+    return Object.keys(nv).every(function (k) { return nv[k] == null || nv[k] === 'normal'; });
+  })();
   /* PANT-19: con un modelo quirurgico del catalogo la EOA SI se evalua, y la salvedad publica
      la desviacion en vez de explicar por que no se puede. Sin modelo, la de siempre. */
   if (P.eoaZ) {
@@ -74259,7 +74340,7 @@ function eaProtNarrativa(P){
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
       EA_PROT_VS_MAX + ' mL para que la velocidad pico valga, y el calculado es de ' + P.vs.toFixed(0) + ' mL.');
   _eaProtSalvTiempos(P).forEach(s => salv.push(s));
-  return { frase: frase, resumen: resumen, salvedades: salv,
+  return { frase: frase, resumen: resumen, salvedades: salv, normoTavi: _normoTavi,
     /* ⚠️ LA CITA YA NO VA AL INFORME (2026-09-28). El comentario anterior decía lo contrario y hay
        que leerlo al revés: el argumento —quien lo lea en seis meses necesita saber con qué regla se
        clasificó— sigue siendo cierto, y la respuesta pasó a ser la PANTALLA y el panel de Evidencia,

@@ -102,6 +102,19 @@ const CUERPO = `(async () => {
   R.tavi.taviInsufSev       = await medirEscena({ va_morf:'TAVI', ia_grado:'4' });
   R.tavi.taviNormalFullIns  = await medirEscena({ va_morf:'TAVI', vmax_ao:'2.0', gmedio_ao:'8', itv_tsvi:'22', itv_ao:'50', ia_grado:'3' });
   R.tavi.savrInsuf          = await medirEscena({ va_morf:'Prótesis biológica', ia_grado:'3' });
+  /* ⚠️ LA TERCERA FUENTE DE INSUFICIENCIA PROTESICA: la regurgitacion PARAVALVULAR del modulo
+     TAVI, que no pasa por ia_grado ni por el escalon. La escena es la de TC-289. Sin prender la
+     casilla del modulo el escenario no llega a la compuerta y el cero se lee igual que «la RPV
+     no cambia nada». */
+  R.tavi.taviRpvModerada = await (async function(){
+    try { const c = document.getElementById('ete_tavi_incluir_chk');
+      if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change',{bubbles:true})) } } catch (e) {}
+    const o = await medirEscena({ va_morf:'TAVI', ete_tavi_pro_tipo:'balon', ete_tavi_gmedio:'12',
+      ete_tavi_jet_horas:'3', ete_tavi_ext_circ:'20' });
+    try { o._rpv = (typeof eteTaviRPV === 'function') ? JSON.stringify(eteTaviRPV()) : 'NO EXISTE' } catch (e) { o._rpv = 'ERR' }
+    try { const c = document.getElementById('ete_tavi_incluir_chk');
+      if (c && c.checked) { c.checked = false; c.dispatchEvent(new Event('change',{bubbles:true})) } } catch (e) {}
+    return o; })();
   R.tavi.savrSinDatos       = await medirEscena({ va_morf:'Prótesis biológica' });
   R.tavi.savrMecSinDatos    = await medirEscena({ va_morf:'Prótesis mecánica' });
   R.tavi.nativaSinDatos     = await medirEscena({ va_morf:'Trivalva normal' });

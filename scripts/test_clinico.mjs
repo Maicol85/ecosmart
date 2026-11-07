@@ -40683,8 +40683,20 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
          NOMBRAR la protesis, porque quedarse mudo sobre ella se lee, en la superficie que se copia
          al alta, igual de tranquilizador que la afirmacion falsa. Esa es la leccion de caf4be8:
          suprimir no es callarse. */
-      ex.push(['NINGUNA de las cuatro protesis afirma «normofuncionante» —la app no gradua su estenosis— y en su lugar el resumen NOMBRA la protesis con la linea que el cuerpo imprimio, sin caer en la negacion global',
-        Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('normofuncionante') === -1; }) &&
+      /* ⚠️ ADAPTADA EN PANT-24, commit 2, Y LA INTENCION NO SE MUEVE — PERO LA AORTICA SE DA
+         VUELTA. DECISION DEL MEDICO (08/11/2026): con la valvula aortica en TAVI y SIN ningun
+         dato cargado que indique estenosis o insuficiencia protesica, el papel dice que la
+         protesis es NORMOFUNCIONANTE. Esta escena es exactamente esa —Vmax 1,8 y nada mas, sin
+         DVI, sin insuficiencia y sin RPV— asi que la aortica ahora SI afirma «normofuncionante»,
+         a proposito, y la prohibicion queda para LAS OTRAS TRES, cuya estenosis la aplicacion
+         sigue sin graduar.
+         Queda MAS FUERTE que antes, porque la mitad aortica puede fallar por los DOS lados:
+         exige la frase nueva Y que la vieja ya no este. La frase vieja sigue exigida en la
+         escena de la RPV, que vive en la condicion de abajo. */
+      ex.push(['las TRES protesis cuya estenosis la app no gradua siguen sin afirmar «normofuncionante» y nombran la protesis con la linea que el cuerpo imprimio; y la AORTICA, que es una TAVI sin un solo dato que indique estenosis o insuficiencia, afirma «TAVI normofuncionante» y YA NO dice «sin datos suficientes»',
+        ['mitral','tricuspídea','pulmonar'].every(function(k){ return pl(lineas[k]).indexOf('normofuncionante') === -1; }) &&
+        pl(lineas['aórtica']).indexOf('tavi normofuncionante') > -1 &&
+        pl(lineas['aórtica']).indexOf('sin datos suficientes') === -1 &&
         pl(lineas['mitral']).indexOf('protesis mecanica') > -1 &&
         pl(lineas['aórtica']).indexOf('tavi') > -1 &&
         /* ⚠️ ADAPTADA EN PANT-18-6, Y LA INTENCION NO SE MUEVE. La clausula pedia «sin graduacion
@@ -40695,7 +40707,11 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
            Sigue siendo lo que la condicion exige: nombra la protesis, no afirma normofuncion y no
            cae en la negacion global. Y queda MAS FUERTE, porque ademas exige que la frase vieja
            YA NO ESTE: asi puede fallar por los dos lados. */
-        pl(lineas['aórtica']).indexOf('sin datos suficientes para graduar la estenosis protesica') > -1 &&
+        /* ⚠️ PANT-24: ESTA CLAUSULA SE INVIRTIO Y SUBIO AL ENCABEZADO DE LA CONDICION. Pedia
+           que la aortica dijera «sin datos suficientes para graduar la estenosis protesica», que
+           es justo la frase que la decision del medico del 08/11/2026 saca de ESTA escena. Lo
+           que queda aca es la mitad que sigue valiendo: la rama propia de la TAVI que PANT-18-6
+           retiro no volvio. */
         pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') === -1 &&
         /* ⚠️ v3 (2026-10-05, D): «protesica», NO «protesis», en estas DOS. Desde D la tricuspide y
            la pulmonar no reusan la oracion del cuerpo —que decia «con prótesis biológica»— sino su
