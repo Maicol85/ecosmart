@@ -95548,6 +95548,134 @@ function _indProtA(){
 }
 window._indProtA = _indProtA;
 
+/* ══ EVIDENCIA DE LA PROTESIS PULMONAR — PANT-21, commit 6 ═══════════════════════
+   La cuarta y ultima. ⚠️ AQUI NO RIGE LA ESC/EACTS 2025, Y NO ES UNA ELECCION: su
+   Recommendation Table 17 NO TIENE NINGUNA FILA DE PROTESIS PULMONAR, verificado fila por fila
+   sobre la hoja 66 leida en imagen —sus unicas posiciones nombradas son la aortica (fila 6) y la
+   mitral o tricuspidea (fila 7)—. Escribir una seria inventarla.
+
+   QUE GUIA RIGE: la ACC/AHA 2025 de cardiopatias congenitas del adulto, recomendaciones de manejo
+   de los conductos de ventriculo derecho a arteria pulmonar (hoja 75, folio e189, leida en imagen
+   con el folio comprobado). La ESC 2020 de cardiopatias congenitas del adulto, EDICION INGLESA, va
+   como REFERENCIA en su propia oracion (hoja 60, folio 622, folio comprobado en el encabezado
+   impreso). Cada pregunta usa los cortes de UNA sola guia y ninguna los combina.
+
+   ⚠️ EL NOMBRE DE LA GUIA AMERICANA DE CONGENITAS ES «ACC/AHA 2025» y no se renombra: su titulo
+   oficial impreso y su copyright dicen 2025, y el 2026 del pie de sus hojas interiores es el anio
+   del numero de Circulation. Esta escrito en el CLAUDE.md del proyecto desde PANT-17b.
+
+   ⚠️ ESTA SECCION NO LLEVA BLOQUE DE CAUSAS, por el mismo motivo medido que la tricuspide: la
+   ASE 2024 trae UNA sola enumeracion de causas de estenosis protesica —la de la posicion mitral—
+   mas el algoritmo de la Figura 13 para la aortica, y su Tabla 15 (hoja 32, folio 33), que es la
+   de esta posicion, publica cortes y no causas. Declarado en docs/PENDIENTES.md → P21-a. */
+const PROTP_REF_ACC = 'acc2025achd';
+const PROTP_REF_ESC = 'esc2020guch';
+const PROTP_REF_ASE = 'aseProtM2024';
+
+const PROTP_PREG = Object.freeze([
+  { clave:'protp.sevSint', lbl:'Estenosis severa y/o insuficiencia pulmonar severa del conducto o de la prótesis', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 6 — con estenosis severa y/o insuficiencia severa y síntomas, o empeoramiento de la capacidad funcional, o una arritmia sostenida, la intervención sobre el conducto debe realizarse para mejorar el estado cardiovascular, hoja 75, folio e189',
+    ref:'el paciente sintomático con presión sistólica del ventrículo derecho mayor de 60 mmHg —que puede ser menor con flujo reducido— y/o insuficiencia pulmonar severa debe recibir una intervención, con preferencia por la vía percutánea si es anatómicamente posible, Clase I · Nivel C (hoja 60, folio 622)',
+    nota:'la guía europea define la insuficiencia pulmonar severa por una fracción regurgitante en resonancia mayor de 30 a 40 %' },
+  { clave:'protp.sintomas', lbl:'Síntomas, empeoramiento de la capacidad funcional o una arritmia sostenida', guia:'acc',
+    rec:'Clase 1 · Nivel B-NR, recomendación 6 — es la condición clínica que la recomendación pide junto con la estenosis y/o la insuficiencia severas, hoja 75, folio e189',
+    ref:'la guía europea separa al sintomático (Clase I · Nivel C) del asintomático (Clase IIa · Nivel C) en dos filas con criterios propios (hoja 60, folio 622)' },
+  { clave:'protp.moderada', lbl:'Estenosis moderada y/o insuficiencia moderada', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 7 — con estenosis moderada y/o insuficiencia moderada y síntomas, o empeoramiento de la capacidad funcional, o una arritmia sostenida, la intervención sobre el conducto es razonable para mejorar el estado cardiovascular, hoja 75, folio e189',
+    ref:'la guía europea no publica una fila propia con el grado moderado: sus dos filas piden presión sistólica del ventrículo derecho mayor de 60 mmHg o la obstrucción severa del tracto de salida (hoja 60, folio 622)' },
+  { clave:'protp.fevdRed', lbl:'Fracción de eyección del ventrículo derecho reducida', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 8 — en el ASINTOMÁTICO con estenosis severa y/o insuficiencia severa, es una de las tres condiciones por las que la intervención es razonable, hoja 75, folio e189',
+    ref:'la guía europea pide, en el asintomático, disfunción sistólica PROGRESIVA del ventrículo derecho, Clase IIa · Nivel C (hoja 60, folio 622)' },
+  { clave:'protp.vdDil', lbl:'Dilatación del ventrículo derecho', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 8 — en el asintomático con estenosis severa y/o insuficiencia severa, es la segunda de las tres condiciones, hoja 75, folio e189',
+    ref:'la guía europea la cuantifica: dilatación progresiva con volumen telesistólico indexado de 80 ml/m² o más y/o telediastólico indexado de 160 ml/m² o más, Clase IIa · Nivel C (hoja 60, folio 622)' },
+  { clave:'protp.itProg', lbl:'Progresión de la insuficiencia tricuspídea a por lo menos moderada', guia:'acc',
+    rec:'Clase 2a · Nivel B-NR, recomendación 8 — en el asintomático con estenosis severa y/o insuficiencia severa, es la tercera de las tres condiciones, hoja 75, folio e189',
+    ref:'la guía europea la lista junto con los volúmenes, dentro del mismo criterio de dilatación progresiva, Clase IIa · Nivel C (hoja 60, folio 622)' },
+  { clave:'protp.rvsp60', lbl:'Presión sistólica del ventrículo derecho mayor de 60 mmHg', guia:'esc',
+    rec:'Clase I · Nivel C — en el paciente SINTOMÁTICO, con esta presión —que puede ser menor con flujo reducido— y/o insuficiencia pulmonar severa, la intervención debe realizarse, con preferencia por la vía percutánea si es anatómicamente posible, hoja 60, folio 622',
+    ref:'la guía americana no publica un corte de presión: su recomendación 6 pide estenosis severa y/o insuficiencia severa con síntomas (hoja 75, folio e189)' },
+  { clave:'protp.rvsp80', lbl:'Presión sistólica del ventrículo derecho mayor de 80 mmHg', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el ASINTOMÁTICO con obstrucción severa del tracto de salida y/o insuficiencia pulmonar severa, es uno de los cuatro criterios por los que la intervención debe considerarse, hoja 60, folio 622',
+    ref:'la guía americana no publica un corte de presión en su recomendación del asintomático (hoja 75, folio e189)' },
+  { clave:'protp.cpet', lbl:'Caída de la capacidad de ejercicio objetiva', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el asintomático con obstrucción severa del tracto de salida y/o insuficiencia pulmonar severa, es el primero de los cuatro criterios, hoja 60, folio 622',
+    ref:'la guía americana nombra el empeoramiento de la capacidad funcional entre las condiciones de su recomendación 6, que es del paciente sintomático (hoja 75, folio e189)' },
+  { clave:'protp.volVd', lbl:'Volumen telesistólico del ventrículo derecho indexado de 80 ml/m² o más, y/o telediastólico de 160 ml/m² o más', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el asintomático, la dilatación progresiva con estos volúmenes es el segundo de los cuatro criterios, hoja 60, folio 622',
+    ref:'la guía americana pide dilatación del ventrículo derecho sin publicar un corte de volumen (hoja 75, folio e189)' },
+  { clave:'protp.dfProg', lbl:'Disfunción sistólica progresiva del ventrículo derecho', guia:'esc',
+    rec:'Clase IIa · Nivel C — en el asintomático, es el tercero de los cuatro criterios, hoja 60, folio 622',
+    ref:'la guía americana pide fracción de eyección del ventrículo derecho reducida, sin el calificativo de progresiva (hoja 75, folio e189)' }
+]);
+window.PROTP_PREG = PROTP_PREG;
+
+function _indProtP(){
+  /* ⚠️ COMPUERTA UNICA Y PRIMERA LINEA. `vp_morf` es el selector de la morfologia pulmonar. */
+  const morf = _indS('vp_morf');
+  if (!(_indFn('valvEsProtesis') && valvEsProtesis(morf))) return null;
+
+  /* El veredicto se LEE de `vpProtObstr()`, que es su duenio y el que pinta el cuadro. */
+  let V = null;
+  try { const f = _indFn('vpProtObstr'); if (f) V = f(); } catch (e) { V = null; }
+
+  const filas = [];
+  filas.push(_indFila('Válvula pulmonar', morf, 'none',
+    'las filas de estenosis pulmonar de válvula nativa no aplican a una prótesis; las recomendaciones de esta sección son las de disfunción de un conducto o de una prótesis pulmonar',
+    [PROTP_REF_ACC]));
+  const PNIV = { posible:'Posible obstrucción', sin:'Sin criterios de obstrucción' };
+  filas.push(_indFila('Obstrucción protésica por la Tabla 15',
+    (V && V.obstr && PNIV[V.obstr]) ? PNIV[V.obstr] : '—',
+    !V || !V.obstr ? 'ask' : (V.obstr === 'posible' ? 'warn' : 'none'),
+    !V || !V.obstr ? 'se calcula en el cuadro de obstrucción protésica del formulario'
+    : 'lo decide el cuadro de obstrucción protésica del formulario, que es su dueño: esta sección lo lee y no lo recalcula. La Tabla 15 publica dos columnas, normal y posible obstrucción, y no gradúa severidad',
+    [PROTP_REF_ASE]));
+  filas.push(_indFila('Insuficiencia pulmonar',
+    (function () { const g = _indS('ip_grado');
+      return g === '4' ? 'Severa' : (g === '3' ? 'Moderada-severa' : (g === '2' ? 'Moderada'
+        : (g === '1' ? 'Leve' : (g === '0' ? 'Sin insuficiencia' : '—')))); })(),
+    (function () { const g = _indS('ip_grado');
+      return g === '4' ? 'ok' : (g === '' || g == null ? 'ask' : 'none'); })(),
+    'las dos guías piden la insuficiencia pulmonar severa para su recomendación de clase más alta; la europea la define por una fracción regurgitante en resonancia mayor de 30 a 40 %',
+    [PROTP_REF_ACC, PROTP_REF_ESC]));
+
+  const PROTP_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  PROTP_PREG.forEach(function (p) {
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, PROTP_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+
+  return { filas: filas, clinica: clinica,
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
+    ordenProt: true,
+    guia: { ref:PROTP_REF_ACC,
+      txt:'Las indicaciones de esta sección salen de DOS guías de cardiopatías congénitas del adulto: la ACC/AHA 2025, recomendaciones de manejo de los conductos de ventrículo derecho a arteria pulmonar (hoja 75, folio e189), que es la que rige, y la ESC 2020 (hoja 60, folio 622), que queda como referencia. Cada pregunta usa los cortes de UNA sola de ellas, con su nombre y su año a la vista.' },
+    notas: [
+      { txt:'La ESC/EACTS 2025 de valvulopatías no se usa en esta sección: su tabla de manejo de la disfunción protésica nombra la posición aórtica y la mitral o tricuspídea, y no publica ninguna fila de prótesis pulmonar.',
+        refs:null },
+      { txt:'La ACC/AHA 2025 escribe sus recomendaciones para conductos de ventrículo derecho a arteria pulmonar, que pueden ser homoinjertos aórticos o pulmonares, xenoinjertos o conductos protésicos con o sin una válvula biológica adentro. Todos se deterioran con el tiempo y suelen necesitar reemplazo o intervención a un intervalo medio de 10 a 15 años (hoja 75, folio e189).',
+        refs:[PROTP_REF_ACC] },
+      { txt:'La ESC 2020 agrega que el implante percutáneo de válvula pulmonar es hoy el tratamiento de elección de las válvulas disfuncionantes cuando es técnicamente posible, y que sus exclusiones actuales son las venas sistémicas ocluidas, la infección activa, una morfología del tracto de salida no apta y una anatomía coronaria desfavorable (hoja 60, folio 622).',
+        refs:[PROTP_REF_ESC] },
+      { txt:'Los cortes de obstrucción protésica pulmonar son los de la Tabla 15 de la ASE 2024, hoja 32, folio 33, y se aplican en el cuadro de obstrucción protésica del formulario. Esa tabla publica dos columnas —normal y posible obstrucción— y no gradúa severidad.',
+        refs:[PROTP_REF_ASE] },
+      { txt:'Esta sección no publica una lista de causas del gradiente alto. La ASE 2024 enumera las causas de estenosis protésica para la posición mitral, y para la aórtica da el algoritmo de su Figura 13; para la posición pulmonar su Tabla 15 publica cortes y no causas.',
+        refs:[PROTP_REF_ASE] },
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    ] };
+}
+window._indProtP = _indProtP;
+
 /* ══ EVIDENCIA DE LA PROTESIS TRICUSPIDE — PANT-21, commit 5 ═════════════════════
    La tercera de las cuatro secciones de protesis. Mismo molde que la aortica y las mismas dos
    fuentes: rige la ESC/EACTS 2025, Recommendation Table 17 (hoja 66, folio 4700, leida en imagen
@@ -104581,6 +104709,11 @@ const IND_SECS = [
      primera letra, y las cuatro de prótesis divergen en su segunda palabra. */
   { tit:'Prótesis tricúspide',                    fn:_indProtT },
   { tit:'Estenosis pulmonar',                    fn:_indEP },
+  /* \u26a0\ufe0f LA DE PANT-21 (commit 6), la cuarta y \u00faltima de pr\u00f3tesis. Va PEGADA a la estenosis
+     pulmonar por el mismo argumento que las otras tres. \u26a0\ufe0f EL T\u00cdTULO NO ES PREFIJO DE NINGUNO
+     NI NINGUNO ES PREFIJO SUYO: verificado contra los cuarenta y cuatro anteriores; «Pr\u00f3tesis
+     pulmonar» y «Estenosis pulmonar» divergen en la primera letra. */
+  { tit:'Pr\u00f3tesis pulmonar',                     fn:_indProtP },
   { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
   { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP },
   { tit:'Insuficiencia cardíaca con fracción de eyección preservada — HFA-PEFF', fn:_indHFPEFF },

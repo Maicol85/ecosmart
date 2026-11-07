@@ -81,9 +81,11 @@ const ESC = {
     nativa:  { vp_morf: 'Normal', ep_gmedio: '22' },
     vacia:   { vp_morf: 'Pr\u00f3tesis mec\u00e1nica' },
     /* un criterio de la Tabla 15 (gradiente medio 22 >= 20 en la biologica) -> «posible» */
-    posible: { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', ep_gmedio: '22' },
-    normal:  { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', ep_gmedio: '10',
-               vp_vmax: '2.0' }
+    posible: { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', vp_tipo_prot: 'bio', peso: '75', talla: '175', ep_gmedio: '22' },
+    normal:  { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', vp_tipo_prot: 'bio', peso: '75', talla: '175',
+               ep_gmedio: '10', vp_vmax: '2.0' },
+    /* sin tipo de protesis el cuadro no gradua: es el control de la fila que lee el veredicto */
+    sinTipo: { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', ep_gmedio: '22' }
   }
 }[POS];
 
