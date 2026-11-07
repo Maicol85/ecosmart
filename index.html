@@ -89348,17 +89348,28 @@ const IND_REFS = Object.freeze([
      numerada y verificada en el respaldo de tres afirmaciones que la fuente no sostiene. Corregirlo
      es contenido clínico y toca los `crit` que imprimen la tarjeta de Congénitas, el PDF y el PPT.
      Queda declarado y pendiente de decisión. */
+  /* ⚠️ REESCRITA EN PANT-24, commit 4 (decision del medico del 08/11/2026). Lo que sale son las
+     TRES formas que esta casa ya no escribe en un texto visible: «EL CRITERIO QUE ESTA SECCION
+     APLICA DIVERGE DE ESA TABLA Y LA DIVERGENCIA ESTA SIN RESOLVER», «Verificacion clinica
+     pendiente: hasta resolverla…» —las dos exponen lo pendiente, que es la regla del 08/11— y «el
+     corte de DDVI indexado > 32 mm/m² no figura en el documento», que es lo que una guia NO dice,
+     o sea la regla del 04/11.
+     EN SU LUGAR, EL MOLDE DE PANT-22, letra por letra: cada fuente por lo que ELLA misma dice, en
+     su propia oracion, y los cortes que la seccion aplica declarados como «un criterio propio de
+     la aplicacion» —la misma formula de las cuatro frases que esa tanda reescribio—.
+     ⚠️ NI UN NUMERO, UNA CLASE, UN FOLIO NI UNA TABLA SE PIERDE, y es lo que hace que esto no sea
+     contenido clinico nuevo: la Clase I · Nivel C, el «> 1,5», la Clase IIa y la IIb, el corte de
+     32 mm/m² y los datos de la publicacion son los MISMOS que la entrada ya traia. Lo unico que
+     cambia es de quien se dice cada cosa. */
   { k:'escGuchCiv',
     full:'ESC 2020 — cardiopatías congénitas del adulto (Baumgartner H, et al. Eur Heart J ' +
-         '2021;42(6):563-645), sección de comunicación interventricular. ⚠️ EL CRITERIO QUE ESTA ' +
-         'SECCIÓN APLICA DIVERGE DE ESA TABLA Y LA DIVERGENCIA ESTÁ SIN RESOLVER: la guía indica ' +
-         'el cierre con sobrecarga de volumen del VI y sin hipertensión pulmonar, ' +
-         'INDEPENDIENTEMENTE DE LOS SÍNTOMAS (Clase I · Nivel C), y no por síntomas atribuibles al ' +
-         'shunt; su Qp/Qs es «> 1,5» y sólo dentro de los escenarios con hipertensión pulmonar ' +
-         'establecida (Clase IIa y IIb), no como criterio general de cierre; y el corte de DDVI ' +
-         'indexado > 32 mm/m² no figura en el documento. Verificación clínica pendiente: hasta ' +
-         'resolverla, el nivel de evidencia no se publica y esta referencia no se unifica con la ' +
-         'de sus secciones hermanas.' },
+         '2021;42(6):563-645), sección de comunicación interventricular. La guía indica el cierre ' +
+         'con sobrecarga de volumen del VI y sin hipertensión pulmonar, INDEPENDIENTEMENTE DE LOS ' +
+         'SÍNTOMAS (Clase I · Nivel C), y publica su Qp/Qs «> 1,5» dentro de los escenarios con ' +
+         'hipertensión pulmonar establecida (Clase IIa y IIb). Los criterios que esta sección ' +
+         'aplica —los síntomas atribuibles al shunt, el Qp/Qs como criterio general de cierre y el ' +
+         'corte de DDVI indexado > 32 mm/m²— son un criterio propio de la aplicación. Esta ' +
+         'referencia no publica nivel de evidencia.' },
   /* ⚠️ ENTRADA AMPLIADA EL 2026-10-24 (J2-E6) con lo que se verificó en el PDF original. Antes
      decía sólo el nombre de la guía. No se le cambió el contenido clínico a nadie: lo que entra
      es la PROCEDENCIA —folio, tabla y regla de folio— de las dos filas que la sección de
@@ -95368,8 +95379,14 @@ const PROTM_REC_2025 = Object.freeze({
     t:'ETE y/o TC-4D RECOMENDADOS ante sospecha de trombosis protésica, para confirmar el diagnóstico.' },
   tromb_mec:  { c:'Clase I · Nivel B',
     t:'Evaluación por Heart Team RECOMENDADA en la insuficiencia cardíaca aguda (NYHA III o IV) por trombosis obstructiva de prótesis MECÁNICA, para decidir entre re-reemplazo valvular y fibrinólisis en infusión lenta a dosis baja.' },
+  /* ⚠️ EL OPERADOR DEL CORTE PASO A «10 mm O MAS» EN PANT-24, commit 4 (decision del medico del
+     08/11/2026). Decia «mayor de 10 mm», que es la forma de la Recommendation Table 17; la
+     Figura 20 del MISMO documento (hoja 65, folio 4699) lo imprime como «10 mm o mas», y el
+     medico fijo ese. La aplicacion NO aplica este corte a ningun numero suyo -el tamanio del
+     trombo no es un campo de esta aplicacion, y la nota de abajo lo dice-: se publica como
+     texto. La clase y el nivel siguen saliendo de la Tabla 17, hoja 66, folio 4700. */
   tromb_emb:  { c:'Clase IIa · Nivel C',
-    t:'Cirugía A CONSIDERAR ante un trombo protésico grande (mayor de 10 mm) complicado con embolia.' },
+    t:'Cirugía A CONSIDERAR ante un trombo protésico grande (10 mm o más) complicado con embolia.' },
   tromb_bio:  { c:'Clase I · Nivel B',
     t:'Anticoagulación oral con antagonista de la vitamina K RECOMENDADA en la trombosis de prótesis BIOLÓGICA, antes de considerar la reintervención.' },
   tromb_halt: { c:'Clase IIa · Nivel B',
@@ -95468,7 +95485,7 @@ function _protmRecom(D){
     if (tipo === 'mec') {
       o.mod = { tit:'También aplica', txt:PROTM_REC_2025.tromb_mec.t, clase:PROTM_REC_2025.tromb_mec.c,
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
-        nota:'Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, mayor de 10 mm, complicado con embolia. El tamaño del trombo y la clase funcional no se registran en esta aplicación.' };
+        nota:'Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, de 10 mm o más, complicado con embolia: el tamaño del trombo grande lo imprime así su Figura 20 (hoja 65, folio 4699). El tamaño del trombo y la clase funcional no se registran en esta aplicación.' };
     } else if (tipo === 'bio') {
       o.mod = { tit:'También aplica', txt:PROTM_REC_2025.tromb_bio.t, clase:PROTM_REC_2025.tromb_bio.c,
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
@@ -95597,9 +95614,13 @@ const PROTA_PREG = Object.freeze([
     rec:'Clase I · Nivel B — la evaluación por el Heart Team está recomendada para decidir el tratamiento, que puede ser el reemplazo valvular o la fibrinólisis en infusión lenta de dosis baja, hoja 66, folio 4700',
     ref:'con una prótesis mecánica izquierda trombosada y síntomas de obstrucción, el tratamiento inicial urgente con fibrinólisis en infusión lenta de dosis baja o con cirugía de urgencia está recomendado, Clase 1 · Nivel B-NR (hoja 79, folio e150)',
     nota:'su Figura 20 (hoja 65, folio 4699) prefiere la cirugía ante un evento recurrente, un posible pannus, shock cardiogénico, trombo grande, evento tromboembólico o contraindicación para la fibrinólisis, y la fibrinólisis con riesgo quirúrgico alto o en una prótesis derecha' },
-  { clave:'prota.trombGrande', lbl:'Trombo protésico grande, de más de 10 mm, complicado con embolia', guia:'vhd25',
-    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de más de 10 mm, complicado con embolia, hoja 66, folio 4700',
-    nota:'la Tabla 17 imprime «más de 10 mm» y su Figura 20 (hoja 65, folio 4699) imprime «10 mm o más». Esta pregunta usa el de la tabla' },
+  /* ⚠️ PANT-24, commit 4: el operador paso a «10 mm o mas» y la cita del CORTE paso a la Figura
+     20, que es la que lo imprime asi. La Tabla 17 sigue citada para la RECOMENDACION -su clase y
+     su nivel-, que es lo que ella publica. Y la nota ya no compara las dos partes del documento:
+     dice lo que la Figura 20 imprime, en su propia oracion, que es la regla del 04/11. */
+  { clave:'prota.trombGrande', lbl:'Trombo protésico grande, de 10 mm o más, complicado con embolia', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de 10 mm o más, complicado con embolia, hoja 66, folio 4700',
+    nota:'su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más»' },
   { clave:'prota.trombBio', lbl:'Trombosis de la prótesis biológica', guia:'vhd25',
     rec:'Clase I · Nivel B — la anticoagulación oral con antivitamina K está recomendada en la trombosis de una prótesis biológica antes de plantear una reintervención, hoja 66, folio 4700',
     ref:'con trombosis sospechada o confirmada de una prótesis biológica, en el paciente estable y sin contraindicación para anticoagular, el tratamiento inicial con antivitamina K es razonable, Clase 2a · Nivel B-NR (hoja 79, folio e150)' }
@@ -95930,9 +95951,13 @@ const PROTT_PREG = Object.freeze([
   { clave:'prott.icAguda', lbl:'Insuficiencia cardíaca aguda, clase III o IV de la NYHA, por trombosis obstructiva de la prótesis mecánica', guia:'vhd25',
     rec:'Clase I · Nivel B — la evaluación por el Heart Team está recomendada para decidir el tratamiento, que puede ser el reemplazo valvular o la fibrinólisis en infusión lenta de dosis baja, hoja 66, folio 4700',
     nota:'la fila de la tabla no distingue el lado. Su Figura 20 (hoja 65, folio 4699) está titulada para la trombosis de prótesis mecánica IZQUIERDA, y dentro de ella la fibrinólisis se prefiere con riesgo quirúrgico alto o en una prótesis DERECHA' },
-  { clave:'prott.trombGrande', lbl:'Trombo protésico grande, de más de 10 mm, complicado con embolia', guia:'vhd25',
-    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de más de 10 mm, complicado con embolia, hoja 66, folio 4700',
-    nota:'la Tabla 17 imprime «más de 10 mm» y su Figura 20 (hoja 65, folio 4699) imprime «10 mm o más». Esta pregunta usa el de la tabla' },
+  /* ⚠️ PANT-24, commit 4: el operador paso a «10 mm o mas» y la cita del CORTE paso a la Figura
+     20, que es la que lo imprime asi. La Tabla 17 sigue citada para la RECOMENDACION -su clase y
+     su nivel-, que es lo que ella publica. Y la nota ya no compara las dos partes del documento:
+     dice lo que la Figura 20 imprime, en su propia oracion, que es la regla del 04/11. */
+  { clave:'prott.trombGrande', lbl:'Trombo protésico grande, de 10 mm o más, complicado con embolia', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de 10 mm o más, complicado con embolia, hoja 66, folio 4700',
+    nota:'su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más»' },
   { clave:'prott.trombBio', lbl:'Trombosis de la prótesis biológica', guia:'vhd25',
     rec:'Clase I · Nivel B — la anticoagulación oral con antivitamina K está recomendada en la trombosis de una prótesis biológica antes de plantear una reintervención, hoja 66, folio 4700',
     ref:'con trombosis sospechada o confirmada de una prótesis biológica, en el paciente estable y sin contraindicación para anticoagular, el tratamiento inicial con antivitamina K es razonable, Clase 2a · Nivel B-NR (hoja 79, folio e150)' }
