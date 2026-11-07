@@ -90595,7 +90595,14 @@ function _indPorClave(lista, claves){
    dice «serie de casos» justamente para que no se lea como una recomendación, y su badge corto
    sale SIN clase porque `_indPregBadge` la toma de `rec` y ahí no hay ninguna que leer. */
 const IND_GUIA_LBL = Object.freeze({ acc:'ACC/AHA 2025', esc:'ESC 2020', ao:'ESC 2024 de aorta', mio:'ESC 2023',
-  serie:'Yakut 2018 — serie de casos' });
+  serie:'Yakut 2018 — serie de casos',
+  /* ⚠️ LAS DOS DE PANT-21, Y SON LAS GUIAS DE VALVULOPATIAS, NO LAS DE CONGENITAS.
+     `esc` ya vale «ESC 2020» —la de cardiopatias congenitas del adulto— y `acc` «ACC/AHA
+     2025», que es la misma familia. Las de protesis son otras dos y necesitan etiqueta
+     propia: reusar `esc` para la ESC/EACTS 2025 de valvulopatias pondria el anio
+     equivocado en la fila de cada pregunta, que es justo lo que la regla E-1 —«con su
+     nombre y anio visibles»— existe para impedir. */
+  vhd25:'ESC/EACTS 2025', vhd20:'ACC/AHA 2020' });
 /* ══ LA ETIQUETA CORTA DE LA GUIA, EN LA FILA (TGA-4, commit 3b) ═══════════════════════════════
    El pedido: «una etiqueta corta de la guia ("ACC 1·B-NR"), y las preguntas rotuladas ESC 2020
    con su etiqueta en otro color». Con el detalle plegado en el ⓘ, la fila tiene que seguir
@@ -92904,17 +92911,17 @@ function _indEA(){
      veredicto de la Tabla 5 mientras el panel publicaría una indicación quirúrgica nativa.
      Se declara y no se recomienda nada, que es la dirección segura y lo que `_indEAModalidad` ya
      hace cuando le falta la edad. Lo encontró /sharp-edges. */
-  if (typeof valvEsProtesis === 'function' && valvEsProtesis(_indS('va_morf'))) {
-    return { filas: [_indFila('Morfología de la válvula', _indS('va_morf'), 'warn',
-        'Prótesis — las filas de esta sección son para válvula nativa')],
-      recom: { tipo:'no', tit:'Prótesis aórtica: esta sección no aplica',
-        txt:'Las recomendaciones de intervención de la ESC/EACTS 2025 para estenosis aórtica están ' +
-          'escritas para la válvula NATIVA, y ninguna de sus filas cubre una prótesis disfuncionante ' +
-          '—eso es otra tabla, la de reintervención, que esta aplicación todavía no implementa—. La ' +
-          'severidad protésica se gradúa con la Tabla 5 de la ASE 2024 y está en el cuadro de ' +
-          'Estenosis Aórtica del formulario.',
-        nota:'No se publica ninguna conducta en vez de aplicar los cortes de la válvula que ya no está.' } };
-  }
+  /* ⚠️ CON UNA PROTESIS ESTA SECCION DESAPARECE, Y LA REEMPLAZA `_indProtA` (PANT-21, commit 3).
+     Hasta esta tanda devolvia una tarjeta «Protesis aortica: esta seccion no aplica» cuyo texto
+     decia «esa es otra tabla, la de reintervencion, que esta aplicacion todavia no implementa»:
+     esa tabla es la Recommendation Table 17 y desde hoy tiene su propia seccion, con sus preguntas,
+     su recuadro «Con lo contestado» y su bloque de causas.
+     Devuelve `null` —y no una tarjeta— porque es lo que las tres secciones mitrales NATIVAS ya
+     hacen con una protesis mitral: la seccion que ocupa su lugar es la de protesis, y dos tarjetas
+     sobre la misma valvula se leerian como dos opiniones.
+     ⚠️ EL PREDICADO ES EL MISMO QUE EL DE `_indProtA`, a proposito: con dos distintos existiria
+     un estado en que se ven las dos, o ninguna. */
+  if (typeof valvEsProtesis === 'function' && valvEsProtesis(_indS('va_morf'))) return null;
 
   const filas = [];
   filas.push(UA == null ? _indSinUmbral('AVA por continuidad')
@@ -95315,6 +95322,223 @@ function _protmRecom(D){
     fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
     nota:'Si aparecen síntomas, las filas que pasan a aplicar son la de reoperación (Clase I · Nivel C) y, con riesgo intermedio o alto, la de valve-in-valve transvenoso mitral (Clase IIa · Nivel B).' };
 }
+
+/* ══ EVIDENCIA DE LA PROTESIS AORTICA — PANT-21, commit 3 ═════════════════════════
+   DECISION DEL MEDICO (07 y 08/11/2026): UNA SECCION DE EVIDENCIA POR VALVULA. Esta es la de la
+   protesis aortica —mecanica, biologica y TAVI— y REEMPLAZA la nota «esta seccion no aplica» que
+   `_indEA` devolvia, sin tocar la Evidencia de la estenosis NATIVA: aquella compuerta pasa a
+   devolver `null`, que es exactamente lo que las tres secciones mitrales nativas ya hacen con una
+   protesis mitral.
+
+   QUE GUIA RIGE: la ESC/EACTS 2025 de valvulopatias, Recommendation Table 17 (hoja 66, folio 4700,
+   leida en imagen a 300 ppp con el folio comprobado en el encabezado impreso) y su Figura 20
+   (hoja 65, folio 4699). La ACC/AHA 2020 va como REFERENCIA, en su propia oracion, con su nombre
+   y su anio. Cada pregunta usa los cortes de UNA sola guia.
+
+   QUE CLASES ENTRAN (decision 2): clase I, clase III y las clase IIa que indican una INTERVENCION
+   —valve-in-valve, cierre de fuga paravalvular, reintervencion—. Las IIa de seguimiento o de
+   diagnostico NO entran y estan listadas en `docs/PENDIENTES.md` → P21-c. Las IIb no se agregan.
+   La Tabla 17 no trae ninguna fila de clase III, asi que esta seccion no publica ninguna.
+
+   ⚠️ LA FILA 7 DE LA TABLA 17 NO ENTRA ACA: el valve-in-valve transvenoso es «mitral o
+   tricuspideo» y el de la posicion aortica es la fila 6, transfemoral. Son dos filas distintas de
+   la misma tabla y confundirlas publicaria una via de acceso que esa fila no dice.
+
+   ⚠️ NO SE ESCRIBE UN SOLO CORTE NUEVO NI SE TOCA LA TARJETA DE SEVERIDAD. La severidad
+   protesica la sigue decidiendo `eaProtVeredicto()`, que es su duenio unico; esta seccion la LEE.
+   ═════════════════════════════════════════════════════════════════════════════════ */
+const PROTA_REF_ESC = 'esc2025vc';
+const PROTA_REF_ASE = 'aseProtM2024';
+const PROTA_REF_AHA = 'ahaProtM2020';
+
+/* Las preguntas. El ORDEN del array es el de LECTURA —de lo general a lo particular—; el reparto
+   por clase lo hace `_indAdaptHTML`, que ordena el recuadro «Con lo contestado». */
+const PROTA_PREG = Object.freeze([
+  { clave:'prota.disf', lbl:'Disfunción protésica significativa', guia:'vhd25',
+    rec:'Clase I · Nivel C — es la precondición que las filas transvalvulares de la tabla escriben en su propio texto: la reoperación en la prótesis mecánica y la reintervención en la biológica piden «disfunción valvular significativa», hoja 66, folio 4700',
+    ref:'la reintervención quirúrgica se indica con estenosis severa sintomática de una prótesis biológica o mecánica, Clase 1 · Nivel B-NR (hoja 81, folio e152)',
+    nota:'la ESC/EACTS 2025 no publica cortes ecocardiográficos de severidad protésica: dice «disfunción valvular significativa» y deja la cuantificación a la ASE 2024' },
+  { clave:'prota.sintomas', lbl:'Síntomas atribuibles a la disfunción protésica', guia:'vhd25',
+    rec:'Clase I · Nivel C — en el paciente sintomático con disfunción valvular significativa no atribuible a trombosis, la reoperación está recomendada en la prótesis mecánica y la reintervención en la biológica, hoja 66, folio 4700',
+    ref:'con estenosis severa sintomática de una prótesis biológica o mecánica, la reintervención quirúrgica está indicada salvo riesgo quirúrgico alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 81, folio e152)' },
+  { clave:'prota.tromb', lbl:'Disfunción atribuible a trombosis de la prótesis', guia:'vhd25',
+    rec:'Clase I · Nivel C — ante la sospecha de trombosis valvular, el ecocardiograma transesofágico y/o la tomografía de cuatro dimensiones están recomendados para confirmar el diagnóstico, hoja 66, folio 4700',
+    ref:'ante la sospecha de trombosis de una prótesis biológica, el transesofágico tridimensional o la tomografía de cuatro dimensiones pueden ser útiles para descartar trombosis de los velos, Clase 2a · Nivel C-LD (hoja 79, folio e150)',
+    nota:'las dos filas de reoperación de la tabla exigen textualmente que la disfunción NO sea atribuible a trombosis' },
+  { clave:'prota.pvl', lbl:'Fuga paravalvular', guia:'vhd25',
+    rec:'Clase I · Nivel C — la decisión entre el cierre percutáneo y el quirúrgico de una fuga paravalvular clínicamente significativa se toma en el Heart Team, con el riesgo del paciente, la morfología de la fuga y la experiencia del centro, hoja 66, folio 4700',
+    ref:'con hemólisis intratable o insuficiencia cardíaca atribuible a una fuga transvalvular o paravalvular, la cirugía está recomendada salvo riesgo alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prota.pvlRep', lbl:'La fuga se asocia a endocarditis, o causa hemólisis que exige transfusiones repetidas, o lleva a síntomas de insuficiencia cardíaca', guia:'vhd25',
+    rec:'Clase I · Nivel C — en esa situación la reoperación está recomendada, hoja 66, folio 4700',
+    ref:'la cirugía está recomendada con hemólisis intratable o insuficiencia cardíaca por la fuga, salvo riesgo alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prota.pvlApta', lbl:'Fuga apta para cierre percutáneo, con regurgitación o hemólisis clínicamente significativas', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — el cierre percutáneo debe considerarse en fugas aptas con regurgitación y/o hemólisis clínicamente significativas, hoja 66, folio 4700',
+    ref:'la reparación percutánea de la fuga es razonable con hemólisis intratable o síntomas de clase III o IV, riesgo alto o prohibitivo y anatomía apta, hecha en un centro valvular integral, Clase 2a · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prota.riesgoAlto', lbl:'Riesgo quirúrgico intermedio o alto', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — es una de las condiciones del valve-in-valve percutáneo transfemoral en posición aórtica, hoja 66, folio 4700',
+    ref:'en el muy sintomático con estenosis de prótesis biológica aórtica y riesgo alto o prohibitivo, el valve-in-valve percutáneo es razonable hecho en un centro valvular integral, Clase 2a · Nivel B-NR (hoja 81, folio e152)' },
+  { clave:'prota.anat', lbl:'Anatomía y características de la prótesis aptas, según el Heart Team', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — el valve-in-valve percutáneo transfemoral en posición aórtica debe considerarse con disfunción valvular significativa, riesgo quirúrgico intermedio o alto y anatomía y prótesis aptas según el Heart Team, hoja 66, folio 4700',
+    ref:'la guía americana pide además que el procedimiento se haga en un centro valvular integral (hoja 81, folio e152)' },
+  { clave:'prota.asintBajo', lbl:'Asintomático, con disfunción protésica significativa y riesgo quirúrgico bajo', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la reoperación debe considerarse en el asintomático con disfunción protésica significativa, si el riesgo quirúrgico es bajo, hoja 66, folio 4700',
+    ref:'en el asintomático con regurgitación protésica severa y riesgo operatorio bajo, la cirugía es razonable, Clase 2a · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prota.icAguda', lbl:'Insuficiencia cardíaca aguda, clase III o IV de la NYHA, por trombosis obstructiva de la prótesis mecánica', guia:'vhd25',
+    rec:'Clase I · Nivel B — la evaluación por el Heart Team está recomendada para decidir el tratamiento, que puede ser el reemplazo valvular o la fibrinólisis en infusión lenta de dosis baja, hoja 66, folio 4700',
+    ref:'con una prótesis mecánica izquierda trombosada y síntomas de obstrucción, el tratamiento inicial urgente con fibrinólisis en infusión lenta de dosis baja o con cirugía de urgencia está recomendado, Clase 1 · Nivel B-NR (hoja 79, folio e150)',
+    nota:'su Figura 20 (hoja 65, folio 4699) prefiere la cirugía ante un evento recurrente, un posible pannus, shock cardiogénico, trombo grande, evento tromboembólico o contraindicación para la fibrinólisis, y la fibrinólisis con riesgo quirúrgico alto o en una prótesis derecha' },
+  { clave:'prota.trombGrande', lbl:'Trombo protésico grande, de más de 10 mm, complicado con embolia', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de más de 10 mm, complicado con embolia, hoja 66, folio 4700',
+    nota:'la Tabla 17 imprime «más de 10 mm» y su Figura 20 (hoja 65, folio 4699) imprime «10 mm o más». Esta pregunta usa el de la tabla' },
+  { clave:'prota.trombBio', lbl:'Trombosis de la prótesis biológica', guia:'vhd25',
+    rec:'Clase I · Nivel B — la anticoagulación oral con antivitamina K está recomendada en la trombosis de una prótesis biológica antes de plantear una reintervención, hoja 66, folio 4700',
+    ref:'con trombosis sospechada o confirmada de una prótesis biológica, en el paciente estable y sin contraindicación para anticoagular, el tratamiento inicial con antivitamina K es razonable, Clase 2a · Nivel B-NR (hoja 79, folio e150)' }
+]);
+window.PROTA_PREG = PROTA_PREG;
+
+/* ══ LAS CAUSAS POSIBLES DEL GRADIENTE ALTO EN LA POSICION AORTICA ══════════════════
+   Las cinco salen de la ASE 2024 y de DOS hojas leidas en imagen: la Figura 13 (hoja 18, folio 19)
+   y el parrafo de obstruccion de la hoja 9, folio 10. Ninguna agrega un criterio de graduacion.
+   El duenio de cual se marca sola es `_protaCausaDecide`, abajo. */
+const PROTA_CAUSAS = Object.freeze([
+  { clave:'hiperflujo', lbl:'Estado de hiperflujo',
+    txt:'Con el cociente entre la velocidad del tracto de salida y la de la prótesis en 0,30 o más, el algoritmo de la guía separa las dos ramas por el área efectiva indexada: por encima de 0,85 cm²/m² apunta a un estado de hiperflujo. ASE 2024, Figura 13, hoja 18, folio 19.',
+    refs:[PROTA_REF_ASE] },
+  { clave:'desajuste', lbl:'Desajuste prótesis-paciente',
+    txt:'Con ese mismo cociente en 0,30 o más y el área efectiva indexada por debajo de 0,85 cm²/m², el algoritmo apunta a un desajuste prótesis-paciente. La misma guía agrega que los gradientes suben exponencialmente cuando el área indexada está por debajo de 0,8 a 0,9 cm²/m². ASE 2024, Figura 13, hoja 18, folio 19, y hoja 9, folio 10.',
+    refs:[PROTA_REF_ASE] },
+  { clave:'medicion', lbl:'Un problema de medición',
+    txt:'En la banda intermedia del cociente —de 0,25 a 0,29— la guía pide considerar una estenosis con tracto de salida pequeño, una posición inadecuada del volumen de muestra del Doppler pulsado en el tracto de salida, o una subestimación de la velocidad del chorro. ASE 2024, Figura 13, hoja 18, folio 19.',
+    refs:[PROTA_REF_ASE] },
+  { clave:'obstruccion', lbl:'Trombosis, calcificación o pannus',
+    txt:'La guía enumera la movilidad reducida por trombo, calcificaciones o pannus como las causas de obstrucción de una prótesis, y para distinguirlas pone la tomografía con contraste a la par del transesofágico tridimensional. ASE 2024, hoja 9, folio 10.',
+    refs:[PROTA_REF_ASE] },
+  { clave:'subvalvular', lbl:'Estenosis subvalvular',
+    txt:'Con el cociente por debajo de 0,25 el algoritmo pide considerar una estenosis valvular, la trombosis incluida, y una estenosis subvalvular. ASE 2024, Figura 13, hoja 18, folio 19.',
+    refs:[PROTA_REF_ASE] }
+]);
+
+/* ⚠️ SE MARCA SOLA UNICAMENTE LA RAMA QUE LA FIGURA 13 DECIDE CON EL DVI Y LA EOA INDEXADA, que
+   son los dos numeros que la app YA calcula y publica —`eaProtVeredicto()` los lee de `#dvi-val` y
+   de `#ava-idx`—. Las otras tres causas quedan como TEXTO: la figura no las decide con ningun
+   numero de los que la app tiene, y pintarlas como «medido y no alcanza el criterio» afirmaria
+   algo que esta aplicacion no puede sostener.
+   Devuelve `true` —la rama que la figura seniala—, `false` —la rama hermana, medida y
+   descartada— o `null` —no decidible—. */
+function _protaCausaDecide(V, clave){
+  if (!V) return null;
+  const dvi = V.dvi, avai = V.avai;
+  const enNormal = (dvi != null && dvi >= 0.30);
+  if (clave === 'hiperflujo' || clave === 'desajuste') {
+    if (!enNormal || avai == null) return null;
+    const esDesaj = avai < 0.85;
+    return clave === 'desajuste' ? esDesaj : !esDesaj;
+  }
+  return null;
+}
+
+function _indProtA(){
+  /* ⚠️ COMPUERTA UNICA Y PRIMERA LINEA, y es la MISMA que `_indEA` usa para apagarse: las dos
+     preguntan `valvEsProtesis(va_morf)`, asi que no puede haber un estado en que las dos se vean
+     ni uno en que no se vea ninguna. Con dos predicados distintos ese estado existiria. */
+  const morf = _indS('va_morf');
+  if (!(_indFn('valvEsProtesis') && valvEsProtesis(morf))) return null;
+  const esMec = morf === 'Prótesis mecánica';
+  const esBio = morf === 'Prótesis biológica' || morf === 'TAVI';
+
+  /* ⚠️ EL VEREDICTO SE LEE, NO SE RECALCULA. `eaProtVeredicto()` es el duenio de la severidad
+     protesica aortica y es el que firma la tarjeta de pantalla; recalcular aca daria un segundo
+     resultado del mismo dato. */
+  let V = null;
+  try { const f = _indFn('eaProtVeredicto'); if (f) V = f(); } catch (e) { V = null; }
+
+  const filas = [];
+  filas.push(_indFila('Válvula aórtica', morf, 'none',
+    'las filas de estenosis aórtica de válvula nativa no aplican y no se muestran; las recomendaciones de esta sección son las de disfunción protésica',
+    [PROTA_REF_ESC]));
+  const NIV = { normal:'Sin criterios de estenosis protésica', posible:'Posible estenosis protésica',
+                signif:'Sugiere estenosis protésica significativa', faltan:'Falta un dato para aplicar la tabla' };
+  filas.push(_indFila('Severidad protésica por la Tabla 5',
+    (V && V.nivel && NIV[V.nivel]) ? NIV[V.nivel] : '—',
+    !V || !V.nivel ? 'ask' : (V.nivel === 'signif' ? 'ok' : (V.nivel === 'posible' ? 'warn' : (V.nivel === 'normal' ? 'none' : 'ask'))),
+    !V || !V.nivel ? 'se calcula en el cuadro de Estenosis Aórtica del formulario'
+    : V.nivel === 'faltan' ? ('falta ' + ((V.falta && V.falta.length) ? V.falta.join(', ') : 'un dato'))
+    : 'lo decide la tarjeta de severidad protésica del formulario, que es su dueña: esta sección la lee y no la recalcula',
+    [PROTA_REF_ASE]));
+  filas.push(_indFila('Cociente VTI — TSVI / prótesis', _indNum(V ? V.dvi : null, 2),
+    (V && V.dvi != null) ? 'none' : 'ask',
+    (V && V.dvi != null) ? 'es el eje independiente del flujo, y el que el algoritmo de la Figura 13 usa para separar las ramas'
+      : 'requiere el VTI del tracto de salida y el de la prótesis',
+    [PROTA_REF_ASE]));
+  filas.push(_indFila('Área efectiva indexada', _indNum(V ? V.avai : null, 2, 'cm²/m²'),
+    (V && V.avai != null) ? 'none' : 'ask',
+    (V && V.avai != null) ? 'con el cociente en 0,30 o más, es la que separa el estado de hiperflujo del desajuste prótesis-paciente'
+      : 'requiere el área valvular y la superficie corporal',
+    [PROTA_REF_ASE]));
+
+  /* ══ LAS PREGUNTAS ═════════════════════════════════════════════════
+     ⚠️ LAS CONDICIONALES NO SON COSMETICA: una pregunta de trombosis de protesis BIOLOGICA sobre
+     una mecanica, o una fila de fuga sobre un paciente sin fuga, se contestarian «?» para siempre
+     y el contador diria que falta algo que no aplica. Se filtran por el MISMO dato que decide la
+     rama de la guia, no por una lista escrita aparte. */
+  const _pvl = _indClinGet('prota.pvl');
+  const _trb = _indClinGet('prota.tromb');
+  /* La fuga se PRE-RESPONDE desde el campo de origen de la regurgitacion paravalvular, porque ese
+     campo significa EXACTAMENTE lo mismo: «paravalvular» y «mixta» son fuga paravalvular, «central»
+     es que la hay y no lo es, y vacio es ausencia de dato. Las otras once no tienen campo que
+     signifique lo mismo y se contestan a mano. */
+  const _pvlOrig = _indS('ea_pvl_origen');
+  const _pvlDeCampo = (_pvlOrig === 'paraval' || _pvlOrig === 'mixta') ? 'si'
+                    : (_pvlOrig === 'central' ? 'no' : null);
+  const PROTA_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  PROTA_PREG.forEach(function (p) {
+    if (p.clave === 'prota.pvlRep' || p.clave === 'prota.pvlApta') { if (_pvlDeCampo !== 'si' && _pvl !== 'si') return; }
+    if (p.clave === 'prota.icAguda' || p.clave === 'prota.trombGrande') { if (!esMec || _trb !== 'si') return; }
+    if (p.clave === 'prota.trombBio') { if (!esBio || _trb !== 'si') return; }
+    const o = _indOrigen(p.clave === 'prota.pvl' ? _pvlDeCampo : null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, PROTA_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+
+  /* ══ EL BLOQUE DE CAUSAS — SOLO CON EL VEREDICTO «POSIBLE» ════════════════════
+     El estado en que la causa del gradiente todavia no esta decidida. Con «normal», «signif» o
+     «faltan» no se muestra: con los dos primeros el veredicto YA decidio y con el tercero no hay
+     con que. */
+  const causas = (V && V.nivel === 'posible')
+    ? _indCausas(PROTA_CAUSAS, function (k) { return _protaCausaDecide(V, k); })
+    : null;
+
+  return { filas: filas, clinica: clinica,
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
+    ordenProt: true,
+    causas: causas,
+    causasNota: causas ? 'Esta lista no gradúa ni concluye: es lo que la ASE 2024 enumera para un gradiente protésico elevado. Se marca sola únicamente la rama que el algoritmo de su Figura 13 decide con el cociente de VTI y el área efectiva indexada que esta aplicación ya calcula.' : '',
+    guia: { ref:PROTA_REF_ESC,
+      txt:'Las recomendaciones de esta sección salen de la ESC/EACTS 2025 de valvulopatías, Recommendation Table 17 de manejo de la disfunción protésica (hoja 66, folio 4700) y su Figura 20 (hoja 65, folio 4699). La ACC/AHA 2020 de valvulopatías queda como referencia, en su propia oración. Cada pregunta usa los cortes de UNA sola de ellas.' },
+    notas: [
+      { txt:'La Tabla 17 no está dividida por válvula: sus trece filas se reparten en hemólisis y fuga paravalvular, falla de prótesis mecánica, falla de prótesis biológica, trombosis valvular, trombosis de prótesis mecánica y trombosis de prótesis biológica. Esta sección publica las que alcanzan a la posición aórtica.',
+        refs:[PROTA_REF_ESC] },
+      { txt:'El valve-in-valve de la posición aórtica es transfemoral y tiene fila propia; el transvenoso de la misma tabla es el de la posición mitral o tricuspídea y no se aplica acá.',
+        refs:[PROTA_REF_ESC] },
+      { txt:'Los cortes de severidad protésica son de la ASE 2024. La ESC/EACTS 2025 no publica cortes ecocardiográficos propios: escribe «disfunción valvular significativa» y deja la cuantificación a la ASE.',
+        refs:[PROTA_REF_ASE, PROTA_REF_ESC] },
+      { txt:'Una estenosis protésica significativa debe cumplir al menos un parámetro dependiente del flujo —la velocidad o el gradiente medio— y uno independiente —el área efectiva o el cociente de VTI—. Es la nota de la Tabla 5 de la ASE 2024, hoja 18, folio 19.',
+        refs:[PROTA_REF_ASE] },
+      { txt:'La ACC/AHA 2020 coincide con la europea en la estenosis protésica sintomática severa: reintervención quirúrgica indicada, Clase 1 · Nivel B-NR, salvo riesgo alto o prohibitivo, y su fila de valve-in-valve percutáneo está escrita para la prótesis aórtica (hoja 81, folio e152).',
+        refs:[PROTA_REF_AHA] },
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    ] };
+}
+window._indProtA = _indProtA;
 
 function _indProtM(){
   /* ⚠️ COMPUERTA ÚNICA Y PRIMERA LÍNEA. Todo lo de abajo asume una prótesis: los cortes, los
@@ -104152,6 +104376,15 @@ function _indEstNoHay(lesion){
 
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
+  /* ⚠️ LA DE PANT-21 (commit 3). Va PEGADA a la estenosis aórtica y no al final: es la que OCUPA
+     su lugar cuando la válvula aórtica es una prótesis, así que el médico la busca donde buscaba
+     aquella. Es la misma colocación y el mismo argumento que la prótesis mitral.
+     ⚠️ EL TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO: `IND_SECS` se recorre
+     buscando la sección por el PREFIJO de su título, así que un título que sea prefijo de otro
+     deja una de las dos sin probar. Verificado contra los cuarenta y dos anteriores y contra las
+     otras tres de prótesis: «Prótesis aórtica», «Prótesis mitral», «Prótesis tricúspide» y
+     «Prótesis pulmonar» divergen en la primera letra de su segunda palabra. */
+  { tit:'Prótesis aórtica',                       fn:_indProtA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
   { tit:'Insuficiencia mitral secundaria',       fn:_indIMS },
   { tit:'Estenosis mitral',                      fn:_indEM },
