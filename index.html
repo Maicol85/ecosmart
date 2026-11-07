@@ -95548,6 +95548,138 @@ function _indProtA(){
 }
 window._indProtA = _indProtA;
 
+/* ══ EVIDENCIA DE LA PROTESIS TRICUSPIDE — PANT-21, commit 5 ═════════════════════
+   La tercera de las cuatro secciones de protesis. Mismo molde que la aortica y las mismas dos
+   fuentes: rige la ESC/EACTS 2025, Recommendation Table 17 (hoja 66, folio 4700, leida en imagen
+   a 300 ppp con el folio comprobado en el encabezado impreso), y la ACC/AHA 2020 va como
+   REFERENCIA en su propia oracion (hojas 79, 81 y 83; folios e150, e152 y e154).
+
+   ⚠️ LA FILA DEL VALVE-IN-VALVE QUE ENTRA ACA ES LA 7, la del transvenoso «mitral o
+   tricuspideo». La 6 —transfemoral— es de la posicion AORTICA y no se aplica: son dos filas
+   distintas de la misma tabla y confundirlas publicaria una via de acceso que esa fila no dice.
+
+   ⚠️ ESTA SECCION NO LLEVA BLOQUE DE CAUSAS, Y ES UNA MEDICION. La ASE 2024 trae UNA sola
+   enumeracion de causas de estenosis protesica —la de la posicion mitral, hoja 24, folio 25— mas
+   el algoritmo de la Figura 13 para la aortica. Su Tabla 19, que es la de la posicion tricuspide
+   (hoja 35, folio 36), publica cortes y no causas, y el documento no trae ninguna frase
+   equivalente para esta posicion. Censado sobre el documento entero. Inventar una lista seria
+   escribir contenido clinico que la fuente no dice. Declarado en docs/PENDIENTES.md → P21-a. */
+const PROTT_REF_ESC = 'esc2025vc';
+const PROTT_REF_ASE = 'aseProtM2024';
+const PROTT_REF_AHA = 'ahaProtM2020';
+
+const PROTT_PREG = Object.freeze([
+  { clave:'prott.disf', lbl:'Disfunción protésica significativa', guia:'vhd25',
+    rec:'Clase I · Nivel C — es la precondición que las filas transvalvulares de la tabla escriben en su propio texto: la reoperación en la prótesis mecánica y la reintervención en la biológica piden «disfunción valvular significativa», hoja 66, folio 4700',
+    ref:'la reintervención quirúrgica se indica con estenosis severa sintomática de una prótesis biológica o mecánica, sin distinguir la posición, Clase 1 · Nivel B-NR (hoja 81, folio e152)',
+    nota:'la ESC/EACTS 2025 no publica cortes ecocardiográficos de severidad protésica: dice «disfunción valvular significativa» y deja la cuantificación a la ASE 2024, cuya Tabla 19 es la de esta posición' },
+  { clave:'prott.sintomas', lbl:'Síntomas atribuibles a la disfunción protésica', guia:'vhd25',
+    rec:'Clase I · Nivel C — en el paciente sintomático con disfunción valvular significativa no atribuible a trombosis, la reoperación está recomendada en la prótesis mecánica y la reintervención en la biológica, hoja 66, folio 4700',
+    ref:'con estenosis severa sintomática, la reintervención quirúrgica está indicada salvo riesgo quirúrgico alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 81, folio e152)' },
+  { clave:'prott.tromb', lbl:'Disfunción atribuible a trombosis de la prótesis', guia:'vhd25',
+    rec:'Clase I · Nivel C — ante la sospecha de trombosis valvular, el ecocardiograma transesofágico y/o la tomografía de cuatro dimensiones están recomendados para confirmar el diagnóstico, hoja 66, folio 4700',
+    ref:'ante la sospecha de trombosis de una prótesis biológica, el transesofágico tridimensional o la tomografía de cuatro dimensiones pueden ser útiles para descartar trombosis de los velos, Clase 2a · Nivel C-LD (hoja 79, folio e150)',
+    nota:'las dos filas de reoperación de la tabla exigen textualmente que la disfunción NO sea atribuible a trombosis' },
+  { clave:'prott.pvl', lbl:'Fuga paravalvular', guia:'vhd25',
+    rec:'Clase I · Nivel C — la decisión entre el cierre percutáneo y el quirúrgico de una fuga paravalvular clínicamente significativa se toma en el Heart Team, con el riesgo del paciente, la morfología de la fuga y la experiencia del centro, hoja 66, folio 4700',
+    ref:'con hemólisis intratable o insuficiencia cardíaca atribuible a una fuga transvalvular o paravalvular, la cirugía está recomendada salvo riesgo alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prott.pvlRep', lbl:'La fuga se asocia a endocarditis, o causa hemólisis que exige transfusiones repetidas, o lleva a síntomas de insuficiencia cardíaca', guia:'vhd25',
+    rec:'Clase I · Nivel C — en esa situación la reoperación está recomendada, hoja 66, folio 4700',
+    ref:'la cirugía está recomendada con hemólisis intratable o insuficiencia cardíaca por la fuga, salvo riesgo alto o prohibitivo, Clase 1 · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prott.pvlApta', lbl:'Fuga apta para cierre percutáneo, con regurgitación o hemólisis clínicamente significativas', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — el cierre percutáneo debe considerarse en fugas aptas con regurgitación y/o hemólisis clínicamente significativas, hoja 66, folio 4700',
+    ref:'la reparación percutánea de la fuga es razonable con hemólisis intratable o síntomas de clase III o IV, riesgo alto o prohibitivo y anatomía apta, hecha en un centro valvular integral, Clase 2a · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prott.riesgoAlto', lbl:'Riesgo quirúrgico intermedio o alto', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — es una de las condiciones del valve-in-valve percutáneo transvenoso en posición mitral o tricuspídea, hoja 66, folio 4700',
+    ref:'la guía americana escribe su fila de valve-in-valve percutáneo para la prótesis aórtica (hoja 81, folio e152)' },
+  { clave:'prott.anat', lbl:'Anatomía apta para el valve-in-valve', guia:'vhd25',
+    rec:'Clase IIa · Nivel B — el valve-in-valve percutáneo transvenoso mitral o tricuspídeo debe considerarse con disfunción valvular significativa y riesgo quirúrgico intermedio o alto, si la anatomía es apta, hoja 66, folio 4700' },
+  { clave:'prott.asintBajo', lbl:'Asintomático, con disfunción protésica significativa y riesgo quirúrgico bajo', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la reoperación debe considerarse en el asintomático con disfunción protésica significativa, si el riesgo quirúrgico es bajo, hoja 66, folio 4700',
+    ref:'en el asintomático con regurgitación protésica severa y riesgo operatorio bajo, la cirugía es razonable, Clase 2a · Nivel B-NR (hoja 83, folio e154)' },
+  { clave:'prott.icAguda', lbl:'Insuficiencia cardíaca aguda, clase III o IV de la NYHA, por trombosis obstructiva de la prótesis mecánica', guia:'vhd25',
+    rec:'Clase I · Nivel B — la evaluación por el Heart Team está recomendada para decidir el tratamiento, que puede ser el reemplazo valvular o la fibrinólisis en infusión lenta de dosis baja, hoja 66, folio 4700',
+    nota:'la fila de la tabla no distingue el lado. Su Figura 20 (hoja 65, folio 4699) está titulada para la trombosis de prótesis mecánica IZQUIERDA, y dentro de ella la fibrinólisis se prefiere con riesgo quirúrgico alto o en una prótesis DERECHA' },
+  { clave:'prott.trombGrande', lbl:'Trombo protésico grande, de más de 10 mm, complicado con embolia', guia:'vhd25',
+    rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de más de 10 mm, complicado con embolia, hoja 66, folio 4700',
+    nota:'la Tabla 17 imprime «más de 10 mm» y su Figura 20 (hoja 65, folio 4699) imprime «10 mm o más». Esta pregunta usa el de la tabla' },
+  { clave:'prott.trombBio', lbl:'Trombosis de la prótesis biológica', guia:'vhd25',
+    rec:'Clase I · Nivel B — la anticoagulación oral con antivitamina K está recomendada en la trombosis de una prótesis biológica antes de plantear una reintervención, hoja 66, folio 4700',
+    ref:'con trombosis sospechada o confirmada de una prótesis biológica, en el paciente estable y sin contraindicación para anticoagular, el tratamiento inicial con antivitamina K es razonable, Clase 2a · Nivel B-NR (hoja 79, folio e150)' }
+]);
+window.PROTT_PREG = PROTT_PREG;
+
+function _indProtT(){
+  /* ⚠️ COMPUERTA UNICA Y PRIMERA LINEA, y es la MISMA que usa el cuadro de obstruccion protesica
+     de la pantalla: `vtProtTipo()` sale de `vt_morf`. Con una plastia o un TEER tricuspideo
+     —las otras dos opciones de ese selector— esta seccion no existe, porque no son protesis. */
+  const morf = _indS('vt_morf');
+  if (!(_indFn('valvEsProtesis') && valvEsProtesis(morf))) return null;
+  const esMec = morf === 'Prótesis mecánica';
+  const esBio = morf === 'Prótesis biológica' || morf === 'TAVI';
+
+  /* El veredicto se LEE de `vtProtObstr()`, que es su duenio y el que pinta el cuadro. */
+  let V = null;
+  try { const f = _indFn('vtProtObstr'); if (f) V = f(); } catch (e) { V = null; }
+
+  const filas = [];
+  filas.push(_indFila('Válvula tricúspide', morf, 'none',
+    'las filas de válvula tricúspide nativa no aplican a una prótesis; las recomendaciones de esta sección son las de disfunción protésica',
+    [PROTT_REF_ESC]));
+  const TNIV = { estenosis:'Criterios de estenosis protésica', aislado:'Un solo criterio alcanzado',
+                 sin:'Sin criterios de estenosis protésica' };
+  filas.push(_indFila('Obstrucción protésica por la Tabla 19',
+    (V && V.obstr && TNIV[V.obstr]) ? TNIV[V.obstr] : '—',
+    !V || !V.obstr ? 'ask' : (V.obstr === 'estenosis' ? 'ok' : (V.obstr === 'aislado' ? 'warn' : 'none')),
+    !V || !V.obstr ? 'se calcula en el cuadro de obstrucción protésica del formulario'
+    : V.obstr === 'aislado' ? 'con un solo criterio positivo la aplicación no afirma estenosis: pide dos o más'
+    : 'lo decide el cuadro de obstrucción protésica del formulario, que es su dueño: esta sección lo lee y no lo recalcula',
+    [PROTT_REF_ASE]));
+  filas.push(_indFila('Criterios de la Tabla 19 alcanzados',
+    (V && V.pos) ? String(V.pos.length) : '—',
+    (V && V.pos && V.pos.length) ? 'warn' : ((V && V.med && V.med.length) ? 'none' : 'ask'),
+    (V && V.med && V.med.length) ? 'sobre ' + V.med.length + ' medido(s)' : 'sin parámetros medidos',
+    [PROTT_REF_ASE]));
+
+  const _pvl = _indClinGet('prott.pvl');
+  const _trb = _indClinGet('prott.tromb');
+  const PROTT_OPS = [{ v:'si', t:'Sí' }, { v:'no', t:'No' }, IND_OPS_SD];
+  const clinica = [], _si = [], _no = [], _sd = [], _siDet = [];
+  PROTT_PREG.forEach(function (p) {
+    if (p.clave === 'prott.pvlRep' || p.clave === 'prott.pvlApta') { if (_pvl !== 'si') return; }
+    if (p.clave === 'prott.icAguda') { if (!esMec || _trb !== 'si') return; }
+    if (p.clave === 'prott.trombGrande') { if (_trb !== 'si') return; }
+    if (p.clave === 'prott.trombBio') { if (!esBio || _trb !== 'si') return; }
+    const o = _indOrigen(null, p.clave);
+    if (o.val === 'si') { _si.push(p.lbl); _siDet.push(p); }
+    else if (o.val === 'no') _no.push(p.lbl); else _sd.push(p.lbl);
+    const _f = _indFilaOrigen(p.lbl, o, PROTT_OPS, function (val) {
+      return { txt: val === 'si' ? 'Sí' : (val === 'no' ? 'No' : 'Sin dato'),
+               marca: val === 'si' ? 'warn' : (val === 'no' ? 'none' : 'ask'),
+               nota: _indPregNota(p, val == null) };
+    }, true);
+    const _b = _indPregBadge(p); if (_b) _f.badge = _b;
+    clinica.push(_f);
+  });
+
+  return { filas: filas, clinica: clinica,
+    cuenta: { si:_si.length, no:_no.length, sd:_sd.length },
+    adapt: _siDet, faltan: _sd,
+    ordenProt: true,
+    guia: { ref:PROTT_REF_ESC,
+      txt:'Las recomendaciones de esta sección salen de la ESC/EACTS 2025 de valvulopatías, Recommendation Table 17 de manejo de la disfunción protésica (hoja 66, folio 4700) y su Figura 20 (hoja 65, folio 4699). La ACC/AHA 2020 de valvulopatías queda como referencia, en su propia oración. Cada pregunta usa los cortes de UNA sola de ellas.' },
+    notas: [
+      { txt:'La Tabla 17 no está dividida por válvula: esta sección publica las filas que alcanzan a la posición tricuspídea. El valve-in-valve que le corresponde es el transvenoso, el mismo que la fila escribe para la posición mitral; el transfemoral es el de la posición aórtica.',
+        refs:[PROTT_REF_ESC] },
+      { txt:'Los cortes de obstrucción protésica tricuspídea son de la Tabla 19 de la ASE 2024, hoja 35, folio 36, y se aplican en el cuadro de obstrucción protésica del formulario. Esta sección los lee.',
+        refs:[PROTT_REF_ASE] },
+      { txt:'Esta sección no publica una lista de causas del gradiente alto. La ASE 2024 enumera las causas de estenosis protésica para la posición mitral, y para la aórtica da el algoritmo de su Figura 13; para la posición tricuspídea su Tabla 19 publica cortes y no causas.',
+        refs:[PROTT_REF_ASE] },
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    ] };
+}
+window._indProtT = _indProtT;
+
 /* ══ LAS CAUSAS POSIBLES DEL GRADIENTE ALTO EN LA POSICION MITRAL — PANT-21, commit 4b ═════
    Las cuatro salen de UNA sola frase de la ASE 2024, leida en imagen en la hoja 24, folio 25:
    «las causas de estenosis de una protesis mitral son degeneracion valvular, trombosis valvular,
@@ -104442,6 +104574,12 @@ const IND_SECS = [
   { tit:'Prótesis mitral',                       fn:_indProtM },
   { tit:'Insuficiencia aórtica',                 fn:_indIA },
   { tit:'Válvula tricúspide',                    fn:_indVT },
+  /* ⚠️ LA DE PANT-21 (commit 5). Va PEGADA a la válvula tricúspide por el mismo argumento que
+     la prótesis aórtica y la mitral: es la que ocupa su lugar cuando esa válvula es una prótesis.
+     ⚠️ EL TÍTULO NO ES PREFIJO DE NINGUNO NI NINGUNO ES PREFIJO SUYO: verificado contra los
+     cuarenta y tres anteriores. «Prótesis tricúspide» y «Válvula tricúspide» divergen en la
+     primera letra, y las cuatro de prótesis divergen en su segunda palabra. */
+  { tit:'Prótesis tricúspide',                    fn:_indProtT },
   { tit:'Estenosis pulmonar',                    fn:_indEP },
   { tit:'Tromboembolia pulmonar — estratificación del riesgo', fn:_indTEP },
   { tit:'Hipertensión pulmonar — probabilidad ecocardiográfica', fn:_indHTP },

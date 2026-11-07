@@ -67,20 +67,23 @@ const ESC = {
                em_vmax: '2.8', thp: '260' }
   },
   vt: {
-    nativa:  { vt_morf: 'Normal', et_gmedio: '7' },
-    vacia:   { vt_morf: 'Prótesis mecánica' },
-    aislado: { vt_morf: 'Prótesis biológica', peso: '75', talla: '175', et_gmedio: '7' },
-    normal:  { vt_morf: 'Prótesis biológica', peso: '75', talla: '175', et_gmedio: '3' },
-    esten:   { vt_morf: 'Prótesis biológica', peso: '75', talla: '175', et_gmedio: '7',
-               et_thp: '240', et_e_vmax: '220' }
+    nativa:  { vt_morf: 'Normal', et_gmedio: '10' },
+    vacia:   { vt_morf: 'Pr\u00f3tesis mec\u00e1nica' },
+    /* un SOLO criterio de la Tabla 19 (gradiente medio 10 >= 9 en la biologica) -> «aislado» */
+    aislado: { vt_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', et_gmedio: '10' },
+    normal:  { vt_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', et_gmedio: '5' },
+    /* DOS criterios -> «estenosis» */
+    esten:   { vt_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', et_gmedio: '10',
+               et_e_vmax: '220' },
+    mec:     { vt_morf: 'Pr\u00f3tesis mec\u00e1nica', peso: '75', talla: '175', et_gmedio: '7' }
   },
   vp: {
-    nativa:  { vp_morf: 'Normal', ep_gmedio: '20' },
-    vacia:   { vp_morf: 'Prótesis mecánica' },
-    posible: { vp_morf: 'Prótesis biológica', peso: '75', talla: '175', ep_gmedio: '20',
-               ep_vmax: '3.2' },
-    normal:  { vp_morf: 'Prótesis biológica', peso: '75', talla: '175', ep_gmedio: '8',
-               ep_vmax: '1.8' }
+    nativa:  { vp_morf: 'Normal', ep_gmedio: '22' },
+    vacia:   { vp_morf: 'Pr\u00f3tesis mec\u00e1nica' },
+    /* un criterio de la Tabla 15 (gradiente medio 22 >= 20 en la biologica) -> «posible» */
+    posible: { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', ep_gmedio: '22' },
+    normal:  { vp_morf: 'Pr\u00f3tesis biol\u00f3gica', peso: '75', talla: '175', ep_gmedio: '10',
+               vp_vmax: '2.0' }
   }
 }[POS];
 
