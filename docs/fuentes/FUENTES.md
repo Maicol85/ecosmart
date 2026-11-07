@@ -1,5 +1,162 @@
 <!-- registro armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 
+## La tanda PANT-21 (2026-11-07) — la Evidencia de prótesis, una sección por válvula
+
+**Todo lo de acá se leyó EN IMAGEN a 150-300 ppp**, con el folio comprobado en el pie o la cabecera
+impresos de esa misma hoja. La capa de texto se usó **sólo** para ubicar las tablas.
+
+### Las cinco reglas de folio, comprobadas una por una
+
+| documento | archivo | hojas | regla | comprobado en |
+|---|---|---|---|---|
+| ESC/EACTS 2025 de valvulopatías, **versión FINAL** | `04_Valvulopatias/2025 ESC:EACTS Guidelines for the management of valvular heart Disease. .pdf` | 102 | folio = hoja + 4634 | **hoja 65 → 4699** y **hoja 66 → 4700**, encabezado impreso |
+| ACC/AHA 2020 de valvulopatías | `04_Valvulopatias/AHA 2020 Valvulopatias.pdf` | 156 | folio = hoja + 71 | **hoja 79 → e150**, **hoja 81 → e152**, **hoja 83 → e154**, pie impreso |
+| ASE 2024 (Zoghbi) | `05_Protesis_valvulares/Zoghbi_2024_Protesis.pdf` | 62 | folio = hoja + 1 | **hoja 18 → 19**, cabecera impresa «Zoghbi et al 19» |
+| ACC/AHA 2025 de congénitas del adulto | `08_Cardiopatias_congenitas/gurvitz-…-disease-a.pdf` (la copia SIN «-2») | 137 | folio = hoja + 114 | **hoja 75 → e189** |
+| ESC 2020 de congénitas del adulto, **INGLESA** | `08_Cardiopatias_congenitas/ESC congenitos en ingles 2020.pdf` | 84 | folio = hoja + 562 | **hoja 60 → 622**, encabezado impreso |
+
+⚠️ **NO se usó** el archivo `2025-esceacts-guidelines-for-the-management-of-valvular-heart-disease.pdf`
+(versión adelantada, folio corto) ni las traducciones al español.
+⚠️ **NI `Baumgartner_2020_Cardiopatias_Congenitas.pdf`**, que está en **español** y tiene 79 hojas:
+→ `P21-a`.
+
+### ESC/EACTS 2025 — Recommendation Table 17 (hoja 66, folio 4700), entera
+
+Título impreso: «Recommendations for the management of prosthetic valve dysfunction (see also
+Supplementary data online, Evidence Table 25)». **No está dividida por válvula.** Trece filas en
+seis grupos, leídas a 300 ppp en dos tramos.
+
+| # | grupo | clase · nivel | superíndices | qué dice |
+|---|---|---|---|---|
+| 1 | Haemolysis and paravalvular leak | **I · C** | — | la decisión entre el cierre percutáneo y el quirúrgico de una fuga paravalvular clínicamente significativa se basa en la evaluación del Heart Team, con el riesgo del paciente, la morfología de la fuga y la experiencia local |
+| 2 | ídem | **I · C** | — | reoperación recomendada si la fuga se relaciona con endocarditis, o causa hemólisis que exige transfusiones repetidas, o lleva a síntomas de insuficiencia cardíaca |
+| 3 | ídem | **IIa · B** | 940 | el cierre percutáneo debe considerarse en fugas aptas con regurgitación y/o hemólisis clínicamente significativas |
+| 4 | Mechanical heart valve failure | **I · C** | — | reoperación recomendada en el sintomático con disfunción valvular significativa no atribuible a trombosis valvular |
+| 5 | Biological heart valve failure | **I · C** | — | reintervención recomendada en el sintomático con disfunción valvular significativa no atribuible a trombosis valvular |
+| 6 | ídem | **IIa · B** | 447,448,450,451,941 | el implante valve-in-valve percutáneo **transfemoral en posición aórtica** debe considerarse con disfunción significativa, riesgo quirúrgico intermedio o alto y características anatómicas y de la prótesis aptas, según el Heart Team |
+| 7 | ídem | **IIa · B** | 569,570,681,942-944 | el implante valve-in-valve percutáneo **transvenoso mitral o tricuspídeo** debe considerarse con disfunción significativa y riesgo intermedio o alto, si la anatomía es apta |
+| 8 | ídem | **IIa · C** | — | la reoperación debe considerarse en el **asintomático** con disfunción protésica significativa, si el riesgo quirúrgico es bajo |
+| 9 | Valve thrombosis | **I · C** | 914,918,923,925,945-948 | el ETE y/o la TC de cuatro dimensiones están recomendados ante la sospecha de trombosis valvular, para confirmar el diagnóstico |
+| 10 | Mechanical heart valve thrombosis | **I · B** | 923,926-929,931,949-954 | la evaluación por el Heart Team está recomendada en la insuficiencia cardíaca aguda (NYHA III o IV) por trombosis obstructiva de prótesis mecánica, para decidir el tratamiento (reemplazo valvular o fibrinólisis en infusión lenta de dosis baja) |
+| 11 | ídem | **IIa · C** | 913,932,933 | la cirugía debe considerarse ante un trombo protésico grande (**más de 10 mm**) complicado con embolia |
+| 12 | Biological heart valve thrombosis | **I · B** | 867,934-937,955,956 | la anticoagulación oral con antivitamina K está recomendada en la trombosis de prótesis biológica antes de plantear una reintervención |
+| 13 | ídem | **IIa · B** | 918,920-922 | la anticoagulación oral debe considerarse con engrosamiento de los velos y movilidad reducida que elevan los gradientes, al menos hasta la resolución |
+
+Pie impreso: «4D, four-dimensional; BHV, biological heart valve; CT, computed tomography; HF,
+heart failure; MHV, mechanical heart valve; NYHA, New York Heart Association; OAC, oral
+anticoagulation; PVL, paravalvular leak; TOE, transoesophageal echocardiography; VKA, vitamin K
+antagonist. ᵃClass of recommendation. ᵇLevel of evidence.»
+
+⚠️ **NINGUNA FILA DE PRÓTESIS PULMONAR**, verificado fila por fila: las únicas posiciones nombradas
+son la **aórtica** (fila 6) y la **mitral o tricuspídea** (fila 7).
+⚠️ **NINGUNA FILA DE CLASE III.**
+⚠️ **El índice de la orden no nombra cuatro filas que la tabla sí trae**: la 8, la 9, la 11 y la 13.
+
+### ESC/EACTS 2025 — Figura 20 (hoja 65, folio 4699)
+
+Título impreso: «Management of **left-sided** obstructive and non-obstructive mechanical heart
+valve thrombosis». Árbol: signos y síntomas → ETT más ETE y/o TC cardíaca o fluoroscopia
+(**Clase I**) → ¿trombo grande (**≥10 mm**) complicado con embolia? → sí: **cirugía (Clase IIa)**
+→ no: ¿insuficiencia cardíaca aguda NYHA III-IV por trombosis obstructiva? → sí: **Heart Team
+(Clase I)** → no: ¿anticoagulación insuficiente? → sí: puentear hasta el INR objetivo e identificar
+y corregir sus causas; no: **subir la intensidad del antivitamina K o agregar aspirina en dosis
+baja (Clase IIa)**; después continuar e **imagen repetida**; con trombo persistente y obstrucción
+clínicamente relevante o evento tromboembólico → Heart Team.
+**Cirugía preferida si:** evento recurrente, **posible pannus**, shock cardiogénico, trombo grande,
+evento tromboembólico, contraindicación para la fibrinólisis.
+**Fibrinólisis (infusión lenta de dosis baja) preferida si:** riesgo quirúrgico alto, **prótesis
+derecha**.
+
+### ACC/AHA 2020 — las filas de prótesis
+
+- **11.6.2 · Intervención en la trombosis de prótesis mecánica** (hoja 79, folio **e150**):
+  **1 · B-NR** — con una prótesis mecánica izquierda trombosada y síntomas de obstrucción, el
+  tratamiento inicial urgente con fibrinólisis en infusión lenta de dosis baja o con cirugía de
+  urgencia está recomendado.
+- **11.7.1 · Diagnóstico de la trombosis de prótesis biológica** (hoja 79, folio **e150**):
+  **2a · C-LD** — el ETE 3D o la TC 4D pueden ser útiles para descartar trombosis de los velos.
+- **11.7.2 · Tratamiento médico** (hoja 79, folio **e150**): **2a · B-NR** — antivitamina K inicial
+  en el paciente estable y sin contraindicación.
+- **11.8.2 · Intervención en la estenosis protésica** (hoja 81, folio **e152**):
+  **1 · B-NR** reintervención quirúrgica en el sintomático con estenosis severa, salvo riesgo alto
+  o prohibitivo · **2a · B-NR** valve-in-valve percutáneo en la prótesis biológica **aórtica** con
+  riesgo alto o prohibitivo, en un centro valvular integral · **2a · B-NR** antivitamina K con
+  estenosis atribuible a trombosis.
+- **11.9.3 · Intervención en la regurgitación protésica** (hoja 83, folio **e154**):
+  **1 · B-NR** cirugía con hemólisis intratable o insuficiencia cardíaca por fuga transvalvular o
+  paravalvular · **2a · B-NR** cirugía en el asintomático con regurgitación severa y riesgo bajo ·
+  **2a · B-NR** reparación percutánea de la fuga con hemólisis intratable o clase III-IV, riesgo
+  alto o prohibitivo y anatomía apta · **2a · B-NR** valve-in-valve percutáneo con síntomas severos
+  por regurgitación de prótesis biológica y riesgo alto o prohibitivo.
+
+**Frase de apoyo (hoja 81, folio e152):** «cuando hay gradientes excesivos con movilidad normal de
+los velos y sin trombo, está presente el desajuste protésico-paciente o la formación de pannus (o
+los dos)».
+
+### ASE 2024 — las causas del gradiente alto
+
+- **Figura 13 y Tabla 5, hoja 18, folio 19** (cabecera impresa «Zoghbi et al 19»).
+  **Figura 13**, «Algorithm for initial evaluation of elevated peak prosthetic aortic jet velocity
+  incorporating DVI, jet contour, and measures of acceleration time (AT) and the ratio of AT to
+  ejection time (ET)»: entrada, velocidad pico **> 3 m/s**; contorno del chorro, pico temprano
+  (AT < 100 ms, AT/ET < 0,37) o tardío (AT > 100 ms, AT/ET > 0,37); **DVI ≥ 0,30 → «Normal AVR»**,
+  **0,29-0,25 → «Possible Stenosis»**, **< 0,25 → «Stenosis»**. Dentro de «Normal AVR», por la
+  **EOA indexada**: **> 0,85 cm²/m² → estado de hiperflujo**; **< 0,85 → desajuste
+  protésico-paciente**. Dentro de «Possible Stenosis»: estenosis con tracto de salida pequeño,
+  posición inadecuada del volumen de muestra del Doppler pulsado en el tracto de salida, o
+  subestimación de la velocidad del chorro. Dentro de «Stenosis»: estenosis valvular, trombosis
+  incluida, y estenosis subvalvular.
+  **Tabla 5**, misma hoja: su nota dice que una estenosis significativa debe cumplir **al menos un
+  parámetro dependiente del flujo** (velocidad y gradiente medio) **y uno independiente** (EOA o
+  DVI).
+- **Hoja 9, folio 10**: «la identificación de obstrucción valvular (movilidad reducida por
+  **trombo, calcificaciones o pannus**)» y «los gradientes aumentan exponencialmente cuando la
+  **EOA indexada es menor de 0,8 a 0,9 cm²/m²**».
+- **Hoja 24, folio 25**: «las causas de estenosis de una prótesis mitral son **degeneración
+  valvular, trombosis valvular, formación de pannus y vegetaciones grandes**».
+- **Tabla 19** (hoja 35, folio 36) y **Tabla 15** (hoja 32, folio 33): publican **cortes y no
+  causas**. → `P21-a`.
+
+### Congénitas — la prótesis pulmonar
+
+- **ACC/AHA 2025, conductos de ventrículo derecho a arteria pulmonar (hoja 75, folio e189):**
+  **5 · 2a · C-LD** tomografía coronaria previa a una intervención percutánea ·
+  **6 · 1 · B-NR** con estenosis severa y/o insuficiencia severa y síntomas, o empeoramiento de la
+  capacidad funcional, o una arritmia sostenida, la intervención sobre el conducto debe realizarse ·
+  **7 · 2a · B-NR** las mismas condiciones clínicas con grado **moderado**: la intervención es
+  razonable · **8 · 2a · B-NR** en el **asintomático** con estenosis severa y/o insuficiencia
+  severa y fracción de eyección del ventrículo derecho reducida, dilatación del ventrículo derecho
+  o progresión de la insuficiencia tricuspídea a por lo menos moderada: la intervención es
+  razonable.
+- **ESC 2020 inglesa, «Recommendations for intervention in right ventricular to pulmonary artery
+  conduits» (hoja 60, folio 622):**
+  **I · C** en el **sintomático** con presión sistólica del ventrículo derecho **mayor de 60 mmHg**
+  —que puede ser menor con flujo reducido— y/o insuficiencia pulmonar severa: intervención, con
+  preferencia por la percutánea si es anatómicamente posible ·
+  **IIa · C** en el **asintomático** con obstrucción severa del tracto de salida y/o insuficiencia
+  pulmonar severa, con al menos uno de: caída de la capacidad de ejercicio objetiva; dilatación
+  progresiva con volumen telesistólico indexado **de 80 ml/m² o más** y/o telediastólico indexado
+  **de 160 ml/m² o más**, y/o progresión de la insuficiencia tricuspídea a por lo menos moderada;
+  disfunción sistólica progresiva del ventrículo derecho; presión sistólica del ventrículo derecho
+  **mayor de 80 mmHg**.
+  Nota al pie impresa **c**: la insuficiencia pulmonar severa se define por **fracción regurgitante
+  en resonancia mayor de 30-40 %**.
+
+### Cambios de evidencia de esta tanda
+
+| qué | antes | después |
+|---|---|---|
+| Evidencia de prótesis aórtica | no existía: una tarjeta «esta sección no aplica» | sección propia, 12 preguntas, Tabla 17 + Figura 20, ACC/AHA 2020 como referencia |
+| Evidencia de prótesis tricúspide | no existía | sección propia, 12 preguntas |
+| Evidencia de prótesis pulmonar | no existía | sección propia, 11 preguntas, ACC/AHA 2025 de congénitas + ESC 2020 como referencia |
+| Evidencia de prótesis mitral | 12 filas de la Tabla 17 | **las mismas 12**: no faltaba ninguna → `P21-a` |
+| causas del gradiente alto, aórtica | no existían | 5, de la Figura 13 y de la hoja 9 |
+| causas del gradiente alto, mitral | sólo en una nota del detalle | la nota **y** un bloque con las 4, con el veredicto «posible» |
+| causas, tricúspide y pulmonar | no existían | **siguen sin existir**, y las secciones lo dicen → `P21-a` |
+| etiquetas de guía del panel | 5 | 7: `vhd25` «ESC/EACTS 2025» y `vhd20` «ACC/AHA 2020» |
+| secciones de `IND_SECS` | 42 | **45** |
+
+
 ## La tanda PANT-20 (2026-11-06) — el catálogo en la mitral, la tricúspide y la pulmonar
 
 **Guía única: ASE 2024**, Zoghbi W y col., *J Am Soc Echocardiogr* 2024;37:2-63. Archivo

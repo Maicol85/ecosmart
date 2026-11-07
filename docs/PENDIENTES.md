@@ -1,5 +1,94 @@
 # EcoSmart — pendientes vivos
 
+## P21-a · Lo que se LEYÓ y NO se pudo escribir, y las premisas que no se reprodujeron
+
+### 1 · La ESC 2020 de congénitas: el archivo que el nombre sugiere está en ESPAÑOL
+
+La orden de PANT-21 nombra «la ESC 2020 de congénitas del adulto en inglés (EHJ 2021;42:563-645;
+folio = hoja + 562)». El archivo `08_Cardiopatias_congenitas/Baumgartner_2020_Cardiopatias_Congenitas.pdf`
+—el que el nombre sugiere— **está en español y tiene 79 hojas**, así que no cumple esa regla de
+folio y sus hojas 52, 60 y 61 no son las que el índice describe (ahí hay prosa de otra sección).
+
+**La edición inglesa está en el mismo directorio con otro nombre:
+`ESC congenitos en ingles 2020.pdf`, 84 hojas**, y en ella la **hoja 60 imprime 622** en el
+encabezado, que es la regla. **Se usó la inglesa.** Conviene renombrar el archivo español o
+anotarlo en `FUENTES.md`, porque la próxima tanda va a tropezar con lo mismo.
+
+### 2 · La Tabla 17 y la Figura 20 del MISMO documento no usan el mismo operador
+
+Las dos leídas en imagen: la **Recommendation Table 17** (hoja 66, folio 4700) imprime
+«large (**>10 mm**) prosthetic thrombus» y la **Figura 20** (hoja 65, folio 4699) imprime
+«Large thrombus (**≥10 mm**)». La aplicación **no aplica ese corte a ningún número suyo**: lo
+publica como texto de la recomendación, con la forma de la Tabla 17, que es la que rige por la
+decisión (3) del médico. La pregunta lo **dice**, sin comparar las dos partes. **Decide el médico**
+si prefiere la forma de la figura.
+
+### 3 · La ASE 2024 no da causas del gradiente alto para la tricúspide ni para la pulmonar
+
+Censado el documento entero: trae **una sola** enumeración de causas de estenosis protésica —la de
+la posición **mitral**, hoja 24, folio 25: «degeneración valvular, trombosis valvular, formación de
+pannus y vegetaciones grandes»— más el **algoritmo de la Figura 13** para la aórtica (hoja 18,
+folio 19). Su **Tabla 19** (hoja 35, folio 36) y su **Tabla 15** (hoja 32, folio 33) publican
+**cortes y no causas**.
+
+**Por eso la tricúspide y la pulmonar NO llevan bloque de causas**, y las dos lo **declaran** en una
+de sus notas en vez de callarse. Inventar una lista sería escribir contenido clínico que la fuente
+no dice.
+
+### 4 · En la mitral, ninguna causa se marca sola
+
+La guía da para la mitral una **lista** y no un **algoritmo**: no hay ningún número de los que la
+app tiene que decida cuál de las cuatro es. Las cuatro salen con ❓. **Decide el médico** si quiere
+que alguna se marque con un criterio propio de la aplicación —eso sería un `Criterio EcoSmart` y es
+contenido clínico nuevo—.
+
+### 5 · Una forma que la regla del 04/11 prohíbe, y es PREEXISTENTE
+
+El censo de la sección de prótesis mitral encuentra **«no coinciden»**, en una de sus trece notas:
+«Las dos definiciones de desajuste protésico-paciente mitral de la misma guía **no coinciden**».
+Verificado en el árbol anterior, donde esa forma aparece **31 veces** en todo el archivo. **No se
+tocó**: cambiar ese texto es contenido clínico y no estaba en esta orden. Es la misma clase que
+`P17b-d`. **Decide el médico** si se reescriben.
+
+## P21-b · Lo que no entró por el tope de preguntas
+
+**Nada.** Ninguna de las cuatro secciones llegó al tope de catorce: la aórtica publica **doce**
+preguntas, la tricúspide **doce**, la pulmonar **once** y la mitral **seis**. Todas las filas de
+la Tabla 17 que alcanzan a cada posición tienen su pregunta, y las de las dos guías de congénitas
+también.
+
+## P21-c · Las clase IIa de seguimiento o de diagnóstico, que NO entran
+
+Decisión del médico (2): entran la clase I, la clase III y las **IIa que indican una
+intervención**. Éstas quedan afuera, literales de la lectura en imagen:
+
+| guía | hoja · folio | recomendación | clase · nivel | por qué no entra |
+|---|---|---|---|---|
+| ACC/AHA 2020 | hoja 79 · **e150** | ante la sospecha de trombosis de prótesis biológica, el ETE tridimensional o la TC de cuatro dimensiones pueden ser útiles para descartar trombosis de los velos | **2a · C-LD** | diagnóstica |
+| ACC/AHA 2020 | hoja 79 · **e150** | con trombosis de prótesis biológica sospechada o confirmada, en el paciente estable y sin contraindicación, el tratamiento inicial con antivitamina K es razonable | **2a · B-NR** | tratamiento médico |
+| ACC/AHA 2020 | hoja 81 · **e152** | con estenosis significativa de prótesis biológica atribuible a trombosis sospechada o documentada, la anticoagulación oral con antivitamina K es razonable | **2a · B-NR** | tratamiento médico |
+| ACC/AHA 2025 congénitas | hoja 75 · **e189** | ante una intervención percutánea sobre un conducto, la tomografía coronaria previa es razonable para evaluar la calcificación del conducto, su anatomía y la proximidad de las coronarias | **2a · C-LD** | diagnóstica |
+| ESC/EACTS 2025, Figura 20 | hoja 65 · **4699** | subir la intensidad del antivitamina K o agregar aspirina en dosis baja | **IIa** (la figura no imprime nivel) | tratamiento médico |
+
+⚠️ **Las tres de antivitamina K SÍ entran en la aórtica y en la tricúspide por la fila 12 de la
+Tabla 17**, que es **Clase I · Nivel B** y manda anticoagular antes de plantear una reintervención.
+Lo que no entra es la versión **IIa** de la guía americana, que es la misma conducta con otra clase.
+
+## P21-d · Lo que el médico anotó para después de Válvulas
+
+En su orden, y en este orden:
+
+1. **La Evidencia de los sectores avanzados que no debe generarse si el sector no está incluido en
+   el informe.**
+2. **El orden «preguntas, contestado, detalle» en el RESTO de la Evidencia.** El mecanismo ya está:
+   es `ordenProt`, hoy encendido sólo en las cuatro de prótesis. Encenderlo en las otras cuarenta y
+   una es una decisión suya y hay que medir el alto de cada una antes y después.
+3. **Los ⓘ que abren DENTRO de la fila y no como cajón flotante**, y **los textos de Hemodinámica
+   que comparan la aplicación con una fuente**.
+4. Después, **PANT-15** junto con **Contractilidad** y el **ⓘ de la cava izquierda persistente**.
+5. **El Laboratorio con la estadística de prótesis.**
+
+
 ## P20-a · La Tabla A7 no tiene UNA forma de celda, sino CUATRO
 
 Leída en imagen a 300 ppp en la hoja 61, folio 62 comprobado en el encabezado impreso. La propia

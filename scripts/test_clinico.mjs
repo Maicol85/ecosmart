@@ -122616,6 +122616,14 @@ caso('TC-742', 'PANT-21: la seccion de Evidencia de la PROTESIS AORTICA — apar
   const PROH = ['pendiente de revisi', 'de ejemplo', 'no coinciden', 'difieren', 'discrepan',
     'no se encontr', 'ninguna fuente'];
   const txt1 = h1.replace(/<[^>]*>/g, ' ').toLowerCase();
+  /* (A11) NACIO DEL BARRIDO: ninguna condicion miraba que la seccion estuviera REGISTRADA.
+     Las demas la llaman por su nombre, asi que sacarla de IND_SECS la dejaba fuera del panel
+     -o sea invisible para el medico- con todas las condiciones en verde. */
+  const enSecs = (function () { try {
+    return IND_SECS.filter(x => x.tit === 'Pr\u00f3tesis a\u00f3rtica' && x.fn === window._indProtA).length } catch (e) { return -1 } })();
+  ex.push(['(A11) la seccion esta REGISTRADA en IND_SECS con su titulo exacto y apuntando a su funcion',
+    enSecs === 1, 'coincidencias=' + enSecs]);
+
   ex.push(['(A10) CONTROL NEGATIVO: la seccion no trae ninguna de las formas que la regla del 04/11 prohibe',
     txt1.length > 500 && PROH.filter(f => txt1.indexOf(f) > -1).length === 0,
     'largo=' + txt1.length + ' halladas=' + JSON.stringify(PROH.filter(f => txt1.indexOf(f) > -1))]);
@@ -122697,11 +122705,46 @@ caso('TC-743', 'PANT-21: el bloque de CAUSAS de la protesis aortica — aparece 
   ex.push(['(B5) las otras tres causas quedan como TEXTO en las tres escenas: la guia no las decide con un numero que la app tenga',
     [m1, m2, m3].every(c => otras.every(k => marcaDe(c, k) === 'ask')), sueltas]);
 
+  /* ══ LAS TRES ESCENAS DE BORDE, QUE NACIERON DEL BARRIDO ═══════════════════════════════
+     Las cinco de arriba no cruzaban ninguno de los dos cortes de la Figura 13, asi que moverlos
+     -el del cociente de 0,30 a 0,25 y el del area indexada de 0,85 a 0,75- pasaba en verde, y
+     tambien pasaba dejar de mirar el area. Cada una esta JUSTO entre los dos valores candidatos. */
+  const LIMI = { va_morf:'Pr\u00f3tesis mec\u00e1nica', peso:'75', talla:'175', vmax_ao:'3.5',
+                 gmedio_ao:'26', diam_tsvi:'26', itv_tsvi:'23', itv_ao:'85' };
+  const AREA80 = { va_morf:'Pr\u00f3tesis mec\u00e1nica', peso:'100', talla:'185', vmax_ao:'3.5',
+                   gmedio_ao:'26', diam_tsvi:'26', itv_tsvi:'28', itv_ao:'85' };
+  const SINBSA = { va_morf:'Pr\u00f3tesis mec\u00e1nica', vmax_ao:'3.5',
+                   gmedio_ao:'26', diam_tsvi:'26', itv_tsvi:'28', itv_ao:'85' };
+  sembrar(LIMI);   const vL = ver(), cL = cau();
+  sembrar(AREA80); const vA = ver(), cA2 = cau();
+  sembrar(SINBSA); const vSB = ver(), cSB = cau();
+  ex.push(['(B0b) DENOMINADOR: las tres escenas de borde caen JUSTO entre los dos valores candidatos de cada corte',
+    vL.dvi != null && vL.dvi >= 0.25 && vL.dvi < 0.30 &&
+    vA.dvi >= 0.30 && vA.avai != null && vA.avai >= 0.75 && vA.avai < 0.85 &&
+    vSB.dvi >= 0.30 && vSB.avai == null,
+    'limite dvi=' + vL.dvi + ' area80 dvi=' + vA.dvi + '/avai=' + vA.avai + ' sinBSA dvi=' + vSB.dvi + '/avai=' + vSB.avai]);
+  ex.push(['(B7) con el cociente en 0,27 -entre 0,25 y 0,30- la figura NO decide: el corte que aplica es 0,30',
+    marcaDe(cL, 'hiperflujo') === 'ask' && marcaDe(cL, 'desajuste') === 'ask',
+    'hiperflujo=' + marcaDe(cL, 'hiperflujo') + ' desajuste=' + marcaDe(cL, 'desajuste')]);
+  ex.push(['(B8) con el area indexada en 0,8 -entre 0,75 y 0,85- se marca el DESAJUSTE: el corte que aplica es 0,85',
+    marcaDe(cA2, 'desajuste') === 'ok' && marcaDe(cA2, 'hiperflujo') === 'none',
+    'avai=' + vA.avai + ' hiperflujo=' + marcaDe(cA2, 'hiperflujo') + ' desajuste=' + marcaDe(cA2, 'desajuste')]);
+  ex.push(['(B9) SIN area indexada ninguna de las dos se marca: la figura las separa CON ese numero',
+    marcaDe(cSB, 'hiperflujo') === 'ask' && marcaDe(cSB, 'desajuste') === 'ask',
+    'hiperflujo=' + marcaDe(cSB, 'hiperflujo') + ' desajuste=' + marcaDe(cSB, 'desajuste')]);
+
   /* (B6) el bloque cita su hoja y su folio, y no inventa ningun corte de graduacion. */
-  const txtC = Array.isArray(m1) ? m1.map(c => c.txt).join(' ') : '';
-  ex.push(['(B6) las cinco causas citan la hoja y el folio de la ASE 2024 que las sostiene',
-    /hoja 18, folio 19/.test(txtC) && /hoja 9, folio 10/.test(txtC) && txtC.length > 400,
-    'largo=' + txtC.length + ' ' + txtC.slice(0, 110)]);
+  sembrar(HIPER); const m1b = cau();
+  const txtC = Array.isArray(m1b) ? m1b.map(c => c.txt).join(' ') : '';
+  /* ⚠️ LA CITA SE EXIGE CAUSA POR CAUSA Y NO SOBRE EL JOIN, y nacio del barrido: con el texto de
+     las cinco pegado, quitarle la hoja y el folio a UNA seguia encontrandolos en las otras. */
+  const sinCita = Array.isArray(m1b)
+    ? m1b.filter(c => !(String(c.txt).indexOf('ASE 2024') > -1 &&
+        String(c.txt).indexOf('hoja ') > -1 && String(c.txt).indexOf('folio ') > -1)).map(c => c.clave)
+    : ['SIN BLOQUE'];
+  ex.push(['(B6) CADA UNA de las cinco causas cita la ASE 2024 con su hoja y su folio',
+    Array.isArray(m1b) && m1b.length === 5 && sinCita.length === 0 && txtC.length > 400,
+    'largo=' + txtC.length + ' sinCita=' + JSON.stringify(sinCita)]);
   limpiar();
   return { extra: ex };
 `);
@@ -122851,6 +122894,12 @@ caso('TC-745', 'PANT-21: la seccion de Evidencia de la PROTESIS TRICUSPIDE, con 
     /Tabla 19/.test(notas) && /cortes y no causas/.test(notas),
     'notas=' + notas.slice(0, 150)]);
 
+  /* (D6) NACIO DEL BARRIDO, por el mismo motivo que (A11) de la aortica. */
+  const enSecsT = (function () { try {
+    return IND_SECS.filter(x => x.tit === 'Pr\u00f3tesis tric\u00faspide' && x.fn === window._indProtT).length } catch (e) { return -1 } })();
+  ex.push(['(D6) la seccion esta REGISTRADA en IND_SECS con su titulo exacto y apuntando a su funcion',
+    enSecsT === 1, 'coincidencias=' + enSecsT]);
+
   /* (D5) el orden y los folios. */
   const h = (function () { const f = g('_indSecHTML'); if (!f || !esObj(r)) return ''; try { return f('Prótesis tricúspide', r) } catch (e) { return 'ERR' } })();
   const iG = h.indexOf('data-ind-grid'), iC = h.indexOf('Con lo contestado'), iB = h.indexOf('Bibliograf');
@@ -122898,8 +122947,17 @@ caso('TC-746', 'PANT-21: la seccion de Evidencia de la PROTESIS PULMONAR — rig
 
   /* (E4) y los folios que SI cita son los que se leyeron en imagen. */
   ex.push(['(E4) las preguntas citan el folio e189 de la ACC/AHA 2025 y el folio 622 de la ESC 2020',
-    /folio e189/.test(txtP) && /folio 622/.test(txtP),
-    'e189=' + /folio e189/.test(txtP) + ' 622=' + /folio 622/.test(txtP)]);
+    txtP.indexOf('folio e189') > -1 && txtP.indexOf('folio 622') > -1,
+    'e189=' + (txtP.indexOf('folio e189') > -1) + ' 622=' + (txtP.indexOf('folio 622') > -1)]);
+  /* (E4b) NACIO DEL BARRIDO: la cita se exige pregunta por pregunta y no sobre el JOIN. Con el
+     texto de las once pegado, quitarle el folio a UNA seguia encontrandolo en las otras. */
+  const sinFolio = (PREG || []).filter(p => {
+    const t = String(p.rec || '');
+    return !(t.indexOf('folio e') > -1 || t.indexOf('folio 6') > -1); }).map(p => p.clave);
+  const refSinFolio = (PREG || []).filter(p => p.ref && String(p.ref).indexOf('folio ') === -1).map(p => p.clave);
+  ex.push(['(E4b) CADA recomendacion de la pulmonar trae su folio, y cada linea de referencia tambien',
+    Array.isArray(PREG) && PREG.length === 11 && sinFolio.length === 0 && refSinFolio.length === 0,
+    'recSinFolio=' + JSON.stringify(sinFolio) + ' refSinFolio=' + JSON.stringify(refSinFolio)]);
 
   /* (E5) la seccion lo DICE, y no lleva bloque de causas. */
   const notas = esObj(pro) && Array.isArray(pro.notas)
@@ -122973,6 +123031,24 @@ caso('TC-747', 'PANT-21: el emisor compartido — el orden de protesis NO toca a
   const nBlo = (hA.match(/data-ind-bloque/g) || []).length;
   ex.push(['(F2) la seccion de protesis aortica emite UN solo control de detalle y a lo sumo UN plegable de bloque',
     nDet === 1 && nBlo <= 1, 'detalle=' + nDet + ' bloque=' + nBlo]);
+
+  /* ══ LAS TRES QUE NACIERON DEL BARRIDO ═════════════════════════════════════════════════
+     Las de arriba miraban el OBJETO que devuelve la seccion, no el HTML que el emisor arma con
+     el: romper lo que ordenProt hace -que implique el molde de preguntas, y que «Con lo
+     contestado» baje- pasaba en verde porque el objeto seguia igual. */
+  ex.push(['(F2b) con ordenProt la grilla sale marcada como seccion de PREGUNTAS, aunque la seccion no declare preguntas',
+    hA.indexOf('data-ind-preg') > -1 && hA.indexOf('data-ind-col=\"eco\"') > -1 && hA.indexOf('data-ind-col=\"clin\"') > -1,
+    'preg=' + (hA.indexOf('data-ind-preg') > -1) + ' eco=' + (hA.indexOf('data-ind-col=\"eco\"') > -1)]);
+  const aG = hA.indexOf('data-ind-grid'), aC = hA.indexOf('Con lo contestado');
+  ex.push(['(F2c) con ordenProt «Con lo contestado» va DEBAJO de la grilla y no encima',
+    aG > -1 && aC > aG, 'grid=' + aG + ' contestado=' + aC]);
+
+  /* (F1b) y la seccion ajena que el control negativo usa NO declara ordenProt: si alguien se lo
+     pone, su «Con lo contestado» se le va para abajo y (F1) deja de distinguir nada. */
+  ex.push(['(F1b) CONTROL NEGATIVO: esa seccion ajena NO declara ordenProt',
+    !!sinOrdenCon && sinOrdenCon.r.ordenProt !== true,
+    'seccion=' + (sinOrdenCon ? sinOrdenCon.sec.tit : 'NINGUNA') +
+    ' ordenProt=' + (sinOrdenCon ? String(sinOrdenCon.r.ordenProt) : '?')]);
 
   /* (F3) LA EVIDENCIA NO LLEGA AL PAPEL. Se contesta todo lo contestable de las cuatro secciones
      y se compara el informe, el EN SUMA y el Excel antes y despues. */
