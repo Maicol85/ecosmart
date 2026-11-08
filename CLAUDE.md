@@ -250,8 +250,20 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,27 MB / 168.717 líneas**, medido con `wc -c` y `wc -l` el 2026-11-07 al cierre de la
-  tanda **PANT-23**, sobre el árbol ya sellado: sello **`v20261107-1627`**, md5 **`224fd6ae`**.
+  sin frameworks. Hoy **12,29 MB / 168.950 líneas**, medido con `wc -c` y `wc -l` el 2026-11-08 al cierre de la
+  tanda **PANT-24**, sobre el árbol ya sellado: sello **`v20261107-2204`**, md5 **`b8481a9b`**.
+  El diff de PANT-24 son **263 líneas agregadas y 30 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `a40073f`, de las que **64** no son comentario, con **UN**
+  `innerHTML` nuevo —`cel.innerHTML = badge('gray', 'Revisar los valores')`, que recibe un
+  literal por el mismo `badge()` que las tres líneas hermanas de su propia función, y Semgrep
+  sigue en su línea base—, **cero** `eval(` y `new Function` nuevos y cero claves ni
+  contraseñas. **Cero campos guardados nuevos, cero columnas de Excel y ningún id cambiado**,
+  contado sobre el diff.
+  ⚠️ **POR VIGESIMOPRIMERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show a40073f:index.html` da **168.717** líneas,
+  **12.268.984** bytes y el md5 **`224fd6ae`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,27 MB / 168.717 al cierre de la tanda **PANT-23**, sello **`v20261107-1627`**, md5 **`224fd6ae`**.)
   El diff de PANT-23 son **72 líneas agregadas y 22 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `4c1af7d`, de las que **SIETE** no son comentario —tres selectores
   de CSS, un `if` y las tres líneas del sello—, con **cero** `innerHTML`, `eval(` y
@@ -879,6 +891,22 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-24 (2026-11-08) — cierre de textos de prótesis y de la Evidencia, y el tamaño
+táctil del ⓘ.** SIETE commits. Sello **`v20261107-2204`**, md5 **`b8481a9b`**. La **TAVI sin un solo dato que indique
+estenosis o insuficiencia protésica** dice «normofuncionante» en el informe y «TAVI
+normofuncionante.» en el EN SUMA —con el paréntesis de medidas, porque ningún número medido
+desaparece—; un **AT/ET de 1 o más** es un error de carga, así que la fila dice «Revisar los
+valores» y el cociente deja de publicarse en el papel, lo que cierra **P18-b**; la cita
+**`escGuchCiv`** declara su criterio como propio de la aplicación con el molde de PANT-22; el
+corte del **trombo protésico grande** pasa a «10 mm o más» con su cita en la Figura 20; y el **ⓘ
+de la Evidencia** gana una zona de toque de **44 × 42 px** en pantallas táctiles, con los 42
+medidos sobre **129 pares de vecinos a 42,9 px**. **El decimal con coma sólo en pantalla**: el
+papel tiene DOS diferencias autorizadas y un separador no es una. Lo cubren **TC-757** a
+**TC-760**; **TC-289** adaptado, y es el caso que encontró la tercera fuente de insuficiencia
+protésica. **P18-b** y **P18-d** quedan cerrados; lo declarado, en **P24-a**, **P24-b** y
+**P24-c**; el inventario, en `docs/INVENTARIO_PANT24.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT24.md`.
 
 **La tanda PANT-23 (2026-11-07) — la Evidencia, tanda 2 de 2.** Cuatro commits (el inventario,
 el ORDEN, los GLOBOS y la cobertura en dos). Sello **`v20261107-1627`**, md5 **`224fd6ae`**. Pone el orden del

@@ -2394,3 +2394,53 @@ Si aparece cualquier otro rojo, **es una regresión del D-11** y hay que mirarla
 ⚠️ **Y no hace falta rehacer nada de lo que ya está en la tabla de arriba**: el A/B, las
 mutaciones, los dos motores, el celular, Semgrep y el censo se corrieron sobre **este mismo árbol**
 —sello `v20261028-1137`— y el md5 de `index.html` no cambió desde entonces.
+
+## P18-b · [CERRADO 2026-11-08 · PANT24-3] El informe puede publicar un AT/TE mayor o igual que 1 que la fila se niega a clasificar
+
+`eaProtVeredicto` calcula `at / tango_te` en cuanto el ET es positivo, **sin pedir que el AT sea
+menor que el ET**, y ese número viaja al paréntesis de medidas del informe firmado como
+«AT/TE 1.01». La **fila** del cuadro sí tiene esa guarda y muestra la raya.
+
+**Por qué quedó así:** cambiar `eaProtVeredicto` movería el papel, y esta tanda tenía autorizados
+dos lugares y éste no era uno.
+
+**Qué habría que hacer, cuando se decida:** mover la guarda de `_eaAtEtVal` a `eaProtVeredicto`,
+que es una línea. **Mueve el papel** —el paréntesis de medidas del informe, del EN SUMA, del PDF y
+del PPT de todo estudio con un AT mayor o igual que el ET—, así que lo decide Maicol.
+
+## P18-d · [CERRADO 2026-11-08 · PANT24-2] Una TAVI normal no recibe el renglón de «prótesis normofuncionante» y una quirúrgica sí
+
+La guarda `P.via === 'TAVI'` de `_protNormofuncionante` **se conserva**: lo que esta tanda autoriza
+a mover del papel es la **frase de severidad**, y ese renglón es otra línea.
+
+⚠️ **Y esa guarda dejó de ser redundante.** Su comentario decía que «con TAVI el veredicto no trae
+`nivel`, así que la guarda de abajo ya la caza»; desde el commit 6 **sí** lo trae, así que hoy esa
+línea es la única que lo impide. El comentario quedó corregido en el código.
+
+**Qué habría que hacer:** retirar la guarda, que es una línea. **Mueve el papel** de toda TAVI con
+el veredicto en «sin criterios».
+
+## Los dos de arriba, cerrados por la tanda PANT-24 (2026-11-08)
+
+**P18-b** lo cierra el commit 3 exactamente como su propio texto lo anticipaba: la guarda se movio
+de `_eaAtEtVal` a `eaProtVeredicto`, que es una linea, y el papel se movio -el parentesis de
+medidas del informe, del EN SUMA, del PDF y del PPT de todo estudio con un AT mayor o igual que el
+ET deja de publicar el cociente-. Lo decidio Maicol el 08/11/2026 y es una de las DOS diferencias
+de papel que esa tanda tenia autorizadas. Y se hizo con el LECTOR del dueno de la fila, no
+repitiendo la guarda: hoy el cociente tiene un solo dueno. Lo fija **TC-758**, con sus siete
+bordes -el 1,67, el 1 EXACTO, el 0,99, el 0,50, el 0,37, el 0,32 y una protesis quirurgica con los
+mismos valores-, y la fila publica «Revisar los valores» en vez de la raya, que es lo que
+distingue «es imposible» de «falta un dato».
+
+**P18-d** lo cierra el commit 2, y por el camino que la decision del medico eligio, que NO es el
+que este texto proponia. La guarda `P.via === 'TAVI'` de `_protNormofuncionante` **SE CONSERVA**:
+retirarla afirmaria «normofuncionante» tambien sobre una TAVI con el veredicto en «sin criterios»,
+que es otra escena. En su lugar, el bloque del informe emite el renglon cuando la TAVI no tiene UN
+SOLO dato que indique estenosis o insuficiencia protesica, y el bloque del final se apaga solo
+porque «TAVI» ya era un token de `yaDicho` de esa valvula. Asi la asimetria desaparece en la
+escena que el medico reporto -una TAVI sin datos- sin tocar la que no autorizo. Lo fijan
+**TC-757** y **TC-303**, que es el que aisla la guarda.
+
+⚠️ **Y el commit 2 encontro una TERCERA fuente de insuficiencia protesica que ninguno de los dos
+textos nombraba**: la regurgitacion PARAVALVULAR del modulo TAVI, `eteTaviRPV()`, que no pasa por
+`ia_grado` ni por el escalon sin grado. La encontro **TC-289** al ponerse rojo, no la lectura.

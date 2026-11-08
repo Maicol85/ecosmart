@@ -33,6 +33,221 @@ se leen 20-80 lineas con `sed -n`.
 
 <!-- /L1:INDICE -->
 
+## P24-a · Lo que la tanda PANT-24 PARÓ, y una interacción que queda declarada
+
+### 1 · El PPM aórtico puede salir debajo de «TAVI normofuncionante», y no se tocó
+
+El desajuste protésico-paciente (Tabla 7) se publica **en su propia oración** y no depende del
+veredicto de estenosis — es la decisión que la tanda Z dejó escrita: «una prótesis puede estar
+obstruida sin PPM y tener PPM sin estar obstruida».
+
+**Es alcanzable que las dos oraciones salgan juntas:** un estudio con el **DVI cargado** (los dos
+VTI) y la **velocidad pico y el gradiente medio vacíos** tiene `nivel: 'faltan'` con todos los
+niveles medidos en normal, así que recibe la frase nueva; y si además tiene modelo, peso y talla,
+su AEO indexada puede caer en desajuste **moderado o severo**. El papel diría «… tipo TAVI
+normofuncionante (DVI 0,44).» y debajo «Desajuste protésico-paciente aórtico severo».
+
+**Por qué quedó así:** la orden de esta tanda **no dice nada del PPM**, y decidir si un desajuste
+impide llamar normofuncionante a una prótesis es **contenido clínico**. La regla de esta casa dice
+que lo que no está en la orden se para y se declara.
+
+**Las dos salidas, para que las decida Maicol:** (a) dejarlo así —son dos preguntas distintas y
+cada una tiene su oración—; (b) sumar el desajuste a la condición de la frase nueva, que es una
+línea en el bloque del informe, junto a `insE` y a la regurgitación paravalvular.
+
+### 2 · El recuento del corte de 10 mm: TRES items, OCHO cadenas
+
+La orden pone un tope —«si el corte aparece en **más de tres lugares**, PARÁ y listalos»—. Medido
+sobre el objeto que alimenta el panel, el corte vive en **TRES items** donde el médico lo ve —la
+pregunta de la **prótesis aórtica**, la de la **tricúspide** y la recomendación de la **mitral**—
+y en **OCHO cadenas**, porque cada pregunta lo escribe en su `lbl`, en su `rec` y en su `nota`,
+que es la forma estándar de UNA pregunta en este archivo, y la mitral lo escribe en su
+recomendación congelada y en su nota en línea.
+
+**Se tomó el recuento por ITEMS, que es lo que el médico ve, y el cambio se hizo.** Queda
+declarado acá para que se pueda revisar: si el tope había que leerlo por cadenas, el commit 4 hay
+que revertirlo, y es un `git revert` de un commit que sólo toca texto.
+
+La **prótesis pulmonar** (`PROTP_PREG`) **no tiene** este corte, verificado sobre el objeto, así
+que no hay una cuarta sección que mover.
+
+### 3 · La mutación 10 se retiró declarada, y es un mutante EQUIVALENTE demostrable
+
+El barrido dejó **un** superviviente de 37, y no es un hueco de cobertura: **ningún caso puede
+matarlo, porque los dos programas son el mismo**. La mutación cambiaba el
+`else if (_eaProtN.resumen)` por un `if` suelto, para que el EN SUMA publicara **dos** renglones
+de la misma válvula. No puede: `_normoTavi` exige `P.nivel === 'faltan'` (línea 74412) y esa rama
+de `eaProtNarrativa` asigna `resumen = null` tres líneas más arriba (74381), así que **cada vez
+que `_normoT` es verdadero, `resumen` es nulo** y las dos formas se comportan igual.
+
+**El `else` se conserva**: dice «uno o el otro» y protege el día que esa rama publique un resumen.
+Lo que mide el invariante de verdad es **TC-757 (B5)**, que cuenta las apariciones de
+«normofuncionante» en el EN SUMA y exige **una**.
+
+Quedan **36 de 36 muertas**, en 36,8 minutos, con el md5 del árbol vivo **idéntico** antes y
+después (`b8481a9b`) y **cero** mutaciones que no aplicaran.
+
+### 4 · El borde del AT en cero: un tercer camino de papel, medido y declarado
+
+`_eaAtEtVal` es **más estricto** que la fórmula que vivía en el veredicto: además de pedir que el
+AT sea menor que el ET, pide que **los dos sean positivos**. Con un AT de **0** el cociente daba
+`0.00` y se publicaba en el paréntesis de medidas; ahora no existe.
+
+La decisión del médico habla del cociente «**mayor o igual que 1**», así que éste es un borde que
+la orden no nombra. **Se midió a propósito** —las escenas `p24at0` y `p24etCero` del A/B— y se
+declara acá en vez de taparlo. **Es la dirección segura:** un AT de 0 está fuera de la banda de
+plausibilidad `va_at:[10,300]`, así que la fila ya decía «fuera de rango medible, no se
+clasifica» mientras el papel publicaba un `AT/TE 0.00`; hoy las dos superficies coinciden, que es
+justo lo que P18-b pedía. **Si Maicol prefiere el literal de la decisión** —que con el cociente
+por debajo de 1 no cambie nada—, es una línea: pedir sólo `!(at < et)` en vez de leer
+`_eaAtEtVal()`, al precio de reabrir la asimetría para ese caso.
+
+### 5 · Lo que NO se paró y conviene saber que se midió
+
+- **La aplicación no aplica el corte de 10 mm a ningún número suyo**: el tamaño del trombo no es
+  un campo de esta aplicación, y las dos notas de la mitral lo dicen por escrito.
+- **El decimal con coma NO entró al papel.** La fila, el aviso de pantalla y «Ver detalle» lo
+  llevan; el paréntesis de medidas del informe sigue con su punto, porque moverlo sería una
+  tercera diferencia de papel y la orden autorizó dos. Ver **P24-c**.
+- **Las frases del TEER no se tocaron**, ni ningún corte, ni el mecanismo del cajón de los ⓘ, ni
+  el orden de los bloques de la Evidencia que PANT-23 fijó.
+
+## P24-b · El BARRIDO DE TEXTOS QUE EXPONEN LO PENDIENTE — reporte, para que Maicol decida
+
+**SOLO REPORTE: esta tanda no cambió nada por este barrido**, salvo las dos frases de
+`escGuchCiv`, que la decisión (3) nombraba por su nombre.
+
+**Cómo se midió.** Sobre `textContent` **en el navegador** y **no por grep**, que es la regla de
+esta casa. Cuatro superficies, con su denominador: el **DOM** con todas las pestañas y secciones
+abiertas y sin los `<script>` ni los `<style>` (**309.328** caracteres); los **registros**
+`EV_REG`, `IND_REFS`, `VINFO` y `QV_BARRA` (**1.140** cadenas, **182.149** caracteres); el **panel
+de Evidencia** sección por sección con los **globos abiertos** (**45** secciones, **502.474**
+caracteres); y el **papel** —informe en los tres estilos y EN SUMA— en cuatro escenas (**7.868**
+caracteres). **CONTROL POSITIVO: seis frases inyectadas, seis detectadas.** La sonda es
+`scripts/_probe_pant24barr.mjs`.
+
+**Los patrones:** `pendiente`, `pendientes`, `sin resolver`, `a decidir`, `por resolver`,
+`por definir`, `por verificar`, `sin definir`, `sin decidir`, `provisorio`, `provisoria`,
+`proximamente`, `a confirmar`, `por confirmar`, `queda declarado`, `falta decidir`,
+`en revision`, `sin validar`, `a revisar`, `por revisar`, `no implementa`, `todavia no`,
+`aun no`, `queda pendiente`, `sin terminar`, `en curso`, `provisional`, y **`TODO` sólo en
+mayúsculas como token suelto** — en español «todo» es una palabra corriente.
+
+**El papel da CERO en las cuatro escenas**, y no es un denominador vacío: produce 7.868
+caracteres y el control positivo prueba que el buscador encuentra lo que tiene que encontrar.
+
+### A · Lo que de verdad expone lo pendiente, y sigue abierto
+
+| # | dónde | texto | qué es |
+|---|---|---|---|
+| 1 | Evidencia → **Estenosis mitral**, nota del operador del área (`index.html` 94217) | «El operador del área no es el mismo en los tres lugares del documento: … Esta aplicación usa ≤, que es lo que dicen dos de los tres. **Queda declarado, no corregido.**» | expone una decisión interna sin resolver **y además** compara las tres partes del documento, o sea cae también bajo la regla del 04/11 |
+| 2 | Evidencia → **Estenosis mitral**, nota de los cortes del gradiente (`index.html` 94262) | «Los dos cortes del gradiente medio que esta aplicación aplica —5 y 10 mmHg— salen de un documento de cardiopatía REUMÁTICA … no hay fuente verificada que escriba esos cortes para esta etiología. **Queda declarado, no corregido.**» | lo mismo, **y además** escribe lo que las guías NO dicen |
+
+**Las dos son la misma forma y el molde para arreglarlas ya existe**: es el de PANT-22 y el que
+el commit 4 de esta tanda acaba de aplicar a `escGuchCiv` — cada fuente por lo que ella dice, y
+el criterio de la aplicación declarado como propio. **No se tocaron porque la orden no las
+nombra.**
+
+### B · Formas vecinas que NO son «pendiente» pero caen bajo la regla del 04/11
+
+| # | dónde | texto |
+|---|---|---|
+| 3 | ⓘ `tavi-calc` | «… Y **LA GUÍA USA LA PALABRA «SEVERA» SIN DEFINIRLA**.» |
+| 4 | Evidencia → Estenosis mitral (DOM) | «… la tabla escribe «<15» y «>15» y **deja ese valor sin definir**.» |
+| 5 | Evidencia → **Circulación de Fontan** | «Nota: **las dos guías no cubren lo mismo**: la ACC/AHA 2025 indica aspirina o anticoagulación a TODO paciente sin rasgos de alto riesgo, y la ESC 2020 no.» |
+| 6 | ⓘ `cc-3d` | «Las lesiones que están cargadas y el diagrama **todavía no dibuja** se nombran una por una …» — es la app hablando de sí misma, pero con la forma de lo no hecho |
+
+### C · Lo que el barrido marcó y la propia regla EXCLUYE — no se toca
+
+- **El puntaje «provisorio» del HFA-PEFF** y su conclusión «provisoria»: es un **dato clínico del
+  paciente** —un puntaje que puede cambiar si se completa un dominio—, que la regla declara fuera.
+- **«Paso 3 — Realizada | Pendiente»** del HFA-PEFF: es una **opción de respuesta** sobre si el
+  estudio se hizo, no un pendiente del proyecto.
+- **«… sin validarlo antes en una población cardiológica no seleccionada»** (ⓘ del score de
+  amiloidosis): es **lo que la fuente dice de sí misma**, y es un aviso que evita un error.
+- **«Lo que falta para decidir otras filas»** (FOP, ETE de la orejuela, ateroma aórtico): es la
+  app diciendo qué dato clínico falta contestar, no un pendiente interno.
+
+### D · Falsos positivos del patrón — contados, no listados de a uno
+
+De los **63** hallazgos crudos que quedan tras el commit 4 (**13** en el DOM, **15** en los
+registros, **35** en el panel y **0** en el papel), la enorme mayoría son del patrón y no del
+texto: **«dosis-dependiente»**, **«independientemente de los síntomas»**, **«predictor
+independiente»**, **«Campo independiente del informe»** y **«INDEPENDIENTEMENTE»** contienen
+`pendiente`; **«para confirmar el diagnóstico»** y **«para confirmar el infarto cerebral»** son
+acciones clínicas; **«en curso dentro de las 48 horas»** y **«con soporte en curso»** son estado
+del paciente; **«en TODO el estudio»** es la palabra española en mayúsculas; y **«elegir uno
+sería decidir por el médico»** es la app declarando que no decide.
+
+⚠️ **Y `EV_REG[*].estado = 'por verificar'` NO ES TEXTO VISIBLE.** Los tres hallazgos del
+registro son **metadato**: `estado` sólo gobierna si la línea de fuente se publica
+(`f.estado === 'verificado'`), y la palabra **no aparece ni una vez** en los 309.328 caracteres
+del DOM. Es el recordatorio de que barrer un **objeto** incluye campos que no se dibujan.
+
+## P24-c · Los números con PUNTO decimal en texto visible, y los ⓘ de fuera del panel
+
+### 1 · Los números con punto decimal — listados y NO tocados
+
+La decisión (2) pidió la coma **en la ruta del cociente AT/ET** y que el resto se listara sin
+tocar. Lo que esta tanda **sí** corrigió: la **fila** del AT/ET, el **aviso** amarillo y la
+salvedad de **«Ver detalle»** — las tres son **pantalla**.
+
+**Lo que NO se tocó, y el motivo es el mismo en todos: es PAPEL.** El papel de esta tanda tiene
+**dos** diferencias autorizadas y ninguna es un separador decimal; cambiar una sola de éstas sería
+una tercera diferencia.
+
+| dónde | ejemplo | de quién sale |
+|---|---|---|
+| paréntesis de medidas del informe — el cociente | `(AT 50 ms, AT/TE 0.50)` | `P.atet.toFixed(2)` en `eaProtNarrativa` |
+| el mismo paréntesis — el DVI | `(… DVI 0.44)` | `P.dvi.toFixed(2)`, misma línea |
+| el área efectiva frente a la del modelo | `El área efectiva medida es de 1.85 cm²` | `_z.ava.toFixed(2)` |
+| el volumen sistólico de la salvedad | `… y el calculado es de 48 mL` | `P.vs.toFixed(0)` — sin decimal, no aplica |
+
+**El listado completo, medido sobre `textContent`** —el DOM con todo abierto, los cuatro
+registros y el papel de una escena cargada—, sale de `scripts/_probe_pant24barr.mjs` (claves
+`puntoDom`, `puntoReg`, `puntoPapel`), con el patrón «dígito-punto-dígito» y descartando lo que
+no es un decimal en español: una versión (`4.4.1`), una fecha, un folio con punto de miles, un
+identificador y una URL.
+
+| superficie | denominador | números con punto |
+|---|---|---|
+| el DOM con todo abierto, sin `<script>` ni `<style>` | 309.328 caracteres | **121** |
+| los cuatro registros (`EV_REG`, `IND_REFS`, `VINFO`, `QV_BARRA`) | 1.140 cadenas | **155** |
+| el **papel** —informe en los tres estilos y EN SUMA— de una escena cargada | 7.442 caracteres | **3** |
+
+**Los TRES del papel están en la MISMA oración**, y son exactamente la familia de arriba:
+`(Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20, AT 50 ms, AT/TE 0.50)`.
+
+⚠️ **Y uno de los tres no sale de un `toFixed`: `Vmax 4.5` es el valor TAL COMO SE TIPEÓ.** El
+paréntesis de medidas publica `P.vmax` sin formatear, así que ahí el separador es el que el
+médico escribió en el campo. Eso cambia la pregunta: no es sólo elegir un formato de salida, es
+decidir también qué hacer con lo tipeado.
+
+**Es una familia entera y una decisión de estilo de toda la aplicación, no de esta tanda:**
+cambiarla toca el papel firmado de casi todos los estudios, así que la decide Maicol de una sola
+vez.
+
+### 2 · Los ⓘ de FUERA del panel de Evidencia — medidos y NO tocados
+
+La orden manda no tocarlos, medirlos y reportarlos.
+
+| qué | medido |
+|---|---|
+| `.vinfo-btn` en el archivo | **121** |
+| con geometría a 1440 px, con todas las pestañas y secciones abiertas | **64** |
+| tamaño de los 64 con `(pointer: coarse)` | **44 × 44 px**, los 64 |
+| por debajo de 44 en cualquiera de los dos lados | **0** |
+| con la clase `vinfo-btn-44`, que les pone el piso **sin** la media query | **65** |
+
+**Ya los cubre su propia regla**, `@media (pointer: coarse){ .vinfo-btn{ min-width:44px;
+min-height:44px } }`, y lo hacen **creciendo** el botón —no con un pseudo-elemento—, que es
+correcto donde el ⓘ es un encabezado de sección y no una celda de una fila de tabla. El censo
+completo de los **143** glifos de ⓘ de fuera del panel, por mecanismo y por pestaña, está en
+**P23-b** y no se repite acá.
+
+**El selector de la regla nueva empieza en `#indic-card`**, así que no alcanza a ninguno de
+ellos; lo fija **TC-760 (C1)** y **(C2)**.
+
 ## P21-a · Lo que se LEYÓ y NO se pudo escribir, y las premisas que no se reprodujeron
 
 ### 1 · La ESC 2020 de congénitas: el archivo que el nombre sugiere está en ESPAÑOL
@@ -13255,19 +13470,6 @@ diferencia entre el índice y la hoja, declarada para que nadie la «corrija» a
 «La tanda PANT-18» → «El texto que esta tanda RETIRÓ, literal». No se reproduce dentro de un
 comentario de `index.html` para que el censo de la próxima tanda no se mida a sí mismo.
 
-## P18-b · El informe puede publicar un AT/TE mayor o igual que 1 que la fila se niega a clasificar
-
-`eaProtVeredicto` calcula `at / tango_te` en cuanto el ET es positivo, **sin pedir que el AT sea
-menor que el ET**, y ese número viaja al paréntesis de medidas del informe firmado como
-«AT/TE 1.01». La **fila** del cuadro sí tiene esa guarda y muestra la raya.
-
-**Por qué quedó así:** cambiar `eaProtVeredicto` movería el papel, y esta tanda tenía autorizados
-dos lugares y éste no era uno.
-
-**Qué habría que hacer, cuando se decida:** mover la guarda de `_eaAtEtVal` a `eaProtVeredicto`,
-que es una línea. **Mueve el papel** —el paréntesis de medidas del informe, del EN SUMA, del PDF y
-del PPT de todo estudio con un AT mayor o igual que el ET—, así que lo decide Maicol.
-
 ## P18-c · El disparador de la nota del AT no se tocó, y ahora la nota habla también del AT/ET
 
 La nota aparece cuando el **AT** sale de su banda normal. Desde el commit 3 también habla del
@@ -13279,18 +13481,6 @@ esta casa dice que lo que no está en la orden se para y se declara.
 **Las dos salidas, para que las decida Maicol:** (a) dejarlo así —el AT es el que se lee primero y
 el cociente deriva de él—; (b) mostrar la nota también cuando el AT/ET salga de su banda normal,
 que es una condición más en el mismo `if`.
-
-## P18-d · Una TAVI normal no recibe el renglón de «prótesis normofuncionante» y una quirúrgica sí
-
-La guarda `P.via === 'TAVI'` de `_protNormofuncionante` **se conserva**: lo que esta tanda autoriza
-a mover del papel es la **frase de severidad**, y ese renglón es otra línea.
-
-⚠️ **Y esa guarda dejó de ser redundante.** Su comentario decía que «con TAVI el veredicto no trae
-`nivel`, así que la guarda de abajo ya la caza»; desde el commit 6 **sí** lo trae, así que hoy esa
-línea es la única que lo impide. El comentario quedó corregido en el código.
-
-**Qué habría que hacer:** retirar la guarda, que es una línea. **Mueve el papel** de toda TAVI con
-el veredicto en «sin criterios».
 
 ## P18-e · A 768 y a 390 px el bloque `bloque-ea-detalle` está colapsado
 
@@ -13570,9 +13760,12 @@ corridas de cada lado. **No es de esta tanda.**
    aórtica. **La lista de cuáles son es para que Code la mida**: no está hecha.
 3. **PANT-15**: Contractilidad y el ⓘ de la vena cava superior izquierda persistente.
 4. **El Laboratorio con la estadística de prótesis.**
-5. **Las dos decisiones del médico que siguen colgadas**: el **AT/ET ≥ 1** que el papel puede
+5. ~~**Las dos decisiones del médico que siguen colgadas**: el **AT/ET ≥ 1** que el papel puede
    publicar y la pantalla rechaza (**P18-b**), y la **TAVI normal** sin el renglón de «prótesis
-   normofuncionante» (**P18-d**).
+   normofuncionante» (**P18-d**).~~ **LAS DOS SE DECIDIERON Y SE CERRARON EN LA TANDA PANT-24
+   (2026-11-08):** el AT/ET en su commit 3 y la TAVI en su commit 2. Los dos items viven ahora en
+   `docs/archivo/PENDIENTES_CERRADOS.md`, que es donde la regla de LIMPIEZA-1 los pone; esta línea
+   se deja tachada y no se borra porque es parte del texto de otro item.
 
 ## P22-a (continuación) — lo que el censo del commit 1 no vio, y lo que NO cae bajo la regla
 

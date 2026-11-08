@@ -1,5 +1,111 @@
 <!-- registro armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 
+## La tanda PANT-24 (2026-11-08) — los textos de prótesis y de la Evidencia, y el corte de 10 mm
+
+**Esta tanda no leyó una fuente nueva.** Todo lo que publica sale de documentos que este archivo
+ya tiene verificados, y lo que cambia es **de quién se dice cada cosa**. Lo que sigue es el
+texto literal de lo que entró y de lo que salió, para que la próxima tanda no tenga que
+reconstruirlo.
+
+### 1 · La cita `escGuchCiv` — ESC 2020 de cardiopatías congénitas del adulto
+
+Documento: **Baumgartner H, et al. Eur Heart J 2021;42(6):563-645**, sección de comunicación
+interventricular. Entrada `IND_REFS[4]`, la única del registro con estas frases.
+
+**Lo que SALIÓ, literal:**
+
+> ⚠️ EL CRITERIO QUE ESTA SECCIÓN APLICA DIVERGE DE ESA TABLA Y LA DIVERGENCIA ESTÁ SIN
+> RESOLVER: la guía indica el cierre con sobrecarga de volumen del VI y sin hipertensión
+> pulmonar, INDEPENDIENTEMENTE DE LOS SÍNTOMAS (Clase I · Nivel C), y no por síntomas
+> atribuibles al shunt; su Qp/Qs es «> 1,5» y sólo dentro de los escenarios con hipertensión
+> pulmonar establecida (Clase IIa y IIb), no como criterio general de cierre; y el corte de DDVI
+> indexado > 32 mm/m² no figura en el documento. Verificación clínica pendiente: hasta
+> resolverla, el nivel de evidencia no se publica y esta referencia no se unifica con la de sus
+> secciones hermanas.
+
+**Lo que ENTRÓ, literal:**
+
+> La guía indica el cierre con sobrecarga de volumen del VI y sin hipertensión pulmonar,
+> INDEPENDIENTEMENTE DE LOS SÍNTOMAS (Clase I · Nivel C), y publica su Qp/Qs «> 1,5» dentro de
+> los escenarios con hipertensión pulmonar establecida (Clase IIa y IIb). Los criterios que esta
+> sección aplica —los síntomas atribuibles al shunt, el Qp/Qs como criterio general de cierre y
+> el corte de DDVI indexado > 32 mm/m²— son un criterio propio de la aplicación. Esta referencia
+> no publica nivel de evidencia.
+
+**Los datos de la fuente que se CONSERVAN, uno por uno:** la publicación
+(`2021;42(6):563-645`), la **Clase I · Nivel C**, el **Qp/Qs «> 1,5»**, las **Clase IIa y IIb** y
+el corte de **DDVI indexado > 32 mm/m²**. **Ninguno se perdió**, y es lo que hace que la
+reescritura no sea contenido clínico nuevo.
+
+**Las tres formas que salieron, y por qué:** «DIVERGE … ESTÁ SIN RESOLVER» y «Verificación
+clínica pendiente» exponen lo pendiente, que es la **regla del 08/11**; «no figura en el
+documento» dice lo que una guía **no** dice, que es la **regla del 04/11**.
+
+**El molde es el de PANT-22**, extraído de su propio diff. Las cuatro frases con que esa tanda
+reescribió lo que antes decía «ninguna guía»:
+
+- «Las reglas de conteo de esta sección —cuántos criterios hacen falta de cada lado, y cuáles
+  cuentan— son un criterio propio de la aplicación.»
+- «Para la insuficiencia mitral PRIMARIA las cifras de esta pantalla son un criterio propio de la
+  aplicación.»
+- «… las medidas se muestran y no se interpretan, y los cortes que la pantalla rotula son un
+  criterio propio de la aplicación.»
+- «Esta aplicación marca hipoperfusión con un índice cardíaco de 2,2 o menos y congestión cuando
+  la presión capilar supera los 18 mmHg.» *(la forma afirmativa: lo que la app hace, sin
+  comparar)*
+
+### 2 · El corte del trombo protésico grande — ESC/EACTS 2025 de valvulopatías
+
+Documento: **`ehaf194.pdf`**, 102 hojas, regla de folio **folio = hoja + 4634**, comprobada en
+el encabezado impreso y ya verificada en PANT-21.
+
+| parte del documento | hoja | folio | lo que imprime |
+|---|---|---|---|
+| **Recommendation Table 17**, manejo de la disfunción protésica | 66 | **4700** | «large (**>10 mm**) prosthetic thrombus», y la **Clase IIa · Nivel C** de la recomendación |
+| su **Figura 20** | 65 | **4699** | «Large thrombus (**≥10 mm**)» |
+
+**DECISIÓN DEL MÉDICO (08/11/2026):** la aplicación publica el operador de la **Figura 20** —«10
+mm o más»— y **cita la Figura 20 para el corte**; la **Tabla 17 sigue citada para la
+recomendación**, que es su clase y su nivel. **Ningún texto compara las dos partes.**
+
+Esto **resuelve la parte del corte de 10 mm de P21-a**, que lo había declarado sin corregir.
+
+**Las ocho cadenas, antes y después:**
+
+| dónde | antes | después |
+|---|---|---|
+| `PROTA_PREG[10].lbl` y `PROTT_PREG[10].lbl` | «Trombo protésico grande, **de más de 10 mm**, complicado con embolia» | «… **de 10 mm o más**, …» |
+| `PROTA_PREG[10].rec` y `PROTT_PREG[10].rec` | «Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, **de más de 10 mm**, complicado con embolia, hoja 66, folio 4700» | «… **de 10 mm o más**, …, hoja 66, folio 4700» |
+| `PROTA_PREG[10].nota` y `PROTT_PREG[10].nota` | «la Tabla 17 imprime «más de 10 mm» y su Figura 20 (hoja 65, folio 4699) imprime «10 mm o más». Esta pregunta usa el de la tabla» | «su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más»» |
+| `PROTM_REC_2025.tromb_emb.t` | «Cirugía A CONSIDERAR ante un trombo protésico grande (**mayor de 10 mm**) complicado con embolia.» | «… (**10 mm o más**) …» |
+| la nota en línea de la prótesis mitral | «Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, **mayor de 10 mm**, complicado con embolia. El tamaño del trombo y la clase funcional no se registran en esta aplicación.» | «… ante un trombo grande, **de 10 mm o más**, complicado con embolia: el tamaño del trombo grande lo imprime así su **Figura 20 (hoja 65, folio 4699)**. El tamaño del trombo y la clase funcional no se registran en esta aplicación.» |
+
+**La aplicación NO aplica este corte a ningún número suyo**, verificado: el tamaño del trombo no
+es un campo de esta aplicación, y las dos notas de la mitral lo dicen. Se publica como texto.
+
+### 3 · Lo que esta tanda NO tocó de las fuentes
+
+- **El nombre de la guía americana de congénitas sigue siendo «ACC/AHA 2025»:** **223**
+  apariciones en `index.html` y **cero** de «ACC/AHA 2026». La regla fija del 06/11 no se movió.
+- **La ASE 2024 (Zoghbi), Tabla 5**, hoja 18, folio 19: ni un corte de la graduación protésica se
+  movió. El `atet_normal_max` sigue en **0,32** y el `atet_signif_min` en **0,37**, y el AT en
+  **80** y **100 ms**. Lo que la decisión (2) cambia es **cuándo el cociente existe**, no su
+  escala: un AT/ET de 1 o más es un error de carga, porque el AT es una parte del tiempo de
+  eyección.
+- **La salvedad del basal de la TAVI** —«Para TAVI la Tabla 5 expresa el gradiente medio, el DVI
+  y el área efectiva como cambio respecto de un estudio previo … (ASE 2024, hoja 18, folio 19)»—
+  queda **entera** y sigue publicándose en pantalla.
+
+### Cambios de evidencia
+
+| qué | de | a | fuente |
+|---|---|---|---|
+| operador del corte del trombo protésico grande | «más de 10 mm» / «mayor de 10 mm» | **«10 mm o más»** | Figura 20 de la ESC/EACTS 2025, hoja 65, folio 4699 |
+| cita del corte del trombo grande | Recommendation Table 17 (hoja 66, folio 4700) | **Figura 20 (hoja 65, folio 4699)**; la Tabla 17 queda para la recomendación | la misma |
+| criterio de cierre de la CIV de `escGuchCiv` | declarado como divergencia sin resolver con la ESC 2020 | **declarado como criterio propio de la aplicación** | decisión del médico, 08/11/2026 |
+| el cociente AT/ET de 1 o más | se publicaba en el papel y se clasificaba en el veredicto | **no existe**: error de carga | decisión del médico, 08/11/2026 |
+| la TAVI sin datos que indiquen estenosis ni insuficiencia | «sin datos suficientes para graduar la estenosis protésica» | **«normofuncionante»** | decisión del médico, 08/11/2026 |
+
 ## La tanda PANT-21 (2026-11-07) — la Evidencia de prótesis, una sección por válvula
 
 **Todo lo de acá se leyó EN IMAGEN a 150-300 ppp**, con el folio comprobado en el pie o la cabecera

@@ -47,9 +47,16 @@ MUT = [
  ('09 el EN SUMA no emite su renglon: la frase del cuerpo queda sin resumen', 'TC-757',
   [("      if (_normoT) suma.push(EA_PROT_NORMO.suma);",
     "      if (false) suma.push(EA_PROT_NORMO.suma);")]),
- ('10 el EN SUMA emite ADEMAS el resumen de la rama de siempre: dos renglones de la misma valvula', 'TC-757',
-  [("      if (_normoT) suma.push(EA_PROT_NORMO.suma);\n      else if (_eaProtN.resumen)",
-    "      if (_normoT) suma.push(EA_PROT_NORMO.suma);\n      if (_eaProtN.resumen)")]),
+ # ⚠️ LA 10 SE RETIRA DECLARADA, Y ES UN MUTANTE EQUIVALENTE DEMOSTRABLE — no un hueco de
+ #    cobertura. Cambiaba el `else if (_eaProtN.resumen)` por un `if` suelto, para que el EN SUMA
+ #    publicara DOS renglones de la misma valvula. No puede: `_normoTavi` exige
+ #    `P.nivel === 'faltan'` y esa rama de `eaProtNarrativa` asigna `resumen = null` tres lineas
+ #    mas arriba, asi que CADA VEZ que `_normoT` es verdadero `resumen` es nulo y las dos formas
+ #    se comportan igual. NINGUN caso puede matarla, porque los dos programas son el mismo.
+ #    El `else` se CONSERVA: dice «uno o el otro» y protege el dia que esa rama publique un
+ #    resumen. Sobrevivio al primer barrido y se diagnostico ahi. Queda en P24-a.
+ #    Lo que SI mide el invariante real es TC-757 (B5), que cuenta las apariciones de
+ #    «normofuncionante» en el EN SUMA y exige UNA.
  ('11 la frase del cuerpo cambia de palabra', 'TC-757',
   [("  frase: 'normofuncionante',", "  frase: 'sin disfuncion',")]),
  ('12 la frase pierde el parentesis de medidas: desaparece un numero medido del papel', 'TC-757',

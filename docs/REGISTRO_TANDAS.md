@@ -1987,3 +1987,161 @@ cuenta—:
 ⚠️ **Y la corrida completa corrigió un error de la propia documentación de la tanda**: `P14c-b`
 afirmaba que ninguna condición de la suite sostenía que una sección con un dato del paciente se
 abriera sola, y **TC-514 (F6) lo afirmaba con todas las letras**. Corregido.
+
+## PANT-24 — cierre de textos de protesis y de la Evidencia, y el tamanio tactil del circulo-i (2026-11-08)
+
+**Commits**: el inventario con las premisas (no cambia un byte de la app); la TAVI
+normofuncionante; el AT/ET; la cita `escGuchCiv` con el corte de 10 mm; la zona de toque del ⓘ; y
+la cobertura con la documentacion. Al empezar, `origin/main` = `HEAD` = **`a40073f`**, el cierre
+de PANT-23, ya publicado, con `index.html` en md5 `224fd6ae`, **168.717** lineas, sello
+`v20261107-1627`, y el pendrive `DISK_IMG` montado. **El push lo corre Maicol: esta tanda tenia
+orden expresa de NO pushear.**
+
+⚠️ **POR VIGESIMOPRIMERA VEZ SEGUIDA EL RENGLON DE TAMANIO QUE SE ENCONTRO ESTABA BIEN**, y se
+verifico de las dos formas que esta casa manda: el sello del pie (`#eco-build-sello`, linea
+165852) coincide con el de `CLAUDE.md`, y `wc -l` y `md5` sobre el archivo vivo dan **168.717**
+lineas, **12.268.984** bytes y **`224fd6ae`**, los tres identicos a lo que decia.
+
+- **LAS TRES PREMISAS SE REPRODUJERON, y DOS en un lugar distinto del que la orden describe
+  (commit 1).** La frase de la TAVI es textual y es la del estilo **NARRATIVO**. El **1.67** del
+  AT/ET **no** sale en la fila —`_eaAtEtVal` ya tenia su guarda y la fila muestra la raya—: sale
+  en el **aviso amarillo**, en **«Ver detalle»** y **en el papel**, que es lo que P18-b
+  declaraba. Y el 1 EXACTO tambien se publicaba.
+
+- **LA TAVI NORMOFUNCIONANTE (commit 2).** Con la aortica en TAVI y sin un solo dato que indique
+  estenosis o insuficiencia protesica, el informe dice «La valvula aortica presenta una protesis
+  transcateter tipo TAVI normofuncionante.» y el EN SUMA «TAVI normofuncionante.». Las dos frases
+  viven en **una tabla congelada**, `EA_PROT_NORMO`; el emisor publica una **marca** y el bloque
+  del informe compone. **La condicion no es «nivel faltan»**: con Vmax 4,5 y gradiente 45 sin DVI
+  el nivel tambien es «faltan» y los dos ejes medidos estan en rango de estenosis, asi que se
+  exige que **ningun nivel medido salga de normal**, y falla cerrado.
+  ⚠️ **LA INSUFICIENCIA PROTESICA TIENE TRES FUENTES Y LA TERCERA LA ENCONTRO TC-289, NO LA
+  LECTURA**: la regurgitacion PARAVALVULAR del modulo TAVI, que no pasa por `ia_grado` ni por el
+  escalon. El EN SUMA salia «TAVI normofuncionante. … RPV moderada.». Se arreglo la aplicacion y
+  no el caso. Y **el EN SUMA sale del bloque del informe y no del de «protesis normofuncionante»
+  del final**, cuya guarda de TAVI (P18-d) se conserva: ese bloque se apaga solo porque «TAVI» ya
+  era un token de `yaDicho` de esa valvula.
+  ⚠️ **Y EL COMMIT 3 DESTAPO UN DEFECTO DEL 2**: la frase se emitia a secas y el papel perdia
+  «(Vmax 2 m/s)». Es la regla fija de la casa —ningun numero medido desaparece— y hoy la frase
+  lleva el parentesis de medidas desde su dueno.
+
+- **EL AT/ET (commit 3), que cierra P18-b.** `eaProtVeredicto` deja de calcular el cociente por su
+  cuenta y **lee `_eaAtEtVal()`**, el dueno de la fila: con eso un cociente de 1 o mas vale `null`
+  y desaparece del papel, del aviso y del plegable de una sola vez. La llamada va **pelada**, y se
+  midio que se puede —las dos funciones estan en el **mismo** bloque de `<script>`, el 56, y
+  `_eaAtEtVal` es una declaracion izada—. La fila dice **«Revisar los valores»** por un segundo
+  dueno, `_eaAtEtRevisar()`, que publica el **por que** y no el valor. Y el decimal va con
+  **coma** en las tres rutas de **pantalla**; en el papel se deja con punto y se lista en P24-c.
+
+- **LA CITA `escGuchCiv` Y EL CORTE DE 10 MM (commit 4).** Salen las tres formas que esta casa ya
+  no escribe —«DIVERGE … ESTA SIN RESOLVER», «Verificacion clinica pendiente» y «no figura en el
+  documento»— y entra el **molde de PANT-22**, letra por letra: cada fuente por lo que ella dice y
+  el criterio de la seccion declarado como **propio de la aplicacion**. **Ni un numero, una clase,
+  un folio ni la publicacion se perdieron.** El corte pasa a **«10 mm o mas»** en los **tres**
+  items donde el medico lo ve —ocho cadenas— con la cita del corte en la **Figura 20 (hoja 65,
+  folio 4699)** y la **Tabla 17 (hoja 66, folio 4700)** para la recomendacion, sin comparar las
+  dos partes. El recuento, por items y por cadenas, queda declarado en **P24-a**.
+
+- **LA ZONA DE TOQUE DEL ⓘ (commit 5).** De **11 × 14 px** a **44 × 42**, con un `::after`
+  absoluto dentro de `@media (pointer: coarse)` —el mecanismo que `.ind-ctrl-btn` ya usa— y con
+  **insets explicitos** y no un porcentaje. Los **42 de alto** estan **medidos**: los 473 globos
+  dan **129 pares de vecinos** a **42,9 px**, los 129 con `dx = 0`, asi que una caja de 44 se
+  pisaria 1,1 px; en horizontal no hay restriccion y el ancho va 44 entero. Y lleva **`z-index:1`**
+  porque `td:nth-child(3)` esta posicionada y su celda tapaba la mitad de abajo de la zona.
+  **CERO** zonas tocan otro ⓘ o un boton de respuesta, medido punto por punto. Con el **mouse** no
+  cambia una fila.
+
+- **LO QUE SE PARO, en P24-a:** el **PPM aortico** puede salir debajo de «TAVI normofuncionante»
+  en un estudio con el DVI cargado y los dos ejes dependientes vacios, y decidir si un desajuste
+  impide llamar normofuncionante a una protesis es contenido clinico que la orden no decide.
+
+- **EL BARRIDO DE TEXTOS, en P24-b** — solo reporte, sobre `textContent` en el navegador y con
+  control positivo: **cuatro** textos visibles exponen de verdad lo pendiente, y **dos de ellos
+  son `escGuchCiv`**, que esta tanda corrige. Los otros dos son el «Queda declarado, no
+  corregido.» de la estenosis mitral. El resto son falsos positivos del patron o caen en las
+  excepciones que la propia regla declara.
+
+- **LA COBERTURA.** Cuatro casos nuevos —**TC-757** a **TC-760**—, y la suite pasa de **771 a
+  775** casos distintos. **Los seis caen contra `a40073f` por 30 condiciones y NINGUNA por
+  excepcion**, verificado en un worktree alternando solo `index.html` con el mismo archivo de
+  casos. **36 de 36 mutaciones dirigidas muertas** en 36,8 min, en worktree y nunca sobre el
+  vivo, con el md5 del arbol vivo identico antes y despues; la **37.a se retiro declarada** y es
+  un **mutante equivalente demostrable** (P24-a § 3).
+  ⚠️ **LAS 37 ANCLAS SE VERIFICARON ANTES DEL BARRIDO Y UNA ESTABA ROTA**: la 30 daba **x0**
+  porque el comentario del commit 5 se metio entre sus dos lineas, y `@media (pointer: coarse)`
+  aparece **siete** veces en el archivo, asi que no servia sola.
+
+- **TRES CASOS VIEJOS ADAPTADOS, cada uno con el motivo escrito.** **TC-289** (invertido en su
+  mitad aortica); **TC-723**, que **el censo por grep NO encontro y la suite SI** —grepear
+  `atet` empareja con **«cateterismo»**, que aparece decenas de veces en el archivo de casos—, y
+  que afirmaba el punto decimal de la fila y la raya con AT ≥ ET, o sea exactamente lo que esta
+  tanda cambia; y **TC-753**, que fijaba a mano el **md5** y el **renglon de tamanio** de
+  PANT-23 y por eso se ponia rojo en la tanda siguiente sin que nada se hubiera roto. Hoy los
+  comprueba **por su forma y por su vecindad al sello**: el sello ya se leia del pie desde
+  PANT-23, y ahora los otros dos tambien dejan de ser literales.
+  ⚠️ **Y ADAPTAR TC-753 COSTO UNA CORRIDA POR LA TRAMPA DE SIEMPRE**: un `split` con el escape
+  del salto de linea, dentro del template literal del cuerpo de un caso, se convierte en un
+  **salto de linea real** y la cadena queda sin cerrar —«SyntaxError: Invalid or unexpected
+  token»—. Se parte por `String.fromCharCode(10)`, que no tiene escape que perder.
+
+- **EL A/B DEL PAPEL, con el PDF y el PPT generados DE VERDAD: 121 escenas, 148.572 claves y
+  55.297 celdas de Excel, y las diferencias de superficie firmada son 84, TODAS en SIETE
+  escenas y doce claves cada una.** Las **114 escenas restantes** —entre ellas TODAS las que el
+  arnes ya traia de las tandas anteriores— salen **identicas**, clave por clave. El reparto:
+
+  | escena | que cambia | por que |
+  |---|---|---|
+  | `p24taviSin` | «… tipo TAVI normofuncionante.» / «TAVI normofuncionante.» | autorizada **(a)** |
+  | `p24taviParc` | «… normofuncionante (Vmax 2 m/s)» | autorizada **(a)** |
+  | `p24atet167` | pierde «AT/TE 1.67» | autorizada **(b)** |
+  | `p24atetSavr` | pierde «AT/TE 1.67» en una protesis QUIRURGICA | autorizada **(b)**, y es el control de que no es un arreglo de la TAVI |
+  | `p24atet1` | pierde «AT/TE 1.00» y pasa a «normofuncionante (AT 60 ms)» | **(b)** y despues **(a)** |
+  | `p24etCero` | «normofuncionante (AT 50 ms)» | autorizada **(a)**: con el ET en 0 el cociente ya era nulo en los DOS arboles |
+  | `p24at0` | pierde «AT/TE 0.00» y pasa a «normofuncionante (AT 0 ms)» | **(a)** mas un TERCER efecto, declarado en **P24-a § 4** |
+
+  ⚠️ **`p24at0` ES LA UNICA ESCENA CON UN EFECTO QUE LA ORDEN NO NOMBRA, y se midio a proposito
+  en vez de descubrirlo despues**: ahi el cociente vale **0**, o sea por DEBAJO de 1, asi que
+  deja de publicarse por la guarda de positividad de `_eaAtEtVal` y no por la decision del
+  cociente. Un AT de 0 esta fuera de la banda de plausibilidad `va_at:[10,300]`, y la fila ya
+  decia «fuera de rango medible» mientras el papel publicaba `AT/TE 0.00`: hoy las dos
+  superficies coinciden, que es lo que P18-b pedia. Queda declarado y con su salida de una linea.
+
+  **En PANTALLA hay UNA sola diferencia**, en `p24civ`: el texto de `escGuchCiv`. Es el commit 4,
+  y vive solo en el panel de Evidencia.
+
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la linea base
+  exacta. **No empeoro**, que es lo que la orden pide, y es lo que confirma que la zona de toque
+  del ⓘ no agrando una sola caja con el mouse: el barrido de celular NO emula un puntero grueso.
+
+- **CHROME Y WEBKIT, DIA Y NOCHE, en los cuatro anchos**: 28 corridas, cero errores de consola y
+  de pagina en todas. El detalle esta en el cuerpo del commit 5.
+
+- **LA LINEA BASE AL CIERRE: suite 769/775**, en **quince** lotes cubriendo los **775 casos
+  distintos** —contados nombre por nombre, con la guarda del arnes comparando lo listado con lo
+  ejecutado: **775 de 775**—, en UNA sola pasada sobre el arbol sellado, con el pendrive
+  `DISK_IMG` **verificado al abrir, en cada uno de los quince lotes y al cerrar** (diecisiete
+  verificaciones) y el md5 de `index.html` **identico** antes y despues (`b8481a9b`). Los rojos
+  son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, mas **TC-182** y **TC-706**,
+  los dos que la orden lista como posibles. **Ningun rojo nuevo**, y los cuatro casos nuevos y
+  los tres adaptados en verde.
+  ⚠️ **LOS TRES INTERMITENTES SE CARACTERIZARON COMO MANDA ESTA CASA, con CUATRO corridas cada
+  uno**: **TC-182**, **TC-706** y **TC-551** pasan **4 de 4 aislados**, asi que son del contexto
+  de la suite -los 775 casos corren en UNA sola pagina- y no de esta tanda.
+  ⚠️ **Y LA PRIMERA CORRIDA COMPLETA DIO 766/775 CON TRES ROJOS MAS, LOS TRES MIOS**, y por eso
+  esa cifra no es la linea base: **TC-551** (el intermitente), **TC-723** y **TC-753**. Estan
+  adaptados y la cifra de arriba sale de la corrida **limpia**, de una sola pasada sobre el
+  mismo arbol sellado y con el archivo de casos final.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la linea base exacta, sin un aviso nuevo. **Sin huerfanos
+  nuevos**: el censo es identico a HEAD y lo unico que cambia son los numeros de linea. El diff
+  son **263 lineas agregadas y 30 quitadas** en `index.html`, de las que **64** no son
+  comentario, con **UN** `innerHTML` nuevo que recibe un literal por el mismo `badge()` que las
+  tres lineas hermanas de su propia funcion, **cero** `eval(` y `new Function`, y cero claves ni
+  contrasenias —las dos unicas apariciones de «token» son la palabra espaniola en MIS
+  comentarios, sobre el `yaDicho` de la valvula—. **Cero campos guardados nuevos, cero columnas
+  de Excel y ningun id cambiado.**
+
+- **Donde esta todo:** `docs/INVENTARIO_PANT24.md` (el inventario del commit 1),
+  `docs/GUIA_PRUEBA_PANT24.md` (la guia manual en ocho pasos), `docs/PENDIENTES.md` → **P24-a**,
+  **P24-b** y **P24-c**, y `docs/archivo/PENDIENTES_CERRADOS.md` → **P18-b** y **P18-d**,
+  cerrados.

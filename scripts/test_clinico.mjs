@@ -120834,7 +120834,12 @@ caso('TC-723', 'PANT-18 commit 2: el tiempo de eyeccion es el campo que YA EXIST
     const fila = async (at) => { await base(at, '300'); return T('ea-det-atet') };
     const c30 = await fila('90'), c32 = await fila('96'), c35 = await fila('105');
     const c37 = await fila('111'), c38 = await fila('114');
-    ex.push(['(C0 DENOM) la fila del AT/ET existe y publica un valor', c30.indexOf('0.30') >= 0,
+    /* ⚠️ ADAPTADO EN PANT-24, commit 3 (decision del medico del 08/11/2026): el decimal de ESTA
+       fila pasa a COMA. Salia «0.30» con punto al lado de sus propios cortes escritos «0,32» y
+       «0,37», que es lo que el medico vio. Se exige la forma NUEVA Y que la vieja ya no este,
+       asi que puede fallar por los dos lados. */
+    ex.push(['(C0 DENOM) la fila del AT/ET existe y publica su valor con COMA, no con punto',
+      c30.indexOf('0,30') >= 0 && c30.indexOf('0.30') === -1,
       'fila=«' + c30 + '»']);
     ex.push(['(C1) 0,30 es normal', c30.indexOf('normal') >= 0, c30]);
     ex.push(['(C2) BORDE 0,32 cae en posible estenosis, no en normal',
@@ -120851,8 +120856,16 @@ caso('TC-723', 'PANT-18 commit 2: el tiempo de eyeccion es el campo que YA EXIST
     await base('320', '300'); const d4 = T('ea-det-atet');
     ex.push(['(D1) sin ET no se calcula', d1.indexOf(raya) >= 0 && d1.indexOf('estenosis') === -1, d1]);
     ex.push(['(D2) sin AT no se calcula', d2.indexOf(raya) >= 0 && d2.indexOf('estenosis') === -1, d2]);
-    ex.push(['(D3) con AT igual al ET no se calcula', d3.indexOf(raya) >= 0 && d3.indexOf('estenosis') === -1, d3]);
-    ex.push(['(D4) con AT mayor que el ET no se calcula', d4.indexOf(raya) >= 0 && d4.indexOf('estenosis') === -1, d4]);
+    /* ⚠️ ADAPTADAS EN PANT-24, commit 3, Y LAS DOS SE INVIERTEN. DECISION DEL MEDICO: el AT es
+       una PARTE del tiempo de eyeccion, asi que un cociente de 1 o mas es un ERROR DE CARGA y la
+       fila lo DICE —«Revisar los valores»— en vez de mostrar la raya. Lo que estas dos condiciones
+       defendian sigue entero y es lo que importa: el cociente NO se clasifica. Se agrega que la
+       raya ya NO esta, para que puedan fallar por los dos lados, y se separan de (D1) y (D2),
+       que son «falta un dato» y ahi la raya SIGUE siendo lo correcto. */
+    ex.push(['(D3) con AT igual al ET la fila dice «Revisar los valores» y no clasifica',
+      d3.indexOf('Revisar los valores') >= 0 && d3.indexOf('estenosis') === -1 && d3.indexOf(raya) === -1, d3]);
+    ex.push(['(D4) con AT mayor que el ET la fila dice «Revisar los valores» y no clasifica',
+      d4.indexOf('Revisar los valores') >= 0 && d4.indexOf('estenosis') === -1 && d4.indexOf(raya) === -1, d4]);
     /* (E) CONTROL NEGATIVO: con valvula NATIVA la fila se esconde y se vacia */
     await base('101', '300'); S('va_morf', 'Trivalva normal');
     try { valvProtSync() } catch (e) {}
@@ -120887,7 +120900,8 @@ caso('TC-723', 'PANT-18 commit 2: el tiempo de eyeccion es el campo que YA EXIST
     try { if (typeof valvProtSync === 'function') valvProtSync() } catch (e) {}
     await esperar(200);
     ex.push(['(G1) con siembra MUDA el espejo toma el valor del dueno y la fila publica el cociente',
-      T('va-esp-et') === '300' && T('ea-det-atet').indexOf('0.34') >= 0,
+      /* PANT-24: el decimal de la fila va con COMA */
+      T('va-esp-et') === '300' && T('ea-det-atet').indexOf('0,34') >= 0,
       'espejo=«' + T('va-esp-et') + '» fila=«' + T('ea-det-atet') + '»']);
     return { extra: ex };
   })();
@@ -123994,15 +124008,62 @@ caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que exis
     const e = document.getElementById('eco-build-sello');
     return e ? (e.textContent || '').trim() : 'SIN PIE';
   })();
-  const MD5 = '224fd6ae';
-  const TAM = '12,27 MB / 168.717';
-  const tieneSello = (t) => t.indexOf(SELLO) > -1 && t.indexOf(MD5) > -1;
+  /* ⚠️ ADAPTADO EN PANT-24: EL md5 Y EL RENGLON DE TAMANIO YA NO SE FIJAN A MANO, Y ES LA MISMA
+     LECCION QUE ESTE CASO YA TENIA ESCRITA PARA EL SELLO. Decian '224fd6ae' y
+     '12,27 MB / 168.717', o sea los valores de PANT-23: el caso se ponia ROJO en la tanda
+     siguiente sin que nada se hubiera roto, porque afirmaba tres valores que CAMBIAN en cada
+     tanda por definicion. El sello ya se leia del pie; ahora los otros dos se comprueban por su
+     FORMA y por su VECINDAD al sello, que es el invariante de verdad: que CLAUDE.md este al dia
+     con el arbol, no que diga un numero concreto.
+     El md5 se busca como ocho digitos hexadecimales en la MISMA linea que el sello -asi no
+     empareja con cualquier hexa del archivo- y el tamanio como «NN,NN MB / NNN.NNN lineas». */
+  const lineaSello = (function () {
+    /* ⚠️ SE PARTE POR EL CODIGO DE CARACTER Y NO POR '\\n': dentro del template literal del
+       cuerpo de un caso, un \\n se convierte en un SALTO DE LINEA REAL y la cadena queda sin
+       cerrar -«SyntaxError: Invalid or unexpected token»-. Es la misma trampa que el acento
+       grave, y asi no hay escape que perder. */
+    const ls = String(cl).split(String.fromCharCode(10));
+    for (let i = 0; i < ls.length; i++) if (ls[i].indexOf(SELLO) > -1) return ls[i];
+    return '';
+  })();
+  const esHexa8 = function (t) {
+    for (let i = 0; i + 8 <= t.length; i++) {
+      let ok = true;
+      for (let j = 0; j < 8; j++) {
+        const c = t.charCodeAt(i + j);
+        if (!((c >= 48 && c <= 57) || (c >= 97 && c <= 102))) { ok = false; break }
+      }
+      if (!ok) continue;
+      const a0 = i > 0 ? t.charCodeAt(i - 1) : 32, b0 = (i + 8 < t.length) ? t.charCodeAt(i + 8) : 32;
+      const alnum = function (c) { return (c >= 48 && c <= 57) || (c >= 97 && c <= 122) || (c >= 65 && c <= 90) };
+      if (!alnum(a0) && !alnum(b0)) return true;
+    }
+    return false;
+  };
+  /* «NN,NN MB / NNN.NNN lineas», sin expresion regular: el cuerpo de un caso es un template
+     literal y una barra invertida no sobrevive. */
+  const tieneTamano = (function () {
+    const t = String(cl), MB = ' MB / ';
+    let k = 0;
+    while (true) {
+      const i = t.indexOf(MB, k); if (i < 0) return false;
+      k = i + MB.length;
+      const antes = t.slice(Math.max(0, i - 6), i), desp = t.slice(k, k + 8);
+      let dA = 0, dD = 0;
+      for (const ch of antes) if (ch >= '0' && ch <= '9') dA++;
+      for (const ch of desp)  if (ch >= '0' && ch <= '9') dD++;
+      if (dA >= 3 && dD >= 5 && antes.indexOf(',') > -1 && desp.indexOf('.') > -1) return true;
+    }
+  })();
+  const tieneSello = (t) => t.indexOf(SELLO) > -1;
   q('(C0 DENOM) el pie de index.html publica un sello con la forma esperada',
     SELLO.length === 14 && SELLO.indexOf('v2026') === 0, 'pie=' + SELLO + ' largo=' + SELLO.length);
-  q('(C1) el sello que publica el pie y el md5 de index.html estan los dos en CLAUDE.md',
-    tieneSello(cl), 'sello=' + (cl.indexOf(SELLO) > -1) + ' md5=' + (cl.indexOf(MD5) > -1));
-  q('(C2) el renglon de tamano sigue en CLAUDE.md, con sus bytes y sus lineas',
-    cl.indexOf(TAM) > -1, 'renglon=' + (cl.indexOf(TAM) > -1));
+  q('(C1) el sello que publica el pie esta en CLAUDE.md, y en su MISMA linea hay un md5 de ocho hexa',
+    tieneSello(cl) && esHexa8(lineaSello),
+    'sello=' + (cl.indexOf(SELLO) > -1) + ' md5 en su linea=' + esHexa8(lineaSello) +
+    ' linea=«' + lineaSello.slice(0, 150) + '»');
+  q('(C2) el renglon de tamano sigue en CLAUDE.md, con su forma «NN,NN MB / NNN.NNN lineas»',
+    tieneTamano, 'renglon con forma de tamano=' + tieneTamano);
   q('(C3) CONTROL NEGATIVO: sin esa linea la comprobacion del sello FALLA',
     tieneSello(cl.split(SELLO).join('vXXXXXXXX-XXXX')) === false, 'invariante del chequeo');
 
