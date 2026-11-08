@@ -2199,6 +2199,36 @@ y `git show bc62db2:index.html` da **168.950** líneas, **12.288.401** bytes y *
   55.297 celdas**, y **cero diferencias** de superficie firmada **y de pantalla**. Excel **457** y
   campos **1026**, los dos idénticos.
 
+
+- **LA LÍNEA BASE AL CIERRE: suite 773/779**, en **quince** lotes cubriendo los **779 casos
+  distintos** —contados nombre por nombre, cero duplicados, con la guarda del arnés comparando lo
+  listado con lo ejecutado: **779 de 779**—, en UNA sola pasada sobre el árbol sellado, con el
+  pendrive `DISK_IMG` **verificado al abrir, en cada uno de los quince lotes y al cerrar**
+  (diecisiete verificaciones) y el md5 de `index.html` **idéntico** antes y después
+  (`f2587ad8`). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+  **TC-551** y **TC-557**, los dos intermitentes declarados. **Ningún rojo nuevo**, y los cuatro
+  casos nuevos y los seis adaptados en verde.
+  ⚠️ **LOS DOS INTERMITENTES SE CARACTERIZARON COMO MANDA ESTA CASA, con CUATRO corridas aisladas
+  cada uno, y los dos pasan 4 DE 4**: TC-551 es el que `COR-f` declara —mide el chorro de la
+  orejuela sin pausar la animación— y TC-557 el que `TGA-h` declara, con la firma de
+  `elementFromPoint` fuera del viewport. Son del contexto de la suite, que corre los 779 casos en
+  UNA sola página, y no de esta tanda.
+  ⚠️ **Y TC-182 y TC-706, que PANT-24 dejó en rojo, salieron VERDES**, lo que confirma lo que esa
+  tanda ya había medido: los dos pasan aislados y lo que los mueve es el contexto del arnés.
+
+- **Semgrep 124 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+  nuevos.** **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea
+  base exacta. **No empeoró.**
+
+- **CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1440, 1000, 768 y 390 px ×
+  dos temas), en las dos sondas: **nueve** botones de **44 px** de alto, la barra desplazándose
+  **por dentro** desde los 1000 px, **cero** desplazamiento horizontal de la página, **cero**
+  textos recortados, **cero** pestañas que no abren, las dos fichas **abiertas de verdad** con sus
+  63 y 31 filas, **cero** celdas y filas vacías nuevas, y **CERO errores de consola y de página en
+  los dos motores**. La única diferencia entre motores es de **métrica de fuente**: el contenido
+  de la barra mide 1161 px en Chrome y 1179 en WebKit.
+  ⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+
 - **Dónde está todo:** `docs/INVENTARIO_REFERENCIAS_P25.md`, `docs/CONTROL_MASAS_P25.md`,
   `docs/GUIA_PRUEBA_PANT25.md`, el puntero en `docs/mapa/referencias-subpestanas.md`, y
   `docs/PENDIENTES.md` → **P25-a**, **P25-b** y **P25-c**.

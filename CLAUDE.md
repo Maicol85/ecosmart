@@ -917,7 +917,10 @@ la tabla de control está en `docs/CONTROL_MASAS_P25.md`. **La fila sin fuente d
 **la cláusula que exponía lo pendiente también**, por la regla del 08/11. **El papel es idéntico a
 HEAD**: 121 escenas, 148.572 claves y 55.297 celdas, cero diferencias. Lo cubren **TC-761** a
 **TC-764**, con **TC-502**, **TC-509**, **TC-531**, **TC-534** y **TC-679** adaptados. ⚠️ **La
-premisa central de la orden no se reprodujo**: las dos fichas **ya existían** desde PANT-11. Lo
+premisa central de la orden no se reprodujo**: las dos fichas **ya existían** desde PANT-11.
+**Suite 773/779** en quince lotes, con los cuatro rojos de siempre más TC-551 y TC-557, los dos
+intermitentes declarados, que pasan **4 de 4 aislados**; Semgrep **124/0**, Excel **457**,
+celular **59 y 67 con 18 ALTA**, y Chrome y WebKit coincidiendo en los dieciséis cruces. Lo
 declarado, en **P25-a**, **P25-b** y **P25-c**; el inventario, en
 `docs/INVENTARIO_REFERENCIAS_P25.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT25.md`.
 
