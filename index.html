@@ -3998,6 +3998,72 @@ html.light-mode .amilo-root{
    acotadas a `[data-ind-preg="1"]`. Ahi la acotacion es una correccion medida —sin ella las
    secciones de SEIS O MENOS preguntas bajaban su fila mas alta de 55 a 45 px— y la orden de
    esta tanda manda no mover esos cortes. */
+/* ══ LA ZONA DE TOQUE DEL ⓘ DE LA EVIDENCIA — 44 px EN PANTALLAS TACTILES ═══════════════════
+   PANT-24, commit 5 (decision del medico del 08/11/2026). El glifo mide 11 x 14 px -medido en
+   los 473 globos de las 45 secciones, identico en todos- y con el dedo no es un objetivo. Gana
+   una zona de toque sin cambiar NADA de como se ve: el glifo sigue en 14 px con su font-size de
+   11, y el alto y el ancho de las filas no se mueven.
+   ⚠️ CON UN PSEUDO-ELEMENTO ABSOLUTO Y NO CON `min-width`/`min-height`, y es la diferencia con
+   los `.vinfo-btn` de fuera del panel. Alla el boton CRECE a 44x44 porque son encabezados de
+   seccion y nada queda tapado; aca el ⓘ es un `<summary>` DENTRO de una fila de tabla, asi que
+   crecerlo empujaria la fila. Es el mismo mecanismo que `.ind-ctrl-btn` ya usa dos reglas mas
+   arriba -«el area tactil la da un ::after absoluto, no un margen negativo»-, que es el
+   precedente que PANT-2 dejo escrito.
+   ⚠️ ACOTADA A `pointer: coarse`, que es la misma media query que `.vinfo-btn`: con el mouse NO
+   cambia absolutamente nada, ni el alto ni el ancho ni el blanco de clic.
+   ⚠️ 44 DE ANCHO Y 42 DE ALTO, Y EL 42 ESTA MEDIDO, NO ELEGIDO. Los 473 globos dan **129 pares
+   de vecinos a menos de 44 px**, y los 129 con **dx = 0 y dy = 42,9 px**: son filas de preguntas
+   consecutivas, el mismo lugar en la fila, una debajo de la otra. En el eje HORIZONTAL no hay un
+   solo par apretado, asi que el ancho va 44 entero. En el VERTICAL, una caja de 44 sobre un paso
+   de fila de 42,9 se pisa **1,1 px** con la de arriba y con la de abajo, y la decision del
+   medico dice que donde dos ⓘ esten a menos de 44 px la zona se acota para que no se pisen: el
+   maximo que NO se pisa es 42. Es la excepcion que la propia orden preve -«44 por 44 px, o menos
+   donde se acoto por un vecino»-.
+   ⚠️ Y VA EN UNA SOLA REGLA PARA LOS 473, NO EN DOS. Las 24 secciones con el paso de 42,9 px
+   tienen 368 de los 473 globos; las otras 20, con el par mas cercano a 45 px o mas, podrian
+   llevar 44 de alto. Pero el discriminador es el PASO DE FILA, que ningun selector de CSS puede
+   leer, y partirlo exigiria medir en JavaScript: un mecanismo nuevo para 105 globos, en la
+   tanda que PANT-23 cerro quitando una compuerta de CSS. Queda declarado en el reporte.
+   ⚠️ Y NO TAPA NINGUN CONTROL: medido, CERO de las 473 cajas de 44x44 se superpone con un boton
+   de respuesta -la distancia minima a un `.ind-ctrl-btn` lo deja afuera-, asi que una de 44x42
+   tampoco. */
+@media (pointer: coarse) {
+  /* ⚠️ Y LLEVA `z-index:1`, QUE TAMBIEN LO DESTAPO UNA MEDICION. Sin el, DOS de los 473 globos
+     -los dos de la segunda columna de la estenosis pulmonar- tenian la mitad de abajo de su zona
+     tapada: el barrido desde el centro daba 15 px hacia abajo en vez de 21, y `elementFromPoint`
+     devolvia el `<td>` de la fila siguiente. La causa es la regla `td:nth-child(3){position:
+     relative}` de abajo: esa celda esta POSICIONADA, asi que pinta en la capa de los
+     descendientes posicionados y, por orden de documento, le gana al `::after` absoluto de la
+     fila anterior. El 1 lo deja por encima de esas celdas y por DEBAJO del cajon del globo, que
+     lleva 3. Es el mismo recurso que la regla de `#inf-min-fila .inf-min-cab .vinfo-btn` ya usa
+     en este archivo. */
+  #indic-card [data-ind-info] > summary{position:relative;z-index:1}
+  /* ⚠️ CON INSETS EXPLICITOS Y NO CON `left:50%` + `translate`, Y LO DESTAPO UNA MEDICION. Con
+     el porcentaje, dos de los 473 globos -los dos de la estenosis pulmonar que caen en la
+     segunda columna- no respondian en su esquina inferior derecha: ahi `elementFromPoint`
+     devolvia el `<td>`, o sea la zona no llegaba. El porcentaje se resuelve contra el bloque
+     contenedor, y el de un `<summary>` en linea con `position:relative` es la caja de sus
+     fragmentos, que no es la que uno supone. Los insets no dependen de eso: son la misma forma
+     que `.ind-ctrl-btn::after` ya usa dos reglas mas arriba.
+     Las cuentas, sobre el glifo de 11 x 14 px que los 473 miden: 11 + 16,5 + 16,5 = 44 de ancho
+     y 14 + 14 + 14 = 42 de alto. */
+  #indic-card [data-ind-info] > summary::after{content:'';position:absolute;
+    left:-16.5px;right:-16.5px;top:-14px;bottom:-14px}
+  /* ⚠️ Y EL BOTON DE RESPUESTA LE GANA A LA ZONA DONDE SE TOCAN, Y ESO LO DESTAPO LA MEDICION A
+     390 px. A 1440, 1000 y 768 la zona no roza un solo control: CERO de las 473. A 390 el panel
+     mide 366 px, la botonera se envuelve debajo del texto de la pregunta y el rectangulo de 44 x
+     42 del ⓘ pisa el de un boton en 560 de los casos -IDENTICO en HEAD, o sea es geometria de la
+     maqueta y no algo que esta tanda traiga-. Lo que SI traia esta tanda era el robo del toque:
+     con el `z-index:1` del ⓘ, `elementFromPoint` devolvia el ⓘ en 302 puntos que antes
+     devolvian el boton, asi que el dedo que iba a «Si» abria la nota.
+     El 2 lo resuelve sin tocar el tamanio de nada: la zona del ⓘ sigue entera donde no hay
+     nadie, y donde se superponen gana el CONTROL, que es la direccion segura -quien apunta a un
+     boton de respuesta no espera que se le abra un globo-. Es la forma de «la zona se acota para
+     que no se pise» que la decision pide, aplicada por apilado y no por tamanio. Medido:
+     despues de esto, CERO de las 473 zonas se queda con un punto de un boton, en los CUATRO
+     anchos. Queda por DEBAJO del cajon, que lleva 3. */
+  #indic-card .ind-ctrl-btn{z-index:2}
+}
 #indic-card [data-ind-grid] td:nth-child(3){position:relative}
 #indic-card [data-ind-grid] [data-ind-info][open] > div{
   position:absolute;right:0;top:100%;z-index:3;

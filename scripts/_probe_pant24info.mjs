@@ -21,11 +21,12 @@ const FILE = arg('--file') || (RAIZ + '/index.html');
 const ANCHO = parseInt(arg('--ancho') || '1440', 10);
 const MOTOR = arg('--motor') || 'chrome';
 const TOQUE = process.argv.indexOf('--mouse') === -1;
+const DIA = process.argv.indexOf('--dia') > -1;
 
 const CUERPO = `(async () => {
   const R = { secs:{}, tot:{ nSecs:0, nInfo:0, zonaOK:0, zonaChica:0, esquinasOK:0,
-                             pisaInfo:0, pisaBoton:0, pares44:0, scroll:0 },
-              pares:[], chicos:[], pisadas:[], filas:{}, _toque:('ontouchstart' in window) };
+                             pisaInfo:0, pisaInfoImp:0, pisaBoton:0, pisaBotonImp:0, pares44:0, scroll:0 },
+              pares:[], chicos:[], pisadas:[], filas:{}, _coarse: matchMedia('(pointer: coarse)').matches };
   ['modalAvisoEco','login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display='none' });
   const esperar = ms => new Promise(r => setTimeout(r, ms));
   const norm = function (t) { const s = String(t == null ? '' : t); let o = '', sp = false;
@@ -40,6 +41,10 @@ const CUERPO = `(async () => {
   (function(){ const st = document.createElement('style');
     st.textContent = '*{transition:none !important;animation:none !important}';
     document.head.appendChild(st) })();
+  /* MODO DIA por su DUENO real, toggleTheme, y no agregando la clase a mano: asi corren los dos
+     repintados que esa funcion encadena y la medicion es la del gesto del medico. */
+  if (window.__p24dia) { try { if (!document.documentElement.classList.contains('light-mode')) toggleTheme() } catch (e) {} }
+  R._dia = document.documentElement.classList.contains('light-mode');
 
   const SEED = [
     ['Estenosis aortica',                   { vmax_ao:'4.5' },                                    'esc2025vc'],
@@ -109,8 +114,17 @@ const CUERPO = `(async () => {
     return !(a.right <= b.left + 0.5 || a.left >= b.right - 0.5 || a.bottom <= b.top + 0.5 || a.top >= b.bottom - 0.5) };
   /* La caja de 44x44 CENTRADA en el glifo: es la que la decision pide, y es contra ella que se
      mide la superposicion y el elementFromPoint de las cuatro esquinas. */
-  const caja44 = function (r) { const cx = r.left + r.width/2, cy = r.top + r.height/2;
-    return { left:cx-22, right:cx+22, top:cy-22, bottom:cy+22, width:44, height:44, cx:cx, cy:cy } };
+  /* DOS cajas, y las dos se miden: la de 44x44 que la decision pide -contra la que se cuenta la
+     superposicion con un vecino, que es lo que obliga a acotar- y la IMPLEMENTADA, 44 de ancho
+     por ZALTO de alto, contra la que se prueban las cuatro esquinas con elementFromPoint. */
+  const ZALTO = (typeof window.__p24zalto === 'number') ? window.__p24zalto : 42;
+  R._zalto = ZALTO;   /* se asigna ACA y no en el literal de R: alla ZALTO esta en zona muerta y
+                         el cuerpo entero abortaria con ReferenceError, que se lee igual que
+                         «la sonda no mide nada». */
+  const cajaWH = function (r, w, h) { const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    return { left:cx-w/2, right:cx+w/2, top:cy-h/2, bottom:cy+h/2, width:w, height:h, cx:cx, cy:cy } };
+  const caja44 = function (r) { return cajaWH(r, 44, 44) };
+  const cajaImp = function (r) { return cajaWH(r, 44, ZALTO) };
 
   const SEEDMAP = {}; SEED.forEach(function (x) { SEEDMAP[x[0]] = x });
   for (let i = 0; i < IND_SECS.length; i++) {
@@ -151,13 +165,18 @@ const CUERPO = `(async () => {
             dx: Math.round(Math.abs(dx)*10)/10, dy: Math.round(Math.abs(dy)*10)/10 });
         R.tot.pares44++; R.pares.push({ sec:tit, a:a, b:b, d: Math.round(dist*10)/10 }); }
       if (cruza(ca, cb)) { o.pisaInfo++; R.tot.pisaInfo++;
-        R.pisadas.push({ sec:tit, tipo:'info', a:a, b:b }); }
+        R.pisadas.push({ sec:tit, tipo:'info44', a:a, b:b }); }
+      if (cruza(cajaImp(rects[a]), cajaImp(rects[b]))) { o.pisaInfoImp = (o.pisaInfoImp||0)+1;
+        R.tot.pisaInfoImp = (R.tot.pisaInfoImp||0)+1;
+        R.pisadas.push({ sec:tit, tipo:'infoIMP', a:a, b:b }); }
     }
     o.minPar = (minD === Infinity) ? null : Math.round(minD*10)/10;
     /* Superposicion con un boton de respuesta */
     for (let a = 0; a < rects.length; a++) {
       const ca = caja44(rects[a]);
       const n = btns.filter(function (bt) { return cruza(ca, bt.getBoundingClientRect()) }).length;
+      const nI = btns.filter(function (bt) { return cruza(cajaImp(rects[a]), bt.getBoundingClientRect()) }).length;
+      if (nI) { o.pisaBotonImp = (o.pisaBotonImp||0)+nI; R.tot.pisaBotonImp = (R.tot.pisaBotonImp||0)+nI }
       if (n) { o.pisaBoton += n; R.tot.pisaBoton += n;
         R.pisadas.push({ sec:tit, tipo:'boton', a:a, n:n }); }
     }
@@ -165,7 +184,7 @@ const CUERPO = `(async () => {
     for (let a = 0; a < infos.length; a++) {
       const s = infos[a];
       s.scrollIntoView({ block:'center' }); await esperar(45);
-      const r = s.getBoundingClientRect(), c = caja44(r);
+      const r = s.getBoundingClientRect(), c = cajaImp(r), c44 = caja44(r);
       const pts = [[c.left+1, c.top+1], [c.right-1, c.top+1], [c.left+1, c.bottom-1], [c.right-1, c.bottom-1]];
       let ok = 0, fuera = 0;
       for (const p of pts) {
@@ -175,6 +194,38 @@ const CUERPO = `(async () => {
         if (el === s || (s.contains && s.contains(el)) || (el && el.closest && el.closest('details[data-ind-info]') &&
             el.closest('details[data-ind-info]') === s.parentElement)) ok++;
       }
+      /* EL CENTRO DEL GLIFO, que es lo que distingue «mi zona no llega» de «otra capa lo tapa».
+         Si el centro tampoco responde, el globo esta tapado y eso es preexistente: lo mismo pasa
+         con la zona de 11x14 de HEAD. P23-b ya declara un caso asi en la estenosis mitral. */
+      const elC = (Math.round(c.cx) >= 0 && Math.round(c.cy) >= 0 && Math.round(c.cx) < innerWidth
+                   && Math.round(c.cy) < innerHeight)
+        ? document.elementFromPoint(Math.round(c.cx), Math.round(c.cy)) : null;
+      const centroOK = !!(elC && (elC === s || (s.contains && s.contains(elC))));
+      /* ⚠️ Y LA SUPERPOSICION CON UN CONTROL SE MIDE CONTRA SU ZONA DE TOQUE, NO CONTRA SU
+         RECTANGULO. Los botones de respuesta miden 32 px de alto visible y 44 de area tactil,
+         que les da su propio ::after, y ese pseudo-elemento NO entra en
+         getBoundingClientRect. Se barre la caja implementada punto por punto -una rejilla de
+         5 x 5- y se mira si alguno devuelve un .ind-ctrl-btn o otro globo: eso es lo que el
+         dedo encontraria. */
+      let chocaCtrl = 0, chocaOtro = 0;
+      for (let gx = 0; gx <= 4; gx++) for (let gy = 0; gy <= 4; gy++) {
+        const x = Math.round(c.left + 1 + (c.width - 2) * gx / 4);
+        const y = Math.round(c.top + 1 + (c.height - 2) * gy / 4);
+        if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+        const e2 = document.elementFromPoint(x, y);
+        if (!e2) continue;
+        if (e2 === s || (s.contains && s.contains(e2))) continue;
+        if (e2.closest && e2.closest('.ind-ctrl-btn')) chocaCtrl++;
+        else if (e2.closest && e2.closest('details[data-ind-info]')) chocaOtro++;
+      }
+      if (chocaCtrl) { R.tot.chocaCtrl = (R.tot.chocaCtrl || 0) + 1;
+        if ((R.choques || (R.choques = [])).length < 20) R.choques.push({ sec:tit, a:a, ctrl:chocaCtrl }) }
+      if (chocaOtro) { R.tot.chocaOtro = (R.tot.chocaOtro || 0) + 1;
+        if ((R.choques || (R.choques = [])).length < 20) R.choques.push({ sec:tit, a:a, otroInfo:chocaOtro }) }
+      if (centroOK) R.tot.centroOK = (R.tot.centroOK || 0) + 1;
+      else { R.tot.centroTapado = (R.tot.centroTapado || 0) + 1;
+        if ((R.tapados || (R.tapados = [])).length < 30)
+          R.tapados.push({ sec:tit, a:a, encima: elC ? (elC.tagName + '.' + String(elC.className||'').slice(0,28) + '#' + (elC.id||'')) : 'null' }); }
       R.tot.nInfo++;
       if (ok === 4) { R.tot.esquinasOK++; o.esquinas.ok++ }
       else { o.esquinas.mal++;
@@ -183,14 +234,27 @@ const CUERPO = `(async () => {
       /* La ZONA real: el rectangulo que de verdad responde al toque. Se mide barriendo desde el
          centro hacia los cuatro lados y viendo hasta donde elementFromPoint sigue devolviendo
          este globo. Es lo que el commit 5 tiene que llevar a 44. */
-      if (a < 3) {
+      /* El barrido de la zona REAL se hace en TODOS los globos y no en los tres primeros: a 390
+         px la botonera se envuelve y la zona queda acotada por un control en una parte de ellos,
+         asi que el promedio de los tres primeros no describe el conjunto. */
+      {
         const mide = function (dx, dy) { let k = 0;
           for (let t = 1; t <= 30; t++) { const x = Math.round(c.cx + dx*t), y = Math.round(c.cy + dy*t);
             if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) break;
             const el = document.elementFromPoint(x, y);
             if (el === s || (s.contains && s.contains(el))) k = t; else break }
           return k };
-        o.zona['g' + a] = { izq: mide(-1,0), der: mide(1,0), arr: mide(0,-1), aba: mide(0,1) };
+        const z = { izq: mide(-1,0), der: mide(1,0), arr: mide(0,-1), aba: mide(0,1) };
+        if (a < 3) o.zona['g' + a] = z;
+        const anc = z.izq + z.der + 1, alt = z.arr + z.aba + 1;
+        R.tot.anchoSuma = (R.tot.anchoSuma || 0) + anc;
+        R.tot.altoSuma  = (R.tot.altoSuma  || 0) + alt;
+        if (anc >= 40 && alt >= 38) R.tot.zonaEntera = (R.tot.zonaEntera || 0) + 1;
+        else if (anc >= 30 && alt >= 24) R.tot.zonaAmplia = (R.tot.zonaAmplia || 0) + 1;
+        else if (anc >= 20 || alt >= 20) R.tot.zonaMedia = (R.tot.zonaMedia || 0) + 1;
+        else R.tot.zonaMinima = (R.tot.zonaMinima || 0) + 1;
+        const k2 = anc + 'x' + alt;
+        (R.zonaHist || (R.zonaHist = {}))[k2] = ((R.zonaHist || {})[k2] || 0) + 1;
       }
     }
     if (o.esquinas.ok === o.nInfo) R.tot.zonaOK++; else R.tot.zonaChica++;
@@ -228,10 +292,12 @@ const pg = await ctx.newPage();
 const errs = [], cons = [];
 pg.on('pageerror', e => errs.push(String(e.message).slice(0, 180)));
 pg.on('console', m => { if (m.type() === 'error') cons.push(String(m.text()).slice(0, 180)) });
+await pg.addInitScript('window.__p24dia = ' + (DIA ? 'true' : 'false') + ';');
 await pg.goto('file://' + FILE);
 await pg.waitForTimeout(1700);
 let r; try { r = await pg.evaluate(CUERPO) } catch (e) { r = { ERR: String(e.message).slice(0, 900) } }
 r._errores = errs; r._consola = cons.slice(0, 20); r._ancho = ANCHO; r._motor = MOTOR;
 r._modo = TOQUE ? 'TACTIL (hasTouch)' : 'MOUSE'; r._file = FILE;
+r._tema = DIA ? 'DIA (light-mode)' : 'NOCHE';
 await ctx.close(); await nav.close();
 console.log(JSON.stringify(r));
