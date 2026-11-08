@@ -22153,6 +22153,18 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-fun" aria-selected="false" aria-controls="ref-sub-fun" tabindex="-1" onclick="refSubTab('fun',this)">📈 Función</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-valv" aria-selected="false" aria-controls="ref-sub-valv" tabindex="-1" onclick="refSubTab('valv',this)">🫀 Válvulas</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-ao" aria-selected="false" aria-controls="ref-sub-ao" tabindex="-1" onclick="refSubTab('ao',this)">🩸 Aorta</button>
+    <!-- ══ LAS TRES PESTAÑAS PRINCIPALES NUEVAS — PANT-25, commit 3 ═════════════════
+         Decisión del médico del 08/11/2026: Referencias se ordena como se ordena la app. Las
+         tres van ANTES de «Otros hallazgos», en el orden que la propia orden enumera.
+         ⚠️ NINGUNA FICHA SE REESCRIBE NI CAMBIA DE id: `refSubInit` las REUBICA leyendo
+            `REF_SUBTAB`, que sigue siendo el dueño único del reparto. Lo único que cambia es
+            en qué panel caen.
+         ⚠️ LAS TRES CLAVES VAN TAMBIÉN A `SUBTIT`, EN ESTE MISMO COMMIT: ese objeto literal
+            decide el rótulo de la sección en los resultados del buscador, y una pestaña sin su
+            clave sale con la clave cruda. Lo avisa el propio comentario de `calc`. -->
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-congenitas" aria-selected="false" aria-controls="ref-sub-congenitas" tabindex="-1" onclick="refSubTab('congenitas',this)">🧬 Cardiopatía congénita</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-cardiotox" aria-selected="false" aria-controls="ref-sub-cardiotox" tabindex="-1" onclick="refSubTab('cardiotox',this)">🧪 Cardiotoxicidad</button>
+    <button type="button" class="ref-subtab" role="tab" id="ref-subtab-hemo" aria-selected="false" aria-controls="ref-sub-hemo" tabindex="-1" onclick="refSubTab('hemo',this)">🩺 Hemodinámica</button>
     <button type="button" class="ref-subtab" role="tab" id="ref-subtab-otros" aria-selected="false" aria-controls="ref-sub-otros" tabindex="-1" onclick="refSubTab('otros',this)">🔎 Otros hallazgos</button>
   </div>
   <div id="ref-buscador-host"></div>
@@ -22161,6 +22173,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <div id="ref-sub-fun" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-fun"></div>
   <div id="ref-sub-valv" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-valv"></div>
   <div id="ref-sub-ao" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-ao"></div>
+  <div id="ref-sub-congenitas" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-congenitas"></div>
+  <div id="ref-sub-cardiotox" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-cardiotox"></div>
+  <div id="ref-sub-hemo" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-hemo"></div>
   <div id="ref-sub-otros" class="ref-subpanel" role="tabpanel" aria-labelledby="ref-subtab-otros"></div>
 
 
@@ -80349,10 +80364,27 @@ const REF_SUBTAB = Object.freeze({
      la leccion de `constriccion` en la tanda J: una ficha fuera de las seis subpestanas
      existe, se abre y el buscador la indexa, pero el medico que navegue por las solapas no la
      encuentra nunca. Va pegada a `pop` y antes de `cardiotox`, con la que comparte tema. */
-  otros: Object.freeze(['oai', 'burbujas', 'fop', 'coronarias', 'pericardio', 'constriccion',
-                        'pulmon', 'pop', 'tumores', 'embolig', 'cardiotox', 'miocard', 'congenitas', 'formulas'])
+  /* ══ PANT-25, commit 3 — TRES PESTANIAS PRINCIPALES NUEVAS ═══════════════════════
+     Decision del medico del 08/11/2026: Referencias se ordena como se ordena la app. Seis
+     entradas salen de `otros` y caen en tres pestanias propias. NINGUNA cambia de id y NINGUNA
+     cambia una letra de su contenido: lo unico que cambia es en que panel las pone `refSubInit`.
+     ⚠️ `coronarias` VA DENTRO DE `congenitas` y no suelta: la decision (1) la hace una
+        subpestania de la cardiopatia congenita, y en el vocabulario de esta pestania eso es una
+        entrada DENTRO de su panel.
+     ⚠️ `hemo` NACE CON DOS Y NO CON TRES. La orden le pide «lo que HOY exista de POP cirugia
+        cardiaca, constriccion y taponamiento», y el TAPONAMIENTO no tiene ficha propia: vive
+        dentro de `pericardio`, que se titula «Derrame Pericardico y Taponamiento». Moverla se
+        llevaria tambien el DERRAME, que la orden no nombra, y la separaria de `constriccion`,
+        que esta pegada a ella a proposito porque las dos describen el pericardio. Queda parado
+        y declarado en `docs/PENDIENTES.md` → P25-a. */
+  congenitas: Object.freeze(['congenitas', 'coronarias']),
+  cardiotox:  Object.freeze(['cardiotox']),
+  hemo:       Object.freeze(['pop', 'constriccion']),
+  otros: Object.freeze(['oai', 'burbujas', 'fop', 'pericardio',
+                        'pulmon', 'tumores', 'embolig', 'miocard', 'formulas'])
 });
-const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao', 'otros']);
+const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao',
+                                     'congenitas', 'cardiotox', 'hemo', 'otros']);
 /* ══ ROTULOS DE BLOQUE (tanda P, commit 4) ═══════════════════════════════════════════════════
    La subpestana AORTA son DOS bloques que hasta hoy vivian separados en la pestana: las
    DIMENSIONES —cortes por segmento y los tres nomogramas de los senos de Valsalva— y el ATEROMA
@@ -80367,7 +80399,11 @@ const REF_SUB_BLOQUES = Object.freeze({
      aorta. Los tres primeros son los hallazgos de la pestana Otros y del ETE que el CORTOS y la
      tanda M ya habian creado —orejuela, test de burbuja y anomalias coronarias—; los cuatro del
      medio son entidades propias; y las formulas van al final porque son transversales. */
-  otros: Object.freeze([{ antes: 'oai',      rot: 'Orejuela, shunts y coronarias' },
+  /* ⚠️ PANT-25: decia «Orejuela, shunts y coronarias» y `coronarias` SE FUE a la pestania de
+     cardiopatia congenita, asi que el rotulo nombraba un tema que ya no esta en su bloque. Es
+     una consecuencia forzada del movimiento, no una decision nueva, y queda declarada en
+     `docs/PENDIENTES.md` → P25-a. El bloque sigue teniendo `oai`, `burbujas` y `fop`. */
+  otros: Object.freeze([{ antes: 'oai',      rot: 'Orejuela y shunts' },
                         { antes: 'pericardio', rot: 'Otras entidades' },
                         { antes: 'formulas',   rot: 'Fórmulas' }])
 });
@@ -80644,8 +80680,13 @@ function _refIndiceArmar(forzar) {
   /* `calc` entra por prolijidad: hoy no indexa ninguna entrada —ver la nota de `REF_SUBTAB`—
      pero sin su rotulo, el dia que alguna tarjeta de Calculadoras gane un `toggleRef` el
      buscador la mostraria con la clave cruda en vez del nombre de la seccion. */
+  /* ⚠️ LAS TRES CLAVES DE PANT-25 ENTRAN ACA EN EL MISMO COMMIT QUE LA PESTANIA. Sin su
+     clave, `SUBTIT[sub] || sub` publica la CLAVE CRUDA en el resultado del buscador en vez del
+     nombre de la seccion, que es exactamente lo que el comentario de `calc` ya avisaba. */
   const SUBTIT = { calc: 'Calculadoras', dim: 'Dimensiones', fun: 'Funcion', valv: 'Valvulas',
-                   ao: 'Aorta', otros: 'Otros hallazgos' };
+                   ao: 'Aorta', congenitas: 'Cardiopatia congenita',
+                   cardiotox: 'Cardiotoxicidad', hemo: 'Hemodinamica',
+                   otros: 'Otros hallazgos' };
   const idx = [];
   /* Se recorren TODAS las entradas de cada panel y no solo las claves de `REF_SUBTAB`: las cinco
      nativas y las cinco protesicas viven DENTRO del cuerpo plegable de su agrupador, asi que con
