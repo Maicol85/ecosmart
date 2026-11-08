@@ -228,6 +228,47 @@ const CUERPO = `(async () => {
     }
   }
   R.den.papelChars = charsPapel;
+
+  /* ══ 5) LOS NUMEROS CON PUNTO DECIMAL EN TEXTO VISIBLE EN ESPANIOL (PANT-24, P24-c) ══
+     SOLO REPORTE. Se busca digito-punto-digito sobre el texto que el medico lee. Se descartan
+     las formas que NO son un decimal en espaniol: una version (4.4.1), una fecha, una hoja o un
+     folio con punto de miles, un identificador y una URL. El contexto de cada hallazgo se
+     publica para que se pueda clasificar a mano. */
+  const puntos = function (texto, donde) {
+    const t = norm(texto), out = [];
+    for (let i = 1; i + 1 < t.length; i++) {
+      if (t.charAt(i) !== '.') continue;
+      const a0 = t.charCodeAt(i - 1), b0 = t.charCodeAt(i + 1);
+      if (!(a0 >= 48 && a0 <= 57) || !(b0 >= 48 && b0 <= 57)) continue;
+      /* un tercer grupo de digitos con otro punto es una version o una IP, no un decimal */
+      const sig = t.charAt(i + 2), sig2 = t.charAt(i + 3);
+      if (sig === '.' || sig2 === '.') continue;
+      /* una barra inmediata es una fecha o una URL */
+      if (t.charAt(i - 2) === '/' || t.charAt(i + 3) === '/') continue;
+      out.push({ donde: donde, frag: t.slice(Math.max(0, i - 60), i + 62) });
+      if (out.length > 300) break;
+    }
+    return out;
+  };
+  R.puntoDom = puntos(dom, 'DOM');
+  R.puntoPapel = [];
+  R.puntoReg = [];
+  REGS.forEach(function (x) {
+    vuelca(x[1], x[0], 200000).forEach(function (pr) {
+      puntos(pr[1], pr[0]).forEach(function (h) { R.puntoReg.push(h) });
+    });
+  });
+  /* el papel se vuelve a medir sobre la escena completa, que es la que trae mas numeros */
+  sembrar({ va_morf:'Prótesis biológica', vmax_ao:'4.5', gmedio_ao:'45', itv_tsvi:'20', itv_ao:'100',
+            va_at:'50', tango_te:'100', peso:'75', talla:'175', im_grado:'3', fevi:'45' });
+  await esperar(360);
+  try { setEstiloInforme('estandar') } catch (x) {}
+  try { if (typeof generarInforme === 'function') generarInforme() } catch (x) {}
+  await esperar(140);
+  R.puntoPapel = puntos(String((document.getElementById('informe_texto')||{}).value || ''), 'informe')
+    .concat(puntos(String((document.getElementById('en_suma')||{}).value || ''), 'en_suma'));
+  R.den.puntoDom = R.puntoDom.length; R.den.puntoReg = R.puntoReg.length;
+  R.den.puntoPapel = R.puntoPapel.length;
   R.den.hConCP = hCon.length;
   return R;
 })()`;

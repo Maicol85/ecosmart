@@ -124067,6 +124067,473 @@ caso('TC-753', 'LIMPIEZA-1: el indice de CLAUDE.md nombra solo archivos que exis
   })();
 `);
 
+/* == TANDA PANT-24 == Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
+   al final del archivo y un caso escrito despues no se ejecuta.
+   TC-757 fija la TAVI normofuncionante, TC-758 el AT/ET en sus bordes con su separador decimal,
+   TC-759 la cita escGuchCiv y el corte del trombo protesico grande, y TC-760 la zona de toque del
+   circulo-i de la Evidencia.
+   == */
+caso('TC-757', 'PANT-24 commit 2: la TAVI SIN ningun dato que indique estenosis ni insuficiencia dice «normofuncionante» en el informe y «TAVI normofuncionante.» en el EN SUMA, y con CUALQUIER dato que lo indique vuelve a la frase de siempre', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  /* La linea de la valvula aortica del cuerpo. Se busca por su encabezado y no por indice: el
+     informe tiene un parrafo por sector y el orden cambia con lo que haya cargado. */
+  /* ⚠️ EL NARRATIVO ARRANCA CON «La», asi que un indexOf(…) === 0 sobre «valvula aortica» NO
+     encuentra su linea: la devuelve en 3. Se acepta el articulo. Sin esto, las condiciones del
+     narrativo medirian la cadena vacia, que es un denominador vacio disfrazado de rojo. */
+  const lineaAo = inf => (String(inf || '').split('\\n')
+    .filter(l => { const t = pl(l);
+      return t.indexOf('valvula aortica') === 0 || t.indexOf('la valvula aortica') === 0 ||
+             t.indexOf('vao ') === 0 })[0] || '');
+  const escena = async (campos, estilo) => {
+    __t.limpiar(); __t.set('nombre', 'P24'); __t.set('ci', '24242424');
+    Object.keys(campos).forEach(k => { try { __t.set(k, campos[k]) } catch (e) {} });
+    await esp(340);
+    try { setEstiloInforme(estilo || 'estandar') } catch (e) {}
+    await esp(50);
+    const r = __t.informe();
+    return { inf: r.inf, suma: r.suma, ao: lineaAo(r.inf) };
+  };
+
+  /* (A0 DENOM) la escena llega a la zona: con TAVI el veredicto protesico EXISTE y su nivel es
+     el que la decision gobierna. Sin esto un verde no distingue «dice normofuncionante» de «la
+     valvula aortica no entro en el informe». */
+  __t.limpiar(); __t.set('va_morf', 'TAVI'); await esp(320);
+  let P0 = null; try { P0 = eaProtVeredicto() } catch (e) {}
+  q('(A0 DENOM) con TAVI y sin datos el veredicto protesico existe, su via es TAVI y su nivel es «faltan»',
+    !!P0 && P0.via === 'TAVI' && P0.nivel === 'faltan',
+    P0 ? ('via=' + P0.via + ' nivel=' + P0.nivel) : 'eaProtVeredicto devolvio null');
+  q('(A0b DENOM) el emisor publica la marca y la frase con el parentesis de medidas',
+    (function(){ try { const N = eaProtNarrativa(P0);
+      return !!N && N.normoTavi === true && typeof N.normoFrase === 'string'; } catch (e) { return false } })(),
+    'normoTavi/normoFrase');
+
+  /* ── (B) LA FRASE EXACTA, EN LOS TRES ESTILOS ── */
+  const sin = {};
+  for (const st of ['conciso', 'estandar', 'narrativo']) sin[st] = await escena({ va_morf:'TAVI' }, st);
+  q('(B1) el NARRATIVO dice exactamente «La valvula aortica presenta una protesis transcateter tipo TAVI normofuncionante.»',
+    pl(sin.narrativo.ao) === 'la valvula aortica presenta una protesis transcateter tipo tavi normofuncionante.',
+    sin.narrativo.ao);
+  q('(B2) el ESTANDAR y el CONCISO usan la misma cola y la forma de morfologia que ya tenian',
+    pl(sin.estandar.ao) === 'valvula aortica con protesis transcateter tipo tavi normofuncionante.' &&
+    pl(sin.conciso.ao)  === 'vao con protesis transcateter tipo tavi normofuncionante.',
+    'estandar=«' + sin.estandar.ao + '» conciso=«' + sin.conciso.ao + '»');
+  q('(B3) la frase VIEJA ya no esta en ninguno de los tres estilos',
+    ['conciso','estandar','narrativo'].every(st => pl(sin[st].ao).indexOf('sin datos suficientes') === -1),
+    ['conciso','estandar','narrativo'].map(st => st + ':' + (pl(sin[st].ao).indexOf('sin datos suficientes') > -1)).join(' '));
+  q('(B4) el EN SUMA dice exactamente «TAVI normofuncionante.» en los tres estilos',
+    ['conciso','estandar','narrativo'].every(st => sin[st].suma.indexOf('TAVI normofuncionante.') > -1),
+    sin.estandar.suma.slice(0, 120));
+  q('(B5) y el EN SUMA no publica DOS renglones de esta valvula: el bloque de «protesis normofuncionante» del final se apaga solo',
+    sin.estandar.suma.split('normofuncionante').length - 1 === 1,
+    'apariciones=' + (sin.estandar.suma.split('normofuncionante').length - 1) + ' en «' + sin.estandar.suma.slice(0, 160) + '»');
+
+  /* ── (C) EL NUMERO MEDIDO NO DESAPARECE — regla fija de la casa ── */
+  const parc = await escena({ va_morf:'TAVI', vmax_ao:'2.0' });
+  q('(C1) con un dato NORMAL cargado sigue diciendo normofuncionante Y publica el numero medido',
+    pl(parc.ao).indexOf('tavi normofuncionante') > -1 && parc.ao.indexOf('Vmax 2 m/s') > -1,
+    parc.ao);
+
+  /* ── (D) LOS CUATRO ESTADOS QUE NO CAMBIAN ── */
+  const estParc = await escena({ va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45' });
+  q('(D1) CON UN DATO QUE INDICA ESTENOSIS la frase vieja vuelve, aunque el nivel siga siendo «faltan»: no alcanza con que falte un eje',
+    pl(estParc.ao).indexOf('sin datos suficientes') > -1 && pl(estParc.ao).indexOf('normofuncionante') === -1,
+    estParc.ao);
+  const estFull = await escena({ va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45', itv_tsvi:'20', itv_ao:'100' });
+  q('(D2) con los dos ejes y el DVI en estenosis significativa gradua como siempre',
+    pl(estFull.ao).indexOf('estenosis protesica significativa') > -1 && pl(estFull.ao).indexOf('normofuncionante') === -1,
+    estFull.ao);
+  const norFull = await escena({ va_morf:'TAVI', vmax_ao:'2.0', gmedio_ao:'8', itv_tsvi:'22', itv_ao:'50' });
+  q('(D3) con los dos ejes y el DVI NORMALES publica «sin criterios de estenosis protesica», que es la graduacion de siempre y NO la frase nueva',
+    pl(norFull.ao).indexOf('sin criterios de estenosis protesica') > -1 && pl(norFull.ao).indexOf('normofuncionante') === -1,
+    norFull.ao);
+  const ins = await escena({ va_morf:'TAVI', ia_grado:'3' });
+  q('(D4) con INSUFICIENCIA aortica graduada no se afirma normofuncion',
+    pl(ins.ao).indexOf('normofuncionante') === -1 && pl(ins.ao).indexOf('con insuficiencia') > -1,
+    ins.ao);
+
+  /* ── (E) LA TERCERA FUENTE DE INSUFICIENCIA: la RPV del modulo TAVI ── */
+  __t.limpiar(); __t.set('nombre', 'P24'); __t.set('ci', '24242424');
+  __t.chk('ete_tavi_incluir_chk', true);
+  ['va_morf','ete_tavi_pro_tipo','ete_tavi_gmedio','ete_tavi_jet_horas','ete_tavi_ext_circ']
+    .forEach((k, i) => { try { __t.set(k, ['TAVI','balon','12','3','20'][i]) } catch (e) {} });
+  try { if (typeof eteTaviSync === 'function') eteTaviSync() } catch (e) {}
+  await esp(360);
+  let rpv = null; try { rpv = eteTaviRPV() } catch (e) {}
+  try { setEstiloInforme('estandar') } catch (e) {}
+  const rR = __t.informe();
+  q('(E0 DENOM) la escena llega a la compuerta: el modulo TAVI gradua su regurgitacion paravalvular y NO es la nula',
+    !!rpv && !rpv.nula && !!rpv.sev,
+    rpv ? JSON.stringify(rpv).slice(0, 110) : 'eteTaviRPV devolvio null');
+  q('(E1) con regurgitacion PARAVALVULAR graduada no se afirma normofuncion: es la tercera fuente de insuficiencia, la que no pasa por ia_grado ni por el escalon',
+    pl(lineaAo(rR.inf)).indexOf('normofuncionante') === -1 &&
+    pl(lineaAo(rR.inf)).indexOf('sin datos suficientes') > -1 &&
+    rR.suma.indexOf('TAVI normofuncionante.') === -1,
+    'ao=«' + lineaAo(rR.inf) + '» suma=«' + rR.suma.slice(0, 150) + '»');
+  __t.chk('ete_tavi_incluir_chk', false);
+
+  /* ── (F) CONTROLES NEGATIVOS: las protesis QUIRURGICAS y la valvula NATIVA no se mueven ── */
+  const bio = await escena({ va_morf:'Prótesis biológica' });
+  const mec = await escena({ va_morf:'Prótesis mecánica' });
+  q('(F1) las dos protesis QUIRURGICAS sin datos siguen diciendo «sin datos suficientes» y nunca «normofuncionante»',
+    pl(bio.ao).indexOf('sin datos suficientes') > -1 && pl(bio.ao).indexOf('normofuncionante') === -1 &&
+    pl(mec.ao).indexOf('sin datos suficientes') > -1 && pl(mec.ao).indexOf('normofuncionante') === -1,
+    'bio=«' + bio.ao + '» mec=«' + mec.ao + '»');
+  const nat = await escena({ va_morf:'Trivalva normal' });
+  q('(F2) la valvula NATIVA sigue con su cascada de siempre y el veredicto protesico no existe',
+    pl(nat.ao).indexOf('trivalva normal') > -1 && pl(nat.ao).indexOf('normofuncionante') === -1 &&
+    (function(){ try { return eaProtVeredicto() === null } catch (e) { return false } })(),
+    nat.ao);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-758', 'PANT-24 commit 3: un AT/ET de 1 o mas es un error de carga — la fila dice «Revisar los valores», no hay linea amarilla, «Ver detalle» no lo menciona, el papel no lo publica y no vota; y con menos de 1 el decimal de pantalla lleva COMA', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  /* mismo motivo que en TC-757: el narrativo arranca con «La» */
+  const lineaAo = inf => (String(inf || '').split('\\n')
+    .filter(l => { const t = pl(l);
+      return t.indexOf('valvula aortica') === 0 || t.indexOf('la valvula aortica') === 0 })[0] || '');
+  const escena = async (at, et, morf) => {
+    __t.limpiar(); __t.set('nombre', 'P24'); __t.set('ci', '24242424');
+    __t.set('va_morf', morf || 'TAVI');
+    if (at !== null) __t.set('va_at', String(at));
+    if (et !== null) __t.set('tango_te', String(et));
+    await esp(340);
+    try { if (typeof valvProtSync === 'function') valvProtSync() } catch (e) {}
+    try { if (typeof eaAtPintar === 'function') eaAtPintar() } catch (e) {}
+    await esp(200);
+    try { setEstiloInforme('estandar') } catch (e) {}
+    const r = __t.informe();
+    let P = null; try { P = eaProtVeredicto() } catch (e) {}
+    let av = []; try { av = _eaProtAvisos(P) || [] } catch (e) {}
+    let sal = []; try { sal = (eaProtNarrativa(P) || {}).salvedades || [] } catch (e) {}
+    return { fila: __t.txt('ea-det-atet'), filaAt: __t.txt('ea-det-at'),
+             P: P, atet: P ? P.atet : 'SIN P', niv: (P && P.niveles) ? P.niveles.atet : 'SIN P',
+             avisos: av.join(' ~ '), salved: sal.join(' ~ '),
+             inf: r.inf, suma: r.suma, ao: lineaAo(r.inf),
+             val: (function(){ try { return _eaAtEtVal() } catch (e) { return 'ERR' } })(),
+             rev: (function(){ try { return _eaAtEtRevisar() } catch (e) { return 'ERR' } })() };
+  };
+
+  /* (A0 DENOM) el dueno del POR QUE existe, y discrimina en los dos sentidos */
+  q('(A0 DENOM) el dueno del «por que» existe y distingue «falta un dato» de «es imposible»',
+    typeof _eaAtEtRevisar === 'function' && typeof _eaAtEtVal === 'function',
+    'revisar=' + (typeof _eaAtEtRevisar) + ' val=' + (typeof _eaAtEtVal));
+
+  const e167 = await escena(100, 60);
+  q('(A1 DENOM) la escena llega a la zona: la fila del AT/ET existe y el AT se clasifico, o sea el bloque protesico se pinto',
+    e167.fila !== null && String(e167.filaAt || '').indexOf('100 ms') > -1,
+    'fila=«' + e167.fila + '» filaAt=«' + e167.filaAt + '»');
+  q('(B1) con AT 100 y ET 60 la fila dice «Revisar los valores», en una linea',
+    String(e167.fila || '').indexOf('Revisar los valores') > -1,
+    e167.fila);
+  q('(B2) el dueno del «por que» dice que es imposible y el del valor devuelve null',
+    e167.rev === true && e167.val === null,
+    'revisar=' + e167.rev + ' val=' + e167.val);
+  q('(B3) el cociente no existe para el veredicto: ni valor ni nivel, asi que no participa en ningun aviso',
+    e167.atet === null && e167.niv === null,
+    'atet=' + e167.atet + ' nivel=' + e167.niv);
+  q('(B4) la linea amarilla NO menciona el cociente -y la mitad del AT, que SI sale, no se toco-',
+    e167.avisos.indexOf('AT/ET') === -1 && e167.avisos.indexOf('El AT (100 ms)') > -1,
+    e167.avisos.slice(0, 200));
+  q('(B5) «Ver detalle» no menciona el cociente',
+    e167.salved.indexOf('cociente AT/tiempo eyectivo') === -1,
+    e167.salved.slice(0, 200));
+  q('(B6) el PAPEL no lo publica: ni el informe ni el EN SUMA traen «AT/TE», y el AT medido SIGUE estando',
+    e167.inf.indexOf('AT/TE') === -1 && e167.suma.indexOf('AT/TE') === -1 && e167.ao.indexOf('AT 100 ms') > -1,
+    e167.ao);
+
+  /* ── (C) EL 1 EXACTO ENTRA ── */
+  const e1 = await escena(60, 60);
+  q('(C1) el 1 EXACTO tambien es un error de carga: la fila lo dice y el papel no publica el cociente',
+    String(e1.fila || '').indexOf('Revisar los valores') > -1 && e1.atet === null &&
+    e1.inf.indexOf('AT/TE') === -1,
+    'fila=«' + e1.fila + '» atet=' + e1.atet + ' ao=«' + e1.ao + '»');
+  q('(C1b) y el AT medido no desaparece del papel',
+    e1.ao.indexOf('AT 60 ms') > -1, e1.ao);
+
+  /* ── (D) EL BORDE DE ABAJO: 0,99 sigue igual que siempre, con COMA en pantalla ── */
+  const e099 = await escena(99, 100);
+  q('(D1 CONTROL NEGATIVO) con 0,99 la fila CLASIFICA y no dice «Revisar los valores»',
+    String(e099.fila || '').indexOf('Revisar los valores') === -1 &&
+    String(e099.fila || '').indexOf('sugiere estenosis significativa') > -1 &&
+    e099.rev === false && e099.atet !== null,
+    'fila=«' + e099.fila + '» revisar=' + e099.rev + ' atet=' + e099.atet);
+  q('(D2) el decimal de la FILA lleva COMA y no punto',
+    String(e099.fila || '').indexOf('0,99') > -1 && String(e099.fila || '').indexOf('0.99') === -1,
+    e099.fila);
+  q('(D3) el decimal del AVISO lleva COMA y no punto',
+    e099.avisos.indexOf('(0,99)') > -1 && e099.avisos.indexOf('(0.99)') === -1,
+    e099.avisos.slice(-160));
+  q('(D4) el decimal de «Ver detalle» lleva COMA y no punto',
+    e099.salved.indexOf('es de 0,99') > -1 && e099.salved.indexOf('es de 0.99') === -1,
+    e099.salved.slice(-180));
+  q('(D5) y el PAPEL sigue publicando el cociente con su punto, que es lo que esta tanda NO toca',
+    e099.inf.indexOf('AT/TE 0.99') > -1,
+    e099.ao);
+
+  /* ── (E) LOS DOS CORTES, QUE NO SE MOVIERON ── */
+  const e032 = await escena(32, 100), e037 = await escena(37, 100);
+  q('(E1) los dos cortes del cociente siguen donde estaban: 0,32 y 0,37 caen en «posible»',
+    String(e032.fila || '').indexOf('posible estenosis') > -1 &&
+    String(e037.fila || '').indexOf('posible estenosis') > -1 &&
+    EA_PROT_CRIT.atet_normal_max === 0.32 && EA_PROT_CRIT.atet_signif_min === 0.37,
+    '0,32=«' + e032.fila + '» 0,37=«' + e037.fila + '»');
+
+  /* ── (F) FALTA UN DATO: la raya de siempre, no el texto nuevo ── */
+  const eSinEt = await escena(100, null);
+  q('(F1 CONTROL NEGATIVO) sin el tiempo de eyeccion la fila muestra la raya y NO «Revisar los valores»: falta un dato no es un error de carga',
+    String(eSinEt.fila || '').indexOf('Revisar los valores') === -1 && eSinEt.rev === false,
+    'fila=«' + eSinEt.fila + '» revisar=' + eSinEt.rev);
+
+  /* ── (G) LA PROTESIS QUIRURGICA SE COMPORTA IGUAL: no es un arreglo de la TAVI ── */
+  const eSavr = await escena(100, 60, 'Prótesis biológica');
+  q('(G1) una protesis QUIRURGICA con los mismos valores tambien dice «Revisar los valores» y tampoco publica el cociente',
+    String(eSavr.fila || '').indexOf('Revisar los valores') > -1 && eSavr.inf.indexOf('AT/TE') === -1,
+    'fila=«' + eSavr.fila + '» ao=«' + eSavr.ao + '»');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-759', 'PANT-24 commit 4: la cita escGuchCiv declara el criterio como propio de la aplicacion y no expone lo pendiente, y el corte del trombo protesico grande dice «10 mm o mas» con su cita en la Figura 20, sin comparar las dos partes del documento', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+
+  /* ── (A) LA ENTRADA DE BIBLIOGRAFIA ── */
+  const E = (typeof IND_REFS !== 'undefined')
+    ? IND_REFS.filter(function (x) { return x && x.k === 'escGuchCiv' })[0] : null;
+  q('(A0 DENOM) la entrada existe, es UNA sola y tiene texto para medir',
+    !!E && typeof E.full === 'string' && E.full.length > 300 &&
+    IND_REFS.filter(function (x) { return x && x.k === 'escGuchCiv' }).length === 1,
+    E ? ('largo=' + E.full.length) : 'no existe la entrada escGuchCiv');
+  if (!E) return { extra: F };
+  const f = E.full, fl = pl(f);
+  q('(A1) ya no dice que el criterio DIVERGE de la tabla ni que la divergencia esta SIN RESOLVER',
+    fl.indexOf('diverge') === -1 && fl.indexOf('sin resolver') === -1 && fl.indexOf('divergencia') === -1,
+    'diverge=' + (fl.indexOf('diverge') > -1) + ' sinResolver=' + (fl.indexOf('sin resolver') > -1));
+  q('(A2) ya no expone una verificacion PENDIENTE',
+    fl.indexOf('verificacion clinica pendiente') === -1 && fl.indexOf('hasta resolverla') === -1,
+    f.slice(-220));
+  q('(A3) ya no escribe lo que la guia NO dice',
+    fl.indexOf('no figura en el documento') === -1 && fl.indexOf('no se encontro') === -1,
+    f.slice(-220));
+  q('(A4) y EN SU LUGAR declara el criterio como propio de la aplicacion, con el molde de PANT-22',
+    fl.indexOf('son un criterio propio de la aplicacion') > -1,
+    f.slice(f.length > 420 ? f.length - 420 : 0));
+  q('(A5) NI UN NUMERO, UNA CLASE, UN FOLIO NI LA PUBLICACION SE PERDIERON',
+    f.indexOf('Clase I · Nivel C') > -1 && f.indexOf('> 1,5') > -1 &&
+    f.indexOf('Clase IIa y IIb') > -1 && f.indexOf('32 mm/m') > -1 &&
+    f.indexOf('2021;42(6):563-645') > -1 && f.indexOf('ESC 2020') > -1,
+    'claseI=' + (f.indexOf('Clase I · Nivel C') > -1) + ' qpqs=' + (f.indexOf('> 1,5') > -1) +
+    ' IIaIIb=' + (f.indexOf('Clase IIa y IIb') > -1) + ' ddvi=' + (f.indexOf('32 mm/m') > -1) +
+    ' pub=' + (f.indexOf('2021;42(6):563-645') > -1));
+
+  /* ── (B) EL CORTE DE 10 MM, en los TRES items donde el medico lo ve ── */
+  const sitios = [];
+  const rec = function (o, ruta, prof) {
+    if (prof > 4 || o == null) return;
+    if (typeof o === 'string') { if (o.indexOf('10 mm') > -1) sitios.push([ruta, o]); return }
+    if (typeof o !== 'object') return;
+    if (Array.isArray(o)) { o.forEach(function (x, i) { rec(x, ruta + '[' + i + ']', prof + 1) }); return }
+    Object.keys(o).forEach(function (k) { rec(o[k], ruta + '.' + k, prof + 1) });
+  };
+  [['PROTA_PREG', typeof PROTA_PREG !== 'undefined' ? PROTA_PREG : null],
+   ['PROTT_PREG', typeof PROTT_PREG !== 'undefined' ? PROTT_PREG : null],
+   ['PROTP_PREG', typeof PROTP_PREG !== 'undefined' ? PROTP_PREG : null],
+   ['PROTM_REC_2025', typeof PROTM_REC_2025 !== 'undefined' ? PROTM_REC_2025 : null]]
+    .forEach(function (x) { if (x[1]) rec(x[1], x[0], 0) });
+  q('(B0 DENOM) el corte se encuentra, y en el numero de cadenas que el inventario midio: SIETE en los tres registros',
+    sitios.length === 7,
+    'cadenas=' + sitios.length + ' -> ' + sitios.map(function (s) { return s[0] }).join(', '));
+  q('(B1) NINGUNA dice ya «mas de 10 mm» ni «mayor de 10 mm»',
+    sitios.every(function (s) { return pl(s[1]).indexOf('mas de 10 mm') === -1 && pl(s[1]).indexOf('mayor de 10 mm') === -1 }),
+    sitios.filter(function (s) { return pl(s[1]).indexOf('mas de 10 mm') > -1 || pl(s[1]).indexOf('mayor de 10 mm') > -1 })
+      .map(function (s) { return s[0] }).join(', ') || 'ninguna');
+  q('(B2) las SIETE dicen «10 mm o mas»',
+    sitios.filter(function (s) { return s[1].indexOf('10 mm o más') > -1 }).length === 7,
+    'con el operador nuevo=' + sitios.filter(function (s) { return s[1].indexOf('10 mm o más') > -1 }).length);
+  q('(B3) NINGUNA compara las dos partes del documento',
+    sitios.every(function (s) { return s[1].indexOf('la Tabla 17 imprime') === -1 && pl(s[1]).indexOf('usa el de la tabla') === -1 }),
+    sitios.filter(function (s) { return s[1].indexOf('la Tabla 17 imprime') > -1 }).map(function (s) { return s[0] }).join(', ') || 'ninguna');
+  q('(B4) la cita del CORTE es la Figura 20 con su hoja y su folio, y la Tabla 17 sigue citada para la RECOMENDACION con los suyos',
+    sitios.filter(function (s) { return s[1].indexOf('Figura 20 (hoja 65, folio 4699)') > -1 }).length >= 2 &&
+    sitios.filter(function (s) { return s[1].indexOf('hoja 66, folio 4700') > -1 }).length >= 2,
+    'figura20=' + sitios.filter(function (s) { return s[1].indexOf('Figura 20 (hoja 65, folio 4699)') > -1 }).length +
+    ' tabla17=' + sitios.filter(function (s) { return s[1].indexOf('hoja 66, folio 4700') > -1 }).length);
+  q('(B5) la clase y el nivel de la recomendacion no se movieron',
+    sitios.filter(function (s) { return s[1].indexOf('Clase IIa · Nivel C') > -1 }).length >= 2,
+    'claseNivel=' + sitios.filter(function (s) { return s[1].indexOf('Clase IIa · Nivel C') > -1 }).length);
+  q('(B6 CONTROL NEGATIVO) la protesis PULMONAR no tiene este corte, asi que no hay una cuarta seccion que mover',
+    (typeof PROTP_PREG === 'undefined') ||
+    sitios.filter(function (s) { return s[0].indexOf('PROTP_PREG') === 0 }).length === 0,
+    'pulmonar=' + sitios.filter(function (s) { return s[0].indexOf('PROTP_PREG') === 0 }).length);
+
+  /* ── (C) EL NOMBRE DE LA GUIA AMERICANA DE CONGENITAS NO SE TOCO ── */
+  const todo = Array.prototype.slice.call(document.querySelectorAll('body *'))
+    .length > 0 ? document.body.innerHTML : '';
+  q('(C1) el nombre de la guia americana de congenitas sigue siendo «ACC/AHA 2025» y no hay ninguna «ACC/AHA 2026»',
+    todo.indexOf('ACC/AHA 2025') > -1 && todo.indexOf('ACC/AHA 2026') === -1,
+    '2025=' + (todo.indexOf('ACC/AHA 2025') > -1) + ' 2026=' + (todo.indexOf('ACC/AHA 2026') > -1));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-760', 'PANT-24 commit 5: el circulo-i de la Evidencia gana una zona de toque de 44 px de ancho en pantallas tactiles, acotada a 42 de alto por el vecino de la fila de abajo, sin cambiar como se ve y sin cambiar NADA con el mouse', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ⚠️ ESTE CASO NO EMULA EL DEDO, Y LO DICE: el runner corre con un puntero fino, asi que la
+     media query no empareja y la zona no se dibuja. Lo que mide es (1) que la REGLA este, con
+     sus valores exactos, dentro de un @media de puntero grueso, y (2) que con el mouse NO
+     aplique, que es la mitad que garantiza que no se movio una sola fila. La zona REAL, medida
+     con emulacion tactil y elementFromPoint en las cuatro esquinas de los 473 globos, la mide
+     scripts/_probe_pant24info.mjs. */
+
+  /* ── (A) LA REGLA, BUSCADA EN LA HOJA DE ESTILOS ── */
+  let media = null, reglaAfter = null, reglaSummary = null, reglaBtn = null, nMedias = 0;
+  for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+    let reglas = null; try { reglas = hoja.cssRules } catch (e) { continue }
+    if (!reglas) continue;
+    for (const r of Array.prototype.slice.call(reglas)) {
+      if (!r || r.type !== 4) continue;                       // CSSMediaRule
+      const cond = String(r.conditionText || '');
+      if (cond.indexOf('pointer') === -1 || cond.indexOf('coarse') === -1) continue;
+      nMedias++;
+      for (const r2 of Array.prototype.slice.call(r.cssRules || [])) {
+        const sel = String((r2 && r2.selectorText) || '');
+        /* la del BOTON de respuesta, que es la que le hace ganar el toque donde se superponen */
+        if (sel.indexOf('.ind-ctrl-btn') > -1 && sel.indexOf('#indic-card') > -1) { reglaBtn = r2 }
+        if (sel.indexOf('data-ind-info') === -1) continue;
+        if (sel.indexOf('::after') > -1 || sel.indexOf(':after') > -1) { reglaAfter = r2; media = cond }
+        else if (sel.indexOf('summary') > -1) { reglaSummary = r2 }
+      }
+    }
+  }
+  q('(A0 DENOM) la hoja de estilos se pudo leer y hay al menos un @media de puntero grueso',
+    nMedias > 0, 'medias de puntero grueso=' + nMedias);
+  q('(A1) la regla de la zona existe, y vive DENTRO de un @media de puntero grueso',
+    !!reglaAfter && !!media,
+    'media=«' + media + '» selector=«' + (reglaAfter ? reglaAfter.selectorText : 'NO EXISTE') + '»');
+  if (!reglaAfter) return { extra: F };
+  const E = reglaAfter.style;
+  q('(A2) es un pseudo-elemento ABSOLUTO con contenido, que es lo que no mueve la maqueta',
+    E.getPropertyValue('position') === 'absolute' && E.getPropertyValue('content') !== '',
+    'position=' + E.getPropertyValue('position') + ' content=' + E.getPropertyValue('content'));
+  q('(A3) los CUATRO insets dan 44 de ancho y 42 de alto sobre un glifo de 11 x 14 px: 11+16,5+16,5=44 y 14+14+14=42',
+    E.getPropertyValue('left') === '-16.5px' && E.getPropertyValue('right') === '-16.5px' &&
+    E.getPropertyValue('top') === '-14px' && E.getPropertyValue('bottom') === '-14px',
+    'left=' + E.getPropertyValue('left') + ' right=' + E.getPropertyValue('right') +
+    ' top=' + E.getPropertyValue('top') + ' bottom=' + E.getPropertyValue('bottom'));
+  q('(A4) y NO declara ancho ni alto: la caja sale de los insets, que es lo que la hace independiente de como se resuelva un porcentaje',
+    E.getPropertyValue('width') === '' && E.getPropertyValue('height') === '',
+    'width=«' + E.getPropertyValue('width') + '» height=«' + E.getPropertyValue('height') + '»');
+  q('(A5) el summary es el bloque contenedor y pinta por encima de la celda de la fila de abajo, y por DEBAJO del cajon del globo, que lleva 3',
+    !!reglaSummary && reglaSummary.style.getPropertyValue('position') === 'relative' &&
+    reglaSummary.style.getPropertyValue('z-index') === '1',
+    reglaSummary ? ('position=' + reglaSummary.style.getPropertyValue('position') +
+      ' z-index=' + reglaSummary.style.getPropertyValue('z-index')) : 'no existe la regla del summary');
+
+  /* ⚠️ EL APILADO DE LA ZONA ESTA ORDENADO EN TRES NIVELES, Y LOS TRES SE MIDEN. El ⓘ en 1
+     -para ganarle a la celda de la fila de abajo, que esta posicionada-; el BOTON de respuesta
+     en 2 -para que donde se superponen gane el CONTROL, que es la direccion segura: a 390 px el
+     panel mide 366, la botonera se envuelve y el rectangulo del ⓘ pisa el de un boton-; y el
+     cajon del globo en 3, que ya estaba. Sin el 2, medido a 390 px, el ⓘ le robaba el toque al
+     boton en 302 de los 473. */
+  q('(A6) el boton de respuesta pinta POR ENCIMA de la zona del ⓘ, asi que el control gana donde se superponen',
+    !!reglaBtn && reglaBtn.style.getPropertyValue('z-index') === '2',
+    reglaBtn ? ('selector=«' + reglaBtn.selectorText + '» z-index=' + reglaBtn.style.getPropertyValue('z-index'))
+             : 'no existe la regla del boton dentro del @media de puntero grueso');
+  q('(A7) y los tres niveles estan en orden: el ⓘ por debajo del boton, y el boton por debajo del cajon, que lleva 3',
+    !!reglaSummary && !!reglaBtn &&
+    parseInt(reglaSummary.style.getPropertyValue('z-index'), 10) <
+      parseInt(reglaBtn.style.getPropertyValue('z-index'), 10) &&
+    parseInt(reglaBtn.style.getPropertyValue('z-index'), 10) < 3,
+    'info=' + (reglaSummary ? reglaSummary.style.getPropertyValue('z-index') : '?') +
+    ' boton=' + (reglaBtn ? reglaBtn.style.getPropertyValue('z-index') : '?') + ' cajon=3');
+
+  /* ── (B) CON EL MOUSE NO CAMBIA NADA — la mitad que protege la maqueta ── */
+  q('(B0 DENOM) el runner corre con un puntero FINO, asi que la media query NO empareja',
+    matchMedia('(pointer: coarse)').matches === false,
+    'coarse=' + matchMedia('(pointer: coarse)').matches + ' fine=' + matchMedia('(pointer: fine)').matches);
+
+  /* el panel abierto por su boton, que es el gesto real: sin eso los globos no tienen geometria */
+  __t.limpiar(); __t.set('nombre', 'P24'); __t.set('ci', '24242424'); __t.set('vmax_ao', '4.5');
+  await esp(340);
+  /* ⚠️ EL PANEL SE ABRE POR SU BOTON, PERO SOLO SI ESTA CERRADO: el boton es un TOGGLE, asi que
+     un caso anterior que lo dejara abierto haria que este lo CIERRE y la medicion saliera sobre
+     cero globos — que se lee igual que «la regla no esta». */
+  const _ov = document.getElementById('indic-overlay');
+  if (!_ov || getComputedStyle(_ov).display === 'none') {
+    const b = document.getElementById('indic-btn'); if (b) b.click();
+  } else { try { indicRender() } catch (e) {} }
+  await esp(420);
+  const globos = Array.prototype.slice.call(document.querySelectorAll('#indic-cuerpo details[data-ind-info] > summary'));
+  q('(B1 DENOM) hay globos con geometria para medir: sin abrir el panel por su boton esto da cero y un verde no prueba nada',
+    globos.length > 0 && globos.filter(function (s) { const r = s.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 }).length > 0,
+    'globos=' + globos.length);
+  if (globos.length) {
+    const vis = globos.filter(function (s) { const r = s.getBoundingClientRect(); return r.width > 0 });
+    const dims = {}; vis.forEach(function (s) { const r = s.getBoundingClientRect();
+      const k = Math.round(r.width * 10) / 10 + 'x' + Math.round(r.height * 10) / 10;
+      dims[k] = (dims[k] || 0) + 1 });
+    q('(B2) EL GLIFO SE VE IGUAL: 11 x 14 px y font-size 11, en todos los que tienen geometria',
+      Object.keys(dims).length === 1 && Object.keys(dims)[0] === '11x14' &&
+      vis.every(function (s) { return Math.round(parseFloat(getComputedStyle(s).fontSize)) === 11 }),
+      JSON.stringify(dims));
+    const ps = getComputedStyle(vis[0], '::after').getPropertyValue('content');
+    q('(B3) con el mouse el pseudo-elemento NO se dibuja, asi que el blanco de clic y la maqueta son los de antes',
+      ps === 'none' || ps === 'normal' || ps === '',
+      'content del ::after con el mouse=«' + ps + '»');
+    q('(B4) y el cajon del globo sigue abriendo y cerrando con el MISMO gesto',
+      (function () { const d = vis[0].parentElement;
+        const antes = d.open; vis[0].click();
+        const abierto = d.open; vis[0].click();
+        const cerrado = d.open;
+        return antes === false && abierto === true && cerrado === false })(),
+      'abre y cierra con el mismo globo');
+  }
+
+  /* ── (C) CONTROL NEGATIVO: los circulo-i de FUERA del panel no entran en esta regla ── */
+  q('(C1) el selector esta acotado a #indic-card, asi que no alcanza a ningun .vinfo-btn de fuera del panel, que tienen su propia regla',
+    String(reglaAfter.selectorText).indexOf('#indic-card') === 0 &&
+    String(reglaAfter.selectorText).indexOf('vinfo-btn') === -1,
+    reglaAfter.selectorText);
+  q('(C2) y los de fuera siguen teniendo SU regla, la del piso de 44 por min-width y min-height',
+    (function () {
+      for (const hoja of Array.prototype.slice.call(document.styleSheets)) {
+        let rs = null; try { rs = hoja.cssRules } catch (e) { continue }
+        for (const r of Array.prototype.slice.call(rs || [])) {
+          if (!r || r.type !== 4) continue;
+          if (String(r.conditionText || '').indexOf('coarse') === -1) continue;
+          for (const r2 of Array.prototype.slice.call(r.cssRules || [])) {
+            if (String((r2 && r2.selectorText) || '').indexOf('.vinfo-btn') > -1 &&
+                r2.style.getPropertyValue('min-width') === '44px' &&
+                r2.style.getPropertyValue('min-height') === '44px') return true;
+          }
+        }
+      }
+      return false })(),
+    'la regla de .vinfo-btn con el piso de 44');
+  try { const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none' } catch (e) {}
+  return { extra: F };
+  })();
+`);
+
 /* == TANDA PANT-23 == Los casos nuevos van ANTES del bloque que consume CASOS: ese bucle no esta
    al final del archivo y un caso agregado despues de el NO SE EJECUTA.
    ⚠️ NI UN ACENTO GRAVE NI UNA EXPRESION REGULAR EN EL CUERPO, y las dos cosas estan pagadas por
