@@ -95,7 +95,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una TARJETA ⓘ de AD/VCI, del VD o de la AORTA, el NOMOGRAMA de los senos de Valsalva, o sus entradas de Referencias** | `docs/mapa/evidencia-derecho-aorta.md` |
 | **Tocar el cociente TAPSE/PSAP o el color del aviso del Tei** (el DIÁMETRO DE LA ARTERIA PULMONAR se mudó al VD en el G3) | `docs/mapa/tapse-psap-ap.md` |
 | **Tocar la RELACIÓN VD/VI**: el campo numérico, el selector de tramo, las cuatro reglas que los sincronizan, la función dueña o cualquiera de sus CUATRO lectores | `docs/mapa/vd-vi-selector.md` |
-| **Tocar la pestaña REFERENCIAS**: las cinco subpestañas y su reparto, el buscador, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
+| **Tocar la pestaña REFERENCIAS**: las NUEVE pestañas principales y su reparto, el buscador con su rótulo de sección, el botón «Ver referencia» de las tarjetas ⓘ o la TABLA DE CIRUGÍA AÓRTICA | `docs/mapa/referencias-subpestanas.md` |
 | **Tocar un CUESTIONARIO de Evidencia de congénitas** —el ductus, la coartación, la Fallot reparada del VD, la estenosis pulmonar, la conclusión de la bicúspide, la miocardiopatía hipertrófica obstructiva o la VENTANA AORTOPULMONAR—, **o el COLOR AL TOCAR una estructura del corazón maestro** | `docs/mapa/pant17-evidencia-congenitas.md` |
 | **Tocar la EVIDENCIA DE PRÓTESIS —aórtica, mitral, tricúspide o pulmonar—, el ORDEN de una sección de prótesis o el BLOQUE DE CAUSAS del gradiente alto**: `ordenProt`, `_indCausas`, qué guía rige cada válvula, qué causa se marca sola y por qué la tricúspide y la pulmonar no llevan bloque | `docs/mapa/pant21-evidencia-protesis.md` |
 | **Tocar el INTERRUPTOR de una sección de Evidencia de un SECTOR AVANZADO** —el ayudante `_indSectorIncluido`, la propiedad `av`, las trece secciones y su clave, por qué el panel no necesita repintado— **o un TEXTO de la Evidencia o de Referencias que comparaba dos fuentes** | `docs/mapa/pant22-evidencia-sectores.md` |
@@ -250,8 +250,17 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,29 MB / 168.950 líneas**, medido con `wc -c` y `wc -l` el 2026-11-08 al cierre de la
-  tanda **PANT-24**, sobre el árbol ya sellado: sello **`v20261107-2204`**, md5 **`b8481a9b`**.
+  sin frameworks. Hoy **12,32 MB / 169.015 líneas**, medido con `wc -c` y `wc -l` el 2026-11-08 al cierre de la
+  tanda **PANT-25**, sobre el árbol ya sellado: sello **`v20261108-0123`**, md5 **`f2587ad8`**.
+  El diff de PANT-25 son **75 líneas agregadas y 10 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `bc62db2`, de las que **61** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
+  guardados nuevos, cero columnas de Excel (457) y ningún id cambiado**, contado sobre el diff.
+  ⚠️ **POR VIGESIMOSEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show bc62db2:index.html` da **168.950** líneas,
+  **12.288.401** bytes y el md5 **`b8481a9b`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,29 MB / 168.950 al cierre de la tanda **PANT-24**, sello **`v20261107-2204`**, md5 **`b8481a9b`**.)
   El diff de PANT-24 son **263 líneas agregadas y 30 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `a40073f`, de las que **64** no son comentario, con **UN**
   `innerHTML` nuevo —`cel.innerHTML = badge('gray', 'Revisar los valores')`, que recibe un
@@ -891,6 +900,26 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-25 (2026-11-08) — Referencias se ordena como la app, y masas y fuentes
+embolígenas ganan lo que les faltaba.** SEIS commits. Sello **`v20261108-0123`**, md5
+**`f2587ad8`**. La pestaña Referencias pasa de **seis a NUEVE** pestañas principales:
+**Cardiopatía congénita** —con Anomalías coronarias adentro—, **Cardiotoxicidad** y
+**Hemodinámica**, las tres **antes de «Otros hallazgos»**. **Se mueve, no se reescribe**, y está
+medido: de las **40** entradas, **cero** cambian de texto, de título o de conteo de hijas, y sólo
+**cinco** cambian de panel; **ningún id cambia**. `SUBTIT` era el único enlace que se rompía solo
+y entra en el mismo commit. Las **50** claves de «Ver referencia» resuelven en los dos árboles, y
+el buscador da **26 términos idénticos y 10 que sólo cambian el rótulo de sección**, sobre 36.
+La ficha de **masas** pasa de **14 filas a 63** con los cinco bloques de la decisión (5), y la de
+**fuentes embolígenas** de **18 a 31** con las sensibilidades y los predictores de embolia; cada
+cifra se leyó **en imagen**, con las tres reglas de folio comprobadas en el pie o la cabecera, y
+la tabla de control está en `docs/CONTROL_MASAS_P25.md`. **La fila sin fuente de la OMS sale** y
+**la cláusula que exponía lo pendiente también**, por la regla del 08/11. **El papel es idéntico a
+HEAD**: 121 escenas, 148.572 claves y 55.297 celdas, cero diferencias. Lo cubren **TC-761** a
+**TC-764**, con **TC-502**, **TC-509**, **TC-531**, **TC-534** y **TC-679** adaptados. ⚠️ **La
+premisa central de la orden no se reprodujo**: las dos fichas **ya existían** desde PANT-11. Lo
+declarado, en **P25-a**, **P25-b** y **P25-c**; el inventario, en
+`docs/INVENTARIO_REFERENCIAS_P25.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT25.md`.
 
 **La tanda PANT-24 (2026-11-08) — cierre de textos de prótesis y de la Evidencia, y el tamaño
 táctil del ⓘ.** SIETE commits. Sello **`v20261107-2204`**, md5 **`b8481a9b`**. La **TAVI sin un solo dato que indique

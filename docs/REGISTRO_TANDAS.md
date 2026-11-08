@@ -2145,3 +2145,60 @@ lineas, **12.268.984** bytes y **`224fd6ae`**, los tres identicos a lo que decia
   `docs/GUIA_PRUEBA_PANT24.md` (la guia manual en ocho pasos), `docs/PENDIENTES.md` → **P24-a**,
   **P24-b** y **P24-c**, y `docs/archivo/PENDIENTES_CERRADOS.md` → **P18-b** y **P18-d**,
   cerrados.
+
+## PANT-25 — Referencias se ordena como la app, y masas y fuentes embolígenas ganan lo que les faltaba (2026-11-08)
+
+**Commits**: el inventario con las premisas y la base de los casos; la lectura de las fuentes en
+imagen; la estructura nueva de pestañas; los cinco bloques de masas; las sensibilidades y los
+predictores de embolia; y la cobertura con la documentación. Al empezar, `origin/main` = `HEAD` =
+**`bc62db2`**, el cierre de PANT-24, ya publicado, con `index.html` en md5 `b8481a9b`, **168.950**
+líneas, sello `v20261107-2204`, y el pendrive `DISK_IMG` montado. Sello nuevo
+**`v20261108-0123`**, md5 **`f2587ad8`**, **169.015** líneas.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+⚠️ **POR VIGESIMOSEGUNDA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
+verificó de las dos formas que esta casa manda: el sello del pie coincidía con el de `CLAUDE.md`,
+y `git show bc62db2:index.html` da **168.950** líneas, **12.288.401** bytes y **`b8481a9b`**.
+
+- **⚠️ LA PREMISA CENTRAL DE LA ORDEN NO SE REPRODUJO (commit 1).** El CONTEXTO afirma que las
+  masas y las fuentes embolígenas **no tienen entrada en Referencias**, y **las dos existen desde
+  PANT-11** —`ref-tumores` y `ref-embolig`, ya adyacentes dentro de «Otros hallazgos» y ya en el
+  reparto—, o sea que la **decisión (4) ya estaba cumplida**. No había ninguna pestaña que crear:
+  los commits 4 y 5 **completaron** las dos fichas.
+
+- **LA LECTURA (commit 2).** **Trece hojas en imagen** a 220-230 ppp, con el folio comprobado en
+  el pie o la cabecera de cada una: Angeli 2024 (2, 3, 4, 5, 6 y 13), Saric 2016 (3, 10, 15, 16,
+  17, 18 y 27) y Lyon 2022 (91, 92 y 93). **Las tres reglas de folio quedan comprobadas por mí**
+  —hoja + 846, hoja, y hoja + 4228—; la de Kleindorfer **no**, y por eso no se escribe ni una
+  cifra suya. **Cincuenta y un datos verificados**, cuarenta y cinco nuevos. Entre ellos, **los
+  puntajes que la ficha declaraba como no leídos con certeza**.
+
+- **LA ESTRUCTURA (commit 3).** De **seis a NUEVE** pestañas principales. **Se mueve, no se
+  reescribe**: de las **40** entradas, **cero** cambian de texto, de título o de conteo de hijas,
+  y sólo **cinco** cambian de panel. **`SUBTIT` era el único enlace que se rompía solo** —un
+  objeto literal de seis claves que decide el rótulo de sección del buscador— y entra en el mismo
+  commit. Las **50** claves de «Ver referencia» resuelven en los dos árboles y **ningún destino
+  cambia**; `refIr` deriva la subpestaña del **DOM**, así que siguió al nodo sola.
+
+- **LAS DOS FICHAS (commits 4 y 5).** Masas pasa de **14 filas a 63** con los cinco bloques de la
+  decisión (5), en su orden; embolígenas de **18 a 31**. **Dos retiros que la regla del 08/11
+  obliga**: la cláusula «no se leyeron con certeza» y la fila de la **OMS**, cuya celda de Fuente
+  decía «—». Medido con control positivo: las palabras prohibidas dan **cero** en las fichas
+  nuevas y **tres** en la de HEAD.
+
+- **LA COBERTURA.** **TC-761** a **TC-764**, los cuatro cayendo contra `bc62db2` por **25
+  condiciones** y ninguna por excepción. **Seis casos viejos adaptados** —TC-502, TC-509, TC-531,
+  TC-534 y TC-679—, y ⚠️ **tres de ellos no los encontró el censo por literales y sí la corrida**:
+  TC-502 (A5) y TC-531 (A1) tenían el SEIS escrito como número suelto, y TC-534 (G1) afirmaba la
+  ubicación del posoperatorio sin nombrar un literal que se moviera. **36 de 36 mutaciones
+  dirigidas muertas**, con el md5 del árbol vivo idéntico antes y después.
+  ⚠️ **El primer barrido dejó DOS sobrevivientes y las dos eran huecos reales**, del modo de falla
+  que PANT-21 documenta: la cifra se contaba sobre el texto **entero** de la ficha.
+
+- **EL A/B DEL PAPEL**, con el PDF y el PPT generados de verdad: **121 escenas, 148.572 claves y
+  55.297 celdas**, y **cero diferencias** de superficie firmada **y de pantalla**. Excel **457** y
+  campos **1026**, los dos idénticos.
+
+- **Dónde está todo:** `docs/INVENTARIO_REFERENCIAS_P25.md`, `docs/CONTROL_MASAS_P25.md`,
+  `docs/GUIA_PRUEBA_PANT25.md`, el puntero en `docs/mapa/referencias-subpestanas.md`, y
+  `docs/PENDIENTES.md` → **P25-a**, **P25-b** y **P25-c**.

@@ -479,3 +479,53 @@ encabezado y el buscador la indexa, pero el médico que navegue por las solapas 
 nunca — la lección que `constriccion` dejó en la tanda J.
 
 → `docs/mapa/pant20-catalogo-tri-pulm.md` § 8
+
+## ⚠️ LAS SEIS SUBPESTAÑAS PASARON A NUEVE — tanda PANT-25 (2026-11-08)
+
+**Lo de arriba sigue describiendo el mecanismo, que no cambió: `REF_SUBTAB` sigue siendo el dueño
+único del reparto, `refSubInit` sigue reubicando al arrancar y el marcado sigue sin llevar el
+reparto escrito.** Lo que cambia es **cuántas** pestañas hay y **en qué panel** cae cada ficha.
+
+**El orden nuevo**, decisión del médico del 08/11/2026 —Referencias se ordena como se ordena la
+app—: `calc, dim, fun, valv, ao, **congenitas, cardiotox, hemo**, otros`. Las tres nuevas van
+**antes de «Otros hallazgos»**.
+
+| pestaña nueva | id del botón | id del panel | entradas |
+|---|---|---|---|
+| 🧬 Cardiopatía congénita | `ref-subtab-congenitas` | `ref-sub-congenitas` | `congenitas`, `coronarias` |
+| 🧪 Cardiotoxicidad | `ref-subtab-cardiotox` | `ref-sub-cardiotox` | `cardiotox` |
+| 🩺 Hemodinámica | `ref-subtab-hemo` | `ref-sub-hemo` | `pop`, `constriccion` |
+
+**«Otros hallazgos» queda en nueve**: `oai`, `burbujas`, `fop`, `pericardio`, `pulmon`,
+`tumores`, `embolig`, `miocard`, `formulas`. **El censo total sigue en 40 entradas y el índice del
+buscador en 38**: ninguna se creó ni se borró.
+
+### Las cuatro cosas que hay que tocar para agregar una pestaña principal
+
+1. el **botón** en la barra (`#tab-refs .ref-subbar`), con su `aria-controls`;
+2. el **panel** `ref-sub-<clave>`, hermano de los otros;
+3. la clave en **`REF_SUBTAB`** y en **`REF_SUB_ORDEN`**;
+4. ⚠️ **la clave en `SUBTIT`**, dentro de `_refIndiceArmar` — **es el único enlace que se rompe
+   solo**. Es un objeto literal y `SUBTIT[sub] || sub` publica la **clave cruda** en el resultado
+   del buscador si falta. Lo avisaba el comentario de `calc` desde la tanda P, y PANT-25 lo pagó
+   por adelantado: **TC-763 (C1)** se pone rojo si vuelve a faltar.
+
+### Lo que NO hubo que tocar, y por qué
+
+**Nada de los enlaces.** `refIr(id)` deriva la subpestaña **del DOM** —`closest('.ref-subpanel')`
+y el id del panel—, así que siguió al nodo sola: las **50** claves de `VINFO_REF` resuelven en los
+dos árboles, **ningún destino cambia**, y las tres que cambian de panel lo hacen solas. El índice
+del buscador recorre `REF_SUB_ORDEN` y lee el panel, así que tomó los tres nuevos sin tocarlo.
+
+### El rótulo de bloque que el movimiento dejó mintiendo
+
+`REF_SUB_BLOQUES.otros` decía «Orejuela, shunts y **coronarias**» y `coronarias` se fue: pasó a
+«**Orejuela y shunts**». El de «Otras entidades» **no** perdió su ancla, porque `pericardio` se
+queda — ver **P25-a § 2**, que es la parte que esta tanda **paró**.
+
+### Las dos fichas de «Otros hallazgos» que crecieron
+
+`tumores` pasó de **14 filas a 63** —los cinco bloques de la decisión (5)— y `embolig` de **18 a
+31**. Las dos siguen **dentro de «Otros hallazgos»** y **adyacentes**, que es lo que TC-679 (D1) y
+(D2) fijan desde PANT-11. La tabla de control de sus cifras, con su hoja y su folio, está en
+`docs/CONTROL_MASAS_P25.md`.

@@ -33,6 +33,121 @@ se leen 20-80 lineas con `sed -n`.
 
 <!-- /L1:INDICE -->
 
+## P25-a · Lo que la tanda PANT-25 PARÓ, y lo que leyó y NO publicó (2026-11-08)
+
+### 1 · La premisa central de la orden no se reprodujo
+
+El CONTEXTO afirma que «las masas cardíacas y las fuentes embolígenas **no tienen entrada en
+Referencias**». **Las dos tienen entrada desde PANT-11** (commits 10 y 11, 2026-11-04):
+`ref-tumores` y `ref-embolig`, ya **adyacentes** dentro de «Otros hallazgos» y ya en
+`REF_SUBTAB`, o sea que la **decisión (4) ya estaba cumplida**. No había ninguna pestaña que
+crear. Los commits 4 y 5 **completaron** las dos fichas con los bloques que les faltaban.
+
+### 2 · El taponamiento no tiene ficha propia — Hemodinámica nace con DOS y no con TRES
+
+La decisión (1) le pide a Hemodinámica «lo que HOY exista de POP cirugía cardíaca, constricción
+y **taponamiento**». El taponamiento **no tiene ficha**: vive dentro de `pericardio`, que se
+titula «Derrame Pericárdico y Taponamiento». Moverla se llevaría también el **derrame**, que la
+orden no nombra, y la separaría de `constriccion`, que está pegada a ella **a propósito** —el
+comentario de `REF_SUBTAB` lo dice: «van juntas porque son el mismo tema: las dos describen el
+pericardio»—. **Se paró**: `pericardio` se queda en «Otros hallazgos».
+**Decide Maicol:** si `pericardio` entera pasa a Hemodinámica, o si el taponamiento se queda
+donde está.
+
+### 3 · Cinco de las seis pestañas no tienen correspondencia unívoca con la app
+
+Medido y publicado en `docs/INVENTARIO_REFERENCIAS_P25.md` § 1.5: **Calculadoras**, **Aorta**,
+**Dimensiones** (dos pestañas de la app), **Función** (ninguna sola) y la propia tabla de
+Calculadoras. **No bloqueó nada**, porque la decisión (2) prohíbe reorganizar lo existente y las
+cinco se quedan donde están; y las **tres nuevas sí son unívocas**.
+⚠️ **Dos partes de la orden dan órdenes distintas para las tres nuevas**: el título de la tanda
+las enumera «Cardiopatía congénita, Cardiotoxicidad y Hemodinámica», y la **fila de arriba de la
+app** las tiene al revés —Hemodinámica, Cardio-Oncología, C. Congénitas—. Se aplicó el orden
+**explícito** del título.
+
+### 4 · El rótulo de bloque que el movimiento dejó nombrando un tema que ya no está
+
+«Orejuela, shunts y **coronarias**» pasó a «**Orejuela y shunts**», porque `coronarias` se fue de
+ese bloque. Es una **consecuencia forzada** del movimiento, no una decisión nueva. El de «Otras
+entidades» **no** perdió su ancla, porque `pericardio` se queda.
+
+### 5 · La tabla que ya existía en `ref-tumores` NO se reorganizó
+
+La decisión (5) pide cinco bloques en un orden; la decisión (2) prohíbe reorganizar lo existente.
+Se respetó la **prohibición explícita**: la tabla de catorce filas queda entera como el **bloque
+3** y lo que se agregó son los bloques que faltaban. **Consecuencia declarada:** las tres filas de
+**clasificación y frecuencia** del JACC (75 a 90 % de benignos, el reparto de malignos y los
+secundarios de la ASE) siguen dentro del bloque 3 en vez de subir al bloque 1, donde están las de
+la ESC. Las dos cifras de cada dato quedan en **celdas separadas, cada una con su fuente y sin
+comentario**, que es lo que la regla del 04/11 manda, pero **no adyacentes**.
+**Decide Maicol:** si esas tres filas suben al bloque 1.
+
+### 6 · Lo que se leyó en imagen y NO se publicó, con su motivo
+
+| qué | motivo |
+|---|---|
+| **La intensidad en T1 del mixoma** | La **Tabla 2** (Angeli, hoja 5, folio 851) lo da **isointenso** y la **Figura 2** (hoja 6, folio 852) describe en un caso un **T1 reducido**, de unos 830 ms. Dos hojas del mismo documento describiendo distinto el mismo rasgo: es el caso exacto que la **decisión (7)** nombra |
+| «La embolia cardíaca explica **aproximadamente un tercio** de los ictus isquémicos» | Saric 2016 da **dos cifras para el mismo dato** en la misma hoja 3: ésa en la INTRODUCCIÓN y **15 a 40 %** en el apartado específico «Clasificación del ictus». Por la decisión (7) se publica la del apartado específico, y **ésta no se publica** |
+| La **clasificación de la OMS** | **No está en la biblioteca**: la fila que existía tenía la celda de Fuente en «—». Por la regla del 08/11, lo que no tiene fuente leída **no se muestra**. **La fila se retiró** |
+| El **tamaño del trombo** como predictor de embolia | Saric lo publica como **controvertido** (hoja 15, folio 15). Se publica con esa palabra o no se publica; se optó por no publicarlo, para no dejar un predictor sin su reserva |
+| Los **datos generales** del ictus y de la fibrilación auricular, y los **predictores de embolia del trombo del ventrículo izquierdo** | **Leídos y verificados** —están en `docs/CONTROL_MASAS_P25.md` § 8—, pero la **decisión (6) no los lista**, y la orden manda no tomar una decisión que no esté en ella. **Decide Maicol** si entran |
+| Cualquier cifra de **Kleindorfer 2021** | No se leyó ninguna hoja de ese documento en esta tanda, así que su regla de folio **no está comprobada por mí**. El bloque que ya existe en `ref-embolig` **no se tocó** |
+| La **Figura 39** de Lyon, la localización de cada tumor por cámara | Es una figura y la orden prohíbe copiarla; reescribirla entera sería contenido nuevo que ninguna de las dos decisiones pide, y la localización ya es una columna de la tabla de la pestaña Otros y una celda de la Tabla 2 |
+
+### 7 · Un rojo preexistente del arnés, no de esta tanda
+
+**TC-495** da rojo en cualquier corrida de **más de un caso** y pasa **1/1 aislado**, con
+`index.html` **sin tocar** (medido en el commit 1, md5 idéntico). Su condición depende de que
+`refSubInit` ya haya corrido en la página compartida. **No es un rojo nuevo** y no lo causó esta
+tanda.
+
+### 8 · Una frase preexistente que el barrido vuelve a ver
+
+`ref-embolig` dice, en su bloque 1, que «esa guía **no trae** un algoritmo ecocardiográfico paso a
+paso propio». Tiene la forma que la regla del 04/11 proscribe, y **TC-679 (D5) la fija con esas
+palabras**, o sea que fue una decisión de PANT-11. Esta tanda **no la tocó**. **Decide Maicol.**
+
+---
+
+## P25-b · Los temas de Referencias que siguen SIN contenido, y qué documento falta
+
+Tal como lo dejó la lectura previa. **Ninguno de estos se muestra**, que es lo que la regla del
+08/11 manda: una pestaña o un bloque sin contenido **no existe**.
+
+| tema | qué documento falta |
+|---|---|
+| **Electrocardiograma con cifras del corazón de atleta** | ninguna fuente de la biblioteca aporta criterios con cifras |
+| **Chagas** | falta un documento específico |
+| **ECG de las anomalías coronarias** | falta |
+| **ECG de los tumores cardíacos** | falta; por eso el bloque de ECG de Masas **no existe**, y TC-764 (D6) lo fija |
+| **Puente miocárdico** | falta |
+| **Elegibilidad deportiva** | falta |
+| **Un consenso de imagen de masas** | la clasificación de la **OMS** que Angeli cita como su referencia 1 no está en la biblioteca |
+
+---
+
+## P25-c · Lo que ahora vive en otra ubicación
+
+**Ningún id cambió.** Lo único que cambió es el panel en que `refSubInit` las coloca.
+
+| ficha | id | antes | ahora |
+|---|---|---|---|
+| Cardiopatías Congénitas del Adulto (ESC 2020) | `congenitas` | Otros hallazgos | **Cardiopatía congénita** |
+| Anomalías coronarias congénitas — trayecto | `coronarias` | Otros hallazgos | **Cardiopatía congénita** |
+| Cardiotoxicidad — CTRCD (ESC Cardio-Oncología 2022) | `cardiotox` | Otros hallazgos | **Cardiotoxicidad** |
+| Posoperatorio de cirugía cardíaca | `pop` | Otros hallazgos | **Hemodinámica** |
+| Constricción vs restricción (ESC 2025) | `constriccion` | Otros hallazgos | **Hemodinámica** |
+
+**Tres botones «Ver referencia» cambian de panel sin cambiar de destino:** `otr-rac` (el trayecto
+coronario) a Cardiopatía congénita, y `pop-vaso` y `pop-senales` a Hemodinámica. Los tres siguen
+resolviendo, porque `refIr` deriva la subpestaña del **DOM** y no de una lista.
+
+**El buscador los encuentra igual**, y su resultado ahora dice el **nombre nuevo de la sección**:
+medido sobre 36 términos, 26 idénticos letra por letra y 10 cuya única diferencia es ese rótulo,
+con los conteos iguales en los 36.
+
+---
+
 ## P24-a · Lo que la tanda PANT-24 PARÓ, y una interacción que queda declarada
 
 ### 1 · El PPM aórtico puede salir debajo de «TAVI normofuncionante», y no se tocó
