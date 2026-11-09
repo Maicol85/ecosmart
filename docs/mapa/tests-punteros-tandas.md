@@ -453,3 +453,21 @@ Fichas en `docs/mapa/tests-fichas-748.md`.
 medían una sección de Evidencia de un sector avanzado **sin integrar el sector** —ganan su `avInc` y
 una condición de denominador—, y **TC-532 (C8)(D8)** y **TC-545 (C6)** quedan **INVERTIDAS**, porque
 exigían las dos frases que el commit 5 reescribió. **Los cinco pasan 5/5 contra `e727fe2`.**
+
+
+---
+
+## PANT-26 (2026-11-09) — TC-769 a TC-777
+
+Nueve casos, en **`docs/mapa/tests-fichas-769.md`** (archivo propio: `tests-fichas.md` estaba en
+34,2 KB, medido antes de escribir). Cinco adaptados, con su motivo: **TC-303** y **TC-757** por la
+frase nueva, **TC-474** por la mitral sin conclusión por fila, **TC-726** por la atribución que
+sale de la salvedad de la TAVI y **TC-734** por el área de la TAVI, que ese caso declaraba que
+**no** se evaluaba. Los catorce caen contra el árbol anterior por **47 condiciones y cero
+excepciones**.
+
+⚠️ **Dos lecciones de instrumentación.** (1) El **contrato del retorno** de un caso es
+`{ extra: F }` y no el array pelado: los nueve salieron rojos de entrada con «el caso no declara
+NINGUNA condición», con todas sus condiciones en verde. (2) El `--solo` del arnés de mutaciones
+filtra por **índice**, así que retirar una mutación corre los índices de todas las de abajo: una
+rerida de «07,18,25,29,30» midió en realidad la 07, la 19, la 26, la 30 y la 31.

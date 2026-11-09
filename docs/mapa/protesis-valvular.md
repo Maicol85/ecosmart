@@ -388,3 +388,16 @@ dueño único del mapeo posición → catálogo.
 - **Las dos fichas de Referencias** con las Tablas 15 y 19 → § 8.
 - **El dueño único del PPM mitral**, `_vmPpmClasificar`, extraído de `vmProtEOA` sin mover una
   salida → § 6a.
+
+
+---
+
+## → PANT-26 (2026-11-09): lo que esta tanda movió de esta zona
+
+El repintado de la cápsula al elegir el modelo (`vModTrasElegir`), el **área efectiva frente a la
+del modelo también en la TAVI** con la misma función y los mismos cortes, la **condición de 1
+desvío** que la nota al pie de la Tabla 7 le pone al desajuste, la frase **«con posible
+estenosis»**, el **desajuste que apaga «normofuncionante»**, la **mitral sin conclusión por
+fila** y las **cuatro declaraciones de criterio propio**.
+
+→ **`docs/mapa/pant26-protesis-aortica-mitral.md`**

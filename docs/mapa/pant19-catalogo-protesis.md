@@ -239,3 +239,16 @@ puntuar una sobrevivencia falsa.
 | el barrido de mutaciones | `scripts/_mut_pant19.py` (43 mutaciones, cada una con SU caso) |
 | la suite en lotes de 55, con el pendrive verificado | `scripts/_lotes_pant19.sh` |
 | las sondas | `scripts/_probe_pant19inv.mjs` · `_probe_pant19mod.mjs` · `_probe_pant19geo.mjs` (dos motores) · `_probe_pant19eoa.mjs` · `_probe_pant19ab.mjs` + `_ab_pant19diff.mjs` |
+
+
+---
+
+## → PANT-26 (2026-11-09): lo que esta tanda movió de esta zona
+
+El repintado de la cápsula al elegir el modelo (`vModTrasElegir`), el **área efectiva frente a la
+del modelo también en la TAVI** con la misma función y los mismos cortes, la **condición de 1
+desvío** que la nota al pie de la Tabla 7 le pone al desajuste, la frase **«con posible
+estenosis»**, el **desajuste que apaga «normofuncionante»**, la **mitral sin conclusión por
+fila** y las **cuatro declaraciones de criterio propio**.
+
+→ **`docs/mapa/pant26-protesis-aortica-mitral.md`**

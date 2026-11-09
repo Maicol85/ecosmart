@@ -481,3 +481,31 @@ la Tabla 15 (sólo la unidad de uno), los cuatro de `IT_CRIT`, los cuatro signos
 prótesis **mitral** con su regla de dos o más y sus cuatro cortes, la **fuga paravalvular** del
 PRO-B, la **TAVI**, el **PPM**, el **valve-in-valve**, el cociente VTI del PRO1, el reverso del
 PRO3, y el **Excel en 440 columnas**.
+
+---
+
+## La tanda PANT-26 (2026-11-09) — la nota al pie de la Tabla 7
+
+**ASE 2024 de prótesis** (`05_Protesis_valvulares/ASE protesis 2024.pdf`, 62 hojas).
+**Hoja 19**, folio impreso **20**, comprobado **en la cabecera**: «20  Zoghbi et al — Journal of
+the American Society of Echocardiography, January 2024». Renderizada a **400 ppp** y leída en la
+imagen. La regla `folio = hoja + 1` queda comprobada otra vez.
+
+La **Tabla 7** es «Doppler parameter criteria of aortic valve and mitral valve PPM». Sus dos filas
+—«Aortic EOA\*» y «Mitral EOA\*»— llevan el mismo asterisco, que remite a **una sola** nota al
+pie, textual:
+
+> \*Valve structure and motion are normal; measured EOA is within 1 SD of the reference EOA.
+
+**Lo que la aplicación implementa**: la segunda mitad —el área efectiva medida dentro de **1
+desvío estándar** de la del modelo—, cuando hay modelo cargado y con desvío. Vive en la constante
+**`EA_PROT_PPM_SD = 1`**, declarada al lado de los cortes de la Tabla 5 y **no derivada** de
+`EA_PROT_EOA_Z.normalMin`, aunque hoy valgan lo mismo: son dos tablas distintas.
+
+**Lo que NO implementa**: la primera mitad —que la estructura y la movilidad de los velos sean
+normales—, porque esta aplicación no registra ese dato. Declarado en `docs/PENDIENTES.md` →
+**P26-a § 2**.
+
+**Los cortes de la tabla no se tocaron**: `EA_PROT_PPM_CORTES` sigue con 0,85 / 0,65 para un
+índice de masa corporal menor de 30 y 0,70 / 0,55 para 30 o más, que es lo que la tabla imprime y
+lo que el globo `ea-prot-ppm` publica.

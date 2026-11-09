@@ -169,6 +169,127 @@ El médico decidió dejar el **catálogo de prótesis como está**: las cuatro f
 Tabla A7, la Tabla A8 cargada y sin consumidor, y la pulmonar con tres de sus cinco columnas.
 **No son pendientes**: son el estado acordado. Esta tanda **no tocó el catálogo**.
 
+### [CERRADO 2026-11-09 · PANT-26] De PRO-c, los puntos 1 a 7
+
+Los siete los cierra esta tanda, y cada uno con su caso:
+
+1. **Los cortes de la TAVI, declarados.** `EA_PROT_SALV.tavi` pierde el cierre «(ASE 2024, hoja 18,
+   folio 19)» y gana «Los cortes de gradiente y de DVI para la TAVI son los de la prótesis
+   quirúrgica: es un criterio de la aplicación.». **TC-775 (A1)** y **(A2)**, con **TC-726 (C3)**
+   invertida.
+2. **La condición de la Tabla 7.** Leída en imagen a 400 ppp la hoja 19, con el folio **20**
+   comprobado en la cabecera impresa: «*Valve structure and motion are normal; measured EOA is
+   within 1 SD of the reference EOA.». Con modelo cargado y con desvío, el desajuste se publica
+   sólo si se cumple. **TC-771**. *(De las dos mitades de la nota, la de la estructura y la
+   movilidad no se implementa — ver **P26-a § 2**.)*
+3. **La TAVI con desajuste ya no sale «normofuncionante».** La guarda mira también `P.ppm`, y con
+   eso alcanza a los **seis** caminos que publican la palabra. **TC-773**.
+4. **La cápsula se repinta al elegir el modelo.** `vModTrasElegir` existe y llama a
+   `calcEADetalle`. **TC-769**.
+5. **La TAVI compara su área contra la del modelo**, con la misma función, los mismos cortes y el
+   mismo dueño. **TC-770**.
+6. **La prótesis mitral ya no publica un veredicto por fila.** La conclusión queda sólo en el
+   resumen, que es el que cuenta criterios. **TC-774**, con **TC-474 (C)** invertida.
+7. **La pulmonar declara su regla.** `QV_NOTA` gana la clave `prot:pulmonar`. **TC-775 (C1)**.
+
+El punto **8** no era un pendiente: decía que no había diferencia que zanjar, y esta tanda tampoco
+abrió la EACVI 2016 ni la VARC-3.
+
+### [CERRADO 2026-11-09 · PANT-26] De PRO-d, los puntos 1 y 3
+
+1. **El globo ⓘ `cc-3d` y la línea de abajo.** El globo pasa al texto aprobado por el médico, de
+   tres párrafos, y la línea dice «Cargadas y no representadas en este diagrama: …». **Los dos
+   «todavía» salieron** y la lista de lesiones queda idéntica. **TC-776**. Las otras cinco formas
+   de `cc3dTextoSync` no se tocaron.
+3. **Los nueve caminos del «normofuncionante»** quedan cerrados por el arreglo del punto 3 de
+   PRO-c: los seis que publican la palabra cuelgan de un solo predicado.
+
+El punto **2** ya lo había cerrado PANT-27.
+
+### [SIGUE ABIERTO] PRO-a y PRO-b
+
+**PRO-a** es el registro de lo que la medición desmintió de la orden de aquella tanda: se queda
+como está, no es un pendiente de trabajo. **PRO-b** —los **28** modelos del catálogo sin desvío
+estándar en el área— **sigue abierto como información**, y esta tanda **no tocó ningún catálogo**.
+De los dos que sí toca, medidos de nuevo: `PROT_CAT_TAVI` tiene **9 de 9** modelos y **26 de 26**
+celdas de área con desvío, y `PROT_CAT_A4` **46 de 49** modelos.
+
+---
+# TANDA PANT-26 (2026-11-09) — prótesis aórticas, la mitral y el 3D de congénitas
+
+## P26-a · Lo que se PARÓ, lo que se encontró de más, y las premisas que no se reprodujeron
+
+### 1 · La suite NO tiene 783 casos: tiene 768
+
+La LÍNEA BASE de la orden dice «suite de 783 casos» y «777 de 783». Contados nombre por nombre en
+`scripts/test_clinico.mjs` con la expresión que reconoce `caso(` y `casoAbierto(`: **768
+apariciones, 768 distintos, de `TC-001` a `TC-768`, cero huecos y cero duplicados**. Los TC libres
+arrancaban por lo tanto en **TC-769**, y es donde esta tanda los puso. No es un defecto: es una
+cifra de la orden que no se reprodujo, y se declara para que la próxima no la herede.
+
+### 2 · De la nota al pie de la Tabla 7 se implementa UNA de sus dos mitades
+
+La nota, textual, es «*Valve structure and motion are normal; **measured EOA is within 1 SD of
+the reference EOA**.». La segunda mitad es la que la decisión D7 nombra y es la que se
+implementó. **La primera —que la estructura y la movilidad de los velos sean normales— NO se
+implementa**, y el motivo es que esta aplicación **no registra la movilidad ni la estructura de
+los velos protésicos como un dato con el que se pueda decidir**: censado, no hay campo guardado
+que lo diga. Agregar uno sería un campo nuevo, que esta orden prohíbe. **Queda declarado, y es
+una decisión del médico si alguna vez se agrega.**
+
+### 3 · De la decisión D5, la ESCALA de referencia se conservó
+
+La decisión dice «cada línea de parámetro de la pantalla muestra solo el valor, sin la conclusión
+por línea». Lo que se retiró es la **conclusión** —`OBSTR_TXT[nivel]`, que es lo que producía el
+defecto reportado: la fila de la velocidad pico de E decía «sugiere obstrucción significativa»
+mientras el renglón del veredicto decía «hallazgo aislado — posible obstrucción», y esa fila no
+vota—. **La escala de la Tabla 11 se conservó** —«≤5 normal · >10 significativa», con el operador
+que esa tabla usa por parámetro—, porque no es una conclusión sino la referencia, y **no la
+publica ninguna otra superficie**. Lo fija **TC-774 (A2)** y **(A3)**, y la mutación **28** del
+barrido se pone roja si alguien la saca. **Si el médico la quiere fuera también, es una línea.**
+
+### 4 · El EN SUMA de la TAVI con desajuste reusa la línea del cuerpo
+
+Medido antes y después. En HEAD esa escena daba `TAVI normofuncionante.` + `PPM aórtico severo.`;
+hoy da `PPM aórtico severo.` y, debajo, la línea del cuerpo reusada —«Válvula aórtica con prótesis
+transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (DVI 0.40).»—.
+Ese reuso es el **mecanismo general del EN SUMA** cuando una válvula tiene hallazgo y no tiene
+resumen propio, el mismo que esa escena usaba antes de PANT-24; **no es una frase nueva y no se
+tocó**, porque desactivarlo sería cambiar el EN SUMA fuera de lo que esta orden autoriza. El orden
+de los dos renglones cambia por la misma razón. **Se declara por si el médico lo quiere de otra
+forma.**
+
+### 5 · En el catálogo de TAVI no existe un modelo SIN desvío
+
+La verificación del commit 3 pide «un modelo CON y uno SIN desvío (el catálogo marca cuáles)».
+Medido: **los 9 modelos de `PROT_CAT_TAVI` y sus 26 celdas de área traen desvío mayor que cero**,
+así que **esa escena no existe en el catálogo**. El único camino sin desvío que la TAVI tiene es
+el **modo MANUAL**, cuyos valores se construyen con desvío `null`, y es con el que se probó:
+**TC-770 (C1)**. En la quirúrgica sí existe —3 de los 49 modelos de `PROT_CAT_A4` no imprimen
+área—, y eso ya lo cubría TC-734.
+
+### 6 · `EA_PROT_SALV.eoa` sigue diciendo «no hay un modelo del catálogo cargado» con un modelo del catálogo SIN desvío
+
+Es **preexistente** y esta tanda **no lo tocó**. Con un modelo del catálogo cuya celda de área no
+trae desvío, `eaProtEOAz` devuelve `null` y el plegable publica esa frase, que en ese estado es
+inexacta: hay un modelo del catálogo cargado, lo que falta es el desvío. Con el modo **manual** la
+frase es correcta, porque ahí no hay un modelo *del catálogo*. **No se corrigió** porque cambiar
+ese texto no está en esta orden.
+
+### 7 · `_t11Fila` conserva un parámetro que ya no usa
+
+Al retirar la conclusión por fila, el parámetro `nivel` de `_t11Fila` quedó **sin lectores**. No
+se quitó: sacarlo obliga a reordenar los argumentos de sus tres llamadas, que es más superficie
+tocada que la que el cambio pide. **Queda declarado**, y el comentario de la función lo dice.
+
+### 8 · Lo que NO se reprodujo de la hipótesis de los 28 modelos
+
+La orden dice que 28 de los 108 modelos del catálogo no tienen desvío. Esta tanda **sólo volvió a
+medir los dos catálogos que toca** —`PROT_CAT_TAVI`, 0 de 9 sin desvío, y `PROT_CAT_A4`, 3 de 49—,
+que coinciden con lo que `PRO-b` publica. **Los otros tres no se midieron de nuevo** porque esta
+tanda no los toca: la cifra de 28 sigue siendo la de `PRO-b`.
+
+---
 ---
 # TANDA AUD-PROT (2026-11-09) — auditoría de SOLO LECTURA de las prótesis
 

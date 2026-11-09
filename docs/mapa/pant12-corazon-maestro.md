@@ -165,3 +165,16 @@ el cableado desde sus pestañas. Ver `docs/PENDIENTES.md` → **P12-c**.
 - **El lienzo sigue al ancho de su recuadro en cada cuadro**, que es el defecto de las etiquetas
   despegadas que el médico reportó.
 - **El campo de frecuencia mide 78 px** y ya no se lleva una fila entera.
+
+
+---
+
+## → PANT-26 (2026-11-09): los dos textos del 3D
+
+El globo ⓘ **`cc-3d`** pasa al texto aprobado por el médico, de tres párrafos, y la línea de abajo
+dice **«Cargadas y no representadas en este diagrama: …»**, sin «todavía» y con la lista idéntica.
+Las tres premisas se midieron: los rótulos del control segmentado son «Según el estudio» y
+«Explorar», el modo del estudio **sí** puede incluir el diagrama en el PDF —`#cm3d-pdfb`, que
+`cmPdfSync` enciende sólo ahí— y tocar una estructura la vuelve transparente.
+
+→ **`docs/mapa/pant26-protesis-aortica-mitral.md`** § 8

@@ -41585,8 +41585,14 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
         tavi.suma.split(NL).join(' | ')],
       ['TAVI con todo NORMAL tampoco la afirma: la app no la gradua, punto',
         !taviN.nf, taviN.suma.split(NL).join(' | ')],
-      ['SAVR a la que le falta el DVI: el cuerpo dice «sin datos suficientes» y el resumen no afirma normofuncion',
-        !faltan.nf && faltan.suma.indexOf('sin datos suficientes') > -1,
+      /* ⚠️ ADAPTADA EN PANT-26 (D1): con velocidad o gradiente altos y sin eje independiente, el
+         cuerpo ya no dice «sin datos suficientes» sino «con posible estenosis», y el EN SUMA
+         publica «Protesis aortica: posible estenosis.». Lo que esta condicion vigila -que ahi NO
+         se afirme normofuncion- no cambia, y se refuerza: ahora exige tambien que la frase vieja
+         no este. */
+      ['SAVR a la que le falta el DVI: el cuerpo dice «con posible estenosis» y el resumen no afirma normofuncion',
+        !faltan.nf && faltan.suma.indexOf('posible estenosis') > -1 &&
+        faltan.suma.indexOf('sin datos suficientes') === -1,
         faltan.suma.split(NL).join(' | ')],
       /* ⚠️ v3 (2026-10-05, D): LA PULMONAR YA NO REUSA LA LINEA DEL CUERPO, Y ESO ES EL ARREGLO.
          Hasta D, suprimir «normofuncionante» se compensaba empujando la oracion entera del cuerpo
@@ -41632,8 +41638,11 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
          corre antes que el bloque de va_morf: la cubre el caso faltan, cuyo cuerpo dice «sin
          datos suficientes para graduar» —una negacion sin token de AFIRMA— y cuyo resumen tampoco
          afirma normofuncion. */
+      /* ⚠️ ADAPTADA EN PANT-26 (D1), por el mismo motivo que la de arriba: lo que se vigila es
+         que el resumen NO afirme normofuncion, y la frase del cuerpo cambio. */
       ['DECLARADO: la discriminacion negacion-vs-afirmacion ya no se ejerce en la mitral (la corta la guarda 3b); sigue cubierta en la aortica por el caso «faltan»',
-        !faltan.nf && faltan.suma.indexOf('sin datos suficientes') > -1,
+        !faltan.nf && faltan.suma.indexOf('posible estenosis') > -1 &&
+        faltan.suma.indexOf('normofuncionante') === -1,
         faltan.suma.split(NL).join(' | ')],
       ['la guarda de TAVI suprime POR SI SOLA, sin apoyarse en la de nivel',
         taviAislada === 'ok', taviAislada],
@@ -68001,11 +68010,20 @@ caso('TC-474', 'W2-B: los criterios PROPIOS de la protesis mitral y aortica —T
     cBio.vThp === cNat.vThp && cBio.vCont === cNat.vCont &&
     cBio.vPlan === cNat.vPlan && cBio.vGm === cNat.vGm,
     JSON.stringify([cBio.vThp, cBio.vCont, cBio.vPlan, cBio.vGm])]);
-  ex.push(['(C) y la capsula publica la lectura PROTESICA del mismo gradiente y del mismo THP',
-    TX('vm-prot-gmed').indexOf('significativa') > -1 &&
-    TX('vm-prot-thp').indexOf('posible') > -1 &&
-    TX('vm-prot-eoa').indexOf('posible') > -1,
-    'gmed=«' + TX('vm-prot-gmed') + '» thp=«' + TX('vm-prot-thp') + '»']);
+  /* ⚠️ INVERTIDA EN PANT-26 (decision D5 del medico, 09/11/2026). Exigia que cada fila de la
+     capsula mitral publicara su propia conclusion -«significativa», «posible»-; desde esta tanda
+     la conclusion vive SOLO en el resumen, porque la fila de la velocidad pico de E no vota y
+     publicaba un veredicto que no esta en el denominador del conjunto. Lo que la condicion
+     vigila ahora es lo que la decision conserva: que la fila siga publicando el VALOR y la
+     ESCALA de la Tabla 11, con el operador de esa tabla por parametro. Falla por los dos lados:
+     si vuelve la conclusion, o si se pierde la escala. */
+  ex.push(['(C) y la capsula publica el VALOR y la ESCALA de la Tabla 11, sin conclusion por fila',
+    TX('vm-prot-gmed').indexOf('≤5 normal · >10 significativa') > -1 &&
+    TX('vm-prot-thp').indexOf('<130 normal · >200 significativa') > -1 &&
+    TX('vm-prot-gmed').indexOf('sugiere obstrucción') === -1 &&
+    TX('vm-prot-thp').indexOf('posible obstrucción') === -1 &&
+    TX('vm-prot-eoa').indexOf('obstrucción') === -1,
+    'gmed=«' + TX('vm-prot-gmed') + '» thp=«' + TX('vm-prot-thp') + '» eoa=«' + TX('vm-prot-eoa') + '»']);
   ex.push(['(C) CONTROL: con protesis el grado sigue en el centinela y el informe NO afirma estenosis',
     cBio.grado === 'sin' && cBio.sev.indexOf('No graduada') > -1 &&
     cBio.inf.inf.indexOf('estenosis significativa') === -1,
@@ -121201,7 +121219,15 @@ caso('TC-726', 'PANT-18 commit 6: la TAVI se gradua con los cortes absolutos de 
       t.salv.indexOf('como cambio respecto de un estudio previo') >= 0, t.salv.slice(0, 200)]);
     ex.push(['(C2) y que sin ese estudio se aplican los cortes absolutos de la quirurgica',
       t.salv.indexOf('se aplican los cortes absolutos de la prótesis quirúrgica') >= 0, t.salv.slice(0, 240)]);
-    ex.push(['(C3) con su hoja y su folio', t.salv.indexOf('hoja 18, folio 19') >= 0, t.salv.slice(-120)]);
+    /* ⚠️ INVERTIDA EN PANT-26 (decision D4 del medico, 09/11/2026). Exigia que esa salvedad
+       cerrara con «(ASE 2024, hoja 18, folio 19)»; ese parentesis respaldaba con la guia una
+       decision que es de la APLICACION -la Tabla 5 no publica cortes absolutos propios de TAVI-,
+       asi que sale, y en su lugar la salvedad DECLARA el criterio propio. Falla por los dos
+       lados: si vuelve la atribucion, o si se pierde la declaracion. */
+    ex.push(['(C3) declara que los cortes de gradiente y de DVI de la TAVI son criterio de la aplicacion, y ya no se los atribuye a la guia',
+      t.salv.indexOf('es un criterio de la aplicación') >= 0 &&
+      t.salv.indexOf('Los cortes de gradiente y de DVI para la TAVI son los de la prótesis quirúrgica') >= 0 &&
+      t.salv.indexOf('hoja 18, folio 19') === -1, t.salv.slice(-260)]);
     ex.push(['(C4) CONTROL NEGATIVO: la protesis mecanica NO lleva esa salvedad',
       m.salv.indexOf('cortes absolutos de la prótesis quirúrgica') === -1, m.salv.slice(0, 160)]);
     /* (D) CON TODO NORMAL, la TAVI tampoco se queda muda */
@@ -122479,8 +122505,13 @@ caso('TC-734', 'PANT-19 commit 5: la EOA frente a la del modelo entra como eje i
              /Modelo y tama/.test(B.salv), true, B.salv.slice(0, 110)]);
     /* (C) los tres controles de la regla: TAVI, modo manual y un modelo SIN desvio impreso */
     const C1 = await esc(Object.assign({ morf: 'TAVI', mod: 'SAPIEN 3', tam: 'All' }, SIG));
-    ex.push(['(C1 CONTROL) con TAVI la regla NO se aplica', C1.ev, false, 'eoaEvaluable = ' + C1.ev]);
-    ex.push(['(C2 CONTROL) y la tarjeta da lo mismo que sin modelo', C1.nivel, B.nivel, C1.nivel + ' vs ' + B.nivel]);
+    /* ⚠️ INVERTIDAS EN PANT-26 (decision D2 del medico, 09/11/2026), y es el dia que estas dos
+       condiciones anunciaban. Exigian que con TAVI la comparacion del area contra el modelo NO
+       se aplicara, porque la Tabla 5 le da su propia fila de cambio respecto de un basal; la
+       decision la extiende a la TAVI como criterio de la APLICACION, con la misma funcion, los
+       mismos cortes y el mismo dueño. Hoy exigen lo contrario, asi que siguen discriminando. */
+    ex.push(['(C1) con TAVI y un modelo del catalogo con desvio, la regla SI se aplica', C1.ev, true, 'eoaEvaluable = ' + C1.ev]);
+    ex.push(['(C2) y la tarjeta NO da lo mismo que sin modelo: el area vota', C1.nivel !== B.nivel, true, C1.nivel + ' vs ' + B.nivel]);
     const C3 = await esc(Object.assign({ morf: 'Prótesis mecánica', mod: 'Marca equis', tam: '21',
                                          gmref: '14', eoaref: '1.3' }, SIG));
     ex.push(['(C3 CONTROL) con el modo MANUAL tampoco: no hay desvio', C3.ev, false, 'eoaEvaluable = ' + C3.ev]);
@@ -124260,9 +124291,23 @@ caso('TC-757', 'PANT-24 commit 2: la TAVI SIN ningun dato que indique estenosis 
 
   /* ── (D) LOS CUATRO ESTADOS QUE NO CAMBIAN ── */
   const estParc = await escena({ va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45' });
-  q('(D1) CON UN DATO QUE INDICA ESTENOSIS la frase vieja vuelve, aunque el nivel siga siendo «faltan»: no alcanza con que falte un eje',
-    pl(estParc.ao).indexOf('sin datos suficientes') > -1 && pl(estParc.ao).indexOf('normofuncionante') === -1,
+  /* ⚠️ INVERTIDA EN PANT-26 (decision D1 del medico, 09/11/2026), y es el dia que esta
+     condicion anunciaba. Exigia que con velocidad y gradiente altos y sin eje independiente
+     volviera la frase «sin datos suficientes para graduar la estenosis protesica»; desde esta
+     tanda ese estado dice «con posible estenosis», sin la palabra «protesica» y con el
+     parentesis de medidas conservado. Lo que la condicion SIGUE vigilando es lo mismo: que ahi
+     NO se afirme normofuncion. Y ahora falla por los dos lados, porque exige ademas que la
+     frase vieja ya no este. */
+  q('(D1) CON UN DATO QUE INDICA ESTENOSIS dice «con posible estenosis», no normofuncionante, y la frase vieja ya no esta',
+    pl(estParc.ao).indexOf('con posible estenosis') > -1 &&
+    pl(estParc.ao).indexOf('sin datos suficientes') === -1 &&
+    pl(estParc.ao).indexOf('normofuncionante') === -1 &&
+    estParc.ao.indexOf('Vmax 4.5 m/s') > -1 && estParc.ao.indexOf('G. medio 45 mmHg') > -1,
     estParc.ao);
+  q('(D1b) y el EN SUMA de esa TAVI es exactamente «TAVI con posible estenosis.», sin «protesica»',
+    estParc.suma.indexOf('TAVI con posible estenosis.') > -1 &&
+    pl(estParc.suma).indexOf('posible estenosis protesica') === -1,
+    estParc.suma.slice(0, 160));
   const estFull = await escena({ va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45', itv_tsvi:'20', itv_ao:'100' });
   q('(D2) con los dos ejes y el DVI en estenosis significativa gradua como siempre',
     pl(estFull.ao).indexOf('estenosis protesica significativa') > -1 && pl(estFull.ao).indexOf('normofuncionante') === -1,
@@ -126104,6 +126149,1010 @@ caso('TC-768', 'PANT-27 commit 4: la oracion de la cirugia ante el trombo protes
   return { extra: F };
   })()
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   TANDA PANT-26 (09/11/2026) — TC-769 a TC-777
+   Protesis valvulares: la capsula que se repinta, el area contra el modelo en la TAVI, la
+   condicion de la Tabla 7 para el desajuste, «con posible estenosis», el desajuste que apaga
+   «normofuncionante», la mitral sin conclusion por fila, las cuatro declaraciones de criterio
+   propio, los dos textos del 3D de congenitas, y lo que NO cambio.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-769', 'PANT-26 commit 2: al elegir el modelo la capsula de la aortica se repinta con el mismo veredicto que el informe ya usa, y el plegable refleja el modelo elegido', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const T = id => __t.txt(id) == null ? '' : String(__t.txt(id)).trim();
+  const niv = () => { try { const P = eaProtVeredicto(); return P ? P.nivel : null } catch (e) { return 'ERR' } };
+  const evalu = () => { try { const P = eaProtVeredicto(); return P ? P.eoaEvaluable : null } catch (e) { return 'ERR' } };
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  /* El modelo se busca DENTRO del catalogo: sus valores son datos leidos de la guia y no se
+     eligen de memoria. Se pide uno que deje el area medida a 2 DE o mas por debajo. */
+  const buscar = (ava, zMax) => { try {
+    const i = PROT_CAT_A4_COLS.indexOf('eoa') + 1;
+    for (const m of PROT_CAT_A4) for (const f of m.s) { const c = f[i];
+      if (!c || c[0] == null || c[1] == null || !(+c[1] > 0)) continue;
+      const z = (ava - c[0]) / c[1];
+      if (z <= zMax) return { n: m.n, t: String(f[0]), z: +z.toFixed(2) } }
+    return null } catch (e) { return null } };
+  const cargar = async (pos, nom, tam) => {
+    const P = {};
+    abrirValv(); await esp(320);
+    const b = document.getElementById('vmod-' + pos + '-btn');
+    P.botonConCaja = !!(b && (b.offsetWidth || b.offsetHeight));
+    if (b) b.click(); else { try { vModAbrir(pos) } catch (e) {} }
+    await esp(160);
+    const inp = document.getElementById('vmod-inp');
+    if (inp) { inp.value = nom; inp.dispatchEvent(new Event('input', { bubbles: true })) }
+    await esp(190);
+    const ul = document.getElementById('vmod-sug');
+    const it = ul ? Array.from(ul.querySelectorAll('button')) : [];
+    P.sug = it.length;
+    const hit = it.find(x => String(x.textContent || '').indexOf(nom) > -1) || it[0];
+    if (hit) hit.click(); await esp(160);
+    const sel = document.getElementById('vmod-tam');
+    if (sel) { sel.value = tam; sel.dispatchEvent(new Event('change', { bubbles: true })) }
+    await esp(160);
+    const el = document.getElementById('vmod-elegir'); if (el) el.click();
+    await esp(330);
+    P.modelo = __t.val(pos + '_prot_modelo'); P.tam = __t.val(pos + '_prot_tam');
+    P.quedo = !!(P.modelo && P.tam);
+    return P;
+  };
+  const escena = async () => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    __t.set('va_morf','Prótesis mecánica'); __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+    __t.set('diam_tsvi','16'); __t.set('itv_tsvi','40'); __t.set('itv_ao','100');
+    try { valvProtSync() } catch (e) {}
+    abrirValv(); await esp(430);
+  };
+
+  /* ── (A) DENOMINADOR ── */
+  q('(A0) la funcion que los selectores llamaban existe: vModTrasElegir esta definida',
+    typeof vModTrasElegir === 'function', 'typeof = ' + (typeof vModTrasElegir));
+  const M = buscar(0.80, -2.0);
+  q('(A1 DENOM) el catalogo A4 tiene un modelo que deja el area medida a 2 DE o mas por debajo',
+    !!M, M ? (M.n + ' ' + M.t + ' z=' + M.z) : 'no se encontro ninguno');
+  if (!M) return { extra: F };
+  await escena();
+  const caja = document.getElementById('caja-esten-aortica');
+  q('(A2 DENOM) el recuadro de la estenosis aortica esta VISIBLE: no se mide sobre un contenedor cerrado',
+    !!caja && getComputedStyle(caja).display !== 'none',
+    caja ? ('display=' + getComputedStyle(caja).display) : 'no existe #caja-esten-aortica');
+
+  /* ── (B) LOS CUATRO MOMENTOS ── */
+  const m1 = { niv: niv(), cap: T('ea-det-sev'), ev: evalu() };
+  q('(B1) ANTES del modelo el veredicto es «posible» y la capsula lo dice',
+    m1.niv === 'posible' && m1.cap.indexOf('Posible estenosis protésica') > -1 && m1.ev === false,
+    'nivel=' + m1.niv + ' capsula=«' + m1.cap + '» eoaEvaluable=' + m1.ev);
+  const carga = await cargar('va', M.n, M.t);
+  q('(B2 DENOM) el modelo quedo CARGADO por el gesto real del componente',
+    carga.quedo === true && carga.sug > 0,
+    'boton=' + carga.botonConCaja + ' sug=' + carga.sug + ' modelo=«' + carga.modelo + ' ' + carga.tam + '»');
+  const m2 = { niv: niv(), cap: T('ea-det-sev'), nota: T('ea-det-sev-nota'), ev: evalu() };
+  q('(B3) TRAS ELEGIR el modelo el veredicto pasa a «signif» Y LA CAPSULA SE REPINTA con el mismo veredicto',
+    m2.niv === 'signif' && m2.cap.indexOf('Sugiere estenosis protésica significativa') > -1,
+    'nivel=' + m2.niv + ' capsula=«' + m2.cap + '»');
+  q('(B4) y la capsula ya NO publica el veredicto anterior',
+    m2.cap.indexOf('Posible estenosis protésica') === -1, m2.cap);
+  q('(B5) el plegable deja de decir que no hay un modelo del catalogo cargado y publica la desviacion',
+    m2.nota.indexOf('no hay un modelo del catálogo cargado') === -1 &&
+    m2.nota.indexOf('DE, o sea') > -1,
+    m2.nota.slice(-220));
+  q('(B6) el informe firmado dice lo MISMO que la capsula: significativa',
+    (function(){ const r = __t.informe();
+      const l = String(r.inf).split('\\n').filter(x => /aórtic/i.test(x)).join(' | ');
+      return l.indexOf('estenosis protésica significativa') > -1 }) (),
+    String(__t.informe().inf).split('\\n').filter(x => /aórtic/i.test(x)).join(' | ').slice(0, 170));
+
+  /* ── (C) CONTROL: quitar el modelo vuelve atras ── */
+  try { vModQuitar('va') } catch (e) {}
+  await esp(430);
+  const m3 = { niv: niv(), cap: T('ea-det-sev'), ev: evalu() };
+  q('(C1 CONTROL) QUITAR el modelo devuelve la capsula a «Posible» y el area deja de evaluarse',
+    m3.niv === 'posible' && m3.cap.indexOf('Posible estenosis protésica') > -1 && m3.ev === false,
+    'nivel=' + m3.niv + ' capsula=«' + m3.cap + '» eoaEvaluable=' + m3.ev);
+
+  /* ── (D) CONTROL NEGATIVO: sin tocar el modelo la capsula no se mueve ── */
+  await escena();
+  const d1 = T('ea-det-sev');
+  __t.set('vmax_ao','4.5'); await esp(400);
+  const d2 = T('ea-det-sev');
+  q('(D1 CONTROL) sin elegir modelo, volver a tipear el mismo valor NO cambia la capsula',
+    d1 === d2 && d1.indexOf('Posible estenosis protésica') > -1, 'antes=«' + d1 + '» despues=«' + d2 + '»');
+
+  /* ── (E) CONTROL: la MITRAL, cuyo veredicto no lee el catalogo, no se mueve ── */
+  __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+  __t.set('vm_morf','Prótesis biológica'); __t.set('em_vmax','2.6'); __t.set('em_gmedio','14'); __t.set('thp','240');
+  try { valvProtSync() } catch (e) {}
+  abrirValv(); await esp(430);
+  const e1 = T('vm-prot-obstr');
+  const cm = await cargar('vm', 'Medtronic Mosaic', '27');
+  const e2 = T('vm-prot-obstr');
+  q('(E1 CONTROL) elegir modelo en la MITRAL no mueve su veredicto: su capsula no lee el catalogo',
+    cm.quedo === true && e1 === e2 && e1.length > 0,
+    'cargo=' + cm.quedo + ' antes=«' + e1 + '» despues=«' + e2 + '»');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-770', 'PANT-26 commit 3a: la TAVI con un modelo del catalogo y desvio compara su area contra la del modelo, con la MISMA funcion y los MISMOS cortes; sin desvio o sin modelo, no vota', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  const cargar = async (pos, nom, tam) => {
+    abrirValv(); await esp(320);
+    const b = document.getElementById('vmod-' + pos + '-btn');
+    if (b) b.click(); else { try { vModAbrir(pos) } catch (e) {} }
+    await esp(160);
+    const inp = document.getElementById('vmod-inp');
+    if (inp) { inp.value = nom; inp.dispatchEvent(new Event('input', { bubbles: true })) }
+    await esp(190);
+    const ul = document.getElementById('vmod-sug');
+    const it = ul ? Array.from(ul.querySelectorAll('button')) : [];
+    const hit = it.find(x => String(x.textContent || '').indexOf(nom) > -1) || it[0];
+    if (hit) hit.click(); await esp(160);
+    const sel = document.getElementById('vmod-tam');
+    if (sel) { sel.value = tam; sel.dispatchEvent(new Event('change', { bubbles: true })) }
+    await esp(160);
+    const el = document.getElementById('vmod-elegir'); if (el) el.click();
+    await esp(330);
+    return { quedo: !!(__t.val(pos + '_prot_modelo') && __t.val(pos + '_prot_tam')),
+             sug: it.length, modelo: __t.val(pos + '_prot_modelo'), tam: __t.val(pos + '_prot_tam') };
+  };
+  const buscarTavi = (ava, zMin, zMax) => { try {
+    const i = PROT_CAT_TAVI_COLS.indexOf('eoa') + 1;
+    for (const m of PROT_CAT_TAVI) for (const f of m.s) { const c = f[i];
+      if (!c || c[0] == null || c[1] == null || !(+c[1] > 0)) continue;
+      const z = (ava - c[0]) / c[1];
+      if (z >= zMin && z <= zMax) return { n: m.n, t: String(f[0]), z: +z.toFixed(2) } }
+    return null } catch (e) { return null } };
+  /* El area que la app calcula con el Ø del TSVI y los dos VTI, para buscar la escena.
+     ⚠️ LOS INSUMOS VAN DENTRO DE SU BANDA: con un VTI del TSVI de 80 cm la app marca «revisar
+     la unidad» y el DVI y la AEO indexada salen vacios, o sea denominador vacio. 27/60 da un
+     DVI de 0,45, normal, y un area de 1,41 cm2 con un Ø de 20 mm. */
+  const avaDe = (d, vt, va) => Math.PI * Math.pow(d / 20, 2) * vt / va;
+  const SETS = { va_morf: 'TAVI', vmax_ao: '2.0', gmedio_ao: '12',
+                 diam_tsvi: '20', itv_tsvi: '27', itv_ao: '60' };
+  const escena = async (ex) => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    const s2 = Object.assign({}, SETS, ex || {});
+    Object.keys(s2).forEach(k => { try { __t.set(k, s2[k]) } catch (e) {} });
+    try { valvProtSync() } catch (e) {}
+    abrirValv(); await esp(430);
+  };
+  const est = () => { try { const P = eaProtVeredicto();
+    return P ? { nivel: P.nivel, ev: P.eoaEvaluable, z: P.eoaZ ? P.eoaZ.z : null,
+                 eoa: P.niveles ? P.niveles.eoa : null } : null } catch (e) { return 'ERR' } };
+
+  /* ── (A) DENOMINADOR: el catalogo de TAVI SIRVE para esto ── */
+  const cat = (function(){ try {
+    const i = PROT_CAT_TAVI_COLS.indexOf('eoa') + 1; let mod = 0, cel = 0, sd = 0;
+    PROT_CAT_TAVI.forEach(m => { let ok = false;
+      m.s.forEach(f => { const c = f[i];
+        if (c && c[0] != null) { cel++; if (c[1] != null && +c[1] > 0) { sd++; ok = true } } });
+      if (ok) mod++ });
+    return { modelos: PROT_CAT_TAVI.length, sirven: mod, celdas: cel, conSd: sd };
+  } catch (e) { return null } })();
+  q('(A0 DENOM) PROT_CAT_TAVI tiene 9 modelos y sus 26 celdas de area traen desvio: los 9 sirven',
+    !!cat && cat.modelos === 9 && cat.sirven === 9 && cat.celdas === 26 && cat.conSd === 26,
+    JSON.stringify(cat));
+  const AVA = avaDe(20, 27, 60);
+  const mDen = buscarTavi(AVA, -0.9, 0.9), mSig = buscarTavi(avaDe(16, 27, 60), -99, -2.05);
+  q('(A1 DENOM) hay un modelo de TAVI que deja el area DENTRO de 1 DE y otro a mas de 2 DE por debajo',
+    !!mDen && !!mSig, 'dentro=' + JSON.stringify(mDen) + ' masDe2=' + JSON.stringify(mSig));
+  if (!mDen || !mSig) return { extra: F };
+
+  /* ── (B) LA TAVI CON MODELO: el area VOTA ── */
+  await escena();
+  const b0 = est();
+  q('(B0 CONTROL) la MISMA escena SIN modelo: el area no se evalua',
+    b0 && b0.ev === false && b0.z === null, JSON.stringify(b0));
+  const c1 = await cargar('va', mDen.n, mDen.t);
+  q('(B1 DENOM) el modelo quedo cargado por el gesto real', c1.quedo === true && c1.sug > 0,
+    JSON.stringify(c1));
+  const b1 = est();
+  q('(B2) con el area DENTRO de 1 DE el area SI se evalua y su nivel es «normal»',
+    b1 && b1.ev === true && b1.eoa === 'normal' && Math.abs(b1.z) <= 1, JSON.stringify(b1));
+  await escena({ diam_tsvi: '16' });
+  await cargar('va', mSig.n, mSig.t);
+  const b2 = est();
+  q('(B3) con el area a mas de 2 DE por debajo su nivel es «signif»',
+    b2 && b2.ev === true && b2.eoa === 'signif' && b2.z <= -2, JSON.stringify(b2));
+  q('(B4) y el veredicto NO llega a «signif» con los dos ejes dependientes normales: la regla de las dos mitades sigue en pie',
+    b2 && b2.nivel === 'posible', 'nivel=' + (b2 && b2.nivel));
+  await escena({ diam_tsvi: '16', vmax_ao: '4.5', gmedio_ao: '45' });
+  await cargar('va', mSig.n, mSig.t);
+  const b3 = est();
+  q('(B5) con los dos ejes dependientes en significativa Y el area a mas de 2 DE, el veredicto es «signif»',
+    b3 && b3.nivel === 'signif', JSON.stringify(b3));
+
+  /* ── (C) CONTROL: el modo MANUAL no tiene desvio, asi que el area no vota ── */
+  await escena();
+  abrirValv(); await esp(300);
+  const bm = document.getElementById('vmod-va-btn'); if (bm) bm.click(); await esp(170);
+  const bman = document.getElementById('vmod-bmanual');
+  q('(C0 DENOM) el componente ofrece el modo manual', !!bman, 'vmod-bmanual = ' + !!bman);
+  if (bman) bman.click();
+  await esp(190);
+  const pon = (id, v) => { const e = document.getElementById(id); if (!e) return false;
+    e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    e.dispatchEvent(new Event('change', { bubbles: true })); return true };
+  pon('vmod-mnom','Modelo a mano'); pon('vmod-mtam','23'); pon('vmod-mgm','12'); pon('vmod-meoa','1.4');
+  await esp(220);
+  const bel = document.getElementById('vmod-elegir'); if (bel) bel.click();
+  await esp(350);
+  const c0 = est();
+  q('(C1 CONTROL) con el modo MANUAL el area NO vota: sus valores se construyen con desvio nulo',
+    __t.val('va_prot_modelo') === 'Modelo a mano' && c0 && c0.ev === false && c0.z === null,
+    'modelo=«' + __t.val('va_prot_modelo') + '» ' + JSON.stringify(c0));
+
+  /* ── (D) LA QUIRURGICA sigue igual, con la MISMA funcion y los MISMOS cortes ── */
+  q('(D0) los cortes son los de siempre y tienen un solo dueño: EA_PROT_EOA_Z',
+    typeof EA_PROT_EOA_Z === 'object' && EA_PROT_EOA_Z.normalMin === -1 && EA_PROT_EOA_Z.signifMax === -2,
+    JSON.stringify(typeof EA_PROT_EOA_Z === 'object' ? EA_PROT_EOA_Z : null));
+  const mq = (function(){ try {
+    const i = PROT_CAT_A4_COLS.indexOf('eoa') + 1;
+    for (const m of PROT_CAT_A4) for (const f of m.s) { const c = f[i];
+      if (!c || c[0] == null || c[1] == null || !(+c[1] > 0)) continue;
+      const z = (AVA - c[0]) / c[1]; if (z >= -0.9 && z <= 0.9) return { n: m.n, t: String(f[0]) } }
+    return null } catch (e) { return null } })();
+  q('(D1 DENOM) el catalogo A4 tambien tiene un modelo en ese tramo', !!mq, JSON.stringify(mq));
+  if (mq) {
+    await escena({ va_morf: 'Prótesis mecánica' });
+    await cargar('va', mq.n, mq.t);
+    const d1 = est();
+    q('(D2) la QUIRURGICA con un modelo de su catalogo sigue evaluando el area, igual que antes de esta tanda',
+      d1 && d1.ev === true && d1.eoa === 'normal', JSON.stringify(d1));
+  }
+  return { extra: F };
+  })();
+`);
+
+caso('TC-771', 'PANT-26 commit 3b: el desajuste se publica solo si el area efectiva esta dentro de 1 DE de la del modelo, que es la condicion de la nota al pie de la Tabla 7; sin modelo o sin desvio, como siempre', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  const cargar = async (nom, tam) => {
+    abrirValv(); await esp(320);
+    const b = document.getElementById('vmod-va-btn'); if (b) b.click();
+    await esp(160);
+    const inp = document.getElementById('vmod-inp');
+    if (inp) { inp.value = nom; inp.dispatchEvent(new Event('input', { bubbles: true })) }
+    await esp(190);
+    const ul = document.getElementById('vmod-sug');
+    const it = ul ? Array.from(ul.querySelectorAll('button')) : [];
+    const hit = it.find(x => String(x.textContent || '').indexOf(nom) > -1) || it[0];
+    if (hit) hit.click(); await esp(160);
+    const sel = document.getElementById('vmod-tam');
+    if (sel) { sel.value = tam; sel.dispatchEvent(new Event('change', { bubbles: true })) }
+    await esp(160);
+    const el = document.getElementById('vmod-elegir'); if (el) el.click();
+    await esp(330);
+    return !!(__t.val('va_prot_modelo') && __t.val('va_prot_tam'));
+  };
+  const buscarTavi = (ava, zMin, zMax) => { try {
+    const i = PROT_CAT_TAVI_COLS.indexOf('eoa') + 1;
+    for (const m of PROT_CAT_TAVI) for (const f of m.s) { const c = f[i];
+      if (!c || c[0] == null || c[1] == null || !(+c[1] > 0)) continue;
+      const z = (ava - c[0]) / c[1];
+      if (z >= zMin && z <= zMax) return { n: m.n, t: String(f[0]), z: +z.toFixed(2) } }
+    return null } catch (e) { return null } };
+  const AVA = Math.PI * Math.pow(1, 2) * 27 / 60;
+  const escena = async () => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    __t.set('va_morf','TAVI'); __t.set('vmax_ao','2.0'); __t.set('gmedio_ao','12');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','27'); __t.set('itv_ao','60');
+    try { valvProtSync() } catch (e) {}
+    abrirValv(); await esp(430);
+  };
+  const ver = () => { try { return eaProtVeredicto() } catch (e) { return null } };
+  const papel = () => { const r = __t.informe();
+    return { ao: String(r.inf).split('\\n').filter(x => /aórtic|Desajuste/i.test(x)).join(' | '),
+             suma: String(r.suma).split('\\n').filter(x => /aórtic|TAVI|PPM/i.test(x)).join(' | ') } };
+
+  /* ── (A) DENOMINADOR ── */
+  q('(A0) la constante de la nota al pie de la Tabla 7 existe y vale 1 desvio estandar',
+    typeof EA_PROT_PPM_SD === 'number' && EA_PROT_PPM_SD === 1, 'EA_PROT_PPM_SD = ' + (typeof EA_PROT_PPM_SD === 'number' ? EA_PROT_PPM_SD : 'no existe'));
+  await escena();
+  const P0 = ver();
+  q('(A1 DENOM) la escena llega a la zona: hay DESAJUSTE medido, moderado o severo, y el papel lo publicaba',
+    !!P0 && (P0.ppm === 'moderado' || P0.ppm === 'severo') && P0.avai != null,
+    P0 ? ('ppm=' + P0.ppm + ' avai=' + P0.avai) : 'eaProtVeredicto devolvio null');
+  const sinMod = papel();
+  q('(A2 CONTROL) SIN modelo el desajuste se publica como siempre, y ppmDentro1DE vale true',
+    P0 && P0.ppmDentro1DE === true && sinMod.ao.indexOf('Desajuste protésico-paciente aórtico') > -1,
+    'dentro1DE=' + (P0 && P0.ppmDentro1DE) + ' | ' + sinMod.ao.slice(0, 190));
+
+  const mDen = buscarTavi(AVA, -0.9, 0.9), mFue = buscarTavi(AVA, -1.9, -1.05);
+  q('(A3 DENOM) hay un modelo que deja el area DENTRO de 1 DE y otro FUERA',
+    !!mDen && !!mFue, 'dentro=' + JSON.stringify(mDen) + ' fuera=' + JSON.stringify(mFue));
+  if (!mDen || !mFue) return { extra: F };
+
+  /* ── (B) DENTRO de 1 DE: se publica ── */
+  await escena();
+  const ok1 = await cargar(mDen.n, mDen.t);
+  const P1 = ver(); const p1 = papel();
+  q('(B1 DENOM) el modelo quedo cargado y el area quedo dentro de 1 DE',
+    ok1 === true && !!P1 && P1.eoaZ && Math.abs(P1.eoaZ.z) <= 1,
+    'cargo=' + ok1 + ' z=' + (P1 && P1.eoaZ && P1.eoaZ.z));
+  q('(B2) con el area DENTRO de 1 DE el desajuste SE PUBLICA en el cuerpo y en el EN SUMA',
+    P1 && P1.ppmDentro1DE === true &&
+    p1.ao.indexOf('Desajuste protésico-paciente aórtico') > -1 &&
+    p1.suma.indexOf('PPM aórtico') > -1,
+    'dentro1DE=' + (P1 && P1.ppmDentro1DE) + ' | ' + p1.ao.slice(0, 190) + ' || ' + p1.suma.slice(0, 120));
+
+  /* ── (C) FUERA de 1 DE: NO se publica, y no se escribe nada en su lugar ── */
+  await escena();
+  const ok2 = await cargar(mFue.n, mFue.t);
+  const P2 = ver(); const p2 = papel();
+  q('(C1 DENOM) el modelo quedo cargado y el area quedo FUERA de 1 DE, con el desajuste todavia medido',
+    ok2 === true && !!P2 && P2.eoaZ && Math.abs(P2.eoaZ.z) > 1 &&
+    (P2.ppm === 'moderado' || P2.ppm === 'severo'),
+    'cargo=' + ok2 + ' z=' + (P2 && P2.eoaZ && P2.eoaZ.z) + ' ppm=' + (P2 && P2.ppm));
+  q('(C2) con el area FUERA de 1 DE el desajuste NO se publica en ninguna de las dos superficies',
+    P2 && P2.ppmDentro1DE === false &&
+    p2.ao.indexOf('Desajuste protésico-paciente') === -1 &&
+    p2.suma.indexOf('PPM aórtico') === -1,
+    'dentro1DE=' + (P2 && P2.ppmDentro1DE) + ' | ' + p2.ao.slice(0, 190) + ' || ' + p2.suma.slice(0, 120));
+  q('(C3) y NO se escribe nada en su lugar: no aparece ninguna frase nueva sobre el desajuste',
+    p2.ao.toLowerCase().indexOf('desajuste') === -1 && p2.suma.toLowerCase().indexOf('ppm') === -1,
+    p2.ao.slice(0, 190));
+  q('(C4) la FILA DE PANTALLA sigue publicando la AEO indexada con su categoria: lo que se retira es la oracion, no el numero',
+    String(__t.txt('ea-prot-ppm') || '').indexOf('cm²/m²') > -1 &&
+    /moderado|severo/.test(String(__t.txt('ea-prot-ppm') || '')),
+    'fila=«' + __t.txt('ea-prot-ppm') + '»');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-772', 'PANT-26 commit 4a: con velocidad o gradiente altos y sin eje independiente, el papel dice «con posible estenosis» en las cuatro superficies; con los dos ejes normales o ausentes, NO', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  const lineaAo = inf => (String(inf || '').split('\\n')
+    .filter(l => { const t = pl(l);
+      return t.indexOf('valvula aortica') === 0 || t.indexOf('la valvula aortica') === 0 ||
+             t.indexOf('vao ') === 0 })[0] || '');
+  const escena = async (campos, estilo) => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    Object.keys(campos).forEach(k => { try { __t.set(k, campos[k]) } catch (e) {} });
+    await esp(340);
+    try { setEstiloInforme(estilo || 'estandar') } catch (e) {}
+    await esp(60);
+    const r = __t.informe();
+    return { inf: r.inf, suma: r.suma, ao: lineaAo(r.inf) };
+  };
+  /* ── (A) DENOMINADOR: la escena del medico llega a la zona ── */
+  __t.limpiar(); __t.set('va_morf','TAVI'); __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+  await esp(340);
+  let P = null; try { P = eaProtVeredicto() } catch (e) {}
+  q('(A0 DENOM) la escena del medico: nivel «faltan», el peor eje dependiente en «signif» y NINGUN eje independiente',
+    !!P && P.nivel === 'faltan' && P.pDep === 'signif' && P.pIndep == null,
+    P ? ('nivel=' + P.nivel + ' pDep=' + P.pDep + ' pIndep=' + P.pIndep) : 'null');
+  q('(A1) la tabla de la frase nueva existe y dice lo que la decision fija, sin la palabra «protesica»',
+    typeof EA_PROT_POSIBLE_SD === 'object' &&
+    EA_PROT_POSIBLE_SD.frase === 'con posible estenosis' &&
+    EA_PROT_POSIBLE_SD.resumen === 'posible estenosis' &&
+    EA_PROT_POSIBLE_SD.suma === 'TAVI con posible estenosis.',
+    JSON.stringify(typeof EA_PROT_POSIBLE_SD === 'object' ? EA_PROT_POSIBLE_SD : null));
+
+  /* ── (B) LA ESCENA DEL MEDICO, EN LOS TRES ESTILOS ── */
+  const T = {};
+  for (const st of ['conciso','estandar','narrativo'])
+    T[st] = await escena({ va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45' }, st);
+  q('(B1) el NARRATIVO dice «La valvula aortica presenta una protesis transcateter tipo TAVI con posible estenosis (Vmax 4.5 m/s, G. medio 45 mmHg).»',
+    pl(T.narrativo.ao) === 'la valvula aortica presenta una protesis transcateter tipo tavi, con posible estenosis (vmax 4.5 m/s, g. medio 45 mmhg).',
+    T.narrativo.ao);
+  q('(B2) el ESTANDAR y el CONCISO usan la misma cola y su forma de morfologia',
+    pl(T.estandar.ao).indexOf('con posible estenosis (vmax 4.5 m/s, g. medio 45 mmhg).') > -1 &&
+    pl(T.conciso.ao).indexOf('con posible estenosis (vmax 4.5 m/s, g. medio 45 mmhg).') > -1,
+    'estandar=«' + T.estandar.ao + '» conciso=«' + T.conciso.ao + '»');
+  q('(B3) la frase VIEJA ya no esta en ninguno de los tres estilos',
+    ['conciso','estandar','narrativo'].every(st => pl(T[st].ao).indexOf('sin datos suficientes') === -1),
+    ['conciso','estandar','narrativo'].map(st => st + ':' + T[st].ao.slice(0, 70)).join(' || '));
+  q('(B4) EL PARENTESIS DE MEDIDAS SE CONSERVA en los tres: ningun numero medido desaparece',
+    ['conciso','estandar','narrativo'].every(st =>
+      T[st].ao.indexOf('Vmax 4.5 m/s') > -1 && T[st].ao.indexOf('G. medio 45 mmHg') > -1),
+    T.estandar.ao);
+  q('(B5) el EN SUMA de la TAVI es exactamente «TAVI con posible estenosis.» en los tres estilos',
+    ['conciso','estandar','narrativo'].every(st => T[st].suma.indexOf('TAVI con posible estenosis.') > -1),
+    T.estandar.suma.slice(0, 170));
+  q('(B6) y no dice «protesica» en esa linea',
+    pl(T.estandar.suma).indexOf('posible estenosis protesica') === -1, T.estandar.suma.slice(0, 170));
+
+  /* ── (C) LA QUIRURGICA: el esqueleto que esa valvula ya tiene ── */
+  const Qb = await escena({ va_morf:'Prótesis biológica', vmax_ao:'4.5', gmedio_ao:'45' });
+  const Qm = await escena({ va_morf:'Prótesis mecánica',  vmax_ao:'4.5', gmedio_ao:'45' });
+  q('(C1) la BIOLOGICA y la MECANICA tambien dicen «con posible estenosis», con su parentesis',
+    pl(Qb.ao).indexOf('con posible estenosis (vmax 4.5 m/s, g. medio 45 mmhg).') > -1 &&
+    pl(Qm.ao).indexOf('con posible estenosis (vmax 4.5 m/s, g. medio 45 mmhg).') > -1,
+    'bio=«' + Qb.ao + '» mec=«' + Qm.ao + '»');
+  q('(C2) y su EN SUMA usa el esqueleto de siempre: «Protesis aortica: posible estenosis.»',
+    Qb.suma.indexOf('Prótesis aórtica: posible estenosis.') > -1 &&
+    Qm.suma.indexOf('Prótesis aórtica: posible estenosis.') > -1 &&
+    Qb.suma.indexOf('TAVI con posible estenosis.') === -1,
+    Qb.suma.slice(0, 170));
+
+  /* ── (D) DONDE NO CORRESPONDE: la frase vieja SIGUE ── */
+  const N1 = await escena({ va_morf:'Prótesis biológica', vmax_ao:'2.0', gmedio_ao:'15' });
+  q('(D1 CONTROL) con los dos ejes dependientes NORMALES y sin independiente, la frase vieja sigue',
+    pl(N1.ao).indexOf('sin datos suficientes para graduar la estenosis protesica') > -1 &&
+    pl(N1.ao).indexOf('con posible estenosis') === -1, N1.ao);
+  const N2 = await escena({ va_morf:'Prótesis biológica' });
+  q('(D2 CONTROL) SIN ningun dato dependiente, la frase vieja sigue',
+    pl(N2.ao).indexOf('sin datos suficientes para graduar la estenosis protesica') > -1 &&
+    pl(N2.ao).indexOf('con posible estenosis') === -1, N2.ao);
+  const N3 = await escena({ va_morf:'Prótesis biológica', vmax_ao:'4.5', gmedio_ao:'45',
+                            diam_tsvi:'21', itv_tsvi:'50', itv_ao:'100' });
+  q('(D3 CONTROL) CON eje independiente medido la regla no entra: el veredicto gradua y dice «posible estenosis protesica»',
+    pl(N3.ao).indexOf('posible estenosis protesica') > -1 &&
+    pl(N3.ao).indexOf('sin datos suficientes') === -1, N3.ao);
+  /* ⚠️ LA BANDA «POSIBLE» PURA, QUE EL PRIMER BARRIDO DESTAPO. Todas las escenas de arriba
+     tienen al menos un eje en «signif», asi que una condicion achicada a «signif» pasaba en
+     verde: la mutacion 18 sobrevivio. Vmax 3,5 m/s cae entre 3 y 4, o sea «posible», y el
+     gradiente de 25 mmHg entre 20 y 35, tambien «posible»: ninguno llega a significativa. */
+  const Pp = await escena({ va_morf:'TAVI', vmax_ao:'3.5', gmedio_ao:'25' });
+  let Ppv = null; try { Ppv = eaProtVeredicto() } catch (e) {}
+  q('(D0 DENOM) la escena de banda POSIBLE llega a la zona: pDep es «posible», no «signif»',
+    !!Ppv && Ppv.nivel === 'faltan' && Ppv.pDep === 'posible' && Ppv.pIndep == null,
+    Ppv ? ('nivel=' + Ppv.nivel + ' pDep=' + Ppv.pDep) : 'null');
+  q('(D0b) con los dos ejes en banda POSIBLE la frase nueva tambien sale, con su parentesis',
+    pl(Pp.ao).indexOf('con posible estenosis (vmax 3.5 m/s, g. medio 25 mmhg).') > -1 &&
+    pl(Pp.ao).indexOf('sin datos suficientes') === -1 &&
+    Pp.suma.indexOf('TAVI con posible estenosis.') > -1, Pp.ao + ' || ' + Pp.suma.slice(0, 120));
+  const N4 = await escena({ va_morf:'Trivalva normal', vmax_ao:'4.5', gmedio_ao:'45' });
+  q('(D4 CONTROL NEGATIVO) una valvula aortica NATIVA con los mismos numeros no dice nada de esto',
+    pl(N4.ao).indexOf('con posible estenosis (') === -1 &&
+    pl(N4.ao).indexOf('protesica') === -1, N4.ao);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-773', 'PANT-26 commit 4b: una TAVI con desajuste NO sale normofuncionante en ninguna superficie, y la TAVI sin datos y sin desajuste sigue saliendo', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  const lineaAo = inf => (String(inf || '').split('\\n')
+    .filter(l => { const t = pl(l);
+      return t.indexOf('valvula aortica') === 0 || t.indexOf('la valvula aortica') === 0 ||
+             t.indexOf('vao ') === 0 })[0] || '');
+  const escena = async (campos, estilo) => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    Object.keys(campos).forEach(k => { try { __t.set(k, campos[k]) } catch (e) {} });
+    await esp(360);
+    try { setEstiloInforme(estilo || 'estandar') } catch (e) {}
+    await esp(60);
+    const r = __t.informe();
+    return { inf: r.inf, suma: r.suma, ao: lineaAo(r.inf) };
+  };
+  /* La escena del desajuste: Ø TSVI 16 mm y VTI 40/100 dan un DVI de 0,40 (normal) y una AEO
+     indexada de 0,44 cm2/m2, o sea desajuste SEVERO, SIN velocidad ni gradiente cargados. */
+  const DES = { va_morf:'TAVI', diam_tsvi:'16', itv_tsvi:'40', itv_ao:'100' };
+  __t.limpiar(); __t.set('peso','70'); __t.set('talla','170');
+  Object.keys(DES).forEach(k => __t.set(k, DES[k]));
+  await esp(380);
+  let P = null; try { P = eaProtVeredicto() } catch (e) {}
+  let N = null; try { N = eaProtNarrativa(P) } catch (e) {}
+  q('(A0 DENOM) la escena llega a la zona: nivel «faltan», el DVI normal y el desajuste SEVERO medido',
+    !!P && P.nivel === 'faltan' && P.ppm === 'severo' && P.niveles && P.niveles.dvi === 'normal',
+    P ? ('nivel=' + P.nivel + ' ppm=' + P.ppm + ' dvi=' + (P.niveles && P.niveles.dvi) + ' avai=' + P.avai) : 'null');
+  q('(A1) y la marca del emisor se apaga: normoTavi es falso',
+    !!N && N.normoTavi === false, N ? ('normoTavi=' + N.normoTavi) : 'eaProtNarrativa devolvio null');
+
+  /* ── (B) LAS TRES SUPERFICIES DE TEXTO ── */
+  const D = {};
+  for (const st of ['conciso','estandar','narrativo']) D[st] = await escena(DES, st);
+  q('(B1) NINGUNO de los tres estilos dice «normofuncionante»',
+    ['conciso','estandar','narrativo'].every(st => pl(D[st].ao).indexOf('normofuncionante') === -1),
+    ['conciso','estandar','narrativo'].map(st => st + ':«' + D[st].ao + '»').join(' || ').slice(0, 300));
+  q('(B2) el EN SUMA tampoco publica «TAVI normofuncionante.»',
+    ['conciso','estandar','narrativo'].every(st => D[st].suma.indexOf('TAVI normofuncionante.') === -1),
+    D.estandar.suma.replace(/\\n/g, ' | ').slice(0, 200));
+  q('(B3) la frase sale con el esqueleto de siempre y CONSERVA el parentesis de lo medido',
+    pl(D.estandar.ao).indexOf('sin datos suficientes para graduar la estenosis protesica') > -1 &&
+    D.estandar.ao.indexOf('DVI 0.40') > -1, D.estandar.ao);
+  q('(B4) y la linea del DESAJUSTE que ya existia se queda, en el cuerpo y en el EN SUMA',
+    D.estandar.inf.indexOf('Desajuste protésico-paciente aórtico severo') > -1 &&
+    D.estandar.suma.indexOf('PPM aórtico severo.') > -1,
+    D.estandar.inf.split('\\n').filter(x => /Desajuste/.test(x)).join(' | ') + ' || ' +
+    D.estandar.suma.replace(/\\n/g, ' | ').slice(0, 150));
+
+  /* ⚠️ Y EL DESAJUSTE MODERADO TAMBIEN APAGA LA PALABRA, QUE EL PRIMER BARRIDO DESTAPO: la
+     escena de arriba tiene el desajuste SEVERO, asi que una guarda achicada a «severo» pasaba en
+     verde -la mutacion 25 sobrevivio-. Con Ø TSVI 20 mm y VTI 27/60 el area queda en 1,41 cm2 y
+     la AEO indexada en 0,78 cm2/m2, que es la banda MODERADA con indice de masa corporal < 30. */
+  const MOD = { va_morf:'TAVI', diam_tsvi:'20', itv_tsvi:'27', itv_ao:'60' };
+  const Dm = await escena(MOD);
+  let Pm = null; try { Pm = eaProtVeredicto() } catch (e) {}
+  q('(B5 DENOM) la escena del desajuste MODERADO llega a la zona',
+    !!Pm && Pm.nivel === 'faltan' && Pm.ppm === 'moderado',
+    Pm ? ('nivel=' + Pm.nivel + ' ppm=' + Pm.ppm + ' avai=' + Pm.avai) : 'null');
+  q('(B6) con desajuste MODERADO tampoco dice «normofuncionante», ni en el cuerpo ni en el EN SUMA',
+    pl(Dm.ao).indexOf('normofuncionante') === -1 &&
+    Dm.suma.indexOf('TAVI normofuncionante.') === -1 &&
+    Dm.suma.indexOf('PPM aórtico moderado.') > -1,
+    Dm.ao + ' || ' + Dm.suma.split(String.fromCharCode(10)).join(' | ').slice(0, 170));
+
+  /* ── (C) CONTROL: sin desajuste, «normofuncionante» sigue ── */
+  const S1 = await escena({ va_morf:'TAVI' });
+  q('(C1 CONTROL) la TAVI SIN ningun dato sigue diciendo «normofuncionante» y su EN SUMA tambien',
+    pl(S1.ao).indexOf('tavi normofuncionante') > -1 && S1.suma.indexOf('TAVI normofuncionante.') > -1, S1.ao);
+  const S2 = await escena({ va_morf:'TAVI', vmax_ao:'2.0', gmedio_ao:'12',
+                            diam_tsvi:'21', itv_tsvi:'50', itv_ao:'100' });
+  let P2 = null; try { P2 = eaProtVeredicto() } catch (e) {}
+  q('(C2 CONTROL) con los tres ejes NORMALES y SIN desajuste, el veredicto gradua y no hay desajuste que apagar',
+    !!P2 && P2.ppm !== 'moderado' && P2.ppm !== 'severo' &&
+    pl(S2.ao).indexOf('sin criterios de estenosis protesica') > -1,
+    'ppm=' + (P2 && P2.ppm) + ' | ' + S2.ao);
+  /* ── (D) CONTROL: la guarda mira el GRADO, no si la oracion se publica ── */
+  q('(D1) la guarda es una sola y vive en el emisor del narrativo: los seis caminos cuelgan de ella',
+    (function(){ try { const p = { via:'TAVI', nivel:'faltan', ppm:'severo',
+        niveles:{ vmax:null, atet:null, at:null, gmed:null, dvi:'normal', eoa:null } };
+      const n = eaProtNarrativa(p); return n && n.normoTavi === false } catch (e) { return false } })(),
+    'normoTavi con ppm severo inyectado');
+  q('(D2 CONTROL) y con ppm en «no» la misma guarda deja pasar «normofuncionante»',
+    (function(){ try { const p = { via:'TAVI', nivel:'faltan', ppm:'no',
+        niveles:{ vmax:null, atet:null, at:null, gmed:null, dvi:'normal', eoa:null } };
+      const n = eaProtNarrativa(p); return n && n.normoTavi === true } catch (e) { return false } })(),
+    'normoTavi con ppm no');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-774', 'PANT-26 commit 5a: cada fila de la capsula mitral publica el valor y la escala de la Tabla 11 y NO concluye; la conclusion queda solo en el resumen, y el papel no cambia', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const T = id => __t.txt(id) == null ? '' : String(__t.txt(id)).trim();
+  const CONC = ['sin criterios de obstrucción', 'posible obstrucción', 'sugiere obstrucción significativa'];
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  const escena = async (c) => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    Object.keys(c).forEach(k => { try { __t.set(k, c[k]) } catch (e) {} });
+    try { valvProtSync() } catch (e) {}
+    abrirValv(); await esp(430);
+  };
+  /* ── (A) LA ESCENA QUE DESTAPO EL DEFECTO: la velocidad pico de E NO vota ── */
+  await escena({ vm_morf:'Prótesis biológica', em_vmax:'2.6', em_gmedio:'14' });
+  let R = null; try { R = vmProtEOA() } catch (e) {}
+  q('(A0 DENOM) la capsula mitral protesica existe y su veredicto cuenta UN solo criterio positivo',
+    !!R && R.esProt === true && R.obstr === 'posible' && (R.obstrPos || []).length === 1,
+    R ? ('obstr=' + R.obstr + ' pos=' + JSON.stringify(R.obstrPos)) : 'vmProtEOA devolvio null');
+  q('(A1 DENOM) y la velocidad pico de E NO esta entre los que votan',
+    (R.obstrPos || []).indexOf('vmax') === -1 &&
+    (typeof VM_PROT_OBSTR_VOTAN === 'undefined' || VM_PROT_OBSTR_VOTAN.indexOf('vmax') === -1),
+    'votan=' + (typeof VM_PROT_OBSTR_VOTAN !== 'undefined' ? JSON.stringify(VM_PROT_OBSTR_VOTAN) : 'sin constante'));
+  const fV = T('vm-prot-vmax'), fG = T('vm-prot-gmed');
+  q('(A2) la fila de la VELOCIDAD publica el valor y la escala, y NO concluye',
+    fV.indexOf('2.60 m/s') > -1 && fV.indexOf('<1.9 normal · ≥2.5 significativa') > -1 &&
+    CONC.every(c => fV.indexOf(c) === -1), 'vmax=«' + fV + '»');
+  q('(A3) la fila del GRADIENTE, igual',
+    fG.indexOf('14.0 mmHg') > -1 && fG.indexOf('≤5 normal · >10 significativa') > -1 &&
+    CONC.every(c => fG.indexOf(c) === -1), 'gmed=«' + fG + '»');
+  q('(A4) y EL RESUMEN SI concluye, con sus criterios y su conteo',
+    T('vm-prot-obstr').indexOf('hallazgo aislado — posible obstrucción') > -1 &&
+    T('vm-prot-obstr').indexOf('1 de 1 criterio') > -1, 'obstr=«' + T('vm-prot-obstr') + '»');
+
+  /* ── (B) CON LOS CINCO MEDIDOS ── */
+  await escena({ vm_morf:'Prótesis biológica', em_vmax:'2.6', em_gmedio:'14', thp:'240',
+                 em_dtsvi:'21', em_vtitsvi:'50', em_vtimit:'110' });
+  const filas = ['vm-prot-vmax','vm-prot-gmed','vm-prot-thp','vm-prot-eoa','vm-prot-dvi'];
+  const conConc = filas.filter(id => CONC.some(c => T(id).indexOf(c) > -1));
+  q('(B0 DENOM) las cinco filas tienen texto: no se esta midiendo sobre una capsula vacia',
+    filas.every(id => T(id).length > 0), filas.map(id => id + '=«' + T(id) + '»').join(' || ').slice(0, 420));
+  q('(B1) NINGUNA de las cinco filas publica una conclusion',
+    conConc.length === 0, 'con conclusion: ' + JSON.stringify(conConc));
+  q('(B2) el THP publica su valor y su escala',
+    T('vm-prot-thp').indexOf('240 ms') > -1 &&
+    T('vm-prot-thp').indexOf('<130 normal · >200 significativa') > -1, 'thp=«' + T('vm-prot-thp') + '»');
+  q('(B3) y el resumen concluye con los dos criterios y su conteo',
+    T('vm-prot-obstr').indexOf('sugiere obstrucción significativa') > -1 &&
+    T('vm-prot-obstr').indexOf('2 de') > -1, 'obstr=«' + T('vm-prot-obstr') + '»');
+
+  /* ⚠️ EL AEO Y EL DVI CON SU PROPIO NIVEL, QUE EL PRIMER BARRIDO DESTAPO. En la escena de
+     arriba sus insumos quedan fuera de banda, asi que las dos filas publican una raya y un
+     motivo y NO tienen conclusion que mostrar: las mutaciones 29 y 30 -que les devuelven la
+     conclusion- sobrevivian sobre filas vacias. Con Ø TSVI 21 mm y VTI 20/40 el AEO da 1,73 cm2
+     -banda «posible»- y el DVI 2,00 -banda «normal»-, los dos dentro de su banda de
+     plausibilidad y los dos CON nivel. */
+  await escena({ vm_morf:'Prótesis biológica', em_vmax:'2.6', em_gmedio:'14', thp:'240',
+                 em_dtsvi:'21', em_vtitsvi:'20', em_vtimit:'40' });
+  let R2 = null; try { R2 = vmProtEOA() } catch (e) {}
+  q('(B4 DENOM) el AEO y el DVI quedaron MEDIDOS y con su propio nivel: hay conclusion que no mostrar',
+    !!R2 && R2.eoa != null && R2.dvi != null && !!R2.porEoa && !!R2.porDvi,
+    R2 ? ('eoa=' + R2.eoa + '/' + R2.porEoa + ' dvi=' + R2.dvi + '/' + R2.porDvi) : 'null');
+  q('(B5) la fila del AEO publica su valor en cm2 y NO concluye',
+    T('vm-prot-eoa').indexOf('cm²') > -1 &&
+    CONC.every(c => T('vm-prot-eoa').indexOf(c) === -1), 'eoa=«' + T('vm-prot-eoa') + '»');
+  q('(B6) la fila del DVI publica su valor y NO concluye',
+    T('vm-prot-dvi').length > 0 && T('vm-prot-dvi') !== '—' &&
+    CONC.every(c => T('vm-prot-dvi').indexOf(c) === -1), 'dvi=«' + T('vm-prot-dvi') + '»');
+  q('(B7) y el resumen SIGUE concluyendo con su conteo',
+    CONC.some(c => T('vm-prot-obstr').indexOf(c) > -1) &&
+    T('vm-prot-obstr').indexOf(' de ') > -1, 'obstr=«' + T('vm-prot-obstr') + '»');
+
+  /* ── (C) EL PAPEL NO CAMBIA ── */
+  await escena({ vm_morf:'Prótesis biológica', em_vmax:'2.6', em_gmedio:'14', thp:'240',
+                 em_dtsvi:'21', em_vtitsvi:'50', em_vtimit:'110' });
+  const r = __t.informe();
+  const lm = String(r.inf).split('\\n').filter(x => /mitral/i.test(x)).join(' | ');
+  q('(C1) el papel sigue publicando la linea de la obstruccion con sus criterios: el pintor no lo alimenta',
+    lm.indexOf('Prótesis mitral con hallazgos sugestivos de obstrucción') > -1 &&
+    lm.indexOf('gradiente medio 14.0 mmHg') > -1, lm.slice(0, 250));
+  q('(C2) y el EN SUMA tambien',
+    String(r.suma).indexOf('Prótesis mitral con hallazgos sugestivos de obstrucción') > -1,
+    String(r.suma).replace(/\\n/g, ' | ').slice(0, 200));
+
+  /* ── (D) LOS MOTIVOS NO SON CONCLUSIONES: se conservan ── */
+  await escena({ vm_morf:'Prótesis biológica', em_gmedio:'14' });
+  q('(D1) una fila SIN MEDIR sigue diciendo donde se carga',
+    T('vm-prot-thp').indexOf('sin medir') > -1 && T('vm-prot-thp').indexOf('Doppler Mitral') > -1,
+    'thp=«' + T('vm-prot-thp') + '»');
+
+  /* ── (E) CONTROL NEGATIVO: la TRICUSPIDE, que esta tanda no toca ── */
+  await escena({ vt_morf:'Prótesis biológica', et_gmedio:'12', et_thp:'240' });
+  q('(E1 CONTROL) la capsula de la protesis TRICUSPIDE sigue publicando su lectura por fila',
+    T('vt-prot-gmed').indexOf('sugiere estenosis') > -1 &&
+    T('vt-prot-thp').indexOf('sugiere estenosis') > -1,
+    'gmed=«' + T('vt-prot-gmed') + '» thp=«' + T('vt-prot-thp') + '»');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-775', 'PANT-26 commit 5b: las CUATRO declaraciones de criterio propio —los cortes de la TAVI, su area frente al modelo, la regla de la pulmonar y la condicion del desajuste— y lo que NO cambio de esos textos', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  const escena = async (c) => {
+    __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+    __t.set('peso','70'); __t.set('talla','170');
+    Object.keys(c).forEach(k => { try { __t.set(k, c[k]) } catch (e) {} });
+    try { valvProtSync() } catch (e) {}
+    abrirValv(); await esp(430);
+  };
+  /* ── (A) TAVI, CORTES: la salvedad del basal ── */
+  const SALV = (typeof EA_PROT_SALV === 'object' && EA_PROT_SALV) ? String(EA_PROT_SALV.tavi || '') : '';
+  q('(A0 DENOM) la salvedad de la TAVI existe y tiene texto', SALV.length > 100, 'chars = ' + SALV.length);
+  q('(A1) DECLARA que los cortes de gradiente y de DVI de la TAVI son los de la quirurgica, como criterio de la aplicacion',
+    SALV.indexOf('Los cortes de gradiente y de DVI para la TAVI son los de la prótesis quirúrgica: es un criterio de la aplicación.') > -1,
+    SALV.slice(-200));
+  q('(A2) y ya NO se los atribuye a la guia: el cierre con la hoja y el folio salio',
+    SALV.indexOf('hoja 18, folio 19') === -1 && SALV.indexOf('ASE 2024,') === -1, SALV.slice(-200));
+  q('(A3) lo que SI es de la guia se conserva, con el nombre de su tabla',
+    SALV.indexOf('Para TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo') > -1 &&
+    SALV.indexOf('condiciones hemodinámicas estables') > -1, SALV.slice(0, 220));
+  /* y se ve en la pantalla, no solo en la constante */
+  await escena({ va_morf:'TAVI', vmax_ao:'2.0', gmedio_ao:'12',
+                 diam_tsvi:'20', itv_tsvi:'27', itv_ao:'60' });
+  const notaT = String(__t.txt('ea-det-sev-nota') || '');
+  q('(A4) y el medico la ve: el plegable de la aortica la publica',
+    notaT.length > 100 && notaT.indexOf('es un criterio de la aplicación') > -1 &&
+    notaT.indexOf('hoja 18, folio 19') === -1, 'chars=' + notaT.length + ' | ' + notaT.slice(-230));
+
+  /* ── (B) TAVI, AREA: la declaracion en la salvedad del modelo ── */
+  const salvDe = (via) => { try {
+    const P = { via: via, nivel: 'posible', niveles: {}, falta: [],
+      eoaZ: { z: -0.3, nivel: 'normal', ava: 1.41, ref: 1.5, sd: 0.3, modelo: 'Modelo X', tam: '23' } };
+    const N = eaProtNarrativa(P); return (N && N.salvedades ? N.salvedades : []).join(' ');
+  } catch (e) { return 'ERR ' + e.message } };
+  const sT = salvDe('TAVI'), sQ = salvDe('SAVR');
+  q('(B0 DENOM) las dos salvedades traen texto', sT.length > 80 && sQ.length > 80,
+    'tavi=' + sT.length + ' savr=' + sQ.length);
+  q('(B1) con TAVI la salvedad del area DECLARA el criterio propio',
+    sT.indexOf('La comparación del área efectiva con la referencia del modelo es un criterio de la aplicación.') > -1,
+    sT.slice(-240));
+  q('(B2) y NO le atribuye a la Tabla 5 una fila que es de la quirurgica',
+    sT.indexOf('Es el eje independiente del flujo que la Tabla 5 expresa así.') === -1, sT.slice(-240));
+  q('(B3) la QUIRURGICA conserva la suya, sin la declaracion',
+    sQ.indexOf('Es el eje independiente del flujo que la Tabla 5 expresa así.') > -1 &&
+    sQ.indexOf('es un criterio de la aplicación') === -1, sQ.slice(-240));
+  q('(B4) y las dos siguen publicando la desviacion medida frente a la del modelo',
+    sT.indexOf('DE, o sea') > -1 && sQ.indexOf('DE, o sea') > -1, sT.slice(0, 200));
+
+  /* ── (C) PULMONAR: la nota de su tarjeta ── */
+  q('(C0 DENOM) QV_NOTA existe y ahora tiene la clave de la protesis pulmonar',
+    typeof QV_NOTA === 'object' && Object.keys(QV_NOTA).indexOf('prot:pulmonar') > -1,
+    typeof QV_NOTA === 'object' ? Object.keys(QV_NOTA).join(', ') : 'sin QV_NOTA');
+  q('(C1) y dice exactamente la declaracion de la decision',
+    String(QV_NOTA['prot:pulmonar'] || '') ===
+      'Con velocidad o gradiente alterados, la aplicación informa posible obstrucción: es un criterio de la aplicación.',
+    String(QV_NOTA['prot:pulmonar'] || ''));
+  /* ⚠️ LA TARJETA SE ARMA CON LA ESCENA CARGADA: sin la protesis pulmonar y sus dos medidos
+     publica «Sin parametros cargados para esta lesion» -85 caracteres- y la medicion sale sobre
+     un denominador vacio, que es lo que midio la primera corrida de este caso. */
+  await escena({ vp_morf:'Prótesis biológica', vp_tipo_prot:'bio', vp_vmax:'3.5', ep_gmedio:'25' });
+  const tp = (function(){ try { const n = qvTarjeta('prot','pulmonar');
+    return n ? String(n.textContent || '') : '' } catch (e) { return 'ERR ' + e.message } })();
+  q('(C1b DENOM) la tarjeta de la pulmonar se arma con sus parametros, no con el mensaje de vacia',
+    tp.length > 150 && tp.indexOf('Sin parámetros cargados') === -1, 'chars=' + tp.length + ' | ' + tp.slice(0, 120));
+  q('(C2) el medico la ve en la tarjeta ⓘ de esa valvula',
+    tp.length > 150 && tp.indexOf('es un criterio de la aplicación') > -1, 'chars=' + tp.length);
+  q('(C3) y la CITA de la Tabla 15 se queda donde estaba: una declaracion no es una fuente',
+    tp.indexOf('ASE 2024 (Zoghbi), Tabla 15, folio 33') > -1, tp.slice(-200));
+
+  /* ── (D) DESAJUSTE: el globo ea-prot-ppm ── */
+  const g = (typeof VINFO === 'object' && VINFO['ea-prot-ppm']) ? VINFO['ea-prot-ppm'] : null;
+  q('(D0 DENOM) el globo del desajuste existe', !!g, g ? 'ok' : 'sin entrada ea-prot-ppm');
+  q('(D1) y su bloque «A tener en cuenta» DECLARA la condicion de la nota al pie de la Tabla 7',
+    !!g && String(g.ojo || '').indexOf('El desajuste se define con el área efectiva dentro de 1 desvío estándar de la del modelo implantado. Con el modelo cargado, la aplicación lo comprueba.') > -1,
+    g ? String(g.ojo).slice(-230) : '');
+  q('(D2) sin perder lo que ya decia',
+    !!g && String(g.ojo || '').indexOf('El desajuste no es obstrucción') > -1 &&
+    String(g.fuente || '').indexOf('Tabla 7') > -1, g ? String(g.ojo).slice(0, 180) : '');
+
+  /* ── (E) CONTROL NEGATIVO: los otros dos textos de esa zona NO se tocaron ── */
+  const gs = (typeof VINFO === 'object' && VINFO['ea-prot-sev']) ? VINFO['ea-prot-sev'] : null;
+  q('(E1 CONTROL) el globo ea-prot-sev no gano ninguna declaracion',
+    !!gs && String(gs.lee || '').indexOf('criterio de la aplicación') === -1 &&
+    String(gs.ojo || '').indexOf('criterio de la aplicación') === -1,
+    gs ? String(gs.ojo).slice(0, 150) : '');
+  await escena({ vt_morf:'Prótesis biológica', et_gmedio:'12', et_thp:'240' });
+  const tt = (function(){ try { const n = qvTarjeta('prot','tricuspide');
+    return n ? String(n.textContent || '') : '' } catch (e) { return '' } })();
+  q('(E1b DENOM) la tarjeta de la tricuspide se arma con sus parametros',
+    tt.length > 150 && tt.indexOf('Sin parámetros cargados') === -1, 'chars=' + tt.length + ' | ' + tt.slice(0, 120));
+  q('(E2 CONTROL) y la tarjeta de la protesis TRICUSPIDE conserva su nota de siempre, la de la regla de dos',
+    tt.indexOf('EcoSmart considera sugestivos de estenosis dos o más criterios positivos') > -1 &&
+    tt.indexOf('es un criterio de la aplicación') === -1, tt.slice(0, 220));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-776', 'PANT-26 commit 6: el globo ⓘ del 3D de congenitas dice el texto aprobado, y la linea de abajo nombra lo no representado sin decir «todavia»', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  /* La seccion de congenitas, y el panel del 3D abierto por su boton real: #cc3d-wrap y
+     #cc3d-panel nacen en display:none, y con el boton ⓘ sin caja _vInfoColocar se rinde, asi
+     que la tarjeta no abre y la medicion sale sobre cero caracteres. */
+  __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+  try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Cong[eé]nit/i.test(x.textContent || ''));
+    if (b) b.click(); else showTab('congenitas') } catch (e) {}
+  await esp(620);
+  __t.set('ete_cia_tipo','secundum');
+  await esp(420);
+  const wrap = document.getElementById('cc3d-wrap');
+  q('(A0 DENOM) con una CIA cargada aparece el recuadro del 3D',
+    !!wrap && getComputedStyle(wrap).display !== 'none',
+    wrap ? ('display=' + getComputedStyle(wrap).display) : 'no existe #cc3d-wrap');
+  const bA = document.getElementById('cc3d-abrir');
+  if (bA) { try { bA.scrollIntoView({ block: 'center' }) } catch (e) {} await esp(200); bA.click(); }
+  await esp(950);
+  const panel = document.getElementById('cc3d-panel');
+  q('(A1 DENOM) el panel del 3D quedo ABIERTO por su boton «Ver en 3D»',
+    !!panel && getComputedStyle(panel).display !== 'none',
+    panel ? ('display=' + getComputedStyle(panel).display) : 'no existe #cc3d-panel');
+
+  /* ── (B) LOS DOS BOTONES DEL CONTROL SEGMENTADO ── */
+  const segs = Array.from(document.querySelectorAll('.cm3d-md'))
+    .map(b => ({ t: String(b.textContent || '').trim(), m: b.getAttribute('data-m') }));
+  q('(B1) los rotulos son «Según el estudio» y «Explorar», que son los que el globo nombra',
+    segs.length === 2 && segs[0].t === 'Según el estudio' && segs[0].m === 'estudio' &&
+    segs[1].t === 'Explorar' && segs[1].m === 'explorar', JSON.stringify(segs));
+
+  /* ── (C) EL GLOBO ── */
+  const bi = document.querySelector('[data-vinfo="cc-3d"]');
+  q('(C0 DENOM) el boton ⓘ del 3D existe y TIENE CAJA',
+    !!bi && !!(bi.offsetWidth || bi.offsetHeight),
+    bi ? ('w=' + bi.offsetWidth + ' h=' + bi.offsetHeight) : 'no existe');
+  if (bi) { try { bi.scrollIntoView({ block: 'center' }) } catch (e) {} await esp(200); bi.click(); }
+  await esp(400);
+  const card = document.getElementById('vinfo-card');
+  const abierto = !!(card && getComputedStyle(card).display !== 'none');
+  const txt = card ? String(card.textContent || '') : '';
+  q('(C1 DENOM) la tarjeta ABRIO y trajo texto', abierto && txt.length > 200,
+    'abrio=' + abierto + ' chars=' + txt.length);
+  q('(C2) el primer parrafo es el aprobado: el diagrama, el giro y la transparencia al tocar',
+    txt.indexOf('Diagrama ilustrativo del corazón en 3D. Se puede girar, y al tocar una estructura se vuelve transparente para ver lo que hay detrás.') > -1,
+    txt.slice(0, 260));
+  q('(C3) el segundo nombra «Según el estudio» y dice que puede incluirse en el PDF',
+    txt.indexOf('Según el estudio: representa las lesiones cargadas en este estudio y puede incluirse en el PDF.') > -1,
+    txt.slice(0, 420));
+  q('(C4) el tercero nombra «Explorar» y dice por que no va al PDF',
+    txt.indexOf('Explorar: permite interactuar con el diagrama y entender otras alteraciones, incluidas las complejas o sus combinaciones. No refleja necesariamente lo que dice el estudio, por eso no va al PDF.') > -1,
+    txt.slice(-280));
+  q('(C5) y el texto viejo ya no esta: ni el «todavia» ni la afirmacion de que no entra al PDF',
+    txt.indexOf('todavía') === -1 && txt.indexOf('no entra al informe ni al PDF') === -1 &&
+    txt.indexOf('QUÉ NO DIBUJA') === -1, txt.slice(0, 300));
+  try { vInfoCerrar(true) } catch (e) {}
+  await esp(200);
+
+  /* ── (D) EL BOTON DEL PDF, que es lo que el segundo parrafo afirma ── */
+  const bp = document.getElementById('cm3d-pdfb');
+  q('(D0 DENOM) el boton «Incluir en el PDF» del 3D existe', !!bp, bp ? 'ok' : 'no existe #cm3d-pdfb');
+  try { if (typeof cmSetModo === 'function') cmSetModo('estudio') } catch (e) {}
+  await esp(320);
+  q('(D1) en «Según el estudio» y con algo cargado, el boton esta HABILITADO: el parrafo dice la verdad',
+    !!bp && bp.disabled === false,
+    bp ? ('disabled=' + bp.disabled + ' aviso=«' + (__t.txt('cm3d-pdfn') || '') + '»') : '');
+  try { if (typeof cmSetModo === 'function') cmSetModo('explorar') } catch (e) {}
+  await esp(320);
+  q('(D2 CONTROL) en «Explorar» esta apagado, con su aviso: por eso el tercer parrafo dice que no va al PDF',
+    !!bp && bp.disabled === true &&
+    String(__t.txt('cm3d-pdfn') || '').indexOf('solo en «Según el estudio»') > -1,
+    bp ? ('disabled=' + bp.disabled + ' aviso=«' + (__t.txt('cm3d-pdfn') || '') + '»') : '');
+  q('(D3) y en «Explorar» la linea de abajo se VACIA, como siempre',
+    String(__t.txt('cc3d-faltan') || '') === '', 'linea=«' + __t.txt('cc3d-faltan') + '»');
+  try { if (typeof cmSetModo === 'function') cmSetModo('estudio') } catch (e) {}
+  await esp(300);
+
+  /* ── (E) LA LINEA DE ABAJO ── */
+  __t.set('mch_espesor','20');
+  await esp(420);
+  try { if (typeof cc3dTextoSync === 'function') cc3dTextoSync() } catch (e) {}
+  await esp(320);
+  const linea = String(__t.txt('cc3d-faltan') || '');
+  let faltan = null; try { faltan = cc3dNoDibujadas() } catch (e) {}
+  q('(E0 DENOM) hay al menos UNA leccion cargada que el diagrama no representa',
+    !!faltan && Array.isArray(faltan.falta) && faltan.falta.length > 0,
+    faltan ? JSON.stringify(faltan.falta) : 'cc3dNoDibujadas fallo');
+  q('(E1) la linea dice «Cargadas y no representadas en este diagrama: <lista>.»',
+    linea.indexOf('Cargadas y no representadas en este diagrama: ') > -1, 'linea=«' + linea + '»');
+  q('(E2) y ya NO dice «todavia»',
+    linea.indexOf('todavía') === -1 && linea.indexOf('no dibujadas') === -1, 'linea=«' + linea + '»');
+  q('(E3) LA LISTA DE NOMBRES NO CAMBIO: es la que cc3dNoDibujadas devuelve, nombre por nombre',
+    faltan.falta.every(n => linea.indexOf(n) > -1) &&
+    linea.indexOf('Cargadas y no representadas en este diagrama: ' + faltan.falta.join(', ') + '.') > -1,
+    'lista=' + JSON.stringify(faltan.falta) + ' linea=«' + linea + '»');
+  q('(E4) y los cuatro rotulos posibles siguen siendo los mismos: _CC_SECS menos lo que el modulo dibuja',
+    (function(){ try {
+      const posibles = _CC_SECS.filter(x => CC3D_DIBUJA.indexOf(x.k) < 0 &&
+        (CC3D_PROPIO || []).indexOf(x.k) < 0).map(x => x.lbl);
+      return posibles.length === 4 && posibles.join(',') === 'VAB,MCH,MCA,Marfan/EHAT';
+    } catch (e) { return false } })(),
+    (function(){ try { return _CC_SECS.filter(x => CC3D_DIBUJA.indexOf(x.k) < 0 &&
+      (CC3D_PROPIO || []).indexOf(x.k) < 0).map(x => x.lbl).join(',') } catch (e) { return 'ERR' } })());
+
+  /* ── (F) CONTROL: sin nada cargado, la otra frase no se toco ── */
+  __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+  await esp(460);
+  try { if (typeof cc3dTextoSync === 'function') cc3dTextoSync() } catch (e) {}
+  await esp(300);
+  q('(F1 CONTROL) sin ninguna leccion cargada la linea sigue diciendo lo de siempre',
+    String(__t.txt('cc3d-faltan') || '').indexOf('Sin lesiones cargadas que dibujar: se muestra el corazón normal.') > -1,
+    'linea=«' + __t.txt('cc3d-faltan') + '»');
+  return { extra: F };
+  })();
+`);
+
+caso('TC-777', 'PANT-26: lo que esta tanda NO toco — la tricuspide, los cinco catalogos de modelos, las 457 columnas del Excel y el texto que indexa el Laboratorio', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const T = id => __t.txt(id) == null ? '' : String(__t.txt(id)).trim();
+  const abrirValv = () => {
+    try { const b = Array.from(document.querySelectorAll('.tab-btn')).find(x => /Válvulas/.test(x.textContent || ''));
+      if (b) b.click(); else showTab('valvulas') } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(k => {
+      const el = document.getElementById('ete-seccion-valv-' + k);
+      try { if (el && getComputedStyle(el).display === 'none') toggleEteSeccion('valv-' + k) } catch (e) {}
+    });
+  };
+  /* ── (A) LOS CINCO CATALOGOS, con su conteo de modelos y de filas de tamanio ── */
+  const cuenta = (c) => { try { return { m: c.length, f: c.reduce((a, x) => a + x.s.length, 0) } }
+                          catch (e) { return null } };
+  const C = { A4: cuenta(PROT_CAT_A4), TAVI: cuenta(PROT_CAT_TAVI), A5: cuenta(PROT_CAT_A5),
+              A9: cuenta(PROT_CAT_A9), A7: cuenta(PROT_CAT_A7) };
+  q('(A0 DENOM) los cinco catalogos existen y traen modelos',
+    Object.keys(C).every(k => C[k] && C[k].m > 0), JSON.stringify(C));
+  q('(A1) los conteos son los de PANT-20, sin una fila de mas ni de menos',
+    C.A4.m === 49 && C.A4.f === 211 && C.TAVI.m === 9 && C.TAVI.f === 29 &&
+    C.A5.m === 30 && C.A5.f === 122 && C.A9.m === 8 && C.A9.f === 28 &&
+    C.A7.m === 12 && C.A7.f === 26, JSON.stringify(C));
+  q('(A2) y el mapeo de posicion a catalogo tampoco cambio',
+    typeof VMOD_TABLA === 'object' && VMOD_TABLA.va === 'PROT_CAT_A4' &&
+    VMOD_TABLA.vm === 'PROT_CAT_A5' && VMOD_TABLA.vt === 'PROT_CAT_A9' &&
+    VMOD_TABLA.vp === 'PROT_CAT_A7', JSON.stringify(typeof VMOD_TABLA === 'object' ? VMOD_TABLA : null));
+
+  /* ── (B) LA TRICUSPIDE, entera ── */
+  __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+  __t.set('peso','70'); __t.set('talla','170');
+  __t.set('vt_morf','Prótesis biológica'); __t.set('et_gmedio','12'); __t.set('et_thp','240');
+  __t.set('et_e_vmax','220');
+  try { valvProtSync() } catch (e) {}
+  abrirValv(); await esp(440);
+  let RT = null; try { RT = vtProtObstr() } catch (e) {}
+  q('(B0 DENOM) la capsula de la protesis tricuspide responde y gradua',
+    !!RT && RT.esProt === true && RT.obstr === 'estenosis',
+    RT ? ('obstr=' + RT.obstr + ' pos=' + JSON.stringify(RT.pos)) : 'vtProtObstr devolvio null');
+  q('(B1) sus filas siguen publicando su propia lectura, con su umbral: la decision D5 es SOLO de la mitral',
+    T('vt-prot-gmed').indexOf('sugiere estenosis') > -1 && T('vt-prot-gmed').indexOf('>= 9 mmHg') > -1 &&
+    T('vt-prot-thp').indexOf('sugiere estenosis') > -1 &&
+    T('vt-prot-evmax').indexOf('sugiere estenosis') > -1,
+    'gmed=«' + T('vt-prot-gmed') + '» thp=«' + T('vt-prot-thp') + '» evmax=«' + T('vt-prot-evmax') + '»');
+  q('(B2) su veredicto sigue nombrando los criterios y su conteo',
+    T('vt-prot-obstr').indexOf('hallazgos sugestivos de estenosis') > -1 &&
+    T('vt-prot-obstr').indexOf('de 3 criterios') > -1, 'obstr=«' + T('vt-prot-obstr') + '»');
+  q('(B3) y su componente de modelo sigue sin votar: ppm y cortes en null',
+    typeof VMOD_POS === 'object' && VMOD_POS.vt && VMOD_POS.vt.ppm == null && VMOD_POS.vt.cortes == null,
+    JSON.stringify(typeof VMOD_POS === 'object' && VMOD_POS.vt ? { ppm: VMOD_POS.vt.ppm, cortes: VMOD_POS.vt.cortes } : null));
+  const rT = __t.informe();
+  q('(B4) y su linea del papel es la de siempre',
+    String(rT.inf).indexOf('Prótesis tricúspide con hallazgos sugestivos de estenosis') > -1,
+    String(rT.inf).split('\\n').filter(x => /tricúspide/i.test(x)).join(' | ').slice(0, 220));
+
+  /* ── (C) EL EXCEL: 457 columnas, y ninguna nueva ── */
+  /* ⚠️ LAS COLUMNAS SE CUENTAN COMO EL EXCEL LAS ARMA, no sobre LAB_XLS_MAP: ese mapa tiene 381
+     claves y la fila real sale de _labExcelRow ordenada por _labOrdenarCols, que es la cuenta
+     que TC-135 y TC-479 vigilan. La primera corrida de este caso midio 381 y se leia como si
+     esta tanda hubiera borrado 76 columnas. */
+  __t.limpiar();
+  await esp(260);
+  const cols = (function(){ try {
+    if (typeof _labExcelRow !== 'function' || typeof _labOrdenarCols !== 'function') return null;
+    const fila = _labExcelRow({});
+    return fila ? _labOrdenarCols(Object.keys(fila)).length : null } catch (e) { return null } })();
+  q('(C0 DENOM) la fila del Excel se arma y trae mas de 400 columnas',
+    cols != null && cols > 400, 'columnas = ' + cols);
+  q('(C1) el Excel del Laboratorio sigue en 457 columnas: esta tanda no agrego ninguna',
+    cols === 457, 'columnas = ' + cols);
+
+  /* ── (D) EL LABORATORIO: el texto que indexa sale del informe y del EN SUMA, y no cambio de fuente ── */
+  __t.limpiar(); __t.set('nombre','P26'); __t.set('ci','26262626');
+  __t.set('va_morf','TAVI'); __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+  await esp(380);
+  const rL = __t.informe();
+  q('(D0 DENOM) el informe y el EN SUMA de esa escena traen texto',
+    String(rL.inf).length > 50 && String(rL.suma).length > 10,
+    'inf=' + String(rL.inf).length + ' suma=' + String(rL.suma).length);
+  q('(D1) y la frase nueva viaja a los dos, que es de donde el Laboratorio arma su texto',
+    String(rL.inf).indexOf('con posible estenosis') > -1 &&
+    String(rL.suma).indexOf('TAVI con posible estenosis.') > -1,
+    String(rL.suma).replace(/\\n/g, ' | ').slice(0, 160));
+  return { extra: F };
+  })();
+`);
+
 
 
 

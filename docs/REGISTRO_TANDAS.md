@@ -1,3 +1,65 @@
+## PANT-26 — las protesis aorticas, la mitral y el 3D de congenitas (2026-11-09)
+
+**SIETE commits.** Sello **`v20261109-1705`**, md5 **`e2ebb637`**. Al empezar, `origin/main` =
+`HEAD` = **3476036**, el cierre de PANT-27 ya publicado, con el sello `v20261109-1203`, el md5
+`a14c45a0` y el pendrive `DISK_IMG` montado: los tres coincidian con lo que `CLAUDE.md` y este
+registro publicaban. **El push lo corre Maicol: esta tanda tenia orden expresa de NO pushear.**
+
+- **Commit 1 — el inventario**, `docs/INVENTARIO_PANT26.md`, de SOLO LECTURA: md5 de
+  `index.html` identico antes y despues (`a14c45a0`). Mide el motor del veredicto aortico y
+  `eaProtEOAz`, la escena del medico con el texto exacto de cada superficie, un censo
+  COMBINATORIO de **64** escenas de la aortica, los seis caminos de «normofuncionante», la
+  mitral fila por fila, la pulmonar, el desajuste, la capsula que no se repinta y las tres
+  mediciones del 3D.
+- **Commit 2 — la capsula (D8)**: se define `vModTrasElegir`, que faltaba desde PANT-19 —dos
+  llamadas guardadas con `typeof`, cero definiciones—, y repinta SOLO la aortica.
+- **Commit 3 — el motor (D2 y D7)**: `eaProtEOAz` acepta la TAVI preguntandole a
+  `valvEsProtesis`, con la misma funcion, los mismos cortes y el mismo dueño; y el desajuste
+  gana la condicion de la nota al pie de la Tabla 7, leida en imagen.
+- **Commit 4 — las frases del papel (D1 y D3)**: `EA_PROT_POSIBLE_SD` con sus tres formas, y el
+  desajuste entra en la guarda de «normofuncionante».
+- **Commit 5 — la mitral y las declaraciones (D5, D4, D2, D6, D7)**: las cinco filas pierden su
+  conclusion y conservan valor y escala, y entran las CUATRO declaraciones de criterio propio.
+- **Commit 6 — el 3D de congenitas**: el globo `cc-3d` con el texto aprobado y la linea de abajo
+  sin «todavia».
+- **Commit 7 — cobertura y documentacion**: TC-769 a TC-777, cinco casos adaptados, el mapa, las
+  fichas, la guia de prueba, este bloque, **P26-a** y el sello.
+
+**LAS NUEVE HIPOTESIS DE LA ORDEN SOBRE LA APP SE REPRODUJERON**, y el inventario las midio antes
+de tocar: la frase vieja sale solo en la aortica, la TAVI con desajuste sale
+«normofuncionante», la TAVI nunca compara su area contra el modelo, la mitral publica un
+veredicto por fila que el conteo excluye, y `vModTrasElegir` no existe.
+
+**LA QUE NO: la suite no tiene 783 casos, tiene 768.** Contados nombre por nombre, de `TC-001` a
+`TC-768`, cero huecos y cero duplicados. Los TC libres arrancaban en **TC-769**. Declarado en
+**P26-a § 1**.
+
+**Y la Evidencia de la protesis aortica YA razona las causas** ante un resultado «posible»:
+devuelve `causas` con **cinco** entradas y `causasNota`, con el hiperflujo y el desajuste
+marcandose solos. El commit 4 (c) **no cambio nada**.
+
+**LO QUE EL PAPEL CAMBIA, y nada mas.** Censo combinatorio de 64 escenas: cambian **24** —12 TAVI
+y 12 quirurgicas, las que la decision D1 toca— y las otras **40** quedan identicas. En la bateria
+de 26 escenas, **tres** cambian por D1, **una** por D2 —la que con el modelo pasa a
+«significativa» y por eso deja de publicar el desajuste— y la de X1 por D3. **Cero diferencias**
+de papel en los commits 2, 5 y 6.
+
+**Verificacion:** 38/38 mutaciones dirigidas muertas —una retirada declarada por equivalente—,
+los nueve casos nuevos y los cinco adaptados cayendo contra el arbol anterior por **47
+condiciones y cero excepciones**, Semgrep **124/0**, Excel **457**, sin huerfanos nuevos, cero
+`innerHTML`, `eval(` y `new Function` nuevos y cero claves. El diff son **244 lineas agregadas y
+30 quitadas**, de las que **205** no son comentario.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **P26-a**, con las ocho cosas que se pararon o se
+encontraron de mas. **Cerrados:** de **PRO-c** los puntos 1 a 7, y de **PRO-d** los puntos 1 y 3.
+**PRO-b sigue abierto** como informacion.
+
+**Donde esta todo:** `docs/mapa/pant26-protesis-aortica-mitral.md` (mapa NUEVO, 13,5 KB),
+`docs/INVENTARIO_PANT26.md`, las fichas en `docs/mapa/tests-fichas-769.md` (archivo propio) y
+`docs/GUIA_PRUEBA_PANT26.md`.
+
+---
+
 ## PANT-27 — los catorce textos de la Evidencia que el medico aprobo (2026-11-09)
 
 **CINCO commits.** Sello **`v20261109-1203`**, md5 **`a14c45a0`**. Al empezar, `origin/main` =

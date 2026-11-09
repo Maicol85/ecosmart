@@ -139,3 +139,16 @@ del cuadro: un dueño y dos renders.
 - Lo parado y lo declarado: `docs/PENDIENTES.md` → **P18-a** a **P18-g**
 - Las fichas de los seis casos: `docs/mapa/tests-fichas-723.md`
 - Los criterios de prótesis que esta tanda **no** tocó: `docs/mapa/protesis-valvular.md`
+
+
+---
+
+## → PANT-26 (2026-11-09): lo que esta tanda movió de esta zona
+
+El repintado de la cápsula al elegir el modelo (`vModTrasElegir`), el **área efectiva frente a la
+del modelo también en la TAVI** con la misma función y los mismos cortes, la **condición de 1
+desvío** que la nota al pie de la Tabla 7 le pone al desajuste, la frase **«con posible
+estenosis»**, el **desajuste que apaga «normofuncionante»**, la **mitral sin conclusión por
+fila** y las **cuatro declaraciones de criterio propio**.
+
+→ **`docs/mapa/pant26-protesis-aortica-mitral.md`**

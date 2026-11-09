@@ -71,6 +71,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la PANTALLA de las insuficiencias AÓRTICA o TRICUSPÍDEA**: sus columnas, las cinco casillas automáticas, las once tarjetas ⓘ, el rótulo THP o el color de los avisos | `docs/mapa/valvulas-ia-it-pantalla.md` |
 | **Tocar un criterio de PRÓTESIS mitral o aórtica**: la Tabla 11, el AEO en tres tramos, el THP directo, el PPM de la Tabla 7, el badge del AVA aórtico, las tarjetas nativa-prótesis o el rótulo AEO | `docs/mapa/protesis-valvular.md` |
 | **Tocar el TIEMPO DE EYECCIÓN o el AT/ET de la prótesis AÓRTICA, la nota del AT, la tarjeta de severidad protésica, la TAVI graduada, el DESAJUSTE que no se escribe con una estenosis, o el estado visual del botón «Severidad»** | `docs/mapa/pant18-protesis-aortica.md` |
+| **Tocar el REPINTADO de la cápsula aórtica al elegir el modelo, el ÁREA EFECTIVA frente a la del modelo EN LA TAVI, la CONDICIÓN DE 1 DESVÍO del desajuste, la frase «con posible estenosis», el DESAJUSTE que apaga «normofuncionante», la MITRAL sin conclusión por fila, las CUATRO DECLARACIONES de criterio propio o los DOS TEXTOS del 3D de congénitas** | `docs/mapa/pant26-protesis-aortica-mitral.md` |
 | **Tocar el CATÁLOGO DE MODELOS Y TAMAÑOS de prótesis** —el botón «Modelo y tamaño» de la aórtica, las tres tablas de datos (A4 quirúrgica, A1/A2/A3 de TAVI y A5 mitral), los valores esperados, la EOA indexada predicha, lo medido con su diferencia en desviaciones estándar, o la EOA frente a la del modelo en la tarjeta de severidad— | `docs/mapa/pant19-catalogo-protesis.md` |
 | **Tocar el PPM aórtico del informe, el voto de los cuatro criterios de obstrucción de la prótesis mitral o los dos retiros del gradiente medio** (tandas Z, Z5 y Z6) | `docs/mapa/protesis-z-z5-z6.md` |
 | **Tocar la FUGA PARAVALVULAR de una prótesis QUIRÚRGICA**, aórtica o mitral: el motor único, los tres campos nuevos, la marca de origen o por qué la mitral no ofrece extensión circunferencial | `docs/mapa/protesis-fuga-pvl.md` |
@@ -137,7 +138,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -251,8 +252,17 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,32 MB / 169.037 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
-  tanda **PANT-27**, sobre el árbol ya sellado: sello **`v20261109-1203`**, md5 **`a14c45a0`**.
+  sin frameworks. Hoy **12,34 MB / 169.251 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
+  tanda **PANT-26**, sobre el árbol ya sellado: sello **`v20261109-1705`**, md5 **`e2ebb637`**.
+  El diff de PANT-26 son **244 líneas agregadas y 30 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `3476036`, de las que **205** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
+  guardados nuevos, cero columnas de Excel (457) y ningún id cambiado**, contado sobre el diff.
+  ⚠️ **POR VIGESIMOCUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 3476036:index.html` da **169.037** líneas,
+  **12.323.864** bytes y el md5 **`a14c45a0`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,32 MB / 169.037 al cierre de la tanda **PANT-27**, sello **`v20261109-1203`**, md5 **`a14c45a0`**.)
   El diff de PANT-27 son **55 líneas agregadas y 33 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `ddcf42d`, de las que **49** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
@@ -910,6 +920,32 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-26 (2026-11-09) — las prótesis aórticas, la mitral y el 3D de congénitas.**
+SIETE commits. Sello **`v20261109-1705`**, md5 **`e2ebb637`**. La **cápsula de la aórtica se
+repinta al elegir el modelo**: `vModTrasElegir` faltaba desde PANT-19 —dos llamadas guardadas con
+`typeof`, cero definiciones— y el informe ya decía «significativa» mientras la cápsula seguía en
+«Posible». La **TAVI compara su área efectiva contra la del modelo**, con la **misma** función,
+los **mismos** cortes y el **mismo** dueño: lo único que cambió en `eaProtEOAz` es que pregunta
+por `valvEsProtesis` en vez de dos cadenas escritas a mano. El **desajuste** gana la condición de
+la nota al pie de la **Tabla 7** —«measured EOA is within 1 SD of the reference EOA», hoja 19,
+folio **20** comprobado en la cabecera impresa, leída en imagen a 400 ppp—: con modelo y desvío se
+publica sólo si se cumple, y **no se escribe nada en su lugar**; la fila de pantalla sigue
+publicando el número. Con **velocidad o gradiente altos y sin eje independiente** el papel dice
+**«con posible estenosis»** —EN SUMA «TAVI con posible estenosis.» o «Prótesis aórtica: posible
+estenosis.»—, con el paréntesis de medidas conservado: censo combinatorio de **64** escenas,
+cambian **24** y las otras **40** quedan idénticas. Una **TAVI con desajuste ya no sale
+«normofuncionante»**, y con un solo predicado alcanza a los **seis** caminos que publican la
+palabra. La **mitral** publica el valor y la escala por fila y **no concluye**: la conclusión
+queda sólo en el resumen, que es el que cuenta criterios. Cuatro **declaraciones de criterio
+propio** —los cortes de la TAVI, su área, la regla de la pulmonar y la condición del desajuste—,
+y la salvedad de la TAVI pierde su atribución a la guía. El **globo del 3D de congénitas** pasa al
+texto aprobado, de tres párrafos, y la línea de abajo dice «Cargadas y no representadas en este
+diagrama», sin «todavía». ⚠️ **Una premisa de la orden no se reprodujo**: la suite tiene **768**
+casos, no 783. Y la **Evidencia de la prótesis aórtica ya razonaba** las cinco causas, así que no
+se tocó. Lo cubren **TC-769** a **TC-777**, con **TC-303**, **TC-474**, **TC-726**, **TC-734** y
+**TC-757** adaptados; **38/38 mutaciones dirigidas muertas**. Lo declarado, en **P26-a**; el mapa,
+en `docs/mapa/pant26-protesis-aortica-mitral.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT26.md`.
 
 **La tanda PANT-27 (2026-11-09) — los catorce textos de la Evidencia que el médico aprobó.**
 CINCO commits. Sello **`v20261109-1203`**, md5 **`a14c45a0`**. Las **siete notas de la estenosis
