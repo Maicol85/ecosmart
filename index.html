@@ -96020,7 +96020,19 @@ const PROTA_PREG = Object.freeze([
      dice lo que la Figura 20 imprime, en su propia oracion, que es la regla del 04/11. */
   { clave:'prota.trombGrande', lbl:'Trombo protésico grande, de 10 mm o más, complicado con embolia', guia:'vhd25',
     rec:'Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de 10 mm o más, complicado con embolia, hoja 66, folio 4700',
-    nota:'su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más»' },
+  /* ⚠️ PANT-28, commit 5: LA ORACION DEL FOLIO 4698 TAMBIEN ACA, Y SOLO ACA DENTRO DE LA
+     SECCION AORTICA. Decision del medico: la ESC/EACTS 2025 lo dice para protesis MECANICAS
+     izquierdas, asi que la oracion va en la aortica MECANICA y NO en la biologica, la TAVI, la
+     mitral biologica, la tricuspide ni la pulmonar. No hace falta un predicado nuevo: esta
+     pregunta YA esta acotada a lo mecanico por el `esMec` del filtro de `_indProtA`, asi que
+     con biologica, con TAVI o sin tipo la pregunta ni siquiera se dibuja.
+     ⚠️ LA ORACION NO SE REESCRIBIO: se COPIO de la nota de la mitral mecanica, que es donde
+     PANT-27 la verifico en imagen contra la hoja 64, folio 4698. Son los mismos 163
+     caracteres, y la sonda los compara.
+     ⚠️ Y LA MISMA NOTA EXISTE DOS VECES EN EL ARCHIVO: la de `prota.trombGrande` y la de
+     `prott.trombGrande`, que es la TRICUSPIDE y cuyo filtro NO esta acotado por tipo. Se toca
+     SOLO esta, verificando la clave de la entrada. */
+    nota:'su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más». La cirugía se considera ante un trombo protésico grande, no obstructivo, que se complicó con embolia o que persiste a pesar de anticoagulación óptima (folio 4698).' },
   { clave:'prota.trombBio', lbl:'Trombosis de la prótesis biológica', guia:'vhd25',
     rec:'Clase I · Nivel B — la anticoagulación oral con antivitamina K está recomendada en la trombosis de una prótesis biológica antes de plantear una reintervención, hoja 66, folio 4700',
     ref:'con trombosis sospechada o confirmada de una prótesis biológica, en el paciente estable y sin contraindicación para anticoagular, el tratamiento inicial con antivitamina K es razonable, Clase 2a · Nivel B-NR (hoja 79, folio e150)' }
