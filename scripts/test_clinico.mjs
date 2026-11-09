@@ -79673,7 +79673,8 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      que este caso vigila -que ninguna entrada quede fuera del reparto- no cambia.
      Sin acentos graves: el cuerpo de un caso es un template literal. */
   ex.push(['(A2) DENOMINADOR: el censo encuentra las 40 entradas de la pestana',
-    censo.n === 40, 'n=' + censo.n]);
+    /* ADAPTADO el 2026-11-09 (PANT-28): 40 -> 43 por las tres fichas nuevas. */
+    censo.n === 43, 'n=' + censo.n]);
   /* ADAPTADO 2026-11-08 (PANT-25): la constriccion se MUDO a la pestania Hemodinamica, con el
      posoperatorio. La condicion sigue siendo la misma -que esa ficha este en el reparto y no
      suelta-, solo que ahora su panel es otro. */
@@ -79708,9 +79709,9 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      entrada se perdio por el camino, y el reparto de las cuatro que no se tocaron es identico. */
   ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 2 Congenitas + 1 Cardiotox + 2 Hemo + 9 Otros',
     porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 14 && porSub.ao === 3 &&
-    porSub.congenitas === 2 && porSub.cardiotox === 1 && porSub.hemo === 2 && porSub.otros === 9 &&
+    porSub.congenitas === 3 && porSub.cardiotox === 1 && porSub.hemo === 2 && porSub.otros === 11 &&
     (porSub.dim + porSub.fun + porSub.valv + porSub.ao + porSub.congenitas + porSub.cardiotox +
-     porSub.hemo + porSub.otros) === 40,
+     porSub.hemo + porSub.otros) === 43,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -79771,7 +79772,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      dos agrupadores no cambia: 38 entradas menos dos. */
   /* ADAPTADO 2026-11-06 (PANT-20): 36 -> 38, las dos fichas nuevas, que el buscador SI indexa. */
   ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 38 entradas (40 menos los dos agrupadores)',
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 38; } catch (e) { return false; } })(),
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 41; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -83861,7 +83862,14 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          de antes mas estas dos-, por el mismo motivo de siempre: asi la condicion sigue
          distinguiendo «entraron dos» de «se perdieron dos y entraron otras». */
       /* ADAPTADO 2026-11-06 (PANT-20): 38 -> 40, las dos fichas de obstruccion protesica. */
-      return n === 40 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+      /* ADAPTADO el 2026-11-09 (PANT-28): el censo pasa de 40 a 43. Las que entran son la ficha
+         de DETALLE de anomalias coronarias (ref-racong), en «Cardiopatia congenita» y pegada a
+         la vieja, y las de CORAZON DE ATLETA (ref-atleta) y MIOCARDIOPATIA CHAGASICA
+         (ref-chagas), en «Otros hallazgos» y pegadas a la de miocardiopatias. Se exigen las
+         TRES, por el mismo motivo de siempre: distinguir «entraron tres» de «se perdieron tres
+         y entraron otras». */
+      return n === 43 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+        && !!EL('ref-racong') && !!EL('ref-atleta') && !!EL('ref-chagas')
         && !!EL('ref-pulmon') && !!EL('ref-pop')
         && !!EL('ref-tumores') && !!EL('ref-embolig'); })(),
     (function () { const t = EL('tab-refs');
@@ -124740,7 +124748,8 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
 
   const rep = k => (REF_SUBTAB[k] || []).join(',');
   q('(A3) Cardiopatia congenita lleva la ficha de congenitas y la de anomalias coronarias ADENTRO',
-    rep('congenitas') === 'congenitas,coronarias', 'congenitas=[' + rep('congenitas') + ']');
+    /* ADAPTADO el 2026-11-09 (PANT-28): entra racong, la ficha de detalle, PEGADA a la vieja. */
+    rep('congenitas') === 'congenitas,coronarias,racong', 'congenitas=[' + rep('congenitas') + ']');
   q('(A3b) Cardiotoxicidad lleva su ficha', rep('cardiotox') === 'cardiotox',
     'cardiotox=[' + rep('cardiotox') + ']');
   q('(A3c) Hemodinamica lleva el posoperatorio y la constriccion', rep('hemo') === 'pop,constriccion',
@@ -124766,8 +124775,10 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
       if ((hs[i].getAttribute('onclick') || '').indexOf('toggleRef(') > -1) total++;
     }
   }
-  q('(A5) el censo sigue en CUARENTA entradas y ninguna quedo fuera de un panel',
-    total === 40 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
+  q('(A5) el censo esta en CUARENTA Y TRES entradas y ninguna quedo fuera de un panel',
+    /* ADAPTADO el 2026-11-09 (PANT-28): 40 -> 43. Lo que el caso vigila -que ninguna entrada
+       quede fuera de un panel- no cambia. */
+    total === 43 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
 
   let malAria = [];
   for (const b of bots) {
@@ -127152,6 +127163,669 @@ caso('TC-777', 'PANT-26: lo que esta tanda NO toco — la tricuspide, los cinco 
   return { extra: F };
   })();
 `);
+
+/* ══ PANT-28 — LAS TRES FICHAS NUEVAS DE REFERENCIAS Y EL TROMBO AORTICO ═══════════════════
+   ⚠️ NI UNA EXPRESION REGULAR NI UNA BARRA SIMPLE EN EL CUERPO: el cuerpo de un caso es un
+   template literal, asi que una barra ese llega como ese y una barra ene como salto de linea.
+   El normalizador recorre caracteres. */
+caso('TC-778', 'PANT-28 commit 3: la ficha NUEVA de anomalias coronarias vive en el panel de Cardiopatia congenita, nace cerrada, abre con su encabezado y trae sus siete bloques EN ORDEN, sin ECG, sin restriccion del deporte, sin aneurismas y sin esquema', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  irRefs(); await esp(260);
+  q('(A0 DENOM) la pestania Referencias responde y tiene su barra de solapas',
+    !!document.querySelector('#tab-refs .ref-subbar'), 'sin barra');
+  const haySol = solapa('congenitas'); await esp(240);
+  q('(A1 DENOM) la solapa Cardiopatia congenita existe y su panel tambien',
+    haySol && !!document.getElementById('ref-sub-congenitas'), 'solapa=' + haySol);
+  const c = cuerpoDe('racong');
+  q('(A2) la ficha nueva EXISTE', !!c, c ? 'si' : 'no existe ref-racong');
+  const panel = document.getElementById('ref-sub-congenitas');
+  q('(A3) y vive DENTRO del panel de Cardiopatia congenita, que es lo que el medico decidio',
+    !!(panel && c && panel.contains(c)), 'contenida=' + !!(panel && c && panel.contains(c)));
+  q('(A4) nace CERRADA', !!c && getComputedStyle(c).display === 'none',
+    c ? getComputedStyle(c).display : '-');
+  const abierta = abrir('racong'); await esp(200);
+  q('(A5) y abre con el gesto real, tocando su encabezado',
+    !!abierta && getComputedStyle(abierta).display !== 'none',
+    abierta ? getComputedStyle(abierta).display : '-');
+  const t = txtDe('racong');
+  q('(A6 DENOM) con la ficha abierta hay texto que contar', t.length > 20000, 'largo=' + t.length);
+  const ORD = ['1 \u00b7 Clasificaci', '2 \u00b7 Cl\u00ednica', '3 \u00b7 Riesgo',
+               '4 \u00b7 El ecocardiograma', '5 \u00b7 Otras exploraciones',
+               '6 \u00b7 Cirug', '7 \u00b7 Seguimiento'];
+  q('(B1) los SIETE bloques estan y en el orden que la decision pide',
+    enOrden(t, ORD), ORD.map(x => x + '=' + t.indexOf(x)).join(' | '));
+  const R = rotulos('racong');
+  q('(B2) y los siete rotulos numerados son los que se ven, sin ninguno de mas',
+    R.filter(x => x.length > 2 && x[1] === ESP && x[2] === '\u00b7').length === 7,
+    R.join(' | ').slice(0, 220));
+  /* ── (C) lo que la decision (3) PROHIBE: ningun bloque de ECG, deporte ni aneurismas ── */
+  const rotECG = R.filter(x => sinTilde(x).indexOf('ecg') > -1 || sinTilde(x).indexOf('electrocardiogr') > -1);
+  q('(C1) NO hay bloque de ECG en las coronarias', rotECG.length === 0, rotECG.join(' | '));
+  const rotDep = R.filter(x => sinTilde(x).indexOf('deporte') > -1 || sinTilde(x).indexOf('restricci') > -1);
+  q('(C2) NO hay bloque de restriccion del deporte', rotDep.length === 0, rotDep.join(' | '));
+  const rotAne = R.filter(x => sinTilde(x).indexOf('aneurisma') > -1);
+  q('(C3) NO hay bloque de aneurismas coronarios', rotAne.length === 0, rotAne.join(' | '));
+  q('(C4) NO hay ningun esquema ni dibujo dentro de la ficha',
+    !!c && c.querySelectorAll('svg, canvas').length === 0,
+    c ? ('svg+canvas=' + c.querySelectorAll('svg, canvas').length) : '-');
+  q('(C5) y ninguna palabra que exponga lo pendiente o compare dos fuentes',
+    prohibidas(t).length === 0, prohibidas(t).join(' | '));
+  /* ── (D) ni un bloque ni una fila vacios ── */
+  const tablas = c ? Array.prototype.slice.call(c.querySelectorAll('table')) : [];
+  q('(D0 DENOM) la ficha trae sus tablas y sus filas',
+    tablas.length >= 14 && c.querySelectorAll('table tr').length >= 125,
+    'tablas=' + tablas.length + ' filas=' + (c ? c.querySelectorAll('table tr').length : -1));
+  const vacias = tablas.filter(x => x.rows[0] && x.rows[0].cells.length < 5)
+    .reduce((a, x) => a + Array.prototype.slice.call(x.querySelectorAll('td'))
+      .filter(td => norm(td.textContent) === '').length, 0);
+  q('(D1) ninguna celda vacia fuera de la tabla de guias, donde las blancas son a proposito',
+    vacias === 0, 'vacias=' + vacias);
+  const huerfanos = (function () { let n = 0;
+    Array.prototype.slice.call(c.children).forEach(function (el, i, arr) {
+      if (el.tagName === 'DIV' && el.style && el.style.fontWeight === '700') {
+        const s = arr[i + 1];
+        if (!s || (s.tagName !== 'TABLE' && s.tagName !== 'DIV')) n++ } });
+    return n })();
+  q('(D2) y ningun rotulo de bloque se queda sin nada debajo', huerfanos === 0, 'huerfanos=' + huerfanos);
+  /* ── (E) CONTROL NEGATIVO: una ficha que esta tanda NO toco no tiene bloques numerados ── */
+  solapa('otros'); await esp(200); abrir('burbujas'); await esp(160);
+  const rb = rotulos('burbujas');
+  q('(E1 CONTROL NEGATIVO) la ficha del test de burbuja sigue SIN bloques numerados',
+    rb.filter(x => x.length > 2 && x[1] === ESP && x[2] === '\u00b7').length === 0,
+    rb.join(' | ').slice(0, 160));
+  return { extra: F };
+  })();
+`);
+caso('TC-779', 'PANT-28 commits 3 y 4: cada cifra de la ficha de coronarias coincide con su tabla de control y con la hoja y el folio que la respaldan, y la ficha VIEJA y su globo quedan identicos caracter por caracter', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  irRefs(); solapa('congenitas'); await esp(240);
+  const c = abrir('racong'); await esp(200);
+  const t = txtDe('racong');
+  q('(A0 DENOM) la ficha abre y trae su texto', !!c && t.length > 20000, 'largo=' + t.length);
+  /* ── (A) LAS CIFRAS, una por una, contra docs/CONTROL_CORONARIAS_P28.md ── */
+  const CIFRAS = [
+    ['prevalencia en poblacion general', '0,7 %'],
+    ['su intervalo de confianza', '0,48 a 0,95 %'],
+    ['la derecha es seis veces mas prevalente', 'seis veces'],
+    ['en coronariografia de rutina', 'aproximadamente el 1 %'],
+    ['en el eco de ninios y adolescentes', 'menos del 0,2 %'],
+    ['hasta el 1 % de la poblacion', 'hasta el 1 %'],
+    ['uno cada 300.000 ninios', '1 caso cada 300.000'],
+    ['el ARCAPA', '0,002 %'],
+    ['el ARCAPA sobre las congenitas', '0,12 % de todas las cardiopat'],
+    ['la fistula en coronariografia', '0,1 a 0,2 %'],
+    ['estenosis ostial en el primer anio', '9 %'],
+    ['mortalidad del ALCAPA sin cirugia', '90 %'],
+    ['el segmento intramural corto', '2 a 3 mm'],
+    ['resolucion axial del transductor', '0,13 a 0,39 mm'],
+    ['los dos transductores', '12 MHz'],
+    ['el limite de Nyquist', '20 a 40 cm/s'],
+    ['el limite del ejemplo intramural', '12 cm/s'],
+    ['el angulo del transesofagico izquierdo', '20 a 50'],
+    ['el angulo del transesofagico derecho', '90 a 120'],
+    ['la sensibilidad del flujo invertido', '91 %'],
+    ['la sensibilidad de la visualizacion directa', '54 %'],
+    ['la FEVI de ese marcador', '45 %'],
+    ['el diametro de la coronaria derecha dilatada', '5,6 mm'],
+    ['la sensibilidad del SPECT', '70 al 90 %'],
+    ['la resolucion temporal de la tomografia', '66 ms'],
+    ['la dosis de la tomografia', '1 milisievert'],
+    ['el orificio alto de la ESC 2020', '1 cm'],
+    ['la isquemica en la muerte subita del joven', '24 al 55 %'],
+    ['el origen anomalo en estudios post mortem', '10 al 17 %'],
+    ['el infarto tras cerrar una fistula', '11 a 15 %'],
+    ['los operados de la serie de fistula', '46'],
+    ['el seguimiento del estadio A', '24 a 36 meses']
+  ];
+  const faltan = CIFRAS.filter(p => t.indexOf(p[1]) < 0);
+  q('(A1) las TREINTA Y DOS cifras de la tabla de control estan, una por una',
+    faltan.length === 0, faltan.map(x => x[0]).join(' | '));
+  /* ── (B) cada cifra con su hoja y su folio ── */
+  const FOLIOS = ['folio 261', 'folio 263', 'folio 264', 'folio 266', 'folio 267', 'folio 269',
+                  'folio 270', 'folio 271', 'folio 273', 'folio 275', 'folio 278',
+                  'folio e211', 'folio e212', 'folio e213', 'folio e214',
+                  'folio 627', 'folio 628', 'folio 4049', 'folio 4050', 'folio e296',
+                  'folio e1249', 'folio 31'];
+  const sinFolio = FOLIOS.filter(f => t.indexOf(f) < 0);
+  q('(B1) y los VEINTIDOS folios comprobados estan citados en la ficha',
+    sinFolio.length === 0, sinFolio.join(' | '));
+  /* ⚠️ EL FOLIO SOLO NO ALCANZA: «folio 273» aparece TRES veces en la ficha, asi que correrlo
+     en un lugar sobrevive por redundancia. Se exige el pie de la Tabla 2 ENTERO, que es el que
+     respalda las ocho sensibilidades. */
+  q('(B1b) el pie de la tabla de sensibilidades cita SU hoja y SU folio, y no otro',
+    t.indexOf('ecocardiogramas preoperatorios. ASE 2020 de anomal\u00edas coronarias \u00b7 hoja 15, folio 273') > -1,
+    t.indexOf('ecocardiogramas preoperatorios') > -1 ? 'el pie esta, con otro folio' : 'sin el pie');
+  q('(B2) la definicion del puente miocardico esta, y es la unica cosa que se publica de el',
+    t.indexOf('compresi\u00f3n sist\u00f3lica de una coronaria epic\u00e1rdica') > -1,
+    t.indexOf('puente mioc') > -1 ? 'el puente esta' : 'sin puente');
+  /* ── (C) la ficha VIEJA, caracter por caracter, y su globo ── */
+  const v = cuerpoDe('coronarias');
+  const tv = v ? norm(v.textContent) : '';
+  q('(C0 DENOM) la ficha vieja existe y sigue en el mismo panel',
+    !!v && !!document.getElementById('ref-sub-congenitas') &&
+    document.getElementById('ref-sub-congenitas').contains(v), 'existe=' + !!v);
+  const ESPERADO = 'Origen an\u00f3malo desde el seno contralateral \u2014 tres trayectos posibles:' +
+    ' \u2022 Anterior a la arteria pulmonar \u2022 Posterior a la aorta (retroa\u00f3rtico)' +
+    ' \u2022 Interarterial (entre la aorta y la arteria pulmonar) Riesgo: el trayecto interarterial' +
+    ' es el que se asocia a mayor riesgo de eventos card\u00edacos. ASE 2020 \u2014 Frommelt et al,' +
+    ' Recommendations for Multimodality Assessment of Congenital Coronary Anomalies,' +
+    ' J Am Soc Echocardiogr 2020;33(3):259-294, folio 266.';
+  q('(C1) y su texto es IDENTICO caracter por caracter al de antes de la tanda',
+    tv === ESPERADO, 'largo=' + tv.length + ' esperado=' + ESPERADO.length);
+  /* el globo que CLONA esa ficha: si creciera, esta condicion cae */
+  let clon = -1;
+  try { clon = window._otrRefClon ? norm(window._otrRefClon('ref-coronarias').textContent).length : -2 }
+  catch (e) { clon = -3 }
+  q('(C2) el globo otr-rac clona SOLO la ficha vieja y no crecio ni un caracter',
+    clon === 478, 'clon=' + clon);
+  /* ── (D) NO se duplica lo que la ficha vieja ya dice ── */
+  const veces = (s, sub) => { let n = 0, i = 0; while ((i = s.indexOf(sub, i)) > -1) { n++; i += sub.length } return n };
+  q('(D1) los tres trayectos no se vuelven a escribir en la ficha nueva',
+    veces(t, 'Posterior a la aorta') === 0, 'veces=' + veces(t, 'Posterior a la aorta'));
+  return { extra: F };
+  })();
+`);
+caso('TC-780', 'PANT-28 commit 4: la tabla de cirugia por guia pone CADA GUIA EN SU PROPIA COLUMNA, ninguna celda compara una guia con otra, y la clase y el nivel aparecen solo donde la fuente los imprime', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  irRefs(); solapa('congenitas'); await esp(240);
+  const c = abrir('racong'); await esp(200);
+  const anchas = c ? Array.prototype.slice.call(c.querySelectorAll('table'))
+    .filter(x => x.rows[0] && x.rows[0].cells.length >= 5) : [];
+  q('(A0 DENOM) la tabla de guias existe y tiene cinco columnas o mas',
+    anchas.length >= 1, 'anchas=' + anchas.length);
+  const G = anchas.filter(x => norm(x.rows[0].cells[0].textContent).indexOf('Situaci') === 0)[0] || null;
+  q('(A1) su primera columna es la SITUACION y las otras son las guias',
+    !!G, G ? 'si' : 'sin tabla cuya primera columna sea Situacion');
+  const cab = G ? Array.prototype.slice.call(G.rows[0].cells).map(x => norm(x.textContent)) : [];
+  q('(A2) las CUATRO guias tienen cada una su propia columna',
+    cab.length === 5 && cab[1].indexOf('ACC/AHA 2025') === 0 && cab[2].indexOf('ESC 2020') === 0 &&
+    cab[3].indexOf('ESC 2022') === 0 && cab[4].indexOf('AHA/ACC/HRS 2017') === 0, cab.join(' | '));
+  q('(A3 DENOM) y la tabla trae sus DOCE situaciones',
+    !!G && G.rows.length - 1 === 12, G ? ('filas=' + (G.rows.length - 1)) : '-');
+  /* ── (B) NINGUNA CELDA COMPARA UNA GUIA CON OTRA ── */
+  const NOM = ['ACC/AHA', 'ESC 20', 'AHA/ACC', 'ASE 20'];
+  const comparan = [];
+  if (G) for (let r = 1; r < G.rows.length; r++)
+    for (let k = 1; k < G.rows[r].cells.length; k++) {
+      const tx = norm(G.rows[r].cells[k].textContent);
+      NOM.forEach(function (nm) { if (tx.indexOf(nm) > -1 && cab[k].indexOf(nm) < 0)
+        comparan.push('fila ' + r + ' col ' + k + ': ' + nm) });
+    }
+  q('(B1) ninguna celda nombra una guia distinta de la de su propia columna',
+    comparan.length === 0, comparan.join(' | ').slice(0, 220));
+  /* ── (C) la clase y el nivel SOLO donde la fuente los imprime ── */
+  const celdas = [];
+  if (G) for (let r = 1; r < G.rows.length; r++)
+    for (let k = 1; k < G.rows[r].cells.length; k++) celdas.push(norm(G.rows[r].cells[k].textContent));
+  const conTexto = celdas.filter(x => x.length > 0);
+  const conClase = conTexto.filter(x => x.indexOf('Clase') > -1 || x.indexOf('COR ') > -1);
+  q('(C0 DENOM) hay celdas con texto y hay celdas en blanco, que es lo que la tabla declara',
+    conTexto.length > 0 && celdas.length - conTexto.length > 0,
+    'conTexto=' + conTexto.length + ' blancas=' + (celdas.length - conTexto.length));
+  q('(C1) y la mayoria de las celdas con texto publica su clase, que es lo que su guia imprime',
+    conClase.length >= 20, 'conClase=' + conClase.length + ' de ' + conTexto.length);
+  const sinClase = conTexto.filter(x => x.indexOf('Clase') < 0);
+  q('(C2) las que NO llevan clase son las que su fuente publica en prosa, y citan su folio igual',
+    sinClase.every(x => x.indexOf('folio') > -1), sinClase.join(' || ').slice(0, 220));
+  /* ── (D) CONTROL NEGATIVO: una celda en blanco no dice nada de esa guia ── */
+  const blancas = celdas.filter(x => x.length === 0).length;
+  q('(D1 CONTROL NEGATIVO) ninguna celda en blanco escribe que esa guia no publica nada',
+    blancas > 0 && celdas.filter(x => sinTilde(x).indexOf('no publica') > -1).length === 0,
+    'blancas=' + blancas);
+  /* ── (E) el bloque 7 publica el seguimiento de la Tabla 45 ── */
+  const t = txtDe('racong');
+  q('(E1) el seguimiento trae los intervalos por estadio fisiologico',
+    t.indexOf('24 a 36 meses') > -1 && t.indexOf('Estadio fisiol') > -1 &&
+    t.indexOf('parada card\u00edaca abortada') > -1, 'intervalos=' + (t.indexOf('24 a 36 meses') > -1));
+  return { extra: F };
+  })();
+`);
+caso('TC-781', 'PANT-28 commit 6: la ficha del corazon de atleta esta en las referencias de miocardiopatias con sus SEIS bloques en orden, su bloque de ECG con los tres grupos, y sin transcribir un solo criterio de la hipertrofica ni de la arritmogenica', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  irRefs(); await esp(240);
+  const haySol = solapa('otros'); await esp(240);
+  q('(A0 DENOM) la solapa Otros hallazgos existe y su panel tambien',
+    haySol && !!document.getElementById('ref-sub-otros'), 'solapa=' + haySol);
+  const c = cuerpoDe('atleta');
+  q('(A1) la ficha del corazon de atleta EXISTE', !!c, c ? 'si' : 'no existe ref-atleta');
+  const panel = document.getElementById('ref-sub-otros');
+  q('(A2) y vive en el panel donde estan las miocardiopatias, pegada a ref-miocard',
+    !!(panel && c && panel.contains(c)) && !!document.getElementById('ref-miocard'),
+    'contenida=' + !!(panel && c && panel.contains(c)));
+  q('(A3) nace CERRADA', !!c && getComputedStyle(c).display === 'none',
+    c ? getComputedStyle(c).display : '-');
+  abrir('atleta'); await esp(200);
+  const t = txtDe('atleta');
+  q('(A4 DENOM) abre con su encabezado y trae texto', t.length > 18000, 'largo=' + t.length);
+  const ORD = ['1 \u00b7 Definici', '2 \u00b7 Cl\u00ednica', '3 \u00b7 El ecocardiograma',
+               '4 \u00b7 El ECG', '5 \u00b7 C\u00f3mo se diferencia', '6 \u00b7 Qu\u00e9 hace cada fuente'];
+  q('(B1) los SEIS bloques estan y en el orden de la decision',
+    enOrden(t, ORD), ORD.map(x => x + '=' + t.indexOf(x)).join(' | '));
+  /* ── (C) las cifras contra docs/CONTROL_ATLETA_P28.md ── */
+  const CIF = ['0,11 por 100.000', '1,9 por 100.000', '4 horas por semana', '38 a 66 mm', '43 a 70 mm',
+               '55 mm o m\u00e1s en el 45 %', '60 mm o m\u00e1s en el 14 %', '55 a 58 mm', '0,42',
+               '12 a 13 mm', '1,7 %', '0,4 %', '14 mm', '13 a 15 mm', 'mayor de 15 mm',
+               '11 a 13 mm', '16 a \u221222 %', 'menos negativo que \u221215 %', '28 %', '15,6 %',
+               '40 mm', '45 a 50 %', '45 a 55 %', '15 % de los atletas muy entrenados'];
+  const faltan = CIF.filter(x => t.indexOf(x) < 0);
+  q('(C1) las cifras de la tabla de control estan, una por una', faltan.length === 0, faltan.join(' | '));
+  q('(C2) y la frase con la que la fuente dice que NO recomienda usar cortes va tal cual',
+    t.indexOf('NO se recomienda') > -1 && t.indexOf('valores de corte') > -1,
+    t.indexOf('NO se recomienda') > -1 ? 'esta' : 'falta');
+  /* ── (D) el bloque de ECG, con su documento y su regla de folio ── */
+  q('(D1) el bloque de ECG trae los TRES grupos de la clasificacion internacional',
+    t.indexOf('Limitrofes') > -1 || t.indexOf('L\u00edmitrofes') > -1 || t.indexOf('Limitrofes') > -1 ||
+    t.indexOf('Limítrofes') > -1, rotulos('atleta').join(' | ').slice(0, 200));
+  q('(D2) con sus cifras y la regla de dos o mas',
+    t.indexOf('140 ms o m\u00e1s') > -1 && t.indexOf('30 lpm') > -1 &&
+    t.indexOf('400 ms o m\u00e1s') > -1 && t.indexOf('Dos o m\u00e1s') > -1,
+    '140=' + (t.indexOf('140 ms o m\u00e1s') > -1) + ' 30=' + (t.indexOf('30 lpm') > -1));
+  q('(D3) y la regla de folio del documento nuevo queda escrita y comprobada en dos hojas',
+    t.indexOf('folio = hoja + 1056') > -1 && t.indexOf('1058') > -1 && t.indexOf('1059') > -1,
+    'regla=' + (t.indexOf('folio = hoja + 1056') > -1));
+  /* ── (E) NO se transcriben los criterios de MCH ni de MCA ── */
+  const MCH = ['HCM Risk-SCD', 'gradiente \u226530mmHg', '\u226515mm'];
+  const MCA = ['TSVD paraesternal', '2 mayores', 'fracci\u00f3n de acortamiento de \u00e1rea'];
+  q('(E1) ninguna frase transcribe un criterio de la miocardiopatia hipertrofica',
+    MCH.every(x => t.indexOf(x) < 0), MCH.filter(x => t.indexOf(x) > -1).join(' | '));
+  q('(E2) ni uno de la arritmogenica', MCA.every(x => t.indexOf(x) < 0),
+    MCA.filter(x => t.indexOf(x) > -1).join(' | '));
+  q('(E3) y un pie dice donde viven esos criterios',
+    t.indexOf('Criterios Eco Clave') > -1, 'remite=' + (t.indexOf('Criterios Eco Clave') > -1));
+  /* ── (F) la ficha que ya existia, intacta ── */
+  const m = cuerpoDe('miocard');
+  q('(F1) la ficha de miocardiopatias que ya existia no cambio de largo',
+    !!m && norm(m.textContent).length === 2702, m ? ('largo=' + norm(m.textContent).length) : 'no existe');
+  q('(F2) ninguna palabra prohibida y ningun esquema en la ficha nueva',
+    prohibidas(t).length === 0 && c.querySelectorAll('svg, canvas').length === 0,
+    prohibidas(t).join(' | ') + ' svg=' + c.querySelectorAll('svg, canvas').length);
+  return { extra: F };
+  })();
+`);
+caso('TC-782', 'PANT-28 commit 7: la ficha de la miocardiopatia chagasica con sus SIETE bloques en orden, el puntaje de Rassi completo con sus seis variables y sus tres categorias, sin aplicar ningun puntaje a un paciente y sin criterios de desfibrilador', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  irRefs(); solapa('otros'); await esp(260);
+  const c = cuerpoDe('chagas');
+  q('(A1) la ficha de la miocardiopatia chagasica EXISTE', !!c, c ? 'si' : 'no existe ref-chagas');
+  const panel = document.getElementById('ref-sub-otros');
+  q('(A2) y vive en el panel de las miocardiopatias, junto a la del atleta',
+    !!(panel && c && panel.contains(c)) && !!cuerpoDe('atleta'),
+    'contenida=' + !!(panel && c && panel.contains(c)));
+  q('(A3) nace CERRADA', !!c && getComputedStyle(c).display === 'none',
+    c ? getComputedStyle(c).display : '-');
+  abrir('chagas'); await esp(200);
+  const t = txtDe('chagas');
+  q('(A4 DENOM) abre con su encabezado y trae texto', t.length > 24000, 'largo=' + t.length);
+  const ORD = ['1 \u00b7 Epidemiolog', '2 \u00b7 Cl\u00ednica y estadios', '3 \u00b7 El ecocardiograma',
+               '4 \u00b7 El ECG', '5 \u00b7 Arritmias y riesgo', '6 \u00b7 Tratamiento',
+               '7 \u00b7 Seguimiento'];
+  q('(B1) los SIETE bloques estan y en el orden de la decision',
+    enOrden(t, ORD), ORD.map(x => x + '=' + t.indexOf(x)).join(' | '));
+  /* ── (C) los cinco estadios ── */
+  const EST = ['Fase aguda', 'B1', 'B2'];
+  q('(C1) la estadificacion publica sus cinco estadios con lo que define a cada uno',
+    EST.every(x => t.indexOf(x) > -1) && t.indexOf('S\u00edntomas refractarios en reposo') > -1 &&
+    t.indexOf('funci\u00f3n ventricular global normal') > -1,
+    EST.filter(x => t.indexOf(x) < 0).join(' | '));
+  /* ⚠️ LA FRASE SOLA NO ALCANZA: «funcion ventricular global normal» aparece DOS veces en la
+     ficha -en la fila del B1 y en el bloque de arritmias-, asi que romper una sobrevive por
+     redundancia. Se lee la FILA del estadio B1 y se exige que lo diga ella. */
+  const filaB1 = (function () { const cc = cuerpoDe('chagas'); if (!cc) return '';
+    const tr = Array.prototype.slice.call(cc.querySelectorAll('table tr'))
+      .filter(x => x.cells.length === 2 && norm(x.cells[0].textContent) === 'B1')[0];
+    return tr ? norm(tr.cells[1].textContent) : ''; })();
+  q('(C1b DENOM) la fila del estadio B1 existe en la tabla de estadios', filaB1.length > 40, 'largo=' + filaB1.length);
+  q('(C1c) y es ELLA la que dice que la funcion ventricular global es normal con cambios del ECG o del eco',
+    filaB1.indexOf('funci\u00f3n ventricular global normal') > -1 &&
+    filaB1.indexOf('cambios electrocardiogr') > -1, filaB1.slice(0, 130));
+  q('(C2) y dice que las arritmias pueden aparecer desde el B1 hasta el D',
+    t.indexOf('desde el estadio B1 hasta el D') > -1, 'esta=' + (t.indexOf('desde el estadio B1 hasta el D') > -1));
+  /* ── (D) EL PUNTAJE DE RASSI, completo ── */
+  const VAR = ['Clase funcional III o IV', 'Cardiomegalia', 'Taquicardia ventricular no sostenida',
+               'Bajo voltaje del QRS', 'Sexo masculino'];
+  q('(D1) el puntaje de Rassi publica sus SEIS variables',
+    VAR.every(x => t.indexOf(x) > -1) && t.indexOf('Alteraci\u00f3n segmentaria o global de la motilidad') > -1,
+    VAR.filter(x => t.indexOf(x) < 0).join(' | '));
+  q('(D2) con sus tres categorias por la suma',
+    t.indexOf('0 a 6') > -1 && t.indexOf('7 a 11') > -1 && t.indexOf('12 a 20') > -1,
+    '0-6=' + (t.indexOf('0 a 6') > -1) + ' 7-11=' + (t.indexOf('7 a 11') > -1));
+  q('(D3) y la mortalidad a 5 y a 10 anios de cada categoria',
+    t.indexOf('2 %') > -1 && t.indexOf('18 %') > -1 && t.indexOf('63 %') > -1 &&
+    t.indexOf('10 %') > -1 && t.indexOf('44 %') > -1 && t.indexOf('84 %') > -1,
+    '63=' + (t.indexOf('63 %') > -1) + ' 84=' + (t.indexOf('84 %') > -1));
+  q('(D4) el puntaje de Sousa con sus cuatro factores y el modelo de ictus con sus cuatro variables',
+    t.indexOf('Sousa') > -1 && t.indexOf('dispersi\u00f3n del QT') > -1 &&
+    t.indexOf('aneurisma apical, 1') > -1 && t.indexOf('edad mayor de 48') > -1,
+    'Sousa=' + (t.indexOf('Sousa') > -1));
+  /* ── (E) NINGUN PUNTAJE SE APLICA A UN PACIENTE ── */
+  q('(E1) la ficha no tiene un solo campo, selector ni boton: ningun puntaje se calcula aqui',
+    !!c && c.querySelectorAll('input, select, button').length === 0,
+    c ? ('controles=' + c.querySelectorAll('input, select, button').length) : '-');
+  q('(E2) y un pie dice que los criterios generales de desfibrilador no se escriben aca',
+    sinTilde(t).indexOf('criterios generales de indicacion de desfibrilador no se escriben') > -1,
+    'pie=' + (sinTilde(t).indexOf('no se escriben') > -1));
+  /* ── (F) las cifras de documentos distintos, en celdas separadas ── */
+  q('(F1) las cifras del eco y las de la necropsia van separadas, cada una con su poblacion',
+    t.indexOf('2,0 al 8,6 %') > -1 && t.indexOf('24 al 64 %') > -1 && t.indexOf('30 al 92 %') > -1,
+    'eco=' + (t.indexOf('2,0 al 8,6 %') > -1) + ' necropsia=' + (t.indexOf('30 al 92 %') > -1));
+  q('(F2) y el tratamiento nombra los dos farmacos con su fuente, sin clase ni nivel inventados',
+    t.indexOf('benznidazol') > -1 && t.indexOf('nifurtimox') > -1 &&
+    t.indexOf('folio e190') > -1, 'benz=' + (t.indexOf('benznidazol') > -1));
+  q('(F3) el seguimiento trae los intervalos de la Tabla 7',
+    t.indexOf('Cada 3 a 5 a\u00f1os') > -1 && t.indexOf('cada 1 a 2 a\u00f1os') > -1,
+    '3-5=' + (t.indexOf('Cada 3 a 5 a\u00f1os') > -1));
+  q('(F4) ninguna palabra prohibida, ningun esquema y ninguna celda vacia',
+    prohibidas(t).length === 0 && c.querySelectorAll('svg, canvas').length === 0 &&
+    Array.prototype.slice.call(c.querySelectorAll('td')).filter(x => norm(x.textContent) === '').length === 0,
+    prohibidas(t).join(' | '));
+  return { extra: F };
+  })();
+`);
+caso('TC-783', 'PANT-28 commits 3 a 7: el reparto de Referencias con sus CUARENTA Y TRES entradas, el buscador que encuentra las tres fichas nuevas, los enlaces que caen donde caian, y el trombo protesico grande SOLO en la protesis aortica mecanica', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const ESP = String.fromCharCode(32), NL = String.fromCharCode(10), TAB = String.fromCharCode(9);
+  const CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+  const norm = (s) => { s = String(s == null ? '' : s); let o = '', sp = false;
+    for (let i = 0; i < s.length; i++) { const c = s[i];
+      if (c === ESP || c === NL || c === TAB || c === CR || c === NBSP) { if (!sp) { o += ESP; sp = true } }
+      else { o += c; sp = false } }
+    return o.trim(); };
+  const irRefs = () => { try { showTab('refs') } catch (e) {} };
+  const solapa = (k) => { const b = document.getElementById('ref-subtab-' + k); if (b) { b.click(); return true } return false };
+  const cuerpoDe = (id) => document.getElementById('ref-' + id);
+  const cabDe = (id) => { const c = cuerpoDe(id); const d = c ? c.closest('.card') : null;
+                          return d ? d.querySelector('h2.card-head') : null };
+  const abrir = (id) => { const c = cuerpoDe(id); const h = cabDe(id);
+    if (!c || !h) return null;
+    if (getComputedStyle(c).display === 'none') h.click();
+    return c; };
+  const txtDe = (id) => { const c = cuerpoDe(id); return c ? norm(c.textContent) : '' };
+  const PROH = ['pendiente de revisi', 'sin fuente', 'proximamente', 'no se encontr',
+                'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica'];
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split('\u00e1').join('a').split('\u00e9').join('e').split('\u00ed').join('i')
+    .split('\u00f3').join('o').split('\u00fa').join('u');
+  const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  const rotulos = (id) => { const c = cuerpoDe(id); if (!c) return [];
+    return Array.prototype.slice.call(c.children)
+      .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+      .map(el => norm(el.textContent)); };
+  const enOrden = (t, lista) => { let p = -1; for (let i = 0; i < lista.length; i++) {
+      const k = t.indexOf(lista[i]); if (k < 0 || k < p) return false; p = k } return true };
+
+  /* ── (A) EL REPARTO: tres entradas nuevas, ninguna perdida ── */
+  const T = (typeof REF_SUBTAB !== 'undefined') ? REF_SUBTAB : null;
+  q('(A0 DENOM) el reparto existe', !!T, T ? 'si' : 'sin REF_SUBTAB');
+  const total = T ? Object.keys(T).reduce((a, k) => a + T[k].length, 0) : -1;
+  q('(A1) congenitas gana la ficha nueva de coronarias y queda en TRES',
+    !!T && T.congenitas.length === 3 && T.congenitas.join(',') === 'congenitas,coronarias,racong',
+    T ? T.congenitas.join(',') : '-');
+  q('(A2) otros gana las dos de miocardiopatias y queda en ONCE, con atleta y chagas pegadas a miocard',
+    !!T && T.otros.length === 11 && T.otros.indexOf('atleta') === T.otros.indexOf('miocard') + 1 &&
+    T.otros.indexOf('chagas') === T.otros.indexOf('atleta') + 1, T ? T.otros.join(',') : '-');
+  /* 0 + 5 + 4 + 2 + 3 + 3 + 1 + 2 + 11. Antes de la tanda eran 28: congenitas 2 y otros 9. */
+  q('(A3) y ninguna entrada se perdio: el total pasa de 28 a 31 claves de reparto',
+    total === 31, 'total=' + total);
+  /* cada entrada del reparto tiene su ficha en el DOM: una clave sin ficha gritaria en consola */
+  const sinFicha = T ? Object.keys(T).reduce(function (a, k) {
+    T[k].forEach(function (x) { if (!document.getElementById('ref-' + x)) a.push(k + '/' + x) }); return a }, []) : ['-'];
+  q('(A4) y cada clave del reparto tiene su ficha en el documento', sinFicha.length === 0, sinFicha.join(' | '));
+  /* ── (B) EL BUSCADOR encuentra las tres fichas nuevas ── */
+  irRefs(); await esp(240);
+  const campo = document.getElementById('ref-busca');
+  q('(B0 DENOM) el buscador existe', !!campo, campo ? 'si' : 'sin campo');
+  /* ⚠️ EL CAMPO SE RESUELVE EN CADA LLAMADA, no se captura: refSubTab puede rearmar la barra y
+     una referencia vieja queda desprendida del documento, que es como una corrida dio -1 en las
+     cuatro consultas sobre un campo que si existia. */
+  const buscar = (s) => { const cp = document.getElementById('ref-busca'); if (!cp) return -1;
+    cp.value = s;
+    if (typeof refBuscar === 'function') refBuscar();
+    const r = document.getElementById('ref-busca-res');
+    return r ? r.querySelectorAll('[data-ref-id]').length : -2 };
+  const vPos = buscar('Frommelt'), vNeg = buscar('zzqqxx'), vVac = buscar(''), vPos2 = buscar('Frommelt');
+  q('(B1 DENOM) el buscador discrimina en los dos sentidos antes de usarlo',
+    vPos >= 1 && vNeg === 0 && vVac === 0 && vPos2 === vPos,
+    'pos=' + vPos + ' neg=' + vNeg + ' vacio=' + vVac + ' vuelta=' + vPos2);
+  const TERM = [['intraconal', 1], ['neo-ostium', 1], ['desentrenamiento', 1], ['benznidazol', 1]];
+  const malos = TERM.filter(p => buscar(p[0]) < p[1]);
+  q('(B2) y encuentra un termino de cada bloque nuevo de las tres fichas',
+    malos.length === 0, malos.map(x => x[0] + '=' + buscar(x[0])).join(' | '));
+  q('(B3 CONTROL NEGATIVO) un termino que no existe sigue dando cero', buscar('zzqqxx') === 0, '');
+  buscar('');
+  /* ── (C) LOS ENLACES caen donde caian ── */
+  const M = (typeof window.VINFO_REF_MAPA !== 'undefined') ? window.VINFO_REF_MAPA : null;
+  let destino = null;
+  try { destino = M ? M['otr-rac'] : (typeof refIr === 'function' ? 'hay refIr' : null) } catch (e) {}
+  q('(C1) el boton Ver referencia de la casilla RAC sigue apuntando a la ficha vieja',
+    destino === 'coronarias' || destino === 'hay refIr' || destino === null,
+    'destino=' + destino);
+  let clon = -1;
+  try { clon = window._otrRefClon ? norm(window._otrRefClon('ref-coronarias').textContent).length : -2 }
+  catch (e) { clon = -3 }
+  q('(C2) y el globo que clona esa ficha NO crecio: sigue en 478 caracteres', clon === 478, 'clon=' + clon);
+  /* ── (D) EL TROMBO PROTESICO GRANDE, SOLO EN LA AORTICA MECANICA ── */
+  const ORACION = 'La cirug\u00eda se considera ante un trombo prot\u00e9sico grande, no obstructivo,' +
+    ' que se complic\u00f3 con embolia o que persiste a pesar de anticoagulaci\u00f3n \u00f3ptima (folio 4698).';
+  const secTexto = (pref) => { const ov = document.getElementById('indic-overlay');
+    if (!ov || ov.style.display !== 'block') return null;
+    const ds = Array.prototype.slice.call(ov.querySelectorAll('details'));
+    const s = ds.filter(d => { const su = d.querySelector('summary');
+      return su && norm(su.textContent).indexOf(pref) === 0 })[0];
+    if (!s) return null;
+    if (!s.open) s.querySelector('summary').click();
+    return norm(s.textContent); };
+  const contestar = (clave, val) => { const ov = document.getElementById('indic-overlay');
+    if (!ov) return false;
+    const bs = Array.prototype.slice.call(ov.querySelectorAll('[data-ind-clin="' + clave + '"]'));
+    const b = bs.filter(x => x.getAttribute('data-ind-val') === val)[0];
+    if (!b) return false; b.click(); return true };
+  const escena = async (morf) => {
+    __t.limpiar(); __t.set('nombre','P28'); __t.set('ci','28282828');
+    __t.set('va_morf', morf);
+    try { valvProtSync() } catch (e) {}
+    await esp(420);
+    try { indicAbrir() } catch (e) {}
+    await esp(300);
+    const puso = contestar('prota.tromb', 'si');
+    await esp(320);
+    const s = secTexto('Pr\u00f3tesis a\u00f3rtica');
+    try { indicCerrar() } catch (e) {}
+    return { puso: puso, s: s }; };
+  const mec = await escena('Pr\u00f3tesis mec\u00e1nica');
+  q('(D0 DENOM) con una protesis aortica MECANICA la seccion de Evidencia existe y trae texto',
+    !!mec.s && mec.s.length > 5000, mec.s ? ('largo=' + mec.s.length + ' puso=' + mec.puso) : 'sin seccion');
+  q('(D1) y la oracion del folio 4698 esta, identica a la de la mitral mecanica',
+    !!mec.s && mec.s.indexOf(ORACION) > -1, 'oracion=' + (!!mec.s && mec.s.indexOf(ORACION) > -1));
+  q('(D2) con la pregunta del trombo grande dibujada',
+    !!mec.s && mec.s.indexOf('Trombo prot\u00e9sico grande, de 10 mm o m\u00e1s') > -1, '');
+  const bio = await escena('Pr\u00f3tesis biol\u00f3gica');
+  q('(D3 DENOM) con una BIOLOGICA la seccion tambien existe y trae texto',
+    !!bio.s && bio.s.length > 5000, bio.s ? ('largo=' + bio.s.length) : 'sin seccion');
+  q('(D4 CONTROL NEGATIVO) y la oracion NO esta con la biologica',
+    !!bio.s && bio.s.indexOf(ORACION) < 0, 'oracion=' + (!!bio.s && bio.s.indexOf(ORACION) > -1));
+  const tavi = await escena('TAVI');
+  q('(D5 DENOM) con TAVI la seccion existe y trae texto',
+    !!tavi.s && tavi.s.length > 5000, tavi.s ? ('largo=' + tavi.s.length) : 'sin seccion');
+  q('(D6 CONTROL NEGATIVO) y la oracion tampoco esta con TAVI',
+    !!tavi.s && tavi.s.indexOf(ORACION) < 0, 'oracion=' + (!!tavi.s && tavi.s.indexOf(ORACION) > -1));
+  /* la TRICUSPIDE: su pregunta NO esta acotada por tipo, y por eso la oracion NO se le presto */
+  const NT = (typeof PROTT_PREG !== 'undefined') ? PROTT_PREG : null;
+  const tromT = NT ? NT.filter(x => x.clave === 'prott.trombGrande')[0] : null;
+  q('(D7 DENOM) la pregunta del trombo grande de la TRICUSPIDE existe', !!tromT, tromT ? 'si' : 'no');
+  q('(D8 CONTROL NEGATIVO) y su nota NO lleva la oracion, porque su filtro no acota por tipo',
+    !!tromT && String(tromT.nota || '').indexOf('folio 4698') < 0,
+    tromT ? String(tromT.nota || '').slice(0, 120) : '-');
+  const NA = (typeof PROTA_PREG !== 'undefined') ? PROTA_PREG : null;
+  const tromA = NA ? NA.filter(x => x.clave === 'prota.trombGrande')[0] : null;
+  q('(D9) y la de la AORTICA si la lleva, en su nota',
+    !!tromA && String(tromA.nota || '').indexOf(ORACION) > -1,
+    tromA ? String(tromA.nota || '').slice(0, 80) : '-');
+  return { extra: F };
+  })();
+`);
+
 
 
 

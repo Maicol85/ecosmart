@@ -14465,3 +14465,82 @@ eso está escrito en el propio caso.
 `docs/PENDIENTES.md` **mientras la suite corría**, y TC-753 los lee por HTTP. Es la lección (b) de
 la orden aplicada a los documentos y no sólo al archivo de casos: **mientras la suite corre no se
 toca nada de lo que la suite lee.**
+
+## P28-a — PANT-28 (2026-11-09): lo que se paró y lo que no se verificó
+
+**1 · La ficha nueva de coronarias NO va dentro de `ref-coronarias`, y es una decisión tomada
+por medición.** El globo ⓘ `otr-rac` de la casilla «Arteria circunfleja retroaórtica» de la
+pestaña Otros llama `_otrRefClon('ref-coronarias')` **sin `modo`**, así que clona esa ficha
+**entera**: todo lo que entrara ahí entraría también a una tarjeta de 360 px anclada a una
+casilla. La orden prohíbe tocar el globo y prohíbe alterarlo, así que los siete bloques nuevos
+fueron a una **ficha propia hermana**, en el mismo panel «Cardiopatía congénita», que es lo que
+la decisión (1) escribe: «lo nuevo se AGREGA con el mecanismo que Referencias ya usa (fichas con
+bloques numerados)». Medido en los dos árboles: `ref-coronarias` da **445** caracteres y el globo
+**478**, idénticos antes y después. La medición completa está en
+`docs/INVENTARIO_REFERENCIAS_P28.md` → (b.1).
+
+**2 · El solapamiento con la ficha vieja, medido y no duplicado.** La ficha vieja publica los
+**tres trayectos** del origen contralateral y que el **interarterial** es el de mayor riesgo de
+eventos, de Frommelt folio 266. Esos dos hechos **no se vuelven a escribir** en la ficha nueva:
+un pie remite a la ficha vieja. Lo fija TC-779 (D1).
+
+**3 · Tres fuentes de la orden NO se leyeron en imagen, y por la regla central no se escribió una
+sola cifra de ellas.** Del corazón de atleta: la ASE de miocardiopatía hipertrófica multimodal
+(Nagueh), la ASE 2025 de strain y la ASE 2017 de eco de estrés no isquémico. De Chagas: el
+consenso de imagen multimodal DIC/EACVI 2018 (`Chagas Paper Brazil.pdf`), la ESC 2025 de
+miocarditis y pericarditis (`ehaf192.pdf`) y la hoja 47 de la AHA/ACC/HRS 2017. Los seis bloques
+del atleta y los siete de Chagas quedaron cubiertos con las cuatro y las dos fuentes que **sí**
+se leyeron, y cada una con su regla de folio comprobada hoja por hoja.
+
+**4 · La Tabla 1 de Frommelt (hoja 3, folio 261) no se publica.** Es una comparación de técnicas
+en una escala de `+` a `++++` y **en esa misma hoja no está la leyenda** que dice qué significa
+cada nivel. No se leyó con certeza, así que no se escribe.
+
+**5 · Una premisa de la orden sobre PANT-27 no se reprodujo, y se corrige acá.** El comentario de
+PANT-27 dice que «las preguntas `prota.trombGrande` y `prott.trombGrande` no están acotadas por
+tipo». Medido, **`prota.trombGrande` SÍ lo está**: el `esMec` del filtro de `_indProtA` es
+anterior a PANT-27. La que no lo está es **`prott.trombGrande`**, la tricúspide, y por eso la
+oración del folio 4698 **no se le prestó**. Lo fija TC-783 (D8).
+
+**6 · El buscador de Referencias empareja por una forma compacta que borra separadores.** «Rassi»
+devolvía 1 resultado antes de que la ficha de Chagas existiera, porque «rassi» cae dentro de
+«…ras si…». Es **comportamiento preexistente** del buscador y esta tanda no lo toca; queda
+anotado para que ningún caso futuro lo use como control.
+
+## P28-b — PANT-28: lo que sigue sin contenido en los tres temas, y qué documento falta
+
+**Anomalías coronarias.** No existen los bloques de **ECG**, de **restricción del deporte**, de
+**aneurismas coronarios** ni de **anomalías de terminación** como categoría propia, y por la
+regla del 08/11 lo que no tiene fuente leída no se muestra:
+- **ECG con cifras**: ninguna de las once hojas de Frommelt ni de las ocho hojas de guías leídas
+  publica un criterio electrocardiográfico con cifras para las anomalías coronarias. Lo único
+  leído es que el ECG **no las detecta** (Sharma 2017, hoja 2, folio 1058), que es lo contrario
+  de un criterio. **Falta un documento que publique criterios de ECG para esta anomalía.**
+- **Restricción del deporte con criterios**: la ESC 2020 nombra el nivel de ejercicio como parte
+  de la estratificación de riesgo y la ASE 2020 de eco de estrés habla de «actividades
+  extenuantes», pero **ninguna publica un criterio de restricción**. **Falta un documento de
+  elegibilidad deportiva.**
+- **Aneurismas coronarios**: la hoja 31 de la ASE 2020 de eco de estrés los nombra en el contexto
+  de la **enfermedad de Kawasaki**, que es adquirida; ninguna hoja leída los trata como anomalía
+  congénita. **Falta un documento de Kawasaki o de aneurismas coronarios.**
+- **Puente miocárdico**: entra **solo su definición**, de la AHA/ACC 2024 de miocardiopatía
+  hipertrófica (hoja 11, folio e1249). **Falta un documento que publique su frecuencia, su
+  evaluación por imagen y su conducta.**
+
+**Corazón de atleta.** El bloque de ECG **sí existe**: el documento nuevo se encontró y se leyó
+—Sharma 2017, JACC 2017;69(8):1057-75, folio = hoja + 1056, comprobada en dos hojas—. Lo que
+falta es **la restricción del deporte con criterios**, por el mismo motivo que en coronarias.
+
+**Miocardiopatía chagásica.** Quedan sin tratar, porque ninguna fuente leída los trata:
+**resincronización**, **trasplante** y la **anticoagulación** fuera del modelo de predicción de
+ictus que la ficha sí publica. Los tres documentos del punto 3 de P28-a podrían cubrirlos.
+
+## P28-c — PANT-28: la cuenta real de la suite
+
+Medido sobre `scripts/test_clinico.mjs` al abrir la tanda, contando por nombre y sin duplicados:
+**792** llamadas `caso()` y **792** ids distintos — **777** TC numéricos (`TC-001` a `TC-777`) y
+**15** TC-GR, con **cero** `casoAbierto`.
+
+⚠️ **La corrida final de PANT-26 reportó «777 de 777 ejecutados» y por lo tanto NO incluyó los 15
+TC-GR**: 777 es exactamente el conteo de los TC numéricos de ese árbol. El total real del archivo
+era 792, y con los seis casos de esta tanda queda en **798**. Esta tanda corre los 798.

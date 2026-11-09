@@ -1,3 +1,34 @@
+## PANT-28 — Referencias: las anomalías coronarias, el corazón de atleta y la miocardiopatía chagásica (2026-11-09)
+
+**Commits:** `e4ede19` (1, inventario) · `0b18be1` (2, la lectura de las fuentes) · `3e29ad0` (3,
+coronarias 1 a 4) · `a497d91` (4, coronarias 5 a 7) · `aa06241` (5, el trombo aórtico) ·
+`de80ae1` (6, el corazón de atleta) · `6ab0a12` (7, la miocardiopatía chagásica) · **éste** (8,
+cobertura y documentación).
+
+**Qué hizo.** Referencias gana **tres fichas**: la de **detalle de anomalías coronarias**
+(`ref-racong`), hermana de la que ya existía y dentro del panel «Cardiopatía congénita», con
+siete bloques numerados; y las de **corazón de atleta** (`ref-atleta`) y **miocardiopatía
+chagásica** (`ref-chagas`), pegadas a `ref-miocard` dentro de «Otros hallazgos», con seis y siete
+bloques. El reparto pasa de **40 a 43** entradas y el índice del buscador de **38 a 41**. Y la
+oración del folio 4698 sobre el **trombo protésico grande** se agrega a la **prótesis aórtica
+mecánica**, donde la pregunta ya estaba acotada por `esMec`.
+
+**Lo que no cambió.** El papel es **idéntico**: 125 escenas, 153.484 claves y 57.125 celdas de
+Excel, con el PDF y el PPT generados de verdad, **cero diferencias**. Cero campos guardados
+nuevos, Excel en **457**, ningún id existente cambiado, y las fichas `ref-coronarias` y
+`ref-miocard` idénticas carácter por carácter, con el globo `otr-rac` en los mismos 478
+caracteres.
+
+**Lo que se paró.** En `docs/PENDIENTES.md` → **P28-a** (seis cosas, entre ellas por qué la ficha
+nueva no va dentro de la vieja y las tres fuentes que no se leyeron), **P28-b** (lo que sigue sin
+contenido y qué documento falta) y **P28-c** (la cuenta real de la suite).
+
+**Dónde está todo.** `docs/INVENTARIO_REFERENCIAS_P28.md`, `docs/CONTROL_CORONARIAS_P28.md`,
+`docs/CONTROL_ATLETA_P28.md`, `docs/CONTROL_CHAGAS_P28.md` y `docs/GUIA_PRUEBA_PANT28.md`.
+Cobertura: **TC-778** a **TC-783**, con **TC-502**, **TC-509** y **TC-761** adaptados.
+
+---
+
 ## PANT-26 — las protesis aorticas, la mitral y el 3D de congenitas (2026-11-09)
 
 **OCHO commits** —contados con `git log 3476036..HEAD` AL CERRAR, y el commit que escribe

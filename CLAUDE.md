@@ -252,8 +252,18 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,34 MB / 169.251 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
-  tanda **PANT-26**, sobre el árbol ya sellado: sello **`v20261109-1705`**, md5 **`e2ebb637`**.
+  sin frameworks. Hoy **12,51 MB / 169.360 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
+  tanda **PANT-28**, sobre el árbol ya sellado: sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
+  El diff de PANT-28 son **115 líneas agregadas y 6 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `36b7bb0`, de las que **89** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
+  guardados nuevos, cero columnas de Excel (457) y ningún id existente cambiado**: los tres ids
+  nuevos son los de las tres fichas de Referencias (`ref-racong`, `ref-atleta`, `ref-chagas`).
+  ⚠️ **POR VIGESIMOQUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 36b7bb0:index.html` da **169.251** líneas,
+  **12.342.200** bytes y el md5 **`e2ebb637`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,34 MB / 169.251 al cierre de la tanda **PANT-26**, sello **`v20261109-1705`**, md5 **`e2ebb637`**.)
   El diff de PANT-26 son **244 líneas agregadas y 30 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `3476036`, de las que **205** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
@@ -920,6 +930,35 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-28 (2026-11-09) — Referencias: las anomalías coronarias, el corazón de atleta
+y la miocardiopatía chagásica.** OCHO commits. Sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
+Referencias gana **TRES fichas** y el reparto pasa de **40 a 43** entradas, con el índice del
+buscador de **38 a 41**: la de **detalle de anomalías coronarias** (`ref-racong`), con siete
+bloques numerados, y las de **corazón de atleta** (`ref-atleta`, seis bloques) y
+**miocardiopatía chagásica** (`ref-chagas`, siete), pegadas a `ref-miocard` en «Otros
+hallazgos». ⚠️ **La de coronarias es una ficha HERMANA y no va dentro de `ref-coronarias`, y
+está medido**: el globo ⓘ `otr-rac` clona esa ficha **entera**, así que todo lo que entrara ahí
+entraría a una tarjeta de 360 px; medido en los dos árboles, la ficha vieja da **445**
+caracteres y el globo **478**, idénticos. **Cada cifra sale de una hoja leída EN IMAGEN a 200
+ppp** con su folio comprobado en el pie o la cabecera: Frommelt (hoja + 258, en once hojas), la
+ACC/AHA 2025 (e + hoja + 114), la ESC 2020 inglesa (hoja + 562), la ESC 2022 (hoja + 3996), la
+AHA/ACC/HRS 2017 (e + hoja + 271), Ommen (e + hoja + 1238), la ASE 2020 de eco de estrés (folio
+= hoja), Baggish (hoja + 522), **Sharma 2017** (hoja + 1056), Japp 2016 (hoja + 2995), la ESC
+2023 (hoja + 3502) y Nunes (e + hoja + 168). ⚠️ **El documento nuevo de ECG en atletas SE
+ENCONTRÓ Y SE LEYÓ** —Sharma y cols., *JACC* 2017;69(8):1057-75—, así que el bloque de ECG del
+atleta **existe**; en cambio las coronarias **no tienen** bloque de ECG, de restricción del
+deporte ni de aneurismas, porque ninguna hoja leída publica contenido verificado sobre eso. La
+oración del folio **4698** del trombo protésico grande se agrega a la **aórtica MECÁNICA**,
+donde la pregunta **ya** estaba acotada por `esMec` —lo que corrige una frase de PANT-27: la que
+no está acotada es la **tricúspide**, y no se le prestó—. **El papel es IDÉNTICO**: 125 escenas,
+153.484 claves y 57.125 celdas de Excel, con PDF y PPT generados de verdad, **cero
+diferencias**. Lo cubren **TC-778** a **TC-783**, con **TC-502**, **TC-509** y **TC-761**
+adaptados; **40/40 mutaciones dirigidas muertas** —las dos que sobrevivieron al primer barrido
+eran **redundancia** y se cerraron afinando la condición, no la mutación—. Lo declarado, en
+**P28-a**, **P28-b** y **P28-c**; el inventario, en `docs/INVENTARIO_REFERENCIAS_P28.md`; los
+tres controles de lectura, en `docs/CONTROL_CORONARIAS_P28.md`, `docs/CONTROL_ATLETA_P28.md` y
+`docs/CONTROL_CHAGAS_P28.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT28.md`.
 
 **La tanda PANT-26 (2026-11-09) — las prótesis aórticas, la mitral y el 3D de congénitas.**
 OCHO commits. Sello **`v20261109-1705`**, md5 **`e2ebb637`**. La **cápsula de la aórtica se
