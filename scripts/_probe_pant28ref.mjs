@@ -34,6 +34,19 @@ const ORDEN_RACONG = ['1 · Clasificaci', '2 · Clínica', '3 · Riesgo',
 const ORDEN_RACONG_B = ['5 · Otras exploraciones', '6 · Cirug', '7 · Seguimiento'];
 const BUSCA_SI = ['fibroelastosis', 'Nyquist', 'intraconal', 'Takeuchi', 'unroofing', 'neo-ostium'];
 const BUSCA_NO = ['zzqqxx'];
+/* Las dos fichas nuevas de miocardiopatias y el orden que la decision pide para cada una. */
+const ORDEN_ATLETA = ['1 \u00b7 Definici', '2 \u00b7 Cl\u00ednica', '3 \u00b7 El ecocardiograma',
+                      '4 \u00b7 El ECG', '5 \u00b7 C\u00f3mo se diferencia',
+                      '6 \u00b7 Qu\u00e9 hace cada fuente'];
+const ORDEN_CHAGAS = ['1 \u00b7 Epidemiolog', '2 \u00b7 Cl\u00ednica y estadios',
+                      '3 \u00b7 El ecocardiograma', '4 \u00b7 El ECG',
+                      '5 \u00b7 Arritmias y riesgo', '6 \u00b7 Tratamiento',
+                      '7 \u00b7 Seguimiento'];
+/* ⚠️ «Rassi» NO sirve de control: el buscador tiene una forma COMPACTA que borra los
+   separadores, asi que «rassi» empareja dentro de «…ras si…» y devuelve 1 aunque la palabra no
+   exista en el archivo -verificado con grep: cero apariciones-. Es comportamiento preexistente
+   del buscador, no un defecto de esta tanda. Los controles son terminos sin esa trampa. */
+const BUSCA_MIO = ['desentrenamiento', 'Sokolow', 'benznidazol', 'Roma\u00f1a'];
 
 const errs = [];
 const navegador = await chromium.launch({ channel: 'chrome' });
@@ -46,7 +59,7 @@ await pg.waitForTimeout(2500);
 /* Las transiciones se apagan: una ficha a medio abrir mide otra cosa. */
 await pg.addStyleTag({ content: '*{transition:none !important;animation:none !important}' });
 
-const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUSCA_NO }) => {
+const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUSCA_NO, ORDEN_ATLETA, ORDEN_CHAGAS, BUSCA_MIO }) => {
   const o = { pasos: [] };
   const clic = (el) => { if (!el) return false; el.click(); return true };
   /* ── 1 · el gesto real: la pestania Referencias ───────────────────────── */
@@ -160,14 +173,24 @@ const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUS
   /* ── 7 · el buscador, con el gesto real y su control negativo ───────────── */
   const campo = document.getElementById('ref-busca');
   o.buscadorExiste = !!campo;
+  /* ⚠️ EL HELPER SE VALIDA ANTES DE USARLO. La primera version despachaba un evento `input` y
+     leia el contenedor enseguida: devolvia 1 para «Rassi», que NO aparece ni una vez en el
+     archivo -verificado con grep, cero apariciones-, porque leia el render de la consulta
+     ANTERIOR. Ahora llama a `refBuscar()`, que es sincronica y vacia el contenedor antes de
+     pintar, y la sonda publica el triple de validacion: un termino presente, uno ausente y el
+     campo vacio. */
   const buscar = (q) => {
     if (!campo) return -1;
     campo.value = q;
-    campo.dispatchEvent(new Event('input', { bubbles: true }));
-    const cont = document.getElementById('ref-busca-res') || document.getElementById('ref-busca-lista');
-    if (cont) return cont.querySelectorAll('[data-ref-id]').length;
-    return document.querySelectorAll('#tab-refs [data-ref-id]').length;
+    if (typeof window.refBuscar === 'function') window.refBuscar();
+    else campo.dispatchEvent(new Event('input', { bubbles: true }));
+    const res = document.getElementById('ref-busca-res');
+    if (!res) return -2;
+    return res.querySelectorAll('[data-ref-id]').length;
   };
+  /* control positivo, negativo y el cero en los dos sentidos */
+  o.validaBuscador = { presente: buscar('Frommelt'), ausente: buscar('zzqqxx'),
+                       vacio: buscar(''), devuelta: buscar('Frommelt') };
   o.buscaSi = BUSCA_SI.map(q => [q, buscar(q)]);
   o.buscaNo = BUSCA_NO.map(q => [q, buscar(q)]);
   if (campo) { campo.value = ''; campo.dispatchEvent(new Event('input', { bubbles: true })) }
@@ -183,8 +206,53 @@ const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUS
       return n ? n.textContent.replace(/\s+/g, ' ').trim().length : -1;
     } catch (e) { return 'EXC' }
   })();
+  /* ── 10 · las DOS fichas de miocardiopatias, en el panel «Otros hallazgos» ─────── */
+  const sub2 = document.getElementById('ref-subtab-otros');
+  o.solapaOtros = !!sub2;
+  if (sub2) clic(sub2);
+  const panel2 = document.getElementById('ref-sub-otros');
+  o.mio = {};
+  [['atleta', ORDEN_ATLETA], ['chagas', ORDEN_CHAGAS]].forEach(function (par) {
+    const id = par[0], ORD = par[1];
+    const c = document.getElementById('ref-' + id);
+    const m = { existe: !!c };
+    if (c) {
+      m.enPanel = !!(panel2 && panel2.contains(c));
+      m.cerrada = getComputedStyle(c).display === 'none';
+      const cd = c.closest('.card'), cb = cd ? cd.querySelector('h2.card-head') : null;
+      m.cab = cb ? cb.textContent.replace(/\s+/g, ' ').trim() : null;
+      if (cb) clic(cb);
+      m.abierta = getComputedStyle(c).display !== 'none';
+      const tx = c.textContent.replace(/\s+/g, ' ');
+      m.largo = tx.length;
+      let pv = -1; m.ordenOk = true;
+      m.orden = ORD.map(function (r) { const k = tx.indexOf(r);
+        if (k < 0 || k < pv) m.ordenOk = false; pv = k; return [r, k] });
+      m.tablas = c.querySelectorAll('table').length;
+      m.filas = c.querySelectorAll('table tr').length;
+      m.celdasVacias = Array.prototype.slice.call(c.querySelectorAll('td'))
+        .filter(td => td.textContent.trim() === '').length;
+      m.prohibidas = PROH.filter(x => tx.toLowerCase().indexOf(x) > -1);
+      m.esquema = !!c.querySelector('svg, canvas');
+      m.rotulos = Array.prototype.slice.call(c.children)
+        .filter(el => el.tagName === 'DIV' && el.style && el.style.fontWeight === '700')
+        .map(el => el.textContent.trim());
+      /* ninguna frase transcribe los criterios de MCH ni de MCA que la app ya tiene */
+      m.criteriosMCH = /grosor pared .15 ?mm|≥15mm|gradiente ≥30|HCM Risk-SCD/i.test(tx);
+      m.criteriosMCA = /TSVD paraesternal|2 mayores|fracci.n de acortamiento de .rea/i.test(tx);
+      /* ningun puntaje aplicado a un paciente: ni un campo ni un boton dentro de la ficha */
+      m.controles = c.querySelectorAll('input, select, button').length;
+    }
+    o.mio[id] = m;
+  });
+  /* la ficha de miocardiopatias que ya existia, para compararla */
+  const mio2 = document.getElementById('ref-miocard');
+  o.miocardTexto = mio2 ? mio2.textContent.replace(/\s+/g, ' ').trim() : null;
+  o.miocardLargo = o.miocardTexto ? o.miocardTexto.length : -1;
+  o.buscaMio = BUSCA_MIO.map(q => [q, buscar(q)]);
+  if (campo) { campo.value = ''; campo.dispatchEvent(new Event('input', { bubbles: true })) }
   return o;
-}, { PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUSCA_NO });
+}, { PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUSCA_NO, ORDEN_ATLETA, ORDEN_CHAGAS, BUSCA_MIO });
 
 /* ── 9 · pantalla angosta: la PAGINA no desborda ─────────────────────────── */
 await pg.setViewportSize({ width: 390, height: 840 });
