@@ -257,20 +257,27 @@ const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUS
 /* ── 9 · pantalla angosta: la PAGINA no desborda ─────────────────────────── */
 await pg.setViewportSize({ width: 390, height: 840 });
 await pg.waitForTimeout(400);
-R.a390 = await pg.evaluate(() => ({
-  scrollH: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  bodyScrollH: document.body.scrollWidth - document.body.clientWidth,
-  tablasQueDesbordan: (function () {
-    const c = document.getElementById('ref-racong'); if (!c) return -1;
-    return Array.prototype.slice.call(c.querySelectorAll('table'))
-      .filter(t => t.getBoundingClientRect().right > innerWidth + 1).length;
-  })(),
-  envoltoriosConScroll: (function () {
-    const c = document.getElementById('ref-racong'); if (!c) return -1;
-    return Array.prototype.slice.call(c.querySelectorAll('div'))
-      .filter(d => d.scrollWidth > d.clientWidth + 1).length;
-  })()
-}));
+R.a390 = await pg.evaluate(() => {
+  const o = { scrollH: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+              bodyScrollH: document.body.scrollWidth - document.body.clientWidth, fichas: {} };
+  /* ⚠️ DENOMINADOR: cada ficha se mide con SU panel activo. Con el panel escondido el subarbol
+     no tiene geometria y todo da cero, que se lee igual que «no desborda». */
+  [['racong', 'congenitas'], ['atleta', 'otros'], ['chagas', 'otros']].forEach(function (par) {
+    const id = par[0];
+    const sb = document.getElementById('ref-subtab-' + par[1]);
+    if (sb) sb.click();
+    const c = document.getElementById('ref-' + id);
+    if (!c) { o.fichas[id] = 'NO EXISTE'; return }
+    /* DENOMINADOR: una ficha cerrada no tiene geometria y medir ahi da cero. */
+    const abierta = getComputedStyle(c).display !== 'none';
+    o.fichas[id] = { abierta: abierta, panelVisible: !!(c.offsetParent || c.getClientRects().length),
+      anchas: Array.prototype.slice.call(c.querySelectorAll('table'))
+        .filter(t => t.getBoundingClientRect().right > innerWidth + 1).length,
+      conScrollPropio: Array.prototype.slice.call(c.querySelectorAll('div'))
+        .filter(d => d.scrollWidth > d.clientWidth + 1).length };
+  });
+  return o;
+});
 /* tema noche: los colores son tokens, asi que no deberia cambiar nada estructural */
 await pg.setViewportSize({ width: 1440, height: 900 });
 await pg.evaluate(() => { try { document.documentElement.setAttribute('data-theme', 'dark') } catch (e) {} });
