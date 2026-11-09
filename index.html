@@ -95623,10 +95623,22 @@ function _protmRecom(D){
       fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC };
     /* Las filas de trombosis se separan por tipo de prótesis. Sin tipo consignado se publican las
        DOS y se dice que falta el dato: elegir una sería atribuirle al paciente un tipo de válvula. */
+    /* ⚠️ PANT-27 (09/11), commit 4: LA ORACION DEL TEXTO PRINCIPAL VA SOLO ACA, y es por el
+       alcance de su fuente. La seccion 14.4.4.2 de la ESC/EACTS 2025 -hoja 64, folio 4698
+       impreso en la cabecera, leida EN IMAGEN a 300 ppp- habla de la trombosis de una protesis
+       MECANICA: su parrafo dice que el manejo de la trombosis no obstructiva, o de la
+       obstructiva de una MHV sin sintomas marcados de insuficiencia cardiaca, depende del
+       evento tromboembolico y del tamanio del trombo, y que la cirugia deberia considerarse
+       ante un trombo protesico grande no obstructivo complicado por embolia o que persiste a
+       pesar de anticoagulacion oral optima.
+       Este ramal es el UNICO lugar de la aplicacion acotado a protesis mecanica: las preguntas
+       `prota.trombGrande` y `prott.trombGrande` no estan acotadas por tipo, asi que ahi la
+       oracion prestaria a cualquier protesis lo que la fuente dice de una mecanica. Quedan
+       declaradas en P27-a. */
     if (tipo === 'mec') {
       o.mod = { tit:'También aplica', txt:PROTM_REC_2025.tromb_mec.t, clase:PROTM_REC_2025.tromb_mec.c,
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
-        nota:'Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, de 10 mm o más, complicado con embolia: el tamaño del trombo grande lo imprime así su Figura 20 (hoja 65, folio 4699). El tamaño del trombo y la clase funcional no se registran en esta aplicación.' };
+        nota:'Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, de 10 mm o más, complicado con embolia: el tamaño del trombo grande lo imprime así su Figura 20 (hoja 65, folio 4699). La cirugía se considera ante un trombo protésico grande, no obstructivo, que se complicó con embolia o que persiste a pesar de anticoagulación óptima (folio 4698). El tamaño del trombo y la clase funcional no se registran en esta aplicación.' };
     } else if (tipo === 'bio') {
       o.mod = { tit:'También aplica', txt:PROTM_REC_2025.tromb_bio.t, clase:PROTM_REC_2025.tromb_bio.c,
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
