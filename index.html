@@ -50162,27 +50162,34 @@ const VINFO = Object.freeze({
        + 'fracción de eyección por debajo de 50 %: esta pantalla los nombra cuando están '
        + 'presentes y avisa cuando no constan.'
   },
+  /* ══ EL GLOBO DEL 3D DE CONGENITAS — PANT-26, commit 6 ═══════════════════════════════════
+     Texto APROBADO POR EL MEDICO, tres parrafos. Reemplaza entero al anterior, que eran cinco
+     bloques de prosa con dos problemas medidos: decia «no entra al informe ni al PDF», que es
+     FALSO desde PANT-13 —el boton `#cm3d-pdfb` incluye el dibujo en el PDF y `cmPdfSync` lo
+     habilita justamente en el modo «Segun el estudio» con algo cargado—, y describia lo que el
+     diagrama no dibuja con un «todavia» que expone lo pendiente, que la regla del 08/11 saca.
+     ⚠️ LOS TRES DATOS QUE EL TEXTO AFIRMA ESTAN MEDIDOS, no supuestos:
+       · los rotulos del control segmentado son «Según el estudio» y «Explorar», leidos del DOM
+         (los dos botones `.cm3d-md`, con su `data-m`);
+       · el modo del estudio SI puede incluirse en el PDF: `cmPdfSync` apaga el boton con
+         `_cm3d.modo !== 'estudio'` o sin nada cargado, y lo enciende en el otro caso;
+       · tocar una estructura la vuelve transparente: `cmTocar` lanza un rayo sobre
+         `root.children` y pone la pieza en `_cm3d.sinColor`, que `cmSinColorAplicar` pinta con
+         el sombreado de silueta de alfa por pixel.
+     ⚠️ VA EN PARRAFOS SIMPLES Y SIN NEGRITAS, y se midio por que: el renderizador del registro
+     pasa `lee` por `esc()` y recien despues cambia los saltos de linea por `<br>`, asi que una
+     etiqueta escrita aca saldria como texto literal. Los dos nombres de modo van en su propia
+     oracion, que es lo que la orden preve para este caso. */
   'cc-3d': {
     ancho: 380,
     tit: 'El corazón en 3D de las cardiopatías congénitas',
-    lee: 'Es el MISMO diagrama de la sección de transposición de grandes arterias, abierto desde '
-       + 'acá con lo que se cargó en TODO el estudio: el dibujo en 3D y, al lado, el esquema de '
-       + 'por dónde circula la sangre. No hay un segundo dibujo ni un segundo juego de datos, así '
-       + 'que los dos nunca pueden mostrar dos anatomías distintas del mismo paciente.\n'
-       + 'QUÉ DIBUJA: el corazón con sus cuatro cavidades y, sobre él, las tres comunicaciones '
-       + 'que la aplicación guarda —la interauricular, la interventricular y el ductus—, cada una '
-       + 'sólo si está cargada. El foramen oval cuenta como comunicación interauricular. La punta '
-       + 'de flecha aparece únicamente donde la aplicación guarda la dirección del shunt: la '
-       + 'interauricular y el ductus la tienen, la interventricular no. Si hay una transposición '
-       + 'cargada, dibuja su anatomía y su cirugía con las mismas reglas de esa sección.\n'
-       + 'Sin ninguna lesión cargada muestra el corazón normal, y lo dice debajo.\n'
-       + 'QUÉ NO DIBUJA: todo lo demás. Las lesiones que están cargadas y el diagrama todavía no '
-       + 'dibuja se nombran una por una en la línea de abajo, con el nombre que la aplicación '
-       + 'usa para cada una. Lo que no está dibujado se declara; no se reemplaza por un dibujo '
-       + 'parecido.\n'
-       + 'ES ILUSTRATIVO: no es una imagen de este estudio y no está a escala. Las cavidades, los '
-       + 'vasos y las distancias son siempre los mismos. Es de sólo lectura: no escribe ningún '
-       + 'dato, no se guarda con el estudio y no entra al informe ni al PDF.'
+    lee: 'Diagrama ilustrativo del corazón en 3D. Se puede girar, y al tocar una estructura se '
+       + 'vuelve transparente para ver lo que hay detrás.\n'
+       + 'Según el estudio: representa las lesiones cargadas en este estudio y puede incluirse '
+       + 'en el PDF.\n'
+       + 'Explorar: permite interactuar con el diagrama y entender otras alteraciones, incluidas '
+       + 'las complejas o sus combinaciones. No refleja necesariamente lo que dice el estudio, '
+       + 'por eso no va al PDF.'
   },
   'tga-3d': {
     ancho: 380,
@@ -108037,7 +108044,13 @@ function cc3dTextoSync() {
   const _dibujaAlgo = !!(_cm3d && _cm3d.S && ((_cm3d.S.base !== 'norm')
                       || Object.keys(_cm3d.S.mods || {}).length > 0));
   if (!r.hay && !_dibujaAlgo) partes.push('Sin lesiones cargadas que dibujar: se muestra el corazón normal.');
-  else if (r.falta.length) partes.push('Cargadas y no dibujadas todavía: ' + r.falta.join(', ') + '.');
+  /* ⚠️ «todavia» SALIO — PANT-26, commit 6. Decia «Cargadas y no dibujadas todavia», y ese
+     adverbio declara un estado transitorio del desarrollo, que es lo que la regla del 08/11
+     saca de todo texto visible. Lo que la frase INFORMA no se pierde: sigue nombrando una por
+     una las lesiones que el diagrama no representa, con el mismo `r.falta.join(', ')` y los
+     mismos cuatro rotulos posibles -VAB, MCH, MCA y Marfan/EHAT, que son `_CC_SECS` menos
+     `CC3D_DIBUJA` menos `CC3D_PROPIO`, medido-. */
+  else if (r.falta.length) partes.push('Cargadas y no representadas en este diagrama: ' + r.falta.join(', ') + '.');
   /* ⚠️ «TODAS LAS LESIONES CARGADAS ESTAN DIBUJADAS» SE QUITO (PANT-14c, commit 4b): repite lo
      que el dibujo ya muestra y lo que el titulo nombra. Lo que NO se quita es la lista de lo que
      no se dibuja, que es informacion que el dibujo no da —y por eso las dos ramas de arriba y
