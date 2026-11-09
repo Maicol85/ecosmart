@@ -932,7 +932,7 @@ impecable.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda PANT-28 (2026-11-09) — Referencias: las anomalías coronarias, el corazón de atleta
-y la miocardiopatía chagásica.** OCHO commits. Sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
+y la miocardiopatía chagásica.** NUEVE commits. Sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
 Referencias gana **TRES fichas** y el reparto pasa de **40 a 43** entradas, con el índice del
 buscador de **38 a 41**: la de **detalle de anomalías coronarias** (`ref-racong`), con siete
 bloques numerados, y las de **corazón de atleta** (`ref-atleta`, seis bloques) y

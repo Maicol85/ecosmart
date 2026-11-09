@@ -102102,7 +102102,25 @@ caso('TC-563', 'Tanda TGA-3: la cirugia realizada se dice UNA sola vez en el cue
            (secMch.indexOf('AHA/ACC 2024') > -1 ? 'guia' : 'SIN GUIA') + '/' +
            (secMch.indexOf('e1267') > -1 ? 'folio' : 'SIN FOLIO'), 'guia/folio']);
   ex.push(['(C4) ni en ninguno de los globos ⓘ', vinfo.join(',') || 'ninguno', 'ninguno']);
-  ex.push(['(C5) ni en ninguna ficha de Referencias', refs.join(',') || 'ninguna', 'ninguna']);
+  /* ADAPTADO el 2026-11-09 (PANT-28): DOS fichas nuevas nombran la palabra, y ninguna de las dos
+     habla de la miocardiopatia hipertrofica, que es el sujeto de este caso. En ref-chagas son
+     los dos metaanalisis de desfibrilador en la enfermedad de Chagas que la decision (8) pide,
+     y en ref-racong es una sola mencion: el desfibrilador implantado como contraindicacion
+     relativa de la resonancia. Se las excluye POR NOMBRE y no se afloja la condicion: una
+     TERCERA ficha que nombre el desfibrilador sigue poniendo el caso en rojo. */
+  /* ⚠️ Y HAY QUE SACAR TAMBIEN LOS CONTENEDORES DE PANEL. El selector de este caso es
+     [id^="ref-"] dentro de #tab-refs, que ademas de las fichas empareja los paneles
+     ref-sub-congenitas y ref-sub-otros, que CONTIENEN a las fichas nuevas. Eso hacia el caso
+     INTERMITENTE: los paneles solo tienen las tarjetas despues de que refSubInit corre, o sea
+     despues de que alguien abrio Referencias, asi que el mismo arbol daba verde aislado y rojo
+     en lote. Un panel no es una ficha, y el sujeto de este caso son las fichas. */
+  const refsMch = refs.filter(x => x.indexOf('ref-sub-') !== 0
+                                && x !== 'ref-chagas' && x !== 'ref-racong');
+  ex.push(['(C5) ni en ninguna ficha de Referencias ajena a Chagas y a las coronarias',
+           refsMch.join(',') || 'ninguna', 'ninguna']);
+  ex.push(['(C5b) y las dos que si la nombran son exactamente esas dos, por su propio tema',
+           refs.filter(x => x === 'ref-chagas' || x === 'ref-racong').sort().join(','),
+           'ref-chagas,ref-racong']);
   /* ADAPTADA (TANDA AJUSTES-3, 31/10/2026). El podador SIGUE dejandola parada -eso no cambio y
      se mide igual, porque es el motivo por el que hizo falta otra via-, pero la MCH ya NO pasa
      por el: CC_PPT le puso papel:true y la diapositiva lee mchConclusion().papel, como la
@@ -124897,8 +124915,12 @@ caso('TC-763', 'PANT-25 commit 3: el buscador de Referencias encuentra lo mismo 
 
   let idx = null;
   try { idx = window._refIndiceArmar(true) } catch (e) {}
-  q('(C0 DENOM) el indice se arma y tiene TREINTA Y OCHO entradas',
-    !!idx && idx.length === 38, 'indice=' + (idx ? idx.length : 'EXC'));
+  /* ADAPTADO el 2026-11-09 (PANT-28): 38 -> 41. Entran las TRES fichas nuevas -la de detalle de
+     anomalias coronarias en Cardiopatia congenita, y las de corazon de atleta y miocardiopatia
+     chagasica en Otros hallazgos-. Lo que esta condicion vigila -que el indice se arme y no
+     pierda entradas- no cambia; lo que cambia es el denominador. */
+  q('(C0 DENOM) el indice se arma y tiene CUARENTA Y UNA entradas',
+    !!idx && idx.length === 41, 'indice=' + (idx ? idx.length : 'EXC'));
   if (!idx) return { extra: F };
 
   const crudas = idx.filter(e => String(e.subTit) === String(e.sub)).map(e => e.id);
@@ -124925,8 +124947,13 @@ caso('TC-763', 'PANT-25 commit 3: el buscador de Referencias encuentra lo mismo 
   };
 
   let r = await buscar('interarterial');
-  q('(C3) un termino de anomalias coronarias la encuentra y dice que vive en Cardiopatia congenita',
-    r.n === 1 && r.txt.indexOf('Cardiopatia congenita') > -1, 'n=' + r.n + ' ' + r.txt.slice(0, 90));
+  /* ADAPTADO el 2026-11-09 (PANT-28): el termino cae ahora en DOS entradas -la ficha de siempre
+     y la de detalle que esta tanda agrego-, y las dos tienen que decir el mismo panel. Se exige
+     que SEAN DOS y que NINGUNA diga otro panel: con «al menos una» la condicion dejaria pasar
+     que una se fuera de Cardiopatia congenita. */
+  q('(C3) un termino de anomalias coronarias encuentra sus DOS fichas, las dos en Cardiopatia congenita',
+    r.n === 2 && r.txt.split('Cardiopatia congenita').length - 1 === 2,
+    'n=' + r.n + ' ' + r.txt.slice(0, 120));
   r = await buscar('CTRCD');
   /* ⚠️ SE EXIGE ADEMAS QUE YA NO DIGA «Otros hallazgos»: el titulo de la ficha contiene la
      palabra «Cardiotoxicidad», asi que pedirla sola pasaba tambien en el arbol viejo. */
@@ -126145,9 +126172,16 @@ caso('TC-768', 'PANT-27 commit 4: la oracion de la cirugia ante el trombo protes
   regs.forEach(x => { if (x[1]) rec(x[1], x[0], 0) });
   q('(D0) los cuatro registros siguen trayendo SIETE cadenas con el corte de 10 mm, como antes de esta tanda',
     sitios.length === 7, 'cadenas=' + sitios.length + ' -> ' + sitios.join(', '));
-  q('(D1) y NINGUNA de ellas contiene la oracion nueva: la oracion vive en la seccion, no en un registro',
-    regs.every(x => !x[1] || JSON.stringify(x[1]).indexOf('folio 4698') === -1),
-    'con4698=' + regs.filter(x => x[1] && JSON.stringify(x[1]).indexOf('folio 4698') > -1).map(x => x[0]).join(','));
+  /* INVERTIDO el 2026-11-09 (PANT-28, commit 5), y es el dia que este caso anunciaba. Decia que
+     NINGUN registro trae la oracion del folio 4698, porque en PANT-27 vivia solo en el ramal
+     mecanico de _protmRecom, que es una funcion. El medico decidio que la oracion vaya TAMBIEN
+     a la protesis aortica MECANICA, y ahi el lugar es la nota de la pregunta prota.trombGrande,
+     que SI es un registro. Ahora se exige lo contrario Y ADEMAS que siga acotada: solo
+     PROTA_PREG la trae, y la tricuspide y la pulmonar NO. Asi la condicion puede fallar por los
+     dos lados -si la oracion se pierde de la aortica, y si se le presta a otra posicion-. */
+  const _con4698 = regs.filter(x => x[1] && JSON.stringify(x[1]).indexOf('folio 4698') > -1).map(x => x[0]);
+  q('(D1) la oracion vive YA en PROTA_PREG, y en NINGUN otro registro: la tricuspide y la pulmonar no la tienen',
+    _con4698.length === 1 && _con4698[0] === 'PROTA_PREG', 'con4698=' + _con4698.join(','));
 
   /* ── (E) EL PAPEL ── */
   const r = __t.informe();

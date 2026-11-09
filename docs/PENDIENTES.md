@@ -14544,3 +14544,32 @@ Medido sobre `scripts/test_clinico.mjs` al abrir la tanda, contando por nombre y
 ⚠️ **La corrida final de PANT-26 reportó «777 de 777 ejecutados» y por lo tanto NO incluyó los 15
 TC-GR**: 777 es exactamente el conteo de los TC numéricos de ese árbol. El total real del archivo
 era 792, y con los seis casos de esta tanda queda en **798**. Esta tanda corre los 798.
+
+### P28-a · 7 — TRES CASOS VIEJOS QUE EL CENSO POR LITERALES NO VIO, y los destapó la corrida completa
+
+El censo del commit 1 buscó por los literales exactos de los ids y los títulos —`ref-coronarias`,
+`ref-miocard`, «Criterios Eco Clave», `trombGrande`— y por eso **no encontró tres casos que sí
+chocaban**, porque ninguno nombra esos literales: afirman **conteos** y **ausencias**. Los destapó
+la corrida completa, que es exactamente el modo de falla que este archivo ya documenta. Los tres
+son **consecuencia autorizada** de la tanda, no regresiones, y los tres caen contra `36b7bb0` tras
+adaptarse —0 de 3—:
+
+- **TC-763 (C0)**: el índice del buscador pasa de **38 a 41**. Y **(C3)**: «interarterial» ahora
+  cae en **dos** entradas, no en una. Se exige que sean dos y que **las dos** digan «Cardiopatía
+  congénita», para que la condición no deje pasar que una se vaya de panel.
+- **TC-768 (D1)**: **INVERTIDO**, y es el día que ese caso anunciaba. Afirmaba que **ningún**
+  registro trae la oración del folio 4698, porque en PANT-27 vivía sólo en el ramal mecánico de
+  `_protmRecom`, que es una función. La decisión (5) la lleva a la nota de `prota.trombGrande`,
+  que **sí** es un registro. Hoy exige que la traiga **sólo** `PROTA_PREG`, así que puede fallar
+  por los dos lados: si se pierde de la aórtica y si se le presta a otra posición.
+- **TC-563 (C5)**: afirmaba que la palabra «desfibrilador» no aparece en **ninguna** ficha de
+  Referencias. Las dos fichas nuevas la nombran, y **ninguna de las dos habla de la miocardiopatía
+  hipertrófica**, que es el sujeto del caso: en Chagas son los dos metaanálisis que la decisión (8)
+  pide, y en coronarias es el desfibrilador implantado como contraindicación relativa de la
+  resonancia. Se excluyen **por nombre**, así que una tercera ficha que la nombre lo pone en rojo.
+  ⚠️ **Y ese caso era además INTERMITENTE por su propio selector**, que esta tanda destapó: su
+  `#tab-refs [id^="ref-"]` empareja también los **contenedores de panel** `ref-sub-congenitas` y
+  `ref-sub-otros`, que **contienen** a las fichas nuevas. Los paneles sólo tienen las tarjetas
+  después de que `refSubInit` corre —o sea, después de que alguien abrió Referencias—, así que el
+  **mismo árbol** daba verde aislado y rojo en lote. Se excluyen los `ref-sub-*`, que no son
+  fichas, y el caso pasa **4 de 4 aislado y en su lote**.

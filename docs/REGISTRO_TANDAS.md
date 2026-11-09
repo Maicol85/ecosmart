@@ -2,8 +2,9 @@
 
 **Commits:** `e4ede19` (1, inventario) · `0b18be1` (2, la lectura de las fuentes) · `3e29ad0` (3,
 coronarias 1 a 4) · `a497d91` (4, coronarias 5 a 7) · `aa06241` (5, el trombo aórtico) ·
-`de80ae1` (6, el corazón de atleta) · `6ab0a12` (7, la miocardiopatía chagásica) · **éste** (8,
-cobertura y documentación).
+`de80ae1` (6, el corazón de atleta) · `6ab0a12` (7, la miocardiopatía chagásica) · `51bab69` (8,
+cobertura, documentación y el sello) · **éste** (9, los tres casos que la corrida completa
+destapó). **NUEVE** commits, contados con `git log 36b7bb0..HEAD` al cerrar.
 
 **Qué hizo.** Referencias gana **tres fichas**: la de **detalle de anomalías coronarias**
 (`ref-racong`), hermana de la que ya existía y dentro del panel «Cardiopatía congénita», con
