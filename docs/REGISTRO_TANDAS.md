@@ -1,6 +1,9 @@
 ## PANT-26 — las protesis aorticas, la mitral y el 3D de congenitas (2026-11-09)
 
-**SIETE commits.** Sello **`v20261109-1705`**, md5 **`e2ebb637`**. Al empezar, `origin/main` =
+**OCHO commits** —contados con `git log 3476036..HEAD` AL CERRAR, y el commit que escribe
+este numero entra en la cuenta—. Sello **`v20261109-1705`**, md5 **`e2ebb637`**. El commit 7
+sella y el 8 **no vuelve a sellar**, porque no toca `index.html`: asi el arbol que la suite, el
+barrido, el A/B, los dos motores y el celular midieron es exactamente el que queda commiteado. Al empezar, `origin/main` =
 `HEAD` = **3476036**, el cierre de PANT-27 ya publicado, con el sello `v20261109-1203`, el md5
 `a14c45a0` y el pendrive `DISK_IMG` montado: los tres coincidian con lo que `CLAUDE.md` y este
 registro publicaban. **El push lo corre Maicol: esta tanda tenia orden expresa de NO pushear.**
@@ -24,6 +27,9 @@ registro publicaban. **El push lo corre Maicol: esta tanda tenia orden expresa d
   sin «todavia».
 - **Commit 7 — cobertura y documentacion**: TC-769 a TC-777, cinco casos adaptados, el mapa, las
   fichas, la guia de prueba, este bloque, **P26-a** y el sello.
+- **Commit 8 — el denominador de la sonda de dos motores**: el bloque de la pulmonar dejaba la
+  aortica sin protesis, asi que el boton del globo del desajuste quedaba sin caja y la tarjeta
+  no abria: los 16 cruces median «abierto: false». No toca `index.html`.
 
 **LAS NUEVE HIPOTESIS DE LA ORDEN SOBRE LA APP SE REPRODUJERON**, y el inventario las midio antes
 de tocar: la frase vieja sale solo en la aortica, la TAVI con desajuste sale

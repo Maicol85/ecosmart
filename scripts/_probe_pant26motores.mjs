@@ -100,7 +100,16 @@ const CUERPO = async (pg, datos) => pg.evaluate(async (D) => {
                vacia: t.indexOf('Sin parámetros cargados') > -1 };
     } catch (e) { return { err: String(e.message).slice(0, 80) } }
   })();
-  /* ── (4) EL GLOBO DEL DESAJUSTE, por su boton real ── */
+  /* ── (4) EL GLOBO DEL DESAJUSTE, por su boton real ──
+     ⚠️ DENOMINADOR: el bloque (3) deja la aortica SIN protesis, asi que el boton de este globo
+     no tiene caja y la tarjeta no abre -la primera corrida midio «abierto: false» en los 16
+     cruces-. Se vuelve a poner la escena aortica antes de abrirlo. */
+  try { limpiarCampos(true) } catch (e) {}
+  S('peso','70'); S('talla','170');
+  S('va_morf','TAVI'); S('vmax_ao','2.0'); S('gmedio_ao','12');
+  S('diam_tsvi','16'); S('itv_tsvi','27'); S('itv_ao','60');
+  try { valvProtSync() } catch (e) {}
+  abrirValv(); await esperar(520);
   O.ppm = (function(){
     const b = document.querySelector('[data-vinfo="ea-prot-ppm"]');
     if (!b) return { err: 'sin boton' };

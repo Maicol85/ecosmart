@@ -922,7 +922,7 @@ impecable.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda PANT-26 (2026-11-09) — las prótesis aórticas, la mitral y el 3D de congénitas.**
-SIETE commits. Sello **`v20261109-1705`**, md5 **`e2ebb637`**. La **cápsula de la aórtica se
+OCHO commits. Sello **`v20261109-1705`**, md5 **`e2ebb637`**. La **cápsula de la aórtica se
 repinta al elegir el modelo**: `vModTrasElegir` faltaba desde PANT-19 —dos llamadas guardadas con
 `typeof`, cero definiciones— y el informe ya decía «significativa» mientras la cápsula seguía en
 «Posible». La **TAVI compara su área efectiva contra la del modelo**, con la **misma** función,
