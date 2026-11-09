@@ -94491,32 +94491,40 @@ function EM_NOTAS(US, etio, D){
      una línea. */
   return [
     /* ── LA GUÍA VIGENTE ─────────────────────────────────────────────────────────────────── */
-    { txt:'La palabra de la guía es «clínicamente grave» («clinically severe MS», folio 4680) y lo que la define es el área JUNTO CON factores clínicos: síntomas, riesgo tromboembólico alto o descompensación hemodinámica. El informe de esta aplicación dice «significativa» para el mismo hecho.',
+    { txt:'La palabra de la guía es «clínicamente grave» (folio 4680) y lo que la define es el área junto con factores clínicos: síntomas, riesgo tromboembólico alto o descompensación hemodinámica.',
       refs:['esc2025vc'] },
-    /* ⚠️ LA GUÍA SE CONTRADICE CONSIGO MISMA EN EL OPERADOR, Y SE REPORTA SIN CORREGIR. El
-       enunciado de severidad del folio 4680 y el título de la Figura 14 del folio 4681 usan
-       `<=`; el §10.2.3, en la misma columna del folio 4680, escribe «MVA <1.5 cm2» con `<`
-       estricto. La app usa `<=`, que es lo que coinciden dos de los tres lugares y la Tabla 1 de
-       la ASE 2023. Mover el operador es cambiar un corte, o sea decisión de Maicol. */
-    { txt:'El operador del área no es el mismo en los tres lugares del documento: el enunciado de severidad (folio 4680) y el título de la Figura 14 (folio 4681) dicen ≤ ' + u + ' cm², y el §10.2.3 del folio 4680 escribe «MVA <1.5 cm2» con menor estricto. Esta aplicación usa ≤, que es lo que dicen dos de los tres. Queda declarado, no corregido.',
+    /* ⚠️ EL OPERADOR DEL ÁREA: EL MOTIVO TÉCNICO, QUE VIVE SÓLO ACÁ. El enunciado de severidad
+       del folio 4680 y el título de la Figura 14 del folio 4681 usan `<=`; el §10.2.3, en la
+       misma columna del folio 4680, escribe «MVA <1.5 cm2» con `<` estricto. La app usa `<=`,
+       que es lo que coinciden dos de los tres lugares y la Tabla 1 de la ASE 2023. Mover el
+       operador es cambiar un corte, o sea decisión de Maicol.
+       ⚠️ PANT-27 (09/11): EL TEXTO VISIBLE YA NO RELATA ESO. Decía qué operador usa cada lugar
+       del documento y cerraba con «Queda declarado, no corregido», o sea comparaba las partes de
+       una fuente y exponía lo pendiente: las dos reglas del 04/11 y del 08/11. Hoy afirma el
+       operador que la aplicación usa, y nada más. El corte NO se movió. */
+    { txt:'Esta aplicación usa un área menor o igual a ' + u + ' cm², como figura en la guía ESC 2025.',
       refs:['esc2025vc'] },
-    /* ⚠️ Y SE CONTRADICE OTRA VEZ EN «VARIAS», A UNA PÁGINA DE DISTANCIA. Es el motivo por el que
-       esta sección dejó de publicar un veredicto: elegir una fila exigía un número que ninguno de
-       los dos lugares da, y el que la app tenía (2) era suyo. */
-    { txt:'Las características desfavorables tampoco se definen igual en los dos lugares: la nota ^c de la Recommendation Table 8 (folio 4682) dice «the presence of several of the following» sin dar número, y la nota ^c de la Figura 14 (folio 4681) dice «Favourable = absence of unfavourable characteristics», o sea ninguna. Con «Una» esta aplicación no elige entre las dos lecturas: publica las filas que aplican en cada una.',
+    /* ⚠️ LAS CARACTERÍSTICAS DESFAVORABLES: EL MOTIVO TÉCNICO, QUE VIVE SÓLO ACÁ. Es el motivo por
+       el que esta sección dejó de publicar un veredicto: elegir una fila exigía un número que
+       ninguno de los dos lugares del documento da, y el que la app tenía (2) era suyo. Con «Una»
+       la aplicación no elige entre las dos lecturas: publica las filas que aplican en cada una.
+       ⚠️ PANT-27 (09/11): EL TEXTO VISIBLE YA NO RELATA ESO. Decía que las dos notas del documento
+       no se definen igual y citaba las dos en inglés, o sea comparaba las partes de una fuente.
+       Hoy dice lo que la guía afirma, en una oración. NINGUNA fila ni condición se movió. */
+    { txt:'La comisurotomía mitral percutánea es posible en ausencia de características desfavorables (folio 4681).',
       refs:['esc2025vc'] },
     /* ⚠️ EL «> 8» NO SE ATRIBUYE A NINGUNA ESCALA CONCRETA. La guía lo escribe como
        «echocardiographic score >8» y remite a su Supplementary data online, Table S3, que NO está
        en la biblioteca: la definición de la escala no se pudo leer, así que no se nombra. La
        entrada siguiente dice lo que SÍ se verificó del artículo de Wilkins, y por qué no es él. */
-    { txt:'El corte del score es «score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + '», según la guía. La definición de esa escala vive en su material suplementario (Table S3), que no está en el documento consultado: la aplicación usa el corte tal como la guía lo escribe y no lo atribuye a ninguna escala concreta.',
+    { txt:'El corte del score es «score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + '», tal como la guía lo escribe. La guía remite la definición de esa escala a su material suplementario (Table S3), y la aplicación no la atribuye a ninguna escala concreta.',
       refs:['esc2025vc'] },
-    { txt:'Contraindicaciones de la comisurotomía (Tabla 8, folio 4682): AVm > ' + u + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa, o estenosis e insuficiencia tricuspídeas severas con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica.',
+    { txt:'Contraindicaciones de la comisurotomía (Tabla 8, folio 4682): AVm > ' + u + ' cm²; trombo en aurícula izquierda; insuficiencia mitral más que leve; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa, o estenosis e insuficiencia tricuspídeas severas con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica.',
       refs:['esc2025vc'] },
     /* Las dos notas ^a y ^b de esa tabla, que son las que abren una puerta donde la lista parece
        cerrarla. La ^b se verificó sobre el original inglés: la traducción de la SEC se comió
        «appendage» y eso dio vuelta un hallazgo entero. */
-    { txt:'Las dos excepciones de esa tabla: con AVm > ' + u + ' cm² puede considerarse si los síntomas no se explican por otra causa y la anatomía es favorable (nota ^a); y con el trombo en la OREJUELA —no en toda la aurícula— puede considerarse en quien tiene contraindicación quirúrgica o no tiene necesidad urgente, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución (nota ^b).',
+    { txt:'Excepciones de la Tabla 8 (folio 4682): con el área mayor que ' + u + ' cm² puede considerarse si los síntomas no se explican por otra causa y la anatomía es favorable; con trombo en la orejuela, en quien tiene contraindicación quirúrgica o no tiene urgencia, con anticoagulación de 1 a 3 meses y un ETE de control.',
       refs:['esc2025vc'] },
     /* ── LA FUENTE DE LOS CORTES DEL BLOQUE 1 ─────────────────────────────────────────────── */
     /* ⚠️ VA SEPARADA Y CON SU PROPIO FOLIO PORQUE LA ESC/EACTS 2025 NO PUBLICA ESTOS CORTES.
@@ -94543,7 +94551,7 @@ function EM_NOTAS(US, etio, D){
        que la fuente no sostiene. Se publica SOLO con etiología no reumática, que es donde el
        alcance no alcanza; con la reumática no hay nada que declarar. */
     /* SIN CORCHETE Y SIN NOMBRAR EL DOCUMENTO, a propósito: ver el comentario de arriba. */
-    (etio && etio !== 'reumatica') ? 'Los dos cortes del gradiente medio que esta aplicación aplica —5 y 10 mmHg— salen de un documento de cardiopatía REUMÁTICA, y la aplicación los usa en TODA etiología para decidir la categoría. En esta válvula, que no es reumática, el gradiente se ubica en su banda y la banda no se cita: no hay fuente verificada que escriba esos cortes para esta etiología. Queda declarado, no corregido.' : '',
+    (etio && etio !== 'reumatica') ? 'Los cortes de 5 y 10 mmHg del gradiente medio son un criterio de la aplicación.' : '',
     /* ── LAS GUÍAS PREVIAS: UNA SOLA NOTA, Y SÓLO LO QUE CAMBIA LA CONDUCTA ───────────────── */
     /* ⚠️ ACÁ ENTRÓ TODO LO QUE ESTABA SUELTO EN EL CUERPO: la graduación de 2009 por área, la
        exclusión del gradiente por la ACC/AHA, el «more than mild» con sus palabras, la ausencia de
@@ -166060,8 +166068,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261108-0123';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794111817306;                 /* eco-build-ms */
+const ECO_BUILD    = '20261109-1126';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794234404171;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -166147,7 +166155,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261108-0123</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261109-1126</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
