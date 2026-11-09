@@ -354,6 +354,32 @@ const R = await pg.evaluate(async () => {
       infTrasTocar: r2.inf.split('\n').filter(l => /aórtic/i.test(l)).join(' | '),
       existeVModTrasElegir: (typeof vModTrasElegir === 'function') };
   } catch (e) { out.extras.capsulaTrasModelo = 'ERR ' + String(e.message).slice(0, 120) }
+  /* (X5) EL SEGUNDO CAMINO al «normofuncionante» con desajuste: el area efectiva TIPEADA.
+     `ava_cont` es un campo de texto, asi que puede traer un valor sin que existan los dos VTI;
+     entonces hay AEO indexada -y PPM- sin DVI, el eje independiente queda vacio y el nivel
+     vuelve a ser «faltan» con los dos ejes dependientes NORMALES. Se mide, no se deduce. */
+  try {
+    await base({ va_morf: TAVI, vmax_ao: '2.0', gmedio_ao: '12', ava_cont: '0.80' });
+    await esperar(400);
+    const P = (function(){ try { return eaProtVeredicto() } catch (e) { return null } })();
+    const N = (function(){ try { return eaProtNarrativa(P) } catch (e) { return null } })();
+    estilo('narrativo'); const r = informe(); estilo('estandar');
+    out.extras.taviAreaTipeada = { avaCont: V('ava_cont'), avaIdx: T('ava-idx'), dviVal: T('dvi-val'),
+      nivel: P && P.nivel, niveles: P && P.niveles, ppm: P && P.ppm, avai: P && P.avai,
+      normoTavi: N && N.normoTavi,
+      inf: r.inf.split('\n').filter(l => /aórtic/i.test(l)).join(' | '), suma: r.suma };
+  } catch (e) { out.extras.taviAreaTipeada = 'ERR ' + String(e.message).slice(0, 120) }
+  /* (X6) CENSO de lo que la linea de debajo del dibujo 3D de congenitas puede escribir. */
+  try {
+    const secs = (typeof _CC_SECS !== 'undefined') ? _CC_SECS.map(x => ({ k: x.k, lbl: x.lbl })) : null;
+    const dib = (typeof CC3D_DIBUJA !== 'undefined') ? CC3D_DIBUJA.slice() : null;
+    const prop = (typeof CC3D_PROPIO !== 'undefined') ? CC3D_PROPIO.slice() : null;
+    const posiblesFalta = (secs && dib && prop)
+      ? secs.filter(x => dib.indexOf(x.k) < 0 && prop.indexOf(x.k) < 0).map(x => x.lbl) : null;
+    out.extras.cc3d = { secs, dib, prop, posiblesFalta,
+      nSecs: secs ? secs.length : -1,
+      globo: (typeof VINFO !== 'undefined' && VINFO['cc-3d']) ? VINFO['cc-3d'] : 'SIN ENTRADA cc-3d' };
+  } catch (e) { out.extras.cc3d = 'ERR ' + String(e.message).slice(0, 120) }
   /* (X2) CONTROL NEGATIVO: valvula aortica NATIVA con los mismos numeros */
   await base({ va_morf: 'Trivalva normal', vmax_ao: '4.5', gmedio_ao: '45' });
   await esperar(300);

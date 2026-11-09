@@ -1327,3 +1327,222 @@ Dos cosas que la lectura del código dejó incompletas y la medición precisó:
    significativa» que no está en el denominador del veredicto.
 
 Ninguna de las dos se cambia acá.
+
+---
+
+# 3 · Contraste con la lectura previa, y los textos que el médico todavía no vio
+
+## 3.a · Las cinco hojas releídas en imagen, con su folio comprobado
+
+Se releyeron **CINCO** hojas del límite de doce, todas de la **ASE 2024 de prótesis**
+(`05_Protesis_valvulares/ASE protesis 2024.pdf`, 62 hojas), renderizadas a **300 ppp** y leídas en
+la imagen. **La regla de folio = hoja + 1 se comprobó en el encabezado impreso**: la hoja 18
+imprime «Zoghbi et al **19**».
+
+| hoja | folio | qué se leyó | ¿confirma la lectura previa? |
+|---|---|---|---|
+| **18** | **19** | **Tabla 5** entera y su **Figura 13** | **sí** |
+| **19** | 20 | **Tabla 7**, criterios de PPM aórtico y mitral | **sí**, y agrega una condición que la lectura previa no decía |
+| **26** | 27 | **Tabla 11**, estenosis protésica mitral | **sí** |
+| **32** | 33 | **Tabla 15**, estenosis protésica pulmonar | **sí** |
+| **35** | 36 | **Tabla 19**, estenosis protésica tricuspídea | **sí** |
+
+**Lo que dice la hoja 18 (folio 19), en mis palabras.** La Tabla 5 tiene tres bloques. El primero
+se titula «Appropriate for all prosthetic aortic valves» y publica cuatro filas **absolutas**:
+contorno del chorro, tiempo de aceleración (`<80` / `80-100` / `>100` ms), cociente AT sobre tiempo
+de eyección del VI (`<0,32` / `0,32-0,37` / `>0,37`) y velocidad pico (`<3` / `3-4` / `≥4` m/s). El
+segundo se titula «Specific AVR considerations → **SAVR**» y publica gradiente medio (`<20` /
+`20-34` / `≥35` mmHg), DVI (`>0,35` / `0,25-0,35` / `<0,25`) y EOA («Reference EOA ± 1 SD» / «1 SD
+smaller than reference EOA» / «2 SDs smaller than reference EOA»). El tercero se titula **«TAVI
+(change from baseline)»** y sus **tres** filas —gradiente medio, DVI y EOA— están escritas **como
+cambio respecto de un basal** y no como valor absoluto. La nota general dice, textual: «Significant
+stenosis should meet at least one flow-dependent (i.e., velocity and mean gradient) and one
+flow-independent (i.e., EOA or DVI) parameter.» Las marcas de las filas son `†` para
+flujo-dependiente y `§` para flujo-independiente; `‡` dice que la velocidad pico vale con un
+volumen sistólico de 50-90 mL, y `‖` define el basal como un transtorácico en condiciones
+hemodinámicas estables. En la **Figura 13** de la misma hoja, la rama de DVI usa `≥0,30` /
+`0,29-0,25` / `<0,25` —que **no** son los de la Tabla 5— y la caja «Normal AVR» separa el estado de
+hiperflujo del desajuste con el área indexada en 0,85 cm²/m².
+
+**Lo que dice la hoja 19 (folio 20).** La Tabla 7 publica los seis valores de PPM aórtico y los
+seis de PPM mitral, exactamente con los números y los operadores que la aplicación aplica. **Y su
+nota al pie dice, textual: «Valve structure and motion are normal; measured EOA is within 1 SD of
+the reference EOA.»** — o sea que el desajuste se afirma sobre una prótesis cuya área medida está
+dentro de 1 desviación estándar de la del modelo. **Eso la lectura previa no lo decía.**
+
+**Lo que dicen las hojas 26, 32 y 35.** La Tabla 11 tiene tres columnas y sus cinco filas coinciden
+una por una con las constantes de la app; su nota dice «For either mechanical or bioprosthetic
+valves; diagnostic accuracy is best if most of the parameters listed are normal or abnormal» —**no
+publica una regla de integración**— y **ninguna fila lleva marca de flujo-dependiente o
+independiente**. La Tabla 15 tiene **dos** columnas, «Normal» y «Possible obstruction», con
+velocidad pico `≥3,2` m/s en bioprótesis y `≥2,5` en homoinjerto y gradiente medio `≥20` y `≥15`
+mmHg: **no hay columna de severa**. La Tabla 19 tiene dos columnas por **tipo de prótesis**
+—bioprotésica y mecánica—, un solo umbral por fila (`≥2,1`/`≥1,9` m/s · `≥9`/`≥6` mmHg ·
+`≥200`/`≥130` ms · `<1,5`/`<2,0` cm² · `≥3,3`/`≥2,1`), **sin categoría intermedia y sin regla de
+integración**, y su nota `*` dice «Assessed in the absence of AR or TR».
+
+## 3.b · La tabla de contraste, válvula por válvula
+
+| # | válvula | lo que hace la app (medido) | lo que afirma la lectura previa | estado | hallazgo, en lenguaje neutral |
+|---|---|---|---|---|---|
+| 1 | aórtica quirúrgica | exige un eje dependiente **y** uno independiente para decir «significativa»; sin uno de los dos dice `faltan` | la ASE lo exige | **coincide** | la regla de integración de la app es la de la nota general de la Tabla 5, literal |
+| 2 | aórtica quirúrgica | velocidad `<3`/`3-4`/`≥4`; AT `<80`/`80-100`/`>100`; AT/ET `<0,32`/`0,32-0,37`/`>0,37`; gradiente `<20`/`20-34`/`≥35`; DVI `>0,35`/`0,25-0,35`/`<0,25` | — | **coincide** | los cinco juegos de cortes son los de la Tabla 5, verificados en imagen |
+| 3 | aórtica quirúrgica | el área se compara contra la del modelo en desviaciones estándar: `≤ −2` significativa, `< −1` posible | la ASE lo hace así | **coincide** | los bordes —el «± 1 SD» superpuesto y el área por encima de la del modelo— los resuelve la app por complemento, y eso ya está declarado en **P19-b** |
+| 4 | **TAVI** | aplica a la TAVI los **cortes absolutos de gradiente medio y DVI de la SAVR** | la ASE **no publica** cortes absolutos de gradiente, DVI ni área efectiva para TAVI: sólo cambio respecto de un basal | **criterio propio de la app** | es la decisión del médico de PANT-18, y la hoja 18 la confirma: la fila de TAVI dice «change from baseline». **La salvedad de pantalla lo dice y cierra con «(ASE 2024, hoja 18, folio 19)», sin declararlo como criterio de la aplicación** |
+| 5 | **TAVI** | aplica velocidad pico, AT y AT/ET con sus cortes absolutos | la ASE sí los publica para todas las prótesis aórticas | **coincide** | esas cuatro filas están en el bloque «Appropriate for all prosthetic aortic valves» |
+| 6 | **TAVI** | **nunca** compara el área contra la del modelo: `eaProtEOAz` exige morfología quirúrgica | — | **criterio propio de la app** | `PROT_CAT_TAVI` trae el desvío en sus **26** celdas de área y en sus **9** modelos, así que el dato está y no se usa |
+| 7 | mitral | **no** usa la distinción dependiente / independiente del flujo | la ASE no clasifica por flujo en mitral | **coincide** | la Tabla 11 no lleva ninguna de las dos marcas |
+| 8 | mitral | **dos o más** positivos entre cuatro para decir «hallazgos sugestivos de obstrucción» | la ASE no publica regla de integración | **criterio propio de la app**, declarado en el código | la nota de la Tabla 11 habla de **confianza diagnóstica**, no de un umbral de conteo |
+| 9 | mitral | la **velocidad pico no vota**, aunque la Tabla 11 la publique con sus tres tramos | — | **criterio propio de la app**, declarado en el código | la fila de pantalla igual publica «sugiere obstrucción significativa» sobre un parámetro que el conteo excluye |
+| 10 | tricúspide | un umbral único por tipo, sin categoría intermedia | la ASE lo publica así | **coincide** | los diez valores de la Tabla 19 coinciden uno por uno |
+| 11 | tricúspide | **dos o más** positivos para «estenosis»; con uno dice «hallazgo aislado, sin veredicto» | la ASE no publica regla | **criterio propio de la app**, declarado en el código | el estado «aislado» no existe en la tabla: es de la aplicación |
+| 12 | tricúspide | retira el DVI con insuficiencia tricuspídea o aórtica moderada o mayor | — | **coincide** | es la nota `*` de la Tabla 19, «Assessed in the absence of AR or TR» |
+| 13 | pulmonar | único veredicto positivo «posible obstrucción»; nunca dice «severa» | la ASE sólo tiene esa categoría | **coincide** | la Tabla 15 tiene dos columnas y ninguna es «severa» |
+| 14 | pulmonar | **un** criterio positivo alcanza | la ASE no publica regla | **criterio propio de la app** | con sólo dos parámetros, «uno alcanza» es una elección; **no está declarada como criterio de la aplicación en ningún texto visible** |
+| 15 | aórtica y mitral | los doce valores de PPM de la Tabla 7, con `normalMin` exclusivo y `severoMax` inclusivo | los cortes de ASE, EACVI y VARC coinciden | **coincide con la ASE** · **no medible** lo demás | esta tanda **no abrió** la EACVI 2016 ni la VARC-3: la app sólo aplica la ASE, así que no había diferencia que zanjar |
+| 16 | aórtica y mitral | publica el desajuste **sin exigir** que el área medida esté dentro de 1 DE de la del modelo | la lectura previa no lo mencionaba | **difiere** | la nota al pie de la Tabla 7 dice «measured EOA is within 1 SD of the reference EOA». La app sólo tiene ese dato con un modelo cargado, y hoy publica el PPM igual |
+| 17 | tricúspide y pulmonar | **no** publican desajuste | — | **coincide** | la Tabla 7 sólo tiene filas aórtica y mitral |
+| 18 | mitral, tricúspide y pulmonar | cuando no concluyen, el papel **no escribe nada** sobre la estenosis protésica | — | **criterio propio de la app**, declarado en el código | sólo la aórtica escribe «sin datos suficientes». Es la premisa central de la orden y **no se reproduce** |
+
+## 3.c · Los textos que el médico todavía no vio
+
+### (i) El globo ⓘ `cc-3d` y la línea de lo que el diagrama todavía no dibuja
+
+**Ubicación del globo:** registro `VINFO`, clave **`cc-3d`**, `index.html` **línea 50159**, ancho
+380, título **«El corazón en 3D de las cardiopatías congénitas»**. Lo abre el botón ⓘ de la
+sección de cardiopatías congénitas. **Texto completo del cuerpo (`lee`), sin recortar:**
+
+> Es el MISMO diagrama de la sección de transposición de grandes arterias, abierto desde acá con lo
+> que se cargó en TODO el estudio: el dibujo en 3D y, al lado, el esquema de por dónde circula la
+> sangre. No hay un segundo dibujo ni un segundo juego de datos, así que los dos nunca pueden
+> mostrar dos anatomías distintas del mismo paciente.
+>
+> QUÉ DIBUJA: el corazón con sus cuatro cavidades y, sobre él, las tres comunicaciones que la
+> aplicación guarda —la interauricular, la interventricular y el ductus—, cada una sólo si está
+> cargada. El foramen oval cuenta como comunicación interauricular. La punta de flecha aparece
+> únicamente donde la aplicación guarda la dirección del shunt: la interauricular y el ductus la
+> tienen, la interventricular no. Si hay una transposición cargada, dibuja su anatomía y su cirugía
+> con las mismas reglas de esa sección.
+>
+> Sin ninguna lesión cargada muestra el corazón normal, y lo dice debajo.
+>
+> QUÉ NO DIBUJA: todo lo demás. Las lesiones que están cargadas y el diagrama todavía no dibuja se
+> nombran una por una en la línea de abajo, con el nombre que la aplicación usa para cada una. Lo
+> que no está dibujado se declara; no se reemplaza por un dibujo parecido.
+>
+> ES ILUSTRATIVO: no es una imagen de este estudio y no está a escala. Las cavidades, los vasos y
+> las distancias son siempre los mismos. Es de sólo lectura: no escribe ningún dato, no se guarda
+> con el estudio y no entra al informe ni al PDF.
+
+**La línea de abajo.** La arma **`cc3dTextoSync()`** (línea 107782) con la lista que devuelve
+**`cc3dNoDibujadas()`** (línea 107756), y se escribe en el nodo **`#cc3d-faltan`** por
+`textContent`. **Las cinco frases que esa función puede escribir, textuales, y una sexta
+posibilidad que es la cadena vacía:**
+
+| # | frase, textual | cuándo |
+|---|---|---|
+| 0 | *(cadena vacía)* | en el modo «Explorar»: el dibujo no es el del paciente |
+| 1 | `Sin lesiones cargadas que dibujar: se muestra el corazón normal.` | sin ninguna sección encendida **y** sin nada derivado al dibujo |
+| 2 | `Cargadas y no dibujadas todavía: <lista>.` | hay secciones encendidas que el módulo no dibuja |
+| 3 | `Estenosis pulmonar: falta consignar el nivel en la sección de estenosis pulmonar.` | la estenosis pulmonar quedó omitida por falta de nivel |
+| 4 | `Cargadas con una opción que el dibujo no distingue: <lista>.` | lo omitido por opción, con los rótulos de `ROT` |
+| 5 | `No se dibujan juntas — <motivo> · <motivo>.` | lo que choca por las reglas de compatibilidad |
+
+Las frases se concatenan con un espacio, en ese orden (`partes.join(' ')`).
+
+**La lista de la frase 2 sólo puede contener CUATRO nombres, y está medido**, no deducido: `_CC_SECS`
+tiene **19** entradas, `CC3D_DIBUJA` tiene **15** claves y `CC3D_PROPIO` está **vacío**, así que los
+rótulos que pueden caer en «Cargadas y no dibujadas todavía» son exactamente:
+
+> **VAB · MCH · MCA · Marfan/EHAT**
+
+**La lista de la frase 4** sale del mapa `ROT`, con estos diez rótulos textuales: `CIA` · `CIV` ·
+`ductus` · `ventana aortopulmonar` · `conexión venosa anómala` · `Eisenmenger` ·
+`coartación (falta consignar si es nativa o reparada)` · `estenosis subaórtica o supravalvular` ·
+`defecto del septo AV (falta consignar el tipo)` · `Fontan (falta consignar el tipo)`.
+
+**La lista de la frase 5** la arma `cmDesdeEstudio` con tres moldes:
+`estenosis supravalvular aórtica: no se dibuja junto con la subaórtica` ·
+`<clave>: <motivo de la regla de compatibilidad>` ·
+`<lesión>: no se dibuja junto con <la base que ganó>`.
+
+**La columna que la orden pide, sin proponer redacción:**
+
+| texto | ¿compara fuentes entre sí? | ¿expone algo pendiente o sin resolver? |
+|---|---|---|
+| el globo `cc-3d` completo | **no**: no nombra ninguna guía ni ninguna fuente | **sí**, en una forma: «las lesiones que están cargadas y el diagrama **todavía no dibuja**». El adverbio dice que es un estado transitorio del desarrollo |
+| frase 1 | no | no |
+| frase 2, `Cargadas y no dibujadas **todavía**` | no | **sí**, el mismo «todavía» |
+| frase 3 | no | **no**: le falta un dato del estudio, que es otra cosa |
+| frase 4 | no | **sí**, en el sentido de que declara un límite del dibujo —«una opción que el dibujo no distingue»— y tres de sus rótulos piden un dato del estudio, que no cae bajo la regla |
+| frase 5 | no | no: describe una regla de compatibilidad del dibujo |
+
+### (ii) El trombo protésico grande de 10 mm en la Evidencia de prótesis
+
+**Dónde está, las cuatro apariciones.** Todas en el panel de **Evidencia**:
+
+| ubicación | línea | texto, completo |
+|---|---|---|
+| `PROTM_REC_2025.tromb_emb` (tabla de recomendaciones, prótesis **mitral**) | **95520** | `Cirugía A CONSIDERAR ante un trombo protésico grande (10 mm o más) complicado con embolia.` — con `c: 'Clase IIa · Nivel C'` |
+| nota de la sección **mitral** | **95619** | `Y la cirugía es a considerar (Clase IIa · Nivel C) ante un trombo grande, de 10 mm o más, complicado con embolia: el tamaño del trombo grande lo imprime así su Figura 20 (hoja 65, folio 4699). El tamaño del trombo y la clase funcional no se registran en esta aplicación.` |
+| pregunta de la sección **aórtica**, clave `prota.trombGrande` | **95752-95754** | rótulo `Trombo protésico grande, de 10 mm o más, complicado con embolia`; recomendación `Clase IIa · Nivel C — la cirugía debe considerarse ante un trombo protésico grande, de 10 mm o más, complicado con embolia, hoja 66, folio 4700`; nota `su Figura 20 (hoja 65, folio 4699) imprime el tamaño del trombo grande como «10 mm o más»` |
+| pregunta de la sección **tricúspide**, clave `prott.trombGrande` | **96089-96091** | las mismas tres cadenas, palabra por palabra |
+
+**La respuesta a la pregunta del médico es NO.** Censado el archivo entero: **cero** apariciones de
+«anticoagulación óptima», **cero** de «a pesar de la anticoagulación» y **cero** de «trombo no
+obstructivo». Las cuatro apariciones tienen **una sola** condición —«complicado con embolia»— y
+**ninguna** nombra el trombo **no obstructivo** ni la rama de **persistencia a pesar de
+anticoagulación óptima**.
+
+### (iii) Todo camino por el que una TAVI con desajuste puede salir «normofuncionante»
+
+**Censo del archivo, emisor por emisor.** La palabra «normofuncionante» tiene **tres** dueños, y
+sólo uno alcanza a una prótesis aórtica:
+
+| dueño | qué emite | ¿alcanza a una TAVI? |
+|---|---|---|
+| **`EA_PROT_NORMO`** (línea 74348) | `frase: 'normofuncionante'` y `suma: 'TAVI normofuncionante.'` | **SÍ** |
+| el bloque de «prótesis normofuncionante» del final del EN SUMA (línea 66051) | `<válvula> normofuncionante.` | **NO**: la guarda `if (P.via === 'TAVI') { reusar(V); return }` lo bloquea (declarado en **P18-d**) |
+| `VAB_FUNC_TXT` (línea 83834) | `normofuncionante` de la válvula aórtica **bicúspide** | **NO**: `va_morf` es un solo selector, y `TAVI` y `Bicúspide` son opciones distintas |
+
+**La única guarda, textual** (`eaProtNarrativa`, líneas 74448-74452):
+
+```js
+const _normoTavi = P.via === 'TAVI' && P.nivel === 'faltan' && (function(){
+  const nv = P.niveles || {};
+  return Object.keys(nv).every(function (k) { return nv[k] == null || nv[k] === 'normal'; });
+})();
+```
+
+y en el bloque del informe (línea 62760): `_normoT = _eaProtN.normoTavi && !insE && _normoRpvOk`.
+
+**`P.niveles` tiene exactamente seis claves —`vmax`, `atet`, `at`, `gmed`, `dvi`, `eoa`— y el
+desajuste NO es una de ellas**: viaja en `P.ppm`, fuera del objeto que la guarda recorre. Medido en
+la escena X1.
+
+**Los caminos, uno por uno:**
+
+| # | camino | ¿sale «normofuncionante» con desajuste? | medido |
+|---|---|---|---|
+| 1 | **cuerpo del informe**, tres estilos, por `_normoT` → `VAo/Válvula aórtica/La válvula aórtica <morf> <normoFrase>.` | **SÍ** | X1: `La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante (DVI 0.40).` con `Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²).` en el renglón siguiente |
+| 2 | **EN SUMA**, por `EA_PROT_NORMO.suma` | **SÍ** | X1: `TAVI normofuncionante.` seguido de `PPM aórtico severo.` |
+| 3 | **PDF** | **SÍ, heredado** | el PDF lee `sv('informe_texto')` (línea 78050), así que publica el cuerpo tal cual |
+| 4 | **PPT** | **SÍ, heredado** | el mazo copia `inf.campos.informe_texto` (líneas 126513 y 128377) |
+| 5 | **Guardados** | **SÍ, heredado** | `informe_texto` viaja con el estudio; X3 midió el viaje completo de ida y vuelta |
+| 6 | **Laboratorio** | **SÍ, heredado** para la búsqueda de texto | `_labTxt` concatena `en_suma` + `informe_texto` (línea 144415) |
+| 7 | **pantalla** | **NO** | `EA_PROT_TXT` no tiene la palabra: con `faltan` la cápsula dice «Falta un dato para aplicar la tabla» |
+| 8 | **Evidencia** | **NO** | censadas las cuatro secciones de prótesis: cero apariciones |
+| 9 | bloque de «normofuncionante» del final del EN SUMA | **NO** | lo bloquea la guarda `P.via === 'TAVI'` |
+
+**La condición que hace falta para llegar ahí, medida y acotada.** Para que haya desajuste tiene
+que existir `#ava-idx`, que lo escribe `calcAo` a partir del Ø del TSVI y de los dos VTI — y esos
+dos VTI son los que producen el DVI. O sea que **si hay desajuste, el eje independiente del flujo
+está medido**, y entonces `nivel` sólo puede ser `faltan` cuando **falta el eje dependiente**: ni
+velocidad pico ni gradiente medio. Es exactamente la escena X1.
+
+⚠️ **Y la vía alternativa que probé NO se reproduce, medida en X5:** con el área efectiva
+**tipeada a mano** en `ava_cont` (0,80) y sin los dos VTI, `#ava-idx` se queda en «—», así que
+`P.ppm` es `null` y no hay desajuste. Lo que sí sale en esa escena es
+`La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante (Vmax 2 m/s,
+G. medio 12 mmHg).` con `nivel = 'faltan'` y **sin ningún eje independiente medido** — que es otra
+pregunta y no la de este apartado.
