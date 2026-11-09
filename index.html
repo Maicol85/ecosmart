@@ -49209,7 +49209,11 @@ const VINFO = Object.freeze({
     formula: 'AEO indexada = AVA por continuidad \u00f7 superficie corporal',
     lee: 'AEO indexada = \u00e1rea efectiva del orificio prot\u00e9sico dividida por la superficie corporal (EOA indexada en las gu\u00edas anglosajonas). Contesta si la pr\u00f3tesis es chica para este paciente, que es otra pregunta que si est\u00e1 obstruida. Con \u00edndice de masa corporal por debajo de 30, normal por encima de 0,85 y severo en 0,65 cm\u00b2/m\u00b2 o menos.',
     fuente: 'ASE 2024 (Zoghbi), Tabla 7, p\u00e1g. 20.',
-    ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla baja los dos cortes a 0,70 y 0,55 cm\u00b2/m\u00b2. El desajuste no es obstrucci\u00f3n: una pr\u00f3tesis sin criterios de estenosis puede ser chica para el paciente, y al rev\u00e9s.'
+    /* ⚠️ LA CONDICION DE LA NOTA AL PIE DE LA TABLA 7, DECLARADA — PANT-26, commit 5 (D7). El
+       asterisco de la fila «Aortic EOA*» remite a «measured EOA is within 1 SD of the reference
+       EOA» (hoja 19, folio 20, leido en imagen), y desde esta tanda la aplicacion lo comprueba
+       cuando hay modelo cargado con desvio. */
+    ojo: 'Con \u00edndice de masa corporal de 30 o m\u00e1s la tabla baja los dos cortes a 0,70 y 0,55 cm\u00b2/m\u00b2. El desajuste no es obstrucci\u00f3n: una pr\u00f3tesis sin criterios de estenosis puede ser chica para el paciente, y al rev\u00e9s. El desajuste se define con el \u00e1rea efectiva dentro de 1 desv\u00edo est\u00e1ndar de la del modelo implantado. Con el modelo cargado, la aplicaci\u00f3n lo comprueba.'
   },
   /* ⚠️ LAS DOS TARJETAS DE AI/VI SON DE LAS QUE TRAEN `dyn`: lo que muestran es un grafico con
      el punto del paciente, que se arma al abrir y se repinta en vivo. No llevan `tit`, `lee`
@@ -53311,6 +53315,14 @@ window.QV_ECOSMART = QV_ECOSMART;
 const QV_NOTA = Object.freeze({
   'prot:tricuspide': QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 19.',
   'prot:mitral':     QV_INTEGRA_TXT + ' Fuente: ASE 2024, Tabla 11.',
+  /* ⚠️ LA REGLA DE LA PULMONAR TAMBIEN ES PROPIA Y HASTA HOY NO SE DECLARABA — PANT-26, commit 5
+     (decision D6). La Tabla 15 tiene dos columnas, «Normal» y «Possible obstruction», y no
+     publica una regla de integracion: que alcance UN criterio positivo -sin umbral de conteo,
+     al reves que la mitral y la tricuspide, que piden dos- es de esta aplicacion. Su tarjeta ⓘ
+     tenia `QV_FUENTE` -la cita de la Tabla 15- y ninguna nota; la cita se queda donde esta,
+     porque una declaracion no es una fuente. */
+  'prot:pulmonar':   'Con velocidad o gradiente alterados, la aplicación informa posible ' +
+    'obstrucción: es un criterio de la aplicación.',
   /* ⚠️ EL REVERSO DIASTOLICO SE GRADUA CON DOS FUENTES Y DOS NUMEROS DE NIVELES, y sin decirlo la
      tarjeta de una TAVI y la de una valvula nativa se leen igual sobre el mismo parametro. La
      diferencia esta medida y declarada desde el PRO3 y el PRO-B2: la nativa y la protesis
@@ -72808,9 +72820,23 @@ function vmProtEOAPintar() {
        del numero, que es como una pantalla clinica publica un error de programa donde iba un
        veredicto. El numero NO se borra: lo que se retira es la afirmacion. */
     if (retiro)       { e.textContent = val.toFixed(dec) + ' ' + uni + '  (no concluye: ' + retiro + ')'; return; }
+    /* ⚠️ LA FILA YA NO CONCLUYE — PANT-26, commit 5 (decision D5 del medico, 09/11/2026). Aca
+       iba `OBSTR_TXT[nivel]` delante de la escala, y con eso la fila de la velocidad pico de E
+       publicaba «sugiere obstruccion significativa» mientras el renglon del veredicto, dos mas
+       abajo, decia «hallazgo aislado — posible obstruccion (1 de 1 criterio)»: esa fila NO vota
+       -`VM_PROT_OBSTR_VOTAN` son el AEO, el DVI, el gradiente medio y el THP- y el medico leia
+       una conclusion que no esta en el denominador del veredicto. La conclusion queda SOLO en el
+       resumen, que es `#vm-prot-obstr` y es el que si cuenta los criterios.
+       ⚠️ EL VALOR Y LA ESCALA SE CONSERVAN, y es la lectura conservadora de la decision: lo que
+       la fila publicaba de mas era la CONCLUSION; la escala es la referencia de la Tabla 11 -con
+       el operador que esa misma tabla usa, por parametro- y no la publica ninguna otra
+       superficie. Queda declarado en docs/PENDIENTES.md -> P26-a por si el medico la quiere
+       fuera tambien.
+       ⚠️ Y LOS MOTIVOS NO SON CONCLUSIONES: «sin medir», «revisar la unidad» y «no concluye: …»
+       siguen, porque dicen por que la fila NO afirma, que es lo contrario de afirmar. */
     const esc = (normalIncl ? '≤' : '<') + normalMax + ' normal · ' +
                 (signifIncl ? '≥' : '>') + signifMin + ' significativa';
-    e.textContent = val.toFixed(dec) + ' ' + uni + '  (' + OBSTR_TXT[nivel] + ' · ' + esc + ')';
+    e.textContent = val.toFixed(dec) + ' ' + uni + '  (' + esc + ')';
   };
   _t11Fila('vm-prot-vmax', R.vmax, R.vmaxFuera, R.porVmax, 'm/s', 2,
            VM_PROT_T11.vmaxNormalMax, VM_PROT_T11.vmaxSignifMin, false, true, 'Estenosis Mitral');
@@ -72834,17 +72860,21 @@ function vmProtEOAPintar() {
      `R.obstr`, que era lo mismo mientras el veredicto saliera del peor entre el AEO y el DVI; con
      la regla de conteo son dos cosas distintas y la fila diria el veredicto del conjunto al lado
      de un numero que puede no ser positivo. El veredicto tiene fila propia. */
-  if (R.eoa != null)        eoaTxt = R.eoa.toFixed(2) + ' cm²' + (R.porEoa ? '  (' + OBSTR_TXT[R.porEoa] + ')' : '');
+  /* ⚠️ SIN CONCLUSION POR FILA (D5): aca iba `'  (' + OBSTR_TXT[R.porEoa] + ')'`. El AEO SI vota,
+     pero la decision es la misma para las cinco filas: una sola conclusion, la del resumen. */
+  if (R.eoa != null)        eoaTxt = R.eoa.toFixed(2) + ' cm²';
   else if (R.faltan.length) eoaTxt = '—  (falta ' + R.faltan.join(', ') + ')';
   else if (R.fuera)         eoaTxt = '—  (revisar la unidad de los insumos)';
   else if (R.motivo)        eoaTxt = '—  (' + R.motivo + ')';
   else                      eoaTxt = '—';
   put('vm-prot-eoa', eoaTxt);
 
+  /* ⚠️ SIN CONCLUSION POR FILA (D5): el `OBSTR_TXT[R.porDvi]` salio y el MOTIVO se queda, porque
+     «no concluye: …» explica por que esta fila no afirma. La marca «consignado» tampoco es una
+     conclusion: dice de donde salio el numero. */
   put('vm-prot-dvi', R.dvi == null ? '—'
     : R.dvi.toFixed(2) +
-      (R.porDvi ? '  (' + OBSTR_TXT[R.porDvi] + ')'
-                : (R.motivo ? '  (no concluye: ' + R.motivo + ')' : '')) +
+      ((!R.porDvi && R.motivo) ? '  (no concluye: ' + R.motivo + ')' : '') +
       (R.dviFuente === 'consignado' ? '  · consignado' : ''));
 
   /* ══ EL VEREDICTO, CON LOS CRITERIOS QUE LO DECIDIERON (Z5) ═════════════════════
@@ -74477,10 +74507,19 @@ const EA_PROT_SALV = Object.freeze({
      de cambio respecto de un basal— y se agrega que, sin ese estudio, se aplican los cortes
      absolutos de la protesis quirurgica. Con su hoja y su folio, que es la regla de la casa para
      una cita en pantalla. */
+  /* ⚠️ Y LA ATRIBUCION DE LOS CORTES SALIO — PANT-26, commit 5 (decision D4). El cierre decia
+     «… se aplican los cortes absolutos de la protesis quirurgica (ASE 2024, hoja 18, folio 19)»,
+     y ese parentesis respaldaba con la guia una decision que es de la APLICACION: la Tabla 5 no
+     publica cortes absolutos propios de TAVI -sus tres filas de TAVI son de cambio respecto de un
+     basal-, asi que aplicarle los de la quirurgica es criterio de esta casa. Lo que SI es de la
+     guia se queda sin tocar, y con el nombre de su tabla: que para TAVI la Tabla 5 expresa el
+     gradiente medio, el DVI y el area efectiva como cambio respecto de un basal. Y los cortes de
+     velocidad, AT y AT/ET, que si son de la guia, viven en otro lado y no se tocan. */
   tavi: 'Para TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva como cambio ' +
        'respecto de un estudio previo, con el basal definido como un estudio en condiciones ' +
        'hemodinámicas estables; sin ese estudio se aplican los cortes absolutos de la prótesis ' +
-       'quirúrgica (ASE 2024, hoja 18, folio 19).',
+       'quirúrgica. Los cortes de gradiente y de DVI para la TAVI son los de la prótesis ' +
+       'quirúrgica: es un criterio de la aplicación.',
   signif: 'Se cumplen las dos mitades que la tabla exige: un eje dependiente del flujo y uno ' +
        'independiente del flujo en rango de estenosis significativa.',
   posible: 'No se cumplen las DOS mitades que la tabla exige para «significativa» —un eje ' +
@@ -74618,7 +74657,11 @@ function eaProtNarrativa(P){
          frase a una TAVI seria atribuirle a la guia un criterio que es de la aplicacion, que es
          justo lo que la regla del 08/11 prohibe. Lo que la TAVI dice en su lugar —la declaracion
          de criterio propio— lo agrega el commit 5, en el mismo lugar. */
-      (P.via === 'TAVI' ? '' : ' Es el eje independiente del flujo que la Tabla 5 expresa así.'));
+      /* ⚠️ Y LA TAVI DICE EN SU LUGAR QUE EL CRITERIO ES PROPIO — PANT-26, commit 5 (D2). El
+         commit 3 dejo este hueco al sacar la atribucion a la Tabla 5, que es de la fila SAVR. */
+      (P.via === 'TAVI'
+        ? ' La comparación del área efectiva con la referencia del modelo es un criterio de la aplicación.'
+        : ' Es el eje independiente del flujo que la Tabla 5 expresa así.'));
   } else salv.push(EA_PROT_SALV.eoa);
   if (P.vsFueraDeRango && P.vs != null)
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
