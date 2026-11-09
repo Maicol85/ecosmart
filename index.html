@@ -62787,7 +62787,13 @@ function generarInforme(opts) {
          que esta orden autoriza. Emitiendo aca, esa guarda queda donde esta y el bloque del
          final se apaga solo: «TAVI» es un token de `yaDicho` de esta valvula, asi que su
          `yaEnSuma` lo ve y se sale por los dos caminos —con evidencia y sin ella—. Medido. */
+      /* ⚠️ Y LA TAVI CON VELOCIDAD O GRADIENTE ALTOS SIN EJE INDEPENDIENTE TIENE SU PROPIA LINEA
+         (PANT-26, commit 4, decision D1): «TAVI con posible estenosis.», con el mismo esqueleto
+         que la de normofuncionante y sin la palabra «protesica». La QUIRURGICA no entra por aca:
+         su `resumen` es «posible estenosis» y la linea de abajo le pone su prefijo de siempre,
+         asi que ninguno de los dos esqueletos queda escrito dos veces. */
       if (_normoT) suma.push(EA_PROT_NORMO.suma);
+      else if (_eaProtN.posibleSDTavi) suma.push(EA_PROT_POSIBLE_SD.suma);
       else if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
       /* ══ PPM AÓRTICO — UNA LÍNEA, CON EL MISMO TRATAMIENTO QUE EL MITRAL (Z, 2026-10-15) ════
          Decisión de Maicol: el aórtico se calculaba y se veía SÓLO en pantalla mientras el mitral
@@ -74434,6 +74440,29 @@ const EA_PROT_NORMO = Object.freeze({
   frase: 'normofuncionante',
   suma:  'TAVI normofuncionante.'
 });
+/* ══ VELOCIDAD O GRADIENTE ALTOS Y SIN EJE INDEPENDIENTE: «con posible estenosis» ═════════
+   DECISION DEL MEDICO (09/11/2026). Con la protesis aortica -quirurgica o TAVI- y al menos uno
+   de los dos ejes dependientes del flujo en la banda POSIBLE o SIGNIFICATIVA de los cortes que
+   la aplicacion YA usa, pero SIN ningun eje independiente medido, el papel deja de decir «sin
+   datos suficientes para graduar la estenosis protesica» y dice «con posible estenosis».
+   Ni un corte ni una regla de graduacion se movio: lo que cambia es QUE SE ESCRIBE en el unico
+   estado en que la aplicacion no podia concluir y los numeros medidos ya estaban altos. La causa
+   se razona en la Evidencia, que ya publica las cinco causas de la Figura 13 -medido-, asi que
+   aca no se agrega ninguna lista.
+   ⚠️ LAS TRES FRASES VIVEN EN UNA SOLA TABLA, por el mismo argumento que `EA_PROT_NORMO` y
+   `EA_PROT_TXT` tienen escrito: con el literal escrito dos veces, el cuerpo del informe y el EN
+   SUMA publicarian dos lecturas del mismo hecho el dia que una se reescriba.
+   ⚠️ `frase` VA SIN LA PALABRA «protesica», que es la decision textual, y lleva el PARENTESIS DE
+   MEDIDAS pegado: ningun numero medido desaparece del papel.
+   ⚠️ `suma` ES LA LINEA ENTERA DE LA TAVI -«TAVI con posible estenosis.»- y no un fragmento, con
+   el mismo esqueleto que `EA_PROT_NORMO.suma`; la QUIRURGICA usa `resumen`, que el emisor prefija
+   con «Protesis aortica: », que es el esqueleto que esa valvula ya tiene. Asi ninguno de los dos
+   esqueletos se escribe dos veces. */
+const EA_PROT_POSIBLE_SD = Object.freeze({
+  frase:   'con posible estenosis',
+  resumen: 'posible estenosis',
+  suma:    'TAVI con posible estenosis.'
+});
 const EA_PROT_SALV = Object.freeze({
   /* ⚠️ REESCRITA EN PANT-19-5. Antes cerraba con «esta aplicacion no registra marca ni modelo»,
      que desde esta tanda es falso: el modelo se carga con el boton «Modelo y tamano». Lo que la
@@ -74500,7 +74529,23 @@ function eaProtNarrativa(P){
      `resumen` nulo, asi que el EN SUMA no decia nada de esa protesis. Desde la decision del
      medico del 07/11/2026 la TAVI emite la MISMA frase y el MISMO resumen que las demas protesis
      aorticas, y lo que conserva es su salvedad, que se empuja mas abajo con las otras. */
-  if (P.nivel === 'faltan') {
+  /* ⚠️ LA CONDICION ES SOBRE LA BANDA Y NO SOBRE EL NUMERO: `pDep` ya es el PEOR de los dos ejes
+     dependientes, calculado con los cortes de `EA_PROT_CRIT`, asi que alcanza con preguntarle a
+     el. Leer `P.vmax` y `P.gmed` aca seria un segundo dueño de la misma clasificacion.
+     ⚠️ Y SE EXIGE ADEMAS QUE NO HAYA EJE INDEPENDIENTE, aunque hoy sea redundante -con `faltan` y
+     `pDep` no nulo, lo que falta es el independiente-: escrito, la condicion dice lo que la
+     decision dice y no depende de una invariante de otra funcion. Falla CERRADO: con `pDep` en
+     `normal` o en `null` la frase es la de siempre. */
+  const _posibleSD = P.nivel === 'faltan' && P.pIndep == null &&
+                     (P.pDep === 'posible' || P.pDep === 'signif');
+  if (_posibleSD) {
+    frase   = EA_PROT_POSIBLE_SD.frase + med;
+    resumen = EA_PROT_POSIBLE_SD.resumen;
+    /* La salvedad de pantalla NO cambia: sigue diciendo que falta el eje independiente, que es
+       lo que el medico tiene que cargar para que el veredicto pase de «posible» a algo. */
+    salv.push('Para hablar de estenosis protésica significativa la Tabla 5 exige al menos un ' +
+      'parámetro dependiente del flujo Y uno independiente. Falta: ' + (P.falta || []).join('; ') + '.');
+  } else if (P.nivel === 'faltan') {
     frase   = 'sin datos suficientes para graduar la estenosis protésica' + med;
     resumen = null;
     salv.push('Para hablar de estenosis protésica significativa la Tabla 5 exige al menos un ' +
@@ -74533,7 +74578,26 @@ function eaProtNarrativa(P){
      exige que NINGUN nivel medido salga de «normal»: los que no se midieron son `null` y no
      cuentan, los que se midieron tienen que estar normales. Falla CERRADO —un nivel inesperado
      NO es «normal», asi que no afirma—. */
-  const _normoTavi = P.via === 'TAVI' && P.nivel === 'faltan' && (function(){
+  /* ⚠️ Y EL DESAJUSTE CUENTA — PANT-26, commit 4 (decision D3 del medico, 09/11/2026). La guarda
+     recorria `P.niveles`, que tiene exactamente seis claves -`vmax`, `atet`, `at`, `gmed`, `dvi`,
+     `eoa`- y el desajuste NO es una de ellas: viaja en `P.ppm`, fuera del objeto que el bucle
+     recorre. Medido: con una TAVI sin velocidad ni gradiente, Ø TSVI 16 mm y VTI 40/100, el
+     informe firmado publicaba «La valvula aortica presenta una protesis transcateter tipo TAVI
+     normofuncionante (DVI 0.40).» y, el renglon siguiente, «Desajuste protesico-paciente aortico
+     severo (AEO indexada 0.44 cm2/m2).», con el EN SUMA rematando «TAVI normofuncionante. / PPM
+     aortico severo.». Las dos frases son correctas por separado y se contradicen juntas.
+     ⚠️ SE ARREGLA ACA Y EN UN SOLO LUGAR: los SEIS caminos que publican la palabra -el cuerpo en
+     los tres estilos, el EN SUMA, el PDF, el PPT, Guardados y el texto que indexa el
+     Laboratorio- cuelgan todos de esta marca, porque los cuatro ultimos heredan `informe_texto` y
+     `en_suma`. Un predicado nuevo en el bloque del informe seria un segundo dueño de la misma
+     pregunta.
+     ⚠️ MIRA EL GRADO Y NO SI LA ORACION SE PUBLICA: con la condicion de la Tabla 7 (D7) el papel
+     puede CALLAR el desajuste, y aun asi el desajuste existe. Llamar normofuncionante a esa
+     protesis seria afirmar sobre lo que la aplicacion decidio no publicar. Falla CERRADO.
+     ⚠️ CON `ppm` EN «no» O EN `null` NO CAMBIA NADA: la TAVI sin desajuste, y la que no tiene con
+     que medirlo, siguen diciendo «normofuncionante» como hasta hoy. */
+  const _normoTavi = P.via === 'TAVI' && P.nivel === 'faltan' &&
+    P.ppm !== 'moderado' && P.ppm !== 'severo' && (function(){
     const nv = P.niveles || {};
     return Object.keys(nv).every(function (k) { return nv[k] == null || nv[k] === 'normal'; });
   })();
@@ -74570,6 +74634,10 @@ function eaProtNarrativa(P){
      El EN SUMA sigue SIN numeros, que es el contrato de `resumen` dos ramas mas arriba: «un
      resumen que repita seis numeros deja de ser un resumen». */
   return { frase: frase, resumen: resumen, salvedades: salv, normoTavi: _normoTavi,
+    /* La marca y no la oracion, igual que `normoTavi`: el EN SUMA de la TAVI usa su propio
+       esqueleto -«TAVI con posible estenosis.»- y el de la quirurgica el que ya tenia,
+       «Protesis aortica: <resumen>.». */
+    posibleSDTavi: _posibleSD && P.via === 'TAVI',
     normoFrase: EA_PROT_NORMO.frase + med,
     /* ⚠️ LA CITA YA NO VA AL INFORME (2026-09-28). El comentario anterior decía lo contrario y hay
        que leerlo al revés: el argumento —quien lo lea en seis meses necesita saber con qué regla se
