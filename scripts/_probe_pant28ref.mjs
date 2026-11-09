@@ -32,7 +32,7 @@ const PROH = ['pendiente de revisi', 'sin fuente', 'próximamente', 'proximament
 const ORDEN_RACONG = ['1 · Clasificaci', '2 · Clínica', '3 · Riesgo',
                       '4 · El ecocardiograma'];
 const ORDEN_RACONG_B = ['5 · Otras exploraciones', '6 · Cirug', '7 · Seguimiento'];
-const BUSCA_SI = ['fibroelastosis', 'Nyquist', 'intraconal', 'interarterial'];
+const BUSCA_SI = ['fibroelastosis', 'Nyquist', 'intraconal', 'Takeuchi', 'unroofing', 'neo-ostium'];
 const BUSCA_NO = ['zzqqxx'];
 
 const errs = [];
@@ -83,8 +83,40 @@ const R = await pg.evaluate(({ PROH, ORDEN_RACONG, ORDEN_RACONG_B, BUSCA_SI, BUS
   /* tablas y filas: un bloque vacio no existe */
   o.tablas = cuerpo ? cuerpo.querySelectorAll('table').length : 0;
   o.filas = cuerpo ? cuerpo.querySelectorAll('table tr').length : 0;
-  o.celdasVacias = cuerpo ? Array.prototype.slice.call(cuerpo.querySelectorAll('td'))
-    .filter(td => td.textContent.trim() === '').length : 0;
+  o.celdasVacias = cuerpo ? Array.prototype.slice.call(cuerpo.querySelectorAll('table'))
+    .filter(t => t.rows[0] && t.rows[0].cells.length < 5)
+    .reduce((a, t) => a + Array.prototype.slice.call(t.querySelectorAll('td'))
+      .filter(td => td.textContent.trim() === '').length, 0) : 0;
+  /* La tabla de cirugia por guia: celdas en blanco donde esa guia no publica recomendacion para
+     esa situacion. Una celda en blanco no dice nada de la guia; escribir ahi «no publica» si
+     estaria prohibido por la regla del 04/11. */
+  o.guiasVacias = cuerpo ? Array.prototype.slice.call(cuerpo.querySelectorAll('table'))
+    .filter(t => t.rows[0] && t.rows[0].cells.length >= 5)
+    .reduce((a, t) => a + Array.prototype.slice.call(t.querySelectorAll('td'))
+      .filter(td => td.textContent.trim() === '').length, 0) : 0;
+  o.guiasFilas = cuerpo ? Array.prototype.slice.call(cuerpo.querySelectorAll('table'))
+    .filter(t => t.rows[0] && t.rows[0].cells.length >= 5)
+    .reduce((a, t) => a + t.rows.length - 1, 0) : 0;
+  /* Ninguna celda compara una guia con otra: ninguna nombra a OTRA guia dentro de su columna. */
+  o.celdasQueComparan = (function () {
+    if (!cuerpo) return -1;
+    const NOM = ['ACC/AHA', 'ESC 20', 'AHA/ACC', 'ASE 20'];
+    let n = 0;
+    Array.prototype.slice.call(cuerpo.querySelectorAll('table'))
+      .filter(t => t.rows[0] && t.rows[0].cells.length >= 5)
+      .forEach(function (t) {
+        const cab = Array.prototype.slice.call(t.rows[0].cells).map(c => c.textContent.trim());
+        for (let r = 1; r < t.rows.length; r++) {
+          for (let c = 1; c < t.rows[r].cells.length; c++) {
+            const tx = t.rows[r].cells[c].textContent;
+            NOM.forEach(function (nm) {
+              if (tx.indexOf(nm) > -1 && cab[c].indexOf(nm) < 0) n++;
+            });
+          }
+        }
+      });
+    return n;
+  })();
   o.rotulosSinTabla = (function () {
     if (!cuerpo) return -1;
     let n = 0;
