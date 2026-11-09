@@ -33,6 +33,143 @@ se leen 20-80 lineas con `sed -n`.
 
 <!-- /L1:INDICE -->
 
+# TANDA PANT-27 (2026-11-09) — los catorce textos que el médico aprobó
+
+> Sello **`v20261109-1203`**, md5 **`a14c45a0`**. El detalle de dónde vive cada uno de los catorce
+> textos, con su texto completo de antes, está en **`docs/INVENTARIO_TEXTOS_P27.md`**.
+
+## P27-a · Lo que se PARÓ, lo que se encontró de más, y las premisas que no se reprodujeron
+
+### 1 · TRES premisas de la orden no se reprodujeron
+
+**(a) T10 a T13 no están en una nota de la Evidencia.** La orden los ubica en «la nota del
+reverso diastólico de la insuficiencia aórtica» y su verificación dice «abrir su Evidencia».
+Medido: viven en la **ficha de Referencias `ref-ia`**, dentro de `ref-nativas`. De los cuatro
+literales que la orden da para encontrarlos, **dos no existen** en la nota de Evidencia —«deja
+ese valor sin definir» y «brief, protodiastolic flow reversal» aparecen **una sola vez en todo
+el archivo**, las dos en `ref-ia`—; la frase que T10 reemplaza, la que «cita la Tabla 20-5 **y
+dice que no figura en las guías**», también existe sólo ahí; y la cita completa que el texto
+nuevo de T13 pide —«Lancellotti y col., *Eur Heart J Cardiovasc Imaging* 2013;14:611-644»—
+también. Además la orden manda dejar idéntica la primera oración y la escribe **terminada en
+punto**: en `ref-ia` termina en punto, en la nota de Evidencia sigue con dos puntos. Y pide
+«respetá el marcado del lugar (negritas, cursivas, entidades)», que sólo existe en `ref-ia`.
+**Se aplicaron en `ref-ia`.**
+
+**(b) T14 sólo es específico de prótesis mecánica en UNO de sus tres lugares visibles.** Ver el
+punto 2.
+
+**(c) T2 son DOS notas con el mismo comienzo**, una por etiología: la de etiología **reumática**
+y la de etiología **no reumática**. La orden sólo aprueba la segunda, y es la única que se tocó.
+
+### 2 · Lo que se PARÓ — la oración del trombo, en dos de sus tres lugares
+
+La orden dice: «si el lugar de la app **NO** es específico de prótesis mecánicas, PARÁ esta
+parte». Medido, de las **tres** apariciones visibles del trombo protésico grande sólo **una** lo
+es:
+
+| lugar | línea | acotado por tipo | qué se hizo |
+|---|---|---|---|
+| nota del ramal `tipo === 'mec'` de la sección **mitral** | 95619 | **sí**, por el `if` de la línea 95616 | **se sumó la oración** |
+| pregunta `prota.trombGrande`, sección **aórtica** | 95752-95754 | **no** | **PARADO** |
+| pregunta `prott.trombGrande`, sección **tricúspide** | 96089-96091 | **no** | **PARADO** |
+
+En las dos preguntas la oración le prestaría a **cualquier** prótesis lo que la sección 14.4.4.2
+de la ESC/EACTS 2025 dice de una **mecánica**. **Decide el médico** si esas dos preguntas deben
+acotarse por tipo de prótesis, o si la oración debe decirse ahí con otro alcance.
+
+⚠️ **Y una cuarta aparición no es visible:** `PROTM_REC_2025.tromb_emb` (línea 95520) contiene
+el corte de 10 mm pero **su clave no tiene ningún consumidor** en el archivo, censado. Es dato,
+no pantalla. TC-759 la cuenta porque recorre el objeto del registro.
+
+### 3 · Lo que se encontró de más y NO se tocó
+
+**(a) La nota del reverso diastólico en la Evidencia** (línea 97302) comparte el contenido de
+T10 y de T12 con la ficha `ref-ia`. **No se tocó**, porque la orden dice que el mismo texto en
+otro lugar se reporta y no se cambia. **Consecuencia que el médico tiene que decidir:** desde
+esta tanda las dos superficies dicen de dos formas distintas de dónde sale el VTI de 15 cm y qué
+pasa sin la duración. La nota de Evidencia sigue diciendo «la Tabla 20-5 del libro de texto» y
+«Sin la duración consignada»; **lo fija TC-767 (D1)**, que se pone rojo el día que alguien la
+cambie sin decidirlo.
+
+**(b) La nota hermana de T2, la de etiología REUMÁTICA** (línea 94536), empieza con el mismo
+literal que la orden da para encontrar T2 y **compara dos fuentes**: dice «La ESC/EACTS 2025 no
+publica cortes de severidad de estenosis mitral». La orden no la nombra, así que **no se tocó**.
+
+**(c) Cuatro frases más del mismo globo de la calculadora de TAVI**, que la orden pide reportar
+y no cambiar:
+
+| # | frase | qué regla roza |
+|---|---|---|
+| 1 | «Ninguna de las fuentes de esta biblioteca publica una clasificación con grados —leve, moderada, severa— de la calcificación de la válvula aórtica, ni por ecocardiografía ni por tomografía.» | **04/11**: escribe lo que las fuentes **no** dicen |
+| 2 | «las fuentes no la definen con grados» | **04/11**, en la misma frase de apertura |
+| 3 | «UNA DIFERENCIA ENTRE FUENTES, QUE SE MUESTRA Y NO SE RESUELVE, LA MÁS NUEVA PRIMERO.» | **04/11** (compara dos fuentes) y **08/11** (la deja sin resolver) |
+| 4 | «PARA EL TAVI, LA GUÍA DESCRIBE LA CALCIFICACIÓN EN TÉRMINOS CUALITATIVOS Y SIN GRADOS.» | **04/11**: dice lo que la guía **no** hace |
+
+**(d) Dos títulos de tabla del cuerpo de la sección mitral** (líneas 95193 y 95301) dicen
+«Contraindicaciones de la comisurotomía (Tabla 8)», el mismo comienzo que T6. Son **títulos**,
+no ese texto: **no se tocaron**.
+
+### 4 · Una decisión de convención, declarada
+
+La orden dice, para **T8**: «Si la convención de ese lugar es sin tildes, respetala», y en
+«CODIFICACIÓN» dice que la frase visible tiene que quedar **con tildes**. Las dos no pueden
+cumplirse a la vez: el registro `FON_PREG` está escrito **sin una sola tilde en sus trece
+entradas**, censado, y el renderizador no transforma nada, así que lo que el médico ve es el
+texto tal cual. **Se respetó la convención del lugar**, que es la instrucción específica de T8.
+En pantalla se lee «La ESC 2020 indica anticoagulacion con trombo, arritmia auricular o
+tromboembolia (hoja 65, folio 627).», sin tilde en «anticoagulacion». **Decide el médico** si
+quiere que el registro entero gane tildes: son trece entradas y es una tanda propia.
+
+### 5 · Nada más se paró
+
+Los **catorce** textos se encontraron por su literal; **ninguno faltó**. No hizo falta escribir
+ninguna oración, número, hoja ni folio que no figurara en la orden, salvo la oración del trombo,
+que es la única cuyo contenido clínico la orden manda verificar y **se leyó en imagen a 300 ppp**
+en la hoja 64, con el folio **4698** comprobado en la cabecera impresa.
+
+---
+
+## Lo que esta tanda CIERRA de pendientes anteriores
+
+Por la regla de **LIMPIEZA-1** —un id vive en UNO de los dos archivos—, lo que sigue queda
+**cerrado** y se anota acá con su fecha y su tanda; lo que de cada uno sigue abierto se dice
+expresamente.
+
+### [CERRADO 2026-11-09 · PANT-27] Las notas «Queda declarado, no corregido» de la estenosis mitral
+
+Eran **DOS** —T1, el operador del área, y T2, los cortes de 5 y 10 mmHg con etiología no
+reumática—. Las dos se reescribieron en afirmativo: hoy T1 dice qué área usa la aplicación y T2
+declara los cortes como criterio de la aplicación. **Censado al cerrar: cero apariciones de
+«Queda declarado» en las siete notas**, con control positivo sobre HEAD. Lo fija **TC-765 (C1)**
+y **(F2)**.
+
+### [CERRADO 2026-11-09 · PANT-27] De PRO-d, el punto 2 — el trombo protésico grande
+
+La rama del trombo **no obstructivo** y la de **persistencia a pesar de anticoagulación óptima**
+ya no faltan: se sumaron en una oración aparte, leída en imagen, en el único lugar acotado a
+prótesis mecánica. **Lo que de PRO-d sigue abierto** es el punto **1** (el globo `cc-3d` y las
+seis formas de `cc3dTextoSync`, con sus dos «todavía») y el punto **3** (los nueve caminos del
+«normofuncionante»), que esta tanda **no toca**, y el alcance de las otras dos apariciones, que
+queda en **P27-a § 2**.
+
+### [CERRADO 2026-11-09 · PANT-27] De P22-a, las cadenas de la Evidencia que comparaban fuentes
+
+Las que esta tanda alcanzó —T3, T4, T8 y el último párrafo del globo `tavi-calc`— quedan
+reescritas, cada fuente por lo que ella dice. **Lo que de P22-a sigue abierto** es la **tabla de
+siete filas de `critMCH`**, comparativa por diseño, y la entrada de bibliografía **`escGuchCiv`**,
+que **PANT-24 ya cerró** por su lado.
+
+### [CERRADO 2026-11-09 · PANT-27] De P24-a, lo que quedaba del trombo
+
+Queda cerrado lo que esta tanda alcanzó. Lo demás de P24-a no se tocó.
+
+### [NO SE TOCA — DECISIÓN DEL MÉDICO 2026-11-09] P20-a, P20-b y P20-c
+
+El médico decidió dejar el **catálogo de prótesis como está**: las cuatro formas de celda de la
+Tabla A7, la Tabla A8 cargada y sin consumidor, y la pulmonar con tres de sus cinco columnas.
+**No son pendientes**: son el estado acordado. Esta tanda **no tocó el catálogo**.
+
+---
 # TANDA AUD-PROT (2026-11-09) — auditoría de SOLO LECTURA de las prótesis
 
 > **`index.html` no cambió**: md5 `f2587ad83be4d12f8a59fa9a0bb27a23` al abrir y al cerrar los

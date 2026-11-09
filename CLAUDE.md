@@ -99,6 +99,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CUESTIONARIO de Evidencia de congénitas** —el ductus, la coartación, la Fallot reparada del VD, la estenosis pulmonar, la conclusión de la bicúspide, la miocardiopatía hipertrófica obstructiva o la VENTANA AORTOPULMONAR—, **o el COLOR AL TOCAR una estructura del corazón maestro** | `docs/mapa/pant17-evidencia-congenitas.md` |
 | **Tocar la EVIDENCIA DE PRÓTESIS —aórtica, mitral, tricúspide o pulmonar—, el ORDEN de una sección de prótesis o el BLOQUE DE CAUSAS del gradiente alto**: `ordenProt`, `_indCausas`, qué guía rige cada válvula, qué causa se marca sola y por qué la tricúspide y la pulmonar no llevan bloque | `docs/mapa/pant21-evidencia-protesis.md` |
 | **Tocar el INTERRUPTOR de una sección de Evidencia de un SECTOR AVANZADO** —el ayudante `_indSectorIncluido`, la propiedad `av`, las trece secciones y su clave, por qué el panel no necesita repintado— **o un TEXTO de la Evidencia o de Referencias que comparaba dos fuentes** | `docs/mapa/pant22-evidencia-sectores.md` |
+| **Tocar uno de los CATORCE textos que el médico reescribió en PANT-27** —las siete notas de la estenosis mitral, la entrada de sangrado de Fontan, el último párrafo del globo de la calculadora de TAVI, el bloque del reverso diastólico de la ficha `ref-ia` o la oración de la cirugía ante el trombo protésico grande— | `docs/mapa/pant27-textos-evidencia.md` |
 | **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` · la anatomía de una sección, su catálogo y los dos procedimientos en `docs/mapa/panel-evidencia-secciones.md` |
 | **Tocar un TEXTO de la pantalla de Evidencia o de una ficha de Referencias**: las OCHO secciones compactas y su orden, qué nota va al ⓘ y qué va a `FUENTES.md`, la cita única al final del bloque, `_popNotas`, el mensaje del Forrester y su frontera con el informe, o las tres fichas tocadas | `docs/mapa/a-evidencia-textos.md` |
 | **Tocar el REGISTRO DE CITAS del panel**: `IND_REFS`, el marcador `ecosmart`, el allowlist `IND_REF_IDX` o la numeración por sección | `docs/mapa/panel-evidencia-citas.md` |
@@ -250,8 +251,17 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,32 MB / 169.015 líneas**, medido con `wc -c` y `wc -l` el 2026-11-08 al cierre de la
-  tanda **PANT-25**, sobre el árbol ya sellado: sello **`v20261108-0123`**, md5 **`f2587ad8`**.
+  sin frameworks. Hoy **12,32 MB / 169.037 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
+  tanda **PANT-27**, sobre el árbol ya sellado: sello **`v20261109-1203`**, md5 **`a14c45a0`**.
+  El diff de PANT-27 son **55 líneas agregadas y 33 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `ddcf42d`, de las que **49** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
+  guardados nuevos, cero columnas de Excel (457) y ningún id cambiado**, contado sobre el diff.
+  ⚠️ **POR VIGESIMOTERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show ddcf42d:index.html` da **169.015** líneas,
+  **12.323.411** bytes y el md5 **`f2587ad8`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,32 MB / 169.015 al cierre de la tanda **PANT-25**, sello **`v20261108-0123`**, md5 **`f2587ad8`**.)
   El diff de PANT-25 son **75 líneas agregadas y 10 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `bc62db2`, de las que **61** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
@@ -900,6 +910,28 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-27 (2026-11-09) — los catorce textos de la Evidencia que el médico aprobó.**
+CINCO commits. Sello **`v20261109-1203`**, md5 **`a14c45a0`**. Las **siete notas de la estenosis
+mitral** pasan a afirmar: T1 dice qué área usa la aplicación en vez de relatar el operador de
+cada parte del documento, y **T2 declara los cortes de 5 y 10 mmHg como criterio de la
+aplicación** en vez de contar de qué documento no salen — con lo que **las dos notas «Queda
+declarado, no corregido» de la sección quedan cerradas**. T3, T4 y T5 dicen lo que la guía dice,
+sin comparar sus partes ni decir qué le falta al documento consultado; T6 y T7 pierden la
+tipografía de énfasis y la aposición. La entrada **`fon.ev.sangrado` de Fontan** dice lo que la
+ESC 2020 indica y **pierde su `tramo`**, que es el remate que comparaba las dos guías; el último
+párrafo del globo **`tavi-calc`** afirma la calcificación severa sin decir que la guía no la
+define; y el bloque del **reverso diastólico** dice los tres grados en castellano. **La cirugía
+ante un trombo protésico grande no obstructivo** se suma en una oración aparte, leída **en imagen
+a 300 ppp** en la hoja 64 con el folio **4698** comprobado en la cabecera, y **sólo** en el ramal
+de prótesis **mecánica**, que es el único lugar acotado por tipo. ⚠️ **TRES premisas de la orden
+no se reprodujeron**: T10 a T13 no están en la Evidencia sino en la ficha de Referencias
+`ref-ia`; T14 sólo es específico de mecánica en **uno** de sus tres lugares visibles, así que los
+otros dos quedaron **PARADOS**; y T2 son **dos** notas, una por etiología. **El papel es idéntico
+a HEAD** y ningún cálculo, corte ni condición se movió. Lo cubren **TC-765** a **TC-768**, con
+**TC-328** y **TC-516** adaptados; **40/40 mutaciones dirigidas muertas**. Lo declarado, en
+**P27-a**; el mapa, en `docs/mapa/pant27-textos-evidencia.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT27.md`.
 
 **La tanda AUD-PROT (2026-11-09) NO toca `index.html`** —md5 `f2587ad8`, sin cambio— y no
 genera sello: la linea base sigue siendo la de PANT-25. Cuatro commits, solo documentos y dos

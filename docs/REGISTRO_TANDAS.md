@@ -1,3 +1,69 @@
+## PANT-27 — los catorce textos de la Evidencia que el medico aprobo (2026-11-09)
+
+**CINCO commits.** Sello **`v20261109-1203`**, md5 **`a14c45a0`**. Al empezar, `origin/main` =
+**116ac5e** (el cierre de PANT-25, ya publicado) y `HEAD` = **ddcf42d**, con los cuatro commits
+LOCALES de documentacion de AUD-PROT y el md5 de `index.html` en `f2587ad8`, el que dejo
+PANT-25: la diferencia es solo esa, como la orden preveia. **El push lo corre Maicol: esta
+tanda tenia orden expresa de NO pushear.**
+
+- **Commit 1 — el inventario**, `docs/INVENTARIO_TEXTOS_P27.md`, de SOLO LECTURA: md5 de
+  `index.html` identico antes y despues. Para cada uno de los catorce textos, su ubicacion con
+  lineas, su texto completo sin recortar, como esta escrito y como se muestra, en que condicion
+  aparece, si vive en otro lugar y los casos que lo afirman, buscados por los literales exactos.
+- **Commit 2 — las SIETE notas de la estenosis mitral** (`EM_NOTAS`), reescritas en afirmativo.
+- **Commit 3 — Fontan, el globo de la calculadora de TAVI y el reverso aortico**: la entrada
+  `fon.ev.sangrado`, el ultimo parrafo de `VINFO['tavi-calc']` y el bloque del reverso
+  diastolico de la ficha `ref-ia`.
+- **Commit 4 — la cirugia ante el trombo protesico grande**, leida EN IMAGEN a 300 ppp en la
+  hoja 64 de la ESC/EACTS 2025 final, con el folio **4698** comprobado en la cabecera impresa.
+- **Commit 5 — cobertura y documentacion**: TC-765 a TC-768, TC-328 y TC-516 adaptados, el
+  mapa, la guia de prueba, este bloque y **P27-a**.
+
+**TRES PREMISAS DE LA ORDEN NO SE REPRODUJERON, y el inventario las encontro antes de tocar.**
+
+1. **T10 a T13 no estan en una nota de la Evidencia**: viven en la ficha de Referencias
+   `ref-ia`. Dos de los cuatro literales que la orden da para encontrarlos **no existen** en la
+   nota de Evidencia y aparecen **una sola vez en todo el archivo**, las dos ahi; la cita
+   completa de Lancellotti que el texto nuevo pide tambien; y la primera oracion que la orden
+   manda dejar identica termina en punto solo ahi.
+2. **T14 solo es especifico de protesis mecanica en UNO de sus tres lugares visibles**: la nota
+   del ramal `tipo === 'mec'` de la seccion mitral. La pregunta aortica y la tricuspide no
+   estan acotadas por tipo, asi que quedaron **PARADAS** y declaradas en **P27-a**.
+3. **T2 son DOS notas** con el mismo comienzo, una por etiologia. La orden solo aprueba la de
+   etiologia **no reumatica**, que es la unica que se toco.
+
+**NINGUN CALCULO, CORTE, REGLA DE COMBINACION NI CONDICION DE PANTALLA SE MOVIO.** Cero campos
+guardados nuevos, Excel en **457** columnas con las mismas claves, ningun id cambiado, y las
+claves de cita de cada entrada intactas. **EL PAPEL ES IDENTICO A HEAD** en las tres sondas y en
+el A/B: informe en los tres estilos, EN SUMA, PDF y PPT, cero diferencias.
+
+**Verificado con el gesto real en los DOS arboles**, con denominador declarado en cada pieza:
+las nueve notas de la estenosis mitral con el detalle plegado abierto por su summary, la fila de
+Fontan contestada en los dos sentidos por sus propios botones, el globo abierto por su boton de
+44x44 con la tarjeta visible, y la ficha `ref-ia` pintada por `evRefPintar`. **40/40 mutaciones
+dirigidas muertas**, en worktree y nunca sobre el vivo, con el md5 del arbol vivo identico antes
+y despues.
+
+⚠️ **EL PRIMER BARRIDO DEJO DOS SOBREVIVIENTES Y LOS DOS ERAN HUECOS REALES.** Vaciarle los
+`refs` a una nota la deja sin corchete y **ninguna condicion lo miraba**; y escribir el 8 del
+score a mano deja en verde a la condicion que compara el texto con la constante, **porque la
+constante tambien vale 8**. `EM_CRIT_2025` esta congelado, asi que no se puede mover para verlo
+por la conducta: la condicion nueva lee el **cuerpo de `EM_NOTAS`** y exige que el valor se
+interpole y no este escrito a mano. Nacieron **(D5)** y **(D6)** de TC-765.
+
+**Casos nuevos:** TC-765 a TC-768, los cuatro con denominador y control negativo, y los cuatro
+caen contra `ddcf42d` por **25 condiciones** y ninguna por excepcion.
+**Casos adaptados, con el motivo escrito:** **TC-328** (dos condiciones: afirmaban T7 por sus
+literales exactos) y **TC-516** (la condicion (h1): afirmaba T10 por el suyo). Los dos ganan
+ademas la AUSENCIA del literal viejo, asi que pueden fallar por los dos lados, y los dos caen
+contra `ddcf42d`.
+
+**Donde esta todo:** `docs/mapa/pant27-textos-evidencia.md` (**mapa NUEVO**),
+`docs/INVENTARIO_TEXTOS_P27.md`, `docs/GUIA_PRUEBA_PANT27.md`, `docs/PENDIENTES.md` →
+**P27-a** con lo parado y lo cerrado, y las sondas `_probe_pant27em.mjs`,
+`_probe_pant27f9ia.mjs` y `_probe_pant27tromb.mjs`, mas el barrido `_mut_pant27.py`.
+
+---
 ## AUD-PROT — auditoria de SOLO LECTURA de la logica de las protesis valvulares (2026-11-09)
 
 **Cuatro commits y `index.html` NO cambia**: md5 **`f2587ad83be4d12f8a59fa9a0bb27a23`** al abrir y

@@ -46965,8 +46965,15 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
       } catch (e) { return []; }
     })();
     const notaCon = frag => notasEM.filter(n => n.txt.indexOf(pl(frag)) > -1)[0] || null;
-    R.notaOrejuela = notaCon('el trombo en la OREJUELA');
-    R.notaExcA     = notaCon('Las dos excepciones de esa tabla');
+    /* ADAPTADO EN PANT-27 (09/11/2026). Esta nota es T7, una de las catorce frases que el
+       medico reescribio: decia "Las dos excepciones de esa tabla: ... y con el trombo en la
+       OREJUELA -no en toda la auricula- ... anticoagulando 1-3 meses ..." y hoy dice
+       "Excepciones de la Tabla 8 (folio 4682): ... con trombo en la orejuela ... con
+       anticoagulacion de 1 a 3 meses y un ETE de control". Los localizadores y los fragmentos
+       se mueven a los literales NUEVOS, y las dos condiciones ganan ademas la AUSENCIA de los
+       viejos, asi que pueden fallar por los dos lados. */
+    R.notaOrejuela = notaCon('con trombo en la orejuela');
+    R.notaExcA     = notaCon('Excepciones de la Tabla 8');
     R.notaPrevias  = notaCon('GUIAS PREVIAS');
     R.notasN = notasEM.length;
 
@@ -46993,8 +47000,10 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
       !!R.trombo && pl(R.trombo.lbl).indexOf('auricula izquierda') > -1 &&
       pl(R.trombo.lbl).indexOf('orejuela') === -1 &&
       R.trombo.refs.indexOf('esc2025vc') > -1 && R.tromboIdIntacto === true &&
-      !!R.notaOrejuela && R.notaOrejuela.txt.indexOf('1-3 meses') > -1 &&
+      !!R.notaOrejuela && R.notaOrejuela.txt.indexOf('de 1 a 3 meses') > -1 &&
       R.notaOrejuela.txt.indexOf('ete de control') > -1 &&
+      R.notaOrejuela.txt.indexOf('el trombo en la orejuela') === -1 &&
+      R.notaOrejuela.txt.indexOf('1-3 meses') === -1 &&
       R.notaOrejuela.refs.indexOf('esc2025vc') > -1,
       'lbl=«' + (R.trombo ? R.trombo.lbl : '-') + '» refs=' + JSON.stringify(R.trombo ? R.trombo.refs : []) +
       ' idIntacto=' + R.tromboIdIntacto +
@@ -47010,6 +47019,8 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
       R.avm.refs.indexOf('esc2025vc') > -1 &&
       !!R.notaExcA && R.notaExcA.txt.indexOf('no se explican por otra causa') > -1 &&
       R.notaExcA.txt.indexOf('anatomia es favorable') > -1 &&
+      R.notaExcA.txt.indexOf('las dos excepciones de esa tabla') === -1 &&
+      R.notaExcA.txt.indexOf('folio 4682') > -1 &&
       R.notaExcA.refs.indexOf('esc2025vc') > -1,
       'nota fila=«' + (R.avm ? R.avm.nota.slice(0, 80) : '-') + '» refs=' + JSON.stringify(R.avm ? R.avm.refs : []) +
       ' · detalle=«' + (R.notaExcA ? R.notaExcA.txt.slice(0, 110) : 'NO HAY') + '»']);
@@ -86444,10 +86455,17 @@ caso('TC-516', 'Tanda AJ1: los cortes del VD pasan a la version de MAYO de la AS
     try { if (FN('evRefPintar')) evRefPintar(id.replace('ref-', '')); } catch (x) {}
     return String(e.textContent || '').replace(/[ ]+/g, ' '); };
   const rIa = refTxt('ref-ia'), rIm = refTxt('ref-im'), rAo = refTxt('ref-ao2'), rEa = refTxt('ref-eao');
-  ex.push(['(h1) la ficha de la IAo trae las DOS fuentes del reverso y el rotulo del libro',
+  /* ADAPTADO EN PANT-27 (09/11/2026). Este bloque de la ficha es T10 a T13, cuatro de las
+     catorce frases que el medico reescribio: el rotulo "Tabla 20-5 del libro de texto ... no
+     figura en las guias de la biblioteca" salio, y hoy la frase nombra el libro y su capitulo
+     sin decir de donde NO sale el corte. Las DOS fuentes siguen, que es lo que esta condicion
+     cuida: la EACVI con su folio y el libro con su autor. Se le agrega la AUSENCIA del rotulo
+     viejo, asi que puede fallar por los dos lados. */
+  ex.push(['(h1) la ficha de la IAo trae las DOS fuentes del reverso y nombra el libro, sin el rotulo viejo',
     rIa.indexOf('EACVI 2013') > -1 && rIa.indexOf('folio 621') > -1
-      && rIa.indexOf('Moya Mur') > -1 && rIa.indexOf('Tabla 20-5') > -1
-      && rIa.indexOf('no figura en las gu\\u00edas de la biblioteca') > -1,
+      && rIa.indexOf('Moya Mur') > -1 && rIa.indexOf('cap\\u00edtulo 20') > -1
+      && rIa.indexOf('Tabla 20-5') === -1
+      && rIa.indexOf('no figura en las gu\\u00edas de la biblioteca') === -1,
     rIa.indexOf('EACVI 2013') > -1 ? 'ok' : rIa.slice(0, 160)]);
   ex.push(['(h2) la ficha de la IM trae el corte alternativo con sus DOS condiciones y sus folios',
     rIm.indexOf('4675') > -1 && rIm.indexOf('4672') > -1 && rIm.indexOf('el\\u00edptico') > -1
@@ -125569,6 +125587,524 @@ caso('TC-756', 'PANT-23: el censo de la Evidencia — 45 secciones, los globos d
   return { extra: F };
   })()
 `);
+
+/* ══ PANT-27 (09/11/2026) — LOS CATORCE TEXTOS QUE EL MEDICO APROBO ═══════════════════════════
+   Cuatro casos, uno por commit de codigo. Cada uno declara su DENOMINADOR antes de medir: una
+   seccion de Evidencia que no se publica, un detalle plegado cerrado o una ficha de Referencias
+   sin pintar devuelven cero y se leen igual que "el texto viejo ya no esta".
+   Las frases nuevas se exigen EXACTAS, con sus variables, y de cada texto viejo se exige la
+   AUSENCIA: asi el caso puede fallar por los dos lados. */
+
+caso('TC-765', 'PANT-27 commit 2: las SIETE notas de la estenosis mitral dicen la frase nueva EXACTA, ninguna expresion vieja sobrevive, el area y el score siguen a sus variables con coma decimal, y la nota de los cortes de 5 y 10 mmHg sigue saliendo SOLO con etiologia no reumatica', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  const norm = t => { let o = '', esp = false; const s = String(t == null ? '' : t);
+    for (let i = 0; i < s.length; i++) { const ch = s.charAt(i);
+      const blanco = (ch === ' ' || ch === String.fromCharCode(160) || ch === String.fromCharCode(10) ||
+                      ch === String.fromCharCode(9) || ch === String.fromCharCode(13));
+      if (blanco) { if (!esp && o.length) { o += ' '; esp = true } }
+      else { o += ch; esp = false } }
+    return (o.charAt(o.length - 1) === ' ') ? o.slice(0, o.length - 1) : o };
+
+  const escena = (morf) => { __t.limpiar(); __t.set('vm_morf', morf); __t.set('avm_plan', '1.2');
+    try { if (typeof calcEM === 'function') calcEM() } catch (e) {} };
+  const notasDe = () => { try { const r = _indEM(); if (!r) return null;
+      return (r.notas || []).filter(Boolean)
+        .map(n => (typeof n === 'string') ? { txt: n, refs: [] } : { txt: n.txt, refs: n.refs || [] });
+    } catch (e) { return null } };
+
+  /* ── (A) DENOMINADOR: la seccion existe y trae sus notas ── */
+  escena('Calcificada');
+  await esperar(360);
+  const N = notasDe();
+  q('(A0 DENOM) la seccion de estenosis mitral se publica y trae NUEVE notas con etiologia no reumatica',
+    !!N && N.length === 9, N ? ('notas=' + N.length) : '_indEM devolvio null');
+  if (!N) return { extra: F };
+  const T = N.map(x => x.txt);
+
+  /* ── (B) LAS SIETE FRASES NUEVAS, EXACTAS ── */
+  const SIETE = [
+    'La palabra de la guía es «clínicamente grave» (folio 4680) y lo que la define es el área junto con factores clínicos: síntomas, riesgo tromboembólico alto o descompensación hemodinámica.',
+    'Esta aplicación usa un área menor o igual a 1,5 cm², como figura en la guía ESC 2025.',
+    'La comisurotomía mitral percutánea es posible en ausencia de características desfavorables (folio 4681).',
+    'El corte del score es «score ecocardiográfico > 8», tal como la guía lo escribe. La guía remite la definición de esa escala a su material suplementario (Table S3), y la aplicación no la atribuye a ninguna escala concreta.',
+    'Contraindicaciones de la comisurotomía (Tabla 8, folio 4682): AVm > 1,5 cm²; trombo en aurícula izquierda; insuficiencia mitral más que leve; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa, o estenosis e insuficiencia tricuspídeas severas con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica.',
+    'Excepciones de la Tabla 8 (folio 4682): con el área mayor que 1,5 cm² puede considerarse si los síntomas no se explican por otra causa y la anatomía es favorable; con trombo en la orejuela, en quien tiene contraindicación quirúrgica o no tiene urgencia, con anticoagulación de 1 a 3 meses y un ETE de control.',
+    'Los cortes de 5 y 10 mmHg del gradiente medio son un criterio de la aplicación.' ];
+  const falta = SIETE.filter(f => T.indexOf(f) === -1);
+  q('(B1) las SIETE frases aprobadas aparecen EXACTAS, caracter por caracter',
+    falta.length === 0, falta.length ? ('faltan ' + falta.length + ': «' + falta[0].slice(0, 70) + '»') : 'las siete');
+
+  /* ── (C) NINGUNA EXPRESION VIEJA SOBREVIVE DENTRO DE ESAS SIETE NOTAS ── */
+  const siete = T.filter(x => SIETE.indexOf(x) > -1);
+  q('(C0 DENOM) hay SIETE notas que son una de las frases nuevas, que es sobre lo que se cuenta',
+    siete.length === 7, 'notas que coinciden=' + siete.length);
+  /* ⚠️ LA EXPRESION VIEJA DE T6 ES LA APOSICION, NO «mas que leve»: la frase nueva tambien dice
+     «insuficiencia mitral mas que leve», asi que buscar eso solo se pone rojo sobre el texto
+     aprobado. Lo que salio es «—no «moderada o mas»—». */
+  const PROH = ['Queda declarado', 'tampoco se definen igual', 'no es el mismo en los tres lugares',
+                'clinically severe', 'leve -no «moderada o mas»', 'no esta en el documento consultado',
+                'Las dos excepciones de esa tabla', 'el trombo en la OREJUELA', 'salen de un documento de cardiopatia'];
+  const vivas = PROH.filter(x => siete.some(s => pl(s).indexOf(pl(x)) > -1));
+  q('(C1) ninguna de las NUEVE expresiones viejas sobrevive en esas notas',
+    vivas.length === 0, vivas.length ? ('sobreviven: ' + vivas.join(' · ')) : 'ninguna');
+
+  /* ── (D) EL AREA Y EL SCORE SIGUEN A SUS VARIABLES, CON COMA DECIMAL ── */
+  let u15 = null, u18 = null, errU = '';
+  try { u15 = EM_NOTAS(1.5, 'otra', {}).filter(Boolean).map(n => (typeof n === 'string') ? n : n.txt);
+        u18 = EM_NOTAS(1.8, 'otra', {}).filter(Boolean).map(n => (typeof n === 'string') ? n : n.txt);
+  } catch (e) { errU = String(e.message).slice(0, 80) }
+  q('(D0 DENOM) EM_NOTAS se puede llamar con dos umbrales y devuelve las dos listas',
+    !!u15 && !!u18 && u15.length === u18.length && u15.length > 6,
+    errU || ('u15=' + (u15 ? u15.length : 'null') + ' u18=' + (u18 ? u18.length : 'null')));
+  if (u15 && u18) {
+    const conU = (L, v) => L.filter(x => x.indexOf(v) > -1).length;
+    /* CUATRO notas escriben el area, no tres: las tres de la guia vigente -T1, T6 y T7- mas la
+       de guias previas, que usa la misma variable. Medido, no estimado. */
+    q('(D1) con el umbral en 1,5 las CUATRO notas del area escriben «1,5» y NINGUNA escribe «1,8»',
+      conU(u15, '1,5 cm²') === 4 && conU(u15, '1,8 cm²') === 0,
+      'con 1,5=' + conU(u15, '1,5 cm²') + ' con 1,8=' + conU(u15, '1,8 cm²'));
+    q('(D2) con el umbral en 1,8 las CUATRO escriben «1,8» y NINGUNA escribe «1,5»: el valor sigue a la variable',
+      conU(u18, '1,8 cm²') === 4 && conU(u18, '1,5 cm²') === 0,
+      'con 1,8=' + conU(u18, '1,8 cm²') + ' con 1,5=' + conU(u18, '1,5 cm²'));
+    q('(D3) el numero se escribe con COMA decimal y nunca con punto',
+      u18.filter(x => x.indexOf('1.8 cm') > -1).length === 0 &&
+      u18.filter(x => x.indexOf('1,8 cm²') > -1).length === 4,
+      'con punto=' + u18.filter(x => x.indexOf('1.8 cm') > -1).length +
+      ' con coma=' + u18.filter(x => x.indexOf('1,8 cm²') > -1).length);
+  }
+  const score = (typeof EM_CRIT_2025 !== 'undefined') ? EM_CRIT_2025.score_desfav : null;
+  q('(D4) el corte del score que se publica coincide con EM_CRIT_2025.score_desfav',
+    score != null && T.some(x => x.indexOf('score ecocardiográfico > ' + score + '»') > -1),
+    'score_desfav=' + score);
+  /* ⚠️ (D5) NACIO DE UNA MUTACION QUE SOBREVIVIO: escribir el 8 a mano en el texto deja (D4) en
+     verde, porque la constante TAMBIEN vale 8 y los dos numeros coinciden. Lo que distingue a
+     un texto cableado de uno escrito a mano no es el valor sino el CUERPO de la funcion, que
+     es observable desde la pagina. EM_CRIT_2025 esta congelado, asi que no se puede mover la
+     constante para verlo por la conducta. */
+  const cuerpo = (typeof EM_NOTAS === 'function') ? EM_NOTAS.toString() : '';
+  q('(D5 DENOM) el cuerpo de EM_NOTAS se puede leer y tiene las siete notas',
+    cuerpo.length > 2000 && cuerpo.indexOf('score ecocardiográfico') > -1,
+    'largo=' + cuerpo.length);
+  q('(D5) el corte del score se INTERPOLA desde EM_CRIT_2025.score_desfav y no esta escrito a mano',
+    cuerpo.indexOf("score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + '") > -1 &&
+    cuerpo.indexOf('score ecocardiográfico > ' + score + '»') === -1,
+    'interpola=' + (cuerpo.indexOf("score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + '") > -1) +
+    ' aMano=' + (cuerpo.indexOf('score ecocardiográfico > ' + score + '»') > -1));
+  /* ⚠️ (D6) NACIO DE LA OTRA MUTACION QUE SOBREVIVIO: vaciarle los refs a una nota la deja sin
+     corchete y ninguna condicion lo miraba. Las SEIS de la guia vigente citan; T2 NO cita, y
+     eso tambien se exige, porque la regla de la seccion le prohibe el corchete. */
+  const conCita = N.filter(n => SIETE.indexOf(n.txt) > -1 && (n.refs || []).indexOf('esc2025vc') > -1);
+  const T2nota  = N.filter(n => n.txt === 'Los cortes de 5 y 10 mmHg del gradiente medio son un criterio de la aplicación.')[0];
+  q('(D6) las SEIS notas de la guia vigente siguen citando esc2025vc, y la de los cortes de 5 y 10 mmHg sigue SIN corchete',
+    conCita.length === 6 && !!T2nota && (T2nota.refs || []).length === 0,
+    'conCita=' + conCita.length + ' refsT2=' + JSON.stringify(T2nota ? T2nota.refs : 'NO HAY'));
+
+  /* ── (E) LA COMPUERTA DE ETIOLOGIA DE LA NOTA DE LOS CORTES DE 5 Y 10 mmHg ── */
+  const T2 = 'Los cortes de 5 y 10 mmHg del gradiente medio son un criterio de la aplicación.';
+  const hayT2 = () => { const x = notasDe(); return !!x && x.some(n => n.txt === T2) };
+  const estados = {};
+  for (const m of ['Calcificada', 'Reumática', '']) {
+    escena(m); await esperar(320); estados[m || '(sin etiologia)'] = hayT2();
+  }
+  q('(E0 DENOM) las tres escenas de etiologia se cargaron y la seccion existe en las tres',
+    ['Calcificada', 'Reumática', ''].every(m => { escena(m); return !!notasDe() }),
+    'estados=' + JSON.stringify(estados));
+  q('(E1) la nota de los cortes de 5 y 10 mmHg aparece con etiologia NO reumatica',
+    estados['Calcificada'] === true, 'Calcificada=' + estados['Calcificada']);
+  q('(E2) y NO aparece con etiologia reumatica — control negativo',
+    estados['Reumática'] === false, 'Reumatica=' + estados['Reumática']);
+  q('(E3) ni sin etiologia cargada — segundo control negativo',
+    estados['(sin etiologia)'] === false, 'sin etiologia=' + estados['(sin etiologia)']);
+
+  /* ── (F) EN PANTALLA, CON EL GESTO REAL: el panel abierto y el detalle desplegado ── */
+  escena('Calcificada'); await esperar(360);
+  let pant = null, detAbierto = false;
+  try {
+    indicAbrir(); await esperar(260);
+    const ov = document.getElementById('indic-overlay');
+    const dets = Array.from(ov.querySelectorAll('details'));
+    const sec = dets.find(d => { const su = d.querySelector('summary');
+                                 return su && norm(su.textContent) === 'Estenosis mitral' });
+    if (sec) { if (!sec.open) sec.querySelector('summary').click();
+      const det = sec.querySelector('details[data-ind-detalle]');
+      if (det) { if (!det.open) det.querySelector('summary').click();
+        detAbierto = !!det.open; pant = norm(det.textContent) } }
+  } catch (e) { pant = 'ERR ' + String(e.message).slice(0, 70) }
+  try { indicCerrar() } catch (e) {}
+  q('(F0 DENOM) el detalle plegado se abrio por su summary y trae texto para medir',
+    detAbierto && typeof pant === 'string' && pant.length > 1500,
+    'abierto=' + detAbierto + ' largo=' + (pant ? pant.length : 0));
+  if (detAbierto && pant) {
+    const enPant = SIETE.filter(f => pant.indexOf(f) > -1).length;
+    q('(F1) las SIETE frases se leen EN PANTALLA, no solo en el objeto',
+      enPant === 7, 'en pantalla=' + enPant + ' de 7');
+    q('(F2) y en pantalla tampoco queda ninguna de las expresiones viejas',
+      PROH.filter(x => pl(pant).indexOf(pl(x)) > -1).length === 0,
+      PROH.filter(x => pl(pant).indexOf(pl(x)) > -1).join(' · ') || 'ninguna');
+  }
+
+  /* ── (G) EL PAPEL NO SE LLEVA NINGUNA DE ESTAS FRASES ── */
+  escena('Calcificada'); await esperar(300);
+  const r = __t.informe();
+  q('(G0 DENOM) el informe se genero y tiene cuerpo',
+    typeof r.inf === 'string' && r.inf.length > 120, 'largo=' + (r.inf ? r.inf.length : 0));
+  const enPapel = SIETE.filter(f => (r.inf + ' ' + r.suma).indexOf(f) > -1);
+  q('(G1) ninguna de las siete frases llega al informe ni al EN SUMA: son textos de pantalla',
+    enPapel.length === 0, enPapel.length ? enPapel[0].slice(0, 60) : 'ninguna');
+  q('(G2) y el papel tampoco nombra la guia ni su folio por esta via',
+    r.inf.indexOf('folio 4680') === -1 && r.inf.indexOf('ESC 2025') === -1 &&
+    r.suma.indexOf('folio 4682') === -1,
+    'inf4680=' + (r.inf.indexOf('folio 4680') > -1) + ' infESC=' + (r.inf.indexOf('ESC 2025') > -1));
+  return { extra: F };
+  })()
+`);
+
+
+caso('TC-766', 'PANT-27 commit 3: la entrada de sangrado de Fontan dice lo que la ESC 2020 indica y ya no remata comparando las dos guias -sin rotulo huerfano-, se contesta igual en los dos sentidos, y el ultimo parrafo del globo de la calculadora de TAVI afirma la calcificacion severa sin decir que la guia no la define', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+
+  /* ── (A) FONTAN — EL DATO ── */
+  const E = (typeof FON_PREG !== 'undefined')
+    ? FON_PREG.filter(x => x && x.clave === 'fon.ev.sangrado')[0] : null;
+  q('(A0 DENOM) la entrada fon.ev.sangrado existe, es UNA sola y tiene su rec y su ref',
+    !!E && FON_PREG.filter(x => x && x.clave === 'fon.ev.sangrado').length === 1 &&
+    typeof E.rec === 'string' && typeof E.ref === 'string',
+    E ? ('rec=' + E.rec.length + ' ref=' + E.ref.length) : 'no existe');
+  if (!E) return { extra: F };
+  q('(A1) la linea de la ESC 2020 es la frase aprobada, EXACTA',
+    E.ref === 'La ESC 2020 indica anticoagulacion con trombo, arritmia auricular o tromboembolia (hoja 65, folio 627)',
+    'ref=«' + E.ref + '»');
+  q('(A2) ya no dice lo que esa guia NO publica',
+    pl(E.ref).indexOf('no publica') === -1 && pl(E.ref).indexOf('sin rasgos de alto riesgo') === -1,
+    'ref=«' + E.ref.slice(0, 90) + '»');
+  q('(A3) el remate que comparaba las dos guias ya NO existe como propiedad',
+    E.tramo === undefined || E.tramo === null || E.tramo === '',
+    'tramo=' + JSON.stringify(E.tramo));
+  q('(A4) y la recomendacion americana y la nota de la entrada NO se tocaron',
+    E.rec.indexOf('recomendacion 13') > -1 && E.rec.indexOf('hoja 87, folio e201') > -1 &&
+    typeof E.nota === 'string' && E.nota.indexOf('al reves que las otras') > -1,
+    'rec=' + E.rec.slice(0, 60) + ' nota=' + String(E.nota).slice(0, 50));
+  q('(A5) la convencion SIN TILDES del registro se respeta: la frase nueva no trae ninguna',
+    E.ref === pl(E.ref).charAt(0).toUpperCase() + pl(E.ref).slice(1) ||
+    E.ref.normalize('NFD').length === E.ref.length,
+    'tildes=' + (E.ref.normalize('NFD').length - E.ref.length));
+
+  /* ── (B) FONTAN — EN PANTALLA, Y CONTESTADA EN LOS DOS SENTIDOS ── */
+  __t.limpiar();
+  const selF = document.getElementById('fontan_tipo');
+  const puesto = (selF && selF.options.length > 1) ? __t.set('fontan_tipo', selF.options[1].value) : 'SIN SELECT';
+  await esperar(420);
+  const leerFila = () => {
+    try {
+      const ov = document.getElementById('indic-overlay');
+      if (!ov || ov.style.display !== 'block') return null;
+      const t = ov.textContent || '';
+      const i = t.indexOf('Contraindicacion de sangrado para la anticoagulacion');
+      const j = t.indexOf('Taquicardia supraventricular recurrente');
+      return (i > -1 && j > i) ? t.slice(i, j) : null;
+    } catch (e) { return null }
+  };
+  let fila0 = null, filaSi = null, filaNo = null, marcaSi = '', marcaNo = '';
+  try {
+    indicAbrir(); await esperar(300);
+    fila0 = leerFila();
+    const clic = (v) => { const ov = document.getElementById('indic-overlay');
+      const bs = Array.from(ov.querySelectorAll('[data-ind-clin="fon.ev.sangrado"]'));
+      const b = bs.filter(x => x.getAttribute('data-ind-val') === v)[0];
+      if (!b) return 'sin boton ' + v; b.click(); return 'ok' };
+    marcaSi = clic('si'); await esperar(320); filaSi = leerFila();
+    marcaNo = clic('no'); await esperar(320); filaNo = leerFila();
+  } catch (e) { fila0 = 'ERR ' + String(e.message).slice(0, 70) }
+  try { indicCerrar() } catch (e) {}
+  q('(B0 DENOM) la seccion de Fontan abre y la fila de la pregunta se encuentra, sin contestar y en los dos sentidos',
+    typeof fila0 === 'string' && fila0.length > 200 && !!filaSi && !!filaNo &&
+    marcaSi === 'ok' && marcaNo === 'ok',
+    'puesto=' + puesto + ' fila0=' + (fila0 ? fila0.length : 'null') +
+    ' si=' + marcaSi + ' no=' + marcaNo);
+  if (typeof fila0 === 'string' && filaSi && filaNo) {
+    const FRASE = 'ESC 2020 (anterior): La ESC 2020 indica anticoagulacion con trombo, arritmia auricular o tromboembolia (hoja 65, folio 627)';
+    q('(B1) en pantalla se lee la frase nueva, con su rotulo de referencia',
+      fila0.indexOf(FRASE) > -1, 'fila=«' + fila0.slice(0, 200) + '»');
+    q('(B2) y NO queda el rotulo «Nota:» huerfano ni el remate que comparaba las dos guias',
+      fila0.indexOf('Nota:') === -1 && pl(fila0).indexOf('no cubren lo mismo') === -1,
+      'nota=' + (fila0.indexOf('Nota:') > -1) + ' cubren=' + (pl(fila0).indexOf('no cubren lo mismo') > -1));
+    /* El boton marcado lleva el visto delante y la Si va CON TILDE en la pantalla: buscar «Si»
+       pelado da rojo sobre una fila que esta bien contestada. */
+    const VISTO = String.fromCharCode(10003);
+    q('(B3) la pregunta se contesta en los DOS sentidos -el boton queda marcado- y la frase nueva sigue en los dos',
+      filaSi.indexOf(FRASE) > -1 && filaNo.indexOf(FRASE) > -1 &&
+      filaSi.indexOf(VISTO + ' Sí') > -1 && filaNo.indexOf(VISTO + ' No') > -1,
+      'si=' + filaSi.length + ' no=' + filaNo.length +
+      ' marcaSi=' + (filaSi.indexOf(VISTO + ' Sí') > -1) + ' marcaNo=' + (filaNo.indexOf(VISTO + ' No') > -1));
+    q('(B4) y las dos respuestas NO son el mismo texto: el panel se repinto de verdad',
+      filaSi !== fila0 && filaNo !== fila0,
+      'sinContestar=' + fila0.length + ' si=' + filaSi.length + ' no=' + filaNo.length);
+  }
+
+  /* ── (C) EL GLOBO DE LA CALCULADORA DE TAVI ── */
+  const G = (typeof VINFO !== 'undefined') ? VINFO['tavi-calc'] : null;
+  q('(C0 DENOM) el globo tavi-calc existe en el registro y tiene cuerpo',
+    !!G && typeof G.lee === 'string' && G.lee.length > 1500,
+    G ? ('largo=' + G.lee.length) : 'no existe tavi-calc');
+  if (!G) return { extra: F };
+  q('(C1) el ultimo parrafo es la frase aprobada, EXACTA',
+    G.lee.indexOf('Se plantea calcificación valvular severa por evaluación con tomografía y progresión de la velocidad máxima de 0,3 m/s por año o más.') > -1,
+    'cola=«' + G.lee.slice(G.lee.length - 180) + '»');
+  q('(C2) ya no dice que la guia usa la palabra sin definirla, ni nombra su tabla ni su folio 4670',
+    pl(G.lee).indexOf('sin definirla') === -1 && G.lee.indexOf('Folio 4670') === -1 &&
+    pl(G.lee).indexOf('en su tabla de la estenosis aortica') === -1,
+    'sinDef=' + (pl(G.lee).indexOf('sin definirla') > -1) + ' 4670=' + (G.lee.indexOf('Folio 4670') > -1));
+  q('(C3) y los 0,3 m/s por anio NO se perdieron: el numero medido sigue',
+    G.lee.indexOf('0,3 m/s por año') > -1, 'esta=' + (G.lee.indexOf('0,3 m/s por año') > -1));
+  q('(C4) lo que viene ANTES del parrafo nuevo no se movio: siguen los cortes de Agatston y sus folios',
+    G.lee.indexOf('2000 unidades Agatston') > -1 && G.lee.indexOf('folio 4663') > -1 &&
+    G.lee.indexOf('Folio 739') > -1 && G.lee.indexOf('folio 4664') > -1 && G.lee.indexOf('Folio 4668') > -1,
+    'agatston=' + (G.lee.indexOf('2000 unidades Agatston') > -1) + ' 739=' + (G.lee.indexOf('Folio 739') > -1));
+  return { extra: F };
+  })()
+`);
+
+
+caso('TC-767', 'PANT-27 commit 3: el bloque del reverso diastolico de la ficha ref-ia dice la estructura de los tres grados en castellano y nombra el libro sin decir de donde NO sale el corte, con la primera oracion intacta y la nota de Evidencia sin tocar', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const pl = t => { let o = ''; const s = String(t == null ? '' : t).normalize('NFD');
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (!(c >= 768 && c <= 879)) o += s.charAt(i) } return o.toLowerCase() };
+  const norm = t => { let o = '', esp = false; const s = String(t == null ? '' : t);
+    for (let i = 0; i < s.length; i++) { const ch = s.charAt(i);
+      const blanco = (ch === ' ' || ch === String.fromCharCode(160) || ch === String.fromCharCode(10) ||
+                      ch === String.fromCharCode(9) || ch === String.fromCharCode(13));
+      if (blanco) { if (!esp && o.length) { o += ' '; esp = true } }
+      else { o += ch; esp = false } }
+    return o };
+
+  /* ── (A) LA FICHA, PINTADA POR SU PROPIA FUNCION ── */
+  try { if (typeof showTab === 'function') showTab('refs') } catch (e) {}
+  try { if (typeof evRefPintar === 'function') evRefPintar('ia') } catch (e) {}
+  await esperar(260);
+  const el = document.getElementById('ref-ia');
+  if (el) el.style.display = '';
+  const t = el ? norm(el.textContent) : null;
+  q('(A0 DENOM) la ficha ref-ia existe, se pinto y trae texto para medir',
+    !!t && t.length > 900, t ? ('largo=' + t.length) : 'NO EXISTE ref-ia');
+  if (!t) return { extra: F };
+  const i = t.indexOf('El reverso diastólico de la aorta descendente');
+  q('(A1 DENOM) el bloque del reverso esta en la ficha',
+    i > -1, 'indice=' + i);
+  if (i < 0) return { extra: F };
+  const bloque = t.slice(i, i + 780);
+
+  /* ── (B) LAS CUATRO FRASES NUEVAS ── */
+  q('(B1) la PRIMERA oracion es identica a la de antes: no se toco',
+    bloque.indexOf('El reverso diastólico de la aorta descendente se gradúa por su duración, y el VTI y la velocidad telediastólica la califican.') === 0,
+    'arranca=«' + bloque.slice(0, 150) + '»');
+  q('(B2) la estructura de los tres grados va en castellano, con la publicacion y el folio 621',
+    bloque.indexOf('La estructura de los tres grados es la de la EACVI 2013 (Lancellotti y col., Eur Heart J Cardiovasc Imaging 2013;14:611-644, folio 621): reverso de flujo protodiastólico breve en leve, intermedio en moderada y reverso de flujo holodiastólico, con velocidad telediastólica mayor de 20 cm/s, en grave.') > -1,
+    'bloque=«' + bloque.slice(100, 460) + '»');
+  q('(B3) el corte de 15 cm nombra el libro y su capitulo, y nada mas',
+    bloque.indexOf('El corte de 15 cm del VTI sale del libro «Ecocardiografía avanzada» (Moya Mur, capítulo 20).') > -1,
+    'bloque=«' + bloque.slice(380, 620) + '»');
+  q('(B4) el empate en 15 cm se afirma, sin explicar el lado ni juzgar la tabla',
+    bloque.indexOf('Con 15 cm exactos la aplicación lo considera moderada.') > -1, '');
+  q('(B5) y la frase de la duracion queda en su forma corta',
+    bloque.indexOf('Sin la duración, el VTI y la velocidad se muestran pero no gradúan.') > -1, '');
+
+  /* ── (C) NINGUNA EXPRESION VIEJA SOBREVIVE EN LA FICHA ── */
+  /* ⚠️ LAS PROHIBIDAS SE CUENTAN DENTRO DEL BLOQUE, NO EN LA FICHA ENTERA: el parrafo de
+     ARRIBA -que esta tanda no toca- cita a la ESC con «Holodiastolic flow reversal in
+     descending aorta», asi que medir sobre la ficha entera da rojo sobre un texto ajeno. */
+  const PROH = ['Tabla 20-5', 'no figura en las guías de la biblioteca', 'deja ese valor sin definir',
+                'brief, protodiastolic flow reversal', 'intermediate', 'holodiastolic flow reversal',
+                'Tribouilloy', 'Sin la duración consignada', 'Tabla 4, folio 621', 'Lancellotti P y col.'];
+  const vivas = PROH.filter(x => pl(bloque).indexOf(pl(x)) > -1);
+  q('(C1) ninguna de las DIEZ expresiones viejas sobrevive en el bloque del reverso',
+    vivas.length === 0, vivas.length ? ('sobreviven: ' + vivas.join(' · ')) : 'ninguna');
+  /* CONTROL POSITIVO de que la sonda sabe mirar la ficha entera: el parrafo de arriba, que NO
+     se toco, sigue citando a la ESC con su expresion en ingles. */
+  q('(C1b CONTROL) el parrafo de la ESC que esta tanda NO toca sigue en la ficha, con su cita',
+    pl(t).indexOf(pl('Holodiastolic flow reversal in descending aorta')) > -1 &&
+    t.indexOf('folio 4659') > -1,
+    'esc=' + (pl(t).indexOf(pl('Holodiastolic flow reversal in descending aorta')) > -1));
+  q('(C2) y la cifra medida que si se queda es la velocidad de 20 cm/s',
+    bloque.indexOf('20 cm/s') > -1, 'esta=' + (bloque.indexOf('20 cm/s') > -1));
+
+  /* ── (D) CONTROL NEGATIVO: la nota de Evidencia del reverso NO se toco ── */
+  __t.limpiar();
+  __t.set('ia_rev_dur', 'holo'); __t.set('ia_vti_desc', '18'); __t.set('ia_vmax_td', '25');
+  try { if (typeof calcIA_ESC === 'function') calcIA_ESC() } catch (e) {}
+  await esperar(360);
+  let nota = null;
+  try {
+    const sx = IND_SECS.filter(x => String(x.tit || '').indexOf('Insuficiencia a') === 0)[0];
+    const rr = sx ? sx.fn() : null;
+    if (rr) { const ns = (rr.notas || []).filter(Boolean)
+      .map(x => (typeof x === 'string') ? x : x.txt)
+      .filter(x => x.indexOf('El reverso diast') > -1);
+      nota = ns.length ? ns[0] : null }
+  } catch (e) { nota = 'ERR ' + String(e.message).slice(0, 60) }
+  q('(D0 DENOM) la nota del reverso de la Evidencia se publica con esta escena y tiene cuerpo',
+    typeof nota === 'string' && nota.length > 600, 'nota=' + (nota ? nota.length : 'null'));
+  if (typeof nota === 'string' && nota.length > 600) {
+    q('(D1) esa nota SIGUE nombrando la Tabla 20-5 y la duracion consignada: esta tanda NO la toco',
+      nota.indexOf('Tabla 20-5 del libro de texto') > -1 && nota.indexOf('Sin la duración consignada') > -1,
+      'tabla=' + (nota.indexOf('Tabla 20-5 del libro de texto') > -1) +
+      ' consignada=' + (nota.indexOf('Sin la duración consignada') > -1));
+  }
+
+  /* ── (E) EL PAPEL NO SE LLEVA NADA DE ESTO ── */
+  const r = __t.informe();
+  q('(E0 DENOM) el informe se genero',
+    typeof r.inf === 'string' && r.inf.length > 80, 'largo=' + (r.inf ? r.inf.length : 0));
+  q('(E1) ni el informe ni el EN SUMA nombran la EACVI, el libro ni el folio',
+    (r.inf + ' ' + r.suma).indexOf('EACVI') === -1 &&
+    (r.inf + ' ' + r.suma).indexOf('Moya Mur') === -1 &&
+    (r.inf + ' ' + r.suma).indexOf('folio 621') === -1,
+    'eacvi=' + (r.inf.indexOf('EACVI') > -1) + ' moya=' + (r.inf.indexOf('Moya Mur') > -1));
+  return { extra: F };
+  })()
+`);
+
+
+caso('TC-768', 'PANT-27 commit 4: la oracion de la cirugia ante el trombo protesico grande sale SOLO en el ramal de protesis mitral MECANICA, con su folio 4698, y el conteo de las siete cadenas del corte de 10 mm no se mueve', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+  const norm = t => { let o = '', esp = false; const s = String(t == null ? '' : t);
+    for (let i = 0; i < s.length; i++) { const ch = s.charAt(i);
+      const blanco = (ch === ' ' || ch === String.fromCharCode(160) || ch === String.fromCharCode(10) ||
+                      ch === String.fromCharCode(9) || ch === String.fromCharCode(13));
+      if (blanco) { if (!esp && o.length) { o += ' '; esp = true } }
+      else { o += ch; esp = false } }
+    return o };
+  const ORACION = 'La cirugía se considera ante un trombo protésico grande, no obstructivo, que se complicó con embolia o que persiste a pesar de anticoagulación óptima (folio 4698).';
+
+  /* ── (A) LA ESCENA, CON EL GESTO REAL ── */
+  const secTexto = (pref) => {
+    const ov = document.getElementById('indic-overlay');
+    if (!ov || ov.style.display !== 'block') return null;
+    const dets = Array.from(ov.querySelectorAll('details'));
+    const sec = dets.filter(d => { const su = d.querySelector('summary');
+                                   return su && norm(su.textContent).indexOf(pref) === 0 })[0];
+    if (!sec) return null;
+    if (!sec.open) sec.querySelector('summary').click();
+    Array.from(sec.querySelectorAll('details')).forEach(d => { if (!d.open) {
+      const su = d.querySelector('summary'); if (su) su.click() } });
+    return norm(sec.textContent);
+  };
+  const contestar = (clave, valor) => {
+    const ov = document.getElementById('indic-overlay');
+    if (!ov || ov.style.display !== 'block') return 'panel cerrado';
+    const bs = Array.from(ov.querySelectorAll('[data-ind-clin="' + clave + '"]'));
+    if (!bs.length) return 'sin botones de ' + clave;
+    const b = bs.filter(x => x.getAttribute('data-ind-val') === valor)[0];
+    if (!b) return 'sin valor ' + valor; b.click(); return 'ok';
+  };
+  /* ⚠️ DOS COSAS SIN LAS CUALES ESTO MIDE SOBRE NADA: la trombosis NO es un campo del estudio
+     sino la pregunta protm.tromb del panel, y la seccion SALE TEMPRANO si protm.peri esta sin
+     contestar -publica "Falta un dato para aplicar la guia" y nunca llega al ramal del tipo-. */
+  const escena = async (morf) => {
+    __t.limpiar();
+    __t.set('vm_morf', morf);
+    try { if (typeof calcEM === 'function') calcEM() } catch (e) {}
+    await esperar(400);
+    try { indicAbrir() } catch (e) {}
+    await esperar(280);
+    const c1 = contestar('protm.peri', 'no'); await esperar(280);
+    const c2 = contestar('protm.tromb', 'si'); await esperar(300);
+    const txt = secTexto('Prótesis mitral');
+    try { indicCerrar() } catch (e) {}
+    return { c1: c1, c2: c2, txt: txt };
+  };
+
+  const mec = await escena('Prótesis mecánica');
+  q('(A0 DENOM) con protesis MECANICA la seccion se publica, las dos preguntas se contestaron y trae texto',
+    mec.c1 === 'ok' && mec.c2 === 'ok' && typeof mec.txt === 'string' && mec.txt.length > 5000,
+    'peri=' + mec.c1 + ' tromb=' + mec.c2 + ' largo=' + (mec.txt ? mec.txt.length : 'null'));
+  if (!mec.txt) return { extra: F };
+  q('(A1) la oracion aparece EXACTA, con su folio 4698',
+    mec.txt.indexOf(ORACION) > -1,
+    'extracto=«' + mec.txt.slice(Math.max(0, mec.txt.indexOf('trombo grande') - 40),
+                                 mec.txt.indexOf('trombo grande') + 420) + '»');
+  q('(A2) aparece UNA sola vez',
+    mec.txt.split(ORACION).length === 2, 'apariciones=' + (mec.txt.split(ORACION).length - 1));
+  q('(A3) y la frase que ya estaba, con su corte y su Figura 20, NO se perdio',
+    mec.txt.indexOf('trombo grande, de 10 mm o más, complicado con embolia') > -1 &&
+    mec.txt.indexOf('Figura 20 (hoja 65, folio 4699)') > -1 &&
+    mec.txt.indexOf('El tamaño del trombo y la clase funcional no se registran en esta aplicación.') > -1,
+    '10mm=' + (mec.txt.indexOf('10 mm o más') > -1) + ' fig20=' + (mec.txt.indexOf('Figura 20 (hoja 65, folio 4699)') > -1));
+
+  /* ── (B) CONTROL NEGATIVO: la misma seccion con protesis BIOLOGICA ── */
+  const bio = await escena('Prótesis biológica');
+  q('(B0 DENOM) con protesis BIOLOGICA la seccion tambien se publica y se contestaron las dos preguntas',
+    bio.c1 === 'ok' && bio.c2 === 'ok' && typeof bio.txt === 'string' && bio.txt.length > 5000,
+    'peri=' + bio.c1 + ' tromb=' + bio.c2 + ' largo=' + (bio.txt ? bio.txt.length : 'null'));
+  q('(B1) y NO trae la oracion: es especifica del ramal MECANICO',
+    !!bio.txt && bio.txt.indexOf(ORACION) === -1, 'tiene=' + (bio.txt ? bio.txt.indexOf(ORACION) > -1 : 'sin texto'));
+
+  /* ── (C) CONTROL NEGATIVO 2: las otras dos posiciones protesicas ── */
+  __t.limpiar();
+  __t.set('vm_morf', 'Prótesis mecánica');
+  const porOpcion = (id, frag) => { const e = document.getElementById(id); if (!e) return 'NO EXISTE ' + id;
+    const op = Array.from(e.options).filter(o => norm(o.textContent).indexOf(frag) > -1)[0];
+    if (!op) return 'sin opcion'; e.value = op.value;
+    e.dispatchEvent(new Event('change', { bubbles: true })); return op.value };
+  const pa = porOpcion('va_morf', 'mecánica'), pt = porOpcion('vt_morf', 'mecánica');
+  await esperar(420);
+  let tAo = null, tTr = null;
+  try { indicAbrir(); await esperar(300);
+    tAo = secTexto('Prótesis aórtica'); tTr = secTexto('Prótesis tricúspide');
+    indicCerrar(); } catch (e) {}
+  q('(C0 DENOM) las secciones de protesis aortica y tricuspide se publican y traen texto',
+    typeof tAo === 'string' && tAo.length > 4000 && typeof tTr === 'string' && tTr.length > 4000,
+    'va=' + pa + ' vt=' + pt + ' ao=' + (tAo ? tAo.length : 'null') + ' tri=' + (tTr ? tTr.length : 'null'));
+  q('(C1) ninguna de las dos trae la oracion: no estan acotadas por tipo de protesis y quedaron PARADAS',
+    (!tAo || tAo.indexOf(ORACION) === -1) && (!tTr || tTr.indexOf(ORACION) === -1),
+    'ao=' + (tAo ? tAo.indexOf(ORACION) > -1 : 'sin texto') + ' tri=' + (tTr ? tTr.indexOf(ORACION) > -1 : 'sin texto'));
+
+  /* ── (D) EL CONTEO DE LAS SIETE CADENAS DEL CORTE NO SE MUEVE ── */
+  const sitios = [];
+  const rec = (o, ruta, prof) => {
+    if (prof > 4 || o == null) return;
+    if (typeof o === 'string') { if (o.indexOf('10 mm') > -1) sitios.push(ruta); return }
+    if (typeof o !== 'object') return;
+    if (Array.isArray(o)) { o.forEach((x, k) => rec(x, ruta + '[' + k + ']', prof + 1)); return }
+    Object.keys(o).forEach(k => rec(o[k], ruta + '.' + k, prof + 1));
+  };
+  const regs = [['PROTA_PREG', typeof PROTA_PREG !== 'undefined' ? PROTA_PREG : null],
+                ['PROTT_PREG', typeof PROTT_PREG !== 'undefined' ? PROTT_PREG : null],
+                ['PROTP_PREG', typeof PROTP_PREG !== 'undefined' ? PROTP_PREG : null],
+                ['PROTM_REC_2025', typeof PROTM_REC_2025 !== 'undefined' ? PROTM_REC_2025 : null]];
+  regs.forEach(x => { if (x[1]) rec(x[1], x[0], 0) });
+  q('(D0) los cuatro registros siguen trayendo SIETE cadenas con el corte de 10 mm, como antes de esta tanda',
+    sitios.length === 7, 'cadenas=' + sitios.length + ' -> ' + sitios.join(', '));
+  q('(D1) y NINGUNA de ellas contiene la oracion nueva: la oracion vive en la seccion, no en un registro',
+    regs.every(x => !x[1] || JSON.stringify(x[1]).indexOf('folio 4698') === -1),
+    'con4698=' + regs.filter(x => x[1] && JSON.stringify(x[1]).indexOf('folio 4698') > -1).map(x => x[0]).join(','));
+
+  /* ── (E) EL PAPEL ── */
+  const r = __t.informe();
+  q('(E0 DENOM) el informe se genero',
+    typeof r.inf === 'string' && r.inf.length > 80, 'largo=' + (r.inf ? r.inf.length : 0));
+  q('(E1) la oracion no llega al informe ni al EN SUMA',
+    (r.inf + ' ' + r.suma).indexOf('folio 4698') === -1 &&
+    (r.inf + ' ' + r.suma).indexOf('anticoagulación óptima') === -1,
+    'inf=' + (r.inf.indexOf('folio 4698') > -1));
+  return { extra: F };
+  })()
+`);
+
 
 
 try {
