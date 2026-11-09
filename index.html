@@ -73929,6 +73929,33 @@ function vModClic(pos){
   const c=_vmEl('vmod-card');
   if (c && c.style.display!=='none' && _vModPos===pos) vModCerrar(); else vModAbrir(pos);
 }
+/* ══ EL REPINTADO TRAS ELEGIR O QUITAR UN MODELO — PANT-26, commit 2 (D8) ═══════════════════
+   `vModElegir` y `vModQuitar` terminan con `if (typeof vModTrasElegir==='function') vModTrasElegir(pos)`
+   desde PANT-19, y hasta esta tanda ESA FUNCION NO EXISTIA: dos llamadas guardadas y cero
+   definiciones en todo el archivo, verificado por censo y en el navegador
+   (`typeof vModTrasElegir` falso, `window.vModTrasElegir` falso). El `typeof` la hacia caer en
+   silencio, asi que al elegir el modelo nada volvia a llamar a `calcEADetalle`, que es quien
+   llama a `_eaProtPintar`: el informe firmado ya decia «con criterios que sugieren estenosis
+   protesica significativa» mientras la capsula seguia diciendo «Posible estenosis protesica» y
+   el plegable «Ver detalle» seguia publicando «en este estudio no hay un modelo del catalogo
+   cargado». Medido en los cuatro momentos de la escena X4 de la auditoria, con el recuadro
+   `caja-esten-aortica` VISIBLE en los cuatro: no era una medicion sobre un contenedor cerrado.
+   ⚠️ SOLO REPINTA LA AORTICA, Y ESTA MEDIDO POR QUE. De las cuatro posiciones, la aortica es la
+   UNICA cuyo veredicto lee el catalogo: `eaProtEOAz` entra en `indep` de `eaProtVeredicto`.
+   Censados `vmProtEOA`, `vtProtObstr` y `vpProtObstr`: ninguno llama a `vModEsperados` ni a nada
+   que lea el catalogo, asi que su capsula no puede cambiar porque se elija un modelo y
+   repintarlas seria tocar la tricuspide —que esta tanda no toca— sin que nada cambie.
+   ⚠️ LA LLAMADA VA PELADA, SIN `typeof`, y se midio que se puede: `calcEADetalle`, `vModElegir`,
+   `vModQuitar`, `eaProtEOAz` y `_eaProtPintar` estan en el MISMO bloque de <script> —el 12 de los
+   19 inline— y `calcEADetalle` es una declaracion de funcion, o sea esta izada. Con un `typeof`
+   que no empareje volveriamos al defecto de arriba: caer en silencio. Pelada tira
+   `ReferenceError` el dia que alguien la mueva de bloque, y eso se ve.
+   ⚠️ Y NO SE AGREGA NI UN TEXTO: lo que se publica lo arma `eaProtNarrativa`, que ya existe. */
+function vModTrasElegir(pos){
+  if (pos !== 'va') return;
+  try { calcEADetalle(); } catch (e) {}
+}
+window.vModTrasElegir = vModTrasElegir;
 function vModElegir(){
   const pos=_vModPos; if(!pos) return;
   const D=_vModDraft(); if(!D) return;
