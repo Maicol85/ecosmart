@@ -1,3 +1,60 @@
+## AUD-PROT — auditoria de SOLO LECTURA de la logica de las protesis valvulares (2026-11-09)
+
+**Cuatro commits y `index.html` NO cambia**: md5 **`f2587ad83be4d12f8a59fa9a0bb27a23`** al abrir y
+al cerrar los cuatro, sobre el arbol sellado **`v20261108-0123`** que dejo PANT-25. **No genera
+sello**: la linea base sigue siendo la de PANT-25. Al empezar, `origin/main` = `HEAD` =
+**116ac5e**, el cierre de PANT-25, ya publicado. **El push lo corre Maicol: esta tanda tenia
+orden expresa de NO pushear.**
+
+- **Commit 1 — el inventario.** `docs/AUDITORIA_PROTESIS.md` seccion 1, medido con la sonda nueva
+  `scripts/_probe_audprot_inv.mjs`: por posicion protesica, donde vive la logica, que parametros
+  lee y de que lado del flujo los pone, los cortes LITERALES, la regla de combinacion, los estados
+  y el texto de cada superficie; y el catalogo de modelos contado celda por celda.
+- **Commit 2 — las 25 escenas.** `scripts/_probe_audprot_escenas.mjs`, con el gesto real: el
+  select, los campos con sus eventos, la pestania Valvulas, los cuatro acordeones, el boton de
+  estilo y la tarjeta «Modelo y tamanio» con su buscador y su boton «Elegir».
+- **Commit 3 — el contraste.** CINCO hojas de la ASE 2024 releidas EN IMAGEN a 300 ppp con la
+  regla de folio comprobada en el encabezado impreso (la hoja 18 imprime «Zoghbi et al 19»):
+  hojas 18, 19, 26, 32 y 35. Tabla de 18 filas: **coincide en 9**, criterio propio de la
+  aplicacion en 6, difiere en 1 y no medible en 1.
+- **Commit 4 — la documentacion**, este bloque y **PRO-a** a **PRO-d**.
+
+**LA PREMISA CENTRAL DE LA ORDEN NO SE REPRODUJO.** El medico supone que el «sin datos
+suficientes» es de todas las protesis: es **solo de la aortica**. La mitral, la tricuspide y la
+pulmonar **no escriben nada en el papel** cuando no concluyen —sus tres bloques son
+`if (veredicto positivo) { … }` sin `else`—. Medido en nueve escenas.
+
+**LA SEGUNDA HIPOTESIS TAMPOCO.** De los **108** modelos de los cinco catalogos, **28 no sirven**
+para comparar el area efectiva en desviaciones estandar: **26** sin area impresa y **2** con area
+y sin un solo desvio. El reparto por catalogo: A4 46 de 49, TAVI 9 de 9, A5 15 de 30, A9 8 de 8 y
+A7 **2 de 12**. La lista completa, en **PRO-b**.
+
+**Y LA TERCERA:** el motor aortico **no distingue biologica de mecanica**, solo TAVI contra el
+resto, asi que las posiciones (A) y (A2) de la orden son la misma.
+
+**DOS HALLAZGOS QUE LA MEDICION DESTAPO Y LA LECTURA NO.**
+- **Una TAVI con desajuste SEVERO sale «normofuncionante» en el papel** (escena X1): el cuerpo
+  dice «… tipo TAVI normofuncionante (DVI 0.40).» y el renglon siguiente «Desajuste
+  protesico-paciente aortico severo (AEO indexada 0.44 cm²/m²).»; el EN SUMA remata con «TAVI
+  normofuncionante.» y «PPM aortico severo.». La guarda recorre `P.niveles` y **el PPM no es una
+  de sus seis claves**.
+- **La capsula de pantalla no se repinta al elegir el modelo** (escena X4): dice «Posible» con el
+  informe ya diciendo «significativa», y su plegable sigue publicando que no hay modelo cargado.
+  Llamar `calcEADetalle()` a mano la pone de acuerdo. La causa, censada: `vModElegir` llama a
+  **`vModTrasElegir`, que no existe en el archivo** —dos llamadas guardadas, cero definiciones—.
+
+**TRES DENOMINADORES VACIOS CAZADOS ANTES DE CREERLE A LA SONDA**: las cuatro secciones de
+Valvulas nacen cerradas y sin ellas el componente del modelo no abre; `toggleEteSeccion` prefija
+`ete-seccion-` al id que recibe, asi que hay que pasarle la clave corta; y con TAVI el catalogo es
+`PROT_CAT_TAVI`, asi que un modelo de la A4 no aparece en el buscador.
+
+**LO QUE LA HOJA 19 AGREGA Y LA LECTURA PREVIA NO DECIA:** la nota al pie de la Tabla 7 exige que
+el area medida este **dentro de 1 DE de la del modelo** para hablar de desajuste, y la aplicacion
+publica el PPM sin esa condicion.
+
+**Verificacion:** `git status` limpio, md5 identico en los cuatro commits, y TC-753 con los casos
+que leen los documentos editados. **No se cambio ni un corte, ni un texto clinico, ni el papel.**
+
 ## PANT-23 — la Evidencia, tanda 2 de 2: el orden de los bloques y el cajon de todos los globos (2026-11-07)
 
 **Commits**: el inventario de medicion (no cambia un byte de lo que mide); el ORDEN; los GLOBOS;

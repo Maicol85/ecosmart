@@ -33,6 +33,129 @@ se leen 20-80 lineas con `sed -n`.
 
 <!-- /L1:INDICE -->
 
+# TANDA AUD-PROT (2026-11-09) — auditoría de SOLO LECTURA de las prótesis
+
+> **`index.html` no cambió**: md5 `f2587ad83be4d12f8a59fa9a0bb27a23` al abrir y al cerrar los
+> cuatro commits, sobre el árbol sellado `v20261108-0123` que dejó PANT-25. Todo lo de abajo
+> está **medido**, no leído, y el detalle completo con los textos exactos está en
+> **`docs/AUDITORIA_PROTESIS.md`**.
+
+## PRO-a · Lo que la medición DESMINTIÓ de la orden
+
+1. **«No es sólo de la TAVI sino de todas las prótesis» — FALSO.** Sólo la **aórtica** escribe
+   «sin datos suficientes para graduar la estenosis protésica». La mitral, la tricúspide y la
+   pulmonar **no escriben nada en el papel** cuando no concluyen: sus tres bloques del informe
+   son `if (veredicto positivo) { … }` **sin rama `else`**, y el propio código lo declara —«lo
+   que se firma es el hallazgo, no su ausencia»—. Medido en las escenas 13, 16, 18, 20, 21, 22,
+   23a, 23b y 23c: en ninguna aparece esa frase ni ninguna equivalente.
+2. **«Todos los modelos del catálogo tienen desvío estándar» — FALSO.** De los **108** modelos de
+   los cinco catálogos, **28 no sirven** para comparar el área efectiva en desviaciones estándar:
+   **26** porque la tabla **no imprime área** para ese modelo y **2** porque la imprime y
+   **ninguna de sus filas trae desvío**. Ver **PRO-b**.
+3. **«(A) aórtica biológica y (A2) mecánica» no son dos lógicas.** El motor aórtico **no
+   distingue tejido**: `eaProtVeredicto` sólo pregunta `esTavi = (morf === 'TAVI')`, y
+   `EA_PROT_CRIT` tiene un bloque general y un bloque `savr_*`, sin ramas. Del lado **mitral**
+   tampoco: `VM_PROT_T11` no abre ramas por tipo. Las que sí las abren son la **tricúspide**
+   (`bio`/`mec`) y la **pulmonar** (`bio`/`homo`).
+4. **La TAVI con la velocidad y el gradiente altos y sin DVI sí dice «sin datos suficientes», y
+   la TAVI SIN NINGÚN DATO no.** La escena 1 —TAVI y nada más— publica hoy
+   `La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante.` y
+   `TAVI normofuncionante.` en el EN SUMA, que es lo que PANT-24 decidió.
+5. **El área efectiva TIPEADA a mano no produce desajuste.** Con `ava_cont` en 0,80 y sin los dos
+   VTI, `#ava-idx` se queda en «—» y `P.ppm` es `null` (escena X5).
+
+## PRO-b · Los modelos del catálogo SIN desvío estándar en el área
+
+**Los que sirven, por catálogo:** `PROT_CAT_A4` **46 de 49** · `PROT_CAT_TAVI` **9 de 9** ·
+`PROT_CAT_A5` **15 de 30** · `PROT_CAT_A9` **8 de 8** · `PROT_CAT_A7` **2 de 12**.
+
+**Los 28 que NO sirven.**
+
+*Sin ninguna celda de área impresa (26):*
+- **A4, 3**: Edwards Duromedics [Bileaflet] f.54 · Hancock [Stented porcine] f.55 ·
+  Monostrut Bjork-Shiley [Single tilting disk] f.57.
+- **A5, 15**: Biocor f.58 · Bjork-Shiley monostrut f.58 · Carpentier-Edwards f.59 ·
+  Carpentier-Edwards pericardial f.59 · Duromedics f.59 · Hancock pericardial f.59 ·
+  Ionescu-Shiley f.59 · Ionescu-Shiley low profile f.60 · Lillehei-Kaster f.60 ·
+  Medtronic-Hall f.60 · Medtronic Intact Porcine f.60 · Mitroflow f.60 · Omnicarbon f.60 ·
+  Sorin Bicarbon f.61 · Wessex f.61.
+- **A7, 8**: Homograft · Contegra · Shelhigh · Medtronic · Bioprosthetic valves · Melody ·
+  Alterra Stent with SAPIEN · Harmony, todos f.62.
+
+*Con área impresa y sin un solo desvío (2):* **Carbomedics [Mechanical valves] f.62** (4 tamaños,
+4 celdas de área, 0 con desvío) y **On-X [Mechanical valve] f.62** (4 y 4, 0 con desvío).
+
+**Celdas sueltas con área y sin desvío, dentro de un modelo que por lo demás sirve:** A4 **1** de
+190 (la Edwards Mira 25, que el propio código declara) · A5 **6** de 63 · A9 **3** de 28 ·
+A7 **15** de 17 · TAVI **0**.
+
+**DECISIÓN DEL MÉDICO PENDIENTE:** la decisión (b) del 08-09/11/2026 dice que con modelo cargado
+el área efectiva pasa a ser el parámetro independiente del flujo. Para **28 modelos y para esas
+celdas sueltas** ese camino no existe, y hay que decidir qué hace la aplicación ahí: tratarlo como
+«sin eje independiente», seguir con el DVI, o decirlo en pantalla. **No se decide acá.**
+
+## PRO-c · Lo que la app hace y la guía no publica, o al revés — pide decisión del médico
+
+1. **La TAVI se gradúa con los cortes absolutos de gradiente medio y DVI de la SAVR.** Releída en
+   imagen la hoja 18 (folio 19 comprobado en el encabezado impreso): las **tres** filas del bloque
+   «TAVI (change from baseline)» —gradiente medio, DVI y área efectiva— están escritas **como
+   cambio respecto de un basal**, y la guía **no publica** un corte absoluto de ninguna de las
+   tres para TAVI. Es la decisión del médico de PANT-18 y está bien fundada; lo que falta es la
+   **declaración**: la salvedad de pantalla lo dice y cierra con «(ASE 2024, hoja 18, folio 19)»,
+   **sin decir que esos cortes son criterio de la aplicación**, que es lo que la decisión (d) pide.
+2. **El desajuste se publica sin la condición que la Tabla 7 le pone.** Releída la hoja 19 (folio
+   20): la nota al pie dice «Valve structure and motion are normal; **measured EOA is within 1 SD
+   of the reference EOA**». La aplicación publica el PPM con cualquier área indexada que no esté
+   marcada «(revisar)», y sólo tiene el dato del desvío cuando hay un modelo cargado.
+3. **UNA TAVI CON DESAJUSTE SEVERO SALE «NORMOFUNCIONANTE» EN EL PAPEL.** Medido (escena X1):
+   cuerpo `La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante (DVI
+   0.40).` y, en el renglón siguiente, `Desajuste protésico-paciente aórtico severo (AEO indexada
+   0.44 cm²/m²).`; EN SUMA `TAVI normofuncionante.` + `PPM aórtico severo.`. La guarda de
+   `normoTavi` recorre `P.niveles`, y **el PPM no es una de sus seis claves**. Es exactamente lo
+   que la decisión (c) del médico viene a cerrar.
+4. **LA CÁPSULA DE PANTALLA NO SE REPINTA AL ELEGIR EL MODELO.** Medido (escena X4): con el modelo
+   cargado, `eaProtVeredicto()` devuelve `signif` y el informe ya dice «criterios que sugieren
+   estenosis protésica significativa», mientras la cápsula sigue diciendo «Posible estenosis
+   protésica» y su plegable sigue publicando «El área efectiva no se evalúa: … no hay un modelo
+   del catálogo cargado». Llamar `calcEADetalle()` a mano la pone de acuerdo, así que **falta un
+   repintado y no hay dos criterios**. La causa, censada: `vModElegir` termina con
+   `if (typeof vModTrasElegir === 'function') vModTrasElegir(pos)` y **`vModTrasElegir` no existe
+   en el archivo** —dos llamadas guardadas, cero definiciones—. **No se corrigió: esta tanda es de
+   solo lectura.**
+5. **Con TAVI el área nunca se compara contra la del modelo**, aunque `PROT_CAT_TAVI` traiga el
+   desvío en sus 9 modelos y en sus 26 celdas de área: `eaProtEOAz` exige morfología quirúrgica.
+6. **La prótesis MITRAL publica un veredicto por parámetro que el conteo excluye.** Con la
+   velocidad pico de E en 2,60 m/s la fila dice «sugiere obstrucción significativa» y el renglón
+   del veredicto dice «hallazgo aislado — posible obstrucción (… 1 de 1 criterio)»: la fila grada
+   con la Tabla 11 y `VM_PROT_OBSTR_VOTAN` la deja afuera a propósito.
+7. **La pulmonar concluye con UN solo criterio positivo** y eso no está declarado como criterio de
+   la aplicación en ningún texto visible. La Tabla 15 no publica regla de integración.
+8. **No medible en esta tanda:** la lectura previa afirma que los cortes de desajuste de la ASE,
+   la EACVI y la VARC coinciden. La aplicación **sólo aplica la ASE**, así que no había diferencia
+   que zanjar y **no se abrieron** la EACVI 2016 ni la VARC-3.
+
+## PRO-d · Los textos del commit 3, pendientes de decisión del médico
+
+1. **El globo ⓘ `cc-3d`** (línea 50159) y **las SEIS formas** que puede escribir la línea de
+   `cc3dTextoSync` debajo del dibujo. **Dos de ellas usan «todavía»** —«las lesiones que están
+   cargadas y el diagrama **todavía no dibuja**» en el globo, y `Cargadas y no dibujadas
+   **todavía**: …` en la línea—, que es un estado del desarrollo expuesto en un texto visible.
+   **Ninguna compara fuentes entre sí.** La lista de esa frase sólo puede contener **cuatro**
+   rótulos, medidos: **VAB · MCH · MCA · Marfan/EHAT**. El texto completo de las seis formas, con
+   sus listas, está en `docs/AUDITORIA_PROTESIS.md` § 3.c (i).
+2. **El trombo protésico grande de 10 mm**, en sus **cuatro** apariciones de la Evidencia (líneas
+   95520, 95619, 95752-95754 y 96089-96091). **NO contienen** la rama del trombo **no obstructivo**
+   ni la de **persistencia a pesar de anticoagulación óptima**: censado el archivo entero, cero
+   apariciones de «anticoagulación óptima», «a pesar de la anticoagulación» y «trombo no
+   obstructivo». Las cuatro tienen una sola condición: «complicado con embolia». **Agregar esa
+   rama es contenido clínico nuevo y lo decide el médico.**
+3. **Los nueve caminos del «normofuncionante»**: seis superficies lo publican —cuerpo en los tres
+   estilos, EN SUMA, PDF, PPT, Guardados y el texto que el Laboratorio indexa— y tres no —pantalla,
+   Evidencia y el bloque del final del EN SUMA, que lo bloquea con `P.via === 'TAVI'`, declarado en
+   **P18-d**—. El detalle está en `docs/AUDITORIA_PROTESIS.md` § 3.c (iii).
+
+---
+
 ## P25-a · Lo que la tanda PANT-25 PARÓ, y lo que leyó y NO publicó (2026-11-08)
 
 ### 1 · La premisa central de la orden no se reprodujo

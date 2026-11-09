@@ -901,6 +901,20 @@ impecable.
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
+**La tanda AUD-PROT (2026-11-09) NO toca `index.html`** —md5 `f2587ad8`, sin cambio— y no
+genera sello: la linea base sigue siendo la de PANT-25. Cuatro commits, solo documentos y dos
+sondas de solo lectura. Audita la logica de las CUATRO posiciones protesicas —parametros, cortes
+literales, regla de combinacion, estados y el texto de cada superficie—, el catalogo de modelos
+y el contraste con CINCO hojas de la ASE 2024 releidas en imagen. **Tres hipotesis de la orden
+quedaron desmentidas**: el «sin datos suficientes» es solo de la AORTICA —la mitral, la
+tricuspide y la pulmonar no escriben nada cuando no concluyen—; **28 de los 108 modelos del
+catalogo no sirven** para comparar el area en desviaciones estandar; y el motor aortico no
+distingue biologica de mecanica. Y destapo dos cosas que nadie habia visto: una **TAVI con
+desajuste severo sale «normofuncionante»** en el cuerpo y en el EN SUMA, y la **capsula de
+pantalla no se repinta al elegir el modelo** porque `vModTrasElegir` no existe en el archivo.
+Todo en `docs/AUDITORIA_PROTESIS.md`; lo declarado, en `docs/PENDIENTES.md` -> **PRO-a** a
+**PRO-d**.
+
 **La tanda PANT-25 (2026-11-08) — Referencias se ordena como la app, y masas y fuentes
 embolígenas ganan lo que les faltaba.** SEIS commits. Sello **`v20261108-0123`**, md5
 **`f2587ad8`**. La pestaña Referencias pasa de **seis a NUEVE** pestañas principales:
