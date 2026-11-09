@@ -234,8 +234,9 @@ declara **criterio EcoSmart**, no de la guía.
 
 | situación | `R.obstr` | pantalla (`vm-prot-obstr`) | papel |
 |---|---|---|---|
-| dos o más positivos | `'significativa'` | «sugiere obstrucción significativa» | `Prótesis mitral con hallazgos sugestivos de obstrucción (<criterios>).` — cuerpo **y** EN SUMA |
-| uno positivo, o ninguno con criterios medidos | `'posible'` / `'normal'` | «posible obstrucción» / «sin criterios de obstrucción» | **NADA** |
+| dos o más positivos | `'significativa'` | «sugiere obstrucción significativa  (<criterios> · N de M criterios)» | `Prótesis mitral con hallazgos sugestivos de obstrucción (<criterios>).` — cuerpo **y** EN SUMA |
+| **UN** positivo | `'posible'` | **«hallazgo aislado — posible obstrucción  (<criterio> · 1 de M criterios)»** (medido en la escena 13) | **NADA** |
+| criterios medidos y ninguno positivo | `'normal'` | «sin criterios de obstrucción  (M criterios medidos)» | **NADA** |
 | ningún criterio medido | `null` | la fila publica `—  (sin medir — se carga en …)` | **NADA** |
 
 ⚠️ **LA MITRAL NO ESCRIBE NUNCA «SIN DATOS SUFICIENTES» EN EL PAPEL.** Con la obstrucción no
@@ -502,3 +503,827 @@ lea el catálogo. En las tres, el área se compara contra un **corte absoluto** 
 | «(A) aórtica biológica y (A2) mecánica» son dos lógicas | **FALSO.** El motor aórtico no distingue tejido: sólo `TAVI` contra el resto. |
 | la comparación con el modelo ya existe en todas las posiciones | **PARCIAL.** El **componente** compara en las cuatro; la **gradación** sólo en la aórtica quirúrgica, por `eaProtEOAz`. |
 | la TAVI podría usar el área frente al modelo con el catálogo cargado | **FALSO hoy.** `eaProtEOAz` exige morfología quirúrgica, aunque `PROT_CAT_TAVI` traiga el desvío en sus 26 celdas de área. |
+
+---
+
+# 2 · La batería de escenas, medida
+
+Sonda: **`scripts/_probe_audprot_escenas.mjs`**. Un solo Chrome, `file://index.html`, transiciones
+apagadas. Cada escena entra por el **gesto real**: el `<select>` de morfología y los campos
+tipeados con sus eventos `input` y `change`, el botón de la pestaña **Válvulas**, las cuatro
+secciones abiertas por su propio acordeón, el botón de estilo del informe, y —donde hay modelo— la
+tarjeta «Modelo y tamaño» abierta por su botón, el nombre escrito en el buscador, la sugerencia
+clickeada, el tamaño elegido en su `<select>` y el botón «Elegir». **`index.html` no se toca:**
+md5 `f2587ad83be4d12f8a59fa9a0bb27a23` antes y después.
+
+**Cómo se eligieron los valores.** Ninguno por criterio clínico: todos caen **claramente por
+encima o por debajo de los cortes que la propia app imprime en su pantalla**. La velocidad 4,5 m/s
+y el gradiente medio 45 mmHg son los del caso que el médico reportó. El DVI se construye con los
+dos VTI (`itv_tsvi / itv_ao`), así que 50/100 da 0,50 —normal, el corte es `> 0,35`— y 20/100 da
+0,20 —significativa, el corte es `< 0,25`—. El área efectiva sale del Ø del TSVI: con 21 mm y
+`itv_tsvi` 52 el AVA es 1,80 cm², y con 16 mm y 40 es 0,80 cm². **El modelo del catálogo no se
+eligió de memoria: la sonda recorre el catálogo real buscando un modelo y tamaño cuya referencia
+deje el área medida en el tramo pedido** —es el patrón de «buscar la escena en vez de adivinarla»—,
+y publica cuál encontró.
+
+⚠️ **TRES DENOMINADORES VACÍOS QUE LA SONDA CAZÓ ANTES DE QUE YO LE CREYERA.**
+
+1. **Las cuatro secciones de Válvulas nacen cerradas y el componente no abre sin ellas.**
+   `vModAbrir` llama a `_vModColocar(btn)`, que se rinde cuando el botón no tiene caja, y entonces
+   la tarjeta se cierra sola: la primera corrida midió `cardAbierta: false` y `sugerencias: 0` en
+   las cuatro escenas de modelo. Es la lección que PANT-20 dejó escrita.
+2. **`toggleEteSeccion` prefija `ete-seccion-` al id que recibe**, así que hay que pasarle la clave
+   corta `valv-aortica`. Con el id completo busca `ete-seccion-ete-seccion-valv-aortica` y se va
+   sin abrir nada: las secciones seguían informando `CERRADA` con la llamada puesta.
+3. **Con TAVI el catálogo es OTRO.** `vModCatalogo` elige `PROT_CAT_TAVI` por la morfología, así
+   que un modelo de la A4 no aparece en el buscador: las dos escenas de TAVI con modelo volvieron a
+   dar `sugerencias: 0` hasta que la búsqueda se hizo sobre el catálogo de transcatéter.
+
+**Resumen de las 25 escenas.** La frase «sin datos suficientes para graduar la estenosis
+protésica» aparece en **cinco**: las escenas **2**, **8**, **9** y **10** —y la reapertura de un
+estudio guardado de la escena 2—. Las cuatro son **aórticas**. **En ninguna escena mitral,
+tricuspídea o pulmonar el papel escribe esa frase ni ninguna equivalente.**
+
+### Escena 1 TAVI sin ningun dato
+
+**Sembrado (gesto real):** `va_morf`=TAVI · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `faltan` · pDep `null` · pIndep `null` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Falta un dato para aplicar la tabla |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Falta un parámetro dependiente del flujo (velocidad pico o gradiente medio); el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detallePara hablar de estenosis protésica significativa la Tabla 5 exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: un parámetro dependiente del flujo (velocidad pico o gradiente medio);  … |
+| pantalla · `gmedio` | — |
+| pantalla · `dvi` | — |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | —  (falta el AVA por continuidad) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaIdx` | — |
+| pantalla · `dviVal` | — |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI normofuncionante. |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI normofuncionante. |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante. |
+| EN SUMA | TAVI normofuncionante. |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula aórtica","val":"TAVI","marca":"none","nota":"las filas de estenosis aórtica de válvula nativa no aplican y no se muestran; las recomendaciones de esta sección son las de disfunción protésica","refs":["esc2025vc"]},{"lbl":"Severidad protésica por la Tabla 5","val":"Falta un dato para aplicar la tabla","marca":"ask","nota":"falta un parámetro dependiente del flujo (velocidad pico o gradiente medio), el DVI, que es el único eje independiente del flujo que esta aplicación p … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 2 TAVI vmax 4,5 + gmedio 45 (CASO DEL MEDICO)
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=4.5 · `gmedio_ao`=45 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `faltan` · pDep `signif` · pIndep `null` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Falta un dato para aplicar la tabla |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Falta el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detallePara hablar de estenosis protésica significativa la Tabla 5 exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.Para TAVI la Tabla 5 expresa el gr … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | — |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | —  (falta el AVA por continuidad) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaIdx` | — |
+| pantalla · `dviVal` | — |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| EN SUMA | Válvula aórtica con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: SE REPRODUCE.**
+
+### Escena 3 TAVI vmax 4,5 + gmedio 45 + DVI normal 0,50
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=21 · `itv_tsvi`=50 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `posible` · pDep `signif` · pIndep `normal` · PPM `no` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Posible estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | No se cumplen las dos mitades que la tabla exige para «significativa» (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.50).⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.⚠️ Volumen sistólico calculado 173 mL, fuera de los 50-90 mL que pide la nota al pie de la tabla.ⓘ Ver detalleNo se cumplen las DOS mitades que la tabla exige para «significativa» —un eje dependiente del flujo y uno independiente—, as … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.50 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.95 cm²/m²  (sin desajuste) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 1.73 |
+| pantalla · `avaIdx` | 0.95 cm²/m² |
+| pantalla · `dviVal` | 0.50 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.50). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.50). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.50). |
+| EN SUMA | Prótesis aórtica: posible estenosis protésica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 4 TAVI vmax 4,5 + gmedio 45 + DVI bajo 0,20
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=21 · `itv_tsvi`=20 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `signif` · pDep `signif` · pIndep `signif` · PPM `severo` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Sugiere estenosis protésica significativa |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Un parámetro que depende del flujo y uno que no, los dos en rango de estenosis significativa (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.20).⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detalleSe cumplen las dos mitades que la tabla exige: un eje dependiente del flujo y uno independiente del flujo en rango de estenosis significativa.Para TAVI la Tabla 5 expresa el gradiente medio, el DVI  … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.20 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.38 cm²/m²  (severo) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 0.69 |
+| pantalla · `avaIdx` | 0.38 cm²/m² |
+| pantalla · `dviVal` | 0.20 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| EN SUMA | Prótesis aórtica: criterios que sugieren estenosis protésica significativa. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 5 TAVI con modelo cargado y area efectiva NORMAL
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=21 · `itv_tsvi`=52 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas. Modelo pedido `SAPIEN / 23`, sugerencias ofrecidas 5, quedó cargado **sí** — referencia del modelo {"pico":null,"medio":[9.92,4.27],"eoa":[1.56,0.43],"dvi":[0.53,0.13]}, folio 51.
+
+**Evaluador:** `posible` · pDep `signif` · pIndep `normal` · PPM `no` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Posible estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | No se cumplen las dos mitades que la tabla exige para «significativa» (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.52).⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.⚠️ Volumen sistólico calculado 180 mL, fuera de los 50-90 mL que pide la nota al pie de la tabla.ⓘ Ver detalleNo se cumplen las DOS mitades que la tabla exige para «significativa» —un eje dependiente del flujo y uno independiente—, as … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.52 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.99 cm²/m²  (sin desajuste) |
+| pantalla · `botonModelo` | SAPIEN · 23 mm ▾ |
+| pantalla · `medidoModelo` | Medido en este estudioGradiente medio medido45 mmHg · +8.2 DE respecto del esperadoAVA por continuidad medido1.8 cm² · +0.6 DE respecto del esperado |
+| pantalla · `avaCont` | 1.80 |
+| pantalla · `avaIdx` | 0.99 cm²/m² |
+| pantalla · `dviVal` | 0.52 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.52). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.52). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.52). |
+| EN SUMA | Prótesis aórtica: posible estenosis protésica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 6 TAVI con modelo cargado y area efectiva MUY POR DEBAJO
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=16 · `itv_tsvi`=40 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas. Modelo pedido `SAPIEN / 26`, sugerencias ofrecidas 5, quedó cargado **sí** — referencia del modelo {"pico":null,"medio":[8.76,3.89],"eoa":[1.84,0.52],"dvi":[0.53,0.13]}, folio 51.
+
+**Evaluador:** `posible` · pDep `signif` · pIndep `normal` · PPM `severo` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Posible estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | No se cumplen las dos mitades que la tabla exige para «significativa» (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.40).⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detalleNo se cumplen las DOS mitades que la tabla exige para «significativa» —un eje dependiente del flujo y uno independiente—, así que queda en posible.Para TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.40 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.44 cm²/m²  (severo) |
+| pantalla · `botonModelo` | SAPIEN · 26 mm ▾ |
+| pantalla · `medidoModelo` | Medido en este estudioGradiente medio medido45 mmHg · +9.3 DE respecto del esperadoAVA por continuidad medido0.8 cm² · −2.0 DE respecto del esperado |
+| pantalla · `avaCont` | 0.80 |
+| pantalla · `avaIdx` | 0.44 cm²/m² |
+| pantalla · `dviVal` | 0.40 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, con posible estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| EN SUMA | Prótesis aórtica: posible estenosis protésica. <br> PPM aórtico severo. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 7 TAVI con desajuste paciente-protesis (AEO indexada baja)
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=2.0 · `gmedio_ao`=12 · `diam_tsvi`=16 · `itv_tsvi`=40 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `normal` · pDep `normal` · pIndep `normal` · PPM `severo` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Sin criterios de estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Depende del flujo: velocidad pico 2 m/s y gradiente medio 12 mmHg · no depende del flujo: DVI 0.40.⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detallePara TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo, con el basal definido como un estudio en condiciones hemodinámicas estables; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica (ASE 2024, hoja 18, folio  … |
+| pantalla · `gmedio` | 12 mmHg |
+| pantalla · `dvi` | 0.40 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.44 cm²/m²  (severo) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 0.80 |
+| pantalla · `avaIdx` | 0.44 cm²/m² |
+| pantalla · `dviVal` | 0.40 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.40). <br> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²). |
+| EN SUMA | Prótesis aórtica: sin criterios de estenosis protésica. <br> PPM aórtico severo. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 8 TAVI con regurgitacion paravalvular (modulo TAVI)
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `ete_tavi_ext_circ`=20 · `ete_tavi_vc_ancho`=4 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `faltan` · pDep `null` · pIndep `null` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Falta un dato para aplicar la tabla |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Falta un parámetro dependiente del flujo (velocidad pico o gradiente medio); el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.ⓘ Ver detallePara hablar de estenosis protésica significativa la Tabla 5 exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: un parámetro dependiente del flujo (velocidad pico o gradiente medio);  … |
+| pantalla · `gmedio` | — |
+| pantalla · `dvi` | — |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | —  (falta el AVA por continuidad) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaIdx` | — |
+| pantalla · `dviVal` | — |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica. |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica. |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica. |
+| EN SUMA | **(nada de esta válvula)** |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: SE REPRODUCE.**
+
+### Escena 9 aortica quirurgica BIOLOGICA solo vmax 4,5 + gmedio 45
+
+**Sembrado (gesto real):** `va_morf`=Prótesis biológica · `vmax_ao`=4.5 · `gmedio_ao`=45 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `faltan` · pDep `signif` · pIndep `null` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Falta un dato para aplicar la tabla |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Falta el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.ⓘ Ver detallePara hablar de estenosis protésica significativa la Tabla 5 exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del catálogo cargado —se carga con el botón «Modelo y tama … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | — |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | —  (falta el AVA por continuidad) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaIdx` | — |
+| pantalla · `dviVal` | — |
+| informe · conciso | VAo con prótesis biológica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · estandar | Válvula aórtica con prótesis biológica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · narrativo | La válvula aórtica presenta una prótesis biológica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| EN SUMA | Válvula aórtica con prótesis biológica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula aórtica","val":"Prótesis biológica","marca":"none","nota":"las filas de estenosis aórtica de válvula nativa no aplican y no se muestran; las recomendaciones de esta sección son las de disfunción protésica","refs":["esc2025vc"]},{"lbl":"Severidad protésica por la Tabla 5","val":"Falta un dato para aplicar la tabla","marca":"ask","nota":"falta el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado","refs":["aseProtM2024 … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: SE REPRODUCE.**
+
+### Escena 10 aortica quirurgica MECANICA solo vmax 4,5 + gmedio 45
+
+**Sembrado (gesto real):** `va_morf`=Prótesis mecánica · `vmax_ao`=4.5 · `gmedio_ao`=45 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis mecánica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `faltan` · pDep `signif` · pIndep `null` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Falta un dato para aplicar la tabla |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Falta el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.ⓘ Ver detallePara hablar de estenosis protésica significativa la Tabla 5 exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado.El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del catálogo cargado —se carga con el botón «Modelo y tama … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | — |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | —  (falta el AVA por continuidad) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaIdx` | — |
+| pantalla · `dviVal` | — |
+| informe · conciso | VAo con prótesis mecánica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · estandar | Válvula aórtica con prótesis mecánica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| informe · narrativo | La válvula aórtica presenta una prótesis mecánica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| EN SUMA | Válvula aórtica con prótesis mecánica, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg). |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula aórtica","val":"Prótesis mecánica","marca":"none","nota":"las filas de estenosis aórtica de válvula nativa no aplican y no se muestran; las recomendaciones de esta sección son las de disfunción protésica","refs":["esc2025vc"]},{"lbl":"Severidad protésica por la Tabla 5","val":"Falta un dato para aplicar la tabla","marca":"ask","nota":"falta el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar sin un modelo cargado","refs":["aseProtM2024" … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: SE REPRODUCE.**
+
+### Escena 11 aortica quirurgica BIOLOGICA con vmax, gmedio y DVI 0,20
+
+**Sembrado (gesto real):** `va_morf`=Prótesis biológica · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=21 · `itv_tsvi`=20 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `signif` · pDep `signif` · pIndep `signif` · PPM `severo` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Sugiere estenosis protésica significativa |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Un parámetro que depende del flujo y uno que no, los dos en rango de estenosis significativa (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.20).ⓘ Ver detalleSe cumplen las dos mitades que la tabla exige: un eje dependiente del flujo y uno independiente del flujo en rango de estenosis significativa.El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del catálogo cargado —se carga con el botón «Modelo y tamaño»—. El DVI queda com … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.20 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.38 cm²/m²  (severo) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 0.69 |
+| pantalla · `avaIdx` | 0.38 cm²/m² |
+| pantalla · `dviVal` | 0.20 |
+| informe · conciso | VAo con prótesis biológica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| informe · estandar | Válvula aórtica con prótesis biológica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| informe · narrativo | La válvula aórtica presenta una prótesis biológica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.20). |
+| EN SUMA | Prótesis aórtica: criterios que sugieren estenosis protésica significativa. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 12 aortica quirurgica con MODELO y area efectiva 2 DE por debajo
+
+**Sembrado (gesto real):** `va_morf`=Prótesis mecánica · `vmax_ao`=4.5 · `gmedio_ao`=45 · `diam_tsvi`=16 · `itv_tsvi`=40 · `itv_ao`=100 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis mecánica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas. Modelo pedido `Abbott Epic / 27`, sugerencias ofrecidas 1, quedó cargado **sí** — referencia del modelo {"pico":null,"medio":[11.4,4.1],"eoa":[1.6,0.4]}, folio 53.
+
+**Evaluador:** `signif` · pDep `signif` · pIndep `signif` · PPM `severo` · área frente al modelo evaluable `true`, z = -2
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Posible estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | No se cumplen las dos mitades que la tabla exige para «significativa» (depende del flujo: velocidad pico 4.5 m/s y gradiente medio 45 mmHg · no depende del flujo: DVI 0.40).ⓘ Ver detalleNo se cumplen las DOS mitades que la tabla exige para «significativa» —un eje dependiente del flujo y uno independiente—, así que queda en posible.El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del catálogo cargado —se carga con el botón «Modelo y tamaño»—. El DVI queda como único eje indepe … |
+| pantalla · `gmedio` | 45 mmHg |
+| pantalla · `dvi` | 0.40 |
+| pantalla · `atet` | — |
+| pantalla · `ppm` | 0.44 cm²/m²  (severo) |
+| pantalla · `botonModelo` | Abbott Epic · 27 mm ▾ |
+| pantalla · `medidoModelo` | Medido en este estudioGradiente medio medido45 mmHg · +8.2 DE respecto del esperadoAVA por continuidad medido0.8 cm² · −2.0 DE respecto del esperado |
+| pantalla · `avaCont` | 0.80 |
+| pantalla · `avaIdx` | 0.44 cm²/m² |
+| pantalla · `dviVal` | 0.40 |
+| informe · conciso | VAo con prótesis mecánica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). |
+| informe · estandar | Válvula aórtica con prótesis mecánica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). |
+| informe · narrativo | La válvula aórtica presenta una prótesis mecánica, con criterios que sugieren estenosis protésica significativa (Vmax 4.5 m/s, G. medio 45 mmHg, DVI 0.40). |
+| EN SUMA | Prótesis aórtica: criterios que sugieren estenosis protésica significativa. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 13 mitral BIOLOGICA solo velocidad pico de E y gradiente medio
+
+**Sembrado (gesto real):** `vm_morf`=Prótesis biológica · `em_vmax`=2.6 · `em_gmedio`=14 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `posible` · positivos `["gmed"]`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | hallazgo aislado — posible obstrucción  (gradiente medio 14.0 mmHg · 1 de 1 criterio) |
+| pantalla · `vmax` | 2.60 m/s  (sugiere obstrucción significativa · <1.9 normal · ≥2.5 significativa) |
+| pantalla · `gmed` | 14.0 mmHg  (sugiere obstrucción significativa · ≤5 normal · >10 significativa) |
+| pantalla · `thp` | —  (sin medir — se carga en Doppler Mitral) |
+| pantalla · `eoa` | —  (falta Ø TSVI, VTI TSVI, VTI mitral CW) |
+| pantalla · `dvi` | — |
+| pantalla · `ppm` | —  (falta el AEO por continuidad) |
+| pantalla · `sev` | No graduada: los cortes de válvula nativa no aplican a prótesis |
+| informe · conciso | VM con prótesis biológica (gradiente medio 14 mmHg, Vmax 2.6 m/s). |
+| informe · estandar | Válvula mitral con prótesis biológica (gradiente medio 14 mmHg, Vmax 2.6 m/s). |
+| informe · narrativo | La válvula mitral presenta una prótesis biológica (gradiente medio 14 mmHg, Vmax 2.6 m/s). |
+| EN SUMA | Válvula mitral con prótesis biológica (gradiente medio 14 mmHg, Vmax 2.6 m/s). |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula mitral","val":"Prótesis biológica","marca":"none","nota":"las secciones mitrales de válvula nativa no aplican y no se muestran; los cortes de esta sección son los de prótesis","refs":null},{"lbl":"Velocidad pico transprotésica","val":"2,6 m/s","marca":"ok","nota":"alcanza 2.5 m/s — sugiere estenosis protésica significativa","refs":["aseProtM2024"]},{"lbl":"Gradiente medio transprotésico","val":"14,0 mmHg","marca":"ok","nota":"mayor que 10 mmHg — sugiere estenosis protés … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 14 mitral BIOLOGICA con velocidad, gradiente y THP
+
+**Sembrado (gesto real):** `vm_morf`=Prótesis biológica · `em_vmax`=2.6 · `em_gmedio`=14 · `thp`=240 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `significativa` · positivos `["gmed","thp"]`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | sugiere obstrucción significativa  (gradiente medio 14.0 mmHg, THP 240 ms · 2 de 2 criterios) |
+| pantalla · `vmax` | 2.60 m/s  (sugiere obstrucción significativa · <1.9 normal · ≥2.5 significativa) |
+| pantalla · `gmed` | 14.0 mmHg  (sugiere obstrucción significativa · ≤5 normal · >10 significativa) |
+| pantalla · `thp` | 240 ms  (sugiere obstrucción significativa · <130 normal · >200 significativa) |
+| pantalla · `eoa` | —  (falta Ø TSVI, VTI TSVI, VTI mitral CW) |
+| pantalla · `dvi` | — |
+| pantalla · `ppm` | —  (falta el AEO por continuidad) |
+| pantalla · `sev` | No graduada: los cortes de válvula nativa no aplican a prótesis |
+| informe · conciso | VM con prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| informe · estandar | Válvula mitral con prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| informe · narrativo | La válvula mitral presenta una prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| EN SUMA | Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 15 mitral BIOLOGICA con MODELO cargado
+
+**Sembrado (gesto real):** `vm_morf`=Prótesis biológica · `em_vmax`=2.6 · `em_gmedio`=14 · `thp`=240 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas. Modelo pedido `Medtronic Mosaic / 27`, sugerencias ofrecidas 1, quedó cargado **sí** — referencia del modelo {"pico":null,"medio":[6.1,1.33],"vpico":[2,0.28],"thp":[81,18.9],"eoa":[1.62,0.47]}, folio 60.
+
+**Evaluador:** `significativa` · positivos `["gmed","thp"]`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | sugiere obstrucción significativa  (gradiente medio 14.0 mmHg, THP 240 ms · 2 de 2 criterios) |
+| pantalla · `vmax` | 2.60 m/s  (sugiere obstrucción significativa · <1.9 normal · ≥2.5 significativa) |
+| pantalla · `gmed` | 14.0 mmHg  (sugiere obstrucción significativa · ≤5 normal · >10 significativa) |
+| pantalla · `thp` | 240 ms  (sugiere obstrucción significativa · <130 normal · >200 significativa) |
+| pantalla · `eoa` | —  (falta Ø TSVI, VTI TSVI, VTI mitral CW) |
+| pantalla · `dvi` | — |
+| pantalla · `ppm` | —  (falta el AEO por continuidad) |
+| pantalla · `sev` | No graduada: los cortes de válvula nativa no aplican a prótesis |
+| informe · conciso | VM con prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| informe · estandar | Válvula mitral con prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| informe · narrativo | La válvula mitral presenta una prótesis biológica (AVm 0.92 cm² por THP, gradiente medio 14 mmHg, Vmax 2.6 m/s). <br> Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| EN SUMA | Prótesis mitral con hallazgos sugestivos de obstrucción (gradiente medio 14.0 mmHg, THP 240 ms). |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 16 tricuspide BIOLOGICA solo gradiente medio 12
+
+**Sembrado (gesto real):** `vt_morf`=Prótesis biológica · `et_gmedio`=12 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `aislado` · positivos `["gmed"]` de medidos `["gmed"]` · tipo `bio`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | hallazgo aislado, sin veredicto  (gradiente medio 12.0 mmHg · 1 de 1 criterio) |
+| pantalla · `evmax` | — |
+| pantalla · `gmed` | 12.0 mmHg  (sugiere estenosis · >= 9 mmHg) |
+| pantalla · `thp` | — |
+| pantalla · `aeo` | — |
+| pantalla · `dvi` | — |
+| informe · conciso | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg). No es posible estimar PSAP. |
+| informe · estandar | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg). No es posible estimar PSAP. |
+| informe · narrativo | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg). No es posible estimar PSAP. |
+| EN SUMA | VT protésica biológica. |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula tricúspide","val":"Prótesis biológica","marca":"none","nota":"las filas de válvula tricúspide nativa no aplican a una prótesis; las recomendaciones de esta sección son las de disfunción protésica","refs":["esc2025vc"]},{"lbl":"Obstrucción protésica por la Tabla 19","val":"Un solo criterio alcanzado","marca":"warn","nota":"con un solo criterio positivo la aplicación no afirma estenosis: pide dos o más","refs":["aseProtM2024"]},{"lbl":"Criterios de la Tabla 19 alcanzados" … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 17 tricuspide BIOLOGICA con gradiente y THP 240
+
+**Sembrado (gesto real):** `vt_morf`=Prótesis biológica · `et_gmedio`=12 · `et_thp`=240 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `estenosis` · positivos `["gmed","thp"]` de medidos `["gmed","thp"]` · tipo `bio`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | hallazgos sugestivos de estenosis  (gradiente medio 12.0 mmHg, THP 240 ms · 2 de 2 criterios) |
+| pantalla · `evmax` | — |
+| pantalla · `gmed` | 12.0 mmHg  (sugiere estenosis · >= 9 mmHg) |
+| pantalla · `thp` | 240 ms  (sugiere estenosis · >= 200 ms) |
+| pantalla · `aeo` | — |
+| pantalla · `dvi` | — |
+| informe · conciso | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg, THP 240 ms). No es posible estimar PSAP. <br> Prótesis tricúspide con hallazgos sugestivos de estenosis (gradiente medio 12.0 mmHg, THP 240 ms). |
+| informe · estandar | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg, THP 240 ms). No es posible estimar PSAP. <br> Prótesis tricúspide con hallazgos sugestivos de estenosis (gradiente medio 12.0 mmHg, THP 240 ms). |
+| informe · narrativo | Válvula tricúspide con prótesis biológica (gradiente medio 12 mmHg, THP 240 ms). No es posible estimar PSAP. <br> Prótesis tricúspide con hallazgos sugestivos de estenosis (gradiente medio 12.0 mmHg, THP 240 ms). |
+| EN SUMA | VT protésica biológica. <br> Prótesis tricúspide con hallazgos sugestivos de estenosis (gradiente medio 12.0 mmHg, THP 240 ms). |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 18 pulmonar BIOPROTESIS con velocidad 3,5 y gradiente medio 25
+
+**Sembrado (gesto real):** `vp_morf`=Prótesis biológica · `vp_tipo_prot`=bio · `vp_vmax`=3.5 · `ep_gmedio`=25 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `posible` · positivos `["vmax","gmed"]` de medidos `["vmax","gmed"]` · tipo `bio`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | posible obstrucción  (velocidad pico 3.5 m/s, gradiente medio 25.0 mmHg · 2 de 2 criterios) |
+| pantalla · `vmax` | 3.5 m/s  (posible obstrucción · >= 3.2 m/s) |
+| pantalla · `gmed` | 25.0 mmHg  (posible obstrucción · >= 20 mmHg) |
+| informe · conciso | VP con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). <br> Prótesis pulmonar con posible obstrucción (velocidad pico 3.5 m/s, gradiente medio 25.0 mmHg). |
+| informe · estandar | Válvula pulmonar con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). <br> Prótesis pulmonar con posible obstrucción (velocidad pico 3.5 m/s, gradiente medio 25.0 mmHg). |
+| informe · narrativo | La válvula pulmonar se encuentra con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). <br> Prótesis pulmonar con posible obstrucción (velocidad pico 3.5 m/s, gradiente medio 25.0 mmHg). |
+| EN SUMA | VP protésica biológica. <br> Prótesis pulmonar con posible obstrucción (velocidad pico 3.5 m/s, gradiente medio 25.0 mmHg). |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula pulmonar","val":"Prótesis biológica","marca":"none","nota":"las filas de estenosis pulmonar de válvula nativa no aplican a una prótesis; las recomendaciones de esta sección son las de disfunción de un conducto o de una prótesis pulmonar","refs":["acc2025achd"]},{"lbl":"Obstrucción protésica por la Tabla 15","val":"Posible obstrucción","marca":"warn","nota":"lo decide el cuadro de obstrucción protésica del formulario, que es su dueño: esta sección lo lee y no lo recalcul … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 19 aortica TAVI con TODOS los datos normales
+
+**Sembrado (gesto real):** `va_morf`=TAVI · `vmax_ao`=2.0 · `gmedio_ao`=12 · `diam_tsvi`=21 · `itv_tsvi`=50 · `itv_ao`=100 · `va_at`=60 · `tango_te`=300 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `TAVI`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `normal` · pDep `normal` · pIndep `normal` · PPM `no` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Sin criterios de estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Depende del flujo: velocidad pico 2 m/s y gradiente medio 12 mmHg · no depende del flujo: DVI 0.50.⚠️ Para TAVI la tabla expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo; sin ese estudio se aplican los cortes absolutos de la prótesis quirúrgica.⚠️ Volumen sistólico calculado 173 mL, fuera de los 50-90 mL que pide la nota al pie de la tabla.ⓘ Ver detallePara TAVI la Tabla 5 expresa el gradiente medio, el DVI y el área efectiva como cambio respecto de un estudio previo, con el basal definido como un estudio en condiciones hemodinámicas estables; sin … |
+| pantalla · `gmedio` | 12 mmHg |
+| pantalla · `dvi` | 0.50 |
+| pantalla · `atet` | 0,20 — normal (< 0,32) |
+| pantalla · `ppm` | 0.95 cm²/m²  (sin desajuste) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 1.73 |
+| pantalla · `avaIdx` | 0.95 cm²/m² |
+| pantalla · `dviVal` | 0.50 |
+| informe · conciso | VAo con prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| informe · estandar | Válvula aórtica con prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| informe · narrativo | La válvula aórtica presenta una prótesis transcatéter tipo TAVI, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| EN SUMA | Prótesis aórtica: sin criterios de estenosis protésica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 19b aortica quirurgica BIOLOGICA con TODOS los datos normales
+
+**Sembrado (gesto real):** `va_morf`=Prótesis biológica · `vmax_ao`=2.0 · `gmedio_ao`=12 · `diam_tsvi`=21 · `itv_tsvi`=50 · `itv_ao`=100 · `va_at`=60 · `tango_te`=300 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `normal` · pDep `normal` · pIndep `normal` · PPM `no` · área frente al modelo evaluable `false`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `veredicto` | Sin criterios de estenosis protésica |
+| pantalla · `rotulo` | ⚖️ Severidad EA protésica (ASE 2024) |
+| pantalla · `nota` | Depende del flujo: velocidad pico 2 m/s y gradiente medio 12 mmHg · no depende del flujo: DVI 0.50.⚠️ Volumen sistólico calculado 173 mL, fuera de los 50-90 mL que pide la nota al pie de la tabla.ⓘ Ver detalleEl área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto del valor de referencia del MODELO implantado, y en este estudio no hay un modelo del catálogo cargado —se carga con el botón «Modelo y tamaño»—. El DVI queda como único eje independiente del flujo.La nota al pie de la tabla exige un volumen sistólico de 50-90 mL para que la velocidad pico valga, y el c … |
+| pantalla · `gmedio` | 12 mmHg |
+| pantalla · `dvi` | 0.50 |
+| pantalla · `atet` | 0,20 — normal (< 0,32) |
+| pantalla · `ppm` | 0.95 cm²/m²  (sin desajuste) |
+| pantalla · `botonModelo` | Modelo y tamaño |
+| pantalla · `avaCont` | 1.73 |
+| pantalla · `avaIdx` | 0.95 cm²/m² |
+| pantalla · `dviVal` | 0.50 |
+| informe · conciso | VAo con prótesis biológica, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| informe · estandar | Válvula aórtica con prótesis biológica, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| informe · narrativo | La válvula aórtica presenta una prótesis biológica, sin criterios de estenosis protésica (Vmax 2 m/s, G. medio 12 mmHg, DVI 0.50, AT 60 ms, AT/TE 0.20). |
+| EN SUMA | Prótesis aórtica: sin criterios de estenosis protésica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 20 mitral BIOLOGICA con TODOS los datos normales
+
+**Sembrado (gesto real):** `vm_morf`=Prótesis biológica · `em_vmax`=1.5 · `em_gmedio`=3 · `thp`=100 · `em_dtsvi`=21 · `em_vtitsvi`=50 · `em_vtimit`=55 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `normal` · positivos `[]` · PPM `no`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | sin criterios de obstrucción  (4 criterios medidos) |
+| pantalla · `vmax` | 1.50 m/s  (sin criterios de obstrucción · <1.9 normal · ≥2.5 significativa) |
+| pantalla · `gmed` | 3.0 mmHg  (sin criterios de obstrucción · ≤5 normal · >10 significativa) |
+| pantalla · `thp` | 100 ms  (sin criterios de obstrucción · <130 normal · >200 significativa) |
+| pantalla · `eoa` | 3.15 cm²  (sin criterios de obstrucción) |
+| pantalla · `dvi` | 1.10  (sin criterios de obstrucción) |
+| pantalla · `ppm` | 1.73 cm²/m²  (sin desajuste) |
+| pantalla · `sev` | No graduada: los cortes de válvula nativa no aplican a prótesis |
+| informe · conciso | VM con prótesis biológica (AVm 3.15 cm² por continuidad, AVm 2.2 cm² por THP, gradiente medio 3 mmHg, Vmax 1.5 m/s). |
+| informe · estandar | Válvula mitral con prótesis biológica (AVm 3.15 cm² por continuidad, AVm 2.2 cm² por THP, gradiente medio 3 mmHg, Vmax 1.5 m/s). |
+| informe · narrativo | La válvula mitral presenta una prótesis biológica (AVm 3.15 cm² por continuidad, AVm 2.2 cm² por THP, gradiente medio 3 mmHg, Vmax 1.5 m/s). |
+| EN SUMA | Válvula mitral con prótesis biológica (AVm 3.15 cm² por continuidad, AVm 2.2 cm² por THP, gradiente medio 3 mmHg, Vmax 1.5 m/s). |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 21 tricuspide BIOLOGICA con TODOS los datos normales
+
+**Sembrado (gesto real):** `vt_morf`=Prótesis biológica · `et_gmedio`=3 · `et_thp`=120 · `et_e_vmax`=90 · `et_vti_diast`=30 · `itv_tsvi`=50 · `tsvd_diametro`=25 · `vti_tsvd`=18 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `sin` · positivos `[]` de medidos `["evmax","gmed","thp","aeo","dvi"]` · tipo `bio`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | sin criterios de estenosis  (5 criterios medidos) |
+| pantalla · `evmax` | 90 cm/s  (no alcanza el criterio · >= 210 cm/s) |
+| pantalla · `gmed` | 3.0 mmHg  (no alcanza el criterio · >= 9 mmHg) |
+| pantalla · `thp` | 120 ms  (no alcanza el criterio · >= 200 ms) |
+| pantalla · `aeo` | 2.95 cm²  (no alcanza el criterio · < 1.5 cm²) |
+| pantalla · `dvi` | 0.60  (no alcanza el criterio · >= 3.3) |
+| pantalla · `dviCampo` | 0.60 |
+| informe · conciso | Válvula tricúspide con prótesis biológica (gradiente medio 3 mmHg, THP 120 ms, área valvular 2.95 cm²). No es posible estimar PSAP. |
+| informe · estandar | Válvula tricúspide con prótesis biológica (gradiente medio 3 mmHg, THP 120 ms, área valvular 2.95 cm²). No es posible estimar PSAP. |
+| informe · narrativo | Válvula tricúspide con prótesis biológica (gradiente medio 3 mmHg, THP 120 ms, área valvular 2.95 cm²). No es posible estimar PSAP. |
+| EN SUMA | VT protésica biológica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 22 pulmonar BIOPROTESIS con TODOS los datos normales
+
+**Sembrado (gesto real):** `vp_morf`=Prótesis biológica · `vp_tipo_prot`=bio · `vp_vmax`=2.0 · `ep_gmedio`=8 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `sin` · positivos `[]` de medidos `["vmax","gmed"]` · tipo `bio`
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | sin criterios de obstrucción  (2 criterios medidos) |
+| pantalla · `vmax` | 2.0 m/s  (no alcanza el criterio · >= 3.2 m/s) |
+| pantalla · `gmed` | 8.0 mmHg  (no alcanza el criterio · >= 20 mmHg) |
+| informe · conciso | VP con prótesis biológica (Vmax 2 m/s, Gmax 16 mmHg). |
+| informe · estandar | Válvula pulmonar con prótesis biológica (Vmax 2 m/s, Gmax 16 mmHg). |
+| informe · narrativo | La válvula pulmonar se encuentra con prótesis biológica (Vmax 2 m/s, Gmax 16 mmHg). |
+| EN SUMA | VP protésica biológica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 23a pulmonar MECANICA (no gradua)
+
+**Sembrado (gesto real):** `vp_morf`=Prótesis mecánica · `vp_vmax`=3.5 · `ep_gmedio`=25 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis mecánica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `null` · positivos `[]` de medidos `[]` · tipo `null` · motivo «No graduada: la guía no publica cortes para una prótesis pulmonar mecánica»
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | No graduada: la guía no publica cortes para una prótesis pulmonar mecánica |
+| pantalla · `vmax` | — |
+| pantalla · `gmed` | — |
+| informe · conciso | VP con prótesis mecánica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · estandar | Válvula pulmonar con prótesis mecánica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · narrativo | La válvula pulmonar se encuentra con prótesis mecánica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| EN SUMA | VP protésica mecánica. |
+| Evidencia · su sección | {"filas":[{"lbl":"Válvula pulmonar","val":"Prótesis mecánica","marca":"none","nota":"las filas de estenosis pulmonar de válvula nativa no aplican a una prótesis; las recomendaciones de esta sección son las de disfunción de un conducto o de una prótesis pulmonar","refs":["acc2025achd"]},{"lbl":"Obstrucción protésica por la Tabla 15","val":"—","marca":"ask","nota":"se calcula en el cuadro de obstrucción protésica del formulario","refs":["aseProtM2024"]},{"lbl":"Insuficiencia pulmonar","val":"—","m … |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 23b pulmonar PERCUTANEA (no gradua)
+
+**Sembrado (gesto real):** `vp_morf`=Prótesis biológica · `vp_tipo_prot`=perc · `vp_vmax`=3.5 · `ep_gmedio`=25 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `null` · positivos `[]` de medidos `[]` · tipo `null` · motivo «No graduada: la guía no publica cortes para una prótesis pulmonar percutánea»
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | No graduada: la guía no publica cortes para una prótesis pulmonar percutánea |
+| pantalla · `vmax` | — |
+| pantalla · `gmed` | — |
+| informe · conciso | VP con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · estandar | Válvula pulmonar con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · narrativo | La válvula pulmonar se encuentra con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| EN SUMA | VP protésica biológica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+### Escena 23c pulmonar SIN TIPO elegido (no gradua)
+
+**Sembrado (gesto real):** `vp_morf`=Prótesis biológica · `vp_vmax`=3.5 · `ep_gmedio`=25 · peso 70 kg, talla 170 cm.
+
+**Denominador:** morfología quedó en `Prótesis biológica`; el evaluador respondió sí; las cuatro secciones de Válvulas quedaron abiertas.
+
+**Evaluador:** `null` · positivos `[]` de medidos `[]` · tipo `null` · motivo «No graduada: falta el tipo de prótesis pulmonar»
+
+| superficie | texto exacto |
+|---|---|
+| pantalla · `obstr` | No graduada: falta el tipo de prótesis pulmonar |
+| pantalla · `vmax` | — |
+| pantalla · `gmed` | — |
+| informe · conciso | VP con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · estandar | Válvula pulmonar con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| informe · narrativo | La válvula pulmonar se encuentra con prótesis biológica (Vmax 3.5 m/s, Gmax 49 mmHg). |
+| EN SUMA | VP protésica biológica. |
+| Evidencia · su sección | igual que la escena anterior de esta válvula |
+
+**Hipótesis del médico —que el papel diga «sin datos suficientes»—: NO se reproduce.**
+
+---
+
+## 2.X · Las cuatro mediciones aparte
+
+### X1 · UNA TAVI CON DESAJUSTE SEVERO SALE «NORMOFUNCIONANTE» EN EL PAPEL
+
+Escena: `va_morf` = `TAVI`, `diam_tsvi` = 16, `itv_tsvi` = 40, `itv_ao` = 100, peso 70, talla 170.
+**Sin velocidad pico y sin gradiente medio** —el DVI queda en 0,40, normal, y el área indexada en
+0,44 cm²/m², desajuste severo—.
+
+Medido: `nivel` = `faltan`, `niveles` = `{vmax:null, atet:null, at:null, gmed:null, dvi:'normal',
+eoa:null}`, `ppm` = `'severo'`, `avai` = 0,44, **`normoTavi` = `true`**,
+`normoFrase` = `'normofuncionante (DVI 0.40)'`.
+
+El informe firmado, narrativo, dos renglones seguidos, textual:
+
+> La válvula aórtica presenta una prótesis transcatéter tipo TAVI normofuncionante (DVI 0.40).
+> Desajuste protésico-paciente aórtico severo (AEO indexada 0.44 cm²/m²).
+
+Y el EN SUMA, textual:
+
+> TAVI normofuncionante.
+> PPM aórtico severo.
+
+**Por qué pasa, medido:** la guarda de `normoTavi` recorre `P.niveles`, y **el PPM no es una clave
+de `P.niveles`** —viaja en `P.ppm`—; y la oración del desajuste sale de un `if` cuya única
+condición sobre el veredicto es `nivel !== 'signif'`, que con `faltan` se cumple. Las dos frases
+son correctas por separado y se contradicen juntas.
+
+### X2 · CONTROL NEGATIVO — la válvula aórtica NATIVA con los mismos números
+
+Escena: `va_morf` = `Trivalva normal`, `vmax_ao` = 4.5, `gmedio_ao` = 45.
+`eaProtVeredicto()` devuelve **`null`** y la cascada nativa grada normalmente:
+
+> Válvula aórtica trivalva normal, con estenosis severa, sin insuficiencia (Vmax 4.5 m/s, Gmedio 45 mmHg).
+
+O sea que la sonda **distingue escenarios** y no está diciendo que sí a todo: ninguna de las frases
+protésicas aparece en una válvula nativa.
+
+### X3 · GUARDADOS — el viaje completo de la escena del médico
+
+Guardado por `guardarInforme` con la tarjeta de severidades confirmada (`#rev-confirm`), reabierto
+por `cargarEstudioPorId`, y el estudio borrado al terminar. Resultado: `ok: true`, la morfología
+vuelve en `TAVI`, los dos valores vuelven en 4.5 y 45, `nivel` vuelve en `faltan`, y el informe
+reabierto publica **el mismo texto, palabra por palabra**:
+
+> Válvula aórtica con prótesis transcatéter tipo TAVI, sin datos suficientes para graduar la estenosis protésica (Vmax 4.5 m/s, G. medio 45 mmHg).
+
+Y el EN SUMA reabierto, idéntico: es la línea del cuerpo reusada, porque con `faltan` el `resumen`
+es `null`.
+
+### X4 · LA CÁPSULA DE PANTALLA NO SE REPINTA AL ELEGIR EL MODELO
+
+Lo destapó la escena 12 y se midió aparte, con su control. Escena: prótesis mecánica, velocidad
+4,5, gradiente medio 45, Ø TSVI 16 mm, VTI 40/100 —DVI 0,40, normal— y después se carga
+`Abbott Epic 27` (referencia 1,6 ± 0,4 cm², folio 53), que deja el área medida de 0,80 cm² a
+**−2,0 DE**.
+
+| momento | `eaProtVeredicto().nivel` | la cápsula `#ea-det-sev` dice |
+|---|---|---|
+| antes de cargar el modelo | `posible` | «Posible estenosis protésica» |
+| **después de elegir el modelo** | **`signif`** | **«Posible estenosis protésica»** |
+| después de volver a tipear la velocidad | `signif` | **«Posible estenosis protésica»** |
+| llamando `calcEADetalle()` a mano | `signif` | «Sugiere estenosis protésica significativa» |
+
+Y mientras la cápsula dice «Posible», **el informe firmado ya dice «con criterios que sugieren
+estenosis protésica significativa»** y el plegable «Ver detalle» sigue publicando «El área efectiva
+no se evalúa: … en este estudio no hay un modelo del catálogo cargado». El recuadro
+`caja-esten-aortica` estaba **visible** en los cuatro momentos, así que no es una medición sobre un
+contenedor cerrado.
+
+**La causa, medida y no deducida:** `vModElegir` termina con
+`if (typeof vModTrasElegir === 'function') vModTrasElegir(pos)`, y **`vModTrasElegir` no existe en
+el archivo** —censado: dos llamadas guardadas, cero definiciones—, así que nada llama a
+`calcEADetalle`, que es quien llama a `_eaProtPintar`. Llamarla a mano pone la cápsula de acuerdo,
+que es lo que separa «falta un repintado» de «hay dos criterios distintos».
+
+**Esto no se corrige en esta tanda** (es de solo lectura). Queda en `docs/PENDIENTES.md` →
+**PRO-c**.
+
+---
+
+## 2.9 · Lo que la batería corrige de la sección 1
+
+Dos cosas que la lectura del código dejó incompletas y la medición precisó:
+
+1. **La prótesis MITRAL con UN solo criterio positivo publica `'posible'`, no `'normal'`**, y su
+   cápsula escribe **«hallazgo aislado — posible obstrucción  (gradiente medio 14.0 mmHg · 1 de 1
+   criterio)»**. La tabla de la sección 1.3 decía «uno positivo, o ninguno → `posible` / `normal`»
+   sin separar los dos textos.
+2. **La fila de la velocidad pico mitral publica un veredicto que NO vota.** Con la velocidad en
+   2,60 m/s la fila dice «sugiere obstrucción significativa», y el renglón de abajo dice «hallazgo
+   aislado — posible obstrucción  (… 1 de 1 criterio)»: la fila grada con la Tabla 11 y el conteo
+   la excluye a propósito, que es lo que el comentario del código declara. El médico ve un «sugiere
+   significativa» que no está en el denominador del veredicto.
+
+Ninguna de las dos se cambia acá.
