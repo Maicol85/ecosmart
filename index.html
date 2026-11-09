@@ -62822,8 +62822,16 @@ function generarInforme(opts) {
          la pantalla sigue publicando la AEO indexada con su categoría —la fila no se toca—. Lo
          que se calla es la oración del papel, y sólo con `signif`: con «posible», con «falta un
          dato», con «sin criterios» y con la TAVI que no llegue a `signif`, el papel no cambia. */
+      /* ⚠️ Y SOLO CON EL AREA DENTRO DE 1 DE DE LA DEL MODELO (PANT-26, commit 3, decision D7).
+         La nota al pie de la Tabla 7 —hoja 19, folio 20 de la ASE 2024, leida en imagen— condiciona
+         sus dos filas a que el area efectiva medida este dentro de un desvio estandar de la del
+         modelo implantado. Con el modelo cargado y con desvio, la aplicacion lo comprueba; sin
+         modelo o con un modelo sin desvio, `ppmDentro1DE` vale `true` y el papel es el de siempre.
+         ⚠️ CUANDO NO SE CUMPLE NO SE ESCRIBE NADA EN SU LUGAR: lo que se retira es la oracion, no
+         el numero. La fila de pantalla sigue publicando la AEO indexada con su categoria, que es
+         el mismo reparto que PANT-18-7 dejo escrito para la condicion del veredicto. */
       if (_eaProtP && (_eaProtP.ppm === 'moderado' || _eaProtP.ppm === 'severo')
-          && _eaProtP.nivel !== 'signif') {
+          && _eaProtP.nivel !== 'signif' && _eaProtP.ppmDentro1DE) {
         /* Las dos frases salen de `ppmFrases`, el mismo dueño que usa la mitral (Z5). */
         const _fAo = (typeof ppmFrases === 'function') ? ppmFrases('aortica', _eaProtP.ppm, _eaProtP.avai) : null;
         if (_fAo) { inf.push(_fAo.inf); suma.push(_fAo.suma); }
@@ -74161,6 +74169,24 @@ function _eaProtNivel(val, normalMax, signifMin, mayorEsPeor, signifEstricto){
    modo MANUAL —que no tiene desvio, y sin desvio no hay desviaciones estandar que contar—, ni a
    un modelo cuya celda de EOA salga impresa SIN desvio. */
 const EA_PROT_EOA_Z = Object.freeze({ normalMin: -1, signifMax: -2 });
+/* ══ LA CONDICION DE LA NOTA AL PIE DE LA TABLA 7 — PANT-26, commit 3 (decision D7) ═════════
+   Hoja 19 del PDF de la ASE 2024 de protesis, folio impreso 20 —comprobado EN LA CABECERA
+   IMPRESA: «20  Zoghbi et al — Journal of the American Society of Echocardiography, January
+   2024»—, leida EN IMAGEN a 400 ppp. La Tabla 7 es «Doppler parameter criteria of aortic valve
+   and mitral valve PPM» y el asterisco de sus DOS filas —«Aortic EOA*» y «Mitral EOA*»— remite a
+   una sola nota al pie, TEXTUAL:
+     «*Valve structure and motion are normal; measured EOA is within 1 SD of the reference EOA.»
+   O sea: los cortes de desajuste de esa tabla valen sobre una protesis cuya area efectiva MEDIDA
+   esta dentro de UN desvio estandar de la del modelo de referencia. Es una condicion de
+   aplicabilidad de la tabla entera, no un corte mas.
+   ⚠️ EL NUMERO VIVE ACA Y NO SE DERIVA DE `EA_PROT_EOA_Z.normalMin`, aunque hoy valgan lo mismo:
+   son DOS TABLAS distintas —la 5 gradua estenosis, la 7 desajuste— y atarlas haria que mover el
+   corte de una moviera el de la otra sin que nadie lo vea.
+   ⚠️ LA OTRA MITAD DE LA NOTA —«valve structure and motion are normal»— NO se implementa: esta
+   aplicacion no registra la estructura ni la movilidad de los velos como un dato con el que se
+   pueda decidir. Queda declarado en docs/PENDIENTES.md -> P26-a. */
+const EA_PROT_PPM_SD = 1;
+window.EA_PROT_PPM_SD = EA_PROT_PPM_SD;
 /* Devuelve la desviacion de la EOA medida respecto de la del modelo, o null si no se puede.
    Las CUATRO condiciones son de la orden del medico y cada una tiene su motivo:
      1. protesis QUIRURGICA (mecanica o biologica), no TAVI;
@@ -74170,7 +74196,22 @@ const EA_PROT_EOA_Z = Object.freeze({ normalMin: -1, signifMax: -2 });
    No lee el DOM mas que para el AVA, que es el unico dato del paciente que necesita. */
 function eaProtEOAz(){
   const morf = (typeof sv === 'function') ? sv('va_morf') : '';
-  if (morf !== 'Prótesis mecánica' && morf !== 'Prótesis biológica') return null;
+  /* ⚠️ LA TAVI TAMBIEN COMPARA SU AREA CONTRA LA DEL MODELO — PANT-26, commit 3 (decision D2 del
+     medico, 09/11/2026). Aca vivia `if (morf !== 'Prótesis mecánica' && morf !== 'Prótesis
+     biológica') return null;`, que dejaba a la TAVI afuera porque la Tabla 5 le da su propia fila,
+     de cambio respecto de un basal. Lo que cambio es la DECISION, no la tabla: el medico la
+     fundamenta igual que en PANT-18-6 —«en la vida practica no hay basal: tenes el modelo, el
+     paciente y sus medidas»—, y `PROT_CAT_TAVI` trae desvio en sus 26 celdas de area (9 de 9
+     modelos sirven, medido). Es un criterio de la APLICACION y no de la guia, y se declara en el
+     commit 5.
+     ⚠️ SE PREGUNTA POR EL DUEÑO UNICO y no por las tres cadenas: `valvEsProtesis` es quien sabe
+     que token es una protesis, sobre `VALV_PROT_OPCIONES`. Con las cadenas escritas aca, el dia
+     que entre una cuarta opcion protesica esta funcion la dejaria afuera en silencio.
+     ⚠️ LAS OTRAS TRES CONDICIONES NO SE MUEVEN: modelo Y tamanio del CATALOGO —el modo manual
+     construye sus valores con desvio `null` y queda afuera por la condicion de abajo—, desvio
+     mayor que cero, y `ava_cont` sin la marca «(revisar)». Y los cortes son los MISMOS,
+     `EA_PROT_EOA_Z`, con el MISMO dueño: no hay una segunda funcion para TAVI. */
+  if (!(typeof valvEsProtesis === 'function' && valvEsProtesis(morf))) return null;
   const E = (typeof vModEsperados === 'function') ? vModEsperados('va') : null;
   if (!E || E.manual || !E.vals || !E.vals.eoa) return null;
   const ref = E.vals.eoa[0], sd = E.vals.eoa[1];
@@ -74184,6 +74225,11 @@ function eaProtEOAz(){
   const nivel = (z <= EA_PROT_EOA_Z.signifMax) ? 'signif'
               : ((z < EA_PROT_EOA_Z.normalMin) ? 'posible' : 'normal');
   return { z:+z.toFixed(2), nivel:nivel, ava:ava, ref:+ref, sd:+sd,
+           /* `dentro1DE` es la condicion de la NOTA AL PIE de la Tabla 7, que es otra tabla y otra
+              pregunta que los tres niveles de arriba: se publica junto al nivel para que el
+              desajuste tenga UN solo dueño de su condicion. */
+           dentro1DE: Math.abs(z) <= EA_PROT_PPM_SD,
+           via: (morf === 'TAVI') ? 'TAVI' : 'SAVR',
            modelo:E.nombre, tam:E.tam, folio:E.folio };
 }
 window.EA_PROT_EOA_Z = EA_PROT_EOA_Z; window.eaProtEOAz = eaProtEOAz;
@@ -74335,6 +74381,16 @@ function eaProtVeredicto(){
   return { via: esTavi ? 'TAVI' : 'SAVR', niveles:nv, nivel:nivel, falta:falta, pDep:pDep, pIndep:pIndep,
     gmed:gmed, dvi:dvi, dviNivel:_dviNivel, vmax:vmax, at:at, atet:atet, vs:vs,
     eoaEvaluable: _eoaZ !== null, eoaZ:_eoaZ,
+    /* ⚠️ LA CONDICION DE APLICABILIDAD DE LA TABLA 7 — PANT-26, commit 3 (D7). La nota al pie de
+       esa tabla (hoja 19, folio 20, leida en imagen) pide que el area efectiva MEDIDA este dentro
+       de 1 desvio estandar de la del modelo. Se publica desde ACA, que es el dueño del veredicto,
+       y no se re-deriva en el emisor: con dos lectores del catalogo, el dia que uno cambie el
+       papel y la pantalla dirian dos cosas del mismo desajuste.
+       ⚠️ SIN MODELO O SIN DESVIO VALE `true`, o sea se publica COMO HOY, y es lo que la decision
+       dice: la condicion solo se puede comprobar cuando hay con que. Falla hacia lo de siempre y
+       no hacia el silencio: callar el desajuste porque no hay modelo cargado seria retirar del
+       papel un hallazgo que la app venia publicando desde la Fase 2. */
+    ppmDentro1DE: (_eoaZ === null) ? true : !!_eoaZ.dentro1DE,
     avai:avai, avaiMotivo:avaiMotivo, ppm:ppmAo, ppmCortes:ppmCortesAo, imc:imcAo,
     vsFueraDeRango: vs != null && (vs < EA_PROT_VS_MIN || vs > EA_PROT_VS_MAX) };
 }
@@ -74491,7 +74547,14 @@ function eaProtNarrativa(P){
     salv.push('El área efectiva medida es de ' + _z.ava.toFixed(2) + ' cm² y la del modelo ' +
       _z.modelo + (/^\d+$/.test(String(_z.tam)) ? (' ' + _z.tam + ' mm') : (' ' + _z.tam)) + ' es de ' +
       _z.ref + ' ± ' + _z.sd + ' cm²: ' + (_z.z >= 0 ? '+' : '−') + Math.abs(_z.z).toFixed(1) +
-      ' DE, o sea ' + _cat + '. Es el eje independiente del flujo que la Tabla 5 expresa así.');
+      ' DE, o sea ' + _cat + '.' +
+      /* ⚠️ LA ATRIBUCION A LA TABLA 5 ES SOLO DE LA QUIRURGICA (PANT-26, commit 3). La fila «EOA §»
+         que expresa el area en desviaciones estandar respecto del modelo esta en el bloque SAVR;
+         para TAVI la tabla publica su propia fila, de cambio respecto de un basal. Pegarle esa
+         frase a una TAVI seria atribuirle a la guia un criterio que es de la aplicacion, que es
+         justo lo que la regla del 08/11 prohibe. Lo que la TAVI dice en su lugar —la declaracion
+         de criterio propio— lo agrega el commit 5, en el mismo lugar. */
+      (P.via === 'TAVI' ? '' : ' Es el eje independiente del flujo que la Tabla 5 expresa así.'));
   } else salv.push(EA_PROT_SALV.eoa);
   if (P.vsFueraDeRango && P.vs != null)
     salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
