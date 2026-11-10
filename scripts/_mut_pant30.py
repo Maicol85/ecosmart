@@ -54,9 +54,13 @@ MUT = [
  ('07 el nombre del estudio deja de leer la casilla de ETE', 'TC-788',
   [("    est: esEte ? 'un ecocardiograma transesofágico' : 'un ecocardiograma transtorácico',",
     "    est: 'un ecocardiograma transtorácico',")]),
- ('08 un dato vacio deja el marcador crudo en la hoja', 'TC-788,TC-789',
+ ('08 un dato vacio pierde su raya en el texto de la declaracion', 'TC-789',
   [("    return (v === undefined || v === null || String(v).trim() === '') ? '____' : String(v);",
     "    return (v === undefined || v === null) ? '____' : String(v);")]),
+ # ⚠️ Y SU CASO ES TC-789 Y NO TC-788: en la constancia la ciudad NO pasa por docSust -- su
+ # renglon lo arma el bloque `ciudadfecha`, que resuelve el vacio por su cuenta-, asi que una
+ # condicion puesta ahi no podia ver esta mutacion. El marcador de verdad vive en la declaracion
+ # de un consentimiento: «Se firma el presente en {ciudad}, a los...».
  ('09 el azul de los datos deja de marcarse en pantalla', 'TC-788',
   [("    if (v && String(v).trim().length >= 3) vals.push(String(v));",
     '    if (false) vals.push(String(v));')]),

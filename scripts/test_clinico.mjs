@@ -128482,7 +128482,21 @@ caso('TC-788', 'PANT-30: la constancia -- cero marcadores sueltos, el articulo s
   const tv = document.getElementById('doc-hoja').innerText || '';
   q('con la ciudad vacia la hoja NO muestra el marcador crudo', tv.indexOf('{' + '{') === -1,
     tv.slice(0, 120));
-  q('y deja su raya para completar a mano', tv.indexOf('____') > -1, tv.slice(0, 200));
+  /* ⚠️ LA RAYA SE EXIGE EN EL LUGAR DEL DATO, no en cualquier parte de la hoja. Una condicion
+     que solo buscara «____» pasaba igual: la firma ya trae «Matricula: ____» cuando no hay
+     medico Principal configurado, asi que el denominador estaba envenenado. Y con la cadena
+     VACIA el marcador no queda crudo -- se reemplaza por nada-, asi que lo que se pierde es
+     justamente la raya. Lo destapo el barrido: la mutacion que saca la guarda del vacio
+     sobrevivia a las dos condiciones anteriores. Se exige la raya PEGADA a la coma y la fecha,
+     que es la forma exacta del renglon de ciudad y fecha. */
+  /* ⚠️ EN LA CONSTANCIA LA CIUDAD NO PASA POR docSust: su renglon de ciudad y fecha lo arma el
+     bloque ciudadfecha, que resuelve el vacio por su cuenta. La condicion que mide la
+     sustitucion del vacio vive en TC-789, sobre la declaracion de un CONSENTIMIENTO, que es
+     donde el texto lleva el marcador de verdad. Lo destapo el barrido: una condicion puesta aca
+     no podia ver la mutacion. */
+  const fechaHoy = docDatos().fecha;
+  q('el renglon de ciudad y fecha resuelve el vacio con su raya',
+    tv.indexOf('____, ' + fechaHoy) > -1, tv.slice(0, 200));
   __t.set('cfg-med-lugar', 'Artigas');
   docActualizarDatos(); await esp(220);
   /* EL AZUL ES SOLO DE PANTALLA: el papel no conoce esa clase. */
@@ -128671,6 +128685,43 @@ caso('TC-789', 'PANT-30: los tres consentimientos -- las hojas que la orden fija
         dondeB.declaro !== undefined && dondeB.declaro === dondeB.firmas, JSON.stringify(dondeB));
       q('(G6) que es la SEGUNDA, no la primera', dondeB.declaro === 1, 'hoja ' + dondeB.declaro);
     }
+  }
+
+  /* ⚠️ UN DATO VACIO DEJA SU RAYA EN EL TEXTO, Y SE MIDE DONDE EL TEXTO LLEVA EL MARCADOR: la
+     declaracion de un consentimiento dice «Se firma el presente en {ciudad}, a los {dia}...».
+     Con el dato en CADENA VACIA el marcador no queda crudo -- se reemplaza por nada-, asi que lo
+     que se pierde es la RAYA: el renglon pasa a decir «en , a los». Una condicion que solo
+     buscara «____» en cualquier parte de la hoja pasaba igual, porque la firma ya trae
+     «Matricula: ____» sin medico configurado. Lo destapo el barrido de mutaciones. */
+  {
+    const ciudadPrevia = (function () { const e = document.getElementById('cfg-med-lugar');
+      return e ? e.value : '' })();
+    __t.set('cfg-med-lugar', '');
+    await esp(200);
+    const defC = DOC_DEFS.cve, DC = docDatos();
+    q('(V0 DENOM) la ciudad quedo vacia', !DC.ciudad, 'ciudad=«' + String(DC.ciudad) + '»');
+    const blC = defC.bloques().map((x, j) => { const c = { t: x.t, i: j };
+      if (x.x !== undefined) c.x = x.x;
+      if (x.items) c.items = x.items.slice();
+      if (x.fuerte) c.fuerte = x.fuerte;
+      if (x.nonum) c.nonum = x.nonum;
+      if (x.grupo) c.grupo = x.grupo;
+      return c });
+    const maqC = docMaquetar(defC, DC, blC);
+    let txtC = '';
+    (maqC ? maqC.hojas : []).forEach(ops => ops.forEach(op => {
+      if (op.s) txtC += String(op.s) + ' ';
+      if (op.ws) txtC += op.ws.map(w => w.s).join(' ') + ' '; }));
+    q('(V1 DENOM) el papel trae el renglon de la firma del presente',
+      txtC.indexOf('Se firma el presente en') > -1, txtC.length);
+    q('(V2) con la ciudad vacia el renglon lleva su RAYA y no un hueco',
+      txtC.indexOf('Se firma el presente en ____') > -1,
+      txtC.slice(Math.max(0, txtC.indexOf('Se firma el presente en')), txtC.indexOf('Se firma el presente en') + 70));
+    q('(V3) y NO queda la coma pegada a «en», sin nada en el medio',
+      txtC.indexOf('Se firma el presente en ,') === -1);
+    q('(V4) y el marcador NUNCA sale crudo', txtC.indexOf('{' + '{') === -1);
+    __t.set('cfg-med-lugar', ciudadPrevia);
+    await esp(200);
   }
 
   /* En PANTALLA: las ocho preguntas del ETE en DOS columnas, y la hoja editable. */
