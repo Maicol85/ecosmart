@@ -6057,7 +6057,9 @@ window.cerrarSesionReal = cerrarSesionReal;
              documentos «propios» que PANT-32 hubiera dejado siguen en `localStorage` y
              `docmodLista` los ignora (A5). -->
         <div id="cfg-docs-lista"></div>
-        <div id="cfg-docs-ed" hidden></div>
+        <!-- ⚠️ PANT-33: EL CONTENEDOR DEL EDITOR VIEJO SALIO CON SU EDITOR. Hoy se edita sobre
+             la hoja (#doc-ov), asi que un div vacio con ese id seria un hueco que promete un
+             editor que no esta, y un caso lo mide. -->
         <div id="cfg-docs-pie">El texto de cada documento es responsabilidad de la institución que lo usa.</div>
       </section>
 
@@ -116312,6 +116314,14 @@ window.cfgDocsRender = cfgDocsRender;
 function cfgDocsVis(clave, on) {
   const st = docmodLeer();
   if (DOCMOD_INCL.indexOf(clave) >= 0) { st.incl[clave].vis = !!on; }
+  /* ⚠️ LOS DOS DOCUMENTOS EN BLANCO TIENEN SU PROPIA RAIZ EN EL ALMACEN, asi que necesitan su
+     rama: sin ella el interruptor de su fila se movia y el documento seguia en el menu. Lo
+     destapo TC-804, no la lectura -- su condicion (A6) oculta los SEIS y exige que el menu lo
+     diga, y con los dos blancos siempre visibles no podia-. */
+  else if (docmodEsBlanco(clave)) {
+    if (!st.blanco[clave]) st.blanco[clave] = { vis: true, nom: '', txt: '', firma: true };
+    st.blanco[clave].vis = !!on;
+  }
   else {
     const p = (st.prop || []).filter(function (x) { return x.clave === clave; })[0];
     if (!p) return;
@@ -118122,8 +118132,15 @@ document.addEventListener('paste', function (ev) {
      un bloque suelto de la hoja del Informe-- un texto pegado de la institucion entraria como un
      unico parrafo gigante. Se colapsan los espacios y las tabulaciones, no los saltos. */
   const enCuerpo = !!(t.closest && t.closest('[data-doc-cuerpo]'));
+  /* ⚠️ `docSan` SE APLICA LINEA POR LINEA Y NO AL TEXTO ENTERO, y esta medido: su ultimo
+     reemplazo -- todo lo que no esta entre U+0020 y U+00FF pasa a un espacio-- se come el SALTO
+     DE LINEA, que es U+000A. Con `docSan` sobre el texto completo, un texto pegado de tres
+     parrafos entraba como UNA sola linea y el titulo de seccion perdia su marca. Lo destapo
+     TC-812, no la lectura. */
   const limpio = enCuerpo
-    ? docSan(crudo).replace(/\r\n?/g, '\n').replace(/[ \t\f\v]+/g, ' ').replace(/\n{3,}/g, '\n\n')
+    ? crudo.replace(/\r\n?/g, '\n').split('\n')
+        .map(function (l) { return docSan(l).replace(/[ \t]+/g, ' ').replace(/\s+$/, ''); })
+        .join('\n').replace(/\n{3,}/g, '\n\n')
     : docSan(crudo).replace(/\s+/g, ' ');
   if (!limpio) return;
   let ok = false;
