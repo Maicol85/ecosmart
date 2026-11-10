@@ -5489,6 +5489,8 @@ window.cerrarSesionReal = cerrarSesionReal;
       <button type="button" class="btn btn-primary" onclick="docActualizarDatos()">Actualizar con los datos</button>
     </span>
     <span class="doc-bar-acc">
+      <button type="button" class="btn btn-save" onclick="docGuardarImagen()">🖼️ Guardar en Imágenes</button>
+      <button type="button" class="btn btn-ghost" id="doc-quitar" hidden onclick="docQuitarImagen()">Quitar de Imágenes</button>
       <button type="button" class="btn btn-green" onclick="docImprimir()">🖨️ Imprimir</button>
       <button type="button" class="btn btn-ghost" id="doc-x" onclick="docCerrar()" aria-label="Cerrar el documento">✕</button>
     </span>
@@ -25124,13 +25126,21 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <button class="btn btn-ghost" onclick="abrirModoComparativo()" id="btn-comparativo">🔀 Modo comparativo</button>
         <!-- ⚠️ EL MENU VA EN UN ENVOLTORIO position:relative Y ABSOLUTO ADENTRO: dentro de la
              fila de acciones, un desplegable en flujo empujaria los cuatro botones de al lado
-             cada vez que se abre. -->
+             cada vez que se abre.
+             ⚠️ LAS CUATRO OPCIONES ESTAN SIEMPRE ACTIVAS. No hay consentimiento de transtoracico
+             ni de eco de estres -- y no puede haberlo: medido en la TAREA 0, esta app no tiene
+             catalogo de tipos de estudio sino UNA casilla (ete-es-ete) y DOS nombres, y el eco de
+             estres no tiene interfaz-- asi que no se muestra nada para ellos. La constancia sirve
+             para todos los estudios. -->
         <span class="doc-menu-wrap">
           <button type="button" class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"
                   aria-haspopup="menu" aria-expanded="false" aria-controls="doc-menu"
                   title="Constancia y consentimientos informados, con los datos de este estudio">📄 Documentos ▾</button>
           <div id="doc-menu" hidden role="menu" aria-labelledby="doc-btn">
             <button type="button" role="menuitem" onclick="docAbrir('constancia')">Constancia</button>
+            <button type="button" role="menuitem" onclick="docAbrir('cve')">Consentimiento: cardioversión eléctrica</button>
+            <button type="button" role="menuitem" onclick="docAbrir('ete')">Consentimiento: ETE con sedación</button>
+            <button type="button" role="menuitem" onclick="docAbrir('burb')">Consentimiento: test de burbujas</button>
           </div>
         </span>
       </div>
@@ -115081,6 +115091,72 @@ function docMarcar(txt, D) {
   return out;
 }
 
+/* ── BLOQUES COMUNES DE LOS CONSENTIMIENTOS ──────────────────────────────────────────────── */
+const DOC_RAYA_RIESGOS = 'Otros riesgos propios de su caso, según su situación clínica y sus circunstancias personales:';
+const DOC_BENEFICIO = 'En su situación clínica actual, el médico considera que los beneficios de este procedimiento superan a los posibles riesgos, y por eso se lo indica. Si aparecieran complicaciones, el personal médico y de enfermería está capacitado y cuenta con los medios para tratar de resolverlas.';
+
+/* La declaracion. internacion es la unica viñeta que cambia entre los tres, y se pasa por
+   parametro: con tres copias del bloque, el dia que una frase cambie quedan dos viejas. */
+function docDeclaracion(procSin, internacion) {
+  const vs = [
+    'Se me explicó, en palabras comprensibles para mí, en qué consiste ' + procSin + ', sus beneficios, lo que puedo sentir y sus eventuales complicaciones y secuelas. Pude hacer preguntas y me fueron contestadas en su totalidad.',
+    'Confirmo que no he modificado ni ocultado ninguna información relevante sobre mi historia clínica.',
+    'Sé que puedo no consentir la realización del procedimiento y revocar este consentimiento en cualquier momento, sin expresar motivo.',
+    'Comprendo y acepto un tratamiento de urgencia que pudiera surgir de una eventual complicación (por ejemplo, administrarme suero, fármacos o sangre y, excepcionalmente, una cirugía).'
+  ];
+  if (internacion) vs.push('Acepto la duración de la internación y las condiciones que el alta médica supone en cada caso.');
+  const out = [
+    { t: 'sec', x: 'Declaración y consentimiento' },
+    { t: 'p', x: 'Declaro que:' },
+    { t: 'ul', items: vs },
+    { t: 'chk1', x: 'Consiento que la información de mi caso clínico y de los estudios realizados se use para la investigación y divulgación científica, garantizando mi privacidad.' },
+    { t: 'p', x: 'He leído la información y estoy de acuerdo en que se me realice ' + procSin + '.', neg: 1 },
+    { t: 'p', x: 'El firmante deja constancia de que el paciente ☐ sí ☐ no se encuentra capacitado para recibir la información, comprenderla y dar su consentimiento al procedimiento propuesto.', cajas: 1 },
+    { t: 'p', x: 'Se firma el presente en {{ciudad}}, a los {{dia}} días del mes de {{mes}} de {{anio}}.' },
+    { t: 'tfirmas' }
+  ];
+  out.forEach(function (b) { b.grupo = 'firmas'; });
+  return out;
+}
+
+/* La hoja comun, que se imprime a continuacion de cada consentimiento. */
+function docHojasComunes() {
+  return [
+    { t: 'salto' },
+    { t: 'tit', x: 'HOJAS COMUNES A LOS CONSENTIMIENTOS' },
+    { t: 'sec', x: 'Niño o paciente imposibilitado de otorgar el consentimiento', nonum: 1 },
+    { t: 'p', x: 'Niños: el firmante deja constancia de que, si bien se ha proporcionado información al paciente (niño) en términos adecuados a su edad y a la evolución de sus facultades, el mismo no se encuentra capacitado para valorarla adecuadamente y adoptar decisión, por lo cual ha sido dada al tercero que lo representa y se identifica al pie del presente.' },
+    { t: 'p', x: 'Imposibilitados: el firmante deja constancia de que el paciente se encuentra imposibilitado de recibir la información, valorarla adecuadamente y adoptar decisión, por lo cual le ha sido dada al tercero que lo representa y se identifica al pie del presente instrumento.' },
+    { t: 'p', x: 'Representante: ____________________   C.I.: ____________   Domicilio: ____________________   Teléfonos: ____________' },
+    { t: 'p', x: 'Relación con el paciente: ____________________ (padre, madre, cónyuge, concubino, tutor, curador, pariente o designado por el paciente). El suscrito declara, bajo juramento, que ejerce de modo legítimo y a estos efectos la representación del paciente identificado en este instrumento.' },
+    { t: 'p', x: 'Firma: ____________________' },
+    { t: 'sec', x: 'Derecho a no otorgar consentimiento y revocación del consentimiento informado', nonum: 1 },
+    { t: 'p', x: 'Se me ha informado que tengo el derecho a no consentir la realización del procedimiento y se me han explicado las consecuencias de esa decisión. Asimismo, se me explicó que en cualquier momento tengo la facultad de revocar este consentimiento, sin manifestar motivo alguno.' },
+    { t: 'p', x: 'Negativa de consentimiento. Manifiesto en forma voluntaria que, habiendo sido debidamente informado respecto del procedimiento de ____________________, no consiento su realización.' },
+    { t: 'p', x: 'Firma: ____________________   Nombre: ____________________   C.I.: ____________' },
+    { t: 'p', x: 'Representante: ____________________   C.I.: ____________   Firma: ____________________' },
+    { t: 'p', x: 'Revocación del consentimiento. Manifiesto en forma voluntaria mi intención de revocar el consentimiento otorgado el ____ de ____________ de ________, para realizar el procedimiento de ____________________.' },
+    { t: 'p', x: 'Firma: ____________________   Nombre: ____________________   C.I.: ____________' },
+    { t: 'p', x: 'Representante: ____________________   C.I.: ____________   Firma: ____________________' }
+  ];
+}
+
+/* Encabezado comun de un consentimiento. */
+function docEncConsent(sub) {
+  return [
+    { t: 'enc' },
+    { t: 'hr' },
+    { t: 'tit', x: 'CONSENTIMIENTO INFORMADO' },
+    { t: 'sub', x: sub },
+    { t: 'pacid' }
+  ];
+}
+
+/* Cierre comun del bloque de riesgos: la raya para escribir a mano y el beneficio. */
+function docRiesgosCierre() {
+  return [{ t: 'raya', x: DOC_RAYA_RIESGOS }, { t: 'p', x: DOC_BENEFICIO }];
+}
+
 /* ── LAS DEFINICIONES ──────────────────────────────────────────────────────────────
    sz es el cuerpo en pt y lh el interlineado en pt, los dos de la orden del medico. */
 const DOC_DEFS = Object.freeze({
@@ -115094,6 +115170,100 @@ const DOC_DEFS = Object.freeze({
         { t: 'p', x: 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}. Se extiende la presente para ser presentada donde corresponda. Sin más, saluda atentamente.' },
         { t: 'firma' }
       ];
+    }
+  }),
+  cve: Object.freeze({
+    clave: 'cve', menu: 'Consentimiento: cardioversión eléctrica',
+    tit: 'Consentimiento informado — cardioversión eléctrica',
+    sz: 8.8, lh: 11, hojas: 1,
+    bloques: function () {
+      const PROC = 'una cardioversión eléctrica';
+      return docEncConsent('Cardioversión eléctrica').concat([
+        { t: 'sec', x: '¿Qué es?' },
+        { t: 'p', x: 'La cardioversión eléctrica es un tratamiento para ciertas alteraciones del ritmo del corazón (arritmias).' },
+        { t: 'sec', x: '¿Para qué sirve?' },
+        { t: 'p', x: 'Permite que el corazón recupere su ritmo regular normal, eliminando la arritmia y sus consecuencias perjudiciales.' },
+        { t: 'sec', x: '¿Cómo se realiza?' },
+        { t: 'p', x: 'Se realiza en ayunas, bajo la acción de medicación que provoca una sedación profunda, para que el procedimiento no sea doloroso. Durante todo el procedimiento se controla el electrocardiograma. Se coloca gel sobre las paletas del desfibrilador y se apoyan en la pared anterior del tórax, cerca del corazón. Se administran una o varias descargas eléctricas («choques»), breves pero de cierta potencia, para intentar que la arritmia desaparezca.' },
+        { t: 'sec', x: '¿Qué riesgos tiene?' },
+        { t: 'ul', items: [
+          'Puede aparecer irritación de la piel, e incluso una leve quemadura, en la zona donde se aplicó la descarga.',
+          'Los medicamentos para dormir (hipnóticos, sedantes y relajantes musculares) no suelen causar problemas durante el despertar.',
+          'Es muy raro que se produzca una embolia, ya que usted recibe medicación para disminuir la coagulación de la sangre.',
+          'De forma ocasional pueden aparecer otros trastornos graves y súbitos del ritmo que requieran un choque eléctrico inmediato. Es excepcional que haga falta colocar un marcapasos de urgencia, y también lo es la muerte.',
+          'Aunque se trata de un tratamiento con un riesgo vital muy bajo, pueden presentarse situaciones imprevistas que requieran procedimientos adicionales.'
+        ] }
+      ]).concat(docRiesgosCierre()).concat([
+        { t: 'sec', x: '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?' },
+        { t: 'p', x: 'Este tratamiento es el indicado de preferencia en su caso. Usted tiene derecho a negarse a que se le realice el procedimiento, y su médico le explicará las consecuencias de esa decisión.' }
+      ]).concat(docDeclaracion(PROC, true)).concat(docHojasComunes());
+    }
+  }),
+  ete: Object.freeze({
+    clave: 'ete', menu: 'Consentimiento: ETE con sedación',
+    tit: 'Consentimiento informado — ETE con sedación',
+    sz: 10.2, lh: 13.4, hojas: 2,
+    bloques: function () {
+      const PROC = 'un ecocardiograma transesofágico con sedación';
+      return docEncConsent('Ecocardiograma transesofágico con sedación').concat([
+        { t: 'sec', x: '¿Qué es?' },
+        { t: 'p', x: 'El ecocardiograma transesofágico (ETE) es un estudio del corazón de tipo invasivo, similar a una fibroscopía digestiva, que permite detectar determinadas afecciones del corazón o de la aorta.' },
+        { t: 'sec', x: '¿Para qué sirve?' },
+        { t: 'p', x: 'Brinda información complementaria y, en algunos casos, más precisa que la del ecocardiograma transtorácico, para llegar a un diagnóstico.' },
+        { t: 'sec', x: '¿Cómo se realiza?' },
+        { t: 'p', x: 'Usted estará acostado. Se anestesia la garganta con un anestésico local y se le administra sedación por vía intravenosa durante el procedimiento. Luego se introduce por la garganta una sonda flexible que llega hasta el esófago; allí se obtienen las imágenes necesarias para el diagnóstico y después se retira. El estudio requiere su colaboración al momento de deglutir y no se realiza contra su voluntad ni sus reflejos. Dura aproximadamente 20 minutos. Por la sedación, se realiza en un lugar adecuado y con personal médico que administra la medicación y controla la situación.' },
+        { t: 'sec', x: '¿Qué riesgos tiene?' },
+        { t: 'p', x: 'El estudio se realiza bajo estricto cuidado médico, pero existe una probabilidad baja, aunque no nula, de complicaciones: las vinculadas a cualquier maniobra que invada el organismo, las propias de cada paciente (edad avanzada, cardiopatía, enfermedad de la aorta, del esófago o respiratoria) y las propias del procedimiento.' },
+        { t: 'ul', items: [
+          'Frecuentes: náuseas e irritación de la garganta. En su mayoría no revisten gravedad y son pasajeras.',
+          'Poco frecuentes y graves: en un porcentaje muy bajo pueden ocurrir complicaciones graves, como perforación del esófago y sangrados.',
+          'Ningún estudio invasivo está exento de riesgos, incluyendo, en forma excepcional, la muerte.'
+        ], fuerte: ['Frecuentes:', 'Poco frecuentes y graves:'] }
+      ]).concat(docRiesgosCierre()).concat([
+        { t: 'salto' },
+        { t: 'sec', x: 'Antes del estudio' },
+        { t: 'p', x: 'Es imprescindible permanecer en ayunas durante al menos 4 horas antes del procedimiento y 2 horas después. Informe a su médico, antes de realizarse el estudio, si (marque):' },
+        { t: 'chk2', items: [
+          'tiene alergia a los anestésicos locales (los que se usan en procedimientos dentales)',
+          'presenta dificultades para tragar',
+          'tiene prótesis dentales',
+          'presenta inestabilidad cervical (en las vértebras situadas a la altura del cuello)',
+          'le han realizado cirugías esofágicas',
+          'presenta cualquier afección en el esófago (por ejemplo, esofagitis o várices esofágicas)',
+          'presenta úlceras, sangrados o cirugías recientes en el sistema gastrointestinal superior',
+          'ha recibido radioterapia en el tórax'
+        ] },
+        { t: 'sec', x: '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?' },
+        { t: 'p', x: 'El ecocardiograma transtorácico es un estudio no invasivo que también evalúa el corazón. El ETE se indica cuando se necesita información complementaria o más precisa. Usted tiene derecho a negarse a que se le realice el procedimiento, y su médico le explicará las consecuencias de esa decisión.' }
+      ]).concat(docDeclaracion(PROC, false)).concat(docHojasComunes());
+    }
+  }),
+  burb: Object.freeze({
+    clave: 'burb', menu: 'Consentimiento: test de burbujas',
+    tit: 'Consentimiento informado — test de burbujas',
+    sz: 8.8, lh: 11, hojas: 1,
+    bloques: function () {
+      const PROC = 'un ecocardiograma con test de burbujas';
+      return docEncConsent('Ecocardiograma con test de burbujas').concat([
+        { t: 'sec', x: '¿Qué es?' },
+        { t: 'p', x: 'El test de burbujas es un ecocardiograma en el que se inyecta, por una vena, suero fisiológico agitado con una pequeña cantidad de aire. Así se forman microburbujas, que se ven con el ultrasonido.' },
+        { t: 'sec', x: '¿Para qué sirve?' },
+        { t: 'p', x: 'Permite ver si existe un paso anormal de sangre desde las cavidades derechas hacia las izquierdas del corazón (una comunicación o shunt), como ocurre con el foramen oval permeable.' },
+        { t: 'sec', x: '¿Cómo se realiza?' },
+        { t: 'p', x: 'Se coloca una vía en una vena del brazo. El médico prepara el suero agitado y lo inyecta mientras se registran las imágenes del corazón con el ecógrafo. Si es necesario, se le pedirá una maniobra de Valsalva (hacer fuerza, como para pujar, durante unos segundos y luego soltar) para favorecer el paso de las burbujas, si existe esa comunicación.' },
+        { t: 'sec', x: '¿Qué riesgos tiene?' },
+        { t: 'p', x: 'Es un estudio seguro, con muy pocos efectos adversos.' },
+        { t: 'ul', items: [
+          'Frecuentes: molestias en el sitio de la inyección, al colocar la vía o al inyectar el suero.',
+          'Poco frecuentes: si existe una comunicación entre las cavidades derechas e izquierdas del corazón, las microburbujas pueden pasar a la circulación arterial. El principal riesgo descrito es que, en forma muy infrecuente, una burbuja obstruya un vaso pequeño, por ejemplo cerebral.'
+        ], fuerte: ['Frecuentes:', 'Poco frecuentes:'] }
+      ]).concat(docRiesgosCierre()).concat([
+        { t: 'sec', x: 'Antes del estudio' },
+        { t: 'p', x: 'Informe a su médico, antes de realizarse el estudio, si (marque):' },
+        { t: 'chk1', x: 'le dijeron que tiene una comunicación entre las cavidades del corazón (por ejemplo, un foramen oval permeable)' },
+        { t: 'sec', x: '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?' },
+        { t: 'p', x: 'Otros estudios pueden buscar este paso anormal de sangre, como el ecocardiograma transesofágico con suero agitado o el doppler transcraneal. Usted tiene derecho a negarse a que se le realice el procedimiento, y su médico le explicará las consecuencias de esa decisión.' }
+      ]).concat(docDeclaracion(PROC, false)).concat(docHojasComunes());
     }
   })
 });
@@ -115211,7 +115381,7 @@ function docMaquetar(def, D, bloques) {
   /* El encabezado institucional: nombre a la izquierda y logo a la derecha. Sin logo va un
      circulo con las iniciales, que es lo que la orden pide y evita una banda vacia. */
   function encabezado() {
-    const h = 15;
+    const h = 13.5;
     if (!cabe(h)) nueva();
     const yT = y;
     setF(SZ + 2.2, true, false);
@@ -115235,25 +115405,25 @@ function docMaquetar(def, D, bloques) {
   function tablaFirmas() {
     const col = [cw / 3, cw / 3, cw / 3];
     const filas = [
-      ['Firma', '', '', 17],
-      ['Aclaración', docSan(D.pac || '____'), '', 8],
-      ['Cédula', docSan((D.docl || 'CI') + ': ' + (D.docn || '____')), '', 8],
-      ['Fecha', docSan(D.fecha), '', 8]
+      ['Firma', '', '', 14],
+      ['Aclaración', docSan(D.pac || '____'), '', 7.6],
+      ['Cédula', docSan((D.docl || 'CI') + ': ' + (D.docn || '____')), '', 7.6],
+      ['Fecha', docSan(D.fecha), '', 7.6]
     ];
     const medAcl = docSan((D.med || '____') + (D.esp ? ' · ' + D.esp : ''));
     filas[1][2] = medAcl;
     filas[2][2] = docSan('Matrícula: ' + (D.mat || '____'));
     filas[3][2] = docSan(D.fecha);
-    const altoTot = 7 + filas.reduce(function (a, f) { return a + f[3]; }, 0);
+    const altoTot = 6.2 + filas.reduce(function (a, f) { return a + f[3]; }, 0);
     if (!cabe(altoTot)) nueva();
     let yy = y;
     /* Cabecera */
     const cab = ['Paciente', 'Testigo', 'Médico'];
-    cur().push({ k: 'rect', x: G.ML, y: yy, w: cw, h: 7, col: [230, 234, 238], relleno: 1 });
+    cur().push({ k: 'rect', x: G.ML, y: yy, w: cw, h: 6.2, col: [230, 234, 238], relleno: 1 });
     for (let q = 0; q < 3; q++) {
-      cur().push({ k: 'c2', x: G.ML + col[0] * q + col[0] / 2, y: yy + 4.8, sz: SZ, b: true, i: false, col: G.NAVY, s: cab[q] });
+      cur().push({ k: 'c2', x: G.ML + col[0] * q + col[0] / 2, y: yy + 4.4, sz: SZ, b: true, i: false, col: G.NAVY, s: cab[q] });
     }
-    yy += 7;
+    yy += 6.2;
     filas.forEach(function (f) {
       cur().push({ k: 'rect', x: G.ML, y: yy, w: cw, h: f[3], col: [189, 195, 199] });
       cur().push({ k: 't', x: G.ML + 1.6, y: yy + 4.4, sz: SZ - 0.8, b: true, i: false, col: [110, 110, 110], s: f[0] });
@@ -115268,11 +115438,22 @@ function docMaquetar(def, D, bloques) {
 
   /* Mide el alto de un grupo de bloques en una hoja limpia. Se usa para la regla «la declaracion
      y la tabla de firmas NUNCA se separan en hojas distintas». */
+  /* ⚠️ MIDE LA TINTA Y NO LA `y` DE CIERRE, y la diferencia decide una hoja. La `y` que queda al
+     terminar el grupo incluye el margen que el ultimo bloque deja DETRAS de si -- 2 mm en la
+     tabla de firmas-- y ese margen, justo al final de una hoja, no ocupa nada: no hay nada
+     debajo. Midiendolo, el consentimiento del test de burbujas pasaba de hoja por 1,9 mm de aire
+     que no se imprime. Lo que tiene que entrar es lo que se dibuja. */
   function altoGrupo(bs) {
     const guardaH = hojas, guardaY = y, guardaN = nsec;
     hojas = [[]]; y = G.MT;
     bs.forEach(emitir);
-    const h = (hojas.length > 1) ? 1e6 : (y - G.MT);
+    let fin = G.MT;
+    if (hojas.length === 1) hojas[0].forEach(function (o) {
+      if (o.k === 'rect') fin = Math.max(fin, o.y + o.h);
+      else if (o.k === 'l') fin = Math.max(fin, o.y2 === undefined ? o.y : o.y2);
+      else if (o.y !== undefined) fin = Math.max(fin, o.y);
+    });
+    const h = (hojas.length > 1) ? 1e6 : (fin - G.MT);
     hojas = guardaH; y = guardaY; nsec = guardaN;
     return h;
   }
@@ -115289,15 +115470,15 @@ function docMaquetar(def, D, bloques) {
     }
     if (b.t === 'tit') {
       if (!cabe(LH * 2)) nueva();
-      y += LH * 1.3;
+      y += LH * 0.9;
       cur().push({ k: 'c', y: y, sz: SZ + 3, b: true, i: false, col: null, s: docSan(docSust(b.x, D)) });
-      y += LH * 0.6; return;
+      y += LH * 0.35; return;
     }
     if (b.t === 'sub') {
       if (!cabe(LH)) nueva();
       y += LH;
       cur().push({ k: 'c', y: y, sz: SZ + 0.5, b: false, i: true, col: [90, 90, 90], s: docSan(docSust(b.x, D)) });
-      y += LH * 0.3; return;
+      y += LH * 0.15; return;
     }
     if (b.t === 'ciudadfecha') {
       if (!cabe(LH)) nueva();
@@ -115308,34 +115489,34 @@ function docMaquetar(def, D, bloques) {
     }
     if (b.t === 'pacid') {
       if (!cabe(LH)) nueva();
-      y += LH * 1.2;
+      y += LH * 0.9;
       cur().push({ k: 't', x: G.ML, y: y, sz: SZ, b: false, i: false, col: null,
                    s: docSan('Paciente: ' + (D.pac || '____') + ' · ' + (D.docl || 'CI') + ': ' + (D.docn || '____')) });
       cur().push({ k: 'r', y: y, sz: SZ, b: false, i: false, col: null,
                    s: docSan((D.ciudad || '____') + ', ' + D.fecha) });
-      y += LH * 0.4; return;
+      y += LH * 0.25; return;
     }
     if (b.t === 'sec') {
       if (!cabe(LH * 2.4)) nueva();
-      y += LH * 0.9;
+      y += LH * 0.42;
       const n = b.nonum ? '' : (++nsec) + '. ';
       if (!cabe(LH)) nueva();
       y += LH;
       cur().push({ k: 't', x: G.ML, y: y, sz: SZ + 0.7, b: true, i: false, col: G.NAVY,
                    s: docSan(n + docSust(b.x, D)) });
-      y += LH * 0.25; return;
+      y += LH * 0.1; return;
     }
-    if (b.t === 'p') { parrafo(docSust(b.x, D), { just: true }); y += LH * 0.3; return; }
-    if (b.t === 'ul') { (b.items || []).forEach(function (it) { vineta(docSan(docSust(it, D)), b.fuerte); }); y += LH * 0.3; return; }
+    if (b.t === 'p') { parrafo(docSust(b.x, D), { just: true }); y += LH * 0.16; return; }
+    if (b.t === 'ul') { (b.items || []).forEach(function (it) { vineta(docSan(docSust(it, D)), b.fuerte); }); y += LH * 0.16; return; }
     if (b.t === 'raya') {
       if (!cabe(LH * 3)) nueva();
-      y += LH * 0.6;
+      y += LH * 0.3;
       parrafo(docSust(b.x, D), { b: true, just: false });
-      y += LH * 0.9;
+      y += LH * 0.8;
       cur().push({ k: 'l', x1: G.ML, x2: G.W - G.MR, y: y, y2: y, col: [120, 120, 120], w: 0.2 });
-      y += LH * 0.8; return;
+      y += LH * 0.45; return;
     }
-    if (b.t === 'chk1') { casilla(docSan(docSust(b.x, D)), G.ML, cw); y += LH * 0.3; return; }
+    if (b.t === 'chk1') { casilla(docSan(docSust(b.x, D)), G.ML, cw); y += LH * 0.16; return; }
     if (b.t === 'chk2') {
       const w2 = (cw - 6) / 2, its = b.items || [];
       const mitad = Math.ceil(its.length / 2);
@@ -115346,7 +115527,7 @@ function docMaquetar(def, D, bloques) {
       const yIzq = y;
       y = y0;
       its.slice(mitad).forEach(function (it) { casilla(docSan(docSust(it, D)), G.ML + w2 + 6, w2); });
-      y = Math.max(yIzq, y) + LH * 0.3;
+      y = Math.max(yIzq, y) + LH * 0.16;
       return;
     }
     if (b.t === 'firma') {
@@ -115568,6 +115749,9 @@ function docAbrir(clave) {
   if (ov) ov.hidden = false;
   docAvisoSync();
   docRender();
+  docEstado('');
+  /* Si esta hoja ya esta guardada en «Imagenes» de este estudio, aparece «Quitar de Imagenes». */
+  if (typeof docImgSync === 'function') docImgSync();
   const x = document.getElementById('doc-x');
   if (x) x.focus();
 }
@@ -115733,6 +115917,91 @@ function docEstado(txt) {
   e.textContent = txt || '';
   e.hidden = !txt;
 }
+
+/* ── GUARDAR LA HOJA EN «IMAGENES» ────────────────────────────────────────────────────────
+   ⚠️ VA A esqs Y NO A imgSlots, Y ESO ES LO QUE DEJA EL PAPEL QUIETO. imgSlots es lo que
+   el PDF del informe imprime en su pagina «Imagenes del estudio»: una constancia o un
+   consentimiento ahi saldria DENTRO del informe firmado del paciente. CeiboImg.leer devuelve
+   solo imgs, asi que un esquema no llega a ninguna superficie firmada, y la pantalla de
+   «Imagenes guardadas» si lo ve porque igImgBlobs concatena las dos listas. Es la misma
+   separacion que la tanda IMAGENES documenta para los diagramas.
+
+   ⚠️ UNA SOLA COPIA POR DOCUMENTO Y POR ESTUDIO: guardarEsquema identifica por clave y
+   REEMPLAZA. De ahi sale el «actualizar» del pedido sin un camino propio: volver a guardar la
+   misma hoja pisa la anterior. Y «quitar» es borrarEsquema, que tambien ya existe.
+
+   ⚠️ LA CLAVE LLEVA PREFIJO doc- Y NINGUNA DE LAS DIEZ EXISTENTES EMPIEZA ASI (censadas:
+   orejuela y las nueve de INF_MIN_DIAG), asi que diagGuardarIncluidos -- que BORRA los
+   esquemas de los diagramas no incluidos-- no puede llevarse una hoja puesta: recorre
+   INF_MIN_DIAG y solo toca sus propias claves.
+
+   ⚠️ EL MOTIVO SE DICE SIEMPRE. El guardado tiene TRES compuertas -- hay almacenamiento, la
+   casilla «Guardar imagenes con los estudios» de Config esta prendida, y el estudio ya tiene
+   uuid-- y las tres pueden negar. Una hoja que no se guarda y no avisa es la promesa que el
+   informe no cumple, que es lo que #oai-esq-estado ya resuelve asi. */
+function docClaveEsq(clave) { return 'doc-' + clave; }
+
+function docUuid() {
+  return (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+}
+
+function docGuardarImagen() {
+  if (!_docAbierto) return;
+  const def = DOC_DEFS[_docAbierto], st = _docEst[_docAbierto], D = docDatos();
+  const maq = docMaquetar(def, D, st.bloques);
+  if (!maq) { docEstado('No se pudo armar la imagen: la biblioteca PDF no está disponible.'); return; }
+  const G = DOC_GEO, K = 3.7795275591, ESC = 1.5;
+  const anchoPx = Math.round(G.W * K * ESC);
+  const altoPx = Math.round((maq.n * G.H + (maq.n - 1) * 6) * K * ESC);
+  const svg = docOpsASvg(maq);
+  docEstado('Generando la imagen…');
+  esqRasterizar(svg, anchoPx, altoPx)
+    .then(function (d) { return esqGuardarDataURL(docClaveEsq(def.clave), def.tit, d); })
+    .then(function (r) {
+      if (r && r.ok) {
+        docEstado('Guardado en «Imágenes» como «' + def.tit + '». Se ve en Guardados → Imágenes guardadas.');
+        if (typeof toast === 'function') toast('🖼️ Documento guardado en Imágenes');
+      } else {
+        docEstado('No se pudo guardar en «Imágenes»: ' + ((r && r.motivo) || 'motivo desconocido') + '.');
+      }
+      return docImgSync();
+    })
+    .catch(function () { docEstado('No se pudo guardar en «Imágenes».'); });
+}
+window.docGuardarImagen = docGuardarImagen;
+
+function docQuitarImagen() {
+  if (!_docAbierto) return;
+  const def = DOC_DEFS[_docAbierto];
+  const uuid = docUuid();
+  if (!uuid || typeof CeiboImg === 'undefined' || !CeiboImg.borrarEsquema) {
+    docEstado('No hay nada que quitar: el estudio todavía no está guardado.');
+    return;
+  }
+  CeiboImg.borrarEsquema(uuid, docClaveEsq(def.clave))
+    .then(function (ok) {
+      docEstado(ok ? 'Se quitó de «Imágenes».' : 'No estaba guardado en «Imágenes».');
+      return docImgSync();
+    })
+    .catch(function () { docEstado('No se pudo quitar de «Imágenes».'); });
+}
+window.docQuitarImagen = docQuitarImagen;
+
+/* Muestra «Quitar de Imagenes» solo si esta hoja YA esta guardada en este estudio. Devuelve una
+   promesa: las sondas la esperan en vez de dormir un numero inventado de milisegundos. */
+function docImgSync() {
+  const b = document.getElementById('doc-quitar');
+  if (!b || !_docAbierto) return Promise.resolve(false);
+  const uuid = docUuid();
+  if (!uuid || typeof CeiboImg === 'undefined' || !CeiboImg.esquemas) { b.hidden = true; return Promise.resolve(false); }
+  const cl = docClaveEsq(DOC_DEFS[_docAbierto].clave);
+  return CeiboImg.esquemas(uuid).then(function (es) {
+    const hay = (es || []).some(function (e) { return e && e.clave === cl; });
+    b.hidden = !hay;
+    return hay;
+  }).catch(function () { b.hidden = true; return false; });
+}
+window.docImgSync = docImgSync;
 
 /* ── CABLEADO ─────────────────────────────────────────────────────────────────────────────
    Escape cierra -- primero el menu, si esta abierto, y despues la hoja-- y un clic fuera cierra
