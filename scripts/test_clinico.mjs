@@ -129601,13 +129601,27 @@ caso('TC-797', 'PANT-31: el cierre -- el clic en el fondo cierra, con correccion
   docAbrir('constancia'); await esp(200);
   q('(DENOM) antes de imprimir seguia pendiente', docSinEntregar());
   let imp = null;
-  try { docImprimir(); imp = true; } catch (e) { imp = String(e.message).slice(0, 50); }
-  await esp(400);
-  q('(DENOM) imprimir no tiro', imp === true, imp);
-  if (imp === true) {
-    q('tras imprimir ya no hay nada que perder', !docSinEntregar());
+  try { docImprimir(); imp = 'ok'; } catch (e) { imp = String(e.message).slice(0, 60); }
+  await esp(450);
+  /* ⚠️ DOS RAMAS, Y LAS DOS AFIRMAN UNA PROPIEDAD REAL. En un lote, otro caso puede dejar
+     window.jspdf.jsPDF envuelto por su espia, y ahi el doc que devuelve no tiene save: medido,
+     «doc.save is not a function», con este caso VERDE aislado y ROJO en su lote. La primera
+     version pedia un entorno limpio con un denominador, o sea exigia algo que este caso no
+     controla. Hoy mide lo que a cada rama le corresponde: si la impresion SALIO BIEN ya no hay
+     nada que perder; si NO salio, la hoja sigue pendiente -- que es el fail-closed que el codigo
+     implementa marcando entregado DESPUES de doc.save y no antes-. La rama buena es la que
+     corre en el barrido de mutaciones, que llama al caso con --solo. */
+  if (imp === 'ok') {
+    q('tras imprimir ya no hay nada que perder', !docSinEntregar(), 'imp=' + imp);
     ov.click(); await esp(150);
     q('y el clic en el fondo cierra sin preguntar', !!ov.hidden && !!cf.hidden);
+  } else {
+    q('una impresion que FALLA no cuenta como entregada: la hoja sigue pendiente',
+      docSinEntregar(), 'docImprimir: ' + imp);
+    ov.click(); await esp(180);
+    q('y el clic en el fondo sigue preguntando', !cf.hidden && !ov.hidden,
+      'conf=' + cf.hidden + ' hoja=' + ov.hidden);
+    if (!cf.hidden) { document.getElementById('doc-conf-ok').click(); await esp(150); }
   }
   /* (9) el visor de la miniatura cierra directo: ahi no hay nada que perder. */
   const vov = document.getElementById('ig-imgv-ov');
@@ -129634,8 +129648,13 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
   const ps = bl.filter(x => x.t === 'p').map(x => String(x.x == null ? '' : x.x));
   q('son TRES parrafos', ps.length === 3, ps.length);
   /* ⚠️ LOS INDICES SE LEEN CON UN RESPALDO: contra un arbol de UN solo parrafo, ps[1] es
-     undefined y `.indexOf` tira TypeError -- el caso caia por EXCEPCION y no por condicion,
-     medido contra la linea base. */
+     undefined y el indexOf tira TypeError -- el caso caia por EXCEPCION y no por condicion,
+     medido contra la linea base.
+     ⚠️ Y ESTE COMENTARIO LLEVABA DOS ACENTOS GRAVES ALREDEDOR DE «indexOf», QUE CERRARON EL
+     TEMPLATE DEL CUERPO. Lo que quedo era JS VALIDO -- una cadena, un .indexOf y un -1-, asi que
+     node --check PASO y el caso quedo registrado con fn igual al NUMERO -1: el runner lo
+     evaluaba, le devolvia undefined y lo reportaba como «el caso no declara NINGUNA condicion».
+     Un caso que corre como -1 no prueba nada. Lo caza el guardian de arranque de este archivo. */
   q('el segundo es la frase de presentarla donde corresponda',
     (ps[1] || '').indexOf('Se extiende la presente') === 0, ps[1] || '(no hay segundo parrafo)');
   q('el tercero es el saludo', (ps[2] || '').indexOf('Sin m') === 0, ps[2] || '(no hay tercer parrafo)');
@@ -129727,10 +129746,15 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
   }
   if (guardado) localStorage.setItem(CLAVE, guardado); else localStorage.removeItem(CLAVE);
   docCerrar();
-  return { extra: F };
+  /* ⚠️ LO DEVUELTO SE NORMALIZA A PRIMITIVOS Y SE RECORTA. Este caso salia VERDE aislado y en su
+     lote el runner decia «el caso no declara NINGUNA condicion» con el valor en vacio, o sea que
+     lo devuelto no se pudo serializar por CDP -- no es una excepcion, que el runner informa
+     aparte-. Con tres escenas por diecisiete condiciones y diagnosticos que incluyen el texto de
+     un parrafo, el objeto crece; recortado a 120 caracteres por diagnostico no hay nada que
+     serializar mal. Es el mismo cuidado que _p31cdp.mjs documenta para returnByValue. */
+  return { extra: F.map(x => [String(x[0]).slice(0, 180), !!x[1], String(x[2] == null ? '' : x[2]).slice(0, 120)]) };
   })();
 `);
-
 caso('TC-799', 'PANT-31: los tres consentimientos a 10,2/13,4 pt con DOS hojas mas la comun, el salto donde la orden lo pide, la declaracion con aire y sus dos lineas de casillas DIBUJADAS, las hojas comunes sin titulo en una hoja, y la tabla de firmas separada 6 mm con su fila de 16', `
   return (async () => {
   const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
@@ -130017,6 +130041,29 @@ try {
   console.log('  TEST SUITE CLINICO — EcoSmart');
   console.log('  ' + fecha + '   ·   Chrome del sistema via CDP, sin dependencias');
   console.log(L);
+
+  /* ══ GUARDIAN DE ARRANQUE: EL CUERPO DE UN CASO TIENE QUE SER UNA CADENA ════════════════════
+     El cuerpo de cada caso es un TEMPLATE LITERAL, y un acento grave de mas -- en el codigo o
+     dentro de un comentario- lo CIERRA antes de tiempo. A veces eso rompe el parseo y lo caza
+     `node --check`; otras veces lo que queda es JS VALIDO y el caso queda registrado con un
+     `fn` que NO es su cuerpo.
+     Medido en la tanda PANT-31: dos acentos graves alrededor de «indexOf» en un comentario de
+     TC-798 dejaron `fn` igual al NUMERO -1. El archivo parseaba, el runner evaluaba «-1», le
+     devolvia undefined y el caso se reportaba como «no declara NINGUNA condicion» -- verde
+     aislado y rojo en su lote, con dos horas de diagnostico-. Un caso que corre como -1 no
+     prueba nada, y es el mismo agujero que la nota de TC-170 describe: un verde vacio ocupa el
+     lugar de la cobertura que uno cree tener.
+     El umbral son 40 caracteres: el cuerpo mas corto del archivo pasa de 100. */
+  const malos = CASOS.filter(c => typeof c.fn !== 'string' || c.fn.length < 40)
+    .map(c => c.id + ' (' + (typeof c.fn) + ', ' + String(c.fn).length + ' car.: ' + JSON.stringify(String(c.fn).slice(0, 40)) + ')');
+  if (malos.length) {
+    console.log('');
+    console.log('  ✗ CUERPO DE CASO INVALIDO en ' + malos.length + ' caso(s). Casi seguro es un');
+    console.log('    acento grave de mas que cerro el template antes de tiempo:');
+    malos.forEach(m => console.log('      ' + m));
+    console.log('');
+    process.exit(1);
+  }
 
   let ok = 0; const rotos = [], abiertos = [], arreglados = [];
   for (const c of CASOS) {
