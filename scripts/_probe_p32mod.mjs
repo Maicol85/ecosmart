@@ -19,7 +19,7 @@ await S.ev(() => {
     localStorage.removeItem('ecosmart_doc_modelos');
     localStorage.setItem('centro_tipo_activo', 'default');
     localStorage.setItem('centro_nombre_activo', 'Centro Ficticio de Cardiologia del Norte');
-    localStorage.setItem('eco_medicos', JSON.stringify([{ nombre: 'Dra. Ficticia Perez', matricula: '12345', especialidad: 'Cardiologia' }]));
+    localStorage.setItem('ett_medicos', JSON.stringify([{ nombre: 'Dra. Ficticia Perez', matricula: '12345', especialidad: 'Cardiologia' }]));
   } catch (e) {}
   const set = (id, v) => { const e = document.getElementById(id); if (!e) return false;
     e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); return true; };

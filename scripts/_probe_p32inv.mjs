@@ -19,7 +19,7 @@ R.siembra = await S.ev(() => {
   try {
     localStorage.setItem('centro_tipo_activo', 'default');
     localStorage.setItem('centro_nombre_activo', 'Centro Ficticio de Cardiologia del Norte');
-    localStorage.setItem('eco_medicos', JSON.stringify([{ nombre: 'Dra. Ficticia Perez', matricula: '12345', especialidad: 'Cardiologia' }]));
+    localStorage.setItem('ett_medicos', JSON.stringify([{ nombre: 'Dra. Ficticia Perez', matricula: '12345', especialidad: 'Cardiologia' }]));
   } catch (e) {}
   const o = { nombre: set('nombre', 'Prueba Ficticia, Ana'), ci: set('ci', '1.234.567-8'),
               sexo: set('sexo', 'F'), ciudad: set('cfg-med-lugar', 'Artigas') };
