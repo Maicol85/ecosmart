@@ -26943,6 +26943,73 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
 
+
+  <!-- SECCION: PROTESIS VALVULARES (PANT-30, Parte B) ──────────────────────────────────────
+       PEDIDO DEL MEDICO. Va DEBAJO de «Valvulopatias» y ANTES de «Doppler tricuspideo», que es
+       donde la orden la pide y donde hay un lugar claro.
+       ⚠️ LLEVA `data-ppt-no` Y NO `data-ppt`, y no es un descuido: `_labPptAssertClaves()` exige
+       uno de los dos en toda `.lab-card`, y `data-ppt` significa «esta tarjeta es una diapositiva
+       del PPT». Ponerselo agregaria una diapositiva al PPT, que esta tanda deja quieto byte por
+       byte. Es el mismo motivo por el que la tabla de Strain Manual lo lleva. -->
+  <div class="lab-card" data-ppt-no="seccion nueva de PANT-30: no es una diapositiva, y ponerle data-ppt agregaria una al PPT">
+    <div class="lab-card-hdr lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-protesis" onclick="labAccToggle('lab-acc-protesis',this,event)" onkeydown="labAccTecla(event,'lab-acc-protesis',this)">🔧 Prótesis valvulares<span id="lab-acc-protesis-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-protesis" style="display:none;">
+      <!-- La linea fija del denominador, textual de la orden. Va arriba de todo porque es la
+           condicion de lectura de los cuatro bloques. -->
+      <div style="font-size:.76rem;color:var(--text2);margin-bottom:12px;line-height:1.5;">
+        Se cuentan estudios, no pacientes: un paciente con varios controles se cuenta varias veces.
+        <span style="display:block;margin-top:4px;">La posición, el tipo y el modelo salen de los
+        campos del estudio. Los <b>trastornos</b> se leen del <b>texto del informe</b>, que es
+        donde queda guardada la conclusión de cada prótesis.</span>
+      </div>
+      <div id="lab-prot-vacio" class="lab-empty" hidden></div>
+      <div id="lab-prot-cuerpo" hidden>
+        <!-- 1 · RESUMEN -->
+        <div class="lab-grid" id="lab-prot-resumen" style="margin-bottom:18px;"></div>
+        <!-- 2 · POR POSICION Y TIPO -->
+        <div style="padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Por posición y tipo</div>
+          <div style="position:relative;height:230px;width:100%;"><canvas id="lab-prot-chart"></canvas></div>
+          <div id="lab-prot-chart-leyenda" style="margin-top:12px;"></div>
+        </div>
+        <!-- 3 · MODELOS -->
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Modelos</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
+            <label style="font-size:11px;color:var(--text2);">Posición<br>
+              <select id="lab-prot-mod-pos" onchange="labProtFiltrar()" style="font-size:12px;padding:4px 6px;">
+                <option value="">Todas</option>
+                <option value="va">Aórtica</option>
+                <option value="vm">Mitral</option>
+                <option value="vt">Tricúspide</option>
+                <option value="vp">Pulmonar</option>
+              </select></label>
+            <label style="font-size:11px;color:var(--text2);">Tipo<br>
+              <select id="lab-prot-mod-tipo" onchange="labProtFiltrar()" style="font-size:12px;padding:4px 6px;">
+                <option value="">Todos</option>
+                <option value="mec">Mecánica</option>
+                <option value="bio">Biológica quirúrgica</option>
+                <option value="tavi">TAVI</option>
+              </select></label>
+          </div>
+          <div id="lab-prot-mod-tabla"></div>
+        </div>
+        <!-- 4 · TRASTORNOS -->
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Trastornos de las prótesis</div>
+          <div id="lab-prot-trast-total" style="font-size:.82rem;color:var(--text);margin-bottom:10px;"></div>
+          <div class="lab-bar-wrap" id="lab-prot-trast"></div>
+          <div style="font-size:.74rem;color:var(--text2);margin-top:10px;line-height:1.5;">
+            Un estudio puede tener más de un trastorno. El denominador son los estudios con
+            prótesis; las reparaciones (plástica y TEER) no entran acá.
+            <b>«Sin datos suficientes»</b> y <b>«Hallazgo aislado, sin veredicto»</b> van aparte:
+            no cuentan como normal ni como alteración.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SECCIÓN: DOPPLER TRICUSPÍDEO -->
   <div class="lab-card" data-ppt="doptric">
     <div class="lab-card-hdr lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-doptric" onclick="labAccToggle('lab-acc-doptric',this,event)" onkeydown="labAccTecla(event,'lab-acc-doptric',this)">🔺 Doppler tricuspídeo y función diastólica del VD<span id="lab-acc-doptric-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
@@ -147514,6 +147581,13 @@ function labInit() {
     labDestroyChart('lab-valv-chart');
     { const s = document.getElementById('lab-valv-chart-sub'); if (s) s.textContent = 'Sin datos';
       const l = document.getElementById('lab-valv-chart-leyenda'); if (l) l.innerHTML = ''; }
+    /* ⚠️ LA SECCION DE PROTESIS TAMBIEN SE REPINTA EN VACIO, y hace falta: esta rama termina en
+       `return`, asi que sin esto filtrar a un periodo sin estudios dejaba el resumen, el grafico
+       apilado, la tabla de modelos y las barras de trastornos con los numeros del corte ANTERIOR,
+       sin error y con el encabezado nuevo. Es exactamente el modo de falla que `lab-espera-prom`
+       y las dos subtabs de arriba ya documentan. */
+    try { if (typeof labProtRender === 'function') labProtRender([]); }
+    catch (e) { console.error('[lab] protesis valvulares (vacio)', e); }
     if (typeof _labAdvancedRender === 'function') _labAdvancedRender([], 0);
     /* Las subtabs ETE y Hemodinámica TAMBIÉN se repintan en vacío. Sin estas líneas, al filtrar
        a un período sin estudios la subtab seguía mostrando los números del corte anterior: sin
@@ -148397,6 +148471,11 @@ function labRenderExtras(infs, n) {
 
   // Gráfica apilada integrada de valvulopatías (debajo de las tablas)
   _labValvBuildChart('lab-valv-chart', infs);
+  /* La seccion de protesis valvulares (PANT-30). Va con un try: es la seccion mas nueva y un
+     error suyo no puede llevarse el resto del pintado del Laboratorio, que es la forma en que
+     esta funcion ya protege a labAsociacionesRender y a labEteRender. */
+  try { if (typeof labProtRender === 'function') labProtRender(infs); }
+  catch (e) { console.error('[lab] protesis valvulares', e); }
   { const s = document.getElementById('lab-valv-chart-sub');
     /* Mismo texto que el subtítulo del PDF, y por el mismo motivo. `_labValvChartCfg` la
        comparten esta gráfica y la del PDF; cuando la auditoría le cambió el reparto a base
@@ -155177,6 +155256,7 @@ function _labPptAssertClaves() {
 if (document.readyState === 'loading')
   document.addEventListener('DOMContentLoaded', function () {
     try { _labPptChkInyectar(); _labPptAssertClaves(); _labPptAssertGrupos(); } catch (e) { console.error('[LAB_PPT] init:', e); }
+    try { if (typeof _labProtAssert === 'function') _labProtAssert(); } catch (e) { console.error('[LAB_PROT] init:', e); }
   });
 else { try { _labPptChkInyectar(); _labPptAssertClaves(); _labPptAssertGrupos(); } catch (e) { console.error('[LAB_PPT] init:', e); } }
 
@@ -157856,6 +157936,387 @@ async function _labValvChartPng(infs) {
   cv.remove();
   return url ? { url, ar: H / W } : null;
 }
+
+/* ══ PROTESIS VALVULARES EN EL LABORATORIO (PANT-30, Parte B) ══════════════════════════════
+   PEDIDO DEL MEDICO. Una seccion dentro de «Mediciones», debajo de «Valvulopatias».
+
+   ⚠️ SE CUENTAN ESTUDIOS, NO PACIENTES, igual que el resto del Laboratorio, y respetando el
+   filtro de periodo: la poblacion sale de labGetInformes() y el denominador se NOMBRA con
+   _labPobTxt() / _labPobDe(), que son los dueños de esa frase. Un rotulo con su propia
+   cadena es lo que esta pestaña ya pago una vez con dos denominadores distintos en la misma
+   pantalla.
+
+   ⚠️ ESTA SECCION NO PUEDE LLAMAR A NINGUN EVALUADOR DE PROTESIS, y eso decide todo su diseño.
+   Los cuatro -- eaProtVeredicto, vmProtEOA, vtProtObstr y vpProtObstr-- leen el DOM
+   (document.getElementById) y clasifican con los valores de la PANTALLA; el Laboratorio corre
+   sobre inf.campos, sin DOM, igual que _labExcelRow. Un predicado que leyera sv('va_morf')
+   bandearia cada fila contra el paciente que esta en pantalla -- la misma trampa que
+   valvEsProtesis ya documenta para el Excel-. Y reimplementarlos sin DOM seria un SEGUNDO
+   dueño del mismo veredicto clinico, que en esta casa no se hace.
+
+   De ahi sale el reparto: POSICION, TIPO y MODELO salen de campos guardados -- que es dato duro-,
+   y el TRASTORNO sale del TEXTO DEL INFORME, que es la unica forma en que ese veredicto queda
+   guardado. Es el mismo mecanismo con el que esta pestaña ya clasifica la geometria del VI y el
+   grado diastolico, y la pantalla lo DICE.
+
+   ⚠️ LAS CATEGORIAS DE TRASTORNO SON MUTUAMENTE EXCLUYENTES Y SE EVALUAN DE LA MAS ESPECIFICA A
+   LA MAS GENERAL, por el mismo motivo que LAB_EM_CAT: «sin criterios de estenosis protesica»
+   CONTIENE «estenosis protesica», asi que con el orden al reves un estudio normal se contaria
+   como alterado.
+
+   ⚠️ Y SE BUSCA SOLO DENTRO DE LAS ORACIONES QUE NOMBRAN UNA PROTESIS. «con posible estenosis»
+   -- que es lo que la aortica emite, medido en el navegador-- no lleva la palabra «protesica»
+   adentro, asi que buscarla en todo el informe contaria la estenosis aortica NATIVA de otro
+   parrafo. */
+
+/* Las cuatro posiciones, con su campo de morfologia y su campo de modelo. Agregar una posicion
+   es agregar una fila. */
+const LAB_PROT_POS = Object.freeze([
+  { k: 'va', lbl: 'Aórtica',    morf: 'va_morf', modelo: 'va_prot_modelo' },
+  { k: 'vm', lbl: 'Mitral',     morf: 'vm_morf', modelo: 'vm_prot_modelo' },
+  { k: 'vt', lbl: 'Tricúspide', morf: 'vt_morf', modelo: 'vt_prot_modelo' },
+  { k: 'vp', lbl: 'Pulmonar',   morf: 'vp_morf', modelo: 'vp_prot_modelo' }
+]);
+/* ⚠️ SOLO NOMBRA EL TIPO. La pregunta «esto es una protesis?» la contesta valvEsProtesis, que
+   es su dueño: duplicar ese criterio aca dejaria dos respuestas posibles el dia que entre un
+   tipo nuevo. Las opciones salen de los cuatro <select> del formulario, censadas una por una --
+   la aortica NO tiene reparacion y la pulmonar no tiene ni reparacion ni TAVI-. */
+const LAB_PROT_TIPO = Object.freeze({
+  'Prótesis mecánica': 'mec',
+  'Prótesis biológica': 'bio',
+  'TAVI': 'tavi',
+  'Plastia mitral': 'plastia',
+  'Plastia tricuspídea': 'plastia',
+  'TEER mitral': 'teer',
+  'TEER tricuspídeo (T-TEER)': 'teer'
+});
+const LAB_PROT_TIPO_LBL = Object.freeze({
+  mec: 'Mecánica', bio: 'Biológica quirúrgica', tavi: 'TAVI',
+  plastia: 'Plastia', teer: 'TEER'
+});
+const LAB_PROT_TIPO_COL = Object.freeze({
+  mec: '#2e86c1', bio: '#3ecf8e', tavi: '#9b59b6',
+  plastia: '#e59866', teer: '#d4ac0d'
+});
+const LAB_PROT_TIPO_ORDEN = Object.freeze(['mec', 'bio', 'tavi', 'plastia', 'teer']);
+
+/* Las conclusiones que la app YA emite, con la frase literal con la que salen al informe.
+   Medidas en el navegador, generando el informe de verdad en once escenas -- una por posicion y
+   tipo-- y no leidas del codigo.
+   alt: true = alteracion; false = normal; null = NI UNA NI OTRA, va aparte.
+   ⚠️ «hallazgo aislado, sin veredicto» va APARTE y no como alteracion: la propia app dice que no
+   hay veredicto, asi que contarlo como alterado seria afirmar lo que ella se niega a afirmar.
+   «Sin datos suficientes» va aparte por orden expresa del medico. */
+const LAB_PROT_TRAST = Object.freeze([
+  { k: 'signif',  lbl: 'Criterios de estenosis protésica significativa', txt: 'criterios que sugieren estenosis protésica significativa', alt: true,  col: '#c0392b' },
+  { k: 'sugest',  lbl: 'Hallazgos sugestivos de estenosis',              txt: 'hallazgos sugestivos de estenosis',                        alt: true,  col: '#e67e22' },
+  { k: 'desaj',   lbl: 'Desajuste protésico-paciente',                   txt: 'desajuste protésico-paciente',                             alt: true,  col: '#d35400' },
+  { k: 'posible', lbl: 'Posible estenosis protésica',                    txt: 'posible estenosis',                                        alt: true,  col: '#f39c12' },
+  { k: 'aislado', lbl: 'Hallazgo aislado, sin veredicto',                txt: 'hallazgo aislado, sin veredicto',                          alt: null,  col: '#7f8c8d' },
+  { k: 'faltan',  lbl: 'Sin datos suficientes para graduar',             txt: 'sin datos suficientes para graduar',                       alt: null,  col: '#95a5a6' },
+  { k: 'sinCrit', lbl: 'Sin criterios de estenosis protésica',           txt: 'sin criterios de estenosis protésica',                     alt: false, col: '#3ecf8e' },
+  { k: 'normo',   lbl: 'Normofuncionante',                               txt: 'normofuncionante',                                         alt: false, col: '#27ae60' }
+]);
+/* Que oraciones del informe hablan de una protesis, y de cual posicion.
+   ⚠️ TAVI CUENTA COMO AORTICA: es la unica posicion que la tiene, censado en los cuatro
+   <select>, y el EN SUMA emite «TAVI con posible estenosis.» sin nombrar la valvula. */
+const _LAB_PROT_ORACION = /pr[óo]tesi|prot[ée]sic|TAVI|TEER|plastia/i;
+const _LAB_PROT_POS_RE = Object.freeze([
+  { k: 'va', re: /a[óo]rtic|TAVI/i },
+  { k: 'vm', re: /mitral/i },
+  { k: 'vt', re: /tric[úu]spid|tricusp[íi]de/i },
+  { k: 'vp', re: /pulmonar/i }
+]);
+
+/* Una sola guarda, al arrancar: que el mapa de tipos y el DUEÑO del predicado no se
+   contradigan. Es el mismo patron que _protmAssertUmbrales. */
+function _labProtAssert() {
+  if (typeof valvEsProtesis !== 'function') return;
+  Object.keys(LAB_PROT_TIPO).forEach(function (v) {
+    const t = LAB_PROT_TIPO[v], p = valvEsProtesis(v);
+    const esRep = (t === 'plastia' || t === 'teer');
+    if (p === esRep) console.error('[LAB_PROT] ' + v + ': valvEsProtesis dice ' + p +
+      ' y el mapa lo clasifica como ' + t + ' -- uno de los dos esta mal');
+  });
+}
+
+/* Las protesis y reparaciones de UN estudio, de sus campos guardados. */
+function _labProtLeer(inf) {
+  const c = (inf && inf.campos) || {};
+  const out = [];
+  LAB_PROT_POS.forEach(function (p) {
+    const v = String(c[p.morf] == null ? '' : c[p.morf]).trim();
+    if (!v) return;
+    const t = LAB_PROT_TIPO[v];
+    if (!t) return;      // nativa, normal, endocarditis, calcificada... no es ni protesis ni reparacion
+    out.push({
+      pos: p.k, posLbl: p.lbl, tipo: t,
+      esProt: (typeof valvEsProtesis === 'function') ? !!valvEsProtesis(v) : (t !== 'plastia' && t !== 'teer'),
+      modelo: String(c[p.modelo] == null ? '' : c[p.modelo]).trim()
+    });
+  });
+  return out;
+}
+
+/* Los trastornos de UN estudio, por posicion, leidos del texto del informe guardado. */
+function _labProtTrast(inf) {
+  const c = (inf && inf.campos) || {};
+  const txt = String(c.informe_texto || '') + '\n' + String(c.en_suma || '');
+  const res = { todos: {}, pos: { va: {}, vm: {}, vt: {}, vp: {} } };
+  if (!txt.trim()) return res;
+  /* Se parte en oraciones y se queda con las que nombran una protesis o una reparacion. */
+  txt.split(/(?:\.\s+)|\n+/).forEach(function (or) {
+    if (!_LAB_PROT_ORACION.test(or)) return;
+    const b = or.toLowerCase();
+    let k = null;
+    for (let i = 0; i < LAB_PROT_TRAST.length; i++) {
+      if (b.indexOf(LAB_PROT_TRAST[i].txt) > -1) { k = LAB_PROT_TRAST[i].k; break; }
+    }
+    if (!k) return;
+    res.todos[k] = 1;
+    _LAB_PROT_POS_RE.forEach(function (p) { if (p.re.test(or)) res.pos[p.k][k] = 1; });
+  });
+  return res;
+}
+
+/* Las cuentas de toda la poblacion. Un solo recorrido: la pantalla y el PDF leen lo mismo. */
+function _labProtStats(infs) {
+  const S = {
+    n: (infs || []).length,
+    conAlgo: 0, conProt: 0, conRep: 0,
+    porPos: {}, modelos: {},
+    trast: {}, conProtParaTrast: 0, altTotal: 0
+  };
+  LAB_PROT_POS.forEach(function (p) {
+    S.porPos[p.k] = { lbl: p.lbl, total: 0, tipos: {} };
+    LAB_PROT_TIPO_ORDEN.forEach(function (t) { S.porPos[p.k].tipos[t] = 0; });
+  });
+  LAB_PROT_TRAST.forEach(function (t) { S.trast[t.k] = 0; });
+  (infs || []).forEach(function (inf) {
+    const ps = _labProtLeer(inf);
+    if (!ps.length) return;
+    S.conAlgo++;
+    const hayProt = ps.some(function (x) { return x.esProt; });
+    const hayRep = ps.some(function (x) { return !x.esProt; });
+    if (hayProt) S.conProt++;
+    if (hayRep) S.conRep++;
+    ps.forEach(function (x) {
+      S.porPos[x.pos].total++;
+      S.porPos[x.pos].tipos[x.tipo]++;
+      if (x.esProt && x.modelo) {
+        const id = x.pos + '|' + x.tipo + '|' + x.modelo;
+        if (!S.modelos[id]) S.modelos[id] = { modelo: x.modelo, pos: x.pos, posLbl: x.posLbl,
+                                              tipo: x.tipo, n: 0, alt: 0 };
+        S.modelos[id].n++;
+      }
+    });
+    if (!hayProt) return;
+    S.conProtParaTrast++;
+    const tr = _labProtTrast(inf);
+    let alt = false;
+    Object.keys(tr.todos).forEach(function (k) {
+      S.trast[k] = (S.trast[k] || 0) + 1;
+      const d = LAB_PROT_TRAST.filter(function (x) { return x.k === k; })[0];
+      if (d && d.alt === true) alt = true;
+    });
+    if (alt) S.altTotal++;
+    /* El «con alteracion» de un MODELO se cuenta con los trastornos de SU posicion: un estudio
+       con protesis aortica y mitral no le atribuye a la mitral la estenosis de la aortica. */
+    ps.forEach(function (x) {
+      if (!x.esProt || !x.modelo) return;
+      const ks = Object.keys(tr.pos[x.pos] || {});
+      const hay = ks.some(function (k) {
+        const d = LAB_PROT_TRAST.filter(function (y) { return y.k === k; })[0];
+        return d && d.alt === true;
+      });
+      if (hay) S.modelos[x.pos + '|' + x.tipo + '|' + x.modelo].alt++;
+    });
+  });
+  return S;
+}
+window._labProtStats = _labProtStats;
+
+/* ── EL GRAFICO APILADO: UNA CONFIGURACION, DOS DESTINOS ──────────────────────────────────
+   La misma funcion alimenta la pantalla y el PNG del PDF de auditoria, que es el patron que
+   _labValvChartCfg ya fija: con dos configuraciones, el dia que una cambie el papel y la
+   pantalla publican dos graficos distintos del mismo corte. */
+function _labProtChartCfg(S, opt) {
+  const off = !!(opt && opt.offscreen);
+  const labels = LAB_PROT_POS.map(function (p) { return p.lbl; });
+  const datasets = LAB_PROT_TIPO_ORDEN.map(function (t) {
+    const rep = (t === 'plastia' || t === 'teer');
+    return {
+      label: LAB_PROT_TIPO_LBL[t] + (rep ? ' (reparación)' : ''),
+      data: LAB_PROT_POS.map(function (p) { return S.porPos[p.k].tipos[t]; }),
+      backgroundColor: LAB_PROT_TIPO_COL[t],
+      borderWidth: 0,
+      /* ⚠️ DOS PILAS Y NO UNA: las reparaciones NO se suman a las protesis -- orden expresa-- y
+         una sola pila las sumaria en el largo de la barra, que es justo lo contrario. */
+      stack: rep ? 'rep' : 'prot',
+      categoryPercentage: 0.7, barPercentage: 0.88
+    };
+  });
+  return {
+    type: 'bar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: !off, maintainAspectRatio: off,
+      animation: false,
+      layout: { padding: { top: 6, bottom: 2, left: 4, right: 10 } },
+      plugins: { legend: { display: false }, tooltip: { enabled: !off } },
+      scales: {
+        x: { stacked: true, beginAtZero: true,
+             grid: { color: off ? '#e5e5e5' : 'rgba(148,164,178,0.12)' },
+             ticks: { color: off ? '#333' : '#9aa4b2', precision: 0, font: { size: 11 } } },
+        y: { stacked: true, grid: { display: false },
+             ticks: { color: off ? '#333' : '#9aa4b2', font: { size: 11 } } }
+      }
+    }
+  };
+}
+
+function _labProtBuildChart(canvasId, S) {
+  const el = document.getElementById(canvasId);
+  if (!el || typeof Chart === 'undefined') return;
+  labDestroyChart(canvasId);
+  new Chart(el.getContext('2d'), _labProtChartCfg(S, {}));
+}
+
+/* El PNG para el PDF de auditoria, con el mismo tratamiento que el resto de sus graficos. */
+async function _labProtChartPng(S) {
+  if (typeof Chart === 'undefined') return null;
+  const W = 700, H = 230;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  cv.style.position = 'fixed'; cv.style.left = '-10000px'; cv.style.top = '0';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  let chart = null, url = null;
+  try {
+    chart = new Chart(ctx, _labProtChartCfg(S, { offscreen: true }));
+    await new Promise(function (r) { setTimeout(r, 300); });
+    url = cv.toDataURL('image/png');
+  } catch (e) { url = null; }
+  try { if (chart) chart.destroy(); } catch (e) {}
+  cv.remove();
+  return url ? { url: url, ar: H / W } : null;
+}
+window._labProtChartPng = _labProtChartPng;
+
+function _labProtLeyendaHTML() {
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:.74rem;color:var(--text2);">' +
+    LAB_PROT_TIPO_ORDEN.map(function (t) {
+      const rep = (t === 'plastia' || t === 'teer');
+      return '<span style="display:inline-flex;align-items:center;gap:5px;">' +
+        '<span style="width:11px;height:11px;border-radius:2px;background:' + LAB_PROT_TIPO_COL[t] + ';"></span>' +
+        escHtml(LAB_PROT_TIPO_LBL[t]) + (rep ? ' <i>(reparación)</i>' : '') + '</span>';
+    }).join('') + '</div>' +
+    '<div style="text-align:center;font-size:.72rem;color:var(--text2);margin-top:6px;">' +
+    'Las dos últimas son <b>reparaciones (no son prótesis)</b> y van en su propia barra: no se suman a las prótesis.</div>';
+}
+
+/* ── LA TABLA DE MODELOS ──────────────────────────────────────────────────────────────────
+   tope limita las filas (el PDF publica 15 y lo dice); en pantalla van todas. */
+function _labProtModFilas(S, fpos, ftipo) {
+  return Object.keys(S.modelos).map(function (id) { return S.modelos[id]; })
+    .filter(function (m) { return (!fpos || m.pos === fpos) && (!ftipo || m.tipo === ftipo); })
+    .sort(function (a, b) { return (b.n - a.n) || a.modelo.localeCompare(b.modelo); });
+}
+function _labProtModTablaHTML(filas, tope) {
+  if (!filas.length) return '<div class="lab-empty">Sin modelos cargados con ese filtro</div>';
+  const max = Math.max.apply(null, filas.map(function (m) { return m.n; }));
+  const ver = tope ? filas.slice(0, tope) : filas;
+  let pocos = false;
+  const cuerpo = ver.map(function (m) {
+    const ancho = max > 0 ? Math.round(m.n / max * 100) : 0;
+    /* ⚠️ MENOS DE 10 ESTUDIOS: el numero Y el porcentaje van en gris, con su nota al pie. Un
+       «50 % con alteracion» sobre dos estudios se lee igual que uno sobre doscientos. */
+    const flojo = m.n < 10;
+    if (flojo) pocos = true;
+    const pct = m.n > 0 ? Math.round(m.alt / m.n * 100) : 0;
+    const estilo = flojo ? ' style="color:var(--text2);"' : '';
+    return '<tr><td>' + escHtml(m.modelo) + (flojo ? ' <span title="Pocos casos">*</span>' : '') + '</td>' +
+      '<td>' + escHtml(m.posLbl) + '</td>' +
+      '<td>' + escHtml(LAB_PROT_TIPO_LBL[m.tipo] || m.tipo) + '</td>' +
+      '<td style="text-align:right;">' + m.n + '</td>' +
+      '<td' + estilo + ' style="text-align:right;' + (flojo ? 'color:var(--text2);' : '') + '">' +
+        m.alt + ' (' + pct + '%)</td>' +
+      '<td style="width:26%;"><div style="height:8px;border-radius:4px;background:var(--bg3);">' +
+        '<div style="height:8px;border-radius:4px;width:' + ancho + '%;background:' +
+        (LAB_PROT_TIPO_COL[m.tipo] || 'var(--accent)') + ';"></div></div></td></tr>';
+  }).join('');
+  const resto = (tope && filas.length > tope) ? filas.length - tope : 0;
+  return '<div style="overflow-x:auto;"><table class="lab-table"><thead><tr>' +
+    '<th>Modelo</th><th>Posición</th><th>Tipo</th><th style="text-align:right;">Estudios</th>' +
+    '<th style="text-align:right;">Con alteración</th><th>&nbsp;</th></tr></thead><tbody>' +
+    cuerpo + '</tbody></table></div>' +
+    (resto ? '<div style="font-size:.74rem;color:var(--text2);margin-top:6px;">y ' + resto + ' modelos más.</div>' : '') +
+    (pocos ? '<div style="font-size:.74rem;color:var(--text2);margin-top:6px;">* Pocos casos: no alcanza para sacar conclusiones.</div>' : '');
+}
+
+/* ── EL PINTADO ───────────────────────────────────────────────────────────────────────────── */
+let _LAB_PROT_S = null;        // la ultima foto, para que los filtros no recalculen la poblacion
+
+function labProtRender(infs) {
+  const S = _labProtStats(infs);
+  _LAB_PROT_S = S;
+  const vacio = document.getElementById('lab-prot-vacio');
+  const cuerpo = document.getElementById('lab-prot-cuerpo');
+  /* Sin un solo estudio con protesis o reparacion no se dibuja ningun grafico vacio: se dice. */
+  if (!S.conAlgo) {
+    if (vacio) { vacio.hidden = false; vacio.textContent = 'Sin estudios con prótesis en este período.'; }
+    if (cuerpo) cuerpo.hidden = true;
+    labDestroyChart('lab-prot-chart');
+    return;
+  }
+  if (vacio) vacio.hidden = true;
+  if (cuerpo) cuerpo.hidden = false;
+  const pc = function (a, b) { return b > 0 ? Math.round(a / b * 100) : 0; };
+  const res = document.getElementById('lab-prot-resumen');
+  if (res) {
+    res.innerHTML = [
+      ['Estudios con prótesis o reparación', S.conAlgo],
+      ['Con prótesis', S.conProt],
+      ['Con plástica o TEER', S.conRep]
+    ].map(function (f) {
+      return '<div class="lab-stat"><span class="lab-stat-lbl">' + escHtml(f[0]) + '</span>' +
+        '<span class="lab-stat-val">' + f[1] + '</span>' +
+        '<span style="font-size:.72rem;color:var(--text2);">' + pc(f[1], S.n) + '% de ' + S.n + ' ' +
+        escHtml(_labPobDe()) + '</span></div>';
+    }).join('');
+  }
+  _labProtBuildChart('lab-prot-chart', S);
+  const ley = document.getElementById('lab-prot-chart-leyenda');
+  if (ley) ley.innerHTML = _labProtLeyendaHTML();
+  labProtFiltrar();
+  /* Trastornos: el total arriba y una barra por conclusion, sobre los estudios CON PROTESIS. */
+  const tot = document.getElementById('lab-prot-trast-total');
+  if (tot) {
+    tot.innerHTML = S.conProtParaTrast
+      ? ('<b>Con alguna alteración:</b> ' + S.altTotal + ' de ' + S.conProtParaTrast +
+         ' estudios con prótesis (' + pc(S.altTotal, S.conProtParaTrast) + '%)')
+      : 'Sin estudios con prótesis en este período.';
+  }
+  labBarras('lab-prot-trast', S.conProtParaTrast
+    ? LAB_PROT_TRAST.map(function (t) {
+        return { lbl: t.lbl + (t.alt === null ? ' (aparte)' : ''), n: S.trast[t.k] || 0,
+                 total: S.conProtParaTrast, color: t.col };
+      })
+    : [], 'fraction');
+}
+window.labProtRender = labProtRender;
+
+/* Los dos filtros de la tabla de modelos. No recalculan la poblacion: filtran la foto. */
+function labProtFiltrar() {
+  const t = document.getElementById('lab-prot-mod-tabla');
+  if (!t || !_LAB_PROT_S) return;
+  const fp = (document.getElementById('lab-prot-mod-pos') || {}).value || '';
+  const ft = (document.getElementById('lab-prot-mod-tipo') || {}).value || '';
+  t.innerHTML = _labProtModTablaHTML(_labProtModFilas(_LAB_PROT_S, fp, ft), 0);
+}
+window.labProtFiltrar = labProtFiltrar;
+
 // Leyenda manual (válvula por color + severidad por intensidad)
 function _labValvLegendHTML() {
   const sw = (c) => `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${c};margin-right:5px;vertical-align:middle;"></span>`;
