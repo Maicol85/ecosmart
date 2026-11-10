@@ -392,3 +392,24 @@ constantes que el PPT del estudio. El dueño único que prepara un mp4 (rotació
 `.mov`) es `_pptVideoMp4Preparar`, compartido por los dos caminos.
 
 Todo en **`docs/mapa/aj3-bucle-botones.md` § 1**.
+
+---
+
+## ⟶ La tanda PANT-30 (2026-11-10) — los DOCUMENTOS del Informe usan este mismo registro
+
+Las cuatro hojas que salen del boton «Documentos» del Informe —la constancia y los tres
+consentimientos— se guardan por **este** camino: `esqGuardarDataURL` -> `CeiboImg.guardarEsquema`,
+o sea a **`esqs`** y no a `imgSlots`. El argumento es el mismo que para los diagramas: `imgSlots`
+es lo que el PDF del informe imprime en su pagina «Imagenes del estudio», y una constancia ahi
+saldria **dentro del informe firmado del paciente**.
+
+Su clave lleva prefijo **`doc-`** (`doc-constancia`, `doc-cve`, `doc-ete`, `doc-burb`), y ninguna
+de las diez claves existentes empieza asi —censadas: `orejuela` y las nueve de `INF_MIN_DIAG`—,
+asi que `diagGuardarIncluidos`, que **borra** los esquemas de los diagramas no incluidos, no puede
+llevarse una hoja puesta.
+
+Y como `guardarEsquema` identifica por clave y **reemplaza**, el «actualizar» del pedido sale
+gratis: volver a guardar la misma hoja pisa la anterior. «Quitar» es `CeiboImg.borrarEsquema`.
+
+El detalle esta en `docs/mapa/pant30-documentos-protesis.md` § 1.
+

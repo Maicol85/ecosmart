@@ -308,3 +308,22 @@ Cierra `LS-6` y `LS-7`. Tres sitios la leían a mano y hoy los tres le preguntan
 
 **ESCENA QUE CAMBIA en los dos últimos: el estudio con FEVI 40 exacta**, que es «moderadamente
 reducida» y antes caía del lado no reducido. Detalle y medición en `docs/mapa/cortos-arreglos.md`.
+
+---
+
+## ⟶ La tanda PANT-30 (2026-11-10) — «Protesis valvulares», una seccion nueva DEBAJO de Valvulopatias
+
+Dentro de «Mediciones», entre la tarjeta de Valvulopatias y la de Doppler tricuspideo, con su
+reflejo en el PDF de auditoria justo despues de la seccion 9.
+
+Lo que hay que saber antes de tocarla, y esta medido: **no puede llamar a ningun evaluador de
+protesis**. Los cuatro —`eaProtVeredicto`, `vmProtEOA`, `vtProtObstr`, `vpProtObstr`— leen el
+**DOM**, y el Laboratorio corre sin DOM sobre `inf.campos`. Asi que la **posicion**, el **tipo** y
+el **modelo** salen de campos guardados, y el **trastorno** sale del **texto del informe** —el
+mismo mecanismo con el que esta pestaña ya clasifica la geometria del VI y el grado diastolico—.
+
+Y lleva **`data-ppt-no`**, no `data-ppt`: `data-ppt` significa «esta tarjeta es una diapositiva
+del PPT» y ponerselo agregaria una al mazo.
+
+El detalle esta en `docs/mapa/pant30-documentos-protesis.md` § 2.
+

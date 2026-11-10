@@ -485,3 +485,19 @@ TC-563 y TC-490 —los tres últimos **invertidos**—.
 propio en vez de engordarlo más: **`docs/mapa/tests-punteros-pant29.md`**, con los nueve casos,
 las tres trampas que la tanda pagó y el defecto que TC-783 destapó en la app. Las fichas están en
 `docs/mapa/pant29-coronarias-3d.md` § 5.
+
+---
+
+## PANT-30 (2026-11-10) — TC-787 a TC-794
+
+Las ocho fichas estan en **`docs/mapa/tests-fichas-787.md`** (archivo propio: este ya esta en
+33,3 KB). Los ocho caen contra `41d9c1d` por condiciones y ninguno por excepcion: **0/8**.
+
+Las trampas que dejaron escritas: el pie del papel se busca **con su tilde** —`docSan` conserva
+los acentos y dice «Pagina» con a acentuada, asi que buscarlo sin tilde daba 0 de 1 sobre un pie
+que si estaba—; los hermanos de una fila se cuentan **en la fila y no en su padre**; la
+subpestaña «Mediciones» **nace oculta** y un acordeon dentro de un panel oculto mide 0x0; hay que
+**ceder el turno** despues de escribir en IndexedDB antes de llamar a `showTab` (ver P30-d); y
+para que haya uuid hay que interceptar `mostrarCardSeveridadValvular`, no asignar
+`valvSevConfirmada` en `window`.
+

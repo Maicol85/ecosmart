@@ -14783,3 +14783,200 @@ que TC-182 y TC-706, que dependen de jsPDF: esta tanda no toca el visor, ni la e
 longitudinal, ni ninguna carga por CDN. **Caracterizado como manda esta casa, con cuatro corridas
 aisladas: pasa 3 de 4**, y la que falla lo hace con la misma firma `Chart is not defined`. Esta
 tanda no toca el visor, ni la evolución longitudinal, ni ninguna carga por CDN.
+
+---
+
+## P30-a — PANT-30 (2026-11-10): el texto corregido a mano de una hoja NO se persiste
+
+**Qué pasa.** El médico abre un documento (constancia o consentimiento), corrige una palabra, y
+esa corrección sobrevive a cerrar la hoja y reabrirla, y sobrevive a que un dato de la app
+cambie —ahí aparece «Actualizar con los datos» y nada se pisa—. Pero **no sobrevive a recargar
+la página**: el estado vive en memoria (`_docEst`), no en disco.
+
+**Por qué quedó así, y no es un olvido.** Persistirlo serían **campos guardados nuevos** —uno
+por bloque de cada documento— y por lo tanto **columnas de Excel nuevas**, y la orden de esta
+tanda deja el Excel en 457 y pide cero campos nuevos. Medido: 1010 campos contra 1010 y el mapa
+del Excel idéntico contra `41d9c1d`.
+
+**Qué haría falta para cerrarlo.** Una decisión del médico sobre **dónde** vive ese texto. Tres
+caminos, con su precio:
+1. **Un campo por documento en el estudio** (cuatro campos nuevos, cuatro columnas de Excel
+   nuevas, y el texto viaja con el estudio y entra al backup). Es el que más se parece a lo que
+   el médico probablemente espera, y el que más cambia el juego de campos guardados.
+2. **Una clave de `localStorage` por documento, de pantalla** (cero campos, cero columnas, pero
+   el texto **no** es del paciente: quedaría el de la última hoja editada para cualquier
+   paciente, que es exactamente la fuga que este repositorio persigue).
+3. **Dejarlo como está** y que el médico imprima o guarde la imagen antes de recargar.
+
+**No se elige por cuenta propia**: el 1 cambia el juego de campos guardados de todo estudio que
+se guarde desde ese día y el 2 mezcla datos entre pacientes. Queda para una orden.
+
+---
+
+## P30-b — PANT-30: el consentimiento del test de burbujas entra en una hoja con 5,3 mm libres
+
+**Medido.** Con los márgenes y el aire entre bloques de esta tanda, el cuerpo del consentimiento
+del test de burbujas cierra en **y = 276,5 mm** sobre un fondo de contenido de **284 mm**: quedan
+**5,3 mm**, que es poco más de una línea a 11 pt de interlineado. Los otros tres tienen aire de
+sobra: constancia 176,5 mm, cardioversión 16,9 mm y el ETE 68,3 mm en su segunda hoja.
+
+**Por qué no hay más margen.** Los textos los fija la orden del médico palabra por palabra, y el
+cuerpo de **8,8 pt** con interlineado de **11 pt** también. Lo único que se podía recuperar era
+el aire entre bloques y el alto de la tabla de firmas, y ya se recuperó: el cuerpo pasó de 314 mm
+a 276,5 mm en esta misma tanda.
+
+**Qué lo puede pasar a dos hojas.** Un nombre de institución lo bastante largo para **envolver a
+dos líneas** en el encabezado agrega unos 4 mm, y dos líneas más de cualquier cosa lo cruzan.
+**No está roto**: si se pasa, el documento sale en dos hojas con su pie correcto y la declaración
+y las firmas juntas, porque esa regla es independiente. Lo que se pierde es la promesa de «una
+hoja».
+
+**Para cerrarlo haría falta una decisión del médico**: bajar el cuerpo a 8,4 pt, acortar alguno
+de los textos, o aceptar las dos hojas.
+
+---
+
+## P30-c — PANT-30: la fuente no es condensada, y no puede serlo sin incrustar un archivo
+
+**La orden pide** «tipografía sans angosta (condensed) o la más parecida disponible».
+
+**Medido.** jsPDF 2.5.1 trae **tres** familias de serie: `helvetica`, `times` y `courier`.
+Ninguna es condensada. Una condensada de verdad exige **incrustar un archivo de fuente** en el
+archivo —`doc.addFont` con el TTF en base64—, que son cientos de kilobytes en un `index.html` de
+12 MB y una dependencia nueva que esta tanda no autoriza («ninguna librería nueva»).
+
+**Se usa `helvetica`**, que es la que el resto de los PDF de esta app ya usa. La consecuencia
+práctica es que el texto ocupa un poco más de ancho que con una condensada, que es parte de por
+qué el test de burbujas quedó con 5,3 mm (**P30-b**).
+
+---
+
+## P30-d — PANT-30: `showTab` falla si se la llama después de una escritura en IndexedDB
+### DEFECTO PREEXISTENTE. NO lo toca esta tanda: se declara.
+
+**Qué pasa, medido.** La última línea de `showTab(id)` es
+
+```js
+if (typeof event !== 'undefined' && event && event.target) event.target.classList.add('active');
+```
+
+y lee el **`window.event` GLOBAL**. Después de una escritura en IndexedDB, ese global trae el
+`success` de la transacción, cuyo `target` es un **`IDBTransaction`** — que no tiene
+`classList`. La línea tira `TypeError: Cannot read properties of undefined (reading 'add')`
+**después** de haber movido las clases, así que la pestaña **sí** cambia pero la función aborta
+y lo que venga detrás de ella no corre.
+
+**Cómo se encontró.** Dos sondas de esta tanda (`_probe_pant30prot.mjs` y
+`_probe_pant30pdf.mjs`) llamaban `showTab('lab')` justo después de `guardarInformesSeguro` y
+morían ahí. Reproducido y aislado: con un `setTimeout` de 10 ms de por medio, `typeof
+window.event` vuelve a `'undefined'` y `showTab` funciona. **Ceder el turno es lo que limpia el
+global**; reordenar las llamadas no alcanza.
+
+**Qué tan grave es en la app de verdad.** No se encontró, en esta tanda, un camino de la app que
+llame a `showTab` desde dentro de una devolución de llamada de IndexedDB —las llamadas vivas
+salen de `onclick`, donde `event` es el clic y `event.target` es el botón, que es el uso
+previsto—. O sea: **latente**, no observado por el médico. Pero cualquier código futuro que
+quiera cambiar de pestaña después de guardar algo se lo va a encontrar.
+
+**El arreglo es de una línea** —preguntar por `event.target.classList` antes de usarlo, o leer el
+evento del parámetro en vez del global— y **no se hizo**, porque la orden de esta tanda dice
+«Cada decisión toca SOLO lo que se pide. Si ves algo parecido en otra parte, anotalo aparte en
+docs/PENDIENTES.md; no lo cambies». Queda para una orden propia.
+
+---
+
+## P30-e — PANT-30: el trastorno de una prótesis se lee del TEXTO del informe, y eso tiene un precio
+
+**Por qué es así.** Los cuatro evaluadores de prótesis —`eaProtVeredicto`, `vmProtEOA`,
+`vtProtObstr` y `vpProtObstr`— **leen el DOM** y clasifican con los valores de la pantalla; el
+Laboratorio corre **sin DOM**, sobre `inf.campos`. No hay ninguna forma de llamarlos para un
+estudio guardado, y reimplementarlos sin DOM sería un **segundo dueño** del mismo veredicto
+clínico. La conclusión **no es un campo guardado**: lo único guardado es el texto que esos
+evaluadores escribieron en `informe_texto` y `en_suma`.
+
+**El precio, declarado.** Es el mismo mecanismo con el que esta pestaña ya clasifica la geometría
+del VI y el grado diastólico —y la pantalla lo dice—, con sus mismas dos limitaciones:
+
+1. **Un informe reescrito a mano pierde el trastorno.** Si el médico borra o reformula la
+   oración que la app emitió, ese estudio deja de contarse como alterado.
+2. **Un estudio viejo, guardado antes de que la app emitiera esa frase, no lo trae.** No se migra
+   nada: la regla de la casa es que un cambio de criterio no sale a reescribir lo que ya está en
+   disco.
+
+**La mitral y la pulmonar no publican conclusión en el informe**, medido en el navegador en once
+escenas y coincidiendo con lo que la auditoría AUD-PROT ya había medido. Sus prótesis **sí**
+entran en el resumen, en las barras por posición y tipo y en la tabla de modelos —eso sale de
+campos guardados—, pero **no** aportan ninguna barra de trastorno. No es un hueco de esta tanda:
+es que esas dos posiciones no escriben veredicto.
+
+**Para cerrarlo haría falta** una decisión del médico sobre persistir el veredicto de cada
+prótesis como campo del estudio —con las columnas de Excel que eso implica— o sobre que la mitral
+y la pulmonar emitan conclusión al informe, que es contenido clínico y no se decide acá.
+
+---
+
+## P30-f — PANT-30: dos premisas de la orden que no se reprodujeron, y lo que quedó afuera
+
+**Lo que no se reprodujo:**
+
+1. **«Regenerar informe»** no existe con esa forma: el botón se llama **«🔄 Regenerar
+   Informe»**, con I mayúscula. Nada que corregir en la app; se anota porque la orden lo nombra
+   así.
+2. **«nombre de cada tipo de estudio»** supone un catálogo que **no existe**. La app tiene **una
+   casilla** (`#ete-es-ete`) y **dos** nombres. No hay tipo «eco de estrés» —su código vive en el
+   archivo sin interfaz— y el test de burbujas **no es un tipo de estudio**: es un módulo dentro
+   del estudio. Por eso el menú no ofrece consentimiento de transtorácico ni de eco de estrés, lo
+   que **coincide** con lo que la orden pide, pero por otra razón que la que da.
+3. **«título del médico»**: no existe el campo. Se usa la **especialidad** de ⚙️ Config cuando
+   está cargada. Ver `docs/DOCUMENTOS_P30.md`.
+
+**Lo que quedó afuera, y por qué:** nada de la orden. Las cinco partes se hicieron enteras:
+Parte A (los dos commits), Parte B en pantalla, Parte B en el PDF y la cobertura. La prioridad
+que la orden fija —1) Documentos, 2) Parte B en pantalla, 3) Parte B en el PDF— no hizo falta
+aplicarla.
+
+**Lo que esta tanda vio y NO tocó**, anotado acá como la orden manda:
+- **P30-d**, el `window.event` de `showTab`.
+- La **`t`** del catálogo de prótesis está **vacía en 21 de los 108 modelos**, así que el tipo de
+  la tabla de modelos sale del `*_morf` del estudio y no del catálogo. No se completó el catálogo:
+  son datos de la ASE 2024 y cargarlos es otra orden.
+
+---
+
+## P30-g — PANT-30: WebKit desborda el texto justificado de la hoja por menos de un carácter
+### NO se corrigió: se midió y se declara.
+
+**Medido**, en el cruce de dos motores de esta tanda (Chrome del sistema contra WebKit de
+Playwright, 1440 / 1000 / 768 / 390 px × dos temas = 16 cruces por motor):
+
+A **768 px**, y sólo en **WebKit**, dos bloques de la hoja del consentimiento de ETE informan
+`scrollWidth` mayor que su `clientWidth`:
+
+| Bloque | `clientWidth` | `scrollWidth` | Cuánto se sale el TEXTO de la caja de contenido |
+|---|---|---|---|
+| «tiene alergia a los anestésicos locales…» (columna angosta de las casillas) | 267 px | 271 px | **3,28 px** |
+| «Se me ha informado que tengo el derecho a no consentir…» | 684 px | 686 px | **1,51 px** |
+
+Medido con el rango de los nodos de texto, no con la caja del elemento: el texto **de verdad**
+se sale 3,28 y 1,51 px. En Chrome, **cero** en los dieciséis cruces. En WebKit pasa en los **dos**
+temas, así que es determinista y no un ruido de medición.
+
+**Por qué no se corrigió.**
+1. **Es menos de un carácter** y el desborde es **visible**, no recortado: nada queda tapado, y
+   la página **no gana desplazamiento horizontal** —`scrollWidth` del documento es 0 en los
+   dieciséis cruces de los dos motores—.
+2. **No toca el papel.** El PDF y la imagen se maquetan en **milímetros** con jsPDF y no conocen
+   esta hoja de estilos: las **174 operaciones de dibujo** del ETE salieron **idénticas** en los
+   dos motores, y las tres hojas también.
+3. **`overflow-wrap:break-word` NO lo arregla**, probado: no es una palabra larga que no quepa,
+   es cómo WebKit reparte el espacio en un bloque **justificado**. Se revirtió el intento en vez
+   de dejar una línea de CSS que no hace nada.
+4. Lo que sí lo cerraría es **dejar de justificar**, y el texto justificado lo pide la orden del
+   médico.
+
+**Qué haría falta para cerrarlo**: una decisión sobre la vista previa —aceptar los 3 px, o darle
+a los bloques 4 px de relleno derecho sólo en pantalla—. Como es sub-carácter y no afecta al
+papel, no se toca por cuenta propia.
+
+⚠️ **WebKit de Playwright no es Safari**, y se declara: lo que esto dice es que el motor de
+WebKit reparte así el justificado, no que Safari se vea exactamente igual.

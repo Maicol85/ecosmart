@@ -2516,3 +2516,179 @@ y `git show bc62db2:index.html` da **168.950** líneas, **12.288.401** bytes y *
 - **Dónde está todo:** `docs/INVENTARIO_REFERENCIAS_P25.md`, `docs/CONTROL_MASAS_P25.md`,
   `docs/GUIA_PRUEBA_PANT25.md`, el puntero en `docs/mapa/referencias-subpestanas.md`, y
   `docs/PENDIENTES.md` → **P25-a**, **P25-b** y **P25-c**.
+
+## PANT-30 — los documentos del Informe (constancia y tres consentimientos) y las prótesis valvulares en el Laboratorio (2026-11-10)
+
+**Commits**: el inventario de la TAREA 0; el botón, el menú, la hoja editable, la constancia y la
+impresión; los tres consentimientos, las hojas comunes y «Guardar en Imágenes»; la sección de
+prótesis en pantalla; la misma sección en el PDF de auditoría; los ocho casos con el barrido de
+mutaciones; y el sello con la documentación. Al empezar, `origin/main` = `HEAD` = **`41d9c1d`**,
+el cierre de PANT-29, **ya publicado**, con `index.html` en md5 **`6aa22c01`**, **170.019**
+líneas, **12.397.649** bytes, sello **`v20261110-0034`**, y el pendrive `DISK_IMG` montado.
+Sello nuevo **`v20261110-1041`**, md5 **`f4ded2a9`**, **171.804** líneas.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+⚠️ **POR VIGESIMOSÉPTIMA VEZ SEGUIDA EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA BIEN**, y se
+verificó de las dos formas que esta casa manda: el sello del pie (`#eco-build-sello`) coincidía
+con el que `CLAUDE.md` publicaba, y `git show 41d9c1d:index.html` da **170.019** líneas,
+**12.397.649** bytes y **`6aa22c01`**, los tres idénticos a lo que el renglón decía.
+
+- **CINCO PREMISAS DE LA ORDEN NO SE REPRODUJERON, y dos de ellas decidieron cómo se
+  implementa.** «Regenerar informe» es **«🔄 Regenerar Informe»**, con I mayúscula. No hay
+  **catálogo de tipos de estudio**: hay **una casilla** (`#ete-es-ete`) y **dos** nombres, el eco
+  de estrés no tiene interfaz y el test de burbujas es un módulo del estudio, no un tipo. No
+  existe **campo de título del médico**. **La conclusión de cada prótesis NO es un campo
+  guardado**: los cuatro evaluadores leen el DOM y el Laboratorio corre sin DOM. Y **«sin datos
+  suficientes» es conclusión sólo de la aórtica**. Las cinco están medidas en
+  `docs/INVENTARIO_P30.md`.
+
+- **DOS PREMISAS DE MÉTODO, medidas en la TAREA 0.** Esta app **no usa `window.print()`** —lo
+  declara `amiloImprimirPDF`: capturaba la interfaz entera—, así que el papel se arma con jsPDF,
+  que es además lo que hace medible el formato. Y una `.lab-card` nueva **no puede llevar
+  `data-ppt`** sin agregar una diapositiva al PPT, que esta tanda deja quieto: lleva
+  `data-ppt-no` con su motivo.
+
+- **PARTE A — UNA LISTA DE BLOQUES, UN MAQUETADOR, TRES EMISORES.** `docMaquetar` convierte la
+  lista de bloques en una lista de operaciones de dibujo con sus coordenadas, y de esa única lista
+  salen la hoja de pantalla, el PDF y la imagen. **La justificación se calcula palabra por
+  palabra** y no se delega al `align:'justify'` de jsPDF: delegada, el PDF conoce la posición de
+  cada palabra y la imagen no. **La casilla se dibuja, no se escribe** (U+2610 no existe en
+  WinAnsi y `splitTextToSize` lo mide con métricas inventadas); los **acentos sí** se conservan.
+
+- **LAS HOJAS, MEDIDAS EN EL PDF DE VERDAD**, coinciden con lo que la orden fija: constancia 1;
+  cardioversión 1 + 1 de hojas comunes; burbujas 1 + 1; ETE 2 + 1, con «Antes del estudio»
+  arrancando la hoja 2. La declaración y la tabla de firmas caen en la **misma** hoja en los tres
+  y el pie está en **todas**.
+
+- **Y PARA QUE ENTRARAN HUBO QUE MEDIR DOS COSAS, no apretar la tipografía.** El **aire entre
+  bloques** se llevaba una hoja entera: el cuerpo de la cardioversión ocupaba 292 mm sobre una
+  banda de 272. Y **`altoGrupo` mide la TINTA y no la `y` de cierre**: la `y` final incluye el
+  margen que el último bloque deja detrás —2 mm en la tabla de firmas— y ese margen, al final de
+  una hoja, no ocupa nada. Midiéndolo, el consentimiento de burbujas pasaba de hoja por **1,9 mm**
+  de aire que no se imprime. Cierra con **5,3 mm** libres → **P30-b**.
+
+- **LA HOJA NUNCA SE PISA.** El estado vive en memoria —un campo persistido serían campos del
+  estudio y columnas de Excel nuevas, y esta tanda deja el Excel en 457 → **P30-a**—; si el médico
+  editó y después cambia un dato, al reabrir aparece «Actualizar con los datos» y hasta apretarlo
+  no se toca nada. Medido: la corrección y el nombre viejo siguen ahí, el nuevo todavía no.
+
+- **«GUARDAR EN IMÁGENES» VA A `esqs` Y NO A `imgSlots`**, que es lo que deja el papel quieto:
+  `imgSlots` es lo que el PDF del informe imprime en su página «Imágenes del estudio». Medido: tras
+  guardar, `esqs` = 1 y los slots del estudio siguen en **cero**. `guardarEsquema` identifica por
+  clave y **reemplaza**, así que el «actualizar» del pedido no necesita camino propio; dos
+  guardados seguidos dejan **un** esquema. El prefijo `doc-` no choca con ninguna de las diez
+  claves existentes, así que `diagGuardarIncluidos` no puede llevarse una hoja puesta.
+
+- **PARTE B — LA SECCIÓN NO PUEDE LLAMAR A NINGÚN EVALUADOR DE PRÓTESIS**, y eso decide todo su
+  diseño: los cuatro leen el DOM. Posición, tipo y modelo salen de **campos guardados**; el
+  trastorno, del **texto del informe**, que es el mismo mecanismo con que esta pestaña ya
+  clasifica la geometría del VI y el grado diastólico, y la pantalla lo **dice**. El precio, en
+  **P30-e**.
+
+- **LAS OCHO CONCLUSIONES SE MIDIERON EN EL NAVEGADOR**, generando el informe de verdad en once
+  escenas, y eso corrigió dos cosas que el código solo no decía: la aórtica emite «con posible
+  estenosis» **sin** la palabra «protésica» adentro —de ahí que se busque sólo dentro de las
+  oraciones que nombran una prótesis, o se contaría la estenosis aórtica **nativa** de otro
+  párrafo—, y la mitral y la pulmonar **no escriben conclusión**, lo que confirma en la salida
+  real lo que AUD-PROT ya había medido. Las categorías se evalúan de la **más específica a la más
+  general**, por el mismo motivo que `LAB_EM_CAT`.
+
+- **DOS PILAS Y NO UNA** en el gráfico: las reparaciones no se suman a las prótesis. **«Hallazgo
+  aislado, sin veredicto» va aparte** igual que «sin datos suficientes»: la propia app dice que no
+  hay veredicto. Y el **«con alteración» de un modelo sale de los trastornos de SU posición**: un
+  estudio con prótesis aórtica y mitral no le atribuye a la mitral la estenosis de la aórtica.
+
+- **UNA SOLA CONFIGURACIÓN DE GRÁFICO PARA LOS DOS DESTINOS** (`_labProtChartCfg`), que es el
+  patrón de `_labValvChartCfg`. En el PDF, la sección cae **entre** Valvulopatías y «Función VD» y
+  su gráfica se coloca con **150 mm**, un ancho que ningún otro gráfico del documento usa.
+
+- **UN DEFECTO PREEXISTENTE ENCONTRADO Y DECLARADO SIN TOCARLO (P30-d)**: la última línea de
+  `showTab` lee el `window.event` **global**, y después de una escritura en IndexedDB ese global
+  es el `success` de la transacción, cuyo `target` es un `IDBTransaction` —que no tiene
+  `classList`—, así que la función aborta. Reproducido y aislado: con un `setTimeout` de 10 ms el
+  global vuelve a `'undefined'`. No se arregló porque la orden dice anotar y no cambiar.
+
+- **UN DEFECTO PROPIO, ENCONTRADO RELEYENDO MI CÓDIGO**: la celda del «con alteración» de la
+  tabla de modelos llevaba **dos atributos `style`** y el navegador se queda con el primero, así
+  que en las filas grises perdía la alineación a la derecha. No da error y no se ve salvo mirando
+  una tabla con filas de los dos tipos.
+
+- **LA VERIFICACION.** A/B contra `41d9c1d`, con el PDF y el PPT generados de verdad: **121
+  escenas, 148.572 claves y 55.297 celdas de Excel**, con **CERO diferencias de superficie
+  firmada** y cero de pantalla. ⚠️ **Ese cero de pantalla es un CONTROL NEGATIVO y se declara**:
+  el arnés no abre el menú «Documentos», no abre la hoja y no abre la sección del Laboratorio. Lo
+  que prueba lo visible son las cinco sondas propias. **47/47 mutaciones dirigidas muertas**, en
+  worktree y nunca sobre el vivo, con el md5 del árbol vivo idéntico antes y después. Semgrep
+  **124 WARNING / 0 ERROR**, la línea base. Sin huérfanos nuevos. **Cero campos guardados nuevos**
+  (1010 contra 1010) y el mapa del Excel idéntico.
+
+- **OCHO MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO Y SE REPARTIERON EN TRES CLASES.** **Dos eran
+  DEFECTOS**, no huecos: `hidden` no oculta un `.btn` en esta app, así que la mutación no ocultaba
+  nada **y** mi botón «Quitar de Imágenes» se veía siempre. **Cinco eran huecos reales** de mis
+  condiciones, cada uno por su motivo medido: la escena tenía todos los datos cargados; la
+  condición leía `G.ML`, o sea la misma constante que debía verificar; ninguna oración emparejaba
+  con dos categorías a la vez; la estenosis nativa vivía en un estudio **sin** prótesis, así que
+  nunca se clasificaba; y las condiciones llamaban a `labProtRender` directo, sin pasar por la
+  rama de cero estudios de `labInit`. **Y dos no eran ni una cosa ni la otra**: la regla de «la
+  declaración y las firmas nunca se separan» y su medición por tinta **no se ejercitan** con
+  ninguno de los tres documentos, porque en los tres el grupo entra donde cae. Se armó una escena
+  que la obliga, que **busca** el borde en vez de adivinarlo.
+
+- ⚠️ **Y ESA ESCENA ENCONTRÓ UN ARTEFACTO DE SÍ MISMA ANTES DE MEDIR ALGO**: con sólo bloques de
+  espacio la hoja llega al borde **sin ninguna operación de dibujo**, y la guarda `cur().length`
+  del salto —que está para no abrir una hoja en blanco, y está bien que esté— no deja saltar.
+  Parecía un defecto de la regla y era un defecto de la escena.
+
+- ⚠️ **LA MUTACIÓN 08 SOBREVIVIÓ A DOS INTENTOS**, y los dos fallos dicen algo: con el dato en
+  **cadena vacía** el marcador no queda crudo —se reemplaza por nada—, así que lo que se pierde es
+  la **raya**; y en la constancia la ciudad **no pasa por `docSust`**, además de que la firma ya
+  trae «Matrícula: ____» sin médico configurado, o sea el denominador envenenado por dos lados.
+  La condición que la mata mide la declaración de un consentimiento, que es donde el texto lleva
+  el marcador de verdad.
+
+- ⚠️ **PLAYWRIGHT NO ESTABA INSTALADO Y DOS ARNESES ESTABAN MUERTOS.** `npm ls -g` da tres
+  paquetes y ninguno es playwright; en `~/Library/Caches/ms-playwright` quedan los binarios de una
+  instalación que ya no existe —`webkit-2370`, el de la 1.64—. `_probe_pant24ab.mjs` salía por su
+  `process.exit(2)` de «SIN PLAYWRIGHT», así que el A/B no habría corrido. `_p30cdp.mjs` habla
+  **CDP directo** contra el Chrome del sistema —el camino que `test_clinico.mjs` ya documenta— y
+  sirve la app por **HTTP**, porque en `file://` el origen es opaco y no hay localStorage ni
+  IndexedDB. `_probe_pant30ab.mjs` es el arnés de PANT-24 con el **cuerpo sin tocar** y sólo
+  cambia quién abre el navegador y quién evalúa. Para el cruce de **WebKit** se instaló el paquete
+  **fuera del repo**, en el directorio temporal de la sesión.
+
+- ⚠️ **CINCO DENOMINADORES VACÍOS QUE ESTA TANDA PAGÓ**, y los cinco se leen igual que «está todo
+  bien»: `showTab` buscando un `[onclick]` que no es el de la pestaña —el botón informaba 0×0 y el
+  menú contaba como «opción inactiva»: tres mediciones falsas de una causa—; la subpestaña
+  «Mediciones» **nace oculta**, así que el acordeón abría y todo medía 0×0 con el gráfico ya
+  creado; `showTab` después de escribir en IndexedDB (**P30-d**); `valvSevConfirmada` no está en
+  `window`, así que `guardarInforme` devolvía `false` **sin un solo toast**; y contar las imágenes
+  del PDF con `/I<n> Do` daba **12 en los dos lados**, con la gráfica y sin ella.
+
+- ⚠️ **Y EL ACENTO GRAVE EN MIS PROPIOS COMENTARIOS, TRES VECES**, dentro de los cuerpos de los
+  casos, que son template literales. Lo cazó `node --check` las tres.
+
+- **EL CRUCE DE DOS MOTORES.** Chrome (el del sistema) y WebKit, en 1440 / 1000 / 768 / 390 px y
+  en los dos temas: **dieciséis cruces por motor**, y **coinciden**. En los dieciséis: el botón en
+  **44 px** y visible, las **cuatro** opciones con 44 px de alto, la hoja del ETE con sus **6.859**
+  caracteres y **52** controles editables, las casillas en **dos** columnas salvo a 390 px donde
+  pasan a una, el maquetador dando **tres** hojas y **174** operaciones de dibujo **idénticas en
+  los dos motores**, la sección del Laboratorio abierta con su gráfico (1202 / 778 / 706 / 328 px
+  de canvas), el resumen en dos columnas a 1440 y 1000 y en una a 768 y 390, **cero**
+  desplazamiento horizontal y **CERO errores de consola y de página**. La única diferencia es
+  **P30-g**: WebKit desborda el texto justificado **1,51 y 3,28 px** en dos bloques, a 768 px y en
+  los dos temas. ⚠️ **WebKit de Playwright no es Safari**, y se declara.
+
+- ⚠️ **Y PLAYWRIGHT HUBO QUE INSTALARLO FUERA DEL REPO PARA PODER CORRER ESE CRUCE.** La caché
+  tiene `webkit-2370` —el de la **1.64**— y `chromium-1234` —el de la 1.62—, o sea una caché
+  mezclada de una instalación que ya no existe; se probaron seis versiones hasta dar con la que
+  empareja. Se instaló en el directorio temporal de la sesión, no en el repositorio.
+
+- **LA SUITE, LIMPIA, SOBRE EL ÁRBOL SELLADO: 804/809**, con los **809 ejecutados** contados por
+  el arnés, el md5 de `index.html` **idéntico** antes y después (`f4ded2a9`) y el pendrive
+  `DISK_IMG` verificado **diecisiete** veces —al abrir, en los quince lotes y al cerrar—. Los
+  rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-557**, el
+  intermitente que `TGA-h` declara, que pasa **3 de 3** corrido aislado. **Ningún rojo nuevo.**
+
+- **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
+  **No empeoró.**
+
