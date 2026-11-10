@@ -4418,8 +4418,13 @@ html.light-mode .amilo-root{
 #lv3d-bloque-botones .btn{white-space:normal;min-height:44px;text-align:center;}
 /* Los dos bloques de texto llevan el mismo fondo que el panel para que la fila se lea como una
    fila y no como tres cosas sueltas. Son las variables de la app, sin un color propio. */
+/* ⚠️ MENOS RELLENO INTERIOR — PANT-29, commit 4 (A). Eran `10px 12px`. El achique es del
+   relleno Y de los anchos: los anchos viven en `lv3dMaquetar`, porque solo se fijan con el 3D
+   ABIERTO, que es el estado donde el 3D necesita el lugar. Con el 3D cerrado la fila sigue
+   exactamente como estaba —la columna de hallazgos se lleva el `1fr`— y lo unico que cambia es
+   este relleno, que no recorta nada: el alto de las dos tarjetas sigue saliendo del contenido. */
 #lv3d-bloque-hallazgos,#lv3d-bloque-botones{background:var(--bg3);border-radius:10px;
-  padding:10px 12px;min-width:0;}
+  padding:7px 9px;min-width:0;}
 /* ══ EL INTERIOR DEL 3D DEL VENTRICULO — «K3» (2026-10-16) ════════════════════════════════════
    El dibujo y los cinco cuadros de datos, lado a lado. El ancho de la columna de datos va en
    PIXELES: con una fraccion crece con la pantalla y le come ancho al cuadro gris, y la orden
@@ -13430,6 +13435,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div id="lv3d-bloque-hallazgos">
               <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Hallazgos de motilidad</div>
               <div id="contr-texto-informe" style="font-size:12px;color:var(--text);line-height:1.6;"></div>
+              <!-- ⚠️ ARTERIAS POSIBLEMENTE INVOLUCRADAS — PANT-29, commit 4 (B). Criterio de la
+                   DEMO APROBADA por el medico, declarado criterio de la aplicacion: la motilidad
+                   no localiza la lesion, asi que esto ORIENTA y nada mas.
+                   ⚠️ SOLO EN PANTALLA. No va al informe, al EN SUMA, al PDF, al PPT, al Excel ni
+                      a Guardados, y no hay forma de que vaya: son dos `<div>` sin ningun `input`,
+                      `select` ni `textarea`, que son los tres que los barridos del estudio y del
+                      Excel recorren. Tampoco cuenta para «la seccion tiene datos», que mira
+                      `value` y `checked`.
+                   ⚠️ VA SIEMPRE VISIBLE, con «Coronarias» prendido o apagado y con el 3D abierto
+                      o cerrado: no tiene `display` propio.
+                   ⚠️ EL TEXTO DE HALLAZGOS DE ARRIBA NO CAMBIA. Lo escribe `contrRenderInforme`
+                      desde `contrGetLineasInforme()`, y esto es un hermano que se pinta aparte
+                      con `textContent`, nunca con `innerHTML`. -->
+              <div id="contr-arterias" style="margin-top:7px;">
+                <div style="font-size:11px;color:var(--accent2);font-weight:600;margin-bottom:2px;">Arterias posiblemente involucradas</div>
+                <div id="contr-arterias-li" style="font-size:11px;color:var(--text2);line-height:1.5;"></div>
+              </div>
             </div>
             <!-- ⚠️ EL BLOQUE DE BOTONES ES EL SEGUNDO DE LA FILA — «K2» (2026-10-16). Estaban
                  FUERA de la tarjeta, al fondo de la pantalla, y con la tabla «Referencia de
@@ -130405,6 +130427,77 @@ function contrFraseNarrativa(){
   return partes.join(' ');
 }
 
+/* ══ ARTERIAS POSIBLEMENTE INVOLUCRADAS — PANT-29, commit 4 (B) ═══════════════════════════════
+   Criterio de la demo que el medico aprobo, y por eso queda declarado como CRITERIO DE LA
+   APLICACION: no sale de ninguna guia. No se agrega ningun otro texto clinico.
+   ⚠️ LA PERTENENCIA SALE DE `CONTR_TERRITORIO`, QUE ES EL DUENO UNICO, y no de una lista escrita
+      aca. Medido contra la demo: los dos reparten igual —DA 1,2,7,8,13,14,17; CD 3,4,9,10,15;
+      Cx 5,6,11,12,16—, asi que no hay nada que reportar por divergencia. Lo unico que esta tabla
+      traduce es el ROTULO: la app escribe `CX` y la linea que el medico pidio dice «Cx».
+   ⚠️ EL NIVEL SE DECIDE POR EL SEGMENTO MAS ALTO ALTERADO, o sea por el MINIMO numero AHA, que es
+      exactamente la regla del pedido leida al reves: si hay algun basal (1 a 6) el minimo es <= 6
+      y toca «toda la arteria»; si no hay basales pero si medios, el minimo cae en 7 a 12; si solo
+      hay apicales, en 13 a 16; y si solo esta el 17, es 17. Una sola comparacion cubre los cuatro
+      casos y no se pueden desincronizar.
+   ⚠️ «Alterado» es cualquier estado distinto de normal, o sea indice > 0, y no una lista de
+      grados: el dia que se agregue un grado entra solo. */
+const CONTR_ART_NIVEL = Object.freeze([
+  { max: 6,  txt: 'toda la arteria' },
+  { max: 12, txt: 'desde el tercio medio' },
+  { max: 16, txt: 'tramo distal' },
+  { max: 17, txt: 'tramo distal (ápex)' }
+]);
+const CONTR_ART_ROTULO = Object.freeze({ CX: 'Cx' });
+const CONTR_ART_NADA  = 'Ninguna.';
+const CONTR_ART_MULTI = 'Compromete más de un territorio coronario.';
+const CONTR_ART_PIE   = 'Orientativo. Solo en pantalla: no va al informe.';
+/* Guarda del mismo tipo que la de `CONTR_TERRITORIO_NOMBRE`: avisar en vez de callar. Un
+   territorio cuyo segmento mas alto no cae en ningun tramo dejaria la linea sin texto. */
+function contrArterias(){
+  const porArt = {}, orden = [];
+  for (let s = 1; s <= 17; s++){
+    const id = LV3D_SEG_ID[s];
+    const crudo = CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[id]];
+    if (!crudo) continue;
+    const nom = CONTR_ART_ROTULO[crudo] || crudo;
+    if (orden.indexOf(nom) < 0) orden.push(nom);
+    if ((Number(contrEstado[id]) || 0) > 0){
+      if (!porArt[nom]) porArt[nom] = [];
+      porArt[nom].push(s);
+    }
+  }
+  const li = [];
+  orden.forEach(function (nom){
+    const ss = porArt[nom];
+    if (!ss || !ss.length) return;
+    const min = Math.min.apply(null, ss);
+    const niv = CONTR_ART_NIVEL.filter(function (x){ return min <= x.max })[0];
+    if (!niv){ console.error('[contr] segmento ' + min + ' sin tramo en CONTR_ART_NIVEL'); return }
+    li.push(nom + ': ' + niv.txt);
+  });
+  const n = li.length;
+  if (!n) li.push(CONTR_ART_NADA);
+  else if (n > 1) li.push(CONTR_ART_MULTI);
+  /* El pie va SIEMPRE, tambien con «Ninguna.»: es una salvedad del bloque y no de un hallazgo. */
+  li.push(CONTR_ART_PIE);
+  return li;
+}
+window.contrArterias = contrArterias;
+/* Pinta por NODOS y con `textContent`: aca no entra dato del paciente, pero el nombre de la
+   arteria sale de una tabla y no hay razon para abrir la puerta de `innerHTML`. */
+function contrArteriasRender(){
+  const c = document.getElementById('contr-arterias-li');
+  if (!c) return;
+  const li = contrArterias();
+  while (c.firstChild) c.removeChild(c.firstChild);
+  li.forEach(function (t, i){
+    const d = document.createElement('div');
+    if (t === CONTR_ART_PIE){ d.style.color = 'var(--text2)'; d.style.marginTop = '2px' }
+    d.textContent = t;
+    c.appendChild(d);
+  });
+}
+
 function contrRenderInforme(){
   const cont = document.getElementById("contr-texto-informe");
   if(!cont) return;
@@ -130412,6 +130505,11 @@ function contrRenderInforme(){
   cont.innerHTML = lineas.length
     ? lineas.map(l=>`<p style="margin:4px 0;">${l}</p>`).join("")
     : `<p style="margin:0;color:var(--text2);font-style:italic;">Sin trastornos de motilidad segmentaria registrados.</p>`;
+  /* ⚠️ EL BLOQUE DE ARTERIAS SE REPINTA DESDE ACA, Y NO DESDE LOS SIETE LLAMADORES — PANT-29,
+     commit 4. Es el UNICO lugar que escribe el texto de hallazgos, asi que colgandolo aca los dos
+     no pueden quedar contandose historias distintas; repetir la llamada en los siete sitios es
+     como uno se queda sin ella. El texto de hallazgos de arriba no cambia ni un caracter. */
+  contrArteriasRender();
 }
 
 function contrInit(){
@@ -131700,8 +131798,19 @@ function lv3dMaquetar(){
      achica. `calc(46% + 118px)` le suma al panel la columna (110 px) mas su hueco (8), asi que
      el dibujo conserva SU ancho exacto y lo que se angosta es la columna de hallazgos, que es
      texto. Queda declarado en PENDIENTES: a 1200 px esa columna baja a unos 150 px. */
+  /* ⚠️ CON EL 3D ABIERTO, LAS DOS TARJETAS LLEVAN ANCHO FIJO Y EL 3D SE LLEVA EL RESTO —
+     PANT-29, commit 4 (A). Era `1fr | 210px | calc(46% + 118px)`, o sea que la UNICA columna
+     flexible era la de hallazgos: a 1440 px medía 264 px, pero a 1000 px caía a 44 px y el texto
+     salia a un caracter por renglon. El propio comentario anterior lo declaraba para 1200 px
+     («baja a unos 150 px»); medido a 1000 px eran 44.
+     Con `220px | 150px | 1fr` el panel del 3D pasa de 650 a 754 px a 1440 —gana los 104 px que
+     el medico pidio— y la columna de hallazgos sube de 44 a 220 px a 1000. Los `minmax(0, …)`
+     dejan que las dos se angosten si alguna vez no hubiera lugar, en vez de desbordar.
+     Con el 3D CERRADO no se toca nada: ahi no hay 3D al que darle el lugar, y fijar 220 px
+     dejaria el texto de hallazgos en una columna angosta al lado de un hueco vacio.
+     En angosto (768 px o menos) sigue siendo UNA columna, como hoy. */
   fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)'
-    : (_lv3d.abierto ? 'minmax(0,1fr) minmax(0,210px) minmax(0,calc(46% + 118px))'
+    : (_lv3d.abierto ? 'minmax(0,220px) minmax(0,150px) minmax(0,1fr)'
                      : 'minmax(0,1fr) minmax(0,210px)');
 }
 
