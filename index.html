@@ -115270,7 +115270,12 @@ const DOC_BENEFICIO = 'En su situación clínica actual, el médico considera qu
 
 /* La declaracion. internacion es la unica viñeta que cambia entre los tres, y se pasa por
    parametro: con tres copias del bloque, el dia que una frase cambie quedan dos viejas. */
-function docDeclaracion(procSin, internacion) {
+/* ⚠️ `procAcuerdo` ES OPCIONAL Y LOS TRES INCLUIDOS NO LO PASAN, asi que su texto no cambia una
+   letra. Lo usan los consentimientos PROPIOS, donde la declaracion no nombra el procedimiento
+   (A5): la primera frase dice «en qué consiste el procedimiento» y la del acuerdo «se me realice
+   el procedimiento descrito en este documento», que son dos redacciones distintas de la misma
+   idea y por eso hacen falta dos parametros y no uno. */
+function docDeclaracion(procSin, internacion, procAcuerdo) {
   const vs = [
     'Se me explicó, en palabras comprensibles para mí, en qué consiste ' + procSin + ', sus beneficios, lo que puedo sentir y sus eventuales complicaciones y secuelas. Pude hacer preguntas y me fueron contestadas en su totalidad.',
     'Confirmo que no he modificado ni ocultado ninguna información relevante sobre mi historia clínica.',
@@ -115297,7 +115302,7 @@ function docDeclaracion(procSin, internacion) {
     { t: 'ul', items: vs, aire: 5 },
     { t: 'esp', mm: 2.82 },
     { t: 'chk1', x: 'Consiento que la información de mi caso clínico y de los estudios realizados se use para la investigación y divulgación científica, garantizando mi privacidad.' },
-    { t: 'p', x: 'He leído la información y estoy de acuerdo en que se me realice ' + procSin + '.' },
+    { t: 'p', x: 'He leído la información y estoy de acuerdo en que se me realice ' + (procAcuerdo || procSin) + '.' },
     { t: 'esp', mm: 2.82 },
     { t: 'pchk', x: 'El firmante deja constancia de que el paciente ☐ sí ☐ no se encuentra capacitado para recibir la información, comprenderla y dar su consentimiento al procedimiento propuesto.' },
     { t: 'p', x: 'Se firma el presente en {{ciudad}}, a los {{dia}} días del mes de {{mes}} de {{anio}}.' },
@@ -115350,6 +115355,12 @@ function docRiesgosCierre() {
   return [{ t: 'raya', x: DOC_RAYA_RIESGOS }, { t: 'p', x: DOC_BENEFICIO }];
 }
 
+/* ⚠️ PANT-32: LA FRASE CON LOS DATOS DEL PACIENTE PASA A SER UNA CONSTANTE, Y NO CAMBIA UNA
+   PALABRA. La constancia la sigue usando igual; lo que gana es que el armador de modelos puede
+   volver a ponerla cuando el medico tiene tildada la pieza «Frase con los datos del paciente»,
+   sin una segunda copia del texto -- que es la lista paralela de siempre-. */
+const DOCMOD_FRASE = 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}.';
+
 /* ── LAS DEFINICIONES ──────────────────────────────────────────────────────────────
    sz es el cuerpo en pt y lh el interlineado en pt, los dos de la orden del medico. */
 const DOC_DEFS = Object.freeze({
@@ -115367,7 +115378,7 @@ const DOC_DEFS = Object.freeze({
            ellas. El texto no cambia una palabra: lo que cambia es donde arranca cada oracion.
            Las dos frases cortas salen sin justificar sin necesidad de decirlo: `parrafo` nunca
            justifica la ULTIMA linea, y una oracion de un renglon es su ultima linea. */
-        { t: 'p', x: 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}.' },
+        { t: 'p', x: DOCMOD_FRASE },
         { t: 'p', x: 'Se extiende la presente para ser presentada donde corresponda.' },
         { t: 'esp', mm: 2 },
         { t: 'p', x: 'Sin más, saluda atentamente.' },
@@ -115480,6 +115491,469 @@ const DOC_DEFS = Object.freeze({
 });
 window.DOC_DEFS = DOC_DEFS;
 
+/* ── PANT-32 · EL ALMACEN DE MODELOS DE DOCUMENTO ─────────────────────────────────────────
+   Guarda SOLO textos y opciones, en `localStorage`, con el mismo mecanismo que el resto de
+   Configuracion y copiando el patron de `ecosmart_frases`: lectura TOLERANTE que ante un valor
+   corrupto devuelve el estado vacio, y escritura que devuelve `false` con la cuota llena en vez
+   de fingir exito.
+
+   ⚠️ JAMAS DATOS DE PACIENTE, NI LOGO, NI INSTITUCION. Lo que se guarda son los textos del
+   modelo y sus casillas; el nombre, el documento, la ciudad, la fecha, el logo y la institucion
+   los pone la app al dibujar, desde `docDatos()`, y no viajan ni al almacen ni al archivo de
+   exportacion.
+
+   ⚠️ LA REGLA DE ORO (A3) SE CUMPLE POR CONSTRUCCION Y NO POR CUIDADO: un documento incluido
+   SIN EDITAR no pasa por este armador. `docmodDef` devuelve el objeto de `DOC_DEFS` tal cual
+   -- el mismo, no una copia-, asi que su PDF y su imagen son los de PANT-31 por identidad. Solo
+   el editado y el propio pasan por `docmodArmar`. Es la rama que la orden autoriza
+   explicitamente, y es la unica forma de que la regla no dependa de que nadie se equivoque.
+
+   ⚠️ TODO ID NUEVO DE ESTA TANDA LLEVA PREFIJO `cfg-`, medido en la TAREA 0: con ese prefijo
+   queda fuera del censo del estudio, fuera del Excel y fuera de `editarInforme` por las DOS
+   listas a la vez -- `_CAMPOS_FUERA_DEL_ESTUDIO` y `_noEsDelEstudio`-- sin tocar ninguna. Y
+   ninguno termina en `-aviso` ni en `-badge`, que son los dos barridos por sufijo de
+   `limpiarCampos`: es lo que PANT-30 pago con `doc-aviso`. */
+const DOCMOD_KEY = 'ecosmart_doc_modelos';
+const DOCMOD_VER = 1;
+const DOCMOD_INCL = Object.freeze(['constancia', 'cve', 'ete', 'burb']);
+const DOCMOD_PROPIOS_MAX = 2;
+const DOCMOD_TOTAL_MAX = 6;
+/* Los topes de largo de E3. Valen para lo que se escribe a mano Y para lo que se importa: con
+   dos juegos de topes, un archivo podria cargar lo que el editor no deja escribir. */
+const DOCMOD_LIM = Object.freeze({ nom: 60, tit: 120, ptit: 160, ptxt: 6000, ctxt: 3000, pregs: 30, total: 60000 });
+const DOCMOD_AYUDA = 'Viñeta: empezá la línea con «• ». Casilla: empezá con «☐ Sí ☐ No ». Raya para escribir a mano: guiones bajos. Negrita: entre dos asteriscos.';
+const DOCMOD_RAYA = '________________________';
+const DOCMOD_CHK = '☐ Sí ☐ No ';
+const DOCMOD_PROC = 'el procedimiento';
+const DOCMOD_PROC_AC = 'el procedimiento descrito en este documento';
+/* El cuerpo y el interlineado por tipo, los mismos numeros que las cuatro definiciones. */
+const DOCMOD_SZ = Object.freeze({ constancia: 10.5, consent: 10.2 });
+const DOCMOD_LH = Object.freeze({ constancia: 16, consent: 13.4 });
+/* Las cinco preguntas orientativas de un consentimiento propio (D1). */
+const DOCMOD_PREGS_NUEVAS = Object.freeze(['¿Qué es?', '¿Para qué sirve?', '¿Cómo se realiza?',
+  '¿Qué riesgos tiene?', '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?']);
+const DOCMOD_CONST_TXT = 'Se extiende la presente para ser presentada donde corresponda.\n\nSin más, saluda atentamente.';
+
+/* ── TEXTO <-> BLOQUES: LAS CINCO CONVENCIONES DE A4 ─────────────────────────────────────── */
+
+/* Los tramos de negrita de una linea. Dobles asteriscos, sin anidar. */
+function docmodRuns(s) {
+  const t = String(s == null ? '' : s);
+  const out = []; const re = /\*\*([^*]+)\*\*/g; let p = 0, m;
+  while ((m = re.exec(t)) !== null) {
+    if (m.index > p) out.push({ s: t.slice(p, m.index), b: false });
+    out.push({ s: m[1], b: true });
+    p = m.index + m[0].length;
+  }
+  if (p < t.length) out.push({ s: t.slice(p), b: false });
+  return out.length ? out : [{ s: t, b: false }];
+}
+function docmodSinNeg(s) { return String(s == null ? '' : s).replace(/\*\*([^*]+)\*\*/g, '$1'); }
+
+/* Bloques -> texto, para que el editor muestre lo que hoy se imprime.
+   ⚠️ `esp` Y `salto` NO TIENEN FORMA EN TEXTO, a proposito: el aire lo pone el maquetador y el
+   texto del medico corre de una hoja a la siguiente SIN salto forzado, que es lo que D4 pide. */
+function docmodBloquesATexto(bs) {
+  const tr = [];
+  (bs || []).forEach(function (b) {
+    if (b.t === 'p' || b.t === 'pchk') { tr.push(String(b.x || '')); return; }
+    if (b.t === 'pr') { tr.push((b.runs || []).map(function (r) { return r.b ? ('**' + r.s + '**') : r.s; }).join('')); return; }
+    if (b.t === 'ul') {
+      tr.push((b.items || []).map(function (it) {
+        let s = String(it);
+        if (b.fuerte) {
+          for (let q = 0; q < b.fuerte.length; q++) {
+            if (s.indexOf(b.fuerte[q]) === 0) { s = '**' + b.fuerte[q] + '**' + s.slice(b.fuerte[q].length); break; }
+          }
+        }
+        return '• ' + s;
+      }).join('\n'));
+      return;
+    }
+    if (b.t === 'raya') { tr.push(String(b.x || '') + '\n' + DOCMOD_RAYA); return; }
+    if (b.t === 'chk1') { tr.push(DOCMOD_CHK + String(b.x || '')); return; }
+    if (b.t === 'chk2') { tr.push((b.items || []).map(function (it) { return DOCMOD_CHK + it; }).join('\n')); return; }
+  });
+  return tr.filter(function (x) { return String(x).trim() !== ''; }).join('\n\n');
+}
+
+/* Texto -> bloques. Las cinco convenciones, y nada mas: el texto se trata SIEMPRE como texto.
+   ⚠️ UNA CASILLA ES UNA LINEA QUE ARRANCA CON EL CUADRADO Y TRAE UNO SOLO -- o el prefijo
+   literal «☐ Sí ☐ No », que es lo que el papel dibuja en cada item-. Una linea con cuadrados en
+   el MEDIO es un parrafo con casillas dibujadas (`pchk`), que es la linea de «capacitado para
+   recibir la informacion» de la declaracion. La distincion es necesaria porque `docSan` convierte
+   el U+2610 en un espacio: un cuadrado que no se dibuja sale como un hueco en el papel. */
+function docmodTextoABloques(txt) {
+  const bl = [];
+  let buf = [], vin = null, chk = null;
+  const cerrarP = function () {
+    const s = buf.join(' ').replace(/\s+/g, ' ').trim();
+    buf = [];
+    if (!s) return;
+    if (s.indexOf('☐') >= 0) { bl.push({ t: 'pchk', x: s }); return; }
+    const runs = docmodRuns(s);
+    if (runs.some(function (r) { return r.b; })) bl.push({ t: 'pr', runs: runs });
+    else bl.push({ t: 'p', x: s });
+  };
+  const cerrarVin = function () {
+    if (vin && vin.items.length) {
+      const b = { t: 'ul', items: vin.items };
+      if (vin.fuerte.length) b.fuerte = vin.fuerte;
+      bl.push(b);
+    }
+    vin = null;
+  };
+  const cerrarChk = function () {
+    if (chk && chk.length) {
+      if (chk.length === 1) bl.push({ t: 'chk1', x: chk[0] });
+      else bl.push({ t: 'chk2', items: chk.slice() });
+    }
+    chk = null;
+  };
+  const cerrar = function () { cerrarP(); cerrarVin(); cerrarChk(); };
+  String(txt == null ? '' : txt).split('\n').forEach(function (ln) {
+    const t = String(ln).trim();
+    if (t === '') { cerrar(); return; }
+    /* Guiones bajos solos: una raya para escribir a mano, que toma como rotulo el parrafo que la
+       precede. Es como se escribe «Otros riesgos propios de su caso: ____», que es el unico uso
+       que los incluidos le dan. */
+    if (/^_{3,}$/.test(t)) {
+      cerrarVin(); cerrarChk();
+      const rot = buf.join(' ').replace(/\s+/g, ' ').trim(); buf = [];
+      bl.push({ t: 'raya', x: docmodSinNeg(rot) });
+      return;
+    }
+    if (t.charAt(0) === '•') {
+      cerrarP(); cerrarChk();
+      if (!vin) vin = { items: [], fuerte: [] };
+      let s = t.slice(1).replace(/^\s+/, '');
+      const m = /^\*\*([^*]{1,160})\*\*/.exec(s);
+      if (m) {
+        s = m[1] + s.slice(m[0].length);
+        if (vin.fuerte.indexOf(m[1]) < 0) vin.fuerte.push(m[1]);
+      }
+      s = docmodSinNeg(s).trim();
+      if (s) vin.items.push(s);
+      return;
+    }
+    if (t.charAt(0) === '☐') {
+      let s = t.replace(/^☐\s*S[ií]\s*☐\s*No\s*/i, '');
+      if (s === t) s = t.replace(/^☐\s*/, '');
+      if (s.indexOf('☐') < 0) {
+        cerrarP(); cerrarVin();
+        if (!chk) chk = [];
+        s = docmodSinNeg(s).trim();
+        if (s) chk.push(s);
+        return;
+      }
+    }
+    cerrarVin(); cerrarChk();
+    buf.push(t);
+  });
+  cerrar();
+  return bl;
+}
+
+/* ── EL MODELO ORIGINAL DE UN INCLUIDO, DERIVADO DE SU DEFINICION ─────────────────────────
+   ⚠️ SE DERIVA Y NO SE RETIPEA, y es la regla de la casa: con el texto escrito dos veces, el dia
+   que una palabra de un consentimiento cambie queda una copia vieja. Y la orden es terminante:
+   «ni una palabra de los cuatro documentos que vienen incluidos». */
+function docmodCuerpoAPregs(bs) {
+  const gr = []; let cur = null;
+  (bs || []).forEach(function (b) {
+    if (b.t === 'sec') { cur = { t: b.x, bs: [] }; gr.push(cur); return; }
+    if (b.t === 'salto') return;
+    if (!cur) { cur = { t: '', bs: [] }; gr.push(cur); }
+    cur.bs.push(b);
+  });
+  return gr.map(function (p) { return { t: String(p.t || ''), x: docmodBloquesATexto(p.bs) }; });
+}
+
+function docmodOrig(clave) {
+  const def = DOC_DEFS[clave];
+  if (!def) return null;
+  const b = def.bloques();
+  if (clave === 'constancia') {
+    const tb = b.filter(function (x) { return x.t === 'tit'; })[0];
+    /* El cuerpo libre es lo que viene DESPUES de la frase con los datos -- el primer `p`-- y
+       antes de la firma. */
+    let iFr = -1, iFi = -1;
+    b.forEach(function (x, i) {
+      if (iFr < 0 && x.t === 'p') iFr = i;
+      if (iFi < 0 && x.t === 'firma') iFi = i;
+    });
+    return { clave: clave, tipo: 'constancia', nom: def.menu, tit: tb ? String(tb.x) : 'CONSTANCIA',
+             frase: true, txt: docmodBloquesATexto(b.slice(iFr + 1, iFi < 0 ? b.length : iFi)),
+             decl: true, firmas: true, comunes: true };
+  }
+  const sb = b.filter(function (x) { return x.t === 'sub'; })[0];
+  let iPac = -1, iDec = -1;
+  b.forEach(function (x, i) {
+    if (iPac < 0 && x.t === 'pacid') iPac = i;
+    if (iDec < 0 && x.grupo === 'firmas') iDec = i;
+  });
+  return { clave: clave, tipo: 'consent', nom: def.menu, tit: sb ? String(sb.x) : '',
+           pregs: docmodCuerpoAPregs(b.slice(iPac + 1, iDec < 0 ? b.length : iDec)),
+           decl: true, firmas: true, comunes: true };
+}
+window.docmodOrig = docmodOrig;
+
+/* El modelo de un documento PROPIO recien creado (D1). */
+function docmodNuevo(tipo) {
+  if (tipo === 'constancia') {
+    return { tipo: 'constancia', nom: '', tit: 'CONSTANCIA', frase: true, txt: DOCMOD_CONST_TXT,
+             decl: true, firmas: true, comunes: true, vis: true };
+  }
+  return { tipo: 'consent', nom: '', tit: 'Consentimiento para ',
+           pregs: DOCMOD_PREGS_NUEVAS.map(function (t) { return { t: t, x: '' }; }),
+           decl: true, firmas: true, comunes: true, vis: true };
+}
+window.docmodNuevo = docmodNuevo;
+
+/* ── EL ALMACEN ───────────────────────────────────────────────────────────────────────────── */
+function docmodVacio() {
+  const o = { v: DOCMOD_VER, incl: {}, prop: [] };
+  DOCMOD_INCL.forEach(function (k) { o.incl[k] = { vis: true, nom: '', ed: null }; });
+  return o;
+}
+
+/* El validador. UNO SOLO para el almacen y para el archivo importado: con dos, un archivo podria
+   cargar lo que el editor no deja escribir. Devuelve {ok, st, motivo}, y el motivo es el que
+   decide cual de los dos mensajes de E3 se muestra: 'ajeno' o 'propios'.
+   Rechaza por CLAVE DESCONOCIDA, que es lo que la orden pide: una clave que no se reconoce es un
+   archivo de otra version o de otra cosa, y cargarla a medias es peor que no cargar nada. */
+function docmodValidar(raw, pedirMarca) {
+  const no = function (m) { return { ok: false, st: null, motivo: m || 'ajeno' }; };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return no();
+  let total = 0;
+  try { total = JSON.stringify(raw).length; } catch (e) { return no(); }
+  if (total > DOCMOD_LIM.total) return no();
+  const K_RAIZ = ['v', 'incl', 'prop', '_ecosmart_modelos', 'fecha'];
+  for (const k in raw) if (Object.prototype.hasOwnProperty.call(raw, k) && K_RAIZ.indexOf(k) < 0) return no();
+  if (pedirMarca && raw._ecosmart_modelos !== true) return no();
+  if (raw._ecosmart_modelos !== undefined && raw._ecosmart_modelos !== true) return no();
+  if (raw.fecha !== undefined && typeof raw.fecha !== 'string') return no();
+  if (raw.v !== DOCMOD_VER) return no();
+  const txt = function (v, max) { return typeof v === 'string' && v.length <= max; };
+  const bol = function (v) { return v === undefined || typeof v === 'boolean'; };
+  /* El cuerpo editable de un modelo: las mismas claves para un incluido y para un propio. */
+  const K_ED = ['tit', 'frase', 'txt', 'pregs', 'decl', 'firmas', 'comunes'];
+  const cuerpo = function (o, tipo) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    for (const k in o) if (Object.prototype.hasOwnProperty.call(o, k) && K_ED.indexOf(k) < 0) return null;
+    if (!txt(o.tit === undefined ? '' : o.tit, DOCMOD_LIM.tit)) return null;
+    if (!bol(o.frase) || !bol(o.decl) || !bol(o.firmas) || !bol(o.comunes)) return null;
+    const c = { tit: String(o.tit === undefined ? '' : o.tit),
+                decl: o.decl !== false, firmas: o.firmas !== false, comunes: o.comunes !== false };
+    if (tipo === 'constancia') {
+      if (o.pregs !== undefined) return null;
+      if (!txt(o.txt === undefined ? '' : o.txt, DOCMOD_LIM.ctxt)) return null;
+      c.frase = o.frase !== false;
+      c.txt = String(o.txt === undefined ? '' : o.txt);
+      return c;
+    }
+    if (o.txt !== undefined || o.frase !== undefined) return null;
+    if (!Array.isArray(o.pregs) || o.pregs.length > DOCMOD_LIM.pregs) return null;
+    c.pregs = [];
+    for (let i = 0; i < o.pregs.length; i++) {
+      const p = o.pregs[i];
+      if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+      for (const k in p) if (Object.prototype.hasOwnProperty.call(p, k) && k !== 't' && k !== 'x') return null;
+      if (!txt(p.t === undefined ? '' : p.t, DOCMOD_LIM.ptit)) return null;
+      if (!txt(p.x === undefined ? '' : p.x, DOCMOD_LIM.ptxt)) return null;
+      c.pregs.push({ t: String(p.t === undefined ? '' : p.t), x: String(p.x === undefined ? '' : p.x) });
+    }
+    return c;
+  };
+  const st = { v: DOCMOD_VER, incl: {}, prop: [] };
+  const ri = (raw.incl === undefined) ? {} : raw.incl;
+  if (!ri || typeof ri !== 'object' || Array.isArray(ri)) return no();
+  for (const k in ri) if (Object.prototype.hasOwnProperty.call(ri, k) && DOCMOD_INCL.indexOf(k) < 0) return no();
+  DOCMOD_INCL.forEach(function (k) { st.incl[k] = { vis: true, nom: '', ed: null }; });
+  for (let i = 0; i < DOCMOD_INCL.length; i++) {
+    const k = DOCMOD_INCL[i], e = ri[k];
+    if (e === undefined) continue;
+    if (!e || typeof e !== 'object' || Array.isArray(e)) return no();
+    for (const q in e) if (Object.prototype.hasOwnProperty.call(e, q) && ['vis', 'nom', 'ed'].indexOf(q) < 0) return no();
+    if (!bol(e.vis)) return no();
+    if (e.nom !== undefined && !txt(e.nom, DOCMOD_LIM.nom)) return no();
+    let ed = null;
+    if (e.ed !== undefined && e.ed !== null) {
+      ed = cuerpo(e.ed, (k === 'constancia') ? 'constancia' : 'consent');
+      if (!ed) return no();
+    }
+    st.incl[k] = { vis: e.vis !== false, nom: String(e.nom || ''), ed: ed };
+  }
+  const rp = (raw.prop === undefined) ? [] : raw.prop;
+  if (!Array.isArray(rp)) return no();
+  if (rp.length > DOCMOD_PROPIOS_MAX) return no('propios');
+  const vistas = [];
+  for (let i = 0; i < rp.length; i++) {
+    const p = rp[i];
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return no();
+    const K_P = ['clave', 'tipo', 'vis', 'nom'].concat(K_ED);
+    for (const q in p) if (Object.prototype.hasOwnProperty.call(p, q) && K_P.indexOf(q) < 0) return no();
+    if (typeof p.clave !== 'string' || !/^[a-z0-9_-]{1,40}$/.test(p.clave)) return no();
+    if (DOCMOD_INCL.indexOf(p.clave) >= 0 || vistas.indexOf(p.clave) >= 0) return no();
+    vistas.push(p.clave);
+    if (p.tipo !== 'constancia' && p.tipo !== 'consent') return no();
+    if (!bol(p.vis)) return no();
+    if (!txt(p.nom === undefined ? '' : p.nom, DOCMOD_LIM.nom)) return no();
+    const c = cuerpo({ tit: p.tit, frase: p.frase, txt: p.txt, pregs: p.pregs,
+                       decl: p.decl, firmas: p.firmas, comunes: p.comunes }, p.tipo);
+    if (!c) return no();
+    const o = { clave: p.clave, tipo: p.tipo, vis: p.vis !== false, nom: String(p.nom || '') };
+    for (const q in c) if (Object.prototype.hasOwnProperty.call(c, q)) o[q] = c[q];
+    st.prop.push(o);
+  }
+  if (DOCMOD_INCL.length + st.prop.length > DOCMOD_TOTAL_MAX) return no('propios');
+  return { ok: true, st: st, motivo: '' };
+}
+window.docmodValidar = docmodValidar;
+
+function docmodLeer() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(DOCMOD_KEY) || 'null'); } catch (e) { return docmodVacio(); }
+  if (raw === null) return docmodVacio();
+  const r = docmodValidar(raw, false);
+  return r.ok ? r.st : docmodVacio();
+}
+function docmodEscribir(st) {
+  try { localStorage.setItem(DOCMOD_KEY, JSON.stringify(st)); return true; }
+  catch (e) { return false; }   // cuota llena: el llamador avisa, no se finge exito
+}
+window.docmodLeer = docmodLeer;
+window.docmodEscribir = docmodEscribir;
+
+/* ── EL MODELO VIGENTE DE UN DOCUMENTO ────────────────────────────────────────────────────── */
+function docmodModelo(clave, st) {
+  st = st || docmodLeer();
+  if (DOCMOD_INCL.indexOf(clave) >= 0) {
+    const o = docmodOrig(clave);
+    if (!o) return null;
+    const e = st.incl[clave] || { vis: true, nom: '', ed: null };
+    const f = e.ed || o;
+    const m = { clave: clave, tipo: o.tipo, incl: true, propio: false,
+                nom: e.nom || o.nom, vis: e.vis !== false, editado: !!e.ed,
+                tit: String(f.tit || ''), decl: f.decl !== false,
+                firmas: f.firmas !== false, comunes: f.comunes !== false };
+    if (o.tipo === 'constancia') { m.frase = f.frase !== false; m.txt = String(f.txt || ''); }
+    else { m.pregs = (f.pregs || []).map(function (p) { return { t: String(p.t || ''), x: String(p.x || '') }; }); }
+    return m;
+  }
+  const p = (st.prop || []).filter(function (x) { return x && x.clave === clave; })[0];
+  if (!p) return null;
+  const m = { clave: clave, tipo: p.tipo, incl: false, propio: true,
+              nom: String(p.nom || ''), vis: p.vis !== false, editado: true,
+              tit: String(p.tit || ''), decl: p.decl !== false,
+              firmas: p.firmas !== false, comunes: p.comunes !== false };
+  if (p.tipo === 'constancia') { m.frase = p.frase !== false; m.txt = String(p.txt || ''); }
+  else { m.pregs = (p.pregs || []).map(function (q) { return { t: String(q.t || ''), x: String(q.x || '') }; }); }
+  return m;
+}
+window.docmodModelo = docmodModelo;
+
+/* La lista completa, en el orden del menu: los incluidos en su orden y despues los propios (B5). */
+function docmodLista(st) {
+  st = st || docmodLeer();
+  const out = [];
+  DOCMOD_INCL.forEach(function (k) { const m = docmodModelo(k, st); if (m) out.push(m); });
+  (st.prop || []).forEach(function (p) { const m = docmodModelo(p.clave, st); if (m) out.push(m); });
+  return out;
+}
+window.docmodLista = docmodLista;
+
+/* El cuerpo editable de un modelo, para comparar contra el original. */
+function docmodCuerpo(m) {
+  const c = { tit: String(m.tit || ''), decl: m.decl !== false,
+              firmas: m.firmas !== false, comunes: m.comunes !== false };
+  if (m.tipo === 'constancia') { c.frase = m.frase !== false; c.txt = String(m.txt || ''); }
+  else { c.pregs = (m.pregs || []).map(function (p) { return { t: String(p.t || ''), x: String(p.x || '') }; }); }
+  return c;
+}
+/* ⚠️ «SIN EDITAR» SE DECIDE COMPARANDO CONTRA EL ORIGINAL Y NO CON UNA BANDERA, y de eso depende
+   la regla de oro: con una bandera, «Volver al texto original» mas Guardar dejaria el documento
+   marcado como editado para siempre y su papel saldria por el armador en vez de por su
+   definicion. Comparando, vuelve solo a `ed: null`. */
+function docmodIgualAlOriginal(clave, m) {
+  const o = docmodOrig(clave);
+  if (!o) return false;
+  try { return JSON.stringify(docmodCuerpo(o)) === JSON.stringify(docmodCuerpo(m)); }
+  catch (e) { return false; }
+}
+window.docmodIgualAlOriginal = docmodIgualAlOriginal;
+
+/* ── EL ARMADOR: UN MODELO -> LA LISTA DE BLOQUES QUE EL MAQUETADOR YA SABE DIBUJAR ──────── */
+
+/* Las tres piezas. Para un incluido se SACAN DE SU PROPIA DEFINICION por rebanado, asi que su
+   declaracion nombra su procedimiento; para un propio salen de `docDeclaracion` con «el
+   procedimiento» (A5) y de `docHojasComunes`, que ya arranca con un `salto`: las hojas comunes
+   van «a continuacion, aparte», que es lo que D4 pide. */
+function docmodPiezas(m) {
+  let d, com;
+  if (m.incl) {
+    const b = DOC_DEFS[m.clave].bloques();
+    let iD = -1, iF = -1;
+    b.forEach(function (x, i) {
+      if (iD < 0 && x.grupo === 'firmas') iD = i;
+      if (iF < 0 && x.t === 'tfirmas') iF = i;
+    });
+    if (iD < 0 || iF < 0) { d = docDeclaracion(DOCMOD_PROC, false, DOCMOD_PROC_AC); iF = d.length - 1; com = docHojasComunes(); return { decl: d.slice(0, iF), firmas: [d[iF]], comunes: com }; }
+    return { decl: b.slice(iD, iF), firmas: [b[iF]], comunes: b.slice(iF + 1) };
+  }
+  d = docDeclaracion(DOCMOD_PROC, false, DOCMOD_PROC_AC);
+  let iF = -1;
+  d.forEach(function (x, i) { if (iF < 0 && x.t === 'tfirmas') iF = i; });
+  return { decl: d.slice(0, iF), firmas: [d[iF]], comunes: docHojasComunes() };
+}
+
+function docmodArmar(m) {
+  const bl = [];
+  const mete = function (xs) { (xs || []).forEach(function (b) { bl.push(b); }); };
+  if (m.tipo === 'constancia') {
+    bl.push({ t: 'enc' });
+    bl.push({ t: 'ciudadfecha' });
+    if (String(m.tit || '').trim()) bl.push({ t: 'tit', x: m.tit });
+    if (m.frase !== false) bl.push({ t: 'p', x: DOCMOD_FRASE });
+    mete(docmodTextoABloques(m.txt));
+    /* La constancia cierra con la firma del medico y su aire de 90 pt, igual que la incluida. */
+    bl.push({ t: 'firma' });
+    return bl;
+  }
+  mete(docEncConsent(String(m.tit || '')));
+  (m.pregs || []).forEach(function (p) {
+    /* ⚠️ UNA PREGUNTA CON EL TEXTO VACIO NO SE IMPRIME, y tampoco su titulo: un titulo de
+       seccion sin cuerpo numera una seccion que no dice nada. El editor lo avisa. */
+    const cuerpo = docmodTextoABloques(p.x);
+    if (!cuerpo.length) return;
+    if (String(p.t || '').trim()) bl.push({ t: 'sec', x: p.t });
+    mete(cuerpo);
+  });
+  const pz = docmodPiezas(m);
+  if (m.decl !== false) mete(pz.decl);
+  /* ⚠️ SIN TABLA DE FIRMAS QUEDA IGUAL LA FIRMA DEL MEDICO (C2), y lleva el mismo `grupo` que la
+     declaracion para que las dos sigan viajando juntas de hoja. */
+  if (m.firmas !== false) mete(pz.firmas);
+  else bl.push({ t: 'firma', grupo: 'firmas' });
+  if (m.comunes !== false) mete(pz.comunes);
+  return bl;
+}
+window.docmodArmar = docmodArmar;
+
+/* La def que la hoja, el PDF y la imagen consumen.
+   ⚠️ UN INCLUIDO SIN EDITAR DEVUELVE `DOC_DEFS[clave]` TAL CUAL -- el mismo objeto-, que es la
+   regla de oro de A3. */
+function docmodDef(clave) {
+  const m = docmodModelo(clave);
+  if (!m) return null;
+  if (m.incl && !m.editado) return DOC_DEFS[clave];
+  return { clave: clave, menu: m.nom,
+           tit: m.incl ? DOC_DEFS[clave].tit : (m.nom || m.tit || 'Documento'),
+           sz: DOCMOD_SZ[m.tipo], lh: DOCMOD_LH[m.tipo], hojas: 1,
+           bloques: function () { return docmodArmar(m); } };
+}
+window.docmodDef = docmodDef;
+
 /* ── EL MAQUETADOR: UNA LISTA DE BLOQUES -> UNA LISTA DE OPERACIONES DE DIBUJO ────────────
    Devuelve {hojas:[[op,...],...], n}. Las operaciones son:
      {k:'t', x, y, sz, b, i, col, s}            texto a la izquierda
@@ -115538,6 +116012,47 @@ function docMaquetar(def, D, bloques) {
       }
       cur().push({ k: 't', x: x, y: y, sz: sz, b: b, i: i, col: col, s: ls[q] });
     }
+  }
+
+  /* ⚠️ PANT-32: UN PARRAFO CON NEGRITA PALABRA POR PALABRA, Y VIVE APARTE DE `parrafo` A
+     PROPOSITO. Lo emite SOLO el bloque `pr`, que a su vez lo emite solo el armador de modelos y
+     solo cuando el texto del medico trae dobles asteriscos: asi los cuatro documentos SIN EDITAR
+     no pasan por una sola linea nueva y el papel de PANT-31 no puede moverse -- es la regla de
+     oro de A3 cumplida por construccion y no por cuidado-.
+     Mide cada palabra con SU tipografia: el ancho de «Frecuentes:» en negrita no es el de la
+     redonda, asi que delegar el reparto a `splitTextToSize` -que mide con UNA fuente- dejaria la
+     linea corta o desbordada. */
+  function parrafoRico(runs, o) {
+    o = o || {};
+    const sz = o.sz || SZ, col = o.col || null;
+    const x = (o.x === undefined) ? G.ML : o.x, w = o.w || (cw - (x - G.ML));
+    const pal = [];
+    (runs || []).forEach(function (r) {
+      docSan(r.s).split(/\s+/).forEach(function (p) { if (p) pal.push({ s: p, b: !!r.b }); });
+    });
+    if (!pal.length) return;
+    const esp = (function () { setF(sz, false, false); return md.getTextWidth(' '); })();
+    const lineas = []; let ln = [], ancho = 0;
+    pal.forEach(function (p) {
+      setF(sz, p.b, false);
+      const a = md.getTextWidth(p.s);
+      if (ln.length && (ancho + esp + a) > w) { lineas.push(ln); ln = []; ancho = 0; }
+      if (ln.length) ancho += esp;
+      ln.push({ s: p.s, b: p.b, a: a }); ancho += a;
+    });
+    if (ln.length) lineas.push(ln);
+    lineas.forEach(function (l, q) {
+      if (!cabe(LH)) nueva();
+      y += LH;
+      const ult = (q === lineas.length - 1);
+      let tot = 0; l.forEach(function (p) { tot += p.a; });
+      let gap = esp;
+      /* La ULTIMA linea nunca se justifica, igual que en `parrafo`. */
+      if (o.just && !ult && l.length > 1) { const g = (w - tot) / (l.length - 1); if (g > 0) gap = g; }
+      let cx = x; const ws = [];
+      l.forEach(function (p) { ws.push({ s: p.s, x: cx, b: p.b }); cx += p.a + gap; });
+      cur().push({ k: 'tw', y: y, sz: sz, b: false, i: false, col: col, ws: ws });
+    });
   }
 
   /* Una viñeta, con sangria francesa: la segunda linea arranca debajo del texto y no del punto. */
@@ -115779,6 +116294,8 @@ function docMaquetar(def, D, bloques) {
     }
     if (b.t === 'p') { parrafo(docSust(b.x, D), { just: true }); y += LH * 0.16; return; }
     if (b.t === 'pchk') { parrafoCasillas(docSust(b.x, D)); y += LH * 0.16; return; }
+    /* PANT-32: el parrafo con negrita. Mismo aire de cierre que `p`. */
+    if (b.t === 'pr') { parrafoRico(b.runs, { just: true }); y += LH * 0.16; return; }
     if (b.t === 'ul') {
       const its = b.items || [], aire = (b.aire || 0) * G.PT;
       its.forEach(function (it, q) {
@@ -115790,7 +116307,11 @@ function docMaquetar(def, D, bloques) {
     if (b.t === 'raya') {
       if (!cabe(LH * 3)) nueva();
       y += LH * 0.3;
-      parrafo(docSust(b.x, D), { b: true, just: false });
+      /* ⚠️ PANT-32: EL ROTULO PUEDE VENIR VACIO, y con `parrafo('')` se dibujaria un renglon de
+         nada que corre la raya un interlineado hacia abajo. Los cuatro incluidos siempre traen
+         rotulo, asi que esta guarda no toca su papel: la necesita el texto del medico, donde una
+         linea de guiones bajos sin parrafo delante es una raya pelada. */
+      if (String(b.x || '').trim() !== '') parrafo(docSust(b.x, D), { b: true, just: false });
       y += LH * 0.8;
       cur().push({ k: 'l', x1: G.ML, x2: G.W - G.MR, y: y, y2: y, col: [120, 120, 120], w: 0.2 });
       y += LH * 0.45; return;
@@ -115870,7 +116391,14 @@ function docOpsAPdf(def, maq) {
       if (o.k === 'tw') {
         doc.setFont('helvetica', o.b ? (o.i ? 'bolditalic' : 'bold') : (o.i ? 'italic' : 'normal'));
         doc.setFontSize(o.sz); col(o.col);
-        o.ws.forEach(function (w) { doc.text(w.s, w.x, o.y); });
+        o.ws.forEach(function (w) {
+          /* ⚠️ PANT-32: EL PESO POR PALABRA ES OPCIONAL. Solo lo trae `pr`; sin el campo la linea
+             se dibuja con el peso de la LINEA, que es lo que hacian las 21, 27 y 23 lineas
+             justificadas de los tres consentimientos. Por eso la regla de oro no depende de que
+             nadie toque esto. */
+          if (w.b !== undefined) doc.setFont('helvetica', w.b ? 'bold' : 'normal');
+          doc.text(w.s, w.x, o.y);
+        });
         return;
       }
       if (o.k === 'l') {
@@ -115937,7 +116465,9 @@ function docOpsASvg(maq) {
         s += '<text x="' + px(G.W - G.MR) + '" y="' + px(o.y) + '" text-anchor="end" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(o.s) + '</text>';
       } else if (o.k === 'tw') {
         o.ws.forEach(function (w) {
-          s += '<text x="' + px(w.x) + '" y="' + px(o.y) + '" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(w.s) + '</text>';
+          /* El mismo peso opcional por palabra que el emisor del PDF: sin el campo, el de la linea. */
+          const pw = (w.b === undefined) ? pesoI : (w.b ? ' font-weight="700"' : '');
+          s += '<text x="' + px(w.x) + '" y="' + px(o.y) + '" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pw + esti + '>' + escHtml(w.s) + '</text>';
         });
       } else if (o.k === 'l') {
         s += '<line x1="' + px(o.x1) + '" y1="' + px(o.y) + '" x2="' + px(o.x2) + '" y2="' + px(o.y2 === undefined ? o.y : o.y2) + '" stroke="' + rgb(o.col) + '" stroke-width="' + px(o.w || 0.2) + '"/>';
@@ -115965,7 +116495,46 @@ function docOpsASvg(maq) {
    ⚠️ NO SE PERSISTE, a proposito: ver el encabezado del modulo. */
 let _docEst = Object.create(null);
 let _docAbierto = null;
+let _docDef = null;
 let _docFoco = null;
+
+/* La def de la hoja abierta. El respaldo a `DOC_DEFS` es para los cuatro incluidos: si una sonda
+   o un caso llama a `docImprimir` sin pasar por `docAbrir`, sigue habiendo def. */
+function docDefActual() {
+  if (_docDef) return _docDef;
+  return _docAbierto ? DOC_DEFS[_docAbierto] : null;
+}
+window.docDefActual = docDefActual;
+
+/* Los nodos de un parrafo con negrita, leidos del DOM por su peso CALCULADO. */
+function docRicoDelDom(el) {
+  const runs = [];
+  const rec = function (n, b) {
+    if (n.nodeType === 3) { if (n.nodeValue) runs.push({ s: n.nodeValue, b: b }); return; }
+    if (n.nodeType !== 1) return;
+    let nb = b;
+    if (!nb) {
+      if (n.nodeName === 'B' || n.nodeName === 'STRONG') nb = true;
+      else { let w = ''; try { w = getComputedStyle(n).fontWeight || ''; } catch (e) { w = ''; }
+             if (w === 'bold' || w === 'bolder' || (+w >= 600)) nb = true; }
+    }
+    Array.prototype.forEach.call(n.childNodes, function (c) { rec(c, nb); });
+  };
+  rec(el, false);
+  /* Se juntan los vecinos del mismo peso: un contenteditable parte el texto en varios nodos al
+     escribir, y sin juntarlos el modelo crece una entrada por tecla. */
+  const out = [];
+  runs.forEach(function (r) {
+    const s = String(r.s).replace(/\s+/g, ' ');
+    if (!s) return;
+    const u = out[out.length - 1];
+    if (u && u.b === r.b) { u.s += s; return; }
+    out.push({ s: s, b: r.b });
+  });
+  if (out.length) { out[0].s = out[0].s.replace(/^\s+/, ''); out[out.length - 1].s = out[out.length - 1].s.replace(/\s+$/, ''); }
+  return out.length ? out : [{ s: '', b: false }];
+}
+window.docRicoDelDom = docRicoDelDom;
 
 function docFirmaDatos(D) {
   try { return JSON.stringify([D.inst, D.ciudad, D.pac, D.art, D.docl, D.docn, D.est, D.med, D.mat, D.esp, D.fecha]); }
@@ -115986,6 +116555,11 @@ function docBloquesNuevos(def, D) {
        ESTA copia, no sobre la definicion-. Es lo que les paso a `cajas` y `neg`, que nadie
        copiaba y nadie leia. */
     if (b.aire) c.aire = b.aire;
+    /* ⚠️ `runs` VIAJA CON EL BLOQUE por el mismo motivo que `aire`: `docRender` y el maquetador
+       trabajan sobre ESTA copia, no sobre la definicion. Sin esto, un parrafo con negrita del
+       modelo del medico perderia su negrita en cuanto se abriera la hoja. Es lo que les paso a
+       `cajas` y `neg`, que nadie copiaba y nadie leia. */
+    if (b.runs) c.runs = b.runs.map(function (r) { return { s: docSust(r.s, D), b: !!r.b }; });
     if (b.grupo) c.grupo = b.grupo;
     return c;
   });
@@ -116014,7 +116588,10 @@ window.docMenuCerrar = docMenuCerrar;
    cambiaron, se AVISA y no se pisa nada, que es lo que la orden pide. */
 function docAbrir(clave) {
   docMenuCerrar();
-  const def = DOC_DEFS[clave];
+  /* ⚠️ LA DEF SALE DEL ALMACEN DE MODELOS Y NO DE `DOC_DEFS`, y para un incluido SIN EDITAR
+     `docmodDef` devuelve el objeto de `DOC_DEFS` tal cual -- el MISMO, no una copia-, que es
+     como la regla de oro de A3 se cumple sin una rama paralela. */
+  const def = docmodDef(clave);
   if (!def) return;
   if (typeof window.jspdf === 'undefined') {
     if (typeof toast === 'function') toast('La biblioteca PDF está cargando, intentá en un momento.');
@@ -116026,6 +116603,11 @@ function docAbrir(clave) {
   if (!st) { st = _docEst[clave] = { bloques: docBloquesNuevos(def, D), editado: false, firma: firma }; }
   else if (!st.editado) { st.bloques = docBloquesNuevos(def, D); st.firma = firma; }
   _docAbierto = clave;
+  /* ⚠️ LA DEF SE CONGELA AL ABRIR. Las cinco funciones de la hoja -- render, imprimir, guardar,
+     quitar y sincronizar-- leian `DOC_DEFS[_docAbierto]`, y con el modelo editable eso seria
+     recalcularla en cada llamada: si el medico cambia el modelo en Configuracion con la hoja
+     abierta, la pantalla y el papel saldrian de dos modelos distintos. */
+  _docDef = def;
   _docFoco = document.activeElement;
   const ov = document.getElementById('doc-ov');
   const tit = document.getElementById('doc-ov-tit');
@@ -116047,6 +116629,7 @@ function docCerrar() {
   const c = document.getElementById('doc-conf');
   if (c) c.hidden = true;
   _docAbierto = null;
+  _docDef = null;
   if (_docFoco && _docFoco.focus) { try { _docFoco.focus(); } catch (e) {} }
   _docFoco = null;
 }
@@ -116140,7 +116723,7 @@ window.docAvisoSync = docAvisoSync;
 
 function docActualizarDatos() {
   if (!_docAbierto) return;
-  const def = DOC_DEFS[_docAbierto], D = docDatos();
+  const def = docDefActual(), D = docDatos();
   _docEst[_docAbierto] = { bloques: docBloquesNuevos(def, D), editado: false, firma: docFirmaDatos(D) };
   docAvisoSync();
   docRender();
@@ -116155,7 +116738,7 @@ window.docActualizarDatos = docActualizarDatos;
 function docRender() {
   const h = document.getElementById('doc-hoja');
   if (!h || !_docAbierto) return;
-  const st = _docEst[_docAbierto], def = DOC_DEFS[_docAbierto], D = docDatos();
+  const st = _docEst[_docAbierto], def = docDefActual(), D = docDatos();
   let out = '', nsec = 0;
   (st.bloques || []).forEach(function (b) {
     const ed = ' contenteditable="true" data-doc-i="' + b.i + '" spellcheck="false"';
@@ -116198,6 +116781,15 @@ function docRender() {
        aca ya se ve como un cuadrado. Y sigue siendo editable, con lo que el U+2610 viaja en el
        `innerText` y vuelve al bloque. */
     if (b.t === 'p' || b.t === 'pchk') { out += '<p class="doc-p"' + ed + '>' + docMarcar(b.x, D) + '</p>'; return; }
+    /* PANT-32: el parrafo con negrita. Los asteriscos NO se ven en pantalla -- se ve la negrita,
+       que es lo que el papel dibuja-, y `docEditado` la vuelve a leer del DOM. */
+    if (b.t === 'pr') {
+      out += '<p class="doc-p"' + ed + '>' + (b.runs || []).map(function (r) {
+        const h = docMarcar(r.s, D);
+        return r.b ? ('<b>' + h + '</b>') : h;
+      }).join('') + '</p>';
+      return;
+    }
     if (b.t === 'ul') {
       out += '<ul class="doc-ul' + (b.aire ? ' doc-ul-aire' : '') + '">' + (b.items || []).map(function (it, j) {
         let txt = docMarcar(it, D);
@@ -116280,6 +116872,12 @@ function docEditado(ev) {
   const b = (st.bloques || []).find(function (x) { return x.i === i; });
   if (!b) return;
   const txt = String(el.innerText || '').replace(/\s+/g, ' ').trim();
+  /* ⚠️ UN PARRAFO CON NEGRITA SE LEE DEL DOM Y NO DEL `innerText`, PORQUE EL TEXTO LLANO NO
+     TIENE PESO. Con `b.x = txt` el parrafo quedaria plano en cuanto el medico corrigiera una
+     coma, y eso se ve recien en el papel. Se recorren los nodos y se pregunta por el peso
+     CALCULADO, no por el nombre de la etiqueta: el navegador deja `<b>`, `<strong>` o un `span`
+     con `font-weight` segun como se haya editado. */
+  if (b.t === 'pr') { b.runs = docRicoDelDom(el); st.editado = true; st.entregado = false; return; }
   if (jj === null) b.x = txt; else if (b.items) b.items[parseInt(jj, 10)] = txt;
   st.editado = true;
   /* Lo entregado antes de esta correccion ya no es lo que esta en pantalla. */
@@ -116289,7 +116887,7 @@ function docEditado(ev) {
 /* ── IMPRIMIR: SOLO LA HOJA ───────────────────────────────────────────────────────────────── */
 function docImprimir() {
   if (!_docAbierto) return;
-  const def = DOC_DEFS[_docAbierto], st = _docEst[_docAbierto], D = docDatos();
+  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatos();
   const maq = docMaquetar(def, D, st.bloques);
   if (!maq) { docEstado('No se pudo armar el documento: la biblioteca PDF no está disponible.'); return; }
   const doc = docOpsAPdf(def, maq);
@@ -116336,7 +116934,7 @@ function docUuid() {
 
 function docGuardarImagen() {
   if (!_docAbierto) return;
-  const def = DOC_DEFS[_docAbierto], st = _docEst[_docAbierto], D = docDatos();
+  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatos();
   const maq = docMaquetar(def, D, st.bloques);
   if (!maq) { docEstado('No se pudo armar la imagen: la biblioteca PDF no está disponible.'); return; }
   const G = DOC_GEO, K = 3.7795275591, ESC = 1.5;
@@ -116362,7 +116960,7 @@ window.docGuardarImagen = docGuardarImagen;
 
 function docQuitarImagen() {
   if (!_docAbierto) return;
-  const def = DOC_DEFS[_docAbierto];
+  const def = docDefActual();
   const uuid = docUuid();
   if (!uuid || typeof CeiboImg === 'undefined' || !CeiboImg.borrarEsquema) {
     docEstado('No hay nada que quitar: el estudio todavía no está guardado.');
@@ -116384,7 +116982,7 @@ function docImgSync() {
   if (!b || !_docAbierto) return Promise.resolve(false);
   const uuid = docUuid();
   if (!uuid || typeof CeiboImg === 'undefined' || !CeiboImg.esquemas) { b.hidden = true; return Promise.resolve(false); }
-  const cl = docClaveEsq(DOC_DEFS[_docAbierto].clave);
+  const cl = docClaveEsq(docDefActual().clave);
   return CeiboImg.esquemas(uuid).then(function (es) {
     const hay = (es || []).some(function (e) { return e && e.clave === cl; });
     b.hidden = !hay;
