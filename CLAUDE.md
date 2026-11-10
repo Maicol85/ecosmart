@@ -113,6 +113,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar la HOJA DE UN DOCUMENTO en pantalla** —el botón en el rincón derecho, la A4 en milímetros con su cuerpo en puntos y su zoom, el pegado como texto llano, el clic en el fondo con su confirmación—, **la CONSTANCIA en tres oraciones**, **el LOGO a la izquierda con el nombre centrado**, **el cuerpo y el SALTO DE HOJA de los tres consentimientos**, **las casillas DIBUJADAS de la declaración**, **las hojas comunes sin título**, o **la CASILLA DE PPT de «Prótesis valvulares» con su diapositiva** | `docs/mapa/pant31-hoja-ppt.md` |
 | **Tocar un DOCUMENTO del Informe** —la constancia o los tres consentimientos—: el boton «Documentos», el maquetador unico con sus tipos de bloque, la justificacion palabra por palabra, la casilla dibujada, el salto de hoja del ETE, la regla de la declaracion junto a las firmas, el azul de los datos, el aviso «Actualizar con los datos», o la hoja guardada en «Imagenes»; **o la seccion «PROTESIS VALVULARES» del Laboratorio**: por que no puede llamar a ningun evaluador de protesis, de donde sale cada dato, las dos pilas del grafico, el orden de las categorias de trastorno, los dos que van aparte, o su seccion del PDF de auditoria | `docs/mapa/pant30-documentos-protesis.md` · el manual del medico en `docs/DOCUMENTOS_P30.md` |
 | **Tocar las DOS TARJETAS GRISES de Contractilidad, el bloque «Arterias posiblemente involucradas» o las ARTERIAS CORONARIAS del 3D**: el achique a 220 y 150 px, las cinco formas de texto del bloque con su dueño del nivel, el botón «Coronarias», el tronco de la aorta, las siete letras, el tramo gris, la dominancia, las seis vistas de angiografía, o por qué las arterias acompañan la contracción | `docs/mapa/pant29-coronarias-3d.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
@@ -140,7 +141,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -240,6 +241,14 @@ y los seis que recibieron un puntero quedaron medidos ANTES de escribirlo, que e
 **`informe-pdf-excel.md` queda a 600 bytes del techo: la próxima tanda que lo toque tiene que
 partirlo.**
 
+⚠️ **Al 2026-11-10, tras la tanda PANT-31, el mapa nuevo nació mediano** —`pant31-hoja-ppt.md`,
+**18,2 KB**— y los dos que recibieron un puntero quedaron medidos ANTES de escribirlo, que es la
+regla: `pant30-documentos-protesis.md` **13,9 → 15,4 KB** y `tests-punteros-tandas.md`
+**34,1 → 34,7 KB**. ⚠️ **Ese último queda a 300 bytes del techo: la próxima tanda que lo toque
+tiene que partirlo.** Las fichas de los seis casos salieron a archivo propio
+(`tests-fichas-795.md`, 10,2 KB) justamente por eso: `tests-fichas.md` está a menos de 1 KB del
+suyo.
+
 ⚠️ **Al 2026-10-29, tras la tanda IMÁGENES, el mapa nuevo nació chico** —`img-guardadas.md`,
 **17,3 KB**— y los cuatro que recibieron un puntero quedaron medidos ANTES de escribirlo, que es
 la regla: `tests.md` **27,7 KB**, `informe-pdf-excel.md` 27,2 (no se tocó),
@@ -254,9 +263,32 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,50 MB / 171.796 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
-  cierre de la tanda **PANT-30**, sobre el árbol ya sellado: sello **`v20261110-1024`**, md5
-  **`81f36826`**.
+  sin frameworks. Hoy **12,53 MB / 172.247 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
+  cierre de la tanda **PANT-31**, sobre el árbol ya sellado:
+  sello **`v20261110-1327`**, md5 **`fcb65077`**.
+  ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
+  renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
+  salto de línea entre los dos el caso sale ROJO -- lo pagó esta tanda, que los partió al reflujar el
+  párrafo.
+  El diff de PANT-31 son **499 líneas agregadas y 56 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `e531b73`, de las que **459** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos —la única aparición de `innerHTML` en el diff es un
+  comentario que declara que `docRender` reescribe el de la hoja— y cero claves ni contraseñas.
+  **Cero campos guardados nuevos**, **cero columnas de Excel (457)** y **ningún id existente
+  cambiado**: los cuatro ids nuevos son todos de pantalla —`doc-conf`, `doc-conf-txt`,
+  `doc-conf-seguir` y `doc-conf-ok`—, ninguno termina en `-aviso` ni cae bajo ninguno de los
+  **veintiún** barridos por sufijo o prefijo de id del archivo (12 `id$=` y 9 `id^=`, contados
+  distintos), y cada uno aparece exactamente una vez.
+  ⚠️ **Y POR PRIMERA VEZ EN VEINTIOCHO TANDAS EL RENGLÓN QUE SE ENCONTRÓ ESTABA MAL EN LAS TRES
+  CIFRAS: una resellada atrás Y corto por ocho líneas.** Decía 12,50 MB / **171.796** líneas con el
+  sello `v20261110-1024` y el md5 `81f36826`, y el árbol que se abrió —`e531b73`, el cierre de
+  PANT-30— traía **171.804** líneas, **12.501.930** bytes, sello **`v20261110-1041`** y md5
+  **`f4ded2a9`**, verificado con `git show e531b73:index.html` y con el sello del pie. Lo más
+  llamativo es que **el párrafo de PANT-30 de «Estado vigente», en este mismo archivo, SÍ los tenía
+  bien**: PANT-30 se reselló al cerrar, su sección lo registró y este renglón se quedó con el primer
+  sello. **Medirlo con `wc -c`, `wc -l` y `md5` antes de presupuestar contexto**, y cuando las dos
+  partes de este archivo no coincidan, creerle al archivo y no a ninguna de las dos.
+  (Antes: 12,50 MB / 171.804 al cierre de la tanda **PANT-30**, sello **`v20261110-1041`**, md5 **`f4ded2a9`**.)
   El diff de PANT-30 son **1.780 líneas agregadas y 3 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `41d9c1d`, de las que **1.692** no son comentario, con **CINCO**
   `innerHTML` nuevos —los cinco declarados: `docRender`, que arma su marcado entero con `escHtml`
@@ -971,6 +1003,95 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-31 (2026-11-10) — la hoja de los documentos del Informe, y la casilla de PPT de las
+prótesis valvulares.** NUEVE commits. Sello **`v20261110-1327`**, md5 **`fcb65077`**. ⚠️ **EL
+DEFECTO QUE EL MÉDICO REPORTÓ ERA UNA LÍNEA DE CSS, Y NO UN RECORTE**: `.doc-hoja-wrap` es
+`display:flex` y su `align-items` computaba `normal` —o sea **stretch**—, así que la hoja recibía un
+alto **definido** igual al de la caja del envoltorio (783 px) en vez de crecer con su contenido, y
+**1.502 de los 2.285 px de tinta del ETE se dibujaban por fuera del papel blanco**, sobre el fondo
+oscuro del overlay (2.677 a 390 px). No había desborde horizontal ni texto recortado en ninguno de
+los cinco anchos: el problema era entero vertical. Y la hoja pasa a ser una **A4 de verdad** —210 mm,
+`min-height` 297, los márgenes de `DOC_GEO`— con el cuerpo y el interlineado en los **puntos** de la
+misma `def` que maqueta jsPDF (10,5 / 10,2 / 8,8 pt) contra los 12,5 px fijos que usaba para los
+cuatro, los seis tamaños derivados por `calc(var(--doc-sz) + n pt)`, y `docZoomAjustar` escribiendo
+el único número que la hace entrar (1 / 1 / 1 / 0,937 / 0,461). **`zoom` y no `transform`**, porque
+`transform` no participa del flujo y dejaría el alto sin escalar reservado; y porque **con `zoom` el
+clic real cae donde se ve**, verificado con teclado real a 390 px. ⚠️ **LA HIPÓTESIS «NO PUDO
+EDITAR» ES FALSA, Y LA PRIMERA MEDICIÓN LA «CONFIRMÓ» SOBRE LA PANTALLA DE LOGIN**:
+`#login-overlay` es `position:fixed` con `z-index:2147483000` y tapa todo, así que el clic real
+caía ahí y el foco quedaba en `BODY`. Con la sesión abierta, el párrafo, la viñeta y la casilla se
+editan en los cinco anchos. Lo que **sí** faltaba es el **pegado**: la app no tenía **un solo**
+oyente de `paste`, así que entraba el marcado del origen; hoy un oyente delegado lo cancela e
+inserta `text/plain` por `docSan`. El **clic en el fondo** cierra —con `event.target===this`, que es
+además lo que evita que `enhanceClickables` lo vuelva un `role="button"`— y con correcciones a mano
+**pregunta**, con el foco en «Seguir editando» y **Escape = seguir editando**, cortado con
+`stopImmediatePropagation` porque el oyente genérico de accesibilidad le apretaría «Cerrar».
+**«Guardado o impreso» es un estado propio** (`st.entregado`). ⚠️ **DOS PREMISAS DE R4 YA PASABAN**:
+Escape ya cerraba la hoja y el visor de la miniatura ya cerraba con Escape y con un clic afuera. La
+**constancia** pasa a **tres oraciones** —medido, las dos últimas caían a mitad de renglón— y el
+**encabezado** pone el **logo a la izquierda** con el **nombre centrado** en el ancho de la hoja, en
+las tres superficies, probado con un logo ancho y uno cuadrado sin deformar; ⚠️ **la premisa de R6
+era FALSA: el círculo salía a la DERECHA** (x 189 de 210 mm en el papel, x 1054 en pantalla). Los
+**tres consentimientos** quedan a 10,2/13,4 pt con **dos hojas más la común** —medido sobre el PDF
+generado de verdad, 3 y 3 y 3—, el salto antes de «Antes del estudio» en el ETE y en burbujas y
+antes de «¿Hay otras alternativas?» en la cardioversión, la declaración con 5 pt entre viñetas y
+8,30 mm arriba de cada línea de casillas, 6,76 mm hasta la tabla de firmas y su fila en 16 mm, y las
+**hojas comunes sin título** en **una** hoja. ⚠️ **Y LA LÍNEA DE «capacitado para recibir la
+información» NO TENÍA CASILLAS EN EL PAPEL**: era un `p` con los U+2610 **dentro** del texto, que
+`docSan` convierte en un espacio, así que salían **dos huecos** en una línea que el paciente tiene
+que marcar; el `cajas: 1` que llevaba era una bandera **muerta** —nadie la leía y
+`docBloquesNuevos` ni la copiaba, igual que `neg`—. Hoy es un bloque **`pchk`** y
+`parrafoCasillas` la maqueta palabra por palabra dibujando un cuadrado donde está cada glifo, **sin
+cambiar una palabra del texto**. En el **Laboratorio**, «Prótesis valvulares» gana su **casilla de
+PPT** —44 × 44 px, a 14 px del borde, sin marcar de fábrica, en la misma clave
+`ecosmart_lab_ppt_chk`— con un **grupo propio** `prot` y su diapositiva; sin tildar el mazo sale
+**idéntico** (3 hojas, 0 gráficos, 0 tablas) y con tildar trae **una** más, y destildar vuelve
+exacto. ⚠️ **EL GRÁFICO APILADO DE DOS PILAS NO TIENE EQUIVALENTE NATIVO EN ESTE MAZO**, y se midió:
+`_pptAddChart` se usa con **una sola serie** en las catorce hojas y no hay un solo `barGrouping`, así
+que las barras van con `gBarras` y las categorías **posición · tipo** combinadas (**P31-b**).
+
+⚠️ **Y EL HALLAZGO DE MÉTODO MÁS CARO DE LA TANDA ES NUEVO: UN ACENTO GRAVE DE MÁS NO SIEMPRE ROMPE
+EL PARSEO.** Dos, alrededor de «indexOf», en un comentario que agregué a **TC-798**, cerraron su
+template antes de tiempo, y lo que quedó era JS **válido** —una cadena, un `.indexOf` y un `-1`—,
+así que `node --check` **pasó** y el caso quedó registrado con `fn` igual al **número −1**: el runner
+lo evaluaba, le devolvía `undefined` y lo reportaba como «el caso no declara NINGUNA condición».
+Lo encontré imprimiendo `c.fn.length`, que dio **2**. **Y EL BARRIDO DE MUTACIONES LO CONTÓ COMO
+COBERTURA**: un caso que falla siempre produce un `✗`, y el scorer lee el `✗` como «muerta», así que
+las **seis** mutaciones declaradas a TC-798 salieron «muertas» en los dos primeros barridos sin que
+eso probara nada. Se rehizo el barrido entero. El runner gana un **guardián de arranque** —el cuerpo
+de todo caso tiene que ser una **cadena** de más de 40 caracteres, y si no sale con 1— verificado por
+mutación: reintroducir los dos acentos graves en una copia lo pone en rojo con el id del caso.
+**A/B contra `e531b73`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572 claves,
+55.297 celdas de Excel y CERO diferencias de superficie firmada** —informe en los tres estilos, EN
+SUMA, las **457** columnas, los campos, el Laboratorio, el PDF en sus seis plantillas y el PPT de un
+estudio—. Su **cero de pantalla es un control negativo declarado**: ese arnés no abre el menú, ni la
+hoja, ni la sección del Laboratorio, ni tilda la casilla; lo que prueba la Parte A son las cuatro
+sondas propias y TC-795 a TC-800. **44/44 mutaciones dirigidas muertas**, en worktree y nunca sobre
+el vivo, con el md5 del vivo idéntico antes y después; los tres sobrevivientes del primer barrido
+eran **huecos de cobertura** y se cerraron con condiciones nuevas —el tope de 1 del zoom, que en la
+ventana del suite no hace nada; el pegado del `text/html`, que `execCommand` mete como **texto** y
+contar elementos no veía; y el corte del Escape, que se mide con un **centinela** porque el oyente
+genérico elige el diálogo visible más alto y en este árbol no siempre es la hoja—.
+**Suite 809/815** en quince lotes, en UNA pasada sobre el árbol sellado, con los 815 ejecutados, el
+md5 idéntico antes y después y el pendrive `DISK_IMG` verificado diecisiete veces; los rojos son
+**TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551 y TC-557**, los dos
+intermitentes declarados, que pasan **3 de 3 corridos aislados**. **Ningún rojo nuevo**, y **TC-753 quedó verde** después de corregir lo que
+tenía razón en marcar: mi reflujo del renglón de tamaño había partido el sello y el md5 en dos
+líneas. **Chrome y WebKit coinciden en los VEINTE cruces** (dos motores × 1440, 1280, 1000, 768 y
+390 px × dos temas): los dos bordes derechos alineados, cero solapados, la hoja con el mismo zoom
+(1 / 1 / 1 / 0,937 / 0,461), **toda la tinta dentro del papel**, cero desborde horizontal, tres
+hojas de PDF, el cuerpo en 13,6 px = 10,2 pt exactos, el encabezado en tres columnas con el nombre a
+**0,0 px** del centro, la edición y el pegado llano, la pregunta de cierre con su foco y su tarjeta
+dentro de la pantalla, la casilla en 44 × 44 px igual a la de «Valvulopatías», y **cero errores de
+consola y de página en los dos motores**. Las dos únicas diferencias entre motores son de métrica de
+fuente: 2 px de ancho en el botón (134 contra 132) y tres textos que WebKit informa recortados sin
+ganar un píxel de desplazamiento (**P31-f**). Semgrep **124/0**, la línea base; **sin huérfanos
+nuevos**, medido en los dos árboles; **celular 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada
+ancho** —el archivo del barrido es **idéntico byte por byte** al del árbol base—. Lo declarado, en
+**P31-a** a **P31-g**; el mapa, en `docs/mapa/pant31-hoja-ppt.md`; el inventario, en
+`docs/INVENTARIO_P31.md`; las fichas, en `docs/mapa/tests-fichas-795.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT31.md`.
 
 **La tanda PANT-30 (2026-11-10) — los documentos del Informe y las prótesis valvulares en el
 Laboratorio.** NUEVE commits. Sello **`v20261110-1041`**, md5 **`f4ded2a9`**. El Informe gana un

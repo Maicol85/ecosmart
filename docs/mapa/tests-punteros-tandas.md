@@ -501,3 +501,13 @@ subpestaña «Mediciones» **nace oculta** y un acordeon dentro de un panel ocul
 para que haya uuid hay que interceptar `mostrarCardSeveridadValvular`, no asignar
 `valvSevConfirmada` en `window`.
 
+
+
+## PANT-31 (2026-11-10) — TC-795 a TC-800
+
+Las fichas de los seis, con sus denominadores, sus controles y las siete trampas de método que
+pagaron, están en **`docs/mapa/tests-fichas-795.md`** (archivo propio: `tests-fichas.md` está a
+menos de 1 KB de su techo). Adaptados: **TC-789** (las hojas de la cardioversión y del test de
+burbujas pasan de 2 a 3, el ancla de las hojas comunes deja de ser su título retirado, las casillas
+del ETE de 18 a 20, y su copia de bloques gana `mm` y `aire`, que no llevaba) y **TC-793**, con sus
+**tres** condiciones de `data-ppt` **invertidas**.

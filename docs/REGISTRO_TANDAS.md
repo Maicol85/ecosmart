@@ -2692,3 +2692,124 @@ con el que `CLAUDE.md` publicaba, y `git show 41d9c1d:index.html` da **170.019**
 - **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
   **No empeoró.**
 
+## PANT-31 — la hoja de los documentos del Informe y la casilla de PPT de las prótesis (2026-11-10)
+
+**Commits**: el inventario de la TAREA 0; el botón al rincón derecho con la hoja completa, el pegado
+llano y el cierre que pregunta; la constancia en tres oraciones con el logo a la izquierda y el
+nombre centrado; los tres consentimientos y las hojas comunes; la casilla de PPT de las prótesis;
+los seis casos con los arneses; los tres sobrevivientes del barrido; el sello con la guía manual; y
+la documentación. Al empezar, `origin/main` = `HEAD` = **`e531b73`**, el cierre de PANT-30, **ya
+publicado**, con `index.html` en md5 **`f4ded2a9`**, **171.804** líneas, **12.501.930** bytes, sello
+**`v20261110-1041`**, y el pendrive `DISK_IMG` montado.
+Sello nuevo **`v20261110-1327`**, md5 **`fcb65077`**, **172.247** líneas, **12.532.229** bytes.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+⚠️ **EL RENGLÓN DE TAMAÑO QUE SE ENCONTRÓ ESTABA CORTO POR OCHO LÍNEAS, y es la primera vez en
+veintiocho tandas.** `CLAUDE.md` publicaba **171.796** líneas y `wc -l` daba **171.804**; el md5
+(`f4ded2a9`) y el sello sí coincidían, y `git show e531b73:index.html | wc -l` da **171.804**, así
+que el archivo era el bueno y lo que estaba corto era el renglón. Corregido en el commit 9.
+
+- **TRES PREMISAS DE LA ORDEN NO SE REPRODUJERON, y dos decidieron cómo se implementa.** (1) **«El
+  médico no pudo editar la hoja» es FALSO**: medido con clic real y teclado real por CDP, el
+  párrafo, la viñeta y la casilla de dos columnas se editan en los cinco anchos. (2) **El círculo
+  con las iniciales NO estaba en el rincón izquierdo**: salía a la derecha, x 189 de 210 mm en el
+  papel y x 1054 en pantalla. (3) **Escape ya cerraba la hoja y el visor de la miniatura ya cerraba
+  con Escape y con un clic afuera**. Las tres están en `docs/PENDIENTES.md` → **P31-a** y medidas en
+  `docs/INVENTARIO_P31.md`.
+
+- **EL DEFECTO ERA UNA LÍNEA DE CSS.** `.doc-hoja-wrap` es `display:flex` y sin `align-items:
+  flex-start` su valor computa **stretch**: la hoja recibía un alto **definido** de 783 px y
+  **1.502 de los 2.285 px de tinta del ETE se dibujaban fuera del papel blanco**, sobre el fondo
+  oscuro. Cero desborde horizontal y cero texto recortado en los cinco anchos: el problema era
+  entero vertical, y por eso «sólo se lee bien al imprimir» — el PDF lo maqueta jsPDF en
+  milímetros.
+
+- **LA HOJA DE PANTALLA PASA A SER UNA A4 DE VERDAD**, con el cuerpo en los **puntos** de la misma
+  `def` que maqueta jsPDF y los seis tamaños derivados por `calc(var(--doc-sz) + n pt)` —en `em` no
+  se podía: `em` es un cociente y cambia con cada documento—. `docZoomAjustar` escribe el `zoom` que
+  la hace entrar, con `Math.floor` (redondear hacia arriba trae la barra horizontal) y
+  `flex-shrink:0` (un item flex encoge y el zoom calculado salía 1).
+
+- **LA PRIMERA MEDICIÓN DE LA TANDA CONFIRMÓ LA PREMISA SOBRE LA PANTALLA DE LOGIN.**
+  `#login-overlay` es `position:fixed` con `z-index:2147483000`: `elementFromPoint` devolvía el
+  overlay y el clic real caía ahí. El arnés gana `entrar()`, que pone la misma marca de sesión que
+  deja `doLogin` y cierra el aviso legal — **no se tipea la contraseña**.
+
+- **Y EL TECLADO DEL ARNÉS ESCRIBÍA CADA LETRA DOS VECES**: `keyDown` con texto **más** un `char`, y
+  los dos insertan en Chrome. «XKZ» entraba como «XXKKZZ».
+
+- **LA LÍNEA DE «capacitado para recibir la información» NO TENÍA CASILLAS EN EL PAPEL.** Era un
+  `{t:'p'}` con los U+2610 **dentro** del texto y `docSan` los convierte en un espacio, así que se
+  imprimía «el paciente   sí   no se encuentra capacitado»: dos huecos en una línea que el paciente
+  tiene que marcar. El `cajas: 1` que llevaba era una **bandera muerta** —nadie la leía y
+  `docBloquesNuevos` ni la copiaba, igual que `neg`—. Hoy es un bloque `pchk` y `parrafoCasillas` la
+  maqueta palabra por palabra dibujando un cuadrado donde está cada glifo. **El texto no cambia una
+  palabra.**
+
+- **`def.hojas` NO LO LEE NADIE, y mentía**: decía 1 hoja para la cardioversión y el test de
+  burbujas, que el PDF imprimía en 2. Se actualizó a 2 y **TC-799 lo compara contra el PDF generado
+  de verdad**, así que ya no puede pudrirse en silencio (**P31-d**).
+
+- **LA DIAPOSITIVA DE PRÓTESIS NO PUEDE APILAR SUS DOS PILAS**, y se midió: `_pptAddChart` se usa con
+  **una sola serie** en las catorce hojas del generador y en todo `index.html` no hay un solo
+  `barGrouping`. Antes que inventar un mecanismo, las barras van con `gBarras` y las categorías
+  **posición · tipo** combinadas, con las reparaciones rotuladas «(rep.)». Ningún número se pierde
+  (**P31-b**).
+
+- **CUATRO DE MIS PROPIOS CASOS CAÍAN POR EXCEPCIÓN Y NO POR CONDICIÓN**, y es la regla de esta
+  casa: una llamada pelada a una función que la línea base no tiene tira `ReferenceError` y el caso
+  cae sin decir **qué** falta. Hoy los cuatro declaran la ausencia como condición.
+
+- **TRES MUTACIONES SOBREVIVIERON AL PRIMER BARRIDO Y LAS TRES ERAN HUECOS DE COBERTURA**, cerrados
+  con condiciones nuevas y no aflojando la mutación: el **tope de 1 del zoom** (en la ventana del
+  suite el cociente ya es 0,922, así que ahí `Math.min` no hace nada), el **pegado del `text/html`**
+  (`execCommand('insertText')` lo mete como **texto**, así que contar elementos no lo veía) y el
+  **corte del Escape** (el oyente genérico elige el diálogo visible más alto, que en este árbol no
+  siempre es la hoja, así que la mutación no se veía en el estado final — hoy se mide la
+  **propiedad** con un centinela propio).
+
+- **EL ACENTO GRAVE DENTRO DE MI PROPIO COMENTARIO, DOS VECES EN LA MISMA TANDA**, en ocho
+  comentarios nuevos dentro del cuerpo de un caso. Lo cazó `node --check` las dos veces.
+
+- **LA VERIFICACIÓN.**
+  ⚠️ **Y EL HALLAZGO DE MÉTODO MÁS CARO DE LA TANDA ES NUEVO: UN ACENTO GRAVE DE MÁS NO SIEMPRE ROMPE
+  EL PARSEO.** Dos, alrededor de «indexOf», en un comentario que agregué a **TC-798**, cerraron su
+  template antes de tiempo, y lo que quedó era JS **válido** —una cadena, un `.indexOf` y un `-1`—,
+  así que `node --check` **pasó** y el caso quedó registrado con `fn` igual al **número −1**: el runner
+  lo evaluaba, le devolvía `undefined` y lo reportaba como «el caso no declara NINGUNA condición».
+  Lo encontré imprimiendo `c.fn.length`, que dio **2**. **Y EL BARRIDO DE MUTACIONES LO CONTÓ COMO
+  COBERTURA**: un caso que falla siempre produce un `✗`, y el scorer lee el `✗` como «muerta», así que
+  las **seis** mutaciones declaradas a TC-798 salieron «muertas» en los dos primeros barridos sin que
+  eso probara nada. Se rehizo el barrido entero. El runner gana un **guardián de arranque** —el cuerpo
+  de todo caso tiene que ser una **cadena** de más de 40 caracteres, y si no sale con 1— verificado por
+  mutación: reintroducir los dos acentos graves en una copia lo pone en rojo con el id del caso.
+  **A/B contra `e531b73`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572 claves,
+  55.297 celdas de Excel y CERO diferencias de superficie firmada** —informe en los tres estilos, EN
+  SUMA, las **457** columnas, los campos, el Laboratorio, el PDF en sus seis plantillas y el PPT de un
+  estudio—. Su **cero de pantalla es un control negativo declarado**: ese arnés no abre el menú, ni la
+  hoja, ni la sección del Laboratorio, ni tilda la casilla; lo que prueba la Parte A son las cuatro
+  sondas propias y TC-795 a TC-800. **44/44 mutaciones dirigidas muertas**, en worktree y nunca sobre
+  el vivo, con el md5 del vivo idéntico antes y después; los tres sobrevivientes del primer barrido
+  eran **huecos de cobertura** y se cerraron con condiciones nuevas —el tope de 1 del zoom, que en la
+  ventana del suite no hace nada; el pegado del `text/html`, que `execCommand` mete como **texto** y
+  contar elementos no veía; y el corte del Escape, que se mide con un **centinela** porque el oyente
+  genérico elige el diálogo visible más alto y en este árbol no siempre es la hoja—.
+  **Suite 809/815** en quince lotes, en UNA pasada sobre el árbol sellado, con los 815 ejecutados, el
+  md5 idéntico antes y después y el pendrive `DISK_IMG` verificado diecisiete veces; los rojos son
+  **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-551 y TC-557**, los dos
+  intermitentes declarados, que pasan **3 de 3 corridos aislados**. **Ningún rojo nuevo**, y **TC-753 quedó verde** después de corregir lo que
+  tenía razón en marcar: mi reflujo del renglón de tamaño había partido el sello y el md5 en dos
+  líneas. **Chrome y WebKit coinciden en los VEINTE cruces** (dos motores × 1440, 1280, 1000, 768 y
+  390 px × dos temas): los dos bordes derechos alineados, cero solapados, la hoja con el mismo zoom
+  (1 / 1 / 1 / 0,937 / 0,461), **toda la tinta dentro del papel**, cero desborde horizontal, tres
+  hojas de PDF, el cuerpo en 13,6 px = 10,2 pt exactos, el encabezado en tres columnas con el nombre a
+  **0,0 px** del centro, la edición y el pegado llano, la pregunta de cierre con su foco y su tarjeta
+  dentro de la pantalla, la casilla en 44 × 44 px igual a la de «Valvulopatías», y **cero errores de
+  consola y de página en los dos motores**. Las dos únicas diferencias entre motores son de métrica de
+  fuente: 2 px de ancho en el botón (134 contra 132) y tres textos que WebKit informa recortados sin
+  ganar un píxel de desplazamiento (**P31-f**). Semgrep **124/0**, la línea base; **sin huérfanos
+  nuevos**, medido en los dos árboles; **celular 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada
+  ancho** —el archivo del barrido es **idéntico byte por byte** al del árbol base—. Lo declarado, en
+  **P31-a** a **P31-g**; el mapa, en `docs/mapa/pant31-hoja-ppt.md`; el inventario, en
+  `docs/INVENTARIO_P31.md`; las fichas, en `docs/mapa/tests-fichas-795.md`; la guía manual, en
+  `docs/GUIA_PRUEBA_PANT31.md`.

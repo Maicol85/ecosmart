@@ -228,3 +228,30 @@ contra el Chrome del sistema, que es el camino que `test_clinico.mjs` ya documen
 - **En el cuerpo de un caso no hay expresiones regulares con barra invertida ni acentos graves**,
   y el pie del papel se busca **con su tilde**: `'Pagina'` sin tilde daba **0 de 1** sobre un pie
   que sí estaba, porque `docSan` conserva los acentos.
+
+
+---
+
+## Lo que PANT-31 cambió de este módulo (2026-11-10)
+
+Siete de las diez piezas de arriba se movieron. **El mapa de esos cambios está en
+`docs/mapa/pant31-hoja-ppt.md`**, y lo que queda vigente acá es la arquitectura: la lista de
+bloques, el maquetador único y los tres emisores.
+
+En una línea cada uno, para no leer dos mapas por una duda:
+
+- **La hoja de pantalla es una A4 en milímetros** con el cuerpo en los **puntos** de `def.sz`, y
+  `docZoomAjustar` escribe el `zoom` que la hace entrar. Antes eran 820 px con 12,5 px fijos para
+  los cuatro documentos, y `align-items` sin `flex-start` dejaba **1.502 px de tinta fuera del
+  papel blanco**.
+- **El botón «Documentos»** va al rincón derecho de su fila (`margin-left:auto`).
+- **Hay un oyente de `paste`** que inserta texto llano saneado.
+- **El clic en el fondo cierra**, y con correcciones a mano **pregunta** (`#doc-conf`,
+  `docCerrarPreguntando`, `docSinEntregar` y el estado `st.entregado`).
+- **La constancia son tres párrafos** y no uno.
+- **El encabezado** lleva el logo a la **izquierda** y el nombre **centrado** (antes era al revés).
+- **Los tres consentimientos** están a 10,2/13,4 pt con **dos hojas** más la común, la declaración
+  con aire, **las casillas de «capacitado» dibujadas** (bloque `pchk`), la tabla de firmas a 6 mm
+  con su fila de 16, y las **hojas comunes sin título**.
+- **La sección «Prótesis valvulares» del Laboratorio ya lleva `data-ppt`**, con su grupo `prot` y su
+  diapositiva: el renglón de arriba que dice que lleva `data-ppt-no` quedó vencido ese día.

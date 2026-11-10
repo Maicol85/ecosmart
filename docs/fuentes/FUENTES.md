@@ -12376,3 +12376,28 @@ todas las fichas abiertas. **Los DOS que quedan son LA MISMA cadena** contada po
 **no cae** bajo la regla: va precedida literalmente por «**Lo que la tabla dice de sí misma:** sus
 dos columnas son «normal» y «posible obstrucción», y no publica una tercera de obstrucción severa»
 — lo que la **fuente dice de sí misma**, que la regla excluye.
+
+## La tanda PANT-31 (2026-11-10) — cero fuentes nuevas, y por qué
+
+**Esta tanda no cita ni una fuente nueva, y no leyó ni una hoja de ninguna guía.** Es de **diseño y
+paginación**: el botón de «Documentos», la hoja de pantalla, el pegado, el cierre, el encabezado, el
+cuerpo y el salto de hoja de los tres consentimientos, y la casilla de PPT de una sección del
+Laboratorio.
+
+**Lo que hay que saber, y está verificado:**
+
+- **El texto de los cuatro documentos no cambió una palabra.** La orden lo prohibía expresamente
+  («NO cambies el texto de los consentimientos: solo su diseño y su paginación»), y la constancia
+  se **partió en tres oraciones** sin reescribir ninguna. Lo fija **TC-798**, que compara los
+  párrafos uno por uno.
+- **No se tocó un corte, un umbral, un rótulo de grado ni una frase clínica.** Cero contenido
+  clínico nuevo.
+- **La única frase que se retiró es «HOJAS COMUNES A LOS CONSENTIMIENTOS»**, que es una etiqueta de
+  archivo y no contenido: sus dos apartados quedan enteros, con sus subtítulos.
+- **Y la línea de «capacitado para recibir la información» se arregló SIN tocar su texto.** Tenía
+  dos casillas escritas con el carácter U+2610 **dentro** de la oración, y la fuente del PDF no lo
+  dibuja: `docSan` lo convierte en un espacio, así que en el papel salían **dos huecos en blanco**.
+  Hoy se **dibujan** dos cuadrados donde está cada glifo (bloque `pchk`, función
+  `parrafoCasillas`). El texto es el mismo, palabra por palabra.
+
+**Tabla «Cambios de evidencia»: ninguno.**

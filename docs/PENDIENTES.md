@@ -15069,3 +15069,35 @@ Escape.
 no se guarde texto editado en ningún lugar nuevo, así que el estado sigue en memoria y recargar la
 página lo descarta. La confirmación de R4 **reduce** el daño —avisa antes de cerrar— pero no lo
 elimina: una recarga no pasa por ahí.
+
+## P31-f — PANT-31: WebKit informa tres textos «recortados» en la hoja, y Chrome ninguno
+
+Medido en el cruce de dos motores, en los **diez** cruces de WebKit (cinco anchos × dos temas) y en
+ninguno de los diez de Chrome: tres elementos de hoja del ETE tienen `scrollWidth` mayor que su
+`clientWidth`. **No gana desplazamiento horizontal** —`scrollWidth - clientWidth` del envoltorio da
+**0** en los veinte cruces, y el del documento también—, no tapa nada y **no llega al papel**: el
+PDF y la imagen los dibuja el maquetador en milímetros, sin pasar por el maquetado del navegador.
+
+Es de la misma familia que **P30-g**, que declara que «WebKit desborda el texto justificado por
+menos de un carácter» (3,28 y 1,51 px a 768 px). Con la hoja en A4 y el cuerpo en puntos los
+elementos no son los mismos que entonces, así que el número no es comparable con el de esa tanda —
+lo que se compara es el motor contra el otro, y ahí la diferencia es de **métrica de fuente**, igual
+que los 2 px de ancho que WebKit le da al botón «Documentos» (134 contra 132).
+
+**No se tocó**: afinar el justificado para WebKit cambiaría el maquetado de la pantalla en los dos
+motores, que es justo lo que R2 acaba de hacer corresponder con el papel. **WebKit de Playwright no
+es Safari**, y se declara.
+
+## P31-g — PANT-31: el barrido de mutaciones pasó de 2 a 60 minutos, y el motivo importa
+
+El tope que la orden fija son **30 minutos**. Los dos primeros barridos tardaron **1,9 y 2,0 min**;
+el tercero —el único válido— tardó **60,4 min**. **La diferencia no es la máquina: es que TC-798
+estaba roto.** Con su cuerpo valiendo `-1`, el runner lo evaluaba en milisegundos y devolvía
+`undefined`, así que las seis mutaciones declaradas a ese caso «morían» al instante. Con el caso
+funcionando de verdad, cada una de esas seis corre tres escenas con dos logos que hay que decodificar
+y seis maquetados de PDF.
+
+**Las 44 murieron**, así que la cobertura está; lo que se pasó del tope es el reloj. Si molesta, las
+dos palancas son: declarar las mutaciones de TC-798 a un caso más chico, o partir TC-798 en dos (el
+R5 por un lado y el encabezado por otro). **Queda declarado, no cambiado**: partir un caso para que
+el barrido corra más rápido es cambiar la cobertura por el reloj.
