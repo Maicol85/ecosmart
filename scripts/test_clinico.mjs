@@ -128555,15 +128555,26 @@ caso('TC-789', 'PANT-30: los tres consentimientos -- las hojas que la orden fija
     typeof DOC_DEFS !== 'undefined' ? Object.keys(DOC_DEFS).join(',') : 'sin DOC_DEFS');
   if (typeof DOC_DEFS === 'undefined' || !DOC_DEFS.cve) return { extra: F };
   const CAJA = String.fromCharCode(9744);
-  const ESPERA = { constancia: 1, cve: 2, ete: 3, burb: 2 };
+  /* ⚠️ ADAPTADO EN PANT-31 (R8): los TRES consentimientos pasaron a 10,2/13,4 pt y ganaron su
+     salto de hoja, asi que cada uno son DOS hojas mas la comun = 3. Antes la cardioversion y el
+     test de burbujas daban 2: una hoja apretada a 8,8 pt mas la comun. */
+  const ESPERA = { constancia: 1, cve: 3, ete: 3, burb: 3 };
   const clav = ['constancia', 'cve', 'ete', 'burb'];
   for (let i = 0; i < clav.length; i++) {
     const cl = clav[i], def = DOC_DEFS[cl], D = docDatos();
+    /* ⚠️ LA COPIA TIENE QUE LLEVAR mm Y aire, Y ESTE CASO NO LOS LLEVABA. Sin mm, un bloque
+       esp cae en el valor por omision de emitir (4 mm) en vez de los suyos, asi que este caso
+       maquetaba un documento con OTROS espacios que el que el medico ve -- y desde PANT-31 los
+       esp deciden los 8 pt de las dos lineas de casillas y los 6 mm de la tabla de firmas-.
+       docBloquesNuevos, que es el camino real, si los copia.
+       Y sin acentos graves: el cuerpo de un caso es un template literal. */
     const bl = def.bloques().map((b, j) => { const c = { t: b.t, i: j };
       if (b.x !== undefined) c.x = b.x;
       if (b.items) c.items = b.items.slice();
       if (b.fuerte) c.fuerte = b.fuerte;
       if (b.nonum) c.nonum = b.nonum;
+      if (b.mm) c.mm = b.mm;
+      if (b.aire) c.aire = b.aire;
       if (b.grupo) c.grupo = b.grupo;
       return c; });
     const maq = docMaquetar(def, D, bl);
@@ -128586,7 +128597,12 @@ caso('TC-789', 'PANT-30: los tres consentimientos -- las hojas que la orden fija
       if (s.indexOf('Declaro que:') === 0) hojaDe.declaro = hh;
       if (s === 'Paciente' || s === 'M' + String.fromCharCode(233) + 'dico') hojaDe.firmas = hh;
       if (s.indexOf('Antes del estudio') > -1) hojaDe.antes = hh;
-      if (s.indexOf('HOJAS COMUNES') > -1) hojaDe.comunes = hh;
+      /* ⚠️ EL ANCLA DE LAS HOJAS COMUNES YA NO ES SU TITULO: PANT-31 (R9) lo retiro, asi que
+         esto buscaba una cadena que no existe y hojaDe.comunes quedaba undefined -- la condicion
+         comparaba undefined con un numero y daba rojo sin decir por que. Hoy se ancla en el
+         primer subtitulo, que SI se queda. */
+      if (s.indexOf('imposibilitado de otorgar') > -1) hojaDe.comunes = hh;
+      if (s.indexOf('HOJAS COMUNES') > -1) hojaDe.tituloComunes = hh;
       if (o.b && s.length > 3 && s.charAt(1) === '.' && s.charAt(0) >= '1' && s.charAt(0) <= '9') secs.push(s);
       txt += s + ' ';
       if (o.ws) o.ws.forEach(w => { txt += w.s + ' '; });
@@ -128604,13 +128620,20 @@ caso('TC-789', 'PANT-30: los tres consentimientos -- las hojas que la orden fija
         secs.join(' | '));
       q(cl + ': las hojas comunes van en su propia hoja, la ultima',
         hojaDe.comunes === maq.n - 1, 'comunes=' + hojaDe.comunes + ' de ' + maq.n);
+      /* R9 de PANT-31: el titulo de archivo se fue y no vuelve. */
+      q(cl + ': y SIN el titulo «HOJAS COMUNES A LOS CONSENTIMIENTOS»',
+        hojaDe.tituloComunes === undefined, 'hoja ' + hojaDe.tituloComunes);
       q(cl + ': dibuja al menos dos casillas', cajas >= 2, cajas);
     }
     if (cl === 'ete') {
       q('ETE: «Antes del estudio» arranca la hoja 2, por su salto declarado',
         hojaDe.antes === 1, 'hoja ' + hojaDe.antes);
-      q('ETE: dibuja 18 casillas -- ocho preguntas por dos, mas las dos de la declaracion',
-        cajas === 18, cajas);
+      /* ⚠️ VEINTE Y NO 18 DESDE PANT-31: la linea de «capacitado para recibir la informacion»
+         era un parrafo con los U+2610 DENTRO del texto -- que docSan convierte en un espacio, o
+         sea dos huecos en vez de dos casillas- y paso a ser un bloque pchk, que las DIBUJA. Son
+         las dos que faltaban. */
+      q('ETE: dibuja 20 casillas -- ocho preguntas por dos, mas las dos de la declaracion y las dos de «capacitado»',
+        cajas === 20, cajas);
     }
     if (cl === 'cve') q('cardioversion: la declaracion lleva la viñeta de la internacion',
       txt.indexOf('duraci' + String.fromCharCode(243) + 'n de la internaci') > -1);
@@ -129042,11 +129065,15 @@ caso('TC-793', 'PANT-30: la seccion de protesis en pantalla -- debajo de Valvulo
   q('la tarjeta existe', !!body);
   if (!body) return { extra: F };
   const card = body.closest('.lab-card');
-  /* ⚠️ data-ppt AGREGARIA UNA DIAPOSITIVA AL PPT. _labPptAssertClaves exige uno de los dos. */
-  q('NO declara data-ppt', !card.getAttribute('data-ppt'), card.getAttribute('data-ppt'));
-  q('y declara data-ppt-no con su motivo',
-    (card.getAttribute('data-ppt-no') || '').length > 10, card.getAttribute('data-ppt-no'));
-  q('asi que no tiene la casilla del PPT', !card.querySelector('.lab-ppt-chk'));
+  /* ⚠️ LAS TRES CONDICIONES DE ACA QUEDARON INVERTIDAS EN PANT-31 (R11), y es el dia que este
+     caso anunciaba: afirmaban que la seccion NO declara data-ppt, que declara data-ppt-no con su
+     motivo y que por eso no tiene casilla. Hoy la tiene, por orden del medico. Se exigen las
+     tres cosas al reves -- y ademas que data-ppt-no ya NO este-, asi que el caso puede fallar
+     por los dos lados: si alguien le saca la casilla y si alguien le deja los dos atributos, que
+     es lo que _labPptAssertClaves no puede ver (exige UNO de los dos, no exactamente uno). */
+  q('declara data-ppt con su clave', card.getAttribute('data-ppt') === 'protesis', card.getAttribute('data-ppt'));
+  q('y ya NO declara data-ppt-no', !card.getAttribute('data-ppt-no'), card.getAttribute('data-ppt-no'));
+  q('asi que SI tiene la casilla del PPT', !!card.querySelector('.lab-ppt-chk'));
   /* EL LUGAR: debajo de Valvulopatias y antes de Doppler tricuspideo. */
   const cards = Array.prototype.slice.call(document.querySelectorAll('#lab-sub-mediciones > .lab-card'));
   const tit = cards.map(c => { const h = c.querySelector('.lab-card-hdr');
@@ -129274,6 +129301,641 @@ caso('TC-794', 'PANT-30: la seccion de protesis en el PDF de auditoria -- entre 
     q('sin tabla de modelos', R0.txt.indexOf('Modelos mas usados') === -1);
     q('y sin su grafica de 150 mm', R0.anchos.filter(w => w === 150).length === 0, R0.anchos.join(','));
   }
+  return { extra: F };
+  })();
+`);
+
+/* ══ PANT-31 (2026-11-10) ═════════════════════════════════════════════════════════════════════
+   Seis casos. NINGUNO usa acento grave ni un literal de expresion regular: el cuerpo de un caso
+   es un template literal, asi que un acento grave lo cierra y una barra invertida no sobrevive
+   (medido once veces en este repositorio, y esta tanda lo volvio a pagar). */
+
+caso('TC-795', 'PANT-31: el boton «Documentos» en el rincon derecho alineado por la derecha con «Evidencia», y la hoja COMPLETA -- toda la tinta dentro del papel blanco, la A4 en milimetros y el cuerpo en los puntos de su definicion', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('informe') } catch (e) {}
+  await esp(260);
+  const b = document.getElementById('doc-btn'), iB = document.getElementById('indic-btn');
+  q('(DENOM) los dos botones existen y se ven', !!b && !!iB && !!b.offsetParent && !!iB.offsetParent,
+    'doc=' + !!b + ' evid=' + !!iB);
+  if (!b || !iB || !b.offsetParent) return { extra: F };
+  const rb = b.getBoundingClientRect(), ri = iB.getBoundingClientRect();
+  /* R1: los dos NO comparten fila -- 575 px de y los separan-, asi que lo que se alinea es el
+     borde DERECHO. Las dos filas son hijas de la misma tarjeta y comparten ese borde. */
+  q('los dos botones NO estan en la misma fila, que es el denominador de la decision',
+    Math.abs(rb.y - ri.y) > 100, Math.round(rb.y - ri.y) + ' px de y');
+  q('el borde derecho del boton coincide con el de «Evidencia»', Math.abs(rb.right - ri.right) <= 1,
+    Math.round(rb.right) + ' contra ' + Math.round(ri.right));
+  const fila = b.closest('div');
+  const rf = fila.getBoundingClientRect();
+  q('y queda pegado al borde derecho de SU fila', Math.abs(rb.right - rf.right) <= 1,
+    Math.round(rb.right) + ' contra ' + Math.round(rf.right));
+  q('con su envoltorio empujado por margin-left:auto',
+    getComputedStyle(b.parentElement).marginLeft !== '0px', getComputedStyle(b.parentElement).marginLeft);
+  /* Y la fila no pierde ni desplaza a nadie. */
+  const btns = Array.prototype.slice.call(fila.children).filter(e => e.tagName === 'BUTTON');
+  q('la fila conserva sus cuatro botones', btns.length === 4, btns.map(e => (e.textContent || '').trim()).join(' | '));
+  const choca = btns.filter(e => { const r = e.getBoundingClientRect();
+    return !(r.right <= rb.x || r.x >= rb.right || r.bottom <= rb.y || r.y >= rb.bottom); }).length;
+  q('y ninguno se superpone con el boton nuevo', choca === 0, choca);
+  /* ── R2 ── */
+  docAbrir('ete');
+  await esp(300);
+  const h = document.getElementById('doc-hoja'), wr = h.parentElement;
+  const cs = getComputedStyle(h), cw = getComputedStyle(wr);
+  q('(DENOM) la hoja abrio con contenido', !document.getElementById('doc-ov').hidden && h.children.length > 10,
+    h.children.length + ' bloques');
+  /* EL DEFECTO: el envoltorio es flex y sin flex-start la hoja recibe un alto DEFINIDO. */
+  q('el envoltorio NO estira la hoja', cw.alignItems === 'flex-start', cw.alignItems);
+  q('y la hoja no encoge: lleva flex-shrink 0', cs.flexShrink === '0', cs.flexShrink);
+  const A4 = 210 * 96 / 25.4;
+  q('la hoja mide una A4 de ancho', Math.abs(parseFloat(cs.width) - A4) < 2,
+    parseFloat(cs.width).toFixed(1) + ' contra ' + A4.toFixed(1));
+  q('y una A4 de alto como minimo', Math.abs(parseFloat(cs.minHeight) - 297 * 96 / 25.4) < 2,
+    cs.minHeight);
+  /* LA TINTA, ADENTRO DEL PAPEL BLANCO. Es la condicion que el defecto rompia. */
+  const rh = h.getBoundingClientRect();
+  let abajo = -1e9, derecha = -1e9;
+  const todos = h.querySelectorAll('*');
+  q('(DENOM) hay elementos que medir', todos.length > 50, todos.length);
+  todos.forEach(el => { const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) return;
+    if (r.bottom > abajo) abajo = r.bottom;
+    if (r.right > derecha) derecha = r.right; });
+  q('toda la tinta queda DENTRO del papel blanco, por abajo', abajo <= rh.bottom + 0.6,
+    Math.round(abajo - rh.bottom) + ' px fuera');
+  q('y por la derecha', derecha <= rh.right + 0.6, Math.round(derecha - rh.right) + ' px fuera');
+  q('sin desplazamiento horizontal del envoltorio', wr.scrollWidth - wr.clientWidth === 0,
+    wr.scrollWidth - wr.clientWidth);
+  /* EL CUERPO, EN LOS PUNTOS DE SU DEFINICION: es lo que hace corresponder la pantalla al papel. */
+  const def = DOC_DEFS.ete;
+  q('el cuerpo de pantalla es el del papel', Math.abs(parseFloat(cs.fontSize) - def.sz * 4 / 3) < 0.05,
+    cs.fontSize + ' contra ' + (def.sz * 4 / 3).toFixed(2) + 'px');
+  q('y el interlineado tambien', Math.abs(parseFloat(cs.lineHeight) - def.lh * 4 / 3) < 0.05,
+    cs.lineHeight + ' contra ' + (def.lh * 4 / 3).toFixed(2) + 'px');
+  q('la variable del cuerpo esta puesta', h.style.getPropertyValue('--doc-sz') === def.sz + 'pt',
+    h.style.getPropertyValue('--doc-sz'));
+  const tit = h.querySelector('.doc-tit');
+  q('y el titulo se deriva de ella: cuerpo mas 3 pt',
+    !!tit && Math.abs(parseFloat(getComputedStyle(tit).fontSize) - (def.sz + 3) * 4 / 3) < 0.1,
+    tit ? getComputedStyle(tit).fontSize : 'sin titulo');
+  /* LAS CASILLAS DE DOS COLUMNAS, LAS MISMAS QUE EL PAPEL. */
+  const c2 = h.querySelector('.doc-chk2');
+  q('las casillas van en DOS columnas, como en el papel',
+    !!c2 && getComputedStyle(c2).gridTemplateColumns.split(' ').length === 2,
+    c2 ? getComputedStyle(c2).gridTemplateColumns : 'sin chk2');
+  /* EL ZOOM: se obliga un envoltorio angosto y se mide que la hoja entre igual.
+     ⚠️ LA FUNCION SE DECLARA COMO CONDICION Y NO SE LLAMA A CIEGAS: contra un arbol que no la
+     tiene, la llamada pelada tira ReferenceError y el caso cae por EXCEPCION en vez de por
+     condicion -- medido contra la linea base, que es exactamente lo que paso-. Un caso que cae
+     por excepcion no dice QUE falta. */
+  const hayZoom = (typeof docZoomAjustar === 'function');
+  q('la app expone el ajuste de ancho de la hoja', hayZoom);
+  const zAntes = h.style.zoom;
+  wr.style.maxWidth = '400px';
+  if (hayZoom) docZoomAjustar();
+  await esp(120);
+  const z = parseFloat(h.style.zoom || '1');
+  q('en un ancho de 400 px la hoja se escala para entrar', hayZoom && z > 0 && z < 1, 'zoom ' + z);
+  q('y sigue sin desbordar a lo ancho', wr.scrollWidth - wr.clientWidth === 0,
+    wr.scrollWidth - wr.clientWidth);
+  q('(CONTROL) el ancho de la hoja quedo por debajo del disponible',
+    h.getBoundingClientRect().width <= wr.clientWidth + 0.6,
+    Math.round(h.getBoundingClientRect().width) + ' en ' + wr.clientWidth);
+  wr.style.maxWidth = '';
+  if (hayZoom) docZoomAjustar();
+  await esp(120);
+  /* ⚠️ EL CONTROL ES «VUELVE AL VALOR DE ANTES» Y NO «VUELVE A 1»: el suite corre en la ventana
+     que le toca, y si mide menos de 818 px el zoom de reposo NO es 1 -- medido 0,922-. Un control
+     escrito contra el 1 falla sobre una app sana y no prueba nada. */
+  q('(CONTROL) al soltar el ancho el zoom vuelve al valor de reposo',
+    (parseFloat(h.style.zoom || '1') + '') === (parseFloat(zAntes || '1') + ''),
+    h.style.zoom + ' contra ' + zAntes);
+  docCerrar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-796', 'PANT-31: la hoja se EDITA y lo pegado entra como texto llano -- el oyente cancela el pegado, mete solo text/plain saneado y no deja marcado del origen, y un pegado fuera de la hoja no se toca', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  __t.set('nombre', 'Ficticio Prueba, Ana'); __t.set('ci', '1.234.567-8');
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  docAbrir('constancia');
+  await esp(260);
+  docActualizarDatos();
+  await esp(200);
+  const h = document.getElementById('doc-hoja');
+  const p = h.querySelector('p.doc-p[contenteditable="true"]');
+  q('(DENOM) la hoja abrio con un parrafo editable', !!p, h.querySelectorAll('[contenteditable="true"]').length + ' editables');
+  if (!p) { docCerrar(); return { extra: F }; }
+  /* ⚠️ ENVUELTO, por el mismo motivo que el zoom de TC-795: contra un arbol sin la funcion, la
+     llamada pelada hace caer el caso por excepcion y no por condicion. */
+  const haySE = (typeof docSinEntregar === 'function');
+  q('la app sabe si la hoja tiene correcciones sin entregar', haySE);
+  const pend = () => haySE ? docSinEntregar() : null;
+  q('(DENOM) y arranca SIN correcciones a mano', pend() === false, String(pend()));
+  q('el parrafo es editable de verdad', p.isContentEditable);
+  /* Escribir: el camino que el oyente de input registra. El teclado REAL se mide en la sonda
+     _probe_pant31hoja.mjs, que habla CDP; aca no hay forma de despachar una tecla con accion. */
+  p.innerText = p.innerText + ' corregido a mano';
+  p.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(120);
+  q('la correccion queda registrada', pend() === true, String(pend()));
+  /* ── EL PEGADO ── */
+  p.focus();
+  const rg = document.createRange(); rg.selectNodeContents(p); rg.collapse(false);
+  const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+  const RAYA = String.fromCharCode(8212), CAJA = String.fromCharCode(9744);
+  const dt = new DataTransfer();
+  dt.setData('text/plain', 'PEGADO' + RAYA + 'con raya, ' + CAJA + ' casilla y dos  espacios');
+  dt.setData('text/html', '<b style="color:red">PEGADO</b><ul><li>lista</li></ul>');
+  const ev = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true });
+  const siguio = p.dispatchEvent(ev);
+  await esp(150);
+  q('el pegado se CANCELA: lo maneja la app y no el navegador', !siguio);
+  q('el texto entro', p.innerText.indexOf('PEGADO') > -1, p.innerText.slice(-70));
+  q('y entro SIN el marcado del origen', p.querySelectorAll('b,strong,ul,li,font').length === 0,
+    p.innerHTML.slice(-120));
+  q('la raya larga quedo convertida, que es lo que el papel puede dibujar',
+    p.innerText.indexOf(RAYA) === -1, 'quedan ' + (p.innerText.split(RAYA).length - 1));
+  q('y el glifo de casilla no entro', p.innerText.indexOf(CAJA) === -1);
+  q('los espacios de mas quedaron colapsados', p.innerText.indexOf('dos  espacios') === -1,
+    p.innerText.slice(-40));
+  /* ⚠️ CONTROL NEGATIVO: un pegado FUERA de la hoja no lo toca nadie. Sin esto, un oyente
+     puesto en el documento sin la guarda del contenedor pasaria igual. */
+  const ta = document.getElementById('informe_texto');
+  q('(DENOM) el textarea del informe esta', !!ta);
+  if (ta) {
+    const dt2 = new DataTransfer(); dt2.setData('text/plain', 'x');
+    const ev2 = new ClipboardEvent('paste', { clipboardData: dt2, bubbles: true, cancelable: true });
+    q('(CONTROL) un pegado fuera de la hoja NO se cancela', ta.dispatchEvent(ev2));
+  }
+  /* La imagen guardada es SOLO imagen: no se edita, y para cambiar el texto se reabre. */
+  q('el visor de imagenes guardadas muestra un <img>, no un editable',
+    !!document.getElementById('ig-imgv-img') &&
+    document.getElementById('ig-imgv-img').tagName === 'IMG' &&
+    !document.getElementById('ig-imgv-img').isContentEditable);
+  docActualizarDatos();
+  docCerrar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-797', 'PANT-31: el cierre -- el clic en el fondo cierra, con correcciones a mano pregunta «¿Cerrar sin guardar los cambios?» con sus dos respuestas, Escape sobre la pregunta significa seguir editando, y la cruz y Escape cierran directo', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  const ov = document.getElementById('doc-ov'), cf = document.getElementById('doc-conf');
+  /* ⚠️ LA AUSENCIA DEL DIALOGO ES UNA CONDICION Y NO UN DENOMINADOR: contra la linea base el
+     dialogo no existe, y cortando ahi el caso cae por «(DENOM)» sin decir que falta. Se declara
+     cada mitad por separado y se sigue midiendo lo que se pueda. */
+  q('la hoja existe', !!ov);
+  q('y el dialogo de confirmacion existe', !!cf);
+  /* Se corta DESPUES de declarar las dos: lo que falta queda dicho con su nombre y no como un
+     denominador mudo, que es lo que la linea base devolvia. */
+  if (!ov || !cf) return { extra: F };
+  q('el fondo declara su cierre con la guarda del target',
+    (ov.getAttribute('onclick') || '').indexOf('event.target===this') > -1, ov.getAttribute('onclick'));
+  /* (1) SIN correcciones: el fondo cierra directo. El estado vive en memoria por clave, asi que
+     se limpia primero -- sin eso, lo que dejo el caso anterior hace que pregunte y la condicion
+     lo lee como «el fondo no cierra». */
+  docAbrir('constancia'); await esp(220);
+  docActualizarDatos(); await esp(150);
+  q('(DENOM) la hoja arranca sin correcciones', !docSinEntregar());
+  ov.click(); await esp(120);
+  q('sin correcciones, el clic en el fondo cierra', !!ov.hidden);
+  q('y no pregunta nada', !!cf.hidden);
+  /* (2) un clic ADENTRO no cierra */
+  docAbrir('constancia'); await esp(200);
+  document.getElementById('doc-hoja').click(); await esp(120);
+  q('un clic dentro de la hoja no la cierra', !ov.hidden);
+  /* (3) con correcciones: pregunta */
+  const p = document.getElementById('doc-hoja').querySelector('p.doc-p[contenteditable="true"]');
+  p.innerText = p.innerText + ' corregido a mano';
+  p.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(120);
+  q('(DENOM) la correccion quedo registrada', docSinEntregar());
+  ov.click(); await esp(150);
+  q('con correcciones a mano el fondo PREGUNTA en vez de cerrar', !!cf && !cf.hidden && !ov.hidden,
+    'conf=' + (cf ? cf.hidden : 'no existe') + ' hoja=' + ov.hidden);
+  const ctx = document.getElementById('doc-conf-txt');
+  q('la pregunta es la que la orden fija',
+    !!ctx && (ctx.textContent || '').indexOf('Cerrar sin guardar los cambios') > -1,
+    ctx ? ctx.textContent : 'no existe');
+  const bs = cf ? Array.prototype.slice.call(cf.querySelectorAll('button')).map(x => (x.textContent || '').trim()) : [];
+  q('con dos respuestas: «Seguir editando» y «Cerrar»',
+    bs.length === 2 && bs.indexOf('Seguir editando') > -1 && bs.indexOf('Cerrar') > -1, bs.join(' | '));
+  q('y el foco arranca en la respuesta que NO pierde nada',
+    document.activeElement === document.getElementById('doc-conf-seguir'),
+    document.activeElement ? document.activeElement.id : 'ninguno');
+  /* (4) seguir editando */
+  document.getElementById('doc-conf-seguir').click(); await esp(120);
+  q('«Seguir editando» cierra la pregunta y deja la hoja abierta', cf.hidden && !ov.hidden);
+  /* (5) Escape sobre la pregunta = seguir editando */
+  ov.click(); await esp(120);
+  q('(DENOM) vuelve a preguntar', !cf.hidden);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await esp(150);
+  q('Escape sobre la pregunta significa SEGUIR EDITANDO, no cerrar', cf.hidden && !ov.hidden,
+    'conf=' + cf.hidden + ' hoja=' + ov.hidden);
+  /* (6) cerrar */
+  ov.click(); await esp(120);
+  document.getElementById('doc-conf-ok').click(); await esp(150);
+  q('«Cerrar» cierra la hoja y la pregunta', !!ov.hidden && !!cf.hidden);
+  /* (7) la cruz y Escape cierran DIRECTO aunque haya correcciones */
+  docAbrir('constancia'); await esp(200);
+  q('(DENOM) al reabrir la correccion sigue ahi', docSinEntregar());
+  document.getElementById('doc-x').click(); await esp(120);
+  q('la cruz cierra directo, sin preguntar', !!ov.hidden && !!cf.hidden);
+  docAbrir('constancia'); await esp(200);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await esp(150);
+  q('y Escape sobre la hoja tambien', !!ov.hidden && !!cf.hidden);
+  /* (8) IMPRIMIR apaga la pregunta: «no la guardo ni la imprimio» es un estado propio. */
+  docAbrir('constancia'); await esp(200);
+  q('(DENOM) antes de imprimir seguia pendiente', docSinEntregar());
+  let imp = null;
+  try { docImprimir(); imp = true; } catch (e) { imp = String(e.message).slice(0, 50); }
+  await esp(400);
+  q('(DENOM) imprimir no tiro', imp === true, imp);
+  if (imp === true) {
+    q('tras imprimir ya no hay nada que perder', !docSinEntregar());
+    ov.click(); await esp(150);
+    q('y el clic en el fondo cierra sin preguntar', !!ov.hidden && !!cf.hidden);
+  }
+  /* (9) el visor de la miniatura cierra directo: ahi no hay nada que perder. */
+  const vov = document.getElementById('ig-imgv-ov');
+  q('el visor de la miniatura tiene su propio cierre', !!vov && !!document.getElementById('ig-imgv-cerrar'));
+  docAbrir('constancia'); await esp(150); docActualizarDatos(); docCerrar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el logo a la IZQUIERDA y el nombre CENTRADO en las tres superficies -- pantalla, PDF e imagen guardada-, con logo ancho, cuadrado y sin logo', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) el registro de documentos existe', typeof DOC_DEFS !== 'undefined' && !!DOC_DEFS.constancia);
+  if (typeof DOC_DEFS === 'undefined' || !DOC_DEFS.constancia) return { extra: F };
+  __t.set('nombre', 'Ficticio Prueba, Ana'); __t.set('ci', '1.234.567-8'); __t.set('sexo', 'F');
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  /* ── R5: tres oraciones, cada una en su renglon ── */
+  const bl = DOC_DEFS.constancia.bloques();
+  const tipos = bl.map(x => x.t).join(',');
+  q('la constancia son cinco bloques mas el espacio: enc, ciudadfecha, tit, p, p, esp, p, firma',
+    tipos === 'enc,ciudadfecha,tit,p,p,esp,p,firma', tipos);
+  const ps = bl.filter(x => x.t === 'p').map(x => String(x.x == null ? '' : x.x));
+  q('son TRES parrafos', ps.length === 3, ps.length);
+  /* ⚠️ LOS INDICES SE LEEN CON UN RESPALDO: contra un arbol de UN solo parrafo, ps[1] es
+     undefined y `.indexOf` tira TypeError -- el caso caia por EXCEPCION y no por condicion,
+     medido contra la linea base. */
+  q('el segundo es la frase de presentarla donde corresponda',
+    (ps[1] || '').indexOf('Se extiende la presente') === 0, ps[1] || '(no hay segundo parrafo)');
+  q('el tercero es el saludo', (ps[2] || '').indexOf('Sin m') === 0, ps[2] || '(no hay tercer parrafo)');
+  q('y el primero ya NO los lleva pegados',
+    (ps[0] || '').indexOf('Se extiende') === -1 && (ps[0] || '').indexOf('saluda atentamente') === -1,
+    (ps[0] || '').slice(-60));
+  const D0 = docDatos();
+  const maq0 = docMaquetar(DOC_DEFS.constancia, D0, docBloquesNuevos(DOC_DEFS.constancia, D0));
+  const texto = o => o.k === 'tw' ? o.ws.map(w => w.s).join(' ') : String(o.s == null ? '' : o.s);
+  const lin = maq0.hojas[0].filter(o => o.k === 't' || o.k === 'tw' || o.k === 'c' || o.k === 'r')
+    .map(o => ({ y: o.y, s: texto(o) }));
+  const iE = lin.findIndex(l => l.s.indexOf('Se extiende la presente') === 0);
+  const iS = lin.findIndex(l => l.s.indexOf('Sin m') === 0);
+  q('en el papel, cada frase ARRANCA su renglon', iE > -1 && iS > -1, 'extiende=' + iE + ' sinmas=' + iS);
+  q('y hay un espacio entre las dos, mayor que un renglon',
+    iE > -1 && iS > -1 && (lin[iS].y - lin[iE].y) > DOC_DEFS.constancia.lh * DOC_GEO.PT + 1.5,
+    iE > -1 && iS > -1 ? (lin[iS].y - lin[iE].y).toFixed(2) + ' mm' : 'sin medir');
+  q('y la constancia sigue siendo UNA hoja', maq0.n === 1, maq0.n);
+  /* ── R6 y R7, con los tres logos ── */
+  const png = (w, hh) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
+    const x = cv.getContext('2d'); x.fillStyle = '#1f3a5f'; x.fillRect(0, 0, w, hh);
+    x.fillStyle = '#ffffff'; x.fillRect(2, 2, w - 4, hh - 4); return cv.toDataURL('image/png'); };
+  const CLAVE = 'logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default');
+  const guardado = localStorage.getItem(CLAVE);
+  const casos = [['sin logo', null], ['logo ancho 300x50', png(300, 50)], ['logo cuadrado 120x120', png(120, 120)]];
+  for (let k = 0; k < casos.length; k++) {
+    const nom = casos[k][0], dat = casos[k][1];
+    if (dat) localStorage.setItem(CLAVE, dat); else localStorage.removeItem(CLAVE);
+    const D = docDatos();
+    q(nom + ': (DENOM) la app ve el logo que corresponde', !!D.logoD === !!dat, 'logoD=' + !!D.logoD);
+    const maq = docMaquetar(DOC_DEFS.constancia, D, docBloquesNuevos(DOC_DEFS.constancia, D));
+    const ops = maq.hojas[0];
+    const img = ops.filter(o => o.k === 'img')[0] || null;
+    const cir = ops.filter(o => o.k === 'circ')[0] || null;
+    const nmb = ops.filter(o => o.k === 'c' && o.col && o.col[0] === 31);
+    if (dat) {
+      q(nom + ': el PAPEL dibuja el logo en el borde IZQUIERDO', !!img && img.x === DOC_GEO.ML,
+        img ? ('x=' + img.x + ' contra ML=' + DOC_GEO.ML) : 'sin logo');
+      q(nom + ': con la caja de 18 x 14 mm, que es la que conserva su proporcion',
+        !!img && img.w === 18 && img.h === 14, img ? (img.w + 'x' + img.h) : '-');
+      q(nom + ': y sin circulo de iniciales', !cir);
+    } else {
+      q(nom + ': el PAPEL dibuja el circulo en el borde IZQUIERDO',
+        !!cir && cir.x === DOC_GEO.ML + 7, cir ? ('x=' + cir.x) : 'sin circulo');
+      q(nom + ': con sus dos iniciales', !!cir && String(cir.s).length <= 2 && String(cir.s).length >= 1, cir ? cir.s : '-');
+      q(nom + ': y sin imagen', !img);
+    }
+    q(nom + ': el nombre va CENTRADO en el ancho de la hoja', nmb.length > 0 && nmb.length <= 2,
+      nmb.length + ' linea(s) centradas');
+    /* La IMAGEN guardada sale de la misma lista de operaciones. */
+    const svg = docOpsASvg(maq);
+    const centro = (DOC_GEO.W / 2 * 3.7795275591).toFixed(2);
+    q(nom + ': la imagen guardada centra el nombre en el mismo punto',
+      svg.indexOf('x="' + centro + '"') > -1 && svg.indexOf('text-anchor="middle"') > -1, 'centro ' + centro);
+    if (dat) q(nom + ': y pone el logo a la izquierda, con su proporcion conservada',
+      svg.indexOf('<image x="' + (DOC_GEO.ML * 3.7795275591).toFixed(2) + '"') > -1 &&
+      svg.indexOf('preserveAspectRatio="xMidYMid meet"') > -1, 'x esperado ' + (DOC_GEO.ML * 3.7795275591).toFixed(2));
+    /* La PANTALLA. */
+    docCerrar(); docAbrir('constancia');
+    await esp(300);
+    const h = document.getElementById('doc-hoja');
+    const enc = h.querySelector('.doc-enc');
+    q(nom + ': (DENOM) el encabezado se pinto', !!enc);
+    if (enc) {
+      const cols = getComputedStyle(enc).gridTemplateColumns.split(' ').length;
+      q(nom + ': la pantalla lo reparte en TRES columnas, para que el centro sea el de la hoja',
+        cols === 3, cols);
+      const prim = enc.children[0];
+      q(nom + ': y el logo o el circulo es el PRIMER hijo, o sea a la izquierda',
+        !!prim && (prim.className.indexOf('doc-enc-logo') > -1 || prim.className.indexOf('doc-enc-ini') > -1),
+        prim ? prim.className : 'sin hijos');
+      const nm = enc.querySelector('.doc-enc-nom');
+      const rh = h.getBoundingClientRect(), rn = nm.getBoundingClientRect();
+      q(nom + ': el nombre queda centrado en la hoja',
+        Math.abs((rn.x + rn.width / 2) - (rh.x + rh.width / 2)) <= 1.5,
+        ((rn.x + rn.width / 2) - (rh.x + rh.width / 2)).toFixed(1) + ' px de desvio');
+      const lg = enc.querySelector('.doc-enc-logo');
+      if (dat && lg) {
+        if (lg.decode) { try { await lg.decode() } catch (e) { await esp(300) } } else { await esp(300) }
+        const rl = lg.getBoundingClientRect();
+        q(nom + ': (DENOM) la imagen cargo', lg.naturalWidth > 0, lg.naturalWidth + 'x' + lg.naturalHeight);
+        q(nom + ': y no se deforma: la proporcion dibujada es la original',
+          lg.naturalWidth > 0 && Math.abs((rl.width / rl.height) - (lg.naturalWidth / lg.naturalHeight)) < 0.08,
+          (rl.width / rl.height).toFixed(2) + ' contra ' + (lg.naturalWidth / lg.naturalHeight).toFixed(2));
+        q(nom + ': con object-fit contain, que es lo que lo logra',
+          getComputedStyle(lg).objectFit === 'contain', getComputedStyle(lg).objectFit);
+      }
+    }
+  }
+  if (guardado) localStorage.setItem(CLAVE, guardado); else localStorage.removeItem(CLAVE);
+  docCerrar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-799', 'PANT-31: los tres consentimientos a 10,2/13,4 pt con DOS hojas mas la comun, el salto donde la orden lo pide, la declaracion con aire y sus dos lineas de casillas DIBUJADAS, las hojas comunes sin titulo en una hoja, y la tabla de firmas separada 6 mm con su fila de 16', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  q('(DENOM) los tres consentimientos existen',
+    typeof DOC_DEFS !== 'undefined' && !!DOC_DEFS.cve && !!DOC_DEFS.ete && !!DOC_DEFS.burb);
+  if (typeof DOC_DEFS === 'undefined' || !DOC_DEFS.cve) return { extra: F };
+  const CLAVES = ['cve', 'ete', 'burb'];
+  const SALTO = { cve: 'Hay otras alternativas', ete: 'Antes del estudio', burb: 'Antes del estudio' };
+  const texto = o => o.k === 'tw' ? o.ws.map(w => w.s).join(' ') : String(o.s == null ? '' : o.s);
+  for (let i = 0; i < CLAVES.length; i++) {
+    const cl = CLAVES[i], def = DOC_DEFS[cl], D = docDatos();
+    q(cl + ': el cuerpo es 10,2 pt', def.sz === 10.2, def.sz);
+    q(cl + ': y el interlineado 13,4 pt', def.lh === 13.4, def.lh);
+    q(cl + ': y declara DOS hojas propias', def.hojas === 2, def.hojas);
+    const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
+    q(cl + ': (DENOM) el maquetador devolvio operaciones', !!maq && maq.hojas[0].length > 5);
+    if (!maq) continue;
+    const pdf = docOpsAPdf(def, maq);
+    q(cl + ': el PDF de verdad trae TRES hojas: sus dos mas la comun',
+      pdf.getNumberOfPages() === 3, pdf.getNumberOfPages());
+    q(cl + ': y el maquetador dice lo mismo', maq.n === pdf.getNumberOfPages(),
+      maq.n + ' contra ' + pdf.getNumberOfPages());
+    /* En que hoja cae cada hito. */
+    const hoja = {}; const cajas = []; let yFirma = null, yTabla = null, filaFirma = null;
+    maq.hojas.forEach((ops, hh) => {
+      let rects = 0;
+      ops.forEach(o => {
+        const s = texto(o);
+        if (s.indexOf(SALTO[cl]) > -1) hoja.salto = hh;
+        if (s.indexOf('Declaro que:') === 0) hoja.declaro = hh;
+        if (s === 'Paciente') hoja.firmas = hh;
+        if (s.indexOf('imposibilitado de otorgar') > -1) hoja.comun = hh;
+        if (s.indexOf('Derecho a no otorgar') > -1) hoja.comun2 = hh;
+        if (s.indexOf('HOJAS COMUNES') > -1) hoja.titulo = hh;
+        if (s.indexOf('Se firma el presente') === 0) yFirma = o.y;
+        if (o.k === 'box') cajas.push({ hoja: hh, y: o.y, lado: o.s });
+        if (o.k === 'rect') { rects++; if (o.relleno) yTabla = o.y; else if (rects === 2) filaFirma = o.h; }
+      });
+    });
+    q(cl + ': el salto deja su seccion arrancando la hoja 2', hoja.salto === 1, 'hoja ' + hoja.salto);
+    q(cl + ': la declaracion y la tabla de firmas caen en la MISMA hoja',
+      hoja.declaro !== undefined && hoja.declaro === hoja.firmas,
+      'declaro=' + hoja.declaro + ' firmas=' + hoja.firmas);
+    q(cl + ': las hojas comunes son la ULTIMA y son UNA',
+      hoja.comun === maq.n - 1 && hoja.comun2 === maq.n - 1,
+      'arranca=' + hoja.comun + ' revocacion=' + hoja.comun2 + ' de ' + maq.n);
+    q(cl + ': y van SIN el titulo de archivo', hoja.titulo === undefined, 'hoja ' + hoja.titulo);
+    q(cl + ': al menos 6 mm entre «Se firma el presente» y la tabla',
+      yFirma !== null && yTabla !== null && (yTabla - yFirma) >= 6,
+      yFirma !== null && yTabla !== null ? (yTabla - yFirma).toFixed(2) + ' mm' : 'sin medir');
+    q(cl + ': y la fila «Firma» mide al menos 16 mm', filaFirma !== null && filaFirma >= 16, filaFirma);
+    /* LAS CASILLAS DE LA DECLARACION, DIBUJADAS: el ultimo grupo es la linea de «capacitado». */
+    const gr = [];
+    cajas.forEach(c => { const g = gr.find(x => x.hoja === c.hoja && Math.abs(x.y - c.y) < 0.05);
+      if (g) g.n++; else gr.push({ hoja: c.hoja, y: c.y, n: 1, lado: c.lado }); });
+    q(cl + ': (DENOM) hay al menos dos grupos de casillas', gr.length >= 2, gr.length);
+    q(cl + ': la linea de «capacitado» DIBUJA sus dos casillas, no las escribe',
+      gr.length >= 2 && gr[gr.length - 1].n === 2, gr.length ? gr[gr.length - 1].n : 0);
+    q(cl + ': y la de investigacion tambien',
+      gr.length >= 2 && gr[gr.length - 2].n === 2, gr.length > 1 ? gr[gr.length - 2].n : 0);
+    /* EL AIRE: la linea de las dos casillas queda a mas de un renglon de la anterior. */
+    const lineas = [];
+    maq.hojas.forEach((ops, hh) => ops.forEach(o => {
+      if (o.k === 't' || o.k === 'tw' || o.k === 'c' || o.k === 'r' || o.k === 'c2') lineas.push({ h: hh, y: o.y });
+    }));
+    gr.forEach(g => lineas.push({ h: g.hoja, y: g.y + g.lado }));
+    const LH = def.lh * DOC_GEO.PT;
+    const aireDe = g => { const base = g.y + g.lado; let mejor = null;
+      lineas.forEach(l => { if (l.h === g.hoja && l.y < base - 0.05 && (mejor === null || l.y > mejor)) mejor = l.y; });
+      return mejor === null ? null : base - mejor; };
+    const a1 = gr.length >= 2 ? aireDe(gr[gr.length - 2]) : null;
+    const a2 = gr.length >= 2 ? aireDe(gr[gr.length - 1]) : null;
+    q(cl + ': la linea de investigacion lleva unos 8 pt de aire arriba',
+      a1 !== null && a1 >= LH + 2.0, a1 === null ? 'sin medir' : a1.toFixed(2) + ' mm contra ' + LH.toFixed(2));
+    q(cl + ': y la de «capacitado» tambien',
+      a2 !== null && a2 >= LH + 2.0, a2 === null ? 'sin medir' : a2.toFixed(2) + ' mm');
+    /* LAS VINIETAS DE LA DECLARACION, CON SUS 5 PT. */
+    const decl = docDeclaracion('un procedimiento', false);
+    const ul = decl.filter(x => x.t === 'ul')[0];
+    q(cl + ': la declaracion declara el aire de sus vinietas', !!ul && ul.aire === 5, ul ? ul.aire : 'sin ul');
+    const vin = [];
+    maq.hojas.forEach((ops, hh) => ops.forEach(o => {
+      if (o.k === 't' && o.s === String.fromCharCode(8226)) vin.push({ h: hh, y: o.y }); }));
+    const ultimas = vin.slice(-4);
+    let paso = null;
+    for (let z = 1; z < ultimas.length; z++)
+      if (ultimas[z].h === ultimas[z - 1].h && paso === null &&
+          Math.abs((ultimas[z].y - ultimas[z - 1].y) - (LH + 5 * DOC_GEO.PT)) < 0.1)
+        paso = ultimas[z].y - ultimas[z - 1].y;
+    q(cl + ': y en el papel hay al menos un paso de exactamente un renglon mas 5 pt',
+      paso !== null, paso === null ? 'ninguno de ' + ultimas.length + ' pasos' : paso.toFixed(2) + ' mm');
+  }
+  /* LAS HOJAS COMUNES conservan sus dos subtitulos y perdieron el titulo. */
+  const com = docHojasComunes();
+  q('las hojas comunes ya no traen un bloque de titulo', com.filter(x => x.t === 'tit').length === 0,
+    com.filter(x => x.t === 'tit').length);
+  q('y conservan sus DOS subtitulos', com.filter(x => x.t === 'sec').length === 2,
+    com.filter(x => x.t === 'sec').length);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-800', 'PANT-31: «Protesis valvulares» con su casilla de PPT -- igual a las otras, sin marcar de fabrica, guardada en la misma clave-, su grupo propio, y el mazo con UNA diapositiva mas solo cuando esta tildada', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('lab') } catch (e) {}
+  await esp(300);
+  const sub = Array.prototype.slice.call(document.querySelectorAll('.lab-subtab'))
+    .filter(x => (x.getAttribute('onclick') || '').indexOf("'mediciones'") > -1)[0];
+  if (sub) sub.click();
+  await esp(300);
+  q('(DENOM) el panel de Mediciones esta visible',
+    !!document.getElementById('lab-sub-mediciones') && !!document.getElementById('lab-sub-mediciones').offsetParent);
+  const card = document.querySelector('#tab-lab .lab-card[data-ppt="protesis"]');
+  q('la tarjeta declara su clave data-ppt', !!card);
+  if (!card) return { extra: F };
+  q('y ya no declara data-ppt-no', !card.getAttribute('data-ppt-no'), card.getAttribute('data-ppt-no'));
+  const chk = card.querySelector('.lab-ppt-chk'), inp = chk ? chk.querySelector('input') : null;
+  q('tiene la casilla «PPT»', !!chk && (chk.textContent || '').indexOf('PPT') > -1, chk ? chk.textContent : 'sin casilla');
+  q('con el mismo title que las demas',
+    !!chk && (chk.title || '').indexOf('presentaci') > -1, chk ? chk.title : '');
+  q('y la clave del input es la de la tarjeta',
+    !!inp && inp.getAttribute('data-ppt-chk') === 'protesis', inp ? inp.getAttribute('data-ppt-chk') : '-');
+  /* El aspecto y el lugar: contra la de al lado, que es el patron. */
+  const hdr = card.querySelector('.lab-card-hdr');
+  const otra = document.querySelector('#tab-lab .lab-card[data-ppt="valvulas"] .lab-ppt-chk');
+  q('(DENOM) la casilla de Valvulopatias esta, que es con la que se compara', !!otra);
+  if (chk && otra && hdr) {
+    const rc = chk.getBoundingClientRect(), ro = otra.getBoundingClientRect(), rh = hdr.getBoundingClientRect();
+    q('mide lo mismo que la de Valvulopatias',
+      Math.round(rc.width) === Math.round(ro.width) && Math.round(rc.height) === Math.round(ro.height),
+      Math.round(rc.width) + 'x' + Math.round(rc.height) + ' contra ' + Math.round(ro.width) + 'x' + Math.round(ro.height));
+    q('con area tactil de 44 px', Math.round(rc.height) >= 44 && Math.round(rc.width) >= 44,
+      Math.round(rc.width) + 'x' + Math.round(rc.height));
+    q('y anclada al borde derecho de su cabecera', (rh.right - rc.right) < 20, Math.round(rh.right - rc.right));
+  }
+  /* ESTADO POR OMISION Y GUARDADO. Se limpia primero: la preferencia vive en localStorage y
+     sobrevive a todo, asi que sin esto el caso mide lo que dejo otra corrida. */
+  const guardado = (function () { try { return localStorage.getItem(LAB_PPT_CHK_KEY) } catch (e) { return null } })();
+  try { localStorage.removeItem(LAB_PPT_CHK_KEY) } catch (e) {}
+  q('sin preferencia guardada, la casilla no esta marcada', !_labPptChkOn('protesis'));
+  /* LOS DOS ASSERTS DE ARRANQUE. */
+  const ac = _labPptAssertClaves(), ag = _labPptAssertGrupos();
+  q('ninguna tarjeta queda sin declarar', ac.sinDeclarar.length === 0, ac.sinDeclarar.join(' | '));
+  q('ninguna clave esta repetida', ac.dup.length === 0, ac.dup.join(' | '));
+  q('toda clave pertenece a un grupo', ag.sinGrupo.length === 0, ag.sinGrupo.join(' | '));
+  q('ningun grupo nombra una tarjeta que no existe', ag.sinTarjeta.length === 0, ag.sinTarjeta.join(' | '));
+  q('y ninguna esta en dos grupos', ag.dobles.length === 0, ag.dobles.join(' | '));
+  const gs = LAB_PPT_GRUPOS.filter(g => g.cards.indexOf('protesis') > -1);
+  q('«protesis» pertenece a EXACTAMENTE un grupo', gs.length === 1, gs.length);
+  q('que es propio y no el de Valvulopatias', gs.length === 1 && gs[0].k === 'prot' && gs[0].cards.length === 1,
+    gs.length ? gs[0].k + ' con ' + gs[0].cards.length : '-');
+  q('y va justo despues del de Valvulopatias, como en la pantalla',
+    LAB_PPT_GRUPOS.findIndex(g => g.k === 'prot') === LAB_PPT_GRUPOS.findIndex(g => g.k === 'valv') + 1,
+    'prot=' + LAB_PPT_GRUPOS.findIndex(g => g.k === 'prot') + ' valv=' + LAB_PPT_GRUPOS.findIndex(g => g.k === 'valv'));
+  /* ── EL MAZO, GENERADO DE VERDAD, espiando el constructor ── */
+  const P = 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica';
+  const mk = c => ({ id: Math.random(), fecha_estudio: '2026-11-05', campos: c });
+  const infs = [];
+  for (let z = 0; z < 6; z++) infs.push(mk({ va_morf: P, va_prot_modelo: 'ATS',
+    informe_texto: z < 2 ? ('Protesis aortica con criterios que sugieren estenosis prot' + String.fromCharCode(233) + 'sica significativa.') : '' }));
+  infs.push(mk({ vm_morf: 'Plastia mitral', informe_texto: '' }));
+  infs.push(mk({ va_morf: 'Calcificada', informe_texto: '' }));
+  const mazo = async () => {
+    const Orig = window.PptxGenJS;
+    if (!Orig) return null;
+    const reg = { slides: 0, titulos: [], textos: [], charts: 0, tablas: 0 };
+    window.PptxGenJS = function () {
+      const p = new Orig();
+      const oa = p.addSlide.bind(p);
+      p.addSlide = function () { reg.slides++; const s = oa();
+        const ot = s.addText.bind(s);
+        s.addText = function (t, o) { const tx = (typeof t === 'string') ? t : JSON.stringify(t);
+          if (o && o.fontSize === 23 && o.bold) reg.titulos.push(String(tx));
+          reg.textos.push(String(tx).slice(0, 220)); return ot(t, o); };
+        if (typeof s.addTable === 'function') { const oTb = s.addTable.bind(s);
+          s.addTable = function (f, o) { reg.tablas++; reg.textos.push('[TABLA] ' + JSON.stringify(f).slice(0, 600)); return oTb(f, o) }; }
+        if (typeof s.addChart === 'function') { const oCh = s.addChart.bind(s);
+          s.addChart = function (ti, d, o) { reg.charts++; reg.textos.push('[CHART] ' + JSON.stringify(d).slice(0, 600)); return oCh(ti, d, o) }; }
+        return s; };
+      p.writeFile = function () { return Promise.resolve(true) };
+      p.write = function () { return Promise.resolve('') };
+      return p;
+    };
+    Object.keys(Orig).forEach(k => { try { window.PptxGenJS[k] = Orig[k] } catch (e) {} });
+    let err = null;
+    try { await _labPPTGenerar(infs, { presentador: 'Ficticio', institucion: 'Centro Ficticio', fecha: '2026-11-10', tema: 'dark' }); }
+    catch (e) { err = String(e.message).slice(0, 90) }
+    await esp(350);
+    window.PptxGenJS = Orig;
+    reg.err = err;
+    return reg;
+  };
+  const sin = await mazo();
+  q('(DENOM) el mazo se genera', !!sin && sin.slides > 0 && !sin.err, sin ? (sin.slides + ' hojas, err=' + sin.err) : 'sin PptxGenJS');
+  if (!sin || !sin.slides) return { extra: F };
+  const tituloProt = 'Pr' + String.fromCharCode(243) + 'tesis valvulares';
+  q('SIN tildar, el mazo no trae la hoja de protesis',
+    sin.titulos.indexOf(tituloProt) === -1, sin.titulos.join(' | '));
+  q('y no trae ningun grafico ni tabla de esa hoja', sin.charts === 0 && sin.tablas === 0,
+    'charts=' + sin.charts + ' tablas=' + sin.tablas);
+  /* Tildar con el gesto real: el change de la casilla. */
+  inp.checked = true;
+  inp.dispatchEvent(new Event('change', { bubbles: true }));
+  await esp(150);
+  q('marcarla la guarda en la misma clave que las otras', _labPptChkOn('protesis'),
+    (function () { try { return localStorage.getItem(LAB_PPT_CHK_KEY) } catch (e) { return '-' } })());
+  q('y prende la marca de la tarjeta', card.getAttribute('data-ppt-on') === '1', card.getAttribute('data-ppt-on'));
+  q('su grupo queda activo', !!_labPptGruposActivos().prot, JSON.stringify(Object.keys(_labPptGruposActivos())));
+  const con = await mazo();
+  q('(DENOM) el segundo mazo se genera', !!con && con.slides > 0 && !con.err, con ? (con.slides + ' hojas, err=' + con.err) : '-');
+  if (con && con.slides) {
+    q('CON la casilla tildada aparece la hoja de protesis',
+      con.titulos.indexOf(tituloProt) > -1, con.titulos.join(' | '));
+    q('y el mazo tiene UNA diapositiva mas', con.slides === sin.slides + 1,
+      sin.slides + ' contra ' + con.slides);
+    const t = con.textos.join(' || ');
+    q('la hoja publica los estudios con protesis o reparacion',
+      t.indexOf('Estudios con pr') > -1, '');
+    q('y el «con alguna alteracion» sobre los estudios CON PROTESIS',
+      t.indexOf('Con alguna alteraci') > -1 && t.indexOf('con pr' + String.fromCharCode(243) + 'tesis (') > -1, '');
+    q('trae DOS graficos: posicion por tipo y trastornos', con.charts === 2, con.charts);
+    /* ⚠️ EL ROTULO ES «Aórtica», CON A MAYUSCULA Y LA TILDE EN LA O: la primera version de esta
+       condicion buscaba «áortica» y fallaba sobre un rotulo correcto. */
+    q('las categorias combinan posicion y tipo',
+      t.indexOf('A' + String.fromCharCode(243) + 'rtica · Mec') > -1,
+      t.slice(t.indexOf('[CHART]'), t.indexOf('[CHART]') + 150));
+    q('las reparaciones van rotuladas como tales', t.indexOf('(rep.)') > -1, '');
+    q('y la tabla de los modelos mas usados esta', con.tablas === 1 && t.indexOf('[TABLA]') > -1, con.tablas);
+    q('el pie declara que las reparaciones no son protesis',
+      t.indexOf('no son pr' + String.fromCharCode(243) + 'tesis') > -1, '');
+    q('y que los trastornos salen del texto del informe',
+      t.indexOf('texto del informe') > -1, '');
+  }
+  /* ⚠️ CONTROL: destildar tiene que volver al mazo de antes, sin residuo. */
+  inp.checked = false;
+  inp.dispatchEvent(new Event('change', { bubbles: true }));
+  await esp(150);
+  const vuelta = await mazo();
+  q('(CONTROL) destildarla devuelve el mazo exacto de antes',
+    !!vuelta && vuelta.slides === sin.slides && vuelta.charts === 0 && vuelta.tablas === 0 &&
+    vuelta.titulos.indexOf(tituloProt) === -1,
+    vuelta ? (vuelta.slides + ' hojas, charts=' + vuelta.charts + ', tablas=' + vuelta.tablas) : '-');
+  if (guardado) { try { localStorage.setItem(LAB_PPT_CHK_KEY, guardado) } catch (e) {} }
   return { extra: F };
   })();
 `);
