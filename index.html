@@ -5054,6 +5054,44 @@ html.light-mode .amilo-root{
    es el dato o el cartel. Vacio, lo que se escribe es lo que vale.
    ⚠️ NO SE IMPRIME, y no por una regla de impresion: el papel y la imagen dibujan de la lista de
    operaciones del maquetador, que sin institucion no emite ninguna operacion de nombre. */
+/* ── PANT-33 · EL EDITOR SOBRE LA HOJA (Parte B) ───────────────────────────────────────────
+   ⚠️ EL CUERPO ES UNA SOLA ZONA EDITABLE, con `white-space:pre-wrap` para que los espacios y los
+   saltos del medico sean los que escribio. Cada linea es un `div` con la clase de SU marca, y la
+   marca se queda a la vista: lo que se escribe es lo que se guarda.
+   Los tamanios derivan de `--doc-sz` igual que los del papel, asi que un titulo de seccion del
+   editor mide lo mismo que el que maqueta jsPDF. */
+.doc-ed{white-space:pre-wrap;min-height:38mm;outline:none;}
+.doc-hoja .doc-ed:focus{background:transparent;box-shadow:0 0 0 2px #cfe0ff;border-radius:3px;}
+.doc-ed-ln{text-align:justify;margin:0 0 7px;}
+.doc-ed-sec{font-weight:700;color:#1f3a5f;font-size:calc(var(--doc-sz, 10.5pt) + 0.7pt);
+  margin:12px 0 3px;text-align:left;}
+.doc-ed-vin{padding-left:18px;text-align:justify;margin:0 0 4px;}
+.doc-ed-chk{text-align:left;margin:0 0 4px;}
+.doc-ed-raya{font-weight:700;text-align:left;margin:0 0 4px;border-bottom:1px solid #777;}
+.doc-ed-vacia{margin:0;min-height:.7em;}
+/* El texto gris del cuerpo vacio y del titulo vacio. Un solo mecanismo para los tres carteles de
+   la hoja -- institucion, titulo y cuerpo-: `::before` sobre el elemento VACIO, para que lo que
+   el medico escribe sea lo unico que hay adentro. */
+.doc-ed-ph::before,.doc-ph:empty::before{content:attr(data-ph);color:#9aa3ad;font-style:italic;
+  font-weight:400;}
+.doc-ed-ph > .doc-ed-vacia:only-child{display:none;}
+/* Los controles que la barra suma en modo modelo. */
+.doc-bar-chk{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text);
+  cursor:pointer;min-height:44px;}
+.doc-bar-chk input{width:16px;height:16px;cursor:pointer;margin:0;}
+.doc-bar-nom{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);
+  min-height:44px;}
+.doc-bar-nom input{font-size:12px;padding:5px 7px;min-height:32px;width:170px;max-width:42vw;}
+#doc-mod-guardar[disabled]{opacity:.5;cursor:default;}
+/* La ayuda de las convenciones. */
+#doc-ayuda{flex:0 0 auto;max-height:42vh;overflow:auto;padding:9px 12px;background:var(--bg3);
+  border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.doc-ay-t{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.04em;}
+.doc-ay-f{display:flex;gap:9px;align-items:baseline;font-size:11.5px;color:var(--text);}
+.doc-ay-f code{flex:0 0 auto;min-width:92px;font-size:11px;color:var(--accent2);
+  background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:1px 5px;}
+.doc-ay-p{font-size:10.5px;color:var(--text2);line-height:1.5;}
 .doc-enc-ph{min-height:1em;}
 .doc-enc-ph:empty::before{content:attr(data-ph);color:#9aa3ad;font-weight:400;font-style:italic;}
 .doc-enc-ini{width:14mm;height:14mm;border-radius:50%;background:#1f3a5f;color:#fff;
@@ -5125,55 +5163,11 @@ html.light-mode .amilo-root{
 .cfgdoc-vis input{width:16px;height:16px;cursor:pointer;margin:0;}
 .cfgdoc-acc .btn{min-height:44px;}
 #cfg-docs-pie{font-size:11px;color:var(--text2);margin-top:10px;}
-/* ── El editor de modelos (PANT-32, Parte C) ──────────────────────────────────────────────
-   Dos columnas desde 900 px -- el editor a la izquierda y la vista previa a la derecha-- y una
-   sola por debajo, con la vista previa DEBAJO, que es lo que C1 pide. El corte va sobre la
-   VENTANA y no sobre el contenedor: con `flex-wrap` el punto de quiebre depende del ancho que
-   le quede a la tarjeta, y entonces «a partir de unos 900 px» deja de ser medible. Es la misma
-   regla que la casa ya fija para los diagramas. */
-.cdd-volver{min-height:44px;margin-bottom:10px;}
-.cdd-cols{display:flex;flex-direction:column;gap:14px;}
-.cdd-izq{display:flex;flex-direction:column;gap:10px;min-width:0;}
-.cdd-der{min-width:0;}
-.cdd-der-t{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
-  letter-spacing:.04em;margin-bottom:6px;}
-.cdd-der-n{font-weight:400;text-transform:none;letter-spacing:0;}
-.cdd-prev{max-height:460px;overflow:auto;zoom:.52;}
-.cdd-g{display:flex;flex-direction:column;gap:4px;}
-.cdd-g label{font-size:11.5px;color:var(--text2);}
-.cdd-g input[type=text],.cdd-g textarea{width:100%;box-sizing:border-box;}
-.cdd-g textarea{resize:vertical;font-family:inherit;font-size:12.5px;line-height:1.5;}
-.cdd-ayuda{font-size:10.5px;color:var(--text2);line-height:1.5;}
-.cdd-fijo{font-size:11px;color:var(--text2);background:var(--bg3);border:1px dashed var(--border);
-  border-radius:6px;padding:7px 9px;line-height:1.5;}
-.cdd-pz{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text);
-  line-height:1.5;cursor:pointer;min-height:44px;}
-.cdd-pz input{width:16px;height:16px;flex:none;cursor:pointer;margin:2px 0 0;}
-.cdd-pzs{border:1px solid var(--border);border-radius:7px;padding:9px 10px;background:var(--bg2);}
-.cdd-pzs-t{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
-  letter-spacing:.04em;margin-bottom:4px;}
-.cdd-aviso{font-size:10.5px;color:var(--amber,#d97706);line-height:1.5;margin-top:4px;}
-#cfg-docs-pregs{display:flex;flex-direction:column;gap:9px;}
-.cdd-preg{border:1px solid var(--border);border-radius:7px;padding:8px 9px;background:var(--bg2);}
-.cdd-preg-top{display:flex;gap:7px;align-items:center;margin-bottom:5px;}
-.cdd-preg-t{flex:1;min-width:0;}
-.cdd-preg-x{width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;
-  font-size:12.5px;line-height:1.5;}
-.cdd-x{min-width:44px;min-height:44px;flex:none;}
-.cdd-vacia{font-size:10.5px;color:var(--text2);margin-top:4px;}
-.cdd-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
-.cdd-bts .btn{min-height:44px;}
-.cdd-peg{margin-top:12px;border:1px solid var(--border);border-radius:7px;padding:10px;
-  background:var(--bg2);display:flex;flex-direction:column;gap:6px;}
-.cdd-peg[hidden]{display:none;}
-.cdd-peg label{font-size:11.5px;color:var(--text2);}
-.cdd-peg textarea{width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;
-  font-size:12.5px;line-height:1.5;}
-@media (min-width:900px){
-  .cdd-cols{flex-direction:row;align-items:flex-start;}
-  .cdd-izq{flex:1 1 0;}
-  .cdd-der{flex:0 0 330px;position:sticky;top:8px;}
-}
+/* ⚠️ PANT-33: ACA VIVIA EL CSS DEL EDITOR DE PANT-32 -- las dos columnas con su corte de 900 px,
+   la vista previa de 330 px con su `zoom:.52`, los campos de pregunta y el cajon de pegado-.
+   Salio entero con su editor: hoy se edita SOBRE LA HOJA, que ya tiene sus propias medidas.
+   El corte de 900 px no hace falta: la hoja es pantalla completa y lo que la hace entrar es el
+   zoom que `docZoomAjustar` calcula. */
 @media (max-width:640px){
   .cfgdoc-fila{flex-direction:column;align-items:stretch;}
   .cfgdoc-acc{justify-content:flex-start;}
@@ -5637,7 +5631,10 @@ window.cerrarSesionReal = cerrarSesionReal;
      clic-afuera-para-cerrar, no es boton»): escrito de otra forma, este div se volveria un
      `role="button"` con `tabindex=0` encima de un dialogo.
      Llama a `docCerrarPreguntando` y no a `docCerrar`: con correcciones a mano sin guardar ni
-     imprimir, primero pregunta. La ✕ y Escape cierran directo, que es lo que la orden pide. -->
+     imprimir, primero pregunta. La ✕ y Escape cierran directo, que es lo que la orden pide.
+     ⚠️ PANT-33 (B2): EN MODO «modelo» EL CLIC AFUERA NO CIERRA. Lo pide la orden, y tiene su
+     motivo: ahi el medico esta escribiendo el texto de su institucion y un clic al costado de
+     la hoja no puede costarle el trabajo. `docCerrarPreguntando` sale temprano en ese modo. -->
 <div id="doc-ov" hidden role="dialog" aria-modal="true" aria-labelledby="doc-ov-tit"
      onclick="if(event.target===this)docCerrarPreguntando();">
   <div class="doc-bar">
@@ -5653,14 +5650,39 @@ window.cerrarSesionReal = cerrarSesionReal;
       Los datos de la app cambiaron después de que editaste la hoja.
       <button type="button" class="btn btn-primary" onclick="docActualizarDatos()">Actualizar con los datos</button>
     </span>
-    <span class="doc-bar-acc">
+    <!-- ⚠️ PANT-33 (B1/B2): LA MISMA HOJA SIRVE A DOS MODOS, y lo que cambia es ESTA fila.
+         «informe» es la de siempre -- guardar en Imagenes, imprimir y cerrar-- y «modelo» es la
+         de Configuracion. Se ocultan con la CLASE `doc-oculto` y NO con `hidden`, por la leccion
+         que PANT-30 pago con «Quitar de Imagenes»: `.btn` declara `display:inline-flex` y le
+         gana al `[hidden]{display:none}` del navegador, asi que un juego oculto con el atributo
+         se veria igual. Con dos hojas distintas -- una para el Informe y otra para el editor--
+         el medico editaria en una maqueta que puede divergir de la que se imprime, que es
+         justamente lo que B1 prohibe. -->
+    <span class="doc-bar-acc" id="doc-acc-informe">
+      <!-- ⚠️ LA CASILLA DE LA FIRMA LLEVA PREFIJO `cfg-`, Y NO ES UN GUSTO: es un `input` de
+           verdad, asi que con cualquier otro prefijo entraria al censo de campos del estudio y
+           al Excel. `cfg-` esta en las DOS listas a la vez (`_CAMPOS_FUERA_DEL_ESTUDIO` y
+           `_noEsDelEstudio`), medido. Solo se ve con un documento en blanco abierto (C3). -->
+      <label class="doc-bar-chk doc-oculto" id="cfg-doc-firma-wrap"><input type="checkbox" id="cfg-doc-firma"> Incluir firma del médico</label>
       <button type="button" class="btn btn-save" onclick="docGuardarImagen()">🖼️ Guardar en Imágenes</button>
       <button type="button" class="btn btn-ghost" id="doc-quitar" hidden onclick="docQuitarImagen()">Quitar de Imágenes</button>
       <button type="button" class="btn btn-green" onclick="docImprimir()">🖨️ Imprimir</button>
       <button type="button" class="btn btn-ghost" id="doc-x" onclick="docCerrar()" aria-label="Cerrar el documento">✕</button>
     </span>
+    <span class="doc-bar-acc doc-oculto" id="doc-acc-modelo">
+      <label class="doc-bar-chk doc-oculto" id="cfg-doc-frase-wrap"><input type="checkbox" id="cfg-doc-frase"> Frase con los datos del paciente</label>
+      <span class="doc-bar-nom doc-oculto" id="cfg-doc-nom-wrap"><label for="cfg-doc-nom">Nombre en el menú</label><input type="text" id="cfg-doc-nom" maxlength="60"></span>
+      <button type="button" class="btn btn-save" id="doc-mod-guardar" onclick="docmodEdGuardar()">Guardar como modelo</button>
+      <button type="button" class="btn btn-ghost doc-oculto" id="doc-mod-orig" onclick="docmodEdOriginal()">↩ Volver al texto original</button>
+      <button type="button" class="btn btn-ghost doc-oculto" id="doc-mod-vaciar" onclick="docmodEdVaciar()">Vaciar</button>
+      <button type="button" class="btn btn-ghost" id="doc-mod-ayuda" onclick="docmodEdAyuda()" aria-label="Cómo se escribe el texto">?</button>
+      <button type="button" class="btn btn-ghost" id="doc-mod-x" onclick="docmodEdCerrar()">✕ Cerrar</button>
+    </span>
   </div>
   <div id="doc-estado" hidden></div>
+  <!-- La ayuda de las convenciones (B2). Vive dentro del overlay y debajo de la barra, asi que
+       no tapa la hoja ni se va de la pantalla en angosto. -->
+  <div id="doc-ayuda" class="doc-oculto"></div>
   <div class="doc-hoja-wrap"><div class="doc-hoja" id="doc-hoja"></div></div>
 </div>
 <!-- La confirmacion de cierre. Nace oculta y vive FUERA de #doc-ov: adentro, el clic en sus
@@ -115266,6 +115288,11 @@ window.DOC_GEO = DOC_GEO;
    institucion el maquetador no emite ninguna operacion de nombre. */
 const DOC_INST_PH = 'Nombre de la institución';
 window.DOC_INST_PH = DOC_INST_PH;
+/* El texto gris del cuerpo vacio (C2). Mismo mecanismo y mismo motivo que el de la institucion:
+   no se imprime porque el papel dibuja de la lista de operaciones del maquetador, y un cuerpo
+   vacio no emite ninguna. */
+const DOC_ED_PH = 'Escriba o pegue el texto aquí';
+window.DOC_ED_PH = DOC_ED_PH;
 
 /* Lo que la hoja sanea: solo lo que la fuente del PDF no puede dibujar. */
 function docSan(s) {
@@ -115651,7 +115678,15 @@ const DOCMOD_TOTAL_MAX = 6;
 /* Los topes de largo de E3. Valen para lo que se escribe a mano Y para lo que se importa: con
    dos juegos de topes, un archivo podria cargar lo que el editor no deja escribir. */
 const DOCMOD_LIM = Object.freeze({ nom: 60, tit: 120, ptit: 160, ptxt: 6000, ctxt: 3000, pregs: 30, total: 60000 });
-const DOCMOD_AYUDA = 'Viñeta: empezá la línea con «• ». Casilla: empezá con «☐ Sí ☐ No ». Raya para escribir a mano: guiones bajos. Negrita: entre dos asteriscos.';
+/* Las seis convenciones de B4, una por renglon. Es el texto que abre el «?» de la barra. */
+const DOCMOD_AYUDA = Object.freeze([
+  ['## ', 'al principio de una línea: título de sección.'],
+  ['• ', 'al principio de una línea: viñeta con sangría.'],
+  ['☐ Sí ☐ No ', 'al principio de una línea: casilla. Varias seguidas se imprimen en dos columnas.'],
+  ['____', 'cuatro guiones bajos o más, solos en la línea: raya para escribir a mano.'],
+  ['**texto**', 'entre dos asteriscos: negrita.'],
+  ['(línea en blanco)', 'separa un párrafo del siguiente.']
+]);
 const DOCMOD_RAYA = '________________________';
 const DOCMOD_CHK = '☐ Sí ☐ No ';
 const DOCMOD_PROC = 'el procedimiento';
@@ -115695,6 +115730,14 @@ function docmodBloquesATexto(bs) {
       }).join('\n'));
       return;
     }
+    /* ⚠️ PANT-33 (B4): EL TITULO DE SECCION TIENE SU MARCA, «## ». Antes no habia ninguna, y la
+       TAREA 0 lo midio: `docmodTextoABloques('## Titulo\\nCuerpo.')` devolvia UN solo bloque `p`.
+       Hace falta porque el editor de esta tanda pone el cuerpo ENTERO en un solo texto que el
+       medico puede borrar y rehacer de cero, y los titulos de seccion son parte de ese texto.
+       `docmodCuerpoAPregs` sigue consumiendo los `sec` de PRIMER nivel como titulo de cada
+       pregunta, asi que para los cuatro incluidos esta linea no emite nada: lo verifica la ida y
+       vuelta del caso. */
+    if (b.t === 'sec') { tr.push('## ' + String(b.x || '')); return; }
     if (b.t === 'raya') { tr.push(String(b.x || '') + '\n' + DOCMOD_RAYA); return; }
     if (b.t === 'chk1') { tr.push(DOCMOD_CHK + String(b.x || '')); return; }
     if (b.t === 'chk2') { tr.push((b.items || []).map(function (it) { return DOCMOD_CHK + it; }).join('\n')); return; }
@@ -115746,6 +115789,15 @@ function docmodTextoABloques(txt) {
       cerrarVin(); cerrarChk();
       const rot = buf.join(' ').replace(/\s+/g, ' ').trim(); buf = [];
       bl.push({ t: 'raya', x: docmodSinNeg(rot) });
+      return;
+    }
+    /* El titulo de seccion: «## » al principio de la linea (B4). Va ANTES que la viñeta y que la
+       casilla porque es el unico prefijo de dos caracteres y ninguno de los otros empieza con
+       almohadilla, asi que el orden no puede confundirlos. */
+    if (t.indexOf('## ') === 0 || t === '##') {
+      cerrar();
+      const x = t.slice(2).replace(/^\s+/, '');
+      if (x) bl.push({ t: 'sec', x: docmodSinNeg(x) });
       return;
     }
     if (t.charAt(0) === '•') {
@@ -116199,358 +116251,489 @@ window.cfgDocsVis = cfgDocsVis;
 /* El cableado de arranque: el menu y el boton tienen que estar al dia aunque el medico nunca
    abra Configuracion. */
 
-/* ── PANT-32 · EL EDITOR DE MODELOS (Parte C) ─────────────────────────────────────────────
-   Vive en la MISMA pantalla que la lista -- no en un overlay-, con «← Volver a Documentos»:
-   el medico esta configurando, no atendiendo, y un overlay encima de Configuracion le taparia
-   el resto de sus ajustes.
+/* ── PANT-33 · EL EDITOR SOBRE LA HOJA (Parte B) ──────────────────────────────────────────
+   ⚠️ ES LA MISMA HOJA DEL INFORME, EN EL MISMO OVERLAY, Y ESO ES TODO EL DISENIO. PANT-32 tenia
+   un editor en la pantalla de Configuracion -- campos de texto a la izquierda y una vista previa
+   de 330 px a la derecha-- y el medico lo probo y pidio otra cosa: escribir DIRECTO SOBRE LA
+   HOJA, a pantalla completa. Con un editor paralelo hay dos maquetas y el dia que un bloque
+   cambie de aspecto el editor muestra una cosa y el papel otra; con la hoja de verdad eso no
+   puede pasar, porque el marcado lo arma `docHojaHTML`, la MISMA funcion que pinta el Informe.
 
-   ⚠️ LA VISTA PREVIA USA LA HOJA DEL INFORME (`docHojaHTML`) Y UN PACIENTE FICTICIO. Lo
-   primero, para que lo que el medico ve en el editor sea lo que va a salir impreso y no una
-   segunda maqueta que puede divergir. Lo segundo, porque este es un repositorio PUBLICO y
-   porque el modelo es de la institucion y no de un paciente: ni el nombre, ni el documento, ni
-   la institucion, ni el medico de la vista previa son reales.
+   ⚠️ EL CUERPO ES UNA SOLA ZONA EDITABLE Y NO UN `contenteditable` POR BLOQUE. Es lo que hace
+   posible «borrar todo y rehacerlo de cero» (B3): con un editable por bloque, borrar el ultimo
+   parrafo deja un documento sin forma de escribir el siguiente. Lo que se edita es TEXTO con las
+   seis convenciones de B4, y las marcas se VEN -- la linea que empieza con «## » se dibuja como
+   un titulo de seccion con su «## » a la vista-: lo que el medico escribe es lo que se guarda.
 
-   ⚠️ LOS CAMPOS SON DE TEXTO PLANO (`textarea`) Y EL TEXTO SE TRATA SIEMPRE COMO TEXTO. Nada
-   de `contenteditable` aca: lo que se guarda es lo que el medico escribio, y el marcado que un
-   `contenteditable` deja al pegar entraria despues al almacen y de ahi al papel. */
+   ⚠️ LAS PARTES FIJAS SE VEN EN SU LUGAR Y NO SE PUEDEN TOCAR (B3): el encabezado, la linea del
+   paciente, la fecha, la firma del medico y -- en los consentimientos-- la declaracion, la tabla
+   de firmas y las hojas comunes. Se dibujan con `docHojaHTML(..., false)`, o sea sin
+   `contenteditable`, con un paciente FICTICIO y con la institucion y el logo REALES del medico.
+
+   ⚠️ EL MODELO QUE SE GUARDA TIENE LA MISMA FORMA QUE EN PANT-32 -- {tit, frase, txt} o
+   {tit, pregs:[{t,x}]}-, y eso no es casualidad: el editor convierte el modelo a UN texto y el
+   texto al modelo, asi que el almacen, su validador, la derivacion del original y la regla de
+   oro siguen siendo los mismos. El unico camino nuevo es la conversion. */
 let _cdEd = null;
-let _cdPrevT = null;
 
-/* El paciente ficticio de la vista previa. La fecha sale de hoy, que no es un dato de nadie. */
+/* El paciente ficticio de las partes fijas (B3). La institucion, el logo, la ciudad, la fecha y
+   el medico son los REALES: son del medico, no de un paciente. El repositorio es PUBLICO. */
 function docmodEjemplo() {
-  const hoy = new Date();
-  const dd = String(hoy.getDate()).padStart(2, '0');
-  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
-                 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-  return { inst: 'Centro de ejemplo', logoD: null, ciudad: 'Ciudad', pac: 'Paciente de Ejemplo',
-           art: 'la paciente', docl: 'CI', docn: '1.111.111-1',
-           est: 'un ecocardiograma transtorácico', med: 'Dra. Ejemplo', mat: '00000',
-           esp: 'Cardiología', fecha: dd + '/' + mm + '/' + hoy.getFullYear(),
-           dia: String(hoy.getDate()), mes: MESES[hoy.getMonth()], anio: String(hoy.getFullYear()) };
+  return { pac: 'María Fernanda Pérez', art: 'la paciente', docl: 'CI', docn: '1.234.567-8',
+           est: 'un ecocardiograma transtorácico' };
 }
 window.docmodEjemplo = docmodEjemplo;
 
-/* La firma del modelo que se esta editando, para saber si hay cambios sin guardar (C5). */
-function _cdFirma(m, nom) {
-  try { return JSON.stringify([String(nom || ''), docmodCuerpo(m)]); } catch (e) { return ''; }
+/* Los datos con los que se pinta la hoja del editor. */
+function docmodEjemploHoja() {
+  const D = docDatos(), E = docmodEjemplo();
+  for (const k in E) if (Object.prototype.hasOwnProperty.call(E, k)) D[k] = E[k];
+  return D;
+}
+window.docmodEjemploHoja = docmodEjemploHoja;
+
+/* ── MODELO <-> UN SOLO TEXTO ─────────────────────────────────────────────────────────────
+   El cuerpo de un consentimiento vive en el modelo como una lista de «preguntas» con titulo y
+   texto; en la hoja es un texto corrido donde cada titulo es una linea «## ». Las dos funciones
+   son inversas, y la ida y vuelta de los cuatro incluidos no pierde una palabra -- lo mide el
+   caso-. */
+function docmodModeloATexto(m) {
+  if (!m) return '';
+  if (m.tipo === 'consent') {
+    return (m.pregs || []).map(function (p) {
+      const t = String(p.t || '').trim();
+      return (t ? ('## ' + t + '\n') : '') + String(p.x || '');
+    }).join('\n\n');
+  }
+  return String(m.txt || '');
+}
+window.docmodModeloATexto = docmodModeloATexto;
+
+function docmodTextoAModelo(m, txt) {
+  if (!m) return;
+  if (m.tipo !== 'consent') { m.txt = String(txt == null ? '' : txt); return; }
+  /* ⚠️ EL CUERPO DE ANTES DEL PRIMER «## » ES UNA PREGUNTA SIN TITULO, no se descarta: el medico
+     puede escribir un parrafo de entrada antes de la primera seccion, y `docmodArmar` ya sabe
+     imprimir una pregunta sin titulo -- se saltea el `sec` y mete el cuerpo-. */
+  const pregs = []; let cur = null;
+  String(txt == null ? '' : txt).split('\n').forEach(function (ln) {
+    const t = String(ln).trim();
+    if (t.indexOf('## ') === 0 || t === '##') {
+      cur = { t: t.slice(2).replace(/^\s+/, ''), xs: [] }; pregs.push(cur); return;
+    }
+    if (!cur) { cur = { t: '', xs: [] }; pregs.push(cur); }
+    cur.xs.push(ln);
+  });
+  m.pregs = pregs.map(function (p) {
+    return { t: String(p.t || '').slice(0, DOCMOD_LIM.ptit),
+             x: p.xs.join('\n').replace(/^\n+/, '').replace(/\n+$/, '').slice(0, DOCMOD_LIM.ptxt) };
+  });
+}
+window.docmodTextoAModelo = docmodTextoAModelo;
+
+/* ── LAS PARTES DE LA HOJA DEL EDITOR ─────────────────────────────────────────────────────
+   Cuatro tramos: lo fijo de arriba, el titulo editable, lo fijo del medio y lo fijo del pie. El
+   cuerpo editable va entre el medio y el pie. */
+function docmodEdPartes(m) {
+  if (m.tipo === 'constancia')
+    return { cab: [{ t: 'enc' }, { t: 'ciudadfecha' }], tit: 'tit', med: [], pie: [{ t: 'firma' }] };
+  if (m.tipo === 'blanco')
+    return { cab: [{ t: 'enc' }, { t: 'ciudadfecha' }], tit: null, med: [],
+             pie: (m.firma !== false) ? [{ t: 'firma' }] : [] };
+  const pz = docmodPiezas(m);
+  const pie = [];
+  if (m.decl !== false) pz.decl.forEach(function (b) { pie.push(b); });
+  if (m.firmas !== false) pz.firmas.forEach(function (b) { pie.push(b); });
+  else pie.push({ t: 'firma', grupo: 'firmas' });
+  if (m.comunes !== false) pz.comunes.forEach(function (b) { pie.push(b); });
+  return { cab: [{ t: 'enc' }, { t: 'hr' }, { t: 'tit', x: 'CONSENTIMIENTO INFORMADO' }],
+           tit: 'sub', med: [{ t: 'pacid' }], pie: pie };
+}
+
+/* El cuerpo y el interlineado de un modelo, en puntos. Un documento en blanco se imprime con los
+   del consentimiento, que es lo que C5 pide. */
+function docmodSz(m) { return DOCMOD_SZ[m.tipo] || DOCMOD_SZ.consent; }
+function docmodLh(m) { return DOCMOD_LH[m.tipo] || DOCMOD_LH.consent; }
+
+/* ── LA LINEA A LINEA DEL CUERPO EDITABLE ─────────────────────────────────────────────────
+   Cada linea del texto es un `div` con la clase que le toca por su MARCA, y la marca se queda a
+   la vista. Los dobles asteriscos se envuelven en `<b>` SIN sacarlos del texto, asi que
+   `innerText` devuelve exactamente lo que el medico escribio.
+   ⚠️ EL TEXTO DEL MEDICO NUNCA ENTRA COMO HTML: cada tramo pasa por `escHtml` y lo unico que se
+   agrega son las etiquetas de negrita de los tramos que `docmodRuns` encuentra. */
+function docmodEdLineaHTML(ln) {
+  const t = String(ln);
+  const q = t.trim();
+  let cls = 'doc-ed-ln';
+  if (q === '') cls += ' doc-ed-vacia';
+  else if (q.indexOf('## ') === 0 || q === '##') cls += ' doc-ed-sec';
+  else if (q.charAt(0) === '☐') cls += ' doc-ed-chk';
+  else if (q.charAt(0) === '•') cls += ' doc-ed-vin';
+  else if (/^_{3,}$/.test(q)) cls += ' doc-ed-raya';
+  const rico = docmodRuns(t).map(function (r) {
+    const h = escHtml(r.b ? ('**' + r.s + '**') : r.s);
+    return r.b ? ('<b>' + h + '</b>') : h;
+  }).join('');
+  return '<div class="' + cls + '">' + (rico || '<br>') + '</div>';
+}
+
+function docmodEdCuerpoHTML(txt) {
+  return String(txt == null ? '' : txt).split('\n').map(docmodEdLineaHTML).join('');
+}
+
+/* El marcado entero de la hoja del editor. */
+function docmodHojaEdHTML(ed, D) {
+  const m = ed.m, P = docmodEdPartes(m);
+  let out = docHojaHTML(docSustBloques(P.cab, D, 0), D, false);
+  if (P.tit === 'tit')
+    out += '<h3 class="doc-tit doc-ph" data-doc-tit="1" data-ph="Título del documento" ' +
+           'contenteditable="true" spellcheck="false">' + escHtml(ed.tit || '') + '</h3>';
+  else if (P.tit === 'sub')
+    out += '<div class="doc-sub doc-ph" data-doc-tit="1" data-ph="De qué es este consentimiento" ' +
+           'contenteditable="true" spellcheck="false">' + escHtml(ed.tit || '') + '</div>';
+  if (P.med.length) out += docHojaHTML(docSustBloques(P.med, D, 500), D, false);
+  out += '<div class="doc-ed' + (String(ed.txt || '').trim() ? '' : ' doc-ed-ph') + '" ' +
+         'data-doc-cuerpo="1" contenteditable="true" spellcheck="false" ' +
+         'data-ph="' + escHtml(DOC_ED_PH) + '">' + docmodEdCuerpoHTML(ed.txt) + '</div>';
+  if (P.pie.length) out += docHojaHTML(docSustBloques(P.pie, D, 1000), D, false);
+  return out;
+}
+window.docmodHojaEdHTML = docmodHojaEdHTML;
+
+/* ── ABRIR ────────────────────────────────────────────────────────────────────────────────── */
+function _cdFirmaEd() {
+  if (!_cdEd) return '';
+  try { return JSON.stringify([String(_cdEd.tit || ''), String(_cdEd.txt || ''),
+                               !!_cdEd.frase, !!_cdEd.firma, String(_cdEd.nom || '')]); }
+  catch (e) { return ''; }
 }
 
 function cfgDocsEditar(clave) {
   const m = docmodModelo(clave);
   if (!m) return;
-  _cdEd = { clave: clave, m: m, nuevo: false, nom: m.nom, firma: _cdFirma(m, m.nom) };
-  cfgDocsEdRender();
+  if (typeof window.jspdf === 'undefined') {
+    if (typeof toast === 'function') toast('La biblioteca PDF está cargando, intentá en un momento.');
+    return;
+  }
+  _cdEd = { clave: clave, m: m, tit: String(m.tit || ''), txt: docmodModeloATexto(m),
+            frase: m.frase !== false, firma: m.firma !== false, nom: String(m.nom || '') };
+  _cdEd.firmaIni = _cdFirmaEd();
+  /* ⚠️ `_docAbierto` LLEVA LA CLAVE EN LOS DOS MODOS, y `_docModo` dice cual. Asi el zoom, el
+     reajuste al cambiar el ancho y el Escape siguen siendo los mismos de siempre: una segunda
+     nocion de «que hoja esta abierta» obligaria a tocar las cinco. Lo que NO se toca en este
+     modo es `_docEst`, que es el estado de la hoja del Informe. */
+  _docModo = 'modelo';
+  _docAbierto = clave;
+  _docDef = null;
+  _docFoco = document.activeElement;
+  const ov = document.getElementById('doc-ov');
+  const tit = document.getElementById('doc-ov-tit');
+  if (tit) tit.textContent = 'Editar: ' + (m.nom || m.tit || 'Documento');
+  const av = document.getElementById('doc-aviso-cambio'); if (av) av.hidden = true;
+  docModoSync();
+  if (ov) ov.hidden = false;
+  docRender();
+  docEstado('');
+  const x = document.getElementById('doc-mod-x');
+  if (x) { try { x.focus(); } catch (e) {} }
 }
 window.cfgDocsEditar = cfgDocsEditar;
 
-/* ⚠️ PANT-33 (A2): ACA VIVIAN `cfgDocsExportar`, `cfgDocsImportar`, `cfgDocsAgregar`,
-   `cfgDocsAgregarCancelar` y `cfgDocsEditarNuevo`, con sus dos mensajes de rechazo, su tope de
-   bytes y su validacion de marca de formato. Salieron enteras: el medico decidio que no se
-   agregan documentos ni se exportan modelos. Lo que NO salio es el validador `docmodValidar`,
-   que sigue siendo el guardian del almacen -- un `localStorage` lo puede editar cualquiera-, ni
-   su rama de `prop`, porque los documentos propios que PANT-32 hubiera dejado en disco se
-   conservan y tienen que seguir pasando la validacion para que el almacen entero no se
-   descarte (A5). */
-
-function cfgDocsEdSalir() {
-  if (_cdEd && _cdEd.firma !== null && _cdFirma(_cdEd.m, _cdEd.nom) !== _cdEd.firma) {
-    if (!confirm('¿Salir sin guardar? Los cambios de este documento se pierden.')) return;
-  } else if (_cdEd && _cdEd.nuevo) {
-    if (!confirm('¿Salir sin guardar? Los cambios de este documento se pierden.')) return;
+/* Que juego de acciones se ve, y que controles de ese juego. Se oculta con la CLASE. */
+function docModoSync() {
+  const esMod = (_docModo === 'modelo');
+  const inf = document.getElementById('doc-acc-informe');
+  const mod = document.getElementById('doc-acc-modelo');
+  if (inf) inf.classList.toggle('doc-oculto', esMod);
+  if (mod) mod.classList.toggle('doc-oculto', !esMod);
+  const m = (esMod && _cdEd) ? _cdEd.m : null;
+  const ver = function (id, on) { const e = document.getElementById(id);
+    if (e) e.classList.toggle('doc-oculto', !on); };
+  ver('cfg-doc-frase-wrap', !!m && m.tipo === 'constancia');
+  ver('doc-mod-orig', !!m && !!m.incl);
+  ver('doc-mod-vaciar', !!m && m.tipo === 'blanco');
+  ver('cfg-doc-nom-wrap', !!m && m.tipo === 'blanco');
+  if (m) {
+    const f = document.getElementById('cfg-doc-frase'); if (f) f.checked = !!_cdEd.frase;
+    const n = document.getElementById('cfg-doc-nom'); if (n) n.value = String(_cdEd.nom || '');
   }
-  _cdEd = null;
-  const ed = document.getElementById('cfg-docs-ed');
-  if (ed) { ed.hidden = true; ed.innerHTML = ''; }
-  cfgDocsEdMostrarLista(true);
-  cfgDocsRender();
-}
-window.cfgDocsEdSalir = cfgDocsEdSalir;
-
-/* ⚠️ PANT-33: LA LISTA YA NO SE ESCONDE, Y NO ES UN DESCUIDO. El editor de PANT-32 vivia en la
-   MISMA pantalla que la lista y habia que taparla; el de esta tanda es la HOJA, a pantalla
-   completa sobre Configuracion (B1), asi que la lista queda debajo sin estorbar y vuelve a la
-   vista sola al cerrar la hoja. La funcion queda porque `cfgDocsEdSalir` la llama, y hoy no
-   toca nada: los ids `cfg-docs-cupo` y `cfg-docs-botones` tampoco existen. */
-function cfgDocsEdMostrarLista(on) {
-  const e = document.getElementById('cfg-docs-lista');
-  if (e) e.classList.toggle('doc-oculto', !on);
-}
-
-function cfgDocsEdRender() {
-  const ed = document.getElementById('cfg-docs-ed');
-  if (!ed || !_cdEd) return;
-  const m = _cdEd.m;
-  cfgDocsEdMostrarLista(false);
-  ed.hidden = false;
-  const gris = function (t) { return '<div class="cdd-fijo">' + escHtml(t) + '</div>'; };
-  let izq = '';
-  izq += '<div class="cdd-g"><label for="cfg-docs-tit">Título del documento</label>' +
-    '<input type="text" id="cfg-docs-tit" maxlength="' + DOCMOD_LIM.tit + '" value="' + escHtml(m.tit || '') + '"></div>';
-  if (!_cdEd.nuevo) {
-    izq = '<div class="cdd-g"><label for="cfg-docs-nom">Nombre en el menú</label>' +
-      '<input type="text" id="cfg-docs-nom" maxlength="' + DOCMOD_LIM.nom + '" value="' + escHtml(_cdEd.nom || '') + '"></div>' + izq;
+  /* La casilla de la firma de la hoja del INFORME: solo con un documento en blanco abierto (C3). */
+  const esBlanco = !esMod && !!_docAbierto &&
+    (typeof docmodEsBlanco === 'function') && docmodEsBlanco(_docAbierto);
+  ver('cfg-doc-firma-wrap', !!esBlanco);
+  if (esBlanco) {
+    const fb = document.getElementById('cfg-doc-firma');
+    const st = _docEst[_docAbierto];
+    if (fb) fb.checked = !(st && st.firma === false);
   }
-  izq += gris('Arriba de todo, la app pone el logo (si hay) y el nombre de la institución, centrado.');
-  if (m.tipo === 'constancia') {
-    izq += gris('Al pie, la app pone la firma del médico con su matrícula.');
-    izq += '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-frase"' + (m.frase ? ' checked' : '') +
-      '> <b>Frase con los datos del paciente</b> — «Se deja constancia que [paciente], [documento], consultó el día de hoy, [fecha], en [institución], para realizarse [estudio].»</label>';
-    izq += '<div class="cdd-g"><label for="cfg-docs-txt">Texto</label>' +
-      '<div class="cdd-ayuda">' + escHtml(DOCMOD_AYUDA) + '</div>' +
-      '<textarea id="cfg-docs-txt" rows="9" maxlength="' + DOCMOD_LIM.ctxt + '" spellcheck="false">' +
-      escHtml(m.txt || '') + '</textarea></div>';
-  } else {
-    izq += gris('Debajo del título, la app pone la línea del paciente: «Paciente: nombre · documento   ciudad, fecha».');
-    izq += '<div class="cdd-ayuda">' + escHtml(DOCMOD_AYUDA) + '</div>';
-    izq += '<div id="cfg-docs-pregs">' + (m.pregs || []).map(function (p, i) {
-      const vacia = !String(p.x || '').trim();
-      return '<div class="cdd-preg">' +
-        '<div class="cdd-preg-top">' +
-        '<input type="text" class="cdd-preg-t" data-cdp-t="' + i + '" maxlength="' + DOCMOD_LIM.ptit +
-        '" placeholder="Título de la pregunta" value="' + escHtml(p.t || '') + '">' +
-        '<button type="button" class="btn btn-ghost cdd-x" data-cdp-del="' + i + '" aria-label="Quitar esta pregunta">✕</button>' +
-        '</div>' +
-        '<textarea class="cdd-preg-x" data-cdp-x="' + i + '" rows="5" maxlength="' + DOCMOD_LIM.ptxt +
-        '" spellcheck="false" placeholder="Texto de la pregunta">' + escHtml(p.x || '') + '</textarea>' +
-        (vacia ? '<div class="cdd-vacia">Vacía: esta pregunta no se imprime.</div>' : '') +
-        '</div>';
-    }).join('') + '</div>';
-    izq += '<button type="button" class="btn btn-ghost" id="cfg-docs-preg-add">＋ Agregar pregunta</button>';
-    izq += '<div class="cdd-pzs"><div class="cdd-pzs-t">Piezas que agrega la app</div>' +
-      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-decl"' + (m.decl ? ' checked' : '') +
-        '> <b>Declaración del paciente</b> — el texto estándar de la app, con la casilla de investigación</label>' +
-      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-firmas"' + (m.firmas ? ' checked' : '') +
-        '> <b>Tabla de firmas</b> — paciente, testigo y médico. Sin ella queda igual la firma del médico</label>' +
-      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-comunes"' + (m.comunes ? ' checked' : '') +
-        '> <b>Hojas comunes</b> — niño o imposibilitado, y negativa o revocación</label>' +
-      '<div class="cdd-aviso">Si tu texto ya trae declaración, firmas u hojas comunes, destildá esas piezas para que no se repitan.</div>' +
-      '</div>';
-  }
-  let bts = '<div class="cdd-bts">' +
-    '<button type="button" class="btn btn-ghost" id="cfg-docs-pegar">📋 Pegar texto de la institución</button>';
-  if (m.incl) bts += '<button type="button" class="btn btn-ghost" id="cfg-docs-orig">↩ Volver al texto original</button>';
-  bts += '<button type="button" class="btn btn-primary" id="cfg-docs-guardar">Guardar</button>' +
-    '<button type="button" class="btn btn-ghost" id="cfg-docs-cancelar">Cancelar</button></div>';
-
-  ed.innerHTML =
-    '<button type="button" class="btn btn-ghost cdd-volver" id="cfg-docs-volver">← Volver a Documentos</button>' +
-    '<div class="cdd-cols">' +
-      '<div class="cdd-izq">' + izq + bts + '</div>' +
-      '<div class="cdd-der"><div class="cdd-der-t">Así se ve con un paciente de ejemplo <span id="cfg-docs-prev-n" class="cdd-der-n"></span></div>' +
-        '<div id="cfg-docs-prev" class="doc-hoja cdd-prev"></div></div>' +
-    '</div>' +
-    '<div id="cfg-docs-peg" hidden class="cdd-peg">' +
-      '<label for="cfg-docs-peg-txt">Pegá acá el texto de la institución</label>' +
-      '<textarea id="cfg-docs-peg-txt" rows="8" spellcheck="false"></textarea>' +
-      '<div class="cdd-bts"><button type="button" class="btn btn-primary" id="cfg-docs-peg-ok">Aceptar</button>' +
-      '<button type="button" class="btn btn-ghost" id="cfg-docs-peg-no">Cancelar</button></div>' +
-    '</div>';
-
-  cfgDocsEdCablear();
-  cfgDocsPrev();
+  const ay = document.getElementById('doc-ayuda');
+  if (ay) ay.classList.add('doc-oculto');
+  docmodEdSync();
 }
+window.docModoSync = docModoSync;
 
-/* Un solo lugar que lee los campos al modelo. Se llama en cada tecla, asi que el modelo en
-   memoria y la vista previa no pueden estar en dos estados distintos. */
-function cfgDocsEdLeer() {
+/* «Guardar como modelo» se apaga cuando no hay nada nuevo que guardar (B2). */
+function docmodEdSync() {
+  const b = document.getElementById('doc-mod-guardar');
+  if (!b) return;
+  const hay = !!(_cdEd && _cdFirmaEd() !== _cdEd.firmaIni);
+  b.disabled = !hay;
+  b.title = hay ? '' : 'No hay cambios nuevos para guardar.';
+}
+window.docmodEdSync = docmodEdSync;
+
+/* ── PINTAR ─────────────────────────────────────────────────────────────────────────────── */
+function docmodEdRender(h) {
   if (!_cdEd) return;
-  const m = _cdEd.m;
-  const v = function (id) { const e = document.getElementById(id); return e ? String(e.value) : ''; };
-  const c = function (id) { const e = document.getElementById(id); return e ? !!e.checked : true; };
-  const nm = document.getElementById('cfg-docs-nom');
-  if (nm) _cdEd.nom = String(nm.value);
-  m.tit = v('cfg-docs-tit');
-  if (m.tipo === 'constancia') { m.frase = c('cfg-docs-frase'); m.txt = v('cfg-docs-txt'); }
-  else {
-    m.decl = c('cfg-docs-pz-decl'); m.firmas = c('cfg-docs-pz-firmas'); m.comunes = c('cfg-docs-pz-comunes');
-    const cont = document.getElementById('cfg-docs-pregs');
-    if (cont) {
-      m.pregs = Array.prototype.map.call(cont.querySelectorAll('.cdd-preg'), function (d) {
-        const t = d.querySelector('[data-cdp-t]'), x = d.querySelector('[data-cdp-x]');
-        return { t: t ? String(t.value) : '', x: x ? String(x.value) : '' };
-      });
+  const m = _cdEd.m, D = docmodEjemploHoja();
+  h.innerHTML = docmodHojaEdHTML(_cdEd, D);
+  h.style.fontSize = docmodSz(m) + 'pt';
+  h.style.lineHeight = docmodLh(m) + 'pt';
+  h.style.setProperty('--doc-sz', docmodSz(m) + 'pt');
+  docZoomAjustar();
+  /* Enter tiene que crear un `div` y no un `<br>`: es lo que mantiene «una linea, un div».
+     Chrome ya lo hace por omision, pero el valor es por documento y no por elemento, asi que se
+     deja dicho en vez de confiar en el ajuste de fabrica. */
+  try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch (e) {}
+  const cu = h.querySelector('[data-doc-cuerpo]');
+  if (cu) docmodEdNormalizar(cu);
+  docmodEdCablear();
+  docmodEdSync();
+}
+
+/* ⚠️ LOS DOS OYENTES VAN DELEGADOS EN #doc-hoja Y SE REGISTRAN UNA SOLA VEZ, con la guarda de
+   bandera: `docmodEdRender` reemplaza el `innerHTML` pero NO el contenedor, asi que sin la
+   guarda cada repintado colgaria un juego nuevo. Es la leccion que PANT-32 pago -- «Volver al
+   texto original» preguntaba DOS veces-. Y los dos preguntan por `_docModo`, porque este mismo
+   contenedor es la hoja del Informe en el otro modo. */
+function docmodEdCablear() {
+  const h = document.getElementById('doc-hoja');
+  if (!h || h._docEdDeleg) return;
+  h._docEdDeleg = true;
+  /* ⚠️ EL BLANCO SE BUSCA CON `closest` Y NO CON EL `target` PELADO, y se midio por que: en un
+     `contenteditable` el `input` de un Enter llega con el `target` puesto en el DIV de la LINEA
+     recien creada y no en la zona editable, asi que un `hasAttribute` sobre el target devolvia
+     falso y la pulsacion se perdia -- el texto no se guardaba y las clases no se refrescaban-.
+     Lo destapo el teclado real por CDP: escribir «AAA», Enter, «BBB» dejaba «BBBAAA» en UNA
+     linea. Con un oyente colgado de la zona editable el problema seria el mismo. */
+  h.addEventListener('input', function (ev) {
+    if (_docModo !== 'modelo' || !_cdEd) return;
+    let t = ev.target;
+    if (t && t.nodeType === 3) t = t.parentElement;
+    if (!t || t.nodeType !== 1 || !t.closest) return;
+    const tt = t.closest('[data-doc-tit]');
+    if (tt) {
+      _cdEd.tit = String(tt.innerText || '').replace(/\s+/g, ' ').trim();
+      docmodEdSync(); return;
     }
+    const cu = t.closest('[data-doc-cuerpo]');
+    if (cu) {
+      docmodEdNormalizar(cu);
+      _cdEd.txt = docmodEdLeerCuerpo(cu);
+      cu.classList.toggle('doc-ed-ph', !String(_cdEd.txt).trim());
+      docmodEdClases(cu);
+      docmodEdSync(); return;
+    }
+  });
+  /* ⚠️ SE REPINTA AL SALIR DEL CUERPO Y NO EN CADA TECLA, y es por el cursor: rearmar el
+     `innerHTML` mientras el medico escribe le manda el punto de insercion al principio. Mientras
+     escribe solo se le cambia la CLASE a cada linea -- que no toca la seleccion-, y al salir se
+     repinta para que la negrita de los dobles asteriscos se vea. `focusout` y no `blur`, porque
+     `blur` no burbujea. */
+  h.addEventListener('focusout', function (ev) {
+    if (_docModo !== 'modelo' || !_cdEd) return;
+    const t = ev.target;
+    if (!t || t.nodeType !== 1 || !t.hasAttribute || !t.hasAttribute('data-doc-cuerpo')) return;
+    t.innerHTML = docmodEdCuerpoHTML(_cdEd.txt);
+    t.classList.toggle('doc-ed-ph', !String(_cdEd.txt).trim());
+  });
+}
+
+/* La clase de cada linea, sin tocar el texto ni la seleccion. */
+function docmodEdClases(el) {
+  Array.prototype.forEach.call(el.children, function (d) {
+    if (d.nodeName !== 'DIV') return;
+    const q = String(d.textContent || '').trim();
+    let cls = 'doc-ed-ln';
+    if (q === '') cls += ' doc-ed-vacia';
+    else if (q.indexOf('## ') === 0 || q === '##') cls += ' doc-ed-sec';
+    else if (q.charAt(0) === '☐') cls += ' doc-ed-chk';
+    else if (q.charAt(0) === '•') cls += ' doc-ed-vin';
+    else if (/^_{3,}$/.test(q)) cls += ' doc-ed-raya';
+    if (d.className !== cls) d.className = cls;
+  });
+}
+
+/* ⚠️ UNA LINEA = UN `div` HIJO, Y SE GARANTIZA EN CADA PULSACION. Un `contenteditable` NO lo
+   garantiza solo, y las dos formas de romperse estan medidas con teclado real:
+     · tras borrar TODO el cuerpo, el cursor queda en el CONTENEDOR (offset 0, antes del `div`
+       que sobrevive), asi que lo que se escribe entra como un nodo de texto SUELTO -- hermano
+       del `div` y no hijo-, y el Enter siguiente deja el cursor otra vez en el contenedor: el
+       texto nuevo se mete al PRINCIPIO del primero. «AAA» Enter «BBB» daba «BBBAAA».
+     · Chrome puede dejar un `<br>` suelto a nivel del contenedor.
+   Esta funcion envuelve lo que quede suelto y, si no quedo nada, pone una linea vacia. El cursor
+   se restaura sobre el MISMO nodo de texto -- que no se destruye, se muda-, asi que la posicion
+   se conserva; y si estaba en el contenedor se lo baja a la linea que le corresponde, que es
+   justo el caso que rompia. */
+function docmodEdNormalizar(el) {
+  const sel = window.getSelection();
+  let nodo = null, off = 0;
+  if (sel && sel.rangeCount) { const r = sel.getRangeAt(0); nodo = r.startContainer; off = r.startOffset; }
+  let cambio = false, div = null;
+  Array.prototype.slice.call(el.childNodes).forEach(function (n) {
+    if (n.nodeType === 1 && n.nodeName === 'DIV') { div = null; return; }
+    cambio = true;
+    if (n.nodeType === 1 && n.nodeName === 'BR') {
+      const d = document.createElement('div');
+      d.className = 'doc-ed-ln doc-ed-vacia';
+      el.insertBefore(d, n); d.appendChild(n); div = null; return;
+    }
+    if (!div) { div = document.createElement('div'); div.className = 'doc-ed-ln'; el.insertBefore(div, n); }
+    div.appendChild(n);
+  });
+  if (!el.firstChild) {
+    const d = document.createElement('div');
+    d.className = 'doc-ed-ln doc-ed-vacia';
+    d.appendChild(document.createElement('br'));
+    el.appendChild(d); cambio = true;
   }
+  if (!cambio) return false;
+  try {
+    const r = document.createRange();
+    if (nodo === el) {
+      /* El cursor estaba en el contenedor: se baja a la linea que le toca, al final de su texto,
+         que es donde el medico lo ve. */
+      const d = el.children[Math.min(off, el.children.length - 1)] || el.firstElementChild;
+      const t = d.firstChild;
+      if (t && t.nodeType === 3) r.setStart(t, t.nodeValue.length); else r.setStart(d, 0);
+    } else if (nodo) {
+      r.setStart(nodo, Math.min(off, nodo.nodeType === 3 ? nodo.nodeValue.length : nodo.childNodes.length));
+    } else return true;
+    r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r);
+  } catch (e) {}
+  return true;
 }
+window.docmodEdNormalizar = docmodEdNormalizar;
 
-/* La vista previa. Con una pequenia espera: el texto de un consentimiento son miles de
-   caracteres y maquetar en cada tecla se nota. */
-function cfgDocsPrev() {
-  if (_cdPrevT) { clearTimeout(_cdPrevT); _cdPrevT = null; }
-  _cdPrevT = setTimeout(function () {
-    _cdPrevT = null;
-    const h = document.getElementById('cfg-docs-prev');
-    if (!h || !_cdEd) return;
-    const m = _cdEd.m;
-    const D = docmodEjemplo();
-    let bl;
-    try { bl = docmodArmar(m); } catch (e) { bl = []; }
-    /* Los indices de bloque hacen falta igual que en el Informe, porque `docHojaHTML` los
-       escribe; aca no son editables, pero el armado es el mismo. */
-    bl = bl.map(function (b, i) { const c = {}; for (const k in b) if (Object.prototype.hasOwnProperty.call(b, k)) c[k] = b[k]; c.i = i;
-      if (c.x !== undefined) c.x = docSust(c.x, D);
-      if (c.items) c.items = c.items.map(function (z) { return docSust(z, D); });
-      if (c.runs) c.runs = c.runs.map(function (r) { return { s: docSust(r.s, D), b: !!r.b }; });
-      return c; });
-    h.innerHTML = docHojaHTML(bl, D, false);
-    const sz = DOCMOD_SZ[m.tipo], lh = DOCMOD_LH[m.tipo];
-    h.style.fontSize = sz + 'pt';
-    h.style.lineHeight = lh + 'pt';
-    h.style.setProperty('--doc-sz', sz + 'pt');
-    /* El numero de hojas que el papel va a tener, dicho en el editor: es el dato por el que el
-       medico pregunta cuando acorta o alarga un texto. */
-    const e = document.getElementById('cfg-docs-prev-n');
-    if (e) {
-      let n = null;
-      try { const def = { clave: _cdEd.clave || 'x', menu: _cdEd.nom || '', tit: _cdEd.nom || m.tit || '',
-                          sz: sz, lh: lh, hojas: 1, bloques: function () { return docmodArmar(m); } };
-            const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
-            n = maq ? maq.n : null; } catch (x) { n = null; }
-      e.textContent = n ? (n === 1 ? '1 hoja' : n + ' hojas') : '';
-    }
-  }, 220);
+/* ⚠️ EL TEXTO SE LEE DE LOS HIJOS Y NO DE `innerText`, y tambien esta medido: `innerText` cuenta
+   una linea EN BLANCO como DOS saltos -- el `<br>` mas el borde del bloque-, asi que un texto de
+   dos parrafos volvia con un salto de mas y la ida y vuelta no cerraba. Con la linea garantizada
+   como un `div` hijo, el texto es exactamente el `textContent` de cada hijo unido por saltos. */
+function docmodEdLeerCuerpo(el) {
+  if (!el.firstElementChild)
+    return String(el.innerText || '').replace(/ /g, ' ').replace(/\r\n?/g, '\n');
+  const ls = [];
+  Array.prototype.forEach.call(el.children, function (d) {
+    ls.push(String(d.textContent || '').replace(/ /g, ' '));
+  });
+  return ls.join('\n');
 }
-window.cfgDocsPrev = cfgDocsPrev;
+window.docmodEdLeerCuerpo = docmodEdLeerCuerpo;
 
-function cfgDocsEdCablear() {
-  const ed = document.getElementById('cfg-docs-ed');
-  if (!ed) return;
-  /* ⚠️ LOS TRES OYENTES SE REGISTRAN UNA SOLA VEZ, Y LO DESTAPO LA SONDA: `cfgDocsEdRender`
-     reemplaza el `innerHTML` pero NO el contenedor, asi que sin esta guarda cada repintado
-     colgaba un juego nuevo y el click se atendia tantas veces como veces se hubiera repintado.
-     Se vio en que «Volver al texto original» preguntaba DOS veces -- y «Guardar» habria
-     guardado dos, y «Agregar pregunta» habria agregado dos-. Son delegados justamente para
-     sobrevivir al repintado: registrarlos de nuevo era anular ese beneficio. */
-  if (ed._cdDeleg) return;
-  ed._cdDeleg = true;
-  const toca = function () { cfgDocsEdLeer(); cfgDocsPrev(); };
-  ed.addEventListener('input', function (e) {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-      if (e.target.id === 'cfg-docs-peg-txt') return;
-      toca();
-    }
-  });
-  ed.addEventListener('change', function (e) {
-    if (e.target && e.target.type === 'checkbox') toca();
-  });
-  ed.addEventListener('click', function (e) {
-    const t = e.target.closest ? e.target : null;
-    if (!t) return;
-    const del = t.closest('[data-cdp-del]');
-    if (del) {
-      cfgDocsEdLeer();
-      _cdEd.m.pregs.splice(parseInt(del.getAttribute('data-cdp-del'), 10), 1);
-      cfgDocsEdRender(); return;
-    }
-    const id = t.id || (t.closest('button') ? t.closest('button').id : '');
-    if (id === 'cfg-docs-preg-add') {
-      cfgDocsEdLeer();
-      if ((_cdEd.m.pregs || []).length >= DOCMOD_LIM.pregs) {
-        alert('Un documento puede tener hasta ' + DOCMOD_LIM.pregs + ' preguntas.'); return;
-      }
-      _cdEd.m.pregs.push({ t: '', x: '' });
-      cfgDocsEdRender(); return;
-    }
-    if (id === 'cfg-docs-volver' || id === 'cfg-docs-cancelar') { cfgDocsEdSalir(); return; }
-    if (id === 'cfg-docs-guardar') { cfgDocsEdGuardar(); return; }
-    if (id === 'cfg-docs-orig') { cfgDocsEdOriginal(); return; }
-    if (id === 'cfg-docs-pegar') {
-      const p = document.getElementById('cfg-docs-peg');
-      if (p) { p.hidden = false; const ta = document.getElementById('cfg-docs-peg-txt'); if (ta) { ta.value = ''; ta.focus(); } }
-      return;
-    }
-    if (id === 'cfg-docs-peg-no') { const p = document.getElementById('cfg-docs-peg'); if (p) p.hidden = true; return; }
-    if (id === 'cfg-docs-peg-ok') { cfgDocsPegar(); return; }
-  });
+/* ── LA AYUDA (B2) ────────────────────────────────────────────────────────────────────────── */
+function docmodEdAyuda() {
+  const a = document.getElementById('doc-ayuda');
+  if (!a) return;
+  if (!a.innerHTML) {
+    a.innerHTML = '<div class="doc-ay-t">Cómo se escribe el texto</div>' +
+      DOCMOD_AYUDA.map(function (r) {
+        return '<div class="doc-ay-f"><code>' + escHtml(r[0]) + '</code><span>' + escHtml(r[1]) + '</span></div>';
+      }).join('') +
+      '<div class="doc-ay-p">Las marcas se ven mientras escribís y no se imprimen: en el papel sale el título, la viñeta o la casilla que cada una pide.</div>';
+  }
+  a.classList.toggle('doc-oculto');
 }
+window.docmodEdAyuda = docmodEdAyuda;
 
-/* ⚠️ «VOLVER AL TEXTO ORIGINAL» CARGA EL ORIGINAL EN EL EDITOR Y NO GUARDA NADA (C4): recien
-   «Guardar» lo deja. Asi el medico puede mirarlo y arrepentirse con «Cancelar». */
-function cfgDocsEdOriginal() {
+/* ── «VOLVER AL TEXTO ORIGINAL» (B2) ─────────────────────────────────────────────────────
+   Carga el original EN LA HOJA y no guarda nada: recien «Guardar como modelo» lo deja, que es lo
+   que el texto de la confirmacion dice. Asi el medico puede mirarlo y arrepentirse cerrando. */
+function docmodEdOriginal() {
   if (!_cdEd || !_cdEd.m.incl) return;
-  if (!confirm('¿Volver al texto original? Se carga el texto que viene con la app. Para dejarlo, después tocá Guardar.')) return;
-  const o = docmodOrig(_cdEd.clave);
-  if (!o) return;
-  const m = _cdEd.m;
-  m.tit = o.tit; m.decl = true; m.firmas = true; m.comunes = true;
-  if (m.tipo === 'constancia') { m.frase = o.frase !== false; m.txt = o.txt; }
-  else { m.pregs = (o.pregs || []).map(function (p) { return { t: p.t, x: p.x }; }); }
-  cfgDocsEdRender();
+  docConfPreguntar('¿Volver al texto original? Se carga el texto que viene con la app. Para dejarlo, después tocá Guardar como modelo.',
+    'Volver al texto original', function () {
+      const o = docmodOrig(_cdEd.clave);
+      if (!o) return;
+      _cdEd.tit = String(o.tit || '');
+      _cdEd.txt = docmodModeloATexto(o);
+      _cdEd.frase = o.frase !== false;
+      const m = _cdEd.m;
+      m.decl = true; m.firmas = true; m.comunes = true;
+      docModoSync();
+      docRender();
+      docEstado('Se cargó el texto original. Tocá «Guardar como modelo» para dejarlo.');
+    });
 }
-window.cfgDocsEdOriginal = cfgDocsEdOriginal;
+window.docmodEdOriginal = docmodEdOriginal;
 
-/* ⚠️ EL TEXTO PEGADO REEMPLAZA, COMO TEXTO SIMPLE (C3). En una constancia reemplaza el texto
-   libre; en un consentimiento, TODAS las preguntas por un solo bloque sin titulo -- que es lo
-   que un texto de la institucion es: un cuerpo corrido, no cinco respuestas-. */
-function cfgDocsPegar() {
+/* ── GUARDAR (B2) ─────────────────────────────────────────────────────────────────────────── */
+function docmodEdGuardar() {
   if (!_cdEd) return;
-  const ta = document.getElementById('cfg-docs-peg-txt');
-  const t = ta ? String(ta.value) : '';
   const m = _cdEd.m;
-  if (m.tipo === 'constancia') m.txt = t.slice(0, DOCMOD_LIM.ctxt);
-  else m.pregs = [{ t: '', x: t.slice(0, DOCMOD_LIM.ptxt) }];
-  const p = document.getElementById('cfg-docs-peg');
-  if (p) p.hidden = true;
-  cfgDocsEdRender();
-  if (typeof toast === 'function') toast('Texto reemplazado. Si ya trae declaración o firmas, destildá esas piezas.');
-}
-window.cfgDocsPegar = cfgDocsPegar;
-
-function cfgDocsEdGuardar() {
-  if (!_cdEd) return;
-  cfgDocsEdLeer();
-  const m = _cdEd.m;
-  let nom = String(_cdEd.nom || '').trim();
-  if (_cdEd.nuevo) {
-    /* D2: el nombre del menu se pregunta al guardar, y no se acepta vacio. */
-    const r = prompt('¿Cómo se llama este documento?\n\nEs el nombre que va a aparecer en el menú del botón Documentos.', '');
-    if (r === null) return;
-    nom = String(r).trim().slice(0, DOCMOD_LIM.nom);
-    if (!nom) { alert('El nombre no puede quedar vacío.'); return; }
-  } else if (!nom) { alert('El nombre no puede quedar vacío.'); return; }
+  m.tit = _cdEd.tit;
+  m.frase = !!_cdEd.frase;
+  m.firma = !!_cdEd.firma;
+  docmodTextoAModelo(m, _cdEd.txt);
   const st = docmodLeer();
-  if (m.incl) {
+  if (m.tipo === 'blanco') {
+    const nom = String(_cdEd.nom || '').trim();
+    if (!nom) { alert('El nombre no puede quedar vacío.'); return; }
+    if (!st.blanco[m.clave]) st.blanco[m.clave] = { vis: true, nom: '', txt: '', firma: true };
+    const e = st.blanco[m.clave];
+    e.nom = (nom === docmodBlancoNom(m.clave)) ? '' : nom.slice(0, DOCMOD_LIM.nom);
+    e.txt = String(m.txt || '');
+    e.firma = !!m.firma;
+  } else {
     /* ⚠️ SI EL CUERPO QUEDO IGUAL AL ORIGINAL SE GUARDA `ed: null`, y de eso depende la regla de
        oro: con una bandera, «Volver al texto original» mas Guardar dejaria el documento marcado
        como editado para siempre y su papel saldria por el armador en vez de por su definicion. */
-    st.incl[m.clave].nom = (nom === docmodOrig(m.clave).nom) ? '' : nom;
     st.incl[m.clave].ed = docmodIgualAlOriginal(m.clave, m) ? null : docmodCuerpo(m);
-  } else {
-    let clave = _cdEd.clave;
-    if (_cdEd.nuevo) {
-      if ((st.prop || []).length >= DOCMOD_PROPIOS_MAX) {
-        alert('Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios. Para agregar otro, borrá uno.'); return;
-      }
-      /* La clave no se deriva del nombre: dos documentos pueden llamarse igual, y un nombre con
-         acentos o espacios no es una clave. */
-      let n = 1;
-      while ((st.prop || []).some(function (x) { return x.clave === 'p' + n; })) n++;
-      clave = 'p' + n;
-    }
-    const o = { clave: clave, tipo: m.tipo, vis: true, nom: nom };
-    const c = docmodCuerpo(m);
-    for (const k in c) if (Object.prototype.hasOwnProperty.call(c, k)) o[k] = c[k];
-    const i = (st.prop || []).findIndex(function (x) { return x.clave === clave; });
-    if (i >= 0) { o.vis = st.prop[i].vis !== false; st.prop[i] = o; } else st.prop.push(o);
   }
   /* El validador corre sobre lo que se va a guardar: un tope de largo no puede depender de que
      el `maxlength` del campo haya estado puesto. */
   const r = docmodValidar(st, false);
   if (!r.ok) { alert('No se pudo guardar: el documento quedó fuera de los límites de tamaño.'); return; }
   if (!docmodEscribir(r.st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
-  /* La hoja de este documento que estuviera en memoria sin correcciones se vuelve a derivar del
-     modelo nuevo la proxima vez que se abra; con correcciones a mano, se conserva (C6). */
-  const k2 = m.incl ? m.clave : (_cdEd.nuevo ? null : _cdEd.clave);
-  if (k2 && _docEst[k2] && !_docEst[k2].editado) delete _docEst[k2];
-  _cdEd = null;
-  const ed = document.getElementById('cfg-docs-ed');
-  if (ed) { ed.hidden = true; ed.innerHTML = ''; }
-  cfgDocsEdMostrarLista(true);
+  /* La hoja de este documento que estuviera en memoria SIN correcciones se vuelve a derivar del
+     modelo nuevo la proxima vez que se abra; con correcciones a mano, se conserva (B7). */
+  if (_docEst[m.clave] && !_docEst[m.clave].editado) delete _docEst[m.clave];
+  _cdEd.firmaIni = _cdFirmaEd();
+  /* La hoja QUEDA ABIERTA (B2). Lo que cambia es el aviso y el boton. */
+  const mv = docmodModelo(m.clave);
+  const tit = document.getElementById('doc-ov-tit');
+  if (tit) tit.textContent = 'Editar: ' + ((mv && mv.nom) || m.nom || m.tit || 'Documento');
+  docmodEdSync();
+  docEstado('Modelo guardado.');
   cfgDocsRender();
-  if (typeof toast === 'function') toast('📄 Documento guardado');
+  if (typeof toast === 'function') toast('📄 Modelo guardado');
 }
-window.cfgDocsEdGuardar = cfgDocsEdGuardar;
+window.docmodEdGuardar = docmodEdGuardar;
+
+/* ── CERRAR (B2) ──────────────────────────────────────────────────────────────────────────── */
+function docmodEdCerrar() {
+  if (!_cdEd) { docmodEdSalir(); return; }
+  if (_cdFirmaEd() === _cdEd.firmaIni) { docmodEdSalir(); return; }
+  docConfPreguntar('¿Salir sin guardar? Los cambios de este documento se pierden.',
+    'Salir sin guardar', docmodEdSalir);
+}
+window.docmodEdCerrar = docmodEdCerrar;
+
+function docmodEdSalir() {
+  const ov = document.getElementById('doc-ov');
+  if (ov) ov.hidden = true;
+  const c = document.getElementById('doc-conf');
+  if (c) c.hidden = true;
+  _cdEd = null;
+  _docModo = 'informe';
+  _docAbierto = null;
+  _docDef = null;
+  docModoSync();
+  cfgDocsRender();
+  if (_docFoco && _docFoco.focus) { try { _docFoco.focus(); } catch (e) {} }
+  _docFoco = null;
+}
+window.docmodEdSalir = docmodEdSalir;
 
 function docmodArranque() { docmodBotonSync(); docmodMenuRender(); }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', docmodArranque);
@@ -117103,6 +117286,10 @@ let _docEst = Object.create(null);
 let _docAbierto = null;
 let _docDef = null;
 let _docFoco = null;
+/* ⚠️ PANT-33 (B1): EL MODO DE LA HOJA. «informe» es la de siempre y «modelo» es la de
+   Configuracion, que edita el texto que se guarda. Es UNA hoja con dos modos y no dos hojas: con
+   dos, el medico editaria en una maqueta que puede divergir de la que se imprime. */
+let _docModo = 'informe';
 
 /* La def de la hoja abierta. El respaldo a `DOC_DEFS` es para los cuatro incluidos: si una sonda
    o un caso llama a `docImprimir` sin pasar por `docAbrir`, sigue habiendo def. */
@@ -117163,8 +117350,18 @@ function docFirmaDatos(D) {
 
 /* Los bloques nuevos de un documento, con los marcadores ya sustituidos. */
 function docBloquesNuevos(def, D) {
-  return def.bloques().map(function (b, i) {
-    const c = { t: b.t, i: i };
+  return docSustBloques(def.bloques(), D, 0);
+}
+
+/* ⚠️ PANT-33: LA SUSTITUCION DE MARCADORES SALE A SU PROPIA FUNCION, con el indice de arranque
+   por parametro. La necesita la hoja del editor de modelos, que arma sus partes fijas de LISTAS
+   de bloques y no de una `def`; con una segunda copia de este mapeo, el dia que un campo nuevo
+   tenga que viajar con el bloque -- como le paso a `aire` y a `runs`-- quedaria una copia vieja.
+   `docBloquesNuevos` delega aca, asi que para los cuatro incluidos el camino es el mismo de
+   siempre y la regla de oro no se mueve. */
+function docSustBloques(bs, D, base) {
+  return (bs || []).map(function (b, i) {
+    const c = { t: b.t, i: (base === undefined ? i : base + i) };
     if (b.x !== undefined) c.x = docSust(b.x, D);
     if (b.items) c.items = b.items.map(function (s) { return docSust(s, D); });
     if (b.fuerte) c.fuerte = b.fuerte;
@@ -117228,10 +117425,13 @@ function docAbrir(clave) {
      recalcularla en cada llamada: si el medico cambia el modelo en Configuracion con la hoja
      abierta, la pantalla y el papel saldrian de dos modelos distintos. */
   _docDef = def;
+  _docModo = 'informe';
+  _cdEd = null;
   _docFoco = document.activeElement;
   const ov = document.getElementById('doc-ov');
   const tit = document.getElementById('doc-ov-tit');
   if (tit) tit.textContent = def.tit;
+  docModoSync();
   if (ov) ov.hidden = false;
   docAvisoSync();
   docRender();
@@ -117250,6 +117450,9 @@ function docCerrar() {
   if (c) c.hidden = true;
   _docAbierto = null;
   _docDef = null;
+  _docModo = 'informe';
+  _cdEd = null;
+  docModoSync();
   if (_docFoco && _docFoco.focus) { try { _docFoco.focus(); } catch (e) {} }
   _docFoco = null;
 }
@@ -117270,30 +117473,52 @@ window.docSinEntregar = docSinEntregar;
 
 function docCerrarPreguntando() {
   if (!_docAbierto) return;
+  /* B2: en el editor de modelos el clic afuera NO cierra. */
+  if (_docModo === 'modelo') return;
   if (!docSinEntregar()) { docCerrar(); return; }
-  const c = document.getElementById('doc-conf');
   /* Sin el dialogo en el DOM se cierra igual: preguntar y no poder mostrar la pregunta dejaria
-     la hoja trabada. El precio -- perder la correccion-- es el mismo que tenia antes de esta
-     tanda, cuando el clic en el fondo no cerraba y la ✕ cerraba sin preguntar. */
-  if (!c) { docCerrar(); return; }
-  c.hidden = false;
-  /* El foco arranca en la respuesta NO destructiva. */
-  const b = document.getElementById('doc-conf-seguir');
-  if (b) { try { b.focus(); } catch (e) {} }
+     la hoja trabada. El precio -- perder la correccion-- es el mismo que tenia antes de PANT-31,
+     cuando el clic en el fondo no cerraba y la ✕ cerraba sin preguntar. */
+  docConfPreguntar('¿Cerrar sin guardar los cambios?', 'Cerrar', docCerrar);
 }
 window.docCerrarPreguntando = docCerrarPreguntando;
 
 function docConfCerrar() {
   const c = document.getElementById('doc-conf');
   if (c) c.hidden = true;
-  const x = document.getElementById('doc-x');
+  _docConfFn = null;
+  const x = document.getElementById(_docModo === 'modelo' ? 'doc-mod-x' : 'doc-x');
   if (x) { try { x.focus(); } catch (e) {} }
 }
 window.docConfCerrar = docConfCerrar;
 
+/* ⚠️ PANT-33: EL DIALOGO SE REUSA CON SU TEXTO Y SU ACCION POR PARAMETRO. Tenia el texto
+   escrito en el marcado y una sola accion -- cerrar la hoja-, y esta tanda le suma dos preguntas
+   mas: «¿Salir sin guardar?» del editor y «¿Volver al texto original?». Con tres dialogos habria
+   tres veces el mismo foco inicial, el mismo Escape y la misma trampa del oyente generico de
+   accesibilidad, que le clickea el primer boton que empareje /cerrar|✕|close/. */
+let _docConfFn = null;
+function docConfPreguntar(txt, rotuloOk, fn) {
+  const c = document.getElementById('doc-conf');
+  const t = document.getElementById('doc-conf-txt');
+  const ok = document.getElementById('doc-conf-ok');
+  if (!c) { if (typeof fn === 'function') fn(); return; }
+  _docConfFn = (typeof fn === 'function') ? fn : null;
+  if (t) t.textContent = txt;
+  if (ok) ok.textContent = rotuloOk;
+  c.hidden = false;
+  /* El foco arranca en la respuesta NO destructiva. */
+  const b = document.getElementById('doc-conf-seguir');
+  if (b) { try { b.focus(); } catch (e) {} }
+}
+window.docConfPreguntar = docConfPreguntar;
+
 function docConfAceptar() {
   const c = document.getElementById('doc-conf');
   if (c) c.hidden = true;
+  const fn = _docConfFn;
+  _docConfFn = null;
+  if (fn) { fn(); return; }
   docCerrar();
 }
 window.docConfAceptar = docConfAceptar;
@@ -117484,6 +117709,9 @@ window.docHojaHTML = docHojaHTML;
 function docRender() {
   const h = document.getElementById('doc-hoja');
   if (!h || !_docAbierto) return;
+  /* ⚠️ UN SOLO PINTOR POR MODO, Y EL MISMO CONTENEDOR: el editor de modelos pinta la hoja con
+     `docmodEdRender`, que usa `docHojaHTML` para las partes fijas -- la misma funcion-. */
+  if (_docModo === 'modelo') { docmodEdRender(h); return; }
   const st = _docEst[_docAbierto], def = docDefActual(), D = docDatosHoja();
   h.innerHTML = docHojaHTML(st.bloques, D, true);
   /* ⚠️ EL CUERPO Y EL INTERLINEADO SALEN DE LA MISMA `def` QUE MAQUETA EL PAPEL, EN PUNTOS.
@@ -117673,7 +117901,10 @@ document.addEventListener('keydown', function (ev) {
   const m = document.getElementById('doc-menu');
   if (m && !m.hidden) { docMenuCerrar(); const b = document.getElementById('doc-btn'); if (b) b.focus(); return; }
   const ov = document.getElementById('doc-ov');
-  if (ov && !ov.hidden) docCerrar();
+  if (!ov || ov.hidden) return;
+  /* B2: Escape equivale a Cerrar, asi que en el editor pregunta si hay cambios sin guardar. */
+  if (_docModo === 'modelo') { docmodEdCerrar(); return; }
+  docCerrar();
 });
 /* ⚠️ EL PEGADO ENTRA COMO TEXTO LLANO, Y ANTES NO ENTRABA ASI: medido, la app no tenia UN solo
    oyente de `paste` -- un ClipboardEvent de prueba salia sin cancelar-, asi que un pegado real
@@ -117692,7 +117923,15 @@ document.addEventListener('paste', function (ev) {
   if (!t || t.nodeType !== 1 || !h.contains(t) || !t.isContentEditable) return;
   ev.preventDefault();
   const crudo = (ev.clipboardData && ev.clipboardData.getData('text/plain')) || '';
-  const limpio = docSan(crudo).replace(/\s+/g, ' ');
+  /* ⚠️ DENTRO DEL CUERPO EDITABLE LOS SALTOS DE LINEA SE CONSERVAN, y no es un detalle: ahi la
+     linea en blanco separa parrafos y la primera linea decide si el tramo es un titulo, una
+     viñeta o una casilla (B4). Con `\s+` colapsado a un espacio -- que es lo que corresponde en
+     un bloque suelto de la hoja del Informe-- un texto pegado de la institucion entraria como un
+     unico parrafo gigante. Se colapsan los espacios y las tabulaciones, no los saltos. */
+  const enCuerpo = !!(t.closest && t.closest('[data-doc-cuerpo]'));
+  const limpio = enCuerpo
+    ? docSan(crudo).replace(/\r\n?/g, '\n').replace(/[ \t\f\v]+/g, ' ').replace(/\n{3,}/g, '\n\n')
+    : docSan(crudo).replace(/\s+/g, ' ');
   if (!limpio) return;
   let ok = false;
   try { ok = document.execCommand('insertText', false, limpio); } catch (e) { ok = false; }
