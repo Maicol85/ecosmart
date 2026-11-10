@@ -5097,6 +5097,32 @@ html.light-mode .amilo-root{
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:2px;}
 #doc-menu[hidden]{display:none;}
+/* ⚠️ EL BOTON SE OCULTA CON UNA CLASE Y NO CON `hidden`, y esta medido: `.btn` declara
+   `display:inline-flex` y le gana al `[hidden]` del navegador -- es lo que PANT-30 pago con
+   «Quitar de Imagenes», que se veia siempre con el atributo puesto-. Se oculta el ENVOLTORIO,
+   asi el menu se va con el boton. */
+.doc-oculto{display:none !important;}
+#cfg-docs-lista{display:flex;flex-direction:column;gap:7px;}
+.cfgdoc-fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--bg2);}
+.cfgdoc-nom{font-size:12.5px;font-weight:600;color:var(--text);flex:1;min-width:140px;
+  overflow-wrap:anywhere;}
+.cfgdoc-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.cfgdoc-tag{font-size:10px;line-height:1.5;padding:1px 6px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text2);background:var(--bg3);white-space:nowrap;}
+.cfgdoc-tag-ocu{color:var(--amber,#d97706);border-color:var(--amber,#d97706);}
+.cfgdoc-acc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cfgdoc-vis{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);
+  cursor:pointer;min-height:44px;}
+.cfgdoc-vis input{width:16px;height:16px;cursor:pointer;margin:0;}
+.cfgdoc-acc .btn{min-height:44px;}
+#cfg-docs-cupo{font-size:11.5px;color:var(--text2);margin:10px 0 8px;}
+#cfg-docs-pie{font-size:11px;color:var(--text2);margin-top:10px;}
+@media (max-width:640px){
+  .cfgdoc-fila{flex-direction:column;align-items:stretch;}
+  .cfgdoc-acc{justify-content:flex-start;}
+  .cfgdoc-nom{min-width:0;}
+}
 #doc-menu button{text-align:left;background:none;border:none;color:var(--text);cursor:pointer;
   font-size:12.5px;padding:9px 10px;border-radius:7px;min-height:44px;}
 #doc-menu button:hover,#doc-menu button:focus{background:var(--bg3);outline:none;}
@@ -5922,6 +5948,32 @@ window.cerrarSesionReal = cerrarSesionReal;
              y en Config quedaba enterrada bajo una preferencia que se toca una vez. Config
              conserva el toggle y el borrado. -->
         <div style="margin-top:10px;"><button class="btn btn-ghost" onclick="cfgBorrarTodasImagenes()">🗑️ Borrar todas las imágenes guardadas</button></div>
+      </section>
+
+      <!-- 5b · Documentos (PANT-32) ════════════════════════════════════════════════════
+           Va entre «Imágenes del estudio» y «Modo de visualización» porque las de arriba son
+           los datos de la institución y el papel, y las de abajo el aparato (modo, DICOM,
+           soporte): es la vecina temática del documento impreso.
+           ⚠️ TODOS LOS IDS LLEVAN PREFIJO `cfg-`, medido en la TAREA 0: con ese prefijo quedan
+           fuera del censo del estudio, fuera del Excel y fuera de `editarInforme` por las DOS
+           listas a la vez —`_CAMPOS_FUERA_DEL_ESTUDIO` y `_noEsDelEstudio`— sin tocar ninguna.
+           Y ninguno termina en `-aviso` ni en `-badge`, que son los dos barridos por sufijo de
+           «Nuevo estudio»: es lo que PANT-30 pagó con `doc-aviso`, que se llevaba el botón del
+           aviso puesto. -->
+      <section class="cfg-card" id="cfg-card-docs">
+        <div class="cfg-sec-title">📄 Documentos</div>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;">
+          <input type="checkbox" id="cfg-docs-on" onchange="cfgDocsToggleBoton(this.checked)" style="width:16px;height:16px;cursor:pointer">
+          <span style="font-size:12.5px;color:var(--text)"><b>📄 Mostrar el botón Documentos en el Informe</b></span>
+        </label>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, el botón desaparece de la pantalla del Informe. No se borra ningún documento.</p>
+        <div id="cfg-docs-cupo"></div>
+        <div id="cfg-docs-lista"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost" id="cfg-docs-add" onclick="if(typeof cfgDocsAgregar==='function')cfgDocsAgregar()" style="min-height:44px;">＋ Agregar documento</button>
+        </div>
+        <div id="cfg-docs-ed" hidden></div>
+        <div id="cfg-docs-pie">El texto de cada documento es responsabilidad de la institución que lo usa.</div>
       </section>
 
       <!-- 6 · Modo de visualización -->
@@ -25238,12 +25290,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <button type="button" class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"
                   aria-haspopup="menu" aria-expanded="false" aria-controls="doc-menu"
                   title="Constancia y consentimientos informados, con los datos de este estudio">📄 Documentos ▾</button>
-          <div id="doc-menu" hidden role="menu" aria-labelledby="doc-btn">
-            <button type="button" role="menuitem" onclick="docAbrir('constancia')">Constancia</button>
-            <button type="button" role="menuitem" onclick="docAbrir('cve')">Consentimiento: cardioversión eléctrica</button>
-            <button type="button" role="menuitem" onclick="docAbrir('ete')">Consentimiento: ETE con sedación</button>
-            <button type="button" role="menuitem" onclick="docAbrir('burb')">Consentimiento: test de burbujas</button>
-          </div>
+          <!-- ⚠️ PANT-32: EL MENU SE PINTA Y YA NO ESTA ESCRITO A MANO. Con las cuatro opciones
+               en el HTML, ocultar un documento o agregar uno propio obligaria a editar este
+               marcado en cada cambio; ahora `docmodMenuRender` lo arma del almacen de modelos y
+               se vuelve a llamar al instante cuando algo se oculta, se muestra, se agrega o se
+               borra. La clave de cada opcion va por `data-doc-k` y el oyente es DELEGADO: en un
+               manejador inline `escHtml` no protege, porque el parser decodifica la entidad
+               ANTES de compilar el handler. -->
+          <div id="doc-menu" hidden role="menu" aria-labelledby="doc-btn"></div>
         </span>
       </div>
     </div>
@@ -115954,6 +116008,144 @@ function docmodDef(clave) {
 }
 window.docmodDef = docmodDef;
 
+/* ── PANT-32 · EL INTERRUPTOR DEL BOTON DEL INFORME (B2) ──────────────────────────────────
+   Clave propia y NO una raiz del almacen de modelos: el interruptor es una preferencia de esta
+   computadora y no un texto del modelo, asi que no viaja en el archivo de exportacion -- que
+   E2 acota a «nombre, tipo, titulo, textos, piezas, visible»- ni lo acepta su validador. */
+const DOCMOD_BTN_KEY = 'ecosmart_doc_boton';
+function docmodBotonOn() {
+  try { return localStorage.getItem(DOCMOD_BTN_KEY) !== '0'; } catch (e) { return true; }
+}
+window.docmodBotonOn = docmodBotonOn;
+function docmodBotonSync() {
+  const w = document.querySelector('.doc-menu-wrap');
+  if (!w) return;
+  const on = docmodBotonOn();
+  w.classList.toggle('doc-oculto', !on);
+  if (!on) docMenuCerrar();
+  const c = document.getElementById('cfg-docs-on');
+  if (c) c.checked = on;
+}
+window.docmodBotonSync = docmodBotonSync;
+function cfgDocsToggleBoton(on) {
+  try { localStorage.setItem(DOCMOD_BTN_KEY, on ? '1' : '0'); }
+  catch (e) { if (typeof toast === 'function') toast('No se pudo guardar la preferencia en este dispositivo.'); }
+  docmodBotonSync();
+}
+window.cfgDocsToggleBoton = cfgDocsToggleBoton;
+
+/* ── EL MENU DEL INFORME (B5) ─────────────────────────────────────────────────────────────── */
+function docmodMenuRender() {
+  const m = document.getElementById('doc-menu');
+  if (!m) return;
+  const vis = docmodLista().filter(function (x) { return x.vis; });
+  if (!vis.length) {
+    m.innerHTML = '<div style="padding:8px 12px;font-size:11.5px;color:var(--text2)">No hay documentos visibles.</div>';
+    return;
+  }
+  m.innerHTML = vis.map(function (x) {
+    return '<button type="button" role="menuitem" data-doc-k="' + escHtml(x.clave) + '">' +
+      escHtml(x.nom || '(sin nombre)') + '</button>';
+  }).join('');
+  if (!m._docDeleg) {
+    m._docDeleg = true;
+    m.addEventListener('click', function (ev) {
+      const b = ev.target.closest ? ev.target.closest('[data-doc-k]') : null;
+      if (b) docAbrir(b.getAttribute('data-doc-k'));
+    });
+  }
+}
+window.docmodMenuRender = docmodMenuRender;
+
+/* ── LA LISTA DE CONFIGURACION (B3) ───────────────────────────────────────────────────────── */
+function cfgDocsRender() {
+  docmodBotonSync();
+  docmodMenuRender();
+  const cont = document.getElementById('cfg-docs-lista');
+  const cupo = document.getElementById('cfg-docs-cupo');
+  const add = document.getElementById('cfg-docs-add');
+  if (!cont) return;
+  const st = docmodLeer();
+  const lista = docmodLista(st);
+  const nProp = (st.prop || []).length;
+  /* ⚠️ LOS OCULTOS CUENTAN EN EL CUPO, que es lo que B3 pide: ocultar no libera lugar, porque el
+     documento sigue guardado con sus cambios. Lo que libera es BORRAR uno propio. */
+  if (cupo) {
+    cupo.textContent = lista.length + ' de ' + DOCMOD_TOTAL_MAX + ' documentos' +
+      (nProp >= DOCMOD_PROPIOS_MAX ? ' · Para agregar otro, borrá uno propio.' : '');
+  }
+  if (add) {
+    add.disabled = nProp >= DOCMOD_PROPIOS_MAX;
+    add.title = add.disabled ? 'Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios.' : '';
+  }
+  cont.innerHTML = lista.map(function (x) {
+    const tags = [x.tipo === 'constancia' ? 'Constancia' : 'Consentimiento',
+                  x.incl ? 'Viene incluido' : 'Propio'];
+    let h = '<div class="cfgdoc-fila">' +
+      '<span class="cfgdoc-nom">' + escHtml(x.nom || '(sin nombre)') + '</span>' +
+      '<span class="cfgdoc-tags">' +
+      tags.map(function (t) { return '<span class="cfgdoc-tag">' + escHtml(t) + '</span>'; }).join('') +
+      (x.vis ? '' : '<span class="cfgdoc-tag cfgdoc-tag-ocu">Oculto en el menú</span>') +
+      '</span><span class="cfgdoc-acc">' +
+      '<label class="cfgdoc-vis"><input type="checkbox" data-cd-vis="' + escHtml(x.clave) + '"' +
+        (x.vis ? ' checked' : '') + '> Mostrar en el menú</label>' +
+      '<button type="button" class="btn btn-ghost" data-cd-ed="' + escHtml(x.clave) + '">Editar</button>';
+    /* Los cuatro incluidos NO se pueden borrar: solo ocultar, o volver a su texto original (B4). */
+    if (!x.incl) h += '<button type="button" class="btn btn-ghost" data-cd-del="' + escHtml(x.clave) + '">Borrar</button>';
+    return h + '</span></div>';
+  }).join('');
+  if (!cont._cdDeleg) {
+    cont._cdDeleg = true;
+    /* El indice va por `data-*` y el oyente es DELEGADO, registrado una sola vez: colgarlos de
+       cada fila obligaria a re-registrarlos en cada repintado. */
+    cont.addEventListener('click', function (ev) {
+      const e = ev.target.closest ? ev.target.closest('[data-cd-ed]') : null;
+      if (e) { if (typeof cfgDocsEditar === 'function') cfgDocsEditar(e.getAttribute('data-cd-ed')); return; }
+      const d = ev.target.closest ? ev.target.closest('[data-cd-del]') : null;
+      if (d) cfgDocsBorrar(d.getAttribute('data-cd-del'));
+    });
+    cont.addEventListener('change', function (ev) {
+      const v = ev.target.closest ? ev.target.closest('[data-cd-vis]') : null;
+      if (v) cfgDocsVis(v.getAttribute('data-cd-vis'), !!v.checked);
+    });
+  }
+}
+window.cfgDocsRender = cfgDocsRender;
+
+/* Ocultar o mostrar: solo saca del menu, no borra ni pierde los cambios (B4). */
+function cfgDocsVis(clave, on) {
+  const st = docmodLeer();
+  if (DOCMOD_INCL.indexOf(clave) >= 0) { st.incl[clave].vis = !!on; }
+  else {
+    const p = (st.prop || []).filter(function (x) { return x.clave === clave; })[0];
+    if (!p) return;
+    p.vis = !!on;
+  }
+  if (!docmodEscribir(st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
+  cfgDocsRender();
+}
+window.cfgDocsVis = cfgDocsVis;
+
+function cfgDocsBorrar(clave) {
+  const st = docmodLeer();
+  const p = (st.prop || []).filter(function (x) { return x.clave === clave; })[0];
+  if (!p) return;
+  if (!confirm('¿Borrar «' + (p.nom || '(sin nombre)') + '»? Se borra el documento y su texto. No se puede deshacer.')) return;
+  st.prop = (st.prop || []).filter(function (x) { return x.clave !== clave; });
+  if (!docmodEscribir(st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
+  /* Si la hoja de este documento estaba abierta, deja de tener modelo: se cierra. */
+  if (_docAbierto === clave) docCerrar();
+  delete _docEst[clave];
+  cfgDocsRender();
+}
+window.cfgDocsBorrar = cfgDocsBorrar;
+
+/* El cableado de arranque: el menu y el boton tienen que estar al dia aunque el medico nunca
+   abra Configuracion. */
+function docmodArranque() { docmodBotonSync(); docmodMenuRender(); }
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', docmodArranque);
+else docmodArranque();
+
 /* ── EL MAQUETADOR: UNA LISTA DE BLOQUES -> UNA LISTA DE OPERACIONES DE DIBUJO ────────────
    Devuelve {hojas:[[op,...],...], n}. Las operaciones son:
      {k:'t', x, y, sz, b, i, col, s}            texto a la izquierda
@@ -171758,7 +171950,7 @@ async function orthancVerificar() {
 }
 window.orthancVerificar = orthancVerificar;
 
-function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
+function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); if(typeof cfgDocsRender==='function')cfgDocsRender(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
   var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
   /* La fila del logo se repinta al abrir Config, como todo lo demás de este panel. Los cuatro
      escritores de `logo_centro_*` ya la repintan, así que dentro de una pestaña esto es
