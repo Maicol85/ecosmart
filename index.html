@@ -4978,6 +4978,81 @@ html.light-mode .amilo-root{
 #vdsc-svg .vdsc-cn{font-size:5.2px;font-weight:700;fill:var(--vdsc-names);text-anchor:middle;
   letter-spacing:.3px;paint-order:stroke;stroke:var(--vdsc-bl1);stroke-width:1.3px;
   stroke-linejoin:round;opacity:.85;}
+
+/* ══ DOCUMENTOS DEL INFORME (PANT-30, Parte A) ═══════════════════════════════════════════
+   ⚠️ LA HOJA ES BLANCA CON TEXTO OSCURO EN LOS DOS TEMAS, Y ES A PROPOSITO: es la vista previa
+   de un papel, no una pantalla de la app. Los colores van LITERALES y no por var(), que es
+   ademas lo que hace que la hoja se vea igual que el PDF y que la imagen guardada -las tres
+   superficies con los mismos colores-.
+   ⚠️ EL AZUL doc-dato ES SOLO DE PANTALLA. El papel y la imagen no lo conocen: sus emisores
+   dibujan de la lista de operaciones del maquetador, donde no existe esta clase. */
+#doc-ov{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);display:flex;flex-direction:column;}
+#doc-ov[hidden]{display:none;}
+.doc-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.doc-bar-tit{font-weight:700;font-size:13px;color:var(--text);margin-right:auto;}
+.doc-bar-acc{display:inline-flex;gap:8px;flex-wrap:wrap;}
+.doc-aviso{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
+  color:#8a5200;background:#fff4e0;border:1px solid #f0c070;border-radius:8px;padding:4px 9px;}
+.doc-aviso[hidden]{display:none;}
+#doc-estado{flex:0 0 auto;padding:6px 12px;font-size:11.5px;color:var(--text2);background:var(--bg3);
+  border-bottom:1px solid var(--border);}
+#doc-estado[hidden]{display:none;}
+.doc-hoja-wrap{flex:1 1 auto;overflow:auto;padding:16px 12px 40px;display:flex;justify-content:center;}
+/* 820 px de ancho de caja para 182 mm de columna: la hoja de pantalla NO pretende ser el papel
+   a escala -el papel lo maqueta jsPDF en milimetros-, pretende ser legible y editable. */
+.doc-hoja{width:min(820px,100%);background:#ffffff;color:#1a1a1a;border-radius:4px;
+  box-shadow:0 10px 40px rgba(0,0,0,.45);padding:26px 30px 34px;
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.5;}
+.doc-hoja [contenteditable]{outline:none;}
+.doc-hoja [contenteditable]:focus{background:#f2f7ff;box-shadow:0 0 0 2px #cfe0ff;border-radius:3px;}
+.doc-dato{color:#1552b8;}
+.doc-enc{display:flex;align-items:center;gap:12px;}
+.doc-enc-nom{font-weight:700;font-size:15px;color:#1f3a5f;flex:1 1 auto;min-width:0;}
+.doc-enc-logo{max-height:46px;max-width:120px;object-fit:contain;flex:0 0 auto;}
+.doc-enc-ini{flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:#1f3a5f;color:#fff;
+  font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;}
+.doc-hr{border:none;border-top:1.4px solid #1f3a5f;margin:9px 0 4px;}
+.doc-tit{text-align:center;font-weight:700;font-size:16px;margin:14px 0 4px;color:#1a1a1a;}
+.doc-sub{text-align:center;font-style:italic;color:#5a5a5a;margin:0 0 6px;}
+.doc-cf{text-align:right;margin:14px 0 0;}
+.doc-pacid{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 2px;}
+.doc-sec{font-weight:700;color:#1f3a5f;font-size:13.2px;margin:12px 0 3px;}
+.doc-sec-n{font-weight:700;}
+.doc-p{text-align:justify;margin:0 0 7px;}
+.doc-raya{font-weight:700;margin-bottom:4px;}
+.doc-rayita{border-bottom:1px solid #777;height:14px;margin:0 0 9px;}
+.doc-ul{margin:0 0 7px;padding-left:18px;}
+.doc-ul li{text-align:justify;margin:0 0 4px;}
+.doc-chk{display:flex;gap:7px;align-items:flex-start;margin:0 0 4px;}
+.doc-chk-sn{flex:0 0 auto;white-space:nowrap;color:#333;}
+.doc-chk2{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;margin:0 0 7px;}
+.doc-salto{text-align:center;color:#999;font-size:10.5px;letter-spacing:.6px;
+  border-top:1px dashed #bbb;margin:16px 0 14px;padding-top:5px;}
+.doc-firma{margin-top:34mm;text-align:right;}
+.doc-firma-l{border-bottom:1px solid #3c3c3c;width:62mm;margin-left:auto;margin-bottom:5px;}
+.doc-firma-n{font-weight:700;}
+.doc-firma-m{font-size:11.5px;color:#5a5a5a;}
+.doc-tf{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:11.5px;}
+.doc-tf th,.doc-tf td{border:1px solid #bdc3c7;padding:4px 6px;vertical-align:bottom;}
+.doc-tf thead th{background:#e6eaee;color:#1f3a5f;text-align:center;}
+.doc-tf-r{width:22%;background:#f6f8f9;color:#6e6e6e;font-weight:700;font-size:10.5px;
+  text-align:left;vertical-align:middle;}
+.doc-tf-alta{height:17mm;}
+/* El menu del boton. Va absoluto sobre su envoltorio para no empujar la fila de acciones. */
+.doc-menu-wrap{position:relative;display:inline-flex;}
+#doc-menu{position:absolute;bottom:calc(100% + 6px);right:0;z-index:260;min-width:268px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
+  box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:2px;}
+#doc-menu[hidden]{display:none;}
+#doc-menu button{text-align:left;background:none;border:none;color:var(--text);cursor:pointer;
+  font-size:12.5px;padding:9px 10px;border-radius:7px;min-height:44px;}
+#doc-menu button:hover,#doc-menu button:focus{background:var(--bg3);outline:none;}
+@media (max-width:700px){
+  .doc-hoja{padding:16px 15px 24px;font-size:12px;}
+  .doc-chk2{grid-template-columns:1fr;}
+  #doc-menu{right:auto;left:0;min-width:0;width:min(300px,calc(100vw - 32px));}
+}
 </style>
 </head>
 <body>
@@ -5401,6 +5476,26 @@ window.cerrarSesionReal = cerrarSesionReal;
      acá habría sido un atributo decorativo bajo un comentario que promete que no se imprime.
      El PDF lo dibuja jsPDF y no la impresión, pero el requisito es «no sale del informe» y
      cubrir sólo el camino que hoy existe deja el otro abierto. -->
+<!-- ══ LA HOJA DE LOS DOCUMENTOS DEL INFORME (PANT-30, Parte A) ══════════════════════════════
+     Vive al lado de los otros overlays y no dentro de #tab-informe: position:fixed con
+     inset:0, igual que #indic-overlay. Mientras esta abierta tapa la app, y eso es lo que
+     hace que el aviso «Actualizar con los datos» alcance con revisarse al reabrir -- con la hoja
+     delante no se puede cambiar un dato del formulario. -->
+<div id="doc-ov" hidden role="dialog" aria-modal="true" aria-labelledby="doc-ov-tit">
+  <div class="doc-bar">
+    <span class="doc-bar-tit" id="doc-ov-tit">Documento</span>
+    <span class="doc-aviso" id="doc-aviso" hidden>
+      Los datos de la app cambiaron después de que editaste la hoja.
+      <button type="button" class="btn btn-primary" onclick="docActualizarDatos()">Actualizar con los datos</button>
+    </span>
+    <span class="doc-bar-acc">
+      <button type="button" class="btn btn-green" onclick="docImprimir()">🖨️ Imprimir</button>
+      <button type="button" class="btn btn-ghost" id="doc-x" onclick="docCerrar()" aria-label="Cerrar el documento">✕</button>
+    </span>
+  </div>
+  <div id="doc-estado" hidden></div>
+  <div class="doc-hoja-wrap"><div class="doc-hoja" id="doc-hoja"></div></div>
+</div>
 <div id="indic-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)indicCerrar();">
   <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo" tabindex="-1"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:820px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
@@ -25027,6 +25122,17 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <button class="btn btn-green" onclick="generarPDF()">⬇️ Exportar PDF</button>
         <button class="btn btn-save" onclick="guardarInforme()">💾 Guardar Informe</button>
         <button class="btn btn-ghost" onclick="abrirModoComparativo()" id="btn-comparativo">🔀 Modo comparativo</button>
+        <!-- ⚠️ EL MENU VA EN UN ENVOLTORIO position:relative Y ABSOLUTO ADENTRO: dentro de la
+             fila de acciones, un desplegable en flujo empujaria los cuatro botones de al lado
+             cada vez que se abre. -->
+        <span class="doc-menu-wrap">
+          <button type="button" class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"
+                  aria-haspopup="menu" aria-expanded="false" aria-controls="doc-menu"
+                  title="Constancia y consentimientos informados, con los datos de este estudio">📄 Documentos ▾</button>
+          <div id="doc-menu" hidden role="menu" aria-labelledby="doc-btn">
+            <button type="button" role="menuitem" onclick="docAbrir('constancia')">Constancia</button>
+          </div>
+        </span>
       </div>
     </div>
   </div>
@@ -114815,6 +114921,836 @@ function diagGuardarIncluidos() {
   return Promise.all(tareas);
 }
 window.diagGuardarIncluidos = diagGuardarIncluidos;
+
+/* ══ DOCUMENTOS DEL INFORME — constancia y consentimientos (PANT-30, Parte A) ══════════════
+   PEDIDO DEL MEDICO. Cuatro documentos que salen del boton «Documentos» de la pestaña Informe:
+   una constancia de asistencia y tres consentimientos informados.
+
+   ⚠️ UN SOLO MODELO DE DATOS Y UN SOLO MAQUETADOR, Y ESO ES TODO EL DISEÑO. Un documento es una
+   LISTA DE BLOQUES de texto llano; docMaquetar la convierte en una lista de operaciones de
+   dibujo con sus coordenadas, y de esa unica lista salen las TRES superficies: la hoja de
+   pantalla, el PDF que se imprime y la imagen que se guarda en «Imagenes». Con tres emisores
+   escritos a mano los tres divergen, que es la leccion que teerEstado().papel y coaPapel ya
+   dejaron escrita en este archivo.
+
+   ⚠️ NO SE IMPRIME CON window.print(). Lo declara amiloImprimirPDF desde hace tandas:
+   capturaba la interfaz entera. El papel se arma con jsPDF, que es tambien lo que hace medible
+   el formato -margenes en milimetros, cuerpo en puntos y conteo de hojas-.
+
+   ⚠️ LA CASILLA DE VERIFICACION SE DIBUJA, NO SE ESCRIBE. El glifo U+2610 no existe en WinAnsi,
+   que es la codificacion de la helvetica de jsPDF, asi que escribirlo da un cuadrado vacio o
+   basura y ADEMAS splitTextToSize lo mide con metricas inventadas y corre el corte de linea.
+   Es el mismo defecto que _labSanPDF documenta para el simbolo de advertencia. En el papel y
+   en la imagen es un rectangulo dibujado; en pantalla sigue siendo el caracter.
+
+   ⚠️ LOS ACENTOS SE CONSERVAN. Helvetica/WinAnsi llega a U+00FF, asi que las tildes, la eñe y
+   las comillas angulares salen bien -el titulo «Ecocardiograma Transesofagico» del informe ya
+   lo prueba-. Lo que se sanea es SOLO lo de arriba de U+00FF, con docSan.
+
+   ⚠️ EL ESTADO DE LA HOJA EDITADA VIVE EN MEMORIA Y NO SE PERSISTE. Un campo persistido nuevo
+   seria un campo del estudio mas y una columna de Excel mas, y la orden de esta tanda deja el
+   Excel en 457. El precio esta declarado en docs/PENDIENTES.md -> P30-a: recargar la pagina
+   descarta las correcciones a mano. */
+
+/* Geometria de la hoja, en milimetros salvo lo que diga pt. A4 completo. */
+const DOC_GEO = Object.freeze({
+  W:210, H:297, ML:14, MR:14, MT:12, MB:13,
+  PT:0.3527777778,            // 1 pt en mm
+  PIE:291,                    // linea de base del pie
+  NAVY:[31,58,95]             // #1f3a5f, el azul de los titulos de seccion
+});
+/* En window porque es un const de nivel de script -- un const NO crea la propiedad, a diferencia
+   de una declaracion de funcion-- y las sondas de verificacion miden los margenes contra el. */
+window.DOC_GEO = DOC_GEO;
+
+/* Lo que la hoja sanea: solo lo que la fuente del PDF no puede dibujar. */
+function docSan(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[☐☑☒]/g, ' ')
+    .replace(/[–—]/g, '-').replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"').replace(/…/g, '...')
+    .replace(/[^\x20-\xFF]/g, ' ');
+}
+
+/* ── LOS DATOS QUE LA APP APORTA ──────────────────────────────────────────────────────────
+   Un solo lector. Cada clave es un marcador {{clave}} en los textos, y es tambien lo que
+   docMarcar pinta de azul en pantalla. */
+function docDatos() {
+  const v = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2, '0');
+  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                 'setiembre','octubre','noviembre','diciembre'];
+  /* La institucion sale del MISMO lugar que el encabezado del informe firmado: med-centro si
+     esta, y si no el centro activo. En modo institucional no cae a «CeiboMed» -es preferible no
+     nombrar institucion a nombrar la equivocada-, que es la regla que generarPDFReal ya fija. */
+  const inst = (function () {
+    const a = (typeof sv === 'function' ? (sv('med-centro') || '') : '').trim();
+    if (a) return a;
+    let b = '';
+    try { b = String(localStorage.getItem('centro_nombre_activo') || '').trim(); } catch (e) { b = ''; }
+    if (b) return b;
+    const modoInst = (function () { try { return localStorage.getItem('ett_modo_institucional') === '1'; } catch (e) { return false; } })();
+    return modoInst ? '' : 'CeiboMed';
+  })();
+  /* El medico que firma es el Principal de Config, el mismo que firma el informe. Sin fallback
+     escrito a mano: un documento legal con un nombre inventado es peor que uno sin nombre. */
+  let medNom = '', medMat = '';
+  try {
+    const ms = (typeof ecoGetMedicos === 'function') ? ecoGetMedicos() : [];
+    const ix = (typeof ecoGetMedPrincipal === 'function') ? ecoGetMedPrincipal() : 0;
+    const md = ms.length ? (ms[ix] || ms[0]) : null;
+    if (md) { medNom = String(md.nombre || '').trim(); medMat = String(md.matricula || '').trim(); }
+  } catch (e) { medNom = ''; medMat = ''; }
+  /* ⚠️ NO HAY CAMPO DE TITULO DEL MEDICO EN ESTA APP, medido en la TAREA 0. Lo mas cercano es la
+     especialidad de Config, y es lo que se usa; si esta vacia, la linea sale con el nombre y la
+     matricula y nada mas. No se inventa un «Dr.». */
+  const esp = v('cfg-med-especialidad') ||
+    (function () { const e = document.getElementById('med-especialidad'); return e ? String(e.textContent || '').trim() : ''; })();
+  const ciudad = v('cfg-med-lugar') ||
+    (function () { const e = document.getElementById('med-lugar'); return e ? String(e.textContent || '').trim() : ''; })();
+  const sexo = v('sexo');
+  /* Tres estados, no dos: sin sexo cargado la frase dice «el/la paciente» y no elige por el
+     medico. Es la misma regla que la raiz aortica aplica con el sexo faltante. */
+  const art = sexo === 'M' ? 'el paciente' : (sexo === 'F' ? 'la paciente' : 'el/la paciente');
+  /* El nombre del estudio sale de la UNICA casilla que lo decide, ete-es-ete. La app no tiene
+     catalogo de tipos de estudio: son dos. En minuscula y con articulo, que es lo que la frase
+     de la constancia pide; el titulo en mayuscula del PDF es otra cadena y no se toca. */
+  const esEte = !!(document.getElementById('ete-es-ete') || {}).checked;
+  let logoD = null;
+  try {
+    const d = localStorage.getItem('logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default'));
+    if (d && (typeof LOGO_DATA_OK !== 'function' || LOGO_DATA_OK(d))) logoD = d;
+  } catch (e) { logoD = null; }
+  return {
+    inst: inst, logoD: logoD, ciudad: ciudad,
+    pac: v('nombre'), art: art,
+    docl: v('doc_tipo') || 'CI', docn: v('ci'),
+    est: esEte ? 'un ecocardiograma transesofágico' : 'un ecocardiograma transtorácico',
+    med: medNom, mat: medMat, esp: esp,
+    fecha: dd + '/' + mm + '/' + hoy.getFullYear(),
+    dia: String(hoy.getDate()), mes: MESES[hoy.getMonth()], anio: String(hoy.getFullYear())
+  };
+}
+window.docDatos = docDatos;
+
+/* Las claves cuyo valor se pinta de AZUL en pantalla. Se excluyen las cortas y las derivadas de
+   una sola letra: marcar «el paciente» por coincidencia de texto daria falsos positivos dentro
+   de palabras del cuerpo. */
+const DOC_CLAVES_AZUL = Object.freeze(['pac', 'inst', 'ciudad', 'docn', 'est', 'med', 'mat', 'fecha', 'esp']);
+
+/* Reemplaza los marcadores. Un dato vacio deja su raya, nunca el marcador crudo. */
+function docSust(txt, D) {
+  return String(txt == null ? '' : txt).replace(/\{\{([a-z]+)\}\}/g, function (_m, k) {
+    const v = D[k];
+    return (v === undefined || v === null || String(v).trim() === '') ? '____' : String(v);
+  });
+}
+
+/* ⚠️ EL AZUL SE DERIVA DEL TEXTO Y NO DE UNA ESTRUCTURA PARALELA, y por eso SOBREVIVE a que el
+   medico edite la hoja. Guardar los segmentos aparte obligaria a descartarlos en la primera
+   correccion a mano -que es justo cuando el medico mas quiere ver que dato vino de donde-. */
+function docMarcar(txt, D) {
+  const t = String(txt == null ? '' : txt);
+  const vals = [];
+  DOC_CLAVES_AZUL.forEach(function (k) {
+    const v = D[k];
+    if (v && String(v).trim().length >= 3) vals.push(String(v));
+  });
+  vals.sort(function (a, b) { return b.length - a.length; });
+  const marcas = [];
+  vals.forEach(function (v) {
+    let i = 0;
+    while (true) {
+      const j = t.indexOf(v, i);
+      if (j < 0) break;
+      i = j + v.length;
+      let pisa = false;
+      for (let q = 0; q < marcas.length; q++) if (j < marcas[q][1] && marcas[q][0] < i) { pisa = true; break; }
+      if (!pisa) marcas.push([j, i]);
+    }
+  });
+  marcas.sort(function (a, b) { return a[0] - b[0]; });
+  let out = '', p = 0;
+  marcas.forEach(function (m) {
+    out += escHtml(t.slice(p, m[0])) + '<span class="doc-dato">' + escHtml(t.slice(m[0], m[1])) + '</span>';
+    p = m[1];
+  });
+  out += escHtml(t.slice(p));
+  return out;
+}
+
+/* ── LAS DEFINICIONES ──────────────────────────────────────────────────────────────
+   sz es el cuerpo en pt y lh el interlineado en pt, los dos de la orden del medico. */
+const DOC_DEFS = Object.freeze({
+  constancia: Object.freeze({
+    clave: 'constancia', menu: 'Constancia', tit: 'Constancia', sz: 10.5, lh: 16, hojas: 1,
+    bloques: function () {
+      return [
+        { t: 'enc' },
+        { t: 'ciudadfecha' },
+        { t: 'tit', x: 'CONSTANCIA' },
+        { t: 'p', x: 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}. Se extiende la presente para ser presentada donde corresponda. Sin más, saluda atentamente.' },
+        { t: 'firma' }
+      ];
+    }
+  })
+});
+window.DOC_DEFS = DOC_DEFS;
+
+/* ── EL MAQUETADOR: UNA LISTA DE BLOQUES -> UNA LISTA DE OPERACIONES DE DIBUJO ────────────
+   Devuelve {hojas:[[op,...],...], n}. Las operaciones son:
+     {k:'t', x, y, sz, b, i, col, s}            texto a la izquierda
+     {k:'c'|'r', y, ...}                        centrado / a la derecha
+     {k:'tw', y, sz, b, i, col, ws:[{s,x}]}     linea justificada, palabra por palabra
+     {k:'l', x1, x2, y, col, w}                 raya
+     {k:'box', x, y, s}                         casilla de verificacion
+     {k:'img', x, y, w, h, d}                   el logo
+     {k:'rect', x, y, w, h, col}                borde de celda
+   ⚠️ LA JUSTIFICACION SE CALCULA ACA, PALABRA POR PALABRA, y no se delega al align:'justify'
+   de jsPDF: delegada, el PDF conoce las posiciones de cada palabra y la imagen no, asi que las
+   dos superficies saldrian con cortes distintos. Con las palabras posicionadas en la lista, las
+   dos dibujan lo mismo por construccion. */
+function docMaquetar(def, D, bloques) {
+  if (typeof window.jspdf === 'undefined') return null;
+  const { jsPDF } = window.jspdf;
+  const md = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const G = DOC_GEO, cw = G.W - G.ML - G.MR;
+  const LH = def.lh * G.PT, SZ = def.sz;
+  const FONDO = G.H - G.MB;
+  let hojas = [[]], y = G.MT, nsec = 0;
+  const cur = () => hojas[hojas.length - 1];
+  const setF = (sz, b, i) => {
+    md.setFont('helvetica', b ? (i ? 'bolditalic' : 'bold') : (i ? 'italic' : 'normal'));
+    md.setFontSize(sz);
+  };
+  const nueva = () => { hojas.push([]); y = G.MT; };
+  const cabe = h => (y + h) <= FONDO;
+  const env = (s, sz, b, i, w) => { setF(sz, b, i); return md.splitTextToSize(docSan(s), w); };
+  const anchoDe = (s, sz, b, i) => { setF(sz, b, i); return md.getTextWidth(docSan(s)); };
+
+  /* Un parrafo justificado. La ULTIMA linea nunca se justifica -justificarla separa dos palabras
+     a lo ancho de la hoja-, y tampoco una linea de una sola palabra. */
+  function parrafo(s, o) {
+    o = o || {};
+    const sz = o.sz || SZ, b = !!o.b, i = !!o.i, col = o.col || null;
+    const x = (o.x === undefined) ? G.ML : o.x, w = o.w || (cw - (x - G.ML));
+    const ls = env(s, sz, b, i, w);
+    for (let q = 0; q < ls.length; q++) {
+      if (!cabe(LH)) nueva();
+      y += LH;
+      const ult = (q === ls.length - 1);
+      if (o.just && !ult) {
+        const ws = String(ls[q]).split(/\s+/).filter(Boolean);
+        if (ws.length > 1) {
+          setF(sz, b, i);
+          let tot = 0; ws.forEach(p => { tot += md.getTextWidth(p); });
+          const gap = (w - tot) / (ws.length - 1);
+          if (gap > 0) {
+            let cx = x; const out = [];
+            ws.forEach(p => { out.push({ s: p, x: cx }); cx += md.getTextWidth(p) + gap; });
+            cur().push({ k: 'tw', y: y, sz: sz, b: b, i: i, col: col, ws: out });
+            continue;
+          }
+        }
+      }
+      cur().push({ k: 't', x: x, y: y, sz: sz, b: b, i: i, col: col, s: ls[q] });
+    }
+  }
+
+  /* Una viñeta, con sangria francesa: la segunda linea arranca debajo del texto y no del punto. */
+  function vineta(s, fuerte) {
+    const sang = 4.2;
+    const x1 = G.ML, x2 = G.ML + sang, w = cw - sang;
+    /* La parte en negrita es un prefijo literal («Frecuentes:»): se dibuja aparte y el resto
+       arranca despues. Partir la linea por palabras con dos estilos exige medir los dos, asi que
+       el prefijo va SOLO en la primera linea y el resto se envuelve con el ancho que le queda. */
+    let pre = '';
+    if (fuerte) { for (let q = 0; q < fuerte.length; q++) if (s.indexOf(fuerte[q]) === 0) { pre = fuerte[q]; break; } }
+    if (!cabe(LH)) nueva();
+    y += LH;
+    cur().push({ k: 't', x: x1, y: y, sz: SZ, b: false, i: false, col: null, s: '•' });
+    const resto = pre ? s.slice(pre.length).replace(/^\s+/, '') : s;
+    let x0 = x2;
+    if (pre) {
+      cur().push({ k: 't', x: x2, y: y, sz: SZ, b: true, i: false, col: null, s: pre });
+      x0 = x2 + anchoDe(pre, SZ, true, false) + anchoDe(' ', SZ, false, false);
+    }
+    const w1 = G.ML + cw - x0;
+    const ls1 = env(resto, SZ, false, false, w1);
+    cur().push({ k: 't', x: x0, y: y, sz: SZ, b: false, i: false, col: null, s: ls1[0] || '' });
+    if (ls1.length > 1) {
+      const sobra = ls1.slice(1).join(' ');
+      parrafo(sobra, { x: x2, w: w, just: true });
+    }
+  }
+
+  function casilla(txt, x, w) {
+    const lado = SZ * G.PT * 0.82;
+    if (!cabe(LH)) nueva();
+    y += LH;
+    const yb = y - lado;
+    let cx = x;
+    cur().push({ k: 'box', x: cx, y: yb, s: lado }); cx += lado + 1.1;
+    cur().push({ k: 't', x: cx, y: y, sz: SZ, b: false, i: false, col: null, s: 'Sí' });
+    cx += anchoDe('Sí', SZ, false, false) + 2.2;
+    cur().push({ k: 'box', x: cx, y: yb, s: lado }); cx += lado + 1.1;
+    cur().push({ k: 't', x: cx, y: y, sz: SZ, b: false, i: false, col: null, s: 'No' });
+    cx += anchoDe('No', SZ, false, false) + 2.2;
+    const w1 = x + w - cx;
+    const ls = env(txt, SZ, false, false, w1);
+    cur().push({ k: 't', x: cx, y: y, sz: SZ, b: false, i: false, col: null, s: ls[0] || '' });
+    for (let q = 1; q < ls.length; q++) {
+      if (!cabe(LH)) nueva();
+      y += LH;
+      cur().push({ k: 't', x: x + 2, y: y, sz: SZ, b: false, i: false, col: null, s: ls[q] });
+    }
+  }
+
+  /* El encabezado institucional: nombre a la izquierda y logo a la derecha. Sin logo va un
+     circulo con las iniciales, que es lo que la orden pide y evita una banda vacia. */
+  function encabezado() {
+    const h = 15;
+    if (!cabe(h)) nueva();
+    const yT = y;
+    setF(SZ + 2.2, true, false);
+    const nom = docSan(D.inst || '');
+    const ls = env(nom, SZ + 2.2, true, false, cw - 22);
+    let yy = yT + 4.6;
+    ls.slice(0, 2).forEach(function (l) {
+      cur().push({ k: 't', x: G.ML, y: yy, sz: SZ + 2.2, b: true, i: false, col: G.NAVY, s: l });
+      yy += (SZ + 2.2) * G.PT * 1.25;
+    });
+    if (D.logoD) {
+      cur().push({ k: 'img', x: G.W - G.MR - 18, y: yT, w: 18, h: 14, d: D.logoD });
+    } else {
+      const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
+        .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
+      cur().push({ k: 'circ', x: G.W - G.MR - 7, y: yT + 7, r: 7, col: G.NAVY, s: ini });
+    }
+    y = yT + h;
+  }
+
+  function tablaFirmas() {
+    const col = [cw / 3, cw / 3, cw / 3];
+    const filas = [
+      ['Firma', '', '', 17],
+      ['Aclaración', docSan(D.pac || '____'), '', 8],
+      ['Cédula', docSan((D.docl || 'CI') + ': ' + (D.docn || '____')), '', 8],
+      ['Fecha', docSan(D.fecha), '', 8]
+    ];
+    const medAcl = docSan((D.med || '____') + (D.esp ? ' · ' + D.esp : ''));
+    filas[1][2] = medAcl;
+    filas[2][2] = docSan('Matrícula: ' + (D.mat || '____'));
+    filas[3][2] = docSan(D.fecha);
+    const altoTot = 7 + filas.reduce(function (a, f) { return a + f[3]; }, 0);
+    if (!cabe(altoTot)) nueva();
+    let yy = y;
+    /* Cabecera */
+    const cab = ['Paciente', 'Testigo', 'Médico'];
+    cur().push({ k: 'rect', x: G.ML, y: yy, w: cw, h: 7, col: [230, 234, 238], relleno: 1 });
+    for (let q = 0; q < 3; q++) {
+      cur().push({ k: 'c2', x: G.ML + col[0] * q + col[0] / 2, y: yy + 4.8, sz: SZ, b: true, i: false, col: G.NAVY, s: cab[q] });
+    }
+    yy += 7;
+    filas.forEach(function (f) {
+      cur().push({ k: 'rect', x: G.ML, y: yy, w: cw, h: f[3], col: [189, 195, 199] });
+      cur().push({ k: 't', x: G.ML + 1.6, y: yy + 4.4, sz: SZ - 0.8, b: true, i: false, col: [110, 110, 110], s: f[0] });
+      if (f[1]) cur().push({ k: 't', x: G.ML + col[0] + 1.6, y: yy + f[3] - 2.2, sz: SZ, b: false, i: false, col: null, s: f[1] });
+      if (f[2]) cur().push({ k: 't', x: G.ML + col[0] + col[1] + 1.6, y: yy + f[3] - 2.2, sz: SZ, b: false, i: false, col: null, s: f[2] });
+      cur().push({ k: 'l', x1: G.ML + col[0], x2: G.ML + col[0], y: yy, y2: yy + f[3], col: [189, 195, 199], w: 0.1 });
+      cur().push({ k: 'l', x1: G.ML + col[0] + col[1], x2: G.ML + col[0] + col[1], y: yy, y2: yy + f[3], col: [189, 195, 199], w: 0.1 });
+      yy += f[3];
+    });
+    y = yy + 2;
+  }
+
+  /* Mide el alto de un grupo de bloques en una hoja limpia. Se usa para la regla «la declaracion
+     y la tabla de firmas NUNCA se separan en hojas distintas». */
+  function altoGrupo(bs) {
+    const guardaH = hojas, guardaY = y, guardaN = nsec;
+    hojas = [[]]; y = G.MT;
+    bs.forEach(emitir);
+    const h = (hojas.length > 1) ? 1e6 : (y - G.MT);
+    hojas = guardaH; y = guardaY; nsec = guardaN;
+    return h;
+  }
+
+  function emitir(b) {
+    if (b.t === 'salto') { if (cur().length) nueva(); return; }
+    if (b.t === 'esp') { y += (b.mm || 4); return; }
+    if (b.t === 'enc') { encabezado(); return; }
+    if (b.t === 'hr') {
+      if (!cabe(3)) nueva();
+      y += 1.6;
+      cur().push({ k: 'l', x1: G.ML, x2: G.W - G.MR, y: y, y2: y, col: G.NAVY, w: 0.4 });
+      y += 2.4; return;
+    }
+    if (b.t === 'tit') {
+      if (!cabe(LH * 2)) nueva();
+      y += LH * 1.3;
+      cur().push({ k: 'c', y: y, sz: SZ + 3, b: true, i: false, col: null, s: docSan(docSust(b.x, D)) });
+      y += LH * 0.6; return;
+    }
+    if (b.t === 'sub') {
+      if (!cabe(LH)) nueva();
+      y += LH;
+      cur().push({ k: 'c', y: y, sz: SZ + 0.5, b: false, i: true, col: [90, 90, 90], s: docSan(docSust(b.x, D)) });
+      y += LH * 0.3; return;
+    }
+    if (b.t === 'ciudadfecha') {
+      if (!cabe(LH)) nueva();
+      y += LH * 1.6;
+      cur().push({ k: 'r', y: y, sz: SZ, b: false, i: false, col: null,
+                   s: docSan(((D.ciudad || '____') + ', ' + D.fecha)) });
+      return;
+    }
+    if (b.t === 'pacid') {
+      if (!cabe(LH)) nueva();
+      y += LH * 1.2;
+      cur().push({ k: 't', x: G.ML, y: y, sz: SZ, b: false, i: false, col: null,
+                   s: docSan('Paciente: ' + (D.pac || '____') + ' · ' + (D.docl || 'CI') + ': ' + (D.docn || '____')) });
+      cur().push({ k: 'r', y: y, sz: SZ, b: false, i: false, col: null,
+                   s: docSan((D.ciudad || '____') + ', ' + D.fecha) });
+      y += LH * 0.4; return;
+    }
+    if (b.t === 'sec') {
+      if (!cabe(LH * 2.4)) nueva();
+      y += LH * 0.9;
+      const n = b.nonum ? '' : (++nsec) + '. ';
+      if (!cabe(LH)) nueva();
+      y += LH;
+      cur().push({ k: 't', x: G.ML, y: y, sz: SZ + 0.7, b: true, i: false, col: G.NAVY,
+                   s: docSan(n + docSust(b.x, D)) });
+      y += LH * 0.25; return;
+    }
+    if (b.t === 'p') { parrafo(docSust(b.x, D), { just: true }); y += LH * 0.3; return; }
+    if (b.t === 'ul') { (b.items || []).forEach(function (it) { vineta(docSan(docSust(it, D)), b.fuerte); }); y += LH * 0.3; return; }
+    if (b.t === 'raya') {
+      if (!cabe(LH * 3)) nueva();
+      y += LH * 0.6;
+      parrafo(docSust(b.x, D), { b: true, just: false });
+      y += LH * 0.9;
+      cur().push({ k: 'l', x1: G.ML, x2: G.W - G.MR, y: y, y2: y, col: [120, 120, 120], w: 0.2 });
+      y += LH * 0.8; return;
+    }
+    if (b.t === 'chk1') { casilla(docSan(docSust(b.x, D)), G.ML, cw); y += LH * 0.3; return; }
+    if (b.t === 'chk2') {
+      const w2 = (cw - 6) / 2, its = b.items || [];
+      const mitad = Math.ceil(its.length / 2);
+      /* Las dos columnas se maquetan por separado y la y final es la mayor de las dos: con una
+         sola y corriendo, la segunda columna arrancaria donde termino la primera. */
+      const y0 = y;
+      its.slice(0, mitad).forEach(function (it) { casilla(docSan(docSust(it, D)), G.ML, w2); });
+      const yIzq = y;
+      y = y0;
+      its.slice(mitad).forEach(function (it) { casilla(docSan(docSust(it, D)), G.ML + w2 + 6, w2); });
+      y = Math.max(yIzq, y) + LH * 0.3;
+      return;
+    }
+    if (b.t === 'firma') {
+      /* 90 pt de aire tras el texto, que es lo que la orden fija. */
+      const aire = 90 * G.PT;
+      if (!cabe(aire + LH * 3)) nueva(); else y += aire;
+      const xd = G.W - G.MR;
+      y += LH;
+      cur().push({ k: 'l', x1: xd - 62, x2: xd, y: y, y2: y, col: [60, 60, 60], w: 0.25 });
+      y += LH;
+      cur().push({ k: 'r', y: y, sz: SZ, b: true, i: false, col: null, s: docSan(D.med || '____') });
+      y += LH * 0.9;
+      cur().push({ k: 'r', y: y, sz: SZ - 1.2, b: false, i: false, col: [90, 90, 90],
+                   s: docSan((D.esp ? D.esp + ' · ' : '') + 'Matrícula: ' + (D.mat || '____')) });
+      return;
+    }
+    if (b.t === 'tfirmas') { tablaFirmas(); return; }
+  }
+
+  /* Recorrido: antes de abrir el grupo «firmas» se mide y, si no entra, se pasa de hoja. */
+  for (let q = 0; q < bloques.length; q++) {
+    const b = bloques[q];
+    if (b.grupo === 'firmas' && (q === 0 || bloques[q - 1].grupo !== 'firmas')) {
+      const grupo = [];
+      for (let r = q; r < bloques.length && bloques[r].grupo === 'firmas'; r++) grupo.push(bloques[r]);
+      const h = altoGrupo(grupo);
+      if (h < 1e6 && !cabe(h) && cur().length) nueva();
+    }
+    emitir(b);
+  }
+
+  /* El pie, en cada hoja, con el total ya conocido. */
+  const n = hojas.length;
+  for (let q = 0; q < n; q++) {
+    hojas[q].push({ k: 't', x: G.ML, y: G.PIE, sz: 7, b: false, i: true, col: [120, 120, 120], s: docSan(def.tit) });
+    hojas[q].push({ k: 'r', y: G.PIE, sz: 7, b: false, i: true, col: [120, 120, 120], s: 'Página ' + (q + 1) + ' de ' + n });
+  }
+  return { hojas: hojas, n: n };
+}
+window.docMaquetar = docMaquetar;
+
+/* ── EMISOR 1: EL PDF ─────────────────────────────────────────────────────────────────────
+   Recorre la lista de operaciones. No decide nada: toda la geometria vino del maquetador. */
+function docOpsAPdf(def, maq) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const G = DOC_GEO;
+  const col = c => { if (c) doc.setTextColor(c[0], c[1], c[2]); else doc.setTextColor(20, 20, 20); };
+  maq.hojas.forEach(function (ops, h) {
+    if (h > 0) doc.addPage();
+    ops.forEach(function (o) {
+      if (o.k === 't' || o.k === 'c' || o.k === 'r' || o.k === 'c2') {
+        doc.setFont('helvetica', o.b ? (o.i ? 'bolditalic' : 'bold') : (o.i ? 'italic' : 'normal'));
+        doc.setFontSize(o.sz); col(o.col);
+        if (o.k === 't') doc.text(o.s, o.x, o.y);
+        else if (o.k === 'c') doc.text(o.s, G.W / 2, o.y, { align: 'center' });
+        else if (o.k === 'c2') doc.text(o.s, o.x, o.y, { align: 'center' });
+        else doc.text(o.s, G.W - G.MR, o.y, { align: 'right' });
+        return;
+      }
+      if (o.k === 'tw') {
+        doc.setFont('helvetica', o.b ? (o.i ? 'bolditalic' : 'bold') : (o.i ? 'italic' : 'normal'));
+        doc.setFontSize(o.sz); col(o.col);
+        o.ws.forEach(function (w) { doc.text(w.s, w.x, o.y); });
+        return;
+      }
+      if (o.k === 'l') {
+        doc.setDrawColor(o.col[0], o.col[1], o.col[2]); doc.setLineWidth(o.w || 0.2);
+        doc.line(o.x1, o.y, o.x2, (o.y2 === undefined ? o.y : o.y2));
+        return;
+      }
+      if (o.k === 'box') {
+        doc.setDrawColor(70, 70, 70); doc.setLineWidth(0.18);
+        doc.rect(o.x, o.y, o.s, o.s);
+        return;
+      }
+      if (o.k === 'rect') {
+        if (o.relleno) { doc.setFillColor(o.col[0], o.col[1], o.col[2]); doc.rect(o.x, o.y, o.w, o.h, 'F'); }
+        else { doc.setDrawColor(o.col[0], o.col[1], o.col[2]); doc.setLineWidth(0.1); doc.rect(o.x, o.y, o.w, o.h); }
+        return;
+      }
+      if (o.k === 'circ') {
+        doc.setFillColor(o.col[0], o.col[1], o.col[2]);
+        doc.circle(o.x, o.y, o.r, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+        doc.text(o.s || '', o.x, o.y + 1.2, { align: 'center' });
+        return;
+      }
+      if (o.k === 'img') {
+        try { doc.addImage(o.d, undefined, o.x, o.y, o.w, o.h); } catch (e) {}
+        return;
+      }
+    });
+  });
+  return doc;
+}
+
+/* ── EMISOR 2: EL SVG DE LA IMAGEN ────────────────────────────────────────────────────────
+   Las hojas se apilan en VERTICAL con un hueco: «Guardar en Imagenes» deja UNA miniatura por
+   documento, y la clave del registro identifica el documento, no la hoja -volver a guardarlo
+   reemplaza, que es lo que da el «actualizar» gratis-.
+   ⚠️ EL SVG DECLARA SU PROPIA font-family: sin ella esqSvgParaRaster le inyecta la de la
+   pantalla y la imagen saldria con otra letra que el PDF. */
+function docOpsASvg(maq) {
+  const G = DOC_GEO, K = 3.7795275591;            // mm -> px a 96 ppp
+  const sep = 6, n = maq.hojas.length;
+  const W = Math.round(G.W * K), Hh = Math.round(G.H * K);
+  const H = n * Hh + (n - 1) * Math.round(sep * K);
+  const rgb = c => c ? ('rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')') : 'rgb(20,20,20)';
+  const px = mm => (mm * K).toFixed(2);
+  let s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" ' +
+    'viewBox="0 0 ' + W + ' ' + H + '" style="font-family:Helvetica,Arial,sans-serif">' +
+    '<rect width="100%" height="100%" fill="#e9ecef"/>';
+  maq.hojas.forEach(function (ops, h) {
+    const off = h * (Hh + Math.round(sep * K));
+    s += '<g transform="translate(0,' + off + ')">';
+    s += '<rect x="0" y="0" width="' + W + '" height="' + Hh + '" fill="#ffffff"/>';
+    ops.forEach(function (o) {
+      const fs = o.sz ? (o.sz * 1.3333).toFixed(2) : '12';
+      const pesoI = o.b ? ' font-weight="700"' : '';
+      const esti = o.i ? ' font-style="italic"' : '';
+      if (o.k === 't') {
+        s += '<text x="' + px(o.x) + '" y="' + px(o.y) + '" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(o.s) + '</text>';
+      } else if (o.k === 'c' || o.k === 'c2') {
+        const cx = (o.k === 'c') ? (G.W / 2) : o.x;
+        s += '<text x="' + px(cx) + '" y="' + px(o.y) + '" text-anchor="middle" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(o.s) + '</text>';
+      } else if (o.k === 'r') {
+        s += '<text x="' + px(G.W - G.MR) + '" y="' + px(o.y) + '" text-anchor="end" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(o.s) + '</text>';
+      } else if (o.k === 'tw') {
+        o.ws.forEach(function (w) {
+          s += '<text x="' + px(w.x) + '" y="' + px(o.y) + '" font-size="' + fs + '" fill="' + rgb(o.col) + '"' + pesoI + esti + '>' + escHtml(w.s) + '</text>';
+        });
+      } else if (o.k === 'l') {
+        s += '<line x1="' + px(o.x1) + '" y1="' + px(o.y) + '" x2="' + px(o.x2) + '" y2="' + px(o.y2 === undefined ? o.y : o.y2) + '" stroke="' + rgb(o.col) + '" stroke-width="' + px(o.w || 0.2) + '"/>';
+      } else if (o.k === 'box') {
+        s += '<rect x="' + px(o.x) + '" y="' + px(o.y) + '" width="' + px(o.s) + '" height="' + px(o.s) + '" fill="none" stroke="rgb(70,70,70)" stroke-width="' + px(0.18) + '"/>';
+      } else if (o.k === 'rect') {
+        s += o.relleno
+          ? '<rect x="' + px(o.x) + '" y="' + px(o.y) + '" width="' + px(o.w) + '" height="' + px(o.h) + '" fill="' + rgb(o.col) + '"/>'
+          : '<rect x="' + px(o.x) + '" y="' + px(o.y) + '" width="' + px(o.w) + '" height="' + px(o.h) + '" fill="none" stroke="' + rgb(o.col) + '" stroke-width="' + px(0.1) + '"/>';
+      } else if (o.k === 'circ') {
+        s += '<circle cx="' + px(o.x) + '" cy="' + px(o.y) + '" r="' + px(o.r) + '" fill="' + rgb(o.col) + '"/>' +
+             '<text x="' + px(o.x) + '" y="' + px(o.y + 1.2) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">' + escHtml(o.s || '') + '</text>';
+      } else if (o.k === 'img') {
+        s += '<image x="' + px(o.x) + '" y="' + px(o.y) + '" width="' + px(o.w) + '" height="' + px(o.h) + '" preserveAspectRatio="xMidYMid meet" href="' + escHtml(o.d) + '"/>';
+      }
+    });
+    s += '</g>';
+  });
+  return s + '</svg>';
+}
+
+/* ── EL ESTADO DE LAS HOJAS ABIERTAS ──────────────────────────────────────────────────────
+   En memoria, por clave de documento: los bloques (con el texto ya corregido a mano, si lo
+   hubo), si el medico edito algo y la FIRMA de los datos con los que se armaron.
+   ⚠️ NO SE PERSISTE, a proposito: ver el encabezado del modulo. */
+let _docEst = Object.create(null);
+let _docAbierto = null;
+let _docFoco = null;
+
+function docFirmaDatos(D) {
+  try { return JSON.stringify([D.inst, D.ciudad, D.pac, D.art, D.docl, D.docn, D.est, D.med, D.mat, D.esp, D.fecha]); }
+  catch (e) { return ''; }
+}
+
+/* Los bloques nuevos de un documento, con los marcadores ya sustituidos. */
+function docBloquesNuevos(def, D) {
+  return def.bloques().map(function (b, i) {
+    const c = { t: b.t, i: i };
+    if (b.x !== undefined) c.x = docSust(b.x, D);
+    if (b.items) c.items = b.items.map(function (s) { return docSust(s, D); });
+    if (b.fuerte) c.fuerte = b.fuerte;
+    if (b.nonum) c.nonum = b.nonum;
+    if (b.mm) c.mm = b.mm;
+    if (b.grupo) c.grupo = b.grupo;
+    return c;
+  });
+}
+
+/* ── EL MENU ──────────────────────────────────────────────────────────────────────────────── */
+function docMenuToggle() {
+  const m = document.getElementById('doc-menu'), b = document.getElementById('doc-btn');
+  if (!m || !b) return;
+  const abierto = !m.hidden;
+  m.hidden = abierto;
+  b.setAttribute('aria-expanded', abierto ? 'false' : 'true');
+  if (!abierto) { const p = m.querySelector('button'); if (p) p.focus(); }
+}
+window.docMenuToggle = docMenuToggle;
+
+function docMenuCerrar() {
+  const m = document.getElementById('doc-menu'), b = document.getElementById('doc-btn');
+  if (m) m.hidden = true;
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+window.docMenuCerrar = docMenuCerrar;
+
+/* ── ABRIR LA HOJA ────────────────────────────────────────────────────────────────────────
+   Si ya habia una hoja de este documento con correcciones a mano y los datos de la app
+   cambiaron, se AVISA y no se pisa nada, que es lo que la orden pide. */
+function docAbrir(clave) {
+  docMenuCerrar();
+  const def = DOC_DEFS[clave];
+  if (!def) return;
+  if (typeof window.jspdf === 'undefined') {
+    if (typeof toast === 'function') toast('La biblioteca PDF está cargando, intentá en un momento.');
+    return;
+  }
+  const D = docDatos();
+  const firma = docFirmaDatos(D);
+  let st = _docEst[clave];
+  if (!st) { st = _docEst[clave] = { bloques: docBloquesNuevos(def, D), editado: false, firma: firma }; }
+  else if (!st.editado) { st.bloques = docBloquesNuevos(def, D); st.firma = firma; }
+  _docAbierto = clave;
+  _docFoco = document.activeElement;
+  const ov = document.getElementById('doc-ov');
+  const tit = document.getElementById('doc-ov-tit');
+  if (tit) tit.textContent = def.tit;
+  if (ov) ov.hidden = false;
+  docAvisoSync();
+  docRender();
+  const x = document.getElementById('doc-x');
+  if (x) x.focus();
+}
+window.docAbrir = docAbrir;
+
+function docCerrar() {
+  const ov = document.getElementById('doc-ov');
+  if (ov) ov.hidden = true;
+  _docAbierto = null;
+  if (_docFoco && _docFoco.focus) { try { _docFoco.focus(); } catch (e) {} }
+  _docFoco = null;
+}
+window.docCerrar = docCerrar;
+
+/* El aviso «Actualizar con los datos»: solo con la hoja editada Y los datos cambiados. */
+function docAvisoSync() {
+  const av = document.getElementById('doc-aviso');
+  if (!av) return;
+  const st = _docEst[_docAbierto];
+  const hay = !!(st && st.editado && st.firma !== docFirmaDatos(docDatos()));
+  av.hidden = !hay;
+}
+window.docAvisoSync = docAvisoSync;
+
+function docActualizarDatos() {
+  if (!_docAbierto) return;
+  const def = DOC_DEFS[_docAbierto], D = docDatos();
+  _docEst[_docAbierto] = { bloques: docBloquesNuevos(def, D), editado: false, firma: docFirmaDatos(D) };
+  docAvisoSync();
+  docRender();
+  if (typeof toast === 'function') toast('Hoja rearmada con los datos de la app');
+}
+window.docActualizarDatos = docActualizarDatos;
+
+/* ── LA HOJA EN PANTALLA ──────────────────────────────────────────────────────────────────
+   Se pinta de los MISMOS bloques que maqueta el papel. Los datos de la app se ven en azul
+   (doc-dato), que es solo de pantalla: en el papel y en la imagen va todo en negro, porque el
+   emisor no mira esa clase -dibuja de la lista de operaciones, donde no existe-. */
+function docRender() {
+  const h = document.getElementById('doc-hoja');
+  if (!h || !_docAbierto) return;
+  const st = _docEst[_docAbierto], def = DOC_DEFS[_docAbierto], D = docDatos();
+  let out = '', nsec = 0;
+  (st.bloques || []).forEach(function (b) {
+    const ed = ' contenteditable="true" data-doc-i="' + b.i + '" spellcheck="false"';
+    if (b.t === 'enc') {
+      const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
+        .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
+      out += '<div class="doc-enc"><div class="doc-enc-nom doc-dato">' + escHtml(D.inst || '—') + '</div>' +
+        (D.logoD ? '<img class="doc-enc-logo" alt="" src="' + escHtml(D.logoD) + '">'
+                   : '<span class="doc-enc-ini">' + escHtml(ini) + '</span>') + '</div>';
+      return;
+    }
+    if (b.t === 'hr') { out += '<hr class="doc-hr">'; return; }
+    if (b.t === 'salto') { out += '<div class="doc-salto">— fin de hoja —</div>'; return; }
+    if (b.t === 'esp') { out += '<div style="height:' + (b.mm || 4) + 'mm"></div>'; return; }
+    if (b.t === 'tit') { out += '<h3 class="doc-tit"' + ed + '>' + docMarcar(b.x, D) + '</h3>'; return; }
+    if (b.t === 'sub') { out += '<div class="doc-sub"' + ed + '>' + docMarcar(b.x, D) + '</div>'; return; }
+    if (b.t === 'ciudadfecha') {
+      out += '<div class="doc-cf"><span class="doc-dato">' + escHtml((D.ciudad || '____') + ', ' + D.fecha) + '</span></div>';
+      return;
+    }
+    if (b.t === 'pacid') {
+      out += '<div class="doc-pacid"><span>Paciente: <span class="doc-dato">' + escHtml(D.pac || '____') +
+        '</span> · ' + escHtml(D.docl || 'CI') + ': <span class="doc-dato">' + escHtml(D.docn || '____') +
+        '</span></span><span class="doc-dato">' + escHtml((D.ciudad || '____') + ', ' + D.fecha) + '</span></div>';
+      return;
+    }
+    if (b.t === 'sec') {
+      const n = b.nonum ? '' : (++nsec) + '. ';
+      out += '<div class="doc-sec"><span class="doc-sec-n">' + escHtml(n) + '</span><span' + ed + '>' + docMarcar(b.x, D) + '</span></div>';
+      return;
+    }
+    if (b.t === 'p') { out += '<p class="doc-p"' + ed + '>' + docMarcar(b.x, D) + '</p>'; return; }
+    if (b.t === 'ul') {
+      out += '<ul class="doc-ul">' + (b.items || []).map(function (it, j) {
+        let txt = docMarcar(it, D);
+        if (b.fuerte) {
+          for (let q = 0; q < b.fuerte.length; q++) {
+            if (it.indexOf(b.fuerte[q]) === 0) {
+              txt = '<b>' + escHtml(b.fuerte[q]) + '</b>' + docMarcar(it.slice(b.fuerte[q].length), D);
+              break;
+            }
+          }
+        }
+        return '<li contenteditable="true" data-doc-i="' + b.i + '" data-doc-j="' + j + '" spellcheck="false">' + txt + '</li>';
+      }).join('') + '</ul>';
+      return;
+    }
+    if (b.t === 'raya') {
+      out += '<p class="doc-p doc-raya"' + ed + '>' + docMarcar(b.x, D) + '</p><div class="doc-rayita"></div>';
+      return;
+    }
+    if (b.t === 'chk1') {
+      out += '<div class="doc-chk"><span class="doc-chk-sn">☐ Sí ☐ No</span><span' + ed + '>' + docMarcar(b.x, D) + '</span></div>';
+      return;
+    }
+    if (b.t === 'chk2') {
+      out += '<div class="doc-chk2">' + (b.items || []).map(function (it, j) {
+        return '<div class="doc-chk"><span class="doc-chk-sn">☐ Sí ☐ No</span>' +
+          '<span contenteditable="true" data-doc-i="' + b.i + '" data-doc-j="' + j + '" spellcheck="false">' +
+          docMarcar(it, D) + '</span></div>';
+      }).join('') + '</div>';
+      return;
+    }
+    if (b.t === 'firma') {
+      out += '<div class="doc-firma"><div class="doc-firma-l"></div>' +
+        '<div class="doc-firma-n doc-dato">' + escHtml(D.med || '____') + '</div>' +
+        '<div class="doc-firma-m doc-dato">' + escHtml((D.esp ? D.esp + ' · ' : '') + 'Matrícula: ' + (D.mat || '____')) + '</div></div>';
+      return;
+    }
+    if (b.t === 'tfirmas') {
+      const medAcl = (D.med || '____') + (D.esp ? ' · ' + D.esp : '');
+      out += '<table class="doc-tf"><thead><tr><th>Paciente</th><th>Testigo</th><th>Médico</th></tr></thead><tbody>' +
+        '<tr><th class="doc-tf-r">Firma</th><td class="doc-tf-alta"></td><td class="doc-tf-alta"></td></tr>' +
+        '<tr><th class="doc-tf-r">Aclaración</th><td class="doc-dato">' + escHtml(D.pac || '____') + '</td><td class="doc-dato">' + escHtml(medAcl) + '</td></tr>' +
+        '<tr><th class="doc-tf-r">Cédula</th><td class="doc-dato">' + escHtml((D.docl || 'CI') + ': ' + (D.docn || '____')) + '</td><td class="doc-dato">' + escHtml('Matrícula: ' + (D.mat || '____')) + '</td></tr>' +
+        '<tr><th class="doc-tf-r">Fecha</th><td class="doc-dato">' + escHtml(D.fecha) + '</td><td class="doc-dato">' + escHtml(D.fecha) + '</td></tr>' +
+        '</tbody></table>';
+      return;
+    }
+  });
+  h.innerHTML = out;
+  /* La primera celda de «Firma» no es editable: es el espacio para firmar a mano. */
+  h.querySelectorAll('[data-doc-i]').forEach(function (el) {
+    el.addEventListener('input', docEditado);
+  });
+}
+window.docRender = docRender;
+
+/* Captura la correccion a mano. Se guarda TEXTO LLANO: con el HTML de la celda se guardaria el
+   marcado que el navegador deja al editar, y eso entra despues a innerHTML. */
+function docEditado(ev) {
+  const el = ev.currentTarget || ev.target;
+  if (!el || !_docAbierto) return;
+  const st = _docEst[_docAbierto];
+  if (!st) return;
+  const i = parseInt(el.getAttribute('data-doc-i'), 10);
+  const jj = el.getAttribute('data-doc-j');
+  const b = (st.bloques || []).find(function (x) { return x.i === i; });
+  if (!b) return;
+  const txt = String(el.innerText || '').replace(/\s+/g, ' ').trim();
+  if (jj === null) b.x = txt; else if (b.items) b.items[parseInt(jj, 10)] = txt;
+  st.editado = true;
+}
+
+/* ── IMPRIMIR: SOLO LA HOJA ───────────────────────────────────────────────────────────────── */
+function docImprimir() {
+  if (!_docAbierto) return;
+  const def = DOC_DEFS[_docAbierto], st = _docEst[_docAbierto], D = docDatos();
+  const maq = docMaquetar(def, D, st.bloques);
+  if (!maq) { docEstado('No se pudo armar el documento: la biblioteca PDF no está disponible.'); return; }
+  const doc = docOpsAPdf(def, maq);
+  const nom = 'documento_' + def.clave + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+  doc.save(nom);
+  docEstado('Documento generado: ' + maq.n + (maq.n === 1 ? ' hoja.' : ' hojas.'));
+}
+window.docImprimir = docImprimir;
+
+function docEstado(txt) {
+  const e = document.getElementById('doc-estado');
+  if (!e) return;
+  e.textContent = txt || '';
+  e.hidden = !txt;
+}
+
+/* ── CABLEADO ─────────────────────────────────────────────────────────────────────────────
+   Escape cierra -- primero el menu, si esta abierto, y despues la hoja-- y un clic fuera cierra
+   el menu. Los dos oyentes van DELEGADOS en el documento y se registran una sola vez: colgarlos
+   del boton obligaria a re-registrarlos cada vez que la pestaña se repinta. */
+document.addEventListener('keydown', function (ev) {
+  if (ev.key !== 'Escape') return;
+  const m = document.getElementById('doc-menu');
+  if (m && !m.hidden) { docMenuCerrar(); const b = document.getElementById('doc-btn'); if (b) b.focus(); return; }
+  const ov = document.getElementById('doc-ov');
+  if (ov && !ov.hidden) docCerrar();
+});
+document.addEventListener('click', function (ev) {
+  const m = document.getElementById('doc-menu');
+  if (!m || m.hidden) return;
+  if (ev.target.closest && ev.target.closest('.doc-menu-wrap')) return;
+  docMenuCerrar();
+});
 
 /* ══ «INCLUIR EN EL PDF» — INDEPENDIENTE DE CONFIG Y DEL GUARDADO (COR-5, 2026-10-30) ════════
    DECISIÓN DEL MÉDICO. Hasta hoy el botón llamaba a `esqGuardarComoImagen`, que exige DOS
