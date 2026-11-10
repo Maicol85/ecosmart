@@ -5124,7 +5124,6 @@ html.light-mode .amilo-root{
   cursor:pointer;min-height:44px;}
 .cfgdoc-vis input{width:16px;height:16px;cursor:pointer;margin:0;}
 .cfgdoc-acc .btn{min-height:44px;}
-#cfg-docs-cupo{font-size:11.5px;color:var(--text2);margin:10px 0 8px;}
 #cfg-docs-pie{font-size:11px;color:var(--text2);margin-top:10px;}
 /* ── El editor de modelos (PANT-32, Parte C) ──────────────────────────────────────────────
    Dos columnas desde 900 px -- el editor a la izquierda y la vista previa a la derecha-- y una
@@ -6024,34 +6023,14 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span style="font-size:12.5px;color:var(--text)"><b>📄 Mostrar el botón Documentos en el Informe</b></span>
         </label>
         <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, el botón desaparece de la pantalla del Informe. No se borra ningún documento.</p>
-        <div id="cfg-docs-cupo"></div>
+        <!-- ⚠️ PANT-33 (A2): SE FUERON EL CUPO, «＋ Agregar documento», «⬇ Exportar modelos» y
+             «⬆ Importar modelos», con sus modales, sus validaciones y su lectura de archivos.
+             No se ocultaron: el codigo salio. El medico probo PANT-32 en la app y decidio que
+             Documentos queda MINIMA -- el interruptor y la lista-, con seis documentos fijos y
+             la edicion DIRECTA SOBRE LA HOJA. Lo que habia en el almacen no se borra: los
+             documentos «propios» que PANT-32 hubiera dejado siguen en `localStorage` y
+             `docmodLista` los ignora (A5). -->
         <div id="cfg-docs-lista"></div>
-        <div id="cfg-docs-botones" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-ghost" id="cfg-docs-add" onclick="cfgDocsAgregar()" style="min-height:44px;">＋ Agregar documento</button>
-          </div>
-          <!-- La pregunta «¿Qué querés agregar?» va EN LA PANTALLA y no en un cuadro del
-               navegador: son dos opciones con nombre, y escribirlas como botones es lo que la
-               orden pide —«con Constancia o Consentimiento»—. Un `prompt` pidiendo «1 o 2»
-               obligaría al médico a traducir su respuesta a un número. -->
-          <!-- Exportar e importar (PANT-32, Parte E). El `input type=file` va oculto y lo
-               dispara el botón, que es el mecanismo que la app ya usa en sus cuatro
-               importadores; el `this.value=''` del final es para que elegir el MISMO archivo
-               dos veces vuelva a disparar el `onchange`. -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-ghost" onclick="cfgDocsExportar()" style="min-height:44px;">⬇ Exportar modelos</button>
-            <button type="button" class="btn btn-ghost" id="cfg-docs-imp-btn" onclick="var e=document.getElementById('cfg-docs-imp');if(e)e.click();" style="min-height:44px;">⬆ Importar modelos</button>
-            <input type="file" id="cfg-docs-imp" accept=".json,application/json" style="display:none"
-                   onchange="if(this.files&&this.files[0]){cfgDocsImportar(this.files[0]);this.value='';}">
-          </div>
-          <div style="font-size:11px;color:var(--text2);">El archivo lleva solo los textos de los modelos, sin datos de pacientes.</div>
-          <div id="cfg-docs-tipo" hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <span style="font-size:11.5px;color:var(--text2)">¿Qué querés agregar?</span>
-            <button type="button" class="btn btn-ghost" onclick="cfgDocsEditarNuevo('constancia')" style="min-height:44px;">Constancia</button>
-            <button type="button" class="btn btn-ghost" onclick="cfgDocsEditarNuevo('consent')" style="min-height:44px;">Consentimiento</button>
-            <button type="button" class="btn btn-ghost" onclick="cfgDocsAgregarCancelar()" style="min-height:44px;">Cancelar</button>
-          </div>
-        </div>
         <div id="cfg-docs-ed" hidden></div>
         <div id="cfg-docs-pie">El texto de cada documento es responsabilidad de la institución que lo usa.</div>
       </section>
@@ -115680,11 +115659,6 @@ const DOCMOD_PROC_AC = 'el procedimiento descrito en este documento';
 /* El cuerpo y el interlineado por tipo, los mismos numeros que las cuatro definiciones. */
 const DOCMOD_SZ = Object.freeze({ constancia: 10.5, consent: 10.2 });
 const DOCMOD_LH = Object.freeze({ constancia: 16, consent: 13.4 });
-/* Las cinco preguntas orientativas de un consentimiento propio (D1). */
-const DOCMOD_PREGS_NUEVAS = Object.freeze(['¿Qué es?', '¿Para qué sirve?', '¿Cómo se realiza?',
-  '¿Qué riesgos tiene?', '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?']);
-const DOCMOD_CONST_TXT = 'Se extiende la presente para ser presentada donde corresponda.\n\nSin más, saluda atentamente.';
-
 /* ── TEXTO <-> BLOQUES: LAS CINCO CONVENCIONES DE A4 ─────────────────────────────────────── */
 
 /* Los tramos de negrita de una linea. Dobles asteriscos, sin anidar. */
@@ -115849,17 +115823,6 @@ function docmodOrig(clave) {
 }
 window.docmodOrig = docmodOrig;
 
-/* El modelo de un documento PROPIO recien creado (D1). */
-function docmodNuevo(tipo) {
-  if (tipo === 'constancia') {
-    return { tipo: 'constancia', nom: '', tit: 'CONSTANCIA', frase: true, txt: DOCMOD_CONST_TXT,
-             decl: true, firmas: true, comunes: true, vis: true };
-  }
-  return { tipo: 'consent', nom: '', tit: 'Consentimiento para ',
-           pregs: DOCMOD_PREGS_NUEVAS.map(function (t) { return { t: t, x: '' }; }),
-           decl: true, firmas: true, comunes: true, vis: true };
-}
-window.docmodNuevo = docmodNuevo;
 
 /* ── EL ALMACEN ───────────────────────────────────────────────────────────────────────────── */
 function docmodVacio() {
@@ -116017,12 +115980,16 @@ function docmodModelo(clave, st) {
 }
 window.docmodModelo = docmodModelo;
 
-/* La lista completa, en el orden del menu: los incluidos en su orden y despues los propios (B5). */
+/* La lista completa, en el orden del menu: los cuatro incluidos en su orden (A3).
+   ⚠️ PANT-33 (A5): LOS DOCUMENTOS «PROPIOS» DE PANT-32 NO SE LISTAN Y NO SE BORRAN. Esta funcion
+   recorria tambien `st.prop`; hoy no, porque agregar documentos propios dejo de existir. Lo que
+   haya en disco sigue ahi -- `docmodLeer` y `docmodEscribir` lo pasan de largo intacto-, asi que
+   si alguna vez vuelven a listarse estan enteros. Borrarlos seria decidir por el medico sobre un
+   texto que el escribio. */
 function docmodLista(st) {
   st = st || docmodLeer();
   const out = [];
   DOCMOD_INCL.forEach(function (k) { const m = docmodModelo(k, st); if (m) out.push(m); });
-  (st.prop || []).forEach(function (p) { const m = docmodModelo(p.clave, st); if (m) out.push(m); });
   return out;
 }
 window.docmodLista = docmodLista;
@@ -116168,51 +116135,37 @@ function docmodMenuRender() {
 window.docmodMenuRender = docmodMenuRender;
 
 /* ── LA LISTA DE CONFIGURACION (B3) ───────────────────────────────────────────────────────── */
+/* ⚠️ PANT-33 (A1/A3): LA LISTA QUEDA MINIMA -- nombre, etiqueta de tipo, «Oculto en el menú»
+   si corresponde, el interruptor «Mostrar en el menú» y «Editar»-. Se fueron el cupo, la
+   etiqueta «Propio»/«Viene incluido» y el boton «Borrar»: con seis documentos fijos no hay nada
+   que contar ni nada que borrar.
+   ⚠️ LOS DOS OYENTES SIGUEN DELEGADOS Y REGISTRADOS UNA SOLA VEZ, con la guarda de bandera en el
+   contenedor: `cfgDocsRender` reemplaza el `innerHTML` pero NO el contenedor, asi que sin la
+   guarda cada repintado colgaria un juego nuevo y un clic en «Editar» abriria el editor tantas
+   veces como veces se hubiera repintado. Es la leccion que PANT-32 pago con el editor. */
 function cfgDocsRender() {
   docmodBotonSync();
   docmodMenuRender();
   const cont = document.getElementById('cfg-docs-lista');
-  const cupo = document.getElementById('cfg-docs-cupo');
-  const add = document.getElementById('cfg-docs-add');
   if (!cont) return;
-  const st = docmodLeer();
-  const lista = docmodLista(st);
-  const nProp = (st.prop || []).length;
-  /* ⚠️ LOS OCULTOS CUENTAN EN EL CUPO, que es lo que B3 pide: ocultar no libera lugar, porque el
-     documento sigue guardado con sus cambios. Lo que libera es BORRAR uno propio. */
-  if (cupo) {
-    cupo.textContent = lista.length + ' de ' + DOCMOD_TOTAL_MAX + ' documentos' +
-      (nProp >= DOCMOD_PROPIOS_MAX ? ' · Para agregar otro, borrá uno propio.' : '');
-  }
-  if (add) {
-    add.disabled = nProp >= DOCMOD_PROPIOS_MAX;
-    add.title = add.disabled ? 'Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios.' : '';
-  }
+  const lista = docmodLista();
   cont.innerHTML = lista.map(function (x) {
-    const tags = [x.tipo === 'constancia' ? 'Constancia' : 'Consentimiento',
-                  x.incl ? 'Viene incluido' : 'Propio'];
-    let h = '<div class="cfgdoc-fila">' +
+    return '<div class="cfgdoc-fila">' +
       '<span class="cfgdoc-nom">' + escHtml(x.nom || '(sin nombre)') + '</span>' +
       '<span class="cfgdoc-tags">' +
-      tags.map(function (t) { return '<span class="cfgdoc-tag">' + escHtml(t) + '</span>'; }).join('') +
-      (x.vis ? '' : '<span class="cfgdoc-tag cfgdoc-tag-ocu">Oculto en el menú</span>') +
+        '<span class="cfgdoc-tag">' + escHtml(docmodEtiqueta(x.tipo)) + '</span>' +
+        (x.vis ? '' : '<span class="cfgdoc-tag cfgdoc-tag-ocu">Oculto en el menú</span>') +
       '</span><span class="cfgdoc-acc">' +
       '<label class="cfgdoc-vis"><input type="checkbox" data-cd-vis="' + escHtml(x.clave) + '"' +
         (x.vis ? ' checked' : '') + '> Mostrar en el menú</label>' +
-      '<button type="button" class="btn btn-ghost" data-cd-ed="' + escHtml(x.clave) + '">Editar</button>';
-    /* Los cuatro incluidos NO se pueden borrar: solo ocultar, o volver a su texto original (B4). */
-    if (!x.incl) h += '<button type="button" class="btn btn-ghost" data-cd-del="' + escHtml(x.clave) + '">Borrar</button>';
-    return h + '</span></div>';
+      '<button type="button" class="btn btn-ghost" data-cd-ed="' + escHtml(x.clave) + '">Editar</button>' +
+      '</span></div>';
   }).join('');
   if (!cont._cdDeleg) {
     cont._cdDeleg = true;
-    /* El indice va por `data-*` y el oyente es DELEGADO, registrado una sola vez: colgarlos de
-       cada fila obligaria a re-registrarlos en cada repintado. */
     cont.addEventListener('click', function (ev) {
       const e = ev.target.closest ? ev.target.closest('[data-cd-ed]') : null;
-      if (e) { cfgDocsEditar(e.getAttribute('data-cd-ed')); return; }
-      const d = ev.target.closest ? ev.target.closest('[data-cd-del]') : null;
-      if (d) cfgDocsBorrar(d.getAttribute('data-cd-del'));
+      if (e) cfgDocsEditar(e.getAttribute('data-cd-ed'));
     });
     cont.addEventListener('change', function (ev) {
       const v = ev.target.closest ? ev.target.closest('[data-cd-vis]') : null;
@@ -116220,6 +116173,13 @@ function cfgDocsRender() {
     });
   }
 }
+/* La etiqueta de tipo de la fila (A3). Un solo lugar, nombrado por la lista y por los casos. */
+function docmodEtiqueta(tipo) {
+  if (tipo === 'constancia') return 'Constancia';
+  if (tipo === 'blanco') return 'En blanco';
+  return 'Consentimiento';
+}
+window.docmodEtiqueta = docmodEtiqueta;
 window.cfgDocsRender = cfgDocsRender;
 
 /* Ocultar o mostrar: solo saca del menu, no borra ni pierde los cambios (B4). */
@@ -116235,20 +116195,6 @@ function cfgDocsVis(clave, on) {
   cfgDocsRender();
 }
 window.cfgDocsVis = cfgDocsVis;
-
-function cfgDocsBorrar(clave) {
-  const st = docmodLeer();
-  const p = (st.prop || []).filter(function (x) { return x.clave === clave; })[0];
-  if (!p) return;
-  if (!confirm('¿Borrar «' + (p.nom || '(sin nombre)') + '»? Se borra el documento y su texto. No se puede deshacer.')) return;
-  st.prop = (st.prop || []).filter(function (x) { return x.clave !== clave; });
-  if (!docmodEscribir(st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
-  /* Si la hoja de este documento estaba abierta, deja de tener modelo: se cierra. */
-  if (_docAbierto === clave) docCerrar();
-  delete _docEst[clave];
-  cfgDocsRender();
-}
-window.cfgDocsBorrar = cfgDocsBorrar;
 
 /* El cableado de arranque: el menu y el boton tienen que estar al dia aunque el medico nunca
    abra Configuracion. */
@@ -116298,91 +116244,14 @@ function cfgDocsEditar(clave) {
 }
 window.cfgDocsEditar = cfgDocsEditar;
 
-/* El editor de un documento que todavia no existe (D1): el nombre se pregunta al guardar. */
-/* ── PANT-32 · EXPORTAR E IMPORTAR MODELOS (Parte E) ──────────────────────────────────────
-   ⚠️ EL ARCHIVO LLEVA SOLO TEXTOS Y OPCIONES. Es el MISMO objeto que el almacen -- nombre,
-   tipo, titulo, textos, piezas y visible, mas lo editado de los incluidos-, con una marca de
-   formato y la fecha. No lleva datos de paciente, ni logo, ni institucion, ni el interruptor del
-   boton: ese ultimo vive en su propia clave porque es una preferencia de esta computadora, y el
-   validador lo rechazaria como clave desconocida.
-   El mecanismo de descarga es el de `_bkExportar`, que es el unico que esta app usa. */
-function cfgDocsExportar() {
-  const st = docmodLeer();
-  const fecha = new Date().toISOString().split('T')[0];
-  const obj = { _ecosmart_modelos: true, v: DOCMOD_VER, fecha: fecha, incl: st.incl, prop: st.prop };
-  let txt;
-  try { txt = JSON.stringify(obj, null, 2); } catch (e) { alert('No se pudo armar el archivo.'); return; }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
-  a.download = 'ecosmart_modelos_documentos_' + fecha + '.json';
-  a.click();
-  setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 4000);
-  if (typeof toast === 'function') toast('⬇️ Modelos exportados');
-}
-window.cfgDocsExportar = cfgDocsExportar;
-
-const DOCMOD_AJENO = 'Este archivo no es de EcoSmart o está dañado. No se cargó nada.';
-const DOCMOD_3PROP = 'Este archivo trae más de 2 documentos propios y EcoSmart permite hasta 2. No se cargó nada.';
-/* El tope de bytes del archivo. El tope de contenido son 60.000 caracteres (DOCMOD_LIM.total) y
-   la indentacion los puede casi duplicar, asi que 200.000 deja margen de sobra y evita leer un
-   archivo de cientos de MB para despues rechazarlo. */
-const DOCMOD_BYTES_MAX = 200000;
-
-/* ⚠️ SE VALIDA ANTES DE CARGAR NADA, Y EL ARCHIVO SE RECHAZA ENTERO. Un archivo cargado a
-   medias deja al medico con la mitad de los modelos de otra institucion y sin forma de saber
-   cual mitad. Es el mismo criterio que `importarInformesJSON` ya aplica con
-   `validarInformeImportado`: se busca el primer invalido y, si hay uno, no entra ninguno.
-   El validador es EL MISMO que usa el almacen, con la marca de formato exigida: con dos
-   validadores, un archivo podria cargar lo que el editor no deja escribir. */
-function cfgDocsImportar(file) {
-  if (!file) return;
-  if (file.size > DOCMOD_BYTES_MAX) { alert(DOCMOD_AJENO); return; }
-  const reader = new FileReader();
-  reader.onerror = function () { alert('No se pudo leer el archivo.'); };
-  reader.onload = function (ev) {
-    let crudo;
-    try { crudo = JSON.parse(ev.target.result); } catch (e) { alert(DOCMOD_AJENO); return; }
-    const r = docmodValidar(crudo, true);
-    if (!r.ok) { alert(r.motivo === 'propios' ? DOCMOD_3PROP : DOCMOD_AJENO); return; }
-    if (!confirm('Esto reemplaza los documentos que tenés ahora por los del archivo. ¿Continuar?')) return;
-    if (!docmodEscribir(r.st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
-    /* Las hojas que estuvieran en memoria son de los modelos VIEJOS: si quedaran, el medico
-       imprimiria el documento anterior creyendo que importo el nuevo. */
-    _docEst = Object.create(null);
-    if (_docAbierto) docCerrar();
-    cfgDocsRender();
-    if (typeof toast === 'function') toast('⬆️ Modelos importados');
-  };
-  reader.readAsText(file);
-}
-window.cfgDocsImportar = cfgDocsImportar;
-
-/* D1: que se agrega. Dos tipos y nada mas, que son los dos que la app sabe maquetar. */
-function cfgDocsAgregar() {
-  const st = docmodLeer();
-  if ((st.prop || []).length >= DOCMOD_PROPIOS_MAX) {
-    alert('Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios. Para agregar otro, borrá uno.');
-    return;
-  }
-  const d = document.getElementById('cfg-docs-tipo');
-  if (d) { d.hidden = false; const b = d.querySelector('button'); if (b) b.focus(); }
-}
-window.cfgDocsAgregar = cfgDocsAgregar;
-function cfgDocsAgregarCancelar() {
-  const d = document.getElementById('cfg-docs-tipo');
-  if (d) d.hidden = true;
-}
-window.cfgDocsAgregarCancelar = cfgDocsAgregarCancelar;
-
-function cfgDocsEditarNuevo(tipo) {
-  const d = document.getElementById('cfg-docs-tipo');
-  if (d) d.hidden = true;
-  const m = docmodNuevo(tipo);
-  m.clave = ''; m.incl = false; m.propio = true; m.editado = true;
-  _cdEd = { clave: '', m: m, nuevo: true, nom: '', firma: null };
-  cfgDocsEdRender();
-}
-window.cfgDocsEditarNuevo = cfgDocsEditarNuevo;
+/* ⚠️ PANT-33 (A2): ACA VIVIAN `cfgDocsExportar`, `cfgDocsImportar`, `cfgDocsAgregar`,
+   `cfgDocsAgregarCancelar` y `cfgDocsEditarNuevo`, con sus dos mensajes de rechazo, su tope de
+   bytes y su validacion de marca de formato. Salieron enteras: el medico decidio que no se
+   agregan documentos ni se exportan modelos. Lo que NO salio es el validador `docmodValidar`,
+   que sigue siendo el guardian del almacen -- un `localStorage` lo puede editar cualquiera-, ni
+   su rama de `prop`, porque los documentos propios que PANT-32 hubiera dejado en disco se
+   conservan y tienen que seguir pasando la validacion para que el almacen entero no se
+   descarte (A5). */
 
 function cfgDocsEdSalir() {
   if (_cdEd && _cdEd.firma !== null && _cdFirma(_cdEd.m, _cdEd.nom) !== _cdEd.firma) {
@@ -116398,12 +116267,14 @@ function cfgDocsEdSalir() {
 }
 window.cfgDocsEdSalir = cfgDocsEdSalir;
 
-/* Mientras el editor esta abierto, la lista y sus botones se esconden: es la misma pantalla. */
+/* ⚠️ PANT-33: LA LISTA YA NO SE ESCONDE, Y NO ES UN DESCUIDO. El editor de PANT-32 vivia en la
+   MISMA pantalla que la lista y habia que taparla; el de esta tanda es la HOJA, a pantalla
+   completa sobre Configuracion (B1), asi que la lista queda debajo sin estorbar y vuelve a la
+   vista sola al cerrar la hoja. La funcion queda porque `cfgDocsEdSalir` la llama, y hoy no
+   toca nada: los ids `cfg-docs-cupo` y `cfg-docs-botones` tampoco existen. */
 function cfgDocsEdMostrarLista(on) {
-  ['cfg-docs-lista', 'cfg-docs-cupo', 'cfg-docs-botones'].forEach(function (id) {
-    const e = document.getElementById(id);
-    if (e) e.classList.toggle('doc-oculto', !on);
-  });
+  const e = document.getElementById('cfg-docs-lista');
+  if (e) e.classList.toggle('doc-oculto', !on);
 }
 
 function cfgDocsEdRender() {
