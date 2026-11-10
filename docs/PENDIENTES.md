@@ -14674,6 +14674,28 @@ su medición, en vez de aflojar la condición a un porcentaje.
    Lo declara la condición (C4) de **TC-783**, y el ciclo limpio —prender y apagar sin tocar
    nada— sí devuelve el dibujo **al píxel exacto**, que lo mide (A3) del mismo caso.
 
+### P29-a · 7 — A 1000 px EL ACHIQUE ES UN INTERCAMBIO, Y LO DESTAPÓ LA SONDA DE DOS MOTORES
+
+A 1440 px no hay nada que decidir: las dos tarjetas bajan a 220 y 150 px y el 3D **gana** 104 px.
+Pero a **1000 px** la fila entera mide 748 px y no alcanza para las dos cosas a la vez. Medido en
+los dos motores y en los dos temas:
+
+| 1000 px, con el 3D abierto | antes | después |
+|---|---|---|
+| columna de hallazgos | **44 px** (texto a un carácter por renglón, **2 textos recortados**) | **220 px**, 0 recortados |
+| columna de botones | 210 px | 150 px |
+| lienzo del 3D | 344 px | **228 px** (188 con «Coronarias» prendido) |
+
+O sea: **el texto se arregla y el dibujo se angosta**. La orden fija los 220 y 150 «a 1440 px de
+pantalla» y dice que en pantalla angosta se apilan «como hoy»; 1000 px no es ninguno de los dos,
+y con 748 px de fila una de las dos columnas tiene que ceder. Se eligió el texto, porque 44 px no
+es un ancho: es un renglón roto.
+
+**Queda declarado y no corregido**, porque la alternativa es una decisión que la orden no trae:
+poner un tercer corte —los 220/150 sólo por encima de, digamos, 1200 px, y entre 769 y 1199
+apilar el 3D debajo— es inventar un punto de quiebre. Si el médico prefiere el dibujo grande a
+1000 px, es una media query más y una línea en `lv3dMaquetar`.
+
 ---
 
 ## P29-b — PANT-29: los ángulos de las vistas de angiografía, y qué quedó sin fuente
