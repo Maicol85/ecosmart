@@ -4432,13 +4432,38 @@ html.light-mode .amilo-root{
    repartirse sola con su `auto-fit`. */
 #lv3d-dibujo{display:flex;gap:8px;align-items:flex-start;}
 #lv3d-lienzo{flex:1 1 auto;min-width:0;}
-#lv3d-datos{flex:0 0 110px;}
+/* ⚠️ LA COLUMNA DERECHA LLEVA EL ANCHO, Y NO `#lv3d-datos` — PANT-29, commit 5 (D). Era
+   `#lv3d-datos{flex:0 0 110px;}`, con los cinco cuadros como unico hijo derecho de la fila. Hoy
+   esa columna tiene DOS hijos —los cuadros y el panel de coronarias, que va debajo— y el ancho
+   tiene que vivir en el contenedor: en una columna flex, `flex-basis` sobre el hijo se aplicaria
+   a su ALTO. Sigue en PIXELES y no en una fraccion, por el mismo motivo de «K3»: con una
+   fraccion crece con la pantalla y le come ancho al cuadro gris. */
+#lv3d-col-der{flex:0 0 110px;display:flex;flex-direction:column;gap:8px;min-width:0;}
+#lv3d-datos{min-width:0;}
+/* Con «Coronarias» prendido la columna pasa a 150 px: tres botones de dominancia en 110 px
+   quedan en 33 px de ancho y el piso tactil de esta casa son 44. El recuadro no se agranda —el
+   panel usa alto que la columna ya tenia—; lo que se angosta 40 px es el lienzo. */
+#lv3d-dibujo.lv3d-coro-on>#lv3d-col-der{flex:0 0 150px;}
+#lv3d-coro-panel{display:flex;flex-direction:column;gap:6px;}
+#lv3d-coro-caja{position:relative;}
+#lv3d-coro-caja>.btn{width:100%;}
+#lv3d-coro-panel .btn{white-space:normal;min-height:44px;font-size:11px;text-align:center;padding:4px 6px;}
+.lv3d-coro-fila{display:flex;gap:4px;}
+.lv3d-coro-fila>.btn{flex:1 1 0;min-width:0;}
+/* La lista flota sobre el lienzo: adentro de la columna de 150 px no entraria ningun rotulo. */
+#lv3d-coro-lista{position:absolute;z-index:30;right:0;top:calc(100% + 4px);width:208px;max-width:60vw;
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
+  display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 18px rgba(0,0,0,.20);}
 #lv3d-notas{margin-top:4px;}
 /* Los colores y sus dos casillas, en la misma fila y separados. */
 #lv3d-colores{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;}
 @media (max-width:768px){
   #lv3d-dibujo{flex-direction:column;align-items:stretch;}
-  #lv3d-lienzo,#lv3d-datos{flex:0 0 auto;width:auto;}
+  #lv3d-lienzo,#lv3d-col-der{flex:0 0 auto;width:auto;}
+  /* En angosto el panel va DEBAJO del recuadro, que es lo que pide la orden: la columna entera
+     se apila bajo el lienzo y con ella el panel. El ancho de 150 px no rige aca. */
+  #lv3d-dibujo.lv3d-coro-on>#lv3d-col-der{flex:0 0 auto;}
+  #lv3d-coro-lista{right:auto;left:0;width:auto;min-width:0;}
 }
 /* ══ EL PANEL EN LINEA (Y1c, 2026-10-16) — DECISION DE MAICOL ══════════════════════════════
    Era un overlay `position:fixed` con fondo tenue y una tarjeta flotante centrada; hoy es un
@@ -13497,6 +13522,16 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="frente" style="min-height:44px;font-size:11px;">Punta hacia mí</button>
                 <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="der" style="min-height:44px;font-size:11px;">Punta a la derecha</button>
                 <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="izq" style="min-height:44px;font-size:11px;">Punta a la izquierda</button>
+                <!-- ⚠️ «CORONARIAS» NO LLEVA LA CLASE `.lv3d-vista` — PANT-29, commit 5 (C).
+                     Va en la MISMA fila, justo a la derecha y separado por una raya fina, pero con
+                     clase propia: `.lv3d-vista` es el selector de los TRES botones de punta y de su
+                     oyente, y TC-490 (F5) cuenta que sean exactamente tres. Con la clase compartida
+                     este boton habria quedado cableado como una cuarta orientacion.
+                     ⚠️ ARRANCA APAGADO Y VUELVE A APAGADO en «Nuevo estudio» y al cambiar de
+                        pestania: lo hace `lv3dCoroApagar`, llamado desde `lv3dNuevoPaciente` y
+                        desde `lv3dCerrar`. Nada de esto se guarda. -->
+                <span aria-hidden="true" style="width:1px;align-self:stretch;background:var(--border);margin:0 3px;"></span>
+                <button type="button" class="btn btn-ghost lv3d-coro-btn" aria-pressed="false" style="min-height:44px;font-size:11px;">Coronarias</button>
               </div>
 
               <!-- ⚠️ EL DIBUJO Y LOS CINCO CUADROS, LADO A LADO. La columna de datos lleva un
@@ -13513,8 +13548,59 @@ window.cerrarSesionReal = cerrarSesionReal;
                    tocar un segmento viaje al narrativo, al EN SUMA, al PDF y al PPT es una
                    sorpresa. El rótulo que pidió Maicol queda intacto, debajo del botón. -->
                 </div>
-                <!-- P5: los datos de construccion. El panel SOLO LEE: ni un valor se recalcula. -->
-                <div id="lv3d-datos"></div>
+                <!-- P5: los datos de construccion. El panel SOLO LEE: ni un valor se recalcula.
+                     ⚠️ `#lv3d-datos` PASA A VIVIR DENTRO DE `#lv3d-col-der` — PANT-29, commit 5 (D).
+                        El panel de coronarias va DEBAJO de los cinco cuadros y a la derecha del
+                        recuadro, y `lv3dRenderDatos` reescribe `#lv3d-datos` entero, asi que no
+                        puede ir adentro. La columna sigue DENTRO de `#lv3d-dibujo`, que es lo que
+                        TC-490 (F2) afirma, y el recuadro NO se agranda: el panel usa alto que la
+                        columna ya tenia. Con «Coronarias» prendido la columna pasa de 110 a 150 px
+                        —`#lv3d-dibujo.lv3d-coro-on`— porque tres botones en 110 px quedan en 33 px
+                        de ancho y el piso tactil de la casa son 44. -->
+                <div id="lv3d-col-der">
+                  <div id="lv3d-datos"></div>
+                  <!-- ⚠️ EL PANEL SOLO EXISTE CON «Coronarias» PRENDIDO, y son `<button>`: ningun
+                       `input`, `select` ni `textarea`, que son los tres que los barridos del
+                       estudio, del Excel y de `limpiarCampos` recorren. Y NO es un `<select>` a
+                       proposito: `limpiarCampos` barre `document.querySelectorAll('select')`
+                       COMPLETO y lo devolveria a su primera opcion en cada «Nuevo estudio» sin
+                       avisarle al modulo, que es el mismo motivo por el que los colores son dos
+                       botones y no un desplegable. -->
+                  <div id="lv3d-coro-panel" style="display:none;">
+                    <div id="lv3d-coro-caja">
+                      <button type="button" class="btn btn-ghost lv3d-coro-vista-btn" aria-expanded="false">Vista de angiograf&iacute;a</button>
+                      <div id="lv3d-coro-lista" style="display:none;">
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="0">OAD caudal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="1">OAI caudal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="2">OAD craneal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="3">OAI craneal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="4">PA craneal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="5">OAI (CD)</button>
+                        <span aria-hidden="true" style="height:1px;background:var(--border);margin:2px 0;"></span>
+                        <button type="button" class="btn btn-ghost lv3d-coro-angio" aria-pressed="false">Modo angiograf&iacute;a (fondo oscuro)</button>
+                      </div>
+                    </div>
+                    <div class="lv3d-coro-fila">
+                      <button type="button" class="btn btn-primary lv3d-coro-dom" data-d="0" aria-pressed="true" title="Dominancia derecha" aria-label="Dominancia derecha">Der.</button>
+                      <button type="button" class="btn btn-ghost lv3d-coro-dom" data-d="1" aria-pressed="false" title="Codominante" aria-label="Codominante">Co</button>
+                      <button type="button" class="btn btn-ghost lv3d-coro-dom" data-d="2" aria-pressed="false" title="Dominancia izquierda" aria-label="Dominancia izquierda">Izq.</button>
+                    </div>
+                    <div class="lv3d-coro-fila">
+                      <button type="button" class="btn btn-ghost lv3d-coro-transp" aria-pressed="false">Transparente</button>
+                      <button type="button" class="btn btn-primary lv3d-coro-letras" aria-pressed="true">Letras</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- ⚠️ EL PIE DE CORONARIAS: la leyenda y la linea de la vista, DEBAJO del recuadro
+                   y SOLO con «Coronarias» prendido — PANT-29, commit 5 (C) y (D). Va entre el
+                   dibujo y el renglon de `#lv3d-leido`, que es «debajo del recuadro».
+                   ⚠️ NI UN GRADO NI UNA NOTA CLINICA POR VISTA: la linea es una sola y siempre la
+                      misma. Los angulos de las vistas son los de la demo, aproximados, y quedan
+                      declarados en `docs/PENDIENTES.md` -> P29-b, sin escribirse en pantalla. -->
+              <div id="lv3d-coro-pie" style="display:none;">
+                <div class="lv3d-coro-vista-txt" style="font-size:11px;color:var(--text2);margin:6px 0 0;display:none;">Vista simulada, aproximada.</div>
+                <div style="font-size:10.5px;color:var(--text2);margin:4px 0 0;line-height:1.45;">DA descendente anterior &middot; D diagonales &middot; Cx circunfleja &middot; MO marginales obtusas &middot; CD coronaria derecha &middot; DP descendente posterior &middot; PL posterolateral. Gris: tramo posiblemente afectado.</div>
               </div>
               <div id="lv3d-leido" aria-live="polite" style="font-size:11px;color:var(--text2);margin:6px 0 0;min-height:16px;">Arrastrá para girar. Tocá un segmento para cambiar su motilidad: el cambio va al informe.</div>
               <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
@@ -130441,11 +130527,14 @@ function contrFraseNarrativa(){
       casos y no se pueden desincronizar.
    ⚠️ «Alterado» es cualquier estado distinto de normal, o sea indice > 0, y no una lista de
       grados: el dia que se agregue un grado entra solo. */
+/* `c` es el CORTE de altura desde el que la arteria se pinta gris en el 3D, en la misma `t` que
+   usa la superficie (0 base, 1 apex). Vive ACA, al lado del texto que describe el mismo tramo,
+   para que la linea de pantalla y el tramo gris del dibujo no puedan decir cosas distintas. */
 const CONTR_ART_NIVEL = Object.freeze([
-  { max: 6,  txt: 'toda la arteria' },
-  { max: 12, txt: 'desde el tercio medio' },
-  { max: 16, txt: 'tramo distal' },
-  { max: 17, txt: 'tramo distal (ápex)' }
+  { max: 6,  c: 0,    txt: 'toda la arteria' },
+  { max: 12, c: 0.34, txt: 'desde el tercio medio' },
+  { max: 16, c: 0.67, txt: 'tramo distal' },
+  { max: 17, c: 0.88, txt: 'tramo distal (ápex)' }
 ]);
 const CONTR_ART_ROTULO = Object.freeze({ CX: 'Cx' });
 const CONTR_ART_NADA  = 'Ninguna.';
@@ -130453,6 +130542,28 @@ const CONTR_ART_MULTI = 'Compromete más de un territorio coronario.';
 const CONTR_ART_PIE   = 'Orientativo. Solo en pantalla: no va al informe.';
 /* Guarda del mismo tipo que la de `CONTR_TERRITORIO_NOMBRE`: avisar en vez de callar. Un
    territorio cuyo segmento mas alto no cae en ningun tramo dejaria la linea sin texto. */
+/* Los datos crudos por territorio: el DUENO UNICO de «que segmentos estan alterados, cual es el
+   mas alto y desde donde va el gris». Lo leen la linea de pantalla y el 3D. */
+function contrArteriasDatos(){
+  const porArt = {}, orden = [], out = { orden: orden, por: {} };
+  for (let s = 1; s <= 17; s++){
+    const id = LV3D_SEG_ID[s];
+    const crudo = CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[id]];
+    if (!crudo) continue;
+    const nom = CONTR_ART_ROTULO[crudo] || crudo;
+    if (orden.indexOf(nom) < 0){ orden.push(nom); out.por[nom] = { segs: [], min: null, niv: null } }
+    if ((Number(contrEstado[id]) || 0) > 0) out.por[nom].segs.push(s);
+  }
+  orden.forEach(function (nom){
+    const e = out.por[nom];
+    if (!e.segs.length) return;
+    e.min = Math.min.apply(null, e.segs);
+    e.niv = CONTR_ART_NIVEL.filter(function (x){ return e.min <= x.max })[0] || null;
+    if (!e.niv) console.error('[contr] segmento ' + e.min + ' sin tramo en CONTR_ART_NIVEL');
+  });
+  return out;
+}
+window.contrArteriasDatos = contrArteriasDatos;
 function contrArterias(){
   const porArt = {}, orden = [];
   for (let s = 1; s <= 17; s++){
@@ -130653,6 +130764,13 @@ const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corr
                    `cap`: la ÚNICA captura, en memoria. Las dos son estado de módulo y por eso
                    las dos tienen que morir en `lv3dNuevoPaciente`. */
                 modo:'motilidad', cap:null,
+                /* ⚠️ CORONARIAS — PANT-29, commit 5. Estado de MODULO y del momento: nada de esto
+                   se guarda, no entra al estudio, no sale al Excel ni al PPT, y muere en
+                   `lv3dCoroApagar`, que corre en «Nuevo estudio» y al cerrar el 3D. `coroDom`
+                   arranca en 0 (dominancia derecha) y es lo unico que sobrevive a apagar el
+                   boton, por pedido expreso. */
+                coro:false, coroDom:0, coroVista:null, coroTransp:false,
+                coroLetras:true, coroAngio:false, coroLista:false,
                 P:Object.assign({}, LV3D_BASE) };
 
 /* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
@@ -130688,7 +130806,11 @@ function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); 
 function lv3dPaleta(){
   const cs = getComputedStyle(document.documentElement);
   const g = (n, f) => ((cs.getPropertyValue(n) || '').trim() || f);
-  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050') };
+  /* `fondo` lo agrega PANT-29 (commit 5) para el halo de las letras de las arterias: es el mismo
+     `--bg3` que el CSS le pone al canvas, asi que el halo tapa el trazo en los dos temas sin
+     escribir un color propio. Las tres claves anteriores no se tocan. */
+  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050'),
+           fondo:g('--bg3','#171a26') };
 }
 function lv3dRGB(h){
   const s = String(h || '').trim();
@@ -131042,6 +131164,168 @@ function lv3dPant(p, cx, cy){
   return [cx + p.x*LV3D_ESC*f, cy - p.y*LV3D_ESC*f];
 }
 
+/* ══ LAS ARTERIAS CORONARIAS EN EL 3D — PANT-29, commit 5 (C) ════════════════════════════════
+   Portado de la demo que el medico aprobo, `docs/3d/ecosmart_demo_arterias_coronarias_3d.html`.
+   ⚠️ LA DEMO ES three.js Y ESTE 3D NO: alla la malla es una `BufferGeometry` y las arterias
+      `TubeGeometry` sobre `CatmullRomCurve3`; aca el pintor es propio, en un canvas 2D, con
+      matriz de 3x3 y orden por profundidad. Lo que se porta es la DEFINICION de cada arteria
+      —puntos sobre la superficie del VI, por altura y angulo— y las reglas. El dibujo se rehace.
+   ⚠️ LA CONVERSION DE COORDENADAS ESTA MEDIDA, y es `gr = ph + 90`: la demo usa
+      `x=-sin(ph)`, `y=cos(ph)` y esta app `x=cos(gr)`, `y=sin(gr)`. Verificado en los dos
+      extremos —`ph=0` cae en el segmento 1 y `ph=60` en el 2 en las dos—. La altura `t` es la
+      misma en las dos: 0 en la BASE y 1 en el APEX.
+   ⚠️ LAS ARTERIAS SE CALCULAN POR CUADRO CON `lv3dRing(k, v, G)`, O SEA CON LA MISMA FUNCION QUE
+      DIBUJA LA PARED. Por eso acompanian la contraccion y no pueden despegarse: no es que se
+      muevan parecido, es que leen el MISMO radio. La demo no se anima, asi que esto no sale de
+      ella. Los anillos se cachean por cuadro: `lv3dRing` arma un arreglo de 73 por llamada y
+      aca se pide tres veces por muestra. */
+const LV3D_CORO_COL = { tronco:'#8b7fd6', gris:'#8f8f8f', grisAngio:'#666666', angio:'#e8e8e8' };
+const LV3D_CORO_ANCHO = { tronco:5.0, principal:5.0, rama:3.2, fina:2.6, septal:1.8 };
+const LV3D_CORO_MUESTRAS = 22;
+const LV3D_CORO_FONDO = '#101010';
+/* Las seis vistas de angiografia, en grados (alfa = oblicua, beta = craneal positivo). Son los
+   de la demo, TIPICOS Y APROXIMADOS: no se escriben en ninguna pantalla y quedan declarados en
+   `docs/PENDIENTES.md` -> P29-b, pendientes de verificar con una fuente. */
+const LV3D_CORO_VISTAS = Object.freeze([
+  { n:'OAD caudal',  a:-30, b:-25 }, { n:'OAI caudal',  a: 40, b:-30 },
+  { n:'OAD craneal', a:-30, b: 20 }, { n:'OAI craneal', a: 40, b: 30 },
+  { n:'PA craneal',  a:  0, b: 30 }, { n:'OAI (CD)',    a: 35, b:  0 }
+]);
+/* El color de cada arteria sale de `CONTR_TERRITORIO`, que es el DUENO UNICO del reparto y el
+   que pinta la leyenda «Territorio coronario» y el modo territorio del 3D. La demo traia su
+   propia paleta; usarla dejaria dos azules distintos para la DA en la misma pantalla. Queda
+   declarado en `docs/PENDIENTES.md` -> P29-a. */
+function lv3dCoroColor(g){
+  const k = Object.keys(CONTR_TERRITORIO_NOMBRE)
+    .filter(function (c){ return (CONTR_ART_ROTULO[CONTR_TERRITORIO_NOMBRE[c]] || CONTR_TERRITORIO_NOMBRE[c]) === g })[0];
+  return k || LV3D_CORO_COL.tronco;
+}
+/* Punto sobre la superficie, por altura `t`, angulo `gr` en grados y factor radial `k`. Mismo
+   mecanismo que `lv3dAparato`: anillo redondeado y columna por el angulo. `t` puede ser NEGATIVA
+   —el tronco de aorta nace por encima del plano del anillo— y entonces el anillo se acota a 0. */
+function lv3dArtPunto(t, gr, k, v, G, L, cache){
+  const a = gr*Math.PI/180, kk = t*LV3D_N;
+  const i = Math.max(0, Math.min(LV3D_N, Math.round(kk)));
+  let anillo = cache[i];
+  if (!anillo){ anillo = cache[i] = lv3dRing(i, v, G) }
+  const j = ((Math.round(a/LV3D_TP*LV3D_M) % LV3D_M) + LV3D_M) % LV3D_M;
+  const r = anillo[j]*(k === undefined ? 1.03 : k);
+  return [r*LV3D_SX*Math.cos(a), r*LV3D_SY*Math.sin(a), L*kk/LV3D_N - 4.5];
+}
+/* Las definiciones, con la dominancia. `g` es el grupo que decide el tramo gris —DA, Cx o CD—,
+   `n` la letra (solo siete la llevan), `f` donde se ancla esa letra y `w` el ancho del trazo.
+   Los tres puntos del origen de cada tronco salen de los vectores `OL`, `OR` y del cilindro de
+   la demo, convertidos a (t, angulo, factor radial): OL (-0,055 | 102,5 | 0,462),
+   OR (-0,055 | 141,5 | 0,627) y el tronco de aorta (-0,114 | 140,0 | 0,352). */
+function lv3dCoroDefs(){
+  const d = [], dom = _lv3d.coroDom;
+  const P = function (t, ph, k){ return [t, ph + 90, k] };
+  const OL = [-0.055, 102.5, 0.462], OR = [-0.055, 141.5, 0.627];
+  d.push({ g:'LM', w:'tronco', p:[OL, P(-0.05, 20, 1.0), P(0, 28, 1.02)] });
+  d.push({ g:'DA', n:'DA', f:0.58, w:'principal',
+           p:[P(0,28,1.02), P(0.08,32), P(0.25,34), P(0.45,34), P(0.65,32,1.02), P(0.85,28,1.01), P(0.97,20,1.0)] });
+  d.push({ g:'DA', n:'D', f:0.85, w:'rama', p:[P(0.25,34), P(0.3,10), P(0.42,-15), P(0.6,-30,1.02)] });
+  d.push({ g:'DA', w:'fina', p:[P(0.45,34), P(0.5,15), P(0.62,-5,1.02), P(0.78,-20,1.01)] });
+  [0.15, 0.3, 0.45, 0.6, 0.75].forEach(function (t){
+    d.push({ g:'DA', w:'septal', p:[P(t,34,1.0), P(t+0.01,50,0.88), P(t+0.02,66,0.76)] });
+  });
+  const cx = [P(0,28,1.02), P(0.03,0), P(0.04,-40), P(0.04,-80), P(0.05,-110)];
+  if (dom === 2){ cx.push(P(0.04,-140), P(0.03,-165), P(0.02,-192)) }
+  if (dom === 1){ cx.push(P(0.04,-140)) }
+  d.push({ g:'Cx', n:'Cx', f:0.45, w:'principal', p:cx });
+  d.push({ g:'Cx', n:'MO', f:0.85, w:'rama', p:[P(0.04,-45), P(0.2,-55), P(0.38,-60,1.02), P(0.55,-62,1.01)] });
+  d.push({ g:'Cx', w:'fina', p:[P(0.05,-90), P(0.22,-95), P(0.4,-100,1.02), P(0.58,-105,1.01)] });
+  const rca = [OR, P(-0.05,62,1.25), P(0,85,1.32), P(0,115,1.22)];
+  if (dom !== 2){ rca.push(P(0.01,145,1.08), P(0.02,168)) }
+  d.push({ g:'CD', n:'CD', f:0.55, w:'principal', p:rca });
+  d.push({ g:'CD', w:'fina', p:[P(0,95,1.32), P(0.12,110,1.4), P(0.3,125,1.42), P(0.5,135,1.36)] });
+  /* La descendente posterior y la posterolateral CAMBIAN DE DUENIO con la dominancia, que es el
+     punto de ese selector: con dominancia derecha las dos nacen de la CD; codominante reparte;
+     con dominancia izquierda las dos salen de la circunfleja. */
+  const oPDA = (dom === 2) ? 'Cx' : 'CD';
+  const oPL  = (dom === 0) ? 'CD' : 'Cx';
+  d.push({ g:oPDA, n:'DP', f:0.55, w:'rama',
+           p:[P(0.02,168), P(0.06,153), P(0.25,150), P(0.5,150,1.02), P(0.75,150,1.01), P(0.9,148,1.0)] });
+  [0.2, 0.4, 0.6].forEach(function (t){
+    d.push({ g:oPDA, w:'septal', p:[P(t,150,1.0), P(t,135,0.88), P(t,120,0.76)] });
+  });
+  if (dom === 0){ d.push({ g:'CD', w:'fina', p:[P(0.02,168), P(0.02,188), P(0.04,208), P(0.05,225)] }) }
+  d.push({ g:oPL, n:'PL', f:0.8, w:'fina', p:[P(0.04,205), P(0.2,213), P(0.38,218,1.02), P(0.52,220,1.01)] });
+  return d;
+}
+/* Catmull-Rom EN EL ESPACIO DE PARAMETROS (t, angulo, factor), no en el de los puntos 3D: asi la
+   curva interpolada sigue estando SOBRE la superficie y no la atraviesa. Es la diferencia que
+   hace que las arterias queden pegadas mientras el ventriculo se contrae. */
+function _lv3dCR(p, i, u){
+  const a = p[Math.max(0, i-1)], b = p[i], c = p[Math.min(p.length-1, i+1)], e = p[Math.min(p.length-1, i+2)];
+  const u2 = u*u, u3 = u2*u, o = [0, 0, 0];
+  for (let k = 0; k < 3; k++){
+    const A = (a[k] === undefined ? 1.03 : a[k]), B = (b[k] === undefined ? 1.03 : b[k]);
+    const C = (c[k] === undefined ? 1.03 : c[k]), E = (e[k] === undefined ? 1.03 : e[k]);
+    o[k] = 0.5*((2*B) + (-A + C)*u + (2*A - 5*B + 4*C - E)*u2 + (-A + 3*B - 3*C + E)*u3);
+  }
+  return o;
+}
+/* Devuelve los segmentos de linea de todas las arterias, cada uno con su profundidad media, mas
+   los anclajes de las letras. Lo llama `lv3dPintar` por cuadro, y SOLO con «Coronarias» prendido:
+   con el boton apagado esta funcion no corre y el dibujo queda identico a HEAD. */
+function lv3dCoroSegmentos(v, G, L){
+  const defs = lv3dCoroDefs(), cache = {}, segs = [], letras = [];
+  /* El tramo gris: el corte que dice la linea de pantalla, acotado a la arteria que existe. */
+  const dat = contrArteriasDatos(), tMax = {}, eff = {};
+  defs.forEach(function (df){
+    let m = 0;
+    df.p.forEach(function (q){ if (q[0] > m) m = q[0] });
+    if (tMax[df.g] === undefined || m > tMax[df.g]) tMax[df.g] = m;
+  });
+  ['DA', 'Cx', 'CD'].forEach(function (g){
+    const e = dat.por[g];
+    eff[g] = (e && e.niv) ? Math.min(e.niv.c, Math.max(0, (tMax[g] || 0) - 0.1)) : null;
+  });
+  const angio = !!_lv3d.coroAngio;
+  const gris = angio ? LV3D_CORO_COL.grisAngio : LV3D_CORO_COL.gris;
+  defs.forEach(function (df){
+    const base = angio ? LV3D_CORO_COL.angio
+                       : (df.g === 'LM' ? LV3D_CORO_COL.tronco : lv3dCoroColor(df.g));
+    const anchoPx = LV3D_CORO_ANCHO[df.w] || LV3D_CORO_ANCHO.fina;
+    const n = (df.p.length - 1)*LV3D_CORO_MUESTRAS;
+    const pts = [], ts = [];
+    for (let q = 0; q <= n; q++){
+      const g0 = q/LV3D_CORO_MUESTRAS, i = Math.min(df.p.length - 2, Math.floor(g0));
+      const par = _lv3dCR(df.p, i, g0 - i);
+      ts.push(par[0]);
+      pts.push(lv3dArtPunto(par[0], par[1], par[2], v, G, L, cache));
+    }
+    const e = eff[df.g];
+    for (let q = 0; q < pts.length - 1; q++){
+      const A = lv3dProy(pts[q]), B = lv3dProy(pts[q+1]);
+      const tm = (ts[q] + ts[q+1])/2;
+      segs.push({ art:true, a:A, b:B, w:anchoPx,
+                  col:(e !== null && e !== undefined && tm >= e - 1e-6) ? gris : base,
+                  d:(A.d + B.d)/2 });
+    }
+    if (df.n){
+      const q = Math.max(0, Math.min(pts.length - 1, Math.round(df.f*(pts.length - 1))));
+      const g0 = q/LV3D_CORO_MUESTRAS, i0 = Math.min(df.p.length - 2, Math.floor(g0));
+      const par = _lv3dCR(df.p, i0, g0 - i0);
+      const a0 = par[1]*Math.PI/180;
+      letras.push({ txt:df.n, p:pts[q], col:angio ? '#f0f0f0' : base,
+                    nor:lv3dProy([Math.cos(a0), Math.sin(a0), 0]) });
+    }
+  });
+  return { segs:segs, letras:letras };
+}
+/* El tronco de aorta corto donde nacen las dos coronarias: un trazo grueso con extremos
+   redondeados, que es la silueta de un cilindro. Se calcula con la misma funcion, asi que
+   tambien sigue la base mientras el ventriculo late. */
+function lv3dCoroRaiz(v, G, L, cache){
+  const A = lv3dArtPunto(-0.21, 140.0, 0.352, v, G, L, cache);
+  const B = lv3dArtPunto(0.02, 140.0, 0.352, v, G, L, cache);
+  const pa = lv3dProy(A), pb = lv3dProy(B);
+  return { art:true, a:pa, b:pb, w:16, col:_lv3d.coroAngio ? '#9a9a9a' : '#c98a7d',
+           d:(pa.d + pb.d)/2 };
+}
+
 function lv3dMalla(v, fantasma){
   const G = _lv3d.G, L = lv3dLargo(v, G), out = [], st = fantasma ? 2 : 1;
   /* Los límites de segmento sólo se calculan en modo territorio: ahí el único dato que el dibujo
@@ -131161,6 +131445,12 @@ function lv3dMensajeEnRecuadro(ctx, W, H, pal, texto){
    `_lv3d.polis` es `lv3dDibujar`: la captura no puede pisar el blanco del toque. */
 function lv3dPintar(ctx, W, H, pal, limpiar){
   if (limpiar) ctx.clearRect(0, 0, W, H);
+  /* El fondo oscuro del modo angiografia se pinta ACA, antes de todo, para que valga igual en la
+     pantalla y en el PNG de la captura: el fondo normal lo pone el CSS del canvas y ese no viaja
+     al archivo. */
+  if (_lv3d.coro && _lv3d.coroAngio){
+    ctx.save(); ctx.fillStyle = LV3D_CORO_FONDO; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
   const cx = W/2, cy = H/2 - 8;
   const LUZ = [-0.4, 0.5, 0.75];
 
@@ -131179,10 +131469,41 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
   const terr = lv3dEsTerritorio();
   let polis = lv3dMalla(_lv3d.fase, false);
   if (lv3dCtl('.lv3d-fantasma')) polis = polis.concat(lv3dMalla(0, true));
+  /* ⚠️ LAS ARTERIAS ENTRAN EN LA MISMA LISTA ORDENADA POR PROFUNDIDAD, y no en una pasada
+     aparte: asi un tramo que pasa por detras del ventriculo queda TAPADO por la pared, que es
+     lo que lo hace leerse como un dibujo en tres dimensiones. Con una pasada posterior todas
+     las arterias quedarian por delante de todo.
+     ⚠️ CON «Coronarias» APAGADO ESTE BLOQUE NO CORRE y `polis` es exactamente la de HEAD: ni un
+        poligono mas, ni un orden distinto. Es lo que hace que el 3D quede IDENTICO.
+     ⚠️ Las entradas de arteria NO tienen `.s`, asi que `lv3dTocar` las saltea por su propia
+        guarda —`if (p.g || !p.s || …) continue`— y tocar una arteria no cambia ningun segmento. */
+  let coroLetras = null;
+  if (_lv3d.coro){
+    const _L = lv3dLargo(_lv3d.fase, _lv3d.G), _cacheR = {};
+    const co = lv3dCoroSegmentos(_lv3d.fase, _lv3d.G, _L);
+    coroLetras = co.letras;
+    polis = polis.concat(co.segs);
+    polis.push(lv3dCoroRaiz(_lv3d.fase, _lv3d.G, _L, _cacheR));
+  }
   polis.sort((a,b)=> a.d - b.d);
+  /* El modo angiografia tapa la pared y oscurece el fondo; «Transparente» solo la tapa. */
+  const _coroAngio = !!(_lv3d.coro && _lv3d.coroAngio);
+  const _coroAlfa = _lv3d.coro ? (_coroAngio ? 0.12 : (_lv3d.coroTransp ? 0.22 : 1)) : 1;
 
   for (let i=0;i<polis.length;i++){
     const p = polis[i];
+    if (p.art){
+      /* Un trazo con extremos redondeados: en un pintor 2D es la silueta de un tubo. */
+      const A = lv3dPant(p.a, cx, cy), B = lv3dPant(p.b, cx, cy);
+      ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
+      ctx.strokeStyle = p.col; ctx.lineWidth = p.w;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      continue;
+    }
+    ctx.globalAlpha = _coroAlfa;
     p.s = [];
     ctx.beginPath();
     for (let k=0;k<4;k++){
@@ -131200,7 +131521,7 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
       const sh = (0.6 + 0.4*dot)*(frente ? 1 : 0.55);
       /* ⚠️ El color se resuelve ACÁ, por cuadro, contra el estado vivo. Qué paleta sale de ahí
          —motilidad o tono de territorio— lo decide `lv3dColorSeg`, que es el único que lo sabe. */
-      const col = lv3dColorSeg(p.sg).map(c => Math.round(Math.min(255, c*sh)));
+      const col = (_coroAngio ? [107,107,107] : lv3dColorSeg(p.sg)).map(c => Math.round(Math.min(255, c*sh)));
       ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
       ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.7; ctx.fill(); ctx.stroke();
       /* Límite de segmento: gris neutro elegido contra ESTE píxel ya sombreado, fino y sin
@@ -131217,6 +131538,29 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
         ctx.stroke();
       }
     }
+  }
+
+  ctx.globalAlpha = 1;
+  /* ⚠️ LAS LETRAS VAN AL FINAL Y POR ENCIMA DE TODO, con un halo del color del fondo del
+     recuadro: sobre el trazo de su propia arteria un texto sin halo no se lee. Las siete son las
+     que el medico pidio —DA, D, Cx, MO, CD, DP y PL—: las septales y la marginal aguda no llevan
+     letra, y eso esta en la definicion de cada arteria (`n` ausente), no en una lista aparte.
+     La que mira hacia atras se atenua, igual que en la demo, salvo con la pared transparente o
+     en modo angiografia, donde se ve todo. */
+  if (coroLetras && _lv3d.coroLetras){
+    ctx.save();
+    ctx.font = '600 12px -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    coroLetras.forEach(l => {
+      const xy = lv3dPant(lv3dProy(l.p), cx, cy);
+      const frente = (l.nor.d > -0.1) || _lv3d.coroTransp || _coroAngio;
+      ctx.globalAlpha = frente ? 1 : 0.28;
+      ctx.strokeStyle = _coroAngio ? LV3D_CORO_FONDO : pal.fondo;
+      ctx.strokeText(l.txt, xy[0] + 5, xy[1] - 5);
+      ctx.fillStyle = l.col;
+      ctx.fillText(l.txt, xy[0] + 5, xy[1] - 5);
+    });
+    ctx.restore();
   }
 
   if (lv3dCtl('.lv3d-aparato')){
@@ -131736,6 +132080,13 @@ function lv3dCapQuitar(){
 function lv3dNuevoPaciente(){
   _lv3d.cap = null;
   _lv3d.modo = 'motilidad';
+  /* ⚠️ «Coronarias» VUELVE A APAGADO EN «Nuevo estudio» — PANT-29, commit 5. Es estado del
+     momento y no se guarda, asi que no hay nada que migrar: lo unico que hace falta es que el
+     boton no quede prendido de un paciente al siguiente, que es el mismo motivo por el que el
+     modo de color y la captura mueren aca. La dominancia TAMBIEN se reinicia en esta puerta
+     —a diferencia de apagar el boton, donde el pedido dice que queda—: es un estudio nuevo. */
+  _lv3d.coroDom = 0;
+  lv3dCoroApagar();
   lv3dModoUI(true);
   /* `lv3dCapRender` con `cap` en null es también lo que desmarca y deshabilita la casilla del PDF:
      el orden importa —primero se borra la captura, después se repinta— porque la casilla se apaga
@@ -131824,7 +132175,40 @@ function lv3dCablear(){
   panel.querySelectorAll('.lv3d-vista').forEach(b => b.addEventListener('click', () => {
     const q = b.getAttribute('data-lv3d-vista');
     _lv3d.R = q === 'der' ? lv3dRotY(Math.PI/2) : q === 'izq' ? lv3dRotY(-Math.PI/2) : [[1,0,0],[0,1,0],[0,0,1]];
+    /* Elegir una orientacion de punta SUELTA la vista de angiografia, por pedido expreso: las
+       dos dicen de donde se mira y no pueden estar las dos puestas. */
+    lv3dCoroSoltarVista();
   }));
+  /* ── CORONARIAS — PANT-29, commit 5 ─────────────────────────────────────── */
+  const coroB = panel.querySelector('.lv3d-coro-btn');
+  if (coroB) coroB.addEventListener('click', lv3dCoroToggle);
+  const vistaB = panel.querySelector('.lv3d-coro-vista-btn');
+  if (vistaB) vistaB.addEventListener('click', () => {
+    _lv3d.coroLista = !_lv3d.coroLista; lv3dCoroUI();
+  });
+  panel.querySelectorAll('.lv3d-coro-v').forEach(b => b.addEventListener('click', () => {
+    _lv3d.coroVista = Number(b.getAttribute('data-v')) || 0;
+    _lv3d.coroLista = false;
+    _lv3d.R = lv3dCoroMatriz(LV3D_CORO_VISTAS[_lv3d.coroVista]);
+    lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  }));
+  const angioB = panel.querySelector('.lv3d-coro-angio');
+  if (angioB) angioB.addEventListener('click', () => {
+    _lv3d.coroAngio = !_lv3d.coroAngio; _lv3d.coroLista = false;
+    lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  });
+  panel.querySelectorAll('.lv3d-coro-dom').forEach(b => b.addEventListener('click', () => {
+    _lv3d.coroDom = Number(b.getAttribute('data-d')) || 0;
+    lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  }));
+  const trB = panel.querySelector('.lv3d-coro-transp');
+  if (trB) trB.addEventListener('click', () => {
+    _lv3d.coroTransp = !_lv3d.coroTransp; lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  });
+  const leB = panel.querySelector('.lv3d-coro-letras');
+  if (leB) leB.addEventListener('click', () => {
+    _lv3d.coroLetras = !_lv3d.coroLetras; lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  });
   const play = document.getElementById('lv3d-play');
   if (play) play.addEventListener('click', () => { _lv3d.corriendo = !_lv3d.corriendo; _lv3d.t0 = null; lv3dBotonPlay(); });
   const sl = panel.querySelector('.lv3d-fase');
@@ -131854,6 +132238,8 @@ function lv3dCablear(){
     const dx = e.clientX - _lv3d.arrastre.x, dy = e.clientY - _lv3d.arrastre.y;
     _lv3d.arrastre.m += Math.abs(dx) + Math.abs(dy);
     _lv3d.R = lv3dMul(lv3dRotY(dx*0.01), lv3dMul(lv3dRotX(dy*0.01), _lv3d.R));
+    /* Girar con el dedo suelta la vista de angiografia: ya no se mira desde ese angulo. */
+    if (_lv3d.coroVista !== null) lv3dCoroSoltarVista();
     _lv3d.arrastre.x = e.clientX; _lv3d.arrastre.y = e.clientY;
   });
   /* ⚠️ UN TOQUE ACÁ CAMBIA EL INFORME FIRMADO, así que el umbral importa.
@@ -131880,6 +132266,141 @@ function lv3dCablear(){
      CERRADO: cablearlo aca dejaba la fila sin recalcular hasta que alguien abriera el 3D una
      vez. Hay un unico oyente, al final del modulo, sin la guarda de `abierto`. */
 }
+
+/* ══ «CORONARIAS»: ENCENDIDO, APAGADO Y SU PANEL — PANT-29, commit 5 (C) y (D) ════════════════
+   ⚠️ NADA DE ESTO SE GUARDA: ni un campo, ni una columna de Excel, ni una clave de
+      `localStorage`, y no toca el informe, el EN SUMA, el PDF, el PPT ni Guardados. Es estado
+      del momento, y por eso `lv3dCoroApagar` corre en «Nuevo estudio» y al cerrar el 3D.
+   ⚠️ APAGAR REINICIA LA VISTA, LA TRANSPARENCIA, LAS LETRAS Y EL MODO ANGIOGRAFIA, Y LA
+      DOMINANCIA NO: es el pedido textual. */
+function lv3dCoroMatriz(vista){
+  /* La matriz de la vista, portada de la demo: alla es un quaternion `Rv * Rp` y aca es el mismo
+     producto de dos matrices de 3x3. `Rv` lleva por FILAS la base de la camara —derecha, arriba,
+     hacia el observador—, que es exactamente la forma que `lv3dProy` espera; `Rp` es la postura
+     anatomica de base de la demo, con sus columnas. Con la identidad, `lv3dProy` da x=Lat,
+     y=Ant y profundidad=Punta, o sea «Punta hacia mi», que es el boton que ya existia. */
+  const rad = g => g*Math.PI/180;
+  const nor = u => { const m = Math.sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) || 1;
+                     return [u[0]/m, u[1]/m, u[2]/m] };
+  const cru = (a, b) => [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
+  const pa = nor([0.6, -0.5, 0.6]);
+  const Yl = nor([0 - pa[0]*pa[2], 0 - pa[1]*pa[2], 1 - pa[2]*pa[2]]);
+  const Xl = cru(Yl, pa);
+  const Rp = [[Xl[0], Yl[0], pa[0]], [Xl[1], Yl[1], pa[1]], [Xl[2], Yl[2], pa[2]]];
+  const A = rad(vista.a), B = rad(vista.b);
+  const d = [Math.sin(A)*Math.cos(B), Math.sin(B), Math.cos(A)*Math.cos(B)];
+  const xc = nor(cru([0, 1, 0], d));
+  const yc = cru(d, xc);
+  return lv3dMul([xc, yc, d], Rp);
+}
+function lv3dCoroSoltarVista(){
+  if (_lv3d.coroVista === null) return;
+  _lv3d.coroVista = null;
+  lv3dCoroUI();
+}
+/* Pinta el estado de los botones y la visibilidad del panel y del pie. No dibuja el canvas. */
+function lv3dCoroUI(){
+  const panel = document.getElementById('lv3d-panel');
+  if (!panel) return;
+  const on = !!_lv3d.coro;
+  const b = panel.querySelector('.lv3d-coro-btn');
+  if (b){
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.classList.toggle('btn-primary', on); b.classList.toggle('btn-ghost', !on);
+  }
+  const pan = document.getElementById('lv3d-coro-panel');
+  if (pan) pan.style.display = on ? 'flex' : 'none';
+  const pie = document.getElementById('lv3d-coro-pie');
+  if (pie) pie.style.display = on ? 'block' : 'none';
+  const dib = document.getElementById('lv3d-dibujo');
+  if (dib) dib.classList.toggle('lv3d-coro-on', on);
+  const lista = document.getElementById('lv3d-coro-lista');
+  if (lista) lista.style.display = (on && _lv3d.coroLista) ? 'flex' : 'none';
+  const vb = panel.querySelector('.lv3d-coro-vista-btn');
+  if (vb){
+    const v = _lv3d.coroVista;
+    vb.textContent = (v === null) ? 'Vista de angiograf\u00eda' : ('Vista: ' + LV3D_CORO_VISTAS[v].n);
+    vb.setAttribute('aria-expanded', (on && _lv3d.coroLista) ? 'true' : 'false');
+    vb.classList.toggle('btn-primary', v !== null); vb.classList.toggle('btn-ghost', v === null);
+  }
+  const vt = panel.querySelector('.lv3d-coro-vista-txt');
+  if (vt) vt.style.display = (_lv3d.coroVista === null) ? 'none' : 'block';
+  panel.querySelectorAll('.lv3d-coro-v').forEach(bb => {
+    const sel = Number(bb.getAttribute('data-v')) === _lv3d.coroVista;
+    bb.classList.toggle('btn-primary', sel); bb.classList.toggle('btn-ghost', !sel);
+  });
+  panel.querySelectorAll('.lv3d-coro-dom').forEach(bb => {
+    const sel = Number(bb.getAttribute('data-d')) === _lv3d.coroDom;
+    bb.setAttribute('aria-pressed', sel ? 'true' : 'false');
+    bb.classList.toggle('btn-primary', sel); bb.classList.toggle('btn-ghost', !sel);
+  });
+  const tr = panel.querySelector('.lv3d-coro-transp');
+  if (tr){ tr.setAttribute('aria-pressed', _lv3d.coroTransp ? 'true' : 'false');
+           tr.classList.toggle('btn-primary', _lv3d.coroTransp); tr.classList.toggle('btn-ghost', !_lv3d.coroTransp) }
+  const le = panel.querySelector('.lv3d-coro-letras');
+  if (le){ le.setAttribute('aria-pressed', _lv3d.coroLetras ? 'true' : 'false');
+           le.classList.toggle('btn-primary', _lv3d.coroLetras); le.classList.toggle('btn-ghost', !_lv3d.coroLetras) }
+  const an = panel.querySelector('.lv3d-coro-angio');
+  if (an){ an.setAttribute('aria-pressed', _lv3d.coroAngio ? 'true' : 'false');
+           an.classList.toggle('btn-primary', _lv3d.coroAngio); an.classList.toggle('btn-ghost', !_lv3d.coroAngio) }
+}
+function lv3dCoroApagar(){
+  _lv3d.coro = false; _lv3d.coroVista = null; _lv3d.coroTransp = false;
+  _lv3d.coroLetras = true; _lv3d.coroAngio = false; _lv3d.coroLista = false;
+  lv3dCoroUI();
+}
+function lv3dCoroToggle(){
+  if (_lv3d.coro) lv3dCoroApagar(); else { _lv3d.coro = true; lv3dCoroUI() }
+  if (_lv3d.abierto) lv3dDibujar();
+}
+window.lv3dCoroDiag = function(){
+  return { coro:!!_lv3d.coro, dom:_lv3d.coroDom, vista:_lv3d.coroVista,
+           transp:!!_lv3d.coroTransp, letras:!!_lv3d.coroLetras, angio:!!_lv3d.coroAngio,
+           lista:!!_lv3d.coroLista };
+};
+/* Sonda de SOLO LECTURA para el arnes, del mismo tipo que `window.lv3dDiag`: no expone nada
+   escribible y no toca el estado. Devuelve, para la fase `v`, cada arteria con sus muestras
+   —altura, angulo, factor radial, el radio del punto, el radio de la PARED en ese mismo sitio y
+   el cociente entre los dos— mas el tramo gris resuelto y las letras.
+   ⚠️ EL COCIENTE ES LO QUE PRUEBA QUE LAS ARTERIAS QUEDAN PEGADAS: tiene que valer exactamente
+      el `k` de la definicion en TODAS las fases, mientras el radio absoluto cambia con el latido.
+      Si fuera constante en valor absoluto, la arteria se quedaria quieta mientras la pared se
+      mueve, que es el modo de falla que hay que descartar. */
+window.lv3dCoroSonda = function(v){
+  const G = _lv3d.G, L = lv3dLargo(v, G), cache = {}, out = [];
+  const dat = contrArteriasDatos(), defs = lv3dCoroDefs();
+  const tMax = {};
+  defs.forEach(function (df){
+    let m = 0; df.p.forEach(function (q){ if (q[0] > m) m = q[0] });
+    if (tMax[df.g] === undefined || m > tMax[df.g]) tMax[df.g] = m;
+  });
+  const eff = {};
+  ['DA', 'Cx', 'CD'].forEach(function (g){
+    const e = dat.por[g];
+    eff[g] = (e && e.niv) ? Math.min(e.niv.c, Math.max(0, (tMax[g] || 0) - 0.1)) : null;
+  });
+  defs.forEach(function (df, idx){
+    const n = (df.p.length - 1)*LV3D_CORO_MUESTRAS, m = [];
+    for (let q = 0; q <= n; q += 4){
+      const g0 = q/LV3D_CORO_MUESTRAS, i = Math.min(df.p.length - 2, Math.floor(g0));
+      const par = _lv3dCR(df.p, i, g0 - i);
+      const pt = lv3dArtPunto(par[0], par[1], par[2], v, G, L, cache);
+      const pared = lv3dArtPunto(par[0], par[1], 1, v, G, L, cache);
+      const rp = Math.sqrt(pt[0]*pt[0] + pt[1]*pt[1]);
+      const rw = Math.sqrt(pared[0]*pared[0] + pared[1]*pared[1]);
+      const gr = ((par[1] % 360) + 360) % 360;
+      const sg = lv3dSegEn(Math.max(0, Math.min(1, par[0])), gr);
+      m.push({ t:+par[0].toFixed(4), gr:+gr.toFixed(2), k:+par[2].toFixed(4),
+               rp:+rp.toFixed(5), rw:+rw.toFixed(5), coc:rw > 0 ? +(rp/rw).toFixed(6) : null,
+               sg:sg, ter:CONTR_ART_ROTULO[CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[LV3D_SEG_ID[sg]]]]
+                      || CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[LV3D_SEG_ID[sg]]] });
+    }
+    out.push({ i:idx, g:df.g, n:df.n || null, w:df.w, eff:eff[df.g], tMax:tMax[df.g], m:m });
+  });
+  return { dom:_lv3d.coroDom, eff:eff, fase:v, arterias:out,
+           letras:lv3dCoroSegmentos(v, G, L).letras.map(function (l){ return l.txt }),
+           segs:lv3dCoroSegmentos(v, G, L).segs.length };
+};
 
 function lv3dAbrir(){
   const panel = document.getElementById('lv3d-panel'), btn = document.getElementById('lv3d-btn');
@@ -131908,6 +132429,10 @@ function lv3dAbrir(){
 }
 function lv3dCerrar(){
   const panel = document.getElementById('lv3d-panel'), btn = document.getElementById('lv3d-btn');
+  /* ⚠️ «Coronarias» VUELVE A APAGADO AL CERRAR EL 3D, que es tambien lo que pasa al cambiar de
+     pestania —el panel se oculta y el bucle se apaga—: el pedido dice que el 3D abre SIEMPRE con
+     el boton apagado. Se hace antes de bajar `abierto` para que `lv3dCoroUI` encuentre el panel. */
+  lv3dCoroApagar();
   _lv3d.abierto = false;
   lv3dDetener();                      // primero el bucle, después la caja
   if (panel) panel.style.display = 'none';
