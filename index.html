@@ -5484,7 +5484,14 @@ window.cerrarSesionReal = cerrarSesionReal;
 <div id="doc-ov" hidden role="dialog" aria-modal="true" aria-labelledby="doc-ov-tit">
   <div class="doc-bar">
     <span class="doc-bar-tit" id="doc-ov-tit">Documento</span>
-    <span class="doc-aviso" id="doc-aviso" hidden>
+    <!-- ⚠️ EL ID NO PUEDE TERMINAR EN «-aviso», Y ESTO NO ES UN GUSTO. limpiarCampos -- o sea
+         «Nuevo estudio»-- barre [id$="-aviso"] y les pone textContent vacio: con el id
+         doc-aviso ese barrido VACIABA este recuadro y se llevaba su boton puesto, asi que
+         despues de un «Nuevo estudio» el aviso aparecia sin la unica forma de aceptarlo y el
+         medico quedaba sin poder rearmar la hoja hasta recargar la pagina. Lo cazo la suite
+         completa -- TC-790 en verde aislado y en rojo en su lote-, no la lectura. La condicion
+         que lo fija vive en ese caso. -->
+    <span class="doc-aviso" id="doc-aviso-cambio" hidden>
       Los datos de la app cambiaron después de que editaste la hoja.
       <button type="button" class="btn btn-primary" onclick="docActualizarDatos()">Actualizar con los datos</button>
     </span>
@@ -115835,7 +115842,7 @@ window.docCerrar = docCerrar;
 
 /* El aviso «Actualizar con los datos»: solo con la hoja editada Y los datos cambiados. */
 function docAvisoSync() {
-  const av = document.getElementById('doc-aviso');
+  const av = document.getElementById('doc-aviso-cambio');
   if (!av) return;
   const st = _docEst[_docAbierto];
   const hay = !!(st && st.editado && st.firma !== docFirmaDatos(docDatos()));
@@ -158235,12 +158242,15 @@ function _labProtModTablaHTML(filas, tope) {
     const flojo = m.n < 10;
     if (flojo) pocos = true;
     const pct = m.n > 0 ? Math.round(m.alt / m.n * 100) : 0;
-    const estilo = flojo ? ' style="color:var(--text2);"' : '';
+    /* ⚠️ UN SOLO ATRIBUTO `style` POR CELDA. Aca habia DOS -- uno con el gris y otro con la
+       alineacion-- y el navegador se queda con el PRIMERO, asi que en las filas grises la celda
+       del «con alteracion» perdia su alineacion a la derecha y quedaba desalineada con las de
+       arriba. No da error y no se ve salvo mirando una tabla con filas de los dos tipos. */
     return '<tr><td>' + escHtml(m.modelo) + (flojo ? ' <span title="Pocos casos">*</span>' : '') + '</td>' +
       '<td>' + escHtml(m.posLbl) + '</td>' +
       '<td>' + escHtml(LAB_PROT_TIPO_LBL[m.tipo] || m.tipo) + '</td>' +
       '<td style="text-align:right;">' + m.n + '</td>' +
-      '<td' + estilo + ' style="text-align:right;' + (flojo ? 'color:var(--text2);' : '') + '">' +
+      '<td style="text-align:right;' + (flojo ? 'color:var(--text2);' : '') + '">' +
         m.alt + ' (' + pct + '%)</td>' +
       '<td style="width:26%;"><div style="height:8px;border-radius:4px;background:var(--bg3);">' +
         '<div style="height:8px;border-radius:4px;width:' + ancho + '%;background:' +
@@ -168831,8 +168841,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261110-0034';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794281674343;                 /* eco-build-ms */
+const ECO_BUILD    = '20261110-1024';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794317042306;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -168918,7 +168928,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261110-0034</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261110-1024</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

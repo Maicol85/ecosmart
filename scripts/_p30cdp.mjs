@@ -124,6 +124,16 @@ export async function abrir(archivo, opt) {
     if (r.exceptionDetails) throw new Error('eval: ' + JSON.stringify(r.exceptionDetails).slice(0, 400));
     return r.result.value;
   };
+  /* La MISMA evaluacion, con una EXPRESION ya escrita como cadena. La necesitan los arneses A/B
+     portados, cuyos MONTAR/MEDIR/PPT/PDF son cadenas con la escena interpolada adentro: no
+     reciben argumento, asi que la trampa del argumento descartado no aplica. */
+  const evStr = async expr => {
+    const r = await cdp.send('Runtime.evaluate', {
+      expression: expr, returnByValue: true, awaitPromise: true
+    }, sessionId);
+    if (r.exceptionDetails) throw new Error('evStr: ' + JSON.stringify(r.exceptionDetails).slice(0, 400));
+    return r.result.value;
+  };
   const viewport = (w, h) => cdp.send('Emulation.setDeviceMetricsOverride',
     { width: w, height: h, deviceScaleFactor: 1, mobile: false }, sessionId);
   const tema = modo => cdp.send('Emulation.setEmulatedMedia',
@@ -136,5 +146,5 @@ export async function abrir(archivo, opt) {
     try { rmSync(perfil, { recursive: true, force: true }); } catch {}
   };
   await esperar(opt.espera || 3000);
-  return { ev, viewport, tema, esperar, cerrar, errs };
+  return { ev, evStr, viewport, tema, esperar, cerrar, errs };
 }

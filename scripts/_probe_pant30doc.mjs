@@ -109,7 +109,7 @@ R.C = await S.ev((clave) => {
     tieneEstudio: txt.indexOf('ecocardiograma transtor') > -1,
     tieneCiudad: txt.indexOf('Artigas') > -1,
     focoEnCerrar: document.activeElement === document.getElementById('doc-x'),
-    avisoVisible: !(document.getElementById('doc-aviso') || {}).hidden
+    avisoVisible: !(document.getElementById('doc-aviso-cambio') || {}).hidden
   };
 }, CLAVE);
 
@@ -133,7 +133,7 @@ R.D = await S.ev((clave) => {
 /* ── (E) el aviso: cambiar un dato con la hoja ya editada ── */
 R.E = await S.ev((clave) => {
   const o = {};
-  o.antesDelCambio = !(document.getElementById('doc-aviso') || {}).hidden;
+  o.antesDelCambio = !(document.getElementById('doc-aviso-cambio') || {}).hidden;
   document.getElementById('doc-x').click();
   const n = document.getElementById('nombre');
   n.value = 'Otro Ficticio, Luis';
@@ -142,18 +142,18 @@ R.E = await S.ev((clave) => {
   const op = Array.prototype.slice.call(document.querySelectorAll('#doc-menu button'))
     .filter(x => (x.getAttribute('onclick') || '').indexOf("'" + clave + "'") > -1)[0];
   op.click();
-  o.avisa = !(document.getElementById('doc-aviso') || {}).hidden;
+  o.avisa = !(document.getElementById('doc-aviso-cambio') || {}).hidden;
   const txt = document.getElementById('doc-hoja').innerText;
   /* NO PISA: la correccion a mano sigue ahi y el nombre viejo tambien. */
   o.conservaCorreccion = txt.indexOf('TEXTO CORREGIDO A MANO.') > -1;
   o.conservaNombreViejo = txt.indexOf('Prueba Ficticia, Ana') > -1;
   o.tieneNombreNuevo = txt.indexOf('Otro Ficticio, Luis') > -1;
   /* Y al apretar «Actualizar con los datos» se rearma. */
-  document.querySelector('#doc-aviso button').click();
+  document.querySelector('#doc-aviso-cambio button').click();
   const t2 = document.getElementById('doc-hoja').innerText;
   o.trasActualizar = { correccion: t2.indexOf('TEXTO CORREGIDO A MANO.') > -1,
                        nombreNuevo: t2.indexOf('Otro Ficticio, Luis') > -1,
-                       avisa: !(document.getElementById('doc-aviso') || {}).hidden };
+                       avisa: !(document.getElementById('doc-aviso-cambio') || {}).hidden };
   return o;
 }, CLAVE);
 
