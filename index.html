@@ -130770,7 +130770,7 @@ const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corr
                    arranca en 0 (dominancia derecha) y es lo unico que sobrevive a apagar el
                    boton, por pedido expreso. */
                 coro:false, coroDom:0, coroVista:null, coroTransp:false,
-                coroLetras:true, coroAngio:false, coroLista:false,
+                coroLetras:true, coroAngio:false, coroLista:false, coroFasePintada:null,
                 P:Object.assign({}, LV3D_BASE) };
 
 /* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
@@ -131313,7 +131313,13 @@ function lv3dCoroSegmentos(v, G, L){
                     nor:lv3dProy([Math.cos(a0), Math.sin(a0), 0]) });
     }
   });
-  return { segs:segs, letras:letras };
+  /* ⚠️ DEVUELVE LA FASE CON LA QUE CALCULO, Y NO ES UN ADORNO: es lo unico que deja MEDIR que el
+     pintor recalcula las arterias por cuadro y no una sola vez. Lo destapo la mutacion 52 del
+     barrido de esta tanda, que cambia el argumento de esta funcion por un 0 fijo: las arterias
+     quedan dibujadas en fin de diastole mientras la pared se contrae, y `lv3dCoroSonda` no lo ve
+     porque ella calcula su propia fase. El valor viaja en el RESULTADO y no se vuelve a leer de
+     `_lv3d.fase`, justamente para que congelar el argumento sea visible. */
+  return { segs:segs, letras:letras, fase:v };
 }
 /* El tronco de aorta corto donde nacen las dos coronarias: un trazo grueso con extremos
    redondeados, que es la silueta de un cilindro. Se calcula con la misma funcion, asi que
@@ -131482,6 +131488,7 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
     const _L = lv3dLargo(_lv3d.fase, _lv3d.G), _cacheR = {};
     const co = lv3dCoroSegmentos(_lv3d.fase, _lv3d.G, _L);
     coroLetras = co.letras;
+    _lv3d.coroFasePintada = co.fase;
     polis = polis.concat(co.segs);
     polis.push(lv3dCoroRaiz(_lv3d.fase, _lv3d.G, _L, _cacheR));
   }
@@ -132363,7 +132370,11 @@ function lv3dCoroToggle(){
 window.lv3dCoroDiag = function(){
   return { coro:!!_lv3d.coro, dom:_lv3d.coroDom, vista:_lv3d.coroVista,
            transp:!!_lv3d.coroTransp, letras:!!_lv3d.coroLetras, angio:!!_lv3d.coroAngio,
-           lista:!!_lv3d.coroLista };
+           lista:!!_lv3d.coroLista,
+           /* `fase` es la del modelo y `fasePintada` la que uso el ultimo cuadro de arterias.
+              Con el pintor recalculando por cuadro son la MISMA; si alguna vez divergen, las
+              arterias quedaron congeladas mientras la pared late. */
+           fase:_lv3d.fase, fasePintada:_lv3d.coroFasePintada };
 };
 /* Sonda de SOLO LECTURA para el arnes, del mismo tipo que `window.lv3dDiag`: no expone nada
    escribible y no toca el estado. Devuelve, para la fase `v`, cada arteria con sus muestras
@@ -167053,8 +167064,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261109-2338';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794278320785;                 /* eco-build-ms */
+const ECO_BUILD    = '20261110-0034';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794281674343;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -167140,7 +167151,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261109-2338</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261110-0034</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

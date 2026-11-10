@@ -127903,12 +127903,18 @@ caso('TC-783', 'PANT-29 commit 5 (C) y (D): con «Coronarias» APAGADO el 3D es 
     'arterias=' + window.lv3dCoroSonda(0).arterias.length + ' letras=' + letras.length);
   /* El panel: TRES filas con sus controles, y todos de 44 px de alto. */
   const pan = document.getElementById('lv3d-coro-panel');
-  q('(B5) el panel tiene las TRES filas: la vista desplegable, la dominancia y los dos botones',
-    pan.children.length === 3
+  /* ⚠️ LAS TRES FILAS TIENEN QUE VERSE, NO SOLO EXISTIR: un hidden o un display:none deja los
+     tres hijos contados y al medico sin la fila. Lo destapo la mutacion 40 del barrido. */
+  const filasVis = Array.prototype.slice.call(pan.children)
+    .filter(e => getComputedStyle(e).display !== 'none' && !e.hasAttribute('hidden')
+                 && e.getBoundingClientRect().height > 0).length;
+  q('(B5) el panel tiene las TRES filas, las tres VISIBLES: la vista desplegable, la dominancia y los dos botones',
+    pan.children.length === 3 && filasVis === 3
       && !!pan.querySelector('.lv3d-coro-vista-btn')
       && pan.querySelectorAll('.lv3d-coro-dom').length === 3
       && !!pan.querySelector('.lv3d-coro-transp') && !!pan.querySelector('.lv3d-coro-letras'),
-    'filas=' + pan.children.length + ' dom=' + pan.querySelectorAll('.lv3d-coro-dom').length);
+    'filas=' + pan.children.length + ' visibles=' + filasVis
+      + ' dom=' + pan.querySelectorAll('.lv3d-coro-dom').length);
   q('(B6) la lista de vistas trae las SEIS y el modo angiografia, y nace cerrada',
     document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v').length === 6
       && !!document.querySelector('#lv3d-coro-lista .lv3d-coro-angio')
@@ -128198,6 +128204,27 @@ caso('TC-785', 'PANT-29 commit 5: las arterias quedan PEGADAS a la superficie de
   q('(A2) y el radio ABSOLUTO se contrae de fin de diastole a fin de sistole: las arterias se mueven',
     F4[0].rmax > F4[3].rmax * 1.1 && F4[0].rmin > F4[3].rmin * 1.1,
     'rmax=' + F4.map(f => f.rmax.toFixed(3)).join(' ') + ' rmin=' + F4.map(f => f.rmin.toFixed(3)).join(' '));
+  /* ⚠️ Y EL PINTOR TIENE QUE RECALCULARLAS POR CUADRO, que es otra cosa que la sonda de arriba
+     NO puede ver: ella calcula su propia fase. Lo destapo la mutacion 52 del barrido, que
+     congela el argumento del pintor en 0 y deja las arterias en fin de diastole mientras la
+     pared se contrae. La fase PINTADA es la que el ultimo cuadro de arterias uso de verdad, y
+     viaja en el resultado de la funcion, no releida del estado del modulo. */
+  const play2 = document.getElementById('lv3d-play');
+  if (play2 && norm(play2.textContent).indexOf('Pausa') > -1) play2.click();
+  const sl2 = document.querySelector('#lv3d-panel .lv3d-fase');
+  const pintadaEn = (v) => { if (sl2) { sl2.value = String(Math.round(v * 100));
+      sl2.dispatchEvent(new Event('input', { bubbles: true })) }
+    if (typeof lv3dDibujar === 'function') lv3dDibujar();
+    const d = window.lv3dCoroDiag(); return { fase: d.fase, pintada: d.fasePintada } };
+  const P0 = pintadaEn(0), P7 = pintadaEn(0.7), P1 = pintadaEn(1);
+  q('(A3 DENOM) la fase del modelo sigue al control: 0, 0,7 y 1',
+    Math.abs(P0.fase - 0) < 1e-9 && Math.abs(P7.fase - 0.7) < 1e-9 && Math.abs(P1.fase - 1) < 1e-9,
+    'fases=' + [P0.fase, P7.fase, P1.fase].join(','));
+  q('(A4) el pintor calcula las arterias con la fase VIVA en los tres cuadros, no con una fija',
+    Math.abs(P0.pintada - P0.fase) < 1e-9 && Math.abs(P7.pintada - P7.fase) < 1e-9
+      && Math.abs(P1.pintada - P1.fase) < 1e-9,
+    'pintadas=' + [P0.pintada, P7.pintada, P1.pintada].join(',')
+      + ' contra fases=' + [P0.fase, P7.fase, P1.fase].join(','));
   /* El tramo gris sigue el nivel del bloque de pantalla, con el mismo duenio. */
   const eff = () => window.lv3dCoroSonda(0).eff;
   sembrar([1, 7, 13]); await esp(220);
