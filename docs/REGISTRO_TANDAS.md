@@ -3,8 +3,12 @@
 **Commits:** `e92c9a9` (1, inventario) · `8dc6a3e` (2, los dos resúmenes de miocardiopatías) ·
 `5f35b0d` (3, la ficha de coronarias ampliada) · `922dc44` (4, las tarjetas y el bloque de
 arterias) · `a9450a3` (5, el botón «Coronarias» y su panel) · `445370a` (6, cobertura, mutaciones
-y el sello) · `640dd90` (7, la condición que destapó la mutación 01) · **éste** (8, documentación).
-Sello **`v20261109-2338`**, md5 **`f8b7c756`**.
+y el primer sello) · `640dd90` (7, la condición que destapó la mutación 01) · `47e287f` (8,
+documentación) · `8ca98a4` (9, las dos condiciones que cierran los sobrevivientes del barrido y
+el sello definitivo) · `c4809b3` (10, el intercambio a 1000 px que destaparon los dos motores) ·
+**éste** (11, el sello en los documentos, que TC-753 destapó). **ONCE** commits, contados con
+`git log 88f9cb8..HEAD` al cerrar.
+Sello **`v20261110-0034`**, md5 **`6aa22c01`**.
 
 **Qué hizo.** Las **tres fichas grandes** de PANT-28 —corazón de atleta, Chagas y el detalle de
 anomalías coronarias— se **quitaron** con su reparto, por decisión del médico: sumaban 83.067

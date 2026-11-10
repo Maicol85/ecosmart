@@ -253,8 +253,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,40 MB / 170.008 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al cierre de la
-  tanda **PANT-29**, sobre el árbol ya sellado: sello **`v20261109-2338`**, md5 **`f8b7c756`**.
+  sin frameworks. Hoy **12,40 MB / 170.019 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al cierre de la
+  tanda **PANT-29**, sobre el árbol ya sellado: sello **`v20261110-0034`**, md5 **`6aa22c01`**.
   ⚠️ **Y EL ARCHIVO QUEDÓ MÁS CHICO EN BYTES AUNQUE GANÓ 648 LÍNEAS**, por primera vez en muchas
   tandas: PANT-29 quitó las tres fichas grandes de Referencias, que vivían en **tres líneas** de
   38.112, 51.938 y 73.929 caracteres —163.979 bytes en tres renglones—, y lo que entró son 648
@@ -948,7 +948,7 @@ impecable.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda PANT-29 (2026-11-10) — Referencias más breve y las arterias coronarias en el 3D de
-Contractilidad.** OCHO commits. Sello **`v20261109-2338`**, md5 **`f8b7c756`**. Las **tres fichas
+Contractilidad.** ONCE commits. Sello **`v20261110-0034`**, md5 **`6aa22c01`**. Las **tres fichas
 grandes** de PANT-28 se **quitan** con su reparto —sumaban 83.067 caracteres de `textContent`
 contra los 2.702 de `ref-miocard` entera— y las reemplazan **dos resúmenes breves** dentro de
 `ref-miocard`, con el molde medido del sector y por debajo de su techo de **849** caracteres y 7

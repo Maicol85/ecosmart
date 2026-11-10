@@ -1,6 +1,6 @@
 # PANT-29 — Referencias más breve y las arterias coronarias en el 3D de Contractilidad
 
-Mapa de la tanda del **2026-11-10**. Sello **`v20261109-2338`**. Por nombre de función y de
+Mapa de la tanda del **2026-11-10**. Sello **`v20261110-0034`**. Por nombre de función y de
 constante, no por línea.
 
 ---
