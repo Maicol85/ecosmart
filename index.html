@@ -5671,6 +5671,10 @@ window.cerrarSesionReal = cerrarSesionReal;
     </span>
     <span class="doc-bar-acc doc-oculto" id="doc-acc-modelo">
       <label class="doc-bar-chk doc-oculto" id="cfg-doc-frase-wrap"><input type="checkbox" id="cfg-doc-frase"> Frase con los datos del paciente</label>
+      <!-- La casilla de la firma del MODELO (C3). Es la otra mitad de `cfg-doc-firma`: esta
+           decide con que viene el documento, y la del Informe decide para ESE paciente sin
+           tocar el modelo. Dos casillas porque son dos decisiones de dos alcances distintos. -->
+      <label class="doc-bar-chk doc-oculto" id="cfg-doc-firmam-wrap"><input type="checkbox" id="cfg-doc-firmam"> Incluir firma del médico</label>
       <span class="doc-bar-nom doc-oculto" id="cfg-doc-nom-wrap"><label for="cfg-doc-nom">Nombre en el menú</label><input type="text" id="cfg-doc-nom" maxlength="60"></span>
       <button type="button" class="btn btn-save" id="doc-mod-guardar" onclick="docmodEdGuardar()">Guardar como modelo</button>
       <button type="button" class="btn btn-ghost doc-oculto" id="doc-mod-orig" onclick="docmodEdOriginal()">↩ Volver al texto original</button>
@@ -115673,6 +115677,17 @@ window.DOC_DEFS = DOC_DEFS;
 const DOCMOD_KEY = 'ecosmart_doc_modelos';
 const DOCMOD_VER = 1;
 const DOCMOD_INCL = Object.freeze(['constancia', 'cve', 'ete', 'burb']);
+/* ⚠️ PANT-33 (C1): LOS DOS DOCUMENTOS EN BLANCO SON DOS CLAVES FIJAS, no dos «propios». Es lo
+   que los hace medibles: la lista de Configuracion y el menu del Informe tienen SEIS filas
+   siempre, no «hasta seis», y no hay nada que crear ni que borrar. Su nombre de fabrica es el
+   que muestra el menu mientras el medico no escriba otro (C4).
+   Van DESPUES de los cuatro incluidos en la lista y en el menu, que es lo que C1 pide. */
+const DOCMOD_BLANCOS = Object.freeze(['b1', 'b2']);
+const DOCMOD_BLANCO_NOM = Object.freeze({ b1: 'Documento en blanco 1', b2: 'Documento en blanco 2' });
+function docmodEsBlanco(clave) { return DOCMOD_BLANCOS.indexOf(clave) >= 0; }
+function docmodBlancoNom(clave) { return DOCMOD_BLANCO_NOM[clave] || 'Documento en blanco'; }
+window.docmodEsBlanco = docmodEsBlanco;
+window.docmodBlancoNom = docmodBlancoNom;
 const DOCMOD_PROPIOS_MAX = 2;
 const DOCMOD_TOTAL_MAX = 6;
 /* Los topes de largo de E3. Valen para lo que se escribe a mano Y para lo que se importa: con
@@ -115692,8 +115707,10 @@ const DOCMOD_CHK = '☐ Sí ☐ No ';
 const DOCMOD_PROC = 'el procedimiento';
 const DOCMOD_PROC_AC = 'el procedimiento descrito en este documento';
 /* El cuerpo y el interlineado por tipo, los mismos numeros que las cuatro definiciones. */
-const DOCMOD_SZ = Object.freeze({ constancia: 10.5, consent: 10.2 });
-const DOCMOD_LH = Object.freeze({ constancia: 16, consent: 13.4 });
+/* El blanco se imprime con los del consentimiento -- 10,2 pt de cuerpo y 13,4 de interlineado-,
+   que es lo que C5 pide textualmente. */
+const DOCMOD_SZ = Object.freeze({ constancia: 10.5, consent: 10.2, blanco: 10.2 });
+const DOCMOD_LH = Object.freeze({ constancia: 16, consent: 13.4, blanco: 13.4 });
 /* ── TEXTO <-> BLOQUES: LAS CINCO CONVENCIONES DE A4 ─────────────────────────────────────── */
 
 /* Los tramos de negrita de una linea. Dobles asteriscos, sin anidar. */
@@ -115878,8 +115895,9 @@ window.docmodOrig = docmodOrig;
 
 /* ── EL ALMACEN ───────────────────────────────────────────────────────────────────────────── */
 function docmodVacio() {
-  const o = { v: DOCMOD_VER, incl: {}, prop: [] };
+  const o = { v: DOCMOD_VER, incl: {}, prop: [], blanco: {} };
   DOCMOD_INCL.forEach(function (k) { o.incl[k] = { vis: true, nom: '', ed: null }; });
+  DOCMOD_BLANCOS.forEach(function (k) { o.blanco[k] = { vis: true, nom: '', txt: '', firma: true }; });
   return o;
 }
 
@@ -115894,7 +115912,11 @@ function docmodValidar(raw, pedirMarca) {
   let total = 0;
   try { total = JSON.stringify(raw).length; } catch (e) { return no(); }
   if (total > DOCMOD_LIM.total) return no();
-  const K_RAIZ = ['v', 'incl', 'prop', '_ecosmart_modelos', 'fecha'];
+  /* ⚠️ `blanco` ES OPCIONAL Y SU AUSENCIA NO ES UN ERROR, y de eso depende A5: el almacen que
+     PANT-32 dejo en el navegador del medico NO tiene esa raiz, y rechazarlo descartaria el
+     almacen ENTERO -- o sea lo que el medico ya edito de los cuatro incluidos-. La version
+     (`DOCMOD_VER`) por eso NO se sube: subirla haria lo mismo por el otro camino. */
+  const K_RAIZ = ['v', 'incl', 'prop', 'blanco', '_ecosmart_modelos', 'fecha'];
   for (const k in raw) if (Object.prototype.hasOwnProperty.call(raw, k) && K_RAIZ.indexOf(k) < 0) return no();
   if (pedirMarca && raw._ecosmart_modelos !== true) return no();
   if (raw._ecosmart_modelos !== undefined && raw._ecosmart_modelos !== true) return no();
@@ -115973,6 +115995,24 @@ function docmodValidar(raw, pedirMarca) {
     st.prop.push(o);
   }
   if (DOCMOD_INCL.length + st.prop.length > DOCMOD_TOTAL_MAX) return no('propios');
+  /* Los dos documentos en blanco (C1). Las claves son fijas, asi que una desconocida es un
+     almacen de otra cosa y se rechaza entero, igual que en `incl`. */
+  st.blanco = {};
+  DOCMOD_BLANCOS.forEach(function (k) { st.blanco[k] = { vis: true, nom: '', txt: '', firma: true }; });
+  const rb = (raw.blanco === undefined) ? {} : raw.blanco;
+  if (!rb || typeof rb !== 'object' || Array.isArray(rb)) return no();
+  for (const k in rb) if (Object.prototype.hasOwnProperty.call(rb, k) && DOCMOD_BLANCOS.indexOf(k) < 0) return no();
+  for (let i = 0; i < DOCMOD_BLANCOS.length; i++) {
+    const k = DOCMOD_BLANCOS[i], e = rb[k];
+    if (e === undefined) continue;
+    if (!e || typeof e !== 'object' || Array.isArray(e)) return no();
+    for (const q in e) if (Object.prototype.hasOwnProperty.call(e, q) && ['vis', 'nom', 'txt', 'firma'].indexOf(q) < 0) return no();
+    if (!bol(e.vis) || !bol(e.firma)) return no();
+    if (e.nom !== undefined && !txt(e.nom, DOCMOD_LIM.nom)) return no();
+    if (e.txt !== undefined && !txt(e.txt, DOCMOD_LIM.ptxt)) return no();
+    st.blanco[k] = { vis: e.vis !== false, nom: String(e.nom || ''),
+                     txt: String(e.txt || ''), firma: e.firma !== false };
+  }
   return { ok: true, st: st, motivo: '' };
 }
 window.docmodValidar = docmodValidar;
@@ -116020,6 +116060,14 @@ function docmodModelo(clave, st) {
     else { m.pregs = (f.pregs || []).map(function (p) { return { t: String(p.t || ''), x: String(p.x || '') }; }); }
     return m;
   }
+  if (docmodEsBlanco(clave)) {
+    const e = (st.blanco || {})[clave] || { vis: true, nom: '', txt: '', firma: true };
+    return { clave: clave, tipo: 'blanco', incl: false, propio: false, blanco: true,
+             nom: e.nom || docmodBlancoNom(clave), vis: e.vis !== false,
+             editado: !!String(e.txt || '').trim() || !!e.nom,
+             tit: '', txt: String(e.txt || ''), firma: e.firma !== false,
+             decl: false, firmas: false, comunes: false };
+  }
   const p = (st.prop || []).filter(function (x) { return x && x.clave === clave; })[0];
   if (!p) return null;
   const m = { clave: clave, tipo: p.tipo, incl: false, propio: true,
@@ -116042,6 +116090,7 @@ function docmodLista(st) {
   st = st || docmodLeer();
   const out = [];
   DOCMOD_INCL.forEach(function (k) { const m = docmodModelo(k, st); if (m) out.push(m); });
+  DOCMOD_BLANCOS.forEach(function (k) { const m = docmodModelo(k, st); if (m) out.push(m); });
   return out;
 }
 window.docmodLista = docmodLista;
@@ -116093,6 +116142,29 @@ function docmodPiezas(m) {
 function docmodArmar(m) {
   const bl = [];
   const mete = function (xs) { (xs || []).forEach(function (b) { bl.push(b); }); };
+  /* ⚠️ UN DOCUMENTO EN BLANCO ES EL ENCABEZADO, LA FECHA, EL TEXTO Y -- SI SE PIDE-- LA FIRMA, Y
+     NADA MAS (C2): sin titulo, sin linea del paciente, sin declaracion, sin tabla de firmas y sin
+     hojas comunes. Con el texto vacio y sin firma queda UNA hoja con el encabezado y la fecha.
+     ⚠️ LA FIRMA NUNCA QUEDA SOLA EN UNA HOJA (C5), y no hace falta un mecanismo nuevo: el ULTIMO
+     bloque del cuerpo viaja con la firma en el grupo `firmas`, que es el que `docMaquetar` mide
+     con `altoGrupo` antes de abrirlo y pasa de hoja si no entra. Es el mismo recurso con el que
+     la declaracion y la tabla de firmas de los consentimientos viajan juntas. */
+  if (m.tipo === 'blanco') {
+    bl.push({ t: 'enc' });
+    bl.push({ t: 'ciudadfecha' });
+    const cuerpo = docmodTextoABloques(m.txt);
+    mete(cuerpo);
+    if (m.firma !== false) {
+      if (cuerpo.length) {
+        const u = bl[bl.length - 1], c = {};
+        for (const k in u) if (Object.prototype.hasOwnProperty.call(u, k)) c[k] = u[k];
+        c.grupo = 'firmas';
+        bl[bl.length - 1] = c;
+      }
+      bl.push({ t: 'firma', grupo: 'firmas' });
+    }
+    return bl;
+  }
   if (m.tipo === 'constancia') {
     bl.push({ t: 'enc' });
     bl.push({ t: 'ciudadfecha' });
@@ -116130,6 +116202,8 @@ function docmodDef(clave) {
   const m = docmodModelo(clave);
   if (!m) return null;
   if (m.incl && !m.editado) return DOC_DEFS[clave];
+  /* El `tit` de un blanco es su nombre: es el que va al pie de cada hoja del PDF y el que nombra
+     la miniatura al guardar en «Imagenes» (C4). */
   return { clave: clave, menu: m.nom,
            tit: m.incl ? DOC_DEFS[clave].tit : (m.nom || m.tit || 'Documento'),
            sz: DOCMOD_SZ[m.tipo], lh: DOCMOD_LH[m.tipo], hojas: 1,
@@ -116450,21 +116524,22 @@ function docModoSync() {
   const ver = function (id, on) { const e = document.getElementById(id);
     if (e) e.classList.toggle('doc-oculto', !on); };
   ver('cfg-doc-frase-wrap', !!m && m.tipo === 'constancia');
+  ver('cfg-doc-firmam-wrap', !!m && m.tipo === 'blanco');
   ver('doc-mod-orig', !!m && !!m.incl);
   ver('doc-mod-vaciar', !!m && m.tipo === 'blanco');
   ver('cfg-doc-nom-wrap', !!m && m.tipo === 'blanco');
   if (m) {
     const f = document.getElementById('cfg-doc-frase'); if (f) f.checked = !!_cdEd.frase;
+    const fm = document.getElementById('cfg-doc-firmam'); if (fm) fm.checked = !!_cdEd.firma;
     const n = document.getElementById('cfg-doc-nom'); if (n) n.value = String(_cdEd.nom || '');
   }
   /* La casilla de la firma de la hoja del INFORME: solo con un documento en blanco abierto (C3). */
-  const esBlanco = !esMod && !!_docAbierto &&
-    (typeof docmodEsBlanco === 'function') && docmodEsBlanco(_docAbierto);
+  const esBlanco = !esMod && !!_docAbierto && docmodEsBlanco(_docAbierto);
   ver('cfg-doc-firma-wrap', !!esBlanco);
   if (esBlanco) {
     const fb = document.getElementById('cfg-doc-firma');
     const st = _docEst[_docAbierto];
-    if (fb) fb.checked = !(st && st.firma === false);
+    if (fb) fb.checked = !(st && st.conFirma === false);
   }
   const ay = document.getElementById('doc-ayuda');
   if (ay) ay.classList.add('doc-oculto');
@@ -116473,6 +116548,30 @@ function docModoSync() {
 window.docModoSync = docModoSync;
 
 /* «Guardar como modelo» se apaga cuando no hay nada nuevo que guardar (B2). */
+/* ⚠️ LOS CONTROLES DE LA BARRA SE CABLEAN UNA SOLA VEZ, al arrancar, y no en cada apertura: la
+   barra es marcado FIJO del documento -- no se repinta-, asi que un cableado por apertura
+   acumularia un oyente por cada «Editar». Es la misma leccion que el cuerpo de la hoja. */
+function docmodBarraCablear() {
+  const on = function (id, fn) { const e = document.getElementById(id); if (e) e.addEventListener('change', fn); };
+  on('cfg-doc-frase', function () { if (!_cdEd) return; _cdEd.frase = !!this.checked; docRender(); docmodEdSync(); });
+  on('cfg-doc-firmam', function () { if (!_cdEd) return; _cdEd.firma = !!this.checked; docRender(); docmodEdSync(); });
+  /* La casilla del INFORME: vale para ESE paciente y no toca el modelo (C3). */
+  on('cfg-doc-firma', function () {
+    if (!_docAbierto) return;
+    const st = _docEst[_docAbierto];
+    if (!st) return;
+    st.conFirma = !!this.checked;
+    st.editado = true; st.entregado = false;
+    docRender();
+  });
+  const n = document.getElementById('cfg-doc-nom');
+  if (n) n.addEventListener('input', function () {
+    if (!_cdEd) return;
+    _cdEd.nom = String(this.value);
+    docmodEdSync();
+  });
+}
+
 function docmodEdSync() {
   const b = document.getElementById('doc-mod-guardar');
   if (!b) return;
@@ -116517,7 +116616,7 @@ function docmodEdCablear() {
      Lo destapo el teclado real por CDP: escribir «AAA», Enter, «BBB» dejaba «BBBAAA» en UNA
      linea. Con un oyente colgado de la zona editable el problema seria el mismo. */
   h.addEventListener('input', function (ev) {
-    if (_docModo !== 'modelo' || !_cdEd) return;
+    if (_docModo === 'modelo' ? !_cdEd : !_docAbierto) return;
     let t = ev.target;
     if (t && t.nodeType === 3) t = t.parentElement;
     if (!t || t.nodeType !== 1 || !t.closest) return;
@@ -116529,10 +116628,16 @@ function docmodEdCablear() {
     const cu = t.closest('[data-doc-cuerpo]');
     if (cu) {
       docmodEdNormalizar(cu);
-      _cdEd.txt = docmodEdLeerCuerpo(cu);
-      cu.classList.toggle('doc-ed-ph', !String(_cdEd.txt).trim());
+      const txt = docmodEdLeerCuerpo(cu);
+      cu.classList.toggle('doc-ed-ph', !String(txt).trim());
       docmodEdClases(cu);
-      docmodEdSync(); return;
+      /* ⚠️ EL MISMO CUERPO EDITABLE SIRVE A LOS DOS MODOS, y el texto va a dos lugares distintos:
+         en «modelo» al modelo que se va a guardar, y en el Informe al estado de ESA hoja -- que
+         vale para ese paciente y no toca el modelo (C6, B7)-. */
+      if (_docModo === 'modelo') { _cdEd.txt = txt; docmodEdSync(); return; }
+      const st = _docEst[_docAbierto];
+      if (st) { st.txt = txt; st.editado = true; st.entregado = false; }
+      return;
     }
   });
   /* ⚠️ SE REPINTA AL SALIR DEL CUERPO Y NO EN CADA TECLA, y es por el cursor: rearmar el
@@ -116541,11 +116646,14 @@ function docmodEdCablear() {
      repinta para que la negrita de los dobles asteriscos se vea. `focusout` y no `blur`, porque
      `blur` no burbujea. */
   h.addEventListener('focusout', function (ev) {
-    if (_docModo !== 'modelo' || !_cdEd) return;
     const t = ev.target;
     if (!t || t.nodeType !== 1 || !t.hasAttribute || !t.hasAttribute('data-doc-cuerpo')) return;
-    t.innerHTML = docmodEdCuerpoHTML(_cdEd.txt);
-    t.classList.toggle('doc-ed-ph', !String(_cdEd.txt).trim());
+    const txt = (_docModo === 'modelo')
+      ? (_cdEd ? _cdEd.txt : null)
+      : ((_docAbierto && _docEst[_docAbierto]) ? _docEst[_docAbierto].txt : null);
+    if (txt === null || txt === undefined) return;
+    t.innerHTML = docmodEdCuerpoHTML(txt);
+    t.classList.toggle('doc-ed-ph', !String(txt).trim());
   });
 }
 
@@ -116710,6 +116818,28 @@ function docmodEdGuardar() {
 }
 window.docmodEdGuardar = docmodEdGuardar;
 
+/* ── «VACIAR» UN DOCUMENTO EN BLANCO (C4) ─────────────────────────────────────────────────
+   Deja el documento como al principio: sin texto, con su nombre de fabrica y con la firma
+   tildada. Carga el vacio EN LA HOJA y guarda, porque es lo que el texto de la confirmacion
+   promete -- «se borra el texto y el nombre personalizado y queda en blanco»-: dejarlo sin
+   guardar obligaria a tocar «Guardar como modelo» para que el documento quede vaciado de
+   verdad, y el medico ya contesto que si. */
+function docmodEdVaciar() {
+  if (!_cdEd || _cdEd.m.tipo !== 'blanco') return;
+  docConfPreguntar('¿Vaciar este documento? Se borra el texto y el nombre personalizado y queda en blanco.',
+    'Vaciar', function () {
+      _cdEd.txt = '';
+      _cdEd.nom = docmodBlancoNom(_cdEd.clave);
+      _cdEd.firma = true;
+      _cdEd.m.txt = ''; _cdEd.m.firma = true;
+      docModoSync();
+      docRender();
+      docmodEdGuardar();
+      docEstado('El documento quedó en blanco.');
+    });
+}
+window.docmodEdVaciar = docmodEdVaciar;
+
 /* ── CERRAR (B2) ──────────────────────────────────────────────────────────────────────────── */
 function docmodEdCerrar() {
   if (!_cdEd) { docmodEdSalir(); return; }
@@ -116735,7 +116865,7 @@ function docmodEdSalir() {
 }
 window.docmodEdSalir = docmodEdSalir;
 
-function docmodArranque() { docmodBotonSync(); docmodMenuRender(); }
+function docmodArranque() { docmodBotonSync(); docmodMenuRender(); docmodBarraCablear(); }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', docmodArranque);
 else docmodArranque();
 
@@ -117343,6 +117473,19 @@ function docDatosHoja(clave) {
 }
 window.docDatosHoja = docDatosHoja;
 
+/* ⚠️ PANT-33 (C5/C6): LOS BLOQUES DE LA HOJA ABIERTA, PARA LAS TRES SUPERFICIES. Un documento
+   en blanco no guarda bloques: guarda su texto, y los bloques salen de `docmodArmar` cada vez.
+   Con esto, la pantalla, el PDF y la imagen salen de la MISMA lista -- que es la regla del
+   modulo-- sin que el estado tenga que mantener dos copias del mismo documento. */
+function docBloquesHoja(clave, D) {
+  const st = _docEst[clave];
+  if (!st) return [];
+  if (!docmodEsBlanco(clave)) return st.bloques;
+  const mm = { tipo: 'blanco', txt: String(st.txt || ''), firma: st.conFirma !== false };
+  return docSustBloques(docmodArmar(mm), D, 0);
+}
+window.docBloquesHoja = docBloquesHoja;
+
 function docFirmaDatos(D) {
   try { return JSON.stringify([D.inst, D.ciudad, D.pac, D.art, D.docl, D.docn, D.est, D.med, D.mat, D.esp, D.fecha]); }
   catch (e) { return ''; }
@@ -117416,9 +117559,24 @@ function docAbrir(clave) {
   }
   const D = docDatos();
   const firma = docFirmaDatos(D);
+  /* ⚠️ EL ESTADO DE UN DOCUMENTO EN BLANCO ES SU TEXTO Y SU CASILLA DE FIRMA, no una lista de
+     bloques: ahi el medico escribe el documento entero, asi que lo que hay que conservar es el
+     texto -- y los bloques se derivan de el cada vez que se imprime-. `conFirma` y no `firma`,
+     porque `st.firma` ya es la FIRMA DE LOS DATOS de la app con los que se armo la hoja: dos
+     cosas distintas con el mismo nombre habrian hecho que el aviso «Actualizar con los datos»
+     se disparara al tildar una casilla. */
+  const esBl = docmodEsBlanco(clave);
+  const mBl = esBl ? docmodModelo(clave) : null;
   let st = _docEst[clave];
-  if (!st) { st = _docEst[clave] = { bloques: docBloquesNuevos(def, D), editado: false, firma: firma }; }
-  else if (!st.editado) { st.bloques = docBloquesNuevos(def, D); st.firma = firma; }
+  if (!st) {
+    st = _docEst[clave] = esBl
+      ? { txt: String((mBl || {}).txt || ''), conFirma: !mBl || mBl.firma !== false,
+          bloques: [], editado: false, firma: firma }
+      : { bloques: docBloquesNuevos(def, D), editado: false, firma: firma };
+  } else if (!st.editado) {
+    if (esBl) { st.txt = String((mBl || {}).txt || ''); st.conFirma = !mBl || mBl.firma !== false; st.firma = firma; }
+    else { st.bloques = docBloquesNuevos(def, D); st.firma = firma; }
+  }
   _docAbierto = clave;
   /* ⚠️ LA DEF SE CONGELA AL ABRIR. Las cinco funciones de la hoja -- render, imprimir, guardar,
      quitar y sincronizar-- leian `DOC_DEFS[_docAbierto]`, y con el modelo editable eso seria
@@ -117569,6 +117727,14 @@ window.docAvisoSync = docAvisoSync;
 function docActualizarDatos() {
   if (!_docAbierto) return;
   const def = docDefActual(), D = docDatos();
+  if (docmodEsBlanco(_docAbierto)) {
+    const m = docmodModelo(_docAbierto) || {};
+    _docEst[_docAbierto] = { txt: String(m.txt || ''), conFirma: m.firma !== false,
+                             bloques: [], editado: false, firma: docFirmaDatos(D) };
+    docAvisoSync(); docRender();
+    if (typeof toast === 'function') toast('Hoja rearmada con los datos de la app');
+    return;
+  }
   _docEst[_docAbierto] = { bloques: docBloquesNuevos(def, D), editado: false, firma: docFirmaDatos(D) };
   docAvisoSync();
   docRender();
@@ -117713,6 +117879,11 @@ function docRender() {
      `docmodEdRender`, que usa `docHojaHTML` para las partes fijas -- la misma funcion-. */
   if (_docModo === 'modelo') { docmodEdRender(h); return; }
   const st = _docEst[_docAbierto], def = docDefActual(), D = docDatosHoja();
+  /* ⚠️ UN DOCUMENTO EN BLANCO SE EDITA COMO EN EL EDITOR -- una sola zona editable-- Y NO BLOQUE
+     POR BLOQUE (C6), y no es una preferencia: con el texto vacio no hay un solo bloque al que
+     ponerle `contenteditable`, asi que la hoja no tendria donde escribir. Es la misma zona, el
+     mismo marcado y las mismas seis convenciones que el editor de modelos. */
+  if (docmodEsBlanco(_docAbierto)) { docmodEdRenderBlanco(h, st); return; }
   h.innerHTML = docHojaHTML(st.bloques, D, true);
   /* ⚠️ EL CUERPO Y EL INTERLINEADO SALEN DE LA MISMA `def` QUE MAQUETA EL PAPEL, EN PUNTOS.
      Hasta PANT-31 la hoja de pantalla traia 12,5 px fijos para los cuatro documentos mientras el
@@ -117739,6 +117910,28 @@ function docRender() {
   });
 }
 window.docRender = docRender;
+
+/* La hoja de un documento en blanco en el Informe (C6): el mismo marcado que el editor, con el
+   texto y la casilla de firma de ESTA hoja. */
+function docmodEdRenderBlanco(h, st) {
+  const D = docDatosHoja();
+  const m = { tipo: 'blanco', clave: _docAbierto, txt: String(st.txt || ''),
+              firma: st.conFirma !== false };
+  h.innerHTML = docmodHojaEdHTML({ m: m, tit: '', txt: m.txt }, D);
+  h.style.fontSize = docmodSz(m) + 'pt';
+  h.style.lineHeight = docmodLh(m) + 'pt';
+  h.style.setProperty('--doc-sz', docmodSz(m) + 'pt');
+  docZoomAjustar();
+  try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch (e) {}
+  const cu = h.querySelector('[data-doc-cuerpo]');
+  if (cu) docmodEdNormalizar(cu);
+  /* El nombre de la institucion sigue siendo editable y por su propio oyente (D2). */
+  h.querySelectorAll('[data-doc-inst]').forEach(function (el) {
+    el.addEventListener('input', docInstEditada);
+  });
+  docmodEdCablear();
+}
+window.docmodEdRenderBlanco = docmodEdRenderBlanco;
 
 /* La correccion del nombre de la institucion en la hoja del Informe (D2). Vale solo para ese
    paciente: se guarda en `_docEst[clave].inst` y NO toca el modelo ni la configuracion. */
@@ -117781,7 +117974,7 @@ function docEditado(ev) {
 function docImprimir() {
   if (!_docAbierto) return;
   const def = docDefActual(), st = _docEst[_docAbierto], D = docDatosHoja();
-  const maq = docMaquetar(def, D, st.bloques);
+  const maq = docMaquetar(def, D, docBloquesHoja(_docAbierto, D));
   if (!maq) { docEstado('No se pudo armar el documento: la biblioteca PDF no está disponible.'); return; }
   const doc = docOpsAPdf(def, maq);
   const nom = 'documento_' + def.clave + '_' + new Date().toISOString().split('T')[0] + '.pdf';
@@ -117828,7 +118021,7 @@ function docUuid() {
 function docGuardarImagen() {
   if (!_docAbierto) return;
   const def = docDefActual(), st = _docEst[_docAbierto], D = docDatosHoja();
-  const maq = docMaquetar(def, D, st.bloques);
+  const maq = docMaquetar(def, D, docBloquesHoja(_docAbierto, D));
   if (!maq) { docEstado('No se pudo armar la imagen: la biblioteca PDF no está disponible.'); return; }
   const G = DOC_GEO, K = 3.7795275591, ESC = 1.5;
   const anchoPx = Math.round(G.W * K * ESC);
