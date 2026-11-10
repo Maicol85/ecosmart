@@ -948,7 +948,7 @@ impecable.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda PANT-29 (2026-11-10) — Referencias más breve y las arterias coronarias en el 3D de
-Contractilidad.** ONCE commits. Sello **`v20261110-0034`**, md5 **`6aa22c01`**. Las **tres fichas
+Contractilidad.** TRECE commits. Sello **`v20261110-0034`**, md5 **`6aa22c01`**. Las **tres fichas
 grandes** de PANT-28 se **quitan** con su reparto —sumaban 83.067 caracteres de `textContent`
 contra los 2.702 de `ref-miocard` entera— y las reemplazan **dos resúmenes breves** dentro de
 `ref-miocard`, con el molde medido del sector y por debajo de su techo de **849** caracteres y 7
@@ -984,7 +984,13 @@ medido dos veces. Lo cubren **TC-778** a **TC-783** —los seis de PANT-28, **re
 conservando su número, porque afirmaban las fichas que esta tanda quitó— y **TC-784** a
 **TC-786**, con **TC-502**, **TC-509**, **TC-761**, **TC-763**, **TC-563** y **TC-490**
 adaptados; los tres últimos **invertidos**, y en los tres es el día que su propia excepción
-anunciaba. ⚠️ **LOS COMMITS 6 Y 7 —los resúmenes de las DIECINUEVE cardiopatías congénitas de la
+anunciaba. **Suite 794/801** en quince lotes, en UNA sola pasada sobre el árbol sellado, con los
+cuatro rojos de siempre, los dos intermitentes declarados y **TC-753**, que fue mío y tenía razón:
+`CLAUDE.md` publicaba el sello del primer sellado y el pie ya traía el segundo. **36/36 mutaciones
+dirigidas muertas** —las dos que sobrevivieron al primer barrido eran huecos reales y se cerraron
+con dos condiciones nuevas, no aflojando la mutación—, Semgrep **124/0**, Excel **457**, celular
+**59 y 67 con 18 ALTA**, y Chrome y WebKit coincidiendo en los dieciséis cruces con **cero**
+errores de consola y de página. ⚠️ **LOS COMMITS 6 Y 7 —los resúmenes de las DIECINUEVE cardiopatías congénitas de la
 app— QUEDARON AFUERA por capacidad**, que es la prioridad que la orden fija; lo que falta, con
 las dos guías y sus reglas de folio listas para reusar, está en **P29-a · 1**. Lo declarado, en
 **P29-a**, **P29-b** y **P29-c**; el mapa, en `docs/mapa/pant29-coronarias-3d.md`; la guía

@@ -6,8 +6,21 @@ arterias) · `a9450a3` (5, el botón «Coronarias» y su panel) · `445370a` (6,
 y el primer sello) · `640dd90` (7, la condición que destapó la mutación 01) · `47e287f` (8,
 documentación) · `8ca98a4` (9, las dos condiciones que cierran los sobrevivientes del barrido y
 el sello definitivo) · `c4809b3` (10, el intercambio a 1000 px que destaparon los dos motores) ·
-**éste** (11, el sello en los documentos, que TC-753 destapó). **ONCE** commits, contados con
-`git log 88f9cb8..HEAD` al cerrar.
+`1323118` (11, el sello en los documentos, que TC-753 destapó) · `112200e` (12, las dos sondas
+de la verificación final) · **éste** (13, los números de cierre). **TRECE** commits, contados con
+`git log 88f9cb8..HEAD` al cerrar, y el commit que escribe este número entra en la cuenta.
+
+**Verificación.** **Suite 794/801** en quince lotes, en UNA sola pasada sobre el árbol sellado,
+con el pendrive `DISK_IMG` verificado **diecisiete** veces —al abrir, en cada uno de los quince
+lotes y al cerrar— y el md5 de `index.html` **idéntico** antes y después (`6aa22c01`), con
+**801 de 801** casos ejecutados. Rojos: **TC-223**, **TC-376**, **TC-390** y **TC-406**, los
+cuatro de siempre; **TC-551** y **TC-557**, los dos intermitentes declarados; y **TC-753**, que
+fue mío y tenía razón —el chequeo de arranque que LIMPIEZA-1 dejó justamente para eso— y quedó en
+verde al corregir el documento. **36/36 mutaciones dirigidas muertas**, en worktree y nunca sobre
+el vivo, con el md5 del árbol vivo idéntico antes y después. **A/B del papel: cero diferencias**,
+medido dos veces. **Chrome y WebKit coinciden en los dieciséis cruces**, con cero errores de
+consola y de página. Semgrep **124/0**, Excel **457**, sin huérfanos nuevos, celular **59 y 67
+con 18 ALTA** —la línea base exacta—.
 Sello **`v20261110-0034`**, md5 **`6aa22c01`**.
 
 **Qué hizo.** Las **tres fichas grandes** de PANT-28 —corazón de atleta, Chagas y el detalle de

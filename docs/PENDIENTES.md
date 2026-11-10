@@ -14764,9 +14764,22 @@ siempre. Intermitentes declarados de tandas anteriores: **TC-358**, **TC-551**, 
 **TC-328** —este último depende del estado de sus vecinos—, más **TC-182** y **TC-706**, que
 dependen de que jsPDF cargue.
 
+### Lo que la corrida completa dio
+
+**794 de 801**, en quince lotes, en UNA sola pasada sobre el árbol sellado, con el pendrive
+verificado **diecisiete** veces y el md5 idéntico antes y después. **801 de 801 ejecutados.**
+
+Rojos: **TC-223**, **TC-376**, **TC-390** y **TC-406** —los cuatro de siempre—; **TC-551** y
+**TC-557** —los dos intermitentes declarados, que pasan aislados—; y **TC-753**, que fue **mío**:
+`CLAUDE.md` publicaba el sello del primer sellado (`v20261109-2338`) y el pie de `index.html` ya
+traía el segundo (`v20261110-0034`), porque el commit de documentación se escribió antes de que
+el commit siguiente resellara. El caso tenía razón y la app no, así que se corrigió el documento;
+al re-correrlo quedó en **verde**. Es exactamente para lo que LIMPIEZA-1 dejó ese chequeo.
+
 ⚠️ **Y ESTA TANDA AGREGA UN INTERMITENTE A LA LISTA, MEDIDO Y NO CAUSADO POR ELLA: TC-143.**
 Falló en un lote con el diagnóstico `error: Chart is not defined`, o sea que **Chart.js no cargó
 por CDN**, y pasó verde en el lote anterior del mismo árbol. Es la misma clase de intermitente
 que TC-182 y TC-706, que dependen de jsPDF: esta tanda no toca el visor, ni la evolución
-longitudinal, ni ninguna carga por CDN. Si vuelve a aparecer, se corre aislado cuatro veces antes
-de declararlo una regresión.
+longitudinal, ni ninguna carga por CDN. **Caracterizado como manda esta casa, con cuatro corridas
+aisladas: pasa 3 de 4**, y la que falla lo hace con la misma firma `Chart is not defined`. Esta
+tanda no toca el visor, ni la evolución longitudinal, ni ninguna carga por CDN.
