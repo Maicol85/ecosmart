@@ -6026,6 +6026,17 @@ window.cerrarSesionReal = cerrarSesionReal;
                navegador: son dos opciones con nombre, y escribirlas como botones es lo que la
                orden pide —«con Constancia o Consentimiento»—. Un `prompt` pidiendo «1 o 2»
                obligaría al médico a traducir su respuesta a un número. -->
+          <!-- Exportar e importar (PANT-32, Parte E). El `input type=file` va oculto y lo
+               dispara el botón, que es el mecanismo que la app ya usa en sus cuatro
+               importadores; el `this.value=''` del final es para que elegir el MISMO archivo
+               dos veces vuelva a disparar el `onchange`. -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-ghost" onclick="cfgDocsExportar()" style="min-height:44px;">⬇ Exportar modelos</button>
+            <button type="button" class="btn btn-ghost" id="cfg-docs-imp-btn" onclick="var e=document.getElementById('cfg-docs-imp');if(e)e.click();" style="min-height:44px;">⬆ Importar modelos</button>
+            <input type="file" id="cfg-docs-imp" accept=".json,application/json" style="display:none"
+                   onchange="if(this.files&&this.files[0]){cfgDocsImportar(this.files[0]);this.value='';}">
+          </div>
+          <div style="font-size:11px;color:var(--text2);">El archivo lleva solo los textos de los modelos, sin datos de pacientes.</div>
           <div id="cfg-docs-tipo" hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <span style="font-size:11.5px;color:var(--text2)">¿Qué querés agregar?</span>
             <button type="button" class="btn btn-ghost" onclick="cfgDocsEditarNuevo('constancia')" style="min-height:44px;">Constancia</button>
@@ -116250,6 +116261,64 @@ function cfgDocsEditar(clave) {
 window.cfgDocsEditar = cfgDocsEditar;
 
 /* El editor de un documento que todavia no existe (D1): el nombre se pregunta al guardar. */
+/* ── PANT-32 · EXPORTAR E IMPORTAR MODELOS (Parte E) ──────────────────────────────────────
+   ⚠️ EL ARCHIVO LLEVA SOLO TEXTOS Y OPCIONES. Es el MISMO objeto que el almacen -- nombre,
+   tipo, titulo, textos, piezas y visible, mas lo editado de los incluidos-, con una marca de
+   formato y la fecha. No lleva datos de paciente, ni logo, ni institucion, ni el interruptor del
+   boton: ese ultimo vive en su propia clave porque es una preferencia de esta computadora, y el
+   validador lo rechazaria como clave desconocida.
+   El mecanismo de descarga es el de `_bkExportar`, que es el unico que esta app usa. */
+function cfgDocsExportar() {
+  const st = docmodLeer();
+  const fecha = new Date().toISOString().split('T')[0];
+  const obj = { _ecosmart_modelos: true, v: DOCMOD_VER, fecha: fecha, incl: st.incl, prop: st.prop };
+  let txt;
+  try { txt = JSON.stringify(obj, null, 2); } catch (e) { alert('No se pudo armar el archivo.'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+  a.download = 'ecosmart_modelos_documentos_' + fecha + '.json';
+  a.click();
+  setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 4000);
+  if (typeof toast === 'function') toast('⬇️ Modelos exportados');
+}
+window.cfgDocsExportar = cfgDocsExportar;
+
+const DOCMOD_AJENO = 'Este archivo no es de EcoSmart o está dañado. No se cargó nada.';
+const DOCMOD_3PROP = 'Este archivo trae más de 2 documentos propios y EcoSmart permite hasta 2. No se cargó nada.';
+/* El tope de bytes del archivo. El tope de contenido son 60.000 caracteres (DOCMOD_LIM.total) y
+   la indentacion los puede casi duplicar, asi que 200.000 deja margen de sobra y evita leer un
+   archivo de cientos de MB para despues rechazarlo. */
+const DOCMOD_BYTES_MAX = 200000;
+
+/* ⚠️ SE VALIDA ANTES DE CARGAR NADA, Y EL ARCHIVO SE RECHAZA ENTERO. Un archivo cargado a
+   medias deja al medico con la mitad de los modelos de otra institucion y sin forma de saber
+   cual mitad. Es el mismo criterio que `importarInformesJSON` ya aplica con
+   `validarInformeImportado`: se busca el primer invalido y, si hay uno, no entra ninguno.
+   El validador es EL MISMO que usa el almacen, con la marca de formato exigida: con dos
+   validadores, un archivo podria cargar lo que el editor no deja escribir. */
+function cfgDocsImportar(file) {
+  if (!file) return;
+  if (file.size > DOCMOD_BYTES_MAX) { alert(DOCMOD_AJENO); return; }
+  const reader = new FileReader();
+  reader.onerror = function () { alert('No se pudo leer el archivo.'); };
+  reader.onload = function (ev) {
+    let crudo;
+    try { crudo = JSON.parse(ev.target.result); } catch (e) { alert(DOCMOD_AJENO); return; }
+    const r = docmodValidar(crudo, true);
+    if (!r.ok) { alert(r.motivo === 'propios' ? DOCMOD_3PROP : DOCMOD_AJENO); return; }
+    if (!confirm('Esto reemplaza los documentos que tenés ahora por los del archivo. ¿Continuar?')) return;
+    if (!docmodEscribir(r.st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
+    /* Las hojas que estuvieran en memoria son de los modelos VIEJOS: si quedaran, el medico
+       imprimiria el documento anterior creyendo que importo el nuevo. */
+    _docEst = Object.create(null);
+    if (_docAbierto) docCerrar();
+    cfgDocsRender();
+    if (typeof toast === 'function') toast('⬆️ Modelos importados');
+  };
+  reader.readAsText(file);
+}
+window.cfgDocsImportar = cfgDocsImportar;
+
 /* D1: que se agrega. Dos tipos y nada mas, que son los dos que la app sabe maquetar. */
 function cfgDocsAgregar() {
   const st = docmodLeer();
