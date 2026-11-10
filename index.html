@@ -5036,17 +5036,27 @@ html.light-mode .amilo-root{
 .doc-hoja [contenteditable]{outline:none;}
 .doc-hoja [contenteditable]:focus{background:#f2f7ff;box-shadow:0 0 0 2px #cfe0ff;border-radius:3px;}
 .doc-dato{color:#1552b8;}
-.doc-enc{display:flex;align-items:center;gap:12px;}
-.doc-enc-nom{font-weight:700;font-size:15px;color:#1f3a5f;flex:1 1 auto;min-width:0;}
-.doc-enc-logo{max-height:46px;max-width:120px;object-fit:contain;flex:0 0 auto;}
-.doc-enc-ini{flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:#1f3a5f;color:#fff;
-  font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;}
+/* El encabezado: logo a la izquierda, nombre centrado en el ancho de la hoja, y una columna
+   vacia del ancho del logo a la derecha para que el centro sea el de la hoja. Las medidas son
+   las del papel: 18 x 14 mm el logo, 14 mm de diametro el circulo.
+   ⚠️ `object-fit:contain` CON `max-width` Y `max-height` ES LO QUE NO DEFORMA EL LOGO, ancho o
+   cuadrado: la imagen entra en la caja de 18 x 14 mm conservando su proporcion. En el papel lo
+   hace jsPDF con la caja que le da la operacion, y en la imagen guardada el `preserveAspectRatio`
+   del `<image>` del SVG. Las tres superficies por el mismo motivo y con la misma caja. */
+.doc-enc{display:grid;grid-template-columns:18mm 1fr 18mm;align-items:center;gap:0 4mm;}
+.doc-enc-nom{font-weight:700;font-size:calc(var(--doc-sz, 10.5pt) + 2.2pt);color:#1f3a5f;
+  min-width:0;text-align:center;}
+.doc-enc-logo{max-height:14mm;max-width:18mm;object-fit:contain;}
+.doc-enc-hueco{display:block;}
+.doc-enc-ini{width:14mm;height:14mm;border-radius:50%;background:#1f3a5f;color:#fff;
+  font-weight:700;font-size:calc(var(--doc-sz, 10.5pt) + 2.2pt);display:inline-flex;
+  align-items:center;justify-content:center;}
 .doc-hr{border:none;border-top:1.4px solid #1f3a5f;margin:9px 0 4px;}
-.doc-tit{text-align:center;font-weight:700;font-size:16px;margin:14px 0 4px;color:#1a1a1a;}
-.doc-sub{text-align:center;font-style:italic;color:#5a5a5a;margin:0 0 6px;}
+.doc-tit{text-align:center;font-weight:700;font-size:calc(var(--doc-sz, 10.5pt) + 3pt);margin:14px 0 4px;color:#1a1a1a;}
+.doc-sub{text-align:center;font-style:italic;color:#5a5a5a;margin:0 0 6px;font-size:calc(var(--doc-sz, 10.5pt) + 0.5pt);}
 .doc-cf{text-align:right;margin:14px 0 0;}
 .doc-pacid{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0 2px;}
-.doc-sec{font-weight:700;color:#1f3a5f;font-size:13.2px;margin:12px 0 3px;}
+.doc-sec{font-weight:700;color:#1f3a5f;font-size:calc(var(--doc-sz, 10.5pt) + 0.7pt);margin:12px 0 3px;}
 .doc-sec-n{font-weight:700;}
 .doc-p{text-align:justify;margin:0 0 7px;}
 .doc-raya{font-weight:700;margin-bottom:4px;}
@@ -5061,12 +5071,12 @@ html.light-mode .amilo-root{
 .doc-firma{margin-top:34mm;text-align:right;}
 .doc-firma-l{border-bottom:1px solid #3c3c3c;width:62mm;margin-left:auto;margin-bottom:5px;}
 .doc-firma-n{font-weight:700;}
-.doc-firma-m{font-size:11.5px;color:#5a5a5a;}
-.doc-tf{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:11.5px;}
+.doc-firma-m{font-size:calc(var(--doc-sz, 10.5pt) - 1.2pt);color:#5a5a5a;}
+.doc-tf{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:var(--doc-sz, 10.5pt);}
 .doc-tf th,.doc-tf td{border:1px solid #bdc3c7;padding:4px 6px;vertical-align:bottom;}
 .doc-tf thead th{background:#e6eaee;color:#1f3a5f;text-align:center;}
-.doc-tf-r{width:22%;background:#f6f8f9;color:#6e6e6e;font-weight:700;font-size:10.5px;
-  text-align:left;vertical-align:middle;}
+.doc-tf-r{width:22%;background:#f6f8f9;color:#6e6e6e;font-weight:700;
+  font-size:calc(var(--doc-sz, 10.5pt) - 0.8pt);text-align:left;vertical-align:middle;}
 /* 17 mm, que cumple el minimo de 16 que R10 pide para que entre una firma a mano. El papel
    llevaba 14 y se subio a 16 en `tablaFirmas`. */
 .doc-tf-alta{height:17mm;}
@@ -115324,7 +115334,17 @@ const DOC_DEFS = Object.freeze({
         { t: 'enc' },
         { t: 'ciudadfecha' },
         { t: 'tit', x: 'CONSTANCIA' },
-        { t: 'p', x: 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}. Se extiende la presente para ser presentada donde corresponda. Sin más, saluda atentamente.' },
+        /* ⚠️ TRES BLOQUES Y NO UNO, Y ES LA REGLA DE LA CASA: «el informe va en ORACIONES
+           SEPARADAS, una por tema». Medido antes de partirlo, las dos ultimas frases caian a
+           mitad de renglon -- «... un ecocardiograma transtoracico. Se extiende la» cerraba la
+           segunda linea-- y el `esp` de 2 mm es el «pequenio espacio» que la orden pide entre
+           ellas. El texto no cambia una palabra: lo que cambia es donde arranca cada oracion.
+           Las dos frases cortas salen sin justificar sin necesidad de decirlo: `parrafo` nunca
+           justifica la ULTIMA linea, y una oracion de un renglon es su ultima linea. */
+        { t: 'p', x: 'Se deja constancia que {{art}} {{pac}}, {{docl}}: {{docn}}, consultó el día de hoy, {{fecha}}, en {{inst}}, para realizarse {{est}}.' },
+        { t: 'p', x: 'Se extiende la presente para ser presentada donde corresponda.' },
+        { t: 'esp', mm: 2 },
+        { t: 'p', x: 'Sin más, saluda atentamente.' },
         { t: 'firma' }
       ];
     }
@@ -115535,34 +115555,51 @@ function docMaquetar(def, D, bloques) {
     }
   }
 
-  /* El encabezado institucional: nombre a la izquierda y logo a la derecha. Sin logo va un
-     circulo con las iniciales, que es lo que la orden pide y evita una banda vacia. */
+  /* El encabezado institucional: LOGO A LA IZQUIERDA y nombre CENTRADO. Sin logo va un circulo
+     con las iniciales, en el mismo lugar y del mismo alto, que evita una banda vacia.
+     ⚠️ HASTA PANT-31 ERA AL REVES -- nombre a la izquierda y logo a la DERECHA-, y la orden de
+     esta tanda supone que el circulo ya estaba en el rincon izquierdo. NO lo estaba: medido en el
+     papel, el circulo salia en x 189 mm de una hoja de 210, y en pantalla en x 1054 con el nombre
+     en 340. Se tomo el parentesis de la orden -- «rincon izquierdo»-- porque es lo que hace
+     coherente al punto siguiente: un nombre centrado necesita el logo a un costado.
+     ⚠️ EL NOMBRE VA CON `k:'c'`, QUE CENTRA EN G.W/2, O SEA EN EL ANCHO DE LA HOJA Y NO EN EL DE
+     LA COLUMNA DE TEXTO. Es lo que la orden pide, y es lo que hace que el PDF y la imagen salgan
+     igual sin una linea de codigo mas: las dos dibujan de la misma lista de operaciones.
+     ⚠️ Y EL ANCHO DE ENVOLTURA DESCUENTA EL LOGO DE LOS DOS LADOS (`2 * (LOGO_W + 3)`), no de
+     uno: con el descuento asimetrico el centro del texto no seria el centro de la hoja, y un
+     nombre largo se montaria sobre el logo.
+     Verticalmente, el bloque de lineas se centra en la banda del logo, que es lo que la orden
+     pide con «a la altura del logo». */
+  const LOGO_W = 18, LOGO_H = 14;
   function encabezado() {
     const h = 13.5;
     if (!cabe(h)) nueva();
     const yT = y;
-    setF(SZ + 2.2, true, false);
-    const nom = docSan(D.inst || '');
-    const ls = env(nom, SZ + 2.2, true, false, cw - 22);
-    let yy = yT + 4.6;
-    ls.slice(0, 2).forEach(function (l) {
-      cur().push({ k: 't', x: G.ML, y: yy, sz: SZ + 2.2, b: true, i: false, col: G.NAVY, s: l });
-      yy += (SZ + 2.2) * G.PT * 1.25;
-    });
     if (D.logoD) {
-      cur().push({ k: 'img', x: G.W - G.MR - 18, y: yT, w: 18, h: 14, d: D.logoD });
+      cur().push({ k: 'img', x: G.ML, y: yT, w: LOGO_W, h: LOGO_H, d: D.logoD });
     } else {
       const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
-      cur().push({ k: 'circ', x: G.W - G.MR - 7, y: yT + 7, r: 7, col: G.NAVY, s: ini });
+      cur().push({ k: 'circ', x: G.ML + 7, y: yT + 7, r: 7, col: G.NAVY, s: ini });
     }
+    setF(SZ + 2.2, true, false);
+    const nom = docSan(D.inst || '');
+    const ls = env(nom, SZ + 2.2, true, false, cw - 2 * (LOGO_W + 3)).slice(0, 2);
+    const lhN = (SZ + 2.2) * G.PT * 1.25;
+    let yy = yT + LOGO_H / 2 - (ls.length * lhN) / 2 + lhN * 0.74;
+    ls.forEach(function (l) {
+      cur().push({ k: 'c', y: yy, sz: SZ + 2.2, b: true, i: false, col: G.NAVY, s: l });
+      yy += lhN;
+    });
     y = yT + h;
   }
 
   function tablaFirmas() {
     const col = [cw / 3, cw / 3, cw / 3];
     const filas = [
-      ['Firma', '', '', 14],
+      /* 16 mm y no 14: R10 pide al menos 16 para que entre una firma a mano. La pantalla ya
+         llevaba 17 (`.doc-tf-alta`), asi que lo que estaba corto era el papel. */
+      ['Firma', '', '', 16],
       ['Aclaración', docSan(D.pac || '____'), '', 7.6],
       ['Cédula', docSan((D.docl || 'CI') + ': ' + (D.docn || '____')), '', 7.6],
       ['Fecha', docSan(D.fecha), '', 7.6]
@@ -116035,9 +116072,15 @@ function docRender() {
     if (b.t === 'enc') {
       const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
-      out += '<div class="doc-enc"><div class="doc-enc-nom doc-dato">' + escHtml(D.inst || '—') + '</div>' +
+      /* ⚠️ TRES COLUMNAS Y NO DOS: el logo a la izquierda, el nombre centrado y una columna
+         VACIA del mismo ancho a la derecha. Sin esa tercera columna el centro del nombre seria
+         el centro de lo que queda DESPUES del logo, y no el de la hoja -- que es lo que el papel
+         hace con `k:'c'` y lo que R7 pide-. Es el mismo descuento simetrico de los dos lados. */
+      out += '<div class="doc-enc">' +
         (D.logoD ? '<img class="doc-enc-logo" alt="" src="' + escHtml(D.logoD) + '">'
-                   : '<span class="doc-enc-ini">' + escHtml(ini) + '</span>') + '</div>';
+                   : '<span class="doc-enc-ini">' + escHtml(ini) + '</span>') +
+        '<div class="doc-enc-nom doc-dato">' + escHtml(D.inst || '—') + '</div>' +
+        '<span class="doc-enc-hueco"></span></div>';
       return;
     }
     if (b.t === 'hr') { out += '<hr class="doc-hr">'; return; }
@@ -116117,6 +116160,12 @@ function docRender() {
      puntos, las dos superficies tienen la misma geometria y las mismas unidades. */
   h.style.fontSize = def.sz + 'pt';
   h.style.lineHeight = def.lh + 'pt';
+  /* ⚠️ Y LOS TAMANIOS DERIVADOS VAN POR UNA VARIABLE, porque el papel los calcula como
+     «cuerpo + n pt» y en CSS eso no se puede escribir en `em`: `em` es un COCIENTE, y el
+     cociente cambia con cada documento -- el titulo es SZ+3, o sea 1,29 em a 10,5 pt y 1,34 a
+     8,8-. Con `--doc-sz` puesto aca y `calc(var(--doc-sz) + 3pt)` en la hoja de estilos, los
+     seis tamanios derivados son los MISMOS numeros que maqueta jsPDF, en los cuatro documentos. */
+  h.style.setProperty('--doc-sz', def.sz + 'pt');
   docZoomAjustar();
   /* La primera celda de «Firma» no es editable: es el espacio para firmar a mano. */
   h.querySelectorAll('[data-doc-i]').forEach(function (el) {
