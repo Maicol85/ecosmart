@@ -131500,7 +131500,14 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
       ctx.strokeStyle = p.col; ctx.lineWidth = p.w;
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.stroke();
-      ctx.lineCap = 'butt';
+      /* ⚠️ SE RESTITUYEN LOS DOS, Y EL `lineJoin` LO DESTAPO TC-783. El contexto del canvas es el
+         MISMO entre cuadros, asi que dejar `lineJoin` en `round` cambiaba el repaso de contorno de
+         los 1.440 cuadros de la malla PARA SIEMPRE: con «Coronarias» apagado el dibujo ya no
+         volvia al pixel exacto de antes de prenderlo, y el defecto sobrevivia a apagar el boton.
+         Lo encontro la condicion (A3) de ese caso, que compara el hash del canvas antes y
+         despues de un ciclo limpio de prender y apagar; una comparacion de estructura no lo
+         habria visto, porque no mueve un solo poligono. */
+      ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
       continue;
     }
     ctx.globalAlpha = _coroAlfa;
@@ -167046,8 +167053,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261109-2009';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794265789940;                 /* eco-build-ms */
+const ECO_BUILD    = '20261109-2338';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794278320785;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -167133,7 +167140,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261109-2009</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261109-2338</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
