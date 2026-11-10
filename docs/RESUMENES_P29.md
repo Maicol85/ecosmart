@@ -73,3 +73,48 @@ desfibrilador (H52); el tratamiento antitripanosomico (H53 a H55); y la Tabla 7 
 imprime —variables, puntos, categorias y mortalidad— y la app no lo calcula, no lo guarda y no
 lo lleva a ninguna superficie del paciente. Es lo mismo que PANT-28 ya habia decidido para la
 ficha grande.
+
+---
+
+## 3 · Anomalias coronarias congenitas — la ficha ORIGINAL ampliada
+
+En `ref-coronarias`, en su misma seccion. Lo que la ficha ya decia —los tres trayectos del
+origen contralateral, el riesgo del interarterial y su linea de fuente— **pasa intacto**:
+medido, sus dos hijos siguen en 286 y 158 caracteres y el texto de HEAD esta contenido entero.
+El bloque nuevo son **839 caracteres de textContent y 4 vinietas**, por debajo del techo de 850.
+Va marcado con `data-ref-solo` para que el globo `otr-rac` siga mostrando lo corto de hoy.
+
+| frase del resumen | numeros | fila | documento | hoja | folio |
+|---|---|---|---|---|---|
+| tipos: el origen desde el seno contrario, la coronaria desde la pulmonar y las fistulas | tres categorias | **G1** | ESC 2020 | 65 | **627** |
+| la derecha del seno izquierdo es seis veces mas frecuente (que la izquierda del derecho) | seis veces | **C3** | ASE 2020 Frommelt | 8 | **266** |
+| hasta el 1 % de la poblacion | 1 % | **G4** | ACC/AHA 2025 | 97 | **e211** |
+| menos del 0,2 % en ninios con eco | 0,2 % | **G3** | AHA/ACC/HRS 2017 | 25 | **e296** |
+| fistula coronaria 0,002 % (en poblacion general) | 0,002 % | **G5** | ACC/AHA 2025 | 100 | **e214** |
+| segunda causa de muerte subita en el atleta joven | segunda | **C8** | ASE 2020 Frommelt | 8 | **266** |
+| la izquierda desde el seno derecho es menos frecuente pero mas maligna | — | **G7** | ESC 2020 | 66 | **628** |
+| alto riesgo: trayecto interarterial e intramural, estenosis u orificio en hendidura, orificio alto y angulo agudo | — | **G8**, **G10**, **G12** | ESC 2020 · ESC 2022 · ACC/AHA 2025 | 66 · 54 · 97 | **628** · **4050** · **e211** |
+| muerte subita con el esfuerzo antes de los 35 anios | 35 anios | **G13** | ESC 2022 | 53 | **4049** |
+| cirugia recomendada con sintomas o isquemia atribuible | — | **G30** | ACC/AHA 2025 | 97 | **e211** |
+| cirugia recomendada tras parada cardiaca o sincope arritmico | — | **G32** | ESC 2022 | 54 | **4050** |
+| cirugia razonable en el asintomatico con alto riesgo de la izquierda | — | **G34**, **G35** | ACC/AHA 2025 · ESC 2020 | 97 · 66 | **e211** · **628** |
+| cirugia no recomendada en la derecha asintomatica sin isquemia ni alto riesgo | — | **G41** | ESC 2020 | 66 | **628** |
+| tecnicas: unroofing, reimplantacion o translocacion pulmonar | tres | **G45** | ACC/AHA 2025 | 98 y 99 | **e212** y **e213** |
+
+**Clase y nivel NO se escriben en pantalla.** Las fuentes los imprimen y estan en la tabla de
+control (G30 es COR 1 · LOE B-NR; G32 Clase I · Nivel C; G34 COR 2a · LOE C-EO; G35 Clase IIa ·
+Nivel C; G41 Clase III · Nivel C), pero no entran en esta extension. Omitirlos no afirma nada
+que la fuente no diga.
+
+**Cada guia en su propia oracion y sin comentario entre ellas**: la frase de alto riesgo junta
+los rasgos que las tres fuentes nombran, sin decir que coincidan ni que difieran, y las de
+cirugia van por situacion y no por guia.
+
+**Lo que se dejo afuera por extension, y donde sigue verificado**: todo el bloque de
+ecocardiograma de Frommelt (C13 a C21, C28 a C36), la resonancia, la tomografia, la perfusion
+nuclear y la angiografia (C22 a C25, G19 a G24), la clasificacion de la Figura 3 (C6), la
+prevalencia de la AAOCA asociada a muerte subita (C2), el puente miocardico (G65), el origen
+desde la arteria pulmonar con sus indicaciones (G46 a G54), la fistula coronaria mas alla de su
+frecuencia (G55 a G59, G64), el seguimiento de la Tabla 45 (G60, G61), lo posoperatorio (G62,
+G63) y las declaraciones de las propias fuentes sobre la falta de datos en el asintomatico
+(G17, G43, G44).
