@@ -164323,6 +164323,107 @@ async function labGenerarPDF() {
         + _pc(mejor.sig, mejor.v.t) + '%).');
     })();
 
+    /* ══ 9b. PROTESIS VALVULARES (PANT-30, Parte B) ════════════════════════════════════════
+       Va JUSTO DESPUES de Valvulopatias, que es donde la orden la pide, y antes de la seccion
+       10. Lee _labProtStats, que es la MISMA cuenta que pinta la pantalla: un PDF que
+       corriera sus propios numeros tendria dos lecturas del mismo corte, y el que se podre es
+       el que nadie mira -- que aca es justo el que circula impreso. Es el argumento que esta
+       funcion ya escribio para las descriptivas y las asociaciones.
+       La grafica apilada sale de _labProtChartPng, que comparte la configuracion con la de
+       pantalla, igual que _labValvChartPng. */
+    {
+      const PS = _labProtStats(infs);
+      if (y > 200) { doc.addPage(); y = 20; }
+      sectionTitle('Protesis valvulares');
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
+      doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+      doc.text(S('Se cuentan estudios, no pacientes: un paciente con varios controles se cuenta ' +
+        'varias veces. La posicion, el tipo y el modelo salen de los campos del estudio; los ' +
+        'trastornos se leen del texto del informe, que es donde queda guardada la conclusion ' +
+        'de cada protesis.'), M, y, { maxWidth: CW });
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+      y += 9;
+      if (!PS.conAlgo) {
+        /* Sin una sola protesis NO se dibuja ninguna tabla ni ninguna grafica vacia: se dice.
+           No se usa _pie, que exige n >= 3 y aca el n es CERO -- justamente el caso. */
+        doc.setFontSize(9);
+        doc.text(S('Sin estudios con protesis en este periodo.'), M, y);
+        y += 8;
+      } else {
+        // ── Resumen ──
+        drawTable(M, [CW - 42, 42], ['Resumen', 'n (%)'], [
+          ['Estudios con protesis o reparacion', _labCel(PS.conAlgo, PS.n)],
+          ['Con protesis', _labCel(PS.conProt, PS.n)],
+          ['Con plastica o TEER (reparaciones)', _labCel(PS.conRep, PS.n)]
+        ]);
+        y += 5;
+        // ── Por posicion y tipo: la grafica apilada ──
+        const pimg = await _labProtChartPng(PS);
+        if (pimg) {
+          const iw = 150, ih = iw * pimg.ar;
+          if (y + ih > CONTENT_BOTTOM) { doc.addPage(); y = 20; }
+          try { doc.addImage(pimg.url, 'PNG', (W - iw) / 2, y, iw, ih); } catch (e) {}
+          y += ih + 2;
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(7.4);
+          doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+          doc.text(S('Mecanica, biologica quirurgica y TAVI son protesis. Plastia y TEER son ' +
+            'reparaciones (no son protesis) y van en su propia barra: no se suman a las protesis.'),
+            W / 2, y, { align: 'center', maxWidth: CW });
+          doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+          y += 7;
+        }
+        // ── Trastornos ──
+        ensure(20);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text(S('Trastornos de las protesis'), M, y); y += 4.6;
+        doc.setFont('helvetica', 'normal');
+        drawTable(M, [CW - 42, 42], ['Conclusion', 'n (%)'],
+          /* El rotulo marca las dos que van APARTE, igual que en pantalla: sin la marca, una
+             fila de «sin datos suficientes» al lado de las alteraciones se lee como una. */
+          LAB_PROT_TRAST.map(t => [t.lbl + (t.alt === null ? ' (aparte)' : ''),
+                                   _labCel(PS.trast[t.k] || 0, PS.conProtParaTrast)]));
+        y += 3;
+        _pie(PS.conProtParaTrast, 'Con alguna alteracion: ' + PS.altTotal + ' de ' +
+          PS.conProtParaTrast + ' estudios con protesis (' + _pc(PS.altTotal, PS.conProtParaTrast) +
+          '%). Un estudio puede tener mas de un trastorno, asi que las filas no suman el total. ' +
+          '«Sin datos suficientes» y «Hallazgo aislado, sin veredicto» van aparte: no cuentan ' +
+          'como normal ni como alteracion.');
+        // ── Modelos: los 15 mas usados ──
+        const _mods = Object.keys(PS.modelos).map(k => PS.modelos[k])
+          .sort((a, b) => (b.n - a.n) || a.modelo.localeCompare(b.modelo));
+        if (_mods.length) {
+          ensure(24);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+          doc.text(S('Modelos mas usados'), M, y); y += 4.6;
+          doc.setFont('helvetica', 'normal');
+          const TOPE = 15;
+          const _ver = _mods.slice(0, TOPE);
+          let _pocos = false;
+          drawTable(M, [CW - 104, 28, 40, 18, 18],
+            ['Modelo', 'Posicion', 'Tipo', 'Est.', 'Alt.'],
+            _ver.map(m => {
+              const flojo = m.n < 10;
+              if (flojo) _pocos = true;
+              return [m.modelo + (flojo ? ' *' : ''), m.posLbl,
+                      LAB_PROT_TIPO_LBL[m.tipo] || m.tipo, String(m.n),
+                      m.alt + ' (' + _pc(m.alt, m.n) + '%)'];
+            }));
+          y += 3;
+          const _resto = _mods.length - _ver.length;
+          const _notas = [];
+          if (_resto > 0) _notas.push('y ' + _resto + ' modelos mas.');
+          if (_pocos) _notas.push('* Pocos casos: no alcanza para sacar conclusiones.');
+          if (_notas.length) {
+            doc.setFont('helvetica', 'italic'); doc.setFontSize(7.6);
+            doc.setTextColor(GRY[0], GRY[1], GRY[2]);
+            doc.text(S(_notas.join('  ')), M, y, { maxWidth: CW });
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+            y += 6;
+          }
+        }
+      }
+      y += 2;
+    }
     // 10. Función VD (TAPSE)
     const tapses = infs.map(_labTapse).filter(v => v !== null && v > 0);
     const tt = tapses.length;
