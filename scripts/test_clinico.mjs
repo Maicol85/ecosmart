@@ -128474,6 +128474,17 @@ caso('TC-788', 'PANT-30: la constancia -- cero marcadores sueltos, el articulo s
     ete.checked = false; ete.dispatchEvent(new Event('change', { bubbles: true }));
     docActualizarDatos(); await esp(200);
   }
+  /* ⚠️ UN DATO VACIO DEJA SU RAYA Y NUNCA EL MARCADOR CRUDO. Sin esta escena todos los datos
+     estan cargados, asi que «cero marcadores sueltos» pasa sin probar la sustitucion del vacio
+     -- lo destapo el barrido-. La ciudad es opcional en esta app, asi que es el dato natural. */
+  __t.set('cfg-med-lugar', '');
+  docActualizarDatos(); await esp(220);
+  const tv = document.getElementById('doc-hoja').innerText || '';
+  q('con la ciudad vacia la hoja NO muestra el marcador crudo', tv.indexOf('{' + '{') === -1,
+    tv.slice(0, 120));
+  q('y deja su raya para completar a mano', tv.indexOf('____') > -1, tv.slice(0, 200));
+  __t.set('cfg-med-lugar', 'Artigas');
+  docActualizarDatos(); await esp(220);
   /* EL AZUL ES SOLO DE PANTALLA: el papel no conoce esa clase. */
   const az = document.getElementById('doc-hoja').querySelectorAll('.doc-dato');
   q('en pantalla los datos de la app van en azul', az.length >= 5, az.length);
@@ -128495,7 +128506,11 @@ caso('TC-788', 'PANT-30: la constancia -- cero marcadores sueltos, el articulo s
   q('y el PDF de verdad tambien', pdf.getNumberOfPages() === 1, pdf.getNumberOfPages());
   const G = DOC_GEO;
   const xs = todas.filter(o => o.k === 't').map(o => o.x);
-  q('nada se dibuja fuera del margen izquierdo', xs.length > 0 && Math.min.apply(null, xs) >= G.ML - 0.01,
+  /* ⚠️ SE EXIGE EL LITERAL 14 mm Y NO G.ML. Con G.ML la condicion lee la MISMA constante que
+     deberia estar verificando, asi que mover el margen la deja en verde -- lo destapo el barrido
+     de mutaciones-. El 14 es el de la orden del medico. */
+  q('el margen izquierdo de la hoja es 14 mm', G.ML === 14, G.ML);
+  q('nada se dibuja fuera de ese margen', xs.length > 0 && Math.min.apply(null, xs) >= 14 - 0.01,
     xs.length ? Math.min.apply(null, xs) : 'sin textos');
   /* ⚠️ «Pagina» SIN TILDE NO EMPAREJA: docSan CONSERVA los acentos -- WinAnsi llega a U+00FF-- asi
      que el pie dice «Pagina» con a acentuada. Buscandolo sin tilde la condicion daba 0 de 1 sobre
@@ -128590,6 +128605,74 @@ caso('TC-789', 'PANT-30: los tres consentimientos -- las hojas que la orden fija
     if (cl === 'ete') q('ETE: la declaracion NO lleva la viñeta de la internacion',
       txt.indexOf('duraci' + String.fromCharCode(243) + 'n de la internaci') === -1);
   }
+  /* ⚠️ LA REGLA DE «LA DECLARACION Y LAS FIRMAS NUNCA SE SEPARAN» NO SE EJERCITA CON NINGUNO DE
+     LOS TRES DOCUMENTOS: medido, en los tres el grupo ENTRA donde cae, asi que retirar la regla
+     no cambia una hoja y el barrido de mutaciones la encontro sobreviviendo. Lo que sigue arma
+     una escena que SI la obliga: rellena la hoja de milimetro en milimetro hasta el ultimo valor
+     en que el grupo todavia entra, y mide las dos cosas que la regla y su medicion por TINTA
+     garantizan.
+     El relleno va de 1 mm justamente para que el borde quede acotado a menos de un milimetro:
+     con parrafos de relleno el escalon seria una linea entera y la medicion no distinguiria la
+     tinta de la y de cierre, que son 2 mm. */
+  {
+    const defB = DOC_DEFS.burb, DB = docDatos();
+    const grupo = defB.bloques().filter(x => x.grupo === 'firmas')
+      .map((x, j) => { const c = { t: x.t, i: 2000 + j, grupo: 'firmas' };
+        if (x.x !== undefined) c.x = x.x;
+        if (x.items) c.items = x.items.slice();
+        if (x.nonum) c.nonum = x.nonum;
+        return c });
+    q('(G0 DENOM) el grupo de firmas tiene bloques', grupo.length >= 5, grupo.length);
+    /* ⚠️ EL RELLENO LLEVA TRES PARRAFOS DE VERDAD Y DESPUES LOS MILIMETROS, y hace falta: un
+       bloque de espacio NO emite ninguna operacion de dibujo, asi que con solo espacios la hoja
+       llega al borde VACIA de operaciones y la guarda cur().length del salto -- que esta para no
+       abrir una hoja en blanco, y esta bien que este-- no deja saltar. Medido: con solo espacios
+       la declaracion quedaba en la hoja 0 y la tabla se iba a la 1, que parece un defecto de la
+       regla y es un defecto de la escena. Los parrafos ponen operaciones en la hoja; los
+       milimetros dan el borde fino. */
+    const RELL = 'Texto de relleno para empujar el grupo de firmas hasta el borde de la hoja, ' +
+      'sin tocar ni una palabra de los textos del documento.';
+    const armar = (n) => { const bl = [];
+      for (let j = 0; j < 3; j++) bl.push({ t: 'p', x: RELL, i: 900 + j });
+      for (let j = 0; j < n; j++) bl.push({ t: 'esp', mm: 1, i: 1000 + j });
+      grupo.forEach(x => bl.push(x));
+      return docMaquetar(defB, DB, bl) };
+    const tintaFin = (maq2, hh) => { let f = 0;
+      (maq2.hojas[hh] || []).forEach(op => {
+        if (op.y !== undefined && op.y < 289) f = Math.max(f, op.y);
+        if (op.k === 'rect') f = Math.max(f, op.y + op.h) });
+      return f };
+    /* Se BUSCA el borde, no se adivina: un numero a mano se desactualiza con cualquier cambio
+       de maquetado y deja la condicion probando otra cosa. */
+    let nMax = -1;
+    for (let n = 0; n <= 280; n++) { const m2 = armar(n); if (m2 && m2.n === 1) nMax = n; else break; }
+    q('(G1 DENOM) se encontro el relleno maximo con el que el grupo todavia entra en UNA hoja',
+      nMax >= 10, 'nMax=' + nMax);
+    if (nMax >= 10) {
+      const mBorde = armar(nMax);
+      const finB = tintaFin(mBorde, 0);
+      /* Con la medicion por TINTA el grupo se estira hasta el fondo del contenido; con la y de
+         cierre sobran los 2 mm del margen que el ultimo bloque deja detras y nunca llega. */
+      q('(G2) en el borde, el grupo llega hasta el fondo del contenido -- menos de 1,5 mm de sobra',
+        (284 - finB) < 1.5, 'fin=' + finB.toFixed(2) + ' sobra=' + (284 - finB).toFixed(2) + ' mm');
+      const mPasa = armar(nMax + 1);
+      q('(G3) con un milimetro mas el documento pasa a DOS hojas', mPasa && mPasa.n === 2,
+        mPasa ? mPasa.n : 'null');
+      /* Y ahi es donde la regla trabaja: el grupo COMPLETO se va a la hoja nueva. */
+      const dondeB = {};
+      (mPasa ? mPasa.hojas : []).forEach((ops, hh) => ops.forEach(op => {
+        const ss = op.s ? String(op.s) : '';
+        if (ss.indexOf('Declaro que:') === 0) dondeB.declaro = hh;
+        if (ss === 'Paciente' || ss === 'M' + String.fromCharCode(233) + 'dico') dondeB.firmas = hh;
+      }));
+      q('(G4 DENOM) la declaracion y la tabla aparecen en el papel del borde',
+        dondeB.declaro !== undefined && dondeB.firmas !== undefined, JSON.stringify(dondeB));
+      q('(G5) y caen en la MISMA hoja: la regla manda el grupo entero y no lo parte',
+        dondeB.declaro !== undefined && dondeB.declaro === dondeB.firmas, JSON.stringify(dondeB));
+      q('(G6) que es la SEGUNDA, no la primera', dondeB.declaro === 1, 'hoja ' + dondeB.declaro);
+    }
+  }
+
   /* En PANTALLA: las ocho preguntas del ETE en DOS columnas, y la hoja editable. */
   docAbrir('ete'); await esp(260);
   const h = document.getElementById('doc-hoja');
@@ -128715,8 +128798,16 @@ caso('TC-791', 'PANT-30: «Guardar en Imagenes» -- el documento va a esqs y NO 
   await esp(80);
   try { showTab('informe') } catch (e) {}
   docAbrir('constancia'); await esp(600);
-  q('al abrir, «Quitar de Imagenes» esta oculto',
-    !!(document.getElementById('doc-quitar') || {}).hidden);
+  /* ⚠️ SE MIDE LO QUE SE VE, NO EL ATRIBUTO. Esta condicion preguntaba por .hidden y pasaba
+     mientras el boton se veia: hidden NO oculta un .btn en esta app -- .btn declara
+     display:inline-flex y le gana al [hidden] del navegador-, asi que «Quitar de Imagenes» se
+     ofrecia SIEMPRE, sobre una hoja que no estaba guardada. Lo destapo el barrido, no la lectura. */
+  const quitarVisible = () => { const e = document.getElementById('doc-quitar');
+    return !!(e && e.offsetParent && getComputedStyle(e).display !== 'none'); };
+  q('al abrir, «Quitar de Imagenes» no se ve', !quitarVisible(),
+    (function () { const e = document.getElementById('doc-quitar');
+      return e ? ('attr=' + e.hidden + ' display=' + getComputedStyle(e).display +
+                  ' ancho=' + Math.round(e.getBoundingClientRect().width)) : 'no existe' })());
   docGuardarImagen(); await esp(3600);
   const e2 = (document.getElementById('doc-estado') || {}).textContent || '';
   q('ahora si guarda', e2.indexOf('Guardado en') > -1, e2);
@@ -128731,7 +128822,7 @@ caso('TC-791', 'PANT-30: «Guardar en Imagenes» -- el documento va a esqs y NO 
   q('y NO entra a los slots que el PDF del informe imprime',
     (slots || []).filter(x => x && String(x.nombre || '').indexOf('Constancia') > -1).length === 0,
     (slots || []).length + ' slots');
-  q('«Quitar de Imagenes» aparece', !(document.getElementById('doc-quitar') || {}).hidden);
+  q('«Quitar de Imagenes» aparece y SE VE', quitarVisible());
   /* (3) REEMPLAZA, no agrega: de ahi sale el «actualizar» sin un camino propio. */
   docGuardarImagen(); await esp(3600);
   const es2 = await CeiboImg.esquemas(uuid);
@@ -128742,7 +128833,9 @@ caso('TC-791', 'PANT-30: «Guardar en Imagenes» -- el documento va a esqs y NO 
   docQuitarImagen(); await esp(1500);
   const es3 = await CeiboImg.esquemas(uuid);
   q('«Quitar» lo saca', (es3 || []).filter(x => x && x.clave === 'doc-constancia').length === 0);
-  q('y el boton se esconde', !!(document.getElementById('doc-quitar') || {}).hidden);
+  q('y el boton se esconde de verdad', !quitarVisible(),
+    (function () { const e = document.getElementById('doc-quitar');
+      return e ? ('attr=' + e.hidden + ' display=' + getComputedStyle(e).display) : 'no existe' })());
   docQuitarImagen(); await esp(1200);
   const e4 = (document.getElementById('doc-estado') || {}).textContent || '';
   q('quitar de nuevo NO dice que quito algo -- control negativo',
@@ -128846,6 +128939,44 @@ caso('TC-792', 'PANT-30: la cuenta de «Protesis valvulares» -- se cuentan ESTU
   q('la estenosis NATIVA no se cuenta como trastorno protesico',
     S.trast.posible === 0, S.trast.posible);
   q('ese estudio tampoco entra en la poblacion con protesis', S.conProt === 6);
+  /* ⚠️ EL ORDEN DE LAS CATEGORIAS. La escena de arriba no lo ejercita -- ninguna de sus oraciones
+     empareja con dos categorias a la vez-- y el barrido encontro la mutacion que lo invierte
+     sobreviviendo. Dos condiciones lo cierran.
+     La primera es la INVARIANTE que hace correcto el orden: ninguna frase de una categoria
+     puede ser subcadena de una POSTERIOR, porque entonces una oracion de la posterior tambien
+     emparejaria con la anterior y ganaria la anterior, que es la general. */
+  q('ninguna frase de trastorno es subcadena de una posterior',
+    (function () { for (let a = 0; a < LAB_PROT_TRAST.length; a++)
+        for (let b2 = a + 1; b2 < LAB_PROT_TRAST.length; b2++)
+          if (LAB_PROT_TRAST[b2].txt.indexOf(LAB_PROT_TRAST[a].txt) > -1) return false;
+      return true })(),
+    LAB_PROT_TRAST.map(x => x.k).join(','));
+  /* Y la segunda prueba el desempate de verdad, con UNA oracion que empareja con DOS categorias:
+     gana la que viene primero, que es la mas especifica. Invirtiendo el orden gana la otra. */
+  const dosFrases = mk({ va_morf: 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica',
+    va_prot_modelo: 'ATS',
+    informe_texto: 'Pr' + String.fromCharCode(243) + 'tesis a' + String.fromCharCode(243) +
+      'rtica normofuncionante, con posible estenosis.' });
+  const S2f = _labProtStats([dosFrases]);
+  q('(DENOM) la oracion de desempate se clasifico', (S2f.trast.posible + S2f.trast.normo) === 1,
+    'posible=' + S2f.trast.posible + ' normo=' + S2f.trast.normo);
+  q('con dos frases en la MISMA oracion gana la mas especifica, no «normofuncionante»',
+    S2f.trast.posible === 1 && S2f.trast.normo === 0,
+    'posible=' + S2f.trast.posible + ' normo=' + S2f.trast.normo);
+  /* ⚠️ EL FILTRO DE ORACION. La estenosis NATIVA de arriba vivia en un estudio SIN protesis, asi
+     que nunca se clasificaba y el filtro no probaba nada -- lo destapo el barrido-. Aca va en un
+     estudio CON protesis, en una posicion que no emite conclusion (la tricuspide), y su oracion
+     no nombra ninguna protesis: el filtro tiene que dejarla afuera. */
+  const nativaConProt = mk({
+    vt_morf: 'Pr' + String.fromCharCode(243) + 'tesis mec' + String.fromCharCode(225) + 'nica',
+    vt_prot_modelo: 'St Jude',
+    informe_texto: 'V' + String.fromCharCode(225) + 'lvula a' + String.fromCharCode(243) +
+      'rtica calcificada, con posible estenosis de la v' + String.fromCharCode(225) + 'lvula nativa.' });
+  const Snat = _labProtStats([nativaConProt]);
+  q('(DENOM) ese estudio SI entra en la poblacion con protesis', Snat.conProt === 1, Snat.conProt);
+  q('y su estenosis NATIVA no se cuenta como trastorno protesico', Snat.trast.posible === 0,
+    'posible=' + Snat.trast.posible);
+  q('y el estudio queda sin ninguna alteracion', Snat.altTotal === 0, Snat.altTotal);
   /* CONTROL: sin un solo estudio con protesis, todo en cero y nada que dibujar. */
   const S0 = _labProtStats([mk({ va_morf: 'Calcificada', informe_texto: T.nativa })]);
   q('sin protesis, conAlgo es cero', S0.conAlgo === 0, S0.conAlgo);
@@ -128965,6 +129096,29 @@ caso('TC-793', 'PANT-30: la seccion de protesis en pantalla -- debajo de Valvulo
   q('el cuerpo se oculta', !!document.getElementById('lab-prot-cuerpo').hidden);
   q('y el grafico se DESTRUYE, no queda vacio',
     !(typeof Chart !== 'undefined' && cv && Chart.getChart(cv)));
+  /* ⚠️ Y LA RAMA DE CERO ESTUDIOS DE labInit TIENE QUE REPINTAR LA SECCION. Las condiciones de
+     arriba llaman a labProtRender DIRECTO, asi que no pasan por esa rama -- que termina en
+     return-- y el barrido encontro la mutacion que le saca el repintado sobreviviendo. Sin el,
+     filtrar a un periodo sin estudios deja el resumen, el grafico, la tabla y las barras con los
+     numeros del corte ANTERIOR, sin error y con el encabezado nuevo. */
+  labProtRender([mk({ va_morf: P, va_prot_modelo: 'ATS', informe_texto: '' })]);
+  await esp(300);
+  q('(DENOM) antes de vaciar, la seccion muestra su cuerpo',
+    !document.getElementById('lab-prot-cuerpo').hidden &&
+    document.querySelectorAll('#lab-prot-mod-tabla tbody tr').length === 1,
+    'filas=' + document.querySelectorAll('#lab-prot-mod-tabla tbody tr').length);
+  await guardarInformesSeguro([]);
+  /* Hay que CEDER EL TURNO despues de escribir en IndexedDB: showTab y lo que corra detras leen
+     el window.event global, y ahi queda el success de la transaccion. Ver P30-d. */
+  await esp(60);
+  if (typeof labInit === 'function') labInit();
+  await esp(800);
+  q('con CERO estudios, labInit repinta la seccion y dice su frase',
+    !document.getElementById('lab-prot-vacio').hidden &&
+    (document.getElementById('lab-prot-vacio').textContent || '').indexOf('Sin estudios con pr') > -1,
+    document.getElementById('lab-prot-vacio').textContent);
+  q('y el cuerpo queda oculto, sin los numeros del corte anterior',
+    !!document.getElementById('lab-prot-cuerpo').hidden);
   return { extra: F };
   })();
 `);

@@ -27,9 +27,15 @@ IDX = os.path.join(WT, 'index.html')
 
 MUT = [
  # ── commit 2: el boton, el menu y la hoja ──────────────────────────────────
+ # ⚠️ RE-APUNTADA: la primera version le ponia `hidden` y SOBREVIVIO, porque `hidden` NO oculta
+ # un `.btn` en esta app -- `.btn` declara `display:inline-flex` y le gana al [hidden] del
+ # navegador-. O sea que la mutacion no ocultaba nada y no probaba nada. Hoy usa un display en
+ # linea, que es la unica forma de esconderlo de verdad.
  ('01 el boton Documentos desaparece de la fila de acciones', 'TC-787',
   [('<button type="button" class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"',
-    '<button type="button" hidden class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"')]),
+    '<button type="button" style="display:none" class="btn btn-ghost" id="doc-btn" onclick="docMenuToggle()"')]),
+ ('01b la regla que SI oculta el boton de quitar desaparece', 'TC-791',
+  [('#doc-quitar[hidden]{display:none;}', '')]),
  ('02 el boton pierde su alto tactil de 44 px', 'TC-787',
   [('#doc-menu button:hover,#doc-menu button:focus{background:var(--bg3);outline:none;}',
     '#doc-menu button:hover,#doc-menu button:focus{background:var(--bg3);outline:none;}\n#doc-btn{min-height:20px !important;height:20px;}')]),

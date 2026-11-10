@@ -4992,6 +4992,14 @@ html.light-mode .amilo-root{
   padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);}
 .doc-bar-tit{font-weight:700;font-size:13px;color:var(--text);margin-right:auto;}
 .doc-bar-acc{display:inline-flex;gap:8px;flex-wrap:wrap;}
+/* ⚠️ EL ATRIBUTO `hidden` NO OCULTA UN `.btn` EN ESTA APP, y esta medido: `.btn` declara
+   `display:inline-flex` en la hoja del autor, que le gana al `[hidden]{display:none}` del
+   navegador. Sin esta regla, «Quitar de Imagenes» se veia SIEMPRE -- 141 px de ancho con
+   `hidden` puesto y `offsetParent` no nulo-, o sea el boton de quitar ofreciendose sobre una
+   hoja que no esta guardada. Lo destapo el barrido de mutaciones, no la lectura: la condicion
+   del caso preguntaba por el ATRIBUTO y no por lo que se ve. El selector lleva el id, asi que
+   le gana a la clase sin necesitar `!important`. */
+#doc-quitar[hidden]{display:none;}
 .doc-aviso{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
   color:#8a5200;background:#fff4e0;border:1px solid #f0c070;border-radius:8px;padding:4px 9px;}
 .doc-aviso[hidden]{display:none;}
@@ -168841,8 +168849,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261110-1024';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794317042306;                 /* eco-build-ms */
+const ECO_BUILD    = '20261110-1034';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794317684477;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -168928,7 +168936,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261110-1024</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261110-1034</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
