@@ -5063,6 +5063,8 @@ html.light-mode .amilo-root{
 .doc-rayita{border-bottom:1px solid #777;height:14px;margin:0 0 9px;}
 .doc-ul{margin:0 0 7px;padding-left:18px;}
 .doc-ul li{text-align:justify;margin:0 0 4px;}
+/* Los 5 pt de la declaracion, los mismos que el papel pone con `aire: 5`. */
+.doc-ul-aire li{margin-bottom:5pt;}
 .doc-chk{display:flex;gap:7px;align-items:flex-start;margin:0 0 4px;}
 .doc-chk-sn{flex:0 0 auto;white-space:nowrap;color:#333;}
 .doc-chk2{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;margin:0 0 7px;}
@@ -115272,14 +115274,31 @@ function docDeclaracion(procSin, internacion) {
     'Comprendo y acepto un tratamiento de urgencia que pudiera surgir de una eventual complicación (por ejemplo, administrarme suero, fármacos o sangre y, excepcionalmente, una cirugía).'
   ];
   if (internacion) vs.push('Acepto la duración de la internación y las condiciones que el alta médica supone en cada caso.');
+  /* ⚠️ EL AIRE ES DE LA DECLARACION Y NO DE TODAS LAS VINIETAS DEL DOCUMENTO: `aire: 5` va en
+     ESTE `ul` y no en la regla general, porque las vinietas de riesgos siguen como estaban. Son
+     los 5 pt que la orden pide para que el paciente lea item por item.
+     Los dos `esp` de 2,82 mm son los 8 pt de la orden: uno arriba de la linea de investigacion y
+     otro arriba de la de «capacitado para recibir la informacion», que es «arriba y entre si»
+     -- entre las dos hay un parrafo, asi que el de la segunda hace de separacion de las dos-.
+     ⚠️ Y LA SEGUNDA LINEA PASA A `pchk`, QUE DIBUJA SUS CASILLAS. Hasta hoy era un `p` con los
+     U+2610 DENTRO del texto y `docSan` los convierte en un espacio -- es la misma razon por la
+     que `chk1` las dibuja-, asi que en el papel esa linea salia «el paciente   si   no se
+     encuentra capacitado»: dos huecos en vez de dos casillas, o sea una linea que el paciente no
+     podia marcar. El `cajas: 1` que llevaba era una bandera MUERTA: nadie la leia, y
+     `docBloquesNuevos` ni la copiaba. El texto no cambia una palabra -- las casillas se dibujan
+     donde estan los U+2610-, que es lo que la orden permite tocar: el disenio. */
   const out = [
     { t: 'sec', x: 'Declaración y consentimiento' },
     { t: 'p', x: 'Declaro que:' },
-    { t: 'ul', items: vs },
+    { t: 'ul', items: vs, aire: 5 },
+    { t: 'esp', mm: 2.82 },
     { t: 'chk1', x: 'Consiento que la información de mi caso clínico y de los estudios realizados se use para la investigación y divulgación científica, garantizando mi privacidad.' },
-    { t: 'p', x: 'He leído la información y estoy de acuerdo en que se me realice ' + procSin + '.', neg: 1 },
-    { t: 'p', x: 'El firmante deja constancia de que el paciente ☐ sí ☐ no se encuentra capacitado para recibir la información, comprenderla y dar su consentimiento al procedimiento propuesto.', cajas: 1 },
+    { t: 'p', x: 'He leído la información y estoy de acuerdo en que se me realice ' + procSin + '.' },
+    { t: 'esp', mm: 2.82 },
+    { t: 'pchk', x: 'El firmante deja constancia de que el paciente ☐ sí ☐ no se encuentra capacitado para recibir la información, comprenderla y dar su consentimiento al procedimiento propuesto.' },
     { t: 'p', x: 'Se firma el presente en {{ciudad}}, a los {{dia}} días del mes de {{mes}} de {{anio}}.' },
+    /* R10: al menos 6 mm entre esa frase y la tabla de firmas. */
+    { t: 'esp', mm: 6 },
     { t: 'tfirmas' }
   ];
   out.forEach(function (b) { b.grupo = 'firmas'; });
@@ -115288,9 +115307,12 @@ function docDeclaracion(procSin, internacion) {
 
 /* La hoja comun, que se imprime a continuacion de cada consentimiento. */
 function docHojasComunes() {
+  /* ⚠️ SIN TITULO, POR ORDEN DE LA TANDA PANT-31 (R9). Decia «HOJAS COMUNES A LOS
+     CONSENTIMIENTOS», que es una etiqueta de archivo y no algo que el paciente necesite leer.
+     NO habia ninguna linea explicativa debajo -- censado: el bloque siguiente siempre fue el
+     primer subtitulo-, asi que no hay nada mas que sacar. Los dos subtitulos quedan. */
   return [
     { t: 'salto' },
-    { t: 'tit', x: 'HOJAS COMUNES A LOS CONSENTIMIENTOS' },
     { t: 'sec', x: 'Niño o paciente imposibilitado de otorgar el consentimiento', nonum: 1 },
     { t: 'p', x: 'Niños: el firmante deja constancia de que, si bien se ha proporcionado información al paciente (niño) en términos adecuados a su edad y a la evolución de sus facultades, el mismo no se encuentra capacitado para valorarla adecuadamente y adoptar decisión, por lo cual ha sido dada al tercero que lo representa y se identifica al pie del presente.' },
     { t: 'p', x: 'Imposibilitados: el firmante deja constancia de que el paciente se encuentra imposibilitado de recibir la información, valorarla adecuadamente y adoptar decisión, por lo cual le ha sido dada al tercero que lo representa y se identifica al pie del presente instrumento.' },
@@ -115352,7 +115374,9 @@ const DOC_DEFS = Object.freeze({
   cve: Object.freeze({
     clave: 'cve', menu: 'Consentimiento: cardioversión eléctrica',
     tit: 'Consentimiento informado — cardioversión eléctrica',
-    sz: 8.8, lh: 11, hojas: 1,
+    /* El MISMO cuerpo y el MISMO interlineado que el ETE, por orden de PANT-31 (R8): los tres
+       consentimientos se leen igual. Antes eran 8,8 / 11, que entraba en una hoja apretada. */
+    sz: 10.2, lh: 13.4, hojas: 2,
     bloques: function () {
       const PROC = 'una cardioversión eléctrica';
       return docEncConsent('Cardioversión eléctrica').concat([
@@ -115371,6 +115395,10 @@ const DOC_DEFS = Object.freeze({
           'Aunque se trata de un tratamiento con un riesgo vital muy bajo, pueden presentarse situaciones imprevistas que requieran procedimientos adicionales.'
         ] }
       ]).concat(docRiesgosCierre()).concat([
+        /* El salto va ANTES de «¿Hay otras alternativas?», que es donde la orden lo pide para la
+           cardioversion: en el ETE y en el test de burbujas va antes de «Antes del estudio»,
+           que esta cardioversion no tiene. */
+        { t: 'salto' },
         { t: 'sec', x: '¿Hay otras alternativas? ¿Qué pasa si decide no realizarlo?' },
         { t: 'p', x: 'Este tratamiento es el indicado de preferencia en su caso. Usted tiene derecho a negarse a que se le realice el procedimiento, y su médico le explicará las consecuencias de esa decisión.' }
       ]).concat(docDeclaracion(PROC, true)).concat(docHojasComunes());
@@ -115418,7 +115446,7 @@ const DOC_DEFS = Object.freeze({
   burb: Object.freeze({
     clave: 'burb', menu: 'Consentimiento: test de burbujas',
     tit: 'Consentimiento informado — test de burbujas',
-    sz: 8.8, lh: 11, hojas: 1,
+    sz: 10.2, lh: 13.4, hojas: 2,
     bloques: function () {
       const PROC = 'un ecocardiograma con test de burbujas';
       return docEncConsent('Ecocardiograma con test de burbujas').concat([
@@ -115435,6 +115463,8 @@ const DOC_DEFS = Object.freeze({
           'Poco frecuentes: si existe una comunicación entre las cavidades derechas e izquierdas del corazón, las microburbujas pueden pasar a la circulación arterial. El principal riesgo descrito es que, en forma muy infrecuente, una burbuja obstruya un vaso pequeño, por ejemplo cerebral.'
         ], fuerte: ['Frecuentes:', 'Poco frecuentes:'] }
       ]).concat(docRiesgosCierre()).concat([
+        /* El salto, antes de «Antes del estudio», igual que en el ETE (R8). */
+        { t: 'salto' },
         { t: 'sec', x: 'Antes del estudio' },
         { t: 'p', x: 'Informe a su médico, antes de realizarse el estudio, si (marque):' },
         { t: 'chk1', x: 'le dijeron que tiene una comunicación entre las cavidades del corazón (por ejemplo, un foramen oval permeable)' },
@@ -115531,6 +115561,49 @@ function docMaquetar(def, D, bloques) {
       const sobra = ls1.slice(1).join(' ');
       parrafo(sobra, { x: x2, w: w, just: true });
     }
+  }
+
+  /* ⚠️ UN PARRAFO CON LAS CASILLAS DIBUJADAS DONDE ESTA EL U+2610, Y NO ESCRITAS: la fuente del
+     PDF no tiene ese glifo -- `docSan` lo convierte en un espacio-, asi que una casilla escrita
+     dentro de un texto se imprime como un hueco. Es la misma razon por la que `casilla()` dibuja
+     las suyas; la diferencia es que ahi van al principio de la linea y aca van en el medio de la
+     oracion, que es donde el texto del consentimiento las pone.
+     Se maqueta pieza por pieza -- cada palabra y cada casilla-- en vez de delegar a
+     `splitTextToSize`: con el glifo fuera de la fuente, el envoltorio mide la linea con un ancho
+     que no es el que se dibuja. No se justifica: una linea con una casilla justificada separa la
+     casilla de su «si». */
+  function parrafoCasillas(s) {
+    const lado = SZ * G.PT * 0.82;
+    const x0 = G.ML, w = cw;
+    const esp = anchoDe(' ', SZ, false, false);
+    const piezas = [];
+    String(s).split(/(\u2610)/).forEach(function (t) {
+      if (t === '\u2610') { piezas.push({ box: 1 }); return; }
+      docSan(t).split(/\s+/).forEach(function (pal) { if (pal) piezas.push({ s: pal }); });
+    });
+    let linea = [], ancho = 0;
+    const volcar = function () {
+      if (!linea.length) return;
+      if (!cabe(LH)) nueva();
+      y += LH;
+      let cx = x0;
+      linea.forEach(function (pz, i) {
+        if (i) cx += esp;
+        if (pz.box) { cur().push({ k: 'box', x: cx, y: y - lado, s: lado }); cx += lado; }
+        else {
+          cur().push({ k: 't', x: cx, y: y, sz: SZ, b: false, i: false, col: null, s: pz.s });
+          cx += anchoDe(pz.s, SZ, false, false);
+        }
+      });
+      linea = []; ancho = 0;
+    };
+    piezas.forEach(function (pz) {
+      const aw = pz.box ? lado : anchoDe(pz.s, SZ, false, false);
+      if (ancho + (linea.length ? esp : 0) + aw > w && linea.length) volcar();
+      linea.push(pz);
+      ancho += (linea.length > 1 ? esp : 0) + aw;
+    });
+    volcar();
   }
 
   function casilla(txt, x, w) {
@@ -115701,7 +115774,15 @@ function docMaquetar(def, D, bloques) {
       y += LH * 0.1; return;
     }
     if (b.t === 'p') { parrafo(docSust(b.x, D), { just: true }); y += LH * 0.16; return; }
-    if (b.t === 'ul') { (b.items || []).forEach(function (it) { vineta(docSan(docSust(it, D)), b.fuerte); }); y += LH * 0.16; return; }
+    if (b.t === 'pchk') { parrafoCasillas(docSust(b.x, D)); y += LH * 0.16; return; }
+    if (b.t === 'ul') {
+      const its = b.items || [], aire = (b.aire || 0) * G.PT;
+      its.forEach(function (it, q) {
+        vineta(docSan(docSust(it, D)), b.fuerte);
+        if (aire && q < its.length - 1) y += aire;
+      });
+      y += LH * 0.16; return;
+    }
     if (b.t === 'raya') {
       if (!cabe(LH * 3)) nueva();
       y += LH * 0.3;
@@ -115896,6 +115977,11 @@ function docBloquesNuevos(def, D) {
     if (b.fuerte) c.fuerte = b.fuerte;
     if (b.nonum) c.nonum = b.nonum;
     if (b.mm) c.mm = b.mm;
+    /* `aire` viaja con el bloque: sin esto la declaracion pierde sus 5 pt entre vinietas en
+       cuanto el medico corrige una sola palabra -- `docRender` y el maquetador trabajan sobre
+       ESTA copia, no sobre la definicion-. Es lo que les paso a `cajas` y `neg`, que nadie
+       copiaba y nadie leia. */
+    if (b.aire) c.aire = b.aire;
     if (b.grupo) c.grupo = b.grupo;
     return c;
   });
@@ -116103,9 +116189,13 @@ function docRender() {
       out += '<div class="doc-sec"><span class="doc-sec-n">' + escHtml(n) + '</span><span' + ed + '>' + docMarcar(b.x, D) + '</span></div>';
       return;
     }
-    if (b.t === 'p') { out += '<p class="doc-p"' + ed + '>' + docMarcar(b.x, D) + '</p>'; return; }
+    /* `pchk` se ve igual que un `p`: en pantalla el U+2610 SI se dibuja -- la fuente del sistema
+       lo tiene y `docMarcar` no sanea-, asi que lo que el papel resuelve dibujando un cuadrado
+       aca ya se ve como un cuadrado. Y sigue siendo editable, con lo que el U+2610 viaja en el
+       `innerText` y vuelve al bloque. */
+    if (b.t === 'p' || b.t === 'pchk') { out += '<p class="doc-p"' + ed + '>' + docMarcar(b.x, D) + '</p>'; return; }
     if (b.t === 'ul') {
-      out += '<ul class="doc-ul">' + (b.items || []).map(function (it, j) {
+      out += '<ul class="doc-ul' + (b.aire ? ' doc-ul-aire' : '') + '">' + (b.items || []).map(function (it, j) {
         let txt = docMarcar(it, D);
         if (b.fuerte) {
           for (let q = 0; q < b.fuerte.length; q++) {
