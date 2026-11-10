@@ -5006,12 +5006,33 @@ html.light-mode .amilo-root{
 #doc-estado{flex:0 0 auto;padding:6px 12px;font-size:11.5px;color:var(--text2);background:var(--bg3);
   border-bottom:1px solid var(--border);}
 #doc-estado[hidden]{display:none;}
-.doc-hoja-wrap{flex:1 1 auto;overflow:auto;padding:16px 12px 40px;display:flex;justify-content:center;}
-/* 820 px de ancho de caja para 182 mm de columna: la hoja de pantalla NO pretende ser el papel
-   a escala -el papel lo maqueta jsPDF en milimetros-, pretende ser legible y editable. */
-.doc-hoja{width:min(820px,100%);background:#ffffff;color:#1a1a1a;border-radius:4px;
-  box-shadow:0 10px 40px rgba(0,0,0,.45);padding:26px 30px 34px;
-  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.5;}
+/* ⚠️ `align-items:flex-start` NO ES COSMETICA: ES EL DEFECTO QUE EL MEDICO REPORTO.
+   Este envoltorio es `display:flex`, y sin esta linea su `align-items` computa `normal`, o sea
+   STRETCH: la hoja recibe un alto DEFINIDO igual al alto de la caja del envoltorio -783 px
+   medidos- en vez de crecer con su contenido, y lo que sobra desborda con `overflow:visible`.
+   Medido en la hoja del ETE: 2.285 px de tinta contra 783 px de papel blanco, o sea **1.502 px
+   de texto dibujados por fuera del rectangulo blanco, sobre el fondo oscuro del overlay** -2.677
+   px a 390 px de ventana-. De ahi sale «la hoja no se ve completa en pantalla y solo se lee bien
+   al imprimir»: el PDF lo maqueta jsPDF en milimetros y no pasa por esto. No habia recorte
+   horizontal ni texto cortado: el problema era entero vertical.
+   ⚠️ Y LA HOJA LLEVA `flex:0 0 auto`, por la otra mitad del mismo mecanismo: un item flex
+   encoge por omision (`flex-shrink:1`), asi que una hoja de 794 px dentro de un envoltorio de
+   366 px se apretaba a 366 y el `zoom` calculado salia 1 -medido-. Con el encogido apagado, el
+   ancho de la hoja es siempre el de la A4 y lo unico que la hace entrar es el zoom. */
+.doc-hoja-wrap{flex:1 1 auto;overflow:auto;padding:16px 12px 40px;display:flex;justify-content:center;align-items:flex-start;}
+/* ⚠️ LA HOJA DE PANTALLA ES UNA A4 DE VERDAD, EN MILIMETROS, Y ESO ES LO QUE LA HACE CORRESPONDER
+   CON LO QUE SALE AL IMPRIMIR. Este renglon decia que la hoja «NO pretende ser el papel a
+   escala» y por eso media 820 px con un cuerpo de 12,5 px para los CUATRO documentos, mientras
+   el papel usa 210 mm y tres cuerpos distintos (10,5 / 10,2 / 8,8 pt): la pantalla no podia
+   corresponder al papel ni en el tamanio de la letra ni en donde cortan los renglones. Hoy la
+   caja es la A4 con los margenes de DOC_GEO y el cuerpo lo pone `docRender` en PUNTOS, de la
+   misma `def.sz`/`def.lh` que maqueta jsPDF.
+   El `min-height` de 297 mm es la hoja: un documento de una hoja se ve como una hoja.
+   Lo que la hace entrar en la ventana es `docZoomAjustar`, que escribe `zoom` -- ver alla por que
+   `zoom` y no `transform`-. */
+.doc-hoja{flex:0 0 auto;width:210mm;min-height:297mm;background:#ffffff;color:#1a1a1a;border-radius:4px;
+  box-shadow:0 10px 40px rgba(0,0,0,.45);padding:12mm 14mm 13mm;
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;}
 .doc-hoja [contenteditable]{outline:none;}
 .doc-hoja [contenteditable]:focus{background:#f2f7ff;box-shadow:0 0 0 2px #cfe0ff;border-radius:3px;}
 .doc-dato{color:#1552b8;}
@@ -5046,9 +5067,20 @@ html.light-mode .amilo-root{
 .doc-tf thead th{background:#e6eaee;color:#1f3a5f;text-align:center;}
 .doc-tf-r{width:22%;background:#f6f8f9;color:#6e6e6e;font-weight:700;font-size:10.5px;
   text-align:left;vertical-align:middle;}
+/* 17 mm, que cumple el minimo de 16 que R10 pide para que entre una firma a mano. El papel
+   llevaba 14 y se subio a 16 en `tablaFirmas`. */
 .doc-tf-alta{height:17mm;}
-/* El menu del boton. Va absoluto sobre su envoltorio para no empujar la fila de acciones. */
-.doc-menu-wrap{position:relative;display:inline-flex;}
+/* El menu del boton. Va absoluto sobre su envoltorio para no empujar la fila de acciones.
+   ⚠️ `margin-left:auto` LO MANDA AL RINCON DERECHO DE SU FILA, que es lo que la orden de PANT-31
+   pide, y es el MISMO recurso que usa el `span` de «Evidencia» en la fila de estilo. Las dos
+   filas son hijas de la misma tarjeta, asi que comparten el borde derecho -725 px medidos a
+   1440-: con esto los dos botones quedan alineados por la derecha.
+   ⚠️ LA «ALTURA» DEL PEDIDO ERA AMBIGUA Y SE MIDIO: los dos botones NO estan en la misma fila
+   -575 px de `y` los separan- y R1 dice que la fila no se toca, asi que no hay forma de que
+   queden a la misma altura. Se alineo el borde derecho, que es la alternativa que R1 ofrece.
+   En angosto la fila es `flex-wrap:wrap`: el envoltorio baja de renglon y el `auto` lo pega a la
+   derecha de SU renglon, sin tapar ni desplazar a los otros cuatro botones. */
+.doc-menu-wrap{position:relative;display:inline-flex;margin-left:auto;}
 #doc-menu{position:absolute;bottom:calc(100% + 6px);right:0;z-index:260;min-width:268px;
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:2px;}
@@ -5056,11 +5088,26 @@ html.light-mode .amilo-root{
 #doc-menu button{text-align:left;background:none;border:none;color:var(--text);cursor:pointer;
   font-size:12.5px;padding:9px 10px;border-radius:7px;min-height:44px;}
 #doc-menu button:hover,#doc-menu button:focus{background:var(--bg3);outline:none;}
+/* ⚠️ ACA HABIA DOS REGLAS QUE HOY SERIAN UNA MENTIRA, y se retiraron con su motivo.
+   `.doc-hoja{padding:16px 15px 24px;font-size:12px}` apretaba los margenes y el cuerpo en
+   celular: con la hoja en milimetros y el cuerpo en puntos, eso rompe justo la correspondencia
+   con el papel que R2 pide -- lo que achica la hoja es el zoom, parejo, y no una regla aparte-.
+   Y `.doc-chk2{grid-template-columns:1fr}` pasaba las casillas a UNA columna en celular,
+   mientras el papel las imprime siempre en DOS: la pantalla mostraba otra cosa que la hoja. */
 @media (max-width:700px){
-  .doc-hoja{padding:16px 15px 24px;font-size:12px;}
-  .doc-chk2{grid-template-columns:1fr;}
   #doc-menu{right:auto;left:0;min-width:0;width:min(300px,calc(100vw - 32px));}
 }
+/* La confirmacion antes de perder una correccion a mano. Es un paso aparte y no un `confirm()`
+   del navegador por lo mismo que el aviso previo al PPT: los dos botones tienen que poder decir
+   «Cerrar» y «Seguir editando», y un `confirm()` solo ofrece Aceptar y Cancelar.
+   z-index 301, uno mas que #doc-ov: tiene que quedar por encima de la hoja que pregunta por. */
+#doc-conf{position:fixed;inset:0;z-index:301;background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;padding:16px;}
+#doc-conf[hidden]{display:none;}
+.doc-conf-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;max-width:420px;box-shadow:0 18px 50px rgba(0,0,0,.6);}
+.doc-conf-card p{font-size:13px;color:var(--text);margin:0 0 14px;line-height:1.5;}
+.doc-conf-acc{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -5489,7 +5536,16 @@ window.cerrarSesionReal = cerrarSesionReal;
      inset:0, igual que #indic-overlay. Mientras esta abierta tapa la app, y eso es lo que
      hace que el aviso «Actualizar con los datos» alcance con revisarse al reabrir -- con la hoja
      delante no se puede cambiar un dato del formulario. -->
-<div id="doc-ov" hidden role="dialog" aria-modal="true" aria-labelledby="doc-ov-tit">
+<!-- ⚠️ EL CLIC AFUERA CIERRA, Y VA CON `event.target===this` POR DOS MOTIVOS. El primero es el
+     obvio: sin la guarda, un clic en cualquier cosa de adentro -- la hoja incluida-- burbujea
+     hasta aca y cierra la hoja con el medico escribiendo. El segundo es que `enhanceClickables`
+     SALTEA justamente los `[onclick]` que contienen `event.target===this` («overlay:
+     clic-afuera-para-cerrar, no es boton»): escrito de otra forma, este div se volveria un
+     `role="button"` con `tabindex=0` encima de un dialogo.
+     Llama a `docCerrarPreguntando` y no a `docCerrar`: con correcciones a mano sin guardar ni
+     imprimir, primero pregunta. La ✕ y Escape cierran directo, que es lo que la orden pide. -->
+<div id="doc-ov" hidden role="dialog" aria-modal="true" aria-labelledby="doc-ov-tit"
+     onclick="if(event.target===this)docCerrarPreguntando();">
   <div class="doc-bar">
     <span class="doc-bar-tit" id="doc-ov-tit">Documento</span>
     <!-- ⚠️ EL ID NO PUEDE TERMINAR EN «-aviso», Y ESTO NO ES UN GUSTO. limpiarCampos -- o sea
@@ -5512,6 +5568,25 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   <div id="doc-estado" hidden></div>
   <div class="doc-hoja-wrap"><div class="doc-hoja" id="doc-hoja"></div></div>
+</div>
+<!-- La confirmacion de cierre. Nace oculta y vive FUERA de #doc-ov: adentro, el clic en sus
+     botones burbujearia al overlay y el `event.target===this` de arriba no lo pararia -- el
+     target seria el boton, no el overlay, asi que la guarda dice «no es el fondo» y no cierra,
+     pero el dialogo quedaria dentro de un subarbol que la hoja puede repintar-.
+     ⚠️ SIN `aria-modal` NO SE ANUNCIA MODAL, Y CON `aria-modal` EL OYENTE GENERICO DE ESCAPE DEL
+     BLOQUE DE ACCESIBILIDAD LE CLICKEA EL PRIMER BOTON QUE EMPAREJE /cerrar|✕|close/ -- o sea
+     «Cerrar», que es justo la respuesta DESTRUCTIVA-. Lleva `aria-modal` y el Escape lo atiende
+     el oyente del modulo, que corre ANTES (esta registrado antes en el documento) y corta la
+     propagacion con `stopImmediatePropagation`: Escape sobre la pregunta significa «Seguir
+     editando». -->
+<div id="doc-conf" hidden role="dialog" aria-modal="true" aria-labelledby="doc-conf-txt">
+  <div class="doc-conf-card">
+    <p id="doc-conf-txt">¿Cerrar sin guardar los cambios?</p>
+    <div class="doc-conf-acc">
+      <button type="button" class="btn btn-ghost" id="doc-conf-seguir" onclick="docConfCerrar()">Seguir editando</button>
+      <button type="button" class="btn btn-primary" id="doc-conf-ok" onclick="docConfAceptar()">Cerrar</button>
+    </div>
+  </div>
 </div>
 <div id="indic-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)indicCerrar();">
   <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo" tabindex="-1"
@@ -115842,11 +115917,89 @@ window.docAbrir = docAbrir;
 function docCerrar() {
   const ov = document.getElementById('doc-ov');
   if (ov) ov.hidden = true;
+  const c = document.getElementById('doc-conf');
+  if (c) c.hidden = true;
   _docAbierto = null;
   if (_docFoco && _docFoco.focus) { try { _docFoco.focus(); } catch (e) {} }
   _docFoco = null;
 }
 window.docCerrar = docCerrar;
+
+/* ── EL CIERRE QUE PREGUNTA ────────────────────────────────────────────────────────────────
+   Lo usa SOLO el clic en el fondo, que es lo que la orden pide: la ✕ y Escape cierran directo.
+   ⚠️ «No la guardo ni la imprimio» ES UN ESTADO PROPIO Y NO SE DEDUCE DE `editado`: el medico
+   puede corregir, guardar en «Imagenes» y seguir mirando la hoja, y ahi no hay nada que perder.
+   `entregado` lo prenden `docImprimir` y `docGuardarImagen` cuando la entrega SALIO BIEN, y lo
+   apaga la correccion siguiente -- en `docEditado`-, porque despues de volver a editar lo
+   entregado ya no es lo que esta en pantalla. */
+function docSinEntregar() {
+  const st = _docEst[_docAbierto];
+  return !!(st && st.editado && !st.entregado);
+}
+window.docSinEntregar = docSinEntregar;
+
+function docCerrarPreguntando() {
+  if (!_docAbierto) return;
+  if (!docSinEntregar()) { docCerrar(); return; }
+  const c = document.getElementById('doc-conf');
+  /* Sin el dialogo en el DOM se cierra igual: preguntar y no poder mostrar la pregunta dejaria
+     la hoja trabada. El precio -- perder la correccion-- es el mismo que tenia antes de esta
+     tanda, cuando el clic en el fondo no cerraba y la ✕ cerraba sin preguntar. */
+  if (!c) { docCerrar(); return; }
+  c.hidden = false;
+  /* El foco arranca en la respuesta NO destructiva. */
+  const b = document.getElementById('doc-conf-seguir');
+  if (b) { try { b.focus(); } catch (e) {} }
+}
+window.docCerrarPreguntando = docCerrarPreguntando;
+
+function docConfCerrar() {
+  const c = document.getElementById('doc-conf');
+  if (c) c.hidden = true;
+  const x = document.getElementById('doc-x');
+  if (x) { try { x.focus(); } catch (e) {} }
+}
+window.docConfCerrar = docConfCerrar;
+
+function docConfAceptar() {
+  const c = document.getElementById('doc-conf');
+  if (c) c.hidden = true;
+  docCerrar();
+}
+window.docConfAceptar = docConfAceptar;
+
+/* ── EL ZOOM QUE HACE ENTRAR LA A4 ─────────────────────────────────────────────────────────
+   La hoja mide 210 mm -- 794 px a 96 ppp-- y la ventana puede tener menos. Esta funcion escribe
+   el unico numero que la hace entrar: el cociente entre el ancho disponible del envoltorio y el
+   ancho de la hoja sin escalar.
+   ⚠️ `zoom` Y NO `transform:scale`, Y SE MIDIO POR QUE. `transform` no participa del flujo: la
+   hoja seguiria reservando el alto sin escalar y dejaria cientos de pixeles de fondo oscuro
+   debajo, asi que habria que calcularle el alto a la caja y mantenerlo en cada repintado y en
+   cada correccion a mano. `zoom` escala el LAYOUT, asi que el alto sale solo. Y lo que importaba
+   de verdad: con `zoom` el clic real cae donde se ve -- verificado con teclado real a 390 px, con
+   la hoja a 0,461: el clic enfoca el parrafo y lo escrito entra-.
+   ⚠️ `Math.floor` Y NO `Math.round`: redondear hacia arriba deja la hoja un pelo mas ancha que
+   el envoltorio y aparece la barra horizontal que R2 prohibe.
+   ⚠️ EL PRECIO ESTA DECLARADO (P31-c): a 390 px el cociente da 0,46, asi que un cuerpo de
+   10,2 pt se ve a 6,3 px. Es geometria, no una decision: una linea entera de A4 son unos 95
+   caracteres y en 366 px no hay forma de que sean legibles Y completos a la vez. La orden pide
+   «sin desborde horizontal» y «la hoja completa», y eso es lo que se cumple. */
+function docZoomAjustar() {
+  const h = document.getElementById('doc-hoja');
+  if (!h || !_docAbierto) return null;
+  const wr = h.parentElement;
+  if (!wr) return null;
+  h.style.zoom = '1';
+  const ancho = h.getBoundingClientRect().width;
+  let disp = wr.clientWidth;
+  try { const cs = getComputedStyle(wr); disp -= (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0); }
+  catch (e) {}
+  if (!(ancho > 0) || !(disp > 0)) return null;
+  const k = Math.min(1, Math.floor(disp / ancho * 1000) / 1000);
+  h.style.zoom = String(k);
+  return k;
+}
+window.docZoomAjustar = docZoomAjustar;
 
 /* El aviso «Actualizar con los datos»: solo con la hoja editada Y los datos cambiados. */
 function docAvisoSync() {
@@ -115957,6 +116110,14 @@ function docRender() {
     }
   });
   h.innerHTML = out;
+  /* ⚠️ EL CUERPO Y EL INTERLINEADO SALEN DE LA MISMA `def` QUE MAQUETA EL PAPEL, EN PUNTOS.
+     Hasta PANT-31 la hoja de pantalla traia 12,5 px fijos para los cuatro documentos mientras el
+     papel usaba 10,5 / 10,2 / 8,8 pt: la pantalla no podia corresponder al papel ni en el tamanio
+     de la letra ni en donde cortan los renglones. Con la caja en milimetros y el cuerpo en
+     puntos, las dos superficies tienen la misma geometria y las mismas unidades. */
+  h.style.fontSize = def.sz + 'pt';
+  h.style.lineHeight = def.lh + 'pt';
+  docZoomAjustar();
   /* La primera celda de «Firma» no es editable: es el espacio para firmar a mano. */
   h.querySelectorAll('[data-doc-i]').forEach(function (el) {
     el.addEventListener('input', docEditado);
@@ -115978,6 +116139,8 @@ function docEditado(ev) {
   const txt = String(el.innerText || '').replace(/\s+/g, ' ').trim();
   if (jj === null) b.x = txt; else if (b.items) b.items[parseInt(jj, 10)] = txt;
   st.editado = true;
+  /* Lo entregado antes de esta correccion ya no es lo que esta en pantalla. */
+  st.entregado = false;
 }
 
 /* ── IMPRIMIR: SOLO LA HOJA ───────────────────────────────────────────────────────────────── */
@@ -115989,6 +116152,7 @@ function docImprimir() {
   const doc = docOpsAPdf(def, maq);
   const nom = 'documento_' + def.clave + '_' + new Date().toISOString().split('T')[0] + '.pdf';
   doc.save(nom);
+  st.entregado = true;
   docEstado('Documento generado: ' + maq.n + (maq.n === 1 ? ' hoja.' : ' hojas.'));
 }
 window.docImprimir = docImprimir;
@@ -116041,6 +116205,7 @@ function docGuardarImagen() {
     .then(function (d) { return esqGuardarDataURL(docClaveEsq(def.clave), def.tit, d); })
     .then(function (r) {
       if (r && r.ok) {
+        st.entregado = true;
         docEstado('Guardado en «Imágenes» como «' + def.tit + '». Se ve en Guardados → Imágenes guardadas.');
         if (typeof toast === 'function') toast('🖼️ Documento guardado en Imágenes');
       } else {
@@ -116091,11 +116256,57 @@ window.docImgSync = docImgSync;
    del boton obligaria a re-registrarlos cada vez que la pestaña se repinta. */
 document.addEventListener('keydown', function (ev) {
   if (ev.key !== 'Escape') return;
+  /* ⚠️ LA PREGUNTA SE LLEVA EL PRIMER ESCAPE, Y CORTA LA PROPAGACION. Escape sobre «¿Cerrar sin
+     guardar los cambios?» significa SEGUIR EDITANDO. Sin `stopImmediatePropagation`, el oyente
+     generico del bloque de accesibilidad -- que busca el [role="dialog"][aria-modal="true"]
+     visible mas alto y le clickea el primer boton que empareje /cerrar|✕|close/-- le apretaria
+     «Cerrar», o sea la respuesta destructiva, con el mismo golpe de tecla. Es el mismo recurso,
+     y por el mismo motivo medido, que la tarjeta de un termino del panel de Evidencia. */
+  const cf = document.getElementById('doc-conf');
+  if (cf && !cf.hidden) { ev.stopImmediatePropagation(); docConfCerrar(); return; }
   const m = document.getElementById('doc-menu');
   if (m && !m.hidden) { docMenuCerrar(); const b = document.getElementById('doc-btn'); if (b) b.focus(); return; }
   const ov = document.getElementById('doc-ov');
   if (ov && !ov.hidden) docCerrar();
 });
+/* ⚠️ EL PEGADO ENTRA COMO TEXTO LLANO, Y ANTES NO ENTRABA ASI: medido, la app no tenia UN solo
+   oyente de `paste` -- un ClipboardEvent de prueba salia sin cancelar-, asi que un pegado real
+   metia el marcado del origen (negritas, colores, fuentes, listas) dentro de la hoja. Al papel no
+   llegaba, porque `docEditado` guarda `innerText`, pero la pantalla quedaba con marcado ajeno y
+   dejaba de parecerse a lo que se iba a imprimir.
+   Va DELEGADO en el documento: `docRender` reescribe el `innerHTML` de la hoja en cada repintado,
+   asi que un oyente colgado de los hijos habria que volver a poner cada vez.
+   Se pasa por `docSan` -- lo mismo que el papel-- para que lo pegado no traiga un caracter que la
+   fuente del PDF no puede dibujar y la pantalla prometa algo que la hoja no imprime. */
+document.addEventListener('paste', function (ev) {
+  const h = document.getElementById('doc-hoja');
+  if (!h) return;
+  let t = ev.target;
+  if (t && t.nodeType === 3) t = t.parentElement;
+  if (!t || t.nodeType !== 1 || !h.contains(t) || !t.isContentEditable) return;
+  ev.preventDefault();
+  const crudo = (ev.clipboardData && ev.clipboardData.getData('text/plain')) || '';
+  const limpio = docSan(crudo).replace(/\s+/g, ' ');
+  if (!limpio) return;
+  let ok = false;
+  try { ok = document.execCommand('insertText', false, limpio); } catch (e) { ok = false; }
+  if (!ok) {
+    /* Respaldo sin execCommand: se escribe en el rango y se avisa a mano, porque una insercion
+       por rango NO dispara `input` y la correccion no quedaria guardada. */
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        const r = sel.getRangeAt(0);
+        r.deleteContents();
+        r.insertNode(document.createTextNode(limpio));
+        sel.collapseToEnd();
+      } else { t.appendChild(document.createTextNode(limpio)); }
+    } catch (e) {}
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+});
+/* La hoja se reajusta al ancho cuando la ventana cambia, y solo con la hoja abierta. */
+window.addEventListener('resize', function () { if (_docAbierto) docZoomAjustar(); });
 document.addEventListener('click', function (ev) {
   const m = document.getElementById('doc-menu');
   if (!m || m.hidden) return;
