@@ -529,3 +529,22 @@ queda — ver **P25-a § 2**, que es la parte que esta tanda **paró**.
 31**. Las dos siguen **dentro de «Otros hallazgos»** y **adyacentes**, que es lo que TC-679 (D1) y
 (D2) fijan desde PANT-11. La tabla de control de sus cifras, con su hoja y su folio, está en
 `docs/CONTROL_MASAS_P25.md`.
+
+---
+
+## PANT-29 (2026-11-10) — las tres fichas grandes salieron y el reparto volvió a CUARENTA
+
+Las fichas `ref-atleta`, `ref-chagas` y `ref-racong` que PANT-28 había agregado se **quitaron**
+con su reparto, por decisión del médico: lo que las reemplaza son **dos resúmenes breves** dentro
+de `ref-miocard` y **cuatro viñetas** dentro de `ref-coronarias`, marcadas con `data-ref-solo`
+para que el globo `otr-rac` siga mostrando el texto corto de siempre.
+
+| conteo | PANT-28 | PANT-29 |
+|---|---|---|
+| encabezados con `toggleRef` | 43 | **40** |
+| claves de `REF_SUBTAB` | 31 | **28** |
+| índice del buscador | 41 | **38** |
+
+**El buscador no necesitó un cambio**: su índice se arma recorriendo los encabezados de cada
+panel. El detalle, el molde del sector y la compuerta de `_otrRefClon` están en
+**`docs/mapa/pant29-coronarias-3d.md`** § 1.

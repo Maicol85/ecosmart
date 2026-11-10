@@ -471,3 +471,17 @@ excepciones**.
 NINGUNA condición», con todas sus condiciones en verde. (2) El `--solo` del arnés de mutaciones
 filtra por **índice**, así que retirar una mutación corre los índices de todas las de abajo: una
 rerida de «07,18,25,29,30» midió en realidad la 07, la 19, la 26, la 30 y la 31.
+
+---
+
+## PANT-29 (2026-11-10)
+
+**TC-778 a TC-783 REESCRITOS y TC-784 a TC-786 nuevos**; la suite pasa de **798 a 801**. Los seis
+de PANT-28 afirmaban las tres fichas grandes que esta tanda quitó, así que se reescribieron sobre
+lo que las reemplaza y **conservan su número**. Adaptados: TC-502, TC-509, TC-761, TC-763,
+TC-563 y TC-490 —los tres últimos **invertidos**—.
+
+⚠️ **Este archivo cruzó los 35 KB al recibir este bloque**, así que el bloque salió a archivo
+propio en vez de engordarlo más: **`docs/mapa/tests-punteros-pant29.md`**, con los nueve casos,
+las tres trampas que la tanda pagó y el defecto que TC-783 destapó en la app. Las fichas están en
+`docs/mapa/pant29-coronarias-3d.md` § 5.

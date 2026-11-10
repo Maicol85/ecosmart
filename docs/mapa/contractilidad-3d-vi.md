@@ -207,3 +207,16 @@ de pantalla, los quince patrones del ojo de buey con su rótulo ilustrativo, el 
 amiloidosis y la ficha de Referencias nueva.
 
 → **`docs/mapa/aj9-sgl-patrones.md`**
+
+---
+
+## PANT-29 (2026-11-10) — las dos tarjetas grises, el bloque de arterias y las coronarias en el 3D
+
+El achique de las dos tarjetas grises —relleno a `7px 9px` y, con el 3D abierto, anchos de
+**220** y **150 px** con el 3D como columna flexible—, el bloque «**Arterias posiblemente
+involucradas**» dentro de la tarjeta de hallazgos, y el botón «**Coronarias**» con sus arterias
+en el pintor 2D y su panel de tres filas viven en **`docs/mapa/pant29-coronarias-3d.md`**.
+
+Ahí están la conversión de coordenadas de la demo (`d = ph + 90`), por qué las arterias
+acompañan la contracción, la compuerta del tramo gris, la dominancia, las vistas de angiografía y
+qué se reinicia en cada puerta.

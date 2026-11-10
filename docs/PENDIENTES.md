@@ -14573,3 +14573,178 @@ adaptarse —0 de 3—:
   después de que `refSubInit` corre —o sea, después de que alguien abrió Referencias—, así que el
   **mismo árbol** daba verde aislado y rojo en lote. Se excluyen los `ref-sub-*`, que no son
   fichas, y el caso pasa **4 de 4 aislado y en su lote**.
+
+---
+
+## P29-a — PANT-29 (2026-11-10): lo que se paró, lo que se declara y las premisas que no se reprodujeron
+
+### P29-a · 1 — LOS COMMITS 6 Y 7 (LOS RESÚMENES DE CONGÉNITAS) QUEDARON AFUERA, POR CAPACIDAD
+
+Es la prioridad que la propia orden fija: «si hay que dejar algo afuera, es primero el 7
+(resúmenes de congénitas) y después el 6 (su lectura)». **Medido antes de decidirlo**: la lista
+de secciones de congénitas que el Laboratorio usa como dueño único (`_CC_SECS`) tiene
+**DIECINUEVE** entradas —CIA, CIV, DAP, VAP, CoAo, FOP, VAB, Ebstein, MCH, MCA, TdF, TGA,
+Marfan/EHAT, Eisenmenger, Fontan, estenosis subaórtica y tres más—, y el commit 6 exige leer
+**cada una EN IMAGEN a 200 ppp o más** en **dos** guías, comprobando el folio impreso hoja por
+hoja. Eso es, con diferencia, la tarea más costosa en contexto de toda la tanda, y arriesgaba el
+commit 8 y la verificación, que la orden declara que **no se caen**.
+
+**Qué queda por hacer, y con qué**: `docs/CONTROL_CONGENITAS_P29.md` no se escribió. Las dos
+guías y sus reglas de folio están ya comprobadas en los documentos de PANT-28 y se pueden reusar
+tal cual: la **ACC/AHA 2025** de congénitas del adulto (`08/gurvitz-…-a.pdf`, sin el sufijo
+`-2`, 137 hojas, folio = **e** + hoja + 114) y la **ESC 2020** de congénitas del adulto en
+**inglés** (`08/ESC congenitos en ingles 2020.pdf`, 84 hojas, folio = hoja + 562).
+⚠️ **Y la premisa de archivo de PANT-21 vale igual acá**: el
+`Baumgartner_2020_Cardiopatias_Congenitas.pdf` está en **español** y tiene 79 hojas, así que no
+cumple la regla de folio; la inglesa es la otra.
+
+**La pestaña de congénitas de Referencias quedó como estaba**: `ref-congenitas` sigue en **287
+caracteres** y un solo hijo, con cuatro renglones —CIA, CIV, PCA y la contraindicación de
+Eisenmenger—, o sea que de las diecinueve secciones de la app sólo tres tienen texto ahí, y
+ninguna con el formato de título + viñetas de `ref-miocard`. Medido en el commit 1.
+
+### P29-a · 2 — LOS DOS RESÚMENES NUEVOS VAN SIN LÍNEA DE FUENTE EN PANTALLA, Y ES UNA MEDICIÓN
+
+La orden pide «el MISMO estilo, estructura y extensión que los resúmenes de las demás
+miocardiopatías (medí el estilo: … cómo se cita …)». **Medido hijo por hijo: ninguno de los
+cinco resúmenes que `ref-miocard` ya tenía lleva línea de fuente** —no hay un `<div>` de 10 px
+con documento, año y folio como el que sí tiene `ref-coronarias`—. Así que los dos nuevos van
+igual, y la trazabilidad de cada frase vive en `docs/RESUMENES_P29.md` con su fila de control, su
+hoja y su folio comprobado. **Queda declarado y no corregido**: la otra lectura —agregarles una
+cita que sus cinco hermanas no tienen— sería inventar un formato para ese sector, y eso lo decide
+Maicol. La ficha de coronarias sí la lleva, porque **ya la tenía**, y se conserva y se extiende.
+
+### P29-a · 3 — EL COLOR DE LAS ARTERIAS SALE DE LA APP Y NO DE LA PALETA DE LA DEMO
+
+La demo trae su propia paleta (`DA #2f6fed`, `Cx #e0559c`, `CD #14a050`). La app pinta esas tres
+arterias con `CONTR_TERRITORIO` (`DA #3ea8ff`, `CD #3ecf8e`, `Cx #ff7ab8`), que es el **dueño
+único** del reparto y el que ya pinta la leyenda «Territorio coronario (borde)» y el modo
+territorio del 3D. Las arterias usan **el de la app**: con la paleta de la demo habría dos azules
+distintos para la DA en la misma pantalla, y una cuarta copia de colores que se desincroniza. El
+**dibujo** —el trazado de cada arteria, sus ramas y la dominancia— sí es el de la demo, punto por
+punto. **Declarado, no corregido**: si el médico quiere la paleta de la demo, es un cambio de una
+línea en `lv3dCoroColor`.
+
+### P29-a · 4 — LA CAPTURA DEL 3D CON «Coronarias» PRENDIDO SÍ INCLUIRÍA LAS ARTERIAS, Y NO SE CAMBIÓ
+
+Medido con el gesto real: con «Coronarias» prendido, «📷 Capturar imagen» produce una captura
+(`lv3dCaptura()` devuelve el PNG) y el pintor es **uno solo** —`lv3dPintar`, parametrizado por el
+contexto, que es una regla de la casa escrita desde el 2026-10-04—, así que el PNG que iría al
+PDF con la casilla marcada **traería las arterias, el tramo gris y las letras**. La orden dice
+«NO lo cambies, reportalo», y así queda. Lo que hay que decidir es si eso es lo que el médico
+quiere en el papel: hoy el 3D ya llega al PDF como un esquema ilustrativo, y las arterias son
+igual de ilustrativas, pero **el tramo gris es una inferencia** y el papel de esta casa describe.
+
+### P29-a · 5 — LOS PUNTOS DE DOS ARTERIAS NO CAEN EN LOS SEGMENTOS DE SU DUEÑO, Y ES ANATOMÍA
+
+Medido con `window.lv3dCoroSonda(0)`, muestra por muestra, descartando el 10 % proximal:
+
+| arteria | en los segmentos de su dueño | factor radial máximo | por qué |
+|---|---|---|---|
+| **DA** | 30 de 30 | 1,031 | corre sobre la pared anterior |
+| **D** (diagonal) | 15 de 15 | 1,031 | idem |
+| **MO** (marginal obtusa) | 15 de 15 | 1,031 | corre sobre la pared lateral |
+| **DP** (descendente posterior) | 23 de 25 | 1,031 | el surco interventricular posterior |
+| **Cx** | 13 de 20 | 1,031 | su tramo **proximal** nace del mismo tronco que la DA, así que esas muestras caen en segmentos de la DA |
+| **CD** | 16 de 25 | **1,330** | el tronco corre por el surco auriculoventricular derecho, **fuera de la superficie del VI**: sus puntos no corresponden a ningún segmento del VI |
+| **PL** (posterolateral) | 2 de 15 | 1,031 | corre sobre la pared **inferolateral**, que en el mapa de 17 segmentos es territorio de la Cx, mientras su **dueño** con dominancia derecha es la CD |
+
+El **tramo gris** se decide por el **dueño** y no por el segmento que el punto pisa, que es lo
+que la demo hace y lo correcto: con dominancia derecha, una lesión proximal de la CD afecta a la
+descendente posterior y a la posterolateral porque **nacen de ella**. Lo fijan las condiciones
+(C1) a (C4) de **TC-785**, que afirman los tres casos completos y **declaran** los otros dos con
+su medición, en vez de aflojar la condición a un porcentaje.
+
+### P29-a · 6 — DOS PREMISAS DE LA ORDEN QUE NO SE REPRODUJERON
+
+1. **«la suite tiene 798 casos»** — se reprodujo: 783 `TC-` más 15 `TC-GR`, contados nombre por
+   nombre. Con los tres nuevos queda en **801**.
+2. **«los cuadros grises … se achican … para que el 3D gane ese lugar»** — se reprodujo a 1440 px
+   (el 3D gana 104 px), pero la medición destapó algo que la orden no anticipa: **a 1000 px la
+   columna de hallazgos medía 44 px** y el texto salía a un carácter por renglón, con **dos
+   textos recortados**. El propio comentario del código lo declaraba para 1200 px («baja a unos
+   150 px»); a 1000 eran 44. Con los anchos fijos la columna sube a 220 px y los recortados pasan
+   a **cero**. O sea que el achique corrige, de paso, un defecto preexistente.
+3. **La transición de la vista de angiografía NO es suave.** La demo interpola con `slerp`; acá
+   la vista se aplica de golpe, igual que los tres botones de punta que la app ya tenía. Es
+   coherente con lo que existe y no se agregó una animación nueva. Declarado.
+4. **Apagar «Coronarias» no devuelve la ORIENTACIÓN del modelo.** Reinicia la *selección* de
+   vista, la transparencia, las letras y el modo angiografía, que es lo que la orden pide; el
+   ángulo desde el que se mira queda donde estaba, igual que pasa con los tres botones de punta.
+   Lo declara la condición (C4) de **TC-783**, y el ciclo limpio —prender y apagar sin tocar
+   nada— sí devuelve el dibujo **al píxel exacto**, que lo mide (A3) del mismo caso.
+
+---
+
+## P29-b — PANT-29: los ángulos de las vistas de angiografía, y qué quedó sin fuente
+
+### P29-b · 1 — LOS SEIS ÁNGULOS SON LOS DE LA DEMO, APROXIMADOS, Y ESTÁN SIN VERIFICAR
+
+| vista | α (oblicua) | β (craneal positivo) |
+|---|---|---|
+| OAD caudal | −30° | −25° |
+| OAI caudal | +40° | −30° |
+| OAD craneal | −30° | +20° |
+| OAI craneal | +40° | +30° |
+| PA craneal | 0° | +30° |
+| OAI (CD) | +35° | 0° |
+
+Son los que la demo aprobada trae, y la demo misma los declara «típicos y aproximados (a
+verificar con una fuente antes de implementar)». **No se escriben en ninguna pantalla**: la única
+línea que la app publica es «Vista simulada, aproximada.», sin un grado y sin nota clínica por
+vista —los textos por vista que la demo mostraba eran de memoria y **no se portaron**—. Lo fija
+la condición (B4) de **TC-784**, que exige que el pie no nombre ningún ángulo.
+**Pendiente**: verificarlos contra una fuente de hemodinámica, en una lectura aparte. Mientras no
+se verifiquen, el único lugar donde viven es esta tabla.
+
+### P29-b · 2 — LA CAPTURA AL PDF CON «Coronarias» PRENDIDO
+
+Está medida y declarada en **P29-a · 4**. Decisión pendiente de Maicol: dejarla como está, o
+excluir las arterias del PNG que viaja al papel.
+
+### P29-b · 3 — QUÉ TEMAS QUEDARON SIN PUBLICAR, Y DÓNDE SIGUEN VERIFICADOS
+
+Nada se perdió: los tres documentos de control de PANT-28 **no se borraron** y siguen teniendo
+todo lo que las fichas grandes publicaban. `docs/RESUMENES_P29.md` lista, tema por tema, lo que
+quedó afuera de cada resumen por extensión y en qué fila de control sigue:
+
+- **Corazón de atleta**: el VO₂ pico, la regla de la compañía, la función diastólica
+  supranormal, el ventrículo derecho, la aurícula izquierda, **todo el bloque de ECG** (A30 a A37)
+  y lo que separa de la hipertrófica y de la arritmogénica —que **ya vive** en `ref-miocard`, en
+  los resúmenes de MCH y MCA—.
+- **Chagas**: el vector y su control, la fisiopatología, **toda la fase aguda**, la forma
+  indeterminada, el BENEFIT, la Tabla 4 de pronóstico, **todas las arritmias y la conducción**,
+  el modelo de ictus, el desfibrilador, el tratamiento antitripanosómico y la Tabla 7 de
+  seguimiento.
+- **Anomalías coronarias**: **todo el bloque de ecocardiograma de Frommelt**, la resonancia, la
+  tomografía, la perfusión nuclear y la angiografía, la Figura 3, el puente miocárdico, el origen
+  desde la arteria pulmonar con sus indicaciones, la fístula coronaria más allá de su frecuencia,
+  el seguimiento de la Tabla 45 y lo posoperatorio.
+- **Clase y nivel de evidencia** de las recomendaciones de cirugía de coronarias: las fuentes los
+  imprimen y están en la tabla de control (G30 es COR 1 · LOE B-NR; G32 Clase I · Nivel C; G34
+  COR 2a · LOE C-EO; G35 Clase IIa · Nivel C; G41 Clase III · Nivel C), pero **no entran en la
+  extensión del resumen**. Omitirlos no afirma nada que la fuente no diga.
+- Y lo que PANT-28 ya había dejado declarado en **P28-b** sigue igual: ECG, restricción del
+  deporte, aneurismas coronarios y anomalías de terminación **no tienen** hoja leída con
+  contenido verificado.
+
+---
+
+## P29-c — PANT-29: la cuenta real de la suite
+
+Al cerrar la tanda la suite tiene **801 casos distintos**: **786** `TC-` (TC-001 a TC-786, con
+los huecos de siempre) más **15** `TC-GR`. Los tres nuevos son **TC-784**, **TC-785** y
+**TC-786**; **TC-778** a **TC-783** se **reescribieron** conservando su número, porque los seis
+afirmaban las tres fichas grandes que esta tanda quitó.
+
+Rojos conocidos que se esperan: **TC-223**, **TC-376**, **TC-390** y **TC-406**, los cuatro de
+siempre. Intermitentes declarados de tandas anteriores: **TC-358**, **TC-551**, **TC-557** y
+**TC-328** —este último depende del estado de sus vecinos—, más **TC-182** y **TC-706**, que
+dependen de que jsPDF cargue.
+
+⚠️ **Y ESTA TANDA AGREGA UN INTERMITENTE A LA LISTA, MEDIDO Y NO CAUSADO POR ELLA: TC-143.**
+Falló en un lote con el diagnóstico `error: Chart is not defined`, o sea que **Chart.js no cargó
+por CDN**, y pasó verde en el lote anterior del mismo árbol. Es la misma clase de intermitente
+que TC-182 y TC-706, que dependen de jsPDF: esta tanda no toca el visor, ni la evolución
+longitudinal, ni ninguna carga por CDN. Si vuelve a aparecer, se corre aislado cuatro veces antes
+de declararlo una regresión.

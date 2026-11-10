@@ -1,3 +1,47 @@
+## PANT-29 — Referencias más breve y las arterias coronarias en el 3D de Contractilidad (2026-11-10)
+
+**Commits:** `e92c9a9` (1, inventario) · `8dc6a3e` (2, los dos resúmenes de miocardiopatías) ·
+`5f35b0d` (3, la ficha de coronarias ampliada) · `922dc44` (4, las tarjetas y el bloque de
+arterias) · `a9450a3` (5, el botón «Coronarias» y su panel) · `445370a` (6, cobertura, mutaciones
+y el sello) · `640dd90` (7, la condición que destapó la mutación 01) · **éste** (8, documentación).
+Sello **`v20261109-2338`**, md5 **`f8b7c756`**.
+
+**Qué hizo.** Las **tres fichas grandes** de PANT-28 —corazón de atleta, Chagas y el detalle de
+anomalías coronarias— se **quitaron** con su reparto, por decisión del médico: sumaban 83.067
+caracteres de `textContent` contra los 2.702 de `ref-miocard` entera. En su lugar, **dos
+resúmenes breves** dentro de `ref-miocard`, con el molde medido del sector y por debajo de su
+techo de 849 caracteres, y **cuatro viñetas** dentro de `ref-coronarias` con tipos, frecuencia,
+riesgo y cirugía. El reparto vuelve de 43 a **40** entradas y el índice del buscador de 41 a
+**38**, sin un solo cambio en el buscador.
+
+En **Contractilidad**, las dos tarjetas grises se achican —relleno a `7px 9px` y, con el 3D
+abierto, anchos de **220** y **150 px** con el 3D como columna flexible, que le da 104 px más—,
+la tarjeta de hallazgos gana el bloque «**Arterias posiblemente involucradas**» con sus cinco
+formas de texto, y el 3D gana el botón «**Coronarias**» con las arterias del paciente, el tronco
+de la aorta, las siete letras y un panel de tres filas: vistas de angiografía, dominancia,
+transparencia y letras.
+
+**Lo que no cambió.** El papel es **idéntico**: 125 escenas, 153.484 claves y 57.125 celdas de
+Excel, con el PDF y el PPT generados de verdad, **cero diferencias** de superficie firmada y cero
+de pantalla, medido dos veces. Cero campos guardados nuevos, Excel en **457**, cero claves de
+`localStorage`, y el globo `otr-rac` en los mismos 478 caracteres por el clon y 494 en pantalla.
+Con «Coronarias» apagado el canvas da el **mismo hash y los mismos 52.322 bytes** que HEAD.
+
+**Lo que se paró.** Los **commits 6 y 7** —la lectura en imagen y los resúmenes de las
+diecinueve cardiopatías congénitas de la app— quedaron afuera por capacidad, que es la prioridad
+que la propia orden fija. En `docs/PENDIENTES.md` → **P29-a** (seis cosas, entre ellas por qué
+los resúmenes no llevan cita, el color de las arterias, la captura al PDF y los dos vasos cuyos
+puntos no caen en los segmentos de su dueño), **P29-b** (los ángulos de las vistas y qué quedó
+sin fuente) y **P29-c** (la cuenta real de la suite).
+
+**Dónde está todo.** `docs/INVENTARIO_PANT29.md`, `docs/RESUMENES_P29.md`,
+`docs/mapa/pant29-coronarias-3d.md`, `docs/mapa/tests-punteros-pant29.md` y
+`docs/GUIA_PRUEBA_PANT29.md`. Cobertura: **TC-778** a **TC-783** reescritos y **TC-784** a
+**TC-786** nuevos, con **TC-502**, **TC-509**, **TC-761**, **TC-763**, **TC-563** y **TC-490**
+adaptados.
+
+---
+
 ## PANT-28 — Referencias: las anomalías coronarias, el corazón de atleta y la miocardiopatía chagásica (2026-11-09)
 
 **Commits:** `e4ede19` (1, inventario) · `0b18be1` (2, la lectura de las fuentes) · `3e29ad0` (3,

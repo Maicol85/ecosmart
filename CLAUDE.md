@@ -113,6 +113,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar las DOS TARJETAS GRISES de Contractilidad, el bloque «Arterias posiblemente involucradas» o las ARTERIAS CORONARIAS del 3D**: el achique a 220 y 150 px, las cinco formas de texto del bloque con su dueño del nivel, el botón «Coronarias», el tronco de la aorta, las siete letras, el tramo gris, la dominancia, las seis vistas de angiografía, o por qué las arterias acompañan la contracción | `docs/mapa/pant29-coronarias-3d.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
 | **Tocar una TARJETA ⓘ de AI/VI, el REGISTRO DE EVIDENCIA o una entrada de Referencias**: las fichas, los estados, el sondeo del dueño, el gráfico de geometría | `docs/mapa/registro-evidencia.md` |
 | **Tocar un CORTE POR SEXO de la AI o del VI**: el diámetro AP, el DDVI en cuatro categorías, el DSVI, los espesores, la masa, los volúmenes, la FEVI en cuatro, el dueño del sexo efectivo o el AVISO de que falta el sexo | `docs/mapa/ai-vi-por-sexo.md` |
@@ -252,8 +253,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,51 MB / 169.360 líneas**, medido con `wc -c` y `wc -l` el 2026-11-09 al cierre de la
-  tanda **PANT-28**, sobre el árbol ya sellado: sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
+  sin frameworks. Hoy **12,40 MB / 170.008 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al cierre de la
+  tanda **PANT-29**, sobre el árbol ya sellado: sello **`v20261109-2338`**, md5 **`f8b7c756`**.
+  ⚠️ **Y EL ARCHIVO QUEDÓ MÁS CHICO EN BYTES AUNQUE GANÓ 648 LÍNEAS**, por primera vez en muchas
+  tandas: PANT-29 quitó las tres fichas grandes de Referencias, que vivían en **tres líneas** de
+  38.112, 51.938 y 73.929 caracteres —163.979 bytes en tres renglones—, y lo que entró son 648
+  líneas de marcado y de JS normalmente indentado. 12,51 → **12,40 MB**.
+  El diff de PANT-29 son **758 líneas agregadas y 110 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `88f9cb8`, con **cero** `innerHTML`, `eval(` y `new Function`
+  nuevos y cero claves ni contraseñas. **Cero campos guardados nuevos, cero columnas de Excel
+  (457) y ningún id existente cambiado**: los ids nuevos son todos de pantalla
+  (`contr-arterias`, `contr-arterias-li`, `lv3d-col-der`, `lv3d-coro-panel`, `lv3d-coro-caja`,
+  `lv3d-coro-lista` y `lv3d-coro-pie`), y los tres que salieron son los de las fichas quitadas.
+  ⚠️ **POR VIGESIMOSEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 88f9cb8:index.html` da **169.360** líneas,
+  **12.514.545** bytes y el md5 **`c4fb0ba6`**, los tres idénticos a lo que el renglón decía, y
+  el sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,51 MB / 169.360 al cierre de la tanda **PANT-28**, sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.)
   El diff de PANT-28 son **115 líneas agregadas y 6 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `36b7bb0`, de las que **89** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos y cero claves ni contraseñas. **Cero campos
@@ -930,6 +946,49 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-29 (2026-11-10) — Referencias más breve y las arterias coronarias en el 3D de
+Contractilidad.** OCHO commits. Sello **`v20261109-2338`**, md5 **`f8b7c756`**. Las **tres fichas
+grandes** de PANT-28 se **quitan** con su reparto —sumaban 83.067 caracteres de `textContent`
+contra los 2.702 de `ref-miocard` entera— y las reemplazan **dos resúmenes breves** dentro de
+`ref-miocard`, con el molde medido del sector y por debajo de su techo de **849** caracteres y 7
+viñetas, y **cuatro viñetas** dentro de `ref-coronarias` con tipos, frecuencia, riesgo y cirugía.
+El reparto vuelve de **43 a 40** y el índice del buscador de **41 a 38**, sin un solo cambio en
+el buscador: su índice se arma recorriendo los encabezados de cada panel. ⚠️ **EL GLOBO
+`otr-rac` QUEDA IDÉNTICO CON UNA LÍNEA**: clonaba `r.children` entero, y hoy `_otrRefClon`
+saltea los hijos marcados `data-ref-solo` —478 caracteres por el clon y 494 en pantalla, en los
+dos árboles—. ⚠️ **MEDIR ESE GLOBO EXIGE ABRIR EL ACORDEÓN «variantes» PRIMERO**: cerrado, el
+botón mide 0×0, `_vInfoColocar` devuelve `null` y la cuenta da cero caracteres sobre un globo que
+sí existe. En **Contractilidad**, las dos tarjetas grises se achican a `7px 9px` de relleno y,
+con el 3D abierto, a **220** y **150 px** con el 3D como columna flexible —que le da 104 px más a
+1440 px y, de paso, **corrige un defecto preexistente**: a 1000 px la columna de hallazgos medía
+**44 px** con dos textos recortados, y hoy mide 220 con cero—. La tarjeta de hallazgos gana el
+bloque «**Arterias posiblemente involucradas**» con sus cinco formas de texto, cuya pertenencia
+sale de `CONTR_TERRITORIO` —que reparte **igual** que la demo— y cuyo nivel se decide por el
+**mínimo número AHA** alterado, que es la regla del pedido leída al revés. Y el 3D gana el botón
+«**Coronarias**» con las arterias del paciente, el tronco de la aorta, las **siete** letras y un
+panel de tres filas. ⚠️ **LA DEMO ES three.js Y ESTE 3D NO**: es un pintor 2D propio sobre un
+canvas de 680×380, así que lo que se porta es la **definición** de cada arteria, con la
+conversión medida `d = ph + 90`. ⚠️ **LAS ARTERIAS ACOMPAÑAN LA CONTRACCIÓN PORQUE LEEN EL MISMO
+RADIO QUE LA PARED** —`lv3dRing(k, fase, G)` por cuadro, con Catmull-Rom en el espacio de
+**parámetros** y no de puntos 3D—: medido en cuatro fases y 340 muestras, el cociente contra la
+pared se desvía 4,8 × 10⁻⁵ mientras el radio absoluto se contrae de 4,50 a 3,39. La demo **no se
+anima**, así que eso no sale de ella. ⚠️ **CON «Coronarias» APAGADO EL 3D ES IDÉNTICO, MEDIDO POR
+PÍXELES**: el mismo hash y los mismos 52.322 bytes que HEAD. ⚠️ **Y TC-783 DESTAPÓ UN DEFECTO
+REAL**: el trazo de las arterias dejaba `lineJoin` en `round` y el contexto del canvas es el
+mismo entre cuadros, así que el repaso de contorno de los 1.440 cuadros de la malla quedaba
+cambiado **para siempre** y el defecto sobrevivía a apagar el botón; una comparación de
+estructura no lo habría visto, porque no mueve un solo polígono. **El papel es IDÉNTICO**: 125
+escenas, 153.484 claves y 57.125 celdas, con PDF y PPT generados de verdad, cero diferencias,
+medido dos veces. Lo cubren **TC-778** a **TC-783** —los seis de PANT-28, **reescritos**
+conservando su número, porque afirmaban las fichas que esta tanda quitó— y **TC-784** a
+**TC-786**, con **TC-502**, **TC-509**, **TC-761**, **TC-763**, **TC-563** y **TC-490**
+adaptados; los tres últimos **invertidos**, y en los tres es el día que su propia excepción
+anunciaba. ⚠️ **LOS COMMITS 6 Y 7 —los resúmenes de las DIECINUEVE cardiopatías congénitas de la
+app— QUEDARON AFUERA por capacidad**, que es la prioridad que la orden fija; lo que falta, con
+las dos guías y sus reglas de folio listas para reusar, está en **P29-a · 1**. Lo declarado, en
+**P29-a**, **P29-b** y **P29-c**; el mapa, en `docs/mapa/pant29-coronarias-3d.md`; la guía
+manual, en `docs/GUIA_PRUEBA_PANT29.md`.
 
 **La tanda PANT-28 (2026-11-09) — Referencias: las anomalías coronarias, el corazón de atleta
 y la miocardiopatía chagásica.** NUEVE commits. Sello **`v20261109-2009`**, md5 **`c4fb0ba6`**.
