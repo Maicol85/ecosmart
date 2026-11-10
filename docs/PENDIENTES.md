@@ -38,6 +38,83 @@ se leen 20-80 lineas con `sed -n`.
 > Sello **`v20261109-1203`**, md5 **`a14c45a0`**. El detalle de dónde vive cada uno de los catorce
 > textos, con su texto completo de antes, está en **`docs/INVENTARIO_TEXTOS_P27.md`**.
 
+## P32-a · Lo que la tanda PANT-32 midió y la orden suponía distinto (2026-11-10)
+
+**Tres hipótesis de la orden resultaron falsas o incompletas, medidas en la TAREA 0:**
+
+1. **El botón «Documentos» NO tenía hoy ninguna forma de ocultarse ni de deshabilitarse.** La
+   orden pregunta «cómo se deshabilita y cómo se oculta el botón» (tarea 0d): el botón estaba
+   **siempre** y las cuatro opciones estaban **siempre activas**, por decisión expresa de
+   PANT-30. B2 tuvo que **crear** el ocultamiento, y va con una **clase** y no con `hidden`
+   porque `.btn` declara `display:inline-flex` y le gana al `[hidden]` del navegador — medido:
+   con el atributo puesto, el botón sigue midiendo 132 px de ancho.
+2. **`def.hojas` declara 1 / 2 / 2 / 2 y las hojas reales son 1 / 3 / 3 / 3.** El campo es
+   metadato y **ningún camino lo lee**, censado: el reparto lo decide el maquetador con los
+   bloques `salto` y el alto de cada bloque. **No se tocó** — es un campo muerto, y retirarlo es
+   una limpieza que no pertenece a esta tanda.
+3. **La declaración y la tabla de firmas YA viajaban juntas**, por el `grupo: 'firmas'` que
+   `docDeclaracion` pone en sus once bloques y que `docMaquetar` mide con `altoGrupo` antes de
+   abrir el grupo. **D4 no necesitó mecanismo nuevo**: el armador de modelos reusa ese grupo tal
+   cual, y para un propio sin tabla de firmas le pone el mismo `grupo` al bloque de firma del
+   médico.
+
+**Y una decisión de forma que la orden deja abierta:** la orden mapea «Título del documento» a
+«un renglón» sin decir cuál. Se resolvió así, y queda declarado:
+
+- en una **constancia**, el título editable es el bloque `tit` del papel (por omisión
+  «CONSTANCIA»);
+- en un **consentimiento**, el título editable es el **subtítulo** —el nombre del procedimiento—
+  y «CONSENTIMIENTO INFORMADO» se queda **fijo** como encabezado de la app. Por eso la plantilla
+  de D1 pone «Consentimiento para » en ese subtítulo: la hoja de un propio dice «CONSENTIMIENTO
+  INFORMADO» y debajo «Consentimiento para una prueba».
+
+**El título de la hoja y el nombre de la miniatura** de un incluido se quedan en el de su
+definición aunque se lo edite, para que la regla de oro no dependa de un rótulo; en un propio son
+su **nombre del menú**.
+
+## P32-b · Lo que esta tanda declara y NO corrigió
+
+1. **Un `esp` del papel no tiene forma en el texto editable, y la constancia editada pierde 2 mm
+   de aire.** Los bloques `esp` y `salto` no son representables en el texto del médico: el aire lo
+   pone el maquetador y el texto corre de una hoja a la siguiente sin salto forzado, que es lo que
+   **D4** pide. El precio medido: la constancia **incluida** tiene un `esp` de 2 mm entre sus dos
+   últimas oraciones, y una constancia **editada** no lo tiene. No se tocó, porque darle una
+   convención de texto al aire vertical es ofrecerle al médico un control de maquetación que la
+   orden no pide.
+2. **Un modelo cambiado en Configuración no alcanza a una hoja que el médico ya corrigió a
+   mano.** Es lo que **C6** pide —la corrección vale sólo para ese paciente— pero tiene un borde:
+   si la hoja de ese documento está en memoria **con** correcciones y el modelo cambia, al
+   reabrirla sigue la hoja vieja, sin aviso. El aviso «Actualizar con los datos» de PANT-31 vigila
+   los **datos de la app**, no el modelo. Queda declarado, sin tocar: el aviso del modelo es una
+   frase nueva en pantalla, y eso lo decide el médico.
+3. **El nombre del PDF de un documento propio sale como `documento_p1_<fecha>.pdf`.** `p1` es la
+   clave interna, que no se deriva del nombre a propósito —dos documentos pueden llamarse igual, y
+   un nombre con acentos o espacios no es una clave—. No se tocó: cambiar el nombre del archivo
+   descargado alcanza también a los cuatro incluidos, y eso es una superficie que la orden no
+   nombra.
+4. **El archivo exportado lleva `v` como número.** La orden pide «solo cadenas de texto y casillas
+   verdadero/falso»; la **versión** es un número por diseño y el validador la compara con
+   `DOCMOD_VER` antes de mirar nada más. Es el único número del archivo, verificado recorriendo
+   todos sus valores.
+5. **Una mutación del barrido quedó declarada como redundante y no se retiró**: con el tope de
+   propios sacado, el tope **total** (4 incluidos + 3 propios = 7 > 6) la cazaba igual. Hoy la
+   mutación rompe **las dos** guardas, que es la única forma de que pruebe el invariante; las dos
+   coinciden exactamente en 2 mientras haya cuatro incluidos y el total sea seis.
+
+## P32-c · Las dos trampas de método que esta tanda pagó
+
+1. **El acento grave en MI PROPIO comentario, dentro del cuerpo de un caso — DOS veces**, en
+   TC-803 y en una corrección posterior del mismo caso. El cuerpo es un template literal: un
+   backtick, aunque esté en un comentario, lo cierra y el archivo deja de parsear con un
+   `SyntaxError` que apunta al `caso(` y no al culpable. Lo caza `node --check`, y contar los
+   acentos graves del tramo nuevo lo previene: **dos por caso**, ni uno más.
+2. **La siembra del médico usaba `eco_medicos`, que NO existe** — la clave es **`ett_medicos`**,
+   que `ETT_MEDICOS_KEY` fija en una línea del archivo, con `ett_medico_principal` al lado. **La
+   sonda de PANT-31 tenía el mismo error**, así que el papel se medía con el nombre del médico
+   vacío y la firma dibujaba «____». Se ve recién al preguntar por el nombre en la tinta del
+   papel, no en el conteo de operaciones. Corregido en las tres sondas de esta tanda; **la de
+   PANT-31 no se tocó**, porque sus mediciones ya están cerradas y publicadas.
+
 ## P27-a · Lo que se PARÓ, lo que se encontró de más, y las premisas que no se reprodujeron
 
 ### 1 · TRES premisas de la orden no se reprodujeron

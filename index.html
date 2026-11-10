@@ -115958,9 +115958,22 @@ function docmodModelo(clave, st) {
     const o = docmodOrig(clave);
     if (!o) return null;
     const e = st.incl[clave] || { vis: true, nom: '', ed: null };
-    const f = e.ed || o;
+    /* ⚠️ UN `ed` IGUAL AL ORIGINAL NO CUENTA COMO EDITADO, Y LA COMPARACION VA ACA Y NO SOLO EN
+       EL BOTON «Guardar». Lo destapo TC-801 (C6): `ed` puede llegar de un archivo IMPORTADO o de
+       un estado escrito a mano, y un documento cuyo texto es el original EXACTO tiene que
+       imprimir por su definicion y no por el armador. Con la comparacion solo en el boton, la
+       regla de oro dependia del camino por el que el estado habia llegado.
+       Se comparan los dos cuerpos NORMALIZADOS por `docmodCuerpo`: con `JSON.stringify` sobre el
+       objeto crudo, el mismo contenido con las claves en otro orden da dos cadenas distintas. */
+    let ed = e.ed;
+    if (ed) {
+      const norm = function (z) { return docmodCuerpo({ tipo: o.tipo, tit: z.tit, frase: z.frase,
+        txt: z.txt, pregs: z.pregs, decl: z.decl, firmas: z.firmas, comunes: z.comunes }); };
+      try { if (JSON.stringify(norm(o)) === JSON.stringify(norm(ed))) ed = null; } catch (x) {}
+    }
+    const f = ed || o;
     const m = { clave: clave, tipo: o.tipo, incl: true, propio: false,
-                nom: e.nom || o.nom, vis: e.vis !== false, editado: !!e.ed,
+                nom: e.nom || o.nom, vis: e.vis !== false, editado: !!ed,
                 tit: String(f.tit || ''), decl: f.decl !== false,
                 firmas: f.firmas !== false, comunes: f.comunes !== false };
     if (o.tipo === 'constancia') { m.frase = f.frase !== false; m.txt = String(f.txt || ''); }

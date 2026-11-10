@@ -130004,6 +130004,996 @@ caso('TC-800', 'PANT-31: «Protesis valvulares» con su casilla de PPT -- igual 
   })();
 `);
 
+/* ══ PANT-32 (2026-11-10) · el cajon de Documentos en Configuracion ═══════════════════════════
+   Seis casos, TC-801 a TC-806. Ninguno usa una expresion regular: el cuerpo es un template
+   literal, asi que /\s+/g llega como /s+/g y reemplaza las «s» por espacios -- la trampa que
+   CLAUDE.md documenta-. Y ninguno lleva un acento grave, ni en sus comentarios: cierra el
+   template y el caso queda registrado como un NUMERO, que el guardian de arranque caza. */
+
+caso('TC-801', 'PANT-32: el almacen de modelos y LA REGLA DE ORO -- los cuatro incluidos SIN EDITAR devuelven el MISMO objeto de DOC_DEFS y el papel de PANT-31 hoja por hoja, el modelo original se DERIVA sin perder una palabra, y el almacen tolera un valor corrupto', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) el almacen de modelos existe',
+    typeof docmodLeer === 'function' && typeof docmodDef === 'function' && typeof docmodOrig === 'function');
+  if (typeof docmodDef !== 'function') return { extra: F };
+  const guardado = (function () { try { return localStorage.getItem('ecosmart_doc_modelos') } catch (e) { return null } })();
+  try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  const D = docDatos();
+  const papel = (def) => {
+    const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
+    return maq ? { n: maq.n, ops: maq.hojas.reduce((a, o) => a + o.length, 0),
+                   por: maq.hojas.map(o => o.length).join('/') } : null;
+  };
+  /* == (A) LA REGLA DE ORO ================================================================
+     Sin editar, docmodDef devuelve el objeto de DOC_DEFS TAL CUAL. No una copia igual: el
+     MISMO, que es la unica forma de que el papel no pueda moverse. */
+  const ESP = { constancia: [1, 13], cve: [3, 150], ete: [3, 198], burb: [3, 152] };
+  const CL = ['constancia', 'cve', 'ete', 'burb'];
+  q('(A0) DENOM: la biblioteca PDF esta, o no hay papel que medir', !!papel(DOC_DEFS.constancia));
+  if (!papel(DOC_DEFS.constancia)) { if (guardado) { try { localStorage.setItem('ecosmart_doc_modelos', guardado) } catch (e) {} } return { extra: F }; }
+  CL.forEach(k => {
+    const def = docmodDef(k);
+    q('(A1) ' + k + ': sin editar, docmodDef devuelve el MISMO objeto de DOC_DEFS', def === DOC_DEFS[k],
+      def === DOC_DEFS[k] ? 'identidad' : 'OTRO objeto');
+    const p = papel(def);
+    q('(A2) ' + k + ': ' + ESP[k][0] + ' hoja(s) y ' + ESP[k][1] + ' operaciones, los de PANT-31',
+      !!p && p.n === ESP[k][0] && p.ops === ESP[k][1], p ? (p.n + ' hojas, ' + p.ops + ' ops, ' + p.por) : 'sin papel');
+    q('(A3) ' + k + ': el modelo dice que no esta editado', !docmodModelo(k).editado);
+  });
+  /* == (B) EL MODELO ORIGINAL SE DERIVA Y NO SE RETIPEA ====================================
+     Ni una palabra de los cuatro documentos cambia, y eso se mide por el complementario:
+     las palabras del CUERPO de la definicion contra las del texto que el editor muestra. */
+  const pal = (s) => {
+    const o = []; let b = '';
+    String(s).split('').forEach(c => {
+      const n = c.charCodeAt(0);
+      const letra = (n >= 48 && n <= 57) || (n >= 65 && n <= 90) || (n >= 97 && n <= 122) || n > 127;
+      if (letra) b += c; else { if (b) o.push(b); b = ''; }
+    });
+    if (b) o.push(b);
+    return o;
+  };
+  CL.forEach(k => {
+    const o = docmodOrig(k);
+    q('(B0) ' + k + ': el modelo original existe y declara su tipo', !!o && !!o.tipo, o ? o.tipo : '-');
+    if (!o) return;
+    const b = DOC_DEFS[k].bloques();
+    let ini = -1, fin = -1;
+    b.forEach((x, i) => {
+      if (o.tipo === 'constancia') { if (ini < 0 && x.t === 'p') ini = i; if (fin < 0 && x.t === 'firma') fin = i; }
+      else { if (ini < 0 && x.t === 'pacid') ini = i; if (fin < 0 && x.grupo === 'firmas') fin = i; }
+    });
+    const cuerpo = b.slice(ini + 1, fin < 0 ? b.length : fin);
+    const pDef = [];
+    cuerpo.forEach(x => { if (x.x) pDef.push.apply(pDef, pal(x.x)); (x.items || []).forEach(it => pDef.push.apply(pDef, pal(it))); });
+    const txt = (o.tipo === 'constancia') ? o.txt : (o.pregs || []).map(p => p.t + ' ' + p.x).join(' ');
+    const pTxt = pal(txt);
+    const faltan = pDef.filter(w => pTxt.indexOf(w) < 0);
+    q('(B1) ' + k + ': el texto derivado no pierde una palabra del cuerpo (' + pDef.length + ' palabras)',
+      pDef.length > 10 && faltan.length === 0, faltan.slice(0, 10).join(' '));
+    q('(B2) ' + k + ': y el original es IGUAL al original, que es lo que deja ed en null',
+      docmodIgualAlOriginal(k, o));
+  });
+  const oc = docmodOrig('constancia');
+  q('(B3) la constancia declara su frase con los datos como PIEZA', oc.frase === true);
+  /* ⚠️ Y SU TEXTO LIBRE NO LA REPITE. Lo destapo el barrido de mutaciones: con el cuerpo derivado
+     desde la frase en vez de desde la linea siguiente, la frase con los datos del paciente sale
+     DOS veces en el papel -- una por la pieza y otra por el texto-, y contar palabras no lo ve
+     porque las palabras estan todas. */
+  q('(B3b) y su texto libre NO la repite', oc.txt.indexOf('Se deja constancia') < 0,
+    oc.txt.slice(0, 60));
+  q('(B3c) y en el papel sale UNA sola vez',
+    (function () {
+      const D2 = docDatos();
+      const maq2 = docMaquetar(DOC_DEFS.constancia, D2, docBloquesNuevos(DOC_DEFS.constancia, D2));
+      const bl2 = docmodArmar({ tipo: 'constancia', incl: true, clave: 'constancia', tit: oc.tit,
+        frase: true, txt: oc.txt, decl: true, firmas: true, comunes: true });
+      let n = 0;
+      bl2.forEach(b => { if (String(b.x || '').indexOf('Se deja constancia') > -1) n++; });
+      return n === 1;
+    })(),
+    'bloques con la frase: ' + docmodArmar({ tipo: 'constancia', incl: true, clave: 'constancia',
+      tit: oc.tit, frase: true, txt: oc.txt, decl: true, firmas: true, comunes: true })
+      .filter(b => String(b.x || '').indexOf('Se deja constancia') > -1).length);
+  q('(B4) y su titulo sale de su propio bloque', oc.tit === 'CONSTANCIA', oc.tit);
+  const oe = docmodOrig('ete');
+  q('(B5) el ETE trae SEIS preguntas, las de su definicion', (oe.pregs || []).length === 6,
+    (oe.pregs || []).map(p => p.t).join(' | '));
+  q('(B6) con «Antes del estudio» entre ellas',
+    (oe.pregs || []).some(p => p.t.indexOf('Antes del estudio') === 0));
+  /* == (C) EL ALMACEN ======================================================================= */
+  const st = docmodLeer();
+  q('(C1) nace con los cuatro incluidos y cero propios',
+    Object.keys(st.incl).length === 4 && st.prop.length === 0 && st.v === 1,
+    Object.keys(st.incl).join(',') + ' prop=' + st.prop.length);
+  st.incl.constancia.ed = { tit: 'CONSTANCIA', frase: true, txt: 'Texto de la institucion.',
+                            decl: true, firmas: true, comunes: true };
+  q('(C2) se escribe', docmodEscribir(st));
+  const st2 = docmodLeer();
+  q('(C3) y se relee con su texto', st2.incl.constancia.ed && st2.incl.constancia.ed.txt === 'Texto de la institucion.',
+    st2.incl.constancia.ed ? st2.incl.constancia.ed.txt : 'sin ed');
+  /* CONTROL NEGATIVO de la regla de oro: un editado YA NO es el mismo objeto. */
+  const dEd = docmodDef('constancia');
+  q('(C4) CONTROL: editada, la constancia ya NO devuelve el objeto de DOC_DEFS',
+    dEd !== DOC_DEFS.constancia && docmodModelo('constancia').editado);
+  q('(C5) y los OTROS TRES siguen siendo el mismo objeto, con su papel intacto',
+    ['cve', 'ete', 'burb'].every(k => docmodDef(k) === DOC_DEFS[k] &&
+      papel(docmodDef(k)).ops === ESP[k][1]),
+    ['cve', 'ete', 'burb'].map(k => k + '=' + (docmodDef(k) === DOC_DEFS[k]) + ':' + papel(docmodDef(k)).ops).join(' '));
+  /* Volver al original deja ed en null por COMPARACION, no por una bandera. */
+  const st3 = docmodLeer();
+  st3.incl.constancia.ed = docmodCuerpo(docmodOrig('constancia'));
+  docmodEscribir(st3);
+  q('(C6) guardar un cuerpo IGUAL al original devuelve la identidad',
+    docmodDef('constancia') === DOC_DEFS.constancia || !docmodModelo('constancia').editado,
+    'editado=' + docmodModelo('constancia').editado);
+  /* Un valor corrupto no revienta el render: devuelve el estado vacio. */
+  try { localStorage.setItem('ecosmart_doc_modelos', 'esto no es json {') } catch (e) {}
+  let vacio = null, tiro = false;
+  try { vacio = docmodLeer(); } catch (e) { tiro = true; }
+  q('(C7) un valor corrupto NO tira y devuelve el estado vacio',
+    !tiro && !!vacio && Object.keys(vacio.incl).length === 4 && vacio.prop.length === 0,
+    tiro ? 'tiro' : (vacio ? Object.keys(vacio.incl).length + '/' + vacio.prop.length : 'null'));
+  q('(C8) y con el valor corrupto la regla de oro sigue valiendo',
+    CL.every(k => docmodDef(k) === DOC_DEFS[k]));
+  /* ⚠️ Y UN JSON QUE SI PARSEA PERO TIENE OTRA FORMA TAMBIEN DA EL ESTADO VACIO. Lo destapo el
+     barrido: con la lectura devolviendo el crudo, la cadena corrupta igual caia en el catch y la
+     condicion de arriba pasaba -- lo que NO se probaba era el camino de la validacion. */
+  try { localStorage.setItem('ecosmart_doc_modelos', JSON.stringify({ v: 99, incl: { xx: 1 }, zz: [1, 2] })) } catch (e) {}
+  const malForma = docmodLeer();
+  q('(C8b) un json valido con otra FORMA tambien da el estado vacio, no el crudo',
+    Object.keys(malForma.incl).length === 4 && malForma.prop.length === 0 &&
+    malForma.v === 1 && malForma.zz === undefined && malForma.incl.xx === undefined,
+    JSON.stringify(Object.keys(malForma)) + ' incl=' + JSON.stringify(Object.keys(malForma.incl)));
+  q('(C8c) y los cuatro siguen devolviendo su objeto', CL.every(k => docmodDef(k) === DOC_DEFS[k]));
+  /* El validador rechaza por clave desconocida, version y tipo de dato. */
+  q('(C9) el validador rechaza una clave desconocida',
+    !docmodValidar({ v: 1, incl: {}, prop: [], otra: 1 }, false).ok);
+  q('(C10) una version que no conoce', !docmodValidar({ v: 99, incl: {}, prop: [] }, false).ok);
+  q('(C11) un incluido que no existe', !docmodValidar({ v: 1, incl: { xx: { vis: true } }, prop: [] }, false).ok);
+  q('(C12) un numero donde va un texto',
+    !docmodValidar({ v: 1, incl: {}, prop: [{ clave: 'a', tipo: 'consent', nom: 'A', tit: 'A', pregs: [{ t: 'x', x: 5 }] }] }, false).ok);
+  q('(C13) y acepta un estado bueno',
+    docmodValidar({ v: 1, incl: { constancia: { vis: false, nom: 'Otra', ed: null } }, prop: [] }, false).ok);
+  try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+  if (guardado) { try { localStorage.setItem('ecosmart_doc_modelos', guardado) } catch (e) {} }
+  try { if (typeof cfgDocsRender === 'function') cfgDocsRender(); } catch (e) {}
+  return { extra: F };
+  })();
+`);
+
+caso('TC-802', 'PANT-32: las cinco convenciones del texto editable -- vinieta, casilla, raya, negrita y linea en blanco-, la ida y vuelta sin perder nada, y la declaracion de un documento PROPIO que no nombra el procedimiento, con su control negativo', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) el conversor de texto existe',
+    typeof docmodTextoABloques === 'function' && typeof docmodBloquesATexto === 'function');
+  if (typeof docmodTextoABloques !== 'function') return { extra: F };
+  const CUAD = String.fromCharCode(9744);
+  const VIN = String.fromCharCode(8226);
+  const SI = 'S' + String.fromCharCode(237);
+  /* == (A) LAS CINCO CONVENCIONES, UNA POR UNA ============================================ */
+  const t = [
+    'Un parrafo normal.', '',
+    VIN + ' una vinieta', VIN + ' **Fuerte:** otra vinieta', '',
+    CUAD + ' ' + SI + ' ' + CUAD + ' No  primera casilla',
+    CUAD + ' ' + SI + ' ' + CUAD + ' No  segunda casilla', '',
+    'Rotulo de la raya:', '________', '',
+    'Un parrafo con **una palabra** en negrita.', '',
+    'El firmante deja constancia de que el paciente ' + CUAD + ' si ' + CUAD + ' no se encuentra capacitado.', '',
+    CUAD + ' ' + SI + ' ' + CUAD + ' No  una sola casilla', '',
+    /* ⚠️ ARRANCA CON EL PREFIJO DE CASILLA Y DEJA UN TERCER CUADRADO ATRAS: eso NO es una
+       casilla, es un parrafo con casillas dibujadas. Lo destapo el barrido de mutaciones --
+       sacar esa guarda no rompia nada, porque ninguna linea de esta prueba la ejercitaba-. */
+    CUAD + ' ' + SI + ' ' + CUAD + ' No  el paciente ' + CUAD + ' acepta'
+  ].join(String.fromCharCode(10));
+  const bl = docmodTextoABloques(t);
+  const tipos = bl.map(b => b.t).join(',');
+  q('(A1) salen OCHO bloques, en orden', bl.length === 8, bl.length + ': ' + tipos);
+  q('(A2) el parrafo llano es un p', bl[0] && bl[0].t === 'p' && bl[0].x === 'Un parrafo normal.', tipos);
+  q('(A3) las dos vinietas son UN ul de dos items', bl[1] && bl[1].t === 'ul' && (bl[1].items || []).length === 2,
+    bl[1] ? JSON.stringify(bl[1].items) : '-');
+  q('(A4) con la negrita del prefijo como fuerte y SIN los asteriscos',
+    bl[1] && (bl[1].fuerte || []).indexOf('Fuerte:') === 0 && bl[1].items[1].indexOf('*') < 0,
+    bl[1] ? JSON.stringify(bl[1].fuerte) + ' ' + bl[1].items[1] : '-');
+  q('(A5) DOS casillas seguidas son un chk2, que es el que sale en dos columnas',
+    bl[2] && bl[2].t === 'chk2' && (bl[2].items || []).length === 2, bl[2] ? JSON.stringify(bl[2].items) : '-');
+  q('(A6) y sin el prefijo dibujado en su texto',
+    bl[2] && bl[2].items[0] === 'primera casilla', bl[2] ? bl[2].items[0] : '-');
+  q('(A7) los guiones bajos solos son una raya, con el parrafo de arriba como rotulo',
+    bl[3] && bl[3].t === 'raya' && bl[3].x === 'Rotulo de la raya:', bl[3] ? bl[3].t + ' ' + bl[3].x : '-');
+  q('(A8) los dobles asteriscos sueltos dan un pr con sus tramos',
+    bl[4] && bl[4].t === 'pr' && (bl[4].runs || []).length === 3 && bl[4].runs[1].b === true,
+    bl[4] ? JSON.stringify((bl[4].runs || []).map(r => (r.b ? '[b]' : '') + r.s)) : '-');
+  /* ⚠️ LA DISTINCION QUE IMPORTA: una linea con cuadrados EN EL MEDIO no es una casilla, es un
+     pchk, que los DIBUJA donde estan. Sin esta rama, docSan los convierte en un espacio y el
+     paciente recibe una linea con dos huecos que no puede marcar. Es lo que PANT-31 pago. */
+  q('(A9) una linea con cuadrados en el MEDIO es un pchk y NO una casilla',
+    bl[5] && bl[5].t === 'pchk' && bl[5].x.indexOf(CUAD) > 0, bl[5] ? bl[5].t : '-');
+  q('(A10) UNA casilla sola es un chk1', bl[6] && bl[6].t === 'chk1' && bl[6].x === 'una sola casilla',
+    bl[6] ? bl[6].t + ' ' + bl[6].x : '-');
+  /* Su texto CONSERVA los tres cuadrados, y tiene que conservarlos: el papel dibuja un cuadrado
+     donde esta cada uno, asi que sacarlos dejaria una linea sin nada que marcar. */
+  q('(A10b) y una que arranca con el prefijo pero deja un TERCER cuadrado es un pchk, no una casilla',
+    bl[7] && bl[7].t === 'pchk' && (String(bl[7].x).split(CUAD).length - 1) === 3,
+    bl[7] ? bl[7].t + ' con ' + (String(bl[7].x).split(CUAD).length - 1) + ' cuadrados: ' + bl[7].x : '-');
+  /* CONTROL NEGATIVO: sin convenciones, todo es un parrafo y nada mas. */
+  const llano = docmodTextoABloques('Primera linea.' + String.fromCharCode(10) + 'Segunda linea.');
+  q('(A11) CONTROL: dos lineas sin linea en blanco son UN solo parrafo',
+    llano.length === 1 && llano[0].t === 'p' && llano[0].x === 'Primera linea. Segunda linea.',
+    JSON.stringify(llano));
+  const dos = docmodTextoABloques('Una.' + String.fromCharCode(10) + String.fromCharCode(10) + 'Otra.');
+  q('(A12) CONTROL: con la linea en blanco son DOS', dos.length === 2 && dos[0].t === 'p' && dos[1].t === 'p',
+    JSON.stringify(dos.map(b => b.t)));
+  /* == (B) LA IDA Y VUELTA ================================================================== */
+  const vuelta = docmodBloquesATexto(bl);
+  const bl2 = docmodTextoABloques(vuelta);
+  q('(B1) texto -> bloques -> texto -> bloques da los MISMOS tipos',
+    bl2.map(b => b.t).join(',') === tipos, bl2.map(b => b.t).join(',') + ' contra ' + tipos);
+  q('(B2) y el ul conserva su fuerte',
+    bl2[1] && (bl2[1].fuerte || []).indexOf('Fuerte:') === 0, bl2[1] ? JSON.stringify(bl2[1].fuerte) : '-');
+  /* == (C) LAS CINCO CONVENCIONES EN EL PAPEL ============================================== */
+  const D = docDatos();
+  const def = { clave: 'tc802', menu: 'Prueba', tit: 'Prueba', sz: 10.2, lh: 13.4, hojas: 1,
+                bloques: () => bl.map((b, i) => { const c = {}; for (const k in b) c[k] = b[k]; c.i = i; return c; }) };
+  const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
+  q('(C0) DENOM: el papel se arma', !!maq && maq.n >= 1, maq ? maq.n : 'null');
+  if (maq) {
+    let cajas = 0, rayas = 0, vins = 0, negras = 0;
+    maq.hojas.forEach(ops => ops.forEach(o => {
+      if (o.k === 'box') cajas++;
+      if (o.k === 'l') rayas++;
+      if (o.s === VIN) vins++;
+      if (o.k === 'tw' && (o.ws || []).some(w => w.b === true)) negras++;
+    }));
+    q('(C1) la vinieta llega al papel', vins === 2, vins);
+    q('(C2) las casillas se DIBUJAN: seis cuadrados (dos chk2 + un pchk + un chk1)', cajas >= 6, cajas);
+    q('(C3) la raya para escribir a mano llega', rayas >= 1, rayas);
+    q('(C4) y la negrita llega como PESO POR PALABRA en una linea justificada', negras >= 1, negras);
+    const tinta = [];
+    maq.hojas.forEach(ops => ops.forEach(o => { if (o.s) tinta.push(o.s); (o.ws || []).forEach(w => tinta.push(w.s)); }));
+    const T = tinta.join(' ');
+    q('(C5) y los asteriscos NO salen impresos', T.indexOf('**') < 0, T.slice(0, 80));
+    q('(C6) ni los glifos de cuadrado, porque se dibujan', T.indexOf(CUAD) < 0);
+  }
+  /* == (D) A5 · LA DECLARACION DE UN PROPIO ================================================ */
+  const texto = (bs) => bs.map(b => String(b.x || '') + ' ' + (b.items || []).join(' ')).join(' ');
+  const mp = docmodNuevo('consent');
+  mp.clave = 'tc802p'; mp.incl = false; mp.propio = true; mp.nom = 'Propio';
+  mp.pregs[0].x = 'Una prueba.';
+  const tp = texto(docmodArmar(mp));
+  q('(D1) un propio dice «en qué consiste el procedimiento»',
+    tp.indexOf('en qu' + String.fromCharCode(233) + ' consiste el procedimiento') > -1);
+  q('(D2) y «se me realice el procedimiento descrito en este documento»',
+    tp.indexOf('se me realice el procedimiento descrito en este documento') > -1);
+  q('(D3) y NO nombra ningun estudio de los incluidos',
+    tp.indexOf('transesof') < 0 && tp.indexOf('cardioversi') < 0 && tp.indexOf('burbujas') < 0);
+  /* CONTROL NEGATIVO: el INCLUIDO conserva su procedimiento, palabra por palabra. */
+  const ti = texto(DOC_DEFS.ete.bloques());
+  q('(D4) CONTROL: el ETE incluido sigue diciendo SU procedimiento',
+    ti.indexOf('en qu' + String.fromCharCode(233) + ' consiste un ecocardiograma transesof') > -1);
+  q('(D5) CONTROL: y NO dice «descrito en este documento»',
+    ti.indexOf('descrito en este documento') < 0);
+  return { extra: F };
+  })();
+`);
+
+
+caso('TC-803', 'PANT-32: la seccion «Documentos» de Configuracion -- entre sus dos vecinas y con el molde de las demas-, el interruptor del boton del Informe que oculta con una CLASE porque hidden no alcanza, la lista con sus etiquetas y su cupo, y ocultar que no borra', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) la seccion y su pintor existen',
+    !!document.getElementById('cfg-card-docs') && typeof cfgDocsRender === 'function');
+  if (!document.getElementById('cfg-card-docs')) return { extra: F };
+  const gMod = (function () { try { return localStorage.getItem('ecosmart_doc_modelos') } catch (e) { return null } })();
+  const gBtn = (function () { try { return localStorage.getItem('ecosmart_doc_boton') } catch (e) { return null } })();
+  try { localStorage.removeItem('ecosmart_doc_modelos'); localStorage.removeItem('ecosmart_doc_boton') } catch (e) {}
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(300);
+  /* == (A) DONDE ESTA Y CON QUE MOLDE ====================================================== */
+  const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-config section.cfg-card'));
+  let i = -1;
+  cards.forEach((c, k) => { if (c.id === 'cfg-card-docs') i = k; });
+  const tit = (c) => c ? ((c.querySelector('.cfg-sec-title') || {}).textContent || '').trim() : '';
+  q('(A1) es un section.cfg-card, el molde de las demas', i >= 0 && cards[i].tagName === 'SECTION',
+    i >= 0 ? cards[i].tagName : 'no esta');
+  q('(A2) con su .cfg-sec-title', tit(cards[i]).indexOf('Documentos') > -1, tit(cards[i]));
+  q('(A3) justo DESPUES de «Imagenes del estudio»', tit(cards[i - 1]).indexOf('genes del estudio') > -1, tit(cards[i - 1]));
+  q('(A4) y ANTES de «Modo de visualizacion»', tit(cards[i + 1]).indexOf('Modo de visualizaci') > -1, tit(cards[i + 1]));
+  q('(A5) y es visible, que es el denominador de todo lo demas', !!cards[i].offsetParent);
+  q('(A6) la linea del pie esta, con su texto exacto',
+    (document.getElementById('cfg-docs-pie') || {}).textContent ===
+      'El texto de cada documento es responsabilidad de la instituci' + String.fromCharCode(243) + 'n que lo usa.',
+    (document.getElementById('cfg-docs-pie') || {}).textContent);
+  /* == (B) EL INTERRUPTOR ================================================================== */
+  /* El boton vive en el INFORME, asi que la geometria se mide ahi: en Config su pestania esta
+     en display:none y todo informa 0x0, que se lee igual que «el boton no esta». */
+  try { showTab('informe') } catch (e) {}
+  await esp(240);
+  const w = document.querySelector('.doc-menu-wrap');
+  const btn = document.getElementById('doc-btn');
+  q('(B0) DENOM: el envoltorio del boton y el boton estan, y con caja',
+    !!w && !!btn && w.getBoundingClientRect().height > 0,
+    w ? Math.round(w.getBoundingClientRect().height) + ' px' : 'sin envoltorio');
+  if (!w || !btn || !(w.getBoundingClientRect().height > 0)) return { extra: F };
+  q('(B1) por omision el interruptor esta ENCENDIDO', docmodBotonOn() === true);
+  q('(B2) y la casilla de Config lo refleja',
+    !!(document.getElementById('cfg-docs-on') || {}).checked);
+  q('(B3) el envoltorio se ve', getComputedStyle(w).display !== 'none', getComputedStyle(w).display);
+  cfgDocsToggleBoton(false);
+  q('(B4) apagarlo le pone la clase doc-oculto', w.classList.contains('doc-oculto'), w.className);
+  q('(B5) y el envoltorio deja de verse, con alto cero',
+    getComputedStyle(w).display === 'none' && Math.round(w.getBoundingClientRect().height) === 0,
+    getComputedStyle(w).display + ' alto ' + Math.round(w.getBoundingClientRect().height));
+  q('(B6) se guarda en su clave propia',
+    (function () { try { return localStorage.getItem('ecosmart_doc_boton') } catch (e) { return '-' } })() === '0');
+  q('(B7) y docmodBotonOn lo dice, que es lo que vale al recargar', docmodBotonOn() === false);
+  /* ⚠️ EL CONTROL QUE IMPORTA: hidden NO ALCANZA, Y ES LA LECCION DE PANT-30. La clase .btn
+     declara display:inline-flex y le gana al [hidden] del navegador, asi que con el atributo
+     puesto el boton se sigue viendo. Si alguien cambia la clase por hidden, esto se pone rojo.
+     Sin acentos graves en este comentario: cierran el template y el caso queda como un numero. */
+  w.classList.remove('doc-oculto');
+  w.hidden = true;
+  const dH = getComputedStyle(w).display, aH = Math.round(btn.getBoundingClientRect().width);
+  w.hidden = false;
+  w.classList.add('doc-oculto');
+  q('(B8) CONTROL: con hidden y SIN la clase, el envoltorio se seguiria viendo',
+    dH !== 'none' && aH > 0, 'display ' + dH + ', boton de ' + aH + ' px de ancho');
+  cfgDocsToggleBoton(true);
+  q('(B9) prenderlo lo devuelve', !w.classList.contains('doc-oculto') &&
+    getComputedStyle(w).display !== 'none' && Math.round(w.getBoundingClientRect().height) >= 44,
+    getComputedStyle(w).display + ' alto ' + Math.round(w.getBoundingClientRect().height));
+  /* == (C) LA LISTA Y EL CUPO ============================================================== */
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(250);
+  const filas = () => Array.prototype.map.call(document.querySelectorAll('#cfg-docs-lista .cfgdoc-fila'), f => ({
+    nom: (f.querySelector('.cfgdoc-nom') || {}).textContent || '',
+    tags: Array.prototype.map.call(f.querySelectorAll('.cfgdoc-tag'), t => t.textContent).join(','),
+    vis: !!(f.querySelector('[data-cd-vis]') || {}).checked,
+    ed: !!f.querySelector('[data-cd-ed]'), del: !!f.querySelector('[data-cd-del]')
+  }));
+  let fs = filas();
+  q('(C1) la lista trae los CUATRO incluidos', fs.length === 4, fs.length + ': ' + fs.map(x => x.nom).join(' | '));
+  q('(C2) la constancia lleva su etiqueta de tipo y «Viene incluido»',
+    fs[0] && fs[0].tags.indexOf('Constancia') > -1 && fs[0].tags.indexOf('Viene incluido') > -1, fs[0] ? fs[0].tags : '-');
+  q('(C3) los tres consentimientos llevan la suya',
+    fs.slice(1).every(x => x.tags.indexOf('Consentimiento') > -1), fs.slice(1).map(x => x.tags).join(' | '));
+  q('(C4) los cuatro tienen «Editar»', fs.every(x => x.ed));
+  q('(C5) y NINGUNO tiene «Borrar», que es lo que B4 pide', fs.every(x => !x.del),
+    fs.filter(x => x.del).length + ' con borrar');
+  q('(C6) el cupo dice cuantos de seis',
+    (document.getElementById('cfg-docs-cupo') || {}).textContent.indexOf('4 de 6 documentos') === 0,
+    (document.getElementById('cfg-docs-cupo') || {}).textContent);
+  q('(C7) y «Agregar documento» esta activo con cero propios',
+    !(document.getElementById('cfg-docs-add') || {}).disabled);
+  /* == (D) OCULTAR SOLO SACA DEL MENU ====================================================== */
+  const antes = JSON.stringify(docmodModelo('cve'));
+  cfgDocsVis('cve', false);
+  fs = filas();
+  const f1 = fs[1];
+  q('(D1) la fila del oculto lo dice con su etiqueta',
+    !!f1 && f1.tags.indexOf('Oculto en el men') > -1 && !f1.vis, f1 ? f1.tags : '-');
+  q('(D2) el modelo NO se borro: sigue con su nombre',
+    !!docmodModelo('cve') && docmodModelo('cve').nom.indexOf('cardioversi') > -1,
+    docmodModelo('cve') ? docmodModelo('cve').nom : 'desaparecio');
+  q('(D3) ni perdio su texto: sigue sin editar y con sus preguntas',
+    !docmodModelo('cve').editado && docmodModelo('cve').pregs.length === 5,
+    docmodModelo('cve').pregs.length + ' preguntas');
+  q('(D4) y el CUPO no cambia, porque los ocultos cuentan',
+    (document.getElementById('cfg-docs-cupo') || {}).textContent.indexOf('4 de 6 documentos') === 0,
+    (document.getElementById('cfg-docs-cupo') || {}).textContent);
+  cfgDocsVis('cve', true);
+  q('(D5) volver a mostrarlo deja el modelo igual que al principio',
+    JSON.stringify(docmodModelo('cve')) === antes);
+  /* ⚠️ Y UN INCLUIDO EDITADO NO PIERDE SU TEXTO AL OCULTARLO, que es lo que B4 promete. Lo
+     destapo el barrido de mutaciones: las condiciones de arriba miden sobre un documento SIN
+     editar, asi que borrarle su texto al ocultarlo no cambiaba nada medible. */
+  const stE = docmodLeer();
+  stE.incl.cve.ed = { tit: 'Cardioversion', frase: true, txt: '',
+                      pregs: [{ t: 'Que es', x: 'Lo escribio la institucion.' }],
+                      decl: true, firmas: true, comunes: true };
+  delete stE.incl.cve.ed.frase; delete stE.incl.cve.ed.txt;
+  docmodEscribir(docmodValidar(stE, false).st);
+  q('(D6) DENOM: la cardioversion queda editada', docmodModelo('cve').editado);
+  cfgDocsVis('cve', false);
+  q('(D7) ocultar un incluido EDITADO no le borra su texto',
+    docmodModelo('cve').editado &&
+    (docmodModelo('cve').pregs[0] || {}).x === 'Lo escribio la institucion.',
+    'editado=' + docmodModelo('cve').editado + ' pregs=' + docmodModelo('cve').pregs.length);
+  cfgDocsVis('cve', true);
+  q('(D8) y mostrarlo tampoco', docmodModelo('cve').editado &&
+    (docmodModelo('cve').pregs[0] || {}).x === 'Lo escribio la institucion.');
+  const stF = docmodLeer(); stF.incl.cve.ed = null; docmodEscribir(stF);
+  /* == (E) CELULAR ========================================================================= */
+  const sec = document.getElementById('cfg-card-docs');
+  const chicos = Array.prototype.slice.call(sec.querySelectorAll('button, .cfgdoc-vis'))
+    .filter(b => { const r = b.getBoundingClientRect(); return r.height > 0 && r.height < 44; })
+    .map(b => (b.textContent || '').trim().slice(0, 18) + '=' + Math.round(b.getBoundingClientRect().height));
+  q('(E1) ningun control de la seccion mide menos de 44 px de alto', chicos.length === 0, chicos.join(' | '));
+  q('(E2) y ninguna fila desborda la tarjeta',
+    Array.prototype.slice.call(sec.querySelectorAll('.cfgdoc-fila'))
+      .every(f => f.getBoundingClientRect().right <= sec.getBoundingClientRect().right + 1));
+  try { localStorage.removeItem('ecosmart_doc_modelos'); localStorage.removeItem('ecosmart_doc_boton') } catch (e) {}
+  if (gMod) { try { localStorage.setItem('ecosmart_doc_modelos', gMod) } catch (e) {} }
+  if (gBtn) { try { localStorage.setItem('ecosmart_doc_boton', gBtn) } catch (e) {} }
+  try { cfgDocsRender() } catch (e) {}
+  return { extra: F };
+  })();
+`);
+
+caso('TC-804', 'PANT-32: el menu del Informe se PINTA del almacen y cambia al instante -- con su mensaje cuando no hay ninguno visible-, y el editor abre en la misma pantalla con la hoja del Informe como vista previa, campos de texto plano, un texto que parece HTML mostrado como TEXTO, y sus oyentes registrados UNA sola vez', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) el pintor del menu y el editor existen',
+    typeof docmodMenuRender === 'function' && typeof cfgDocsEditar === 'function');
+  if (typeof docmodMenuRender !== 'function') return { extra: F };
+  const gMod = (function () { try { return localStorage.getItem('ecosmart_doc_modelos') } catch (e) { return null } })();
+  try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+  const cf = window.confirm, al = window.alert, pr = window.prompt;
+  const reg = { c: [], a: [], p: [] };
+  let resp = true, texto = '';
+  window.confirm = (m) => { reg.c.push(String(m)); return resp; };
+  window.alert = (m) => { reg.a.push(String(m)); };
+  window.prompt = (m) => { reg.p.push(String(m)); return texto; };
+  const restaurar = () => {
+    window.confirm = cf; window.alert = al; window.prompt = pr;
+    try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+    if (gMod) { try { localStorage.setItem('ecosmart_doc_modelos', gMod) } catch (e) {} }
+    try { cfgDocsRender() } catch (e) {}
+  };
+  try {
+  /* == (A) EL MENU SE PINTA ================================================================ */
+  try { showTab('informe') } catch (e) {}
+  await esp(240);
+  docmodMenuRender();
+  const m = document.getElementById('doc-menu');
+  const claves = () => Array.prototype.map.call(m.querySelectorAll('[data-doc-k]'), b => b.getAttribute('data-doc-k'));
+  q('(A1) las opciones salen del almacen y llevan su clave en data-doc-k, no en un onclick inline',
+    claves().join(',') === 'constancia,cve,ete,burb', claves().join(','));
+  q('(A2) y NINGUNA tiene un onclick inline, donde escHtml no protege',
+    Array.prototype.every.call(m.querySelectorAll('[data-doc-k]'), b => !b.getAttribute('onclick')));
+  q('(A3) las cuatro conservan su role de menuitem',
+    Array.prototype.every.call(m.querySelectorAll('[data-doc-k]'), b => b.getAttribute('role') === 'menuitem'));
+  /* Al instante, sin recargar: es lo que B5 pide. */
+  cfgDocsVis('ete', false);
+  q('(A4) ocultar uno lo saca del menu AL INSTANTE', claves().join(',') === 'constancia,cve,burb', claves().join(','));
+  cfgDocsVis('ete', true);
+  q('(A5) y mostrarlo lo devuelve a su lugar', claves().join(',') === 'constancia,cve,ete,burb', claves().join(','));
+  ['constancia', 'cve', 'ete', 'burb'].forEach(k => cfgDocsVis(k, false));
+  q('(A6) con NINGUNO visible el menu lo dice', claves().length === 0 &&
+    (m.textContent || '').indexOf('No hay documentos visibles.') > -1, m.textContent.trim().slice(0, 50));
+  ['constancia', 'cve', 'ete', 'burb'].forEach(k => cfgDocsVis(k, true));
+  /* Y la opcion ABRE el documento, que es para lo que esta. */
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  const b0 = m.querySelector('[data-doc-k="constancia"]');
+  if (b0) { b0.click(); await esp(300); }
+  const ov = document.getElementById('doc-ov');
+  q('(A7) tocar la opcion abre la hoja de ese documento', !!ov && !ov.hidden &&
+    (document.getElementById('doc-ov-tit') || {}).textContent === 'Constancia',
+    (document.getElementById('doc-ov-tit') || {}).textContent);
+  try { docCerrar() } catch (e) {}
+  /* == (B) EL EDITOR ======================================================================= */
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(250);
+  cfgDocsEditar('cve');
+  await esp(320);
+  const ed = document.getElementById('cfg-docs-ed');
+  q('(B1) el editor abre en la MISMA pantalla', !!ed && !ed.hidden);
+  q('(B2) y esconde la lista, el cupo y los botones',
+    ['cfg-docs-lista', 'cfg-docs-cupo', 'cfg-docs-botones']
+      .every(id => document.getElementById(id).classList.contains('doc-oculto')));
+  q('(B3) con «Volver a Documentos»', !!document.getElementById('cfg-docs-volver'));
+  q('(B4) el nombre del menu y el titulo son campos de texto',
+    (document.getElementById('cfg-docs-nom') || {}).tagName === 'INPUT' &&
+    (document.getElementById('cfg-docs-tit') || {}).tagName === 'INPUT');
+  const tas = ed.querySelectorAll('.cdd-izq textarea');
+  q('(B5) las preguntas son textarea, que es TEXTO PLANO', tas.length === 5, tas.length);
+  q('(B6) y la columna del editor NO tiene un solo contenteditable',
+    ed.querySelectorAll('.cdd-izq [contenteditable]').length === 0,
+    ed.querySelectorAll('.cdd-izq [contenteditable]').length);
+  q('(B7) las tres piezas estan tildadas', ['decl', 'firmas', 'comunes']
+    .every(k => !!(document.getElementById('cfg-docs-pz-' + k) || {}).checked));
+  q('(B8) la linea de ayuda nombra las cuatro convenciones',
+    (function () { const a = (ed.querySelector('.cdd-ayuda') || {}).textContent || '';
+      return a.indexOf('Vi' + String.fromCharCode(241) + 'eta') > -1 && a.indexOf('Casilla') > -1 &&
+             a.indexOf('Raya') > -1 && a.indexOf('Negrita') > -1; }),
+    (ed.querySelector('.cdd-ayuda') || {}).textContent);
+  q('(B9) y el aviso de las piezas repetidas esta',
+    ((ed.querySelector('.cdd-aviso') || {}).textContent || '').indexOf('destild') > -1,
+    (ed.querySelector('.cdd-aviso') || {}).textContent);
+  q('(B10) los bloques grises explican lo que pone la app', ed.querySelectorAll('.cdd-fijo').length >= 1,
+    ed.querySelectorAll('.cdd-fijo').length);
+  /* == (C) LA VISTA PREVIA USA LA HOJA DEL INFORME ========================================= */
+  const prev = document.getElementById('cfg-docs-prev');
+  q('(C1) la vista previa existe y se pinto', !!prev && prev.children.length > 5,
+    prev ? prev.children.length + ' hijos' : 'no esta');
+  q('(C2) con las clases de la hoja del Informe, no con una segunda maqueta',
+    !!prev && !!prev.querySelector('.doc-enc') && !!prev.querySelector('.doc-tit') &&
+    !!prev.querySelector('.doc-pacid'));
+  q('(C3) con un paciente FICTICIO y ningun dato real',
+    (prev.textContent || '').indexOf('Paciente de Ejemplo') > -1);
+  q('(C4) y SIN un solo contenteditable: aca se mira, no se corrige',
+    prev.querySelectorAll('[contenteditable]').length === 0);
+  q('(C5) y dice cuantas hojas va a tener el papel',
+    ((document.getElementById('cfg-docs-prev-n') || {}).textContent || '').indexOf('hoja') > -1,
+    (document.getElementById('cfg-docs-prev-n') || {}).textContent);
+  /* Escribir y verla cambiar. */
+  const ta0 = document.querySelector('[data-cdp-x="0"]');
+  ta0.value = 'ESTOLOESCRIBIOLAINSTITUCION.';
+  ta0.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(420);
+  q('(C6) escribir la actualiza', (prev.textContent || '').indexOf('ESTOLOESCRIBIOLAINSTITUCION') > -1);
+  /* ⚠️ UN TEXTO QUE PARECE HTML SE VE COMO TEXTO. Es la condicion de seguridad de la tanda. */
+  ta0.value = 'ETIQUETA ' + String.fromCharCode(60) + 'b' + String.fromCharCode(62) + 'ojo' +
+    String.fromCharCode(60) + '/b' + String.fromCharCode(62) + ' y ' +
+    String.fromCharCode(60) + 'script' + String.fromCharCode(62) + 'alert(1)' +
+    String.fromCharCode(60) + '/script' + String.fromCharCode(62);
+  ta0.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(420);
+  q('(C7) un texto que parece HTML se ve como TEXTO en la vista previa',
+    (prev.textContent || '').indexOf(String.fromCharCode(60) + 'b' + String.fromCharCode(62) + 'ojo') > -1);
+  q('(C8) sin un solo elemento b ni script en la hoja',
+    prev.querySelectorAll('b, script').length === 0, prev.querySelectorAll('b, script').length);
+  /* == (D) LOS OYENTES, UNA SOLA VEZ ======================================================
+     ⚠️ LO DESTAPO UNA SONDA Y LA LECTURA NO: cfgDocsEdRender reemplaza el innerHTML pero NO el
+     contenedor, asi que sin la guarda cada repintado colgaba un juego nuevo de oyentes y el
+     click se atendia tantas veces como veces se hubiera repintado -- «Volver al texto original»
+     preguntaba dos veces y «Guardar» habria guardado dos-. Se mide DESPUES de varios
+     repintados, que es la unica condicion en que el defecto aparece. */
+  document.getElementById('cfg-docs-preg-add').click(); await esp(120);
+  document.getElementById('cfg-docs-preg-add').click(); await esp(120);
+  const nPregs = document.querySelectorAll('#cfg-docs-pregs .cdd-preg').length;
+  q('(D1) dos clics en «Agregar pregunta» agregan DOS, no cuatro ni ocho', nPregs === 7, nPregs);
+  reg.c = []; resp = true;
+  document.getElementById('cfg-docs-orig').click(); await esp(200);
+  q('(D2) y «Volver al texto original» pregunta UNA sola vez, tras cuatro repintados',
+    reg.c.length === 1, reg.c.length + ' preguntas: ' + reg.c.join(' // '));
+  q('(D3) y carga el original, con sus cinco preguntas',
+    document.querySelectorAll('#cfg-docs-pregs .cdd-preg').length === 5,
+    document.querySelectorAll('#cfg-docs-pregs .cdd-preg').length);
+  q('(D4) sin guardar nada: el modelo sigue sin editar', !docmodModelo('cve').editado);
+  /* == (E) CANCELAR CON CAMBIOS ============================================================ */
+  /* ⚠️ HAY QUE CAMBIAR ALGO PRIMERO, Y LA PRIMERA VERSION DE ESTE CASO NO LO HACIA: despues de
+     «Volver al texto original» el editor tiene el MISMO contenido con el que abrio -- las dos
+     veces el original-, asi que no hay cambios sin guardar y Cancelar cierra sin preguntar, que
+     es lo correcto. El caso fallaba por su escena, no por la app. */
+  const taE = document.querySelector('[data-cdp-x="0"]');
+  taE.value = 'Un cambio sin guardar.';
+  taE.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(300);
+  reg.c = []; resp = false;
+  document.getElementById('cfg-docs-cancelar').click(); await esp(150);
+  q('(E1) Cancelar con cambios sin guardar PREGUNTA',
+    reg.c.length === 1 && reg.c[0].indexOf('Salir sin guardar') > -1, reg.c.join(' // '));
+  q('(E2) y al decir que no, el editor QUEDA abierto', !document.getElementById('cfg-docs-ed').hidden);
+  resp = true;
+  document.getElementById('cfg-docs-cancelar').click(); await esp(200);
+  q('(E3) al decir que si, cierra y vuelve la lista',
+    document.getElementById('cfg-docs-ed').hidden &&
+    !document.getElementById('cfg-docs-lista').classList.contains('doc-oculto'));
+  q('(E4) y nada se guardo: la cardioversion sigue devolviendo el objeto de DOC_DEFS',
+    docmodDef('cve') === DOC_DEFS.cve);
+  } finally { restaurar(); }
+  return { extra: F };
+  })();
+`);
+
+
+caso('TC-805', 'PANT-32: un documento PROPIO de punta a punta -- la pregunta de tipo en la pantalla, la plantilla con sus cinco preguntas vacias, el nombre que no puede quedar vacio, el tope de DOS con su boton desactivado y el borrado que libera el cupo-, y su papel con la declaracion y las firmas SIEMPRE juntas, las hojas comunes aparte y la pregunta vacia que no se imprime', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) el alta de documentos propios existe',
+    typeof cfgDocsAgregar === 'function' && typeof cfgDocsEditarNuevo === 'function');
+  if (typeof cfgDocsAgregar !== 'function') return { extra: F };
+  const gMod = (function () { try { return localStorage.getItem('ecosmart_doc_modelos') } catch (e) { return null } })();
+  try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+  const cf = window.confirm, al = window.alert, pr = window.prompt;
+  const reg = { c: [], a: [], p: [] };
+  let resp = true, texto = '';
+  window.confirm = (m) => { reg.c.push(String(m)); return resp; };
+  window.alert = (m) => { reg.a.push(String(m)); };
+  window.prompt = (m) => { reg.p.push(String(m)); return texto; };
+  const restaurar = () => {
+    window.confirm = cf; window.alert = al; window.prompt = pr;
+    try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+    if (gMod) { try { localStorage.setItem('ecosmart_doc_modelos', gMod) } catch (e) {} }
+    try { if (_docAbierto) docCerrar() } catch (e) {}
+    try { cfgDocsRender() } catch (e) {}
+  };
+  try {
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(300);
+  /* == (A) EL ALTA ========================================================================= */
+  document.getElementById('cfg-docs-add').click();
+  await esp(120);
+  const tipo = document.getElementById('cfg-docs-tipo');
+  q('(A1) la pregunta «que querés agregar» aparece EN LA PANTALLA, no en un cuadro del navegador',
+    !!tipo && !tipo.hidden && reg.p.length === 0 && reg.c.length === 0,
+    'prompts=' + reg.p.length + ' confirms=' + reg.c.length);
+  const bts = Array.prototype.map.call(tipo.querySelectorAll('button'), b => (b.textContent || '').trim());
+  q('(A2) con sus dos opciones con nombre y un Cancelar',
+    bts.join(',') === 'Constancia,Consentimiento,Cancelar', bts.join(','));
+  q('(A3) y los tres con 44 px de alto tactil',
+    Array.prototype.every.call(tipo.querySelectorAll('button'), b => Math.round(b.getBoundingClientRect().height) >= 44),
+    Array.prototype.map.call(tipo.querySelectorAll('button'), b => Math.round(b.getBoundingClientRect().height)).join(','));
+  tipo.querySelectorAll('button')[1].click();
+  await esp(320);
+  q('(A4) «Consentimiento» abre el editor y cierra la pregunta',
+    !document.getElementById('cfg-docs-ed').hidden && tipo.hidden);
+  q('(A5) la plantilla trae el titulo que la orden fija',
+    (document.getElementById('cfg-docs-tit') || {}).value === 'Consentimiento para ',
+    (document.getElementById('cfg-docs-tit') || {}).value);
+  q('(A6) en un documento NUEVO el nombre del menu NO se pide todavia: se pregunta al guardar',
+    !document.getElementById('cfg-docs-nom'));
+  const pregs = Array.prototype.map.call(document.querySelectorAll('#cfg-docs-pregs .cdd-preg'), d => ({
+    t: d.querySelector('[data-cdp-t]').value, vac: !!d.querySelector('.cdd-vacia') }));
+  q('(A7) con las CINCO preguntas orientativas', pregs.length === 5, pregs.map(p => p.t).join(' | '));
+  q('(A8) las cinco vacias, y las cinco lo DICEN', pregs.every(p => p.vac), pregs.filter(p => p.vac).length);
+  q('(A9) y las tres piezas tildadas',
+    ['decl', 'firmas', 'comunes'].every(k => !!document.getElementById('cfg-docs-pz-' + k).checked));
+  /* == (B) EL NOMBRE NO PUEDE QUEDAR VACIO ================================================= */
+  const ta0 = document.querySelector('[data-cdp-x="0"]');
+  ta0.value = 'Una prueba breve de documento propio.';
+  ta0.dispatchEvent(new Event('input', { bubbles: true }));
+  await esp(300);
+  reg.p = []; reg.a = []; texto = '   ';
+  document.getElementById('cfg-docs-guardar').click();
+  await esp(200);
+  q('(B1) Guardar pregunta el nombre del menu',
+    reg.p.length === 1 && reg.p[0].indexOf('se llama este documento') > -1, reg.p.join(' // '));
+  q('(B2) con el nombre en blanco avisa y NO guarda',
+    reg.a.length === 1 && reg.a[0].indexOf('no puede quedar vac') > -1 && docmodLeer().prop.length === 0,
+    reg.a.join(' // ') + ' propios=' + docmodLeer().prop.length);
+  q('(B3) y el editor queda abierto', !document.getElementById('cfg-docs-ed').hidden);
+  texto = 'Propio uno';
+  document.getElementById('cfg-docs-guardar').click();
+  await esp(300);
+  const st1 = docmodLeer();
+  q('(B4) con nombre guarda, como propio y visible',
+    st1.prop.length === 1 && st1.prop[0].nom === 'Propio uno' && st1.prop[0].tipo === 'consent' && st1.prop[0].vis === true,
+    JSON.stringify(st1.prop.map(p => p.clave + '=' + p.nom)));
+  q('(B5) y la fila nueva lleva «Propio» y SI ofrece Borrar',
+    (function () {
+      const fs = Array.prototype.slice.call(document.querySelectorAll('#cfg-docs-lista .cfgdoc-fila'));
+      const u = fs[fs.length - 1];
+      return fs.length === 5 && (u.textContent || '').indexOf('Propio') > -1 && !!u.querySelector('[data-cd-del]');
+    })(), document.querySelectorAll('#cfg-docs-lista .cfgdoc-fila').length + ' filas');
+  /* == (C) EL TOPE DE DOS ================================================================== */
+  document.getElementById('cfg-docs-add').click(); await esp(120);
+  document.getElementById('cfg-docs-tipo').querySelectorAll('button')[0].click(); await esp(300);
+  q('(C1) «Constancia» abre su plantilla: con la pieza de la frase y SIN preguntas',
+    !!document.getElementById('cfg-docs-frase') && !document.getElementById('cfg-docs-pregs'));
+  q('(C2) y con el texto libre por omision en dos oraciones',
+    ((document.getElementById('cfg-docs-txt') || {}).value || '').indexOf('Se extiende la presente') === 0,
+    ((document.getElementById('cfg-docs-txt') || {}).value || '').slice(0, 40));
+  texto = 'Propio dos';
+  document.getElementById('cfg-docs-guardar').click(); await esp(300);
+  q('(C3) con DOS propios el cupo llega a seis y lo dice',
+    docmodLeer().prop.length === 2 &&
+    (document.getElementById('cfg-docs-cupo') || {}).textContent.indexOf('6 de 6 documentos') === 0 &&
+    (document.getElementById('cfg-docs-cupo') || {}).textContent.indexOf('borr') > -1,
+    (document.getElementById('cfg-docs-cupo') || {}).textContent);
+  q('(C4) y «Agregar documento» queda DESACTIVADO',
+    !!document.getElementById('cfg-docs-add').disabled);
+  reg.a = [];
+  cfgDocsAgregar();
+  q('(C5) CONTROL: llamar a la funcion igual no deja agregar un tercero',
+    reg.a.length === 1 && docmodLeer().prop.length === 2 && document.getElementById('cfg-docs-tipo').hidden,
+    reg.a.join(' // ') + ' propios=' + docmodLeer().prop.length);
+  /* == (D) EL PAPEL DEL PROPIO ============================================================= */
+  const D = docDatos();
+  const cl1 = docmodLeer().prop[0].clave;
+  /* Un propio LARGO, para que la declaracion tenga que pasar de hoja entera. */
+  const st2 = docmodLeer();
+  const p1 = st2.prop[0];
+  let largo = '';
+  for (let k = 0; k < 14; k++) {
+    largo += 'Este es un parrafo de prueba de un consentimiento propio, escrito para medir como corre el texto de una hoja a la siguiente sin ningun salto forzado y para que la declaracion tenga que pasar de hoja entera.' + String.fromCharCode(10) + String.fromCharCode(10);
+  }
+  p1.pregs = [{ t: 'Que es', x: largo }, { t: 'Vacia a proposito', x: '' }];
+  docmodEscribir(docmodValidar(st2, false).st);
+  const def = docmodDef(cl1);
+  q('(D0) DENOM: la def del propio sale del almacen', !!def && def.clave === cl1);
+  const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
+  q('(D1) DENOM: el papel se arma', !!maq && maq.n >= 2, maq ? maq.n + ' hojas' : 'sin papel');
+  if (!maq) { restaurar(); return { extra: F }; }
+  q('(D2) con el cuerpo en 10,2 pt y el interlineado en 13,4, los de la orden',
+    def.sz === 10.2 && def.lh === 13.4, def.sz + '/' + def.lh);
+  const hojaDe = (pred) => {
+    for (let h = 0; h < maq.hojas.length; h++) {
+      const ops = maq.hojas[h];
+      for (let i = 0; i < ops.length; i++) {
+        const t = (ops[i].s || '') + ' ' + (ops[i].ws || []).map(x => x.s).join(' ');
+        if (pred(ops[i], t)) return h + 1;
+      }
+    }
+    return 0;
+  };
+  const hDecl = hojaDe((o, t) => t.indexOf('Declaro que') > -1);
+  const hFir = hojaDe((o) => o.k === 'rect');
+  const hCom = hojaDe((o, t) => t.indexOf('imposibilitado de otorgar') > -1);
+  q('(D3) la declaracion y la tabla de firmas caen en la MISMA hoja, y NO en la primera',
+    hDecl > 1 && hDecl === hFir, 'declaracion en ' + hDecl + ', firmas en ' + hFir);
+  q('(D4) y las hojas comunes vienen DESPUES, aparte', hCom === hDecl + 1, 'comunes en ' + hCom);
+  const bl = docBloquesNuevos(def, D);
+  const saltos = bl.filter(b => b.t === 'salto').length;
+  q('(D5) el texto corre sin salto forzado: el UNICO salto es el de las hojas comunes',
+    saltos === 1, saltos + ' saltos');
+  const tinta = [];
+  maq.hojas.forEach(ops => ops.forEach(o => { if (o.s) tinta.push(o.s); (o.ws || []).forEach(w => tinta.push(w.s)); }));
+  const T = tinta.join(' ');
+  q('(D6) la pregunta VACIA no se imprime, ni su titulo', T.indexOf('Vacia a proposito') < 0);
+  q('(D7) el encabezado centra el nombre de la institucion',
+    maq.hojas[0].some(o => o.k === 'c' && String(o.s).length > 3), '');
+  q('(D8) y la linea del paciente esta', bl.filter(b => b.t === 'pacid').length === 1);
+  /* Destildar la tabla de firmas deja IGUAL la firma del medico, que es lo que C2 pide. */
+  const st3 = docmodLeer();
+  st3.prop[0].firmas = false;
+  docmodEscribir(docmodValidar(st3, false).st);
+  const bl2 = docBloquesNuevos(docmodDef(cl1), D);
+  q('(D9) destildar la tabla de firmas la saca y deja la firma del medico',
+    bl2.filter(b => b.t === 'tfirmas').length === 0 && bl2.filter(b => b.t === 'firma').length === 1,
+    'tfirmas=' + bl2.filter(b => b.t === 'tfirmas').length + ' firma=' + bl2.filter(b => b.t === 'firma').length);
+  st3.prop[0].firmas = true;
+  docmodEscribir(docmodValidar(st3, false).st);
+  /* == (E) LA HOJA DEL INFORME Y SUS DOS ENTREGAS ========================================== */
+  try { showTab('informe') } catch (e) {}
+  await esp(240);
+  docmodMenuRender();
+  q('(E1) el menu del Informe ofrece los dos propios, DESPUES de los cuatro incluidos',
+    Array.prototype.map.call(document.querySelectorAll('#doc-menu [data-doc-k]'), b => b.getAttribute('data-doc-k'))
+      .join(',').indexOf('constancia,cve,ete,burb,') === 0,
+    Array.prototype.map.call(document.querySelectorAll('#doc-menu [data-doc-k]'), b => b.getAttribute('data-doc-k')).join(','));
+  docAbrir(cl1);
+  await esp(320);
+  q('(E2) la hoja abre con el NOMBRE del documento como titulo',
+    !document.getElementById('doc-ov').hidden &&
+    (document.getElementById('doc-ov-tit') || {}).textContent === 'Propio uno',
+    (document.getElementById('doc-ov-tit') || {}).textContent);
+  q('(E3) y es editable, como la de los incluidos',
+    document.getElementById('doc-hoja').querySelectorAll('[contenteditable]').length > 5,
+    document.getElementById('doc-hoja').querySelectorAll('[contenteditable]').length);
+  q('(E4) la clave de «Imagenes» lleva el prefijo doc- y la del documento',
+    docClaveEsq(docDefActual().clave) === 'doc-' + cl1, docClaveEsq(docDefActual().clave));
+  q('(E5) y la miniatura llevaria el NOMBRE del documento', docDefActual().tit === 'Propio uno',
+    docDefActual().tit);
+  docImprimir();
+  await esp(200);
+  q('(E6) «Imprimir» arma el PDF y dice cuantas hojas',
+    ((document.getElementById('doc-estado') || {}).textContent || '').indexOf('Documento generado: ' + maq.n) === 0,
+    (document.getElementById('doc-estado') || {}).textContent);
+  try { docCerrar() } catch (e) {}
+  /* == (F) BORRAR LIBERA EL CUPO =========================================================== */
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(250);
+  reg.c = []; resp = true;
+  cfgDocsBorrar(cl1);
+  await esp(200);
+  q('(F1) borrar un propio PREGUNTA, nombrandolo y diciendo que no se puede deshacer',
+    reg.c.length === 1 && reg.c[0].indexOf('Propio uno') > -1 && reg.c[0].indexOf('No se puede deshacer') > -1,
+    reg.c.join(' // '));
+  q('(F2) y libera el cupo, con el boton otra vez activo',
+    docmodLeer().prop.length === 1 &&
+    (document.getElementById('cfg-docs-cupo') || {}).textContent.indexOf('5 de 6 documentos') === 0 &&
+    !document.getElementById('cfg-docs-add').disabled,
+    (document.getElementById('cfg-docs-cupo') || {}).textContent);
+  q('(F3) el otro propio sigue', docmodLeer().prop.length === 1 && docmodLeer().prop[0].nom === 'Propio dos',
+    docmodLeer().prop.map(p => p.nom).join(','));
+  q('(F4) CONTROL: los cuatro incluidos NUNCA se borran y siguen devolviendo su objeto',
+    ['constancia', 'cve', 'ete', 'burb'].every(k => docmodDef(k) === DOC_DEFS[k]));
+  } finally { restaurar(); }
+  return { extra: F };
+  })();
+`);
+
+caso('TC-806', 'PANT-32: exportar e importar modelos -- el archivo con SOLO textos y opciones y cero datos de paciente o de institucion, la ida y vuelta identica, y DIEZ archivos rechazados ENTEROS con sus dos mensajes y el almacen sin tocar', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  q('(DENOM) exportar e importar existen',
+    typeof cfgDocsExportar === 'function' && typeof cfgDocsImportar === 'function');
+  if (typeof cfgDocsExportar !== 'function') return { extra: F };
+  const gMod = (function () { try { return localStorage.getItem('ecosmart_doc_modelos') } catch (e) { return null } })();
+  try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+  const cf = window.confirm, al = window.alert;
+  const reg = { c: [], a: [] };
+  let resp = true;
+  window.confirm = (m) => { reg.c.push(String(m)); return resp; };
+  window.alert = (m) => { reg.a.push(String(m)); };
+  /* La descarga se intercepta: lo que hay que medir es el NOMBRE y el CONTENIDO, no el guardado. */
+  const clickOrig = HTMLAnchorElement.prototype.click;
+  const BlobOrig = window.Blob;
+  const bajadas = [], blobs = [];
+  HTMLAnchorElement.prototype.click = function () {
+    if (this.download) { bajadas.push(this.download); return; }
+    return clickOrig.apply(this, arguments);
+  };
+  window.Blob = function (partes, o) { try { blobs.push(String(partes[0])) } catch (e) {} return new BlobOrig(partes, o); };
+  const restaurar = () => {
+    HTMLAnchorElement.prototype.click = clickOrig;
+    window.Blob = BlobOrig;
+    window.confirm = cf; window.alert = al;
+    try { localStorage.removeItem('ecosmart_doc_modelos') } catch (e) {}
+    if (gMod) { try { localStorage.setItem('ecosmart_doc_modelos', gMod) } catch (e) {} }
+    try { cfgDocsRender() } catch (e) {}
+  };
+  try {
+  try { showTab('config'); if (window.cfgOnShow) cfgOnShow(); } catch (e) {}
+  await esp(300);
+  /* == (A) LOS DOS BOTONES Y LA LINEA ====================================================== */
+  const sec = document.getElementById('cfg-card-docs');
+  const nom = Array.prototype.map.call(sec.querySelectorAll('button'), b => (b.textContent || '').trim());
+  q('(A1) «Exportar modelos» esta, con 44 px de alto',
+    nom.some(t => t.indexOf('Exportar modelos') > -1) &&
+    Array.prototype.slice.call(sec.querySelectorAll('button'))
+      .filter(b => (b.textContent || '').indexOf('Exportar') > -1)
+      .every(b => Math.round(b.getBoundingClientRect().height) >= 44), nom.join(' | '));
+  q('(A2) «Importar modelos» tambien', nom.some(t => t.indexOf('Importar modelos') > -1));
+  const inp = document.getElementById('cfg-docs-imp');
+  q('(A3) con su selector de archivo oculto y su accept de json',
+    !!inp && inp.type === 'file' && (inp.getAttribute('accept') || '').indexOf('json') > -1,
+    inp ? inp.getAttribute('accept') : 'no esta');
+  q('(A4) y la linea que dice que el archivo no lleva datos de pacientes',
+    (sec.textContent || '').indexOf('sin datos de pacientes') > -1);
+  /* == (B) EL ARCHIVO EXPORTADO =========================================================== */
+  const st = docmodLeer();
+  st.incl.constancia.ed = { tit: 'CONSTANCIA PROPIA', frase: true, txt: 'Texto de la institucion.',
+                            decl: true, firmas: true, comunes: true };
+  st.incl.ete.vis = false;
+  st.incl.cve.nom = 'Cardioversion renombrada';
+  st.prop = [{ clave: 'p1', tipo: 'consent', vis: true, nom: 'Propio de prueba', tit: 'Mi procedimiento',
+               pregs: [{ t: 'Que es', x: 'Una prueba.' }], decl: true, firmas: false, comunes: true }];
+  docmodEscribir(docmodValidar(st, false).st);
+  cfgDocsExportar();
+  await esp(150);
+  const txt = blobs[blobs.length - 1] || '';
+  let obj = null; try { obj = JSON.parse(txt) } catch (e) {}
+  q('(B1) baja un archivo con el nombre que la orden fija',
+    bajadas.length === 1 && bajadas[0].indexOf('ecosmart_modelos_documentos_') === 0 &&
+    bajadas[0].slice(-5) === '.json', bajadas.join(','));
+  q('(B2) con su marca de formato y su version', !!obj && obj._ecosmart_modelos === true && obj.v === 1,
+    obj ? JSON.stringify(Object.keys(obj)) : 'no parsea');
+  q('(B3) y SOLO las claves que la orden lista',
+    !!obj && Object.keys(obj).sort().join(',') === '_ecosmart_modelos,fecha,incl,prop,v',
+    obj ? Object.keys(obj).sort().join(',') : '-');
+  q('(B4) lleva lo editado de los incluidos',
+    !!obj && obj.incl.constancia.ed && obj.incl.constancia.ed.txt === 'Texto de la institucion.');
+  q('(B5) su visibilidad y su nombre', !!obj && obj.incl.ete.vis === false &&
+    obj.incl.cve.nom === 'Cardioversion renombrada');
+  q('(B6) y el propio con su tipo, su titulo, sus preguntas y sus piezas',
+    !!obj && obj.prop.length === 1 && obj.prop[0].tipo === 'consent' &&
+    obj.prop[0].tit === 'Mi procedimiento' && obj.prop[0].pregs.length === 1 && obj.prop[0].firmas === false,
+    obj ? JSON.stringify(obj.prop[0]) : '-');
+  /* ⚠️ LO QUE NO TIENE QUE ESTAR, buscado por su complementario: el archivo se comparte, asi que
+     un dato de paciente adentro sale de la computadora del medico. */
+  const D = docDatos();
+  const prohibidos = [D.pac, D.docn, D.inst, D.med, D.mat, 'data:image']
+    .filter(v => v && String(v).length > 3 && txt.indexOf(String(v)) > -1);
+  q('(B7) y CERO datos de paciente, de institucion, de medico y ningun logo',
+    prohibidos.length === 0, prohibidos.join(' | '));
+  q('(B8) ni el interruptor del boton, que es una preferencia de esta computadora',
+    txt.indexOf('ecosmart_doc_boton') < 0 && (!obj || obj.boton === undefined));
+  /* == (C) LA IDA Y VUELTA ================================================================= */
+  const bueno = txt;
+  const st0 = docmodLeer();
+  st0.prop = []; st0.incl.constancia.ed = null; st0.incl.ete.vis = true; st0.incl.cve.nom = '';
+  docmodEscribir(st0);
+  cfgDocsRender();
+  q('(C0) DENOM: antes de importar no hay propios y la constancia no esta editada',
+    docmodLeer().prop.length === 0 && !docmodModelo('constancia').editado);
+  reg.c = []; reg.a = []; resp = true;
+  cfgDocsImportar(new File([bueno], 'modelos.json', { type: 'application/json' }));
+  await esp(400);
+  q('(C1) importar un archivo valido PREGUNTA antes de reemplazar',
+    reg.c.length === 1 && reg.c[0].indexOf('reemplaza los documentos') > -1, reg.c.join(' // '));
+  const stv = docmodLeer();
+  q('(C2) y todo vuelve identico: el propio con su clave y su nombre',
+    stv.prop.length === 1 && stv.prop[0].clave === 'p1' && stv.prop[0].nom === 'Propio de prueba',
+    JSON.stringify(stv.prop.map(p => p.clave + '=' + p.nom)));
+  q('(C3) su pieza de firmas destildada', stv.prop[0].firmas === false);
+  q('(C4) la constancia con su texto editado',
+    !!stv.incl.constancia.ed && stv.incl.constancia.ed.txt === 'Texto de la institucion.');
+  q('(C5) el ETE oculto y la cardioversion con su nombre', stv.incl.ete.vis === false &&
+    stv.incl.cve.nom === 'Cardioversion renombrada');
+  q('(C6) y los tres sin editar siguen devolviendo el objeto de DOC_DEFS',
+    ['cve', 'ete', 'burb'].every(k => docmodDef(k) === DOC_DEFS[k]));
+  /* ⚠️ Y LO QUE QUEDA GUARDADO ES EL ESTADO NORMALIZADO, NO EL ARCHIVO. Lo destapo el barrido de
+     mutaciones: escribir el crudo pasaba desapercibido porque el lector normaliza igual, pero
+     deja en el almacen la marca de formato y la fecha del archivo, que no son del almacen. */
+  const crudoGuardado = (function () { try { return JSON.parse(localStorage.getItem('ecosmart_doc_modelos')) } catch (e) { return null } })();
+  q('(C7) el almacen guarda SOLO v, incl y prop: ni la marca de formato ni la fecha del archivo',
+    !!crudoGuardado && Object.keys(crudoGuardado).sort().join(',') === 'incl,prop,v',
+    crudoGuardado ? Object.keys(crudoGuardado).sort().join(',') : 'no parsea');
+  /* == (D) LOS DIEZ RECHAZOS ============================================================== */
+  const AJENO = 'Este archivo no es de EcoSmart o est' + String.fromCharCode(225) + ' da' +
+    String.fromCharCode(241) + 'ado. No se carg' + String.fromCharCode(243) + ' nada.';
+  const TRES = 'Este archivo trae m' + String.fromCharCode(225) + 's de 2 documentos propios';
+  const antes = JSON.stringify(docmodLeer());
+  const prop = (o) => { const b = { clave: 'a', tipo: 'consent', vis: true, nom: 'A', tit: 'A',
+    pregs: [], decl: true, firmas: true, comunes: true }; for (const k in o) b[k] = o[k]; return b; };
+  const sobre = (o) => { const b = { _ecosmart_modelos: true, v: 1, incl: {}, prop: [] };
+    for (const k in o) b[k] = o[k]; return JSON.stringify(b); };
+  let xs = '';
+  for (let k = 0; k < 6100; k++) xs += 'y';
+  let ns = '';
+  for (let k = 0; k < 62; k++) ns += 'x';
+  const casos = [
+    ['ajeno', JSON.stringify({ hola: 1, chau: [2, 3] }), AJENO],
+    ['danado', '{"_ecosmart_modelos":true,"v":1,"incl":{', AJENO],
+    ['sin la marca de formato', JSON.stringify({ v: 1, incl: {}, prop: [] }), AJENO],
+    ['clave desconocida', sobre({ extra: 'x' }), AJENO],
+    ['version que no conoce', sobre({ v: 7 }), AJENO],
+    ['un numero donde va un texto', sobre({ prop: [prop({ pregs: [{ t: 'x', x: 7 }] })] }), AJENO],
+    ['nombre de 62 caracteres', sobre({ prop: [prop({ nom: ns })] }), AJENO],
+    ['texto de pregunta de 6.100', sobre({ prop: [prop({ pregs: [{ t: 'x', x: xs }] })] }), AJENO],
+    ['31 preguntas', sobre({ prop: [prop({ pregs: (function () { const a = [];
+      for (let k = 0; k < 31; k++) a.push({ t: 't', x: 'x' }); return a; })() })] }), AJENO],
+    ['TRES documentos propios', sobre({ prop: [prop({ clave: 'a' }), prop({ clave: 'b' }), prop({ clave: 'c' })] }), TRES]
+  ];
+  for (let k = 0; k < casos.length; k++) {
+    reg.a = []; reg.c = []; resp = true;
+    cfgDocsImportar(new File([casos[k][1]], 'x.json', { type: 'application/json' }));
+    await esp(260);
+    q('(D' + (k + 1) + ') un archivo ' + casos[k][0] + ' se rechaza ENTERO, con su mensaje y sin preguntar',
+      reg.a.length === 1 && reg.a[0].indexOf(casos[k][2].slice(0, 40)) === 0 && reg.c.length === 0 &&
+      JSON.stringify(docmodLeer()) === antes,
+      'alert=' + reg.a.join('/') + ' confirm=' + reg.c.length + ' cambio=' + (JSON.stringify(docmodLeer()) !== antes));
+  }
+  /* == (E) DECIR QUE NO, Y UN TEXTO QUE PARECE CODIGO ===================================== */
+  reg.a = []; reg.c = []; resp = false;
+  cfgDocsImportar(new File([sobre({ prop: [prop({ nom: 'OTRO' })] })], 'x.json', { type: 'application/json' }));
+  await esp(300);
+  q('(E1) decir que NO a la confirmacion no cambia nada',
+    reg.c.length === 1 && JSON.stringify(docmodLeer()) === antes, 'cambio=' + (JSON.stringify(docmodLeer()) !== antes));
+  const L = String.fromCharCode(60), G = String.fromCharCode(62);
+  reg.a = []; reg.c = []; resp = true;
+  cfgDocsImportar(new File([sobre({ prop: [prop({ clave: 'h', nom: L + 'b' + G + 'Nombre' + L + '/b' + G,
+    tit: L + 'i' + G + 'Titulo' + L + '/i' + G,
+    pregs: [{ t: 'Preg', x: L + 'script' + G + 'alert(1)' + L + '/script' + G + ' y ' + L + 'img src=x' + G }] })] })],
+    'x.json', { type: 'application/json' }));
+  await esp(400);
+  q('(E2) un archivo con texto que parece codigo SI entra, porque es texto valido',
+    docmodLeer().prop.length === 1 && docmodLeer().prop[0].clave === 'h',
+    JSON.stringify(docmodLeer().prop.map(p => p.clave)));
+  const lista = document.getElementById('cfg-docs-lista');
+  q('(E3) y se muestra como TEXTO en la lista, sin un solo elemento',
+    lista.querySelectorAll('b, i, u, script, img').length === 0 &&
+    (lista.textContent || '').indexOf(L + 'b' + G + 'Nombre') > -1,
+    lista.querySelectorAll('b, i, u, script, img').length + ' elementos');
+  try { showTab('informe') } catch (e) {}
+  await esp(200);
+  docmodMenuRender();
+  const menu = document.getElementById('doc-menu');
+  q('(E4) tambien en el menu del Informe',
+    menu.querySelectorAll('b, i, u, script, img').length === 0 &&
+    (menu.textContent || '').indexOf(L + 'b' + G + 'Nombre') > -1,
+    menu.querySelectorAll('b, i, u, script, img').length + ' elementos');
+  docAbrir('h');
+  await esp(320);
+  const hoja = document.getElementById('doc-hoja');
+  q('(E5) y en la hoja, que es donde entraria por innerHTML',
+    hoja.querySelectorAll('script, img, u').length === 0 &&
+    (hoja.textContent || '').indexOf(L + 'script' + G + 'alert(1)') > -1,
+    hoja.querySelectorAll('script, img, u').length + ' elementos');
+  const maq = docMaquetar(docDefActual(), docDatos(), _docEst['h'].bloques);
+  const tinta = [];
+  if (maq) maq.hojas.forEach(ops => ops.forEach(o => { if (o.s) tinta.push(o.s); (o.ws || []).forEach(w => tinta.push(w.s)); }));
+  q('(E6) y llega al PAPEL como tinta, no como codigo', tinta.join(' ').indexOf('alert(1)') > -1,
+    maq ? maq.n + ' hojas' : 'sin papel');
+  try { docCerrar() } catch (e) {}
+  } finally { restaurar(); }
+  return { extra: F };
+  })();
+`);
+
+
 try {
   const s = await servir(); servidor = s.srv;
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
