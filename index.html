@@ -5048,6 +5048,14 @@ html.light-mode .amilo-root{
   min-width:0;text-align:center;}
 .doc-enc-logo{max-height:14mm;max-width:18mm;object-fit:contain;}
 .doc-enc-hueco{display:block;}
+/* La linea gris del nombre de la institucion cuando no hay dato (D1). Va por `::before` sobre el
+   elemento VACIO y no como texto adentro: con el texto adentro, el medico que toca para escribir
+   tendria que borrarlo primero, y el lector tendria que adivinar si «Nombre de la institución»
+   es el dato o el cartel. Vacio, lo que se escribe es lo que vale.
+   ⚠️ NO SE IMPRIME, y no por una regla de impresion: el papel y la imagen dibujan de la lista de
+   operaciones del maquetador, que sin institucion no emite ninguna operacion de nombre. */
+.doc-enc-ph{min-height:1em;}
+.doc-enc-ph:empty::before{content:attr(data-ph);color:#9aa3ad;font-weight:400;font-style:italic;}
 .doc-enc-ini{width:14mm;height:14mm;border-radius:50%;background:#1f3a5f;color:#fff;
   font-weight:700;font-size:calc(var(--doc-sz, 10.5pt) + 2.2pt);display:inline-flex;
   align-items:center;justify-content:center;}
@@ -115272,6 +115280,14 @@ const DOC_GEO = Object.freeze({
    de una declaracion de funcion-- y las sondas de verificacion miden los margenes contra el. */
 window.DOC_GEO = DOC_GEO;
 
+/* ⚠️ EL TEXTO GRIS DEL NOMBRE DE LA INSTITUCION (D1). Es una CONSTANTE y no un literal suelto
+   porque lo nombran tres lugares -- el marcado de la hoja, el lector que decide si el medico
+   escribio algo y los casos-, y con tres copias el dia que cambie quedan dos viejas.
+   NO se imprime: el papel y la imagen dibujan de la lista de operaciones del maquetador, y sin
+   institucion el maquetador no emite ninguna operacion de nombre. */
+const DOC_INST_PH = 'Nombre de la institución';
+window.DOC_INST_PH = DOC_INST_PH;
+
 /* Lo que la hoja sanea: solo lo que la fuente del PDF no puede dibujar. */
 function docSan(s) {
   if (s === null || s === undefined) return '';
@@ -115291,17 +115307,26 @@ function docDatos() {
   const mm = String(hoy.getMonth() + 1).padStart(2, '0');
   const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
                  'setiembre','octubre','noviembre','diciembre'];
-  /* La institucion sale del MISMO lugar que el encabezado del informe firmado: med-centro si
-     esta, y si no el centro activo. En modo institucional no cae a «CeiboMed» -es preferible no
-     nombrar institucion a nombrar la equivocada-, que es la regla que generarPDFReal ya fija. */
+  /* ⚠️ PANT-33 (D1): LA INSTITUCION SALE DEL «CENTRO DE TRABAJO» DE LOS DATOS DEL MEDICO, Y
+     POR EL MISMO LECTOR QUE LA CABECERA DE LA APP. Este renglon decia que salia «del MISMO lugar
+     que el encabezado del informe firmado» y era FALSO: la cadena era
+     `sv('med-centro')` -> `centro_nombre_activo` -> `'CeiboMed'`, y NINGUNO de los tres es el
+     centro de trabajo, que vive en `ett_centro_principal` y lo lee `ecoGetCentroPrincipal()`.
+     Medido en la TAREA 0 con GREMEDA cargado: `ecoGetCentroPrincipal()` y `hdrCentroNombre()`
+     devolvian «GREMEDA» y `docDatos().inst` devolvia «CeiboMed» -- o `''` con el modo
+     institucional encendido, que es de donde salia la raya que el medico vio-. Los dos estados
+     eran incorrectos, y el de «CeiboMed» es el peor: nombra OTRA institucion.
+     ⚠️ SE DELEGA EN `hdrCentroNombre()` Y NO SE COPIA SU CADENA: es el dueño unico de «que
+     institucion es esta», el que pinta el boton 🏥 de la cabecera, y con la cadena copiada el
+     documento y la cabecera podrian nombrar dos instituciones distintas el dia que una cambie.
+     `centro_nombre_activo` queda como ultimo recurso -- instalaciones viejas-- y el respaldo
+     escrito a mano «CeiboMed» SALE: sin dato, el encabezado deja el espacio libre (D1) y la hoja
+     ofrece una linea gris para escribirlo. */
   const inst = (function () {
-    const a = (typeof sv === 'function' ? (sv('med-centro') || '') : '').trim();
+    let a = '';
+    try { a = (typeof hdrCentroNombre === 'function' ? (hdrCentroNombre() || '') : '').trim(); } catch (e) { a = ''; }
     if (a) return a;
-    let b = '';
-    try { b = String(localStorage.getItem('centro_nombre_activo') || '').trim(); } catch (e) { b = ''; }
-    if (b) return b;
-    const modoInst = (function () { try { return localStorage.getItem('ett_modo_institucional') === '1'; } catch (e) { return false; } })();
-    return modoInst ? '' : 'CeiboMed';
+    try { return String(localStorage.getItem('centro_nombre_activo') || '').trim(); } catch (e) { return ''; }
   })();
   /* El medico que firma es el Principal de Config, el mismo que firma el informe. Sin fallback
      escrito a mano: un documento legal con un nombre inventado es peor que uno sin nombre. */
@@ -116853,13 +116878,15 @@ function docMaquetar(def, D, bloques) {
     }
   }
 
-  /* El encabezado institucional: LOGO A LA IZQUIERDA y nombre CENTRADO. Sin logo va un circulo
+  /* El encabezado institucional: LOGO A LA DERECHA y nombre CENTRADO. Sin logo va un circulo
      con las iniciales, en el mismo lugar y del mismo alto, que evita una banda vacia.
-     ⚠️ HASTA PANT-31 ERA AL REVES -- nombre a la izquierda y logo a la DERECHA-, y la orden de
-     esta tanda supone que el circulo ya estaba en el rincon izquierdo. NO lo estaba: medido en el
-     papel, el circulo salia en x 189 mm de una hoja de 210, y en pantalla en x 1054 con el nombre
-     en 340. Se tomo el parentesis de la orden -- «rincon izquierdo»-- porque es lo que hace
-     coherente al punto siguiente: un nombre centrado necesita el logo a un costado.
+     ⚠️ PANT-33 (D3) LO DEVUELVE A LA DERECHA, que es donde el medico lo quiere -- «donde estaba
+     la inicial»-. PANT-31 lo habia pasado a la IZQUIERDA leyendo «rincon izquierdo» de su propia
+     orden; medido en la TAREA 0 de esta tanda, el circulo caia en x 21 mm de una hoja de 210.
+     Hoy cae en `G.W - G.MR - 7`, o sea en el rincon derecho, y el logo en
+     `G.W - G.MR - LOGO_W`. El nombre sigue centrado en el ancho de la HOJA.
+     ⚠️ SIN INSTITUCION NO SE DIBUJA NI EL CIRCULO NI EL NOMBRE (D1): «el espacio queda libre».
+     Antes el circulo salia igual, con la cadena de iniciales VACIA -- un disco azul sin letra-.
      ⚠️ EL NOMBRE VA CON `k:'c'`, QUE CENTRA EN G.W/2, O SEA EN EL ANCHO DE LA HOJA Y NO EN EL DE
      LA COLUMNA DE TEXTO. Es lo que la orden pide, y es lo que hace que el PDF y la imagen salgan
      igual sin una linea de codigo mas: las dos dibujan de la misma lista de operaciones.
@@ -116874,21 +116901,23 @@ function docMaquetar(def, D, bloques) {
     if (!cabe(h)) nueva();
     const yT = y;
     if (D.logoD) {
-      cur().push({ k: 'img', x: G.ML, y: yT, w: LOGO_W, h: LOGO_H, d: D.logoD });
+      cur().push({ k: 'img', x: G.W - G.MR - LOGO_W, y: yT, w: LOGO_W, h: LOGO_H, d: D.logoD });
     } else {
       const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
-      cur().push({ k: 'circ', x: G.ML + 7, y: yT + 7, r: 7, col: G.NAVY, s: ini });
+      if (ini) cur().push({ k: 'circ', x: G.W - G.MR - 7, y: yT + 7, r: 7, col: G.NAVY, s: ini });
     }
     setF(SZ + 2.2, true, false);
     const nom = docSan(D.inst || '');
-    const ls = env(nom, SZ + 2.2, true, false, cw - 2 * (LOGO_W + 3)).slice(0, 2);
-    const lhN = (SZ + 2.2) * G.PT * 1.25;
-    let yy = yT + LOGO_H / 2 - (ls.length * lhN) / 2 + lhN * 0.74;
-    ls.forEach(function (l) {
-      cur().push({ k: 'c', y: yy, sz: SZ + 2.2, b: true, i: false, col: G.NAVY, s: l });
-      yy += lhN;
-    });
+    if (nom) {
+      const ls = env(nom, SZ + 2.2, true, false, cw - 2 * (LOGO_W + 3)).slice(0, 2);
+      const lhN = (SZ + 2.2) * G.PT * 1.25;
+      let yy = yT + LOGO_H / 2 - (ls.length * lhN) / 2 + lhN * 0.74;
+      ls.forEach(function (l) {
+        cur().push({ k: 'c', y: yy, sz: SZ + 2.2, b: true, i: false, col: G.NAVY, s: l });
+        yy += lhN;
+      });
+    }
     y = yT + h;
   }
 
@@ -117242,6 +117271,20 @@ function docRicoDelDom(el) {
 }
 window.docRicoDelDom = docRicoDelDom;
 
+/* ⚠️ PANT-33 (D2): LOS DATOS DE LA HOJA ABIERTA = LOS DE LA APP CON EL NOMBRE QUE EL MEDICO
+   ESCRIBIO EN ESTA HOJA. Un solo lector para las TRES superficies -- pantalla, PDF e imagen-:
+   con la correccion aplicada solo en `docRender`, el medico veria su institucion en la pantalla
+   y la de la app en el papel. Vale solo para ese paciente y NO toca el modelo (D2, B7).
+   No lo usa `docAvisoSync`, que compara contra los datos de la APP a proposito: el aviso
+   «Actualizar con los datos» tiene que mirar lo que la app sabe, no lo que la hoja dice. */
+function docDatosHoja(clave) {
+  const D = docDatos();
+  const st = _docEst[clave || _docAbierto];
+  if (st && typeof st.inst === 'string') D.inst = st.inst;
+  return D;
+}
+window.docDatosHoja = docDatosHoja;
+
 function docFirmaDatos(D) {
   try { return JSON.stringify([D.inst, D.ciudad, D.pac, D.art, D.docl, D.docn, D.est, D.med, D.mat, D.esp, D.fecha]); }
   catch (e) { return ''; }
@@ -117456,15 +117499,30 @@ function docHojaHTML(bloques, D, editable) {
     if (b.t === 'enc') {
       const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
-      /* ⚠️ TRES COLUMNAS Y NO DOS: el logo a la izquierda, el nombre centrado y una columna
-         VACIA del mismo ancho a la derecha. Sin esa tercera columna el centro del nombre seria
-         el centro de lo que queda DESPUES del logo, y no el de la hoja -- que es lo que el papel
-         hace con `k:'c'` y lo que R7 pide-. Es el mismo descuento simetrico de los dos lados. */
-      out += '<div class="doc-enc">' +
+      /* ⚠️ TRES COLUMNAS Y NO DOS: una columna VACIA a la izquierda, el nombre centrado y el
+         logo a la DERECHA. Sin esa primera columna el centro del nombre seria el centro de lo
+         que queda ANTES del logo, y no el de la hoja -- que es lo que el papel hace con `k:'c'`
+         y lo que D3 pide-. Es el mismo descuento simetrico de los dos lados.
+         ⚠️ PANT-33 (D3): EL ORDEN DEL DOM ES LO QUE MUEVE EL LOGO, no una regla nueva: la grilla
+         es `18mm 1fr 18mm` y el tercer hijo cae en la columna derecha.
+         ⚠️ Y SIN INSTITUCION NO SALE UNA RAYA (D1). Este renglon escribia `D.inst || '—'` y esa
+         era la raya que el medico vio, mas un circulo de iniciales VACIO. Hoy, sin dato, va una
+         LINEA GRIS con «Nombre de la institución» que el papel no conoce -- el PDF y la imagen
+         dibujan de la lista de operaciones del maquetador, que sin nombre no emite ninguna-, y
+         el hueco del logo queda libre.
+         ⚠️ EL NOMBRE ES EDITABLE SOLO CON `editable` (D2): en la hoja del Informe se corrige y
+         vale para ESE paciente, y en la hoja de Configuracion se muestra el dato real -- o la
+         linea gris-- y no se toca, porque el modelo es de la institucion y no lleva su nombre. */
+      const hayInst = !!String(D.inst == null ? '' : D.inst).trim();
+      const edInst = editable ? (' contenteditable="true" data-doc-inst="1" spellcheck="false"') : '';
+      out += '<div class="doc-enc"><span class="doc-enc-hueco"></span>' +
+        (hayInst
+          ? '<div class="doc-enc-nom doc-dato"' + edInst + '>' + escHtml(D.inst) + '</div>'
+          : '<div class="doc-enc-nom doc-enc-ph" data-ph="' + escHtml(DOC_INST_PH) + '"' + edInst + '></div>') +
         (D.logoD ? '<img class="doc-enc-logo" alt="" src="' + escHtml(D.logoD) + '">'
-                   : '<span class="doc-enc-ini">' + escHtml(ini) + '</span>') +
-        '<div class="doc-enc-nom doc-dato">' + escHtml(D.inst || '—') + '</div>' +
-        '<span class="doc-enc-hueco"></span></div>';
+                 : (ini ? '<span class="doc-enc-ini">' + escHtml(ini) + '</span>'
+                        : '<span class="doc-enc-hueco"></span>')) +
+        '</div>';
       return;
     }
     if (b.t === 'hr') { out += '<hr class="doc-hr">'; return; }
@@ -117555,7 +117613,7 @@ window.docHojaHTML = docHojaHTML;
 function docRender() {
   const h = document.getElementById('doc-hoja');
   if (!h || !_docAbierto) return;
-  const st = _docEst[_docAbierto], def = docDefActual(), D = docDatos();
+  const st = _docEst[_docAbierto], def = docDefActual(), D = docDatosHoja();
   h.innerHTML = docHojaHTML(st.bloques, D, true);
   /* ⚠️ EL CUERPO Y EL INTERLINEADO SALEN DE LA MISMA `def` QUE MAQUETA EL PAPEL, EN PUNTOS.
      Hasta PANT-31 la hoja de pantalla traia 12,5 px fijos para los cuatro documentos mientras el
@@ -117575,8 +117633,26 @@ function docRender() {
   h.querySelectorAll('[data-doc-i]').forEach(function (el) {
     el.addEventListener('input', docEditado);
   });
+  /* El nombre de la institucion tiene su propio oyente porque no es un bloque: es el `enc`, que
+     no lleva `data-doc-i`. Se guarda en el estado de ESTA hoja (D2). */
+  h.querySelectorAll('[data-doc-inst]').forEach(function (el) {
+    el.addEventListener('input', docInstEditada);
+  });
 }
 window.docRender = docRender;
+
+/* La correccion del nombre de la institucion en la hoja del Informe (D2). Vale solo para ese
+   paciente: se guarda en `_docEst[clave].inst` y NO toca el modelo ni la configuracion. */
+function docInstEditada(ev) {
+  const el = ev.currentTarget || ev.target;
+  if (!el || !_docAbierto) return;
+  const st = _docEst[_docAbierto];
+  if (!st) return;
+  st.inst = String(el.innerText || '').replace(/\s+/g, ' ').trim();
+  st.editado = true;
+  st.entregado = false;
+}
+window.docInstEditada = docInstEditada;
 
 /* Captura la correccion a mano. Se guarda TEXTO LLANO: con el HTML de la celda se guardaria el
    marcado que el navegador deja al editar, y eso entra despues a innerHTML. */
@@ -117605,7 +117681,7 @@ function docEditado(ev) {
 /* ── IMPRIMIR: SOLO LA HOJA ───────────────────────────────────────────────────────────────── */
 function docImprimir() {
   if (!_docAbierto) return;
-  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatos();
+  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatosHoja();
   const maq = docMaquetar(def, D, st.bloques);
   if (!maq) { docEstado('No se pudo armar el documento: la biblioteca PDF no está disponible.'); return; }
   const doc = docOpsAPdf(def, maq);
@@ -117652,7 +117728,7 @@ function docUuid() {
 
 function docGuardarImagen() {
   if (!_docAbierto) return;
-  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatos();
+  const def = docDefActual(), st = _docEst[_docAbierto], D = docDatosHoja();
   const maq = docMaquetar(def, D, st.bloques);
   if (!maq) { docEstado('No se pudo armar la imagen: la biblioteca PDF no está disponible.'); return; }
   const G = DOC_GEO, K = 3.7795275591, ESC = 1.5;
