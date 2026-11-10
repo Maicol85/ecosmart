@@ -27049,11 +27049,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   <!-- SECCION: PROTESIS VALVULARES (PANT-30, Parte B) ──────────────────────────────────────
        PEDIDO DEL MEDICO. Va DEBAJO de «Valvulopatias» y ANTES de «Doppler tricuspideo», que es
        donde la orden la pide y donde hay un lugar claro.
-       ⚠️ LLEVA `data-ppt-no` Y NO `data-ppt`, y no es un descuido: `_labPptAssertClaves()` exige
-       uno de los dos en toda `.lab-card`, y `data-ppt` significa «esta tarjeta es una diapositiva
-       del PPT». Ponerselo agregaria una diapositiva al PPT, que esta tanda deja quieto byte por
-       byte. Es el mismo motivo por el que la tabla de Strain Manual lo lleva. -->
-  <div class="lab-card" data-ppt-no="seccion nueva de PANT-30: no es una diapositiva, y ponerle data-ppt agregaria una al PPT">
+       ⚠️ YA LLEVA `data-ppt`, Y ES LO QUE PANT-31 (R11) PIDIO. En PANT-30 llevaba `data-ppt-no`
+       con este motivo escrito: «ponerselo agregaria una diapositiva al PPT, que esta tanda deja
+       quieto byte por byte». Hoy la diapositiva existe -- grupo `prot` de `LAB_PPT_GRUPOS`- y el
+       PPT sin la casilla tildada sigue siendo identico, porque un grupo sin ninguna tarjeta
+       marcada no abre su hoja. `_labPptAssertClaves()` sigue exigiendo uno de los dos atributos
+       en toda `.lab-card`, y `_labPptAssertGrupos()` que la clave pertenezca a exactamente un
+       grupo: una tarjeta con casilla y sin grupo seria una casilla que el medico tilda y no
+       produce nada. -->
+  <div class="lab-card" data-ppt="protesis">
     <div class="lab-card-hdr lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-protesis" onclick="labAccToggle('lab-acc-protesis',this,event)" onkeydown="labAccTecla(event,'lab-acc-protesis',this)">🔧 Prótesis valvulares<span id="lab-acc-protesis-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
     <div class="lab-card-body lab-acc-body" id="lab-acc-protesis" style="display:none;">
       <!-- La linea fija del denominador, textual de la orden. Va arriba de todo porque es la
@@ -160979,6 +160983,12 @@ const LAB_PPT_GRUPOS = [
   { k:'vdhtp',     lbl:'VD y presión pulmonar',     cards:['vd','htp','doptric'] },
   { k:'contr',     lbl:'Contractilidad segmentaria',cards:['contractilidad'] },
   { k:'valv',      lbl:'Valvulopatías',             cards:['valvulas','etiologias'] },
+  /* Un grupo propio y no dentro de `valv`: la seccion es de PROTESIS -- su denominador son los
+     estudios con protesis, no las valvulas nativas-, y con una sola tarjeta el grupo es el
+     patron normal de este registro y no una excepcion: `contr`, `amil`, `onco` y `tend` tambien
+     tienen una. Ademas, metida en `valv`, tildar «Valvulopatias» traeria la hoja de protesis
+     sin pedirla y al reves. */
+  { k:'prot',      lbl:'Prótesis valvulares',      cards:['protesis'] },
   /* Se suman vexus, dpt y cvr al grupo que ya existía en vez de abrir uno nuevo: los tres son
      evaluación avanzada y una casilla propia por tarjeta ya los gobierna. `_labPptAssertGrupos`
      exige que TODA clave data-ppt pertenezca a exactamente un grupo, y una tarjeta sin grupo
@@ -161722,6 +161732,89 @@ async function _labPPTGenerar(infs, o) {
       s.addText(T('Porcentajes sobre el total de estudios ' + _labPobDe() + ' (' + n + '). No marcar una válvula indica que fue valorada como normal.' +
                   (_hayBin ? ' ' + LAB_VALV_BIN_NOTA : '')),
         { x:0.4, y:H-0.84, w:W-0.8, h:0.30, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+    }
+
+    /* ── 6b · PRÓTESIS VALVULARES (PANT-31, R11) ──
+       NINGÚN número se calcula acá: todo sale de `_labProtStats`, el MISMO seam que alimentan la
+       pantalla del Laboratorio y la sección 10 del PDF de auditoría. Con una cuenta propia, el
+       día que un criterio cambie el mazo y la pantalla publicarían distinto sobre el mismo corte.
+       ⚠️ EL GRÁFICO APILADO DE DOS PILAS DE LA PANTALLA NO TIENE EQUIVALENTE NATIVO EN ESTE MAZO,
+       y se midió: `_pptAddChart` se usa con UNA sola serie en las catorce hojas y en el archivo
+       no hay un solo `barGrouping`. Antes que inventar un mecanismo —que la orden pide no hacer—
+       las barras van con `gBarras`, el ayudante que ya existe, con las categorías POSICIÓN · TIPO
+       combinadas: es literalmente «barras por posición y tipo», cada barra lleva el color de su
+       tipo y las dos reparaciones van rotuladas como tales. Lo que se pierde frente a la pantalla
+       es ver la pila; lo que no se pierde es ningún número.
+       ⚠️ Y EL DENOMINADOR DE LOS TRASTORNOS NO ES EL MISMO QUE EL DEL RESTO DE LA HOJA: son los
+       estudios CON PRÓTESIS (`conProtParaTrast`), no los que tienen prótesis o reparación. El pie
+       lo dice, con la misma frase que la pantalla. */
+    if (G('prot')) {
+      let SP = null;
+      try { SP = _labProtStats(infs); } catch (e) { console.error('[labPPT/prot]', e); }
+      if (!SP || !SP.conAlgo) {
+        omitir('Prótesis valvulares', (SP ? SP.conAlgo : 0) + ' estudio(s) con prótesis o reparación, se necesita al menos 1');
+      } else {
+        const s = nueva('Prótesis valvulares'); avisoN(s, SP.conAlgo);
+        const pc = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
+        let y = 1.00;
+        y = dato(s, 0.4, y, 'Estudios con prótesis o reparación', SP.conAlgo + ' de ' + n + ' (' + pc(SP.conAlgo, n) + ' %)', 14, 3.0);
+        y = dato(s, 0.4, y, 'Con prótesis', SP.conProt + ' (' + pc(SP.conProt, n) + ' %)', 14, 3.0);
+        y = dato(s, 0.4, y, 'Con plástica o TEER', SP.conRep + ' (' + pc(SP.conRep, n) + ' %)', 14, 3.0);
+        dato(s, 0.4, y, 'Con alguna alteración', SP.conProtParaTrast
+          ? (SP.altTotal + ' de ' + SP.conProtParaTrast + ' con prótesis (' + pc(SP.altTotal, SP.conProtParaTrast) + ' %)')
+          : 'sin estudios con prótesis', 14, 3.0);
+        /* Posición · tipo. Sólo las combinaciones con casos: `gBarras` ya descarta los ceros, y
+           una cubeta en cero acá se leería como «lo medimos y dio cero». */
+        const porPosTipo = [];
+        LAB_PROT_POS.forEach(pp => {
+          LAB_PROT_TIPO_ORDEN.forEach(t => {
+            const v = SP.porPos[pp.k].tipos[t];
+            if (!v) return;
+            const rep = (t === 'plastia' || t === 'teer');
+            porPosTipo.push({ lbl: pp.lbl + ' · ' + LAB_PROT_TIPO_LBL[t] + (rep ? ' (rep.)' : ''),
+                              n: v, color: LAB_PROT_TIPO_COL[t] });
+          });
+        });
+        if (!gBarras(s, porPosTipo, { x:3.5, y:0.92, w:3.2, h:2.4 }, 'Por posición y tipo'))
+          s.addText('Sin posición consignada.', { x:3.5, y:1.6, w:3.2, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* Trastornos. Los dos que van APARTE llevan su rótulo: no cuentan como normal ni como
+           alteración, y la pantalla lo dice con la misma palabra. */
+        const trast = LAB_PROT_TRAST.map(t => ({ lbl: t.lbl + (t.alt === null ? ' (aparte)' : ''),
+                                                 n: SP.trast[t.k] || 0, color: t.col }));
+        if (!gBarras(s, trast, { x:6.6, y:0.92, w:3.1, h:2.4 }, 'Trastornos de las prótesis'))
+          s.addText('Sin trastornos consignados.', { x:6.6, y:1.6, w:3.1, h:0.3, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        /* Los modelos más usados. Mismo criterio que el PDF de auditoría: se publica un tope y se
+           dice cuántos quedaron afuera. */
+        const mods = Object.keys(SP.modelos).map(k2 => SP.modelos[k2])
+          .sort((a, b) => (b.n - a.n) || a.modelo.localeCompare(b.modelo));
+        if (mods.length) {
+          const ver = mods.slice(0, 5);
+          const hdr = ['Modelo', 'Posición', 'Tipo', 'Estudios', 'Con alteración']
+            .map(t => ({ text:t, options:{ bold:true, color:C.hdrTxt, fill:{ color:HDR_BG } } }));
+          const filas = ver.map(m => [
+            { text:T(m.modelo), options:{ color:C.txt } },
+            { text:T(m.posLbl), options:{ color:C.txt } },
+            { text:T(LAB_PROT_TIPO_LBL[m.tipo] || m.tipo), options:{ color:C.txt } },
+            { text:String(m.n), options:{ color:C.txt } },
+            /* ⚠️ MENOS DE 10 ESTUDIOS VA EN GRIS, igual que en la pantalla: un «50 % con
+               alteración» sobre dos estudios se lee igual que uno sobre doscientos. */
+            { text: m.alt + ' (' + pc(m.alt, m.n) + ' %)' + (m.n < 10 ? ' *' : ''),
+              options:{ color: m.n < 10 ? C.txt2 : C.txt } }
+          ]);
+          s.addTable([hdr].concat(filas), { x:0.4, y:3.42, w:W-0.8, fontSize:9, fontFace:FONT,
+            border:{ type:'solid', pt:0.5, color:C.txt2 }, autoPage:false });
+          s.addText(T('Modelos más usados' + (mods.length > 5 ? ' (5 de ' + mods.length + ')' : '') +
+                      (ver.some(m => m.n < 10) ? '. * Pocos casos: no alcanza para sacar conclusiones.' : '.')),
+            { x:0.4, y:H-1.05, w:W-0.8, h:0.22, fontSize:9, color:C.txt2, fontFace:FONT });
+        } else {
+          s.addText(T('Sin modelo de prótesis cargado en este período.'),
+            { x:0.4, y:3.52, w:W-0.8, h:0.24, fontSize:10, italic:true, color:C.txt2, fontFace:FONT });
+        }
+        s.addText(T('Se cuentan estudios, no pacientes. Las reparaciones (plástica y TEER) no son prótesis y no se suman a ellas. ' +
+                    'Los trastornos se leen del texto del informe y su denominador son los ' + SP.conProtParaTrast +
+                    ' estudio(s) con prótesis; «sin datos suficientes» y «hallazgo aislado» van aparte.'),
+          { x:0.4, y:H-0.84, w:W-0.8, h:0.30, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
     }
 
     // ── 7 · HTP Y FUNCIÓN DEL VD ──
