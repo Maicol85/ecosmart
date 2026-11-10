@@ -127266,10 +127266,15 @@ caso('TC-778', 'PANT-29 commit 2: los DOS resumenes nuevos viven DENTRO de ref-m
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   irRefs(); await esp(200); solapa('otros'); await esp(160);
   /* (A) DENOMINADOR: la ficha abre de verdad y trae texto. Una ficha cerrada da textContent
@@ -127314,6 +127319,8 @@ caso('TC-778', 'PANT-29 commit 2: los DOS resumenes nuevos viven DENTRO de ref-m
   q('(C6) y ninguno lleva linea de fuente, que es el estilo MEDIDO del sector: los catorce hijos son titulo o cuerpo de 12 px',
     H.every(h => h.tag === 'DIV') && H.filter(h => h.chars > 0 && h.chars < 10).length === 0,
     'hijos=' + H.map(h => h.chars).join(','));
+  q('(C7) y los CATORCE hijos se VEN: un display:none deja el texto en textContent y al medico sin nada que leer',
+    H.every(h => h.vis), 'visibles=' + H.map(h => (h.vis ? 1 : 0)).join(','));
   /* (D) las dos fichas grandes no existen, en los CUATRO lugares. */
   const enRep = (k) => { try { return Object.keys(REF_SUBTAB)
     .some(p => (REF_SUBTAB[p] || []).indexOf(k) > -1) } catch (e) { return 'EXC' } };
@@ -127376,10 +127383,15 @@ caso('TC-779', 'PANT-29 commit 3: la ficha ORIGINAL de anomalias coronarias cons
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   irRefs(); await esp(200); solapa('congenitas'); await esp(160);
   const c = abrir('coronarias'); await esp(200);
@@ -127403,6 +127415,8 @@ caso('TC-779', 'PANT-29 commit 3: la ficha ORIGINAL de anomalias coronarias cons
   /* (B) lo nuevo: los dos hijos marcados, con los cuatro temas. */
   q('(B1) los DOS hijos nuevos llevan data-ref-solo',
     H[2].marca === '1' && H[3].marca === '1', 'marcas=' + H[2].marca + '/' + H[3].marca);
+  q('(B1b) y los CUATRO hijos se VEN', H.every(h => h.vis),
+    'visibles=' + H.map(h => (h.vis ? 1 : 0)).join(','));
   const nuevo = H[2].txt;
   q('(B2) y traen TIPOS, FRECUENCIA, RIESGO y CIRUGIA, los cuatro que la orden pide',
     nuevo.indexOf('Tipos:') > -1 && nuevo.indexOf('Frecuencia:') > -1
@@ -127510,10 +127524,15 @@ caso('TC-780', 'PANT-29 commits 2 y 3: cada cifra de los TRES resumenes coincide
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   irRefs(); await esp(200); solapa('otros'); await esp(160);
   abrir('miocard'); await esp(200);
@@ -127584,10 +127603,15 @@ caso('TC-781', 'PANT-29 commit 4 (A): las dos tarjetas grises se achican -rellen
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(260);
@@ -127681,10 +127705,15 @@ caso('TC-782', 'PANT-29 commit 4 (B): el bloque «Arterias posiblemente involucr
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(260);
@@ -127792,10 +127821,15 @@ caso('TC-783', 'PANT-29 commit 5 (C) y (D): con «Coronarias» APAGADO el 3D es 
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(240);
@@ -127973,10 +128007,15 @@ caso('TC-784', 'PANT-29 commit 5: la DOMINANCIA cambia el duenio de la descenden
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(240);
@@ -128114,10 +128153,15 @@ caso('TC-785', 'PANT-29 commit 5: las arterias quedan PEGADAS a la superficie de
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(240);
@@ -128219,10 +128263,15 @@ caso('TC-786', 'PANT-29: NADA de esta tanda se guarda ni cambia el papel — cer
                 'no coinciden', 'difieren', 'discrepan', 'se contradicen', 'ninguna fuente publica',
                 'sin validar', 'a confirmar'];
   const prohibidas = (t) => PROH.filter(p => sinTilde(t).indexOf(p) > -1);
+  /* ⚠️ «vis» NO ES UN ADORNO: textContent devuelve lo mismo con un display:none puesto, asi que
+     un resumen oculto da todas las condiciones de texto en VERDE y el medico no lee nada. Lo
+     destapo la mutacion 01 del barrido de esta tanda, que le pone display:none al titulo. */
   const hijos = (id) => { const c = cuerpoDe(id); if (!c) return [];
     return Array.prototype.slice.call(c.children).map(el => ({
       tag: el.tagName, peso: (el.style && el.style.fontWeight) || '',
       marca: el.getAttribute('data-ref-solo'), chars: norm(el.textContent).length,
+      vis: getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden'
+           && !el.hasAttribute('hidden'),
       txt: norm(el.textContent) })); };
   try { showTab('contractilidad') } catch (e) {}
   await esp(240);
