@@ -129403,7 +129403,20 @@ caso('TC-795', 'PANT-31: el boton «Documentos» en el rincon derecho alineado p
   q('(CONTROL) el ancho de la hoja quedo por debajo del disponible',
     h.getBoundingClientRect().width <= wr.clientWidth + 0.6,
     Math.round(h.getBoundingClientRect().width) + ' en ' + wr.clientWidth);
+  /* ⚠️ EL TOPE DE 1 SE PRUEBA CON UN ENVOLTORIO ANCHO, Y NO SALE GRATIS: el suite corre en una
+     ventana de unos 818 px, donde el cociente ya da 0,92, asi que ahi Math.min(1, ...) no hace
+     NADA y la mutacion que lo saca sobrevivia -- era un hueco de cobertura, no una mutacion
+     equivalente-. Con el envoltorio forzado a 2.000 px el cociente daria 2,48 y sin el tope la
+     hoja saldria al DOBLE de la A4. */
   wr.style.maxWidth = '';
+  wr.style.minWidth = '2000px';
+  if (hayZoom) docZoomAjustar();
+  await esp(120);
+  q('con mas ancho del que la hoja necesita, el zoom se queda en 1 y no la agranda',
+    parseFloat(h.style.zoom || '1') === 1, 'zoom ' + h.style.zoom);
+  q('y la hoja sigue midiendo una A4', Math.abs(h.getBoundingClientRect().width - A4) < 2,
+    Math.round(h.getBoundingClientRect().width) + ' contra ' + Math.round(A4));
+  wr.style.minWidth = '';
   if (hayZoom) docZoomAjustar();
   await esp(120);
   /* ⚠️ EL CONTROL ES «VUELVE AL VALOR DE ANTES» Y NO «VUELVE A 1»: el suite corre en la ventana
@@ -129460,6 +129473,12 @@ caso('TC-796', 'PANT-31: la hoja se EDITA y lo pegado entra como texto llano -- 
   q('el texto entro', p.innerText.indexOf('PEGADO') > -1, p.innerText.slice(-70));
   q('y entro SIN el marcado del origen', p.querySelectorAll('b,strong,ul,li,font').length === 0,
     p.innerHTML.slice(-120));
+  /* ⚠️ Y TAMPOCO ENTRA COMO TEXTO LITERAL, que es el hueco que el barrido encontro: pegando el
+     text/html en vez del text/plain, execCommand('insertText') lo mete como TEXTO, asi que
+     no aparece ni un elemento b y la condicion de arriba pasaba igual. Lo que se ve es
+     «<b style=...>» escrito en la hoja. */
+  q('ni como texto literal: no entro ningun signo de marcado',
+    p.innerText.indexOf('<') === -1 && p.innerText.indexOf('style=') === -1, p.innerText.slice(-90));
   q('la raya larga quedo convertida, que es lo que el papel puede dibujar',
     p.innerText.indexOf(RAYA) === -1, 'quedan ' + (p.innerText.split(RAYA).length - 1));
   q('y el glifo de casilla no entro', p.innerText.indexOf(CAJA) === -1);
@@ -129540,10 +129559,31 @@ caso('TC-797', 'PANT-31: el cierre -- el clic en el fondo cierra, con correccion
   /* (5) Escape sobre la pregunta = seguir editando */
   ov.click(); await esp(120);
   q('(DENOM) vuelve a preguntar', !cf.hidden);
+  /* ⚠️ EL ESCAPE DE LA PREGUNTA NO LLEGA A LOS OYENTES POSTERIORES, y se mide con un CENTINELA
+     propio. Es el hueco que el barrido encontro: sacar el stopImmediatePropagation sobrevivia,
+     porque el oyente generico de accesibilidad elige el [role="dialog"][aria-modal="true"]
+     visible MAS ALTO del documento y en este arbol ese no siempre es la hoja -- asi que la
+     mutacion no se veia en el estado final-. Lo que importa es la propiedad: despues de atender
+     la pregunta, el evento SE CORTA. El centinela se registra ahora, o sea DESPUES del oyente del
+     modulo, que es la posicion del generico. */
+  let centinela = 0;
+  const oye = function () { centinela++; };
+  document.addEventListener('keydown', oye);
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await esp(150);
   q('Escape sobre la pregunta significa SEGUIR EDITANDO, no cerrar', cf.hidden && !ov.hidden,
     'conf=' + cf.hidden + ' hoja=' + ov.hidden);
+  q('y el evento NO llega a los oyentes posteriores', centinela === 0, 'el centinela corrio ' + centinela + ' vez/veces');
+  /* CONTROL: sin la pregunta abierta, el mismo Escape SI llega al centinela. Sin esto, un corte
+     puesto en cualquier Escape pasaria igual. */
+  centinela = 0;
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await esp(120);
+  q('(CONTROL) sin la pregunta abierta, Escape si llega a los oyentes posteriores', centinela > 0,
+    'el centinela corrio ' + centinela + ' vez/veces');
+  document.removeEventListener('keydown', oye);
+  /* Ese Escape de control cerro la hoja: se reabre para seguir. */
+  if (ov.hidden) { docAbrir('constancia'); await esp(200); }
   /* (6) cerrar */
   ov.click(); await esp(120);
   document.getElementById('doc-conf-ok').click(); await esp(150);

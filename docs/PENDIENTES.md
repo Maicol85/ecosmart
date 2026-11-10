@@ -14980,3 +14980,92 @@ papel, no se toca por cuenta propia.
 
 ⚠️ **WebKit de Playwright no es Safari**, y se declara: lo que esto dice es que el motor de
 WebKit reparte así el justificado, no que Safari se vea exactamente igual.
+
+---
+
+## P31-a — PANT-31 (2026-11-10): tres premisas de la orden que no se reprodujeron
+
+Las tres se midieron antes de usarlas, que es lo que la propia orden pide.
+
+**1 · «El médico NO pudo editar la hoja» — FALSA para la hoja que abre «Documentos».** Medido con
+clic real y teclado real por CDP, con la sesión abierta: el párrafo, la viñeta y la casilla de dos
+columnas se editan a 1440 y a 390 px. Lo que sí es real, y es lo más probable que el médico haya
+tocado: (a) **1.502 px de los 2.285 de tinta del ETE se dibujaban FUERA del papel blanco**, sobre el
+fondo oscuro del overlay —el defecto de R2, corregido—, así que lo que cae ahí no se lee como parte
+de la hoja; (b) **no todo es editable**: el nombre de la institución, la línea de ciudad y fecha, la
+de paciente, el bloque de firma, la tabla de firmas, el número de sección y el «☐ Sí ☐ No» no lo
+son, y eso **queda como está** —R3 no pide cambiarlo—; y (c) la **imagen guardada en «Imágenes» es
+un PNG** y no se edita, que es lo que R3 confirma.
+⚠️ Y la primera medición de esta tanda **confirmó la premisa por un denominador vacío**:
+`#login-overlay` tapa la pantalla entera con `z-index:2147483000`, así que el clic real caía ahí y
+el foco quedaba en `BODY`. Está documentado en `docs/INVENTARIO_P31.md` y el arnés lo resuelve con
+`entrar()`.
+
+**2 · «El círculo con las iniciales sale en el rincón izquierdo» — FALSA.** Salía a la **derecha**,
+en las dos superficies: x 189 mm de una hoja de 210 en el papel y x 1054 en pantalla, con el nombre
+a la izquierda. R6 pide el logo «en el lugar donde hoy sale el círculo» **y** aclara «(rincón
+izquierdo)», y las dos cosas no podían ser la misma. Se tomó el paréntesis, que es lo que hace
+coherente a R7. Si lo que el médico quería era el logo a la derecha con el nombre centrado, es un
+cambio de una línea en `encabezado()` y en el orden de los hijos de `.doc-enc`.
+
+**3 · R4 pedía que Escape cerrara la hoja y que el visor de la miniatura cerrara con un clic
+afuera — las dos cosas YA pasaban.** Escape cerraba la hoja desde PANT-30 (hay un oyente delegado
+propio del módulo, más el genérico del bloque de accesibilidad) y el visor
+(`igImgVisorCablear`) ya cerraba con Escape y con un clic afuera. Lo único que faltaba era el clic
+afuera **en la hoja** y la confirmación.
+
+## P31-b — PANT-31: la diapositiva de prótesis no puede apilar sus dos pilas
+
+La sección del Laboratorio dibuja un gráfico de barras **apiladas con DOS pilas** —las reparaciones
+no se suman a las prótesis—, y eso **no tiene equivalente nativo en el mazo**: medido,
+`_pptAddChart` se usa con **una sola serie** en las catorce hojas del generador y en todo
+`index.html` no hay un solo `barGrouping`. La orden pide informar antes que inventar, así que la
+hoja usa `gBarras` —el ayudante que ya existe— con las categorías **posición · tipo** combinadas, el
+color de cada tipo y las dos reparaciones rotuladas «(rep.)».
+
+**Qué se pierde:** ver la pila, o sea leer de un vistazo el total por posición. **Qué no se pierde:**
+ningún número — las doce combinaciones con casos salen con su cuenta.
+**Qué haría falta para cerrarlo:** una serie por tipo con `barGrouping:'stacked'` y `barStacked`, que
+es una capacidad de PptxGenJS que este mazo todavía no usa en ninguna hoja. Es una decisión de
+diseño del mazo entero, no de esta sección: **queda declarado, no corregido.**
+
+## P31-c — PANT-31: a 390 px la hoja entra completa pero su letra queda en 6,3 px
+
+La hoja de pantalla es una **A4 de verdad** (210 mm) y `docZoomAjustar` escribe el único número que
+la hace entrar en la ventana: 1 a 1440, 1280 y 1000 px, **0,937** a 768 y **0,461** a 390. A ese
+último cociente un cuerpo de 10,2 pt se ve a **6,3 px**.
+
+**No es una decisión que se pueda mejorar afinando algo: es geometría.** Una línea de A4 son unos 95
+caracteres y el ancho útil a 390 px son 366: no hay forma de que la línea entera sea legible **y**
+esté completa a la vez. R2 pide las dos cosas —«la hoja completa», «sin desborde horizontal» y «que
+el texto siga siendo legible»— y las dos primeras son las que se cumplen, porque son las medibles y
+las que el médico reportó. En el celular el documento se lee con el zoom del propio navegador, que
+funciona encima de esta escala.
+
+**La alternativa que se descartó**, y por qué: achicar el ancho de la columna en celular (lo que la
+media query de 700 px hacía hasta esta tanda) deja la letra legible pero **rompe la correspondencia
+con el papel** —los renglones cortan en otro lado—, que es justo lo que R2 pide arreglar.
+
+## P31-d — PANT-31: el `def.hojas` de cada documento no lo lee nadie
+
+`DOC_DEFS.<clave>.hojas` existe desde PANT-30 y **ningún camino de la app lo consulta** (censado: la
+única aparición de `.hojas` fuera del módulo es `_pk.hojas`, del PDF de pericardio). Es metadato
+muerto, y hasta esta tanda **mentía**: decía 1 hoja para la cardioversión y el test de burbujas, que
+el PDF imprimía en 2. Se actualizó a 2 —el número de hojas propias del consentimiento, sin contar la
+común— y **TC-799 lo compara contra el PDF generado de verdad**, así que ya no puede volver a
+pudrirse en silencio. Lo que queda abierto es si vale la pena que el código lo USE (por ejemplo, un
+assert de arranque) o que se vaya: es una decisión de Maicol.
+
+## P31-e — PANT-31: dos cosas de la hoja que la orden no pidió y no se tocaron
+
+**1 · La ✕ y Escape cierran sin preguntar, aunque haya correcciones a mano.** R4 pide la
+confirmación **sólo** para el clic afuera («antes de cerrar con el toque afuera pedí confirmación»),
+y así quedó. Es asimétrico a propósito: la ✕ y Escape son gestos deliberados sobre un control, y el
+clic en el fondo es el que se hace sin querer. Si el médico quiere la pregunta en los tres caminos,
+es cambiar `docCerrar()` por `docCerrarPreguntando()` en el `onclick` de `#doc-x` y en el oyente de
+Escape.
+
+**2 · Las correcciones a mano siguen sin persistirse (`P30-a`).** La orden de esta tanda repite que
+no se guarde texto editado en ningún lugar nuevo, así que el estado sigue en memoria y recargar la
+página lo descarta. La confirmación de R4 **reduce** el daño —avisa antes de cerrar— pero no lo
+elimina: una recarga no pasa por ahí.
