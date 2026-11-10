@@ -5118,6 +5118,55 @@ html.light-mode .amilo-root{
 .cfgdoc-acc .btn{min-height:44px;}
 #cfg-docs-cupo{font-size:11.5px;color:var(--text2);margin:10px 0 8px;}
 #cfg-docs-pie{font-size:11px;color:var(--text2);margin-top:10px;}
+/* ── El editor de modelos (PANT-32, Parte C) ──────────────────────────────────────────────
+   Dos columnas desde 900 px -- el editor a la izquierda y la vista previa a la derecha-- y una
+   sola por debajo, con la vista previa DEBAJO, que es lo que C1 pide. El corte va sobre la
+   VENTANA y no sobre el contenedor: con `flex-wrap` el punto de quiebre depende del ancho que
+   le quede a la tarjeta, y entonces «a partir de unos 900 px» deja de ser medible. Es la misma
+   regla que la casa ya fija para los diagramas. */
+.cdd-volver{min-height:44px;margin-bottom:10px;}
+.cdd-cols{display:flex;flex-direction:column;gap:14px;}
+.cdd-izq{display:flex;flex-direction:column;gap:10px;min-width:0;}
+.cdd-der{min-width:0;}
+.cdd-der-t{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:6px;}
+.cdd-der-n{font-weight:400;text-transform:none;letter-spacing:0;}
+.cdd-prev{max-height:460px;overflow:auto;zoom:.52;}
+.cdd-g{display:flex;flex-direction:column;gap:4px;}
+.cdd-g label{font-size:11.5px;color:var(--text2);}
+.cdd-g input[type=text],.cdd-g textarea{width:100%;box-sizing:border-box;}
+.cdd-g textarea{resize:vertical;font-family:inherit;font-size:12.5px;line-height:1.5;}
+.cdd-ayuda{font-size:10.5px;color:var(--text2);line-height:1.5;}
+.cdd-fijo{font-size:11px;color:var(--text2);background:var(--bg3);border:1px dashed var(--border);
+  border-radius:6px;padding:7px 9px;line-height:1.5;}
+.cdd-pz{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--text);
+  line-height:1.5;cursor:pointer;min-height:44px;}
+.cdd-pz input{width:16px;height:16px;flex:none;cursor:pointer;margin:2px 0 0;}
+.cdd-pzs{border:1px solid var(--border);border-radius:7px;padding:9px 10px;background:var(--bg2);}
+.cdd-pzs-t{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:4px;}
+.cdd-aviso{font-size:10.5px;color:var(--amber,#d97706);line-height:1.5;margin-top:4px;}
+#cfg-docs-pregs{display:flex;flex-direction:column;gap:9px;}
+.cdd-preg{border:1px solid var(--border);border-radius:7px;padding:8px 9px;background:var(--bg2);}
+.cdd-preg-top{display:flex;gap:7px;align-items:center;margin-bottom:5px;}
+.cdd-preg-t{flex:1;min-width:0;}
+.cdd-preg-x{width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;
+  font-size:12.5px;line-height:1.5;}
+.cdd-x{min-width:44px;min-height:44px;flex:none;}
+.cdd-vacia{font-size:10.5px;color:var(--text2);margin-top:4px;}
+.cdd-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.cdd-bts .btn{min-height:44px;}
+.cdd-peg{margin-top:12px;border:1px solid var(--border);border-radius:7px;padding:10px;
+  background:var(--bg2);display:flex;flex-direction:column;gap:6px;}
+.cdd-peg[hidden]{display:none;}
+.cdd-peg label{font-size:11.5px;color:var(--text2);}
+.cdd-peg textarea{width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;
+  font-size:12.5px;line-height:1.5;}
+@media (min-width:900px){
+  .cdd-cols{flex-direction:row;align-items:flex-start;}
+  .cdd-izq{flex:1 1 0;}
+  .cdd-der{flex:0 0 330px;position:sticky;top:8px;}
+}
 @media (max-width:640px){
   .cfgdoc-fila{flex-direction:column;align-items:stretch;}
   .cfgdoc-acc{justify-content:flex-start;}
@@ -5969,8 +6018,20 @@ window.cerrarSesionReal = cerrarSesionReal;
         <p style="font-size:11px;color:var(--text2);margin-top:6px;">Apagado, el botón desaparece de la pantalla del Informe. No se borra ningún documento.</p>
         <div id="cfg-docs-cupo"></div>
         <div id="cfg-docs-lista"></div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn btn-ghost" id="cfg-docs-add" onclick="if(typeof cfgDocsAgregar==='function')cfgDocsAgregar()" style="min-height:44px;">＋ Agregar documento</button>
+        <div id="cfg-docs-botones" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-ghost" id="cfg-docs-add" onclick="cfgDocsAgregar()" style="min-height:44px;">＋ Agregar documento</button>
+          </div>
+          <!-- La pregunta «¿Qué querés agregar?» va EN LA PANTALLA y no en un cuadro del
+               navegador: son dos opciones con nombre, y escribirlas como botones es lo que la
+               orden pide —«con Constancia o Consentimiento»—. Un `prompt` pidiendo «1 o 2»
+               obligaría al médico a traducir su respuesta a un número. -->
+          <div id="cfg-docs-tipo" hidden style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:11.5px;color:var(--text2)">¿Qué querés agregar?</span>
+            <button type="button" class="btn btn-ghost" onclick="cfgDocsEditarNuevo('constancia')" style="min-height:44px;">Constancia</button>
+            <button type="button" class="btn btn-ghost" onclick="cfgDocsEditarNuevo('consent')" style="min-height:44px;">Consentimiento</button>
+            <button type="button" class="btn btn-ghost" onclick="cfgDocsAgregarCancelar()" style="min-height:44px;">Cancelar</button>
+          </div>
         </div>
         <div id="cfg-docs-ed" hidden></div>
         <div id="cfg-docs-pie">El texto de cada documento es responsabilidad de la institución que lo usa.</div>
@@ -116100,7 +116161,7 @@ function cfgDocsRender() {
        cada fila obligaria a re-registrarlos en cada repintado. */
     cont.addEventListener('click', function (ev) {
       const e = ev.target.closest ? ev.target.closest('[data-cd-ed]') : null;
-      if (e) { if (typeof cfgDocsEditar === 'function') cfgDocsEditar(e.getAttribute('data-cd-ed')); return; }
+      if (e) { cfgDocsEditar(e.getAttribute('data-cd-ed')); return; }
       const d = ev.target.closest ? ev.target.closest('[data-cd-del]') : null;
       if (d) cfgDocsBorrar(d.getAttribute('data-cd-del'));
     });
@@ -116142,6 +116203,377 @@ window.cfgDocsBorrar = cfgDocsBorrar;
 
 /* El cableado de arranque: el menu y el boton tienen que estar al dia aunque el medico nunca
    abra Configuracion. */
+
+/* ── PANT-32 · EL EDITOR DE MODELOS (Parte C) ─────────────────────────────────────────────
+   Vive en la MISMA pantalla que la lista -- no en un overlay-, con «← Volver a Documentos»:
+   el medico esta configurando, no atendiendo, y un overlay encima de Configuracion le taparia
+   el resto de sus ajustes.
+
+   ⚠️ LA VISTA PREVIA USA LA HOJA DEL INFORME (`docHojaHTML`) Y UN PACIENTE FICTICIO. Lo
+   primero, para que lo que el medico ve en el editor sea lo que va a salir impreso y no una
+   segunda maqueta que puede divergir. Lo segundo, porque este es un repositorio PUBLICO y
+   porque el modelo es de la institucion y no de un paciente: ni el nombre, ni el documento, ni
+   la institucion, ni el medico de la vista previa son reales.
+
+   ⚠️ LOS CAMPOS SON DE TEXTO PLANO (`textarea`) Y EL TEXTO SE TRATA SIEMPRE COMO TEXTO. Nada
+   de `contenteditable` aca: lo que se guarda es lo que el medico escribio, y el marcado que un
+   `contenteditable` deja al pegar entraria despues al almacen y de ahi al papel. */
+let _cdEd = null;
+let _cdPrevT = null;
+
+/* El paciente ficticio de la vista previa. La fecha sale de hoy, que no es un dato de nadie. */
+function docmodEjemplo() {
+  const hoy = new Date();
+  const dd = String(hoy.getDate()).padStart(2, '0');
+  const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+                 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+  return { inst: 'Centro de ejemplo', logoD: null, ciudad: 'Ciudad', pac: 'Paciente de Ejemplo',
+           art: 'la paciente', docl: 'CI', docn: '1.111.111-1',
+           est: 'un ecocardiograma transtorácico', med: 'Dra. Ejemplo', mat: '00000',
+           esp: 'Cardiología', fecha: dd + '/' + mm + '/' + hoy.getFullYear(),
+           dia: String(hoy.getDate()), mes: MESES[hoy.getMonth()], anio: String(hoy.getFullYear()) };
+}
+window.docmodEjemplo = docmodEjemplo;
+
+/* La firma del modelo que se esta editando, para saber si hay cambios sin guardar (C5). */
+function _cdFirma(m, nom) {
+  try { return JSON.stringify([String(nom || ''), docmodCuerpo(m)]); } catch (e) { return ''; }
+}
+
+function cfgDocsEditar(clave) {
+  const m = docmodModelo(clave);
+  if (!m) return;
+  _cdEd = { clave: clave, m: m, nuevo: false, nom: m.nom, firma: _cdFirma(m, m.nom) };
+  cfgDocsEdRender();
+}
+window.cfgDocsEditar = cfgDocsEditar;
+
+/* El editor de un documento que todavia no existe (D1): el nombre se pregunta al guardar. */
+/* D1: que se agrega. Dos tipos y nada mas, que son los dos que la app sabe maquetar. */
+function cfgDocsAgregar() {
+  const st = docmodLeer();
+  if ((st.prop || []).length >= DOCMOD_PROPIOS_MAX) {
+    alert('Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios. Para agregar otro, borrá uno.');
+    return;
+  }
+  const d = document.getElementById('cfg-docs-tipo');
+  if (d) { d.hidden = false; const b = d.querySelector('button'); if (b) b.focus(); }
+}
+window.cfgDocsAgregar = cfgDocsAgregar;
+function cfgDocsAgregarCancelar() {
+  const d = document.getElementById('cfg-docs-tipo');
+  if (d) d.hidden = true;
+}
+window.cfgDocsAgregarCancelar = cfgDocsAgregarCancelar;
+
+function cfgDocsEditarNuevo(tipo) {
+  const d = document.getElementById('cfg-docs-tipo');
+  if (d) d.hidden = true;
+  const m = docmodNuevo(tipo);
+  m.clave = ''; m.incl = false; m.propio = true; m.editado = true;
+  _cdEd = { clave: '', m: m, nuevo: true, nom: '', firma: null };
+  cfgDocsEdRender();
+}
+window.cfgDocsEditarNuevo = cfgDocsEditarNuevo;
+
+function cfgDocsEdSalir() {
+  if (_cdEd && _cdEd.firma !== null && _cdFirma(_cdEd.m, _cdEd.nom) !== _cdEd.firma) {
+    if (!confirm('¿Salir sin guardar? Los cambios de este documento se pierden.')) return;
+  } else if (_cdEd && _cdEd.nuevo) {
+    if (!confirm('¿Salir sin guardar? Los cambios de este documento se pierden.')) return;
+  }
+  _cdEd = null;
+  const ed = document.getElementById('cfg-docs-ed');
+  if (ed) { ed.hidden = true; ed.innerHTML = ''; }
+  cfgDocsEdMostrarLista(true);
+  cfgDocsRender();
+}
+window.cfgDocsEdSalir = cfgDocsEdSalir;
+
+/* Mientras el editor esta abierto, la lista y sus botones se esconden: es la misma pantalla. */
+function cfgDocsEdMostrarLista(on) {
+  ['cfg-docs-lista', 'cfg-docs-cupo', 'cfg-docs-botones'].forEach(function (id) {
+    const e = document.getElementById(id);
+    if (e) e.classList.toggle('doc-oculto', !on);
+  });
+}
+
+function cfgDocsEdRender() {
+  const ed = document.getElementById('cfg-docs-ed');
+  if (!ed || !_cdEd) return;
+  const m = _cdEd.m;
+  cfgDocsEdMostrarLista(false);
+  ed.hidden = false;
+  const gris = function (t) { return '<div class="cdd-fijo">' + escHtml(t) + '</div>'; };
+  let izq = '';
+  izq += '<div class="cdd-g"><label for="cfg-docs-tit">Título del documento</label>' +
+    '<input type="text" id="cfg-docs-tit" maxlength="' + DOCMOD_LIM.tit + '" value="' + escHtml(m.tit || '') + '"></div>';
+  if (!_cdEd.nuevo) {
+    izq = '<div class="cdd-g"><label for="cfg-docs-nom">Nombre en el menú</label>' +
+      '<input type="text" id="cfg-docs-nom" maxlength="' + DOCMOD_LIM.nom + '" value="' + escHtml(_cdEd.nom || '') + '"></div>' + izq;
+  }
+  izq += gris('Arriba de todo, la app pone el logo (si hay) y el nombre de la institución, centrado.');
+  if (m.tipo === 'constancia') {
+    izq += gris('Al pie, la app pone la firma del médico con su matrícula.');
+    izq += '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-frase"' + (m.frase ? ' checked' : '') +
+      '> <b>Frase con los datos del paciente</b> — «Se deja constancia que [paciente], [documento], consultó el día de hoy, [fecha], en [institución], para realizarse [estudio].»</label>';
+    izq += '<div class="cdd-g"><label for="cfg-docs-txt">Texto</label>' +
+      '<div class="cdd-ayuda">' + escHtml(DOCMOD_AYUDA) + '</div>' +
+      '<textarea id="cfg-docs-txt" rows="9" maxlength="' + DOCMOD_LIM.ctxt + '" spellcheck="false">' +
+      escHtml(m.txt || '') + '</textarea></div>';
+  } else {
+    izq += gris('Debajo del título, la app pone la línea del paciente: «Paciente: nombre · documento   ciudad, fecha».');
+    izq += '<div class="cdd-ayuda">' + escHtml(DOCMOD_AYUDA) + '</div>';
+    izq += '<div id="cfg-docs-pregs">' + (m.pregs || []).map(function (p, i) {
+      const vacia = !String(p.x || '').trim();
+      return '<div class="cdd-preg">' +
+        '<div class="cdd-preg-top">' +
+        '<input type="text" class="cdd-preg-t" data-cdp-t="' + i + '" maxlength="' + DOCMOD_LIM.ptit +
+        '" placeholder="Título de la pregunta" value="' + escHtml(p.t || '') + '">' +
+        '<button type="button" class="btn btn-ghost cdd-x" data-cdp-del="' + i + '" aria-label="Quitar esta pregunta">✕</button>' +
+        '</div>' +
+        '<textarea class="cdd-preg-x" data-cdp-x="' + i + '" rows="5" maxlength="' + DOCMOD_LIM.ptxt +
+        '" spellcheck="false" placeholder="Texto de la pregunta">' + escHtml(p.x || '') + '</textarea>' +
+        (vacia ? '<div class="cdd-vacia">Vacía: esta pregunta no se imprime.</div>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+    izq += '<button type="button" class="btn btn-ghost" id="cfg-docs-preg-add">＋ Agregar pregunta</button>';
+    izq += '<div class="cdd-pzs"><div class="cdd-pzs-t">Piezas que agrega la app</div>' +
+      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-decl"' + (m.decl ? ' checked' : '') +
+        '> <b>Declaración del paciente</b> — el texto estándar de la app, con la casilla de investigación</label>' +
+      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-firmas"' + (m.firmas ? ' checked' : '') +
+        '> <b>Tabla de firmas</b> — paciente, testigo y médico. Sin ella queda igual la firma del médico</label>' +
+      '<label class="cdd-pz"><input type="checkbox" id="cfg-docs-pz-comunes"' + (m.comunes ? ' checked' : '') +
+        '> <b>Hojas comunes</b> — niño o imposibilitado, y negativa o revocación</label>' +
+      '<div class="cdd-aviso">Si tu texto ya trae declaración, firmas u hojas comunes, destildá esas piezas para que no se repitan.</div>' +
+      '</div>';
+  }
+  let bts = '<div class="cdd-bts">' +
+    '<button type="button" class="btn btn-ghost" id="cfg-docs-pegar">📋 Pegar texto de la institución</button>';
+  if (m.incl) bts += '<button type="button" class="btn btn-ghost" id="cfg-docs-orig">↩ Volver al texto original</button>';
+  bts += '<button type="button" class="btn btn-primary" id="cfg-docs-guardar">Guardar</button>' +
+    '<button type="button" class="btn btn-ghost" id="cfg-docs-cancelar">Cancelar</button></div>';
+
+  ed.innerHTML =
+    '<button type="button" class="btn btn-ghost cdd-volver" id="cfg-docs-volver">← Volver a Documentos</button>' +
+    '<div class="cdd-cols">' +
+      '<div class="cdd-izq">' + izq + bts + '</div>' +
+      '<div class="cdd-der"><div class="cdd-der-t">Así se ve con un paciente de ejemplo <span id="cfg-docs-prev-n" class="cdd-der-n"></span></div>' +
+        '<div id="cfg-docs-prev" class="doc-hoja cdd-prev"></div></div>' +
+    '</div>' +
+    '<div id="cfg-docs-peg" hidden class="cdd-peg">' +
+      '<label for="cfg-docs-peg-txt">Pegá acá el texto de la institución</label>' +
+      '<textarea id="cfg-docs-peg-txt" rows="8" spellcheck="false"></textarea>' +
+      '<div class="cdd-bts"><button type="button" class="btn btn-primary" id="cfg-docs-peg-ok">Aceptar</button>' +
+      '<button type="button" class="btn btn-ghost" id="cfg-docs-peg-no">Cancelar</button></div>' +
+    '</div>';
+
+  cfgDocsEdCablear();
+  cfgDocsPrev();
+}
+
+/* Un solo lugar que lee los campos al modelo. Se llama en cada tecla, asi que el modelo en
+   memoria y la vista previa no pueden estar en dos estados distintos. */
+function cfgDocsEdLeer() {
+  if (!_cdEd) return;
+  const m = _cdEd.m;
+  const v = function (id) { const e = document.getElementById(id); return e ? String(e.value) : ''; };
+  const c = function (id) { const e = document.getElementById(id); return e ? !!e.checked : true; };
+  const nm = document.getElementById('cfg-docs-nom');
+  if (nm) _cdEd.nom = String(nm.value);
+  m.tit = v('cfg-docs-tit');
+  if (m.tipo === 'constancia') { m.frase = c('cfg-docs-frase'); m.txt = v('cfg-docs-txt'); }
+  else {
+    m.decl = c('cfg-docs-pz-decl'); m.firmas = c('cfg-docs-pz-firmas'); m.comunes = c('cfg-docs-pz-comunes');
+    const cont = document.getElementById('cfg-docs-pregs');
+    if (cont) {
+      m.pregs = Array.prototype.map.call(cont.querySelectorAll('.cdd-preg'), function (d) {
+        const t = d.querySelector('[data-cdp-t]'), x = d.querySelector('[data-cdp-x]');
+        return { t: t ? String(t.value) : '', x: x ? String(x.value) : '' };
+      });
+    }
+  }
+}
+
+/* La vista previa. Con una pequenia espera: el texto de un consentimiento son miles de
+   caracteres y maquetar en cada tecla se nota. */
+function cfgDocsPrev() {
+  if (_cdPrevT) { clearTimeout(_cdPrevT); _cdPrevT = null; }
+  _cdPrevT = setTimeout(function () {
+    _cdPrevT = null;
+    const h = document.getElementById('cfg-docs-prev');
+    if (!h || !_cdEd) return;
+    const m = _cdEd.m;
+    const D = docmodEjemplo();
+    let bl;
+    try { bl = docmodArmar(m); } catch (e) { bl = []; }
+    /* Los indices de bloque hacen falta igual que en el Informe, porque `docHojaHTML` los
+       escribe; aca no son editables, pero el armado es el mismo. */
+    bl = bl.map(function (b, i) { const c = {}; for (const k in b) if (Object.prototype.hasOwnProperty.call(b, k)) c[k] = b[k]; c.i = i;
+      if (c.x !== undefined) c.x = docSust(c.x, D);
+      if (c.items) c.items = c.items.map(function (z) { return docSust(z, D); });
+      if (c.runs) c.runs = c.runs.map(function (r) { return { s: docSust(r.s, D), b: !!r.b }; });
+      return c; });
+    h.innerHTML = docHojaHTML(bl, D, false);
+    const sz = DOCMOD_SZ[m.tipo], lh = DOCMOD_LH[m.tipo];
+    h.style.fontSize = sz + 'pt';
+    h.style.lineHeight = lh + 'pt';
+    h.style.setProperty('--doc-sz', sz + 'pt');
+    /* El numero de hojas que el papel va a tener, dicho en el editor: es el dato por el que el
+       medico pregunta cuando acorta o alarga un texto. */
+    const e = document.getElementById('cfg-docs-prev-n');
+    if (e) {
+      let n = null;
+      try { const def = { clave: _cdEd.clave || 'x', menu: _cdEd.nom || '', tit: _cdEd.nom || m.tit || '',
+                          sz: sz, lh: lh, hojas: 1, bloques: function () { return docmodArmar(m); } };
+            const maq = docMaquetar(def, D, docBloquesNuevos(def, D));
+            n = maq ? maq.n : null; } catch (x) { n = null; }
+      e.textContent = n ? (n === 1 ? '1 hoja' : n + ' hojas') : '';
+    }
+  }, 220);
+}
+window.cfgDocsPrev = cfgDocsPrev;
+
+function cfgDocsEdCablear() {
+  const ed = document.getElementById('cfg-docs-ed');
+  if (!ed) return;
+  /* ⚠️ LOS TRES OYENTES SE REGISTRAN UNA SOLA VEZ, Y LO DESTAPO LA SONDA: `cfgDocsEdRender`
+     reemplaza el `innerHTML` pero NO el contenedor, asi que sin esta guarda cada repintado
+     colgaba un juego nuevo y el click se atendia tantas veces como veces se hubiera repintado.
+     Se vio en que «Volver al texto original» preguntaba DOS veces -- y «Guardar» habria
+     guardado dos, y «Agregar pregunta» habria agregado dos-. Son delegados justamente para
+     sobrevivir al repintado: registrarlos de nuevo era anular ese beneficio. */
+  if (ed._cdDeleg) return;
+  ed._cdDeleg = true;
+  const toca = function () { cfgDocsEdLeer(); cfgDocsPrev(); };
+  ed.addEventListener('input', function (e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      if (e.target.id === 'cfg-docs-peg-txt') return;
+      toca();
+    }
+  });
+  ed.addEventListener('change', function (e) {
+    if (e.target && e.target.type === 'checkbox') toca();
+  });
+  ed.addEventListener('click', function (e) {
+    const t = e.target.closest ? e.target : null;
+    if (!t) return;
+    const del = t.closest('[data-cdp-del]');
+    if (del) {
+      cfgDocsEdLeer();
+      _cdEd.m.pregs.splice(parseInt(del.getAttribute('data-cdp-del'), 10), 1);
+      cfgDocsEdRender(); return;
+    }
+    const id = t.id || (t.closest('button') ? t.closest('button').id : '');
+    if (id === 'cfg-docs-preg-add') {
+      cfgDocsEdLeer();
+      if ((_cdEd.m.pregs || []).length >= DOCMOD_LIM.pregs) {
+        alert('Un documento puede tener hasta ' + DOCMOD_LIM.pregs + ' preguntas.'); return;
+      }
+      _cdEd.m.pregs.push({ t: '', x: '' });
+      cfgDocsEdRender(); return;
+    }
+    if (id === 'cfg-docs-volver' || id === 'cfg-docs-cancelar') { cfgDocsEdSalir(); return; }
+    if (id === 'cfg-docs-guardar') { cfgDocsEdGuardar(); return; }
+    if (id === 'cfg-docs-orig') { cfgDocsEdOriginal(); return; }
+    if (id === 'cfg-docs-pegar') {
+      const p = document.getElementById('cfg-docs-peg');
+      if (p) { p.hidden = false; const ta = document.getElementById('cfg-docs-peg-txt'); if (ta) { ta.value = ''; ta.focus(); } }
+      return;
+    }
+    if (id === 'cfg-docs-peg-no') { const p = document.getElementById('cfg-docs-peg'); if (p) p.hidden = true; return; }
+    if (id === 'cfg-docs-peg-ok') { cfgDocsPegar(); return; }
+  });
+}
+
+/* ⚠️ «VOLVER AL TEXTO ORIGINAL» CARGA EL ORIGINAL EN EL EDITOR Y NO GUARDA NADA (C4): recien
+   «Guardar» lo deja. Asi el medico puede mirarlo y arrepentirse con «Cancelar». */
+function cfgDocsEdOriginal() {
+  if (!_cdEd || !_cdEd.m.incl) return;
+  if (!confirm('¿Volver al texto original? Se carga el texto que viene con la app. Para dejarlo, después tocá Guardar.')) return;
+  const o = docmodOrig(_cdEd.clave);
+  if (!o) return;
+  const m = _cdEd.m;
+  m.tit = o.tit; m.decl = true; m.firmas = true; m.comunes = true;
+  if (m.tipo === 'constancia') { m.frase = o.frase !== false; m.txt = o.txt; }
+  else { m.pregs = (o.pregs || []).map(function (p) { return { t: p.t, x: p.x }; }); }
+  cfgDocsEdRender();
+}
+window.cfgDocsEdOriginal = cfgDocsEdOriginal;
+
+/* ⚠️ EL TEXTO PEGADO REEMPLAZA, COMO TEXTO SIMPLE (C3). En una constancia reemplaza el texto
+   libre; en un consentimiento, TODAS las preguntas por un solo bloque sin titulo -- que es lo
+   que un texto de la institucion es: un cuerpo corrido, no cinco respuestas-. */
+function cfgDocsPegar() {
+  if (!_cdEd) return;
+  const ta = document.getElementById('cfg-docs-peg-txt');
+  const t = ta ? String(ta.value) : '';
+  const m = _cdEd.m;
+  if (m.tipo === 'constancia') m.txt = t.slice(0, DOCMOD_LIM.ctxt);
+  else m.pregs = [{ t: '', x: t.slice(0, DOCMOD_LIM.ptxt) }];
+  const p = document.getElementById('cfg-docs-peg');
+  if (p) p.hidden = true;
+  cfgDocsEdRender();
+  if (typeof toast === 'function') toast('Texto reemplazado. Si ya trae declaración o firmas, destildá esas piezas.');
+}
+window.cfgDocsPegar = cfgDocsPegar;
+
+function cfgDocsEdGuardar() {
+  if (!_cdEd) return;
+  cfgDocsEdLeer();
+  const m = _cdEd.m;
+  let nom = String(_cdEd.nom || '').trim();
+  if (_cdEd.nuevo) {
+    /* D2: el nombre del menu se pregunta al guardar, y no se acepta vacio. */
+    const r = prompt('¿Cómo se llama este documento?\n\nEs el nombre que va a aparecer en el menú del botón Documentos.', '');
+    if (r === null) return;
+    nom = String(r).trim().slice(0, DOCMOD_LIM.nom);
+    if (!nom) { alert('El nombre no puede quedar vacío.'); return; }
+  } else if (!nom) { alert('El nombre no puede quedar vacío.'); return; }
+  const st = docmodLeer();
+  if (m.incl) {
+    /* ⚠️ SI EL CUERPO QUEDO IGUAL AL ORIGINAL SE GUARDA `ed: null`, y de eso depende la regla de
+       oro: con una bandera, «Volver al texto original» mas Guardar dejaria el documento marcado
+       como editado para siempre y su papel saldria por el armador en vez de por su definicion. */
+    st.incl[m.clave].nom = (nom === docmodOrig(m.clave).nom) ? '' : nom;
+    st.incl[m.clave].ed = docmodIgualAlOriginal(m.clave, m) ? null : docmodCuerpo(m);
+  } else {
+    let clave = _cdEd.clave;
+    if (_cdEd.nuevo) {
+      if ((st.prop || []).length >= DOCMOD_PROPIOS_MAX) {
+        alert('Ya tenés ' + DOCMOD_PROPIOS_MAX + ' documentos propios. Para agregar otro, borrá uno.'); return;
+      }
+      /* La clave no se deriva del nombre: dos documentos pueden llamarse igual, y un nombre con
+         acentos o espacios no es una clave. */
+      let n = 1;
+      while ((st.prop || []).some(function (x) { return x.clave === 'p' + n; })) n++;
+      clave = 'p' + n;
+    }
+    const o = { clave: clave, tipo: m.tipo, vis: true, nom: nom };
+    const c = docmodCuerpo(m);
+    for (const k in c) if (Object.prototype.hasOwnProperty.call(c, k)) o[k] = c[k];
+    const i = (st.prop || []).findIndex(function (x) { return x.clave === clave; });
+    if (i >= 0) { o.vis = st.prop[i].vis !== false; st.prop[i] = o; } else st.prop.push(o);
+  }
+  /* El validador corre sobre lo que se va a guardar: un tope de largo no puede depender de que
+     el `maxlength` del campo haya estado puesto. */
+  const r = docmodValidar(st, false);
+  if (!r.ok) { alert('No se pudo guardar: el documento quedó fuera de los límites de tamaño.'); return; }
+  if (!docmodEscribir(r.st)) { alert('No se pudo guardar en el almacenamiento del navegador.'); return; }
+  /* La hoja de este documento que estuviera en memoria sin correcciones se vuelve a derivar del
+     modelo nuevo la proxima vez que se abra; con correcciones a mano, se conserva (C6). */
+  const k2 = m.incl ? m.clave : (_cdEd.nuevo ? null : _cdEd.clave);
+  if (k2 && _docEst[k2] && !_docEst[k2].editado) delete _docEst[k2];
+  _cdEd = null;
+  const ed = document.getElementById('cfg-docs-ed');
+  if (ed) { ed.hidden = true; ed.innerHTML = ''; }
+  cfgDocsEdMostrarLista(true);
+  cfgDocsRender();
+  if (typeof toast === 'function') toast('📄 Documento guardado');
+}
+window.cfgDocsEdGuardar = cfgDocsEdGuardar;
+
 function docmodArranque() { docmodBotonSync(); docmodMenuRender(); }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', docmodArranque);
 else docmodArranque();
@@ -116927,13 +117359,18 @@ window.docActualizarDatos = docActualizarDatos;
    Se pinta de los MISMOS bloques que maqueta el papel. Los datos de la app se ven en azul
    (doc-dato), que es solo de pantalla: en el papel y en la imagen va todo en negro, porque el
    emisor no mira esa clase -dibuja de la lista de operaciones, donde no existe-. */
-function docRender() {
-  const h = document.getElementById('doc-hoja');
-  if (!h || !_docAbierto) return;
-  const st = _docEst[_docAbierto], def = docDefActual(), D = docDatos();
+/* ⚠️ PANT-32: EL ARMADO DEL MARCADO SALE A SU PROPIA FUNCION, para que la vista previa del
+   editor de modelos se vea con LA MISMA hoja que el Informe y no con una segunda maqueta. Con
+   dos armados, el dia que un bloque cambie de aspecto el editor mostraria una cosa y el papel
+   otra -- y el editor es justamente donde el medico decide como va a salir-.
+   `editable` es lo unico que cambia: en el Informe los bloques llevan `contenteditable` y en la
+   vista previa no, porque ahi no se corrige nada, se mira. */
+function docHojaHTML(bloques, D, editable) {
   let out = '', nsec = 0;
-  (st.bloques || []).forEach(function (b) {
-    const ed = ' contenteditable="true" data-doc-i="' + b.i + '" spellcheck="false"';
+  (bloques || []).forEach(function (b) {
+    const ed = editable ? (' contenteditable="true" data-doc-i="' + b.i + '" spellcheck="false"') : '';
+    const edj = function (j) { return editable
+      ? (' contenteditable="true" data-doc-i="' + b.i + '" data-doc-j="' + j + '" spellcheck="false"') : ''; };
     if (b.t === 'enc') {
       const ini = (D.inst || '').split(/\s+/).filter(Boolean).slice(0, 2)
         .map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
@@ -116993,7 +117430,7 @@ function docRender() {
             }
           }
         }
-        return '<li contenteditable="true" data-doc-i="' + b.i + '" data-doc-j="' + j + '" spellcheck="false">' + txt + '</li>';
+        return '<li' + edj(j) + '>' + txt + '</li>';
       }).join('') + '</ul>';
       return;
     }
@@ -117008,8 +117445,7 @@ function docRender() {
     if (b.t === 'chk2') {
       out += '<div class="doc-chk2">' + (b.items || []).map(function (it, j) {
         return '<div class="doc-chk"><span class="doc-chk-sn">☐ Sí ☐ No</span>' +
-          '<span contenteditable="true" data-doc-i="' + b.i + '" data-doc-j="' + j + '" spellcheck="false">' +
-          docMarcar(it, D) + '</span></div>';
+          '<span' + edj(j) + '>' + docMarcar(it, D) + '</span></div>';
       }).join('') + '</div>';
       return;
     }
@@ -117030,7 +117466,15 @@ function docRender() {
       return;
     }
   });
-  h.innerHTML = out;
+  return out;
+}
+window.docHojaHTML = docHojaHTML;
+
+function docRender() {
+  const h = document.getElementById('doc-hoja');
+  if (!h || !_docAbierto) return;
+  const st = _docEst[_docAbierto], def = docDefActual(), D = docDatos();
+  h.innerHTML = docHojaHTML(st.bloques, D, true);
   /* ⚠️ EL CUERPO Y EL INTERLINEADO SALEN DE LA MISMA `def` QUE MAQUETA EL PAPEL, EN PUNTOS.
      Hasta PANT-31 la hoja de pantalla traia 12,5 px fijos para los cuatro documentos mientras el
      papel usaba 10,5 / 10,2 / 8,8 pt: la pantalla no podia corresponder al papel ni en el tamanio
