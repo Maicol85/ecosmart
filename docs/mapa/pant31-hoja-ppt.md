@@ -251,3 +251,14 @@ Tres cambios y nada más:
    la sonda del papel en la primera casilla dibujada. Y **el aire de las dos líneas de casillas no
    se puede medir buscando su texto**: la línea de «capacitado» sale palabra por palabra y en el ETE
    hay ocho líneas de `chk2` que también empiezan con «Sí». Se mide por los **grupos** de casillas.
+
+---
+
+## La tanda PANT-32 (2026-11-10) movió la hoja a dos dueños
+
+`docRender` salió **partido**: su armado de marcado pasó a **`docHojaHTML(bloques, D, editable)`**,
+que el Informe llama con `editable` en verdadero y la **vista previa del editor de modelos** en
+falso. Con dos armados, el día que un bloque cambie de aspecto el editor mostraría una cosa y el
+papel otra. Y la hoja ya no sale sólo de `DOC_DEFS`: la `def` la decide **`docmodDef(clave)`**, que
+para un incluido **sin editar** devuelve el objeto de `DOC_DEFS` **tal cual**. Todo eso, en
+`docs/mapa/pant32-modelos-documentos.md`.

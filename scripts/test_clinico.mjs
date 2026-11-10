@@ -130764,7 +130764,22 @@ caso('TC-805', 'PANT-32: un documento PROPIO de punta a punta -- la pregunta de 
     docClaveEsq(docDefActual().clave) === 'doc-' + cl1, docClaveEsq(docDefActual().clave));
   q('(E5) y la miniatura llevaria el NOMBRE del documento', docDefActual().tit === 'Propio uno',
     docDefActual().tit);
-  docImprimir();
+  /* ⚠️ EL CASO INSTALA SU PROPIA ENVOLTURA DE jsPDF Y NO CONFIA EN LA QUE HEREDA, y lo destapo la
+     SUITE COMPLETA: aislado pasaba, y en su lote salia rojo con «doc.save is not a function».
+     Veintitres casos de este archivo envuelven window.jspdf.jsPDF para que save no baje un
+     archivo, y uno que vuelve temprano deja la envoltura puesta; docImprimir hace doc.save(nom)
+     y revienta. Es el mismo modo de falla que CLAUDE.md documenta: un caso que hereda el estado
+     que le deja el anterior. Con su propia envoltura, la condicion mide lo que tiene que medir
+     --el estado que la app publica con el numero de hojas-- en cualquier lote, y se restaura. */
+  const OrigPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  q('(E5b) DENOM: la biblioteca PDF esta', !!OrigPDF);
+  if (OrigPDF) {
+    function WPDF() { const d = new OrigPDF(arguments[0]); d.save = function () { return d; }; return d; }
+    WPDF.prototype = OrigPDF.prototype;
+    window.jspdf.jsPDF = WPDF;
+    try { docImprimir(); } catch (e) { q('(E6) «Imprimir» no tira', false, String(e.message).slice(0, 90)); }
+    window.jspdf.jsPDF = OrigPDF;
+  }
   await esp(200);
   q('(E6) «Imprimir» arma el PDF y dice cuantas hojas',
     ((document.getElementById('doc-estado') || {}).textContent || '').indexOf('Documento generado: ' + maq.n) === 0,

@@ -1,3 +1,54 @@
+## PANT-32 — el cajón de Documentos en Configuración (2026-11-10)
+
+**Commits:** `ee9e730` (1, el inventario de solo lectura) · `5fe16f7` (2, el almacén de modelos y
+los cuatro incluidos) · `5993dfd` (3, la sección de Configuración, el interruptor y el menú
+pintado) · `0b2358e` (4, el editor con su vista previa) · `e38d341` (5, la impresión de los
+propios) · `c1bdf57` (6, exportar e importar) · `d1f2e4e` (7, los seis casos y el barrido de
+mutaciones) · `834da87` (8a, el sello) · **éste** (8b, la documentación). **NUEVE** commits,
+contados con `git log 8967e5f..HEAD` al cerrar, y el commit que escribe este número entra en la
+cuenta.
+Sello **`v20261110-1736`**, md5 **`4979b4ff`**. Línea base: `8967e5f`, el cierre de PANT-31,
+sello `v20261110-1327`, md5 `fcb65077`, verificado al abrir con `HEAD` = `origin/main`.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Qué hace.** Configuración gana una sección **📄 Documentos** donde el médico cambia el texto de
+los cuatro documentos que vienen con la app, los oculta del menú del Informe, agrega hasta **dos**
+documentos propios —una constancia o un consentimiento—, y exporta e importa todos los modelos.
+Los modelos guardan **sólo textos y opciones**, en `localStorage`, y jamás datos de pacientes.
+
+**La regla de oro (A3) se cumple por construcción y no por cuidado.** Un documento incluido **sin
+editar** no pasa por el armador: `docmodDef` devuelve el objeto de `DOC_DEFS` **tal cual** —el
+mismo, no una copia—, así que su PDF y su imagen son los de PANT-31 por **identidad**. Medido:
+**1/13**, **3/150**, **3/198** y **3/152** hojas y operaciones, y `def === DOC_DEFS[clave]` en los
+cuatro. Y «sin editar» se decide **comparando** contra el original, no con una bandera.
+
+**Tres hipótesis de la orden resultaron falsas o incompletas**, las tres medidas en la TAREA 0: el
+botón «Documentos» **no tenía** forma de ocultarse ni de deshabilitarse; `def.hojas` declara
+1/2/2/2 y las hojas reales son 1/3/3/3 (nadie lee el campo); y la declaración y las firmas **ya**
+viajaban juntas por su `grupo`, así que D4 no necesitó mecanismo nuevo.
+
+**Tres defectos propios que la verificación destapó y la lectura no:** los tres oyentes del editor
+se registraban en **cada** repintado, así que «Volver al texto original» preguntaba **dos** veces;
+la comparación que decide si un incluido está editado vivía **sólo** en el botón «Guardar», así
+que un `ed` idéntico al original llegado de un archivo **importado** dejaba al documento fuera de
+la regla de oro; y la siembra del médico de las sondas usaba `eco_medicos`, que no existe —la clave
+es `ett_medicos`—, error **heredado de la sonda de PANT-31**.
+
+**Cobertura:** **TC-801** a **TC-806**, los seis cayendo contra `8967e5f`, con **51/51** mutaciones
+dirigidas muertas en 2,8 min, en worktree y nunca sobre el vivo, con el md5 del vivo idéntico antes
+y después. **Diecisiete** casos existentes corridos antes de escribir nada y los diecisiete pasan
+**sin adaptación**. El primer barrido dejó **siete** sobrevivientes: **cuatro huecos reales**
+cerrados con condiciones nuevas, **dos mutaciones mal dirigidas** y **una** que el texto de prueba
+no ejercitaba.
+
+**Dónde está todo:** `docs/mapa/pant32-modelos-documentos.md` (mapa nuevo),
+`docs/INVENTARIO_P32.md`, `docs/DOCUMENTOS_P32.md` (el manual del médico),
+`docs/mapa/tests-fichas-801.md` (las fichas, archivo propio),
+`docs/GUIA_PRUEBA_PANT32.md` (**67** pasos), `docs/PENDIENTES.md` → **P32-a**, **P32-b** y
+**P32-c**, y punteros en `pant30-documentos-protesis.md`, `pant31-hoja-ppt.md` y
+`tests-punteros-tandas.md` — que esta tanda **partió** antes de escribirle el puntero, de 33,9 KB
+a 14,4, sacando las secciones de PANT-14 hacia atrás a `tests-punteros-viejos.md`.
+
 ## PANT-29 — Referencias más breve y las arterias coronarias en el 3D de Contractilidad (2026-11-10)
 
 **Commits:** `e92c9a9` (1, inventario) · `8dc6a3e` (2, los dos resúmenes de miocardiopatías) ·

@@ -1,5 +1,38 @@
 # Mapa — los casos de prueba, tanda por tanda
 
+
+## PANT-32 (2026-11-10) — TC-801 a TC-806
+
+Seis casos nuevos, **TC-801 a TC-806**. Fichas: `docs/mapa/tests-fichas-801.md`. Mapa:
+`docs/mapa/pant32-modelos-documentos.md`. **51 de 51** mutaciones muertas
+(`scripts/_mut_pant32.py`), con el md5 del árbol vivo idéntico antes y después; los seis caen
+contra `8967e5f` **por su denominador**, porque el almacén de modelos no existe en ese árbol.
+**Diecisiete** casos existentes corridos antes de escribir nada y los diecisiete pasan **sin
+adaptación**.
+
+| caso | qué fija | mutaciones |
+|---|---|---|
+| **TC-801** | el almacén y **la regla de oro**: la identidad con `DOC_DEFS`, el papel de PANT-31, el modelo derivado sin perder una palabra, y el validador | 10 |
+| **TC-802** | las cinco convenciones del texto con su ida y vuelta, la negrita en el papel, y la declaración de un propio con su control negativo | 10 |
+| **TC-803** | la sección de Config, el interruptor con el **control de `hidden`**, la lista, el cupo y ocultar que no borra | 8 |
+| **TC-804** | el menú pintado al instante, el editor, la vista previa con la hoja del Informe, y **los oyentes una sola vez** | 7 |
+| **TC-805** | un propio de punta a punta y su papel, con la declaración y las firmas juntas | 8 |
+| **TC-806** | exportar e importar, los **diez** rechazos y la ida y vuelta | 8 |
+
+### PANT-32 · las siete del primer barrido, y lo que dijo cada una
+
+**Cuatro huecos reales** — la frase de la constancia duplicada (contar palabras no la veía), el
+camino de la **validación** del almacén sin probar (la cadena corrupta caía en el `catch`), ocultar
+un incluido **editado**, y el almacén guardando el archivo crudo. **Dos mal dirigidas** — `order:9`
+no mueve el DOM, y el tope de propios era **redundante** con el tope total. **Y una que el texto de
+prueba no ejercitaba**: la guarda que distingue una casilla de un `pchk` sólo actúa cuando la línea
+**arranca** con el cuadrado y deja otro atrás.
+
+**Y un defecto del producto que el barrido obligó a cerrar**: la comparación que decide si un
+incluido está editado vivía **sólo** en el botón «Guardar», así que un `ed` idéntico al original
+llegado de un archivo **importado** dejaba al documento fuera de la regla de oro. Hoy vive en el
+**lector**.
+
 ## Las tandas de PANT-14 hacia atras viven en su propio archivo
 
 `docs/mapa/tests-punteros-viejos.md` — las secciones de **PANT-14**, **PANT-3** (sus dos

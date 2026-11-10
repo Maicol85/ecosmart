@@ -255,3 +255,13 @@ En una línea cada uno, para no leer dos mapas por una duda:
   con su fila de 16, y las **hojas comunes sin título**.
 - **La sección «Prótesis valvulares» del Laboratorio ya lleva `data-ppt`**, con su grupo `prot` y su
   diapositiva: el renglón de arriba que dice que lleva `data-ppt-no` quedó vencido ese día.
+
+---
+
+## La tanda PANT-32 (2026-11-10) hizo editables los cuatro documentos
+
+El menú del botón ya **no está escrito a mano**: lo pinta `docmodMenuRender` del almacén de
+modelos, y el botón se puede ocultar desde Configuración. Los cuatro documentos de esta tanda
+pasaron a representarse como **modelos editables**, con su texto derivado de su propia definición
+y **sin cambiar una palabra**. El mapa: `docs/mapa/pant32-modelos-documentos.md`; el manual del
+médico, `docs/DOCUMENTOS_P32.md`.

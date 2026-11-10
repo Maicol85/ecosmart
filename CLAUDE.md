@@ -263,13 +263,26 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,53 MB / 172.247 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
-  cierre de la tanda **PANT-31**, sobre el árbol ya sellado:
-  sello **`v20261110-1327`**, md5 **`fcb65077`**.
+  sin frameworks. Hoy **12,60 MB / 173.563 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
+  cierre de la tanda **PANT-32**, sobre el árbol ya sellado: sello **`v20261110-1736`**, md5 **`4979b4ff`**.
   ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
   renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
-  salto de línea entre los dos el caso sale ROJO -- lo pagó esta tanda, que los partió al reflujar el
+  salto de línea entre los dos el caso sale ROJO -- lo pagó PANT-31, que los partió al reflujar el
   párrafo.
+  El diff de PANT-32 son **1.348 líneas agregadas y 32 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `8967e5f`, de las que **1.216** no son comentario, con **cero** `eval(`
+  y `new Function` nuevos, **siete** `innerHTML` nuevos y cero claves ni contraseñas. Los siete están
+  declarados y Semgrep se movió **un** aviso: dos son `ed.innerHTML = ''` —la cadena vacía—, uno
+  recibe un literal, tres pasan cada valor del usuario por `escHtml`, y el séptimo es la vista previa
+  del editor, que recibe el marcado de `docHojaHTML`, el mismo que arma la hoja del Informe. **Cero
+  campos guardados nuevos** del estudio, **cero columnas de Excel (457)** y **ningún id existente
+  cambiado**: los **treinta y uno** nuevos llevan todos prefijo `cfg-`, ninguno termina en `-aviso`
+  ni en `-badge` y ninguno cae bajo ninguno de los barridos por prefijo de `limpiarCampos`.
+  ⚠️ **POR VIGESIMONOVENA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show 8967e5f:index.html` da **172.247** líneas,
+  **12.532.229** bytes y el md5 **`fcb65077`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,53 MB / 172.247 al cierre de la tanda **PANT-31**, sello **`v20261110-1327`**, md5 **`fcb65077`**.)
   El diff de PANT-31 son **499 líneas agregadas y 56 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `e531b73`, de las que **459** no son comentario, con **cero**
   `innerHTML`, `eval(` y `new Function` nuevos —la única aparición de `innerHTML` en el diff es un
@@ -1003,6 +1016,110 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-32 (2026-11-10) — el cajón de Documentos en Configuración.** NUEVE commits. Sello
+**`v20261110-1736`**, md5 **`4979b4ff`**. Configuración gana una sección **📄 Documentos** donde el
+médico cambia el texto de los cuatro documentos que vienen con la app, los oculta del menú del
+Informe, agrega hasta **dos** documentos propios —una constancia o un consentimiento— y exporta e
+importa todos los modelos; los modelos guardan **solo textos y opciones**, en `localStorage`, con el
+patrón de `ecosmart_frases`, y **jamás datos de pacientes, logo ni institución**, medido por el
+complementario sobre el archivo exportado.
+⚠️ **LA REGLA DE ORO SE CUMPLE POR CONSTRUCCIÓN Y NO POR CUIDADO**: un incluido **sin editar** no
+pasa por el armador —`docmodDef` devuelve el objeto de `DOC_DEFS` **tal cual**, el mismo y no una
+copia—, así que su PDF y su imagen son los de PANT-31 por **identidad**. Medido: **1/13**, **3/150**,
+**3/198** y **3/152** hojas y operaciones, y `def === DOC_DEFS[clave]` en los cuatro. Y «sin editar»
+se decide **comparando** el cuerpo contra el original, **en el LECTOR y no solo en el botón
+«Guardar»**: lo destapó TC-801 (C6), porque `ed` puede llegar de un archivo **importado** y un
+documento con el texto original exacto tiene que imprimir por su definición. Con una bandera,
+«Volver al texto original» más Guardar lo habría dejado marcado para siempre.
+El modelo original de un incluido se **DERIVA** de su definición por rebanado y **no se retipea**:
+ni una palabra de los cuatro cambia, y medido palabra por palabra el texto derivado no pierde
+ninguna del cuerpo (**13**, **318**, **459** y **342**). Las cinco convenciones de A4 —viñeta,
+casilla, raya, negrita y línea en blanco— con ida y vuelta verificada; ⚠️ **una casilla es una línea
+que ARRANCA con el cuadrado y trae UNO solo**, y una con cuadrados **en el medio** es un `pchk` que
+los **dibuja**, porque `docSan` convierte el U+2610 en un espacio y un cuadrado que no se dibuja sale
+como un hueco que el paciente no puede marcar. La negrita **palabra por palabra** entra por un
+bloque NUEVO (`pr`) y una función NUEVA (`parrafoRico`), **sin tocar `parrafo`**: el peso por palabra
+es un campo **opcional** de la operación `tw`, así que las 21, 27 y 23 líneas justificadas de los
+tres consentimientos se dibujan por el camino de siempre. **El botón se oculta con una CLASE y no
+con `hidden`**, y el control está medido: con el atributo puesto y la clase sacada, el envoltorio
+computa `display:flex` y el botón sigue midiendo 132 px —`.btn` declara `inline-flex` y le gana al
+`[hidden]` del navegador—, que es lo que PANT-30 pagó. **El menú del Informe se PINTA** del almacén,
+con la clave por `data-doc-k` y un oyente delegado, y cambia **al instante**. **La vista previa del
+editor usa la hoja del Informe**: `docRender` salió partido y su armado pasó a
+`docHojaHTML(bloques, D, editable)` —con dos armados, el editor mostraría una cosa y el papel otra—,
+y su paciente, su institución y su médico son **ficticios**. La impresión de un propio reusa el
+grupo `firmas` que el maquetador ya medía con `altoGrupo`: medido, la declaración y la tabla de
+firmas caen en la **hoja 1** del propio corto y en la **hoja 2** del largo, siempre **juntas**, con
+las hojas comunes aparte y **un solo** `salto`.
+⚠️ **TRES HIPÓTESIS DE LA ORDEN RESULTARON FALSAS O INCOMPLETAS, las tres medidas en la TAREA 0**: el
+botón «Documentos» **no tenía** forma de ocultarse ni de deshabilitarse; `def.hojas` declara
+1/2/2/2 y las hojas reales son **1/3/3/3** —nadie lee el campo—; y la declaración y las firmas **ya**
+viajaban juntas, así que D4 no necesitó mecanismo nuevo.
+⚠️ **TRES DEFECTOS PROPIOS QUE LA VERIFICACIÓN DESTAPÓ Y LA LECTURA NO**: los tres oyentes del editor
+se registraban en **cada** repintado —`cfgDocsEdRender` reemplaza el `innerHTML` pero no el
+contenedor—, así que «Volver al texto original» preguntaba **dos** veces y «Guardar» habría guardado
+dos; la comparación del editado vivía solo en el botón; y la siembra del médico de las sondas usaba
+`eco_medicos`, que **no existe** —la clave es **`ett_medicos`**—, error **heredado de la sonda de
+PANT-31**, que medía el papel con el nombre del médico vacío y la firma dibujando «____».
+**A/B contra `8967e5f`, con el PDF y el PPT generados de verdad en las 121 escenas: los dos volcados
+son IDÉNTICOS BYTE POR BYTE** (md5 `92c0f603`), con **148.572** claves y **55.297** celdas de Excel
+comparadas y **cero** diferencias de superficie firmada y de pantalla; **Excel 457** en las 121 y
+**cero campos guardados nuevos**. Su cero de pantalla es un **control negativo declarado**: ese arnés
+no abre Configuración, ni la sección, ni el editor, ni el menú, ni la hoja. Lo que prueba la tanda
+son las cinco sondas propias y **TC-801 a TC-806**, con **51/51 mutaciones dirigidas muertas** en
+2,8 min, en worktree y nunca sobre el vivo, con el md5 del vivo idéntico antes y después. **El
+primer barrido dejó SIETE sobrevivientes**: **cuatro huecos reales** cerrados con condiciones nuevas
+—la frase de la constancia duplicada, que contar palabras no veía; el camino de la **validación** del
+almacén, que la cadena corrupta no ejercitaba porque caía en el `catch`; ocultar un incluido
+**editado**; y el almacén guardando el archivo crudo—, **dos mal dirigidas** —`order:9` no mueve el
+DOM, y el tope de propios era **redundante** con el tope total— y **una** que el texto de prueba no
+ejercitaba. **Diecisiete casos existentes corridos antes de escribir nada y los diecisiete pasan SIN
+adaptación.**
+**Línea base al cierre: suite 814/821**, en **quince** lotes cubriendo los **821 casos distintos**
+—contados nombre por nombre, **cero duplicados**—, en UNA sola pasada sobre el árbol sellado, con
+los **821 ejecutados**, el md5 de `index.html` **idéntico** antes y después (`4979b4ff`) y el
+pendrive `DISK_IMG` verificado al abrir, en cada uno de los quince lotes y al cerrar (diecisiete
+verificaciones). Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más
+**TC-182**, **TC-706** y **TC-791**. ⚠️ **LOS TRES ÚLTIMOS SON SENSIBILIDAD DE LOTE PREEXISTENTE, Y
+ESTÁ MEDIDO DE LA FORMA QUE LO DECIDE**: los tres pasan **aislados**, y corridos **en su lote**
+contra `8967e5f` —el mismo archivo de casos, la misma composición de lotes, sólo el `index.html`
+distinto— salen **rojos igual**: TC-182 en el lote 2, TC-706 en el 13 y TC-791 en el 15. **Ningún
+rojo nuevo**, y **TC-551 y TC-557, los dos intermitentes declarados, salieron VERDES** en esta
+corrida.
+⚠️ **Y LA PRIMERA CORRIDA DIO 812/821 CON DOS ROJOS MÁS, LOS DOS MÍOS Y LOS DOS EXPLICADOS**:
+**TC-753**, que tenía razón —`CLAUDE.md` todavía publicaba el sello de PANT-31 mientras el pie ya
+traía el nuevo—, y **TC-805**, que **aislado pasaba y en su lote salía rojo** con «doc.save is not a
+function». Esa es la segunda vez en dos tandas que un caso mío falla sólo en su lote: **veintitrés**
+casos de este archivo envuelven `window.jspdf.jsPDF` para que `save` no baje un archivo, y uno que
+vuelve temprano deja la envoltura puesta. Hoy el caso instala **su propia** envoltura y la restaura,
+que es la única forma de que la condición mida lo mismo en cualquier lote.
+**Chrome y WebKit coinciden en los VEINTE cruces** (dos motores × 1440, 1280, 1000, 768 y 390 px ×
+dos temas) con **una sola combinación de valores**: el botón en 44 px, apagado en `display:none` con
+alto **cero**, el menú con sus cuatro opciones y **cero** `onclick` inline, la sección en el índice
+**5 de 9** con sus cuatro filas y **cero** botones «Borrar», el editor en dos columnas a 1440, 1280 y
+1000 px y en una —con la vista previa **debajo**— a 768 y 390, cinco `textarea` y **cero**
+`contenteditable` en su columna, la vista previa con su paciente **ficticio**, **cero**
+`contenteditable` y «3 hojas», **cero** controles por debajo de 44 px, **cero** desplazamiento
+horizontal y **CERO errores de consola y de página en los dos motores**. ⚠️ **Los «cinco textos
+recortados» de 1000 px son un artefacto de medición y está medido**: son párrafos **dentro** de la
+vista previa, que es una A4 con `zoom: 0,52` y `overflow: auto`, y el contenedor **no desborda en
+ancho** en ninguno de los cuatro anchos (`scrollWidth` 794 = `clientWidth` 794) — lo que desborda es
+el **alto**, que es para lo que la caja scrollea. **WebKit de Playwright no es Safari, y se declara.**
+Semgrep **125 WARNING / 0 ERROR**, **un** aviso sobre la línea base de 124, y es el `innerHTML` del
+editor, cuyas interpolaciones pasan **todas** por `escHtml` —medido con el texto que lo prueba: un
+bloque con `<b>ojo</b>` y un `<script>` se ve como **texto**, con cero elementos—. **Sin huérfanos
+nuevos**, medido en los dos árboles. **Celular 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada
+ancho** — la línea base exacta, medida con el **mismo script en los dos árboles**. **17 de 19**
+bloques de JS inline parsean, idéntico a la línea base.
+⚠️ **UNA COSA QUE ESTA TANDA HIZO SIN QUE SE LE PIDIERA Y DESHIZO**: un `git add -A docs/` del commit
+7 se llevó puestos **diecisiete** demos de `docs/3d/` que estaban sin rastrear desde tandas
+anteriores. Volvieron a no rastreados con `git rm --cached` —los archivos **siguen en disco**, no se
+borró nada— porque agregarlos no era de esta tanda.
+Lo declarado, en **P32-a**, **P32-b** y **P32-c**; el mapa, en
+`docs/mapa/pant32-modelos-documentos.md`; el inventario, en `docs/INVENTARIO_P32.md`; el manual del
+médico, en `docs/DOCUMENTOS_P32.md`; las fichas, en `docs/mapa/tests-fichas-801.md`; la guía manual,
+en `docs/GUIA_PRUEBA_PANT32.md` (**67** pasos).
 
 **La tanda PANT-31 (2026-11-10) — la hoja de los documentos del Informe, y la casilla de PPT de las
 prótesis valvulares.** NUEVE commits. Sello **`v20261110-1327`**, md5 **`fcb65077`**. ⚠️ **EL
