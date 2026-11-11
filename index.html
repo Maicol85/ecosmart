@@ -13908,12 +13908,23 @@ window.cerrarSesionReal = cerrarSesionReal;
                     <div id="lv3d-coro-caja">
                       <button type="button" class="btn btn-ghost lv3d-coro-vista-btn" aria-expanded="false">Vista de angiograf&iacute;a</button>
                       <div id="lv3d-coro-lista" style="display:none;">
+                        <!-- ⚠️ EL TEXTO DE ESTOS NUEVE BOTONES LO ESCRIBE `lv3dCoroUI` DESDE
+                             `LV3D_CORO_VISTAS` — PANT-34 (A1) y (A2): esa tabla es el duenio
+                             unico del nombre de cada vista, y es la misma que `lv3dPintar` lee
+                             para el rotulo del cuadro. El nombre que va aca es el de respaldo
+                             para que el DOM nunca quede vacio, y un caso nuevo compara los
+                             nueve rotulos contra la tabla para que no puedan divergir.
+                             La tilde de la opcion activa la pone `lv3dCoroUI`, delante del
+                             nombre, y es lo que reemplaza al titulo del boton, que ya NO cambia. -->
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="0">OAD caudal</button>
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="1">OAI caudal</button>
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="2">OAD craneal</button>
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="3">OAI craneal</button>
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="4">PA craneal</button>
                         <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="5">OAI (CD)</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="6">AP caudal</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="7">Lateral</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-v" data-v="8">OAD recta</button>
                         <span aria-hidden="true" style="height:1px;background:var(--border);margin:2px 0;"></span>
                         <button type="button" class="btn btn-ghost lv3d-coro-angio" aria-pressed="false">Modo angiograf&iacute;a (fondo oscuro)</button>
                       </div>
@@ -13934,8 +13945,11 @@ window.cerrarSesionReal = cerrarSesionReal;
                    y SOLO con «Coronarias» prendido — PANT-29, commit 5 (C) y (D). Va entre el
                    dibujo y el renglon de `#lv3d-leido`, que es «debajo del recuadro».
                    ⚠️ NI UN GRADO NI UNA NOTA CLINICA POR VISTA: la linea es una sola y siempre la
-                      misma. Los angulos de las vistas son los de la demo, aproximados, y quedan
-                      declarados en `docs/PENDIENTES.md` -> P29-b, sin escribirse en pantalla. -->
+                      misma. Los angulos de las NUEVE vistas son aproximados y quedan declarados
+                      en `docs/PENDIENTES.md` -> P29-b, sin escribirse en pantalla.
+                   ⚠️ QUE VISTA ESTA PUESTA NO SE DICE ACA — PANT-34 (A3): lo dice el ROTULO que
+                      `lv3dPintar` escribe DENTRO del cuadro, en el rincon derecho de abajo, mas
+                      la tilde de la lista. Esta linea sigue siendo la misma para las nueve. -->
               <div id="lv3d-coro-pie" style="display:none;">
                 <div class="lv3d-coro-vista-txt" style="font-size:11px;color:var(--text2);margin:6px 0 0;display:none;">Vista simulada, aproximada.</div>
                 <div style="font-size:10.5px;color:var(--text2);margin:4px 0 0;line-height:1.45;">DA descendente anterior &middot; D diagonales &middot; Cx circunfleja &middot; MO marginales obtusas &middot; CD coronaria derecha &middot; DP descendente posterior &middot; PL posterolateral. Gris: tramo posiblemente afectado.</div>
@@ -134536,13 +134550,29 @@ const LV3D_CORO_COL = { tronco:'#8b7fd6', gris:'#8f8f8f', grisAngio:'#666666', a
 const LV3D_CORO_ANCHO = { tronco:5.0, principal:5.0, rama:3.2, fina:2.6, septal:1.8 };
 const LV3D_CORO_MUESTRAS = 22;
 const LV3D_CORO_FONDO = '#101010';
-/* Las seis vistas de angiografia, en grados (alfa = oblicua, beta = craneal positivo). Son los
-   de la demo, TIPICOS Y APROXIMADOS: no se escriben en ninguna pantalla y quedan declarados en
-   `docs/PENDIENTES.md` -> P29-b, pendientes de verificar con una fuente. */
+/* Las NUEVE vistas de angiografia, en grados (alfa = oblicua, beta = craneal positivo). Son
+   TIPICOS Y APROXIMADOS, y el giro es INTERNO: ni un grado se escribe en ninguna pantalla —lo
+   que el medico ve es el NOMBRE de la vista, en la lista y en el rotulo del cuadro—. Quedan
+   declarados en `docs/PENDIENTES.md` -> P29-b, pendientes de verificar con una fuente.
+   ⚠️ LA CONVENCION ESTA MEDIDA Y ES LA DE LA DEMO: `a` NEGATIVA es OAD y POSITIVA es OAI; `b`
+      POSITIVA es craneal y NEGATIVA es caudal. El vector de camara que `lv3dCoroMatriz` arma es
+      `d = [sin(a)cos(b), sin(b), cos(a)cos(b)]`, asi que «de frente» es `a:0`, «lateral
+      izquierda de 90 grados» es `a:90` —que da `d=[1,0,0]` y una base valida, sin degenerar— y
+      «sin angulacion» es `b:0`. Lo que SI degeneraria es `b:±90`, que ninguna vista pide.
+   ⚠️ TRES VISTAS SON NUEVAS —AP caudal, Lateral y OAD recta— Y TRES CAMBIARON DE ANGULO A
+      PROPOSITO (PANT-34, A4): «OAD caudal» pasa de caudal 25 a 30, «OAI caudal» de OAI 40 a 50,
+      «OAD craneal» de craneal 20 a 30, «PA craneal» de craneal 30 a 40 y «OAI (CD)» de OAI 35 a
+      40. Es el pedido textual del medico, no un ajuste de dibujo.
+   ⚠️ ESTA TABLA ES EL DUENIO UNICO DEL NOMBRE DE CADA VISTA: `lv3dCoroUI` escribe con ella el
+      texto de los nueve botones de la lista y `lv3dPintar` el rotulo del cuadro. Con el nombre
+      copiado en el marcado y en el rotulo, el dia que uno cambie la lista y el cuadro dirian
+      cosas distintas de la misma vista. */
 const LV3D_CORO_VISTAS = Object.freeze([
-  { n:'OAD caudal',  a:-30, b:-25 }, { n:'OAI caudal',  a: 40, b:-30 },
-  { n:'OAD craneal', a:-30, b: 20 }, { n:'OAI craneal', a: 40, b: 30 },
-  { n:'PA craneal',  a:  0, b: 30 }, { n:'OAI (CD)',    a: 35, b:  0 }
+  { n:'OAD caudal',  a:-30, b:-30 }, { n:'OAI caudal',  a: 50, b:-30 },
+  { n:'OAD craneal', a:-30, b: 30 }, { n:'OAI craneal', a: 40, b: 30 },
+  { n:'PA craneal',  a:  0, b: 40 }, { n:'OAI (CD)',    a: 40, b:  0 },
+  { n:'AP caudal',   a:  0, b:-30 }, { n:'Lateral',     a: 90, b:  0 },
+  { n:'OAD recta',   a:-30, b:  0 }
 ]);
 /* El color de cada arteria sale de `CONTR_TERRITORIO`, que es el DUENO UNICO del reparto y el
    que pinta la leyenda «Territorio coronario» y el modo territorio del 3D. La demo traia su
@@ -134962,6 +134992,34 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
     ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.fillText(e.l, ex + (r.x>=0 ? 4 : -28), ey + (r.y>=0 ? -3 : 12));
   });
+
+  /* ── EL ROTULO DE LA VISTA DE ANGIOGRAFIA — PANT-34 (A3) ──────────────────────────────────
+     Dice el NOMBRE de la vista elegida, tal cual figura en la lista, en el rincon DERECHO de
+     ABAJO: a la MISMA altura que la brujula (`oy`) y del lado opuesto. Medido antes de
+     escribirlo: ese rincon —x 570 a 670, y 290 a 375— tenia CERO pixeles con tinta, asi que no
+     tapa nada ni se le encima a la brujula, que vive en x 26 a 90.
+     ⚠️ SIN UN SOLO GRADO: lo que se publica es el nombre, y el giro queda interno. Es la regla
+        del pedido, y por eso el rotulo lee `LV3D_CORO_VISTAS[...].n` —el duenio unico del
+        nombre, el mismo que escribe la lista— y no una cadena propia.
+     ⚠️ VA DESPUES DEL BUCLE DE POLIGONOS Y NO ENTRA EN `polis`: no se ordena por profundidad, no
+        se puede tocar y NO cambia un solo movimiento del 3D.
+     ⚠️ LLEVA HALO, igual que las letras de las arterias, y por el mismo motivo: en modo
+        angiografia el fondo es casi negro y `pal.texto` del tema claro no se leeria. El halo se
+        pinta con el fondo que corresponde y el relleno se aclara. `save`/`restore` restituyen
+        `font`, `textAlign`, `lineWidth` y `lineJoin`, que es la leccion del `lineJoin` de
+        TC-783: el contexto es el MISMO entre cuadros. */
+  if (_lv3d.coro && _lv3d.coroVista !== null && LV3D_CORO_VISTAS[_lv3d.coroVista]){
+    ctx.save();
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    const rot = LV3D_CORO_VISTAS[_lv3d.coroVista].n;
+    ctx.strokeStyle = _coroAngio ? LV3D_CORO_FONDO : pal.fondo;
+    ctx.strokeText(rot, W - 14, oy + 4);
+    ctx.fillStyle = _coroAngio ? '#f0f0f0' : pal.texto;
+    ctx.fillText(rot, W - 14, oy + 4);
+    ctx.restore();
+  }
   return polis;
 }
 
@@ -135686,14 +135744,24 @@ function lv3dCoroUI(){
   const vb = panel.querySelector('.lv3d-coro-vista-btn');
   if (vb){
     const v = _lv3d.coroVista;
-    vb.textContent = (v === null) ? 'Vista de angiograf\u00eda' : ('Vista: ' + LV3D_CORO_VISTAS[v].n);
+    /* \u26a0\ufe0f EL TITULO ES SIEMPRE EL MISMO \u2014 PANT-34 (A2). Hasta PANT-33 este boton pasaba a decir
+       \u00abVista: OAD caudal\u00bb, y el pedido del medico es que NO cambie nunca: lo que dice cual esta
+       puesta es la TILDE de la lista y el ROTULO dentro del cuadro. El boton sigue cambiando de
+       aspecto \u2014`btn-primary` con una vista elegida\u2014, que es estado y no titulo. */
+    vb.textContent = 'Vista de angiograf\u00eda';
     vb.setAttribute('aria-expanded', (on && _lv3d.coroLista) ? 'true' : 'false');
     vb.classList.toggle('btn-primary', v !== null); vb.classList.toggle('btn-ghost', v === null);
   }
   const vt = panel.querySelector('.lv3d-coro-vista-txt');
   if (vt) vt.style.display = (_lv3d.coroVista === null) ? 'none' : 'block';
   panel.querySelectorAll('.lv3d-coro-v').forEach(bb => {
-    const sel = Number(bb.getAttribute('data-v')) === _lv3d.coroVista;
+    const i = Number(bb.getAttribute('data-v'));
+    const sel = i === _lv3d.coroVista;
+    /* El nombre sale de `LV3D_CORO_VISTAS`, el duenio unico, y la tilde va DELANTE. Asi la lista
+       y el rotulo del cuadro no pueden nombrar la misma vista de dos formas. */
+    const nom = (LV3D_CORO_VISTAS[i] && LV3D_CORO_VISTAS[i].n) || bb.textContent;
+    bb.textContent = (sel ? '\u2713 ' : '') + nom;
+    bb.setAttribute('aria-pressed', sel ? 'true' : 'false');
     bb.classList.toggle('btn-primary', sel); bb.classList.toggle('btn-ghost', !sel);
   });
   panel.querySelectorAll('.lv3d-coro-dom').forEach(bb => {
