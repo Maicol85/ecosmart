@@ -4774,6 +4774,7 @@ html.light-mode .amilo-root{
 .wi-tab td:last-child{text-align:right;white-space:nowrap;}
 .wi-a{color:var(--text2);}
 .wi-b{color:var(--accent);font-weight:700;}
+.wi-nota{margin:-1px 0 6px;font-size:9.5px;color:var(--text2);line-height:1.3;}
 .wi-lee{margin:7px 0 0;font-size:11px;color:var(--text2);line-height:1.4;}
 .wi-pie{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
 #wi-fn{font-size:9.5px;color:var(--text2);line-height:1.3;}
@@ -11238,6 +11239,20 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <input type="range" id="wi-r1">
                 <span class="wi-out" id="wi-o1"></span>
               </div>
+              <!-- ══ EL AREA QUE SE ABRE CON EL FLUJO (PANT-37, Parte C) ═════════════════
+                   Por omision «Fija»: lo ilustrativo no puede ser lo primero que el medico
+                   ve. El deslizador de apertura y su nota aparecen SOLO con «Se abre». -->
+              <div class="wi-ctrl" id="wi-fila-area">
+                <span class="wi-rot">&Aacute;rea</span>
+                <button type="button" class="btn btn-ghost wi-seg" id="wi-area-fija">Fija</button>
+                <button type="button" class="btn btn-ghost wi-seg" id="wi-area-abre">Se abre con el flujo</button>
+              </div>
+              <div class="wi-sl wi-oculto" id="wi-fila-m">
+                <label class="wi-rot" for="wi-r3">Apertura</label>
+                <input type="range" id="wi-r3" min="0" max="0.8" step="0.05">
+                <span class="wi-out" id="wi-o3"></span>
+              </div>
+              <p class="wi-nota wi-oculto" id="wi-m-nota">Ilustrativo: en un paciente real la v&aacute;lvula tiene una sola conducta, la define el estudio.</p>
               <div class="wi-sl">
                 <label class="wi-rot" for="wi-r2">Frecuencia</label>
                 <input type="range" id="wi-r2">
@@ -11252,6 +11267,7 @@ window.cerrarSesionReal = cerrarSesionReal;
               <div id="wi-graf">
                 <div class="wi-g"><p class="wi-gt" id="wi-gt1"></p><svg id="wi-ch1" viewBox="0 0 170 130" role="img" aria-label="Gradiente medio contra flujo"></svg></div>
                 <div class="wi-g"><p class="wi-gt" id="wi-gt2"></p><svg id="wi-ch2" viewBox="0 0 170 130" role="img" aria-label="Velocidad maxima contra flujo"></svg></div>
+              <div class="wi-g wi-oculto" id="wi-g3"><p class="wi-gt" id="wi-gt3"></p><svg id="wi-ch3" viewBox="0 0 170 130" role="img" aria-label="Area valvular contra flujo"></svg></div>
               </div>
               <p class="wi-cap" id="wi-cap"></p>
               <table class="wi-tab"><tbody id="wi-tb"></tbody></table>
@@ -170602,6 +170618,23 @@ function _wiFmt(x, d){ return (isFinite(x) ? Number(x) : 0).toFixed(d).replace('
 function _wiEnt(x){ return String(Math.round(isFinite(x) ? x : 0)); }
 
 /* El corte severo del gradiente y el de la Vmax, de sus duenos. */
+/* ══ LA LEY DEL AREA QUE SE ABRE CON EL FLUJO — UN SOLO LUGAR (C2 y C3) ═══════════════
+   AVA(Q) = AVA medida + m x (Q − Q0) / 100, con Q y Q0 en mL/s y m en cm² por cada 100 mL/s,
+   acotada entre 0,15 y 2,5 cm². La proyeccion a 250 mL/s es la MISMA funcion con Q = 250: dos
+   copias de una recta son dos rectas que se separan el dia que una se toque.
+   ⚠️ ES PURA Y ESTA EXPUESTA A PROPOSITO: asi la formula se puede probar sola, con el par de la
+   guia europea de eco de estres —area 0,79 → 1,22 cm² con flujo 183 → 370 mL/s—, que da una
+   pendiente de 0,23 cm² por cada 100 mL/s y un area proyectada de 0,94 cm² a 250. */
+function wiAreaEn(a0, m, q0, q){
+  const x = Number(a0) + Number(m) * (Number(q) - Number(q0)) / 100;
+  return _wiCl(isFinite(x) ? x : 0, 0.15, 2.5);
+}
+window.wiAreaEn = wiAreaEn;
+/* El estado de la simulacion, SOLO PARA LEER: la cobertura necesita poder afirmar en que modo
+   esta el panel sin tocar la variable que lo guarda. */
+function wiSimEstado(){ return { modo: _wiSim.modo, area: _wiSim.area, m: _wiSim.m,
+                                 s1: _wiSim.s1, fc: _wiSim.fc }; }
+window.wiSimEstado = wiSimEstado;
 function _wiCorteG(){ try { return EA_BANDAS.gmedSevMin; } catch (e) { return null; } }
 function _wiCorteV(){
   try { const b = EA_BANDAS.vmax.filter(function(x){ return x.grado === 'moderada' })[0];
@@ -170716,7 +170749,7 @@ function wiCuenta(){
   /* El area: FIJA en la parte B. La parte C le pone su propia ley y usa este mismo camino. */
   const areaDe = function(q){
     if (_wiSim.area !== 'abre') return a0;
-    return _wiCl(a0 + _wiSim.m * (q - q0) / 100, 0.15, 2.5);
+    return wiAreaEn(a0, _wiSim.m, q0, q);
   };
   const a1 = areaDe(q1);
   const gDe = function(q){
@@ -170737,7 +170770,7 @@ function wiCuenta(){
   o.a0 = a0; o.a1 = a1; o.areaDe = areaDe; o.gDe = gDe; o.vDe = vDe;
   o.avai0 = D.R ? D.R.avai : null; o.dvi0 = D.R ? D.R.dvi : null;
   /* La proyeccion a 250 mL/s, que la parte C publica. Se calcula siempre: cuesta una resta. */
-  o.a250 = (_wiSim.area === 'abre') ? _wiCl(a0 + _wiSim.m * (250 - q0) / 100, 0.15, 2.5) : a0;
+  o.a250 = (_wiSim.area === 'abre') ? wiAreaEn(a0, _wiSim.m, q0, 250) : a0;
   /* La linea de lectura de B7: que flujo hace falta para llegar al corte severo. */
   const cG = _wiCorteG();
   if (cG !== null && g0 > 0 && q0 > 0) {
@@ -170830,6 +170863,16 @@ function wiPintar(){
             r2.value = String(Math.round(C.fc1)); }
   if (o2) o2.textContent = _wiEnt(C.fc1) + ' lpm';
 
+  /* ── El area: los dos botones, el deslizador de apertura y su nota (C1) ── */
+  const abre = (_wiSim.area === 'abre');
+  _wiSeg('wi-area-fija', !abre);
+  _wiSeg('wi-area-abre', abre);
+  const fm = _wiEl('wi-fila-m'), nt = _wiEl('wi-m-nota'), r3 = _wiEl('wi-r3'), o3 = _wiEl('wi-o3');
+  if (fm) fm.classList.toggle('wi-oculto', !abre);
+  if (nt) nt.classList.toggle('wi-oculto', !abre);
+  if (r3 && document.activeElement !== r3) r3.value = String(_wiSim.m);
+  if (o3) o3.textContent = _wiFmt(_wiSim.m, 2) + ' cm²';
+
   /* ── Los dos SUPUESTOS: solo el que falta ── */
   const etW = _wiEl('wi-et') ? _wiEl('wi-et').parentNode : null;
   const fcW = _wiEl('wi-fc') ? _wiEl('wi-fc').parentNode : null;
@@ -170879,6 +170922,21 @@ function wiPintar(){
   const gt2 = _wiEl('wi-gt2');
   if (gt2) gt2.textContent = (_wiSim.area === 'abre')
     ? 'Vmax (m/s) · punteada: área fija' : 'Vmax (m/s)';
+  /* ── La tercera grafica: el AREA contra el flujo (C4). Solo con «Se abre»: en «Fija»
+     seria una recta horizontal sobre su propia punteada, o sea una grafica que no dice nada. */
+  const g3 = _wiEl('wi-g3');
+  if (g3) g3.classList.toggle('wi-oculto', !abre);
+  if (abre) {
+    const sevA = (typeof AVA_SEVERA_MAX === 'number') ? AVA_SEVERA_MAX : 1.0;
+    const aTecho = _wiCl(Math.ceil(Math.max(C.a1, C.a250, sevA * 1.6) * 2) / 2, 1.5, 3);
+    _wiChart('wi-ch3', { x0:x0, x1:x1, xt:xt, ymax:aTecho,
+      yt:[0, aTecho / 4, aTecho / 2, aTecho * 0.75, aTecho],
+      yf:function(v){ return _wiFmt(v, 1) }, thr:sevA, bajo:true,
+      f:C.areaDe, f2:function(){ return C.a0 },
+      m0:{ x:C.q0, y:C.a0 }, m1:{ x:C.q1, y:C.a1 } });
+    const gt3 = _wiEl('wi-gt3');
+    if (gt3) gt3.textContent = 'AVA (cm²) · punteada: fija';
+  }
   if (cap) cap.textContent = 'Eje horizontal: flujo (mL/s) · gris medido · azul simulado';
 
   /* ── La linea de lectura (B7 y C3) ── */
@@ -171005,6 +171063,11 @@ function _wiCablear(){
   const MF = _wiEl('wi-mv-fe'); if (MF) MF.onclick = function(){ _wiSim.modo = 'fe'; _wiSim.s1 = null; wiPintar(); };
   const r1 = _wiEl('wi-r1'); if (r1) r1.addEventListener('input', function(){ _wiSim.s1 = Number(r1.value); wiPintar(); });
   const r2 = _wiEl('wi-r2'); if (r2) r2.addEventListener('input', function(){ _wiSim.fc = Number(r2.value); wiPintar(); });
+  /* El area, y el deslizador de apertura (C1 y C5). Volver a «Fija» devuelve las formulas de
+     B4 sin tocar nada mas: la ley del area vive en UN solo lugar, wiCuenta().areaDe. */
+  const AF = _wiEl('wi-area-fija'); if (AF) AF.onclick = function(){ _wiSim.area = 'fija'; wiPintar(); };
+  const AA = _wiEl('wi-area-abre'); if (AA) AA.onclick = function(){ _wiSim.area = 'abre'; wiPintar(); };
+  const r3c = _wiEl('wi-r3'); if (r3c) r3c.addEventListener('input', function(){ _wiSim.m = Number(r3c.value); wiPintar(); });
   /* Los dos supuestos: lo que el medico escribe aca NO se guarda, NO va al informe y NO se
      cuenta como dato cargado -- el prefijo `wi-` lo deja fuera de las dos listas del censo. */
   const eET = _wiEl('wi-et'); if (eET) eET.addEventListener('input', function(){
