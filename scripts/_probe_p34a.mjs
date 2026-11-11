@@ -90,27 +90,41 @@ out.A = await S.ev(() => {
 
 /* El rotulo en modo angiografia y en tema oscuro: que siga teniendo tinta. */
 out.angioYTema = {};
+/* ⚠️ EL TEMA DE ESTA APP NO ES `prefers-color-scheme`: es la clase `light-mode` en el <html>.
+   La primera version de esta sonda usaba `S.tema()` y midio DOS VECES el tema oscuro -410
+   pixeles de tinta en los dos lados, que se lee igual que «el rotulo se ve en los dos temas» sin
+   haber probado el claro-. */
 for (const tema of ['light', 'dark']) {
-  await S.tema(tema);
+  await S.ev((t) => { document.documentElement.classList.toggle('light-mode', t === 'light');
+                      return document.documentElement.className }, tema);
   await new Promise(r => setTimeout(r, 260));
   out.angioYTema[tema] = await S.ev(() => {
     const cv = document.getElementById('lv3d-canvas');
     const ctx = cv.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const tinta = () => { const d = ctx.getImageData(Math.round(520 * dpr), Math.round(310 * dpr),
+    /* En modo angiografia el fondo del rincon es opaco, asi que contar alfa cuenta el fondo:
+       se cuentan los pixeles que NO son el fondo, que son los del rotulo. */
+    const tinta = (fondo) => { const d = ctx.getImageData(Math.round(520 * dpr), Math.round(310 * dpr),
       Math.round(156 * dpr), Math.round(40 * dpr)).data;
-      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++; return n };
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] <= 8) continue;
+        if (fondo && Math.abs(d[i] - fondo[0]) < 10 && Math.abs(d[i+1] - fondo[1]) < 10
+            && Math.abs(d[i+2] - fondo[2]) < 10) continue;
+        n++;
+      }
+      return n };
     const cb = document.querySelector('.lv3d-coro-btn');
     if (!lv3dCoroDiag().coro) cb.click();
     _lv3d.pal = null;
     document.querySelector('.lv3d-coro-vista-btn').click();
     document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="7"]').click();
     _lv3d.corriendo = false; _lv3d.fase = 0; _lv3d.pal = lv3dPaleta(); lv3dDibujar();
-    const normal = tinta();
+    const normal = tinta(null);
     document.querySelector('.lv3d-coro-vista-btn').click();
     document.querySelector('#lv3d-coro-lista .lv3d-coro-angio').click();
     _lv3d.corriendo = false; _lv3d.fase = 0; lv3dDibujar();
-    const angio = tinta();
+    const angio = tinta([16, 16, 16]);
     document.querySelector('.lv3d-coro-vista-btn').click();
     document.querySelector('#lv3d-coro-lista .lv3d-coro-angio').click();
     _lv3d.corriendo = false; _lv3d.fase = 0; lv3dDibujar();

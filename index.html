@@ -70,6 +70,22 @@
     --bg2: #181c27;
     --bg3: #1e2333;
     --mfs-fig-bg: #141926;
+    /* ══ LOS COLORES DEL ESQUEMA DE ANOMALIAS CORONARIAS — PANT-34 (B5) ════════════════════
+       Nacen con prefijo propio porque no hay en la app ninguna variable equivalente, y porque
+       lo unico que las usa es ese esquema. Van por REGLA DE CSS sobre las clases del SVG y NO
+       como `var()` dentro de un atributo de presentacion: un `stroke="var(--x)"` es invalido en
+       tiempo de computo y cae en el negro heredado de la raiz —es la trampa que POP-B pago con
+       `--amber` y PANT-13 con `--card`—. Por una regla si resuelve, y ademas sigue al tema solo.
+       Estas son las del TEMA OSCURO, mas claras que las del claro. */
+    --rac-pre: #5b9bf5;
+    --rac-retro: #49c3b6;
+    --rac-inter: #f0736b;
+    --rac-intra: #f0a6c0;
+    --rac-gris: #9a9a9a;
+    --rac-ambar: #edb45a;
+    --rac-fist: #49c3b6;
+    --rac-rot: #c6cde0;
+    --rac-marca: rgba(126,200,227,.20);
     --border: #2a3050;
     --accent: #4f8ef7;
     --accent2: #7ec8e3;
@@ -142,6 +158,17 @@
     --bg2: #ffffff;
     --bg3: #eef1f6;
     --mfs-fig-bg: #f7f9fc;
+    /* Las mismas nueve del esquema de anomalias coronarias, en el tema CLARO: los tonos
+       saturados que la orden nombra —azul, verde azulado, rojo, rosa, gris y ambar—. */
+    --rac-pre: #2f6fd0;
+    --rac-retro: #1f8f86;
+    --rac-inter: #c0392b;
+    --rac-intra: #d2779b;
+    --rac-gris: #8f8f8f;
+    --rac-ambar: #b9801f;
+    --rac-fist: #1f8f86;
+    --rac-rot: #30384a;
+    --rac-marca: rgba(47,111,224,.14);
     --border: #d6dce6;
     --accent: #2f6fe0;
     --accent2: #1f5fb8;
@@ -4467,6 +4494,67 @@ html.light-mode .amilo-root{
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 18px rgba(0,0,0,.20);}
 #lv3d-coro-lista-art{width:150px;}
+/* ══ EL ESQUEMA DE ANOMALIAS CORONARIAS, EN REFERENCIAS — PANT-34 (B) ══════════════════════
+   El texto a la izquierda y el cuadro del esquema al costado; por debajo de 700 px de VENTANA el
+   cuadro se apila DEBAJO del texto, centrado y hasta 300 px.
+   ⚠️ EL CUADRO NO PUEDE QUEDAR FIJO MIENTRAS SE LEE EL APARTADO, y esta medido: la `.card` que
+      envuelve la ficha es `overflow:hidden` en los DOS ejes, asi que se vuelve el antecesor de
+      desplazamiento mas cercano y no desplaza nunca —un `position:sticky` adentro no se activa—.
+      Queda declarado en `docs/PENDIENTES.md` -> P34-b. El cuadro va estatico, alineado arriba.
+   ⚠️ SE OCULTA CON UNA CLASE Y NO CON `hidden`, que es la leccion de PANT-30: el atributo
+      `hidden` no gana contra un `display` declarado por una clase de la app. */
+.rac-root{margin-top:10px;}
+.rac-ap{padding:11px 0;border-top:1px solid var(--border);}
+.rac-ap:first-child{border-top:0;padding-top:4px;}
+.rac-tit{margin:0 0 7px;font-size:12.5px;color:var(--accent2);display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;line-height:1.5;}
+.rac-sigla{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--text2);
+  background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:2px 8px;}
+.rac-cuerpo{display:flex;gap:14px;align-items:flex-start;}
+.rac-txt{flex:1 1 0;min-width:0;font-size:12px;color:var(--text);line-height:2.05;}
+.rac-txt p{margin:0 0 9px;}
+.rac-txt p:last-child{margin-bottom:0;}
+.rac-esq{flex:0 0 230px;}
+.rac-oculto{display:none;}
+.rac-svg{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:4px;}
+.rac-svg svg{display:block;width:100%;height:auto;}
+.rac-ley{margin-top:6px;display:flex;flex-direction:column;gap:3px;}
+.rac-ley-f{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);line-height:1.35;}
+.rac-ley-m{flex:0 0 14px;height:3px;border-radius:2px;}
+.rac-nota{margin-top:6px;font-size:10.5px;color:var(--text2);line-height:1.45;}
+.rac-nota:empty{display:none;}
+.rac-pie{margin-top:6px;font-size:9.5px;color:var(--text2);line-height:1.45;}
+/* La casilla y su texto. Va `display:inline` a proposito: con `inline-block` una etiqueta larga
+   no puede partirse entre dos lineas y a 390 px desbordaria. El relleno vertical del texto es lo
+   que le da los 24 px de zona tactil —un elemento inline no toma la altura de linea—. */
+.rac-chk{display:inline;cursor:pointer;}
+.rac-chk>input{width:17px;height:17px;margin:0 5px 0 0;vertical-align:-3px;min-width:17px;
+  accent-color:var(--accent);cursor:pointer;}
+.rac-chk>input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.rac-chk-t{border-bottom:1px dotted var(--text2);padding:5px 3px;}
+.rac-chk>input:checked+.rac-chk-t{font-weight:700;color:var(--text);background:var(--rac-marca);
+  border-radius:4px;border-bottom-color:transparent;}
+.rac-tit .rac-chk-t{border-bottom:0;padding:5px 3px;}
+/* Los trazos del esquema. El color sale de una REGLA, no de un atributo. */
+.rac-l{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.rac-f-ad,.rac-f-ai,.rac-f-ap,.rac-f-ao{fill:none;stroke:var(--border);stroke-width:1.6;}
+.rac-f-ao{stroke:var(--rac-rot);stroke-width:1.8;}
+.rac-rot{fill:var(--rac-rot);font-size:15px;font-family:inherit;}
+.rac-rot-s{fill:var(--text2);font-size:15px;font-family:inherit;}
+.rac-rot-a{fill:var(--rac-rot);font-size:13px;font-family:inherit;}
+.rac-c-gris{stroke:var(--rac-gris);}
+.rac-c-pre{stroke:var(--rac-pre);}
+.rac-c-retro{stroke:var(--rac-retro);}
+.rac-c-inter{stroke:var(--rac-inter);}
+.rac-c-intra{stroke:var(--rac-intra);}
+.rac-c-ambar{stroke:var(--rac-ambar);}
+.rac-c-fist{stroke:var(--rac-fist);}
+.rac-p-ambar{fill:var(--rac-ambar);}
+.rac-p-inter{fill:var(--rac-inter);}
+@media (max-width:700px){
+  .rac-cuerpo{flex-direction:column;}
+  .rac-esq{flex:0 0 auto;width:100%;max-width:300px;margin:0 auto;}
+}
 #lv3d-notas{margin-top:4px;}
 /* Los colores y sus dos casillas, en la misma fila y separados. */
 #lv3d-colores{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;}
@@ -24329,11 +24417,108 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
               extension, y omitirlos no afirma nada que la fuente no diga.
            ⚠️ CADA GUIA EN SU PROPIA ORACION Y SIN COMENTARIO entre ellas: no se dice que
               coincidan ni que difieran, por la regla del 04/11. Nada de esto llega al papel. -->
-      <div data-ref-solo="1" style="font-size:12px;color:var(--text);line-height:1.8;margin-top:10px;">
-        • <b>Tipos:</b> el origen desde el seno contrario, coronaria desde la pulmonar y f&iacute;stulas · la derecha del seno izquierdo es <b>seis veces</b> m&aacute;s frecuente<br>
-        • <b>Frecuencia:</b> <b>hasta el 1 %</b> de la poblaci&oacute;n y <b>menos del 0,2 %</b> en ni&ntilde;os con eco · f&iacute;stula <b>0,002 %</b> · <b>segunda</b> causa de muerte s&uacute;bita en el atleta joven<br>
-        • <b>Riesgo:</b> la izquierda desde el seno derecho es menos frecuente pero <b>m&aacute;s maligna</b> · alto riesgo: trayecto interarterial e intramural, estenosis u orificio en hendidura, orificio alto y &aacute;ngulo agudo · muerte s&uacute;bita con el esfuerzo antes de los <b>35 a&ntilde;os</b><br>
-        • <b>Cirug&iacute;a:</b> recomendada con s&iacute;ntomas o isquemia atribuible y tras parada card&iacute;aca o s&iacute;ncope arr&iacute;tmico · razonable en el asintom&aacute;tico con alto riesgo de la izquierda · no recomendada en la derecha asintom&aacute;tica sin isquemia ni alto riesgo · t&eacute;cnicas: unroofing, reimplantaci&oacute;n o translocaci&oacute;n pulmonar
+      <!-- ══ EL ESQUEMA DE ANOMALIAS CORONARIAS — PANT-34, parte B ════════════════════════
+           Decision del medico (10/11): esta ficha deja de ser cuatro vinietas y pasa a ser UN
+           TEXTO CORRIDO con casillas DENTRO de las frases; al tildar una, se dibuja un esquema
+           chico al costado del texto (debajo del texto en celular).
+           ⚠️ LOS HIJOS 1 Y 2 DE LA FICHA NO SE TOCAN, Y NO ES UN OLVIDO: el globo ⓘ `otr-rac`
+              de la casilla de «Otros» clona esta ficha con `_otrRefClon` SIN modo, o sea
+              `r.children` entero, y su compuerta saltea los hijos marcados `data-ref-solo`.
+              Medido en la TAREA 0: ese clon son exactamente los hijos 1 y 2, 478 caracteres.
+              Reemplazarlos cambiaria el globo, que la orden manda dejar IDENTICO caracter por
+              caracter. Lo que se reemplaza es el CUERPO PROPIO de la ficha —las cuatro
+              vinietas de PANT-29, que vivian SOLO en Referencias— y lo nuevo entra con la
+              misma marca, asi que el globo queda intacto por construccion.
+           ⚠️ LAS CASILLAS VAN SIN `id`, y esta medido por que: `limpiarCampos` («Nuevo
+              estudio») recorre `input[id], select[id], textarea[id]` y les pone
+              `el.checked = (c[el.id + "__chk"] === "1")`, asi que una casilla CON id se
+              destildaria sola dejando el dibujo puesto sin su casilla. Sin id queda fuera de
+              los TRES mecanismos del censo —`guardarInforme`, `_formTieneDatos` y
+              `limpiarCampos`— por construccion y no por una lista que mañana se olvide.
+              La etiqueta ENVUELVE la casilla, que es asociacion implicita: accesible y
+              operable con teclado sin necesitar `for`/`id`.
+           ⚠️ NINGUNA de estas frases nombra una guia, un folio, una clase ni un grado: la
+              linea de fuentes de la ficha es la que ya estaba y no se toca. Las cifras estan
+              trazadas una por una en `docs/INVENTARIO_P34.md` contra
+              `docs/CONTROL_CORONARIAS_P28.md`, que las trae leidas en imagen con su folio. -->
+      <div data-ref-solo="1" class="rac-root" id="rac-root">
+        <div class="rac-ap" data-rac-ap="aaorca">
+          <h4 class="rac-tit"><label class="rac-chk"><input type="checkbox" data-rac="head"><span class="rac-chk-t">Coronaria derecha que nace del seno izquierdo</span></label><span class="rac-sigla">AAORCA</span></h4>
+          <div class="rac-cuerpo">
+            <div class="rac-txt">
+              <p>La coronaria derecha sale de la aorta, pero del seno izquierdo, y después puede seguir tres caminos: <label class="rac-chk"><input type="checkbox" data-rac="pre"><span class="rac-chk-t">por delante de la pulmonar</span></label>, <label class="rac-chk"><input type="checkbox" data-rac="retro"><span class="rac-chk-t">por detrás de la aorta (retroaórtico)</span></label> o <label class="rac-chk"><input type="checkbox" data-rac="inter"><span class="rac-chk-t">entre la aorta y la pulmonar (interarterial)</span></label>. Es la más frecuente de este grupo: seis veces más que la coronaria izquierda desde el seno derecho. En conjunto, las anomalías de origen aórtico rondan el 0,7 % de la población.</p>
+              <p>El camino interarterial es el de mayor riesgo. Si va dentro de la pared de la aorta (<label class="rac-chk"><input type="checkbox" data-rac="intra"><span class="rac-chk-t">tramo intramural</span></label>), ese tramo suele ser corto, de 2 a 3 mm, y el origen queda pegado a la comisura entre los senos derecho e izquierdo; también se describió muerte súbita con este tramo intramural. Son señales de más riesgo el origen estrecho, el ángulo agudo de salida y la compresión del tramo entre las arterias cuando sube el gasto cardíaco.</p>
+              <p>Se indica operar ante síntomas o isquemia atribuible a la anomalía, y tras un paro cardíaco o un síncope arrítmico. En la coronaria derecha sin síntomas, sin isquemia y sin alto riesgo, el beneficio de operar no está establecido: seguir el caso u operar puede ser razonable. Técnicas: quitar el techo del tramo intramural (la más usada), reimplantar la arteria, bypass, ampliar con parche o trasladar el tronco pulmonar.</p>
+            </div>
+            <div class="rac-esq rac-oculto" data-rac-esq="aaorca">
+              <div class="rac-svg"></div>
+              <div class="rac-ley"></div>
+              <div class="rac-nota"></div>
+              <div class="rac-pie">Esquema simbólico. Arriba es adelante; la izquierda de la imagen es la derecha del paciente. SD, SI, SNC: senos derecho, izquierdo y no coronariano.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rac-ap" data-rac-ap="aaolca">
+          <h4 class="rac-tit"><label class="rac-chk"><input type="checkbox" data-rac="head"><span class="rac-chk-t">Coronaria izquierda que nace del seno derecho</span></label><span class="rac-sigla">AAOLCA</span></h4>
+          <div class="rac-cuerpo">
+            <div class="rac-txt">
+              <p>El tronco de la coronaria izquierda sale de la aorta, pero del seno derecho, y puede seguir los mismos tres caminos: <label class="rac-chk"><input type="checkbox" data-rac="pre"><span class="rac-chk-t">por delante de la pulmonar</span></label>, <label class="rac-chk"><input type="checkbox" data-rac="retro"><span class="rac-chk-t">por detrás de la aorta (retroaórtico)</span></label> o <label class="rac-chk"><input type="checkbox" data-rac="inter"><span class="rac-chk-t">entre la aorta y la pulmonar (interarterial)</span></label>. Es menos frecuente que la derecha desde el seno izquierdo.</p>
+              <p>Interarterial más intramural (<label class="rac-chk"><input type="checkbox" data-rac="intra"><span class="rac-chk-t">tramo intramural</span></label>) es la combinación de mayor riesgo de muerte súbita. Acá el tramo intramural es largo: suele cruzar al menos la mitad del seno derecho antes de salir por el izquierdo. La causa probable es la isquemia, sobre todo en menores de 40 años durante o después de un esfuerzo intenso. Las anomalías de origen aórtico son la segunda causa de muerte súbita en atletas jóvenes.</p>
+              <p>Se indica operar ante síntomas o isquemia atribuible a la anomalía, y tras un paro cardíaco o un síncope arrítmico; también es razonable en el asintomático de alto riesgo. Las técnicas son las mismas que en la derecha.</p>
+            </div>
+            <div class="rac-esq rac-oculto" data-rac-esq="aaolca">
+              <div class="rac-svg"></div>
+              <div class="rac-ley"></div>
+              <div class="rac-nota"></div>
+              <div class="rac-pie">Esquema simbólico. Arriba es adelante; la izquierda de la imagen es la derecha del paciente. SD, SI, SNC: senos derecho, izquierdo y no coronariano.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rac-ap" data-rac-ap="alcapa">
+          <h4 class="rac-tit"><label class="rac-chk"><input type="checkbox" data-rac="head"><span class="rac-chk-t">Coronaria izquierda que nace de la arteria pulmonar</span></label><span class="rac-sigla">ALCAPA</span></h4>
+          <div class="rac-cuerpo">
+            <div class="rac-txt">
+              <p>La coronaria izquierda nace de la arteria pulmonar y no de la aorta; en el eco se inserta en la cara posterior e izquierda de la pulmonar. Es rara: 1 de cada 300.000 niños. La mayoría se presenta en la infancia, con isquemia, dilatación y disfunción del ventrículo izquierdo e insuficiencia mitral. Sin cirugía en el primer año, muere cerca del 90 % de los lactantes. Si la coronaria derecha desarrolla buenas colaterales, puede aparecer en adolescentes o adultos, con soplo o intolerancia al ejercicio y, rara vez, muerte súbita.</p>
+              <p>En el eco se ve flujo invertido en la coronaria izquierda, de la pared hacia la pulmonar (el hallazgo esencial), la coronaria derecha dilatada y tortuosa, y flujo colateral dentro del tabique. Se opera siempre que se identifica, a cualquier edad. De elección: reimplantar la coronaria en la aorta. Si el origen queda lejos de la aorta, se arma un túnel desde la pulmonar (técnica de Takeuchi), con más complicaciones.</p>
+            </div>
+            <div class="rac-esq rac-oculto" data-rac-esq="alcapa">
+              <div class="rac-svg"></div>
+              <div class="rac-ley"></div>
+              <div class="rac-nota"></div>
+              <div class="rac-pie">Esquema simbólico. Arriba es adelante; la izquierda de la imagen es la derecha del paciente. SD, SI, SNC: senos derecho, izquierdo y no coronariano.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rac-ap" data-rac-ap="arcapa">
+          <h4 class="rac-tit"><label class="rac-chk"><input type="checkbox" data-rac="head"><span class="rac-chk-t">Coronaria derecha que nace de la arteria pulmonar</span></label><span class="rac-sigla">ARCAPA</span></h4>
+          <div class="rac-cuerpo">
+            <div class="rac-txt">
+              <p>La coronaria derecha nace de la arteria pulmonar y no de la aorta. Es mucho más rara que la ALCAPA: alrededor de 0,12 % de las cardiopatías congénitas. Se presenta de forma variable: en la infancia, con insuficiencia cardíaca o síntomas de isquemia, o como hallazgo en un niño mayor o un adulto sin síntomas. Con frecuencia se asocia a otras anomalías, sobre todo la ventana aortopulmonar y la tetralogía de Fallot.</p>
+            </div>
+            <div class="rac-esq rac-oculto" data-rac-esq="arcapa">
+              <div class="rac-svg"></div>
+              <div class="rac-ley"></div>
+              <div class="rac-nota"></div>
+              <div class="rac-pie">Esquema simbólico. Arriba es adelante; la izquierda de la imagen es la derecha del paciente. SD, SI, SNC: senos derecho, izquierdo y no coronariano.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rac-ap" data-rac-ap="fistula">
+          <h4 class="rac-tit"><label class="rac-chk"><input type="checkbox" data-rac="head"><span class="rac-chk-t">Fístula coronaria</span></label><span class="rac-sigla">CAF</span></h4>
+          <div class="rac-cuerpo">
+            <div class="rac-txt">
+              <p>Una coronaria se conecta directamente con una cavidad del corazón, el seno coronario, una vena o la arteria pulmonar, salteando los capilares del miocardio. Es rara: alrededor de 0,002 % de la población general y 0,1 a 0,2 % de quienes se hacen una coronariografía. Casi siempre es una sola. Nace de <label class="rac-chk"><input type="checkbox" data-rac="R"><span class="rac-chk-t">la coronaria derecha</span></label> (29 a 55 %) o de <label class="rac-chk"><input type="checkbox" data-rac="L"><span class="rac-chk-t">la coronaria izquierda</span></label> (39 a 63 %); en 7 a 19 % de las dos. Lo más común es que desemboque en cavidades derechas: <label class="rac-chk"><input type="checkbox" data-rac="ad"><span class="rac-chk-t">aurícula derecha</span></label>, <label class="rac-chk"><input type="checkbox" data-rac="vd"><span class="rac-chk-t">ventrículo derecho</span></label> o <label class="rac-chk"><input type="checkbox" data-rac="ap"><span class="rac-chk-t">arteria pulmonar</span></label>. Cuando nace de la derecha, en las series desemboca en el ventrículo derecho 49 %, en la aurícula derecha 26 % y en la arteria pulmonar 13 %; cuando nace de la izquierda, 41, 26 y 16 %.</p>
+              <p>Las pequeñas suelen ser benignas, no dan síntomas y a veces cierran solas. Las grandes casi nunca cierran, se agrandan con el tiempo y pueden dar insuficiencia cardíaca, isquemia por robo de flujo, trombos, arritmias ventriculares, endocarditis, hipertensión pulmonar, síncope, ACV o muerte súbita. La coronaria que la alimenta está dilatada; si desemboca en una cavidad de baja presión (aurícula derecha, seno coronario) el flujo turbulento es continuo, y si lo hace en una de alta presión (ventrículo izquierdo o derecho hipertenso), solo en diástole.</p>
+              <p>Se cierran todas las grandes aunque no den síntomas, las menores con síntomas, y las que tengan isquemia, arritmia, disfunción o agrandamiento de ventrículos o endarteritis documentados. Con dispositivo por cateterismo o con ligadura quirúrgica.</p>
+            </div>
+            <div class="rac-esq rac-oculto" data-rac-esq="fistula">
+              <div class="rac-svg"></div>
+              <div class="rac-ley"></div>
+              <div class="rac-nota"></div>
+              <div class="rac-pie">Esquema simbólico. Arriba es adelante; la izquierda de la imagen es la derecha del paciente. SD, SI, SNC: senos derecho, izquierdo y no coronariano.</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div data-ref-solo="1" style="font-size:10px;color:var(--text2);margin-top:8px;line-height:1.4;">
         ASE 2020 — Frommelt et al, J Am Soc Echocardiogr 2020;33(3):259-294, folio 266. ACC/AHA 2025 — Gurvitz et al, <i>Circulation</i> 2026;153:e115-e251, folios e211 a e214. ESC 2020 — Baumgartner et al, <i>Eur Heart J</i> 2021;42:563-645, folios 627 y 628. ESC 2022 — Zeppenfeld et al, <i>Eur Heart J</i> 2022;43:3997-4126, folios 4049 y 4050. AHA/ACC/HRS 2017, folio e296.
@@ -51373,6 +51558,333 @@ function _otrRefClon(refId, modo) {
   return cont;
 }
 window._otrRefClon = _otrRefClon;
+
+/* ══ EL ESQUEMA DE ANOMALIAS CORONARIAS — PANT-34, parte B ════════════════════════════════════
+   Dibuja, al costado del texto de cada apartado de la ficha `ref-coronarias`, un corte
+   transversal SIMBOLICO de la raiz aortica visto como en el eje corto paraesternal: arriba es
+   adelante y la izquierda de la imagen es la derecha del paciente.
+   ⚠️ SE ARMA CON `createElementNS` Y NO CON `innerHTML`, a proposito: asi no entra ni un
+      `innerHTML` nuevo al archivo —Semgrep se queda en su linea base— y no hay forma de que una
+      cadena termine interpretada como marcado. Igual no habria dato del usuario: cada numero y
+      cada rotulo de este esquema es una constante de este archivo.
+   ⚠️ NADA DE ESTO SE GUARDA: las casillas no tienen `id`, asi que quedan fuera de los TRES
+      mecanismos del censo por construccion (ver `docs/INVENTARIO_P34.md`, punto f). Al recargar,
+      todo destildado.
+   ⚠️ EL COLOR VA POR CLASE, no por atributo: ver el bloque de CSS `.rac-c-*`. */
+const RAC_VB = { w:400, h:360 };
+/* La base, que se dibuja siempre que el cuadro se vea. */
+const RAC_BASE = Object.freeze({
+  ad:{ cx:52,  cy:205, rx:40, ry:62, rot:'AD' },
+  ai:{ cx:200, cy:320, rx:95, ry:24, rot:'AI' },
+  ap:{ cx:225, cy:88,  rx:78, ry:38, rot:'Arteria pulmonar' },
+  ao:{ cx:200, cy:200, r:60,  rot:'Ao' },
+  senos:[ { t:'SD', x:177, y:178 }, { t:'SI', x:231, y:222 }, { t:'SNC', x:172, y:232 } ]
+});
+/* Las coronarias normales, en gris. */
+const RAC_NORM = Object.freeze({
+  cd:[[158,158],[130,150],[105,160],[88,180],[80,200]],
+  lm:[[252,230],[280,232],[300,235]],
+  da:[[300,235],[320,200],[335,160],[340,120]],
+  cx:[[300,235],[320,265],[335,290]]
+});
+/* Los dos origenes anomalos desde la aorta, con sus tres caminos y su tramo intramural. Los
+   angulos del intramural son HORARIOS DESDE LAS 12 sobre la pared de la aorta, radio 60. */
+const RAC_AORT = Object.freeze({
+  aaorca:{ origen:[259,210],
+    pre:[[259,210],[300,200],[325,130],[300,60],[250,20],[180,15],[125,45],[95,110],[78,196]],
+    retro:[[259,210],[275,250],[250,285],[200,293],[140,280],[95,245],[78,196]],
+    inter:[[259,210],[285,185],[270,150],[235,134],[200,131],[165,136],[130,150],[100,170],[78,196]],
+    intra:[92,82,72,62] },
+  aaolca:{ origen:[184,142],
+    pre:[[184,142],[140,120],[120,70],[140,25],[200,5],[270,10],[325,50],[335,120],[315,190],[300,235]],
+    retro:[[184,142],[135,175],[120,225],[145,275],[200,292],[255,282],[290,260],[300,235]],
+    inter:[[184,142],[195,133],[215,131],[250,137],[280,160],[292,200],[300,235]],
+    intra:[335,350,10,30,50,70] }
+});
+/* El origen pulmonar: la ALCAPA con su coronaria derecha dilatada, sus colaterales y su flujo
+   invertido; la ARCAPA con su derecha naciendo de la pulmonar. */
+const RAC_PULM = Object.freeze({
+  colat:[[80,205],[95,300],[150,350],[250,352],[320,320],[335,290]],
+  lmPulm:[[270,119],[285,160],[295,200],[300,235]],
+  flecha:[[297,215],[288,172]],
+  cdPulm:[[150,100],[125,110],[100,140],[85,175],[80,200]]
+});
+/* La fistula: dos origenes posibles y tres desembocaduras, o sea seis recorridos. */
+const RAC_FIST = Object.freeze({
+  orig:{ R:[170,148], L:[300,235] },
+  via:{ 'R-ad':[[170,148],[140,140],[110,150],[88,172],[70,196]],
+        'R-vd':[[170,148],[145,125],[120,95],[108,72]],
+        'R-ap':[[170,148],[178,136],[190,124]],
+        'L-ad':[[300,235],[290,262],[250,288],[200,296],[140,282],[95,245],[70,200]],
+        'L-vd':[[300,235],[325,190],[335,120],[310,50],[250,18],[180,12],[125,40],[108,72]],
+        'L-ap':[[300,235],[318,190],[312,150],[296,122]] },
+  rot:{ ad:{ t:'desemboca en AD', x:6, y:132 }, vd:{ t:'desemboca en VD', x:6, y:44 },
+        ap:{ t:'desemboca en AP', x:6, y:60 } }
+});
+const RAC_LEY = Object.freeze({
+  gris:  'coronaria normal',
+  pre:   'por delante de la pulmonar',
+  retro: 'por detrás de la aorta (retroaórtico)',
+  inter: 'entre la aorta y la pulmonar (interarterial)',
+  intra: 'tramo intramural (dentro de la pared de la aorta)',
+  ambar: 'origen en la arteria pulmonar',
+  colat: 'colaterales',
+  flujo: 'flujo invertido hacia la pulmonar',
+  fist:  'fístula coronaria'
+});
+const RAC_NOTA_CAM = 'Tildá uno de los caminos en el texto para ver por dónde pasa.';
+const RAC_NOTA_FIS = 'Tildá en el texto de qué coronaria nace y dónde desemboca.';
+
+function _racNum(x){ return Math.round(x*100)/100 }
+/* Catmull-Rom convertido a curvas de Bezier: la curva PASA por los puntos dados. */
+function _racSpline(p){
+  if (!p || p.length < 2) return '';
+  let d = 'M ' + _racNum(p[0][0]) + ' ' + _racNum(p[0][1]);
+  for (let i = 0; i < p.length - 1; i++){
+    const a = p[Math.max(0, i-1)], b = p[i], c = p[i+1], e = p[Math.min(p.length-1, i+2)];
+    const c1x = b[0] + (c[0]-a[0])/6, c1y = b[1] + (c[1]-a[1])/6;
+    const c2x = c[0] - (e[0]-b[0])/6, c2y = c[1] - (e[1]-b[1])/6;
+    d += ' C ' + _racNum(c1x) + ' ' + _racNum(c1y) + ' ' + _racNum(c2x) + ' ' + _racNum(c2y)
+       + ' ' + _racNum(c[0]) + ' ' + _racNum(c[1]);
+  }
+  return d;
+}
+/* Los puntos de la pared de la aorta para los angulos horarios desde las 12. */
+function _racPared(angs){
+  const o = RAC_BASE.ao;
+  return angs.map(function (g){
+    const t = g*Math.PI/180;
+    return [o.cx + o.r*Math.sin(t), o.cy - o.r*Math.cos(t)];
+  });
+}
+/* La onda de la fistula: cada tramo en cuatro, con los intermedios desplazados de lado a lado. */
+function _racOndular(p, amp){
+  const o = [[p[0][0], p[0][1]]];
+  let k = 0;
+  for (let i = 0; i < p.length - 1; i++){
+    const a = p[i], b = p[i+1];
+    const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.sqrt(dx*dx + dy*dy) || 1;
+    const nx = -dy/L, ny = dx/L;
+    for (let q = 1; q <= 3; q++){
+      const u = q/4, s = ((k++) % 2 === 0) ? 1 : -1;
+      o.push([a[0] + dx*u + nx*amp*s, a[1] + dy*u + ny*amp*s]);
+    }
+    o.push([b[0], b[1]]);
+  }
+  return o;
+}
+function _racEl(tag, at){
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.keys(at || {}).forEach(function (k){ e.setAttribute(k, String(at[k])) });
+  return e;
+}
+function _racTxt(x, y, t, clase, anclaje){
+  const e = _racEl('text', { x:x, y:y, class:clase || 'rac-rot' });
+  if (anclaje) e.setAttribute('text-anchor', anclaje);
+  e.textContent = t;
+  return e;
+}
+function _racLinea(svg, puntos, clase, ancho, guion, opac){
+  const e = _racEl('path', { d:_racSpline(puntos), class:'rac-l ' + clase, 'stroke-width':ancho });
+  if (guion) e.setAttribute('stroke-dasharray', guion);
+  if (opac) e.setAttribute('stroke-opacity', opac);
+  svg.appendChild(e);
+  return e;
+}
+/* La base: las cuatro cavidades y los tres senos. */
+function _racBase(svg){
+  const B = RAC_BASE;
+  ['ad', 'ai', 'ap'].forEach(function (k){
+    const c = B[k];
+    svg.appendChild(_racEl('ellipse', { cx:c.cx, cy:c.cy, rx:c.rx, ry:c.ry, class:'rac-f-' + k }));
+  });
+  svg.appendChild(_racEl('circle', { cx:B.ao.cx, cy:B.ao.cy, r:B.ao.r, class:'rac-f-ao' }));
+  svg.appendChild(_racTxt(B.ad.cx, B.ad.cy + 5, B.ad.rot, 'rac-rot', 'middle'));
+  svg.appendChild(_racTxt(B.ai.cx, B.ai.cy + 5, B.ai.rot, 'rac-rot', 'middle'));
+  svg.appendChild(_racTxt(B.ap.cx, B.ap.cy + 5, B.ap.rot, 'rac-rot', 'middle'));
+  /* El rotulo de la aorta va abajo DENTRO del circulo: en el centro se encimaria con los tres
+     senos, que son los que ocupan el medio. Medido: no se solapa con ninguno. */
+  svg.appendChild(_racTxt(B.ao.cx, B.ao.cy + 48, B.ao.rot, 'rac-rot', 'middle'));
+  B.senos.forEach(function (s){
+    svg.appendChild(_racTxt(s.x, s.y, s.t, 'rac-rot-s', 'middle'));
+  });
+}
+function _racNormales(svg, salvo){
+  ['cd', 'lm', 'da', 'cx'].forEach(function (k){
+    if (salvo && salvo.indexOf(k) > -1) return;
+    _racLinea(svg, RAC_NORM[k], 'rac-c-gris', (k === 'lm' || k === 'da') ? 4 : 3.2);
+  });
+}
+function _racPunto(svg, p, clase){
+  svg.appendChild(_racEl('circle', { cx:p[0], cy:p[1], r:5, class:clase || 'rac-p-inter' }));
+}
+/* ¿Que casillas estan tildadas en un apartado? */
+function _racTildadas(ap){
+  const raiz = document.querySelector('[data-rac-ap="' + ap + '"]');
+  const o = {};
+  if (!raiz) return o;
+  raiz.querySelectorAll('input[data-rac]').forEach(function (c){
+    if (c.checked) o[c.getAttribute('data-rac')] = true;
+  });
+  return o;
+}
+function _racLeyenda(host, filas){
+  while (host.firstChild) host.removeChild(host.firstChild);
+  filas.forEach(function (f){
+    const d = document.createElement('div');
+    d.className = 'rac-ley-f';
+    const m = document.createElement('span');
+    m.className = 'rac-ley-m rac-ley-' + f.k;
+    m.style.background = 'var(--rac-' + f.v + ')';
+    d.appendChild(m);
+    const t = document.createElement('span');
+    t.textContent = f.t;
+    d.appendChild(t);
+    host.appendChild(d);
+  });
+}
+/* El dibujo de un apartado. Devuelve la leyenda y la nota del pie. */
+function racDibujar(ap){
+  const caja = document.querySelector('[data-rac-esq="' + ap + '"]');
+  if (!caja) return null;
+  const T = _racTildadas(ap);
+  const hay = Object.keys(T).length > 0;
+  caja.classList.toggle('rac-oculto', !hay);
+  const hostSvg = caja.querySelector('.rac-svg');
+  const hostLey = caja.querySelector('.rac-ley');
+  const hostNota = caja.querySelector('.rac-nota');
+  while (hostSvg.firstChild) hostSvg.removeChild(hostSvg.firstChild);
+  hostNota.textContent = '';
+  if (!hay){ _racLeyenda(hostLey, []); return { ley:[], nota:'' } }
+  const svg = _racEl('svg', { viewBox:'0 0 ' + RAC_VB.w + ' ' + RAC_VB.h,
+                              role:'img', 'aria-label':'Esquema simbólico' });
+  _racBase(svg);
+  const ley = [];
+  let nota = '';
+  if (ap === 'aaorca' || ap === 'aaolca'){
+    const A = RAC_AORT[ap];
+    /* La coronaria que nace mal se dibuja por su camino; de la normal queda solo el tramo
+       distal, y discontinuo, porque ese trozo existe igual. */
+    if (ap === 'aaorca'){
+      _racLinea(svg, RAC_NORM.cd.slice(2), 'rac-c-gris', 3.2, '6 5');
+      _racNormales(svg, ['cd']);
+    } else {
+      _racLinea(svg, RAC_NORM.lm, 'rac-c-gris', 4, '6 5');
+      _racNormales(svg, ['lm']);
+    }
+    ley.push({ k:'gris', v:'gris', t:RAC_LEY.gris });
+    if (T.intra){
+      _racLinea(svg, _racPared(A.intra), 'rac-c-intra', 9, null, '0.55');
+      ley.push({ k:'intra', v:'intra', t:RAC_LEY.intra });
+    }
+    ['pre', 'retro', 'inter'].forEach(function (c){
+      if (!T[c]) return;
+      _racLinea(svg, A[c], 'rac-c-' + c, 4);
+      ley.push({ k:c, v:c, t:RAC_LEY[c] });
+    });
+    _racPunto(svg, A.origen, 'rac-p-inter');
+    svg.appendChild(_racTxt(A.origen[0] + 9, A.origen[1] + 4, 'origen', 'rac-rot-a', 'start'));
+    if (!T.pre && !T.retro && !T.inter) nota = RAC_NOTA_CAM;
+  } else if (ap === 'alcapa'){
+    _racLinea(svg, RAC_NORM.cd, 'rac-c-ambar', 6.5);
+    _racLinea(svg, RAC_PULM.colat, 'rac-c-ambar', 3, '2 6');
+    _racLinea(svg, RAC_PULM.lmPulm, 'rac-c-inter', 4.4);
+    _racLinea(svg, RAC_NORM.da, 'rac-c-inter', 4);
+    _racLinea(svg, RAC_NORM.cx, 'rac-c-inter', 3.2);
+    /* La flecha del flujo invertido: el trazo y su punta, las dos del color del flujo. */
+    const f = RAC_PULM.flecha;
+    _racLinea(svg, f, 'rac-c-inter', 3);
+    const dx = f[1][0] - f[0][0], dy = f[1][1] - f[0][1];
+    const L = Math.sqrt(dx*dx + dy*dy) || 1, ux = dx/L, uy = dy/L;
+    svg.appendChild(_racEl('polygon', { class:'rac-p-inter', points:
+      _racNum(f[1][0]) + ',' + _racNum(f[1][1]) + ' ' +
+      _racNum(f[1][0] - ux*11 - uy*5) + ',' + _racNum(f[1][1] - uy*11 + ux*5) + ' ' +
+      _racNum(f[1][0] - ux*11 + uy*5) + ',' + _racNum(f[1][1] - uy*11 - ux*5) }));
+    /* El rotulo del flujo va ANCLADO A LA DERECHA en su coordenada: con anclaje al principio
+       las catorce letras se saldrian del lienzo de 400 y quedarian cortadas. */
+    svg.appendChild(_racTxt(318, 150, 'flujo invertido', 'rac-rot-a', 'end'));
+    svg.appendChild(_racTxt(6, 118, 'coronaria derecha dilatada', 'rac-rot-a', 'start'));
+    svg.appendChild(_racTxt(392, 340, 'colaterales', 'rac-rot-a', 'end'));
+    ley.push({ k:'ambar', v:'ambar', t:'coronaria derecha dilatada' });
+    ley.push({ k:'colat', v:'ambar', t:RAC_LEY.colat });
+    ley.push({ k:'flujo', v:'inter', t:RAC_LEY.flujo });
+  } else if (ap === 'arcapa'){
+    _racNormales(svg, ['cd']);
+    _racLinea(svg, RAC_PULM.cdPulm, 'rac-c-ambar', 4);
+    _racPunto(svg, RAC_PULM.cdPulm[0], 'rac-p-ambar');
+    svg.appendChild(_racTxt(6, 58, 'origen en la pulmonar', 'rac-rot-a', 'start'));
+    ley.push({ k:'gris', v:'gris', t:RAC_LEY.gris });
+    ley.push({ k:'ambar', v:'ambar', t:RAC_LEY.ambar });
+  } else if (ap === 'fistula'){
+    _racNormales(svg);
+    ley.push({ k:'gris', v:'gris', t:RAC_LEY.gris });
+    const orig = ['R', 'L'].filter(function (k){ return T[k] });
+    const dest = ['ad', 'vd', 'ap'].filter(function (k){ return T[k] });
+    let dibujo = false;
+    orig.forEach(function (o){
+      dest.forEach(function (d){
+        const via = RAC_FIST.via[o + '-' + d];
+        if (!via) return;
+        dibujo = true;
+        _racLinea(svg, _racOndular(via, 3.2), 'rac-c-fist', 6.5);
+        const fin = via[via.length - 1];
+        svg.appendChild(_racEl('circle', { cx:fin[0], cy:fin[1], r:12, class:'rac-l rac-c-fist',
+                                           'stroke-width':2.2, 'stroke-dasharray':'5 4' }));
+      });
+      _racPunto(svg, RAC_FIST.orig[o], 'rac-p-inter');
+    });
+    if (dibujo){
+      ley.push({ k:'fist', v:'fist', t:RAC_LEY.fist });
+      dest.forEach(function (d){
+        const r = RAC_FIST.rot[d];
+        svg.appendChild(_racTxt(r.x, r.y, r.t, 'rac-rot-a', 'start'));
+      });
+    } else { nota = RAC_NOTA_FIS }
+  }
+  hostSvg.appendChild(svg);
+  _racLeyenda(hostLey, ley);
+  hostNota.textContent = nota;
+  return { ley:ley.map(function (f){ return f.t }), nota:nota };
+}
+/* Un solo oyente delegado en la raiz del esquema, puesto UNA vez: el repintado no vuelve a
+   cablear nada —las casillas y los contenedores son marcado estatico— asi que los oyentes no se
+   pueden acumular. Es la leccion (4) del pedido. */
+let _racCableado = false;
+function racCablear(){
+  if (_racCableado) return;
+  const raiz = document.getElementById('rac-root');
+  if (!raiz) return;
+  _racCableado = true;
+  raiz.addEventListener('change', function (e){
+    const c = e.target;
+    if (!c || !c.getAttribute || !c.getAttribute('data-rac')) return;
+    const ap = c.closest('[data-rac-ap]');
+    if (ap) racDibujar(ap.getAttribute('data-rac-ap'));
+  });
+}
+racCablear();
+/* Sonda de solo lectura para el arnes de pruebas. */
+window.racDiag = function (ap){
+  const caja = document.querySelector('[data-rac-esq="' + ap + '"]');
+  if (!caja) return null;
+  const svg = caja.querySelector('svg');
+  const cuenta = function (sel){ return svg ? svg.querySelectorAll(sel).length : 0 };
+  const estilo = function (sel){ return svg ? Array.prototype.map.call(svg.querySelectorAll(sel),
+    function (e){ return getComputedStyle(e).stroke }).join(' ') : '' };
+  return { tildadas:Object.keys(_racTildadas(ap)),
+           visible:!caja.classList.contains('rac-oculto'),
+           display:getComputedStyle(caja).display,
+           svg:!!svg, trazos:cuenta('path'), textos:cuenta('text'),
+           elipses:cuenta('ellipse'), circulos:cuenta('circle'), poligonos:cuenta('polygon'),
+           rotulos:svg ? Array.prototype.map.call(svg.querySelectorAll('text'),
+             function (t){ return t.textContent }) : [],
+           colores:estilo('path'),
+           leyenda:Array.prototype.map.call(caja.querySelectorAll('.rac-ley-f'),
+             function (f){ return f.textContent }),
+           nota:caja.querySelector('.rac-nota').textContent,
+           pie:caja.querySelector('.rac-pie').textContent };
+};
+window.racDibujar = racDibujar;
 
 const VINFO_MARGEN = 8, VINFO_ANCHO = 300;
 function _vInfoColocar(clave, desde) {
