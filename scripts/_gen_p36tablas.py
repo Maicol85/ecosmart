@@ -193,8 +193,12 @@ def main():
             # reemplaza el bloque entero por la version de dos tablas
             i = s.find('  <!-- ══ ASOCIACIONES Y SINDROMES')
             if i < 0: sys.exit('no encuentro el bloque de la parte A')
-            j = s.find('\n', s.find('  </div>', s.find('<div id="ref-asoc"', i)))
-            nuevo = s[:i] + bloque(2) + s[j:]
+            # El cierre de la tarjeta es la secuencia EXACTA de sus dos div: buscar '  </div>'
+            # sin el salto encontraria primero '    </div>', que lo contiene.
+            CIERRE = '\n    </div>\n  </div>'
+            j = s.find(CIERRE, s.find('<div id="ref-asoc"', i))
+            if j < 0: sys.exit('no encuentro el cierre de la tarjeta de asoc')
+            nuevo = s[:i] + bloque(2) + s[j + len(CIERRE):]
         else:
             k = s.find('<div id="ref-coronarias"')
             if k < 0: sys.exit('no encuentro ref-coronarias')
