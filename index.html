@@ -4718,6 +4718,84 @@ html.light-mode .amilo-root{
 .wi-fila{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:5px;}
 /* El rotulo del boton en una sola linea: en una tarjeta de 184 px «What if» parte en dos. */
 .wi-fila .btn{white-space:nowrap;}
+/* ══ EL PANEL DEL «WHAT IF» (PANT-37, Parte B) ═══════════════════════════════════════════════
+   ⚠️ `#v2d-col-esten` GANA `position:relative` Y ESO NO MUEVE LA GRILLA: un item de grid
+   posicionado relativo sigue ocupando su celda. Es lo que le da al panel su ancla.
+   ⚠️ EL PANEL SALE DESDE `left:0` Y CRECE HACIA LA DERECHA, no desde `right:0`. Con `right:0` un
+   panel de 300 px sobre una columna de 184 se metia 116 px hacia la IZQUIERDA, o sea encima del
+   dibujo -que vive en la columna 2-, que es exactamente lo que la orden prohibe.
+   ⚠️ EL `transform` DEL ARRASTRE NO SE DECLARA ACA: lo escribe el arrastre, y una regla de hoja
+   con `transform:none` le ganaria a la propiedad en linea el dia que alguien la ponga con
+   `!important`. */
+#v2d-col-esten{position:relative;}
+#wi-panel{position:absolute;top:100%;left:0;margin-top:6px;width:300px;max-width:88vw;z-index:6;
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.42);font-size:11.5px;line-height:1.35;}
+/* El `display:none` EXPLICITO: la hoja del navegador pierde contra cualquier regla de autor, y
+   adentro hay botones `.btn`, que declaran `inline-flex`. Es la leccion de PANT-30. */
+.wi-oculto{display:none!important;}
+#wi-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:6px 8px 6px 10px;border-bottom:1px solid var(--border);
+  cursor:grab;touch-action:none;user-select:none;border-radius:12px 12px 0 0;}
+#wi-hd.wi-agarrado{cursor:grabbing;}
+#wi-tit{font-weight:700;font-size:12px;color:var(--accent2);}
+.wi-asa{color:var(--text2);margin-right:6px;font-weight:400;}
+.wi-x{background:none;border:0;color:var(--text2);font-size:13px;line-height:1;
+  min-width:44px;min-height:44px;cursor:pointer;}
+.wi-x:hover{color:var(--text);}
+#wi-cuerpo{padding:8px 10px 10px;}
+#wi-sit{margin:0 0 7px;color:var(--text2);line-height:1.4;}
+#wi-sit.wi-sit-disc{color:var(--accent2);}
+.wi-ctrl{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap;}
+.wi-rot{font-size:11px;color:var(--text2);flex:0 0 auto;}
+.wi-sl .wi-rot{width:72px;}
+/* Los botones de dos estados reusan `btn-primary`/`btn-ghost`, el par de toda la app. El alto
+   baja a 30 px visibles con el area tactil recuperada por un `::after` de 44, que es el patron
+   del glosario del panel de Evidencia: en una tarjeta de 300 px dos botones de 44 px de alto se
+   comen el panel. */
+.wi-seg{position:relative;font-size:10.5px;padding:3px 7px;min-height:30px;min-width:0;}
+.wi-seg::after{content:'';position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px;}
+.wi-sl{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.wi-sl input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:30px;}
+.wi-out{font-size:11px;font-weight:700;color:var(--text);min-width:62px;text-align:right;flex:0 0 auto;}
+.wi-sup{display:flex;align-items:center;gap:10px;margin:2px 0 7px;flex-wrap:wrap;}
+.wi-sup-n{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--text2);}
+.wi-sup-n input{width:58px;min-height:30px;font-size:11px;padding:2px 4px;
+  background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;}
+.wi-sup-m{font-size:9.5px;color:var(--orange);font-weight:700;}
+#wi-graf{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.wi-g{flex:1 1 120px;min-width:0;}
+.wi-gt{margin:0;font-size:10px;color:var(--text2);line-height:1.25;}
+.wi-g svg{display:block;width:100%;height:auto;}
+.wi-cap{margin:1px 0 6px;font-size:9.5px;color:var(--text2);text-align:center;}
+.wi-tab{width:100%;border-collapse:collapse;font-size:11px;}
+.wi-tab td{padding:2px 0;border-top:1px solid var(--border);vertical-align:top;}
+.wi-tab td:first-child{color:var(--text2);}
+.wi-tab td:last-child{text-align:right;white-space:nowrap;}
+.wi-a{color:var(--text2);}
+.wi-b{color:var(--accent);font-weight:700;}
+.wi-lee{margin:7px 0 0;font-size:11px;color:var(--text2);line-height:1.4;}
+.wi-pie{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
+#wi-fn{font-size:9.5px;color:var(--text2);line-height:1.3;}
+#wi-reset{white-space:nowrap;font-size:10.5px;padding:3px 8px;min-height:30px;position:relative;}
+#wi-reset::after{content:'';position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px;}
+/* Un control apagado se ve apagado y no desaparece: que el dato FALTA es lo que hay que leer. */
+#wi-panel [disabled]{opacity:.45;}
+/* El chip sobre el lienzo. `#v2d-dibujo` gana `position:relative` solo para esto. */
+#v2d-dibujo{position:relative;}
+#wi-chip{position:absolute;top:4px;left:4px;z-index:3;font-size:10px;font-weight:700;
+  padding:1px 8px;border-radius:999px;background:var(--bg3);color:var(--accent2);
+  border:1px solid var(--accent2);pointer-events:none;}
+/* El rotulo de la Vmax simulada dentro del SVG. El halo va por `paint-order`, que dibuja el
+   trazo DEBAJO del relleno: asi el texto se lee en los dos temas sin un segundo nodo. */
+.wi-dib-lbl{font-size:10px;font-weight:700;fill:var(--accent);stroke:var(--bg2);stroke-width:2.6;
+  paint-order:stroke;}
+/* ANGOSTO: la grilla del panel 2D ya es de UNA columna, asi que el panel flotante pasa a
+   estatico y a ancho completo. Un absoluto de 300 px aca desborda la pantalla. */
+@media (max-width:768px){
+  #wi-panel{position:static;width:auto;max-width:none;margin-top:8px;transform:none!important;}
+  #wi-hd{cursor:default;}
+}
 /* ⚠️ EL LIENZO TIENE ANCHO Y ALTO EXPLICITOS EN PX, LOS DOS (Y1c) — DECISION DE MAICOL.
    El Y1b lo escalaba con `height:clamp(200px,calc(100vh - 520px),320px)`, que dependia de la
    ALTURA DE LA VENTANA porque el panel tenia techo de alto: con 300 px la tabla de cavidades
@@ -11084,6 +11162,9 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div id="v2d-cuerpo">
       <div id="v2d-grid">
         <div id="v2d-dibujo">
+          <!-- La marca de que el dibujo NO es el del estudio (PANT-37, B8). Absoluta sobre el
+               lienzo para no correrlo hacia abajo al aparecer. -->
+          <div id="wi-chip" class="wi-oculto">Dibujo seg&uacute;n What if</div>
           <svg id="v2d-svg" viewBox="24 36 154 242" xmlns="http://www.w3.org/2000/svg" role="img"
                aria-label="Esquema animado del coraz&oacute;n con las v&aacute;lvulas y sus chorros">
       <defs>
@@ -11112,6 +11193,11 @@ window.cerrarSesionReal = cerrarSesionReal;
               <text id="v2d-l-tv" class="v2d-lbl" x="64" y="201">VT</text>
               <text id="v2d-l-av" class="v2d-lbl" x="97" y="199">VA</text>
               <text id="v2d-l-mv" class="v2d-lbl" x="128" y="185">VM</text>
+              <!-- La Vmax SIMULADA, dentro del lienzo y en el rincon de abajo a la izquierda
+                   (PANT-37, B8). El dibujo de esta app NO tiene aorta ni chorro aortico
+                   anterogrado -- sus tres chorros son de regurgitacion --, asi que la velocidad
+                   simulada se publica como ROTULO. Lleva halo para leerse en los dos temas. -->
+              <text id="wi-dib-vmax" class="wi-dib-lbl wi-oculto" x="30" y="272"></text>
             </g>
           </svg>
           <div id="v2d-ciclo">
@@ -11126,6 +11212,56 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div id="v2d-col-esten">
           <div class="v2d-grp">Estenosis</div>
           <ul class="v2d-lista" id="v2d-esten"></ul>
+          <!-- ══ EL PANEL DEL «WHAT IF» (PANT-37, Parte B) ═══════════════════════════════════
+               Va DENTRO de la columna de estenosis y FUERA del `ul`, que es lo que importa:
+               `v2dRefrescar` rehace los `li` enteros en cada tecleo, asi que un panel adentro
+               de la tarjeta se destruiria -con su estado y su arrastre- una vez por gesto.
+               Flota con `position:absolute` desde el borde IZQUIERDO de la columna y crece hacia
+               la derecha: el dibujo esta en la columna 2, a su izquierda, asi que por
+               construccion no lo tapa. En angosto pasa a estatico y a ancho completo.
+               Se oculta con una CLASE y no con `hidden`: `.btn` declara `inline-flex` y le gana
+               al `[hidden]` de la hoja del navegador, que es lo que PANT-30 pago. -->
+          <div id="wi-panel" class="wi-oculto" role="region" aria-labelledby="wi-tit">
+            <div id="wi-hd">
+              <span id="wi-tit"><span aria-hidden="true" class="wi-asa">&#10303;</span>What if</span>
+              <button type="button" class="wi-x" id="wi-cerrar" aria-label="Cerrar el What if">&#10005;</button>
+            </div>
+            <div id="wi-cuerpo">
+              <p id="wi-sit"></p>
+              <div class="wi-ctrl" id="wi-fila-mover">
+                <span class="wi-rot">Mover</span>
+                <button type="button" class="btn btn-ghost wi-seg" id="wi-mv-vs">Volumen sist&oacute;lico</button>
+                <button type="button" class="btn btn-ghost wi-seg" id="wi-mv-fe">FEVI</button>
+              </div>
+              <div class="wi-sl">
+                <label class="wi-rot" id="wi-l1" for="wi-r1">Vol. sist&oacute;lico</label>
+                <input type="range" id="wi-r1">
+                <span class="wi-out" id="wi-o1"></span>
+              </div>
+              <div class="wi-sl">
+                <label class="wi-rot" for="wi-r2">Frecuencia</label>
+                <input type="range" id="wi-r2">
+                <span class="wi-out" id="wi-o2"></span>
+              </div>
+              <!-- Los dos SUPUESTOS: aparecen SOLO si el estudio no trae el dato. No se guardan,
+                   no van al informe y no se cuentan como dato cargado (prefijo `wi-`). -->
+              <div class="wi-sup" id="wi-fila-sup">
+                <span class="wi-sup-n"><label for="wi-et">T. eyecci&oacute;n (ms)</label><input type="number" id="wi-et" step="10"><span class="wi-sup-m">supuesto</span></span>
+                <span class="wi-sup-n"><label for="wi-fc">FC (lpm)</label><input type="number" id="wi-fc" step="1"><span class="wi-sup-m">supuesto</span></span>
+              </div>
+              <div id="wi-graf">
+                <div class="wi-g"><p class="wi-gt" id="wi-gt1"></p><svg id="wi-ch1" viewBox="0 0 170 130" role="img" aria-label="Gradiente medio contra flujo"></svg></div>
+                <div class="wi-g"><p class="wi-gt" id="wi-gt2"></p><svg id="wi-ch2" viewBox="0 0 170 130" role="img" aria-label="Velocidad maxima contra flujo"></svg></div>
+              </div>
+              <p class="wi-cap" id="wi-cap"></p>
+              <table class="wi-tab"><tbody id="wi-tb"></tbody></table>
+              <p class="wi-lee" id="wi-lee"></p>
+              <div class="wi-pie">
+                <span id="wi-fn"></span>
+                <button type="button" class="btn btn-ghost" id="wi-reset">Volver a lo medido</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="v2d-cav">
           <div class="v2d-grp">Cavidades</div>
@@ -169727,6 +169863,41 @@ var JALPHA=[0,0.55,0.75,0.92];
    parametros por URL de la demo NO se portaron: en la app el estado sale del estudio y nada mas.
    `aoup` —el volteo de la valvula aortica— queda en 0: era un control de la demo. */
 var S={it:0,iao:0,im:0,et:0,eao:0,em:0,dvi:0,dai:0,dvd:0,dad:0,kvi:0,kvd:0,pt:0,pao:0,pm:0,geo:0,aoup:0,play:true,dur:2.6,phi:0};
+/* ══ EL «WHAT IF»: LO UNICO QUE LO ALIMENTA DESDE AFUERA (PANT-37, B8) ══════════════════════
+   ⚠️ LA SIMULACION ENTRA ACA Y NO EN `v2dEstado()`, Y ESA ES LA DECISION CENTRAL DE LA PARTE B.
+   `v2dEstado` alimenta tambien `v2dPintarTarjetas` y `v2dPintarCav`: tocarlo moveria las
+   tarjetas y la tabla de cavidades, que es justo lo que la orden prohibe. Aca abajo lo unico
+   que se mueve es el DIBUJO.
+   ⚠️ LO QUE ENTRA SON RAZONES Y NO VALORES ABSOLUTOS, y eso le da una propiedad medible: con el
+   panel abierto y NADA movido las dos razones valen 1, asi que `amp` vale `AMP[S.kvi]` y `dur`
+   vale `DUR0` -o sea, el dibujo es IDENTICO al real-. Con un valor absoluto habria que confiar
+   en que la traduccion de la FEVI al tramo del dibujo coincide con la de la capsula.
+   ⚠️ `amp` SE ACOTA A 1: `AMP[0]` es la amplitud normal de esta app y una contraccion por encima
+   de lo normal no es algo que este dibujo sepa decir.
+   ⚠️ Y EL CONTEXTO SE RESTITUYE SOLO, porque esto no toca ningun estilo del canvas: el dibujo es
+   SVG y lo que cambia son dos numeros. La leccion (8) no aplica, y se dice para que no se
+   busque. */
+var DUR0 = S.dur;
+var _wi = null;
+function v2dWhatIf(o){
+  if (!o) { _wi = null; S.dur = DUR0; }
+  else {
+    var ar = Number(o.ampRazon); if (!isFinite(ar) || ar <= 0) ar = 1;
+    var dr = Number(o.durRazon); if (!isFinite(dr) || dr <= 0) dr = 1;
+    _wi = { amp: clamp(AMP[S.kvi] * ar, 0.10, 1) };
+    S.dur = clamp(DUR0 * dr, 0.5, 8);
+  }
+  var t = $('wi-dib-vmax');
+  if (t) {
+    if (o && isFinite(Number(o.vmax))) {
+      t.textContent = 'Vmax ' + Number(o.vmax).toFixed(1).replace('.', ',') + ' m/s';
+      t.classList.remove('wi-oculto');
+    } else { t.textContent = ''; t.classList.add('wi-oculto'); }
+  }
+  try { render(0); } catch (e) {}
+  return !!_wi;
+}
+function v2dWhatIfPuesto(){ return !!_wi; }
 var THK=[0,0.11,0.24,0.05];
 /* ⚠️ `prefers-reduced-motion` SE RESPETA, Y LA DEMO YA LO CONTEMPLABA: con la preferencia puesta
    el latido no corre y el dibujo se queda en un cuadro FIJO de la sistole (phi 0,30), que es el
@@ -169922,7 +170093,7 @@ function fitView(){
 }
 function render(t){
   var p=S.phi,base=cc(p),ak=atrialKick(p);
-  var cv={l:base*AMP[S.kvi],r:base*AMP[S.kvd],ak:ak};
+  var cv={l:base*(_wi?_wi.amp:AMP[S.kvi]),r:base*AMP[S.kvd],ak:ak};
   var dOut=poly(D.OUT,'O',cv);
   pOut.setAttribute('d',dOut);pShine.setAttribute('d',dOut);
   pCl.setAttribute('d',poly(D.CL,'L',cv));
@@ -170008,6 +170179,7 @@ function v2dFase(p){
   return S.phi;
 }
 window.v2dSync = v2dSync; window.v2dArrancar = v2dArrancar; window.v2dParar = v2dParar;
+window.v2dWhatIf = v2dWhatIf; window.v2dWhatIfPuesto = v2dWhatIfPuesto;
 window.v2dCorriendo = v2dCorriendo; window.v2dFase = v2dFase;
 /* Los dos origenes, expuestos para poder MEDIR la correccion de los chorros contra el dibujo
    viejo: sin esto, «el chorro se movio» solo se puede mirar, y mirar no es medir. */
@@ -170296,10 +170468,16 @@ function wiDatos(){
   const etMs = _wiV('tango_te');
   const et = (etMs !== null && etMs > 0) ? (etMs / 1000) : null;
   const fc = _wiV('ao_fc');
+  /* El supuesto escrito a mano gana sobre el de fabrica y PIERDE contra el estudio: si el
+     medico carga el tiempo de eyeccion de verdad, el panel usa el suyo y el campo del supuesto
+     desaparece. */
+  const etSupV = (et === null && _wiEtSup) ? (_wiEtSup / 1000) : null;
+  const fcSupV = ((fc === null || fc <= 0) && _wiFcSup) ? _wiFcSup : null;
   return { R: R, prot: prot, vmax: vmax, gmed: gmed, ava: ava,
            vdf: vdf, vs: vs, vsFte: vsFte, fevi: fevi, bsa: bsa,
            et: et, fc: fc,
-           etEf: (et !== null) ? et : WI_ET_SUP, fcEf: (fc !== null && fc > 0) ? fc : WI_FC_SUP,
+           etEf: (et !== null) ? et : (etSupV !== null ? etSupV : WI_ET_SUP),
+           fcEf: (fc !== null && fc > 0) ? fc : (fcSupV !== null ? fcSupV : WI_FC_SUP),
            etSup: (et === null), fcSup: (fc === null || fc <= 0),
            vsi: (vs !== null && bsa) ? (vs / bsa) : null };
 }
@@ -170362,6 +170540,11 @@ function _wiFilaBoton(li){
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'btn'; b.id = 'wi-btn';
   b.textContent = 'What if';
+  /* ⚠️ EL ESTADO SE REPONE EN CADA REPINTADO. `v2dRefrescar` rehace el `li` entero, asi que un
+     boton recien creado nace con `aria-expanded="false"` mientras el panel sigue abierto: un
+     lector de pantalla anunciaria cerrado lo que esta a la vista. */
+  b.setAttribute('aria-controls', 'wi-panel');
+  b.setAttribute('aria-expanded', (typeof wiVisible === 'function' && wiVisible()) ? 'true' : 'false');
   b.onclick = function(){ if (typeof wiTog === 'function') wiTog(); };
   _wiBotonSync(b);
   fila.appendChild(b);
@@ -170377,6 +170560,509 @@ function _wiFilaBoton(li){
   fila.appendChild(g);
   li.appendChild(fila);
 }
+
+/* ══ EL PANEL DEL «WHAT IF» — PANT-37, PARTE B ═══════════════════════════════════════════════
+   El calculo entero vive en pantalla: no escribe un campo, no guarda nada, no toca el informe,
+   el PDF, el PPT ni el Excel. Lo que mueve es el DIBUJO 2D y este panel.
+
+   LAS FORMULAS, con el AREA FIJA (B4):
+     Q  = VS / tiempo de eyeccion   (mL/s, con el tiempo en SEGUNDOS)
+     G1 = G0 x (Q1/Q0)^2
+     V1 = V0 x (Q1/Q0)
+     el area, el area indexada y el DVI NO cambian.
+   ⚠️ LA FRECUENCIA NO ENTRA EN EL FLUJO, y es lo que la orden fija: el flujo es el de la
+   EYECCION, no el gasto cardiaco. La frecuencia mueve el latido del dibujo y la linea de
+   lectura, que es la unica que pasa a L/min.
+   ⚠️ EL CORTE DE GRADIENTE SEVERO SALE DE `EA_BANDAS.gmedSevMin` y el de Vmax de la banda
+   'moderada' de `EA_BANDAS.vmax`: ni uno de los dos se escribe a mano. */
+const WI_VS_MARGEN = 2;   /* mL de residuo minimo: con VS = VDF el ventriculo se cierra a un
+                             punto y el dibujo deja de ser valido. Es el mismo margen de la demo
+                             aprobada (`max(edv - sv, 2)`). Queda declarado. */
+const WI_FC_MIN = 45, WI_FC_MAX = 110;   /* el rango del deslizador, el de la demo aprobada */
+
+/* Los textos de la primera linea, EXACTOS, uno por situacion (B2). */
+const WI_SIT_TXT = Object.freeze({
+  disc: 'Situación: área en rango severo con Vmax y gradiente por debajo del rango severo (discordante). Acá el What if sirve.',
+  conc: 'Situación: área y gradiente concordantes. Con estos datos el What if aporta poco.',
+  prot: 'Con prótesis el What if no aplica.',
+  faltanPref: 'Para simular, cargá: '
+});
+
+/* El estado de la simulacion. NO se persiste y NO sale de aca. */
+const WI_M_INI = 0.40;   /* cm2 por cada 100 mL/s -- el valor inicial de la apertura (C1) */
+let _wiSim = { modo: 'vs', area: 'fija', s1: null, fc: null, m: WI_M_INI };
+/* Los dos SUPUESTOS que el medico puede escribir en el panel cuando el estudio no los trae.
+   Viven en memoria, no se guardan y no se cuentan como dato cargado. */
+let _wiEtSup = null, _wiFcSup = null;
+let _wiCableado = false, _wiTx = 0, _wiTy = 0, _wiDrag = null, _wiFoto = null;
+
+function _wiEl(id){ return document.getElementById(id); }
+function _wiCl(x, a, b){ return x < a ? a : (x > b ? b : x); }
+function _wiFmt(x, d){ return (isFinite(x) ? Number(x) : 0).toFixed(d).replace('.', ','); }
+function _wiEnt(x){ return String(Math.round(isFinite(x) ? x : 0)); }
+
+/* El corte severo del gradiente y el de la Vmax, de sus duenos. */
+function _wiCorteG(){ try { return EA_BANDAS.gmedSevMin; } catch (e) { return null; } }
+function _wiCorteV(){
+  try { const b = EA_BANDAS.vmax.filter(function(x){ return x.grado === 'moderada' })[0];
+        return b ? b.bajo : null; } catch (e) { return null; }
+}
+
+/* ══ LA PALETA, RESUELTA AL DIBUJAR ══════════════════════════════════════════════════════════
+   ⚠️ NI UN `var()` EN UN ATRIBUTO. Es la regla fija del archivo: un `fill="var(--x)"` como
+   atributo de presentacion con la variable ausente es invalido en tiempo de computo y, como
+   `fill` se hereda, cae en el NEGRO de la raiz sin avisar -lo que PANT-13 pago con `--card` y
+   POP-B con `--amber`-. Se lee de los estilos calculados, con respaldo explicito POR TEMA. */
+function _wiPal(){
+  const dia = document.documentElement.classList.contains('light-mode');
+  const RESP = dia ? { acc:'#2f6fe0', acc2:'#1f5fb8', txt:'#1a2233', txt2:'#5b6478',
+                       bor:'#d6dce6', red:'#d63b3b', bg:'#ffffff' }
+                   : { acc:'#4f8ef7', acc2:'#7ec8e3', txt:'#e8ecf4', txt2:'#9aa3bc',
+                       bor:'#2a3050', red:'#f05454', bg:'#181c27' };
+  let cs = null;
+  try { cs = getComputedStyle(document.documentElement); } catch (e) { cs = null; }
+  const g = function(nom, resp){
+    if (!cs) return resp;
+    const x = String(cs.getPropertyValue(nom) || '').trim();
+    return x ? x : resp;
+  };
+  return { acc: g('--accent', RESP.acc), acc2: g('--accent2', RESP.acc2),
+           txt: g('--text', RESP.txt), txt2: g('--text2', RESP.txt2),
+           bor: g('--border', RESP.bor), red: g('--red', RESP.red),
+           bg: g('--bg2', RESP.bg) };
+}
+
+/* ══ UNA GRAFICA ═════════════════════════════════════════════════════════════════════════════
+   Por nodos y no por `innerHTML`: la regla de la casa y la de Semgrep. El eje horizontal es el
+   FLUJO en mL/s en las tres graficas, asi que los tres marcadores caen en la misma abscisa. */
+function _wiChart(id, o){
+  const sv = _wiEl(id); if (!sv) return null;
+  const NS = 'http://www.w3.org/2000/svg';
+  while (sv.firstChild) sv.removeChild(sv.firstChild);
+  const P = _wiPal();
+  const W = 170, H = 130, ml = 30, mr = 6, mt = 8, mb = 22;
+  const w = W - ml - mr, h = H - mt - mb;
+  const X = function(q){ return ml + (q - o.x0) / (o.x1 - o.x0) * w; };
+  const Y = function(v){ return mt + h - Math.min(Math.max(v, 0), o.ymax) / o.ymax * h; };
+  const el = function(n, a){ const e = document.createElementNS(NS, n);
+    for (const k in a) e.setAttribute(k, a[k]); sv.appendChild(e); return e; };
+  const yf = o.yf || function(v){ return _wiEnt(v); };
+  /* La banda del lado severo, para que el corte se lea sin tener que seguir la linea. */
+  if (o.thr !== null && o.thr !== undefined) {
+    const yT = Y(o.thr);
+    if (o.bajo) el('rect', { x:ml, y:yT, width:w, height:Math.max(0, mt + h - yT), fill:P.red, opacity:'0.14' });
+    else        el('rect', { x:ml, y:mt, width:w, height:Math.max(0, yT - mt), fill:P.red, opacity:'0.14' });
+  }
+  (o.yt || []).forEach(function(v){
+    el('line', { x1:ml, x2:ml + w, y1:Y(v), y2:Y(v), stroke:P.bor, 'stroke-width':'0.5' });
+    const t = el('text', { x:ml - 4, y:Y(v) + 4, 'font-size':'9', 'text-anchor':'end', fill:P.txt2 });
+    t.textContent = yf(v);
+  });
+  (o.xt || []).forEach(function(q){
+    const t = el('text', { x:X(q), y:mt + h + 13, 'font-size':'9', 'text-anchor':'middle', fill:P.txt2 });
+    t.textContent = _wiEnt(q);
+  });
+  if (o.thr !== null && o.thr !== undefined) {
+    el('line', { x1:ml, x2:ml + w, y1:Y(o.thr), y2:Y(o.thr), stroke:P.txt2,
+                 'stroke-width':'1.2', 'stroke-dasharray':'4 3' });
+  }
+  const curva = function(fn){
+    const pts = [];
+    for (let i = 0; i <= 80; i++) {
+      const q = o.x0 + (o.x1 - o.x0) * i / 80, y = fn(q);
+      if (!isFinite(y)) continue;
+      if (y > o.ymax) break;
+      pts.push(X(q).toFixed(1) + ',' + Y(y).toFixed(1));
+    }
+    return pts.join(' ');
+  };
+  /* La PUNTEADA es la referencia del area fija y se dibuja PRIMERO, debajo de la solida. */
+  if (o.f2) el('polyline', { points:curva(o.f2), fill:'none', stroke:P.txt2,
+                             'stroke-width':'1.3', 'stroke-dasharray':'3 3' });
+  el('polyline', { points:curva(o.f), fill:'none', stroke:P.txt, 'stroke-width':'1.8' });
+  const marca = function(q, y, col){
+    const qq = _wiCl(q, o.x0, o.x1);
+    el('line', { x1:X(qq), x2:X(qq), y1:Y(y), y2:mt + h, stroke:col,
+                 'stroke-width':'1', 'stroke-dasharray':'2 3', opacity:'0.6' });
+    el('circle', { cx:X(qq), cy:Y(y), r:'4', fill:col });
+  };
+  marca(o.m0.x, o.m0.y, P.txt2);
+  marca(o.m1.x, o.m1.y, P.acc);
+  return true;
+}
+
+/* ══ LA CUENTA ═══════════════════════════════════════════════════════════════════════════════
+   Devuelve DATOS, nunca marcado, y no escribe un solo campo. Es el dueno unico de las formulas
+   de B4 y de C2: el panel, el dibujo, la tabla, las graficas y la cobertura preguntan todos
+   aca, asi que no puede haber dos cuentas del mismo numero. */
+function wiCuenta(){
+  const S = wiSituacion(), D = S.D;
+  const o = { sit: S.sit, falta: S.falta, D: D, ok: false };
+  if (S.sit === 'prot' || S.sit === 'faltan') return o;
+  const et = D.etEf, vdf = D.vdf, vs0 = D.vs, g0 = D.gmed, v0 = D.vmax, a0 = D.ava;
+  const vsMax = Math.max(1, vdf - WI_VS_MARGEN);
+  const feviMax = vdf > 0 ? (vsMax / vdf * 100) : 100;
+  const fevi0 = (vdf > 0) ? (vs0 / vdf * 100) : null;
+  /* El valor del deslizador: lo guardado si sigue siendo valido, lo MEDIDO si no. */
+  let vs1;
+  if (_wiSim.modo === 'fe') {
+    const fe1 = _wiCl((_wiSim.s1 === null ? fevi0 : _wiSim.s1), 1, feviMax);
+    vs1 = vdf * fe1 / 100;
+  } else {
+    vs1 = _wiCl((_wiSim.s1 === null ? vs0 : _wiSim.s1), 1, vsMax);
+  }
+  const fc1 = _wiCl((_wiSim.fc === null ? D.fcEf : _wiSim.fc), WI_FC_MIN, WI_FC_MAX);
+  const q0 = vs0 / et, q1 = vs1 / et, r = q0 > 0 ? (q1 / q0) : 1;
+  /* El area: FIJA en la parte B. La parte C le pone su propia ley y usa este mismo camino. */
+  const areaDe = function(q){
+    if (_wiSim.area !== 'abre') return a0;
+    return _wiCl(a0 + _wiSim.m * (q - q0) / 100, 0.15, 2.5);
+  };
+  const a1 = areaDe(q1);
+  const gDe = function(q){
+    if (!(q0 > 0) || !(g0 > 0)) return 0;
+    const k = (q / q0) * (a0 / areaDe(q));
+    return g0 * k * k;
+  };
+  const vDe = function(q){
+    if (!(q0 > 0) || !(v0 > 0)) return 0;
+    return v0 * (q / q0) * (a0 / areaDe(q));
+  };
+  o.ok = true;
+  o.et = et; o.vdf = vdf; o.vsMax = vsMax; o.feviMax = feviMax;
+  o.vs0 = vs0; o.vs1 = vs1; o.fevi0 = fevi0; o.fevi1 = vdf > 0 ? (vs1 / vdf * 100) : null;
+  o.vsi0 = D.bsa ? (vs0 / D.bsa) : null; o.vsi1 = D.bsa ? (vs1 / D.bsa) : null;
+  o.q0 = q0; o.q1 = q1; o.r = r; o.fc0 = D.fcEf; o.fc1 = fc1;
+  o.g0 = g0; o.g1 = gDe(q1); o.v0 = v0; o.v1 = vDe(q1);
+  o.a0 = a0; o.a1 = a1; o.areaDe = areaDe; o.gDe = gDe; o.vDe = vDe;
+  o.avai0 = D.R ? D.R.avai : null; o.dvi0 = D.R ? D.R.dvi : null;
+  /* La proyeccion a 250 mL/s, que la parte C publica. Se calcula siempre: cuesta una resta. */
+  o.a250 = (_wiSim.area === 'abre') ? _wiCl(a0 + _wiSim.m * (250 - q0) / 100, 0.15, 2.5) : a0;
+  /* La linea de lectura de B7: que flujo hace falta para llegar al corte severo. */
+  const cG = _wiCorteG();
+  if (cG !== null && g0 > 0 && q0 > 0) {
+    o.qCorte = q0 * Math.sqrt(cG / g0);
+    o.vsCorte = o.qCorte * et;
+    o.coCorte = o.vsCorte * fc1 / 1000;
+    o.feCorte = vdf > 0 ? (o.vsCorte / vdf * 100) : null;
+  }
+  return o;
+}
+window.wiCuenta = wiCuenta;
+
+/* ══ EL PINTOR DEL PANEL ═════════════════════════════════════════════════════════════════════
+   ⚠️ TODO POR `textContent` Y POR NODOS. Ni un `innerHTML`: los textos son estaticos y los
+   numeros salen de `wiCuenta`, y la regla de la casa es que un dato no vuelve a entrar como
+   marcado. Asi el sink no existe, en vez de existir y ser inofensivo. */
+function _wiFila(rot, antes, desp, extra){
+  const tr = document.createElement('tr');
+  const td1 = document.createElement('td'); td1.textContent = rot; tr.appendChild(td1);
+  const td2 = document.createElement('td');
+  const a = document.createElement('span'); a.className = 'wi-a'; a.textContent = antes;
+  const b = document.createElement('span'); b.className = 'wi-b'; b.textContent = desp;
+  td2.appendChild(a); td2.appendChild(document.createTextNode(' → ')); td2.appendChild(b);
+  if (extra) { td2.appendChild(document.createTextNode(' ')); td2.appendChild(extra); }
+  tr.appendChild(td2);
+  return tr;
+}
+
+/* Prende o apaga los controles de una vez. Un control apagado se VE apagado y no desaparece:
+   que el dato falta es justo lo que hay que poder leer. */
+function _wiHabilitar(on){
+  ['wi-r1', 'wi-r2', 'wi-mv-vs', 'wi-mv-fe', 'wi-reset', 'wi-area-fija', 'wi-area-abre', 'wi-r3']
+    .forEach(function(id){ const e = _wiEl(id); if (e) e.disabled = !on; });
+}
+
+function _wiSeg(id, on){
+  const e = _wiEl(id); if (!e) return;
+  e.classList.toggle('btn-primary', !!on);
+  e.classList.toggle('btn-ghost', !on);
+  e.setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+
+function wiPintar(){
+  const pan = _wiEl('wi-panel'); if (!pan || pan.classList.contains('wi-oculto')) return null;
+  const C = wiCuenta();
+  const sit = _wiEl('wi-sit');
+  if (sit) {
+    sit.classList.toggle('wi-sit-disc', C.sit === 'disc');
+    if (C.sit === 'faltan') sit.textContent = WI_SIT_TXT.faltanPref + C.falta.join(', ') + '.';
+    else sit.textContent = WI_SIT_TXT[C.sit] || '';
+  }
+  _wiHabilitar(C.ok);
+  const graf = _wiEl('wi-graf'), tb = _wiEl('wi-tb'), lee = _wiEl('wi-lee'),
+        cap = _wiEl('wi-cap'), fn = _wiEl('wi-fn'), sup = _wiEl('wi-fila-sup');
+  if (!C.ok) {
+    /* Sin datos no se dibuja una grafica vacia ni una tabla de rayas: una tabla con la raya
+       afirma que se miro y no habia nada. Se apaga, y la primera linea dice que falta. */
+    if (graf) graf.classList.add('wi-oculto');
+    if (cap) cap.textContent = '';
+    if (tb) tb.textContent = '';
+    if (lee) lee.textContent = '';
+    if (fn) fn.textContent = '';
+    if (sup) sup.classList.add('wi-oculto');
+    try { if (typeof v2dWhatIf === 'function') v2dWhatIf(null); } catch (e) {}
+    return C;
+  }
+  if (graf) graf.classList.remove('wi-oculto');
+
+  /* ── Los deslizadores: rango y valor, siempre acotados a lo que el estudio permite ── */
+  const r1 = _wiEl('wi-r1'), o1 = _wiEl('wi-o1'), l1 = _wiEl('wi-l1');
+  const r2 = _wiEl('wi-r2'), o2 = _wiEl('wi-o2');
+  _wiSeg('wi-mv-vs', _wiSim.modo === 'vs');
+  _wiSeg('wi-mv-fe', _wiSim.modo === 'fe');
+  if (r1) {
+    if (_wiSim.modo === 'fe') {
+      r1.min = String(Math.max(5, Math.round(C.fevi0 / 2)));
+      r1.max = String(Math.max(Number(r1.min) + 1, Math.round(C.feviMax)));
+      r1.step = '1'; r1.value = String(Math.round(C.fevi1));
+      if (l1) l1.textContent = 'FEVI';
+      if (o1) o1.textContent = _wiEnt(C.fevi1) + ' %';
+    } else {
+      r1.min = String(Math.max(5, Math.round(C.vs0 / 2)));
+      r1.max = String(Math.max(Number(r1.min) + 1, Math.round(C.vsMax)));
+      r1.step = '1'; r1.value = String(Math.round(C.vs1));
+      if (l1) l1.textContent = 'Vol. sistólico';
+      if (o1) o1.textContent = _wiEnt(C.vs1) + ' mL';
+    }
+  }
+  if (r2) { r2.min = String(WI_FC_MIN); r2.max = String(WI_FC_MAX); r2.step = '1';
+            r2.value = String(Math.round(C.fc1)); }
+  if (o2) o2.textContent = _wiEnt(C.fc1) + ' lpm';
+
+  /* ── Los dos SUPUESTOS: solo el que falta ── */
+  const etW = _wiEl('wi-et') ? _wiEl('wi-et').parentNode : null;
+  const fcW = _wiEl('wi-fc') ? _wiEl('wi-fc').parentNode : null;
+  if (etW) etW.classList.toggle('wi-oculto', !C.D.etSup);
+  if (fcW) fcW.classList.toggle('wi-oculto', !C.D.fcSup);
+  if (sup) sup.classList.toggle('wi-oculto', !(C.D.etSup || C.D.fcSup));
+  const eET = _wiEl('wi-et'); if (eET && C.D.etSup && document.activeElement !== eET)
+    eET.value = String(Math.round(C.et * 1000));
+  const eFC = _wiEl('wi-fc'); if (eFC && C.D.fcSup && document.activeElement !== eFC)
+    eFC.value = String(Math.round(C.D.fcEf));
+
+  /* ── La tabla «antes → despues» (B5) ── */
+  if (tb) {
+    tb.textContent = '';
+    tb.appendChild(_wiFila('FEVI', _wiEnt(C.fevi0), _wiEnt(C.fevi1) + ' %'));
+    tb.appendChild(_wiFila('VS (VSi)',
+      _wiEnt(C.vs0) + (C.vsi0 !== null ? ' (' + _wiEnt(C.vsi0) + ')' : ''),
+      _wiEnt(C.vs1) + (C.vsi1 !== null ? ' (' + _wiEnt(C.vsi1) + ')' : '') + ' mL'));
+    tb.appendChild(_wiFila('Flujo', _wiEnt(C.q0), _wiEnt(C.q1) + ' mL/s'));
+    tb.appendChild(_wiFila('Vmax', _wiFmt(C.v0, 1), _wiFmt(C.v1, 1) + ' m/s'));
+    tb.appendChild(_wiFila('Gradiente medio', _wiEnt(C.g0), '~' + _wiEnt(C.g1) + ' mmHg'));
+    tb.appendChild(_wiFila('AVA', _wiFmt(C.a0, 2), _wiFmt(C.a1, 2) + ' cm²'));
+    if (_wiSim.area === 'abre')
+      tb.appendChild(_wiFila('AVA a 250 mL/s', '—', _wiFmt(C.a250, 2) + ' cm²'));
+  }
+
+  /* ── Las graficas (B6 y C4) ── */
+  const qMax = Math.max(C.q0, C.q1, 250) * 1.6;
+  const x1 = _wiCl(Math.ceil(qMax / 100) * 100, 300, 900), x0 = 0;
+  const xt = [x1 * 0.25, x1 * 0.5, x1 * 0.75, x1];
+  const cG = _wiCorteG(), cV = _wiCorteV();
+  const gTecho = _wiCl(Math.ceil(Math.max(C.g1, (cG || 40) * 1.4) / 20) * 20, 60, 240);
+  _wiChart('wi-ch1', { x0:x0, x1:x1, xt:xt, ymax:gTecho,
+    yt:[0, gTecho / 4, gTecho / 2, gTecho * 0.75, gTecho], thr:cG, bajo:false,
+    f:C.gDe, f2:(_wiSim.area === 'abre') ? function(q){ const k = C.q0 > 0 ? q / C.q0 : 1;
+      return C.g0 * k * k; } : null,
+    m0:{ x:C.q0, y:C.g0 }, m1:{ x:C.q1, y:C.g1 } });
+  const gt1 = _wiEl('wi-gt1');
+  if (gt1) gt1.textContent = (_wiSim.area === 'abre')
+    ? 'G. medio (mmHg) · punteada: área fija' : 'G. medio (mmHg)';
+  const vTecho = _wiCl(Math.ceil(Math.max(C.v1, (cV || 4) * 1.5)), 5, 12);
+  _wiChart('wi-ch2', { x0:x0, x1:x1, xt:xt, ymax:vTecho,
+    yt:[0, vTecho / 4, vTecho / 2, vTecho * 0.75, vTecho], yf:function(v){ return _wiFmt(v, 1) },
+    thr:cV, bajo:false, f:C.vDe,
+    f2:(_wiSim.area === 'abre') ? function(q){ return C.v0 * (C.q0 > 0 ? q / C.q0 : 1) } : null,
+    m0:{ x:C.q0, y:C.v0 }, m1:{ x:C.q1, y:C.v1 } });
+  const gt2 = _wiEl('wi-gt2');
+  if (gt2) gt2.textContent = (_wiSim.area === 'abre')
+    ? 'Vmax (m/s) · punteada: área fija' : 'Vmax (m/s)';
+  if (cap) cap.textContent = 'Eje horizontal: flujo (mL/s) · gris medido · azul simulado';
+
+  /* ── La linea de lectura (B7 y C3) ── */
+  if (lee) {
+    if (_wiSim.area === 'abre') {
+      const sev = (typeof AVA_SEVERA_MAX === 'number') ? AVA_SEVERA_MAX : 1.0;
+      lee.textContent = 'Con esta apertura (ilustrativa), el área proyectada a 250 mL/s es ~'
+        + _wiFmt(C.a250, 2) + ' cm²: ' + (C.a250 <= sev
+          ? 'igual o por debajo de ' + _wiFmt(sev, 1) + ', como en una estenosis verdadera.'
+          : 'por encima de ' + _wiFmt(sev, 1) + ', compatible con pseudoestenosis.');
+    } else if (C.qCorte !== undefined && cG !== null) {
+      lee.textContent = 'Con el área medida, el gradiente llega a ' + _wiEnt(cG)
+        + ' mmHg con ~' + _wiFmt(C.coCorte, 1) + ' L/min: a ' + _wiEnt(C.fc1)
+        + ' lpm serían ~' + _wiEnt(C.vsCorte) + ' mL de volumen sistólico (FEVI ~'
+        + _wiEnt(C.feCorte) + ' %).';
+    } else { lee.textContent = ''; }
+  }
+  /* El pie, EXACTO (B5). */
+  if (fn) fn.textContent = 'Solo mueve el dibujo 2D. VS máx. ' + _wiEnt(C.vsMax)
+    + ' mL (VDF ' + _wiEnt(C.vdf) + ' mL). Flujo = VS / tiempo de eyección.';
+
+  /* ── El dibujo (B8) ── */
+  try {
+    if (typeof v2dWhatIf === 'function') {
+      v2dWhatIf({ ampRazon: (C.fevi0 > 0) ? (C.fevi1 / C.fevi0) : 1,
+                  durRazon: (C.fc1 > 0) ? (C.fc0 / C.fc1) : 1,
+                  vmax: C.v1 });
+    }
+  } catch (e) {}
+  const chip = _wiEl('wi-chip'); if (chip) chip.classList.remove('wi-oculto');
+  return C;
+}
+window.wiPintar = wiPintar;
+
+/* ══ ABRIR, CERRAR Y VOLVER A LO MEDIDO ══════════════════════════════════════════════════════
+   ⚠️ EL PANEL NO GUARDA NADA. `_wiSim` vive en memoria y se reinicia en cada apertura: el
+   estado de una simulacion es de la apertura en curso, como el `data-ind-max` del panel de
+   Evidencia. Nada de esto viaja con el estudio ni toca `localStorage`. */
+function wiVisible(){
+  const p = _wiEl('wi-panel');
+  return !!p && !p.classList.contains('wi-oculto');
+}
+window.wiVisible = wiVisible;
+
+/* Los valores iniciales SON LOS MEDIDOS, y el modo por omision lo decide la app: FEVI si la
+   capsula de la FEVI dice que esta reducida, volumen sistolico si no. Se lee el MISMO texto que
+   el dibujo ya usa para su tramo de contraccion, asi que el panel y el dibujo no pueden
+   discrepar sobre si este ventriculo contrae poco. */
+function _wiFeviReducida(){
+  try { return _v2dTramo(_v2dTxt('fevi-interp'),
+          [['severamente', 2], ['moderadamente', 1], ['levemente', 1]]) > 0; }
+  catch (e) { return false; }
+}
+function wiReset(){
+  _wiSim.modo = _wiFeviReducida() ? 'fe' : 'vs';
+  _wiSim.area = 'fija';
+  _wiSim.s1 = null; _wiSim.fc = null; _wiSim.m = WI_M_INI;
+  const r3 = _wiEl('wi-r3'); if (r3) r3.value = String(WI_M_INI);
+  wiPintar();
+}
+window.wiReset = wiReset;
+
+function wiCerrar(){
+  const p = _wiEl('wi-panel');
+  if (p) p.classList.add('wi-oculto');
+  const chip = _wiEl('wi-chip'); if (chip) chip.classList.add('wi-oculto');
+  _wiTx = 0; _wiTy = 0;
+  if (p) p.style.transform = '';
+  _wiDrag = null; _wiFoto = null;
+  /* El dibujo vuelve a lo real por el MISMO camino que lo simulo: un solo dueno. */
+  try { if (typeof v2dWhatIf === 'function') v2dWhatIf(null); } catch (e) {}
+  const b = _wiEl('wi-btn'); if (b) b.setAttribute('aria-expanded', 'false');
+}
+window.wiCerrar = wiCerrar;
+
+function wiAbrir(){
+  const p = _wiEl('wi-panel'); if (!p) return;
+  _wiCablear();
+  p.classList.remove('wi-oculto');
+  wiReset();
+  _wiAcotar();
+  const b = _wiEl('wi-btn'); if (b) b.setAttribute('aria-expanded', 'true');
+}
+window.wiAbrir = wiAbrir;
+function wiTog(){ if (wiVisible()) wiCerrar(); else wiAbrir(); }
+window.wiTog = wiTog;
+
+/* ══ QUE NO SE SALGA DE LA PANTALLA ══════════════════════════════════════════════════════════
+   Vale para la apertura, para el arrastre y para un cambio de tamanio de la ventana. Lo que se
+   corrige es el MISMO `transform` que el arrastre escribe, asi que no hay dos mecanismos de
+   posicion que se peleen. En angosto el panel es estatico y no hay nada que acotar. */
+function _wiAcotar(){
+  const p = _wiEl('wi-panel'); if (!p || !wiVisible()) return;
+  if (getComputedStyle(p).position === 'static') { p.style.transform = ''; _wiTx = 0; _wiTy = 0; return; }
+  const M = 6;
+  p.style.transform = 'translate(' + _wiTx + 'px,' + _wiTy + 'px)';
+  const r = p.getBoundingClientRect();
+  let dx = 0, dy = 0;
+  if (r.right > innerWidth - M) dx = (innerWidth - M) - r.right;
+  if (r.left + dx < M) dx += M - (r.left + dx);
+  if (r.bottom > innerHeight - M) dy = (innerHeight - M) - r.bottom;
+  if (r.top + dy < M) dy += M - (r.top + dy);
+  if (dx || dy) {
+    _wiTx = Math.round(_wiTx + dx); _wiTy = Math.round(_wiTy + dy);
+    p.style.transform = 'translate(' + _wiTx + 'px,' + _wiTy + 'px)';
+  }
+}
+
+/* ══ EL CABLEADO — UNA SOLA VEZ ══════════════════════════════════════════════════════════════
+   ⚠️ EL MARCADO DEL PANEL ES FIJO, asi que los oyentes se ponen UNA vez y no en cada apertura:
+   es la leccion (4) de la orden y la que `cfgDocsEdRender` pago en PANT-33, donde los tres
+   oyentes se registraban en cada repintado y «Volver al texto original» preguntaba dos veces.
+   ⚠️ EL ARRASTRE SE PORTA DE LA DEMO porque la app NO TIENE ningun panel arrastrable: lo
+   arrastrable de esta aplicacion son lienzos que giran un 3D. `pointerdown` + `setPointerCapture`
+   cubre raton y toque con un solo camino, que es lo que la orden pide.
+   ⚠️ EL `pointerdown` IGNORA LOS CLICS EN UN BOTON: sin eso, la ✕ del encabezado arranca un
+   arrastre y el panel se va con el dedo en vez de cerrarse. */
+function _wiCablear(){
+  if (_wiCableado) return;
+  _wiCableado = true;
+  const X = _wiEl('wi-cerrar'); if (X) X.onclick = function(){ wiCerrar(); };
+  const R = _wiEl('wi-reset');  if (R) R.onclick = function(){ wiReset(); };
+  const MV = _wiEl('wi-mv-vs'); if (MV) MV.onclick = function(){ _wiSim.modo = 'vs'; _wiSim.s1 = null; wiPintar(); };
+  const MF = _wiEl('wi-mv-fe'); if (MF) MF.onclick = function(){ _wiSim.modo = 'fe'; _wiSim.s1 = null; wiPintar(); };
+  const r1 = _wiEl('wi-r1'); if (r1) r1.addEventListener('input', function(){ _wiSim.s1 = Number(r1.value); wiPintar(); });
+  const r2 = _wiEl('wi-r2'); if (r2) r2.addEventListener('input', function(){ _wiSim.fc = Number(r2.value); wiPintar(); });
+  /* Los dos supuestos: lo que el medico escribe aca NO se guarda, NO va al informe y NO se
+     cuenta como dato cargado -- el prefijo `wi-` lo deja fuera de las dos listas del censo. */
+  const eET = _wiEl('wi-et'); if (eET) eET.addEventListener('input', function(){
+    const x = Number(eET.value); _wiEtSup = (isFinite(x) && x > 0) ? x : null; wiPintar(); });
+  const eFC = _wiEl('wi-fc'); if (eFC) eFC.addEventListener('input', function(){
+    const x = Number(eFC.value); _wiFcSup = (isFinite(x) && x > 0) ? x : null;
+    _wiSim.fc = null; wiPintar(); });
+  const hd = _wiEl('wi-hd'), pan = _wiEl('wi-panel');
+  if (hd && pan) {
+    hd.addEventListener('pointerdown', function(ev){
+      if (ev.target && ev.target.closest && ev.target.closest('button')) return;
+      if (getComputedStyle(pan).position === 'static') return;
+      _wiDrag = { x: ev.clientX - _wiTx, y: ev.clientY - _wiTy };
+      hd.classList.add('wi-agarrado');
+      try { hd.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    });
+    hd.addEventListener('pointermove', function(ev){
+      if (!_wiDrag) return;
+      _wiTx = Math.round(ev.clientX - _wiDrag.x); _wiTy = Math.round(ev.clientY - _wiDrag.y);
+      pan.style.transform = 'translate(' + _wiTx + 'px,' + _wiTy + 'px)';
+    });
+    const soltar = function(){ if (!_wiDrag) return; _wiDrag = null;
+      hd.classList.remove('wi-agarrado'); _wiAcotar(); };
+    hd.addEventListener('pointerup', soltar);
+    hd.addEventListener('pointercancel', soltar);
+  }
+  window.addEventListener('resize', function(){ if (wiVisible()) _wiAcotar(); });
+}
+
+/* ══ LA SINCRONIA EN VIVO (B1) ═══════════════════════════════════════════════════════════════
+   ⚠️ NO SE CUELGA DE `v2dRefrescar`, Y ESO ESTA MEDIDO: esa funcion sale temprano cuando el
+   JSON de `v2dEstado()` no cambio, y cambiar la Vmax o el gradiente NO lo mueve -- el estado del
+   dibujo solo guarda el GRADO-. Colgado ahi, el panel se quedaria con los numeros del gesto
+   anterior justo en los dos campos que mas importan. Lleva su propia foto.
+   ⚠️ Y DESCARTA LOS EVENTOS DE ADENTRO DEL PROPIO PANEL: los deslizadores emiten `input`, asi
+   que sin esta guarda cada movimiento se repintaria dos veces y el segundo repintado pisaria el
+   valor que el medico acaba de soltar. */
+function wiRefrescar(){
+  if (!wiVisible()) return false;
+  let f = null;
+  try { const D = wiDatos();
+        f = JSON.stringify([D.prot, D.vmax, D.gmed, D.ava, D.vdf, D.vs, D.bsa, D.et, D.fc]); }
+  catch (e) { f = null; }
+  if (f !== null && f === _wiFoto) return false;
+  _wiFoto = f;
+  wiPintar();
+  return true;
+}
+window.wiRefrescar = wiRefrescar;
+document.addEventListener('input', function(ev){
+  if (ev.target && ev.target.closest && ev.target.closest('#wi-panel')) return;
+  try { wiRefrescar(); } catch (e) {}
+}, false);
+document.addEventListener('change', function(ev){
+  if (ev.target && ev.target.closest && ev.target.closest('#wi-panel')) return;
+  try { wiRefrescar(); } catch (e) {}
+}, false);
 
 function v2dPintarCav(E){
   const host = document.getElementById('v2d-cav-tabla'); if (!host) return;
@@ -170448,6 +171134,11 @@ function v2dAbrir(){
   } catch (e) {}
 }
 function v2dCerrar(){
+  /* ⚠️ EL WHAT IF SE CIERRA POR LAS CUATRO PUERTAS DE LA VISTA, Y POR ESO SE CUELGA DE ACA Y NO
+     DE CADA UNA: `showTab`, `limpiarCampos` -o sea «Nuevo estudio»-, `RECALC_MODULOS` y el
+     propio boton llaman todas a esta funcion, que es idempotente. Enganchado en las cuatro por
+     separado, el dia que entre una quinta el panel se queda abierto sobre otro paciente. */
+  try { if (typeof wiCerrar === 'function') wiCerrar(); } catch (e) {}
   const ov = document.getElementById('v2d-ov');
   if (ov) ov.hidden = true;
   _v2dFoto = null;
@@ -172158,8 +172849,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-0442';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794382951033;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-1318';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794413932698;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -172245,7 +172936,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-0442</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-1318</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
