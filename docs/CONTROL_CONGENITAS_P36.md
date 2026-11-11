@@ -198,3 +198,17 @@ orden exige para numeros y rangos: el texto extraido de estas guias pierde guion
 | Con síndrome de Down | más comorbilidad —apnea del sueño, disfunción tiroidea— y la marcha de 6 minutos refleja peor la gravedad | ACC/AHA 2025 | 94 | e208 | texto |
 | Qué evitar | altura prolongada, embarazo, calor o humedad extremos, nefrotóxicos, esfuerzo extremo y cambios grandes de volemia | ACC/AHA 2025 | 94 | e208 | texto |
 | Oxígeno | se indica caso por caso, sin buscar normalizar la saturación | ACC/AHA 2025 | 94 | e208 | texto |
+
+## Marfan/EHAT — Aortopatía hereditaria
+
+848 caracteres (techo 849) · 7 vinietas (techo 7)
+
+| vinieta | texto | fuente | hoja | folio | leido |
+|---|---|---|---|---|---|
+| Qué es | grupo heterogéneo cuyo denominador común es el aneurisma o la disección de la aorta torácica | ESC 2020 | 43 | 605 | texto |
+| Pronóstico | lo marca la dilatación progresiva de la aorta; sin tratar, la edad media de muerte es menor de 40 años, y bien manejado se acerca a la general | ESC 2020 | 44 | 606 | imagen |
+| Disección tipo A | la determina el diámetro de la raíz aórtica, con riesgo de rotura aumentado desde 50 mm | ESC 2020 | 44 | 606 | imagen |
+| Qué más pesa | disección familiar con diámetro bajo, crecimiento de la raíz, embarazo e hipertensión | ESC 2020 | 44 | 606 | imagen |
+| Qué medir | anillo, senos, unión sinotubular, aorta ascendente distal, cayado y descendente, de borde anterior a borde anterior y corregidos por edad, sexo y tamaño | ESC 2020 | 44 | 606 | texto |
+| Qué más mirar | prolapso mitral, bicúspide, ductus persistente y el VI | ESC 2020 | 44 | 606 | texto |
+| Genética | la mutación se halla más en lo sindrómico (más del 90 %) que en lo no sindrómico (20 a 30 %) | ESC 2020 | 44 | 606 | imagen |

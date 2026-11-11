@@ -160,8 +160,18 @@ RES['eisen'] = ('Eisenmenger — Síndrome de Eisenmenger', [
  ('Oxígeno', 'se indica caso por caso, sin buscar normalizar la saturación', A, 94, 'e208', 'texto'),
 ])
 
+RES['marfan'] = ('Marfan/EHAT — Aortopatía hereditaria', [
+ ('Qué es', 'grupo heterogéneo cuyo denominador común es el aneurisma o la disección de la aorta torácica', E, 43, '605', 'texto'),
+ ('Pronóstico', 'lo marca la dilatación progresiva de la aorta; sin tratar, la edad media de muerte es menor de 40 años, y bien manejado se acerca a la general', E, 44, '606', 'imagen'),
+ ('Disección tipo A', 'la determina el diámetro de la raíz aórtica, con riesgo de rotura aumentado desde 50 mm', E, 44, '606', 'imagen'),
+ ('Qué más pesa', 'disección familiar con diámetro bajo, crecimiento de la raíz, embarazo e hipertensión', E, 44, '606', 'imagen'),
+ ('Qué medir', 'anillo, senos, unión sinotubular, aorta ascendente distal, cayado y descendente, de borde anterior a borde anterior y corregidos por edad, sexo y tamaño', E, 44, '606', 'texto'),
+ ('Qué más mirar', 'prolapso mitral, bicúspide, ductus persistente y el VI', E, 44, '606', 'texto'),
+ ('Genética', 'la mutación se halla más en lo sindrómico (más del 90 %) que en lo no sindrómico (20 a 30 %)', E, 44, '606', 'imagen'),
+])
+
 ORDEN = ['cia', 'civ', 'dap', 'vab', 'coa', 'tdf', 'ebs', 'dsav', 'esub', 'easv',
-         'tga', 'cvpa', 'fontan', 'eisen']
+         'tga', 'cvpa', 'fontan', 'eisen', 'marfan']
 
 TECHO_CHARS = 849
 TECHO_VIN = 7
