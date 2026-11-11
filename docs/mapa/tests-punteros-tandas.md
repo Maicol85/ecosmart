@@ -341,3 +341,38 @@ con `--anclas` antes de correr.
 ⚠️ **Y una trampa propia, la misma que PANT-20 pagó**: los comentarios del barrido se escribieron
 al principio con `/* */`, que **en un archivo de Python no es un comentario**. Lo cazó el
 `SyntaxError` en la primera corrida de `--anclas`.
+
+## PANT-37 (2026-11-11) — el «What if» de la estenosis aórtica
+
+**TC-825 a TC-831**, siete casos. Las fichas, con la escena común y lo que afirma cada uno, están
+en **`docs/mapa/tests-fichas-825.md`**. Los siete caen contra `f1412a2` **por condiciones y
+NINGUNA por excepción**.
+
+**Adaptados: TC-471 y TC-500**, los dos contadores del registro de globos `VINFO` (142 → **143**
+por `wi-aplica`). A los dos se les exige la clave **por nombre**, así que sacarla los vuelve a
+poner en rojo.
+
+⚠️ **EL MOTIVO POR EL QUE LOS SIETE LLEVAN AYUDANTES CON GUARDA EN CADA ACCESO**: contra el árbol
+anterior el panel, sus controles y las cinco funciones del módulo **no existen**, y un acceso
+pelado tira `TypeError` **antes** de medir nada. Los centinelas devuelven una **forma vacía** y no
+`null`: un `null` se vuelve a desreferenciar dos líneas más abajo y el caso cae por excepción
+igual.
+
+⚠️ **Y LA ESCENA NECESITA ESPERAR DESPUÉS DE «Nuevo estudio» ANTES DE PRENDER LA PASTILLA.**
+`limpiarCampos` pasa por el embudo de restauración y `cargarValvPills` repone las pastillas con su
+propio retardo: una pastilla prendida dentro de esa ventana **se apaga sola** y la escena queda
+sin tarjeta — que se lee igual que «el botón no se agregó». Costó tres corridas.
+
+**Barrido:** `scripts/_mut_p37.py` — **41/41 muertas**, con las 41 anclas verificadas con
+`--anclas` antes de correr y el md5 del árbol vivo idéntico antes y después. **El primer barrido
+dejó SIETE sobrevivientes y los siete eran huecos reales**, cerrados con condiciones nuevas y no
+aflojando la mutación: tres escenas de situación que faltaban —sólo la Vmax severa, sólo el
+gradiente severo, y el gradiente **por debajo de la banda que vota**, donde `gGrad` es `null`—;
+la regla de hoja del panel leída de `document.styleSheets`, porque la ventana del suite cae del
+lado **angosto**, donde el panel es estático y la geometría no puede ver de qué borde sale; y el
+panel **cerrado** medido por su `display` computado y no por su clase.
+⚠️ **Y UNA DE LAS SIETE ERA EQUIVALENTE Y HUBO QUE REESCRIBIRLA**: sacarle la clase `btn` al
+botón **no** le saca el piso de 44 px, porque ese piso sale de la regla **global** de
+accesibilidad de la app (`button, [role=button], .btn, … { min-height:44px }`). La mutación de
+hoy ataca el piso de verdad, por estilo en línea, y el caso mide además el `min-height`
+computado.

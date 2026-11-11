@@ -171030,9 +171030,22 @@ window.wiTog = wiTog;
    posicion que se peleen. En angosto el panel es estatico y no hay nada que acotar. */
 function _wiAcotar(){
   const p = _wiEl('wi-panel'); if (!p || !wiVisible()) return;
-  if (getComputedStyle(p).position === 'static') { p.style.transform = ''; _wiTx = 0; _wiTy = 0; return; }
+  if (getComputedStyle(p).position === 'static') {
+    p.style.transform = ''; p.style.maxWidth = ''; _wiTx = 0; _wiTy = 0; return;
+  }
   const M = 6;
   p.style.transform = 'translate(' + _wiTx + 'px,' + _wiTy + 'px)';
+  /* ⚠️ PRIMERO SE ANGOSTA Y DESPUES SE CORRE, Y EL ORDEN NO ES UN GUSTO. Con el ancho fijo, un
+     panel que no entra por la derecha se corrige corriendolo a la IZQUIERDA -- o sea ENCIMA del
+     dibujo, que es lo unico que la orden prohibe. Medido en los dos motores y los dos temas: a
+     1000 px el panel nacia con su borde derecho 16 px fuera de la ventana, el acote lo movia
+     esos 16 px y le tapaba 6 px de ancho por 336 de alto, 2016 px2. Angostado al hueco que
+     queda a su derecha entra sin moverse, y el dibujo queda intacto.
+     El piso de 160 px es para que el panel no se vuelva ilegible en una ventana absurda: por
+     debajo de eso manda la media query, que lo pasa a estatico y a ancho completo. */
+  p.style.maxWidth = '';
+  const nat = p.getBoundingClientRect();
+  p.style.maxWidth = Math.max(160, Math.floor(innerWidth - nat.left - M)) + 'px';
   const r = p.getBoundingClientRect();
   let dx = 0, dy = 0;
   if (r.right > innerWidth - M) dx = (innerWidth - M) - r.right;
@@ -172912,8 +172925,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-1318';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794413932698;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-1450';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794419452695;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -172999,7 +173012,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-1318</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-1450</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

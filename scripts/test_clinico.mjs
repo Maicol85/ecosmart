@@ -66989,9 +66989,14 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        que es la pestania que este caso mide: lo que cambia es el DENOMINADOR del registro y no
        lo que la condicion afirma sobre el marcado de esa pestania. Se les exige la clave, igual
        que a las cinco anteriores, asi que sacarlos vuelve a ponerlo en rojo. */
-    Object.keys(VINFO).length === 142 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ADAPTADO EN PANT-37: 142 -> 143. Entra wi-aplica, el globo del boton «What if» de la
+       tarjeta de estenosis aortica de la VISTA 2D. No esta en el marcado de la pestania que
+       este caso mide -- la vista 2D es un panel que se abre--, asi que lo que cambia es el
+       DENOMINADOR del registro y no lo que la condicion afirma. Se le exige la clave, igual
+       que a las siete anteriores, asi que sacarlo vuelve a ponerlo en rojo. */
+    Object.keys(VINFO).length === 143 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
-      && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO),
+      && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
   ex.push(['(H) y la tarjeta se coloca SIEMPRE dentro de la pantalla, sin cortarse',
     (function(){ const b = document.querySelector('[data-vinfo="avm-thp"]');
@@ -78505,7 +78510,9 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      este completo-: cambia el denominador. */
   /* ADAPTADO EN PANT-8 (commit 4): 122 -> 123 por tavi-calc. Es el denominador del registro,
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 142 entradas',
+  /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
+     DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 143 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78545,7 +78552,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tarjetas que este caso mide: cambia el denominador del registro, no lo que la condicion
        afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
        mismo. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 142,
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 143 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79864,9 +79871,20 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      crearlas seria contenido clinico nuevo que esa orden no autoriza. Lo que este limite sigue
      fijando es que ninguna tarjeta quede sin boton por un olvido del mapeo -eso lo caza (C2)-,
      sino por una entrada que no existe. Ver PENDIENTES.md, Y3d-2. */
+  /* ⚠️ ADAPTADO EN PANT-37: EL CENSO SALTEA LOS GLOBOS QUE VIVEN DENTRO DEL PANEL DE LA VISTA
+     2D (#v2d-ov). Ese panel se abre y se cierra, y sus tarjetas se crean y se destruyen con la
+     lesion que las tiene: desde el boton «What if» hay un globo -wi-aplica- que esta en el DOM
+     o no segun lo que el caso ANTERIOR haya dejado abierto. Medido: con la suite completa el
+     caso salia ROJO y corrido aislado salia VERDE, que es la firma de una dependencia de lote.
+     Lo que este censo declara son los globos de los FORMULARIOS de la app; el de la vista 2D
+     lo declara TC-825, que ademas exige que no tenga entrada en VINFO_REF a proposito. */
   const sinBoton = (function () {
     const ks = {}, bs = document.querySelectorAll('[data-vinfo]');
-    for (let i = 0; i < bs.length; i++) ks[bs[i].getAttribute('data-vinfo')] = 1;
+    for (let i = 0; i < bs.length; i++) {
+      const e = bs[i];
+      if (e.closest && e.closest('#v2d-ov')) continue;
+      ks[e.getAttribute('data-vinfo')] = 1;
+    }
     return Object.keys(ks).filter(c => !MAPA[c]).sort();
   })();
   /* ADAPTADO el 2026-10-24 (AJ5-1): once -> DOCE. La nueva es vm-carp, el globo del Carpentier
@@ -132877,6 +132895,962 @@ caso('TC-824', 'PANT-36: NADA de esta tanda llega al papel ni al estudio -- cero
   return { extra: F };
   })();
 `);
+
+/* ══ PANT-37 — EL «WHAT IF» DE LA ESTENOSIS AORTICA ═══════════════════════════════════════════
+   Siete casos. La escena comun es la DISCORDANTE: area de 0,80 cm2 por continuidad -20 mm de
+   TSVI, VTI de 20 cm y VTI aortico de 78,5-, Vmax de 3,2 m/s, gradiente medio de 25 mmHg, VDF
+   de 120 mL y FEVI del 45 %, o sea volumen latido de 54 mL. Datos FICTICIOS.
+   OJO: ava_cont es READONLY -- lo calcula la continuidad, asi que se siembran sus tres insumos
+   y no el area. Y la pastilla de estenosis aortica tiene que quedar PRENDIDA: sin ella la
+   tarjeta no existe y contar botones daria cero sobre un denominador vacio. */
+caso('TC-825', 'PANT-37 parte A: el boton «What if» en la tarjeta de estenosis aortica de la vista 2D, con sus CUATRO situaciones -- el azul SOLO en la discordante, la lista exacta de lo que falta, la protesis que no simula -- y ninguna otra tarjeta con boton', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  const P = (id, v) => __t.set(id, v);
+  const ESCENA = async (over) => {
+    __t.limpiar();
+    /* OJO: hay que ESPERAR despues de limpiar antes de tocar una pastilla. limpiarCampos pasa
+       por el embudo de restauracion y cargarValvPills las repone con su propio retardo: una
+       pastilla prendida dentro de esa ventana se apaga sola, y la escena queda sin tarjeta --
+       que se lee igual que «el boton no se agrego». */
+    await esp(420);
+    P('peso', 70); P('talla', 170); P('edad', 72); P('sexo', 'M');
+    const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+                vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+    for (const k in (over || {})) D[k] = over[k];
+    for (const k in D) P(k, D[k]);
+    /* OJO: la pastilla se prende DESPUES de sembrar, no antes. Medido: cambiar va_morf la
+       apaga, asi que prendida primero la escena quedaba sin tarjeta -- y una tarjeta que no
+       existe se lee igual que un boton que no se agrego. */
+    try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+    await esp(420);
+    /* OJO: SIN la pestania de Valvulas delante, el panel 2D no tiene caja y todo mide 0x0 --
+       que se lee igual que «el boton no esta». Es la trampa que este archivo ya documenta. */
+    try { showTab('valvulas'); } catch (e) {}
+    await esp(200);
+    try { if (typeof v2dVisible === 'function' && !v2dVisible()) v2dAbrir(); } catch (e) {}
+    await esp(320);
+  };
+  q('(A0 DENOM) la vista 2D y su lector existen',
+    typeof v2dAbrir === 'function' && typeof wiSituacion === 'function' && typeof eaGradoCalculado === 'function', '');
+  await ESCENA(null);
+  const ul = G('v2d-esten');
+  const lis = ul ? Array.prototype.slice.call(ul.children) : [];
+  q('(A1 DENOM) la tarjeta de la estenosis AORTICA existe y no es la linea gris',
+    lis.length >= 1 && N(lis[0].textContent).indexOf('A\\u00f3rtica') === 0,
+    'tarjetas=' + lis.length + ' primera=' + (lis[0] ? N(lis[0].textContent).slice(0, 24) : 'NINGUNA'));
+  const b = G('wi-btn');
+  q('(A2) el boton existe, dice «What if» y vive DENTRO de la tarjeta aortica',
+    !!b && N(b.textContent) === 'What if' && !!b.closest('li')
+      && N(b.closest('li').querySelector('.v2d-valv').textContent) === 'A\\u00f3rtica',
+    b ? N(b.textContent) : 'NO EXISTE');
+  const fila = b ? b.closest('.wi-fila') : null, li = b ? b.closest('li') : null;
+  q('(A3) la fila del boton es el ULTIMO hijo de la tarjeta y va a la derecha',
+    !!fila && li.lastElementChild === fila
+      && (li.getBoundingClientRect().right - b.getBoundingClientRect().right) > 0
+      && (li.getBoundingClientRect().right - b.getBoundingClientRect().right) < 60,
+    'ultimo=' + (li ? (li.lastElementChild === fila) : '?') + ' aDerecha='
+      + (b ? Math.round(li.getBoundingClientRect().right - b.getBoundingClientRect().right) : '?'));
+  /* El piso de 44 px sale de la regla GLOBAL de accesibilidad de esta app
+     (button, [role=button], .btn, ... { min-height:44px }), no de la clase del boton: medido. */
+  q('(A4) el boton mide 44 px de alto o mas, y su min-height computado tambien',
+    !!b && Math.round(b.getBoundingClientRect().height) >= 44
+      && parseFloat(getComputedStyle(b).minHeight) >= 44,
+    'alto=' + (b ? Math.round(b.getBoundingClientRect().height) : '?')
+      + ' minHeight=' + (b ? getComputedStyle(b).minHeight : '?'));
+  const gl = document.querySelector('[data-vinfo="wi-aplica"]');
+  q('(A5) la fila lleva su globo i al lado del boton',
+    !!gl && !!fila && fila.contains(gl), gl ? 'si' : 'NO EXISTE');
+  /* ⚠️ EL GLOBO NO TIENE ENTRADA EN VINFO_REF A PROPOSITO, y por eso NO lleva boton «Ver
+     referencia»: lo que dice es cuando aplica una herramienta de PANTALLA, no un contenido
+     clinico que Referencias publique. Crearle una ficha seria escribir contenido que esta tanda
+     no tiene orden de escribir. Es el mismo limite declarado que las otras tarjetas sin ficha, y
+     esta condicion existe para que el dia que consiga una el caso se ponga rojo. */
+  q('(A5b) el globo esta en el registro y NO tiene entrada en VINFO_REF -- limite declarado',
+    (function(){ try { return ('wi-aplica' in VINFO) && !(window.VINFO_REF || {})['wi-aplica'] }
+                 catch (e) { return false } })(),
+    (function(){ try { return 'enVINFO=' + ('wi-aplica' in VINFO)
+                       + ' enVINFO_REF=' + !!(window.VINFO_REF || {})['wi-aplica'] }
+                 catch (e) { return 'EXC' } })());
+  /* ── DISCORDANTE: azul ── */
+  let S = SITU();
+  q('(A6) con area severa y Vmax y gradiente por debajo del rango severo la situacion es DISCORDANTE',
+    S.sit === 'disc', 'sit=' + S.sit + ' grados=' + [S.D.R.gVel, S.D.R.gGrad, S.D.R.gAva].join('/'));
+  q('(A7) y SOLO ahi el boton se pinta de azul, con el par btn-primary/btn-ghost',
+    !!b && b.classList.contains('btn-primary') && !b.classList.contains('btn-ghost'),
+    'clases=' + (b ? b.className : 'NO EXISTE') + ' pastilla='
+      + ((typeof pillOn === 'function') ? pillOn('aortica', 'esten') : '?')
+      + ' vista=' + ((typeof v2dVisible === 'function') ? v2dVisible() : '?')
+      + ' tarjetas=' + (ul ? ul.children.length : -1));
+  /* ── CONCORDANTE ── */
+  await ESCENA({ vmax_ao: 4.5, gmedio_ao: 55, fevi: 60 });
+  S = SITU();
+  const b2 = G('wi-btn');
+  q('(A8) con Vmax y gradiente en rango severo la situacion es CONCORDANTE y el boton NO es azul',
+    S.sit === 'conc' && !!b2 && !b2.classList.contains('btn-primary') && b2.classList.contains('btn-ghost'),
+    'sit=' + S.sit + ' clases=' + (b2 ? b2.className : 'NO EXISTE'));
+  /* ── FALTAN DATOS, con la lista exacta ── */
+  await ESCENA({ gmedio_ao: '', vdfvi: '' });
+  S = SITU();
+  const b3 = G('wi-btn');
+  q('(A9) sin gradiente y sin VDF la situacion es FALTAN con la lista exacta y en el orden de la orden',
+    S.sit === 'faltan' && S.falta.join(' | ') === 'G. medio | Volumen latido (VSFVI o FEVI) | VDFVI',
+    'sit=' + S.sit + ' falta=' + S.falta.join(' | '));
+  q('(A10) y ahi tampoco es azul, y el boton sigue existiendo y activo',
+    !!b3 && !b3.classList.contains('btn-primary') && b3.disabled === false,
+    'clases=' + (b3 ? b3.className : 'NO EXISTE') + ' disabled=' + (b3 ? b3.disabled : '?'));
+  /* ── SOLO LA Vmax EN RANGO SEVERO: sigue siendo CONCORDANTE ──
+     Sin esta escena, una version que dejara de mirar la Vmax pasaria en verde: en la escena
+     concordante de arriba los DOS criterios son severos, asi que sacar uno no cambia nada. */
+  await ESCENA({ vmax_ao: 4.5 });
+  S = SITU();
+  q('(A8b) con la Vmax severa y el gradiente moderado la situacion es CONCORDANTE',
+    S.sit === 'conc', 'sit=' + S.sit + ' grados=' + [S.D.R.gVel, S.D.R.gGrad, S.D.R.gAva].join('/'));
+  /* ── SOLO EL GRADIENTE EN RANGO SEVERO: idem ── */
+  await ESCENA({ gmedio_ao: 55 });
+  S = SITU();
+  q('(A8c) con el gradiente severo y la Vmax moderada la situacion es CONCORDANTE',
+    S.sit === 'conc', 'sit=' + S.sit + ' grados=' + [S.D.R.gVel, S.D.R.gGrad, S.D.R.gAva].join('/'));
+  /* ── EL GRADIENTE QUE NO VOTA: sigue siendo DISCORDANTE ──
+     Con 12 mmHg el gradiente esta por debajo de gmedModMin y eaGradoCalculado se ABSTIENE:
+     devuelve null, que es «este criterio no se pronuncia» y NO «sin estenosis». Para la
+     situacion eso sigue siendo POR DEBAJO DEL RANGO SEVERO. Es el bajo flujo mas claro que hay,
+     y preguntando por «moderada» en vez de por «no severa» se leeria como concordante. */
+  await ESCENA({ gmedio_ao: 12 });
+  S = SITU();
+  q('(A8d) con el gradiente por debajo de la banda que vota -- null, no «moderada» -- la situacion sigue siendo DISCORDANTE',
+    S.sit === 'disc' && S.D.R.gGrad === null,
+    'sit=' + S.sit + ' gGrad=' + S.D.R.gGrad + ' gVel=' + S.D.R.gVel + ' gAva=' + S.D.R.gAva);
+  /* ── PROTESIS ── */
+  await ESCENA({ va_morf: 'TAVI' });
+  S = SITU();
+  const b4 = G('wi-btn');
+  q('(A11) con protesis aortica la situacion es PROTESIS y el boton no es azul',
+    S.sit === 'prot' && !!b4 && !b4.classList.contains('btn-primary'),
+    'sit=' + S.sit + ' clases=' + (b4 ? b4.className : 'NO EXISTE'));
+  /* ── CONTROL NEGATIVO: ninguna otra tarjeta, de ninguna columna, lleva boton ── */
+  await ESCENA(null);
+  try { if (typeof pillOn === 'function' && pillOn('mitral', 'esten') !== true) toggleValvPill('mitral', 'esten'); } catch (e) {}
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'insuf') !== true) toggleValvPill('aortica', 'insuf'); } catch (e) {}
+  await esp(420);
+  try { if (typeof v2dRefrescar === 'function') v2dRefrescar(); } catch (e) {}
+  await esp(300);
+  const esten = Array.prototype.slice.call(G('v2d-esten').children);
+  const insuf = Array.prototype.slice.call(G('v2d-insuf').children);
+  q('(A12 DENOM) ahora hay mas de una tarjeta y las dos columnas tienen contenido',
+    esten.length >= 2 && insuf.length >= 1,
+    'esten=' + esten.length + ' insuf=' + insuf.length);
+  const otras = esten.filter(x => { const t = x.querySelector('.v2d-valv');
+    return t && N(t.textContent) !== 'A\\u00f3rtica' && x.querySelector('.wi-fila'); }).length;
+  q('(A13) CONTROL: cero botones en la columna de insuficiencias y cero en las otras estenosis',
+    document.querySelectorAll('#v2d-insuf .wi-fila').length === 0 && otras === 0,
+    'insuf=' + document.querySelectorAll('#v2d-insuf .wi-fila').length + ' otrasEsten=' + otras);
+  try { wiCerrar(); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-826', 'PANT-37 parte A: el globo del «What if» publica las SIETE lineas de la orden palabra por palabra, con su titulo en el h4 que la tarjeta nombra, el cuerpo en el tamanio de la tarjeta y cero elementos inyectados', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  __t.limpiar();
+  __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+  const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+              vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+  for (const k in D) __t.set(k, D[k]);
+  await esp(420);
+  try { showTab('valvulas'); } catch (e) {}
+  await esp(200);
+  try { if (!v2dVisible()) v2dAbrir(); } catch (e) {}
+  await esp(320);
+  const gl = document.querySelector('[data-vinfo="wi-aplica"]');
+  q('(B0 DENOM) el globo existe y TIENE GEOMETRIA -- un boton de 0x0 no se puede anclar',
+    !!gl && gl.getBoundingClientRect().width > 0 && gl.getBoundingClientRect().height > 0,
+    gl ? ('w=' + Math.round(gl.getBoundingClientRect().width)) : 'NO EXISTE');
+  try { vInfoClic(gl); } catch (e) {}
+  await esp(320);
+  const c = G('vinfo-card');
+  q('(B1) la tarjeta abre',
+    !!c && getComputedStyle(c).display !== 'none', c ? getComputedStyle(c).display : 'NO EXISTE');
+  const h4 = c ? c.querySelector('h4') : null;
+  q('(B2) el titulo dice «Cuando aplica el What if» y va en el h4 que la tarjeta nombra en su aria-labelledby',
+    !!h4 && N(h4.textContent) === 'Cu\\u00e1ndo aplica el What if' && h4.id === 'vinfo-tit',
+    h4 ? (N(h4.textContent) + ' id=' + h4.id) : 'SIN h4');
+  const ps = c ? Array.prototype.slice.call(c.querySelectorAll('p')).map(p => N(p.textContent)) : [];
+  const ESPERADO = [
+    'Aplica: estenosis a\\u00f3rtica nativa con \\u00e1rea en rango severo y gradiente y Vmax por debajo del rango severo, sobre todo con bajo flujo (volumen sist\\u00f3lico indexado menor de 35 mL/m\\u00b2).',
+    'Qu\\u00e9 mover: el volumen sist\\u00f3lico si la FEVI est\\u00e1 conservada; la FEVI si el ventr\\u00edculo contrae poco. Lo que se ve es lo que pasar\\u00eda si el flujo aumentara, como con dobutamina o con una mejor\\u00eda de la FEVI.',
+    'Bajo flujo: volumen sist\\u00f3lico indexado menor de 35 mL/m\\u00b2. Reserva contr\\u00e1ctil: el volumen sist\\u00f3lico sube 20 % o m\\u00e1s al aumentar la contractilidad.',
+    'Pseudoestenosis: con \\u00ab\\u00c1rea: se abre con el flujo\\u00bb se ve c\\u00f3mo el \\u00e1rea aumenta y el gradiente casi no cambia. En un paciente real la v\\u00e1lvula tiene una sola conducta: la define el estudio.',
+    'En pacientes chicos, mirar el \\u00e1rea indexada.',
+    'Poco \\u00fatil: \\u00e1rea y gradiente concordantes, faltan datos o hay pr\\u00f3tesis.',
+    'Solo mueve el dibujo 2D. No cambia datos, informe ni PDF.'];
+  q('(B3) publica SIETE parrafos', ps.length === 7, 'parrafos=' + ps.length);
+  const malas = [];
+  for (let i = 0; i < ESPERADO.length; i++) if (ps[i] !== ESPERADO[i]) malas.push(i + 1);
+  q('(B4) las siete lineas son las de la orden, caracter por caracter',
+    malas.length === 0, 'distintas: ' + (malas.join(',') || 'ninguna')
+      + (malas.length ? ' | ' + String(ps[malas[0] - 1]).slice(0, 70) : ''));
+  const tam = ps.length ? Array.prototype.slice.call(c.querySelectorAll('p'))
+    .map(p => getComputedStyle(p).fontSize) : [];
+  q('(B5) ningun parrafo declara su propio tamanio: todos en el de la tarjeta',
+    tam.length === 7 && tam.filter(x => x === tam[0]).length === 7
+      && tam[0] === getComputedStyle(c).fontSize,
+    'tamanios=' + tam.join(',') + ' tarjeta=' + (c ? getComputedStyle(c).fontSize : '?'));
+  /* La tarjeta tambien va con guarda, aunque hoy exista siempre: contra el arbol anterior el
+     globo no existe, y el dia que la tarjeta nazca con el panel -o cambie de id- un acceso
+     pelado corta el caso ANTES de medir y el rojo deja de decir que fue. */
+  const INY = c ? c.querySelectorAll('script,img,iframe,svg,object,embed').length : -1;
+  q('(B6) cero elementos inyectados: el texto entra como TEXTO', INY === 0, 'elementos=' + INY);
+  const CERO_R = { left: 0, top: 0, right: 0, bottom: 0 };
+  const r = c ? c.getBoundingClientRect() : CERO_R;
+  q('(B7) la tarjeta entra entera en la pantalla',
+    !!c && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1,
+    [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)].join(',')
+      + ' ventana=' + innerWidth + 'x' + innerHeight);
+  q('(B8) el globo no nombra ninguna guia, clase ni folio',
+    ps.join(' ').indexOf('ESC') === -1 && ps.join(' ').indexOf('AHA') === -1
+      && ps.join(' ').indexOf('Clase') === -1 && ps.join(' ').indexOf('folio') === -1, '');
+  try { vInfoCerrar(true); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-827', 'PANT-37 parte B: el panel abre DEBAJO de la tarjeta sin tapar el dibujo y sin salirse de la pantalla, con la primera linea de su situacion, los valores iniciales iguales a lo medido, el TOPE del volumen sistolico y los controles apagados cuando faltan datos', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESCENA = async (over) => {
+    __t.limpiar(); await esp(420);
+    __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+    const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+                vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+    for (const k in (over || {})) D[k] = over[k];
+    for (const k in D) __t.set(k, D[k]);
+    try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+    await esp(420);
+    try { showTab('valvulas'); } catch (e) {} await esp(200);
+    try { if (!v2dVisible()) v2dAbrir(); } catch (e) {} await esp(320);
+  };
+  await ESCENA(null);
+  const b = G('wi-btn');
+  q('(C0 DENOM) el boton esta y la situacion es la discordante',
+    !!b && SITU().sit === 'disc', 'sit=' + SITU().sit);
+  /* ⚠️ EL PANEL NACE CERRADO, Y SE MIDE POR EL ESTILO COMPUTADO Y NO POR LA CLASE. Mirar la
+     clase da verde aunque la clase no oculte nada: es exactamente lo que pasa si
+     la clase wi-oculto deja de declarar su display:none con importancia, y la hoja del
+     NAVEGADOR pierde contra cualquier regla de autor -- adentro hay botones de la app, que
+     declaran inline-flex. */
+  q('(C0b) el panel nace CERRADO, medido por su display computado',
+    !!G('wi-panel') && getComputedStyle(G('wi-panel')).display === 'none',
+    'display=' + (G('wi-panel') ? getComputedStyle(G('wi-panel')).display : 'NO EXISTE'));
+  /* ⚠️ LA REGLA DE HOJA SE MIDE APARTE, y no es redundante: la ventana del suite no se puede
+     redimensionar y cae del lado ANGOSTO, donde el panel es ESTATICO -- ahi left, right y top
+     no hacen nada y una medicion de geometria no puede ver si el panel sale de la
+     izquierda o de la derecha de su columna. Sin esto, mover el ancla al borde derecho -que lo
+     pondria encima del dibujo en escritorio- pasa en verde. */
+  const REGLA = (function(){
+    let r = null;
+    for (const h of Array.prototype.slice.call(document.styleSheets)) {
+      let rs = null; try { rs = h.cssRules } catch (e) { continue }
+      if (!rs) continue;
+      for (const x of Array.prototype.slice.call(rs)) {
+        if (x.selectorText === '#wi-panel' && x.style) r = x.style;
+      }
+    }
+    return r;
+  })();
+  q('(C0c) la regla de hoja del panel lo ancla ABAJO y a la IZQUIERDA de su columna',
+    !!REGLA && REGLA.position === 'absolute' && REGLA.top === '100%'
+      && REGLA.left === '0px' && !REGLA.right,
+    REGLA ? ('position=' + REGLA.position + ' top=' + REGLA.top + ' left=' + REGLA.left
+             + ' right=' + (REGLA.right || '(sin)')) : 'NO SE ENCONTRO LA REGLA');
+  CLIC('wi-btn'); await esp(420);
+  const pan = G('wi-panel'), li = b ? b.closest('li') : null, dib = G('v2d-dibujo');
+  q('(C1) el panel abre', !!pan && !pan.classList.contains('wi-oculto'),
+    pan ? pan.className : 'NO EXISTE');
+  /* La posicion SIN acotar es la del diseno; el acote solo lo sube cuando no entra. */
+  /* Sin panel y sin tarjeta no hay geometria que medir: se declara y se sigue, para que las
+     condiciones de mas abajo tambien se evaluen. */
+  if (!pan || !li || !dib) { q('(C2) sin acotar nace DEBAJO de la tarjeta, a menos de 20 px', false, 'falta el panel o la tarjeta');
+                             q('(C3) y NO tapa el dibujo ni un pixel', false, 'falta el panel o la tarjeta');
+                             q('(C4) flotante entra entero en la pantalla; estatico no desborda a lo ancho', false, 'falta el panel'); }
+  const tr = pan ? pan.style.transform : ''; if (pan) pan.style.transform = '';
+  const CERO = { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+  const rp = pan ? pan.getBoundingClientRect() : CERO, rl = li ? li.getBoundingClientRect() : CERO,
+        rd = dib ? dib.getBoundingClientRect() : CERO;
+  const inter = Math.max(0, Math.min(rp.right, rd.right) - Math.max(rp.left, rd.left))
+              * Math.max(0, Math.min(rp.bottom, rd.bottom) - Math.max(rp.top, rd.top));
+  const debajo = Math.round(rp.top - rl.bottom);
+  if (pan) pan.style.transform = tr;
+  if (pan && li && dib) {
+  q('(C2) sin acotar nace DEBAJO de la tarjeta, a menos de 20 px',
+    debajo >= 0 && debajo < 20, 'debajo=' + debajo);
+  q('(C3) y NO tapa el dibujo ni un pixel', inter === 0, 'interseccion=' + Math.round(inter));
+  const rr = pan.getBoundingClientRect();
+  /* OJO: a 768 px o menos el panel es ESTATICO y va en el flujo -- ahi lo que desplaza es la
+     pagina y no hay nada que acotar. La ventana del suite no se puede redimensionar, asi que
+     la condicion se parte segun lo que el navegador resolvio, y las dos ramas se declaran. */
+  const flotante = pan ? (getComputedStyle(pan).position !== 'static') : false;
+  q('(C4) flotante entra entero en la pantalla; estatico no desborda a lo ancho',
+    flotante
+      ? (rr.left >= -1 && rr.top >= -1 && rr.right <= innerWidth + 1 && rr.bottom <= innerHeight + 1)
+      : (rr.left >= -1 && rr.right <= innerWidth + 1
+         && (document.documentElement.scrollWidth - document.documentElement.clientWidth) <= 1),
+    'flotante=' + flotante + ' ventana=' + innerWidth + 'x' + innerHeight + ' caja='
+      + [Math.round(rr.left), Math.round(rr.top), Math.round(rr.right), Math.round(rr.bottom)].join(','));
+  }
+  q('(C5) la primera linea es la de la situacion DISCORDANTE, palabra por palabra',
+    TXT('wi-sit') === 'Situaci\\u00f3n: \\u00e1rea en rango severo con Vmax y gradiente por debajo del rango severo (discordante). Ac\\u00e1 el What if sirve.',
+    TXT('wi-sit').slice(0, 80));
+  /* valores iniciales = lo medido */
+  const C = CUENTA();
+  q('(C6) los valores iniciales son los MEDIDOS: el volumen simulado es el medido y el flujo no se movio',
+    Math.round(C.vs1) === Math.round(C.vs0) && Math.round(C.q1) === Math.round(C.q0)
+      && Math.round(C.g1) === Math.round(C.g0) && Math.round(C.v1 * 10) === Math.round(C.v0 * 10),
+    'vs=' + Math.round(C.vs0) + '/' + Math.round(C.vs1) + ' q=' + Math.round(C.q0) + '/' + Math.round(C.q1));
+  q('(C7) el modo por omision es FEVI porque la aplicacion dice que esta reducida',
+    ESTA().modo === 'fe' && TXT('wi-l1') === 'FEVI',
+    'modo=' + ESTA().modo + ' rotulo=' + TXT('wi-l1'));
+  /* el TOPE */
+  CLIC('wi-mv-vs'); await esp(200);
+  /* NN y SET llevan su guarda: contra el arbol anterior el deslizador NO EXISTE, y leerle
+     su .min pelado tiraba TypeError ANTES de medir -- el caso caia por EXCEPCION y no por sus
+     condiciones. Lo destapo la corrida de los diez contra la linea base con el archivo de casos
+     FINAL, no el censo: la version anterior del caso ya tenia los ayudantes y este acceso se
+     habia quedado afuera. */
+  q('(C8) el deslizador de volumen arranca en la mitad de lo medido y topa en el VDF menos el margen',
+    NN('wi-r1', 'min') === Math.max(5, Math.round(C.vs0 / 2)) && NN('wi-r1', 'max') === 118,
+    'min=' + NN('wi-r1', 'min') + ' max=' + NN('wi-r1', 'max') + ' vdf=120');
+  SET('wi-r1', 9999); await esp(240);
+  q('(C9) el volumen sistolico NUNCA pasa del VDF, ni empujando el deslizador al tope',
+    CUENTA().vs1 <= 120 && CUENTA().vs1 === 118, 'vs1=' + CUENTA().vs1);
+  q('(C10) el pie dice el tope y el VDF reales',
+    TXT('wi-fn') === 'Solo mueve el dibujo 2D. VS m\\u00e1x. 118 mL (VDF 120 mL). Flujo = VS / tiempo de eyecci\\u00f3n.',
+    TXT('wi-fn'));
+  /* ── FALTAN DATOS: la lista en la primera linea y los controles APAGADOS ── */
+  try { wiCerrar(); } catch (e) {}
+  await ESCENA({ gmedio_ao: '', vdfvi: '' });
+  CLIC('wi-btn'); await esp(420);
+  q('(C11) con datos que faltan la primera linea los nombra con los rotulos de la app',
+    TXT('wi-sit') === 'Para simular, carg\\u00e1: G. medio, Volumen latido (VSFVI o FEVI), VDFVI.',
+    TXT('wi-sit'));
+  const apagados = ['wi-r1', 'wi-r2', 'wi-mv-vs', 'wi-mv-fe', 'wi-area-fija', 'wi-area-abre', 'wi-reset']
+    .map(id => (G(id) ? G(id).disabled : 'NO EXISTE'));
+  q('(C12) y los controles quedan APAGADOS, los siete',
+    apagados.filter(x => x === true).length === 7, 'disabled=' + apagados.join(','));
+  q('(C13) sin datos no se dibuja una tabla de rayas ni una grafica vacia',
+    HIJOS('wi-tb') === 0 && (OCU('wi-graf') === true),
+    'filas=' + HIJOS('wi-tb'));
+  /* ── PROTESIS ── */
+  try { wiCerrar(); } catch (e) {}
+  await ESCENA({ va_morf: 'TAVI' });
+  CLIC('wi-btn'); await esp(420);
+  q('(C14) con protesis la primera linea lo dice y no simula',
+    TXT('wi-sit') === 'Con pr\\u00f3tesis el What if no aplica.'
+      && DIS('wi-r1') === true, TXT('wi-sit'));
+  /* ── LOS DOS SUPUESTOS ── */
+  try { wiCerrar(); } catch (e) {}
+  await ESCENA({ tango_te: '', ao_fc: '' });
+  CLIC('wi-btn'); await esp(420);
+  q('(C15) sin tiempo de eyeccion ni frecuencia aparecen los dos campos supuestos, rotulados',
+    !(OCU('wi-fila-sup') === true) && VAL('wi-et') === '300'
+      && VAL('wi-fc') === '70'
+      && document.querySelectorAll('#wi-fila-sup .wi-sup-m').length === 2,
+    'et=' + VAL('wi-et') + ' fc=' + VAL('wi-fc'));
+  const q0a = Math.round(CUENTA().q0);
+  SET('wi-et', '400'); await esp(260);
+  q('(C16) el supuesto escrito a mano mueve el flujo y NO escribe el campo del estudio',
+    Math.round(CUENTA().q0) === 135 && q0a === 180 && VAL('tango_te') === ''
+      && VAL('ao_fc') === '',
+    'q0 ' + q0a + ' -> ' + Math.round(CUENTA().q0) + ' tango=' + VAL('tango_te'));
+  /* ── el estudio lo gana al supuesto ── */
+  __t.set('tango_te', 300); await esp(420);
+  /* El padre tambien va por un ayudante: contra el arbol anterior wi-et no existe y su
+     parentNode pelado tiraba TypeError. Mismo motivo que el deslizador de C8. */
+  const PADRE_OCU = id => { const e = G(id); return !!(e && e.parentNode
+    && e.parentNode.classList && e.parentNode.classList.contains('wi-oculto')) };
+  q('(C17) si el estudio trae el dato, el campo supuesto desaparece y manda el del estudio',
+    PADRE_OCU('wi-et') && Math.round(CUENTA().q0) === 180,
+    'oculto=' + PADRE_OCU('wi-et') + ' q0=' + Math.round(CUENTA().q0));
+  try { wiCerrar(); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-828', 'PANT-37 parte B: la ley del cuadrado -- al duplicar el flujo el gradiente se cuadruplica y la Vmax se duplica, con el area, el area indexada y el DVI quietos --, la tabla «antes, despues» con sus seis filas y la linea de lectura con el corte leido de su dueno', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  __t.limpiar(); await esp(420);
+  __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+  const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+              vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+  for (const k in D) __t.set(k, D[k]);
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+  await esp(420);
+  try { showTab('valvulas'); } catch (e) {} await esp(200);
+  try { if (!v2dVisible()) v2dAbrir(); } catch (e) {} await esp(320);
+  CLIC('wi-btn'); await esp(420);
+  const C0 = CUENTA();
+  q('(D0 DENOM) el panel calcula y el flujo medido es el volumen sobre el tiempo de eyeccion',
+    C0.ok === true && Math.round(C0.q0) === 180, 'ok=' + C0.ok + ' q0=' + Math.round(C0.q0));
+  CLIC('wi-mv-vs'); await esp(200);
+  SET('wi-r1', '108');
+  await esp(300);
+  const C1 = CUENTA();
+  q('(D1) al duplicar el volumen sistolico el flujo se duplica EXACTO',
+    Math.round(C1.q1) === 360 && Math.abs(C1.q1 / C1.q0 - 2) < 1e-9,
+    'q1=' + Math.round(C1.q1) + ' razon=' + (C1.q1 / C1.q0));
+  q('(D2) el gradiente se CUADRUPLICA exacto',
+    Math.abs(C1.g1 / C1.g0 - 4) < 1e-9 && Math.round(C1.g1) === 100,
+    'g ' + C1.g0 + ' -> ' + C1.g1);
+  q('(D3) la Vmax se DUPLICA exacta',
+    Math.abs(C1.v1 / C1.v0 - 2) < 1e-9 && Math.abs(C1.v1 - 6.4) < 1e-9,
+    'v ' + C1.v0 + ' -> ' + C1.v1);
+  q('(D4) el area NO se mueve, y el area indexada y el DVI tampoco',
+    C1.a1 === C1.a0 && C1.avai0 === C0.avai0 && C1.dvi0 === C0.dvi0,
+    'a ' + C1.a0 + ' -> ' + C1.a1);
+  const filas = Array.prototype.slice.call((G('wi-tb') || { children: [] }).children).map(tr =>
+    Array.prototype.slice.call(tr.children).map(td => N(td.textContent)).join(' = '));
+  q('(D5) la tabla tiene SEIS filas con los rotulos de la orden, en su orden',
+    filas.length === 6
+      && filas[0].indexOf('FEVI') === 0 && filas[1].indexOf('VS (VSi)') === 0
+      && filas[2].indexOf('Flujo') === 0 && filas[3].indexOf('Vmax') === 0
+      && filas[4].indexOf('Gradiente medio') === 0 && filas[5].indexOf('AVA') === 0,
+    'filas=' + filas.length + ' | ' + filas.join(' / ').slice(0, 120));
+  q('(D6) la tabla publica los numeros simulados',
+    filas[2] === 'Flujo = 180 \\u2192 360 mL/s' && filas[4] === 'Gradiente medio = 25 \\u2192 ~100 mmHg'
+      && filas[3] === 'Vmax = 3,2 \\u2192 6,4 m/s',
+    filas.slice(2, 5).join(' | '));
+  const antes = QS('#wi-tb .wi-a'),
+        desp  = QS('#wi-tb .wi-b');
+  q('(D7) cada fila lleva su «antes» y su «despues» con colores distintos',
+    antes === 6 && desp === 6
+      && (function(){ const a = document.querySelector('#wi-tb .wi-a'), b2 = document.querySelector('#wi-tb .wi-b');
+          return !!a && !!b2 && getComputedStyle(a).color !== getComputedStyle(b2).color })(),
+    'antes=' + antes + ' despues=' + desp);
+  /* el corte de la linea de lectura sale de su dueno, no de un numero escrito a mano */
+  const corte = (typeof EA_BANDAS !== 'undefined') ? EA_BANDAS.gmedSevMin : -1;
+  q('(D8 DENOM) el corte severo del gradiente vive en EA_BANDAS', corte === 40, 'corte=' + corte);
+  q('(D9) la linea de lectura nombra ese corte y el flujo que haria falta',
+    TXT('wi-lee') === 'Con el \\u00e1rea medida, el gradiente llega a 40 mmHg con ~4,4 L/min: a 65 lpm ser\\u00edan ~68 mL de volumen sist\\u00f3lico (FEVI ~57 %).',
+    TXT('wi-lee'));
+  /* la frecuencia NO entra en el flujo, pero SI en la linea de lectura */
+  SET('wi-r2', '110');
+  await esp(280);
+  const C2 = CUENTA();
+  q('(D10) la frecuencia no mueve el flujo ni el gradiente -- el flujo es el de la eyeccion',
+    Math.round(C2.q1) === 360 && Math.round(C2.g1) === 100,
+    'q1=' + Math.round(C2.q1) + ' g1=' + Math.round(C2.g1));
+  q('(D11) pero SI mueve la linea de lectura, que es la unica que pasa a litros por minuto',
+    TXT('wi-lee').indexOf('~7,5 L/min') > -1
+      && TXT('wi-lee').indexOf('a 110 lpm') > -1,
+    TXT('wi-lee'));
+  q('(D12) el pie de las graficas dice que el eje es el flujo',
+    TXT('wi-cap') === 'Eje horizontal: flujo (mL/s) \\u00b7 gris medido \\u00b7 azul simulado',
+    TXT('wi-cap'));
+  const g1 = G('wi-ch1') || document.createElement('div'), g2 = G('wi-ch2') || document.createElement('div');
+  q('(D13) las dos graficas dibujan su curva y sus DOS marcadores, y ninguna pinta en negro',
+    g1.querySelectorAll('polyline').length >= 1 && g1.querySelectorAll('circle').length === 2
+      && g2.querySelectorAll('polyline').length >= 1 && g2.querySelectorAll('circle').length === 2
+      && Array.prototype.slice.call(g1.querySelectorAll('*')).concat(
+         Array.prototype.slice.call(g2.querySelectorAll('*')))
+         .filter(e => { const a = String(e.getAttribute('fill') || '') + String(e.getAttribute('stroke') || '');
+           return a.indexOf('#000') > -1 || a.indexOf('black') > -1 || a.indexOf('var(') > -1 }).length === 0,
+    'ch1=' + g1.querySelectorAll('polyline').length + '/' + g1.querySelectorAll('circle').length);
+  try { wiCerrar(); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-829', 'PANT-37 parte B: el dibujo 2D -- con el panel abierto y nada movido es IDENTICO al real, con la simulacion cambia, y cerrar, «Volver a lo medido» y «Nuevo estudio» lo restituyen; y con el panel abierto NINGUNA tarjeta, NINGUN campo y NINGUN grado se mueven', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  __t.limpiar(); await esp(420);
+  __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+  const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+              vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+  for (const k in D) __t.set(k, D[k]);
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+  await esp(420);
+  try { showTab('valvulas'); } catch (e) {} await esp(200);
+  try { if (!v2dVisible()) v2dAbrir(); } catch (e) {} await esp(320);
+  /* El dibujo se compara SIEMPRE en la misma fase: con el latido corriendo, dos lecturas
+     seguidas difieren aunque nada haya cambiado. */
+  const foto = () => { try { v2dFase(0.25) } catch (e) {}
+    const a = G('v2d-cr'), b = G('v2d-out');
+    return (a ? a.getAttribute('d') : '') + '|' + (b ? b.getAttribute('d') : ''); };
+  const real = foto();
+  q('(E0 DENOM) el dibujo existe y tiene trazo', real.length > 80, 'largo=' + real.length);
+  const tarj0 = TXT('v2d-esten'), cav0 = TXT('v2d-cav-tabla');
+  const CAM = ['vmax_ao', 'gmedio_ao', 'ava_cont', 'vdfvi', 'fevi', 'ao_fc', 'tango_te', 'ea_grado'];
+  const campos0 = CAM.map(id => (G(id) ? G(id).value : '?')).join('|');
+  const R0 = GRAD();
+  const grado0 = [R0.grado, R0.gVel, R0.gGrad, R0.gAva, R0.ava, R0.vmax, R0.gmedio].join('/');
+  CLIC('wi-btn'); await esp(420);
+  q('(E1) con el panel abierto y NADA movido el dibujo es IDENTICO al real',
+    foto() === real, foto() === real ? 'identico' : 'cambio');
+  q('(E2) y el chip «Dibujo segun What if» esta a la vista sobre el lienzo',
+    !(OCU('wi-chip') === true)
+      && TXT('wi-chip') === 'Dibujo seg\\u00fan What if',
+    TXT('wi-chip'));
+  CLIC('wi-mv-vs'); await esp(200);
+  SET('wi-r1', '108');
+  await esp(320);
+  q('(E3) con la simulacion puesta el dibujo SI cambia',
+    foto() !== real && (typeof v2dWhatIfPuesto === 'function') && PUESTO() === true,
+    'puesto=' + ((typeof v2dWhatIfPuesto === 'function') ? PUESTO() : '?'));
+  q('(E4) y publica la Vmax simulada como rotulo dentro del lienzo',
+    !(OCU('wi-dib-vmax') === true)
+      && TXT('wi-dib-vmax') === 'Vmax 6,4 m/s',
+    TXT('wi-dib-vmax'));
+  /* CONTROL: con el panel abierto y la simulacion al maximo, nada del estudio se movio */
+  const R1 = GRAD();
+  q('(E5) CONTROL: las tarjetas, la tabla de cavidades, los ocho campos y los grados, IDENTICOS',
+    TXT('v2d-esten') === tarj0 && TXT('v2d-cav-tabla') === cav0
+      && CAM.map(id => (G(id) ? G(id).value : '?')).join('|') === campos0
+      && [R1.grado, R1.gVel, R1.gGrad, R1.gAva, R1.ava, R1.vmax, R1.gmedio].join('/') === grado0,
+    'campos=' + (CAM.map(id => (G(id) ? G(id).value : '?')).join('|') === campos0)
+      + ' grados=' + ([R1.grado, R1.gVel, R1.gGrad, R1.gAva, R1.ava, R1.vmax, R1.gmedio].join('/') === grado0));
+  /* las TRES restituciones */
+  CLIC('wi-reset'); await esp(320);
+  q('(E6) «Volver a lo medido» devuelve el dibujo real',
+    foto() === real, foto() === real ? 'identico' : 'cambio');
+  CLIC('wi-mv-vs'); SET('wi-r1', '108'); await esp(320);
+  CLIC('wi-cerrar'); await esp(320);
+  q('(E7) cerrar con la cruz devuelve el dibujo real y apaga el chip y el rotulo',
+    foto() === real && (OCU('wi-panel') === true)
+      && !!G('wi-panel') && getComputedStyle(G('wi-panel')).display === 'none'
+      && (OCU('wi-chip') === true)
+      && (OCU('wi-dib-vmax') === true)
+      && PUESTO() === false, 'puesto=' + PUESTO());
+  CLIC('wi-btn'); await esp(320);
+  CLIC('wi-mv-vs'); SET('wi-r1', '108'); await esp(320);
+  const abierto = !(OCU('wi-panel') === true);
+  __t.limpiar(); await esp(500);
+  q('(E8) «Nuevo estudio» lo cierra y deja el dibujo sin simulacion',
+    abierto === true && (OCU('wi-panel') === true)
+      && PUESTO() === false,
+    'estabaAbierto=' + abierto + ' puesto=' + PUESTO());
+  try { v2dCerrar(); } catch (e) {}
+  return { extra: F };
+  })();
+`);
+
+caso('TC-830', 'PANT-37 parte C: el area que se abre con el flujo -- la ley lineal probada SOLA con el par de la guia europea de eco de estres, la fila de 250 mL/s, las dos formas de la linea de lectura, la tercera grafica y la vuelta a «Fija»', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  /* ── LA FORMULA SOLA. El par publicado es area 0,79 -> 1,22 cm2 con flujo 183 -> 370 mL/s. ── */
+  q('(F0 DENOM) la ley del area esta expuesta como funcion pura',
+    typeof wiAreaEn === 'function', typeof wiAreaEn);
+  const m = (1.22 - 0.79) / (370 - 183) * 100;
+  q('(F1) la pendiente que ese par implica es 0,23 cm2 por cada 100 mL/s',
+    Math.abs(m - 0.23) < 0.001, 'm=' + m);
+  q('(F2) y el area proyectada a 250 mL/s da 0,94 cm2',
+    AREA(0.79, m, 183, 250).toFixed(2) === '0.94',
+    'a250=' + AREA(0.79, m, 183, 250));
+  q('(F3) la misma funcion reproduce el par de origen',
+    AREA(0.79, m, 183, 183).toFixed(2) === '0.79'
+      && AREA(0.79, m, 183, 370).toFixed(2) === '1.22',
+    AREA(0.79, m, 183, 183).toFixed(2) + '/' + AREA(0.79, m, 183, 370).toFixed(2));
+  q('(F4) y esta acotada entre 0,15 y 2,5 cm2 por los dos lados',
+    AREA(0.79, -9, 183, 400) === 0.15 && AREA(0.79, 9, 183, 400) === 2.5,
+    AREA(0.79, -9, 183, 400) + '/' + AREA(0.79, 9, 183, 400));
+  /* ── EN EL PANEL ── */
+  __t.limpiar(); await esp(420);
+  __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+  const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+              vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+  for (const k in D) __t.set(k, D[k]);
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+  await esp(420);
+  try { showTab('valvulas'); } catch (e) {} await esp(200);
+  try { if (!v2dVisible()) v2dAbrir(); } catch (e) {} await esp(320);
+  CLIC('wi-btn'); await esp(420);
+  q('(F5) por omision el area es FIJA, sin deslizador de apertura, sin nota y sin la tercera grafica',
+    ESTA().area === 'fija' && CLS('wi-area-fija','btn-primary')
+      && (OCU('wi-fila-m') === true)
+      && (OCU('wi-m-nota') === true)
+      && (OCU('wi-g3') === true),
+    'area=' + ESTA().area);
+  CLIC('wi-area-abre'); await esp(320);
+  q('(F6) con «Se abre» aparecen el deslizador en 0,40, su nota exacta y la tercera grafica',
+    ESTA().m === 0.4 && TXT('wi-o3') === '0,40 cm\\u00b2'
+      && !(OCU('wi-fila-m') === true)
+      && !(OCU('wi-g3') === true)
+      && TXT('wi-m-nota') === 'Ilustrativo: en un paciente real la v\\u00e1lvula tiene una sola conducta, la define el estudio.',
+    'm=' + ESTA().m + ' o3=' + TXT('wi-o3'));
+  const filas = () => Array.prototype.slice.call((G('wi-tb') || { children: [] }).children).map(tr =>
+    Array.prototype.slice.call(tr.children).map(td => N(td.textContent)).join(' = '));
+  q('(F7) la tabla gana la fila «AVA a 250 mL/s» y es la septima',
+    filas().length === 7 && filas()[6].indexOf('AVA a 250 mL/s') === 0, filas()[6] || '(no hay)');
+  q('(F8) las tres graficas ganan su curva punteada de referencia del area fija',
+    ['wi-ch1', 'wi-ch2', 'wi-ch3'].map(id => QS('#' + id + ' polyline[stroke-dasharray]')).join('/') === '1/1/1',
+    ['wi-ch1', 'wi-ch2', 'wi-ch3'].map(id => QS('#' + id + ' polyline[stroke-dasharray]')).join('/'));
+  /* con el flujo duplicado: el area sube y el gradiente casi no se mueve */
+  CLIC('wi-mv-vs'); await esp(200);
+  SET('wi-r1', '108');
+  await esp(320);
+  const CA = CUENTA();
+  q('(F9) con el area que se abre el area sube y el gradiente APENAS se mueve',
+    Math.abs(CA.a1 - 1.52) < 0.001 && Math.round(CA.g1) === 28,
+    'a1=' + CA.a1 + ' g1=' + Math.round(CA.g1));
+  /* las dos formas de la linea de lectura, con el corte leido de su dueno */
+  q('(F10 DENOM) el corte severo del area vive en AVA_SEVERA_MAX',
+    (typeof AVA_SEVERA_MAX === 'number') && AVA_SEVERA_MAX === 1.0, 'corte=' + AVA_SEVERA_MAX);
+  SET('wi-r3', '0.05');
+  await esp(280);
+  q('(F11) con una apertura chica la lectura dice que parece una estenosis verdadera',
+    TXT('wi-lee') === 'Con esta apertura (ilustrativa), el \\u00e1rea proyectada a 250 mL/s es ~0,84 cm\\u00b2: igual o por debajo de 1,0, como en una estenosis verdadera.',
+    TXT('wi-lee'));
+  SET('wi-r3', '0.8');
+  await esp(280);
+  q('(F12) con una apertura grande la lectura se da vuelta y nombra la pseudoestenosis',
+    TXT('wi-lee') === 'Con esta apertura (ilustrativa), el \\u00e1rea proyectada a 250 mL/s es ~1,36 cm\\u00b2: por encima de 1,0, compatible con pseudoestenosis.',
+    TXT('wi-lee'));
+  /* vuelta a Fija: las formulas de B4 otra vez, sobre la MISMA escena */
+  CLIC('wi-area-fija'); await esp(320);
+  const CF = CUENTA();
+  q('(F13) volver a «Fija» devuelve el area medida y las formulas del cuadrado',
+    CF.a1 === CF.a0 && Math.abs(CF.g1 / CF.g0 - 4) < 1e-9 && Math.abs(CF.v1 / CF.v0 - 2) < 1e-9,
+    'a1=' + CF.a1 + ' g1/g0=' + (CF.g1 / CF.g0) + ' v1/v0=' + (CF.v1 / CF.v0));
+  q('(F14) y apaga la fila de 250, la tercera grafica, el deslizador y su nota',
+    filas().length === 6 && (OCU('wi-g3') === true)
+      && (OCU('wi-fila-m') === true)
+      && (OCU('wi-m-nota') === true)
+      && TXT('wi-lee').indexOf('Con el \\u00e1rea medida') === 0,
+    'filas=' + filas().length);
+  /* «Volver a lo medido» devuelve tambien el modo del area y la apertura inicial */
+  CLIC('wi-area-abre'); SET('wi-r3', '0.7'); await esp(240);
+  CLIC('wi-reset'); await esp(300);
+  q('(F15) «Volver a lo medido» devuelve el modo Fija y la apertura a 0,40',
+    ESTA().area === 'fija' && ESTA().m === 0.4 && VAL('wi-r3') === '0.4',
+    'area=' + ESTA().area + ' m=' + ESTA().m);
+  try { wiCerrar(); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+caso('TC-831', 'PANT-37: NADA del «What if» llega al papel ni al estudio -- cero campos guardados nuevos, el Excel en 457 columnas, sus cuatro ids fuera de las DOS listas del censo, y el informe y el EN SUMA sin una palabra del simulador', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  const G = id => document.getElementById(id);
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA, y no es prolijidad: contra el arbol anterior
+     el panel y sus controles NO EXISTEN, y un acceso pelado tira TypeError ANTES de medir nada
+     -- el caso caeria por EXCEPCION en vez de por sus condiciones, que es lo que la casa no
+     acepta. Es la leccion que TC-822 dejo escrita en PANT-36. */
+  const CLIC = id => { const e = G(id); if (!e) return false; e.click(); return true; };
+  const TXT = id => { const e = G(id); return e ? N(e.textContent) : '(NO EXISTE ' + id + ')'; };
+  const VAL = id => { const e = G(id); return e ? e.value : '(NO EXISTE ' + id + ')'; };
+  const CLS = (id, c) => { const e = G(id); return !!e && e.classList.contains(c); };
+  const OCU = id => { const e = G(id); return e ? e.classList.contains('wi-oculto') : 'NO EXISTE'; };
+  const DIS = id => { const e = G(id); return e ? e.disabled : 'NO EXISTE'; };
+  const SET = (id, v) => { const e = G(id); if (!e) return false; e.value = String(v);
+    e.dispatchEvent(new Event('input', { bubbles: true })); return true; };
+  const NN = (id, k) => { const e = G(id); return e ? Number(e[k]) : NaN; };
+  const QS = (sel) => document.querySelectorAll(sel).length;
+  const HIJOS = id => { const e = G(id); return e ? e.children.length : -1; };
+  /* Los centinelas NO son null: un null se vuelve a desreferenciar dos lineas mas abajo y el
+     caso cae por excepcion igual. Devuelven una forma vacia, asi que la condicion da falso y el
+     diagnostico dice que la funcion no existe. */
+  const VACIA = { ok: false, sit: '(SIN FN)', falta: [], D: { R: {} }, modo: '(SIN FN)',
+                  area: '(SIN FN)', grado: '(SIN FN)' };
+  const CUENTA = () => { try { return (typeof wiCuenta === 'function') ? window.wiCuenta() : VACIA }
+                         catch (e) { return VACIA } };
+  const SITU = () => { try { return (typeof wiSituacion === 'function') ? window.wiSituacion() : VACIA }
+                       catch (e) { return VACIA } };
+  const ESTA = () => { try { return (typeof wiSimEstado === 'function') ? window.wiSimEstado() : VACIA }
+                       catch (e) { return VACIA } };
+  const AREA = (a, m, q0, q) => { try { return (typeof wiAreaEn === 'function') ? window.wiAreaEn(a, m, q0, q) : NaN }
+                                  catch (e) { return NaN } };
+  const PUESTO = () => { try { return (typeof v2dWhatIfPuesto === 'function') ? window.v2dWhatIfPuesto() : '(SIN FN)' }
+                         catch (e) { return '(SIN FN)' } };
+  const GRAD = () => { try { return (typeof eaGradoCalculado === 'function') ? window.eaGradoCalculado() : VACIA }
+                       catch (e) { return VACIA } };
+  const censo = () => Array.prototype.slice.call(
+      document.querySelectorAll('input[id], select[id], textarea[id]'))
+    .filter(e => !(typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)))
+    .map(e => e.id);
+  q('(G0 DENOM) el censo de campos del estudio encuentra algo que contar',
+    censo().length > 900, 'campos=' + censo().length);
+  const WI = ['wi-r1', 'wi-r2', 'wi-r3', 'wi-et', 'wi-fc'];
+  q('(G1 DENOM) los cinco controles del panel existen en el marcado',
+    WI.filter(id => !!G(id)).length === 5, 'existen=' + WI.filter(id => !!G(id)).length);
+  q('(G2) ninguno entra en el censo de campos del estudio',
+    WI.filter(id => censo().indexOf(id) > -1).length === 0,
+    'adentro=' + WI.filter(id => censo().indexOf(id) > -1).join(','));
+  q('(G3) y los cinco dan true en las DOS listas de exclusion',
+    WI.filter(id => _noEsDelEstudio(id) === true).length === 5
+      && WI.filter(id => _CAMPOS_FUERA_DEL_ESTUDIO.test(id) === true).length === 5,
+    WI.map(id => id + ':' + _noEsDelEstudio(id) + '/' + _CAMPOS_FUERA_DEL_ESTUDIO.test(id)).join(' '));
+  q('(G4) ningun id del panel termina en -aviso ni en -badge, que son los dos barridos de «Nuevo estudio»',
+    Array.prototype.slice.call(document.querySelectorAll('[id^="wi-"]'))
+      .filter(e => /-aviso$|-badge$/.test(e.id)).length === 0, '');
+  const cols = (typeof _labExcelRow === 'function') ? Object.keys(_labExcelRow({ id: 0, campos: {} })) : [];
+  q('(G5) el Excel del Laboratorio sigue en 457 columnas', cols.length === 457, 'columnas=' + cols.length);
+  q('(G6) y ninguna columna se llama como un control del panel',
+    cols.filter(c => String(c).toLowerCase().indexOf('what if') > -1
+      || String(c).indexOf('wi-') === 0).length === 0, '');
+  /* ── el papel, con el panel ABIERTO y simulando ── */
+  __t.limpiar(); await esp(420);
+  __t.set('nombre', 'Prueba P37'); __t.set('ci', '37373737');
+  __t.set('peso', 70); __t.set('talla', 170); __t.set('sexo', 'M');
+  const D = { diam_tsvi: 20, itv_tsvi: 20, itv_ao: 78.5, vmax_ao: 3.2, gmedio_ao: 25,
+              vdfvi: 120, fevi: 45, ao_fc: 65, tango_te: 300 };
+  for (const k in D) __t.set(k, D[k]);
+  try { if (typeof pillOn === 'function' && pillOn('aortica', 'esten') !== true) toggleValvPill('aortica', 'esten'); } catch (e) {}
+  await esp(420);
+  const r0 = __t.informe();
+  const inf0 = N(r0.inf), suma0 = N(r0.suma);
+  q('(G7 DENOM) el informe se genero y nombra la estenosis aortica',
+    inf0.length > 60 && inf0.indexOf('a\\u00f3rtica') > -1, 'largo=' + inf0.length);
+  try { showTab('valvulas'); } catch (e) {} await esp(200);
+  try { if (!v2dVisible()) v2dAbrir(); } catch (e) {} await esp(320);
+  CLIC('wi-btn'); await esp(420);
+  CLIC('wi-mv-vs'); await esp(160);
+  SET('wi-r1', '118');
+  await esp(200);
+  CLIC('wi-area-abre'); await esp(300);
+  const r1 = __t.informe();
+  q('(G8) con el panel abierto y simulando al maximo, el informe y el EN SUMA son IDENTICOS',
+    N(r1.inf) === inf0 && N(r1.suma) === suma0,
+    'informe=' + (N(r1.inf) === inf0) + ' suma=' + (N(r1.suma) === suma0));
+  const PAL = ['What if', 'Apertura', 'Ilustrativo', 'simulad', 'pseudoestenosis', 'mL/s'];
+  q('(G9) ninguna palabra del simulador aparece en el papel',
+    PAL.filter(p => (inf0 + ' ' + suma0).indexOf(p) > -1).length === 0,
+    'aparecen: ' + PAL.filter(p => (inf0 + ' ' + suma0).indexOf(p) > -1).join(','));
+  q('(G10) el censo de campos del estudio no cambio con el panel abierto',
+    WI.filter(id => censo().indexOf(id) > -1).length === 0, '');
+  try { wiCerrar(); } catch (e) {}
+  try { v2dCerrar(); } catch (e) {}
+  __t.limpiar();
+  return { extra: F };
+  })();
+`);
+
+
 
 
 
