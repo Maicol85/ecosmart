@@ -75,7 +75,53 @@ RES['coa'] = ('CoAo — Coartación de aorta', [
  ('Seguimiento', 'presión en los cuatro miembros e imagen de corte; en la reparada, recoartación y aneurisma de la aorta', A, 57, 'e171', 'imagen'),
 ])
 
-ORDEN = ['cia', 'civ', 'dap', 'vab', 'coa']
+RES['tdf'] = ('TdF — Tetralogía de Fallot reparada', [
+ ('Qué queda de la cirugía', 'la disfunción del tracto de salida del VD es la secuela más común, como insuficiencia pulmonar, estenosis pulmonar o las dos', A, 69, 'e183', 'imagen'),
+ ('Atresia pulmonar', 'al menos el 15 % de los nacidos con Fallot la tienen, y suelen llevar un conducto del VD a la arteria pulmonar que se reemplaza con los años', A, 69, 'e183', 'imagen'),
+ ('Insuficiencia pulmonar moderada', 'fracción de regurgitación del 25 % o más medida por resonancia', A, 69, 'e183', 'imagen'),
+ ('Estenosis pulmonar moderada', 'presión del VD de al menos dos tercios de la sistémica por obstrucción del tracto de salida', A, 69, 'e183', 'imagen'),
+ ('Qué más buscar', 'estenosis de ramas pulmonares y zonas disquinéticas o aneurismáticas de la pared libre del VD, por la resección muscular y el parche transanular', A, 69, 'e183', 'imagen'),
+ ('Con los años', 'las arritmias se hacen más frecuentes y el seguimiento es de por vida', A, 68, 'e182', 'texto'),
+])
+
+RES['ebs'] = ('Ebstein — Anomalía de Ebstein', [
+ ('Frecuencia', 'poco común: alrededor de 1 de cada 1.000 nacidos vivos', A, 60, 'e174', 'imagen'),
+ ('Qué es', 'además de la malformación de la válvula tricúspide hay una miocardiopatía propia del VD, que puede extenderse al VI', A, 60, 'e174', 'imagen'),
+ ('Se acompaña de', 'CIA, CIV y estenosis pulmonar; el foramen oval permeable, aunque se considere dentro de lo normal, pesa en la fisiología', A, 60, 'e174', 'imagen'),
+ ('Qué buscar', 'morfología valvular, tamaño del corazón derecho, función sistólica del VD y cortocircuito a nivel auricular', A, 60, 'e174', 'texto'),
+ ('Arritmias', 'las vías accesorias y las arritmias son relativamente frecuentes, así que el control incluye el ritmo', A, 60, 'e174', 'imagen'),
+ ('Qué más', 'oximetría de pulso y prueba de esfuerzo', A, 60, 'e174', 'texto'),
+])
+
+RES['dsav'] = ('DSAV — Defecto del septo auriculoventricular', [
+ ('Frecuencia', '4 a 5 % de las cardiopatías congénitas', A, 43, 'e157', 'imagen'),
+ ('Qué es', 'defecto en el septo auriculoventricular con anomalías de las válvulas auriculoventriculares', A, 43, 'e157', 'imagen'),
+ ('Parcial', 'sólo componente auricular (CIA ostium primum), a menudo con hendidura de la válvula AV izquierda', A, 43, 'e157', 'imagen'),
+ ('Completo', 'sin fusión de los velos puente, con un defecto grande a nivel auricular y ventricular', A, 43, 'e157', 'texto'),
+ ('Transicional', 'dos orificios valvulares funcionales, con CIV restrictiva y CIA ostium primum', A, 43, 'e157', 'texto'),
+ ('Qué seguir', 'cortocircuito residual, insuficiencia de la válvula AV izquierda —el motivo más común de reoperación—, obstrucción del tracto de salida del VI —el segundo— y arritmias', A, 43, 'e157', 'texto'),
+ ('ECG', 'nódulo AV desplazado hacia atrás y haz de His hacia abajo, con desviación del eje a la izquierda y riesgo de bloqueo completo tardío', A, 43, 'e157', 'texto'),
+])
+
+RES['esub'] = ('Estenosis subaórtica', [
+ ('Qué es', 'desde una membrana fina hasta un rodete fibromuscular grueso, una obstrucción tunelizada difusa, inserciones mitrales anómalas o tejido de cojinete accesorio', A, 52, 'e166', 'imagen'),
+ ('Cuándo aparece', 'suele manifestarse antes de los 10 años y predomina en varones', A, 52, 'e166', 'imagen'),
+ ('Insuficiencia aórtica', 'se adquiere por la turbulencia o porque la membrana toca los velos; en el adulto no operado progresa lento y rara vez llega a severa', A, 52, 'e166', 'imagen'),
+ ('Tratamiento', 'resección quirúrgica de la membrana, con miectomía o sin ella', A, 52, 'e166', 'imagen'),
+ ('Riesgos', 'bloqueo cardíaco en el 4 a 5 %, recurrencia de hasta el 25 % y reoperación del 2 % por año', A, 52, 'e166', 'imagen'),
+ ('Al decidir', 'la escala de severidad de la estenosis valvular aórtica puede no servir para fijar el umbral de operar en esta lesión', A, 52, 'e166', 'imagen'),
+])
+
+RES['easv'] = ('Estenosis aórtica supravalvular', [
+ ('Dónde', 'distal a los ostium coronarios, en la unión sinotubular', A, 55, 'e169', 'imagen'),
+ ('Formas', 'estrechez localizada en reloj de arena —la más común— o estenosis difusa de segmento largo de la aorta ascendente, que puede alcanzar los troncos braquiocefálicos', A, 55, 'e169', 'imagen'),
+ ('Con qué aparece', 'síndrome de Williams, hipercolesterolemia familiar homocigota y arteriopatía por elastina no sindrómica', A, 55, 'e169', 'imagen'),
+ ('Qué buscar', 'imagen basal con la anatomía aórtica en detalle', A, 55, 'e169', 'imagen'),
+ ('En el Williams', 'evaluación basal de las arterias coronarias, por el riesgo de muerte súbita', A, 55, 'e169', 'imagen'),
+ ('Cuándo se opera', 'síntomas o deterioro de la función ventricular por la obstrucción del tracto de salida del VI; con estenosis del ostium coronario e isquemia, revascularización', A, 55, 'e169', 'imagen'),
+])
+
+ORDEN = ['cia', 'civ', 'dap', 'vab', 'coa', 'tdf', 'ebs', 'dsav', 'esub', 'easv']
 
 TECHO_CHARS = 849
 TECHO_VIN = 7
