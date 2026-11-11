@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+_gen_p36resumenes.py - PANT-36, parte B (2026-11-11).
+
+LOS RESUMENES DE CONGENITAS SE GENERAN DESDE ESTA ESPECIFICACION Y NO SE RETIPEAN, igual que
+las dos tablas de la parte A. Cada viñeta trae, al lado del texto, la hoja y el folio de la
+fuente que la respalda -- eso NO va a la pantalla: va a `docs/CONTROL_CONGENITAS_P36.md`.
+
+El molde es el MEDIDO de `ref-miocard` (ver docs/INVENTARIO_P36.md):
+  titulo  <div 12px / 700 / var(--accent2) / margin-bottom 6px>
+  cuerpo  <div 12px / var(--text) / line-height 1.8 / margin-bottom 10px>
+          vinietas «• <b>Rotulo:</b> texto<br>»
+  SIN linea de fuente, que es el estilo medido del sector.
+TECHO: 849 caracteres (titulo + cuerpo, normalizados) y 7 vinietas -- el del resumen mas largo
+de `ref-miocard`, la amiloidosis.
+
+Uso:
+  python3 scripts/_gen_p36resumenes.py --html <clave> [<clave>...]
+  python3 scripts/_gen_p36resumenes.py --json
+  python3 scripts/_gen_p36resumenes.py --medir
+  python3 scripts/_gen_p36resumenes.py --insertar <clave> [<clave>...]
+"""
+import sys, json, html, re
+
+A = 'ACC/AHA 2025'   # folio = e + hoja + 114
+E = 'ESC 2020'       # folio = hoja + 562
+
+# clave: (titulo, [ (rotulo, texto, fuente, hoja, folio, 'imagen'|'texto') ])
+RES = {}
+
+RES['cia'] = ('CIA — Comunicación interauricular', [
+ ('Tipos', 'secundum 80 %, primum (canal AV parcial) 15 %, seno venoso superior 5 %, seno venoso inferior menos del 1 % y seno coronario sin techo 1 %', A, 35, 'e149', 'imagen'),
+ ('Qué produce', 'el cortocircuito de izquierda a derecha agranda las cavidades derechas y puede alterar la función del VD', A, 35, 'e149', 'imagen'),
+ ('Qué buscar', 'tamaño del defecto, bordes, morfología y conexión de las venas pulmonares; el transtorácico no define todo el septum y el transesofágico sí', A, 35, 'e149', 'imagen'),
+ ('Complicaciones', 'HTP, cortocircuito de derecha a izquierda, embolia paradójica y arritmia auricular, más frecuente cuanto más tarde se cierra', A, 35, 'e149', 'imagen'),
+ ('Cuándo se cierra', 'Qp/Qs ≥1,5 con dilatación del VD y RVP ≤2 unidades Wood; en el secundum aislado se prefiere el cierre percutáneo', A, 35, 'e149', 'imagen'),
+ ('Cuándo no', 'con fisiología de Eisenmenger el cierre no se hace', A, 35, 'e149', 'imagen'),
+])
+
+RES['civ'] = ('CIV — Comunicación interventricular', [
+ ('Qué es', 'la cardiopatía congénita más frecuente después de los defectos de la válvula aórtica; sobrecarga de volumen del corazón izquierdo', A, 40, 'e154', 'imagen'),
+ ('Restrictiva pequeña', 'gradiente entre VI y VD mayor de 64 mmHg, con cortocircuito chico', A, 40, 'e154', 'imagen'),
+ ('Restrictiva de presión, no de volumen', 'Qp/Qs ≥1,5 y menor de 2, con HTP, dilatación del VI o las dos', A, 40, 'e154', 'imagen'),
+ ('No restrictiva grande', 'sin obstrucción del TSVD, en el adulto suele acompañarse de Eisenmenger', A, 40, 'e154', 'imagen'),
+ ('Qué buscar', 'localización y tamaño, prolapso o aneurisma del seno de Valsalva, insuficiencia aórtica y VD de doble cámara', A, 40, 'e154', 'imagen'),
+ ('Seguimiento', 'en la restrictiva no complicada, control cada 3 a 5 años', A, 40, 'e154', 'imagen'),
+ ('Cuándo no se cierra', 'con Qp/Qs menor de 1,5 y sin otra indicación, y con fisiología de Eisenmenger', A, 40, 'e154', 'imagen'),
+])
+
+RES['dap'] = ('DAP — Ductus arterioso persistente', [
+ ('Qué es', 'resto de la circulación fetal que une la aorta descendente con el tronco de la arteria pulmonar', A, 47, 'e161', 'imagen'),
+ ('Frecuencia', '0,3 a 0,8 % de los recién nacidos de término, con predominio en mujeres', A, 47, 'e161', 'imagen'),
+ ('Qué produce', 'según su tamaño y las resistencias, dilata el corazón izquierdo por sobrecarga de volumen y puede llevar a HTP', A, 47, 'e161', 'imagen'),
+ ('Cuándo hay HTP', 'RVP ≥2 unidades Wood, presión media de la arteria pulmonar ≥20 mmHg y presión capilar pulmonar ≤15 mmHg', A, 47, 'e161', 'imagen'),
+ ('Cianosis diferencial', 'la saturación se mide en los pies y en las dos manos, porque el cortocircuito invertido entra por debajo del ductus', A, 47, 'e161', 'imagen'),
+ ('Cuándo se cierra', 'con agrandamiento del corazón izquierdo por el cortocircuito y sin HTP; con Eisenmenger el cierre no se hace', A, 47, 'e161', 'imagen'),
+])
+
+RES['vab'] = ('VAB — Válvula aórtica bicúspide', [
+ ('Frecuencia', 'la malformación cardíaca congénita más común: 4,6 por 1.000 nacidos vivos, y 2 a 3 veces más frecuente en varones', A, 54, 'e168', 'imagen'),
+ ('Qué es', 'en la mayoría, fusión anómala de dos cojinetes endocárdicos conotruncales vecinos', A, 54, 'e168', 'imagen'),
+ ('Qué buscar', 'coartación y aneurisma de aorta, que se buscan en todo adulto con bicúspide', A, 53, 'e167', 'imagen'),
+ ('Repercusión', 'remodelado del VI por apertura excéntrica de la válvula y menor elasticidad de la aorta ascendente', A, 54, 'e168', 'imagen'),
+ ('Seguimiento de por vida', 'con diámetro aórtico mayor de 4 cm en los senos o en la aorta ascendente, o con factores de riesgo de disección', A, 53, 'e167', 'imagen'),
+ ('Familiares de primer grado', 'un ecocardiograma, una sola vez', A, 53, 'e167', 'imagen'),
+])
+
+RES['coa'] = ('CoAo — Coartación de aorta', [
+ ('Qué es', 'estenosis del istmo aórtico, a veces con hipoplasia del arco', A, 57, 'e171', 'texto'),
+ ('Se acompaña de', 'válvula aórtica bicúspide, estenosis subaórtica y enfermedad de entrada del VI (anillo supramitral, estenosis mitral, válvula en paracaídas)', A, 57, 'e171', 'texto'),
+ ('Qué produce', 'sobrecarga de presión del VI, con hipertrofia, fibrosis y relajación y distensibilidad alteradas', A, 57, 'e171', 'texto'),
+ ('Cuándo es significativa', 'gradiente sistólico brazo-pierna mayor de 20 mmHg, gradiente medio Doppler mayor de 20 mmHg, cola diastólica en la aorta descendente y flujo anterógrado diastólico en la aorta abdominal', A, 57, 'e171', 'imagen'),
+ ('Por cateterismo e imagen', 'gradiente pico a pico mayor de 20 mmHg, relación del istmo menor de 0,5 a 0,7 y arterias colaterales', A, 57, 'e171', 'imagen'),
+ ('Seguimiento', 'presión en los cuatro miembros e imagen de corte; en la reparada, recoartación y aneurisma de la aorta', A, 57, 'e171', 'imagen'),
+])
+
+ORDEN = ['cia', 'civ', 'dap', 'vab', 'coa']
+
+TECHO_CHARS = 849
+TECHO_VIN = 7
+ESC = lambda s: html.escape(s, quote=False)
+TIT = 'font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;'
+CUE = 'font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;'
+
+
+def norma(s):
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def html_de(k):
+    tit, vs = RES[k]
+    o = ['      <div style="' + TIT + '">' + ESC(tit) + '</div>',
+         '      <div style="' + CUE + '">']
+    for i, (rot, txt, _f, _h, _fo, _m) in enumerate(vs):
+        o.append('        &bull; <b>' + ESC(rot) + ':</b> ' + ESC(txt) + ('<br>' if i < len(vs) - 1 else ''))
+    o.append('      </div>')
+    return '\n'.join(o)
+
+
+def medida(k):
+    tit, vs = RES[k]
+    cuerpo = ' '.join('• ' + rot + ': ' + txt for rot, txt, _f, _h, _fo, _m in vs)
+    return len(norma(tit)) + len(norma(cuerpo)), len(vs)
+
+
+def main():
+    a = sys.argv[1:]
+    if '--json' in a:
+        print(json.dumps({k: {'titulo': RES[k][0],
+                              'vinietas': [{'rotulo': r, 'texto': t, 'fuente': f, 'hoja': h, 'folio': fo, 'modo': m}
+                                           for r, t, f, h, fo, m in RES[k][1]],
+                              'chars': medida(k)[0], 'n': medida(k)[1]} for k in ORDEN},
+                         ensure_ascii=False)); return
+    if '--control' in a:
+        print('# CONTROL_CONGENITAS_P36 — cada vinieta con su fuente, su hoja y su folio')
+        print()
+        print('Documento de control de la **parte B de PANT-36**. **No es texto de la app**: aca si se')
+        print('nombran las guias y los folios. Las dos reglas de folio, comprobadas en ocho y cinco hojas')
+        print('en `docs/INVENTARIO_P36.md`:')
+        print()
+        print('| guia | archivo | hojas | folio |')
+        print('|---|---|---|---|')
+        print('| ACC/AHA 2025 de congenitas del adulto | `08_Cardiopatias_congenitas/gurvitz-et-al-2025-…-congenital-heart-disease-a.pdf` | 137 | **e** + hoja + **114** |')
+        print('| ESC 2020 de congenitas del adulto, en ingles | `08_Cardiopatias_congenitas/ESC congenitos en ingles 2020.pdf` | 84 | hoja + **562** |')
+        print()
+        print('«imagen» = el dato se leyo renderizando la hoja a **200 ppp** y mirandola, que es lo que la')
+        print('orden exige para numeros y rangos: el texto extraido de estas guias pierde guiones y rangos.')
+        for k in ORDEN:
+            c, n = medida(k)
+            print()
+            print('## %s' % RES[k][0])
+            print()
+            print('%d caracteres (techo 849) · %d vinietas (techo 7)' % (c, n))
+            print()
+            print('| vinieta | texto | fuente | hoja | folio | leido |')
+            print('|---|---|---|---|---|---|')
+            for r, t, f, h, fo, m in RES[k][1]:
+                print('| %s | %s | %s | %d | %s | %s |' % (r, t.replace('|', '/'), f, h, fo, m))
+        return
+    if '--medir' in a:
+        for k in ORDEN:
+            c, n = medida(k)
+            print('%-7s %4d chars (techo %d) %d vinietas (techo %d) %s'
+                  % (k, c, TECHO_CHARS, n, TECHO_VIN, 'OK' if c <= TECHO_CHARS and n <= TECHO_VIN else '*** PASA EL TECHO ***'))
+        return
+    claves = [x for x in a if not x.startswith('--')] or ORDEN
+    bloque = '\n'.join(html_de(k) for k in claves)
+    if '--html' in a:
+        print(bloque); return
+    if '--insertar' in a:
+        p = 'index.html'
+        s = open(p, encoding='utf-8').read()
+        MARCA = '      <!-- ══ RESUMENES POR PATOLOGIA — PANT-36, parte B ═══'
+        if MARCA in s:
+            i = s.index(MARCA)
+            j = s.index('\n    </div>', i)
+            s = s[:i] + MARCA_CABEZA + '\n' + bloque + s[j:]
+        else:
+            k = s.find('<div id="ref-congenitas"')
+            j = s.index('\n    </div>', k)
+            s = s[:j] + '\n' + MARCA_CABEZA + '\n' + bloque + s[j:]
+        open(p, 'w', encoding='utf-8').write(s)
+        print('insertados: ' + ' '.join(claves)); return
+    sys.exit(__doc__)
+
+
+MARCA_CABEZA = '''      <!-- ══ RESUMENES POR PATOLOGIA — PANT-36, parte B ═══════════════════════════════
+           Un resumen por cada seccion de congenitas de la app (`_CC_SECS`), con el MOLDE MEDIDO
+           de `ref-miocard`: titulo de 12 px en 700 y accent2, cuerpo de 12 px con interlineado
+           1,8 y vinietas «• <b>Rotulo:</b> texto», SIN linea de fuente -- que es el estilo
+           medido del sector, declarado en `P29-a · 2`.
+           ⚠️ TECHO: 849 caracteres y 7 vinietas, el del resumen mas largo de `ref-miocard` (la
+              amiloidosis). Lo fija TC-778 (B2), (C4) y (C5) para ese sector y la sonda de esta
+              tanda para este.
+           ⚠️ LOS CUATRO RENGLONES QUE ESTA FICHA YA TENIA NO SE TOCAN: quedan arriba, identicos
+              carácter por carácter, igual que los cinco resumenes que `ref-miocard` ya tenia
+              cuando PANT-29 le agrego dos.
+           ⚠️ NINGUN TEXTO NOMBRA UNA GUIA, UNA CLASE, UN FOLIO NI UNA FUENTE, ni compara dos
+              fuentes, ni dice que algo no figura. La trazabilidad de cada viñeta -- con su hoja,
+              su folio y si se leyo en imagen -- vive en `docs/CONTROL_CONGENITAS_P36.md`.
+           ⚠️ EL TEXTO SE GENERA DESDE `scripts/_gen_p36resumenes.py` y no se retipea.
+           ⚠️ NADA DE ESTO LLEGA AL PAPEL: es una entrada de Referencias. -->'''
+
+main()

@@ -24363,6 +24363,68 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <b style="color:var(--accent2);">PCA:</b> sobrecarga VI → cierre percutáneo (Amplatzer de elección en adultos)<br>
         <b style="color:var(--accent2);">Contraindicación:</b> Eisenmenger (shunt derecha-izquierda) en todas
       </div>
+      <!-- ══ RESUMENES POR PATOLOGIA — PANT-36, parte B ═══════════════════════════════
+           Un resumen por cada seccion de congenitas de la app (`_CC_SECS`), con el MOLDE MEDIDO
+           de `ref-miocard`: titulo de 12 px en 700 y accent2, cuerpo de 12 px con interlineado
+           1,8 y vinietas «• <b>Rotulo:</b> texto», SIN linea de fuente -- que es el estilo
+           medido del sector, declarado en `P29-a · 2`.
+           ⚠️ TECHO: 849 caracteres y 7 vinietas, el del resumen mas largo de `ref-miocard` (la
+              amiloidosis). Lo fija TC-778 (B2), (C4) y (C5) para ese sector y la sonda de esta
+              tanda para este.
+           ⚠️ LOS CUATRO RENGLONES QUE ESTA FICHA YA TENIA NO SE TOCAN: quedan arriba, identicos
+              carácter por carácter, igual que los cinco resumenes que `ref-miocard` ya tenia
+              cuando PANT-29 le agrego dos.
+           ⚠️ NINGUN TEXTO NOMBRA UNA GUIA, UNA CLASE, UN FOLIO NI UNA FUENTE, ni compara dos
+              fuentes, ni dice que algo no figura. La trazabilidad de cada viñeta -- con su hoja,
+              su folio y si se leyo en imagen -- vive en `docs/CONTROL_CONGENITAS_P36.md`.
+           ⚠️ EL TEXTO SE GENERA DESDE `scripts/_gen_p36resumenes.py` y no se retipea.
+           ⚠️ NADA DE ESTO LLEGA AL PAPEL: es una entrada de Referencias. -->
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">CIA — Comunicación interauricular</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
+        &bull; <b>Tipos:</b> secundum 80 %, primum (canal AV parcial) 15 %, seno venoso superior 5 %, seno venoso inferior menos del 1 % y seno coronario sin techo 1 %<br>
+        &bull; <b>Qué produce:</b> el cortocircuito de izquierda a derecha agranda las cavidades derechas y puede alterar la función del VD<br>
+        &bull; <b>Qué buscar:</b> tamaño del defecto, bordes, morfología y conexión de las venas pulmonares; el transtorácico no define todo el septum y el transesofágico sí<br>
+        &bull; <b>Complicaciones:</b> HTP, cortocircuito de derecha a izquierda, embolia paradójica y arritmia auricular, más frecuente cuanto más tarde se cierra<br>
+        &bull; <b>Cuándo se cierra:</b> Qp/Qs ≥1,5 con dilatación del VD y RVP ≤2 unidades Wood; en el secundum aislado se prefiere el cierre percutáneo<br>
+        &bull; <b>Cuándo no:</b> con fisiología de Eisenmenger el cierre no se hace
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">CIV — Comunicación interventricular</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
+        &bull; <b>Qué es:</b> la cardiopatía congénita más frecuente después de los defectos de la válvula aórtica; sobrecarga de volumen del corazón izquierdo<br>
+        &bull; <b>Restrictiva pequeña:</b> gradiente entre VI y VD mayor de 64 mmHg, con cortocircuito chico<br>
+        &bull; <b>Restrictiva de presión, no de volumen:</b> Qp/Qs ≥1,5 y menor de 2, con HTP, dilatación del VI o las dos<br>
+        &bull; <b>No restrictiva grande:</b> sin obstrucción del TSVD, en el adulto suele acompañarse de Eisenmenger<br>
+        &bull; <b>Qué buscar:</b> localización y tamaño, prolapso o aneurisma del seno de Valsalva, insuficiencia aórtica y VD de doble cámara<br>
+        &bull; <b>Seguimiento:</b> en la restrictiva no complicada, control cada 3 a 5 años<br>
+        &bull; <b>Cuándo no se cierra:</b> con Qp/Qs menor de 1,5 y sin otra indicación, y con fisiología de Eisenmenger
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">DAP — Ductus arterioso persistente</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
+        &bull; <b>Qué es:</b> resto de la circulación fetal que une la aorta descendente con el tronco de la arteria pulmonar<br>
+        &bull; <b>Frecuencia:</b> 0,3 a 0,8 % de los recién nacidos de término, con predominio en mujeres<br>
+        &bull; <b>Qué produce:</b> según su tamaño y las resistencias, dilata el corazón izquierdo por sobrecarga de volumen y puede llevar a HTP<br>
+        &bull; <b>Cuándo hay HTP:</b> RVP ≥2 unidades Wood, presión media de la arteria pulmonar ≥20 mmHg y presión capilar pulmonar ≤15 mmHg<br>
+        &bull; <b>Cianosis diferencial:</b> la saturación se mide en los pies y en las dos manos, porque el cortocircuito invertido entra por debajo del ductus<br>
+        &bull; <b>Cuándo se cierra:</b> con agrandamiento del corazón izquierdo por el cortocircuito y sin HTP; con Eisenmenger el cierre no se hace
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">VAB — Válvula aórtica bicúspide</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
+        &bull; <b>Frecuencia:</b> la malformación cardíaca congénita más común: 4,6 por 1.000 nacidos vivos, y 2 a 3 veces más frecuente en varones<br>
+        &bull; <b>Qué es:</b> en la mayoría, fusión anómala de dos cojinetes endocárdicos conotruncales vecinos<br>
+        &bull; <b>Qué buscar:</b> coartación y aneurisma de aorta, que se buscan en todo adulto con bicúspide<br>
+        &bull; <b>Repercusión:</b> remodelado del VI por apertura excéntrica de la válvula y menor elasticidad de la aorta ascendente<br>
+        &bull; <b>Seguimiento de por vida:</b> con diámetro aórtico mayor de 4 cm en los senos o en la aorta ascendente, o con factores de riesgo de disección<br>
+        &bull; <b>Familiares de primer grado:</b> un ecocardiograma, una sola vez
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px;">CoAo — Coartación de aorta</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:10px;">
+        &bull; <b>Qué es:</b> estenosis del istmo aórtico, a veces con hipoplasia del arco<br>
+        &bull; <b>Se acompaña de:</b> válvula aórtica bicúspide, estenosis subaórtica y enfermedad de entrada del VI (anillo supramitral, estenosis mitral, válvula en paracaídas)<br>
+        &bull; <b>Qué produce:</b> sobrecarga de presión del VI, con hipertrofia, fibrosis y relajación y distensibilidad alteradas<br>
+        &bull; <b>Cuándo es significativa:</b> gradiente sistólico brazo-pierna mayor de 20 mmHg, gradiente medio Doppler mayor de 20 mmHg, cola diastólica en la aorta descendente y flujo anterógrado diastólico en la aorta abdominal<br>
+        &bull; <b>Por cateterismo e imagen:</b> gradiente pico a pico mayor de 20 mmHg, relación del istmo menor de 0,5 a 0,7 y arterias colaterales<br>
+        &bull; <b>Seguimiento:</b> presión en los cuatro miembros e imagen de corte; en la reparada, recoartación y aneurisma de la aorta
+      </div>
     </div>
   </div>
 
