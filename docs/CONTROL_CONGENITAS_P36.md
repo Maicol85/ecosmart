@@ -143,3 +143,58 @@ orden exige para numeros y rangos: el texto extraido de estas guias pierde guion
 | Qué buscar | imagen basal con la anatomía aórtica en detalle | ACC/AHA 2025 | 55 | e169 | imagen |
 | En el Williams | evaluación basal de las arterias coronarias, por el riesgo de muerte súbita | ACC/AHA 2025 | 55 | e169 | imagen |
 | Cuándo se opera | síntomas o deterioro de la función ventricular por la obstrucción del tracto de salida del VI; con estenosis del ostium coronario e isquemia, revascularización | ACC/AHA 2025 | 55 | e169 | imagen |
+
+## TGA — Transposición de grandes arterias
+
+831 caracteres (techo 849) · 6 vinietas (techo 7)
+
+| vinieta | texto | fuente | hoja | folio | leido |
+|---|---|---|---|---|---|
+| d-TGA | discordancia ventriculoarterial; el switch auricular dejó al VD como ventrículo sistémico y hoy se opera con el arterial | ACC/AHA 2025 | 77 | e191 | imagen |
+| Tras el switch auricular | disfunción sistólica moderada o severa del ventrículo sistémico en el 42,8 % a una mediana de 29 años, e insuficiencia tricuspídea moderada o severa en la cuarta parte | ACC/AHA 2025 | 77 | e191 | imagen |
+| Los túneles | estenosis de los conductos venosos en hasta la mitad de los cateterizados y fugas en hasta el 65 % | ACC/AHA 2025 | 78 | e192 | imagen |
+| Arritmias | auricular 28,9 %, ventricular 5,8 %, pérdida del ritmo sinusal 24,9 % y muerte súbita del 0,63 % anual | ACC/AHA 2025 | 78 | e192 | imagen |
+| ccTGA | doble discordancia, con el VD como ventrículo sistémico y disfunción sistólica frecuente | ACC/AHA 2025 | 84 | e198 | imagen |
+| En la ccTGA | más del 80 % tiene lesiones asociadas —tricúspide tipo Ebstein, CIV y obstrucción del TSVI— y riesgo de bloqueo AV avanzado | ACC/AHA 2025 | 84 | e198 | imagen |
+
+## CVPA — Conexión venosa pulmonar anómala parcial
+
+828 caracteres (techo 849) · 7 vinietas (techo 7)
+
+| vinieta | texto | fuente | hoja | folio | leido |
+|---|---|---|---|---|---|
+| Qué es | una o más venas pulmonares drenan fuera de la aurícula izquierda; aislada, sin CIA, es rara | ACC/AHA 2025 | 45 | e159 | texto |
+| Qué produce | cortocircuito obligado de izquierda a derecha, con sobrecarga de volumen del VD y riesgo de HTP | ACC/AHA 2025 | 45 | e159 | texto |
+| En qué se diferencia de la CIA | sin cortocircuito de derecha a izquierda no hay embolia paradójica ni hipoxemia | ACC/AHA 2025 | 45 | e159 | texto |
+| Cuánto cortocircuito | lo fijan el calibre y el número de venas anómalas; con más de una sube el riesgo de sobrecarga y de HTP | ACC/AHA 2025 | 45 | e159 | texto |
+| Las más comunes | vena pulmonar superior derecha a la cava superior, y vena pulmonar superior izquierda a la vena innominada izquierda | ACC/AHA 2025 | 45 | e159 | texto |
+| Vena cimitarra | la vena pulmonar derecha, en general la inferior, drena a la vena cava inferior, a veces con secuestro pulmonar o colaterales aortopulmonares | ACC/AHA 2025 | 45 | e159 | texto |
+| Tratamiento | sólo quirúrgico | ACC/AHA 2025 | 45 | e159 | texto |
+
+## Fontan — Circulación de Fontan
+
+716 caracteres (techo 849) · 7 vinietas (techo 7)
+
+| vinieta | texto | fuente | hoja | folio | leido |
+|---|---|---|---|---|---|
+| Qué es | la sangre venosa sistémica llega a las arterias pulmonares sin un ventrículo subpulmonar | ACC/AHA 2025 | 88 | e202 | texto |
+| Cómo funciona | hipertensión venosa sistémica obligada y gasto cardíaco bajo | ACC/AHA 2025 | 88 | e202 | texto |
+| Con los años | enfermedad multisistémica, con distintas formas de falla de la circulación y compromiso de otros órganos | ACC/AHA 2025 | 88 | e202 | texto |
+| Qué vigilar | el hígado, de forma sistemática, con derivación a hepatología | ACC/AHA 2025 | 88 | e202 | texto |
+| Tratamiento médico | la evidencia es escasa y se limita a la tromboprofilaxis; el tratamiento de las arritmias y el ejercicio programado pueden ayudar | ACC/AHA 2025 | 88 | e202 | texto |
+| Cateterismo | útil ante obstrucción del circuito de Fontan | ACC/AHA 2025 | 88 | e202 | texto |
+| Si falla la circulación | derivación temprana a un programa de insuficiencia cardíaca y trasplante | ACC/AHA 2025 | 88 | e202 | texto |
+
+## Eisenmenger — Síndrome de Eisenmenger
+
+811 caracteres (techo 849) · 7 vinietas (techo 7)
+
+| vinieta | texto | fuente | hoja | folio | leido |
+|---|---|---|---|---|---|
+| Qué es | un cortocircuito de izquierda a derecha eleva la resistencia pulmonar hasta volver el flujo bidireccional | ACC/AHA 2025 | 94 | e208 | texto |
+| De qué depende | síndromes asociados, anatomía, tamaño del cortocircuito, genética y exposición ambiental | ACC/AHA 2025 | 94 | e208 | texto |
+| Qué produce | cianosis crónica con disfunción de varios órganos, sistólica y diastólica, arritmias y muerte súbita | ACC/AHA 2025 | 94 | e208 | texto |
+| Capacidad funcional | de las más bajas de la cardiopatía congénita del adulto, con peor calidad de vida | ACC/AHA 2025 | 94 | e208 | texto |
+| Con síndrome de Down | más comorbilidad —apnea del sueño, disfunción tiroidea— y la marcha de 6 minutos refleja peor la gravedad | ACC/AHA 2025 | 94 | e208 | texto |
+| Qué evitar | altura prolongada, embarazo, calor o humedad extremos, nefrotóxicos, esfuerzo extremo y cambios grandes de volemia | ACC/AHA 2025 | 94 | e208 | texto |
+| Oxígeno | se indica caso por caso, sin buscar normalizar la saturación | ACC/AHA 2025 | 94 | e208 | texto |
