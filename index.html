@@ -4708,6 +4708,16 @@ html.light-mode .amilo-root{
 .v2d-pq-dec{color:var(--accent2);font-weight:700;}
 .v2d-pq-nv{color:var(--text2);font-style:normal;}
 .v2d-pq-aviso{grid-column:1 / -1;color:var(--orange);line-height:1.3;margin-top:2px;}
+/* ══ LA FILA DEL BOTON «WHAT IF» (PANT-37, A1) ═══════════════════════════════════════════════
+   Va como ULTIMO hijo del `li` de la estenosis aortica y alineada a la DERECHA, que es donde la
+   demo aprobada la pone. El boton usa las clases de la app -`btn` mas `btn-ghost` o
+   `btn-primary`-, asi que su alto de 44 px y los dos temas salen del piso global y no de una
+   regla propia: un color escrito aca seria un azul que ninguna variable sigue.
+   ⚠️ `justify-content:flex-end` Y NO `text-align:right`: los hijos de un contenedor flex no los
+   alinea `text-align`. Es la misma leccion que la fila de controles del panel de Evidencia. */
+.wi-fila{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:5px;}
+/* El rotulo del boton en una sola linea: en una tarjeta de 184 px «What if» parte en dos. */
+.wi-fila .btn{white-space:nowrap;}
 /* ⚠️ EL LIENZO TIENE ANCHO Y ALTO EXPLICITOS EN PX, LOS DOS (Y1c) — DECISION DE MAICOL.
    El Y1b lo escalaba con `height:clamp(200px,calc(100vh - 520px),320px)`, que dependia de la
    ALTURA DE LA VENTANA porque el panel tenia techo de alto: con 300 px la tabla de cavidades
@@ -49747,7 +49757,61 @@ const TRIV_DTI_FUENTE =
   + '97 %—. Un TRIV de 40 ms o menos hizo improbable la hipertensión pulmonar en un estudio '
   + 'pequeño con cateterismo: Bréchot N y cols., Eur J Echocardiogr 2008;9:547-554.';
 
+/* ══ EL TEXTO DEL GLOBO DEL «WHAT IF» — UN SOLO DUENO (PANT-37, A4) ═════════════════════════
+   Las siete lineas de la orden del medico, en el orden en que las dio. El primer elemento de
+   cada par es el rotulo en negrita -las mismas palabras, solo con otro peso, como en la demo
+   aprobada- y el segundo el resto de la oracion. Cadena vacia = parrafo sin rotulo.
+   NO nombra ninguna guia, ninguna clase y ningun folio, y no deja nada pendiente a la vista. */
+const WI_GLOBO = Object.freeze([
+  Object.freeze(['Aplica:', 'estenosis a\u00f3rtica nativa con \u00e1rea en rango severo y gradiente y Vmax por debajo del rango severo, sobre todo con bajo flujo (volumen sist\u00f3lico indexado menor de 35 mL/m\u00b2).']),
+  Object.freeze(['Qu\u00e9 mover:', 'el volumen sist\u00f3lico si la FEVI est\u00e1 conservada; la FEVI si el ventr\u00edculo contrae poco. Lo que se ve es lo que pasar\u00eda si el flujo aumentara, como con dobutamina o con una mejor\u00eda de la FEVI.']),
+  Object.freeze(['Bajo flujo:', 'volumen sist\u00f3lico indexado menor de 35 mL/m\u00b2. Reserva contr\u00e1ctil: el volumen sist\u00f3lico sube 20 % o m\u00e1s al aumentar la contractilidad.']),
+  Object.freeze(['Pseudoestenosis:', 'con \u00ab\u00c1rea: se abre con el flujo\u00bb se ve c\u00f3mo el \u00e1rea aumenta y el gradiente casi no cambia. En un paciente real la v\u00e1lvula tiene una sola conducta: la define el estudio.']),
+  Object.freeze(['', 'En pacientes chicos, mirar el \u00e1rea indexada.']),
+  Object.freeze(['Poco \u00fatil:', '\u00e1rea y gradiente concordantes, faltan datos o hay pr\u00f3tesis.']),
+  Object.freeze(['', 'Solo mueve el dibujo 2D. No cambia datos, informe ni PDF.'])
+]);
+
+/* ══ EL GLOBO DEL «WHAT IF» — PANT-37, A4 ════════════════════════════════════════════════════
+   Texto EXACTO de la orden del medico, palabra por palabra: no se parafrasea, no se agrega una
+   cifra y no se nombra ninguna guia, clase ni folio.
+   ⚠️ VA POR `dyn` Y NO POR `lee`, y es una decision medida: la rama `lee` de `_vInfoHTML` pone
+   adelante el rotulo en negrita «Que mide», que es lo que corresponde a un globo que explica una
+   medicion y NO a uno que dice cuando aplica una herramienta. Con `dyn` el cuerpo es el de la
+   orden y nada mas.
+   ⚠️ Y DEVUELVE UN NODO, NO UNA CADENA: `_vInfoColocar` hace `appendChild(dyn())`, asi que un
+   `dyn` que devuelva HTML revienta en su try y la tarjeta publica «No se pudo construir la
+   tarjeta.». Es la leccion que `_mfConductaInfo` ya dejo escrita.
+   ⚠️ EL `h4` LLEVA `id="vinfo-tit"` PORQUE LA TARJETA LO NOMBRA EN SU `aria-labelledby`: sin el,
+   un lector de pantalla abre un dialogo sin nombre.
+   ⚠️ NINGUN BLOQUE DECLARA SU PROPIO TAMANO DE CUERPO. La tarjeta (`#vinfo-card`) declara 11 px
+   y el titulo 12: es la regla fija del 2026-11-04, que el globo de la orejuela pago.
+   ⚠️ TODO POR `textContent`. El texto es estatico, pero la regla de la casa es que un texto no
+   entra como marcado: asi el sink no existe, en vez de existir y ser inofensivo. */
+function _wiGloboInfo(){
+  var f = document.createDocumentFragment();
+  var h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'Cu\u00e1ndo aplica el What if';
+  f.appendChild(h);
+  var P = function (rot, txt) {
+    var e = document.createElement('p');
+    e.style.margin = '0 0 6px';
+    if (rot) { var b = document.createElement('b'); b.textContent = rot; e.appendChild(b);
+               e.appendChild(document.createTextNode(' ' + txt)); }
+    else { e.textContent = txt; }
+    return e;
+  };
+  WI_GLOBO.forEach(function (par) { f.appendChild(P(par[0], par[1])); });
+  return f;
+}
+window._wiGloboInfo = _wiGloboInfo;
+
 const VINFO = Object.freeze({
+  /* El globo del «What if» de la estenosis aortica (PANT-37, A4). Su cuerpo lo arma
+     `_wiGloboInfo` de `WI_GLOBO`, que es el dueno unico del texto. */
+  'wi-aplica': { tit: 'Cu\u00e1ndo aplica el What if', ancho: 340,
+                 dyn: function () { return _wiGloboInfo(); } },
   /* ══ LOS TIPOS DE VALVULA INTERVENIDA — tanda VAL-PPT, commit 2 (2026-11-01) ═══════════
      Todo PARAFRASEADO en español; ninguna frase se copia del original. Cada afirmación lleva su
      folio, leído en imagen. Tres reglas de folio, comprobadas en el pie impreso de cada hoja:
@@ -67596,6 +67660,12 @@ function showTabById(id) {
    lista el 2026-09-09 por el mismo motivo. Y `cineCerrar()` sólo pone `display:none`, así que
    el input sobrevive en el DOM con su valor — y este barrido no mira visibilidad. */
 function _noEsDelEstudio(id) {
+  /* `wi-` son los controles del simulador «What if» de la estenosis aortica (PANT-37). NO son
+     del estudio: lo que mueven es el DIBUJO 2D y su propio panel, nada se guarda, nada va al
+     informe ni al PDF, y persistirlos seria agregar claves nuevas a TODO estudio que se guarde
+     desde hoy -el motivo escrito de `hfpep-` y de `vauto-`-. Guion MEDIO, asi que este prefijo
+     no alcanza a ningun campo del estudio, que van con guion BAJO. Esta en las DOS listas
+     (`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`), que es la convencion de `cfg-`. */
   /* `hfpep-` son los DOS controles del cartel de péptidos (2026-10-13). NO son del estudio
      a propósito: el péptido tiene un dueño —`hf_ntprobnp` / `hf_bnp`, que sí viajan— y
      persistir el espejo dejaría una segunda copia que al reabrir puede contradecirlo. El
@@ -67687,7 +67757,7 @@ function _noEsDelEstudio(id) {
      contradecir al dueno —el motivo escrito de `hfpep-`, `vauto-` y `otr-asia-`— y seria una
      clave nueva en TODO estudio que se guarde desde hoy. Guion MEDIO, asi que este prefijo no
      alcanza a ningun campo del estudio, que van con guion BAJO. */
-  return /^(login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|mfs-fig-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
+  return /^(wi-|login-|ig-|lab-|cfg-|exp-|filtro-|adv-|asoc-|pdf-|lgal-|fcg-|hfpep-|vauto-|vabchk-|vab-anim-|otr-asia-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|mfs-fig-|vd-triv|ref-|(?:b-)?cine-)/.test(id);
 }
 
 /* ══ Repintado de módulos al cargar un estudio ═══════════════════════════════════════════
@@ -76929,7 +76999,7 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
    formulario «tiene datos». Sin esta mitad, un espejo con valor haria que «Nuevo estudio»
    preguntara sobre un formulario vacio y que el autoguardado no restaurara el borrador — que es
    lo que la tanda TGA pago con `tga-3d-fc`. */
-var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|centro_tipo$|ecoAdvSelect$)/;
+var _CAMPOS_FUERA_DEL_ESTUDIO = /^(wi-|cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|pop-bcia-|pop-esp-|va-esp-|tga-3d-|cm3d-|centro_tipo$|ecoAdvSelect$)/;
 
 /* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
    la necesitan, que son la misma vista desde los dos lados:
@@ -170130,8 +170200,182 @@ function v2dPintarTarjetas(E){
       li.className = 'v2d-vacio'; li.textContent = par[2];
       ul.appendChild(li); return;
     }
-    par[1].forEach(function(it){ ul.appendChild(_v2dLi(it)); });
+    /* ⚠️ EL BOTON «WHAT IF» VA EN LA TARJETA DE LA ESTENOSIS AORTICA Y EN NINGUNA OTRA
+       (PANT-37, A1). La valvula se reconoce por su NOMBRE, que sale de `V2D_VALVS`, y la
+       columna por el id del `ul`: asi no hace falta agregarle una clave al estado -que es lo
+       que moveria `v2dEstado()`, y con el las tarjetas, la tabla de cavidades y lo que la
+       suite compara de ese objeto-. El `try` es por la regla de la casa: un error del boton no
+       puede dejar la tarjeta sin pintar. */
+    par[1].forEach(function(it){
+      const li = _v2dLi(it);
+      if (par[0] === 'v2d-esten' && WI_VALV_NOM && it.valv === WI_VALV_NOM) {
+        try { _wiFilaBoton(li); } catch (e) {}
+      }
+      ul.appendChild(li);
+    });
   });
+}
+
+/* ══ EL «WHAT IF» DE LA ESTENOSIS AORTICA — PANT-37, PARTE A ═════════════════════════════════
+   Un simulador ILUSTRATIVO de que pasaria si el flujo aumentara. No es una calculadora de eco
+   dobutamina, no tiene campos nuevos y no guarda nada: lo que mueve es el DIBUJO 2D y su propio
+   panel. Solo estenosis aortica NATIVA.
+
+   ⚠️ NINGUN CORTE SE RETIPEA. La situacion la decide `eaGradoCalculado()`, que es el dueno unico
+   del grado y ya devuelve `gVel`, `gGrad` y `gAva` calculados con `EA_BANDAS` y con
+   `avaEsSevera`. Una segunda tabla de cortes aca se separaria de la tarjeta el dia que uno se
+   mueva, que es el defecto que esta aorta ya pago cinco veces con el 1,00 del AVA.
+
+   ⚠️ «SEVERA POR AREA» ES EXACTAMENTE `gAva === 'severa'`, el mismo criterio con que la tarjeta
+   lo dice: sale de `avaEsSevera` tras `avaEsValida`, que falla CERRADO ante vacio, NaN, 0 y
+   negativos.
+
+   ⚠️ EL GRADIENTE PUEDE SER `null` ESTANDO CARGADO. Con un gradiente medio por debajo de
+   `EA_BANDAS.gmedModMin` la funcion devuelve `gGrad: null`, que significa «este criterio no se
+   pronuncia» y NO «sin estenosis». Para la situacion eso sigue siendo POR DEBAJO DEL RANGO
+   SEVERO, asi que la condicion se escribe `gGrad !== 'severa'` y no `gGrad === 'moderada'`: con
+   la segunda forma, una estenosis con area de 0,8 cm² y gradiente de 12 mmHg -el caso de bajo
+   flujo mas claro que hay- se leeria como concordante. */
+const WI_ET_SUP = 0.30;   /* s   — el supuesto de la demo aprobada, cuando el estudio no lo trae */
+const WI_FC_SUP = 70;     /* lpm — idem */
+
+/* Los rotulos son LOS DE LA APP, leidos de sus propias etiquetas, no nombres de esta funcion:
+   la lista de lo que falta tiene que nombrar el campo que el medico va a ir a buscar. */
+const WI_FALTA_ROT = Object.freeze({
+  vmax: 'Vmax aórtica', gmed: 'G. medio', ava: 'AVA continuidad',
+  vs:   'Volumen latido (VSFVI o FEVI)', vdf: 'VDFVI'
+});
+
+/* El estado en PALABRAS, para el mouse y para el lector de pantalla, con el patron de
+   `IND_BTN_ET`: el `title` no existe en tactil, asi que el `aria-label` lleva el texto completo
+   y no un resumen. Ninguno nombra una guia ni deja nada pendiente a la vista. */
+const WI_BTN_ET = Object.freeze({
+  disc:   'What if: el área y el gradiente no concuerdan, así que acá la simulación sirve. Sólo mueve el dibujo 2D.',
+  conc:   'What if: con estos datos la simulación aporta poco. Sólo mueve el dibujo 2D.',
+  faltan: 'What if: faltan datos para simular. Sólo mueve el dibujo 2D.',
+  prot:   'What if: con prótesis no aplica. Sólo mueve el dibujo 2D.'
+});
+
+/* El nombre de la valvula se DERIVA de `V2D_VALVS` y no se escribe a mano: es la misma tabla que
+   crea la tarjeta, asi que el dia que el rotulo cambie el boton sigue en su tarjeta. */
+const WI_VALV_NOM = (function(){
+  try { const x = V2D_VALVS.filter(function(V){ return V.k === 'aortica' })[0];
+        return x ? x.nom : ''; } catch (e) { return ''; }
+})();
+
+function _wiV(id){ try { return (typeof v === 'function') ? v(id) : null; } catch (e) { return null; } }
+function _wiSv(id){ try { return (typeof sv === 'function') ? sv(id) : ''; } catch (e) { return ''; } }
+
+/* ══ LOS DATOS MEDIDOS — un solo lector, y no recalcula ningun grado ═════════════════════════
+   ⚠️ EL VOLUMEN SISTOLICO SE DERIVA CON LA MISMA REGLA QUE `viVolAutoSync` YA PUBLICA en la
+   tarjeta del VI: prefiere el VSFVI MANUAL y, si no esta, usa la FEVI. Con dos reglas, el panel
+   y la celda «Volumen latido» podrian decir dos numeros distintos del mismo paciente.
+   ⚠️ Y LA GUARDA `vsf < vdf` ES LA MISMA: un eyectado negativo no es un volumen latido.
+   ⚠️ EL TIEMPO DE EYECCION ESTA EN MILISEGUNDOS en el campo (`tango_te`, su dueno) y la formula
+   del flujo lo pide en SEGUNDOS. Sin la division, un flujo de 100 mL/s saldria 0,1. */
+function wiDatos(){
+  let R = null;
+  try { R = (typeof eaGradoCalculado === 'function') ? eaGradoCalculado() : null; } catch (e) { R = null; }
+  let prot = false;
+  try { prot = (typeof eaGradoNoPublica === 'function') && !!eaGradoNoPublica(_wiSv('va_morf')); }
+  catch (e) { prot = false; }
+  const vmax = R ? R.vmax : _wiV('vmax_ao');
+  const gmed = R ? R.gmedio : _wiV('gmedio_ao');
+  const ava  = R ? R.ava : null;
+  const vdf = _wiV('vdfvi'), vsfMan = _wiV('vsfvi'), feviC = _wiV('fevi');
+  let vs = null, vsFte = '';
+  if (vdf !== null && vdf > 0) {
+    if (vsfMan !== null && vsfMan >= 0 && vsfMan < vdf) { vs = vdf - vsfMan; vsFte = 'VSFVI'; }
+    else if (feviC !== null && feviC > 0 && feviC <= 100) { vs = vdf * feviC / 100; vsFte = 'FEVI'; }
+  }
+  /* La FEVI efectiva se DEDUCE de VS y VDF, que es lo que la orden pide, y solo cae al campo
+     cuando no hay volumenes: asi la fila «FEVI» de la tabla y el deslizador no se contradicen. */
+  const fevi = (vs !== null && vdf) ? (vs / vdf * 100) : feviC;
+  let bsa = null;
+  try { bsa = (typeof getBSA === 'function') ? (getBSA() || null) : null; } catch (e) { bsa = null; }
+  const etMs = _wiV('tango_te');
+  const et = (etMs !== null && etMs > 0) ? (etMs / 1000) : null;
+  const fc = _wiV('ao_fc');
+  return { R: R, prot: prot, vmax: vmax, gmed: gmed, ava: ava,
+           vdf: vdf, vs: vs, vsFte: vsFte, fevi: fevi, bsa: bsa,
+           et: et, fc: fc,
+           etEf: (et !== null) ? et : WI_ET_SUP, fcEf: (fc !== null && fc > 0) ? fc : WI_FC_SUP,
+           etSup: (et === null), fcSup: (fc === null || fc <= 0),
+           vsi: (vs !== null && bsa) ? (vs / bsa) : null };
+}
+window.wiDatos = wiDatos;
+
+/* ══ LA SITUACION — EL DUENO UNICO (PANT-37, A2) ════════════════════════════════════════════
+   Cuatro salidas y una sola funcion: el boton, el panel y la cobertura preguntan todos aca.
+   El orden de las guardas importa: la PROTESIS primero, porque con una protesis la app no
+   gradua la estenosis con la escala nativa y preguntar por los datos nativos no tiene sentido.
+   La lista de lo que falta va en el orden en que la orden del medico la nombra. */
+function wiSituacion(){
+  const D = wiDatos();
+  if (D.prot) return { sit: 'prot', falta: [], D: D };
+  const falta = [];
+  if (D.vmax === null) falta.push(WI_FALTA_ROT.vmax);
+  if (D.gmed === null) falta.push(WI_FALTA_ROT.gmed);
+  if (D.ava  === null) falta.push(WI_FALTA_ROT.ava);
+  if (D.vs   === null) falta.push(WI_FALTA_ROT.vs);
+  if (D.vdf  === null) falta.push(WI_FALTA_ROT.vdf);
+  if (falta.length) return { sit: 'faltan', falta: falta, D: D };
+  const R = D.R;
+  const disc = !!(R && R.gAva === 'severa' && R.gVel !== 'severa' && R.gGrad !== 'severa');
+  return { sit: disc ? 'disc' : 'conc', falta: [], D: D };
+}
+window.wiSituacion = wiSituacion;
+
+/* ══ EL BOTON (PANT-37, A1 y A3) ═════════════════════════════════════════════════════════════
+   ⚠️ EL AZUL ES EL PAR `btn-primary` / `btn-ghost`, EL MISMO QUE `indicSyncBoton` USA en el
+   boton «Evidencia» y que las ocho pastillas de valvula se pasan. Asi «encendido» se ve igual en
+   toda la app y los dos temas salen gratis: `.btn-primary` es `var(--accent)`. Un hex propio aca
+   seria un azul que ninguna variable sigue.
+   ⚠️ `toggle(cls, force)` Y NO CUATRO LINEAS DE add/remove: asi es imposible que el boton quede
+   con las dos clases puestas, que es el estado en que el fondo lo decide el orden de la hoja.
+   ⚠️ SE PINTA DE AZUL SOLO CON `disc`. Con concordante, con datos que faltan y con protesis
+   queda con el estilo normal, y NUNCA se oculta: el boton esta siempre activo. */
+function _wiBotonSync(b){
+  if (!b) return 'faltan';
+  let sit = 'faltan';
+  try { sit = wiSituacion().sit; } catch (e) { sit = 'faltan'; }
+  const azul = (sit === 'disc');
+  b.classList.toggle('btn-primary', azul);
+  b.classList.toggle('btn-ghost', !azul);
+  const et = WI_BTN_ET[sit] || WI_BTN_ET.faltan;
+  b.setAttribute('aria-label', et);
+  b.title = et;
+  return sit;
+}
+
+/* La fila del boton, como ULTIMO hijo del `li` de la estenosis aortica.
+   ⚠️ EL MANEJADOR VA POR PROPIEDAD Y NO POR `setAttribute('onclick', …)`, por las dos razones
+   que `.v2d-vercrit` ya dejo escritas: un `onclick` como CADENA es el patron que la regla
+   `ceibo-interp-en-string-de-handler` vigila, y el oyente generico de Escape busca botones por
+   su ATRIBUTO `onclick` — sin atributo, estos dos no entran en esa busqueda.
+   ⚠️ Y POR PROPIEDAD TAMPOCO SE ACUMULAN: `v2dRefrescar` rehace los `li` enteros en cada
+   repintado, asi que un `addEventListener` aca se sumaria una vez por tecleo. */
+function _wiFilaBoton(li){
+  if (!li) return;
+  const fila = document.createElement('div');
+  fila.className = 'wi-fila';
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'btn'; b.id = 'wi-btn';
+  b.textContent = 'What if';
+  b.onclick = function(){ if (typeof wiTog === 'function') wiTog(); };
+  _wiBotonSync(b);
+  fila.appendChild(b);
+  /* El globo usa el MISMO mecanismo que las once tarjetas de valvula: la clase `vinfo-btn`, el
+     `data-vinfo` que `_vInfoBtnsDe` busca y `vInfoClic`. No hay un segundo motor de globos. */
+  const g = document.createElement('button');
+  g.type = 'button'; g.className = 'vinfo-btn';
+  g.setAttribute('data-vinfo', 'wi-aplica');
+  g.setAttribute('aria-expanded', 'false');
+  g.setAttribute('aria-label', 'Cuándo aplica el What if');
+  g.textContent = 'ⓘ';
+  g.onclick = function(){ if (typeof vInfoClic === 'function') vInfoClic(g); };
+  fila.appendChild(g);
+  li.appendChild(fila);
 }
 
 function v2dPintarCav(E){
