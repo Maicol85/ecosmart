@@ -4445,15 +4445,28 @@ html.light-mode .amilo-root{
    panel usa alto que la columna ya tenia—; lo que se angosta 40 px es el lienzo. */
 #lv3d-dibujo.lv3d-coro-on>#lv3d-col-der{flex:0 0 150px;}
 #lv3d-coro-panel{display:flex;flex-direction:column;gap:6px;}
-#lv3d-coro-caja{position:relative;}
-#lv3d-coro-caja>.btn{width:100%;}
+/* ⚠️ LA PRIMERA FILA LLEVA DOS DESPLEGABLES — PANT-34 (C1): «Vista de angiografia» y «Arteria».
+   `#lv3d-coro-caja` pasa de ser la caja relativa del primer desplegable a ser la FILA, y cada
+   desplegable tiene su propia caja relativa adentro (`.lv3d-coro-dd`), que es lo que ancla su
+   lista. Sigue siendo UN hijo de `#lv3d-coro-panel`, asi que el panel conserva sus TRES filas.
+   ⚠️ `flex:1 1 0` CON `min-width:0`, Y NO UNA BASE EN PIXELES: la columna mide 150 px a 1440 y a
+      1000, asi que con una base de 96 px los dos botones se irian a lineas distintas justo en el
+      ancho de escritorio, que es donde la orden los quiere en la MISMA fila. Encogiendo desde
+      cero comparten la fila en todos los anchos y no desbordan nunca —el texto parte en dos
+      lineas, que es para lo que el panel declara `white-space:normal` y `min-height:44px`—. */
+#lv3d-coro-caja{display:flex;gap:4px;}
+.lv3d-coro-dd{position:relative;flex:1 1 0;min-width:0;}
+.lv3d-coro-dd>.btn{width:100%;}
 #lv3d-coro-panel .btn{white-space:normal;min-height:44px;font-size:11px;text-align:center;padding:4px 6px;}
 .lv3d-coro-fila{display:flex;gap:4px;}
 .lv3d-coro-fila>.btn{flex:1 1 0;min-width:0;}
-/* La lista flota sobre el lienzo: adentro de la columna de 150 px no entraria ningun rotulo. */
-#lv3d-coro-lista{position:absolute;z-index:30;right:0;top:calc(100% + 4px);width:208px;max-width:60vw;
+/* Las listas flotan sobre el lienzo: adentro de la columna de 150 px no entraria ningun rotulo.
+   La de arteria es mas angosta porque sus tres opciones son de una palabra. */
+#lv3d-coro-lista,#lv3d-coro-lista-art{position:absolute;z-index:30;right:0;top:calc(100% + 4px);
+  width:208px;max-width:60vw;
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 18px rgba(0,0,0,.20);}
+#lv3d-coro-lista-art{width:150px;}
 #lv3d-notas{margin-top:4px;}
 /* Los colores y sus dos casillas, en la misma fila y separados. */
 #lv3d-colores{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;}
@@ -4464,6 +4477,7 @@ html.light-mode .amilo-root{
      se apila bajo el lienzo y con ella el panel. El ancho de 150 px no rige aca. */
   #lv3d-dibujo.lv3d-coro-on>#lv3d-col-der{flex:0 0 auto;}
   #lv3d-coro-lista{right:auto;left:0;width:auto;min-width:0;}
+  #lv3d-coro-lista-art{right:auto;left:0;width:auto;min-width:0;}
 }
 /* ══ EL PANEL EN LINEA (Y1c, 2026-10-16) — DECISION DE MAICOL ══════════════════════════════
    Era un overlay `position:fixed` con fondo tenue y una tarjeta flotante centrada; hoy es un
@@ -13905,7 +13919,16 @@ window.cerrarSesionReal = cerrarSesionReal;
                        avisarle al modulo, que es el mismo motivo por el que los colores son dos
                        botones y no un desplegable. -->
                   <div id="lv3d-coro-panel" style="display:none;">
+                    <!-- ⚠️ DOS DESPLEGABLES EN LA MISMA FILA — PANT-34 (C1). `#lv3d-coro-caja`
+                         es la FILA y cada desplegable lleva su caja relativa `.lv3d-coro-dd`,
+                         que es lo que ancla su lista absoluta. El panel sigue teniendo TRES
+                         hijos, que es lo que TC-783 (B5) mide.
+                         ⚠️ SON BOTONES Y NO UN <select>, y el motivo esta escrito mas abajo en
+                            este mismo archivo: `limpiarCampos` barre `querySelectorAll('select')`
+                            COMPLETO, sin filtrar por id, asi que un <select> aca volveria solo a
+                            su primera opcion en cada «Nuevo estudio» SIN avisarle a `_lv3d`. -->
                     <div id="lv3d-coro-caja">
+                     <div class="lv3d-coro-dd">
                       <button type="button" class="btn btn-ghost lv3d-coro-vista-btn" aria-expanded="false">Vista de angiograf&iacute;a</button>
                       <div id="lv3d-coro-lista" style="display:none;">
                         <!-- ⚠️ EL TEXTO DE ESTOS NUEVE BOTONES LO ESCRIBE `lv3dCoroUI` DESDE
@@ -13928,6 +13951,22 @@ window.cerrarSesionReal = cerrarSesionReal;
                         <span aria-hidden="true" style="height:1px;background:var(--border);margin:2px 0;"></span>
                         <button type="button" class="btn btn-ghost lv3d-coro-angio" aria-pressed="false">Modo angiograf&iacute;a (fondo oscuro)</button>
                       </div>
+                     </div>
+                     <!-- ⚠️ EL SELECTOR DE ARTERIA — PANT-34 (C1). Un solo boton, con titulo
+                          FIJO «Arteria», y tres opciones con tilde en la activa. El texto de las
+                          tres lo escribe `lv3dCoroUI` desde `LV3D_CORO_LADOS`, que es su duenio
+                          unico, por el mismo motivo que las vistas.
+                          ⚠️ NO SE GUARDA: ni un campo del estudio, ni una columna de Excel, ni
+                             una clave de `localStorage`. Son `<button>` sin valor, asi que
+                             ningun recolector los ve —los tres piden `input[id]`—. -->
+                     <div class="lv3d-coro-dd">
+                      <button type="button" class="btn btn-ghost lv3d-coro-art-btn" aria-expanded="false">Arteria</button>
+                      <div id="lv3d-coro-lista-art" style="display:none;">
+                        <button type="button" class="btn btn-primary lv3d-coro-a" data-a="todas" aria-pressed="true">Todas</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-a" data-a="izq" aria-pressed="false">Izquierda</button>
+                        <button type="button" class="btn btn-ghost lv3d-coro-a" data-a="der" aria-pressed="false">Derecha</button>
+                      </div>
+                     </div>
                     </div>
                     <div class="lv3d-coro-fila">
                       <button type="button" class="btn btn-primary lv3d-coro-dom" data-d="0" aria-pressed="true" title="Dominancia derecha" aria-label="Dominancia derecha">Der.</button>
@@ -134138,6 +134177,9 @@ const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corr
                    boton, por pedido expreso. */
                 coro:false, coroDom:0, coroVista:null, coroTransp:false,
                 coroLetras:true, coroAngio:false, coroLista:false, coroFasePintada:null,
+                /* `coroArt` es el selector de arteria de PANT-34 (C): 'todas', 'izq' o 'der'.
+                   Estado del momento, como todo lo de «Coronarias»: no se guarda. */
+                coroArt:'todas', coroListaArt:false,
                 P:Object.assign({}, LV3D_BASE) };
 
 /* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
@@ -134574,6 +134616,31 @@ const LV3D_CORO_VISTAS = Object.freeze([
   { n:'AP caudal',   a:  0, b:-30 }, { n:'Lateral',     a: 90, b:  0 },
   { n:'OAD recta',   a:-30, b:  0 }
 ]);
+/* Las tres opciones del selector de arteria — PANT-34 (C1). Esta tabla es el duenio unico de su
+   nombre, igual que `LV3D_CORO_VISTAS` con el de las vistas: `lv3dCoroUI` escribe con ella el
+   texto de los tres botones. */
+const LV3D_CORO_LADOS = Object.freeze([
+  { a:'todas', n:'Todas' }, { a:'izq', n:'Izquierda' }, { a:'der', n:'Derecha' }
+]);
+/* ⚠️ EL FILTRO DEL SELECTOR DE ARTERIA — PANT-34 (C2) y (C3). El criterio de «duenio» es el que
+   la app y la demo YA usan: el campo `g` de cada definicion, que `lv3dCoroDefs` resuelve
+   DESPUES de aplicar la dominancia —`oPDA = (dom===2) ? 'Cx' : 'CD'` y
+   `oPL = (dom===0) ? 'CD' : 'Cx'`—. O sea que la coronaria DERECHA es `g === 'CD'` y la
+   IZQUIERDA es todo lo demas: el tronco (`LM`), la descendente anterior con sus diagonales y
+   septales (`DA`), la circunfleja con sus marginales (`Cx`) y las ramas posteriores que la
+   dominancia le haya dado. Medido en las tres dominancias en la TAREA 0.
+   ⚠️ SE FILTRA LA DEFINICION Y NO EL DIBUJO, y eso es lo que hace que lo que no se dibuja
+      desaparezca COMPLETO: el trazo, su letra —que sale del campo `n` de la propia definicion—,
+      su tramo gris —que `lv3dCoroSegmentos` calcula por grupo sobre estas definiciones— y su
+      efecto en el orden por profundidad. Con un filtro en el pintor quedaria la letra.
+   ⚠️ CON UNA SEGUNDA LISTA DE REPARTO el dia que la dominancia mueva una rama el selector y el
+      dibujo dirian cosas distintas. Por eso lee `g` y no una tabla propia. */
+function lv3dCoroLado(g){ return (g === 'CD') ? 'der' : 'izq' }
+function lv3dCoroFiltrar(d){
+  const sel = _lv3d.coroArt || 'todas';
+  if (sel !== 'izq' && sel !== 'der') return d;
+  return d.filter(function (df){ return lv3dCoroLado(df.g) === sel });
+}
 /* El color de cada arteria sale de `CONTR_TERRITORIO`, que es el DUENO UNICO del reparto y el
    que pinta la leyenda «Territorio coronario» y el modo territorio del 3D. La demo traia su
    propia paleta; usarla dejaria dos azules distintos para la DA en la misma pantalla. Queda
@@ -134634,7 +134701,9 @@ function lv3dCoroDefs(){
   });
   if (dom === 0){ d.push({ g:'CD', w:'fina', p:[P(0.02,168), P(0.02,188), P(0.04,208), P(0.05,225)] }) }
   d.push({ g:oPL, n:'PL', f:0.8, w:'fina', p:[P(0.04,205), P(0.2,213), P(0.38,218,1.02), P(0.52,220,1.01)] });
-  return d;
+  /* El selector de arteria se aplica ACA, sobre la lista de definiciones, que es el unico lugar
+     desde donde se puede llevar puesta tambien la letra y el tramo gris. Ver `lv3dCoroFiltrar`. */
+  return lv3dCoroFiltrar(d);
 }
 /* Catmull-Rom EN EL ESPACIO DE PARAMETROS (t, angulo, factor), no en el de los puntos 3D: asi la
    curva interpolada sigue estando SOBRE la superficie y no la atraviesa. Es la diferencia que
@@ -135609,8 +135678,22 @@ function lv3dCablear(){
   if (coroB) coroB.addEventListener('click', lv3dCoroToggle);
   const vistaB = panel.querySelector('.lv3d-coro-vista-btn');
   if (vistaB) vistaB.addEventListener('click', () => {
-    _lv3d.coroLista = !_lv3d.coroLista; lv3dCoroUI();
+    /* Abrir una lista CIERRA la otra: dos listas absolutas abiertas a la vez se superponen. */
+    _lv3d.coroLista = !_lv3d.coroLista; _lv3d.coroListaArt = false; lv3dCoroUI();
   });
+  /* ── EL SELECTOR DE ARTERIA — PANT-34 (C) ──────────────────────────────── */
+  const artB = panel.querySelector('.lv3d-coro-art-btn');
+  if (artB) artB.addEventListener('click', () => {
+    _lv3d.coroListaArt = !_lv3d.coroListaArt; _lv3d.coroLista = false; lv3dCoroUI();
+  });
+  /* ⚠️ EL SELECTOR NO TOCA NI LA CONTRACTILIDAD NI EL TERRITORIO — PANT-34 (C4): este oyente
+     escribe `coroArt`, repinta el panel y redibuja, y NADA MAS. No llama a `contrSetSegmento`,
+     no toca `contrEstado` y no repinta el bloque «Arterias posiblemente involucradas». */
+  panel.querySelectorAll('.lv3d-coro-a').forEach(b => b.addEventListener('click', () => {
+    _lv3d.coroArt = b.getAttribute('data-a') || 'todas';
+    _lv3d.coroListaArt = false;
+    lv3dCoroUI(); if (_lv3d.abierto) lv3dDibujar();
+  }));
   panel.querySelectorAll('.lv3d-coro-v').forEach(b => b.addEventListener('click', () => {
     _lv3d.coroVista = Number(b.getAttribute('data-v')) || 0;
     _lv3d.coroLista = false;
@@ -135741,6 +135824,25 @@ function lv3dCoroUI(){
   if (dib) dib.classList.toggle('lv3d-coro-on', on);
   const lista = document.getElementById('lv3d-coro-lista');
   if (lista) lista.style.display = (on && _lv3d.coroLista) ? 'flex' : 'none';
+  const listaA = document.getElementById('lv3d-coro-lista-art');
+  if (listaA) listaA.style.display = (on && _lv3d.coroListaArt) ? 'flex' : 'none';
+  /* El selector de arteria: titulo FIJO «Arteria», tilde en la activa, y `btn-primary` sobre el
+     boton solo cuando esta en algo distinto de «Todas», que es el estado por omision. */
+  const ab = panel.querySelector('.lv3d-coro-art-btn');
+  if (ab){
+    ab.textContent = 'Arteria';
+    ab.setAttribute('aria-expanded', (on && _lv3d.coroListaArt) ? 'true' : 'false');
+    const puesto = (_lv3d.coroArt && _lv3d.coroArt !== 'todas');
+    ab.classList.toggle('btn-primary', !!puesto); ab.classList.toggle('btn-ghost', !puesto);
+  }
+  panel.querySelectorAll('.lv3d-coro-a').forEach(bb => {
+    const k = bb.getAttribute('data-a');
+    const sel = k === (_lv3d.coroArt || 'todas');
+    const e = LV3D_CORO_LADOS.filter(function (x){ return x.a === k })[0];
+    bb.textContent = (sel ? '✓ ' : '') + ((e && e.n) || bb.textContent);
+    bb.setAttribute('aria-pressed', sel ? 'true' : 'false');
+    bb.classList.toggle('btn-primary', sel); bb.classList.toggle('btn-ghost', !sel);
+  });
   const vb = panel.querySelector('.lv3d-coro-vista-btn');
   if (vb){
     const v = _lv3d.coroVista;
@@ -135782,6 +135884,9 @@ function lv3dCoroUI(){
 function lv3dCoroApagar(){
   _lv3d.coro = false; _lv3d.coroVista = null; _lv3d.coroTransp = false;
   _lv3d.coroLetras = true; _lv3d.coroAngio = false; _lv3d.coroLista = false;
+  /* ⚠️ Y AHORA TAMBIEN EL SELECTOR DE ARTERIA — PANT-34 (A5): vuelve a «Todas», que es el
+     estado por omision. La DOMINANCIA sigue sin reiniciarse, que es el pedido de PANT-29. */
+  _lv3d.coroArt = 'todas'; _lv3d.coroListaArt = false;
   lv3dCoroUI();
 }
 function lv3dCoroToggle(){
@@ -135791,7 +135896,7 @@ function lv3dCoroToggle(){
 window.lv3dCoroDiag = function(){
   return { coro:!!_lv3d.coro, dom:_lv3d.coroDom, vista:_lv3d.coroVista,
            transp:!!_lv3d.coroTransp, letras:!!_lv3d.coroLetras, angio:!!_lv3d.coroAngio,
-           lista:!!_lv3d.coroLista,
+           lista:!!_lv3d.coroLista, art:_lv3d.coroArt, listaArt:!!_lv3d.coroListaArt,
            /* `fase` es la del modelo y `fasePintada` la que uso el ultimo cuadro de arterias.
               Con el pintor recalculando por cuadro son la MISMA; si alguna vez divergen, las
               arterias quedaron congeladas mientras la pared late. */
