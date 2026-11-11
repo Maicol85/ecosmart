@@ -79681,13 +79681,19 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      REF_SUBTAB no se mueve y lo que crece es el censo de fichas de la subpestana Valvulas. Lo
      que este caso vigila -que ninguna entrada quede fuera del reparto- no cambia.
      Sin acentos graves: el cuerpo de un caso es un template literal. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 40 entradas de la pestana',
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 41 entradas de la pestana',
     /* ADAPTADO el 2026-11-09 (PANT-28): 40 -> 43 por las tres fichas nuevas. */
     /* ADAPTADO el 2026-11-10 (PANT-29, commits 2 y 3): 43 -> 40. Las tres fichas grandes de
        PANT-28 se quitaron y su contenido pasa a dos resumenes dentro de ref-miocard y a cuatro
        vinietas dentro de ref-coronarias. Lo que el caso vigila -que el censo no pierda ni
        duplique ninguna entrada- no cambia. */
-    censo.n === 40, 'n=' + censo.n]);
+    /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 40 -> 41. La entrada nueva es «Asociaciones y
+       sindromes» (ref-asoc), TERCERA del panel «Cardiopatia congenita» y debajo de «Anomalias
+       coronarias». Lo que el caso vigila -que el censo no pierda ni duplique ninguna entrada-
+       no cambia; se exige ademas que la que entro sea ESA, para que la condicion siga
+       distinguiendo «entro una» de «se perdio una y entro otra». */
+    censo.n === 41 && censo.filas.some(f => f.id === 'asoc' && f.sub === 'congenitas'),
+    'n=' + censo.n + ' asoc=' + JSON.stringify(censo.filas.filter(f => f.id === 'asoc'))]);
   /* ADAPTADO 2026-11-08 (PANT-25): la constriccion se MUDO a la pestania Hemodinamica, con el
      posoperatorio. La condicion sigue siendo la misma -que esa ficha este en el reparto y no
      suelta-, solo que ahora su panel es otro. */
@@ -79720,13 +79726,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO 2026-11-08 (PANT-25): «Otros hallazgos» pierde CINCO fichas y nacen tres repartos
      nuevos. El total sigue en CUARENTA -5+4+14+3+2+1+2+9-, que es lo que prueba que ninguna
      entrada se perdio por el camino, y el reparto de las cuatro que no se tocaron es identico. */
-  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 2 Congenitas + 1 Cardiotox + 2 Hemo + 9 Otros',
+  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 3 Congenitas + 1 Cardiotox + 2 Hemo + 9 Otros',
     porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 14 && porSub.ao === 3 &&
     /* ADAPTADO el 2026-11-10 (PANT-29): congenitas 3 -> 2 (sale racong) y Otros 11 -> 9 (salen
        atleta y chagas). El total vuelve a CUARENTA, el de antes de PANT-28. */
-    porSub.congenitas === 2 && porSub.cardiotox === 1 && porSub.hemo === 2 && porSub.otros === 9 &&
+    /* ADAPTADO el 2026-11-11 (PANT-36, parte A): congenitas 2 -> 3, por «Asociaciones y
+       sindromes». Los otros SIETE repartos no se movieron, que es lo que esta condicion
+       protege: una entrada que cayera en la subpestania equivocada la pone en rojo igual. */
+    porSub.congenitas === 3 && porSub.cardiotox === 1 && porSub.hemo === 2 && porSub.otros === 9 &&
     (porSub.dim + porSub.fun + porSub.valv + porSub.ao + porSub.congenitas + porSub.cardiotox +
-     porSub.hemo + porSub.otros) === 40,
+     porSub.hemo + porSub.otros) === 41,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -79786,9 +79795,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO EN PANT-11 (commits 10 y 11): 34 -> 36, por las dos fichas nuevas. La resta de los
      dos agrupadores no cambia: 38 entradas menos dos. */
   /* ADAPTADO 2026-11-06 (PANT-20): 36 -> 38, las dos fichas nuevas, que el buscador SI indexa. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 38 entradas (40 menos los dos agrupadores)',
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 39 entradas (41 menos los dos agrupadores)',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 38; } catch (e) { return false; } })(),
+    /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 38 -> 39, por la entrada «Asociaciones y
+       sindromes», que el buscador indexa sola: su indice recorre los h2.card-head con toggleRef
+       de cada panel y no hubo que tocarlo. */
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 39; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -83841,7 +83853,7 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
      Hemodinamica antes de «Otros hallazgos». Lo que esta condicion vigila -que Calculadoras siga
      PRIMERA y que el censo de entradas no pierda ni duplique ninguna- no cambia: el censo sigue
      dando el mismo numero, porque ninguna entrada se creo ni se borro, solo cambiaron de panel. */
-  ex.push(['(F3) son NUEVE subpestanas de Referencias y el censo de entradas NO se movio',
+  ex.push(['(F3) son NUEVE subpestanas de Referencias y el censo de entradas esta en 41',
     (function () { const ORDEN = OB('REF_SUB_ORDEN') || [];
       if (ORDEN.length !== 9 || ORDEN[0] !== 'calc') return false;
       /* El censo: un h2.card-head con un onclick de toggleRef dentro de #tab-refs. Es la misma
@@ -83889,9 +83901,13 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
       /* ⚠️ Y LAS TRES DE PANT-28 SE EXIGEN AL REVES: tienen que NO existir. Sin esto la
          condicion seria solo un numero, y 40 lo da tambien un arbol al que le faltan tres fichas
          viejas y le sobran las tres grandes. Asi puede fallar por los dos lados. */
-      return n === 40 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+      /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 40 -> 41. La que entra es «Asociaciones y
+         sindromes» (ref-asoc), en «Cardiopatia congenita» y pegada a la de anomalias coronarias.
+         Se exige ademas que exista, por el mismo motivo de siempre: distinguir «entro una» de
+         «se perdio una y entro otra». Las tres de PANT-28 se siguen exigiendo AL REVES. */
+      return n === 41 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
         && !EL('ref-racong') && !EL('ref-atleta') && !EL('ref-chagas')
-        && !!EL('ref-coronarias') && !!EL('ref-miocard')
+        && !!EL('ref-coronarias') && !!EL('ref-miocard') && !!EL('ref-asoc')
         && !!EL('ref-pulmon') && !!EL('ref-pop')
         && !!EL('ref-tumores') && !!EL('ref-embolig'); })(),
     (function () { const t = EL('tab-refs');
@@ -132526,6 +132542,324 @@ caso('TC-820', 'PANT-34 (D1): la CAPTURA del 3D -la misma imagen que va al PDF- 
     der.rot > 100 && izq.rot > 100 && vuelta.rot > 100,
     'rot=' + [der.rot, izq.rot, vuelta.rot].join(','));
   cb.click(); await esp(250);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-821', 'PANT-36 parte A: la entrada «Asociaciones y sindromes» es la TERCERA del panel de Cardiopatia congenita, entra al reparto y al indice del buscador, el censo pasa de 40 a 41 y el indice de 38 a 39, y no trae un solo control', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('refs') } catch (e) {}
+  try { if (typeof refSubTab === 'function') refSubTab('congenitas') } catch (e) {}
+  await esp(400);
+  /* (A) DENOMINADOR: la subpestania esta ACTIVA. Referencias muestra UN panel a la vez, asi que
+     con otro delante la entrada no tiene geometria y todo lo que se mida da cero sobre nada. */
+  const pan = document.getElementById('ref-sub-congenitas');
+  q('(A0 DENOM) el panel de Cardiopatia congenita existe y esta visible',
+    !!pan && getComputedStyle(pan).display !== 'none' && pan.getBoundingClientRect().width > 0,
+    'panel=' + (pan ? getComputedStyle(pan).display + ' w=' + Math.round(pan.getBoundingClientRect().width) : 'NO'));
+  const cards = pan ? Array.prototype.slice.call(pan.querySelectorAll('.card')) : [];
+  const ids = cards.map(c => { const b = c.querySelector('.card-body'); return b ? b.id : '?' });
+  q('(A1) el panel tiene TRES entradas y la nueva es la TERCERA, debajo de «Anomalias coronarias»',
+    ids.join(',') === 'ref-congenitas,ref-coronarias,ref-asoc', 'orden=' + ids.join(','));
+  q('(A2) su encabezado dice «Asociaciones y sindromes» y la abre con toggleRef',
+    (function () { const d = document.getElementById('ref-asoc'); if (!d) return false;
+      const h = d.previousElementSibling;
+      if (!h || h.tagName !== 'H2') return false;
+      const oc = h.getAttribute('onclick') || '';
+      const t = (h.textContent || '').replace(/\\s+/g, ' ');
+      return oc.indexOf('toggleRef(' + String.fromCharCode(39) + 'asoc' + String.fromCharCode(39)) > -1
+        && t.indexOf('Asociaciones y s') > -1; })(),
+    'encabezado=' + (function () { const d = document.getElementById('ref-asoc');
+      const h = d ? d.previousElementSibling : null;
+      return h ? (h.tagName + ' ' + (h.textContent || '').replace(/\\s+/g, ' ').trim()) : 'NO'; })());
+  /* ⚠️ LA CLAVE TIENE QUE ESTAR EN EL REPARTO: una entrada fuera de REF_SUBTAB existe, se abre
+     desde su encabezado y el buscador la indexa, pero el medico que navegue por las solapas no
+     la encuentra nunca. Es la leccion de constriccion en la tanda J. */
+  q('(A3) «asoc» esta en REF_SUBTAB.congenitas, y ULTIMA',
+    typeof REF_SUBTAB !== 'undefined' && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias,asoc',
+    'reparto=' + (typeof REF_SUBTAB === 'undefined' ? 'SIN MAPA' : REF_SUBTAB.congenitas.join(',')));
+  const t = document.getElementById('tab-refs');
+  const censo = t ? Array.prototype.slice.call(t.querySelectorAll('h2.card-head'))
+    .filter(h => (h.getAttribute('onclick') || '').indexOf('toggleRef(' + String.fromCharCode(39)) > -1).length : -1;
+  q('(A4) el censo de entradas de Referencias pasa de 40 a 41', censo === 41, 'entradas=' + censo);
+  let ix = null; try { ix = window._refIndiceArmar(true) } catch (e) { ix = null }
+  q('(A5) el indice del buscador pasa de 38 a 39 y la entrada nueva esta, con su seccion',
+    !!ix && ix.length === 39 && ix.some(x => x.id === 'asoc' && x.sub === 'congenitas'),
+    'indice=' + (ix ? ix.length : 'EXC') + ' asoc=' + (ix ? JSON.stringify(ix.filter(x => x.id === 'asoc').map(x => x.sub)) : '-'));
+  /* (B) el buscador la encuentra, y los controles no se movieron. */
+  const busca = (s) => { if (!ix) return 'SIN INDICE';
+    const n = window._refNorm ? window._refNorm(s) : s.toLowerCase();
+    return ix.filter(x => x.txt.indexOf(n) > -1).map(x => x.id).join(','); };
+  q('(B1) buscar «Turner» y «Heterotaxia» trae la entrada nueva',
+    busca('Turner') === 'asoc' && busca('Heterotaxia') === 'asoc',
+    'turner=' + busca('Turner') + ' heterotaxia=' + busca('Heterotaxia'));
+  q('(B2) CONTROL: «RWT», «Wilkins» y «Rassi» siguen trayendo lo de siempre, no la entrada nueva',
+    busca('RWT') === 'vi,formulas' && busca('Wilkins') === 'em' && busca('Rassi') === 'miocard',
+    'rwt=' + busca('RWT') + ' wilkins=' + busca('Wilkins') + ' rassi=' + busca('Rassi'));
+  /* (C) lo que la entrada NO trae. */
+  const d = document.getElementById('ref-asoc');
+  if (d && getComputedStyle(d).display === 'none') { try { toggleRef('asoc', d.previousElementSibling) } catch (e) {} }
+  await esp(200);
+  q('(C1) la entrada ABRE de verdad y tiene ancho',
+    !!d && getComputedStyle(d).display !== 'none' && d.getBoundingClientRect().width > 0,
+    'display=' + (d ? getComputedStyle(d).display : 'NO'));
+  q('(C2) CERO botones, selectores y casillas: por eso no agrega un campo del estudio ni una columna',
+    !!d && d.querySelectorAll('input,select,textarea,button').length === 0,
+    'controles=' + (d ? d.querySelectorAll('input,select,textarea,button').length : '-'));
+  /* ⚠️ NINGUN ID NUEVO PUEDE TERMINAR EN «-aviso»: limpiarCampos barre [id$="-aviso"] y les
+     escribe textContent vacio, que es lo que PANT-30 pago con el boton de su aviso. */
+  q('(C3) ningun id de la entrada termina en «-aviso»',
+    !!d && Array.prototype.slice.call(d.querySelectorAll('[id]')).filter(e => /-aviso$/.test(e.id)).length === 0
+      && !/-aviso$/.test(d.id),
+    'ids=' + (d ? Array.prototype.slice.call(d.querySelectorAll('[id]')).map(e => e.id).join(',') : '-'));
+  q('(C4) y no lleva pie, fuente ni nota: cero elementos en cursiva',
+    !!d && d.querySelectorAll('i,em').length === 0,
+    'cursivas=' + (d ? d.querySelectorAll('i,em').length : '-'));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-822', 'PANT-36 parte A: las DOS tablas de «Asociaciones y sindromes» -- nueve sindromes y trece asociaciones --, con sus columnas, su primera celda en negrita, su envoltorio que se desplaza en celular y el texto EXACTO de las celdas que llevan cifra', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  try { showTab('refs') } catch (e) {}
+  try { if (typeof refSubTab === 'function') refSubTab('congenitas') } catch (e) {}
+  await esp(400);
+  const d = document.getElementById('ref-asoc');
+  if (d && getComputedStyle(d).display === 'none') { try { toggleRef('asoc', d.previousElementSibling) } catch (e) {} }
+  await esp(200);
+  q('(A0 DENOM) la entrada abre y trae DOS tablas',
+    !!d && getComputedStyle(d).display !== 'none' && d.querySelectorAll('table').length === 2,
+    'tablas=' + (d ? d.querySelectorAll('table').length : 'NO EXISTE'));
+  const tbs = d ? Array.prototype.slice.call(d.querySelectorAll('table')) : [];
+  const filas = (i) => tbs[i] ? Array.prototype.slice.call(tbs[i].querySelectorAll('tr')) : [];
+  /* ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA: contra el arbol anterior la entrada no existe,
+     y un acceso pelado tira TypeError -- el caso caeria por EXCEPCION y no por sus condiciones,
+     que es lo que esta casa exige para que un caso pruebe algo. */
+  const ths = (i) => { const f = filas(i)[0];
+    return f ? Array.prototype.slice.call(f.querySelectorAll('th')).map(x => N(x.textContent)) : []; };
+  const col1 = (i) => filas(i).slice(1).map(tr => { const t = tr.querySelectorAll('td')[0];
+    return t ? N(t.textContent) : 'SIN CELDA'; });
+  const cel = (i, f, c) => { const tr = filas(i)[f]; if (!tr) return 'SIN FILA';
+    const td = tr.querySelectorAll('td')[c]; return td ? N(td.textContent) : 'SIN CELDA'; };
+  const rots = d ? Array.prototype.slice.call(d.children).filter(e => e.tagName === 'DIV' && !e.querySelector('table'))
+    .map(e => N(e.textContent)) : [];
+  q('(A1) los dos rotulos, en su orden y con su texto exacto',
+    rots.join(' || ') === 'S\\u00edndromes con cardiopat\\u00eda || Asociaciones entre cardiopat\\u00edas, sin s\\u00edndrome',
+    'rotulos=' + rots.join(' || '));
+  q('(A2) la primera tabla tiene CINCO columnas y NUEVE filas de datos',
+    filas(0).length === 10 && ths(0).length === 5,
+    'filas=' + filas(0).length + ' columnas=' + ths(0).length);
+  q('(A3) la segunda tabla tiene TRES columnas y TRECE filas de datos',
+    filas(1).length === 14 && ths(1).length === 3,
+    'filas=' + filas(1).length + ' columnas=' + ths(1).length);
+  q('(A4) los encabezados de la primera tabla, con el texto exacto',
+    ths(0).join('|') === 'S\\u00edndrome|Alteraci\\u00f3n gen\\u00e9tica|Con cardiopat\\u00eda|Cardiopat\\u00eda m\\u00e1s t\\u00edpica|C\\u00f3mo sospecharlo',
+    'th=' + ths(0).join('|'));
+  q('(A5) los encabezados de la segunda tabla, con el texto exacto',
+    ths(1).join('|') === 'Cardiopat\\u00eda|Se asocia con|Qu\\u00e9 mirar en el eco',
+    'th=' + ths(1).join('|'));
+  /* (B) LA PRIMERA COLUMNA DE CADA FILA, EN SU ORDEN. Si una fila se pierde, se duplica o se
+     mueve, esto lo dice; el numero solo no lo diria. */
+  const S1 = ['Deleci\\u00f3n 22q11.2 (DiGeorge, velocardiofacial)', 'Down', 'Holt-Oram', 'Klinefelter',
+              'Noonan', 'Turner', 'Williams (Williams-Beuren)', 'Alagille', 'Heterotaxia'];
+  q('(B1) los NUEVE sindromes, en su orden y con su texto exacto',
+    col1(0).join('|') === S1.join('|'), 'col1=' + col1(0).join('|'));
+  const S2 = ['V\\u00e1lvula a\\u00f3rtica bic\\u00faspide', 'Coartaci\\u00f3n de aorta', 'Tetralog\\u00eda de Fallot',
+              'Comunicaci\\u00f3n interventricular (CIV)', 'Comunicaci\\u00f3n interauricular (CIA)',
+              'Anomal\\u00eda de Ebstein', 'TGA cong\\u00e9nitamente corregida', 'Estenosis suba\\u00f3rtica',
+              'Estenosis a\\u00f3rtica supravalvular', 'Transposici\\u00f3n de grandes arterias (TGA)',
+              'Tronco arterioso', 'ARCAPA (coronaria derecha desde la pulmonar)',
+              'Canal AV (defecto septal AV)'];
+  q('(B2) las TRECE cardiopatias, en su orden y con su texto exacto',
+    col1(1).join('|') === S2.join('|'), 'col1=' + col1(1).join('|'));
+  /* (C) LAS CELDAS CON CIFRA, carácter por carácter. Son las que una reescritura descuidada
+     cambia sin que nada se vea raro. */
+  q('(C1) el «60 a 80 %» de la delecion 22q11.2 y su frase del 70 % conotruncal',
+    cel(0, 1, 2) === '60 a 80 %'
+      && cel(0, 1, 3).indexOf('el 70 % tiene un defecto conotruncal.') > -1,
+    'c=' + cel(0, 1, 2) + ' | ' + cel(0, 1, 3).slice(-60));
+  q('(C2) el Down con «40 a 50 %» y «Mas del 75 % de los canales AV completos»',
+    cel(0, 2, 2) === '40 a 50 %' && cel(0, 2, 3).indexOf('M\\u00e1s del 75 % de los canales AV completos ocurren en Down.') > -1,
+    'c=' + cel(0, 2, 2) + ' | ' + cel(0, 2, 3).slice(-70));
+  q('(C3) Holt-Oram 75 %, Klinefelter 50 %, Noonan 80 %, Turner 30 %, Williams 50 a 80 %, Alagille 70 a 75 %, Heterotaxia 50 a 95 %',
+    [3, 4, 5, 6, 7, 8, 9].map(f => cel(0, f, 2)).join('|')
+      === '75 %|50 %|80 %|30 %|50 a 80 %|70 a 75 %|50 a 95 %',
+    'porcentajes=' + [3, 4, 5, 6, 7, 8, 9].map(f => cel(0, f, 2)).join('|'));
+  q('(C4) la bicuspide: coartacion en 4 a 10 %, aorta ascendente hasta 30 a 40 % y familiares 5 a 10 %',
+    cel(1, 1, 1).indexOf('Coartaci\\u00f3n (4 a 10 % de las bic\\u00faspides)') === 0
+      && cel(1, 1, 1).indexOf('hasta 30 a 40 % en centros de referencia') > -1
+      && cel(1, 1, 1).indexOf('bic\\u00faspide en 5 a 10 % de los familiares de primer grado') > -1,
+    'celda=' + cel(1, 1, 1).slice(0, 120));
+  q('(C5) la CIA por tipo: secundum 80 %, primum 15 %, seno venoso superior 5 % y los dos «menos de 1 %»',
+    cel(1, 5, 1).indexOf('ostium secundum 80 %, ostium primum 15 %, seno venoso superior 5 %, seno venoso inferior menos de 1 %, seno coronario sin techo menos de 1 %.') > -1,
+    'celda=' + cel(1, 5, 1).slice(-150));
+  q('(C6) la CIV por tipo, con los dos signos de aproximacion',
+    cel(1, 4, 1).indexOf('perimembranosa \\u224880 %, muscular hasta 15 a 20 %, de salida \\u22485 %.') > -1,
+    'celda=' + cel(1, 4, 1).slice(-90));
+  q('(C7) la TGA: CIV en cerca del 40 % y el patron coronario habitual en cerca del 65 %',
+    cel(1, 10, 1).indexOf('CIV (\\u224840 %)') === 0 && cel(1, 10, 1).indexOf('habitual \\u224865 %, circunfleja desde la derecha 14 %, otros 20 %.') > -1,
+    'celda=' + cel(1, 10, 1));
+  q('(C8) la ccTGA: mas del 80 % con lesiones asociadas y el bloqueo AV del 2 % por anio',
+    cel(1, 7, 1).indexOf('Lesiones asociadas en m\\u00e1s del 80 %') === 0
+      && cel(1, 7, 1).indexOf('bloqueo AV (2 % por a\\u00f1o)') > -1,
+    'celda=' + cel(1, 7, 1).slice(0, 110));
+  /* (D) la forma: primera columna en negrita y el envoltorio de celular. */
+  const cuerpos = filas(0).slice(1).concat(filas(1).slice(1));
+  q('(D1) las 22 primeras celdas van en negrita y las demas no',
+    cuerpos.length === 22 && cuerpos.every(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (!tds.length || getComputedStyle(tds[0]).fontWeight !== '700') return false;
+      for (let i = 1; i < tds.length; i++) if (getComputedStyle(tds[i]).fontWeight === '700') return false;
+      return true; }),
+    'filas de datos=' + cuerpos.length + ' pesos=' + cuerpos.map(tr => { const t = tr.querySelectorAll('td')[0];
+      return t ? getComputedStyle(t).fontWeight : '-' }).join(','));
+  const wraps = d ? Array.prototype.slice.call(d.querySelectorAll('div[style*="overflow-x"]')) : [];
+  q('(D2) cada tabla vive en un envoltorio que se desplaza, con la tabla en min-width',
+    wraps.length === 2 && wraps.every(w => getComputedStyle(w).overflowX === 'auto')
+      && tbs.every(tb => parseInt(tb.style.minWidth || '0', 10) >= 700),
+    'envoltorios=' + wraps.length + ' minW=' + tbs.map(tb => tb.style.minWidth).join(','));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-823', 'PANT-36 parte B: los QUINCE resumenes de congenitas viven DENTRO de ref-congenitas con el molde medido de ref-miocard, dentro del techo de 849 caracteres y 7 vinietas, el renglon que la ficha ya tenia sigue identico y ninguno nombra una guia, una clase ni un folio', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  try { showTab('refs') } catch (e) {}
+  try { if (typeof refSubTab === 'function') refSubTab('congenitas') } catch (e) {}
+  await esp(400);
+  const d = document.getElementById('ref-congenitas');
+  if (d && getComputedStyle(d).display === 'none') { try { toggleRef('congenitas', d.previousElementSibling) } catch (e) {} }
+  await esp(200);
+  /* (A) DENOMINADOR: la ficha abre de verdad. Cerrada, el textContent es el mismo y no prueba
+     que el medico lo pueda leer. */
+  q('(A0 DENOM) la ficha de congenitas abre y tiene ancho',
+    !!d && getComputedStyle(d).display !== 'none' && d.getBoundingClientRect().width > 0,
+    'display=' + (d ? getComputedStyle(d).display : 'NO EXISTE'));
+  const H = d ? Array.prototype.slice.call(d.children).map(h => { const cs = getComputedStyle(h);
+    const t = N(h.textContent); let v = 0;
+    for (let i = 0; i < t.length; i++) if (t.charCodeAt(i) === 8226) v++;
+    return { tag: h.tagName, txt: t, chars: t.length, vin: v, peso: cs.fontWeight, size: cs.fontSize,
+             lh: cs.lineHeight, vis: cs.display !== 'none' && h.getBoundingClientRect().width > 0 }; }) : [];
+  q('(A1) la ficha tiene 31 hijos: el renglon que ya estaba mas QUINCE pares de titulo y cuerpo',
+    H.length === 31, 'hijos=' + H.length);
+  /* ⚠️ EL RENGLON ORIGINAL NO SE TOCA, igual que los cinco resumenes que ref-miocard ya tenia
+     cuando PANT-29 le agrego dos. Se compara entero, carácter por carácter. */
+  const ORIG = 'CIA: Qp/Qs \\u22651.5 + dilataci\\u00f3n VD \\u2192 cierre \\u00b7 Percut\\u00e1neo si \\u226438mm y bordes \\u22655mm '
+    + 'CIV: Qp/Qs >1.5 + dilataci\\u00f3n VI \\u2192 cierre \\u00b7 Gradiente >64mmHg = RVP baja '
+    + 'PCA: sobrecarga VI \\u2192 cierre percut\\u00e1neo (Amplatzer de elecci\\u00f3n en adultos) '
+    + 'Contraindicaci\\u00f3n: Eisenmenger (shunt derecha-izquierda) en todas';
+  q('(A2) el renglon que la ficha ya tenia sigue PRIMERO y identico',
+    H.length > 0 && H[0].txt === ORIG, 'original=' + (H[0] ? H[0].txt.slice(0, 90) : 'NO'));
+  const TIT = ['CIA \\u2014 Comunicaci\\u00f3n interauricular', 'CIV \\u2014 Comunicaci\\u00f3n interventricular',
+    'DAP \\u2014 Ductus arterioso persistente', 'VAB \\u2014 V\\u00e1lvula a\\u00f3rtica bic\\u00faspide',
+    'CoAo \\u2014 Coartaci\\u00f3n de aorta', 'TdF \\u2014 Tetralog\\u00eda de Fallot reparada',
+    'Ebstein \\u2014 Anomal\\u00eda de Ebstein', 'DSAV \\u2014 Defecto del septo auriculoventricular',
+    'Estenosis suba\\u00f3rtica', 'Estenosis a\\u00f3rtica supravalvular',
+    'TGA \\u2014 Transposici\\u00f3n de grandes arterias', 'CVPA \\u2014 Conexi\\u00f3n venosa pulmonar an\\u00f3mala parcial',
+    'Fontan \\u2014 Circulaci\\u00f3n de Fontan', 'Eisenmenger \\u2014 S\\u00edndrome de Eisenmenger',
+    'Marfan/EHAT \\u2014 Aortopat\\u00eda hereditaria'];
+  const tits = H.filter((h, i) => i > 0 && i % 2 === 1).map(h => h.txt);
+  q('(B1) los QUINCE titulos, en su orden y con su texto exacto',
+    tits.join('|') === TIT.join('|'), 'titulos=' + tits.join('|'));
+  /* (B) EL MOLDE: titulo en 700 y cuerpo no, los dos de 12 px, interlineado 1,8 = 21,6 px. */
+  let molde = '', techo = '', vinie = '', invis = '';
+  for (let i = 1; i + 1 < H.length; i += 2) {
+    const t = H[i], c = H[i + 1];
+    if (t.peso !== '700' || c.peso === '700' || t.size !== '12px' || c.size !== '12px' || c.lh !== '21.6px')
+      molde += TIT[(i - 1) / 2] + '(' + t.peso + '/' + c.peso + '/' + t.size + '/' + c.lh + ') ';
+    if (t.chars + c.chars > 849) techo += TIT[(i - 1) / 2] + '=' + (t.chars + c.chars) + ' ';
+    if (c.vin > 7) vinie += TIT[(i - 1) / 2] + '=' + c.vin + ' ';
+    if (!t.vis || !c.vis) invis += TIT[(i - 1) / 2] + ' ';
+  }
+  q('(B2) los quince usan el MOLDE del sector: titulo en 700 y cuerpo sin negrita, 12 px los dos, interlineado 21,6 px',
+    molde === '', 'fuera del molde: ' + molde);
+  q('(B3) NINGUNO pasa el techo de 849 caracteres del resumen mas largo de ref-miocard',
+    techo === '', 'pasan el techo: ' + techo);
+  q('(B4) ni las SIETE vinietas de ese mismo techo',
+    vinie === '', 'pasan las vinietas: ' + vinie);
+  q('(B5) y los treinta hijos nuevos SE VEN: un display:none deja el texto y al medico sin nada que leer',
+    invis === '', 'invisibles: ' + invis);
+  /* (C) LO QUE NINGUNO PUEDE DECIR. El papel describe y la pantalla no nombra guias; estos
+     textos tampoco, y la trazabilidad vive en docs/CONTROL_CONGENITAS_P36.md. */
+  const PROH = ['ESC ', 'ACC/AHA', 'AHA/ACC', 'folio', 'Clase I', 'Clase II', 'no figura',
+                'pendiente de revisi', 'no coincide', 'difieren', 'discrepan'];
+  const todo = H.slice(1).map(h => h.txt).join(' ');
+  const hall = PROH.filter(p => todo.toLowerCase().indexOf(p.toLowerCase()) > -1);
+  q('(C1) ninguno nombra una guia, una clase o un folio, ni dice que algo no figura o que dos fuentes difieren',
+    hall.length === 0, 'encontrado: ' + hall.join(','));
+  q('(C2) y ninguno lleva linea de fuente: cero elementos en cursiva y cero hijos de menos de 12 px',
+    !!d && d.querySelectorAll('i,em').length === 0 && H.every(h => h.size === '12px'),
+    'cursivas=' + (d ? d.querySelectorAll('i,em').length : '-') + ' tamanios=' + H.map(h => h.size).join(','));
+  /* (D) CONTROL: ref-miocard, el sector del que sale el molde, NO se movio. */
+  const m = document.getElementById('ref-miocard');
+  if (m && getComputedStyle(m).display === 'none') { try { toggleRef('miocard', m.previousElementSibling) } catch (e) {} }
+  await esp(150);
+  const HM = m ? Array.prototype.slice.call(m.children).map(x => N(x.textContent).length) : [];
+  q('(D1) CONTROL: ref-miocard sigue con sus CATORCE hijos y su techo de 849',
+    HM.length === 14 && (HM[8] + HM[9]) === 849,
+    'hijos=' + HM.length + ' amiloidosis=' + (HM.length >= 10 ? HM[8] + HM[9] : '-'));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-824', 'PANT-36: NADA de esta tanda llega al papel ni al estudio -- cero campos guardados nuevos, Excel en 457 columnas, el informe y el EN SUMA sin una palabra de lo nuevo, y ref-coronarias con su globo otr-rac intactos', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const N = (s) => String(s == null ? '' : s).replace(/\\s+/g, ' ').trim();
+  /* (A) el censo de campos del estudio: lo que esta tanda agrega son div, table, tr, td y th. */
+  const campos = Array.prototype.slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+    .filter(e => !(typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(e.id)));
+  q('(A0 DENOM) el censo de campos del estudio encuentra algo que contar',
+    campos.length > 900, 'campos=' + campos.length);
+  const dentro = ['ref-asoc', 'ref-congenitas'].map(id => { const e = document.getElementById(id);
+    return e ? e.querySelectorAll('input[id],select[id],textarea[id]').length : -1; });
+  q('(A1) ni la entrada nueva ni la ficha de congenitas tienen un solo campo con id',
+    dentro.join(',') === '0,0', 'campos dentro=' + dentro.join(','));
+  const cols = (typeof _labExcelRow === 'function') ? Object.keys(_labExcelRow({ id: 0, campos: {} })) : [];
+  q('(A2) el Excel del Laboratorio sigue en 457 columnas', cols.length === 457, 'columnas=' + cols.length);
+  /* (B) el papel. Se carga un estudio y se mira que ninguna frase nueva aparezca. */
+  __t.limpiar();
+  __t.set('nombre', 'Prueba P36'); __t.set('ci', '36363636');
+  __t.set('ete_cia_tipo', 'Ostium secundum');
+  await esp(400);
+  const r = __t.informe();
+  const inf = N(r.inf), suma = N(r.suma);
+  q('(B0 DENOM) el informe se genero y tiene texto',
+    inf.length > 40, 'largo=' + inf.length);
+  const FRASES = ['Heterotaxia', 'Holt-Oram', 'Klinefelter', 'Alagille', 'ARCAPA',
+                  'velocardiofacial', 'Williams-Beuren', 'Asociaciones y s\\u00edndromes'];
+  const enPapel = FRASES.filter(f => (inf + ' ' + suma).indexOf(f) > -1);
+  q('(B1) ninguna palabra de las tablas nuevas aparece en el informe ni en el EN SUMA',
+    enPapel.length === 0, 'aparecen: ' + enPapel.join(','));
+  /* (C) CONTROL: la ficha de anomalias coronarias y su globo no se movieron. */
+  try { showTab('refs') } catch (e) {}
+  try { if (typeof refSubTab === 'function') refSubTab('congenitas') } catch (e) {}
+  await esp(300);
+  const c = document.getElementById('ref-coronarias');
+  if (c && getComputedStyle(c).display === 'none') { try { toggleRef('coronarias', c.previousElementSibling) } catch (e) {} }
+  await esp(150);
+  q('(C1) CONTROL: ref-coronarias sigue con sus CUATRO hijos, dos de ellos marcados data-ref-solo',
+    !!c && c.children.length === 4 && c.querySelectorAll('[data-ref-solo]').length === 2,
+    'hijos=' + (c ? c.children.length : 'NO') + ' solo=' + (c ? c.querySelectorAll('[data-ref-solo]').length : '-'));
+  /* ⚠️ EL GLOBO otr-rac CLONA ESA FICHA SALTEANDO LOS data-ref-solo: lo que PANT-36 agrega vive
+     en una entrada HERMANA, asi que el clon tiene que seguir dando lo mismo que daba. */
+  /* ⚠️ RECIBE EL ID COMPLETO DEL CUERPO, «ref-coronarias», y DEVUELVE un contenedor ya armado:
+     con la clave corta la funcion no encuentra la ficha y devuelve su texto de ausencia, que
+     tiene otro largo y se leeria como un cambio del globo. */
+  const clon = (typeof _otrRefClon === 'function')
+    ? (function () { try { const w = _otrRefClon('ref-coronarias');
+        return w ? N(w.textContent).length : -1; } catch (e) { return -2 } })() : -3;
+  q('(C2) CONTROL: el clon del globo otr-rac sigue dando sus 478 caracteres',
+    clon === 478, 'clon=' + clon);
   return { extra: F };
   })();
 `);
