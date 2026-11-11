@@ -1,5 +1,79 @@
 <!-- registro armado sobre 5137c30, 2026-10-01; los números de línea no se guardan a propósito -->
 
+## La tanda PANT-36 (2026-11-11) — las dos guías de congénitas del adulto, leídas en imagen
+
+Los quince resúmenes de congénitas de Referencias salen **sólo** de estas dos, que es lo que B2
+de la orden manda. **Cuando las dos dan cifras distintas se usa la americana**; en esta tanda no
+hizo falta: catorce resúmenes salen de la americana y **uno solo** —el de Marfan/EHAT— de la
+europea, porque la americana **se excluye a sí misma** de ese tema (ver `P36-d`).
+
+### Las dos reglas de folio, comprobadas hoja por hoja
+
+| guía | archivo | hojas | regla | comprobada en |
+|---|---|---|---|---|
+| **ACC/AHA 2025** de congénitas del adulto (Gurvitz et al, *Circulation* 2026;153:e115-e251) | `08_Cardiopatias_congenitas/gurvitz-et-al-2025-…-congenital-heart-disease-a.pdf` (**sin** el sufijo `-2`) | **137** | folio = **e** + hoja + **114** | hojas 1, 2, 10, 35, 60, 75, 100 y 137 → e115, e116, e124, e149, e174, e189, e214 y e251 |
+| **ESC 2020** de congénitas del adulto, **en inglés** (Baumgartner et al, *Eur Heart J* 2021;42:563-645) | `08_Cardiopatias_congenitas/ESC congenitos en ingles 2020.pdf` | **84** | folio = hoja + **562** | hojas 1, 2, 10, 35 y 60 → 563, 564, 572, 597 y 622 |
+
+⚠️ El `Baumgartner_2020_Cardiopatias_Congenitas.pdf` de la misma carpeta está **en español** y
+tiene **79** hojas: no cumple la regla. Es la premisa que PANT-21 ya había desmentido y que se
+volvió a verificar acá.
+⚠️ La **hoja 84** de la inglesa no imprime folio: el rango del artículo es 563-645, o sea 83
+folios, y la 84 es el cierre sin numerar.
+
+### Por qué los números se leen EN IMAGEN, con el caso de esta tanda
+
+El texto extraído de la ESC devuelve **«(2030%)»** donde la hoja **imprime «(20–30%)»**: el guion
+del rango se pierde en la extracción. Con el texto extraído, el resumen de Marfan habría
+publicado «2030 %». **Hoja 44, folio 606**, leída a 260 ppp.
+
+### Lo que se leyó, hoja por hoja
+
+**ACC/AHA 2025** — las *Synopsis* de cada sección de «4. Specific Conditions», más las tablas y
+las recomendaciones que se citan:
+
+| hoja | folio | qué se leyó en imagen |
+|---|---|---|
+| 35 | **e149** | CIA: los cinco subtipos con su porcentaje (secundum 80 %, primum 15 %, seno venoso superior 5 % o inferior <1 %, seno coronario sin techo 1 %), la lesión asociada más común, Qp:Qs ≥1,5, RVP ≤2 unidades Wood, «significant LV disease» = presión auricular izquierda ≥15 mmHg, y los dos extremos: transcatéter preferido en el secundum aislado y cierre contraindicado en Eisenmenger |
+| 40 | **e154** | CIV: «el defecto congénito más frecuente después de los de la válvula aórtica», el gradiente >64 mmHg de la restrictiva pequeña, el Qp:Qs ≥1,5 y <2 de la moderada, la grande no restrictiva con Eisenmenger, el control cada 3 a 5 años y el Qp:Qs <1,5 que no se cierra |
+| 43 | **e157** | Canal AV: 4 a 5 % de las cardiopatías congénitas, los tres subtipos y el seguimiento |
+| 45 | **e159** | Conexión venosa pulmonar anómala parcial: cortocircuito obligado, las dos más comunes, la vena cimitarra |
+| 47 | **e161** | Ductus: 0,3 a 0,8 % de los recién nacidos de término, predominio en mujeres, y la HTP definida con RVP ≥2 unidades Wood, PAP media ≥20 mmHg y presión capilar ≤15 mmHg, con la oximetría en los pies y las dos manos |
+| 52 | **e166** | Estenosis subaórtica: antes de los 10 años, predominio masculino, bloqueo cardíaco 4 a 5 %, recurrencia hasta 25 %, reoperación 2 % por año |
+| 53 | **e167** | Bicúspide: el cribado de coartación y aneurisma, el **>4 cm** en senos o aorta ascendente y el eco único a los familiares de primer grado |
+| 54 | **e168** | Bicúspide: **4,6/1000 nacidos vivos** y **2 a 3 veces** más común en varones |
+| 55 | **e169** | Estenosis aórtica supravalvular: la unión sinotubular, el reloj de arena frente a la difusa, Williams, hipercolesterolemia familiar homocigota y arteriopatía por elastina |
+| 57 | **e171** | Coartación: la **Tabla 25** entera (gradiente braquio-femoral >20 mmHg, gradiente medio Doppler >20 mmHg, cola diastólica, pico a pico >20 mmHg, relación del istmo <0,5-0,7 y colaterales) y las lesiones que la acompañan |
+| 60 | **e174** | Ebstein: **1 de cada 1.000 nacidos vivos** y la miocardiopatía propia del VD |
+| 69 | **e183** | Fallot reparada: **al menos el 15 %** con atresia pulmonar, insuficiencia pulmonar moderada = fracción de regurgitación **≥25 %** por resonancia, estenosis pulmonar moderada = presión del VD **≥ dos tercios** de la sistémica |
+| 77 | **e191** | d-TGA con switch auricular: **42,8 %** con disfunción moderada o severa del ventrículo sistémico a una mediana de **29 años** |
+| 78 | **e192** | d-TGA: insuficiencia tricuspídea en **la cuarta parte**, estenosis de conductos en **hasta la mitad**, fugas en **hasta el 65 %**, arritmia auricular **28,9 %**, ventricular **5,8 %**, pérdida del sinusal **24,9 %**, muerte súbita **0,63 % anual** |
+| 84 | **e198** | ccTGA: doble discordancia y **más del 80 %** con lesiones asociadas |
+| 88 | **e202** | Fontan: hipertensión venosa sistémica obligada, gasto bajo, el hígado y la tromboprofilaxis |
+| 94 | **e208** | Eisenmenger: el mecanismo, la cianosis crónica, el Down y lo que hay que evitar |
+| 11 | **e125** | **la guía se excluye a sí misma** del Marfan y de la miocardiopatía hipertrófica |
+| 8 | **e122** | la **única** mención de la ventana aortopulmonar: un ejemplo de cortocircuito en una recomendación de Eisenmenger |
+
+**ESC 2020 inglesa** — sección **4.7 Aortopathies**:
+
+| hoja | folio | qué se leyó en imagen |
+|---|---|---|
+| 43 | **605** | Marfan como prototipo de las enfermedades hereditarias de la aorta torácica, sindrómicas y no sindrómicas |
+| 44 | **606** | edad media de muerte **menor de 40 años** sin tratar, el diámetro de la raíz con riesgo de rotura **≥50 mm**, los otros factores, qué medir en el eco y la detección de mutación **>90 %** frente a **20-30 %** |
+
+### Lo que NO se pudo citar
+
+**La ventana aortopulmonar.** Buscada con su nombre y sus variantes en las dos guías: la
+americana la nombra **una vez** y de pasada (hoja 8, folio e122) y **no tiene sección**; la
+europea inglesa **no la nombra**. Su resumen **se omitió entero**, que es lo que B3 manda.
+Declarado en `P36-a`.
+
+### Cambios de evidencia
+
+| qué | antes | ahora | fuente |
+|---|---|---|---|
+| Referencias → Cardiopatía congénita | una entrada con **cuatro renglones** (CIA, CIV, PCA y la contraindicación de Eisenmenger) y la de anomalías coronarias | esos cuatro renglones **intactos** + **quince resúmenes** por patología, y una entrada nueva con **dos tablas** de síndromes y asociaciones | ACC/AHA 2025 y ESC 2020 inglesa, leídas en imagen |
+| las dos tablas de «Asociaciones y síndromes» | no existían | **9 síndromes** y **13 asociaciones**, con el texto que el médico fijó | decisión del médico (la orden de PANT-36) |
+
 ## La tanda PANT-24 (2026-11-08) — los textos de prótesis y de la Evidencia, y el corte de 10 mm
 
 **Esta tanda no leyó una fuente nueva.** Todo lo que publica sale de documentos que este archivo

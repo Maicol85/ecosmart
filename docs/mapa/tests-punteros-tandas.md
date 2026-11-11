@@ -314,3 +314,30 @@ como `✓` en una línea y literal en la otra— dejó un ancla del barrido en *
 igual que «no hay cobertura». El `--anclas` lo cazó antes de correr.
 
 **Barrido:** `scripts/_mut_pant34.py`.
+
+---
+
+## PANT-36 (2026-11-11) — TC-821 a TC-824
+
+Las fichas, en **`docs/mapa/tests-fichas-821.md`** (archivo propio: la regla de la casa es que la
+ficha de una tanda nueva nace en su archivo).
+
+**Lo que cubren:** la entrada «Asociaciones y síndromes» en su lugar del panel, con su reparto,
+su censo y su índice (TC-821); las dos tablas celda por celda, con sus ocho condiciones sobre las
+cifras (TC-822); los quince resúmenes de congénitas con el molde y el techo de `ref-miocard`
+(TC-823); y que nada llega al papel ni al estudio, con los dos controles de `ref-coronarias` y su
+globo (TC-824).
+
+**Adaptados:** TC-502 (A2) 40 → 41, (A4) congénitas 2 → 3 con el total en 41 y (B1) el índice
+38 → 39; TC-509 (F3) el censo 40 → 41 con `ref-asoc` en la lista de ids exigidos.
+
+⚠️ **LA LECCIÓN DE ESCRITURA DE ESTA TANDA**: la primera versión de TC-822 **caía por EXCEPCIÓN y
+no por sus condiciones**. Contra el árbol anterior la entrada no existe, y un acceso pelado
+—`filas(0)[0].querySelectorAll(...)`— tira `TypeError` antes de medir nada. Hoy todo acceso va por
+un ayudante con guarda, y el caso cae por doce condiciones.
+
+**Barrido:** `scripts/_mut_p36.py` — **42/42 muertas** en 1,5 min, con las 42 anclas verificadas
+con `--anclas` antes de correr.
+⚠️ **Y una trampa propia, la misma que PANT-20 pagó**: los comentarios del barrido se escribieron
+al principio con `/* */`, que **en un archivo de Python no es un comentario**. Lo cazó el
+`SyntaxError` en la primera corrida de `--anclas`.

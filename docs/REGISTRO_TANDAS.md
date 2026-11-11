@@ -1,3 +1,168 @@
+## PANT-36 — «Asociaciones y síndromes» y los quince resúmenes de congénitas (2026-11-11)
+
+**ONCE commits.** `b05f7f0` (1, el inventario de solo lectura) · `d9bbae8` (2, la entrada y la tabla de
+los nueve síndromes) · `b34d885` (3, la tabla de las trece asociaciones) · `f099200` (4, los cinco
+resúmenes más frecuentes) · `73ee519` (5, cinco más) · `b084216` (6, cuatro más) · `e450d33` (7, el
+de Marfan) · `a6785d4` (8, los cuatro casos nuevos y las adaptaciones) · `f41fe2d` (9, el sello) ·
+`4d7567c` (10, las tres adaptaciones que destapó la corrida completa) · **éste** (11, la
+documentación).
+Sello **`v20261111-0442`**, md5 **`44207a10`**. Línea base: **`f9b5812`**, el cierre de PANT-34, sello
+`v20261111-0030`, md5 `2ed17cab`, **verificado al abrir** con `HEAD` = `origin/main` y con `wc -l`,
+`wc -c` y `md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras**, por
+trigésima segunda vez seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+**Ningún commit incluyó un archivo de `docs/3d`**, verificado con `git status --short` y
+`git diff --cached --name-only` antes de cada uno: las diecisiete demos del médico siguen sin
+rastrear, sin tocar y sin mover. La rama `respaldo-pant32` no se tocó.
+
+**Qué hace.** Dos cosas, y ninguna llega al papel. **(A)** Referencias → Cardiopatía congénita gana
+una **tercera entrada**, «🔗 Asociaciones y síndromes», debajo de «Anomalías coronarias», con dos
+tablas: **nueve síndromes con cardiopatía** y **trece asociaciones entre cardiopatías sin
+síndrome**. **(B)** La primera entrada de ese panel, `ref-congenitas`, gana **quince resúmenes por
+patología** debajo de los cuatro renglones que ya tenía, que quedan intactos.
+
+**«Pestaña» quiere decir ENTRADA, y la hipótesis de la orden es falsa en su letra.** Referencias
+tiene **nueve** subpestañas (`REF_SUB_ORDEN`) y «Cardiopatía congénita» **es una de ellas**; lo que
+vive debajo de «Anomalías coronarias» es otra **entrada** del mismo panel. Es el vocabulario que
+PANT-25 fijó cuando metió `coronarias` dentro de `congenitas`. Medido en la TAREA 0.
+
+**El texto no se retipea.** Las dos tablas salen de `scripts/_gen_p36tablas.py` y los quince
+resúmenes de `scripts/_gen_p36resumenes.py`, donde la especificación del médico y la fuente de
+cada viñeta viven **una sola vez**; de ahí salen el marcado **y** el documento de control, así que
+no pueden divergir. `scripts/_probe_p36asoc.mjs` compara **celda por celda, carácter por
+carácter**, el DOM contra esa especificación: **cero diferencias** en los dos rótulos, los ocho
+encabezados, las 22 filas y las 101 celdas, con las 22 primeras celdas en `font-weight` 700.
+
+**La entrada no agrega un campo ni una columna, por construcción.** Lo que entra son `div`,
+`table`, `tr`, `td` y `th`: **cero** `input`, `select` y `textarea`, que es lo que el censo del
+estudio recorre. Medido: **1010** campos y **457** columnas de Excel, idénticos. Y **ningún id
+termina en `-aviso`** —`limpiarCampos` barre `[id$="-aviso"]` y les escribe `textContent` vacío,
+que es lo que PANT-30 pagó con el botón de su aviso—: el único id nuevo de toda la tanda es
+**`ref-asoc`**.
+
+**El celular va por el patrón MEDIDO de PANT-25 en `ref-tumores`**: un envoltorio
+`overflow-x:auto` con la tabla en `min-width` (900 y 700 px). Medido a 390 px con la subpestaña
+activa: los envoltorios desplazan **572** y **372** px **dentro de sí mismos** y el documento
+**0**. A 768 px, **194** y 0; a 1000 px, **122** y 0; a 1280 y 1440 px, ninguna lo necesita.
+
+⚠️ **LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO.** Referencias muestra **un**
+panel a la vez y el arnés abría la pestaña pero no la **subpestaña**, así que la entrada no tenía
+geometría y el desplazamiento del envoltorio daba **0 en los cinco anchos** — que se lee igual que
+«no desborda». Hoy la sonda llama a `refSubTab('congenitas')` en cada medición.
+
+**El molde de los resúmenes es el MEDIDO**, no uno inventado: título de 12 px en 700 y `--accent2`
+con 6 px de margen abajo, cuerpo de 12 px con interlineado 1,8 y viñetas `• <b>Rótulo:</b> texto`,
+**sin línea de fuente** —que es el estilo del sector, declarado en `P29-a · 2`—. **El techo es 849
+caracteres y 7 viñetas**, el del resumen más largo de `ref-miocard` (la amiloidosis).
+⚠️ **CINCO resúmenes se escribieron pasados del techo y se acortaron SIN perder un solo número
+medido**: Marfan 1.124, TGA 955, CoAo 907, CVPA 904 y Eisenmenger 890. Lo que salió fueron
+palabras; las cifras quedaron todas. El más largo hoy es Marfan con **848** de 849.
+
+**Las fuentes, leídas EN IMAGEN a 200 ppp o más.** Catorce resúmenes salen de la **ACC/AHA 2025**
+(hojas 35, 40, 43, 45, 47, 52, 53, 54, 55, 57, 60, 69, 77, 78, 84, 88 y 94; folios e149 a e208) y
+**uno solo** —Marfan/EHAT— de la **ESC 2020 inglesa** (hojas 43 y 44, folios 605 y 606).
+⚠️ **Y LA IMAGEN CAMBIÓ UN NÚMERO**: el texto extraído de la ESC devuelve **«(2030%)»** donde la
+hoja imprime **«(20–30%)»** — el guion del rango se pierde en la extracción. Es exactamente la
+razón por la que la orden exige leer los números en imagen.
+
+**A/B del papel contra `f9b5812`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572
+claves y 55.297 celdas de Excel, con CERO diferencias de superficie firmada Y de pantalla.** Su
+cero de pantalla es un **control negativo declarado**: ese arnés no abre Referencias, ni su
+subpestaña de congénitas, ni la entrada nueva, ni la ficha de congénitas. Lo que prueba la tanda
+son `_probe_p36asoc.mjs`, `_probe_p36res.mjs`, `_probe_p36fichas.mjs`, `_probe_p36dos.mjs` y
+TC-821 a TC-824.
+⚠️ **Y LA PRIMERA CORRIDA DE ESE A/B SE PERDIÓ POR UN DESCUIDO PROPIO**: el arnés portado traía
+el camino de salida de PANT-33 **escrito a mano** en su valor por omisión, así que los dos lados
+escribían en una carpeta que ya no existe y reventaban con `ENOENT` **después** de medir las 121
+escenas. Se volvió a correr pasándole `--out`.
+
+**42/42 MUTACIONES DIRIGIDAS MUERTAS** en **1,5 min**, en un worktree y **nunca** sobre el vivo,
+con el md5 del árbol vivo **idéntico** antes y después y las **42 anclas verificadas con
+`--anclas` ANTES** de correr. Cada mutación declara su caso: TC-821 **7**, TC-822 **21**,
+TC-823 **12**, TC-824 **2**. **Ninguna sobrevivió al primer barrido.**
+⚠️ **Dos anclas no aplicaban en la primera verificación y las dos eran mías**: la línea del cuerpo
+de un resumen es **idéntica en los quince** —es el molde—, así que sola aparece veintiuna veces;
+hoy el ancla lleva su título adelante. Y los comentarios del barrido se escribieron con `/* */`,
+que **en un archivo de Python no es un comentario**: es la misma trampa que PANT-20 pagó, y la
+cazó el `SyntaxError` de la primera corrida de `--anclas`.
+
+**NINGUNA OTRA FICHA DE REFERENCIAS SE MOVIÓ, y está medido carácter por carácter contra
+`f9b5812`** con `scripts/_probe_p36fichas.mjs`, que abre **las cuarenta y una entradas** con su
+subpestaña activa —sin eso, `evRefPintar` no pinta las de los paneles que no se abren y la
+comparación se haría sobre texto vacío—: las entradas pasan de **40 a 41**, la nueva es
+`ref-asoc`, **ninguna se perdió**, y **39 de las 40 son idénticas carácter por carácter**. La
+única que cambia es `ref-congenitas`, de **287 a 11.878** caracteres, que es justo la que la parte
+B amplía. **El clon del globo ⓘ `otr-rac` sigue en 478 caracteres y su texto es idéntico**, porque
+lo nuevo vive en una entrada **hermana**. Ninguna entrada quedó con denominador vacío.
+
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px
+× dos temas **reales**, puestos por `ett_theme` + `loadTheme()` y con el tema devuelto por la
+sonda: **diez «día» y diez «noche»**, nunca el mismo dos veces), con **UNA sola combinación de
+valores**: el panel con sus tres entradas en el orden
+`ref-congenitas, ref-coronarias, ref-asoc`, la entrada abierta con **dos** tablas de **10 y 14**
+filas y **5 y 3** columnas, sus **dos** envoltorios desplazando **572/372** px a 390, **194/0** a
+768, **122/0** a 1000 y **0/0** a 1280 y 1440, **cero** celdas en negro, **cero** controles,
+**cero** cursivas, la ficha de congénitas con sus **31** hijos y sus **15** resúmenes con un
+máximo de **848** caracteres y **7** viñetas, **cero** fuera del molde, **cero** invisibles,
+**cero** textos recortados, **cero** desplazamiento horizontal de la página y **CERO errores de
+consola y de página en los dos motores**.
+**UNA SOLA FIRMA DE VALORES EN LOS VEINTE**, contada sobre veinte magnitudes a la vez, con el
+tema pedido igual al puesto en los veinte y el desplazamiento idéntico motor contra motor en cada
+ancho.
+⚠️ **LA ÚNICA DIFERENCIA ENTRE MOTORES ERA DE SERIALIZACIÓN, Y LA PRIMERA CORRIDA LA LEYÓ COMO UNA
+DIFERENCIA DE LA APP**: el mismo interlineado de 1,8 sobre 12 px se computa **«21.6px» en Chrome
+y «21.599998px» en WebKit**, así que una comparación de **cadena** daba los quince resúmenes
+«fuera del molde» en WebKit y ninguno en Chrome. Se midió antes de creerle: los dos motores dan
+el mismo número. Hoy la sonda compara el **número** con tolerancia.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+
+**Cobertura: TC-821 a TC-824**, los cuatro cayendo contra `f9b5812` por **31 condiciones y
+NINGUNA por excepción**, con **CINCO** casos adaptados, cada uno con su motivo escrito al lado:
+**TC-502** (A2, A4 y B1), **TC-509** (F3), **TC-761** (A3 y A5), **TC-763** (C0) y **TC-817**
+(F1 y F2).
+⚠️ **LOS TRES ÚLTIMOS LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO.** Cuentan las mismas entradas
+de Referencias con otros nombres de variable, así que el censo que hice buscando `REF_SUBTAB` y
+`_refIndiceArmar` no los encontró: los encontró la suite entera, con ocho rojos de los que tres
+eran míos. Es el modo de falla que este archivo ya documenta una decena de veces. De paso, **dos
+de ellos traían el rótulo desactualizado desde PANT-28** —decían «CUARENTA Y TRES» y «CUARENTA Y
+UNA» mientras la condición ya exigía 40 y 38—, y se corrigió también el rótulo.
+**Los cinco adaptados caen 0/5 contra `f9b5812`** con el mismo archivo de casos y sólo el
+`index.html` distinto, que es lo que confirma que siguen discriminando.
+⚠️ **LA PRIMERA VERSIÓN DE TC-822 CAÍA POR EXCEPCIÓN Y NO POR SUS CONDICIONES**: contra el árbol
+anterior la entrada no existe, y un acceso pelado —`filas(0)[0].querySelectorAll(...)`— tira
+`TypeError` **antes** de medir nada. Un caso que revienta no prueba que discrimine. Hoy todo
+acceso va por un ayudante con guarda y el caso cae por **doce** condiciones.
+⚠️ **Y LA LISTA DE CASOS SE CONTÓ CON EL PATRÓN COMPLETO DEL ID**: la suite tiene **822** casos
+`TC-<número>` **más quince `TC-GR-nn`**, o sea **837** distintos. Contar sólo los numéricos
+—que es lo que un `TC-\\d+` hace— deja **quince casos sin ejecutar** y el total parece cerrar.
+
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **Celular: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base
+exacta, medida con la máquina sola. **17 de 19 bloques de JS inline parsean**, idéntico a la línea
+base. **Excel 457** y **1010 campos**, los dos idénticos.
+
+**Línea base al cierre: suite 830/837**, en **DIECISÉIS** lotes cubriendo los **837 casos
+distintos** —contados nombre por nombre con el patrón **completo** del id, **cero duplicados**—,
+en UNA sola pasada sobre el árbol sellado, con los **837 ejecutados**, el md5 de `index.html`
+**idéntico** antes y después (`44207a10`) y el pendrive `DISK_IMG` verificado **dieciocho** veces:
+al abrir, en cada uno de los dieciséis lotes y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y
+TC-406**, los cuatro de siempre, más **TC-358, TC-551 y TC-557**, los tres intermitentes que la
+orden declara. **Ningún rojo nuevo.**
+⚠️ **Y LA PRIMERA PASADA DIO 829/837 CON TRES ROJOS MÁS, LOS TRES MÍOS**: TC-761, TC-763 y
+TC-817. Están adaptados y la cifra de arriba sale de la pasada **LIMPIA**, con el archivo de casos
+final: una tanda no puede informar un número de una pasada hecha con un archivo de casos
+anterior.
+⚠️ **LOS TRES INTERMITENTES SE CARACTERIZARON COMO MANDA ESTA CASA, Y LOS TRES PASAN SOLOS**:
+corrido **cada uno por su cuenta**, TC-358, TC-551 y TC-557 dan **1/1**; corridos **los tres
+juntos**, tres veces, dan **2/3, 3/3 y 3/3**. O sea que son sensibles al lote y no a esta tanda,
+que es exactamente lo que su propia declaración describe.
+
+**Lo declarado, en `P36-a` a `P36-e`**; el mapa, en
+`docs/mapa/pant36-asociaciones-resumenes.md`; el inventario, en `docs/INVENTARIO_P36.md`; la
+trazabilidad de las **96** viñetas, en `docs/CONTROL_CONGENITAS_P36.md` (**62** leídas en imagen y 34 en texto); las
+fichas, en `docs/mapa/tests-fichas-821.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT36.md`
+(**10** pasos).
+
 ## PANT-34 — las nueve vistas de angiografía con su rótulo, el selector de arteria y el esquema de anomalías coronarias (2026-11-11)
 
 **Commits:** `b6ebf0a` (1, el inventario de solo lectura) · `7ec5bf4` (2, las nueve vistas, el

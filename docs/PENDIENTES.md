@@ -45,6 +45,83 @@ se leen 20-80 lineas con `sed -n`.
 > **`docs/INVENTARIO_P33.md`**, el manual del médico **`docs/DOCUMENTOS_P33.md`** y la guía de
 > prueba **`docs/GUIA_PRUEBA_PANT33.md`**.
 
+## P36-a · Lo que la parte B dejó AFUERA, con su lista exacta (2026-11-11)
+
+De las **diecinueve** secciones de congénitas que `_CC_SECS` registra —el dueño único que la
+TAREA 0c manda medir—, PANT-36 escribió **quince** resúmenes. Las cuatro que no, una por una:
+
+| sección | por qué no |
+|---|---|
+| `mch` — MCH | **ya tiene resumen**, el primero de `ref-miocard` |
+| `mca` — MCA | **ya tiene resumen**, el tercero de `ref-miocard` |
+| `fop` — FOP | **ya tiene ficha propia**, `ref-fop`, en «Otros hallazgos» |
+| `vap` — ventana aortopulmonar | **no hay contenido verificable en las dos guías de la orden** |
+
+**Y la de la ventana aortopulmonar es una medición, no una omisión por capacidad.** Buscada en
+las dos guías con su nombre y con sus variantes: la **ACC/AHA 2025** la nombra **una sola vez** y
+de pasada, como uno de los cortocircuitos de una recomendación de Eisenmenger (hoja 8, folio
+**e122**: «shunts other than ASD/VSD (eg, PDA, aortopulmonary window)»), y **no tiene sección
+propia**; la **ESC 2020 inglesa** no la nombra **ninguna** vez. Por B3 —«lo que no pudiste leer
+queda afuera»— el resumen **se omite entero**: no se rellena ni se explica en pantalla.
+
+**Decisión pendiente de Maicol**: si quiere un resumen de la ventana aortopulmonar, hay que
+autorizar una fuente que no es ninguna de las dos de esta orden.
+
+## P36-b · UNA INCOHERENCIA entre la tabla del médico y la guía, anotada y NO corregida (2026-11-11)
+
+A4 manda copiar las cifras **exactas** y, si aparece una incoherencia, anotarla sin corregirla.
+Hay **una**, y está medida en imagen:
+
+- **Tabla 2, fila «Comunicación interauricular (CIA)»** dice «**seno coronario sin techo menos de
+  1 %**». La **ACC/AHA 2025**, hoja 35, folio **e149**, leída en imagen a 200 ppp, imprime
+  «**unroofed coronary sinus (1%)**» — o sea **1 %**, no «menos de 1 %». El «<1%» de esa oración
+  es el del **seno venoso inferior**, que la tabla del médico también publica así y ahí sí
+  coincide.
+
+**La tabla quedó como la escribió el médico**, que es lo que A4 manda. El resumen de la CIA
+—parte B, que sale de la guía y no de la tabla— publica el **1 %**, así que los dos textos dicen
+cosas distintas sobre el mismo dato, cada uno fiel a su origen. **Decisión de Maicol**: unificar
+en «1 %» o dejarlos.
+
+## P36-c · El título de `ref-congenitas` nombra UNA guía y su contenido ya sale de DOS (2026-11-11)
+
+El encabezado de la entrada dice «🧬 **Cardiopatías Congénitas del Adulto (ESC 2020)**». Desde
+esta tanda su cuerpo trae quince resúmenes, de los cuales **catorce salen de la guía americana
+2025** y **uno solo** —el de Marfan/EHAT— de la europea 2020. **No se tocó**, por la regla de la
+orden de que cada punto toca sólo lo que se pide. **Declarado, no corregido.**
+
+⚠️ **Y no es sólo cosmética**: la regla del 02/11 dice que los textos de la app no nombran guías,
+y ese título lo hace desde antes de esta tanda. **Decisión de Maicol**: dejarlo, sacarle el
+paréntesis, o reemplazarlo por un título sin fuente.
+
+## P36-d · La guía americana EXCLUYE el Marfan de su alcance, y por eso ese resumen sale de la europea (2026-11-11)
+
+Medido, y es la única razón por la que un resumen de esta tanda no sale de la guía americana: la
+**ACC/AHA 2025**, hoja 11, folio **e125**, dice de sí misma que no cubre «inherited disorders that
+may have cardiac manifestations, such as Marfan syndrome or hypertrophic cardiomyopathy». La
+sección **4.7 Aortopathies** de la **ESC 2020 inglesa** (hojas 43 a 45, folios 605 a 607) sí lo
+cubre, y de ahí sale el resumen.
+
+**Nada de esto se dice en la app**: la regla del 04/11 prohíbe comparar fuentes y decir qué no
+cubre una guía. Vive acá y en `docs/CONTROL_CONGENITAS_P36.md`.
+
+## P36-e · Tres premisas de la orden que no se reprodujeron (2026-11-11)
+
+**1 · «Pestaña nueva» quiere decir ENTRADA.** Referencias tiene **nueve subpestañas** y
+«Cardiopatía congénita» es una de ellas; lo que vive debajo de «Anomalías coronarias» es otra
+**entrada** del mismo panel. Es el vocabulario que PANT-25 fijó. Se hizo así.
+
+**2 · B5 nombra «estenosis pulmonar» entre las más frecuentes, y no hay clave de estenosis
+pulmonar en `_CC_SECS`.** La app tiene pantalla y Evidencia de estenosis pulmonar, pero el
+registro que la TAREA 0c manda medir no la lista, así que no entró en la lista de resúmenes por
+ese camino. **Decisión de Maicol**: si la quiere, la guía americana la trae en su sección 4.3.2
+(hoja 62, folio e176) con su «1 de cada 2.000 nacidos vivos».
+
+**3 · La premisa de archivo de PANT-21 vale igual acá**, y se volvió a verificar: el
+`Baumgartner_2020_Cardiopatias_Congenitas.pdf` está **en español** y tiene **79** hojas, así que
+no cumple `folio = hoja + 562`; la inglesa es `ESC congenitos en ingles 2020.pdf`, de 84 hojas, y
+su hoja 60 imprime **622**.
+
 ## P34-a · Lo que la tanda PANT-34 midió y la orden suponía distinto (2026-11-11)
 
 **1 · El globo ⓘ `otr-rac` clona los dos primeros hijos de la ficha de anomalías coronarias, así

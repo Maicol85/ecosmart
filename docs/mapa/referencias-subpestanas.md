@@ -565,3 +565,22 @@ su encabezado es el mismo.
 ⚠️ **Los dos primeros hijos de la ficha no se tocaron**, y no es un olvido: son los que el globo ⓘ
 `otr-rac` clona —`_otrRefClon` sin modo saltea los marcados `data-ref-solo`—, así que ese clon sigue
 dando **478** caracteres idénticos. Lo que se reemplazó es el **cuerpo propio**, los hijos 3 y 4.
+
+---
+
+## La tanda PANT-36 (2026-11-11) — la TERCERA entrada de «Cardiopatía congénita»
+
+El panel **`congenitas`** pasa de **dos** entradas a **tres**: debajo de «Anomalías coronarias»
+entra **🔗 Asociaciones y síndromes** (`ref-asoc`), con dos tablas —nueve síndromes y trece
+asociaciones—. Y la primera entrada, `ref-congenitas`, gana **quince resúmenes por patología**
+debajo de sus cuatro renglones de siempre, que no se tocan.
+
+Los números que se mueven: el censo de entradas **40 → 41**, el índice del buscador **38 → 39** y
+`REF_SUBTAB.congenitas` **2 → 3**. Los demás repartos, idénticos.
+
+⚠️ **«Pestaña nueva» quiere decir ENTRADA**: Referencias tiene **nueve** subpestañas y
+«Cardiopatía congénita» es una de ellas, así que lo que vive debajo de una entrada es otra
+entrada del mismo panel. Es el vocabulario que PANT-25 fijó.
+
+Todo el detalle —el molde de los resúmenes, su techo, el patrón de celular de las tablas y las
+dos reglas de folio— está en **`docs/mapa/pant36-asociaciones-resumenes.md`**.

@@ -1066,6 +1066,121 @@ impecable.
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
+**La tanda PANT-36 (2026-11-11) — «Asociaciones y síndromes» y los quince resúmenes de
+congénitas.** DIEZ commits. Sello **`v20261111-0442`**, md5 **`44207a10`**. Referencias →
+Cardiopatía congénita gana **(A)** una **tercera entrada**, «🔗 Asociaciones y síndromes», debajo
+de «Anomalías coronarias», con dos tablas —**nueve síndromes con cardiopatía** y **trece
+asociaciones entre cardiopatías sin síndrome**—, y **(B)** **quince resúmenes por patología**
+dentro de `ref-congenitas`, debajo de los cuatro renglones que esa ficha ya tenía, que quedan
+intactos. **Nada de esto llega al papel.**
+⚠️ **«PESTAÑA NUEVA» QUIERE DECIR ENTRADA, y la hipótesis de la orden es falsa en su letra**:
+Referencias tiene **nueve** subpestañas y «Cardiopatía congénita» **es una de ellas**, así que lo
+que vive debajo de una entrada es otra **entrada** del mismo panel. Es el vocabulario que PANT-25
+fijó. Los números que se mueven son el censo de entradas (**40 → 41**), el índice del buscador
+(**38 → 39**) y `REF_SUBTAB.congenitas` (**2 → 3**).
+**El texto no se retipea**: las dos tablas salen de `scripts/_gen_p36tablas.py` y los quince
+resúmenes de `scripts/_gen_p36resumenes.py`, donde la especificación del médico y la fuente de
+cada viñeta viven **una sola vez**; de ahí salen el marcado **y** el documento de control.
+`_probe_p36asoc.mjs` compara **celda por celda, carácter por carácter**: **cero diferencias** en
+los dos rótulos, los ocho encabezados, las 22 filas y las **101 celdas**, con las 22 primeras
+celdas en 700.
+**Y el marcado del archivo es, byte por byte, el que los generadores emiten**: verificado al
+cerrar, el bloque de las dos tablas y el de los quince resúmenes están en `index.html` **tal
+cual** salen de sus dos scripts, y `docs/CONTROL_CONGENITAS_P36.md` es idéntico a lo que el
+generador imprime. Así no puede haber una edición a mano que el documento de control no refleje.
+**La entrada no agrega un campo ni una columna, por construcción**: lo que entra son `div`,
+`table`, `tr`, `td` y `th` —**cero** `input`, `select` y `textarea`, que es lo que el censo
+recorre—, y el **único id nuevo de toda la tanda es `ref-asoc`**, que no termina en `-aviso`.
+**El celular va por el patrón MEDIDO de PANT-25 en `ref-tumores`**: envoltorio `overflow-x:auto`
+con la tabla en `min-width` (900 y 700 px). A 390 px los envoltorios desplazan **572** y **372**
+px **dentro de sí mismos** y el documento **0**; a 768, **194** y 0; a 1000, **122** y 0; a 1280 y
+1440, ninguno lo necesita.
+⚠️ **LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO**: Referencias muestra
+**un** panel a la vez y el arnés abría la pestaña pero no la **subpestaña**, así que la entrada no
+tenía geometría y el desplazamiento daba **0 en los cinco anchos** — que se lee igual que «no
+desborda». Hoy la sonda llama a `refSubTab('congenitas')` en cada medición.
+**El molde de los resúmenes es el MEDIDO en la TAREA 0 sobre `ref-miocard`**: título de 12 px en
+700 y `--accent2` con 6 px de margen abajo, cuerpo de 12 px con interlineado 1,8 y viñetas
+`• <b>Rótulo:</b> texto`, **sin línea de fuente**. **El techo es 849 caracteres y 7 viñetas**, el
+de la amiloidosis. ⚠️ **CINCO resúmenes se escribieron pasados y se acortaron SIN perder un solo
+número medido** —Marfan 1.124, TGA 955, CoAo 907, CVPA 904 y Eisenmenger 890—: lo que salió fueron
+palabras. El más largo hoy es Marfan con **848** de 849.
+**Las fuentes, leídas EN IMAGEN a 200 ppp o más**: catorce resúmenes salen de la **ACC/AHA 2025**
+(diecisiete hojas, folios e149 a e208) y **uno solo** —Marfan/EHAT— de la **ESC 2020 inglesa**
+(hojas 43 y 44, folios 605 y 606), porque la americana **se excluye a sí misma** de ese tema
+(hoja 11, folio e125). Las dos reglas de folio, comprobadas en **ocho** y **cinco** hojas.
+⚠️ **Y LA IMAGEN CAMBIÓ UN NÚMERO**: el texto extraído de la ESC devuelve **«(2030%)»** donde la
+hoja imprime **«(20–30%)»** — el guion del rango se pierde en la extracción. Es exactamente la
+razón por la que la orden exige leer los números en imagen.
+**De las DIECINUEVE secciones de `_CC_SECS` se escribieron QUINCE**: `mch` y `mca` ya tienen
+resumen en `ref-miocard`, `fop` ya tiene ficha propia, y la **ventana aortopulmonar quedó afuera
+por falta de fuente** —la americana la nombra **una vez** y de pasada (folio e122) y la europea
+**ninguna**—, que es lo que B3 manda. Declarado en **P36-a**.
+**A/B del papel contra `f9b5812`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572
+claves y 55.297 celdas de Excel, con CERO diferencias de superficie firmada Y de pantalla.** Su
+cero de pantalla es un **control negativo declarado**: ese arnés no abre Referencias.
+**NINGUNA OTRA FICHA SE MOVIÓ, medido carácter por carácter** con las **41** entradas abiertas y
+su subpestaña activa: **39 de las 40** idénticas, ninguna perdida, y la única que cambia es
+`ref-congenitas` (**287 → 11.878** caracteres). **El clon del globo ⓘ `otr-rac` sigue en 478
+caracteres con el texto idéntico**, porque lo nuevo vive en una entrada **hermana**.
+**42/42 MUTACIONES DIRIGIDAS MUERTAS** en **1,5 min**, en un worktree y **nunca** sobre el vivo,
+con el md5 del vivo idéntico antes y después y las **42 anclas verificadas ANTES** de correr.
+**Ninguna sobrevivió al primer barrido.** ⚠️ Dos anclas no aplicaban y las dos eran mías: la línea
+del cuerpo de un resumen es **idéntica en los quince** —es el molde—, y los comentarios del
+barrido se escribieron con `/* */`, que **en Python no es un comentario** (la trampa de PANT-20).
+**Cobertura: TC-821 a TC-824**, los cuatro cayendo contra `f9b5812` por **31 condiciones y NINGUNA
+por excepción**, con **CINCO** casos adaptados: TC-502 (tres condiciones), TC-509 (una), **TC-761
+(dos), TC-763 (una) y TC-817 (dos)**.
+⚠️ **Y ESOS TRES ÚLTIMOS LOS DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO**: cuentan las mismas
+entradas de Referencias con otros nombres de variable, así que el censo que hice buscando
+`REF_SUBTAB` y `_refIndiceArmar` no los encontró. Es el modo de falla que este archivo ya
+documenta una decena de veces. De paso, **dos de ellos tenían el rótulo desactualizado desde
+PANT-28** —decían «CUARENTA Y TRES» y «CUARENTA Y UNA» mientras la condición ya exigía 40 y 38—,
+y se corrigió también el rótulo. **Los cinco adaptados caen 0/5 contra `f9b5812`**, que es lo
+que confirma que siguen discriminando.
+⚠️ **LA PRIMERA VERSIÓN DE TC-822 CAÍA POR EXCEPCIÓN**: contra el árbol anterior la entrada no
+existe y un acceso pelado tira `TypeError` **antes** de medir nada. Hoy todo acceso va por un
+ayudante con guarda y el caso cae por **doce** condiciones.
+⚠️ **Y LA LISTA DE CASOS SE CUENTA CON EL PATRÓN COMPLETO DEL ID**: la suite tiene **822** casos
+`TC-<número>` **más quince `TC-GR-nn`**, o sea **837** distintos. Contar sólo los numéricos deja
+**quince casos sin ejecutar** y el total parece cerrar.
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px
+× dos temas **reales**, diez «día» y diez «noche», con el tema devuelto por la sonda), con **UNA
+sola firma de valores** sobre veinte magnitudes a la vez: las tres entradas en su orden, **dos**
+tablas de **10 y 14** filas y **5 y 3** columnas, las **22 de 22** primeras celdas en negrita,
+**cero** negros, **cero** controles, **cero** cursivas, **31** hijos y **15** resúmenes con
+máximo **848** caracteres y **7** viñetas, **cero** fuera del molde, **cero** invisibles, **cero**
+textos recortados, **cero** desplazamiento horizontal y **CERO errores de consola y de página en
+los dos motores**.
+⚠️ **LA ÚNICA DIFERENCIA ENTRE MOTORES ERA DE SERIALIZACIÓN Y LA LEÍ MAL LA PRIMERA VEZ**: el
+mismo interlineado de 1,8 sobre 12 px se computa **«21.6px» en Chrome y «21.599998px» en
+WebKit**, así que una comparación de **cadena** daba los quince resúmenes «fuera del molde» en
+WebKit y ninguno en Chrome. Se midió antes de creerle; hoy la sonda compara el **número**.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **Excel 457** y
+**1010 campos**, idénticos. **17 de 19** bloques de JS inline parsean. **CELULAR: 59 hallazgos a
+360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
+**Línea base al cierre: suite 830/837**, en **DIECISÉIS** lotes cubriendo los **837 casos
+distintos** —contados nombre por nombre con el patrón **completo** del id, **cero duplicados**—,
+en UNA sola pasada sobre el árbol sellado, con los **837 ejecutados**, el md5 de `index.html`
+**idéntico** antes y después (`44207a10`) y el pendrive `DISK_IMG` verificado **dieciocho** veces:
+al abrir, en cada uno de los dieciséis lotes y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y
+TC-406**, los cuatro de siempre, más **TC-358, TC-551 y TC-557**, los tres intermitentes que la
+orden declara. **Ningún rojo nuevo.**
+⚠️ **Y LA PRIMERA PASADA DIO 829/837 CON TRES ROJOS MÁS, LOS TRES MÍOS**: TC-761, TC-763 y
+TC-817. Están adaptados y la cifra de arriba sale de la pasada **LIMPIA**, con el archivo de casos
+final: una tanda no puede informar un número de una pasada hecha con un archivo de casos
+anterior.
+⚠️ **LOS TRES INTERMITENTES SE CARACTERIZARON COMO MANDA ESTA CASA, Y LOS TRES PASAN SOLOS**:
+corrido **cada uno por su cuenta**, TC-358, TC-551 y TC-557 dan **1/1**; corridos **los tres
+juntos**, tres veces, dan **2/3, 3/3 y 3/3**. O sea que son sensibles al lote y no a esta tanda,
+que es exactamente lo que su propia declaración describe.
+Lo declarado, en **P36-a** a **P36-e**; el mapa, en
+`docs/mapa/pant36-asociaciones-resumenes.md`; el inventario, en `docs/INVENTARIO_P36.md`; la
+trazabilidad de las **96** viñetas, en `docs/CONTROL_CONGENITAS_P36.md` (**62** leídas en imagen);
+las fichas, en `docs/mapa/tests-fichas-821.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT36.md` (**10** pasos).
+
 **La tanda PANT-34 (2026-11-11) — las NUEVE vistas de angiografía con su rótulo, el selector de
 ARTERIA y el esquema de ANOMALÍAS CORONARIAS en Referencias.** OCHO commits. Sello
 **`v20261111-0030`**, md5 **`2ed17cab`**. El médico pidió tres cosas y ninguna llega al papel: la
