@@ -45,6 +45,178 @@ se leen 20-80 lineas con `sed -n`.
 > **`docs/INVENTARIO_P33.md`**, el manual del médico **`docs/DOCUMENTOS_P33.md`** y la guía de
 > prueba **`docs/GUIA_PRUEBA_PANT33.md`**.
 
+## P34-a · Lo que la tanda PANT-34 midió y la orden suponía distinto (2026-11-11)
+
+**1 · El globo ⓘ `otr-rac` clona los dos primeros hijos de la ficha de anomalías coronarias, así
+que reemplazar «el contenido actual» la habría cambiado.** La orden pide las dos cosas a la vez:
+que el contenido de la ficha se reemplace y que el globo quede **idéntico carácter por carácter**.
+Medido en la TAREA 0: `VINFO['otr-rac'].dyn` es `_otrRefClon('ref-coronarias')` **sin modo**, o sea
+`r.children` entero, y la compuerta de esa función saltea los hijos marcados `data-ref-solo`. El
+clon son **exactamente los hijos 1 y 2**, 478 caracteres. **La salida:** los hijos 1 y 2 no se
+tocan y lo que se reemplaza es el **cuerpo propio** de la ficha —los hijos 3 y 4, las cuatro
+viñetas de PANT-29, que viven sólo en Referencias—; el esquema entra con la misma marca. Verificado
+contra la línea base volcando Referencias entera: el clon da **478 = 478** y **39 de las 40 fichas**
+quedan idénticas.
+
+**2 · `position:sticky` NO puede funcionar en esa ficha.** La orden pide el cuadro «fijo mientras
+se lee el apartado si el contenedor lo permite». No lo permite: la `.card` que envuelve la ficha
+computa **`overflow:hidden` en los dos ejes**, así que se vuelve el antecesor de desplazamiento más
+cercano y no desplaza nunca — un `sticky` adentro no se activa. El cuadro va **estático al
+costado**, alineado arriba.
+
+**3 · En Referencias no hay hoy NI UNA casilla de verificación.** La TAREA 0 pedía censar «qué
+patrones de casilla ya existen en Referencias»: medido, `#tab-refs` tiene **cero**
+`input[type=checkbox]`. No hay patrón previo que copiar en esa pestaña; se usó el patrón general de
+la app (etiqueta envolviendo la casilla) y **sin `id`**.
+
+**4 · La convención de ángulos SÍ puede expresar las tres formas que la parte A pide, y no hizo
+falta adaptar nada.** La orden lo preveía como posible problema. Medido: el vector de cámara es
+`d = [sin(a)·cos(b), sin(b), cos(a)·cos(b)]`, así que «de frente» es `a:0`, «lateral izquierda de
+90°» es `a:90` —que da `d=[1,0,0]` y una base válida, sin degenerar— y «sin angulación» es `b:0`.
+Lo que degeneraría es `b:±90`, que ninguna vista pide. Y la tabla de la app coincidía **valor por
+valor** con la de la demo en las seis vistas viejas.
+
+**5 · El rincón derecho de abajo del cuadro del 3D estaba VACÍO**, medido por píxeles: 0 con tinta
+contra los 904 del rincón de la brújula. O sea que el rótulo nuevo no desplazó nada.
+
+---
+
+## P34-b · Lo que esta tanda declara y NO corrigió
+
+**1 · El cuadro del esquema no queda fijo mientras se lee el apartado** (punto 2 de P34-a). Para
+que lo hiciera habría que sacarle el `overflow:hidden` a `.card`, que es la tarjeta de **todas** las
+fichas de Referencias y de media app: no es de esta tanda. Si alguna vez se quiere, el camino es un
+contenedor de desplazamiento propio dentro de la ficha.
+
+**2 · Los hijos 1 y 2 de `ref-coronarias` quedaron con su texto de siempre**, que es el que el
+globo publica: los tres trayectos, el riesgo del interarterial y su línea de fuente con el folio
+266. Hoy esa información está dicha dos veces en la misma ficha —arriba en corto y abajo dentro de
+los apartados 1 y 2—. Sacarla de arriba cambia el globo, que la orden manda dejar idéntico;
+reescribir el globo para que lea de otro lado es tocar el mecanismo de `_otrRefClon`, que la orden
+también excluye. **Queda para una decisión de Maicol.**
+
+**3 · La leyenda del pie del panel de Coronarias nombra las SIETE letras incluso con un lado
+filtrado.** Con «Derecha» el dibujo muestra CD, DP y PL, y el pie sigue explicando qué es la DA, la
+diagonal, la circunfleja y la marginal obtusa. No es una afirmación falsa —es un glosario de
+abreviaturas, no una lista de lo dibujado— y la orden no pide tocarlo, así que no se tocó.
+
+**4 · El tronco de aorta se dibuja con cualquier lado elegido.** `lv3dCoroRaiz` no sale de
+`lv3dCoroDefs` y no es una arteria de ningún lado: es la raíz donde nacen las dos. Filtrarlo dejaría
+las coronarias naciendo de la nada.
+
+**5 · Dos cifras del texto del médico no están en `docs/CONTROL_CORONARIAS_P28.md`**, que es la
+lectura verificada de esta casa: los repartos de la fístula por origen (29–55 %, 39–63 %, 7–19 %) y
+por desembocadura (49/26/13 y 41/26/16 %), y el tramo intramural de **2 a 3 mm** del AAORCA. Entran
+como texto **aprobado por el médico**, y el texto **no atribuye nada a ninguna fuente**: ninguno de
+los cinco apartados escribe el nombre de una guía, un folio, una clase ni un grado. Las otras trece
+cifras están trazadas una por una en `docs/INVENTARIO_P34.md`.
+
+**6 · Los dos rótulos de desembocadura de la fístula se TOCAN por 0,07 unidades.** Están en (6,44)
+y (6,60) —coordenadas del pedido— y la caja de un texto de 13 unidades mide unas 16. No se
+superponen de forma visible y no se movieron, porque las coordenadas son del médico. La condición
+(A3) de TC-819 mide el solape con una tolerancia de **una unidad** por eso, y lo declara.
+
+**7 · El rótulo «flujo invertido» va anclado a la DERECHA en su coordenada (318,150).** Con el
+anclaje al principio sus catorce letras se saldrían del lienzo de 400 y quedarían cortadas. La orden
+fija el anclaje sólo para «colaterales» (392,340, a la derecha); para los demás no lo dice.
+
+**8 · `P29-b` sigue abierto**, y esta tanda lo amplía: los ángulos de las **nueve** vistas son
+típicos y aproximados, y siguen sin una fuente verificada. No se escriben en ninguna pantalla —el
+giro es interno y lo que el médico ve es el nombre—, así que la app no afirma ningún número.
+
+---
+
+## P34-c · Las trampas de método que esta tanda pagó
+
+**1 · `S.tema()` del arnés NO cambia el tema de esta app, y dos sondas midieron DOS VECES el tema
+oscuro.** Ese ayudante emula `prefers-color-scheme`; el tema de EcoSmart es la clase `light-mode` en
+el `<html>`, que pone el botón del tema. El síntoma era el peor posible: **los mismos colores en los
+dos lados**, que se lee igual que un control negativo bien hecho. Se destapó porque los valores
+coincidían con la paleta oscura en las dos corridas. Hoy las dos sondas conmutan la clase, y la de
+la parte A se volvió a correr.
+
+**2 · `contrEstado` arranca VACÍO: recorrerlo para encender el tramo gris da cero segmentos.** La
+primera versión de la sonda de la parte C alteraba `Object.keys(contrEstado)` —un arreglo vacío—, así
+que el gris nunca se encendía y las condiciones sobre el tramo gris medían **cero sobre cero**, que
+se lee igual que «el gris no existe». Los ids salen de `CONTR_TERRITORIO`, que es el dueño del
+reparto: son **17**.
+
+**3 · La animación hay que pausarla antes de cada captura.** Leer el PNG es asíncrono, así que entre
+dos capturas corren cuadros de `requestAnimationFrame` y cada PNG sale con otra fase del latido. La
+primera corrida de la sonda de la parte D dio **seis hashes distintos** y parecía que el selector no
+devolvía su dibujo; lo que se movía era el corazón.
+
+**4 · El PRIMER repintado del 3D no da el mismo píxel que el segundo, y es PREEXISTENTE.** Medido en
+los dos árboles con los mismos valores: `h1` difiere de `h2`, y `h2` es igual a `h3`. Lo que sí es
+estable, y es lo que la verificación necesita, es el ciclo de prender y apagar «Coronarias»: da
+**`1c7500fc` → `16dedac` → `1c7500fc`**, los tres hashes **idénticos a la línea base**. Un hash
+tomado en la misma evaluación que varias llamadas a `lv3dCoroSonda` tampoco es estable; los
+instrumentos que sí lo son son el conteo de segmentos, las letras y la tinta por región.
+
+**5 · Dos casos nuevos heredaban el estado de «Coronarias» del caso anterior**, y lo destapó correr
+los ocho juntos, no la lectura: TC-814 medía su rincón con el rótulo ya dibujado —617 píxeles donde
+esperaba cero— y su primer toque **apagaba** en vez de prender, con lo que las nueve vistas
+siguientes medían cero sobre un dibujo que no existía; TC-815 heredaba el selector en «Derecha».
+Los dos normalizan el estado apagando y volviendo a prender, que es lo que lo devuelve a su
+omisión.
+
+**6 · El acento grave dentro de MI PROPIO comentario, por decimoctava tanda seguida.** Esta vez al
+agregar una guarda a TC-815: citar un identificador entre acentos graves cierra el template literal.
+Lo cazó `node --check`.
+
+**7 · El mismo carácter escrito de DOS formas en `index.html` dejó un ancla del barrido sin
+aplicar.** La tilde de la opción activa quedó como `✓` en una línea y como el carácter literal
+en la otra: el ancla de la mutación 21 daba **x0**, que se lee igual que «no hay cobertura». Se
+normalizaron las dos a la secuencia de escape y el barrido verificó las **43** anclas antes de
+correr.
+
+---
+
+## P34-d · La captura del 3D incluye el rótulo de la vista — medido, y NO es un defecto
+
+La parte D pedía medir y declarar. Medido sobre el PNG de verdad
+(`scripts/_probe_p34d.mjs`, la tabla completa en `docs/INVENTARIO_P34.md`):
+
+- **el rótulo SALE en la captura**, y por lo tanto en la imagen que va al PDF: **641** píxeles de
+  tinta en su rincón con una vista puesta y **cero** sin ella. Es consecuencia directa de que
+  `lv3dCapturar` llame al **mismo** pintor;
+- **la captura respeta el selector de arteria**: los tres lados dan tres PNG distintos y volver a
+  «Todas» devuelve el mismo hash;
+- **no tapa nada**: ese rincón medía cero píxeles de tinta y la banda del pie da **3.930** idénticos
+  en las seis escenas;
+- **es legible**: la paleta de la captura es la fija y blanca —texto oscuro sobre blanco— y el PNG
+  sale a escala 2, así que el cuerpo de 12 px se rasteriza a 24.
+
+**No se abre un pendiente de defecto**, y el motivo es clínico antes que técnico: una imagen pegada
+en un informe que no dice desde qué vista se mira es una imagen sin su dato. El comportamiento de la
+captura **no se cambió**.
+
+---
+
+## P34-e · Dos cosas que esta tanda MIDIÓ y no estaban en su alcance
+
+**1 · La zona táctil de la casilla del TÍTULO mide 23,31 px en WebKit.** Medido sin redondeo en los
+dos motores: Chrome da **24,00** px en la del título y **25,00** en las de las frases; WebKit da
+**23,31** y **24,31**. O sea que sólo la del título queda **0,69 px** corta, y sólo en WebKit, por
+el ascenso más descenso de 11 px en cada motor. **No se tocó**, por tres razones medidas: WebKit de
+Playwright **no es Safari**, la app corre en **Chrome** —lo dice este repo desde siempre—, y la
+**etiqueta entera** sigue respondiendo al toque, con 114 a 1.151 px de ancho según la casilla.
+**El arreglo es una línea** —`padding:6px 3px` en `.rac-tit .rac-chk-t`, que lo llevaría a 25,31 en
+WebKit— y su precio es volver a sellar y rehacer la suite, el barrido y el A/B. **Decisión de
+Maicol.**
+
+**2 · `CLAUDE.md` tiene DOCE secciones de tanda donde su propia regla dice TRES.** Medido: el
+archivo está en **234.196 bytes** —unos 58.000 tokens, que se leen enteros en cada sesión— contra
+los **146.634** que dejó la tanda LIMPIEZA-1 el 2026-11-08. El preámbulo de «Estado vigente» dice
+que ahí queda «lo de las **tres últimas** tandas» y que el resto sale a
+`docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`; desde PANT-20 en adelante nadie aplicó el reparto, y
+cada tanda —esta incluida— apiló la suya. **No se tocó**: mover nueve secciones de tanda a archivo
+es una limpieza que decide Maicol, y hacerla sin que la pida es exactamente el tipo de cambio que
+esta casa no hace de oficio. Si se hace, el camino está escrito en
+`docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+---
+
 ## P33-a · Lo que la tanda PANT-33 midió y la orden suponía distinto (2026-11-10)
 
 **Las dos hipótesis del encabezado quedaron CONFIRMADAS, y la de abajo resultó peor de lo que la

@@ -127561,18 +127561,32 @@ caso('TC-780', 'PANT-29 commits 2 y 3: cada cifra de los TRES resumenes coincide
   const CHA = [['1,2 millones', 'H1'], ['60 a 70 %', 'H9'], ['2,0 a 8,6 %', 'H23'],
                ['24 a 64 %', 'H23'], ['0-6', 'H42'], ['7-11', 'H42'], ['12-20', 'H42'],
                ['2 %', 'H42'], ['18 %', 'H42'], ['63 %', 'H42']];
-  const COR = [['seis veces', 'C3'], ['1 %', 'G4'], ['0,2 %', 'G3'], ['0,002 %', 'G5'],
-               ['35 a', 'G13']];
+  /* ⚠️ ADAPTADO EN PANT-34: la ficha de anomalias coronarias dejo de ser las cuatro vinietas de
+     PANT-29 y pasa a ser el esquema de cinco apartados, con el texto que el medico aprobo. Dos
+     cifras de la lista vieja YA NO SE PUBLICAN -el «hasta el 1 %» de G4 y los «35 anios» de
+     G13- y en su lugar el texto nuevo publica el 0,7 % de C2 y los «menores de 40 anios» de C9,
+     que tienen su propia fila de control leida en imagen en PANT-28. Las DIEZ de abajo son las
+     que el texto nuevo publica, cada una con su fila; las dos que el texto trae y NO tienen fila
+     -los repartos de la fistula y el tramo de 2 a 3 mm- quedan declaradas en P34-b y no entran
+     aca, porque este caso vigila la trazabilidad y no la presencia. */
+  const COR = [['seis veces', 'C3'], ['0,7 %', 'C2'], ['0,002 %', 'G5'], ['0,1 a 0,2 %', 'G5'],
+               ['1 de cada 300.000', 'C43'], ['90 %', 'C46'], ['0,12 %', 'C44'],
+               ['40 a', 'C9'], ['segunda', 'C8'], ['Takeuchi', 'C57']];
   const faltan = [];
   ATL.concat(CHA).forEach(x => { if (mio.indexOf(x[0]) === -1) faltan.push(x[1] + ':' + x[0]) });
   COR.forEach(x => { if (cor.indexOf(x[0]) === -1) faltan.push(x[1] + ':' + x[0]) });
-  q('(A1) las VEINTICUATRO cifras de las filas de control estan, una por una',
-    faltan.length === 0, 'faltan=' + faltan.join(' | '));
+  q('(A1) las VEINTINUEVE cifras de las filas de control estan, una por una',
+    faltan.length === 0 && ATL.length + CHA.length + COR.length === 29,
+    'faltan=' + faltan.join(' | ') + ' n=' + (ATL.length + CHA.length + COR.length));
   /* Y al reves: ninguna cifra que NO tenga fila. Se cuentan los porcentajes y los milimetros
      del texto nuevo y se comparan con los declarados. */
-  q('(A2) CONTROL NEGATIVO: una cifra que NO esta en ninguna fila de control no aparece',
-    mio.indexOf('72 ml') === -1 && mio.indexOf('82 %') === -1 && cor.indexOf('0,7 %') === -1,
-    'intrusas=' + [mio.indexOf('72 ml') > -1, mio.indexOf('82 %') > -1, cor.indexOf('0,7 %') > -1].join(','));
+  /* ⚠️ EL TESTIGO DE LA FICHA DE CORONARIAS CAMBIO EN PANT-34, y sigue siendo del mismo tipo:
+     una cifra que SI esta en una fila de control y que la app, a proposito, NO publica. Era el
+     0,7 % -que hoy el texto nuevo si publica- y pasa a ser el intervalo de confianza de esa
+     misma fila C2, que ninguna pantalla escribe. */
+  q('(A2) CONTROL NEGATIVO: una cifra que NO se publica no aparece, aunque tenga fila de control',
+    mio.indexOf('72 ml') === -1 && mio.indexOf('82 %') === -1 && cor.indexOf('0,48') === -1,
+    'intrusas=' + [mio.indexOf('72 ml') > -1, mio.indexOf('82 %') > -1, cor.indexOf('0,48') > -1].join(','));
   q('(A3) ninguna palabra prohibida en los dos textos',
     prohibidas(mio).length === 0 && prohibidas(cor).length === 0,
     prohibidas(mio).concat(prohibidas(cor)).join(',') || 'ninguna');

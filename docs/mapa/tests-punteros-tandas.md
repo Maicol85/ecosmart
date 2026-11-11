@@ -294,3 +294,23 @@ dentro de una funcion anonima le da margen a una mutacion para **sobrevivir**. S
 muere.
 
 **Barrido:** `scripts/_mut_pant33.py`, **41/41 muertas**.
+
+---
+
+## PANT-34 (2026-11-11) — TC-813 a TC-820
+
+**Las fichas de los ocho casos viven en `docs/mapa/tests-fichas-813.md`** (archivo propio, 13,3 KB):
+las nueve vistas con su rótulo, el selector de arteria y el esquema de anomalías coronarias de
+Referencias. **Adaptados**: TC-779, TC-783 y TC-784, el último con su condición (B2) **invertida**.
+
+⚠️ **UNA TRAMPA NUEVA, y la destapó correr los ocho juntos y no la lectura**: dos casos **heredaban
+el estado de «Coronarias»** del caso anterior —prendido y con una vista puesta—, así que medían su
+rincón con el rótulo ya dibujado y su primer toque **apagaba** en vez de prender. La normalización
+que sirve es **apagar y volver a prender**, porque apagar es lo que reinicia la vista, la
+transparencia, las letras, el modo angiografía y el selector de arteria.
+
+⚠️ **Y OTRA, DE ESCRITURA**: el **mismo carácter escrito de dos formas** en `index.html` —la tilde
+como `✓` en una línea y literal en la otra— dejó un ancla del barrido en **x0**, que se lee
+igual que «no hay cobertura». El `--anclas` lo cazó antes de correr.
+
+**Barrido:** `scripts/_mut_pant34.py`.

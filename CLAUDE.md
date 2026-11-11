@@ -116,6 +116,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el ENCABEZADO de un documento** —de dónde sale el nombre de la institución, la línea gris que no se imprime, el logo a la derecha, el nombre editable de la hoja del Informe—, **el EDITOR SOBRE LA HOJA de Configuración** —sus dos modos, el cuerpo como una sola zona editable, las SEIS convenciones con el «## » nuevo, lo que queda fijo, los dos cierres, «Guardar como modelo» o «Volver al texto original»—, o **los DOS DOCUMENTOS EN BLANCO**: sus dos claves fijas, su contenido mínimo, su nombre, «Vaciar», las dos casillas de firma o la firma que nunca queda sola | `docs/mapa/pant33-editor-hoja-blancos.md` |
 | **Tocar la HOJA DE UN DOCUMENTO en pantalla** —el botón en el rincón derecho, la A4 en milímetros con su cuerpo en puntos y su zoom, el pegado como texto llano, el clic en el fondo con su confirmación—, **la CONSTANCIA en tres oraciones**, **el LOGO a la izquierda con el nombre centrado**, **el cuerpo y el SALTO DE HOJA de los tres consentimientos**, **las casillas DIBUJADAS de la declaración**, **las hojas comunes sin título**, o **la CASILLA DE PPT de «Prótesis valvulares» con su diapositiva** | `docs/mapa/pant31-hoja-ppt.md` |
 | **Tocar un DOCUMENTO del Informe** —la constancia o los tres consentimientos—: el boton «Documentos», el maquetador unico con sus tipos de bloque, la justificacion palabra por palabra, la casilla dibujada, el salto de hoja del ETE, la regla de la declaracion junto a las firmas, el azul de los datos, el aviso «Actualizar con los datos», o la hoja guardada en «Imagenes»; **o la seccion «PROTESIS VALVULARES» del Laboratorio**: por que no puede llamar a ningun evaluador de protesis, de donde sale cada dato, las dos pilas del grafico, el orden de las categorias de trastorno, los dos que van aparte, o su seccion del PDF de auditoria | `docs/mapa/pant30-documentos-protesis.md` · el manual del medico en `docs/DOCUMENTOS_P30.md` |
+| **Tocar una VISTA DE ANGIOGRAFÍA del 3D de Contractilidad** —las nueve, sus ángulos internos, el título fijo del botón, la tilde de la lista o el RÓTULO dentro del cuadro—, **el SELECTOR DE ARTERIA** con su criterio de dueño, o **el ESQUEMA DE ANOMALÍAS CORONARIAS de Referencias**: sus cinco apartados, sus dieciocho casillas sin `id`, su motor de dibujo, su paleta por tema o por qué el cuadro no puede quedar fijo | `docs/mapa/pant34-vistas-selector-esquema.md` |
 | **Tocar las DOS TARJETAS GRISES de Contractilidad, el bloque «Arterias posiblemente involucradas» o las ARTERIAS CORONARIAS del 3D**: el achique a 220 y 150 px, las cinco formas de texto del bloque con su dueño del nivel, el botón «Coronarias», el tronco de la aorta, las siete letras, el tramo gris, la dominancia, las seis vistas de angiografía, o por qué las arterias acompañan la contracción | `docs/mapa/pant29-coronarias-3d.md` |
 | **Tocar CONTRACTILIDAD**: el botón «Incluir bull's eye en PDF» y de qué depende que el bull's eye entre al papel, la fila de tres bloques, la tabla de colores o el interior del 3D del VENTRÍCULO | `docs/mapa/contractilidad-3d-vi.md` |
 | **Tocar una TARJETA ⓘ de AI/VI, el REGISTRO DE EVIDENCIA o una entrada de Referencias**: las fichas, los estados, el sondeo del dueño, el gráfico de geometría | `docs/mapa/registro-evidencia.md` |
@@ -142,7 +143,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -264,12 +265,25 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,63 MB / 173.959 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
-  cierre de la tanda **PANT-33**, sobre el árbol ya sellado: sello **`v20261110-2022`**, md5 **`b3259e74`**.
+  sin frameworks. Hoy **12,68 MB / 174.644 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al
+  cierre de la tanda **PANT-34**, sobre el árbol ya sellado: sello **`v20261111-0030`**, md5 **`2ed17cab`**.
   ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
   renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
   salto de línea entre los dos el caso sale ROJO -- lo pagó PANT-31, que los partió al reflujar el
   párrafo.
+  El diff de PANT-34 son **711 líneas agregadas y 26 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `31399ad`, de las que **646** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de `innerHTML` en el diff son
+  el comentario que declara que el esquema se arma con `createElementNS` y no con ninguno— y cero
+  claves ni contraseñas. **DOS ids nuevos** —`lv3d-coro-lista-art` y `rac-root`—, ninguno
+  terminando en `-aviso` ni cayendo en ninguno de los **21** barridos por sufijo o prefijo del
+  archivo, y **cero** de los dieciocho `input` nuevos lleva `id`, que es lo que los deja fuera de
+  los tres mecanismos del censo por construcción.
+  ⚠️ **POR TRIGÉSIMA PRIMERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 31399ad:index.html` da **173.959** líneas,
+  **12.629.165** bytes y el md5 **`b3259e74`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,63 MB / 173.959 al cierre de la tanda **PANT-33**, sello **`v20261110-2022`**, md5 **`b3259e74`**.)
   El diff de PANT-33 son **979 líneas agregadas y 583 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `6cccf59`, de las que **888** no son comentario, con **cero** `eval(`
   y `new Function` nuevos, **CUATRO** `innerHTML` nuevos y cero claves ni contraseñas. Los cuatro
@@ -1038,6 +1052,159 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-34 (2026-11-11) — las NUEVE vistas de angiografía con su rótulo, el selector de
+ARTERIA y el esquema de ANOMALÍAS CORONARIAS en Referencias.** OCHO commits. Sello
+**`v20261111-0030`**, md5 **`2ed17cab`**. El médico pidió tres cosas y ninguna llega al papel: la
+lista de vistas del 3D de Contractilidad pasa de **seis a nueve**, el botón **deja de cambiar de
+título** y la vista elegida se dice con un **rótulo dentro del cuadro**; la primera fila del panel
+gana un segundo desplegable, **«Arteria»**; y la ficha de anomalías coronarias deja de ser cuatro
+viñetas y pasa a ser **un texto corrido con casillas dentro de las frases** que dibujan un esquema
+al costado.
+⚠️ **DOS HIPÓTESIS DE LA ORDEN RESULTARON FALSAS, Y LAS DOS CAMBIARON EL DISEÑO DE LA PARTE B.**
+La primera: **el globo ⓘ `otr-rac` clona los dos primeros hijos de la ficha** —los que no llevan
+`data-ref-solo`—, así que reemplazar «el contenido actual» la habría cambiado, y la orden manda
+dejarla **idéntica carácter por carácter**. Lo que se reemplazó es el **cuerpo propio**, los hijos
+3 y 4 de PANT-29, y el esquema entra con la misma marca: el clon sigue dando **478 = 478**
+caracteres, y de las **40** fichas de Referencias **39 son idénticas**. La segunda:
+**`position:sticky` NO puede funcionar ahí**, porque la `.card` que envuelve la ficha es
+`overflow:hidden` en los **dos** ejes y se vuelve el antecesor de desplazamiento más cercano, así
+que un sticky adentro no se activa nunca — el cuadro va estático al costado. Y una tercera, menor:
+en Referencias **no había ni una casilla de verificación**, así que no hubo patrón previo que
+copiar.
+**Las nueve vistas, con el giro INTERNO y ni un grado en pantalla.** `LV3D_CORO_VISTAS` pasa a ser
+el **dueño único del nombre**: de esa tabla salen el texto de los nueve botones y el rótulo del
+cuadro, así que la lista y el dibujo no pueden nombrar la misma vista de dos formas —lo fija
+TC-813 (A4)—. Tres son nuevas y **cinco de las seis viejas cambiaron de ángulo**, a pedido.
+**La convención alcanzó y no hubo que adaptar nada**: el vector de cámara es
+`d = [sin(a)·cos(b), sin(b), cos(a)·cos(b)]`, así que «de frente» es `a:0`, «lateral izquierda de
+90°» es `a:90` —base válida, sin degenerar— y «sin angulación» es `b:0`.
+**El título es siempre «Vista de angiografía»** —hasta PANT-33 pasaba a decir «Vista: OAD
+caudal»— y lo que dice cuál está puesta son la **tilde** de la lista y el **rótulo** del cuadro, en
+el rincón **derecho** de abajo, a la misma altura que la brújula y del lado opuesto. Medido antes
+de escribirlo: ese rincón tenía **cero** píxeles con tinta contra los 904 del de la brújula. Va
+después del bucle de polígonos, **no entra en `polis`** y no cambia un solo movimiento del 3D;
+lleva **halo**, así que se lee en los dos temas y en modo angiografía —**413** píxeles de tinta en
+el claro, **410** en el oscuro y **213** que no son el fondo en angiografía—.
+**El selector de arteria lee el dueño que la dominancia YA resolvió**: la derecha es `g === 'CD'`
+y la izquierda es todo lo demás. Con una segunda lista de reparto, el día que la dominancia mueva
+una rama el selector y el dibujo dirían cosas distintas. **Se filtra la DEFINICIÓN y no el
+dibujo**, que es lo que hace que lo que no se dibuja desaparezca completo —el trazo, su **letra** y
+su **tramo gris**—. Medido en las nueve combinaciones: con dominancia derecha **20 / 12 / 8**
+arterias y `CD,Cx,D,DA,DP,MO,PL` / `Cx,D,DA,MO` / `CD,DP,PL`; codominante **19 / 13 / 6**, con la
+PL del lado izquierdo; izquierda **19 / 17 / 2**. Los segmentos caen de **1.298 a 748 y a 550**.
+Y **no toca** el estado de contractilidad, el texto de hallazgos, la leyenda ni el bloque
+«Arterias posiblemente involucradas»; tocar un territorio **no lo mueve**; sobrevive al cambio de
+vista y de dominancia, y **apagar «Coronarias» lo devuelve a «Todas»** sin reiniciar la dominancia.
+⚠️ **LOS DOS DESPLEGABLES COMPARTEN LA FILA CON `flex:1 1 0` Y NO CON UNA BASE EN PÍXELES**: la
+columna mide **150 px** a 1440 y a 1000, así que con una base de 96 px los dos botones se irían a
+líneas distintas justo en el ancho de escritorio, que es donde la orden los quiere juntos. Medido
+en cinco anchos: **73 / 73 / 73 / 336 / 147 px**, los dos de 44 px de alto, cero texto recortado y
+cero desplazamiento. **El panel sigue teniendo TRES filas.**
+**El esquema, por construcción y no por cuidado.** Los textos son los que el médico aprobó y se
+**generaron** desde la especificación con un script, no se retipearon. El motor dibuja con
+`createElementNS` y **no con `innerHTML`**, con splines Catmull-Rom convertidas a Bézier que pasan
+por los puntos dados. **Las dieciocho casillas van SIN `id`**, y eso es lo que las deja fuera de
+los tres mecanismos del censo: `limpiarCampos` recorre `input[id]` y les escribe el `checked`
+guardado, así que una casilla con `id` **se destildaría sola en «Nuevo estudio» dejando el dibujo
+puesto sin su casilla**. El cuadro se oculta **con una clase** y no con `hidden`, que es la lección
+de PANT-30.
+⚠️ **EL COLOR VA POR UNA REGLA DE CSS Y NO COMO `var()` EN UN ATRIBUTO**, que es la trampa que
+POP-B pagó con `--amber` y PANT-13 con `--card`: ahí es inválido en tiempo de cómputo y cae en el
+negro heredado. Por una regla sí resuelve **y además sigue al tema solo**. Medido en los cinco
+esquemas y en los dos temas: **cero** trazos y **cero** rellenos en negro, con **dos paletas sin un
+solo color en común**, **cero** rótulos fuera del lienzo de 400 × 360 y **cero** rótulos encimados.
+**La parte D es sólo medición y el comportamiento de la captura NO se tocó.** Medido sobre el PNG
+de verdad: el rótulo **sale** —641 píxeles de tinta con una vista y cero sin ella—, la captura
+**respeta** el selector —tres PNG distintos y volver a «Todas» devuelve el mismo hash—, no tapa
+nada —la banda del pie da **3.930** idénticos en las seis escenas— y es legible —paleta fija blanca
+y escala 2—. No es un defecto: queda en **P34-d**.
+**Cobertura: TC-813 a TC-820**, los ocho cayendo **0/8** contra `31399ad` por **64 condiciones y
+NINGUNA por excepción**, con **TC-779, TC-783 y TC-784 adaptados** (TC-784 con su **(B2)
+INVERTIDA**, que es el día que ese caso anunciaba).
+**44/44 MUTACIONES DIRIGIDAS MUERTAS** en 57,5 min, en worktree y **nunca** sobre el vivo, con
+el md5 del vivo idéntico antes y después y las 44 anclas verificadas **antes** de correr.
+⚠️ **EL PRIMER BARRIDO DEJÓ CUATRO SOBREVIVIENTES Y LAS CUATRO ERAN DE MI LADO, NO DE LA APP**:
+el rótulo sin restituir el contexto —que **nada** veía, porque el ciclo de prender y apagar de
+TC-783 no elige vista—; el rótulo de la aorta al centro, **equivalente** para la condición de
+solapes porque ahí tampoco se encima con los senos; el tema claro perdiendo **una** de sus nueve
+variables, que la condición «las dos listas son distintas» no podía ver; y el pie con
+`display:none`, que `textContent` no distingue — el agujero que TC-779 ya documenta.
+⚠️ **Y LA RESTITUCIÓN DEL CONTEXTO NO SE PUEDE MEDIR POR IDEMPOTENCIA, que fue el primer intento y
+la mutación TAMBIÉN lo sobrevivió: la fuga es ESTABLE.** Una vez que el `textAlign` queda puesto,
+**todos** los cuadros dibujan la brújula igual de corrida, así que dos repintados seguidos dan el
+mismo píxel. Lo que discrimina es el **estado del contexto después de pintar**.
+**A/B contra `31399ad`, con el PDF y el PPT generados de verdad en las 121 escenas: CERO
+diferencias de superficie firmada Y de pantalla**, sobre **148.572 claves comparadas** y **55.297
+celdas de Excel**, con **Excel 457** en los dos árboles y el **juego de claves de campos idéntico
+en las 121** —o sea cero campos guardados nuevos— y cero errores de página en los dos lados. Su
+cero de pantalla es un **control negativo declarado**: ese arnés no abre el panel de Coronarias,
+no elige vista, no toca el selector ni abre la ficha de Referencias. Lo que prueba la tanda son
+las siete sondas propias y TC-813 a TC-820.
+**Con «Coronarias» APAGADO el 3D es IDÉNTICO A HEAD, píxel a píxel**: el lienzo da el mismo hash
+que la línea base (**`1c7500fc`**), y **con «Coronarias» prendido sin tocar vista ni selector,
+también** (**`16dedac`**). Las tres opciones del selector dan tres dibujos distintos y el viaje de
+ida y vuelta vuelve al mismo hash.
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px
+× dos temas), con **UNA sola combinación de valores**: las **NUEVE** vistas con «Modo
+angiografía», el título **«Vista de angiografía»** en los veinte, el botón **«Arteria»** con su
+título fijo en la **misma fila**, **OCHO** botones de 44 px con **cero** por debajo, el rótulo con
+tinta en su rincón (409 a 413) y la brújula en el suyo (889 a 910), los tres lados dando
+`CD,DP,PL` / `Cx,D,DA,MO` / las siete, la ficha con sus **cuatro** hijos, **cinco** apartados,
+**dieciocho** casillas, **cero** con `id`, **cero** tildadas y los cinco cuadros ocultos, el
+esquema en **fila** a 1440, 1280, 1000 y 768 px y en **columna** a 390 —ahí el cuadro **debajo** y
+en 300 px—, **cero** solapes, **cero** rótulos fuera del lienzo, **cero** negros, **cero**
+desplazamiento horizontal, **cero** textos recortados y **CERO errores de consola y de página en
+los dos motores**.
+⚠️ **LA ÚNICA DIFERENCIA ENTRE MOTORES ES DE MÉTRICA DE FUENTE, y está medida sin redondeo**: la
+zona táctil de la casilla del **título** mide **24,00 px en Chrome y 23,31 en WebKit** —0,69 px
+corta—, mientras las de las frases dan **25,00** y **24,31**. Es el ascenso más descenso de 11 px
+en cada motor, y WebKit de Playwright **no es Safari**; la app corre en Chrome. La etiqueta entera
+sigue respondiendo al toque, y mide de 114 a 1.151 px de ancho. Queda declarado en **P34-b**: se
+cierra con un píxel más de relleno, al precio de volver a sellar.
+**CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta,
+medido con la máquina sola.
+⚠️ **Y UNA COSA QUE HICE MAL: la primera medición del celular corrió EN PARALELO con los dos
+motores**, que es la lección (7) de la orden. Dio la misma cifra, pero una medición que compite por
+la máquina no se informa: la de arriba es la de la corrida limpia.
+
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** El diff son **711 líneas agregadas y 26 quitadas** en `index.html`, medido con
+`git diff --numstat` contra `31399ad`, de las que **646** no son comentario, con **cero**
+`innerHTML`, `eval(` y `new Function` nuevos —las dos apariciones de `innerHTML` en el diff son el
+comentario que declara que no se usó ninguno— y cero claves ni contraseñas. **DOS ids nuevos**,
+`lv3d-coro-lista-art` y `rac-root`, ninguno terminando en `-aviso` ni cayendo en ninguno de los
+**21** barridos por sufijo o prefijo del archivo; **diez líneas de `<input>` nuevas con las
+dieciocho casillas y CERO con `id`**. **17 bloques de JS inline parsean.**
+⚠️ **UN HALLAZGO DE MÉTODO QUE ALCANZA A LAS TANDAS ANTERIORES: el tema de esta app NO es
+`prefers-color-scheme`.** Es la clase `light-mode` que `loadTheme()` pone leyendo
+`localStorage.ett_theme`. Dos sondas de esta tanda midieron **dos veces el tema oscuro** antes de
+que lo cazara —los mismos colores en los dos lados, que se lee igual que un control negativo bien
+hecho—, y **los cruces de «dos temas» de las sondas de dos motores de PANT-30 a PANT-33 tienen el
+mismo defecto**, porque usan el `colorScheme` del contexto de Playwright. La sonda nueva siembra la
+clave, llama a `loadTheme()` y **devuelve qué tema quedó puesto**.
+⚠️ **Y POR TRIGÉSIMA PRIMERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, verificado de
+las dos formas que esta casa manda: `git show 31399ad:index.html` da **173.959** líneas,
+**12.629.165** bytes y el md5 **`b3259e74`**, los tres idénticos a lo que el renglón decía, y el
+sello del pie coincidía con el que `CLAUDE.md` publicaba.
+**Línea base al cierre: suite 827/833**, en **DIECISÉIS** lotes cubriendo los **833 casos
+distintos** —contados nombre por nombre, **cero duplicados**—, en UNA sola pasada sobre el árbol
+sellado, con los **833 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`2ed17cab`) y el pendrive `DISK_IMG` verificado **dieciocho** veces: al abrir, en cada uno de los
+dieciséis lotes y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+siempre, más **TC-358 y TC-557**, los dos intermitentes declarados, que pasan **3 de 3 corridos
+aislados** —y corridos de a dos fallan 2 de 3, que es exactamente la sensibilidad que su propia
+declaración describe—. **Ningún rojo nuevo.**
+⚠️ **Y LA PRIMERA PASADA DIO 824/833 CON TRES ROJOS MÁS, Y DOS DE ELLOS ERAN MÍOS**: TC-551 —el
+tercer intermitente declarado, que en la pasada limpia salió verde—, **TC-753** —que tenía razón:
+`CLAUDE.md` seguía publicando el sello de PANT-33 mientras el pie ya traía el nuevo— y **TC-780**,
+la adaptación que el censo no vio y la corrida completa sí. Los dos están corregidos y la cifra de
+arriba sale de la pasada **LIMPIA**, con el archivo de casos final: una tanda no puede informar un
+número de una pasada hecha con un archivo de casos anterior.
+Lo declarado, en **P34-a** a **P34-e**; el mapa, en
+`docs/mapa/pant34-vistas-selector-esquema.md`; el inventario, en `docs/INVENTARIO_P34.md`; las
+fichas, en `docs/mapa/tests-fichas-813.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT34.md`
+(**12** pasos).
 
 **La tanda PANT-33 (2026-11-10) — el editor SOBRE LA HOJA, los dos documentos en blanco y el
 encabezado.** OCHO commits. Sello **`v20261110-2022`**, md5 **`b3259e74`**. El médico probó

@@ -321,3 +321,23 @@ propia excepción anunciaba.
 `_probe_pant29contr.mjs` (las tarjetas y el bloque), `_probe_pant29coro.mjs` (el botón y el
 panel), `_probe_pant29ab.mjs` + `_ab_pant29diff.mjs` (el A/B del papel) y
 `_mut_pant29.py` (las mutaciones).
+
+---
+
+## ⚠️ PANT-34 (2026-11-11) movió tres cosas de este panel
+
+El panel de Coronarias que este mapa describe **cambió**, y lo que sigue vale para lo que PANT-29
+dejó. Lo nuevo está en **`docs/mapa/pant34-vistas-selector-esquema.md`**:
+
+- las vistas de angiografía pasaron de **SEIS a NUEVE**, y **cinco de las seis viejas cambiaron de
+  ángulo** a pedido del médico;
+- **el título del botón ya NO cambia**: dice siempre «Vista de angiografía». Lo que dice cuál está
+  puesta es una **tilde** en la lista y un **rótulo dentro del cuadro del 3D**, en el rincón derecho
+  de abajo, a la altura de la brújula;
+- la primera fila del panel gana un segundo desplegable, **«Arteria»** (Todas / Izquierda /
+  Derecha), que filtra lo que se dibuja por el **dueño** de cada arteria. El panel sigue teniendo
+  **tres** filas.
+
+Lo que **no** se movió: el reparto de `lv3dCoroDefs`, el criterio de la dominancia, las siete
+letras, el tramo gris, el modo angiografía, la transparencia y el bloque «Arterias posiblemente
+involucradas».

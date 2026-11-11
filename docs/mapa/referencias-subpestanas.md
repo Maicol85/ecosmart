@@ -548,3 +548,20 @@ para que el globo `otr-rac` siga mostrando el texto corto de siempre.
 **El buscador no necesitó un cambio**: su índice se arma recorriendo los encabezados de cada
 panel. El detalle, el molde del sector y la compuerta de `_otrRefClon` están en
 **`docs/mapa/pant29-coronarias-3d.md`** § 1.
+
+---
+
+## ⚠️ PANT-34 (2026-11-11): la ficha de anomalías coronarias cambió su cuerpo
+
+`ref-coronarias` —en la subpestaña **Cardiopatías congénitas**— dejó de ser cuatro viñetas y pasa a
+ser **un texto corrido con casillas dentro de las frases**, con un esquema que se dibuja al costado
+al tildarlas. Está en **`docs/mapa/pant34-vistas-selector-esquema.md`** § 5.
+
+**Lo que NO se movió, y está medido contra la línea base:** las **nueve** solapas, el reparto de
+`REF_SUBTAB`, las **40** entradas con su id, los **94** encabezados que alimentan el índice del
+buscador, y **39 de las 40 fichas**, idénticas carácter por carácter. La única que cambia es ésta, y
+su encabezado es el mismo.
+
+⚠️ **Los dos primeros hijos de la ficha no se tocaron**, y no es un olvido: son los que el globo ⓘ
+`otr-rac` clona —`_otrRefClon` sin modo saltea los marcados `data-ref-solo`—, así que ese clon sigue
+dando **478** caracteres idénticos. Lo que se reemplazó es el **cuerpo propio**, los hijos 3 y 4.

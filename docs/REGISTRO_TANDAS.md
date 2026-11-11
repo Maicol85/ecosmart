@@ -1,3 +1,165 @@
+## PANT-34 — las nueve vistas de angiografía con su rótulo, el selector de arteria y el esquema de anomalías coronarias (2026-11-11)
+
+**Commits:** `b6ebf0a` (1, el inventario de solo lectura) · `7ec5bf4` (2, las nueve vistas, el
+título fijo y el rótulo) · `08dd6db` (3, el selector de arteria) · `ebd5b4b` (4, el esquema de
+Referencias) · `11557e4` (5, la medición de la captura) · `d7439ac` (6, ocho casos nuevos, tres
+adaptados y el barrido) · `f9b6a44` (7a, el sello) · **éste** (7b, la documentación).
+Sello **`v20261111-0030`**, md5 **`2ed17cab`**. Línea base: **`31399ad`**, el cierre de PANT-33, sello
+`v20261110-2022`, md5 `b3259e74`, **verificado al abrir** con `HEAD` = `origin/main` y con
+`wc -l`, `wc -c` y `md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras**,
+por trigésima primera vez seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+**Ningún commit incluyó un archivo de `docs/3d`**, verificado con `git status --short` y
+`git diff --cached --name-only` antes de cada uno: las diecisiete demos del médico siguen sin
+rastrear, sin tocar y sin mover.
+
+**Qué hace.** Tres cosas, y ninguna llega al papel: la lista de vistas de angiografía del 3D de
+Contractilidad pasa de **seis a nueve**, el botón deja de cambiar de título y la vista elegida se
+dice con un **rótulo dentro del cuadro**; la primera fila del panel gana un segundo desplegable,
+**«Arteria»**, que dibuja sólo la izquierda o sólo la derecha; y en Referencias la ficha de
+anomalías coronarias deja de ser cuatro viñetas y pasa a ser **un texto corrido con casillas
+dentro de las frases** que dibujan un esquema al costado.
+
+**Las nueve vistas, con el giro interno.** `LV3D_CORO_VISTAS` pasa a ser el **dueño único del
+nombre**: de esa tabla salen el texto de los nueve botones y el rótulo del cuadro, así que la
+lista y el dibujo no pueden nombrar la misma vista de dos formas —lo fija TC-813 (A4)—. Tres
+vistas son nuevas —AP caudal, Lateral y OAD recta— y **cinco de las seis viejas cambiaron de
+ángulo** a pedido del médico. **La convención resultó suficiente y no hubo que adaptar nada**: el
+vector de cámara es `d = [sin(a)·cos(b), sin(b), cos(a)·cos(b)]`, así que «de frente» es `a:0`,
+«lateral izquierda de 90°» es `a:90` —base válida, sin degenerar— y «sin angulación» es `b:0`.
+**Ni un grado se escribe en pantalla.**
+
+**El título del botón ya no cambia** —hasta PANT-33 pasaba a decir «Vista: OAD caudal»— y lo que
+dice cuál está puesta son la **tilde** de la lista y el **rótulo** del cuadro, en el rincón
+**derecho** de abajo, a la misma altura que la brújula y del lado opuesto. Medido antes de
+escribirlo: ese rincón tenía **cero** píxeles con tinta contra los 904 del de la brújula. El
+rótulo va después del bucle de polígonos, **no entra en `polis`** y no cambia un solo movimiento
+del 3D; lleva **halo** para leerse en los dos temas y en modo angiografía —413 píxeles de tinta en
+el claro, 410 en el oscuro y 213 que no son el fondo en angiografía—.
+
+**El selector de arteria lee el dueño que la dominancia YA resolvió.** El criterio es el campo `g`
+de cada definición: la derecha es `g === 'CD'` y la izquierda es todo lo demás. Con una segunda
+lista de reparto, el día que la dominancia mueva una rama el selector y el dibujo dirían cosas
+distintas. **Se filtra la definición y no el dibujo**, que es lo que hace que lo que no se dibuja
+desaparezca completo —el trazo, su letra y su tramo gris—. Medido en las nueve combinaciones de
+dominancia por lado: con dominancia derecha 20 / 12 / 8 arterias y `CD,Cx,D,DA,DP,MO,PL` /
+`Cx,D,DA,MO` / `CD,DP,PL`; codominante 19 / 13 / 6, con la PL del lado izquierdo; izquierda
+19 / 17 / 2. Los segmentos dibujados caen de **1.298 a 748 y a 550**.
+
+**Los dos desplegables en la misma fila, con `flex:1 1 0` y no con una base en píxeles.** La
+columna mide **150 px** a 1440 y a 1000, así que con una base de 96 px los dos botones se irían a
+líneas distintas justo en el ancho de escritorio, que es donde la orden los quiere juntos.
+Medido en cinco anchos: 73 / 73 / 73 / 336 / 147 px, los dos de 44 px de alto, cero texto
+recortado y cero desplazamiento horizontal. **El panel sigue teniendo TRES filas.**
+
+⚠️ **DOS HIPÓTESIS DE LA ORDEN RESULTARON FALSAS, y las dos cambiaron el diseño de la parte B.**
+La primera: **el globo ⓘ `otr-rac` clona los dos primeros hijos de la ficha**, los que no llevan
+`data-ref-solo`, así que reemplazar «el contenido actual» la habría cambiado — y la orden manda
+dejarla idéntica carácter por carácter. Lo que se reemplazó es el **cuerpo propio**, los hijos 3 y
+4 de PANT-29, y el esquema entra con la misma marca: el clon sigue dando **478 = 478** caracteres.
+La segunda: **`position:sticky` no puede funcionar ahí**, porque la `.card` que envuelve la ficha
+es `overflow:hidden` en los dos ejes y se vuelve el antecesor de desplazamiento más cercano. El
+cuadro va estático al costado. Las dos quedan en **P34-a** y **P34-b**.
+
+**El esquema, por construcción y no por cuidado.** Los textos son los que el médico aprobó y se
+**generaron** desde la especificación con un script, no se retipearon. El motor dibuja con
+`createElementNS` y **no con `innerHTML`** —así no entra un `innerHTML` nuevo al archivo— con
+splines Catmull-Rom convertidas a Bézier que pasan por los puntos dados. **Las dieciocho casillas
+van SIN `id`**, y eso es lo que las deja fuera de los tres mecanismos del censo: `limpiarCampos`
+recorre `input[id]` y les escribe el `checked` guardado, así que una casilla con `id` se
+destildaría sola en «Nuevo estudio» **dejando el dibujo puesto sin su casilla**. El cuadro se
+oculta **con una clase** y no con `hidden`, que es la lección de PANT-30.
+
+⚠️ **EL COLOR VA POR UNA REGLA DE CSS Y NO COMO `var()` EN UN ATRIBUTO**, que es la trampa que
+POP-B pagó con `--amber` y PANT-13 con `--card`: ahí es inválido en tiempo de cómputo y cae en el
+negro heredado. Por una regla sí resuelve **y además sigue al tema solo**. Medido en los cinco
+esquemas y en los dos temas: **cero** trazos y **cero** rellenos en negro, con **dos paletas
+distintas**, **cero** rótulos fuera del lienzo de 400 × 360 y **cero** rótulos encimados.
+
+**La parte D es sólo medición, y el comportamiento de la captura no se tocó.** Medido sobre el PNG
+de verdad: el rótulo **sale** en la captura —641 píxeles de tinta con una vista y cero sin ella—,
+la captura **respeta** el selector —tres PNG distintos, y volver a «Todas» devuelve el mismo
+hash—, no tapa nada —la banda del pie da 3.930 idénticos en las seis escenas— y es legible —paleta
+fija blanca, escala 2—. No es un defecto: queda declarado en **P34-d**.
+
+**Cobertura.** **TC-813 a TC-820**, los ocho cayendo **0/8** contra `31399ad` por **64
+condiciones y NINGUNA por excepción** —los accesores llevan guarda a propósito, porque contra el
+árbol anterior no existen ni las tres vistas nuevas, ni el selector, ni el motor del esquema—.
+**CUATRO casos adaptados**: TC-779 —(B2) y (B3) cambian de sujeto, y lo que ese caso sigue
+vigilando, los dos primeros hijos y el globo, queda intacto—; TC-783 —seis a NUEVE vistas y siete
+a OCHO botones—; TC-784, con su **(B2) INVERTIDA**; y **TC-780**, que la corrida completa destapó y
+el censo no: fijaba las cinco cifras de las viñetas de PANT-29 contra su fila de control, y dos de
+ellas ya no se publican —el «hasta el 1 %» y los «35 años»— porque el texto aprobado dice **0,7 %**
+y **menores de 40 años**, que tienen su propia fila verificada en PANT-28 (C2 y C9). Su lista pasó
+de cinco a **diez** cifras trazadas y su testigo negativo, al intervalo de confianza de esa misma
+fila, que la app no publica.
+
+**44/44 MUTACIONES DIRIGIDAS MUERTAS**, en worktree y **nunca** sobre el vivo, con el md5 del vivo
+idéntico antes y después y las 44 anclas verificadas **antes** de correr.
+⚠️ **Tardó 57,5 min, por encima del tope de 30 que la orden fija, y el motivo está medido**: son
+**44** anclas en vez de las ~30 pedidas, varias declaran dos o tres casos, y los casos nuevos
+crecieron al cerrar los cuatro sobrevivientes. El primer barrido —43 anclas— tardó 15,7 min.
+⚠️ **LOS CUATRO SOBREVIVIENTES ERAN DE MI LADO, NO DE LA APP**: el rótulo sin restituir el
+contexto, que **nada** veía porque el ciclo de prender y apagar de TC-783 no elige vista; el rótulo
+de la aorta al centro, **equivalente** para la condición de solapes porque ahí tampoco se encima
+con los senos; el tema claro perdiendo **una** de sus nueve variables, que «las dos listas son
+distintas» no podía ver; y el pie con `display:none`, que `textContent` no distingue — el agujero
+que TC-779 ya documenta. Y una **quinta** mutación se agregó después: el oyente de las casillas sin
+cablear, porque las condiciones llamaban al dibujo a mano y no lo ejercitaban.
+⚠️ **Y LA RESTITUCIÓN DEL CONTEXTO NO SE PUEDE MEDIR POR IDEMPOTENCIA**, que fue el primer intento
+y la mutación también lo sobrevivió: **la fuga es estable**. Una vez que el `textAlign` queda
+puesto, todos los cuadros dibujan la brújula igual de corrida, así que dos repintados seguidos dan
+el mismo píxel. Lo que discrimina es el **estado del contexto después de pintar**.
+
+**A/B contra `31399ad`, con el PDF y el PPT generados de verdad en las 121 escenas: CERO
+diferencias de superficie firmada Y de pantalla**, sobre **148.572 claves** y **55.297 celdas de
+Excel**, con **Excel 457** en los dos árboles y el juego de claves de campos **idéntico en las
+121**. Su cero de pantalla es un **control negativo declarado**.
+**Con «Coronarias» apagado el 3D es IDÉNTICO a HEAD píxel a píxel** (`1c7500fc`), y con
+«Coronarias» prendido sin tocar vista ni selector **también** (`16dedac`).
+**Chrome y WebKit coinciden en los VEINTE cruces**, con una sola combinación de valores. La única
+diferencia entre motores es de **métrica de fuente**: la zona táctil de la casilla del **título**
+mide **24,00 px en Chrome y 23,31 en WebKit** —0,69 px corta—, con las de las frases en 25,00 y
+24,31. Declarado en **P34-b**.
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **Celular 59
+hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta. **17 bloques de
+JS inline parsean.**
+⚠️ **UN HALLAZGO DE MÉTODO QUE ALCANZA A LAS TANDAS ANTERIORES: el tema de esta app no es
+`prefers-color-scheme`**, sino la clase `light-mode` que `loadTheme()` pone leyendo
+`localStorage.ett_theme`. Dos sondas de esta tanda midieron **dos veces el tema oscuro** antes de
+que lo cazara, y **los cruces de «dos temas» de las sondas de dos motores de PANT-30 a PANT-33
+tienen el mismo defecto**. La sonda nueva siembra la clave, llama a `loadTheme()` y devuelve qué
+tema quedó puesto.
+⚠️ **Y UNA COSA QUE HICE MAL**: la primera medición del celular corrió **en paralelo** con los dos
+motores, que es la lección (7) de la orden. Dio la misma cifra, pero la que se informa es la de la
+corrida limpia.
+
+**Línea base al cierre: suite 827/833**, en **DIECISÉIS** lotes cubriendo los **833 casos
+distintos** —contados nombre por nombre, **cero duplicados**—, en UNA sola pasada sobre el árbol
+sellado, con los **833 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`2ed17cab`) y el pendrive `DISK_IMG` verificado **dieciocho** veces: al abrir, en cada uno de los
+dieciséis lotes y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de
+siempre, más **TC-358 y TC-557**, los dos intermitentes declarados, que pasan **3 de 3 corridos
+aislados** —y corridos de a dos fallan 2 de 3, que es exactamente la sensibilidad que su propia
+declaración describe—. **Ningún rojo nuevo.**
+⚠️ **Y LA PRIMERA PASADA DIO 824/833 CON TRES ROJOS MÁS, Y DOS DE ELLOS ERAN MÍOS**: TC-551 —el
+tercer intermitente declarado, que en la pasada limpia salió verde—, **TC-753** —que tenía razón:
+`CLAUDE.md` seguía publicando el sello de PANT-33 mientras el pie ya traía el nuevo— y **TC-780**,
+la adaptación que el censo no vio y la corrida completa sí. Los dos están corregidos y la cifra de
+arriba sale de la pasada **LIMPIA**, con el archivo de casos final: una tanda no puede informar un
+número de una pasada hecha con un archivo de casos anterior.
+
+**Dónde está todo:** `docs/mapa/pant34-vistas-selector-esquema.md` (**mapa NUEVO**, 16,6 KB),
+`docs/INVENTARIO_P34.md` (el inventario de la TAREA 0 y la tabla de la captura),
+`docs/mapa/tests-fichas-813.md` (**archivo propio**, 13,3 KB), **tres mapas con un puntero cada
+uno** —medidos ANTES de escribirlo: `pant29-coronarias-3d.md` 16,9 KB,
+`referencias-subpestanas.md` 32,1 y `tests-punteros-tandas.md` 18,7—,
+`docs/GUIA_PRUEBA_PANT34.md` (la guía manual en **12** pasos) y `docs/PENDIENTES.md` →
+**P34-a** a **P34-e**.
+**Ningún commit incluyó un archivo de `docs/3d`**, verificado commit por commit.
+
+---
+
 ## PANT-33 — el editor sobre la hoja, los dos documentos en blanco y el encabezado (2026-11-10)
 
 **Commits:** `ed13682` (1, el inventario de solo lectura) · `257c8de` (2, el encabezado: el
