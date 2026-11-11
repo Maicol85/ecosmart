@@ -24526,6 +24526,51 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     </div>
   </div>
 
+  <!-- ══ ASOCIACIONES Y SINDROMES — PANT-36, parte A (2026-11-11) ═══════════════════════════
+       TERCERA ENTRADA del panel «Cardiopatia congenita», debajo de «Anomalias coronarias».
+       ⚠️ NO ES UNA DECIMA SUBPESTANIA, y esta medido en `docs/INVENTARIO_P36.md`: Referencias
+          tiene NUEVE subpestanias y «Cardiopatia congenita» es una de ellas; lo que vive debajo
+          de una entrada es otra ENTRADA del mismo panel. Es el vocabulario que PANT-25 fijo.
+       ⚠️ `asoc` VA A `REF_SUBTAB.congenitas` EN ESTE MISMO COMMIT, por la leccion que
+          `constriccion` dejo en la tanda J: una ficha fuera del reparto existe, se abre desde su
+          encabezado y el buscador la indexa, pero el medico que navegue por las solapas no la
+          encuentra nunca. Lo cazan TC-502 (A3) y TC-509 (F3).
+       ⚠️ EL BUSCADOR NO NECESITA NINGUN CAMBIO: su indice recorre los `h2.card-head` con
+          `toggleRef` de cada panel y arma la entrada sola.
+       ⚠️ EL TEXTO DE LAS DOS TABLAS SE GENERA DESDE `scripts/_gen_p36tablas.py` y NO se
+          retipea: ahi vive la especificacion del medico, una sola vez, y de ahi sale este
+          marcado. Con el texto escrito a mano no hay con que comparar carácter por carácter.
+       ⚠️ CERO BOTONES, CERO SELECTORES Y CERO CASILLAS, y cero `input`, `select` y `textarea`:
+          por eso esta entrada no agrega un solo campo del estudio ni una columna de Excel. El
+          censo recorre `input[id], select[id], textarea[id]`.
+       ⚠️ EL ENVOLTORIO `overflow-x:auto` CON LA TABLA EN `min-width` ES EL PATRON MEDIDO de
+          PANT-25 en `ref-tumores`: la tabla se desplaza DENTRO de su contenedor y la pagina no
+          gana desplazamiento horizontal en celular.
+       ⚠️ SIN PIE, SIN FUENTE Y SIN NOTA, que es lo que A4 pide. Nada de esto llega al papel:
+          es una entrada de Referencias.
+       EL TECHO DE EXTENSION DE LOS RESUMENES NO APLICA ACA: son tablas, no resumenes. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('asoc',this)">
+      🔗 Asociaciones y síndromes
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-asoc" style="display:none;" class="card-body">
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Síndromes con cardiopatía</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:900px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Síndrome</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Alteración genética</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Con cardiopatía</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Cardiopatía más típica</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Cómo sospecharlo</th></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Deleción 22q11.2 (DiGeorge, velocardiofacial)</td><td style="padding:5px 8px;">Deleción 22q11.2</td><td style="padding:5px 8px;">60 a 80 %</td><td style="padding:5px 8px;">Arco aórtico interrumpido tipo B y otras anomalías del arco, tronco arterioso, tetralogía de Fallot, CIV con atresia pulmonar. Del subgrupo con cardiopatía, el 70 % tiene un defecto conotruncal.</td><td style="padding:5px 8px;">Rasgos faciales, paladar y habla alterados, timo y paratiroides pequeños, hipocalcemia, inmunodeficiencia, trastornos del neurodesarrollo y psiquiátricos. En el adulto puede no notarse a simple vista.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Down</td><td style="padding:5px 8px;">Trisomía 21</td><td style="padding:5px 8px;">40 a 50 %</td><td style="padding:5px 8px;">CIA, CIV, canal AV (defecto septal auriculoventricular), Fallot. Más del 75 % de los canales AV completos ocurren en Down.</td><td style="padding:5px 8px;">Rasgos faciales, discapacidad del desarrollo, inestabilidad atlantoaxial, apnea obstructiva del sueño, alteraciones craneofaciales.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Holt-Oram</td><td style="padding:5px 8px;">Gen TBX5</td><td style="padding:5px 8px;">75 %</td><td style="padding:5px 8px;">CIA, CIV, valvulopatía (prolapso mitral, estenosis pulmonar).</td><td style="padding:5px 8px;">Alteraciones óseas de los miembros superiores; trastornos de la conducción.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Klinefelter</td><td style="padding:5px 8px;">47,XXY</td><td style="padding:5px 8px;">50 %</td><td style="padding:5px 8px;">Ductus arterioso persistente, CIA, prolapso mitral.</td><td style="padding:5px 8px;">Talla alta, testículos pequeños, pubertad tardía, discapacidad del desarrollo.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Noonan</td><td style="padding:5px 8px;">PTPN11, KRAS, SOS1, RAF1, NRAS, BRAF, MAP2K1</td><td style="padding:5px 8px;">80 %</td><td style="padding:5px 8px;">Estenosis pulmonar, CIA, miocardiopatía hipertrófica, canal AV. La válvula pulmonar displásica (15 a 20 % de las estenosis valvulares pulmonares) suele ser parte del Noonan.</td><td style="padding:5px 8px;">Rasgos faciales, cuello alado, deformidad del tórax, alteraciones linfáticas, trastornos de la coagulación.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Turner</td><td style="padding:5px 8px;">45,X (monosomía total o parcial del X)</td><td style="padding:5px 8px;">30 %</td><td style="padding:5px 8px;">Válvula aórtica bicúspide, coartación, aortopatía, drenaje venoso pulmonar anómalo parcial; también VCS izquierda, arco transverso alargado y dilatación de los troncos braquiocefálicos.</td><td style="padding:5px 8px;">Talla baja, cuello alado, linfedema, amenorrea primaria.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">Williams (Williams-Beuren)</td><td style="padding:5px 8px;">Deleción 7q11.23 (gen de la elastina)</td><td style="padding:5px 8px;">50 a 80 %</td><td style="padding:5px 8px;">Estenosis aórtica supravalvular, estenosis de ramas pulmonares, estenosis pulmonar supravalvular, estenosis del ostium coronario, QTc largo, estrechez aórtica media.</td><td style="padding:5px 8px;">Cara «élfica», personalidad muy sociable, hipoacusia, retraso del desarrollo, hipercalcemia del lactante.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">Alagille</td><td style="padding:5px 8px;">Gen JAG1</td><td style="padding:5px 8px;">70 a 75 %</td><td style="padding:5px 8px;">Estenosis de ramas o periférica de la arteria pulmonar u otras estrecheces arteriales (en dos tercios); también Fallot, estenosis aórtica, defectos septales.</td><td style="padding:5px 8px;">Rasgos faciales, enfermedad del hígado (colestasis crónica, atresia biliar), accidentes neurovasculares, alteraciones renales.</td></tr>
+        <tr><td style="padding:5px 8px;font-weight:700;">Heterotaxia</td><td style="padding:5px 8px;">Varios genes (ZIC3, NODAL, CFC1 y otros)</td><td style="padding:5px 8px;">50 a 95 %</td><td style="padding:5px 8px;">Canal AV (balanceado o no), grandes vasos malpuestos, VCI interrumpida, VCS bilateral, isomerismo auricular.</td><td style="padding:5px 8px;">Situs anormal, disfunción ciliar, asplenia funcional, trastornos de la conducción, atresia biliar.</td></tr>
+      </table></div>
+    </div>
+  </div>
+
   <!-- ⚠️ ACA VIVIA LA FICHA GRANDE `ref-racong` DE PANT-28 Y SALIO EN PANT-29, commit 3, por la
        decision (2) del medico (10/11): el contenido era correcto pero excedia lo que la app
        tiene que tener, y no tiene sentido un boton escueto y otro gigante sobre el mismo tema.
@@ -81814,7 +81859,12 @@ const REF_SUBTAB = Object.freeze({
      decision (2) del medico la reemplaza por cuatro vinietas DENTRO de `ref-coronarias`, que ya
      esta en este reparto. El globo `otr-rac` sigue clonando esa ficha, pero ahora `_otrRefClon`
      saltea los hijos marcados `data-ref-solo`, que son justamente los nuevos. */
-  congenitas: Object.freeze(['congenitas', 'coronarias']),
+  /* ⚠️ `asoc` SE AGREGA ACA EN EL MISMO COMMIT QUE SU ENTRADA (PANT-36, parte A), por la
+     leccion que `constriccion` dejo en la tanda J: una entrada fuera de este reparto existe,
+     se abre desde su encabezado y el buscador la indexa, pero el medico que navegue por las
+     solapas no la encuentra nunca. Va TERCERA y ULTIMA, que es el orden en que `refSubInit`
+     apila las tarjetas: la decision del medico la pone debajo de «Anomalias coronarias». */
+  congenitas: Object.freeze(['congenitas', 'coronarias', 'asoc']),
   cardiotox:  Object.freeze(['cardiotox']),
   hemo:       Object.freeze(['pop', 'constriccion']),
   /* ⚠️ `atleta` Y `chagas` SALIERON DE ACA EN PANT-29, commit 2, EN EL MISMO COMMIT QUE SUS
