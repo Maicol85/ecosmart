@@ -296,3 +296,48 @@ la línea de fuentes de la ficha es la que ya estaba y no se toca.
 
 `scripts/test_clinico.mjs` tiene **825** casos y el último es **TC-812** (PANT-33). El primer
 número libre es **TC-813**.
+
+---
+
+## PARTE D — la captura del 3D, medida sobre el PNG de verdad (commit 5)
+
+**Solo medición y declaración: el comportamiento de la captura NO se cambió.** La sonda es
+`scripts/_probe_p34d.mjs`, que llama a `lv3dCapturar()`, carga el PNG que deja en `_lv3d.cap.url`
+y le cuenta los píxeles que no son blancos —el fondo del PNG es blanco opaco, `LV3D_CAP_PAL`— en
+tres zonas: el rincón del rótulo, el de la brújula y la banda del pie.
+
+| escena | tamaño | hash del PNG | tinta en el rincón del rótulo | brújula | banda del pie |
+|---|---|---|---|---|---|
+| «Coronarias» apagado | 1360 × 932 | `785bd95e` | **0** | 2.483 | 3.930 |
+| prendido, sin vista | 1360 × 932 | `85313630` | **0** | 2.483 | 3.930 |
+| con la vista «Lateral» | 1360 × 932 | `2d251060` | **641** | 2.850 | 3.930 |
+| «Lateral» + arteria **Derecha** | 1360 × 932 | `d3e6c40` | 641 | 2.850 | 3.930 |
+| «Lateral» + arteria **Izquierda** | 1360 × 932 | `96557441` | 641 | 2.850 | 3.930 |
+| de vuelta a **Todas** | 1360 × 932 | **`2d251060`** | 641 | 2.850 | 3.930 |
+
+**Las dos respuestas de D1:**
+
+1. **Sí, el rótulo de la vista SALE en la captura, y por lo tanto en la imagen que va al PDF.**
+   Es consecuencia directa de que `lv3dCapturar` llame al **mismo** pintor,
+   `lv3dPintar(ctx, W, LV3D_H, pal, false)`: 641 píxeles de tinta en el rincón con una vista
+   puesta y **cero** sin ella.
+2. **Sí, la captura respeta el selector de arteria.** Los tres PNG son distintos
+   (`2d251060`, `d3e6c40`, `96557441`) y volver a «Todas» devuelve **el mismo hash** que la
+   primera captura, o sea que el PNG es idempotente.
+
+**No es un defecto, y por eso no se abre un pendiente de defecto:**
+
+- **no tapa nada**: el rincón medía **cero** píxeles de tinta sin el rótulo —medido también en la
+  línea base—, y la banda del pie da **3.930** idénticos en las seis escenas, así que el rótulo no
+  se le encima ni al pie ni a la brújula (que cambia de 2.483 a 2.850 porque **gira con la vista**,
+  no por el rótulo);
+- **es legible**: en la captura la paleta es la fija `LV3D_CAP_PAL`, o sea texto oscuro sobre fondo
+  blanco, y el PNG sale a escala 2, así que el cuerpo de 12 px del rótulo se rasteriza a 24 px;
+- **y es deseable**: una imagen pegada en un informe que no dice desde qué vista se mira es una
+  imagen sin su dato. Queda declarado en `docs/PENDIENTES.md` → **P34-d**.
+
+⚠️ **UNA TRAMPA DE MEDICIÓN, PAGADA ACÁ: la animación hay que pausarla antes de cada captura.**
+La primera corrida dio **seis hashes distintos** y parecía que volver a «Todas» no devolvía el
+dibujo. Lo que se movía era el corazón: leer el PNG es asíncrono, así que entre dos capturas corren
+cuadros de `requestAnimationFrame` y cada PNG sale con otra fase del latido. Con
+`_lv3d.corriendo = false` y la fase en 0 antes de cada captura, el ida y vuelta da el hash exacto.
