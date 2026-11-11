@@ -1,3 +1,133 @@
+## PANT-37 — el «What if» de la estenosis aórtica (2026-11-11)
+
+**SEIS commits.** `5e14dc9` (1, el inventario de solo lectura) · `04ab12b` (2, el botón, la
+situación y el globo) · `762be82` (3, el panel, el cálculo, la tabla, las gráficas y el dibujo) ·
+`819d077` (4, el área que se abre) · `8f05a53` (5, los siete casos nuevos, las tres adaptaciones,
+el barrido de 41 mutaciones y el **resellado**) · **éste** (6, la documentación, que no toca
+`index.html`).
+Sello **`v20261111-1450`**, md5 **`3f5893e7`**. Línea base: **`f1412a2`**, el cierre de PANT-36, sello
+`v20261111-0442`, md5 `44207a10`, **verificado al abrir** con `HEAD` = `origin/main` y con
+`wc -l`, `wc -c` y `md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las cuatro
+cifras**, por trigésima tercera vez seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+**Ningún commit incluyó un archivo de `docs/3d`**, verificado con `git status --short` y
+`git diff --cached --name-only` antes de cada uno: las diecisiete demos del médico siguen sin
+rastrear, sin tocar y sin mover. La rama `respaldo-pant32` no se tocó.
+
+**Qué hace.** La tarjeta de **estenosis aórtica de la vista 2D** gana un botón **«What if»** con
+su ⓘ, que se pinta de **azul** cuando la estenosis es **discordante** y abre un panel flotante que
+simula qué pasaría si el flujo aumentara. Lo que mueve es **el dibujo 2D y su propio panel**: no
+escribe un campo, no guarda nada y no toca el informe, el PDF, el PPT ni el Excel.
+
+**Cuatro hipótesis de la orden resultaron FALSAS**, las cuatro medidas en el inventario del commit
+1 y ninguna «arreglada» inventando: el dibujo 2D **no tiene aorta ni chorro aórtico anterógrado**
+—sus tres chorros son de regurgitación y debajo del velo aórtico lo dibujado es la aurícula
+izquierda—; **no tiene frecuencia del paciente** (`S.dur` nace en 2,6 s y nadie la escribe);
+**no hay ningún panel arrastrable** en la app que sirviera de patrón; y **«siempre visible» es
+cierto dentro de su tarjeta**, que sólo existe con la pastilla prendida o con veredicto protésico.
+
+**Y una PRECISIÓN que ordenó toda la tanda:** la tarjeta que la demo aprobada refleja es el `<li>`
+de la columna «Estenosis» de la **vista 2D**, no una tarjeta del formulario de Válvulas.
+
+**Ningún corte se retipea.** La situación la decide `eaGradoCalculado()`, que ya devuelve `gVel`,
+`gGrad` y `gAva`; los cortes de las gráficas y de las dos líneas de lectura salen de
+`EA_BANDAS.gmedSevMin`, de la banda `moderada` de `EA_BANDAS.vmax` y de `AVA_SEVERA_MAX`.
+⚠️ **El gradiente puede ser `null` estando cargado**, así que la condición va con `!== 'severa'`:
+con `=== 'moderada'` una estenosis de 0,8 cm² y gradiente de 12 mmHg —el bajo flujo más claro que
+hay— se leería como **concordante**.
+
+**La simulación entra entre `v2dEstado()` y `S`, nunca dentro de `v2dEstado()`**, que alimenta
+también las tarjetas y la tabla de cavidades. Y **lo que entra son razones y no valores
+absolutos**, lo que da una propiedad medible: con el panel abierto y nada movido las dos razones
+valen 1 y el **dibujo es idéntico al real**, verificado por el atributo `d` de sus dos trazos a
+una fase fija.
+
+**Medido con el área fija:** al duplicar el volumen sistólico el flujo se duplica **exacto**, el
+gradiente se **cuadruplica** exacto y la Vmax se **duplica** exacta, con el área, el área indexada
+y el DVI sin moverse. **La frecuencia no entra en el flujo** —el flujo es el de la eyección— pero
+sí mueve el latido del dibujo y la línea de lectura, la única que pasa a L/min.
+
+**La ley del área que se abre es una función PURA expuesta**, `wiAreaEn(a0, m, q0, q)`, y se
+**prueba sola** con el par publicado de la guía europea de eco de estrés: área 0,79 → 1,22 cm² con
+flujo 183 → 370 mL/s implica una pendiente de **0,2299** cm² por cada 100 mL/s y un área proyectada
+a 250 mL/s de **0,9441 → 0,94 cm²**, que es el número que la orden pide. La misma función
+reproduce el par de origen (0,79 en 183 y 1,22 en 370) y sus dos topes (0,15 y 2,50).
+
+**El tope del volumen sistólico son VDF − 2 mL**, el margen mínimo para que el ventrículo del
+dibujo no se cierre a un punto; medido con VDF 120, el deslizador topa en 118 y en 98 % en modo
+FEVI, y el volumen simulado nunca pasa del VDF.
+
+**Lo que NO hace, medido.** Cero campos guardados nuevos, Excel en **457** columnas, los cinco
+controles del panel fuera de las **dos** listas del censo (prefijo `wi-` con guión medio), ningún
+id terminado en `-aviso` ni en `-badge`, y el informe y el EN SUMA **idénticos** con el panel
+abierto y simulando al máximo con el área que se abre encendida. Con el panel abierto, las
+tarjetas, la tabla de cavidades, los ocho campos y los siete valores de `eaGradoCalculado()`,
+idénticos.
+
+**Las tres restituciones** —la ✕, «Volver a lo medido» y «Nuevo estudio»— devuelven el dibujo
+real, las tres por el mismo camino (`v2dWhatIf(null)`), colgadas de `v2dCerrar`, que es el embudo
+de las cuatro puertas de la vista 2D.
+
+**Cobertura: TC-825 a TC-831**, los siete cayendo contra `f1412a2` por **74 condiciones y CERO
+por excepción** — lo que costó reescribir **todos** los accesos con ayudantes con guarda y
+centinelas de **forma vacía**, porque un `null` se vuelve a desreferenciar dos líneas más abajo.
+Medido en un worktree con el **mismo** archivo de casos y sólo el `index.html` distinto: **10/10
+en el árbol vivo y 1/10 en el anterior**, y el único que pasa en los dos es **TC-502**, que es
+una adaptación de un caso viejo y no un caso de esta tanda.
+⚠️ **Y ESO SE VERIFICÓ AL FINAL, CON EL ARCHIVO DE CASOS FINAL, Y TC-827 TODAVÍA CAÍA POR
+EXCEPCIÓN**: un solo acceso se había quedado afuera de los ayudantes —el del deslizador de
+volumen, leído pelado para sacarle su mínimo y su máximo— y contra el árbol anterior ese
+deslizador no existe, así que el `TypeError` cortaba **antes de medir nada** y el caso declaraba
+**cero** condiciones. **No lo encontró el censo sino la corrida contra la línea base**, que es
+para lo que está. Hoy va por `NN` y por `SET`, y el caso cae por sus condiciones.
+⚠️ **Y al arreglarlo, el acento grave dentro de mi propio comentario, otra vez** —la
+decimoctava tanda seguida—, y con la agravante que PANT-31 dejó escrita: lo que quedaba era JS
+**válido**, así que `node --check` **pasó**. Lo cazó `check_backticks.py`.
+**Tres casos adaptados**: **TC-471** y **TC-500**, los dos contadores del registro de globos
+(142 → **143** por `wi-aplica`), los dos con la clave exigida por nombre para que sacarla los
+vuelva a poner en rojo; y **TC-502**, que salía **verde aislado y rojo en su lote** porque su
+censo contaba los `[data-vinfo]` de toda la página y el globo nuevo entraba o no según si un caso
+anterior había dejado abierta la vista 2D. Hoy saltea los que viven dentro de `#v2d-ov`.
+
+**Barrido: 41/41 mutaciones dirigidas muertas** en **5,9 min**, cero sobrevivientes y cero que no aplicaran,, en un worktree y **nunca** sobre el vivo, con las
+**41 anclas verificadas antes** de correr y el md5 del árbol vivo idéntico antes y después.
+⚠️ **El barrido se frenaba solo y la causa eran los CHROME ZOMBIES**: iba a cuatro minutos por
+mutación y creciendo, cuando una corrida aislada del mismo caso tarda **22 segundos**. Es la
+trampa de `cdp.mjs` que este repo ya documenta. El arnés barre los perfiles de prueba después de
+cada mutación.
+
+⚠️ **EL CRUCE DE DOS MOTORES ENCONTRÓ UN DEFECTO REAL Y HUBO QUE RESELLAR.** A **1000 px** —y
+sólo ahí— el panel nacía con su borde derecho 16 px fuera de la ventana, el acote lo corría esos
+16 px hacia la izquierda y le **tapaba al dibujo 6 px de ancho por 336 de alto, 2016 px²**, que
+es lo único que la orden prohíbe. Reproducible en Chrome y en WebKit y en los dos temas, con los
+rectángulos medidos. El acote ahora **angosta** el panel al hueco que le queda a su derecha antes
+de intentar correrlo: correrlo para que entre en la pantalla y taparle el dibujo son las dos
+cosas prohibidas a la vez, y la única salida que cumple las dos es que el panel mida menos.
+Todo lo que se midió después corrió sobre el árbol resellado.
+
+**Línea base al cierre: suite 836/844**, en **dieciséis** lotes cubriendo los **844 casos
+distintos** —cero duplicados—, en UNA sola pasada sobre el árbol sellado, con los **844
+ejecutados**, el md5 de `index.html` idéntico antes y después (`3f5893e7`) y el pendrive
+`DISK_IMG` verificado **dieciocho** veces. Los rojos son **TC-223, TC-376, TC-390 y TC-406**,
+los cuatro de siempre; **TC-358, TC-551 y TC-557**, los tres intermitentes declarados; y
+**TC-233**, que no está en ninguna lista y quedó caracterizado en **P37-j** —código byte por
+byte idéntico al de PANT-36, pendrive montado, los diecisiete casos del pendrive verdes, 3/3
+aislado, y **1 rojo de 4 en el árbol nuevo contra 0 de 4 en el anterior**, con el único rojo
+corrido con la máquina cargada—. **Ningún rojo nuevo atribuible a la tanda**, y los siete
+casos nuevos y los tres adaptados **en verde**.
+⚠️ **Es la SEGUNDA pasada limpia.** La primera dio 838/844, pero el archivo de casos cambió
+después —los tres accesos pelados de TC-827 y la tarjeta de TC-826—, y esta casa no informa un
+número de una pasada hecha con un archivo anterior. **Y las dos no tienen los mismos rojos**,
+que es lo que hay que mirar y no el total.
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta; sin huérfanos nuevos; Excel **457**;
+celular **59 a 360 px y 67 a 390, con 18 ALTA en cada ancho**, la línea base exacta.
+
+**Lo declarado**, en `docs/PENDIENTES.md` → **P37-a** a **P37-j**; el mapa, en
+`docs/mapa/pant37-what-if.md`; el inventario, en `docs/INVENTARIO_P37.md`; las fichas, en
+`docs/mapa/tests-fichas-825.md`; la guía manual, en `docs/GUIA_PRUEBA_PANT37.md` (**10** pasos).
+
+---
+
 ## PANT-36 — «Asociaciones y síndromes» y los quince resúmenes de congénitas (2026-11-11)
 
 **ONCE commits.** `b05f7f0` (1, el inventario de solo lectura) · `d9bbae8` (2, la entrada y la tabla de

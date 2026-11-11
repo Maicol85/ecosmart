@@ -537,3 +537,21 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+## El «WHAT IF» lee estos cortes y no retipea ninguno (PANT-37, 2026-11-11)
+
+El simulador de la tanda **PANT-37** —`docs/mapa/pant37-what-if.md`— decide su **situación** y
+dibuja sus **cortes** leyendo a los dueños de esta página, sin una sola copia:
+
+| Qué necesita | De dónde lo saca |
+|---|---|
+| «severa por área» | **`eaGradoCalculado().gAva === 'severa'`** (o sea `avaEsSevera`, tras `avaEsValida`) |
+| Vmax y gradiente «por debajo del rango severo» | `gVel !== 'severa'` y `gGrad !== 'severa'` del mismo dueño |
+| el corte de la línea de lectura | **`EA_BANDAS.gmedSevMin`** |
+| el corte de la gráfica de Vmax | el `bajo` de la banda `'moderada'` de **`EA_BANDAS.vmax`** |
+| el corte de la gráfica de área y de su frase | **`AVA_SEVERA_MAX`** |
+
+⚠️ **`gGrad` PUEDE SER `null` ESTANDO EL GRADIENTE CARGADO** —por debajo de `gmedModMin` se
+**abstiene**—, y para el What if eso sigue siendo «por debajo del rango severo». Por eso la
+condición va con `!== 'severa'`: con `=== 'moderada'`, una estenosis de 0,8 cm² y gradiente de 12
+mmHg se leería como concordante. Lo fija la mutación 10 de `_mut_p37.py`.

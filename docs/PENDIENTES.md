@@ -33,6 +33,197 @@ se leen 20-80 lineas con `sed -n`.
 
 <!-- /L1:INDICE -->
 
+# TANDA PANT-37 (2026-11-11) — el «What if» de la estenosis aórtica
+
+> Sello **`v20261111-1450`**, md5 **`3f5893e7`** —el SEGUNDO: el árbol se reselló al cerrar
+> (**P37-f**)—. El inventario de solo lectura, con las catorce
+> hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
+> **`docs/mapa/pant37-what-if.md`**.
+
+## P37-a · CUATRO hipótesis de la orden resultaron FALSAS (2026-11-11)
+
+Las cuatro están medidas en el inventario del commit 1 y ninguna se «arregló» inventando:
+
+1. **El dibujo 2D de esta aplicación NO TIENE AORTA NI CHORRO AÓRTICO ANTERÓGRADO.** `updJet`
+   dibuja **tres** chorros y los tres son de **regurgitación** —`D.JET` tiene las claves `it`,
+   `iao` e `im`—. El esquema es un sector de cuatro cámaras con el ápex arriba (`yTop:54`) y las
+   aurículas abajo (`yBot:250`); las bisagras del velo aórtico están en `y≈171-178` y sus puntas
+   en `y≈188-191`, o sea que el ventrículo queda **arriba** —por eso el chorro de insuficiencia
+   aórtica sube— y la aorta quedaría **abajo**, donde lo dibujado es la **aurícula izquierda**.
+   Un chorro anterógrado de 20 unidades desde el orificio cae en `(80, 208)`, que en ese dibujo
+   es la **aurícula derecha**.
+   **Lo que se hizo en su lugar:** la Vmax simulada se publica como **rótulo dentro del lienzo**
+   —`#wi-dib-vmax`, en el rincón de abajo a la izquierda, con halo para leerse en los dos
+   temas—, más el chip «Dibujo según What if» sobre el dibujo. **Decisión del médico pendiente:**
+   si quiere el chorro, hay que decidir antes **por dónde sale la aorta** en ese esquema, que es
+   contenido del dibujo y no una opción de programación.
+2. **El dibujo 2D no tiene frecuencia del paciente.** `S.dur` nace en **2,6 s por ciclo** y
+   **nadie la escribe nunca**: su única aparición fuera de la declaración es la lectura de
+   `_v2dLoop`. El latido era siempre el mismo con cualquier FC cargada. Hoy el What if la mueve
+   **por razón** (`DUR0 × FC0/FCsim`), así que con nada movido el latido es el de siempre.
+3. **La aplicación no tiene ningún panel arrastrable** que sirviera de patrón: lo arrastrable
+   son **lienzos** que giran un 3D (`#m3d-cv`, el del `lv3d`, el del pulmón) y el buscador de
+   Referencias, que sólo marca el gesto. El arrastre se portó de la demo aprobada.
+4. **«Siempre visible» es cierto DENTRO de su tarjeta, y la tarjeta no siempre existe.** El
+   `<li>` de la estenosis aórtica sólo se crea si la pastilla de estenosis está **prendida** o si
+   hay **veredicto protésico** publicado («SOLO LAS LESIONES QUE EXISTEN», regla de `v2dEstado`).
+   Sin lesión consignada la columna publica una línea gris y no hay tarjeta donde poner nada.
+   **Esta tanda no tocó esa regla.**
+
+## P37-b · El margen del tope del volumen sistólico son 2 mL, y se declara (2026-11-11)
+
+La orden pide «el margen mínimo que haga falta para que el dibujo siga siendo válido y
+declaralo». Es **`WI_VS_MARGEN = 2` mL**: con VS = VDF el volumen de fin de sístole es cero y el
+ventrículo del dibujo se cierra a un punto. Es el mismo margen que la demo aprobada usa
+(`max(edv - sv, 2)`). Medido con VDF de 120 mL: el deslizador topa en **118**, y en modo FEVI en
+**98 %**. El pie del panel publica las dos cifras.
+
+## P37-c · El operador del «bajo flujo»: la aplicación usa `≤ 35` y el globo dice «menor de 35» (2026-11-11)
+
+**El corte es el mismo en los dos lugares, 35 mL/m²; lo que difiere es el operador.** La
+aplicación ya lo usaba en dos sitios, medido: la fórmula TANGO calcula `const vsn = 35 * asc` y
+la Evidencia de la estenosis aórtica escribe «volumen latido indexado **≤ 35** ml/m²». El texto
+del globo que la orden fija **palabra por palabra** dice «volumen sistólico indexado **menor de**
+35 mL/m²». La orden manda informarlo **sin cambiar el texto**, y así quedó.
+**Nada depende de ese operador en el código**: el What if no gradúa el bajo flujo, sólo lo nombra
+en el globo. **Decisión del médico** si quiere unificarlo.
+
+## P37-d · Con el gradiente medio en 0 la simulación no escala (2026-11-11)
+
+`wiSituacion` considera el gradiente **presente** cuando el campo tiene un número, y 0 es un
+número. Con gradiente medio 0 las fórmulas de B4 dan `G1 = 0` para cualquier flujo —la escala es
+multiplicativa— y la línea de lectura **no se publica**, porque `Q = Q0 × √(corte/G0)` no está
+definida. La fila de la tabla sigue publicando el 0 medido. **No se cambió la definición de
+«faltan datos»**, que la orden fija como «falta alguno de estos»: 0 es un valor cargado y
+decidir que no lo es sería tocar contenido clínico.
+
+## P37-e · La línea de lectura puede proyectar un volumen por encima del VDF (2026-11-11)
+
+«Con el área medida, el gradiente llega a 40 mmHg con ~X L/min: a H lpm serían ~Y mL de volumen
+sistólico (FEVI ~Z %)» publica el volumen que **haría falta**, y con un área muy chica ese
+volumen puede superar el VDF del paciente —la FEVI proyectada pasaría de 100 %—. **No se acota a
+propósito:** que el flujo necesario sea imposible para ese ventrículo es justamente lo que la
+frase informa. El **deslizador** sí está acotado (P37-b): lo que no puede pasar del VDF es lo
+**simulado**, no lo **proyectado**.
+
+## P37-f · El árbol se reselló al cerrar, por un defecto que la medición de dos motores encontró (2026-11-11)
+
+Una corrida involuntaria de `scripts/sellar_version.py` durante la Parte B había dejado el sello
+`v20261111-1318`, y la idea era quedarse con él para que el árbol medido fuera el commiteado.
+**No se pudo, y está bien que no se pudiera**: el cruce de dos motores encontró un defecto real y
+hubo que corregirlo.
+
+**El defecto.** A **1000 px** —y sólo ahí— el panel nacía con su borde derecho **16 px fuera de la
+ventana**. `_wiAcotar` lo corregía corriéndolo esos 16 px **hacia la izquierda**, que es donde
+está el dibujo: le tapaba **6 px de ancho por 336 de alto, 2016 px²**. Reproducible en **Chrome y
+en WebKit** y en **los dos temas**, con los rectángulos medidos: panel `694,271,994,1221`, dibujo
+`460,442,700,778`, transform `translate(-16px, -330px)`.
+
+**La corrección.** El acote **angosta** el panel al hueco que le queda a su derecha —con un piso
+de 160 px— **antes** de intentar correrlo. Angostado entra sin moverse y el dibujo queda intacto.
+Correrlo para que entre en la pantalla y taparle el dibujo son las dos cosas que la orden
+prohíbe a la vez: la única salida que cumple las dos es que el panel mida menos.
+
+**Lo que esto obligó.** Resellar (**`v20261111-1450`**, md5 **`3f5893e7`**) y **volver a correr
+sobre ese árbol** el barrido de mutaciones, los dos motores, el celular, el A/B y la suite
+completa. **TC-753 estuvo en rojo** entre medio, porque `CLAUDE.md` publicaba el sello anterior
+mientras el pie ya traía el nuevo: es el caso haciendo exactamente lo que tiene que hacer.
+
+## P37-g · Dos mapas cruzaron el techo con un puntero, y se declara (2026-11-11)
+
+Medidos con `wc -c` **antes** de escribir, como manda la regla: `vista-2d-valvulas.md` estaba en
+**34,0 KB** y `aortica-cortes.md` en **33,9 KB**, los dos a menos de 1 KB del techo de ~35 KB. El
+puntero de esta tanda —ya recortado dos veces— los dejó en **35,4** y **35,0 KB**.
+
+**No se partieron acá** porque la orden fija que cada punto toca sólo lo que se pide. **La próxima
+tanda que toque cualquiera de los dos tiene que partirlo**, como `valvulas.md` y `diastolica.md`
+ya se partieron. El mapa de esta tanda nació en archivo propio
+(`docs/mapa/pant37-what-if.md`, **9,2 KB**) justamente por eso, y la ficha de los casos también
+(`docs/mapa/tests-fichas-825.md`, **8,5 KB**).
+
+## P37-h · El barrido se frenaba solo, y eran los CHROME HUÉRFANOS (2026-11-11)
+
+La primera corrida del barrido iba a **cuatro minutos por mutación y creciendo**: cuatro
+mutaciones en diecisiete minutos, o sea más de dos horas para las cuarenta y una. Con el arnés
+corregido, las **41 corrieron en 11,6 minutos** — unos **17 segundos** cada una.
+
+Y el barrido **final**, el que corrió con el archivo de casos definitivo, tardó **5,9
+minutos**: la diferencia con los 11,6 es que la máquina arrancó limpia.
+
+La causa es la trampa que este repo ya documenta para `cdp.mjs`: el árbol de Chrome **no se
+cierra** —el servidor sigue escuchando y el event loop vivo—, así que cada corrida arranca con
+los huérfanos de todas las anteriores y la máquina se va quedando sin aire. **El síntoma se lee
+como «el barrido es lento»**, que es justo lo que hace que nadie lo mire; y de paso casi me lleva
+a recortar la cobertura para entrar en el tope de 40 minutos de la orden, cuando lo que había que
+arreglar era el arnés.
+
+`scripts/_mut_p37.py` barre los perfiles de prueba (`pkill -f ecosmart-test-`) **después de cada
+mutación**. No alcanza al Chrome del médico: ése no corre con un `--user-data-dir` en el
+temporal.
+
+## P37-i · Un detalle de pantalla que se vio DESPUÉS de medir, y por eso no se tocó (2026-11-11)
+
+Con el panel abierto, el área en **«Se abre con el flujo»** y el médico **borrando** después un
+dato —el gradiente, por ejemplo—, la situación pasa a «faltan datos»: los controles se apagan, la
+tabla y las gráficas se retiran, pero **el deslizador «Apertura» y su nota se quedan a la vista**,
+apagados. No dice nada falso —el control está deshabilitado y la primera línea dice qué falta— y
+no toca ningún dato.
+
+**No se corrigió en esta tanda a propósito.** El barrido de mutaciones, el A/B y los dos motores
+ya habían medido el árbol sellado, y cambiar `index.html` después de medirlo invalida las tres
+mediciones. Es una línea en la rama `!C.ok` de `wiPintar`.
+
+---
+
+## P37-j · TC-233 es un rojo de CARRERA, y no lo declara ninguna lista (2026-11-11)
+
+La pasada limpia de la suite con el archivo de casos final dejó **TC-233** en rojo
+—«Importar y guardar: la fija llega al disco aunque se importe ANTES de guardar»—, y ese caso
+**no está en ninguna de las listas** que la orden declara: ni entre los cuatro de siempre, ni
+entre los intermitentes, ni entre los sensibles al lote.
+
+**Qué se midió, y en este orden:**
+
+1. **Su código es byte por byte el de PANT-36.** El md5 del bloque del caso es idéntico en los
+   dos árboles, y el commit 5 **sólo agregó** los siete casos nuevos: no tocó ningún caso
+   existente salvo las tres adaptaciones declaradas, y TC-233 no es una de ellas.
+2. **El pendrive estaba montado y con su árbol real** —`/Volumes/DISK_IMG/GEMS_IMG/` lista
+   `2026_JUL` y `2026_SEP`—, verificado **dieciocho** veces durante la corrida. **No** es el
+   `DISK_IMG` fantasma que este repo documenta.
+3. **Los diecisiete casos del pendrive** (TC-181 a TC-197) salieron **verdes** en esa misma
+   pasada. TC-233 fue el único.
+4. **Pasa 3 de 3 corrido aislado.**
+5. Su diagnóstico es de **espera**: `slots=1 dcmId=0 esperoMs=6000`. Agotó el techo de seis
+   segundos sondeando.
+6. **Y corrido EN SU LOTE, cuatro veces por árbol con el MISMO archivo de casos y sólo el
+   `index.html` distinto: 1 rojo de 4 en el árbol nuevo y 0 de 4 en el anterior** — y el
+   único rojo fue la primera comparación, corrida **inmediatamente después de la suite
+   completa**, con la máquina todavía cargada. Con la máquina sola, **6 de 6 verdes**, tres
+   por árbol.
+
+⚠️ **Y esa primera comparación, sola, decía lo contrario: rojo en el nuevo y verde en el
+anterior.** Una corrida por lado de un caso con carrera **no distingue** la tanda de la carga de
+la máquina: lee igual que una regresión. Lo que lo decide es repetirlo, y repetirlo **con la
+máquina sola** — la misma lección (6) que la orden fija para no medir en paralelo.
+
+**Y el propio caso ya lo dice en su cuerpo**, desde antes de esta tanda: el slot lo crea el
+compresor dentro de su `.then()` y el id se ata desde el `MutationObserver` de la grilla, o sea
+**dos saltos asincrónicos**; con 900 ms fijos «fallaba 1 de cada 4 corridas dentro del harness y
+ninguna aislado». El sondeo hasta 6000 ms **subió el techo pero no quitó la carrera**.
+
+**Lo que esta tanda agrega al documento vivo no puede explicarlo.** El único oyente nuevo de
+ámbito de documento es el de `wiRefrescar`, y **sale en una comprobación de clase** cuando el
+panel está cerrado (`wiVisible()` → `classList.contains('wi-oculto')`), que es como está en
+toda la corrida de ese lote: ni abre el panel, ni lo toca.
+
+**Queda declarado como intermitente, no corregido.** Subirle el techo de espera es tocar un caso
+que no es de esta tanda, y hacerlo después de que el barrido, el A/B y los dos motores midieron
+el árbol sellado no lo mejora: el que tiene que decidir si ese caso merece un techo mayor —o un
+mecanismo que espere el evento en vez de sondear— es el dueño del módulo de imágenes.
+
+---
+
+
 # TANDA PANT-27 (2026-11-09) — los catorce textos que el médico aprobó
 
 > Sello **`v20261109-1203`**, md5 **`a14c45a0`**. El detalle de dónde vive cada uno de los catorce

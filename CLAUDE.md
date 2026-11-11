@@ -144,7 +144,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -159,6 +159,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de la tanda I**: el TRAMO del score de Wilkins, la orejuela y sus dispositivos, la reparabilidad mitral con el rango de tenting, las DOS escalas de ateroma, las tres secciones de Evidencia de la ETE, las notas al pie de la estenosis tricuspídea o la INSUFICIENCIA PULMONAR en Fallot reparada con sus dos guías | `docs/mapa/tanda-i-ete.md` |
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
+| **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
@@ -266,12 +267,32 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,71 MB / 174.869 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al
-  cierre de la tanda **PANT-36**, sobre el árbol ya sellado: sello **`v20261111-0442`**, md5 **`44207a10`**.
+  sin frameworks. Hoy **12,77 MB / 175.880 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al
+  cierre de la tanda **PANT-37**, sobre el árbol ya sellado: sello **`v20261111-1450`**, md5 **`3f5893e7`**.
   ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
   renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
   salto de línea entre los dos el caso sale ROJO -- lo pagó PANT-31, que los partió al reflujar el
   párrafo.
+  El diff de PANT-37 son **1.018 líneas agregadas y 7 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `f1412a2` **sobre el árbol ya sellado**, de las que **948** no son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de `innerHTML` en el diff son
+  comentarios que declaran que el panel y sus gráficas se arman por nodos y no con ninguno— y
+  cero claves ni contraseñas. **Cuarenta ids nuevos, todos con prefijo `wi-`** —guión MEDIO—, que
+  es lo que los deja fuera del censo del estudio y del Excel por las DOS listas a la vez
+  (`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`), y **ninguno** termina en `-aviso` ni en
+  `-badge`, que son los barridos por sufijo de «Nuevo estudio».
+  ⚠️ **EL ÁRBOL SE RESELLÓ AL CERRAR, Y FUE POR UN DEFECTO QUE LA MEDICIÓN DE LOS DOS MOTORES
+  ENCONTRÓ**: a **1000 px** el panel nacía con su borde derecho 16 px fuera de la ventana, el
+  acote lo corría esos 16 px hacia la izquierda y le **tapaba al dibujo 6 px de ancho por 336 de
+  alto, 2016 px²** — lo único que la orden prohíbe—, reproducible en los dos motores y en los dos
+  temas. El acote ahora **angosta** el panel al hueco que le queda a su derecha en vez de
+  correrlo. Todo lo que se midió después —el barrido, los dos motores, el celular, el A/B y la
+  suite— corrió sobre este árbol. Declarado en **P37-f**.
+  ⚠️ **POR TRIGÉSIMA TERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show f1412a2:index.html` da **174.869** líneas,
+  **12.709.527** bytes y el md5 **`44207a10`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,71 MB / 174.869 al cierre de la tanda **PANT-36**, sello **`v20261111-0442`**, md5 **`44207a10`**.)
   El diff de PANT-36 son **229 líneas agregadas y 4 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `f9b5812` **sobre el árbol ya sellado** —las tres del sello
   incluidas—, de las que **214** no son comentario, con **cero**
@@ -1065,6 +1086,141 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-37 (2026-11-11) — el «What if» de la estenosis aórtica.** SEIS commits. Sello
+**`v20261111-1450`**, md5 **`3f5893e7`**. La tarjeta de **estenosis aórtica de la vista 2D** gana un botón
+**«What if»** con su ⓘ, que se pinta de **azul** sólo cuando la estenosis es **discordante** y
+abre un panel flotante que simula qué pasaría si el flujo aumentara. Lo que mueve es **el dibujo
+2D y su propio panel**: no escribe un campo, no guarda nada y no toca el informe, el PDF, el PPT
+ni el Excel.
+⚠️ **CUATRO HIPÓTESIS DE LA ORDEN RESULTARON FALSAS, las cuatro medidas en el inventario del
+commit 1 y ninguna «arreglada» inventando.** (1) **El dibujo 2D no tiene aorta ni chorro aórtico
+anterógrado**: `updJet` dibuja **tres** chorros y los tres son de **regurgitación**, y por debajo
+del velo aórtico —cuyas bisagras están en `y≈171-178` y sus puntas en `y≈188-191`— lo dibujado es
+la **aurícula izquierda**; un chorro anterógrado de 20 unidades cae en la **aurícula derecha**.
+En su lugar la Vmax simulada va como **rótulo dentro del lienzo**, con halo, más el chip «Dibujo
+según What if». (2) **No tiene frecuencia del paciente**: `S.dur` nace en **2,6 s** y nadie la
+escribe nunca. (3) **No hay ningún panel arrastrable** en la app que sirviera de patrón —lo
+arrastrable son lienzos que giran un 3D—, así que el arrastre se portó de la demo. (4) **«Siempre
+visible» es cierto DENTRO de su tarjeta**, y la tarjeta sólo existe con la pastilla prendida o con
+veredicto protésico.
+⚠️ **Y UNA PRECISIÓN QUE ORDENÓ LA TANDA ENTERA:** la tarjeta que la demo aprobada refleja es el
+`<li>` de la columna «Estenosis» de la **vista 2D**, no una tarjeta del formulario de Válvulas.
+**Ningún corte se retipea**: la situación la decide `eaGradoCalculado()`, que ya devuelve `gVel`,
+`gGrad` y `gAva`, y los cortes de las gráficas y de las dos líneas de lectura salen de
+`EA_BANDAS.gmedSevMin`, de la banda `moderada` de `EA_BANDAS.vmax` y de `AVA_SEVERA_MAX`.
+⚠️ **EL GRADIENTE PUEDE SER `null` ESTANDO CARGADO** —por debajo de `gmedModMin` esa función se
+abstiene—, así que la condición va con `gGrad !== 'severa'`: con `=== 'moderada'`, una estenosis
+de 0,8 cm² y gradiente de 12 mmHg —el bajo flujo más claro que hay— se leería como **concordante**.
+Lo fija la mutación 10.
+⚠️ **LA SIMULACIÓN ENTRA ENTRE `v2dEstado()` Y `S`, NUNCA DENTRO DE `v2dEstado()`**, que alimenta
+también las tarjetas y la tabla de cavidades. **Y lo que entra son RAZONES y no valores
+absolutos**, lo que da una propiedad medible: con el panel abierto y **nada movido** las dos
+razones valen 1 y el **dibujo es idéntico al real**, verificado por el atributo `d` de sus dos
+trazos a una fase fija.
+**Medido con el área fija:** al duplicar el volumen sistólico el flujo se duplica **exacto**
+(180 → 360 mL/s), el gradiente se **cuadruplica** exacto (25 → 100 mmHg) y la Vmax se **duplica**
+exacta (3,2 → 6,4 m/s), con el área, el área indexada y el DVI sin moverse. **La frecuencia no
+entra en el flujo** —el flujo es el de la eyección—, pero sí mueve el latido del dibujo y la línea
+de lectura, la única que pasa a L/min (4,4 a 65 lpm, 7,5 a 110).
+**La ley del área que se abre es una función PURA expuesta** —`wiAreaEn(a0, m, q0, q)`— y se
+**prueba sola** con el par publicado de la guía europea de eco de estrés: área **0,79 → 1,22 cm²**
+con flujo **183 → 370 mL/s** implica una pendiente de **0,2299** cm² por cada 100 mL/s y un área
+proyectada a 250 mL/s de **0,9441 → 0,94 cm²**, que es el número que la orden pide; la misma
+función reproduce el par de origen y sus dos topes (0,15 y 2,50).
+**El tope del volumen sistólico es VDF − 2 mL**, el margen mínimo para que el ventrículo del
+dibujo no se cierre a un punto: con VDF 120 el deslizador topa en **118** y en **98 %** en modo
+FEVI, y el volumen simulado **nunca pasa del VDF**.
+**Los dos SUPUESTOS** —0,30 s y 70 lpm— aparecen sólo si el estudio no trae el dato, van rotulados
+«supuesto» y **no se guardan**: editar el tiempo de eyección a 400 ms mueve el flujo de 180 a 135
+mL/s y `tango_te` y `ao_fc` siguen **vacíos**.
+**Las TRES restituciones** —la ✕, «Volver a lo medido» y «Nuevo estudio»— devuelven el dibujo
+real, las tres por el mismo camino y colgadas de `v2dCerrar`, que es el embudo de las cuatro
+puertas de la vista 2D.
+
+**Cobertura: TC-825 a TC-831**, los siete cayendo contra `f1412a2` por **74 condiciones** y
+**CERO por excepción** —todo acceso va por un ayudante con guarda que devuelve una forma vacía y
+no `null`—, con **TC-471**, **TC-500** y **TC-502** adaptados. Medido en un worktree con el
+**mismo** archivo de casos y sólo el `index.html` distinto: **10/10 en el árbol vivo y 1/10 en el
+anterior**, y el único que pasa en los dos es **TC-502**, que es una adaptación de un caso viejo
+y no un caso de esta tanda.
+⚠️ **Y ESO HUBO QUE VERIFICARLO CON EL ARCHIVO DE CASOS FINAL, PORQUE LA CORRIDA GUARDADA ERA DE
+UNA VERSIÓN ANTERIOR Y TC-827 TODAVÍA CAÍA POR EXCEPCIÓN.** Le quedaban **tres** accesos pelados
+fuera de los ayudantes —el deslizador de volumen leído para sacarle su mínimo y su máximo, el
+**padre** del campo supuesto y la tarjeta del globo—, y contra el árbol anterior esos nodos no
+existen: el `TypeError` cortaba **antes de medir nada** y el caso declaraba **cero** condiciones.
+**No lo encontró el censo sino la corrida contra la línea base**, que es para lo que está, y el
+primero de los tres tapaba al segundo y el segundo al tercero —una excepción esconde a la
+siguiente—, así que lo que los cerró fue **barrer el bloque entero** buscando el patrón en vez
+de perseguirlos de a uno.
+⚠️ **Y al arreglarlo, el acento grave dentro de mi propio comentario**, por **decimoctava** tanda
+seguida, con la agravante que PANT-31 dejó escrita: lo que quedaba era JS **válido**, así que
+`node --check` **pasó**. Lo cazó `check_backticks.py`.
+⚠️ **TC-502 SALÍA VERDE AISLADO Y ROJO EN LA SUITE, y la causa es de lote**: su censo de
+globos contaba los `[data-vinfo]` de toda la página, así que el globo nuevo entraba o no según
+si un caso anterior había dejado abierta la vista 2D. Hoy saltea los que viven dentro de
+`#v2d-ov`, y el conteo del registro —**142 → 143** con la clave `wi-aplica` exigida por
+nombre— vive en **TC-825 (A5b)**, que además declara que esa clave está en `VINFO` y **no** en
+`VINFO_REF`.
+**41/41 MUTACIONES DIRIGIDAS MUERTAS** en **5,9 min**, en un worktree y **nunca** sobre el vivo,
+con el md5 del vivo **idéntico** antes y después (`3f5893e7`), **cero sobrevivientes y cero que no
+aplicaran**, y las 41 anclas verificadas **ANTES** de correr.
+⚠️ **EL PRIMER BARRIDO DEJÓ SIETE SOBREVIVIENTES Y LOS SIETE ERAN HUECOS REALES**, cerrados con
+condiciones nuevas y **no aflojando una mutación**: las **tres escenas de situación** que faltaban
+—sólo-Vmax-severa, sólo-gradiente-severo y el gradiente de 12 mmHg con el operador abstenido—, la
+regla de CSS del panel leída de `document.styleSheets`, y el `display` **computado** del panel
+recién nacido y del panel cerrado.
+⚠️ **Y LA MUTACIÓN 05 ERA EQUIVALENTE**: sacarle la clase `btn` al botón **no** le saca el piso de
+44 px, porque ese piso lo pone la regla global `button, [role=button], .btn, … { min-height:44px }`
+del archivo. Se reescribió para atacar el piso por estilo en línea, que es lo que la condición
+mide de verdad.
+**A/B contra `f1412a2`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572 claves y
+55.297 celdas de Excel, con CERO diferencias de superficie firmada** —informe en los tres estilos,
+EN SUMA, las **457** columnas clave por clave, los campos, el Laboratorio, el PDF en sus seis
+plantillas y el PPT—. **Las 484 de pantalla son TRES hechos y no cuatro claves**, contados uno por
+uno: el globo nuevo, que se cuenta **dos veces** (`_vinfoN` **142 → 143** en las 121 y
+`_p9_denom.nGlobos` **142 → 143**, su única clave que cambia), y el rótulo de Vmax del dibujo,
+que suma **exactamente 61 caracteres a la firma del SVG en las 121 escenas** (`_v2dFirma` y
+`_v2dFirmaN`, delta constante). **Ninguna otra clave difiere.**
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px ×
+dos temas **reales**, puestos por `ett_theme` + `loadTheme()` y **devueltos** por la sonda: diez
+«día» y diez «noche»), con **UNA sola firma de valores** sobre todo lo que se mide: el botón en
+**44 px de alto** y **azul** en los veinte —`rgb(47,111,224)` de día y `rgb(79,142,247)` de noche,
+que es el azul de cada tema—, la situación **discordante** con su oración idéntica, el panel
+**flotante** a 1440, 1280 y 1000 px y **en el flujo** a 768 y 390, **dentro de la pantalla** en los
+veinte, de **300 / 300 / 284 / 714 / 336** px de ancho, **TAPA 0** del dibujo en los veinte, sus
+**siete** filas, sus **tres** gráficas con **22** nodos cada una y **cero** negros, **cero**
+controles por debajo de 30 px con los seis llevando su área táctil de 44, **cero** textos
+recortados, **cero** desplazamiento horizontal y **CERO errores de consola y de página en los dos
+motores**.
+⚠️ **LOS 284 PX DE 1000 SON EL ARREGLO, NO UN DEFECTO**: ahí el panel **se angosta** al hueco que
+le queda a su derecha en vez de correrse sobre el dibujo (**P37-f**).
+⚠️ **La única diferencia entre motores es de métrica de fuente**: el botón mide **68 px en Chrome
+y 70 en WebKit**. **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **Excel 457** y
+**cero campos guardados nuevos**. **17 de 19** bloques de JS inline parsean. **CELULAR: 59
+hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta, medida con el
+**mismo script en los dos árboles** y con la máquina sola.
+**Línea base al cierre: suite 836/844**, en **DIECISÉIS** lotes cubriendo los **844 casos
+distintos** —contados nombre por nombre con el patrón **completo** del id, **cero duplicados**—,
+en UNA sola pasada sobre el árbol sellado, con los **844 ejecutados**, el md5 de `index.html`
+**idéntico** antes y después (`3f5893e7`) y el pendrive `DISK_IMG` verificado **dieciocho** veces:
+al abrir, en cada uno de los dieciséis lotes y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y
+TC-406**, los cuatro de siempre; **TC-358, TC-551 y TC-557**, los tres intermitentes que la orden
+declara; y **TC-233**, que **no está en ninguna lista** y quedó caracterizado y declarado en
+**P37-j**. **Ningún rojo nuevo atribuible a la tanda**, y **los siete casos nuevos y los tres
+adaptados en verde**.
+⚠️ **ESTA ES LA SEGUNDA PASADA LIMPIA, Y LA HUBO QUE REHACER PORQUE EL ARCHIVO DE CASOS CAMBIÓ
+DESPUÉS DE LA PRIMERA**: los tres accesos pelados de TC-827 y la tarjeta de TC-826 se cerraron
+**después** de aquella corrida, y esta casa no informa un número de una pasada hecha con un
+archivo de casos anterior.
+⚠️ **Y LAS DOS PASADAS NO TIENEN LOS MISMOS ROJOS, que es lo que hay que mirar y no el total**:
+la primera dio **838/844** con **TC-502** —que era mío, salía verde aislado y rojo en su lote, y
+hoy está adaptado y verde— y con **TC-551 verde**; la segunda da 836 con TC-551 y TC-233 rojos.
+Los cuatro de siempre y los siete casos nuevos se comportan igual en las dos.
+Lo declarado, en **P37-a** a **P37-j**; el mapa, en `docs/mapa/pant37-what-if.md`; el inventario,
+en `docs/INVENTARIO_P37.md`; las fichas, en `docs/mapa/tests-fichas-825.md`; la guía manual, en
+`docs/GUIA_PRUEBA_PANT37.md` (**10** pasos).
 
 **La tanda PANT-36 (2026-11-11) — «Asociaciones y síndromes» y los quince resúmenes de
 congénitas.** DIEZ commits. Sello **`v20261111-0442`**, md5 **`44207a10`**. Referencias →

@@ -563,3 +563,25 @@ constante dueña de cada corte, la cosecha de fuentes, la frase de integración 
 
 ⚠️ Es **solo presentación**: ni un corte, ni un operador, ni una regla, ni un texto del informe,
 del EN SUMA, del PDF, del PPT o del Excel. A/B contra el inicio de la tanda: **cero diferencias**.
+
+## El «WHAT IF» de la estenosis aórtica — está en otro archivo (PANT-37, 2026-11-11)
+
+El botón «What if» de la tarjeta de estenosis aórtica, su globo, el panel flotante de la columna
+derecha y lo que le hace al dibujo están en **`docs/mapa/pant37-what-if.md`**.
+
+Lo que esta tanda agregó **dentro** de la vista 2D, en una línea cada uno:
+
+- **`v2dPintarTarjetas`** cuelga la fila del botón del `<li>` de la estenosis **aórtica** y de
+  ninguna otra, por `WI_VALV_NOM`, derivado de `V2D_VALVS`. **El estado no se tocó**: una clave
+  nueva en `v2dEstado()` habría movido las tarjetas, la tabla de cavidades y lo que TC-482
+  compara de ese objeto.
+- **`v2dWhatIf({ampRazon, durRazon, vmax})`**, en la IIFE del motor, es lo **único** que alimenta
+  el dibujo desde afuera: entra **entre `v2dEstado()` y `S`** y recibe **razones**, así que con
+  nada movido valen 1 y el dibujo es idéntico al real.
+- **`v2dCerrar`** llama a `wiCerrar()`: el panel se cierra por las **cuatro** puertas de la vista
+  sin engancharse en ninguna por separado.
+- `#v2d-col-esten` y `#v2d-dibujo` ganan `position:relative`, sólo para anclar el panel y el chip.
+  La grilla no se movió.
+
+⚠️ **NO HAY CHORRO AÓRTICO ANTERÓGRADO Y NO SE AGREGÓ UNO**: los tres de `updJet` son de
+regurgitación. Declarado en `docs/PENDIENTES.md` → **P37-a · 1**.
