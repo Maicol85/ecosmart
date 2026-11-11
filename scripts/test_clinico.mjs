@@ -124811,7 +124811,10 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
     /* ADAPTADO el 2026-11-10 (PANT-29, commit 3): SALE racong. Su contenido pasa a cuatro
        vinietas dentro de ref-coronarias, marcadas con data-ref-solo para que el globo otr-rac
        siga mostrando lo corto. Vuelve al reparto de antes de PANT-28. */
-    rep('congenitas') === 'congenitas,coronarias', 'congenitas=[' + rep('congenitas') + ']');
+    /* ADAPTADO el 2026-11-11 (PANT-36, parte A): la subpestania gana su TERCERA entrada,
+       «Asociaciones y sindromes» (asoc), debajo de la de anomalias coronarias. Lo que esta
+       condicion vigila -que las dos de PANT-25 sigan ADENTRO y en su orden- no cambia. */
+    rep('congenitas') === 'congenitas,coronarias,asoc', 'congenitas=[' + rep('congenitas') + ']');
   q('(A3b) Cardiotoxicidad lleva su ficha', rep('cardiotox') === 'cardiotox',
     'cardiotox=[' + rep('cardiotox') + ']');
   q('(A3c) Hemodinamica lleva el posoperatorio y la constriccion', rep('hemo') === 'pop,constriccion',
@@ -124837,10 +124840,14 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
       if ((hs[i].getAttribute('onclick') || '').indexOf('toggleRef(') > -1) total++;
     }
   }
-  q('(A5) el censo esta en CUARENTA Y TRES entradas y ninguna quedo fuera de un panel',
+  /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 40 -> 41 por la entrada «Asociaciones y
+     sindromes». Lo que esta condicion vigila -que ninguna entrada quede fuera de un panel- no
+     cambia. El rotulo decia «CUARENTA Y TRES» desde PANT-28 aunque el numero ya era 40: se
+     corrige tambien el rotulo. */
+  q('(A5) el censo esta en CUARENTA Y UNA entradas y ninguna quedo fuera de un panel',
     /* ADAPTADO el 2026-11-10 (PANT-29, commits 2 y 3): 43 -> 40. Lo que el caso vigila -que
        ninguna entrada quede fuera de un panel- no cambia. */
-    total === 40 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
+    total === 41 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
 
   let malAria = [];
   for (const b of bots) {
@@ -124963,9 +124970,12 @@ caso('TC-763', 'PANT-25 commit 3: el buscador de Referencias encuentra lo mismo 
      anomalias coronarias en Cardiopatia congenita, y las de corazon de atleta y miocardiopatia
      chagasica en Otros hallazgos-. Lo que esta condicion vigila -que el indice se arme y no
      pierda entradas- no cambia; lo que cambia es el denominador. */
-  q('(C0 DENOM) el indice se arma y tiene CUARENTA Y UNA entradas',
+  /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 38 -> 39, por la entrada «Asociaciones y
+     sindromes», que el buscador indexa sola. El rotulo decia «CUARENTA Y UNA» desde PANT-28
+     aunque el numero ya era 38: se corrige tambien el rotulo. */
+  q('(C0 DENOM) el indice se arma y tiene TREINTA Y NUEVE entradas',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
-  !!idx && idx.length === 38, 'indice=' + (idx ? idx.length : 'EXC'));
+  !!idx && idx.length === 39, 'indice=' + (idx ? idx.length : 'EXC'));
   if (!idx) return { extra: F };
 
   const crudas = idx.filter(e => String(e.subTit) === String(e.sub)).map(e => e.id);
@@ -132139,10 +132149,14 @@ caso('TC-817', 'PANT-34 (B1) a (B3): la ficha de anomalias coronarias de Referen
   /* == (F) EL REPARTO Y EL BUSCADOR NO SE MOVIERON ========================================= */
   const enc = Array.prototype.map.call(document.querySelectorAll('h2.card-head'),
     h => (h.getAttribute('onclick') || '')).filter(s => s.indexOf('toggleRef') > -1).length;
-  q('(F1) siguen los CUARENTA encabezados con toggleRef que alimentan el indice del buscador',
-    enc === 40, 'encabezados=' + enc);
-  q('(F2) y la subpestania de congenitas sigue con sus DOS entradas',
-    REF_SUBTAB.congenitas.length === 2 && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias',
+  /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 40 -> 41 y DOS -> TRES entradas, por
+     «Asociaciones y sindromes» (asoc), que entra debajo de la de anomalias coronarias. Lo que
+     estas dos condiciones vigilan -que la ficha de coronarias siga en su panel y que el censo
+     que alimenta el buscador no pierda ninguna- no cambia. */
+  q('(F1) siguen los CUARENTA Y UN encabezados con toggleRef que alimentan el indice del buscador',
+    enc === 41, 'encabezados=' + enc);
+  q('(F2) y la subpestania de congenitas tiene sus TRES entradas, con la de coronarias segunda',
+    REF_SUBTAB.congenitas.length === 3 && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias,asoc',
     'reparto=' + REF_SUBTAB.congenitas.join(','));
   return { extra: F };
   })();
