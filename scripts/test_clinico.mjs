@@ -127418,13 +127418,26 @@ caso('TC-779', 'PANT-29 commit 3: la ficha ORIGINAL de anomalias coronarias cons
   q('(B1b) y los CUATRO hijos se VEN', H.every(h => h.vis),
     'visibles=' + H.map(h => (h.vis ? 1 : 0)).join(','));
   const nuevo = H[2].txt;
-  q('(B2) y traen TIPOS, FRECUENCIA, RIESGO y CIRUGIA, los cuatro que la orden pide',
-    nuevo.indexOf('Tipos:') > -1 && nuevo.indexOf('Frecuencia:') > -1
-      && nuevo.indexOf('Riesgo:') > -1 && sinTilde(nuevo).indexOf('cirugia:') > -1,
-    'temas=' + nuevo.slice(0, 80));
+  /* ⚠️ ADAPTADO EN PANT-34, y las dos condiciones cambian de sujeto. Por decision del medico
+     (10/11) el CUERPO PROPIO de esta ficha dejo de ser las cuatro vinietas de PANT-29 y pasa a
+     ser el esquema de los cinco apartados, con su texto corrido y sus casillas. Lo que este caso
+     sigue vigilando -y es la mitad de su razon de ser- es que los hijos UNO y DOS no se toquen y
+     que el globo quede identico: eso esta en (A1), (A2), (A3), (C1) y (C2), intactas.
+     El techo de 850 caracteres y 7 vinietas NO aplica a esta seccion: la orden la releva
+     expresamente, y el texto que el medico aprobo es mas largo. */
+  q('(B2) y el cuerpo propio es el ESQUEMA, con sus cinco apartados y sus siglas',
+    !!cuerpoDe('coronarias') && cuerpoDe('coronarias').children[2].id === 'rac-root'
+      && document.querySelectorAll('#rac-root [data-rac-ap]').length === 5
+      && nuevo.indexOf('AAORCA') > -1 && nuevo.indexOf('AAOLCA') > -1
+      && nuevo.indexOf('ALCAPA') > -1 && nuevo.indexOf('ARCAPA') > -1 && nuevo.indexOf('CAF') > -1,
+    'id=' + cuerpoDe('coronarias').children[2].id
+      + ' apartados=' + document.querySelectorAll('#rac-root [data-rac-ap]').length);
   const dosPuntos = (t) => { let n = 0; for (let i = 0; i < t.length; i++) if (t[i] === '\u2022') n++; return n };
-  q('(B3) con CUATRO vinietas y por debajo del techo de 850 caracteres',
-    dosPuntos(nuevo) === 4 && H[2].chars <= 850, 'vinietas=' + dosPuntos(nuevo) + ' chars=' + H[2].chars);
+  q('(B3) ya NO lleva vinietas y el techo de 850 caracteres no rige aca: la orden lo releva',
+    dosPuntos(nuevo) === 0 && H[2].chars > 850
+      && document.querySelectorAll('#rac-root input[data-rac]').length === 18,
+    'vinietas=' + dosPuntos(nuevo) + ' chars=' + H[2].chars
+      + ' casillas=' + document.querySelectorAll('#rac-root input[data-rac]').length);
   q('(B4) y su linea de fuente nombra las CUATRO guias con sus folios',
     H[3].txt.indexOf('ACC/AHA 2025') > -1 && H[3].txt.indexOf('ESC 2020') > -1
       && H[3].txt.indexOf('ESC 2022') > -1 && H[3].txt.indexOf('AHA/ACC/HRS 2017') > -1
@@ -127915,16 +127928,20 @@ caso('TC-783', 'PANT-29 commit 5 (C) y (D): con «Coronarias» APAGADO el 3D es 
       && !!pan.querySelector('.lv3d-coro-transp') && !!pan.querySelector('.lv3d-coro-letras'),
     'filas=' + pan.children.length + ' visibles=' + filasVis
       + ' dom=' + pan.querySelectorAll('.lv3d-coro-dom').length);
-  q('(B6) la lista de vistas trae las SEIS y el modo angiografia, y nace cerrada',
-    document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v').length === 6
+  /* ⚠️ ADAPTADO EN PANT-34: la lista paso de SEIS a NUEVE vistas. */
+  q('(B6) la lista de vistas trae las NUEVE y el modo angiografia, y nace cerrada',
+    document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v').length === 9
       && !!document.querySelector('#lv3d-coro-lista .lv3d-coro-angio')
       && getComputedStyle(document.getElementById('lv3d-coro-lista')).display === 'none',
     'vistas=' + document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v').length);
+  /* ⚠️ ADAPTADO EN PANT-34: el selector de ARTERIA agrega un octavo boton visible, en la misma
+     fila que la vista. Entra en la lista a proposito: un boton nuevo que no se mide es un boton
+     que puede quedar por debajo del piso tactil sin que nadie se entere. */
   const altos = Array.prototype.slice.call(
-    document.querySelectorAll('#lv3d-panel .lv3d-coro-btn, #lv3d-coro-panel .lv3d-coro-vista-btn, #lv3d-coro-panel .lv3d-coro-dom, #lv3d-coro-panel .lv3d-coro-transp, #lv3d-coro-panel .lv3d-coro-letras'))
+    document.querySelectorAll('#lv3d-panel .lv3d-coro-btn, #lv3d-coro-panel .lv3d-coro-vista-btn, #lv3d-coro-panel .lv3d-coro-art-btn, #lv3d-coro-panel .lv3d-coro-dom, #lv3d-coro-panel .lv3d-coro-transp, #lv3d-coro-panel .lv3d-coro-letras'))
     .map(b => Math.round(b.getBoundingClientRect().height));
-  q('(B7) los SIETE botones visibles miden 44 px de alto o mas',
-    altos.length === 7 && altos.every(h => h >= 44), 'altos=' + altos.join(','));
+  q('(B7) los OCHO botones visibles miden 44 px de alto o mas',
+    altos.length === 8 && altos.every(h => h >= 44), 'altos=' + altos.join(','));
   q('(B8) la leyenda del pie nombra las siete letras y el gris',
     (function () { const t = norm(document.getElementById('lv3d-coro-pie').textContent);
       return SIETE.every(l => t.indexOf(l) > -1) && t.indexOf('Gris: tramo posiblemente afectado') > -1 })(),
@@ -128065,23 +128082,39 @@ caso('TC-784', 'PANT-29 commit 5: la DOMINANCIA cambia el duenio de la descenden
     Array.prototype.slice.call(document.querySelectorAll('#lv3d-coro-panel .lv3d-coro-dom'))
       .map(b => b.getAttribute('aria-pressed')).join(','));
   dom(0); await esp(200);
-  /* Las seis vistas. */
+  /* ⚠️ ADAPTADO EN PANT-34: las vistas pasaron de SEIS a NUEVE y el titulo del boton ya NO
+     cambia -el pedido del medico es que diga siempre «Vista de angiografia» y que lo que dice
+     cual esta puesta sea la TILDE de la lista y el ROTULO dentro del cuadro-. La condicion (B2)
+     queda INVERTIDA: antes exigia que el boton dijera «Vista: …» y ahora exige que NO lo diga y
+     que el titulo sea el mismo en las nueve, asi que puede fallar por los dos lados. */
   const hash = () => { const cv = document.getElementById('lv3d-canvas');
     const d = cv.toDataURL('image/png'); let h = 5381;
     for (let i = 0; i < d.length; i++) h = ((h * 33) ^ d.charCodeAt(i)) >>> 0; return h >>> 0 };
-  const NOM = ['OAD caudal', 'OAI caudal', 'OAD craneal', 'OAI craneal', 'PA craneal', 'OAI (CD)'];
-  const hs = [], rot = [];
-  for (let v = 0; v < 6; v++) {
+  const NOM = ['OAD caudal', 'OAI caudal', 'OAD craneal', 'OAI craneal', 'PA craneal',
+               'OAI (CD)', 'AP caudal', 'Lateral', 'OAD recta'];
+  const hs = [], rot = [], til = [];
+  for (let v = 0; v < 9; v++) {
+    /* Contra un arbol con seis vistas las tres ultimas no existen: se anota y se sigue, asi que
+       (B1) y (B2) caen por lo que miden y no por un null. */
+    const op = document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="' + v + '"]');
+    if (!op) { hs.push('SIN OPCION ' + v); rot.push('SIN OPCION'); til.push('SIN OPCION'); continue }
     document.querySelector('.lv3d-coro-vista-btn').click();
-    document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="' + v + '"]').click();
+    op.click();
     await esp(260);
     hs.push(hash());
     rot.push(norm(document.querySelector('.lv3d-coro-vista-btn').textContent));
+    const TI = String.fromCharCode(10003);
+    til.push(Array.prototype.slice.call(document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v'))
+      .filter(b => norm(b.textContent).indexOf(TI) === 0)
+      .map(b => norm(b.textContent).split(TI).join('').trim()).join('+'));
   }
-  q('(B1) las SEIS vistas dan SEIS dibujos distintos',
-    hs.filter((h, i) => hs.indexOf(h) === i).length === 6, 'hashes=' + hs.join(','));
-  q('(B2) y el boton pasa a decir «Vista: …» con el nombre de cada una',
-    rot.every((r, i) => r === 'Vista: ' + NOM[i]), 'rotulos=' + rot.join(' | '));
+  q('(B1) las NUEVE vistas dan NUEVE dibujos distintos',
+    hs.filter((h, i) => hs.indexOf(h) === i).length === 9, 'hashes=' + hs.join(','));
+  q('(B2) el titulo del boton NO cambia -es el mismo en las nueve- y la TILDE marca la elegida',
+    rot.filter((r, i) => rot.indexOf(r) === i).length === 1
+      && rot[0].indexOf('Vista:') < 0
+      && til.join(' | ') === NOM.join(' | '),
+    'titulos=' + rot.filter((r, i) => rot.indexOf(r) === i).join(' | ') + ' tildes=' + til.join(' | '));
   q('(B3) con una vista elegida se ve la UNICA linea «Vista simulada, aproximada.»',
     getComputedStyle(document.querySelector('.lv3d-coro-vista-txt')).display !== 'none'
       && norm(document.querySelector('.lv3d-coro-vista-txt').textContent) === 'Vista simulada, aproximada.',
@@ -131456,6 +131489,1034 @@ caso('TC-812', 'PANT-33 (C5/C6): el papel de un documento en blanco -- vacio una
   return { extra: F };
   })();
 `);
+
+/* ══ PANT-34 — TC-813 a TC-820 ═══════════════════════════════════════════════════════════════
+   Las nueve vistas con su rotulo dentro del cuadro, el selector de arteria y el esquema de
+   anomalias coronarias de Referencias. Prelusion comun de los cuatro primeros: el 3D de
+   Contractilidad necesita DDFVI y VDFVI cargados o la compuerta de tamanio corta el dibujo y
+   todo se mide sobre cero poligonos.
+   ⚠️ NI UN ACENTO GRAVE EN ESTOS CUERPOS, ni dentro de un comentario: el cuerpo de un caso es un
+      template literal y uno de mas lo cierra antes de tiempo -a veces dejando JS valido, que es
+      como PANT-31 perdio dos horas-. Para citar un identificador se escribe pelado.
+   ⚠️ NI UN LITERAL DE EXPRESION REGULAR: la barra invertida no sobrevive al template, asi que
+      /\s+/g llega como /s+/g y reemplaza las eses por espacios. Se normaliza con charCodeAt. */
+
+caso('TC-813', 'PANT-34 (A1) y (A2): la lista de vistas de angiografia tiene NUEVE, con los nombres y el orden que el medico fijo, el titulo del boton NO cambia nunca, la opcion activa lleva una tilde y las nueve dan nueve orientaciones distintas', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const TIL = String.fromCharCode(10003);
+  const limpia = (s) => { s = String(s == null ? '' : s); let o = '';
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (c === 32 || c === 10 || c === 9 || c === 13 || c === 160) { if (o.length && o[o.length-1] !== ' ') o += ' ' }
+      else o += s[i] }
+    return o.trim(); };
+  try { showTab('contractilidad') } catch (e) {}
+  await esp(240);
+  __t.set('ddfvi', '58'); __t.set('vdfvi', '140'); __t.set('vsfvi', '56'); __t.set('fevi', '60');
+  try { if (typeof calcVI === 'function') calcVI() } catch (e) {}
+  await esp(500);
+  const btn = document.getElementById('lv3d-btn');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') btn.click();
+  await esp(900);
+  const dg = window.lv3dDiag ? window.lv3dDiag() : {};
+  q('(A0 DENOM) el 3D abrio y el modelo tiene tamanio',
+    !!dg.abierto && dg.cuadros > 0 && dg.aviso === '', 'diag=' + JSON.stringify(dg));
+  const cb = document.querySelector('#lv3d-panel .lv3d-coro-btn');
+  if (cb && !window.lv3dCoroDiag().coro) cb.click();
+  await esp(400);
+  q('(A0b DENOM) «Coronarias» esta prendido y el panel se ve',
+    window.lv3dCoroDiag().coro === true
+      && getComputedStyle(document.getElementById('lv3d-coro-panel')).display !== 'none',
+    'coro=' + window.lv3dCoroDiag().coro);
+  /* == (A) LA LISTA: NUEVE, EN SU ORDEN ==================================================== */
+  const NOM = ['OAD caudal', 'OAI caudal', 'OAD craneal', 'OAI craneal', 'PA craneal',
+               'OAI (CD)', 'AP caudal', 'Lateral', 'OAD recta'];
+  const ops = Array.prototype.slice.call(document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v'));
+  q('(A1) la lista trae NUEVE vistas, y no las seis de PANT-29',
+    ops.length === 9, 'vistas=' + ops.length);
+  q('(A2) con los nueve nombres exactos y en ese orden, leidos del DOM',
+    ops.map(b => limpia(b.textContent).split(TIL).join('').trim()).join(' | ') === NOM.join(' | '),
+    'rotulos=' + ops.map(b => limpia(b.textContent)).join(' | '));
+  q('(A3) y el data-v de cada uno es su indice, 0 a 8',
+    ops.map(b => b.getAttribute('data-v')).join(',') === '0,1,2,3,4,5,6,7,8',
+    'data-v=' + ops.map(b => b.getAttribute('data-v')).join(','));
+  /* ⚠️ LA TABLA ES EL DUENIO UNICO DEL NOMBRE, y esta condicion es la que lo prueba: si alguien
+     escribe el nombre a mano en el marcado y lo cambia, la lista y el rotulo del cuadro dirian
+     cosas distintas de la misma vista. */
+  q('(A4) los nueve rotulos salen de LV3D_CORO_VISTAS, que es el duenio unico del nombre',
+    LV3D_CORO_VISTAS.length === 9
+      && LV3D_CORO_VISTAS.map(v => v.n).join(' | ') === NOM.join(' | '),
+    'tabla=' + LV3D_CORO_VISTAS.map(v => v.n).join(' | '));
+  q('(A5) la lista nace CERRADA y «Modo angiografia» sigue en ella',
+    getComputedStyle(document.getElementById('lv3d-coro-lista')).display === 'none'
+      && !!document.querySelector('#lv3d-coro-lista .lv3d-coro-angio'),
+    'display=' + getComputedStyle(document.getElementById('lv3d-coro-lista')).display);
+  /* == (B) LOS ANGULOS INTERNOS, QUE NO SE VEN ============================================= */
+  const ANG = ['-30/-30', '50/-30', '-30/30', '40/30', '0/40', '40/0', '0/-30', '90/0', '-30/0'];
+  q('(B1) los nueve giros internos son los que la orden fija',
+    LV3D_CORO_VISTAS.map(v => v.a + '/' + v.b).join(' ') === ANG.join(' '),
+    'angulos=' + LV3D_CORO_VISTAS.map(v => v.a + '/' + v.b).join(' '));
+  /* ⚠️ LA GUARDA DE LARGO VA PRIMERO A PROPOSITO: contra el arbol anterior la tabla tiene SEIS
+     entradas, asi que LV3D_CORO_VISTAS[7] es undefined y leerle «a» tira. Con la guarda el caso
+     cae por su CONDICION y no por una excepcion, que es lo unico que prueba que discrimina. */
+  q('(B2) «Lateral» es lateral izquierda de 90 grados SIN angulacion, y «AP caudal» de frente',
+    LV3D_CORO_VISTAS.length > 7
+      && LV3D_CORO_VISTAS[7].a === 90 && LV3D_CORO_VISTAS[7].b === 0
+      && LV3D_CORO_VISTAS[6].a === 0 && LV3D_CORO_VISTAS[6].b === -30,
+    'tabla=' + JSON.stringify(LV3D_CORO_VISTAS.map(v => v.a + '/' + v.b)));
+  /* == (C) EL TITULO NO CAMBIA Y LA TILDE MARCA LA ACTIVA ================================== */
+  const titulos = [], tildadas = [], matrices = [];
+  for (let v = 0; v < 9; v++) {
+    document.querySelector('.lv3d-coro-vista-btn').click();
+    const op = document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="' + v + '"]');
+    /* Contra el arbol anterior las vistas 6, 7 y 8 NO EXISTEN: se anota y se sigue, asi que las
+       condiciones de abajo caen por lo que miden y no por un null. */
+    if (!op) { titulos.push('SIN OPCION'); tildadas.push('SIN OPCION'); matrices.push('SIN OPCION'); continue }
+    op.click();
+    await esp(90);
+    titulos.push(limpia(document.querySelector('.lv3d-coro-vista-btn').textContent));
+    const conT = Array.prototype.slice.call(document.querySelectorAll('#lv3d-coro-lista .lv3d-coro-v'))
+      .filter(b => limpia(b.textContent).indexOf(TIL) === 0)
+      .map(b => limpia(b.textContent).split(TIL).join('').trim());
+    tildadas.push(conT.join('+'));
+    matrices.push(JSON.stringify(_lv3d.R.map(f => f.map(x => Math.round(x * 1000)))));
+  }
+  const TITULO = 'Vista de angiograf' + String.fromCharCode(237) + 'a';
+  q('(C1) el titulo del boton es SIEMPRE el mismo, en las nueve',
+    titulos.every(t => t === TITULO),
+    'titulos=' + Array.from(new Set(titulos)).join(' | '));
+  q('(C2) y NO dice «Vista:» en ninguna, que es lo que hacia hasta PANT-33',
+    titulos.every(t => t.indexOf('Vista:') < 0), 'titulos=' + Array.from(new Set(titulos)).join(' | '));
+  q('(C3) la tilde marca UNA sola opcion y es la elegida',
+    tildadas.join(' | ') === NOM.join(' | '), 'tildadas=' + tildadas.join(' | '));
+  q('(C4) las nueve dan NUEVE orientaciones distintas del modelo',
+    new Set(matrices).size === 9, 'distintas=' + new Set(matrices).size);
+  /* == (D) NINGUN GRADO EN PANTALLA ======================================================== */
+  document.querySelector('.lv3d-coro-vista-btn').click();
+  await esp(90);
+  const txt = limpia(document.getElementById('lv3d-coro-panel').textContent) + ' '
+            + limpia(document.getElementById('lv3d-coro-pie').textContent);
+  const GRADO = String.fromCharCode(176);
+  q('(D1) ni el panel ni el pie escriben un solo grado',
+    txt.indexOf(GRADO) < 0 && txt.indexOf('grados') < 0, 'txt=' + txt.slice(0, 120));
+  q('(D2) y la linea «Vista simulada, aproximada.» sigue, una sola y la misma',
+    limpia(document.querySelector('.lv3d-coro-vista-txt').textContent) === 'Vista simulada, aproximada.',
+    'linea=' + limpia(document.querySelector('.lv3d-coro-vista-txt').textContent));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-814', 'PANT-34 (A3) y (A5): el ROTULO de la vista se dibuja DENTRO del cuadro, en el rincon derecho de abajo y a la altura de la brujula; dice el nombre de la vista, cambia al elegir otra, desaparece al soltarla y al apagar «Coronarias», y no mueve el dibujo', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('contractilidad') } catch (e) {}
+  await esp(240);
+  __t.set('ddfvi', '58'); __t.set('vdfvi', '140'); __t.set('vsfvi', '56'); __t.set('fevi', '60');
+  try { if (typeof calcVI === 'function') calcVI() } catch (e) {}
+  await esp(500);
+  const btn = document.getElementById('lv3d-btn');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') btn.click();
+  await esp(900);
+  /* La animacion en pausa y la fase fija: sin eso dos lecturas del lienzo son de dos momentos. */
+  const play = document.getElementById('lv3d-play');
+  if (play && play.textContent.indexOf('Pausa') > -1) play.click();
+  const sl = document.querySelector('#lv3d-panel .lv3d-fase');
+  if (sl) { sl.value = '0'; sl.dispatchEvent(new Event('input', { bubbles: true })) }
+  if (typeof lv3dDibujar === 'function') lv3dDibujar();
+  await esp(300);
+  const cv = document.getElementById('lv3d-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  /* Tinta en una zona del lienzo, en pixeles logicos. El lienzo se limpia TRANSPARENTE en
+     pantalla -el fondo lo pone el CSS-, asi que «tinta» es alfa por encima de 8. */
+  const tinta = (x0, y0, x1, y1) => { if (typeof lv3dDibujar === 'function') lv3dDibujar();
+    const ctx = cv.getContext('2d');
+    const d = ctx.getImageData(Math.round(x0 * dpr), Math.round(y0 * dpr),
+      Math.round((x1 - x0) * dpr), Math.round((y1 - y0) * dpr)).data;
+    let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++; return n };
+  /* El rincon DERECHO de abajo, a la altura de la brujula: la brujula vive en x 26 a 90 con su
+     origen en (58, H-48), asi que las dos zonas no se tocan. */
+  const RIN = [520, 310, 676, 350], BRU = [10, 290, 110, 375];
+  const cb = document.querySelector('#lv3d-panel .lv3d-coro-btn');
+  /* ⚠️ EL ESTADO SE NORMALIZA ANTES DE MEDIR, y lo destapo la corrida de los ocho casos juntos:
+     el caso anterior deja «Coronarias» PRENDIDO con una vista puesta, asi que este caso media
+     el rincon con el rotulo ya dibujado -617 pixeles donde esperaba cero-, y su primer click
+     APAGABA en vez de prender, con lo que las nueve vistas siguientes median cero sobre un
+     dibujo que no existia. Apagarlo reinicia la vista, la transparencia, las letras, el modo
+     angiografia y el selector de arteria, que es justo el punto de partida que este caso pide.
+     Es el modo de falla que el runner documenta: un caso que hereda estado falla con un
+     diagnostico que no apunta a su causa. */
+  if (window.lv3dCoroDiag().coro) { cb.click(); await esp(300) }
+  q('(A0 DENOM) el 3D abrio con tamanio y «Coronarias» arranca APAGADO',
+    !!window.lv3dDiag().abierto && window.lv3dDiag().aviso === ''
+      && window.lv3dCoroDiag().coro === false,
+    'diag=' + JSON.stringify(window.lv3dDiag()));
+  const rinApagado = tinta.apply(null, RIN);
+  q('(A1) con «Coronarias» apagado el rincon derecho de abajo esta VACIO',
+    rinApagado === 0, 'tinta=' + rinApagado);
+  cb.click(); await esp(350);
+  const rinSinVista = tinta.apply(null, RIN);
+  q('(A2) prendido pero SIN vista elegida, sigue vacio: el rotulo es de la vista, no del boton',
+    rinSinVista === 0 && window.lv3dCoroDiag().vista === null, 'tinta=' + rinSinVista);
+  /* Con cada vista: tinta en el rincon, y la brujula sigue estando. */
+  const conVista = [];
+  for (let v = 0; v < 9; v++) {
+    document.querySelector('.lv3d-coro-vista-btn').click();
+    const op = document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="' + v + '"]');
+    if (!op) { conVista.push({ v: v, rin: -1, bru: -1 }); continue }
+    op.click();
+    await esp(90);
+    conVista.push({ v: v, rin: tinta.apply(null, RIN), bru: tinta.apply(null, BRU) });
+  }
+  q('(A3) con cada una de las NUEVE vistas el rincon derecho tiene tinta',
+    conVista.every(x => x.rin > 50), 'tintas=' + conVista.map(x => x.rin).join(','));
+  q('(A4) y la brujula sigue dibujada en su rincon, que es el izquierdo',
+    conVista.every(x => x.bru > 100), 'brujula=' + conVista.map(x => x.bru).join(','));
+  /* ⚠️ EL ROTULO TIENE QUE SER DISTINTO POR VISTA, y no alcanza con que haya tinta: un rotulo
+     fijo tendria tinta igual. Nueve nombres de distinto largo dan al menos tres cantidades de
+     tinta distintas; con una sola, el rotulo no esta diciendo el nombre. */
+  q('(A5) la tinta del rincon CAMBIA segun la vista, o sea que dice su nombre y no una cadena fija',
+    new Set(conVista.map(x => x.rin)).size >= 3,
+    'distintas=' + new Set(conVista.map(x => x.rin)).size + ' tintas=' + conVista.map(x => x.rin).join(','));
+  /* SOLTAR la vista con el gesto que ya existia: elegir una orientacion de punta. */
+  const bv = document.querySelector('#lv3d-panel .lv3d-vista');
+  if (bv) bv.click();
+  await esp(250);
+  q('(B1) al soltar la vista -eligiendo una punta- el rotulo DESAPARECE',
+    window.lv3dCoroDiag().vista === null && tinta.apply(null, RIN) === 0,
+    'vista=' + window.lv3dCoroDiag().vista + ' tinta=' + tinta.apply(null, RIN));
+  /* Y apagar «Coronarias» con una vista puesta: el rotulo se va y el selector vuelve a Todas. */
+  /* Las pulsaciones van por un ayudante que tolera el control ausente: contra el arbol anterior
+     el boton «Arteria» no existe y un null.click() cortaria el caso con una excepcion. */
+  const tocar = (sel) => { const b = document.querySelector(sel); if (b) { b.click(); return true } return false };
+  tocar('.lv3d-coro-vista-btn');
+  tocar('#lv3d-coro-lista .lv3d-coro-v[data-v="3"]');
+  tocar('.lv3d-coro-art-btn');
+  tocar('.lv3d-coro-a[data-a="der"]');
+  await esp(200);
+  const antes = window.lv3dCoroDiag();
+  q('(B2 DENOM) antes de apagar hay vista puesta, selector en derecha y tinta en el rincon',
+    antes.vista === 3 && antes.art === 'der' && tinta.apply(null, RIN) > 50,
+    JSON.stringify(antes) + ' tinta=' + tinta.apply(null, RIN));
+  cb.click(); await esp(350);
+  const desp = window.lv3dCoroDiag();
+  q('(B3) apagar «Coronarias» se lleva el rotulo y devuelve el selector de arteria a «Todas»',
+    desp.coro === false && desp.vista === null && desp.art === 'todas'
+      && tinta.apply(null, RIN) === 0,
+    JSON.stringify(desp) + ' tinta=' + tinta.apply(null, RIN));
+  q('(B4) y la DOMINANCIA sigue sin reiniciarse, que es el pedido de PANT-29',
+    desp.dom === antes.dom, 'dom=' + antes.dom + ' -> ' + desp.dom);
+  /* == (C) EL ROTULO RESTITUYE EL CONTEXTO DEL CANVAS ====================================== */
+  /* ⚠️ ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO: la 14 del barrido quita el
+     ctx.restore() del rotulo, con lo que el textAlign queda en «right» y los rotulos de la
+     BRUJULA del cuadro siguiente salen alineados al otro lado -- el contexto del canvas es el
+     MISMO entre cuadros, que es la leccion del lineJoin de TC-783-. Nada lo veia: el ciclo de
+     prender y apagar de TC-783 no elige vista, asi que el rotulo no se dibuja ahi, y las
+     condiciones de arriba cuentan tinta con un umbral que el corrimiento no cruza.
+     ⚠️ Y NO SE PUEDE MEDIR POR IDEMPOTENCIA, que fue el primer intento y la mutacion lo
+     SOBREVIVIO: la fuga es ESTABLE. Una vez que el textAlign queda puesto, TODOS los cuadros
+     siguientes dibujan la brujula igual de corrida, asi que dos repintados seguidos dan el mismo
+     pixel y la condicion pasaba. Lo que discrimina es el ESTADO del contexto despues de pintar:
+     con el restore puesto el textAlign vuelve a su valor por omision; sin el, queda en «right».
+     El font y el lineJoin NO sirven de testigo: el bloque de la brujula deja el font puesto a
+     proposito y el bucle de arterias escribe el lineJoin a mano. */
+  if (cb && !window.lv3dCoroDiag().coro) cb.click();
+  await esp(300);
+  tocar('.lv3d-coro-vista-btn');
+  tocar('#lv3d-coro-lista .lv3d-coro-v[data-v="0"]');
+  await esp(220);
+  if (typeof lv3dDibujar === 'function') lv3dDibujar();
+  const ctxE = cv.getContext('2d');
+  q('(C0 DENOM) con la vista puesta hay rotulo y hay brujula',
+    window.lv3dCoroDiag().vista === 0 && tinta.apply(null, RIN) > 50
+      && tinta.apply(null, BRU) > 100,
+    'vista=' + window.lv3dCoroDiag().vista + ' rincon=' + tinta.apply(null, RIN)
+      + ' brujula=' + tinta.apply(null, BRU));
+  if (typeof lv3dDibujar === 'function') lv3dDibujar();
+  q('(C1) el rotulo RESTITUYE el contexto: tras pintarlo, el alineado del texto vuelve a su valor por omision',
+    ctxE.textAlign === 'start' || ctxE.textAlign === 'left',
+    'textAlign=' + ctxE.textAlign);
+  /* Y con «Coronarias» apagado, que es el cuadro sin rotulo, tiene que seguir igual. */
+  cb.click(); await esp(300);
+  if (typeof lv3dDibujar === 'function') lv3dDibujar();
+  q('(C2) y con «Coronarias» apagado tambien, que es el cuadro que no lo dibuja',
+    ctxE.textAlign === 'start' || ctxE.textAlign === 'left',
+    'textAlign=' + ctxE.textAlign);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-815', 'PANT-34 (C1) a (C3): el selector de ARTERIA vive en la MISMA fila que la vista con titulo fijo «Arteria», y en las TRES dominancias «Izquierda» y «Derecha» dibujan las arterias de su duenio y NINGUNA de la otra, llevandose la letra y el tramo gris', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const TIL = String.fromCharCode(10003);
+  try { showTab('contractilidad') } catch (e) {}
+  await esp(240);
+  __t.set('ddfvi', '58'); __t.set('vdfvi', '140'); __t.set('vsfvi', '56'); __t.set('fevi', '60');
+  try { if (typeof calcVI === 'function') calcVI() } catch (e) {}
+  await esp(500);
+  const btn = document.getElementById('lv3d-btn');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') btn.click();
+  await esp(900);
+  const cb = document.querySelector('#lv3d-panel .lv3d-coro-btn');
+  /* ⚠️ SE APAGA Y SE VUELVE A PRENDER, y no es redundante: el caso anterior puede dejar el
+     selector de arteria en «Derecha» y una vista puesta, y apagar es lo que lo devuelve a su
+     estado de omision. Con un «si esta apagado, prendelo» el caso heredaba art=der y su
+     condicion (A4) salia roja sobre un estado que no era el de arranque. */
+  if (cb && window.lv3dCoroDiag().coro) { cb.click(); await esp(250) }
+  if (cb) cb.click();
+  await esp(400);
+  /* ⚠️ DENOMINADOR DEL TRAMO GRIS: contrEstado ARRANCA VACIO, asi que recorrerlo no devuelve un
+     solo segmento y el gris nunca se enciende -cero sobre cero, que se lee igual que «el gris no
+     existe»-. Los ids salen de CONTR_TERRITORIO, que es el duenio del reparto. */
+  const ids = Object.keys(CONTR_TERRITORIO);
+  ids.forEach(id => { try { contrSetSegmento(id, 1) } catch (e) {} });
+  await esp(400);
+  const eff0 = window.lv3dCoroSonda(0).eff;
+  q('(A0 DENOM) el 3D abrio, «Coronarias» esta prendido y el tramo gris esta ENCENDIDO en los tres grupos',
+    !!window.lv3dDiag().abierto && window.lv3dCoroDiag().coro === true && ids.length === 17
+      && eff0.DA !== null && eff0.Cx !== null && eff0.CD !== null,
+    'ids=' + ids.length + ' eff=' + JSON.stringify(eff0));
+  /* == (A) EL BOTON: titulo fijo, misma fila, tres opciones con tilde ====================== */
+  const ab = document.querySelector('.lv3d-coro-art-btn');
+  const vb = document.querySelector('.lv3d-coro-vista-btn');
+  q('(A1) el boton «Arteria» existe y su titulo es ese, sin el lado elegido',
+    !!ab && ab.textContent.trim() === 'Arteria', 'titulo=' + (ab ? ab.textContent.trim() : 'NO'));
+  /* Sin el boton no hay caja que medir: contra el arbol anterior ese boton es null y leerle la
+     caja tiraria. La condicion cae por el boton ausente, que es lo que tiene que decir.
+     ⚠️ Y ACA SE PAGO OTRA VEZ EL ACENTO GRAVE DENTRO DE MI PROPIO COMENTARIO, por decimoctava
+        tanda seguida: citar un identificador entre acentos graves cierra el template. Va pelado. */
+  const CERO = { top: -1, height: 0 };
+  const rv = vb ? vb.getBoundingClientRect() : CERO;
+  const ra = ab ? ab.getBoundingClientRect() : CERO;
+  q('(A2) esta en la MISMA fila que «Vista de angiografia» y los dos miden 44 px de alto',
+    !!ab && !!vb && Math.abs(rv.top - ra.top) < 4 && rv.height >= 44 && ra.height >= 44,
+    'arteria=' + !!ab + ' vista=' + Math.round(rv.top) + '/' + Math.round(rv.height)
+      + ' arteria=' + Math.round(ra.top) + '/' + Math.round(ra.height));
+  q('(A3) el panel sigue teniendo TRES filas: el boton nuevo no agrega una',
+    document.getElementById('lv3d-coro-panel').children.length === 3,
+    'filas=' + document.getElementById('lv3d-coro-panel').children.length);
+  const opsA = Array.prototype.slice.call(document.querySelectorAll('.lv3d-coro-a'));
+  q('(A4) tiene TRES opciones -Todas, Izquierda, Derecha- y arranca en «Todas» con su tilde',
+    opsA.length === 3 && !!opsA[0]
+      && opsA.map(b => b.getAttribute('data-a')).join(',') === 'todas,izq,der'
+      && window.lv3dCoroDiag().art === 'todas'
+      && opsA.filter(b => b.textContent.indexOf(TIL) === 0).length === 1
+      && opsA[0].textContent.indexOf(TIL) === 0,
+    'opciones=' + opsA.map(b => b.textContent.trim()).join(' | ') + ' art=' + window.lv3dCoroDiag().art);
+  q('(A5) su lista nace CERRADA y es distinta de la de vistas',
+    !!document.getElementById('lv3d-coro-lista-art')
+      && getComputedStyle(document.getElementById('lv3d-coro-lista-art')).display === 'none'
+      && document.getElementById('lv3d-coro-lista-art') !== document.getElementById('lv3d-coro-lista'),
+    'lista=' + (document.getElementById('lv3d-coro-lista-art')
+      ? getComputedStyle(document.getElementById('lv3d-coro-lista-art')).display : 'NO EXISTE'));
+  /* == (B) LAS TRES DOMINANCIAS POR LAS TRES OPCIONES ====================================== */
+  /* El ayudante tolera el control ausente: contra el arbol anterior el selector no existe, y
+     entonces las nueve lecturas dan el dibujo completo y las condiciones caen por su medicion. */
+  const elegir = (a) => { const b = document.querySelector('.lv3d-coro-art-btn');
+    const o = document.querySelector('.lv3d-coro-a[data-a="' + a + '"]');
+    if (b) b.click(); if (o) o.click(); return !!o };
+  const leer = () => { const s = window.lv3dCoroSonda(0);
+    const g = {}; s.arterias.forEach(x => { g[x.g] = (g[x.g] || 0) + 1 });
+    return { n: s.arterias.length, grupos: g, letras: s.letras.slice().sort().join(','),
+             segs: s.segs } };
+  const M = {};
+  for (let d = 0; d < 3; d++) {
+    document.querySelector('#lv3d-coro-panel .lv3d-coro-dom[data-d="' + d + '"]').click();
+    await esp(120);
+    for (const a of ['todas', 'izq', 'der']) { elegir(a); await esp(90); M[d + '_' + a] = leer() }
+  }
+  /* El reparto medido en la TAREA 0: con dominancia derecha la DP y la PL son de la CD; con
+     codominante la PL pasa a la circunfleja; con izquierda las dos. */
+  q('(B1) dominancia DERECHA: todas 20 arterias con las siete letras, izquierda 12 sin CD, DP ni PL, derecha 8 con esas tres',
+    M['0_todas'].n === 20 && M['0_izq'].n === 12 && M['0_der'].n === 8
+      && M['0_izq'].letras === 'Cx,D,DA,MO' && M['0_der'].letras === 'CD,DP,PL',
+    'n=' + M['0_todas'].n + '/' + M['0_izq'].n + '/' + M['0_der'].n
+      + ' izq=' + M['0_izq'].letras + ' der=' + M['0_der'].letras);
+  q('(B2) CODOMINANTE: la PL se va con la izquierda y la DP se queda con la derecha',
+    M['1_izq'].letras === 'Cx,D,DA,MO,PL' && M['1_der'].letras === 'CD,DP'
+      && M['1_izq'].n === 13 && M['1_der'].n === 6,
+    'izq=' + M['1_izq'].letras + '(' + M['1_izq'].n + ') der=' + M['1_der'].letras + '(' + M['1_der'].n + ')');
+  q('(B3) dominancia IZQUIERDA: la DP y la PL son de la circunfleja y la derecha queda con la CD sola',
+    M['2_izq'].letras === 'Cx,D,DA,DP,MO,PL' && M['2_der'].letras === 'CD'
+      && M['2_izq'].n === 17 && M['2_der'].n === 2,
+    'izq=' + M['2_izq'].letras + '(' + M['2_izq'].n + ') der=' + M['2_der'].letras + '(' + M['2_der'].n + ')');
+  /* ⚠️ EL CRITERIO ES EL CAMPO g, NO UNA LISTA PROPIA: con «Izquierda» no puede quedar NI UNA
+     entrada del grupo CD, y con «Derecha» tiene que quedar SOLO ese grupo. Es lo que prueba que
+     el filtro lee el duenio que la dominancia ya resolvio. */
+  q('(B4) con «Izquierda» no queda ni una arteria del grupo CD, en las tres dominancias',
+    [0, 1, 2].every(d => !M[d + '_izq'].grupos.CD),
+    'CD=' + [0, 1, 2].map(d => M[d + '_izq'].grupos.CD || 0).join(','));
+  q('(B5) con «Derecha» SOLO queda el grupo CD: ni el tronco, ni la DA, ni la circunfleja',
+    [0, 1, 2].every(d => Object.keys(M[d + '_der'].grupos).join(',') === 'CD'),
+    'grupos=' + [0, 1, 2].map(d => Object.keys(M[d + '_der'].grupos).join('+')).join(' | '));
+  /* == (C) LO QUE NO SE DIBUJA DESAPARECE COMPLETO ========================================= */
+  q('(C1) los SEGMENTOS dibujados bajan con el lado, o sea que el trazo tambien se va',
+    M['0_izq'].segs < M['0_todas'].segs && M['0_der'].segs < M['0_todas'].segs
+      && M['0_izq'].segs > 0 && M['0_der'].segs > 0,
+    'segs=' + M['0_todas'].segs + ' izq=' + M['0_izq'].segs + ' der=' + M['0_der'].segs);
+  q('(C2) y las letras que quedan son EXACTAMENTE las de las arterias dibujadas, en las nueve combinaciones',
+    [0, 1, 2].every(d => ['todas', 'izq', 'der'].every(a => {
+      const s = M[d + '_' + a];
+      return s.letras.split(',').filter(x => x).length
+             === (['todas', 'izq', 'der'].indexOf(a) === 0 ? 7 : s.letras.split(',').filter(x => x).length);
+    })) && M['0_izq'].letras.indexOf('CD') < 0 && M['0_izq'].letras.indexOf('DP') < 0
+      && M['0_der'].letras.indexOf('DA') < 0 && M['0_der'].letras.indexOf('Cx') < 0,
+    'izq=' + M['0_izq'].letras + ' der=' + M['0_der'].letras);
+  /* Y el tramo gris sigue encendido para los grupos que quedan: el corte se calcula sobre las
+     definiciones filtradas, asi que no puede quedar un gris de una arteria que no se dibuja. */
+  document.querySelector('#lv3d-coro-panel .lv3d-coro-dom[data-d="0"]').click();
+  elegir('der'); await esp(120);
+  const effDer = window.lv3dCoroSonda(0).eff;
+  q('(C3) con «Derecha», el corte del gris de la CD sigue calculado y SOLO queda ese grupo',
+    effDer.CD !== null && effDer.CD !== undefined
+      && Object.keys(leer().grupos).join(',') === 'CD',
+    'eff=' + JSON.stringify(effDer) + ' grupos=' + Object.keys(leer().grupos).join(','));
+  elegir('todas'); await esp(120);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-816', 'PANT-34 (C4) y (C5): el selector de arteria es INDEPENDIENTE del territorio y de la contractilidad -no toca el estado, ni el texto de hallazgos, ni el bloque de arterias involucradas-, tocar un territorio no lo mueve, y sobrevive al cambio de vista y de dominancia', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const limpia = (s) => { s = String(s == null ? '' : s); let o = '';
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (c === 32 || c === 10 || c === 9 || c === 13 || c === 160) { if (o.length && o[o.length-1] !== ' ') o += ' ' }
+      else o += s[i] }
+    return o.trim(); };
+  try { showTab('contractilidad') } catch (e) {}
+  await esp(240);
+  __t.set('ddfvi', '58'); __t.set('vdfvi', '140'); __t.set('vsfvi', '56'); __t.set('fevi', '60');
+  try { if (typeof calcVI === 'function') calcVI() } catch (e) {}
+  await esp(500);
+  const btn = document.getElementById('lv3d-btn');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') btn.click();
+  await esp(900);
+  const cb = document.querySelector('#lv3d-panel .lv3d-coro-btn');
+  /* Se apaga y se vuelve a prender, que es lo que devuelve el selector a «Todas». */
+  if (cb && window.lv3dCoroDiag().coro) { cb.click(); await esp(250) }
+  if (cb) cb.click();
+  await esp(400);
+  /* Escena con contractilidad alterada: sin ella el bloque de arterias dice «Ninguna.» y
+     comparar tres «Ninguna.» no prueba independencia. */
+  const ids = Object.keys(CONTR_TERRITORIO);
+  ids.forEach(id => { try { contrSetSegmento(id, 1) } catch (e) {} });
+  await esp(500);
+  const foto = () => ({
+    estado: JSON.stringify(contrEstado),
+    inf: limpia((document.getElementById('contr-texto-informe') || { textContent: '' }).textContent),
+    art: limpia((document.getElementById('contr-arterias-li') || { textContent: '' }).textContent),
+    ley: limpia((document.getElementById('contr-leyenda') || { textContent: '' }).textContent),
+    modo: _lv3d.modo
+  });
+  const tocar = (sel) => { const b = document.querySelector(sel); if (b) b.click(); return !!b };
+  const base = foto();
+  q('(A0 DENOM) la escena tiene contractilidad alterada y el bloque de arterias dice algo',
+    base.estado.length > 10 && base.art.length > 10 && base.art.indexOf('Ninguna') !== 0,
+    'estado=' + base.estado.slice(0, 60) + ' art=' + base.art.slice(0, 60));
+  const elegir = (a) => { const b = document.querySelector('.lv3d-coro-art-btn');
+    const o = document.querySelector('.lv3d-coro-a[data-a="' + a + '"]');
+    if (b) b.click(); if (o) o.click(); return !!o };
+  q('(A0b DENOM) el selector de arteria EXISTE: sin el, las tres fotos son la misma y comparar no prueba nada',
+    !!document.querySelector('.lv3d-coro-art-btn')
+      && document.querySelectorAll('.lv3d-coro-a').length === 3,
+    'boton=' + !!document.querySelector('.lv3d-coro-art-btn')
+      + ' opciones=' + document.querySelectorAll('.lv3d-coro-a').length);
+  elegir('izq'); await esp(200); const fIzq = foto();
+  elegir('der'); await esp(200); const fDer = foto();
+  elegir('todas'); await esp(200); const fTod = foto();
+  q('(B1) elegir Izquierda o Derecha NO cambia el estado de contractilidad',
+    base.estado === fIzq.estado && fIzq.estado === fDer.estado && fDer.estado === fTod.estado,
+    'iguales=' + (base.estado === fDer.estado));
+  q('(B2) ni el texto de hallazgos del informe',
+    base.inf === fIzq.inf && fIzq.inf === fDer.inf && fDer.inf === fTod.inf,
+    'base=' + base.inf.slice(0, 70) + ' | der=' + fDer.inf.slice(0, 70));
+  q('(B3) ni el bloque «Arterias posiblemente involucradas»',
+    base.art === fIzq.art && fIzq.art === fDer.art && fDer.art === fTod.art,
+    'base=' + base.art.slice(0, 70) + ' | der=' + fDer.art.slice(0, 70));
+  q('(B4) ni la leyenda del territorio, ni el modo de color del 3D',
+    base.ley === fDer.ley && base.modo === fDer.modo, 'modo=' + base.modo + ' -> ' + fDer.modo);
+  /* == (C) TOCAR UN TERRITORIO NO MUEVE EL SELECTOR ======================================== */
+  elegir('der'); await esp(150);
+  const artAntes = window.lv3dCoroDiag().art;
+  const id = ids[0];
+  const vAntes = String(contrEstado[id]);
+  try { contrSetSegmento(id, 2) } catch (e) {}
+  await esp(400);
+  q('(C1 DENOM) el segmento SI cambio de motilidad',
+    String(contrEstado[id]) === '2' && vAntes !== '2',
+    'antes=' + vAntes + ' ahora=' + String(contrEstado[id]));
+  q('(C2) y el selector de arteria sigue donde estaba',
+    window.lv3dCoroDiag().art === artAntes && artAntes === 'der',
+    'antes=' + artAntes + ' ahora=' + window.lv3dCoroDiag().art);
+  /* == (D) SOBREVIVE A LA VISTA Y A LA DOMINANCIA ========================================== */
+  tocar('.lv3d-coro-vista-btn');
+  tocar('#lv3d-coro-lista .lv3d-coro-v[data-v="4"]');
+  await esp(150);
+  const nDomDer = window.lv3dCoroSonda(0).arterias.length;
+  q('(D1) cambiar de vista NO suelta el selector',
+    window.lv3dCoroDiag().art === 'der' && window.lv3dCoroDiag().vista === 4,
+    'art=' + window.lv3dCoroDiag().art + ' vista=' + window.lv3dCoroDiag().vista);
+  document.querySelector('#lv3d-coro-panel .lv3d-coro-dom[data-d="2"]').click();
+  await esp(200);
+  const nDomIzq = window.lv3dCoroSonda(0).arterias.length;
+  q('(D2) cambiar de dominancia tampoco, y el dibujo se actualiza al instante',
+    window.lv3dCoroDiag().art === 'der' && nDomDer === 8 && nDomIzq === 2,
+    'art=' + window.lv3dCoroDiag().art + ' n=' + nDomDer + ' -> ' + nDomIzq);
+  tocar('#lv3d-coro-panel .lv3d-coro-dom[data-d="0"]');
+  elegir('todas');
+  await esp(150);
+  return { extra: F };
+  })();
+`);
+
+caso('TC-817', 'PANT-34 (B1) a (B3): la ficha de anomalias coronarias de Referencias trae CINCO apartados de texto corrido con DIECIOCHO casillas -cinco de titulo y trece dentro de las frases-, sin id y sin guardar nada, y el globo otr-rac queda IDENTICO', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const limpia = (s) => { s = String(s == null ? '' : s); let o = '';
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (c === 32 || c === 10 || c === 9 || c === 13 || c === 160) { if (o.length && o[o.length-1] !== ' ') o += ' ' }
+      else o += s[i] }
+    return o.trim(); };
+  const sinTilde = (s) => String(s).toLowerCase()
+    .split(String.fromCharCode(225)).join('a').split(String.fromCharCode(233)).join('e')
+    .split(String.fromCharCode(237)).join('i').split(String.fromCharCode(243)).join('o')
+    .split(String.fromCharCode(250)).join('u');
+  try { showTab('refs') } catch (e) {}
+  await esp(240);
+  const sb = document.getElementById('ref-subtab-congenitas');
+  if (sb) sb.click();
+  await esp(200);
+  const cuerpo = document.getElementById('ref-coronarias');
+  const card = cuerpo ? cuerpo.closest('.card') : null;
+  const h2 = card ? card.querySelector('h2.card-head') : null;
+  if (cuerpo && getComputedStyle(cuerpo).display === 'none' && h2) h2.click();
+  await esp(250);
+  q('(A0 DENOM) la ficha existe, esta en la subpestania de congenitas y ABRE',
+    !!cuerpo && getComputedStyle(cuerpo).display !== 'none'
+      && REF_SUBTAB.congenitas.indexOf('coronarias') > -1,
+    'display=' + (cuerpo ? getComputedStyle(cuerpo).display : 'NO'));
+  /* ⚠️ LA FICHA SIGUE TENIENDO CUATRO HIJOS, y los dos primeros son los que el globo clona: por
+     eso el esquema reemplaza el CUERPO PROPIO -los hijos tres y cuatro de PANT-29- y no los dos
+     de arriba. Ver el comentario del marcado y P34-b. */
+  const H = Array.prototype.slice.call(cuerpo.children);
+  q('(A1) tiene CUATRO hijos y el esquema es el TERCERO, marcado data-ref-solo',
+    H.length === 4 && !!H[2] && H[2].getAttribute('data-ref-solo') === '1'
+      && H[2].id === 'rac-root' && H[2].classList.contains('rac-root'),
+    'hijos=' + H.length + ' tercero=' + H[2].id + '/' + H[2].getAttribute('data-ref-solo'));
+  q('(A2) los dos primeros hijos siguen SIN la marca y con su texto intacto, palabra por palabra',
+    !H[0].getAttribute('data-ref-solo') && !H[1].getAttribute('data-ref-solo')
+      && limpia(H[0].textContent).indexOf('Origen an') === 0
+      && limpia(H[0].textContent).indexOf('Anterior a la arteria pulmonar') > -1
+      && limpia(H[0].textContent).indexOf('mayor riesgo de eventos card') > -1
+      && limpia(H[1].textContent).indexOf('ASE 2020') === 0
+      && limpia(H[1].textContent).indexOf('folio 266') > -1,
+    'h0=' + limpia(H[0].textContent).slice(0, 70));
+  /* == (B) CINCO APARTADOS, EN SU ORDEN, CON SU SIGLA ====================================== */
+  const APS = [['aaorca', 'AAORCA', 'Coronaria derecha que nace del seno izquierdo'],
+               ['aaolca', 'AAOLCA', 'Coronaria izquierda que nace del seno derecho'],
+               ['alcapa', 'ALCAPA', 'Coronaria izquierda que nace de la arteria pulmonar'],
+               ['arcapa', 'ARCAPA', 'Coronaria derecha que nace de la arteria pulmonar'],
+               ['fistula', 'CAF', 'F' + String.fromCharCode(237) + 'stula coronaria']];
+  const aps = Array.prototype.slice.call(document.querySelectorAll('#rac-root [data-rac-ap]'));
+  q('(B1) hay CINCO apartados, en el orden que la orden fija',
+    aps.length === 5 && aps.map(a => a.getAttribute('data-rac-ap')).join(',') === APS.map(x => x[0]).join(','),
+    'apartados=' + aps.map(a => a.getAttribute('data-rac-ap')).join(','));
+  q('(B2) cada titulo lleva su casilla DELANTE y su sigla en una pastilla',
+    aps.length === 5 && APS.every((x, i) => {
+      const t = aps[i].querySelector('.rac-tit');
+      return !!t && !!t.querySelector('input[data-rac="head"]')
+             && limpia(t.querySelector('.rac-chk-t').textContent) === x[2]
+             && limpia(t.querySelector('.rac-sigla').textContent) === x[1];
+    }),
+    'titulos=' + aps.map(a => { const t = a.querySelector('.rac-tit .rac-chk-t');
+      return t ? limpia(t.textContent) : 'SIN TITULO' }).join(' | '));
+  q('(B3) el texto es corrido -parrafos- y no viñetas: 3, 3, 2, 1 y 3 parrafos',
+    aps.map(a => a.querySelectorAll('.rac-txt p').length).join(',') === '3,3,2,1,3',
+    'parrafos=' + aps.map(a => a.querySelectorAll('.rac-txt p').length).join(','));
+  /* == (C) LAS DIECIOCHO CASILLAS ========================================================== */
+  const chks = Array.prototype.slice.call(document.querySelectorAll('#rac-root input[data-rac]'));
+  q('(C1) son DIECIOCHO en total: cinco de titulo y trece dentro de las frases',
+    chks.length === 18
+      && document.querySelectorAll('#rac-root .rac-tit input[data-rac]').length === 5
+      && document.querySelectorAll('#rac-root .rac-txt input[data-rac]').length === 13,
+    'total=' + chks.length + ' titulo=' + document.querySelectorAll('#rac-root .rac-tit input[data-rac]').length
+      + ' frases=' + document.querySelectorAll('#rac-root .rac-txt input[data-rac]').length);
+  q('(C2) el reparto por apartado es 5, 5, 1, 1 y 6',
+    aps.map(a => a.querySelectorAll('input[data-rac]').length).join(',') === '5,5,1,1,6',
+    'reparto=' + aps.map(a => a.querySelectorAll('input[data-rac]').length).join(','));
+  /* ⚠️ NINGUNA CASILLA LLEVA id, Y ES LO QUE LAS DEJA FUERA DEL CENSO: limpiarCampos recorre
+     input[id] y les escribe el checked de la clave guardada, asi que una casilla CON id se
+     destildaria sola en «Nuevo estudio» dejando el dibujo puesto sin su casilla. */
+  q('(C3) NINGUNA lleva id, asi que ningun recolector ni «Nuevo estudio» las alcanza',
+    chks.every(c => !c.id), 'conId=' + chks.filter(c => c.id).length);
+  q('(C4) las dieciocho son casillas de verificacion y su ETIQUETA las envuelve',
+    chks.every(c => c.type === 'checkbox' && c.closest('label')
+                    && c.closest('label').querySelector('.rac-chk-t')),
+    'ok=' + chks.filter(c => c.type === 'checkbox' && c.closest('label')).length);
+  q('(C5) al abrir, las dieciocho estan DESTILDADAS y los cinco cuadros ocultos por CLASE',
+    chks.every(c => !c.checked)
+      && Array.prototype.every.call(document.querySelectorAll('#rac-root [data-rac-esq]'),
+           e => e.classList.contains('rac-oculto') && getComputedStyle(e).display === 'none'
+                && !e.hasAttribute('hidden')),
+    'tildadas=' + chks.filter(c => c.checked).length);
+  /* == (D) NI UNA GUIA, NI UN FOLIO, NI UNA CLASE, NI UN GRADO EN LO NUEVO ================= */
+  const raizN = document.getElementById('rac-root');
+  const nuevo = raizN ? limpia(raizN.textContent) : '';
+  const PROH = ['esc 20', 'acc/aha', 'aha/acc', 'ase 20', 'folio', 'clase i', 'clase ii',
+                'nivel b', 'nivel c', 'no figura', 'pendiente de revisi', 'sin validar'];
+  const malas = PROH.filter(p => sinTilde(nuevo).indexOf(p) > -1);
+  q('(D1) el texto nuevo EXISTE y no nombra una guia, un folio, una clase ni deja nada pendiente',
+    nuevo.length > 3000 && malas.length === 0,
+    'chars=' + nuevo.length + ' malas=' + (malas.join(',') || 'ninguna'));
+  q('(D2) ni escribe un solo grado',
+    nuevo.indexOf(String.fromCharCode(176)) < 0 && sinTilde(nuevo).indexOf('grado ') < 0,
+    'grado=' + (nuevo.indexOf(String.fromCharCode(176)) > -1));
+  /* ⚠️ «SE VE» NO ES «ESTA»: textContent devuelve lo mismo con un display:none puesto, y la
+     mutacion 42 del barrido le pone justamente eso al pie -- sobrevivio a la primera version de
+     esta condicion-. Es el mismo agujero que TC-779 documenta para los resumenes. Hay que abrir
+     un cuadro para que el pie tenga caja: con los cinco ocultos el alto es cero. */
+  const apAbrir = document.querySelector('[data-rac-ap="arcapa"] input[data-rac="head"]');
+  if (apAbrir) { apAbrir.checked = true; try { racDibujar('arcapa') } catch (e) {} }
+  await esp(200);
+  const pieA = document.querySelector('[data-rac-esq="arcapa"] .rac-pie');
+  q('(D3) y el pie de cada cuadro dice como se lee el esquema, y SE VE',
+    document.querySelectorAll('#rac-root .rac-pie').length === 5
+      && Array.prototype.every.call(document.querySelectorAll('#rac-root .rac-pie'),
+      p => limpia(p.textContent).indexOf('Esquema simb') === 0
+           && limpia(p.textContent).indexOf('Arriba es adelante') > -1
+           && limpia(p.textContent).indexOf('SD, SI, SNC') > -1)
+      && !!pieA && getComputedStyle(pieA).display !== 'none'
+      && pieA.getBoundingClientRect().height > 8,
+    'pies=' + document.querySelectorAll('#rac-root .rac-pie').length
+      + ' caja=' + (pieA ? Math.round(pieA.getBoundingClientRect().height) : 'NO'));
+  if (apAbrir) { apAbrir.checked = false; try { racDibujar('arcapa') } catch (e) {} }
+  /* == (E) EL GLOBO otr-rac, IDENTICO ====================================================== */
+  let clon = -1, clonTxt = '';
+  try { clonTxt = limpia(window._otrRefClon('ref-coronarias').textContent); clon = clonTxt.length }
+  catch (e) { clon = -2 }
+  q('(E1) el clon del globo sigue en 478 caracteres: la compuerta saltea los hijos marcados',
+    clon === 478, 'clon=' + clon);
+  q('(E2) y lo que clona es la ficha vieja, sin una palabra del esquema nuevo',
+    clonTxt.indexOf('Origen an') === 0 && clonTxt.indexOf('AAORCA') < 0
+      && clonTxt.indexOf('ALCAPA') < 0 && clonTxt.indexOf('seno izquierdo, y despu') < 0,
+    'clon=' + clonTxt.slice(0, 70));
+  /* == (F) EL REPARTO Y EL BUSCADOR NO SE MOVIERON ========================================= */
+  const enc = Array.prototype.map.call(document.querySelectorAll('h2.card-head'),
+    h => (h.getAttribute('onclick') || '')).filter(s => s.indexOf('toggleRef') > -1).length;
+  q('(F1) siguen los CUARENTA encabezados con toggleRef que alimentan el indice del buscador',
+    enc === 40, 'encabezados=' + enc);
+  q('(F2) y la subpestania de congenitas sigue con sus DOS entradas',
+    REF_SUBTAB.congenitas.length === 2 && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias',
+    'reparto=' + REF_SUBTAB.congenitas.join(','));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-818', 'PANT-34 (B3) y (B5): cada una de las DIECIOCHO casillas dibuja su esquema y destildarla lo oculta; los tres caminos se superponen, el intramural se agrega, y la fistula pide origen Y desembocadura antes de dibujar sus seis recorridos', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const limpia = (s) => { s = String(s == null ? '' : s); let o = '';
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i);
+      if (c === 32 || c === 10 || c === 9 || c === 13 || c === 160) { if (o.length && o[o.length-1] !== ' ') o += ' ' }
+      else o += s[i] }
+    return o.trim(); };
+  try { showTab('refs') } catch (e) {}
+  await esp(240);
+  const sb = document.getElementById('ref-subtab-congenitas'); if (sb) sb.click();
+  await esp(200);
+  const cuerpo = document.getElementById('ref-coronarias');
+  const h2 = cuerpo ? cuerpo.closest('.card').querySelector('h2.card-head') : null;
+  if (cuerpo && getComputedStyle(cuerpo).display === 'none' && h2) h2.click();
+  await esp(250);
+  const todas = Array.prototype.slice.call(document.querySelectorAll('#rac-root input[data-rac]'));
+  q('(A0 DENOM) la ficha abre con sus dieciocho casillas y el motor del esquema existe',
+    todas.length === 18 && typeof window.racDiag === 'function'
+      && typeof window.racDibujar === 'function'
+      && getComputedStyle(cuerpo).display !== 'none',
+    'casillas=' + todas.length);
+  /* ⚠️ TOLERA EL ESQUEMA AUSENTE: contra el arbol anterior no existe ni el apartado ni el motor,
+     y un racDibujar() pelado tiraria ReferenceError. Devolviendo un dibujo VACIO, las condiciones
+     de abajo caen por lo que miden -cero trazos, cero leyenda- y no por una excepcion. */
+  const VACIO = { visible: false, display: '', svg: false, trazos: 0, textos: 0, elipses: 0,
+                  circulos: 0, poligonos: 0, rotulos: [], leyenda: [], nota: '', pie: '' };
+  const HAY = (typeof window.racDibujar === 'function') && (typeof window.racDiag === 'function');
+  const poner = (ap, claves) => {
+    const a = document.querySelector('[data-rac-ap="' + ap + '"]');
+    if (!a || !HAY) return VACIO;
+    a.querySelectorAll('input[data-rac]').forEach(c => {
+      c.checked = claves.indexOf(c.getAttribute('data-rac')) > -1;
+    });
+    racDibujar(ap);
+    return racDiag(ap);
+  };
+  const APS = ['aaorca', 'aaolca', 'alcapa', 'arcapa', 'fistula'];
+  APS.forEach(k => poner(k, []));
+  /* == (A) UNA POR UNA: tildarla dibuja, destildarla oculta ================================ */
+  const fallos = [];
+  todas.forEach(c => {
+    const ap = c.closest('[data-rac-ap]').getAttribute('data-rac-ap');
+    const k = c.getAttribute('data-rac');
+    const d = poner(ap, [k]);
+    if (!d.visible || d.display === 'none' || !d.svg || d.trazos < 3 || d.elipses !== 3
+        || d.leyenda.length < 1) fallos.push(ap + '/' + k + ' dibujo');
+    const d2 = poner(ap, []);
+    if (d2.visible || d2.display !== 'none' || d2.svg) fallos.push(ap + '/' + k + ' destildada');
+  });
+  q('(A1) las DIECIOCHO casillas, una por una, dibujan su esquema con su base de tres cavidades y su leyenda',
+    fallos.length === 0 && todas.length === 18, 'fallos=' + fallos.join(' · ') || 'ninguno');
+  q('(A2) y destildar la ultima deja los cinco cuadros ocultos, sin SVG',
+    HAY && APS.every(k => { const d = racDiag(k); return !d.visible && d.display === 'none' && !d.svg }),
+    'motor=' + HAY + ' visibles=' + (HAY ? APS.filter(k => racDiag(k).visible).join(',') : 'SIN MOTOR'));
+  /* == (B) LOS CAMINOS SE SUPERPONEN ======================================================= */
+  const unCamino = poner('aaorca', ['head', 'pre']);
+  const tres = poner('aaorca', ['head', 'pre', 'retro', 'inter']);
+  const tresMas = poner('aaorca', ['head', 'pre', 'retro', 'inter', 'intra']);
+  const soloHead = poner('aaorca', ['head']);
+  q('(B1) los tres caminos se dibujan a la vez: mas trazos y mas filas de leyenda que con uno',
+    tres.trazos > unCamino.trazos && tres.leyenda.length === 4
+      && unCamino.leyenda.length === 2,
+    'uno=' + unCamino.trazos + '/' + unCamino.leyenda.length
+      + ' tres=' + tres.trazos + '/' + tres.leyenda.length);
+  q('(B2) el intramural se AGREGA a los tres, con su propia fila de leyenda',
+    tresMas.trazos === tres.trazos + 1 && tresMas.leyenda.length === 5
+      && tresMas.leyenda.join(' ').indexOf('intramural') > -1,
+    'tres=' + tres.trazos + ' +intra=' + tresMas.trazos + ' ley=' + tresMas.leyenda.join(' | '));
+  q('(B3) solo el titulo dibuja el origen y las coronarias normales, y el pie pide un camino',
+    soloHead.visible && soloHead.leyenda.length === 1
+      && soloHead.leyenda[0].indexOf('coronaria normal') > -1
+      && limpia(soloHead.nota).indexOf('uno de los caminos') > -1
+      && soloHead.rotulos.indexOf('origen') > -1,
+    'ley=' + soloHead.leyenda.join('|') + ' nota=' + limpia(soloHead.nota).slice(0, 50));
+  q('(B4) con un camino tildado la nota desaparece',
+    limpia(unCamino.nota) === '' && limpia(tres.nota) === '',
+    'nota=' + limpia(unCamino.nota));
+  /* El mismo molde en la izquierda, con sus propios angulos de pared. */
+  const izqInter = poner('aaolca', ['inter', 'intra']);
+  q('(B5) el apartado de la izquierda usa el mismo molde: interarterial mas intramural',
+    izqInter.visible && izqInter.leyenda.length === 3
+      && izqInter.leyenda.join(' ').indexOf('interarterial') > -1
+      && izqInter.leyenda.join(' ').indexOf('intramural') > -1,
+    'ley=' + izqInter.leyenda.join(' | '));
+  /* == (C) EL ORIGEN PULMONAR ============================================================== */
+  const alc = poner('alcapa', ['head']);
+  q('(C1) la ALCAPA dibuja la derecha dilatada, las colaterales y el flujo invertido con su flecha',
+    alc.visible && alc.poligonos === 1 && alc.leyenda.length === 3
+      && alc.rotulos.join(' ').indexOf('flujo invertido') > -1
+      && alc.rotulos.join(' ').indexOf('colaterales') > -1
+      && alc.rotulos.join(' ').indexOf('coronaria derecha dilatada') > -1,
+    'pol=' + alc.poligonos + ' ley=' + alc.leyenda.join(' | '));
+  const arc = poner('arcapa', ['head']);
+  q('(C2) la ARCAPA dibuja su derecha naciendo de la pulmonar, con su punto y su rotulo',
+    arc.visible && arc.leyenda.length === 2
+      && arc.rotulos.join(' ').indexOf('origen en la pulmonar') > -1
+      && arc.circulos === 2,
+    'ley=' + arc.leyenda.join(' | ') + ' cir=' + arc.circulos);
+  /* == (D) LA FISTULA PIDE LAS DOS COSAS =================================================== */
+  const fHead = poner('fistula', ['head']);
+  const fOrig = poner('fistula', ['head', 'R']);
+  const fDest = poner('fistula', ['head', 'ad']);
+  const fUna = poner('fistula', ['head', 'R', 'ad']);
+  const fSeis = poner('fistula', ['head', 'R', 'L', 'ad', 'vd', 'ap']);
+  q('(D1) con el titulo solo, con un origen solo o con una desembocadura sola, el pie pide las dos',
+    [fHead, fOrig, fDest].every(x => x.visible && limpia(x.nota).indexOf('de qu') > -1
+      && limpia(x.nota).indexOf('desemboca') > -1 && x.leyenda.length === 1),
+    'notas=' + [fHead, fOrig, fDest].map(x => limpia(x.nota).slice(0, 30)).join(' | '));
+  q('(D2) con un origen Y una desembocadura dibuja su recorrido, con su circulo y su rotulo',
+    fUna.visible && limpia(fUna.nota) === '' && fUna.leyenda.length === 2
+      && fUna.leyenda.join(' ').indexOf('stula') > -1
+      && fUna.rotulos.join(' ').indexOf('desemboca en AD') > -1
+      && fUna.trazos > fDest.trazos,
+    'trz=' + fUna.trazos + ' ley=' + fUna.leyenda.join(' | '));
+  q('(D3) dos origenes por tres desembocaduras dibujan SEIS recorridos, con sus seis circulos de desembocadura y dos puntos de origen',
+    fSeis.trazos === fDest.trazos + 6 && fSeis.circulos === fDest.circulos + 8
+      && fSeis.rotulos.join(' ').indexOf('desemboca en VD') > -1
+      && fSeis.rotulos.join(' ').indexOf('desemboca en AP') > -1,
+    'trz=' + fDest.trazos + ' -> ' + fSeis.trazos + ' cir=' + fDest.circulos + ' -> ' + fSeis.circulos);
+  APS.forEach(k => poner(k, []));
+  q('(D4) y al destildar todo, los cinco cuadros vuelven a estar ocultos',
+    HAY && APS.every(k => !racDiag(k).visible),
+    'motor=' + HAY + ' visibles=' + (HAY ? APS.filter(k => racDiag(k).visible).join(',') : 'SIN MOTOR'));
+  /* == (E) EL OYENTE DE VERDAD ============================================================= */
+  /* ⚠️ LAS CONDICIONES DE ARRIBA LLAMAN A racDibujar A MANO, asi que NO ejercitan el oyente:
+     con el cableado roto pasarian todas y el medico tildaria una casilla sin que se dibujara
+     nada. Aca se toca la casilla DE VERDAD -un click dispara el change- y nadie llama al
+     dibujo. */
+  const ch = document.querySelector('[data-rac-ap="arcapa"] input[data-rac="head"]');
+  const antesE = HAY ? racDiag('arcapa') : null;
+  if (ch) ch.click();
+  await esp(260);
+  const despE = HAY ? racDiag('arcapa') : null;
+  q('(E1) tocar una casilla DE VERDAD dibuja su esquema: el oyente esta cableado',
+    !!ch && !!despE && despE.visible && despE.svg && despE.trazos > 3
+      && !!antesE && !antesE.visible,
+    'antes=' + (antesE ? antesE.visible : 'NO') + ' despues=' + (despE ? despE.visible + '/' + despE.trazos : 'NO'));
+  if (ch) ch.click();
+  await esp(260);
+  q('(E2) y destildarla de verdad lo vuelve a ocultar, sin llamar al dibujo a mano',
+    HAY && !racDiag('arcapa').visible && !racDiag('arcapa').svg,
+    'visible=' + (HAY ? racDiag('arcapa').visible : 'SIN MOTOR'));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-819', 'PANT-34 (B5) a (B7): la GEOMETRIA y el COLOR del esquema -ningun rotulo fuera del lienzo de 400 por 360, ninguno encimado, ni un trazo en negro y las dos paletas por tema-, y a 700 px o menos el cuadro pasa DEBAJO del texto sin solaparse', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('refs') } catch (e) {}
+  await esp(240);
+  const sb = document.getElementById('ref-subtab-congenitas'); if (sb) sb.click();
+  await esp(200);
+  const cuerpo = document.getElementById('ref-coronarias');
+  const h2 = cuerpo ? cuerpo.closest('.card').querySelector('h2.card-head') : null;
+  if (cuerpo && getComputedStyle(cuerpo).display === 'none' && h2) h2.click();
+  await esp(250);
+  const APS = [['aaorca', ['head', 'pre', 'retro', 'inter', 'intra']],
+               ['aaolca', ['head', 'pre', 'retro', 'inter', 'intra']],
+               ['alcapa', ['head']], ['arcapa', ['head']],
+               ['fistula', ['head', 'R', 'L', 'ad', 'vd', 'ap']]];
+  /* Tolera el esquema ausente, igual que TC-818: contra el arbol anterior el motor no existe. */
+  const HAY = (typeof window.racDibujar === 'function') && (typeof window.racDiag === 'function');
+  const poner = (ap, claves) => {
+    const a = document.querySelector('[data-rac-ap="' + ap + '"]');
+    if (!a || !HAY) return null;
+    a.querySelectorAll('input[data-rac]').forEach(c => {
+      c.checked = claves.indexOf(c.getAttribute('data-rac')) > -1 });
+    racDibujar(ap);
+    return a;
+  };
+  APS.forEach(x => poner(x[0], x[1]));
+  await esp(200);
+  /* ⚠️ getBBox DEVUELVE CEROS EN UN SUBARBOL display:none, asi que la ficha tiene que estar
+     ABIERTA y el cuadro visible ANTES de medir: sin eso todo da cero y parece impecable. */
+  q('(A0 DENOM) el motor existe y los cinco cuadros se VEN con su SVG con caja',
+    HAY && APS.every(x => { const d = racDiag(x[0]);
+      const s = document.querySelector('[data-rac-esq="' + x[0] + '"] svg');
+      return d.visible && !!s && s.getBoundingClientRect().width > 50 }),
+    'motor=' + HAY + ' cajas=' + APS.map(x => { const s = document.querySelector('[data-rac-esq="' + x[0] + '"] svg');
+      return Math.round(s ? s.getBoundingClientRect().width : 0) }).join(','));
+  const medir = (ap) => {
+    const svg = document.querySelector('[data-rac-esq="' + ap + '"] svg');
+    if (!svg) return { n: 0, fuera: ['SIN SVG'], enc: ['SIN SVG'], negros: -1, colores: [], vb: 'SIN SVG' };
+    const txts = Array.prototype.map.call(svg.querySelectorAll('text'), t => {
+      const b = t.getBBox();
+      return { t: t.textContent, x: b.x, y: b.y, w: b.width, h: b.height } });
+    const fuera = txts.filter(t => t.x < -0.5 || t.y < -0.5 || t.x + t.w > 400.5 || t.y + t.h > 360.5);
+    /* ⚠️ EL SOLAPE SE MIDE CON UNA TOLERANCIA DE UNA UNIDAD, Y ESTA MEDIDO POR QUE. Los dos
+       rotulos de desembocadura de la fistula estan en (6,44) y (6,60) -coordenadas del pedido- y
+       la caja de un texto de 13 unidades mide unas 16, asi que se TOCAN por menos de una decima
+       de unidad sin superponerse: con la comparacion estricta en coma flotante el caso marcaba
+       un solape de 0,07 unidades que el medico no puede ver. Un solape real es de varias
+       unidades, y eso es lo que esta condicion vigila. */
+    const enc = [];
+    const TOL = 1;
+    for (let i = 0; i < txts.length; i++) for (let j = i + 1; j < txts.length; j++) {
+      const A = txts[i], B = txts[j];
+      const ox = Math.min(A.x + A.w, B.x + B.w) - Math.max(A.x, B.x);
+      const oy = Math.min(A.y + A.h, B.y + B.h) - Math.max(A.y, B.y);
+      if (ox > TOL && oy > TOL) enc.push(A.t + '/' + B.t + ' (' + ox.toFixed(2) + 'x' + oy.toFixed(2) + ')');
+    }
+    const trazos = Array.prototype.map.call(svg.querySelectorAll('path'), p => getComputedStyle(p).stroke);
+    const rell = Array.prototype.map.call(svg.querySelectorAll('text,polygon'), p => getComputedStyle(p).fill);
+    const NEG = 'rgb(0, 0, 0)';
+    return { n: txts.length, fuera: fuera.map(t => t.t), enc: enc,
+             negros: trazos.filter(c => c === NEG).length + rell.filter(c => c === NEG).length,
+             colores: Array.from(new Set(trazos)), vb: svg.getAttribute('viewBox') };
+  };
+  const M = {}; APS.forEach(x => { M[x[0]] = medir(x[0]) });
+  q('(A1) el lienzo de los cinco es 0 0 400 360',
+    APS.every(x => M[x[0]].vb === '0 0 400 360'), 'vb=' + APS.map(x => M[x[0]].vb).join(' | '));
+  q('(A2) NINGUN rotulo se sale del lienzo, en los cinco esquemas',
+    APS.every(x => M[x[0]].fuera.length === 0),
+    'fuera=' + APS.map(x => x[0] + ':' + M[x[0]].fuera.join('+')).join(' '));
+  q('(A3) y NINGUN par de rotulos se encima',
+    APS.every(x => M[x[0]].enc.length === 0),
+    'encimados=' + APS.map(x => x[0] + ':' + M[x[0]].enc.join('+')).join(' '));
+  /* ⚠️ NI UN TRAZO EN NEGRO: un var() escrito dentro de un atributo de presentacion es invalido
+     en tiempo de computo y cae en el negro heredado de la raiz -la trampa de POP-B con --amber y
+     de PANT-13 con --card-. Cero negros es lo que prueba que el color va por una REGLA. */
+  q('(A4) ni un trazo ni un relleno en negro: el color se resuelve por regla de CSS',
+    APS.every(x => M[x[0]].negros === 0),
+    'negros=' + APS.map(x => x[0] + ':' + M[x[0]].negros).join(' '));
+  /* ⚠️ ESTA CONDICION NACIO DE UNA MUTACION QUE SOBREVIVIO: la 39 del barrido devuelve el
+     rotulo «Ao» al centro del circulo, y (A3) no la mataba porque ahi TAMPOCO se encima con los
+     tres senos -- medido-. O sea que la mutacion era EQUIVALENTE para (A3) y la posicion que se
+     eligio es una DECISION que nada fijaba: el rotulo va en la parte baja del circulo, por
+     DEBAJO de los tres rotulos de seno, que son los que ocupan el medio. */
+  const aoY = (function (){
+    const svg = document.querySelector('[data-rac-esq="aaorca"] svg');
+    if (!svg) return null;
+    const t = Array.prototype.slice.call(svg.querySelectorAll('text'));
+    const ao = t.filter(x => x.textContent === 'Ao')[0];
+    const senos = t.filter(x => ['SD', 'SI', 'SNC'].indexOf(x.textContent) > -1);
+    if (!ao || senos.length !== 3) return null;
+    return { ao: ao.getBBox().y, maxSeno: Math.max.apply(null, senos.map(x => x.getBBox().y)) };
+  })();
+  q('(A4b) el rotulo de la aorta va en la parte BAJA del circulo, por debajo de los tres senos',
+    !!aoY && aoY.ao > aoY.maxSeno + 6,
+    'ao=' + (aoY ? Math.round(aoY.ao) : 'NO') + ' maxSeno=' + (aoY ? Math.round(aoY.maxSeno) : 'NO'));
+  q('(A5) el esquema de los caminos usa CINCO colores distintos: gris, azul, verde azulado, rojo y rosa',
+    M.aaorca.colores.length === 5 && M.aaolca.colores.length === 5,
+    'colores=' + M.aaorca.colores.join(' '));
+  /* == (B) LAS DOS PALETAS POR TEMA ======================================================== */
+  const eraClaro = document.documentElement.classList.contains('light-mode');
+  document.documentElement.classList.add('light-mode');
+  await esp(220); APS.forEach(x => poner(x[0], x[1]));
+  const claro = medir('aaorca');
+  document.documentElement.classList.remove('light-mode');
+  await esp(220); APS.forEach(x => poner(x[0], x[1]));
+  const oscuro = medir('aaorca');
+  if (eraClaro) document.documentElement.classList.add('light-mode');
+  await esp(200); APS.forEach(x => poner(x[0], x[1]));
+  /* ⚠️ ESTA CONDICION SE ENDURECIO POR UNA MUTACION QUE SOBREVIVIO: la 41 del barrido le saca
+     al tema claro UNA de sus nueve variables, y con «las dos listas son distintas» alcanzaba con
+     que las otras ocho difirieran. El contrato es mas fuerte: las nueve existen en los DOS temas
+     con valores distintos, asi que las dos paletas no pueden compartir NI UN color. */
+  const comunes = claro.colores.filter(c => oscuro.colores.indexOf(c) > -1);
+  q('(B1) el tema claro y el oscuro dan DOS paletas distintas, SIN UN SOLO color en comun y sin un negro',
+    claro.colores.length === oscuro.colores.length && claro.colores.length === 5
+      && comunes.length === 0 && claro.negros === 0 && oscuro.negros === 0,
+    'comunes=' + comunes.join(' ') + ' | claro=' + claro.colores.join(' ')
+      + ' | oscuro=' + oscuro.colores.join(' '));
+  /* == (C) EL ANCHO: a 700 px o menos el cuadro va debajo ================================== */
+  const a = document.querySelector('[data-rac-ap="aaorca"]');
+  q('(C0 DENOM) el apartado existe con su cuerpo, su texto y su cuadro',
+    !!a && !!a.querySelector('.rac-cuerpo') && !!a.querySelector('.rac-txt')
+      && !!a.querySelector('.rac-esq'),
+    'apartado=' + !!a);
+  if (!a) return { extra: F };
+  const cuerpoAp = a.querySelector('.rac-cuerpo');
+  const txt = a.querySelector('.rac-txt');
+  const esq = a.querySelector('.rac-esq');
+  const solapa = () => { const t = txt.getBoundingClientRect(), e = esq.getBoundingClientRect();
+    return !(e.left >= t.right - 1 || e.top >= t.bottom - 1 || t.left >= e.right - 1 || t.top >= e.bottom - 1) };
+  q('(C1 DENOM) a este ancho el cuerpo va en FILA y el cuadro al costado, sin solaparse',
+    getComputedStyle(cuerpoAp).flexDirection === 'row' && !solapa()
+      && Math.round(esq.getBoundingClientRect().width) === 230,
+    'dir=' + getComputedStyle(cuerpoAp).flexDirection + ' esq=' + Math.round(esq.getBoundingClientRect().width));
+  q('(C2) la casilla con su texto mide 24 px o mas de zona tactil',
+    Array.prototype.every.call(a.querySelectorAll('.rac-chk'), l => {
+      const t = l.querySelector('.rac-chk-t').getBoundingClientRect();
+      return t.height >= 24 - 0.6 }),
+    'altos=' + Array.prototype.map.call(a.querySelectorAll('.rac-chk'),
+      l => Math.round(l.querySelector('.rac-chk-t').getBoundingClientRect().height)).join(','));
+  q('(C3) la ficha no desborda a lo ancho',
+    cuerpo.scrollWidth <= cuerpo.clientWidth + 1,
+    'scroll=' + cuerpo.scrollWidth + ' client=' + cuerpo.clientWidth);
+  /* La media query es del ANCHO DE LA VENTANA, asi que se lee de matchMedia. */
+  q('(C4) el corte esta declarado sobre la VENTANA en 700 px, no sobre el contenedor',
+    window.matchMedia('(max-width:700px)').matches === (window.innerWidth <= 700),
+    'ventana=' + window.innerWidth + ' matchea=' + window.matchMedia('(max-width:700px)').matches);
+  APS.forEach(x => poner(x[0], []));
+  return { extra: F };
+  })();
+`);
+
+caso('TC-820', 'PANT-34 (D1): la CAPTURA del 3D -la misma imagen que va al PDF- incluye el rotulo de la vista, respeta el selector de arteria y no toca la banda del pie', `
+  return (async () => {
+  const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag || '']);
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try { showTab('contractilidad') } catch (e) {}
+  await esp(240);
+  __t.set('ddfvi', '58'); __t.set('vdfvi', '140'); __t.set('vsfvi', '56'); __t.set('fevi', '60');
+  try { if (typeof calcVI === 'function') calcVI() } catch (e) {}
+  await esp(500);
+  const btn = document.getElementById('lv3d-btn');
+  if (btn && btn.getAttribute('aria-expanded') !== 'true') btn.click();
+  await esp(900);
+  /* ⚠️ LA ANIMACION SE PAUSA ANTES DE CADA CAPTURA: leer el PNG es asincrono, asi que entre dos
+     capturas corren cuadros de rAF y cada PNG sale con otra fase del latido. Sin esto el ida y
+     vuelta del selector da hashes distintos y parece que la captura no lo respeta. */
+  const play = document.getElementById('lv3d-play');
+  if (play && play.textContent.indexOf('Pausa') > -1) play.click();
+  const sl = document.querySelector('#lv3d-panel .lv3d-fase');
+  if (sl) { sl.value = '0'; sl.dispatchEvent(new Event('input', { bubbles: true })) }
+  const pausar = () => { _lv3d.corriendo = false; _lv3d.fase = 0; lv3dDibujar() };
+  pausar(); await esp(250);
+  const leer = async () => {
+    const u = _lv3d.cap ? _lv3d.cap.url : null;
+    if (!u) return null;
+    const im = new Image();
+    await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = u });
+    const c = document.createElement('canvas');
+    c.width = im.width; c.height = im.height;
+    const cx = c.getContext('2d');
+    cx.drawImage(im, 0, 0);
+    const k = im.width/680;
+    /* El fondo del PNG es BLANCO opaco -LV3D_CAP_PAL-, asi que «tinta» es «no blanco». */
+    const tinta = (x0, y0, x1, y1) => {
+      const d = cx.getImageData(Math.round(x0*k), Math.round(y0*k),
+        Math.round((x1-x0)*k), Math.round((y1-y0)*k)).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] < 245 || d[i+1] < 245 || d[i+2] < 245) n++;
+      return n };
+    const d = cx.getImageData(0, 0, c.width, c.height).data;
+    let h = 2166136261;
+    for (let i = 0; i < d.length; i += 4) { h ^= d[i] + d[i+1]*3 + d[i+2]*7; h = (h*16777619) >>> 0 }
+    return { w: im.width, esc: k, hash: h.toString(16),
+             rot: tinta(520, 310, 676, 350), pie: tinta(0, 386, 680, 400) };
+  };
+  const cb = document.querySelector('#lv3d-panel .lv3d-coro-btn');
+  const tocar = (sel) => { const b = document.querySelector(sel); if (b) { b.click(); return true } return false };
+  if (cb && window.lv3dCoroDiag().coro) cb.click();
+  await esp(250);
+  pausar(); lv3dCapturar(); await esp(200);
+  const apagado = await leer();
+  q('(A0 DENOM) la captura se hizo y el PNG sale a escala 2 sobre el lienzo de 680',
+    !!apagado && apagado.esc === 2 && apagado.w === 1360, 'png=' + JSON.stringify(apagado));
+  q('(A1) con «Coronarias» apagado, el rincon del rotulo esta VACIO en el PNG',
+    apagado.rot === 0, 'tinta=' + apagado.rot);
+  cb.click(); await esp(300);
+  pausar(); lv3dCapturar(); await esp(200);
+  const sinVista = await leer();
+  q('(A2) prendido pero sin vista, sigue vacio',
+    sinVista.rot === 0 && window.lv3dCoroDiag().vista === null, 'tinta=' + sinVista.rot);
+  q('(A2b DENOM) la vista «Lateral» y el selector de arteria EXISTEN en este arbol',
+    !!document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="7"]')
+      && !!document.querySelector('.lv3d-coro-art-btn'),
+    'vista7=' + !!document.querySelector('#lv3d-coro-lista .lv3d-coro-v[data-v="7"]')
+      + ' arteria=' + !!document.querySelector('.lv3d-coro-art-btn'));
+  tocar('.lv3d-coro-vista-btn');
+  tocar('#lv3d-coro-lista .lv3d-coro-v[data-v="7"]');
+  await esp(200);
+  pausar(); lv3dCapturar(); await esp(200);
+  const conVista = await leer();
+  q('(A3) con una vista puesta, el ROTULO sale en el PNG que va al PDF',
+    conVista.rot > 100, 'tinta=' + conVista.rot);
+  q('(A4) y la banda del pie del PNG queda intacta: el rotulo no se le encima',
+    conVista.pie === apagado.pie && apagado.pie > 1000,
+    'pie=' + apagado.pie + ' -> ' + conVista.pie);
+  /* == (B) EL SELECTOR DE ARTERIA EN LA CAPTURA ============================================ */
+  tocar('.lv3d-coro-art-btn'); tocar('.lv3d-coro-a[data-a="der"]');
+  await esp(200); pausar(); lv3dCapturar(); await esp(200);
+  const der = await leer();
+  tocar('.lv3d-coro-art-btn'); tocar('.lv3d-coro-a[data-a="izq"]');
+  await esp(200); pausar(); lv3dCapturar(); await esp(200);
+  const izq = await leer();
+  tocar('.lv3d-coro-art-btn'); tocar('.lv3d-coro-a[data-a="todas"]');
+  await esp(200); pausar(); lv3dCapturar(); await esp(200);
+  const vuelta = await leer();
+  q('(B1) la captura RESPETA el selector: los tres lados dan tres PNG distintos',
+    new Set([conVista.hash, der.hash, izq.hash]).size === 3,
+    'hashes=' + [conVista.hash, der.hash, izq.hash].join(' '));
+  q('(B2) y volver a «Todas» devuelve el MISMO PNG, o sea que la imagen es idempotente',
+    vuelta.hash === conVista.hash, 'conVista=' + conVista.hash + ' vuelta=' + vuelta.hash);
+  q('(B3) el rotulo sigue en el PNG con cualquiera de los tres lados',
+    der.rot > 100 && izq.rot > 100 && vuelta.rot > 100,
+    'rot=' + [der.rot, izq.rot, vuelta.rot].join(','));
+  cb.click(); await esp(250);
+  return { extra: F };
+  })();
+`);
+
+
 
 
 try {

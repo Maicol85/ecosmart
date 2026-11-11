@@ -136351,7 +136351,7 @@ function lv3dCoroUI(){
     const k = bb.getAttribute('data-a');
     const sel = k === (_lv3d.coroArt || 'todas');
     const e = LV3D_CORO_LADOS.filter(function (x){ return x.a === k })[0];
-    bb.textContent = (sel ? '✓ ' : '') + ((e && e.n) || bb.textContent);
+    bb.textContent = (sel ? '\u2713 ' : '') + ((e && e.n) || bb.textContent);
     bb.setAttribute('aria-pressed', sel ? 'true' : 'false');
     bb.classList.toggle('btn-primary', sel); bb.classList.toggle('btn-ghost', !sel);
   });
