@@ -1,12 +1,92 @@
+## PANT-33 — el editor sobre la hoja, los dos documentos en blanco y el encabezado (2026-11-10)
+
+**Commits:** `ed13682` (1, el inventario de solo lectura) · `257c8de` (2, el encabezado: el
+nombre desde el centro de trabajo y el logo a la derecha) · `114a4b4` (3, Configuración mínima,
+con el código de lo que sale SACADO) · `528d289` (4, el editor SOBRE LA HOJA) · `e936a22` (5, los
+dos documentos en blanco) · `f3c6f4f` (6, seis casos nuevos, cuatro adaptados, dos retirados y el
+barrido de 41 mutaciones) · `fd4b89e` (7a, el sello) · **éste** (7b, la documentación). **OCHO**
+commits, contados con `git log 6cccf59..HEAD` al cerrar, y el commit que escribe este número entra
+en la cuenta.
+Sello **`v20261110-2022`**, md5 **`b3259e74`**. Línea base: **`6cccf59`**, el cierre de PANT-32,
+sello `v20261110-1736`, md5 `4979b4ff`, verificado al abrir con `HEAD` = `origin/main`.
+⚠️ **Los hashes de los commits de PANT-32 que `CLAUDE.md` citaba eran los de ANTES del rebase**:
+esa tanda se reescribió antes del push para sacar 17 demos de `docs/3d`, así que los de su
+sección no existen en `origin/main`. Se corrigieron en el commit de documentación de esta tanda.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Qué hace.** El médico probó PANT-32 en la app y pidió otra cosa: Configuración → Documentos
+queda **mínima** —el interruptor y la lista— y se edita **DIRECTO SOBRE LA HOJA**, a pantalla
+completa, sin panel al costado ni cajones por sección. Hay **seis** documentos fijos: los cuatro
+incluidos y dos **en blanco**. Y el encabezado toma el **centro de trabajo** del médico, con el
+logo **a la derecha**.
+
+**El encabezado, con las dos hipótesis confirmadas.** `docDatos()` resolvía la institución por
+`sv('med-centro')` → `centro_nombre_activo` → `'CeiboMed'`, y **ninguno de los tres es el centro
+de trabajo**, que vive en `ett_centro_principal`. Medido con GREMEDA cargado: devolvía
+**«CeiboMed»** con el modo institucional apagado —otra institución, que es peor que la raya— y
+cadena vacía con el modo encendido, que es de donde salía la raya. Hoy delega en
+`hdrCentroNombre()`, el dueño único que pinta el botón 🏥 de la cabecera. Sin dato va una **línea
+gris** que **no se imprime**, por `::before` sobre el elemento vacío. El logo vuelve a
+**x 178 mm** y el círculo a **189** de una hoja de 210 —medido antes en **x 21**—, y en pantalla
+lo que lo mueve es el **orden del DOM** sobre la misma grilla `18mm 1fr 18mm`.
+
+**El editor es la MISMA hoja del Informe, en el mismo overlay, con dos modos** (`_docModo`). Con
+un editor paralelo hay dos maquetas y el día que un bloque cambie de aspecto el editor muestra una
+cosa y el papel otra. **El cuerpo es UNA sola zona editable** —es lo que hace posible borrar todo
+y rehacerlo de cero— y las partes fijas se ven en su lugar sin poder tocarse: medido, **cero**
+partes fijas editables y **dos** editables en total. **El modelo que se guarda tiene la MISMA
+forma que en PANT-32**, así que el almacén, su validador, la derivación del original y la regla de
+oro siguen siendo los mismos: el único camino nuevo es la conversión modelo ⇄ un solo texto.
+
+⚠️ **Y ESA CONVERSIÓN TIENE QUE DEVOLVER LA MISMA FORMA, no sólo la misma tinta**, porque
+`docmodIgualAlOriginal` compara los cuerpos: con el cuerpo en una «pregunta» en vez de seis, abrir
+un incluido y guardarlo sin cambiar nada lo dejaría marcado como editado para siempre. Lo destapó
+el barrido de mutaciones y lo fija TC-810.
+
+**La convención `## ` es NUEVA, contra lo que la orden suponía.** Medido en la TAREA 0:
+`docmodTextoABloques('## Titulo\nCuerpo.')` devolvía **un solo bloque `p`**.
+
+**Los dos documentos en blanco son dos claves FIJAS** (`DOCMOD_BLANCOS`) y no dos «propios»: la
+lista y el menú tienen **seis** filas siempre. Son vírgenes —encabezado, fecha, cuerpo y, si se
+pide, firma— y **la firma nunca queda sola**: el último bloque del cuerpo viaja con ella en el
+grupo `firmas`, que es el que `altoGrupo` mide antes de abrirlo. Medido en **trece** largos
+distintos.
+
+**A5 · el almacén de PANT-32 se conserva.** `DOCMOD_VER` **no se subió** y la raíz `blanco` es
+**opcional**: exigirla habría descartado el almacén entero, o sea lo que el médico ya editó de los
+cuatro incluidos. Los documentos propios que hubiera en disco **no se listan y no se borran**; en
+el árbol real había cero.
+
+**Cobertura.** **TC-807 a TC-812**, los seis cayendo contra `6cccf59` —TC-807 por **catorce**
+condiciones y sin una excepción—, con **TC-801, TC-802, TC-803 y TC-804 adaptados** y **TC-805 y
+TC-806 retirados** con su motivo en el lugar donde vivían. **41/41 mutaciones dirigidas muertas**
+en 1,9 min, en una copia del árbol y nunca sobre el vivo. El primer barrido dejó **cuatro**
+sobrevivientes: dos **huecos reales** —el nombre corregido que no llegaba al papel, y la forma del
+modelo—, uno que sobrevivía por la **escena** y uno por cómo estaba **escrita** la condición.
+
+**Y tres defectos propios que destaparon los casos y la lectura no**: `cfgDocsVis` sin rama para
+los documentos en blanco —el interruptor se movía y el documento seguía en el menú—, el pegado que
+colapsaba los saltos de línea porque `docSan` se come el U+000A, y el contenedor `cfg-docs-ed` del
+editor viejo que había quedado vacío en el marcado.
+
+**Dónde está todo:** el mapa en `docs/mapa/pant33-editor-hoja-blancos.md`, el inventario en
+`docs/INVENTARIO_P33.md`, el manual del médico en `docs/DOCUMENTOS_P33.md`, las fichas de los
+casos en `docs/mapa/tests-fichas-807.md`, la guía manual en `docs/GUIA_PRUEBA_PANT33.md` (48
+pasos) y lo declarado en `docs/PENDIENTES.md` → **P33-a**, **P33-b** y **P33-c**.
+
 ## PANT-32 — el cajón de Documentos en Configuración (2026-11-10)
 
 **Commits:** `ee9e730` (1, el inventario de solo lectura) · `5fe16f7` (2, el almacén de modelos y
 los cuatro incluidos) · `5993dfd` (3, la sección de Configuración, el interruptor y el menú
 pintado) · `0b2358e` (4, el editor con su vista previa) · `e38d341` (5, la impresión de los
-propios) · `c1bdf57` (6, exportar e importar) · `d1f2e4e` (7, los seis casos y el barrido de
-mutaciones) · `834da87` (8a, el sello) · **éste** (8b, la documentación). **NUEVE** commits,
+propios) · `c1bdf57` (6, exportar e importar) · `10ea71c` (7, los seis casos y el barrido de
+mutaciones) · `633158f` (8a, el sello) · `6cccf59` (8b, la documentación). **NUEVE** commits,
 contados con `git log 8967e5f..HEAD` al cerrar, y el commit que escribe este número entra en la
 cuenta.
+⚠️ **CORREGIDO EN PANT-33:** los dos últimos hashes decían `d1f2e4e` y `834da87`, que son los de
+ANTES del rebase: esta tanda se reescribió antes del push para sacar 17 demos de `docs/3d`, y los
+que quedaron en `origin/main` son `10ea71c` y `633158f`. Los otros seis **sí** existen, verificado
+con `git log`.
 Sello **`v20261110-1736`**, md5 **`4979b4ff`**. Línea base: `8967e5f`, el cierre de PANT-31,
 sello `v20261110-1327`, md5 `fcb65077`, verificado al abrir con `HEAD` = `origin/main`.
 **El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**

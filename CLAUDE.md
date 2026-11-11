@@ -113,6 +113,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar el ENCABEZADO de un documento** —de dónde sale el nombre de la institución, la línea gris que no se imprime, el logo a la derecha, el nombre editable de la hoja del Informe—, **el EDITOR SOBRE LA HOJA de Configuración** —sus dos modos, el cuerpo como una sola zona editable, las SEIS convenciones con el «## » nuevo, lo que queda fijo, los dos cierres, «Guardar como modelo» o «Volver al texto original»—, o **los DOS DOCUMENTOS EN BLANCO**: sus dos claves fijas, su contenido mínimo, su nombre, «Vaciar», las dos casillas de firma o la firma que nunca queda sola | `docs/mapa/pant33-editor-hoja-blancos.md` |
 | **Tocar la HOJA DE UN DOCUMENTO en pantalla** —el botón en el rincón derecho, la A4 en milímetros con su cuerpo en puntos y su zoom, el pegado como texto llano, el clic en el fondo con su confirmación—, **la CONSTANCIA en tres oraciones**, **el LOGO a la izquierda con el nombre centrado**, **el cuerpo y el SALTO DE HOJA de los tres consentimientos**, **las casillas DIBUJADAS de la declaración**, **las hojas comunes sin título**, o **la CASILLA DE PPT de «Prótesis valvulares» con su diapositiva** | `docs/mapa/pant31-hoja-ppt.md` |
 | **Tocar un DOCUMENTO del Informe** —la constancia o los tres consentimientos—: el boton «Documentos», el maquetador unico con sus tipos de bloque, la justificacion palabra por palabra, la casilla dibujada, el salto de hoja del ETE, la regla de la declaracion junto a las firmas, el azul de los datos, el aviso «Actualizar con los datos», o la hoja guardada en «Imagenes»; **o la seccion «PROTESIS VALVULARES» del Laboratorio**: por que no puede llamar a ningun evaluador de protesis, de donde sale cada dato, las dos pilas del grafico, el orden de las categorias de trastorno, los dos que van aparte, o su seccion del PDF de auditoria | `docs/mapa/pant30-documentos-protesis.md` · el manual del medico en `docs/DOCUMENTOS_P30.md` |
 | **Tocar las DOS TARJETAS GRISES de Contractilidad, el bloque «Arterias posiblemente involucradas» o las ARTERIAS CORONARIAS del 3D**: el achique a 220 y 150 px, las cinco formas de texto del bloque con su dueño del nivel, el botón «Coronarias», el tronco de la aorta, las siete letras, el tramo gris, la dominancia, las seis vistas de angiografía, o por qué las arterias acompañan la contracción | `docs/mapa/pant29-coronarias-3d.md` |
@@ -263,12 +264,33 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,60 MB / 173.563 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
-  cierre de la tanda **PANT-32**, sobre el árbol ya sellado: sello **`v20261110-1736`**, md5 **`4979b4ff`**.
+  sin frameworks. Hoy **12,63 MB / 173.959 líneas**, medido con `wc -c` y `wc -l` el 2026-11-10 al
+  cierre de la tanda **PANT-33**, sobre el árbol ya sellado: sello **`v20261110-2022`**, md5 **`b3259e74`**.
   ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
   renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
   salto de línea entre los dos el caso sale ROJO -- lo pagó PANT-31, que los partió al reflujar el
   párrafo.
+  El diff de PANT-33 son **979 líneas agregadas y 583 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `6cccf59`, de las que **888** no son comentario, con **cero** `eval(`
+  y `new Function` nuevos, **CUATRO** `innerHTML` nuevos y cero claves ni contraseñas. Los cuatro
+  están declarados y Semgrep sigue en su línea base de **125**: **tres** son el marcado de la hoja
+  —el del editor, el de la hoja de un documento en blanco y el del cuerpo al repintarse—, y los
+  tres salen de `docmodHojaEdHTML` / `docmodEdCuerpoHTML`, que pasan **cada tramo** del texto del
+  médico por `escHtml` y sólo agregan las etiquetas de negrita que `docmodRuns` encuentra; el
+  **cuarto** es la ayuda de las convenciones, armada de una constante del archivo. Medido con el
+  texto que lo prueba: un bloque con `<b>ojo</b>` y un `<script>` se ve como **texto** en la hoja
+  y en el papel, con cero elementos inyectados.
+  **DIECISÉIS ids nuevos de pantalla y CERO campos guardados del estudio**, **cero columnas de
+  Excel (457)** y **ningún id existente cambiado**: los cuatro `input` nuevos
+  —`cfg-doc-frase`, `cfg-doc-firmam`, `cfg-doc-firma` y `cfg-doc-nom`— llevan prefijo **`cfg-`**,
+  que es el que los deja fuera del censo del estudio y del Excel por las DOS listas a la vez
+  (`_CAMPOS_FUERA_DEL_ESTUDIO` y `_noEsDelEstudio`), y **ninguno** de los dieciséis termina en
+  `-aviso` ni en `-badge`, que son los barridos por sufijo de «Nuevo estudio».
+  ⚠️ **POR TRIGÉSIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las dos
+  formas que esta casa manda: `git show 6cccf59:index.html` da **173.563** líneas, **12.604.966**
+  bytes y el md5 **`4979b4ff`**, los tres idénticos a lo que el renglón decía, y el sello del pie
+  (`#eco-build-sello`) coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,60 MB / 173.563 al cierre de la tanda **PANT-32**, sello **`v20261110-1736`**, md5 **`4979b4ff`**.)
   El diff de PANT-32 son **1.348 líneas agregadas y 32 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `8967e5f`, de las que **1.216** no son comentario, con **cero** `eval(`
   y `new Function` nuevos, **siete** `innerHTML` nuevos y cero claves ni contraseñas. Los siete están
@@ -1016,6 +1038,137 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-33 (2026-11-10) — el editor SOBRE LA HOJA, los dos documentos en blanco y el
+encabezado.** OCHO commits. Sello **`v20261110-2022`**, md5 **`b3259e74`**. El médico probó
+PANT-32 en la app y pidió otra cosa: Configuración → Documentos queda **mínima** —el interruptor
+y la lista— y se edita **DIRECTO SOBRE LA HOJA**, a pantalla completa, sin panel al costado ni
+cajones por sección; hay **SEIS** documentos fijos, los cuatro incluidos y dos **en blanco**.
+⚠️ **EL DEFECTO QUE EL MÉDICO REPORTÓ ERA UN CAMPO EQUIVOCADO, Y LOS DOS ESTADOS ERAN
+INCORRECTOS.** `docDatos()` resolvía la institución por `sv('med-centro')` →
+`centro_nombre_activo` → `'CeiboMed'`, y **ninguno de los tres es el «centro de trabajo»**, que
+vive en `ett_centro_principal` y lo lee `ecoGetCentroPrincipal()`. Medido en la TAREA 0 con
+GREMEDA cargado: devolvía **«CeiboMed»** con el modo institucional apagado —o sea **otra**
+institución, que es peor que la raya— y cadena vacía con el modo encendido, que es de donde salía
+la **raya**. Hoy delega en `hdrCentroNombre()`, el dueño único que pinta el botón 🏥 de la
+cabecera: con la cadena copiada, el documento y la cabecera podrían nombrar dos instituciones
+distintas el día que una cambie. **La raya estaba en una sola línea** (`D.inst || '—'`), más un
+círculo de iniciales **VACÍO** que nadie había reportado; hoy, sin dato, va una **línea gris** con
+«Nombre de la institución» por `::before` sobre el elemento **vacío** —vacío, lo que se escribe es
+lo que vale— y el papel **no emite ninguna operación de nombre**: por eso no se imprime, y no por
+una regla de impresión. Medido: **13** operaciones con institución y **11** sin ella.
+**El logo vuelve a la DERECHA** (D3): PANT-31 lo había pasado a la izquierda leyendo «rincón
+izquierdo» de su propia orden, y medido caía en **x 21 mm** de una hoja de 210. Hoy el círculo cae
+en **189** y el logo en **178**, y en pantalla **lo que lo mueve es el ORDEN DEL DOM** sobre la
+misma grilla `18mm 1fr 18mm`: no hay una regla nueva. El nombre sigue centrado en el ancho de la
+**hoja**. En la hoja del Informe el nombre es **editable** y vale sólo para ese paciente: se
+guarda en `_docEst[clave].inst` y lo aplican las **tres** superficies por un solo lector,
+`docDatosHoja()` —con la corrección aplicada sólo al pintar, el médico vería su institución en la
+pantalla y la de la app en el papel—. Verificado con **teclado real** por CDP.
+⚠️ **EL EDITOR ES LA MISMA HOJA DEL INFORME, EN EL MISMO OVERLAY, CON DOS MODOS** (`_docModo`), y
+eso es todo el diseño: con un editor paralelo hay dos maquetas y el día que un bloque cambie de
+aspecto el editor muestra una cosa y el papel otra. El editor de PANT-32 —dos columnas en la
+pantalla de Configuración, con una vista previa de 330 px— **salió entero, con su CSS**. **El
+cuerpo es UNA sola zona editable y no un `contenteditable` por bloque**, que es lo que hace
+posible «borrar todo y rehacerlo de cero»; las partes fijas se ven en su lugar y no se pueden
+tocar —medido: **CERO** partes fijas editables y **DOS** editables en total—, con un paciente
+**ficticio** (María Fernanda Pérez) y la institución y el logo **reales**.
+⚠️ **EL MODELO QUE SE GUARDA TIENE LA MISMA FORMA QUE EN PANT-32**, y no es casualidad: el editor
+convierte el modelo a **un** texto y el texto al modelo, así que el almacén, su validador, la
+derivación del original y la regla de oro siguen siendo los mismos. **El único camino nuevo es la
+conversión.** Y esa conversión tiene que devolver **la misma FORMA, no sólo la misma tinta**,
+porque `docmodIgualAlOriginal` compara los cuerpos: con el cuerpo en una «pregunta» en vez de
+seis, abrir un incluido y guardarlo sin cambiar nada lo dejaría marcado como editado **para
+siempre** y su papel saldría por el armador. Lo destapó el barrido, no la lectura.
+⚠️ **LA CONVENCIÓN `## ` ES NUEVA, contra lo que la orden suponía** («como hoy»): medido en la
+TAREA 0, `docmodTextoABloques('## Titulo\nCuerpo.')` devolvía **un solo bloque `p`**. Hace falta
+porque el cuerpo entero es un texto que el médico puede borrar y rehacer, y en los
+consentimientos es además lo que lo parte en «preguntas» y lo que las vuelve a unir. La ida y
+vuelta de los **cuatro** incluidos no pierde nada: texto idéntico, **13 / 329 / 501 / 355**
+palabras, bloques idénticos bloque por bloque, el cuerpo **igual al original** y el papel de
+PANT-31 —**1/13**, **3/150**, **3/198** y **3/152**—, con `docmodDef(k) === DOC_DEFS[k]` en los
+cuatro.
+**Los dos documentos en blanco son dos claves FIJAS** (`DOCMOD_BLANCOS`) y no dos «propios»: la
+lista y el menú tienen **seis** filas siempre, no «hasta seis», y no hay nada que crear ni que
+borrar. Son vírgenes —encabezado, la fecha arriba a la derecha, el cuerpo y, si se pide, la
+firma—: **cero** títulos, **cero** línea del paciente, **cero** tabla de firmas, y con el texto
+vacío y sin firma **una hoja de 5 operaciones**. ⚠️ **LA FIRMA NUNCA QUEDA SOLA EN UNA HOJA (C5),
+y no hizo falta un mecanismo nuevo**: el **último** bloque del cuerpo viaja con ella en el grupo
+`firmas`, que es el que `altoGrupo` mide antes de abrirlo. Medido en **trece** largos distintos.
+Y en el Informe un blanco se edita con la **misma** zona editable, que no es una preferencia: con
+el texto vacío no hay un solo bloque al que ponerle `contenteditable`.
+⚠️ **`DOCMOD_VER` NO SE SUBE Y LA RAÍZ `blanco` ES OPCIONAL, y de eso depende A5**: el almacén que
+PANT-32 dejó en el navegador del médico **no tiene** esa raíz, y exigirla —o subir la versión—
+descartaría el almacén entero, o sea lo que el médico ya editó de los cuatro incluidos. Los
+documentos «propios» que hubiera en disco **no se listan y no se borran**; en el árbol real había
+**cero**, medido. ⚠️ Y **`conFirma` y no `firma`** en el estado de la hoja: `st.firma` ya era la
+firma de los DATOS, y dos cosas con el mismo nombre habrían disparado el aviso «Actualizar con
+los datos» al tildar una casilla.
+⚠️ **TRES DEFECTOS PROPIOS QUE DESTAPARON LOS CASOS Y LA LECTURA NO**: `cfgDocsVis` sin rama para
+los documentos en blanco —el interruptor de su fila se movía y el documento **seguía en el
+menú**—; el pegado en el cuerpo que **colapsaba los saltos de línea**, porque `docSan` manda a un
+espacio todo lo que no está entre U+0020 y U+00FF y **U+000A es el salto** —un texto de tres
+párrafos entraba como UNA línea—; y el contenedor `cfg-docs-ed` del editor viejo, que había
+quedado **vacío** en el marcado.
+⚠️ **Y TRES TRAMPAS DEL CUERPO EDITABLE, las tres medidas con TECLADO REAL**: el `input` de un
+Enter llega con el `target` puesto en el **DIV de la línea nueva** y no en la zona editable, así
+que la pulsación se perdía —hoy se busca con `closest`—; tras borrar **todo** el cuerpo el cursor
+queda en el **contenedor**, así que lo escrito entraba como nodo de texto **suelto** y «AAA» Enter
+«BBB» daba **«BBBAAA»** —hoy `docmodEdNormalizar` garantiza «una línea, un div» en cada
+pulsación—; y `innerText` cuenta una línea **en blanco** como **DOS** saltos, así que el texto
+volvía con un salto de más —hoy se lee el `textContent` de cada hijo—.
+⚠️ **Y UNA TRAMPA DEL ARNÉS, NUEVA Y DECLARADA**: `S.tecla('Enter')` manda keyDown y keyUp **sin
+`text`**, y así Chrome **no inserta párrafo** en un `contenteditable` —el DOM no cambia y el
+cursor se va al contenedor—. Con `escribir('\r')` el Enter parte la línea como el del médico. Es
+la misma trampa que el arnés de PANT-31 ya documenta para el carácter.
+**Cobertura: TC-807 a TC-812**, los seis cayendo contra `6cccf59` —TC-807 por **CATORCE**
+condiciones y **sin una excepción**, TC-808 por cuatro y los otros cuatro por su denominador—,
+con **TC-801, TC-802, TC-803 y TC-804 adaptados** (TC-803 con **(C6)** y **(C7) INVERTIDAS**, que
+es el día que su propia condición anunciaba) y **TC-805 y TC-806 RETIRADOS** con su motivo en el
+lugar donde vivían, porque el alta de documentos propios y la exportación salieron con su código.
+**41/41 MUTACIONES DIRIGIDAS MUERTAS** en **1,9 min**, en una copia del árbol y **nunca** sobre el
+vivo, con el md5 del vivo idéntico antes y después y las 41 anclas verificadas **antes** de
+correr. ⚠️ **EL PRIMER BARRIDO DEJÓ CUATRO SOBREVIVIENTES Y LOS CUATRO DIJERON COSAS DISTINTAS**:
+**dos huecos reales** —el nombre corregido que no llegaba al papel, y la FORMA del modelo, que
+ningún texto ni papel podía ver—, **uno** que sobrevivía por la **escena** —con un cuerpo de UNA
+línea los dos lectores dan lo mismo— y **uno** por cómo estaba **escrita** la condición: dos
+hechos unidos por un «y» dentro de una función anónima.
+**A/B contra `6cccf59`, con el PDF y el PPT generados de verdad: 121 escenas, 148.572 claves y 55.297 celdas de Excel, con CERO diferencias de superficie firmada Y de pantalla.** Su cero de pantalla es un
+**control negativo declarado**: ese arnés no abre Configuración, ni la sección, ni el editor, ni
+la hoja. Lo que prueba la tanda son las seis sondas propias y TC-807 a TC-812.
+**Línea base al cierre: suite 820/825**, en **quince** lotes cubriendo los **825 casos
+distintos** —contados nombre por nombre, **cero duplicados**—, en UNA sola pasada sobre el árbol
+sellado, con el md5 de `index.html` **idéntico** antes y después (`b3259e74`) y el pendrive
+`DISK_IMG` verificado al abrir, en cada lote y al cerrar. Los rojos son **TC-223, TC-376, TC-390 y TC-406**, los cuatro de siempre, más **TC-557**, el intermitente que `TGA-h` declara y que pasa **3 de 3** corrido aislado. **Ningún rojo nuevo**, y **TC-551, el otro intermitente declarado, salió VERDE** en esta corrida.
+**⚠️ Y LA PRIMERA PASADA SE PERDIÓ POR UN CUELGUE QUE CAUSÉ YO, declarado: corrí el A/B de 121 escenas EN PARALELO con la suite, y a los veinte minutos los dos logs dejaron de crecer a la vez —el lote 11 quedó en 38 de 55—. Es la trampa que este archivo documenta para el A/B encadenado, con tres navegadores en vez de dos. La cifra de arriba sale de la pasada LIMPIA, con la máquina sola y con el archivo de casos final —el que ya trae TC-787 y TC-798 adaptados—: una tanda no puede informar un número de una pasada hecha con un archivo de casos anterior**
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px
+× dos temas), con **UNA sola combinación de valores en los veinte**: la sección en el índice **5
+de 9** con sus **SEIS** filas y sus etiquetas de tipo, **cero** cupo, **cero** «Agregar», **cero**
+«Borrar», el menú con sus **seis** entradas y **cero** `onclick` inline, el editor abriendo sobre
+la hoja con **CERO** partes fijas editables y **DOS** editables, el paciente ficticio, «Guardar
+como modelo» **apagado**, el zoom en **1 / 1 / 1 / 0,937 / 0,461**, **cero** tinta fuera del
+papel, el orden del DOM **`hueco, nombre, logo`** con el nombre centrado a **0,0 px** del centro,
+el documento en blanco con su texto gris y **cero** títulos, **cero** línea del paciente y
+**cero** tabla de firmas, su casilla de firma en la barra, **cero** controles por debajo de 44 px,
+**cero** textos recortados y **CERO errores de consola y de página en los dos motores**.
+⚠️ **EL ÚNICO DESPLAZAMIENTO HORIZONTAL ES PREEXISTENTE, Y ESTÁ MEDIDO CON SU CONTROL**: a 1000 px
+el cuerpo desplaza **13 px en Chrome y 39 en WebKit**, y el **mismo** cruce contra `6cccf59` da
+**exactamente los mismos** 13 y 39. El control reproduce además las premisas: ahí la lista tiene
+**cuatro** filas, el menú **cuatro** entradas y «Editar» **no** abre la hoja.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+**Semgrep 125 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **Celular 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** —la línea base
+exacta—. **17 bloques de JS inline parsean.**
+⚠️ **Y UNA TRAMPA DE MÉTODO QUE COSTÓ UNA CORRIDA**: quitar el **último** caso de
+`test_clinico.mjs` buscando «el próximo `caso(`» se lleva puesta **la cola del runner** —su
+try/catch, el cierre de Chrome y el código de salida—, porque después del último caso no hay
+otro. El síntoma es un suite que corre y **no imprime nada**, con código de salida **0**. Se
+restituyó del árbol de la línea base. Y por **decimoséptima** tanda seguida, el acento grave en mi
+propio comentario dentro del cuerpo de un caso, dos veces.
+Lo declarado, en **P33-a**, **P33-b** y **P33-c**; el mapa, en
+`docs/mapa/pant33-editor-hoja-blancos.md`; el inventario, en `docs/INVENTARIO_P33.md`; el manual
+del médico, en `docs/DOCUMENTOS_P33.md`; las fichas, en `docs/mapa/tests-fichas-807.md`; la guía
+manual, en `docs/GUIA_PRUEBA_PANT33.md` (**48** pasos).
 
 **La tanda PANT-32 (2026-11-10) — el cajón de Documentos en Configuración.** NUEVE commits. Sello
 **`v20261110-1736`**, md5 **`4979b4ff`**. Configuración gana una sección **📄 Documentos** donde el

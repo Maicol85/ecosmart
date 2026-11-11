@@ -266,3 +266,31 @@ burbujas pasan de 2 a 3, el ancla de las hojas comunes deja de ser su título re
 del ETE de 18 a 20, y su copia de bloques gana `mm` y `aire`, que no llevaba) y **TC-793**, con sus
 **tres** condiciones de `data-ppt` **invertidas**.
 
+---
+
+## Tanda PANT-33 (2026-11-10) — el editor sobre la hoja, los dos blancos y el encabezado
+
+**Casos nuevos: TC-807 a TC-812.** Las fichas, en **`docs/mapa/tests-fichas-807.md`**.
+
+**Adaptados, con su motivo:**
+
+| caso | que se le cambio |
+|---|---|
+| **TC-801** | hay que **sembrar el centro de trabajo**: sin el, el encabezado no dibuja nada y el papel sale con DOS operaciones menos. Gana (A4) y (A5) sobre el papel sin institucion |
+| **TC-802** | su tramo (D) estaba escrito sobre `docmodNuevo`, que ya no existe; hoy mide el armado de un documento **en blanco**. Gana (E) con la convencion `## ` y su control negativo. Y **espera a jsPDF**: corrido aislado fallaba por su propia escena |
+| **TC-803** | la lista pasa de **cuatro a SEIS** filas con una sola etiqueta; **(C6) y (C7) INVERTIDAS** —el cupo y «Agregar» tienen que NO existir—; (D4) pasa a medir el menu |
+| **TC-804** | su tramo del editor viejo salio entero; hoy mide **la hoja**, con cero partes fijas editables |
+
+**Retirados: TC-805 y TC-806**, con su motivo escrito en el lugar donde vivian. Los dos numeros
+**no se reusan**.
+
+⚠️ **UNA TRAMPA NUEVA DE ESTE ARCHIVO**: quitar el **ULTIMO** caso buscando «el proximo `caso(`»
+se lleva puesta **la cola del runner** —su try/catch, el cierre de Chrome y el codigo de salida—,
+porque despues del ultimo caso no hay otro. El sintoma es un suite que corre y **no imprime
+nada**, con codigo de salida **0**.
+
+⚠️ **Y OTRA, DE ESCRITURA DE CONDICIONES**: una condicion que junta **dos hechos** con un «y»
+dentro de una funcion anonima le da margen a una mutacion para **sobrevivir**. Separadas, se
+muere.
+
+**Barrido:** `scripts/_mut_pant33.py`, **41/41 muertas**.

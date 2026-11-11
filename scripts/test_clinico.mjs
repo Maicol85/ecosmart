@@ -128371,7 +128371,7 @@ caso('TC-786', 'PANT-29: NADA de esta tanda se guarda ni cambia el papel — cer
    una barra invertida de regex se come el escape -- /\s+/ llega como /s+/ y reemplaza las eses.
    Las dos trampas estan escritas en CLAUDE.md y las dos se pagaron ya. */
 
-caso('TC-787', 'PANT-30: el boton «Documentos» en la fila de acciones del Informe, su menu de cuatro opciones SIEMPRE activas, Escape devolviendo el foco y el clic afuera, sin tocar los cuatro botones que ya estaban', `
+caso('TC-787', 'PANT-30 y PANT-33: el boton «Documentos» en la fila de acciones del Informe, su menu de SEIS opciones SIEMPRE activas -- los cuatro incluidos y los dos documentos en blanco-, Escape devolviendo el foco y el clic afuera, sin tocar los cuatro botones que ya estaban', `
   return (async () => {
   const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
   const esp = ms => new Promise(r => setTimeout(r, ms));
@@ -128404,14 +128404,19 @@ caso('TC-787', 'PANT-30: el boton «Documentos» en la fila de acciones del Info
   q('abre al tocar el boton', !!m && !m.hidden);
   q('y lo dice en aria-expanded', b.getAttribute('aria-expanded') === 'true', b.getAttribute('aria-expanded'));
   const ops = m ? Array.prototype.slice.call(m.querySelectorAll('button')) : [];
-  q('con CUATRO opciones', ops.length === 4, ops.map(x => (x.textContent || '').trim()).join(' | '));
-  q('las cuatro SIEMPRE activas: ninguna deshabilitada ni oculta',
-    ops.length === 4 && ops.every(x => !x.disabled && !x.hidden && !!x.offsetParent),
+  /* ⚠️ ADAPTADO EN PANT-33 (C1): el menu pasa de CUATRO a SEIS opciones -- los cuatro incluidos
+     mas los dos documentos EN BLANCO, que son dos claves fijas-. Este caso se pone rojo tanto si
+     una opcion desaparece como si alguien agrega una septima. */
+  q('con SEIS opciones', ops.length === 6, ops.map(x => (x.textContent || '').trim()).join(' | '));
+  q('las seis SIEMPRE activas: ninguna deshabilitada ni oculta',
+    ops.length === 6 && ops.every(x => !x.disabled && !x.hidden && !!x.offsetParent),
     ops.filter(x => x.disabled || x.hidden || !x.offsetParent).length + ' inactivas');
   const nom = ops.map(x => (x.textContent || '').trim());
   q('una es la constancia', nom.some(t => t === 'Constancia'), nom.join(' | '));
-  q('y las otras tres son los consentimientos de cardioversion, ETE y burbujas',
+  q('tres son los consentimientos de cardioversion, ETE y burbujas',
     nom.filter(t => t.indexOf('Consentimiento') === 0).length === 3, nom.join(' | '));
+  q('y los dos ultimos son los documentos en blanco, al final',
+    nom[4] === 'Documento en blanco 1' && nom[5] === 'Documento en blanco 2', nom.slice(4).join(' | '));
   /* NO HAY CONSENTIMIENTO DE TRANSTORACICO NI DE ECO DE ESTRES, y es una ausencia que se fija:
      la app no tiene catalogo de tipos de estudio -- UNA casilla y DOS nombres-- y el eco de
      estres no tiene interfaz. */
@@ -129631,7 +129636,7 @@ caso('TC-797', 'PANT-31: el cierre -- el clic en el fondo cierra, con correccion
   })();
 `);
 
-caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el logo a la IZQUIERDA y el nombre CENTRADO en las tres superficies -- pantalla, PDF e imagen guardada-, con logo ancho, cuadrado y sin logo', `
+caso('TC-798', 'PANT-31 y PANT-33: la constancia en TRES oraciones, y el encabezado con el logo a la DERECHA y el nombre CENTRADO en las tres superficies -- pantalla, PDF e imagen guardada-, con logo ancho, cuadrado y sin logo', `
   return (async () => {
   const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
   const esp = ms => new Promise(r => setTimeout(r, ms));
@@ -129679,6 +129684,16 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
     x.fillStyle = '#ffffff'; x.fillRect(2, 2, w - 4, hh - 4); return cv.toDataURL('image/png'); };
   const CLAVE = 'logo_centro_' + (localStorage.getItem('centro_tipo_activo') || 'default');
   const guardado = localStorage.getItem(CLAVE);
+  /* ⚠️ ADAPTADO EN PANT-33 (D1): HAY QUE SEMBRAR EL CENTRO DE TRABAJO. Desde esa tanda la
+     institucion del encabezado sale de ett_centro_principal y NO hay respaldo escrito a mano,
+     asi que sin ese dato el encabezado no dibuja ni el circulo de iniciales ni el nombre -- «el
+     espacio queda libre»-- y las condiciones de abajo medirian sobre la nada. */
+  const gCen798 = localStorage.getItem('ett_centro_principal');
+  const gCens798 = localStorage.getItem('ett_centros');
+  try { localStorage.setItem('ett_centro_principal', 'Centro De Prueba');
+        localStorage.setItem('ett_centros', JSON.stringify(['Centro De Prueba'])) } catch (e) {}
+  q('(DENOM) el centro de trabajo sembrado llega al encabezado', docDatos().inst === 'Centro De Prueba',
+    docDatos().inst);
   const casos = [['sin logo', null], ['logo ancho 300x50', png(300, 50)], ['logo cuadrado 120x120', png(120, 120)]];
   for (let k = 0; k < casos.length; k++) {
     const nom = casos[k][0], dat = casos[k][1];
@@ -129691,14 +129706,19 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
     const cir = ops.filter(o => o.k === 'circ')[0] || null;
     const nmb = ops.filter(o => o.k === 'c' && o.col && o.col[0] === 31);
     if (dat) {
-      q(nom + ': el PAPEL dibuja el logo en el borde IZQUIERDO', !!img && img.x === DOC_GEO.ML,
-        img ? ('x=' + img.x + ' contra ML=' + DOC_GEO.ML) : 'sin logo');
+      /* ⚠️ INVERTIDA EN PANT-33 (D3), y es el dia que esta condicion anunciaba: PANT-31 habia
+         puesto el logo a la IZQUIERDA leyendo «rincon izquierdo» de su propia orden, y el medico
+         lo quiere donde estaba la inicial. Hoy exige el borde DERECHO, asi que puede fallar por
+         los dos lados. */
+      q(nom + ': el PAPEL dibuja el logo en el borde DERECHO',
+        !!img && img.x === DOC_GEO.W - DOC_GEO.MR - 18,
+        img ? ('x=' + img.x + ' contra ' + (DOC_GEO.W - DOC_GEO.MR - 18)) : 'sin logo');
       q(nom + ': con la caja de 18 x 14 mm, que es la que conserva su proporcion',
         !!img && img.w === 18 && img.h === 14, img ? (img.w + 'x' + img.h) : '-');
       q(nom + ': y sin circulo de iniciales', !cir);
     } else {
-      q(nom + ': el PAPEL dibuja el circulo en el borde IZQUIERDO',
-        !!cir && cir.x === DOC_GEO.ML + 7, cir ? ('x=' + cir.x) : 'sin circulo');
+      q(nom + ': el PAPEL dibuja el circulo en el borde DERECHO',
+        !!cir && cir.x === DOC_GEO.W - DOC_GEO.MR - 7, cir ? ('x=' + cir.x) : 'sin circulo');
       q(nom + ': con sus dos iniciales', !!cir && String(cir.s).length <= 2 && String(cir.s).length >= 1, cir ? cir.s : '-');
       q(nom + ': y sin imagen', !img);
     }
@@ -129709,9 +129729,10 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
     const centro = (DOC_GEO.W / 2 * 3.7795275591).toFixed(2);
     q(nom + ': la imagen guardada centra el nombre en el mismo punto',
       svg.indexOf('x="' + centro + '"') > -1 && svg.indexOf('text-anchor="middle"') > -1, 'centro ' + centro);
-    if (dat) q(nom + ': y pone el logo a la izquierda, con su proporcion conservada',
-      svg.indexOf('<image x="' + (DOC_GEO.ML * 3.7795275591).toFixed(2) + '"') > -1 &&
-      svg.indexOf('preserveAspectRatio="xMidYMid meet"') > -1, 'x esperado ' + (DOC_GEO.ML * 3.7795275591).toFixed(2));
+    if (dat) q(nom + ': y pone el logo a la DERECHA, con su proporcion conservada',
+      svg.indexOf('<image x="' + ((DOC_GEO.W - DOC_GEO.MR - 18) * 3.7795275591).toFixed(2) + '"') > -1 &&
+      svg.indexOf('preserveAspectRatio="xMidYMid meet"') > -1,
+      'x esperado ' + ((DOC_GEO.W - DOC_GEO.MR - 18) * 3.7795275591).toFixed(2));
     /* La PANTALLA. */
     docCerrar(); docAbrir('constancia');
     await esp(300);
@@ -129722,10 +129743,16 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
       const cols = getComputedStyle(enc).gridTemplateColumns.split(' ').length;
       q(nom + ': la pantalla lo reparte en TRES columnas, para que el centro sea el de la hoja',
         cols === 3, cols);
-      const prim = enc.children[0];
-      q(nom + ': y el logo o el circulo es el PRIMER hijo, o sea a la izquierda',
-        !!prim && (prim.className.indexOf('doc-enc-logo') > -1 || prim.className.indexOf('doc-enc-ini') > -1),
-        prim ? prim.className : 'sin hijos');
+      /* ⚠️ INVERTIDA EN PANT-33 (D3): en pantalla lo que mueve el logo es el ORDEN DEL DOM
+         -- hueco, nombre, logo-- sobre la misma grilla de tres columnas, asi que el logo es el
+         ULTIMO hijo y el primero es el hueco. */
+      const ult = enc.children[enc.children.length - 1];
+      q(nom + ': y el logo o el circulo es el ULTIMO hijo, o sea a la derecha',
+        !!ult && (ult.className.indexOf('doc-enc-logo') > -1 || ult.className.indexOf('doc-enc-ini') > -1),
+        ult ? ult.className : 'sin hijos');
+      q(nom + ': y el PRIMER hijo es el hueco que hace simetrico el centro',
+        !!enc.children[0] && enc.children[0].className.indexOf('doc-enc-hueco') > -1,
+        enc.children[0] ? enc.children[0].className : '-');
       const nm = enc.querySelector('.doc-enc-nom');
       const rh = h.getBoundingClientRect(), rn = nm.getBoundingClientRect();
       q(nom + ': el nombre queda centrado en la hoja',
@@ -129745,6 +129772,8 @@ caso('TC-798', 'PANT-31: la constancia en TRES oraciones, y el encabezado con el
     }
   }
   if (guardado) localStorage.setItem(CLAVE, guardado); else localStorage.removeItem(CLAVE);
+  try { if (gCen798 === null) localStorage.removeItem('ett_centro_principal'); else localStorage.setItem('ett_centro_principal', gCen798);
+        if (gCens798 === null) localStorage.removeItem('ett_centros'); else localStorage.setItem('ett_centros', gCens798) } catch (e) {}
   docCerrar();
   /* ⚠️ LO DEVUELTO SE NORMALIZA A PRIMITIVOS Y SE RECORTA. Este caso salia VERDE aislado y en su
      lote el runner decia «el caso no declara NINGUNA condicion» con el valor en vacio, o sea que

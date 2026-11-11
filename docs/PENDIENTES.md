@@ -38,6 +38,96 @@ se leen 20-80 lineas con `sed -n`.
 > Sello **`v20261109-1203`**, md5 **`a14c45a0`**. El detalle de dónde vive cada uno de los catorce
 > textos, con su texto completo de antes, está en **`docs/INVENTARIO_TEXTOS_P27.md`**.
 
+# TANDA PANT-33 (2026-11-10) — el editor sobre la hoja, los dos documentos en blanco y el encabezado
+
+> Sello **`v20261110-2022`**, md5 **`b3259e74`**. El mapa es
+> **`docs/mapa/pant33-editor-hoja-blancos.md`**, el inventario de la TAREA 0
+> **`docs/INVENTARIO_P33.md`**, el manual del médico **`docs/DOCUMENTOS_P33.md`** y la guía de
+> prueba **`docs/GUIA_PRUEBA_PANT33.md`**.
+
+## P33-a · Lo que la tanda PANT-33 midió y la orden suponía distinto (2026-11-10)
+
+**Las dos hipótesis del encabezado quedaron CONFIRMADAS, y la de abajo resultó peor de lo que la
+orden suponía.** La orden dice que el encabezado «lee un campo distinto del centro de trabajo».
+Es así, y medido con GREMEDA cargado hay **dos** estados y los **dos** eran incorrectos: con el
+modo institucional **apagado** `docDatos().inst` devolvía **«CeiboMed»** —o sea **otra**
+institución, que es peor que una raya— y con el modo **encendido** devolvía cadena vacía, que es
+de donde salía la raya que el médico vio. La raya estaba en una sola línea de `docHojaHTML`
+(`D.inst || '—'`), más un círculo de iniciales **vacío** que nadie había reportado.
+
+**Y una hipótesis de la orden NO se reprodujo: `docmodTextoABloques` no tenía ninguna convención
+de título de sección.** La orden la da por existente al enumerar las convenciones de B4 («línea
+que empieza con `## `: título de sección (azul oscuro, negrita, **como hoy**)»). Medido en la
+TAREA 0: `docmodTextoABloques('## Titulo\nCuerpo.')` devolvía **un solo bloque `p`**, con las
+almohadillas adentro como texto. Hubo que **agregarla**, y es lo que permite que el cuerpo entero
+sea un solo texto que el médico puede borrar y rehacer; en los consentimientos es además lo que
+parte el cuerpo en «preguntas» y lo que las vuelve a unir.
+
+**Tres cosas más que la medición aclaró:**
+
+- **El editor de PANT-32 no se podía «reutilizar»**: sus campos eran `textarea` y `input` en una
+  pantalla de dos columnas, y lo que B1 pide es la hoja. Salió entero, con su CSS.
+- **`cfg-docs-ed` había quedado como un `div` vacío** en el marcado. Un hueco que promete un
+  editor que no está; salió.
+- **El almacén de PANT-32 no tiene la raíz de los documentos en blanco**, así que `DOCMOD_VER`
+  **no se subió** y esa raíz es **opcional** en el validador. Exigirla, o subir la versión,
+  habría descartado el almacén entero —o sea lo que el médico ya editó de los cuatro incluidos—.
+  Lo fija TC-808.
+
+## P33-b · Lo que esta tanda declara y NO corrigió
+
+1. **No hay exportación ni importación de modelos.** La orden (A2) las saca, y con ellas se va
+   la única forma de llevar los modelos a otra computadora o de tener una copia: **si se limpian
+   los datos del navegador, los textos de la institución se pierden**. Queda dicho en
+   `docs/DOCUMENTOS_P33.md`. Si hace falta volver a tenerlas, es una decisión del médico.
+2. **Los documentos «propios» que PANT-32 pudiera haber dejado en disco no se listan y no se
+   borran** (A5). Quedan en `localStorage`, enteros y validándose, pero **no hay forma de verlos
+   ni de editarlos desde la app**. En el árbol real del médico había **cero**, medido en la TAREA
+   0. Borrarlos sería decidir por él sobre un texto que él escribió.
+3. **El título de un documento en blanco no existe**, por C2 («sin título»). Si el médico quiere
+   uno, lo escribe como primera línea del cuerpo con `## `.
+4. **Las tres casillas de piezas de un consentimiento —declaración, tabla de firmas y hojas
+   comunes— ya no se pueden tildar**: en el diseño nuevo las tres piezas son **fijas** y se ven
+   en su lugar (B3). El modelo las sigue guardando, así que el día que vuelvan a ser una opción
+   el almacén ya las tiene.
+5. **El estado de la hoja sigue sin persistirse** (P30-a): recargar la página descarta las
+   correcciones a mano, el nombre de institución corregido y el texto escrito en un documento en
+   blanco **desde el Informe**. Lo que se guarda desde Configuración es el modelo, y eso sí
+   persiste.
+6. **El defecto preexistente del cambio de pestaña (P30-d) sigue abierto**, por orden expresa de
+   la tanda: `showTab` lee el `window.event` global.
+7. **La legibilidad de la hoja a 390 px sigue siendo la de P31-c**: la A4 entra completa con un
+   zoom de 0,46, así que un cuerpo de 10,2 pt se ve a ~6 px. Es geometría, no una decisión.
+
+## P33-c · Las trampas de método que esta tanda pagó
+
+1. **El acento grave en MI PROPIO comentario, dentro del cuerpo de un caso** — dos veces, en
+   TC-801 y en TC-810 —. Cierra el template y el caso queda corriendo como un número. Lo cazó
+   `node --check`. Es la **decimoséptima** tanda seguida que lo paga; el script que inserta los
+   casos nuevos lleva un guardián que falla si encuentra uno.
+2. **Quitar el ÚLTIMO caso de `test_clinico.mjs` buscando «el próximo `caso(`» se lleva puesta LA
+   COLA DEL RUNNER** —su try/catch, el cierre de Chrome y el código de salida—, porque después
+   del último caso no hay otro. El síntoma es un suite que corre y **no imprime nada**, con
+   código de salida **0**. Se restituyó del árbol de la línea base.
+3. **`S.tecla('Enter')` no inserta párrafo en un `contenteditable`**: el arnés manda keyDown y
+   keyUp **sin `text`**, y entonces el DOM no cambia y el cursor se va al contenedor. Con
+   `escribir('\r')` el Enter parte la línea como el del médico. Es la misma trampa que el arnés
+   de PANT-31 documenta para el carácter.
+4. **Una condición que junta DOS hechos con un «y» dentro de una función anónima le da margen a
+   una mutación para sobrevivir.** La mutación que saca el control del nombre vacío de un
+   documento en blanco sobrevivía así y se muere con las dos condiciones separadas.
+5. **Medir el papel sin sembrar el centro de trabajo da dos operaciones menos**, porque el
+   encabezado no dibuja nada. Es un denominador: lo pagaron TC-801 y TC-812 en su primera
+   versión.
+6. **`docSan` se come el salto de línea.** Su último reemplazo manda a un espacio todo lo que no
+   está entre U+0020 y U+00FF, y U+000A es el salto: aplicado al texto pegado completo, un texto
+   de tres párrafos entraba como **una** línea. Hoy corre línea por línea.
+
+## Lo que esta tanda CIERRA
+
+- **La raya del encabezado** que el médico reportó: cerrada, con su causa medida (P33-a).
+- **El logo a la izquierda** de PANT-31: vuelto a la derecha (D3).
+
 ## P32-a · Lo que la tanda PANT-32 midió y la orden suponía distinto (2026-11-10)
 
 **Tres hipótesis de la orden resultaron falsas o incompletas, medidas en la TAREA 0:**

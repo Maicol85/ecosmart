@@ -262,3 +262,20 @@ falso. Con dos armados, el día que un bloque cambie de aspecto el editor mostra
 papel otra. Y la hoja ya no sale sólo de `DOC_DEFS`: la `def` la decide **`docmodDef(clave)`**, que
 para un incluido **sin editar** devuelve el objeto de `DOC_DEFS` **tal cual**. Todo eso, en
 `docs/mapa/pant32-modelos-documentos.md`.
+
+---
+
+## ⚠️ PANT-33 (2026-11-10) — dos cosas de aca se movieron
+
+1. **EL LOGO VUELVE A LA DERECHA.** Esta tanda lo habia pasado a la **izquierda** leyendo «rincon
+   izquierdo» de su propia orden, y el medico lo quiere donde estaba la inicial. Medido antes de
+   moverlo: el circulo caia en **x 21 mm** de una hoja de 210. Hoy el circulo cae en **189** y el
+   logo en **178**, y en pantalla lo que lo mueve es el **orden del DOM** sobre la misma grilla
+   `18mm 1fr 18mm`. El nombre sigue centrado en el ancho de la hoja.
+2. **LA HOJA TIENE DOS MODOS.** El mismo `#doc-ov`, la misma A4 en milimetros, el mismo cuerpo en
+   puntos y el mismo `docZoomAjustar` sirven ahora al Informe **y** al editor de modelos de
+   Configuracion (`_docModo`). Todo lo que este mapa dice de la hoja sigue valiendo; lo que
+   cambia es que `docRender` reparte por modo y que la barra tiene **dos** juegos de acciones,
+   ocultados con la **clase** y no con `hidden`.
+
+El detalle esta en **`docs/mapa/pant33-editor-hoja-blancos.md`**.

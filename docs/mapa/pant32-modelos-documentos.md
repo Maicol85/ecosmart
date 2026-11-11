@@ -247,3 +247,26 @@ quedaran, el médico imprimiría el documento anterior creyendo que importó el 
 El papel del informe, el Excel (**457** columnas), el PPT de un estudio, el 3D, la brújula, la
 captura, el defecto preexistente del cambio de pestaña (**P30-d**) y los pendientes **P31-a** a
 **P31-g**. **Cero campos guardados nuevos del estudio** y **ningún id existente cambiado**.
+
+---
+
+## ⚠️ PANT-33 (2026-11-10) — lo que esta tanda cambia de aca
+
+El medico probo este disenio en la app y pidio otro. **Configuracion → Documentos queda MINIMA**
+—el interruptor y la lista— y **se edita DIRECTO SOBRE LA HOJA**, con seis documentos fijos: los
+cuatro incluidos y dos **en blanco**.
+
+**Lo que salio con su codigo** (no oculto): «⬇ Exportar modelos», «⬆ Importar modelos»,
+«＋ Agregar documento» con su pregunta de tipo, el indicador de cupo, las etiquetas «Propio» y
+«Viene incluido», el boton «Borrar», y el **editor de dos columnas con su vista previa** —con su
+CSS—. O sea `cfgDocsExportar`, `cfgDocsImportar`, `cfgDocsAgregar`, `cfgDocsAgregarCancelar`,
+`cfgDocsEditarNuevo`, `cfgDocsBorrar` y `docmodNuevo`.
+
+**Lo que NO salio y sigue valiendo todo lo que este mapa dice:** el almacen
+(`ecosmart_doc_modelos`), su validador `docmodValidar` **con su rama de `prop`**, la derivacion
+del original (`docmodOrig`), la comparacion que decide si un incluido esta editado, el armador
+(`docmodArmar`), `docmodDef` y **la regla de oro**. `DOCMOD_VER` **sigue en 1** y la raiz `blanco`
+es **opcional**, justamente para no descartar el almacen que esta tanda dejo en el navegador del
+medico.
+
+El detalle esta en **`docs/mapa/pant33-editor-hoja-blancos.md`**.
