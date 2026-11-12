@@ -376,3 +376,27 @@ botón **no** le saca el piso de 44 px, porque ese piso sale de la regla **globa
 accesibilidad de la app (`button, [role=button], .btn, … { min-height:44px }`). La mutación de
 hoy ataca el piso de verdad, por estilo en línea, y el caso mide además el `min-height`
 computado.
+
+---
+
+## ECO-CONECTOR-2 (2026-11-12) — TC-842 a TC-851
+
+Las fichas de los diez están en **`docs/mapa/tests-fichas-842.md`** (archivo propio: medido con
+`wc -c` antes de escribir, `tests-fichas-825.md` estaba en 10,8 KB y este archivo en 23,8).
+
+| caso | qué fija |
+|---|---|
+| TC-842 | el panel compacto: la cabecera, el código primero, los plegables cerrados y enfocables, los 44 px, el alto y los umbrales del espacio |
+| TC-843 | Equipos: un renglón por equipo, el plegable por equipo, que se abra sola con un pendiente y la ayuda única |
+| TC-844 | el repintado no borra ninguna parte estática, y el apodo entra como texto en `bdi` |
+| TC-845 | el sondeo: sus cuatro compuertas, el intervalo, la respuesta vieja, el 401 y que no apile temporizadores |
+| TC-846 | la agrupación por ventana deslizante de 2 minutos, con sus dos lados del corte |
+| TC-847 | el aviso: sin datos del paciente, tres salidas, no vuelve por las mismas y cerrar las deja esperando |
+| TC-848 | adjuntar por la puerta única, la marca del slot, que no se confirme al adjuntar y el paciente sólo si está vacío |
+| TC-849 | confirmar sólo cuando quedó escrita, el «verificada false» y que un fallo no se dé por borrado |
+| TC-850 | la bandeja: base propia, fuera de toda lista de estudios, del Excel y del PDF |
+| TC-851 | la regla de nombre Y documento, con sus dos controles negativos, y el modal de cierre |
+
+**Seis adaptados:** TC-833, TC-834, TC-837, TC-838, TC-839 y TC-841, cada uno con su decisión
+escrita en el lugar donde vive la condición. **TC-161 pasa sin adaptar**, porque los diecinueve
+ids de ECO-CONECTOR-1 se conservaron a propósito.

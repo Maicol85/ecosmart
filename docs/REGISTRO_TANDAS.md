@@ -3485,3 +3485,46 @@ que el archivo era el bueno y lo que estaba corto era el renglón. Corregido en 
   **P31-a** a **P31-g**; el mapa, en `docs/mapa/pant31-hoja-ppt.md`; el inventario, en
   `docs/INVENTARIO_P31.md`; las fichas, en `docs/mapa/tests-fichas-795.md`; la guía manual, en
   `docs/GUIA_PRUEBA_PANT31.md`.
+
+---
+
+## ECO-CONECTOR-2 (2026-11-12) — el panel compacto, el sondeo, el aviso, la bandeja y la regla
+
+**Qué pidió el médico.** ECO-CONECTOR-1 dejó la tarjeta de CeiboLink y la capa de comunicación,
+probadas contra el conector real: un equipo nuevo queda en cuarentena, el médico lo permite y sus
+imágenes pasan a «esperando». Faltaba que EcoSmart **avisara** de esas imágenes y las
+**incorporara**. Y además: el médico vio el panel en pantalla y lo quiso **más compacto**.
+
+**Qué se hizo.** Seis cosas, en tres commits de código y uno de documentación:
+
+1. **El panel compacto.** La cabecera en dos renglones —la luz con el interruptor y
+   «Actualizar», y los tres números— y cuatro secciones plegables `<details>` **nativas**,
+   cerradas. Un renglón por equipo, con el apodo y las acciones en su propio plegable; «Equipos»
+   se abre **sola** si hay uno esperando decisión. «Desvincular» baja a Ajustes. Medido: de
+   **1195 a 456 px** a 1440 px, un **62 % menos**.
+2. **El sondeo**, cada 15 s, sólo con la pestaña a la vista y sólo si el módulo está activado y
+   vinculado. La lista de imágenes se pide sólo si el estado dice que hay algo.
+3. **El aviso**, con el molde de «Nuevo estudio» y sus tres salidas, sin un solo dato del
+   paciente. Agrupación por **ventana deslizante de 2 minutos** por equipo. Y el aviso de equipo
+   nuevo con Permitir, Bloquear y Más tarde.
+4. **Adjuntar al estudio** por la puerta única `mediosImportar`, de a una y en serie, con la
+   confirmación a CeiboLink **sólo cuando la imagen quedó escrita**.
+5. **La bandeja de imágenes sin estudio**, en una base propia (`ceibomed_bandeja`), fuera de toda
+   lista de estudios, del Excel, del censo y del PDF **por construcción**.
+6. **La regla de paciente**: con imágenes de CeiboLink se exige nombre **Y** documento, con un
+   predicado único que falla cerrado; y el aviso de espacio al 85 % y al 95 %.
+
+**Commits:** `6f69387` (el conector falso) · `2f6e495` (el código) · `36899c3` (los casos y dos
+defectos que destaparon) · el de documentación.
+
+**Cobertura:** TC-842 a TC-851, los diez cayendo **0/10** contra `8afba18` por su denominador
+declarado y **ninguno por excepción**. Seis casos adaptados (TC-833, TC-834, TC-837, TC-838,
+TC-839, TC-841), tres de ellos **más fuertes** que antes. TC-161 pasa **sin adaptar**.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **EC2-a** a **EC2-j**. El mapa:
+`docs/mapa/ec2-aviso-bandeja.md`. Las fichas: `docs/mapa/tests-fichas-842.md`. La guía manual:
+`docs/GUIA_PRUEBA_EC2.md`.
+
+**Tres hipótesis de la orden que resultaron falsas:** `_dcmImgLeer` no leía ningún dato del
+paciente; esta app no tiene ninguna barra de progreso; y el campo `origen` está en la lista
+cerrada del guardado pero su **valor** se normaliza, así que `'ceibolink'` no sobrevive.

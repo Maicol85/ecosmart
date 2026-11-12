@@ -100,9 +100,25 @@ vincule **una sola vez** por navegador, no caduca por tiempo y se corta con «De
 
 **El precio, escrito:** en una computadora compartida, el vínculo sobrevive al cierre de sesión de
 EcoSmart. Quien use ese navegador después puede abrir el panel y ver los equipos, cambiarles el
-apodo, permitir o bloquear, y ver los datos de red de la máquina. **No puede ver ningún dato de
-paciente por este canal** —las listas del contrato no llevan nombre, documento ni fecha de
-nacimiento— pero sí puede decidir sobre los equipos.
+apodo, permitir o bloquear, y ver los datos de red de la máquina.
+
+⚠️ **CORREGIDO EN ECO-CONECTOR-2 (2026-11-12): ESTE PÁRRAFO DECÍA «no puede ver ningún dato de
+paciente por este canal», Y DESDE ESTA TANDA ES FALSO.** Era cierto mientras el único uso del
+canal era el panel de Configuración: las **listas** del contrato no llevan nombre, documento ni
+fecha de nacimiento, y `vista` queda en `null` a propósito (§3.8). Pero ECO-CONECTOR-2 agrega
+`GET /v1/imagenes/{id}/archivo`, que **descarga el archivo DICOM**, y el contrato lo dice con
+todas las letras en §3.9: **«acá sí viajan los datos del paciente, adentro del archivo»**.
+
+Así que lo correcto es: con el vínculo en pie, quien use ese navegador después puede **adjuntar
+las imágenes que estén esperando** —y al adjuntarlas, el nombre, el sexo y la fecha de nacimiento
+que el archivo trae adentro **se escriben en el formulario**, si está vacío—. Puede, en una
+palabra, **ver los datos del paciente del último estudio que el ecógrafo mandó**. Lo que acota el
+daño es que las imágenes se borran del conector a las 24 horas por omisión, y que adjuntarlas es
+un gesto explícito; lo que no lo acota es nada más.
+
+Eso **sube el peso de la decisión del token**, y es la razón para volver a leer el párrafo de
+abajo: las dos opciones que estaban escritas como «de una línea» ahora cierran una fuga de datos
+de paciente y no sólo de decisiones sobre equipos.
 
 Está en la misma familia que la deuda que `~/Desktop/APLICACIONES/CLAUDE.md` ya tiene escrita para
 el almacenamiento local de CardioSalud. **Si el médico quiere otra cosa**, las opciones son: mover
@@ -15881,3 +15897,119 @@ y seis maquetados de PDF.
 dos palancas son: declarar las mutaciones de TC-798 a un caso más chico, o partir TC-798 en dos (el
 R5 por un lado y el encabezado por otro). **Queda declarado, no cambiado**: partir un caso para que
 el barrido corra más rápido es cambiar la cobertura por el reloj.
+
+---
+
+## ECO-CONECTOR-2 (2026-11-12) — lo declarado
+
+### EC2-a · La marca `origen: 'ceibolink'` NO sobrevive al guardado, y es una decisión medida
+
+La orden dice que «el campo `origen` ya está en la lista cerrada de lo que sobrevive al
+guardado», y eso es **parcialmente falso**: el campo está en las allowlists, pero su **valor** se
+normaliza a `'visor'` o `'estudio'` en los cuatro lugares donde aparece, así que un
+`'ceibolink'` se guarda como `'estudio'`.
+
+**Se dejó así a propósito.** Las dos pantallas que consumen ese campo —el reparto de «Imágenes
+guardadas» y el PPT del estudio— reparten por el par **cerrado** `['estudio','visor']`, así que
+un tercer valor en disco haría que la imagen **no cayera en ninguna de las dos grillas** y
+desapareciera de «Imágenes guardadas». Ampliar el par exige tocar esas dos pantallas maduras.
+
+**No hace falta en disco**: la decisión 9 dice que los estudios **ya guardados** no cambian de
+regla, así que el predicado sólo necesita la marca en memoria. Si alguna vez hiciera falta, el
+cambio son dos líneas en las allowlists **más** el reparto de esas dos pantallas, y es la
+lección que el D-11 pagó con `data-espejo`: las allowlists son DOS listas.
+
+### EC2-b · La bandeja no entra al respaldo
+
+`_bkExportar` exporta estudios y medios **por uuid de estudio**, y la bandeja vive en una base
+propia (`ceibomed_bandeja`) justamente para no aparecer en ninguna lista de estudios. El precio
+es que lo guardado ahí **no viaja en el respaldo**: es un depósito transitorio y no un registro
+clínico, pero hay que decirlo. Si alguna vez se decide incluirlo, el lugar es `_bkExportar` con
+su propio nivel, y hay que decidir qué pasa al importar.
+
+### EC2-c · De un cineloop la bandeja guarda el PRIMER cuadro
+
+`_clnkbBytesADataURL` toma `frags[0]`. La bandeja es un depósito y todavía no se puede abrir un
+cineloop desde ahí (eso es ECO-CONECTOR-3); guardar los treinta cuadros serían decenas de MB para
+algo que nadie puede mirar. Cuando ECO-CONECTOR-3 agregue «adjuntar desde la bandeja», esto hay
+que revisarlo: el médico va a esperar el cineloop entero.
+
+### EC2-d · El límite de la agrupación por tiempo
+
+Si el médico manda **dos pacientes seguidos desde el mismo equipo** con menos de dos minutos
+entre el último de uno y el primero del otro, los dos envíos salen en **UN** aviso. No hay forma
+de distinguirlos con lo que el contrato entrega: §3.8 deja `vista` en `null` a propósito y no hay
+ningún campo de estudio ni de serie. Lo que lo acota es que el médico **ve cuántas son** antes de
+adjuntar, y que adjuntar es un gesto suyo y no automático.
+
+### EC2-e · La memoria: el pico medido y si hace falta un tope
+
+Medido con `scripts/_probe_ec2mem.mjs`, Chrome con `--enable-precise-memory-info`:
+
+| paso | una imagen de 16,8 MB | dos imágenes de 16,8 MB |
+|---|---|---|
+| antes de bajar | 27,0 MB | 59,0 MB |
+| con el DICOM en memoria | 43,0 MB | — |
+| ya importado al slot | **80,4 MB** | **128,7 MB** |
+| tras recolectar | 80,4 MB | 112,6 MB |
+| retenido por los slots | **21,4 MB** | **42,8 MB** |
+
+**El pico de la descarga NO se acumula**: entre «antes de las dos» y «con las dos adjuntadas» hay
++69,7 MB para DOS imágenes, o sea ~35 MB por imagen y no 2 × 53. El camino de a una **suelta el
+buffer de la anterior**, que era el riesgo principal.
+
+**Lo que SÍ crece linealmente es lo retenido por slot: 21,4 MB por imagen de 16,8 MB.** Son el
+`dataURL` en base64 (4/3 del JPEG) más el `_orig` sin comprimir que `imgCompressLoad` guarda en
+memoria para el selector de calidad. Con un envío de veinte imágenes grandes serían ~428 MB.
+
+**No se agregó ningún tope, y es una decisión:** ese retenido es **el mismo que la app ya tiene
+con el pendrive** —`imgCompressLoad` guarda `_orig` para cualquier importación—, así que un tope
+cambiaría también el comportamiento de la carga manual, que esta tanda tiene prohibido tocar. Lo
+que esta tanda sí introduce es una vía por la que pueden llegar veinte imágenes **de golpe** sin
+que el médico las elija de a una. **Queda como pregunta de diseño para el médico** (ver el
+reporte): si conviene un tope de cuántas imágenes se adjuntan de un envío, y de cuántas.
+
+### EC2-f · El tercer enganche de repintado del panel sigue sin reemplazo
+
+ECO-CONECTOR-1 declaró que el enganche del cambio de pestaña no tenía reemplazo porque CeiboLink
+no pone ningún control fuera de su tarjeta. **Esta tanda agrega DOS superficies fuera de ella**
+—el modal de avisos (`clnkav-`) y la bandeja (`clnkb-`)— pero ninguna de las dos necesita ese
+enganche: el modal lo abre y lo cierra su propia puerta, y la bandeja se repinta desde `showTab`
+acotado a su pestaña. Queda escrito para que la próxima tanda no lo busque.
+
+### EC2-g · Semgrep sigue con el falso positivo de EC1-j
+
+126 WARNING / 0 ERROR, **idéntico en los dos árboles**. El aviso de más sobre la línea histórica
+de 125 sigue siendo `ceibo-hardcoded-generic-secret` sobre `var CLNK_TOKEN = 'ett_ceibolink_token'`,
+que es el **nombre de la clave** y no el token. Declarado en EC1-j y sin cambio.
+
+### EC2-h · Un oyente de la app revienta tras un guardado completo — DECLARADO, NO TOCADO
+
+Medido al escribir TC-851: después de un guardado completo —con su tarjeta de severidades
+confirmada y el estudio borrado—, la siguiente escritura sobre un campo del paciente
+(`#nombre`, con sus eventos `input` y `change`) revienta con «Cannot read properties of undefined
+(reading 'add')». El campo no tiene manejadores inline, así que es un oyente delegado de la app.
+**No es de esta tanda** —esta tanda no agrega ningún oyente de `input` ni de `change`— y no se
+tocó. El caso lo esquiva poniendo sus bloques que guardan al final.
+
+### EC2-i · Tres hipótesis de la orden que resultaron falsas
+
+1. **`_dcmImgLeer` no leía ningún dato del paciente.** Devolvía fabricante, modelo, cuadros,
+   filas, columnas y los fragmentos, y nada más. Los seis ayudantes que ECO-CONECTOR-1 conservó
+   venían del panel de Orthanc, que sacaba esos datos de la **API REST de Orthanc en JSON**, no
+   del archivo. Se agregaron **cuatro `if`** al bucle que ya recorre el dataset, con el mismo
+   molde que las dos líneas de al lado: no es un lector nuevo, que la orden prohíbe.
+2. **Esta app no tiene ninguna barra de progreso.** Medido: cero componentes de barra, y lo que
+   usa para informar un trabajo largo son `toast('⏳ …')`. No hay una barra «existente» que
+   reusar: el progreso es el texto del propio modal más el toast de cierre.
+3. **El campo `origen` está en la lista cerrada, pero su VALOR no** — ver EC2-a.
+
+### EC2-j · Lo que queda para ECO-CONECTOR-3
+
+Lo que la orden deja fuera a propósito, para que la próxima tanda no lo busque acá:
+- **adjuntar desde la bandeja a un estudio ya guardado**;
+- **pasar imágenes de un paciente a otro**.
+
+La bandeja ya guarda el `clnkId` de cada imagen en su registro, que es lo que hará falta si
+alguna vez se quiere volver a hablar con el conector sobre ella. Y la pantalla de la bandeja no
+tiene miniaturas a propósito: una miniatura invita a un gesto que todavía no existe.

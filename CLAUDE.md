@@ -161,6 +161,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
+| **Tocar el PANEL COMPACTO de CeiboLink** —la cabecera de dos renglones, los cuatro plegables nativos, el renglón de un equipo, el hueco de la grilla—, **el SONDEO**, **el AVISO de imágenes o de equipo nuevo** con su agrupación por tiempo, **ADJUNTAR al estudio** con su confirmación al guardar, **la BANDEJA de imágenes sin estudio**, o **la REGLA de nombre Y documento** y el aviso de espacio | `docs/mapa/ec2-aviso-bandeja.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
@@ -268,7 +269,30 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,77 MB / 175.805 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al cierre de la tanda **ECO-CONECTOR-1**, sobre el árbol ya sellado: sello **`v20261111-2208`**, md5 **`60ed9c1c`**.
+  sin frameworks. Hoy **12,85 MB / 177.121 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-2**, sobre el árbol ya sellado: sello **`v20261112-0158`**, md5 **`ec482b6d`**.
+  El diff de ECO-CONECTOR-2 son **1.521 líneas agregadas y 205 quitadas** en `index.html`, medido
+  con `git diff --numstat` contra `8afba18` **sobre el árbol ya sellado**, de las que **1.300** no
+  son comentario, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos —la única aparición de `innerHTML` en el diff es
+  el comentario que declara que el nombre del equipo entra por `textContent`—, **cero** claves y
+  contraseñas, **cero** direcciones nuevas y **CERO llamadas de red nuevas**: todo pasa por
+  `clnkPedir`, que ya existía.
+  ⚠️ **Y ESE PÁRRAFO DECÍA «1.726 líneas agregadas y 206 quitadas», QUE ERA FALSO**: lo conté de
+  memoria sobre lo que tenía en la cabeza en vez de contarlo sobre el diff. `git diff --numstat`
+  da **1.521 y 205**. Es exactamente el error que PANT-18 pagó con su conteo de `innerHTML`.
+  **TREINTA Y DOS ids nuevos, contados sobre el diff**: **veinte** con prefijo **`cfg-`**, **ocho**
+  con **`clnkav-`** (el modal de los avisos), **tres** con **`clnkb-`** (la bandeja) y el del pie
+  que repone el sellador. **Ninguno** termina en `-aviso` ni en `-badge` y **ninguno** cae en ninguno
+  de los veintiún barridos por sufijo o prefijo del archivo. **Tres controles nuevos, los tres
+  con prefijo `cfg-`**, que es lo que los deja fuera del censo del estudio y del Excel por las
+  DOS listas a la vez (`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`); y la sección de la
+  bandeja **no tiene un solo `input`**, así que queda fuera por construcción. **Excel en 457
+  columnas y cero campos guardados nuevos.**
+  ⚠️ **POR TRIGÉSIMA QUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 8afba18:index.html` da **175.805** líneas,
+  **12.769.895** bytes y el md5 **`60ed9c1c`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,77 MB / 175.805 al cierre de la tanda **ECO-CONECTOR-1**, sello **`v20261111-2208`**, md5 **`60ed9c1c`**.)
   ⚠️ **Y EL ARCHIVO QUEDÓ MÁS CHICO AUNQUE LA TANDA ESCRIBIÓ 1.018 LÍNEAS**, por segunda vez en
   muchas tandas: el panel de Orthanc que se retiró era más grande que el de CeiboLink que lo
   reemplaza —1.093 líneas quitadas contra 1.018 puestas—. 175.880 → **175.805**.
@@ -1105,6 +1129,180 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda ECO-CONECTOR-2 (2026-11-12) — el panel compacto, el sondeo, el aviso, la bandeja y la
+regla de paciente.** CINCO commits. Sello **`v20261112-0158`**, md5 **`ec482b6d`**, **177.121** líneas.
+ECO-CONECTOR-1 dejó la tarjeta y la capa de comunicación; faltaba que EcoSmart **avisara** de las
+imágenes que el ecógrafo manda y las **incorporara**. Y el médico, que vio el panel en pantalla, lo
+quiso **más compacto**. **Nada de esta tanda llega al papel**: no escribe un campo del informe, no
+toca el EN SUMA, el PDF, el PPT ni el Excel, y el Excel queda en **457** columnas con **cero**
+campos guardados nuevos.
+**EL PANEL PASÓ DE 1195 A 456 PÍXELES**, medido con el mismo arnés en los dos árboles y a 1440 px:
+un **62 % menos**. La cabecera son dos renglones —la luz con el interruptor y «Actualizar», y los
+tres números— y debajo quedan **cuatro secciones plegables cerradas**. El tercer estado que la
+orden pide —dos equipos, uno esperando decisión, «Equipos» abierta sola— mide **712 px**, todavía
+por debajo del panel viejo con un solo equipo.
+⚠️ **LOS PLEGABLES SON `<details>` NATIVOS, y eso es toda la accesibilidad del panel**: abren con
+Enter y con Espacio, se anuncian al lector de pantalla y son enfocables, **sin una línea de JS** ni
+un `aria-expanded` que mantener al día. El molde es el de `.pop-farm`, que es el desplegable que
+esta app ya usa para los fármacos del posoperatorio. **El `summary` lleva sus 44 px A MANO**: la
+regla táctil global de este archivo empareja `button, [role=button], .btn, …, [onclick]` y un
+`summary` no es ninguno de ésos, así que sin eso el renglón que el médico toca mediría ~26 px.
+No se le pone `role=button` para que la regla lo alcance: eso le quitaría su semántica propia.
+⚠️ **Y EL HUECO DE LA COLUMNA DE AL LADO ERA LA GRILLA, NO UN DEFECTO.** `.cfg-grid` es una grilla
+de dos columnas con `align-items:start`: la fila se alinea a la tarjeta más alta y debajo de la más
+baja queda el blanco. Medido, **pasó de 859 a 120 px a 1440**, y con eso dejó de ser un problema
+propio: **120 es el MENOR de las cuatro filas** de dos columnas de Config —las otras miden 271, 270
+y 349—. **No se movió nada**, y la decisión está medida: mover la tarjeta sólo trasladaría el
+desparejo a otra fila y cambiaría un orden que el médico ya conoce.
+**EL SONDEO SON QUINCE SEGUNDOS, Y DE AHÍ SALE EL NÚMERO.** `GET /v1/estado` no lleva token,
+devuelve ~150 bytes y el contrato dice textualmente que se puede consultar «cada pocos segundos»:
+cuatro pedidos por minuto a loopback no se miden en ninguna parte, y el aviso llega como máximo 15 s
+después de que el ecógrafo terminó de mandar. Con 5 s correría doce veces por minuto mientras el
+médico escribe, sin un solo beneficio clínico; con 60 s el médico llega antes que el aviso y
+concluye que esto no funciona. **La lista de imágenes sólo se pide si el estado dice que hay algo.**
+Sólo con la pestaña a la vista —el mismo oyente de `visibilitychange` que ya apagan la vista 2D y
+el 3D de la mitral—, y al **volver** a la vista se sondea en el acto.
+**EL AVISO NO DICE UN SOLO DATO DEL PACIENTE, Y NO PODRÍA AUNQUE QUISIERA**: la lista del contrato
+§3.8 no los trae —`vista` queda en `null` a propósito, porque el candidato natural era texto libre
+donde entra un nombre— y los datos del paciente viven **sólo** adentro del archivo DICOM, que recién
+se baja cuando el médico aprieta «Adjuntar». Dice cuántas, de qué equipo y a qué hora.
+⚠️ **EL MODAL ES PROPIO Y NO UN MODO MÁS DEL DE «NUEVO ESTUDIO», Y SE MIDIÓ POR QUÉ**: aquél tiene
+los tres `onclick` **escritos en el marcado**, así que un modo más obliga a reasignar los tres
+manejadores al abrir. Eso pone en riesgo las dos salidas que ese modal protege —«Nuevo estudio» y
+«Cerrar sesión», las que evitan perder un estudio— y deja abierta la posibilidad de que queden
+puestos los manejadores del aviso cuando el médico apriete «Nuevo estudio». Un molde copiado cuesta
+veinte líneas de marcado; un manejador cruzado ahí cuesta un estudio.
+**LA AGRUPACIÓN ES UNA VENTANA DESLIZANTE DE DOS MINUTOS**, y es lo único que se puede hacer con lo
+que el contrato entrega: no hay campo de estudio ni de serie, así que sólo quedan `equipo` y
+`recibida`. Un estudio sale del ecógrafo en una tanda continua, y dos minutos cubren un envío lento
+de veinte imágenes a seis segundos cada una sin alcanzar nunca el hueco que hay entre dos pacientes.
+**Deslizante y no un bloque fijo**: con un bloque desde la primera, un envío de treinta se partiría
+en dos avisos. ⚠️ **El límite se declara (EC2-d)**: dos pacientes seguidos del mismo equipo con
+menos de dos minutos entre medio salen en UN aviso, y no hay forma de distinguirlos.
+**ADJUNTAR VA POR LA PUERTA ÚNICA `mediosImportar`, DE A UNA Y EN SERIE.** Sin lector DICOM nuevo:
+lo que cambia es de dónde salen los bytes. De a una por tres motivos medidos —un cineloop pesa 16 MB
+y tres a la vez son 48 MB de buffers vivos; esa función puede abrir un `confirm` y un `alert`, que
+en paralelo se apilan sobre el mismo médico; y el orden de los slots es el orden del PDF—.
+⚠️ **CONFIRMAR VA DENTRO DEL `ok` DE LA ESCRITURA Y NO EN `guardarInforme`, Y ESA ES LA DECISIÓN DE
+FONDO.** Confirmar **borra** en el conector, así que la condición no puede ser «el médico apretó
+Guardar» sino «la imagen quedó escrita»: `imgPersistir` devuelve `false` por tres caminos que no son
+una decisión del médico —el guardado de imágenes apagado, la base bloqueada y una reimpresión en
+curso— y en los tres la imagen NO está en disco. Confirmar ahí la borraría del conector sin que
+exista en ninguna parte. **Y si confirmar falla, NO se da por borrado**: el id se queda y se
+reintenta; un 404 sí lo saca, sin alarmar. El `verificada: false` se le dice al médico.
+⚠️ **`_clnkPorConfirmar` SE VACÍA EN «NUEVO ESTUDIO»**, desde `imgVaciar`. Un id que sobreviviera
+haría que el guardado del paciente SIGUIENTE **borrara del conector** una imagen que no entró a
+ningún estudio, y confirmar es irreversible. Es la misma trampa que el D-10 y el D-11 pagaron con
+`data-pop-mano` y `data-espejo`.
+**LA BANDEJA VIVE EN UNA BASE PROPIA, `ceibomed_bandeja`, Y LA ORDEN PIDE JUSTIFICARLO.** Tres
+razones medidas: todo lo que recorre `ceibomed_img` lo hace **por uuid de estudio**, así que un
+registro con uuid inventado aparecería en «Imágenes guardadas» y sumaría a los bytes; la fuga que
+`imgRestaurar` pagó fue exactamente «un registro de esa base llegó al formulario de otro paciente»,
+y con una base distinta eso **no es alcanzable** —no hay una sola ruta de código que lleve de esta
+base a `imgSlots`—, o sea seguridad por construcción y no por filtrado; y la alternativa obliga a
+filtrar en **cinco** lectores maduros, que es el argumento con que este archivo sacó los esquemas a
+su propia lista. **Lo que cuesta, declarado en EC2-b**: no entra al respaldo.
+**LA REGLA DE PACIENTE ES UN SOLO PREDICADO QUE FALLA CERRADO.** `clnkEstudioTieneImagenes()` mira
+las DOS cosas —la marca `origen` de los slots y la lista por confirmar—, y la segunda cubre el
+**cineloop**, que entra por su puerta y puede no dejar slot de imagen. En el modal de cierre se
+**mantienen las tres salidas** y no se inventa ningún bloqueo: lo único que cambia es que «Guardar y
+continuar» queda deshabilitada —porque el guardado la va a rechazar igual— y que el texto dice que
+las imágenes **no se pierden**, que siguen esperando hasta su plazo. **El estado del botón se repone
+en las dos ramas**, porque el modal se reusa.
+**TRES HIPÓTESIS DE LA ORDEN RESULTARON FALSAS, las tres medidas.** (1) **`_dcmImgLeer` no leía
+ningún dato del paciente**: devolvía fabricante, modelo, cuadros, filas, columnas y los fragmentos,
+y nada más. Los seis ayudantes que ECO-CONECTOR-1 conservó venían del panel de Orthanc, que sacaba
+esos datos de la **API REST en JSON**, no del archivo. Se agregaron **cuatro `if`** al bucle que ya
+recorre el dataset, con el mismo molde que las dos líneas de al lado: no es un lector nuevo, que la
+orden prohíbe. **El `PatientID` NO se lee, a propósito**: en un ecógrafo de hospital es el número de
+historia clínica y no una cédula. (2) **Esta app NO TIENE NINGUNA BARRA DE PROGRESO**: cero
+componentes de barra, y lo que usa para un trabajo largo son `toast('⏳ …')`. El progreso es el texto
+del propio modal más el toast de cierre. (3) **El campo `origen` está en la lista cerrada del
+guardado pero su VALOR se normaliza** a `visor`/`estudio`, así que `ceibolink` **no sobrevive** —se
+dejó así y queda declarado en **EC2-a**, porque las dos pantallas que lo consumen reparten por el
+par cerrado y un tercer valor haría desaparecer la imagen de «Imágenes guardadas»—.
+**DOS DEFECTOS QUE DESTAPARON LOS CASOS VIEJOS Y LA LECTURA NO.** (1) **El piso en bytes del aviso
+de espacio daba «casi sin lugar» sobre un conector VACÍO**: con un tope chico, 1 MB libre es menos
+que los 32 MB del piso, así que TC-841 recibía «usó 0 KB de 0 KB» con el aviso rojo puesto. Hoy el
+piso manda sólo si el tope es grande frente a él. (2) **Sin vincular, el panel dejaba de decir la
+versión del conector**, que el panel anterior imprimía en los dos estados: es el dato que dice si el
+conector es **viejo**, y de él dependen las dos partes que el panel esconde contra un 1.0.
+**Cobertura: TC-842 a TC-851**, los diez cayendo **0/10** contra `8afba18` **por su denominador
+declarado y NINGUNO por excepción**, verificado en un worktree con el mismo archivo de casos y sólo
+el `index.html` distinto. **SEIS casos adaptados** —TC-833, TC-834, TC-837, TC-838, TC-839 y
+TC-841—, cada uno con su decisión escrita donde vive la condición, ninguno borrado y ninguno
+aflojado; **tres quedaron MÁS FUERTES**. **TC-161 pasa SIN adaptar**, porque los diecinueve ids de
+ECO-CONECTOR-1 se conservaron a propósito, el del renglón de la ayuda incluido —hoy es el `summary`—.
+**48/48 MUTACIONES DIRIGIDAS MUERTAS** en **5,4 min**, en un worktree y **nunca** sobre el vivo,
+con el md5 del vivo **idéntico** antes y después (`ec482b6d`), **cero sobrevivientes y cero que no
+aplicaran**, y las 48 anclas verificadas **ANTES** de correr.
+⚠️ **EL PRIMER BARRIDO DEJÓ OCHO SOBREVIVIENTES Y SE REPARTIERON EN TRES CLASES**, que es
+exactamente para lo que el barrido está. **SEIS huecos reales de cobertura**, cerrados con
+condiciones nuevas y **no aflojando ninguna mutación**: la escena «vinculado pero el módulo
+apagado» —el bloque que apagaba el módulo borraba el token a la vez, así que el token faltante
+salvaba a la mutación—; que el sincronizador no **apile** temporizadores, que ahora se mide
+contando los que se crean; que la confirmación sólo corra si la escritura **salió bien**, que
+necesitó sustituir el escritor porque con la casilla apagada la escritura sale antes de tocar la
+base; que el predicado de la regla **falle cerrado**; y las dos del aviso que no se superpone.
+**TRES mutaciones mal dirigidas o mal escritas**: una **equivalente** —poner el atributo de
+abierto en el marcado, que el escondido borra antes de la primera lectura—, una que usaba una
+propiedad de CSS que ese contenedor **no interpreta** —y la condición mide el orden del DOM
+justamente para no depender del estilo—, y una que llamaba a **una variable que no existe**, así
+que el `catch` se la tragaba entera. Y **DOS que sobrevivían por la ESCENA y no por el código**.
+⚠️ **Y TRES VECES EN ESTA TANDA UNA ESCENA NEUTRALIZÓ SU PROPIA MUTACIÓN POR EL MISMO MOTIVO**: el
+aviso **no vuelve por las mismas imágenes ni por el mismo equipo en la misma sesión**, y la suite
+corre los 859 casos en UNA página, así que un bloque que reusa una escena ya avisada recibe «no
+hay nada que avisar» y mide otra cosa. El conector falso terminó con una escena de **un id
+suelto** y un **tercer equipo pendiente**, los dos con ids que no aparecen en ninguna otra.
+⚠️ **UNA COSA QUE YO MISMO HICE MAL Y COSTÓ UNA CORRIDA DE 900 SEGUNDOS**: un caso que sustituía
+el `confirm` devolviendo **no** «para que no descarte nada por accidente» **neutralizaba** la
+mutación que hace que cerrar el aviso descarte; y **sin** sustituirlo, un `confirm` nativo cuelga
+el caso hasta el tope del runner.
+**CHROME Y WEBKIT COINCIDEN EN LOS VEINTE CRUCES** (dos motores × 1440, 1280, 1000, 768 y 390 px ×
+dos temas **reales**, puestos por `ett_theme` + `loadTheme()` y **devueltos** por la sonda: diez
+«día» y diez «noche»), con **cero errores de consola y de página en los dos motores**, los tres
+plegables **cerrados** en los veinte, los **seis** renglones que se tocan en **44 px exactos** y
+**cero** por debajo, los veinticinco nodos estáticos **intactos** tras cinco repintados, y el apodo
+malicioso entrando como texto en `bdi` sin ejecutar nada. **WebKit de Playwright no es Safari, y se
+declara.** Chrome va por el del sistema.
+**LA MEMORIA, MEDIDA (EC2-e):** con una imagen de 16,8 MB el pico es **80,4 MB** sobre una base de
+27; con DOS, **128,7 MB**. **El pico de la descarga NO se acumula** —el camino de a una suelta el
+buffer de la anterior, que era el riesgo— pero **lo retenido por slot sí crece: 21,4 MB por
+imagen**, que son el `dataURL` en base64 más el `_orig` que `imgCompressLoad` guarda para el
+selector de calidad. **No se agregó ningún tope**, y es una decisión: ese retenido es el mismo que
+la app ya tiene con el pendrive, así que un tope cambiaría también la carga manual, que esta tanda
+tiene prohibido tocar. Queda como pregunta de diseño.
+**Semgrep 126 WARNING / 0 ERROR, idéntico en los DOS árboles** —el aviso de más sobre la línea
+histórica de 125 sigue siendo el falso positivo de EC1-j, el **nombre** de la clave del token—.
+**Sin huérfanos nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base.
+**Cero `innerHTML`, `eval(` y `new Function` nuevos** —la única aparición de `innerHTML` en el diff
+es el comentario que declara que el nombre del equipo entra por `textContent`—, **cero claves**,
+**cero direcciones nuevas** y **cero llamadas de red nuevas**: todo pasa por `clnkPedir`.
+**CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta,
+medida con el **mismo script en los dos árboles** y con la máquina sola.
+⚠️ **Y CON `--todo` SON 401 y 409, TAMBIÉN IDÉNTICOS EN LOS DOS ÁRBOLES.** Queda escrito porque la
+primera lectura de esta tanda fue con esa bandera y los 401 se leyeron como si la tanda hubiera
+agregado 342 hallazgos: la diferencia son los de severidad **BAJA**, que el script esconde por
+omisión. El número que esta casa informa es el de **sin** la bandera.
+**EXCEL Y CAMPOS DEL ESTUDIO IDÉNTICOS, MEDIDOS EN EL NAVEGADOR EN LOS DOS ÁRBOLES**: **381**
+claves en el mapa del Excel del Laboratorio y **1007** campos que viajan dentro de cada estudio,
+los mismos números a los dos lados. Y **CERO** de los controles de esta tanda entra a ese censo:
+los tres con prefijo `cfg-` quedan fuera por las dos listas a la vez, y la sección de la bandeja
+no tiene un solo `input`.
+**Línea base al cierre: suite 856/859**, en **DIECISÉIS** lotes cubriendo los **859 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en
+UNA sola pasada sobre el árbol sellado, con los **859 ejecutados**, el md5 de `index.html`
+**idéntico** antes y después (`ec482b6d`) y el pendrive `DISK_IMG` verificado **dieciocho** veces:
+al abrir, en cada uno de los dieciséis lotes y al cerrar. Los rojos son **TC-376, TC-390 y
+TC-406**, los tres de siempre. **Ningún rojo nuevo**, y **los diez casos nuevos y los seis
+adaptados en verde**.
+⚠️ **ES UN ROJO MENOS QUE LA LÍNEA BASE, Y SE DECLARA PARA QUE NADIE LO LEA COMO UN ARREGLO
+SILENCIOSO:** la medición de la línea base en este mismo arnés dio **845/849** con **TC-551**
+rojo, que es uno de los intermitentes que este archivo documenta —pasa corrido aislado—. En la
+pasada de cierre salió **verde**. No se tocó nada suyo: es el mismo intermitente, del otro lado.
+Lo declarado, en **EC2-a** a **EC2-j**; el mapa, en `docs/mapa/ec2-aviso-bandeja.md`; las fichas,
+en `docs/mapa/tests-fichas-842.md`; la guía manual, en `docs/GUIA_PRUEBA_EC2.md` (**12** pasos).
 
 **La tanda ECO-CONECTOR-1 (2026-11-11) — el panel de CeiboLink reemplaza al de Orthanc.** CINCO
 commits. Sello **`v20261111-2208`**, md5 **`60ed9c1c`**. La conexión directa con Orthanc —que

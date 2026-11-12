@@ -20,6 +20,15 @@ lo exponga. Ver § 7 para el inventario de lo que salió.
 tres botones, el sondeo en segundo plano, adjuntar desde Guardados y la regla de estudio sin
 paciente. La carga manual de DICOM desde pendrive **no se tocó** y sigue siendo la vía que anda.
 
+> ⚠️ **ECO-CONECTOR-2 (2026-11-12) YA LO HIZO, Y ADEMÁS REHIZO ESTA TARJETA.** El panel pasó a
+> ser **compacto** —dos renglones arriba y cuatro secciones plegables cerradas— y ganó el sondeo,
+> el aviso de imágenes y de equipo nuevo, adjuntar al estudio, la bandeja sin estudio y la regla
+> de paciente. **Lo de este archivo sigue vigente** —la dirección, la capa de comunicación, el
+> token, los mensajes de error— y lo que cambió de la tarjeta está en
+> **`docs/mapa/ec2-aviso-bandeja.md`**, que es el que hay que abrir para tocar el panel de hoy.
+> Lo que quedó para ECO-CONECTOR-3: adjuntar desde la bandeja a un estudio, y pasar imágenes de
+> un paciente a otro.
+
 ---
 
 ## 1 · La dirección: una constante, y ningún campo

@@ -11,7 +11,7 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 LISTA=/tmp/claude-501/casos_lista_ec2.txt
-LOG=/tmp/claude-501/suite_ec2.log
+LOG=/tmp/claude-501/suite_ec2f.log
 MD5A=$(md5 -q index.html)
 
 verificar_pendrive() {
