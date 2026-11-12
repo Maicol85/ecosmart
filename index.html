@@ -173296,8 +173296,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-0027';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794454035301;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-0105';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794456309573;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173383,7 +173383,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-0027</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-0105</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -174460,7 +174460,14 @@ function clnkEspacio(usados, tope) {
   if (!isFinite(u) || !isFinite(t) || t <= 0 || u < 0) return null;
   var libre = t - u;
   var frac = u / t;
-  if (frac >= CLNK_ESP_ROJO || libre <= CLNK_ESP_PISO) {
+  /* ⚠️ EL PISO EN BYTES SÓLO MANDA SI EL TOPE ES GRANDE FRENTE A ÉL, Y ESO LO DESTAPÓ UN CASO
+     VIEJO: con un tope chico —un conector que informe 1 MB, o la respuesta recortada de una
+     prueba— el piso daba «casi sin lugar» sobre un conector VACÍO, porque 1 MB libre es menos
+     que los 32 MB del piso. Medido: TC-841 recibía «usó 0 KB de 0 KB» con el aviso rojo puesto.
+     El piso existe para «queda muy poco espacio ABSOLUTO», que es una pregunta que sólo tiene
+     sentido cuando el tope da para varias imágenes; por debajo de eso el porcentaje es la única
+     medida buena. */
+  if (frac >= CLNK_ESP_ROJO || (libre <= CLNK_ESP_PISO && t > CLNK_ESP_PISO * 2)) {
     return { nivel: 'rojo', txt:
       'CeiboLink está casi sin lugar: usó ' + _clnkBytes(u) + ' de ' + _clnkBytes(t) + '. ' +
       'Cuando se llene, el ECÓGRAFO va a rechazar los envíos y el aviso lo vas a ver en el ' +
@@ -174530,16 +174537,25 @@ async function clnkLeerEstado() {
   }
   var d = r.datos || {};
   var vinculado = clnkVinculado();
+  /* ⚠️ LA VERSIÓN SE DICE SIEMPRE QUE EL CONECTOR CONTESTE, vinculado o no, y eso lo destapó un
+     caso viejo: la primera versión de esta cabecera la publicaba sólo en la rama «Conectado», y
+     sin vincular el panel dejaba de decirla —la tenía el panel anterior, que la imprimía en su
+     bloque de estado en los dos estados—. Es el dato que dice si el conector es VIEJO, y de él
+     dependen las dos partes que el panel esconde contra un 1.0: perderlo es perder el único
+     diagnóstico que el médico puede leer antes de autorizar nada. */
+  var vers = String(d.version || '') ? ('v' + String(d.version)) : '';
   if (!vinculado) {
-    _clnkPintarLuz('var(--amber, #d98c00)', 'Sin vincular', 'falta autorizar este navegador');
+    _clnkPintarLuz('var(--amber, #d98c00)', 'Sin vincular',
+      ('falta autorizar este navegador' + (vers ? ' · ' + vers : '')));
   } else if (!d.orthanc_vivo) {
     /* ⚠️ «CONECTADO» CON EL RECEPTOR CAÍDO ES UNA LUZ QUE MIENTE. El canal contesta, así que
        el panel funciona entero, pero NO van a entrar imágenes nuevas: eso es lo que el médico
        necesita saber de un vistazo, y en el panel anterior vivía en la cuarta línea de un
        bloque de texto corrido. */
-    _clnkPintarLuz('var(--amber, #d98c00)', 'Conectado', 'pero no está recibiendo imágenes');
+    _clnkPintarLuz('var(--amber, #d98c00)', 'Conectado',
+      ('pero no está recibiendo imágenes' + (vers ? ' · ' + vers : '')));
   } else {
-    _clnkPintarLuz('var(--green, #2e9e5b)', 'Conectado', 'v' + String(d.version || '—'));
+    _clnkPintarLuz('var(--green, #2e9e5b)', 'Conectado', vers || '—');
   }
   /* ══ LOS TRES NÚMEROS ══ */
   if (nums) {

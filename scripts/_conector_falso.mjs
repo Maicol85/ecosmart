@@ -105,6 +105,14 @@ function escenas() {
       img('img_a1', 'eq_3f8a1c', iso(t0 - 30 * MIN), 'imagen', uno),
       img('img_a2', 'eq_3f8a1c', iso(t0),            'imagen', uno),
     ],
+    /* OTRAS DOS DEL MISMO EQUIPO AUTORIZADO, con ids que NO aparecen en ninguna otra escena.
+       Hace falta para probar «si llegan NUEVAS, vuelve a avisar»: el aviso no vuelve por las
+       mismas imagenes en la misma sesion, asi que una escena que reuse img_a1 da un rojo sobre
+       una app que se porta bien -- lo pago TC-847 con la escena dosEnvios. */
+    masNuevas: () => [
+      img('img_c1', 'eq_3f8a1c', iso(t0 + 60000), 'imagen', uno),
+      img('img_c2', 'eq_3f8a1c', iso(t0 + 72000), 'imagen', uno),
+    ],
     /* UNA SOLA, de 16 MB, para la prueba de memoria. */
     grande: () => [
       img('img_g1', 'eq_3f8a1c', iso(t0), 'video',
