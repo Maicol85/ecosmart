@@ -120,3 +120,142 @@ export function dicomSintetico(op) {
   out.set(fin, p);
   return out;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   DICOM SIN COMPRIMIR (ECO-CONECTOR-3)
+   ══════════════════════════════════════════════════════════════════════════════════════════
+
+   ⚠️ EL PIXEL DATA NO VA ENCAPSULADO, Y ESA ES TODA LA DIFERENCIA DE FORMA con `dicomSintetico`.
+   En las sintaxis nativas —Explicit VR LE (1.2.840.10008.1.2.1) e Implicit VR LE
+   (1.2.840.10008.1.2)— el elemento (7FE0,0010) trae su LONGITUD REAL y adentro estan los
+   pixeles crudos, uno detras de otro: filas x columnas x muestras x bytes-por-muestra x cuadros.
+   No hay tabla de offsets ni fragmentos, asi que un lector que de por sentado el encapsulado
+   —como el de la app hasta esta tanda— tira «el pixel data no viene encapsulado» y se planta.
+
+   ⚠️ EL META-GRUPO SIEMPRE ES EXPLICITO, sea cual sea la sintaxis del dataset. Es lo que dice la
+   norma y lo que el lector de la app ya asume al recorrer el grupo 0002: si el meta tambien
+   cambiara de forma, no habria manera de leer la sintaxis que dice como leer el resto.
+
+   ⚠️ EN IMPLICITO NO HAY CAMPO VR: cada elemento es etiqueta (4 bytes) + longitud (4 bytes) +
+   valor. El VR se deduce de un diccionario, que esta funcion no necesita porque ESCRIBE: lo que
+   le hace falta al lector de la app es saber de antemano que ahi no hay dos letras.
+
+   Nada de lo que sale de aca es de ninguna persona: los pixeles son una rampa calculada y el
+   nombre, cuando se pide, es el mismo inventado de arriba. */
+
+const TS_EXPL_LE = '1.2.840.10008.1.2.1';
+const TS_IMPL_LE = '1.2.840.10008.1.2';
+
+/* Un elemento del dataset, en la forma que corresponda a la sintaxis. */
+function elDS(g, e, vr, val, implicito) {
+  if (implicito) return [].concat(u16(g), u16(e), u32(val.length), val);
+  return el(g, e, vr, val);
+}
+
+/* Los pixeles: una rampa determinista, distinta por cuadro, para que dos cuadros no salgan
+   iguales y una prueba de cineloop pueda ver que avanza. Se arma sobre un Uint8Array y no sobre
+   un array de numeros: un multicuadro de 16 bits son decenas de MB y en un array de JavaScript
+   serian cientos. */
+function pixelesRampa(filas, cols, cuadros, muestras, bytesPorMuestra) {
+  const porCuadro = filas * cols * muestras * bytesPorMuestra;
+  const out = new Uint8Array(porCuadro * cuadros);
+  let p = 0;
+  for (let f = 0; f < cuadros; f++) {
+    for (let y = 0; y < filas; y++) {
+      for (let x = 0; x < cols; x++) {
+        for (let m = 0; m < muestras; m++) {
+          const v = (x * 3 + y * 5 + f * 17 + m * 41) & 0xFFFF;
+          if (bytesPorMuestra === 2) { out[p++] = v & 255; out[p++] = (v >> 8) & 255; }
+          else out[p++] = v & 255;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Arma un DICOM Parte 10 con pixel data SIN COMPRIMIR.
+ *
+ * op.implicito  — true para Implicit VR LE; por omision, Explicit VR LE.
+ * op.filas      — alto en pixeles (16 por omision).
+ * op.cols       — ancho en pixeles (16 por omision).
+ * op.cuadros    — cuantos cuadros. Mas de uno lo convierte en cineloop.
+ * op.bits       — 8 o 16 bits por muestra (8 por omision).
+ * op.color      — true para RGB (tres muestras por pixel); por omision, monocromo.
+ * op.paciente   — igual que en `dicomSintetico`, todo inventado y todo opcional.
+ */
+export function dicomNativo(op) {
+  const o = op || {};
+  const imp = !!o.implicito;
+  const filas = o.filas || 16, cols = o.cols || 16;
+  const cuadros = o.cuadros || 1;
+  const bits = (o.bits === 16) ? 16 : 8;
+  const muestras = o.color ? 3 : 1;
+  const bpm = bits / 8;
+  const pac = o.paciente || {};
+
+  let b = new Array(128).fill(0);
+  b = b.concat(txt('DICM'));
+  /* El meta-grupo, SIEMPRE explicito. */
+  b = b.concat(el(0x0002, 0x0002, 'UI',
+    txt(cuadros > 1 ? '1.2.840.10008.5.1.4.1.1.3.1' : '1.2.840.10008.5.1.4.1.1.6.1')));
+  b = b.concat(el(0x0002, 0x0010, 'UI', txt(imp ? TS_IMPL_LE : TS_EXPL_LE)));
+
+  if (pac.fechaEstudio) b = b.concat(elDS(0x0008, 0x0020, 'DA', txt(pac.fechaEstudio), imp));
+  b = b.concat(elDS(0x0008, 0x0060, 'CS', txt('US'), imp));
+  b = b.concat(elDS(0x0008, 0x0070, 'LO', txt(o.fabricante || 'ECOFALSO'), imp));
+  b = b.concat(elDS(0x0008, 0x1090, 'LO', txt(o.modelo || 'Modelo sin comprimir'), imp));
+  if (pac.nombre)     b = b.concat(elDS(0x0010, 0x0010, 'PN', txt(pac.nombre), imp));
+  if (pac.id)         b = b.concat(elDS(0x0010, 0x0020, 'LO', txt(pac.id), imp));
+  if (pac.nacimiento) b = b.concat(elDS(0x0010, 0x0030, 'DA', txt(pac.nacimiento), imp));
+  if (pac.sexo)       b = b.concat(elDS(0x0010, 0x0040, 'CS', txt(pac.sexo), imp));
+
+  /* El grupo 0028 ENTERO, que es lo que hace falta para interpretar pixeles crudos. Con el
+     encapsulado alcanzaba con filas y columnas porque el JPEG se describe a si mismo. */
+  b = b.concat(elDS(0x0028, 0x0002, 'US', u16(muestras), imp));
+  b = b.concat(elDS(0x0028, 0x0004, 'CS', txt(o.color ? 'RGB' : 'MONOCHROME2'), imp));
+  if (o.color) b = b.concat(elDS(0x0028, 0x0006, 'US', u16(0), imp));   // interleaved
+  if (cuadros > 1) b = b.concat(elDS(0x0028, 0x0008, 'IS', txt(String(cuadros)), imp));
+  b = b.concat(elDS(0x0028, 0x0010, 'US', u16(filas), imp));
+  b = b.concat(elDS(0x0028, 0x0011, 'US', u16(cols), imp));
+  b = b.concat(elDS(0x0028, 0x0100, 'US', u16(bits), imp));
+  b = b.concat(elDS(0x0028, 0x0101, 'US', u16(bits), imp));
+  b = b.concat(elDS(0x0028, 0x0102, 'US', u16(bits - 1), imp));
+  b = b.concat(elDS(0x0028, 0x0103, 'US', u16(0), imp));                // sin signo
+
+  const px = pixelesRampa(filas, cols, cuadros, muestras, bpm);
+  /* La cabecera del pixel data a mano: el valor son megas y pasarlo por `elDS` lo volcaria a un
+     array de numeros. El VR es OW para 16 bits y OB para 8, los dos de longitud larga. */
+  const cab = imp
+    ? [].concat(u16(0x7FE0), u16(0x0010), u32(px.length))
+    : [].concat(u16(0x7FE0), u16(0x0010), txt(bits === 16 ? 'OW' : 'OB'), [0, 0], u32(px.length));
+
+  const out = new Uint8Array(b.length + cab.length + px.length);
+  out.set(b, 0);
+  out.set(cab, b.length);
+  out.set(px, b.length + cab.length);
+  return out;
+}
+
+/**
+ * Un DICOM que DECLARA una sintaxis comprimida que EcoSmart no abre. Sirve para comprobar que el
+ * mensaje de rechazo NOMBRA el formato y que la imagen sigue esperando en el conector.
+ * El pixel data va encapsulado con un fragmento de relleno: lo que se prueba es el rechazo por
+ * sintaxis, que ocurre ANTES de mirar un solo pixel.
+ */
+export function dicomNoSoportado(tsUid) {
+  const ts = tsUid || '1.2.840.10008.1.2.5';     // RLE Lossless
+  let b = new Array(128).fill(0);
+  b = b.concat(txt('DICM'));
+  b = b.concat(el(0x0002, 0x0002, 'UI', txt('1.2.840.10008.5.1.4.1.1.6.1')));
+  b = b.concat(el(0x0002, 0x0010, 'UI', txt(ts)));
+  b = b.concat(el(0x0008, 0x0070, 'LO', txt('ECOFALSO')));
+  b = b.concat(el(0x0028, 0x0010, 'US', u16(16)));
+  b = b.concat(el(0x0028, 0x0011, 'US', u16(16)));
+  b = b.concat([].concat(u16(0x7FE0), u16(0x0010), txt('OB'), [0, 0], u32(0xFFFFFFFF)));
+  b = b.concat([].concat(u16(0xFFFE), u16(0xE000), u32(0)));                  // tabla vacia
+  b = b.concat([].concat(u16(0xFFFE), u16(0xE000), u32(8), [1, 2, 3, 4, 5, 6, 7, 8]));
+  b = b.concat([].concat(u16(0xFFFE), u16(0xE0DD), u32(0)));
+  return new Uint8Array(b);
+}

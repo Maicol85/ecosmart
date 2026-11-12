@@ -43,7 +43,7 @@
 
 import { createServer } from 'node:http';
 import { randomBytes, randomInt } from 'node:crypto';
-import { dicomSintetico, jpegDeTamano, JPEG_1x1 } from './_dicom_falso.mjs';
+import { dicomSintetico, dicomNativo, dicomNoSoportado, jpegDeTamano, JPEG_1x1 } from './_dicom_falso.mjs';
 
 /* ⚠️ EL CODIGO Y EL TOKEN SE GENERAN AL AZAR EN CADA ARRANQUE, Y NO ESTAN ESCRITOS ACA.
    La primera version de este archivo los traia como dos constantes literales, y aunque eran
@@ -135,6 +135,58 @@ function escenas() {
       img('img_a1', 'eq_3f8a1c', iso(t0), 'imagen', uno),
       img('img_q1', 'eq_9b2e7d', iso(t0), 'imagen', uno, true),
     ],
+    /* ══ LAS SIN COMPRIMIR (ECO-CONECTOR-3) ═══════════════════════════════════════════
+       Cuatro formas que un ecografo manda por red y que hasta esta tanda EcoSmart rechazaba:
+       una fija explicita, una fija IMPLICITA -que no trae campo VR y es el otro recorrido del
+       dataset-, una de 16 bits -que necesita ventana para verse- y un MULTICUADRO, que es el
+       caso que decide si el camino del cineloop sirve tambien sin comprimir.
+       Son chicas a proposito: lo que prueban es la FORMA, y un fixture de megas haria lenta a
+       toda la bateria. El peso se mide aparte, con `nativoGrande`. */
+    nativoFija: () => [
+      img('img_n1', 'eq_3f8a1c', iso(t0), 'imagen',
+          dicomNativo({ filas: 32, cols: 32,
+                        paciente: { nombre: 'PRUEBA^SINTETICA', sexo: 'F',
+                                    nacimiento: '19800515', fechaEstudio: '20261112' } })),
+    ],
+    nativoImplicita: () => [
+      img('img_n2', 'eq_3f8a1c', iso(t0), 'imagen',
+          dicomNativo({ implicito: true, filas: 32, cols: 32 })),
+    ],
+    nativoColor: () => [
+      img('img_n3', 'eq_3f8a1c', iso(t0), 'imagen',
+          dicomNativo({ color: true, filas: 24, cols: 24 })),
+    ],
+    nativo16: () => [
+      img('img_n4', 'eq_3f8a1c', iso(t0), 'imagen',
+          dicomNativo({ bits: 16, filas: 24, cols: 24 })),
+    ],
+    nativoCineloop: () => [
+      img('img_n5', 'eq_3f8a1c', iso(t0), 'video',
+          dicomNativo({ filas: 32, cols: 32, cuadros: 5 })),
+    ],
+    /* UN ENVIO MIXTO: dos fijas y un cineloop del mismo equipo, dentro de la ventana. Es la
+       escena de la decision 11 -- un solo aviso con la cuenta POR TIPO. */
+    mixto: () => [
+      img('img_m1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_m2', 'eq_3f8a1c', iso(t0 + 8000),  'imagen', uno),
+      img('img_m3', 'eq_3f8a1c', iso(t0 + 19000), 'video',  loop),
+    ],
+    /* DOS CINELOOPS del mismo envio, para la tira y para el peso. */
+    dosLoops: () => [
+      img('img_l1', 'eq_3f8a1c', iso(t0),         'video', loop),
+      img('img_l2', 'eq_3f8a1c', iso(t0 + 11000), 'video', loop),
+    ],
+    /* UN FORMATO QUE NO SE ABRE: declara RLE. El mensaje tiene que NOMBRARLO y la imagen tiene
+       que SEGUIR en el conector, que es lo que distingue un rechazo de una perdida. */
+    noSoportado: () => [
+      img('img_r1', 'eq_3f8a1c', iso(t0), 'imagen', dicomNoSoportado()),
+    ],
+    /* UN MULTICUADRO SIN COMPRIMIR GRANDE, para medir el pico de memoria y el tope: 512x512,
+       monocromo de 8 bits, 60 cuadros = 15,7 MB de pixeles crudos. */
+    nativoGrande: () => [
+      img('img_ng', 'eq_3f8a1c', iso(t0), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 60 })),
+    ],
     vacio: () => [],
   };
 }
@@ -178,6 +230,7 @@ function escenarioDeFabrica() {
     orthancCaido: false,        // toda ruta con token responde 503
     cuarentena: false,          // las rutas de equipo responden 409
     errorDePedido: null,        // texto: toda ruta con token responde 400 con ese mensaje
+    confirmarFalla: false,      // la confirmacion responde 503 SIN borrar: la imagen se queda
 
     conexion: {
       puerto_dicom: 4242,
@@ -549,6 +602,14 @@ export function servirConectorFalso(opciones) {
           if (k < 0) { err(rq, 404, 'no_encontrado', 'Esa imagen no existe.'); return; }
           if (S.imagenes[k]._cuarentena) {
             err(rq, 409, 'en_cuarentena', 'Esa imagen es de un equipo que espera tu decision.');
+            return;
+          }
+          /* ** LA CONFIRMACION QUE FALLA, Y NO BORRA. Es la mitad que importa de este escenario:
+             EcoSmart tiene que dejar el id anotado para reintentar, y la imagen tiene que SEGUIR
+             en la lista -- si el falso la sacara igual, un caso que mire la lista no podria
+             distinguir «no se dio por borrada» de «se borro». */
+          if (S.confirmarFalla) {
+            err(rq, 503, 'no_disponible', 'El almacen no responde. Volve a intentar.');
             return;
           }
           S.imagenes.splice(k, 1);
