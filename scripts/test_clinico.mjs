@@ -135168,9 +135168,22 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       R.g2_detecta = clnkAvisoHayOtraPregunta();
       R.g2_noAbre = (await clnkRevisarImagenes()) === false;
       R.g2_noVisible = !visible();
-      /* Y el de equipo nuevo tampoco. */
-      await ctrl({ reset:true, equipos:2 });
+      /* Y el de equipo nuevo tampoco.
+         ** EL ESCENARIO TRAE UN TERCER EQUIPO PENDIENTE, con un id que no se aviso todavia: el
+         aviso de equipo nuevo no vuelve por el MISMO equipo en la misma sesion, asi que con dos
+         equipos el bloque (F) ya habia avisado del pendiente y este medía «no hay ninguno» en
+         vez de «hay uno y no se abre». Lo destapo el barrido de mutaciones. */
+      await ctrl({ reset:true, equipos:3 });
       R.g2_eqNoAbre = (await clnkAvisarEquipoNuevo()) === false;
+      R.g2_eqNoVisible = !visible();
+      /* ** Y EL DETECTOR FALLA CERRADO: ante un error contesta que SI hay otra pregunta, asi que
+         el aviso se posterga. Ninguna condicion lo hacia LANZAR, asi que cambiar su catch para
+         que dijera «no hay» pasaba en verde -- lo destapo el barrido-. Se fuerza desde afuera. */
+      const rectOrig = Element.prototype.getBoundingClientRect;
+      try {
+        Element.prototype.getBoundingClientRect = function () { throw new Error('a proposito'); };
+        R.g2_conError = clnkAvisoHayOtraPregunta();
+      } finally { Element.prototype.getBoundingClientRect = rectOrig; }
       _neCerrar();
       await new Promise(r => setTimeout(r, 200));
       /* CONTROL POSITIVO: cerrada la otra pregunta, el aviso SI sale. */
@@ -135231,7 +135244,9 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       ['(G2) DENOMINADOR: sin otra pregunta, nada bloquea',   R.g2_sinOtra === '', R.g2_sinOtra],
       ['(G2) con el modal de Nuevo estudio abierto, lo detecta', R.g2_detecta === 'modal-nuevo-estudio', R.g2_detecta],
       ['(G2) y el aviso NO se abre encima',                   R.g2_noAbre && R.g2_noVisible, R.g2_noAbre + '/' + R.g2_noVisible],
-      ['(G2) el de equipo nuevo tampoco',                     R.g2_eqNoAbre === true, R.g2_eqNoAbre],
+      ['(G2) el de equipo nuevo tampoco',                     R.g2_eqNoAbre === true && R.g2_eqNoVisible,
+        R.g2_eqNoAbre + '/' + R.g2_eqNoVisible],
+      ['(G2) y el detector FALLA CERRADO ante un error',      R.g2_conError === 'error', R.g2_conError],
       ['(G2) CONTROL POSITIVO: cerrada la otra, el aviso SI sale', R.g2_vuelve === true && R.g2_vuelveVisible, R.g2_vuelve],
       ['(H) los tres botones NO llevan onclick en el marcado', R.h_sinInline === 0, R.h_sinInline],
       ['(H) y el modal de Nuevo estudio sigue con los suyos', String(R.h_neIntacto).indexOf('neGuardarYContinuar') > -1, R.h_neIntacto]

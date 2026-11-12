@@ -145,8 +145,15 @@ function equiposDe(cuantos) {
               apodo: 'GE del consultorio', imagenes: 12, ultimo_envio: '2026-11-10T21:44:52Z' };
   const B = { id: 'eq_9b2e7d', estado: 'pendiente', aet: 'ECOFALSO', ip: '127.0.0.1',
               apodo: null, imagenes: 4, ultimo_envio: '2026-11-10T21:46:03Z' };
+  /* ** UN TERCERO, PENDIENTE Y CON UN id PROPIO. El aviso de equipo nuevo no vuelve por el
+     MISMO equipo en la misma sesion, asi que un bloque que necesita «hay uno esperando y no se
+     aviso todavia» no lo puede conseguir reusando B -- lo pago TC-847 (G2), cuya mutacion
+     sobrevivia porque el bloque anterior ya habia avisado de B. */
+  const C = { id: 'eq_tercero', estado: 'pendiente', aet: 'ECOTERCERO', ip: '127.0.0.2',
+              apodo: null, imagenes: 2, ultimo_envio: '2026-11-10T21:50:00Z' };
   if (cuantos === 0) return [];
   if (cuantos === 1) return [A];
+  if (cuantos >= 3) return [A, B, C];
   return [A, B];
 }
 
