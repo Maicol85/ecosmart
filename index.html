@@ -173296,8 +173296,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-0105';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794456309573;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-0158';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794459528381;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173383,7 +173383,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-0105</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-0158</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -175153,6 +175153,29 @@ var _clnkAvisoAbierto = false;
 
 /* Abre el modal. `bot` son hasta tres botones `{ txt, fn }`; el primero sale primario. Un botón
    sin texto se esconde, así que el mismo marcado sirve para dos y para tres salidas. */
+/* ⚠️ EL AVISO NO SE ABRE ENCIMA DE OTRA PREGUNTA, Y ESTO SALIÓ DE REVISAR EL PROPIO DIFF.
+   El sondeo corre en segundo plano, así que puede querer abrir el aviso justo cuando el médico
+   está contestando «¿guardás antes de cerrar?» —el modal de «Nuevo estudio»— o eligiendo un
+   documento. Los dos modales viven con el mismo `z-index` y el de este aviso está DESPUÉS en el
+   documento, así que ganaba y le tapaba al médico la pregunta que decide si pierde un estudio.
+   Con el aviso postergado no se pierde nada: las imágenes siguen esperando en el conector y el
+   próximo turno del sondeo vuelve a ofrecerlas, que es exactamente lo que pasa al cerrarlo.
+   Se mira la LISTA de los modales que hacen una pregunta, y no «cualquier cosa con z-index»: la
+   app tiene decenas de superficies flotantes —el visor, los paneles, el 3D— y postergar el aviso
+   por cualquiera de ellas lo volvería un aviso que no llega nunca. */
+var CLNK_AV_BLOQUEANTES = ['modal-nuevo-estudio', 'doc-ov', 'modal-def-pwd', 'login-overlay'];
+
+function clnkAvisoHayOtraPregunta() {
+  try {
+    for (var i = 0; i < CLNK_AV_BLOQUEANTES.length; i++) {
+      var e = document.getElementById(CLNK_AV_BLOQUEANTES[i]);
+      if (e && e.getBoundingClientRect().height > 0) return CLNK_AV_BLOQUEANTES[i];
+    }
+    return '';
+  } catch (e) { return 'error'; }      // falla CERRADO: ante la duda, no se superpone
+}
+window.clnkAvisoHayOtraPregunta = clnkAvisoHayOtraPregunta;
+
 function clnkAvisoAbrir(titulo, texto, bot) {
   var ov = document.getElementById('clnkav-ov');
   var t = document.getElementById('clnkav-title');
@@ -175303,6 +175326,7 @@ function _clnkHora(ms) {
 /* ══ EL AVISO DE IMÁGENES ════════════════════════════════════════════════════ */
 async function clnkRevisarImagenes() {
   if (_clnkAvisoAbierto) return false;        // ya hay una pregunta en pantalla
+  if (clnkAvisoHayOtraPregunta()) return false;   // ni encima de otra: ver `clnkAvisoAbrir`
   var r = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
   if (!r.vigente || !r.ok) return false;
   var lista = (r.datos && Array.isArray(r.datos.imagenes)) ? r.datos.imagenes : [];
@@ -175341,6 +175365,7 @@ var _clnkEqAvisados = Object.create(null);
 
 async function clnkAvisarEquipoNuevo() {
   if (_clnkAvisoAbierto) return false;
+  if (clnkAvisoHayOtraPregunta()) return false;   // ver `clnkAvisoAbrir`
   var r = await clnkPedir('/v1/equipos', { conToken: true, espera: 5000 });
   if (!r.vigente || !r.ok) return false;
   var l = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];

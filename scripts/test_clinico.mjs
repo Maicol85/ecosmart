@@ -134824,6 +134824,24 @@ caso('TC-845', 'El sondeo: cero pedidos apagado, sin vincular y con la pestania 
       /* Y con el estado en CERO pendientes NO pide la lista: es la mitad barata del diseno. */
       R.c_noPidioLista = !pedidos.some(u => u.indexOf('/v1/imagenes') > -1);
 
+      /* -- (C2) VINCULADO Y A LA VISTA, PERO EL MODULO APAGADO: el predicado tiene que decir NO.
+            ** ES UNA ESCENA PROPIA Y LO DESTAPO EL BARRIDO DE MUTACIONES: el bloque (A) apaga el
+            modulo Y borra el token a la vez, asi que sacarle al predicado la pregunta por el
+            interruptor pasaba en verde -- el token faltante lo salvaba. Y lo mismo con el MODO:
+            Basico tambien entra por clnkActivo(). -- */
+      clnkToggle(false);
+      R.c2_debeApagado = clnkSondeoDebe();
+      R.c2_timerApagado = clnkSondeoSync();
+      clnkToggle(true);
+      cfgSetMode('basico');
+      R.c2_debeBasico = clnkSondeoDebe();
+      R.c2_timerBasico = clnkSondeoSync();
+      cfgSetMode('avanzado');
+      pedidos = [];
+      await _clnkSondear();
+      await new Promise(r => setTimeout(r, 300));
+      R.c2_vuelve = clnkSondeoDebe();
+
       /* -- (D) PESTANIA OCULTA: el predicado dice NO y el temporizador se apaga -- */
       Object.defineProperty(Document.prototype, 'hidden', { configurable:true, get: () => true });
       R.d_debe = clnkSondeoDebe();
@@ -134866,11 +134884,23 @@ caso('TC-845', 'El sondeo: cero pedidos apagado, sin vincular y con la pestania 
       R.g_debeDespues = clnkSondeoDebe();
       R.g_timerDespues = clnkSondeoSync();
 
-      /* -- (H) el sincronizador ES IDEMPOTENTE: llamarlo cinco veces no apila temporizadores -- */
+      /* -- (H) el sincronizador ES IDEMPOTENTE: llamarlo cinco veces no apila temporizadores.
+            ** SE CUENTA CUANTOS setInterval SE CREAN, y lo destapo el barrido: mirar que la
+            funcion devuelva true dos veces no ve la diferencia entre UN temporizador y CINCO,
+            y cinco son cinco veces los pedidos y cinco avisos por la misma imagen. -- */
       await ctrl({ reset:true, equipos:1, escena:'vacio' });
       localStorage.setItem('ett_ceibolink_token', 'x'.repeat(64));
-      clnkToggle(true);
-      for (let i = 0; i < 5; i++) clnkSondeoSync();
+      clnkToggle(false);                       // deja el temporizador en cero antes de contar
+      clnkSondeoSync();
+      const siOrig = window.setInterval, ciOrig = window.clearInterval;
+      let creados = 0, limpiados = 0;
+      window.setInterval = function () { creados++; return siOrig.apply(window, arguments); };
+      window.clearInterval = function () { limpiados++; return ciOrig.apply(window, arguments); };
+      try {
+        clnkToggle(true);
+        for (let i = 0; i < 5; i++) clnkSondeoSync();
+        R.h_creados = creados;
+      } finally { window.setInterval = siOrig; window.clearInterval = ciOrig; }
       R.h_unoSolo = (function(){ const a = clnkSondeoSync(); const b = clnkSondeoSync();
         return a === true && b === true; })();
     } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
@@ -134916,7 +134946,13 @@ caso('TC-845', 'El sondeo: cero pedidos apagado, sin vincular y con la pestania 
       ['(G) y el mensaje manda a vincular de nuevo',           R.g_mensaje, R.g_mensaje],
       ['(G) sin token el sondeo deja de corresponder',         R.g_debeDespues === false, R.g_debeDespues],
       ['(G) y su temporizador se apaga solo',                  R.g_timerDespues === false, R.g_timerDespues],
-      ['(H) el sincronizador es idempotente',                  R.h_unoSolo === true, R.h_unoSolo]
+      ['(C2) VINCULADO pero el modulo APAGADO: el predicado dice NO',
+        R.c2_debeApagado === false && R.c2_timerApagado === false, R.c2_debeApagado + '/' + R.c2_timerApagado],
+      ['(C2) y en Modo BASICO tambien',                        R.c2_debeBasico === false && R.c2_timerBasico === false,
+        R.c2_debeBasico + '/' + R.c2_timerBasico],
+      ['(C2) CONTROL POSITIVO: al volver a Avanzado corresponde otra vez', R.c2_vuelve === true, R.c2_vuelve],
+      ['(H) el sincronizador es idempotente',                  R.h_unoSolo === true, R.h_unoSolo],
+      ['(H) y NO apila temporizadores: cinco llamadas, UNO',   R.h_creados === 1, 'setInterval x' + R.h_creados]
     ] };
   })();
 `);
@@ -135010,8 +135046,19 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
     const onOrig = localStorage.getItem('ett_ceibolink_on');
     const tkOrig = localStorage.getItem('ett_ceibolink_token');
     const baseOrig = window.__clnkBaseTest;
-    const toastOrig = window.toast;
+    const toastOrig = window.toast, confOrig = window.confirm, alertOrig = window.alert;
     window.toast = () => {};
+    /* ** EL confirm Y EL alert SE SUSTITUYEN, y lo destapo el barrido de mutaciones: cualquier
+       camino que esta escena toque y que abra un confirm NATIVO cuelga el caso hasta el tope del
+       runner -- medido, una mutacion tardaba 900 s en vez de ocho segundos--.
+       ** Y DEVUELVE SI, NO NO. La primera version devolvia false «para que el caso no descarte
+       nada por accidente», y eso NEUTRALIZABA la mutacion que hace que cerrar el aviso descarte:
+       con el confirm diciendo no, la mutacion no borraba nada y sobrevivia. Diciendo si, la
+       condicion «cerrar NO confirmo ni borro nada» la caza. Esta escena no toca ningun camino
+       que abra un confirm legitimo: las dos acciones de equipo que lo abren -bloquear y
+       olvidar- no se usan aca, y el aviso de equipo nuevo se cierra con «Mas tarde». */
+    window.confirm = () => true;
+    window.alert = () => {};
     const EL = id => document.getElementById(id);
     const ctrl = (b) => fetch(F.base + '/_control', { method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify(b) }).then(r => r.json());
@@ -135097,10 +135144,40 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       const e2 = await ctrl({});
       R.f_sigueEsperando = (e2.escenario.equipos || []).join(' ').indexOf('eq_9b2e7d:pendiente') > -1;
 
-      /* -- (G) UNA SOLA PREGUNTA A LA VEZ: con el aviso abierto no se abre otro encima -- */
-      await ctrl({ reset:true, equipos:1, escena:'unEnvio' });
+      /* -- (G) UNA SOLA PREGUNTA A LA VEZ: con el aviso abierto no se abre otro encima --
+            ** LA ESCENA TRAE IDS NO AVISADOS, y lo destapo el barrido de mutaciones DOS VECES:
+            con unEnvio los ids ya estaban avisados por (A) y con masNuevas por (D), asi que el
+            revisor devolvia false por ESO y no por el guard -- sacarle el guard pasaba en verde
+            igual. La escena unaSuelta trae un id que no aparece en ninguna otra. -- */
+      await ctrl({ reset:true, equipos:1, escena:'unaSuelta' });
       clnkAvisoAbrir('X', 'Y', [{ txt:'a', fn: () => {} }]);
       R.g_noSeApila = (await clnkRevisarImagenes()) === false;
+      clnkAvisoCerrar();
+
+      /* -- (G2) NI ENCIMA DE OTRA PREGUNTA. El sondeo corre en segundo plano, asi que puede
+            querer abrir el aviso justo cuando el medico esta contestando «¿guardas antes de
+            cerrar?». Los dos modales viven con el mismo z-index y el del aviso esta DESPUES en
+            el documento, asi que ganaba y le tapaba la pregunta que decide si pierde un estudio.
+            Salio de revisar el propio diff, no de un caso. -- */
+      clnkAvisoCerrar();
+      await ctrl({ reset:true, equipos:1, escena:'unaSuelta' });
+      R.g2_sinOtra = clnkAvisoHayOtraPregunta();
+      /* Se abre el modal de «Nuevo estudio» de verdad, por su puerta. */
+      _neAbrir('nuevo');
+      await new Promise(r => setTimeout(r, 250));
+      R.g2_detecta = clnkAvisoHayOtraPregunta();
+      R.g2_noAbre = (await clnkRevisarImagenes()) === false;
+      R.g2_noVisible = !visible();
+      /* Y el de equipo nuevo tampoco. */
+      await ctrl({ reset:true, equipos:2 });
+      R.g2_eqNoAbre = (await clnkAvisarEquipoNuevo()) === false;
+      _neCerrar();
+      await new Promise(r => setTimeout(r, 200));
+      /* CONTROL POSITIVO: cerrada la otra pregunta, el aviso SI sale. */
+      await ctrl({ reset:true, equipos:1, escena:'unaSuelta' });
+      R.g2_vuelve = await clnkRevisarImagenes();
+      await new Promise(r => setTimeout(r, 300));
+      R.g2_vuelveVisible = visible();
       clnkAvisoCerrar();
 
       /* -- (H) EL MODAL NO TIENE onclick EN EL MARCADO: los asigna la unica puerta -- */
@@ -135123,7 +135200,7 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
             if (typeof cfgRenderModulos === 'function') cfgRenderModulos();
             if (typeof clnkRender === 'function') clnkRender();
             if (typeof clnkSondeoSync === 'function') clnkSondeoSync();
-            window.toast = toastOrig; } catch (e) {}
+            window.toast = toastOrig; window.confirm = confOrig; window.alert = alertOrig; } catch (e) {}
     }
     return { extra: [
       ['sin excepciones',                                     !R.err, R.err],
@@ -135151,6 +135228,11 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       ['(F) que cierra y nada mas',                           R.f_cerro, R.f_cerro],
       ['(F) y el equipo sigue esperando decision',            R.f_sigueEsperando, R.f_sigueEsperando],
       ['(G) UNA pregunta a la vez: no se apila otra encima',  R.g_noSeApila, R.g_noSeApila],
+      ['(G2) DENOMINADOR: sin otra pregunta, nada bloquea',   R.g2_sinOtra === '', R.g2_sinOtra],
+      ['(G2) con el modal de Nuevo estudio abierto, lo detecta', R.g2_detecta === 'modal-nuevo-estudio', R.g2_detecta],
+      ['(G2) y el aviso NO se abre encima',                   R.g2_noAbre && R.g2_noVisible, R.g2_noAbre + '/' + R.g2_noVisible],
+      ['(G2) el de equipo nuevo tampoco',                     R.g2_eqNoAbre === true, R.g2_eqNoAbre],
+      ['(G2) CONTROL POSITIVO: cerrada la otra, el aviso SI sale', R.g2_vuelve === true && R.g2_vuelveVisible, R.g2_vuelve],
       ['(H) los tres botones NO llevan onclick en el marcado', R.h_sinInline === 0, R.h_sinInline],
       ['(H) y el modal de Nuevo estudio sigue con los suyos', String(R.h_neIntacto).indexOf('neGuardarYContinuar') > -1, R.h_neIntacto]
     ] };
@@ -135329,6 +135411,7 @@ caso('TC-849', 'Confirmar a CeiboLink SOLO cuando la imagen quedo escrita: no al
     const EL = id => document.getElementById(id);
     const ctrl = (b) => fetch(F.base + '/_control', { method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify(b) }).then(r => r.json());
+    const JPGMINI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofGh0aHBwcJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPDWy/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/APn+iiigD//Z';
     try {
       window.__clnkBaseTest = F.base;
       cfgSetMode('avanzado'); clnkToggle(true);
@@ -135339,6 +135422,9 @@ caso('TC-849', 'Confirmar a CeiboLink SOLO cuando la imagen quedo escrita: no al
       if (cod) { cod.value = F.codigo; cod.dispatchEvent(new Event('input', { bubbles:true })); await clnkVincular(); }
       await new Promise(r => setTimeout(r, 1300));
       R.vinculado = clnkVinculado() === true;
+      /* El token que el modulo acaba de guardar. Hace falta mas abajo: el bloque (E) lo BORRA a
+         proposito -- es lo que prueba-- y (G) necesita estar vinculado otra vez. */
+      const tkVivo = localStorage.getItem('ett_ceibolink_token');
 
       /* -- (A) EL CONFIRMADOR CORRE Y SACA LAS IMAGENES DEL CONECTOR -- */
       clnkOlvidarPendientes();
@@ -135403,6 +135489,41 @@ caso('TC-849', 'Confirmar a CeiboLink SOLO cuando la imagen quedo escrita: no al
       const e5 = await ctrl({});
       R.e_noToco = (e5.escenario.confirmadas || []).length === 0;
 
+      /* -- (G) Y LO QUE DECIDE ES QUE LA IMAGEN QUEDO ESCRITA, NO QUE EL MEDICO APRETO GUARDAR.
+            ** LO DESTAPO EL BARRIDO DE MUTACIONES: sacarle a la escritura el ok de su
+            llamada pasaba en verde, porque los bloques de arriba llaman al confirmador DIRECTO
+            y no por el camino del guardado. Con el guardado de imagenes APAGADO, la escritura
+            devuelve false y la imagen NO esta en disco: confirmar ahi la borraria del conector
+            sin que exista en ninguna parte. -- */
+      /* ** LA ESCRITURA TIENE QUE LLAMARSE Y DEVOLVER false, Y NO ALCANZA CON APAGAR EL GUARDADO
+         DE IMAGENES: con la casilla apagada la escritura sale ANTES de tocar la base, asi que la
+         confirmacion -que vive dentro del resultado de esa escritura- no corre ni mutada. Medido:
+         con esa version, sacarle la guarda del resultado pasaba en verde. Se sustituye el escritor para que
+         SI se llame y conteste que no pudo, que es lo que pasa con la base bloqueada. */
+      await ctrl({ reset:true, equipos:1, escena:'unEnvio' });
+      /* ** EL TOKEN SE REPONE, y lo destapo el barrido: el bloque (E) lo borro -- es su
+         condicion-- y sin token el confirmador sale temprano SIN pedir nada, asi que la
+         mutacion que confirma de mas no tenia efecto visible y sobrevivia. */
+      if (tkVivo) localStorage.setItem('ett_ceibolink_token', tkVivo);
+      R.g_vinculado = clnkVinculado();
+      const guardarOrig = CeiboImg.guardar;
+      let llamadas = 0;
+      try {
+        CeiboImg.guardar = function () { llamadas++; return Promise.resolve(false); };
+        clnkOlvidarPendientes();
+        window._clnkPorConfirmar.push('img_a1');
+        /* Un slot con algo, o la escritura sale por su otra puerta: la de no hay imagenes. */
+        imgSlots[0] = { dataURL: JPGMINI, ampliada:false, calidad:'media', origen:'ceibolink' };
+        R.g_persistio = await imgPersistir('11111111-2222-3333-4444-555555555555');
+        await new Promise(r => setTimeout(r, 900));
+        R.g_llamo = llamadas;
+        const eg = await ctrl({});
+        R.g_confirmadas = (eg.escenario.confirmadas || []).length;
+        R.g_lista = window._clnkPorConfirmar.length;
+      } finally {
+        try { CeiboImg.guardar = guardarOrig; imgVaciar(); } catch (e) {}
+      }
+
       /* -- (F) LA LISTA VACIA NO MANDA NI UN PEDIDO -- */
       clnkOlvidarPendientes();
       R.f_ok = await clnkConfirmarPersistidas();
@@ -135438,7 +135559,12 @@ caso('TC-849', 'Confirmar a CeiboLink SOLO cuando la imagen quedo escrita: no al
       ['(D) un 404 saca el id sin alarmar al medico',        R.d_lista === 0 && R.d_sinAviso, R.d_lista + '/' + R.d_sinAviso],
       ['(E) SIN VINCULAR no confirma nada',                  R.e_ok === 0 && R.e_noToco, R.e_ok],
       ['(E) y no pierde el id: se reintenta despues',        R.e_lista === 1, R.e_lista],
-      ['(F) con la lista vacia no hace nada',                R.f_ok === 0, R.f_ok]
+      ['(F) con la lista vacia no hace nada',                R.f_ok === 0, R.f_ok],
+      ['DENOMINADOR: el token quedo repuesto para (G)',      R.g_vinculado === true, R.g_vinculado],
+      ['DENOMINADOR: la escritura SE LLAMO',                 R.g_llamo === 1, R.g_llamo],
+      ['(G) y devolvio que NO persistio',                   R.g_persistio === false, R.g_persistio],
+      ['(G) asi que NO se confirmo nada',                    R.g_confirmadas === 0, R.g_confirmadas],
+      ['(G) y el id se QUEDA para cuando si quede escrita',  R.g_lista === 1, R.g_lista]
     ] };
   })();
 `);
@@ -135664,6 +135790,24 @@ caso('TC-851', 'La regla de paciente: con imagenes de CeiboLink se exige nombre 
       R.d_visor = clnkEstudioTieneImagenes();
       R.paso = 'D-ok';
 
+      /* -- (D2) EL PREDICADO FALLA CERRADO: ante un error contesta que SI HAY.
+            ** LO DESTAPO EL BARRIDO: cambiar su catch para que devuelva false pasaba en verde,
+            porque ninguna condicion lo hacia LANZAR. Se fuerza desde afuera, sustituyendo el
+            recorrido de los slots, que es lo unico que puede tirar ahi dentro. Del lado de esta
+            regla, fallar cerrado significa EXIGIR MAS: un catch que dijera false dejaria
+            guardar un estudio con imagenes de un paciente y sin su nombre. -- */
+      imgVaciar(); clnkOlvidarPendientes();
+      R.d2_antes = clnkEstudioTieneImagenes();
+      const someOrig = Array.prototype.some;
+      try {
+        imgSlots[0] = { dataURL: JPG, ampliada:false, calidad:'media', origen:'estudio' };
+        Array.prototype.some = function () { throw new Error('a proposito'); };
+        R.d2_conError = clnkEstudioTieneImagenes();
+      } finally { Array.prototype.some = someOrig; }
+      R.d2_despues = clnkEstudioTieneImagenes();
+      imgVaciar();
+      R.paso = 'D2-ok';
+
       /* -- (E) EL MODAL DE CIERRE: las TRES salidas se mantienen y «Guardar y continuar» queda
             bloqueada sin paciente, con el texto diciendo que las imagenes NO se pierden -- */
       __t.limpiar(); imgVaciar(); clnkOlvidarPendientes();
@@ -135761,6 +135905,9 @@ caso('TC-851', 'La regla de paciente: con imagenes de CeiboLink se exige nombre 
       ['(D) y la marca del slot',                              R.d_porSlot === true, R.d_porSlot],
       ['(D) CONTROL NEGATIVO: una del pendrive no lo activa',  R.d_pendrive === false, R.d_pendrive],
       ['(D) ni una captura del visor',                         R.d_visor === false, R.d_visor],
+      ['DENOMINADOR: sin imagenes el predicado dice NO',       R.d2_antes === false, R.d2_antes],
+      ['(D2) FALLA CERRADO: con un error adentro contesta SI', R.d2_conError === true, R.d2_conError],
+      ['(D2) y sin el error vuelve a contestar NO',            R.d2_despues === false, R.d2_despues],
       ['(E) el modal de cierre abre',                          R.e_abierto === true, R.e_abierto],
       ['(E) con sus TRES salidas',                             R.e_tresSalidas === 3, R.e_tresSalidas],
       ['(E) Guardar y continuar queda BLOQUEADA',              R.e_guardarApagado === true, R.e_guardarApagado],

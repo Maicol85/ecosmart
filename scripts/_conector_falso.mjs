@@ -118,6 +118,18 @@ function escenas() {
       img('img_g1', 'eq_3f8a1c', iso(t0), 'video',
           dicomSintetico({ frags: [jpegDeTamano(16 * 1024 * 1024)] })),
     ],
+    /* UNA MAS, con un id que no aparece en ninguna otra escena. Hace falta porque el aviso no
+       vuelve por las mismas imagenes EN LA MISMA SESION, y la suite corre todos los casos en UNA
+       pagina: un bloque que reusa una escena ya avisada recibe «no hay nada que avisar» y mide
+       otra cosa. Lo pago TC-847 dos veces, con dosEnvios y despues con masNuevas. */
+    unaSuelta: () => [ img('img_z1', 'eq_3f8a1c', iso(t0 + 90000), 'imagen', uno) ],
+    /* DOS de 16 MB del mismo envio, para saber si el pico de memoria se ACUMULA o si el camino
+       de a una suelta el buffer de la anterior. Es la pregunta que la orden hace. */
+    dosGrandes: () => {
+      const g = dicomSintetico({ frags: [jpegDeTamano(16 * 1024 * 1024)] });
+      return [img('img_g1', 'eq_3f8a1c', iso(t0), 'imagen', g),
+              img('img_g2', 'eq_3f8a1c', iso(t0 + 20000), 'imagen', g)];
+    },
     /* UNA EN CUARENTENA: su archivo y su confirmacion dan 409, y NO sale en la lista (§3.8). */
     cuarentena: () => [
       img('img_a1', 'eq_3f8a1c', iso(t0), 'imagen', uno),
