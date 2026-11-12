@@ -1,3 +1,87 @@
+## ECO-CONECTOR-1 — el panel de CeiboLink reemplaza al de Orthanc (2026-11-11)
+
+**CINCO commits.** `b756c6b` (1, retira el panel de Orthanc entero) · `1462e3f` (2, la capa de
+comunicación) · `32a0fad` (3, la tarjeta de CeiboLink) · `16ea42c` (4, el conector falso y los diez
+casos, con el **sellado**) · **éste** (5, la documentación, que no toca `index.html`).
+Sello **`v20261111-2208`**, md5 **`60ed9c1c`**. Línea base: **`e9fb2d0`**, el cierre de PANT-37,
+sello `v20261111-1450`, md5 `3f5893e7`, **verificado al abrir** con `git status`, `git log -1`,
+`wc -l`, `wc -c` y `md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras**,
+por trigésima cuarta vez seguida, y no había ningún archivo **rastreado** modificado —los `??` son
+demos y notas preexistentes de tandas anteriores—.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+### Qué hizo
+
+Retira el panel «Conexión por red (DICOM)» completo —que hablaba con un Orthanc que el médico
+tenía que instalar y configurar a mano, y que nunca le funcionó— y pone en su lugar la tarjeta de
+**CeiboLink**: el programa local que recibe las imágenes del ecógrafo por DICOM y las entrega a
+EcoSmart por un canal de loopback. Orthanc sigue existiendo pero **adentro** de CeiboLink, y el
+médico no lo ve.
+
+Las nueve partes de la tarjeta: el interruptor, el estado con su luz, la vinculación de seis
+dígitos, «Desvincular EcoSmart», los datos para configurar el ecógrafo, la lista de equipos con su
+apodo editable y sus tres decisiones, los dos ajustes, la ayuda de las tres vías y el botón de
+descarga deshabilitado. Más la capa de comunicación única y el conector falso de las pruebas.
+
+**Nada de esto llega al papel**: no escribe un campo, no guarda nada, y no toca el informe, el
+EN SUMA, el PDF, el PPT ni el Excel.
+
+### Qué quedó afuera, a propósito
+
+Es ECO-CONECTOR-2: el aviso de imágenes con sus tres botones, el sondeo en segundo plano, adjuntar
+desde Guardados y la regla de estudio sin paciente. La carga manual de DICOM desde pendrive **no se
+tocó**.
+
+### Qué quedó declarado
+
+**EC1-a** a **EC1-j** en `docs/PENDIENTES.md`: dos textos provisorios (dónde ve el médico el
+código, y las tres vías de conexión), tres decisiones del médico (el estado que mira el token local
+y no el del conector, el token que no caduca, y el ayudante que se solapa con la capa), los seis
+ayudantes sin consumidor que ninguna herramienta avisa, lo que no se construyó, el alcance de lo
+verificado —ni el conector real ni el ecógrafo real entraron—, el enganche de repintado sin
+reemplazo, y el aviso de Semgrep que es un falso positivo.
+
+### Casos
+
+**844 → 849.** Seis casos de Orthanc decididos uno por uno y **ninguno borrado en silencio**:
+TC-220, TC-221, TC-222, TC-230 y TC-231 **retirados** con su motivo y su sucesor escritos en el
+lugar donde vivían; **TC-223 reescrito conservando su número**. Diez nuevos, **TC-832 a TC-841**.
+**TC-161 adaptado.**
+
+### Lo medido
+
+- **Suite 845/849** en dieciséis lotes, una sola pasada sobre el árbol sellado, 849 ejecutados,
+  md5 idéntico antes y después, pendrive verificado dieciocho veces. Rojos: **TC-376, TC-390 y
+  TC-406** —tres de los cuatro de siempre, porque **TC-223 pasó a verde**— más **TC-753**, que
+  tenía razón y se corrigió en el commit de documentación.
+- **Los diez nuevos caen 0/10 contra `e9fb2d0`** y **ninguno por excepción**.
+- **3/3 mutaciones muertas**, en worktree y nunca sobre el vivo.
+- **Semgrep 126/0** —un aviso sobre 125, falso positivo, identificado por diff de hallazgos—,
+  **sin huérfanos nuevos**, **17 bloques de JS inline y todos parsean**, **celular 59 a 360 px y 67
+  a 390 con 18 ALTA en cada ancho**: la línea base exacta.
+- **Excel en 457 columnas y cero campos guardados nuevos.**
+
+### Las trampas que esta tanda pagó
+
+1. **El script de lotes derivado de PANT-37 corría con un `cd` relativo**, y lanzado desde fuera de
+   `scripts/` apuntaba a otro directorio: **0 de 844 casos ejecutados con código de salida 0**, que
+   se lee igual que «todo bien». El contador del arnés lo dijo; sin él, la línea base habría sido
+   un número inventado.
+2. **`--ok` y `--bad` no existen como variables de CSS en esta app** (son `--green` y `--red`). Es
+   la trampa que POP-B pagó con `--amber` y PANT-13 con `--card`.
+3. **Siete acentos graves dentro de mis propios comentarios** en los cuerpos de los casos, más dos
+   en TC-841 y tres en TC-223. Decimonovena tanda seguida.
+4. **Esconder los bloques dependientes borraba el marcado estático de «Ajustes»**, y se vio **en el
+   lote y no aislado**: el caso que reventaba no era el que lo causaba.
+5. **Dos lápidas mías traían los literales que TC-832 vigila.** Una búsqueda sobre el archivo no
+   distingue un comentario de una lectura.
+6. **Los diez casos caían por `ReferenceError` contra el árbol anterior**, nueve veces el mismo, y
+   eso deja las condiciones de abajo en falso sin haber medido nada.
+7. **Mi propio medidor de acentos graves no los veía**: contaba los que hay entre la apertura y el
+   primer cierre, y un acento de más mueve el cierre. Se cuenta sobre el trozo entero del caso.
+8. **El control del conector falso aplicaba el reinicio del escenario en una rama alternativa**,
+   así que un pedido con dos claves juntas ignoraba la segunda en silencio.
+
 ## PANT-37 — el «What if» de la estenosis aórtica (2026-11-11)
 
 **SEIS commits.** `5e14dc9` (1, el inventario de solo lectura) · `04ab12b` (2, el botón, la

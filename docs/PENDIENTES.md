@@ -40,6 +40,179 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## ECO-CONECTOR-1 — el panel de CeiboLink (2026-11-11)
+
+> El mapa está en **`docs/mapa/ceibolink-panel.md`**. Lo que sigue es lo que quedó **abierto**:
+> dos textos provisorios, tres decisiones del médico, dos cosas declaradas y no corregidas, y
+> el alcance de lo que se verificó.
+
+## EC1-a · DECISIÓN DEL MÉDICO: dónde ve el código de vinculación (2026-11-11)
+
+**Está pendiente y lo dice la propia orden.** Hoy CeiboLink muestra el código de seis dígitos por
+la consola y con un subcomando, y eso no le sirve al médico: no va a abrir una terminal.
+
+Mientras se decida, el panel dice **«El código lo muestra CeiboLink.»**, que es verdad y no
+promete dónde. El texto sale de **una** constante (`CLNK_TXT_DONDE_CODIGO`) y el nodo que lo
+publica lleva `data-clnk-provisorio="codigo"`, así que el día que se decida se cambia en un solo
+lugar y se encuentra con un `grep`.
+
+**Lo que hay que decidir:** si CeiboLink va a abrir una ventanita propia, si va a poner un ícono
+en la barra del sistema, o si el código se pide desde EcoSmart y CeiboLink lo muestra. Las tres
+cambian el texto y ninguna cambia el código del panel.
+
+## EC1-b · Los textos de las tres vías de conexión son PROVISORIOS (2026-11-11)
+
+La ayuda plegable explica tres caminos para que el ecógrafo encuentre la computadora: cable
+directo, por la red del consultorio y pendrive. **Están escritos contra el contrato del canal y
+no contra un ecógrafo real**, y el propio texto lo dice: «A confirmar con el ecógrafo real».
+
+El bloque lleva `data-clnk-provisorio="ayuda"`.
+
+**Qué hay que confirmar cuando se pruebe con el equipo del consultorio:** si el menú DICOM del
+ecógrafo pide los tres datos con esos nombres, si acepta una dirección fija puesta a mano, y si el
+cable directo entre los dos equipos alcanza o hace falta un switch. Lo que pase de verdad reemplaza
+el texto.
+
+## EC1-c · DECISIÓN DEL MÉDICO: el estado dice «Conectado» mirando el token LOCAL y no el del conector (2026-11-11)
+
+**Declarado, no corregido.** `GET /v1/estado` devuelve un campo que dice si el conector tiene al
+menos un vínculo activo. El panel **no lo usa**: la luz la decide si hay token guardado en este
+navegador.
+
+**Qué se ve mal por eso.** Si el médico quita la autorización **desde CeiboLink**, nuestro token
+queda muerto y el panel sigue diciendo «Conectado» hasta la primera llamada que lleve token, que
+devuelve 401 y recién ahí borra el token y pide vincular de nuevo. O sea: el estado puede estar una
+lectura atrás de la verdad.
+
+**Por qué no se arregló solo.** Si ese campo viene en falso, **ningún** token está activo, así que
+el nuestro está muerto con seguridad — la inferencia es sólida y la corrección es de dos líneas.
+Pero hacerla significa que **una ruta que no exige token puede desvincular este navegador**, y aunque
+el canal es local y lo peor que pasa es volver a pedir un código, es una decisión de confianza y no
+un ajuste de pantalla. **Decide Maicol.**
+
+Al revés no sirve: si el campo viene en verdad, el vínculo activo puede ser el de **otro**
+navegador y el nuestro estar muerto igual. Así que esto no reemplaza al 401, lo adelanta.
+
+## EC1-d · DECISIÓN DEL MÉDICO: el token no caduca, y en una máquina compartida eso se nota (2026-11-11)
+
+Es la decisión que la orden ya trae tomada: el token vive en `localStorage` para que el médico
+vincule **una sola vez** por navegador, no caduca por tiempo y se corta con «Desvincular EcoSmart».
+
+**El precio, escrito:** en una computadora compartida, el vínculo sobrevive al cierre de sesión de
+EcoSmart. Quien use ese navegador después puede abrir el panel y ver los equipos, cambiarles el
+apodo, permitir o bloquear, y ver los datos de red de la máquina. **No puede ver ningún dato de
+paciente por este canal** —las listas del contrato no llevan nombre, documento ni fecha de
+nacimiento— pero sí puede decidir sobre los equipos.
+
+Está en la misma familia que la deuda que `~/Desktop/APLICACIONES/CLAUDE.md` ya tiene escrita para
+el almacenamiento local de CardioSalud. **Si el médico quiere otra cosa**, las opciones son: mover
+el token a `sessionStorage` —vincula una vez por sesión, no una vez por computadora—, o que
+«Cerrar sesión» lo borre. Las dos son de una línea y las dos cambian lo que él pidió, así que no se
+hicieron.
+
+## EC1-e · `_clnkGetJSON` se solapa con la capa de comunicación (2026-11-11)
+
+De los seis ayudantes que se conservaron del panel retirado, cinco no tienen con qué chocar.
+El sexto sí: **pide JSON con un `fetch` pelado**, sin token, sin tiempo de espera y sin traducir el
+error, que es exactamente lo que `clnkPedir` hace bien.
+
+**Se conservó porque la orden lo pide explícitamente** («los que … piden JSON»), con su cuerpo
+idéntico y sin tocarle una línea. Pero el paso siguiente debería pedir por `clnkPedir` y no por
+ahí; si lo hace, este ayudante se borra.
+
+⚠️ **Y mientras exista, es el único `fetch` del módulo que puede recibir cualquier dirección.** Hoy
+**no lo llama nadie**, así que no hace ninguna llamada; se declara porque un lector del archivo lo
+va a ver y tiene que saber que está ahí a pedido y no por descuido.
+
+## EC1-f · Los seis ayudantes conservados hoy no los llama nadie, y ninguna herramienta lo avisa (2026-11-11)
+
+`_clnkSexo`, `_clnkEdad`, `_clnkPonerSiVacio`, `_clnkArchivo`, `_clnkEsSR` y `_clnkGetJSON` quedaron
+con el cuerpo idéntico y sin un solo consumidor: el que los usaba era el importador de estudios de
+Orthanc, y el que los va a usar es ECO-CONECTOR-2.
+
+⚠️ **`detectar_huerfanos.py` NO los ve**: ese script busca **campos de entrada** cuyo id no aparece
+en el JS, no funciones sin llamadas. Así que **ninguna herramienta de este repo va a avisar de
+esto**, y por eso queda escrito en tres lugares: acá, en el comentario que los encabeza y en el
+mapa.
+
+**Si ECO-CONECTOR-2 no se hace, se borran.** Lo que los cubre mientras tanto es **TC-223**, que los
+prueba uno por uno — así que no son código muerto sin red: si alguien les cambia el
+comportamiento, el caso cae.
+
+## EC1-g · Lo que NO se construyó, porque es del paso siguiente (2026-11-11)
+
+Queda escrito para que no se busque lo que no está:
+
+- **el aviso de imágenes con sus tres botones** y **el sondeo en segundo plano**: el panel lee el
+  estado al abrirse y con «Actualizar», y nada más;
+- **adjuntar desde Guardados** y **la regla de estudio sin paciente**;
+- **las rutas de imágenes del contrato** —listar, bajar el archivo, confirmar y descartar— que el
+  panel **no llama**: la capa de comunicación las soporta sin cambios, pero nadie las usa.
+
+**El espacio se muestra y no se avisa.** El panel publica cuánto se usó de cuánto, pero **no** avisa
+cuando está por llenarse. El contrato explica por qué importa: con el tope lleno el rechazo lo
+recibe el **ecógrafo**, y el médico lo ve como un fallo de envío en el equipo, no en EcoSmart. El
+aviso corresponde al paso que maneja las imágenes.
+
+**Y la carga manual de DICOM desde pendrive no se tocó**, que era parte de la orden: sigue siendo la
+vía que anda hoy y anda con CeiboLink apagado.
+
+## EC1-h · Alcance de lo verificado: el conector REAL y el ecógrafo real NO entraron (2026-11-11)
+
+**Todo lo que se midió fue contra un conector FALSO** —`scripts/_conector_falso.mjs`, un servidor en
+loopback con las rutas del contrato— y eso es lo que la orden manda: no levantar Orthanc ni el
+conector real. Lo que eso prueba y lo que no:
+
+- **SÍ prueba** el camino del cliente por la red de verdad: CORS con el origen exacto, el
+  `Authorization` viajando, y el navegador tratando cada código HTTP como le corresponde. Es más de
+  lo que probaban los casos de Orthanc que esta tanda retira, que sustituían `fetch`.
+- **NO prueba** que el conector real conteste lo que el contrato dice. Si su respuesta difiere del
+  contrato, el panel se va a comportar distinto y ninguno de estos diez casos lo va a ver.
+- **NO prueba** nada del ecógrafo: ni que el menú DICOM pida esos tres datos, ni que los acepte.
+
+⚠️ **Y falta un camino que no se puede reproducir acá: el permiso de red privada de Chrome.** Desde
+una página servida por internet, Chrome pide permiso aparte para hablar con un servicio local. El
+contrato dice cómo lo contesta el conector, pero **el camino con el permiso concedido no se pudo
+verificar en headless** — es la misma deuda que el panel retirado ya declaraba. Lo que sí está
+cubierto es el mensaje de cuando falla, que nombra esa causa (**TC-834**).
+
+## EC1-i · El tercer enganche de repintado no tiene reemplazo, y se declara (2026-11-11)
+
+La orden dice que los **tres** enganches del panel viejo se reemplazan por los del nuevo. Dos sí:
+el del cambio de modo y el de mostrar Configuración.
+
+**El tercero no, y no es un olvido.** El del cambio de pestaña existía para el botón «Buscar en
+Orthanc», que vivía en la pestaña Imágenes, y servía para repintarlo cuando otra pestaña del
+navegador había movido la preferencia. **CeiboLink no pone ningún control fuera de su tarjeta de
+Configuración**, así que no hay una segunda superficie que pueda quedar desincronizada.
+
+Queda su lápida en el lugar donde estaba, diciendo que si alguna vez CeiboLink gana un botón ahí, el
+repintado vuelve a ese lugar. Y **TC-833** fija que hoy no hay nada de CeiboLink fuera de la
+tarjeta, así que el día que aparezca algo, el caso cae y recuerda esto.
+
+## EC1-j · Semgrep sube UN aviso, y es un falso positivo del nombre de una constante (2026-11-11)
+
+**126 WARNING / 0 ERROR**, contra la línea base de **125 / 0**. El aviso nuevo se identificó por
+**diff de hallazgos entre los dos árboles** —no por mirar el total—: es
+`ceibo-hardcoded-generic-secret` sobre
+
+```js
+var CLNK_TOKEN = 'ett_ceibolink_token';
+```
+
+**Es un falso positivo.** La regla empareja porque el nombre de la variable dice «TOKEN» y recibe
+una cadena literal; la cadena es **el nombre de la clave de `localStorage`**, no el token. El token
+no está escrito en ninguna parte del archivo: lo devuelve el conector y se guarda bajo esa clave.
+
+**Lo que lo silenciaría**, y por qué no se hizo: renombrar la constante a algo como
+`CLNK_CLAVE_TOKEN`, que además es **más preciso** —hoy el nombre sugiere que contiene el token y
+contiene el nombre de la clave—. El precio es volver a sellar `index.html` y, con eso, rehacer la
+pasada completa de 849 casos, porque una tanda no puede informar un número medido sobre otro árbol.
+Con **cero hallazgos ERROR** —que es lo que detiene un push según las reglas de la suite— se eligió
+declararlo, que es lo que PANT-32 hizo con su aviso nuevo.
+
+**Si se toca este archivo por cualquier otro motivo, conviene renombrarla en el mismo viaje.**
+
 ## P37-a · CUATRO hipótesis de la orden resultaron FALSAS (2026-11-11)
 
 Las cuatro están medidas en el inventario del commit 1 y ninguna se «arregló» inventando:

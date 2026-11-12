@@ -160,6 +160,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
+| **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
@@ -267,8 +268,26 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,77 MB / 175.880 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al
-  cierre de la tanda **PANT-37**, sobre el árbol ya sellado: sello **`v20261111-1450`**, md5 **`3f5893e7`**.
+  sin frameworks. Hoy **12,77 MB / 175.805 líneas**, medido con `wc -c` y `wc -l` el 2026-11-11 al cierre de la tanda **ECO-CONECTOR-1**, sobre el árbol ya sellado: sello **`v20261111-2208`**, md5 **`60ed9c1c`**.
+  ⚠️ **Y EL ARCHIVO QUEDÓ MÁS CHICO AUNQUE LA TANDA ESCRIBIÓ 1.018 LÍNEAS**, por segunda vez en
+  muchas tandas: el panel de Orthanc que se retiró era más grande que el de CeiboLink que lo
+  reemplaza —1.093 líneas quitadas contra 1.018 puestas—. 175.880 → **175.805**.
+  El diff de ECO-CONECTOR-1 son **1.018 líneas agregadas y 1.093 quitadas** en `index.html`,
+  medido con `git diff --numstat` contra `e9fb2d0` **sobre el árbol ya sellado**, de las que
+  **853** no son comentario, con **cero** `eval(` y `new Function` nuevos y cero claves ni
+  contraseñas. **UN** `innerHTML` en el diff, y es el **comentario** que declara que todo lo que
+  viene del conector entra con `textContent` y que no se usa ninguno. **VEINTIÚN ids nuevos**
+  —veinte con prefijo **`cfg-`** más el del pie que repone el sellador—, **ninguno** terminando en
+  `-aviso` ni en `-badge`, que son los barridos por sufijo de «Nuevo estudio»; y **cuatro**
+  controles nuevos, los cuatro con prefijo `cfg-`, que es lo que los deja fuera del censo del
+  estudio y del Excel por las DOS listas a la vez (`_noEsDelEstudio` y
+  `_CAMPOS_FUERA_DEL_ESTUDIO`). **Excel en 457 columnas y cero campos guardados nuevos**, que lo
+  fijan TC-824 y TC-831 en verde.
+  ⚠️ **POR TRIGÉSIMA CUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show e9fb2d0:index.html` da **175.880** líneas,
+  **12.771.276** bytes y el md5 **`3f5893e7`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,77 MB / 175.880 al cierre de la tanda **PANT-37**, sello **`v20261111-1450`**, md5 **`3f5893e7`**.)
   ⚠️ **ESAS DOS CIFRAS VAN EN LA MISMA LÍNEA, Y NO ES UN GUSTO DE FORMATO**: TC-753 exige que en el
   renglón donde está el sello que publica el pie haya además un md5 de ocho hexadecimales, y con el
   salto de línea entre los dos el caso sale ROJO -- lo pagó PANT-31, que los partió al reflujar el
@@ -1086,6 +1105,130 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda ECO-CONECTOR-1 (2026-11-11) — el panel de CeiboLink reemplaza al de Orthanc.** CINCO
+commits. Sello **`v20261111-2208`**, md5 **`60ed9c1c`**. La conexión directa con Orthanc —que
+nunca le funcionó al médico y además le pedía instalar y administrar un servidor DICOM— **se
+retira entera** y en su lugar va la tarjeta de **CeiboLink**, el programa local que recibe las
+imágenes del ecógrafo por DICOM y las entrega a EcoSmart por un canal de loopback. Orthanc sigue
+existiendo pero **adentro** de CeiboLink: el médico no lo ve y no hay ninguna ruta del canal que
+lo exponga. **Nada de esta tanda llega al papel**: no escribe un campo, no guarda nada y no toca
+el informe, el PDF, el PPT ni el Excel.
+⚠️ **EL ARCHIVO QUEDÓ MÁS CHICO AUNQUE SE ESCRIBIERON 1.018 LÍNEAS**: el panel retirado era más
+grande que el que lo reemplaza. 1.093 quitadas contra 1.018 puestas.
+**Lo que salió, medido sobre el archivo**: la tarjeta «Conexión por red (DICOM)» con su campo de
+dirección editable, «Verificar conexión» y el instructivo de arranque; el botón «🔍 Buscar en
+Orthanc» de la pestaña Imágenes; el overlay con la lista de estudios y sus filtros por nombre y
+fecha; el bloque JS del módulo; y las **cuatro** claves de `localStorage`. **Cero** apariciones
+del puerto de la API de Orthanc, de cada id del panel, de cada clave y de cada función del módulo;
+las once menciones que quedan son **lápidas en comentarios**.
+⚠️ **Y DOS LÁPIDAS MÍAS TRAÍAN LOS LITERALES QUE EL CASO VIGILA** —el puerto viejo y el nombre de
+un ayudante retirado—, así que TC-832 salió rojo contra mi propio comentario. **Una búsqueda sobre
+el archivo no distingue un comentario de una lectura**: se reescribieron.
+**LA DIRECCIÓN ES UNA CONSTANTE EN UN SOLO LUGAR Y NO UN CAMPO**, y eso es la diferencia de fondo
+con el panel viejo: el médico no tiene por qué saber qué poner, y un campo editable es además una
+forma de mandar el token a cualquier parte. Para las pruebas **no se agregó ningún campo ni
+ninguna clave persistida**: se honra `window.__clnkBaseTest`, que no la escribe ningún control de
+la app, no se persiste, y **sólo vale si lo que trae es loopback con puerto** — o sea que el
+tráfico de este módulo **no puede salir de la máquina ni con la variable puesta**, que es la
+propiedad que importa y no «el médico no va a tocarla».
+**UNA sola función para TODAS las llamadas**, `clnkPedir`: con una por ruta, el día que cambie la
+cabecera o el tiempo de espera habría que acordarse de los nueve lugares, y lo que es peor, **el
+token se leería en nueve lugares en vez de uno**. Lleva el `Authorization` **sólo cuando quien
+llama lo pide** —así una ruta nueva no lo hereda por descuido—, el `Content-Type` **sólo si hay
+cuerpo** —en un GET agrega el pedido previo de CORS sin ninguna necesidad— y el **token de
+generación** `_clnkGen`, el mismo recurso que tenía el panel retirado.
+⚠️ **EL MENSAJE DE FALLO DE RED NOMBRA DOS CAUSAS, Y NO ES REDUNDANCIA**: el navegador da el
+**mismo** `TypeError` si el conector está apagado y si algo lo bloquea, y no hay forma de
+distinguirlos desde la página —es a propósito del navegador—. Con «CeiboLink no responde» a secas,
+el médico que acaba de negarle a Chrome el permiso de red local se pone a reinstalar un programa
+que está perfectamente encendido. Y **se mide contra un puerto CERRADO de verdad**, no simulado.
+**EL TOKEN vive en `localStorage` por decisión del médico** —vincula una sola vez por navegador—
+y **nunca sale de ahí**: se lee en **tres** lugares, se escribe en **uno**, y no va a un toast, ni
+a un registro, ni a un mensaje de error, ni a un atributo del DOM, ni a la URL, ni al hash.
+⚠️ **Y NO LO EXPORTA NADA, MEDIDO**: ninguna función de este archivo recorre `localStorage` —cero
+`localStorage.key(`, cero `localStorage.length`, cero `Object.keys(localStorage)`— y `_bkExportar`
+saca los estudios y los medios de IndexedDB sin tocarlo. Si alguna vez se agrega un exportador que
+sí lo recorra, **estas dos claves tienen que quedar excluidas**.
+**TODO lo que viene del conector entra con `textContent`**: cero `innerHTML` nuevos, y la única
+aparición en el diff es el comentario que lo declara. ⚠️ **EL APODO Y EL AET VAN ADEMÁS EN UN
+`bdi`, Y ESO NO ES LO MISMO QUE ESCAPAR**: `textContent` impide que se **ejecute**, `bdi` impide
+que se **lea al revés**. Con un *bidi override* sin cerrar, **la fila del equipo A se puede leer
+con el nombre y la dirección del equipo B**, y ésa es justo la fila donde el médico decide
+permitir o bloquear. El contrato dice que el conector rechaza esos caracteres, **pero validar no
+es escapar** y una versión futura puede dejar de rechazarlos: el aislamiento va de este lado.
+**«Copiar» lleva el valor en un atributo y el manejador por delegación**, nunca interpolado en un
+`onclick` —ahí el escape no protege, porque el parser decodifica la entidad ANTES de compilar el
+manejador—, y **el id del equipo se busca recorriendo y no con un selector armado por
+concatenación**: lo da el conector, así que metido en un selector de atributo puede romperlo.
+**Los colores van con las variables que EXISTEN**: `--green`, `--red` y `--amber`, cada una con su
+respaldo. ⚠️ **`--ok` y `--bad` NO EXISTEN en esta app**, y escribirlas da el mismo defecto que
+POP-B pagó con `--amber` y PANT-13 con `--card`.
+⚠️ **UN DEFECTO REAL QUE DESTAPÓ LA SUITE Y LA LECTURA NO: esconder las partes que dependen del
+conector BORRABA el marcado de «Ajustes».** Los otros dos bloques los pinta el JS entero, pero el
+de ajustes es **estático** —sus dos campos, su botón y su renglón de avisos viven en el HTML—, así
+que el `textContent = ''` se llevaba los campos del documento **para siempre**, con la tarjeta
+visible y sin ellos, y **no volvían** porque el repintado los busca por id y no los crea.
+**Se vio en el LOTE y no aislado**: TC-833 los perdía del censo y TC-840 reventaba con «Cannot set
+properties of null», porque el que los borraba era el caso **ANTERIOR**. Es el mismo modo de falla
+que PANT-30 pagó con el barrido de `-aviso` y el botón del aviso.
+⚠️ **EL TERCER ENGANCHE DE REPINTADO NO TIENE REEMPLAZO, Y SE DECLARA.** Dos sí —el del cambio de
+modo y el de mostrar Config—; el del cambio de pestaña era para el botón de la pestaña Imágenes, y
+**CeiboLink no pone ningún control fuera de su tarjeta**, así que no hay una segunda superficie
+que pueda desincronizarse. Queda su lápida, y TC-833 fija que hoy no hay nada afuera.
+**Cobertura: TC-832 a TC-841**, los diez cayendo **0/10** contra `e9fb2d0` y **NINGUNO por
+excepción**. ⚠️ **Y LA PRIMERA CORRIDA CAÍA POR `ReferenceError`, NUEVE VECES EL MISMO**: el
+módulo no existe en ese árbol, así que el primer acceso lanzaba y **las condiciones de abajo
+salían en falso sin haber medido nada** —y una excepción tapa a la siguiente—. Hoy los nueve
+declaran como denominador que el árbol tenga el módulo, que es exactamente lo que PANT-37 tuvo que
+deshacer en TC-827.
+**SEIS casos de Orthanc decididos uno por uno, y ninguno borrado en silencio**: **TC-220**
+(sucesor TC-838), **TC-221** (sucesor TC-833) y **TC-222** (sin sucesor: CeiboLink no lista
+estudios) **RETIRADOS**; **TC-223 REESCRITO conservando su número** para cubrir los seis ayudantes
+conservados y que la advertencia del `PatientID` siga en el archivo; **TC-230** (sucesor TC-833) y
+**TC-231** (sucesor TC-841) **RETIRADOS**. Cada retiro deja su motivo y su sucesor **en el lugar
+donde vivía el caso**. **TC-161 adaptado**: sus ids pasan de treinta a cuarenta y nueve y su lista
+de secciones que no se pueden perder, de siete a ocho.
+⚠️ **Y TC-223 ERA EL ÚNICO ROJO DOCUMENTADO DE LA SUITE —fallaba por la fecha— y AHORA PASA**: la
+versión adaptada no depende de la fecha de hoy. **No es un rojo que se arregló en silencio**: está
+declarado acá y en el commit.
+**3/3 MUTACIONES MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del vivo
+**idéntico** antes y después (`60ed9c1c`) y las tres anclas verificadas **ANTES** de correr: el
+apodo como HTML mata TC-837 por **seis** condiciones, el token en un aviso mata TC-835 por **tres**
+y el 401 que no borra el token mata TC-836 por **dos**.
+**El conector FALSO es un servidor de verdad y no un `fetch` sustituido**, que es lo que hacían los
+casos retirados: un `fetch` sustituido **no puede probar CORS**, ni el `Authorization` que viaja,
+ni que el navegador trate un 404 distinto de un 503 — lo único que prueba es que la app llama a la
+función que le pusimos. ⚠️ **Y su código y su token se generan AL AZAR en cada arranque**: la
+primera versión los traía como constantes, y aunque eran valores inventados, **este repositorio es
+público** y su regla es que no entra ningún token ni código de vinculación al código ni a las
+pruebas.
+**Línea base al cierre: suite 845/849**, en **DIECISÉIS** lotes cubriendo los **849 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en UNA
+sola pasada sobre el árbol sellado, con los **849 ejecutados**, el md5 de `index.html` **idéntico**
+antes y después (`60ed9c1c`) y el pendrive `DISK_IMG` verificado **dieciocho** veces. Los rojos son
+**TC-376, TC-390 y TC-406**, tres de los cuatro de siempre —**TC-223, el cuarto, pasó a verde**—,
+más **TC-753**, que tenía razón: `CLAUDE.md` todavía publicaba el sello anterior. **Ningún rojo
+nuevo atribuible a la tanda**, y **los diez casos nuevos y los dos adaptados en verde**. **TC-551
+y TC-557, los dos intermitentes declarados, salieron verdes.**
+⚠️ **DOS COSAS CAMBIARON DESPUÉS DE ESA PASADA, Y SE DECLARAN EN VEZ DE INFORMAR UN NÚMERO QUE NO
+CORRESPONDE.** (1) `CLAUDE.md` y los documentos de esta tanda se escribieron después, así que
+**TC-753 se volvió a correr y quedó VERDE**: el estado real es **846/849**, con los tres rojos de
+siempre y nada más. Ninguno de esos archivos es `index.html`, cuyo md5 sigue siendo el que la
+suite midió. (2) El conector falso pasó a generar su código y su token **al azar** después de la
+pasada —por la regla del repositorio público—, así que **se rehizo su lote entero, el 16, y dio
+24/24**. Lo que NO se rehizo es la pasada completa: `index.html` no cambió, y el único archivo que
+se movió sólo lo usan los diez casos de esta tanda.
+**Semgrep 126 WARNING / 0 ERROR**, **un** aviso sobre la línea base de 125, identificado por diff
+de hallazgos entre los dos árboles: es `ceibo-hardcoded-generic-secret` sobre
+`var CLNK_TOKEN = 'ett_ceibolink_token'`, y es un **falso positivo** —la regla empareja porque el
+nombre dice «TOKEN» y recibe una cadena, pero la cadena es **el nombre de la clave** y no el
+token—. Queda declarado en **EC1-j**; renombrar la constante lo silenciaría, al precio de volver a
+sellar y rehacer la suite.
+**Sin huérfanos nuevos.** **17 bloques de JS inline y todos parsean.** **CELULAR: 59 hallazgos a
+360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta, medida con el mismo script
+en los dos árboles y con la máquina sola.
+Lo declarado, en **EC1-a** a **EC1-j**; el mapa, en `docs/mapa/ceibolink-panel.md`.
 
 **La tanda PANT-37 (2026-11-11) — el «What if» de la estenosis aórtica.** SEIS commits. Sello
 **`v20261111-1450`**, md5 **`3f5893e7`**. La tarjeta de **estenosis aórtica de la vista 2D** gana un botón

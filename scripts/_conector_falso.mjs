@@ -36,16 +36,19 @@
  */
 
 import { createServer } from 'node:http';
+import { randomBytes, randomInt } from 'node:crypto';
 
-/* El codigo de vinculacion de fabrica. Es un valor de PRUEBA inventado para este archivo: no
-   sale de ningun conector real, no se usa en ningun otro lado y no vale para nada fuera de este
-   proceso. El de verdad lo genera el conector al azar en cada arranque. */
-const CODIGO_DE_PRUEBA = '472913';
-
-/* Un token de PRUEBA, fijo, para que los casos puedan comprobar que NO aparece en ningun texto
-   de la pantalla. 64 hexadecimales como pide el contrato. Tampoco vale fuera de este proceso. */
-const TOKEN_DE_PRUEBA = 'a'.repeat(8) + 'b'.repeat(8) + 'c'.repeat(8) + 'd'.repeat(8) +
-                        'e'.repeat(8) + 'f'.repeat(8) + '1'.repeat(8) + '2'.repeat(8);
+/* ⚠️ EL CODIGO Y EL TOKEN SE GENERAN AL AZAR EN CADA ARRANQUE, Y NO ESTAN ESCRITOS ACA.
+   La primera version de este archivo los traia como dos constantes literales, y aunque eran
+   valores inventados que no sirven fuera de este proceso, este repositorio es PUBLICO y su regla
+   es que no entra ningun token ni ningun codigo de vinculacion al codigo ni a las pruebas. Con
+   `randomBytes` no hay nada que leer en el archivo, y de paso el falso se parece mas al de
+   verdad, que tambien los genera en cada arranque.
+   El arnes publica el CODIGO a la pagina, porque un caso tiene que poder escribirlo; el TOKEN no
+   viaja por ahi — los casos que comprueban que no aparece en la pantalla lo leen de
+   `localStorage`, que es donde el modulo lo pone de verdad. */
+const CODIGO_DE_PRUEBA = String(randomInt(0, 1000000)).padStart(6, '0');
+const TOKEN_DE_PRUEBA = randomBytes(32).toString('hex');   // 64 hexadecimales, como el contrato
 
 function escenarioDeFabrica() {
   return {
