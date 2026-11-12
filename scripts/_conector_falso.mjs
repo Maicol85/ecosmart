@@ -201,6 +201,66 @@ function escenas() {
       img('img_ng', 'eq_3f8a1c', iso(t0), 'video',
           dicomNativo({ filas: 512, cols: 512, cuadros: 60 })),
     ],
+
+    /* ══ LAS PESADAS (ECO-CONECTOR-4) ═══════════════════════════════════════════════════
+       ⚠️ SON DE MEGAS Y NO DE CIENTOS DE MEGAS, Y ESO ES UNA DECISION MEDIDA. El archivo que
+       el medico recibio declaraba 1016x708 por 171 cuadros = 351,9 MB de pixeles crudos, y un
+       fixture de ese tamano en la bateria significaria 351,9 MB por loopback en CADA caso que
+       lo use. Lo que las pruebas de la bateria necesitan es la LOGICA del umbral, no su valor,
+       asi que el umbral se baja desde la pagina con `window.__dcmCrudoMaxTest` -- el mismo
+       recurso y la misma justificacion que `window.__clnkBaseTest`: no lo escribe ningun
+       control de la app, no se persiste, y lo unico que cambia es un numero.
+       EL TAMANO DE VERDAD SE MIDE APARTE, con `nativoEnorme`, que NO entra en la bateria.
+       Cada escena lleva ids propios: el aviso no vuelve por las mismas imagenes en la misma
+       sesion, y la bateria corre los 869 casos en UNA pagina. */
+
+    /* EL GRUPO MIXTO DEL HALLAZGO (a): dos fijas que entran y una sin comprimir que no.
+       512x512 por 5 cuadros = 1,31 MB de pixeles, por encima del tope de prueba de 1 MB. */
+    mixtoPesado: () => [
+      img('img_p1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_p2', 'eq_3f8a1c', iso(t0 + 9000),  'imagen', uno),
+      img('img_p3', 'eq_3f8a1c', iso(t0 + 18000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* EL MISMO ENVIO CON IDS PROPIOS, para el sumidero del estudio guardado. */
+    mixtoPesado2: () => [
+      img('img_p6', 'eq_3f8a1c', iso(t0 + 140000), 'imagen', uno),
+      img('img_p7', 'eq_3f8a1c', iso(t0 + 148000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* Y OTRO, para el sumidero de la bandeja. */
+    mixtoPesado3: () => [
+      img('img_p8', 'eq_3f8a1c', iso(t0 + 160000), 'imagen', uno),
+      img('img_p9', 'eq_3f8a1c', iso(t0 + 168000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* UNA SOLA PESADA: el grupo donde NO entra nada, que es el control de «no confirma nada». */
+    pesadoSolo: () => [
+      img('img_p4', 'eq_3f8a1c', iso(t0 + 26000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* OTRA SOLA, con id propio, para el bloque que elige «Dejarlo esperando». */
+    pesadoSolo2: () => [
+      img('img_p5', 'eq_3f8a1c', iso(t0 + 34000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* UNA TERCERA, para el bloque del fallo por memoria. */
+    pesadoSolo3: () => [
+      img('img_pm', 'eq_3f8a1c', iso(t0 + 42000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* POR ENCIMA DEL TOPE DURO: 512x512 por 20 cuadros = 5,24 MB, mas que los 4 MB del tope
+       duro de prueba. Aca la pregunta NO ofrece «Abrir igual». */
+    pesadoDuro: () => [
+      img('img_pd', 'eq_3f8a1c', iso(t0 + 50000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 20 })),
+    ],
+    /* ⚠️ EL DEL MEDICO, AL TAMANO DE VERDAD: 1016x708 por 171 cuadros = 351,9 MB de pixeles.
+       NO ENTRA EN LA BATERIA -- la usa solamente la sonda de memoria, que corre una vez. */
+    nativoEnorme: () => [
+      img('img_pe', 'eq_3f8a1c', iso(t0), 'video',
+          dicomNativo({ filas: 708, cols: 1016, cuadros: 171 })),
+    ],
     vacio: () => [],
   };
 }
