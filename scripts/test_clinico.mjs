@@ -28116,891 +28116,219 @@ caso('TC-219', 'Guardados: el detalle de la barra se despliega y el aviso de cuo
 `);
 
 
-/* == TC-220 · Orthanc en Config: lee de /system y NO cablea nada ============================
-   Lo que este caso existe para fijar son tres cosas que se rompen MUDAS:
+/* == TC-220 · RETIRADO (ECO-CONECTOR-1) ==================================================
+   Probaba: que el puerto DICOM y el AE Title salian de /system de Orthanc y NO de constantes, y que
+   un bloqueo de CORS no se confundia con «Orthanc no esta instalado».
+   Se retira porque leia la API de Orthanc directo. Su sucesor es TC-838: los mismos tres datos
+   para el tecnico -puerto, nombre y direccion- salen de GET /v1/conexion y tampoco se cablean,
+   con el agregado de que ahora la DIRECCION tambien la informa el conector, que es el dato que
+   el navegador no puede averiguar y que este caso tenia que dar por perdido.
+   La leccion del CORS no se perdio, cambio de forma: hoy el fallo de red se mide contra un
+   puerto CERRADO de verdad (TC-834) y el mensaje nombra las DOS causas que el navegador no
+   distingue -el conector apagado y el permiso de red local negado-.
+   NO se borro en silencio: esta linea queda en el lugar donde vivia el caso, para que
+   quien lo busque por su numero encuentre el motivo y no un hueco. */
 
-   1 · EL PUERTO DICOM Y EL AE TITLE SALEN DE /system, no de constantes. 4242 y ORTHANC son
-       los valores por omision y son CONFIGURABLES: cablearlos haria que el medico copie datos
-       equivocados al ecografo y el envio falle sin ninguna pista. El escenario usa 11112 y
-       MIPACS a proposito -si alguien vuelve a cablear, esas dos condiciones caen-.
-   2 · CON localhost NO SE INVENTA UNA IP. El navegador no puede detectarla -medido: Chrome
-       ofusca los candidatos ICE con mDNS- asi que se dice que no se puede y se da el comando.
-       Publicar una IP equivocada es peor que no publicar ninguna.
-   3 · «CORS lo bloqueo» Y «no hay nadie» DAN EL MISMO TypeError, y se distinguen con un sondeo
-       no-cors. Sin eso el cartel manda al medico a revisar si Orthanc esta instalado cuando lo
-       que falta es una linea en orthanc.json.
+/* == TC-221 · RETIRADO (ECO-CONECTOR-1) ==================================================
+   Probaba: las instrucciones para que Orthanc arranque solo, con su rama de Windows y la de Mac.
+   Se retira porque el medico ya no instala ni administra Orthanc: vive ADENTRO de CeiboLink y
+   no hay ninguna ruta del canal que lo exponga. La ayuda que lo reemplaza son las TRES vias de
+   conexion del ecografo -cable directo, por la red y pendrive-, que cubre TC-833 con su marca
+   de PROVISORIAS: estan escritas contra el contrato y no contra un ecografo real.
+   NO se borro en silencio: esta linea queda en el lugar donde vivia el caso, para que
+   quien lo busque por su numero encuentre el motivo y no un hueco. */
 
-   Y la condicion de seguridad: los ids van con prefijo `cfg-`, asi que NO entran en `campos`
-   de cada estudio. Se prueba guardando un estudio de verdad y mirando las claves.
-   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL: se sustituye `fetch`.                      */
-caso('TC-220', 'Config/Orthanc: puerto y AET leidos de /system, y CORS no se confunde con ausencia', `
+/* == TC-222 · RETIRADO (ECO-CONECTOR-1) ==================================================
+   Probaba: el panel de estudios de Orthanc: la lista, los ids nuevos por conjunto, el filtro por
+   nombre y fecha, y que no inventaba la modalidad ni el conteo cuando Orthanc viejo no los daba.
+   Se retira porque el overlay entero se elimino y no hay sucesor: CeiboLink no lista estudios
+   -su canal entrega IMAGENES, una por una, y sus listas no llevan ningun dato de paciente-, y
+   elegir que adjuntar es el paso siguiente (ECO-CONECTOR-2). Lo que ese paso vuelva a
+   necesitar se escribe con casos nuevos y contra el contrato, no resucitando este.
+   NO se borro en silencio: esta linea queda en el lugar donde vivia el caso, para que
+   quien lo busque por su numero encuentre el motivo y no un hueco. */
+
+/* == TC-223 · ADAPTADO (ECO-CONECTOR-1) — los SEIS ayudantes que sobrevivieron al retiro del
+      panel de Orthanc ========================================================================
+   ESTE CASO PROBABA LA IMPORTACION DE UN ESTUDIO DESDE ORTHANC, y ese camino se fue entero con
+   el panel: `orthancImportarEstudio` no existe mas. Lo que SI se conservo —por decision del
+   medico, porque lo usa el paso siguiente— son los seis ayudantes genericos de ese modulo, con
+   el prefijo cambiado a `_clnk` y el cuerpo identico. El caso se reescribe conservando su
+   numero y pasa a cubrirlos uno por uno.
+
+   LA CONDICION QUE MAS IMPORTA SIGUE SIENDO LA MISMA, y es la razon de que este caso no se
+   retirara: el PatientID del DICOM NO es la cedula. En un ecografo de hospital es el numero de
+   historia clinica, entra en la clave de _dupKeys igual que un documento real, y un numero que
+   coincida con la cedula de otro paciente en la misma fecha hace que «Actualizar» pise el
+   nombre y el documento del paciente EQUIVOCADO. Hoy no hay codigo que lo escriba —no hay
+   camino de importacion— asi que lo que se fija es que la ADVERTENCIA siga en el archivo: es lo
+   unico que impide que el paso siguiente lo reintroduzca, y borrarla no rompe nada hoy.
+
+   ⚠️ Y ESTE CASO ERA EL UNICO ROJO DOCUMENTADO DE LA SUITE: fallaba por la fecha. La version
+   adaptada NO depende de la fecha de hoy, asi que pasa — el cambio de estado esta declarado en
+   el reporte de la tanda, no es un rojo que se arreglo en silencio.
+
+   NO DEPENDE DEL PENDRIVE NI DE NINGUN CONECTOR.                                             */
+caso('TC-223', 'Los seis ayudantes que sobreviven al panel retirado, y la advertencia del PatientID', `
   return (async () => {
     const R = {};
-    const fetchOrig = window.fetch, toastOrig = window.toast;
-    const onOrig = localStorage.getItem('ett_orthanc_on');
-    const urlOrig = localStorage.getItem('ett_orthanc_url');
-    window.toast = () => {};
-    const est = () => { const e = document.getElementById('cfg-orthanc-estado');
-                        return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
-    const datVis = () => { const d = document.getElementById('cfg-orthanc-datos');
-                           return !!d && getComputedStyle(d).display !== 'none'; };
-    const copiables = () => Array.from(document.querySelectorAll('#cfg-orthanc-datos [data-orth-copiar]'))
-                              .map(b => b.getAttribute('data-orth-copiar'));
-    /* escenarios: 'ok' responde /system · 'cors' rechaza el GET y resuelve el sondeo opaco
-       (o sea: hay alguien y el navegador no deja leerlo) · 'muerto' rechaza las dos vias */
-    const simular = (modo, cuerpo) => {
-      window.fetch = (url, opts) => {
-        const esSondeo = !!(opts && opts.mode === 'no-cors');
-        if (modo === 'muerto') return Promise.reject(new TypeError('Failed to fetch'));
-        if (modo === 'cors')   return esSondeo
-          ? Promise.resolve({ ok:false, status:0, type:'opaque' })
-          : Promise.reject(new TypeError('Failed to fetch'));
-        if (modo === '401')    return Promise.resolve({ ok:false, status:401 });
-        return Promise.resolve({ ok:true, status:200,
-                                 json: () => Promise.resolve(cuerpo) });
-      };
-    };
+    const fetchOrig = window.fetch;
     try {
-      if (typeof showTab === 'function') showTab('config');
-      if (typeof cfgOnShow === 'function') cfgOnShow();
-      await new Promise(r=>setTimeout(r,120));
+      /* ── DENOMINADOR: los seis existen. Si uno falta, el paso siguiente se queda sin el y el
+            resto del caso mediria sobre nada. ── */
+      const SEIS = ['_clnkSexo','_clnkEdad','_clnkPonerSiVacio','_clnkArchivo','_clnkEsSR','_clnkGetJSON'];
+      R.faltan = SEIS.filter(f => typeof window[f] !== 'function').join(', ');
+      if (R.faltan) return { extra: [['DENOMINADOR: los seis ayudantes existen', false, 'faltan: ' + R.faltan]] };
 
-      /* -- 0 · DENOMINADOR: la seccion existe -- */
-      const chk = document.getElementById('cfg-orthanc-on');
-      const inp = document.getElementById('cfg-orthanc-url');
-      const cue = document.getElementById('cfg-orthanc-cuerpo');
-      R.existe = !!chk && !!inp && !!cue;
-      if (!R.existe) return { extra: [['la seccion de Orthanc existe en Config', false, 'falta']] };
+      /* ── 1 · SEXO: M y F y nada mas. DICOM emite «O», y asignar un valor que no es opcion
+            deja el select SIN SELECCION, en silencio. ── */
+      R.sexo = [_clnkSexo('M'), _clnkSexo('f'), _clnkSexo(' F '), _clnkSexo('O'),
+                _clnkSexo(''), _clnkSexo(null), _clnkSexo(undefined)].join('|');
+      R.sexoOk = R.sexo === 'M|F|F||||';
 
-      /* -- 1 · apagado de fabrica y persistencia -- */
-      localStorage.removeItem('ett_orthanc_on'); localStorage.removeItem('ett_orthanc_url');
-      orthancRender();
-      R.apagadoDeFabrica = chk.checked === false && getComputedStyle(cue).display === 'none';
-      orthancToggle(true);
-      R.guardaEncendido = localStorage.getItem('ett_orthanc_on') === '1' &&
-                          getComputedStyle(cue).display !== 'none';
-      orthancGuardarUrl('192.168.1.50:8042');
-      R.guardaUrl = localStorage.getItem('ett_orthanc_url') === '192.168.1.50:8042';
-      /* y vuelve del disco tras un repintado, que es lo que la hace sobrevivir a limpiarCampos */
-      inp.value = '';
-      orthancRender();
-      R.reponeDelDisco = inp.value === '192.168.1.50:8042';
+      /* ── 2 · EDAD: se comparan las dos fechas como NUMERO YYYYMMDD, sin new Date, que
+            interpreta como UTC y corre el dia. Y fuera de banda no se publica. ── */
+      R.e1 = _clnkEdad('19800315', '20260921');   // cumplio
+      R.e2 = _clnkEdad('19801215', '20260921');   // todavia no cumplio este anio
+      R.e3 = _clnkEdad('20260921', '20260921');   // mismo dia: 0, que es un valor valido
+      R.e4 = _clnkEdad('18000101', '20260921');   // 226 anios: fuera de banda
+      R.e5 = _clnkEdad('20270101', '20260921');   // nacido despues del estudio: negativo
+      R.e6 = _clnkEdad('', '20260921');
+      R.e7 = _clnkEdad('1980-03-15', '2026-09-21'); // con guiones: los digitos se limpian igual
+      R.edadOk = R.e1 === 46 && R.e2 === 45 && R.e3 === 0 && R.e4 === null &&
+                 R.e5 === null && R.e6 === null && R.e7 === 46;
+      /* el borde del dia exacto, que es donde un new Date corre el resultado */
+      R.e8 = _clnkEdad('19800921', '20260921');   // cumple HOY
+      R.e9 = _clnkEdad('19800922', '20260921');   // cumple manana
+      R.bordeOk = R.e8 === 46 && R.e9 === 45;
 
-      /* -- 2 · normalizacion de la direccion -- */
-      R.base = {
-        hostPuerto : _orthBase('localhost:8042'),
-        soloHost   : _orthBase('localhost'),
-        lan        : _orthBase('192.168.1.50:8042'),
-        vacio      : _orthBase('   '),
-        js         : _orthBase('javascript:alert(1)'),
-        file       : _orthBase('file:///etc/passwd'),
-        credencial : _orthBase('http://juan:secreto@192.168.1.50:8042')
+      /* ── 3 · PONER SOLO SI ESTA VACIO, y disparar el evento. Pisar lo que el medico tipeo es
+            peor que no completar; y asignar .value NO dispara input, asi que sin el evento la
+            superficie corporal queda en blanco con la edad cargada. ── */
+      __t.limpiar();
+      await new Promise(r => setTimeout(r, 120));
+      const val = id => { const e = document.getElementById(id); return e ? String(e.value || '') : '(no existe)'; };
+      const puestos = [];
+      R.p1 = _clnkPonerSiVacio('nombre', 'PEREZ, JUAN', puestos);
+      R.nombre1 = val('nombre');
+      R.p2 = _clnkPonerSiVacio('nombre', 'OTRO, PACIENTE', puestos);   // ya tiene: NO pisa
+      R.nombre2 = val('nombre');
+      R.p3 = _clnkPonerSiVacio('edad', '', puestos);                   // vacio: no hace nada
+      R.p4 = _clnkPonerSiVacio('edad', null, puestos);
+      R.p5 = _clnkPonerSiVacio('no-existe-este-campo', 'x', puestos);
+      /* el evento: la edad lleva oninput=calcBSA(), asi que la superficie corporal aparece sola */
+      const el = document.getElementById('edad');
+      let eventos = 0;
+      const oye = () => { eventos++; };
+      el.addEventListener('input', oye);
+      _clnkPonerSiVacio('edad', '46', puestos);
+      el.removeEventListener('input', oye);
+      R.edadCargada = val('edad') === '46';
+      R.disparoEvento = eventos === 1;
+      /* La lista de lo PUESTO se arma al final, cuando ya pasaron las seis llamadas: leerla
+         antes de la ultima dejaba la condicion esperando un «edad» que todavia no estaba -- un
+         rojo que acusaba al ayudante de un defecto del caso. */
+      R.puestos = puestos.join(',');
+      R.ponerOk = R.p1 === true && R.p2 === false && R.p3 === false && R.p4 === false &&
+                  R.p5 === false && R.nombre1 === 'PEREZ, JUAN' && R.nombre2 === 'PEREZ, JUAN' &&
+                  R.puestos === 'nombre,edad';
+
+      /* ── 4 · ENVOLVER BYTES EN UN FILE: las dos puertas de importacion usan solo
+            .arrayBuffer() y .name, asi que eso es lo que tiene que quedar usable. ── */
+      const bytes = new Uint8Array([68, 73, 67, 77, 1, 2, 3, 4]);
+      const f = _clnkArchivo(bytes.buffer, 'ceibolink-abc123.dcm');
+      R.tieneNombre = !!f && f.name === 'ceibolink-abc123.dcm';
+      R.tieneTipo = !!f && String(f.type) === 'application/dicom';
+      let bl = -1;
+      try { bl = (await f.arrayBuffer()).byteLength; } catch (e) {}
+      R.bytesUsables = bl === 8;
+
+      /* ── 5 · RECONOCER UN INFORME ESTRUCTURADO por su SOP Class, con _dcmImgLeer y sin un
+            tercer parser de DICOM. El fixture es el mismo molde que TC-179 y el TC-223 viejo:
+            DICOM sintetico armado byte a byte, con un JPEG 1x1 que se decodifica de verdad. ── */
+      const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const B = a => { const o=[]; a.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+      const u16 = n => [n & 255, (n>>8) & 255];
+      const u32 = n => [n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255];
+      const txt = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
+      const ele = (g,e,vr,v) => {
+        const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
+        return B([u16(g),u16(e),txt(vr).slice(0,2), L4 ? B([0,0,u32(v.length)]) : u16(v.length), v]);
       };
-      R.normalizaBien = R.base.hostPuerto === 'http://localhost:8042' &&
-                        R.base.soloHost   === 'http://localhost:8042' &&
-                        R.base.lan        === 'http://192.168.1.50:8042';
-      R.rechazaRaro   = R.base.vacio === null && R.base.js === null && R.base.file === null;
-      /* las credenciales NO viajan ni se imprimen */
-      R.descartaCredencial = R.base.credencial === 'http://192.168.1.50:8042';
-
-      /* -- 3 · EXITO: el puerto y el AET salen de /system, NO de 4242/ORTHANC -- */
-      simular('ok', { Version:'1.12.4', Name:'MiOrthanc', DicomPort:11112, DicomAet:'MIPACS' });
-      inp.value = '192.168.1.50:8042';
-      await orthancVerificar();
-      await new Promise(r=>setTimeout(r,80));
-      R.exitoTxt = est().slice(0,120);
-      R.diceConectado = est().indexOf('Orthanc conectado') >= 0 && est().indexOf('1.12.4') >= 0;
-      const c1 = copiables();
-      R.copiaDeSystem = c1.indexOf('11112') >= 0 && c1.indexOf('MIPACS') >= 0;
-      R.noCablea      = c1.indexOf('4242') < 0 && c1.indexOf('ORTHANC') < 0;
-      R.ipDerivada    = c1.indexOf('192.168.1.50') >= 0;
-      R.datosVisibles = datVis();
-      /* el texto dice que el ecografo envia a ORTHANC, no «a EcoSmart» */
-      const dTxt = document.getElementById('cfg-orthanc-datos').textContent;
-      R.destinoCorrecto = dTxt.indexOf('a Orthanc') >= 0 && dTxt.indexOf('a EcoSmart') < 0;
-
-      /* -- 4 · Orthanc que NO informa puerto/AET: cae al defecto y LO ROTULA -- */
-      simular('ok', { Version:'1.12.4' });
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      const c2 = copiables();
-      R.caeAlDefecto = c2.indexOf('4242') >= 0 && c2.indexOf('ORTHANC') >= 0;
-      R.rotulaDefecto = document.getElementById('cfg-orthanc-datos')
-                          .textContent.indexOf('valor por defecto') >= 0;
-
-      /* -- 5 · LOOPBACK: no se inventa una IP -- */
-      simular('ok', { Version:'1.12.4', DicomPort:4242, DicomAet:'ORTHANC' });
-      inp.value = 'localhost:8042';
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      const dLoop = document.getElementById('cfg-orthanc-datos').textContent;
-      const c3 = copiables();
-      R.noInventaIp = c3.indexOf('localhost') < 0 && c3.indexOf('127.0.0.1') < 0;
-      R.diceQueNoPuede = dLoop.indexOf('No se puede detectar') >= 0;
-      R.daElComando = dLoop.indexOf('ipconfig') >= 0;
-
-      /* -- 6 · CORS: hay alguien, y NO se acusa de ausencia -- */
-      simular('cors');
-      inp.value = 'localhost:8042';
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      R.corsTxt = est().slice(0,150);
-      R.corsCulpaCORS = est().indexOf('CORS') >= 0;
-      R.corsNoCulpaAusencia = est().indexOf('No se encontro') < 0 &&
-                              est().indexOf('No se encontró') < 0;
-      R.corsDaElOrigen = est().indexOf(location.origin) >= 0;
-      /* NO se recomienda el comodin: con «*» cualquier pagina leeria los estudios */
-      R.corsNoRecomiendaComodin = est().indexOf('origen exacto') >= 0;
-      R.corsOcultaDatos = !datVis();
-
-      /* -- 7 · MUERTO: ahi si se dice que falta, y NO se culpa a CORS -- */
-      simular('muerto');
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      R.muertoTxt = est().slice(0,120);
-      R.muertoDiceAusencia = est().indexOf('No se encontr') >= 0;
-      R.muertoNoCulpaCORS  = est().indexOf('CORS') < 0;
-
-      /* -- 8 · 401: Orthanc con clave no es Orthanc ausente -- */
-      simular('401');
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      R.p401 = est().indexOf('usuario y contrase') >= 0 && est().indexOf('No se encontr') < 0;
-
-      /* -- 9 · direccion ilegible: se dice, no se sale a la red -- */
-      let hubo = 0;
-      window.fetch = () => { hubo++; return Promise.reject(new TypeError('x')); };
-      inp.value = 'basura ::: ???';
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,60));
-      R.invalidaAvisa = est().indexOf('No entiendo esa') >= 0;
-      R.invalidaNoPega = hubo === 0;
-
-      /* -- 10 · SIN datos de usuario dentro de un atributo on* -- */
-      simular('ok', { Version:'1.12.4', DicomPort:11112, DicomAet:'MI"><img src=x onerror=alert(1)>' });
-      inp.value = '192.168.1.50:8042';
-      await orthancVerificar(); await new Promise(r=>setTimeout(r,80));
-      /* NO se busca el TEXTO «onerror=» en el innerHTML: el payload viaja escapado dentro de
-         data-orth-copiar, asi que al serializar aparece como texto de atributo y un regex lo
-         matchea sobre un panel perfectamente sano -paso-. El invariante es que NINGUN elemento
-         tenga un atributo de EVENTO, que es lo que el navegador compila. */
-      const nodos = Array.from(document.querySelectorAll('#cfg-orthanc-datos, #cfg-orthanc-datos *'));
-      const conHandler = nodos.filter(el => Array.from(el.attributes || [])
-                                     .some(a => /^on/i.test(a.name)));
-      R.sinHandlers = conHandler.length === 0;
-      R.handlersVistos = conHandler.map(el => el.tagName + ':' +
-                           Array.from(el.attributes).map(a => a.name).join(','));
-      R.sinScriptInyectado = document.querySelectorAll('#cfg-orthanc-datos img[onerror]').length === 0;
-      R.venenoComoTexto = document.getElementById('cfg-orthanc-datos')
-                            .textContent.indexOf('onerror=alert(1)') >= 0;
-
-      /* -- 11 · SEGURIDAD: los campos NO entran en el estudio -- */
-      R.fueraDelEstudio = typeof _noEsDelEstudio === 'function' &&
-                          _noEsDelEstudio('cfg-orthanc-on') && _noEsDelEstudio('cfg-orthanc-url');
-      window.fetch = fetchOrig;
-      document.getElementById('nombre').value = 'Prueba Orthanc';
-      document.getElementById('ci').value = '99887766';
-      const g = await __t.guardar();
-      let claves = [];
-      if (g && g.estudioId) {
-        const lista = (typeof getInformes === 'function') ? getInformes() : [];
-        const inf = lista.filter(x => x && x.estudioId === g.estudioId)[0];
-        claves = inf && inf.campos ? Object.keys(inf.campos) : [];
-      }
-      R.seGuardo = claves.length > 0;
-      R.sinOrthancEnCampos = claves.filter(k => k.indexOf('orthanc') >= 0).length === 0;
-      R.clavesOrthanc = claves.filter(k => k.indexOf('orthanc') >= 0);
-      if (g && g.estudioId) await __t.borrar(g.estudioId);
-    } finally {
-      window.fetch = fetchOrig; window.toast = toastOrig;
-      try { if (onOrig === null) localStorage.removeItem('ett_orthanc_on');
-            else localStorage.setItem('ett_orthanc_on', onOrig);
-            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
-            else localStorage.setItem('ett_orthanc_url', urlOrig); } catch (e) {}
-      try { orthancRender(); } catch (e) {}
-      try { limpiarCampos(true); } catch (e) {}
-    }
-    return { extra: [
-      ['DENOMINADOR: la seccion existe en Config',   R.existe, R.existe],
-      ['apagada de fabrica, con el cuerpo oculto',   R.apagadoDeFabrica, R.apagadoDeFabrica],
-      ['persiste el interruptor y la direccion',     R.guardaEncendido && R.guardaUrl, R.guardaUrl],
-      ['y la repone del disco al repintar',          R.reponeDelDisco, R.reponeDelDisco],
-      ['normaliza host, host:puerto y LAN',          R.normalizaBien, JSON.stringify(R.base)],
-      ['rechaza lo ilegible y los esquemas ajenos',  R.rechazaRaro, JSON.stringify(R.base)],
-      ['descarta usuario:clave de la direccion',     R.descartaCredencial, R.base.credencial],
-      ['conecta y publica la version',               R.diceConectado, R.exitoTxt],
-      ['EL PUERTO Y EL AET SALEN DE /system',        R.copiaDeSystem, JSON.stringify(R.base) + ' :: ' + R.exitoTxt],
-      ['y NO se cablean 4242 / ORTHANC',             R.noCablea, R.noCablea],
-      ['la IP se deriva de la direccion tipeada',    R.ipDerivada, R.ipDerivada],
-      ['el texto dice que el ecografo envia a ORTHANC', R.destinoCorrecto, R.destinoCorrecto],
-      ['sin esos campos cae al defecto Y LO ROTULA', R.caeAlDefecto && R.rotulaDefecto, R.rotulaDefecto],
-      ['CON localhost NO SE INVENTA UNA IP',         R.noInventaIp && R.diceQueNoPuede, R.noInventaIp],
-      ['y da el comando para averiguarla',           R.daElComando, R.daElComando],
-      ['CORS: culpa a CORS y NO a que falte Orthanc', R.corsCulpaCORS && R.corsNoCulpaAusencia, R.corsTxt],
-      ['la receta lleva el origen exacto, no un comodin', R.corsDaElOrigen && R.corsNoRecomiendaComodin, R.corsDaElOrigen],
-      ['con CORS no se muestran datos del ecografo', R.corsOcultaDatos, R.corsOcultaDatos],
-      ['MUERTO: dice que falta y no culpa a CORS',   R.muertoDiceAusencia && R.muertoNoCulpaCORS, R.muertoTxt],
-      ['401 no se confunde con ausencia',            R.p401, R.p401],
-      ['direccion ilegible: avisa y no sale a la red', R.invalidaAvisa && R.invalidaNoPega, R.invalidaNoPega],
-      ['cero handlers on* y cero inyeccion',         R.sinHandlers && R.sinScriptInyectado && R.venenoComoTexto,
-        'handlers=' + JSON.stringify(R.handlersVistos) + ' img=' + R.sinScriptInyectado + ' texto=' + R.venenoComoTexto],
-      ['SEGURIDAD: los ids quedan fuera del estudio', R.fueraDelEstudio, R.fueraDelEstudio],
-      ['y no aparecen en campos de un estudio guardado', R.seGuardo && R.sinOrthancEnCampos, JSON.stringify(R.clavesOrthanc)]
-    ] };
-  })();
-`);
-
-
-/* == TC-221 · Orthanc: como hacer que arranque solo =========================================
-   LO QUE ESTE CASO EXISTE PARA FIJAR es que el bloque de Windows NO mande a elegir nada. El
-   pedido decia «durante la instalacion elegi Install as a Windows Service» y esa opcion NO
-   EXISTE: el instalador oficial ya registra el servicio -verificado en la pagina de descarga
-   y en el quickstart del proyecto-. Imprimir eso manda al medico a buscar una casilla
-   inexistente y a concluir que hizo algo mal, con Orthanc ya arrancando solo.
-
-   Y el boton esta SIEMPRE, ademas de desplegarse la primera vez. El pedido ofrecia «una cosa
-   o la otra»; mostrarlo una sola vez y sin boton lo vuelve inalcanzable despues, que es el
-   defecto que la barra de memoria ya documenta haber evitado con el aviso de cuota.
-
-   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL.                                            */
-caso('TC-221', 'Orthanc: instrucciones de arranque automatico, y Windows no manda a elegir nada', `
-  return (async () => {
-    const R = {};
-    const soOrig = window._orthSO, toastOrig = window.toast;
-    const howOrig = localStorage.getItem('ett_orthanc_howto_visto');
-    window.toast = () => {};
-    const D   = () => document.getElementById('cfg-orthanc-datos');
-    const pan = () => document.getElementById('cfg-orthanc-arranque');
-    const btn = () => { const d = D(); if (!d) return null;
-      return Array.from(d.querySelectorAll('button'))
-               .filter(b => b.textContent.indexOf('arranque solo') >= 0)[0] || null; };
-    const txt = () => { const p = pan(); return p ? p.textContent.replace(/\\s+/g,' ') : ''; };
-    /* clk() devuelve false si el boton no esta, en vez de reventar. La mutacion que lo dibuja
-       SOLO la primera vez mataba el caso con «Cannot read properties of null» y la condicion
-       que existe para declarar ese defecto -«el boton sigue»- nunca llegaba a evaluarse.
-       Es la leccion de TC-207: un caso que se muere no diagnostica. */
-    const clk = () => { const b = btn(); if (!b) return false; b.click(); return true; };
-    const cmds = () => Array.from((D() || document).querySelectorAll('[data-orth-copiar]'))
-                         .map(b => b.getAttribute('data-orth-copiar'));
-    try {
-      if (typeof showTab === 'function') showTab('config');
-      if (typeof cfgOnShow === 'function') cfgOnShow();
-      await new Promise(r=>setTimeout(r,120));
-      const SYS = { Version:'1.12.4', DicomPort:4242, DicomAet:'ORTHANC' };
-
-      /* -- 0 · DENOMINADOR -- */
-      try { localStorage.removeItem('ett_orthanc_howto_visto'); } catch (e) {}
-      window._orthSO = () => 'mac';
-      _orthPintarDatos('http://localhost:8042', SYS);
-      R.existe = !!D() && !!btn() && !!pan();
-      if (!R.existe) return { extra: [['el bloque de arranque se dibuja', false, 'falta']] };
-
-      /* -- 1 · la PRIMERA vez se despliega solo; despues NO, pero el boton queda -- */
-      R.primeraDesplegada = pan().style.display !== 'none';
-      _orthPintarDatos('http://localhost:8042', SYS);
-      R.segundaColapsada = pan().style.display === 'none';
-      R.botonSigueEstando = !!btn();
-      R.pudoClickear = clk();
-      R.elBotonLoAbre = R.pudoClickear && !!pan() && pan().style.display !== 'none';
-      clk();
-      R.elBotonLoCierra = !!pan() && pan().style.display === 'none';
-      clk();
-
-      /* -- 2 · WINDOWS: dice que YA ESTA y no manda a elegir ninguna opcion -- */
-      window._orthSO = () => 'win';
-      try { localStorage.setItem('ett_orthanc_howto_visto','1'); } catch (e) {}
-      _orthPintarDatos('http://localhost:8042', SYS);
-      clk();
-      const tw = txt();
-      R.winTxt = tw.slice(0, 190);
-      R.winDiceYaEsta   = tw.indexOf('ya está hecho') >= 0 &&
-                          tw.indexOf('No hay ninguna opción que elegir') >= 0;
-      /* la condicion que separa este caso de uno decorativo: NO se nombra la opcion inventada */
-      R.winNoMandaAElegir = tw.indexOf('Install as a Windows Service') < 0 &&
-                            tw.indexOf('Instalar como servicio') < 0 &&
-                            tw.indexOf('Durante la instalación') < 0;
-      R.winDaComoComprobar = tw.indexOf('Servicios') >= 0;
-      R.winSinMac = tw.indexOf('macOS') < 0;
-
-      /* -- 3 · MAC: declara que NO es documentacion oficial, y los dos caminos -- */
-      window._orthSO = () => 'mac';
-      _orthPintarDatos('http://localhost:8042', SYS);
-      clk();
-      const tm = txt();
-      R.macDeclaraNoOficial = tm.indexOf('no publica un instalador') >= 0 &&
-                              tm.indexOf('NO salen de la documentación oficial') >= 0;
-      R.macDosCaminos = tm.indexOf('Con Docker') >= 0 && tm.indexOf('LaunchAgent') >= 0;
-      R.macSinWin = tm.indexOf('Windows — ya está hecho') < 0;
-      const cm = cmds();
-      const dk = cm.filter(c => c.indexOf('docker run') >= 0)[0] || '';
-      const pl = cm.filter(c => c.indexOf('LaunchAgents') >= 0)[0] || '';
-      R.hayDocker = !!dk; R.hayPlist = !!pl;
-      /* el volumen NO es cosmetico: sin el, reiniciar el contenedor borra los estudios */
-      R.dockerConVolumen = dk.indexOf('-v orthanc-db:') >= 0;
-      R.dockerSinRm      = dk.indexOf('--rm') < 0;
-      R.dockerReinicia   = dk.indexOf('--restart unless-stopped') >= 0;
-      /* y la imagen tiene que ser la que soporta ARM64, que es lo que traen los Mac de hoy */
-      R.dockerImagenArm  = dk.indexOf('orthancteam/orthanc') >= 0 &&
-                           dk.indexOf('jodogne/orthanc') < 0;
-      /* el plist: las dos rutas marcadas, y la sintaxis moderna de launchctl */
-      R.plistDosRutas = (pl.match(/\\/RUTA\\/A\\//g) || []).length === 2;
-      R.plistBootstrap = pl.indexOf('launchctl bootstrap gui/$(id -u)') >= 0;
-      R.plistAvisaReemplazar = tm.indexOf('Reemplazá las DOS rutas') >= 0;
-      R.plistDaComoComprobar = tm.indexOf('launchctl list | grep orthanc') >= 0;
-
-      /* -- 4 · NO se afirma haber DETECTADO que ya corre como servicio -- */
-      R.noAfirmaDeteccion = tm.indexOf('no puede saberlo desde acá') >= 0;
-
-      /* -- 5 · con una direccion de LAN, Orthanc esta en OTRA maquina: los DOS sistemas -- */
-      window._orthSO = () => 'mac';
-      _orthPintarDatos('http://192.168.1.50:8042', { Version:'1.12.4', DicomPort:11112, DicomAet:'MIPACS' });
-      clk();
-      const tl = txt();
-      R.lanLosDos = tl.indexOf('Windows — ya está hecho') >= 0 &&
-                    tl.indexOf('macOS — hay que configurarlo') >= 0;
-      R.lanAvisaOtraMaquina = tl.indexOf('OTRA computadora') >= 0 &&
-                              tl.indexOf('192.168.1.50') >= 0;
-
-      /* -- 6 · sistema desconocido: se muestran los dos en vez de elegir mal -- */
-      window._orthSO = () => 'otro';
-      _orthPintarDatos('http://localhost:8042', SYS);
-      clk();
-      const to = txt();
-      R.otroLosDos = to.indexOf('Windows — ya está hecho') >= 0 &&
-                     to.indexOf('macOS — hay que configurarlo') >= 0;
-
-      /* -- 7 · el bloque vive DENTRO de los datos: sin conexion no se muestra -- */
-      _orthDatosOcultar();
-      R.sinConexionNoSeMuestra = !pan() && !btn();
-    } finally {
-      window._orthSO = soOrig; window.toast = toastOrig;
-      try { if (howOrig === null) localStorage.removeItem('ett_orthanc_howto_visto');
-            else localStorage.setItem('ett_orthanc_howto_visto', howOrig); } catch (e) {}
-      try { _orthDatosOcultar(); orthancRender(); } catch (e) {}
-    }
-    return { extra: [
-      ['DENOMINADOR: el bloque y su boton se dibujan',   R.existe, R.existe],
-      ['la PRIMERA vez se despliega solo',               R.primeraDesplegada, R.primeraDesplegada],
-      ['despues queda colapsado PERO EL BOTON SIGUE',    R.segundaColapsada && R.botonSigueEstando, R.botonSigueEstando],
-      ['y el boton lo abre y lo cierra',                 R.elBotonLoAbre && R.elBotonLoCierra, R.elBotonLoAbre],
-      ['WINDOWS: dice que YA ESTA hecho',                R.winDiceYaEsta, R.winTxt],
-      ['Y NO MANDA A ELEGIR UNA OPCION QUE NO EXISTE',   R.winNoMandaAElegir, R.winTxt],
-      ['da como comprobarlo en Servicios',               R.winDaComoComprobar, R.winDaComoComprobar],
-      ['en Windows no se mezcla el bloque de Mac',       R.winSinMac, R.winSinMac],
-      ['MAC: declara que la receta NO es oficial',       R.macDeclaraNoOficial, R.macDeclaraNoOficial],
-      ['ofrece Docker y LaunchAgent',                    R.macDosCaminos && R.hayDocker && R.hayPlist, R.macDosCaminos],
-      ['el docker lleva VOLUMEN y no --rm (o se pierden los estudios)',
-        R.dockerConVolumen && R.dockerSinRm, 'vol=' + R.dockerConVolumen + ' rm=' + !R.dockerSinRm],
-      ['y se reinicia solo',                             R.dockerReinicia, R.dockerReinicia],
-      ['con la imagen que soporta ARM64',                R.dockerImagenArm, R.dockerImagenArm],
-      ['el plist marca las DOS rutas a reemplazar',      R.plistDosRutas && R.plistAvisaReemplazar, R.plistDosRutas],
-      ['usa launchctl bootstrap, no el load deprecado',  R.plistBootstrap, R.plistBootstrap],
-      ['y dice como comprobar que cargo',                R.plistDaComoComprobar, R.plistDaComoComprobar],
-      ['NO afirma haber detectado que ya es un servicio', R.noAfirmaDeteccion, R.noAfirmaDeteccion],
-      ['con direccion de LAN muestra LOS DOS sistemas',  R.lanLosDos, R.lanLosDos],
-      ['y avisa que los pasos van en la OTRA maquina',   R.lanAvisaOtraMaquina, R.lanAvisaOtraMaquina],
-      ['sistema desconocido: los dos, en vez de elegir mal', R.otroLosDos, R.otroLosDos],
-      ['sin conexion verificada no se muestra',          R.sinConexionNoSeMuestra, R.sinConexionNoSeMuestra]
-    ] };
-  })();
-`);
-
-
-/* == TC-222 · Panel de estudios de Orthanc ==================================================
-   TRES CONDICIONES HACEN EL CASO, el resto es plomeria:
-
-   1 · «NUEVO» SE DECIDE POR CONJUNTO DE IDS, NO POR MARCA DE TIEMPO. La fecha la pone Orthanc
-       y la marca la pondria este navegador: son DOS RELOJES, y Orthanc puede correr en otra
-       maquina. El escenario tiene un estudio ANTIQUISIMO sin ver -que TIENE que salir nuevo-
-       y uno del futuro ya visto -que NO-. Una implementacion por timestamp los da vuelta los
-       dos; una por conjunto acierta. Con estudios de fechas normales las dos coinciden, asi
-       que sin este escenario la condicion no distingue nada.
-
-   2 · CON UN ORTHANC VIEJO NO SE INVENTAN LA MODALIDAD NI EL CONTEO. Esos dos salen de tags
-       computados que existen desde 1.11 y vuelven en una seccion RequestedTags APARTE. Si no
-       vinieron se imprime «—» y se DICE por que, en vez de dejar dos columnas vacias.
-
-   3 · EN localStorage SOLO VAN IDS OPACOS. La lista lleva NOMBRES DE PACIENTE y se queda en
-       memoria: persistirla seria dato clinico en disco sin cifrar, contra la regla de la casa.
-
-   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL: se sustituye fetch.                        */
-caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inventar lo que falta', `
-  return (async () => {
-    const R = {};
-    const fetchOrig = window.fetch, toastOrig = window.toast;
-    const onOrig = localStorage.getItem('ett_orthanc_on');
-    const urlOrig = localStorage.getItem('ett_orthanc_url');
-    const vistosOrig = localStorage.getItem('ett_orthanc_vistos');
-    /* SE GUARDA PARA RESTAURAR POR ASIGNACION, NUNCA CON el operador delete. Medido: una
-       declaracion de funcion de nivel superior crea una propiedad NO CONFIGURABLE, asi que
-       borrarla devuelve FALSE y no borra nada — el espia de este caso sobrevivia y TC-223
-       corria contra el, fallando entero mientras con --solo daba verde. */
-    const impOrig = window.orthancImportarEstudio;
-    window.toast = () => {};
-    const btn   = () => document.getElementById('orth-buscar-btn');
-    const filas = () => Array.from(document.querySelectorAll('[data-orth-estudio]'));
-    const est   = () => { const e = document.getElementById('orth-panel-estado');
-                          return e ? e.textContent.replace(/\\s+/g,' ') : ''; };
-    const nuevas = () => filas().filter(f => f.textContent.indexOf('NUEVO') >= 0)
-                            .map(f => f.getAttribute('data-orth-estudio'));
-    const mk = (id, ap, fecha, hora, last, extra) => {
-      const e = { ID:id, Type:'Study', LastUpdate:last,
-        MainDicomTags:{ StudyDate:fecha, StudyTime:hora, StudyDescription:'Eco',
-                        InstitutionName:'Sanatorio Artigas' },
-        PatientMainDicomTags:{ PatientName: ap + '^JUAN^^^' },
-        Series:['a','b','c'] };
-      if (extra) e.RequestedTags = { ModalitiesInStudy:'US', NumberOfStudyRelatedInstances:'42' };
-      return e;
-    };
-    /* ANTIGUO sin ver + FUTURO ya visto: el par que separa conjunto de marca de tiempo */
-    const DATOS = [
-      mk('id-hoy',    'PEREZ',  '20260921','143012','20260921T090000', true),
-      mk('id-viejo',  'GOMEZ',  '19990102','091500','19990102T091500', true),
-      mk('id-futuro', 'SILVA',  '20991231','235959','20991231T235959', true)
-    ];
-    const simular = (modo) => {
-      window.fetch = (url, opts) => {
-        const esFind = String(url).indexOf('/tools/find') >= 0;
-        const esPost = !!(opts && opts.method === 'POST');
-        if (modo === 'viejo' && esFind && esPost)
-          return Promise.resolve({ ok:false, status:400, json:()=>Promise.resolve({}) });
-        if (modo === 'muerto') return Promise.reject(new TypeError('Failed to fetch'));
-        const datos = (modo === 'viejo')
-          ? DATOS.map(d => { const c = JSON.parse(JSON.stringify(d)); delete c.RequestedTags; return c; })
-          : DATOS;
-        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(datos) });
-      };
-    };
-    try {
-      localStorage.setItem('ett_orthanc_url','localhost:8042');
-
-      /* -- 1 · el boton depende de la preferencia de Config -- */
-      localStorage.setItem('ett_orthanc_on','0');
-      if (typeof showTab === 'function') showTab('imagenes');
-      await new Promise(r=>setTimeout(r,140));
-      R.hayBoton = !!btn();
-      if (!R.hayBoton) return { extra: [['el boton existe en la tab Imagenes', false, 'falta']] };
-      R.ocultoApagado = getComputedStyle(btn()).display === 'none';
-      orthancToggle(true);
-      await new Promise(r=>setTimeout(r,80));
-      R.visibleEncendido = getComputedStyle(btn()).display !== 'none';
-      /* y «Importar DICOM» sigue en su lugar, intacto */
-      R.importarDicomSigue = Array.from(document.querySelectorAll('#tab-imagenes button'))
-        .filter(b => b.textContent.indexOf('Importar DICOM') >= 0).length === 1;
-
-      /* -- 2 · PRIMERA busqueda: nada se marca como nuevo -- */
-      localStorage.removeItem('ett_orthanc_vistos');
-      simular('completo');
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      R.listo = filas().length === 3;
-      R.primeraSinNuevos = nuevas().length === 0;
-      R.diceQueEsLaPrimera = est().indexOf('Primera búsqueda') >= 0;
-      /* orden por fecha DESCENDENTE */
-      R.orden = filas().map(f => f.getAttribute('data-orth-estudio'));
-      R.ordenDesc = R.orden.join(',') === 'id-futuro,id-hoy,id-viejo';
-      /* los computados salen de RequestedTags, no de MainDicomTags */
-      const t0 = filas().filter(f => f.getAttribute('data-orth-estudio') === 'id-hoy')[0].textContent;
-      R.leeComputados = t0.indexOf('US') >= 0 && t0.indexOf('42 imagen') >= 0;
-
-      /* -- 3 · LA CONDICION QUE VALE: nuevo por CONJUNTO, no por fecha -- */
-      localStorage.setItem('ett_orthanc_vistos', JSON.stringify(['id-futuro']));
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      const n = nuevas();
-      R.nuevosVistos = n.slice();
-      /* el ANTIQUISIMO sin ver TIENE que salir nuevo: por timestamp saldria viejo */
-      R.viejoSinVerEsNuevo = n.indexOf('id-viejo') >= 0;
-      /* y el del FUTURO ya visto NO: por timestamp saldria nuevo */
-      R.futuroVistoNoEsNuevo = n.indexOf('id-futuro') < 0;
-      R.cuentaEnElCartel = est().indexOf('2 nuevo(s)') >= 0;
-      /* volver a buscar los apaga: la busqueda anterior paso a ser la linea base */
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      R.segundaPasadaLosApaga = nuevas().length === 0;
-      /* el resaltado NO es solo color: lleva la palabra, para quien no distingue el verde */
-      localStorage.setItem('ett_orthanc_vistos', JSON.stringify([]));
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      R.resaltadoConPalabra = nuevas().length === 3;
-
-      /* -- 4 · SEGURIDAD: en disco SOLO ids, ningun nombre de paciente -- */
-      let enDisco = '';
-      try { for (let i = 0; i < localStorage.length; i++) {
-              const k = localStorage.key(i); enDisco += k + '=' + localStorage.getItem(k) + ' | ';
-            } } catch (e) {}
-      R.sinNombresEnDisco = enDisco.indexOf('PEREZ') < 0 && enDisco.indexOf('GOMEZ') < 0 &&
-                            enDisco.indexOf('SILVA') < 0;
-      R.idsSiEnDisco = (localStorage.getItem('ett_orthanc_vistos') || '').indexOf('id-hoy') >= 0;
-
-      /* -- 5 · filtros, y la fecha SIN correrse un dia -- */
-      const fn = document.getElementById('orth-f-nombre');
-      const fd = document.getElementById('orth-f-desde');
-      const fh = document.getElementById('orth-f-hasta');
-      fn.value = 'gomez'; orthancFiltrar();
-      R.filtraNombre = filas().length === 1 &&
-                       filas()[0].getAttribute('data-orth-estudio') === 'id-viejo';
-      fn.value = ''; fd.value = '2026-09-21'; fh.value = '2026-09-21'; orthancFiltrar();
-      R.filtraFecha = filas().length === 1 &&
-                      filas()[0].getAttribute('data-orth-estudio') === 'id-hoy';
-      /* el 21 de septiembre tiene que LEERSE 21, no 20: new Date(yyyy-mm-dd) es UTC y en
-         Uruguay devuelve el dia anterior -este archivo ya lo pago con _pptFechaLarga- */
-      R.fechaNoSeCorre = filas()[0].textContent.indexOf('21/09/2026') >= 0;
-      fd.value = ''; fh.value = ''; fn.value = 'zzz'; orthancFiltrar();
-      R.sinCoincidencias = document.getElementById('orth-panel-lista')
-                             .textContent.indexOf('Ningún estudio coincide') >= 0;
-      fn.value = ''; orthancFiltrar();
-
-      /* -- 6 · ORTHANC VIEJO: no se inventan modalidad ni conteo -- */
-      simular('viejo');
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      R.viejoLista = filas().length === 3;
-      R.viejoDeclara = est().indexOf('no informó modalidad ni cantidad') >= 0;
-      const tv = filas()[0].textContent;
-      R.viejoNoInventa = tv.indexOf('42 imagen') < 0 && tv.indexOf('US') < 0 &&
-                         tv.indexOf('—') >= 0;
-      R.viejoConservaSeries = tv.indexOf('serie(s)') >= 0;
-
-      /* -- 7 · sin respuesta: no se dice «no hay estudios» -- */
-      simular('muerto');
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      R.muertoAvisa = est().indexOf('No se pudo consultar') >= 0 ||
-                      est().indexOf('no me deja leerlo') >= 0;
-      R.muertoNoDiceVacio = est().indexOf('no tiene estudios') < 0;
-
-      /* -- 8 · XSS: el nombre con marcado queda como TEXTO -- */
-      window.fetch = () => Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve([
-        { ID:'id-x', Type:'Study', LastUpdate:'20260921T090000',
-          MainDicomTags:{ StudyDate:'20260921', StudyTime:'120000',
-                          InstitutionName:'X"><img src=x onerror=alert(1)>' },
-          PatientMainDicomTags:{ PatientName:"O'BRIEN & <b>BOOM</b>^ANA^^^" }, Series:['a'] }]) });
-      await orthancBuscar(true);
-      await new Promise(r=>setTimeout(r,250));
-      const cont = document.getElementById('orth-panel-lista');
-      R.venenoComoTexto = cont.textContent.indexOf('<b>BOOM</b>') >= 0 &&
-                          cont.textContent.indexOf('onerror=alert(1)') >= 0;
-      R.sinInyeccion = cont.querySelectorAll('b, img').length === 0;
-      const conHandler = Array.from(cont.querySelectorAll('*'))
-        .filter(el => Array.from(el.attributes || []).some(a => /^on/i.test(a.name)));
-      R.sinHandlers = conHandler.length === 0;
-
-      /* -- 9 · elegir cierra el panel y delega en el seam -- */
-      let recibido = null;
-      window.orthancImportarEstudio = id => { recibido = id; };
-      filas()[0].click();
-      await new Promise(r=>setTimeout(r,120));
-      R.delegaEnElSeam = recibido === 'id-x';
-      R.cierraElPanel = getComputedStyle(document.getElementById('orth-panel-overlay')).display === 'none';
-      window.orthancImportarEstudio = undefined;   // por asignacion: borrarla no funciona
-      /* y SIN el seam avisa en vez de quedarse mudo */
-      const tost = []; const to2 = window.toast; window.toast = m => tost.push(String(m));
-      orthancElegirEstudio('id-x');
-      window.toast = to2;
-      R.sinSeamAvisa = tost.join(' ').indexOf('todavía no está implementada') >= 0;
-    } finally {
-      window.fetch = fetchOrig; window.toast = toastOrig;
-      try { window.orthancImportarEstudio = impOrig; } catch (e) {}
-      try { orthancPanelCerrar(); } catch (e) {}
-      try {
-        if (onOrig === null) localStorage.removeItem('ett_orthanc_on');
-        else localStorage.setItem('ett_orthanc_on', onOrig);
-        if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
-        else localStorage.setItem('ett_orthanc_url', urlOrig);
-        if (vistosOrig === null) localStorage.removeItem('ett_orthanc_vistos');
-        else localStorage.setItem('ett_orthanc_vistos', vistosOrig);
-      } catch (e) {}
-      try { orthancBotonSync(); orthancRender(); } catch (e) {}
-    }
-    return { extra: [
-      ['DENOMINADOR: el boton existe y la lista se dibuja', R.hayBoton && R.listo, R.hayBoton + '/' + R.listo],
-      ['oculto con Orthanc apagado, visible con encendido', R.ocultoApagado && R.visibleEncendido, R.ocultoApagado + '/' + R.visibleEncendido],
-      ['«Importar DICOM» sigue intacto',            R.importarDicomSigue, R.importarDicomSigue],
-      ['ordenados por fecha DESCENDENTE',           R.ordenDesc, R.orden.join(',')],
-      ['modalidad y conteo salen de RequestedTags', R.leeComputados, R.leeComputados],
-      ['la PRIMERA busqueda no marca nada como nuevo', R.primeraSinNuevos && R.diceQueEsLaPrimera, R.primeraSinNuevos],
-      ['NUEVO = id NO VISTO, aunque el estudio sea viejisimo', R.viejoSinVerEsNuevo, JSON.stringify(R.nuevosVistos)],
-      ['y un estudio del FUTURO ya visto NO es nuevo', R.futuroVistoNoEsNuevo, JSON.stringify(R.nuevosVistos)],
-      ['el cartel cuenta los nuevos',               R.cuentaEnElCartel, R.cuentaEnElCartel],
-      ['volver a buscar los apaga',                 R.segundaPasadaLosApaga, R.segundaPasadaLosApaga],
-      ['el resaltado lleva la PALABRA, no solo color', R.resaltadoConPalabra, R.resaltadoConPalabra],
-      ['SEGURIDAD: en disco NO hay nombres de paciente', R.sinNombresEnDisco, R.sinNombresEnDisco],
-      ['pero si los ids, que es lo que compara',    R.idsSiEnDisco, R.idsSiEnDisco],
-      ['filtra por nombre y por rango de fechas',   R.filtraNombre && R.filtraFecha, R.filtraNombre + '/' + R.filtraFecha],
-      ['la fecha NO se corre un dia',               R.fechaNoSeCorre, R.fechaNoSeCorre],
-      ['sin coincidencias lo dice',                 R.sinCoincidencias, R.sinCoincidencias],
-      ['ORTHANC VIEJO: lista igual',                R.viejoLista, R.viejoLista],
-      ['y NO INVENTA modalidad ni conteo',          R.viejoNoInventa, R.viejoNoInventa],
-      ['declara por que faltan',                    R.viejoDeclara, R.viejoDeclara],
-      ['conservando las series, que si vinieron',   R.viejoConservaSeries, R.viejoConservaSeries],
-      ['sin respuesta NO dice «no tiene estudios»', R.muertoAvisa && R.muertoNoDiceVacio, R.muertoNoDiceVacio],
-      ['XSS: el marcado queda como texto',          R.venenoComoTexto && R.sinInyeccion, R.venenoComoTexto],
-      ['cero handlers on* en la lista',             R.sinHandlers, R.sinHandlers],
-      ['elegir cierra el panel y delega en el seam', R.delegaEnElSeam && R.cierraElPanel, R.delegaEnElSeam],
-      ['y sin el seam avisa en vez de quedarse mudo', R.sinSeamAvisa, R.sinSeamAvisa]
-    ] };
-  })();
-`);
-
-
-/* == TC-223 · Importar un estudio desde Orthanc =============================================
-   LA CONDICION QUE MAS IMPORTA es que el PatientID NO se escriba en `ci`. El pedido lo pedia
-   («los datos del paciente -nombre, fecha de nacimiento, CI- se toman del DICOM») y eso
-   REINTRODUCE UN DEFECTO YA CERRADO: en un ecografo de hospital ese campo es el numero de
-   historia clinica, entra en la clave de _dupKeys igual que un documento real, y un numero
-   que coincida con la cedula de otro paciente en la misma fecha hace que «Actualizar» pise el
-   nombre y el documento del paciente EQUIVOCADO. El comentario de _dcmPaciente ya lo
-   documenta; este caso lo fija para la via de Orthanc.
-
-   Y NO HAY CAMPO DE FECHA DE NACIMIENTO en la app: se deriva la EDAD, que es el que existe.
-
-   ALCANCE DECLARADO: el camino de la IMAGEN se prueba de punta a punta -DICOM sintetico que
-   termina en un slot- y el del SR por ESPIA sobre dcmImportarSR: lo que este codigo decide es
-   A QUE PUERTA mandar cada archivo, no como lee un SR, que ya cubren TC-143 y los del CHM.
-   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL.                                            */
-caso('TC-223', 'Orthanc: importa el estudio por las puertas de siempre, y el PatientID NO va a ci', `
-  return (async () => {
-    const R = {};
-    const fetchOrig = window.fetch, toastOrig = window.toast, alertOrig = window.alert;
-    const imgOrig = window.dcmImgImportar, srOrig = window.dcmImportarSR;
-    const urlOrig = localStorage.getItem('ett_orthanc_url');
-    window.toast = () => {}; window.alert = () => {};
-    const val = id => { const e = document.getElementById(id); return e ? String(e.value || '') : '(no existe)'; };
-    /* ── constructor de DICOM sintetico, el mismo patron de TC-179 ── */
-    /* El MISMO JPEG 1x1 que usan TC-179 y los demas: es decodificable de verdad. El que
-       arme a mano -tabla de cuantizacion trucha y sin tablas de Huffman- se extraia bien del
-       DICOM y despues imgCompressLoad no lo podia abrir, asi que la imagen nunca llegaba al
-       slot y el caso acusaba al importador de un defecto propio. */
-    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
-    const B = a => { const o=[]; a.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
-    const u16 = n => [n & 255, (n>>8) & 255];
-    const u32 = n => [n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255];
-    const txt = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
-    const el  = (g,e,vr,v) => {
-      const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
-      return B([u16(g),u16(e),txt(vr).slice(0,2), L4 ? B([0,0,u32(v.length)]) : u16(v.length), v]);
-    };
-    const mk = (op) => {
-      const o = op || {};
-      let b = [];
-      for (let i=0;i<128;i++) b.push(0);
-      b = b.concat(txt('DICM'));
-      if (o.sopMeta) b = b.concat(el(0x0002,0x0002,'UI',txt(o.sopMeta)));
-      b = b.concat(el(0x0002,0x0010,'UI',txt('1.2.840.10008.1.2.4.50')));
-      b = b.concat(el(0x0008,0x0070,'LO',txt('GE Vingmed Ultrasound')));
-      b = b.concat(el(0x0008,0x1090,'LO',txt('Vivid iq')));
-      b = b.concat(el(0x0028,0x0004,'CS',txt('YBR_FULL_422')));
-      if (o.frames && o.frames > 1) b = b.concat(el(0x0028,0x0008,'IS',txt(String(o.frames))));
-      b = b.concat(el(0x0028,0x0010,'US',u16(4)));
-      b = b.concat(el(0x0028,0x0011,'US',u16(4)));
-      b = b.concat(B([u16(0x7FE0),u16(0x0010),txt('OB'),0,0,u32(0xFFFFFFFF)]));
-      const nf = o.frames || 1;
-      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(4*nf),B(new Array(nf).fill(0).map(()=>u32(0)))]));
-      for (let k = 0; k < nf; k++) {
+      const mk = (sopMeta) => {
+        let b = [];
+        for (let i=0;i<128;i++) b.push(0);
+        b = b.concat(txt('DICM'));
+        b = b.concat(ele(0x0002,0x0002,'UI',txt(sopMeta)));
+        b = b.concat(ele(0x0002,0x0010,'UI',txt('1.2.840.10008.1.2.4.50')));
+        b = b.concat(ele(0x0008,0x0070,'LO',txt('GE Vingmed Ultrasound')));
+        b = b.concat(ele(0x0028,0x0004,'CS',txt('YBR_FULL_422')));
+        b = b.concat(ele(0x0028,0x0010,'US',u16(4)));
+        b = b.concat(ele(0x0028,0x0011,'US',u16(4)));
+        b = b.concat(B([u16(0x7FE0),u16(0x0010),txt('OB'),0,0,u32(0xFFFFFFFF)]));
+        b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(4),u32(0)]));
         const a = Array.from(JPG); if (a.length % 2) a.push(0);
         b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a]));
-      }
-      b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
-      return new Uint8Array(b).buffer;
-    };
-    const SR_SOP = '1.2.840.10008.5.1.4.1.1.88.33';
-    const US_SOP = '1.2.840.10008.5.1.4.1.1.6.1';
-    /* ── el estudio que devuelve Orthanc ── */
-    const ESTUDIO = {
-      ID:'est-1', Type:'Study',
-      MainDicomTags:{ StudyDate:'20260921', StudyTime:'143012', InstitutionName:'Sanatorio' },
-      PatientMainDicomTags:{ PatientName:'PEREZ^JUAN^^^', PatientID:'HC-88231',
-                             PatientBirthDate:'19800315', PatientSex:'M' },
-      Series:['s1']
-    };
-    const INSTS = [
-      { ID:'i-sr',  MainDicomTags:{ InstanceNumber:'3' } },
-      { ID:'i-img', MainDicomTags:{ InstanceNumber:'1' } },
-      { ID:'i-cin', MainDicomTags:{ InstanceNumber:'2' } }
-    ];
-    const cuerpo = { 'i-img': mk({ sopMeta:US_SOP }),
-                     'i-cin': mk({ sopMeta:US_SOP, frames:3 }),
-                     'i-sr' : mk({ sopMeta:SR_SOP }) };
-    const simular = (estudio) => {
-      window.fetch = (url) => {
-        const u = String(url);
-        if (/\\/instances\\/[^/]+\\/file/.test(u)) {
-          const id = u.split('/instances/')[1].split('/')[0];
-          const buf = cuerpo[id];
-          if (!buf) return Promise.reject(new TypeError('Failed to fetch'));
-          return Promise.resolve({ ok:true, status:200, arrayBuffer:()=>Promise.resolve(buf) });
-        }
-        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
-          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(INSTS) });
-        if (/\\/studies\\/[^/]+$/.test(u))
-          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(estudio || ESTUDIO) });
-        return Promise.reject(new TypeError('Failed to fetch'));
+        b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+        return new Uint8Array(b).buffer;
       };
-    };
-    try {
-      localStorage.setItem('ett_orthanc_url','localhost:8042');
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,120));
+      R.esSR    = _clnkEsSR(mk('1.2.840.10008.5.1.4.1.1.88.33'));   // SR
+      R.noEsSR  = _clnkEsSR(mk('1.2.840.10008.5.1.4.1.1.6.1'));     // ecografia
+      /* CONTROL NEGATIVO: basura y vacio NO son un SR, y no lanzan. */
+      R.basura  = _clnkEsSR(new Uint8Array([1,2,3,4,5,6,7,8]).buffer);
+      R.vacio   = _clnkEsSR(new Uint8Array(0).buffer);
+      R.srOk = R.esSR === true && R.noEsSR === false && R.basura === false && R.vacio === false;
 
-      /* ── 1 · RUTEO: quien va a cada puerta, y el progreso ── */
-      const aImg = [], aSR = [];
-      window.dcmImgImportar = (fl) => { aImg.push([...fl]); return Promise.resolve(); };
-      window.dcmImportarSR  = (fl) => { aSR.push([...fl]);  return Promise.resolve(); };
-      /* SE INSTRUMENTA LA FRONTERA, no se muestrea el DOM. Muestrear con setInterval(20) dio
-         cero: con fetch sustituido la importacion entera dura menos que un tick, asi que el
-         overlay nace y muere entre dos muestras. Envolviendo _bkProgAbrir/_bkProg se captura
-         cada llamada, sin depender de cuanto tarde. */
-      let progresoVisto = 0; const rotulos = [];
-      const abrirOrig = window._bkProgAbrir, progOrig = window._bkProg;
-      window._bkProgAbrir = (t) => { progresoVisto++; return abrirOrig(t); };
-      window._bkProg = (n, tot, rot) => { if (rot) rotulos.push(String(rot) + ' ' + n + '/' + tot);
-                                          return progOrig(n, tot, rot); };
-      simular();
-      await orthancImportarEstudio('est-1');
-      window._bkProgAbrir = abrirOrig; window._bkProg = progOrig;
-      R.imgLote = aImg.length === 1 ? aImg[0].length : -1;
-      R.srLote  = aSR.length  === 1 ? aSR[0].length  : -1;
-      R.ruteaBien = R.imgLote === 2 && R.srLote === 1;
-      R.progresoAparecio = progresoVisto > 0;
-      R.rotulos = rotulos.slice(0,6);
-      /* y se exige que CUENTE: «Importando imagen 1/3» y «3/3», o sea que la barra avanza */
-      R.progresoRotula = rotulos.some(x => x.indexOf('Importando imagen 1/3') >= 0) &&
-                         rotulos.some(x => x.indexOf('Importando imagen 3/3') >= 0);
-      R.progresoSeCerro = !document.querySelector('[data-bk-prog]');
-      /* orden por InstanceNumber: la imagen (1) antes del cineloop (2) */
-      R.ordenado = aImg.length === 1 && aImg[0][0].name.indexOf('i-img') >= 0 &&
-                                        aImg[0][1].name.indexOf('i-cin') >= 0;
-      /* los archivos llegan con arrayBuffer() usable, que es lo que las puertas consumen */
-      let bytesOk = false;
-      try { const b = await aImg[0][0].arrayBuffer(); bytesOk = b.byteLength > 200; } catch (e) {}
-      R.archivosUsables = bytesOk;
+      /* ── 6 · PEDIR JSON: devuelve el objeto y LANZA con un estado que no sea 2xx. Un ayudante
+            que devuelva null en vez de lanzar deja al que llama creyendo que no habia datos. ── */
+      window.fetch = () => Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve({ a:1, b:'dos' }) });
+      const j = await _clnkGetJSON('http://127.0.0.1:1/x');
+      R.jsonOk = !!j && j.a === 1 && j.b === 'dos';
+      window.fetch = () => Promise.resolve({ ok:false, status:404, json:()=>Promise.resolve({}) });
+      let lanzo = false;
+      try { await _clnkGetJSON('http://127.0.0.1:1/x'); } catch (e) { lanzo = String(e && e.message).indexOf('404') > -1; }
+      R.lanzaCon404 = lanzo === true;
 
-      /* ── 2 · PACIENTE: lo que se carga y lo que NO ── */
-      R.nombre = val('nombre');
-      R.fecha  = val('fecha');
-      R.sexo   = val('sexo');
-      R.edad   = val('edad');
-      R.ci     = val('ci');
-      R.cargaNombre = R.nombre === 'PEREZ, JUAN';
-      R.cargaFecha  = R.fecha === '2026-09-21';
-      R.cargaSexo   = R.sexo === 'M';
-      /* nacido 15/03/1980, estudio 21/09/2026 -> 46 (ya cumplio este anio) */
-      R.derivaEdad  = R.edad === '46';
-      /* ⚠️ EL 46 DE ARRIBA NO DISCRIMINA: nacido en marzo y estudio en septiembre, el
-         cumpleanios YA paso, asi que con ajuste y sin ajuste da lo mismo -la mutacion que
-         saca el ajuste sobrevivia-. El valor que separa las dos implementaciones es un
-         cumpleanios que TODAVIA NO llego. Es «elegir el valor que distingue el umbral
-         correcto del error plausible», otra vez. */
-      R.edadDic = _orthEdad('19801225','20260921');   // 25/dic: aun no cumplio -> 45
-      R.edadMar = _orthEdad('19800315','20260921');   // 15/mar: ya cumplio     -> 46
-      R.ajustaCumple = R.edadDic === 45 && R.edadMar === 46;
-      /* y la banda: sin fecha, o una fecha imposible, NO publican un numero */
-      R.edadSinNac  = _orthEdad('', '20260921');
-      R.edadFutura  = _orthEdad('21000101','20260921');   // negativa
-      R.edadAbsurda = _orthEdad('17000101','20260921');   // 326 anios
-      R.bandaEdad = R.edadSinNac === null && R.edadFutura === null && R.edadAbsurda === null;
-      /* LA CONDICION QUE VALE */
-      R.ciVacio     = R.ci === '';
-      R.ciSinElHC   = R.ci.indexOf('HC-88231') < 0;
-
-      /* ── 3 · NO PISA lo que el medico ya tipeo ── */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,120));
-      document.getElementById('nombre').value = 'ESCRITO A MANO';
-      document.getElementById('edad').value = '77';
-      aImg.length = 0; aSR.length = 0;
-      simular();
-      await orthancImportarEstudio('est-1');
-      R.respetaNombre = val('nombre') === 'ESCRITO A MANO';
-      R.respetaEdad   = val('edad') === '77';
-      R.completaElResto = val('sexo') === 'M' && val('fecha') === '2026-09-21';
-
-      /* ── 4 · sexo «O» de DICOM no rompe el select ── */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,120));
-      const otro = JSON.parse(JSON.stringify(ESTUDIO));
-      otro.PatientMainDicomTags.PatientSex = 'O';
-      otro.PatientMainDicomTags.PatientBirthDate = '';
-      simular(otro);
-      await orthancImportarEstudio('est-1');
-      const selSexo = document.getElementById('sexo');
-      R.sexoOtroVacio = String(selSexo.value || '') === '' && selSexo.selectedIndex >= 0;
-      /* y sin fecha de nacimiento NO se inventa una edad */
-      R.sinNacSinEdad = val('edad') === '';
-
-      /* ── 5 · EXTREMO A EXTREMO por la puerta REAL: la imagen llega a un slot ── */
-      window.dcmImgImportar = imgOrig; window.dcmImportarSR = srOrig;
-      __t.limpiar();
-      if (typeof imgVaciar === 'function') imgVaciar();
-      await new Promise(r=>setTimeout(r,150));
-      const antes = (typeof imgSlots !== 'undefined') ? imgSlots.filter(Boolean).length : -1;
-      const soloImg = [{ ID:'i-img', MainDicomTags:{ InstanceNumber:'1' } }];
-      window.fetch = (url) => {
-        const u = String(url);
-        if (/\\/instances\\/[^/]+\\/file/.test(u))
-          return Promise.resolve({ ok:true, status:200, arrayBuffer:()=>Promise.resolve(cuerpo['i-img']) });
-        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
-          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(soloImg) });
-        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(ESTUDIO) });
-      };
-      await orthancImportarEstudio('est-1');
-      await new Promise(r=>setTimeout(r,700));
-      const despues = (typeof imgSlots !== 'undefined') ? imgSlots.filter(Boolean).length : -1;
-      R.antes = antes; R.despues = despues;
-      R.llegaAlSlot = despues === antes + 1;
-
-      /* ── 6 · sin instancias: se dice, no se finge ── */
-      const tost = []; window.toast = m => tost.push(String(m));
-      window.fetch = (url) => {
-        const u = String(url);
-        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
-          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve([]) });
-        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(ESTUDIO) });
-      };
-      await orthancImportarEstudio('est-1');
-      R.vacioAvisa = tost.join(' ').indexOf('no tiene instancias') >= 0;
-      /* ── 7 · Orthanc caido: se dice, y no queda el progreso colgado ── */
-      tost.length = 0;
-      window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
-      await orthancImportarEstudio('est-1');
-      R.caidoAvisa = tost.join(' ').indexOf('No se pudo leer el estudio') >= 0;
-      R.sinProgresoColgado = !document.querySelector('[data-bk-prog]');
-
-      /* ── 8 · el flujo del pendrive sigue intacto ── */
-      R.botonImportarSigue = Array.from(document.querySelectorAll('#tab-imagenes button'))
-        .filter(b => b.textContent.indexOf('Importar DICOM') >= 0).length === 1;
-      R.puertasIntactas = typeof dcmImgImportar === 'function' && dcmImgImportar === imgOrig &&
-                          typeof dcmImportarSR === 'function' && dcmImportarSR === srOrig;
-    } finally {
-      window.fetch = fetchOrig; window.toast = toastOrig; window.alert = alertOrig;
-      window.dcmImgImportar = imgOrig; window.dcmImportarSR = srOrig;
-      try { if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
-            else localStorage.setItem('ett_orthanc_url', urlOrig); } catch (e) {}
-      try { _bkProgCerrar(); } catch (e) {}
-      try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+      /* ── 7 · LA ADVERTENCIA DEL PatientID SIGUE EN EL ARCHIVO. Es lo unico que impide que el
+            paso siguiente lo cargue como documento, y borrarla no rompe nada HOY. ── */
+      const src = await fetchOrig('/index.html', { cache: 'no-store' }).then(r => r.text());
+      R.bytes = src.length;
+      R.diceNoEsCedula = src.indexOf('PatientID') > -1 &&
+                         src.indexOf('historia cl') > -1 &&
+                         src.indexOf('otro paciente') > -1;
+      /* CONTROL POSITIVO del metodo: una cadena que SI esta se encuentra igual. */
+      R.control = src.indexOf('_clnkPonerSiVacio') > -1;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 180); }
+    finally {
+      try { window.fetch = fetchOrig; } catch (e) {}
       try { __t.limpiar(); } catch (e) {}
     }
     return { extra: [
-      ['DENOMINADOR: rutea 2 a imagenes y 1 a SR',  R.ruteaBien, 'img=' + R.imgLote + ' sr=' + R.srLote],
-      ['ordenadas por InstanceNumber',              R.ordenado, R.ordenado],
-      ['los archivos llegan legibles a la puerta',  R.archivosUsables, R.archivosUsables],
-      ['la barra de progreso aparece y rotula',     R.progresoAparecio && R.progresoRotula, JSON.stringify(R.rotulos)],
-      ['y se cierra al terminar',                   R.progresoSeCerro, R.progresoSeCerro],
-      ['carga el nombre del paciente',              R.cargaNombre, R.nombre],
-      ['la fecha del estudio',                      R.cargaFecha, R.fecha],
-      ['y el sexo',                                 R.cargaSexo, R.sexo],
-      ['DERIVA LA EDAD de la fecha de nacimiento',  R.derivaEdad, R.edad],
-      ['y AJUSTA si el cumpleanios todavia no llego', R.ajustaCumple, 'dic=' + R.edadDic + ' mar=' + R.edadMar],
-      ['una edad imposible no se publica',          R.bandaEdad, 'sinNac=' + R.edadSinNac + ' futura=' + R.edadFutura + ' absurda=' + R.edadAbsurda],
-      ['EL PatientID NO SE ESCRIBE EN ci',          R.ciVacio && R.ciSinElHC, 'ci=' + JSON.stringify(R.ci)],
-      ['NO pisa el nombre ni la edad ya tipeados',  R.respetaNombre && R.respetaEdad, R.respetaNombre + '/' + R.respetaEdad],
-      ['pero si completa lo que estaba vacio',      R.completaElResto, R.completaElResto],
-      ['un sexo «O» deja el select sano, no roto',  R.sexoOtroVacio, R.sexoOtroVacio],
-      ['sin fecha de nacimiento NO inventa edad',   R.sinNacSinEdad, R.sinNacSinEdad],
-      ['EXTREMO A EXTREMO: la imagen llega al slot', R.llegaAlSlot, R.antes + ' -> ' + R.despues],
-      ['un estudio sin instancias se declara',      R.vacioAvisa, R.vacioAvisa],
-      ['Orthanc caido se declara',                  R.caidoAvisa, R.caidoAvisa],
-      ['y no deja la barra de progreso colgada',    R.sinProgresoColgado, R.sinProgresoColgado],
-      ['el flujo del pendrive queda intacto',       R.botonImportarSigue && R.puertasIntactas, R.botonImportarSigue]
+      ['sin excepciones',                                   !R.err, R.err],
+      ['DENOMINADOR: los seis ayudantes existen',           !R.faltan, R.faltan],
+      ['SEXO: M y F, y «O» no se asigna',                   R.sexoOk, R.sexo],
+      ['EDAD: las dos fechas como numero, y fuera de banda no se publica', R.edadOk,
+        [R.e1,R.e2,R.e3,R.e4,R.e5,R.e6,R.e7].join('|')],
+      ['y el borde del dia exacto no se corre',             R.bordeOk, R.e8 + '|' + R.e9],
+      ['PONER: solo si esta vacio, y NO pisa lo cargado',   R.ponerOk,
+        'p1=' + R.p1 + ' p2=' + R.p2 + ' nombre=' + R.nombre2 + ' puestos=' + R.puestos],
+      ['y dispara el evento que recalcula',                 R.disparoEvento && R.edadCargada,
+        'eventos=' + R.disparoEvento + ' edad=' + R.edadCargada],
+      ['ARCHIVO: conserva el nombre',                       R.tieneNombre, R.tieneNombre],
+      ['y el tipo application/dicom',                       R.tieneTipo, R.tieneTipo],
+      ['y los bytes quedan usables',                        R.bytesUsables, R.bytesUsables],
+      ['SR: reconoce el informe estructurado por su SOP',   R.esSR === true, R.esSR],
+      ['y una ecografia NO es un SR',                       R.noEsSR === false, R.noEsSR],
+      ['CONTROL NEGATIVO: basura y vacio no son SR ni lanzan', R.basura === false && R.vacio === false,
+        'basura=' + R.basura + ' vacio=' + R.vacio],
+      ['JSON: devuelve el objeto',                          R.jsonOk, R.jsonOk],
+      ['y LANZA con un estado que no es 2xx',               R.lanzaCon404, R.lanzaCon404],
+      ['CONTROL POSITIVO: el archivo se leyo',              R.bytes > 1000000 && R.control,
+        'bytes=' + R.bytes + ' control=' + R.control],
+      ['LA ADVERTENCIA del PatientID sigue en el archivo',  R.diceNoEsCedula, R.diceNoEsCedula]
     ] };
   })();
 `);
-
 
 /* == TC-224 · Origen del SGL y variables clinicas en el dataset de strain ===================
    LA CONDICION QUE HACE EL CASO: un estudio cuyo SGL del informe se declara MANUAL NO entra
@@ -29912,258 +29240,31 @@ caso('TC-229', 'Los controles del visor no se guardan dentro del estudio, ni los
   })();
 `);
 
-/* == TC-230 - La conexion por red (DICOM) solo existe en Modo Avanzado ====================
-   Dos superficies, no una: la TARJETA de Config y el BOTON «Buscar en Orthanc» de la tab
-   Imagenes. Medido antes de tocar nada, en Modo Basico salian las dos -la tarjeta 332 px y el
-   boton 44 px-, y esconder solo la primera deja un control que el medico no puede apagar ni
-   configurar desde ningun lado.
+/* == TC-230 · RETIRADO (ECO-CONECTOR-1) ==================================================
+   Probaba: que la tarjeta «Conexion por red (DICOM)» y el boton «Buscar en Orthanc» se veian SOLO
+   en Modo Avanzado, en sus DOS superficies.
+   Se retira porque las dos superficies se fueron: la tarjeta con el panel, y el boton con la
+   pestana Imagenes. CeiboLink tiene UNA sola superficie —su tarjeta de ⚙️ Config— y la MISMA
+   regla de visibilidad, que cubre TC-833: su sucesor. De ese caso viajaron las dos lecciones
+   que este tenia escritas: que el DENOMINADOR es que el modulo este ENCENDIDO (con la casilla
+   apagada el cuerpo mide 0 por su OTRA compuerta, y el caso pasaria en verde con el arreglo
+   revertido), y que el rotulo se mide sobre los TITULOS de seccion y no sobre
+   document.body.innerText, que devuelve 3909 caracteres de toda la app y no encuentra ni el
+   que esta visible. TC-833 agrega ademas que no haya NADA de CeiboLink fuera de esa tarjeta.
+   NO se borro en silencio: esta linea queda en el lugar donde vivia el caso, para que
+   quien lo busque por su numero encuentre el motivo y no un hueco. */
 
-   EL DENOMINADOR ES QUE ORTHANC ESTE ACTIVADO. Con la casilla apagada el boton mide 0 por su
-   OTRA compuerta, asi que un caso que no la encienda mide cero sobre cero y pasa en verde con
-   el arreglo revertido.
-
-   El caso RESTAURA el modo en el finally: Modo Basico esconde las filas de pestanas especiales
-   y de herramientas, o sea que dejarlo puesto se lleva puestos los casos siguientes. */
-caso('TC-230', 'La conexion por red (DICOM) solo se ve en Modo Avanzado, en sus DOS superficies', `
-  return (async () => {
-    const R = {};
-    const modoOrig = localStorage.getItem('ett_view_mode');
-    const orthOrig = localStorage.getItem('ett_orthanc_on');
-    const urlOrig  = localStorage.getItem('ett_orthanc_url');
-    const toastOrig = window.toast;
-    window.toast = () => {};
-    const cardOrthanc = () => document.getElementById('cfg-card-orthanc');
-    const alto = el => el ? Math.round(el.getBoundingClientRect().height) : -1;
-    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
-    /* El boton se sincroniza al ENTRAR a la tab Imagenes, que es el unico camino por el que
-       se llega a ver. Medirlo sin pasar por ahi mide un DOM que nadie repinto. */
-    const altoBoton = () => { showTab('imagenes');
-                              return alto(document.getElementById('orth-buscar-btn')); };
-    try {
-      /* -- DENOMINADOR: Orthanc ACTIVADO, o el boton mide 0 por el otro motivo -- */
-      orthancToggle(true);
-      R.orthancActivo = orthancActivo() === true;
-
-      /* -- MODO AVANZADO: las dos superficies se ven -- */
-      abrirConfig(); cfgSetMode('avanzado');
-      R.cardAvanzado = alto(cardOrthanc());
-      R.btnAvanzado  = altoBoton();
-
-      /* -- el rotulo: el nuevo esta, el viejo no sobrevive en NINGUNA superficie visible -- */
-      abrirConfig();
-      const titulos = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
-                           .map(e => e.textContent.trim());
-      R.titulos = titulos.join(' | ');
-      /* ⚠️ Sobre los TITULOS y no sobre document.body.innerText: medido, ese innerText
-         devuelve 3909 caracteres de TODA la app y no encuentra ni el rotulo que esta
-         visible con su titulo midiendo 31 px. La condicion escrita asi daba false con el
-         rotulo viejo Y con el nuevo -o sea pasaba sin probar nada-. */
-      R.rotuloNuevo  = titulos.some(t => t.indexOf('Conexion por red (DICOM)') >= 0 ||
-                                         t.indexOf('Conexi\\u00f3n por red (DICOM)') >= 0);
-      R.rotuloViejo  = titulos.some(t => t.indexOf('Orthanc') >= 0);
-
-      /* -- MODO BASICO: EN EL ACTO, sin reabrir Config -- */
-      abrirConfig(); cfgSetMode('basico');
-      R.cardEnElActo = alto(cardOrthanc());
-      /* y el TITULO tampoco: esconder el cuerpo y dejar la cabecera no alcanza */
-      const t2 = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
-                      .filter(e => e.getBoundingClientRect().height > 0)
-                      .map(e => e.textContent.trim());
-      R.titulosVisiblesBasico = t2.join(' | ');
-      R.tituloEscondido = !t2.some(t => t.indexOf('DICOM') >= 0);
-      /* y tras REABRIR Config sigue escondida */
-      abrirConfig();
-      R.cardBasico = alto(cardOrthanc());
-      R.btnBasico  = altoBoton();
-
-      /* -- REVERSIBLE -- */
-      abrirConfig(); cfgSetMode('avanzado');
-      R.cardVuelta = alto(cardOrthanc());
-      R.btnVuelta  = altoBoton();
-
-      /* -- esconder NO es borrar: los cuatro controles siguen DENTRO de la tab -- */
-      abrirConfig();
-      const tab = document.getElementById('tab-config');
-      const IDS = ['cfg-orthanc-on','cfg-orthanc-url','cfg-orthanc-estado','cfg-orthanc-datos'];
-      const faltan = IDS.filter(id => { const e = document.getElementById(id);
-                                        return !e || !tab.contains(e); });
-      R.faltan = faltan.join(', ');
-      R.controlesIntactos = faltan.length === 0;
-
-      /* -- CONTROL NEGATIVO: el MODO esconde la TARJETA, la CASILLA esconde el CUERPO.
-            Son dos compuertas distintas y confundirlas borra la forma de apagar Orthanc. -- */
-      orthancToggle(false);
-      const cue = document.getElementById('cfg-orthanc-cuerpo');
-      R.cuerpoApagado  = cue ? getComputedStyle(cue).display : 'sin cuerpo';
-      R.tarjetaApagada = alto(cardOrthanc());
-      orthancToggle(true);
-      R.cuerpoEncendido = cue ? getComputedStyle(cue).display : 'sin cuerpo';
-    } catch (e) {
-      R.err = String((e && e.message) || e).slice(0, 140);
-    } finally {
-      try { localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
-            if (typeof applyViewMode === 'function') applyViewMode();
-            if (typeof cfgRenderModulos === 'function') cfgRenderModulos();
-            if (typeof orthancRender === 'function') orthancRender(); } catch (e) {}
-      try { if (orthOrig === null) localStorage.removeItem('ett_orthanc_on');
-            else localStorage.setItem('ett_orthanc_on', orthOrig);
-            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
-            else localStorage.setItem('ett_orthanc_url', urlOrig);
-            if (typeof orthancRender === 'function') orthancRender();
-            if (typeof orthancBotonSync === 'function') orthancBotonSync(); } catch (e) {}
-      try { window.toast = toastOrig; } catch (e) {}
-    }
-    return { extra: [
-      ['sin excepciones',                              !R.err, R.err],
-      ['DENOMINADOR: Orthanc quedo ACTIVADO',          R.orthancActivo, R.orthancActivo],
-      ['AVANZADO: la tarjeta se ve',                   R.cardAvanzado > 0, 'alto=' + R.cardAvanzado],
-      ['AVANZADO: el boton Buscar se ve',              R.btnAvanzado > 0, 'alto=' + R.btnAvanzado],
-      ['lleva el rotulo NUEVO',                        R.rotuloNuevo, R.titulos],
-      ['y NINGUN titulo de seccion dice ya Orthanc',   R.rotuloViejo === false, R.titulos],
-      ['BASICO: la tarjeta desaparece EN EL ACTO',     R.cardEnElActo === 0, 'alto=' + R.cardEnElActo],
-      ['BASICO: ni queda el titulo suelto',            R.tituloEscondido, R.titulosVisiblesBasico],
-      ['BASICO: y sigue escondida al reabrir Config',  R.cardBasico === 0, 'alto=' + R.cardBasico],
-      ['BASICO: el boton Buscar tampoco se ve',        R.btnBasico === 0, 'alto=' + R.btnBasico],
-      ['es REVERSIBLE: la tarjeta vuelve',             R.cardVuelta > 0, 'alto=' + R.cardVuelta],
-      ['y el boton tambien',                           R.btnVuelta > 0, 'alto=' + R.btnVuelta],
-      ['esconder NO es borrar: los 4 controles siguen', R.controlesIntactos, R.faltan],
-      ['la CASILLA sigue gobernando el cuerpo',        R.cuerpoApagado === 'none' && R.cuerpoEncendido !== 'none',
-        'apagado=' + R.cuerpoApagado + ' encendido=' + R.cuerpoEncendido],
-      ['y apagar Orthanc NO esconde la tarjeta',       R.tarjetaApagada > 0, 'alto=' + R.tarjetaApagada]
-    ] };
-  })();
-`);
-
-/* == TC-231 - El modo entra al PREDICADO, y el trabajo en vuelo no aterriza ================
-   Tres invariantes que TC-230 no cubre porque mira SUPERFICIES y estas son de mecanismo.
-
-   1) orthancActivo() devuelve false en Modo Basico. Que el invariante lo sostengan dos
-      AND-eados que coinciden en los dos consumidores no se ve desde la pantalla: se ve el dia
-      que aparece un tercero y recibe true por defecto.
-   2) Una verificacion en vuelo no escribe cuando el modo ya cambio. El caso lo fuerza con un
-      fetch controlado, porque con red real la ventana es de milisegundos y el rojo seria
-      intermitente - que es peor que no tener el caso.
-   3) Esconder LIMPIA. Sin eso, volver a Avanzado repone la salida vieja de Verificar sin fecha
-      y sin marca de obsoleta, que ademas puede ser de una lectura terminada DESPUES.
-
-   DENOMINADORES DECLARADOS, y son tres: que la verificacion haya ARRANCADO (si no, medir que
-   no aterrizo es medir sobre nada), que la del punto 3 haya salido BIEN (si no, no hay nada
-   que resucitar) y que Orthanc quede ENCENDIDO. */
-caso('TC-231', 'Orthanc: el modo entra al predicado, el trabajo en vuelo no aterriza, y esconder limpia', `
-  return (async () => {
-    const R = {};
-    const modoOrig  = localStorage.getItem('ett_view_mode');
-    const orthOrig  = localStorage.getItem('ett_orthanc_on');
-    const urlOrig   = localStorage.getItem('ett_orthanc_url');
-    const fetchOrig = window.fetch;
-    const toastOrig = window.toast;
-    window.toast = () => {};
-    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
-    const txtEstado = () => { const e = document.getElementById('cfg-orthanc-estado');
-                              return e ? e.textContent : ''; };
-    const txtDatos  = () => { const e = document.getElementById('cfg-orthanc-datos');
-                              return e ? e.textContent : ''; };
-    const ponerUrl = () => { localStorage.setItem('ett_orthanc_url', 'localhost:8042');
-                             const i = document.getElementById('cfg-orthanc-url');
-                             if (i) i.value = 'localhost:8042'; };
-    try {
-      abrirConfig(); cfgSetMode('avanzado');
-      orthancToggle(true); ponerUrl();
-      R.encendido = localStorage.getItem('ett_orthanc_on') === '1';
-
-      /* -- 1. EL MODO ESTA DENTRO DEL PREDICADO, no AND-eado afuera -- */
-      R.activoAvanzado = orthancActivo();
-      cfgSetMode('basico');
-      R.activoBasico   = orthancActivo();
-      R.discoIntacto   = localStorage.getItem('ett_orthanc_on');
-      cfgSetMode('avanzado');
-      R.activoVuelve   = orthancActivo();
-
-      /* -- 2. LO QUE ESTA EN VUELO NO ESCRIBE SOBRE OTRO MODO -- */
-      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
-      let soltar = null;
-      window.fetch = () => new Promise(res => { soltar = res; });
-      const pVerif = orthancVerificar();
-      await new Promise(r => setTimeout(r, 0));
-      R.arranco = txtEstado().indexOf('Buscando Orthanc') >= 0;   // DENOMINADOR
-      cfgSetMode('basico');                                        // cambia MIENTRAS espera
-      if (soltar) soltar({ ok: true, status: 200, json: async () => ({
-        Version: '1.12', Name: 'ENVUELO', DicomAet: 'AETVUELO', DicomPort: 11112 }) });
-      await pVerif;
-      R.estadoVuelo = txtEstado();
-      R.datosVuelo  = txtDatos();
-      R.noAterrizo  = R.estadoVuelo.indexOf('Orthanc conectado') < 0 &&
-                      R.datosVuelo.indexOf('AETVUELO') < 0;
-
-      /* -- 2b. LA OTRA RUTA EN VUELO, la que lleva NOMBRES DE PACIENTE --
-            Se sustituye _orthTraerEstudios y no fetch: es una declaracion de funcion de nivel
-            superior, asi que asignar sobre window SI intercepta (a diferencia de lo que vive
-            dentro de un IIFE). Se RESTAURA POR ASIGNACION, nunca con delete: esa propiedad es
-            no configurable y el delete es un no-op mudo que se lleva el caso siguiente. */
-      const traerOrig = window._orthTraerEstudios;
-      let soltar2 = null;
-      window._orthTraerEstudios = () => new Promise(res => { soltar2 = res; });
-      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
-      window._orthEstudios = [];
-      const pBusca = orthancBuscar();
-      await new Promise(r => setTimeout(r, 0));
-      R.buscoArranco = soltar2 !== null;                          // DENOMINADOR
-      cfgSetMode('basico');
-      if (soltar2) soltar2({ completo: true, lista: [
-        { ID: 'zz-1', MainDicomTags: { StudyDate: '20260101', StudyTime: '090000' },
-          PatientMainDicomTags: { PatientName: 'ENVUELO^PACIENTE' } } ] });
-      await pBusca;
-      R.enMemoria = JSON.stringify(window._orthEstudios || []);
-      R.sinNombres = R.enMemoria.indexOf('ENVUELO') < 0;
-      try { window._orthTraerEstudios = traerOrig; } catch (e) {}
-      if (typeof orthancPanelCerrar === 'function') orthancPanelCerrar();
-
-      /* -- 3. ESCONDER LIMPIA: la salida vieja no resucita al volver -- */
-      window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => ({
-        Version: '9.9', Name: 'ORACULO', DicomAet: 'AETVIEJO', DicomPort: 4747 }) });
-      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
-      await orthancVerificar();
-      R.estadoOk = txtEstado();
-      R.verificoOk = R.estadoOk.indexOf('Orthanc conectado') >= 0;  // DENOMINADOR
-      cfgSetMode('basico');
-      abrirConfig(); cfgSetMode('avanzado');
-      R.estadoVuelta = txtEstado();
-      R.datosVuelta  = txtDatos();
-      R.limpio = R.estadoVuelta.indexOf('Orthanc conectado') < 0 &&
-                 R.datosVuelta.indexOf('AETVIEJO') < 0;
-    } catch (e) {
-      R.err = String((e && e.message) || e).slice(0, 140);
-    } finally {
-      try { window.fetch = fetchOrig; } catch (e) {}
-      try { localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
-            if (typeof applyViewMode === 'function') applyViewMode();
-            if (typeof cfgRenderModulos === 'function') cfgRenderModulos(); } catch (e) {}
-      try { if (orthOrig === null) localStorage.removeItem('ett_orthanc_on');
-            else localStorage.setItem('ett_orthanc_on', orthOrig);
-            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
-            else localStorage.setItem('ett_orthanc_url', urlOrig);
-            if (typeof orthancRender === 'function') orthancRender();
-            if (typeof orthancBotonSync === 'function') orthancBotonSync(); } catch (e) {}
-      try { window.toast = toastOrig; } catch (e) {}
-    }
-    return { extra: [
-      ['sin excepciones',                             !R.err, R.err],
-      ['DENOMINADOR: Orthanc quedo ENCENDIDO',        R.encendido, R.encendido],
-      ['AVANZADO: el predicado dice que SI',          R.activoAvanzado === true, R.activoAvanzado],
-      ['BASICO: el predicado dice que NO',            R.activoBasico === false, R.activoBasico],
-      ['y el modo NO toca la casilla del disco',      R.discoIntacto === '1', 'ett_orthanc_on=' + R.discoIntacto],
-      ['es REVERSIBLE: el predicado vuelve a SI',     R.activoVuelve === true, R.activoVuelve],
-      ['DENOMINADOR: la verificacion ARRANCO',        R.arranco, R.arranco],
-      ['lo que estaba EN VUELO no escribio nada',     R.noAterrizo,
-        'estado=' + String(R.estadoVuelo).slice(0, 60) + ' datos=' + String(R.datosVuelo).slice(0, 60)],
-      ['DENOMINADOR: la busqueda ARRANCO',            R.buscoArranco, R.buscoArranco],
-      ['y no quedan NOMBRES de paciente en memoria',  R.sinNombres, R.enMemoria],
-      ['DENOMINADOR: la 2a verificacion salio BIEN',  R.verificoOk, String(R.estadoOk).slice(0, 60)],
-      ['esconder LIMPIA: no resucita al volver',      R.limpio,
-        'estado=' + String(R.estadoVuelta).slice(0, 60) + ' datos=' + String(R.datosVuelta).slice(0, 60)]
-    ] };
-  })();
-`);
+/* == TC-231 · RETIRADO (ECO-CONECTOR-1) ==================================================
+   Probaba: que el Modo Avanzado entraba al PREDICADO de Orthanc, que una verificacion en vuelo no
+   aterrizaba sobre otro modo, y que esconder el panel LIMPIABA su salida vieja.
+   Se retira porque los tres invariantes eran de `orthancActivo`, `orthancVerificar` y
+   `orthancRender`, que no existen mas. Los MISMOS tres, sobre el modulo de CeiboLink, los
+   cubre TC-841, que es su sucesor: ahi el token de generacion es `_clnkGen` y la lectura que
+   se retiene es `clnkLeerEstado`. La leccion de por que se fuerza con un fetch retenido en vez
+   de con red real -con red real la ventana es de milisegundos y el rojo seria intermitente-
+   viajo con el caso.
+   NO se borro en silencio: esta linea queda en el lugar donde vivia el caso, para que
+   quien lo busque por su numero encuentre el motivo y no un hueco. */
 
 /* == TC-232 - Importar imagenes y videos de cualquier ecografo =============================
    El clasificador reparte por BYTES a las puertas que ya existen. Tres cosas que el caso

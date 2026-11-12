@@ -6269,63 +6269,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div id="cfg-modulos" style="display:none;"></div>
       </section>
 
-      <!-- ══ Conexión por red (DICOM) ════════════════════════════════════════════════════
-           Orthanc es un servidor DICOM que el médico instala en SU máquina; el ecógrafo le
-           envía los estudios y EcoSmart lee su API REST. Los datos no salen de la red local.
-
-           SÓLO SE VE EN MODO AVANZADO, y la visibilidad la gobierna `orthancRender()` —no una
-           regla CSS— porque el modo vive en localStorage y no en una clase del documento. Va
-           ahí y no en `applyViewMode()` para que el módulo se gobierne a sí mismo: aquella
-           función maneja las FILAS DE PESTAÑAS y no sabe nada de las tarjetas de Config.
-           `cfgSetMode()` la llama para que apretar «Modo Básico» con Config abierto la haga
-           desaparecer en el acto, en vez de recién al reabrir la pestaña.
-
-           TODOS LOS ids VAN CON PREFIJO `cfg-`, y no es estilo: `guardarInforme` barre
-           `input[id]` de TODO el documento y `_noEsDelEstudio()` excluye por prefijo. Sin él,
-           la dirección de Orthanc y la casilla se guardarían dentro de `campos` de CADA
-           estudio, viajarían al Excel y las contaría `detectar_huerfanos` — es la regla que ya
-           documentan los paneles de referencia de Marfan y Fontan.
-
-           La casilla va con `onchange` y NUNCA con `onclick`: la regla táctil global matchea
-           por el ATRIBUTO (`[onclick]{min-height:44px}`) e inflaría la casilla a tres veces el
-           alto de su fila.
-
-           El estado lo pinta `orthancRender()` desde localStorage al abrir Config, porque
-           `limpiarCampos` vacía `input[type=text]` de todo el documento sin mirar prefijo —es
-           lo que ya le pasa a `firma-nombre`—. La fuente de verdad es localStorage, no el
-           campo; y como `limpiarCampos` asigna `.value` sin disparar `input`, vaciarlo NO
-           borra lo guardado. -->
-      <section class="cfg-card" id="cfg-card-orthanc">
-        <div class="cfg-sec-title">🔌 Conexión por red (DICOM)</div>
-        <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
-          <b>Orthanc</b> es un servidor DICOM gratuito que se instala en esta computadora. El
-          ecógrafo le envía los estudios y EcoSmart los lee de ahí. Todo ocurre en tu red: los
-          datos no salen a internet.
-          <a href="https://www.orthanc-server.com" target="_blank" rel="noopener noreferrer"
-             style="color:var(--accent);">Descargar Orthanc ↗</a>
-        </p>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:9px;cursor:pointer;">
-          <input type="checkbox" id="cfg-orthanc-on" onchange="orthancToggle(this.checked)">
-          <span>Activar conexión con Orthanc</span>
-        </label>
-        <div id="cfg-orthanc-cuerpo">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <span style="font-size:12px;color:var(--text2);">Dirección:</span>
-            <input type="text" id="cfg-orthanc-url" placeholder="localhost:8042"
-                   autocomplete="off" spellcheck="false"
-                   oninput="orthancGuardarUrl(this.value)"
-                   style="flex:1;min-width:150px;font-size:12px;">
-            <button class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
-                    onclick="orthancVerificar()">Verificar conexión</button>
-          </div>
-          <div id="cfg-orthanc-estado" style="font-size:11.5px;line-height:1.55;"></div>
-          <!-- Los datos para el ecógrafo salen de lo que INFORMA Orthanc (`DicomAet`,
-               `DicomPort` de /system), no de constantes: 4242 y ORTHANC son los valores por
-               omisión y son configurables, así que cablearlos haría que el médico copie datos
-               equivocados al ecógrafo sin ningún síntoma hasta que el envío falle. -->
-          <div id="cfg-orthanc-datos" style="display:none;margin-top:10px;"></div>
-        </div>
-      </section>
+      <!-- ⚠️ ACÁ VIVÍA LA TARJETA «🔌 Conexión por red (DICOM)», Y SE RETIRÓ ENTERA
+           (ECO-CONECTOR-1): el campo de dirección editable, el botón «Verificar conexión», el
+           instructivo de arranque de Orthanc y el bloque de datos para el ecógrafo. Hablaba con
+           un Orthanc que el médico tenía que instalar y configurar a mano en su propia
+           máquina, y esa
+           conexión nunca le funcionó. En su lugar va la tarjeta de CeiboLink, que llega en el
+           commit 3 de esta misma tanda. -->
 
       <!-- Soporte y contacto — va ÚLTIMO y discreto: no interrumpe el flujo de configuración.
            Los enlaces los arma `cfgSoporteRender` porque el asunto lleva la versión sellada, que
@@ -22786,12 +22736,11 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              perfecto y no hace nada es el defecto que este archivo documenta con los siete
              acordeones de Congénitas. Quien gobierna el cajón hoy es el grupo «Doppler / M» de la
              barra lateral del visor, que es el único lugar desde donde se lo puede ver. -->
-        <!-- Sólo aparece con Orthanc activado en ⚙️ Config. Nace OCULTO y lo enciende
-             `orthancBotonSync()`: al revés —naciendo visible y ocultándose por JS— un bloque
-             que deje de parsear lo dejaría prendido, prometiendo una búsqueda que no existe. -->
-        <button type="button" class="btn btn-ghost" id="orth-buscar-btn" style="padding:5px 12px;display:none;"
-                title="Listar los estudios que el ecógrafo envió a Orthanc"
-                onclick="orthancBuscar()">🔍 Buscar en Orthanc</button>
+        <!-- ⚠️ ACÁ VIVÍA EL BOTÓN «🔍 Buscar en Orthanc», Y SE ELIMINÓ (ECO-CONECTOR-1).
+             Abría el panel de estudios de un Orthanc configurado a mano. CeiboLink no pone
+             ningún control en esta pestaña: su tarjeta está en ⚙️ Config, y adjuntar lo que
+             el ecógrafo manda es el paso siguiente. «📥 Importar DICOM» —el pendrive— no se
+             tocó y sigue siendo la vía que anda hoy. -->
       </div>
       <!-- ⚠️ ACÁ VIVÍA `#dop-casa`, EL ANCLA DEL CAJÓN DOPPLER, Y SE ELIMINÓ (2026-09-24).
            El cajón ya no se muda: NACE Y MUERE dentro de `#cine-dop-slot`, o sea del visor.
@@ -22803,35 +22752,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
 
-      <!-- ══ Panel de estudios de Orthanc ══════════════════════════════════════════════════
-           Overlay propio, DENTRO de EcoSmart: no se abre la interfaz de Orthanc. El z-index
-           va en 100000 como el resto de los overlays del archivo y MUY por debajo del login
-           (2147483000), que este archivo documenta que no es negociable.
-           Se arma entero por DOM desde `_orthListaRender`: acá sólo va el armazón. -->
-      <div id="orth-panel-overlay" style="display:none;position:fixed;inset:0;z-index:100000;
-           background:rgba(0,0,0,.55);padding:18px;overflow:auto;">
-        <div style="max-width:820px;margin:0 auto;background:var(--bg1);border-radius:12px;
-             border:1px solid var(--bg3);padding:16px;">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-            <span style="font-size:14px;font-weight:700;">📋 Estudios en Orthanc</span>
-            <button type="button" class="btn btn-ghost" style="padding:4px 11px;font-size:11.5px;margin-left:auto;"
-                    onclick="orthancBuscar(true)">🔄 Actualizar</button>
-            <button type="button" class="btn btn-ghost" style="padding:4px 11px;font-size:11.5px;"
-                    onclick="orthancPanelCerrar()">✕ Cerrar</button>
-          </div>
-          <div id="orth-panel-filtros" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <input type="text" id="orth-f-nombre" placeholder="Filtrar por nombre…"
-                   autocomplete="off" oninput="orthancFiltrar()"
-                   style="flex:1;min-width:150px;font-size:12px;">
-            <input type="date" id="orth-f-desde" oninput="orthancFiltrar()"
-                   title="Desde" style="font-size:12px;">
-            <input type="date" id="orth-f-hasta" oninput="orthancFiltrar()"
-                   title="Hasta" style="font-size:12px;">
-          </div>
-          <div id="orth-panel-estado" style="font-size:11.5px;line-height:1.55;"></div>
-          <div id="orth-panel-lista" style="margin-top:8px;"></div>
-        </div>
-      </div>
+      <!-- ⚠️ ACÁ VIVÍA EL OVERLAY CON EL PANEL DE ESTUDIOS DE ORTHANC, Y SE ELIMINÓ
+           (ECO-CONECTOR-1) junto con su botón, su filtro por nombre y fecha y las cuatro
+           claves de localStorage del módulo. Listaba los estudios de un Orthanc que el
+           médico tenía que instalar y configurar a mano, y esa conexión nunca le funcionó.
+           Lo reemplaza CeiboLink, cuya tarjeta vive en ⚙️ Config. Adjuntar una imagen que
+           llegó por ahí es el paso siguiente (ECO-CONECTOR-2): por eso los ayudantes
+           genéricos del módulo —envolver bytes en un `File`, completar el paciente sólo si
+           está vacío, interpretar sexo y edad, reconocer un informe estructurado— se
+           conservaron con prefijo `_clnk`, al final del bloque de CeiboLink. -->
       <!-- Resultados del strain manual del visor, en JSON. Oculto y no editable a mano: lo
            escribe el propio visor al confirmar un trazado, y viaja con el estudio porque
            `guardarInforme` barre `input[id]`. NO es el informe: el strain manual sigue sin
@@ -28867,7 +28796,7 @@ function showTab(id) {
   /* En `try` y no a secas: `toggleValvPill` hace `localStorage.setItem` sin guarda —código previo a
      esta tanda— y con la cuota llena eso lanza. Antes hacía falta un clic del médico para llegar
      ahí; ahora corre al entrar a la pestaña, así que una excepción cortaría el RESTO de `showTab`
-     (entre otras cosas el repintado del botón de Orthanc). Lo marcó /sharp-edges. */
+     (entre otras cosas, lo que venga después en esa función). Lo marcó /sharp-edges. */
   /* Punto 4b (2026-10-06): las cuatro tarjetas de válvula arrancan CERRADAS cada vez que se entra.
      Va PRIMERO, antes de cualquier apertura automática, para que el estado de partida sea el mismo
      se venga de donde se venga. En `try` por el mismo motivo que la línea de abajo. */
@@ -28919,10 +28848,11 @@ function showTab(id) {
       }
     } catch (e) { console.warn('[sincronizarEA/entrada]', e); }
   }
-  /* El botón de Orthanc depende de una preferencia que vive en localStorage y que se puede
-     haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
-     al entrar, que es el único momento en que importa. */
-  if (id === 'imagenes' && typeof orthancBotonSync === 'function') orthancBotonSync();
+  /* ⚠️ ACÁ SE REPINTABA EL BOTÓN «Buscar en Orthanc» AL ENTRAR A LA PESTAÑA, Y SE RETIRÓ
+     (ECO-CONECTOR-1). No tiene reemplazo: CeiboLink no pone ningún control fuera de la
+     tarjeta de ⚙️ Config, así que no hay una segunda superficie que pueda quedar
+     desincronizada con lo que otra pestaña del navegador haya cambiado. Si alguna vez
+     CeiboLink gana un botón en esta pestaña, el repintado vuelve ACÁ. */
   /* ⚠️ LA OTRA PUERTA DE ENTRADA. `labSubTab('general')` cubre volver desde otra SUBtab, pero no
      volver desde otra TAB principal: ahí el panel General ya está `active` y nadie llama a
      `labSubTab`, así que los acordeones que hayan quedado abiertos seguían abiertos. Con las dos
@@ -139149,7 +139079,7 @@ window._vSellarEpoca = _vSellarEpoca;
    ⚠️ LA RAMA DEL `typeof` ES INALCANZABLE HOY, y se declara en vez de dejar creer que protege:
    `_estEpoca` es una declaración de función del MISMO bloque `<script>`, así que está hoisteada
    y lo que se llevara ese bloque se llevaría también a esta función. No se puede hacer fallar —
-   es el caso de `_orthModoAvanzado`, que este archivo ya documenta.
+   era el caso de la compuerta de Modo Avanzado del panel de red, que este archivo ya documenta.
    Queda porque fija de qué lado se cae el día que la época se mude a otro bloque o llegue por
    `window`: sin saber en qué estudio estamos, la respuesta es que la sesión NO es de éste, o
    sea que no se publica nada. Mejor perder una medición que escribirla en el estudio de otro. */
@@ -147558,7 +147488,8 @@ function _dopFilasSueltas() {
 
    LOS VALORES NO SE TOCAN NUNCA ACÁ: `_dop` es estado de módulo y esconder el cajón es
    `display:none`, no un reseteo. Esconder no es limpiar, que es la distinción que este archivo
-   ya tuvo que escribir para Orthanc. Lo que cambió es a dónde se va el acceso a lo medido cuando
+   ya tuvo que escribir para el panel de conexión por red. Lo que cambió es a dónde se va el
+   acceso a lo medido cuando
    el panel se esconde: a la biblioteca, por «Guardar», no a un botón que lo reabre. */
 /* ⚠️ «ALGUNA VISTA», NO «LA ACTIVA» — y el diagnóstico de la nota vieja estaba equivocado.
    Decía que con dos vistas la visibilidad la decidía el grupo de la vista ACTIVA. Medido, `_V`
@@ -169052,7 +168983,8 @@ function renderizarListaFiltrada(lista) {
      Mientras se escribía sólo al mover un filtro pasaba desapercibido; al delegar el repintado
      en `aplicarFiltros` pasó a escribirse en cada borrado, en cada entrada a Guardados y en
      `labStrainAbrir`, o sea casi siempre. Es el patrón que este archivo ya marca para
-     `_orthEstudios`: dato identificatorio vivo en memoria sin propósito. Lo cazó `/sharp-edges`.
+     la lista de estudios del panel de red: dato identificatorio vivo en memoria sin propósito.
+     Lo cazó `/sharp-edges`.
      Si alguna vez hace falta saber qué hay en pantalla, existe `igListaEnPantalla()`, que resuelve
      los ids contra la base viva en vez de retener objetos. */
   // Una sola función pinta: agrupa por mes, numera y actualiza el contador.
@@ -172925,8 +172857,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-1450';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794419452695;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-2158';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794445126903;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173012,7 +172944,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-1450</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2158</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -173417,7 +173349,7 @@ window.eeDefOn = eeDefOn;
    módulo estaba a medio esconder: sin poder medir strain, el médico igual veía la tabla que
    lo resume y los botones que declaran de dónde salió.
 
-   Va acá y no en `applyViewMode()` por el mismo motivo que `orthancRender()`: aquella función
+   Va acá y no en `applyViewMode()` por el mismo motivo que `clnkRender()`: aquella función
    maneja las FILAS DE PESTAÑAS y no sabe nada de tarjetas ni de campos. El módulo se gobierna
    a sí mismo.
 
@@ -173583,12 +173515,16 @@ function applyViewMode(){
      sin esto el boton «Ver en 3D» se quedaba a la vista hasta la proxima navegacion. */
   if (typeof cc3dPieSync === 'function') { try { cc3dPieSync() } catch (e) {} }
 }
-/* La tarjeta de conexión por red se repinta acá además de en `cfgOnShow`: sin esto, apretar
-   «Modo Básico» con Config ABIERTO la dejaba en pantalla hasta reabrir la pestaña. Es el par
-   de siempre —el embudo de repintado y el borde que no pasa por él—. El botón «Buscar» de la
-   tab Imágenes NO se toca desde acá: lo sincroniza `showTab('imagenes')`, que es el único
-   camino por el que ese botón se llega a ver. */
-function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof _orthGen==='number') _orthGen++; if(typeof orthancRender==='function') orthancRender(); }
+/* La tarjeta de CeiboLink se repinta acá además de en `cfgOnShow`: sin esto, apretar «Modo
+   Básico» con Config ABIERTO la dejaba en pantalla hasta reabrir la pestaña. Es el par de
+   siempre —el embudo de repintado y el borde que no pasa por él—.
+   ⚠️ ESTE ES UNO DE LOS DOS ENGANCHES QUE HEREDA DEL PANEL DE ORTHANC. El tercero que tenía
+   aquél —el repintado en `showTab('imagenes')`— NO tiene reemplazo, y no es un olvido: era
+   para el botón «Buscar en Orthanc», y CeiboLink no tiene ninguna superficie fuera de
+   Config. Ver la lápida en la pestaña Imágenes.
+   El número de generación sube ANTES de repintar: pasar a Modo Básico tiene que invalidar
+   lo que esté en vuelo, o una lectura lenta repinta un panel que ya se escondió. */
+function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof _clnkGen==='number') _clnkGen++; if(typeof clnkRender==='function') clnkRender(); }
 function cfgToggleMod(key,on){ var m=eeGetModules(); m[key]=on; localStorage.setItem('ett_modules', JSON.stringify(m)); applyViewMode(); }
 function cfgRenderModulos(){
   var mode=eeGetMode();
@@ -173686,677 +173622,21 @@ window.cfgSoporteRender = cfgSoporteRender;
 
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-/* ══ Conexión por red (DICOM) ═════════════════════════════════════════════════════════════
-   Orthanc corre en la máquina del médico y expone una API REST. EcoSmart sólo la CONSULTA:
-   no se envía un dato a ningún servidor ajeno y la dirección nunca sale de localStorage.
+/* ══ Ayudantes genéricos que SOBREVIVEN al retiro del panel de Orthanc ════════════════════════
+   Estos seis NO son de Orthanc: son de «meter un DICOM que llegó por la red en el estudio que
+   está abierto», y los usa el paso siguiente (ECO-CONECTOR-2), que es el que adjunta las
+   imágenes que CeiboLink entrega. Vienen del panel retirado con el PREFIJO cambiado y el cuerpo
+   IDÉNTICO: no se les tocó una línea de comportamiento.
 
-   ⚠️ CUATRO COSAS MEDIDAS que condicionan todo lo de abajo (2026-09-21):
+   ⚠️ HOY NO LOS LLAMA NADIE, y es a propósito. `detectar_huerfanos.py` no los ve —sólo mira
+   campos de entrada, no funciones— así que ninguna herramienta va a avisar de esto: queda
+   escrito acá. Si el paso siguiente no se hace, se borran.
 
-   1 · LA IP DE LA MÁQUINA NO SE PUEDE DETECTAR DESDE EL NAVEGADOR. La vía histórica eran los
-       candidatos ICE de WebRTC, y Chrome los ofusca con mDNS desde la v80: medido en este
-       Chrome, el único candidato es `<uuid>.local` y hay CERO IPs numéricas. Por eso la IP se
-       DERIVA de la dirección que el médico tipeó, y con `localhost` se dice que no se puede y
-       se da el comando — en vez de un botón «Detectar» que no puede funcionar.
-
-   2 · ORTHANC NO MANDA CABECERAS CORS POR OMISIÓN, así que el primer «Verificar» de una
-       instalación nueva FALLA aunque Orthanc esté perfecto. Y `fetch` no distingue: medido,
-       «CORS lo bloqueó» y «no hay nadie escuchando» dan los dos el mismo
-       `TypeError: Failed to fetch`. Decir «¿está instalado y corriendo?» ahí manda al médico a
-       revisar lo que NO está roto.
-
-   3 · UN SONDEO `no-cors` SÍ LOS DISTINGUE: medido, con el servidor vivo la respuesta opaca
-       RESUELVE y con el puerto muerto RECHAZA. Es lo que separa los dos mensajes.
-
-   4 · DESDE HTTPS, CHROME BLOQUEA EL ACCESO A LOOPBACK. Medido sobre
-       https://ecosmart.ceibomed.com: «Permission was denied for this request to access the
-       `loopback` address space». Está gateado por un permiso del navegador, así que el fallo
-       NO prueba que Orthanc falte. Ahí el sondeo del punto 3 también rechaza, o sea que deja
-       de discriminar: por eso el mensaje de HTTPS nombra las dos causas en vez de elegir una.
-       ⚠️ EL CAMINO CON EL PERMISO CONCEDIDO NO ESTÁ VERIFICADO — no se puede reproducir en
-       headless. Queda como deuda declarada. */
-var _ORTH_ON = 'ett_orthanc_on', _ORTH_URL = 'ett_orthanc_url';
-var _ORTH_DICOM_PORT_DEF = 4242, _ORTH_AET_DEF = 'ORTHANC';
-var _orthVerificando = false;
-/* Token de generación, el mismo recurso que `_imgGen` y `_cineStripGen`. «Verificar conexión»
-   son hasta 6 s de fetch más 4 s de sondeo, y los botones de modo viven en una tarjeta CONTIGUA
-   del mismo panel Config: apretar «Modo Básico» mientras eso está en vuelo dejaba que
-   `_orthPintarDatos` escribiera AE Title, puerto, host y la receta CORS dentro de una tarjeta ya
-   escondida, hasta diez segundos después. `orthancBuscar` es la misma forma con otra cara —
-   Escape cierra el overlay pero NO aborta el fetch, y al resolver poblaba `_orthEstudios`, que
-   lleva NOMBRES de paciente en memoria—. Se incrementa en todo lo que cambia la compuerta. */
-var _orthGen = 0;
-
-function _orthLS(k, v) {
-  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }
-  catch (e) { return null; }
-}
-/* Estado CRUDO de la casilla. Sólo lo usa `orthancToggle` para persistir; para preguntar «¿hay
-   Orthanc alcanzable?» está `orthancActivo()`, que además mira el modo. */
-function _orthEncendido() { return _orthLS(_ORTH_ON) === '1'; }
-/* ⚠️ EL MODO ENTRA ACÁ, y no AND-eado afuera en cada consumidor. La casilla puede quedar en '1'
-   con la tarjeta escondida por Modo Básico: ahí el médico NO tiene forma de apagar la conexión
-   desde ninguna pantalla, así que la única respuesta segura a «¿está activo?» es que no. Con el
-   modo fuera del predicado, el camino fácil —llamar a `orthancActivo()`— es el inseguro, y el
-   tercer consumidor que aparezca (un auto-buscar, un badge de «estudios nuevos», un sondeo)
-   resucita esa superficie por defecto. */
-function orthancActivo() { return _orthEncendido() && _orthModoAvanzado(); }
-
-/* Normaliza lo que el médico tipeó a un origen. Devuelve null para lo que no se puede leer,
-   NUNCA una suposición: con una dirección inventada el fetch fallaría y el mensaje culparía a
-   Orthanc de un error de tipeo. Sólo http/https — un `javascript:` o un `file:` acá no tienen
-   ningún significado y sí un modo de falla. */
-function _orthBase(raw) {
-  var t = String(raw == null ? '' : raw).trim();
-  if (!t) return null;
-  /* Un esquema explícito que NO sea http/https se RECHAZA, no se reescribe. Sin esto,
-     `file:///etc/passwd` salía como `http://file:8042`: no es un agujero —ese host no
-     resuelve— pero mangle en silencio lo que el médico tipeó, y después el mensaje de error
-     habla de una dirección que nadie escribió. El `://` es lo que distingue un esquema de un
-     `host:puerto`: `localhost:8042` no lo lleva y sigue entrando. */
-  if (/^[a-z][a-z0-9+.\-]*:\/\//i.test(t) && !/^https?:\/\//i.test(t)) return null;
-  if (!/^https?:\/\//i.test(t)) t = 'http://' + t;
-  var u;
-  try { u = new URL(t); } catch (e) { return null; }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-  if (!u.hostname) return null;
-  if (!u.port && u.protocol === 'http:') u.port = '8042';   // el puerto REST por omisión
-  /* Se reconstruye con protocolo + host + puerto y nada más, así que un `usuario:clave@` que
-     alguien pegue se DESCARTA en vez de viajar en cada fetch y de quedar impreso en el cartel
-     de estado. EcoSmart no maneja la autenticación de Orthanc —lo dice la rama del 401—. */
-  return u.protocol + '//' + u.hostname + (u.port ? ':' + u.port : '');
-}
-function _orthEsLoopback(base) {
-  var h = '';
-  try { h = new URL(base).hostname.toLowerCase(); } catch (e) { return true; }
-  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]' ||
-         /\.localhost$/.test(h);
-}
-function _orthHost(base) { try { return new URL(base).hostname; } catch (e) { return ''; } }
-
-/* ¿Hay algo escuchando? Respuesta OPACA = sí. Es la única forma de separar «CORS» de «no hay
-   nadie», porque las dos fallan con el mismo TypeError. Desde HTTPS a loopback rechaza
-   siempre, así que el llamador no le cree en ese caso. */
-function _orthHayAlguien(base) {
-  return new Promise(function (res) {
-    var ctl = null, t = null;
-    try { ctl = new AbortController(); t = setTimeout(function(){ ctl.abort(); }, 4000); } catch(e){}
-    fetch(base + '/system', { mode: 'no-cors', cache: 'no-store',
-                              signal: ctl ? ctl.signal : undefined })
-      .then(function(){ if (t) clearTimeout(t); res(true); })
-      .catch(function(){ if (t) clearTimeout(t); res(false); });
-  });
-}
-
-function orthancToggle(on) {
-  _orthLS(_ORTH_ON, on ? '1' : '0');
-  _orthGen++;   // apagar la casilla también invalida lo que esté en vuelo
-  orthancRender();
-  /* El botón vive en OTRA pestaña, así que no alcanza con repintar Config. */
-  if (typeof orthancBotonSync === 'function') orthancBotonSync();
-  if (typeof toast === 'function') toast(on ? '🔌 Conexión con Orthanc activada' : 'Conexión con Orthanc desactivada');
-}
-window.orthancToggle = orthancToggle;
-
-/* Se persiste en cada tecla. `limpiarCampos` asigna `.value` sin disparar `input`, así que
-   vaciar el campo con «Nuevo estudio» NO borra lo guardado: la fuente de verdad es
-   localStorage y `orthancRender()` la repone al abrir Config. */
-function orthancGuardarUrl(v) { _orthLS(_ORTH_URL, String(v == null ? '' : v)); }
-window.orthancGuardarUrl = orthancGuardarUrl;
-
-function _orthPintarEstado(txt, color) {
-  var e = document.getElementById('cfg-orthanc-estado');
-  if (!e) return;
-  e.textContent = '';
-  if (!txt) return;
-  var d = document.createElement('div');
-  d.style.cssText = 'padding:6px 9px;border-radius:7px;background:var(--bg3);border-left:3px solid ' +
-                    (color || 'var(--text2)') + ';white-space:pre-line;';
-  d.textContent = txt;                       // textContent: nada de lo que viene de la red se parsea
-  e.appendChild(d);
-}
-
-/* FALLA HACIA VISIBLE: sin `eeGetMode`, o si `localStorage` tira, se devuelve `true`.
-   ⚠️ PERO EL LADO SEGURO NO LO FIJA ESTA FUNCIÓN, LO FIJA EL MARCADO. Sus dos ramas de escape
-   son inalcanzables: `eeGetMode` es una declaración de función del MISMO bloque `<script>`
-   —hoisteada, así que el `typeof` nunca da false; y lo que se llevara ese bloque se llevaría
-   también a ésta—, y si `localStorage` tira, `cfgRenderModulos()` revienta sin try/catch antes,
-   porque `orthancRender()` es la ÚLTIMA sentencia de `cfgOnShow`. Quien decide en los dos
-   escenarios es que `#cfg-card-orthanc` nace SIN `display:none`, o sea visible.
-   Eso es lo correcto y es la decisión OPUESTA a la del botón «Buscar en Orthanc», que nace
-   `display:none` con su propio comentario: aquél promete una búsqueda que no existe, ésta es la
-   única forma de apagar la conexión. Si se toca el marcado de la tarjeta, es acá donde hay que
-   mirar — no al revés. */
-function _orthModoAvanzado() {
-  try { return typeof eeGetMode !== 'function' || eeGetMode() === 'avanzado'; }
-  catch (e) { return true; }
-}
-
-function orthancRender() {
-  var on  = orthancActivo();
-  var chk = document.getElementById('cfg-orthanc-on');
-  var inp = document.getElementById('cfg-orthanc-url');
-  var cue = document.getElementById('cfg-orthanc-cuerpo');
-  /* La tarjeta entera, no sólo el cuerpo: en Modo Básico no queda ni el título. */
-  var card = document.getElementById('cfg-card-orthanc');
-  if (card) card.style.display = _orthModoAvanzado() ? '' : 'none';
-  if (chk) chk.checked = _orthEncendido();   // la casilla refleja lo PERSISTIDO, no el modo
-  if (inp) inp.value = _orthLS(_ORTH_URL) || '';
-  if (cue) cue.style.display = on ? '' : 'none';
-  /* La limpieza cuelga de `on`, que desde que el modo entró al predicado cubre las DOS
-     compuertas: apagar la casilla Y pasar a Modo Básico. Gateada sólo por la casilla, volver a
-     Avanzado reponía la salida vieja de «Verificar» —sin fecha y sin marca de obsoleta— que
-     además podía ser de una verificación terminada DESPUÉS de que el modo la apagara. */
-  if (!on) { _orthPintarEstado(''); _orthDatosOcultar(); }
-}
-window.orthancRender = orthancRender;
-
-function _orthDatosOcultar() {
-  var d = document.getElementById('cfg-orthanc-datos');
-  if (d) { d.textContent = ''; d.style.display = 'none'; }
-}
-
-/* Fila «rótulo · valor · Copiar». El valor va por `data-orth-copiar` y el manejador se ata por
-   DELEGACIÓN, nunca interpolado dentro de un `onclick`: ahí el escape NO protege, porque el
-   parser decodifica la entidad ANTES de compilar el handler. Y estos valores vienen de la red
-   —del Orthanc del médico—, o sea que no son literales del archivo. */
-function _orthFila(cont, rotulo, valor, nota) {
-  var f = document.createElement('div');
-  f.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;';
-  var r = document.createElement('span');
-  r.style.cssText = 'font-size:11.5px;color:var(--text2);min-width:118px;';
-  r.textContent = rotulo;
-  f.appendChild(r);
-  var v = document.createElement('code');
-  v.style.cssText = 'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);';
-  v.textContent = valor;
-  f.appendChild(v);
-  if (valor) {
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'btn btn-ghost';
-    b.style.cssText = 'padding:3px 9px;font-size:11px;';
-    b.textContent = 'Copiar';
-    b.setAttribute('data-orth-copiar', valor);
-    f.appendChild(b);
-  }
-  if (nota) {
-    var n = document.createElement('span');
-    n.style.cssText = 'font-size:10.5px;color:var(--text2);flex-basis:100%;line-height:1.45;';
-    n.textContent = nota;
-    f.appendChild(n);
-  }
-  cont.appendChild(f);
-}
-
-function _orthPintarDatos(base, sys) {
-  var d = document.getElementById('cfg-orthanc-datos');
-  if (!d) return;
-  d.textContent = ''; d.style.display = '';
-  var t = document.createElement('p');
-  t.style.cssText = 'font-size:11.5px;margin:0 0 8px;line-height:1.5;';
-  /* «a EcoSmart» sería falso: el ecógrafo envía a ORTHANC, y EcoSmart lee de Orthanc. Decirlo
-     al revés manda al médico a buscar por qué EcoSmart no aparece en la lista del ecógrafo. */
-  t.textContent = 'Para que tu ecógrafo envíe los estudios a Orthanc, configuralo en su menú ' +
-                  'DICOM con estos datos:';
-  d.appendChild(t);
-
-  var host = _orthHost(base);
-  if (_orthEsLoopback(base)) {
-    /* No se inventa una IP. El navegador no puede leerla —medido— y publicar una equivocada
-       haría que el médico la copie al ecógrafo y el envío falle sin ninguna pista. */
-    _orthFila(d, 'IP de esta máquina:', '',
-      'No se puede detectar desde el navegador: la dirección dice «' + host + '», que es esta ' +
-      'misma computadora. Averiguala con «ipconfig» (Windows) o «ifconfig | grep inet» ' +
-      '(Mac/Linux), o escribila acá arriba en lugar de localhost y vuelve a verificar.');
-  } else {
-    _orthFila(d, 'IP de esta máquina:', host,
-      'Derivada de la dirección que configuraste arriba.');
-  }
-
-  var puerto = (sys && (sys.DicomPort || sys.DicomPort === 0)) ? String(sys.DicomPort) : '';
-  var aet    = (sys && sys.DicomAet) ? String(sys.DicomAet) : '';
-  _orthFila(d, 'Puerto DICOM:', puerto || String(_ORTH_DICOM_PORT_DEF),
-            puerto ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
-  _orthFila(d, 'AE Title:', aet || _ORTH_AET_DEF,
-            aet ? 'Informado por Orthanc.' : 'Orthanc no lo informó: es el valor por defecto.');
-  /* Va DESPUÉS de los datos del ecógrafo y dentro del mismo bloque, así que aparece sólo con
-     la conexión verificada —que es cuando el pedido lo pide— y desaparece con ella. */
-  _orthPintarArranque(d, base);
-}
-
-/* Copiar: un solo listener delegado, registrado UNA vez. El panel se reconstruye en cada
-   verificación, así que enganchar por botón acumularía uno por pasada. */
-if (!window._orthCopiarCableado) {
-  window._orthCopiarCableado = true;
-  document.addEventListener('click', function (ev) {
-    var b = ev.target && ev.target.closest ? ev.target.closest('[data-orth-copiar]') : null;
-    if (!b) return;
-    ev.preventDefault();
-    var txt = b.getAttribute('data-orth-copiar') || '';
-    var ok = function () { if (typeof toast === 'function') toast('📋 Copiado: ' + txt); };
-    var falla = function () {
-      /* Se DICE que no se pudo, y se deja el valor seleccionable. Un «Copiar» que no copia y
-         no avisa hace que el médico pegue en el ecógrafo lo que tenía antes en el portapapeles. */
-      if (typeof toast === 'function') toast('⚠️ El navegador no dejó copiar. Seleccioná el valor a mano.');
-    };
-    /* DOS vías, y la segunda no es adorno: `navigator.clipboard` exige contexto seguro Y
-       activación de usuario, así que falla en más casos de los que parece. `execCommand` está
-       deprecado y sigue siendo el que anda cuando aquél se niega. Sólo si fallan las dos se
-       avisa. */
-    var porTextarea = function () {
-      try {
-        var ta = document.createElement('textarea');
-        ta.value = txt;
-        ta.setAttribute('readonly', '');
-        ta.style.cssText = 'position:fixed;top:-2000px;left:-2000px;opacity:0;';
-        document.body.appendChild(ta);
-        ta.select(); ta.setSelectionRange(0, txt.length);
-        var bien = document.execCommand && document.execCommand('copy');
-        document.body.removeChild(ta);
-        return !!bien;
-      } catch (e) { return false; }
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(ok)
-        .catch(function () { if (porTextarea()) ok(); else falla(); });
-    } else if (porTextarea()) { ok(); } else { falla(); }
-  });
-}
-
-/* ══ Panel de estudios de Orthanc ═════════════════════════════════════════════════════════
-   Lista lo que el ecógrafo le mandó a Orthanc, DENTRO de EcoSmart. Cuatro cosas medidas
-   contra la documentación del proyecto antes de escribir una línea (2026-09-21):
-
-   1 · `Modality` NO está a nivel estudio, está a nivel SERIE. O sea que `/studies?expand` no
-       la trae. Y la cantidad de imágenes tampoco: hay que pedir los tags COMPUTADOS
-       `ModalitiesInStudy` y `NumberOfStudyRelatedInstances`.
-   2 · Esos computados vuelven en una sección **`RequestedTags` APARTE**, no dentro de
-       `MainDicomTags`. Leerlos de ahí daría `undefined` en silencio.
-   3 · `RequestedTags` existe desde **Orthanc 1.11**. En uno anterior la consulta falla, así
-       que hay un camino de respaldo por `/studies?expand` que da todo menos esos dos, y se
-       DICE cuáles faltan en vez de dejar dos columnas vacías sin explicación.
-   4 · `InstitutionName` SÍ está en los tags principales del estudio.
-
-   ⚠️ NADA DE ESTO SE VERIFICÓ CONTRA UN ORTHANC REAL: no hay uno instalado en esta máquina.
-   Lo verificado es el camino del CLIENTE contra un doble cuya forma sale de la documentación
-   citada arriba — o sea que prueba el código, no el contrato de la API. Queda declarado. */
-var _ORTH_VISTOS = 'ett_orthanc_vistos';   // IDs opacos, NO datos del paciente
-var _ORTH_TOPE = 500;
-var _orthEstudios = [];      // SÓLO en memoria: lleva NOMBRES de paciente
-var _orthNuevos = null;      // Set de ids nuevos respecto de la búsqueda anterior
-var _orthBuscando = false;
-
-/* ⚠️ GATEA TAMBIÉN POR MODO, y no es alcance de más: sin esto, Modo Básico dejaba el botón
-   «🔍 Buscar en Orthanc» en la tab Imágenes con su panel de configuración ESCONDIDO — o sea un
-   control que el médico no puede apagar ni configurar desde ningún lado. Medido antes de
-   tocar nada: en Básico la tarjeta salía 332 px y el botón 44 px, las dos superficies visibles. */
-function orthancBotonSync() {
-  var b = document.getElementById('orth-buscar-btn');
-  if (!b) return;
-  /* Sin `&& _orthModoAvanzado()`: el modo YA está dentro de `orthancActivo()`. AND-earlo acá
-     además dejaba el invariante «Básico ⇒ cero superficie de Orthanc» sostenido por dos
-     guardas que coinciden, en vez de por el predicado. */
-  var ok = (typeof orthancActivo === 'function' && orthancActivo());
-  b.style.display = ok ? '' : 'none';
-}
-window.orthancBotonSync = orthancBotonSync;
-
-/* Nombre DICOM: APELLIDO^NOMBRE^^^ . Se colapsan los separadores vacíos en vez de imprimir
-   «PEREZ^JUAN^^^», que es lo que sale crudo. */
-function _orthNombre(n) {
-  var t = String(n == null ? '' : n).split('^').filter(function (x) { return x.trim() !== ''; });
-  return t.length ? t.join(', ') : '(sin nombre)';
-}
-
-/* StudyDate viene YYYYMMDD y StudyTime HHMMSS[.frac]. NO se usa `new Date(str)`: este archivo
-   ya documenta que interpreta yyyy-mm-dd como UTC y en Uruguay devuelve el DÍA ANTERIOR. Se
-   parte a mano. La clave de orden es la CADENA cruda, donde el orden lexicográfico ES el
-   cronológico — el mismo recurso que usa el rango de fechas del PPT. */
-function _orthClaveFecha(e) {
-  var m = (e && e.MainDicomTags) || {};
-  return String(m.StudyDate || '00000000') + String(m.StudyTime || '000000').replace(/[^0-9]/g,'');
-}
-function _orthFechaTxt(e) {
-  var m = (e && e.MainDicomTags) || {};
-  var d = String(m.StudyDate || '');
-  var h = String(m.StudyTime || '').replace(/[^0-9]/g,'');
-  if (!/^[0-9]{8}$/.test(d)) return '(sin fecha)';
-  var txt = d.slice(6,8) + '/' + d.slice(4,6) + '/' + d.slice(0,4);
-  if (h.length >= 4) txt += ' ' + h.slice(0,2) + ':' + h.slice(2,4);
-  return txt;
-}
-function _orthISO(e) {
-  var d = String(((e && e.MainDicomTags) || {}).StudyDate || '');
-  return /^[0-9]{8}$/.test(d) ? d.slice(0,4) + '-' + d.slice(4,6) + '-' + d.slice(6,8) : '';
-}
-
-/* Los dos computados salen de `RequestedTags`, que es una sección propia de la respuesta.
-   Devuelve '' cuando no vino, para que el llamador imprima «—» en vez de «undefined». */
-function _orthTag(e, k) {
-  var r = (e && e.RequestedTags) || {};
-  var v = r[k];
-  return (v === undefined || v === null || v === '') ? '' : String(v);
-}
-
-function _orthGuardarVistos(ids) {
-  try {
-    localStorage.setItem(_ORTH_VISTOS, JSON.stringify(ids.slice(0, _ORTH_TOPE)));
-  } catch (e) {}
-}
-function _orthLeerVistos() {
-  try {
-    var v = JSON.parse(localStorage.getItem(_ORTH_VISTOS) || 'null');
-    return Array.isArray(v) ? v : null;      // null = nunca se buscó
-  } catch (e) { return null; }
-}
-
-/* Trae los estudios. Primero `/tools/find` con los computados; si falla —Orthanc viejo, o el
-   POST rechazado— cae a `/studies?expand`, que anda en toda versión. Devuelve además QUÉ
-   camino se usó, porque de eso depende si hay modalidad y conteo. */
-async function _orthTraerEstudios(base) {
-  var ctl = null, t = null;
-  try { ctl = new AbortController(); t = setTimeout(function(){ ctl.abort(); }, 15000); } catch(e){}
-  var sig = ctl ? ctl.signal : undefined;
-  try {
-    var r = await fetch(base + '/tools/find', {
-      method: 'POST', cache: 'no-store', signal: sig,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        Level: 'Study', Expand: true, Query: {},
-        RequestedTags: ['ModalitiesInStudy', 'NumberOfStudyRelatedInstances']
-      })
-    });
-    if (r && r.ok) {
-      var j = await r.json();
-      if (Array.isArray(j)) { if (t) clearTimeout(t); return { lista: j, completo: true }; }
-    }
-  } catch (e) {}
-  /* Respaldo: sin los computados. */
-  try {
-    var r2 = await fetch(base + '/studies?expand', { cache: 'no-store', signal: sig });
-    if (r2 && r2.ok) {
-      var j2 = await r2.json();
-      if (t) clearTimeout(t);
-      if (Array.isArray(j2)) return { lista: j2, completo: false };
-    }
-  } catch (e) {}
-  if (t) clearTimeout(t);
-  return null;
-}
-
-function _orthEstado(txt, color) {
-  var e = document.getElementById('orth-panel-estado');
-  if (!e) return;
-  e.textContent = '';
-  if (!txt) return;
-  var d = document.createElement('div');
-  d.style.cssText = 'padding:7px 10px;border-radius:7px;background:var(--bg3);white-space:pre-line;' +
-                    'border-left:3px solid ' + (color || 'var(--text2)') + ';';
-  d.textContent = txt;
-  e.appendChild(d);
-}
-
-function orthancPanelCerrar() {
-  var o = document.getElementById('orth-panel-overlay');
-  if (o) o.style.display = 'none';
-}
-window.orthancPanelCerrar = orthancPanelCerrar;
-
-async function orthancBuscar(refrescar) {
-  if (_orthBuscando) return;
-  var o = document.getElementById('orth-panel-overlay');
-  if (o) o.style.display = 'block';
-  var f = document.getElementById('orth-panel-filtros');
-  var base = null;
-  try { base = _orthBase(localStorage.getItem('ett_orthanc_url') || ''); } catch (e) {}
-  if (!base) {
-    if (f) f.style.display = 'none';
-    _orthEstado('⚠️ Falta configurar la dirección de Orthanc en ⚙️ Config.', 'var(--orange)');
-    return;
-  }
-  _orthBuscando = true;
-  var gen = _orthGen;   // se captura ANTES del primer await; ver `_orthGen`
-  if (f) f.style.display = 'none';
-  _orthEstado('⏳ Consultando ' + base + '…');
-  var lista = document.getElementById('orth-panel-lista');
-  if (lista) lista.textContent = '';
-  try {
-    var res = await _orthTraerEstudios(base);
-    /* Acá el token no es sólo estética: sin él, una búsqueda que resuelve tarde puebla
-       `_orthEstudios` —que lleva NOMBRES de paciente— con el modo ya diciendo que esta función
-       no existe, y `_orthListaRender` los pinta en un overlay escondido. */
-    if (gen !== _orthGen) return;
-    if (!res) {
-      /* Mismo criterio que «Verificar conexión»: antes de decir que no hay nada, se mira si
-         hay ALGUIEN. Los dos fallos dan el mismo TypeError. */
-      var vivo = false;
-      try { vivo = await _orthHayAlguien(base); } catch (e) {}
-      if (gen !== _orthGen) return;
-      if (vivo) {
-        _orthEstado('⚠️ Hay un servidor en ' + base + ' pero el navegador no me deja leerlo.\n' +
-                    'Casi siempre es CORS: revisá ⚙️ Config → Verificar conexión, que explica ' +
-                    'qué agregar a orthanc.json.', 'var(--orange)');
-      } else {
-        _orthEstado('❌ No se pudo consultar ' + base + '. ¿Orthanc está corriendo?\n' +
-                    'Probá ⚙️ Config → Verificar conexión.', 'var(--red)');
-      }
-      return;
-    }
-    var todos = res.lista.slice();
-    var recortado = 0;
-    todos.sort(function (a, b) { return _orthClaveFecha(b).localeCompare(_orthClaveFecha(a)); });
-    if (todos.length > _ORTH_TOPE) { recortado = todos.length - _ORTH_TOPE; todos = todos.slice(0, _ORTH_TOPE); }
-    _orthEstudios = todos;
-
-    /* NUEVOS = id que no estaba en la búsqueda anterior. Se compara por CONJUNTO DE IDS y no
-       contra una marca de tiempo: la fecha la pone Orthanc y la marca la pondría este
-       navegador, o sea DOS RELOJES —y Orthanc puede correr en otra máquina—. Es la misma
-       razón por la que el banner de versión compara sello contra sello y no contra
-       Last-Modified. */
-    var vistos = _orthLeerVistos();
-    if (vistos === null) {
-      /* Primera búsqueda: NADA se marca como nuevo. Con todo resaltado, el resaltado no
-         distingue nada y encima entrena a ignorarlo. Esta pasada fija la línea base. */
-      _orthNuevos = new Set();
-    } else {
-      var prev = new Set(vistos);
-      _orthNuevos = new Set();
-      todos.forEach(function (e) { if (e && e.ID && !prev.has(e.ID)) _orthNuevos.add(e.ID); });
-    }
-    _orthGuardarVistos(todos.map(function (e) { return e && e.ID; }).filter(Boolean));
-
-    var avisos = [];
-    avisos.push('✅ ' + todos.length + ' estudio(s)' +
-                (_orthNuevos.size ? ' · ' + _orthNuevos.size + ' nuevo(s) desde la última búsqueda' : ''));
-    if (vistos === null) avisos.push('Primera búsqueda: no se marca nada como nuevo todavía.');
-    if (recortado) avisos.push('Se muestran los ' + _ORTH_TOPE + ' más recientes; quedaron ' +
-                               recortado + ' afuera.');
-    if (!res.completo) avisos.push('Tu Orthanc no informó modalidad ni cantidad de imágenes ' +
-                                   '(hacen falta los tags computados de Orthanc 1.11 o superior): ' +
-                                   'esas dos columnas salen como «—».');
-    /* Si la dirección no es local NI privada, la API de Orthanc está expuesta a internet. */
-    if (_orthEsPublica(base)) avisos.push('⚠️ ' + _orthHost(base) + ' no es una dirección de red ' +
-      'local. Si Orthanc es alcanzable desde internet, cualquiera podría leer los estudios: ' +
-      'dejalo detrás de la red de la clínica o de una VPN.');
-    _orthEstado(avisos.join('\n'), _orthEsPublica(base) ? 'var(--orange)' : 'var(--green)');
-    if (f) f.style.display = 'flex';
-    orthancFiltrar();
-  } finally {
-    _orthBuscando = false;
-  }
-}
-window.orthancBuscar = orthancBuscar;
-
-/* Loopback o RFC1918/CGNAT/link-local = red local. Todo lo demás se considera expuesto. Se
-   AVISA y no se bloquea: una VPN da direcciones que caen acá y sería legítima. */
-function _orthEsPublica(base) {
-  var h = '';
-  try { h = new URL(base).hostname.toLowerCase(); } catch (e) { return false; }
-  if (_orthEsLoopback(base)) return false;
-  if (/\.local$/.test(h) || h.indexOf('.') < 0) return false;      // mDNS o nombre de LAN
-  var m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!m) return false;                                            // un dominio: no se adivina
-  var a = +m[1], b = +m[2];
-  if (a === 10) return false;
-  if (a === 192 && b === 168) return false;
-  if (a === 172 && b >= 16 && b <= 31) return false;
-  if (a === 169 && b === 254) return false;
-  if (a === 100 && b >= 64 && b <= 127) return false;
-  return true;
-}
-
-function orthancFiltrar() {
-  var cont = document.getElementById('orth-panel-lista');
-  if (!cont) return;
-  var vn = (document.getElementById('orth-f-nombre') || {}).value || '';
-  var vd = (document.getElementById('orth-f-desde')  || {}).value || '';
-  var vh = (document.getElementById('orth-f-hasta')  || {}).value || '';
-  var q = vn.trim().toLowerCase();
-  var vistos = _orthEstudios.filter(function (e) {
-    var p = (e && e.PatientMainDicomTags) || {};
-    if (q && _orthNombre(p.PatientName).toLowerCase().indexOf(q) < 0) return false;
-    var iso = _orthISO(e);
-    if (vd && (!iso || iso < vd)) return false;
-    if (vh && (!iso || iso > vh)) return false;
-    return true;
-  });
-  _orthListaRender(cont, vistos);
-}
-window.orthancFiltrar = orthancFiltrar;
-
-function _orthListaRender(cont, lista) {
-  cont.textContent = '';
-  if (!lista.length) {
-    var v = document.createElement('div');
-    v.style.cssText = 'font-size:11.5px;color:var(--text2);padding:10px 2px;';
-    v.textContent = _orthEstudios.length
-      ? 'Ningún estudio coincide con el filtro.'
-      : 'Orthanc no tiene estudios todavía. Enviá uno desde el ecógrafo.';
-    cont.appendChild(v);
-    return;
-  }
-  lista.forEach(function (e) {
-    var m = (e && e.MainDicomTags) || {}, p = (e && e.PatientMainDicomTags) || {};
-    var nuevo = !!(_orthNuevos && e.ID && _orthNuevos.has(e.ID));
-    var fila = document.createElement('div');
-    fila.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;' +
-      'padding:9px 11px;margin-bottom:6px;border-radius:8px;background:var(--bg2);' +
-      'border-left:3px solid ' + (nuevo ? 'var(--green)' : 'transparent') + ';' +
-      (nuevo ? 'box-shadow:inset 0 0 0 1px var(--green);' : '');
-    fila.setAttribute('data-orth-estudio', e.ID || '');
-    fila.setAttribute('role', 'button');
-    fila.setAttribute('tabindex', '0');
-
-    var izq = document.createElement('div');
-    izq.style.cssText = 'flex:1;min-width:190px;';
-    var n = document.createElement('div');
-    n.style.cssText = 'font-size:12.5px;font-weight:600;';
-    /* El resaltado NO es sólo color: un borde verde solo no lo ve quien no distingue el verde
-       y no sobrevive a una captura en gris. Va además la palabra. */
-    n.textContent = (nuevo ? '🟢 NUEVO · ' : '') + _orthNombre(p.PatientName);
-    izq.appendChild(n);
-    var sub = document.createElement('div');
-    sub.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;';
-    var mod = _orthTag(e, 'ModalitiesInStudy');
-    var inst = m.InstitutionName ? String(m.InstitutionName) : '';
-    sub.textContent = _orthFechaTxt(e) +
-      ' · ' + (mod || '—') +
-      ' · ' + (inst || 'institución no informada') +
-      (m.StudyDescription ? ' · ' + String(m.StudyDescription) : '');
-    izq.appendChild(sub);
-    fila.appendChild(izq);
-
-    var der = document.createElement('div');
-    der.style.cssText = 'font-size:11px;color:var(--text2);text-align:right;min-width:92px;';
-    var nInst = _orthTag(e, 'NumberOfStudyRelatedInstances');
-    var nSer = (e && Array.isArray(e.Series)) ? e.Series.length : null;
-    der.textContent = (nInst ? nInst + ' imagen(es)' : '— imágenes') +
-                      (nSer !== null ? '\n' + nSer + ' serie(s)' : '');
-    der.style.whiteSpace = 'pre-line';
-    fila.appendChild(der);
-    cont.appendChild(fila);
-  });
-}
-
-/* Un solo listener delegado: la lista se reconstruye en cada filtrado, así que enganchar por
-   fila acumularía uno por tecla tipeada. Y el id va por `data-`, nunca interpolado en un
-   `onclick`, donde el escape no protege porque el parser decodifica antes de compilar. */
-/* Cableado de los dos botones de vista de Guardados al arrancar. Idempotente; la otra puerta
-   es `showTab('guardados')`. */
-if (typeof igImgCablear === 'function') {
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', igImgCablear);
-  else igImgCablear();
-}
-
-if (!window._orthListaCableada) {
-  window._orthListaCableada = true;
-  document.addEventListener('click', function (ev) {
-    var f = ev.target && ev.target.closest ? ev.target.closest('[data-orth-estudio]') : null;
-    if (!f) return;
-    orthancElegirEstudio(f.getAttribute('data-orth-estudio'));
-  });
-  document.addEventListener('keydown', function (ev) {
-    if (ev.key !== 'Enter' && ev.key !== ' ') return;
-    var f = document.activeElement;
-    if (!f || !f.getAttribute || !f.getAttribute('data-orth-estudio')) return;
-    ev.preventDefault();
-    orthancElegirEstudio(f.getAttribute('data-orth-estudio'));
-  });
-  document.addEventListener('keydown', function (ev) {
-    if (ev.key !== 'Escape') return;
-    var o = document.getElementById('orth-panel-overlay');
-    if (o && o.style.display !== 'none') orthancPanelCerrar();
-  });
-}
-
-/* SEAM para la importación, que todavía no existe. Se cierra el panel y se delega en
-   `orthancImportarEstudio` si alguien la definió. Si no, SE DICE — un clic que cierra el panel
-   y no hace nada más se lee como que la app se colgó, que es el modo de falla que este archivo
-   documenta para los controles mudos. */
-function orthancElegirEstudio(id) {
-  if (!id) return;
-  orthancPanelCerrar();
-  if (typeof window.orthancImportarEstudio === 'function') {
-    window.orthancImportarEstudio(id);
-    return;
-  }
-  if (typeof toast === 'function') {
-    toast('📥 La importación desde Orthanc todavía no está implementada (llega en el próximo paso).');
-  }
-}
-window.orthancElegirEstudio = orthancElegirEstudio;
-
-/* Al arrancar, por si la preferencia ya venia encendida de una sesion anterior. `showTab`
-   lo repinta despues en cada entrada a la tab; esto cubre el primer pintado. */
-if (typeof orthancBotonSync === 'function') { try { orthancBotonSync(); } catch (e) {} }
-
-/* ══ Importar un estudio desde Orthanc ════════════════════════════════════════════════════
-   Baja las instancias y las mete POR LAS PUERTAS QUE YA EXISTEN: `dcmImgImportar` para
-   imágenes y cineloops —la misma del botón «Importar DICOM» y del «+» de un slot— y
-   `dcmImportarSR` para los informes estructurados. No hay un segundo lector de DICOM acá: si
-   lo hubiera, el estudio que entra del pendrive y el que entra de Orthanc podrían divergir.
-
-   ⚠️ EL PUNTO 4 DEL PEDIDO REINTRODUCÍA UN DEFECTO YA CERRADO. Pedía cargar «nombre, fecha de
-   nacimiento, CI» del DICOM. El **PatientID NO es la cédula**: en un ecógrafo de hospital es
-   el número de historia clínica. El comentario de `_dcmPaciente` ya lo documenta y dice el
-   daño concreto —entra en la clave de `_dupKeys` igual que un documento real, así que un
-   número de historia que coincida con la cédula de otro paciente en la misma fecha hacía que
-   «Actualizar» pisara el nombre y el documento del paciente EQUIVOCADO—. Acá se respeta: el
-   id institucional se MUESTRA y no se escribe en `ci`.
-
-   ⚠️ Y NO HAY CAMPO DE FECHA DE NACIMIENTO en esta app: los campos de paciente son `nombre`,
-   `ci`, `edad`, `fecha` y `sexo`. La fecha de nacimiento no se descarta: se usa junto con la
-   fecha del estudio para derivar la EDAD, que es el campo que existe y el que alimenta la
-   superficie corporal.
-
-   Los datos del paciente salen del OBJETO DE ORTHANC (`PatientMainDicomTags`), no de parsear
-   los archivos: es lo que Orthanc ya indexó, y evita un tercer parser.
-
-   NADA SALE DE LA MÁQUINA: todo el tráfico es contra la dirección configurada, que es el
-   Orthanc del propio médico. */
-var _ORTH_MAX_INST = 200;
-var _orthImportando = false;
-
-async function _orthGetJSON(url) {
+   ⚠️ Y `_clnkGetJSON` SE SOLAPA CON `clnkPedir`, que es la capa de comunicación de esta tanda.
+   Se conserva porque la orden lo pide explícitamente, pero el paso siguiente debería pedir por
+   `clnkPedir` —que lleva el token, el tiempo de espera y la traducción de errores— y no por
+   acá. Queda como pregunta de diseño en el reporte. */
+async function _clnkGetJSON(url) {
   var r = await fetch(url, { cache: 'no-store' });
   if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : '?'));
   return await r.json();
@@ -174365,14 +173645,14 @@ async function _orthGetJSON(url) {
 /* M / F y nada más: el select tiene sólo esas dos opciones más la vacía, y DICOM también
    emite «O». Asignar un valor que no es opción deja el select SIN SELECCIÓN —silencioso— que
    es lo que este archivo documenta con `vab_tipo` y con el centro del encabezado. */
-function _orthSexo(v) {
+function _clnkSexo(v) {
   var x = String(v == null ? '' : v).trim().toUpperCase();
   return (x === 'M' || x === 'F') ? x : '';
 }
 
 /* Edad en años a la fecha del estudio. Las dos fechas vienen YYYYMMDD; se comparan como
    NÚMERO de esa forma, sin `new Date`, que interpreta como UTC y corre el día. */
-function _orthEdad(nac, estudio) {
+function _clnkEdad(nac, estudio) {
   var n = String(nac || '').replace(/[^0-9]/g, '');
   var e = String(estudio || '').replace(/[^0-9]/g, '');
   if (!/^[0-9]{8}$/.test(n) || !/^[0-9]{8}$/.test(e)) return null;
@@ -174382,8 +173662,13 @@ function _orthEdad(nac, estudio) {
 }
 
 /* Escribe un campo SÓLO si está vacío. Pisar lo que el médico tipeó sería peor que no
-   completar: el dato de Orthanc es el del ecógrafo, no necesariamente el correcto. */
-function _orthPonerSiVacio(id, valor, puesto) {
+   completar: el dato del DICOM es el del ecógrafo, no necesariamente el correcto.
+
+   ⚠️ Y EL `PatientID` DEL DICOM NO ES LA CÉDULA. En un ecógrafo de hospital es el número de
+   historia clínica de la institución, y cargarlo como documento puede hacer que un estudio se
+   mezcle con el de otro paciente. El comentario de `_dcmPaciente` ya lo documenta: ese dato se
+   DICE y no se escribe. */
+function _clnkPonerSiVacio(id, valor, puesto) {
   if (valor === null || valor === undefined || valor === '') return false;
   var el = document.getElementById(id);
   if (!el) return false;
@@ -174397,7 +173682,7 @@ function _orthPonerSiVacio(id, valor, puesto) {
   return true;
 }
 
-function _orthArchivo(buf, nombre) {
+function _clnkArchivo(buf, nombre) {
   try { return new File([buf], nombre, { type: 'application/dicom' }); }
   catch (e) {
     /* Respaldo para navegadores sin constructor de File. Los dos importadores usan sólo
@@ -174411,387 +173696,18 @@ function _orthArchivo(buf, nombre) {
 /* SR = SOP Class bajo 1.2.840.10008.5.1.4.1.1.88. Se lee con `_dcmImgLeer`, que ya expone el
    `sop` del meta-grupo y lo hace ANTES de rechazar por sintaxis de transferencia — o sea que
    clasifica incluso un archivo que ese lector no sabe dibujar. Sin tercer parser. */
-function _orthEsSR(buf) {
+function _clnkEsSR(buf) {
   try {
     var d = _dcmImgLeer(buf);
     return !!(d && String(d.sop || '').indexOf('1.2.840.10008.5.1.4.1.1.88.') === 0);
   } catch (e) { return false; }
 }
-
-async function orthancImportarEstudio(idEstudio) {
-  if (_orthImportando) return;
-  if (!idEstudio) return;
-  var base = null;
-  try { base = _orthBase(localStorage.getItem('ett_orthanc_url') || ''); } catch (e) {}
-  if (!base) { if (typeof toast === 'function') toast('⚠️ Falta configurar la dirección de Orthanc en ⚙️ Config.'); return; }
-  _orthImportando = true;
-  var pref = '/studies/' + encodeURIComponent(idEstudio);
-  _bkProgAbrir('📥 Importando estudio desde Orthanc');
-  var imgs = [], srs = [], fallos = [], recortado = 0;
-  try {
-    _bkProg(0, 1, 'Consultando el estudio');
-    var est = null, inst = null;
-    try {
-      est  = await _orthGetJSON(base + pref);
-      inst = await _orthGetJSON(base + pref + '/instances');
-    } catch (e) {
-      _bkProgCerrar();
-      if (typeof toast === 'function') toast('❌ No se pudo leer el estudio de Orthanc. Probá ⚙️ Config → Verificar conexión.');
-      return;
-    }
-    if (!Array.isArray(inst) || !inst.length) {
-      _bkProgCerrar();
-      if (typeof toast === 'function') toast('⚠️ Ese estudio no tiene instancias en Orthanc.');
-      return;
-    }
-    /* Orden por InstanceNumber cuando está: define el orden en que las imágenes caen en los
-       slots, o sea el orden en que salen en el PDF. Sin esto queda el de la base. */
-    inst.sort(function (a, b) {
-      var na = +(((a && a.MainDicomTags) || {}).InstanceNumber || 0);
-      var nb = +(((b && b.MainDicomTags) || {}).InstanceNumber || 0);
-      return na - nb;
-    });
-    if (inst.length > _ORTH_MAX_INST) { recortado = inst.length - _ORTH_MAX_INST; inst = inst.slice(0, _ORTH_MAX_INST); }
-
-    for (var i = 0; i < inst.length; i++) {
-      var iid = (inst[i] && inst[i].ID) ? inst[i].ID : inst[i];
-      _bkProg(i + 1, inst.length, 'Importando imagen');
-      /* Se cede el hilo en CADA vuelta: sin esto la pestaña queda congelada y la barra de
-         progreso no se repinta —o sea que existe y no se ve—. Es lo mismo que hace la
-         exportación del backup entre estudios. */
-      await new Promise(function (r) { setTimeout(r, 0); });
-      var buf = null;
-      try {
-        var rf = await fetch(base + '/instances/' + encodeURIComponent(iid) + '/file', { cache: 'no-store' });
-        if (!rf || !rf.ok) throw new Error('HTTP ' + (rf ? rf.status : '?'));
-        buf = await rf.arrayBuffer();
-      } catch (e) { fallos.push(String(iid).slice(0, 12)); continue; }
-      var nombre = 'orthanc-' + String(iid).slice(0, 12) + '.dcm';
-      if (_orthEsSR(buf)) srs.push(_orthArchivo(buf, nombre));
-      else imgs.push(_orthArchivo(buf, nombre));
-    }
-    _bkProgCerrar();
-
-    /* ── Datos del paciente, del objeto que Orthanc ya indexó ── */
-    var puestos = [];
-    var pm = (est && est.PatientMainDicomTags) || {};
-    var mm = (est && est.MainDicomTags) || {};
-    var nom = (typeof _dcmPNaApp === 'function') ? _dcmPNaApp(pm.PatientName) : '';
-    _orthPonerSiVacio('nombre', nom, puestos);
-    var d8 = String(mm.StudyDate || '');
-    if (/^[0-9]{8}$/.test(d8)) {
-      _orthPonerSiVacio('fecha', d8.slice(0,4) + '-' + d8.slice(4,6) + '-' + d8.slice(6,8), puestos);
-    }
-    _orthPonerSiVacio('sexo', _orthSexo(pm.PatientSex), puestos);
-    var ed = _orthEdad(pm.PatientBirthDate, mm.StudyDate);
-    if (ed !== null) _orthPonerSiVacio('edad', String(ed), puestos);
-
-    /* ── A las puertas de siempre ── */
-    if (imgs.length) { try { await dcmImgImportar(imgs); } catch (e) {} }
-    if (srs.length)  { try { await dcmImportarSR(srs); } catch (e) {} }
-
-    /* ── Resumen ── */
-    var partes = [];
-    if (imgs.length) partes.push(imgs.length + ' archivo(s) de imagen');
-    if (srs.length)  partes.push(srs.length + ' informe(s) estructurado(s)');
-    var msg = partes.length ? ('✅ Estudio importado: ' + partes.join(' y ')) : '⚠️ No se pudo importar nada';
-    if (puestos.length) msg += ' · se completaron ' + puestos.length + ' dato(s) del paciente';
-    if (typeof toast === 'function') toast(msg);
-
-    var notas = [];
-    /* El id institucional se DICE y no se escribe: ver el encabezado de este bloque. */
-    var idi = String(pm.PatientID || '').trim();
-    if (idi) notas.push('El identificador que trae el estudio es «' + idi + '». NO se cargó como ' +
-      'documento: en un ecógrafo suele ser el número de historia clínica de la institución, y ' +
-      'usarlo como cédula puede hacer que un estudio se mezcle con el de otro paciente. ' +
-      'Cargá el documento a mano si corresponde.');
-    if (srs.length) notas.push('📋 El informe del ecógrafo se abre en una vista previa: los ' +
-      'campos NO se completan solos, los confirmás vos. Revisá antes de firmar.');
-    if (recortado) notas.push('El estudio tiene ' + recortado + ' instancia(s) más de las ' +
-      _ORTH_MAX_INST + ' importadas.');
-    if (fallos.length) notas.push('No se pudieron descargar ' + fallos.length + ' instancia(s).');
-    if (notas.length && typeof alert === 'function') alert(notas.join('\n\n'));
-  } finally {
-    _bkProgCerrar();
-    _orthImportando = false;
-  }
-}
-window.orthancImportarEstudio = orthancImportarEstudio;
-
-/* ══ Arranque automático de Orthanc ═══════════════════════════════════════════════════════
-   ⚠️ LA PREMISA DE WINDOWS DEL PEDIDO ERA FALSA, y es la que más costaba. Decía «durante la
-   instalación elegí "Install as a Windows Service"». **Esa opción no existe**: el instalador
-   oficial ya registra el servicio. Verificado en dos páginas del proyecto:
-
-     · descarga: «The official Windows installers include a Windows service that automatically
-       starts Orthanc during the startup of Microsoft Windows.»
-     · quickstart: «Orthanc is running as a Windows Service, which means that it will
-       automatically start whenever your computer starts.»
-
-   Imprimir los tres pasos del pedido mandaba al médico a buscar una casilla inexistente y a
-   concluir que hizo algo mal, con Orthanc ya arrancando solo. Se dice lo contrario: ya está, y
-   se da cómo COMPROBARLO.
-
-   ⚠️ Y EL COMANDO DE MAC NO EXISTE. El pedido lo dejaba como «[comando LaunchAgent de
-   Orthanc]». Medido: no hay fórmula ni cask en Homebrew (`brew info orthanc` → «No available
-   formula»), la distribución de macOS son **binarios sueltos** y el proyecto **no publica**
-   ninguna integración de servicio para Mac. Así que no hay un comando que citar: hay que
-   escribir el LaunchAgent, y se declara que no sale del proyecto.
-
-   Dos apartamientos de los ejemplos oficiales de Docker, los dos deliberados:
-   · **`orthancteam/orthanc` y no `jodogne/orthanc`**: la doc dice que aquélla soporta ARM64 y
-     los Mac de hoy son ARM.
-   · **con `-v` y sin `--rm`**: los ejemplos de la doc son para probar. Sin volumen, reiniciar
-     el contenedor **borra los estudios** — en una app clínica eso no es un detalle. */
-var _ORTH_HOWTO = 'ett_orthanc_howto_visto';
-
-/* Devuelve el sistema del NAVEGADOR. Sólo sirve si Orthanc corre en esta misma máquina: con
-   una dirección de LAN el servidor está en OTRA computadora y este dato no dice nada de ella
-   —por eso el llamador muestra los dos casos cuando la dirección no es loopback—. */
-function _orthSO() {
-  var p = '';
-  try { p = (navigator.userAgentData && navigator.userAgentData.platform) || ''; } catch (e) {}
-  if (!p) { try { p = navigator.userAgent || ''; } catch (e) {} }
-  p = String(p).toLowerCase();
-  if (p.indexOf('win') >= 0) return 'win';
-  if (p.indexOf('mac') >= 0 || p.indexOf('darwin') >= 0) return 'mac';
-  return 'otro';
-}
-
-var _ORTH_MAC_DOCKER =
-  'docker run -d --restart unless-stopped --name orthanc \\\n' +
-  '  -p 4242:4242 -p 8042:8042 \\\n' +
-  '  -v orthanc-db:/var/lib/orthanc/db \\\n' +
-  '  orthancteam/orthanc';
-
-var _ORTH_MAC_PLIST =
-  'mkdir -p ~/Library/LaunchAgents\n' +
-  "cat > ~/Library/LaunchAgents/com.orthanc.server.plist <<'EOF'\n" +
-  '<?xml version="1.0" encoding="UTF-8"?>\n' +
-  '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
-  '<plist version="1.0"><dict>\n' +
-  '  <key>Label</key><string>com.orthanc.server</string>\n' +
-  '  <key>ProgramArguments</key><array>\n' +
-  '    <string>/RUTA/A/Orthanc</string>\n' +
-  '    <string>/RUTA/A/orthanc.json</string>\n' +
-  '  </array>\n' +
-  '  <key>RunAtLoad</key><true/>\n' +
-  '  <key>KeepAlive</key><true/>\n' +
-  '</dict></plist>\n' +
-  'EOF\n' +
-  'launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.orthanc.server.plist';
-
-/* Bloque de texto con título, párrafos y —si hay— un comando copiable. Todo por textContent. */
-function _orthBloque(cont, titulo, lineas, comando, pie) {
-  var b = document.createElement('div');
-  b.style.cssText = 'margin-bottom:11px;';
-  var h = document.createElement('div');
-  h.style.cssText = 'font-size:12px;font-weight:600;margin-bottom:4px;';
-  h.textContent = titulo;
-  b.appendChild(h);
-  lineas.forEach(function (t) {
-    var p = document.createElement('div');
-    p.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px;';
-    p.textContent = t;
-    b.appendChild(p);
-  });
-  if (comando) {
-    var fila = document.createElement('div');
-    fila.style.cssText = 'display:flex;align-items:flex-start;gap:7px;margin:5px 0 3px;';
-    var pre = document.createElement('pre');
-    pre.style.cssText = 'flex:1;min-width:0;margin:0;padding:6px 8px;border-radius:6px;' +
-      'background:var(--bg2);font-size:10.5px;line-height:1.45;overflow-x:auto;white-space:pre;';
-    pre.textContent = comando;
-    fila.appendChild(pre);
-    var bt = document.createElement('button');
-    bt.type = 'button'; bt.className = 'btn btn-ghost';
-    bt.style.cssText = 'padding:3px 9px;font-size:11px;flex:0 0 auto;';
-    bt.textContent = 'Copiar';
-    bt.setAttribute('data-orth-copiar', comando);
-    fila.appendChild(bt);
-    b.appendChild(fila);
-  }
-  if (pie) {
-    var f = document.createElement('div');
-    f.style.cssText = 'font-size:10.5px;color:var(--text2);line-height:1.45;';
-    f.textContent = pie;
-    b.appendChild(f);
-  }
-  cont.appendChild(b);
-}
-
-function _orthArranqueWin(cont) {
-  _orthBloque(cont, '🪟 Windows — ya está hecho', [
-    'El instalador oficial registra un servicio de Windows que arranca Orthanc solo al ' +
-    'encender la computadora. No hay ninguna opción que elegir durante la instalación.',
-    'Para comprobarlo: tecla Windows → buscá «Servicios» → tiene que figurar «Orthanc».'
-  ], null,
-    'Si no aparece, reinstalá con el instalador oficial de orthanc-server.com.');
-}
-
-function _orthArranqueMac(cont) {
-  _orthBloque(cont, '🍎 macOS — hay que configurarlo a mano', [
-    'Orthanc no publica un instalador para Mac: la descarga son binarios sueltos y el ' +
-    'proyecto no incluye ninguna integración de servicio. Estas dos recetas NO salen de la ' +
-    'documentación oficial.'
-  ], null, null);
-  _orthBloque(cont, 'A · Con Docker (lo que el proyecto sí documenta)', [
-    'Arranca solo cada vez que arranca Docker Desktop. Poné Docker Desktop en «Open at login».'
-  ], _ORTH_MAC_DOCKER,
-    'orthancteam/orthanc y no jodogne/orthanc: aquélla soporta ARM64, que es lo que traen los ' +
-    'Mac de hoy. El -v guarda la base fuera del contenedor: sin eso, reiniciarlo borra los ' +
-    'estudios.');
-  _orthBloque(cont, 'B · Con los binarios descargados (LaunchAgent)', [
-    'Reemplazá las DOS rutas /RUTA/A/… por las tuyas antes de ejecutarlo.'
-  ], _ORTH_MAC_PLIST,
-    'Comprobalo con: launchctl list | grep orthanc — si no lista nada, el LaunchAgent no ' +
-    'cargó, y casi siempre es que alguna de las dos rutas está mal.');
-}
-
-/* El botón está SIEMPRE; el panel se despliega solo la PRIMERA vez que se conecta. El pedido
-   ofrecía «una cosa o la otra» y se hacen las dos a propósito: mostrarlo una sola vez y sin
-   botón lo vuelve inalcanzable después, que es exactamente el defecto que la barra de memoria
-   ya documenta haber evitado con el aviso de cuota. */
-function _orthPintarArranque(cont, base) {
-  var wrap = document.createElement('div');
-  wrap.style.cssText = 'margin-top:11px;border-top:1px solid var(--bg3);padding-top:9px;';
-  var primera = false;
-  try { primera = localStorage.getItem(_ORTH_HOWTO) !== '1'; } catch (e) {}
-
-  var bt = document.createElement('button');
-  bt.type = 'button'; bt.className = 'btn btn-ghost';
-  bt.style.cssText = 'padding:4px 11px;font-size:11.5px;';
-  bt.textContent = '¿Cómo hago que arranque solo?';
-  wrap.appendChild(bt);
-
-  var panel = document.createElement('div');
-  panel.id = 'cfg-orthanc-arranque';
-  panel.style.cssText = 'margin-top:9px;';
-  panel.style.display = primera ? '' : 'none';
-  bt.setAttribute('aria-expanded', primera ? 'true' : 'false');
-
-  var intro = document.createElement('div');
-  intro.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:9px;';
-  /* NO se afirma que Orthanc ya esté como servicio: eso NO se puede saber desde el navegador
-     —/system no lo informa— así que se dice en condicional en vez de darlo por detectado. */
-  intro.textContent = 'Si ya lo instalaste como servicio, no tenés que hacer nada: funciona ' +
-    'solo. EcoSmart no puede saberlo desde acá, así que fijate con los pasos de abajo.';
-  panel.appendChild(intro);
-
-  var enEstaMaquina = _orthEsLoopback(base);
-  var so = _orthSO();
-  if (!enEstaMaquina) {
-    /* Con una dirección de LAN, Orthanc corre en OTRA computadora y el sistema de ESTE
-       navegador no dice nada de aquélla: se muestran los dos y se explica por qué. */
-    var n = document.createElement('div');
-    n.style.cssText = 'font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:9px;';
-    n.textContent = 'Ojo: configuraste Orthanc en ' + _orthHost(base) + ', o sea en OTRA ' +
-      'computadora. Los pasos van en ESA máquina, no en ésta — por eso se muestran los dos ' +
-      'sistemas.';
-    panel.appendChild(n);
-    _orthArranqueWin(panel); _orthArranqueMac(panel);
-  } else if (so === 'win') { _orthArranqueWin(panel); }
-  else if (so === 'mac')   { _orthArranqueMac(panel); }
-  else { _orthArranqueWin(panel); _orthArranqueMac(panel); }
-
-  bt.addEventListener('click', function (ev) {
-    ev.preventDefault();
-    var abrir = panel.style.display === 'none';
-    panel.style.display = abrir ? '' : 'none';
-    bt.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-    if (abrir) { try { localStorage.setItem(_ORTH_HOWTO, '1'); } catch (e) {} }
-  });
-  if (primera) { try { localStorage.setItem(_ORTH_HOWTO, '1'); } catch (e) {} }
-
-  wrap.appendChild(panel);
-  cont.appendChild(wrap);
-}
-
-async function orthancVerificar() {
-  if (_orthVerificando) return;              // sin guarda, dos clics = dos sondeos en vuelo
-  var inp  = document.getElementById('cfg-orthanc-url');
-  var base = _orthBase(inp ? inp.value : '');
-  if (!base) {
-    _orthPintarEstado('⚠️ No entiendo esa dirección. Escribí algo como «localhost:8042» o ' +
-                      '«192.168.1.50:8042».', 'var(--orange)');
-    _orthDatosOcultar(); return;
-  }
-  _orthVerificando = true;
-  var gen = _orthGen;   // se captura ANTES del primer await; ver `_orthGen`
-  _orthPintarEstado('⏳ Buscando Orthanc en ' + base + '…');
-  _orthDatosOcultar();
-  try {
-    var r = null, ctl = null, t = null;
-    try { ctl = new AbortController(); t = setTimeout(function(){ ctl.abort(); }, 6000); } catch(e){}
-    try { r = await fetch(base + '/system', { cache: 'no-store',
-                                              signal: ctl ? ctl.signal : undefined }); }
-    catch (e) { r = null; }
-    if (t) clearTimeout(t);
-    if (gen !== _orthGen) return;   // el modo o la casilla cambiaron: esta lectura ya no aplica
-
-    if (r && r.ok) {
-      var sys = null;
-      try { sys = await r.json(); } catch (e) { sys = null; }
-      if (gen !== _orthGen) return;
-      if (!sys || typeof sys !== 'object') {
-        _orthPintarEstado('⚠️ Algo respondió en ' + base + ', pero no con la respuesta de ' +
-                          'Orthanc. ¿Hay otro programa usando ese puerto?', 'var(--orange)');
-        return;
-      }
-      var v = sys.Version ? String(sys.Version) : '(versión no informada)';
-      var nom = sys.Name ? ' · ' + String(sys.Name) : '';
-      _orthPintarEstado('✅ Orthanc conectado — v ' + v + nom, 'var(--green)');
-      _orthPintarDatos(base, sys);
-      return;
-    }
-    if (r && r.status === 401) {
-      _orthPintarEstado('🔒 Orthanc respondió, pero pide usuario y contraseña. EcoSmart todavía ' +
-                        'no los maneja: para probar, poné «"AuthenticationEnabled" : false» en ' +
-                        'orthanc.json (sólo si Orthanc escucha en esta máquina).', 'var(--orange)');
-      return;
-    }
-    if (r) {
-      _orthPintarEstado('⚠️ ' + base + ' respondió con el código ' + r.status +
-                        '. ¿Es realmente un Orthanc?', 'var(--orange)');
-      return;
-    }
-
-    /* No hubo respuesta legible. Antes de acusar a Orthanc de faltar, se mira si hay ALGO. */
-    var httpsAloopback = (location.protocol === 'https:') && /^http:/.test(base);
-    var vivo = await _orthHayAlguien(base);
-    if (gen !== _orthGen) return;
-    if (httpsAloopback) {
-      /* Acá el sondeo no discrimina —medido: el bloqueo de red local rechaza las dos vías— así
-         que se nombran las dos causas en vez de elegir una y mandar a revisar lo que anda. */
-      _orthPintarEstado(
-        '❌ No se pudo leer Orthanc desde ' + location.origin + '.\n\n' +
-        'Dos causas posibles, y las dos son de configuración, no de Orthanc:\n' +
-        '1) El navegador bloquea que una página de internet toque tu red local. Fijate si ' +
-        'apareció un pedido de permiso y concedelo.\n' +
-        '2) Orthanc no está enviando cabeceras CORS. Agregá esto a orthanc.json y reinicialo:\n' +
-        '     "HttpHeaders" : { "Access-Control-Allow-Origin" : "' + location.origin + '" }\n\n' +
-        'Poné el origen exacto y no «*»: con un asterisco, CUALQUIER página que abras podría ' +
-        'leer los estudios de tu Orthanc.', 'var(--orange)');
-      return;
-    }
-    if (vivo) {
-      _orthPintarEstado(
-        '⚠️ Hay un servidor respondiendo en ' + base + ', pero el navegador no me deja leerlo.\n' +
-        'Casi siempre es que Orthanc no envía cabeceras CORS —viene así de fábrica—. Agregá ' +
-        'esto a orthanc.json y reinicialo:\n' +
-        '     "HttpHeaders" : { "Access-Control-Allow-Origin" : "' + location.origin + '" }\n\n' +
-        'Poné el origen exacto y no «*»: con un asterisco, CUALQUIER página que abras podría ' +
-        'leer los estudios de tu Orthanc.', 'var(--orange)');
-      return;
-    }
-    _orthPintarEstado('❌ No se encontró Orthanc en ' + base + '. ¿Está instalado y corriendo?\n' +
-                      'Se descarga de orthanc-server.com. Si lo instalaste en otro puerto, ' +
-                      'corregí la dirección de arriba.', 'var(--red)');
-  } finally {
-    _orthVerificando = false;
-  }
-}
-window.orthancVerificar = orthancVerificar;
+window._clnkGetJSON = _clnkGetJSON;
+window._clnkSexo = _clnkSexo;
+window._clnkEdad = _clnkEdad;
+window._clnkPonerSiVacio = _clnkPonerSiVacio;
+window._clnkArchivo = _clnkArchivo;
+window._clnkEsSR = _clnkEsSR;
 
 function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); if(typeof cfgDocsRender==='function')cfgDocsRender(); cfgLoadMed(); if(typeof cfgRenderCentros==='function')cfgRenderCentros(); if(typeof cfgRenderMedicos==='function')cfgRenderMedicos(); if(typeof initPdfPlantillas==='function')initPdfPlantillas(); var q=document.getElementById('cfg-qr'); if(q) q.checked = eeQrEnabled(); var mi=document.getElementById('cfg-modo-inst'); if(mi) mi.checked=(localStorage.getItem('ett_modo_institucional')==='1');
   var gi=document.getElementById('cfg-guardar-imagenes'); if(gi && typeof imgGuardadoActivo==='function') gi.checked=imgGuardadoActivo();
@@ -174800,11 +173716,14 @@ function cfgOnShow(){ cfgRenderModulos(); cfgSoporteRender(); if(typeof cfgDocsR
      redundante; sirve para la SEGUNDA pestaña: sin listener de `storage`, borrar el logo en una
      dejaba a la otra mostrando la miniatura y el botón Eliminar sobre algo que ya no existe. */
   if(typeof renderLogoCentro==='function') renderLogoCentro();
-  /* Orthanc se repinta acá y no en un listener: `limpiarCampos` vacía `input[type=text]` de
-     TODO el documento sin mirar prefijo —es lo que ya le pasa a `firma-nombre`— así que el
-     campo puede estar en blanco con la dirección bien guardada en disco. La fuente de verdad
-     es localStorage; esto la repone. */
-  if(typeof orthancRender==='function') orthancRender(); }
+  /* CeiboLink se repinta acá y no en un listener, por el mismo motivo que el panel que esto
+     reemplaza: `limpiarCampos` vacía `input[type=text]` de TODO el documento sin mirar
+     prefijo —es lo que ya le pasa a `firma-nombre`—, así que el código de vinculación, las
+     horas y el nombre pueden estar en blanco con el conector perfectamente configurado. La
+     fuente de verdad es el conector; esto la repone.
+     ⚠️ Y `clnkOnMostrar` LEE LA RED SÓLO SI EL MÓDULO ESTÁ ENCENDIDO, que de fábrica no lo
+     está: abrir Config no manda un solo pedido hasta que el médico active CeiboLink. */
+  if(typeof clnkOnMostrar==='function') clnkOnMostrar(); }
 /* Botón "🏥 Centro": ya no edita inline — los centros se gestionan en ⚙️ Config. */
 function ecoCentroBtn(){
   if(typeof hdrIrAConfig==='function') hdrIrAConfig();
