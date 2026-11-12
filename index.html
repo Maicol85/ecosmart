@@ -173754,8 +173754,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-1339';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794501551779;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-1355';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794502514657;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173841,7 +173841,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1339</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1355</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -175841,15 +175841,17 @@ async function clnkRevisarImagenes() {
     })[0];
     if (!g2 || g2.ids.length <= prev.ids.length) return false;
     g2.ids.forEach(function (id) { _clnkAvisadas[id] = true; });
-    var nom2 = _clnkNombreEq[g2.equipo] || g2.equipo || 'el ecógrafo';
-    var x = document.getElementById('clnkav-txt');
-    if (x) x.textContent = _clnkAvisoTexto(g2, nom2, _clnkHora(g2.primero));
+    _clnkAvisoGrupo = g2;
+    /* ⚠️ LAS ACCIONES PRIMERO Y EL TÍTULO DESPUÉS, Y NO ES UN GUSTO DE ORDEN: rearmar llama a
+       `dstPreguntar`, que REESCRIBE el título y el texto con los suyos. Al revés —como estaba
+       escrito en la primera versión— el «Llegaron más» se perdía en el acto y el médico veía el
+       mismo cartel con números nuevos sin ninguna señal de que algo había cambiado. Lo cazó
+       TC-853 (F); leyendo el código no se veía.
+       Rearmar hace falta: si no, los botones seguirían apuntando al juego de ids viejo y el
+       médico adjuntaría menos de lo que el cartel dice. */
+    _clnkAvisoArmarAcciones(g2);
     var t2 = document.getElementById('clnkav-title');
     if (t2) t2.textContent = 'Llegaron más imágenes del ecógrafo';
-    /* Las acciones se vuelven a armar sobre los ids NUEVOS: si no, los botones seguirían
-       apuntando al juego viejo y el médico adjuntaría menos de lo que el cartel dice. */
-    _clnkAvisoGrupo = g2;
-    _clnkAvisoArmarAcciones(g2);
     return true;
   }
 

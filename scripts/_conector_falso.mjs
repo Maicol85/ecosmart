@@ -123,6 +123,11 @@ function escenas() {
        pagina: un bloque que reusa una escena ya avisada recibe «no hay nada que avisar» y mide
        otra cosa. Lo pago TC-847 dos veces, con dosEnvios y despues con masNuevas. */
     unaSuelta: () => [ img('img_z1', 'eq_3f8a1c', iso(t0 + 90000), 'imagen', uno) ],
+    /* UNA TERCERA, con su propio id. Por la MISMA razon que la de arriba, pagada por tercera
+       vez: TC-847 (G) ya usa `unaSuelta`, asi que TC-853 (H) -- que necesita «al cerrar se
+       olvida el grupo y VUELVE a avisar»-- recibia «no hay nada que avisar» y daba rojo sobre
+       una app que se porta bien. Un id por escena que necesite un aviso NUEVO. */
+    unaSuelta2: () => [ img('img_z2', 'eq_3f8a1c', iso(t0 + 100000), 'imagen', uno) ],
     /* DOS de 16 MB del mismo envio, para saber si el pico de memoria se ACUMULA o si el camino
        de a una suelta el buffer de la anterior. Es la pregunta que la orden hace. */
     dosGrandes: () => {
