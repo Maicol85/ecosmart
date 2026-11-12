@@ -255,11 +255,14 @@ function escenas() {
       img('img_pd', 'eq_3f8a1c', iso(t0 + 50000), 'video',
           dicomNativo({ filas: 512, cols: 512, cuadros: 20 })),
     ],
-    /* ⚠️ EL DEL MEDICO, AL TAMANO DE VERDAD: 1016x708 por 171 cuadros = 351,9 MB de pixeles.
+    /* ⚠️ EL DEL MEDICO, AL TAMANO DE VERDAD: 1016x708 en COLOR por 171 cuadros = 351,9 MB de
+       pixeles. ** VA EN COLOR, Y NO ES UN DETALLE: la primera version era monocroma y daba
+       117,3 MB, un TERCIO de lo que el medico recibio. Tres muestras por pixel es la unica
+       forma de que 1016x708x171 pese 351,9 MB, asi que el archivo de verdad era color.
        NO ENTRA EN LA BATERIA -- la usa solamente la sonda de memoria, que corre una vez. */
     nativoEnorme: () => [
       img('img_pe', 'eq_3f8a1c', iso(t0), 'video',
-          dicomNativo({ filas: 708, cols: 1016, cuadros: 171 })),
+          dicomNativo({ filas: 708, cols: 1016, cuadros: 171, color: true })),
     ],
     vacio: () => [],
   };

@@ -139711,7 +139711,13 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
      la de arriba delega en ésta y le reenvía el resultado a quien confirma. */
   const res = files.map(f => ({ nombre: String((f && f.name) || 'archivo'), ok: false,
                                 motivo: 'no se pudo procesar' }));
-  const _noD = (i, m) => { res[i].motivo = m; fallos.push(res[i].nombre + ': ' + m); };
+  /* ⚠️ BAJA `ok` A FALSE Y NO SÓLO ESCRIBE EL MOTIVO, y esto fue un DEFECTO REAL que el
+     barrido de mutaciones destapó: la primera versión sólo ponía el motivo, así que el
+     desmarcado de un cineloop que no se pudo guardar —que corre DESPUÉS de haberlo marcado como
+     entrado— no lo desmarcaba, y se le confirmaba el borrado al conector igual. El hermano de
+     esta función en `mediosImportar` sí lo hacía: era una inconsistencia entre las dos puertas
+     que ninguna prueba de las primeras veía. */
+  const _noD = (i, m) => { res[i].ok = false; res[i].motivo = m; fallos.push(res[i].nombre + ': ' + m); };
   for (let _i = 0; _i < files.length; _i++) {
     const f = files[_i];
     /* ── LA MARCA PRIMERO, EL ARCHIVO DESPUÉS ──────────────────────────────────────────
@@ -174113,8 +174119,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-1608';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794510501522;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-1639';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794512362727;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -174200,7 +174206,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1608</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1639</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

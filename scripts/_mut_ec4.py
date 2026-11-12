@@ -95,9 +95,14 @@ MUT = [
  ('18 el tope duro puede quedar POR DEBAJO del blando', 'TC-866',
   [("  const duro = (isFinite(v) && v > 0) ? v : DCM_CRUDO_DURO;\n  return Math.max(duro, _dcmCrudoTope());",
     "  const duro = (isFinite(v) && v > 0) ? v : DCM_CRUDO_DURO;\n  return duro;")]),
+ # ** ESTA MUTACION ESTABA MAL DIRIGIDA Y SOBREVIVIO AL PRIMER BARRIDO. Anulaba el rechazo
+ # DURO de `_dcmCrudoRechazo`, pero la escena de TC-865 (E) usa un DICOM comprimido en RLE, que
+ # se rechaza mucho antes -- en `_dcmImgLeer`, por `d.rechazo`-- y nunca llega a esta funcion.
+ # Lo que la condicion mide de verdad es el ORDEN: a un archivo que esta app no sabe interpretar
+ # no se le pregunta. Hoy la mutacion da vuelta ESE orden, que es lo que se puede romper.
  ('19 la pregunta se hace ANTES de los rechazos duros', 'TC-865',
   [("  const mal = _dcmCrudoRechazo(d);\n  if (mal) { d.crudo = null; return { ok: false, err: mal }; }\n  /* La pregunta va DESPU\u00c9S de los rechazos duros",
-    "  const mal = '';\n  if (mal) { d.crudo = null; return { ok: false, err: mal }; }\n  /* La pregunta va DESPU\u00c9S de los rechazos duros")]),
+    "  const q0 = _dcmCrudoPreguntar(d, info);\n  if (!q0.seguir) { d.crudo = null; return { ok:false, err:q0.err }; }\n  const mal = _dcmCrudoRechazo(d);\n  if (mal) { d.crudo = null; return { ok: false, err: mal }; }\n  /* La pregunta va DESPU\u00c9S de los rechazos duros")]),
  ('20 el bucle de conversion deja de estar protegido', 'TC-866',
   [("  try {\n  for (let f = 0; f < cuadros; f++) {\n    if (window.__dcmFallaMemoriaTest) throw new RangeError('Array buffer allocation failed');",
     "  try {\n  for (let f = 0; f < cuadros; f++) {\n    if (false) throw new RangeError('Array buffer allocation failed');")]),

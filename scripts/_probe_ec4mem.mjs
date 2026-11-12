@@ -113,9 +113,22 @@ const out = await pg.evaluate(`(async () => {
   /* ══ (B) LAS MINIATURAS DE LA BANDEJA ════════════════════════════════════════════════
      Una bandeja con TRES envios de un cineloop de verdad cada uno. La condicion es que
      listarlos -que es lo que dibuja la grilla- no traiga los cuadros. */
-  const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-  const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
-  const NC = 3000;                       /* ~66 KB por cuadro de relleno: 3 envios de ~2 MB */
+  /* ** EL CUADRO DE RELLENO TIENE QUE PESAR, o la medicion no distingue nada: la primera
+     version usaba el JPEG de 22 bytes y los tres envios juntos pesaban 0,2 MB, asi que «la
+     lista no materializa los cuadros» se cumplia trivialmente. Se arma un JPEG de ~56 KB
+     dibujando ruido en un canvas de 256x256, que es lo que hace incompresible al JPEG. */
+  const _cv = document.createElement('canvas'); _cv.width = 256; _cv.height = 256;
+  const _cx = _cv.getContext('2d');
+  const _id = _cx.createImageData(256, 256);
+  for (let i = 0; i < _id.data.length; i += 4) {
+    _id.data[i] = (i * 7919) & 255; _id.data[i+1] = (i * 104729) & 255;
+    _id.data[i+2] = (i * 1299709) & 255; _id.data[i+3] = 255;
+  }
+  _cx.putImageData(_id, 0, 0);
+  const PX = _cv.toDataURL('image/jpeg', 0.95);
+  const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
+  o.cuadroKB = Math.round(J.length / 1024);
+  const NC = 260;                        /* 260 cuadros de ~56 KB: 3 envios de ~14 MB cada uno */
   const ids = [];
   for (let k = 0; k < 3; k++) {
     const total = J.length * NC;
@@ -130,16 +143,25 @@ const out = await pg.evaluate(`(async () => {
       loops: [{ nombre:'loop.dcm', cuadros:NC, ms:40, cols:1, filas:1, poster: PX,
                 datos: datos, offs: offs, bytes: total, clnkId:'' }] });
   }
-  await gc();
+  await gc(); await gc();
   const baseB = heap();
   o.pasos.push(['5 base antes de listar la bandeja', MB(baseB)]);
   const l = await clnkbListar();
   o.bandejaEnvios = l.length;
   o.bandejaBytesDeclarados = MB(l.reduce((a,x) => a + (x.bytesLoops||0), 0));
   o.pasos.push(['6 LISTADA la bandeja (metadata + thumbs)', MB(heap())]);
+  /* El GC ANTES de medir el costo: sin el, el numero incluye las allocaciones transitorias del
+     cursor y de IndexedDB, que no son lo que la lista RETIENE. */
+  const _lRet = l;
+  await gc();
   o.costoListarMB = MB(heap() - baseB);
+  o.listaRetieneN = _lRet.length;
   /* Y la pantalla DIBUJADA, que es el gesto del medico. */
-  showTab('guardados');
+  /* ** UN TURNO DEL BUCLE ANTES DE showTab: esa funcion lee el window.event GLOBAL y justo
+     despues de una escritura en IndexedDB ese global es el success de la transaccion, cuyo
+     target no tiene classList. Es el defecto PREEXISTENTE que PENDIENTES declara en P30-d. */
+  await esp(40);
+  try { showTab('guardados'); } catch (e) { o.errShowTab = String(e && e.message || e); }
   await igBandejaRender();
   await esp(500);
   o.pasos.push(['7 DIBUJADA la fila de miniaturas', MB(heap())]);
@@ -151,6 +173,28 @@ const out = await pg.evaluate(`(async () => {
   const uno = await clnkbLeer(ids[0]);
   o.registroCompletoMB = uno && uno.loops && uno.loops[0] ? MB(uno.loops[0].datos.length) : -1;
   o.pasos.push(['8 con UN registro completo en la mano', MB(heap())]);
+  /* ** EL DENOMINADOR: los TRES registros completos a la vez, que es lo que getAll() haria.
+     Sin este numero, un costo de listar bajo no prueba nada -- podria ser que los cineloops no
+     estuvieran. Se sueltan en el acto. */
+  await gc();
+  const _baseG = heap();
+  let _todos = [];
+  for (const id of ids) _todos.push(await clnkbLeer(id));
+  o.tresRegistrosMB = MB(heap() - _baseG);
+  o.tresRegistrosBytes = MB(_todos.reduce((a2, r2) =>
+    a2 + ((r2 && r2.loops && r2.loops[0] && r2.loops[0].datos) ? r2.loops[0].datos.length : 0), 0));
+  /* ** LA MEDICION DETERMINISTA, que es la que de verdad prueba la propiedad: el peso de lo
+     que la lista DEVUELVE contra el de los registros completos. Los deltas de heap en el rango
+     de diez MB quedan dentro del ruido de performance.memory incluso con el recolector forzado
+     -- se informan igual, pero lo que no depende del GC es esto. */
+  o.pesoListaBytes = JSON.stringify(_lRet).length;
+  o.pesoRegistrosBytes = _todos.reduce((a2, r2) =>
+    a2 + ((r2 && r2.loops && r2.loops[0] && r2.loops[0].datos) ? r2.loops[0].datos.length : 0), 0);
+  o.vecesMasChica = Math.round(o.pesoRegistrosBytes / Math.max(1, o.pesoListaBytes));
+  _todos = null;
+  await gc();
+  o.pasos.push(['8b soltados los tres', MB(heap())]);
+  /* Y lo mismo para el indice de la galeria, mas abajo: se guarda el peso del indice. */
   for (const id of ids) { try { await clnkbBorrar(id); } catch (e) {} }
   await gc();
   o.pasos.push(['9 borrada la bandeja', MB(heap())]);
@@ -176,14 +220,25 @@ const out = await pg.evaluate(`(async () => {
   o.pasos.push(['10 base antes de la galeria', MB(baseC)]);
   await igImgIndiceCargar();
   o.pasos.push(['11 INDICE de la galeria cargado', MB(heap())]);
+  await gc();
   o.costoIndiceMB = MB(heap() - baseC);
-  if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+  o.indiceN = (typeof _igLoopIndice !== 'undefined' && _igLoopIndice) ? _igLoopIndice.length : -1;
+  o.pesoIndiceBytes = (typeof _igLoopIndice !== 'undefined' && _igLoopIndice) ? JSON.stringify(_igLoopIndice).length : -1;
+  o.cineloopsEnDiscoBytes = NC * J.length * 4;
+  o.indiceVecesMasChico = Math.round(o.cineloopsEnDiscoBytes / Math.max(1, o.pesoIndiceBytes));
+  try { if (typeof igVistaCambiar === 'function') igVistaCambiar('img'); } catch (e) {}
+  /* El filtro se pone por su boton: _igImgFiltro es un let de nivel de script y window no lo
+     tiene -- la trampa del ambito lexico. Sin esto la grilla pintaba cero cineloops. */
+  try { if (typeof igImgCablear === 'function') igImgCablear(); } catch (e) {}
+  const _bt = document.querySelector('[data-ig-imgf="all"]'); if (_bt) _bt.click();
+  await esp(200);
   igImgPintar(getInformes());
   const cont = document.getElementById('ig-img-lista');
   if (cont) cont.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
   await esp(700);
   o.celdasLoop = cont ? [].slice.call(cont.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine).length : -1;
   o.pasos.push(['12 GALERIA pintada con sus cineloops', MB(heap())]);
+  await gc();
   o.costoGaleriaMB = MB(heap() - baseC);
   /* El denominador otra vez: los cuatro cineloops juntos pesan esto en disco. */
   o.cineloopsEnDiscoMB = MB(NC * J.length * 4);

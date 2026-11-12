@@ -137340,7 +137340,13 @@ caso('TC-862', 'EL HALLAZGO: un grupo con dos imagenes y un DICOM que no entra c
     const gOrig = window.imgGuardadoActivo;
     const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
                                                     body: JSON.stringify(o) }).then(r => r.json());
-    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    /* ** EL ESCENARIO LO DEVUELVE /_control, NO «/_estado», QUE NO EXISTE. Un POST vacio
+       no cambia nada y contesta el estado. Y escenario.imagenes es una lista de IDS, no de
+       objetos: la primera version de estos casos leia some(x => x.id === …) y daba false
+       sobre un escenario correcto -- el denominador salia en cero y se leia como un fallo de
+       la app. */
+    const estado = () => fetch(F.base + '/_control', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}' }).then(r => r.json()).catch(() => null);
     try {
       window.__clnkBaseTest = F.base;
       localStorage.removeItem('ett_ceibolink_token');
@@ -137391,7 +137397,7 @@ caso('TC-862', 'EL HALLAZGO: un grupo con dos imagenes y un DICOM que no entra c
                     R.b_confirmadas.indexOf('img_p1') > -1 && R.b_confirmadas.indexOf('img_p2') > -1;
       R.b_rechazadoNoSeBorro = R.b_confirmadas.indexOf('img_p3') < 0;
       /* Y SIGUE ESPERANDO ALLA: la lista del conector todavia lo tiene. */
-      R.b_sigueEnLaLista = (E.imagenes || []).some(x => x && x.id === 'img_p3');
+      R.b_sigueEnLaLista = (E.imagenes || []).indexOf('img_p3') > -1;
       R.b_quedaUno = (E.imagenes || []).length === 1;
 
       /* ── (C) EL MEDICO LO VE: el cartel dice el motivo Y cuantos siguen esperando ──────*/
@@ -137409,8 +137415,54 @@ caso('TC-862', 'EL HALLAZGO: un grupo con dos imagenes y un DICOM que no entra c
       await new Promise(r => setTimeout(r, 400));
       R.d_dosEntraron = (window._clnkPorConfirmar || []).length;
 
+      /* ── (D2) UN CINELOOP QUE NO SE PUDO GUARDAR SE DESMARCA ──────────────────────────
+            ** HUECO QUE DESTAPO EL BARRIDO DE MUTACIONES, no la lectura: nada medía que un
+            cineloop que entró al reproductor pero NO se pudo escribir se saque del veredicto.
+            Sin eso se le confirmaría el borrado al conector sin que exista en ninguna parte.
+            Se sustituye el escritor del almacen de cineloops, que es la unica forma de llegar a
+            esa rama sin llenar el disco del medico. */
+      clnkOlvidarPendientes();
+      window.imgGuardadoActivo = () => true;
+      /* ** SE SUSTITUYEN LAS DOS FUNCIONES Y NO _imgUuidActual, y esa es la unica forma.
+         _imgUuidActual es un let de nivel de script, asi que window._imgUuidActual crea una
+         propiedad NUEVA que no lo tapa -- la trampa del ambito lexico, por tercera vez en esta
+         tanda: _cinePuedeGuardar seguia contestando «falta uuid», el cineloop quedaba ENCOLADO
+         sin intentar escribir -- que es correcto, se escribe al guardar el estudio-- y este
+         bloque daba 1 sobre una app que se porta bien. Las dos son declaraciones de funcion de
+         nivel de script, o sea propiedades de window DE VERDAD, asi que reasignarlas si cambia
+         lo que ve el nombre pelado. La rama que este bloque mide es la de la escritura que
+         FALLA teniendo algo que escribir. */
+      const _pgOrig = window._cinePuedeGuardar;
+      const _ppOrig = window._cinePendientesPersistir;
+      window._cinePuedeGuardar = () => ({ ok: true });
+      window._cinePendientesPersistir = () => Promise.resolve(0);
+      window.confirm = () => true;
+      await ctrl({ reset:true, escena:'nativoCineloop' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_n5']) });
+      await new Promise(r => setTimeout(r, 600));
+      R.d2_porConfirmar = (window._clnkPorConfirmar || []).length;
+      /* CONTROL: con la escritura que SI entra, el MISMO cineloop queda anotado. */
+      clnkOlvidarPendientes();
+      window._cinePendientesPersistir = () => Promise.resolve(1);
+      await ctrl({ reset:true, escena:'nativoCineloop' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_n5']) });
+      await new Promise(r => setTimeout(r, 600));
+      R.d2_control = (window._clnkPorConfirmar || []).length;
+      window._cinePuedeGuardar = _pgOrig;
+      window._cinePendientesPersistir = _ppOrig;
+      while (typeof _cineHayPendientes === 'function' && _cineHayPendientes()) _cineSacarPendiente(0);
+      window.imgGuardadoActivo = () => false;
+      window.confirm = () => false;
+      clnkOlvidarPendientes();
+
       /* ── (E) EL VEREDICTO POR ARCHIVO, A MANO ─────────────────────────────────────────*/
-      const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+      /* ** EL JPEG TIENE QUE SER DECODIFICABLE: el de 22 bytes que esta casa usa para medir
+         bytes no lo es, y new Image() lo rechaza, asi que la imagen no llega al slot y el caso
+         mide cero sobre un codigo que se porta bien. */
+      const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+      const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+      const _pxJ = _cvJ.toDataURL('image/jpeg', 0.8);
+      const J = Uint8Array.from(atob(_pxJ.split(',')[1]), c => c.charCodeAt(0));
       const fOK = new File([J], 'ok.jpg', { type:'image/jpeg' });
       const fNo = new File([new Uint8Array([1,2,3,4,5,6,7,8])], 'raro.xyz', { type:'' });
       const r1 = await mediosImportar([fOK, fNo]);
@@ -137447,6 +137499,8 @@ caso('TC-862', 'EL HALLAZGO: un grupo con dos imagenes y un DICOM que no entra c
       ['(C) que dice que SIGUE ESPERANDO',                     R.c_diceEspera, R.c_texto],
       ['(C) y que no se borro nada alla',                      R.c_diceNoBorro, R.c_texto],
       ['(D) CONTROL: dos que entran confirman las DOS',        R.d_dosEntraron === 2, R.d_dosEntraron],
+      ['(D2) un cineloop que NO se pudo guardar se DESMARCA',  R.d2_porConfirmar === 0, R.d2_porConfirmar],
+      ['(D2) CONTROL: con el escritor sano SI queda anotado',  R.d2_control === 1, R.d2_control],
       ['(E) el importador devuelve {n, ok, res[]}',            R.e_forma, JSON.stringify({n:R.e_n, ok:R.e_ok})],
       ['(E) la que entra sale ok',                             R.e_primero === true, R.e_primero],
       ['(E) la que no entra sale NO ok',                       R.e_segundo === false, R.e_segundo],
@@ -137464,6 +137518,21 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
     const F = window.__CLNK_FAKE;
     if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
     const R = {};
+    /* ** NI UNA EXPRESION REGULAR EN EL CUERPO DE UN CASO. El cuerpo es un template literal,
+       asi que la barra invertida NO sobrevive: /\d+/ llega como /d+/ y busca la letra «d».
+       Lo pago TC-863 (B), que daba rojo sobre un mensaje que SI decia los MB. Esta casa ya lo
+       tiene escrito para /\s+/g, que reemplazaba las eses por espacios. */
+    const _diceMB = t => {
+      const u = String(t || '');
+      let i = u.indexOf('MB');
+      while (i > 0) {
+        let j = i - 1;
+        while (j >= 0 && u[j] === ' ') j--;
+        if (j >= 0 && u[j] >= '0' && u[j] <= '9') return true;
+        i = u.indexOf('MB', i + 1);
+      }
+      return false;
+    };
     const toastOrig = window.toast; const toasts = []; window.toast = m => { toasts.push(String(m)); };
     const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
     const confOrig = window.confirm; window.confirm = () => false;
@@ -137473,7 +137542,13 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
     const gOrig = window.imgGuardadoActivo;
     const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
                                                     body: JSON.stringify(o) }).then(r => r.json());
-    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    /* ** EL ESCENARIO LO DEVUELVE /_control, NO «/_estado», QUE NO EXISTE. Un POST vacio
+       no cambia nada y contesta el estado. Y escenario.imagenes es una lista de IDS, no de
+       objetos: la primera version de estos casos leia some(x => x.id === …) y daba false
+       sobre un escenario correcto -- el denominador salia en cero y se leia como un fallo de
+       la app. */
+    const estado = () => fetch(F.base + '/_control', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}' }).then(r => r.json()).catch(() => null);
     try {
       window.__clnkBaseTest = F.base;
       localStorage.removeItem('ett_ceibolink_token');
@@ -137500,13 +137575,13 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
       await new Promise(r => setTimeout(r, 300));
       const e1 = await estado();
       R.a_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
-      R.a_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_p4');
+      R.a_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).indexOf('img_p4') > -1;
 
       /* ── (B) EL MENSAJE QUE LEE EL MEDICO nombra el peso y el motivo ──────────────────*/
       const todo = (alertas.join(' | ') + ' ' + toasts.join(' | '));
-      R.b_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(todo);
+      R.b_diceMB = _diceMB(todo);
       R.b_diceEspera = todo.indexOf('ESPERANDO') > -1 || todo.indexOf('esperando') > -1;
-      R.b_texto = todo.slice(0, 200);
+      R.b_texto = todo.slice(0, 400);
 
       /* ── (C) DESDE EL PENDRIVE: el rechazo no cuenta como exito, y NO se confirma nunca ─
             El pendrive no tiene ids de CeiboLink, asi que lo que se mide es que el conteo que
@@ -137514,7 +137589,13 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
             crezca ni un elemento. */
       clnkOlvidarPendientes();
       toasts.length = 0; alertas.length = 0;
-      const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+      /* ** EL JPEG TIENE QUE SER DECODIFICABLE: el de 22 bytes que esta casa usa para medir
+         bytes no lo es, y new Image() lo rechaza, asi que la imagen no llega al slot y el caso
+         mide cero sobre un codigo que se porta bien. */
+      const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+      const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+      const _pxJ = _cvJ.toDataURL('image/jpeg', 0.8);
+      const J = Uint8Array.from(atob(_pxJ.split(',')[1]), c => c.charCodeAt(0));
       const fOK = new File([J], 'ok.jpg', { type:'image/jpeg' });
       const fNo = new File([new Uint8Array([80,75,3,4,1,2,3,4])], 'cosa.zip', { type:'' });
       const rp = await mediosImportar([fOK, fNo]);
@@ -137535,6 +137616,9 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
       /* ── (E) LA RESERVA DEL SLOT NO ES LA IMAGEN PUESTA ──────────────────────────────
             Se sustituye el compresor para que falle: hasta esta tanda eso contaba como exito
             porque el slot ya estaba reservado. Es el segundo hueco que el arreglo cierra. */
+      /* Los avisos se limpian ANTES: lo que este bloque mide es el aviso de ESTA importacion,
+         y el del bloque (D) -- que entro bien-- decia «1 imagen(es) de 2». */
+      toasts.length = 0; alertas.length = 0;
       const compOrig = window._imgComprimir;
       window._imgComprimir = () => Promise.reject(new Error('falla de prueba'));
       const rp3 = await mediosImportar([fOK]);
@@ -137542,6 +137626,14 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
       window._imgComprimir = compOrig;
       R.e_ok = rp3 ? rp3.ok : -1;
       R.e_motivo = (rp3 && rp3.res && rp3.res[0] && rp3.res[0].motivo) || '';
+      /* ** HUECO QUE DESTAPO EL BARRIDO: el aviso que el medico LEE tiene que contar las que de
+         verdad entraron, no las que se clasificaron como imagen. Con el compresor roto, decir
+         «1 imagen de 1» es mentirle sobre una imagen que no esta en ninguna casilla. */
+      const _t3 = toasts.join(' | ') + ' ' + alertas.join(' | ');
+      R.e_noDiceUna = _t3.indexOf('1 imagen(es)') < 0;
+      R.e_diceCero = _t3.indexOf('CERO') > -1 || _t3.indexOf('Ninguno') > -1 ||
+                     _t3.indexOf('No entr') > -1;
+      R.e_texto = _t3.slice(0, 180);
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     finally {
       try {
@@ -137567,7 +137659,9 @@ caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del p
       ['(C) con el denominador a la vista',                   R.c_denominadorALaVista, R.c_toast],
       ['(D) CONTROL: dos que entran dan ok 2',                R.d_ok === 2 && R.d_no === 0, R.d_ok + '/' + R.d_no],
       ['(E) si la compresion falla, NO entro',                R.e_ok === 0, R.e_ok],
-      ['(E) y lo dice',                                       String(R.e_motivo).length > 5, String(R.e_motivo).slice(0, 80)]
+      ['(E) y lo dice',                                       String(R.e_motivo).length > 5, String(R.e_motivo).slice(0, 80)],
+      ['(E) el aviso NO dice «1 imagen» de una que no entro', R.e_noDiceUna, R.e_texto],
+      ['(E) y dice que no entro ninguna',                     R.e_diceCero, R.e_texto]
     ] };
   })();
 `);
@@ -137592,7 +137686,13 @@ caso('TC-864', 'Los otros dos sumideros tampoco confirman lo rechazado: a un est
     const U = 'ec4a0000-0000-4000-8000-00000000a001';
     const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
                                                     body: JSON.stringify(o) }).then(r => r.json());
-    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    /* ** EL ESCENARIO LO DEVUELVE /_control, NO «/_estado», QUE NO EXISTE. Un POST vacio
+       no cambia nada y contesta el estado. Y escenario.imagenes es una lista de IDS, no de
+       objetos: la primera version de estos casos leia some(x => x.id === …) y daba false
+       sobre un escenario correcto -- el denominador salia en cero y se leia como un fallo de
+       la app. */
+    const estado = () => fetch(F.base + '/_control', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}' }).then(r => r.json()).catch(() => null);
     try {
       window.__clnkBaseTest = F.base;
       localStorage.removeItem('ett_ceibolink_token');
@@ -137622,7 +137722,7 @@ caso('TC-864', 'Los otros dos sumideros tampoco confirman lo rechazado: a un est
       const E1 = (e1 || {}).escenario || {};
       R.a_confirmadas = (E1.confirmadas || []).slice();
       R.a_soloLaBuena = R.a_confirmadas.length === 1 && R.a_confirmadas[0] === 'img_p6';
-      R.a_pesadoSigue = (E1.imagenes || []).some(x => x && x.id === 'img_p7');
+      R.a_pesadoSigue = (E1.imagenes || []).indexOf('img_p7') > -1;
 
       /* ── (B) A LA BANDEJA ────────────────────────────────────────────────────────────*/
       await ctrl({ reset:true, escena:'mixtoPesado3' });
@@ -137639,7 +137739,7 @@ caso('TC-864', 'Los otros dos sumideros tampoco confirman lo rechazado: a un est
       const E2 = (e2 || {}).escenario || {};
       R.b_confirmadas = (E2.confirmadas || []).slice();
       R.b_soloLaBuena = R.b_confirmadas.length === 1 && R.b_confirmadas[0] === 'img_p8';
-      R.b_pesadoSigue = (E2.imagenes || []).some(x => x && x.id === 'img_p9');
+      R.b_pesadoSigue = (E2.imagenes || []).indexOf('img_p9') > -1;
       if (nuevo) { try { await clnkbBorrar(nuevo.id); } catch (e) {} }
 
       /* ── (C) LOS DOS CARTELES LO DICEN ───────────────────────────────────────────────*/
@@ -137692,6 +137792,21 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
     const F = window.__CLNK_FAKE;
     if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
     const R = {};
+    /* ** NI UNA EXPRESION REGULAR EN EL CUERPO DE UN CASO. El cuerpo es un template literal,
+       asi que la barra invertida NO sobrevive: /\d+/ llega como /d+/ y busca la letra «d».
+       Lo pago TC-863 (B), que daba rojo sobre un mensaje que SI decia los MB. Esta casa ya lo
+       tiene escrito para /\s+/g, que reemplazaba las eses por espacios. */
+    const _diceMB = t => {
+      const u = String(t || '');
+      let i = u.indexOf('MB');
+      while (i > 0) {
+        let j = i - 1;
+        while (j >= 0 && u[j] === ' ') j--;
+        if (j >= 0 && u[j] >= '0' && u[j] <= '9') return true;
+        i = u.indexOf('MB', i + 1);
+      }
+      return false;
+    };
     const toastOrig = window.toast; window.toast = () => {};
     const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
     const confOrig = window.confirm;
@@ -137701,7 +137816,13 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
     const topeOrig = window.__dcmCrudoMaxTest;
     const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
                                                     body: JSON.stringify(o) }).then(r => r.json());
-    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    /* ** EL ESCENARIO LO DEVUELVE /_control, NO «/_estado», QUE NO EXISTE. Un POST vacio
+       no cambia nada y contesta el estado. Y escenario.imagenes es una lista de IDS, no de
+       objetos: la primera version de estos casos leia some(x => x.id === …) y daba false
+       sobre un escenario correcto -- el denominador salia en cero y se leia como un fallo de
+       la app. */
+    const estado = () => fetch(F.base + '/_control', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}' }).then(r => r.json()).catch(() => null);
     const bajar = async (escena, id) => {
       await ctrl({ reset:true, escena: escena });
       const r = await clnkPedir('/v1/imagenes/' + id + '/archivo', { conToken:true, bytes:true, espera:30000 });
@@ -137732,7 +137853,7 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
       const q1 = _dcmCrudoPreguntar(d1, { nombre:'pesado.dcm', origen:'ceibolink' });
       R.a_pregunto = preguntas.length === 1;
       R.a_texto = (preguntas[0] || '');
-      R.a_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(R.a_texto);
+      R.a_diceMB = _diceMB(R.a_texto);
       R.a_diceDimension = R.a_texto.indexOf('512') > -1 && R.a_texto.indexOf('cuadro') > -1;
       R.a_diceTrabar = R.a_texto.indexOf('trabar') > -1 || R.a_texto.indexOf('tardar') > -1;
       R.a_diceMemoria = R.a_texto.indexOf('memoria') > -1;
@@ -137762,7 +137883,7 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
       await new Promise(r => setTimeout(r, 300));
       const e1 = await estado();
       R.c_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
-      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_p5');
+      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).indexOf('img_p5') > -1;
 
       /* ── (D) «ABRIR IGUAL» LO IMPORTA, Y RECIEN AHI LO ANOTA ─────────────────────────
             El fixture declara cinco cuadros y manda los cinco, asi que al aceptar entra de
@@ -137786,6 +137907,26 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
       const dr = _dcmImgLeer(bufr);
       R.e_rechazaFormato = !!dr.rechazo;
       R.e_noPregunto = preguntas.length === 0;
+      /* ** Y EL ORDEN SE MIDE CON UN DESCRIPTOR QUE ES LAS DOS COSAS A LA VEZ: rechazo duro
+         -12 bits por muestra, que esta app no interpreta- Y por encima del tope. Con el orden
+         correcto, lo que vuelve es el motivo del formato y NO se pregunta nada; con el orden
+         invertido, al medico se le pregunta si quiere abrir un archivo que la app no sabe leer.
+         ** LO DESTAPO EL BARRIDO DE MUTACIONES: la escena de arriba usa un DICOM comprimido en
+         RLE, que se rechaza mucho antes -- en _dcmImgLeer-- y nunca llega a esta funcion, asi
+         que la mutacion del orden sobrevivia sobre una condicion que no la podia ver. */
+      preguntas.length = 0;
+      window.confirm = m => { preguntas.push(String(m)); return true; };
+      const _dAmbos = { crudo: { bytes: 100, px: new Uint8Array(100) },
+                        filas: 4096, cols: 4096, muestras: 1, bits: 12, nFrames: 400,
+                        foto: 'MONOCHROME2' };
+      R.e_esPesado = _dcmCrudoBytes(_dAmbos) > _dcmCrudoTope();
+      let _crAmbos = null;
+      try { _crAmbos = await _dcmCrudoAFrags(_dAmbos, { nombre:'ambos.dcm', origen:'ceibolink' }); }
+      catch (e) { R.e_errAmbos = String(e && e.message || e).slice(0, 80); }
+      R.e_ordenOk = preguntas.length === 0;
+      R.e_motivoFormato = String((_crAmbos && _crAmbos.err) || '').indexOf('12 bits') > -1;
+      R.e_motivo = String((_crAmbos && _crAmbos.err) || '').slice(0, 90);
+      window.confirm = () => false;
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     finally {
       try {
@@ -137818,7 +137959,10 @@ caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igua
       ['(D) con sus cinco cuadros',                           R.d_cuadros === 5, R.d_cuadros],
       ['(D) soltando los pixeles crudos',                     R.d_soltoCrudo, R.d_soltoCrudo],
       ['(D) y sale cineloop',                                 R.d_esLoop, R.d_esLoop],
-      ['(E) a un formato ajeno NO se le pregunta',            R.e_rechazaFormato && R.e_noPregunto, R.e_rechazaFormato + '/' + R.e_noPregunto]
+      ['(E) a un formato ajeno NO se le pregunta',            R.e_rechazaFormato && R.e_noPregunto, R.e_rechazaFormato + '/' + R.e_noPregunto],
+      ['(E) DENOMINADOR: el descriptor doble pasa el tope',   R.e_esPesado, R.e_esPesado],
+      ['(E) rechazo duro Y pesado: NO se pregunta',           R.e_ordenOk, preguntas.length],
+      ['(E) y vuelve el motivo del FORMATO',                 R.e_motivoFormato, R.e_motivo]
     ] };
   })();
 `);
@@ -137832,6 +137976,21 @@ caso('TC-866', 'Por encima del tope DURO no se ofrece abrir, y si la conversion 
     const F = window.__CLNK_FAKE;
     if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
     const R = {};
+    /* ** NI UNA EXPRESION REGULAR EN EL CUERPO DE UN CASO. El cuerpo es un template literal,
+       asi que la barra invertida NO sobrevive: /\d+/ llega como /d+/ y busca la letra «d».
+       Lo pago TC-863 (B), que daba rojo sobre un mensaje que SI decia los MB. Esta casa ya lo
+       tiene escrito para /\s+/g, que reemplazaba las eses por espacios. */
+    const _diceMB = t => {
+      const u = String(t || '');
+      let i = u.indexOf('MB');
+      while (i > 0) {
+        let j = i - 1;
+        while (j >= 0 && u[j] === ' ') j--;
+        if (j >= 0 && u[j] >= '0' && u[j] <= '9') return true;
+        i = u.indexOf('MB', i + 1);
+      }
+      return false;
+    };
     const toastOrig = window.toast; window.toast = () => {};
     const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
     const confOrig = window.confirm; const preguntas = [];
@@ -137842,7 +138001,13 @@ caso('TC-866', 'Por encima del tope DURO no se ofrece abrir, y si la conversion 
     const memOrig = window.__dcmFallaMemoriaTest;
     const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
                                                     body: JSON.stringify(o) }).then(r => r.json());
-    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    /* ** EL ESCENARIO LO DEVUELVE /_control, NO «/_estado», QUE NO EXISTE. Un POST vacio
+       no cambia nada y contesta el estado. Y escenario.imagenes es una lista de IDS, no de
+       objetos: la primera version de estos casos leia some(x => x.id === …) y daba false
+       sobre un escenario correcto -- el denominador salia en cero y se leia como un fallo de
+       la app. */
+    const estado = () => fetch(F.base + '/_control', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}' }).then(r => r.json()).catch(() => null);
     const bajar = async (escena, id) => {
       await ctrl({ reset:true, escena: escena });
       const r = await clnkPedir('/v1/imagenes/' + id + '/archivo', { conToken:true, bytes:true, espera:30000 });
@@ -137878,7 +138043,7 @@ caso('TC-866', 'Por encima del tope DURO no se ofrece abrir, y si la conversion 
       R.a_noPreguntoConfirm = preguntas.length === 0;
       R.a_avisoConAlert = alertas.length === 1;
       R.a_texto = (alertas[0] || '');
-      R.a_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(R.a_texto);
+      R.a_diceMB = _diceMB(R.a_texto);
       R.a_diceNoLoAbre = R.a_texto.indexOf('no lo') > -1 || R.a_texto.indexOf('no abre') > -1;
       R.a_diceSigue = R.a_texto.indexOf('sigue esperando') > -1;
       R.a_noSeAbre = q1 && q1.seguir === false;
@@ -137909,7 +138074,7 @@ caso('TC-866', 'Por encima del tope DURO no se ofrece abrir, y si la conversion 
       await new Promise(r => setTimeout(r, 300));
       const e1 = await estado();
       R.c_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
-      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_pm');
+      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).indexOf('img_pm') > -1;
       const todoC = alertas.join(' | ');
       R.c_leAvisa = todoC.indexOf('memoria') > -1;
       R.c_diceNoSeBorro = todoC.indexOf('no se borr') > -1 || todoC.indexOf('ESPERANDO') > -1;
@@ -137966,10 +138131,31 @@ caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su v
         'no existe clnkbVer/dstThumb: en este index.html solo se puede asignar o borrar a ciegas']] };
     }
     const R = {};
+    /* ** NI UNA EXPRESION REGULAR EN EL CUERPO DE UN CASO. El cuerpo es un template literal,
+       asi que la barra invertida NO sobrevive: /\d+/ llega como /d+/ y busca la letra «d».
+       Lo pago TC-863 (B), que daba rojo sobre un mensaje que SI decia los MB. Esta casa ya lo
+       tiene escrito para /\s+/g, que reemplazaba las eses por espacios. */
+    const _diceMB = t => {
+      const u = String(t || '');
+      let i = u.indexOf('MB');
+      while (i > 0) {
+        let j = i - 1;
+        while (j >= 0 && u[j] === ' ') j--;
+        if (j >= 0 && u[j] >= '0' && u[j] <= '9') return true;
+        i = u.indexOf('MB', i + 1);
+      }
+      return false;
+    };
     const toastOrig = window.toast; window.toast = () => {};
     const confOrig = window.confirm; window.confirm = () => false;
-    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL JPEG TIENE QUE SER DECODIFICABLE, y el de 22 bytes que esta casa usa para medir
+       bytes NO LO ES: new Image() lo rechaza, asi que _imgComprimir y dstThumb devuelven
+       vacio y el caso mide un hueco. Se genera uno de verdad con un canvas, que es la unica
+       forma de tener bytes JPEG validos sin meter un archivo binario en un repositorio publico. */
+    const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+    const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+    const PX = _cvJ.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
     let creado = null;
     try {
       /* ESCENA: un envio con DOS fijas y UN cineloop, escrito a mano en la base de la bandeja
@@ -138001,6 +138187,13 @@ caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su v
       R.a_pesoDeLista = mio ? JSON.stringify(mio).length : -1;
 
       /* ── (B) LA PANTALLA DIBUJA UNA MINIATURA POR ARCHIVO ───────────────────────────*/
+      /* ** UN TURNO DEL BUCLE DE EVENTOS ANTES DE showTab, Y NO ES UN RETARDO DE ADORNO.
+         showTab lee el window.event GLOBAL, y justo despues de una escritura en IndexedDB ese
+         global es el evento success de la transaccion, cuyo target es un IDBTransaction -- que
+         no tiene classList--, asi que la funcion aborta con «reading add». Es el defecto
+         PREEXISTENTE que PENDIENTES declara en P30-d; no es de esta tanda y no se toca. Un
+         setTimeout limpia el global. */
+      await new Promise(r => setTimeout(r, 30));
       showTab('guardados');
       await igBandejaRender();
       await new Promise(r => setTimeout(r, 200));
@@ -138019,7 +138212,7 @@ caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su v
       R.b_conImagen = minis.filter(b => !!b.querySelector('img')).length;
       R.b_tactil = minis.every(b => parseFloat(getComputedStyle(b).minHeight) >= 44);
       R.b_diceCuadros = minis.some(b => (b.title || '').indexOf('cuadros') > -1);
-      R.b_dicePeso = minis.some(b => /\d+(?:[.,]\d+)?\s*MB/.test(b.title || '') || (b.title||'').indexOf('KB') > -1);
+      R.b_dicePeso = minis.some(b => _diceMB(b.title || '') || (b.title||'').indexOf('KB') > -1);
 
       /* ── (C) MIRAR UNA FIJA ABRE EL VISOR Y NO MODIFICA NADA ────────────────────────*/
       const slotsAntes = imgSlots.filter(s => s && s.dataURL).length;
@@ -138056,6 +138249,41 @@ caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su v
       /* ── (E) CONTROL NEGATIVO: un envio que no existe no abre nada ─────────────────*/
       R.e_noAbre = await clnkbVer('clnkb_no_existe_ec4', 'img', 0);
       R.e_sinVisor = !document.getElementById('clnkb-ver');
+
+      /* ── (F) LA MINIATURA SE GUARDA AL ESCRIBIR EL ENVIO, por el camino de verdad ───
+            ** HUECO QUE DESTAPO EL BARRIDO: los bloques de arriba escriben el registro A MANO
+            con clnkbGuardar, asi que NO pasan por dstABandeja -- que es quien tiene que generar
+            el thumb--. Sin esto, sacarle la generacion de la miniatura al importador pasaba en
+            verde. Acá se usa el sumidero de verdad, con un DICOM del conector falso. */
+      const _F2 = window.__CLNK_FAKE;
+      if (_F2 && _F2.base) {
+        const _bOrig = window.__clnkBaseTest;
+        const _tkO = localStorage.getItem('ett_ceibolink_token');
+        window.__clnkBaseTest = _F2.base;
+        localStorage.removeItem('ett_ceibolink_token');
+        await fetch(_F2.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ reset:true, escena:'nativoFija' }) });
+        cfgSetMode('avanzado'); clnkToggle(true);
+        showTab('config'); if (window.cfgOnShow) cfgOnShow();
+        await new Promise(r => setTimeout(r, 600));
+        const _ci = document.getElementById('cfg-clnk-codigo');
+        if (_ci) { _ci.value = String(_F2.codigo); clnkCodigoInput(_ci); }
+        await clnkVincular();
+        await new Promise(r => setTimeout(r, 400));
+        R.f_vinculo = clnkVinculado();
+        const _antes = (await clnkbListar()).map(x => x.id);
+        await dstABandeja({ origen:'ceibolink', equipo:'eq_3f8a1c', items: clnkItems(['img_n1']) });
+        await new Promise(r => setTimeout(r, 800));
+        const _desp = await clnkbListar();
+        const _nuevo = _desp.filter(x => _antes.indexOf(x.id) < 0)[0] || null;
+        R.f_hayEnvio = !!_nuevo;
+        R.f_thumb = _nuevo ? String((_nuevo.thumbs || [])[0] || '') : '';
+        R.f_conMiniatura = R.f_thumb.indexOf('data:image/jpeg') === 0;
+        if (_nuevo) { try { await clnkbBorrar(_nuevo.id); } catch (e) {} }
+        window.__clnkBaseTest = _bOrig;
+        if (_tkO) localStorage.setItem('ett_ceibolink_token', _tkO); else localStorage.removeItem('ett_ceibolink_token');
+        clnkOlvidarPendientes();
+      } else R.f_sinFalso = true;
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     finally {
       try {
@@ -138090,7 +138318,9 @@ caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su v
       ['(D) mirar un cineloop abre el visor de cineloops',    R.d_abrio && R.d_hayCineOv, R.d_abrio + '/' + R.d_hayCineOv],
       ['(D) con sus TRES cuadros',                            R.d_cuadros === 3, R.d_cuadros],
       ['(D) sin tocar los slots ni la bandeja',               R.d_slotsIgual && R.d_bandejaIgual, R.d_slotsIgual + '/' + R.d_bandejaIgual],
-      ['(E) CONTROL: un envio que no existe no abre nada',    R.e_noAbre === false && R.e_sinVisor, R.e_noAbre + '/' + R.e_sinVisor]
+      ['(E) CONTROL: un envio que no existe no abre nada',    R.e_noAbre === false && R.e_sinVisor, R.e_noAbre + '/' + R.e_sinVisor],
+      ['(F) DENOMINADOR: se vinculo y entro un envio de verdad', R.f_vinculo && R.f_hayEnvio, R.f_vinculo + '/' + R.f_hayEnvio],
+      ['(F) el sumidero de la bandeja GUARDA la miniatura',   R.f_conMiniatura, R.f_thumb.slice(0, 40)]
     ] };
   })();
 `);
@@ -138106,8 +138336,14 @@ caso('TC-868', 'Asignar desde el visor de «Sin estudio» va al estudio ELEGIDO 
     const alertOrig = window.alert; window.alert = () => {};
     const confOrig = window.confirm; const confirms = []; 
     const gOrig = window.imgGuardadoActivo;
-    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL JPEG TIENE QUE SER DECODIFICABLE, y el de 22 bytes que esta casa usa para medir
+       bytes NO LO ES: new Image() lo rechaza, asi que _imgComprimir y dstThumb devuelven
+       vacio y el caso mide un hueco. Se genera uno de verdad con un canvas, que es la unica
+       forma de tener bytes JPEG validos sin meter un archivo binario en un repositorio publico. */
+    const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+    const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+    const PX = _cvJ.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
     /* TRES estudios: dos guardados y uno abierto. La pregunta que importa es si lo asignado
        cae en el que el medico eligio y en NINGUNO de los otros dos. */
     const UA = 'ec4b0000-0000-4000-8000-0000000000a1';
@@ -138180,6 +138416,13 @@ caso('TC-868', 'Asignar desde el visor de «Sin estudio» va al estudio ELEGIDO 
       /* ── (D) BORRAR PIDE CONFIRMACION, Y DICE QUE ES LA ULTIMA COPIA ───────────────*/
       confirms.length = 0;
       window.confirm = m => { confirms.push(String(m)); return false; };
+      /* ** UN TURNO DEL BUCLE DE EVENTOS ANTES DE showTab, Y NO ES UN RETARDO DE ADORNO.
+         showTab lee el window.event GLOBAL, y justo despues de una escritura en IndexedDB ese
+         global es el evento success de la transaccion, cuyo target es un IDBTransaction -- que
+         no tiene classList--, asi que la funcion aborta con «reading add». Es el defecto
+         PREEXISTENTE que PENDIENTES declara en P30-d; no es de esta tanda y no se toca. Un
+         setTimeout limpia el global. */
+      await new Promise(r => setTimeout(r, 30));
       showTab('guardados');
       await igBandejaRender();
       await new Promise(r => setTimeout(r, 200));
@@ -138269,8 +138512,14 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
     }
     const R = {};
     const toastOrig = window.toast; window.toast = () => {};
-    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL JPEG TIENE QUE SER DECODIFICABLE, y el de 22 bytes que esta casa usa para medir
+       bytes NO LO ES: new Image() lo rechaza, asi que _imgComprimir y dstThumb devuelven
+       vacio y el caso mide un hueco. Se genera uno de verdad con un canvas, que es la unica
+       forma de tener bytes JPEG validos sin meter un archivo binario en un repositorio publico. */
+    const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+    const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+    const PX = _cvJ.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
     const U = 'ec4c0000-0000-4000-8000-0000000000d4';
     const ID = 'cine_ec4_' + Date.now().toString(36);
     const IDF = 'fija_ec4_' + Date.now().toString(36);
@@ -138303,18 +138552,40 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
       R.a_peso = mio ? JSON.stringify(mio).length : -1;
 
       /* ── (B) EL FILTRO: pasa en «Todas» y en «Videos», no en «Imagenes» ni «De interes» ─*/
-      filtroOrig = window._igImgFiltro;
-      const probar = f => { window._igImgFiltro = f; return igLoopPasaTipo(); };
-      R.b_todas = probar('all');
-      R.b_videos = probar('vid');
-      R.b_imagenes = probar('img');
-      R.b_interes = probar('star');
-      window._igImgFiltro = 'all';
+      /* ** EL FILTRO SE CAMBIA APRETANDO SU BOTON, NO ESCRIBIENDO window._igImgFiltro.
+         _igImgFiltro es un let de nivel de script: asignarle window._igImgFiltro crea una
+         propiedad NUEVA que no lo tapa, asi que la funcion sigue leyendo 'all' y las cuatro
+         pruebas daban true. Es la MISMA trampa del ambito lexico que este repositorio ya
+         documenta para _imgEditado, _cinePendientes y _cm3d. */
+      /* ** Y EL CABLEADO SE FUERZA: los oyentes de esos botones los pone igImgCablear, que
+         corre al entrar a la vista de imagenes y es idempotente. Sin el, el clic no hace nada y
+         las cuatro pruebas miden el filtro que dejo el caso anterior. El GESTO se verifica por
+         su efecto visible -- el aria-pressed--, que es el denominador de este bloque. */
+      try { if (typeof igImgCablear === 'function') igImgCablear(); } catch (e) {}
+      const _filtrar = f => {
+        const btn = document.querySelector('[data-ig-imgf="' + f + '"]');
+        if (btn) btn.click();
+        return !!(btn && btn.getAttribute('aria-pressed') === 'true');
+      };
+      R.b_hayBotones = ['all','vid','img','star'].every(f => !!document.querySelector('[data-ig-imgf="' + f + '"]'));
+      R.b_gestoFunciona = _filtrar('vid') && _filtrar('img') && _filtrar('all');
+      _filtrar('all');  R.b_todas    = igLoopPasaTipo();
+      _filtrar('vid');  R.b_videos   = igLoopPasaTipo();
+      _filtrar('img');  R.b_imagenes = igLoopPasaTipo();
+      _filtrar('star'); R.b_interes  = igLoopPasaTipo();
+      _filtrar('all');
 
       /* ── (C) LA GRILLA LO DIBUJA, con la marca de su estudio ───────────────────────*/
       window.getInformes = () => [{ id:'ec4-x', uuid: U, nombre:'Paciente de prueba',
                                     ci:'0', fecha_estudio:'2026-11-12' }];
       igImgInvalidar();
+      /* ** UN TURNO DEL BUCLE DE EVENTOS ANTES DE showTab, Y NO ES UN RETARDO DE ADORNO.
+         showTab lee el window.event GLOBAL, y justo despues de una escritura en IndexedDB ese
+         global es el evento success de la transaccion, cuyo target es un IDBTransaction -- que
+         no tiene classList--, asi que la funcion aborta con «reading add». Es el defecto
+         PREEXISTENTE que PENDIENTES declara en P30-d; no es de esta tanda y no se toca. Un
+         setTimeout limpia el global. */
+      await new Promise(r => setTimeout(r, 30));
       showTab('guardados');
       if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
       await igImgIndiceCargar();
@@ -138335,10 +138606,17 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
       R.c_tieneMarcaVideo = !!(cel && cel.querySelector('.ig-img-vb'));
       R.c_pie = cont ? String((document.getElementById('ig-img-contador') || {}).textContent || '') : '';
       R.c_pieCuentaLoops = R.c_pie.indexOf('cineloop') > -1;
+      /* ** Y NO SUMAN AL CONTEO DE IMAGENES, que es la otra mitad y la que el barrido destapo:
+         el numero n identifica a UNA imagen en el visor y en el PPT, y correrlo
+         cambiaria el numero de todas las imagenes guardadas del medico. El estudio de la escena
+         no tiene NINGUNA imagen fija, asi que el pie tiene que decir «0 de 0 imagenes» y, al
+         lado, el cineloop. */
+      R.c_pieCeroImagenes = R.c_pie.indexOf('0 de 0') > -1;
+      R.c_pieUnLoop = R.c_pie.indexOf('1 cineloop') > -1;
 
       /* ── (D) EN «VIDEOS» SIGUE, EN «IMAGENES» NO, EN «DE INTERES» TAMPOCO ─────────*/
       const contar = f => {
-        window._igImgFiltro = f;
+        _filtrar(f);
         igImgPintar(getInformes());
         const c = document.getElementById('ig-img-lista');
         if (c) c.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
@@ -138347,9 +138625,10 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
       R.d_enVideos = contar('vid');
       R.d_enImagenes = contar('img');
       R.d_enInteres = contar('star');
-      window._igImgFiltro = 'all';
+      _filtrar('all');
 
       /* ── (E) AL TOCARLO ABRE EL VISOR DE CINELOOPS ────────────────────────────────*/
+      _filtrar('all');
       igImgPintar(getInformes());
       const c2 = document.getElementById('ig-img-lista');
       if (c2) c2.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
@@ -138369,7 +138648,7 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
     finally {
       try {
         window.toast = toastOrig;
-        if (filtroOrig !== null) window._igImgFiltro = filtroOrig;
+        const _bt = document.querySelector('[data-ig-imgf="all"]'); if (_bt) _bt.click();
         window.getInformes = infOrig;
         await CeiboCine.borrar(ID); await CeiboCine.borrar(IDF);
         igImgInvalidar();
@@ -138383,6 +138662,8 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
       ['(A) sin los datos de los cuadros',                    R.a_sinDatos, R.a_sinDatos],
       ['(A) con su poster',                                   R.a_conPoster, R.a_conPoster],
       ['(A) sus cuadros y su peso',                           R.a_conCuadros && R.a_conBytes, R.a_conCuadros + '/' + R.a_conBytes],
+      ['(B) DENOMINADOR: los cuatro botones de filtro existen', R.b_hayBotones, R.b_hayBotones],
+      ['(B) DENOMINADOR: apretarlos de verdad cambia el filtro', R.b_gestoFunciona, R.b_gestoFunciona],
       ['(B) pasa el filtro «Todas»',                          R.b_todas === true, R.b_todas],
       ['(B) pasa «Videos»',                                   R.b_videos === true, R.b_videos],
       ['(B) NO pasa «Imagenes»',                              R.b_imagenes === false, R.b_imagenes],
@@ -138393,6 +138674,8 @@ caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardada
       ['(C) y de QUE ESTUDIO es',                             R.c_diceElEstudio, R.c_diceElEstudio],
       ['(C) con la marca de video',                           R.c_tieneMarcaVideo, R.c_tieneMarcaVideo],
       ['(C) y el pie los cuenta aparte',                      R.c_pieCuentaLoops, R.c_pie],
+      ['(C) sin sumarlos al conteo de IMAGENES',              R.c_pieCeroImagenes, R.c_pie],
+      ['(C) y nombrando UN cineloop',                         R.c_pieUnLoop, R.c_pie],
       ['(D) en «Videos» sigue estando',                       R.d_enVideos === 1, R.d_enVideos],
       ['(D) en «Imagenes» NO',                                R.d_enImagenes === 0, R.d_enImagenes],
       ['(D) en «De interes» NO',                              R.d_enInteres === 0, R.d_enInteres],
@@ -138412,8 +138695,14 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
     }
     const R = {};
     const toastOrig = window.toast; window.toast = () => {};
-    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL JPEG TIENE QUE SER DECODIFICABLE, y el de 22 bytes que esta casa usa para medir
+       bytes NO LO ES: new Image() lo rechaza, asi que _imgComprimir y dstThumb devuelven
+       vacio y el caso mide un hueco. Se genera uno de verdad con un canvas, que es la unica
+       forma de tener bytes JPEG validos sin meter un archivo binario en un repositorio publico. */
+    const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+    const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+    const PX = _cvJ.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
     const U = 'ec4d0000-0000-4000-8000-0000000000e5';
     const ID = 'cine2_ec4_' + Date.now().toString(36);
     const infOrig = window.getInformes;
@@ -138433,9 +138722,26 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
 
       window.getInformes = () => [{ id:'ec4-y', uuid: U, nombre:'Paciente de prueba',
                                     ci:'0', fecha_estudio:'2026-11-12' }];
-      filtroOrig = window._igImgFiltro;
-      window._igImgFiltro = 'all';
+      /* ** NI EL FILTRO NI LA CASILLA DE PPT SE ESCRIBEN POR window: _igImgFiltro y
+         _igImgPpt son let de nivel de script, asi que window._igImgFiltro crea una propiedad
+         NUEVA que no los tapa -- la trampa del ambito lexico que este repositorio documenta
+         para _imgEditado, _cinePendientes y _cm3d. Se usan los gestos: el boton del filtro y la
+         casilla «Armar PPT», que son los que de verdad los escriben. */
+      try { if (typeof igImgCablear === 'function') igImgCablear(); } catch (e) {}
+      const _filtrar = f => {
+        const btn = document.querySelector('[data-ig-imgf="' + f + '"]');
+        if (btn) btn.click();
+        return !!(btn && btn.getAttribute('aria-pressed') === 'true');
+      };
+      R.denom_filtroAnda = _filtrar('all');
       igImgInvalidar();
+      /* ** UN TURNO DEL BUCLE DE EVENTOS ANTES DE showTab, Y NO ES UN RETARDO DE ADORNO.
+         showTab lee el window.event GLOBAL, y justo despues de una escritura en IndexedDB ese
+         global es el evento success de la transaccion, cuyo target es un IDBTransaction -- que
+         no tiene classList--, asi que la funcion aborta con «reading add». Es el defecto
+         PREEXISTENTE que PENDIENTES declara en P30-d; no es de esta tanda y no se toca. Un
+         setTimeout limpia el global. */
+      await new Promise(r => setTimeout(r, 30));
       showTab('guardados');
       if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
       await igImgIndiceCargar();
@@ -138449,25 +138755,32 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
       };
 
       /* ── (A) EN MODO «Armar PPT» el cineloop NO entra al mazo ─────────────────────*/
-      window._igImgPpt = true;
+      const _ppt = on => {
+        const chk = document.getElementById('ig-ppt-on');
+        if (!chk) return false;
+        if (chk.checked !== on) { chk.checked = on; chk.dispatchEvent(new Event('change', { bubbles:true })); }
+        return true;
+      };
+      R.denom_hayCasilla = _ppt(true);
       let c = pintar();
       const cel = c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine === ID)[0] : null;
       const fija = c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => !b.dataset.igCine)[0] : null;
       R.denom_hayLoop = !!cel;
       R.denom_hayFija = !!fija;
-      const selAntes = (window._igImgSel || []).length;
+      /* Por su NOMBRE PELADO y no por window, por el mismo motivo. */
+      const _sel = () => { try { return _igImgSel.length; } catch (e) { return -1; } };
+      const selAntes = _sel();
       if (cel) igImgThClic(cel);
       await new Promise(r => setTimeout(r, 150));
-      R.a_noEntroAlMazo = (window._igImgSel || []).length === selAntes;
+      R.a_noEntroAlMazo = _sel() === selAntes;
       const res = document.getElementById('ig-ppt-res');
       R.a_loDice = !!(res && String(res.textContent || '').indexOf('cineloop') > -1);
       R.a_mensaje = res ? String(res.textContent || '').slice(0, 110) : '';
       /* ── (A2) CONTROL: la imagen FIJA del mismo estudio SI entra ─────────────────*/
       if (fija) igImgThClic(fija);
       await new Promise(r => setTimeout(r, 150));
-      R.a_fijaSiEntro = (window._igImgSel || []).length === selAntes + 1;
-      window._igImgSel = [];
-      window._igImgPpt = false;
+      R.a_fijaSiEntro = _sel() === selAntes + 1;
+      _ppt(false);
 
       /* ── (B) NO suma al censo de campos del estudio ni a las columnas del Excel ──
             Son los dos inventarios que esta casa mide en cada tanda. */
@@ -138481,7 +138794,7 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
       /* ── (C) NO aparece en la lista de ESTUDIOS ─────────────────────────────────*/
       if (typeof igVistaCambiar === 'function') igVistaCambiar('inf');
       await new Promise(r => setTimeout(r, 250));
-      const linf = document.getElementById('lista-informes') || document.getElementById('ig-inf-lista');
+      const linf = document.getElementById('ig-lista');
       const txtInf = linf ? String(linf.textContent || '') : '';
       R.c_hayLista = !!linf;
       R.c_noNombraElLoop = txtInf.indexOf('loop.dcm') < 0 && txtInf.indexOf(ID) < 0;
@@ -138489,25 +138802,35 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
       await new Promise(r => setTimeout(r, 200));
 
       /* ── (D) NO entra al estudio abierto sin un gesto ───────────────────────────*/
+      /* ** SE MIDE EL DELTA Y NO EL VALOR ABSOLUTO, y es por lo que este caso pasaba aislado
+         y salia rojo en su lote: la cola de cineloops es compartida y un caso anterior -- TC-865,
+         que importa un cineloop con «Abrir igual»-- la deja con algo adentro. Lo que esta
+         condicion afirma es que PINTAR LA GRILLA no agrega nada, y eso es un delta. Es el modo
+         de falla que este repositorio ya documenta una decena de veces. */
+      const _colaN = () => { try { return _cinePendientes.length; } catch (e) { return -1; } };
       const slotsAntes = imgSlots.filter(s => s && s.dataURL).length;
+      const colaAntes = _colaN();
       pintar();
       await new Promise(r => setTimeout(r, 200));
       R.d_slotsIgual = imgSlots.filter(s => s && s.dataURL).length === slotsAntes;
-      R.d_sinCola = (typeof _cineHayPendientes === 'function') ? !_cineHayPendientes() : true;
+      R.d_colaAntes = colaAntes;
+      R.d_colaDespues = _colaN();
+      R.d_sinCola = _colaN() === colaAntes;
 
       /* ── (E) EL FILTRO «De interes» devuelve LO MISMO que antes de esta tanda ───
             Con el cineloop afuera, ese filtro sigue dando solo las imagenes estrelladas.
             Se mide contando: cero estrelladas, cero celdas. */
-      window._igImgFiltro = 'star';
+      _filtrar('star');
       const c3 = pintar();
       R.e_enInteres = c3 ? [].slice.call(c3.querySelectorAll('.ig-img-th')).length : -1;
-      window._igImgFiltro = 'all';
+      _filtrar('all');
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     finally {
       try {
         window.toast = toastOrig;
-        if (filtroOrig !== null) window._igImgFiltro = filtroOrig;
-        window._igImgPpt = pptOrig; window._igImgSel = [];
+        const _bt = document.querySelector('[data-ig-imgf="all"]'); if (_bt) _bt.click();
+        const _ck = document.getElementById('ig-ppt-on');
+        if (_ck && _ck.checked) { _ck.checked = false; _ck.dispatchEvent(new Event('change', { bubbles:true })); }
         window.getInformes = infOrig;
         await CeiboCine.borrar(ID);
         await CeiboImg.borrar(U);
@@ -138516,6 +138839,8 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
     }
     return { extra: [
       ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: el filtro responde al gesto',            R.denom_filtroAnda, R.denom_filtroAnda],
+      ['DENOMINADOR: la casilla «Armar PPT» existe',          R.denom_hayCasilla, R.denom_hayCasilla],
       ['DENOMINADOR: la celda del cineloop esta en la grilla', R.denom_hayLoop, R.denom_hayLoop],
       ['DENOMINADOR: y hay una imagen fija de control',       R.denom_hayFija, R.denom_hayFija],
       ['(A) tocarlo en modo PPT NO lo suma al mazo',          R.a_noEntroAlMazo, R.a_noEntroAlMazo],
@@ -138526,7 +138851,7 @@ caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al c
       ['(C) DENOMINADOR: la lista de estudios se pinto',      R.c_hayLista, R.c_hayLista],
       ['(C) y NO nombra el cineloop',                         R.c_noNombraElLoop, R.c_noNombraElLoop],
       ['(D) pintar la grilla no mete nada en el estudio',     R.d_slotsIgual, R.d_slotsIgual],
-      ['(D) ni en la cola de cineloops',                      R.d_sinCola, R.d_sinCola],
+      ['(D) ni en la cola de cineloops',                      R.d_sinCola, R.d_colaAntes + ' -> ' + R.d_colaDespues],
       ['(E) «De interes» sigue dando CERO celdas',            R.e_enInteres === 0, R.e_enInteres]
     ] };
   })();
@@ -138541,8 +138866,14 @@ caso('TC-871', 'El apodo del equipo y el nombre del estudio entran como TEXTO en
     }
     const R = {};
     const toastOrig = window.toast; window.toast = () => {};
-    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
-    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL JPEG TIENE QUE SER DECODIFICABLE, y el de 22 bytes que esta casa usa para medir
+       bytes NO LO ES: new Image() lo rechaza, asi que _imgComprimir y dstThumb devuelven
+       vacio y el caso mide un hueco. Se genera uno de verdad con un canvas, que es la unica
+       forma de tener bytes JPEG validos sin meter un archivo binario en un repositorio publico. */
+    const _cvJ = document.createElement('canvas'); _cvJ.width = 8; _cvJ.height = 8;
+    const _cxJ = _cvJ.getContext('2d'); _cxJ.fillStyle = '#4080c0'; _cxJ.fillRect(0, 0, 8, 8);
+    const PX = _cvJ.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
     /* ** EL PAYLOAD SE CUENTA POR LO QUE APARECE EN EL DOM, no por lo que se ve en pantalla:
        un <img onerror> no deja rastro visible y ejecuta igual. Se cuenta el elemento Y se
        pone un centinela que el payload intentaria mover. */
@@ -138560,6 +138891,13 @@ caso('TC-871', 'El apodo del equipo y el nombre del estudio entran como TEXTO en
       await clnkbGuardar({ id: creado, origen:'ceibolink', equipo: HOSTIL,
         recibida: new Date().toISOString(), ts: new Date().toISOString(),
         imgs: [{ dataURL: PX, thumb: PX, clnkId:'' }], loops: [] });
+      /* ** UN TURNO DEL BUCLE DE EVENTOS ANTES DE showTab, Y NO ES UN RETARDO DE ADORNO.
+         showTab lee el window.event GLOBAL, y justo despues de una escritura en IndexedDB ese
+         global es el evento success de la transaccion, cuyo target es un IDBTransaction -- que
+         no tiene classList--, asi que la funcion aborta con «reading add». Es el defecto
+         PREEXISTENTE que PENDIENTES declara en P30-d; no es de esta tanda y no se toca. Un
+         setTimeout limpia el global. */
+      await new Promise(r => setTimeout(r, 30));
       showTab('guardados');
       await igBandejaRender();
       await new Promise(r => setTimeout(r, 250));
