@@ -6271,7 +6271,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <!-- ══ CeiboLink ══════════════════════════════════════════════════════════════════════
            ACÁ VIVÍA LA TARJETA «🔌 Conexión por red (DICOM)», que hablaba con un Orthanc
-           directo en `localhost:8042`, y SE RETIRÓ ENTERA (ECO-CONECTOR-1): el campo de
+           directo en el puerto de su API REST, y SE RETIRÓ ENTERA (ECO-CONECTOR-1): el campo de
            dirección, el botón «Verificar conexión», el instructivo de arranque, el botón
            «🔍 Buscar en Orthanc» de la pestaña Imágenes, su overlay de estudios y las cuatro
            claves de localStorage. Esa conexión nunca le funcionó al médico, y además le pedía
@@ -173018,8 +173018,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-2202';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794445353660;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-2208';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794445713852;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173105,7 +173105,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2202</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2208</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -173821,7 +173821,7 @@ var CLNK_ON = 'ett_ceibolink_on';
    que SÍ lo recorra, estas dos claves tienen que quedar excluidas. */
 var CLNK_TOKEN = 'ett_ceibolink_token';
 
-/* Token de generación, igual que el `_orthGen` del panel que esto reemplaza: cada vez que el
+/* Token de generación, el mismo recurso que usaba el panel retirado: cada vez que el
    médico apaga el módulo, pasa a Modo Básico o desvincula, el número sube y toda respuesta que
    venga en vuelo de ANTES deja de aterrizar. Sin esto, una lectura lenta repinta el panel con
    datos de un estado que ya no existe. */
@@ -174169,11 +174169,23 @@ async function clnkLeerEstado() {
 }
 window.clnkLeerEstado = clnkLeerEstado;
 
+/* ⚠️ LOS TRES SE ESCONDEN, PERO SOLO DOS SE VACIAN, Y LA DIFERENCIA NO ES DE ESTILO.
+   «Datos para configurar el ecógrafo» y «Equipos» los pinta el JS entero, así que vaciarlos es
+   tirar lo que uno mismo dibujó. «Ajustes» NO: su marcado es ESTÁTICO —los dos campos, su
+   rótulo, el botón «Guardar» y el renglón de avisos viven en el HTML— y un `textContent = ''`
+   ahí BORRA los campos del documento para siempre, con la tarjeta visible y sin ellos.
+   Y no vuelven: el repintado los busca por id, no los crea.
+   Lo destapó la suite y no la lectura: `cfg-clnk-horas`, `cfg-clnk-aet` y `cfg-clnk-amsg`
+   desaparecían del censo de TC-833, y TC-840 reventaba con «Cannot set properties of null»
+   —en SU LOTE, porque el que los borraba era el caso ANTERIOR—. Es el mismo modo de falla que
+   PANT-30 pagó con el barrido de «-aviso» y el botón del aviso. */
 function _clnkEsconderDependientes() {
-  ['cfg-clnk-conexion', 'cfg-clnk-equipos', 'cfg-clnk-ajustes'].forEach(function (id) {
+  ['cfg-clnk-conexion', 'cfg-clnk-equipos'].forEach(function (id) {
     var e = document.getElementById(id);
     if (e) { e.textContent = ''; e.style.display = 'none'; }
   });
+  var aj = document.getElementById('cfg-clnk-ajustes');
+  if (aj) aj.style.display = 'none';
 }
 
 /* ── (c) Vinculación ───────────────────────────────────────────────────────────────────────── */
@@ -174508,7 +174520,9 @@ async function clnkLeerAjustes() {
   if (!r.vigente) return;
   cont = document.getElementById('cfg-clnk-ajustes');
   if (!cont) return;
-  if (!r.ok) { cont.textContent = ''; cont.style.display = 'none'; return; }
+  /* Se esconde SIN vaciar, por lo mismo que `_clnkEsconderDependientes`: el marcado de este
+     bloque es estático y vaciarlo se lleva los dos campos del documento. */
+  if (!r.ok) { cont.style.display = 'none'; return; }
   cont.style.display = '';
   var d = r.datos || {};
   var h = document.getElementById('cfg-clnk-horas');

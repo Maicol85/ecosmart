@@ -28,6 +28,10 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+/* El conector falso de CeiboLink, para los casos de ECO-CONECTOR-1. Es un servidor HTTP en
+   loopback con las rutas del contrato v1.1 que usa el panel de Configuracion. Se importa, no
+   se lanza como proceso aparte: asi muere con el arnes y no deja un puerto escuchando. */
+import { servirConectorFalso } from './_conector_falso.mjs';
 
 /* ⚠️ EL ARBOL DE CHROME NO SE CIERRA CON `proc.kill()`, Y ASI SE JUNTARON 70 PROCESOS (2026-10-08).
    `proc.kill()` manda SIGTERM al proceso que lanzamos; Chrome arranca media docena de hijos
@@ -108923,7 +108927,7 @@ caso('TC-614', 'Tanda TGA-4: la caja «Tricuspide / PSAP» del PDF nombra la val
 `);
 
 
-let servidor, chrome;
+let servidor, chrome, falso;
 /* ══ TANDA PANT-2 (2026-11-02) — TC-619 a TC-622 ═══════════════════════════════════════════ */
 
 caso('TC-619', 'Tanda PANT-2: el esquema que va al PDF se rasteriza con los colores y la tipografia de la pantalla, y la linea del recuadro dice el escenario UNA sola vez', `
@@ -132971,8 +132975,1316 @@ caso('TC-831', 'PANT-37: NADA del «What if» llega al papel ni al estudio -- ce
 
 
 
+/* ══ ECO-CONECTOR-1 · el panel de CeiboLink en Configuracion ═════════════════════════════════
+   NUEVE casos. Lo que prueban y lo que NO:
+
+   SI prueban el camino del CLIENTE contra un conector FALSO de verdad —un servidor Node en
+   loopback, `scripts/_conector_falso.mjs`—, o sea con CORS, con el `Authorization` viajando y
+   con los codigos HTTP del contrato llegando por la red. NO prueban el conector real: no hay
+   uno corriendo en esta maquina, y levantarlo no es de esta tanda. Queda declarado.
+
+   ⚠️ EL DENOMINADOR DE LOS SIETE QUE HABLAN POR LA RED ES QUE EL CONECTOR FALSO HAYA ARRANCADO.
+   El arnes lo publica en `window.__CLNK_FAKE`; si no esta, el caso lo DICE en vez de medir
+   sobre cero y pasar en verde. Y cada uno apunta el modulo a ese puerto con
+   `window.__clnkBaseTest`, que es la unica forma de redirigirlo: no hay ningun campo editable.
+
+   ⚠️ Y TODOS RESTAURAN EL MODO Y LAS DOS CLAVES EN EL `finally`. Modo Basico esconde las filas
+   de pestanas especiales, asi que dejarlo puesto se lleva puestos los casos siguientes -- es la
+   leccion que TC-230 ya tenia escrita. */
+
+caso('TC-832', 'El panel de Orthanc se fue entero: ni tarjeta, ni boton, ni overlay, ni 8042', `
+  return (async () => {
+    const R = {};
+    try {
+      /* ── 1 · SOBRE EL ARCHIVO SERVIDO, con conteo. Es la unica forma de ver lo que no esta:
+            un id borrado no deja rastro en el DOM, y preguntar por los que SI estan no prueba
+            que se hayan ido los demas. Se pide al mismo origen, que es el servidor estatico del
+            arnes. ── */
+      const src = await fetch('/index.html', { cache: 'no-store' }).then(r => r.text());
+      R.bytes = src.length;
+      const contar = (t) => { let n = 0, i = 0;
+        for (;;) { const k = src.indexOf(t, i); if (k < 0) break; n++; i = k + 1; } return n; };
+      R.n8042      = contar('8042');
+      R.nOrthancId = contar('cfg-card-orthanc') + contar('cfg-orthanc-') +
+                     contar('orth-panel-') + contar('orth-buscar-btn') + contar('orth-f-');
+      R.nClaves    = contar('ett_orthanc_on') + contar('ett_orthanc_url') +
+                     contar('ett_orthanc_vistos') + contar('ett_orthanc_howto_visto');
+      R.nFns       = contar('orthancRender') + contar('orthancToggle') + contar('orthancBuscar') +
+                     contar('orthancVerificar') + contar('orthancBotonSync') +
+                     contar('orthancImportarEstudio') + contar('orthancPanelCerrar') +
+                     contar('orthancFiltrar') + contar('orthancElegirEstudio') +
+                     contar('orthancGuardarUrl') + contar('orthancActivo');
+      R.nGuion     = contar('_orth');
+      /* CONTROL POSITIVO del contador: una cadena que SI tiene que estar. Sin esto, un fetch
+         que devuelva vacio da cero en todo y se lee igual que «se fue todo». */
+      R.control = contar('cfg-card-clnk');
+
+      /* ── 2 · Y EN EL DOM VIVO ── */
+      const ids = ['cfg-card-orthanc','cfg-orthanc-on','cfg-orthanc-url','cfg-orthanc-estado',
+                   'cfg-orthanc-datos','cfg-orthanc-cuerpo','orth-buscar-btn',
+                   'orth-panel-overlay','orth-panel-lista','orth-f-nombre'];
+      R.vivos = ids.filter(id => !!document.getElementById(id)).join(', ');
+      /* ── 3 · ni una funcion global del modulo viejo ── */
+      const fns = ['orthancRender','orthancToggle','orthancBuscar','orthancVerificar',
+                   'orthancBotonSync','orthancImportarEstudio','orthancActivo',
+                   'orthancPanelCerrar','orthancFiltrar','orthancElegirEstudio',
+                   'orthancGuardarUrl'];
+      R.globales = fns.filter(f => typeof window[f] === 'function').join(', ');
+      /* ── 4 · CONTROL NEGATIVO: la carga manual del pendrive NO se toco ── */
+      R.dcmSigue = typeof window.dcmImgImportar === 'function' &&
+                   typeof window.dcmImportarSR === 'function';
+      showTab('imagenes');
+      const bs = Array.from(document.querySelectorAll('#tab-imagenes button'))
+                      .map(b => (b.textContent || '').trim());
+      R.importarSigue = bs.some(t => t.indexOf('Importar DICOM') > -1);
+      R.buscarSeFue   = !bs.some(t => t.indexOf('Orthanc') > -1);
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    return { extra: [
+      ['sin excepciones',                                 !R.err, R.err],
+      ['DENOMINADOR: el archivo se leyo',                 R.bytes > 1000000, 'bytes=' + R.bytes],
+      ['CONTROL POSITIVO: el contador encuentra la tarjeta nueva', R.control > 0, R.control],
+      ['CERO apariciones de 8042 en el archivo',          R.n8042 === 0, R.n8042],
+      ['CERO ids del panel viejo en el archivo',          R.nOrthancId === 0, R.nOrthancId],
+      ['CERO claves ett_orthanc_* en el archivo',         R.nClaves === 0, R.nClaves],
+      ['CERO funciones orthanc* en el archivo',           R.nFns === 0, R.nFns],
+      ['CERO ayudantes _orth* en el archivo',             R.nGuion === 0, R.nGuion],
+      ['ningun id del panel viejo sigue en el DOM',       R.vivos === '', R.vivos],
+      ['ninguna funcion global del panel viejo',          R.globales === '', R.globales],
+      ['CONTROL NEGATIVO: el importador DICOM sigue',     R.dcmSigue === true, R.dcmSigue],
+      ['CONTROL NEGATIVO: el boton Importar DICOM sigue', R.importarSigue, R.importarSigue],
+      ['y el de Orthanc ya no esta en la pestana',        R.buscarSeFue, R.buscarSeFue]
+    ] };
+  })();
+`);
+
+caso('TC-833', 'La tarjeta de CeiboLink: solo Modo Avanzado, una sola superficie y fuera del estudio', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const card = () => document.getElementById('cfg-card-clnk');
+    const alto = el => el ? Math.round(el.getBoundingClientRect().height) : -1;
+    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
+    try {
+      /* DENOMINADOR: el modulo ENCENDIDO, o el cuerpo mide 0 por su OTRA compuerta y el caso
+         pasa en verde con el arreglo revertido. Es el denominador que TC-230 declaraba. */
+      clnkToggle(true);
+      R.activo = clnkActivo() === true;
+
+      abrirConfig(); cfgSetMode('avanzado');
+      R.cardAvanzado = alto(card());
+      const titulos = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
+                           .map(e => e.textContent.trim());
+      R.titulos = titulos.join(' | ');
+      R.rotulo = titulos.some(t => t.indexOf('CeiboLink') > -1);
+      R.sinOrthanc = !titulos.some(t => t.indexOf('Orthanc') > -1 || t.indexOf('DICOM') > -1);
+
+      /* EN EL ACTO, sin reabrir Config: es el borde que cfgSetMode cubre. */
+      abrirConfig(); cfgSetMode('basico');
+      R.cardEnElActo = alto(card());
+      const vis = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
+                       .filter(e => e.getBoundingClientRect().height > 0)
+                       .map(e => e.textContent.trim());
+      R.tituloEscondido = !vis.some(t => t.indexOf('CeiboLink') > -1);
+      abrirConfig();
+      R.cardBasico = alto(card());
+      R.activoBasico = clnkActivo();
+      abrirConfig(); cfgSetMode('avanzado');
+      R.cardVuelta = alto(card());
+
+      /* esconder NO es borrar */
+      const tab = document.getElementById('tab-config');
+      const IDS = ['cfg-clnk-on','cfg-clnk-cuerpo','cfg-clnk-estado','cfg-clnk-codigo',
+                   'cfg-clnk-vincular-btn','cfg-clnk-vmsg','cfg-clnk-bloque-vincular',
+                   'cfg-clnk-bloque-desvincular','cfg-clnk-conexion','cfg-clnk-equipos',
+                   'cfg-clnk-ajustes','cfg-clnk-horas','cfg-clnk-aet','cfg-clnk-amsg',
+                   'cfg-clnk-ayuda','cfg-clnk-ayuda-btn','cfg-clnk-ayuda-cuerpo',
+                   'cfg-clnk-descargar','cfg-clnk-donde'];
+      R.faltan = IDS.filter(id => { const e = document.getElementById(id);
+                                    return !e || !tab.contains(e); }).join(', ');
+
+      /* LA CASILLA gobierna el CUERPO; EL MODO gobierna la TARJETA. Dos compuertas. */
+      clnkToggle(false);
+      const cue = document.getElementById('cfg-clnk-cuerpo');
+      R.cuerpoApagado = cue ? getComputedStyle(cue).display : 'sin cuerpo';
+      R.tarjetaApagada = alto(card());
+      clnkToggle(true);
+      R.cuerpoEncendido = cue ? getComputedStyle(cue).display : 'sin cuerpo';
+
+      /* UNA SOLA SUPERFICIE: nada de CeiboLink fuera de la tarjeta de Config. */
+      R.fuera = Array.from(document.querySelectorAll('[id^="cfg-clnk-"], [id^="clnk-"]'))
+                     .filter(e => !card().contains(e)).map(e => e.id).join(', ');
+      showTab('imagenes');
+      const bsImg = Array.from(document.querySelectorAll('#tab-imagenes button'))
+                         .map(b => (b.textContent || '').trim());
+      R.nadaEnImagenes = !bsImg.some(t => t.indexOf('CeiboLink') > -1);
+
+      /* NO SON CAMPOS DEL ESTUDIO: las dos listas y el censo. */
+      R.noEsDelEstudio = ['cfg-clnk-codigo','cfg-clnk-horas','cfg-clnk-aet']
+        .every(id => typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(id) === true);
+      R.fueraExcel = ['cfg-clnk-codigo','cfg-clnk-horas','cfg-clnk-aet']
+        .every(id => _CAMPOS_FUERA_DEL_ESTUDIO.test(id));
+      /* Y ninguno cae en los barridos por sufijo de «Nuevo estudio». */
+      R.sinSufijo = Array.from(document.querySelectorAll('[id^="cfg-clnk-"]'))
+        .filter(e => /-aviso$|-badge$/.test(e.id)).map(e => e.id).join(', ');
+
+      /* (i) Descargar: APAGADO y diciendo por que. */
+      abrirConfig();
+      const bd = document.getElementById('cfg-clnk-descargar');
+      R.descargaApagada = !!bd && bd.disabled === true;
+      R.diceProximamente = (card().textContent || '').indexOf('pr\\u00f3ximamente') > -1;
+
+      /* (h) Ayuda plegable: nace CERRADA, abre, y trae las tres vias con su marca. */
+      const ac = document.getElementById('cfg-clnk-ayuda-cuerpo');
+      R.ayudaCerrada = !!ac && getComputedStyle(ac).display === 'none';
+      clnkAyudaToggle();
+      R.ayudaAbierta = !!ac && getComputedStyle(ac).display !== 'none';
+      const at = ac ? (ac.textContent || '') : '';
+      R.tresVias = at.indexOf('Cable directo') > -1 && at.indexOf('red del consultorio') > -1 &&
+                   at.indexOf('Pendrive') > -1;
+      R.diceAConfirmar = at.indexOf('A confirmar con el ec\\u00f3grafo real') > -1;
+      R.dice169 = at.indexOf('169.254') > -1;
+      clnkAyudaToggle();
+      R.ayudaVuelveACerrar = !!ac && getComputedStyle(ac).display === 'none';
+
+      /* El texto provisorio del codigo sale de su constante y lleva su marcador. */
+      const dn = document.getElementById('cfg-clnk-donde');
+      R.provisorio = !!dn && dn.getAttribute('data-clnk-provisorio') === 'codigo' &&
+                     dn.textContent === CLNK_TXT_DONDE_CODIGO && dn.textContent.length > 5;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof cfgRenderModulos === 'function') cfgRenderModulos(); } catch (e) {}
+      try { if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                !R.err, R.err],
+      ['DENOMINADOR: CeiboLink quedo activado',          R.activo, R.activo],
+      ['AVANZADO: la tarjeta se ve',                     R.cardAvanzado > 0, 'alto=' + R.cardAvanzado],
+      ['lleva el rotulo CeiboLink',                      R.rotulo, R.titulos],
+      ['y ningun titulo dice ya Orthanc ni DICOM',       R.sinOrthanc, R.titulos],
+      ['BASICO: la tarjeta desaparece EN EL ACTO',       R.cardEnElActo === 0, 'alto=' + R.cardEnElActo],
+      ['BASICO: ni queda el titulo suelto',              R.tituloEscondido, R.tituloEscondido],
+      ['BASICO: sigue escondida al reabrir Config',      R.cardBasico === 0, 'alto=' + R.cardBasico],
+      ['BASICO: el modo entra al predicado',             R.activoBasico === false, R.activoBasico],
+      ['es REVERSIBLE: la tarjeta vuelve',               R.cardVuelta > 0, 'alto=' + R.cardVuelta],
+      ['esconder NO es borrar: los 19 controles siguen', R.faltan === '', R.faltan],
+      ['la CASILLA gobierna el cuerpo',                  R.cuerpoApagado === 'none' && R.cuerpoEncendido !== 'none',
+        'apagado=' + R.cuerpoApagado + ' encendido=' + R.cuerpoEncendido],
+      ['y apagarla NO esconde la tarjeta',               R.tarjetaApagada > 0, 'alto=' + R.tarjetaApagada],
+      ['UNA SOLA SUPERFICIE: nada fuera de la tarjeta',  R.fuera === '', R.fuera],
+      ['y nada de CeiboLink en la pestana Imagenes',     R.nadaEnImagenes, R.nadaEnImagenes],
+      ['sus campos NO son del estudio',                  R.noEsDelEstudio, R.noEsDelEstudio],
+      ['ni entran al Excel',                             R.fueraExcel, R.fueraExcel],
+      ['ningun id cae en los barridos por sufijo',       R.sinSufijo === '', R.sinSufijo],
+      ['Descargar esta DESHABILITADO',                   R.descargaApagada, R.descargaApagada],
+      ['y dice proximamente',                            R.diceProximamente, R.diceProximamente],
+      ['la ayuda nace cerrada',                          R.ayudaCerrada, R.ayudaCerrada],
+      ['abre',                                           R.ayudaAbierta, R.ayudaAbierta],
+      ['trae las TRES vias',                             R.tresVias, R.tresVias],
+      ['marcadas a confirmar con el ecografo real',      R.diceAConfirmar, R.diceAConfirmar],
+      ['y explica la direccion 169.254',                 R.dice169, R.dice169],
+      ['y vuelve a cerrar',                              R.ayudaVuelveACerrar, R.ayudaVuelveACerrar],
+      ['el texto de donde ver el codigo es PROVISORIO y sale de su constante',
+        R.provisorio, R.provisorio]
+    ] };
+  })();
+`);
+
+caso('TC-834', 'CeiboLink apagado: el mensaje nombra las DOS causas y Config no se rompe', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.cerrado) return { extra: [['DENOMINADOR: el arnes publico el puerto cerrado',
+        false, 'no hay __CLNK_FAKE.cerrado: el conector falso no arranco']] };
+      /* El puerto CERRADO a proposito: el navegador da el mismo TypeError que daria un conector
+         que no esta instalado. No se sustituye fetch: el fallo es de la red de verdad. */
+      window.__clnkBaseTest = F.cerrado;
+      R.baseTomada = clnkBase() === F.cerrado;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 1400));
+      const est = document.getElementById('cfg-clnk-estado');
+      const txt = est ? (est.textContent || '') : '';
+      R.largo = txt.length;
+      R.diceNoResponde = txt.indexOf('CeiboLink no responde') > -1;
+      R.diceInstalado  = txt.indexOf('instalado y encendido') > -1;
+      R.dicePermiso    = txt.indexOf('red local') > -1;
+      /* Las tres partes que dependen del conector se ESCONDEN en vez de quedar vacias. */
+      R.dependientes = ['cfg-clnk-conexion','cfg-clnk-equipos','cfg-clnk-ajustes']
+        .map(id => { const e = document.getElementById(id);
+                     return e ? getComputedStyle(e).display : 'falta'; }).join(',');
+      /* Y NADA MAS DE CONFIG SE ROMPE: las otras tarjetas siguen con su titulo y su alto. */
+      const otras = Array.from(document.querySelectorAll('#tab-config .cfg-card'))
+        .filter(c => c.id !== 'cfg-card-clnk');
+      R.otrasN = otras.length;
+      R.otrasConAlto = otras.filter(c => c.getBoundingClientRect().height > 0).length;
+      R.otrasConTitulo = otras.filter(c => {
+        const t = c.querySelector('.cfg-sec-title');
+        return t && (t.textContent || '').trim().length > 0;
+      }).length;
+      R.soporteSigue = !!document.getElementById('cfg-soporte') &&
+                       document.getElementById('cfg-soporte').children.length > 0;
+      /* Un conector apagado NO deja token puesto, y no inventa un vinculo. */
+      R.sinToken = !localStorage.getItem('ett_ceibolink_token');
+      /* Y no se publica ninguna direccion ni ningun codigo interno en la pantalla. */
+      R.sinRutas = txt.indexOf('127.0.0.1') < 0 && txt.indexOf('http') < 0 &&
+                   txt.indexOf('/v1/') < 0;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                 !R.err, R.err],
+      ['DENOMINADOR: el modulo tomo el puerto cerrado',   R.baseTomada, R.baseTomada],
+      ['DENOMINADOR: el estado dice algo',                R.largo > 40, 'largo=' + R.largo],
+      ['dice que CeiboLink no responde',                  R.diceNoResponde, R.diceNoResponde],
+      ['nombra la causa 1: no instalado o apagado',       R.diceInstalado, R.diceInstalado],
+      ['nombra la causa 2: el permiso de red local',      R.dicePermiso, R.dicePermiso],
+      ['las tres partes dependientes quedan ESCONDIDAS',  R.dependientes === 'none,none,none', R.dependientes],
+      ['y nada mas de Config se rompe: las otras tarjetas siguen',
+        R.otrasN >= 7 && R.otrasConAlto === R.otrasN && R.otrasConTitulo === R.otrasN,
+        'n=' + R.otrasN + ' conAlto=' + R.otrasConAlto + ' conTitulo=' + R.otrasConTitulo],
+      ['y Soporte sigue pintado',                         R.soporteSigue, R.soporteSigue],
+      ['no inventa un vinculo',                           R.sinToken, R.sinToken],
+      ['y no publica ninguna direccion ni ruta interna',  R.sinRutas, R.sinRutas]
+    ] };
+  })();
+`);
+
+caso('TC-835', 'Vincular: codigo bueno y malo, y el token NO aparece en ningun texto de la pantalla', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm;
+    window.confirm = () => true;
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false,
+        'no hay __CLNK_FAKE.base']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      await ctl({ reset: true });
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 700));
+
+      const inp = document.getElementById('cfg-clnk-codigo');
+      const btn = document.getElementById('cfg-clnk-vincular-btn');
+      const msg = () => (document.getElementById('cfg-clnk-vmsg') || {}).textContent || '';
+      if (!inp || !btn) return { extra: [['DENOMINADOR: el campo y el boton existen', false, '']] };
+
+      /* ── 1 · SE VALIDA EN PANTALLA: con menos de seis digitos el boton esta apagado, asi que
+            no se gasta uno de los cinco intentos que el conector permite. ── */
+      inp.value = '4729'; clnkCodigoInput(inp);
+      R.btnApagadoCon4 = btn.disabled === true;
+      /* y las letras no entran */
+      inp.value = '47a29b1'; clnkCodigoInput(inp);
+      R.soloDigitos = inp.value === '47291';
+      R.btnApagadoCon5 = btn.disabled === true;
+      inp.value = '472913'; clnkCodigoInput(inp);
+      R.btnPrendidoCon6 = btn.disabled === false;
+
+      /* ── 2 · CODIGO INCORRECTO ── */
+      inp.value = '000000'; clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.msgMalo = msg();
+      R.diceNoCorrecto = R.msgMalo.indexOf('no es correcto') > -1;
+      R.sinTokenTrasFallo = !localStorage.getItem('ett_ceibolink_token');
+
+      /* ── 3 · CODIGO CORRECTO ── */
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 500));
+      const TK = localStorage.getItem('ett_ceibolink_token') || '';
+      R.tokenGuardado = TK.length === 64;
+      R.msgBueno = msg();
+      R.diceVinculado = R.msgBueno.indexOf('qued\\u00f3 vinculado') > -1;
+      R.campoVaciado = inp.value === '';
+
+      /* ── 4 · EL TOKEN NO APARECE EN NINGUN TEXTO DE LA PANTALLA ────────────────────────────
+            Se busca en TODO el documento, no solo en la tarjeta: en el texto visible, en el
+            HTML entero —o sea tambien en cualquier atributo—, en los avisos, en los toasts, en
+            la URL y en el hash. Y el largo del token es el denominador: buscar una cadena vacia
+            encuentra siempre, y el caso pasaria con el token en pantalla. ── */
+      await new Promise(r => setTimeout(r, 600));
+      R.tkLargo = TK.length;
+      R.enTexto   = TK ? (document.body.textContent || '').indexOf(TK) : -1;
+      R.enHTML    = TK ? document.documentElement.innerHTML.indexOf(TK) : -1;
+      R.enAvisos  = TK ? (msg() + ' ' +
+                     ((document.getElementById('cfg-clnk-estado') || {}).textContent || '') + ' ' +
+                     ((document.getElementById('cfg-clnk-equipos') || {}).textContent || '') + ' ' +
+                     ((document.getElementById('cfg-clnk-conexion') || {}).textContent || '')
+                   ).indexOf(TK) : -1;
+      R.enToasts  = TK ? toasts.join(' || ').indexOf(TK) : -1;
+      R.enURL     = TK ? (location.href + ' ' + location.hash).indexOf(TK) : -1;
+      /* Ni en un atributo data- de ningun nodo. */
+      R.enAtributos = '';
+      if (TK) {
+        const sosp = [];
+        Array.from(document.querySelectorAll('*')).forEach(e => {
+          for (let i = 0; i < e.attributes.length; i++) {
+            if (String(e.attributes[i].value || '').indexOf(TK) > -1) sosp.push(e.tagName + '@' + e.attributes[i].name);
+          }
+        });
+        R.enAtributos = sosp.slice(0, 4).join(', ');
+      }
+      /* CONTROL POSITIVO de la busqueda: una cadena que SI esta en el documento se encuentra
+         con el mismo metodo. Sin esto, un indexOf roto da -1 en todo y se lee igual que
+         «el token no esta». */
+      R.controlTexto = (document.body.textContent || '').indexOf('CeiboLink') > -1;
+      R.controlHTML  = document.documentElement.innerHTML.indexOf('cfg-clnk-codigo') > -1;
+
+      /* ── 5 · vinculado: el bloque de vincular se va y aparece el de desvincular ── */
+      R.vincularEscondido = getComputedStyle(document.getElementById('cfg-clnk-bloque-vincular')).display === 'none';
+      R.desvincularVisible = getComputedStyle(document.getElementById('cfg-clnk-bloque-desvincular')).display !== 'none';
+
+      /* ── 6 · CODIGO VENCIDO y DEMASIADOS INTENTOS ── */
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctl({ reset: true });
+      await ctl({ codigoVencido: true });
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.msgVencido = msg();
+      R.diceVencio = R.msgVencido.indexOf('venc') > -1;
+
+      await ctl({ reset: true });
+      for (let i = 0; i < 5; i++) {
+        inp.value = '111111'; clnkCodigoInput(inp);
+        await clnkVincular();
+        await new Promise(r => setTimeout(r, 180));
+      }
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.msgMuchos = msg();
+      R.diceMuchos = R.msgMuchos.indexOf('Muchos intentos') > -1 &&
+                     R.msgMuchos.indexOf('60 segundos') > -1;
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; window.confirm = confOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['el boton esta apagado con 4 digitos',               R.btnApagadoCon4, R.btnApagadoCon4],
+      ['el campo acepta SOLO digitos',                      R.soloDigitos, R.soloDigitos],
+      ['sigue apagado con 5',                               R.btnApagadoCon5, R.btnApagadoCon5],
+      ['y se prende con 6',                                 R.btnPrendidoCon6, R.btnPrendidoCon6],
+      ['codigo incorrecto: lo dice',                        R.diceNoCorrecto, R.msgMalo],
+      ['y NO guarda ningun token',                          R.sinTokenTrasFallo, R.sinTokenTrasFallo],
+      ['codigo correcto: guarda el token de 64 caracteres', R.tokenGuardado, 'largo=' + R.tkLargo],
+      ['y lo dice sin decir con que',                       R.diceVinculado, R.msgBueno],
+      ['el campo del codigo queda vacio',                   R.campoVaciado, R.campoVaciado],
+      ['CONTROL POSITIVO: la busqueda en texto funciona',   R.controlTexto, R.controlTexto],
+      ['CONTROL POSITIVO: la busqueda en HTML funciona',    R.controlHTML, R.controlHTML],
+      ['EL TOKEN NO esta en el texto de la pagina',         R.enTexto === -1, 'indice=' + R.enTexto],
+      ['NO esta en el HTML (ni en un atributo)',            R.enHTML === -1, 'indice=' + R.enHTML],
+      ['NO esta en ningun atributo de ningun nodo',         R.enAtributos === '', R.enAtributos],
+      ['NO esta en los avisos del panel',                   R.enAvisos === -1, 'indice=' + R.enAvisos],
+      ['NO esta en ningun toast',                           R.enToasts === -1, 'indice=' + R.enToasts],
+      ['NO esta en la URL ni en el hash',                   R.enURL === -1, 'indice=' + R.enURL],
+      ['vinculado: el bloque de vincular se esconde',       R.vincularEscondido, R.vincularEscondido],
+      ['y aparece el de desvincular',                       R.desvincularVisible, R.desvincularVisible],
+      ['codigo vencido: lo dice',                           R.diceVencio, R.msgVencido],
+      ['cinco fallos: lo dice con los segundos',            R.diceMuchos, R.msgMuchos]
+    ] };
+  })();
+`);
+
+caso('TC-836', 'Desvincular borra el token local, y un 401 tambien lo borra y pide vincular de nuevo', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const confOrig = window.confirm;
+    let preguntas = [];
+    window.confirm = (m) => { preguntas.push(String(m)); return true; };
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      await ctl({ reset: true });
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 500));
+
+      /* ── 1 · DESVINCULAR ── */
+      const inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 600));
+      R.vinculo1 = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      preguntas = [];
+      await clnkDesvincular();
+      await new Promise(r => setTimeout(r, 600));
+      R.tokenBorrado = !localStorage.getItem('ett_ceibolink_token');
+      R.pregunto = preguntas.length === 1;
+      /* La frase que aclara lo que el medico va a suponer mal. */
+      R.avisaEcografo = preguntas.join(' ').indexOf('ec\\u00f3grafo NO se') > -1;
+      const card = document.getElementById('cfg-card-clnk');
+      R.textoAclara = (card.textContent || '').indexOf('no</b>') < 0 &&
+                      (card.textContent || '').indexOf('ec\\u00f3grafo') > -1;
+      R.vuelveAPedirCodigo = getComputedStyle(document.getElementById('cfg-clnk-bloque-vincular')).display !== 'none';
+
+      /* ── 2 · UN 401 BORRA EL TOKEN. Es el camino del contrato: el vinculo se dio de baja desde
+            CeiboLink, asi que la credencial que tenemos no sirve y guardarla deja al panel
+            reintentando para siempre sin decirle al medico que hacer. ── */
+      await ctl({ reset: true });
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 600));
+      R.vinculo2 = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      await ctl({ tokenInvalido: true });
+      /* Una ruta con token cualquiera: la lista de equipos. */
+      const r401 = await clnkPedir('/v1/equipos', { conToken: true });
+      R.estado401 = r401.estado;
+      R.tokenBorradoPor401 = !localStorage.getItem('ett_ceibolink_token');
+      R.msg401 = String(r401.msg || '');
+      R.dicePideVincular = R.msg401.indexOf('Vincul\\u00e1 EcoSmart de nuevo') > -1;
+      /* Y el panel vuelve a ofrecer vincular. */
+      clnkRender();
+      R.vuelveTrasEl401 = getComputedStyle(document.getElementById('cfg-clnk-bloque-vincular')).display !== 'none';
+      /* CONTROL NEGATIVO: un 503 NO borra el token — el conector esta vivo y el vinculo vale. */
+      await ctl({ reset: true });
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 600));
+      await ctl({ orthancCaido: true });
+      const r503 = await clnkPedir('/v1/equipos', { conToken: true });
+      R.estado503 = r503.estado;
+      R.tokenSobrevive503 = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      R.msg503 = String(r503.msg || '');
+      R.dice503 = R.msg503.indexOf('est\\u00e1 iniciando') > -1;
+      /* Y un 409 tampoco lo borra, y dice lo del equipo en cuarentena. */
+      await ctl({ reset: true, cuarentena: true });
+      const r409 = await clnkPedir('/v1/equipos/eq_9b2e7d/permitir', { metodo: 'POST', conToken: true });
+      R.estado409 = r409.estado;
+      R.tokenSobrevive409 = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      R.dice409 = String(r409.msg || '').indexOf('esperando que lo autorices') > -1;
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; window.confirm = confOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                 !R.err, R.err],
+      ['DENOMINADOR: vinculo antes de desvincular',       R.vinculo1, R.vinculo1],
+      ['desvincular PREGUNTA una vez',                    R.pregunto, 'preguntas=' + R.pregunto],
+      ['y aclara que el ecografo NO se desconecta',       R.avisaEcografo, R.avisaEcografo],
+      ['desvincular BORRA el token local',                R.tokenBorrado, R.tokenBorrado],
+      ['y el panel vuelve a pedir el codigo',             R.vuelveAPedirCodigo, R.vuelveAPedirCodigo],
+      ['DENOMINADOR: vinculo antes del 401',              R.vinculo2, R.vinculo2],
+      ['el 401 llego',                                    R.estado401 === 401, R.estado401],
+      ['UN 401 BORRA EL TOKEN',                           R.tokenBorradoPor401, R.tokenBorradoPor401],
+      ['y pide vincular de nuevo',                        R.dicePideVincular, R.msg401],
+      ['y el panel vuelve a ofrecerlo',                   R.vuelveTrasEl401, R.vuelveTrasEl401],
+      ['CONTROL NEGATIVO: un 503 NO borra el token',      R.estado503 === 503 && R.tokenSobrevive503,
+        'estado=' + R.estado503 + ' token=' + R.tokenSobrevive503],
+      ['y dice que CeiboLink esta iniciando',             R.dice503, R.msg503],
+      ['CONTROL NEGATIVO: un 409 tampoco lo borra',       R.estado409 === 409 && R.tokenSobrevive409,
+        'estado=' + R.estado409 + ' token=' + R.tokenSobrevive409],
+      ['y dice que el equipo espera la decision',         R.dice409, R.dice409]
+    ] };
+  })();
+`);
+
+caso('TC-837', 'Equipos: un apodo malicioso se ve como TEXTO, en bdi, y no ejecuta nada', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const confOrig = window.confirm;
+    window.confirm = () => true;
+    /* El centinela: si el apodo entrara como HTML, el onerror del img corre y esto sube. */
+    window.__clnkXSS = 0;
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      const BIDI = String.fromCharCode(0x202E);
+      const APODO = '<img src=x onerror="window.__clnkXSS=1">' + BIDI + 'GE_FALSO';
+      await ctl({ reset: true });
+      await ctl({ equipos: [
+        { id: 'eq_mal', estado: 'pendiente', aet: 'EQUIPO_A', ip: '192.168.1.90',
+          apodo: APODO, imagenes: 7, ultimo_envio: '2026-11-10T21:46:03Z' },
+        { id: 'eq_ok', estado: 'autorizado', aet: 'EQUIPO_B', ip: '192.168.1.91',
+          apodo: null, imagenes: 2, ultimo_envio: '2026-11-10T22:10:00Z' }
+      ] });
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 400));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 900));
+
+      const cont = document.getElementById('cfg-clnk-equipos');
+      R.visible = cont ? getComputedStyle(cont).display !== 'none' : false;
+      const txt = cont ? (cont.textContent || '') : '';
+      R.largo = txt.length;
+      /* DENOMINADOR: la lista pinto sus DOS equipos. Sin filas, contar inyecciones da cero y
+         parece seguro — es la leccion que CLAUDE.md tiene escrita para CardioSalud. */
+      R.cajas = cont ? cont.querySelectorAll('[data-clnk-apodo]').length : 0;
+
+      /* ── LO QUE IMPORTA ── */
+      R.xss = window.__clnkXSS;
+      R.imgsInyectadas = cont ? cont.querySelectorAll('img').length : -1;
+      R.conOnerror = cont ? cont.querySelectorAll('[onerror]').length : -1;
+      R.conEventos = cont ? Array.from(cont.querySelectorAll('*')).filter(e => {
+        for (let i = 0; i < e.attributes.length; i++) {
+          if (/^on/i.test(e.attributes[i].name)) return true;
+        } return false;
+      }).length : -1;
+      /* el payload se ve como TEXTO LITERAL */
+      R.comoTexto = txt.indexOf('<img src=x onerror=') > -1;
+      /* y en un bdi, que es lo que impide LEERLO al reves — escapar no arregla eso */
+      const bdis = cont ? Array.from(cont.querySelectorAll('bdi')) : [];
+      R.nBdi = bdis.length;
+      R.apodoEnBdi = bdis.some(b => (b.textContent || '').indexOf('<img src=x') > -1);
+      R.aetEnBdi = bdis.some(b => (b.textContent || '').trim() === 'EQUIPO_A');
+      /* CONTROL NEGATIVO: sin apodo se muestra el AET, no un hueco */
+      R.sinApodoMuestraAet = txt.indexOf('EQUIPO_B') > -1;
+      /* el estado se dice con palabras y no solo con color */
+      R.diceEspera = txt.indexOf('Esperando tu decisi\\u00f3n') > -1;
+      R.diceAutorizado = txt.indexOf('Autorizado') > -1;
+      R.diceImagenes = txt.indexOf('Im\\u00e1genes guardadas: 7') > -1;
+
+      /* ── Los tres botones, y lo que hacen ── */
+      const bots = (id, acc) => cont.querySelector('[data-clnk-eq="' + id + '"][data-clnk-acc="' + acc + '"]');
+      R.permitirEnPendiente = !!bots('eq_mal', 'permitir');
+      R.sinPermitirEnAutorizado = !bots('eq_ok', 'permitir');
+      R.bloquearEnAutorizado = !!bots('eq_ok', 'bloquear');
+      R.olvidarEnLosDos = !!bots('eq_mal', 'olvidar') && !!bots('eq_ok', 'olvidar');
+
+      await clnkAccionEquipo('eq_mal', 'permitir');
+      await new Promise(r => setTimeout(r, 700));
+      R.trasPermitir = (document.getElementById('cfg-clnk-equipos').textContent || '')
+                        .indexOf('Esperando tu decisi\\u00f3n') < 0;
+      await clnkAccionEquipo('eq_ok', 'bloquear');
+      await new Promise(r => setTimeout(r, 700));
+      R.trasBloquear = (document.getElementById('cfg-clnk-equipos').textContent || '')
+                        .indexOf('Bloqueado') > -1;
+      await clnkAccionEquipo('eq_mal', 'olvidar');
+      await new Promise(r => setTimeout(r, 700));
+      const t2 = document.getElementById('cfg-clnk-equipos');
+      R.trasOlvidar = t2.querySelectorAll('[data-clnk-apodo]').length === 1;
+
+      /* ── El apodo se edita, y vacio lo quita ── */
+      const ie = t2.querySelector('[data-clnk-apodo="eq_ok"]');
+      R.hayCampoApodo = !!ie;
+      if (ie) {
+        ie.value = 'GE del consultorio';
+        await clnkAccionEquipo('eq_ok', 'apodo');
+        await new Promise(r => setTimeout(r, 700));
+        R.apodoPuesto = (document.getElementById('cfg-clnk-equipos').textContent || '')
+                          .indexOf('GE del consultorio') > -1;
+        const ie2 = document.getElementById('cfg-clnk-equipos').querySelector('[data-clnk-apodo="eq_ok"]');
+        if (ie2) {
+          ie2.value = '   ';
+          await clnkAccionEquipo('eq_ok', 'apodo');
+          await new Promise(r => setTimeout(r, 700));
+          const t3 = document.getElementById('cfg-clnk-equipos').textContent || '';
+          R.apodoQuitado = t3.indexOf('GE del consultorio') < 0 && t3.indexOf('EQUIPO_B') > -1;
+        }
+      }
+
+      /* ── Sin equipos: lo DICE ── */
+      await ctl({ equipos: [] });
+      await clnkLeerEquipos();
+      await new Promise(r => setTimeout(r, 600));
+      R.sinEquipos = (document.getElementById('cfg-clnk-equipos').textContent || '')
+                       .indexOf('Esperando equipos') > -1;
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; window.confirm = confOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['DENOMINADOR: la lista se ve',                       R.visible, R.visible],
+      ['DENOMINADOR: pinto los DOS equipos',               R.cajas === 2, 'cajas=' + R.cajas],
+      ['CERO ejecuciones del payload',                     R.xss === 0, R.xss],
+      ['CERO img inyectados',                              R.imgsInyectadas === 0, R.imgsInyectadas],
+      ['CERO atributos onerror',                           R.conOnerror === 0, R.conOnerror],
+      ['CERO atributos de evento en la lista',             R.conEventos === 0, R.conEventos],
+      ['el payload se ve como TEXTO literal',              R.comoTexto, 'largo=' + R.largo],
+      ['el apodo va dentro de un bdi',                     R.apodoEnBdi, 'bdi=' + R.nBdi],
+      ['y el AET tambien',                                 R.aetEnBdi, R.aetEnBdi],
+      ['CONTROL NEGATIVO: sin apodo se muestra el AET',    R.sinApodoMuestraAet, R.sinApodoMuestraAet],
+      ['el estado se dice con palabras: esperando',        R.diceEspera, R.diceEspera],
+      ['y autorizado',                                     R.diceAutorizado, R.diceAutorizado],
+      ['y la cantidad de imagenes',                        R.diceImagenes, R.diceImagenes],
+      ['Permitir solo en el pendiente',                    R.permitirEnPendiente && R.sinPermitirEnAutorizado,
+        'pend=' + R.permitirEnPendiente + ' aut=' + R.sinPermitirEnAutorizado],
+      ['Bloquear en el autorizado',                        R.bloquearEnAutorizado, R.bloquearEnAutorizado],
+      ['Olvidar en los dos',                               R.olvidarEnLosDos, R.olvidarEnLosDos],
+      ['permitir lo saca de esperando',                    R.trasPermitir, R.trasPermitir],
+      ['bloquear lo deja bloqueado',                       R.trasBloquear, R.trasBloquear],
+      ['olvidar lo saca de la lista',                       R.trasOlvidar, R.trasOlvidar],
+      ['hay campo de apodo',                               R.hayCampoApodo, R.hayCampoApodo],
+      ['el apodo se guarda',                               R.apodoPuesto, R.apodoPuesto],
+      ['y vacio lo QUITA, volviendo al AET',               R.apodoQuitado, R.apodoQuitado],
+      ['sin equipos lo dice',                              R.sinEquipos, R.sinEquipos]
+    ] };
+  })();
+`);
+
+caso('TC-838', 'Datos para el ecografo: las tres cosas, TODAS las direcciones, la probable y la 169.254', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      await ctl({ reset: true });
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 400));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 900));
+
+      const cont = () => document.getElementById('cfg-clnk-conexion');
+      R.visible = cont() ? getComputedStyle(cont()).display !== 'none' : false;
+      let txt = cont() ? (cont().textContent || '') : '';
+      R.largo = txt.length;
+      R.dicePuerto = txt.indexOf('4242') > -1;
+      R.diceAet = txt.indexOf('PUENTE') > -1;
+      R.diceDir = txt.indexOf('192.168.1.23') > -1;
+      R.diceProbable = txt.indexOf('conviene darle al t\\u00e9cnico') > -1;
+      R.diceInterfaz = txt.indexOf('en7') > -1;
+      R.nCopiar = cont() ? cont().querySelectorAll('[data-clnk-copiar]').length : 0;
+
+      /* ── COPIAR: el valor va por el ATRIBUTO y no interpolado en un onclick ── */
+      const bc = cont().querySelector('[data-clnk-copiar="4242"]');
+      R.copiarTienePuerto = !!bc;
+      R.sinOnclickInline = cont() ?
+        Array.from(cont().querySelectorAll('[data-clnk-copiar]')).every(b => !b.getAttribute('onclick')) : false;
+      if (bc) {
+        toasts.length = 0;
+        bc.click();
+        await new Promise(r => setTimeout(r, 450));
+        R.copioODijo = toasts.join(' ').indexOf('Copiado: 4242') > -1 ||
+                       toasts.join(' ').indexOf('no dej\\u00f3 copiar') > -1;
+        R.toastCopiar = toasts.join(' | ');
+      }
+
+      /* ── VARIAS direcciones: salen TODAS, ninguna probable, y el aviso del conector ── */
+      await ctl({ conexion: { puerto_dicom: 4242, aet_puente: 'PUENTE', direcciones: [
+        { direccion: '192.168.1.23', interfaz: 'en7', probable: false },
+        { direccion: '10.0.0.5', interfaz: 'en0', probable: false }
+      ], aviso: 'Hay m\\u00e1s de una direcci\\u00f3n. Dale al t\\u00e9cnico la del cable que va al ec\\u00f3grafo.' } });
+      await clnkLeerConexion();
+      await new Promise(r => setTimeout(r, 600));
+      txt = cont().textContent || '';
+      R.lasDos = txt.indexOf('192.168.1.23') > -1 && txt.indexOf('10.0.0.5') > -1;
+      R.ningunaProbable = txt.indexOf('conviene darle al t\\u00e9cnico') < 0;
+      R.avisoDelConector = txt.indexOf('Hay m\\u00e1s de una direcci\\u00f3n') > -1;
+
+      /* ── Una 169.254: se EXPLICA que no sirve ── */
+      await ctl({ conexion: { puerto_dicom: 4242, aet_puente: 'PUENTE', direcciones: [
+        { direccion: '169.254.33.7', interfaz: 'en7', probable: false }
+      ], aviso: null } });
+      await clnkLeerConexion();
+      await new Promise(r => setTimeout(r, 600));
+      txt = cont().textContent || '';
+      R.muestra169 = txt.indexOf('169.254.33.7') > -1;
+      R.explica169 = txt.indexOf('se la asign\\u00f3 sola') > -1 &&
+                     txt.indexOf('a mano') > -1;
+
+      /* ── CONTROL NEGATIVO: sin la 169.254 NO aparece esa explicacion ── */
+      await ctl({ reset: true });
+      await clnkLeerConexion();
+      await new Promise(r => setTimeout(r, 600));
+      txt = cont().textContent || '';
+      R.sinExplicacionDeMas = txt.indexOf('se la asign\\u00f3 sola') < 0;
+
+      /* ── Ninguna direccion: lo DICE y no se rompe ── */
+      await ctl({ conexion: { puerto_dicom: 4242, aet_puente: 'PUENTE', direcciones: [],
+        aviso: 'La computadora no tiene ninguna direcci\\u00f3n de red.' } });
+      await clnkLeerConexion();
+      await new Promise(r => setTimeout(r, 600));
+      txt = cont().textContent || '';
+      R.sinDirecciones = txt.indexOf('no encontr\\u00f3 ninguna direcci\\u00f3n') > -1 ||
+                         txt.indexOf('no tiene ninguna direcci\\u00f3n') > -1;
+      R.sigueDiciendoPuerto = txt.indexOf('4242') > -1;
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                 !R.err, R.err],
+      ['DENOMINADOR: el bloque se ve',                    R.visible, R.visible],
+      ['DENOMINADOR: con texto',                          R.largo > 60, 'largo=' + R.largo],
+      ['dice el puerto DICOM',                            R.dicePuerto, R.dicePuerto],
+      ['dice el nombre (AET)',                            R.diceAet, R.diceAet],
+      ['dice la direccion',                               R.diceDir, R.diceDir],
+      ['y cual conviene darle al tecnico',                R.diceProbable, R.diceProbable],
+      ['y de que conexion es',                            R.diceInterfaz, R.diceInterfaz],
+      ['hay botones Copiar',                              R.nCopiar >= 3, 'n=' + R.nCopiar],
+      ['el valor va por el atributo, no en un onclick',   R.copiarTienePuerto && R.sinOnclickInline,
+        'attr=' + R.copiarTienePuerto + ' sinOnclick=' + R.sinOnclickInline],
+      ['Copiar copia o DICE que no pudo',                 R.copioODijo, R.toastCopiar],
+      ['con dos direcciones salen las DOS',               R.lasDos, R.lasDos],
+      ['y NINGUNA queda marcada como probable',           R.ningunaProbable, R.ningunaProbable],
+      ['y se muestra el aviso del conector',              R.avisoDelConector, R.avisoDelConector],
+      ['una 169.254 se muestra',                          R.muestra169, R.muestra169],
+      ['y se EXPLICA que no sirve hasta fijar una a mano', R.explica169, R.explica169],
+      ['CONTROL NEGATIVO: sin 169.254 no sale esa explicacion', R.sinExplicacionDeMas, R.sinExplicacionDeMas],
+      ['sin ninguna direccion lo dice',                   R.sinDirecciones, R.sinDirecciones],
+      ['y sigue dando el puerto',                         R.sigueDiciendoPuerto, R.sigueDiciendoPuerto]
+    ] };
+  })();
+`);
+
+caso('TC-839', 'Contra un conector 1.0 las dos rutas nuevas se ESCONDEN, no dan error', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+
+      /* ── PRIMERO EL CONTROL POSITIVO: contra 1.1 las dos partes SI estan. Sin esto, «se
+            esconden» pasaria tambien con un panel que nunca las muestra. ── */
+      await ctl({ reset: true });
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 400));
+      let inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 1000));
+      R.v11Conexion = getComputedStyle(document.getElementById('cfg-clnk-conexion')).display !== 'none';
+      R.v11Apodo = document.getElementById('cfg-clnk-equipos').querySelectorAll('[data-clnk-apodo]').length;
+      R.v11DiceVersion = ((document.getElementById('cfg-clnk-estado') || {}).textContent || '')
+                           .indexOf('1.1.0') > -1;
+
+      /* ── AHORA 1.0 ── */
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctl({ reset: true });
+      await ctl({ version: '1.0.0' });
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 400));
+      inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 1200));
+      const est = (document.getElementById('cfg-clnk-estado') || {}).textContent || '';
+      R.diceVersionVieja = est.indexOf('1.0.0') > -1;
+      R.conexionEscondida = getComputedStyle(document.getElementById('cfg-clnk-conexion')).display === 'none';
+      R.conexionVacia = (document.getElementById('cfg-clnk-conexion').textContent || '') === '';
+      /* el apodo NO se ofrece: la ruta no existe, y ofrecer un control que da 404 es peor */
+      const cont = document.getElementById('cfg-clnk-equipos');
+      R.sinCampoApodo = cont.querySelectorAll('[data-clnk-apodo]').length === 0;
+      /* pero la lista SI se muestra, con el AET en lugar del apodo que no viene */
+      R.listaVisible = getComputedStyle(cont).display !== 'none';
+      R.muestraAet = (cont.textContent || '').indexOf('GE_VIVID_01') > -1;
+      R.sinApodoViejo = (cont.textContent || '').indexOf('GE del consultorio') < 0;
+      /* y los botones de decision SIGUEN andando: son del contrato 1.0 */
+      R.botonesSiguen = !!cont.querySelector('[data-clnk-acc="permitir"]') &&
+                        !!cont.querySelector('[data-clnk-acc="bloquear"]') &&
+                        !!cont.querySelector('[data-clnk-acc="olvidar"]');
+      /* NINGUN mensaje de error por el 404 — ni en la tarjeta ni en un toast */
+      const card = document.getElementById('cfg-card-clnk').textContent || '';
+      R.sinError = card.indexOf('no pudo') < 0 && card.indexOf('No encontrado') < 0 &&
+                   card.indexOf('404') < 0;
+      R.sinToastDeError = toasts.filter(t => t.indexOf('\\u26a0') > -1 || t.indexOf('404') > -1).length === 0;
+      R.toasts = toasts.join(' | ').slice(0, 120);
+      /* y los ajustes, que SI son del 1.0, siguen ahi */
+      R.ajustesSiguen = getComputedStyle(document.getElementById('cfg-clnk-ajustes')).display !== 'none';
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['CONTROL POSITIVO 1.1: el bloque de conexion se ve',   R.v11Conexion, R.v11Conexion],
+      ['CONTROL POSITIVO 1.1: hay campo de apodo',            R.v11Apodo === 2, 'n=' + R.v11Apodo],
+      ['CONTROL POSITIVO 1.1: dice la version',               R.v11DiceVersion, R.v11DiceVersion],
+      ['1.0: dice la version vieja',                          R.diceVersionVieja, R.diceVersionVieja],
+      ['1.0: el bloque de conexion queda ESCONDIDO',          R.conexionEscondida, R.conexionEscondida],
+      ['y vacio',                                             R.conexionVacia, R.conexionVacia],
+      ['1.0: NO se ofrece editar el apodo',                   R.sinCampoApodo, R.sinCampoApodo],
+      ['pero la lista de equipos SI se ve',                   R.listaVisible, R.listaVisible],
+      ['con el AET en lugar del apodo',                       R.muestraAet, R.muestraAet],
+      ['y el apodo faltante se trata como vacio',             R.sinApodoViejo, R.sinApodoViejo],
+      ['los botones de decision siguen andando',              R.botonesSiguen, R.botonesSiguen],
+      ['CERO mensajes de error por el 404 en la tarjeta',     R.sinError, R.sinError],
+      ['CERO toasts de error',                                R.sinToastDeError, R.toasts],
+      ['y los ajustes, que son del 1.0, siguen',              R.ajustesSiguen, R.ajustesSiguen]
+    ] };
+  })();
+`);
+
+caso('TC-840', 'Ajustes: se validan EN PANTALLA antes de mandar, y el nombre avisa del reinicio', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const fetchOrig = window.fetch;
+    let puts = 0;
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetchOrig(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      await ctl({ reset: true });
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 400));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 1000));
+
+      const caja = document.getElementById('cfg-clnk-ajustes');
+      R.visible = caja ? getComputedStyle(caja).display !== 'none' : false;
+      const h = document.getElementById('cfg-clnk-horas');
+      const a = document.getElementById('cfg-clnk-aet');
+      const msg = () => (document.getElementById('cfg-clnk-amsg') || {}).textContent || '';
+      R.horasLeidas = h ? h.value : '';
+      R.aetLeido = a ? a.value : '';
+      R.topes = h ? (h.min === '1' && h.max === '72') : false;
+
+      /* ── LO QUE PRUEBA «EN PANTALLA»: se CUENTAN los PUT que salen. Con un valor fuera de
+            rango no tiene que salir NINGUNO — si saliera, la validacion la estaria haciendo el
+            conector y el aviso llegaria igual, o sea que mirar solo el mensaje no distingue. ── */
+      window.fetch = function (u, o) {
+        try { if (String(u).indexOf('/v1/ajustes') > -1 && o && o.method === 'PUT') puts++; } catch (e) {}
+        return fetchOrig.apply(this, arguments);
+      };
+
+      h.value = '0'; a.value = 'PUENTE';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 400));
+      R.msg0 = msg();
+      R.avisa0 = R.msg0.indexOf('1 a 72') > -1;
+      R.puts0 = puts;
+
+      h.value = '73';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 400));
+      R.avisa73 = msg().indexOf('1 a 72') > -1;
+      R.puts73 = puts;
+
+      h.value = '24,5';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 400));
+      R.avisaDecimal = msg().indexOf('entero') > -1;
+      R.putsDecimal = puts;
+
+      /* nombre invalido: minusculas y espacios */
+      h.value = '24'; a.value = 'mi puente';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 400));
+      R.msgAet = msg();
+      R.avisaAet = R.msgAet.indexOf('16 caracteres') > -1;
+      R.putsAet = puts;
+
+      /* ── AHORA UNO VALIDO: ahi SI sale el PUT ── */
+      h.value = '48'; a.value = 'PUENTE';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 700));
+      R.putsValido = puts;
+      R.msgOk = msg();
+      R.guardo = R.msgOk.indexOf('Guardado') > -1;
+      /* sin cambiar el nombre, NO avisa de reinicio */
+      R.sinReinicio = R.msgOk.indexOf('reinicia el receptor') < 0;
+      /* y lo guardado se relee */
+      await clnkLeerAjustes();
+      await new Promise(r => setTimeout(r, 500));
+      R.releeHoras = document.getElementById('cfg-clnk-horas').value === '48';
+
+      /* ── CAMBIAR EL NOMBRE: avisa del reinicio ── */
+      document.getElementById('cfg-clnk-aet').value = 'OTRO_AET';
+      await clnkGuardarAjustes();
+      await new Promise(r => setTimeout(r, 700));
+      R.msgReinicio = msg();
+      R.avisaReinicio = R.msgReinicio.indexOf('reinicia el receptor') > -1;
+      /* y el bloque de datos del ecografo se relee con el nombre nuevo, para que las dos
+         partes del panel no digan nombres distintos */
+      await new Promise(r => setTimeout(r, 600));
+      R.conexionAlDia = (document.getElementById('cfg-clnk-conexion').textContent || '')
+                          .indexOf('OTRO_AET') > -1;
+      await ctl({ reset: true });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.fetch = fetchOrig; } catch (e) {}
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['DENOMINADOR: el bloque de ajustes se ve',           R.visible, R.visible],
+      ['las horas se leen del conector',                    R.horasLeidas === '24', R.horasLeidas],
+      ['y el nombre tambien',                               R.aetLeido === 'PUENTE', R.aetLeido],
+      ['el campo declara el rango 1 a 72',                  R.topes, R.topes],
+      ['0 horas: lo avisa',                                 R.avisa0, R.msg0],
+      ['Y NO MANDA NINGUN PUT',                             R.puts0 === 0, 'puts=' + R.puts0],
+      ['73 horas: lo avisa',                                R.avisa73, R.avisa73],
+      ['sin mandar PUT',                                    R.puts73 === 0, 'puts=' + R.puts73],
+      ['un decimal: dice que tiene que ser entero',         R.avisaDecimal, R.avisaDecimal],
+      ['sin mandar PUT',                                    R.putsDecimal === 0, 'puts=' + R.putsDecimal],
+      ['nombre invalido: lo avisa',                         R.avisaAet, R.msgAet],
+      ['sin mandar PUT',                                    R.putsAet === 0, 'puts=' + R.putsAet],
+      ['CONTROL POSITIVO: con todo valido SI sale el PUT',  R.putsValido === 1, 'puts=' + R.putsValido],
+      ['y dice que guardo',                                 R.guardo, R.msgOk],
+      ['sin cambiar el nombre NO habla de reinicio',        R.sinReinicio, R.msgOk],
+      ['lo guardado se relee',                              R.releeHoras, R.releeHoras],
+      ['cambiar el nombre AVISA del reinicio',              R.avisaReinicio, R.msgReinicio],
+      ['y los datos del ecografo quedan al dia',            R.conexionAlDia, R.conexionAlDia]
+    ] };
+  })();
+`);
+
+/* == TC-841 · SUCESOR DE TC-231 — el modo entra al PREDICADO, el vuelo no aterriza y esconder
+      limpia ==================================================================================
+   Tres invariantes de MECANISMO que TC-833 no cubre, porque aquel mira SUPERFICIES.
+
+   1) clnkActivo() devuelve false en Modo Basico. Que el invariante lo sostengan dos condiciones
+      AND-eadas que coinciden en los consumidores de hoy no se ve desde la pantalla: se ve el dia
+      que aparece un tercero y recibe true por defecto.
+   2) Una lectura en vuelo NO escribe cuando el modo ya cambio. Se fuerza con un fetch retenido,
+      porque con red real la ventana es de milisegundos y el rojo seria intermitente -- que es
+      peor que no tener el caso. Es el token de generacion.
+   3) Esconder LIMPIA. Sin eso, volver a Avanzado repone la lectura vieja sin fecha y sin marca
+      de obsoleta, que ademas puede haber terminado DESPUES de que el modo la apagara.
+
+   DENOMINADORES DECLARADOS: que la lectura haya ARRANCADO, y que la del punto 3 haya salido
+   BIEN. Sin el primero, medir que no aterrizo es medir sobre nada. */
+caso('TC-841', 'CeiboLink: el modo entra al predicado, el trabajo en vuelo no aterriza, y esconder limpia', `
+  return (async () => {
+    /* DENOMINADOR DEL ARBOL. Sin el modulo de CeiboLink no hay nada que medir, y DECIRLO es
+       mejor que dejar que el primer acceso lance: una excepcion tapa a la siguiente, y las
+       condiciones de abajo saldrian en falso sin haber medido nada -- que es exactamente lo
+       que PANT-37 tuvo que deshacer en TC-827. Contra el arbol anterior este caso cae por
+       ESTA condicion, declarada, y no por un ReferenceError. */
+    if (typeof window.clnkToggle !== 'function' || typeof window.clnkRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modulo de CeiboLink', false,
+        'no existen clnkToggle/clnkRender: el panel no esta en este index.html']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const fetchOrig = window.fetch;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
+    const txt = () => { const e = document.getElementById('cfg-clnk-estado');
+                        return e ? (e.textContent || '') : ''; };
+    try {
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      R.encendido = localStorage.getItem('ett_ceibolink_on') === '1';
+
+      /* ── 1 · EL MODO ESTA DENTRO DEL PREDICADO, no AND-eado afuera ── */
+      R.activoAvanzado = clnkActivo();
+      cfgSetMode('basico');
+      R.activoBasico = clnkActivo();
+      R.discoIntacto = localStorage.getItem('ett_ceibolink_on');
+      cfgSetMode('avanzado');
+      R.activoVuelve = clnkActivo();
+
+      /* ── 2 · LO QUE ESTA EN VUELO NO ESCRIBE SOBRE OTRO MODO ──
+            El fetch se retiene y se suelta DESPUES de pasar a Basico. La respuesta trae datos
+            inconfundibles: si aterrizara, se verian. */
+      abrirConfig(); cfgSetMode('avanzado');
+      let soltar = null;
+      window.fetch = () => new Promise(res => { soltar = res; });
+      const p = clnkLeerEstado();
+      await new Promise(r => setTimeout(r, 30));
+      R.arranco = txt().indexOf('Preguntando a CeiboLink') >= 0;      // DENOMINADOR
+      cfgSetMode('basico');                                            // cambia MIENTRAS espera
+      if (soltar) soltar({ ok: true, status: 200, json: async () => ({
+        version: '9.9.9-ENVUELO', orthanc_vivo: true, imagenes_pendientes: 77,
+        equipos_esperando: 3, bytes_usados: 1, bytes_tope: 2, vinculado: true }) });
+      await p;
+      R.estadoVuelo = txt();
+      R.noAterrizo = R.estadoVuelo.indexOf('9.9.9-ENVUELO') < 0 &&
+                     R.estadoVuelo.indexOf('77') < 0;
+
+      /* ── 2b · y la capa lo DICE: la respuesta vuelve marcada como no vigente ── */
+      cfgSetMode('avanzado');
+      let soltar2 = null;
+      window.fetch = () => new Promise(res => { soltar2 = res; });
+      const p2 = clnkPedir('/v1/estado', {});
+      await new Promise(r => setTimeout(r, 30));
+      R.arranco2 = soltar2 !== null;                                   // DENOMINADOR
+      cfgSetMode('basico');
+      if (soltar2) soltar2({ ok: true, status: 200, json: async () => ({ version: '8.8.8' }) });
+      const r2 = await p2;
+      R.vigenteFalso = r2 && r2.vigente === false;
+      /* CONTROL POSITIVO: sin cambiar el modo, la misma llamada vuelve VIGENTE. Sin esto,
+         un vigente cableado en false pasaria igual. */
+      cfgSetMode('avanzado');
+      window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => ({ version: '7.7.7' }) });
+      const r3 = await clnkPedir('/v1/estado', {});
+      R.vigenteCierto = r3 && r3.vigente === true;
+
+      /* ── 3 · ESCONDER LIMPIA: la lectura vieja no resucita al volver ── */
+      window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => ({
+        version: '5.5.5-ORACULO', orthanc_vivo: true, imagenes_pendientes: 0,
+        equipos_esperando: 0, bytes_usados: 1, bytes_tope: 2, vinculado: false }) });
+      abrirConfig(); cfgSetMode('avanzado');
+      await clnkLeerEstado();
+      await new Promise(r => setTimeout(r, 120));
+      R.estadoOk = txt();
+      R.leyoBien = R.estadoOk.indexOf('5.5.5-ORACULO') >= 0;           // DENOMINADOR
+      cfgSetMode('basico');
+      R.estadoEnBasico = txt();
+      /* Se vuelve SIN dejar que la lectura automatica de cfgOnShow repinte: el fetch sigue
+         sustituido, asi que lo que se mide es si la salida VIEJA sobrevivio al escondite. */
+      window.fetch = () => new Promise(() => {});
+      cfgSetMode('avanzado');
+      R.estadoVuelta = txt();
+      R.limpio = R.estadoVuelta.indexOf('5.5.5-ORACULO') < 0;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 160); }
+    finally {
+      try { window.fetch = fetchOrig; } catch (e) {}
+      try { window.__clnkBaseTest = baseOrig;
+            if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+            else localStorage.setItem('ett_ceibolink_on', onOrig);
+            if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+            else localStorage.setItem('ett_ceibolink_token', tkOrig);
+            localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof cfgRenderModulos === 'function') cfgRenderModulos();
+            if (typeof clnkRender === 'function') clnkRender(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                              !R.err, R.err],
+      ['DENOMINADOR: CeiboLink quedo ENCENDIDO',       R.encendido, R.encendido],
+      ['AVANZADO: el predicado dice que SI',           R.activoAvanzado === true, R.activoAvanzado],
+      ['BASICO: el predicado dice que NO',             R.activoBasico === false, R.activoBasico],
+      ['y el modo NO toca la casilla del disco',       R.discoIntacto === '1', 'on=' + R.discoIntacto],
+      ['es REVERSIBLE: el predicado vuelve a SI',      R.activoVuelve === true, R.activoVuelve],
+      ['DENOMINADOR: la lectura ARRANCO',              R.arranco, R.arranco],
+      ['lo que estaba EN VUELO no escribio nada',      R.noAterrizo, String(R.estadoVuelo).slice(0, 90)],
+      ['DENOMINADOR: la segunda lectura ARRANCO',      R.arranco2, R.arranco2],
+      ['y la capa la devuelve marcada NO vigente',     R.vigenteFalso, R.vigenteFalso],
+      ['CONTROL POSITIVO: sin cambiar el modo SI es vigente', R.vigenteCierto, R.vigenteCierto],
+      ['DENOMINADOR: la 3a lectura salio BIEN',        R.leyoBien, String(R.estadoOk).slice(0, 90)],
+      ['BASICO vacia el estado',                       String(R.estadoEnBasico) === '', String(R.estadoEnBasico).slice(0, 60)],
+      ['esconder LIMPIA: no resucita al volver',       R.limpio, String(R.estadoVuelta).slice(0, 90)]
+    ] };
+  })();
+`);
+
+
 try {
   const s = await servir(); servidor = s.srv;
+  /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
+     suite tienen que correr igual -- los diez de ECO-CONECTOR-1 declaran su denominador. */
+  try { falso = await servirConectorFalso(); }
+  catch (e) { console.log('  conector falso: NO arranco (' + ((e && e.message) || e) + ')'); }
   chrome = await abrirChrome(`http://127.0.0.1:${s.port}/index.html`);
   const cdp = await conectar(chrome.wsUrl);
 
@@ -133002,6 +134314,25 @@ try {
   await ev(PRELUDIO + ' return 1;');
   // Cartel legal de arranque: tapa la pantalla y algunos click() del test.
   await ev(`try{ if (typeof cerrarAvisoEco==='function') cerrarAvisoEco(); }catch(e){} return 1;`);
+
+  /* ══ EL CONECTOR FALSO DE CeiboLink, PUBLICADO EN LA PAGINA ═══════════════════════════════
+     El panel de CeiboLink habla con 127.0.0.1:8043, que es una CONSTANTE del archivo y no un
+     campo: no hay forma de cambiarla desde la pantalla, y eso es a proposito. El arnes levanta
+     un conector falso en un puerto al azar y le pasa ese puerto a la pagina por
+     window.__CLNK_FAKE; cada caso lo aplica con window.__clnkBaseTest, que el modulo honra
+     SOLO si es loopback con puerto.
+     ⚠️ EL TOKEN NO VIAJA POR ACA. Se publican la direccion, el puerto cerrado a proposito y el
+     codigo de vinculacion, y nada mas: los casos que comprueban que el token no aparece en la
+     pantalla lo leen de localStorage, que es donde el modulo lo pone de verdad.
+     Si el falso no arranco no se publica nada, y los casos que lo necesitan lo DICEN en su
+     denominador en vez de medir sobre cero y pasar en verde. */
+  if (falso) {
+    await ev('window.__CLNK_FAKE = ' + JSON.stringify({
+      base: 'http://127.0.0.1:' + falso.port,
+      cerrado: 'http://127.0.0.1:' + falso.puertoCerrado,
+      codigo: falso.codigo,
+    }) + '; return 1;');
+  }
 
   const fecha = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
   console.log(L);
@@ -133118,6 +134449,7 @@ try {
   process.exitCode = 2;
 } finally {
   try { servidor && servidor.close(); } catch {}
+  try { falso && falso.srv.close(); } catch {}
   try { chrome && chrome.proc.kill(); } catch {}
   try { chrome && await rm(chrome.perfil, { recursive: true, force: true }); } catch {}
 }
