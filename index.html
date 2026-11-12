@@ -6269,13 +6269,174 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div id="cfg-modulos" style="display:none;"></div>
       </section>
 
-      <!-- ⚠️ ACÁ VIVÍA LA TARJETA «🔌 Conexión por red (DICOM)», Y SE RETIRÓ ENTERA
-           (ECO-CONECTOR-1): el campo de dirección editable, el botón «Verificar conexión», el
-           instructivo de arranque de Orthanc y el bloque de datos para el ecógrafo. Hablaba con
-           un Orthanc que el médico tenía que instalar y configurar a mano en su propia
-           máquina, y esa
-           conexión nunca le funcionó. En su lugar va la tarjeta de CeiboLink, que llega en el
-           commit 3 de esta misma tanda. -->
+      <!-- ══ CeiboLink ══════════════════════════════════════════════════════════════════════
+           ACÁ VIVÍA LA TARJETA «🔌 Conexión por red (DICOM)», que hablaba con un Orthanc
+           directo en `localhost:8042`, y SE RETIRÓ ENTERA (ECO-CONECTOR-1): el campo de
+           dirección, el botón «Verificar conexión», el instructivo de arranque, el botón
+           «🔍 Buscar en Orthanc» de la pestaña Imágenes, su overlay de estudios y las cuatro
+           claves de localStorage. Esa conexión nunca le funcionó al médico, y además le pedía
+           administrar un servidor DICOM. Hoy Orthanc vive ADENTRO de CeiboLink y el médico no
+           lo ve: no hay nada que configurar ni ninguna ruta de este canal que lo exponga.
+
+           SÓLO SE VE EN MODO AVANZADO, y la visibilidad la gobierna `clnkRender()` —no una
+           regla CSS— porque el modo vive en localStorage y no en una clase del documento. Es la
+           MISMA regla que tenía la tarjeta vieja y no se encontró ninguna razón para cambiarla:
+           CeiboLink es una herramienta de instalación, y Modo Básico es «el estudio y nada
+           más». Va acá y no en `applyViewMode()` para que el módulo se gobierne a sí mismo:
+           aquella función maneja las FILAS DE PESTAÑAS y no sabe nada de las tarjetas de
+           Config. `cfgSetMode()` la llama para que apretar «Modo Básico» con Config abierto la
+           haga desaparecer en el acto, en vez de recién al reabrir la pestaña.
+
+           TODOS LOS ids VAN CON PREFIJO `cfg-`, y no es estilo: `guardarInforme` barre
+           `input[id]` de TODO el documento, y `cfg-` está en las DOS listas que lo excluyen
+           —`_noEsDelEstudio()` y `_CAMPOS_FUERA_DEL_ESTUDIO`—, así que ni el código de
+           vinculación ni las horas ni el nombre viajan dentro de `campos` de cada estudio, ni
+           al Excel, ni los cuenta `detectar_huerfanos`. Y ninguno termina en `-aviso` ni en
+           `-badge`, que son los barridos por sufijo de «Nuevo estudio» — es lo que PANT-30 pagó
+           con `doc-aviso`, donde ese barrido se llevó puesto el botón del aviso.
+
+           La casilla va con `onchange` y NUNCA con `onclick`: la regla táctil global matchea por
+           el ATRIBUTO (`[onclick]{min-height:44px}`) e inflaría la casilla a tres veces el alto
+           de su fila.
+
+           NO HAY CAMPO DE DIRECCIÓN, y es la diferencia de fondo con la tarjeta vieja: la
+           dirección es una constante de JS en un solo lugar. Ver el encabezado de `CLNK_BASE`
+           para por qué, y para cómo apuntan las pruebas a otro puerto sin agregar un campo. -->
+      <section class="cfg-card" id="cfg-card-clnk">
+        <div class="cfg-sec-title">🔗 CeiboLink</div>
+        <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+          <b>CeiboLink</b> es un programa que se instala en esta computadora. El ecógrafo le
+          manda las imágenes y EcoSmart las toma de ahí para adjuntarlas al informe. Las
+          imágenes pasan por tu computadora y <b>no salen a internet</b>: se quedan un rato y se
+          borran solas.
+        </p>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:9px;cursor:pointer;">
+          <input type="checkbox" id="cfg-clnk-on" onchange="clnkToggle(this.checked)">
+          <span>Activar CeiboLink</span>
+        </label>
+        <div id="cfg-clnk-cuerpo">
+
+          <!-- (b) Estado, con su luz. Se consulta al abrir el panel y con «Actualizar». Sin
+               sondeo periódico: eso es del paso siguiente. -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
+            <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
+                    onclick="clnkLeerEstado()">🔄 Actualizar</button>
+          </div>
+          <div id="cfg-clnk-estado" style="font-size:11.5px;line-height:1.55;margin-bottom:11px;"></div>
+
+          <!-- (c) Vinculación. El campo es de TEXTO y no `type=number`: un `number` deja pegar
+               signos y notación científica, y el filtro de dígitos tiene que correr igual. -->
+          <div id="cfg-clnk-bloque-vincular" style="margin-bottom:11px;">
+            <div style="font-size:12px;font-weight:700;margin:0 0 6px;">Vincular este navegador</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              <input type="text" id="cfg-clnk-codigo" placeholder="6 dígitos"
+                     inputmode="numeric" maxlength="6" autocomplete="off" spellcheck="false"
+                     oninput="clnkCodigoInput(this)"
+                     style="width:110px;font-size:13px;letter-spacing:2px;text-align:center;">
+              <button type="button" class="btn btn-primary" id="cfg-clnk-vincular-btn" disabled
+                      style="font-size:11.5px;padding:5px 13px;"
+                      onclick="clnkVincular()">Vincular</button>
+            </div>
+            <!-- PROVISORIO: dónde ve el médico el código está pendiente de decisión. El texto
+                 sale de `CLNK_TXT_DONDE_CODIGO`; este nodo lo recibe por `textContent` al
+                 pintar, y el marcador lo deja encontrable el día que se defina. -->
+            <div style="font-size:10.5px;color:var(--text2);line-height:1.5;"
+                 data-clnk-provisorio="codigo" id="cfg-clnk-donde"></div>
+            <div id="cfg-clnk-vmsg" style="font-size:11.5px;line-height:1.55;margin-top:6px;"></div>
+          </div>
+
+          <!-- (d) Desvincular. La frase aclara lo que el médico va a suponer mal: que esto
+               desconecta el ecógrafo. No: el ecógrafo sigue mandando a CeiboLink igual. -->
+          <div id="cfg-clnk-bloque-desvincular" style="display:none;margin-bottom:11px;">
+            <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
+                    onclick="clnkDesvincular()">Desvincular EcoSmart</button>
+            <div style="font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:5px;">
+              Corta la autorización de <b>este navegador</b> y nada más. El ecógrafo
+              <b>no</b> se desconecta: sigue mandando a CeiboLink como hasta ahora.
+            </div>
+          </div>
+
+          <!-- (e) (f) (g) · Los tres los pinta el JS y nacen OCULTOS: sin conector, o sin
+               vincular, no hay nada que mostrar, y tres bloques vacíos se leen como roto.
+               Contra un conector 1.0 el de conexión queda escondido para siempre, que es lo que
+               el contrato §7 manda. -->
+          <div id="cfg-clnk-conexion" style="display:none;margin-bottom:11px;"></div>
+          <div id="cfg-clnk-equipos" style="display:none;margin-bottom:11px;"></div>
+          <div id="cfg-clnk-ajustes" style="display:none;margin-bottom:11px;">
+            <div style="font-size:12px;font-weight:700;margin:0 0 6px;">Ajustes de CeiboLink</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              <span style="font-size:11.5px;color:var(--text2);min-width:132px;">Las imágenes esperan:</span>
+              <input type="number" id="cfg-clnk-horas" min="1" max="72" step="1"
+                     autocomplete="off" style="width:72px;font-size:12px;">
+              <span style="font-size:11.5px;color:var(--text2);">horas (de 1 a 72)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+              <span style="font-size:11.5px;color:var(--text2);min-width:132px;">Nombre de CeiboLink:</span>
+              <input type="text" id="cfg-clnk-aet" maxlength="16" autocomplete="off" spellcheck="false"
+                     style="width:150px;font-size:12px;">
+              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"
+                      onclick="clnkGuardarAjustes()">Guardar</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--text2);line-height:1.5;">
+              Pasadas esas horas, una imagen que nadie adjuntó se borra sola. El nombre es con el
+              que el ecógrafo ve a esta computadora: si lo cambiás, hay que cambiarlo también en
+              el ecógrafo.
+            </div>
+            <div id="cfg-clnk-amsg" style="font-size:11.5px;line-height:1.55;margin-top:6px;"></div>
+          </div>
+
+          <!-- (h) Ayuda plegable. TEXTOS PROVISORIOS: están escritos contra lo que el contrato
+               dice de la red, no contra un ecógrafo real, así que cada vía lleva su marca «a
+               confirmar con el ecógrafo real» y el marcador `data-clnk-provisorio="ayuda"`.
+               Nace plegada: son tres caminos y sólo uno le va a tocar al médico. -->
+          <div id="cfg-clnk-ayuda" style="margin-bottom:11px;" data-clnk-provisorio="ayuda">
+            <button type="button" class="btn btn-ghost" id="cfg-clnk-ayuda-btn"
+                    style="font-size:11.5px;padding:5px 11px;"
+                    onclick="clnkAyudaToggle()">▸ Cómo conectar el ecógrafo</button>
+            <div id="cfg-clnk-ayuda-cuerpo" style="display:none;margin-top:8px;font-size:11px;
+                 color:var(--text2);line-height:1.6;">
+              <p style="margin:0 0 4px;"><b>A confirmar con el ecógrafo real.</b> Estas tres vías
+                están escritas por adelantado: cuando se pruebe con el equipo del consultorio se
+                corrigen con lo que pase de verdad.</p>
+
+              <p style="margin:8px 0 3px;"><b>1 · Cable directo entre el ecógrafo y esta computadora</b></p>
+              <p style="margin:0 0 4px;">Es la más simple si los dos están en la misma sala y no
+                hay red. Con un cable de red entre los dos equipos hay que ponerle a cada uno una
+                dirección <b>fija, a mano</b>, de la misma familia: por ejemplo
+                <code>192.168.50.10</code> a esta computadora y <code>192.168.50.11</code> al
+                ecógrafo, los dos con máscara <code>255.255.255.0</code>. Después, en el ecógrafo
+                se carga el destino con los tres datos que muestra esta pantalla.</p>
+              <p style="margin:0 0 4px;">Si la dirección que aparece arriba empieza con
+                <b>169.254</b>, esa se la asignó sola la computadora porque nadie le dio una, y
+                <b>no sirve</b>: con esa el ecógrafo no la va a encontrar. Hay que fijar la
+                dirección a mano, como dice el párrafo anterior.</p>
+
+              <p style="margin:8px 0 3px;"><b>2 · Por la red del consultorio o del hospital</b></p>
+              <p style="margin:0 0 4px;">Si el ecógrafo y la computadora están enchufados a la
+                misma red, pedile a informática una <b>dirección fija</b> para esta computadora
+                —se dice «IP fija» o «reserva de DHCP»—. Sin eso, la dirección le puede cambiar
+                de un día para otro y el ecógrafo deja de encontrarla, con el mismo síntoma que
+                si estuviera apagada. Con la dirección fija, los tres datos de arriba se cargan
+                una vez y no se vuelven a tocar.</p>
+
+              <p style="margin:8px 0 3px;"><b>3 · Pendrive, como hasta ahora</b></p>
+              <p style="margin:0;">No hace falta nada de esto: en la pestaña <b>Imágenes</b>,
+                «Importar DICOM» sigue leyendo el pendrive del ecógrafo igual que siempre. Es la
+                vía que conviene mientras la red no esté resuelta, y sigue andando aunque
+                CeiboLink esté apagado.</p>
+            </div>
+          </div>
+
+          <!-- (i) Descargar: DESHABILITADO. Lleva `disabled` y además dice por qué, porque un
+               botón apagado sin motivo se lee como una falla de la app. -->
+          <div>
+            <button type="button" class="btn btn-ghost" id="cfg-clnk-descargar" disabled
+                    style="font-size:11.5px;padding:5px 11px;opacity:.55;cursor:default;"
+                    title="Todavía no está publicado para descargar">⬇ Descargar CeiboLink</button>
+            <span style="font-size:10.5px;color:var(--text2);margin-left:7px;">próximamente</span>
+          </div>
+        </div>
+      </section>
 
       <!-- Soporte y contacto — va ÚLTIMO y discreto: no interrumpe el flujo de configuración.
            Los enlaces los arma `cfgSoporteRender` porque el asunto lleva la versión sellada, que
@@ -172857,8 +173018,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-2200';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794445225034;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-2202';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794445353660;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -172944,7 +173105,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2200</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2202</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -173837,6 +173998,621 @@ function clnkMensajeError(estado, datos) {
   return delConector || 'CeiboLink no pudo completar el pedido.';
 }
 window.clnkMensajeError = clnkMensajeError;
+
+/* ══ Pintado ══════════════════════════════════════════════════════════════════════════════════
+   Todo lo que viene del conector entra con `textContent`, NUNCA con `innerHTML`. El apodo del
+   equipo es el único campo del contrato con texto que escribe una persona, y el propio contrato
+   avisa que el conector lo valida pero NO lo escapa: validar no es escapar. */
+function _clnkNodo(tag, css, txt) {
+  var e = document.createElement(tag);
+  if (css) e.style.cssText = css;
+  if (txt !== undefined && txt !== null) e.textContent = String(txt);
+  return e;
+}
+
+/* Un aviso con su barra de color. Mismo molde que el del panel viejo. */
+function _clnkAviso(cont, txt, color) {
+  if (!cont) return;
+  if (!txt) return;
+  var d = _clnkNodo('div',
+    'padding:6px 9px;border-radius:7px;background:var(--bg3);white-space:pre-line;' +
+    'line-height:1.5;border-left:3px solid ' + (color || 'var(--text2)') + ';', txt);
+  cont.appendChild(d);
+}
+
+/* La luz del estado. Un círculo de color más su rótulo; el color no es la única señal, porque
+   un círculo verde y uno rojo del mismo tamaño no se distinguen con un monitor mal calibrado ni
+   con un daltonismo rojo-verde. */
+function _clnkLuz(cont, color, rotulo, detalle) {
+  var f = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;');
+  f.appendChild(_clnkNodo('span',
+    'width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:' + color + ';'));
+  f.appendChild(_clnkNodo('b', 'font-size:12.5px;', rotulo));
+  if (detalle) f.appendChild(_clnkNodo('span', 'font-size:11.5px;color:var(--text2);', detalle));
+  cont.appendChild(f);
+  return f;
+}
+
+/* Fila «rótulo · valor · Copiar», con el valor por `data-clnk-copiar` y el manejador por
+   DELEGACIÓN. Nunca interpolado dentro de un `onclick`: ahí el escape NO protege, porque el
+   parser decodifica la entidad ANTES de compilar el manejador — y estos valores vienen de la
+   red, no son literales de este archivo. */
+function _clnkFila(cont, rotulo, valor, nota) {
+  var f = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;');
+  f.appendChild(_clnkNodo('span', 'font-size:11.5px;color:var(--text2);min-width:132px;', rotulo));
+  f.appendChild(_clnkNodo('code',
+    'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);', valor));
+  if (valor) {
+    var b = _clnkNodo('button', 'padding:3px 9px;font-size:11px;', 'Copiar');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.setAttribute('data-clnk-copiar', valor);
+    f.appendChild(b);
+  }
+  if (nota) {
+    f.appendChild(_clnkNodo('span',
+      'font-size:10.5px;color:var(--text2);flex-basis:100%;line-height:1.45;', nota));
+  }
+  cont.appendChild(f);
+}
+
+/* Copiar: UN listener delegado, registrado UNA vez. El panel se reconstruye en cada lectura,
+   así que enganchar por botón acumularía uno por pasada. Las dos vías —`navigator.clipboard`
+   exige contexto seguro y activación de usuario, así que falla más de lo que parece— y si
+   fallan las dos SE DICE: un «Copiar» que no copia y no avisa hace que el técnico cargue en el
+   ecógrafo lo que había antes en el portapapeles. */
+if (!window._clnkCopiarCableado) {
+  window._clnkCopiarCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-clnk-copiar]') : null;
+    if (!b) return;
+    ev.preventDefault();
+    var txt = b.getAttribute('data-clnk-copiar') || '';
+    var ok = function () { if (typeof toast === 'function') toast('📋 Copiado: ' + txt); };
+    var falla = function () {
+      if (typeof toast === 'function') toast('⚠️ El navegador no dejó copiar. Seleccioná el valor a mano.');
+    };
+    var porTextarea = function () {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = txt; ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:-2000px;left:-2000px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select(); ta.setSelectionRange(0, txt.length);
+        var bien = document.execCommand && document.execCommand('copy');
+        document.body.removeChild(ta);
+        return !!bien;
+      } catch (e) { return false; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok)
+        .catch(function () { if (porTextarea()) ok(); else falla(); });
+    } else if (porTextarea()) { ok(); } else { falla(); }
+  });
+}
+
+/* ── (a) El interruptor ─────────────────────────────────────────────────────────────────────── */
+function clnkToggle(on) {
+  _clnkLS(CLNK_ON, on ? '1' : '0');
+  _clnkGen++;                     // apagar también invalida lo que esté en vuelo
+  clnkRender();
+  if (on) clnkLeerEstado();
+  if (typeof toast === 'function') {
+    toast(on ? '🔗 CeiboLink activado' : 'CeiboLink desactivado');
+  }
+}
+window.clnkToggle = clnkToggle;
+
+/* ── (b) El estado ──────────────────────────────────────────────────────────────────────────── */
+function _clnkBytes(n) {
+  var x = Number(n);
+  if (!isFinite(x) || x < 0) return '';
+  if (x < 1024 * 1024) return Math.round(x / 1024) + ' KB';
+  if (x < 1024 * 1024 * 1024) return (x / (1024 * 1024)).toFixed(0) + ' MB';
+  return (x / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+}
+
+function _clnkPlural(n, uno, varios) { return n === 1 ? ('1 ' + uno) : (n + ' ' + varios); }
+
+async function clnkLeerEstado() {
+  var cont = document.getElementById('cfg-clnk-estado');
+  if (!cont) return;
+  if (!clnkActivo()) { cont.textContent = ''; return; }
+  cont.textContent = '';
+  _clnkAviso(cont, 'Preguntando a CeiboLink…', 'var(--text2)');
+  var r = await clnkPedir('/v1/estado', {});
+  if (!r.vigente) return;         // el médico apagó o cambió de modo mientras esto volvía
+  cont = document.getElementById('cfg-clnk-estado');
+  if (!cont) return;
+  cont.textContent = '';
+  if (r.red) {
+    _clnkLuz(cont, 'var(--text2)', 'CeiboLink no responde', '');
+    _clnkAviso(cont, r.msg, 'var(--amber, var(--text2))');
+    /* Sin conector no hay nada que leer de las otras rutas: se esconden en vez de dejar cinco
+       bloques vacíos que parecen roto. */
+    _clnkEsconderDependientes();
+    return;
+  }
+  if (!r.ok) {
+    _clnkLuz(cont, 'var(--text2)', 'CeiboLink no contestó bien', 'código ' + r.estado);
+    _clnkAviso(cont, r.msg, 'var(--text2)');
+    _clnkEsconderDependientes();
+    return;
+  }
+  var d = r.datos || {};
+  var vinculado = clnkVinculado();
+  if (!vinculado) {
+    _clnkLuz(cont, 'var(--amber, #d98c00)', 'Sin vincular', 'CeiboLink está, falta autorizar este navegador');
+  } else {
+    _clnkLuz(cont, 'var(--green, #2e9e5b)', 'Conectado', '');
+  }
+  var l = _clnkNodo('div', 'font-size:11.5px;line-height:1.7;color:var(--text2);');
+  l.appendChild(_clnkNodo('div', '', 'Versión de CeiboLink: ' + String(d.version || '—')));
+  l.appendChild(_clnkNodo('div', '',
+    d.orthanc_vivo ? 'Listo para recibir imágenes del ecógrafo.'
+                   : 'NO está recibiendo imágenes: el receptor no responde.'));
+  l.appendChild(_clnkNodo('div', '',
+    'Imágenes esperando: ' + _clnkPlural(Number(d.imagenes_pendientes) || 0, 'imagen', 'imágenes')));
+  l.appendChild(_clnkNodo('div', '',
+    'Equipos esperando tu decisión: ' + (Number(d.equipos_esperando) || 0)));
+  var usa = _clnkBytes(d.bytes_usados), tope = _clnkBytes(d.bytes_tope);
+  if (usa && tope) l.appendChild(_clnkNodo('div', '', 'Espacio usado: ' + usa + ' de ' + tope));
+  cont.appendChild(l);
+  _clnkVersionVieja = String(d.version || '').indexOf('1.0.') === 0;
+  if (vinculado) {
+    clnkLeerConexion();
+    clnkLeerEquipos();
+    clnkLeerAjustes();
+  } else {
+    _clnkEsconderDependientes();
+  }
+  clnkRender();
+}
+window.clnkLeerEstado = clnkLeerEstado;
+
+function _clnkEsconderDependientes() {
+  ['cfg-clnk-conexion', 'cfg-clnk-equipos', 'cfg-clnk-ajustes'].forEach(function (id) {
+    var e = document.getElementById(id);
+    if (e) { e.textContent = ''; e.style.display = 'none'; }
+  });
+}
+
+/* ── (c) Vinculación ───────────────────────────────────────────────────────────────────────── */
+function clnkCodigoInput(el) {
+  /* Sólo dígitos, seis. Se valida EN PANTALLA antes de mandar: un código de cuatro cifras
+     gastaría uno de los cinco intentos que el conector permite antes de bloquearse un minuto. */
+  if (!el) return;
+  var v = String(el.value || '').replace(/[^0-9]/g, '').slice(0, 6);
+  if (v !== el.value) el.value = v;
+  var b = document.getElementById('cfg-clnk-vincular-btn');
+  if (b) b.disabled = (v.length !== 6);
+}
+window.clnkCodigoInput = clnkCodigoInput;
+
+async function clnkVincular() {
+  var inp = document.getElementById('cfg-clnk-codigo');
+  var msg = document.getElementById('cfg-clnk-vmsg');
+  if (!inp || !msg) return;
+  var cod = String(inp.value || '').replace(/[^0-9]/g, '');
+  msg.textContent = '';
+  if (cod.length !== 6) {
+    _clnkAviso(msg, 'El código son seis números.', 'var(--amber, var(--text2))');
+    return;
+  }
+  _clnkAviso(msg, 'Vinculando…', 'var(--text2)');
+  var r = await clnkPedir('/v1/vincular', { metodo: 'POST', cuerpo: { codigo: cod } });
+  if (!r.vigente) return;
+  msg = document.getElementById('cfg-clnk-vmsg');
+  if (!msg) return;
+  msg.textContent = '';
+  if (!r.ok) {
+    _clnkAviso(msg, r.msg, 'var(--amber, var(--text2))');
+    return;
+  }
+  var tk = r.datos && r.datos.token;
+  if (typeof tk !== 'string' || !tk) {
+    _clnkAviso(msg, 'CeiboLink aceptó el código pero no devolvió la autorización. Probá de nuevo.',
+               'var(--amber, var(--text2))');
+    return;
+  }
+  /* ⚠️ ACÁ Y NADA MÁS. El token se guarda y NO se escribe en ningún otro lado: ni en el aviso
+     de abajo, ni en el toast, ni en un atributo. El aviso dice que quedó vinculado, no con qué. */
+  _clnkLS(CLNK_TOKEN, tk);
+  inp.value = '';
+  clnkCodigoInput(inp);
+  _clnkAviso(msg, 'EcoSmart quedó vinculado con CeiboLink en este navegador. No hay que volver a ' +
+                  'hacerlo en esta computadora.', 'var(--green, #2e9e5b)');
+  if (typeof toast === 'function') toast('🔗 EcoSmart quedó vinculado con CeiboLink');
+  clnkRender();
+  clnkLeerEstado();
+}
+window.clnkVincular = clnkVincular;
+
+/* ── (d) Desvincular ───────────────────────────────────────────────────────────────────────── */
+async function clnkDesvincular() {
+  if (typeof confirm === 'function' &&
+      !confirm('¿Desvincular EcoSmart de CeiboLink en este navegador?\n\n' +
+               'Para volver a usarlo vas a necesitar un código nuevo. El ecógrafo NO se ' +
+               'desconecta: sigue mandando a CeiboLink como hasta ahora.')) return;
+  var msg = document.getElementById('cfg-clnk-vmsg');
+  var r = await clnkPedir('/v1/desvincular', { metodo: 'POST', conToken: true });
+  /* El token local se borra SIEMPRE, haya contestado o no: el médico pidió desvincular acá, y
+     dejarlo puesto porque el conector no estaba prendido es lo contrario de lo que pidió. */
+  _clnkBorrarToken();
+  _clnkGen++;
+  if (msg) {
+    msg.textContent = '';
+    _clnkAviso(msg, r.ok ? 'EcoSmart se desvinculó de CeiboLink.'
+                         : 'EcoSmart se desvinculó en este navegador. CeiboLink no contestó, así que ' +
+                           'puede seguir teniendo la autorización anotada: si querés, sacala desde CeiboLink.',
+               r.ok ? 'var(--green, #2e9e5b)' : 'var(--amber, var(--text2))');
+  }
+  if (typeof toast === 'function') toast('EcoSmart se desvinculó de CeiboLink');
+  _clnkEsconderDependientes();
+  clnkRender();
+  clnkLeerEstado();
+}
+window.clnkDesvincular = clnkDesvincular;
+
+/* ── (e) Datos para configurar el ecógrafo ─────────────────────────────────────────────────── */
+async function clnkLeerConexion() {
+  var cont = document.getElementById('cfg-clnk-conexion');
+  if (!cont) return;
+  var r = await clnkPedir('/v1/conexion', { conToken: true });
+  if (!r.vigente) return;
+  cont = document.getElementById('cfg-clnk-conexion');
+  if (!cont) return;
+  cont.textContent = '';
+  if (r.estado === 404) {
+    /* Conector 1.0: se esconde, no se avisa. */
+    cont.style.display = 'none';
+    return;
+  }
+  if (!r.ok) { cont.style.display = 'none'; return; }
+  cont.style.display = '';
+  var d = r.datos || {};
+  cont.appendChild(_clnkNodo('div',
+    'font-size:12px;font-weight:700;margin:0 0 7px;', 'Datos para configurar el ecógrafo'));
+  cont.appendChild(_clnkNodo('p', 'font-size:11px;color:var(--text2);margin:0 0 9px;line-height:1.5;',
+    'Dale estos tres datos a quien configure el ecógrafo. En el menú DICOM del equipo hay que ' +
+    'cargar un destino nuevo que apunte a esta computadora.'));
+  _clnkFila(cont, 'Puerto DICOM:', String(d.puerto_dicom == null ? '' : d.puerto_dicom), '');
+  _clnkFila(cont, 'Nombre (AET):', String(d.aet_puente || ''), '');
+  var dirs = Array.isArray(d.direcciones) ? d.direcciones : [];
+  if (!dirs.length) {
+    _clnkFila(cont, 'Dirección:', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.');
+  }
+  dirs.forEach(function (x) {
+    var dir = String((x && x.direccion) || '');
+    var iface = String((x && x.interfaz) || '');
+    var nota = iface ? ('Conexión «' + iface + '».') : '';
+    if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'Es la que conviene darle al técnico.';
+    _clnkFila(cont, 'Dirección:', dir, nota);
+  });
+  /* El aviso del conector, tal cual lo manda, cuando hay más de una dirección o ninguna. */
+  if (d.aviso) _clnkAviso(cont, String(d.aviso), 'var(--amber, var(--text2))');
+  /* Y la explicación de la dirección automática, que el médico no tiene por qué saber leer. Va
+     ADEMÁS del aviso del conector: aquél dice que pasa, éste dice qué hacer. */
+  var hayAuto = dirs.some(function (x) { return /^169\.254\./.test(String((x && x.direccion) || '')); });
+  if (hayAuto) {
+    _clnkAviso(cont,
+      'Una de las direcciones empieza con 169.254. Esa se la asignó sola la computadora porque ' +
+      'nadie le dio una, y NO le sirve al técnico: con esa dirección el ecógrafo no va a ' +
+      'encontrar esta computadora. Hay que fijarle una dirección a mano, como se explica abajo ' +
+      'en «Cable directo».', 'var(--amber, var(--text2))');
+  }
+}
+window.clnkLeerConexion = clnkLeerConexion;
+
+/* ── (f) Los equipos ───────────────────────────────────────────────────────────────────────── */
+var CLNK_ESTADOS = {
+  autorizado: ['Autorizado', 'var(--green, #2e9e5b)'],
+  pendiente:  ['Esperando tu decisión', 'var(--amber, #d98c00)'],
+  bloqueado:  ['Bloqueado', 'var(--red, #c0392b)']
+};
+
+/* La fecha del contrato viene en UTC con «Z». Se muestra en la hora de la computadora, que es
+   la que el médico reconoce; si no se entiende, se muestra el texto tal cual y no se inventa. */
+function _clnkFecha(iso) {
+  var s = String(iso || '');
+  if (!s) return '';
+  try {
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() +
+           ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  } catch (e) { return s; }
+}
+
+async function clnkLeerEquipos() {
+  var cont = document.getElementById('cfg-clnk-equipos');
+  if (!cont) return;
+  var r = await clnkPedir('/v1/equipos', { conToken: true });
+  if (!r.vigente) return;
+  cont = document.getElementById('cfg-clnk-equipos');
+  if (!cont) return;
+  cont.textContent = '';
+  if (!r.ok) { cont.style.display = 'none'; return; }
+  cont.style.display = '';
+  cont.appendChild(_clnkNodo('div', 'font-size:12px;font-weight:700;margin:0 0 7px;', 'Equipos'));
+  var lista = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  if (!lista.length) {
+    cont.appendChild(_clnkNodo('div', 'font-size:11.5px;color:var(--text2);line-height:1.5;',
+      'Esperando equipos…'));
+    return;
+  }
+  lista.forEach(function (eq) { _clnkFilaEquipo(cont, eq); });
+}
+window.clnkLeerEquipos = clnkLeerEquipos;
+
+function _clnkFilaEquipo(cont, eq) {
+  var id = String((eq && eq.id) || '');
+  var est = String((eq && eq.estado) || '');
+  var par = CLNK_ESTADOS[est] || [est || '—', 'var(--text2)'];
+  var caja = _clnkNodo('div',
+    'border:1px solid var(--bg3);border-radius:9px;padding:9px 10px;margin-bottom:8px;');
+
+  var linea = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;');
+  linea.appendChild(_clnkNodo('span',
+    'width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:' + par[1] + ';'));
+  /* ⚠️ EL APODO VA EN UN `bdi`, ADEMÁS DE `textContent`. Es texto libre que escribe una persona,
+     y con un carácter que da vuelta la lectura —el bidi override U+202E y sus parientes— la fila
+     del equipo A se puede LEER con el nombre y la dirección del equipo B. Y ésta es justo la
+     fila donde el médico decide permitir o bloquear. `textContent` impide que se EJECUTE;
+     `bdi` impide que se LEA al revés, que es un problema distinto y no lo arregla escapar.
+     El conector dice que rechaza esos caracteres, pero validar no es escapar y una versión
+     futura puede dejar de rechazarlos: el aislamiento va de este lado. */
+  var apodo = (eq && eq.apodo != null) ? String(eq.apodo) : '';
+  var nom = document.createElement('bdi');
+  nom.style.cssText = 'font-size:12.5px;font-weight:700;';
+  nom.textContent = apodo || String((eq && eq.aet) || id || 'Equipo');
+  linea.appendChild(nom);
+  linea.appendChild(_clnkNodo('span',
+    'font-size:10.5px;padding:1px 7px;border-radius:9px;background:var(--bg3);color:' + par[1] + ';',
+    par[0]));
+  caja.appendChild(linea);
+
+  var det = _clnkNodo('div', 'font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:6px;');
+  /* El AET también es texto que viene del equipo: `bdi` por el mismo motivo que el apodo. */
+  var aetL = _clnkNodo('div', '');
+  aetL.appendChild(_clnkNodo('span', '', 'Nombre que declara el equipo (AET): '));
+  var aetB = document.createElement('bdi');
+  aetB.textContent = String((eq && eq.aet) || '—');
+  aetL.appendChild(aetB);
+  det.appendChild(aetL);
+  det.appendChild(_clnkNodo('div', '',
+    'Imágenes guardadas: ' + (Number(eq && eq.imagenes) || 0)));
+  var f = _clnkFecha(eq && eq.ultimo_envio);
+  if (f) det.appendChild(_clnkNodo('div', '', 'Último envío: ' + f));
+  caja.appendChild(det);
+
+  /* El apodo se edita con `PUT /v1/equipos/{id}`, que NO existe en un conector 1.0: ahí la fila
+     de edición no se dibuja, en vez de ofrecer un control que va a dar 404. */
+  if (!_clnkVersionVieja) {
+    var fe = _clnkNodo('div', 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;');
+    fe.appendChild(_clnkNodo('span', 'font-size:11px;color:var(--text2);', 'Apodo:'));
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = apodo;
+    inp.maxLength = 40;
+    inp.placeholder = 'Como lo llamás vos';
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    inp.setAttribute('data-clnk-apodo', id);
+    inp.style.cssText = 'flex:1;min-width:130px;font-size:12px;';
+    fe.appendChild(inp);
+    var bg = _clnkNodo('button', 'padding:4px 10px;font-size:11px;', 'Guardar');
+    bg.type = 'button'; bg.className = 'btn btn-ghost';
+    bg.setAttribute('data-clnk-eq', id);
+    bg.setAttribute('data-clnk-acc', 'apodo');
+    fe.appendChild(bg);
+    fe.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);flex-basis:100%;',
+      'Vacío le quita el apodo. Es sólo una etiqueta: no cambia qué equipo es.'));
+    caja.appendChild(fe);
+  }
+
+  var bot = _clnkNodo('div', 'display:flex;gap:7px;flex-wrap:wrap;');
+  var mk = function (acc, txt, clase) {
+    var b = _clnkNodo('button', 'padding:4px 11px;font-size:11.5px;', txt);
+    b.type = 'button'; b.className = 'btn ' + (clase || 'btn-ghost');
+    b.setAttribute('data-clnk-eq', id);
+    b.setAttribute('data-clnk-acc', acc);
+    bot.appendChild(b);
+  };
+  if (est !== 'autorizado') mk('permitir', 'Permitir');
+  if (est !== 'bloqueado')  mk('bloquear', 'Bloquear');
+  mk('olvidar', 'Olvidar');
+  caja.appendChild(bot);
+  caja.appendChild(_clnkNodo('div', 'font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:5px;',
+    'Permitir deja pasar sus imágenes. Bloquear borra las que tenga guardadas y descarta lo que ' +
+    'mande después. Olvidar lo saca de la lista sin borrar nada: si vuelve a mandar, te pregunta ' +
+    'de nuevo.'));
+  cont.appendChild(caja);
+}
+
+if (!window._clnkEqCableado) {
+  window._clnkEqCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-clnk-acc]') : null;
+    if (!b) return;
+    ev.preventDefault();
+    clnkAccionEquipo(b.getAttribute('data-clnk-eq') || '', b.getAttribute('data-clnk-acc') || '');
+  });
+}
+
+async function clnkAccionEquipo(id, acc) {
+  if (!id || !acc) return;
+  var cont = document.getElementById('cfg-clnk-equipos');
+  var r;
+  if (acc === 'apodo') {
+    /* ⚠️ SE BUSCA RECORRIENDO Y NO CON UN SELECTOR ARMADO POR CONCATENACIÓN. El `id` lo da el
+       conector, así que no es un literal de este archivo: metido dentro de un selector de
+       atributo puede romper el selector o emparejar otro nodo, y `CSS.escape` es una pieza más
+       que puede faltar. Recorriendo y comparando el atributo, el valor del id no se interpreta
+       nunca. */
+    var inp = null, cs = document.querySelectorAll('[data-clnk-apodo]');
+    for (var i = 0; i < cs.length; i++) {
+      if (cs[i].getAttribute('data-clnk-apodo') === id) { inp = cs[i]; break; }
+    }
+    var v = inp ? String(inp.value || '').trim() : '';
+    /* Se valida EN PANTALLA antes de mandar: el contrato topa en 40 caracteres y rechaza los de
+       control. `maxLength` ya topa el tecleo, pero no un pegado en todos los navegadores. */
+    if (v.length > 40) {
+      if (typeof toast === 'function') toast('⚠️ El apodo admite hasta 40 caracteres.');
+      return;
+    }
+    r = await clnkPedir('/v1/equipos/' + encodeURIComponent(id),
+                        { metodo: 'PUT', conToken: true, cuerpo: { apodo: v } });
+    if (!r.vigente) return;
+    if (r.estado === 404 && _clnkVersionVieja) return;     // 1.0: no existe la ruta
+    if (!r.ok) { if (typeof toast === 'function') toast('⚠️ ' + (r.msg || 'No se pudo guardar el apodo.')); return; }
+    if (typeof toast === 'function') toast(v ? '✅ Apodo guardado' : '✅ Apodo quitado');
+    clnkLeerEquipos();
+    return;
+  }
+  if (acc === 'olvidar') {
+    if (typeof confirm === 'function' &&
+        !confirm('¿Sacar este equipo de la lista?\n\nNo se borra ninguna imagen. Si vuelve a ' +
+                 'mandar algo, te va a preguntar de nuevo.')) return;
+    r = await clnkPedir('/v1/equipos/' + encodeURIComponent(id), { metodo: 'DELETE', conToken: true });
+  } else if (acc === 'bloquear') {
+    if (typeof confirm === 'function' &&
+        !confirm('¿Bloquear este equipo?\n\nSe BORRAN las imágenes que tenga guardadas y se ' +
+                 'descarta todo lo que mande en adelante.')) return;
+    r = await clnkPedir('/v1/equipos/' + encodeURIComponent(id) + '/bloquear',
+                        { metodo: 'POST', conToken: true });
+  } else if (acc === 'permitir') {
+    r = await clnkPedir('/v1/equipos/' + encodeURIComponent(id) + '/permitir',
+                        { metodo: 'POST', conToken: true });
+  } else return;
+  if (!r.vigente) return;
+  if (!r.ok) {
+    if (cont) { var m = _clnkNodo('div', 'margin-top:7px;'); cont.appendChild(m); _clnkAviso(m, r.msg, 'var(--amber, var(--text2))'); }
+    if (typeof toast === 'function' && r.msg) toast('⚠️ ' + r.msg);
+    return;
+  }
+  if (typeof toast === 'function') {
+    toast(acc === 'permitir' ? '✅ Equipo permitido'
+        : acc === 'bloquear' ? '🚫 Equipo bloqueado' : 'Equipo olvidado');
+  }
+  clnkLeerEquipos();
+  clnkLeerEstado();
+}
+window.clnkAccionEquipo = clnkAccionEquipo;
+
+/* ── (g) Ajustes ───────────────────────────────────────────────────────────────────────────── */
+async function clnkLeerAjustes() {
+  var cont = document.getElementById('cfg-clnk-ajustes');
+  if (!cont) return;
+  var r = await clnkPedir('/v1/ajustes', { conToken: true });
+  if (!r.vigente) return;
+  cont = document.getElementById('cfg-clnk-ajustes');
+  if (!cont) return;
+  if (!r.ok) { cont.textContent = ''; cont.style.display = 'none'; return; }
+  cont.style.display = '';
+  var d = r.datos || {};
+  var h = document.getElementById('cfg-clnk-horas');
+  var a = document.getElementById('cfg-clnk-aet');
+  if (h) h.value = String(d.horas_retencion == null ? '' : d.horas_retencion);
+  if (a) a.value = String(d.aet_puente || '');
+  var m = document.getElementById('cfg-clnk-amsg');
+  if (m) m.textContent = '';
+}
+window.clnkLeerAjustes = clnkLeerAjustes;
+
+async function clnkGuardarAjustes() {
+  var h = document.getElementById('cfg-clnk-horas');
+  var a = document.getElementById('cfg-clnk-aet');
+  var m = document.getElementById('cfg-clnk-amsg');
+  if (!m) return;
+  m.textContent = '';
+  var horas = h ? Number(String(h.value || '').trim()) : NaN;
+  var aet = a ? String(a.value || '').trim() : '';
+  /* ⚠️ SE VALIDA EN PANTALLA ANTES DE MANDAR, y no es sólo cortesía: con 0 horas el conector
+     rechaza el pedido, pero el médico ya decidió un número que no existe. Decirlo acá, con el
+     rango, es más corto que un viaje de ida y vuelta. */
+  if (!Number.isInteger(horas) || horas < 1 || horas > 72) {
+    _clnkAviso(m, 'Las horas que las imágenes esperan tienen que ser un número entero de 1 a 72.',
+               'var(--amber, var(--text2))');
+    return;
+  }
+  if (!/^[A-Z0-9_-]{1,16}$/.test(aet)) {
+    _clnkAviso(m, 'El nombre de CeiboLink admite hasta 16 caracteres: letras sin tilde en ' +
+                  'mayúscula, números, guion y raya baja.', 'var(--amber, var(--text2))');
+    return;
+  }
+  _clnkAviso(m, 'Guardando…', 'var(--text2)');
+  var r = await clnkPedir('/v1/ajustes',
+    { metodo: 'PUT', conToken: true, cuerpo: { horas_retencion: horas, aet_puente: aet } });
+  if (!r.vigente) return;
+  m = document.getElementById('cfg-clnk-amsg');
+  if (!m) return;
+  m.textContent = '';
+  if (!r.ok) { _clnkAviso(m, r.msg, 'var(--amber, var(--text2))'); return; }
+  var txt = 'Guardado.';
+  if (r.datos && r.datos.reinicio_necesario) {
+    txt += ' Cambiar el nombre reinicia el receptor: por unos segundos no entran imágenes, y hay ' +
+           'que cargar el nombre nuevo en el ecógrafo.';
+  }
+  _clnkAviso(m, txt, 'var(--green, #2e9e5b)');
+  /* El nombre sale también en «Datos para configurar el ecógrafo»: se relee para que las dos
+     partes no digan nombres distintos. */
+  clnkLeerConexion();
+}
+window.clnkGuardarAjustes = clnkGuardarAjustes;
+
+/* ── El repintado ──────────────────────────────────────────────────────────────────────────── */
+function clnkRender() {
+  var card = document.getElementById('cfg-card-clnk');
+  /* La tarjeta ENTERA, no sólo el cuerpo: en Modo Básico no queda ni el título. */
+  if (card) card.style.display = _clnkModoAvanzado() ? '' : 'none';
+  var chk = document.getElementById('cfg-clnk-on');
+  if (chk) chk.checked = _clnkEncendido();   // refleja lo PERSISTIDO, no el modo
+  /* El texto provisorio de dónde ve el médico el código entra por `textContent` desde su
+     constante: así el día que se decida se cambia en UN lugar y no en el marcado. */
+  var dnd = document.getElementById('cfg-clnk-donde');
+  if (dnd) dnd.textContent = CLNK_TXT_DONDE_CODIGO;
+  var on = clnkActivo();
+  var cue = document.getElementById('cfg-clnk-cuerpo');
+  if (cue) cue.style.display = on ? '' : 'none';
+  var vin = clnkVinculado();
+  var bv = document.getElementById('cfg-clnk-bloque-vincular');
+  if (bv) bv.style.display = vin ? 'none' : '';
+  var bd = document.getElementById('cfg-clnk-bloque-desvincular');
+  if (bd) bd.style.display = vin ? '' : 'none';
+  var b = document.getElementById('cfg-clnk-vincular-btn');
+  var inp = document.getElementById('cfg-clnk-codigo');
+  if (b && inp) b.disabled = String(inp.value || '').replace(/[^0-9]/g, '').length !== 6;
+  /* Apagado o en Modo Básico se LIMPIA, por el mismo motivo escrito que tenía el panel viejo:
+     sin esto, volver a Avanzado repone una lectura vieja sin fecha y sin marca de obsoleta, que
+     además puede haber terminado DESPUÉS de que el modo la apagara. */
+  if (!on) {
+    var e = document.getElementById('cfg-clnk-estado');
+    if (e) e.textContent = '';
+    var vm = document.getElementById('cfg-clnk-vmsg');
+    if (vm) vm.textContent = '';
+    _clnkEsconderDependientes();
+  }
+}
+window.clnkRender = clnkRender;
+
+/* Se llama al ABRIR el panel, que es cuando importa, y con el botón «Actualizar». Sin sondeo
+   periódico: eso es del paso siguiente. */
+function clnkOnMostrar() {
+  clnkRender();
+  if (clnkActivo()) clnkLeerEstado();
+}
+window.clnkOnMostrar = clnkOnMostrar;
+
+function clnkAyudaToggle() {
+  var c = document.getElementById('cfg-clnk-ayuda-cuerpo');
+  var b = document.getElementById('cfg-clnk-ayuda-btn');
+  if (!c) return;
+  var abierto = c.style.display !== 'none';
+  c.style.display = abierto ? 'none' : '';
+  if (b) b.textContent = (abierto ? '▸' : '▾') + ' Cómo conectar el ecógrafo';
+}
+window.clnkAyudaToggle = clnkAyudaToggle;
 
 /* ══ Ayudantes genéricos que SOBREVIVEN al retiro del panel de Orthanc ════════════════════════
    Estos seis NO son de Orthanc: son de «meter un DICOM que llegó por la red en el estudio que

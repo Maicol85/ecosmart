@@ -14124,7 +14124,17 @@ caso('TC-161', 'Config no pierde ninguna de sus secciones ni sus controles', `
       'cfg-centro-nuevo','cfg-centros-lista','cfg-medico-nombre','cfg-medico-matricula',
       'cfg-medico-especialidad','cfg-medicos-lista','pltz-grid','pltz-nota','pdf-fmt-sel',
       'pltz-color2-row','pltz-color2-sw','cfg-guardar-imagenes','cfg-mode-basico','cfg-mode-avanzado',
-      'cfg-modulos','cfg-soporte'];
+      'cfg-modulos','cfg-soporte',
+      /* ECO-CONECTOR-1: los diecinueve de la tarjeta de CeiboLink. Van ACA y no en un caso
+         propio por el argumento que este caso ya tiene escrito: un control que desaparece
+         existe en la cabeza de quien edito y no en la pagina, y este es el inventario de
+         Config. getElementById los encuentra este el modo que este, asi que no hace falta
+         ponerlo en Avanzado -- la visibilidad la mide TC-833, que es otra pregunta. */
+      'cfg-clnk-on','cfg-clnk-cuerpo','cfg-clnk-estado','cfg-clnk-codigo','cfg-clnk-vincular-btn',
+      'cfg-clnk-vmsg','cfg-clnk-donde','cfg-clnk-bloque-vincular','cfg-clnk-bloque-desvincular',
+      'cfg-clnk-conexion','cfg-clnk-equipos','cfg-clnk-ajustes','cfg-clnk-horas','cfg-clnk-aet',
+      'cfg-clnk-amsg','cfg-clnk-ayuda','cfg-clnk-ayuda-btn','cfg-clnk-ayuda-cuerpo',
+      'cfg-clnk-descargar'];
     const faltan = IDS.filter(id => !document.getElementById(id));
     /* Y que sigan DENTRO de la tab: un id que quedo suelto en otra parte del documento existe
        para getElementById y es inalcanzable para el medico. */
@@ -14140,12 +14150,17 @@ caso('TC-161', 'Config no pierde ninguna de sus secciones ni sus controles', `
        escribio, que es el literal 53 otra vez. Y un conteo ademas es DEBIL: 7 sigue dando 7 si
        alguien borra una tarjeta y agrega otra. Por nombre, borrar una cae siempre y agregar
        una no molesta a nadie. */
+    /* ECO-CONECTOR-1: ocho, no siete. «Conexion por red (DICOM)» NUNCA estuvo en esta lista
+       -se agrego despues de que el caso se escribiera, que es justo lo que el parrafo de arriba
+       cuenta- asi que retirarla no movio nada aca; CeiboLink SI entra, porque desde hoy es una
+       seccion que no se puede perder. Por NOMBRE y no por conteo, por el mismo motivo. */
     const YA_ESTABAN = ['Institución y firma','Centros de trabajo','Médicos',
-      'Diseño del informe PDF','Imágenes del estudio','Modo de visualización','Soporte y contacto'];
+      'Diseño del informe PDF','Imágenes del estudio','Modo de visualización','Soporte y contacto',
+      'CeiboLink'];
     const perdidas = YA_ESTABAN.filter(t => !titulos.some(x => x.indexOf(t) > -1));
     return { extra: [
       ['la grilla de Config existe',                    !!grid],
-      ['no se perdio ninguna de las siete secciones',   perdidas.length === 0, perdidas.join(', ') || titulos.join(' | ')],
+      ['no se perdio ninguna de las ocho secciones',    perdidas.length === 0, perdidas.join(', ') || titulos.join(' | ')],
       ['y cada tarjeta del DOM es una seccion de verdad', cards.length >= YA_ESTABAN.length, cards.length],
       ['cada una tiene su titulo',                      titulos.every(t => t.length > 0), titulos.join(' | ')],
       ['ninguna quedo vacia',                           vacias === 0, vacias],
