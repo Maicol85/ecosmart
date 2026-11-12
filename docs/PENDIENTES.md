@@ -40,6 +40,157 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## ECO-CONECTOR-3 — el destino único de las imágenes (2026-11-12)
+
+### EC3-a · DECISIÓN DEL MÉDICO: un MP4/MOV no entra a un estudio GUARDADO
+
+La pregunta de destino acepta los cinco formatos que el importador reconoce por contenido, pero el
+sumidero del **estudio guardado** rechaza los videos con un mensaje que nombra la salida («abrí el
+estudio y usá «Importar imágenes y videos» desde la pestaña Imágenes»).
+
+**Por qué quedó afuera, medido**: los videos viven en `ceibomed_video`, indexada por estudio, y su
+único vínculo con el estudio es un slot con `videoId` que los referencia. `CeiboVideo.guardar(uuid,
+vids)` **reemplaza** el juego entero —igual que `CeiboImg.guardar`—, y `videoPersistir` lo arma
+leyendo `_videoBlobs` de los slots **en pantalla**. Agregar un video a un estudio que no está
+abierto obliga a: leer el juego anterior, concatenar, escribir, y además agregar al registro de
+imágenes un slot con su `videoId` y su póster. Son **tres** escrituras coordinadas en **dos** bases
+distintas, y la mitad de ese camino no tiene hoy ninguna prueba contra un estudio cerrado.
+
+**Desde CeiboLink esto no se alcanza**: el conector entrega sólo DICOM. Alcanza al pendrive.
+
+**Qué decidir**: si vale la pena, o si con abrir el estudio alcanza.
+
+---
+
+### EC3-b · DECISIÓN DEL MÉDICO: pasar al revés —del estudio abierto a la bandeja— quedó afuera
+
+La decisión 8 pedía medir primero cuánto costaba «sacar del estudio abierto lo que vino de CeiboLink
+y devolverlo a la bandeja», y si era estructural, dejarlo documentado. **Lo es**, y la medición es
+ésta: el campo `origen` de un slot **se normaliza al par cerrado `visor`/`estudio`** en la allowlist
+de `CeiboImg.guardar` —lo declaró EC2-a—, así que **una imagen guardada ya no sabe que vino del
+conector**. Para el viaje de vuelta haría falta un campo persistido nuevo en esa allowlist, y
+decidir qué pasa con lo ya guardado.
+
+**Lo que SÍ entró, y resuelve el problema del médico**: la asignación **desde la bandeja** a
+cualquier estudio. El error «lo adjunté al paciente equivocado» se corrige borrando la imagen del
+estudio equivocado y asignando el envío al correcto —la bandeja es donde la imagen espera—.
+
+**Qué decidir**: si hace falta además el viaje de vuelta, sabiendo que cuesta un campo persistido.
+
+---
+
+### EC3-c · DECISIÓN DEL MÉDICO: un tope de imágenes por envío
+
+Sigue abierta de EC2-e y esta tanda la mueve: ahora un cineloop **entero** puede entrar a un estudio
+o a la bandeja, y eso cambia el orden de magnitud. Medido en ECO-CONECTOR-2: una imagen de 16,8 MB
+deja un pico de **80,4 MB** y retiene **21,4 MB por casilla**. Un cineloop de 16 MB en la bandeja
+retiene sus 16 MB **en disco** y no en memoria, que es mejor, pero veinte de golpe son 320 MB de
+IndexedDB.
+
+**No se puso ningún tope**, y es la misma decisión de EC2-e: el retenido por casilla es el que la app
+ya tiene con el pendrive, y un tope cambiaría también la carga manual, que esta tanda tiene prohibido
+tocar. Lo que **sí** entró es que el peso **se dice** antes y después.
+
+---
+
+### EC3-d · Lo de la bandeja sigue fuera del respaldo
+
+Igual que en ECO-CONECTOR-2: `_bkExportar` exporta estudios y medios **por uuid**, y la bandeja no
+tiene uuid de estudio a propósito. Con el cineloop entero adentro, lo que no se respalda ahora puede
+ser decenas de MB. Es un depósito transitorio y no un registro clínico, pero hay que decirlo.
+
+---
+
+### EC3-e · El botón «💾 Guardar» del visor queda, escondido e inofensivo
+
+**El hallazgo**: existe (`cine-guardar`), y la regla `#cine-ov.cine-min [id$="cine-guardar"]` lo
+oculta en el **modo mínimo**, que es el modo en el que el visor **siempre** abre. Sólo aparece
+después de apretar «📏 Medir». Eso explica por qué el médico veía «Medir», «Capturar» y los controles
+de medición y no un botón de guardar — y por qué un cineloop importado desaparecía al cerrar el
+visor.
+
+**Se deja**, por tres razones: guardar ya **no depende** de él (el destino decide); `_cineEncolar` es
+idempotente, así que apretarlo sobre un cineloop ya encolado no hace nada; y retirarlo obliga a
+adaptar tres casos maduros —TC-233, TC-549 y el del modo mínimo— para cero ganancia. Lo que sí
+cambió es que ya no es el único camino.
+
+**Qué decidir**: si el médico quiere que además se vea, o que se vaya.
+
+---
+
+### EC3-f · El tope de píxeles crudos son 192 MB y es un número elegido
+
+`DCM_CRUDO_MAX = 192 * 1024 * 1024`. Por encima de eso un DICOM sin comprimir se rechaza **antes de
+tocar un canvas**, diciendo su tamaño. El número cubre los casos realistas con margen —un cineloop
+de 512×512 monocromo de 8 bits por 60 cuadros son 15,7 MB; uno de 800×600 en color por 100 cuadros
+son 144 MB— y deja afuera lo que no se puede dibujar sin voltear la pestaña.
+
+**No está medido contra un archivo real de ese tamaño**: no hay ninguno con qué probarlo. Lo que está
+medido es el camino completo con los fixtures sintéticos y el rechazo con un descriptor armado a
+mano. Si algún equipo manda algo entre 192 MB y lo que el navegador aguante, el médico recibe un
+rechazo que podría no haber hecho falta — y la imagen **sigue esperando en CeiboLink**, que es el
+lado seguro.
+
+---
+
+### EC3-g · La BE sin comprimir (Explicit VR Big Endian) no entra
+
+`1.2.840.10008.1.2.2` sigue en `ok:false` y se rechaza **por su nombre**. Su dataset va en orden de
+bytes invertido y **nada** del recorrido de `_dcmImgLeer` lo contempla: cada `getUint16(o, true)` y
+cada `getUint32` tendría que mirar la sintaxis. Es una sintaxis retirada del estándar desde 2006 y
+ningún ecógrafo moderno la usa. Rechazarla por nombre es honesto; adivinarla no.
+
+---
+
+### EC3-h · La carpeta vigilada de CeiboLink para formatos que no son DICOM
+
+Lo que la orden excluyó de esta tanda y queda anotado: que CeiboLink vigile una carpeta y entregue
+por el mismo canal JPG, PNG, BMP y MP4/MOV que un ecógrafo deje ahí. Del lado de EcoSmart **no hace
+falta nada nuevo**: `dstLeer` ya clasifica los cinco formatos por sus bytes y los tres sumideros ya
+los escriben. Lo que falta es del lado del conector.
+
+---
+
+### EC3-i · Los demás DICOM comprimidos siguen afuera, cada uno por su nombre
+
+RLE, JPEG Lossless, JPEG-LS, JPEG 2000, JPEG Extended de 12 bits, MPEG-2 y H.264. `DCMIMG_TS` los
+nombra uno por uno y el mensaje de rechazo **dice el nombre** y —desde CeiboLink— que la imagen
+sigue esperando. Ninguno se puede decodificar sin una biblioteca, que la orden prohíbe agregar.
+
+**Si alguna vez entra uno**, el lugar es el mismo: una entrada en `DCMIMG_TS` y una rama en
+`_dcmCrudoAFrags` que produzca `d.frags`. El resto de la app no se toca.
+
+---
+
+### EC3-j · Lo que esta tanda NO pudo cubrir
+
+1. **Los commits 2 a 6 de la orden fueron a UNO**, por las dependencias entre las piezas. Declarado
+   en el mensaje del commit.
+2. **La confirmación es por LISTA y no por imagen**: `_clnkPorConfirmar` no tiene mapa a cada
+   archivo, así que si una de varias escrituras falla, no se confirma **ninguna**. Es el lado seguro
+   y está declarado; un mapa por imagen obliga a atar cada id a su slot, y `imgCompressLoad` elige
+   slot dentro de su `.then()` —el argumento que EC2 ya escribió—.
+3. **La reapertura de un cineloop de la bandeja desde la propia bandeja** no existe: se asigna a un
+   estudio y se abre desde ahí. El formato guardado es el mismo que el del almacén de cineloops, así
+   que agregarlo es un botón y una llamada a `_cineDesdeRegistro`.
+4. **La vista de 16 bits de `_dcmCrudoAFrags` no está envuelta en un `try`**, y queda declarado con
+   su medición en vez de tocarlo después de verificar el árbol. `new Uint16Array(px.buffer,
+   px.byteOffset, …)` lanza si el desplazamiento es impar, y **no es alcanzable** con un archivo que
+   el recorrido acepte: el preámbulo son 128 bytes, todo elemento DICOM va a longitud par, y el
+   desplazamiento del valor es `o + 8` o `o + 12` sobre un `o` par. Un archivo con longitudes
+   impares rompe el recorrido **antes**, en el `if (!/^[A-Z]{2}$/.test(vr))`. Si algún día aparece
+   uno, la excepción sube hasta el manejador del botón de la pregunta de destino, que la traga con
+   un `console.warn`: el médico vería que **no pasa nada**, que es el peor de los avisos. Cerrarlo
+   son cuatro líneas —un `try` y el rango completo como respaldo— y se hace en la próxima tanda que
+   toque esa función, para no mover un árbol ya medido.
+5. **`docs/PENDIENTES.md` tiene ids REPETIDOS de tandas anteriores**: dos `G-b`, dos `G-d`, dos
+   `G-f`, dos `P13-c`, dos `P22-a` y la serie `AJ2-a` a `AJ2-e` duplicada. Los **diez de esta
+   tanda** (`EC3-a` a `EC3-j`) son únicos, verificado. No se renombraron los viejos: los nombra el
+   historial, los mensajes de commit y los mapas, y cambiarlos rompe referencias que ya están
+   escritas. Queda dicho.
+
+---
+
 ## ECO-CONECTOR-1 — el panel de CeiboLink (2026-11-11)
 
 > El mapa está en **`docs/mapa/ceibolink-panel.md`**. Lo que sigue es lo que quedó **abierto**:

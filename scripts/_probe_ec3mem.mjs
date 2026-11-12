@@ -30,6 +30,13 @@ const { srv, port } = await new Promise(res => {
   });
   s.listen(0,'127.0.0.1',()=>res({srv:s,port:s.address().port}));
 });
+const F = await servirConectorFalso({ origenes: 'http://127.0.0.1:' + port });
+/* `--enable-precise-memory-info` hace que performance.memory no venga redondeado a 100 MB, que
+   es lo que Chrome hace por omision para no filtrar informacion entre sitios. Sin esto, los
+   numeros de esta prueba saldrian todos iguales. */
+const nav = await _pw.chromium.launch({ channel: 'chrome',
+  args: ['--enable-precise-memory-info', '--js-flags=--expose-gc'] });
+const ctx = await nav.newContext({ viewport:{width:1280,height:900} });
 const pg = await ctx.newPage();
 await pg.goto('http://127.0.0.1:'+port+'/'+nom, { waitUntil:'load', timeout:120000 });
 await pg.waitForTimeout(2600);
@@ -79,7 +86,11 @@ const out = await pg.evaluate(`(async () => {
   o.colaMB = (function () {
     try {
       let n = 0;
-      (window._cinePendientes || []).forEach(p => (p.loop.d.frags || []).forEach(f => { n += f.length; }));
+      /* ** POR SU NOMBRE PELADO Y NO POR window: _cinePendientes es un let de nivel de script,
+         asi que vive en el ambito lexico global y window NO lo tiene. La primera version de esta
+         sonda leia window._cinePendientes, recibia undefined y publicaba 0 MB retenidos sobre una
+         cola que SI tenia el cineloop -- la misma trampa que _cm3d ya documenta. */
+      (_cinePendientes || []).forEach(p => (p.loop.d.frags || []).forEach(f => { n += f.length; }));
       return MB(n);
     } catch (e) { return -1; }
   })();

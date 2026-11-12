@@ -160,6 +160,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
+| **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
 | **Tocar el PANEL COMPACTO de CeiboLink** —la cabecera de dos renglones, los cuatro plegables nativos, el renglón de un equipo, el hueco de la grilla—, **el SONDEO**, **el AVISO de imágenes o de equipo nuevo** con su agrupación por tiempo, **ADJUNTAR al estudio** con su confirmación al guardar, **la BANDEJA de imágenes sin estudio**, o **la REGLA de nombre Y documento** y el aviso de espacio | `docs/mapa/ec2-aviso-bandeja.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
@@ -269,7 +270,26 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,85 MB / 177.121 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-2**, sobre el árbol ya sellado: sello **`v20261112-0158`**, md5 **`ec482b6d`**.
+  sin frameworks. Hoy **12,93 MB / 178.520 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-3**, sobre el árbol ya sellado: sello **`v20261112-1355`**, md5 **`e262aa4d`**.
+  El diff de ECO-CONECTOR-3 son **1.622 líneas agregadas y 223 quitadas** en `index.html`, medido
+  con `git diff --numstat` contra `bff56dc` **sobre el árbol ya sellado**, de las que **1.431** no
+  son comentario, con **cero** `innerHTML`, `eval(` y `new Function` nuevos —la única aparición de
+  `innerHTML` en el diff es el comentario que declara que todo lo que viene de CeiboLink y de un
+  estudio guardado entra por `textContent`—, **cero** claves y contraseñas, **cero** direcciones
+  nuevas y **CERO llamadas de red nuevas** —el único `fetch(` del diff está en el comentario que
+  explica por qué un `dataURL` se decodifica a mano—.
+  **CUATRO ids nuevos, contados sobre el diff**: `clnkav-b4`, `ig-bandeja`, `ig-bandeja-cnt` y
+  `ig-bandeja-lista`. **Ninguno** termina en `-aviso` ni en `-badge` y **ninguno** cae en ninguno de
+  los veintiún barridos por sufijo o prefijo del archivo. **CERO `input`, `select` y `textarea`
+  nuevos con `id`**, que es lo que deja todo lo de esta tanda fuera del censo del estudio y del
+  Excel **por construcción** y no por una lista: el buscador del selector de estudio guardado no
+  lleva `id` a propósito, y el bloque «Sin estudio» no tiene un solo control. **Excel en 457
+  columnas y cero campos guardados nuevos.**
+  ⚠️ **POR TRIGÉSIMA SEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show bff56dc:index.html` da **177.121** líneas,
+  **12.849.803** bytes y el md5 **`ec482b6d`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,85 MB / 177.121 al cierre de la tanda **ECO-CONECTOR-2**, sello **`v20261112-0158`**, md5 **`ec482b6d`**.)
   El diff de ECO-CONECTOR-2 son **1.521 líneas agregadas y 205 quitadas** en `index.html`, medido
   con `git diff --numstat` contra `8afba18` **sobre el árbol ya sellado**, de las que **1.300** no
   son comentario, con **cero**
@@ -1129,6 +1149,188 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda ECO-CONECTOR-3 (2026-11-12) — el destino único de las imágenes, el estudio guardado, el
+cineloop entero, la bandeja y el DICOM sin comprimir.** SEIS commits. Sello **`v20261112-1355`**,
+md5 **`e262aa4d`**, **178.520** líneas.
+ECO-CONECTOR-2 dejó el aviso, adjuntar al estudio abierto, la bandeja y la regla de paciente. El
+médico lo probó con CeiboLink de verdad y salieron **siete huecos de uso**, todos confirmados
+leyendo el código. Esta tanda los cierra y unifica la lógica. **Nada de esto llega al papel**: no
+escribe un campo del informe, no toca el EN SUMA, el PDF, el PPT ni el Excel, que queda en **457**
+columnas con **cero** campos guardados nuevos.
+**UNA PREGUNTA, CUATRO SALIDAS, TRES SUMIDEROS, Y NINGUNO ESCRITO DOS VECES.** Hasta esta tanda
+había **dos** entradas de imágenes que decidían el destino solas y de dos maneras distintas: el
+aviso de CeiboLink preguntaba entre tres salidas, y «Importar imágenes y videos» de Guardados metía
+los archivos en el formulario abierto **sin preguntar y sin guardarlos en ningún lado**. Hoy las dos
+usan `dstPreguntar` y las dos terminan en `dstAlActual`, `dstAGuardado` o `dstABandeja`.
+`clnkAdjuntarAlEstudio` y `clnkAdjuntarABandeja` **perdieron su cuerpo** y delegan: con dos cuerpos
+parecidos, «parecidos» es cómo una imagen entra distinto según de dónde vino.
+⚠️ **LA MARCA DE «PREGUNTAR» VIAJA EN UN ATRIBUTO DEL INPUT Y NO EN UNA VARIABLE DE MÓDULO**, por el
+mismo motivo por el que `origen` viaja por parámetro: el selector de archivos es asíncrono y el
+médico puede abrir uno desde Guardados y otro desde la pestaña Imágenes. Con una variable
+compartida, el segundo gesto heredaría la marca del primero. **Se consume al leerla.**
+⚠️ **LA PESTAÑA IMÁGENES NO PREGUNTA**, y es la decisión 1 con todas las letras: ahí el médico ya
+está parado adentro de un estudio. Preguntar en ese gesto sería el cuadro de diálogo que se aprende
+a cerrar sin leer, y el que se aprende a cerrar sin leer es el que no protege el día que importa.
+**EL AVISO CUENTA POR TIPO, SE ACTUALIZA Y SE POSTERGA.** `_clnkAvisoTexto` arma la frase en un solo
+lugar —usado por la apertura y por la actualización—, así que los números no pueden decir una cosa
+al abrir y otra al refrescarse. `_clnkAvisoGrupo` guarda el grupo que está en pantalla y, con más
+imágenes del mismo equipo dentro de la ventana de dos minutos, el **mismo cartel** pasa a decir los
+números nuevos con el título «Llegaron más». `CLNK_AV_BLOQUEANTES` pasa de cuatro a **seis**: entran
+el **visor de cineloop** y el **selector de estudio**.
+⚠️ **LAS ACCIONES SE REARMAN PRIMERO Y EL TÍTULO DESPUÉS, Y LO CAZÓ UN CASO Y NO LA LECTURA:**
+rearmar llama a `dstPreguntar`, que **reescribe** el título y el texto con los suyos, así que al
+revés el «Llegaron más» se perdía en el acto y el médico veía el mismo cartel con números nuevos sin
+una sola señal de que algo había cambiado. Lo destapó **TC-853 (F)**.
+**`CeiboImg.agregar(uuid, imgs)` VIVE DENTRO DE `CeiboImg`, Y NO ES UNA CUESTIÓN DE ORDEN**: la
+**allowlist** de campos y el `get` **antes** del `put` que conserva los esquemas son invariantes de
+ese almacén, y una segunda copia a veinte mil líneas de distancia es cómo se pierde un esquema el
+día que la lista cambie. **Al final y no intercalado**, porque `indice()` y `marcar()` acuerdan que
+el índice recorre primero los slots y después los esquemas: agregar al final deja quietos los
+índices de lo que ya estaba —las estrellas y las notas del médico siguen sobre la misma imagen— y
+empuja a los esquemas, que no tienen índice propio.
+**EL SELECTOR REUSA LOS DUEÑOS DEL ORDEN Y DE LA ETIQUETA DE MES —`getInformes`, `igCmpFecha` y
+`igMesLbl`— Y NO `igItemHTML`, y la decisión está medida**: esa función emite 34 líneas con **ocho**
+manejadores en línea que en modo elegir hacen lo que no hay que hacer, y su contenedor es un id fijo
+que ya está en pantalla. Reusar el pintor obligaba a enhebrar un modo por `igPintar`,
+`aplicarFiltros` e `igImgSync`, o sea a tocar la pantalla que el médico usa todos los días para una
+ventana de elegir. Lo que sí se reusa es de donde podrían divergir las dos listas.
+⚠️ **NI UN SOLO `id` EN SUS CAMPOS**: el censo del estudio y el Excel recorren `input[id]`, así que
+un campo con id entraría a las 457 columnas y a «Nuevo estudio» sin tener nada que ver con el
+paciente. Se alcanza por referencia.
+**SI EL ESTUDIO ELEGIDO ES EL QUE ESTÁ ABIERTO SE TRATA COMO «ACTUAL», Y LA RAZÓN ESTÁ MEDIDA**:
+mandarlo por el camino del guardado escribiría en disco imágenes que el formulario no tiene, y al
+guardar después, `CeiboImg.guardar` **reemplaza** `imgs` con lo que haya en `imgSlots` — o sea que
+las recién escritas **desaparecerían**.
+**EL BOTÓN «💾 Guardar» DEL VISOR EXISTE Y ESTÁ ESCONDIDO, Y ÉSE ERA EL DEFECTO.** Vive en
+`cine-guardar` y la regla `#cine-ov.cine-min [id$="cine-guardar"]` lo oculta en el **modo mínimo**,
+que es el modo en el que el visor **siempre** abre: sólo aparece después de apretar «📏 Medir». Eso
+explica exactamente por qué el médico veía «Medir», «Capturar» y los controles de medición y no un
+botón de guardar, y por qué un cineloop importado desaparecía al cerrar el visor. **Se deja
+inofensivo** —guardar ya no depende de él, `_cineEncolar` es idempotente, y retirarlo obliga a
+adaptar tres casos maduros para cero ganancia—. Declarado en **EC3-e**.
+**EL DESTINO ES LA DECISIÓN DE GUARDAR.** `dcmImgImportar` encola cada cineloop que importa y, si el
+estudio ya tiene uuid y el ajuste está encendido, lo escribe en el acto. Con el ajuste **apagado** se
+encola igual: `imgPersistir` sale antes de llegar a la cola, así que no se escribe nada —lo que el
+ajuste promete— y la cola le sirve a «Nuevo estudio» para avisar. **El peso se dice**, en MB.
+**LA TIRA MUESTRA LO ADJUNTADO QUE TODAVÍA NO ESTÁ EN DISCO**, con la clase `cinepend`, su peso y la
+nota «sin guardar», y se reabre desde ahí. Hasta esta tanda esa tira **sólo leía el disco**: un
+cineloop recién adjuntado no se veía en ninguna parte —no ocupa casilla— y no había **una sola**
+forma de volver a abrirlo.
+**SE CIERRA EL HUECO DEL RETURN TEMPRANO (decisión 6).** La confirmación vivía en el `.then` de
+`CeiboImg.guardar`, que está **debajo** de `if (!vivas.length && !_imgEditado)`: un estudio con
+**sólo** un cineloop de CeiboLink guardaba el cineloop y **nunca** confirmaba. Hoy el camino del
+return temprano espera la escritura de los cineloops y confirma, y el camino normal espera **las
+dos**. ⚠️ **Y SÓLO SI NO FALLÓ NINGUNO**: `_clnkPorConfirmar` es una lista de ids **sin mapa** a cada
+cineloop, así que confirmar «los que salieron» pediría borrar también el que no salió. **No
+confirmar de más cuesta que una copia sobreviva su plazo; confirmar de más cuesta la imagen.**
+**LA BANDEJA GUARDA EL CINELOOP ENTERO, Y VA A SU PROPIA BASE POR UNA RAZÓN MEDIDA SOBRE EL
+ARCHIVO**: `CeiboCine.recolectar(uuidsVivos)` **borra todo registro cuyo `uuid` no sea el de un
+estudio vivo**, y lo llama la limpieza que corre después de cualquier operación que cambie el
+conjunto de estudios. Un registro de bandeja ahí adentro lo destruiría el primer barrido, en
+silencio. Darle un uuid de estudio falso es peor: lo haría aparecer en la tira de ese estudio y en
+su PDF. **Se retiró `_clnkbBytesADataURL`**, que guardaba el **primer cuadro** y después confirmaba
+el borrado: los demás cuadros dejaban de existir en todo el mundo.
+**ESTÁ VISIBLE EN GUARDADOS** —el bloque «🗂 Sin estudio» dentro de «Imágenes guardadas», con
+cantidad por tipo, equipo, fecha y **peso**— y cada envío **se asigna** a un estudio con la misma
+pregunta adaptada. ⚠️ **El envío sale de la bandeja sólo si entró ENTERO**: uno partido entre la
+bandeja y un estudio es peor que uno entero en el lugar equivocado, que al menos se puede volver a
+asignar. **Sin espacio no se guarda, no se confirma y se dice con los números.**
+**EL DICOM SIN COMPRIMIR ENTRA POR EL MISMO CAMINO, Y NO HAY LECTOR NUEVO NI BIBLIOTECA.** Las dos
+sintaxis nativas pasan a `ok:true`; `_dcmImgLeer` gana el recorrido **implícito** —sin campo VR:
+etiqueta más longitud de 4 bytes—, su propio salto de secuencia, el pixel data **sin encapsular** y
+**siete** elementos del grupo 0028 que con el comprimido no hacían falta porque el JPEG se describe
+a sí mismo. `_dcmCrudoAFrags` dibuja cada cuadro y lo codifica a JPEG en `d.frags`, así que de ahí
+en adelante es **indistinguible** de uno comprimido. ⚠️ **La ventana de 16 bits es UNA para todo el
+archivo**: con una por cuadro un cineloop **parpadea**, porque cada cuadro se normaliza a su propio
+máximo y el brillo salta entre latidos. **El tope son 192 MB de píxeles crudos** y se rechaza
+**antes de tocar un canvas**, diciendo el tamaño; los formatos ajenos se siguen rechazando **por su
+nombre** y —desde CeiboLink— diciendo que la imagen **sigue esperando**. **La BE queda afuera**: su
+dataset va en orden de bytes invertido y nada del recorrido lo contempla.
+⚠️ **CINCO HIPÓTESIS DE LA ORDEN RESULTARON FALSAS O INCOMPLETAS, las cinco medidas.** (1) **El
+botón de guardar del visor EXISTE** —está escondido en el modo mínimo—. (2) **Un estudio guardado
+viejo SIEMPRE tiene uuid**: `_sanearIds` lo asigna de forma perezosa en el borde del store, por
+donde pasan todas las lecturas, y **fuerza una escritura** cuando lo hace; el camino sin uuid queda
+cubierto como borde y **lo dice**. (3) **`CeiboImg.leer(uuid)` devuelve el ARRAY de imágenes y no el
+registro**, y no trae los esquemas: tres de mis casos medían sobre **0/0** por eso, y los esquemas
+se cuentan por `indice()`. (4) **`_uuidValido` no exige la forma de un uuid**: pide de 8 a 64
+caracteres de `[A-Za-z0-9-]`, así que `'no-es-un-uuid'` **pasa**. (5) **La bandeja no podía ir a
+`ceibomed_cine`**, por el recolector.
+⚠️ **Y UNA TRAMPA DEL ÁMBITO LÉXICO QUE COSTÓ UN CASO EN VERDE SOBRE EL HUECO QUE VENÍA A CERRAR**:
+`_imgEditado` es un `let` de otro bloque, así que `window._imgEditado = false` crea una propiedad
+**nueva** que no lo tapa. La marca de un caso anterior seguía puesta y la medición se iba por el
+camino normal. Se vacía con **`imgVaciar`**, que es la puerta que lo apaga, y el denominador se mide
+**por la conducta**: que `imgPersistir` salga por el return temprano.
+**Cobertura: TC-852 a TC-861**, los diez cayendo **0/10** contra `bff56dc` **por su denominador
+declarado y NINGUNO por excepción**, verificado en un worktree con el mismo archivo de casos y sólo
+el `index.html` distinto. **TRES casos adaptados** —**TC-179**, con su condición **INVERTIDA**
+más una nueva; **TC-184**, con **tres** condiciones nuevas porque el aviso de «se guarda al guardar
+el estudio» pasó del botón del visor al **importador**; y **TC-847**, con tres cambios que lo dejan
+**más fuerte**—, los tres cayendo también contra la línea base, o sea que siguen discriminando;
+ninguno borrado y ninguno aflojado. **TC-161, TC-233 y TC-850 pasan SIN adaptar.**
+⚠️ **Y A TC-184 LO DESTAPÓ LA CORRIDA COMPLETA, NO EL CENSO**: pasaba aislado y salía rojo en su
+lote, porque el paso 1 —el del toggle apagado— ahora **también** encola y dejaba la cola con una
+entrada que el paso 2 contaba como suya. Es el modo de falla que este archivo ya documenta una
+decena de veces.
+**35/35 MUTACIONES DIRIGIDAS MUERTAS** en **1,4 min**, en un worktree y **nunca** sobre el vivo, con
+el md5 del vivo **idéntico** antes y después (`e262aa4d`), **cero sobrevivientes y cero que no
+aplicaran**, y las 35 anclas verificadas **ANTES** de correr. Las **siete** que la orden pide son la
+01 a la 07, en su orden.
+⚠️ **EL PRIMER BARRIDO DEJÓ SIETE SOBREVIVIENTES Y SE REPARTIERON EN DOS CLASES.** **Seis huecos
+reales de cobertura**, cerrados con condiciones nuevas y **sin aflojar una sola mutación**: que
+olvidar el grupo al cerrar **protege al aviso de equipo nuevo** —el daño no estaba donde se veía:
+con el aviso cerrado la rama de actualización no corre, pero el de equipo nuevo pone el booleano en
+verdadero y **no** pone grupo, así que un grupo viejo le reescribe el título encima y el médico
+pierde la pregunta que desbloquea sus imágenes—; que la imagen **preexistente** conserve su índice,
+que «quedan tres» no podía ver; que el cineloop se encole **al importarlo** y no sólo al llamar a la
+cola a mano; que la bandeja **no confirme** cuando la escritura falla **teniendo algo que escribir**;
+que la **ventana de 16 bits estire el rango**, medido decodificando el cuadro producido y mirando su
+máximo; y que el mensaje que **el médico lee** nombre el formato, que es otra cosa que el nombre
+crudo que devuelve el lector. **Una mal escrita y equivalente**: la de los píxeles crudos se
+insertaba **antes** de la línea que los suelta, así que esa línea la deshacía.
+⚠️ **Y POR CUARTA VEZ EN DOS TANDAS UNA ESCENA NEUTRALIZÓ SU PROPIA MUTACIÓN POR EL MISMO MOTIVO**:
+el aviso **no vuelve por las mismas imágenes en la misma sesión**, y la suite corre los 869 casos en
+UNA página. Para que la rama de actualización se ejercite, el grupo tiene que **existir** —sus ids
+sin avisar— y tiene que poder **crecer**. El conector falso terminó con tres escenas de ids propios:
+`unaSuelta`, `unaSuelta2` y `mixto2`.
+**EL CENSO, MEDIDO EN EL NAVEGADOR EN LOS DOS ÁRBOLES Y CON SU TRAMPA DECLARADA**: **381** claves en
+el mapa del Excel del Laboratorio, **1132** controles con `id` y **959** que entran al censo del
+estudio — **los tres idénticos a los dos lados**. El selector de estudio guardado agrega **un**
+control y **cero** con `id`, así que el conteo con ids no se mueve.
+⚠️ **Y LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ DOS VECES EL ÁRBOL VIVO**: su ruta por omisión es la
+absoluta del árbol real, así que correrla **desde** el worktree no alcanza. Los números salían
+idénticos —que es lo que la prueba quería afirmar— y lo delató el campo que pregunta si los cuatro
+ids nuevos EXISTEN: en el supuesto árbol base decían que sí. Es el mismo defecto que PANT-37 pagó
+con `_probe_ec2dos.mjs`, y es por lo que ese campo está en la sonda.
+**LA MEMORIA, MEDIDA con el caso NUEVO** —un multicuadro **sin comprimir** de 512×512 por 60
+cuadros, 15,7 MB de píxeles crudos que además hay que **dibujar** cuadro por cuadro y codificar a
+JPEG—: sobre una base de **27,1 MB**, adjuntarlo al **estudio abierto** pica en **72,2 MB** y vuelve
+a **30,8** tras «Nuevo estudio», con **3,7 MB** retenidos por la cola —los 60 cuadros ya
+comprimidos—. A la **bandeja** pica en **92,8-94,1 MB** y vuelve a **30,9**: lo guardado vive en
+disco y no en memoria, y leer el registro completo trae esos mismos 3,7 MB. **Los 15,7 MB de píxeles
+crudos se sueltan** en los dos caminos.
+⚠️ **Y EL RETENIDO POR LA COLA SE MIDIÓ MAL LA PRIMERA VEZ, por la misma trampa del ámbito léxico**:
+`_cinePendientes` es un `let` de nivel de script, así que `window._cinePendientes` es `undefined` y
+la sonda publicaba **0 MB** retenidos sobre una cola que **sí** tenía el cineloop.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo —el de más sobre la
+línea histórica de 125 sigue siendo el falso positivo de **EC1-j**, el nombre de la clave del
+token—. **Sin huérfanos nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea
+base. **CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base
+exacta, medida con la máquina sola.
+**Línea base al cierre: suite 866/869**, en **DIECISÉIS** lotes cubriendo los **869 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en UNA
+sola pasada sobre el árbol sellado, con los **869 ejecutados**, el md5 de `index.html` **idéntico**
+antes y después (`e262aa4d`) y el pendrive `DISK_IMG` verificado **dieciocho** veces: al abrir, en
+cada uno de los dieciséis lotes y al cerrar. Los rojos son **TC-376, TC-390 y TC-406**, los tres de
+siempre. **Ningún rojo nuevo**, y **los diez casos nuevos y los tres adaptados en verde**.
+⚠️ **ES LA SEGUNDA PASADA, Y LA PRIMERA NO SE INFORMA PORQUE EL ARCHIVO DE CASOS CAMBIÓ DESPUÉS**:
+dio **864/869** con dos rojos más, **TC-184** —que era mío y quedó adaptado— y **TC-764**. Esta casa
+no informa un número de una pasada hecha con un archivo de casos anterior.
+⚠️ **Y TC-764 SE CARACTERIZÓ COMO MANDA ESTA CASA, Y ES PREEXISTENTE**: pasa aislado, y corrido en
+**su** lote —el 15— contra `bff56dc`, con el mismo archivo de casos y la misma composición de lotes,
+sale **rojo igual**. No es de esta tanda; en la pasada final salió verde.
+Lo declarado, en **EC3-a** a **EC3-j**; el mapa, en `docs/mapa/ec3-destino-unico.md`; las fichas, en
+`docs/mapa/tests-fichas-852.md`; la guía manual, en `docs/GUIA_PRUEBA_EC3.md` (**14** pasos).
 
 **La tanda ECO-CONECTOR-2 (2026-11-12) — el panel compacto, el sondeo, el aviso, la bandeja y la
 regla de paciente.** CINCO commits. Sello **`v20261112-0158`**, md5 **`ec482b6d`**, **177.121** líneas.

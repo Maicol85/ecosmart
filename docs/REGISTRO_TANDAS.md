@@ -1,3 +1,80 @@
+## ECO-CONECTOR-3 — el destino único de las imágenes (2026-11-12)
+
+**CUATRO commits.** `4069171` (1, el conector falso aprende DICOM sin comprimir; no toca
+`index.html`) · `3ec04c0` (2, las cinco tareas de código, con el **sellado**) · `5d9b0ea` (3, los
+diez casos, los dos adaptados y el defecto que destaparon, con el **resellado**) · **éste** (4, la
+documentación, que no toca `index.html`).
+Línea base: **`bff56dc`**, el cierre de ECO-CONECTOR-2, sello `v20261112-0158`, md5 `ec482b6d`,
+**177.121** líneas, **verificado al abrir** con `git status`, `git log -1`, `wc -l`, `wc -c` y
+`md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras** y no había ningún
+archivo **rastreado** modificado —los `??` son demos y notas preexistentes—. **Suite de la línea
+base: 856/859**, los 859 ejecutados, md5 idéntico, pendrive verificado **dieciocho** veces, con los
+tres rojos de siempre (**TC-376, TC-390, TC-406**): la hipótesis de la orden se reprodujo exacta.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+### Qué hizo
+
+ECO-CONECTOR-2 dejó el aviso, adjuntar al estudio abierto, la bandeja y la regla de paciente. El
+médico lo probó con CeiboLink de verdad y salieron siete huecos de uso, todos confirmados leyendo el
+código. Esta tanda los cierra y unifica la lógica:
+
+1. **Una sola pregunta de destino**, con cuatro botones, para las **dos** entradas: el aviso de
+   CeiboLink y «Importar imágenes y videos» de Guardados. Un componente, cuatro salidas, tres
+   sumideros, ninguno escrito dos veces. La importación desde la pestaña Imágenes de un estudio
+   abierto sigue yendo directo.
+2. **El aviso cuenta por tipo**, se **actualiza** en el mismo cartel con más imágenes del mismo
+   envío dentro de la ventana de dos minutos, y se **posterga** también con el visor de cineloop o
+   el selector de estudio abiertos.
+3. **Adjuntar a un estudio guardado** existe: un selector con los mismos meses y el mismo orden que
+   Guardados, con buscador por nombre o documento. No pisa ningún dato del paciente, no se lleva los
+   esquemas, agrega al final y respeta el orden que `indice()` acuerda.
+4. **El cineloop se guarda entero y automático** con el estudio, sin ningún botón por imagen. La
+   tira «archivos del estudio» muestra lo adjuntado que todavía no está en disco, con su peso y
+   marcado «sin guardar», y se reabre desde ahí.
+5. **La confirmación a CeiboLink** se arregla: un estudio con **sólo** un cineloop también confirma
+   —el hueco del return temprano—, y no se confirma si alguna escritura falló.
+6. **La bandeja guarda el cineloop entero** y no el primer cuadro, está **visible en Guardados** en
+   un bloque «Sin estudio» con su peso, y cada envío se puede **asignar** a un estudio.
+7. **El DICOM sin comprimir entra**: Explicit e Implicit VR Little Endian, 8 y 16 bits, monocromo y
+   color, fija y multicuadro, por el mismo camino que el comprimido.
+
+**Nada de esto cambia el papel**: ni el informe, ni el EN SUMA, ni el PDF, ni el PPT, ni el Excel.
+
+### Lo que la orden suponía y no era
+
+- **El botón de guardar del visor EXISTE**: la orden decía que el médico sólo ve «guardar
+  mediciones». Está en `cine-guardar` y la regla `#cine-ov.cine-min [id$="cine-guardar"]` lo oculta
+  en el **modo mínimo**, que es el modo en el que el visor **siempre** abre. Queda inofensivo:
+  guardar ya no depende de él. Declarado en **EC3-e**.
+- **Un estudio guardado viejo SIEMPRE tiene uuid**: `_sanearIds` lo asigna de forma perezosa en el
+  borde del store, por donde pasan todas las lecturas, y fuerza una escritura cuando lo hace. No
+  hubo que inventar nada; el camino sin uuid queda cubierto como borde y **lo dice**.
+- **`CeiboImg.leer(uuid)` devuelve el ARRAY de imágenes y no el registro**, y no trae los esquemas.
+  Tres de mis casos medían sobre `0/0` por eso.
+- **`_uuidValido` no exige la forma de un uuid**: pide de 8 a 64 caracteres de `[A-Za-z0-9-]`.
+- **La bandeja no podía ir a `ceibomed_cine`**: `CeiboCine.recolectar` borra todo registro cuyo uuid
+  no sea de un estudio vivo. Medido sobre el archivo, y es lo que decidió la decisión 7.
+
+### Qué quedó afuera, a propósito
+
+**Los commits 2 a 6 de la orden fueron a UNO**, por las dependencias entre las piezas: la pregunta
+llama a los tres sumideros, dos de ellos comparten el lector y el escritor, la confirmación depende
+de lo que escriban, la tira muestra la cola que el cineloop alimenta, y el DICOM sin comprimir entra
+por el clasificador que los tres usan. Separarlas dejaba commits que no corren.
+
+Lo demás, en `docs/PENDIENTES.md` → **EC3-a** a **EC3-j**: el MP4/MOV a un estudio guardado, el
+viaje de vuelta del estudio a la bandeja (estructural, con su medición), el tope por envío, la
+bandeja fuera del respaldo, el botón del visor, el tope de 192 MB, la BE, la carpeta vigilada, los
+demás comprimidos y lo que no se pudo cubrir.
+
+### Dónde está todo
+
+`docs/mapa/ec3-destino-unico.md` (mapa **nuevo**) · `docs/mapa/tests-fichas-852.md` (las fichas de
+los diez) · `docs/GUIA_PRUEBA_EC3.md` (la guía manual, **14** pasos) · `docs/PENDIENTES.md` →
+**EC3-a** a **EC3-j**.
+
+---
+
 ## ECO-CONECTOR-1 — el panel de CeiboLink reemplaza al de Orthanc (2026-11-11)
 
 **CINCO commits.** `b756c6b` (1, retira el panel de Orthanc entero) · `1462e3f` (2, la capa de

@@ -20518,6 +20518,13 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
       R.noGuardaSinToggle = guardoOff === false;
       R.motivoToggle = dichos.join(' ');
       cineCerrar();
+      /* ** ADAPTADO EN ECO-CONECTOR-3: importar ENCOLA SOLO, tambien con el toggle apagado, y es
+         deliberado -- imgPersistir sale antes de llegar a la cola con ese ajuste en falso, asi que
+         no se escribe nada en disco (lo que el ajuste promete) y la cola le sirve a «Nuevo estudio»
+         para avisar que hay algo sin guardar. Se COMPRUEBA y se vacia, porque el paso 2 cuenta la
+         cola para medir otra cosa y sin esto arrastra la entrada de este paso. */
+      R.encolaConToggleOff = _cinePendientes.length === 1;
+      _cinePendientes = [];
 
       /* ── 2. toggle encendido pero SIN estudio guardado ── */
       localStorage.setItem(TOG, '1');
@@ -20525,12 +20532,20 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
          alfanumericos— asi que el estudio contaba como guardado y la condicion no probaba
          lo que decia probar. */
       await imgRestaurar('');                   // deja _imgUuidActual en null
-      await dcmImgImportar([new File([u], P.loop.nombre)]);
       dichos.length = 0;
+      /* ** ADAPTADO EN ECO-CONECTOR-3, Y QUEDA MAS FUERTE. El aviso de «se guarda al guardar el
+         estudio» ya NO sale de apretar el boton del visor: sale del IMPORTADOR, porque el destino
+         es la decision de guardar y el boton dejo de ser el unico camino -- y de hecho esta
+         escondido en el modo minimo, que es como el visor siempre abre. Asi que los toasts se
+         capturan alrededor de la IMPORTACION, y ademas se exige que apretar el boton despues NO
+         duplique la entrada en la cola. */
       const toastReal184 = window.toast; const toasts184 = [];
       window.toast = m => { toasts184.push(String(m)); };
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      R.encoloSolo = _cinePendientes.length === 1;
       const guardoSinUuid = await cineGuardarActual();
       window.toast = toastReal184;
+      R.noDuplica = _cinePendientes.length === 1;
       R.noGuardaSinEstudio = guardoSinUuid === false;
       /* ⚠️ CAMBIO DE COMPORTAMIENTO A PROPOSITO (2026-09-23): sin uuid ya NO sale un alert que
          manda a guardar el estudio y se pierde el gesto — el cineloop queda ENCOLADO y se
@@ -20685,7 +20700,10 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
       ['con el toggle APAGADO no se guarda nada',        R.noGuardaSinToggle, R.noGuardaSinToggle],
       ['y el aviso dice que falta el toggle',            R.motivoToggle.indexOf('Config') > -1, R.motivoToggle.slice(0,110)],
       ['sin estudio guardado tampoco',                   R.noGuardaSinEstudio, R.noGuardaSinEstudio],
+      ['con el toggle apagado SE ENCOLA igual, sin escribir', R.encolaConToggleOff, R.encolaConToggleOff],
+      ['importar lo ENCOLA solo, sin apretar nada',      R.encoloSolo, R.encoloSolo],
       ['y avisa que se guarda al guardar el estudio',    R.motivoEstudio.indexOf('al guardar el estudio') > -1, R.motivoEstudio.slice(0,110)],
+      ['apretar el boton del visor NO lo duplica',       R.noDuplica, R.noDuplica],
       ['dejandolo ENCOLADO, no perdido',                 R.encolo, R.encolo],
       ['con las dos condiciones, guarda solo al importar', R.autoGuardo, R.autoGuardo],
       ['queda un registro con sus cuadros',              R.hayRec && R.cuadros > 1, R.cuadros],

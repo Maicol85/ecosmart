@@ -400,3 +400,31 @@ Las fichas de los diez están en **`docs/mapa/tests-fichas-842.md`** (archivo pr
 **Seis adaptados:** TC-833, TC-834, TC-837, TC-838, TC-839 y TC-841, cada uno con su decisión
 escrita en el lugar donde vive la condición. **TC-161 pasa sin adaptar**, porque los diecinueve
 ids de ECO-CONECTOR-1 se conservaron a propósito.
+
+---
+
+## ECO-CONECTOR-3 (2026-11-12) — TC-852 a TC-861
+
+Las fichas están en **`docs/mapa/tests-fichas-852.md`** (archivo propio: `tests-fichas-842.md` ya
+pasa de los 13 KB y la regla de esta casa es medir con `wc -c` **antes** de escribir).
+
+| caso | qué fija |
+|---|---|
+| TC-852 | la pregunta de destino: cuatro botones, Descartar/Cancelar, cuenta por tipo, sin datos del paciente, y el nombre del estudio como TEXTO |
+| TC-853 | el aviso no se superpone al visor ni al selector, se actualiza en el mismo cartel, y olvidar el grupo protege al aviso de equipo nuevo |
+| TC-854 | desde Guardados se pregunta, desde la pestaña Imágenes no, y la marca no se hereda |
+| TC-855 | `CeiboImg.agregar` agrega al final, no se lleva los esquemas, respeta el orden de `indice()` y la preexistente no se mueve |
+| TC-856 | sin uuid y con el ajuste apagado no se escribe ni se confirma, con su control positivo |
+| TC-857 | el cineloop se encola al importarlo, la tira lo muestra «sin guardar» con su peso y se reabre; el botón del visor existe y está escondido |
+| TC-858 | el estudio de sólo cineloop confirma, la escritura fallida no, y «Nuevo estudio» avisa |
+| TC-859 | la bandeja guarda los cinco cuadros, no confirma sin espacio ni con la escritura fallida, y nada de ella entra al Excel ni al censo |
+| TC-860 | asignar va al estudio elegido y a ningún otro, y el envío sale sólo si entró entero |
+| TC-861 | el DICOM sin comprimir en sus cinco formas, el tope, la ventana de 16 bits y el mensaje que nombra el formato |
+
+**Adaptados**: **TC-179** (invertida más una nueva), **TC-184** (tres condiciones nuevas: el aviso
+pasó del botón del visor al importador) y **TC-847** (tres cambios, queda más fuerte). Los tres caen
+contra la línea base por sus condiciones adaptadas. **TC-161, TC-233 y TC-850 pasan sin adaptar.**
+
+⚠️ **TC-764 es sensibilidad de lote PREEXISTENTE**: falla en el lote 15 y pasa aislado, y falla
+**idéntico** contra `bff56dc` con el mismo archivo de casos y la misma composición de lotes. No es
+de esta tanda.

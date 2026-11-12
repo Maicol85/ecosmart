@@ -261,3 +261,22 @@ conector **vacío**. TC-841 recibía «usó 0 KB de 0 KB» con el aviso puesto.
 | La memoria | `scripts/_probe_ec2mem.mjs` |
 | Las mutaciones | `scripts/_mut_ec2.py` |
 | La suite en lotes | `scripts/_lotes_ec2.sh` |
+
+---
+
+## ⚠️ PUNTERO — ECO-CONECTOR-3 (2026-11-12)
+
+Esta tanda **unificó el destino de las imágenes** y lo que está acá quedó parcialmente
+reemplazado. El mapa es **`docs/mapa/ec3-destino-unico.md`**, y lo que cambió:
+
+- **El aviso de CeiboLink ya no arma sus propias acciones**: pide la pregunta de destino
+  (`dstPreguntar`), que tiene **cuatro** botones y la comparte con «Importar imágenes y videos» de
+  Guardados. `clnkAdjuntarAlEstudio` y `clnkAdjuntarABandeja` **perdieron su cuerpo** y delegan en
+  `dstAlActual` y `dstABandeja`.
+- **El aviso cuenta POR TIPO** («2 imágenes y 1 cineloop»), **se actualiza** en el mismo cartel y se
+  **posterga** también con el visor de cineloop o el selector de estudio abiertos.
+- **La bandeja guarda el cineloop ENTERO** y no el primer cuadro: `_clnkbBytesADataURL` **se
+  retiró**. Está visible en **Guardados** y cada envío se puede **asignar** a un estudio.
+- **La confirmación** a CeiboLink ya no se pierde cuando el estudio tiene **sólo** un cineloop, y no
+  ocurre si alguna escritura falló.
+- **Un cineloop se guarda solo** con el estudio, y la tira lo muestra «sin guardar» hasta entonces.
