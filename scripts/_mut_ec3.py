@@ -160,9 +160,12 @@ MUT = [
  ('32 el color en planos separados se acepta y se dibuja mal', 'TC-861',
   [("  if (muestras === 3 && (d.planar | 0) === 1)\n    return 'la imagen es color en planos separados",
     "  if (false)\n    return 'la imagen es color en planos separados")]),
+ # ⚠️ LA PRIMERA VERSION DE ESTA MUTACION ERA EQUIVALENTE Y SOBREVIVIO: se insertaba ANTES de la
+ # linea que suelta los pixeles, asi que el `d.crudo = null` de dos lineas mas abajo la deshacia.
+ # La de hoy ataca esa linea.
  ('33 los pixeles crudos NO se sueltan: los megas quedan vivos', 'TC-861',
-  [("  d.offsets = frags.length;\n  d.nFrames = frags.length;",
-    "  d.offsets = frags.length;\n  d.nFrames = frags.length;\n  d.crudo = d.crudo || { px: new Uint8Array(1), bytes: 1 };")]),
+  [("     ArrayBuffer del archivo entero queda vivo mientras viva este objeto. */\n  d.crudo = null;",
+    "     ArrayBuffer del archivo entero queda vivo mientras viva este objeto. */")]),
  ('34 la ventana de 16 bits se calcula por CUADRO y el cineloop parpadea', 'TC-861',
   [("  const esc = (bits === 16) ? (255 / Math.max(1, alto - lo)) : 1;",
     "  let esc = (bits === 16) ? (255 / Math.max(1, alto - lo)) : 1;\n  if (bits === 16) { lo = 0; alto = 255; esc = 1; }")]),

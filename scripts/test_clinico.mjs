@@ -136199,6 +136199,26 @@ caso('TC-853', 'El aviso no se abre encima del visor ni del selector, y con mas 
       await ctrl({ reset:true, escena:'unaSuelta2' });
       R.h_vuelveAAbrir = await clnkRevisarImagenes();
       clnkAvisoCerrar();
+
+      /* -- (I) Y EL GRUPO OLVIDADO PROTEGE AL AVISO DE EQUIPO NUEVO ---------------------
+            ** LO DESTAPO EL BARRIDO DE MUTACIONES Y NO LA LECTURA. Sacar la linea que olvida
+            el grupo al cerrar parecia inofensivo: con el aviso cerrado la rama de actualizacion
+            no corre porque pregunta tambien por _clnkAvisoAbierto. El dano esta en el OTRO
+            aviso: el de equipo nuevo pone _clnkAvisoAbierto en verdadero y NO pone grupo, asi
+            que con un grupo viejo sobreviviendo, el sondeo toma la rama de actualizacion y le
+            REESCRIBE el titulo y el texto encima -- el medico pierde la pregunta que desbloquea
+            sus imagenes y ve una de imagenes en su lugar. Se mide esa secuencia exacta. */
+      await ctrl({ reset:true, equipos:3, escena:'mixto' });
+      await clnkRevisarImagenes();                 // abre uno de imagenes: deja grupo
+      await new Promise(r => setTimeout(r, 250));
+      clnkAvisoCerrar();                           // y lo cierra: el grupo tiene que olvidarse
+      R.i_abrioEquipo = await clnkAvisarEquipoNuevo();
+      await new Promise(r => setTimeout(r, 300));
+      R.i_tituloEquipo = (document.getElementById('clnkav-title') || {}).textContent || '';
+      R.i_revisor = await clnkRevisarImagenes();
+      R.i_tituloDespues = (document.getElementById('clnkav-title') || {}).textContent || '';
+      R.i_sigueSiendoEquipo = R.i_tituloDespues === R.i_tituloEquipo;
+      clnkAvisoCerrar();
     } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
     finally {
       try {
@@ -136234,7 +136254,10 @@ caso('TC-853', 'El aviso no se abre encima del visor ni del selector, y con mas 
       ['(F) y el titulo dice que llegaron MAS',                R.f_diceMas, R.f_titulo],
       ['(F) sigue habiendo UN solo aviso',                     R.f_unoSolo, R.f_unoSolo],
       ['(G) CONTROL: sin nada nuevo no se repinta',            R.g_sinCambio === false, R.g_sinCambio],
-      ['(H) al cerrar se olvida el grupo y vuelve a avisar',   R.h_vuelveAAbrir === true, R.h_vuelveAAbrir]
+      ['(H) al cerrar se olvida el grupo y vuelve a avisar',   R.h_vuelveAAbrir === true, R.h_vuelveAAbrir],
+      ['(I) DENOMINADOR: el aviso de equipo nuevo abrio',     R.i_abrioEquipo === true, R.i_tituloEquipo],
+      ['(I) y el sondeo NO lo reescribe',                     R.i_revisor === false, R.i_revisor],
+      ['(I) el cartel sigue siendo el del equipo',            R.i_sigueSiendoEquipo, R.i_tituloDespues]
     ] };
   })();
 `);
@@ -136336,7 +136359,11 @@ caso('TC-855', 'Adjuntar a un estudio guardado escribe en ESE y en ningun otro, 
       if (!R.baseOk) throw new Error('la base de imagenes no abrio');
       await CeiboImg.borrar(U1); await CeiboImg.borrar(U2);
       /* El estudio 1 arranca con UNA imagen y UN esquema; el 2, vacio. */
-      await CeiboImg.guardar(U1, [{ dataURL: PX, calidad:'media' }]);
+      /* ** LA IMAGEN QUE YA ESTABA LLEVA SU ESTRELLA, y no es decoracion: es lo unico que la
+         distingue de las que se agregan, y sin eso «quedan tres» pasa igual con las nuevas
+         INTERCALADAS al principio -- que corre de lugar las estrellas y las notas que el medico
+         puso. Lo destapo el barrido de mutaciones. */
+      await CeiboImg.guardar(U1, [{ dataURL: PX, calidad:'media', star: true, nota:'la de antes' }]);
       await CeiboImg.guardarEsquema(U1, 'prueba-ec3', PX, 'Esquema de prueba');
       /* ** CeiboImg.leer(uuid) DEVUELVE EL ARRAY DE IMAGENES Y NO EL REGISTRO, y tampoco trae
          los esquemas -- lo fija su propia firma, que resuelve en r.imgs. Los esquemas se cuentan
@@ -136367,6 +136394,9 @@ caso('TC-855', 'Adjuntar a un estudio guardado escribe en ESE y en ningun otro, 
       R.c_slots = r1 ? r1.slots.length : -1;
       R.c_esqAlFinal = !!(r1 && r1.slots.length === 4 && r1.slots[3].esquema === true &&
                           r1.slots[0].esquema === false);
+      /* La preexistente sigue en el indice 0, con su estrella y su nota: lo nuevo fue AL FINAL. */
+      R.c_laDeAntesQuieta = !!(r1 && r1.slots[0].star === true && r1.slots[0].nota === 'la de antes' &&
+                               r1.slots[1].star === false && r1.slots[2].star === false);
 
       /* ── (D) LA ALLOWLIST NO DEJA PASAR LO QUE NO ESTA EN ELLA ─────────────────────────
             El campo _orig son varios MB por imagen y nunca puede llegar al disco. */
@@ -136402,6 +136432,7 @@ caso('TC-855', 'Adjuntar a un estudio guardado escribe en ESE y en ningun otro, 
       ['(B) el otro estudio sigue vacio',                   R.b_otroVacio, R.b_otroVacio],
       ['(C) indice() ve cuatro entradas',                   R.c_slots === 4, R.c_slots],
       ['(C) con el esquema al FINAL',                       R.c_esqAlFinal, R.c_esqAlFinal],
+      ['(C) y la que ya estaba NO se movio de su indice',   R.c_laDeAntesQuieta, R.c_laDeAntesQuieta],
       ['(D) la allowlist no deja pasar _orig',              R.d_sinOrig, R.d_sinOrig],
       ['(D) y conserva la calidad',                         R.d_calidad === 'alta', R.d_calidad],
       ['(E) un uuid invalido no escribe nada',              R.e_invalido === 0, R.e_invalido],
@@ -136566,6 +136597,49 @@ caso('TC-857', 'El cineloop se guarda ENTERO y solo con el estudio, sin ningun b
         ? document.getElementById('cine-ov').classList.contains('cine-min') : false;
       cineCerrar();
 
+      /* ── (F) Y SE ENCOLA SOLO AL IMPORTARLO, SIN APRETAR NADA ──────────────────────────
+            ** LO DESTAPO EL BARRIDO DE MUTACIONES: los bloques de arriba llaman a _cineEncolar
+            DIRECTO, asi que ninguno ejercitaba el camino por el que el cineloop entra de verdad
+            --dcmImgImportar-- y sacarle el encolado automatico pasaba en verde. Se arma un
+            cineloop DICOM en la pagina, con el mismo constructor que TC-179, y se importa.
+            Los pixeles van encapsulados, un fragmento por cuadro, que es lo que esta app lee. */
+      while (_cineHayPendientes()) _cineSacarPendiente(0);
+      const mkDcm = (frags, nf) => {
+        const u16 = n => [n & 255, (n >> 8) & 255];
+        const u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >> 24) & 255];
+        const tx = t => { const a = []; for (let i = 0; i < t.length; i++) a.push(t.charCodeAt(i));
+                          if (a.length % 2) a.push(0); return a; };
+        const VR4 = ['OB','OW','SQ','UN','UT'];
+        const el = (g, e, vr, val) => [].concat(u16(g), u16(e), tx(vr).slice(0, 2),
+          VR4.indexOf(vr) > -1 ? [0, 0].concat(u32(val.length)) : u16(val.length), val);
+        let b = new Array(128).fill(0).concat(tx('DICM'));
+        b = b.concat(el(0x0002, 0x0002, 'UI', tx('1.2.840.10008.5.1.4.1.1.3.1')));
+        b = b.concat(el(0x0002, 0x0010, 'UI', tx('1.2.840.10008.1.2.4.50')));
+        b = b.concat(el(0x0028, 0x0008, 'IS', tx(String(nf))));
+        b = b.concat(el(0x0028, 0x0010, 'US', u16(1)));
+        b = b.concat(el(0x0028, 0x0011, 'US', u16(1)));
+        b = b.concat([].concat(u16(0x7FE0), u16(0x0010), tx('OB'), [0, 0], u32(0xFFFFFFFF)));
+        const tabla = [].concat.apply([], new Array(nf).fill(0).map(() => u32(0)));
+        b = b.concat([].concat(u16(0xFFFE), u16(0xE000), u32(tabla.length), tabla));
+        frags.forEach(fr => {
+          const impar = fr.length % 2;
+          b = b.concat([].concat(u16(0xFFFE), u16(0xE000), u32(fr.length + impar)));
+          b = b.concat(Array.prototype.slice.call(fr));
+          if (impar) b.push(0);
+        });
+        b = b.concat([].concat(u16(0xFFFE), u16(0xE0DD), u32(0)));
+        return new Uint8Array(b);
+      };
+      const alertOrig2 = window.alert; window.alert = () => {};
+      await dcmImgImportar([new File([mkDcm([J, J, J], 3)], 'auto.dcm')]);
+      window.alert = alertOrig2;
+      R.f_encoloSolo = _cineHayPendientes();
+      R.f_tiraLoMuestra = (function () {
+        const t = document.getElementById('cine-strip');
+        return !!t && String(t.textContent || '').indexOf('sin guardar') > -1;
+      })();
+      try { cineCerrar(); } catch (e) {}
+
       /* ── (E) EL ✕ DE UN PENDIENTE LO SACA DE LA COLA Y NO BORRA NADA DE DISCO ───────────*/
       await cineStripRender();
       await new Promise(r => setTimeout(r, 60));
@@ -136598,6 +136672,8 @@ caso('TC-857', 'El cineloop se guarda ENTERO y solo con el estudio, sin ningun b
       ['(D) y el visor abre en modo minimo',                R.d_visorEnMinimo, R.d_visorEnMinimo],
       ['(D) que lo deja ESCONDIDO: nadie lo ve',            R.d_escondido, R.d_escondido],
       ['(E) DENOMINADOR: la tarjeta tiene su cruz',         R.e_hayX, R.e_hayX],
+      ['(F) importar un cineloop lo ENCOLA solo, sin apretar nada', R.f_encoloSolo === true, R.f_encoloSolo],
+      ['(F) y la tira lo muestra en el acto',               R.f_tiraLoMuestra, R.f_tiraLoMuestra],
       ['(E) y sacarlo lo quita de la cola',                 R.e_colaVacia, R.e_colaVacia]
     ] };
   })();
@@ -136810,6 +136886,20 @@ caso('TC-859', 'La bandeja guarda el cineloop ENTERO, no confirma si no entra, s
       R.c_sinConfirmar = window._clnkPorConfirmar.length === 0;
       CeiboImg.cuota = cuotaOrig;
 
+      /* ── (E) SI LA ESCRITURA DE LA BANDEJA FALLA, NO SE CONFIRMA NADA ─────────────────
+            ** LO DESTAPO EL BARRIDO DE MUTACIONES. El bloque (C) mide el camino del espacio, que
+            sale ANTES de llegar a la escritura: con cero imagenes y cero cineloops la funcion se
+            va por su salida temprana, asi que confirmar de mas despues del guardado pasaba en
+            verde. Acá se sustituye el escritor para que falle teniendo algo que escribir. */
+      await ctrl({ reset:true, escena:'nativoCineloop' });
+      window._clnkPorConfirmar.length = 0;
+      const gOrigB = window.clnkbGuardar;
+      window.clnkbGuardar = () => Promise.resolve(false);
+      R.e_n = await dstABandeja({ origen:'ceibolink', equipo:'eq_3f8a1c', items: clnkItems(['img_n5']) });
+      window.clnkbGuardar = gOrigB;
+      R.e_sinConfirmar = window._clnkPorConfirmar.length === 0;
+      R.e_sigueEnConector = (await ctrl({})).escenario.imagenes.indexOf('img_n5') > -1;
+
       /* ── (D) NADA DE LA BANDEJA LLEGA AL ESTUDIO ABIERTO, AL EXCEL NI AL CENSO ─────────
             La base es OTRA: no hay una sola ruta de codigo que lleve de ella a imgSlots. Se
             mide el censo de campos del estudio y el mapa del Excel antes y despues. */
@@ -136868,6 +136958,9 @@ caso('TC-859', 'La bandeja guarda el cineloop ENTERO, no confirma si no entra, s
       ['(D) el mapa del Excel no cambia',                   R.d_excelIgual, R.d_excelIgual],
       ['(D) el censo de campos no cambia',                  R.d_camposIgual, R.d_camposIgual],
       ['(D) su id lleva el prefijo de la bandeja',          R.d_prefijo, creados[0] || 'sin id'],
+      ['(E) si la escritura falla no entra nada',           R.e_n === 0, R.e_n],
+      ['(E) y NO se confirma el borrado',                  R.e_sinConfirmar, R.e_sinConfirmar],
+      ['(E) la imagen sigue en el conector',               R.e_sigueEnConector, R.e_sigueEnConector],
       ['(D) y no aparece en la base de imagenes',           R.d_noEnImagenes, R.d_noEnImagenes]
     ] };
   })();
@@ -137060,6 +137153,46 @@ caso('TC-861', 'DICOM SIN COMPRIMIR: fija monocroma, implicita, color, 16 bits y
       R.e_loop = await leer('nativoCineloop', 'img_n5');
       R.f_rech = await leer('noSoportado', 'img_r1');
 
+      /* ── (H) LA VENTANA DE 16 BITS ESTIRA EL RANGO, Y SE MIDE EN LOS PIXELES ──────────
+            ** LO DESTAPO EL BARRIDO DE MUTACIONES: «la fija de 16 bits entra» pasa igual con la
+            ventana mal calculada, porque entra lo mismo con otro brillo. La rampa del fixture
+            llega a 184 sobre 65535, asi que SIN ventana el cuadro sale casi negro y CON ventana
+            —min y max del primer cuadro— se estira hasta el blanco. Se decodifica el cuadro
+            producido y se mira su maximo. */
+      await ctrl({ reset:true, escena:'nativo16' });
+      {
+        const rr = await clnkPedir('/v1/imagenes/img_n4/archivo', { conToken:true, bytes:true, espera:30000 });
+        const dd = _dcmImgLeer(rr.datos);
+        await _dcmCrudoAFrags(dd);
+        const url = await dstDataURL(dd.frags[0], 'image/jpeg');
+        const im = await new Promise(res => { const i2 = new Image(); i2.onload = () => res(i2);
+                                              i2.onerror = () => res(null); i2.src = url; });
+        if (!im) { R.h_max = -1; }
+        else {
+          const cv = document.createElement('canvas');
+          cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+          cv.getContext('2d').drawImage(im, 0, 0);
+          const px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+          let mx = 0;
+          for (let i2 = 0; i2 < px.length; i2 += 4) if (px[i2] > mx) mx = px[i2];
+          R.h_max = mx;
+          R.h_lado = cv.width;
+        }
+      }
+
+      /* ── (I) EL MENSAJE QUE EL MEDICO LEE NOMBRA EL FORMATO ───────────────────────────
+            ** LO DESTAPO EL BARRIDO: (F) mira el nombre crudo que devuelve el lector, no el
+            mensaje que la pregunta de destino le arma al medico. Son dos cosas y la segunda es
+            la que se lee en pantalla. */
+      await ctrl({ reset:true, escena:'noSoportado' });
+      {
+        const rr = await clnkPedir('/v1/imagenes/img_r1/archivo', { conToken:true, bytes:true, espera:30000 });
+        const leido = await dstLeer(_clnkArchivo(rr.datos, 'r1.dcm'));
+        R.i_msg = String(leido.rechazo || '');
+        R.i_nombra = R.i_msg.indexOf('RLE') > -1;
+        R.i_formato = String(leido.formato || '');
+      }
+
       /* ── (G) EL TOPE: se rechaza ANTES de tocar un canvas y se dice el tamano ───────────
             Se arma un descriptor a mano con un tamano imposible: no hace falta el archivo, lo
             que se mide es la compuerta. */
@@ -137112,7 +137245,11 @@ caso('TC-861', 'DICOM SIN COMPRIMIR: fija monocroma, implicita, color, 16 bits y
       ['(G) CONTROL: un multicuadro razonable NO se rechaza', R.g_control === '', R.g_control || 'pasa'],
       ['(G) el color en planos separados se dice',          String(R.g_planar).indexOf('planos separados') > -1, String(R.g_planar).slice(0, 80)],
       ['(G) los 12 bits se dicen',                          String(R.g_bits).indexOf('12 bits') > -1, String(R.g_bits).slice(0, 80)],
-      ['(G) y el color que no es RGB se dice',              String(R.g_ybr).indexOf('YBR') > -1, String(R.g_ybr).slice(0, 80)]
+      ['(G) y el color que no es RGB se dice',              String(R.g_ybr).indexOf('YBR') > -1, String(R.g_ybr).slice(0, 80)],
+      ['(H) DENOMINADOR: el cuadro de 16 bits se decodifico', R.h_max >= 0 && R.h_lado === 24, R.h_max + ' / lado ' + R.h_lado],
+      ['(H) la ventana estira el rango hasta el blanco',    R.h_max >= 250, R.h_max],
+      ['(I) el mensaje que lee el medico NOMBRA el formato', R.i_nombra, R.i_msg.slice(0, 110)],
+      ['(I) y lo publica aparte para quien lo necesite',    R.i_formato === 'RLE', R.i_formato]
     ] };
   })();
 `);
