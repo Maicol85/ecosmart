@@ -2508,6 +2508,35 @@
      la celda da ~135 px y la miniatura la llena. */
   @media (max-width: 768px) { .cfg-grid { grid-template-columns: 1fr; gap: 12px; } }
 
+  /* ══ CeiboLink — LAS SECCIONES PLEGABLES (ECO-CONECTOR-2) ════════════════════════════════
+     `<details>` NATIVO y no un div con un boton, que es lo que la tarjeta tenia para la ayuda:
+     el nativo ya abre y cierra con Enter y con Espacio, ya anuncia su estado al lector de
+     pantalla y ya es enfocable, sin una linea de JS ni un `aria-expanded` que mantener al dia.
+     El molde es el de `.pop-farm`, que es el desplegable que esta app ya usa para los farmacos
+     del posoperatorio: con dos moldes, el dia que uno se afine el otro se queda viejo.
+
+     ⚠️ EL `summary` LLEVA SUS 44 px DE ALTO A MANO. La regla tactil global de este archivo
+     matchea `button, [role=button], .btn, …, [onclick]` y un `summary` no es ninguno de esos,
+     asi que sin esto el renglon que el medico toca mide ~26 px — justo en la tarjeta que se
+     rediseno para que se pueda usar. No se le pone `role=button` para que la regla lo alcance:
+     eso le quitaria al elemento su semantica propia de desplegable, que es lo que lo hace
+     accesible de entrada.
+     `list-style:none` mas el `::-webkit-details-marker` son los dos que hacen falta: el
+     triangulo propio lo dibuja `::before`, que ademas gira al abrir. */
+  .clnk-det { border:1px solid var(--border); border-radius:8px; margin-bottom:7px;
+              background:var(--bg3); }
+  .clnk-det > summary { cursor:pointer; list-style:none; display:flex; align-items:center;
+                        gap:8px; min-height:44px; padding:0 10px; font-size:12px;
+                        font-weight:700; color:var(--text); }
+  .clnk-det > summary::-webkit-details-marker { display:none; }
+  .clnk-det > summary::before { content:'\25B8'; font-size:11px; color:var(--text2);
+                                transition:transform .2s; flex:0 0 auto; }
+  .clnk-det[open] > summary::before { transform:rotate(90deg); }
+  .clnk-det > .clnk-det-cuerpo { padding:2px 10px 10px; }
+  .clnk-det > summary:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  /* El contador del renglon: lo escribe el JS y no tiene por que verse como el titulo. */
+  .clnk-det-cnt { font-weight:400; color:var(--text2); font-size:10.5px; }
+
   /* ══ VISOR DE CINELOOP — LAYOUT POR ANCHO ════════════════════════════════════════════════
      El visor no tenía NI UNA regla responsive: `#cine-paneles` era `display:flex` fijo, así
      que las dos vistas se repartían el ancho que hubiera. Medido con las dos abiertas:
@@ -6304,31 +6333,49 @@ window.cerrarSesionReal = cerrarSesionReal;
            para por qué, y para cómo apuntan las pruebas a otro puerto sin agregar un campo. -->
       <section class="cfg-card" id="cfg-card-clnk">
         <div class="cfg-sec-title">🔗 CeiboLink</div>
-        <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
+        <p style="font-size:11px;color:var(--text2);margin:0 0 9px;line-height:1.5;">
           <b>CeiboLink</b> es un programa que se instala en esta computadora. El ecógrafo le
-          manda las imágenes y EcoSmart las toma de ahí para adjuntarlas al informe. Las
-          imágenes pasan por tu computadora y <b>no salen a internet</b>: se quedan un rato y se
-          borran solas.
+          manda las imágenes y EcoSmart las toma de ahí. Pasan por tu computadora y <b>no
+          salen a internet</b>: se quedan un rato y se borran solas.
         </p>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:9px;cursor:pointer;">
-          <input type="checkbox" id="cfg-clnk-on" onchange="clnkToggle(this.checked)">
-          <span>Activar CeiboLink</span>
-        </label>
+
+        <!-- ══ (a) LA CABECERA: lo que se mira siempre, en dos renglones ════════════════════
+             La luz, el interruptor y «Actualizar» en UNA línea, y los tres números en otra. Antes
+             esto eran seis renglones y un bloque de cinco líneas de texto corrido: lo que se mira
+             siempre estaba mezclado con lo que se toca una vez.
+
+             ⚠️ EL INTERRUPTOR Y «Actualizar» SON ESTÁTICOS Y LA LUZ NO. Los dos primeros viven en
+             el marcado y el repintado no los toca; la luz y los números salen de la red, así que
+             viven en dos contenedores PROPIOS y VACÍOS que el JS llena. Es la línea que
+             ECO-CONECTOR-1 pagó: un `textContent = ''` sobre un bloque con marcado estático se
+             lleva los campos del documento para siempre, porque el repintado los busca por id y
+             no los crea. -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+          <span id="cfg-clnk-luz" style="display:inline-flex;align-items:center;gap:7px;
+                font-size:12.5px;font-weight:700;"></span>
+          <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;">
+            <input type="checkbox" id="cfg-clnk-on" onchange="clnkToggle(this.checked)">
+            <span>Activar CeiboLink</span>
+          </label>
+          <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
+                  onclick="clnkLeerEstado()">🔄 Actualizar</button>
+        </div>
         <div id="cfg-clnk-cuerpo">
+          <!-- Los tres números de un vistazo. Sin vincular también se ven: `GET /v1/estado` no
+               pide token, que es lo que hace posible esta línea antes de autorizar nada. -->
+          <div id="cfg-clnk-nums" style="font-size:11.5px;line-height:1.6;color:var(--text2);
+               margin-bottom:8px;"></div>
+          <!-- Los AVISOS (sin conector, error, espacio por llenarse). Vacío no ocupa nada. -->
+          <div id="cfg-clnk-estado" style="font-size:11.5px;line-height:1.55;"></div>
 
-          <!-- (b) Estado, con su luz. Se consulta al abrir el panel y con «Actualizar». Sin
-               sondeo periódico: eso es del paso siguiente. -->
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;">
-            <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
-                    onclick="clnkLeerEstado()">🔄 Actualizar</button>
-          </div>
-          <div id="cfg-clnk-estado" style="font-size:11.5px;line-height:1.55;margin-bottom:11px;"></div>
-
-          <!-- (c) Vinculación. El campo es de TEXTO y no `type=number`: un `number` deja pegar
-               signos y notación científica, y el filtro de dígitos tiene que correr igual. -->
-          <div id="cfg-clnk-bloque-vincular" style="margin-bottom:11px;">
+          <!-- ══ (b) SIN VINCULAR, EL CÓDIGO ES LO PRIMERO ══════════════════════════════
+               Va ANTES de los plegables y no entre ellos: es el único paso que el médico tiene
+               que dar, y con los tres plegables arriba quedaba cuarto en la lista de cosas por
+               leer. El campo es de TEXTO y no `type=number`: un `number` deja pegar signos y
+               notación científica, y el filtro de dígitos tiene que correr igual. -->
+          <div id="cfg-clnk-bloque-vincular" style="margin:8px 0 9px;">
             <div style="font-size:12px;font-weight:700;margin:0 0 6px;">Vincular este navegador</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
               <input type="text" id="cfg-clnk-codigo" placeholder="6 dígitos"
                      inputmode="numeric" maxlength="6" autocomplete="off" spellcheck="false"
                      oninput="clnkCodigoInput(this)"
@@ -6345,56 +6392,81 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div id="cfg-clnk-vmsg" style="font-size:11.5px;line-height:1.55;margin-top:6px;"></div>
           </div>
 
-          <!-- (d) Desvincular. La frase aclara lo que el médico va a suponer mal: que esto
-               desconecta el ecógrafo. No: el ecógrafo sigue mandando a CeiboLink igual. -->
-          <div id="cfg-clnk-bloque-desvincular" style="display:none;margin-bottom:11px;">
-            <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
-                    onclick="clnkDesvincular()">Desvincular EcoSmart</button>
-            <div style="font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:5px;">
-              Corta la autorización de <b>este navegador</b> y nada más. El ecógrafo
-              <b>no</b> se desconecta: sigue mandando a CeiboLink como hasta ahora.
-            </div>
-          </div>
+          <!-- ══ (c) LAS SECCIONES PLEGABLES, CERRADAS ════════════════════════════════
+               Las tres nacen cerradas y las tres son `<details>` nativos: abren con Enter y con
+               Espacio sin una línea de JS. «Equipos» se abre SOLA cuando hay un equipo esperando
+               decisión — eso lo hace `clnkLeerEquipos`, que es la única que sabe si hay alguno.
 
-          <!-- (e) (f) (g) · Los tres los pinta el JS y nacen OCULTOS: sin conector, o sin
-               vincular, no hay nada que mostrar, y tres bloques vacíos se leen como roto.
-               Contra un conector 1.0 el de conexión queda escondido para siempre, que es lo que
-               el contrato §7 manda. -->
-          <div id="cfg-clnk-conexion" style="display:none;margin-bottom:11px;"></div>
-          <div id="cfg-clnk-equipos" style="display:none;margin-bottom:11px;"></div>
-          <div id="cfg-clnk-ajustes" style="display:none;margin-bottom:11px;">
-            <div style="font-size:12px;font-weight:700;margin:0 0 6px;">Ajustes de CeiboLink</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-              <span style="font-size:11.5px;color:var(--text2);min-width:132px;">Las imágenes esperan:</span>
-              <input type="number" id="cfg-clnk-horas" min="1" max="72" step="1"
-                     autocomplete="off" style="width:72px;font-size:12px;">
-              <span style="font-size:11.5px;color:var(--text2);">horas (de 1 a 72)</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-              <span style="font-size:11.5px;color:var(--text2);min-width:132px;">Nombre de CeiboLink:</span>
-              <input type="text" id="cfg-clnk-aet" maxlength="16" autocomplete="off" spellcheck="false"
-                     style="width:150px;font-size:12px;">
-              <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"
-                      onclick="clnkGuardarAjustes()">Guardar</button>
-            </div>
-            <div style="font-size:10.5px;color:var(--text2);line-height:1.5;">
-              Pasadas esas horas, una imagen que nadie adjuntó se borra sola. El nombre es con el
-              que el ecógrafo ve a esta computadora: si lo cambiás, hay que cambiarlo también en
-              el ecógrafo.
-            </div>
-            <div id="cfg-clnk-amsg" style="font-size:11.5px;line-height:1.55;margin-top:6px;"></div>
-          </div>
+               ⚠️ LOS CONTENEDORES DINÁMICOS SON LOS DE ADENTRO (`cfg-clnk-conexion`,
+               `cfg-clnk-equipos`), y el `<details>` que los envuelve es ESTÁTICO: así vaciar lo
+               dinámico nunca se lleva el renglon que lo abre. Y «Ajustes» es al revés —su cuerpo
+               es marcado estático— así que ese NO se vacía nunca, sólo se esconde. -->
+          <details class="clnk-det" id="cfg-clnk-det-conexion" style="display:none;">
+            <summary>Datos para el ecógrafo</summary>
+            <div class="clnk-det-cuerpo"><div id="cfg-clnk-conexion"></div></div>
+          </details>
 
-          <!-- (h) Ayuda plegable. TEXTOS PROVISORIOS: están escritos contra lo que el contrato
-               dice de la red, no contra un ecógrafo real, así que cada vía lleva su marca «a
-               confirmar con el ecógrafo real» y el marcador `data-clnk-provisorio="ayuda"`.
-               Nace plegada: son tres caminos y sólo uno le va a tocar al médico. -->
-          <div id="cfg-clnk-ayuda" style="margin-bottom:11px;" data-clnk-provisorio="ayuda">
-            <button type="button" class="btn btn-ghost" id="cfg-clnk-ayuda-btn"
-                    style="font-size:11.5px;padding:5px 11px;"
-                    onclick="clnkAyudaToggle()">▸ Cómo conectar el ecógrafo</button>
-            <div id="cfg-clnk-ayuda-cuerpo" style="display:none;margin-top:8px;font-size:11px;
-                 color:var(--text2);line-height:1.6;">
+          <details class="clnk-det" id="cfg-clnk-det-equipos" style="display:none;">
+            <summary>Equipos <span class="clnk-det-cnt" id="cfg-clnk-eq-cnt"></span></summary>
+            <div class="clnk-det-cuerpo"><div id="cfg-clnk-equipos"></div></div>
+          </details>
+
+          <details class="clnk-det" id="cfg-clnk-det-ajustes" style="display:none;">
+            <summary>Ajustes</summary>
+            <div class="clnk-det-cuerpo">
+              <!-- Las horas y el nombre LADO A LADO, que es lo que pide la decisión: eran dos
+                   renglones de ancho completo con un rótulo de 132 px cada uno. -->
+              <div id="cfg-clnk-ajustes" style="display:flex;gap:14px;flex-wrap:wrap;
+                   align-items:flex-end;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span style="font-size:11.5px;color:var(--text2);">Las imágenes esperan</span>
+                  <input type="number" id="cfg-clnk-horas" min="1" max="72" step="1"
+                         autocomplete="off" style="width:68px;font-size:12px;">
+                  <span style="font-size:11.5px;color:var(--text2);">horas (1 a 72)</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span style="font-size:11.5px;color:var(--text2);">Nombre</span>
+                  <input type="text" id="cfg-clnk-aet" maxlength="16" autocomplete="off"
+                         spellcheck="false" style="width:130px;font-size:12px;">
+                  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"
+                          onclick="clnkGuardarAjustes()">Guardar</button>
+                </div>
+              </div>
+              <div style="font-size:10.5px;color:var(--text2);line-height:1.5;">
+                Pasadas esas horas, una imagen que nadie adjuntó se borra sola. El nombre es con el
+                que el ecógrafo ve a esta computadora: si lo cambiás, hay que cambiarlo también en
+                el ecógrafo.
+              </div>
+              <div id="cfg-clnk-amsg" style="font-size:11.5px;line-height:1.55;margin-top:6px;"></div>
+
+              <!-- ══ (e) DESVINCULAR, AL PIE Y DISCRETO ═════════════════════════════
+                   Estaba suelto arriba, al lado de la vinculación, que es el lugar de más peso de
+                   la tarjeta para la acción que menos se usa y más cuesta deshacer. Baja a Ajustes,
+                   detrás de un plegable cerrado, Y CONSERVA SU FRASE: aclara lo que el médico va a
+                   suponer mal, que esto desconecta el ecógrafo. No: el ecógrafo sigue mandando. -->
+              <div id="cfg-clnk-bloque-desvincular" style="display:none;margin-top:11px;
+                   padding-top:9px;border-top:1px solid var(--border);">
+                <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 10px;"
+                        onclick="clnkDesvincular()">Desvincular EcoSmart</button>
+                <div style="font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:5px;">
+                  Corta la autorización de <b>este navegador</b> y nada más. El ecógrafo
+                  <b>no</b> se desconecta: sigue mandando a CeiboLink como hasta ahora.
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- ══ (h) CÓMO CONECTAR: ya era plegable, y pasa al `<details>` nativo ════════════
+               Conserva sus DOS ids —el del renglon que abre y el del cuerpo— porque son el
+               inventario de Config que TC-161 fija: el renglon ahora es el `<summary>`, y
+               `clnkAyudaToggle` sigue existiendo para quien lo llame.
+               TEXTOS PROVISORIOS: están escritos contra lo que el contrato dice de la red, no
+               contra un ecógrafo real, así que cada vía lleva su marca «a confirmar con el
+               ecógrafo real» y el marcador `data-clnk-provisorio="ayuda"`. -->
+          <details class="clnk-det" id="cfg-clnk-ayuda" data-clnk-provisorio="ayuda">
+            <summary id="cfg-clnk-ayuda-btn">Cómo conectar el ecógrafo</summary>
+            <div class="clnk-det-cuerpo">
+              <div id="cfg-clnk-ayuda-cuerpo" style="font-size:11px;color:var(--text2);line-height:1.6;">
               <p style="margin:0 0 4px;"><b>A confirmar con el ecógrafo real.</b> Estas tres vías
                 están escritas por adelantado: cuando se pruebe con el equipo del consultorio se
                 corrigen con lo que pase de verdad.</p>
@@ -6424,12 +6496,13 @@ window.cerrarSesionReal = cerrarSesionReal;
                 «Importar DICOM» sigue leyendo el pendrive del ecógrafo igual que siempre. Es la
                 vía que conviene mientras la red no esté resuelta, y sigue andando aunque
                 CeiboLink esté apagado.</p>
+              </div>
             </div>
-          </div>
+          </details>
 
           <!-- (i) Descargar: DESHABILITADO. Lleva `disabled` y además dice por qué, porque un
                botón apagado sin motivo se lee como una falla de la app. -->
-          <div>
+          <div style="margin-top:3px;">
             <button type="button" class="btn btn-ghost" id="cfg-clnk-descargar" disabled
                     style="font-size:11.5px;padding:5px 11px;opacity:.55;cursor:default;"
                     title="Todavía no está publicado para descargar">⬇ Descargar CeiboLink</button>
@@ -22936,6 +23009,36 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            un slot es «lo que sale en el PDF». El cineloop NO sale; sale el cuadro que se captura.
            Mezclarlos rompería el único significado que hoy tienen los slots. -->
       <div id="cine-strip" style="margin-top:14px;"></div>
+
+      <!-- ══ LA BANDEJA: IMÁGENES SIN ESTUDIO (ECO-CONECTOR-2, decisión 6) ════════════════
+           Hasta hoy toda imagen vivía DENTRO de un estudio. Esto es el lugar para las que
+           llegaron de CeiboLink y el médico guardó sin estudio abierto.
+
+           ⚠️ NACE OCULTA Y SÓLO SE VE SI HAY ALGO. Una sección vacía permanente en la pestaña
+           que más se usa es ruido, y además promete una función que no hace falta.
+
+           ⚠️ VA ACÁ Y NO EN LA GRILLA DE SLOTS, y es la misma razón por la que los cineloops
+           tienen su propia tira: un slot es «lo que sale en el PDF». Esto NO sale en el PDF, no
+           sale en el PPT, no viaja con ningún estudio y no lo lee ningún emisor. Mezclarlo con
+           los slots rompería el único significado que los slots tienen.
+
+           ⚠️ Y NO LLEVA NI UN `input`, `select` NI `textarea`: así queda fuera del censo del
+           estudio, del Excel y de `detectar_huerfanos` por construcción y no por una lista. El
+           prefijo propio es `clnkb-`. -->
+      <div id="clnkb-sec" style="display:none;margin-top:16px;padding-top:12px;
+           border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+          <b style="font-size:12.5px;">🖼 Imágenes sin estudio</b>
+          <span id="clnkb-cnt" style="font-size:10.5px;color:var(--text2);"></span>
+        </div>
+        <p style="font-size:10.5px;color:var(--text2);line-height:1.5;margin:0 0 8px;">
+          Llegaron del ecógrafo y se guardaron en este dispositivo sin estudio. <b>No salen en
+          ningún informe ni PDF</b> y no pertenecen a ningún paciente: quedan ací hasta que las
+          uses o las borres.
+        </p>
+        <div id="clnkb-lista"></div>
+      </div>
+
       <!-- SIN `accept`, igual que el input de «Importar DICOM» y por la misma razón: el filtro
            del selector es por tipo MIME derivado de la EXTENSIÓN, y los archivos del pendrive
            del GE Vivid no tienen ninguna (GEMS_IMG/…/Q9JGCGT0). Con `image/*` quedaban en gris
@@ -28791,6 +28894,48 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
   </div>
 </div>
 
+<!-- ═══ Modal: los avisos de CeiboLink ══════════════════════════════════════════
+     EL MOLDE ES EL DE «Nuevo estudio»: el mismo fondo, la misma tarjeta, el mismo ancho y los
+     TRES BOTONES APILADOS a todo el ancho. Es lo que la decisión 2 pide, y es el único molde de
+     pregunta de tres salidas que esta app tiene.
+
+     ⚠️ ES UN MODAL PROPIO Y NO UN MODO MÁS DEL DE «Nuevo estudio», Y SE MIDIÓ POR QUÉ. Aquel
+     tiene los tres `onclick` ESCRITOS EN EL MARCADO —`neGuardarYContinuar`,
+     `neContinuarSinGuardar` y `_neCerrar`—, así que un modo más obliga a reasignar los tres
+     manejadores al abrir. Eso pone en riesgo las dos salidas que ese modal ya protege —«Nuevo
+     estudio» y «Cerrar sesión», que son las que evitan perder un estudio sin guardar— y deja
+     abierta la posibilidad de que queden puestos los manejadores del aviso cuando el médico
+     apriete «Nuevo estudio». Un molde copiado cuesta veinte líneas de marcado; un manejador
+     cruzado ahí cuesta un estudio.
+
+     ⚠️ LOS TRES BOTONES NO LLEVAN `onclick` EN EL MARCADO, por lo mismo al revés: este modal SÍ
+     cambia de pregunta —imágenes que llegaron, equipo nuevo— y lo que cambia es QUÉ hace cada
+     botón. Los asigna `clnkAvisoAbrir`, que es la única puerta.
+
+     ⚠️ EL PREFIJO ES `clnkav-` Y NO `cfg-clnk-`: no es parte de la tarjeta de Configuración, y
+     el prefijo propio es lo que deja medir «nada de CeiboLink fuera de la tarjeta, salvo los
+     avisos» sin que la condición tenga que listar ids a mano. Ninguno es `input`, `select` ni
+     `textarea`, así que no entran al censo del estudio ni al Excel por construcción, y ninguno
+     termina en `-aviso` ni en `-badge`, que son los barridos por sufijo de «Nuevo estudio». -->
+<div id="clnkav-ov" role="dialog" aria-modal="true" aria-labelledby="clnkav-title"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)clnkAvisoCerrar()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:440px;width:100%;padding:22px 24px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:flex-start;gap:10px;margin:0 0 10px;">
+      <h3 id="clnkav-title" style="margin:0;font-size:17px;color:var(--text);flex:1;">CeiboLink</h3>
+      <button type="button" class="btn btn-ghost" id="clnkav-x" aria-label="Cerrar"
+              style="font-size:12px;padding:3px 10px;flex:0 0 auto;"
+              onclick="clnkAvisoCerrar()">✕</button>
+    </div>
+    <p id="clnkav-txt" style="margin:0 0 20px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);"></p>
+    <div style="display:flex;flex-direction:column;gap:9px;" id="clnkav-botones">
+      <button class="btn btn-primary" id="clnkav-b1" style="width:100%;justify-content:center;"></button>
+      <button class="btn btn-ghost"   id="clnkav-b2" style="width:100%;justify-content:center;"></button>
+      <button class="btn btn-ghost"   id="clnkav-b3" style="width:100%;justify-content:center;"></button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ Modal: detalle de indicador automático (Laboratorio) ═══ -->
 <div id="modal-lab-detalle" role="dialog" aria-modal="true" aria-labelledby="lab-detalle-titulo"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
@@ -28946,6 +29091,14 @@ function showTab(id) {
      pantalla. Lo que el medico abre mientras esta en la pestania se queda abierto hasta que
      cambia de pestania. */
   if (typeof ccSeccionesCerrar === 'function') { try { ccSeccionesCerrar(id) } catch (e) {} }
+  /* La bandeja de «Imágenes sin estudio» se repinta al ENTRAR a la pestaña Imágenes, que es
+     cuando se ve. Va acá y no en un oyente propio: esta función ya es el embudo de todas las
+     entradas de pestaña, y un segundo camino se desincroniza. Su lectura es asincrónica y la
+     sección nace oculta, así que entrar sin nada guardado no muestra nada ni parpadea.
+     ⚠️ ACOTADO A SU PESTAÑA: sin el `id ===`, cada cambio de pestaña abriría IndexedDB. */
+  if (id === 'imagenes' && typeof clnkbRender === 'function') {
+    try { clnkbRender(); } catch (e) {}
+  }
   /* La barra de las dos pestanas de congenitas se repinta ACA y no solo desde `ccSubTab`: el
      estado se deriva de cual `.tab-section` esta activa, y a esta pestana se llega tambien por
      el drawer movil, por el desplegable de avanzadas y por accesos internos. Sin esto la barra
@@ -72502,6 +72655,39 @@ function _neAbrir(modo) {
   if (p) p.textContent = (_neModo === 'sesion')
     ? '¿Querés guardar antes de cerrar la sesión? Lo que no esté guardado —imágenes incluidas— se pierde, y la pantalla queda limpia para el próximo que use esta computadora.'
     : '¿Querés guardar antes de cerrar? Lo que no esté guardado —imágenes incluidas— se pierde.';
+  /* ══ LA REGLA DE PACIENTE EN EL CIERRE (ECO-CONECTOR-2, decisión 9) ══════════════════
+     ⚠️ LAS TRES SALIDAS SE MANTIENEN Y NO SE INVENTA NINGUN BLOQUEO DEL CIERRE. Lo único que
+     cambia con imágenes de CeiboLink y sin nombre Y documento es que «Guardar y continuar»
+     queda DESHABILITADA —porque `guardarInforme` la va a rechazar igual, y un botón que no
+     puede funcionar se lee como una app rota— y que el texto dice qué pasa si se sigue sin
+     guardar: las imágenes NO se pierden, siguen esperando en CeiboLink hasta su plazo.
+     Dejar «Continuar sin guardar» habilitada es deliberado: el médico tiene que poder cerrar
+     su sesión y dejar la computadora, y las imágenes quedan a salvo en el conector.
+     ⚠️ EL ESTADO DEL BOTÓN SE REPONE SIEMPRE, en las dos ramas: el modal se reusa, así que
+     dejarlo apagado se llevaría puesta la salida normal del próximo «Nuevo estudio». Es el
+     mismo modo de falla que ECO-CONECTOR-1 pagó con el marcado estático. */
+  let _exige = false;
+  try {
+    _exige = (typeof clnkEstudioTieneImagenes === 'function') && clnkEstudioTieneImagenes();
+  } catch (e) { _exige = false; }
+  let _falta = false;
+  if (_exige) {
+    const _nom = (document.getElementById('nombre')?.value || '').trim();
+    const _ci = (document.getElementById('ci')?.value || '').trim();
+    _falta = !_nom || !_ci;
+  }
+  const bg = document.querySelector('#modal-nuevo-estudio button.btn-primary');
+  if (bg) {
+    bg.disabled = _falta;
+    bg.style.opacity = _falta ? '.5' : '';
+    bg.title = _falta ? 'Falta el nombre y el documento del paciente' : '';
+  }
+  if (_falta && p) {
+    p.textContent = 'Hay imágenes que llegaron del ecógrafo y al estudio le falta el nombre o el ' +
+      'documento, así que no se puede guardar todavía. Si seguís sin guardar, las imágenes NO se ' +
+      'pierden: siguen esperando en CeiboLink hasta que se cumpla su plazo, y las vas a poder ' +
+      'adjuntar de nuevo. Lo que sí se pierde es lo cargado en el formulario.';
+  }
   const m = document.getElementById('modal-nuevo-estudio');
   if (m) m.style.display = 'flex';
 }
@@ -72769,6 +72955,18 @@ function imgPersistir(uuid) {
   return CeiboImg.guardar(uuid, vivas).then(ok => {
     if (!ok && typeof toast === 'function') {
       toast('⚠️ El estudio se guardó, pero no se pudieron guardar las imágenes');
+    }
+    /* ══ Y ACÁ —Y SÓLO ACÁ— SE LE CONFIRMA A CEIBOLINK (ECO-CONECTOR-2, decisión 5) ═══════
+       ⚠️ VA DENTRO DEL `ok` DE LA ESCRITURA Y NO EN `guardarInforme`, y la diferencia es todo el
+       punto: confirmar BORRA la imagen en el conector, así que la condición no puede ser «el
+       médico apretó Guardar» sino «la imagen quedó escrita». Esta función devuelve `false` por
+       tres caminos que no son una decisión del médico —el guardado de imágenes apagado, la base
+       bloqueada y una reimpresión en curso— y en los tres la imagen NO está en disco: confirmar
+       ahí la borraría del conector sin que exista en ninguna parte.
+       Con `typeof` porque vive en otro bloque `<script>` inline, y en su propio `try`: que la
+       confirmación falle no puede cambiar lo que esta función le devuelve a quien la llamó. */
+    if (ok && typeof clnkConfirmarPersistidas === 'function') {
+      try { clnkConfirmarPersistidas(); } catch (e) { console.warn('[clnk/confirmar]', e); }
     }
     return ok;
   }).catch(() => false);
@@ -73164,6 +73362,16 @@ function imgVaciar() {
      asignación habría creado una global distinta, sin un solo error—. Es la clase de fallo
      silencioso que este archivo ya documenta para la zona muerta de un `const`. */
   if (typeof oaiEsqOlvidarManual === 'function') { try { oaiEsqOlvidarManual(); } catch (e) {} }
+  /* ══ LOS IDS DE CEIBOLINK POR CONFIRMAR SE VAN CON LOS SLOTS (ECO-CONECTOR-2) ══════════
+     ⚠️ ES LA MISMA TRAMPA QUE EL PÁRRAFO DE ARRIBA, y acá cuesta más caro: un id que sobrevive
+     a «Nuevo estudio» hace que el guardado del paciente SIGUIENTE llame a `confirmar`, o sea que
+     BORRE del conector una imagen que no entró a ningún estudio. Y confirmar es irreversible.
+     Va acá y no en `limpiarCampos` por lo mismo que el resto de esta función: lo que se pierde
+     vive en `imgSlots`, y `limpiarCampos` corre también al abrir un estudio con «Editar» —donde
+     borrar la lista haría que esas imágenes no se confirmaran nunca—.
+     Se llama por su función exportada y con `typeof`, igual que la de arriba: vive en otro
+     bloque `<script>` inline. */
+  if (typeof clnkOlvidarPendientes === 'function') { try { clnkOlvidarPendientes(); } catch (e) {} }
   if (typeof imgRender === 'function') { try { imgRender(); } catch(e){} }
 }
 window.imgVaciar = imgVaciar;
@@ -122990,6 +123198,40 @@ function guardarInforme(onDone) {
   const nombre = (document.getElementById('nombre')?.value || '').trim();
   const ci     = (document.getElementById('ci')?.value || '').trim();
   const fecha  = document.getElementById('fecha')?.value || '';
+  /* ══ LA REGLA DE PACIENTE DE CEIBOLINK (ECO-CONECTOR-2, decisión 9) ═══════════════════
+     Con imágenes que vinieron de CeiboLink se exige nombre **Y** documento; sin ellas, la regla
+     de siempre —nombre **O** documento— no se mueve.
+
+     ⚠️ POR QUÉ MÁS ESTRICTO SÓLO ACÁ: una imagen que llegó por la red no la cargó nadie mirando
+     la pantalla. El médico que importa del pendrive está con el estudio delante; el que recibe
+     un envío del ecógrafo puede estar en otra cosa, y guardar eso con medio paciente es la
+     puerta a un estudio con las imágenes de otra persona. Con nombre Y documento el estudio
+     queda identificado por las dos claves que `_dupKeys` usa.
+
+     ⚠️ UN SOLO PREDICADO, CONSULTADO Y NO COPIADO: `clnkEstudioTieneImagenes()`. Es la única
+     definición y la miran este guardado y el modal de cierre. ÉL falla CERRADO —ante un error
+     interno contesta que SÍ hay—, que del lado de esta regla significa exigir más, no menos.
+     El `catch` de acá es otra cosa y hace lo contrario a propósito: cubre que la función NO
+     EXISTA —vive en otro bloque `<script>` inline— y en ese caso rige la regla de siempre, que
+     es el comportamiento anterior. Bloquear el guardado porque falta una función de otro módulo
+     sería dejar al médico sin poder guardar nada.
+
+     ⚠️ VA ANTES DE LA REGLA VIEJA Y NO EN SU LUGAR: un estudio con imágenes de CeiboLink y sin
+     NADA cargado tiene que recibir el aviso de esta regla —que nombra las dos cosas— y no el
+     genérico. Y los estudios YA GUARDADOS no cambian: la marca `origen` vive en memoria, así que
+     reabrir uno viejo no la trae y rige la regla de siempre, que es lo que la decisión fija. */
+  var _clnkExige = false;
+  try { _clnkExige = (typeof clnkEstudioTieneImagenes === 'function') && clnkEstudioTieneImagenes(); }
+  catch (e) { _clnkExige = false; }
+  if (_clnkExige && (!nombre || !ci)) {
+    toast('⚠️ Hay imágenes que llegaron del ecógrafo: para guardar hace falta el nombre Y el documento');
+    try {
+      if (typeof irATabPaciente === 'function') irATabPaciente();
+      var _n1 = document.getElementById(nombre ? 'ci' : 'nombre');
+      if (_n1) _n1.focus();
+    } catch (e) {}
+    return false;
+  }
   if (!nombre && !ci) {
     toast('⚠️ Ingresá nombre o documento del paciente antes de guardar');
     /* Y SE LLEVA AL CAMPO. El aviso solo dice qué falta y no dónde está: desde «Nuevo estudio»
@@ -138243,8 +138485,17 @@ function imgCompressLoad(file, idx, origen){
         target = t;
       }
       // `_orig` sólo en memoria. `calidad` arranca en media, que es el defecto pedido.
+      /* ⚠️ `ceibolink` ES UN TERCER ORIGEN Y VIVE SÓLO EN MEMORIA. Lo lee
+         `clnkEstudioTieneImagenes`, que es el predicado único de la regla de paciente.
+         AL PERSISTIR SE NORMALIZA A `estudio`, y eso es una decisión medida, no un olvido: las
+         dos pantallas que consumen este campo —el reparto de «Imágenes guardadas» y el PPT—
+         reparten por el par cerrado `['estudio','visor']`, así que un tercer valor en disco
+         haría que la imagen no cayera en ninguna de las dos grillas y DESAPARECIERA de
+         «Imágenes guardadas». La marca no se necesita en disco: la decisión 9 dice que los
+         estudios YA GUARDADOS no cambian de regla. Queda declarado en PENDIENTES.md. */
       imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original,
-                           origen: (origen === 'visor' ? 'visor' : 'estudio') };
+                           origen: (origen === 'visor' ? 'visor'
+                                  : origen === 'ceibolink' ? 'ceibolink' : 'estudio') };
       imgMarcarEditado();
       imgRender();
     }).catch(() => { if (typeof toast === 'function') toast('❌ No se pudo procesar la imagen'); });
@@ -138708,6 +138959,22 @@ function _dcmImgLeer(buf) {
     if (ln === 0xFFFFFFFF) { o = _dcmImgSaltarSQ(dv, u8, val, buf.byteLength); continue; }
     if (g === 0x0008 && e === 0x0070) d.fabricante = _dcmImgAscii(u8, val, ln);
     if (g === 0x0008 && e === 0x1090) d.modelo     = _dcmImgAscii(u8, val, ln);
+    /* ══ LOS CUATRO DEL PACIENTE (ECO-CONECTOR-2) ════════════════════════════════
+       ⚠️ LA ORDEN SUPONE QUE ESTOS DATOS YA SE LEÍAN Y NO ERA CIERTO: hasta hoy este lector
+       devolvía fabricante, modelo, foto, cuadros, filas, columnas y los fragmentos, y NADA del
+       paciente. Los seis ayudantes que ECO-CONECTOR-1 conservó —`_clnkSexo`, `_clnkEdad`,
+       `_clnkPonerSiVacio`— venían del panel de Orthanc, que sacaba esos datos de la API REST de
+       Orthanc en JSON, no del archivo. Sin estas cuatro líneas no hay de dónde completar nada.
+       ⚠️ Y NO ES UN LECTOR NUEVO —que la orden prohíbe—: son cuatro `if` en el bucle que ya
+       recorre el dataset, con el MISMO molde que las dos líneas de arriba. Agregar campos al
+       objeto devuelto no cambia nada para sus consumidores, que leen por nombre.
+       El `PatientID` (0010,0020) NO se lee, a propósito: en un ecógrafo de hospital es el número
+       de historia clínica y no una cédula, y no tenerlo acá es la forma de que nadie lo escriba
+       como documento por descuido. Lo documentan `_dcmPaciente` y `_clnkPonerSiVacio`. */
+    if (g === 0x0010 && e === 0x0010) d.pacNombre     = _dcmPNaApp(_dcmImgAscii(u8, val, ln));
+    if (g === 0x0010 && e === 0x0030) d.pacNacimiento = _dcmImgAscii(u8, val, ln).trim();
+    if (g === 0x0010 && e === 0x0040) d.pacSexo       = _dcmImgAscii(u8, val, ln).trim();
+    if (g === 0x0008 && e === 0x0020) d.estudioFecha  = _dcmImgAscii(u8, val, ln).trim();
     if (g === 0x0028 && e === 0x0004) d.foto       = _dcmImgAscii(u8, val, ln);
     if (g === 0x0028 && e === 0x0008) { const n = parseInt(_dcmImgAscii(u8, val, ln), 10); if (isFinite(n) && n > 0) d.nFrames = n; }
     if (g === 0x0028 && e === 0x0010) d.filas = dv.getUint16(val, true);
@@ -138800,7 +139067,10 @@ window.imgFileElegido = imgFileElegido;
 
 /* `slotPreferido` sólo lo manda el «+» de un slot puntual; el botón «Importar DICOM»
    importa un lote y no tiene un destino elegido, así que lo deja sin pasar. */
-async function dcmImgImportar(fileList, slotPreferido) {
+/* `origen` es el tercer argumento y es OPCIONAL (ECO-CONECTOR-2): lo propaga `mediosImportar`
+   para que un DICOM que vino de CeiboLink quede marcado en su slot. Sin él, el valor es el
+   `'estudio'` de siempre y la importación desde el pendrive no cambia en nada. */
+async function dcmImgImportar(fileList, slotPreferido, origen) {
   const files = [...fileList];
   /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
      nuevas para que, si son de otro paciente, sus números no se lean como del actual.
@@ -138889,7 +139159,7 @@ async function dcmImgImportar(fileList, slotPreferido) {
     listos.forEach((x, i) => {
       /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
          que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
-      imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i]);
+      imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i], origen);
       /* Y aparte se conserva el ORIGINAL para poder medir: el JPEG del slot sale
          recomprimido y redimensionado, así que la escala del DICOM ya no le aplica.
          El id se ata al objeto del slot en cuanto exista — ver `_medFlushPendientes`. */
@@ -139050,7 +139320,15 @@ const _MEDIO_RECHAZO = {
 
 /* `slotPreferido` sólo tiene sentido desde el «+» de un slot puntual; el botón importa un
    lote y no lo pasa. */
-async function mediosImportar(fileList, slotPreferido) {
+/* ⚠️ `origen` ES EL TERCER ARGUMENTO Y ES OPCIONAL (ECO-CONECTOR-2). Marca de dónde vinieron
+   los bytes: hoy sólo lo manda el camino de CeiboLink, con `'ceibolink'`. Los dos llamadores que
+   ya existían —el botón «Importar» y el «+» de un slot— no lo pasan, así que `undefined` cae en
+   el mismo `'estudio'` de siempre: la carga desde el pendrive no cambia en nada.
+   Va por parámetro y NO por una variable de módulo con el origen «actual»: esta función es
+   asíncrona y el médico puede apretar «Importar» mientras una descarga de CeiboLink sigue en
+   curso, y ahí una variable compartida marcaría sus archivos del pendrive como si vinieran del
+   conector —y eso le exigiría nombre Y documento por la regla de paciente—. */
+async function mediosImportar(fileList, slotPreferido, origen) {
   const files = [...fileList];
   if (!files.length) return;
   /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
@@ -139095,7 +139373,7 @@ async function mediosImportar(fileList, slotPreferido) {
        olfatea igual —medido, las tres imágenes entraron— pero eso es una tolerancia del
        navegador y no una garantía, y `_orig` es lo que re-comprime el selector de calidad.
        El tipo lo pone `_firmaArchivo` a partir de los BYTES, nunca del nombre. */
-    imagenes.forEach((x, i) => imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[i]));
+    imagenes.forEach((x, i) => imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[i], origen));
   }
   /* Secuencial y NO en paralelo: `videoCargarEnSlot` puede abrir un confirm por tamaño y
      un alert por códec, y en paralelo se apilarían los diálogos sobre el mismo médico. */
@@ -139147,7 +139425,7 @@ async function mediosImportar(fileList, slotPreferido) {
      alert de los rechazos de acá y el médico no se enteraría de lo que no entró. Es el
      mismo orden que esa función aplica internamente. */
   if (dicoms.length) {
-    await dcmImgImportar(dicoms, (imagenes.length || videos.length) ? undefined : slotPreferido);
+    await dcmImgImportar(dicoms, (imagenes.length || videos.length) ? undefined : slotPreferido, origen);
   }
 }
 window.mediosImportar = mediosImportar;
@@ -173018,8 +173296,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-2208';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794445713852;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-0027';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794454035301;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173105,7 +173383,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2208</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-0027</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -173685,7 +173963,10 @@ function applyViewMode(){
    Config. Ver la lápida en la pestaña Imágenes.
    El número de generación sube ANTES de repintar: pasar a Modo Básico tiene que invalidar
    lo que esté en vuelo, o una lectura lenta repinta un panel que ya se escondió. */
-function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof _clnkGen==='number') _clnkGen++; if(typeof clnkRender==='function') clnkRender(); }
+function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof _clnkGen==='number') _clnkGen++; if(typeof clnkRender==='function') clnkRender();
+  /* El Modo Basico entra al predicado del sondeo por `clnkActivo()`, asi que pasar a Basico PARA
+     los pedidos en el acto y no al proximo turno. */
+  if(typeof clnkSondeoSync==='function'){ try { clnkSondeoSync(); } catch(e){} } }
 function cfgToggleMod(key,on){ var m=eeGetModules(); m[key]=on; localStorage.setItem('ett_modules', JSON.stringify(m)); applyViewMode(); }
 function cfgRenderModulos(){
   var mode=eeGetMode();
@@ -173932,6 +174213,25 @@ async function clnkPedir(ruta, op) {
   if (red || !r) {
     return { ok: false, estado: 0, datos: null, red: true, vigente: vigente, msg: CLNK_MSG_RED };
   }
+  /* ⚠️ `op.bytes` ES PARA LA DESCARGA DEL ARCHIVO DICOM, Y VIVE ACÁ Y NO EN UNA SEGUNDA
+     FUNCIÓN. §3.9 es la única ruta del contrato que no devuelve JSON, y con un `fetch` propio
+     para ella el token se leería en DOS lugares en vez de uno —que es justo lo que esta función
+     existe para evitar—, y encima sin el tiempo de espera ni la traducción de errores.
+     El ERROR sigue viniendo en JSON: un 404 o un 409 de esa ruta traen el cuerpo de siempre, así
+     que los bytes se leen SOLO cuando la respuesta es 2xx. */
+  if (op.bytes) {
+    if (r.ok) {
+      try { datos = await r.arrayBuffer(); }
+      catch (e) {
+        return { ok: false, estado: r.status, datos: null, red: true, vigente: vigente,
+                 msg: 'La descarga se cortó antes de terminar. Probá de nuevo.' };
+      }
+      return { ok: true, estado: r.status, datos: datos, red: false, vigente: vigente, msg: '' };
+    }
+    try { datos = await r.json(); } catch (e) { datos = null; }
+    return { ok: false, estado: r.status, datos: datos, red: false, vigente: vigente,
+             msg: clnkMensajeError(r.status, datos) };
+  }
   /* 204 no trae cuerpo, y un `json()` sobre eso lanza. */
   if (r.status !== 204) { try { datos = await r.json(); } catch (e) { datos = null; } }
   if (r.ok) return { ok: true, estado: r.status, datos: datos, red: false, vigente: vigente, msg: '' };
@@ -174033,26 +174333,40 @@ function _clnkLuz(cont, color, rotulo, detalle) {
   return f;
 }
 
-/* Fila «rótulo · valor · Copiar», con el valor por `data-clnk-copiar` y el manejador por
-   DELEGACIÓN. Nunca interpolado dentro de un `onclick`: ahí el escape NO protege, porque el
-   parser decodifica la entidad ANTES de compilar el manejador — y estos valores vienen de la
-   red, no son literales de este archivo. */
-function _clnkFila(cont, rotulo, valor, nota) {
-  var f = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;');
-  f.appendChild(_clnkNodo('span', 'font-size:11.5px;color:var(--text2);min-width:132px;', rotulo));
-  f.appendChild(_clnkNodo('code',
-    'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);', valor));
+/* Un DATO suelto: rótulo chico arriba, valor y «Copiar» abajo. Los tres datos del ecógrafo
+   entran así en UNA fila, que es lo que la decisión 12c pide: antes cada uno era un renglón de
+   ancho completo con un rótulo de 132 px fijos y un botón «Copiar» de tamaño normal, o sea
+   tres renglones altos para tres números cortos.
+
+   El valor va por `data-clnk-copiar` y el manejador por DELEGACIÓN. Nunca interpolado dentro de
+   un `onclick`: ahí el escape NO protege, porque el parser decodifica la entidad ANTES de
+   compilar el manejador — y estos valores vienen de la red, no son literales de este archivo.
+
+   ⚠️ EL BOTÓN «Copiar» ES CHICO PERO NO POR DEBAJO DEL MÍNIMO TÁCTIL: lleva la clase `.btn`,
+   así que la regla global de este archivo le pone sus 44 px de alto. Lo que se achica es el
+   relleno y la letra. Un botón de 30 px en la tarjeta que se rediseñó para poder usarse sería
+   el defecto que el rediseño viene a arreglar. */
+function _clnkDato(cont, rotulo, valor, nota) {
+  var caja = _clnkNodo('div', 'display:flex;flex-direction:column;gap:2px;min-width:0;');
+  caja.appendChild(_clnkNodo('span',
+    'font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;', rotulo));
+  var l = _clnkNodo('div', 'display:flex;align-items:center;gap:5px;flex-wrap:wrap;');
+  l.appendChild(_clnkNodo('code',
+    'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);',
+    valor || '—'));
   if (valor) {
-    var b = _clnkNodo('button', 'padding:3px 9px;font-size:11px;', 'Copiar');
+    var b = _clnkNodo('button', 'padding:2px 8px;font-size:10.5px;', 'Copiar');
     b.type = 'button'; b.className = 'btn btn-ghost';
     b.setAttribute('data-clnk-copiar', valor);
-    f.appendChild(b);
+    l.appendChild(b);
   }
+  caja.appendChild(l);
   if (nota) {
-    f.appendChild(_clnkNodo('span',
-      'font-size:10.5px;color:var(--text2);flex-basis:100%;line-height:1.45;', nota));
+    caja.appendChild(_clnkNodo('span',
+      'font-size:10px;color:var(--text2);line-height:1.4;max-width:230px;', nota));
   }
-  cont.appendChild(f);
+  cont.appendChild(caja);
+  return caja;
 }
 
 /* Copiar: UN listener delegado, registrado UNA vez. El panel se reconstruye en cada lectura,
@@ -174095,6 +174409,9 @@ function clnkToggle(on) {
   _clnkLS(CLNK_ON, on ? '1' : '0');
   _clnkGen++;                     // apagar también invalida lo que esté en vuelo
   clnkRender();
+  /* El sondeo se re-sincroniza en CADA cambio de estado del módulo, y por eso `clnkSondeoSync`
+     es idempotente: con cinco enganches sin esa guarda quedarían cinco temporizadores. */
+  if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
   if (on) clnkLeerEstado();
   if (typeof toast === 'function') {
     toast(on ? '🔗 CeiboLink activado' : 'CeiboLink desactivado');
@@ -174113,27 +174430,100 @@ function _clnkBytes(n) {
 
 function _clnkPlural(n, uno, varios) { return n === 1 ? ('1 ' + uno) : (n + ' ' + varios); }
 
+/* ══ EL AVISO DE ESPACIO ═══════════════════════════════════════════════════
+   CON EL TOPE LLENO, CEIBOLINK NO AVISA NADA: el contrato §4 lo dice con todas las letras —el
+   canal no recibe imágenes, las recibe el receptor DICOM—, así que el rechazo le llega al
+   ECÓGRAFO con un código DIMSE y el médico lo ve como un fallo de envío en el equipo, sin
+   ninguna relación visible con EcoSmart. Darse cuenta es comparar los dos números de
+   `GET /v1/estado`, y eso sólo lo puede hacer esta pantalla.
+
+   LOS DOS UMBRALES, Y DE DÓNDE SALEN. El contrato publica una imagen de ejemplo de 16.120.122
+   bytes, así que la unidad real de este cálculo es «cuántas imágenes más entran» y no un
+   porcentaje suelto:
+     · ÁMBAR al 85 %. Sobre el tope de 2 GB del conector eso deja ~322 MB, o sea unas veinte
+       imágenes: tiempo de sobra para adjuntar o descartar sin apuro.
+     · ROJO al 95 %, que deja ~107 MB —unas seis, o sea UN estudio—, o cuando lo libre no
+       alcanza para DOS imágenes grandes (32 MB), lo que pase primero. El piso en bytes hace
+       falta porque con un tope chico el porcentaje no significa nada: 95 % de 100 MB deja 5 MB,
+       que no es «casi lleno», es lleno.
+
+   EL NÚMERO SE MUESTRA TAL CUAL LO INFORMA CEIBOLINK y no se recalcula: lo que la pantalla
+   agrega es la comparación y la frase, no una cuenta propia del espacio. */
+var CLNK_ESP_AMBAR = 0.85;
+var CLNK_ESP_ROJO = 0.95;
+var CLNK_ESP_PISO = 32 * 1024 * 1024;      // dos imágenes grandes
+
+/* Devuelve `null` cuando no hay nada que avisar, o `{ nivel, txt }`. Se extrae con nombre para
+   poder probarlo sin red: un caso le pasa los dos números y mira el veredicto. */
+function clnkEspacio(usados, tope) {
+  var u = Number(usados), t = Number(tope);
+  if (!isFinite(u) || !isFinite(t) || t <= 0 || u < 0) return null;
+  var libre = t - u;
+  var frac = u / t;
+  if (frac >= CLNK_ESP_ROJO || libre <= CLNK_ESP_PISO) {
+    return { nivel: 'rojo', txt:
+      'CeiboLink está casi sin lugar: usó ' + _clnkBytes(u) + ' de ' + _clnkBytes(t) + '. ' +
+      'Cuando se llene, el ECÓGRAFO va a rechazar los envíos y el aviso lo vas a ver en el ' +
+      'equipo, no acá. Adjuntá o descartá lo que está esperando.' };
+  }
+  if (frac >= CLNK_ESP_AMBAR) {
+    return { nivel: 'ambar', txt:
+      'CeiboLink usó ' + _clnkBytes(u) + ' de ' + _clnkBytes(t) + '. Conviene adjuntar o ' +
+      'descartar lo que está esperando antes de que se llene.' };
+  }
+  return null;
+}
+window.clnkEspacio = clnkEspacio;
+
+/* La LUZ de la cabecera. Vive en su propio nodo —`cfg-clnk-luz`— y no dentro del bloque de
+   avisos: así el intertruptor y «Actualizar», que son estáticos, nunca quedan debajo de lo que
+   se repinta. El color no es la única señal: va con su rótulo, porque un círculo verde y uno
+   rojo del mismo tamaño no se distinguen con un monitor mal calibrado ni con un daltonismo
+   rojo-verde. */
+function _clnkPintarLuz(color, rotulo, detalle) {
+  var n = document.getElementById('cfg-clnk-luz');
+  if (!n) return;
+  n.textContent = '';
+  n.appendChild(_clnkNodo('span',
+    'width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:' + color + ';'));
+  n.appendChild(_clnkNodo('span', '', rotulo));
+  if (detalle) {
+    n.appendChild(_clnkNodo('span', 'font-size:11px;font-weight:400;color:var(--text2);', detalle));
+  }
+}
+
+/* Un número de la línea de resumen. Tres chips en una fila, que es la decisión 12a. */
+function _clnkChip(cont, txt, fuerte) {
+  cont.appendChild(_clnkNodo('span',
+    'padding:2px 8px;border-radius:9px;background:var(--bg3);font-size:11px;' +
+    (fuerte ? 'font-weight:700;color:var(--text);' : ''), txt));
+}
+
 async function clnkLeerEstado() {
   var cont = document.getElementById('cfg-clnk-estado');
+  var nums = document.getElementById('cfg-clnk-nums');
   if (!cont) return;
-  if (!clnkActivo()) { cont.textContent = ''; return; }
+  if (!clnkActivo()) { cont.textContent = ''; if (nums) nums.textContent = ''; return; }
   cont.textContent = '';
-  _clnkAviso(cont, 'Preguntando a CeiboLink…', 'var(--text2)');
+  if (nums) nums.textContent = '';
+  _clnkPintarLuz('var(--text2)', 'Preguntando…', '');
   var r = await clnkPedir('/v1/estado', {});
   if (!r.vigente) return;         // el médico apagó o cambió de modo mientras esto volvía
   cont = document.getElementById('cfg-clnk-estado');
+  nums = document.getElementById('cfg-clnk-nums');
   if (!cont) return;
   cont.textContent = '';
+  if (nums) nums.textContent = '';
   if (r.red) {
-    _clnkLuz(cont, 'var(--text2)', 'CeiboLink no responde', '');
+    _clnkPintarLuz('var(--text2)', 'No responde', '');
     _clnkAviso(cont, r.msg, 'var(--amber, var(--text2))');
-    /* Sin conector no hay nada que leer de las otras rutas: se esconden en vez de dejar cinco
-       bloques vacíos que parecen roto. */
+    /* Sin conector no hay nada que leer de las otras rutas: se esconden en vez de dejar tres
+       plegables vacíos que parecen roto. */
     _clnkEsconderDependientes();
     return;
   }
   if (!r.ok) {
-    _clnkLuz(cont, 'var(--text2)', 'CeiboLink no contestó bien', 'código ' + r.estado);
+    _clnkPintarLuz('var(--text2)', 'No contestó bien', 'código ' + r.estado);
     _clnkAviso(cont, r.msg, 'var(--text2)');
     _clnkEsconderDependientes();
     return;
@@ -174141,22 +174531,35 @@ async function clnkLeerEstado() {
   var d = r.datos || {};
   var vinculado = clnkVinculado();
   if (!vinculado) {
-    _clnkLuz(cont, 'var(--amber, #d98c00)', 'Sin vincular', 'CeiboLink está, falta autorizar este navegador');
+    _clnkPintarLuz('var(--amber, #d98c00)', 'Sin vincular', 'falta autorizar este navegador');
+  } else if (!d.orthanc_vivo) {
+    /* ⚠️ «CONECTADO» CON EL RECEPTOR CAÍDO ES UNA LUZ QUE MIENTE. El canal contesta, así que
+       el panel funciona entero, pero NO van a entrar imágenes nuevas: eso es lo que el médico
+       necesita saber de un vistazo, y en el panel anterior vivía en la cuarta línea de un
+       bloque de texto corrido. */
+    _clnkPintarLuz('var(--amber, #d98c00)', 'Conectado', 'pero no está recibiendo imágenes');
   } else {
-    _clnkLuz(cont, 'var(--green, #2e9e5b)', 'Conectado', '');
+    _clnkPintarLuz('var(--green, #2e9e5b)', 'Conectado', 'v' + String(d.version || '—'));
   }
-  var l = _clnkNodo('div', 'font-size:11.5px;line-height:1.7;color:var(--text2);');
-  l.appendChild(_clnkNodo('div', '', 'Versión de CeiboLink: ' + String(d.version || '—')));
-  l.appendChild(_clnkNodo('div', '',
-    d.orthanc_vivo ? 'Listo para recibir imágenes del ecógrafo.'
-                   : 'NO está recibiendo imágenes: el receptor no responde.'));
-  l.appendChild(_clnkNodo('div', '',
-    'Imágenes esperando: ' + _clnkPlural(Number(d.imagenes_pendientes) || 0, 'imagen', 'imágenes')));
-  l.appendChild(_clnkNodo('div', '',
-    'Equipos esperando tu decisión: ' + (Number(d.equipos_esperando) || 0)));
-  var usa = _clnkBytes(d.bytes_usados), tope = _clnkBytes(d.bytes_tope);
-  if (usa && tope) l.appendChild(_clnkNodo('div', '', 'Espacio usado: ' + usa + ' de ' + tope));
-  cont.appendChild(l);
+  /* ══ LOS TRES NÚMEROS ══ */
+  if (nums) {
+    var fila = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;');
+    var pend = Number(d.imagenes_pendientes) || 0;
+    var esp = Number(d.equipos_esperando) || 0;
+    _clnkChip(fila, pend ? _clnkPlural(pend, 'imagen esperando', 'imágenes esperando')
+                         : 'sin imágenes esperando', pend > 0);
+    _clnkChip(fila, esp ? _clnkPlural(esp, 'equipo por decidir', 'equipos por decidir')
+                        : 'sin equipos por decidir', esp > 0);
+    var usa = _clnkBytes(d.bytes_usados), tope = _clnkBytes(d.bytes_tope);
+    _clnkChip(fila, (usa && tope) ? (usa + ' de ' + tope) : 'espacio desconocido', false);
+    nums.appendChild(fila);
+    if (!d.orthanc_vivo) {
+      nums.appendChild(_clnkNodo('div', 'margin-top:4px;',
+        'NO está recibiendo imágenes del ecógrafo: el receptor no responde.'));
+    }
+  }
+  var e = clnkEspacio(d.bytes_usados, d.bytes_tope);
+  if (e) _clnkAviso(cont, e.txt, e.nivel === 'rojo' ? 'var(--red, #c0392b)' : 'var(--amber, #d98c00)');
   _clnkVersionVieja = String(d.version || '').indexOf('1.0.') === 0;
   if (vinculado) {
     clnkLeerConexion();
@@ -174169,23 +174572,31 @@ async function clnkLeerEstado() {
 }
 window.clnkLeerEstado = clnkLeerEstado;
 
-/* ⚠️ LOS TRES SE ESCONDEN, PERO SOLO DOS SE VACIAN, Y LA DIFERENCIA NO ES DE ESTILO.
-   «Datos para configurar el ecógrafo» y «Equipos» los pinta el JS entero, así que vaciarlos es
-   tirar lo que uno mismo dibujó. «Ajustes» NO: su marcado es ESTÁTICO —los dos campos, su
-   rótulo, el botón «Guardar» y el renglón de avisos viven en el HTML— y un `textContent = ''`
-   ahí BORRA los campos del documento para siempre, con la tarjeta visible y sin ellos.
-   Y no vuelven: el repintado los busca por id, no los crea.
-   Lo destapó la suite y no la lectura: `cfg-clnk-horas`, `cfg-clnk-aet` y `cfg-clnk-amsg`
-   desaparecían del censo de TC-833, y TC-840 reventaba con «Cannot set properties of null»
-   —en SU LOTE, porque el que los borraba era el caso ANTERIOR—. Es el mismo modo de falla que
-   PANT-30 pagó con el barrido de «-aviso» y el botón del aviso. */
+/* ⚠️ LOS TRES PLEGABLES SE ESCONDEN, PERO SOLO DOS SE VACIAN, Y LA DIFERENCIA NO ES DE ESTILO.
+   «Datos para el ecógrafo» y «Equipos» tienen un contenedor interno que pinta el JS entero, así
+   que vaciarlo es tirar lo que uno mismo dibujó. «Ajustes» NO: su cuerpo es marcado ESTÁTICO
+   —los dos campos, sus rótulos, el botón «Guardar», el renglón de avisos y «Desvincular» viven
+   en el HTML— y un `textContent = ''` ahí BORRA los campos del documento para siempre, con la
+   tarjeta visible y sin ellos. Y no vuelven: el repintado los busca por id, no los crea.
+   Lo destapó la suite y no la lectura, en ECO-CONECTOR-1: `cfg-clnk-horas`, `cfg-clnk-aet` y
+   `cfg-clnk-amsg` desaparecían del censo de TC-833, y TC-840 reventaba con «Cannot set
+   properties of null» —en SU LOTE, porque el que los borraba era el caso ANTERIOR—. Es el mismo
+   modo de falla que PANT-30 pagó con el barrido de «-aviso» y el botón del aviso.
+
+   ⚠️ Y SE ESCONDE EL `<details>`, NO SU CUERPO: el `<summary>` es el renglón que lo abre, así
+   que esconder sólo lo de adentro dejaría tres renglones que se abren sobre nada. Cada uno
+   vuelve a `open = false` al esconderse, para que no reaparezca abierto la próxima vez. */
 function _clnkEsconderDependientes() {
   ['cfg-clnk-conexion', 'cfg-clnk-equipos'].forEach(function (id) {
     var e = document.getElementById(id);
-    if (e) { e.textContent = ''; e.style.display = 'none'; }
+    if (e) e.textContent = '';
   });
-  var aj = document.getElementById('cfg-clnk-ajustes');
-  if (aj) aj.style.display = 'none';
+  ['cfg-clnk-det-conexion', 'cfg-clnk-det-equipos', 'cfg-clnk-det-ajustes'].forEach(function (id) {
+    var e = document.getElementById(id);
+    if (e) { e.style.display = 'none'; try { e.open = false; } catch (x) {} }
+  });
+  var c = document.getElementById('cfg-clnk-eq-cnt');
+  if (c) c.textContent = '';
 }
 
 /* ── (c) Vinculación ───────────────────────────────────────────────────────────────────────── */
@@ -174235,6 +174646,9 @@ async function clnkVincular() {
                   'hacerlo en esta computadora.', 'var(--green, #2e9e5b)');
   if (typeof toast === 'function') toast('🔗 EcoSmart quedó vinculado con CeiboLink');
   clnkRender();
+  /* Recién vinculado: el sondeo pasa a corresponder, así que arranca ahora y no al próximo
+     cambio de pestaña. */
+  if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
   clnkLeerEstado();
 }
 window.clnkVincular = clnkVincular;
@@ -174261,6 +174675,8 @@ async function clnkDesvincular() {
   if (typeof toast === 'function') toast('EcoSmart se desvinculó de CeiboLink');
   _clnkEsconderDependientes();
   clnkRender();
+  /* Sin token no se sondea: el predicado lo dice y esto lo aplica en el acto. */
+  if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
   clnkLeerEstado();
 }
 window.clnkDesvincular = clnkDesvincular;
@@ -174268,49 +174684,62 @@ window.clnkDesvincular = clnkDesvincular;
 /* ── (e) Datos para configurar el ecógrafo ─────────────────────────────────────────────────── */
 async function clnkLeerConexion() {
   var cont = document.getElementById('cfg-clnk-conexion');
+  var det = document.getElementById('cfg-clnk-det-conexion');
   if (!cont) return;
   var r = await clnkPedir('/v1/conexion', { conToken: true });
   if (!r.vigente) return;
   cont = document.getElementById('cfg-clnk-conexion');
+  det = document.getElementById('cfg-clnk-det-conexion');
   if (!cont) return;
   cont.textContent = '';
   if (r.estado === 404) {
-    /* Conector 1.0: se esconde, no se avisa. */
-    cont.style.display = 'none';
+    /* Conector 1.0: se esconde, no se avisa. Lo manda el contrato §7. */
+    if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} }
     return;
   }
-  if (!r.ok) { cont.style.display = 'none'; return; }
-  cont.style.display = '';
+  if (!r.ok) { if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} } return; }
+  if (det) det.style.display = '';
   var d = r.datos || {};
-  cont.appendChild(_clnkNodo('div',
-    'font-size:12px;font-weight:700;margin:0 0 7px;', 'Datos para configurar el ecógrafo'));
-  cont.appendChild(_clnkNodo('p', 'font-size:11px;color:var(--text2);margin:0 0 9px;line-height:1.5;',
-    'Dale estos tres datos a quien configure el ecógrafo. En el menú DICOM del equipo hay que ' +
-    'cargar un destino nuevo que apunte a esta computadora.'));
-  _clnkFila(cont, 'Puerto DICOM:', String(d.puerto_dicom == null ? '' : d.puerto_dicom), '');
-  _clnkFila(cont, 'Nombre (AET):', String(d.aet_puente || ''), '');
+  cont.appendChild(_clnkNodo('p', 'font-size:11px;color:var(--text2);margin:0 0 8px;line-height:1.5;',
+    'Dale estos datos a quien configure el ecógrafo. En el menú DICOM del equipo hay que cargar ' +
+    'un destino nuevo que apunte a esta computadora.'));
+  /* ══ LOS TRES EN UNA FILA ══ `flex-wrap` y no una grilla de tres: a 390 px los tres chips no
+     entran, y una grilla fija los apretaría hasta cortar el número. Envueltos, bajan solos. */
+  var fila = _clnkNodo('div', 'display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;');
+  _clnkDato(fila, 'Puerto DICOM', String(d.puerto_dicom == null ? '' : d.puerto_dicom), '');
+  _clnkDato(fila, 'Nombre (AET)', String(d.aet_puente || ''), '');
   var dirs = Array.isArray(d.direcciones) ? d.direcciones : [];
   if (!dirs.length) {
-    _clnkFila(cont, 'Dirección:', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.');
+    _clnkDato(fila, 'Dirección', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.');
   }
+  /* TODAS las direcciones, en la MISMA sección, con el aviso del conector. El contrato §3.13
+     dice que como máximo UNA puede venir marcada como la probable y que puede no haber ninguna:
+     el panel no elige por su cuenta, lo DICE. */
   dirs.forEach(function (x) {
     var dir = String((x && x.direccion) || '');
     var iface = String((x && x.interfaz) || '');
     var nota = iface ? ('Conexión «' + iface + '».') : '';
-    if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'Es la que conviene darle al técnico.';
-    _clnkFila(cont, 'Dirección:', dir, nota);
+    if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'Es la que conviene dar.';
+    _clnkDato(fila, 'Dirección', dir, nota);
   });
+  cont.appendChild(fila);
   /* El aviso del conector, tal cual lo manda, cuando hay más de una dirección o ninguna. */
-  if (d.aviso) _clnkAviso(cont, String(d.aviso), 'var(--amber, var(--text2))');
+  if (d.aviso) {
+    var ca = _clnkNodo('div', 'margin-top:8px;');
+    cont.appendChild(ca);
+    _clnkAviso(ca, String(d.aviso), 'var(--amber, var(--text2))');
+  }
   /* Y la explicación de la dirección automática, que el médico no tiene por qué saber leer. Va
-     ADEMÁS del aviso del conector: aquél dice que pasa, éste dice qué hacer. */
+     ADEMÁS del aviso del conector: aquél dice qué pasa, éste dice qué hacer. */
   var hayAuto = dirs.some(function (x) { return /^169\.254\./.test(String((x && x.direccion) || '')); });
   if (hayAuto) {
-    _clnkAviso(cont,
+    var cb = _clnkNodo('div', 'margin-top:8px;');
+    cont.appendChild(cb);
+    _clnkAviso(cb,
       'Una de las direcciones empieza con 169.254. Esa se la asignó sola la computadora porque ' +
       'nadie le dio una, y NO le sirve al técnico: con esa dirección el ecógrafo no va a ' +
-      'encontrar esta computadora. Hay que fijarle una dirección a mano, como se explica abajo ' +
-      'en «Cable directo».', 'var(--amber, var(--text2))');
+      'encontrar esta computadora. Hay que fijarle una dirección a mano, como se explica en ' +
+      '«Cómo conectar el ecógrafo».', 'var(--amber, var(--text2))');
   }
 }
 window.clnkLeerConexion = clnkLeerConexion;
@@ -174338,33 +174767,82 @@ function _clnkFecha(iso) {
 
 async function clnkLeerEquipos() {
   var cont = document.getElementById('cfg-clnk-equipos');
+  var det = document.getElementById('cfg-clnk-det-equipos');
   if (!cont) return;
   var r = await clnkPedir('/v1/equipos', { conToken: true });
   if (!r.vigente) return;
   cont = document.getElementById('cfg-clnk-equipos');
+  det = document.getElementById('cfg-clnk-det-equipos');
   if (!cont) return;
   cont.textContent = '';
-  if (!r.ok) { cont.style.display = 'none'; return; }
-  cont.style.display = '';
-  cont.appendChild(_clnkNodo('div', 'font-size:12px;font-weight:700;margin:0 0 7px;', 'Equipos'));
+  if (!r.ok) { if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} } return; }
+  if (det) det.style.display = '';
   var lista = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  var pend = lista.filter(function (e) { return String(e && e.estado) === 'pendiente'; }).length;
+  /* ══ EL CONTADOR EN EL RENGLÓN CERRADO ══ Es lo que hace que un plegable cerrado sirva: sin
+     esto, «Equipos» cerrado no dice si hay uno, cinco o ninguno, y el médico lo abre siempre
+     «por si acaso» —o sea que el plegable no ahorra nada—. */
+  var cnt = document.getElementById('cfg-clnk-eq-cnt');
+  if (cnt) {
+    cnt.textContent = !lista.length ? '(ninguno todavía)'
+      : (pend ? '(' + lista.length + ' · ' + _clnkPlural(pend, 'espera tu decisión', 'esperan tu decisión') + ')'
+              : '(' + lista.length + ')');
+  }
+  /* ⚠️ CON UN EQUIPO ESPERANDO DECISIÓN, LA SECCIÓN SE ABRE SOLA. Es la única de las tres que
+     puede estar pidiendo algo: hasta que el médico decida, las imágenes de ese equipo quedan en
+     cuarentena y NO salen en la lista —§3.8—, así que un plegable cerrado esconde justo el paso
+     que desbloquea todo lo demás. Y se abre sólo cuando hay uno: abrirla siempre convierte el
+     plegable en un bloque fijo.
+     Lo pone acá y no en el repintado porque ésta es la única función que sabe si hay alguno. */
+  if (det && pend) { try { det.open = true; } catch (e) {} }
   if (!lista.length) {
     cont.appendChild(_clnkNodo('div', 'font-size:11.5px;color:var(--text2);line-height:1.5;',
-      'Esperando equipos…'));
+      'Todavía no mandó imágenes ningún equipo. Cuando el ecógrafo mande la primera, aparece acá ' +
+      'para que lo autorices.'));
     return;
   }
   lista.forEach(function (eq) { _clnkFilaEquipo(cont, eq); });
+  /* ══ (d) LA AYUDA DE LAS ACCIONES, UNA SOLA Y PLEGABLE ════════════════════════════
+     Antes este párrafo de tres oraciones se repetía DEBAJO DE CADA EQUIPO: con dos equipos, el
+     mismo texto dos veces; con cinco, cinco. Y es el texto que se lee UNA vez en la vida. */
+  var ay = document.createElement('details');
+  ay.className = 'clnk-det';
+  ay.style.cssText = 'margin-top:4px;background:transparent;border-style:dashed;';
+  var sm = document.createElement('summary');
+  sm.style.cssText = 'font-size:11px;font-weight:400;color:var(--text2);';
+  sm.textContent = 'Qué hace cada acción';
+  ay.appendChild(sm);
+  var cu = _clnkNodo('div', 'font-size:10.5px;color:var(--text2);line-height:1.55;');
+  cu.className = 'clnk-det-cuerpo';
+  cu.textContent = 'Permitir deja pasar sus imágenes, y las que tenía esperando salen de ' +
+    'cuarentena sin reenviar nada desde el ecógrafo. Bloquear borra las que tenga guardadas y ' +
+    'descarta todo lo que mande en adelante. Olvidar lo saca de la lista sin borrar nada: si ' +
+    'vuelve a mandar, te pregunta de nuevo. El apodo es sólo una etiqueta y no cambia qué ' +
+    'equipo es; vacío se lo quita.';
+  ay.appendChild(cu);
+  cont.appendChild(ay);
 }
 window.clnkLeerEquipos = clnkLeerEquipos;
 
+/* ══ (d) UN RENGLÓN POR EQUIPO ═══════════════════════════════════════════════
+   Era una tarjeta con borde de seis renglones: nombre, chip, AET, imágenes, último envío, la
+   fila del apodo con su nota, los tres botones y el párrafo de ayuda. Ahora es UN renglón con
+   lo que se mira —nombre, estado, imágenes, último envío— y un plegable propio con lo que se
+   toca —el apodo y las acciones—.
+
+   ⚠️ CON EL EQUIPO ESPERANDO DECISIÓN, «Permitir» Y «Bloquear» VAN EN EL RENGLÓN, A LA VISTA.
+   Es lo que la decisión 12d pide, y el motivo es el mismo que abre la sección sola: mientras
+   nadie decida, sus imágenes no existen para EcoSmart. Las demás acciones de ese equipo —y las
+   tres de un equipo ya resuelto— viven detrás de su plegable. */
 function _clnkFilaEquipo(cont, eq) {
   var id = String((eq && eq.id) || '');
   var est = String((eq && eq.estado) || '');
   var par = CLNK_ESTADOS[est] || [est || '—', 'var(--text2)'];
+  var espera = (est === 'pendiente');
   var caja = _clnkNodo('div',
-    'border:1px solid var(--bg3);border-radius:9px;padding:9px 10px;margin-bottom:8px;');
+    'border-bottom:1px solid var(--border);padding:6px 0;');
 
-  var linea = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;');
+  var linea = _clnkNodo('div', 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;');
   linea.appendChild(_clnkNodo('span',
     'width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:' + par[1] + ';'));
   /* ⚠️ EL APODO VA EN UN `bdi`, ADEMÁS DE `textContent`. Es texto libre que escribe una persona,
@@ -174376,33 +174854,52 @@ function _clnkFilaEquipo(cont, eq) {
      futura puede dejar de rechazarlos: el aislamiento va de este lado. */
   var apodo = (eq && eq.apodo != null) ? String(eq.apodo) : '';
   var nom = document.createElement('bdi');
-  nom.style.cssText = 'font-size:12.5px;font-weight:700;';
+  nom.style.cssText = 'font-size:12px;font-weight:700;';
   nom.textContent = apodo || String((eq && eq.aet) || id || 'Equipo');
   linea.appendChild(nom);
   linea.appendChild(_clnkNodo('span',
-    'font-size:10.5px;padding:1px 7px;border-radius:9px;background:var(--bg3);color:' + par[1] + ';',
+    'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:' + par[1] + ';',
     par[0]));
+  var f = _clnkFecha(eq && eq.ultimo_envio);
+  linea.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);',
+    (Number(eq && eq.imagenes) || 0) + ' imág.' + (f ? ' · ' + f : '')));
+  var mk = function (dest, acc, txt, clase) {
+    var b = _clnkNodo('button', 'padding:3px 10px;font-size:11px;', txt);
+    b.type = 'button'; b.className = 'btn ' + (clase || 'btn-ghost');
+    b.setAttribute('data-clnk-eq', id);
+    b.setAttribute('data-clnk-acc', acc);
+    dest.appendChild(b);
+  };
+  if (espera) {
+    var urg = _clnkNodo('span', 'display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;');
+    mk(urg, 'permitir', 'Permitir', 'btn-primary');
+    mk(urg, 'bloquear', 'Bloquear');
+    linea.appendChild(urg);
+  }
   caja.appendChild(linea);
 
-  var det = _clnkNodo('div', 'font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:6px;');
+  /* El plegable del equipo: el apodo y el resto de las acciones. */
+  var d = document.createElement('details');
+  d.className = 'clnk-det';
+  d.style.cssText = 'margin:5px 0 2px;background:transparent;border:none;';
+  var sm = document.createElement('summary');
+  sm.style.cssText = 'font-size:10.5px;font-weight:400;color:var(--text2);min-height:44px;padding:0;';
+  sm.textContent = 'Apodo y acciones';
+  d.appendChild(sm);
+  var cu = _clnkNodo('div', 'padding:0 0 4px;');
+  cu.className = 'clnk-det-cuerpo';
   /* El AET también es texto que viene del equipo: `bdi` por el mismo motivo que el apodo. */
-  var aetL = _clnkNodo('div', '');
+  var aetL = _clnkNodo('div', 'font-size:10.5px;color:var(--text2);margin-bottom:5px;');
   aetL.appendChild(_clnkNodo('span', '', 'Nombre que declara el equipo (AET): '));
   var aetB = document.createElement('bdi');
   aetB.textContent = String((eq && eq.aet) || '—');
   aetL.appendChild(aetB);
-  det.appendChild(aetL);
-  det.appendChild(_clnkNodo('div', '',
-    'Imágenes guardadas: ' + (Number(eq && eq.imagenes) || 0)));
-  var f = _clnkFecha(eq && eq.ultimo_envio);
-  if (f) det.appendChild(_clnkNodo('div', '', 'Último envío: ' + f));
-  caja.appendChild(det);
-
+  cu.appendChild(aetL);
   /* El apodo se edita con `PUT /v1/equipos/{id}`, que NO existe en un conector 1.0: ahí la fila
      de edición no se dibuja, en vez de ofrecer un control que va a dar 404. */
   if (!_clnkVersionVieja) {
-    var fe = _clnkNodo('div', 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;');
-    fe.appendChild(_clnkNodo('span', 'font-size:11px;color:var(--text2);', 'Apodo:'));
+    var fe = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;');
+    fe.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);', 'Apodo'));
     var inp = document.createElement('input');
     inp.type = 'text';
     inp.value = apodo;
@@ -174411,34 +174908,22 @@ function _clnkFilaEquipo(cont, eq) {
     inp.setAttribute('autocomplete', 'off');
     inp.setAttribute('spellcheck', 'false');
     inp.setAttribute('data-clnk-apodo', id);
-    inp.style.cssText = 'flex:1;min-width:130px;font-size:12px;';
+    inp.style.cssText = 'flex:1;min-width:120px;font-size:12px;';
     fe.appendChild(inp);
-    var bg = _clnkNodo('button', 'padding:4px 10px;font-size:11px;', 'Guardar');
+    var bg = _clnkNodo('button', 'padding:3px 9px;font-size:10.5px;', 'Guardar');
     bg.type = 'button'; bg.className = 'btn btn-ghost';
     bg.setAttribute('data-clnk-eq', id);
     bg.setAttribute('data-clnk-acc', 'apodo');
     fe.appendChild(bg);
-    fe.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);flex-basis:100%;',
-      'Vacío le quita el apodo. Es sólo una etiqueta: no cambia qué equipo es.'));
-    caja.appendChild(fe);
+    cu.appendChild(fe);
   }
-
-  var bot = _clnkNodo('div', 'display:flex;gap:7px;flex-wrap:wrap;');
-  var mk = function (acc, txt, clase) {
-    var b = _clnkNodo('button', 'padding:4px 11px;font-size:11.5px;', txt);
-    b.type = 'button'; b.className = 'btn ' + (clase || 'btn-ghost');
-    b.setAttribute('data-clnk-eq', id);
-    b.setAttribute('data-clnk-acc', acc);
-    bot.appendChild(b);
-  };
-  if (est !== 'autorizado') mk('permitir', 'Permitir');
-  if (est !== 'bloqueado')  mk('bloquear', 'Bloquear');
-  mk('olvidar', 'Olvidar');
-  caja.appendChild(bot);
-  caja.appendChild(_clnkNodo('div', 'font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:5px;',
-    'Permitir deja pasar sus imágenes. Bloquear borra las que tenga guardadas y descarta lo que ' +
-    'mande después. Olvidar lo saca de la lista sin borrar nada: si vuelve a mandar, te pregunta ' +
-    'de nuevo.'));
+  var bot = _clnkNodo('div', 'display:flex;gap:6px;flex-wrap:wrap;');
+  if (est !== 'autorizado') mk(bot, 'permitir', 'Permitir');
+  if (est !== 'bloqueado')  mk(bot, 'bloquear', 'Bloquear');
+  mk(bot, 'olvidar', 'Olvidar');
+  cu.appendChild(bot);
+  d.appendChild(cu);
+  caja.appendChild(d);
   cont.appendChild(caja);
 }
 
@@ -174514,16 +174999,18 @@ window.clnkAccionEquipo = clnkAccionEquipo;
 
 /* ── (g) Ajustes ───────────────────────────────────────────────────────────────────────────── */
 async function clnkLeerAjustes() {
-  var cont = document.getElementById('cfg-clnk-ajustes');
-  if (!cont) return;
+  var det = document.getElementById('cfg-clnk-det-ajustes');
+  if (!det) return;
   var r = await clnkPedir('/v1/ajustes', { conToken: true });
   if (!r.vigente) return;
-  cont = document.getElementById('cfg-clnk-ajustes');
-  if (!cont) return;
-  /* Se esconde SIN vaciar, por lo mismo que `_clnkEsconderDependientes`: el marcado de este
-     bloque es estático y vaciarlo se lleva los dos campos del documento. */
-  if (!r.ok) { cont.style.display = 'none'; return; }
-  cont.style.display = '';
+  det = document.getElementById('cfg-clnk-det-ajustes');
+  if (!det) return;
+  /* ⚠️ SE ESCONDE EL `<details>` Y NO SE VACÍA NADA, por lo mismo que
+     `_clnkEsconderDependientes`: el cuerpo de esta sección es marcado ESTÁTICO —los dos campos,
+     el botón «Guardar», el renglón de avisos y «Desvincular»— y vaciarlo se lleva los campos
+     del documento para siempre. */
+  if (!r.ok) { det.style.display = 'none'; try { det.open = false; } catch (e) {} return; }
+  det.style.display = '';
   var d = r.datos || {};
   var h = document.getElementById('cfg-clnk-horas');
   var a = document.getElementById('cfg-clnk-aet');
@@ -174603,6 +175090,13 @@ function clnkRender() {
   if (!on) {
     var e = document.getElementById('cfg-clnk-estado');
     if (e) e.textContent = '';
+    var nm = document.getElementById('cfg-clnk-nums');
+    if (nm) nm.textContent = '';
+    /* La LUZ también: es el nodo que dice si el conector responde, y con el módulo apagado no
+       hay nada que decir. Vacío y no «apagado»: un rótulo que dijera algo con el cuerpo
+       escondido sería una luz sobre un panel que no se ve. */
+    var lz = document.getElementById('cfg-clnk-luz');
+    if (lz) lz.textContent = '';
     var vm = document.getElementById('cfg-clnk-vmsg');
     if (vm) vm.textContent = '';
     _clnkEsconderDependientes();
@@ -174618,15 +175112,796 @@ function clnkOnMostrar() {
 }
 window.clnkOnMostrar = clnkOnMostrar;
 
+/* La ayuda es un `<details>` NATIVO desde ECO-CONECTOR-2: abre y cierra con el teclado sin una
+   línea de JS. Esta función se conserva —y con su nombre— porque es la que se puede llamar
+   desde una prueba y desde cualquier otro lado: lo único que hace es dar vuelta el `open`. */
 function clnkAyudaToggle() {
-  var c = document.getElementById('cfg-clnk-ayuda-cuerpo');
-  var b = document.getElementById('cfg-clnk-ayuda-btn');
-  if (!c) return;
-  var abierto = c.style.display !== 'none';
-  c.style.display = abierto ? 'none' : '';
-  if (b) b.textContent = (abierto ? '▸' : '▾') + ' Cómo conectar el ecógrafo';
+  var d = document.getElementById('cfg-clnk-ayuda');
+  if (!d) return;
+  try { d.open = !d.open; } catch (e) {}
 }
 window.clnkAyudaToggle = clnkAyudaToggle;
+
+/* ══ TAREA 4 · EL AVISO, LA AGRUPACIÓN Y LAS ACCIONES ═════════════════════════════
+   ⚠️ EL AVISO NO DICE UN SOLO DATO DEL PACIENTE, Y NO PODRÍA AUNQUE QUISIERA: la lista del
+   contrato §3.8 no los trae —`vista` queda en `null` a propósito justamente por eso— y los
+   datos del paciente viven SÓLO adentro del archivo DICOM, que recién se baja cuando el médico
+   aprieta «Adjuntar». Lo que el aviso dice es cuántas, de qué equipo y a qué hora. Tampoco
+   muestra la imagen: para eso habría que bajarla, y bajarla es trabajo que el médico no pidió.
+
+   ⚠️ UNA SOLA PUERTA PARA LOS DOS AVISOS. El de imágenes y el de equipo nuevo hacen la misma
+   pregunta de tres salidas con el mismo molde, así que comparten el modal y la función que lo
+   abre. Con dos marcados, el día que se afine el botón de uno el otro se queda viejo. */
+var _clnkAvisoAccion = { b1: null, b2: null, b3: null };
+var _clnkAvisoAbierto = false;
+
+/* Abre el modal. `bot` son hasta tres botones `{ txt, fn }`; el primero sale primario. Un botón
+   sin texto se esconde, así que el mismo marcado sirve para dos y para tres salidas. */
+function clnkAvisoAbrir(titulo, texto, bot) {
+  var ov = document.getElementById('clnkav-ov');
+  var t = document.getElementById('clnkav-title');
+  var x = document.getElementById('clnkav-txt');
+  if (!ov || !t || !x) return false;
+  t.textContent = String(titulo || 'CeiboLink');
+  x.textContent = String(texto || '');
+  ['b1', 'b2', 'b3'].forEach(function (k, i) {
+    var b = document.getElementById('clnkav-' + k);
+    var d = (bot || [])[i];
+    _clnkAvisoAccion[k] = (d && typeof d.fn === 'function') ? d.fn : null;
+    if (!b) return;
+    if (d && d.txt) { b.textContent = String(d.txt); b.style.display = ''; b.disabled = false; }
+    else { b.textContent = ''; b.style.display = 'none'; }
+  });
+  ov.style.display = 'flex';
+  _clnkAvisoAbierto = true;
+  return true;
+}
+window.clnkAvisoAbrir = clnkAvisoAbrir;
+
+/* Cambia SÓLO el texto, con el modal abierto y los botones apagados. Es el progreso: el médico
+   ya está mirando esta tarjeta, así que la cuenta de «van 2 de 5» va acá y no en un cartel
+   aparte que se superponga.
+   ⚠️ ESTA APP NO TIENE NINGUNA BARRA DE PROGRESO —medido: cero componentes de barra, y lo que
+   usa para informar un trabajo largo son `toast('⏳ …')`—, así que no hay una barra «existente»
+   que reusar. El progreso es este texto más el toast de cierre, que es el patrón de la casa. */
+function clnkAvisoProgreso(texto) {
+  var x = document.getElementById('clnkav-txt');
+  if (x) x.textContent = String(texto || '');
+  ['b1', 'b2', 'b3'].forEach(function (k) {
+    var b = document.getElementById('clnkav-' + k);
+    if (b) b.disabled = true;
+  });
+}
+
+function clnkAvisoCerrar() {
+  var ov = document.getElementById('clnkav-ov');
+  if (ov) ov.style.display = 'none';
+  _clnkAvisoAbierto = false;
+  _clnkAvisoAccion = { b1: null, b2: null, b3: null };
+}
+window.clnkAvisoCerrar = clnkAvisoCerrar;
+
+/* Los tres botones por DELEGACIÓN y registrados UNA vez: el modal se reusa para los dos avisos,
+   así que enganchar por botón en cada apertura acumularía un manejador por vez. */
+if (!window._clnkAvCableado) {
+  window._clnkAvCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('#clnkav-b1, #clnkav-b2, #clnkav-b3') : null;
+    if (!b) return;
+    ev.preventDefault();
+    var k = b.id.replace('clnkav-', '');
+    var fn = _clnkAvisoAccion[k];
+    if (typeof fn === 'function') { try { fn(); } catch (e) { console.warn('[clnk/aviso]', e); } }
+  });
+  /* Escape cierra, igual que el resto de los modales de esta app. Cerrar = dejarlas esperando:
+     no se pierde nada, las imágenes siguen en CeiboLink hasta su plazo. */
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && _clnkAvisoAbierto) clnkAvisoCerrar();
+  });
+}
+
+/* ══ LA AGRUPACIÓN ═══════════════════════════════════════════════════════════
+   ⚠️ LA LISTA NO DICE A QUÉ ESTUDIO DEL ECÓGRAFO PERTENECE CADA IMAGEN, Y ESO ESTÁ MEDIDO
+   CONTRA EL CONTRATO: §3.8 deja `vista` en `null` —y explica que el candidato natural,
+   `SeriesDescription`, es texto libre donde entra un nombre con total naturalidad— y no hay
+   ningún campo de estudio ni de serie. Lo único que hay para agrupar es `equipo` y `recibida`.
+
+   DOS MINUTOS, Y DE AHÍ SALE EL NÚMERO. Un estudio sale del ecógrafo en una tanda continua: el
+   técnico aprieta «enviar» y las imágenes salen una detrás de otra. Dos minutos entre una y la
+   siguiente cubre un envío lento —veinte imágenes a seis segundos cada una siguen siendo un
+   solo envío— sin alcanzar nunca el hueco que hay entre dos pacientes, que incluye cambiar el
+   paciente en el equipo y hacer el estudio.
+
+   ES UNA VENTANA DESLIZANTE Y NO UN BLOQUE FIJO: se compara cada imagen con la ANTERIOR del
+   mismo equipo, no con la primera del grupo. Con un bloque de dos minutos desde la primera, un
+   envío de treinta imágenes se partiría en dos avisos a mitad de camino.
+
+   ⚠️ EL LÍMITE SE DECLARA: si el médico manda DOS pacientes seguidos desde el mismo equipo con
+   menos de dos minutos entre el último de uno y el primero del otro, los dos enviós salen en UN
+   aviso. No hay forma de distinguirlos con lo que el contrato entrega. Lo que lo acota es que el
+   médico ve cuántas son antes de adjuntar, y que adjuntar es un gesto suyo y no automático. */
+var CLNK_VENTANA_MS = 120000;
+
+function clnkAgrupar(lista) {
+  var l = (Array.isArray(lista) ? lista : []).filter(function (i) { return i && i.id; });
+  /* Por equipo y por hora. `Date.parse` sobre el ISO con «Z» del contrato; lo que no se entiende
+     va al final y forma grupo aparte, en vez de ordenarse como si fuera el instante cero. */
+  var ms = function (i) { var t = Date.parse(String(i.recibida || '')); return isFinite(t) ? t : NaN; };
+  l = l.slice().sort(function (a, b) {
+    var ea = String(a.equipo || ''), eb = String(b.equipo || '');
+    if (ea !== eb) return ea < eb ? -1 : 1;
+    var ta = ms(a), tb = ms(b);
+    if (!isFinite(ta) && !isFinite(tb)) return 0;
+    if (!isFinite(ta)) return 1;
+    if (!isFinite(tb)) return -1;
+    return ta - tb;
+  });
+  var grupos = [];
+  var g = null;
+  l.forEach(function (i) {
+    var t = ms(i);
+    if (g && g.equipo === String(i.equipo || '') && isFinite(t) && isFinite(g.ultimo) &&
+        (t - g.ultimo) <= CLNK_VENTANA_MS) {
+      g.ids.push(i.id); g.imagenes.push(i); g.ultimo = t;
+      return;
+    }
+    g = { equipo: String(i.equipo || ''), ids: [i.id], imagenes: [i],
+          primero: t, ultimo: t };
+    grupos.push(g);
+  });
+  return grupos;
+}
+window.clnkAgrupar = clnkAgrupar;
+
+/* ══ QUÉ IMÁGENES YA SE AVISARON ══════════════════════════════════════════════
+   EN MEMORIA Y NO PERSISTIDO, y es la decisión 2: el aviso no vuelve por las MISMAS imágenes en
+   la misma sesión, y SÍ vuelve al recargar. Guardarlo en `localStorage` haría que el médico que
+   cerró el aviso el lunes no volviera a verlo nunca, con las imágenes esperando en el conector. */
+var _clnkAvisadas = Object.create(null);
+
+/* El nombre del equipo para el aviso: el apodo si tiene, y si no el AET. Se lee de la lista de
+   equipos, que es la única que trae el apodo. */
+var _clnkNombreEq = Object.create(null);
+
+async function _clnkCargarNombresEq() {
+  var r = await clnkPedir('/v1/equipos', { conToken: true, espera: 5000 });
+  if (!r.ok || !r.vigente) return;
+  var l = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  l.forEach(function (e) {
+    if (!e || !e.id) return;
+    var ap = (e.apodo != null) ? String(e.apodo).trim() : '';
+    _clnkNombreEq[String(e.id)] = ap || String(e.aet || e.id);
+  });
+}
+
+/* La hora que el aviso dice: la de la PRIMERA imagen del envío, en la hora de la computadora.
+   El contrato manda UTC con «Z»; mostrarla en UTC le correría tres horas al médico. */
+function _clnkHora(ms) {
+  if (!isFinite(ms)) return '';
+  try {
+    var d = new Date(ms), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  } catch (e) { return ''; }
+}
+
+/* ══ EL AVISO DE IMÁGENES ════════════════════════════════════════════════════ */
+async function clnkRevisarImagenes() {
+  if (_clnkAvisoAbierto) return false;        // ya hay una pregunta en pantalla
+  var r = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
+  if (!r.vigente || !r.ok) return false;
+  var lista = (r.datos && Array.isArray(r.datos.imagenes)) ? r.datos.imagenes : [];
+  var grupos = clnkAgrupar(lista).filter(function (g) {
+    /* Un grupo se avisa si tiene AL MENOS UNA imagen sin avisar. Con «ninguna avisada», una
+       imagen nueva que cae dentro de la ventana de un envío ya avisado no se avisaría nunca. */
+    return g.ids.some(function (id) { return !_clnkAvisadas[id]; });
+  });
+  if (!grupos.length) return false;
+  await _clnkCargarNombresEq();
+  var g = grupos[0];
+  var nom = _clnkNombreEq[g.equipo] || g.equipo || 'el ecógrafo';
+  var hora = _clnkHora(g.primero);
+  var n = g.ids.length;
+  g.ids.forEach(function (id) { _clnkAvisadas[id] = true; });
+  /* ⚠️ EL NOMBRE DEL EQUIPO ES TEXTO QUE ESCRIBE UNA PERSONA —el apodo— y entra por
+     `textContent`, que es lo que hace `clnkAvisoAbrir`: NUNCA por `innerHTML`. El contrato avisa
+     que el conector lo valida pero no lo escapa, y validar no es escapar. */
+  clnkAvisoAbrir(
+    'Llegaron imágenes del ecógrafo',
+    'Llegaron ' + n + (n === 1 ? ' imagen' : ' imágenes') + ' del equipo ' + nom +
+      (hora ? ' a las ' + hora : '') + '.',
+    [{ txt: '📎 Adjuntar al estudio actual', fn: function () { clnkAdjuntarAlEstudio(g.ids); } },
+     { txt: '🖼 Adjuntar a imágenes guardadas', fn: function () { clnkAdjuntarABandeja(g.ids, g.equipo); } },
+     { txt: '🗑 Descartar', fn: function () { clnkDescartar(g.ids); } }]);
+  return true;
+}
+window.clnkRevisarImagenes = clnkRevisarImagenes;
+
+/* ══ EL AVISO DE EQUIPO NUEVO (decisión 8) ═════════════════════════════════════
+   Mismo molde, y usa las rutas que el panel ya usa —`clnkAccionEquipo`— en vez de pedir por su
+   cuenta: con dos caminos, el día que el panel agregue una confirmación el aviso se la saltea.
+   «Más tarde» cierra y nada más: el equipo sigue esperando y el próximo sondeo vuelve a
+   preguntar, que es lo correcto —es la decisión que desbloquea las imágenes—. */
+var _clnkEqAvisados = Object.create(null);
+
+async function clnkAvisarEquipoNuevo() {
+  if (_clnkAvisoAbierto) return false;
+  var r = await clnkPedir('/v1/equipos', { conToken: true, espera: 5000 });
+  if (!r.vigente || !r.ok) return false;
+  var l = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  var eq = l.filter(function (e) {
+    return e && String(e.estado) === 'pendiente' && !_clnkEqAvisados[String(e.id)];
+  })[0];
+  if (!eq) return false;
+  _clnkEqAvisados[String(eq.id)] = true;
+  var id = String(eq.id);
+  /* El AET y nada más: un equipo que espera decisión no tiene apodo todavía —nadie se lo puso—
+     y el contrato manda `null`. Entra por `textContent`, como todo lo que viene del conector. */
+  var aet = String(eq.aet || id);
+  clnkAvisoAbrir(
+    'Un equipo nuevo mandó imágenes',
+    'Un equipo nuevo, ' + aet + ', mandó imágenes. ¿Permitir o bloquear? Hasta que decidas, sus ' +
+      'imágenes quedan guardadas y EcoSmart no las puede tomar.',
+    [{ txt: '✅ Permitir', fn: function () {
+         clnkAvisoCerrar();
+         clnkAccionEquipo(id, 'permitir');
+       } },
+     { txt: '🚫 Bloquear', fn: function () {
+         clnkAvisoCerrar();
+         clnkAccionEquipo(id, 'bloquear');
+       } },
+     { txt: 'Más tarde', fn: function () { clnkAvisoCerrar(); } }]);
+  return true;
+}
+window.clnkAvisarEquipoNuevo = clnkAvisarEquipoNuevo;
+
+/* ══ ADJUNTAR AL ESTUDIO ACTUAL (decisión 4) ═════════════════════════════════
+   Por cada imagen: se baja el DICOM, se envuelve en un File y entra por `mediosImportar`, que es
+   LA MISMA PUERTA que usa el pendrive. No hay un lector DICOM nuevo ni un camino paralelo: lo que
+   cambia es de dónde salen los bytes.
+
+   ⚠️ DE A UNA Y EN SERIE, no en paralelo. Tres motivos medidos: un cineloop pesa 16 MB y tres a
+   la vez son 48 MB de buffers vivos; `mediosImportar` puede abrir un `confirm` por tamaño y un
+   `alert` por códec, y en paralelo se apilan los diálogos sobre el mismo médico; y el orden de
+   los slots es el orden en que salen en el PDF —es lo que `_dcmImgReservar` existe para fijar—.
+   Es la misma decisión, con las mismas palabras, que `mediosImportar` ya toma con los videos.
+
+   ⚠️ Y NO SE CONFIRMA NADA ACÁ. La decisión 5 es explícita: `confirmar` se llama cuando la
+   imagen quedó PERSISTIDA —el estudio se guardó y la imagen se escribió— y no al adjuntar. Si el
+   médico cierra sin guardar, las imágenes siguen esperando en CeiboLink y se pueden volver a
+   adjuntar. Lo único que pasa acá es que los ids quedan anotados en `_clnkPorConfirmar`. */
+
+/* El mapa imagen→id de CeiboLink, EN MEMORIA, hasta que se confirme o se descarte.
+   ⚠️ ES UNA LISTA DE IDS Y NO UN MAPA SLOT→ID, y la razón es que un mapa por slot no se puede
+   mantener: `imgCompressLoad` elige su slot DENTRO de su `.then()` y el médico puede mover,
+   borrar e intercalar imágenes antes de guardar. Lo que hay que saber al guardar es «estos ids
+   del conector llegaron al estudio que está abierto», y eso es una lista.
+   Se vacía en «Nuevo estudio» —por `imgVaciar`, que es el embudo de los dos caminos del modal—
+   y después de confirmar. Si sobreviviera a un cambio de estudio, el guardado del paciente
+   siguiente confirmaría —o sea BORRARÍA del conector— imágenes que no entraron a ningún lado. */
+var _clnkPorConfirmar = [];
+window._clnkPorConfirmar = _clnkPorConfirmar;
+
+function clnkOlvidarPendientes() {
+  _clnkPorConfirmar.length = 0;
+}
+window.clnkOlvidarPendientes = clnkOlvidarPendientes;
+
+/* ¿El estudio abierto tiene imágenes que vinieron de CeiboLink? UN SOLO PREDICADO, consultado
+   desde cada gesto y nunca copiado —es lo que la decisión 9 pide con todas las letras—.
+   Mira las DOS cosas, y las dos hacen falta: la marca `origen` de los slots que están en
+   pantalla, y la lista de ids por confirmar. La segunda cubre el caso del cineloop, que entra por
+   `dcmImgImportar` y puede quedar como video sin slot de imagen; la primera cubre el caso de que
+   la lista se haya vaciado y las imágenes sigan en pantalla.
+   ⚠️ FALLA CERRADO: ante cualquier error contesta QUE SÍ. Este predicado decide si se EXIGE el
+   paciente antes de guardar; un `catch` que dijera `false` dejaría guardar un estudio con
+   imágenes de un paciente y sin su nombre, que es justo lo que la regla viene a evitar. */
+function clnkEstudioTieneImagenes() {
+  try {
+    if (_clnkPorConfirmar.length) return true;
+    if (typeof imgSlots !== 'undefined' && imgSlots.some(function (s) {
+      return s && s.dataURL && s.origen === 'ceibolink';
+    })) return true;
+    return false;
+  } catch (e) { return true; }
+}
+window.clnkEstudioTieneImagenes = clnkEstudioTieneImagenes;
+
+/* Los datos del paciente que vengan DENTRO del archivo, y sólo si el campo está vacío.
+   ⚠️ PISAR LO QUE EL MÉDICO TIPEÓ SERÍA PEOR QUE NO COMPLETAR: el dato del DICOM es el que
+   cargó quien hizo el estudio en el ecógrafo, no necesariamente el correcto. Es la regla que
+   `_clnkPonerSiVacio` ya tiene escrita, y se usa esa función y no una copia.
+   ⚠️ Y EL `PatientID` NO SE ESCRIBE COMO DOCUMENTO. En un ecógrafo de hospital es el número de
+   historia clínica de la institución, y cargarlo como cédula puede hacer que un estudio se
+   mezcle con el de otro paciente —entra en la clave de deduplicación igual que un documento
+   real—. Lo documentan `_dcmPaciente` y `_clnkPonerSiVacio`. Se DICE, no se escribe. */
+function _clnkCompletarPaciente(buf) {
+  var puesto = [];
+  var d = null;
+  try { d = _dcmImgLeer(buf); } catch (e) { return puesto; }
+  if (!d) return puesto;
+  try {
+    _clnkPonerSiVacio('nombre', d.pacNombre, puesto);
+    _clnkPonerSiVacio('sexo', _clnkSexo(d.pacSexo), puesto);
+    var ed = _clnkEdad(d.pacNacimiento, d.estudioFecha);
+    if (ed !== null) _clnkPonerSiVacio('edad', ed, puesto);
+    if (/^[0-9]{8}$/.test(String(d.estudioFecha || ''))) {
+      var f = String(d.estudioFecha);
+      _clnkPonerSiVacio('fecha', f.slice(0, 4) + '-' + f.slice(4, 6) + '-' + f.slice(6, 8), puesto);
+    }
+  } catch (e) {}
+  return puesto;
+}
+
+async function clnkAdjuntarAlEstudio(ids) {
+  var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!l.length) { clnkAvisoCerrar(); return 0; }
+  var ok = 0, fallos = [], puestos = [];
+  for (var i = 0; i < l.length; i++) {
+    clnkAvisoProgreso('Bajando ' + (i + 1) + ' de ' + l.length + '…');
+    /* CINCO MINUTOS de espera y no los ocho segundos de siempre: el contrato §5 le da a esta
+       ruta justamente cinco, porque un cineloop de 16 MB por loopback no es instantáneo y
+       cortarlo a los ocho segundos sería abandonar una descarga que iba bien. */
+    var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]) + '/archivo',
+                            { conToken: true, bytes: true, espera: 300000 });
+    if (!r.vigente) { clnkAvisoCerrar(); return ok; }
+    if (!r.ok || !r.datos) { fallos.push(r.msg || 'no se pudo bajar'); continue; }
+    var buf = r.datos;
+    /* Los datos del paciente ANTES de importar, y sólo de la primera que trae algo: el campo
+       queda escrito y las siguientes lo encuentran lleno, que es exactamente lo que
+       `_clnkPonerSiVacio` garantiza. */
+    puestos = puestos.concat(_clnkCompletarPaciente(buf));
+    try {
+      /* LA PUERTA ÚNICA. `_clnkArchivo` envuelve los bytes en un File con nombre y tipo, que es
+         lo que los dos importadores leen; `mediosImportar` clasifica por los BYTES y manda el
+         DICOM a `dcmImgImportar`. El tercer argumento es el origen, que marca el slot. */
+      await mediosImportar([_clnkArchivo(buf, l[i] + '.dcm')], undefined, 'ceibolink');
+      _clnkPorConfirmar.push(l[i]);
+      ok++;
+    } catch (e) {
+      fallos.push(String((e && e.message) || e).slice(0, 120));
+    }
+  }
+  clnkAvisoCerrar();
+  if (typeof toast === 'function') {
+    /* EL DENOMINADOR SIEMPRE A LA VISTA: «entraron 3» sin decir de cuántas deja creer que
+       entraron todas. Es la regla que `mediosImportar` ya aplica a su propio resumen. */
+    var txt = ok ? ('✅ ' + ok + ' de ' + l.length + ' adjuntada(s) al estudio')
+                 : ('❌ No se pudo adjuntar ninguna de ' + l.length);
+    if (puestos.length) txt += ' · se completó: ' + puestos.join(', ');
+    toast(txt);
+  }
+  if (fallos.length && typeof alert === 'function') {
+    alert('No se pudieron adjuntar ' + fallos.length + ' de ' + l.length + ':\n\n' +
+          fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n'));
+  }
+  /* ⚠️ Y SE LE DICE QUE TODAVÍA NO ESTÁN GUARDADAS, que es la mitad de la decisión 5 que el
+     médico no puede adivinar: quedaron en el formulario, y hasta que guarde el estudio siguen
+     ADEMÁS esperando en CeiboLink. Si cierra sin guardar no se pierden. */
+  if (ok && typeof toast === 'function') {
+    setTimeout(function () {
+      toast('ℹ Guardá el estudio para que queden. Hasta entonces siguen esperando en CeiboLink.');
+    }, 2600);
+  }
+  return ok;
+}
+window.clnkAdjuntarAlEstudio = clnkAdjuntarAlEstudio;
+
+/* ══ CONFIRMAR: SÓLO CUANDO LA IMAGEN QUEDÓ PERSISTIDA (decisión 5) ════════════════════
+   ⚠️ CONFIRMAR ES LO ÚNICO QUE BORRA EN EL CONECTOR CON LA BENDICIÓN DE ECOSMART, así que la
+   condición no es «el médico apretó Guardar» sino «el estudio se guardó Y las imágenes se
+   escribieron». Son dos cosas distintas: `imgPersistir` devuelve `false` con el guardado de
+   imágenes apagado, con la base bloqueada y durante una reimpresión, y en los tres casos la
+   imagen NO quedó en disco —confirmar ahí la borraría del conector sin que exista en ninguna
+   parte, que es pérdida de dato clínico irrecuperable—.
+   ⚠️ Y SI CONFIRMAR FALLA, NO SE DA POR BORRADO: el id se queda en la lista y el próximo
+   guardado lo vuelve a intentar. La imagen sigue en el conector hasta su plazo, que es el lado
+   seguro: una copia de más se borra sola, una imagen perdida no vuelve. */
+async function clnkConfirmarPersistidas() {
+  if (!_clnkPorConfirmar.length) return 0;
+  if (!clnkVinculado()) return 0;
+  var l = _clnkPorConfirmar.slice();
+  var ok = 0, sinVerificar = 0, quedan = [];
+  for (var i = 0; i < l.length; i++) {
+    var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]) + '/confirmar',
+                            { metodo: 'POST', conToken: true, espera: 8000 });
+    if (r.ok) {
+      ok++;
+      /* `verificada: false` significa que la imagen se borró del receptor pero quedó una copia
+         en el disco del conector. El contrato §3.10 dice que EcoSmart DEBE avisarlo, y se avisa
+         en castellano sencillo: el médico tiene que saber que hay una copia donde no debería. */
+      if (r.datos && r.datos.verificada === false) sinVerificar++;
+    } else if (r.estado === 404) {
+      /* Ya no está en el conector: se venció o alguien la borró. No es un error que contarle al
+         médico —el trabajo está hecho— y hay que sacarla de la lista o se reintenta para siempre. */
+      ok++;
+    } else {
+      quedan.push(l[i]);
+    }
+  }
+  _clnkPorConfirmar.length = 0;
+  quedan.forEach(function (x) { _clnkPorConfirmar.push(x); });
+  if (sinVerificar && typeof toast === 'function') {
+    toast('⚠️ ' + sinVerificar + (sinVerificar === 1 ? ' imagen se guardó' : ' imágenes se guardaron') +
+          ' pero quedó una copia en CeiboLink. Si te preocupa, cerralo y volvé a abrirlo.');
+  }
+  if (quedan.length && typeof toast === 'function') {
+    toast('ℹ ' + quedan.length + ' imagen(es) quedaron guardadas, pero CeiboLink no confirmó el ' +
+          'borrado: siguen esperando ahí y se van a reintentar.');
+  }
+  return ok;
+}
+window.clnkConfirmarPersistidas = clnkConfirmarPersistidas;
+
+/* ══ DESCARTAR (decisión 7) ═══════════════════════════════════════════════════
+   CON CONFIRMACIÓN Y DICIENDO QUE NO SE RECUPERAN. Es la única salida del aviso que destruye
+   algo, y lo destruye en una máquina que el médico no administra: si se equivoca, la imagen hay
+   que volver a mandarla desde el ecógrafo —suponiendo que todavía esté ahí—. */
+async function clnkDescartar(ids) {
+  var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!l.length) { clnkAvisoCerrar(); return 0; }
+  if (typeof confirm === 'function' &&
+      !confirm('¿Descartar ' + l.length + (l.length === 1 ? ' imagen' : ' imágenes') + '?\n\n' +
+               'Se borran de CeiboLink y NO SE PUEDEN RECUPERAR. Para volver a tenerlas habría ' +
+               'que mandarlas de nuevo desde el ecógrafo.')) return 0;
+  var ok = 0, mal = 0;
+  for (var i = 0; i < l.length; i++) {
+    clnkAvisoProgreso('Descartando ' + (i + 1) + ' de ' + l.length + '…');
+    var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]),
+                            { metodo: 'DELETE', conToken: true, espera: 8000 });
+    if (!r.vigente) { clnkAvisoCerrar(); return ok; }
+    if (r.ok || r.estado === 404) ok++; else mal++;
+  }
+  clnkAvisoCerrar();
+  if (typeof toast === 'function') {
+    toast(mal ? ('⚠️ ' + ok + ' de ' + l.length + ' descartada(s); ' + mal + ' no se pudo borrar')
+              : ('🗑 ' + ok + ' de ' + l.length + ' descartada(s) de CeiboLink'));
+  }
+  return ok;
+}
+window.clnkDescartar = clnkDescartar;
+
+/* ══ TAREA 5 · LA BANDEJA: IMÁGENES SIN ESTUDIO (decisión 6) ═══════════════════════
+   ⚠️ BASE NUEVA Y NO LA DE IMÁGENES, Y ESTO ES LA DECISIÓN DE FONDO DE ESTA TAREA.
+   La orden pide elegir y justificar. Se eligió una base propia, `ceibomed_bandeja`, por tres
+   cosas medidas sobre el archivo:
+
+     1 · TODO lo que recorre `ceibomed_img` lo hace por uuid de ESTUDIO. `CeiboImg.listar()`
+         alimenta la pantalla «Imágenes guardadas» y el censo de bytes; `CeiboImg.leer(uuid)`
+         alimenta `imgRestaurar`, el PDF y el PPT. Un registro con un uuid inventado ahí
+         aparecería en «Imágenes guardadas» como si fuera un estudio y sumaría a los bytes.
+     2 · LA FUGA QUE `imgRestaurar` PAGÓ fue exactamente «un registro de esa base llegó al
+         formulario de otro paciente» —abrir el estudio A con imágenes y el B sin ellas dejaba
+         las ecografías de A en el PDF firmado de B—. Con una base distinta eso NO ES ALCANZABLE:
+         no hay una sola ruta de código que lleve de esta base a `imgSlots`. Es seguridad por
+         construcción y no por filtrado.
+     3 · La alternativa —meterla ahí con una marca— obliga a filtrar en CINCO lectores maduros,
+         y es el mismo argumento con el que este archivo decidió sacar los esquemas a su propia
+         lista: «el primero que se olvidara publicaría un esquema dentro de un informe firmado».
+
+   LO QUE CUESTA: una base más que abrir, y que esto NO entra al respaldo de `_bkExportar`
+   —que exporta estudios y medios por uuid—. Queda declarado en PENDIENTES.md: es un depósito
+   transitorio y no un registro clínico, pero hay que decirlo. */
+var CLNKB_DB = 'ceibomed_bandeja', CLNKB_STORE = 'sinestudio';
+var _clnkbDb = null, _clnkbIntento = null;
+
+function _clnkbAbrir() {
+  if (_clnkbIntento) return _clnkbIntento;
+  _clnkbIntento = new Promise(function (res) {
+    var listo = false;
+    var fin = function (v) { if (!listo) { listo = true; _clnkbDb = v; res(v); } };
+    var req;
+    try {
+      if (!window.indexedDB) return fin(null);
+      req = indexedDB.open(CLNKB_DB, 1);
+    } catch (e) { return fin(null); }
+    req.onupgradeneeded = function (ev) {
+      var db = ev.target.result;
+      if (!db.objectStoreNames.contains(CLNKB_STORE)) db.createObjectStore(CLNKB_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = function () { fin(req.result); };
+    req.onerror = function () { fin(null); };
+    req.onblocked = function () { fin(null); };
+    setTimeout(function () { fin(null); }, 3000);   // no colgar nada esperando la base
+  });
+  return _clnkbIntento;
+}
+
+function _clnkbTx(modo, fn) {
+  return _clnkbAbrir().then(function (db) {
+    return new Promise(function (res) {
+      if (!db) return res(null);
+      var tx;
+      try { tx = db.transaction(CLNKB_STORE, modo); } catch (e) { return res(null); }
+      var out = null;
+      try { fn(tx.objectStore(CLNKB_STORE), function (v) { out = v; }); } catch (e) { return res(null); }
+      tx.oncomplete = function () { res(out); };
+      tx.onerror = function () { res(null); };
+      tx.onabort = function () { res(null); };
+    });
+  });
+}
+
+/* El id del registro lleva su propio prefijo, `clnkb_`, que es lo que pide la decisión 6: con
+   un uuid del mismo formato que los estudios, un registro de éstos metido por error en la otra
+   base sería indistinguible de un estudio. */
+function _clnkbId() {
+  return 'clnkb_' + Date.now().toString(36) + '_' +
+         Math.random().toString(36).slice(2, 8);
+}
+
+function clnkbGuardar(reg) {
+  if (!reg || !reg.id) return Promise.resolve(false);
+  return _clnkbTx('readwrite', function (os, ok) { os.put(reg); ok(true); }).then(function (r) { return r === true; });
+}
+
+function clnkbListar() {
+  return _clnkbTx('readonly', function (os, ok) {
+    var out = [];
+    var c = os.openCursor();
+    c.onsuccess = function () {
+      var cur = c.result;
+      if (!cur) { ok(out); return; }
+      var v = cur.value || {};
+      out.push({ id: v.id, equipo: String(v.equipo || ''), recibida: String(v.recibida || ''),
+                 ts: String(v.ts || ''), n: (Array.isArray(v.imgs) ? v.imgs.length : 0) });
+      cur.continue();
+    };
+  }).then(function (r) { return r || []; });
+}
+window.clnkbListar = clnkbListar;
+
+function clnkbBorrar(id) {
+  if (!id) return Promise.resolve(false);
+  return _clnkbTx('readwrite', function (os, ok) { os.delete(id); ok(true); }).then(function (r) { return r === true; });
+}
+
+/* ══ LA PANTALLA, MÍNIMA ══════════════════════════════════════════════════════
+   Cantidad, equipo, fecha y borrar. NO se muestran las imágenes, y es la decisión 6: adjuntar
+   desde ací a un estudio es ECO-CONECTOR-3, y una miniatura invita a un gesto que todavía no
+   existe. Todo lo que viene del conector —el nombre del equipo— entra por `textContent` y en un
+   `bdi`, por lo mismo que la fila de equipos del panel. */
+async function clnkbRender() {
+  var sec = document.getElementById('clnkb-sec');
+  var lis = document.getElementById('clnkb-lista');
+  var cnt = document.getElementById('clnkb-cnt');
+  if (!sec || !lis) return 0;
+  var l = await clnkbListar();
+  lis.textContent = '';
+  if (!l.length) { sec.style.display = 'none'; if (cnt) cnt.textContent = ''; return 0; }
+  sec.style.display = '';
+  var tot = l.reduce(function (a, x) { return a + (x.n || 0); }, 0);
+  if (cnt) cnt.textContent = '(' + l.length + (l.length === 1 ? ' envío' : ' envíos') + ' · ' +
+                             tot + (tot === 1 ? ' imagen' : ' imágenes') + ')';
+  /* El más nuevo arriba: es el que el médico acaba de guardar. */
+  l.sort(function (a, b) { return String(b.ts || '') < String(a.ts || '') ? -1 : 1; });
+  l.forEach(function (x) {
+    var f = _clnkNodo('div',
+      'display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;' +
+      'border-bottom:1px solid var(--border);');
+    var eq = document.createElement('bdi');
+    eq.style.cssText = 'font-size:12px;font-weight:700;';
+    eq.textContent = x.equipo || 'Equipo desconocido';
+    f.appendChild(eq);
+    f.appendChild(_clnkNodo('span', 'font-size:11px;color:var(--text2);',
+      (x.n || 0) + (x.n === 1 ? ' imagen' : ' imágenes') +
+      (_clnkFecha(x.recibida) ? ' · ' + _clnkFecha(x.recibida) : '')));
+    var b = _clnkNodo('button', 'padding:3px 10px;font-size:10.5px;margin-left:auto;', 'Borrar');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.setAttribute('data-clnkb-borrar', x.id);
+    f.appendChild(b);
+    lis.appendChild(f);
+  });
+  return l.length;
+}
+window.clnkbRender = clnkbRender;
+
+/* Borrar: UN listener delegado y registrado UNA vez, con confirmación. Lo que se borra ya NO
+   está en CeiboLink —se confirmó al guardarlo acá—, así que esto es la última copia y hay que
+   decirlo. */
+if (!window._clnkbCableado) {
+  window._clnkbCableado = true;
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-clnkb-borrar]') : null;
+    if (!b) return;
+    ev.preventDefault();
+    var id = b.getAttribute('data-clnkb-borrar') || '';
+    if (!id) return;
+    if (typeof confirm === 'function' &&
+        !confirm('¿Borrar este envío de imágenes sin estudio?\n\n' +
+                 'Es la última copia: ya no están en CeiboLink. No se pueden recuperar.')) return;
+    clnkbBorrar(id).then(function () {
+      if (typeof toast === 'function') toast('🗑 Envío borrado');
+      clnkbRender();
+    });
+  });
+}
+
+/* ══ ADJUNTAR A LA BANDEJA ═════════════════════════════════════════════════
+   ⚠️ ESTE CAMINO NO TOCA `imgSlots` NI UNA VEZ, y es lo que garantiza que lo guardado acá no
+   pueda aparecer en el estudio abierto ni en el PDF: no hay escritura al formulario en ninguna
+   rama. El JPEG se saca del DICOM con el lector que ya existe —`_dcmImgLeer`— y se comprime con
+   `_imgComprimir`, que es el mismo que usa la grilla.
+   ⚠️ Y ACÁ SÍ SE CONFIRMA A CEIBOLINK, al contrario que al adjuntar al estudio: la imagen ya
+   quedó PERSISTIDA cuando esta función termina, así que la condición de la decisión 5 está
+   cumplida en el acto. Si la escritura falla, NO se confirma. */
+function _clnkbBytesADataURL(buf) {
+  return new Promise(function (res) {
+    var jpeg = null;
+    try {
+      var cab = new Uint8Array(buf.slice(0, 132));
+      if (cab.length >= 132 && _dcmImgAscii(cab, 128, 4) === 'DICM') {
+        var d = _dcmImgLeer(buf);
+        /* De un cineloop se guarda el PRIMER cuadro. La bandeja es un depósito, no el visor:
+           guardar los treinta cuadros serían decenas de MB para algo que todavía no se puede
+           abrir desde ací. Queda declarado. */
+        if (d && d.frags && d.frags.length) jpeg = d.frags[0];
+      }
+    } catch (e) { jpeg = null; }
+    if (!jpeg) {
+      /* No es un DICOM que este lector sepa abrir. Se intenta con los bytes tal cual: si es un
+         JPEG o un PNG, `_imgSrcOK` lo acepta; si no, el `then` de abajo lo descarta. */
+      try { jpeg = new Uint8Array(buf); } catch (e) { return res(null); }
+    }
+    var fr = new FileReader();
+    fr.onload = function () { res(String(fr.result || '')); };
+    fr.onerror = function () { res(null); };
+    try { fr.readAsDataURL(new Blob([jpeg], { type: 'image/jpeg' })); }
+    catch (e) { res(null); }
+  });
+}
+
+async function clnkAdjuntarABandeja(ids, equipo) {
+  var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!l.length) { clnkAvisoCerrar(); return 0; }
+  var imgs = [], fallos = 0, recibida = '';
+  for (var i = 0; i < l.length; i++) {
+    clnkAvisoProgreso('Guardando ' + (i + 1) + ' de ' + l.length + '…');
+    var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]) + '/archivo',
+                            { conToken: true, bytes: true, espera: 300000 });
+    if (!r.vigente) { clnkAvisoCerrar(); return 0; }
+    if (!r.ok || !r.datos) { fallos++; continue; }
+    var url = await _clnkbBytesADataURL(r.datos);
+    if (!url || (typeof _imgSrcOK === 'function' && !_imgSrcOK(url))) { fallos++; continue; }
+    var chico = url;
+    try { chico = await _imgComprimir(url, (typeof IMG_CAL_DEF !== 'undefined' ? IMG_CAL_DEF : 'media')); }
+    catch (e) { chico = url; }
+    if (typeof _imgSrcOK === 'function' && !_imgSrcOK(chico)) { fallos++; continue; }
+    imgs.push({ dataURL: chico, clnkId: l[i] });
+  }
+  if (!imgs.length) {
+    clnkAvisoCerrar();
+    if (typeof toast === 'function') toast('❌ No se pudo guardar ninguna de ' + l.length);
+    return 0;
+  }
+  var nom = _clnkNombreEq[String(equipo || '')] || String(equipo || '');
+  var reg = { id: _clnkbId(), origen: 'ceibolink', equipo: nom,
+              recibida: new Date().toISOString(), ts: new Date().toISOString(), imgs: imgs };
+  var ok = await clnkbGuardar(reg);
+  clnkAvisoCerrar();
+  if (!ok) {
+    if (typeof toast === 'function') {
+      toast('❌ Este navegador no pudo guardar las imágenes. Siguen esperando en CeiboLink.');
+    }
+    return 0;
+  }
+  /* YA ESTÁN PERSISTIDAS: ahora sí se confirma, que es lo que la decisión 6 manda. Se reusa el
+     mismo confirmador que el camino del estudio —con su manejo de `verificada: false` y su
+     «si falla no se da por borrado»— en vez de una segunda copia de esa lógica. */
+  imgs.forEach(function (x) { _clnkPorConfirmar.push(x.clnkId); });
+  await clnkConfirmarPersistidas();
+  if (typeof toast === 'function') {
+    toast('🖼 ' + imgs.length + ' de ' + l.length + ' guardada(s) en «Imágenes sin estudio»' +
+          (fallos ? ' · ' + fallos + ' no se pudo' : ''));
+  }
+  clnkbRender();
+  return imgs.length;
+}
+window.clnkAdjuntarABandeja = clnkAdjuntarABandeja;
+
+/* ══ TAREA 3 · EL SONDEO ══════════════════════════════════════════════════════
+   Mientras CeiboLink esté activado y vinculado, EcoSmart pregunta cada tanto si hay algo nuevo.
+   Sin esto el médico tendría que abrir Configuración y apretar «Actualizar» para enterarse de
+   que llegó una imagen —o sea que no se enteraría—.
+
+   ⚠️ QUINCE SEGUNDOS, Y DE AHÍ SALE EL NÚMERO. `GET /v1/estado` no lleva token, devuelve ~150
+   bytes y el contrato dice textualmente que se puede consultar «cada pocos segundos». Con 15 s
+   son cuatro pedidos por minuto a loopback, que no se mide en ninguna parte, y el aviso llega
+   como máximo 15 s después de que el ecógrafo terminó de mandar —menos de lo que tarda el
+   médico en volver a la computadora—. Con 5 s el pedido correría doce veces por minuto mientras
+   el médico escribe, sin un solo beneficio clínico; con 60 s el médico llega antes que el aviso
+   y concluye que esto no funciona.
+
+   ⚠️ Y LA LISTA DE IMÁGENES SÓLO SE PIDE SI EL ESTADO DICE QUE HAY ALGO. `GET /v1/imagenes`
+   lleva token y recorre el almacén del conector; `estado` publica el contador justamente para
+   esto. Pedir las dos siempre sería gastar la ruta cara en el 99 % de los sondeos, que es
+   justamente cuando no hay nada.
+
+   ⚠️ SÓLO CON LA PESTAÑA A LA VISTA. Es el mismo oyente de `visibilitychange` que ya apagan la
+   vista 2D y el 3D de la mitral: una pestaña de fondo no tiene a nadie que lea el aviso, y una
+   app clínica abierta toda la tarde en una pestaña que nadie mira no tiene por qué estar
+   hablando con un programa local. Al volver a la vista se sondea EN EL ACTO y no al próximo
+   turno: el médico que vuelve a la pestaña es exactamente el que quiere saber si llegó algo.
+
+   ⚠️ Y TODA RESPUESTA EN VUELO SE DESCARTA SI EL ESTADO CAMBIÓ: `clnkPedir` compara `_clnkGen`
+   y devuelve `vigente`. Sin eso, apagar el módulo y recibir medio segundo después la respuesta
+   de un sondeo anterior abriría un aviso de imágenes sobre un módulo apagado. */
+var CLNK_SONDEO_MS = 15000;
+var _clnkSondeoTimer = null;
+var _clnkSondeando = false;
+
+/* ¿Corresponde sondear AHORA? Las tres condiciones, en un solo lugar: con el predicado copiado
+   en el temporizador y en el oyente, el día que se agregue una cuarta una de las dos se queda
+   vieja. `clnkActivo()` ya mira la casilla Y el Modo Avanzado. */
+function clnkSondeoDebe() {
+  try {
+    if (!clnkActivo()) return false;
+    if (!clnkVinculado()) return false;
+    if (document.hidden) return false;
+    return true;
+  } catch (e) { return false; }
+}
+window.clnkSondeoDebe = clnkSondeoDebe;
+
+/* Arranca o para el temporizador según el predicado. Es IDEMPOTENTE: llamarla dos veces no deja
+   dos temporizadores, que es lo que pasaría enganchándola en cinco lugares sin esta guarda —y
+   dos temporizadores son el doble de pedidos y dos avisos por la misma imagen—. */
+function clnkSondeoSync() {
+  var debe = clnkSondeoDebe();
+  if (debe && !_clnkSondeoTimer) {
+    _clnkSondeoTimer = setInterval(_clnkSondear, CLNK_SONDEO_MS);
+  } else if (!debe && _clnkSondeoTimer) {
+    clearInterval(_clnkSondeoTimer);
+    _clnkSondeoTimer = null;
+  }
+  return !!_clnkSondeoTimer;
+}
+window.clnkSondeoSync = clnkSondeoSync;
+
+/* Un turno de sondeo. NUNCA lanza y nunca se solapa consigo mismo: con la pestaña lenta o el
+   conector tardando, dos turnos encimados pedirían la lista dos veces y el agrupador podría
+   abrir dos avisos por el mismo envío. */
+async function _clnkSondear(forzado) {
+  if (_clnkSondeando) return;
+  if (!forzado && !clnkSondeoDebe()) { clnkSondeoSync(); return; }
+  _clnkSondeando = true;
+  try {
+    var r = await clnkPedir('/v1/estado', { espera: 5000 });
+    if (!r.vigente) return;
+    if (!r.ok || r.red) return;        // el panel ya informa; el sondeo calla y reintenta
+    var d = r.datos || {};
+    /* El módulo pudo apagarse mientras esto volvía y `vigente` no lo cubre si nadie subió el
+       token de generación —apagarlo lo sube, pero esconder la pestaña no—. */
+    if (!clnkSondeoDebe()) return;
+    /* EQUIPO NUEVO PRIMERO: hasta que el médico decida, las imágenes de ese equipo están en
+       cuarentena y NO salen en la lista (§3.8), así que avisar de las imágenes antes sería
+       mandarlo a buscar algo que todavía no puede levantar. */
+    if ((Number(d.equipos_esperando) || 0) > 0) { clnkAvisarEquipoNuevo(); return; }
+    if ((Number(d.imagenes_pendientes) || 0) > 0) await clnkRevisarImagenes();
+  } catch (e) {
+    /* Un sondeo que lanza no puede matar al temporizador ni llegarle al médico como un error:
+       es trabajo de fondo que nadie pidió. Se anota y se reintenta al próximo turno. */
+    try { console.warn('[clnk/sondeo]', e); } catch (e2) {}
+  } finally { _clnkSondeando = false; }
+}
+window._clnkSondear = _clnkSondear;
+
+document.addEventListener('visibilitychange', function () {
+  clnkSondeoSync();
+  /* Al VOLVER a la vista se sondea en el acto. `clnkSondeoSync` recién puso el temporizador, y
+     su primer turno recién cae a los 15 s: el médico que vuelve a la pestaña es el que quiere
+     saber ahora si llegó algo. */
+  if (!document.hidden && clnkSondeoDebe()) _clnkSondear();
+});
+
+/* El arranque. Va colgado del documento y NO de `cfgOnShow`: el aviso de imágenes es global y
+   tiene que llegar con Configuración cerrada, que es como el médico trabaja. Con el módulo
+   apagado —que es de fábrica— el predicado dice no y no se manda un solo pedido. */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { clnkSondeoSync(); } catch (e) {} });
+} else {
+  try { clnkSondeoSync(); } catch (e) {}
+}
+
 
 /* ══ Ayudantes genéricos que SOBREVIVEN al retiro del panel de Orthanc ════════════════════════
    Estos seis NO son de Orthanc: son de «meter un DICOM que llegó por la red en el estudio que
