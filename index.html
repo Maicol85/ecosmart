@@ -123922,22 +123922,34 @@ function _igImgSelPos(uuid, idx) {
 
 function igImgInvalidar() {
   _igImgIndice = null;
+  _igLoopIndice = null;
   _igImgCargando = null;
   _igImgBlobs.clear();
 }
 window.igImgInvalidar = igImgInvalidar;
 
+/* ⚠️ EL ÍNDICE DE CINELOOPS VIAJA CON EL DE IMÁGENES (ECO-CONECTOR-4, decisión 4), y no en una
+   carga aparte: la grilla se pinta cuando el índice está, y con dos cargas independientes un
+   repintado podría dibujarse con las imágenes de la lectura nueva y los cineloops de la vieja.
+   Es `poster` + metadata, nunca los cuadros: pintar esta grilla no materializa un solo
+   cineloop. */
+let _igLoopIndice = null;
+
 function igImgIndiceCargar() {
   if (_igImgCargando) return _igImgCargando;
   if (typeof CeiboImg === 'undefined' || !CeiboImg.indice) {
     _igImgIndice = [];
+    _igLoopIndice = [];
     return Promise.resolve([]);
   }
-  _igImgCargando = CeiboImg.indice().then(r => {
+  const pL = (typeof CeiboCine !== 'undefined' && CeiboCine.indice)
+    ? CeiboCine.indice().catch(() => []) : Promise.resolve([]);
+  _igImgCargando = Promise.all([CeiboImg.indice(), pL]).then(([r, rl]) => {
     _igImgIndice = Array.isArray(r) ? r : [];
+    _igLoopIndice = Array.isArray(rl) ? rl : [];
     _igImgCargando = null;
     return _igImgIndice;
-  }).catch(() => { _igImgIndice = []; _igImgCargando = null; return []; });
+  }).catch(() => { _igImgIndice = []; _igLoopIndice = []; _igImgCargando = null; return []; });
   return _igImgCargando;
 }
 
@@ -123973,6 +123985,16 @@ function igImgPasaTipo(meta) {
   if (_igImgFiltro === 'vid')  return !!meta.video;
   if (_igImgFiltro === 'star') return !!meta.star;
   return true;
+}
+
+/* ⚠️ QUÉ FILTROS PASA UN CINELOOP (ECO-CONECTOR-4, decisión 4): «Todas» y «Videos», que es
+   exactamente lo que el médico pidió. NO pasa «Imágenes», porque no lo es, y NO pasa
+   «⭐ De interés», y eso no es un olvido: la estrella se guarda por slot con
+   `CeiboImg.marcar(uuid, idx, …)`, y un cineloop no tiene slot ni idx — no hay dónde escribirla.
+   Con la estrella fuera, el filtro «De interés» sigue devolviendo exactamente lo que devolvía
+   antes de esta tanda, que es lo que la orden pide no romper. Queda declarado en EC4-f. */
+function igLoopPasaTipo() {
+  return _igImgFiltro === 'all' || _igImgFiltro === 'vid' || !_igImgFiltro;
 }
 
 /* El observador se rearma en cada pintado: los nodos que miraba ya no existen. `root:null` —el
@@ -124033,6 +124055,45 @@ function igImgLlenarMes(grupo) {
     b.dataset.igIdx  = String(it.idx);
     b.dataset.igN    = String(it.n);
     const quien = it.nombre + ' · ' + it.fecha;
+    /* ⚠️ UN CINELOOP SE PINTA DE SU `poster` Y NO PASA POR `igImgBlobs` (ECO-CONECTOR-4): esa
+       función lee los `dataURL` de un ESTUDIO, y un cineloop no es un slot de ese estudio. El
+       poster ya vino en el índice, así que la miniatura se dibuja sin leer un solo cuadro —que
+       es la condición que la orden pone—. Tampoco lo observa el IntersectionObserver: no hay
+       nada que ir a buscar después. */
+    if (it.loop) {
+      b.dataset.igCine = String(it.cineId || '');
+      b.title = 'Cineloop · ' + (it.cuadros || 0) + ' cuadros' +
+                (it.bytes ? ' · ' + dstMB(it.bytes) : '') + ' · ' + quien;
+      b.setAttribute('aria-label', 'Abrir el cineloop de ' + quien);
+      if (it.poster) {
+        const pim = document.createElement('img');
+        pim.src = it.poster; pim.alt = '';
+        pim.loading = 'lazy'; pim.decoding = 'async';
+        b.insertBefore(pim, b.firstChild);
+      } else b.classList.add('vacia');
+      const et = document.createElement('span');
+      et.className = 'ig-img-n';
+      et.textContent = '🎞';
+      b.appendChild(et);
+      const pie2 = document.createElement('span');
+      pie2.className = 'ig-img-pie';
+      const iz2 = document.createElement('span');
+      const de2 = document.createElement('span');
+      const vb = document.createElement('span');
+      vb.className = 'ig-img-vb';
+      vb.textContent = '▶';
+      iz2.appendChild(vb);
+      /* La marca del estudio al que pertenece, que es lo que la decisión 4 pide: sin ella, un
+         cineloop en la galería no se sabe de quién es. Por `textContent`: es dato del paciente. */
+      const mk = document.createElement('span');
+      mk.className = 'ig-img-eq';
+      mk.textContent = it.cuadros ? (it.cuadros + 'c') : 'loop';
+      de2.appendChild(mk);
+      pie2.appendChild(iz2); pie2.appendChild(de2);
+      b.appendChild(pie2);
+      grid.appendChild(b);
+      return;
+    }
     b.title = 'Imagen ' + it.n + ' · ' + quien;
     b.setAttribute('aria-label', 'Abrir la imagen ' + it.n + ' de ' + quien);
     const n = document.createElement('span');
@@ -124164,13 +124225,46 @@ function igImgPintar(estudios) {
   });
   const totalImgs = n;
 
+  /* ⚠️ LOS CINELOOPS DEL ESTUDIO, POR uuid (ECO-CONECTOR-4, decisión 4). Hasta esta tanda un
+     cineloop guardado con un estudio NO aparecía en «Imágenes guardadas» ni en «Videos»: sólo se
+     lo encontraba abriendo el estudio, que es la queja del médico. Van DESPUÉS de los slots de
+     su estudio y en su propio grupo de mes, el mismo del estudio al que pertenecen. */
+  const loopsPorUuid = new Map();
+  (Array.isArray(_igLoopIndice) ? _igLoopIndice : []).forEach(r => {
+    if (!r || !r.uuid) return;
+    if (!loopsPorUuid.has(r.uuid)) loopsPorUuid.set(r.uuid, []);
+    loopsPorUuid.get(r.uuid).push(r);
+  });
+
   const vis = (Array.isArray(estudios) ? estudios : []).slice().sort(igCmpFecha);
   const grupos = new Map();
   let mostradas = 0;
+  /* ⚠️ LOS CINELOOPS SE CUENTAN APARTE Y NO SUMAN A `totalImgs` NI A `mostradas`, y es una
+     decisión: `n` es el número que identifica a UNA imagen en el visor y en el PPT, y correrlo
+     cambiaría el número de todas las imágenes guardadas del médico. El pie dice las dos cosas. */
+  let mostradosLoops = 0;
   vis.forEach(inf => {
     const r = porUuid.get(inf && inf.uuid);
-    if (!r) return;
-    const k = igMesLbl(inf.fecha_estudio);
+    const ls = loopsPorUuid.get(inf && inf.uuid) || [];
+    const kMes = igMesLbl(inf && inf.fecha_estudio);
+    /* Los cineloops van DESPUÉS de las imágenes de su propio estudio, así que se empujan al
+       terminar sus slots — y también cuando el estudio no tiene ninguna imagen fija, que es el
+       caso que hace falta nombrar: un estudio puede tener sólo un cineloop. */
+    const _empujarLoops = () => {
+      if (!ls.length || !igLoopPasaTipo()) return;
+      if (!grupos.has(kMes)) grupos.set(kMes, []);
+      ls.forEach((lp, j) => {
+        grupos.get(kMes).push({ uuid: inf.uuid, idx: -1, n: 0, loop: true,
+                                cineId: String(lp.id || ''), poster: String(lp.poster || ''),
+                                cuadros: lp.cuadros | 0, bytes: lp.bytes | 0, j: j,
+                                id: inf.id, nombre: String(inf.nombre || '—'),
+                                fecha: inf.fecha_estudio ? inf.fecha_estudio.split('-').reverse().join('/') : '—',
+                                video: true, esquema: false, star: false, nota: '' });
+        mostradosLoops++;
+      });
+    };
+    if (!r) { _empujarLoops(); return; }
+    const k = kMes;
     r.slots.forEach((m, i) => {
       if (!igImgPasaTipo(m)) return;
       if (!grupos.has(k)) grupos.set(k, []);
@@ -124181,10 +124275,14 @@ function igImgPintar(estudios) {
                            nota: String(m.nota || '') });
       mostradas++;
     });
+    _empujarLoops();
   });
 
   cont.textContent = '';
-  if (!totalImgs) {
+  /* ⚠️ EL CARTEL DE «no hay imágenes» NO PUEDE SALIR SOBRE UNA GALERÍA QUE SÍ TIENE CINELOOPS:
+     un estudio puede tener un cineloop y ninguna imagen fija, y sin esto el médico vería «No
+     hay imágenes guardadas» con sus cineloops ahí mismo, sin pintar. */
+  if (!totalImgs && !mostradosLoops) {
     const v = document.createElement('div');
     v.className = 'ig-img-vac';
     /* Se dice POR QUÉ puede no haber ninguna: el toggle «Guardar imágenes con los estudios»
@@ -124245,7 +124343,8 @@ function igImgPintar(estudios) {
   const pie = document.createElement('div');
   pie.style.cssText = 'font-size:.78rem;color:var(--text2);margin:6px 0 2px;';
   pie.id = 'ig-img-contador';
-  pie.textContent = 'Mostrando ' + mostradas + ' de ' + totalImgs + ' ' + (totalImgs === 1 ? 'imagen' : 'imágenes');
+  pie.textContent = 'Mostrando ' + mostradas + ' de ' + totalImgs + ' ' + (totalImgs === 1 ? 'imagen' : 'imágenes') +
+    (mostradosLoops ? ' y ' + mostradosLoops + ' cineloop' + (mostradosLoops === 1 ? '' : 's') : '');
   cont.appendChild(pie);
   /* Los meses que el médico tenía abiertos se llenan ahora; el resto, al abrirlos. */
   cont.querySelectorAll('.ig-mes-grupo:not(.cerrado)').forEach(g => igImgLlenarMes(g));
@@ -124495,6 +124594,24 @@ function igImgStarClic(boton) {
 function igImgThClic(th) {
   const uuid = th.dataset.igUuid, idx = parseInt(th.dataset.igIdx, 10);
   const n = parseInt(th.dataset.igN, 10);
+  /* ⚠️ UN CINELOOP ABRE SU VISOR Y NO ENTRA AL MAZO (ECO-CONECTOR-4, decisión 4) ───────────
+     Abre con `cineAbrirGuardado`, que es el MISMO camino por el que se abre desde la tira del
+     estudio: no hay un segundo lector ni un segundo visor.
+     Y NO SE PUEDE ELEGIR PARA EL PPT, con su motivo a la vista. No es que falte: una
+     diapositiva lleva una IMAGEN, y meter un cineloop ahí significa convertirlo a MP4 —que esta
+     app sabe hacer, pero por el camino del PPT del estudio, con su propio aviso de peso y su
+     propia ventana de conversión—. Mezclarlo acá sin esa maquinaria pondría en el mazo un
+     cuadro suelto haciéndose pasar por el cineloop. Se dejó como estaba y se pregunta: está en
+     PENDIENTES → EC4-g. */
+  const cine = th.dataset.igCine || '';
+  if (cine) {
+    if (_igImgPpt) {
+      igImgRes('Un cineloop no entra al mazo desde acá. El PPT del estudio los convierte a video.');
+      return;
+    }
+    if (typeof cineAbrirGuardado === 'function') cineAbrirGuardado(cine);
+    return;
+  }
   /* Armando un mazo, el toque ELIGE; fuera de ese modo, ABRE. Es lo que hace la demo aprobada, y
      la alternativa —un segundo control de selección en cada celda— no entra en 94×70 px. */
   if (_igImgPpt) { igImgSelToggle(uuid, idx, n); return; }
@@ -138582,13 +138699,22 @@ window.imgSetCalidad = imgSetCalidad;
    procedencia y las dos eran indistinguibles: entran por esta misma puerta, que es lo que hace
    que el selector de calidad, el `_orig` y la persistencia funcionen igual para las dos. Lo
    necesita el selector de imágenes del PPT para separarlas en dos secciones. */
+/* ⚠️ DEVUELVE UNA PROMESA DE «EL SLOT QUEDÓ PUESTO» (ECO-CONECTOR-4, decisión 1), y los
+   llamadores que no la esperan siguen funcionando exactamente igual: lo que se agrega es el
+   valor de vuelta, no un cambio de comportamiento. Hace falta porque la compresión es
+   ASÍNCRONA y puede no llegar a poner el slot por dos caminos —el token `_imgGen` cambió
+   porque se abrió otro estudio, o `_imgComprimir` falló—, y hasta esta tanda quien llamaba no
+   tenía forma de enterarse. Sobre eso se apoyaba el defecto que el médico encontró: un archivo
+   que no entró se le confirmaba igual a CeiboLink, o sea que se BORRABA de allá. */
 function imgCompressLoad(file, idx, origen){
+  return new Promise(resolve => {
   const reader = new FileReader();
+  reader.onerror = function(){ resolve(false); };
   reader.onload = function(){
     const original = reader.result;
     const gen = _imgGen;
     _imgComprimir(original, IMG_CAL_DEF).then(url => {
-      if (gen !== _imgGen) return;            // se cambió de estudio mientras se comprimía
+      if (gen !== _imgGen) { resolve(false); return; }   // se cambió de estudio mientras se comprimía
       let target = idx;
       if (target==null || target<0 || target>=imgSlots.length || imgSlots[target]){
         let t = imgSlots.findIndex(s=>!s);
@@ -138609,9 +138735,11 @@ function imgCompressLoad(file, idx, origen){
                                   : origen === 'ceibolink' ? 'ceibolink' : 'estudio') };
       imgMarcarEditado();
       imgRender();
-    }).catch(() => { if (typeof toast === 'function') toast('❌ No se pudo procesar la imagen'); });
+      resolve(true);
+    }).catch(() => { if (typeof toast === 'function') toast('❌ No se pudo procesar la imagen'); resolve(false); });
   };
   reader.readAsDataURL(file);
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
@@ -139272,8 +139400,43 @@ window._dcmSaltarSQImpl = _dcmSaltarSQImpl;
 
    ⚠️ LA CALIDAD DEL JPEG ES 0,92 Y NO 1. A 1 el JPEG de un cuadro de ecografía pesa el triple
    sin ganar nada visible, y lo que se guarda son decenas de cuadros. */
-const DCM_CRUDO_MAX = 192 * 1024 * 1024;   // bytes de píxeles crudos
+const DCM_CRUDO_MAX = 192 * 1024 * 1024;   // bytes de píxeles crudos: a partir de acá se PREGUNTA
+const DCM_CRUDO_DURO = 768 * 1024 * 1024;  // bytes de píxeles crudos: a partir de acá NO se ofrece abrir
 const DCM_CRUDO_CAL = 0.92;
+
+/* ⚠️ LOS DOS TOPES SE LEEN POR UNA FUNCIÓN Y NO POR LA CONSTANTE (ECO-CONECTOR-4) ─────────
+   La batería necesita ejercitar la lógica del umbral, no su valor: un fixture que de verdad
+   pase los 192 MB son 192 MB por loopback en CADA caso que lo use, y hay varios. El gancho
+   baja el umbral desde la página. Es el mismo recurso y la misma justificación que
+   `window.__clnkBaseTest`: no lo escribe ningún control de la app, no se persiste, no sale en
+   ninguna pantalla, y lo único que cambia es un número — la decisión de preguntar, el texto y
+   lo que pasa con cada respuesta son idénticos.
+   ⚠️ EL DURO NO PUEDE QUEDAR POR DEBAJO DEL BLANDO: con los dos ganchos puestos al revés, un
+   archivo caería a la vez en «preguntar» y en «ni preguntes», y cuál gana dependería del orden
+   de dos `if`. Se ordena acá, una vez. */
+function _dcmCrudoTope() {
+  const v = Number(window.__dcmCrudoMaxTest);
+  return (isFinite(v) && v > 0) ? v : DCM_CRUDO_MAX;
+}
+function _dcmCrudoTopeDuro() {
+  const v = Number(window.__dcmCrudoDuroTest);
+  const duro = (isFinite(v) && v > 0) ? v : DCM_CRUDO_DURO;
+  return Math.max(duro, _dcmCrudoTope());
+}
+window._dcmCrudoTope = _dcmCrudoTope;
+window._dcmCrudoTopeDuro = _dcmCrudoTopeDuro;
+
+/* Los píxeles crudos que este archivo declara, sin tocar un byte del pixel data: sale del
+   grupo 0028, que es lo que hace que la decisión se pueda tomar ANTES de reservar memoria. */
+function _dcmCrudoBytes(d) {
+  if (!d) return 0;
+  const filas = d.filas | 0, cols = d.cols | 0;
+  const muestras = d.muestras || 1;
+  const bits = d.bits || 8;
+  const cuadros = Math.max(1, d.nFrames | 0);
+  return filas * cols * muestras * (bits / 8) * cuadros;
+}
+window._dcmCrudoBytes = _dcmCrudoBytes;
 
 function _dcmCrudoRechazo(d) {
   const c = d.crudo;
@@ -139291,21 +139454,87 @@ function _dcmCrudoRechazo(d) {
   if (muestras === 3 && foto.indexOf('RGB') < 0)
     return 'la imagen es color en ' + (d.foto || 'un espacio desconocido') + ' sin comprimir, y esta app abre RGB';
   const esperado = filas * cols * muestras * (bits / 8) * cuadros;
-  if (esperado > DCM_CRUDO_MAX) {
-    return 'es un archivo sin comprimir de ' + dstMB(esperado) + ' de píxeles (' + cols + '×' + filas +
-           ', ' + cuadros + ' cuadro(s)), más de lo que esta app puede abrir de una vez (' +
-           dstMB(DCM_CRUDO_MAX) + ')';
-  }
+  /* ⚠️ EL TOPE YA NO RECHAZA (ECO-CONECTOR-4, decisión 2): es el umbral de una PREGUNTA, y la
+     pregunta la hace `_dcmCrudoAFrags`. El médico dijo que quiere poder abrir todo; lo que la
+     app le debe es el peso y el aviso de qué puede pasar, no una puerta cerrada. Lo único que
+     sigue siendo rechazo duro es lo que esta app no sabe interpretar —el formato— y lo que
+     está roto: un pixel data más corto de lo que el archivo declara. */
   if (c.bytes < esperado)
     return 'el pixel data trae ' + dstMB(c.bytes) + ' y la descripción dice que deberían ser ' + dstMB(esperado);
   return '';
 }
 window._dcmCrudoRechazo = _dcmCrudoRechazo;
 
-async function _dcmCrudoAFrags(d) {
+/* ⚠️ LA PREGUNTA POR UN ARCHIVO PESADO (ECO-CONECTOR-4, decisión 2) ─────────────────────────
+   Vive en UN solo lugar y por eso alcanza a las dos puertas que convierten píxeles crudos —el
+   importador del estudio abierto y `dstLeer`, que es la que usan el estudio guardado y la
+   bandeja—. Con la pregunta escrita en cada puerta, un archivo pesado podría entrar sin
+   preguntar por una de ellas.
+
+   ⚠️ ES UN `confirm` NATIVO Y NO EL MODAL DE LA APP, y está medido por qué: cuando esto corre,
+   el modal de CeiboLink YA ESTÁ ABIERTO mostrando el progreso («Bajando 2 de 3…»), así que
+   abrir el mismo modal encima lo pisaría y al volver no habría a qué estado regresar. Es
+   además lo que esta app ya hace para el tamaño de un video, en `videoCargarEnSlot`.
+   Lo que cuesta, declarado: los dos botones se ven como «Aceptar» y «Cancelar», así que el
+   texto tiene que decir con todas las letras qué hace cada uno.
+
+   ⚠️ ARRIBA DEL TOPE DURO NO SE OFRECE ABRIR. No es paternalismo: por encima de ese tamaño lo
+   que pasa no es que tarde, es que la pestaña se cae, y una pestaña que se cae se lleva puesto
+   el estudio sin guardar. El archivo NO se pierde: sigue esperando en el conector.
+
+   ⚠️ Y SI EL ESTUDIO TIENE DATOS SIN GUARDAR, LA PREGUNTA LO DICE. Ofrecer guardar desde acá
+   sería reentrar en el guardado con el modal de progreso abierto y a mitad de una importación
+   asíncrona; se midió y es estructural, así que lo que se hace es avisarlo y dejar que el
+   médico cancele, guarde y vuelva. Queda declarado en PENDIENTES → EC4-c. */
+function _dcmCrudoPreguntar(d, ctx) {
+  const bytes = _dcmCrudoBytes(d);
+  if (bytes <= _dcmCrudoTope()) return { seguir: true };
+  const nom = String((ctx && ctx.nombre) || 'El archivo');
+  const cols = d.cols | 0, filas = d.filas | 0, cuadros = Math.max(1, d.nFrames | 0);
+  const tam = dstMB(bytes) + ' de píxeles (' + cols + '×' + filas + ', ' + cuadros + ' cuadro(s))';
+  const sigue = (ctx && ctx.origen === 'ceibolink')
+    ? ' El archivo NO se borra de CeiboLink: sigue esperando ahí hasta que se cumpla su plazo.'
+    : '';
+  if (bytes > _dcmCrudoTopeDuro()) {
+    if (typeof alert === 'function') {
+      alert(nom + ' pesa ' + tam + '.\n\n' +
+            'Es más de lo que este navegador puede abrir sin caerse, así que esta app no lo ' +
+            'abre: si lo intentara, lo más probable es que la pestaña se cierre sola y se ' +
+            'pierda lo que no esté guardado.' + sigue);
+    }
+    return { seguir: false, err: 'pesa ' + tam + ', más de lo que este navegador puede abrir sin caerse' };
+  }
+  /* Lo sin guardar se nombra ANTES de la pregunta: es lo que el médico puede perder. */
+  let aviso = '';
+  try {
+    if (typeof _imgEditado !== 'undefined' && _imgEditado) aviso = ' con imágenes sin guardar';
+    if (typeof hayDatosSinGuardar === 'function' && hayDatosSinGuardar()) aviso = ' sin guardar';
+  } catch (e) {}
+  const ok = (typeof confirm === 'function') && confirm(
+    nom + ' pesa ' + tam + '.\n\n' +
+    'Abrirlo puede tardar y puede trabar el navegador. Si el navegador se queda sin memoria, ' +
+    'se pierde lo que no esté guardado' +
+    (aviso ? ' — y este estudio tiene cambios' + aviso + '.' : '.') + '\n\n' +
+    'Aceptar = ABRIR IGUAL.\n' +
+    'Cancelar = DEJARLO ESPERANDO' + (sigue ? ' en CeiboLink.' : ' (no se abre y no se toca nada).'));
+  if (ok) return { seguir: true };
+  return { seguir: false, err: 'lo dejaste esperando: pesa ' + tam + ' y no se abrió' };
+}
+window._dcmCrudoPreguntar = _dcmCrudoPreguntar;
+
+/* ⚠️ EL SEGUNDO PARÁMETRO SE LLAMA `info` Y NO `ctx`, aunque `ctx` sería el nombre natural:
+   esta función YA tiene un `ctx`, el contexto 2D del canvas, declarado con `let` ochenta líneas
+   más abajo. Con los dos nombres iguales el bloque de JS entero deja de parsear y el navegador
+   lo descarta EN SILENCIO —la app arranca y le faltan 110.000 líneas—. Lo cazó
+   `check_js_inline.py`, que es exactamente para lo que está. */
+async function _dcmCrudoAFrags(d, info) {
   if (!d || !d.crudo) return { ok: true };
   const mal = _dcmCrudoRechazo(d);
   if (mal) { d.crudo = null; return { ok: false, err: mal }; }
+  /* La pregunta va DESPUÉS de los rechazos duros y ANTES de tocar un canvas: no tiene sentido
+     preguntarle al médico si quiere abrir un archivo que esta app no sabe interpretar. */
+  const q = _dcmCrudoPreguntar(d, info);
+  if (!q.seguir) { d.crudo = null; return { ok: false, err: q.err, esperando: true }; }
   const filas = d.filas | 0, cols = d.cols | 0;
   const muestras = d.muestras || 1;
   const bits = d.bits || 8;
@@ -139336,7 +139565,18 @@ async function _dcmCrudoAFrags(d) {
   if (!ctx) { d.crudo = null; return { ok:false, err:'este navegador no pudo preparar el lienzo' }; }
 
   const frags = [];
+  /* ⚠️ EL BUCLE ENTERO VA DENTRO DE UN try (ECO-CONECTOR-4, decisión 2). Quedarse sin memoria
+     acá no es un `return` ordenado: `createImageData` y `toDataURL` lanzan —RangeError,
+     «Out of memory», InvalidStateError— y hasta esta tanda esa excepción subía hasta
+     `dcmImgImportar`, que la contaba como un fallo del archivo… pero por el camino del estudio
+     abierto el id ya se anotaba igual para confirmar. Acá se la convierte en un NO ENTRÓ
+     explícito, que es lo único que impide que se le confirme el borrado al conector.
+     `_dcmFallaMemoriaTest` es el gancho que deja a un caso ejercitar esta rama sin tener que
+     agotar de verdad la memoria de la máquina: no lo escribe ningún control de la app y no se
+     persiste, igual que los dos topes. */
+  try {
   for (let f = 0; f < cuadros; f++) {
+    if (window.__dcmFallaMemoriaTest) throw new RangeError('Array buffer allocation failed');
     const base = f * porCuadro;
     if (base + porCuadro > px.length) break;
     const img = ctx.createImageData(cols, filas);
@@ -139380,6 +139620,16 @@ async function _dcmCrudoAFrags(d) {
     /* Un respiro por cuadro: con sesenta cuadros el bucle entero bloquea la pestaña varios
        segundos y el médico ve la app colgada. */
     if ((f % 8) === 7) await new Promise(r => setTimeout(r, 0));
+  }
+  } catch (e) {
+    /* Se suelta TODO lo acumulado antes de volver: si el navegador está corto de memoria, lo
+       último que conviene es dejar vivos los cuadros ya comprimidos de un archivo que no va a
+       entrar a ningún lado. */
+    frags.length = 0;
+    d.crudo = null;
+    return { ok:false, esperando:true,
+             err:'este navegador se quedó sin memoria al abrirlo (' + dstMB(_dcmCrudoBytes(d)) +
+                 ' de píxeles). No se guardó nada y no se borró nada.' };
   }
   if (!frags.length) { d.crudo = null; return { ok:false, err:'no se pudo dibujar ningún cuadro' }; }
   d.frags = frags;
@@ -139451,7 +139701,14 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
   try { if (typeof _d2ImagenesNuevas === 'function') _d2ImagenesNuevas(); } catch (e) {}
 
   const listos = [], fallos = [], loops = [];
-  for (const f of files) {
+  /* ⚠️ EL MISMO CONTRATO QUE `mediosImportar` (ECO-CONECTOR-4, decisión 1): `res[i]` dice si
+     `files[i]` ENTRÓ, con su motivo si no. Las dos puertas tienen que devolver lo mismo, porque
+     la de arriba delega en ésta y le reenvía el resultado a quien confirma. */
+  const res = files.map(f => ({ nombre: String((f && f.name) || 'archivo'), ok: false,
+                                motivo: 'no se pudo procesar' }));
+  const _noD = (i, m) => { res[i].motivo = m; fallos.push(res[i].nombre + ': ' + m); };
+  for (let _i = 0; _i < files.length; _i++) {
+    const f = files[_i];
     /* ── LA MARCA PRIMERO, EL ARCHIVO DESPUÉS ──────────────────────────────────────────
        Se leen 132 bytes y recién si dicen «DICM» se carga el resto. Importa desde que el
        input no tiene `accept`: el selector muestra TODO, así que alcanza con que alguien
@@ -139460,52 +139717,61 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
        132 bytes. */
     let cab;
     try { cab = new Uint8Array(await f.slice(0, 132).arrayBuffer()); }
-    catch (e) { fallos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    catch (e) { _noD(_i, 'no se pudo leer el archivo'); continue; }
     if (cab.length < 132 || _dcmImgAscii(cab, 128, 4) !== 'DICM') {
-      fallos.push(f.name + ': no es un archivo DICOM (le falta la marca «DICM» en el byte 128)');
+      _noD(_i, 'no es un archivo DICOM (le falta la marca «DICM» en el byte 128)');
       continue;
     }
     let buf;
     try { buf = await f.arrayBuffer(); }
-    catch (e) { fallos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    catch (e) { _noD(_i, 'no se pudo leer el archivo'); continue; }
     let d;
     try { d = _dcmImgLeer(buf); }
-    catch (e) { fallos.push(f.name + ': ' + e.message); continue; }
+    catch (e) { _noD(_i, e.message); continue; }
     /* El DICOMDIR está en la raíz del pendrive y ahora que el selector muestra todo es de
        lo primero que se ve. Es DICOM de verdad —tiene su marca— pero es el índice del
        disco, no una imagen: sin nombrarlo, el motivo sería «no trae imagen», que suena a
        archivo roto. */
-    if (d.dicomdir) { fallos.push(f.name + ': es el índice DICOMDIR del pendrive, no una imagen. Entrá a las carpetas y elegí los estudios.'); continue; }
+    if (d.dicomdir) { _noD(_i, 'es el índice DICOMDIR del pendrive, no una imagen. Entrá a las carpetas y elegí los estudios.'); continue; }
     if (d.rechazo) {
       /* ⚠️ EL MENSAJE NOMBRA EL FORMATO (decisión 10). «No se pudo importar» manda a revisar un
          archivo que está perfecto: lo que falta es un decodificador, no el archivo. */
-      fallos.push(f.name + ': está comprimido en ' + d.rechazo + ', que este navegador no sabe abrir ' +
-                  'por su cuenta. Esta app abre JPEG Baseline y los dos formatos sin comprimir ' +
-                  '(Explicit e Implicit VR Little Endian).');
+      _noD(_i, 'está comprimido en ' + d.rechazo + ', que este navegador no sabe abrir ' +
+               'por su cuenta. Esta app abre JPEG Baseline y los dos formatos sin comprimir ' +
+               '(Explicit e Implicit VR Little Endian).');
       continue;
     }
     /* Sin comprimir: los píxeles crudos se convierten en un JPEG por cuadro ANTES de clasificar,
        así que de acá en adelante el archivo es indistinguible de uno comprimido. */
     if (d.crudo) {
-      const cr = await _dcmCrudoAFrags(d);
-      if (!cr.ok) { fallos.push(f.name + ': ' + cr.err); continue; }
+      const cr = await _dcmCrudoAFrags(d, { nombre: res[_i].nombre, origen: origen });
+      if (!cr.ok) { _noD(_i, cr.err); continue; }
     }
     /* ⚠️ LA CLASIFICACIÓN EN CUADROS SALIÓ A `_dcmClasificar` (ECO-CONECTOR-3) y no es un
        refactor de prolijidad: la pregunta de destino tiene que clasificar el MISMO archivo sin
        tocar el formulario, y con la regla escrita dos veces un cineloop podría entrar al
        estudio abierto y no a uno guardado, o al revés, por una diferencia de una línea. */
     const cl = _dcmClasificar(d, f.name);
-    if (cl.rechazo) { fallos.push(cl.rechazo); continue; }
-    if (cl.loop) { loops.push(cl.loop); continue; }
+    /* El rechazo de `_dcmClasificar` ya viene con el nombre adelante, así que no se le agrega
+       otra vez: lo que se guarda en `res` es el motivo pelado. */
+    if (cl.rechazo) {
+      res[_i].motivo = String(cl.rechazo).replace(res[_i].nombre + ': ', '');
+      fallos.push(cl.rechazo); continue;
+    }
+    if (cl.loop) { cl.loop._i = _i; loops.push(cl.loop); continue; }
+    cl.fija._i = _i;
     listos.push(cl.fija);
   }
 
   if (listos.length) {
     const idxs = _dcmImgReservar(listos.length, slotPreferido);
+    /* ⚠️ SE ESPERA AL SLOT, igual que en `mediosImportar` y por el mismo motivo: la reserva del
+       lugar no es la imagen puesta, y hasta esta tanda se tomaba una por la otra. */
+    const _pf = [];
     listos.forEach((x, i) => {
       /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
          que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
-      imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i], origen);
+      _pf.push(imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i], origen));
       /* Y aparte se conserva el ORIGINAL para poder medir: el JPEG del slot sale
          recomprimido y redimensionado, así que la escala del DICOM ya no le aplica.
          El id se ata al objeto del slot en cuanto exista — ver `_medFlushPendientes`. */
@@ -139513,6 +139779,11 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
         fabricante:x.d.fabricante, modelo:x.d.modelo, regiones:x.d.regiones || [] });
       _medPendientes.push({ idx: idxs[i], id });
       x._medId = id;
+    });
+    const _okF = await Promise.all(_pf);
+    listos.forEach((x, i) => {
+      if (_okF[i]) { res[x._i].ok = true; res[x._i].motivo = ''; }
+      else _noD(x._i, 'no se pudo preparar la imagen para el estudio');
     });
     _medFlushPendientes();
     /* Si además se puede guardar, la fija queda en disco y reaparece en la tira al reabrir
@@ -139581,10 +139852,19 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
        lugar sin avisar. */
     let _bytesL = 0;
     loops.forEach(l => { _cineEncolar(l); l.d.frags.forEach(f => { _bytesL += f.length; }); });
+    /* ⚠️ UN CINELOOP «ENTRÓ» CUANDO QUEDÓ EN LA COLA DEL ESTUDIO, no cuando se abrió el
+       reproductor: la cola es lo que `imgPersistir` escribe al guardar, y es de eso que depende
+       la confirmación a CeiboLink. Si la escritura falla acá, se DESMARCA — un cineloop que no
+       se pudo guardar no puede contarse como entrado, o se le confirmaría el borrado al
+       conector sin que exista en ninguna parte. */
+    loops.forEach(l => { if (typeof l._i === 'number') { res[l._i].ok = true; res[l._i].motivo = ''; } });
     const _puede = _cinePuedeGuardar();
     if (_puede.ok) {
       const n = await _cinePendientesPersistir(_imgUuidActual);
-      if (!n && typeof toast === 'function') toast('⚠️ El cineloop no se pudo guardar en este dispositivo');
+      if (!n) {
+        loops.forEach(l => { if (typeof l._i === 'number') _noD(l._i, 'no se pudo guardar el cineloop en este dispositivo'); });
+        if (typeof toast === 'function') toast('⚠️ El cineloop no se pudo guardar en este dispositivo');
+      }
     } else if (typeof toast === 'function') {
       toast(_puede.falta === 'uuid'
         ? ('📌 ' + loops.length + ' cineloop(s) · ' + dstMB(_bytesL) + ' — se guardan al guardar el estudio')
@@ -139593,6 +139873,8 @@ async function dcmImgImportar(fileList, slotPreferido, origen) {
     /* La tira muestra lo que se acaba de adjuntar, esté o no en disco. */
     try { await cineStripRender(); } catch (e) {}
   }
+  const _nOkD = res.filter(x => x.ok).length;
+  return { n: files.length, ok: _nOkD, no: files.length - _nOkD, res: res };
 }
 window.dcmImgImportar = dcmImgImportar;
 
@@ -139692,7 +139974,9 @@ const _MEDIO_RECHAZO = {
    conector —y eso le exigiría nombre Y documento por la regla de paciente—. */
 async function mediosImportar(fileList, slotPreferido, origen) {
   const files = [...fileList];
-  if (!files.length) return;
+  /* La salida temprana devuelve LA MISMA FORMA que el camino normal: con `undefined`, quien
+     mira `r.res[0].ok` explotaría justo en el borde en que no hay nada que confirmar. */
+  if (!files.length) return { n: 0, ok: 0, no: 0, res: [] };
   /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
      nuevas para que, si son de otro paciente, sus números no se lean como del actual.
      No limpia nada — ver `_dopImagenesNuevas`. */
@@ -139700,27 +139984,44 @@ async function mediosImportar(fileList, slotPreferido, origen) {
   try { if (typeof _d2ImagenesNuevas === 'function') _d2ImagenesNuevas(); } catch (e) {}
 
   const dicoms = [], imagenes = [], videos = [], rechazos = [];
+  /* ⚠️ EL RESULTADO POR ARCHIVO (ECO-CONECTOR-4, decisión 1) ─────────────────────────────
+     `res[i]` corresponde a `files[i]` y dice ENTRÓ o NO ENTRÓ con su motivo. Existe por el
+     defecto que el médico encontró con CeiboLink: un DICOM sin comprimir que esta app rechazó
+     igual se le CONFIRMÓ al conector, o sea que se borró de allá, porque quien llamaba sólo
+     podía mirar si esta función había lanzado una excepción —y un rechazo con un cartel vuelve
+     sin lanzar nada—. Se arregla acá, en el origen, y no en cada llamador: con un parche por
+     caso, la próxima puerta que se agregue vuelve a nacer rota.
+     Arranca en NO ENTRÓ a propósito: lo que no llegue a marcarse como entrado no se confirma,
+     que es el lado seguro —una copia de más en el conector se borra sola a las 24 h, una imagen
+     borrada sin copia no vuelve—. */
+  const res = files.map(f => ({ nombre: String((f && f.name) || 'archivo'), ok: false,
+                                motivo: 'no se pudo procesar' }));
+  /* Las imágenes que DE VERDAD quedaron en un slot. Es lo que cuentan los avisos de abajo:
+     `imagenes.length` son las que se clasificaron como imagen, que no es lo mismo. */
+  let imgsOk = 0;
+  const _no = (i, m) => { res[i].ok = false; res[i].motivo = m; rechazos.push(res[i].nombre + ': ' + m); };
 
-  for (const f of files) {
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
     /* 132 bytes y no el archivo entero, por lo mismo que `dcmImgImportar`: el input no
        lleva `accept`, así que se puede marcar una carpeta con un video de varios GB
        adentro y un `arrayBuffer()` entero entraría a memoria antes de poder rechazarlo. */
     let cab;
     try { cab = new Uint8Array(await f.slice(0, 132).arrayBuffer()); }
-    catch (e) { rechazos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    catch (e) { _no(i, 'no se pudo leer el archivo'); continue; }
     const t = _firmaArchivo(cab);
-    if (t === 'dicom') { dicoms.push(f); continue; }
-    if (t === 'video') { videos.push(f); continue; }
-    if (_MEDIO_MIME[t]) { imagenes.push({ f, mime: _MEDIO_MIME[t] }); continue; }
-    if (_MEDIO_RECHAZO[t]) { rechazos.push(f.name + ': ' + _MEDIO_RECHAZO[t]); continue; }
+    if (t === 'dicom') { dicoms.push({ f, i }); continue; }
+    if (t === 'video') { videos.push({ f, i }); continue; }
+    if (_MEDIO_MIME[t]) { imagenes.push({ f, mime: _MEDIO_MIME[t], i }); continue; }
+    if (_MEDIO_RECHAZO[t]) { _no(i, _MEDIO_RECHAZO[t]); continue; }
     if (t && t.indexOf('riff:') === 0) {
-      rechazos.push(f.name + ': es un contenedor RIFF de tipo «' + t.slice(5) + '», no un AVI ' +
-                    'ni una imagen. Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
+      _no(i, 'es un contenedor RIFF de tipo «' + t.slice(5) + '», no un AVI ' +
+             'ni una imagen. Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
       continue;
     }
     const firma = _asciiDe(cab, 0, 4).replace(/[^\x20-\x7E]/g, '.');
-    rechazos.push(f.name + ': no se reconoce el formato. Los primeros bytes son «' + firma +
-                  '». Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
+    _no(i, 'no se reconoce el formato. Los primeros bytes son «' + firma +
+           '». Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
   }
 
   /* LOS SLOTS SE RESERVAN DE FORMA SINCRÓNICA Y ANTES DE COMPRIMIR. `imgCompressLoad`
@@ -139735,21 +140036,34 @@ async function mediosImportar(fileList, slotPreferido, origen) {
        olfatea igual —medido, las tres imágenes entraron— pero eso es una tolerancia del
        navegador y no una garantía, y `_orig` es lo que re-comprime el selector de calidad.
        El tipo lo pone `_firmaArchivo` a partir de los BYTES, nunca del nombre. */
-    imagenes.forEach((x, i) => imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[i], origen));
+    /* ⚠️ SE ESPERA A QUE EL SLOT QUEDE PUESTO, y eso es lo que vuelve exacto el resultado por
+       archivo: la compresión es asíncrona y puede no llegar a poner la imagen —`_imgGen` cambió,
+       o `_imgComprimir` falló—. Antes de esta tanda la reserva del slot se tomaba por éxito, así
+       que una imagen que nunca llegó al formulario contaba como entrada. En paralelo y no en
+       serie: son independientes entre sí y el orden ya lo fijó la reserva de arriba. */
+    const _puestas = await Promise.all(imagenes.map((x, k) =>
+      imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[k], origen)));
+    imagenes.forEach((x, k) => {
+      if (_puestas[k]) { res[x.i].ok = true; res[x.i].motivo = ''; imgsOk++; }
+      else _no(x.i, 'no se pudo preparar la imagen para el estudio');
+    });
   }
   /* Secuencial y NO en paralelo: `videoCargarEnSlot` puede abrir un confirm por tamaño y
      un alert por códec, y en paralelo se apilarían los diálogos sobre el mismo médico. */
   let videosOk = 0;
-  for (const f of videos) {
-    try { if ((await videoCargarEnSlot(f)) >= 0) videosOk++; }
-    catch (e) { rechazos.push(f.name + ': ' + ((e && e.message) || 'no se pudo cargar el video')); }
+  for (const v of videos) {
+    try {
+      if ((await videoCargarEnSlot(v.f)) >= 0) { videosOk++; res[v.i].ok = true; res[v.i].motivo = ''; }
+      else res[v.i].motivo = 'el video no entró; el aviso de ese archivo ya se mostró';
+    }
+    catch (e) { _no(v.i, ((e && e.message) || 'no se pudo cargar el video')); }
   }
   const videosNo = videos.length - videosOk;
 
   const partes = [];
-  if (imagenes.length) partes.push(imagenes.length + ' imagen(es)');
+  if (imgsOk) partes.push(imgsOk + ' imagen(es)');
   if (videosOk) partes.push(videosOk + ' video(s)');
-  const entraron = imagenes.length + videosOk;
+  const entraron = imgsOk + videosOk;
 
   const TOPE = 12;
   const detalle = (l) => l.slice(0, TOPE).map(s => '· ' + s).join('\n\n') +
@@ -139777,9 +140091,9 @@ async function mediosImportar(fileList, slotPreferido, origen) {
   /* Si no se va a guardar, DECIRLO — ver `_avisarPersistenciaMedios`. Sólo por las imágenes:
      cada video ya avisó lo suyo dentro de `videoCargarEnSlot`, y los DICOM avisan por su propia
      puerta unas líneas más abajo. Va DESPUÉS del resumen para que no lo tape. */
-  if (imagenes.length) {
-    _avisarPersistenciaMedios(imagenes.length === 1 ? 'Esta imagen'
-                                                   : 'Las ' + imagenes.length + ' imágenes');
+  if (imgsOk) {
+    _avisarPersistenciaMedios(imgsOk === 1 ? 'Esta imagen'
+                                           : 'Las ' + imgsOk + ' imágenes');
   }
 
   /* Los DICOM van AL FINAL y por su puerta: `dcmImgImportar` emite su propio resumen y
@@ -139787,8 +140101,19 @@ async function mediosImportar(fileList, slotPreferido, origen) {
      alert de los rechazos de acá y el médico no se enteraría de lo que no entró. Es el
      mismo orden que esa función aplica internamente. */
   if (dicoms.length) {
-    await dcmImgImportar(dicoms, (imagenes.length || videos.length) ? undefined : slotPreferido, origen);
+    const rd = await dcmImgImportar(dicoms.map(x => x.f),
+                                    (imagenes.length || videos.length) ? undefined : slotPreferido, origen);
+    /* El resultado de los DICOM vuelve al índice del archivo ORIGINAL. `dcmImgImportar` recibe
+       su propia lista y la devuelve en el mismo orden, así que el par es posicional. */
+    const rl = (rd && Array.isArray(rd.res)) ? rd.res : [];
+    dicoms.forEach((x, k) => {
+      const d = rl[k];
+      if (d && d.ok) { res[x.i].ok = true; res[x.i].motivo = ''; }
+      else res[x.i].motivo = (d && d.motivo) || 'no se pudo importar el DICOM';
+    });
   }
+  const _nOk = res.filter(x => x.ok).length;
+  return { n: files.length, ok: _nOk, no: files.length - _nOk, res: res };
 }
 window.mediosImportar = mediosImportar;
 
@@ -146719,6 +147044,35 @@ const CeiboCine = (function () {
         .then(r => (r.ok ? r.val : null));
     },
     borrar(id) { return _tx('readwrite', (os, ok) => { os.delete(id); ok(true); }).then(r => r.ok); },
+    /* ⚠️ EL ÍNDICE, CON CURSOR Y SIN LOS MEGAS (ECO-CONECTOR-4, decisión 4) ───────────────
+       `listar`, `uso` y `recolectar` usan `getAll()`, que materializa TODOS los registros con
+       sus `datos` adentro: es el pico de más de cien MB que esta casa ya documenta, y por eso
+       existe `CeiboImg.indice`. La galería de «Imágenes guardadas» no puede pagar eso para
+       dibujar unas miniaturas, así que de cada registro se copia sólo la metadata y el
+       `poster` —que ya es una miniatura— y el cursor descarta `datos` y `offs` en la
+       iteración siguiente.
+       ⚠️ SÓLO LOS `loop`, Y NO ES UN FILTRO DE ADORNO: esta base guarda DOS cosas, los
+       cineloops y el ORIGINAL de cada fija DICOM (`tipo:'fija'`), y esa fija ya está en la
+       galería como imagen del estudio. Sin el filtro, cada DICOM fijo aparecería dos veces. */
+    indice() {
+      return _tx('readonly', (os, ok) => {
+        const out = [];
+        const q = os.openCursor();
+        q.onsuccess = () => {
+          const c = q.result;
+          if (!c) { ok(out); return; }
+          const r = c.value || {};
+          if (String(r.tipo || '') === 'loop') {
+            out.push({ id: String(r.id || ''), uuid: String(r.uuid || ''),
+                       nombre: String(r.nombre || ''), cuadros: (r.cuadros | 0),
+                       bytes: (typeof r.bytes === 'number' ? r.bytes : 0),
+                       ms: (r.ms | 0), cols: (r.cols | 0), filas: (r.filas | 0),
+                       poster: String(r.poster || ''), ts: String(r.ts || '') });
+          }
+          c.continue();
+        };
+      }).then(r => (r.ok && r.val) ? r.val : []);
+    },
     /* Mismo contrato que `CeiboImg.recolectar`: se borra lo que ya no tiene estudio dueño.
        Sin esto, eliminar un estudio dejaría sus cineloops ocupando disco para siempre — y
        son de MB, no de KB. */
@@ -173754,8 +174108,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-1355';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794502514657;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-1545';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794509158017;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -173841,7 +174195,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1355</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-1545</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -176175,11 +176529,22 @@ function clnkbListar() {
       var v = cur.value || {};
       var ls = Array.isArray(v.loops) ? v.loops : [];
       var by = 0; ls.forEach(function (x) { by += (x && x.bytes) || 0; });
+      /* ⚠️ LOS `thumb` Y NO LOS `dataURL` (ECO-CONECTOR-4, decisión 3). Una fija de la bandeja
+         es un JPEG de calidad media de un par de cientos de KB; veinte envíos de diez imágenes
+         serían decenas de MB en memoria sólo para dibujar una grilla de 96 px. El `thumb` son
+         ~4 KB y lo escribe `dstABandeja` al guardar, que es el único momento en que los píxeles
+         ya están en la mano. Un registro guardado ANTES de esta tanda no lo tiene: ahí la
+         miniatura sale como un recuadro con su número, y abrirla sigue funcionando porque el
+         visor lee el registro completo. Queda declarado en PENDIENTES → EC4-e. */
+      var im = Array.isArray(v.imgs) ? v.imgs : [];
       out.push({ id: v.id, equipo: String(v.equipo || ''), recibida: String(v.recibida || ''),
                  ts: String(v.ts || ''), origen: String(v.origen || ''),
-                 n: (Array.isArray(v.imgs) ? v.imgs.length : 0),
+                 n: im.length,
+                 thumbs: im.map(function (x) { return (x && x.thumb) || ''; }),
                  nLoops: ls.length, bytesLoops: by,
                  posters: ls.map(function (x) { return (x && x.poster) || ''; }),
+                 nombresLoops: ls.map(function (x) { return String((x && x.nombre) || ''); }),
+                 bytesPorLoop: ls.map(function (x) { return (x && x.bytes) || 0; }),
                  cuadros: ls.map(function (x) { return (x && x.cuadros) || 0; }) });
       cur.continue();
     };
@@ -176317,11 +176682,172 @@ async function igBandejaRender() {
     bB.setAttribute('data-clnkb-borrar', x.id);
     acc.appendChild(bB);
     f.appendChild(acc);
+    /* ⚠️ LA FILA DE MINIATURAS (ECO-CONECTOR-4, decisión 3) ─────────────────────────────────
+       Hasta esta tanda el médico tenía que elegir entre «Asignar» y «Borrar» SIN PODER MIRAR
+       qué había adentro del envío. Ahora cada archivo tiene su miniatura y al tocarla se abre.
+       ⚠️ SE DIBUJA DE `thumbs` Y `posters`, QUE YA VINIERON EN LA LISTA: ni un solo byte de
+       cineloop se materializa para pintar esto. Es la misma regla por la que existe
+       `CeiboImg.indice`. */
+    f.appendChild(_igBandMiniaturas(x));
     lis.appendChild(f);
   });
   return l.length;
 }
 window.igBandejaRender = igBandejaRender;
+
+/* La fila de miniaturas de UN envío. Las fijas primero y los cineloops después, que es el
+   mismo orden en que `clnkbAsignar` los reparte: así el número que el médico ve acá significa
+   lo mismo en las dos pantallas. */
+function _igBandMiniaturas(x) {
+  var tira = _igBandNodo('div', 'flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap;' +
+    'margin-top:2px;');
+  var nI = x.n || 0, nL = x.nLoops || 0;
+  var k;
+  for (k = 0; k < nI; k++) tira.appendChild(_igBandMini(x.id, 'img', k, (x.thumbs || [])[k] || '', '', 0));
+  for (k = 0; k < nL; k++) {
+    tira.appendChild(_igBandMini(x.id, 'loop', k, (x.posters || [])[k] || '',
+      ((x.cuadros || [])[k] || 0) + ' cuadros', (x.bytesPorLoop || [])[k] || 0));
+  }
+  return tira;
+}
+
+/* ⚠️ UN BOTÓN Y NO UN `div` CON `onclick`: así lo alcanza la regla táctil global de este
+   archivo —`button, [role=button], .btn, …` con su piso de 44 px— y lo anuncia el lector de
+   pantalla. Es la lección que el `summary` del panel de CeiboLink dejó escrita al revés. */
+function _igBandMini(idEnvio, clase, k, src, pie, bytes) {
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.style.cssText = 'position:relative;width:62px;height:62px;padding:0;border-radius:8px;' +
+    'overflow:hidden;border:1px solid var(--border);background:var(--bg2);cursor:pointer;' +
+    'display:flex;align-items:center;justify-content:center;min-height:44px;';
+  b.title = (clase === 'loop' ? 'Cineloop ' : 'Imagen ') + (k + 1) +
+            (pie ? ' · ' + pie : '') + (bytes ? ' · ' + dstMB(bytes) : '') + ' — tocá para verla';
+  b.setAttribute('aria-label', b.title);
+  if (src) {
+    var im = document.createElement('img');
+    im.src = src; im.alt = '';
+    im.loading = 'lazy'; im.decoding = 'async';
+    im.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    b.appendChild(im);
+  } else {
+    /* Sin miniatura —un envío guardado antes de esta tanda— se dibuja el número. Abrirlo
+       funciona igual: el visor lee el registro completo. */
+    b.appendChild(_igBandNodo('span', 'font-size:11px;color:var(--text2);font-weight:700;',
+      (clase === 'loop' ? '🎞' : '🖼') + (k + 1)));
+  }
+  if (clase === 'loop') {
+    b.appendChild(_igBandNodo('span',
+      'position:absolute;left:3px;bottom:3px;font-size:9px;line-height:1;padding:2px 4px;' +
+      'border-radius:4px;background:rgba(0,0,0,.66);color:#fff;pointer-events:none;', '🎞'));
+  }
+  b.onclick = function () { clnkbVer(idEnvio, clase, k); };
+  return b;
+}
+
+/* ══ MIRAR UN ARCHIVO DE «SIN ESTUDIO» (decisión 3) ════════════════════════════════════════
+   ⚠️ MIRAR NO MODIFICA NADA, y eso no es una promesa: esta función LEE el registro y no
+   escribe en ninguna base, no toca `imgSlots`, no encola nada y no confirma ni un id a
+   CeiboLink. Las dos cosas que sí cambian algo —asignar y borrar— son botones aparte, dentro
+   del visor, y las dos piden confirmación.
+
+   ⚠️ EL CINELOOP VA AL VISOR QUE YA EXISTE, `_cineAbrir`, y no a uno nuevo: lo que la bandeja
+   guarda es exactamente la misma forma que un cineloop de un estudio —cuadros concatenados con
+   su tabla de desplazamientos—, así que `_cineDesdeRegistro` lo reconstruye sin una línea
+   propia. Para la FIJA no hay un visor reutilizable: el de «Imágenes guardadas» está atado a
+   `uuid` + `idx` de un estudio guardado —lee por `igImgBlobs(uuid)` y busca el informe por
+   `uuid`— y la bandeja, por definición, no tiene estudio. Enhebrarle un modo a un visor maduro
+   que el médico usa todos los días, con su estrella, su nota, su tapa de PPT y su «ir al
+   estudio», para una ventana de mirar, es el mismo cambio que ECO-CONECTOR-3 decidió NO hacer
+   con `igItemHTML`. Lo que se usa es el molde de `_docVer`, que es el lightbox que esta app ya
+   tiene para mirar una imagen suelta. Queda declarado en PENDIENTES → EC4-d. */
+async function clnkbVer(idEnvio, clase, k) {
+  var reg = null;
+  try { reg = await clnkbLeer(idEnvio); } catch (e) { reg = null; }
+  if (!reg) { if (typeof toast === 'function') toast('❌ Ese envío ya no está'); return false; }
+  if (clase === 'loop') {
+    var r = (reg.loops || [])[k];
+    if (!r || !r.datos || !r.offs) { if (typeof toast === 'function') toast('❌ No se pudo leer ese cineloop'); return false; }
+    var loop = null;
+    try { loop = _cineDesdeRegistro(r); } catch (e) { loop = null; }
+    if (!loop || !loop.d || !loop.d.frags || !loop.d.frags.length) {
+      if (typeof toast === 'function') toast('❌ No se pudo leer ese cineloop');
+      return false;
+    }
+    _cineAbrir([loop]);
+    return true;
+  }
+  var im = (reg.imgs || [])[k];
+  if (!im || !im.dataURL) { if (typeof toast === 'function') toast('❌ No se pudo leer esa imagen'); return false; }
+  _clnkbVerFija(idEnvio, im.dataURL, k, (reg.imgs || []).length, String(reg.equipo || ''));
+  return true;
+}
+window.clnkbVer = clnkbVer;
+
+/* El lightbox de una fija de la bandeja, con las dos acciones de la decisión 3. */
+function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
+  var prev = document.getElementById('clnkb-ver');
+  if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+  var ov = document.createElement('div');
+  ov.id = 'clnkb-ver';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:402;background:rgba(0,0,0,.86);display:flex;' +
+                     'align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:10px;';
+  var caja = _igBandNodo('div', 'max-width:100%;max-height:72vh;overflow:auto;border-radius:10px;' +
+                                'background:#000;-webkit-overflow-scrolling:touch;');
+  var im = document.createElement('img');
+  im.src = dataURL;
+  im.alt = 'Imagen ' + (k + 1) + ' de un envío sin estudio';
+  im.style.cssText = 'display:block;max-width:86vw;max-height:70vh;background:#000;';
+  caja.appendChild(im);
+  ov.appendChild(caja);
+  /* El nombre del equipo lo escribió una persona: `textContent` impide que se EJECUTE y `bdi`
+     impide que se LEA AL REVÉS. Es la misma regla que la fila de equipos del panel. */
+  var pie = _igBandNodo('div', 'font-size:11.5px;color:#e5e7eb;text-align:center;display:flex;' +
+                               'gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;');
+  var eq = document.createElement('bdi');
+  eq.textContent = equipo || 'Equipo desconocido';
+  pie.appendChild(eq);
+  pie.appendChild(document.createTextNode(' · imagen ' + (k + 1) + ' de ' + total +
+    ' · mirarla no la guarda en ningún estudio'));
+  ov.appendChild(pie);
+  var fila = _igBandNodo('div', 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;');
+  /* ⚠️ LAS DOS ACCIONES OPERAN SOBRE EL ENVÍO ENTERO, y lo DICEN. Un envío partido entre la
+     bandeja y un estudio es peor que uno entero en el lugar equivocado —el segundo se vuelve a
+     asignar, el primero hay que reconstruirlo—, y ésa es la invariante que `clnkbAsignar` ya
+     tiene medida: el registro sale de la bandeja sólo si entró entero. */
+  var bA = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', '📎 Asignar este envío a un estudio');
+  bA.type = 'button'; bA.className = 'btn';
+  bA.onclick = function () { _clnkbVerCerrar(); clnkbAsignarPreguntar(idEnvio); };
+  fila.appendChild(bA);
+  var bB = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', '🗑 Borrar el envío');
+  bB.type = 'button'; bB.className = 'btn btn-ghost';
+  bB.setAttribute('data-clnkb-borrar', idEnvio);
+  bB.addEventListener('click', function () { _clnkbVerCerrar(); });
+  fila.appendChild(bB);
+  var bC = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', 'Cerrar');
+  bC.type = 'button'; bC.className = 'btn btn-ghost';
+  bC.onclick = _clnkbVerCerrar;
+  fila.appendChild(bC);
+  ov.appendChild(fila);
+  ov.addEventListener('click', function (ev) { if (ev.target === ov) _clnkbVerCerrar(); });
+  document.body.appendChild(ov);
+  try { bC.focus(); } catch (e) {}
+}
+
+function _clnkbVerCerrar() {
+  var ov = document.getElementById('clnkb-ver');
+  if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+}
+window._clnkbVerCerrar = _clnkbVerCerrar;
+
+/* Escape cierra el visor de la bandeja, igual que el resto de los modales de esta app. */
+if (!window._clnkbVerCableado) {
+  window._clnkbVerCableado = true;
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    var ov = document.getElementById('clnkb-ver');
+    if (ov) { ev.stopPropagation(); _clnkbVerCerrar(); }
+  }, true);
+}
 
 /* La pregunta de destino, adaptada: un envío de la bandeja no se puede mandar a la bandeja, así
    que las salidas son tres —al estudio actual, a uno guardado, descartar— con el mismo modal. */
@@ -176736,7 +177262,7 @@ window.dstCuenta = dstCuenta;
    ⚠️ NO ESCRIBE UN SOLO SLOT. Ésa es su razón de ser: `mediosImportar` reserva slots de forma
    sincrónica y los llena, y eso es exactamente lo que no puede pasar cuando el destino todavía no
    se eligió, o cuando es un estudio que no está abierto. */
-async function dstLeer(file) {
+async function dstLeer(file, ctx) {
   var out = { nombre: String((file && file.name) || 'archivo'), bytes: (file && file.size) || 0 };
   var cab;
   try { cab = new Uint8Array(await file.slice(0, 132).arrayBuffer()); }
@@ -176763,8 +177289,10 @@ async function dstLeer(file) {
       return out;
     }
     if (d.crudo) {
-      var cr = await _dcmCrudoAFrags(d);
-      if (!cr.ok) { out.rechazo = out.nombre + ': ' + cr.err; return out; }
+      /* El contexto lleva el nombre y el origen: la pregunta por un archivo pesado los necesita
+         para nombrar el archivo y para decir que sigue esperando en CeiboLink. */
+      var cr = await _dcmCrudoAFrags(d, { nombre: out.nombre, origen: (arguments[1] || {}).origen });
+      if (!cr.ok) { out.rechazo = out.nombre + ': ' + cr.err; out.esperando = !!cr.esperando; return out; }
     }
     var cl = _dcmClasificar(d, out.nombre);
     if (cl.rechazo) { out.rechazo = cl.rechazo; return out; }
@@ -176838,6 +177366,33 @@ window.dstPoster = dstPoster;
 /* ══ EL PESO, EN CASTELLANO ════════════════════════════════════════════════════════════════
    Los cineloops pesan decenas de MB y el médico tiene que verlo ANTES de mandarlos a un
    dispositivo que puede quedarse sin lugar. Es la decisión 4. */
+/* ⚠️ UNA MINIATURA DE 96 px A PARTIR DE UN dataURL (ECO-CONECTOR-4). Existe para que la lista
+   de «Sin estudio» no tenga que cargar las imágenes de tamaño completo: pesa ~4 KB contra los
+   ~200 KB de la fija, y se guarda UNA vez. Devuelve cadena vacía si no se puede: la lista
+   dibuja entonces un recuadro con el número, que es mejor que una grilla que no aparece. */
+function dstThumb(dataURL) {
+  return new Promise(function (res) {
+    if (!dataURL) { res(''); return; }
+    var im = new Image();
+    im.onload = function () {
+      try {
+        var L = 96;
+        var e = Math.min(L / (im.naturalWidth || L), L / (im.naturalHeight || L), 1);
+        var cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round((im.naturalWidth || L) * e));
+        cv.height = Math.max(1, Math.round((im.naturalHeight || L) * e));
+        var c = cv.getContext('2d');
+        if (!c) { res(''); return; }
+        c.drawImage(im, 0, 0, cv.width, cv.height);
+        res(cv.toDataURL('image/jpeg', 0.6));
+      } catch (e2) { res(''); }
+    };
+    im.onerror = function () { res(''); };
+    im.src = dataURL;
+  });
+}
+window.dstThumb = dstThumb;
+
 function dstMB(bytes) {
   var n = Number(bytes) || 0;
   if (n < 1048576) return Math.max(1, Math.round(n / 1024)) + ' KB';
@@ -177030,7 +177585,7 @@ if (!window._dstElCableado) {
 async function dstAlActual(ctx) {
   var l = (ctx && ctx.items) || [];
   if (!l.length) { clnkAvisoCerrar(); return 0; }
-  var ok = 0, fallos = [], puestos = [];
+  var ok = 0, fallos = [], puestos = [], esperando = 0;
   for (var i = 0; i < l.length; i++) {
     clnkAvisoProgreso((ctx.origen === 'ceibolink' ? 'Bajando ' : 'Leyendo ') + (i + 1) + ' de ' + l.length + '…');
     var f = null;
@@ -177041,12 +177596,31 @@ async function dstAlActual(ctx) {
     if (ctx.origen === 'ceibolink' && l[i].buf) {
       try { puestos = puestos.concat(_clnkCompletarPaciente(l[i].buf)); } catch (e) {}
     }
+    /* ⚠️ SE CONFIRMA SÓLO LO QUE ENTRÓ (ECO-CONECTOR-4, decisión 1) ─────────────────────
+       Hasta esta tanda acá decía `await mediosImportar(...)` y, si no había lanzado, el id se
+       anotaba para confirmar. Un archivo RECHAZADO vuelve sin lanzar —el importador junta los
+       motivos y los muestra en un cartel—, así que el DICOM sin comprimir de 351,9 MB que esta
+       app no abrió se le confirmó igual a CeiboLink, que lo borró. Es el hallazgo que abrió
+       esta tanda, y rompía la regla que no se negocia: nunca se borra en CeiboLink algo que
+       EcoSmart no haya guardado completo.
+       Ahora el importador devuelve un veredicto por archivo y acá se mira ESE. Se manda un
+       archivo por vez, así que el veredicto es `res[0]`. */
+    let r = null;
     try {
-      await mediosImportar([f], undefined, ctx.origen === 'ceibolink' ? 'ceibolink' : undefined);
+      r = await mediosImportar([f], undefined, ctx.origen === 'ceibolink' ? 'ceibolink' : undefined);
+    } catch (e) {
+      fallos.push(l[i].nombre + ': ' + String((e && e.message) || e).slice(0, 120) +
+                  (ctx.origen === 'ceibolink' ? ' Sigue esperando en CeiboLink.' : ''));
+      continue;
+    }
+    const det = (r && Array.isArray(r.res) && r.res[0]) ? r.res[0] : null;
+    if (det && det.ok) {
       if (ctx.origen === 'ceibolink' && l[i].id) _clnkPorConfirmar.push(l[i].id);
       ok++;
-    } catch (e) {
-      fallos.push(String((e && e.message) || e).slice(0, 120));
+    } else {
+      esperando++;
+      fallos.push(l[i].nombre + ': ' + ((det && det.motivo) || 'no entró al estudio') +
+                  (ctx.origen === 'ceibolink' ? ' Sigue esperando en CeiboLink.' : ''));
     }
   }
   clnkAvisoCerrar();
@@ -177057,10 +177631,15 @@ async function dstAlActual(ctx) {
     toast(txt);
   }
   if (fallos.length && typeof alert === 'function') {
+    /* ⚠️ LA CUENTA DE LO QUE SIGUE ESPERANDO VA EN EL CARTEL, y es la mitad de la decisión 1
+       que no se puede adivinar: el médico tiene que saber que esos archivos NO se perdieron y
+       que los puede volver a traer. Sin el número, «no se pudieron adjuntar 1 de 3» se lee
+       como que ese archivo se perdió. */
     alert('No se pudieron adjuntar ' + fallos.length + ' de ' + l.length + ':\n\n' +
           fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
-          (ctx.origen === 'ceibolink'
-            ? '\n\nLas que no entraron SIGUEN ESPERANDO en CeiboLink hasta que se cumpla su plazo.'
+          (ctx.origen === 'ceibolink' && esperando
+            ? '\n\n' + esperando + (esperando === 1 ? ' archivo SIGUE ESPERANDO' : ' archivos SIGUEN ESPERANDO') +
+              ' en CeiboLink hasta que se cumpla su plazo: no se borró nada allá.'
             : ''));
   }
   if (ok && ctx.origen === 'ceibolink' && typeof toast === 'function') {
@@ -177118,15 +177697,19 @@ async function dstAGuardado(ctx, inf) {
     }
     return 0;
   }
-  var ok = 0, fallos = [], fijas = [], confirmar = [], mbLoops = 0, nLoops = 0;
+  var ok = 0, fallos = [], fijas = [], confirmar = [], mbLoops = 0, nLoops = 0, esperando = 0;
   for (var i = 0; i < l.length; i++) {
     clnkAvisoProgreso((ctx.origen === 'ceibolink' ? 'Bajando ' : 'Leyendo ') + (i + 1) + ' de ' + l.length + '…');
     var f = null;
     try { f = await l[i].traer(); } catch (e) { f = null; }
     if (!f) { fallos.push(l[i].nombre + ': no se pudo obtener el archivo'); continue; }
-    var r = await dstLeer(f);
+    /* El contexto va al lector porque la pregunta por un archivo pesado vive adentro de la
+       conversión de píxeles crudos, y necesita saber de dónde viene para decir que el archivo
+       sigue esperando en CeiboLink. */
+    var r = await dstLeer(f, { origen: ctx.origen });
     if (r.rechazo) {
       fallos.push(r.rechazo + (ctx.origen === 'ceibolink' ? ' La imagen sigue esperando en CeiboLink.' : ''));
+      if (r.esperando) esperando++;
       continue;
     }
     if (r.clase === 'video') {
@@ -177202,7 +177785,10 @@ async function dstAGuardado(ctx, inf) {
   }
   if (fallos.length && typeof alert === 'function') {
     alert('No se pudieron guardar ' + fallos.length + ' de ' + l.length + ':\n\n' +
-          fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n'));
+          fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
+          (ctx.origen === 'ceibolink' && esperando
+            ? '\n\n' + esperando + (esperando === 1 ? ' archivo SIGUE ESPERANDO' : ' archivos SIGUEN ESPERANDO') +
+              ' en CeiboLink: no se borró nada allá.' : ''));
   }
   /* Si el estudio elegido es el que está abierto, lo que se acaba de escribir tiene que verse
      sin recargar: la tira de archivos del estudio lo lee del disco. */
@@ -177233,15 +177819,19 @@ window.dstAGuardado = dstAGuardado;
 async function dstABandeja(ctx) {
   var l = (ctx && ctx.items) || [];
   if (!l.length) { clnkAvisoCerrar(); return 0; }
-  var imgs = [], loops = [], fallos = [], confirmar = [], bytesLoops = 0;
+  var imgs = [], loops = [], fallos = [], confirmar = [], bytesLoops = 0, esperando = 0;
   for (var i = 0; i < l.length; i++) {
     clnkAvisoProgreso('Guardando ' + (i + 1) + ' de ' + l.length + '…');
     var f = null;
     try { f = await l[i].traer(); } catch (e) { f = null; }
     if (!f) { fallos.push(l[i].nombre + ': no se pudo obtener el archivo'); continue; }
-    var r = await dstLeer(f);
+    /* El contexto va al lector porque la pregunta por un archivo pesado vive adentro de la
+       conversión de píxeles crudos, y necesita saber de dónde viene para decir que el archivo
+       sigue esperando en CeiboLink. */
+    var r = await dstLeer(f, { origen: ctx.origen });
     if (r.rechazo) {
       fallos.push(r.rechazo + (ctx.origen === 'ceibolink' ? ' La imagen sigue esperando en CeiboLink.' : ''));
+      if (r.esperando) esperando++;
       continue;
     }
     if (r.clase === 'video') {
@@ -177286,13 +177876,19 @@ async function dstABandeja(ctx) {
     try { chica = await _imgComprimir(bruto, (typeof IMG_CAL_DEF !== 'undefined' ? IMG_CAL_DEF : 'media')); }
     catch (e) { chica = bruto; }
     if (typeof _imgSrcOK === 'function' && !_imgSrcOK(chica)) { fallos.push(r.nombre + ': no se pudo comprimir la imagen'); continue; }
-    imgs.push({ dataURL: chica, clnkId: l[i].id || '' });
+    /* La miniatura se arma UNA vez, acá, con los píxeles que ya están en la mano. Sin esto el
+       bloque «Sin estudio» tendría que materializar el envío entero para dibujar una grilla. */
+    var th = '';
+    try { th = await dstThumb(chica); } catch (e) { th = ''; }
+    imgs.push({ dataURL: chica, thumb: th, clnkId: l[i].id || '' });
   }
   if (!imgs.length && !loops.length) {
     clnkAvisoCerrar();
     if (typeof toast === 'function') toast('❌ No se pudo guardar ninguna de ' + l.length);
     if (fallos.length && typeof alert === 'function') {
-      alert('No se guardó nada:\n\n' + fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n'));
+      alert('No se guardó nada:\n\n' + fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
+            (ctx.origen === 'ceibolink'
+              ? '\n\nNo se borró nada en CeiboLink: todo sigue esperando ahí.' : ''));
     }
     return 0;
   }
@@ -177325,7 +177921,10 @@ async function dstABandeja(ctx) {
   }
   if (fallos.length && typeof alert === 'function') {
     alert('No entraron ' + fallos.length + ' de ' + l.length + ':\n\n' +
-          fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n'));
+          fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
+          (ctx.origen === 'ceibolink' && esperando
+            ? '\n\n' + esperando + (esperando === 1 ? ' archivo SIGUE ESPERANDO' : ' archivos SIGUEN ESPERANDO') +
+              ' en CeiboLink: no se borró nada allá.' : ''));
   }
   try { clnkbRender(); } catch (e) {}
   try { if (typeof igBandejaRender === 'function') igBandejaRender(); } catch (e) {}
