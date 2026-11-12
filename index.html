@@ -172857,8 +172857,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261111-2158';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794445126903;                 /* eco-build-ms */
+const ECO_BUILD    = '20261111-2200';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794445225034;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -172944,7 +172944,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2158</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261111-2200</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -173622,6 +173622,222 @@ window.cfgSoporteRender = cfgSoporteRender;
 
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
+/* ══ CeiboLink — el canal local con el ecógrafo ═══════════════════════════════════════════════
+   CeiboLink es un programa que el médico instala en SU computadora. El ecógrafo le manda las
+   imágenes por DICOM y CeiboLink las entrega a EcoSmart por `http://127.0.0.1:8043`. Las
+   imágenes no salen de la computadora del médico y se borran solas.
+
+   REEMPLAZA AL PANEL DE ORTHANC, que se retiró entero en esta tanda. Orthanc sigue existiendo
+   —vive ADENTRO de CeiboLink— pero el médico no lo ve ni lo administra: no hay ninguna ruta de
+   este canal que lo exponga, y por eso no hay nada que configurar.
+
+   ⚠️ LA DIRECCIÓN ES UNA CONSTANTE EN UN SOLO LUGAR Y NO UN CAMPO. El panel viejo tenía un
+   campo de texto editable, y eso era un problema por dos lados: el médico no tiene por qué
+   saber qué dirección poner, y un campo editable es una forma de mandar el token a cualquier
+   parte. Acá la dirección no se puede cambiar desde ningún control de la pantalla.
+
+   ⚠️ Y PARA LAS PRUEBAS NO SE AGREGÓ NINGÚN CAMPO NI NINGUNA CLAVE PERSISTIDA. La batería
+   levanta un conector falso en un puerto al azar, así que necesita apuntar a otro puerto; lo
+   hace con `window.__clnkBaseTest`, una variable de la ventana que:
+     · no la escribe ningún control de la app ni ninguna función de la app;
+     · no se persiste: se va al recargar la página;
+     · y SÓLO se honra si lo que trae es loopback (`127.0.0.1`, `localhost` o `[::1]`) con
+       puerto. Cualquier otra cosa se descarta y se usa la constante.
+   O sea que el tráfico de este módulo NO PUEDE salir de la máquina ni con la variable puesta,
+   que es la propiedad que importa — y no «el médico no va a tocarla». */
+var CLNK_BASE = 'http://127.0.0.1:8043';
+var CLNK_ON = 'ett_ceibolink_on';
+/* El token vive en `localStorage` POR DECISIÓN DEL MÉDICO: así vincula una sola vez por
+   navegador y no cada mañana. No caduca por tiempo —el contrato devuelve `vence: null`— y se
+   corta con «Desvincular EcoSmart».
+   ⚠️ NUNCA SALE DE ACÁ: no va a un toast, ni a un registro, ni a un mensaje de error, ni a un
+   atributo del DOM, ni a la URL, ni al hash. Las dos únicas lecturas son la cabecera
+   `Authorization` de `clnkPedir` y la pregunta «¿hay token?».
+   ⚠️ Y NO LO EXPORTA NADA: medido en este archivo, NINGUNA función recorre `localStorage`
+   —cero `localStorage.key(`, cero `localStorage.length`, cero `Object.keys(localStorage)`—, así
+   que el respaldo y las exportaciones no pueden llevárselo. `_bkExportar` exporta los estudios
+   y los medios de IndexedDB, y no toca `localStorage`. Si alguna vez se agrega un exportador
+   que SÍ lo recorra, estas dos claves tienen que quedar excluidas. */
+var CLNK_TOKEN = 'ett_ceibolink_token';
+
+/* Token de generación, igual que el `_orthGen` del panel que esto reemplaza: cada vez que el
+   médico apaga el módulo, pasa a Modo Básico o desvincula, el número sube y toda respuesta que
+   venga en vuelo de ANTES deja de aterrizar. Sin esto, una lectura lenta repinta el panel con
+   datos de un estado que ya no existe. */
+var _clnkGen = 0;
+var CLNK_ESPERA = 8000;
+/* Contra un conector 1.0 las dos rutas nuevas dan 404 y lo que corresponde es ESCONDER esas
+   partes, no mostrar un error: el contrato §7 lo dice con todas las letras. Lo escribe la
+   lectura del estado y lo leen el pintado de la conexión y la fila de cada equipo. */
+var _clnkVersionVieja = false;
+
+/* ⚠️ EL NAVEGADOR DA EL MISMO `TypeError` SI EL CONECTOR ESTÁ APAGADO Y SI ALGO LO BLOQUEA, y
+   no hay forma de distinguirlos desde la página —es a propósito del navegador, para no filtrar
+   qué hay escuchando en la máquina—. Así que el mensaje tiene que nombrar las DOS causas: con
+   «CeiboLink no responde» a secas, el médico que acaba de negarle a Chrome el permiso de red
+   local se pone a reinstalar un programa que está perfectamente encendido.
+   Va ACÁ, antes de `clnkPedir`, y no después: es un `var`, así que asignado más abajo
+   funcionaría igual —el bloque entero se evalúa antes de cualquier llamada—, pero leerlo
+   después de su uso obliga a comprobar eso cada vez. */
+var CLNK_MSG_RED = 'CeiboLink no responde. ¿Está instalado y encendido? ' +
+  'Si Chrome o Edge te pidió un permiso para acceder a dispositivos de tu red local, aceptalo.';
+
+/* PROVISORIO — a confirmar con el médico. Dónde ve el código de vinculación está pendiente de
+   decisión (hoy CeiboLink lo muestra por consola y con un subcomando, que no sirve para el
+   médico). El texto se cambia ACÁ y en ningún otro lado; el marcador
+   `data-clnk-provisorio="codigo"` lo deja encontrable. */
+var CLNK_TXT_DONDE_CODIGO = 'El código lo muestra CeiboLink.';
+
+function _clnkLS(k, v) {
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); return v; }
+  catch (e) { return null; }
+}
+function _clnkEncendido() { return _clnkLS(CLNK_ON) === '1'; }
+/* FALLA HACIA VISIBLE, por el mismo argumento escrito que tenía el panel viejo: el lado seguro
+   lo fija el MARCADO, que nace sin `display:none`. La misma regla de visibilidad de antes
+   —sólo Modo Avanzado— y no se encontró ninguna razón para cambiarla: CeiboLink es una
+   herramienta de instalación, y el Modo Básico es justamente «el estudio y nada más». */
+function _clnkModoAvanzado() {
+  try { return typeof eeGetMode !== 'function' || eeGetMode() === 'avanzado'; }
+  catch (e) { return true; }
+}
+function clnkActivo() { return _clnkEncendido() && _clnkModoAvanzado(); }
+window.clnkActivo = clnkActivo;
+
+function clnkToken() { return _clnkLS(CLNK_TOKEN) || ''; }
+function clnkVinculado() { return clnkToken().length > 0; }
+function _clnkBorrarToken() { try { localStorage.removeItem(CLNK_TOKEN); } catch (e) {} }
+
+/* La dirección efectiva. Ver el encabezado: la variable de pruebas sólo se honra si es
+   loopback con puerto, así que no hay forma de apuntar este módulo a otra máquina. */
+function clnkBase() {
+  try {
+    var t = window.__clnkBaseTest;
+    if (typeof t === 'string' && /^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):[0-9]{1,5}$/.test(t)) return t;
+  } catch (e) {}
+  return CLNK_BASE;
+}
+window.clnkBase = clnkBase;
+
+/* ══ TAREA 2 · La capa de comunicación ════════════════════════════════════════════════════════
+   UNA sola función para TODAS las llamadas al conector. Con una por ruta, el día que cambie el
+   nombre de la cabecera o el tiempo de espera habría que acordarse de los nueve lugares; y lo
+   que es peor, el token se leería en nueve lugares en vez de uno.
+
+   Devuelve siempre un objeto y NUNCA lanza: `{ ok, estado, datos, red, vigente, msg }`.
+     · `ok`      — el conector contestó 2xx.
+     · `estado`  — el código HTTP, o 0 si no hubo respuesta.
+     · `datos`   — el JSON, o `null` (204 no trae cuerpo).
+     · `red`     — true si el pedido no llegó a destino.
+     · `vigente` — false si el estado cambió mientras el pedido estaba en vuelo.
+     · `msg`     — el mensaje ya traducido para mostrarle al médico.
+
+   `Content-Type` SÓLO si hay cuerpo: mandarlo en un GET agrega el pedido previo de CORS sin
+   ninguna necesidad, y el contrato lo lista entre las cabeceras permitidas justamente para los
+   pedidos que lo necesitan. */
+async function clnkPedir(ruta, op) {
+  op = op || {};
+  var gen = _clnkGen;
+  var cab = {};
+  var cuerpo;
+  if (op.cuerpo !== undefined && op.cuerpo !== null) {
+    cab['Content-Type'] = 'application/json';
+    cuerpo = JSON.stringify(op.cuerpo);
+  }
+  /* Las dos únicas rutas sin token son `estado` y `vincular`, y lo decide quien llama: así una
+     ruta nueva no hereda el token por descuido. */
+  if (op.conToken) {
+    var tk = clnkToken();
+    if (!tk) {
+      return { ok: false, estado: 401, datos: null, red: false, vigente: gen === _clnkGen,
+               msg: 'Hay que vincular EcoSmart con CeiboLink.' };
+    }
+    cab['Authorization'] = 'Bearer ' + tk;
+  }
+  var ctl = null, t = null;
+  try {
+    ctl = new AbortController();
+    t = setTimeout(function () { try { ctl.abort(); } catch (e) {} }, op.espera || CLNK_ESPERA);
+  } catch (e) {}
+  var r = null, datos = null, red = false;
+  try {
+    r = await fetch(clnkBase() + ruta, {
+      method: op.metodo || 'GET', cache: 'no-store', headers: cab, body: cuerpo,
+      signal: ctl ? ctl.signal : undefined
+    });
+  } catch (e) { red = true; }
+  if (t) clearTimeout(t);
+  var vigente = (gen === _clnkGen);
+  if (red || !r) {
+    return { ok: false, estado: 0, datos: null, red: true, vigente: vigente, msg: CLNK_MSG_RED };
+  }
+  /* 204 no trae cuerpo, y un `json()` sobre eso lanza. */
+  if (r.status !== 204) { try { datos = await r.json(); } catch (e) { datos = null; } }
+  if (r.ok) return { ok: true, estado: r.status, datos: datos, red: false, vigente: vigente, msg: '' };
+  return { ok: false, estado: r.status, datos: datos, red: false, vigente: vigente,
+           msg: clnkMensajeError(r.status, datos) };
+}
+window.clnkPedir = clnkPedir;
+
+/* El `mensaje` de un 400 está escrito por el conector PARA mostrárselo al médico, así que se
+   muestra. Pero se pasa por un filtro: el contrato promete que un 500 no trae detalles
+   internos, y no promete lo mismo de cada 400 futuro. Si el texto trae una ruta de archivo o
+   una dirección, se cambia por uno genérico — lo que el médico necesita es saber que el pedido
+   estaba mal, no la ruta del archivo de estado de un programa que no administra. */
+function _clnkSinRutas(txt) {
+  var s = String(txt == null ? '' : txt).trim();
+  if (!s) return '';
+  if (s.length > 300) return '';
+  if (s.indexOf('://') >= 0) return '';          // una dirección
+  if (s.indexOf('\\') >= 0) return '';           // una ruta de Windows
+  if (/(^|\s)\/[^\s]*\/[^\s]*/.test(s)) return '';  // una ruta con dos barras
+  if (/\.(json|log|exe|plist|db|sqlite|dcm|yml|ini)\b/i.test(s)) return '';
+  return s;
+}
+
+function clnkMensajeError(estado, datos) {
+  var delConector = _clnkSinRutas(datos && datos.mensaje);
+  var clave = String((datos && datos.error) || '');
+  if (estado === 401) {
+    /* El vínculo se cortó: el token que tenemos ya no sirve para nada, así que se BORRA y se
+       pide vincular de nuevo. Guardarlo sería dejar al panel reintentando para siempre con una
+       credencial muerta, sin decirle al médico qué hacer. */
+    _clnkBorrarToken();
+    return 'El vínculo con CeiboLink se cortó o se dio de baja. Vinculá EcoSmart de nuevo con un ' +
+           'código nuevo.';
+  }
+  if (estado === 404) return '';                 // quien llama decide: acá se ESCONDE, no se avisa
+  if (estado === 409) {
+    if (clave === 'en_cuarentena') {
+      return 'Ese equipo está esperando que lo autorices. Decidí abajo si lo permitís o lo bloqueás.';
+    }
+    return 'Esa operación no corresponde al estado en que está el equipo. Actualizá la lista y mirá cómo quedó.';
+  }
+  if (estado === 410) return delConector || 'El código de vinculación venció. Pedí uno nuevo.';
+  if (estado === 429) {
+    var seg = datos && datos.reintentar_en_segundos;
+    return 'Muchos intentos seguidos. CeiboLink se bloquea un rato por seguridad: esperá ' +
+           (seg ? seg + ' segundos' : 'un minuto') + ' y probá con un código nuevo.';
+  }
+  if (estado === 503) {
+    return 'CeiboLink está iniciando. Esperá unos segundos y apretá «Actualizar».';
+  }
+  if (estado === 400) {
+    return delConector || 'CeiboLink no aceptó el pedido. Revisá lo que escribiste.';
+  }
+  if (estado === 403) {
+    return 'CeiboLink rechazó el pedido de esta página. Abrí EcoSmart desde su dirección de siempre.';
+  }
+  if (estado === 413) return 'El pedido es demasiado grande.';
+  if (estado >= 500) {
+    /* Un 500 es de la máquina del médico, no del pedido, y su mensaje es genérico a propósito:
+       no se reintenta en bucle ni se le dice que escribió algo mal. */
+    return 'CeiboLink tuvo un problema en esta computadora. Si sigue, cerralo y volvé a abrirlo.';
+  }
+  return delConector || 'CeiboLink no pudo completar el pedido.';
+}
+window.clnkMensajeError = clnkMensajeError;
+
 /* ══ Ayudantes genéricos que SOBREVIVEN al retiro del panel de Orthanc ════════════════════════
    Estos seis NO son de Orthanc: son de «meter un DICOM que llegó por la red en el estudio que
    está abierto», y los usa el paso siguiente (ECO-CONECTOR-2), que es el que adjunta las
