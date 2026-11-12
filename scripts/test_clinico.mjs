@@ -137227,13 +137227,32 @@ caso('TC-861', 'DICOM SIN COMPRIMIR: fija monocroma, implicita, color, 16 bits y
         R.i_formato = String(leido.formato || '');
       }
 
-      /* ── (G) EL TOPE: se rechaza ANTES de tocar un canvas y se dice el tamano ───────────
-            Se arma un descriptor a mano con un tamano imposible: no hace falta el archivo, lo
+      /* ── (G) EL TOPE: ADAPTADA EN ECO-CONECTOR-4, Y QUEDA INVERTIDA ───────────────────
+            ** ESTE BLOQUE AFIRMABA QUE EL TOPE RECHAZA, Y ESO DEJO DE SER CIERTO por orden del
+            medico: el tope ya no cierra la puerta, PREGUNTA. La condicion se da vuelta -el
+            mensaje de rechazo por tamano ya NO tiene que estar- y se le suma la nueva: que el
+            MISMO descriptor imposible dispara la pregunta. Asi el caso puede fallar por los dos
+            lados, que es lo que lo deja mas fuerte que antes.
+            El descriptor se arma a mano con un tamano imposible: no hace falta el archivo, lo
             que se mide es la compuerta. */
-      R.g_mensaje = _dcmCrudoRechazo({ crudo:{ bytes: 1e12 }, filas: 4096, cols: 4096,
-                                       muestras: 3, bits: 16, nFrames: 400, foto:'RGB' });
-      R.g_rechaza = String(R.g_mensaje).indexOf('m\\u00e1s de lo que esta app puede abrir') > -1;
-      R.g_diceTamano = /\\d/.test(String(R.g_mensaje)) && String(R.g_mensaje).indexOf('MB') > -1;
+      const _gDesc = { crudo:{ bytes: 1e12 }, filas: 4096, cols: 4096,
+                       muestras: 3, bits: 16, nFrames: 400, foto:'RGB' };
+      R.g_mensaje = _dcmCrudoRechazo(_gDesc);
+      R.g_yaNoRechaza = String(R.g_mensaje).indexOf('m\\u00e1s de lo que esta app puede abrir') < 0;
+      /* Y AHORA SE PREGUNTA, con el peso a la vista. Por encima del tope DURO no se ofrece
+         abrir, asi que lo que sale es un cartel y no un confirm: los dos se capturan. */
+      const _cOrig = window.confirm, _aOrig = window.alert;
+      const _dicho = [];
+      window.confirm = m => { _dicho.push(String(m)); return false; };
+      window.alert   = m => { _dicho.push(String(m)); };
+      let _q = null;
+      try { _q = _dcmCrudoPreguntar(_gDesc, { nombre:'imposible.dcm', origen:'ceibolink' }); }
+      catch (e) { R.g_errPregunta = String(e && e.message || e).slice(0, 80); }
+      window.confirm = _cOrig; window.alert = _aOrig;
+      R.g_nDicho = _dicho.length;
+      R.g_pregunta = _dicho.length === 1;
+      R.g_noSigue = !!(_q && _q.seguir === false);
+      R.g_diceTamano = /\\d/.test(_dicho.join(' ')) && _dicho.join(' ').indexOf('MB') > -1;
       /* CONTROL: un tamano razonable NO se rechaza. */
       R.g_control = _dcmCrudoRechazo({ crudo:{ bytes: 512*512*60 }, filas:512, cols:512,
                                        muestras:1, bits:8, nFrames:60, foto:'MONOCHROME2' });
@@ -137274,7 +137293,8 @@ caso('TC-861', 'DICOM SIN COMPRIMIR: fija monocroma, implicita, color, 16 bits y
       ['(E) un MULTICUADRO sin comprimir sale CINELOOP',    E.clase === 'loop' && E.cuadros === 5, E.clase + '/' + E.cuadros],
       ['(E) con sus CINCO cuadros, todos JPEG',             E.frags === 5 && E.esJpeg, E.frags + '/' + E.esJpeg],
       ['(F) un formato ajeno se rechaza por su NOMBRE',     String((R.f_rech || {}).rechazo || '').indexOf('RLE') > -1, (R.f_rech || {}).rechazo],
-      ['(G) el tope rechaza lo imposible',                  R.g_rechaza, String(R.g_mensaje).slice(0, 110)],
+      ['(G) INVERTIDA: el tope ya NO rechaza, PREGUNTA',    R.g_yaNoRechaza, String(R.g_mensaje).slice(0, 110)],
+      ['(G) y lo imposible dispara la pregunta',            R.g_pregunta && R.g_noSigue, R.g_nDicho + '/' + R.g_noSigue],
       ['(G) diciendo el tamano en MB',                      R.g_diceTamano, R.g_diceTamano],
       ['(G) CONTROL: un multicuadro razonable NO se rechaza', R.g_control === '', R.g_control || 'pasa'],
       ['(G) el color en planos separados se dice',          String(R.g_planar).indexOf('planos separados') > -1, String(R.g_planar).slice(0, 80)],
@@ -137287,6 +137307,1363 @@ caso('TC-861', 'DICOM SIN COMPRIMIR: fija monocroma, implicita, color, 16 bits y
     ] };
   })();
 `);
+
+/* ════════════════════════════════════════════════════════════════════════════════════════
+   ECO-CONECTOR-4 — confirmar solo lo que entro, archivos pesados, ver antes de asignar y los
+   cineloops a la vista.
+
+   ** EL PRELUDIO COMUN DE ESTOS CASOS, escrito una vez por caso y no en un ayudante: el cuerpo
+      de un caso es una cadena que se evalua en la pagina, asi que no comparte ambito con los
+      demas. Lo que SI es comun es la forma: vincular con el conector falso, poner la escena,
+      bajar los bytes y pasarlos por la puerta de verdad.
+   ════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-862', 'EL HALLAZGO: un grupo con dos imagenes y un DICOM que no entra confirma SOLO las dos, y el rechazado SIGUE ESPERANDO en CeiboLink', `
+  return (async () => {
+    /* DENOMINADOR DECLARADO: este arbol tiene el resultado explicito por archivo. Contra la
+       linea base mediosImportar devuelve undefined, asi que esta condicion es falsa y el caso
+       cae por ELLA y no por una excepcion. */
+    if (typeof window.mediosImportar !== 'function' || typeof window.dstAlActual !== 'function' ||
+        typeof window._dcmCrudoTope !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el resultado explicito del importador (ECO-CONECTOR-4)', false,
+        'no existe _dcmCrudoTope: el importador de este index.html no devuelve veredicto por archivo']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const baseOrig = window.__clnkBaseTest;
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const topeOrig = window.__dcmCrudoMaxTest;
+    const gOrig = window.imgGuardadoActivo;
+    const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+                                                    body: JSON.stringify(o) }).then(r => r.json());
+    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctrl({ reset:true });
+      cfgSetMode('avanzado'); clnkToggle(true);
+      showTab('config'); if (window.cfgOnShow) cfgOnShow();
+      await new Promise(r => setTimeout(r, 600));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (inp) { inp.value = String(F.codigo); clnkCodigoInput(inp); }
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.denom_vinculado = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+
+      /* ** EL UMBRAL SE BAJA A 1 MB EN VEZ DE MANDAR 351,9 MB POR LOOPBACK. Lo que este caso
+         prueba es la LOGICA —que lo rechazado no se confirma—, no el valor del tope. El fixture
+         declara 512x512 por 5 cuadros = 1,31 MB de pixeles, que cae por encima. */
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      /* Y el tope DURO se deja en su valor real: lo que este caso quiere es la rama de la
+         pregunta, no la del «ni preguntes». Con confirm devolviendo true, «Abrir igual» se
+         aceptaria... pero el archivo NO tiene los cuadros que declara, asi que no entra igual.
+         Para que la rama sea la del rechazo limpio se responde que NO a la pregunta. */
+      window.confirm = () => false;
+      window.imgGuardadoActivo = () => false;
+      if (typeof imgVaciar === 'function') imgVaciar();
+      clnkOlvidarPendientes();
+
+      await ctrl({ reset:true, escena:'mixtoPesado' });
+      const antes = await estado();
+      R.denom_tresEsperando = ((antes && antes.escenario && antes.escenario.imagenes) || []).length;
+
+      /* ── (A) EL GESTO REAL: adjuntar los tres al estudio abierto ───────────────────────*/
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_p1','img_p2','img_p3']) });
+      await new Promise(r => setTimeout(r, 400));
+      R.a_porConfirmar = (window._clnkPorConfirmar || []).slice();
+      R.a_nConfirmar = R.a_porConfirmar.length;
+      R.a_rechazadoNoEsta = R.a_porConfirmar.indexOf('img_p3') < 0;
+      R.a_lasDosSi = R.a_porConfirmar.indexOf('img_p1') > -1 && R.a_porConfirmar.indexOf('img_p2') > -1;
+
+      /* ── (B) SE CONFIRMA, Y EL CONECTOR SOLO BORRA LAS DOS ─────────────────────────────
+            Es la mitad que importa: no alcanza con que la lista local este bien, hay que mirar
+            lo que el conector REALMENTE borro. */
+      await clnkConfirmarPersistidas();
+      await new Promise(r => setTimeout(r, 400));
+      const desp = await estado();
+      const E = (desp && desp.escenario) || {};
+      R.b_confirmadas = (E.confirmadas || []).slice();
+      R.b_soloDos = R.b_confirmadas.length === 2 &&
+                    R.b_confirmadas.indexOf('img_p1') > -1 && R.b_confirmadas.indexOf('img_p2') > -1;
+      R.b_rechazadoNoSeBorro = R.b_confirmadas.indexOf('img_p3') < 0;
+      /* Y SIGUE ESPERANDO ALLA: la lista del conector todavia lo tiene. */
+      R.b_sigueEnLaLista = (E.imagenes || []).some(x => x && x.id === 'img_p3');
+      R.b_quedaUno = (E.imagenes || []).length === 1;
+
+      /* ── (C) EL MEDICO LO VE: el cartel dice el motivo Y cuantos siguen esperando ──────*/
+      const todo = alertas.join(' | ');
+      R.c_alertas = alertas.length;
+      R.c_diceEspera = todo.indexOf('SIGUE ESPERANDO') > -1 || todo.indexOf('SIGUEN ESPERANDO') > -1;
+      R.c_diceNoBorro = todo.indexOf('no se borr') > -1;
+      R.c_texto = todo.slice(0, 220);
+
+      /* ── (D) CONTROL NEGATIVO: un grupo de DOS que entran las dos confirma las dos ─────
+            Sin esto, una app que no confirmara NUNCA pasaria (A) y (B) sin hacer nada bien. */
+      clnkOlvidarPendientes();
+      await ctrl({ reset:true, escena:'unEnvio' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_a1','img_a2']) });
+      await new Promise(r => setTimeout(r, 400));
+      R.d_dosEntraron = (window._clnkPorConfirmar || []).length;
+
+      /* ── (E) EL VEREDICTO POR ARCHIVO, A MANO ─────────────────────────────────────────*/
+      const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+      const fOK = new File([J], 'ok.jpg', { type:'image/jpeg' });
+      const fNo = new File([new Uint8Array([1,2,3,4,5,6,7,8])], 'raro.xyz', { type:'' });
+      const r1 = await mediosImportar([fOK, fNo]);
+      R.e_forma = !!(r1 && typeof r1.n === 'number' && Array.isArray(r1.res));
+      R.e_n = r1 ? r1.n : -1;
+      R.e_ok = r1 ? r1.ok : -1;
+      R.e_primero = !!(r1 && r1.res[0] && r1.res[0].ok);
+      R.e_segundo = !!(r1 && r1.res[1] && r1.res[1].ok);
+      R.e_motivo = (r1 && r1.res[1] && r1.res[1].motivo) || '';
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.__clnkBaseTest = baseOrig; window.__dcmCrudoMaxTest = topeOrig;
+        window.imgGuardadoActivo = gOrig;
+        if (tkOrig) localStorage.setItem('ett_ceibolink_token', tkOrig); else localStorage.removeItem('ett_ceibolink_token');
+        clnkOlvidarPendientes();
+        if (typeof imgVaciar === 'function') imgVaciar();
+        clnkAvisoCerrar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: se vinculo con el falso',                 R.denom_vinculado, R.denom_vinculado],
+      ['DENOMINADOR: el conector tenia TRES esperando',        R.denom_tresEsperando === 3, R.denom_tresEsperando],
+      ['(A) solo DOS ids quedaron por confirmar',              R.a_nConfirmar === 2, R.a_nConfirmar + ': ' + (R.a_porConfirmar || []).join(',')],
+      ['(A) el RECHAZADO no esta entre ellos',                 R.a_rechazadoNoEsta, (R.a_porConfirmar || []).join(',')],
+      ['(A) y las dos que entraron SI',                        R.a_lasDosSi, (R.a_porConfirmar || []).join(',')],
+      ['(B) el conector borro EXACTAMENTE las dos',            R.b_soloDos, (R.b_confirmadas || []).join(',')],
+      ['(B) el rechazado NO se borro alla',                    R.b_rechazadoNoSeBorro, (R.b_confirmadas || []).join(',')],
+      ['(B) y SIGUE en la lista del conector',                 R.b_sigueEnLaLista, R.b_sigueEnLaLista],
+      ['(B) que quedo con un solo archivo',                    R.b_quedaUno, R.b_quedaUno],
+      ['(C) el medico ve un cartel con el motivo',             R.c_alertas > 0, R.c_alertas],
+      ['(C) que dice que SIGUE ESPERANDO',                     R.c_diceEspera, R.c_texto],
+      ['(C) y que no se borro nada alla',                      R.c_diceNoBorro, R.c_texto],
+      ['(D) CONTROL: dos que entran confirman las DOS',        R.d_dosEntraron === 2, R.d_dosEntraron],
+      ['(E) el importador devuelve {n, ok, res[]}',            R.e_forma, JSON.stringify({n:R.e_n, ok:R.e_ok})],
+      ['(E) la que entra sale ok',                             R.e_primero === true, R.e_primero],
+      ['(E) la que no entra sale NO ok',                       R.e_segundo === false, R.e_segundo],
+      ['(E) con su motivo escrito',                            String(R.e_motivo).length > 10, String(R.e_motivo).slice(0, 90)]
+    ] };
+  })();
+`);
+
+caso('TC-863', 'Un grupo donde NO entra nada no confirma NADA, y el camino del pendrive tampoco cuenta un rechazo como exito', `
+  return (async () => {
+    if (typeof window._dcmCrudoTope !== 'function' || typeof window.dstAlActual !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el resultado explicito del importador (ECO-CONECTOR-4)', false,
+        'no existe _dcmCrudoTope']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
+    const R = {};
+    const toastOrig = window.toast; const toasts = []; window.toast = m => { toasts.push(String(m)); };
+    const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => false;
+    const baseOrig = window.__clnkBaseTest;
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const topeOrig = window.__dcmCrudoMaxTest;
+    const gOrig = window.imgGuardadoActivo;
+    const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+                                                    body: JSON.stringify(o) }).then(r => r.json());
+    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctrl({ reset:true });
+      cfgSetMode('avanzado'); clnkToggle(true);
+      showTab('config'); if (window.cfgOnShow) cfgOnShow();
+      await new Promise(r => setTimeout(r, 600));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (inp) { inp.value = String(F.codigo); clnkCodigoInput(inp); }
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.denom_vinculado = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      window.imgGuardadoActivo = () => false;
+      if (typeof imgVaciar === 'function') imgVaciar();
+      clnkOlvidarPendientes();
+
+      /* ── (A) UN GRUPO DE UNO SOLO, Y NO ENTRA: cero confirmaciones ────────────────────*/
+      await ctrl({ reset:true, escena:'pesadoSolo' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_p4']) });
+      await new Promise(r => setTimeout(r, 400));
+      R.a_porConfirmar = (window._clnkPorConfirmar || []).length;
+      await clnkConfirmarPersistidas();
+      await new Promise(r => setTimeout(r, 300));
+      const e1 = await estado();
+      R.a_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
+      R.a_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_p4');
+
+      /* ── (B) EL MENSAJE QUE LEE EL MEDICO nombra el peso y el motivo ──────────────────*/
+      const todo = (alertas.join(' | ') + ' ' + toasts.join(' | '));
+      R.b_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(todo);
+      R.b_diceEspera = todo.indexOf('ESPERANDO') > -1 || todo.indexOf('esperando') > -1;
+      R.b_texto = todo.slice(0, 200);
+
+      /* ── (C) DESDE EL PENDRIVE: el rechazo no cuenta como exito, y NO se confirma nunca ─
+            El pendrive no tiene ids de CeiboLink, asi que lo que se mide es que el conteo que
+            el medico lee sea el de lo que de verdad entro, y que la lista por confirmar no
+            crezca ni un elemento. */
+      clnkOlvidarPendientes();
+      toasts.length = 0; alertas.length = 0;
+      const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+      const fOK = new File([J], 'ok.jpg', { type:'image/jpeg' });
+      const fNo = new File([new Uint8Array([80,75,3,4,1,2,3,4])], 'cosa.zip', { type:'' });
+      const rp = await mediosImportar([fOK, fNo]);
+      await new Promise(r => setTimeout(r, 250));
+      R.c_ok = rp ? rp.ok : -1;
+      R.c_no = rp ? rp.no : -1;
+      R.c_sinConfirmar = (window._clnkPorConfirmar || []).length === 0;
+      const t2 = toasts.join(' | ');
+      R.c_denominadorALaVista = t2.indexOf(' de 2 ') > -1;
+      R.c_toast = t2.slice(0, 150);
+
+      /* ── (D) CONTROL NEGATIVO: dos que entran dan ok 2 y no 0 ────────────────────────*/
+      const rp2 = await mediosImportar([fOK, new File([J], 'ok2.jpg', { type:'image/jpeg' })]);
+      await new Promise(r => setTimeout(r, 250));
+      R.d_ok = rp2 ? rp2.ok : -1;
+      R.d_no = rp2 ? rp2.no : -1;
+
+      /* ── (E) LA RESERVA DEL SLOT NO ES LA IMAGEN PUESTA ──────────────────────────────
+            Se sustituye el compresor para que falle: hasta esta tanda eso contaba como exito
+            porque el slot ya estaba reservado. Es el segundo hueco que el arreglo cierra. */
+      const compOrig = window._imgComprimir;
+      window._imgComprimir = () => Promise.reject(new Error('falla de prueba'));
+      const rp3 = await mediosImportar([fOK]);
+      await new Promise(r => setTimeout(r, 250));
+      window._imgComprimir = compOrig;
+      R.e_ok = rp3 ? rp3.ok : -1;
+      R.e_motivo = (rp3 && rp3.res && rp3.res[0] && rp3.res[0].motivo) || '';
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.__clnkBaseTest = baseOrig; window.__dcmCrudoMaxTest = topeOrig;
+        window.imgGuardadoActivo = gOrig;
+        if (tkOrig) localStorage.setItem('ett_ceibolink_token', tkOrig); else localStorage.removeItem('ett_ceibolink_token');
+        clnkOlvidarPendientes();
+        if (typeof imgVaciar === 'function') imgVaciar();
+        clnkAvisoCerrar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: se vinculo con el falso',                R.denom_vinculado, R.denom_vinculado],
+      ['(A) ni UN id quedo por confirmar',                    R.a_porConfirmar === 0, R.a_porConfirmar],
+      ['(A) el conector no borro NADA',                       R.a_confirmadas === 0, R.a_confirmadas],
+      ['(A) y el archivo sigue esperando alla',               R.a_sigueAlla, R.a_sigueAlla],
+      ['(B) el mensaje dice el peso en MB',                   R.b_diceMB, R.b_texto],
+      ['(B) y que sigue esperando',                           R.b_diceEspera, R.b_texto],
+      ['(C) desde el pendrive: 1 entro y 1 no',               R.c_ok === 1 && R.c_no === 1, R.c_ok + '/' + R.c_no],
+      ['(C) sin confirmar nada a CeiboLink',                  R.c_sinConfirmar, R.c_sinConfirmar],
+      ['(C) con el denominador a la vista',                   R.c_denominadorALaVista, R.c_toast],
+      ['(D) CONTROL: dos que entran dan ok 2',                R.d_ok === 2 && R.d_no === 0, R.d_ok + '/' + R.d_no],
+      ['(E) si la compresion falla, NO entro',                R.e_ok === 0, R.e_ok],
+      ['(E) y lo dice',                                       String(R.e_motivo).length > 5, String(R.e_motivo).slice(0, 80)]
+    ] };
+  })();
+`);
+
+caso('TC-864', 'Los otros dos sumideros tampoco confirman lo rechazado: a un estudio GUARDADO y a la bandeja entra lo que entra y lo demas sigue esperando', `
+  return (async () => {
+    if (typeof window._dcmCrudoTope !== 'function' || typeof window.dstAGuardado !== 'function' ||
+        typeof window.dstABandeja !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene los tres sumideros y el resultado explicito', false,
+        'no existe _dcmCrudoTope/dstAGuardado/dstABandeja']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => false;
+    const baseOrig = window.__clnkBaseTest;
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const topeOrig = window.__dcmCrudoMaxTest;
+    const gOrig = window.imgGuardadoActivo;
+    const U = 'ec4a0000-0000-4000-8000-00000000a001';
+    const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+                                                    body: JSON.stringify(o) }).then(r => r.json());
+    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctrl({ reset:true });
+      cfgSetMode('avanzado'); clnkToggle(true);
+      showTab('config'); if (window.cfgOnShow) cfgOnShow();
+      await new Promise(r => setTimeout(r, 600));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (inp) { inp.value = String(F.codigo); clnkCodigoInput(inp); }
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.denom_vinculado = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      window.imgGuardadoActivo = () => true;
+      clnkOlvidarPendientes();
+
+      /* ── (A) A UN ESTUDIO GUARDADO ───────────────────────────────────────────────────*/
+      try { await CeiboImg.borrar(U); } catch (e) {}
+      await ctrl({ reset:true, escena:'mixtoPesado2' });
+      const n1 = await dstAGuardado({ origen:'ceibolink', items: clnkItems(['img_p6','img_p7']) },
+                                    { uuid: U, nombre: 'Estudio de prueba', fecha_estudio: '2026-11-12' });
+      await new Promise(r => setTimeout(r, 600));
+      R.a_entraron = n1;
+      const escritas = await CeiboImg.leer(U);
+      R.a_enDisco = (escritas || []).length;
+      const e1 = await estado();
+      const E1 = (e1 || {}).escenario || {};
+      R.a_confirmadas = (E1.confirmadas || []).slice();
+      R.a_soloLaBuena = R.a_confirmadas.length === 1 && R.a_confirmadas[0] === 'img_p6';
+      R.a_pesadoSigue = (E1.imagenes || []).some(x => x && x.id === 'img_p7');
+
+      /* ── (B) A LA BANDEJA ────────────────────────────────────────────────────────────*/
+      await ctrl({ reset:true, escena:'mixtoPesado3' });
+      const antesB = await clnkbListar();
+      const n2 = await dstABandeja({ origen:'ceibolink', equipo:'eq_3f8a1c',
+                                     items: clnkItems(['img_p8','img_p9']) });
+      await new Promise(r => setTimeout(r, 600));
+      R.b_entraron = n2;
+      const desB = await clnkbListar();
+      R.b_envioNuevo = desB.length - antesB.length;
+      const nuevo = desB.filter(x => !antesB.some(y => y.id === x.id))[0] || null;
+      R.b_unaSolaImagen = nuevo ? (nuevo.n === 1 && nuevo.nLoops === 0) : false;
+      const e2 = await estado();
+      const E2 = (e2 || {}).escenario || {};
+      R.b_confirmadas = (E2.confirmadas || []).slice();
+      R.b_soloLaBuena = R.b_confirmadas.length === 1 && R.b_confirmadas[0] === 'img_p8';
+      R.b_pesadoSigue = (E2.imagenes || []).some(x => x && x.id === 'img_p9');
+      if (nuevo) { try { await clnkbBorrar(nuevo.id); } catch (e) {} }
+
+      /* ── (C) LOS DOS CARTELES LO DICEN ───────────────────────────────────────────────*/
+      const todo = alertas.join(' | ');
+      R.c_diceEspera = (todo.match(/ESPERANDO/g) || []).length >= 2;
+      R.c_texto = todo.slice(0, 220);
+
+      /* ── (D) CONTROL NEGATIVO: sin el pesado, el guardado confirma las dos ───────────*/
+      try { await CeiboImg.borrar(U); } catch (e) {}
+      await ctrl({ reset:true, escena:'unEnvio' });
+      await dstAGuardado({ origen:'ceibolink', items: clnkItems(['img_a1','img_a2']) },
+                         { uuid: U, nombre: 'Estudio de prueba', fecha_estudio: '2026-11-12' });
+      await new Promise(r => setTimeout(r, 500));
+      const e3 = await estado();
+      R.d_confirmadas = (((e3 || {}).escenario || {}).confirmadas || []).length;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.__clnkBaseTest = baseOrig; window.__dcmCrudoMaxTest = topeOrig;
+        window.imgGuardadoActivo = gOrig;
+        if (tkOrig) localStorage.setItem('ett_ceibolink_token', tkOrig); else localStorage.removeItem('ett_ceibolink_token');
+        await CeiboImg.borrar(U);
+        clnkOlvidarPendientes(); clnkAvisoCerrar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: se vinculo con el falso',                R.denom_vinculado, R.denom_vinculado],
+      ['(A) al estudio guardado entro UNA de dos',            R.a_entraron === 1, R.a_entraron],
+      ['(A) y esa UNA quedo escrita en disco',                R.a_enDisco === 1, R.a_enDisco],
+      ['(A) el conector borro SOLO la que entro',             R.a_soloLaBuena, (R.a_confirmadas || []).join(',')],
+      ['(A) y la pesada sigue esperando alla',                R.a_pesadoSigue, R.a_pesadoSigue],
+      ['(B) a la bandeja entro UNA de dos',                   R.b_entraron === 1, R.b_entraron],
+      ['(B) con un solo envio nuevo, de una imagen',          R.b_envioNuevo === 1 && R.b_unaSolaImagen, R.b_envioNuevo + '/' + R.b_unaSolaImagen],
+      ['(B) el conector borro SOLO la que entro',             R.b_soloLaBuena, (R.b_confirmadas || []).join(',')],
+      ['(B) y la pesada sigue esperando alla',                R.b_pesadoSigue, R.b_pesadoSigue],
+      ['(C) los dos carteles dicen que sigue esperando',      R.c_diceEspera, R.c_texto],
+      ['(D) CONTROL: sin pesada se confirman las DOS',        R.d_confirmadas === 2, R.d_confirmadas]
+    ] };
+  })();
+`);
+
+caso('TC-865', 'ARCHIVO PESADO: se PREGUNTA con el peso a la vista; «Abrir igual» lo importa y recien ahi lo anota, «Dejarlo esperando» no confirma nada', `
+  return (async () => {
+    if (typeof window._dcmCrudoPreguntar !== 'function' || typeof window._dcmCrudoBytes !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol pregunta por un archivo pesado (ECO-CONECTOR-4)', false,
+        'no existe _dcmCrudoPreguntar: el tope de este index.html todavia RECHAZA']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
+    const confOrig = window.confirm;
+    const preguntas = [];
+    const baseOrig = window.__clnkBaseTest;
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const topeOrig = window.__dcmCrudoMaxTest;
+    const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+                                                    body: JSON.stringify(o) }).then(r => r.json());
+    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    const bajar = async (escena, id) => {
+      await ctrl({ reset:true, escena: escena });
+      const r = await clnkPedir('/v1/imagenes/' + id + '/archivo', { conToken:true, bytes:true, espera:30000 });
+      return (r.ok && r.datos) ? r.datos : null;
+    };
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctrl({ reset:true });
+      cfgSetMode('avanzado'); clnkToggle(true);
+      showTab('config'); if (window.cfgOnShow) cfgOnShow();
+      await new Promise(r => setTimeout(r, 600));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (inp) { inp.value = String(F.codigo); clnkCodigoInput(inp); }
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.denom_vinculado = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      clnkOlvidarPendientes();
+
+      /* ── (A) LA PREGUNTA APARECE, Y DICE EL PESO ─────────────────────────────────────*/
+      const buf = await bajar('pesadoSolo', 'img_p4');
+      R.denom_bajo = !!buf;
+      const d1 = _dcmImgLeer(buf);
+      R.a_bytesDeclarados = _dcmCrudoBytes(d1);
+      R.a_porEncima = R.a_bytesDeclarados > _dcmCrudoTope();
+      window.confirm = m => { preguntas.push(String(m)); return false; };
+      const q1 = _dcmCrudoPreguntar(d1, { nombre:'pesado.dcm', origen:'ceibolink' });
+      R.a_pregunto = preguntas.length === 1;
+      R.a_texto = (preguntas[0] || '');
+      R.a_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(R.a_texto);
+      R.a_diceDimension = R.a_texto.indexOf('512') > -1 && R.a_texto.indexOf('cuadro') > -1;
+      R.a_diceTrabar = R.a_texto.indexOf('trabar') > -1 || R.a_texto.indexOf('tardar') > -1;
+      R.a_diceMemoria = R.a_texto.indexOf('memoria') > -1;
+      R.a_diceAbrirIgual = R.a_texto.indexOf('ABRIR IGUAL') > -1;
+      R.a_diceDejarlo = R.a_texto.indexOf('DEJARLO ESPERANDO') > -1;
+      R.a_diceSigueEnConector = R.a_texto.indexOf('CeiboLink') > -1;
+      R.a_noSigue = q1 && q1.seguir === false;
+
+      /* ── (B) CONTROL NEGATIVO: uno por DEBAJO del tope NO pregunta ───────────────────
+            Sin esto, una app que preguntara SIEMPRE pasaria (A) sin distinguir nada. */
+      preguntas.length = 0;
+      const bufc = await bajar('nativoFija', 'img_n1');
+      const dc = _dcmImgLeer(bufc);
+      const qc = _dcmCrudoPreguntar(dc, { nombre:'chica.dcm', origen:'ceibolink' });
+      R.b_noPregunto = preguntas.length === 0;
+      R.b_sigue = !!(qc && qc.seguir);
+
+      /* ── (C) «DEJARLO ESPERANDO» NO CONFIRMA NADA, por el gesto real ─────────────────*/
+      preguntas.length = 0;
+      window.confirm = () => false;
+      clnkOlvidarPendientes();
+      await ctrl({ reset:true, escena:'pesadoSolo2' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_p5']) });
+      await new Promise(r => setTimeout(r, 400));
+      R.c_porConfirmar = (window._clnkPorConfirmar || []).length;
+      await clnkConfirmarPersistidas();
+      await new Promise(r => setTimeout(r, 300));
+      const e1 = await estado();
+      R.c_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
+      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_p5');
+
+      /* ── (D) «ABRIR IGUAL» LO IMPORTA, Y RECIEN AHI LO ANOTA ─────────────────────────
+            El fixture declara cinco cuadros y manda los cinco, asi que al aceptar entra de
+            verdad: es un cineloop de cinco cuadros. */
+      clnkOlvidarPendientes();
+      window.confirm = () => true;
+      const buf2 = await bajar('pesadoSolo3', 'img_pm');
+      const d2 = _dcmImgLeer(buf2);
+      const cr = await _dcmCrudoAFrags(d2, { nombre:'pesado.dcm', origen:'ceibolink' });
+      R.d_convirtio = !!(cr && cr.ok);
+      R.d_cuadros = (d2.frags || []).length;
+      R.d_soltoCrudo = !d2.crudo;
+      const cl = _dcmClasificar(d2, 'pesado.dcm');
+      R.d_esLoop = !!cl.loop;
+
+      /* ── (E) Y EL ORDEN: la pregunta va DESPUES de los rechazos duros ────────────────
+            A un archivo que esta app no sabe interpretar no se le pregunta al medico si lo
+            quiere abrir igual: se le dice que no se puede. */
+      preguntas.length = 0;
+      const bufr = await bajar('noSoportado', 'img_r1');
+      const dr = _dcmImgLeer(bufr);
+      R.e_rechazaFormato = !!dr.rechazo;
+      R.e_noPregunto = preguntas.length === 0;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.__clnkBaseTest = baseOrig; window.__dcmCrudoMaxTest = topeOrig;
+        if (tkOrig) localStorage.setItem('ett_ceibolink_token', tkOrig); else localStorage.removeItem('ett_ceibolink_token');
+        clnkOlvidarPendientes();
+        if (typeof imgVaciar === 'function') imgVaciar();
+        clnkAvisoCerrar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: se vinculo y bajo el archivo',           R.denom_vinculado && R.denom_bajo, R.denom_vinculado + '/' + R.denom_bajo],
+      ['DENOMINADOR: el fixture cae por encima del tope',     R.a_porEncima, R.a_bytesDeclarados],
+      ['(A) se PREGUNTA, una sola vez',                       R.a_pregunto, preguntas.length],
+      ['(A) el texto dice el peso en MB',                     R.a_diceMB, R.a_texto.slice(0, 120)],
+      ['(A) y las dimensiones y los cuadros',                 R.a_diceDimension, R.a_texto.slice(0, 120)],
+      ['(A) avisa que puede tardar o trabar',                 R.a_diceTrabar, R.a_diceTrabar],
+      ['(A) y que se pierde lo que no este guardado',         R.a_diceMemoria, R.a_diceMemoria],
+      ['(A) nombra ABRIR IGUAL',                              R.a_diceAbrirIgual, R.a_diceAbrirIgual],
+      ['(A) nombra DEJARLO ESPERANDO',                        R.a_diceDejarlo, R.a_diceDejarlo],
+      ['(A) y dice que sigue en CeiboLink',                   R.a_diceSigueEnConector, R.a_diceSigueEnConector],
+      ['(A) responder que no, no sigue',                      R.a_noSigue, R.a_noSigue],
+      ['(B) CONTROL: uno chico NO pregunta',                  R.b_noPregunto && R.b_sigue, R.b_noPregunto + '/' + R.b_sigue],
+      ['(C) «Dejarlo esperando»: cero por confirmar',         R.c_porConfirmar === 0, R.c_porConfirmar],
+      ['(C) el conector no borro nada',                       R.c_confirmadas === 0, R.c_confirmadas],
+      ['(C) y el archivo sigue esperando alla',               R.c_sigueAlla, R.c_sigueAlla],
+      ['(D) «Abrir igual» CONVIERTE el archivo',              R.d_convirtio, R.d_convirtio],
+      ['(D) con sus cinco cuadros',                           R.d_cuadros === 5, R.d_cuadros],
+      ['(D) soltando los pixeles crudos',                     R.d_soltoCrudo, R.d_soltoCrudo],
+      ['(D) y sale cineloop',                                 R.d_esLoop, R.d_esLoop],
+      ['(E) a un formato ajeno NO se le pregunta',            R.e_rechazaFormato && R.e_noPregunto, R.e_rechazaFormato + '/' + R.e_noPregunto]
+    ] };
+  })();
+`);
+
+caso('TC-866', 'Por encima del tope DURO no se ofrece abrir, y si la conversion se queda sin memoria el archivo SIGUE ESPERANDO y no se confirma', `
+  return (async () => {
+    if (typeof window._dcmCrudoTopeDuro !== 'function' || typeof window._dcmCrudoPreguntar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el tope duro (ECO-CONECTOR-4)', false,
+        'no existe _dcmCrudoTopeDuro']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, 'no hay __CLNK_FAKE.base']] };
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; const alertas = []; window.alert = m => { alertas.push(String(m)); };
+    const confOrig = window.confirm; const preguntas = [];
+    const baseOrig = window.__clnkBaseTest;
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const topeOrig = window.__dcmCrudoMaxTest;
+    const duroOrig = window.__dcmCrudoDuroTest;
+    const memOrig = window.__dcmFallaMemoriaTest;
+    const ctrl = o => fetch(F.base + '/_control', { method:'POST', headers:{'Content-Type':'application/json'},
+                                                    body: JSON.stringify(o) }).then(r => r.json());
+    const estado = () => fetch(F.base + '/_estado').then(r => r.json()).catch(() => null);
+    const bajar = async (escena, id) => {
+      await ctrl({ reset:true, escena: escena });
+      const r = await clnkPedir('/v1/imagenes/' + id + '/archivo', { conToken:true, bytes:true, espera:30000 });
+      return (r.ok && r.datos) ? r.datos : null;
+    };
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.removeItem('ett_ceibolink_token');
+      await ctrl({ reset:true });
+      cfgSetMode('avanzado'); clnkToggle(true);
+      showTab('config'); if (window.cfgOnShow) cfgOnShow();
+      await new Promise(r => setTimeout(r, 600));
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (inp) { inp.value = String(F.codigo); clnkCodigoInput(inp); }
+      await clnkVincular();
+      await new Promise(r => setTimeout(r, 400));
+      R.denom_vinculado = (localStorage.getItem('ett_ceibolink_token') || '').length === 64;
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      window.__dcmCrudoDuroTest = 4 * 1024 * 1024;
+      clnkOlvidarPendientes();
+
+      /* ── (A) POR ENCIMA DEL DURO: se AVISA y NO se ofrece abrir ─────────────────────
+            El fixture declara 512x512 por 20 cuadros = 5,24 MB, por encima de los 4 MB del
+            tope duro de prueba. */
+      const buf = await bajar('pesadoDuro', 'img_pd');
+      R.denom_bajo = !!buf;
+      const d1 = _dcmImgLeer(buf);
+      R.a_bytes = _dcmCrudoBytes(d1);
+      R.a_porEncimaDelDuro = R.a_bytes > _dcmCrudoTopeDuro();
+      window.confirm = m => { preguntas.push(String(m)); return true; };
+      alertas.length = 0;
+      const q1 = _dcmCrudoPreguntar(d1, { nombre:'enorme.dcm', origen:'ceibolink' });
+      R.a_noPreguntoConfirm = preguntas.length === 0;
+      R.a_avisoConAlert = alertas.length === 1;
+      R.a_texto = (alertas[0] || '');
+      R.a_diceMB = /\d+(?:[.,]\d+)?\s*MB/.test(R.a_texto);
+      R.a_diceNoLoAbre = R.a_texto.indexOf('no lo') > -1 || R.a_texto.indexOf('no abre') > -1;
+      R.a_diceSigue = R.a_texto.indexOf('sigue esperando') > -1;
+      R.a_noSeAbre = q1 && q1.seguir === false;
+      /* Y AUNQUE EL MEDICO ACEPTARIA: el confirm devuelve true y aun asi no se abre, porque
+         por encima del duro no hay pregunta que aceptar. */
+      R.a_pesarDeAceptar = q1 && q1.seguir === false && preguntas.length === 0;
+
+      /* ── (B) EL DURO NUNCA QUEDA POR DEBAJO DEL BLANDO ──────────────────────────────
+            Con los dos ganchos al reves, un archivo caeria a la vez en «preguntar» y en «ni
+            preguntes», y cual gana dependeria del orden de dos if. */
+      window.__dcmCrudoMaxTest = 8 * 1024 * 1024;
+      window.__dcmCrudoDuroTest = 1 * 1024 * 1024;
+      R.b_ordenado = _dcmCrudoTopeDuro() >= _dcmCrudoTope();
+      R.b_valores = _dcmCrudoTope() + '/' + _dcmCrudoTopeDuro();
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+      window.__dcmCrudoDuroTest = 4 * 1024 * 1024;
+
+      /* ── (C) LA CONVERSION SE QUEDA SIN MEMORIA: no entra y no se confirma ──────────*/
+      window.confirm = () => true;
+      clnkOlvidarPendientes();
+      window.__dcmFallaMemoriaTest = true;
+      await ctrl({ reset:true, escena:'pesadoSolo3' });
+      alertas.length = 0;
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_pm']) });
+      await new Promise(r => setTimeout(r, 500));
+      R.c_porConfirmar = (window._clnkPorConfirmar || []).length;
+      await clnkConfirmarPersistidas();
+      await new Promise(r => setTimeout(r, 300));
+      const e1 = await estado();
+      R.c_confirmadas = (((e1 || {}).escenario || {}).confirmadas || []).length;
+      R.c_sigueAlla = (((e1 || {}).escenario || {}).imagenes || []).some(x => x && x.id === 'img_pm');
+      const todoC = alertas.join(' | ');
+      R.c_leAvisa = todoC.indexOf('memoria') > -1;
+      R.c_diceNoSeBorro = todoC.indexOf('no se borr') > -1 || todoC.indexOf('ESPERANDO') > -1;
+      R.c_texto = todoC.slice(0, 200);
+      window.__dcmFallaMemoriaTest = memOrig;
+
+      /* ── (D) Y NO SE CIERRA LA PESTANA: la app sigue viva y responde ────────────────*/
+      R.d_sigueViva = typeof window.dstAlActual === 'function' && !!document.getElementById('cfg-clnk-codigo');
+
+      /* ── (E) CONTROL NEGATIVO: sin el gancho, el MISMO archivo entra ────────────────*/
+      clnkOlvidarPendientes();
+      await ctrl({ reset:true, escena:'pesadoSolo3' });
+      await dstAlActual({ origen:'ceibolink', items: clnkItems(['img_pm']) });
+      await new Promise(r => setTimeout(r, 600));
+      R.e_entro = (window._clnkPorConfirmar || []).length;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.__clnkBaseTest = baseOrig; window.__dcmCrudoMaxTest = topeOrig;
+        window.__dcmCrudoDuroTest = duroOrig; window.__dcmFallaMemoriaTest = memOrig;
+        if (tkOrig) localStorage.setItem('ett_ceibolink_token', tkOrig); else localStorage.removeItem('ett_ceibolink_token');
+        clnkOlvidarPendientes();
+        if (typeof imgVaciar === 'function') imgVaciar();
+        clnkAvisoCerrar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: se vinculo y bajo el archivo',           R.denom_vinculado && R.denom_bajo, R.denom_vinculado + '/' + R.denom_bajo],
+      ['DENOMINADOR: el fixture pasa el tope DURO',           R.a_porEncimaDelDuro, R.a_bytes],
+      ['(A) NO se ofrece «Abrir igual»',                      R.a_noPreguntoConfirm, preguntas.length],
+      ['(A) se avisa con un cartel',                          R.a_avisoConAlert, alertas.length],
+      ['(A) que dice el peso en MB',                          R.a_diceMB, R.a_texto.slice(0, 120)],
+      ['(A) que esta app no lo abre',                         R.a_diceNoLoAbre, R.a_texto.slice(0, 120)],
+      ['(A) y que sigue esperando en el conector',            R.a_diceSigue, R.a_diceSigue],
+      ['(A) y no se abre aunque el medico aceptaria',         R.a_pesarDeAceptar, R.a_pesarDeAceptar],
+      ['(B) el tope duro nunca queda por debajo del blando',  R.b_ordenado, R.b_valores],
+      ['(C) sin memoria: cero por confirmar',                 R.c_porConfirmar === 0, R.c_porConfirmar],
+      ['(C) el conector no borro nada',                       R.c_confirmadas === 0, R.c_confirmadas],
+      ['(C) y el archivo sigue esperando alla',               R.c_sigueAlla, R.c_sigueAlla],
+      ['(C) el medico ve que fue por memoria',                R.c_leAvisa, R.c_texto],
+      ['(C) y que no se borro nada',                          R.c_diceNoSeBorro, R.c_texto],
+      ['(D) la pestana no se cerro: la app sigue viva',       R.d_sigueViva, R.d_sigueViva],
+      ['(E) CONTROL: sin el gancho el MISMO archivo entra',   R.e_entro === 1, R.e_entro]
+    ] };
+  })();
+`);
+
+caso('TC-867', '«Sin estudio»: cada envio muestra MINIATURAS, se abren en su visor, y mirar no escribe, no confirma y no toca ningun estudio', `
+  return (async () => {
+    if (typeof window.clnkbVer !== 'function' || typeof window.dstThumb !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el visor de la bandeja (ECO-CONECTOR-4)', false,
+        'no existe clnkbVer/dstThumb: en este index.html solo se puede asignar o borrar a ciegas']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => false;
+    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    let creado = null;
+    try {
+      /* ESCENA: un envio con DOS fijas y UN cineloop, escrito a mano en la base de la bandeja
+         para no depender del conector. Los thumbs se generan como los genera dstABandeja. */
+      const t1 = await dstThumb(PX);
+      R.denom_thumbSale = typeof t1 === 'string' && t1.indexOf('data:image/jpeg') === 0;
+      R.denom_thumbChico = t1.length < PX.length + 4000;
+      const total = J.length * 3;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(3);
+      for (let i = 0; i < 3; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      creado = 'clnkb_prueba_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen:'ceibolink', equipo:'Eco de prueba',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: t1, clnkId:'' }, { dataURL: PX, thumb: t1, clnkId:'' }],
+        loops: [{ nombre:'loop.dcm', cuadros:3, ms:40, cols:1, filas:1, poster: t1,
+                  datos: datos, offs: offs, bytes: total, clnkId:'' }] });
+
+      /* ── (A) LA LISTA TRAE LOS thumbs Y LOS posters, SIN LOS DATOS ──────────────────*/
+      const l = await clnkbListar();
+      const mio = l.filter(x => x.id === creado)[0] || null;
+      R.a_hay = !!mio;
+      R.a_nThumbs = mio ? (mio.thumbs || []).length : -1;
+      R.a_nPosters = mio ? (mio.posters || []).length : -1;
+      /* ** SIN LOS MEGAS: el listado no puede traer datos ni offs de los cineloops. Es la
+         condicion que impide que dibujar la grilla materialice un cineloop entero. */
+      R.a_sinDatos = mio ? (mio.datos === undefined && mio.offs === undefined &&
+                            (mio.loops === undefined)) : false;
+      R.a_pesoDeLista = mio ? JSON.stringify(mio).length : -1;
+
+      /* ── (B) LA PANTALLA DIBUJA UNA MINIATURA POR ARCHIVO ───────────────────────────*/
+      showTab('guardados');
+      await igBandejaRender();
+      await new Promise(r => setTimeout(r, 200));
+      const lis = document.getElementById('ig-bandeja-lista');
+      R.b_hayLista = !!lis;
+      const fila = lis ? [].slice.call(lis.children).filter(f =>
+        [].slice.call(f.querySelectorAll('button[aria-label]')).some(b =>
+          (b.getAttribute('aria-label') || '').indexOf('tocá para verla') > -1 ||
+          (b.getAttribute('aria-label') || '').indexOf('toc') > -1))[0] : null;
+      const minis = fila ? [].slice.call(fila.querySelectorAll('button')).filter(b =>
+        (b.getAttribute('aria-label') || '').indexOf('Imagen ') === 0 ||
+        (b.getAttribute('aria-label') || '').indexOf('Cineloop ') === 0) : [];
+      R.b_nMinis = minis.length;
+      R.b_tresMinis = minis.length === 3;
+      R.b_sonBotones = minis.every(b => b.tagName === 'BUTTON' && b.type === 'button');
+      R.b_conImagen = minis.filter(b => !!b.querySelector('img')).length;
+      R.b_tactil = minis.every(b => parseFloat(getComputedStyle(b).minHeight) >= 44);
+      R.b_diceCuadros = minis.some(b => (b.title || '').indexOf('cuadros') > -1);
+      R.b_dicePeso = minis.some(b => /\d+(?:[.,]\d+)?\s*MB/.test(b.title || '') || (b.title||'').indexOf('KB') > -1);
+
+      /* ── (C) MIRAR UNA FIJA ABRE EL VISOR Y NO MODIFICA NADA ────────────────────────*/
+      const slotsAntes = imgSlots.filter(s => s && s.dataURL).length;
+      const pendAntes = (window._clnkPorConfirmar || []).length;
+      const colaAntes = (typeof _cineHayPendientes === 'function') ? _cineHayPendientes() : false;
+      const listaAntes = (await clnkbListar()).length;
+      R.c_abrio = await clnkbVer(creado, 'img', 0);
+      await new Promise(r => setTimeout(r, 150));
+      const ov = document.getElementById('clnkb-ver');
+      R.c_hayVisor = !!ov;
+      R.c_tieneImagen = !!(ov && ov.querySelector('img') && ov.querySelector('img').src);
+      R.c_diceNoGuarda = !!(ov && ov.textContent.indexOf('no la guarda') > -1);
+      R.c_tieneAsignar = !!(ov && [].slice.call(ov.querySelectorAll('button')).some(b => (b.textContent||'').indexOf('Asignar') > -1));
+      R.c_tieneBorrar = !!(ov && [].slice.call(ov.querySelectorAll('button')).some(b => b.hasAttribute('data-clnkb-borrar')));
+      R.c_slotsIgual = imgSlots.filter(s => s && s.dataURL).length === slotsAntes;
+      R.c_pendIgual = (window._clnkPorConfirmar || []).length === pendAntes;
+      R.c_colaIgual = ((typeof _cineHayPendientes === 'function') ? _cineHayPendientes() : false) === colaAntes;
+      R.c_bandejaIgual = (await clnkbListar()).length === listaAntes;
+      _clnkbVerCerrar();
+      R.c_cerro = !document.getElementById('clnkb-ver');
+
+      /* ── (D) MIRAR UN CINELOOP ABRE EL VISOR DE CINELOOPS, el de siempre ────────────*/
+      R.d_abrio = await clnkbVer(creado, 'loop', 0);
+      await new Promise(r => setTimeout(r, 250));
+      R.d_hayCineOv = !!document.getElementById('cine-ov') &&
+                      document.getElementById('cine-ov').style.display !== 'none';
+      R.d_cuadros = (window._cineDatos && _cineDatos.loops && _cineDatos.loops[0] &&
+                     _cineDatos.loops[0].d && _cineDatos.loops[0].d.frags) ? _cineDatos.loops[0].d.frags.length : -1;
+      R.d_slotsIgual = imgSlots.filter(s => s && s.dataURL).length === slotsAntes;
+      R.d_bandejaIgual = (await clnkbListar()).length === listaAntes;
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      const co = document.getElementById('cine-ov'); if (co) co.style.display = 'none';
+
+      /* ── (E) CONTROL NEGATIVO: un envio que no existe no abre nada ─────────────────*/
+      R.e_noAbre = await clnkbVer('clnkb_no_existe_ec4', 'img', 0);
+      R.e_sinVisor = !document.getElementById('clnkb-ver');
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.confirm = confOrig;
+        _clnkbVerCerrar();
+        if (creado) await clnkbBorrar(creado);
+        await igBandejaRender();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: la miniatura se genera',                 R.denom_thumbSale, String(R.denom_thumbSale)],
+      ['DENOMINADOR: y es MAS CHICA que la imagen',           R.denom_thumbChico, R.denom_thumbChico],
+      ['DENOMINADOR: el envio de prueba quedo en la bandeja', R.a_hay, R.a_hay],
+      ['(A) la lista trae DOS thumbs y UN poster',            R.a_nThumbs === 2 && R.a_nPosters === 1, R.a_nThumbs + '/' + R.a_nPosters],
+      ['(A) y NO trae los datos de los cineloops',            R.a_sinDatos, R.a_sinDatos],
+      ['(B) la pantalla dibuja TRES miniaturas',              R.b_tresMinis, R.b_nMinis],
+      ['(B) y las tres son <button>',                         R.b_sonBotones, R.b_sonBotones],
+      ['(B) las tres con su imagen',                          R.b_conImagen === 3, R.b_conImagen],
+      ['(B) con area tactil de 44 px',                        R.b_tactil, R.b_tactil],
+      ['(B) el cineloop dice sus cuadros',                    R.b_diceCuadros, R.b_diceCuadros],
+      ['(B) y su peso',                                       R.b_dicePeso, R.b_dicePeso],
+      ['(C) mirar una fija abre el visor',                    R.c_abrio && R.c_hayVisor, R.c_abrio + '/' + R.c_hayVisor],
+      ['(C) con la imagen adentro',                           R.c_tieneImagen, R.c_tieneImagen],
+      ['(C) que dice que mirar no la guarda',                 R.c_diceNoGuarda, R.c_diceNoGuarda],
+      ['(C) con «Asignar» y «Borrar» adentro',                R.c_tieneAsignar && R.c_tieneBorrar, R.c_tieneAsignar + '/' + R.c_tieneBorrar],
+      ['(C) MIRAR NO toca los slots del estudio',             R.c_slotsIgual, R.c_slotsIgual],
+      ['(C) NO anota nada para confirmar',                    R.c_pendIgual, R.c_pendIgual],
+      ['(C) NO encola ningun cineloop',                       R.c_colaIgual, R.c_colaIgual],
+      ['(C) y NO toca la bandeja',                            R.c_bandejaIgual, R.c_bandejaIgual],
+      ['(C) y cierra',                                        R.c_cerro, R.c_cerro],
+      ['(D) mirar un cineloop abre el visor de cineloops',    R.d_abrio && R.d_hayCineOv, R.d_abrio + '/' + R.d_hayCineOv],
+      ['(D) con sus TRES cuadros',                            R.d_cuadros === 3, R.d_cuadros],
+      ['(D) sin tocar los slots ni la bandeja',               R.d_slotsIgual && R.d_bandejaIgual, R.d_slotsIgual + '/' + R.d_bandejaIgual],
+      ['(E) CONTROL: un envio que no existe no abre nada',    R.e_noAbre === false && R.e_sinVisor, R.e_noAbre + '/' + R.e_sinVisor]
+    ] };
+  })();
+`);
+
+caso('TC-868', 'Asignar desde el visor de «Sin estudio» va al estudio ELEGIDO y a ningun otro, borrar pide confirmacion, y la grilla no carga un solo cineloop entero', `
+  return (async () => {
+    if (typeof window.clnkbVer !== 'function' || typeof window.clnkbAsignar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el visor de la bandeja (ECO-CONECTOR-4)', false,
+        'no existe clnkbVer']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; window.alert = () => {};
+    const confOrig = window.confirm; const confirms = []; 
+    const gOrig = window.imgGuardadoActivo;
+    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* TRES estudios: dos guardados y uno abierto. La pregunta que importa es si lo asignado
+       cae en el que el medico eligio y en NINGUNO de los otros dos. */
+    const UA = 'ec4b0000-0000-4000-8000-0000000000a1';
+    const UB = 'ec4b0000-0000-4000-8000-0000000000b2';
+    const UC = 'ec4b0000-0000-4000-8000-0000000000c3';
+    let creado = null;
+    try {
+      window.imgGuardadoActivo = () => true;
+      window.confirm = m => { confirms.push(String(m)); return true; };
+      for (const u of [UA, UB, UC]) { try { await CeiboImg.borrar(u); } catch (e) {} }
+      creado = 'clnkb_asig_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen:'ceibolink', equipo:'Eco de prueba',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: PX, clnkId:'' }], loops: [] });
+      window._imgUuidActual = UC;
+
+      /* ── (A) ASIGNAR AL ESTUDIO «A»: entra en A y en NINGUNO de los otros dos ───────*/
+      const nA = await clnkbAsignar(creado, { uuid: UA, nombre:'Paciente A', fecha_estudio:'2026-11-01' });
+      await new Promise(r => setTimeout(r, 500));
+      R.a_entraron = nA;
+      R.a_enA = ((await CeiboImg.leer(UA)) || []).length;
+      R.a_enB = ((await CeiboImg.leer(UB)) || []).length;
+      R.a_enC = ((await CeiboImg.leer(UC)) || []).length;
+      /* Y EL ENVIO SALIO DE LA BANDEJA, porque entro entero. */
+      R.a_salioDeLaBandeja = !(await clnkbListar()).some(x => x.id === creado);
+
+      /* ── (B) EL CONFIRM DE ASIGNAR NOMBRA EL ESTUDIO ───────────────────────────────
+            Es la ultima pantalla antes de escribir en el estudio de otro paciente. */
+      confirms.length = 0;
+      creado = 'clnkb_asig2_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen:'ceibolink', equipo:'Eco de prueba',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: PX, clnkId:'' }], loops: [] });
+      await clnkbAsignarPreguntar(creado);
+      await new Promise(r => setTimeout(r, 150));
+      const b2 = document.getElementById('clnkav-b2');
+      R.b_hayBoton = !!b2;
+      /* Se sustituye el selector de estudio para elegir B sin tocar la pantalla. */
+      const elegirOrig = window.dstElegirEstudio;
+      window.dstElegirEstudio = cb => cb({ uuid: UB, nombre:'Paciente B', fecha_estudio:'2026-11-02' });
+      if (b2) b2.click();
+      await new Promise(r => setTimeout(r, 600));
+      window.dstElegirEstudio = elegirOrig;
+      R.b_confirmo = confirms.length >= 1;
+      R.b_nombraEstudio = confirms.join(' ').indexOf('Paciente B') > -1;
+      R.b_enB = ((await CeiboImg.leer(UB)) || []).length;
+      R.b_enANoCrecio = ((await CeiboImg.leer(UA)) || []).length === R.a_enA;
+      R.b_enC = ((await CeiboImg.leer(UC)) || []).length;
+
+      /* ── (C) SI EL MEDICO DICE QUE NO, NO SE ESCRIBE EN NINGUNO ────────────────────*/
+      confirms.length = 0;
+      window.confirm = () => false;
+      creado = 'clnkb_asig3_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen:'ceibolink', equipo:'Eco de prueba',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: PX, clnkId:'' }], loops: [] });
+      const antesA = ((await CeiboImg.leer(UA)) || []).length;
+      const antesB = ((await CeiboImg.leer(UB)) || []).length;
+      await clnkbAsignarPreguntar(creado);
+      await new Promise(r => setTimeout(r, 150));
+      const b2b = document.getElementById('clnkav-b2');
+      window.dstElegirEstudio = cb => cb({ uuid: UB, nombre:'Paciente B', fecha_estudio:'2026-11-02' });
+      if (b2b) b2b.click();
+      await new Promise(r => setTimeout(r, 500));
+      window.dstElegirEstudio = elegirOrig;
+      R.c_aNoCrecio = ((await CeiboImg.leer(UA)) || []).length === antesA;
+      R.c_bNoCrecio = ((await CeiboImg.leer(UB)) || []).length === antesB;
+      R.c_sigueEnLaBandeja = (await clnkbListar()).some(x => x.id === creado);
+
+      /* ── (D) BORRAR PIDE CONFIRMACION, Y DICE QUE ES LA ULTIMA COPIA ───────────────*/
+      confirms.length = 0;
+      window.confirm = m => { confirms.push(String(m)); return false; };
+      showTab('guardados');
+      await igBandejaRender();
+      await new Promise(r => setTimeout(r, 200));
+      const lis = document.getElementById('ig-bandeja-lista');
+      const bor = lis ? lis.querySelector('[data-clnkb-borrar="' + creado + '"]') : null;
+      R.d_hayBoton = !!bor;
+      if (bor) bor.click();
+      await new Promise(r => setTimeout(r, 300));
+      R.d_pregunto = confirms.length === 1;
+      R.d_diceUltimaCopia = confirms.join(' ').indexOf('ltima copia') > -1;
+      R.d_noBorro = (await clnkbListar()).some(x => x.id === creado);
+      /* Y DICIENDO QUE SI, borra. */
+      window.confirm = () => true;
+      if (bor) bor.click();
+      await new Promise(r => setTimeout(r, 400));
+      R.d_borro = !(await clnkbListar()).some(x => x.id === creado);
+      creado = null;
+
+      /* ── (E) LA GRILLA NO MATERIALIZA UN CINELOOP: se mide por BYTES ───────────────
+            Un envio con un cineloop de ~1,5 MB: lo que la lista devuelve tiene que pesar
+            ordenes de magnitud menos que el registro completo. Es la condicion que la orden
+            pone con todas las letras. */
+      const NC = 400;
+      const total = J.length * NC;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(NC);
+      for (let i = 0; i < NC; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      const idG = 'clnkb_gordo_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: idG, origen:'ceibolink', equipo:'Eco de prueba',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(), imgs: [],
+        loops: [{ nombre:'gordo.dcm', cuadros:NC, ms:40, cols:1, filas:1, poster: PX,
+                  datos: datos, offs: offs, bytes: total, clnkId:'' }] });
+      const lg = await clnkbListar();
+      const mg = lg.filter(x => x.id === idG)[0] || null;
+      R.e_hay = !!mg;
+      R.e_pesoLista = mg ? JSON.stringify(mg).length : -1;
+      R.e_bytesDeclarados = mg ? mg.bytesLoops : -1;
+      /* El registro COMPLETO, para tener el denominador: sin saber cuanto pesa de verdad, un
+         numero chico no prueba nada. */
+      const rg = await clnkbLeer(idG);
+      R.e_pesoRegistro = rg && rg.loops && rg.loops[0] && rg.loops[0].datos ? rg.loops[0].datos.length : -1;
+      R.e_muchoMasChico = R.e_pesoLista > 0 && R.e_pesoRegistro > 0 && R.e_pesoLista < R.e_pesoRegistro / 20;
+      await clnkbBorrar(idG);
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+        window.imgGuardadoActivo = gOrig;
+        if (creado) await clnkbBorrar(creado);
+        for (const u of [UA, UB, UC]) { try { await CeiboImg.borrar(u); } catch (e) {} }
+        clnkAvisoCerrar(); _clnkbVerCerrar();
+        if (typeof imgVaciar === 'function') imgVaciar();
+        await igBandejaRender();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['(A) asignar a «A» escribe UNA imagen en A',           R.a_entraron === 1 && R.a_enA === 1, R.a_entraron + '/' + R.a_enA],
+      ['(A) y CERO en el estudio B',                          R.a_enB === 0, R.a_enB],
+      ['(A) y CERO en el estudio abierto C',                  R.a_enC === 0, R.a_enC],
+      ['(A) el envio sale de la bandeja, porque entro entero', R.a_salioDeLaBandeja, R.a_salioDeLaBandeja],
+      ['(B) elegir «B» pregunta antes de escribir',           R.b_confirmo, confirms.length],
+      ['(B) y la pregunta NOMBRA el estudio',                 R.b_nombraEstudio, R.b_nombraEstudio],
+      ['(B) la imagen queda en B',                            R.b_enB === 1, R.b_enB],
+      ['(B) A no crecio',                                     R.b_enANoCrecio, R.b_enANoCrecio],
+      ['(B) y el estudio abierto C sigue en cero',            R.b_enC === 0, R.b_enC],
+      ['(C) si el medico dice que NO, A no crece',            R.c_aNoCrecio, R.c_aNoCrecio],
+      ['(C) B tampoco',                                       R.c_bNoCrecio, R.c_bNoCrecio],
+      ['(C) y el envio sigue en la bandeja',                  R.c_sigueEnLaBandeja, R.c_sigueEnLaBandeja],
+      ['(D) borrar pide confirmacion',                        R.d_hayBoton && R.d_pregunto, R.d_hayBoton + '/' + R.d_pregunto],
+      ['(D) diciendo que es la ULTIMA COPIA',                 R.d_diceUltimaCopia, R.d_diceUltimaCopia],
+      ['(D) y si se dice que no, NO borra',                   R.d_noBorro, R.d_noBorro],
+      ['(D) diciendo que si, borra',                          R.d_borro, R.d_borro],
+      ['(E) DENOMINADOR: el envio gordo existe',              R.e_hay, R.e_hay],
+      ['(E) el registro completo pesa sus bytes',             R.e_pesoRegistro > 8000, R.e_pesoRegistro],
+      ['(E) y la LISTA pesa ordenes de magnitud menos',       R.e_muchoMasChico, R.e_pesoLista + ' vs ' + R.e_pesoRegistro]
+    ] };
+  })();
+`);
+
+caso('TC-869', 'Un cineloop guardado con un estudio SE VE en «Imagenes guardadas» y en «Videos», con la marca de su estudio, y abre el visor de cineloops', `
+  return (async () => {
+    if (typeof CeiboCine === 'undefined' || typeof CeiboCine.indice !== 'function' ||
+        typeof window.igLoopPasaTipo !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el indice de cineloops (ECO-CONECTOR-4)', false,
+        'no existe CeiboCine.indice/igLoopPasaTipo: en este index.html un cineloop no se ve en la galeria']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    const U = 'ec4c0000-0000-4000-8000-0000000000d4';
+    const ID = 'cine_ec4_' + Date.now().toString(36);
+    const IDF = 'fija_ec4_' + Date.now().toString(36);
+    const infOrig = window.getInformes;
+    let filtroOrig = null;
+    try {
+      const NC = 4;
+      const total = J.length * NC;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(NC);
+      for (let i = 0; i < NC; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      await CeiboCine.guardar({ id: ID, uuid: U, nombre:'loop.dcm', cuadros: NC, tipo:'loop',
+        ms:40, cols:8, filas:8, regiones:[], poster: PX, datos: datos, offs: offs,
+        bytes: total, ts: new Date().toISOString() });
+      /* Y UNA FIJA DICOM EN LA MISMA BASE: es lo que el filtro del indice tiene que dejar
+         AFUERA, porque esa fija ya esta en la galeria como imagen del estudio. */
+      await CeiboCine.guardar({ id: IDF, uuid: U, nombre:'fija.dcm', cuadros:1, tipo:'fija',
+        ms:0, cols:8, filas:8, regiones:[], poster: PX, datos: J, offs: new Int32Array([0]),
+        bytes: J.length, ts: new Date().toISOString() });
+
+      /* ── (A) EL INDICE: trae el loop, NO trae la fija, y no trae los datos ──────────*/
+      const idx = await CeiboCine.indice();
+      const mio = idx.filter(x => x.id === ID)[0] || null;
+      R.a_traeLoop = !!mio;
+      R.a_noTraeFija = !idx.some(x => x.id === IDF);
+      R.a_sinDatos = mio ? (mio.datos === undefined && mio.offs === undefined) : false;
+      R.a_conPoster = mio ? (String(mio.poster || '').indexOf('data:image') === 0) : false;
+      R.a_conCuadros = mio ? mio.cuadros === NC : false;
+      R.a_conBytes = mio ? mio.bytes === total : false;
+      R.a_peso = mio ? JSON.stringify(mio).length : -1;
+
+      /* ── (B) EL FILTRO: pasa en «Todas» y en «Videos», no en «Imagenes» ni «De interes» ─*/
+      filtroOrig = window._igImgFiltro;
+      const probar = f => { window._igImgFiltro = f; return igLoopPasaTipo(); };
+      R.b_todas = probar('all');
+      R.b_videos = probar('vid');
+      R.b_imagenes = probar('img');
+      R.b_interes = probar('star');
+      window._igImgFiltro = 'all';
+
+      /* ── (C) LA GRILLA LO DIBUJA, con la marca de su estudio ───────────────────────*/
+      window.getInformes = () => [{ id:'ec4-x', uuid: U, nombre:'Paciente de prueba',
+                                    ci:'0', fecha_estudio:'2026-11-12' }];
+      igImgInvalidar();
+      showTab('guardados');
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      await igImgIndiceCargar();
+      await new Promise(r => setTimeout(r, 150));
+      igImgPintar(getInformes());
+      await new Promise(r => setTimeout(r, 250));
+      const cont = document.getElementById('ig-img-lista');
+      /* El grupo del mes nace cerrado o abierto segun el estado; se abre a mano para medir. */
+      if (cont) cont.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
+      await new Promise(r => setTimeout(r, 200));
+      const celdas = cont ? [].slice.call(cont.querySelectorAll('.ig-img-th')) : [];
+      R.c_nCeldas = celdas.length;
+      const cel = celdas.filter(b => b.dataset.igCine === ID)[0] || null;
+      R.c_hayCelda = !!cel;
+      R.c_conPoster = !!(cel && cel.querySelector('img') && cel.querySelector('img').src.indexOf('data:image') === 0);
+      R.c_diceCuadros = !!(cel && (cel.title || '').indexOf('4 cuadros') > -1);
+      R.c_diceElEstudio = !!(cel && (cel.title || '').indexOf('Paciente de prueba') > -1);
+      R.c_tieneMarcaVideo = !!(cel && cel.querySelector('.ig-img-vb'));
+      R.c_pie = cont ? String((document.getElementById('ig-img-contador') || {}).textContent || '') : '';
+      R.c_pieCuentaLoops = R.c_pie.indexOf('cineloop') > -1;
+
+      /* ── (D) EN «VIDEOS» SIGUE, EN «IMAGENES» NO, EN «DE INTERES» TAMPOCO ─────────*/
+      const contar = f => {
+        window._igImgFiltro = f;
+        igImgPintar(getInformes());
+        const c = document.getElementById('ig-img-lista');
+        if (c) c.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
+        return c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine === ID).length : -1;
+      };
+      R.d_enVideos = contar('vid');
+      R.d_enImagenes = contar('img');
+      R.d_enInteres = contar('star');
+      window._igImgFiltro = 'all';
+
+      /* ── (E) AL TOCARLO ABRE EL VISOR DE CINELOOPS ────────────────────────────────*/
+      igImgPintar(getInformes());
+      const c2 = document.getElementById('ig-img-lista');
+      if (c2) c2.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
+      const cel2 = c2 ? [].slice.call(c2.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine === ID)[0] : null;
+      if (cel2) igImgThClic(cel2);
+      await new Promise(r => setTimeout(r, 400));
+      R.e_abrioCine = !!document.getElementById('cine-ov') &&
+                      document.getElementById('cine-ov').style.display !== 'none';
+      R.e_cuadros = (window._cineDatos && _cineDatos.loops && _cineDatos.loops[0] &&
+                     _cineDatos.loops[0].d && _cineDatos.loops[0].d.frags) ? _cineDatos.loops[0].d.frags.length : -1;
+      /* Y NO abrio el visor de IMAGENES, que es el otro camino posible. */
+      const ovi = document.getElementById('ig-imgv-ov');
+      R.e_noAbrioElDeImagenes = !(ovi && ovi.classList.contains('open'));
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      const co = document.getElementById('cine-ov'); if (co) co.style.display = 'none';
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig;
+        if (filtroOrig !== null) window._igImgFiltro = filtroOrig;
+        window.getInformes = infOrig;
+        await CeiboCine.borrar(ID); await CeiboCine.borrar(IDF);
+        igImgInvalidar();
+        const co = document.getElementById('cine-ov'); if (co) co.style.display = 'none';
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['(A) el indice trae el cineloop',                      R.a_traeLoop, R.a_traeLoop],
+      ['(A) y NO trae la fija DICOM de la misma base',        R.a_noTraeFija, R.a_noTraeFija],
+      ['(A) sin los datos de los cuadros',                    R.a_sinDatos, R.a_sinDatos],
+      ['(A) con su poster',                                   R.a_conPoster, R.a_conPoster],
+      ['(A) sus cuadros y su peso',                           R.a_conCuadros && R.a_conBytes, R.a_conCuadros + '/' + R.a_conBytes],
+      ['(B) pasa el filtro «Todas»',                          R.b_todas === true, R.b_todas],
+      ['(B) pasa «Videos»',                                   R.b_videos === true, R.b_videos],
+      ['(B) NO pasa «Imagenes»',                              R.b_imagenes === false, R.b_imagenes],
+      ['(B) NO pasa «De interes»',                            R.b_interes === false, R.b_interes],
+      ['(C) la grilla dibuja su celda',                       R.c_hayCelda, R.c_nCeldas + ' celdas'],
+      ['(C) con su poster de miniatura',                      R.c_conPoster, R.c_conPoster],
+      ['(C) diciendo sus cuadros',                            R.c_diceCuadros, R.c_diceCuadros],
+      ['(C) y de QUE ESTUDIO es',                             R.c_diceElEstudio, R.c_diceElEstudio],
+      ['(C) con la marca de video',                           R.c_tieneMarcaVideo, R.c_tieneMarcaVideo],
+      ['(C) y el pie los cuenta aparte',                      R.c_pieCuentaLoops, R.c_pie],
+      ['(D) en «Videos» sigue estando',                       R.d_enVideos === 1, R.d_enVideos],
+      ['(D) en «Imagenes» NO',                                R.d_enImagenes === 0, R.d_enImagenes],
+      ['(D) en «De interes» NO',                              R.d_enInteres === 0, R.d_enInteres],
+      ['(E) al tocarlo abre el visor de CINELOOPS',           R.e_abrioCine, R.e_abrioCine],
+      ['(E) con sus cuatro cuadros',                          R.e_cuadros === 4, R.e_cuadros],
+      ['(E) y no el visor de imagenes',                       R.e_noAbrioElDeImagenes, R.e_noAbrioElDeImagenes]
+    ] };
+  })();
+`);
+
+caso('TC-870', 'Un cineloop de la galeria NO entra al mazo del PPT, no suma al censo del estudio ni al Excel, y no aparece en la lista de estudios', `
+  return (async () => {
+    if (typeof CeiboCine === 'undefined' || typeof CeiboCine.indice !== 'function' ||
+        typeof window.igLoopPasaTipo !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el indice de cineloops (ECO-CONECTOR-4)', false,
+        'no existe CeiboCine.indice/igLoopPasaTipo']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    const U = 'ec4d0000-0000-4000-8000-0000000000e5';
+    const ID = 'cine2_ec4_' + Date.now().toString(36);
+    const infOrig = window.getInformes;
+    const pptOrig = window._igImgPpt;
+    let filtroOrig = null;
+    try {
+      const NC = 3;
+      const total = J.length * NC;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(NC);
+      for (let i = 0; i < NC; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      await CeiboCine.guardar({ id: ID, uuid: U, nombre:'loop.dcm', cuadros: NC, tipo:'loop',
+        ms:40, cols:8, filas:8, regiones:[], poster: PX, datos: datos, offs: offs,
+        bytes: total, ts: new Date().toISOString() });
+      /* El estudio tiene ADEMAS una imagen fija, que es el control: lo que si entra al mazo. */
+      await CeiboImg.guardar(U, [{ dataURL: PX, calidad:'media', origen:'estudio' }], []);
+
+      window.getInformes = () => [{ id:'ec4-y', uuid: U, nombre:'Paciente de prueba',
+                                    ci:'0', fecha_estudio:'2026-11-12' }];
+      filtroOrig = window._igImgFiltro;
+      window._igImgFiltro = 'all';
+      igImgInvalidar();
+      showTab('guardados');
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      await igImgIndiceCargar();
+      await new Promise(r => setTimeout(r, 200));
+
+      const pintar = () => {
+        igImgPintar(getInformes());
+        const c = document.getElementById('ig-img-lista');
+        if (c) c.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
+        return c;
+      };
+
+      /* ── (A) EN MODO «Armar PPT» el cineloop NO entra al mazo ─────────────────────*/
+      window._igImgPpt = true;
+      let c = pintar();
+      const cel = c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine === ID)[0] : null;
+      const fija = c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => !b.dataset.igCine)[0] : null;
+      R.denom_hayLoop = !!cel;
+      R.denom_hayFija = !!fija;
+      const selAntes = (window._igImgSel || []).length;
+      if (cel) igImgThClic(cel);
+      await new Promise(r => setTimeout(r, 150));
+      R.a_noEntroAlMazo = (window._igImgSel || []).length === selAntes;
+      const res = document.getElementById('ig-ppt-res');
+      R.a_loDice = !!(res && String(res.textContent || '').indexOf('cineloop') > -1);
+      R.a_mensaje = res ? String(res.textContent || '').slice(0, 110) : '';
+      /* ── (A2) CONTROL: la imagen FIJA del mismo estudio SI entra ─────────────────*/
+      if (fija) igImgThClic(fija);
+      await new Promise(r => setTimeout(r, 150));
+      R.a_fijaSiEntro = (window._igImgSel || []).length === selAntes + 1;
+      window._igImgSel = [];
+      window._igImgPpt = false;
+
+      /* ── (B) NO suma al censo de campos del estudio ni a las columnas del Excel ──
+            Son los dos inventarios que esta casa mide en cada tanda. */
+      R.b_excel = (typeof LAB_XLS_MAP !== 'undefined') ? Object.keys(LAB_XLS_MAP).length : -1;
+      R.b_controles = document.querySelectorAll('input[id], select[id], textarea[id]').length;
+      /* Y el cineloop no agrego NINGUN control con id a la pantalla. */
+      const c2 = pintar();
+      const celdas = c2 ? [].slice.call(c2.querySelectorAll('.ig-img-th')) : [];
+      R.b_sinInputs = celdas.every(b => b.querySelectorAll('input[id], select[id], textarea[id]').length === 0);
+
+      /* ── (C) NO aparece en la lista de ESTUDIOS ─────────────────────────────────*/
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('inf');
+      await new Promise(r => setTimeout(r, 250));
+      const linf = document.getElementById('lista-informes') || document.getElementById('ig-inf-lista');
+      const txtInf = linf ? String(linf.textContent || '') : '';
+      R.c_hayLista = !!linf;
+      R.c_noNombraElLoop = txtInf.indexOf('loop.dcm') < 0 && txtInf.indexOf(ID) < 0;
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      await new Promise(r => setTimeout(r, 200));
+
+      /* ── (D) NO entra al estudio abierto sin un gesto ───────────────────────────*/
+      const slotsAntes = imgSlots.filter(s => s && s.dataURL).length;
+      pintar();
+      await new Promise(r => setTimeout(r, 200));
+      R.d_slotsIgual = imgSlots.filter(s => s && s.dataURL).length === slotsAntes;
+      R.d_sinCola = (typeof _cineHayPendientes === 'function') ? !_cineHayPendientes() : true;
+
+      /* ── (E) EL FILTRO «De interes» devuelve LO MISMO que antes de esta tanda ───
+            Con el cineloop afuera, ese filtro sigue dando solo las imagenes estrelladas.
+            Se mide contando: cero estrelladas, cero celdas. */
+      window._igImgFiltro = 'star';
+      const c3 = pintar();
+      R.e_enInteres = c3 ? [].slice.call(c3.querySelectorAll('.ig-img-th')).length : -1;
+      window._igImgFiltro = 'all';
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig;
+        if (filtroOrig !== null) window._igImgFiltro = filtroOrig;
+        window._igImgPpt = pptOrig; window._igImgSel = [];
+        window.getInformes = infOrig;
+        await CeiboCine.borrar(ID);
+        await CeiboImg.borrar(U);
+        igImgInvalidar();
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: la celda del cineloop esta en la grilla', R.denom_hayLoop, R.denom_hayLoop],
+      ['DENOMINADOR: y hay una imagen fija de control',       R.denom_hayFija, R.denom_hayFija],
+      ['(A) tocarlo en modo PPT NO lo suma al mazo',          R.a_noEntroAlMazo, R.a_noEntroAlMazo],
+      ['(A) y lo DICE en vez de callarse',                    R.a_loDice, R.a_mensaje],
+      ['(A) CONTROL: la imagen fija SI entra al mazo',        R.a_fijaSiEntro, R.a_fijaSiEntro],
+      ['(B) el Excel sigue en 381 claves',                    R.b_excel === 381, R.b_excel],
+      ['(B) ninguna celda agrega un control con id',          R.b_sinInputs, R.b_sinInputs],
+      ['(C) DENOMINADOR: la lista de estudios se pinto',      R.c_hayLista, R.c_hayLista],
+      ['(C) y NO nombra el cineloop',                         R.c_noNombraElLoop, R.c_noNombraElLoop],
+      ['(D) pintar la grilla no mete nada en el estudio',     R.d_slotsIgual, R.d_slotsIgual],
+      ['(D) ni en la cola de cineloops',                      R.d_sinCola, R.d_sinCola],
+      ['(E) «De interes» sigue dando CERO celdas',            R.e_enInteres === 0, R.e_enInteres]
+    ] };
+  })();
+`);
+
+caso('TC-871', 'El apodo del equipo y el nombre del estudio entran como TEXTO en las listas nuevas, aislados en un bdi, y no ejecutan nada', `
+  return (async () => {
+    if (typeof window.clnkbVer !== 'function' || typeof CeiboCine === 'undefined' ||
+        typeof CeiboCine.indice !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene las listas nuevas (ECO-CONECTOR-4)', false,
+        'no existen clnkbVer/CeiboCine.indice']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const J = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const PX = 'data:image/jpeg;base64,' + btoa(String.fromCharCode.apply(null, J));
+    /* ** EL PAYLOAD SE CUENTA POR LO QUE APARECE EN EL DOM, no por lo que se ve en pantalla:
+       un <img onerror> no deja rastro visible y ejecuta igual. Se cuenta el elemento Y se
+       pone un centinela que el payload intentaria mover. */
+    const HOSTIL = '<img src=x onerror="window.__ec4Ejecuto=1"><b>ojo</b>' +
+                   String.fromCharCode(0x202E) + 'oditse';
+    const U = 'ec4e0000-0000-4000-8000-0000000000f6';
+    const ID = 'cine3_ec4_' + Date.now().toString(36);
+    const infOrig = window.getInformes;
+    let creado = null, filtroOrig = null;
+    try {
+      window.__ec4Ejecuto = 0;
+
+      /* ── (A) EL APODO DEL EQUIPO EN LA FILA DE «Sin estudio» ───────────────────────*/
+      creado = 'clnkb_hostil_ec4_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen:'ceibolink', equipo: HOSTIL,
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: PX, clnkId:'' }], loops: [] });
+      showTab('guardados');
+      await igBandejaRender();
+      await new Promise(r => setTimeout(r, 250));
+      const lis = document.getElementById('ig-bandeja-lista');
+      R.a_hayLista = !!lis;
+      R.a_inyectados = lis ? lis.querySelectorAll('img[onerror], script').length : -1;
+      R.a_ejecuto = !!window.__ec4Ejecuto;
+      const bdis = lis ? [].slice.call(lis.querySelectorAll('bdi')) : [];
+      R.a_hayBdi = bdis.some(b => String(b.textContent || '').indexOf('onerror') > -1);
+      R.a_textoLiteral = lis ? String(lis.textContent || '').indexOf('<img src=x onerror=') > -1 : false;
+      /* Y EL thumb SE PINTA COMO src DE UN <img> PROPIO, no del payload. */
+      const imgsFila = lis ? [].slice.call(lis.querySelectorAll('img')) : [];
+      R.a_imgsSonThumbs = imgsFila.length > 0 && imgsFila.every(i => String(i.src || '').indexOf('data:image') === 0);
+
+      /* ── (B) Y EN EL VISOR DE LA FIJA ─────────────────────────────────────────────*/
+      await clnkbVer(creado, 'img', 0);
+      await new Promise(r => setTimeout(r, 200));
+      const ov = document.getElementById('clnkb-ver');
+      R.b_hayVisor = !!ov;
+      R.b_inyectados = ov ? ov.querySelectorAll('img[onerror], script').length : -1;
+      R.b_hayBdi = !!(ov && [].slice.call(ov.querySelectorAll('bdi')).some(b => String(b.textContent || '').indexOf('onerror') > -1));
+      R.b_textoLiteral = ov ? String(ov.textContent || '').indexOf('<img src=x onerror=') > -1 : false;
+      R.b_ejecuto = !!window.__ec4Ejecuto;
+      _clnkbVerCerrar();
+
+      /* ── (C) EL NOMBRE DEL ESTUDIO EN LA CELDA DEL CINELOOP ───────────────────────
+            El nombre del paciente lo escribio una persona y va al title y al aria-label
+            de la celda: por atributo via setAttribute y textContent, nunca por innerHTML. */
+      const NC = 2;
+      const total = J.length * NC;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(NC);
+      for (let i = 0; i < NC; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      await CeiboCine.guardar({ id: ID, uuid: U, nombre: HOSTIL, cuadros: NC, tipo:'loop',
+        ms:40, cols:8, filas:8, regiones:[], poster: PX, datos: datos, offs: offs,
+        bytes: total, ts: new Date().toISOString() });
+      window.getInformes = () => [{ id:'ec4-z', uuid: U, nombre: HOSTIL, ci:'0',
+                                    fecha_estudio:'2026-11-12' }];
+      filtroOrig = window._igImgFiltro;
+      window._igImgFiltro = 'all';
+      igImgInvalidar();
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      await igImgIndiceCargar();
+      await new Promise(r => setTimeout(r, 200));
+      igImgPintar(getInformes());
+      const c = document.getElementById('ig-img-lista');
+      if (c) c.querySelectorAll('.ig-mes-grupo').forEach(g => { g.classList.remove('cerrado'); igImgLlenarMes(g); });
+      await new Promise(r => setTimeout(r, 250));
+      const cel = c ? [].slice.call(c.querySelectorAll('.ig-img-th')).filter(b => b.dataset.igCine === ID)[0] : null;
+      R.c_hayCelda = !!cel;
+      R.c_inyectados = c ? c.querySelectorAll('img[onerror], script').length : -1;
+      R.c_ejecuto = !!window.__ec4Ejecuto;
+      R.c_enTitle = !!(cel && (cel.title || '').indexOf('<img src=x onerror=') > -1);
+      /* Las unicas <img> de la celda son el poster, con su data: */
+      R.c_imgsSonPosters = cel ? [].slice.call(cel.querySelectorAll('img')).every(i => String(i.src || '').indexOf('data:image') === 0) : false;
+
+      /* ── (D) EL CONTROL POSITIVO DE LA SONDA ─────────────────────────────────────
+            Sin esto, «cero inyectados» podria significar que la sonda no sabe contar. Se
+            inyecta el MISMO payload a mano en un nodo suelto y se verifica que lo cuenta. */
+      const probeta = document.createElement('div');
+      probeta.innerHTML = HOSTIL;
+      document.body.appendChild(probeta);
+      R.d_sondaCuenta = probeta.querySelectorAll('img[onerror], script').length;
+      await new Promise(r => setTimeout(r, 120));
+      R.d_elControlEjecuto = !!window.__ec4Ejecuto;
+      probeta.remove();
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    finally {
+      try {
+        window.toast = toastOrig;
+        if (filtroOrig !== null) window._igImgFiltro = filtroOrig;
+        window.getInformes = infOrig;
+        _clnkbVerCerrar();
+        if (creado) await clnkbBorrar(creado);
+        await CeiboCine.borrar(ID);
+        igImgInvalidar();
+        await igBandejaRender();
+        window.__ec4Ejecuto = 0;
+      } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: la fila de la bandeja se pinto',         R.a_hayLista, R.a_hayLista],
+      ['(A) CERO elementos inyectados en la fila',            R.a_inyectados === 0, R.a_inyectados],
+      ['(A) y nada ejecuto',                                  R.a_ejecuto === false, R.a_ejecuto],
+      ['(A) el apodo va aislado en un bdi',                   R.a_hayBdi, R.a_hayBdi],
+      ['(A) y se lee como texto literal',                     R.a_textoLiteral, R.a_textoLiteral],
+      ['(A) las <img> de la fila son los thumbs',             R.a_imgsSonThumbs, R.a_imgsSonThumbs],
+      ['(B) DENOMINADOR: el visor abrio',                     R.b_hayVisor, R.b_hayVisor],
+      ['(B) CERO elementos inyectados en el visor',           R.b_inyectados === 0, R.b_inyectados],
+      ['(B) el apodo aislado en un bdi',                      R.b_hayBdi, R.b_hayBdi],
+      ['(B) texto literal',                                   R.b_textoLiteral, R.b_textoLiteral],
+      ['(B) y nada ejecuto',                                  R.b_ejecuto === false, R.b_ejecuto],
+      ['(C) DENOMINADOR: la celda del cineloop se pinto',     R.c_hayCelda, R.c_hayCelda],
+      ['(C) CERO elementos inyectados en la grilla',          R.c_inyectados === 0, R.c_inyectados],
+      ['(C) el nombre va en el title, como texto',            R.c_enTitle, R.c_enTitle],
+      ['(C) las <img> de la celda son el poster',             R.c_imgsSonPosters, R.c_imgsSonPosters],
+      ['(C) y nada ejecuto',                                  R.c_ejecuto === false, R.c_ejecuto],
+      ['(D) CONTROL POSITIVO: la sonda SI cuenta un payload', R.d_sondaCuenta === 1, R.d_sondaCuenta],
+      ['(D) y ese control SI ejecuto',                        R.d_elControlEjecuto === true, R.d_elControlEjecuto]
+    ] };
+  })();
+`);
+
 
 
 
