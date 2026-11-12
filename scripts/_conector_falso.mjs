@@ -176,6 +176,15 @@ function escenas() {
       img('img_m2', 'eq_3f8a1c', iso(t0 + 8000),  'imagen', uno),
       img('img_m3', 'eq_3f8a1c', iso(t0 + 19000), 'video',  loop),
     ],
+    /* OTRO ENVIO MIXTO, con ids propios. Cuarta vez que esta casa paga lo mismo: el aviso no
+       vuelve por las MISMAS imagenes en la sesion, asi que un bloque que necesita un grupo
+       NUEVO -y que ese grupo pueda CRECER- no lo consigue reusando `mixto`, que ya usaron dos
+       bloques antes. */
+    mixto2: () => [
+      img('img_w1', 'eq_3f8a1c', iso(t0 + 110000), 'imagen', uno),
+      img('img_w2', 'eq_3f8a1c', iso(t0 + 118000), 'imagen', uno),
+      img('img_w3', 'eq_3f8a1c', iso(t0 + 129000), 'video',  loop),
+    ],
     /* DOS CINELOOPS del mismo envio, para la tira y para el peso. */
     dosLoops: () => [
       img('img_l1', 'eq_3f8a1c', iso(t0),         'video', loop),

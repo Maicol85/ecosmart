@@ -136208,10 +136208,25 @@ caso('TC-853', 'El aviso no se abre encima del visor ni del selector, y con mas 
             que con un grupo viejo sobreviviendo, el sondeo toma la rama de actualizacion y le
             REESCRIBE el titulo y el texto encima -- el medico pierde la pregunta que desbloquea
             sus imagenes y ve una de imagenes en su lugar. Se mide esa secuencia exacta. */
-      await ctrl({ reset:true, equipos:3, escena:'mixto' });
+      /* La escena es mixto2 y no mixto: los ids de mixto ya los marcaron (E) y (F), asi que
+         ahi el revisor devuelve false y este bloque se quedaba sin grupo. */
+      await ctrl({ reset:true, equipos:3, escena:'mixto2' });
       await clnkRevisarImagenes();                 // abre uno de imagenes: deja grupo
       await new Promise(r => setTimeout(r, 250));
+      const prevIds = (window._clnkAvisoGrupo || {}).ids || [];
       clnkAvisoCerrar();                           // y lo cierra: el grupo tiene que olvidarse
+      /* ** Y EL GRUPO TIENE QUE PODER CRECER, o la rama de actualizacion no se ejercita y la
+         mutacion sobrevive sin que eso pruebe nada: con los mismos ids, esa rama sale por
+         «no crecio». Se agregan dos del MISMO equipo dentro de la ventana, igual que (F). */
+      const lsI = await (await fetch(F.base + '/v1/imagenes',
+        { headers:{ Authorization:'Bearer ' + localStorage.getItem('ett_ceibolink_token') } })).json();
+      const baseI = (lsI.imagenes || [])[0] || {};
+      const isoI = ms => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+      await ctrl({ imagenes: (lsI.imagenes || []).concat([
+        Object.assign({}, baseI, { id:'img_i1', recibida: isoI(Date.parse(baseI.recibida) + 22000), tipo:'imagen' }),
+        Object.assign({}, baseI, { id:'img_i2', recibida: isoI(Date.parse(baseI.recibida) + 38000), tipo:'imagen' })
+      ]) });
+      R.i_prevIds = prevIds.length;
       R.i_abrioEquipo = await clnkAvisarEquipoNuevo();
       await new Promise(r => setTimeout(r, 300));
       R.i_tituloEquipo = (document.getElementById('clnkav-title') || {}).textContent || '';
@@ -136255,6 +136270,7 @@ caso('TC-853', 'El aviso no se abre encima del visor ni del selector, y con mas 
       ['(F) sigue habiendo UN solo aviso',                     R.f_unoSolo, R.f_unoSolo],
       ['(G) CONTROL: sin nada nuevo no se repinta',            R.g_sinCambio === false, R.g_sinCambio],
       ['(H) al cerrar se olvida el grupo y vuelve a avisar',   R.h_vuelveAAbrir === true, R.h_vuelveAAbrir],
+      ['(I) DENOMINADOR: habia un grupo de 3 que puede crecer', R.i_prevIds === 3, R.i_prevIds],
       ['(I) DENOMINADOR: el aviso de equipo nuevo abrio',     R.i_abrioEquipo === true, R.i_tituloEquipo],
       ['(I) y el sondeo NO lo reescribe',                     R.i_revisor === false, R.i_revisor],
       ['(I) el cartel sigue siendo el del equipo',            R.i_sigueSiendoEquipo, R.i_tituloDespues]
