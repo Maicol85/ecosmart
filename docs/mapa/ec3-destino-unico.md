@@ -208,3 +208,18 @@ implícita, `impl:true`.
 | tocar la bandeja o la asignación | este archivo, §6 |
 | tocar el lector de DICOM sin comprimir o su tope | este archivo, §7 |
 | los casos de esta tanda | `docs/mapa/tests-fichas-852.md` |
+
+---
+
+## ⚠️ Lo que ECO-CONECTOR-4 cambió de acá (2026-11-12)
+
+Tres cosas de este mapa dejaron de ser ciertas, y están en
+**`docs/mapa/ec4-confirmar-pesados.md`**:
+
+1. **`dstAlActual` ya no anota el id «si el importador no lanzó»**: el importador devuelve un
+   **veredicto por archivo** y sólo se confirma lo que entró. Es el defecto que el médico encontró
+   con CeiboLink real — un DICOM rechazado se le confirmaba al conector, que lo borraba.
+2. **El tope de píxeles crudos ya no rechaza**: pregunta, con el peso a la vista y dos salidas.
+   Hay además un **tope duro** por encima del cual no se ofrece abrir.
+3. **El bloque «Sin estudio» muestra miniaturas y las abre en un visor**: hasta ECO-CONECTOR-3
+   sólo se podía asignar o borrar a ciegas.

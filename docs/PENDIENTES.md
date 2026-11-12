@@ -118,7 +118,14 @@ cambió es que ya no es el único camino.
 
 ---
 
-### EC3-f · El tope de píxeles crudos son 192 MB y es un número elegido
+### EC3-f · [CERRADO por ECO-CONECTOR-4, 2026-11-12] El tope de píxeles crudos son 192 MB y es un número elegido
+
+> **CERRADO.** El tope dejó de ser un rechazo y pasó a ser el umbral de una **pregunta** al médico,
+> con el peso a la vista y dos salidas («Abrir igual» / «Dejarlo esperando»). Lo que este item
+> declaraba como costo —«el médico recibe un rechazo que podría no haber hecho falta»— ya no pasa
+> por debajo de los 768 MB del tope duro nuevo. Ver **EC4-h**.
+
+Lo que decía, conservado:
 
 `DCM_CRUDO_MAX = 192 * 1024 * 1024`. Por encima de eso un DICOM sin comprimir se rechaza **antes de
 tocar un canvas**, diciendo su tamaño. El número cubre los casos realistas con margen —un cineloop
@@ -16164,3 +16171,166 @@ Lo que la orden deja fuera a propósito, para que la próxima tanda no lo busque
 La bandeja ya guarda el `clnkId` de cada imagen en su registro, que es lo que hará falta si
 alguna vez se quiere volver a hablar con el conector sobre ella. Y la pantalla de la bandeja no
 tiene miniaturas a propósito: una miniatura invita a un gesto que todavía no existe.
+
+---
+
+## ECO-CONECTOR-4 — confirmar solo lo que entró, archivos pesados, ver antes de asignar (2026-11-12)
+
+> **Ninguno de estos ids se repite**, verificado contra el archivo entero antes de escribirlos.
+> El mapa de la tanda está en **`docs/mapa/ec4-confirmar-pesados.md`**.
+
+### EC4-a · El defecto que el médico encontró estaba en UN sumidero de los tres, no en los tres
+
+La hipótesis de la orden —«el id se anota apenas el importador vuelve sin lanzar excepción»— era
+**correcta para `dstAlActual` y FALSA para los otros dos**. `dstAGuardado` y `dstABandeja` ya
+acumulaban en `confirmar[]` **después** de que la escritura devolviera ok, y usan `dstLeer` directo,
+que sí tiene un resultado explícito.
+
+Queda escrito porque cambia dónde hay que mirar la próxima vez: el riesgo no es «los tres caminos
+están mal», es **«hay un camino que delega en una función que no devuelve veredicto»**. Por eso el
+arreglo va en el origen —`mediosImportar` y `dcmImgImportar` devuelven `res[]`— y no en el llamador:
+con un parche por caso, la próxima puerta que se agregue vuelve a nacer rota.
+
+---
+
+### EC4-b · Un segundo hueco que la orden no nombraba: la RESERVA del slot no es la imagen puesta
+
+`imgCompressLoad` es **asíncrona** y puede no llegar a poner el slot por dos caminos —el token
+`_imgGen` cambió porque se abrió otro estudio, o `_imgComprimir` falló—. Hasta esta tanda las dos
+puertas tomaban la **reserva** del slot por éxito, así que una imagen que nunca llegó al formulario
+contaba como entrada y su id se confirmaba.
+
+Hoy `imgCompressLoad` devuelve una promesa de «el slot quedó puesto» y las dos puertas la esperan.
+**Los otros siete llamadores ignoran el valor de vuelta y siguen funcionando exactamente igual**,
+verificado uno por uno.
+
+---
+
+### EC4-c · DECISIÓN PARA EL MÉDICO: la pregunta por un archivo pesado NO ofrece guardar el estudio
+
+La orden pide que, si el estudio abierto tiene datos sin guardar, la pregunta ofrezca **guardar
+antes** de abrir algo pesado, y agrega «si implementarlo es estructural, informalo».
+
+**Es estructural, y está medido.** La pregunta vive dentro de `_dcmCrudoAFrags`, que corre:
+- a mitad de una importación **asíncrona**, de a un archivo por vez, dentro de un bucle;
+- con el modal de progreso de CeiboLink **abierto** encima de la pantalla.
+
+Guardar desde ahí sería reentrar en `guardarInforme` —que abre sus propios modales, escribe en
+IndexedDB y llama a `clnkConfirmarPersistidas`— en medio de ese bucle. Ofrecerlo mal es peor que no
+ofrecerlo: una confirmación a CeiboLink disparada desde adentro de una importación puede borrar allá
+lo que todavía se está bajando.
+
+**Lo que sí se hace**: el texto de la pregunta **nombra** que el estudio tiene cambios sin guardar,
+y «Cancelar» deja todo como estaba para que el médico guarde y vuelva. El archivo no se pierde.
+
+**Pregunta para el médico:** ¿alcanza con el aviso, o preferís que la app te saque de la importación
+y te lleve a guardar?
+
+---
+
+### EC4-d · El visor de una fija de la bandeja es propio, y se midió por qué
+
+La orden pide reutilizar los visores que existen. Para el **cineloop** se reutiliza `_cineAbrir`, que
+es literalmente el mismo objeto y el mismo camino que la tira del estudio. Para la **fija** no hay
+ninguno reutilizable:
+
+- `igImgVisorAbrir` está atado a `uuid` + `idx` de un **estudio guardado**: lee los píxeles por
+  `igImgBlobs(uuid)` y busca el informe por `uuid`. La bandeja, por definición, no tiene estudio.
+- Enhebrarle un modo obligaría a tocar un visor maduro que el médico usa todos los días, con su
+  estrella, su nota, su tapa de PPT, su «medir» y su «ir al estudio».
+
+Es el mismo razonamiento con que ECO-CONECTOR-3 decidió no reusar `igItemHTML`. Lo que se escribió
+son ~45 líneas con el **molde de `_docVer`**, que es el lightbox que esta app ya tiene para mirar una
+imagen suelta.
+
+---
+
+### EC4-e · Los envíos guardados ANTES de esta tanda no tienen miniatura de sus fijas
+
+El `thumb` lo escribe `dstABandeja` con los píxeles en la mano. Un registro escrito por
+ECO-CONECTOR-2 o ECO-CONECTOR-3 **no lo tiene**, y la lista no puede generarlo sin materializar el
+registro completo —que es justamente lo que la decisión prohíbe—.
+
+**Qué pasa hoy con uno de ésos**: sus cineloops sí muestran miniatura (el `poster` existe desde
+ECO-CONECTOR-3) y sus fijas salen como un recuadro con `🖼` y su número. **Abrirlas funciona igual**,
+porque el visor lee el registro completo, que es un gesto explícito del médico.
+
+No se migra: migrar obligaría a leer todos los registros con sus megas una vez, que es exactamente el
+pico que esta tanda viene a evitar. Se apaga solo a medida que los envíos viejos se asignan o se
+borran.
+
+---
+
+### EC4-f · Un cineloop no pasa el filtro «⭐ De interés», y no es un olvido
+
+La estrella se guarda **por slot**, con `CeiboImg.marcar(uuid, idx, parche)`. Un cineloop vive en
+otra base (`ceibomed_cine`) y no tiene slot ni `idx`: **no hay dónde escribirla**.
+
+Dejarlo fuera tiene una propiedad que importa: ese filtro sigue devolviendo **exactamente** lo que
+devolvía antes de esta tanda, que es lo que la orden pide no romper.
+
+**Pregunta para el médico:** ¿querés poder marcar un cineloop como «de interés»? Se puede, pero
+necesita un campo nuevo en el registro del cineloop y migrar lo guardado.
+
+---
+
+### EC4-g · DECISIÓN PARA EL MÉDICO: un cineloop no entra al mazo del PPT desde la galería
+
+Tocar un cineloop con «Armar PPT» prendido **no lo suma al mazo**, y la pantalla lo dice en vez de
+callarse.
+
+El motivo: una diapositiva lleva una **imagen**, y meter un cineloop ahí significa convertirlo a MP4.
+Esta app sabe hacerlo, pero por el camino del PPT del estudio, con su propio aviso de peso y su
+propia ventana de conversión. Mezclarlo acá sin esa maquinaria pondría en el mazo **un cuadro suelto
+haciéndose pasar por el cineloop**.
+
+Se dejó como estaba, que es lo que la orden manda ante la duda.
+
+**Pregunta para el médico:** ¿querés poder meter un cineloop en un PPT armado desde «Imágenes
+guardadas»? Si sí, va a tardar al convertirlo y hay que decidir si entra como video o como un cuadro
+fijo elegido a mano.
+
+---
+
+### EC4-h · El tope duro son 768 MB, y es un número elegido con lo medido
+
+`DCM_CRUDO_DURO = 768 * 1024 * 1024`. Por encima de eso la pregunta **no ofrece «Abrir igual»**: lo
+que pasa a ese tamaño no es que tarde, es que la pestaña se cae, y una pestaña que se cae se lleva
+puesto el estudio sin guardar.
+
+El número sale de la medición del archivo real del médico (351,9 MB de píxeles declarados), con
+margen para el doble. **Lo que NO está medido** es el punto exacto en que este Chrome, en esta
+máquina, se cae: para saberlo habría que hacerlo caer, y el número dependería de la máquina, de las
+pestañas abiertas y de la versión del navegador. Se eligió un tope que deja pasar lo que se midió y
+corta antes de lo que no se puede sostener.
+
+Si algún equipo manda algo entre 768 MB y lo que el navegador aguante, el médico recibe un cartel
+que podría no haber hecho falta — y la imagen **sigue esperando en CeiboLink**, que es el lado
+seguro.
+
+**Esto cierra `EC3-f`**, que declaraba justamente el costo de que el tope fuera un rechazo.
+
+---
+
+### EC4-i · Los dos topes y el fallo por memoria se bajan desde la página con un gancho
+
+`window.__dcmCrudoMaxTest`, `window.__dcmCrudoDuroTest` y `window.__dcmFallaMemoriaTest`. Ninguno lo
+escribe un control de la app, ninguno se persiste y ninguno sale en una pantalla: es el mismo recurso
+y la misma justificación que `window.__clnkBaseTest`.
+
+El motivo está medido: un fixture que de verdad pase los 192 MB son **192 MB por loopback en cada
+caso que lo use**, y son varios. Lo que las pruebas de la batería necesitan es la **lógica** del
+umbral, no su valor. El tamaño de verdad se mide aparte, una vez, con `_probe_ec4mem.mjs` y la escena
+`nativoEnorme`.
+
+---
+
+### EC4-j · Lo que esta tanda NO pudo cubrir
+
+- **El conector REAL y el ecógrafo real no entraron**, igual que en las tres tandas anteriores: todo
+  se midió contra `scripts/_conector_falso.mjs`, que implementa el contrato 1.1 pero no es CeiboLink.
+- **El archivo de 351,9 MB se midió una vez, en esta máquina**: el pico de memoria depende de la
+  máquina y de lo que haya abierto.
+- **Los cuatro commits de código fueron a uno solo** y se declara en su mensaje: se escribieron sobre
+  las mismas zonas de `index.html` antes de separarlos, y partirlos después hubiera necesitado
+  `git add -p`, que este entorno no tiene.

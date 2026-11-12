@@ -428,3 +428,28 @@ contra la línea base por sus condiciones adaptadas. **TC-161, TC-233 y TC-850 p
 ⚠️ **TC-764 es sensibilidad de lote PREEXISTENTE**: falla en el lote 15 y pasa aislado, y falla
 **idéntico** contra `bff56dc` con el mismo archivo de casos y la misma composición de lotes. No es
 de esta tanda.
+
+---
+
+## ECO-CONECTOR-4 (2026-11-12) — TC-862 a TC-871
+
+Diez casos nuevos. Las fichas están en el mapa de la tanda,
+**`docs/mapa/ec4-confirmar-pesados.md`** § 6.
+
+| caso | qué fija |
+|---|---|
+| TC-862 | el hallazgo: el grupo mixto confirma **solo** lo que entró |
+| TC-863 | un grupo donde no entra nada no confirma nada; el pendrive tampoco |
+| TC-864 | los otros dos sumideros, con su control |
+| TC-865 | la pregunta con el peso; «Abrir igual» y «Dejarlo esperando» |
+| TC-866 | el tope duro y el fallo por memoria |
+| TC-867 | miniaturas y visor; mirar no modifica nada |
+| TC-868 | asignar al estudio elegido y a ningún otro; la grilla sin los megas |
+| TC-869 | el cineloop en «Todas» y «Videos» |
+| TC-870 | fuera del PPT, del Excel, del censo y de la lista de estudios |
+| TC-871 | el apodo y el nombre del estudio como texto |
+
+**Adaptado: TC-861 (G), con su condición INVERTIDA.** Afirmaba que el tope de píxeles crudos
+rechaza, y eso dejó de ser cierto por orden del médico. Hoy exige que el mensaje de rechazo por
+tamaño **ya no esté** y que el mismo descriptor imposible **dispare la pregunta**, así que puede
+fallar por los dos lados.

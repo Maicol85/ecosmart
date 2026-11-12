@@ -432,3 +432,18 @@ reemplazado. El mapa es **`docs/mapa/ec3-destino-unico.md`**, y lo que cambió:
 - **La confirmación** a CeiboLink ya no se pierde cuando el estudio tiene **sólo** un cineloop, y no
   ocurre si alguna escritura falló.
 - **Un cineloop se guarda solo** con el estudio, y la tira lo muestra «sin guardar» hasta entonces.
+
+---
+
+## ⚠️ Los CINELOOPS entran a esta galería desde ECO-CONECTOR-4 (2026-11-12)
+
+Un cineloop guardado con un estudio aparece ahora en **«Todas»** y en **«Videos»**, con su poster
+de miniatura, la marca ▶, sus cuadros y de qué estudio es. Al tocarlo abre `cineAbrirGuardado`.
+
+- **No** pasa «Imágenes» ni **«⭐ De interés»** — la estrella se guarda por slot y un cineloop no
+  tiene slot.
+- **No** entra al mazo del PPT, con el motivo a la vista.
+- **No** suma a `totalImgs` ni a `mostradas`: el pie los cuenta aparte.
+
+El índice es `CeiboCine.indice()`, con cursor y sin materializar los cuadros. Todo en
+**`docs/mapa/ec4-confirmar-pesados.md`** § 4.

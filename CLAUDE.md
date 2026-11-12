@@ -161,6 +161,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
+| **Tocar el VEREDICTO POR ARCHIVO del importador** —qué devuelven `mediosImportar` y `dcmImgImportar`, por qué `imgCompressLoad` devuelve una promesa, quién confirma a CeiboLink y cuándo—, **el TOPE de un DICOM sin comprimir** con su pregunta y su tope duro, **las MINIATURAS y el visor de «Sin estudio»**, o **los CINELOOPS en «Imágenes guardadas»** con su índice, su filtro y su exclusión del PPT | `docs/mapa/ec4-confirmar-pesados.md` |
 | **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
 | **Tocar el PANEL COMPACTO de CeiboLink** —la cabecera de dos renglones, los cuatro plegables nativos, el renglón de un equipo, el hueco de la grilla—, **el SONDEO**, **el AVISO de imágenes o de equipo nuevo** con su agrupación por tiempo, **ADJUNTAR al estudio** con su confirmación al guardar, **la BANDEJA de imágenes sin estudio**, o **la REGLA de nombre Y documento** y el aviso de espacio | `docs/mapa/ec2-aviso-bandeja.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
@@ -270,7 +271,21 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,93 MB / 178.520 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-3**, sobre el árbol ya sellado: sello **`v20261112-1355`**, md5 **`e262aa4d`**.
+  sin frameworks. Hoy **12,97 MB / 179.130 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-4**, sobre el árbol ya sellado: sello **`v20261112-1639`**, md5 **`6f25d43d`**.
+  El diff de ECO-CONECTOR-4 son **683 líneas agregadas y 73 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `12d27ce` **sobre el árbol ya sellado**, de las que **627** no son
+  comentario, con **cero** `innerHTML`, `eval(` y `new Function` nuevos, **cero** claves y
+  contraseñas, **cero** direcciones nuevas y **CERO llamadas de red nuevas**.
+  **UN SOLO id nuevo, contado sobre el diff**: `clnkb-ver`, el del visor de la bandeja, que se crea
+  al vuelo. No termina en `-aviso` ni en `-badge` y no cae en ninguno de los veintiún barridos por
+  sufijo o prefijo del archivo. **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo
+  que deja todo lo de esta tanda fuera del censo del estudio y del Excel **por construcción** y no
+  por una lista. **Excel en 457 columnas y cero campos guardados nuevos.**
+  ⚠️ **POR TRIGÉSIMA SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 12d27ce:index.html` da **178.520** líneas,
+  **12.930.920** bytes y el md5 **`e262aa4d`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,93 MB / 178.520 al cierre de la tanda **ECO-CONECTOR-3**, sello **`v20261112-1355`**, md5 **`e262aa4d`**.)
   El diff de ECO-CONECTOR-3 son **1.622 líneas agregadas y 223 quitadas** en `index.html`, medido
   con `git diff --numstat` contra `bff56dc` **sobre el árbol ya sellado**, de las que **1.431** no
   son comentario, con **cero** `innerHTML`, `eval(` y `new Function` nuevos —la única aparición de
@@ -1149,6 +1164,150 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda ECO-CONECTOR-4 (2026-11-12) — confirmar solo lo que entró, los archivos pesados con
+decisión del médico, ver antes de asignar y los cineloops a la vista.** CINCO commits. Sello
+**`v20261112-1639`**, md5 **`6f25d43d`**, **179.130** líneas.
+El médico probó ECO-CONECTOR-3 con CeiboLink **real** y aparecieron cuatro cosas. La primera era
+grave y las otras tres eran de uso. **Nada de esto llega al papel**: no escribe un campo del
+informe, no toca el EN SUMA, el PDF, el PPT ni el Excel, que queda en **457** columnas con **cero**
+campos guardados nuevos.
+**EL DEFECTO SE REPRODUJO Y SE CERRÓ, Y LA HIPÓTESIS DE LA ORDEN ERA CORRECTA PARA UN SUMIDERO DE
+LOS TRES.** El médico adjuntó dos imágenes y un DICOM sin comprimir de **351,9 MB**; EcoSmart
+rechazó el grande con un cartel; al guardar, CeiboLink pasó a decir «sin imágenes esperando». El
+archivo **rechazado se confirmó y se borró allá**. `dstAGuardado` y `dstABandeja` **ya confirmaban
+bien** —acumulan en `confirmar[]` recién cuando la escritura devuelve ok—; el roto era
+`dstAlActual`, el único que delega en `mediosImportar`, **que no devolvía nada**, y un rechazo
+vuelve sin lanzar. Eso cambió dónde había que mirar: el riesgo no es «los tres están mal», es «hay
+un camino que delega en una función sin veredicto».
+**SE ARREGLÓ EN EL ORIGEN.** `mediosImportar` y `dcmImgImportar` devuelven `{n, ok, no, res[]}` con
+`res[i]` paralelo a `files[i]`: ENTRÓ o NO ENTRÓ, con el motivo. **Arranca en NO ENTRÓ** a
+propósito —una copia de más en el conector se borra sola a las 24 h, una imagen borrada sin copia
+no vuelve—.
+⚠️ **UN SEGUNDO HUECO QUE LA ORDEN NO NOMBRABA: LA RESERVA DEL SLOT NO ES LA IMAGEN PUESTA.**
+`imgCompressLoad` es asíncrona y puede no llegar a poner el slot por dos caminos —`_imgGen` cambió
+o `_imgComprimir` falló—, y hasta esta tanda las dos puertas tomaban la reserva por éxito. Hoy
+devuelve una promesa de «el slot quedó puesto» y las dos la **esperan**; los otros siete llamadores
+ignoran el valor y siguen igual, verificado uno por uno.
+**EL TOPE DEJA DE RECHAZAR Y PASA A PREGUNTAR.** `DCM_CRUDO_MAX` (192 MB) es el umbral de la
+pregunta y `DCM_CRUDO_DURO` (768 MB) el del «ni preguntes». `_dcmCrudoPreguntar` vive en **un**
+lugar y por eso alcanza a las dos puertas que convierten píxeles crudos. ⚠️ **ES UN `confirm`
+NATIVO Y NO EL MODAL DE LA APP, y está medido por qué**: cuando esto corre el modal de CeiboLink
+**ya está abierto** mostrando el progreso, así que abrirlo encima lo pisaría y al volver no habría
+a qué estado regresar — es lo que esta app ya hace para el tamaño de un video. Lo que cuesta,
+declarado: los botones se ven «Aceptar» y «Cancelar», así que el texto dice `Aceptar = ABRIR IGUAL`
+y `Cancelar = DEJARLO ESPERANDO`.
+**EL FALLO POR MEMORIA NO PUEDE VOLVERSE UN ÉXITO.** El bucle de conversión entero va dentro de un
+`try`: quedarse sin memoria **lanza** —`createImageData` y `toDataURL`—, y esa excepción subía hasta
+`dcmImgImportar`, que la contaba como fallo del archivo… pero por el camino del estudio abierto el
+id ya se anotaba igual. Hoy es un NO ENTRÓ explícito y los cuadros ya comprimidos se **sueltan**.
+**«SIN ESTUDIO» MUESTRA MINIATURAS Y LAS ABRE.** El `thumb` son ~4 KB y lo escribe `dstABandeja`
+con los píxeles ya en la mano; los cineloops usan su `poster`. ⚠️ **Un `<button>` y no un `div` con
+`onclick`**, para que lo alcance la regla táctil global de 44 px. El cineloop va a `_cineAbrir`, el
+visor de siempre; para la fija **no hay visor reutilizable** —`igImgVisorAbrir` está atado a
+`uuid` + `idx` de un estudio guardado y la bandeja no tiene estudio—, así que se usó el molde de
+`_docVer`: es el mismo razonamiento con que ECO-CONECTOR-3 no reusó `igItemHTML`. **Las dos acciones
+operan sobre el ENVÍO ENTERO y lo dicen**, que es la invariante que `clnkbAsignar` ya tenía medida.
+**Mirar no escribe en ninguna base, no toca `imgSlots`, no encola y no confirma.**
+**LOS CINELOOPS SE VEN EN «IMÁGENES GUARDADAS».** `CeiboCine.indice()` va **con cursor** —`listar`,
+`uso` y `recolectar` usan `getAll()`, que es el pico de más de cien MB que esta casa documenta— y
+**sólo los `tipo:'loop'`**: esa base guarda también el original de cada fija DICOM, que ya está en
+la galería. Entran en «Todas» y «Videos»; **no** en «Imágenes» ni en **«⭐ De interés»** —la
+estrella se guarda por slot con `CeiboImg.marcar(uuid, idx, …)` y un cineloop no tiene idx, así que
+ese filtro devuelve **exactamente** lo que devolvía antes—; **no** entran al mazo del PPT, con el
+motivo a la vista. **No suman a `totalImgs` ni a `mostradas`**: `n` identifica a UNA imagen en el
+visor y en el PPT, y correrlo cambiaría el número de todas las imágenes guardadas del médico.
+**LA MEMORIA, MEDIDA CON EL ARCHIVO DEL MÉDICO AL TAMAÑO DE VERDAD.** Un multicuadro sin comprimir
+de **1016×708 en color por 171 cuadros = 351,9 MB** de píxeles, bajado por loopback: **convierte
+los 171 cuadros en 1,6 s**, con un **pico de 622,5 MB**, soltando los crudos y dejando 54,3 MB de
+JPEG. De ahí sale el tope duro: a 768 MB el pico rondaría 1,2 GB. ⚠️ **EL FIXTURE VA EN COLOR, y no
+es un detalle**: la primera versión era monocroma y daba **117,3 MB**, un tercio de lo que el médico
+recibió — tres muestras por píxel es la única forma de que 1016×708×171 pese 351,9 MB.
+**Y LA PROPIEDAD DE LAS MINIATURAS SE MIDIÓ DE FORMA DETERMINISTA**, porque los deltas de heap en el
+rango de diez MB quedan dentro del ruido de `performance.memory` incluso con el recolector forzado:
+lo que la lista de la bandeja devuelve pesa **117.961 bytes contra 11.404.380** de los registros
+completos —**97 veces más chica**— y el índice de la galería **78.825 contra 15.205.840** en disco
+—**193 veces más chico**—, con 6 miniaturas y 4 celdas de cineloop pintadas.
+⚠️ **DOS DEFECTOS PROPIOS QUE ENCONTRÓ LA REVISIÓN DEL DIFF Y NO UNA PRUEBA**: `hayDatosSinGuardar`
+**no existe** —es `_hayAlgoSinGuardar`—, y el `typeof` lo tapaba, así que el aviso de «tenés cambios
+sin guardar» no se disparaba **nunca**; y un `arguments[1]` donde ya había un parámetro con nombre.
+⚠️ **Y UN TERCERO, REAL, QUE DESTAPÓ EL BARRIDO DE MUTACIONES**: `_noD` escribía el motivo pero
+**no bajaba `ok` a false**, así que el desmarcado de un cineloop que no se pudo guardar —que corre
+DESPUÉS de haberlo marcado como entrado— **no desmarcaba**, y se le confirmaba el borrado al
+conector igual. Su hermano en `mediosImportar` sí lo hacía: era una inconsistencia entre las dos
+puertas que ninguna prueba de las primeras veía. **Es para esto que está el barrido.**
+**Cobertura: TC-862 a TC-871**, los diez cayendo **0/10** contra `12d27ce` **por su denominador
+declarado y NINGUNO por excepción**, verificado en un worktree con el mismo archivo de casos y sólo
+el `index.html` distinto. **UN caso adaptado, TC-861 (G), con su condición INVERTIDA**: afirmaba que
+el tope **rechaza**, y eso dejó de ser cierto por orden del médico; hoy exige que el mensaje de
+rechazo por tamaño **ya no esté** y que el mismo descriptor imposible **dispare la pregunta**, así
+que puede fallar por los dos lados y quedó más fuerte. **Ninguno borrado y ninguno aflojado.**
+**40/40 MUTACIONES DIRIGIDAS MUERTAS** en **2,7 min**, en un worktree y **nunca** sobre el vivo, con
+el md5 del vivo **idéntico** antes y después (`6f25d43d`), **cero sobrevivientes y cero que no
+aplicaran**, y las 40 anclas verificadas **ANTES** de correr. Las **seis** que la orden pide son la
+01 a la 06, en su orden.
+⚠️ **EL PRIMER BARRIDO DEJÓ CINCO SOBREVIVIENTES Y SE REPARTIERON EN TRES CLASES.** **Un defecto
+REAL de la app** —el `_noD` de arriba—. **Tres huecos de cobertura**, cerrados con condiciones
+nuevas y sin aflojar una sola mutación: que el aviso cuente las imágenes **puestas** y no las
+clasificadas; que el sumidero de la bandeja **guarde** la miniatura —los bloques escribían el
+registro a mano con `clnkbGuardar` y no pasaban por `dstABandeja`—; y que los cineloops **no sumen**
+al conteo de imágenes del pie. **Y una mal dirigida**: anulaba el rechazo duro de
+`_dcmCrudoRechazo`, pero la escena usaba un DICOM comprimido en RLE, que se rechaza mucho antes
+—en `_dcmImgLeer`— y nunca llega a esa función; hoy el orden se mide con un descriptor que es **las
+dos cosas a la vez**, 12 bits por muestra **y** por encima del tope.
+⚠️ **CUATRO TRAMPAS DE ESCRITURA, LAS CUATRO DE ESTA CASA, Y UNA ES NUEVA DE ESTA TANDA.** (1) El
+**acento grave** dentro de mis propios comentarios, por **vigesimoprimera** tanda seguida: siete
+veces, en casos y en una sonda; el generador los cuenta antes de insertar nada y `node --check` caza
+el resto. (2) Una **colisión de nombre**: el parámetro `ctx` de `_dcmCrudoAFrags` chocaba con el
+`let ctx` del contexto 2D del canvas ochenta líneas más abajo, y el bloque de JS **entero** dejaba
+de parsear — el navegador lo descarta en silencio y la app arranca sin 110.000 líneas; lo cazó
+`check_js_inline.py`. (3) La **barra invertida** de una expresión regular no sobrevive al template
+literal: `/\d+/` llega como `/d+/` y busca la letra «d», así que TC-863 daba rojo sobre un mensaje
+que **sí** decía los MB; se cerró **no usando ninguna expresión regular**. (4) **NUEVA: un JPEG de
+22 bytes no es decodificable.** Esta casa lo usa para medir bytes, pero `new Image()` lo rechaza, así
+que `_imgComprimir` y `dstThumb` devuelven vacío y el caso mide un hueco; se genera uno de verdad
+con un canvas, que es la única forma de tener bytes JPEG válidos sin meter un binario en un
+repositorio público.
+⚠️ **Y TRES VECES EN ESTA TANDA LA TRAMPA DEL ÁMBITO LÉXICO, LA MISMA QUE `_imgEditado` Y
+`_cinePendientes` YA DOCUMENTAN**: `_igImgFiltro`, `_igImgPpt` y `_imgUuidActual` son `let` de nivel
+de script, así que `window.<nombre> = …` crea una propiedad **nueva** que no los tapa. Las dos
+primeras se cambian **apretando su botón y su casilla**, con el `aria-pressed` como denominador del
+gesto; la tercera no se puede escribir, así que se sustituyen las **funciones** que la leen —ésas sí
+son propiedades de `window` de verdad, verificado con una sonda antes de confiar en ello—.
+⚠️ **Y UNA EXCEPCIÓN PREEXISTENTE QUE SE SORTEÓ SIN TOCARLA**: cinco de los diez casos y la sonda de
+memoria reventaban con «reading 'add'» al llamar a `showTab` justo después de escribir en
+IndexedDB. Es **P30-d**: esa función lee el `window.event` **global**, que en ese momento es el
+`success` de la transacción, cuyo `target` no tiene `classList`. Un turno del bucle de eventos lo
+limpia. **No es de esta tanda y no se toca.**
+⚠️ **Y UNA COSA QUE HICE MAL Y COSTÓ UNA CORRIDA DE LÍNEA BASE ENTERA**: la lancé sobre el árbol
+vivo y **seguí editando `index.html`**. La guarda de md5 del arnés lo dijo, pero la corrida no
+valía: se rehízo en un **worktree sobre `12d27ce`**, que es un árbol quieto. Una línea base no se
+mide sobre un archivo que se está editando.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base. **Cero `innerHTML`,
+`eval(` y `new Function` nuevos**, **cero** claves y contraseñas, **cero** direcciones nuevas y
+**cero** llamadas de red nuevas. **UN solo id nuevo** —`clnkb-ver`, que el visor crea al vuelo— y
+**cero `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo esto fuera del
+censo del estudio y del Excel **por construcción**. **CELULAR: 59 hallazgos a 360 px y 67 a 390, con
+18 ALTA en cada ancho** — la línea base exacta.
+**EL CENSO, MEDIDO EN EL NAVEGADOR EN LOS DOS ÁRBOLES, con su detector de que son dos**: **381**
+claves en el mapa del Excel del Laboratorio, **1132** controles con `id` y **959** que entran al
+censo del estudio — **los tres idénticos a los dos lados**, con las cinco funciones de la tanda
+diciendo SÍ en uno y NO en el otro, que es lo que impide informar un «idéntico» medido dos veces
+sobre el mismo árbol (lo que PANT-37 pagó con `_probe_ec2dos.mjs`).
+**Línea base medida sobre `12d27ce` en un worktree: suite 863/869**, en **DIECISÉIS** lotes, con los
+**869 ejecutados**, el md5 **idéntico** antes y después (`e262aa4d`) y el pendrive `DISK_IMG`
+verificado **dieciocho** veces. Los rojos son **TC-376, TC-390 y TC-406**, los tres de siempre, más
+**TC-182, TC-551 y TC-850**, los tres intermitentes.
+⚠️ **POR TRIGÉSIMA SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+las dos formas que esta casa manda: `git show 12d27ce:index.html` da **178.520** líneas,
+**12.930.920** bytes y el md5 **`e262aa4d`**, los tres idénticos a lo que el renglón decía, y el
+sello del pie coincidía con el que `CLAUDE.md` publicaba.
+El diff de ECO-CONECTOR-4 son **683 líneas agregadas y 73 quitadas** en `index.html`, medido con
+`git diff --numstat` contra `12d27ce` **sobre el árbol ya sellado**, de las que **627** no son
+comentario.
+Lo declarado, en **EC4-a** a **EC4-j** —con **EC3-f CERRADO** por esta tanda—; el mapa, en
+`docs/mapa/ec4-confirmar-pesados.md`; la guía manual, en `docs/GUIA_PRUEBA_EC4.md` (**12** pasos).
 
 **La tanda ECO-CONECTOR-3 (2026-11-12) — el destino único de las imágenes, el estudio guardado, el
 cineloop entero, la bandeja y el DICOM sin comprimir.** SEIS commits. Sello **`v20261112-1355`**,

@@ -1,3 +1,49 @@
+## ECO-CONECTOR-4 — confirmar solo lo que entró, archivos pesados, ver antes de asignar (2026-11-12)
+
+**CINCO commits.** `57d54e7` (1, el conector falso con el grupo mixto y las pesadas; no toca
+`index.html`) · `4b7592b` (2, las cuatro decisiones de código, con el **sellado**) · `b992f8f`
+(3, los diez casos, TC-861 adaptado, el barrido y las dos sondas) · `15a5a09` (4, el defecto
+real que el barrido destapó, tres huecos y el **resellado**) · **éste** (5, la documentación, que
+no toca `index.html`).
+
+Línea base: **`12d27ce`**, el cierre de ECO-CONECTOR-3, sello `v20261112-1355`, md5 `e262aa4d`,
+**178.520** líneas, **verificado al abrir** con `git status`, `git log -1`, `wc -l`, `wc -c` y
+`md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras** y no había ningún
+archivo **rastreado** modificado —los `??` son demos y notas preexistentes—.
+**Suite de la línea base: 863/869**, medida en un **worktree sobre `12d27ce`**, los 869
+ejecutados, md5 idéntico antes y después, pendrive `DISK_IMG` verificado **dieciocho** veces, con
+los tres rojos de siempre (**TC-376, TC-390, TC-406**) más tres intermitentes (**TC-182, TC-551,
+TC-850**).
+⚠️ **La primera corrida de esa línea base no valió, y fue un error mío**: la lancé sobre el árbol
+vivo y seguí editando `index.html`. La guarda de md5 del arnés lo dijo. Una línea base se mide
+sobre un árbol **quieto**.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Qué cerró.** El médico probó ECO-CONECTOR-3 con CeiboLink **real** y encontró cuatro cosas:
+1. **GRAVE** — un DICOM sin comprimir de 351,9 MB que EcoSmart **rechazó** se le confirmó igual al
+   conector, que lo borró. La hipótesis de la orden era correcta **para un sumidero de los tres**:
+   `dstAGuardado` y `dstABandeja` ya confirmaban bien; el roto era `dstAlActual`, el único que
+   delega en `mediosImportar`, que no devolvía veredicto.
+2. El tope de 192 MB pasa de **rechazo** a **pregunta**, con un tope duro de 768 MB.
+3. «Sin estudio» muestra **miniaturas** y las abre en un visor; antes sólo se podía asignar o
+   borrar a ciegas.
+4. Los **cineloops** de un estudio guardado se ven en «Imágenes guardadas» y en «Videos».
+
+**Qué dejó.** **TC-862 a TC-871** (diez casos nuevos, 0/10 contra la línea base **por su
+denominador** y ninguno por excepción) y **TC-861 (G) adaptado con su condición invertida**.
+**40/40 mutaciones dirigidas muertas**, cero sobrevivientes, md5 del árbol vivo idéntico.
+El barrido destapó **un defecto real**: `_noD` no bajaba `ok` a false, así que el desmarcado de un
+cineloop que no se pudo guardar no desmarcaba. **Semgrep 126/0**, sin huérfanos nuevos, Excel 381
+claves y 959 campos **idénticos a la línea base**, celular **59/67 con 18 ALTA**.
+**Memoria**: el archivo del médico al tamaño de verdad —1016×708 en color por 171 cuadros, 351,9
+MB— convierte en **1,6 s** con un **pico de 622,5 MB**; la lista de la bandeja pesa **97 veces
+menos** que los registros y el índice de la galería **193 veces menos** que los cineloops en disco.
+
+Lo declarado, en `docs/PENDIENTES.md` → **EC4-a** a **EC4-j**, con **EC3-f CERRADO**; el mapa, en
+`docs/mapa/ec4-confirmar-pesados.md`; la guía manual, en `docs/GUIA_PRUEBA_EC4.md`.
+
+---
+
 ## ECO-CONECTOR-3 — el destino único de las imágenes (2026-11-12)
 
 **CUATRO commits.** `4069171` (1, el conector falso aprende DICOM sin comprimir; no toca
