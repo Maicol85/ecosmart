@@ -264,6 +264,91 @@ function escenas() {
       img('img_pe', 'eq_3f8a1c', iso(t0), 'video',
           dicomNativo({ filas: 708, cols: 1016, cuadros: 171, color: true })),
     ],
+
+    /* ══ ECO-CONECTOR-5 ══════════════════════════════════════════════════════════════════
+       ⚠️ TODAS LAS DE ESTA TANDA LLEVAN IDS PROPIOS, por quinta vez: el aviso no vuelve por las
+       MISMAS imagenes en la misma sesion y la bateria corre los 879 casos en UNA pagina, asi que
+       una escena reusada recibe «no hay nada que avisar» y mide otra cosa. */
+
+    /* DE OTRO DIA: dos de AYER a las 23:43 y una de hace cinco dias. Es lo que la decision 3
+       necesita -- el aviso tiene que decir la fecha cuando lo que llego NO es de hoy -- y con
+       una fecha escrita a mano la prueba pasaria sin mirar el reloj, asi que se derivan de AHORA.
+       ⚠️ «AYER A LAS 23:43» SE CONSTRUYE SOBRE LA FECHA LOCAL Y NO RESTANDO 24 HORAS: corrido
+       un dia despues de un cambio de hora, restar 86.400.000 ms cae en el mismo dia o en el
+       anteayer, y la prueba de «dice ayer» saldria roja sobre una app que se porta bien. */
+    deAyer: () => {
+      const h = new Date(); h.setDate(h.getDate() - 1); h.setHours(23, 43, 0, 0);
+      const v = new Date(); v.setDate(v.getDate() - 5); v.setHours(9, 12, 0, 0);
+      return [img('img_y1', 'eq_3f8a1c', iso(h.getTime()),         'imagen', uno),
+              img('img_y2', 'eq_3f8a1c', iso(h.getTime() + 11000), 'imagen', uno),
+              img('img_y3', 'eq_3f8a1c', iso(v.getTime()),         'imagen', uno)];
+    },
+    /* LO MISMO PERO DE HOY, con ids propios: es el control negativo de la fecha. El aviso tiene
+       que decir SOLO la hora. */
+    deHoy: () => [
+      img('img_h1', 'eq_3f8a1c', iso(t0),        'imagen', uno),
+      img('img_h2', 'eq_3f8a1c', iso(t0 + 9000), 'imagen', uno),
+    ],
+
+    /* LA LISTA MIXTA DE LA VISTA PREVIA: tres fijas, dos videos y UNA pesada, del mismo equipo
+       autorizado y dentro de la ventana, o sea UN grupo. La pesada tiene 512x512 por 5 cuadros
+       = 1,31 MB de pixeles, por encima del tope de prueba de 1 MB, asi que la vista previa NO la
+       baja sola: muestra su peso y el boton «Mirar igual». */
+    previa: () => [
+      img('img_v1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_v2', 'eq_3f8a1c', iso(t0 + 7000),  'imagen', uno),
+      img('img_v3', 'eq_3f8a1c', iso(t0 + 14000), 'video',  loop),
+      img('img_v4', 'eq_3f8a1c', iso(t0 + 21000), 'imagen', uno),
+      img('img_v5', 'eq_3f8a1c', iso(t0 + 28000), 'video',  loop),
+      img('img_v6', 'eq_3f8a1c', iso(t0 + 35000), 'video',
+          dicomNativo({ filas: 512, cols: 512, cuadros: 5 })),
+    ],
+    /* OCHO del mismo envio: lo que la decision 6b pide es «lugar para 6 a la vista y
+       desplazamiento lateral si hay mas», y con seis no se puede distinguir «entran todas» de
+       «desborda». */
+    previaOcho: () => {
+      const l = [];
+      for (let k = 0; k < 8; k++) {
+        l.push(img('img_o' + (k + 1), 'eq_3f8a1c', iso(t0 + k * 6000),
+                   k % 3 === 2 ? 'video' : 'imagen', k % 3 === 2 ? loop : uno));
+      }
+      return l;
+    },
+    /* TRES, DE LAS CUALES UNA NO SE PUEDE BAJAR. La del medio se declara en `bajarFalla`, asi
+       que su archivo da 503: la decision 6g pide que esa miniatura muestre el motivo y que las
+       otras dos se dibujen igual. */
+    previaConFallo: () => [
+      img('img_f1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_f2', 'eq_3f8a1c', iso(t0 + 8000),  'imagen', uno),
+      img('img_f3', 'eq_3f8a1c', iso(t0 + 16000), 'imagen', uno),
+    ],
+
+    /* SOLO CUARENTENA: la unica imagen que hay es de un equipo que espera decision, asi que la
+       lista del contrato §3.8 sale VACIA. Es el denominador de la decision 6f -- sin esto, «no
+       hay vista previa para un equipo en cuarentena» se mide sobre una lista que ademas trae
+       imagenes de un equipo autorizado, y pasaria igual si el filtro no existiera. */
+    soloCuarentena: () => [
+      img('img_qq', 'eq_9b2e7d', iso(t0), 'imagen', uno, true),
+    ],
+
+    /* DOS FIJAS Y UN CINELOOP PARA LA GALERIA: lo que los casos de la decision 7 adjuntan a un
+       estudio y despues eligen, eliminan y copian. Ids propios. */
+    paraGaleria: () => [
+      img('img_g1b', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_g2b', 'eq_3f8a1c', iso(t0 + 9000),  'imagen', uno),
+      img('img_g3b', 'eq_3f8a1c', iso(t0 + 18000), 'video',  loop),
+    ],
+    /* OTRAS DOS, para el segundo estudio de la prueba de «borra solo lo elegido»: dos estudios
+       con imagenes PARECIDAS es lo que la Tarea 5 pide, y con los mismos bytes en los dos no se
+       puede distinguir «borro la del estudio A» de «borro la del B». */
+    paraGaleria2: () => [
+      img('img_g4b', 'eq_3f8a1c', iso(t0 + 26000), 'imagen', uno),
+      img('img_g5b', 'eq_3f8a1c', iso(t0 + 34000), 'imagen', uno),
+    ],
+    /* Y UNAS TERCERAS, para el tercer estudio de «va al elegido y a ningun otro». */
+    paraGaleria3: () => [
+      img('img_g6b', 'eq_3f8a1c', iso(t0 + 42000), 'imagen', uno),
+    ],
     vacio: () => [],
   };
 }
@@ -308,6 +393,11 @@ function escenarioDeFabrica() {
     cuarentena: false,          // las rutas de equipo responden 409
     errorDePedido: null,        // texto: toda ruta con token responde 400 con ese mensaje
     confirmarFalla: false,      // la confirmacion responde 503 SIN borrar: la imagen se queda
+    /* ⚠️ LA DESCARGA QUE FALLA A PROPOSITO (ECO-CONECTOR-5, Tarea 1). Es una LISTA DE IDS y no
+       un booleano: lo que la decision 6g pide es que una miniatura que falla no frene a las
+       demas, y con un booleano global fallan las tres y no se puede distinguir «siguio con las
+       otras» de «se cayo todo». El archivo da 503 y la imagen SIGUE en la lista. */
+    bajarFalla: [],
 
     conexion: {
       puerto_dicom: 4242,
@@ -659,6 +749,13 @@ export function servirConectorFalso(opciones) {
           if (!im) { err(rq, 404, 'no_encontrado', 'Esa imagen no existe.'); return; }
           if (im._cuarentena) {
             err(rq, 409, 'en_cuarentena', 'Esa imagen es de un equipo que espera tu decision.');
+            return;
+          }
+          /* ** LA DESCARGA QUE FALLA, Y QUE NO SACA LA IMAGEN DE LA LISTA. Es la mitad que
+             importa: si el falso la borrara, un caso que mire la lista no podria distinguir
+             «no se pudo bajar» de «se bajo y se confirmo». */
+          if (Array.isArray(S.bajarFalla) && S.bajarFalla.indexOf(im.id) >= 0) {
+            err(rq, 503, 'no_disponible', 'El almacen no responde. Volve a intentar.');
             return;
           }
           rq.writeHead(200, { 'Content-Type': 'application/dicom',
