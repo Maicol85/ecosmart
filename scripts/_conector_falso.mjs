@@ -33,10 +33,17 @@
  * Control del escenario desde la pagina (ruta FUERA del contrato, solo de pruebas):
  *     POST /_control   { "version": "1.0.0" }   → el falso se hace pasar por un conector 1.0
  *     POST /_control   { "reset": true }        → vuelve al escenario de fabrica
+ *     POST /_control   { "escena": "dosEnvios" } → cambia el juego de imagenes (ver ESCENAS)
+ *
+ * ⚠️ LOS ARCHIVOS DICOM SON SINTETICOS Y SE GENERAN EN MEMORIA (`_dicom_falso.mjs`). No hay
+ *    ningun archivo de ningun paciente en este repositorio, que es PUBLICO: lo que entrega la
+ *    ruta del archivo es un JPEG de 1x1 dentro de un DICOM Parte 10 armado con el MISMO
+ *    constructor que ya usa TC-179, y el nombre que trae adentro se lee como inventado.
  */
 
 import { createServer } from 'node:http';
 import { randomBytes, randomInt } from 'node:crypto';
+import { dicomSintetico, jpegDeTamano, JPEG_1x1 } from './_dicom_falso.mjs';
 
 /* ⚠️ EL CODIGO Y EL TOKEN SE GENERAN AL AZAR EN CADA ARRANQUE, Y NO ESTAN ESCRITOS ACA.
    La primera version de este archivo los traia como dos constantes literales, y aunque eran
@@ -49,6 +56,79 @@ import { randomBytes, randomInt } from 'node:crypto';
    `localStorage`, que es donde el modulo lo pone de verdad. */
 const CODIGO_DE_PRUEBA = String(randomInt(0, 1000000)).padStart(6, '0');
 const TOKEN_DE_PRUEBA = randomBytes(32).toString('hex');   // 64 hexadecimales, como el contrato
+
+/* ══ LAS IMAGENES ════════════════════════════════════════════════════════════════════════════
+   ⚠️ LA LISTA DEL CONTRATO NO DICE A QUE ESTUDIO DEL ECOGRAFO PERTENECE CADA IMAGEN: §3.8 deja
+   `vista` en `null` a proposito y no hay ningun campo de estudio. Lo unico que EcoSmart tiene
+   para agrupar es `equipo` + `recibida`, asi que las escenas de aca estan armadas para ejercitar
+   justamente eso: un envio junto, dos envios de equipos distintos, y dos envios del MISMO equipo
+   separados en el tiempo.
+
+   Cada imagen lleva su `_buf` —los bytes del DICOM— que NO sale en la lista: la lista del
+   contrato no tiene ese campo, y mandarlo seria inventar contrato. */
+const MIN = 60 * 1000;
+
+function img(id, equipo, recibida, tipo, buf, cuarentena) {
+  return { id: id, equipo: equipo, recibida: recibida, bytes: buf.length, tipo: tipo,
+           modalidad: 'US', vista: null,
+           vence: new Date(Date.parse(recibida) + 24 * 60 * MIN).toISOString().replace(/\.\d+Z$/, 'Z'),
+           _buf: buf, _cuarentena: !!cuarentena };
+}
+
+/* El instante base de las escenas es AHORA y no una fecha escrita: la hora del aviso que ve el
+   medico sale de `recibida`, y con una fecha fija el aviso diria siempre la misma hora de 2026
+   — que es una prueba que pasa sin mirar el reloj. */
+function escenas() {
+  const t0 = Date.now() - 3 * MIN;
+  const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+  /* Los bytes se generan UNA vez por escena y se comparten: el DICOM de un cuadro son 570
+     bytes, pero el grande son 16 MB y armarlo tres veces es medio giga por pedido. */
+  const uno  = dicomSintetico({ paciente: { nombre: 'PRUEBA^SINTETICA', nacimiento: '19800515',
+                                            sexo: 'F', fechaEstudio: '20261111', id: 'HC-0001' } });
+  const loop = dicomSintetico({ frags: [JPEG_1x1, JPEG_1x1, JPEG_1x1], cuadros: 3 });
+  return {
+    /* UN ENVIO: tres imagenes del equipo autorizado, dentro de un minuto. Es el caso normal. */
+    unEnvio: () => [
+      img('img_a1', 'eq_3f8a1c', iso(t0),            'imagen', uno),
+      img('img_a2', 'eq_3f8a1c', iso(t0 + 12000),    'imagen', uno),
+      img('img_a3', 'eq_3f8a1c', iso(t0 + 31000),    'video',  loop),
+    ],
+    /* DOS EQUIPOS: dos envios a la vez, de equipos distintos. Son DOS avisos, no uno. */
+    dosEquipos: () => [
+      img('img_a1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_a2', 'eq_3f8a1c', iso(t0 + 9000),  'imagen', uno),
+      img('img_b1', 'eq_7c4d2e', iso(t0 + 15000), 'imagen', uno),
+    ],
+    /* DOS ENVIOS DEL MISMO EQUIPO, separados por media hora: dos avisos tambien. Es el control
+       negativo de la agrupacion — si agrupara por equipo y nada mas, saldria uno solo. */
+    dosEnvios: () => [
+      img('img_a1', 'eq_3f8a1c', iso(t0 - 30 * MIN), 'imagen', uno),
+      img('img_a2', 'eq_3f8a1c', iso(t0),            'imagen', uno),
+    ],
+    /* UNA SOLA, de 16 MB, para la prueba de memoria. */
+    grande: () => [
+      img('img_g1', 'eq_3f8a1c', iso(t0), 'video',
+          dicomSintetico({ frags: [jpegDeTamano(16 * 1024 * 1024)] })),
+    ],
+    /* UNA EN CUARENTENA: su archivo y su confirmacion dan 409, y NO sale en la lista (§3.8). */
+    cuarentena: () => [
+      img('img_a1', 'eq_3f8a1c', iso(t0), 'imagen', uno),
+      img('img_q1', 'eq_9b2e7d', iso(t0), 'imagen', uno, true),
+    ],
+    vacio: () => [],
+  };
+}
+
+/* Los tres juegos de equipos que la orden pide: 0, 1 y 2, con uno esperando decision. */
+function equiposDe(cuantos) {
+  const A = { id: 'eq_3f8a1c', estado: 'autorizado', aet: 'GE_VIVID_01', ip: '192.168.1.44',
+              apodo: 'GE del consultorio', imagenes: 12, ultimo_envio: '2026-11-10T21:44:52Z' };
+  const B = { id: 'eq_9b2e7d', estado: 'pendiente', aet: 'ECOFALSO', ip: '127.0.0.1',
+              apodo: null, imagenes: 4, ultimo_envio: '2026-11-10T21:46:03Z' };
+  if (cuantos === 0) return [];
+  if (cuantos === 1) return [A];
+  return [A, B];
+}
 
 function escenarioDeFabrica() {
   return {
@@ -81,15 +161,31 @@ function escenarioDeFabrica() {
       aviso: null,
     },
 
-    equipos: [
-      { id: 'eq_3f8a1c', estado: 'autorizado', aet: 'GE_VIVID_01', ip: '192.168.1.44',
-        apodo: 'GE del consultorio', imagenes: 12, ultimo_envio: '2026-11-10T21:44:52Z' },
-      { id: 'eq_9b2e7d', estado: 'pendiente', aet: 'ECOFALSO', ip: '127.0.0.1',
-        apodo: null, imagenes: 4, ultimo_envio: '2026-11-10T21:46:03Z' },
-    ],
+    equipos: equiposDe(2),
+
+    /* ⚠️ `imagenes_pendientes` SE DERIVA de la lista y no se escribe a mano: con los dos numeros
+       sueltos, el estado podia decir «3 esperando» con la lista vacia, y una prueba del sondeo
+       que mire el estado para decidir si pedir la lista pasaria sobre nada. Lo pone `sincronizar`. */
+    imagenes: escenas().unEnvio(),
+    verificada: true,          // la confirmacion responde `verificada: false` si se pone en false
+    confirmadas: [],           // los ids que EcoSmart confirmo, en orden: lo mira el caso
+    borradas: [],              // los ids que EcoSmart descarto
 
     ajustes: { horas_retencion: 24, aet_puente: 'PUENTE' },
   };
+}
+
+/* El estado que `GET /v1/estado` publica se CALCULA de la lista. Las imagenes en cuarentena no
+   cuentan como pendientes: §3.8 dice que no salen en la lista, asi que EcoSmart no las puede
+   levantar y contarlas seria prometer trabajo que no hay. */
+function sincronizar(S) {
+  const vis = S.imagenes.filter(i => !i._cuarentena);
+  S.imagenes_pendientes = vis.length;
+  S.equipos_esperando = S.equipos.filter(e => e.estado === 'pendiente').length;
+  /* ⚠️ `bytes_usados` NO se deriva, y es a proposito: el aviso de espacio de EcoSmart se prueba
+     fijando ese numero cerca del tope, y una derivada de tres DICOM sinteticos de 570 bytes no
+     llega nunca. Se escribe por `/_control`, que es para lo que esa ruta esta. */
+  return S;
 }
 
 /* Los origenes que este falso acepta. El de verdad solo acepta el de produccion; este acepta
@@ -188,6 +284,7 @@ export function servirConectorFalso(opciones) {
       const conToken = autoriza === 'Bearer ' + S.token;
       const esM = (m, patron) => metodo === m && patron.test(url);
       const idDe = () => decodeURIComponent((url.match(/^\/v1\/equipos\/([^/]+)/) || [])[1] || '');
+      const idImg = () => decodeURIComponent((url.match(/^\/v1\/imagenes\/([^/]+)/) || [])[1] || '');
 
       try {
         /* ── Control del escenario: FUERA del contrato, solo de pruebas ── */
@@ -199,13 +296,32 @@ export function servirConectorFalso(opciones) {
              caso medía un escenario que creía haber armado -- lo pagó TC-836, cuyo control
              negativo del 409 recibía un 200. */
           const dest = b.reset ? (E.v = escenarioDeFabrica()) : S;
-          Object.keys(b).forEach(k => { if (k !== 'reset') dest[k] = b[k]; });
-          json(rq, 200, { ok: true, escenario: { version: E.v.version, vinculado: E.v.vinculado } });
+          Object.keys(b).forEach(k => {
+            if (k === 'reset') return;
+            /* `escena` y `equipos` son ATAJOS y no campos del escenario: nombran un juego
+               armado, para que un caso no tenga que mandar la lista entera por la red —y para
+               que los bytes de 16 MB del escenario grande no viajen dos veces—. */
+            if (k === 'escena') {
+              const ess = escenas();
+              if (typeof ess[b[k]] === 'function') dest.imagenes = ess[b[k]]();
+              return;
+            }
+            if (k === 'equipos' && typeof b[k] === 'number') { dest.equipos = equiposDe(b[k]); return; }
+            dest[k] = b[k];
+          });
+          sincronizar(E.v);
+          json(rq, 200, { ok: true, escenario: {
+            version: E.v.version, vinculado: E.v.vinculado,
+            imagenes: E.v.imagenes.map(i => i.id),
+            imagenes_pendientes: E.v.imagenes_pendientes,
+            equipos: E.v.equipos.map(e => e.id + ':' + e.estado),
+            confirmadas: E.v.confirmadas, borradas: E.v.borradas } });
           return;
         }
 
         /* ── 3.1 estado — SIN token ── */
         if (esM('GET', /^\/v1\/estado$/)) {
+          sincronizar(S);
           json(rq, 200, {
             version: S.version, orthanc_vivo: S.orthanc_vivo,
             imagenes_pendientes: S.imagenes_pendientes, equipos_esperando: S.equipos_esperando,
@@ -361,6 +477,69 @@ export function servirConectorFalso(opciones) {
           if (i < 0) { err(rq, 404, 'no_encontrado', 'Ese equipo no existe.'); return; }
           S.equipos.splice(i, 1);
           rq.writeHead(204).end();
+          return;
+        }
+
+        /* ══ 3.8 GET /v1/imagenes ══════════════════════════════════════════════════════════
+           SOLO las de equipos AUTORIZADOS, que es lo que §3.8 fija: lo que esta en cuarentena
+           no aparece. Y el `_buf` no sale: la lista del contrato no tiene ese campo. */
+        if (esM('GET', /^\/v1\/imagenes$/)) {
+          const auto = S.equipos.filter(e => e.estado === 'autorizado').map(e => e.id);
+          const vis = S.imagenes.filter(i => !i._cuarentena && auto.indexOf(i.equipo) >= 0);
+          json(rq, 200, { imagenes: vis.map(i => {
+            const c = Object.assign({}, i); delete c._buf; delete c._cuarentena; return c;
+          }) });
+          return;
+        }
+
+        /* ══ 3.9 GET /v1/imagenes/{id}/archivo ═════════════════════════════════════════════
+           Los bytes del DICOM tal cual, con su `Content-Type` y su `Content-Disposition`.
+           ⚠️ DESCARGAR NO BORRA NADA: la imagen sigue en la lista hasta que EcoSmart confirme.
+           Es la mitad del contrato que esta tanda tiene que respetar, asi que el falso no la
+           saca ni «por prolijidad». */
+        if (esM('GET', /^\/v1\/imagenes\/[^/]+\/archivo$/)) {
+          const im = S.imagenes.find(i => i.id === idImg());
+          if (!im) { err(rq, 404, 'no_encontrado', 'Esa imagen no existe.'); return; }
+          if (im._cuarentena) {
+            err(rq, 409, 'en_cuarentena', 'Esa imagen es de un equipo que espera tu decision.');
+            return;
+          }
+          rq.writeHead(200, { 'Content-Type': 'application/dicom',
+                              'Content-Length': im._buf.length,
+                              'Content-Disposition': 'attachment; filename="' + im.id + '.dcm"',
+                              'Cache-Control': 'no-store' });
+          rq.end(Buffer.from(im._buf));
+          return;
+        }
+
+        /* ══ 3.10 POST /v1/imagenes/{id}/confirmar ═════════════════════════════════════════
+           «Ya la guarde»: el conector la borra de verdad. `verificada` en false es el caso que
+           EcoSmart tiene que CONTARLE al medico —la imagen se guardo pero quedo una copia—, asi
+           que el falso tiene que poder responderlo. */
+        if (esM('POST', /^\/v1\/imagenes\/[^/]+\/confirmar$/)) {
+          const id = idImg();
+          const k = S.imagenes.findIndex(i => i.id === id);
+          if (k < 0) { err(rq, 404, 'no_encontrado', 'Esa imagen no existe.'); return; }
+          if (S.imagenes[k]._cuarentena) {
+            err(rq, 409, 'en_cuarentena', 'Esa imagen es de un equipo que espera tu decision.');
+            return;
+          }
+          S.imagenes.splice(k, 1);
+          S.confirmadas.push(id);
+          sincronizar(S);
+          json(rq, 200, { id: id, borrada: true, verificada: S.verificada !== false });
+          return;
+        }
+
+        /* ══ 3.11 DELETE /v1/imagenes/{id} ═════════════════════════════════════════════════ */
+        if (esM('DELETE', /^\/v1\/imagenes\/[^/]+$/)) {
+          const id = idImg();
+          const k = S.imagenes.findIndex(i => i.id === id);
+          if (k < 0) { err(rq, 404, 'no_encontrado', 'Esa imagen no existe.'); return; }
+          S.imagenes.splice(k, 1);
+          S.borradas.push(id);
+          sincronizar(S);
+          json(rq, 200, { id: id, borrada: true, verificada: S.verificada !== false });
           return;
         }
 
