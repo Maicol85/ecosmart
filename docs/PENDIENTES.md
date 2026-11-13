@@ -40,6 +40,182 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## ECO-CONECTOR-5 — la vista previa, los diálogos propios y el modo elegir (2026-11-13)
+
+### EC5-a · DECISIÓN PARA EL MÉDICO: el factor con que se estima lo que va a ocupar guardado
+
+La pregunta por un archivo pesado muestra **dos pesos**: lo que pesa sin comprimir y lo que va a
+ocupar guardado. El segundo **no se puede saber antes de convertir**, así que es una estimación y el
+texto lo dice con esa palabra.
+
+El divisor es **4**, y sale de dos mediciones: el multicuadro sintético de 512×512 por 60 cuadros
+monocromo da ÷4,1, y el del médico —1016×708 en color por 171 cuadros— da **÷6,48**, medido de nuevo
+en esta tanda sobre este árbol y con el archivo al tamaño de verdad. Se tomó el divisor **más
+chico**, que da la estimación más **grande**.
+
+**Lo que cuesta, medido**: ese archivo se estima en **88,0 MB** y ocupa **54,3** — una
+sobreestimación del **62 %**.
+
+**La pregunta para el médico**: ¿preferís que diga de más (como ahora, 88 cuando son 54) o de menos
+(con el divisor en 6: 58,7 cuando son 54, pero para un archivo que comprima peor diría menos de lo
+que ocupa)? Decidirlo es cambiar un número en un solo lugar: `DCM_GUARDADO_DIV`.
+
+---
+
+### EC5-b · DECISIÓN PARA EL MÉDICO: el factor del PICO de memoria, con dos mediciones distintas
+
+El tope por encima del cual **no se ofrece abrir** se calcula sobre el **pico** y no sobre los
+píxeles, con un factor de **1,8**. De ese factor hay **dos mediciones y las dos son correctas**:
+
+- ECO-CONECTOR-4 midió **622,5 MB de pico** para 351,9 MB de píxeles → factor **1,77**;
+- esta tanda, sobre el mismo archivo y el mismo camino, midió **403 a 459 MB sobre la base** en tres
+  corridas → factor **1,15 a 1,30**, con el montón pasando de 27,2 a 451,3 MB y la conversión
+  tardando **1,4 s**.
+
+Miden cosas distintas: una incluye los píxeles crudos todavía vivos y la otra el delta después de
+soltarlos, y cuál se ve depende de cuándo pasa el recolector. **Se usa el más alto** porque el
+factor entra en un **denominador**: el más grande da el tope más chico, y equivocarse por prudencia
+cuesta una pregunta de más mientras equivocarse por optimismo cuesta la pestaña.
+
+**Lo que cuesta**: en la máquina del médico el tope duro queda en **1164 MB** de píxeles cuando con
+el factor medido hoy podría quedar en ~1700. Es decir, hay archivos de entre 1,2 y 1,7 GB de píxeles
+que esta app no va a ofrecer abrir y probablemente podría. **Si el médico se topa con uno, el número
+está en un solo lugar** (`DCM_PICO_FACTOR`) y hay que volver a medir el pico con ESE archivo.
+
+---
+
+### EC5-c · MEDIDO Y SIN EXPLICAR: exportar una selección deja ~21 MB retenidos
+
+Medido con un cineloop de **20,5 MB**: exportar la selección deja **20,8 MB** en el montón **después**
+de forzar el recolector **y después** de esperar los 4,6 s que tarda la revocación de la URL del
+objeto (el exportador la revoca en un `setTimeout` de 4 s, el mismo que usa el backup de siempre).
+
+No se pudo atribuir a un dueño con este instrumento. La hipótesis más probable es que sea el string
+base64 de 27 MB que `_bkB64De` produce y que `JSON.stringify` vuelve a copiar, en el espacio de
+objetos grandes de V8: `performance.memory` lo informa aunque ya no sea alcanzable.
+
+**No es una fuga demostrada y no se declara como tal.** Lo que se declara es el número. **Qué falta
+medir**: repetir la exportación cinco veces seguidas y ver si los 21 MB se acumulan o se reusan. Si
+se acumulan, es una fuga y hay que armar el archivo por partes como hace `_bkExportar`, que para eso
+tiene su mecanismo de Blobs parciales.
+
+---
+
+### EC5-d · DECISIÓN DEL MÉDICO: la agrupación del aviso sigue siendo de dos minutos
+
+Sin cambios respecto de EC2-d: dos pacientes seguidos del mismo equipo con menos de dos minutos
+entre el último de uno y el primero del otro salen en **UN** aviso. La lista del contrato §3.8 no
+trae campo de estudio ni de serie, así que no hay forma de distinguirlos.
+
+**Lo que la vista previa agrega acá**: ahora el médico puede **mirar** antes de decidir, así que el
+límite pesa menos — ve las miniaturas y se da cuenta de que son dos estudios distintos.
+
+---
+
+### EC5-e · Lo que la vista previa NO puede mostrar de un equipo en cuarentena
+
+La lista del contrato §3.8 **no expone** las imágenes de un equipo que espera decisión, así que la
+vista previa no las puede mostrar **ni por error**. Es seguridad por construcción, y es también una
+limitación: el médico que no reconoce un equipo nuevo **tiene que autorizarlo para poder mirar lo que
+mandó**, que es exactamente el gesto que querría poder evitar.
+
+**Lo que la app hace hoy**: lo dice. «Ver lo que espera» y «Vista previa» distinguen «no hay nada»
+de «hay un equipo esperando tu decisión» y mandan a decidir.
+
+**Lo que haría falta para cerrarlo de verdad es del lado del conector**: una ruta que entregue una
+miniatura de una imagen en cuarentena sin entregar el archivo. No está en el contrato 1.1.
+
+---
+
+### EC5-f · La exportación de una selección lleva la FICHA COMPLETA del estudio de origen
+
+Se reusa el **sobre del backup** que ya existe, así que el archivo se puede volver a importar con el
+importador que la app ya tiene. El precio: el mapa `medios` está indexado por **uuid de estudio** y
+el importador adjunta cada bloque al estudio que está importando, así que **sin la ficha el archivo
+trae imágenes que no pertenecen a nada y no se importan**.
+
+O sea que exportar dos imágenes de un paciente exporta **también** su nombre, su documento y los
+datos de ese estudio. **Es estructural del formato** y el aviso lo dice con todas las letras antes de
+generar nada.
+
+**Qué haría falta para exportar imágenes sin la ficha**: un formato propio y un importador que lo
+entienda, y ese importador es el mismo que restaura los backups del médico. No se tocó.
+
+---
+
+### EC5-g · Un cineloop de la galería no entra al mazo del PPT
+
+Sin cambios respecto de **EC4-g**: el modo «Elegir imágenes» **sí** acepta cineloops —se eliminan,
+se copian y se exportan—, pero el mazo del PPT sigue rechazándolos con su motivo a la vista. Una
+diapositiva lleva una imagen y meter un cineloop ahí significa convertirlo a MP4, que esta app sabe
+hacer por el camino del PPT del estudio con su propia ventana de conversión.
+
+---
+
+### EC5-h · «Adjuntar al estudio abierto» vuelve a comprimir la imagen
+
+Las fijas entran por la **puerta única** `mediosImportar`, que es lo que garantiza que no haya un
+segundo camino hacia `imgSlots` —y el único que hubo, `imgRestaurar`, es el que pagó la fuga de
+imágenes entre pacientes—. El precio es que el `dataURL` ya comprimido se vuelve a comprimir, así
+que **la copia pesa un poco menos que el original**.
+
+No se midió cuánto. **Qué falta medir**: el tamaño de la copia contra el del original en las tres
+calidades del selector. Si la pérdida es visible, hay que decidir si vale la pena un camino que
+escriba `imgSlots` directo — y ese camino es exactamente el que la regla de arriba prohíbe.
+
+---
+
+### EC5-i · DECISIÓN DEL MÉDICO: qué pasa con un MP4/MOV elegido en la galería
+
+El modo elegir toma imágenes fijas y cineloops. Un **video MP4/MOV** guardado con un estudio vive en
+`ceibomed_video` y entra al estudio por el slot que lo referencia; esta tanda **no** lo incluyó en
+los tres caminos de la selección.
+
+Hoy un slot de video aparece en la galería con su marca y **se puede elegir**, pero al copiarlo lo
+que viaja es su `dataURL` —el cuadro de presentación— y **no los bytes del video**. Eso no se
+declaró en pantalla.
+
+**Hay que decidir**: o se excluyen los videos del modo elegir diciéndolo, o se les da su camino por
+`CeiboVideo`. Lo primero son tres líneas; lo segundo es una tanda.
+
+---
+
+### EC5-j · Lo de la bandeja sigue fuera del respaldo
+
+Sin cambios respecto de **EC3-d** y **EC2-b**: `ceibomed_bandeja` no entra a `_bkExportar`, que
+exporta estudios y medios por uuid. Es un depósito transitorio y no un registro clínico, pero hay
+que decirlo.
+
+---
+
+### EC5-k · PARA EL LADO DEL CONECTOR: por qué CeiboLink cuenta ~368 MB para 33 MB del ecógrafo
+
+El médico vio que CeiboLink informa **unos 368 MB** usados para un juego de imágenes que en el
+ecógrafo falso suman **33 MB**. **Esta tanda no lo midió**: la orden prohíbe tocar
+`ecosmart-conector` y levantar CeiboLink, así que no hay forma de verificarlo desde acá.
+
+**La hipótesis es que viajan DESCOMPRIMIDAS**: un DICOM multicuadro sin comprimir pesa, en píxeles,
+entre cuatro y seis veces y media lo que pesa su versión JPEG —medido en esta tanda: 351,9 MB de
+píxeles contra 54,3 de JPEG, ÷6,48—, y el ecógrafo puede estar mandando la forma nativa mientras la
+cuenta de «33 MB» se hizo sobre los archivos comprimidos. **6,48 × 33 = 214 MB**, que es del orden
+de magnitud pero no cierra: faltaría el tamaño de la cabecera y de las copias que el conector
+conserva por su plazo de 24 horas.
+
+**Qué falta medir, del lado del conector**: el tamaño en disco de cada archivo recibido contra el
+que el ecógrafo declara, y si el conector guarda una copia además del original. Es una tanda del
+conector, no de EcoSmart.
+
+---
+
+### EC5-l · La pregunta por un archivo pesado sigue sin poder ofrecer «guardá primero»
+
+Sin cambios respecto de **EC4-c**: cuando la pregunta aparece, el estudio puede tener cambios sin
+guardar, y la pregunta **lo dice**. Lo que **no** hace es ofrecer guardar desde ahí: eso sería
+reentrar en el guardado con el modal de progreso abierto y a mitad de una importación asíncrona. Se
+midió y es estructural. El médico cancela, guarda y vuelve.
+
+---
+
 ## ECO-CONECTOR-3 — el destino único de las imágenes (2026-11-12)
 
 ### EC3-a · DECISIÓN DEL MÉDICO: un MP4/MOV no entra a un estudio GUARDADO

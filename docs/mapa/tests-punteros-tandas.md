@@ -1,6 +1,34 @@
 # Mapa — los casos de prueba, tanda por tanda
 
 
+## ECO-CONECTOR-5 (2026-11-13) — TC-872 a TC-881
+
+Diez casos nuevos y **ocho adaptados**. Las fichas, en `docs/mapa/tests-fichas-872.md`; el mapa de
+lo que miden, en `docs/mapa/ec5-previa-galeria.md`.
+
+| caso | qué fija |
+|---|---|
+| TC-872 | «Ver lo que espera» reabre lo cerrado con la ✕; sin nada lo DICE; con un equipo por decidir manda a decidir |
+| TC-873 | la fecha del aviso —hoy, ayer, fecha corta— y el panel que se actualiza solo, agrupado y sólo con la tarjeta a la vista |
+| TC-874 | UN diálogo propio en vez de dos cuadros nativos, con sus rótulos y los dos pesos; el detalle del resumen por `textContent`; cerrar con la ✕ no abre |
+| TC-875 | los dos topes derivados de la memoria en cuatro escenarios, el orden que no se invierte, cuál tope gana, y el factor del pico |
+| TC-876 | «para todos los pesados de esta tanda» pregunta UNA vez, y la elección no sobrevive a la tanda siguiente |
+| TC-877 | la tira de la vista previa: seis a la vista, la marca sin bajar nada, de a una, el pesado con «Mirar igual», la que falla no frena, y UN solo cuadro convertido |
+| TC-878 | MIRAR NO ES DECIDIR, medido de seis formas, con control positivo y la cuarentena que no se expone |
+| TC-879 | eliminar sólo lo elegido con dos estudios de imágenes idénticas; el formulario; el estudio que queda sin imágenes; los dos modos excluyentes |
+| TC-880 | adjuntar COPIA con TRES estudios, el orden de `indice()`, los esquemas que no viajan, y los tres destinos del visor |
+| TC-881 | exportar sólo lo elegido con el tamaño antes y el aviso; cancelar no genera nada; «Importar» por la misma puerta; «Desde imágenes guardadas» |
+
+**Los diez caen 0/10 contra `5a9f0ca` por su denominador declarado y NINGUNO por excepción.**
+
+⚠️ **LOS AYUDANTES DE ESTOS CASOS VIVEN EN EL PRELUDIO (`window.__t`)**, no en una función de
+`test_clinico.mjs`: el cuerpo de un caso es una cadena que se evalúa **en el navegador**.
+
+⚠️ **Y UN CASO QUE DISPARE LA PREGUNTA POR UN ARCHIVO PESADO Y NO LA CONTESTE CUELGA LA BATERÍA
+ENTERA**: desde ECO-CONECTOR-5 esa pregunta es un diálogo de la app y hay que **apretar** un botón.
+Se contesta con `__t.ec5Auto(trozo)`, que además cubre el `confirm` nativo para no colgar contra la
+línea base.
+
 ## PANT-32 (2026-11-10) — TC-801 a TC-806
 
 Seis casos nuevos, **TC-801 a TC-806**. Fichas: `docs/mapa/tests-fichas-801.md`. Mapa:

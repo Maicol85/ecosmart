@@ -1,3 +1,45 @@
+## ECO-CONECTOR-5 — ver lo que espera, diálogos propios, vista previa y elegir en la galería (2026-11-13)
+
+**DIEZ commits.** `c69ba63` (1, el conector falso con nueve escenas y la sonda de línea base; no
+toca `index.html`) · `974f024` (2 a 6, las cinco tareas de código, con el **sellado**) · `e9fc1af`
+(7, los diez casos, los ocho adaptados y el barrido de 56 mutaciones) · `14b3e07` (8, los siete
+huecos que el barrido destapó y el **resellado**) · `2a1f29c` (9, TC-847 adaptado, las dos sondas de
+medición y el **resellado definitivo**) · **éste** (10, la documentación, que no toca `index.html`).
+
+Línea base: **`5a9f0ca`**, el cierre de ECO-CONECTOR-4, sello `v20261112-1639`, md5 `6f25d43d`,
+**179.130** líneas, **verificado al abrir** con `git status`, `git log -1`, `wc -l`, `wc -c` y
+`md5`: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras** y no había ningún
+archivo **rastreado** modificado —los diecinueve `??` son demos y notas preexistentes—.
+**Suite de la línea base: 876/879**, los 879 ejecutados en dieciséis lotes, md5 idéntico antes y
+después (`6f25d43d`), pendrive `DISK_IMG` verificado **dieciocho** veces, con los **tres** rojos de
+siempre: **TC-376, TC-390, TC-406**.
+⚠️ **ESO CORRIGE LA HIPÓTESIS DE LA ORDEN**, que esperaba **873/879 con seis rojos**: los tres
+intermitentes que nombra —TC-182, TC-551 y TC-850— salieron **verdes**, y TC-764 no apareció.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**Las cinco tareas de código, en un commit**, por la misma razón que ECO-CONECTOR-4 juntó las suyas:
+las cinco tocan el MISMO modal y las MISMAS tres funciones de sumidero, así que partirlas dejaría
+commits intermedios que no arrancan.
+
+**Lo que se midió y corrigió la orden:** `navigator.deviceMemory` existe y da 32, **pero el techo
+que decide si la pestaña se cae es el del montón de JavaScript** (4192 MB acá); el tope del backup
+son **460 MB y no 512**; `CeiboImg` no tenía **ningún** método para quitar un slot; la galería **ya**
+tenía un modo elegir —el del PPT— cuyo marcado se reusa; `clnkAccionEquipo` **ya** repintaba el
+panel; y de la razón crudo→guardado hay **dos** mediciones (÷4,1 y ÷6,48) de las que se toma la
+peor.
+
+**Verificación:** **suite 884/889** al cierre en diecisiete lotes, los 889 ejecutados, md5 idéntico
+antes y después, pendrive verificado diecinueve veces, con los tres rojos de siempre más los dos
+intermitentes que la orden declara —los dos pasan aislados—; **56/56 mutaciones dirigidas muertas** sobre el árbol
+sellado con el md5 del vivo idéntico antes y después, Semgrep **126/0** (la línea base), **sin
+huérfanos nuevos**, celular **59 y 67 con 18 ALTA** (la línea base), censo del Excel y de los campos
+**idéntico en los dos árboles** con su detector de que son dos, y las tres pruebas de memoria que la
+orden pide.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **EC5-a** a **EC5-l**. **EC5-k** es la medición que falta
+del lado del conector —por qué CeiboLink cuenta ~368 MB para 33 MB del ecógrafo—, que esta tanda no
+podía hacer porque la orden prohíbe tocar `ecosmart-conector`.
+
 ## ECO-CONECTOR-4 — confirmar solo lo que entró, archivos pesados, ver antes de asignar (2026-11-12)
 
 **CINCO commits.** `57d54e7` (1, el conector falso con el grupo mixto y las pesadas; no toca

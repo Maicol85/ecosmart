@@ -144,7 +144,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -161,6 +161,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
+| **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
 | **Tocar el VEREDICTO POR ARCHIVO del importador** —qué devuelven `mediosImportar` y `dcmImgImportar`, por qué `imgCompressLoad` devuelve una promesa, quién confirma a CeiboLink y cuándo—, **el TOPE de un DICOM sin comprimir** con su pregunta y su tope duro, **las MINIATURAS y el visor de «Sin estudio»**, o **los CINELOOPS en «Imágenes guardadas»** con su índice, su filtro y su exclusión del PPT | `docs/mapa/ec4-confirmar-pesados.md` |
 | **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
 | **Tocar el PANEL COMPACTO de CeiboLink** —la cabecera de dos renglones, los cuatro plegables nativos, el renglón de un equipo, el hueco de la grilla—, **el SONDEO**, **el AVISO de imágenes o de equipo nuevo** con su agrupación por tiempo, **ADJUNTAR al estudio** con su confirmación al guardar, **la BANDEJA de imágenes sin estudio**, o **la REGLA de nombre Y documento** y el aviso de espacio | `docs/mapa/ec2-aviso-bandeja.md` |
@@ -271,7 +272,34 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **12,97 MB / 179.130 líneas**, medido con `wc -c` y `wc -l` el 2026-11-12 al cierre de la tanda **ECO-CONECTOR-4**, sobre el árbol ya sellado: sello **`v20261112-1639`**, md5 **`6f25d43d`**.
+  sin frameworks. Hoy **13,07 MB / 180.952 líneas**, medido con `wc -c` y `wc -l` el 2026-11-13 al cierre de la tanda **ECO-CONECTOR-5**, sobre el árbol ya sellado: sello **`v20261112-2150`**, md5 **`f381026b`**.
+  El diff de ECO-CONECTOR-5 son **1.926 líneas agregadas y 104 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `5a9f0ca` **sobre el árbol ya sellado**, de las que **1.829** no son
+  comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —contados sobre el diff y no
+  de memoria—, **cero** claves y contraseñas, **cero** direcciones nuevas y **CERO llamadas de red
+  nuevas**: todo pasa por `clnkPedir`, que ya existía.
+  ⚠️ **Y ESTE PÁRRAFO DECÍA «1.896 agregadas y 116 quitadas» CON «1.586 no comentario» Y «CUATRO
+  `innerHTML`», QUE ERA FALSO EN LAS CUATRO CIFRAS**: lo conté de memoria sobre lo que tenía en la
+  cabeza en vez de contarlo sobre el diff. `git diff --numstat` da **1.926 y 104**, el barrido de
+  líneas que no son comentario da **1.829**, y `innerHTML` aparece **cero** veces en las líneas
+  agregadas. Es exactamente el error que PANT-18 y ECO-CONECTOR-2 pagaron con su propio conteo.
+  **OCHO ids nuevos, contados sobre el diff**: cinco en el marcado —`cfg-clnk-acciones`,
+  `clnkav-b5`, `clnkav-cuerpo`, `ig-imgv-adj` e `img-desde-guardadas`— y tres que la columna de la
+  galería crea al vuelo —`ig-elegir-on`, `ig-sel-cnt` e `ig-sel-res`—. El noveno que el diff muestra,
+  `eco-build-sello`, **no es nuevo**: es el del pie, que reaparece porque el sello cambió.
+  **Ninguno** termina en `-aviso` ni en `-badge` y **ninguno** cae en los veintiún barridos por
+  sufijo o prefijo del archivo.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**: el único control nuevo con id es la
+  casilla `ig-elegir-on`, que la pinta el JS y lleva prefijo `ig-`, y el censo medido en el
+  navegador en los DOS árboles da **1132** controles con id, **1004** que entran al censo del
+  estudio, **457** columnas de Excel y **381** claves del mapa del Laboratorio — **los cuatro
+  idénticos a los dos lados**, con el detector de que son dos árboles diciendo NO en el base y SÍ
+  en el vivo.
+  ⚠️ **POR TRIGÉSIMA OCTAVA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 5a9f0ca:index.html` da **179.130** líneas,
+  **12.969.155** bytes y el md5 **`6f25d43d`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 12,97 MB / 179.130 al cierre de la tanda **ECO-CONECTOR-4**, sello **`v20261112-1639`**, md5 **`6f25d43d`**.)
   El diff de ECO-CONECTOR-4 son **683 líneas agregadas y 73 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `12d27ce` **sobre el árbol ya sellado**, de las que **627** no son
   comentario, con **cero** `innerHTML`, `eval(` y `new Function` nuevos, **cero** claves y
@@ -1158,12 +1186,221 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 <!-- L1:INDICE -->
 
+> ⚠️ **AL 2026-11-13 ESTE ARCHIVO PESA 347 KB —unos 95k tokens— Y «Estado vigente» TIENE TRECE
+> TANDAS, NO TRES.** Medido con `wc -c` al cerrar ECO-CONECTOR-5. La regla de la LIMPIEZA-1 dice
+> que acá quedan **las tres últimas**; de ECO-CONECTOR-1 hacia atrás —PANT-37, PANT-36, PANT-34,
+> PANT-33, PANT-32, PANT-31, PANT-30, PANT-29, PANT-28, PANT-26, PANT-27 y las dos de auditoría—
+> tendrían que estar en `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`. **Cada tanda desde la LIMPIEZA-1
+> agregó la suya sin archivar ninguna**, y por eso el archivo pasó de 146 KB a 347. **La próxima
+> tanda tiene que hacer la mudanza antes de escribir su sección**: es media hora de `sed` y deja el
+> archivo en el tamaño que esta regla promete.
+>
 > ⚠️ **Y la tanda LIMPIEZA-1 (2026-11-08) movio una segunda camada.** Acá quedan las **tres
 > ultimas** tandas —PANT-22, PANT-21 y PANT-20—; de **PANT-19 hacia atras**, y el bloque
 > que seguia a «Procedencia» (de la tanda TGA a VAL-PPT), estan en
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda ECO-CONECTOR-5 (2026-11-13) — ver lo que espera, diálogos propios, vista previa y
+elegir imágenes en la galería.** OCHO commits. Sello **`v20261112-2150`**, md5 **`f381026b`**,
+**180.952** líneas.
+El médico probó ECO-CONECTOR-4 con CeiboLink **real** y aparecieron **seis huecos de uso**, los seis
+confirmados leyendo el código antes de tocar nada. **Nada de esto llega al papel**: no escribe un
+campo del informe, no toca el EN SUMA, el PDF, el PPT ni el Excel, que queda en **457** columnas con
+**cero** campos guardados nuevos — medido en el navegador en los DOS árboles, con su detector de que
+son dos: **1132** controles con id, **1004** que entran al censo del estudio, **457** columnas y
+**381** claves del mapa del Laboratorio, **los cuatro idénticos a los dos lados**.
+**«VER LO QUE ESPERA»: HASTA HOY LA ÚNICA FORMA ERA RECARGAR LA PÁGINA**, o sea perder el estudio en
+pantalla: el médico tenía que elegir entre sus imágenes y su trabajo. `_clnkAvisadas` vive en memoria
+y el sondeo no vuelve a ofrecer lo ya avisado. `clnkRevisarImagenes(forzar)` cambia **dos cosas y
+nada más**: ignora esa lista y no entra por la rama de ACTUALIZAR el cartel abierto. **Lo que NO
+cambia**: la guarda de no superponerse a otra pregunta sigue valiendo, y la cuarentena sigue afuera
+porque la lista del contrato §3.8 no la expone.
+⚠️ **Y SI NO HAY NADA, LO DICE, DISTINGUIENDO TRES MOTIVOS** —el conector no responde, hay otra
+pregunta en pantalla, no hay nada esperando—: con un solo mensaje, un aviso postergado se lee como
+que las imágenes se perdieron. Con un **equipo por decidir** manda a decidir, que es la decisión que
+desbloquea esas imágenes.
+**EL PANEL SE ACTUALIZA SOLO.** `clnkRefrescar`, agrupado en **400 ms** —una tanda de tres imágenes
+confirma de a una, así que sin agrupar serían tres lecturas por el mismo gesto— y **sin pedir nada si
+la tarjeta no está a la vista**, medido por la **caja** del nodo y no por un `style.display`: la
+tarjeta se puede esconder por su pestaña, por el Modo Básico o por el interruptor, y mirar un solo
+estilo deja los otros dos afuera.
+⚠️ **MEDIDO: `clnkAccionEquipo` YA LLAMABA A `clnkLeerEstado()`**, así que permitir, bloquear y
+olvidar un equipo ya se actualizaban antes de esta tanda. Los enganches nuevos son **seis**, no
+nueve: los tres sumideros, confirmar, descartar y asignar desde «Sin estudio».
+**LA FECHA DEL AVISO.** `_clnkCuando` devuelve la frase **entera** —«a las 23:43», «ayer a las
+23:43», «el 07/11 a las 09:12»— y no sólo la hora, porque con «ayer, 23:43» el texto diría «a las
+ayer». ⚠️ **LA COMPARACIÓN ES POR DÍA DE CALENDARIO LOCAL Y NO RESTANDO 24 HORAS**: un día después de
+un cambio de hora, restar 86.400.000 ms cae en el mismo día o en el anteayer, así que «ayer» se diría
+mal dos veces por año — y una prueba que reste lo mismo que el código no lo ve nunca.
+**EL MODAL GANA UN CUERPO, UN QUINTO BOTÓN Y UNA PREGUNTA QUE SE ESPERA.** ⚠️ **ECO-CONECTOR-4 DEJÓ
+ESCRITO POR QUÉ LA PREGUNTA ERA UN `confirm` NATIVO, Y ESA RAZÓN SE RESOLVIÓ EN VEZ DE IGNORARSE**:
+decía «al volver no habría a qué estado regresar», y ahora sí hay — `clnkAvisoPreguntar` guarda el
+título, el texto, el **cuerpo como un fragmento de DOM** —así vuelve con sus oyentes— y los cinco
+botones con sus manejadores, pregunta, y repone todo. Si el modal no estaba abierto, se cierra al
+contestar. Cerrar con la ✕ resuelve con la cadena vacía y quien llama toma el **lado seguro**.
+⚠️ **EL QUINTO BOTÓN SE INTERCALA EN EL ARREGLO Y NO SE PASA UN BOTÓN VACÍO EN SU LUGAR, Y ESO LO
+DESTAPÓ UN CASO**: `clnkAvisoAbrir` reparte por POSICIÓN, así que con un cuarto vacío el «Cancelar»
+del pendrive caía en el quinto y el cuarto quedaba como un hueco escondido.
+**LOS DOS PESOS, CON EL SEGUNDO DECLARADO COMO ESTIMACIÓN.** El factor es **4** y sale de **DOS**
+mediciones: el multicuadro sintético de 512×512 por 60 cuadros monocromo da **15,0 → 3,66 MB
+(÷4,1)** y el del médico —1016×708 en color por 171 cuadros— da **351,9 → 54,3 MB (÷6,48)**, medido
+otra vez en esta tanda sobre este árbol y con el archivo al tamaño de verdad: dio **exactamente lo
+mismo** que ECO-CONECTOR-4. Se toma el divisor más chico, que da la estimación más grande: pasarse
+por exceso hace que el médico espere más de lo que ocupa; por defecto le promete un espacio que no
+alcanza. **Lo que cuesta, declarado: ese archivo se estima en 88,0 MB y ocupa 54,3 — un 62 % de
+más.**
+**EL UMBRAL ES ADAPTATIVO, Y LO MEDIDO CORRIGE LA PROPUESTA DE LA ORDEN.** `navigator.deviceMemory`
+**existe** en el Chrome de la batería y devuelve **32**; **pero el techo que decide si la pestaña se
+cae no es ése**: es el del **montón de JavaScript**, **4192 MB** en esta máquina de 32 GB. Una
+pestaña no se muere cuando se acaba la RAM, se muere cuando el montón pasa su techo — y reservar «una
+fracción de la RAM» sin mirar el montón daría **8 GB de presupuesto sobre un techo de 4**. Y
+`performance.memory` es **sólo de Chrome**, así que hay respaldo: 256 MB de montón por GiB.
+La cuenta: `presupuesto = min(techo×0,5, RAM×0,25)`, `tope duro = presupuesto÷1,8`, `pregunta =
+duro÷4`, con piso en los dos. **La tabla medida**: la máquina real da **291 / 1164 MB**; con la
+memoria sustituida, 32 GiB da 569/2276, 8 GiB 142/569, 4 GiB 71/284, 2 GiB 36/142, 1 GiB 24/71 —ahí
+mandan los dos pisos— y sin dato lo mismo que 4 GiB. **Los dos valores de ECO-CONECTOR-4 —192 y 768
+MB— caen dentro del rango**: no es un salto, es la misma política con el número sacado del equipo.
+⚠️ **DEL FACTOR DEL PICO HAY DOS MEDICIONES Y LAS DOS SON CORRECTAS**: ECO-CONECTOR-4 midió **622,5
+MB** de pico para 351,9 de píxeles (factor **1,77**) y esta tanda, sobre el mismo archivo y el mismo
+camino, midió **403 a 459 MB sobre la base** en tres corridas (factor **1,15 a 1,30**), con el montón
+pasando de 27,2 a 451,3 MB y la conversión tardando **1,4 s**. Miden cosas distintas: una incluye los
+crudos todavía vivos y la otra el delta después de soltarlos. **Se usa el más alto** porque el factor
+entra en un DENOMINADOR: el más grande da el tope más chico, y equivocarse por prudencia cuesta una
+pregunta de más mientras equivocarse por optimismo cuesta la pestaña. Declarado en **EC5-b**.
+⚠️ **LAS CUATRO FUNCIONES DE TOPE NO SE LLAMAN EN CÍRCULO**: las dos «…Crudo» calculan su número sin
+mirar al otro, y las dos públicas los ordenan. Escrito de la forma natural —cada una llamando a la
+otra— la pila se va al infinito y el bloque de JS entero deja de servir.
+**UN SOLO MENSAJE AL FINAL.** Eran **dos** cuadros nativos y medido sobre el archivo podían ser
+**tres**. `_dstAviso` junta los textos **dentro** de una tanda y `dstResumen` los emite una vez, con
+un solo botón; **fuera** de una tanda llama al `alert` de siempre, así que importar desde la pestaña
+Imágenes **no cambia**. Arriba del tope duro el aviso va al resumen y no a un cartel propio: no hay
+nada que decidir.
+**LA VISTA PREVIA. ⚠️ MIRAR NO ES DECIDIR, y es la invariante de todo el bloque**: no persiste, no
+confirma, no borra y no agrega nada al estudio. **No hay una sola llamada** a `confirmar`, a
+`CeiboImg`, a `CeiboCine`, a `clnkbGuardar` ni a `imgSlots`. Medido de **SEIS formas** y con control
+**positivo**. De a una y en serie; la marca foto/video, el peso y la hora salen de la lista **sin
+bajar un byte**; **la miniatura cuesta 1.035 bytes** —medido: seis son 6.210 y **treinta son
+31.050**, con el montón volviendo a +0,1 MB de la base al cerrar—.
+⚠️ **HAY DOS PUERTAS Y LAS DOS SE DECLARAN**: la lista del contrato da el tamaño del **archivo**, no
+los píxeles sin comprimir —ese número vive en la cabecera—, así que hay una puerta antes de bajar y
+otra después de leerla. Las dos terminan en la marca, el peso y «Mirar igual».
+⚠️ **UN SOLO CUADRO PARA LA MINIATURA**: `_dcmCrudoUnCuadro` copia el descriptor declarando UN cuadro
+y apuntando a los píxeles del primero —`subarray` no copia bytes— y le pasa eso al **mismo**
+convertidor. **Y PUBLICA CUÁNTOS CONVIRTIÓ, porque si no «uno solo» no se puede medir**: la miniatura
+se ve igual con uno o con los 171 y la única diferencia es el pico, que con un fixture de unos MB
+queda dentro del ruido. Lo destapó el barrido.
+⚠️ **NO HAY VISTA PREVIA PARA UN EQUIPO EN CUARENTENA**, y no por un filtro: la lista del contrato
+§3.8 **no expone** esas imágenes. Seguridad por construcción, y una limitación declarada en
+**EC5-e**.
+**LA GALERÍA: ELEGIR, ELIMINAR Y ADJUNTAR. ⚠️ `CeiboImg.quitar` NO EXISTÍA**: medido en la Tarea 0,
+los **catorce** métodos de ese almacén y ninguno quita un slot. Respeta el orden de `indice()`
+—slots y después esquemas—, borra el registro si no queda nada, **no toca el estudio** y **no puede
+alcanzar las copias en otros estudios**, que es cierto por construcción.
+⚠️ **SI EL ESTUDIO ESTÁ ABIERTO, LA IMAGEN TAMBIÉN SALE DEL FORMULARIO, Y SIN ESTO VOLVÍA**:
+`CeiboImg.guardar` reemplaza el juego con lo que haya en `imgSlots`, así que borrar del disco y
+guardar después **reescribía la imagen** — el borrado se deshacía solo y en silencio. Se saca **por
+su CONTENIDO y no por su índice**: `imgSlots` tiene huecos y no lleva los esquemas.
+⚠️ **EL MARCADO SE REUSA Y NO SE DUPLICA**, que es lo que la Tarea 0 fue a medir: la galería **ya**
+tenía un modo elegir —el del PPT— con su `.ig-img-th.sel`, su `.ig-img-ord` y su enrutado del toque.
+Los dos modos son **excluyentes**: el toque sobre una miniatura tiene UN solo significado. Y **acá sí
+entran los cineloops**, al contrario que en el mazo.
+**ADJUNTAR COPIA Y NO MUEVE**, siempre. Las fijas por la **puerta única** `mediosImportar`; los
+cineloops por la **cola**, con `_cinePuedeGuardar`, que es el MISMO predicado del importador de
+DICOM. **Los esquemas no se copian y se CUENTAN para poder decirlo**: un esquema lo dibuja la app con
+los datos de SU estudio. Las tres funciones reciben la lista **por parámetro**, que es lo que permite
+que «Adjuntar a…» del visor las reuse con una lista de UNA entrada.
+**EXPORTAR REUSA EL SOBRE DEL BACKUP**, así que el archivo se vuelve a importar con el importador que
+ya existe; el nivel se elige solo, el tamaño se muestra **antes** y el aviso dice que trae imágenes
+de pacientes y que el nombre puede estar **dibujado sobre** la imagen. ⚠️ **EL TOPE SON 460 MB Y NO
+512, medido**: `BK_TOPE_BYTES` vale 482.344.960. ⚠️ **Y VA LA FICHA COMPLETA DEL ESTUDIO DE ORIGEN**,
+que es más de lo que el médico eligió: el mapa `medios` está indexado por uuid y el importador adjunta
+cada bloque al estudio que importa. Estructural del formato, el aviso lo dice, declarado en
+**EC5-f**. **«Importar» llama a `mediosPick(true)`** —la MISMA función del menú de Guardados, cero
+código nuevo— y **«Desde imágenes guardadas»** lleva a la galería en modo elegir y copia con el mismo
+botón de la decisión 7b.
+**LA MEMORIA, MEDIDA.** Treinta miniaturas retienen **31.050 bytes** y el montón vuelve a **+0,1 MB**
+de la base. Copiar un cineloop de **20,5 MB** de un estudio a otro pica **+1,0 MB** y vuelve a
+**−0,4**. ⚠️ **EXPORTAR UNA SELECCIÓN CON ESE CINELOOP DEJA 20,8 MB RETENIDOS** después de forzar el
+recolector **y** de esperar los 4,6 s de la revocación de la URL del objeto: **no se pudo atribuir a
+un dueño** y **no se declara como fuga** — se declara el número, con la hipótesis y qué falta medir,
+en **EC5-c**.
+⚠️ **Y EL CINELOOP DE ESA PRUEBA HUBO QUE REHACERLO**: la primera versión usaba cuadros de un color
+plano y 120 cuadros daban **0,1 MB**, o sea que «un cineloop grande» no era grande y la medición no
+decía nada. Con ruido píxel a píxel el JPEG no comprime y da los 20,5 MB que pesa un cineloop de
+verdad.
+**Cobertura: TC-872 a TC-881**, los diez cayendo **0/10** contra `5a9f0ca` **por su denominador
+declarado y NINGUNO por excepción**, verificado en un worktree con el mismo archivo de casos y sólo el
+`index.html` distinto, leyendo el motivo de cada rojo uno por uno. **NUEVE casos adaptados** —TC-847, TC-852,
+TC-859, TC-861, TC-862, TC-863, TC-864, TC-865 y TC-866—, cada uno con su decisión escrita donde vive
+la condición, **ninguno borrado y ninguno aflojado**; **ocho de los nueve caen contra la línea base**
+por sus condiciones nuevas y ninguno por excepción. ⚠️ **TC-863 pasa en los dos árboles y se
+declara**: su adaptación **amplió** la lectura —el modal O los toasts— en vez de reemplazarla, así
+que no quedó más débil; simplemente no es lo que discrimina. **TC-865 quedó MÁS FUERTE**: mide los
+ROTULOS de los botones en vez de las mayúsculas que explicaban cuál botón nativo era cuál.
+⚠️ **EL CONTESTADOR DE LA PREGUNTA VIVE EN EL PRELUDIO, Y POR QUÉ AHÍ**: el cuerpo de un caso es una
+CADENA que se evalúa **en el navegador**, así que una función de nivel de módulo de `test_clinico.mjs`
+no existe ahí — la primera versión declaró los cinco ayudantes arriba y los diez casos habrían caído
+con «_ec5Modal is not defined», un rojo que no apunta a su propia causa.
+⚠️ **Y UN CASO QUE DISPARE LA PREGUNTA Y NO LA CONTESTE CUELGA LA BATERÍA ENTERA**: la promesa queda
+esperando un clic que nadie da. Lo pagó **TC-862**, que colgó su lote al primer intento. El
+contestador cubre **además** el `confirm` nativo, para que un caso adaptado no cuelgue contra la línea
+base — eso también lo pagó una corrida.
+**56/56 MUTACIONES DIRIGIDAS MUERTAS** en **3,9 min**, en un worktree y **nunca** sobre el vivo, con
+el md5 del vivo **idéntico** antes y después (`f381026b`), **cero sobrevivientes y cero que no
+aplicaran**, y las 56 anclas verificadas **ANTES** de correr. Las **ocho** que la orden pide son la 01
+a la 08, en su orden.
+⚠️ **EL PRIMER BARRIDO DEJÓ OCHO SOBREVIVIENTES Y SE REPARTIERON EN TRES CLASES.** **SIETE huecos
+reales de cobertura**, cerrados con condiciones nuevas y **sin aflojar una sola mutación**: que el
+detalle del **resumen** entre por `textContent` —ahí van nombres de archivo del ecógrafo y nombres de
+estudio que escribió una persona—; que **cerrar la pregunta con la ✕** no abra el archivo, porque los
+casos siempre apretaban un botón y nunca cerraban; **cuál de los dos topes gana** con los ganchos al
+revés —se cumple de dos formas y la condición no distinguía cuál—; que el tope se calcule sobre el
+**pico** y no sobre los píxeles, que la tabla no podía ver porque todos los valores escalan juntos;
+que la miniatura convierta **un** cuadro, que necesitó que la función publique cuántos; que los dos
+modos de la galería sean **excluyentes**; y que **cancelar** la exportación no genere archivo.
+**UNA que mi propia escena neutralizaba**, y es la cuarta vez que esta casa lo paga: TC-876 (F)
+llamaba a `_dcmCrudoNuevoLote()` antes de probar que el **sumidero** abre la tanda solo. **Y UNA mal
+dirigida**: la del resumen apuntaba a dos casos que no abren el resumen con un payload.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base. **CELULAR: 59
+hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta, medida con la
+máquina sola.
+⚠️ **CUATRO TRAMPAS DE ESCRITURA, LAS CUATRO DE ESTA CASA.** (1) El **acento grave** dentro de mis
+propios comentarios, por **vigesimosegunda** tanda seguida: **siete** veces, en casos, en una sonda y
+en los parches. Lo caza `node --check` y nada más. (2) Diagnósticos que leían un `const` declarado
+**dentro del `try`**, fuera de alcance en el `return`: dos `ReferenceError` que tiraban el caso entero
+en vez de una condición. (3) Las **cifras del diff contadas de memoria**: este archivo decía «1.896 y
+116» con «1.586 no comentario» y «cuatro `innerHTML`», y las cuatro eran falsas — es el error que
+PANT-18 y ECO-CONECTOR-2 ya pagaron. (4) Una **medición sobre un denominador vacío**: la primera
+corrida de la sonda de línea base midió sobre «hay que vincular» porque `vinculado:true` del conector
+falso **no alcanza** — el token es de EcoSmart y hay que pasar por el flujo real.
+⚠️ **Y DOS COSAS QUE LA ORDEN SUPONÍA Y NO SE REPRODUJERON.** La **línea base no era 873/879 con seis
+rojos**: es **876/879** con **tres** —TC-376, TC-390 y TC-406—, y los tres intermitentes que la orden
+nombra (TC-182, TC-551, TC-850) salieron **verdes**. Y el **tope del backup son 460 MB y no 512**.
+**Línea base medida al abrir: suite 876/879**, los 879 ejecutados en dieciséis lotes, md5 idéntico
+antes y después (`6f25d43d`) y el pendrive `DISK_IMG` verificado **dieciocho** veces, con los **tres**
+rojos de siempre: TC-376, TC-390 y TC-406.
+**Línea base al cierre: suite 884/889**, en **DIECISIETE** lotes cubriendo los **889 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en UNA
+sola pasada sobre el árbol sellado, con los **889 ejecutados**, el md5 de `index.html` **idéntico**
+antes y después (`f381026b`) y el pendrive `DISK_IMG` verificado **diecinueve** veces: al abrir, en
+cada uno de los diecisiete lotes y al cerrar. Los rojos son **TC-376, TC-390 y TC-406**, los tres de
+siempre, más **TC-551 y TC-764**, los dos intermitentes que la orden declara — **los dos pasan 2 de
+2 corridos aislados**, así que son sensibilidad de lote y no de esta tanda. **Ningún rojo nuevo**, y
+**los diez casos nuevos y los nueve adaptados en verde**.
+⚠️ **ES LA SEGUNDA PASADA, Y LA PRIMERA NO SE INFORMA PORQUE EL ARCHIVO DE CASOS CAMBIÓ DESPUÉS**:
+dio **885/889** con **TC-847** rojo —el noveno adaptado, que fallaba también **aislado** y que su
+propio comentario de ECO-CONECTOR-3 anunciaba: «se pone roja si alguien agrega una quinta [salida]
+sin declararla»—. Esta casa no informa un número de una pasada hecha con un archivo de casos
+anterior.
+⚠️ **Y A TC-847 LO DESTAPÓ LA BATERÍA COMPLETA Y NO MI CENSO**: busqué los casos que miran los
+botones del modal por `clnkav-b4`, y ése los recorre con una lista propia. Es el modo de falla que
+este archivo ya documenta una decena de veces.
+Lo declarado, en **EC5-a** a **EC5-l** —doce, sin ids repetidos—; el mapa, en
+`docs/mapa/ec5-previa-galeria.md`; las fichas, en `docs/mapa/tests-fichas-872.md`; la guía manual, en
+`docs/GUIA_PRUEBA_EC5.md` (**14** pasos).
 
 **La tanda ECO-CONECTOR-4 (2026-11-12) — confirmar solo lo que entró, los archivos pesados con
 decisión del médico, ver antes de asignar y los cineloops a la vista.** CINCO commits. Sello
