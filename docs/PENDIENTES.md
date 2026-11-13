@@ -16684,3 +16684,33 @@ envuelve.
 No quedaron mas debiles — lo que se les cambio es el DENOMINADOR en uno y la fuente del dato en el
 otro, y las dos cosas valen igual en los dos arboles—. Los otros tres (TC-208, TC-236, TC-241)
 caen alla por sus condiciones nuevas, o sea que siguen discriminando.
+
+### M2-b — BLOQUE B de MEDIR-2: la tabla de medidas en cinco columnas
+
+**Punto 5 de MEDIR-1, hecho.** Las dos tablas del visor —el cajon 2D y el Doppler— pasan de dos
+columnas a **Medida | Valor | Unid. | Medir y Borrar | <comunidad>**, con **UN solo armador**
+(`_medTablaHTML`) parametrizado por el prefijo de atributo de cada cajon: con uno por cajon, el
+dia que una columna cambie de forma los dos pintarian distinto la misma fila.
+
+**Una fila es CALCULADA cuando no tiene campo (`f[3]` en null)**, y ese criterio no es nuevo: es
+el que `_d2Filas` ya declaraba para sacarles el ✏️. Van sin ningun boton, en cursiva y con la
+palabra «calculada» en su celda de acciones, que es lo que las separa de una fila que todavia no
+se midio.
+
+**«Borrar» no es un camino nuevo**: es el mismo que `dopCorregir` / `d2Corregir` recorren cuando
+el medico deja el cuadro vacio —vaciar el valor y soltar la marca de origen—, asi que **no toca
+ni un corte ni una banda de plausibilidad**. El boton se dibuja **solo si la fila tiene valor**,
+o sea que no hay forma de borrar algo que no esta, y por eso no pregunta.
+
+**El ✏️ se conserva**: para campos como el Diam TSVD es la UNICA via de entrada, y retirarlo
+romperia TC-250 y la carga a mano de los alias.
+
+**Medido en Chrome a 1440x900, con cero errores de pagina y de consola**: encabezado identico en
+los dos cajones, cinco celdas en todas las filas, el valor y la unidad en celdas distintas
+(«10.0» / «mm»), la calculada «Engrosamiento SIV» sin botones y en cursiva, «Borrar» vaciando
+`vi.sivd` y dejando `vi.sivs` en 14.
+
+**Cobertura: TC-882**, con sus denominadores y su control negativo (una fila medible SI tiene
+botones y no va en cursiva). Cae **0/1 contra `ff8c585`** por once condiciones. **Tres mutaciones
+dirigidas, las tres muertas**: las calculadas con botones, la casilla sin `disabled` y «Borrar»
+vaciando el campo vecino.

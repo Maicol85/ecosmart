@@ -141743,6 +141743,160 @@ const _MED_EST_DOP = ['mit', 'ao', 'tri', 'pul'];
    mentirle al medico sobre lo que esta eligiendo. */
 function _medSideRotNivel2(g) { return g === 'dop' ? 'Herramienta' : 'Qué medir'; }
 
+/* ══ MEDIR-2 — LA COMUNIDAD DE DESARROLLO DE IA, BLOQUEADA ═══════════════════════════════════
+   Punto 8 del pedido. NADA de esto envía ni guarda: no hay una sola llamada de red nueva, no se
+   escribe una clave de `localStorage` y no se toca ningún campo del estudio.
+
+   ⚠️ UN SOLO ESTADO Y UN SOLO NOMBRE, que es el pedido literal (e). El estado es `ANAHI_ON` y lo
+   leen los tres lugares que ofrecen la función —la casilla de cada fila de la tabla y los dos
+   botones «Para <nombre>»—; el nombre es `ANAHI_NOMBRE` y aparece UNA vez, para poder cambiarlo
+   sin recorrer la aplicación. Con el booleano repetido en tres lados, el día que se active
+   quedarían dos lugares abiertos y uno cerrado — que es la clase de desacuerdo que este archivo
+   persigue desde el Diam TSVI.
+   ⚠️ EL «YA LO VI» VIVE EN MEMORIA Y NO EN DISCO, que es el pedido (c): el cartel entero sale la
+   PRIMERA vez de cada sesión de la página y después va el aviso corto. Persistirlo haría que el
+   médico que lo leyó una vez no lo volviera a ver nunca, y acá lo que se explica es por qué el
+   control no hace nada. */
+const ANAHI_NOMBRE = 'Anahí';
+const ANAHI_ON = false;
+var _anahiCartelVisto = false;
+function anahiActiva() { return ANAHI_ON === true; }
+window.anahiActiva = anahiActiva;
+
+const ANAHI_TIT = 'Comunidad de desarrollo de IA de CeiboMed';
+const ANAHI_CUERPO = 'Estamos desarrollando una IA que ayude a medir en ecocardiografía. ' +
+  'Los médicos que quieran pueden colaborar con sus propias mediciones. Esta opción todavía ' +
+  'está bloqueada y no se envía nada. Cuando se active, vas a poder unirte desde ' +
+  'Configuración: vas a leer las condiciones, aceptarlas y decidir qué enviar en cada ocasión. ' +
+  'Podrás retirarte cuando quieras.';
+const ANAHI_CORTO = 'Bloqueado hasta que te unas a la comunidad';
+
+/* ⚠️ EL CARTEL ES PROPIO DE LA APLICACIÓN Y NO UN `alert`, que es el pedido literal (c). Todo lo
+   que se escribe entra por `textContent`: no hay una sola interpolación de marcado acá.
+   Se arma al vuelo y se destruye al cerrar — no deja un nodo en el documento ni un id que los
+   barridos de «Nuevo estudio» puedan alcanzar. */
+function anahiCartel() {
+  if (_anahiCartelVisto) {
+    try { if (typeof toast === 'function') toast('🔒 ' + ANAHI_CORTO); } catch (e) {}
+    return;
+  }
+  _anahiCartelVisto = true;
+  const ov = document.createElement('div');
+  ov.id = 'anahi-ov';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-labelledby', 'anahi-tit');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;' +
+    'display:flex;align-items:center;justify-content:center;padding:18px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:460px;width:100%;padding:18px 20px;box-shadow:0 10px 40px rgba(0,0,0,.35);';
+  const h = document.createElement('h4');
+  h.id = 'anahi-tit';
+  h.style.cssText = 'font-size:13px;margin-bottom:9px;color:var(--text);';
+  h.textContent = ANAHI_TIT;
+  const p = document.createElement('p');
+  p.style.cssText = 'font-size:11.5px;line-height:1.6;color:var(--text2);margin-bottom:14px;';
+  p.textContent = ANAHI_CUERPO;
+  const fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;justify-content:flex-end;';
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.id = 'anahi-ok'; ok.className = 'btn btn-primary';
+  ok.style.cssText = 'padding:5px 16px;font-size:11.5px;';
+  /* «Entendido» SOLO CIERRA: no acepta nada y no cambia un solo estado. El pedido lo dice con
+     todas las letras, y por eso el manejador no toca `ANAHI_ON` ni escribe en ningún lado. */
+  ok.textContent = 'Entendido';
+  const cerrar = () => { try { ov.remove(); } catch (e) {}
+    document.removeEventListener('keydown', esc, true); };
+  const esc = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(); } };
+  ok.addEventListener('click', cerrar);
+  document.addEventListener('keydown', esc, true);
+  fila.appendChild(ok); caja.appendChild(h); caja.appendChild(p); caja.appendChild(fila);
+  ov.appendChild(caja); document.body.appendChild(ov);
+  try { ok.focus(); } catch (e) {}
+}
+window.anahiCartel = anahiCartel;
+
+/* La celda de la tabla. Con la comunidad apagada la casilla va DESHABILITADA y con candado, y
+   quien la toca recibe la explicación — por eso el oyente cuelga de la celda y no de la casilla:
+   un `input` deshabilitado no emite eventos, así que sin esto el médico tocaría un control que
+   no contesta nada. */
+function anahiCeldaHTML() {
+  const act = anahiActiva();
+  return '<td class="anahi-cel" style="padding:4px 6px;text-align:center;white-space:nowrap;"' +
+    (act ? '' : ' title="' + escHtml(ANAHI_CORTO) + '"') + '>' +
+    '<input type="checkbox" class="anahi-chk"' + (act ? '' : ' disabled aria-disabled="true"') +
+    ' aria-label="' + escHtml(ANAHI_NOMBRE + ' — ' + ANAHI_CORTO) + '"' +
+    ' style="pointer-events:none;vertical-align:middle;">' +
+    (act ? '' : '<span aria-hidden="true" style="font-size:9px;margin-left:2px;">🔒</span>') +
+    '</td>';
+}
+/* Un solo oyente delegado para todo el documento: las tablas se repintan enteras y un manejador
+   por celda se iría con el nodo viejo en cada repintado. */
+try {
+  document.addEventListener('click', function (ev) {
+    const t = ev.target && ev.target.closest ? ev.target.closest('.anahi-cel, .anahi-btn') : null;
+    if (!t) return;
+    if (anahiActiva()) return;      // activa: este camino deja de existir
+    ev.preventDefault(); ev.stopPropagation();
+    anahiCartel();
+  }, true);
+} catch (e) {}
+
+/* ══ MEDIR-2 — LA TABLA DE MEDIDAS EN CINCO COLUMNAS ═════════════════════════════════════════
+   Punto 5 del pedido: Medida | Valor | Unid. | Medir y Borrar | casilla de la comunidad.
+
+   ⚠️ UN SOLO ARMADOR PARA LOS DOS CAJONES, parametrizado por su prefijo de atributo. Con uno por
+   cajón, el día que una columna cambie de forma los dos pintarían distinto la misma fila — que
+   es exactamente lo que el armador único de `_dopRender` ya decía de sus dos tablas.
+   ⚠️ UNA FILA ES CALCULADA CUANDO NO TIENE CAMPO (`f[3]` en null), y ese criterio NO es nuevo:
+   es el que `_d2Filas` ya declara para sacarles el ✏️ —«un calculado que se puede pisar a mano
+   es el campo auto que se queda viejo»—. Las calculadas van sin ningún botón, en cursiva y con
+   la palabra «calculada» en su celda de acciones, que es lo que las distingue de una fila que
+   todavía no se midió.
+   ⚠️ NO SE TOCA NI UN CORTE NI UNA BANDA: esta función sólo reparte en celdas lo que las dos
+   `_*Filas` ya devolvían. */
+function _medTablaHTML(filas, pfx, destino) {
+  const esc = escHtml;
+  let t = '<table class="med-tabla" style="width:100%;border-collapse:collapse;font-size:12.5px;">' +
+    '<thead><tr style="border-bottom:1px solid var(--border);">' +
+    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+      'text-transform:uppercase;color:var(--text2);">Medida</th>' +
+    '<th style="padding:3px 6px;text-align:right;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+      'text-transform:uppercase;color:var(--text2);">Valor</th>' +
+    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+      'text-transform:uppercase;color:var(--text2);">Unid.</th>' +
+    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+      'text-transform:uppercase;color:var(--text2);">Medir y Borrar</th>' +
+    '<th style="padding:3px 6px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+      'text-transform:uppercase;color:var(--text2);">' + esc(ANAHI_NOMBRE) + '</th>' +
+    '</tr></thead><tbody>';
+  filas.forEach(f => {
+    const calc = (f[3] == null);
+    const marcado = (destino && destino === f[3]) ? 'background:var(--bg3);' : '';
+    const bot = (rot, attr, tip) =>
+      ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" ' +
+      'title="' + esc(tip) + '" data-' + pfx + '-' + attr + '="' + esc(f[3]) + '">' + esc(rot) + '</button>';
+    let acc = '';
+    if (calc) {
+      acc = '<span style="font-size:9.5px;color:var(--text2);">calculada</span>';
+    } else {
+      if (f[4]) acc += bot('Medir', 'armar', 'Elegí la herramienta y la próxima medición cae en este campo.');
+      acc += bot('✏️', 'corr', 'Escribir el valor a mano.');
+      if (f[1] != null) acc += bot('Borrar', 'borrar', 'Vacía este campo. No toca las demás medidas.');
+    }
+    t += '<tr style="border-bottom:1px solid var(--border);' + marcado +
+         (calc ? 'font-style:italic;' : '') + '">' +
+      '<td style="padding:4px 6px;color:var(--text2);">' + esc(f[0]) + '</td>' +
+      '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' +
+        (f[1] == null ? '—' : esc(f[1])) + '</td>' +
+      '<td style="padding:4px 6px;color:var(--text2);white-space:nowrap;">' + esc(f[2] || '') + '</td>' +
+      '<td style="padding:4px 6px;white-space:nowrap;">' + acc + '</td>' +
+      anahiCeldaHTML() + '</tr>';
+  });
+  return t + '</tbody></table>';
+}
+
 function _medSideFila(rot, cuerpo) {
   if (!cuerpo) return '';
   return '<div style="display:flex;flex-direction:column;gap:2px;">' +
@@ -149942,6 +150096,24 @@ function dopCorregir(campo) {
 }
 window.dopCorregir = dopCorregir;
 
+/* ⚠️ «BORRAR» NO ES UN CAMINO NUEVO: es el MISMO que `dopCorregir` recorre cuando el médico deja
+   el cuadro vacío —vaciar el valor, soltar la marca de origen, repintar los dos cajones—, y por
+   eso no toca ni un corte ni una banda. Lo que agrega es la columna del punto 5 del pedido: una
+   medida se borra de a una, sin pasar por el cuadro de texto y sin tocar las demás.
+   No pregunta: rehacer una medición es un trazo, y el botón sólo se dibuja cuando la fila TIENE
+   valor — o sea que no hay forma de borrar algo que no está. */
+function dopBorrar(campo) {
+  const E = _dopEstado();
+  const p = campo.split('.');
+  const obj = (E[p[0]] && Object.prototype.hasOwnProperty.call(E[p[0]], p[1])) ? E[p[0]] : null;
+  if (!obj) return;
+  obj[p[1]] = null;
+  delete E.origen[campo];
+  _dopRender();
+  _dopRepintarAjeno(campo);
+}
+window.dopBorrar = dopBorrar;
+
 /* ⚠️ SI EL CAMPO ES DESTINO DE UN ALIAS, EL CAJÓN 2D TAMBIÉN TIENE QUE REPINTARSE. `_dopLimpiar`
    ya lo hacía para el borrado masivo y declara por qué: con los dos cajones visibles a la vez
    —alcanzable, `medGrupoToggle` cambia el grupo sin tocar la herramienta— el 2D seguía publicando
@@ -150357,21 +150529,13 @@ function _dopRender() {
   }
   /* Una tabla, un armador: el de arriba lo consumen la tabla de la válvula y la de las sueltas,
      así que no pueden pintar distinto el mismo valor. */
-  const tabla = (filas) => {
-    let t = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
-    filas.forEach(f => {
-      const val = f[1] == null ? '—' : escHtml(f[1] + (f[2] ? ' ' + f[2] : ''));
-      const arm = f[4] && hay
-        ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-armar="' + escHtml(f[3]) + '">medir</button>' : '';
-      const cor = f[3]
-        ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-corr="' + escHtml(f[3]) + '">✏️</button>' : '';
-      const marcado = (E.destino && E.destino === f[3]) ? 'background:var(--bg3);' : '';
-      t += '<tr style="border-bottom:1px solid var(--border);' + marcado + '">' +
-           '<td style="padding:4px 6px;color:var(--text2);">' + escHtml(f[0]) + '</td>' +
-           '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' + val + arm + cor + '</td></tr>';
-    });
-    return t + '</table>';
-  };
+  /* MEDIR-2: las cinco columnas del punto 5. `hay` —¿hay imagen abierta?— se respeta igual que
+     antes: sin visor no se ofrece «Medir», porque no habría sobre qué. Se resuelve apagando el
+     `armable` de la fila antes de pasarla al armador único, que así no necesita saber nada del
+     visor. */
+  const tabla = (filas) =>
+    _medTablaHTML(hay ? filas : filas.map(f => { const g = f.slice(); g[4] = false; return g; }),
+                  'dop', E.destino);
   /* ⚠️ DOS COLUMNAS, Y LA MÁS LARGA MANDA EL ALTO. Se reparte por `f[6]` y se dibujan dos tablas
      lado a lado: con una sola tabla de cuatro celdas por fila, una columna con menos filas dejaba
      huecos alineados con la otra y el ojo los leía como valores faltantes.
@@ -150520,7 +150684,7 @@ function _dopObservar() {
   if (!cont || _dopObsNodo === cont) return;
   _dopObsNodo = cont;
   cont.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-acc]') : null;
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-borrar],[data-dop-acc]') : null;
     if (!b || !cont.contains(b) || b.disabled) return;
     const m = b.getAttribute('data-dop-modo');
     if (m) { dopModo(m); return; }
@@ -150530,6 +150694,8 @@ function _dopObservar() {
     if (a) { dopArmar(a); return; }
     const c = b.getAttribute('data-dop-corr');
     if (c) { dopCorregir(c); return; }
+    const bo = b.getAttribute('data-dop-borrar');
+    if (bo) { dopBorrar(bo); return; }
     const acc = b.getAttribute('data-dop-acc');
     if (acc === 'limpiar') { _dopLimpiarConfirmar(); return; }
     if (acc === 'guardar') { dopGuardarBiblioteca(); return; }
@@ -151087,6 +151253,18 @@ function d2Corregir(campo) {
 }
 window.d2Corregir = d2Corregir;
 
+/* El hermano de `dopBorrar`, y por el mismo camino que `d2Corregir` recorre con el cuadro
+   vacío: vaciar el valor y soltar la marca de origen. No toca ni un corte ni una banda, y el
+   botón sólo se dibuja cuando la fila tiene valor. */
+function d2Borrar(campo) {
+  const r = _d2Ref(campo);
+  if (!r) return;
+  _d2Poner(campo, null);
+  _d2BorrarOrigen(campo);
+  _d2Render();
+}
+window.d2Borrar = d2Borrar;
+
 /* ⚠️ EL BORDE ÚNICO POR DONDE ENTRA UN NÚMERO MEDIDO. Lo llama el cierre de una medición de
    Distancia, con los milímetros ya resueltos por la escala del archivo. Si no hay destino armado
    no hace nada: a diferencia del Doppler, acá NO hay filas genéricas donde caer —el visor ya
@@ -151326,19 +151504,9 @@ function _d2Render() {
 
   const F = _d2Filas();
   if (F.length) {
-    /* UNA columna. Mismo armador que el cajón Doppler: rótulo a la izquierda, valor a la
-       derecha con sus dos botones. */
-    let t = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
-    F.forEach(f => {
-      const val = f[1] == null ? '—' : escHtml(f[1] + (f[2] ? ' ' + f[2] : ''));
-      const arm = f[4] ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-d2-armar="' + escHtml(f[3]) + '">medir</button>' : '';
-      const cor = f[3] ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-d2-corr="' + escHtml(f[3]) + '">✏️</button>' : '';
-      const marcado = (E.destino && E.destino === f[3]) ? 'background:var(--bg3);' : '';
-      t += '<tr style="border-bottom:1px solid var(--border);' + marcado + '">' +
-           '<td style="padding:4px 6px;color:var(--text2);">' + escHtml(f[0]) + '</td>' +
-           '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' + val + arm + cor + '</td></tr>';
-    });
-    h += t + '</table>';
+    /* MEDIR-2: las cinco columnas del punto 5, con el armador único que comparte con el cajón
+       Doppler. Lo que se reparte en celdas es lo que `_d2Filas` ya devolvía. */
+    h += _medTablaHTML(F, 'd2', E.destino);
     if (E.destino) {
       h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
            escHtml(_D2_ROT[E.destino] || E.destino) + '</b> — la próxima distancia cae ahí.</div>';
@@ -151436,7 +151604,7 @@ function _d2Observar() {
   if (!cont || _d2ObsNodo === cont) return;
   _d2ObsNodo = cont;
   cont.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-d2-modo],[data-d2-armar],[data-d2-corr],[data-d2-acc]') : null;
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-d2-modo],[data-d2-armar],[data-d2-corr],[data-d2-borrar],[data-d2-acc]') : null;
     if (!b || !cont.contains(b) || b.disabled) return;
     const m = b.getAttribute('data-d2-modo');
     if (m) { d2Modo(m); return; }
@@ -151444,6 +151612,8 @@ function _d2Observar() {
     if (a) { d2Armar(a); return; }
     const c = b.getAttribute('data-d2-corr');
     if (c) { d2Corregir(c); return; }
+    const bo = b.getAttribute('data-d2-borrar');
+    if (bo) { d2Borrar(bo); return; }
     const acc = b.getAttribute('data-d2-acc');
     if (acc === 'limpiar' || acc === 'avisolimpiar') { _d2LimpiarConfirmar(); return; }
     if (acc === 'avisook') { d2AvisoConservar(); return; }

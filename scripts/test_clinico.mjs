@@ -141051,6 +141051,119 @@ caso('TC-881', 'ECO-CONECTOR-5 decisiones 7d, 8 y 9: exportar SOLO lo elegido co
   })();
 `);
 
+caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los dos cajones, las filas calculadas sin botones y en cursiva, «Borrar» vacia SOLO su fila, y la casilla de la comunidad va bloqueada con candado', `
+  return (async () => {
+    const R = { err: '' };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const toastReal = window.toast, alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+      _cineAbrir([mk('A')]);
+      await esperar(600);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(400);
+
+      /* Lector unico de las dos tablas: la MISMA funcion para los dos cajones, porque lo que se
+         afirma es que los dos pintan igual. */
+      const leer = id => { const c = document.getElementById(id); if (!c) return null;
+        const t = c.querySelector('table.med-tabla'); if (!t) return null;
+        return {
+          th: [...t.querySelectorAll('thead th')].map(e => (e.textContent||'').trim()),
+          fs: [...t.querySelectorAll('tbody tr')].map(tr => { const td = [...tr.children];
+            return { cols: td.length, med: (td[0].textContent||'').trim(),
+              val: (td[1].textContent||'').trim(), uni: (td[2].textContent||'').trim(),
+              nbot: td[3].querySelectorAll('button').length,
+              acc: (td[3].textContent||'').trim(),
+              italic: getComputedStyle(tr).fontStyle === 'italic',
+              chk: td[4].querySelectorAll('input[type=checkbox]').length,
+              dis: !!td[4].querySelector('input[disabled]'),
+              candado: (td[4].textContent||'').indexOf('🔒') >= 0 }; })
+        }; };
+
+      /* -- (A) CAJON 2D: grupo VI, con un medido y un DERIVADO -- */
+      medHerramienta('dist'); d2Modo('vi');
+      _d2Poner('vi.sivd', 10); _d2Poner('vi.sivs', 14); _d2Render();
+      await esperar(300);
+      const A = leer('d2-cajon');
+      R.a_hay = !!A;
+      R.a_th = A ? A.th.join('|') : '';
+      R.a_cinco = !!A && A.fs.length > 0 && A.fs.every(f => f.cols === 5);
+      /* El valor y la unidad en CELDAS DISTINTAS: antes iban pegados en una sola. */
+      const sivd = A ? A.fs.filter(f => f.med.indexOf('SIVd') === 0)[0] : null;
+      R.a_sivdVal = sivd ? sivd.val : '';
+      R.a_sivdUni = sivd ? sivd.uni : '';
+      R.a_separadas = !!sivd && sivd.val === '10.0' && sivd.uni === 'mm';
+      /* -- (B) LA FILA CALCULADA SE VE DISTINTA Y NO TIENE BOTONES -- */
+      const calc = A ? A.fs.filter(f => f.med.indexOf('Engrosamiento SIV') === 0)[0] : null;
+      R.b_hayCalc = !!calc;
+      R.b_sinBotones = !!calc && calc.nbot === 0;
+      R.b_cursiva = !!calc && calc.italic === true;
+      R.b_dice = !!calc && calc.acc === 'calculada';
+      /* CONTROL NEGATIVO: una fila MEDIBLE si tiene botones y NO va en cursiva. */
+      R.b_medibleConBotones = !!sivd && sivd.nbot >= 2 && sivd.italic === false;
+
+      /* -- (C) «BORRAR» VACIA SOLO SU FILA -- */
+      R.c_hayBoton = !!document.querySelector('[data-d2-borrar="vi.sivd"]');
+      /* DENOMINADOR: la fila SIN valor no ofrece «Borrar», o sea que el boton sigue al dato. */
+      R.c_sinValorSinBoton = !document.querySelector('[data-d2-borrar="vi.ddvi"]');
+      if (R.c_hayBoton) document.querySelector('[data-d2-borrar="vi.sivd"]').click();
+      await esperar(260);
+      R.c_borro = _d2Valor('vi.sivd') == null;
+      R.c_vecinoIntacto = Number(_d2Valor('vi.sivs')) === 14;
+
+      /* -- (D) CAJON DOPPLER: la MISMA tabla -- */
+      medHerramienta('vel'); dopModo('pul');
+      _dopEstado().pul.vmaxEp = 2.5; _dopRender();
+      await esperar(300);
+      const D = leer('dop-cajon');
+      R.d_hay = !!D;
+      R.d_th = D ? D.th.join('|') : '';
+      R.d_mismoEncabezado = !!A && !!D && A.th.join('|') === D.th.join('|');
+      R.d_cinco = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 5);
+      const gr = D ? D.fs.filter(f => f.med.indexOf('Grad Máx EP') === 0)[0] : null;
+      R.d_calcSinBotones = !!gr && gr.nbot === 0 && gr.italic === true && gr.acc === 'calculada';
+
+      /* -- (E) LA CASILLA DE LA COMUNIDAD: UNA POR FILA, BLOQUEADA Y CON CANDADO -- */
+      R.e_activa = (typeof anahiActiva === 'function') ? anahiActiva() : 'sin fn';
+      R.e_unaPorFila = !!A && A.fs.every(f => f.chk === 1);
+      R.e_bloqueadas = !!A && A.fs.every(f => f.dis === true && f.candado === true);
+      R.e_tambienDoppler = !!D && D.fs.every(f => f.chk === 1 && f.dis === true);
+      /* El nombre de la columna sale del DUEÑO UNICO, no escrito en la tabla. */
+      R.e_colNombre = A ? A.th[4] : '';
+      R.e_nombreUnico = !!A && A.th[4] === ANAHI_NOMBRE;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.toast = toastReal; window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                 !R.err, R.err],
+      ['(A) DENOMINADOR: el cajon 2D pinto su tabla',     R.a_hay === true, R.a_hay],
+      ['(A) las CINCO columnas, en su orden',             R.a_th === 'Medida|Valor|Unid.|Medir y Borrar|Anahí', R.a_th],
+      ['(A) y todas las filas tienen cinco celdas',       R.a_cinco === true, R.a_cinco],
+      ['(A) el valor y la unidad en celdas DISTINTAS',    R.a_separadas === true, R.a_sivdVal + ' / ' + R.a_sivdUni],
+      ['(B) DENOMINADOR: hay una fila calculada',         R.b_hayCalc === true, R.b_hayCalc],
+      ['(B) la calculada NO tiene botones',               R.b_sinBotones === true, R.b_sinBotones],
+      ['(B) se ve distinta: cursiva y lo DICE',           R.b_cursiva && R.b_dice, R.b_cursiva + '/' + R.b_dice],
+      ['(B) CONTROL: una medible SI tiene botones',       R.b_medibleConBotones === true, R.b_medibleConBotones],
+      ['(C) la fila con valor ofrece «Borrar»',           R.c_hayBoton === true, R.c_hayBoton],
+      ['(C) DENOMINADOR: la fila sin valor NO lo ofrece', R.c_sinValorSinBoton === true, R.c_sinValorSinBoton],
+      ['(C) y borra su campo',                            R.c_borro === true, R.c_borro],
+      ['(C) sin tocar el vecino',                         R.c_vecinoIntacto === true, R.c_vecinoIntacto],
+      ['(D) DENOMINADOR: el cajon Doppler pinto su tabla', R.d_hay === true, R.d_hay],
+      ['(D) con el MISMO encabezado que el 2D',           R.d_mismoEncabezado === true, R.d_th],
+      ['(D) y cinco celdas por fila',                     R.d_cinco === true, R.d_cinco],
+      ['(D) su calculada tampoco tiene botones',          R.d_calcSinBotones === true, R.d_calcSinBotones],
+      ['(E) la comunidad esta APAGADA (denominador)',     R.e_activa === false, R.e_activa],
+      ['(E) una casilla por fila',                        R.e_unaPorFila === true, R.e_unaPorFila],
+      ['(E) todas bloqueadas y con candado',              R.e_bloqueadas === true, R.e_bloqueadas],
+      ['(E) tambien en el cajon Doppler',                 R.e_tambienDoppler === true, R.e_tambienDoppler],
+      ['(E) el nombre sale del dueno unico',              R.e_nombreUnico === true, R.e_colNombre]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
