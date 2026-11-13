@@ -141392,6 +141392,130 @@ caso('TC-884', 'MEDIR-2 bloque D: el gesto de Area ofrece «AI» y «AD» en A4C
   })();
 `);
 
+caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexados por la superficie corporal del estudio, y sin peso o sin talla sale SOLO en mL y lo dice -- sin tocar el calculo ni cuando se integra al informe', `
+  return (async () => {
+    const R = { err: '' };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      /* ⚠️ GUARDA: contra la linea base la funcion existe, pero no asi la columna. Igual se
+         accede con cuidado para que el caso caiga por condiciones y no por excepcion. */
+      const tabla = () => { try { return _simpTablaHTML(); } catch (e) { R.tablaErr = String(e && e.message || e); return ''; } };
+      const sinTags = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/[ ]+/g, ' ').trim();
+
+      __t.limpiar(); await esperar(250);
+      /* Un par de trazados de Simpson, con la MISMA maquinaria que el visor: lo que este caso
+         mide es la TABLA, no el calculo. Si no hay forma de sembrar, el denominador lo dice. */
+      /* ⚠️ LA TABLA SALE DE LA VISTA Y NO DE UN GLOBAL: _simpFilasVivas lee V.simp.pares y
+         exige que la epoca de la vista sea vigente. Sembrar un _simp global daba CERO filas
+         -o sea un denominador vacio, que se lee igual que «la tabla no tiene columnas»-. Los
+         volumenes salen del MISMO _simpVolumenML de la app: no se escriben a mano. */
+      const sembrar = () => { try {
+        _vistaA.epoca = null;
+        /* diamCm es el ARREGLO de los diametros de los discos -uno por disco, SIMP_N-, no un
+           numero: _simpVolumenML lo recorre. Con un escalar la suma daba NaN y la tabla salia
+           vacia sin error. */
+        const disc = v2 => Array.from({ length: SIMP_N }, () => v2);
+        _vistaA.simp = { nombres: ['a4c', null], pares: [
+          { d: { diamCm: disc(5.0), Lcm: 8.0 }, s: { diamCm: disc(3.6), Lcm: 7.2 } }, null ] };
+        return true; } catch (e) { return false; } };
+      /* ⚠️ SE SIEMBRA DESPUES DE CARGAR PESO Y TALLA, y no antes: escribir en un campo del
+         formulario dispara el barrido de espejos y la sesion de Simpson de la vista no
+         sobrevive. Sembrando antes, la tabla salia VACIA y el caso acusaba a las columnas. */
+      /* -- (A) CON PESO Y TALLA: las columnas indexadas -- */
+      __t.set('peso', '80'); __t.set('talla', '180');
+      await esperar(250);
+      R.sembro = sembrar();
+      let F = [];
+      try { F = _simpFilasTabla(); } catch (e) { F = []; }
+      R.filas = F.length;
+      R.a_bsa = (typeof getBSA === 'function') ? getBSA() : null;
+      const hA = tabla();
+      R.a_txt = sinTags(hA);
+      R.a_colML = (R.a_txt.indexOf('VFD mL') >= 0);
+      R.a_colIx = (R.a_txt.indexOf('VFD mL/m²') >= 0) && (R.a_txt.indexOf('VFS mL/m²') >= 0) &&
+                  (R.a_txt.indexOf('VEyec mL/m²') >= 0);
+      R.a_diceBsa = R.a_txt.indexOf('superficie corporal del estudio') >= 0;
+      R.a_diceValor = R.a_bsa != null && R.a_txt.indexOf(R.a_bsa.toFixed(2) + ' m²') >= 0;
+      /* El valor indexado es el volumen DIVIDIDO por la superficie, no otro numero: se busca
+         en la tabla el cociente calculado aparte. */
+      R.a_esperado = (R.a_bsa && F.length) ? (F[0].m.vfd / R.a_bsa).toFixed(1) : '';
+      R.a_tieneElCociente = R.a_esperado !== '' && R.a_txt.indexOf(R.a_esperado) >= 0;
+      /* La FEVI NO se indexa: es un porcentaje. */
+      R.a_sinFeviIx = R.a_txt.indexOf('FEVI mL/m²') < 0 && R.a_txt.indexOf('FEVI %/m²') < 0;
+
+      /* -- (B) SIN TALLA: solo mL, y lo DICE -- */
+      __t.set('talla', '');
+      await esperar(250);
+      sembrar();
+      R.b_bsa = (typeof getBSA === 'function') ? getBSA() : 'sin fn';
+      const hB = tabla();
+      R.b_txt = sinTags(hB);
+      R.b_sigueML = R.b_txt.indexOf('VFD mL') >= 0;
+      R.b_sinIx = R.b_txt.indexOf('mL/m²') < 0;
+      R.b_avisa = R.b_txt.indexOf('Sólo en mL') >= 0 &&
+                  (R.b_txt.indexOf('falta el peso o la talla') >= 0);
+
+      /* -- (C) SIN PESO: lo mismo (la otra mitad del aviso) -- */
+      __t.set('talla', '180'); __t.set('peso', '');
+      await esperar(250);
+      sembrar();
+      const hC = sinTags(tabla());
+      R.c_sinIx = hC.indexOf('mL/m²') < 0;
+      R.c_avisa = hC.indexOf('Sólo en mL') >= 0;
+
+      /* -- (D) EL CALCULO NO SE TOCO: los mismos numeros en mL con y sin superficie -- */
+      __t.set('peso', '80');
+      await esperar(250);
+      sembrar();
+      let G = [];
+      try { G = _simpFilasTabla(); } catch (e) { G = []; }
+      R.d_mismos = F.length === G.length && F.every((f, i) =>
+        f.m.vfd === G[i].m.vfd && f.m.vfs === G[i].m.vfs &&
+        f.m.vey === G[i].m.vey && f.m.fevi === G[i].m.fevi);
+      R.d_valores = G.map(g => g.m.vfd + '/' + g.m.vfs + '/' + g.m.fevi).join(' ');
+
+      /* -- (E) «VOLUMEN» SIGUE VISIBLE Y APAGADO, con su leyenda -- */
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(600);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(400);
+      medHerramienta('dist');
+      await esperar(300);
+      const vol = [...document.querySelectorAll('#cine-side button')]
+        .filter(b => (b.textContent||'').trim() === 'Volumen')[0] || null;
+      R.e_hay = !!vol;
+      R.e_apagado = !!vol && vol.disabled === true;
+      R.e_leyenda = vol ? (vol.getAttribute('title')||'') : '';
+      R.e_dicePronto = R.e_leyenda.indexOf('próximamente') >= 0;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['DENOMINADOR: la tabla tiene filas',                R.filas > 0, R.filas + ' err=' + String(R.tablaErr || '-')],
+      ['(A) DENOMINADOR: con peso y talla hay superficie', R.a_bsa != null, String(R.a_bsa)],
+      ['(A) siguen las columnas en mL',                    R.a_colML === true, String(R.a_txt||'').slice(0,120)],
+      ['(A) y aparecen las tres en mL/m²',                 R.a_colIx === true, String(R.a_txt).slice(0, 190)],
+      ['(A) el indexado es el volumen sobre la superficie', R.a_tieneElCociente === true, R.a_esperado],
+      ['(A) y la tabla dice de donde sale la superficie',  R.a_diceBsa && R.a_diceValor, R.a_diceBsa + '/' + R.a_diceValor],
+      ['(A) la FEVI no se indexa: es un porcentaje',       R.a_sinFeviIx === true, R.a_sinFeviIx],
+      ['(B) DENOMINADOR: sin talla no hay superficie',     R.b_bsa === null, String(R.b_bsa)],
+      ['(B) la tabla sigue dando los mL',                  R.b_sigueML === true, R.b_sigueML],
+      ['(B) sin ninguna columna indexada',                 R.b_sinIx === true, R.b_sinIx],
+      ['(B) y lo DICE, nombrando lo que falta',            R.b_avisa === true, String(R.b_txt).slice(-150)],
+      ['(C) sin peso, lo mismo',                           R.c_sinIx && R.c_avisa, R.c_sinIx + '/' + R.c_avisa],
+      ['(D) el calculo no se toco: los mismos mL',         R.d_mismos === true, R.d_valores],
+      ['(E) «Volumen» sigue visible',                      R.e_hay === true, R.e_hay],
+      ['(E) apagado',                                      R.e_apagado === true, R.e_apagado],
+      ['(E) y con su leyenda de proximamente',             R.e_dicePronto === true, R.e_leyenda]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;

@@ -146403,19 +146403,35 @@ function _simpTablaHTML() {
   const num = x => x.toFixed(1);
   const cel = (t, b2) => '<td style="padding:2px 6px;text-align:right;font-variant-numeric:tabular-nums;' +
     (b2 ? 'font-weight:700;' : '') + '">' + t + '</td>';
+  /* ══ MEDIR-2 — LOS VOLUMENES TAMBIEN INDEXADOS ════════════════════════════════════════════
+     Punto 7 del pedido: mL y mL/m². La superficie sale de `getBSA()`, el MISMO dueño que usa
+     todo lo que indexa en esta aplicacion, y el calculo de Simpson no se toca: lo indexado es
+     una DIVISION de lo que `_simpFilasTabla` ya devolvia.
+     ⚠️ SIN PESO O SIN TALLA NO SE INVENTA NADA: `getBSA` devuelve `null` y entonces la tabla
+     sale con las columnas de mL solas y lo DICE. Publicar un indexado con una superficie
+     supuesta seria un numero que parece medido. */
+  let bsa = null;
+  try { bsa = (typeof getBSA === 'function') ? getBSA() : null; } catch (e) { bsa = null; }
+  const hayBsa = (bsa != null && isFinite(bsa) && bsa > 0);
+  const ix = x => hayBsa ? (x / bsa).toFixed(1) : '—';
   const cuerpo = filas.map(f =>
     '<tr' + (f.mono ? '' : ' style="border-top:1px solid var(--border);"') + '>' +
       '<td style="padding:2px 6px;' + (f.mono ? '' : 'font-weight:700;') + '">' + f.rot + '</td>' +
-      cel(num(f.m.vfd), !f.mono) + cel(num(f.m.vfs), !f.mono) +
-      cel(num(f.m.vey), !f.mono) + cel(num(f.m.fevi), !f.mono) +
+      cel(num(f.m.vfd), !f.mono) + (hayBsa ? cel(ix(f.m.vfd), !f.mono) : '') +
+      cel(num(f.m.vfs), !f.mono) + (hayBsa ? cel(ix(f.m.vfs), !f.mono) : '') +
+      cel(num(f.m.vey), !f.mono) + (hayBsa ? cel(ix(f.m.vey), !f.mono) : '') +
+      cel(num(f.m.fevi), !f.mono) +
     '</tr>').join('');
   return '<div style="margin-top:8px;">' +
     '<table style="width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.5;">' +
       '<thead><tr style="color:var(--text2);">' +
         '<th style="text-align:left;padding:2px 6px;font-weight:600;">Ventana</th>' +
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFD mL</th>' +
+        (hayBsa ? '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFD mL/m²</th>' : '') +
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFS mL</th>' +
+        (hayBsa ? '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFS mL/m²</th>' : '') +
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">VEyec mL</th>' +
+        (hayBsa ? '<th style="text-align:right;padding:2px 6px;font-weight:600;">VEyec mL/m²</th>' : '') +
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">FEVI %</th>' +
       '</tr></thead><tbody>' + cuerpo + '</tbody></table>' +
     '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
@@ -146425,7 +146441,12 @@ function _simpTablaHTML() {
         : '') +
       'Cada ventana muestra SU monoplanar —el disco asumido circular—; el <b>biplano</b> es el ' +
       'resultado del método y el que se integra. <b>No es el promedio de las dos:</b> usa el ' +
-      'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.</div>' +
+      'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.' +
+      (hayBsa
+        ? '<br>Indexado por la superficie corporal del estudio: <b>' + bsa.toFixed(2) + ' m²</b>.'
+        : '<br><b>Sólo en mL:</b> falta el peso o la talla, así que no se puede indexar por ' +
+          'superficie corporal.') +
+      '</div>' +
     /* ⚠️ LOS BOTONES YA NO SALEN DE ACÁ: se mudaron al panel único (`_simpUniPintar`). Esta
        función la llamaba el panel de CADA vista, así que con las dos midiendo Simpson emitía
        dos juegos de «Limpiar / Biblioteca / PDF» sobre la MISMA tabla — y encima con ids

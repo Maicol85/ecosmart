@@ -16805,3 +16805,34 @@ perdiendo el aviso de A4C.
 
 **NO se implementó «Volumen»**, que el pedido deja fuera: el botón sigue visible y apagado con su
 leyenda «próximamente», como lo dejó MEDIR-1.
+
+### M2-e — BLOQUE E de MEDIR-2: Simpson en mL y mL/m²
+
+**Punto 7 de MEDIR-1, hecho.** La tabla de Simpson pasa de cuatro columnas numéricas a siete:
+**VFD mL · VFD mL/m² · VFS mL · VFS mL/m² · VEyec mL · VEyec mL/m² · FEVI %**. La superficie sale
+de **`getBSA()`**, el mismo dueño que usa todo lo que indexa en esta aplicación, y la tabla
+**dice de dónde sale**, con su valor en m².
+
+**EL CALCULO NO SE TOCO**: lo indexado es una **división** de lo que `_simpFilasTabla` ya
+devolvía, y el caso lo fija comparando los cuatro valores en mL con y sin superficie cargada.
+**Tampoco cambió cuándo se integra al informe**: esta tanda no toca una sola línea de ese camino.
+
+**SIN PESO O SIN TALLA NO SE INVENTA NADA**: `getBSA` devuelve `null`, las tres columnas
+indexadas **no se dibujan** y la tabla lo dice —«**Sólo en mL:** falta el peso o la talla»—.
+Publicar un indexado con una superficie supuesta sería un número que parece medido.
+
+**La FEVI no se indexa**, y el caso lo fija: es un porcentaje.
+
+**«Volumen» sigue visible y apagado** con su leyenda «próximamente», como el pedido manda; no se
+implementó su cálculo.
+
+**Cobertura: TC-885**, que cae **0/1 contra `ff8c585` por siete condiciones**. **Dos mutaciones
+dirigidas, las dos muertas**: indexar con una superficie supuesta de 1,73 m² cuando falta el
+dato, y multiplicar por la superficie en vez de dividir.
+
+⚠️ **DOS TRAMPAS DE FIXTURE QUE ESTE CASO PAGO, las dos de esta casa.** (1) `diamCm` es el
+**arreglo** de los diámetros de los veinte discos y no un número: con un escalar, la suma de
+`_simpVolumenML` da `NaN`, la tabla sale **vacía sin un solo error** y el caso acusa a las
+columnas nuevas. (2) **La sesión de Simpson vive en la VISTA y no en un global**, y escribir en un
+campo del formulario no la conserva: hay que sembrarla **después** de cargar peso y talla, o el
+denominador queda en cero — que se lee igual que «la tabla no tiene columnas».
