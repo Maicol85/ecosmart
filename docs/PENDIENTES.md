@@ -16510,3 +16510,112 @@ umbral, no su valor. El tamaño de verdad se mide aparte, una vez, con `_probe_e
 - **Los cuatro commits de código fueron a uno solo** y se declara en su mensaje: se escribieron sobre
   las mismas zonas de `index.html` antes de separarlos, y partirlos después hubiera necesitado
   `git add -p`, que este entorno no tiene.
+
+---
+
+## MEDIR-1 (2026-11-13) — el visor de medicion y el lugar de Anahi
+
+### M1-a — LO QUE LA TANDA NO HIZO, con su motivo
+
+La orden traia OCHO puntos. Se hicieron enteros el **1** (ventana), el **2** (barra unica),
+el **3** (disposicion en dos columnas) y el **4** (selector progresivo), mas la parte del
+punto **7** que pide el boton «Volumen» visible y apagado con su leyenda. **NO se hicieron**,
+y no por una decision de diseno sino por capacidad de la sesion:
+
+- **Punto 5 — la tabla en cinco columnas** (Medida | Valor | Unid. | Medir y Borrar | casilla
+  Anahi), con las filas calculadas distintas y sin botones. Hoy las dos tablas siguen con el
+  formato anterior: `_d2Render` emite DOS columnas (rotulo | valor con sus dos botones) y
+  `_dopRender` las suyas. Lo que hay que tocar son esas dos funciones, y la columna de Anahi
+  depende del punto 8.
+- **Punto 6 — el gesto de Area con estructuras AI y AD.** Medido: hoy `_medAreas` guarda
+  `{pts, cm2}` **sin estructura asociada**, asi que la premisa de la orden es correcta —el
+  gesto no ofrece estructuras—. Falta el selector de AI/AD en A4C y el resultado por
+  estructura. **El nivel 3 del selector progresivo ya tiene el lugar donde van**: hoy esa fila
+  no se dibuja con la herramienta Area.
+- **Punto 7 — Simpson en mL y mL/m².** Medido: `_simpTablaHTML` emite hoy cuatro columnas
+  numericas —VFD mL, VFS mL, VEyec mL y FEVI %— y **ninguna indexada**. La superficie corporal
+  ya existe (`getBSA()`, que lee peso y talla del formulario y devuelve `null` si falta
+  alguno), asi que el aviso de «solo mL» tiene de donde salir.
+- **Punto 8 — Anahi, bloqueada, en sus cinco partes** (casilla con candado por fila, boton
+  «Para Anahi» junto a Exportar en Imagenes guardadas y en Estudios guardados, el cartel propio
+  con su texto exacto, el bloque de Configuracion y el estado unico «comunidad: no»).
+
+**Nada de esto quedo a medias en el archivo**: lo que no se hizo, no se empezo. No hay codigo
+muerto ni una casilla que no haga nada.
+
+### M1-b — QUE ES LA FILA «VP» DE PULMONAR, y de donde sale
+
+El medico pregunta y la respuesta es **parcial**: se pudo rastrear **que hace** y **donde vive**,
+pero **no se pudo confirmar que magnitud clinica quiso nombrar** quien la creo.
+
+Lo medido, sobre el archivo:
+- Vive en `_dopFilas('pul')`, cuarta fila, entre `TAP` y `Diam TSVD`. Su definicion literal es
+  `L('VP', n(P.vp, 2), 'm/s', 'pul.vp', true)`: rotulo **VP**, unidad **m/s**, clave
+  **`pul.vp`**, **armable** (ofrece su boton «medir»).
+- Su herramienta es **`vel`** (`_DOP_HERR['pul.vp'] = 'vel'`), o sea se mide con el gesto de
+  velocidad sobre el espectro, igual que `Vmax IP` y `Vmax EP`.
+- Su estado nace en `_dopNuevo()`, dentro de
+  `pul: { vmaxIp, vmaxEp, tap, vp, diamTsvd, vtiPul }`.
+- **NO escribe en ningun campo del informe**: no aparece en ningun mapa a id de campo, no entra
+  al Excel y no sale al papel. Es solo del cajon del visor.
+- **NO alimenta ningun derivado**: `_dopDerivados` no la lee.
+
+Lo que **no se pudo confirmar**: que quiso decir «VP». Las dos lecturas posibles son
+«velocidad pico de la valvula pulmonar» —que seria **redundante con `Vmax EP`**, que ya es la
+velocidad pico anterograda— y «vena pulmonar», que **no es de esta valvula** y ademas en esta
+app tiene su propio prefijo `venp_` (el archivo lo declara expresamente: «VENA PULMONAR —
+`venp_`, NO `vp_`»). **No lo pude confirmar**: no hay comentario que la explique, ni entrada en
+`docs/mapa/`, ni en `docs/REGISTRO_TANDAS.md`.
+
+**No se toco**, que es lo que la orden manda. **Decision del medico**: si es la velocidad pico
+anterograda, sobra —y conviene retirarla o fusionarla con `Vmax EP`, que es el patron que esta
+casa ya aplico al Diam TSVI—; si quiso decir otra cosa, le falta el rotulo que lo diga.
+
+### M1-c — «MINIMIZAR»: que podria significar en este visor, y por que no se hizo
+
+La orden lo excluye expresamente y pide la pregunta. Hoy el visor es un **overlay modal**
+(`position:fixed; inset:0`) que tapa la aplicacion entera, asi que «minimizar» no puede ser lo
+que es en una ventana del sistema. Las tres lecturas posibles:
+
+1. **Plegar a una barra**, dejando a la vista el nombre del cineloop y los botones de ventana,
+   con la aplicacion utilizable detras. Es lo que mas se parece a «minimizar» y es lo mas caro:
+   el overlay tendria que dejar de capturar el clic, y hay que decidir que pasa con una
+   medicion a medio trazar.
+2. **Volver al modo minimo** (`cine-min`), que ya existe: esconde las herramientas y deja la
+   imagen con Reproducir, Capturar y Medir. **Esto ya tiene su boton** —«✕ Salir de medicion»—
+   asi que un «Minimizar» que haga esto seria un segundo control para lo mismo.
+3. **Achicar la ventana** a un tamano intermedio entre los 1180 px y la pantalla completa. Hoy
+   hay dos tamanos y no tres.
+
+**No se implemento ninguna**, por orden expresa.
+
+### M1-d — EL UNICO AVISO NUEVO DE SEMGREP, declarado y no silenciado
+
+**127 WARNING / 0 ERROR** contra la linea base de **126 / 0**, medida sobre `ff8c585` en un
+worktree con el mismo ruleset. El aviso nuevo se identifico por diff de hallazgos entre los dos
+arboles, no por sospecha: es **`ceibo-xss-innerhtml-concat`** sobre
+`cont.innerHTML = _medSideFila('Modo', f1) + _medSideFila(...) + _medSideFila(...)`, en
+`_medSideRender`.
+
+Es un **falso positivo**, y esta medido: las tres `_medSideFila` emiten marcado armado con
+constantes de este archivo, y **cada texto que viene de un dato pasa por `escHtml`** —el rotulo
+de la fila, el rotulo de cada boton y su `title`—. No hay un solo valor del paciente en esa
+cadena. La regla dispara por la FORMA (una concatenacion en la asignacion) y no por el
+contenido: la version anterior de esta funcion armaba la cadena en una variable `html` y
+asignaba `cont.innerHTML = html`, que la regla no empareja.
+
+**No se reescribio para silenciarlo.** Cambiar la forma por el linter, sin que la seguridad
+real cambie en nada, es esquivar la regla. Queda declarado, con su linea y su motivo, como se
+declaro **EC1-j**. **Decision del medico**: si prefiere la linea base exacta, se cierra
+asignando a una variable intermedia, al precio de volver a sellar y rehacer la bateria.
+
+### M1-e — EL SELECTOR VIEJO QUEDA ESCONDIDO, NO RETIRADO
+
+Los selectores de estructura que vivian DENTRO de cada cajon —los cinco de `_D2_GRUPOS` en
+`d2-cajon` y los cuatro de `_DOP_VALVULAS` en `dop-cajon`— quedan con la clase `cine-selviejo`
+y `display:none`, no retirados. El motivo esta medido: **cinco usos del suite** los aprietan
+por su `data-d2-modo` / `data-dop-modo`, y `display:none` los deja respondiendo a un `.click()`
+por JS mientras los saca del orden de tabulacion, que es lo que importa para el teclado.
+
+Retirarlos de verdad es adaptar esos cinco usos. Queda como deuda de la proxima tanda que toque
+el visor.
