@@ -56,7 +56,10 @@ MUT = [
 
  # (6) EL NOMBRE DEL ESTUDIO COMO HTML EN UN DIALOGO NUEVO. Lo escribio una persona y puede
  #     traer cualquier cosa; el resumen es justo donde se lee un nombre de estudio.
- ('06 el resumen muestra su detalle como HTML en vez de texto', 'TC-871,TC-880',
+ # ** ESTA MUTACION ESTABA MAL DECLARADA: apuntaba a TC-871 y TC-880, que no abren el resumen con
+ #    un payload. La condicion que la mata es TC-874 (C2), que es la que se agrego justamente cuando
+ #    sobrevivio el primer barrido. No es un hueco del codigo: es una mutacion mal dirigida.
+ ('06 el resumen muestra su detalle como HTML en vez de texto', 'TC-874',
   [("      var p = document.createElement('div');\n      p.style.cssText = 'margin:0 0 7px;';\n      /* `textContent` y nada más: acá entran nombres de archivo del ecógrafo y nombres de\n         estudio que escribió una persona. */\n      p.textContent = '· ' + String(t);",
     "      var p = document.createElement('div');\n      p.style.cssText = 'margin:0 0 7px;';\n      p.innerHTML = '· ' + String(t);")]),
 

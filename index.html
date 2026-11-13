@@ -124067,6 +124067,8 @@ function igElegirModo(on) {
   } else {
     _igSel = [];
   }
+  /* El aviso se limpia al CAMBIAR de modo, antes de repintar: lo que quiera decir algo lo dice
+     DESPUÉS de llamar acá, y la columna lo repone en su pintado. */
   try { igSelRes(''); } catch (e) {}
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
   return v;
@@ -124119,11 +124121,19 @@ function igSelOrigenes(lista) {
 }
 window.igSelOrigenes = igSelOrigenes;
 
+/* ⚠️ EL AVISO SE GUARDA ADEMÁS DE ESCRIBIRSE, Y ESO NO ES REDUNDANCIA: `#ig-sel-res` lo
+   RECONSTRUYE la columna derecha en cada pintado, y el pintado de esta pantalla es ASÍNCRONO
+   —`igImgPintar` sale temprano y se vuelve a llamar cuando el índice está leído—, así que un aviso
+   escrito justo antes de un repintado desaparece. Lo destapó un caso: la frase de «Desde imágenes
+   guardadas» se perdía antes de que el médico pudiera leerla. `igSelSidePintar` lo repone. */
+let _igSelHint = '';
+
 function igSelRes(txt) {
+  _igSelHint = String(txt || '');
   const e = document.getElementById('ig-sel-res');
   if (!e) return;
-  e.textContent = txt || '';
-  e.style.display = txt ? '' : 'none';
+  e.textContent = _igSelHint;
+  e.style.display = _igSelHint ? '' : 'none';
 }
 window.igSelRes = igSelRes;
 
@@ -124962,6 +124972,8 @@ function igSelSidePintar(cont) {
   res.id = 'ig-sel-res';
   res.style.cssText = 'display:none;font-size:10.5px;line-height:1.5;color:var(--amber,#d98c00);' +
                       'margin:0 0 10px;';
+  /* El aviso vuelve a su lugar: la columna se reconstruye entera en cada pintado. */
+  if (_igSelHint) { res.textContent = _igSelHint; res.style.display = ''; }
   cont.appendChild(res);
   /* ══ «DATOS»: Importar y Exportar, lo que Informes guardados ya tenía (decisión 8) ═══════
      ⚠️ VAN EN ESTA COLUMNA Y NO EN LA FILA DEL CONTADOR, donde están los de Informes guardados:
@@ -140813,7 +140825,11 @@ async function _dcmCrudoUnCuadro(d) {
   if (!r || !r.ok) return { ok: false, err: (r && r.err) || 'no se pudo dibujar el cuadro' };
   var f = (d2.frags && d2.frags[0]) ? d2.frags[0] : null;
   if (!f) return { ok: false, err: 'no se pudo dibujar el cuadro' };
-  return { ok: true, jpeg: f };
+  /* ⚠️ `n` ES CUÁNTOS CUADROS SE CONVIRTIERON, y existe para que «uno solo» se pueda MEDIR: la
+     miniatura se ve igual con uno o con los 171, y la única diferencia es el pico de memoria, que
+     en el rango de unos MB queda dentro del ruido de `performance.memory`. Lo destapó el barrido de
+     mutaciones: convertir el archivo entero para una miniatura sobrevivía a los diez casos. */
+  return { ok: true, jpeg: f, n: (d2.frags || []).length };
 }
 window._dcmCrudoUnCuadro = _dcmCrudoUnCuadro;
 
@@ -175245,8 +175261,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-2048';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794527309044;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-2136';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794530217565;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -175332,7 +175348,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-2048</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-2136</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -179738,7 +179754,7 @@ function dstPreguntar(ctx) {
   if (!ctx || !ctx.items || !ctx.items.length) return false;
   var cuenta = dstCuenta(ctx.items.length, ctx.nFijas, ctx.nLoops);
   var texto = ctx.texto || ('Llegaron ' + cuenta + '.');
-  return clnkAvisoAbrir(ctx.titulo || 'Imágenes', texto, [
+  var bots = [
     { txt: '📎 Adjuntar al estudio actual',
       fn: function () { dstAlActual(ctx); } },
     { txt: '🗂 Adjuntar a un estudio guardado',
@@ -179765,24 +179781,29 @@ function dstPreguntar(ctx) {
       } },
     { txt: '🖼 Adjuntar a imágenes guardadas',
       fn: function () { dstABandeja(ctx); } },
-    /* ⚠️ «VISTA PREVIA» VA ANTES DE «DESCARTAR» Y NO AL FINAL: lo que destruye se queda último,
-       que es el orden que este modal ya tenía. Y SÓLO APARECE CON `ctx.prev`, o sea con las filas
-       de la lista de CeiboLink en la mano: desde el pendrive no hay lista —no se sabe el tipo ni
-       el peso de cada archivo sin abrirlo, y el médico ya tiene los archivos— así que ahí el botón
-       no se dibuja. `clnkAvisoAbrir` esconde todo botón sin texto. */
-    { txt: (ctx.prev && ctx.prev.length) ? '👁 Vista previa' : '',
-      fn: function () {
-        if (!ctx.prev || !ctx.prev.length) return;
-        /* Se guarda el estado del aviso para que «Volver a la pregunta» devuelva EXACTAMENTE
-           esta pregunta, con sus cinco botones y sus manejadores. */
-        clnkVistaPreviaDe(ctx.prev, ctx.nombreEq || '', _clnkAvisoGuardar());
-      } },
     { txt: ctx.cancelar ? 'Cancelar' : '🗑 Descartar',
       fn: function () {
         if (ctx.cancelar) { clnkAvisoCerrar(); return; }
         clnkDescartar(ctx.items.map(function (x) { return x.id; }).filter(Boolean));
       } }
-  ]);
+  ];
+  /* ⚠️ «VISTA PREVIA» SE INTERCALA ANTES DE «DESCARTAR» Y SÓLO CON `ctx.prev`, o sea con las filas
+     de la lista de CeiboLink en la mano: desde el pendrive no hay lista —no se sabe el tipo ni el
+     peso de cada archivo sin abrirlo, y el médico ya tiene los archivos— así que ahí el botón no
+     se dibuja. Lo que destruye se queda ÚLTIMO, que es el orden que este modal ya tenía.
+     ⚠️ SE INTERCALA EN EL ARREGLO Y NO SE PASA UN BOTÓN VACÍO EN SU LUGAR, y eso lo destapó un
+     caso: `clnkAvisoAbrir` reparte por POSICIÓN, así que con un cuarto botón vacío el «Cancelar»
+     del pendrive caía en el QUINTO y el cuarto quedaba como un hueco escondido. Se ve igual, pero
+     el botón que cancela dejaba de ser el último visible en su propia posición. */
+  if (ctx.prev && ctx.prev.length) {
+    bots.splice(3, 0, { txt: '👁 Vista previa',
+      fn: function () {
+        /* Se guarda el estado del aviso para que «Volver a la pregunta» devuelva EXACTAMENTE
+           esta pregunta, con sus cinco botones y sus manejadores. */
+        clnkVistaPreviaDe(ctx.prev, ctx.nombreEq || '', _clnkAvisoGuardar());
+      } });
+  }
+  return clnkAvisoAbrir(ctx.titulo || 'Imágenes', texto, bots);
 }
 window.dstPreguntar = dstPreguntar;
 

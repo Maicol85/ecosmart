@@ -139577,6 +139577,44 @@ caso('TC-874', 'ECO-CONECTOR-5 decision 4: la pregunta por un archivo pesado es 
       R.c_sinConfirmar = (window._clnkPorConfirmar || []).length === 0;
       clnkAvisoCerrar();
 
+      /* ── (C2) EL DETALLE DEL RESUMEN ENTRA COMO TEXTO, NO COMO HTML ───────────────────
+            ** HUECO QUE DESTAPO EL BARRIDO DE MUTACIONES, no la lectura: nada medía que las lineas
+            del cuerpo del resumen entren por textContent. Ahi dentro van nombres de archivo del
+            ecografo y nombres de estudio que escribio una persona. */
+      const HOSTIL = '<img src=x onerror="window.__ec5Hit=1">A<script>window.__ec5Hit=1</scr' + 'ipt>';
+      window.__ec5Hit = 0;
+      dstResumen({ titulo:'Prueba', total:1, ok:0, esperando:0, origen:'galeria', lineas:[HOSTIL] });
+      await __t.ec5Esp(150);
+      const cu = document.getElementById('clnkav-cuerpo');
+      R.c2_inyectados = cu ? cu.querySelectorAll('img[onerror], script').length : -1;
+      R.c2_ejecuto = window.__ec5Hit === 1;
+      R.c2_textoLiteral = !!(cu && String(cu.textContent || '').indexOf('onerror') > -1);
+      /* CONTROL POSITIVO de la sonda: el mismo payload por innerHTML SI cuenta y SI ejecuta. */
+      const probeta = document.createElement('div');
+      probeta.innerHTML = HOSTIL;
+      document.body.appendChild(probeta);
+      R.c2_sondaCuenta = probeta.querySelectorAll('img[onerror], script').length;
+      await __t.ec5Esp(120);
+      R.c2_controlEjecuto = window.__ec5Hit === 1;
+      probeta.remove();
+      window.__ec5Hit = 0;
+      clnkAvisoCerrar();
+
+      /* ── (C3) CERRAR LA PREGUNTA CON LA ✕ NO ABRE EL ARCHIVO ──────────────────────────
+            ** OTRO HUECO DEL BARRIDO: los casos siempre apretaban un boton, nunca cerraban. La
+            cadena vacia tiene que caer del lado SEGURO, que aca es NO abrirlo. */
+      window.__dcmCrudoMaxTest = 1024;
+      const dPes = { crudo: { bytes: 1e6, px: new Uint8Array(8) }, filas: 512, cols: 512,
+                     muestras: 1, bits: 8, nFrames: 5, foto: 'MONOCHROME2' };
+      const pX = _dcmCrudoPreguntar(dPes, { nombre:'cerrada.dcm', origen:'ceibolink' });
+      await __t.ec5Esp(200);
+      R.c3_abrio = __t.ec5Modal().abierto === true;
+      clnkAvisoCerrar();                       /* la ✕: cerrar sin elegir */
+      const qX = await pX;
+      R.c3_noSeAbre = !!(qX && qX.seguir === false);
+      R.c3_esperando = !!(qX && qX.esperando === true);
+      window.__dcmCrudoMaxTest = 1024 * 1024;
+
       /* ── (D) CONTROL NEGATIVO: FUERA de una tanda el alert de siempre sigue saliendo ───
             Sin esto, «cero cuadros nativos» se cumpliria tambien en una app que hubiera dejado de
             avisar de nada, que es lo contrario de lo que se quiere. */
@@ -139624,6 +139662,14 @@ caso('TC-874', 'ECO-CONECTOR-5 decision 4: la pregunta por un archivo pesado es 
       ['(C) y dice que SIGUE ESPERANDO',                       R.c_diceEspera === true, R.c_resumen.slice(0, 180)],
       ['(C) CERO alert nativos en todo el camino',             R.c_cerosAlert === true, R.c_alertas],
       ['(C) y no se confirmo nada',                            R.c_sinConfirmar === true, (window._clnkPorConfirmar || []).length],
+      ['(C2) el detalle del resumen: CERO elementos inyectados', R.c2_inyectados === 0, R.c2_inyectados],
+      ['(C2) y nada ejecuto',                                  R.c2_ejecuto === false, R.c2_ejecuto],
+      ['(C2) el payload se lee como texto literal',            R.c2_textoLiteral === true, R.c2_textoLiteral],
+      ['(C2) CONTROL POSITIVO: la sonda SI cuenta el payload', R.c2_sondaCuenta === 2, R.c2_sondaCuenta],
+      ['(C2) y ese control SI ejecuto',                        R.c2_controlEjecuto === true, R.c2_controlEjecuto],
+      ['(C3) DENOMINADOR: la pregunta abrio',                  R.c3_abrio === true, R.c3_abrio],
+      ['(C3) cerrarla con la X NO abre el archivo',            R.c3_noSeAbre === true, R.c3_noSeAbre],
+      ['(C3) y lo deja esperando',                             R.c3_esperando === true, R.c3_esperando],
       ['(D) CONTROL: fuera de una tanda el aviso SI sale',     R.d_alertFuera === true, R.d_alertFuera],
       ['(D) y dentro de una tanda se junta en vez de salir',   R.d_alertAdentro === true, R.d_alertAdentro],
       ['(D) juntado, con su texto',                            R.d_seJunto === true, R.d_seJunto]
@@ -139685,7 +139731,27 @@ caso('TC-875', 'ECO-CONECTOR-5 decision 5: los dos topes SE DERIVAN de la memori
       window.__dcmCrudoDuroTest = 1 * 1024 * 1024;
       R.c_ordenado = _dcmCrudoTopeDuro() >= _dcmCrudoTope();
       R.c_valores = Math.round(_dcmCrudoTope() / 1048576) + '/' + Math.round(_dcmCrudoTopeDuro() / 1048576);
+      /* ** HUECO QUE DESTAPO EL BARRIDO: «el duro no queda por debajo del blando» se cumple de DOS
+         formas -- subiendo el duro o bajando el blando-- y la condicion de arriba no distingue
+         cual. Con los ganchos al reves el que tiene que GANAR es el BLANDO: 8 MB en los dos. Si
+         ganara el duro, los dos quedarian en 1 MB y un archivo de 4 MB pasaria de «no se pregunta»
+         a «no se abre». */
+      R.c_ganaElBlando = Math.round(_dcmCrudoTope() / 1048576) === 8 &&
+                         Math.round(_dcmCrudoTopeDuro() / 1048576) === 8;
       delete window.__dcmCrudoMaxTest; delete window.__dcmCrudoDuroTest;
+      /* ── (C2) EL FACTOR DEL PICO: el tope duro es MENOR que el presupuesto ────────────
+            ** OTRO HUECO DEL BARRIDO: la tabla de (B) se cumple igual con el factor en 1 -- todos
+            los valores escalan juntos--, asi que nada medía que el tope se calcule sobre el PICO y
+            no sobre los pixeles. El pico es 1,8 veces los pixeles, medido por el medico: 622,5 MB
+            para 351,9. Entonces el tope duro TIENE que quedar por debajo del presupuesto. */
+      window.__dcmMemTest = 8;
+      R.c2_presupMB = Math.round(_dcmPresupuestoBytes() / 1048576);
+      R.c2_duroMB = Math.round(_dcmCrudoTopeDuro() / 1048576);
+      R.c2_duroMenor = R.c2_duroMB < R.c2_presupMB;
+      /* Y la razon entre los dos es el factor, con un margen por el redondeo. */
+      R.c2_razon = Math.round(R.c2_presupMB / Math.max(1, R.c2_duroMB) * 100) / 100;
+      R.c2_esElFactor = R.c2_razon > 1.6 && R.c2_razon < 2.0;
+      delete window.__dcmMemTest;
 
       /* ── (D) POR ENCIMA DEL DURO NO SE OFRECE ABRIR, Y SIGUE ESPERANDO ─────────────────
             Se mide sobre el descriptor, que es la compuerta: no hace falta el archivo. */
@@ -139740,6 +139806,9 @@ caso('TC-875', 'ECO-CONECTOR-5 decision 5: los dos topes SE DERIVAN de la memori
       ['(B) el duro por encima del blando en los CUATRO',      R.b_ordenados === true, R.b_tabla],
       ['(B) y los dos pisos mandan en el equipo de 1 GiB',     R.b_pisos === true, R.b_tabla],
       ['(C) ni con los dos ganchos al reves se invierte',      R.c_ordenado === true, R.c_valores],
+      ['(C) y el que GANA es el blando, no el duro',           R.c_ganaElBlando === true, R.c_valores],
+      ['(C2) el tope duro queda por DEBAJO del presupuesto',   R.c2_duroMenor === true, R.c2_duroMB + '/' + R.c2_presupMB],
+      ['(C2) y la razon entre los dos es el factor del pico',  R.c2_esElFactor === true, R.c2_razon],
       ['(D) por encima del DURO no se abre',                   R.d_noSeAbre === true, R.d_noSeAbre],
       ['(D) y el veredicto dice que SIGUE ESPERANDO',          R.d_esperando === true, R.d_esperando],
       ['(D) sin preguntar nada: no hay nada que decidir',      R.d_noSePregunto === true, __t.ec5Pregs().length],
@@ -139854,8 +139923,13 @@ caso('TC-876', 'ECO-CONECTOR-5 decision 4: con VARIOS pesados en la tanda la pre
       R.e_sinPreguntar = __t.ec5Pregs().length === 0;
       __t.ec5Auto(null);
 
-      /* ── (F) EL SUMIDERO ABRE UNA TANDA SOLO, sin que nadie lo llame a mano ───────────*/
-      _dcmCrudoNuevoLote();
+      /* ── (F) EL SUMIDERO ABRE UNA TANDA SOLO, sin que nadie lo llame a mano ───────────
+            ** LA PRIMERA VERSION LLAMABA A _dcmCrudoNuevoLote() ACA Y NEUTRALIZABA SU PROPIA
+            MUTACION: con la tanda ya abierta a mano, un sumidero que NO la abriera pasaba igual.
+            Lo destapo el barrido. Ahora se deja PUESTA la eleccion de «abrir todos» del bloque (E)
+            y se exige que el sumidero PREGUNTE: si no abriera tanda, heredaria esa eleccion y no
+            preguntaria nada. */
+      R.f_modoHeredado = _dcmCrudoModo();
       window.__dcmCrudoMaxTest = 1024 * 1024;
       __t.ec5Auto('Abrir igual');
       await ctrl({ reset:true, escena:'mixtoPesado' });
@@ -139897,7 +139971,8 @@ caso('TC-876', 'ECO-CONECTOR-5 decision 4: con VARIOS pesados en la tanda la pre
       ['(D) y vuelve a preguntar',                             R.d_volvioAPreguntar === true, R.d_volvioAPreguntar],
       ['(E) «Abrir igual todos» abre el primero',              R.e_abre === true, R.e_abre],
       ['(E) y el segundo abre SIN preguntar',                  R.e_segundoAbre === true && R.e_sinPreguntar === true, R.e_segundoAbre + '/' + R.e_sinPreguntar],
-      ['(F) el sumidero abre la tanda solo',                   R.f_preguntoUna === true, __t.ec5Pregs().length],
+      ['(F) DENOMINADOR: venia una eleccion puesta de la tanda anterior', R.f_modoHeredado === 'abrir', R.f_modoHeredado],
+      ['(F) el sumidero abre la tanda solo y PREGUNTA igual',  R.f_preguntoUna === true, __t.ec5Pregs().length],
       ['(F) y la pregunta sabe que son tres',                  R.f_textoDiceDeTres === true, R.f_textoDiceDeTres]
     ] };
   })();
@@ -140012,6 +140087,23 @@ caso('TC-877', 'ECO-CONECTOR-5 decision 6: la vista previa se abre SOLO con el b
       delete window.__clnkPrevTopeTest;
       clnkAvisoCerrar();
 
+      /* ── (E2) LA MINIATURA CONVIERTE UN SOLO CUADRO, Y SE MIDE ─────────────────────────
+            ** HUECO QUE DESTAPO EL BARRIDO: convertir los 171 cuadros para una miniatura de 94 px
+            se ve IGUAL, y la unica diferencia es el pico de memoria, que con un fixture de unos MB
+            queda dentro del ruido. La funcion publica cuantos convirtio. */
+      const bufM = await (async () => {
+        await ctrl({ reset:true, equipos:1, escena:'nativoCineloop' });
+        const r2 = await clnkPedir('/v1/imagenes/img_n5/archivo', { conToken:true, bytes:true, espera:300000 });
+        return (r2.ok && r2.datos) ? r2.datos : null;
+      })();
+      R.denom_multi = !!bufM;
+      const dM = bufM ? _dcmImgLeer(bufM) : null;
+      R.e2_cuadrosDeclarados = dM ? Math.max(1, dM.nFrames | 0) : -1;
+      const rM = dM ? await _dcmCrudoUnCuadro(dM) : null;
+      R.e2_ok = !!(rM && rM.ok);
+      R.e2_convirtio = rM ? (rM.n | 0) : -1;
+      R.e2_unoSolo = R.e2_convirtio === 1 && R.e2_cuadrosDeclarados === 5;
+
       /* ── (F) UNA QUE FALLA NO FRENA A LAS DEMAS (decision 6g) ─────────────────────────*/
       await ctrl({ reset:true, equipos:1, escena:'previaConFallo', bajarFalla:['img_f2'] });
       const L3 = await lista();
@@ -140075,6 +140167,8 @@ caso('TC-877', 'ECO-CONECTOR-5 decision 6: la vista previa se abre SOLO con el b
       ['(D) y con ocho el contenido DESBORDA la caja',         R.d_desborda === true, R.d_desborda],
       ['(D) y lo DICE: «Se ven 6 de 8»',                       R.d_diceCuantas === true, R.d_nota.slice(0, 80)],
       ['(E) un pesado NO se baja solo',                        R.e_ningunaImagen === true, R.e_botones],
+      ['(E2) DENOMINADOR: el multicuadro declara CINCO',       R.e2_cuadrosDeclarados === 5, R.e2_cuadrosDeclarados],
+      ['(E2) y la miniatura convierte UN SOLO cuadro',         R.e2_unoSolo === true, R.e2_convirtio],
       ['(E) y ofrece «Mirar igual»',                           R.e_todosMirarIgual === true, R.e_botones],
       ['(F) DENOMINADOR: la escena tenia TRES',                R.denom_tres === 3, R.denom_tres],
       ['(F) las otras DOS se dibujaron igual',                 R.f_lasOtrasDos === true, R.f_miniaturas],
@@ -140356,6 +140450,26 @@ caso('TC-879', 'ECO-CONECTOR-5 decision 7a: «Eliminar» borra SOLO lo elegido -
       R.d_aviso = (document.getElementById('ig-sel-res') || {}).textContent || '';
       R.d_loDice = R.d_aviso.indexOf('sigue guardado') > -1 || R.d_aviso.indexOf('siguen guardados') > -1;
 
+      /* ── (D2) LOS DOS MODOS SON EXCLUYENTES ───────────────────────────────────────────
+            ** HUECO QUE DESTAPO EL BARRIDO: nada medía que prender «Elegir imagenes» apague el
+            armado del PPT. Con los dos prendidos, el toque sobre una miniatura no tiene UN solo
+            significado y no se puede saber si suma al mazo o a la seleccion. */
+      igElegirModo(false);
+      const chkP = document.getElementById('ig-ppt-on');
+      R.d2_hayPpt = !!chkP;
+      if (chkP && !chkP.checked) { chkP.click(); await __t.ec5Esp(250); }
+      R.d2_pptPrendido = !!(document.getElementById('ig-ppt-on') || {}).checked;
+      igElegirModo(true);
+      await __t.ec5Esp(250);
+      R.d2_elegirPrendido = !!(document.getElementById('ig-elegir-on') || {}).checked;
+      R.d2_pptApagado = !(document.getElementById('ig-ppt-on') || {}).checked;
+      /* Y al revés: prender el mazo apaga el modo elegir. */
+      const chkP2 = document.getElementById('ig-ppt-on');
+      if (chkP2) { chkP2.click(); await __t.ec5Esp(250); }
+      R.d2_alReves = !(document.getElementById('ig-elegir-on') || {}).checked;
+      const chkP3 = document.getElementById('ig-ppt-on');
+      if (chkP3 && chkP3.checked) { chkP3.click(); await __t.ec5Esp(200); }
+
       /* ── (E) CONTROL NEGATIVO: sin nada elegido no borra nada y lo dice ───────────────*/
       igElegirModo(false); igElegirModo(true);
       const antesA = (await CeiboImg.leer(UA) || []).length;
@@ -140405,6 +140519,9 @@ caso('TC-879', 'ECO-CONECTOR-5 decision 7a: «Eliminar» borra SOLO lo elegido -
       ['(D) el registro de imagenes de B se fue',              R.d_registroSeFue === true, (R.d_registro || []).length],
       ['(D) pero el ESTUDIO B sigue guardado',                 R.d_estudioSigue === true, R.d_estudioSigue],
       ['(D) y la app lo DICE',                                 R.d_loDice === true, R.d_aviso.slice(0, 130)],
+      ['(D2) DENOMINADOR: la casilla del PPT existe y prendio', R.d2_hayPpt === true && R.d2_pptPrendido === true, R.d2_pptPrendido],
+      ['(D2) prender «Elegir» APAGA el armado del PPT',        R.d2_elegirPrendido === true && R.d2_pptApagado === true, R.d2_elegirPrendido + '/' + R.d2_pptApagado],
+      ['(D2) y al reves: prender el mazo apaga «Elegir»',      R.d2_alReves === true, R.d2_alReves],
       ['(E) CONTROL: sin nada elegido no borra nada',          R.e_borro === 0 && R.e_sigueIgual === true, R.e_borro],
       ['(E) y lo dice',                                        R.e_loDice === true, R.e_aviso.slice(0, 90)],
       ['(F) CONTROL: un indice que no existe no quita nada',   R.f_quitadas === 0 && R.f_sigueIgual === true, R.f_quitadas],
@@ -140686,6 +140803,25 @@ caso('TC-881', 'ECO-CONECTOR-5 decisiones 7d, 8 y 9: exportar SOLO lo elegido co
       R.b_esJson = R.b_nombre.indexOf('.json') > -1 && R.b_nombre.indexOf('imagenes_elegidas') > -1;
       clnkAvisoCerrar();
 
+      /* ── (B2) CANCELAR LA EXPORTACION NO GENERA NINGUN ARCHIVO ────────────────────────
+            ** HUECO QUE DESTAPO EL BARRIDO: (B) aprieta «Exportar», asi que una app que ignorara
+            la respuesta pasaba igual. */
+      const guardados = bajados.slice();
+      bajados.length = 0;
+      const p2 = igSelExportar();
+      for (let i = 0; i < 40; i++) {
+        await __t.ec5Esp(100);
+        if (__t.ec5Modal().abierto && __t.ec5Modal().botones.join(' ').indexOf('Exportar') > -1) break;
+      }
+      R.b2_pregunto = __t.ec5Modal().abierto === true;
+      __t.ec5Apretar('Cancelar');
+      R.b2_devolvio = await p2;
+      await __t.ec5Esp(250);
+      R.b2_sinArchivo = bajados.length === 0;
+      bajados.length = 0;
+      guardados.forEach(x => bajados.push(x));
+      clnkAvisoCerrar();
+
       /* ── (C) EL ARCHIVO TRAE SOLO LO ELEGIDO ──────────────────────────────────────────
             Se lee el blob de verdad desde la URL de objeto, que es el archivo que se bajo. */
       let sobre = null;
@@ -140776,6 +140912,9 @@ caso('TC-881', 'ECO-CONECTOR-5 decisiones 7d, 8 y 9: exportar SOLO lo elegido co
       ['(B) y que lleva el documento del estudio de origen',   R.b_avisaFicha === true, R.b_avisaFicha],
       ['(B) y recien al aceptar se baja UN archivo',           R.b_archivos === 1, R.b_archivos],
       ['(B) con nombre de seleccion y en JSON',                R.b_esJson === true, R.b_nombre],
+      ['(B2) DENOMINADOR: la pregunta volvio a abrir',         R.b2_pregunto === true, R.b2_pregunto],
+      ['(B2) cancelar NO genera ningun archivo',               R.b2_sinArchivo === true, R.b2_sinArchivo],
+      ['(B2) y lo dice devolviendo false',                     R.b2_devolvio === false, R.b2_devolvio],
       ['(C) el archivo es el SOBRE del backup',                R.c_esSobre === true, R.c_nivel],
       ['(C) marcado como seleccion',                           R.c_esSeleccion === true, R.c_esSeleccion],
       ['(C) con UN solo estudio: el de origen',                R.c_unSoloEstudio === true, R.c_estudios.join(',')],
