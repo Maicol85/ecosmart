@@ -141516,6 +141516,180 @@ caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexa
   })();
 `);
 
+caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA en sus seis partes -- casilla por fila, boton junto a Exportar en las dos pantallas, cartel propio la primera vez y aviso corto despues, bloque en Configuracion sin boton de aceptar, UN solo estado y UN solo nombre, y cero envios y cero escrituras en disco', `
+  return (async () => {
+    const R = { err: '', red: [] };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const fetchReal = window.fetch, xhrReal = XMLHttpRequest.prototype.open;
+    let toasts = [];
+    window.alert = () => {}; window.confirm = () => true;
+    window.toast = t => { toasts.push(String(t)); };
+    /* ⚠️ LA RED SE INSTRUMENTA ANTES DE TOCAR NADA, que es la unica forma de medir «no se envia
+       nada»: contar las llamadas que SALEN, no leer el codigo. Se cubren las dos puertas. */
+    window.fetch = function () { R.red.push('fetch ' + String(arguments[0]).slice(0, 80));
+      return fetchReal.apply(this, arguments); };
+    XMLHttpRequest.prototype.open = function (m, u) { R.red.push('xhr ' + String(u).slice(0, 80));
+      return xhrReal.apply(this, arguments); };
+    const claves = () => { try { return Object.keys(localStorage).slice().sort().join('|'); }
+                           catch (e) { return 'SIN LS'; } };
+    const act = () => { try { return anahiActiva(); } catch (e) { return 'SIN FN'; } };
+    const nom = () => { try { return ANAHI_NOMBRE; } catch (e) { return 'SIN VAR'; } };
+    try {
+      const lsAntes = claves();
+
+      /* -- (e) UN SOLO ESTADO, Y APAGADO -- */
+      R.e_estado = act();
+      R.e_nombre = nom();
+      /* Y el nombre esta UNA sola vez: lo que lo publica son funciones, no textos tipeados.
+         Se comprueba cambiandolo en vivo y viendo que las TRES superficies lo siguen. */
+
+      /* -- (a) LA CASILLA POR FILA, con su candado -- */
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(600);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(400);
+      medHerramienta('dist'); d2Modo('vi'); _d2Poner('vi.sivd', 10); _d2Render();
+      await esperar(300);
+      const cels = [...document.querySelectorAll('#d2-cajon .anahi-cel')];
+      R.a_n = cels.length;
+      R.a_todasBloqueadas = cels.length > 0 &&
+        cels.every(c => !!c.querySelector('input[disabled]') && (c.textContent||'').indexOf('🔒') >= 0);
+
+      /* -- (c) EL CARTEL PROPIO, LA PRIMERA VEZ -- */
+      /* El «ya lo vi» vive en memoria y la suite corre todos los casos en UNA pagina, asi que se
+         repone a mano para medir la PRIMERA vez de verdad. Es lo que haria una recarga. */
+      try { _anahiCartelVisto = false; } catch (e) {}
+      toasts = [];
+      if (cels[0]) cels[0].click();
+      await esperar(260);
+      const ov = document.getElementById('anahi-ov');
+      R.c_hayCartel = !!ov;
+      R.c_esPropio = !!ov && ov.getAttribute('role') === 'dialog';
+      R.c_tit = ov ? (ov.querySelector('h4').textContent||'').trim() : '';
+      R.c_cuerpo = ov ? (ov.querySelector('p').textContent||'').trim() : '';
+      R.c_btn = ov ? (ov.querySelector('button').textContent||'').trim() : '';
+      R.c_foco = ov ? String(document.activeElement && document.activeElement.id) : '';
+      /* Texto como TEXTO: el cuerpo no tiene un solo elemento hijo. */
+      R.c_sinMarcado = ov ? (ov.querySelector('p').children.length === 0) : null;
+      R.c_sinToastLaPrimera = toasts.length === 0;
+      /* «Entendido» SOLO cierra: no cambia el estado ni escribe nada. */
+      const lsAntesOk = claves();
+      if (ov && ov.querySelector('button')) ov.querySelector('button').click();
+      await esperar(220);
+      R.c_cerro = !document.getElementById('anahi-ov');
+      R.c_estadoIgual = act() === false;
+      R.c_lsIgual = claves() === lsAntesOk;
+      /* La SEGUNDA vez: aviso corto, no el cartel. */
+      toasts = [];
+      if (cels[0]) cels[0].click();
+      await esperar(220);
+      R.c_segundaSinCartel = !document.getElementById('anahi-ov');
+      R.c_segundaToast = toasts.join(' | ');
+      R.c_segundaCorta = toasts.length === 1 && toasts[0].indexOf('Bloqueado hasta que te unas') >= 0;
+
+      /* -- (b) EL BOTON EN LAS DOS PANTALLAS -- */
+      cineCerrar(); await esperar(300);
+      /* b1 — el menu de Exportar de Estudios guardados */
+      const bm = document.getElementById('igio-exp-anahi');
+      R.b_menu = !!bm;
+      R.b_menuRot = bm ? (bm.textContent||'').trim() : '';
+      R.b_menuCandado = String(R.b_menuRot||'').indexOf('🔒') >= 0;
+      R.b_menuNombra = String(R.b_menuRot||'').indexOf(nom()) >= 0;
+      R.b_menuAria = bm ? bm.getAttribute('aria-disabled') : '';
+      /* Y esta junto a las demas salidas de «Exportar», o sea DENTRO de ese menu. */
+      R.b_menuJuntoAExportar = !!bm && !!bm.closest('#igio-menu-exp');
+      /* b2 — la columna de Imagenes guardadas */
+      /* ⚠️ LA COLUMNA SALE TEMPRANO SI EL MODO ELEGIR ESTA APAGADO -y ahi solo pinta la ayuda-,
+         asi que hay que prenderlo o la medicion cae sobre un contenedor de dos nodos: un
+         denominador vacio que se lee igual que «el boton no esta». */
+      const elegirAntes = (typeof _igElegir !== 'undefined') ? _igElegir : false;
+      try { igElegirModo(true); } catch (e) {}
+      await esperar(300);
+      let cont = document.createElement('div');
+      document.body.appendChild(cont);
+      try { igSelSidePintar(cont); } catch (e) { R.b_err = String(e && e.message || e); }
+      const bots = [...cont.querySelectorAll('button')].map(b2 => (b2.textContent||'').trim());
+      R.b_col = bots.join(' / ');
+      const iAn = bots.findIndex(t => t.indexOf('Para ' + nom()) >= 0);
+      const iEx = bots.findIndex(t => t.indexOf('Exportar las elegidas') >= 0);
+      R.b_colHay = iAn >= 0;
+      R.b_colJunto = iAn >= 0 && iEx >= 0 && Math.abs(iAn - iEx) === 1;
+      R.b_colCandado = iAn >= 0 && bots[iAn].indexOf('🔒') >= 0;
+      /* Y contesta: tocarlo da el aviso corto, no el silencio de un boton deshabilitado. */
+      toasts = [];
+      const bAn = [...cont.querySelectorAll('button')][iAn];
+      if (bAn) bAn.click();
+      await esperar(220);
+      R.b_contesta = toasts.length === 1 || !!document.getElementById('anahi-ov');
+      const ov2 = document.getElementById('anahi-ov');
+      if (ov2 && ov2.querySelector('button')) ov2.querySelector('button').click();
+      cont.remove();
+      /* El modo elegir se repone: dejarlo prendido le cambia el gesto de la galeria a los casos
+         que vienen despues en el mismo lote. */
+      try { igElegirModo(elegirAntes); } catch (e) {}
+
+      /* -- (d) EL BLOQUE DE CONFIGURACION, SIN BOTON DE ACEPTAR -- */
+      const sec = document.getElementById('cfg-card-anahi');
+      R.d_hay = !!sec;
+      R.d_tit = sec ? (document.getElementById('cfg-anahi-tit').textContent||'').trim() : '';
+      R.d_txt = sec ? (document.getElementById('cfg-anahi-txt').textContent||'').trim() : '';
+      R.d_dice = String(R.d_txt||'').indexOf('Todavía no está activa') >= 0;
+      R.d_sinBotones = !!sec && sec.querySelectorAll('button').length === 0;
+      R.d_sinCampos = !!sec && sec.querySelectorAll('input, select, textarea').length === 0;
+
+      /* -- (e2) EL NOMBRE, EN UN SOLO LUGAR: se cambia y las TRES superficies lo siguen -- */
+      /* No se puede reasignar una constante, asi que lo que se comprueba es que las tres
+         superficies lo LEAN del dueño y no lo lleven tipeado: las tres contienen el valor del
+         dueño, y ninguna contiene un nombre distinto escrito a mano. */
+      R.e_tresLoLeen = R.b_menuNombra && R.b_colHay &&
+                       (String(R.c_tit||'').indexOf('CeiboMed') >= 0);
+
+      /* -- (f) CERO ENVIOS Y CERO ESCRITURAS -- */
+      R.f_ls = claves() === lsAntes;
+      R.f_lsAntes = lsAntes.length;
+      R.f_red = R.red.join(' ; ');
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+          window.fetch = fetchReal; XMLHttpRequest.prototype.open = xhrReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['(e) UN solo estado, y apagado',                     R.e_estado === false, String(R.e_estado)],
+      ['(e) UN solo nombre, y es el del medico',            R.e_nombre === 'Anahí', String(R.e_nombre)],
+      ['(a) DENOMINADOR: la tabla tiene filas con casilla', R.a_n > 0, R.a_n],
+      ['(a) todas bloqueadas y con candado',                R.a_todasBloqueadas === true, R.a_todasBloqueadas],
+      ['(c) tocarla abre un cartel PROPIO de la app',       R.c_hayCartel && R.c_esPropio, R.c_hayCartel + '/' + R.c_esPropio],
+      ['(c) con el titulo exacto',                          R.c_tit === 'Comunidad de desarrollo de IA de CeiboMed', R.c_tit],
+      ['(c) el cuerpo exacto',                              R.c_cuerpo === 'Estamos desarrollando una IA que ayude a medir en ecocardiografía. Los médicos que quieran pueden colaborar con sus propias mediciones. Esta opción todavía está bloqueada y no se envía nada. Cuando se active, vas a poder unirte desde Configuración: vas a leer las condiciones, aceptarlas y decidir qué enviar en cada ocasión. Podrás retirarte cuando quieras.', String(R.c_cuerpo||'').slice(0, 120)],
+      ['(c) y el boton «Entendido»',                        R.c_btn === 'Entendido', R.c_btn],
+      ['(c) el texto entra como TEXTO, sin marcado',        R.c_sinMarcado === true, R.c_sinMarcado],
+      ['(c) con el foco en el boton',                       R.c_foco === 'anahi-ok', R.c_foco],
+      ['(c) la primera vez NO es un aviso corto',           R.c_sinToastLaPrimera === true, R.c_sinToastLaPrimera],
+      ['(c) «Entendido» SOLO cierra: no acepta nada',       R.c_cerro && R.c_estadoIgual && R.c_lsIgual, R.c_cerro + '/' + R.c_estadoIgual + '/' + R.c_lsIgual],
+      ['(c) la segunda vez va el aviso corto',              R.c_segundaCorta === true, R.c_segundaToast],
+      ['(c) y ya no el cartel entero',                      R.c_segundaSinCartel === true, R.c_segundaSinCartel],
+      ['(b) el boton esta en el menu de Exportar',          R.b_menu && R.b_menuJuntoAExportar, R.b_menuRot],
+      ['(b) con candado y nombrando la comunidad',          R.b_menuCandado && R.b_menuNombra, R.b_menuRot],
+      ['(b) y marcado como no disponible',                  R.b_menuAria === 'true', String(R.b_menuAria)],
+      ['(b) y en la columna de Imagenes guardadas',         R.b_colHay === true, R.b_col],
+      ['(b) PEGADO a Exportar',                             R.b_colJunto === true, R.b_col],
+      ['(b) con su candado',                                R.b_colCandado === true, R.b_colCandado],
+      ['(b) y CONTESTA al tocarlo, no se queda mudo',       R.b_contesta === true, R.b_contesta],
+      ['(d) hay bloque en Configuracion',                   R.d_hay === true, R.d_hay],
+      ['(d) que dice que todavia no esta activa',           R.d_dice === true, String(R.d_txt||'').slice(0, 90)],
+      ['(d) SIN boton de aceptar',                          R.d_sinBotones === true, R.d_sinBotones],
+      ['(d) y sin ningun campo',                            R.d_sinCampos === true, R.d_sinCampos],
+      ['(e) las tres superficies leen el dueño unico',      R.e_tresLoLeen === true, R.e_tresLoLeen],
+      ['(f) DENOMINADOR: habia claves en disco',            R.f_lsAntes > 0, R.f_lsAntes],
+      ['(f) y no se escribio ni una nueva',                 R.f_ls === true, R.f_ls],
+      ['(f) CERO llamadas de red en todo el camino',        R.red.length === 0, R.f_red]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;

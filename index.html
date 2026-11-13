@@ -6435,6 +6435,18 @@ window.cerrarSesionReal = cerrarSesionReal;
            NO HAY CAMPO DE DIRECCIÓN, y es la diferencia de fondo con la tarjeta vieja: la
            dirección es una constante de JS en un solo lugar. Ver el encabezado de `CLNK_BASE`
            para por qué, y para cómo apuntan las pruebas a otro puerto sin agregar un campo. -->
+      <!-- ══ MEDIR-2 (punto 8d) — COMUNIDAD DE DESARROLLO DE IA ═══════════════════════════
+           ⚠️ SIN BOTON DE ACEPTAR, que es el pedido literal: acá no hay nada que aceptar
+           todavía. El día que se active, es acá donde el médico va a leer las condiciones.
+           El título y el cuerpo los escribe `anahiCfgSync` desde los MISMOS dos dueños que
+           usan el cartel y los botones —`ANAHI_TIT` y `ANAHI_NOMBRE`—, así que no hay un
+           segundo lugar donde el nombre pueda quedar viejo. No lleva ningún control: cero
+           `input`, o sea que queda fuera del censo del estudio y del Excel por construcción. -->
+      <section class="cfg-card" id="cfg-card-anahi">
+        <div class="cfg-sec-title" id="cfg-anahi-tit"></div>
+        <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;" id="cfg-anahi-txt"></p>
+      </section>
+
       <section class="cfg-card" id="cfg-card-clnk">
         <div class="cfg-sec-title">🔗 CeiboLink</div>
         <p style="font-size:11px;color:var(--text2);margin:0 0 9px;line-height:1.5;">
@@ -26489,6 +26501,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();dcmExportarSR()">🏥 DICOM SR<small id="igio-exp-dcm-sub">Estudio del formulario, para PACS</small></button>
                 <div class="igio-sep"></div>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarEcoAnalytics()">📈 Para Analytics<small>Abrir después en CeiboAnalytics</small></button>
+                <!-- MEDIR-2 punto 8(b): junto a las demás salidas de Exportar, con su candado.
+                     NO lleva `disabled` por el mismo motivo que el de la galería: un control
+                     deshabilitado no emite click y el médico se quedaría sin la explicación.
+                     El rótulo y el aviso los escribe `anahiBotonMenuSync` desde el dueño único
+                     del nombre, para que no haya un segundo lugar donde cambiarlo. -->
+                <button type="button" class="igio-op anahi-btn" role="menuitem" id="igio-exp-anahi"
+                        aria-disabled="true"></button>
                 <!-- LAS DOS PLANTILLAS VIVÍAN EN «📥 Importar», porque el fin último es llenarlas
                      y reimportarlas. Pero el menú no clasifica por intención sino por lo que hace
                      el botón que se aprieta, que es lo único que el médico puede predecir antes de
@@ -125019,6 +125038,24 @@ function _igSelBtn(cont, rot, titulo, fn, clase) {
   return b;
 }
 
+/* ══ MEDIR-2 — EL BOTON «Para <nombre>», CON CANDADO ════════════════════════════════════════
+   Punto 8(b). Sale del MISMO molde que los demas botones de la columna (`_igSelBtn`) para que
+   no se lea como otra cosa, y lleva la clase `anahi-btn`, que es de donde cuelga el unico
+   oyente delegado del documento — con un manejador propio por boton, cada pintado de la columna
+   dejaria uno nuevo.
+   ⚠️ NO VA `disabled`: un boton deshabilitado NO emite click, y entonces el medico tocaria el
+   unico control que tiene que EXPLICARLE por que esta bloqueado y no pasaria nada. Lleva
+   `aria-disabled` para el lector de pantalla y el candado para el ojo. */
+function _anahiBoton(cont) {
+  if (typeof anahiActiva !== 'function') return null;
+  const act = anahiActiva();
+  const b = _igSelBtn(cont, (act ? '' : '🔒 ') + 'Para ' + ANAHI_NOMBRE,
+    act ? '' : ANAHI_CORTO, function () {}, 'btn btn-ghost anahi-btn');
+  if (!act) { b.setAttribute('aria-disabled', 'true'); b.style.opacity = '.62'; }
+  return b;
+}
+window._anahiBoton = _anahiBoton;
+
 function igSelSidePintar(cont) {
   const h = document.createElement('h4');
   h.textContent = 'Elegir';
@@ -125067,6 +125104,7 @@ function igSelSidePintar(cont) {
     cont.appendChild(barra);
     _igSelBtn(barra, '📤 Exportar', 'Genera un archivo con sólo lo elegido',
               () => igSelExportar());
+    _anahiBoton(barra);
     _igSelBtn(cont, '✕ Quitar la selección', '', () => {
       _igSel = []; igSelRes('');
       if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
@@ -125097,6 +125135,10 @@ function igSelSidePintar(cont) {
   _igSelBtn(cont, '📤 Exportar las elegidas',
             'Genera un archivo con sólo lo que elegiste arriba',
             () => igSelExportar());
+  /* MEDIR-2 punto 8(b): va PEGADO a Exportar, que es el gesto con el que se confunde —los dos
+     sacan imagenes de acá— y por eso tiene que verse bloqueado en el mismo lugar. La clase
+     `anahi-btn` es la que lo engancha al unico oyente delegado del documento. */
+  _anahiBoton(cont);
 }
 window.igSelSidePintar = igSelSidePintar;
 
@@ -141857,6 +141899,40 @@ function anahiCeldaHTML() {
     (act ? '' : '<span aria-hidden="true" style="font-size:9px;margin-left:2px;">🔒</span>') +
     '</td>';
 }
+/* El rótulo del botón del menú de Exportar lo escribe el dueño único del nombre, no el marcado:
+   con el texto tipeado ahí, cambiar `ANAHI_NOMBRE` dejaría ese botón con el nombre viejo. Corre
+   al cargar y es idempotente. */
+/* El bloque de Configuración (punto 8d). Todo entra por `textContent`, y el texto sale de los
+   mismos dueños que el cartel: un segundo texto escrito a mano se quedaría viejo. */
+function anahiCfgSync() {
+  const t = document.getElementById('cfg-anahi-tit');
+  const p = document.getElementById('cfg-anahi-txt');
+  if (!t || !p) return;
+  t.textContent = '🤝 ' + ANAHI_TIT;
+  p.textContent = anahiActiva()
+    ? 'Ya podés unirte desde acá.'
+    : 'Todavía no está activa. ' + ANAHI_CUERPO;
+}
+window.anahiCfgSync = anahiCfgSync;
+
+function anahiBotonMenuSync() {
+  const b = document.getElementById('igio-exp-anahi');
+  if (!b) return;
+  const act = anahiActiva();
+  b.textContent = (act ? '' : '🔒 ') + 'Para ' + ANAHI_NOMBRE;
+  const s2 = document.createElement('small');
+  s2.textContent = act ? 'Enviar a la comunidad' : ANAHI_CORTO;
+  b.appendChild(s2);
+  b.setAttribute('aria-disabled', act ? 'false' : 'true');
+  if (!act) b.style.opacity = '.62';
+}
+window.anahiBotonMenuSync = anahiBotonMenuSync;
+function _anahiSyncTodo() { try { anahiBotonMenuSync(); } catch (e) {} try { anahiCfgSync(); } catch (e) {} }
+try {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _anahiSyncTodo);
+  else _anahiSyncTodo();
+} catch (e) {}
+
 /* Un solo oyente delegado para todo el documento: las tablas se repintan enteras y un manejador
    por celda se iría con el nodo viejo en cada repintado. */
 try {

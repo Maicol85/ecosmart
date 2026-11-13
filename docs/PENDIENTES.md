@@ -16836,3 +16836,48 @@ dato, y multiplicar por la superficie en vez de dividir.
 columnas nuevas. (2) **La sesión de Simpson vive en la VISTA y no en un global**, y escribir en un
 campo del formulario no la conserva: hay que sembrarla **después** de cargar peso y talla, o el
 denominador queda en cero — que se lee igual que «la tabla no tiene columnas».
+
+### M2-f — BLOQUE F de MEDIR-2: la comunidad de desarrollo de IA, bloqueada
+
+**Punto 8 de MEDIR-1, hecho en sus seis partes.**
+
+- **(a) La casilla con candado por fila**, en las dos tablas del visor. Va `disabled` con
+  `aria-disabled` y el glifo del candado, y **el oyente cuelga de la CELDA y no de la casilla**:
+  un `input` deshabilitado **no emite eventos**, así que sin eso el médico tocaría el único
+  control que tiene que explicarle por qué está bloqueado y no pasaría nada.
+- **(b) El botón «Para Anahí» con candado, junto a Exportar, en las DOS pantallas.** En
+  **Estudios guardados** va dentro del menú de «📤 Exportar», con las demás salidas; en
+  **Imágenes guardadas** va **pegado** a «Exportar las elegidas» —el caso mide que la distancia
+  entre los dos en la columna sea exactamente 1— y además en la barra del modo elegir, junto a su
+  «Exportar». **Ninguno de los dos lleva `disabled`**, por el mismo motivo que la casilla, y el
+  caso fija que **contestan** al tocarlos.
+- **(c) El cartel es PROPIO de la app y no un cuadro del navegador**: un overlay con
+  `role="dialog"`, `aria-modal`, el foco en «Entendido» y Escape para cerrar. **El texto es el
+  exacto que el médico pidió**, y el caso lo compara **carácter por carácter** —título, cuerpo y
+  botón—. Todo entra por `textContent`: el cuerpo no tiene un solo elemento hijo. Sale **la
+  primera vez de cada sesión de la página**; después va el aviso corto «Bloqueado hasta que te
+  unas a la comunidad». **El «ya lo vi» vive en memoria y NO en disco**, que es el pedido:
+  persistirlo haría que el médico que lo leyó una vez no lo volviera a ver nunca.
+  **«Entendido» SOLO cierra**: el caso fija que no cambia el estado y que no escribe una clave.
+- **(d) El bloque de Configuración** («🤝 Comunidad de desarrollo de IA de CeiboMed») dice que
+  todavía no está activa y **no tiene ni un botón ni un campo** — cero `input`, o sea que queda
+  fuera del censo del estudio y del Excel **por construcción**.
+- **(e) UN solo estado y UN solo nombre**: `ANAHI_ON` y `ANAHI_NOMBRE`. Los tres lugares que
+  ofrecen la función leen el primero, y el rótulo de la columna de la tabla, los dos botones y el
+  bloque de Configuración **leen el segundo** en vez de llevarlo tipeado — para cambiar el nombre
+  se cambia una línea.
+- **(f) Nada se envía y nada se guarda.** El caso **instrumenta `fetch` y `XMLHttpRequest.open`**
+  antes de tocar nada y exige **cero** llamadas en todo el camino, y compara las claves de
+  `localStorage` antes y después con su denominador (había claves, o sea que la comparación no es
+  sobre un almacén vacío).
+
+**Cobertura: TC-886**, con **30 condiciones**, que cae **0/1 contra `ff8c585` y NINGUNA por
+excepción**. **Tres mutaciones dirigidas, las tres muertas**: «Entendido» escribiendo en disco, el
+cartel entero saliendo siempre en vez del aviso corto, y el bloque de Configuración ganando un
+botón de aceptar.
+
+⚠️ **UNA TRAMPA DE DENOMINADOR QUE ESTE CASO PAGO**: la columna de «Imágenes guardadas» **sale
+temprano si el modo elegir está apagado** y ahí sólo pinta su ayuda, así que medir sin prenderlo
+da un contenedor de dos nodos — que se lee igual que «el botón no está». El caso lo prende y
+**repone el estado anterior al terminar**, porque dejarlo puesto le cambia el gesto de la galería
+a los casos que vienen después en el mismo lote.
