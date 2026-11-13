@@ -16766,3 +16766,42 @@ control positivo.
 **Cobertura: TC-883**, que cae **0/1 contra `ff8c585` por DOCE condiciones**. **Tres mutaciones
 dirigidas, las tres muertas**: el rotulo viejo de vuelta, una banda prestada a la telediastolica
 y los dos rotulos de la IP dejando de ser los de la app.
+
+### M2-d — BLOQUE D de MEDIR-2: el gesto de Area con AI y AD
+
+**Punto 6 de MEDIR-1, hecho.** Con la herramienta **Área** abierta, la tercera fila del selector
+progresivo —la de Estructura, que hasta hoy sólo se dibujaba con Distancia y con Doppler— ofrece
+**«AI»** y **«AD»**. Cada contorno se guarda con SU estructura (`_medAreas` pasa de `{pts, cm2}` a
+`{pts, cm2, est}`), se dibuja sobre la imagen rotulado **«Área de AI: 12,34 cm²»**, y el panel
+guía publica **una línea por estructura** con su resultado en cm².
+
+**NO ESCRIBE UN SOLO CAMPO, y se mide**: el caso censa **todos** los `input`, `select` y
+`textarea` con `id` del documento —fuera del visor— antes y después de trazar un contorno, y
+exige que la cadena sea idéntica; y además que el cajón 2D, que es el que SÍ escribe campos, siga
+vacío. Por eso el resultado va en el **panel guía** y no en ese cajón.
+
+**Se publica la ÚLTIMA de cada estructura**, no la suma ni la primera: volver a trazar es como el
+médico corrige un contorno que le quedó mal, y publicar las dos haría que la buena y la
+descartada se vieran igual. Los contornos trazados **sin** estructura elegida se siguen
+guardando y se **cuentan aparte**, para que no desaparezcan sin decirlo.
+
+**El ID lleva otro prefijo** (`cine-est-area-`) para no chocar con las cinco estructuras del
+cajón 2D, que eligen otra cosa; el oyente va por el mismo `_vBind` que los demás, así que elegir
+una estructura en la vista B no mueve la de la A.
+
+**La estructura se suelta con `medApagar` y NO al cerrar el visor**, y el caso mide las dos
+mitades: cerrar el visor conserva lo medido a propósito —`cineCerrar` no llama a `medApagar`, y
+su propio comentario explica por qué—, así que soltarla ahí sería inconsistente; la suelta la
+puerta que borra los contornos, porque con la estructura viva el contorno siguiente de otra
+imagen saldría rotulado con la aurícula de la anterior.
+
+**Cobertura: TC-884**, que cae **0/1 contra `ff8c585` por once condiciones y NINGUNA por
+excepción** — todo acceso a lo que esta tanda agregó va por un ayudante con guarda, que es la
+lección que TC-827 dejó escrita en PANT-37 y que la primera versión de este caso volvió a pagar.
+Lleva control negativo (con Distancia las estructuras son las cinco del cajón 2D) y denominador
+(se trazaron dos contornos con área > 0, y el censo del formulario no está vacío). **Dos
+mutaciones dirigidas, las dos muertas**: el contorno perdiendo su estructura y el panel guía
+perdiendo el aviso de A4C.
+
+**NO se implementó «Volumen»**, que el pedido deja fuera: el botón sigue visible y apagado con su
+leyenda «próximamente», como lo dejó MEDIR-1.

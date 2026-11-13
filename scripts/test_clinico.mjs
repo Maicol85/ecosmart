@@ -141267,6 +141267,131 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
   })();
 `);
 
+caso('TC-884', 'MEDIR-2 bloque D: el gesto de Area ofrece «AI» y «AD» en A4C, cada contorno queda rotulado con SU estructura y su resultado en cm² sale en el panel guia -- y no escribe un solo campo del formulario', `
+  return (async () => {
+    const R = { err: '' };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      /* ⚠️ TODO ACCESO A LO QUE ESTA TANDA AGREGO VA POR UN AYUDANTE CON GUARDA: contra la
+         linea base esa variable NO EXISTE, y un acceso pelado tira ReferenceError que corta el
+         caso ANTES de medir nada -o sea que caeria por EXCEPCION y no por condiciones, que es
+         justo lo que esta casa prohibe-. Es la leccion que TC-827 dejo escrita en PANT-37. */
+      const estActual = () => { try { return _medAreaEst; } catch (e) { return 'SIN VARIABLE'; } };
+      const areas = () => { try { return _medAreas || []; } catch (e) { return []; } };
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(600);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(400);
+
+      /* -- (A) CON DISTANCIA LAS ESTRUCTURAS SON LAS DEL CAJON 2D (control negativo) -- */
+      medHerramienta('dist');
+      await esperar(300);
+      R.a_conDist = !!document.getElementById('cine-est-vi') &&
+                    !document.getElementById('cine-est-area-ai');
+
+      /* -- (B) CON AREA, LAS DOS AURICULAS -- */
+      medHerramienta('area');
+      await esperar(320);
+      const bAI = document.getElementById('cine-est-area-ai');
+      const bAD = document.getElementById('cine-est-area-ad');
+      R.b_dos = !!bAI && !!bAD;
+      R.b_rot = (bAI ? (bAI.textContent||'').trim() : '') + '/' + (bAD ? (bAD.textContent||'').trim() : '');
+      R.b_tip = bAI ? (bAI.getAttribute('title')||'') : '';
+      R.b_diceA4C = String(R.b_tip || '').indexOf('4 cámaras') >= 0;
+      /* y las CINCO del cajon 2D ya no estan: una estructura por gesto, no las dos listas */
+      R.b_sinLasDeDistancia = !document.getElementById('cine-est-vi');
+
+      /* -- (C) EL CONTORNO SE QUEDA CON LA ESTRUCTURA ELEGIDA -- */
+      const trazar = (cx0, cy0) => {
+        const c = document.getElementById('cine-med');
+        const r = c.getBoundingClientRect();
+        const ac = (x, y) => ({ clientX: r.left + x*(r.width/c.width),
+                                clientY: r.top + y*(r.height/c.height), bubbles:true });
+        c.dispatchEvent(new MouseEvent('mousedown', ac(cx0, cy0)));
+        for (let i = 1; i <= 24; i++) {
+          const an = i/24*Math.PI*2;
+          c.dispatchEvent(new MouseEvent('mousemove',
+            ac(Math.round(cx0 + 60*Math.cos(an)), Math.round(cy0 + 45*Math.sin(an)))));
+        }
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+      };
+      if (bAI) bAI.click(); await esperar(240);
+      R.c_elegidaAI = estActual() === 'ai';
+      trazar(180, 200); await esperar(320);
+      if (bAD) bAD.click(); await esperar(240);
+      trazar(400, 260); await esperar(320);
+      R.c_n = areas().length;
+      R.c_ests = areas().map(a => String(a.est)).join(',');
+      R.c_dosConEstructura = areas().filter(a => a.est === 'ai').length === 1 &&
+                             areas().filter(a => a.est === 'ad').length === 1;
+      R.c_cm2 = areas().map(a => (a.cm2 == null ? 'null' : a.cm2.toFixed(2))).join('/');
+      R.c_dosAreas = areas().every(a => a.cm2 != null && a.cm2 > 0);
+
+      /* -- (D) EL RESULTADO SALE EN EL PANEL GUIA, POR ESTRUCTURA -- */
+      _medEstado();
+      await esperar(300);
+      const barra = document.getElementById('cine-med-barra');
+      R.d_txt = barra ? (barra.textContent||'').replace(/[ ]+/g, ' ').trim() : '';
+      R.d_nombraAI = String(R.d_txt || '').indexOf('Área de AI') >= 0;
+      R.d_nombraAD = String(R.d_txt || '').indexOf('Área de AD') >= 0;
+      R.d_diceA4C = String(R.d_txt || '').indexOf('en A4C') >= 0;
+      R.d_diceSinCampo = String(R.d_txt || '').indexOf('No se escribe ningún campo') >= 0;
+      R.d_dosValores = (String(R.d_txt || '').split('cm²').length - 1) >= 2;
+
+      /* -- (E) NO ESCRIBE UN SOLO CAMPO DEL FORMULARIO -- */
+      /* El censo entero del estudio antes y despues de trazar: si alguna ruta escribiera un
+         campo, este numero cambiaria. Es el denominador que vuelve la condicion medible. */
+      const censo = () => [...document.querySelectorAll('input[id], select[id], textarea[id]')]
+        .filter(e => !document.getElementById('cine-ov').contains(e))
+        .map(e => e.id + '=' + (e.type === 'checkbox' ? e.checked : e.value)).join('|');
+      const antes = censo();
+      trazar(300, 330); await esperar(320);
+      R.e_igual = censo() === antes;
+      R.e_largo = antes.length;
+      /* y tampoco toca el cajon 2D, que es el que SI escribe campos */
+      R.e_d2 = (typeof _d2Valor === 'function') ? String(_d2Valor('ai.dap')) : 'sin fn';
+      R.e_d2Vacio = R.e_d2 === 'null';
+
+      /* -- (F) LA ESTRUCTURA SE SUELTA CON LAS MEDICIONES, NO AL CERRAR EL VISOR --
+         Y las dos mitades se miden: cerrar el visor NO la suelta, porque ahi «lo medido se
+         conserva» a proposito -cineCerrar no llama a medApagar, y su comentario explica
+         por que-; la suelta medApagar, que es cuando los contornos se borran. Con la
+         estructura viva despues de borrar los contornos, el contorno siguiente de OTRA imagen
+         saldria rotulado con la auricula de la anterior. */
+      cineCerrar(); await esperar(300);
+      R.f_sobreviveAlCerrar = estActual() === 'ad';
+      medApagar(); await esperar(200);
+      R.f_suelta = estActual() === null;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['(A) CONTROL: con Distancia estan las del cajon 2D', R.a_conDist === true, R.a_conDist],
+      ['(B) con Area aparecen AI y AD',                     R.b_dos === true, R.b_rot],
+      ['(B) y dicen que se miden en la A4C',                R.b_diceA4C === true, R.b_tip],
+      ['(B) sin mezclarse con las cinco de Distancia',      R.b_sinLasDeDistancia === true, R.b_sinLasDeDistancia],
+      ['(C) elegir AI queda registrado',                    R.c_elegidaAI === true, R.c_elegidaAI],
+      ['(C) DENOMINADOR: se trazaron dos contornos con area', R.c_dosAreas === true, R.c_n + ' areas: ' + R.c_cm2],
+      ['(C) cada uno con SU estructura',                    R.c_dosConEstructura === true, R.c_ests],
+      ['(D) el panel guia nombra el Area de AI',            R.d_nombraAI === true, String(R.d_txt || '').slice(-200)],
+      ['(D) y el Area de AD',                               R.d_nombraAD === true, R.d_nombraAD],
+      ['(D) con dos resultados en cm²',                     R.d_dosValores === true, R.d_dosValores],
+      ['(D) diciendo que las dos van en A4C',               R.d_diceA4C === true, R.d_diceA4C],
+      ['(D) y que no se escribe ningun campo',              R.d_diceSinCampo === true, R.d_diceSinCampo],
+      ['(E) DENOMINADOR: el censo del informe no esta vacio', R.e_largo > 400, R.e_largo],
+      ['(E) trazar NO cambio un solo campo',                R.e_igual === true, R.e_igual],
+      ['(E) ni escribio en el cajon 2D',                    R.e_d2Vacio === true, R.e_d2],
+      ['(F) cerrar el visor NO la suelta: lo medido se conserva', R.f_sobreviveAlCerrar === true, R.f_sobreviveAlCerrar],
+      ['(F) y medApagar si la suelta, con los contornos',   R.f_suelta === true, R.f_suelta]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;

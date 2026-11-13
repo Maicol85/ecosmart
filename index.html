@@ -141738,6 +141738,32 @@ const _MED_EST_2D = [
    y la tabla no puedan nombrar la misma valvula de dos formas. */
 const _MED_EST_DOP = ['mit', 'ao', 'tri', 'pul'];
 
+/* ══ MEDIR-2 — LAS DOS ESTRUCTURAS DEL GESTO DE AREA ═════════════════════════════════════════
+   Punto 6 del pedido. Hasta hoy `_medAreas` guardaba `{pts, cm2}` SIN estructura asociada, asi
+   que dos contornos sobre la misma imagen eran indistinguibles: el medico veia dos numeros en
+   cm² y nada que dijera cual era la auricula izquierda.
+   ⚠️ LAS DOS SE MIDEN EN LA MISMA IMAGEN —la apical de 4 camaras— y por eso van como DOS
+   estructuras de un mismo gesto y no como dos ventanas: elegir una no descarta la otra, y el
+   medico traza las dos sobre el mismo cuadro.
+   ⚠️ ESTO NO ESCRIBE NINGUN CAMPO, que es el pedido literal: el area queda en la lista del
+   visor, se dibuja sobre la imagen con su rotulo y se publica en el panel guia. No hay un solo
+   `_d2Poner` ni un solo id de formulario en este camino. */
+const _MED_EST_AREA = [
+  { m:'ai', rot:'AI', nom:'Área de AI' },
+  { m:'ad', rot:'AD', nom:'Área de AD' }
+];
+var _medAreaEst = null;
+function medAreaEstructura(m) {
+  _medAreaEst = (_medAreaEst === m) ? null : m;   // alterna, igual que `d2Modo` y `dopModo`
+  try { if (typeof _medEstado === 'function') _medEstado(); } catch (e) {}
+  try { if (typeof _medPintar === 'function') _medPintar(); } catch (e) {}
+}
+window.medAreaEstructura = medAreaEstructura;
+function _medAreaNom(m) {
+  const E = _MED_EST_AREA.filter(x => x.m === m)[0];
+  return E ? E.nom : '';
+}
+
 /* El rotulo de la segunda fila cambia con el modo: en 2D se elige QUE se mide y en Doppler se
    elige CON QUE se mide. Decirle «Que medir» a una fila de herramientas de trazado seria
    mentirle al medico sobre lo que esta eligiendo. */
@@ -141972,7 +141998,14 @@ function _medSideRender() {
      con otro nombre. Deformacion no tiene estructuras. */
   let f3 = '';
   try {
-    if (ab === '2d' && _medHerr === 'dist' && typeof d2Modo === 'function') {
+    /* MEDIR-2 — con la herramienta Area las estructuras son las DOS auriculas, y la fila sale
+       antes que la de Distancia porque comparten el mismo lugar del selector. */
+    if (ab === '2d' && _medHerr === 'area') {
+      _MED_EST_AREA.forEach(S => {
+        f3 += _medSideBtn(_V.pfx + 'cine-est-area-' + S.m, S.rot, _medAreaEst === S.m,
+          colDe('2d'), false, S.nom + ' — se mide en la apical de 4 cámaras.');
+      });
+    } else if (ab === '2d' && _medHerr === 'dist' && typeof d2Modo === 'function') {
       const E = (typeof _d2Estado === 'function') ? _d2Estado() : null;
       _MED_EST_2D.forEach(S => {
         const con = (typeof _d2GrupoConDatos === 'function') && _d2GrupoConDatos(S.m);
@@ -142038,6 +142071,17 @@ function _medSideRender() {
       });
     });
   } catch (e) { console.error('selector/cablear', e); }
+  /* MEDIR-2 — las dos estructuras del gesto de Area, por el MISMO camino y con el mismo
+     `_vBind`: su id lleva otro prefijo (`cine-est-area-`) para no chocar con el de las
+     estructuras del cajon 2D, que son otras cinco y eligen otra cosa. */
+  try {
+    const _V1 = _V;
+    _MED_EST_AREA.forEach(S => {
+      const b = document.getElementById(_V1.pfx + 'cine-est-area-' + S.m);
+      if (!b) return;
+      b.onclick = _vBind(_V1, function () { medAreaEstructura(S.m); });
+    });
+  } catch (e) { console.error('selector/cablear-area', e); }
 }
 
 /* Engancha los controles de UNA vista. Cada manejador corre con SU vista activa: sin eso,
@@ -143307,7 +143351,9 @@ function _medAreaUp() {
   if (!v.ok) { alert(v.motivo); _medPintar(); return; }
   const px2 = _medShoelacePx(pts);
   if (px2 < 9) { _medPintar(); return; }       // un clic suelto o un temblor: no es un contorno
-  _medAreas.push({ pts, cm2: _medAreaCm2(pts, v.esc) });
+  /* MEDIR-2: el contorno se queda con la estructura que estaba elegida. Sin estructura se
+     guarda igual —el gesto de area suelto sigue existiendo— y se dibuja sin rotulo. */
+  _medAreas.push({ pts, cm2: _medAreaCm2(pts, v.esc), est: _medAreaEst || null });
   _medPintar(); _medEstado();
 }
 
@@ -145833,7 +145879,7 @@ function _medPintar() {
        forma de riñón el centroide cae fuera de la figura y el número queda flotando. */
     let ax = a.pts[0].x, ay = a.pts[0].y;
     a.pts.forEach(p => { if (p.y < ay) { ay = p.y; ax = p.x; } });
-    const txt = a.cm2.toFixed(2) + ' cm²';
+    const txt = (a.est ? _medAreaNom(a.est) + ': ' : '') + a.cm2.toFixed(2) + ' cm²';
     const w = cx.measureText(txt).width;
     cx.fillStyle = 'rgba(0,0,0,.65)';
     cx.fillRect(ax + 6*esc, ay - 20*esc, w + 8*esc, 18*esc);
@@ -147109,6 +147155,35 @@ function _medEstado() {
       'el archivo declara el signo y un jet que se aleja da negativo, pero un informe reporta la magnitud. ' +
       'El gradiente no depende del signo (ΔP = 4·V²).</div>';
   }
+  /* ══ MEDIR-2 — EL RESULTADO DEL AREA, POR ESTRUCTURA ══════════════════════════════════════
+     Punto 6 del pedido: «cada una con su contorno y su resultado en cm²». Va acá, en el panel
+     guia, y NO en el cajon 2D: ese cajon escribe campos del formulario y esto no escribe
+     ninguno — es lo que el pedido dice con todas las letras.
+     ⚠️ SE PUBLICA LA ULTIMA DE CADA ESTRUCTURA, no la suma ni la primera: volver a trazar es
+     como el medico corrige un contorno que le quedo mal, y publicar las dos haria que la buena
+     y la descartada se vieran igual. Las que se trazaron SIN estructura elegida se cuentan
+     aparte, para que no desaparezcan sin decirlo. */
+  if (_medHerr === 'area') {
+    const porEst = {};
+    let sueltas = 0;
+    (_medAreas || []).forEach(a => {
+      if (a && a.cm2 != null && a.est) porEst[a.est] = a.cm2;
+      else if (a && a.cm2 != null) sueltas++;
+    });
+    let li = '';
+    _MED_EST_AREA.forEach(S => {
+      const v2 = porEst[S.m];
+      li += '<div style="display:flex;justify-content:space-between;gap:10px;' +
+        (v2 == null ? 'color:var(--text2);' : 'font-weight:600;') + '">' +
+        '<span>' + escHtml(S.nom) + '</span><span>' +
+        (v2 == null ? '—' : escHtml(v2.toFixed(2) + ' cm²')) + '</span></div>';
+    });
+    txt += '<div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--border);font-size:10.5px;">' +
+      li + '<div style="font-size:9.5px;color:var(--text2);margin-top:3px;">' +
+      'Las dos aurículas se miden en la misma imagen, en A4C. No se escribe ningún campo.' +
+      (sueltas ? ' Hay ' + sueltas + ' contorno(s) sin estructura elegida.' : '') +
+      '</div></div>';
+  }
   _strainPersistir();                    // el resumen viaja con el estudio
   _simpPersistir();                      // y la tabla de Simpson, por el mismo camino
   /* El panel único de Simpson se repinta con CADA repintado de barra, no sólo cuando cambia el
@@ -147636,6 +147711,9 @@ function medApagar() {
   _medCalibVel = null; _medCalibrandoVel = false;
   _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
+  /* MEDIR-2: la estructura del gesto de Area se suelta con la herramienta. Dejarla puesta haria
+     que el contorno siguiente de OTRA imagen se rotulara con la auricula de la anterior. */
+  _medAreaEst = null;
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   _strain = null; _lars = null; _vd = null;
   _strainRecs = null; _strainRevocarThumbs();
