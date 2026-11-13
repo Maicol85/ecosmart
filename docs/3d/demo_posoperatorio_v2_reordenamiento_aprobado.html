@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Demo v2: pestaña POP Cirugía Cardíaca reordenada</title>
+<style>
+:root{
+ --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+ --surface-1:#ffffff;--surface-2:#f4f4f1;
+ --text-primary:#1c1c1a;--text-secondary:#55554f;--text-muted:#77776f;
+ --border:rgba(0,0,0,.16);--border-strong:rgba(0,0,0,.32);
+ --bg-accent:#e6f1fb;--border-accent:#85b7eb;--text-accent:#0c447c;
+ --bg-info:#e6f1fb;--border-info:#85b7eb;
+ --bg-success:#eaf3de;--border-success:#7fb23a;
+ --bg-warning:#faeeda;--border-warning:#e19a1f;
+ --bg-danger:#fcebeb;--border-danger:#d9463f;
+}
+@media (prefers-color-scheme: dark){
+:root{
+ --surface-1:#1f1f1d;--surface-2:#2a2a27;
+ --text-primary:#f1f1ec;--text-secondary:#c2c2ba;--text-muted:#9a9a92;
+ --border:rgba(255,255,255,.18);--border-strong:rgba(255,255,255,.34);
+ --bg-accent:#12304f;--border-accent:#3f7fbf;--text-accent:#a9d0f5;
+ --bg-info:#12304f;--border-info:#3f7fbf;
+ --bg-success:#1f3a14;--border-success:#5f9a2c;
+ --bg-warning:#4a3411;--border-warning:#c98a1c;
+ --bg-danger:#4a1b19;--border-danger:#d9625b;
+}
+}
+html,body{margin:0;background:var(--surface-1);color:var(--text-primary);font-family:var(--font-sans);line-height:1.45}
+body{max-width:1040px;margin:0 auto;padding:16px}
+h1{font-size:16px;font-weight:600;margin:0 0 6px}
+button,select,input{font-family:inherit;font-size:13px;color:var(--text-primary)}
+button{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:8px;cursor:pointer;padding:5px 10px}
+button:hover{background:var(--surface-2)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+select,input[type=number]{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:6px;padding:4px 6px}
+input[type=number]{width:70px}
+input[type=range]{accent-color:#3f7fbf;width:100%}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.note{font-size:12px;color:var(--text-secondary);margin:0 0 12px}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.ttl{font-size:13px;font-weight:600;margin:0 0 8px}
+.sub{font-size:12px;font-weight:500;color:var(--text-secondary);margin:8px 0 4px}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.row3 label,.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text-secondary)}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+details>summary{cursor:pointer;font-size:13px;font-weight:600}
+details.card>summary{list-style:revert}
+details.in{margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px}
+.sl{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin:0 0 6px;font-size:12px}
+.sl input{grid-column:1 / 3}
+.sl output{font-weight:500}
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2px 18px}
+.chip{margin-left:8px;display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;border:0.5px solid var(--border-strong);background:var(--surface-1);color:var(--text-secondary)}
+.hint{font-size:12px;color:var(--text-muted);margin:6px 0 0}
+.dr{border-top:0.5px solid var(--border);padding:8px 0;margin-top:6px}
+.dr .in2{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:6px}
+.est{font-size:12px;color:var(--text-secondary);margin-top:4px}
+.grid2{display:grid;grid-template-columns:minmax(300px,1.25fr) minmax(280px,1fr);gap:12px;align-items:start}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.r{margin:0 0 7px;font-size:13px;line-height:1.4}
+.r b{font-weight:500;display:block;font-size:11px;color:var(--text-secondary)}
+.sem{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:0.5px solid var(--border);font-size:13px}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:3px;flex:none;border:1px solid}
+.al{font-size:13px;padding:6px 8px;border-radius:8px;border:0.5px solid var(--border-warning);background:var(--bg-warning);margin:0 0 6px}
+</style>
+</head>
+<body>
+<h1>Demo v2: pestaña «POP Cirugía Cardíaca» con los campos reordenados</h1>
+<p class="note">Para aprobar el orden y la forma, no el código. De arriba hacia abajo: contexto quirúrgico y monitoreo, fármacos y asistencia (desplegable), datos hemodinámicos, POCUS con el ventrículo derecho primero, dibujo a la izquierda con su texto a la derecha, y la conclusión. Los valores y las reglas de alerta son de ejemplo y no son una recomendación de conducta. El latido está enlentecido.</p>
+<div class="grp" id="pre" role="group" aria-label="Ejemplos que cargan los datos"></div>
+
+<div class="card" id="c1">
+ <div class="ttl">Contexto quirúrgico y monitoreo</div>
+ <div class="row3">
+  <label>Tipo de cirugía <select id="cx"></select></label>
+  <label>Horas post-CEC <input id="hrs" type="number" min="0" max="72" value="6"></label>
+  <label>Dispositivo de monitoreo <select id="mon"><option value="swan">Swan-Ganz</option><option value="art">Presión arterial invasiva solamente</option><option value="none">Ninguno (se estima por eco)</option></select></label>
+ </div>
+ <details class="in" id="swanD" open><summary>Swan-Ganz — valores medidos</summary><div class="sg" id="swanBox"></div></details>
+ <div class="in" id="artBox" hidden><div class="sub">Línea arterial</div><div class="sg" id="artSl"></div><div class="hint">Campo nuevo: antes esta opción no abría ningún campo.</div></div>
+ <div class="hint" id="monMsg"></div>
+</div>
+
+<details class="card" id="c2">
+ <summary id="c2s">Fármacos vasoactivos y asistencia circulatoria</summary>
+ <div class="sub">Peso del paciente (de la pestaña Paciente)</div>
+ <label class="fld" style="max-width:130px"><span>Peso (kg)</span><input id="peso" type="number" min="20" max="250" value="70"></label>
+ <div class="sub">Drogas vasoactivas</div>
+ <div class="grp" id="drT"></div>
+ <div id="drBox"></div>
+ <div class="sub">Asistencia circulatoria</div>
+ <div class="grp" id="supT"></div>
+ <div id="bctBox" hidden><label class="fld" style="max-width:260px"><span>Timing del balón de contrapulsación</span><select id="bct"><option>sin verificar</option><option>verificado</option><option>inconsistente</option></select></label></div>
+</details>
+
+<div class="card" id="c3">
+ <div class="ttl">Datos hemodinámicos</div>
+ <div id="ecoHead" class="sub"></div>
+ <div class="sg" id="ecoBox"></div>
+ <div class="sg" id="lacBox" style="margin-top:6px"></div>
+ <div class="sub">Calculados con los valores cargados (solo lectura)</div><div class="r" id="calc"></div>
+</div>
+
+<div class="card" id="c4">
+ <div class="ttl">Evaluación POCUS</div>
+ <div class="sub">Ventrículo derecho</div>
+ <div class="sg" id="vdBox"></div>
+ <div class="r" style="margin-top:4px"><b>Relación VD/VI</b><span id="vdvi"></span></div>
+ <div class="sub">Pericardio</div>
+ <div class="grp" id="peT"></div>
+ <div class="sub">Pleura</div>
+ <div class="grp" id="plT"></div>
+ <div class="sub">Pulmón</div>
+ <label class="fld" style="max-width:260px"><span>Líneas B</span><select id="lb"><option value="ninguna">no evaluado</option><option value="focales">focales</option><option value="difusas">difusas bilaterales</option></select></label>
+</div>
+
+<div class="grid2">
+ <div class="card"><h2 class="sr-only">Esquema del posoperatorio: cuatro cavidades, caños, pulmones, dispositivos de asistencia, curva de presión arterial.</h2>
+  <svg id="hs" viewBox="0 0 600 496" width="100%" role="img" aria-label="Esquema animado del corazón, los caños, los pulmones y los dispositivos en el posoperatorio" style="display:block"></svg></div>
+ <div class="card" id="txt"></div>
+</div>
+
+<div class="card" id="c6"></div>
+<p class="note">Esquema ilustrativo: el tamaño de las cavidades y el grosor de los vasos acompañan a los valores cargados, no son una medición del paciente. Las definiciones de hipertensión pulmonar siguen la ESC/ERS 2022 y deben verificarse contra la guía de la biblioteca.</p>
+
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg';
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var C={ok:['var(--bg-success)','var(--border-success)'],warn:['var(--bg-warning)','var(--border-warning)'],bad:['var(--bg-danger)','var(--border-danger)'],none:['var(--surface-1)','var(--border-strong)']};
+var st={IC:2.8,PVC:7,PAPs:26,PAPd:10,PCP:14,PAM:78,TAPSE:20,lac:1.4,der:false,pleD:false,pleI:false,bcia:false,imp:false,ecmoA:false,ecmoV:false,nad:false,dob:false,cx:'CABG',mon:'swan',lb:'ninguna',bct:'sin verificar',peso:70,vdvi:1.3,
+ nadMg:4,nadMl:100,nadRt:21,nadMan:false,nadD:0,dobMg:250,dobMl:250,dobRt:10,dobMan:false,dobD:0};
+var PRE={hipo:{IC:1.8,PVC:3,PAPs:20,PAPd:8,PCP:7,PAM:62,TAPSE:22,lac:2.4,der:false},fvi:{IC:1.7,PVC:12,PAPs:40,PAPd:22,PCP:24,PAM:58,TAPSE:20,lac:3.1,der:false},fvd:{IC:1.9,PVC:18,PAPs:28,PAPd:10,PCP:8,PAM:60,TAPSE:9,lac:2.8,der:false},fvdp:{IC:1.9,PVC:18,PAPs:55,PAPd:25,PCP:8,PAM:60,TAPSE:11,lac:2.8,der:false},vaso:{IC:3.6,PVC:6,PAPs:28,PAPd:12,PCP:13,PAM:52,TAPSE:22,lac:1.5,der:false},tap:{IC:1.6,PVC:17,PAPs:30,PAPd:17,PCP:17,PAM:58,TAPSE:15,lac:3.0,der:true},est:{IC:2.8,PVC:7,PAPs:26,PAPd:10,PCP:14,PAM:78,TAPSE:20,lac:1.4,der:false},cam:{IC:2.6,PVC:9,PAPs:38,PAPd:20,PCP:22,PAM:70,TAPSE:19,lac:3.2,der:false}};
+var PBTN=[['hipo','Hipovolemia'],['fvi','Falla del VI'],['fvd','Falla del VD (PAP baja)'],['fvdp','Falla del VD (PAP alta)'],['vaso','Vasoplejía'],['tap','Taponamiento'],['est','Estable'],['cam','Gasto aparentemente normal con drogas y lactato alto']];
+var NAME={hipo:'Hipovolemia',fvi:'Falla del VI',fvd:'Falla del VD',vaso:'Vasoplejía',tap:'Taponamiento',mixto:'Falla biventricular',sinp:'Bajo gasto sin patrón claro',est:'Sin patrón de bajo gasto'};
+var CX={CABG:'motilidad regional en el bull eye',Valvular:'gradientes basales de la prótesis y fuga paravalvular',Aorta:'derrame pericárdico y flap residual',Congénita:'shunt residual',Trasplante:'función del VD'};
+var PREG=['¿Gasto cardíaco adecuado?','¿Precarga suficiente?','¿Taponamiento?','¿Falla del VD?','¿Congestión pulmonar?'];
+function clamp(x,a,b){a=(a===undefined)?0:a;b=(b===undefined)?1:b;return Math.max(a,Math.min(b,x));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function fmt(x,n){return x.toFixed(n===undefined?1:n).replace('.',',');}
+function pm(){return Math.round((st.PAPs+2*st.PAPd)/3);}
+function rvs(){return Math.round((st.PAM-st.PVC)/(st.IC*1.8)*8)*10;}
+function rvp(){return Math.max(0,(pm()-st.PCP)/(st.IC*1.8));}
+function dose(mg,ml,rt){if(!(st.peso>0)||!(ml>0)){return null;}return (mg*1000/ml)*rt/60/st.peso;}
+function onSup(){return st.nad||st.dob||st.bcia||st.imp||st.ecmoA;}
+function srcQ(k){if(st.mon==='swan'){return k==='IC'?'por termodilución':'medida (Swan-Ganz)';}if(st.mon==='art'&&k==='PAM'){return 'medida (línea arterial)';}return 'estimada por eco';}
+function pcls(){var m=pm(),r=rvp();if(m<=20){return ['ok','PAP normal'];}if(st.PCP<=15){return r>2?['bad','precapilar']:['warn','PAP alta con RVP baja'];}return r<=2?['warn','poscapilar aislada']:['bad','poscapilar combinada'];}
+function detect(){
+var low=st.IC<=2.2,R=rvs();
+if(st.der&&st.IC<2.5){return 'tap';}
+if(low&&st.PCP>18&&st.PVC>=15){return 'mixto';}
+if(low&&st.PVC>=15&&st.PVC>st.PCP+2){return 'fvd';}
+if(low&&st.PCP>18){return 'fvi';}
+if(low&&st.PCP<12&&st.PVC<8){return 'hipo';}
+if(!low&&R<800){return 'vaso';}
+if(low){return 'sinp';}
+return 'est';
+}
+function alerts(){
+var a=[],low=st.IC<=2.2;
+if(!low&&onSup()){a.push('Gasto adecuado con soporte: puede depender de las drogas o del dispositivo.');}
+if(!low&&st.lac>2){a.push('Lactato por encima de 2 mmol/L con gasto aparentemente adecuado.');}
+if(!low&&st.PCP>18){a.push('Presión capilar por encima de 18 con gasto aparentemente adecuado: congestión pulmonar.');}
+return a;
+}
+var G={};
+function geo(){
+var p=detect(),R=rvs(),o={};
+o.sAD=lerp(0.8,1.22,clamp(st.PVC/22));o.sAI=lerp(0.8,1.22,clamp(st.PCP/30));
+o.sVD=lerp(0.82,1.32,clamp((st.PVC-3)/18));o.sVI=lerp(0.74,1.25,clamp(st.PCP/28));
+if(p==='tap'){o.sAD*=0.88;o.sVD*=0.88;o.sVI*=0.9;}
+if(p==='hipo'){o.sVI=Math.min(o.sVI,0.8);o.sVD=Math.min(o.sVD,0.86);}
+o.ampVI={hipo:0.34,fvi:0.05,fvd:0.12,vaso:0.3,tap:0.1,est:0.18,mixto:0.05,sinp:0.12}[p];
+o.ampVD=lerp(0.03,0.2,clamp((st.TAPSE-8)/16));
+if(p==='hipo'){o.ampVD=Math.max(o.ampVD,0.26);}
+o.bulge=clamp((st.PVC-st.PCP)/14)*24;
+o.eff=st.der?12:0;
+o.vc=lerp(4,18,clamp(st.PVC/22));
+o.aoW=lerp(20,7,clamp((R-500)/1100));
+o.paW=lerp(7,15,clamp((pm()-12)/30));
+o.lung=st.PCP>18?'bad':(st.PCP>=15?'warn':'none');
+o.nb=st.PCP>22?4:(st.PCP>18?3:(st.PCP>=15?1:0));
+o.cAD=st.PVC>=15?'bad':((st.PVC>=12||st.PVC<4)?'warn':'ok');
+o.cAI=st.PCP>18?'bad':((st.PCP>=15||st.PCP<8)?'warn':'ok');
+o.cVD=(p==='fvd'||p==='mixto')?'bad':((p==='tap'||st.TAPSE<17)?'warn':'ok');
+o.cVI=st.IC>2.2?'ok':(st.IC>=1.8?'warn':'bad');
+o.p=p;return o;
+}
+/* dibujo */
+var svg=document.getElementById('hs');svg.style.fontFamily='var(--font-sans)';
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function vessel(d){var o=el('path',{d:d,fill:'none',stroke:'var(--border-strong)','stroke-linejoin':'round'},svg);var i=el('path',{d:d,fill:'none',stroke:'var(--surface-2)','stroke-linejoin':'round'},svg);return {set:function(w){o.setAttribute('stroke-width',w+3);i.setAttribute('stroke-width',w);}};}
+function txt(x,y,t,sz,w,anch,fill){var e=el('text',{x:x,y:y,'text-anchor':anch||'middle','font-size':sz,'font-weight':w||400,fill:fill||'var(--text-primary)'},svg);e.textContent=t;return e;}
+var lungR=el('path',{d:'M90 84 C68 76 36 98 28 138 C20 180 26 226 46 254 C60 270 82 264 90 248 C95 206 95 130 90 84 Z','stroke-width':1.5},svg);
+var lungL=el('path',{d:'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 C130 270 108 264 100 248 C95 206 95 130 100 84 Z','stroke-width':1.5},svg);
+el('path',{d:'M30 146 Q62 150 92 160',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+el('path',{d:'M36 192 Q64 196 92 226',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+el('path',{d:'M160 150 Q130 170 100 214',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+var tr=vessel('M95 14 L95 66');tr.set(9);
+['M95 66 L70 104 L62 150','M95 66 L120 104 L128 150'].forEach(function(d){el('path',{d:d,fill:'none',stroke:'var(--text-secondary)','stroke-width':4,opacity:0.55,'stroke-linecap':'round','stroke-linejoin':'round'},svg);});
+['M70 104 L48 124','M66 128 L44 146','M120 104 L142 124','M124 128 L146 146','M62 150 L52 176','M128 150 L138 176'].forEach(function(d){el('path',{d:d,fill:'none',stroke:'var(--text-secondary)','stroke-width':2.5,opacity:0.45,'stroke-linecap':'round'},svg);});
+var plR=el('ellipse',{cx:58,cy:252,rx:22,ry:11,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,display:'none'},svg);
+var plL=el('ellipse',{cx:132,cy:252,rx:22,ry:11,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,display:'none'},svg);
+var bl=[];for(var i=0;i<4;i++){bl.push([el('line',{x1:38+i*8,y1:196,x2:38+i*8,y2:232,stroke:'var(--border-info)','stroke-width':2},svg),el('line',{x1:126+i*8,y1:196,x2:126+i*8,y2:232,stroke:'var(--border-info)','stroke-width':2},svg)]);}
+var pa=vessel('M340 257 L146 257');
+var pv=vessel('M166 160 L238 160 L238 118 L408 118 L408 172');pv.set(7);
+var vc=vessel('M284 372 L284 178 L330 178');
+var ao=vessel('M410 257 L490 257 L490 110 Q490 62 530 62 Q570 62 570 110 L570 322');
+var ecmoA=el('path',{d:'M284 372 L284 388 L570 388 L570 322',fill:'none',stroke:'var(--border-accent)','stroke-width':3,'stroke-dasharray':'8 6',display:'none'},svg);
+var ecmoV=el('path',{d:'M284 340 L262 340 L262 200 L300 200',fill:'none',stroke:'var(--border-accent)','stroke-width':3,'stroke-dasharray':'8 6',display:'none'},svg);
+txt(530,48,'Aorta',12,500);
+txt(268,332,'VCI',11,500,'end');
+var paT1=txt(222,230,'arteria pulmonar',11,500);
+var paT2=txt(222,244,'',11,500);
+var pcpT=txt(323,110,'',11,500);
+var ecmoAT=txt(430,382,'ECMO VA',11,500);
+var ecmoVT=txt(256,196,'ECMO VV',11,500,'end');
+var drog=txt(330,406,'',11,400,'middle','var(--text-secondary)');
+var pbox=el('rect',{x:10,y:284,width:170,height:78,rx:8,'stroke-width':1.5},svg);
+var pb1=txt(18,302,'',11,500,'start'),pb2=txt(18,318,'',11,400,'start'),pb3=txt(18,334,'',11,400,'start'),pb4=txt(18,352,'',11,500,'start');
+txt(95,378,'Pulmones',12,500);
+var effo=el('rect',{x:248,y:92,width:248,height:244,rx:34,fill:'none',stroke:'var(--border-danger)',opacity:0.6},svg);
+el('rect',{x:256,y:100,width:232,height:228,rx:30,fill:'none',stroke:'var(--border-strong)','stroke-width':1,'stroke-dasharray':'6 4'},svg);
+function cham(){return el('rect',{rx:10,'stroke-width':1.5},svg);}
+var rAD=cham(),rAI=cham(),rVD=cham(),rVI=cham();
+var sep=el('path',{fill:'none',stroke:'var(--text-secondary)','stroke-width':2.5},svg);
+var tAD=txt(0,0,'AD',13,500),tAI=txt(0,0,'AI',13,500),tVD=txt(0,0,'VD',13,500),tVI=txt(0,0,'VI',13,500);
+var balon=el('ellipse',{cx:570,cy:215,rx:3,ry:34,fill:'var(--bg-accent)',stroke:'var(--border-accent)','stroke-width':1.5,display:'none'},svg);
+var balonT=txt(570,262,'Balón',11,500);
+/* Impella con hélice */
+var impG=el('g',{display:'none'},svg);
+el('rect',{x:392,y:250,width:84,height:14,rx:7,fill:'var(--bg-accent)',stroke:'var(--border-accent)','stroke-width':1.5},impG);
+el('path',{d:'M392 257 q-10 0 -10 12',fill:'none',stroke:'var(--border-accent)','stroke-width':1.5},impG);
+var prop=el('g',{},impG);
+el('line',{x1:456,y1:257,x2:466,y2:257,stroke:'var(--text-accent)','stroke-width':2.5,'stroke-linecap':'round'},prop);
+el('line',{x1:461,y1:251,x2:461,y2:263,stroke:'var(--text-accent)','stroke-width':2.5,'stroke-linecap':'round'},prop);
+var impT=txt(434,282,'Impella',11,500);
+el('rect',{x:20,y:414,width:560,height:72,rx:8,fill:'var(--surface-1)',stroke:'var(--border)','stroke-width':0.5},svg);
+txt(28,434,'Presión arterial',11,400,'start','var(--text-secondary)');
+var wave=el('path',{fill:'none',stroke:'var(--text-primary)','stroke-width':1.8,'stroke-linejoin':'round'},svg);
+var cur=el('line',{x1:140,y1:420,x2:140,y2:482,stroke:'var(--border-accent)','stroke-width':1.5},svg);
+var augT=txt(360,430,'',11,500);
+var X0=140,X1=560;
+function updWave(){
+var PP=clamp(20+14*(st.IC-2),14,60),D=st.PAM-PP/3,S=D+PP,N=D+0.62*PP,d='';
+for(var i=0;i<=80;i++){
+var f=i/80,P;
+if(f<0.12){P=D+PP*Math.sin(Math.PI/2*f/0.12);}
+else if(f<0.35){P=S-(S-N)*((f-0.12)/0.23);}
+else{P=N-(N-D)*(1-Math.exp(-(f-0.35)/0.25))/(1-Math.exp(-0.65/0.25));}
+if(st.bcia){P+=0.38*PP*Math.exp(-Math.pow((f-0.55)/0.11,2));if(f>0.88){P-=(f-0.88)/0.12*0.22*PP;}}
+var x=X0+f*(X1-X0),y=480-clamp((P-30)/110)*46;
+d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+}
+wave.setAttribute('d',d);
+}
+var BW=70,BH=76;
+function place(kind,f,kw,kh){
+var w=BW*f,h=BH*f,x,y;
+if(kind==='AD'){x=370-w;y=216-h;}else if(kind==='AI'){x=373;y=216-h;}else if(kind==='VD'){x=370-w;y=219;}else{x=373;y=219;}
+var cx=x+w/2,cy=y+h/2,w2=w*kw,h2=h*kh;
+return {x:cx-w2/2,y:cy-h2/2,w:w2,h:h2,cx:cx,cy:cy};
+}
+function setR(e,t,g,s){e.setAttribute('x',g.x.toFixed(1));e.setAttribute('y',g.y.toFixed(1));e.setAttribute('width',g.w.toFixed(1));e.setAttribute('height',g.h.toFixed(1));e.setAttribute('fill',C[s][0]);e.setAttribute('stroke',C[s][1]);t.setAttribute('x',g.cx.toFixed(1));t.setAttribute('y',(g.cy+5).toFixed(1));}
+var PER=1700,t0=null;
+function frame(now){
+if(t0===null){t0=now;}
+var phi=reduce?0.2:((now-t0)%PER)/PER;
+var s=phi<0.35?Math.sin(Math.PI*phi/0.35):0;
+var a=1+0.05*s;
+setR(rAD,tAD,place('AD',G.sAD,a,a),G.cAD);
+setR(rAI,tAI,place('AI',G.sAI,a,a),G.cAI);
+setR(rVD,tVD,place('VD',G.sVD,1-0.5*G.ampVD*s,1-G.ampVD*s),G.cVD);
+setR(rVI,tVI,place('VI',G.sVI,1-0.5*G.ampVI*s,1-G.ampVI*s),G.cVI);
+ao.set(G.aoW*(1+0.15*s));pa.set(G.paW*(1+0.1*s));vc.set(G.vc);
+var cx=(X0+phi*(X1-X0)).toFixed(1);cur.setAttribute('x1',cx);cur.setAttribute('x2',cx);
+if(st.bcia){var v=phi<0.35?0:(phi<0.45?(phi-0.35)/0.1:(phi<0.9?1:(1-phi)/0.1));balon.setAttribute('rx',(2+9*v).toFixed(1));}
+if(st.ecmoA){ecmoA.setAttribute('stroke-dashoffset',(-(now/40)%14).toFixed(1));}
+if(st.ecmoV){ecmoV.setAttribute('stroke-dashoffset',(-(now/40)%14).toFixed(1));}
+if(st.imp){prop.setAttribute('transform','rotate('+((now/3)%360).toFixed(0)+' 461 257)');}
+if(!reduce){requestAnimationFrame(frame);}
+}
+function drugTxt(){
+var v=[];
+if(st.nad){v.push('noradrenalina '+(st.nadD>0?fmt(st.nadD,2)+' mcg/kg/min':'sin dosis'));}
+if(st.dob){v.push('dobutamina '+(st.dobD>0?fmt(st.dobD,1)+' mcg/kg/min':'sin dosis'));}
+return v;
+}
+function supTxt(){
+var s=[];if(st.bcia){s.push('balón de contrapulsación (timing '+st.bct+')');}if(st.imp){s.push('Impella');}if(st.ecmoA){s.push('ECMO venoarterial');}if(st.ecmoV){s.push('ECMO venovenoso');}return s;
+}
+function updStatic(){
+sep.setAttribute('d','M371.5 219 Q'+(371.5+G.bulge).toFixed(1)+' 257 371.5 295');
+effo.setAttribute('stroke-width',G.eff);
+var lf=G.lung==='none'?'var(--surface-1)':C[G.lung][0],ls=G.lung==='none'?'var(--border-strong)':C[G.lung][1];
+lungR.setAttribute('fill',lf);lungR.setAttribute('stroke',ls);lungL.setAttribute('fill',lf);lungL.setAttribute('stroke',ls);
+for(var i=0;i<4;i++){var on=i<G.nb;bl[i][0].setAttribute('display',on?'inline':'none');bl[i][1].setAttribute('display',on?'inline':'none');}
+plR.setAttribute('display',st.pleD?'inline':'none');plL.setAttribute('display',st.pleI?'inline':'none');
+var b=st.bcia?'inline':'none';balon.setAttribute('display',b);balonT.setAttribute('display',b);augT.setAttribute('display',b);
+var tm=st.bct==='verificado'?['aumento diastólico (timing verificado)','var(--text-primary)']:(st.bct==='inconsistente'?['timing inconsistente: revisar el inflado','var(--border-danger)']:['aumento diastólico (timing sin verificar)','var(--text-secondary)']);
+augT.textContent=tm[0];augT.setAttribute('fill',tm[1]);
+ecmoA.setAttribute('display',st.ecmoA?'inline':'none');ecmoAT.setAttribute('display',st.ecmoA?'inline':'none');
+ecmoV.setAttribute('display',st.ecmoV?'inline':'none');ecmoVT.setAttribute('display',st.ecmoV?'inline':'none');
+impG.setAttribute('display',st.imp?'inline':'none');impT.setAttribute('display',st.imp?'inline':'none');
+var dv=drugTxt();drog.textContent=dv.length?('Vasoactivos: '+dv.join(', ')):'Sin vasoactivos marcados';
+paT2.textContent='PAP '+st.PAPs+'/'+st.PAPd+' · media '+pm();
+pcpT.textContent='venas pulmonares hacia la AI · PCP '+st.PCP;
+var pc=pcls();
+pbox.setAttribute('fill',C[pc[0]][0]);pbox.setAttribute('stroke',C[pc[0]][1]);
+pb1.textContent='PAP media '+pm()+' · PCP '+st.PCP;
+pb2.textContent='Gradiente transpulmonar '+(pm()-st.PCP);
+pb3.textContent='RVP '+fmt(rvp())+' UW';
+pb4.textContent=pc[1];
+}
+/* controles */
+function mk(tag,cls,t,par){var e=document.createElement(tag);if(cls){e.className=cls;}if(t!==undefined){e.textContent=t;}if(par){par.appendChild(e);}return e;}
+var $=function(id){return document.getElementById(id);};
+var SLD={IC:['Índice cardíaco (L/min/m²)',0.8,5,0.1],PVC:['PVC, presión de la AD (mmHg)',0,25,1],PAPs:['PAP sistólica (mmHg)',15,90,1],PAPd:['PAP diastólica (mmHg)',5,50,1],PCP:['PCP (mmHg)',0,35,1],PAM:['Presión arterial media (mmHg)',40,110,1],TAPSE:['TAPSE (mm)',6,30,1],lac:['Lactato (mmol/L)',0.5,8,0.1]};
+var sl={};
+function slider(k){
+var d=SLD[k],w=mk('div','sl'),lab=mk('span','',d[0],w);
+var o=mk('output','',(k==='IC'||k==='lac')?fmt(st[k]):String(st[k]),w);
+var i=document.createElement('input');i.type='range';i.min=d[1];i.max=d[2];i.step=d[3];i.value=st[k];i.setAttribute('aria-label',d[0]);
+i.addEventListener('input',function(){st[k]=parseFloat(i.value);o.textContent=(k==='IC'||k==='lac')?fmt(st[k]):String(st[k]);refresh();});
+w.appendChild(i);sl[k]={w:w,i:i,o:o,lab:lab};return w;
+}
+['IC','PAM','PAPs','PAPd','PCP','PVC'].forEach(function(k){slider(k);});
+slider('TAPSE');slider('lac');
+$('vdBox').appendChild(sl.TAPSE.w);$('lacBox').appendChild(sl.lac.w);
+function setSl(k,v){st[k]=v;sl[k].i.value=v;sl[k].o.textContent=(k==='IC'||k==='lac')?fmt(v):String(v);}
+function place2(){
+var m=st.mon;
+if(m==='swan'){['IC','PAM','PAPs','PAPd','PCP','PVC'].forEach(function(k){$('swanBox').appendChild(sl[k].w);});}
+else if(m==='art'){$('artSl').appendChild(sl.PAM.w);['IC','PAPs','PAPd','PCP','PVC'].forEach(function(k){$('ecoBox').appendChild(sl[k].w);});}
+else{['IC','PAM','PAPs','PAPd','PCP','PVC'].forEach(function(k){$('ecoBox').appendChild(sl[k].w);});}
+$('swanD').hidden=(m!=='swan');$('artBox').hidden=(m!=='art');
+$('ecoHead').textContent=(m==='swan')?'Los valores medidos por el Swan-Ganz están en el recuadro de arriba. Acá quedan el lactato y lo que sale de ellos.':(m==='art'?'La presión arterial es medida; el resto se estima por eco.':'Sin monitoreo invasivo: valores estimados por eco, de las pestañas Hemodinámica y VD / AD.');
+$('monMsg').textContent=(m==='swan')?'':(m==='art'?'Con solo la línea arterial, la presión se mide y el gasto y las presiones pulmonares se estiman por eco.':'Sin catéter, todo se estima por eco y cada dato lo dice en su texto.');
+}
+var sel=$('cx');['CABG','Valvular','Aorta','Congénita','Trasplante'].forEach(function(c){mk('option','',c,sel);});
+sel.addEventListener('change',function(){st.cx=sel.value;refresh();});
+$('mon').addEventListener('change',function(){st.mon=$('mon').value;place2();refresh();});
+$('hrs').addEventListener('input',refresh);
+$('peso').addEventListener('input',function(){st.peso=parseFloat($('peso').value);recalcDoses();refresh();});
+$('lb').addEventListener('change',function(){st.lb=$('lb').value;refresh();});
+$('bct').addEventListener('change',function(){st.bct=$('bct').value;refresh();});
+/* toggles */
+var tg={};
+function toggle(par,k,label){var b=mk('button','',label,par);b.setAttribute('aria-pressed','false');b.addEventListener('click',function(){st[k]=!st[k];if(k==='nad'||k==='dob'){drugShow();}if(k==='bcia'){$('bctBox').hidden=!st.bcia;}refresh();});tg[k]=b;return b;}
+toggle($('drT'),'nad','Noradrenalina');toggle($('drT'),'dob','Dobutamina');
+toggle($('supT'),'bcia','Balón de contrapulsación');toggle($('supT'),'imp','Impella');toggle($('supT'),'ecmoA','ECMO venoarterial');toggle($('supT'),'ecmoV','ECMO venovenoso');
+toggle($('peT'),'der','Derrame con compresión');toggle($('plT'),'pleD','Derrame pleural derecho');toggle($('plT'),'pleI','Derrame pleural izquierdo');
+/* dosis automática */
+var DR={};
+function drugUI(k,label,mg,ml,rt,dsK,manK){
+var box=mk('div','dr',undefined,$('drBox'));box.hidden=true;
+mk('div','sub',label+': dilución y velocidad',box);
+var in2=mk('div','in2',undefined,box);
+function f(lab,key,w){var l=mk('label','fld',undefined,in2);mk('span','',lab,l);var i=document.createElement('input');i.type='number';i.step='any';i.value=st[key];i.style.width=(w||70)+'px';i.setAttribute('aria-label',label+' '+lab);i.addEventListener('input',function(){st[key]=parseFloat(i.value);st[manK]=false;recalcDoses();refresh();});l.appendChild(i);return i;}
+f('mg',mg);f('ml',ml);f('ml/h',rt);
+var lD=mk('label','fld',undefined,in2);mk('span','','Dosis (mcg/kg/min)',lD);
+var di=document.createElement('input');di.type='number';di.step='any';di.style.width='90px';di.setAttribute('aria-label','Dosis de '+label);
+di.addEventListener('input',function(){st[manK]=true;st[dsK]=parseFloat(di.value)||0;refresh();});lD.appendChild(di);
+var bk=mk('button','','Volver al cálculo',in2);bk.addEventListener('click',function(){st[manK]=false;recalcDoses();refresh();});
+var est=mk('div','est',undefined,box);
+DR[k]={box:box,di:di,est:est,bk:bk,dsK:dsK,manK:manK,mg:mg,ml:ml,rt:rt};
+}
+drugUI('nad','Noradrenalina','nadMg','nadMl','nadRt','nadD','nadMan');
+drugUI('dob','Dobutamina','dobMg','dobMl','dobRt','dobD','dobMan');
+function recalcDoses(){
+['nad','dob'].forEach(function(k){var d=DR[k];
+var c=dose(st[d.mg],st[d.ml],st[d.rt]);
+if(!st[d.manK]){st[d.dsK]=(c===null)?0:Math.round(c*100)/100;d.di.value=(c===null)?'':String(st[d.dsK]);}
+d.bk.hidden=!st[d.manK];
+d.est.textContent=(c===null)?'— completar el peso del paciente y la dilución':(st[d.manK]?('Dosis cargada a mano. El cálculo con la dilución daría ≈ '+fmt(c,2)+' mcg/kg/min.'):('≈ '+fmt(c,2)+' mcg/kg/min, calculada con el peso y la dilución; podés escribir otra dosis.'));
+});
+}
+function drugShow(){DR.nad.box.hidden=!st.nad;DR.dob.box.hidden=!st.dob;}
+/* texto */
+function fila(a,b){var d=mk('div','r');mk('b','',a,d);d.appendChild(document.createTextNode(b));return d;}
+function renderTxt(){
+var t=$('txt');t.textContent='';
+mk('div','ttl','Lo que muestra el dibujo',t);
+var icq=st.IC>2.2?'adecuado':'bajo';
+t.appendChild(fila('Cavidades izquierdas','ventrículo izquierdo con índice cardíaco '+fmt(st.IC)+' L/min/m² — '+icq+', '+srcQ('IC')+'; aurícula izquierda con presión capilar pulmonar '+st.PCP+' mmHg, '+srcQ('PCP')+'.'));
+t.appendChild(fila('Cavidades derechas','aurícula derecha con presión '+st.PVC+' mmHg, '+srcQ('PVC')+'; ventrículo derecho con TAPSE '+st.TAPSE+' mm y relación VD/VI '+fmt(st.vdvi,2)+' (de VD / AD).'));
+var pc=pcls();
+t.appendChild(fila('Circuito pulmonar','presión pulmonar media '+pm()+' mmHg, presión capilar '+st.PCP+' mmHg, gradiente transpulmonar '+(pm()-st.PCP)+' mmHg, resistencia vascular pulmonar '+fmt(rvp())+' UW: '+pc[1]+'.'));
+var pl=(st.pleD||st.pleI)?('derrame pleural '+(st.pleD&&st.pleI?'bilateral':(st.pleD?'derecho':'izquierdo'))):'sin derrame pleural consignado';
+var lb={ninguna:'líneas B no evaluadas',focales:'líneas B focales',difusas:'líneas B difusas bilaterales'}[st.lb];
+t.appendChild(fila('Pulmones y pleura',lb+'; '+pl+'.'));
+t.appendChild(fila('Pericardio',st.der?'derrame pericárdico con compresión consignado.':'sin derrame consignado.'));
+var dv=drugTxt(),sp=supTxt();
+t.appendChild(fila('Soporte y vasoactivos',(sp.length?sp.join(', ')+'. ':'sin asistencia circulatoria consignada. ')+(dv.length?dv.join(', ')+'.':'Sin vasoactivos marcados.')));
+t.appendChild(fila('Presión arterial','media '+st.PAM+' mmHg, '+srcQ('PAM')+'. Resistencia vascular sistémica '+rvs()+' dinas·s·cm⁻⁵.'));
+t.appendChild(fila('Lactato',fmt(st.lac)+' mmol/L.'));
+mk('div','hint','Según la cirugía ('+st.cx+'), también mirar: '+CX[st.cx]+'.',t);
+}
+function sems(){
+var IC=st.IC,PCP=st.PCP,PVC=st.PVC,p=G.p,sup=onSup();
+var f1=IC>2.2?((sup||st.lac>2)?'warn':'ok'):(IC>=1.8?'warn':'bad');
+var f2=(PCP>=12&&PCP<=18)?'ok':(((PCP>=8&&PCP<12)||(PCP>18&&PCP<=22))?'warn':'bad');
+var eq=Math.abs(PVC-PCP)<=3&&PVC>=12;
+var f3=st.der?(IC<2.5?'bad':'warn'):(eq?'warn':'ok');
+var f4=(p==='fvd'||p==='mixto')?'bad':((PVC>=12||st.TAPSE<17)?'warn':'ok');
+var f5=PCP>18?'bad':(PCP>=15?'warn':'ok');
+return [
+[f1,'IC '+fmt(IC)+' · referencia: mayor de 2,2'+(IC>2.2&&sup?' · con soporte: no concluye por sí solo':'')+(IC>2.2&&st.lac>2?' · lactato '+fmt(st.lac):'')],
+[f2,'PCP '+PCP+' · referencia: 12 a 18'],
+[f3,st.der?('Sugerido'+(eq?' · presiones igualadas':'')):(eq?'No hay derrame marcado, pero PVC y PCP están casi iguales':'No sugerido')],
+[f4,'PVC '+PVC+' · PAP media '+pm()+(st.TAPSE<17?' · TAPSE '+st.TAPSE+' mm (bajo)':'')],
+[f5,PCP>18?('PCP '+PCP+' · por encima de 18'):('PCP '+PCP)]
+];
+}
+function renderRes(){
+var res=$('c6');res.textContent='';
+mk('div','ttl','Conclusión hemodinámica',res);
+var al=alerts();
+al.forEach(function(a){mk('div','al',a,res);});
+var S=sems();
+for(var i=0;i<5;i++){
+var r=mk('div','sem',undefined,res);
+var dot=mk('span','dot',undefined,r);dot.style.background=C[S[i][0]][0];dot.style.borderColor=C[S[i][0]][1];
+var t=mk('div','',undefined,r);var q=mk('div','',PREG[i],t);q.style.fontWeight='500';mk('div','',S[i][1],t);
+}
+var sp=mk('div','',undefined,res);sp.style.cssText='border-top:0.5px solid var(--border);margin-top:6px;padding-top:8px';
+var p=G.p,nm=NAME[p];
+if(p==='fvd'){nm+=pm()>25?' · con poscarga alta (PAP elevada)':' · de contractilidad (PAP baja)';}
+if(p==='est'&&al.length){nm='Sin patrón de bajo gasto por el índice cardíaco, con señales de alarma (ver arriba)';}
+var f=fila('Patrón detectado (orientativo)',nm);mk('span','chip','Criterio de EcoSmart',f);sp.appendChild(f);
+mk('div','hint','El patrón y las cinco preguntas se quedan en esta pantalla: no salen al informe, al EN SUMA, al PDF ni al PPT.',res);
+var bt=mk('button','','Integrar al informe',res);bt.style.marginTop='8px';
+}
+function refresh(){
+G=geo();
+for(var k in tg){tg[k].setAttribute('aria-pressed',st[k]);}
+var n=0;['nad','dob','bcia','imp','ecmoA','ecmoV'].forEach(function(k){if(st[k]){n++;}});
+$('c2s').textContent='Fármacos vasoactivos y asistencia circulatoria'+(n?(' · '+n+' marcado'+(n>1?'s':'')):' · ninguno marcado');
+var dr=Math.max(0,parseFloat($('hrs').value)||0);
+$('calc').textContent='Presión pulmonar media '+pm()+' mmHg · gradiente transpulmonar '+(pm()-st.PCP)+' mmHg · resistencia vascular pulmonar '+fmt(rvp())+' UW · resistencia vascular sistémica '+rvs()+' dinas·s·cm⁻⁵ · horas post-CEC '+dr;
+$('vdvi').textContent=fmt(st.vdvi,2)+' · tomado de VD / AD (solo lectura)';
+updStatic();updWave();renderTxt();renderRes();
+if(reduce){frame(0);}
+}
+/* ejemplos */
+var pre=$('pre');
+PBTN.forEach(function(k){var b=mk('button','',k[1],pre);b.addEventListener('click',function(){load(k[0]);});});
+function load(k){
+var d=PRE[k];['IC','PVC','PAPs','PAPd','PCP','PAM','TAPSE','lac'].forEach(function(n){setSl(n,d[n]);});
+st.der=d.der;
+if(k==='cam'){st.nad=true;st.dob=false;st.bcia=false;st.imp=false;st.ecmoA=false;st.ecmoV=false;$('c2').open=true;}
+else{st.nad=false;st.dob=false;st.bcia=false;st.imp=false;st.ecmoA=false;st.ecmoV=false;}
+$('bctBox').hidden=!st.bcia;
+st.nadMan=false;st.dobMan=false;recalcDoses();drugShow();refresh();
+}
+place2();recalcDoses();drugShow();refresh();
+if(!reduce){requestAnimationFrame(frame);}
+})();
+</script>
+</body>
+</html>

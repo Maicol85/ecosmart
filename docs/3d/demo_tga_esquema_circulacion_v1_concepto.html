@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo EcoSmart — TGA, esquema de circulación (v1)</title>
+<style>
+:root{--bg:#ffffff;--s1:#f5f5f2;--s2:#e9e9e4;--tp:#1d1d1b;--ts:#55554f;--tm:#85857e;--acc:#185fa5;--bdr:rgba(0,0,0,.16);--bdr2:rgba(0,0,0,.34);--new:#0f6e56;--bnew:#e1f5ee}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1c1a;--s1:#2a2a27;--s2:#363632;--tp:#f1f1ed;--ts:#b5b5ae;--tm:#8a8a83;--acc:#85b7eb;--bdr:rgba(255,255,255,.16);--bdr2:rgba(255,255,255,.34);--new:#5dcaa5;--bnew:#04342c}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
+body{max-width:1320px;margin:0 auto;padding:14px}
+h1{font-size:16px;margin:0 0 4px;font-weight:600}
+.note{font-size:12.5px;background:var(--bnew);color:var(--new);border-radius:8px;padding:8px 10px;margin:0 0 10px}
+details.sim{border:.5px dashed var(--bdr2);border-radius:8px;padding:6px 10px;margin:0 0 12px;font-size:12.5px;color:var(--ts)}
+details.sim summary{cursor:pointer}
+.sec{border:.5px solid var(--bdr);border-radius:10px;background:var(--bg);overflow:hidden}
+.sech{background:var(--s2);padding:8px 14px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--acc);font-weight:600}
+.secb{padding:12px 14px}
+.intro{font-size:12.5px;margin:0 0 10px}
+.lay{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px;align-items:start}
+@media (max-width:1000px){.lay{grid-template-columns:minmax(0,1fr)}}
+.flds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.full{grid-column:1/-1}
+label.f{display:block;font-size:11.5px;color:var(--ts);margin:0 0 2px}
+input,select{width:100%;font:inherit;font-size:13px;padding:5px 7px;border:.5px solid var(--bdr2);border-radius:6px;background:var(--bg);color:var(--tp);min-height:32px}
+input:disabled{background:var(--s1);color:var(--tm)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button{font:inherit;font-size:13px;color:var(--tp);background:var(--bg);border:.5px solid var(--bdr2);border-radius:6px;padding:6px 10px;cursor:pointer;min-height:32px}
+button:hover{background:var(--s2)}
+.conc{margin-top:12px;background:var(--s1);border:.5px solid var(--bdr);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.conc b{display:block;font-size:11.5px;color:var(--ts);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
+.card{background:var(--s1);border:.5px solid var(--bdr);border-radius:10px;padding:10px 12px}
+.card h3{font-size:12px;margin:0 0 8px;color:var(--acc);font-weight:600}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12.5px}
+.ctl label{display:flex;gap:5px;align-items:center}
+.ctl input[type=checkbox]{width:16px;height:16px;min-height:0}
+.ctl input[type=number]{width:60px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
+.pan{background:var(--bg);border:.5px solid var(--bdr);border-radius:8px;padding:8px}
+.pan h4{margin:0 0 4px;font-size:11.5px;color:var(--ts);font-weight:600}
+.ph{height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--tm);font-size:12px;text-align:center;border:.5px dashed var(--bdr2);border-radius:6px;padding:8px}
+svg{display:block;width:100%;height:auto}
+.leg{font-size:11.5px;color:var(--ts);margin-top:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 8px;vertical-align:-1px}
+.rec{font-size:12px;color:var(--tp);margin-top:6px}
+.cap{font-size:11.5px;color:var(--ts);margin-top:4px}
+.chk{display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer}
+.chk input{width:16px;height:16px;min-height:0;padding:0;flex:none}
+.gr3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+</style>
+</head>
+<body>
+<h1>TGA: esquema de circulación dentro del cuadro gris (demo)</h1>
+<p class="note">Demo con datos de ejemplo. A la izquierda quedan los campos y, debajo, la conclusión (el hueco que quedaba vacío). A la derecha, dentro del cuadro gris, el 3D (acá es un marcador de lugar: el real no cambia) y al lado el esquema de circulación. Elegí el tipo y la cirugía y mirá cómo cambia el recorrido.</p>
+<details class="sim"><summary>Simular lo que llega de otras pestañas (solo lectura)</summary>
+  <div class="gr3" style="margin-top:6px">
+    <label class="chk"><input type="checkbox" id="sCIA"> CIA cargada en su pestaña</label>
+    <label class="chk"><input type="checkbox" id="sCIV"> CIV cargada en su pestaña</label>
+    <label class="chk"><input type="checkbox" id="sDAP"> DAP cargado en su pestaña</label>
+  </div>
+</details>
+
+<section class="sec">
+  <div class="sech">TGA — Transposición de grandes arterias</div>
+  <div class="secb">
+    <p class="intro">Transposición de grandes arterias: el tipo y la cirugía describen el dibujo, la conclusión y el informe.</p>
+    <div class="lay">
+      <div>
+        <div class="flds">
+          <div><label class="f" for="tipo">Tipo</label>
+            <select id="tipo"><option value="">—</option><option value="dtga">TGA completa (d-TGA)</option><option value="cc">TGA congénitamente corregida (ccTGA)</option></select></div>
+          <div id="wcir"><label class="f" for="cir">Cirugía realizada</label>
+            <select id="cir"><option value="">—</option><option value="jat">Switch arterial (Jatene)</option><option value="sa">Switch auricular (Mustard o Senning)</option><option value="ras">Rastelli</option></select></div>
+          <div><label class="f" for="fvd">Función del VD sistémico</label>
+            <select id="fvd"><option value="">—</option><option>Normal</option><option>Levemente reducida</option><option>Moderadamente reducida</option><option>Severamente reducida</option></select></div>
+          <div><label class="f">Diámetro del VD sistémico (de VD / AD)</label><input disabled placeholder="—"></div>
+          <div><label class="f">IT sistémica — grado (de Válvulas)</label><input disabled placeholder="—"></div>
+          <div><label class="f" for="bav">Bloqueo AV completo</label><select id="bav"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+          <div><label class="f" for="obs">Obstrucción subaórtica</label><select id="obs"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+          <div><label class="f">Gradiente subaórtico (mmHg)</label><input disabled placeholder="mmHg"></div>
+          <div><label class="f" for="civr">CIV residual</label><select id="civr"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+          <div><label class="f">Gradiente CIV residual (mmHg)</label><input disabled placeholder="mmHg"></div>
+          <div class="full"><label class="f" for="sin">Síntomas</label><select id="sin"><option value="">—</option><option>No</option><option>Sí</option></select></div>
+        </div>
+        <div class="conc"><b>Conclusión</b><span id="conc"></span></div>
+        <div style="margin-top:10px;text-align:center"><button type="button">Integrar al informe</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Diagrama 3D <span style="font-weight:400;color:var(--tm)">· y esquema de circulación</span></h3>
+        <div class="ctl">
+          <button type="button" id="norm">Corazón normal (referencia)</button>
+          <label><input type="checkbox" checked> Ver por dentro</label>
+          <label><input type="checkbox" checked> Nombres</label>
+          <label>FC (lpm) <input type="number" id="fc" value="70"></label>
+          <button type="button" id="pz">Pausar</button>
+          <button type="button" id="pdf">Incluir en el PDF</button>
+        </div>
+        <div class="two">
+          <div class="pan">
+            <h4>Dibujo 3D</h4>
+            <div class="ph"><svg viewBox="0 0 120 150" width="110" aria-hidden="true"><path d="M60 15C50 5 30 10 25 30C20 55 40 100 60 140C80 100 100 55 95 30C90 10 70 5 60 15Z" fill="var(--s2)" stroke="var(--bdr2)" stroke-width="1.5"/><path d="M60 15V60" stroke="var(--bdr2)" stroke-width="1.5"/></svg>
+              <div>Acá va el 3D real, sin cambios.<br>Es solo un marcador de lugar.</div></div>
+          </div>
+          <div class="pan">
+            <h4>Esquema de circulación</h4>
+            <svg id="esq" viewBox="0 0 300 290" role="img" aria-label="Esquema de circulación según el tipo y la cirugía"></svg>
+            <div class="leg"><span class="sw" style="background:#2f6fd0"></span>sangre poco oxigenada<span class="sw" style="background:#d8433b"></span>sangre oxigenada<span class="sw" style="background:#e08a1e"></span>suturas y comunicaciones · T tricúspide · M mitral</div>
+            <div class="rec" id="rec"></div>
+            <div class="cap" id="cap"></div>
+          </div>
+        </div>
+        <p class="cap" style="margin-top:8px">Esquema ilustrativo, no es una medición. Las comunicaciones cargadas en sus pestañas se dibujan solas, en solo lectura.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var B='#2f6fd0',R='#d8433b',O='#e08a1e';
+var BX={TL:[40,78],TR:[180,78],BL:[40,158],BR:[180,158]};
+var paused=false,reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){paused=true;$('pz').textContent='Seguir';}
+function col(c){return c==='b'?B:c==='r'?R:O}
+function scenId(){
+  var t=$('tipo').value,c=$('cir').value;
+  if(t==='cc')return 'cc';
+  if(t==='dtga'){return c==='jat'?'jat':c==='sa'?'sa':c==='ras'?'ras':'dtga';}
+  return 'norm';
+}
+var DEF={
+ norm:{box:{TL:['VD','','b'],TR:['AI','','r'],BL:['AD','','b'],BR:['VI','','r']},
+  fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b','ap'],['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r','ao']],
+  v:[[80,140,'T'],[220,139,'M']],ao:[220,226],ap:[80,59],
+  rec:'cavas → AD → VD → arteria pulmonar → pulmones → venas pulmonares → AI → VI → aorta → cuerpo',
+  cap:'Corazón normal de referencia: los dos circuitos van en serie.'},
+ dtga:{box:{TL:['VD','sistémico','b'],TR:['AI','','r'],BL:['AD','','b'],BR:['VI','','r']},
+  fl:[['M80 250V206','b'],['M80 156V124','b'],['M40 100H18V265H58','b','ao'],['M220 38V76','r'],['M220 122V156','r'],['M260 180H282V23H242','r','ap']],
+  v:[[80,140,'T'],[220,139,'M']],ao:[18,191],ap:[282,92],
+  rec:'AD → VD → aorta → cuerpo · AI → VI → arteria pulmonar → pulmones → AI (dos circuitos en paralelo)',
+  cap:'TGA completa (d-TGA): la aorta nace del ventrículo derecho y la arteria pulmonar del izquierdo. Los dos circuitos van en paralelo; sin una comunicación no se mezclan.'},
+ sa:{box:{TL:['VD','sistémico','r'],TR:['Aurícula','(venas pulm.)','r'],BL:['Túnel','(cavas)','b','o'],BR:['VI','','b']},
+  fl:[['M80 250V206','b'],['M120 180H178','b'],['M260 180H282V23H242','b','ap'],['M220 38V76','r'],['M180 100H122','r'],['M40 100H18V265H58','r','ao']],
+  v:[[150,180,'M'],[151,100,'T']],ao:[18,191],ap:[282,92],
+  rec:'cavas → túnel → válvula mitral → VI → arteria pulmonar · venas pulmonares → válvula tricúspide → VD → aorta',
+  cap:'Switch auricular (Mustard o Senning). Un túnel dentro de las aurículas cruza las dos corrientes. El ventrículo derecho queda como sistémico.'},
+ jat:{box:{TL:['VD','','b'],TR:['AI','','r'],BL:['AD','','b'],BR:['VI','','r']},
+  fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b','ap'],['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r','ao']],
+  v:[[80,140,'T'],[220,139,'M']],ao:[220,226],ap:[80,59],
+  ex:['<path d="M70 66H90" stroke="'+O+'" stroke-width="3"/>','<path d="M210 214H230" stroke="'+O+'" stroke-width="3"/>','<circle cx="236" cy="222" r="3" fill="'+O+'"/>'],
+  rec:'cavas → AD → VD → arteria pulmonar → pulmones → venas pulmonares → AI → VI → aorta → cuerpo',
+  cap:'Switch arterial (Jatene): los grandes vasos se reconectaron (suturas en naranja) y las coronarias se reimplantaron. Los circuitos vuelven a ir en serie y el VI es el sistémico.'},
+ ras:{box:{TL:['VD','','b'],TR:['AI','','r'],BL:['AD','','b'],BR:['VI','','r']},
+  fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b','ap'],['M220 38V76','r'],['M220 122V156','r'],['M180 182H150V108H18V265H58','r','ao']],
+  v:[[80,140,'T'],[220,139,'M']],ao:[18,191],ap:[80,59],
+  ex:['<path d="M80 78V40" stroke="'+O+'" stroke-width="8" opacity=".35" fill="none"/>','<path d="M150 108H40" stroke="'+O+'" stroke-width="9" opacity=".35" fill="none"/>'],
+  rec:'cavas → AD → VD → conducto → arteria pulmonar → pulmones → venas pulmonares → AI → VI → túnel por la CIV → aorta',
+  cap:'Rastelli: un túnel (parche) lleva la sangre del VI a la aorta a través de la CIV, y un conducto lleva la del VD a la arteria pulmonar. El VI es el sistémico.'},
+ cc:{box:{TL:['VI','','b'],TR:['AI','','r'],BL:['AD','','b'],BR:['VD','sistémico','r']},
+  fl:[['M80 250V206','b'],['M80 156V124','b'],['M80 78V40','b','ap'],['M220 38V76','r'],['M220 122V156','r'],['M220 204V248','r','ao']],
+  v:[[80,140,'M'],[220,139,'T']],ao:[220,226],ap:[80,59],
+  rec:'cavas → AD → válvula mitral → VI → arteria pulmonar → pulmones → AI → válvula tricúspide → VD → aorta',
+  cap:'TGA congénitamente corregida (ccTGA): doble discordancia. La AD se conecta al ventrículo izquierdo morfológico y la AI al derecho morfológico, que queda como sistémico.'}
+};
+function box(k,d,sid){
+  var p=BX[k],x=p[0],y=p[1],w=80,h=44,c=col(d[2]),brd=(d[3]==='o')?O:c;
+  var s='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8" fill="var(--bg)" stroke="'+brd+'" stroke-width="'+(d[3]==='o'?2:1.5)+'"'+(d[3]==='o'?' stroke-dasharray="4 3"':'')+'/>';
+  if(d[1]){
+    s+='<text x="'+(x+w/2)+'" y="'+(y+19)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--tp)">'+d[0]+'</text>';
+    s+='<text x="'+(x+w/2)+'" y="'+(y+33)+'" text-anchor="middle" font-size="9" fill="var(--ts)">'+d[1]+'</text>';
+  }else{
+    s+='<text x="'+(x+w/2)+'" y="'+(y+h/2+4)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--tp)">'+d[0]+'</text>';
+  }
+  return s;
+}
+function render(){
+  var sid=scenId(),D=DEF[sid],s='';
+  s+='<defs>';
+  [['mb',B],['mr',R],['mo',O]].forEach(function(m){s+='<marker id="'+m[0]+'" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9Z" fill="'+m[1]+'"/></marker>';});
+  s+='</defs>';
+  s+='<rect x="60" y="8" width="180" height="30" rx="8" fill="var(--s1)" stroke="var(--bdr2)"/><text x="150" y="27" text-anchor="middle" font-size="12" fill="var(--tp)">Pulmones</text>';
+  s+='<rect x="60" y="250" width="180" height="30" rx="8" fill="var(--s1)" stroke="var(--bdr2)"/><text x="150" y="269" text-anchor="middle" font-size="12" fill="var(--tp)">Cuerpo</text>';
+  var cia=$('sCIA').checked&&sid!=='sa',civ=($('sCIV').checked||$('civr').value==='Sí')&&sid!=='ras',dap=$('sDAP').checked;
+  if(cia){s+='<path d="M120 164L180 116" stroke="'+O+'" stroke-width="3" stroke-dasharray="5 3" fill="none"/><text x="136" y="150" font-size="10" fill="'+O+'">CIA</text>';}
+  if(civ){s+='<path d="M120 116L180 164" stroke="'+O+'" stroke-width="3" stroke-dasharray="5 3" fill="none"/><text x="136" y="130" font-size="10" fill="'+O+'">CIV</text>';}
+  if(dap){s+='<path d="M'+D.ap[0]+' '+D.ap[1]+'L'+D.ao[0]+' '+D.ao[1]+'" stroke="'+O+'" stroke-width="3" stroke-dasharray="5 3" fill="none"/><text x="'+((D.ap[0]+D.ao[0])/2+4)+'" y="'+((D.ap[1]+D.ao[1])/2-4)+'" font-size="10" fill="'+O+'">DAP</text>';}
+  ['TL','TR','BL','BR'].forEach(function(k){s+=box(k,D.box[k],sid);});
+  if(D.ex){s+=D.ex.join('');}
+  D.fl.forEach(function(f){
+    var c=col(f[1]),m=f[1]==='b'?'mb':'mr';
+    s+='<path class="fl" d="'+f[0]+'" fill="none" stroke="'+c+'" stroke-width="3" stroke-dasharray="6 4" stroke-linecap="round" marker-end="url(#'+m+')"/>';
+  });
+  D.v.forEach(function(v){s+='<circle cx="'+v[0]+'" cy="'+v[1]+'" r="7" fill="var(--bg)" stroke="var(--tp)" stroke-width="1.2"/><text x="'+v[0]+'" y="'+(v[1]+3.5)+'" text-anchor="middle" font-size="9" fill="var(--tp)">'+v[2]+'</text>';});
+  var lab=[['cavas',88,232],['venas pulm.',226,60],['AP',D.ap[0]>150?262:92,D.ap[0]>150?100:62],['Ao',D.ao[0]<100?22:228,D.ao[0]<100?182:240]];
+  lab.forEach(function(l){s+='<text x="'+l[1]+'" y="'+l[2]+'" font-size="9" fill="var(--ts)">'+l[0]+'</text>';});
+  $('esq').innerHTML=s;
+  $('rec').textContent=D.rec;
+  $('cap').textContent=D.cap+(($('sCIA').checked&&sid==='sa')?' La CIA no se dibuja con switch auricular.':'')+(($('sCIV').checked&&sid==='ras')?' La CIV no se dibuja con Rastelli: es el túnel.':'');
+}
+function conclusion(){
+  var sid=scenId(),t={
+   norm:'Sin tipo de transposición elegido: se muestra el corazón normal de referencia.',
+   dtga:'Transposición de grandes arterias completa (d-TGA) sin cirugía registrada: el ventrículo derecho es el ventrículo sistémico.',
+   sa:'Transposición de grandes arterias completa (d-TGA) operada, con switch auricular (Mustard o Senning): el ventrículo derecho es el ventrículo sistémico.',
+   jat:'Transposición de grandes arterias completa (d-TGA) operada, con switch arterial (Jatene): el ventrículo izquierdo vuelve a ser el sistémico.',
+   ras:'Transposición de grandes arterias completa (d-TGA) operada, con Rastelli: el ventrículo izquierdo es el sistémico, con un túnel por la CIV y un conducto del VD a la arteria pulmonar.',
+   cc:'Transposición de grandes arterias congénitamente corregida (ccTGA): doble discordancia; el ventrículo derecho es el ventrículo sistémico.'}[sid];
+  if($('fvd').value&&(sid==='dtga'||sid==='sa'||sid==='cc')){t+=' Función del ventrículo derecho sistémico: '+$('fvd').value.toLowerCase()+'.';}
+  if($('civr').value==='Sí'){t+=' Comunicación interventricular residual.';}
+  $('conc').textContent=t;
+}
+function upd(){
+  $('wcir').style.display=($('tipo').value==='dtga')?'':'none';
+  if($('tipo').value!=='dtga'){$('cir').value='';}
+  render();conclusion();
+}
+Array.prototype.forEach.call(document.querySelectorAll('select,input[type=checkbox]'),function(e){e.addEventListener('change',upd);});
+$('norm').addEventListener('click',function(){$('tipo').value='';$('cir').value='';upd();});
+$('pz').addEventListener('click',function(){paused=!paused;$('pz').textContent=paused?'Seguir':'Pausar';});
+$('pdf').addEventListener('click',function(){var on=$('pdf').getAttribute('data-on')!=='1';$('pdf').setAttribute('data-on',on?'1':'0');$('pdf').textContent=on?'✓ Incluido en el PDF':'Incluir en el PDF';});
+function frame(ts){
+  var off=paused?0:-((ts/45)%10);
+  Array.prototype.forEach.call(document.querySelectorAll('#esq .fl'),function(p){p.setAttribute('stroke-dashoffset',off.toFixed(1));});
+  window.requestAnimationFrame(frame);
+}
+upd();
+window.requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

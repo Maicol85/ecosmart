@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Demo v2: prótesis aórtica, modelo y tamaño</title>
+<style>
+:root{
+  --bg:#eef1f8; --panel:#ffffff; --ink:#17203a; --ink2:#56607a; --line:#d5dcec;
+  --blue:#2756c5; --blue-ink:#ffffff; --soft:#e9effc; --field:#f3f5fb;
+  --ok:#17703f; --warn:#9a5200; --bad:#b3261e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10162a; --panel:#19213a; --ink:#e8ecf8; --ink2:#a2acc6; --line:#2c3656;
+    --blue:#6f97f5; --blue-ink:#0e1530; --soft:#222d52; --field:#141b32;
+    --ok:#5fd08e; --warn:#f0b35a; --bad:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10162a; --panel:#19213a; --ink:#e8ecf8; --ink2:#a2acc6; --line:#2c3656;
+  --blue:#6f97f5; --blue-ink:#0e1530; --soft:#222d52; --field:#141b32;
+  --ok:#5fd08e; --warn:#f0b35a; --bad:#ff8a80;
+}
+[hidden]{display:none !important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+.banner p{margin:0;color:var(--ink2);font-size:14px}
+.btn{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--blue)}
+.btn.pri{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.link:focus-visible,.x:focus-visible,.mini:focus-visible,.sz:focus-visible,.sug button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.panel h2{margin:0 0 12px;font-size:16px;color:var(--blue)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.f label{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
+input,select{width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--ink);font:inherit}
+.rowmorf{display:flex;flex-wrap:wrap;gap:10px 8px;align-items:flex-end}
+.rowmorf > .f{min-width:230px;flex:0 1 240px}
+.ctl{display:contents}
+.inl{display:contents}
+.chip.sm{padding:4px 10px;font-size:13.5px}
+.chip.sm b{font-size:11.5px}
+.sub{margin:6px 0 0;font-size:12.5px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}
+.medrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.medrow .lbl2{font-size:12.5px;color:var(--ink2);font-weight:600}
+.sug mark{background:none;color:var(--blue);font-weight:800}
+.sug .vacio{padding:10px;font-size:13px;color:var(--ink2)}
+.anchor{position:relative}
+.pop{position:absolute;left:0;top:calc(100% + 8px);z-index:30;width:min(640px,92vw);background:var(--panel);border:1px solid var(--blue);border-radius:14px;padding:14px;box-shadow:0 12px 32px rgba(10,20,50,.28);max-height:min(78vh,720px);overflow:auto}
+@media (max-width:900px){
+  .pop{position:fixed;left:8px;right:8px;bottom:8px;top:auto;width:auto;max-height:82vh;overflow:auto}
+}
+.pop-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.x{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:20px;cursor:pointer}
+.grid2{display:grid;grid-template-columns:1fr 160px;gap:10px;position:relative}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+.sug{list-style:none;margin:4px 0 0;padding:4px;position:absolute;left:0;right:170px;top:100%;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:10px;max-height:200px;overflow:auto}
+@media (max-width:520px){.sug{right:0}}
+.sug button{width:100%;min-height:44px;text-align:left;background:transparent;border:0;border-radius:8px;color:var(--ink);font:inherit;cursor:pointer;padding:0 10px}
+.sug button:hover{background:var(--soft)}
+.link{background:none;border:0;padding:10px 0;min-height:44px;color:var(--blue);font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.todos{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px;background:var(--field)}
+.todos h4{margin:8px 4px 4px;font-size:13px;color:var(--ink2);font-weight:600}
+.todos .mod{padding:6px 4px;border-bottom:1px dashed var(--line)}
+.todos .mod:last-child{border-bottom:0}
+.todos .mn{font-weight:600;margin-bottom:4px}
+.szs{display:flex;flex-wrap:wrap;gap:6px}
+.sz{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;cursor:pointer}
+.sz:hover,.sz.on{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
+.manual{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:var(--field)}
+.manual .g3{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.exp{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:var(--field)}
+.exp-g{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px}
+@media (max-width:520px){.exp-g{grid-template-columns:1fr}}
+.exp-g span{display:block;font-size:12.5px;color:var(--ink2)}
+.exp-g b{font-size:16px}
+.cat.no b{color:var(--ok)} .cat.mod b{color:var(--warn)} .cat.sev b{color:var(--bad)}
+.note{margin:8px 0 0;font-size:12.5px;color:var(--ink2)}
+.pop-f{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.strip{margin-top:12px;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:12px;padding:10px 12px;background:var(--field)}
+.strip-h{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:8px}
+.tag{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--ink2)}
+.mini{min-height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;cursor:pointer;margin-left:auto}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 10px;font-size:14px}
+.chip b{display:block;font-size:12px;color:var(--ink2);font-weight:600}
+.chip.no{border-color:var(--ok)} .chip.mod{border-color:var(--warn)} .chip.sev{border-color:var(--bad)}
+.chip.no em,.chip.mod em,.chip.sev em{font-style:normal;font-weight:700}
+.chip.no em{color:var(--ok)} .chip.mod em{color:var(--warn)} .chip.sev em{color:var(--bad)}
+.lbl{font-size:12.5px;color:var(--ink2);margin:6px 0 0}
+.quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media (prefers-reduced-motion: no-preference){.pop{animation:in .14s ease-out}@keyframes in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <p><b>Demo de diseño (v2).</b> Los nombres de modelos y todos los valores son ficticios: sirven para ver cómo se comporta la pantalla, no son datos clínicos.</p>
+    <button class="btn" id="tema" type="button">Cambiar tema</button>
+  </div>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="hPac">
+      <h2 id="hPac">Paciente (simula lo que la app ya tiene)</h2>
+      <div class="cols">
+        <div class="f"><label for="peso">Peso (kg)</label><input id="peso" inputmode="decimal" value="75"></div>
+        <div class="f"><label for="talla">Talla (cm)</label><input id="talla" inputmode="decimal" value="175"></div>
+      </div>
+      <p class="lbl" id="pacRes"></p>
+      <div class="quick">
+        <button class="btn ghost" id="q1" type="button">Probar con IMC ≥ 30</button>
+        <button class="btn ghost" id="q0" type="button">Volver a 75 kg y 175 cm</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="hDop">
+      <h2 id="hDop">Lo medido en el estudio (simula Doppler aórtico)</h2>
+      <div class="cols">
+        <div class="f"><label for="medG">Gradiente medio medido (mmHg)</label><input id="medG" inputmode="decimal" placeholder="mmHg"></div>
+        <div class="f"><label for="medA">AVA por continuidad (cm²)</label><input id="medA" inputmode="decimal" placeholder="cm²"></div>
+      </div>
+      <p class="lbl">Si cargás estos valores, la fila de datos esperados los compara con lo esperado del modelo.</p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="hVA">
+    <h2 id="hVA">Válvula aórtica</h2>
+
+    <div class="rowmorf">
+      <div class="f">
+        <label for="morf">Morfología VA</label>
+        <select id="morf">
+          <option value="nat">Válvula nativa</option>
+          <option value="mec">Prótesis mecánica (SAVR)</option>
+          <option value="bio">Prótesis biológica (SAVR)</option>
+        </select>
+      </div>
+
+      <div class="ctl">
+        <div class="anchor" id="anchor" hidden>
+          <button class="btn" id="btnModelo" type="button" aria-expanded="false" aria-controls="pop">Modelo y tamaño</button>
+
+          <div class="pop" id="pop" role="dialog" aria-label="Modelo y tamaño de la prótesis" hidden>
+            <div class="pop-h"><strong>Modelo y tamaño</strong><button class="x" id="popX" type="button" aria-label="Cerrar">×</button></div>
+
+            <div class="grid2">
+              <div class="f">
+                <label for="inpModelo">Modelo</label>
+                <input id="inpModelo" autocomplete="off" placeholder="Escribí el nombre del modelo">
+                <ul class="sug" id="sug" hidden></ul>
+              </div>
+              <div class="f">
+                <label for="selTam">Número (mm)</label>
+                <select id="selTam" disabled><option value="">—</option></select>
+              </div>
+            </div>
+
+            <button class="link" id="btnTodos" type="button" aria-expanded="false">No sé el modelo: ver todos y elegir</button>
+            <div class="todos" id="todos" hidden></div>
+
+            <button class="link" id="btnManual" type="button" aria-expanded="false">Mi modelo no está: cargar los valores a mano</button>
+            <div class="manual" id="manual" hidden>
+              <div class="g3">
+                <div class="f"><label for="mNom">Nombre (opcional)</label><input id="mNom" placeholder="Modelo o marca"></div>
+                <div class="f"><label for="mTam">Número (mm, opcional)</label><input id="mTam" inputmode="decimal" placeholder="mm"></div>
+                <div class="f"><label for="mG">Gradiente medio de referencia (mmHg)</label><input id="mG" inputmode="decimal" placeholder="mmHg"></div>
+                <div class="f"><label for="mGs">Desvío del gradiente (opcional)</label><input id="mGs" inputmode="decimal" placeholder="mmHg"></div>
+                <div class="f"><label for="mE">EOA de referencia (cm²)</label><input id="mE" inputmode="decimal" placeholder="cm²"></div>
+                <div class="f"><label for="mEs">Desvío del EOA (opcional)</label><input id="mEs" inputmode="decimal" placeholder="cm²"></div>
+              </div>
+            </div>
+
+            <div class="exp" id="exp" hidden></div>
+
+            <div class="pop-f">
+              <button class="btn pri" id="btnElegir" type="button" disabled>Elegir</button>
+              <button class="btn ghost" id="btnQuitar" type="button" hidden>Quitar modelo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="inl" id="inl" hidden aria-live="polite"></div>
+        <button class="btn ghost" id="btnVer" type="button" hidden>Mostrar datos esperados</button>
+      </div>
+    </div>
+
+    <p class="sub" id="sub" hidden></p>
+    <div class="medrow" id="medrow" hidden></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  /* Catálogo FICTICIO: nombres y valores inventados solo para la demo. */
+  var CAT=[
+    {nombre:'Bivalva MB-1',  tipo:'mec', fam:'Mecánica bivalva',      tam:[19,21,23,25,27,29], g0:16, gs:1.6, e0:1.2, es:0.28},
+    {nombre:'Bivalva MB-2',  tipo:'mec', fam:'Mecánica bivalva',      tam:[19,21,23,25,27],    g0:15, gs:1.4, e0:1.3, es:0.25},
+    {nombre:'Helix HX-1',   tipo:'mec', fam:'Mecánica bivalva',      tam:[19,21,23,25,27],    g0:15.5, gs:1.5, e0:1.25, es:0.26},
+    {nombre:'Horizon HZ-1', tipo:'mec', fam:'Mecánica de disco',     tam:[21,23,25,27,29],    g0:14.5, gs:1.3, e0:1.35, es:0.27},
+    {nombre:'Disco MD-1',    tipo:'mec', fam:'Mecánica de disco',     tam:[21,23,25,27,29],    g0:14, gs:1.3, e0:1.4, es:0.27},
+    {nombre:'Soporte BS-1',  tipo:'bio', fam:'Biológica con soporte', tam:[19,21,23,25,27,29], g0:20, gs:1.9, e0:1.0, es:0.26},
+    {nombre:'Hemi HS-1',    tipo:'bio', fam:'Biológica con soporte', tam:[21,23,25,27,29],    g0:19, gs:1.8, e0:1.1, es:0.27},
+    {nombre:'Soporte BS-2',  tipo:'bio', fam:'Biológica con soporte', tam:[21,23,25,27],       g0:18, gs:1.7, e0:1.2, es:0.28},
+    {nombre:'Sin soporte SS-1', tipo:'bio', fam:'Biológica sin soporte', tam:[19,21,23,25,27], g0:13, gs:1.4, e0:1.3, es:0.30}
+  ];
+
+  var sel=null, draft=null, curM=null, showStrip=true;
+  function $(id){return document.getElementById(id);}
+  function fmt(n,d){return Number(n).toFixed(d==null?1:d).replace('.',',');}
+  function num(v){var x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:null;}
+
+  function valores(m,t){
+    var i=m.tam.indexOf(t);
+    var g=+(m.g0-m.gs*i).toFixed(1), e=+(m.e0+m.es*i).toFixed(1);
+    return {g:g,gSD:+(g*0.33).toFixed(1),e:e,eSD:+(e*0.28).toFixed(1)};
+  }
+  function pac(){
+    var w=num($('peso').value), h=num($('talla').value);
+    if(!w||!h) return null;
+    return {asc:Math.sqrt(w*h/3600), imc:w/Math.pow(h/100,2)};
+  }
+  function cortes(imc){return imc>=30?{mod:0.70,sev:0.55}:{mod:0.85,sev:0.65};}
+  function catPPM(eoai,imc){
+    var c=cortes(imc);
+    if(eoai<=c.sev) return {k:'sev',t:'mismatch grave predicho'};
+    if(eoai<=c.mod) return {k:'mod',t:'mismatch moderado predicho'};
+    return {k:'no',t:'sin mismatch predicho'};
+  }
+  function cortesTxt(imc){var c=cortes(imc);return 'IMC '+(imc>=30?'≥ 30':'< 30')+': moderado ≤ '+fmt(c.mod,2)+' · grave ≤ '+fmt(c.sev,2)+' cm²/m²';}
+
+  function actualizarPac(){
+    var p=pac();
+    $('pacRes').textContent=p?('ASC '+fmt(p.asc,2)+' m² (Mosteller) · IMC '+fmt(p.imc)+' kg/m²'):'Cargá peso y talla para calcular el ASC y el IMC.';
+  }
+
+  /* ---------- selector ---------- */
+  function tipoActual(){return $('morf').value;}
+  function modelosDelTipo(){return CAT.filter(function(m){return m.tipo===tipoActual();});}
+
+  function norm(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function showSug(){
+    var q=norm($('inpModelo').value.trim());
+    var ul=$('sug'); ul.innerHTML='';
+    if(!q){ul.hidden=true;return;}
+    var lst=modelosDelTipo().filter(function(m){
+      return (' '+norm(m.nombre).replace(/-/g,' ')).indexOf(' '+q)>-1;
+    }).sort(function(a,b){
+      var pa=norm(a.nombre).indexOf(q)===0?0:1, pb=norm(b.nombre).indexOf(q)===0?0:1;
+      return pa-pb||a.nombre.localeCompare(b.nombre,'es');
+    });
+    if(!lst.length){
+      var v=document.createElement('li'); v.className='vacio';
+      v.textContent='Sin coincidencias. Probá con «ver todos» o cargá los valores a mano.';
+      ul.appendChild(v); ul.hidden=false; return;
+    }
+    lst.forEach(function(m){
+      var li=document.createElement('li'), b=document.createElement('button');
+      b.type='button';
+      var n=m.nombre, nn=norm(n), k=(' '+nn.replace(/-/g,' ')).indexOf(' '+q);
+      if(nn.length===n.length&&k>-1){
+        b.appendChild(document.createTextNode(n.slice(0,k)));
+        var mk=document.createElement('mark'); mk.textContent=n.slice(k,k+q.length); b.appendChild(mk);
+        b.appendChild(document.createTextNode(n.slice(k+q.length)+' · '+m.fam));
+      }else{ b.textContent=n+' · '+m.fam; }
+      b.addEventListener('click',function(){pickModel(m);});
+      li.appendChild(b); ul.appendChild(li);
+    });
+    ul.hidden=false;
+  }
+  function fillTam(m,keep){
+    var s=$('selTam'); s.innerHTML='<option value="">—</option>';
+    if(!m){s.disabled=true;return;}
+    m.tam.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t+' mm';s.appendChild(o);});
+    s.disabled=false; s.value=keep||'';
+  }
+  function pickModel(m,t){
+    curM=m; $('inpModelo').value=m.nombre; $('sug').hidden=true;
+    fillTam(m,t); updateDraft();
+  }
+  function buildTodos(){
+    var box=$('todos'); box.innerHTML='';
+    var fams={};
+    modelosDelTipo().forEach(function(m){(fams[m.fam]=fams[m.fam]||[]).push(m);});
+    Object.keys(fams).forEach(function(f){
+      var h=document.createElement('h4'); h.textContent=f; box.appendChild(h);
+      fams[f].forEach(function(m){
+        var d=document.createElement('div'); d.className='mod';
+        var n=document.createElement('div'); n.className='mn'; n.textContent=m.nombre; d.appendChild(n);
+        var r=document.createElement('div'); r.className='szs';
+        m.tam.forEach(function(t){
+          var b=document.createElement('button'); b.type='button'; b.className='sz'; b.textContent=t;
+          b.setAttribute('aria-label',m.nombre+' '+t+' milímetros');
+          b.addEventListener('click',function(){pickModel(m,String(t));});
+          r.appendChild(b);
+        });
+        d.appendChild(r); box.appendChild(d);
+      });
+    });
+  }
+
+  function manualAbierto(){return !$('manual').hidden;}
+  function updateDraft(){
+    draft=null;
+    if(manualAbierto()){
+      var g=num($('mG').value), e=num($('mE').value);
+      if(g!=null&&e!=null){
+        draft={manual:true,nombre:$('mNom').value.trim()||'Referencia manual',tam:num($('mTam').value),g:g,gSD:num($('mGs').value),e:e,eSD:num($('mEs').value)};
+      }
+    }else if(curM&&$('selTam').value){
+      var t=parseInt($('selTam').value,10), v=valores(curM,t);
+      draft={manual:false,nombre:curM.nombre,fam:curM.fam,tam:t,g:v.g,gSD:v.gSD,e:v.e,eSD:v.eSD};
+    }
+    renderExp(); $('btnElegir').disabled=!draft;
+  }
+
+  function expHTML(d){
+    var p=pac();
+    var h='<div class="exp-g">'+
+      '<div><span>Gradiente medio esperado</span><b>'+fmt(d.g)+(d.gSD!=null?' ± '+fmt(d.gSD):'')+' mmHg</b></div>'+
+      '<div><span>EOA esperada</span><b>'+fmt(d.e)+(d.eSD!=null?' ± '+fmt(d.eSD):'')+' cm²</b></div>';
+    if(p){
+      var eoai=d.e/p.asc, c=catPPM(eoai,p.imc);
+      h+='<div><span>EOA indexada predicha (ASC '+fmt(p.asc,2)+' m²)</span><b>'+fmt(eoai,2)+' cm²/m²</b></div>'+
+         '<div class="cat '+c.k+'"><span>'+cortesTxt(p.imc)+'</span><b>'+c.t+'</b></div>';
+    }else{
+      h+='<div><span>EOA indexada predicha</span><b>falta peso y talla</b></div>';
+    }
+    h+='</div><p class="note">'+(d.manual?'Valores cargados por el médico: figuran como referencia manual.':'Valores ficticios de demostración. Acá va la cita de la tabla (hoja y folio) y si el valor es de pacientes o del fabricante.')+'</p>';
+    return h;
+  }
+  function renderExp(){
+    var box=$('exp');
+    if(!draft){box.hidden=true;box.innerHTML='';return;}
+    box.innerHTML=expHTML(draft); box.hidden=false;
+  }
+
+  /* ---------- datos esperados en la misma fila del modelo ---------- */
+  function chip(l,v,cls){return '<span class="chip '+(cls||'')+'"><b>'+l+'</b>'+v+'</span>';}
+  function dsTxt(z){return (z>=0?'+':'−')+fmt(Math.abs(z))+' DE';}
+  function tamTxt(){return sel.tam!=null?' · '+fmt(sel.tam,sel.manual?1:0).replace(/,0$/,'')+' mm':'';}
+  function renderStrip(){
+    var b=$('btnModelo');
+    b.textContent=sel?(sel.nombre+tamTxt()+' ▾'):'Modelo y tamaño';
+    b.setAttribute('aria-label',sel?('Modelo y tamaño: '+sel.nombre+tamTxt()):'Modelo y tamaño');
+    $('btnQuitar').hidden=!sel;
+    var inl=$('inl'), sub=$('sub'), med=$('medrow');
+    if(!sel||$('anchor').hidden){inl.hidden=true;sub.hidden=true;med.hidden=true;$('btnVer').hidden=true;return;}
+    $('btnVer').hidden=showStrip;
+    inl.hidden=!showStrip; sub.hidden=!showStrip;
+    if(!showStrip){med.hidden=true;return;}
+    var p=pac();
+    var h=chip('G. medio esperado',fmt(sel.g)+(sel.gSD!=null?' ± '+fmt(sel.gSD):'')+' mmHg','sm')+
+          chip('EOA esperada',fmt(sel.e)+(sel.eSD!=null?' ± '+fmt(sel.eSD):'')+' cm²','sm');
+    if(p){
+      var eoai=sel.e/p.asc, c=catPPM(eoai,p.imc);
+      h+=chip('EOA indexada predicha',fmt(eoai,2)+' cm²/m² · <em>'+c.t.replace(' predicho','')+'</em>','sm '+c.k);
+    }
+    inl.innerHTML=h;
+    var tx=(sel.manual?'Referencia manual · ':(sel.fam+' · '))+
+      (p?('ASC '+fmt(p.asc,2)+' m² · IMC '+fmt(p.imc)+' kg/m² · cortes con '+cortesTxt(p.imc)):'Falta peso y talla para indexar.');
+    sub.innerHTML='<span></span><button class="mini" id="btnOcultar" type="button">Ocultar</button>';
+    sub.firstChild.textContent=tx;
+    var mg=num($('medG').value), ma=num($('medA').value), m='';
+    if(mg!=null) m+=chip('Gradiente medio medido',fmt(mg)+' mmHg'+(sel.gSD?' · '+dsTxt((mg-sel.g)/sel.gSD)+' respecto del esperado':''),'sm');
+    if(ma!=null){
+      m+=chip('AVA medida',fmt(ma,2)+' cm²'+(sel.eSD?' · '+dsTxt((ma-sel.e)/sel.eSD)+' respecto del esperado':''),'sm');
+      if(p) m+=chip('EOA indexada medida',fmt(ma/p.asc,2)+' cm²/m²','sm');
+    }
+    med.hidden=!m;
+    med.innerHTML=m?('<span class="lbl2">Medido en este estudio</span>'+m):'';
+    var o=$('btnOcultar'); if(o) o.addEventListener('click',function(){showStrip=false;renderStrip();});
+  }
+
+  /* ---------- abrir, cerrar, reiniciar ---------- */
+  function abrir(){
+    $('pop').hidden=false; $('btnModelo').setAttribute('aria-expanded','true');
+    buildTodos(); updateDraft(); $('sug').hidden=true;
+    if(window.innerWidth>900) $('inpModelo').focus({preventScroll:true});
+  }
+  function cerrar(){
+    $('pop').hidden=true; $('btnModelo').setAttribute('aria-expanded','false'); $('sug').hidden=true;
+  }
+  function resetPop(){
+    curM=null; draft=null;
+    $('inpModelo').value=''; fillTam(null);
+    ['mNom','mTam','mG','mGs','mE','mEs'].forEach(function(i){$(i).value='';});
+    $('manual').hidden=true; $('btnManual').setAttribute('aria-expanded','false');
+    $('todos').hidden=true; $('btnTodos').setAttribute('aria-expanded','false');
+    renderExp(); $('btnElegir').disabled=true;
+  }
+
+  $('morf').addEventListener('change',function(){
+    var t=tipoActual(), prot=(t==='mec'||t==='bio');
+    $('anchor').hidden=!prot;
+    if(!prot||(sel&&sel.tipo!==t)) sel=null;
+    cerrar(); resetPop(); showStrip=true; renderStrip();
+  });
+  $('btnModelo').addEventListener('click',function(){ if($('pop').hidden) abrir(); else cerrar(); });
+  $('popX').addEventListener('click',function(){cerrar();$('btnModelo').focus();});
+  $('btnVer').addEventListener('click',function(){showStrip=true;renderStrip();});
+  $('inpModelo').addEventListener('input',function(){
+    var q=$('inpModelo').value.trim().toLowerCase();
+    var ex=modelosDelTipo().filter(function(m){return m.nombre.toLowerCase()===q;})[0];
+    if(ex){curM=ex;fillTam(ex);}else{curM=null;fillTam(null);}
+    showSug(); updateDraft();
+  });
+  $('inpModelo').addEventListener('click',showSug);
+  $('selTam').addEventListener('change',updateDraft);
+  $('btnTodos').addEventListener('click',function(){
+    var open=$('todos').hidden; $('todos').hidden=!open; $('btnTodos').setAttribute('aria-expanded',String(open));
+  });
+  $('btnManual').addEventListener('click',function(){
+    var open=$('manual').hidden; $('manual').hidden=!open; $('btnManual').setAttribute('aria-expanded',String(open));
+    updateDraft();
+  });
+  ['mNom','mTam','mG','mGs','mE','mEs'].forEach(function(i){$(i).addEventListener('input',updateDraft);});
+  $('btnElegir').addEventListener('click',function(){
+    if(!draft) return;
+    sel=Object.assign({tipo:tipoActual()},draft); showStrip=true;
+    cerrar(); renderStrip(); $('btnModelo').focus();
+  });
+  $('btnQuitar').addEventListener('click',function(){sel=null;resetPop();cerrar();renderStrip();});
+
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!$('pop').hidden){cerrar();$('btnModelo').focus();} });
+  document.addEventListener('click',function(e){
+    if(!$('sug').hidden&&!$('sug').contains(e.target)&&e.target!==$('inpModelo')) $('sug').hidden=true;
+    if($('pop').hidden) return;
+    if($('pop').contains(e.target)||$('btnModelo').contains(e.target)) return;
+    cerrar();
+  });
+
+  ['peso','talla'].forEach(function(i){$(i).addEventListener('input',function(){actualizarPac();renderExp();renderStrip();});});
+  ['medG','medA'].forEach(function(i){$(i).addEventListener('input',renderStrip);});
+  $('q1').addEventListener('click',function(){$('peso').value='105';$('talla').value='170';actualizarPac();renderExp();renderStrip();});
+  $('q0').addEventListener('click',function(){$('peso').value='75';$('talla').value='175';actualizarPac();renderExp();renderStrip();});
+
+  $('tema').addEventListener('click',function(){
+    var r=document.documentElement, cur=r.getAttribute('data-theme');
+    if(!cur) cur=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  });
+
+  actualizarPac(); renderStrip();
+})();
+</script>
+</body>
+</html>

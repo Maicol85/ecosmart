@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo EcoSmart — Armado de las hojas de diagramas del PDF</title>
+<style>
+:root{--bg:#ffffff;--s1:#f5f5f2;--s2:#e9e9e4;--tp:#1d1d1b;--ts:#55554f;--tm:#85857e;--acc:#185fa5;--bacc:#e6f1fb;--bdr:rgba(0,0,0,.16);--bdr2:rgba(0,0,0,.34);--warn:#854f0b;--bwarn:#faeeda;--page:#ffffff;--bar:#1f3a5f;--vi:#2a7f3f;--ete:#185fa5;--cc:#a0522d}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1c1a;--s1:#2a2a27;--s2:#363632;--tp:#f1f1ed;--ts:#b5b5ae;--tm:#8a8a83;--acc:#85b7eb;--bacc:#0c447c;--bdr:rgba(255,255,255,.16);--bdr2:rgba(255,255,255,.34);--warn:#ef9f27;--bwarn:#412402;--page:#262624;--bar:#3b5b8a;--vi:#6fcf86;--ete:#85b7eb;--cc:#e0a47c}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+body{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:17px;font-weight:600;margin:0 0 4px}
+p.lead{margin:0 0 12px;color:var(--ts);font-size:13px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.layout{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--s1);border-radius:10px;padding:12px}
+.panel h2{font-size:13px;font-weight:600;margin:0 0 6px}
+.chk{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px}
+.chk input{width:16px;height:16px}
+.fam{font-size:11px;font-weight:600;margin:8px 0 2px;color:var(--ts);text-transform:uppercase;letter-spacing:.04em}
+.pre{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+button{font:inherit;font-size:12px;color:var(--tp);background:var(--bg);border:0.5px solid var(--bdr2);border-radius:8px;padding:5px 9px;cursor:pointer}
+button:hover{background:var(--s2)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.sum{font-size:13px;margin:0 0 10px;padding:8px 10px;background:var(--bacc);color:var(--acc);border-radius:8px}
+.warn{font-size:12px;margin:0 0 10px;padding:8px 10px;background:var(--bwarn);color:var(--warn);border-radius:8px}
+.pages{display:flex;flex-wrap:wrap;gap:14px}
+.pg{width:252px;height:356px;background:var(--page);border:0.5px solid var(--bdr2);border-radius:4px;padding:8px;display:flex;flex-direction:column}
+.pgh{font-size:9px;color:var(--tm);margin:0 0 4px;display:flex;justify-content:space-between}
+.grid{flex:1;display:grid;grid-template-rows:repeat(6,1fr);gap:4px;min-height:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:4px;min-height:0}
+.row.full{grid-template-columns:1fr}
+.dg{border:0.5px solid var(--bdr2);border-radius:4px;padding:4px 5px;overflow:hidden;display:flex;flex-direction:column;gap:2px;border-left-width:3px;background:var(--s1);min-width:0}
+.dg.vi{border-left-color:var(--vi)}.dg.ete{border-left-color:var(--ete)}.dg.cc{border-left-color:var(--cc)}.dg.img{border-left-color:var(--tm)}
+.dg b{font-size:9px;line-height:1.2}
+.dg i{font-style:normal;font-size:8px;color:var(--ts);line-height:1.25}
+.ph{flex:1;min-height:8px;border-radius:3px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--tm)}
+.sec{border:0.5px solid var(--bdr2);border-radius:4px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.sech{background:var(--bar);color:#fff;font-size:8.5px;font-weight:600;padding:2px 5px}
+.secb{padding:3px 5px;font-size:8px;color:var(--ts);line-height:1.3}
+.sec .dg{margin:0 5px 5px;flex:1}
+.empty{font-size:12px;color:var(--tm);padding:20px 0}
+.rules{margin:14px 0 0;font-size:12px;color:var(--ts)}
+.rules li{margin:2px 0}
+</style>
+</head>
+<body>
+<h1>Armado de las hojas de diagramas del PDF</h1>
+<p class="lead">Cada hoja tiene tres franjas (tercios). Marcá los diagramas que incluirías y mirá cómo se acomodan. Los dibujos son marcadores de lugar y los textos de cada diagrama son de ejemplo.</p>
+<div class="layout">
+  <div class="panel">
+    <h2>Diagramas incluidos</h2>
+    <div class="pre" id="pre"></div>
+    <div id="chks"></div>
+    <div class="fam">Capturas del ecógrafo y fotos</div>
+    <label class="chk"><span>Cantidad</span> <select id="nimg"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+    <div class="fam">Texto del informe</div>
+    <label class="chk"><input type="checkbox" id="sec"> Cardiopatías congénitas (texto de CIA y coartación)</label>
+  </div>
+  <div>
+    <p class="sum" id="sum"></p>
+    <p class="warn" id="wrn" hidden></p>
+    <div class="pages" id="pages"></div>
+    <ul class="rules">
+      <li>Contractilidad y SGL van siempre primero, juntos, a todo el ancho de una franja.</li>
+      <li>Después van los demás diagramas, de a dos por franja.</li>
+      <li>Las capturas del ecógrafo y las fotos van después de todos los diagramas, de a dos por franja, en el orden elegido; si quedó lugar en la última hoja de diagramas, siguen ahí.</li>
+      <li>Los demás ocupan media franja y se acomodan de a dos; solo se separa la pareja que no debe ir junta (jet post-TAVI con bicúspide).</li>
+      <li>El texto de «Cardiopatías congénitas» empieza hoja propia, y el diagrama de la CIA va debajo de ese texto.</li>
+      <li>Si no entra, sigue en otra hoja: nunca se corta un diagrama.</li>
+    </ul>
+  </div>
+</div>
+<script>
+var DG={
+ contr:{n:'Contractilidad + SGL',w:2,f:'vi',cap:'Hipoquinesia inferoseptal · SGL global −15 %'},
+ c3d:{n:'Contractilidad 3D',w:1,f:'vi',cap:'Vista 3D con los segmentos'},
+ mitral:{n:'Mitral — vista quirúrgica',w:1,f:'ete',cap:'Insuficiencia mitral · mecanismo flail · severa · segmento A2'},
+ oai:{n:'Orejuela izquierda',w:1,f:'ete',cap:'Ostium 25 mm · prof. 33 mm · 32 cm/s · trombo'},
+ bicus:{n:'Válvula aórtica bicúspide',w:1,f:'ete',cap:'Fenotipo R-L · rafe calcificado · sin estenosis'},
+ tavi:{n:'Jet paravalvular post-TAVI',w:1,f:'ete',cap:'Horas comprometidas: 2, 3 y 4'},
+ fop:{n:'Foramen oval permeable',w:1,f:'ete',cap:'Con burbujas · paso de grado 2'},
+ cia:{n:'CIA — bordes',w:1,f:'cc',cap:'Ostium secundum 8 × 6 mm · borde mínimo 4 mm (VCS)'}
+};
+var ORDER=['contr','c3d','mitral','tavi','bicus','oai','fop','cia'];
+var FAMN={vi:'Función del VI',ete:'ETE y valvulares',cc:'Congénitas'};
+var EXC=[['tavi','bicus']];
+var PRESETS=[
+ {n:'Mi estudio de prueba',ids:['contr','cia','tavi','mitral','oai'],sec:true,img:0},
+ {n:'Mi estudio + 4 capturas',ids:['contr','cia','tavi','mitral','oai'],sec:true,img:4},
+ {n:'ETE completo',ids:['mitral','oai','bicus','fop'],sec:false,img:0},
+ {n:'TAVI y mitral + 6 capturas',ids:['tavi','mitral'],sec:false,img:6},
+ {n:'Todo + 8 capturas',ids:ORDER,sec:true,img:8},
+ {n:'Solo 5 capturas',ids:[],sec:false,img:5}
+];
+function excl(a,b){return EXC.some(function(p){return (p[0]===a&&p[1]===b)||(p[1]===a&&p[0]===b);});}
+function pack(sel,secOn,nImgs){
+  var attached=secOn&&sel.indexOf('cia')>=0;
+  var items=[],notes=[];
+  var free=ORDER.filter(function(id){return sel.indexOf(id)>=0&&!(id==='cia'&&attached);});
+  var halves=free.filter(function(id){return DG[id].w===1;});
+  var fulls=free.filter(function(id){return DG[id].w===2;});
+  fulls.forEach(function(id){items.push({t:'row',h:2,ids:[id],full:true});});
+  var used={};
+  halves.forEach(function(a){
+    if(used[a])return;used[a]=1;var b=null;
+    for(var i=0;i<halves.length;i++){var x=halves[i];if(used[x]||x===a)continue;if(excl(a,x)){notes.push(DG[a].n+' y '+DG[x].n+' no van juntos: quedan en franjas distintas.');continue;}b=x;break;}
+    if(b)used[b]=1;
+    items.push({t:'row',h:2,ids:b?[a,b]:[a],full:false});
+  });
+  if(secOn){items.push({t:'sec',h:attached?3:1,cia:attached,newPage:true});}
+  nImgs=nImgs||0;
+  for(var k=1;k<=nImgs;k+=2){items.push({t:'img',h:2,ids:k+1<=nImgs?[k,k+1]:[k],first:k===1});}
+  var pages=[],cur=null,left=0;
+  items.forEach(function(it){
+    if(!cur||left<it.h||(it.newPage&&cur.length)){cur=[];pages.push(cur);left=6;}
+    cur.push(it);left-=it.h;
+  });
+  var seen={};notes=notes.filter(function(n){if(seen[n])return false;seen[n]=1;return true;});
+  return {pages:pages,notes:notes,count:sel.length};
+}
+function imgHtml(k,first){
+  return '<div class="dg img"><b>'+(first?'IMÁGENES DEL ESTUDIO · ':'')+'Captura '+k+'</b><div class="ph">captura o foto</div><i>en el orden elegido en la fila de miniaturas</i></div>';
+}
+function dgHtml(id){
+  var d=DG[id];
+  return '<div class="dg '+d.f+'"><b>'+d.n+'</b><div class="ph">dibujo</div><i>'+d.cap+'</i></div>';
+}
+function render(){
+  var sel=ORDER.filter(function(id){return document.getElementById('c_'+id).checked;});
+  var secOn=document.getElementById('sec').checked;
+  var nImgs=parseInt(document.getElementById('nimg').value,10)||0;
+  var r=pack(sel,secOn,nImgs);
+  var out='';
+  r.pages.forEach(function(p,i){
+    var cells='';
+    p.forEach(function(it){
+      if(it.t==='sec'){
+        cells+='<div class="sec" style="grid-row:span '+it.h+'"><div class="sech">CARDIOPATÍAS CONGÉNITAS</div><div class="secb">CIA tipo ostium secundum. Tamaño 8 × 6 mm.<br>Coartación de aorta. Gradiente medio 25 mmHg.</div>'+(it.cia?dgHtml('cia'):'')+'</div>';
+      }else if(it.t==='img'){
+        cells+='<div class="row" style="grid-row:span '+it.h+'">'+it.ids.map(function(k,j){return imgHtml(k,it.first&&j===0);}).join('')+'</div>';
+      }else{
+        cells+='<div class="row'+(it.full?' full':'')+'" style="grid-row:span '+it.h+'">'+it.ids.map(dgHtml).join('')+'</div>';
+      }
+    });
+    out+='<div class="pg" role="group" aria-label="Hoja '+(i+1)+'"><div class="pgh"><span>Hoja '+(i+1)+'</span><span>tres franjas</span></div><div class="grid">'+cells+'</div></div>';
+  });
+  document.getElementById('pages').innerHTML=out||'<div class="empty">Marcá al menos un diagrama.</div>';
+  var n=sel.length+(secOn?0:0);
+  document.getElementById('sum').textContent=sel.length+' diagrama'+(sel.length===1?'':'s')+(nImgs?' y '+nImgs+' captura'+(nImgs===1?'':'s'):'')+' en '+r.pages.length+' hoja'+(r.pages.length===1?'':'s')+'.';
+  var w=document.getElementById('wrn');
+  if(r.notes.length){w.hidden=false;w.textContent=r.notes.join(' ');}else{w.hidden=true;w.textContent='';}
+}
+(function init(){
+  var pre=document.getElementById('pre');
+  PRESETS.forEach(function(p){
+    var b=document.createElement('button');b.type='button';b.textContent=p.n;
+    b.addEventListener('click',function(){
+      ORDER.forEach(function(id){document.getElementById('c_'+id).checked=p.ids.indexOf(id)>=0;});
+      document.getElementById('sec').checked=p.sec;document.getElementById('nimg').value=String(p.img||0);render();
+    });
+    pre.appendChild(b);
+  });
+  var h='',last='';
+  ORDER.forEach(function(id){
+    var d=DG[id];
+    if(d.f!==last){h+='<div class="fam">'+FAMN[d.f]+'</div>';last=d.f;}
+    h+='<label class="chk"><input type="checkbox" id="c_'+id+'"> '+d.n+'</label>';
+  });
+  document.getElementById('chks').innerHTML=h;
+  ORDER.forEach(function(id){document.getElementById('c_'+id).addEventListener('change',render);});
+  document.getElementById('sec').addEventListener('change',render);
+  document.getElementById('nimg').addEventListener('change',render);
+  PRESETS[0].ids.forEach(function(id){document.getElementById('c_'+id).checked=true;});
+  document.getElementById('sec').checked=true;
+  document.getElementById('nimg').value='0';
+  render();
+})();
+</script>
+</body>
+</html>

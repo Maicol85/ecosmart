@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo — rasgos sistémicos de Marfan sobre una figura (v1)</title>
+<style>
+:root{--bg:#ffffff;--s1:#f5f5f2;--s2:#e9e9e4;--tp:#1d1d1b;--ts:#55554f;--tm:#85857e;--acc:#185fa5;--bdr:rgba(0,0,0,.16);--bdr2:rgba(0,0,0,.34);--new:#0f6e56;--bnew:#e1f5ee;--warn:#854f0b;--bwarn:#faeeda;--red:#a32d2d;--bred:#fcebeb;--fg:#f7f9fc}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1c1a;--s1:#2a2a27;--s2:#363632;--tp:#f1f1ed;--ts:#b5b5ae;--tm:#8a8a83;--acc:#85b7eb;--bdr:rgba(255,255,255,.16);--bdr2:rgba(255,255,255,.34);--new:#5dcaa5;--bnew:#04342c;--warn:#ef9f27;--bwarn:#412402;--red:#f09595;--bred:#501313;--fg:#232826}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
+body{max-width:1100px;margin:0 auto;padding:14px}
+h1{font-size:16px;margin:0 0 6px;font-weight:600}
+.aviso{font-size:12.5px;background:var(--bred);color:var(--red);border-radius:8px;padding:8px 10px;margin:0 0 8px;font-weight:600}
+.note{font-size:12.5px;background:var(--bnew);color:var(--new);border-radius:8px;padding:8px 10px;margin:0 0 12px}
+.wrap{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:14px;align-items:start}
+@media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--s1);border:.5px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.card h2{font-size:12px;margin:0 0 8px;color:var(--acc);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fgbox{background:var(--fg);border:.5px solid var(--bdr);border-radius:8px;padding:6px;text-align:center;position:sticky;top:8px}
+.fgbox svg{width:100%;max-width:340px;height:auto;display:inline-block}
+.leg2{font-size:11.5px;color:var(--ts);margin-top:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 8px;vertical-align:-1px}
+.grp{border-top:.5px solid var(--bdr);padding:8px 0}
+.grp:first-of-type{border-top:0}
+.gt{font-size:12.5px;font-weight:600;margin:0 0 4px}
+.gz{font-size:11px;color:var(--tm);font-weight:400}
+label.o{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:5px 6px;margin:0 -6px;border-radius:6px;cursor:pointer;min-height:34px}
+label.o:hover{background:var(--s2)}
+label.o input{width:17px;height:17px;margin:1px 0 0;flex:none;accent-color:#0f6e56}
+label.o .p{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ts);font-size:12px;white-space:nowrap;padding-left:8px}
+.sc{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sc b{font-size:26px;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:14px;background:var(--s2);border-radius:7px;margin:8px 0 4px;overflow:visible}
+.bar i{display:block;height:100%;border-radius:7px;background:#1d9e75;transition:width .25s}
+.bar u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--tp);left:35%}
+.bl{display:flex;justify-content:space-between;font-size:11px;color:var(--ts)}
+.ver{font-size:13px;margin-top:6px}
+.rg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{font:inherit;font-size:13px;color:var(--tp);background:var(--bg);border:.5px solid var(--bdr2);border-radius:6px;padding:6px 10px;cursor:pointer;min-height:36px}
+button:hover{background:var(--s2)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.hint{font-size:11.5px;color:var(--ts);margin:6px 0 0}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.35}}
+.pulse{animation:pl 1s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}.bar i{transition:none}}
+</style>
+</head>
+<body>
+<h1>Rasgos sistémicos de Marfan sobre una figura (demo)</h1>
+<p class="aviso">Esquema educativo. No es una herramienta diagnóstica ni un test: muestra a qué parte del cuerpo corresponde cada rasgo del puntaje sistémico y suma los puntos.</p>
+<p class="note">Los puntos y las alternativas salen de la nosología de Ghent revisada (Loeys 2010), tal como los transcribió Cowork del artículo; conviene verificarlos contra el original antes de pasarlos a la app. Las siete reglas diagnósticas completas (con raíz aórtica, ectopia lentis, FBN1 e historia familiar) no están en esta demo: quedan en la tarjeta de criterios corregida. La figura es un maniquí neutro y los cambios de forma son sutiles a propósito.</p>
+
+<div class="wrap">
+  <div>
+    <div class="fgbox" id="fgbox">
+      <svg id="svg" viewBox="0 0 300 710" role="img" aria-label="Figura humana esquemática con los rasgos marcados">
+
+<defs>
+<linearGradient id="gB" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#b3c1d5"/><stop offset=".42" stop-color="#e9eef5"/><stop offset="1" stop-color="#aebdd2"/></linearGradient>
+</defs>
+<g id="fig">
+ <path d="M138 98 C138 114 137 124 131 133 L169 133 C163 124 162 114 162 98 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+ <path id="tFill" d="M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C200 252 205 228 207 202 C208 190 212 178 215 162 C216 152 212 144 204 140 C190 133 170 129 159 124 Z" fill="url(#gB)" stroke="none"/>
+ <path id="tL" d="M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334" fill="none" stroke="#8da0b8" stroke-width="1"/>
+ <path id="tR" d="M159 124 C170 129 190 133 204 140 C212 144 216 152 215 162 C212 178 208 190 207 202 C205 228 200 252 199 272 C201 294 210 314 212 334" fill="none" stroke="#8da0b8" stroke-width="1"/>
+ <g class="legL">
+<g class="leg">
+  <path d="M96 336 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636 L127 636 C127 612 128 586 130 560 C132 536 134 515 138 498 C142 470 146 420 152 358 L152 346 C130 346 108 344 96 336 Z" fill="url(#gB)" stroke="none"/>
+  <path d="M96 338 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+  <path d="M152 358 C146 420 142 470 138 498 C134 515 132 536 130 560 C128 586 127 612 127 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+  <g class="foot"><path class="footp" d="M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/></g>
+  <path d="M110 500 C116 508 130 508 137 500" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".7"/>
+</g></g>
+ <g transform="translate(300 0) scale(-1 1)" class="legR">
+<g class="leg">
+  <path d="M96 336 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636 L127 636 C127 612 128 586 130 560 C132 536 134 515 138 498 C142 470 146 420 152 358 L152 346 C130 346 108 344 96 336 Z" fill="url(#gB)" stroke="none"/>
+  <path d="M96 338 C91 380 94 430 103 468 C108 488 110 500 108 512 C105 532 102 552 105 574 C108 596 112 616 112 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+  <path d="M152 358 C146 420 142 470 138 498 C134 515 132 536 130 560 C128 586 127 612 127 636" fill="none" stroke="#8da0b8" stroke-width="1"/>
+  <g class="foot"><path class="footp" d="M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/></g>
+  <path d="M110 500 C116 508 130 508 137 500" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".7"/>
+</g></g>
+ <path d="M141 130 C128 134 113 140 100 147" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".8"/>
+ <path d="M159 130 C172 134 187 140 200 147" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".8"/>
+ <path d="M150 134 L150 232" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".5"/>
+ <path d="M110 190 C124 204 142 206 150 200 C158 206 176 204 190 190" fill="none" stroke="#9db0c8" stroke-width="1" opacity=".55"/>
+ <circle cx="150" cy="282" r="1.8" fill="#9db0c8"/>
+ <g class="armL">
+<g class="arm">
+  <path d="M100 142 C86 140 70 148 68 166 C64 190 61 230 62 258 C62 268 66 273 75 273 C84 273 89 268 89 258 C89 230 94 196 99 176 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+  <g class="fore">
+    <path d="M62 260 C60 292 58 326 60 352 C62 359 75 359 77 352 C80 326 89 292 89 260 C89 251 62 251 62 260 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+    <g class="hand">
+      <path d="M59 352 C55 362 54 374 56 386 L80 386 C82 374 80 362 77 352 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+      <g class="fing">
+        <rect x="57" y="383" width="6" height="40" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="64" y="383" width="6" height="45" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="71" y="383" width="6" height="41" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="77.5" y="383" width="5.5" height="32" rx="2.8" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+      </g>
+      <g class="thumb"><path d="M57 366 C51 376 46 388 45 398 C45 404 52 405 53 399 C55 390 58 382 62 374 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/></g>
+    </g>
+  </g>
+</g></g>
+ <g transform="translate(300 0) scale(-1 1)" class="armR">
+<g class="arm">
+  <path d="M100 142 C86 140 70 148 68 166 C64 190 61 230 62 258 C62 268 66 273 75 273 C84 273 89 268 89 258 C89 230 94 196 99 176 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+  <g class="fore">
+    <path d="M62 260 C60 292 58 326 60 352 C62 359 75 359 77 352 C80 326 89 292 89 260 C89 251 62 251 62 260 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+    <g class="hand">
+      <path d="M59 352 C55 362 54 374 56 386 L80 386 C82 374 80 362 77 352 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+      <g class="fing">
+        <rect x="57" y="383" width="6" height="40" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="64" y="383" width="6" height="45" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="71" y="383" width="6" height="41" rx="3" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+        <rect x="77.5" y="383" width="5.5" height="32" rx="2.8" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/>
+      </g>
+      <g class="thumb"><path d="M57 366 C51 376 46 388 45 398 C45 404 52 405 53 399 C55 390 58 382 62 374 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width=".9"/></g>
+    </g>
+  </g>
+</g></g>
+ <ellipse cx="119" cy="80" rx="5" ry="10" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+ <ellipse cx="181" cy="80" rx="5" ry="10" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+ <path d="M150 31 C177 31 185 56 183 78 C181 101 169 115 150 115 C131 115 119 101 117 78 C115 56 123 31 150 31 Z" fill="url(#gB)" stroke="#8da0b8" stroke-width="1"/>
+</g>
+        <g id="mk"></g>
+      </svg>
+    </div>
+    <label class="o" style="margin-top:6px"><input type="checkbox" id="gh"> Superponer la figura de referencia (línea punteada)</label>
+    <div class="leg2"><span class="sw" style="background:#1d9e75"></span>rasgo del puntaje<span class="sw" style="background:#e0a21b"></span>criterio aparte (no suma al puntaje)<span class="sw" style="background:#f1a1b6"></span>corazón (referencia)<span class="sw" style="background:#5aaee6"></span>deformidad del tórax<br>Línea punteada: estructura interna. Con muchas marcas a la vez, los colores se hacen más suaves.</div>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2>Puntaje sistémico</h2>
+      <div class="sc"><b id="tot">0</b><span>de 20 puntos</span></div>
+      <div class="bar"><i id="fill" style="width:0%"></i><u></u></div>
+      <div class="bl"><span>0</span><span style="margin-left:22%">7</span><span>20</span></div>
+      <div class="ver" id="ver"></div>
+      <div class="rg"><button type="button" id="ejem">Cargar un ejemplo</button><button type="button" id="lim">Limpiar todo</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Rasgos del puntaje</h2>
+      <div id="lista"></div>
+      <p class="hint">Pasá el mouse o tocá un rasgo para ver su zona en la figura. Dentro de cada rasgo con alternativas se elige una sola.</p>
+    </section>
+
+    <section class="card">
+      <h2>Criterios aparte (no suman al puntaje)</h2>
+      <div id="card2"></div>
+      <p class="hint">Estos criterios se combinan con el puntaje en las reglas diagnósticas del artículo.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var T='#0f6e56',TF='#1d9e75',A='#c98a0a',AF='#e0a21b';
+/* ---------- datos ---------- */
+var RAD=[
+ {k:'mun',t:'Signo de la muñeca y del pulgar',z:'mano',o:[[0,'Ninguno',0],[1,'Solo uno de los dos',1],[3,'Los dos',3]]},
+ {k:'pecho',t:'Deformidad del tórax (pectus)',z:'tórax',o:[[0,'Ninguna',0],['car','Pectus carinatum',2],['exc','Pectus excavatum o asimetría del tórax',1]]},
+ {k:'pie',t:'Pie',z:'pie',o:[[0,'Ninguna',0],['ret','Deformidad del retropié',2],['pla','Pie plano sin deformidad del retropié',1]]}
+];
+var CHK=[
+ {k:'neumo',t:'Neumotórax',z:'pulmón',p:2},
+ {k:'dural',t:'Ectasia dural',z:'columna lumbar',p:2},
+ {k:'protr',t:'Protrusión acetabular',z:'cadera',p:2},
+ {k:'prop',t:'Proporciones del cuerpo: segmento superior sobre inferior reducido y envergadura sobre talla aumentada, sin escoliosis grave',z:'cuerpo',p:1},
+ {k:'escol',t:'Escoliosis o cifosis toracolumbar',z:'columna',p:1},
+ {k:'codo',t:'Extensión reducida del codo',z:'codo',p:1},
+ {k:'cara',t:'Rasgos faciales (3 de 5)',z:'cara',p:1},
+ {k:'estr',t:'Estrías cutáneas',z:'piel',p:1},
+ {k:'miop',t:'Miopía de más de 3 dioptrías',z:'ojo',p:1},
+ {k:'mvp',t:'Prolapso de la válvula mitral',z:'corazón',p:1}
+];
+var CARD=[
+ {k:'ect',t:'Ectopia lentis',z:'ojo'},
+ {k:'raiz',t:'Dilatación o disección de la raíz aórtica',z:'raíz aórtica'},
+ {k:'fbn1',t:'Variante de FBN1 identificada',z:''},
+ {k:'hf',t:'Historia familiar (un familiar con el diagnóstico establecido por separado)',z:''}
+];
+var S={neumoLado:'D',mun:0,pecho:0,pie:0,neumo:0,dural:0,protr:0,prop:0,escol:0,codo:0,cara:0,estr:0,miop:0,mvp:0,ect:0,raiz:0,fbn1:0,hf:0};
+var hov=null;
+(function(){
+  var ns='http://www.w3.org/2000/svg',g=document.createElementNS(ns,'g');
+  g.setAttribute('id','ghost');g.setAttribute('style','display:none');g.setAttribute('pointer-events','none');
+  var c=$('fig').cloneNode(true);
+  Array.prototype.slice.call(c.querySelectorAll('*')).forEach(function(e){
+    if(e.getAttribute('stroke')==='none'){e.parentNode.removeChild(e);return;}
+    e.removeAttribute('id');e.removeAttribute('class');
+    if(/^(path|ellipse|rect|circle)$/.test(e.tagName)){e.setAttribute('fill','none');e.setAttribute('stroke','#7a869a');e.setAttribute('stroke-width','1');e.setAttribute('stroke-dasharray','3 3');}
+  });
+  c.removeAttribute('id');g.appendChild(c);
+  $('svg').insertBefore(g,$('mk'));
+  $('gh').addEventListener('change',function(){g.setAttribute('style',$('gh').checked?'':'display:none');});
+})();
+
+/* ---------- lista ---------- */
+function build(){
+  var h='';
+  RAD.forEach(function(g){
+    h+='<div class="grp" data-k="'+g.k+'"><p class="gt">'+g.t+' <span class="gz">· '+g.z+'</span></p>';
+    g.o.forEach(function(o,i){
+      h+='<label class="o"><input type="radio" name="'+g.k+'" data-k="'+g.k+'" value="'+o[0]+'"'+(String(S[g.k])===String(o[0])?' checked':'')+'><span>'+o[1]+'</span><span class="p">'+(o[2]?o[2]+' '+(o[2]===1?'punto':'puntos'):'')+'</span></label>';
+    });
+    h+='</div>';
+  });
+  CHK.forEach(function(c){
+    h+='<div class="grp" data-k="'+c.k+'"><label class="o"><input type="checkbox" data-k="'+c.k+'"'+(S[c.k]?' checked':'')+'><span>'+c.t+' <span class="gz">· '+c.z+'</span></span><span class="p">'+c.p+' '+(c.p===1?'punto':'puntos')+'</span></label>';
+    if(c.k==='neumo'){h+='<div style="margin:0 0 0 25px;font-size:12px;color:var(--ts)">Lado del dibujo (no cambia el puntaje): <label style="margin:0 8px"><input type="radio" name="neumoLado" data-k="neumoLado" value="D"'+(S.neumoLado==='D'?' checked':'')+'> derecho</label><label><input type="radio" name="neumoLado" data-k="neumoLado" value="I"'+(S.neumoLado==='I'?' checked':'')+'> izquierdo</label></div>';}
+    h+='</div>';
+  });
+  $('lista').innerHTML=h;
+  var h2='';
+  CARD.forEach(function(c){
+    h2+='<div class="grp" data-k="'+c.k+'" style="padding:2px 0;border:0"><label class="o"><input type="checkbox" data-k="'+c.k+'"'+(S[c.k]?' checked':'')+'><span>'+c.t+(c.z?' <span class="gz">· '+c.z+'</span>':'')+'</span></label></div>';
+  });
+  $('card2').innerHTML=h2;
+}
+function onInput(e){
+  var t=e.target;if(!t.getAttribute||!t.getAttribute('data-k'))return;
+  var k=t.getAttribute('data-k');
+  if(t.type==='checkbox')S[k]=t.checked?1:0;
+  else{var v=t.value;S[k]=(v==='0')?0:(isNaN(+v)?v:+v);}
+  update();
+}
+['lista','card2'].forEach(function(id){
+  $(id).addEventListener('change',onInput);
+  $(id).addEventListener('mouseover',function(e){var g=e.target.closest&&e.target.closest('[data-k]');hov=g?g.getAttribute('data-k'):null;drawMarks();});
+  $(id).addEventListener('mouseout',function(){hov=null;drawMarks();});
+  $(id).addEventListener('focusin',function(e){var g=e.target.closest&&e.target.closest('[data-k]');hov=g?g.getAttribute('data-k'):null;drawMarks();});
+  $(id).addEventListener('focusout',function(){hov=null;drawMarks();});
+});
+
+/* ---------- puntaje ---------- */
+function pts(){
+  var t=0;
+  RAD.forEach(function(g){g.o.forEach(function(o){if(String(S[g.k])===String(o[0]))t+=o[2];});});
+  CHK.forEach(function(c){if(S[c.k])t+=c.p;});
+  return t;
+}
+
+/* ---------- marcas sobre la figura ---------- */
+var FO=1;
+function sh(tag,a,solid,amber){
+  var st=amber?A:T,fl=amber?AF:TF;
+  return '<'+tag+' '+a+' fill="'+fl+'" fill-opacity="'+((solid?0.38:0.22)*FO).toFixed(2)+'" stroke="'+st+'" stroke-width="2"'+(solid?'':' stroke-dasharray="4 3"')+'/>';
+}
+function ln(d,amber){return '<path d="'+d+'" fill="none" stroke="'+(amber?A:T)+'" stroke-width="2.4" stroke-linecap="round"/>';}
+var LUNG='M144 156 C136 146 120 150 112 170 C104 192 102 226 112 242 C122 252 144 250 146 236 C147 216 146 180 144 156 Z';
+function lung(side){
+  var mir=(side==='D')?'':' transform="translate(300 0) scale(-1 1)"';
+  return '<g'+mir+'><path d="'+LUNG+'" fill="'+TF+'" fill-opacity="'+(0.42*FO).toFixed(2)+'" stroke="'+T+'" stroke-width="2" transform="translate(147 205) scale(.62) translate(-147 -205)"/></g>';
+}
+var REG={
+ mun:function(){return sh('ellipse','cx="62" cy="402" rx="26" ry="58"',1)+sh('ellipse','cx="238" cy="402" rx="26" ry="58"',1);},
+ pecho:function(){
+   var C='#2f7fb8',F='#5aaee6',f=(0.30*FO).toFixed(2);
+   var base='<path d="M92 150 L208 150 L178 264 L122 264 Z" fill="'+F+'" fill-opacity="'+f+'" stroke="'+C+'" stroke-width="2.2" stroke-linejoin="round"/>';
+   if(S.pecho==='car')return base+'<path d="M150 164 L150 250" stroke="#fff" stroke-opacity=".85" stroke-width="3.5" stroke-linecap="round"/>';
+   return base+'<path d="M134 196 L166 196 L150 238 Z" fill="#1f5f8f" fill-opacity="'+(0.4*FO).toFixed(2)+'"/>';
+ },
+ pie:function(){return sh('ellipse','cx="110" cy="660" rx="24" ry="18"',1)+sh('ellipse','cx="190" cy="660" rx="24" ry="18"',1);},
+ neumo:function(){return lung(S.neumoLado==='I'?'I':'D');},
+ dural:function(){return sh('rect','x="142" y="288" width="16" height="58" rx="8"',0);},
+ protr:function(){return sh('circle','cx="112" cy="342" r="17"',0)+sh('circle','cx="188" cy="342" r="17"',0);},
+ prop:function(){
+   return ln('M288 34 L288 680')+ln('M283 42 L288 32 L293 42')+ln('M283 672 L288 682 L293 672')+
+     ln('M36 478 L264 478')+ln('M46 473 L36 478 L46 483')+ln('M254 473 L264 478 L254 483')+
+     '<text x="284" y="360" font-size="10" fill="'+T+'" transform="rotate(-90 284 360)" text-anchor="middle">talla</text>'+
+     '<text x="150" y="494" font-size="10" fill="'+T+'" text-anchor="middle">envergadura</text>';},
+ escol:function(){return '<path d="M150 138 C136 170 164 200 150 232 C138 262 162 296 150 336" fill="none" stroke="'+T+'" stroke-width="2.6" stroke-dasharray="6 4" stroke-linecap="round"/>';},
+ codo:function(){return sh('circle','cx="75" cy="262" r="15"',1)+sh('circle','cx="225" cy="262" r="15"',1);},
+ cara:function(){return sh('ellipse','cx="150" cy="76" rx="30" ry="38"',0);},
+ estr:function(){return ln('M104 296 C108 302 108 312 106 322')+ln('M112 294 C116 300 116 310 114 320')+ln('M196 296 C192 302 192 312 194 322')+ln('M188 294 C184 300 184 310 186 320');},
+ miop:function(){
+   var c='#2d3a4f';
+   return '<circle cx="137" cy="72" r="10.5" fill="#fff" fill-opacity=".3" stroke="'+c+'" stroke-width="1.7"/><circle cx="163" cy="72" r="10.5" fill="#fff" fill-opacity=".3" stroke="'+c+'" stroke-width="1.7"/>'+
+     '<path d="M147.5 70 C149 68.5 151 68.5 152.5 70" fill="none" stroke="'+c+'" stroke-width="1.6"/><path d="M126.5 70 L119 72 M173.5 70 L181 72" stroke="'+c+'" stroke-width="1.6" stroke-linecap="round"/>';},
+ mvp:function(){
+   return '<path transform="rotate(-28 160 214) translate(146 214) scale(.62) translate(-146 -214)" d="M142 180 C138 192 134 208 138 222 C140 234 146 244 158 248 C172 250 188 248 196 240 C199 230 196 216 192 208 C190 202 192 196 188 191 C185 186 187 181 181 177 C175 172 166 170 158 172 C151 173 146 176 142 180 Z" fill="#f1a1b6" fill-opacity="'+(0.6*FO).toFixed(2)+'" stroke="#c24d6e" stroke-width="3" stroke-dasharray="6 5"/>'+
+     '<circle cx="162" cy="214" r="6" fill="#fff" fill-opacity=".5" stroke="'+T+'" stroke-width="1.8"/>'+
+     '<path d="M158 216 C159.8 210.5 164.2 210.5 166 216" fill="none" stroke="'+T+'" stroke-width="1.4" stroke-linecap="round"/>';},
+ ect:function(){return sh('circle','cx="138" cy="70" r="12"',0,1)+sh('circle','cx="162" cy="70" r="12"',0,1);},
+ raiz:function(){
+   var p='M152 190 L152 164 C152 147 178 147 178 166 L178 190';
+   return '<path d="'+p+'" fill="none" stroke="'+AF+'" stroke-opacity="'+(0.5*FO).toFixed(2)+'" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>'+
+     '<path d="'+p+'" fill="none" stroke="'+A+'" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>'+
+     '<ellipse cx="152" cy="194" rx="12" ry="10" fill="'+AF+'" fill-opacity="'+(0.5*FO).toFixed(2)+'" stroke="'+A+'" stroke-width="1.8" stroke-dasharray="4 3"/>';}
+};
+function drawMarks(){
+  var keys=Object.keys(REG),n=0,segs=[],top='';
+  keys.forEach(function(k){if(S[k]||hov===k)n++;});
+  FO=n>6?0.5:(n>3?0.72:1);
+  keys.forEach(function(k){
+    var on=!!S[k],hv=(hov===k);
+    if(!on&&!hv)return;
+    var dim=(hov!==null&&!hv&&n>1)?' opacity=".3"':(hv&&!on?' opacity=".6"':'');
+    var g='<g data-m="'+k+'"'+dim+(hv?' class="pulse"':'')+'>'+REG[k]()+'</g>';
+    if(hv)top=g;else segs.push(g);
+  });
+  $('mk').innerHTML=segs.join('')+top;
+}
+/* ---------- cambios de forma (suaves) ---------- */
+var cur={arm:1,leg:1,fing:1,thumb:1,elb:0,foot:0,chest:0,flat:0};
+function target(){
+  return {arm:S.prop?1.08:1,leg:S.prop?1.06:1,
+    fing:S.mun===3?1.24:(S.mun===1?1.12:1),thumb:S.mun===3?1.45:(S.mun===1?1.25:1),
+    elb:S.codo?6:0,foot:S.pie==='ret'?7:0,chest:S.pecho==='exc'?1:0,flat:S.pie==='pla'?1:(S.pie==='ret'?0.7:0)};
+}
+var TF0='M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C200 252 205 228 207 202 C208 190 212 178 215 162 C216 152 212 144 204 140 C190 133 170 129 159 124 Z';
+var TF1='M141 124 C130 129 108 133 92 140 C84 144 79 152 79 162 C82 178 86 190 86 202 C89 228 98 252 101 272 C99 294 90 314 88 334 C92 348 120 354 150 354 C180 354 208 348 212 334 C210 314 201 294 199 272 C202 252 211 228 214 202 C214 190 218 178 221 162 C221 152 216 144 208 140 C192 133 170 129 159 124 Z';
+var TL0='M141 124 C130 129 110 133 96 140 C88 144 84 152 85 162 C88 178 92 190 93 202 C95 228 100 252 101 272 C99 294 90 314 88 334';
+var TL1='M141 124 C130 129 108 133 92 140 C84 144 79 152 79 162 C82 178 86 190 86 202 C89 228 98 252 101 272 C99 294 90 314 88 334';
+var TR0='M159 124 C170 129 190 133 204 140 C212 144 216 152 215 162 C212 178 208 190 207 202 C205 228 200 252 199 272 C201 294 210 314 212 334';
+var TR1='M159 124 C170 129 192 133 208 140 C216 144 221 152 221 162 C218 178 214 190 214 202 C211 228 202 252 199 272 C201 294 210 314 212 334';
+var FT0='M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C120 672 128 670 129 662 C130 652 128 644 127 634 Z';
+var FT1='M110 634 C104 646 92 652 90 662 C89 668 96 672 108 672 C121 672 131 671 135 665 C139 655 133 644 127 634 Z';
+function lp(a,b,t){
+  var A1=a.match(/[A-Za-z]|-?\d*\.?\d+/g),B1=b.match(/[A-Za-z]|-?\d*\.?\d+/g),o=[];
+  for(var i=0;i<A1.length;i++){
+    if(/[A-Za-z]/.test(A1[i])){o.push(A1[i]);}
+    else{o.push((parseFloat(A1[i])+(parseFloat(B1[i])-parseFloat(A1[i]))*t).toFixed(2));}
+  }
+  return o.join(' ');
+}
+function apply(){
+  var q=function(sel,fn){Array.prototype.forEach.call($('svg').querySelectorAll(sel),fn);};
+  var dx=(-cur.chest*5).toFixed(2);
+  q('.arm',function(e){e.setAttribute('transform','translate('+dx+' 148) scale(1 '+cur.arm.toFixed(4)+') translate(0 -148)');});
+  q('.fore',function(e){e.setAttribute('transform','rotate('+(-cur.elb).toFixed(2)+' 75 262)');});
+  q('.fing',function(e){e.setAttribute('transform','translate(0 383) scale(1 '+cur.fing.toFixed(4)+') translate(0 -383)');});
+  q('.thumb',function(e){e.setAttribute('transform','translate(0 366) scale(1 '+cur.thumb.toFixed(4)+') translate(0 -366)');});
+  q('.leg',function(e){e.setAttribute('transform','translate(0 338) scale(1 '+cur.leg.toFixed(4)+') translate(0 -338)');});
+  q('.foot',function(e){e.setAttribute('transform','rotate('+cur.foot.toFixed(2)+' 118 636)');});
+  q('.footp',function(e){e.setAttribute('d',lp(FT0,FT1,cur.flat));});
+  $('tFill').setAttribute('d',lp(TF0,TF1,cur.chest));
+  $('tL').setAttribute('d',lp(TL0,TL1,cur.chest));
+  $('tR').setAttribute('d',lp(TR0,TR1,cur.chest));
+}
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches,raf=null;
+function tween(){
+  var t=target(),moving=false;
+  Object.keys(t).forEach(function(k){
+    var d=t[k]-cur[k];
+    if(Math.abs(d)<0.0008){cur[k]=t[k];}else{cur[k]+=d*(reduce?1:0.18);moving=true;}
+  });
+  apply();
+  raf=moving?window.requestAnimationFrame(tween):null;
+}
+function kick(){if(raf===null)raf=window.requestAnimationFrame(tween);}
+
+/* ---------- resumen ---------- */
+function update(){
+  var p=pts();
+  $('tot').textContent=p;
+  $('fill').style.width=Math.min(100,p/20*100)+'%';
+  $('ver').innerHTML=p>=7?'<b>7 puntos o más:</b> indica compromiso sistémico según el artículo.':'<b>Menos de 7 puntos:</b> por debajo del umbral de compromiso sistémico del artículo.';
+  drawMarks();kick();
+}
+$('ejem').addEventListener('click',function(){
+  Object.keys(S).forEach(function(k){S[k]=0;});
+  S.mun=3;S.pecho='car';S.pie='ret';S.escol=1;S.prop=1;
+  build();update();
+});
+$('lim').addEventListener('click',function(){Object.keys(S).forEach(function(k){S[k]=0;});build();update();});
+build();update();apply();
+window._dbg={S:S,pts:pts,cur:cur,target:target,update:update,build:build,tween:tween,apply:apply};
+})();
+</script>
+</body>
+</html>

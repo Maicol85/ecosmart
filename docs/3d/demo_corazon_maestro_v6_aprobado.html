@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo EcoSmart — Corazón maestro de congénitas (3D), v6</title>
+<style>
+:root{
+  --bg:#ffffff;--surface-1:#f5f5f2;--surface-2:#e9e9e4;
+  --text-primary:#1d1d1b;--text-secondary:#55554f;--text-muted:#85857e;
+  --text-accent:#185fa5;--bg-accent:#e6f1fb;--border-accent:#85b7eb;
+  --border:rgba(0,0,0,.16);--border-strong:rgba(0,0,0,.34);
+  --radius:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1c1c1a;--surface-1:#2a2a27;--surface-2:#363632;
+    --text-primary:#f1f1ed;--text-secondary:#b5b5ae;--text-muted:#8a8a83;
+    --text-accent:#85b7eb;--bg-accent:#0c447c;--border-accent:#378add;
+    --border:rgba(255,255,255,.16);--border-strong:rgba(255,255,255,.34);
+  }
+}
+html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+body{max-width:760px;margin:0 auto;padding:16px}
+button,select,input{font:inherit;font-size:13px;color:var(--text-primary);background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:5px 10px}
+input[type=checkbox]{padding:0;vertical-align:-2px}
+button{cursor:pointer}
+button:hover{background:var(--surface-2)}
+input[type=number]{background:var(--bg)}
+:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+.wrap{background:var(--surface-1);border-radius:12px;padding:1rem}
+.row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 10px;font-size:13px;color:var(--text-secondary)}
+.row input.fcin{width:80px}
+.sg[aria-pressed="true"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+.cv{position:relative;width:100%;height:480px;background:var(--surface-2);border-radius:var(--radius);overflow:hidden;touch-action:none;cursor:grab}
+.cv canvas{display:block;width:100%;height:100%}
+.lbl{position:absolute;font-size:11px;font-weight:500;color:var(--text-primary);background:var(--surface-1);opacity:0.88;border:0.5px solid var(--border);border-radius:5px;padding:0 5px;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap}
+.inf{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:10px 0 0}
+.inf b{color:var(--text-primary);font-weight:500}
+.circ{font-size:13px;line-height:1.55;background:var(--bg-accent);color:var(--text-accent);border-radius:var(--radius);padding:8px 12px;margin:8px 0 0}
+.ref{font-size:12px;line-height:1.5;color:var(--text-muted);margin:6px 0 0}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-secondary);margin:8px 0 0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.nt{font-size:12px;color:var(--text-muted);line-height:1.5;margin:10px 0 0}
+.imgp{margin-top:12px;border-top:0.5px solid var(--border);padding-top:10px}
+.imgs{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.imi{width:200px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);padding:8px;font-size:11px;color:var(--text-secondary);line-height:1.4}
+.imi img{width:100%;height:auto;display:block;margin-bottom:6px;border-radius:4px}
+.bt{font-size:14px;font-weight:500;margin:0 0 8px}
+.sg2{font-size:13px}
+.row .tit{font-weight:600;color:var(--text-primary)}
+.les[aria-pressed="true"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+body{max-width:1120px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.side{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px;max-height:780px;overflow:auto}
+.sideh{font-size:13px;font-weight:600;margin:0 0 6px;color:var(--text-accent)}
+.sidet{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:10px 0 4px}
+.srow{display:block;width:100%;text-align:left;margin:0 0 4px;padding:6px 8px;min-height:44px}
+.srow[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent)}
+.srow:disabled{opacity:.5;cursor:default}
+.srn{display:block;font-size:13px;font-weight:600;color:var(--text-primary)}
+.srd{display:block;font-size:12px;color:var(--text-secondary);line-height:1.35}
+.ibtn{min-width:44px;min-height:44px;font-size:18px;color:var(--text-accent);margin-left:auto}
+.ip{background:var(--surface-2);border:0.5px solid var(--border);border-radius:10px;padding:4px 12px 8px;margin:8px 0 0}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Demo en 3D del corazón maestro de congénitas, con una anatomía de base, lesiones que se suman, Eisenmenger como modificador, la cava superior izquierda persistente, una tabla lateral de lesiones y combinaciones, y un modo que simula el estudio cargado.</h2>
+<div class="wrap">
+  <div class="row"><span class="tit">Modo</span><button type="button" class="sg les md" data-m="estudio" aria-pressed="false">Según el estudio</button><button type="button" class="sg les md" data-m="explorar" aria-pressed="true">Explorar</button></div>
+  <div class="ob" id="estb" hidden><span id="estbt"></span></div>
+  <div class="main">
+   <div class="mcol">
+    <div id="ctl">
+     <div class="row"><span class="tit">Anatomía de base</span><span id="baseb"></span></div>
+     <div class="row" id="basevarrow" hidden><span>Vista</span><span id="basevar"></span></div>
+     <div class="row"><span class="tit">Se suma</span><span id="modb"></span></div>
+     <div class="ob" id="note" hidden></div>
+     <div id="mods"></div>
+     <div class="row"><span class="tit">Combinaciones frecuentes</span><span id="presb"></span></div>
+    </div>
+    <div class="row"><label><input type="checkbox" id="ins" checked> Ver por dentro</label>
+      <label><input type="checkbox" id="nom" checked> Nombres</label>
+      <label for="fc">Frecuencia cardíaca (lpm)</label><input class="fcin" id="fc" type="number" inputmode="numeric" value="70" min="30" max="200">
+      <button type="button" id="pz">Pausar</button>
+      <button type="button" id="rst">Vista de frente</button></div>
+    <div class="cv" id="cv" role="img" aria-label="Modelo 3D del corazón y los grandes vasos con la combinación de lesiones elegida; se rota arrastrando"></div>
+    <div class="leg"><span><span class="sw" style="background:#2f6fd0"></span>sangre poco oxigenada</span><span><span class="sw" style="background:#d8433b"></span>sangre oxigenada</span><span><span class="sw" style="background:#e08a1e"></span>CIV, parches y suturas</span><span><span class="sw" style="background:#9a9a95"></span>obstrucción</span><span><span class="sw" style="background:#d9b92e"></span>válvula desplazada</span>
+      <button type="button" id="ib" class="ibtn" aria-expanded="false" aria-label="Qué muestra este dibujo">ⓘ</button></div>
+    <div class="ip" id="ip" hidden>
+      <p class="circ" id="circ"></p>
+      <p class="inf" id="inf"></p>
+      <p class="ref" id="ref"></p>
+      <p class="ref" id="src"></p>
+    </div>
+    <p class="nt">Modelo 3D esquemático, no a escala. Se rota arrastrando. Las vistas y las combinaciones de esta demo son didácticas, no se guardan ni llegan al papel. Los textos son de ejemplo y se verifican contra las guías de congénitas (Cowork). Necesita internet para cargar la librería 3D.</p>
+   </div>
+   <aside class="side" id="side"><div class="sideh">Lesiones y combinaciones</div><div id="sidebody"></div></aside>
+  </div>
+</div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var URL3='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+var C={blue:0x2f6fd0,red:0xd8433b,grey:0x9a9a95,orange:0xe08a1e};
+function cat(){var o=[];Array.prototype.forEach.call(arguments,function(a){a.forEach(function(p){var l=o[o.length-1];if(!l||l[0]!==p[0]||l[1]!==p[1]||l[2]!==p[2]){o.push(p);}});});return o;}
+var SV=[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
+var PVR=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.4,0.9,-0.7],[0.55,0.2,-0.3],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
+var PVL=[[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85],[0.5,0.95,-0.7]];
+var AO_ANT=[[-0.4,0.5,0.9],[-0.45,1.5,0.8],[-0.3,2.4,0.5],[0.3,2.9,0.2],[1.1,2.6,-0.4],[1.6,1.9,-0.8]];
+var AO_N=[[0.35,0.4,-0.05],[0.3,1.2,-0.15],[0.45,2.1,-0.3],[0.9,2.6,-0.5],[1.5,2.3,-0.7],[1.7,1.6,-0.9]];
+var PAP_T=[[0.35,0.3,-0.1],[0.4,1.3,-0.3],[0.5,2.0,-0.4]];
+var PAP_R=[[0.5,2.0,-0.4],[-0.2,2.2,-0.7],[-1.2,2.1,-1.0],[-1.9,1.8,-1.3]];
+var PAP_L=[[0.5,2.0,-0.4],[1.1,2.0,-0.7],[1.7,1.9,-0.95],[2.2,1.7,-1.2]];
+var PAA_T=[[-0.4,0.5,0.9],[-0.2,1.4,0.75],[0.1,2.0,0.4]];
+var PAA_R=[[0.1,2.0,0.4],[-0.6,2.3,-0.3],[-1.4,2.2,-0.9],[-1.9,1.8,-1.3]];
+var PAA_L=[[0.1,2.0,0.4],[0.9,2.15,-0.1],[1.6,2.0,-0.8],[2.2,1.7,-1.2]];
+var AO_LT=[[0.9,0.5,0.6],[0.95,1.5,0.5],[0.9,2.4,0.3],[1.2,2.9,0.0],[1.6,2.5,-0.5],[1.8,1.7,-0.8]];
+var PA_LT=[[-0.3,0.4,-0.1],[-0.3,1.4,-0.4],[-0.1,2.0,-0.5]];
+var PA_LT_R=[[-0.1,2.0,-0.5],[-0.7,2.2,-0.8],[-1.4,2.1,-1.0],[-1.9,1.8,-1.3]];
+var PA_LT_L=[[-0.1,2.0,-0.5],[0.6,2.1,-0.8],[1.5,2.0,-1.0],[2.2,1.7,-1.2]];
+var SV_LT=[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.6,-0.1,0.2],[-0.3,0.3,-0.05]];
+var PV_LT=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.45,0.9,-0.7],[0.6,0.2,-0.3],[0.7,-0.6,0.1],[0.8,-0.1,0.4],[0.9,0.4,0.6]];
+var AOR=[0.32,0.26],PAR=[0.32,0.22],PBR=[0.22,0.2];
+var LBV=[-0.9,-1.0,1.0],LBI=[0.9,-1.1,0.6];
+C.gold=0xd9b92e;C.valve=0xb59f62;
+var AO_FAL=[[-0.05,0.45,0.25],[0.0,1.4,0.15],[0.3,2.3,-0.05],[0.9,2.75,-0.4],[1.5,2.35,-0.7],[1.7,1.65,-0.9]];
+var DESC=[[1.74,1.3,-0.95],[1.78,0.7,-1.0],[1.8,0.0,-1.0],[1.76,-0.9,-0.96]];
+var AO_MID=[[1.7,1.6,-0.9],[1.74,1.3,-0.95]];
+var S={base:'norm',bv:{fal:'sin',dsav:'par',ebs:'std',fon:'ext'},mods:{},ck:{},src:''};
+var paused=false,fc=70,ins=true,noms=true;
+var BASES=[['norm','Corazón normal'],['fal','Tetralogía de Fallot'],['dsav','Defecto del septo AV'],['ebs','Anomalía de Ebstein'],['fon','Circulación de Fontan']];
+var BVARS={fal:[['sin','Sin operar'],['op','Operado']],dsav:[['par','Parcial'],['tra','Transicional'],['com','Completo']],fon:[['ext','Conducto extracardíaco'],['tun','Túnel lateral'],['atr','Atriopulmonar']]};
+var BCK={fal_op:[['ip','Insuficiencia pulmonar'],['rciv','CIV residual'],['rest','Estenosis pulmonar residual'],['rvd','VD dilatado']],dsav_par:[['iav','Insuficiencia AV izquierda']],dsav_tra:[['iav','Insuficiencia AV izquierda']],dsav_com:[['iav','Insuficiencia AV izquierda']],ebs_std:[['eit','Insuficiencia tricuspídea']],fon_ext:[['fen','Fenestración']],fon_tun:[['fen','Fenestración']]};
+var MODS=[['cia','CIA',[['sec','Ostium secundum'],['pri','Ostium primum'],['sv','Seno venoso superior']]],
+ ['civ','CIV',[['pm','Perimembranosa'],['mus','Muscular'],['sal','De salida'],['ent','De entrada']]],
+ ['dap','Ductus',[['std','Ductus arterioso']]],
+ ['vap','Ventana aortopulmonar',[['prox','Proximal'],['dis','Distal']]],
+ ['cvpa','Conexión venosa pulmonar anómala parcial',[['cs','Vena derecha a la cava superior']]],
+ ['coa','Coartación de aorta',[['nat','Nativa'],['rep','Reparada']]],
+ ['ep','Estenosis pulmonar',[['valv','Valvular'],['sub','Subvalvular (infundibular)'],['sup','Supravalvular o de ramas']]],
+ ['ea','Estenosis subaórtica o supravalvular',[['sub','Subaórtica (membrana)'],['sup','Supravalvular (reloj de arena)']]],
+ ['vcs','Cava superior izquierda persistente',[['std','Persistente']]],
+ ['eis','Eisenmenger',[['std','Eisenmenger']]]];
+var MCK={cvpa_cs:[['svs','CIA de seno venoso asociada']],coa_nat:[['col','Colaterales']],coa_rep:[['rec','Recoartación'],['ane','Aneurisma']],ea_sub:[['iao','Insuficiencia aórtica asociada']],ea_sup:[['iao','Insuficiencia aórtica asociada']]};
+var PRES=[
+ {n:'CIA + CIV + ductus',b:'norm',m:{cia:'sec',civ:'pm',dap:'std'},src:'Ejemplo didáctico de tres comunicaciones juntas.'},
+ {n:'CIA + conexión venosa anómala + cava izquierda',b:'norm',m:{cia:'sv',cvpa:'cs',vcs:'std'},k:{svs:true},src:'La ESC 2020 nombra la conexión venosa pulmonar anómala, la cava superior izquierda persistente y la estenosis pulmonar entre las lesiones asociadas a la CIA (hoja 29, folio 591). A verificar por Code.'},
+ {n:'CIA + estenosis pulmonar',b:'norm',m:{cia:'sec',ep:'valv'},src:'La ESC 2020 nombra la estenosis pulmonar entre las lesiones asociadas a la CIA (hoja 29, folio 591). A verificar por Code.'},
+ {n:'Coartación + estenosis subaórtica',b:'norm',m:{coa:'nat',ea:'sub'},src:'La ESC 2020 asocia la coartación con la estenosis subaórtica y supravalvular y con la estenosis mitral, el complejo de Shone (hoja 41, folio 603). La lesión mitral no se dibuja acá. A verificar por Code.'},
+ {n:'Ebstein + CIA',b:'ebs',m:{cia:'sec'},k:{eit:true},src:'La ESC 2020 nombra la CIA o el FOP como la asociación más frecuente del Ebstein (hoja 48, folio 610). A verificar por Code.'},
+ {n:'CIV + ductus + Eisenmenger',b:'norm',m:{civ:'pm',dap:'std',eis:'std'},src:'Ejemplo didáctico: con hipertensión pulmonar fija los cortocircuitos se invierten.'}
+];
+
+var TBB=[['norm','Corazón normal','Referencia: la aorta nace del VI y la arteria pulmonar, del VD.'],['fal','Tetralogía de Fallot','CIV, aorta cabalgante, obstrucción pulmonar y VD hipertrófico. Operada: parche y residuales.'],['dsav','Defecto del septo AV','CIA primum y CIV de entrada; válvula AV común en el completo.'],['ebs','Anomalía de Ebstein','Valva septal desplazada, VD atrializado y aurícula derecha dilatada.'],['fon','Circulación de Fontan','Cavas conectadas a la arteria pulmonar; tronco pulmonar cerrado.']];
+var TBM=[['cia','CIA','Pasaje entre aurículas; sobrecarga el VD.'],['civ','CIV','Pasaje entre ventrículos según el tipo; sobrecarga el VI.'],['dap','Ductus','Une la arteria pulmonar con la aorta descendente.'],['vap','Ventana aortopulmonar','Une la aorta ascendente con el tronco pulmonar.'],['cvpa','Conexión venosa anómala parcial','Una vena pulmonar derecha drena a la cava superior.'],['coa','Coartación','Estrechez del istmo: el flujo se acelera y se vuelve turbulento.'],['ep','Estenosis pulmonar','Obstrucción pulmonar: flujo rápido y turbulento; VD hipertrófico.'],['ea','Estenosis subaórtica o supravalvular','Obstrucción bajo o sobre la válvula aórtica; VI hipertrófico.'],['vcs','Cava superior izquierda','Vena izquierda que desemboca en un seno coronario dilatado.'],['eis','Eisenmenger','Invierte los cortocircuitos; arteria pulmonar dilatada.']];
+var MODE='explorar';
+var EJ={base:'norm',mods:{cia:'sec',civ:'pm'},txt:'CIA ostium secundum + CIV perimembranosa'};
+var INFO={
+ norm:'<b>Corazón normal.</b> Concordancia auriculoventricular y ventriculoarterial: la aorta nace del ventrículo izquierdo y la arteria pulmonar, del derecho. Los grandes vasos se cruzan.',
+ fal_sin:'<b>Tetralogía de Fallot sin operar.</b> Cuatro componentes: comunicación interventricular (CIV), aorta que cabalga sobre el tabique, obstrucción del tracto de salida del ventrículo derecho (con la arteria pulmonar pequeña) e hipertrofia del ventrículo derecho. Como el ventrículo derecho se vacía con dificultad por la pulmonar, parte de su sangre pasa por la CIV a la aorta.',
+ fal_op:'<b>Tetralogía de Fallot operada.</b> Un parche cierra la CIV y dirige la sangre del ventrículo izquierdo a la aorta, y el tracto de salida del ventrículo derecho se amplía. Qué mirar: la insuficiencia pulmonar residual, el tamaño y la función del ventrículo derecho, la CIV residual, la estenosis residual y los gradientes.',
+ coa_nat:'<b>Coartación de aorta nativa.</b> Estrechez de la aorta en el istmo, cerca de donde nace el ductus, después de la salida de los vasos del brazo izquierdo. El ventrículo izquierdo trabaja contra la obstrucción y se hipertrofia. Qué mirar: el diámetro del istmo y el gradiente por Doppler.',
+ coa_rep:'<b>Coartación de aorta reparada.</b> El segmento estrecho fue resecado o ampliado; las líneas naranjas marcan las suturas. Qué mirar: la recoartación, el aneurisma en el sitio de la reparación y el gradiente residual.',
+ ep_valv:'<b>Estenosis pulmonar valvular.</b> Las valvas se abren en cúpula y dejan un orificio pequeño; la arteria pulmonar se dilata después de la obstrucción y el ventrículo derecho se hipertrofia. Qué mirar: el gradiente y la morfología de la válvula.',
+ ep_sub:'<b>Estenosis pulmonar subvalvular (infundibular).</b> La obstrucción está en el músculo del tracto de salida del ventrículo derecho, por debajo de la válvula, que puede ser normal. El ventrículo derecho se hipertrofia.',
+ ep_sup:'<b>Estenosis pulmonar supravalvular o de ramas.</b> La obstrucción está en el tronco o en las ramas de la arteria pulmonar, después de la válvula. El ventrículo derecho se hipertrofia.',
+ ea_sub:'<b>Estenosis subaórtica (membrana).</b> Un anillo fibroso por debajo de la válvula aórtica estrecha el tracto de salida del ventrículo izquierdo, que se hipertrofia. Puede acompañarse de insuficiencia aórtica. Qué mirar: el gradiente y la válvula aórtica.',
+ ea_sup:'<b>Estenosis supravalvular aórtica.</b> La aorta se estrecha justo por encima de los senos, con forma de reloj de arena, y el ventrículo izquierdo se hipertrofia. Qué mirar: el gradiente, la raíz y el origen de las coronarias.'
+};
+var CIRC={
+ norm:'AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo',
+ fal_sin:'AD → VD → (una parte por la arteria pulmonar pequeña → pulmones)  y  (otra parte por la CIV → aorta)   ·   AI → VI → aorta → cuerpo',
+ fal_op:'AD → VD → arteria pulmonar ampliada → pulmones → AI → VI → parche → aorta → cuerpo',
+ coa_nat:'AI → VI → aorta ascendente → arco → ESTRECHEZ en el istmo → aorta descendente → cuerpo',
+ coa_rep:'AI → VI → aorta ascendente → arco → segmento reparado → aorta descendente → cuerpo',
+ ep_valv:'AD → VD → VÁLVULA PULMONAR estrecha → arteria pulmonar dilatada → pulmones',
+ ep_sub:'AD → VD → TRACTO DE SALIDA estrecho (infundíbulo) → válvula pulmonar → arteria pulmonar → pulmones',
+ ep_sup:'AD → VD → válvula pulmonar → tronco → RAMAS ESTRECHAS → pulmones',
+ ea_sub:'AI → VI → TRACTO DE SALIDA estrecho (membrana) → válvula aórtica → aorta → cuerpo',
+ ea_sup:'AI → VI → válvula aórtica → ESTRECHEZ supravalvular → aorta → cuerpo'
+};
+var REF={
+ fal_sin:'Anillo gris: obstrucción del tracto de salida del ventrículo derecho. Anillo naranja: CIV. Con «Ver por dentro»: la corriente azul que cruza el tabique es sangre poco oxigenada que pasa a la aorta.',
+ fal_op:'Disco naranja: parche de la CIV. Línea naranja: ampliación del tracto de salida. Cada lesión residual se suma con su casilla.',
+ coa_nat:'Anillo gris: istmo estrecho. Con «Colaterales»: vasos finos que puentean la estrechez.',
+ coa_rep:'Anillos naranjas: suturas de la reparación. Con «Recoartación» el segmento vuelve a estrecharse; con «Aneurisma» se dilata en el sitio de la reparación.',
+ ep_valv:'Cono gris: válvula en cúpula con orificio pequeño. Dilatación de la arteria pulmonar después de la válvula.',
+ ep_sub:'Masa gris: músculo que estrecha el tracto de salida del ventrículo derecho.',
+ ep_sup:'Anillos grises: estrechez del tronco y de las ramas de la arteria pulmonar.',
+ ea_sub:'Anillo gris: membrana por debajo de la válvula aórtica. Con «Insuficiencia aórtica asociada»: la corriente roja que vuelve hacia el ventrículo izquierdo.',
+ ea_sup:'Anillo gris: estrechez por encima de los senos. Con «Insuficiencia aórtica asociada»: la corriente roja que vuelve hacia el ventrículo izquierdo.'
+};
+INFO.cia_sec='<b>CIA ostium secundum.</b> Defecto en la parte central del tabique auricular (fosa oval). La sangre pasa de la aurícula izquierda a la derecha y sobrecarga la aurícula y el ventrículo derechos.';
+INFO.cia_pri='<b>CIA ostium primum.</b> Defecto en la parte baja del tabique auricular, junto a las válvulas auriculoventriculares. Es una forma del defecto del septo auriculoventricular parcial y suele acompañarse de una hendidura de la válvula mitral.';
+INFO.cia_sv='<b>CIA de seno venoso superior.</b> Defecto alto del tabique auricular, cerca de la desembocadura de la vena cava superior, que suele acompañarse de conexión anómala de las venas pulmonares derechas.';
+INFO.civ_pm='<b>CIV perimembranosa.</b> Se ubica en la porción membranosa del tabique, por debajo de la válvula aórtica y junto a la válvula tricúspide.';
+INFO.civ_mus='<b>CIV muscular (trabecular).</b> Está rodeada de músculo, en cualquier parte de la porción trabecular del tabique, y puede ser múltiple.';
+INFO.civ_sal='<b>CIV de salida (subarterial).</b> Se ubica por debajo de la válvula pulmonar, en el tracto de salida del ventrículo derecho. La cúspide aórtica vecina puede prolapsar.';
+INFO.civ_ent='<b>CIV de entrada.</b> Se ubica en la porción posterior del tabique, junto a las válvulas auriculoventriculares. Se asocia al síndrome de Down y a los defectos auriculoventriculares.';
+INFO.dap_lr='<b>Ductus arterioso permeable.</b> Comunicación entre la arteria pulmonar y la aorta descendente. Con la presión pulmonar menor que la aórtica, la sangre pasa de la aorta a la arteria pulmonar (de izquierda a derecha).';
+INFO.dap_rl='<b>Ductus con shunt invertido (Eisenmenger).</b> Con la presión pulmonar elevada el flujo se invierte: la sangre poco oxigenada pasa de la arteria pulmonar a la aorta descendente.';
+INFO.vap_prox='<b>Ventana aortopulmonar proximal.</b> Comunicación directa entre la aorta ascendente y el tronco de la arteria pulmonar, con las dos válvulas semilunares separadas. La forma proximal está cerca de las válvulas.';
+INFO.vap_dis='<b>Ventana aortopulmonar distal.</b> Comunicación directa entre la aorta ascendente y el tronco de la arteria pulmonar, con las dos válvulas semilunares separadas. La forma distal está cerca de la bifurcación pulmonar.';
+INFO.dsav_par='<b>Defecto del septo auriculoventricular parcial.</b> CIA ostium primum con dos válvulas auriculoventriculares separadas, con frecuencia con hendidura de la válvula mitral.';
+INFO.dsav_tra='<b>Defecto del septo auriculoventricular transicional.</b> CIA ostium primum con una comunicación interventricular restrictiva de entrada.';
+INFO.dsav_com='<b>Defecto del septo auriculoventricular completo.</b> Defecto grande auricular y ventricular con una válvula auriculoventricular común. Se da sobre todo en el síndrome de Down.';
+INFO.cvpa_cs='<b>Conexión venosa pulmonar anómala parcial.</b> Una o más venas pulmonares derechas drenan a la vena cava superior en lugar de la aurícula izquierda: la sangre oxigenada vuelve a la circulación derecha y sobrecarga el ventrículo derecho.';
+CIRC.cia_sec='AI → (CIA) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+CIRC.cia_pri='AI → (CIA baja) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+CIRC.cia_sv='AI → (CIA alta) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+CIRC.civ_pm='VI → (CIV perimembranosa) → VD → arteria pulmonar → pulmones → AI → VI';
+CIRC.civ_mus='VI → (CIV muscular) → VD → arteria pulmonar → pulmones → AI → VI';
+CIRC.civ_sal='VI → (CIV de salida) → VD → arteria pulmonar → pulmones → AI → VI';
+CIRC.civ_ent='VI → (CIV de entrada) → VD → arteria pulmonar → pulmones → AI → VI';
+CIRC.dap_lr='VI → aorta → (ductus) → arteria pulmonar → pulmones → AI → VI';
+CIRC.dap_rl='VD → arteria pulmonar → (ductus) → aorta descendente → parte inferior del cuerpo';
+CIRC.vap_prox='VI → aorta ascendente → (ventana) → arteria pulmonar → pulmones → AI → VI';
+CIRC.vap_dis='VI → aorta ascendente → (ventana) → arteria pulmonar → pulmones → AI → VI';
+CIRC.dsav_par='AI → (CIA primum) → AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+CIRC.dsav_tra='AI → (CIA primum) → AD   ·   VI → (CIV restrictiva) → VD → arteria pulmonar → pulmones';
+CIRC.dsav_com='Aurículas y ventrículos comunicados a través de la válvula AV común: AI → AD → VD → arteria pulmonar   ·   VI → VD';
+CIRC.cvpa_cs='Venas derechas → vena cava superior → AD → VD → arteria pulmonar → pulmones   ·   venas izquierdas → AI → VI → aorta';
+REF.cia_sec='Anillo naranja: CIA. Con «Ver por dentro»: la corriente roja cruza de la aurícula izquierda a la derecha.';
+REF.cia_pri='Anillo naranja: CIA baja, junto a las válvulas auriculoventriculares.';
+REF.cia_sv='Anillo naranja: CIA alta, cerca de la vena cava superior.';
+REF.civ_pm='Anillo naranja: CIV. La zona del tabique cambia con el tipo que se elija.';
+REF.civ_mus='Anillo naranja: CIV en la porción trabecular del tabique.';
+REF.civ_sal='Anillo naranja: CIV por debajo de la válvula pulmonar.';
+REF.civ_ent='Anillo naranja: CIV en la porción posterior del tabique, junto a las válvulas auriculoventriculares.';
+REF.dap_lr='Tubo naranja: ductus. La corriente roja va de la aorta a la arteria pulmonar.';
+REF.dap_rl='Tubo naranja: ductus. La corriente azul va de la arteria pulmonar a la aorta descendente.';
+REF.vap_prox='Anillo naranja: ventana entre la aorta y el tronco pulmonar.';
+REF.vap_dis='Anillo naranja: ventana cerca de la bifurcación pulmonar.';
+REF.dsav_par='Anillo naranja: CIA primum. Esfera naranja: hendidura de la válvula mitral.';
+REF.dsav_tra='Anillos naranjas: CIA primum y CIV pequeña.';
+REF.dsav_com='Anillos naranjas: CIA primum, CIV grande y válvula auriculoventricular común.';
+REF.cvpa_cs='Tubo rojo: vena pulmonar derecha que drena a la cava superior. Con «CIA de seno venoso»: defecto alto asociado.';
+INFO.ebs_std='<b>Anomalía de Ebstein.</b> La válvula tricúspide se implanta más abajo de lo normal, hacia el ápex del ventrículo derecho. Parte del ventrículo queda atrializada (se comporta como aurícula) y el ventrículo derecho funcional es pequeño. La aurícula derecha se dilata. Puede acompañarse de insuficiencia tricuspídea y de CIA o FOP. Qué mirar: el desplazamiento del velo, la atrialización y el grado de insuficiencia.';
+INFO.eis_civ='<b>Síndrome de Eisenmenger con CIV.</b> Una comunicación grande termina en hipertensión pulmonar fija: el flujo se invierte y la sangre poco oxigenada pasa de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
+INFO.eis_cia='<b>Síndrome de Eisenmenger con CIA.</b> La comunicación auricular, con hipertensión pulmonar fija, pasa a llevar sangre poco oxigenada de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
+INFO.eis_dap='<b>Síndrome de Eisenmenger con ductus.</b> Con hipertensión pulmonar fija el flujo del ductus se invierte: la sangre poco oxigenada pasa de la arteria pulmonar a la aorta descendente. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
+INFO.fon_ext='<b>Fontan con conducto extracardíaco.</b> La cava superior se conecta con la arteria pulmonar derecha y un conducto por fuera de la aurícula lleva la sangre de la cava inferior a la arteria pulmonar. La sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar; el ventrículo sistémico bombea a la aorta.';
+INFO.fon_tun='<b>Fontan con túnel lateral.</b> La cava superior se conecta con la arteria pulmonar derecha y un túnel dentro de la aurícula derecha dirige la sangre de la cava inferior a la arteria pulmonar. La sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar.';
+INFO.fon_atr='<b>Fontan atriopulmonar.</b> La aurícula derecha se conecta directamente con la arteria pulmonar y la sangre venosa llega a los pulmones sin pasar por un ventrículo subpulmonar. La aurícula derecha se dilata.';
+CIRC.ebs_std='AD dilatada → válvula tricúspide desplazada → VD funcional pequeño → arteria pulmonar → pulmones → AI → VI → aorta';
+CIRC.eis_civ='VD → arteria pulmonar dilatada (resistencia alta)   ·   VD → (CIV) → VI → aorta con sangre poco oxigenada';
+CIRC.eis_cia='AD → (CIA) → AI → VI → aorta con sangre poco oxigenada   ·   VD → arteria pulmonar dilatada';
+CIRC.eis_dap='VD → arteria pulmonar dilatada → (ductus) → aorta descendente con sangre poco oxigenada';
+CIRC.fon_ext='Cavas → arteria pulmonar (la superior directa, la inferior por el conducto) → pulmones → AI → VI → aorta → cuerpo';
+CIRC.fon_tun='Cavas → túnel dentro de la AD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+CIRC.fon_atr='Cavas → AD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo';
+REF.ebs_std='Anillo amarillo: válvula tricúspide desplazada hacia el ápex. Zona celeste: parte del ventrículo derecho atrializada. Con las casillas se suman la insuficiencia tricuspídea (corriente azul que vuelve a la aurícula) y la CIA o FOP (anillo naranja con corriente azul de derecha a izquierda).';
+REF.eis_civ='Anillo naranja: CIV con corriente azul de derecha a izquierda. Arteria pulmonar central dilatada y ramas finas.';
+REF.eis_cia='Anillo naranja: CIA con corriente azul de derecha a izquierda. Arteria pulmonar central dilatada y ramas finas.';
+REF.eis_dap='Tubo naranja: ductus con corriente azul hacia la aorta descendente. Arteria pulmonar central dilatada y ramas finas.';
+REF.fon_ext='Esfera gris: tronco pulmonar cerrado. Anillos naranjas: conexiones quirúrgicas. Con «Fenestración»: una pequeña comunicación en el conducto.';
+REF.fon_tun='Esfera gris: tronco pulmonar cerrado. Tubo azul con «Ver por dentro»: el túnel dentro de la aurícula. Con «Fenestración»: una pequeña comunicación en el túnel.';
+REF.fon_atr='Esfera gris: tronco pulmonar cerrado. Anillo naranja: conexión entre la aurícula y la arteria pulmonar.';
+INFO.dap_std='<b>Ductus arterioso permeable.</b> Comunicación entre la arteria pulmonar y la aorta descendente. Con la presión pulmonar menor que la aórtica la sangre pasa de la aorta a la pulmonar; con hipertensión pulmonar fija el flujo se invierte.';
+INFO.vcs_std='<b>Vena cava superior izquierda persistente.</b> Una vena adicional del lado izquierdo baja por delante del hilio pulmonar izquierdo y suele desembocar en el seno coronario, que se dilata. Puede acompañar a otras cardiopatías.';
+INFO.eis_std='<b>Eisenmenger.</b> Con una comunicación y una hipertensión pulmonar fija, los cortocircuitos se invierten y la sangre poco oxigenada pasa de derecha a izquierda. Las arterias pulmonares centrales se dilatan, las periféricas se afinan y el ventrículo derecho se hipertrofia.';
+CIRC.dap_std='VI → aorta → (ductus) → arteria pulmonar → pulmones → AI → VI';
+CIRC.vcs_std='Cava izquierda → seno coronario dilatado → AD → VD → arteria pulmonar → pulmones';
+CIRC.eis_std='VD → arteria pulmonar dilatada · cortocircuitos de derecha a izquierda';
+REF.dap_std='Tubo naranja: ductus. La corriente roja va de la aorta a la arteria pulmonar; con Eisenmenger, la azul va en sentido inverso.';
+REF.vcs_std='Vena azul a la izquierda: cava superior izquierda persistente. Segmento ancho: seno coronario dilatado que llega a la aurícula derecha.';
+REF.eis_std='Con Eisenmenger la corriente de cada cortocircuito se invierte y se vuelve azul.';
+function blocked(k){
+  var b=S.base,m=S.mods;
+  if(b==='fal'){if(k==='civ'){return 'Fallot ya incluye la CIV';}if(k==='ep'){return 'Fallot ya incluye la obstrucción pulmonar';}if(k==='eis'){return 'Fallot no se combina con Eisenmenger';}if(k==='ea'){return 'Fallot tiene la aorta cabalgante';}}
+  if(b==='dsav'){if(k==='cia'){return 'el defecto AV ya incluye la CIA primum';}if(k==='civ'){return 'el defecto AV ya incluye la CIV de entrada';}}
+  if(b==='ebs'&&k==='eis'){return 'Ebstein no se combina con Eisenmenger';}
+  if(b==='fon'&&['cia','civ','dap','vap','ep','eis','cvpa'].indexOf(k)>=0){return 'no aplica con la circulación de Fontan';}
+  if(k==='eis'&&m.ep){return 'la estenosis pulmonar protege del Eisenmenger';}
+  if(k==='ep'&&m.eis){return 'no se combina con Eisenmenger';}
+  return null;
+}
+function scenario(){
+  var s={ch:{RA:C.blue,LA:C.red,RV:C.blue,LV:C.red},ar:[],fl:[],ex:[],lb:[],rvShell:1,rvPool:1,lvShell:1,lvPool:1,raShell:1,raPool:1,hideRPV:false};
+  var B=S.base,BV=S.bv[B],M=S.mods,K=S.ck,eis=!!M.eis;
+  var labs={};
+  function lab(n,p){if(labs[n]||s.lb.length>=12){return;}labs[n]=1;s.lb.push([n,p]);}
+  var atr=function(y,z){return [[0.3,y+0.1,z-0.3],[-0.15,y+0.1,z-0.1],[-0.7,y,z+0.2],[-1.2,y-0.05,z+0.4]];};
+  function shunt(path,rl,n){var rev=(rl===undefined)?eis:rl;s.fl.push({p:rev?path.slice().reverse():path,c:rev?C.blue:C.red,n:n||5,sp:0.5});}
+  var volRV=false,volLV=false,pressRV=false,pressLV=false,aoObs=null,paObs=null;
+  function pa(n){var f={p:cat(SV,PAA_T,PAA_L),c:C.blue,n:n};if(paObs){f.obs=paObs;f.w=0.05;f.m=3;f.amp=0.1;}s.fl.push(f);}
+  lab('VD',[-1.0,-1.7,0.95]);lab('VI',[1.35,-2.1,0.5]);
+  s.fl.push({p:PVL,c:C.red});
+  // ---- aorta ----
+  var fromR=(B==='fal')?'S':'R',AOP=(B==='fal')?AO_FAL:AO_N,coa=M.coa,ea=M.ea,tail=coa?DESC:[];
+  if(ea==='sup'){
+    s.ar.push({p:[AOP[0],AOP[1]],c:C.red,r:[0.34,0.3],from:fromR},{p:cat([[0.38,1.6,-0.22]],AOP.slice(2)),c:C.red,r:AOR,br:1,bb:0.18});
+    s.ex.push({t:'tube',p:[AOP[1],[0.38,1.6,-0.22]],r:0.11,c:C.red,op:0.85},{t:'ring',c:[0.34,1.4,-0.19],r:0.17,rx:true,col:C.grey});
+    lab('Estrechez',[1.15,1.4,0.1]);aoObs=[0.34,1.4,-0.19];
+  }else{
+    var ent={p:cat(AOP),c:C.red,r:AOR,br:1,from:fromR};
+    if(ea==='sub'){ent.vr=[0.42,0.17];s.ex.push({t:'ring',c:[0.4,0.05,-0.07],r:0.2,rx:true,col:C.grey});lab('Membrana',[1.15,0.1,0.2]);aoObs=[0.4,0.05,-0.07];}
+    s.ar.push(ent);
+  }
+  if(ea){pressLV=true;if(K.iao){s.fl.push({p:[[0.4,1.0,-0.1],[0.35,0.4,-0.05],[0.5,-0.6,-0.1],[0.75,-1.4,-0.1],[0.8,-2.0,-0.1]],c:C.red,n:11,sp:0.4,r:0.1});lab('Insuf. aórtica',[1.2,0.5,0.1]);}}
+  if(coa==='nat'){
+    pressLV=true;aoObs=[1.74,1.3,-0.95];
+    s.ex.push({t:'tube',p:AO_MID,r:0.075,c:C.red,op:0.85},{t:'tube',p:cat(DESC),r:0.24,c:C.red,op:0.82},{t:'ring',c:[1.72,1.45,-0.92],r:0.17,rx:true,col:C.grey});
+    if(K.col){s.ex.push({t:'tube',p:[[1.35,2.2,-0.75],[1.95,1.7,-1.25],[2.1,1.0,-1.3],[1.9,0.3,-1.1]],r:0.035,c:C.red,op:0.9},{t:'tube',p:[[1.2,2.0,-0.55],[1.6,1.5,-1.35],[1.55,0.7,-1.35],[1.55,0.2,-1.1]],r:0.035,c:C.red,op:0.9});lab('Colaterales',[2.65,0.95,-1.3]);}
+    lab('Istmo',[2.3,1.8,-0.95]);lab('Ao descendente',[2.45,-0.35,-1.0]);
+  }
+  if(coa==='rep'){
+    s.ex.push({t:'tube',p:AO_MID,r:K.rec?0.14:0.25,c:C.red,op:0.85},{t:'tube',p:cat(DESC),r:0.24,c:C.red,op:0.82},{t:'ring',c:[1.71,1.5,-0.91],r:0.27,rx:true,col:C.orange},{t:'ring',c:[1.73,1.36,-0.94],r:0.27,rx:true,col:C.orange});
+    if(K.ane){s.ex.push({t:'sph',c:[1.95,1.4,-1.0],r:0.36,col:C.red});lab('Aneurisma',[2.7,1.4,-1.0]);}
+    if(K.rec){lab('Recoartación',[2.6,0.8,-0.95]);}
+    lab('Reparación',[2.3,2.05,-0.9]);lab('Ao descendente',[2.45,-0.35,-1.0]);
+  }
+  var pv=M.cvpa?[]:PVR;
+  var aoPath=(B==='fal')?cat(pv,[[0.5,-0.2,-0.1],[0.3,0.0,0.05],[0.05,0.5,0.2]],AO_FAL.slice(1),tail):cat(pv,AO_N,tail);
+  var aoFl={p:aoPath,c:C.red};if(aoObs){aoFl.obs=aoObs;aoFl.w=0.05;aoFl.m=3;aoFl.amp=0.1;}s.fl.push(aoFl);
+  lab('Ao',[1.1,2.8,-0.4]);
+  // ---- arteria pulmonar y base ----
+  var NPA=[{p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:PAR,from:'L'},{p:PAA_L,c:C.blue,r:PBR}];
+  if(B==='fon'){
+    s.ar.push({p:PAA_R,c:C.blue,r:[0.3,0.22],bb:0.2},{p:PAA_L,c:C.blue,r:PBR});
+    s.ex.push({t:'sph',c:[-0.15,1.45,0.65],r:0.2,col:C.grey});
+    s.fl.push({p:cat(SV.slice(0,3),[[-1.3,2.15,-0.5]],PAA_R.slice(1)),c:C.blue,n:6},{p:PAA_L,c:C.blue,n:5});
+    var cx=null;
+    if(BV==='ext'){cx=[[-1.3,-0.8,-0.1],[-2.0,0.2,0.0],[-2.0,1.5,-0.4],[-1.5,2.15,-0.8]];s.ex.push({t:'tube',p:cx,r:0.2,c:C.blue,op:0.85},{t:'ring',c:[-1.5,2.15,-0.8],r:0.26,rx:true,col:C.orange});s.fl.push({p:cx,c:C.blue,n:6,sp:0.3});lab('Conducto extracardíaco',[-2.7,0.9,-0.2]);}
+    if(BV==='tun'){cx=[[-1.3,-0.7,-0.1],[-1.25,0.0,0.0],[-1.25,0.9,-0.1],[-1.0,1.7,-0.4],[-0.8,2.15,-0.8]];s.ex.push({t:'tube',p:cx,r:0.18,c:C.blue,op:0.7,in:true});s.fl.push({p:cx,c:C.blue,n:6,sp:0.3});lab('Túnel lateral',[-1.9,0.5,0.4]);}
+    if(BV==='atr'){cx=[[-1.0,1.4,0.5],[-0.7,1.9,0.5],[-0.3,2.1,0.2]];s.ex.push({t:'tube',p:cx,r:0.25,c:C.blue,op:0.85},{t:'ring',c:[-0.3,2.1,0.2],r:0.27,rx:true,col:C.orange});s.fl.push({p:cx,c:C.blue,n:5,sp:0.3});lab('AD conectada a la AP',[-1.8,1.5,0.7]);}
+    if(K.fen&&BV!=='atr'){s.ex.push({t:'ring',c:cx[1],r:0.13,col:C.orange});s.fl.push({p:[cx[1],[cx[1][0]+0.5,cx[1][1]+0.1,cx[1][2]]],c:C.blue,n:3,sp:0.5});lab('Fenestración',[cx[1][0]+1.0,cx[1][1]-0.4,cx[1][2]+0.6]);}
+    lab('AP',[0.1,2.15,0.45]);lab('Tronco cerrado',[-0.6,1.1,1.1]);
+  }else if(B==='fal'){
+    if(BV==='sin'){
+      pressRV=true;
+      s.ar.push({p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:[0.13,0.16],from:'L',vr:[0.3,0.15],bb:0.2},{p:PAA_L,c:C.blue,r:[0.13,0.13]});
+      paObs=[-0.4,0.75,0.88];pa(6);s.fl.push({p:[[-0.6,-0.7,0.45],[-0.3,-0.75,0.35],[-0.05,-0.6,0.25],[0.0,0.2,0.2],[0.0,1.2,0.15]],c:C.blue,n:6,sp:0.5,obs:[-0.05,-0.8,0.2],w:0.08,m:3,amp:0.09});
+      s.ex.push({t:'ring',c:[-0.05,-0.8,0.2],r:0.3,ry:true,in:true},{t:'ring',c:[-0.4,0.75,0.88],r:0.19,rx:true,col:C.grey},{t:'sph',c:[-0.55,0.15,0.7],r:0.26,col:C.grey,in:true});
+      lab('Ao (cabalga)',[0.9,2.8,-0.4]);lab('AP',[0.1,2.15,0.45]);lab('CIV',[-0.05,-1.2,0.2]);lab('Obstrucción',[-0.95,0.55,1.05]);
+    }else{
+      s.ar.push(NPA[0],NPA[1]);
+      if(K.rest){paObs=[-0.2,1.4,0.75];}pa(14);
+      s.ex.push({t:'disc',c:[-0.05,-0.8,0.2],r:0.3,in:true},{t:'tube',p:[[-0.62,0.05,0.98],[-0.45,0.55,1.02],[-0.25,1.2,0.88]],r:0.045,c:C.orange,op:1});
+      if(K.ip){s.fl.push({p:[[0.1,1.7,0.55],[-0.3,1.0,0.85],[-0.5,0.35,0.75],[-0.7,-0.4,0.5],[-0.8,-1.2,0.45]],c:C.blue,n:11,sp:0.4,r:0.1});lab('Insuf. pulmonar',[-1.25,0.45,1.05]);}
+      if(K.rciv){s.ex.push({t:'ring',c:[-0.05,-1.2,0.2],r:0.1,ry:true,in:true});s.fl.push({p:[[0.4,-1.15,0.0],[0.0,-1.2,0.2],[-0.5,-1.2,0.45]],c:C.red,n:4,sp:0.5});lab('CIV residual',[0.75,-1.45,0.35]);}
+      if(K.rest){s.ex.push({t:'ring',c:[-0.2,1.4,0.75],r:0.3,rx:true,col:C.grey});lab('Estenosis',[-1.0,1.35,1.0]);}
+      lab('Parche CIV',[-0.05,-0.45,0.75]);lab('AP',[0.1,2.15,0.45]);
+    }
+  }else if(M.ep){
+    pressRV=true;
+    paObs=(M.ep==='sup')?[0.1,1.95,0.35]:[-0.4,0.62,0.9];pa(8);
+    if(M.ep==='valv'){s.ar.push({p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:[0.46,0.4],from:'L',bb:0.52},{p:PAA_L,c:C.blue,r:PBR});s.ex.push({t:'cone',c:[-0.4,0.62,0.9],r1:0.3,r2:0.07,h:0.32,col:C.grey});lab('AP dilatada',[0.1,2.2,0.5]);lab('Válvula',[-1.0,0.7,1.05]);}
+    if(M.ep==='sub'){s.ar.push({p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:PAR,from:'L',vr:[0.44,0.17]},{p:PAA_L,c:C.blue,r:PBR});s.ex.push({t:'sph',c:[-0.55,0.15,0.7],r:0.26,col:C.grey,in:true},{t:'ring',c:[-0.4,0.62,0.9],r:0.2,rx:true,col:C.grey});lab('AP',[0.1,2.15,0.45]);lab('Infundíbulo',[-1.05,0.55,1.05]);}
+    if(M.ep==='sup'){s.ar.push({p:PAA_T,c:C.blue,r:PAR,from:'L'},{p:PAA_R,c:C.blue,r:[0.12,0.12]},{p:PAA_L,c:C.blue,r:[0.12,0.12]});s.ex.push({t:'ring',c:[0.1,1.95,0.35],r:0.19,rx:true,col:C.grey},{t:'ring',c:[-0.95,2.15,-0.9],r:0.14,rx:true,col:C.grey},{t:'ring',c:[1.4,2.05,-0.95],r:0.14,rx:true,col:C.grey});lab('AP',[-0.5,1.5,0.9]);lab('Ramas estrechas',[0.1,2.5,0.1]);}
+  }else if(eis){
+    pressRV=true;
+    s.ar.push({p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:[0.46,0.42],from:'L',bb:0.52},{p:PAA_L,c:C.blue,r:[0.13,0.13]});
+    pa(8);
+    lab('AP dilatada',[0.1,2.2,0.5]);lab('Ramas finas',[2.0,2.3,-1.0]);
+  }else{
+    s.ar.push(NPA[0],NPA[1]);
+    pa(B==='ebs'?8:14);
+    lab('AP',[0.1,2.15,0.45]);
+  }
+  if(B==='ebs'){
+    s.raShell=1.35;s.raPool=1.3;
+    s.ex.push({t:'ring',c:[-0.8,-0.7,0.45],r:0.4,rx:true,col:C.gold},{t:'zone',c:[-0.85,-0.15,0.5],r:0.42,col:0x8fc4ea,in:true});
+    lab('AD dilatada',[-1.5,1.2,0.4]);lab('Válvula desplazada',[-1.55,-0.55,0.8]);lab('VD atrializado',[-1.35,-0.1,0.9]);
+    if(K.eit){s.fl.push({p:[[-0.8,-1.2,0.45],[-0.85,-0.5,0.4],[-0.95,0.2,0.3],[-1.2,0.9,0.2],[-1.35,1.6,0.1]],c:C.blue,n:11,sp:0.4,r:0.1});lab('Insuf. tricuspídea',[-1.5,0.55,0.2]);}
+  }
+  if(B==='dsav'){
+    volRV=true;
+    var big=(BV==='com');
+    s.ex.push({t:'ring',c:[-0.42,0.45,-0.2],r:big?0.34:0.26,ry:true,in:true});
+    shunt(atr(0.45,-0.2),undefined,6);
+    if(BV==='par'){s.ex.push({t:'sph',c:[0.35,0.3,-0.35],r:0.09,col:C.orange});lab('Hendidura mitral',[0.9,0.1,-0.1]);}
+    if(BV==='tra'){s.ex.push({t:'ring',c:[0.0,-0.5,0.1],r:0.12,ry:true,in:true});shunt([[0.45,-0.5,0.0],[0.0,-0.5,0.1],[-0.5,-0.45,0.3]],undefined,3);lab('CIV restrictiva',[0.95,-0.7,0.3]);}
+    if(BV==='com'){s.ex.push({t:'ring',c:[0.0,-0.55,0.1],r:0.32,ry:true,in:true},{t:'ring',c:[-0.2,0.38,-0.05],r:0.55,rx:true,col:C.orange});shunt([[0.45,-0.55,0.0],[0.0,-0.55,0.1],[-0.5,-0.5,0.3]],undefined,5);lab('Válvula AV común',[-1.35,0.4,0.55]);}
+    lab('CIA primum',[-0.45,0.0,0.4]);
+    if(K.iav){s.fl.push({p:[[0.5,-1.2,-0.1],[0.5,-0.6,-0.1],[0.45,0.2,-0.4],[0.45,0.9,-0.7],[0.5,1.4,-0.9]],c:C.red,n:11,sp:0.4,r:0.1});lab('Insuf. AV izquierda',[1.4,0.5,-0.4]);}
+  }
+  // ---- módulos que se suman ----
+  if(M.cia){
+    volRV=true;
+    var cy=(M.cia==='sec')?0.95:(M.cia==='pri'?0.45:1.6),cz=(M.cia==='sv')?-0.1:-0.3;
+    s.ex.push({t:'ring',c:[-0.45,cy,cz],r:0.24,ry:true,in:true});
+    shunt(atr(cy,cz),eis||B==='ebs',6);
+    lab('CIA',[-0.45,cy-0.35,cz+0.5]);
+  }
+  if(M.civ){
+    volLV=true;
+    var P={pm:[0.02,-0.45,0.12],ent:[0.0,-0.9,-0.1],sal:[-0.12,-0.15,0.5],mus:[-0.05,-1.7,0.25]}[M.civ];
+    s.ex.push({t:'ring',c:P,r:0.2,ry:true,in:true});
+    shunt([[0.45,P[1],P[2]-0.12],P,[-0.5,P[1]+0.05,P[2]+0.18]]);
+    lab('CIV',[P[0]+0.9,P[1]-0.2,P[2]+0.5]);
+  }
+  if(M.dap){
+    var pd=[[1.6,1.98,-0.8],[1.66,1.82,-0.85],[1.7,1.66,-0.9]];
+    s.ex.push({t:'tube',p:pd,r:0.09,c:C.orange,op:0.95});
+    shunt(pd.slice().reverse(),undefined,3);
+    if(!eis){volLV=true;}
+    lab('Ductus',[2.1,1.95,-0.6]);
+  }
+  if(M.vap){
+    var wy=(M.vap==='prox')?1.5:2.0;
+    s.ex.push({t:'ring',c:[0.22,wy,0.1],r:0.2,col:C.orange});
+    shunt([[0.35,wy-0.1,-0.25],[0.22,wy,0.1],[0.1,wy+0.05,0.4]],undefined,4);
+    lab('Ventana',[-0.75,wy+0.15,0.5]);
+  }
+  if(M.cvpa){
+    s.hideRPV=true;volRV=true;
+    var av=[[-2.2,1.2,-1.4],[-1.8,1.9,-0.8],[-1.55,2.4,-0.2]];
+    s.ex.push({t:'tube',p:av,r:0.19,c:C.red,op:0.9});
+    s.fl.push({p:cat(av,[[-1.5,2.0,0.0],[-1.3,1.2,0.1]]),c:C.red,n:6,sp:0.4});
+    if(K.svs){s.ex.push({t:'ring',c:[-0.6,1.55,-0.1],r:0.22,ry:true,in:true});s.fl.push({p:atr(1.55,-0.1),c:C.red,n:4,sp:0.5});lab('CIA de seno venoso',[-0.55,1.1,0.5]);}
+    lab('Vena anómala',[-2.5,2.0,-0.6]);
+  }
+  if(M.vcs){
+    var vc=[[1.7,3.0,-0.1],[2.0,2.1,0.2],[2.05,1.1,0.05],[1.7,0.4,-0.5]];
+    var cs=[[1.7,0.4,-0.5],[0.8,0.25,-0.85],[-0.4,0.3,-0.75],[-1.0,0.35,-0.45]];
+    s.ex.push({t:'tube',p:vc,r:0.13,c:C.blue,op:0.9},{t:'tube',p:cs,r:0.2,c:C.blue,op:0.8});
+    s.fl.push({p:cat(vc,cs),c:C.blue,n:7,sp:0.3});
+    lab('Cava izquierda',[2.55,2.0,0.2]);lab('Seno coronario dilatado',[0.3,-0.35,-0.9]);
+  }
+  // ---- tamaños ----
+  if(volRV){s.rvShell=1.16;s.rvPool=1.1;}
+  if(volLV){s.lvShell=1.1;s.lvPool=1.06;}
+  if(pressRV){s.rvShell=1.4;s.rvPool=0.68;}
+  if(pressLV){s.lvShell=1.16;s.lvPool=0.74;}
+  if(B==='ebs'){s.rvShell=0.95;s.rvPool=0.6;}
+  if(B==='fon'){s.rvShell=0.8;s.rvPool=0.5;if(BV==='atr'){s.raShell=1.3;s.raPool=1.25;}}
+  if(B==='fal'&&BV==='op'&&K.rvd){s.rvShell=1.2;s.rvPool=1.1;}
+  // ---- textos ----
+  var parts=[],names=[],refs=[],nm=0;
+  var bkey=(B==='norm')?'norm':(B+'_'+BV);
+  MODS.forEach(function(m){if(M[m[0]]){nm++;names.push(m[1]);}});
+  if(B!=='norm'||nm===0){parts.push(INFO[bkey]);if(REF[bkey]){refs.push(REF[bkey]);}}
+  MODS.forEach(function(m){var v=M[m[0]];if(v){var k=m[0]+'_'+v;if(INFO[k]){parts.push(INFO[k]);}if(REF[k]){refs.push(REF[k]);}}});
+  s.info=parts.join('<br><br>');
+  if(nm===0){s.circ=CIRC[bkey];}
+  else if(nm===1&&B==='norm'){var mk0=Object.keys(M)[0];s.circ=CIRC[mk0+'_'+M[mk0]]||'';}
+  else{s.circ='Combinación: '+((B!=='norm')?(BASES.filter(function(b){return b[0]===B;})[0][1]+' + '):'')+names.join(' + ')+'. Cada lesión agrega su corriente: roja (sangre oxigenada) y azul (poco oxigenada); con Eisenmenger los cortocircuitos se invierten.';}
+  s.ref=refs.join(' ');
+  if(eis&&!(M.cia||M.civ||M.dap||M.vap||B==='dsav')){s.ref+=' Eisenmenger necesita una comunicación: sumá una CIA, una CIV, un ductus o una ventana.';}
+  s.src=S.src||'';
+  return s;
+}
+function boot(){
+  if(window.THREE){init();return;}
+  var sc=document.createElement('script');sc.src=URL3;sc.onload=init;
+  sc.onerror=function(){$('cv').textContent='No se pudo cargar la librería 3D. Revisá la conexión.';};
+  document.head.appendChild(sc);
+}
+function init(){
+  var T=window.THREE,host=$('cv'),W=host.clientWidth||640,Hh=480;
+  var scene=new T.Scene(),cam=new T.PerspectiveCamera(38,W/Hh,0.1,100);
+  cam.position.set(0.1,0.0,12.5);cam.lookAt(0,-0.2,0);
+  var rd=new T.WebGLRenderer({antialias:true,alpha:true});
+  rd.setPixelRatio(Math.min(2,window.devicePixelRatio||1));rd.setSize(W,Hh);
+  host.appendChild(rd.domElement);
+  scene.add(new T.HemisphereLight(0xffffff,0x6b4a40,0.65));
+  var dl=new T.DirectionalLight(0xffffff,0.75);dl.position.set(3,5,8);scene.add(dl);
+  var dl2=new T.DirectionalLight(0xffd9c8,0.25);dl2.position.set(-5,-2,3);scene.add(dl2);
+  var root=new T.Group();root.rotation.x=0.05;scene.add(root);
+  var dyn=[],flows=[],pools=[],inOnly=[],lbs=[],shells=[],shellsDyn=[],time=0,flowT=0,last=performance.now(),drag=null;
+  function V(p){return new T.Vector3(p[0],p[1],p[2]);}
+  function cv(pts){return new T.CatmullRomCurve3(pts.map(V));}
+  function add(m,keep){root.add(m);if(!keep){dyn.push(m);}return m;}
+  function hshape(rx,ry,rz,taper,seed){
+    var g=new T.SphereGeometry(1,56,40),p=g.attributes.position,v=new T.Vector3(),i,t,f,n;
+    for(i=0;i<p.count;i++){
+      v.fromBufferAttribute(p,i);
+      t=v.y<0?Math.min(1,-v.y):0;f=1-taper*Math.pow(t,1.5);
+      v.x*=rx*f;v.z*=rz*f;v.y*=ry;
+      if(seed){n=1+0.018*Math.sin(v.x*4.1+seed)*Math.cos(v.y*3.3+seed*0.7)+0.012*Math.sin(v.z*5.2+v.y*2.0);v.multiplyScalar(n);}
+      p.setXYZ(i,v.x,v.y,v.z);
+    }
+    g.computeVertexNormals();return g;
+  }
+  function ttube(pts,r0,r1,col,opa,mat,keep){
+    var cu=cv(pts),seg=64,rs=16,g=new T.TubeGeometry(cu,seg,1,rs,false),pos=g.attributes.position,v=new T.Vector3(),c,i,j,t,r,idx;
+    for(i=0;i<=seg;i++){
+      t=i/seg;c=cu.getPointAt(t);r=r0+(r1-r0)*t;
+      for(j=0;j<=rs;j++){idx=i*(rs+1)+j;v.fromBufferAttribute(pos,idx);v.sub(c).multiplyScalar(r).add(c);pos.setXYZ(idx,v.x,v.y,v.z);}
+    }
+    g.computeVertexNormals();
+    var m;
+    if(mat){m=new T.Mesh(g,mat);}
+    else{m=new T.Mesh(g,new T.MeshStandardMaterial({color:col,roughness:0.45,metalness:0.0,transparent:true,opacity:opa||0.82}));m.material.depthWrite=false;}
+    add(m,keep);return m;
+  }
+  function cone(a,b,r,mat){
+    var da=V(b).sub(V(a)),L=da.length(),m=new T.Mesh(new T.ConeGeometry(r,L,24,1),mat);
+    m.position.copy(V(a).add(V(b)).multiplyScalar(0.5));
+    m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),da.normalize());
+    return m;
+  }
+  var matV=new T.MeshStandardMaterial({color:0xa6423c,roughness:0.55,metalness:0.0}),matA=new T.MeshStandardMaterial({color:0xbb5b58,roughness:0.6,metalness:0.0});
+  function ghost(k){return new T.MeshStandardMaterial({color:k==='v'?0xa6423c:0xbb5b58,roughness:0.6,transparent:true,opacity:0.16,depthWrite:false});}
+  function shell(g,mat,pos,rz,kind){
+    var m=new T.Mesh(g,mat);m.position.set(pos[0],pos[1],pos[2]);m.rotation.z=rz||0;add(m,true);shells.push({m:m,k:kind});return m;
+  }
+  shell(hshape(1.0,1.75,0.62,0.42,2.1),matV,[-0.75,-1.2,0.45],0.12,'v');
+  shell(hshape(1.1,2.1,0.95,0.5,1.3),matV,[0.65,-1.5,-0.1],0.3,'v');
+  shell(hshape(0.72,0.95,0.7,0,3.2),matA,[-1.25,0.8,0.1],0,'a');
+  shell(hshape(0.95,0.62,0.7,0,4.4),matA,[0.45,0.95,-0.7],0,'a');
+  var ap1=cone([-0.95,1.35,0.5],[-0.2,1.7,0.95],0.32,matA);add(ap1,true);
+  var ap2=cone([1.05,1.1,0.0],[1.4,1.7,0.55],0.27,matA);add(ap2,true);
+  ttube([[-1.6,3.1,-0.05],[-1.5,2.3,0],[-1.4,1.55,0]],0.22,0.22,C.blue,0.7,null,true);
+  ttube([[-1.3,-0.7,-0.1],[-1.25,-0.2,-0.05],[-1.25,0.25,0]],0.22,0.22,C.blue,0.7,null,true);
+  var rpv=ttube([[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.4,1.1,-0.9]],0.16,0.16,C.red,0.7,null,true);
+  ttube([[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85]],0.16,0.16,C.red,0.7,null,true);
+  function setIns(){
+    shells.forEach(function(s){s.m.material=ins?ghost(s.k):(s.k==='v'?matV:matA);});
+    shellsDyn.forEach(function(m){m.material=ins?ghost('v'):matV;});
+    [ap1,ap2].forEach(function(m){m.visible=!ins;});
+    pools.forEach(function(p){p.m.visible=ins;});
+    inOnly.forEach(function(m){m.visible=ins;});
+  }
+  function build(){
+    dyn.forEach(function(m){root.remove(m);if(m.geometry){m.geometry.dispose();}});
+    dyn=[];flows=[];pools=[];inOnly=[];shellsDyn=[];
+    lbs.forEach(function(l){l.el.remove();});lbs=[];
+    var s=scenario();
+    var def=[['RA',[-1.25,0.8,0.1],[0.6,0.8,0.56],0,0,'a'],['LA',[0.45,0.95,-0.7],[0.8,0.52,0.58],0,0,'a'],['RV',[-0.75,-1.2,0.45],[0.84,1.5,0.48],0.12,0.4,'v'],['LV',[0.65,-1.5,-0.1],[0.92,1.8,0.78],0.3,0.45,'v']];
+    def.forEach(function(d){
+      var m=new T.Mesh(hshape(d[2][0],d[2][1],d[2][2],d[4],0),new T.MeshStandardMaterial({color:s.ch[d[0]],roughness:0.35,transparent:true,opacity:0.6,depthWrite:false}));
+      m.position.set(d[1][0],d[1][1],d[1][2]);m.rotation.z=d[3];add(m);pools.push({m:m,k:d[5],n:d[0],base:(d[0]==='RV'?s.rvPool:(d[0]==='LV'?s.lvPool:(d[0]==='RA'?s.raPool:1)))});
+    });
+    s.ar.forEach(function(a){
+      var r=a.r||[0.3,0.24],t0=a.p[0];
+      if(a.from){
+        var inner=(a.from==='L')?[-0.75,-0.3,0.4]:(a.from==='S'?[0.05,-0.5,0.15]:[0.5,-0.4,-0.1]),mid=[(inner[0]+t0[0])/2,(inner[1]+t0[1])/2,(inner[2]+t0[2])/2];
+        var vm=ttube([inner,mid,t0],(a.vr?a.vr[0]:0.44),(a.vr?a.vr[1]:0.36),0,0,matV);shellsDyn.push(vm);
+      }
+      var bulb=new T.Mesh(new T.SphereGeometry(a.bb||0.42,20,16),new T.MeshStandardMaterial({color:a.c,roughness:0.45,transparent:true,opacity:0.82}));
+      bulb.material.depthWrite=false;bulb.scale.set(1,0.85,1);bulb.position.set(t0[0],t0[1]+0.1,t0[2]);add(bulb);
+      ttube(a.p,r[0],r[1],a.c,0.82);
+      if(a.br){
+        var cu=cv(a.p),best=0.5,by=-1e9,i,q;
+        for(i=0;i<=40;i++){q=cu.getPointAt(i/40);if(q.y>by){by=q.y;best=i/40;}}
+        [-0.07,0,0.07].forEach(function(d,k){
+          var u=Math.max(0.03,Math.min(0.97,best+d)),qq=cu.getPointAt(u);
+          ttube([[qq.x,qq.y,qq.z],[qq.x+(k-1)*0.1,qq.y+0.35,qq.z],[qq.x+(k-1)*0.2,qq.y+0.7,qq.z-0.05]],0.1,0.08,a.c,0.82);
+        });
+      }
+    });
+    s.ex.forEach(function(e){
+      var m=null;
+      if(e.t==='tube'){m=ttube(e.p,e.r,e.r,e.c,e.op||0.9);}
+      if(e.t==='ring'){
+        m=new T.Mesh(new T.TorusGeometry(e.r,(e.col===C.grey?0.08:0.06),8,24),new T.MeshStandardMaterial({color:e.col||C.orange,roughness:0.4}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);if(e.ry){m.rotation.y=Math.PI/2;}if(e.rx){m.rotation.x=Math.PI/2;}add(m);
+      }
+      if(e.t==='disc'){
+        m=new T.Mesh(new T.CylinderGeometry(e.r,e.r,0.05,28),new T.MeshStandardMaterial({color:C.orange,roughness:0.4}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);m.rotation.z=Math.PI/2;add(m);
+      }
+      if(e.t==='zone'){
+        m=new T.Mesh(new T.SphereGeometry(e.r,20,16),new T.MeshStandardMaterial({color:e.col,roughness:0.5,transparent:true,opacity:0.55,depthWrite:false}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);add(m);
+      }
+      if(e.t==='leaf'){
+        var P=e.p,g2=new T.BufferGeometry();
+        g2.setAttribute('position',new T.Float32BufferAttribute([].concat(P[0],P[1],P[2],P[0],P[2],P[3]),3));g2.computeVertexNormals();
+        m=new T.Mesh(g2,new T.MeshStandardMaterial({color:e.col,roughness:0.6,side:T.DoubleSide,transparent:true,opacity:0.92}));add(m);
+      }
+      if(e.t==='cone'){
+        m=new T.Mesh(new T.CylinderGeometry(e.r2,e.r1,e.h,28,1,true),new T.MeshStandardMaterial({color:e.col,roughness:0.5,transparent:true,opacity:0.75,side:T.DoubleSide}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);add(m);
+      }
+      if(e.t==='sph'){
+        m=new T.Mesh(new T.SphereGeometry(e.r,12,10),new T.MeshStandardMaterial({color:e.col,roughness:0.5}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);add(m);
+      }
+      if(e.in&&m){inOnly.push(m);}
+    });
+    s.fl.forEach(function(f){
+      var cu=cv(f.p),n=f.n||14,ps=[],i;
+      for(i=0;i<n;i++){
+        var q=new T.Mesh(new T.SphereGeometry(f.r||0.075,8,8),new T.MeshBasicMaterial({color:f.c}));
+        add(q);ps.push({m:q,u:i/n});
+      }
+      var fo={cu:cu,ps:ps,sp:f.sp||0.18};
+      if(f.obs){var bd=1e9,bu=0,k;for(k=0;k<=200;k++){var qq=cu.getPointAt(k/200),dd=qq.distanceTo(V(f.obs));if(dd<bd){bd=dd;bu=k/200;}}
+        fo.u0=Math.max(0.02,bu-(f.w||0.06));fo.u1=Math.min(0.98,bu+(f.w||0.06));fo.m=f.m||3;fo.amp=f.amp||0.1;fo.sp=(f.sp||0.18)*1.15;}
+      flows.push(fo);
+    });
+    s.lb.forEach(function(l){
+      var el=document.createElement('div');el.className='lbl';el.textContent=l[0];el.style.display=noms?'':'none';host.appendChild(el);
+      lbs.push({el:el,p:V(l[1]),t:l[0]});
+    });
+    $('inf').innerHTML=s.info;$('circ').textContent=s.circ;$('ref').textContent=s.ref;$('src').textContent=s.src?('Fuente de la combinación: '+s.src):'';
+    shells[0].base=s.rvShell||1;shells[1].base=s.lvShell||1;shells[2].base=s.raShell||1;rpv.visible=!s.hideRPV;
+    setIns();
+  }
+  function sysf(p){
+    function sm(x){return x*x*(3-2*x);}
+    if(p<0.12){return sm(p/0.12);}
+    if(p<0.35){return 1;}
+    if(p<0.45){return 1-sm((p-0.35)/0.10);}
+    return 0;
+  }
+  function frame(now){
+    var dt=Math.max(0,Math.min(0.1,(now-last)/1000));last=now;
+    if(!paused&&fc>0){time+=dt;flowT+=dt*fc/70;}
+    var f=0;
+    if(fc>0){var per=60/fc;f=sysf((time%per)/per);}
+    shells.forEach(function(s){var k=((s.k==='v')?(1-0.05*f):(1+0.035*f))*(s.base||1);s.m.scale.set(k,k,k);});
+    pools.forEach(function(p){var k=((p.k==='v')?(1-0.06*f):(1+0.04*f))*(p.base||1);p.m.scale.set(k,k,k);});
+    flows.forEach(function(fl){
+      fl.ps.forEach(function(p){
+        var u=(((p.u+flowT*fl.sp)%1)+1)%1;
+        if(fl.u0!==undefined){
+          var rr=fl.u1-fl.u0,kk=1-rr+rr/fl.m,pre=fl.u0/kk,insl=(rr/fl.m)/kk;
+          if(u<pre){u=u*kk;}else if(u<pre+insl){u=fl.u0+(u-pre)*kk*fl.m;}else{u=fl.u1+(u-pre-insl)*kk;}
+        }
+        var q=fl.cu.getPointAt(Math.max(0,Math.min(1,u)));
+        if(fl.u0!==undefined&&u>fl.u0){
+          var ta=(u-fl.u0)/0.04;ta=ta>1?1:ta;var tb=(u-fl.u1-0.28)/0.14;tb=tb<0?0:(tb>1?1:tb);
+          var am=fl.amp*ta*(1-tb),t2=time*15+p.u*41;
+          q.x+=am*Math.sin(t2*1.3+p.u*17);q.y+=am*Math.sin(t2*1.1+p.u*13);q.z+=am*Math.sin(t2*0.9+p.u*29);
+        }
+        p.m.position.set(q.x,q.y,q.z);
+      });
+    });
+    root.updateMatrixWorld(true);
+    var w=host.clientWidth,h=Hh;
+    lbs.forEach(function(l){
+      var v=l.p.clone().applyMatrix4(root.matrixWorld).project(cam);
+      l.sx=(v.x*0.5+0.5)*w;l.sy=(-v.y*0.5+0.5)*h;
+      l.el.style.left=l.sx+'px';l.el.style.top=l.sy+'px';
+    });
+    rd.render(scene,cam);
+    requestAnimationFrame(frame);
+  }
+  host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};host.setPointerCapture(e.pointerId);host.style.cursor='grabbing';});
+  host.addEventListener('pointermove',function(e){
+    if(!drag){return;}
+    root.rotation.y+=(e.clientX-drag.x)*0.01;
+    root.rotation.x=Math.max(-0.9,Math.min(0.9,root.rotation.x+(e.clientY-drag.y)*0.01));
+    drag={x:e.clientX,y:e.clientY};
+  });
+  function up(){drag=null;host.style.cursor='grab';}
+  host.addEventListener('pointerup',up);host.addEventListener('pointercancel',up);
+  $('rst').addEventListener('click',function(){root.rotation.set(0.05,0,0);});
+  window.addEventListener('resize',function(){var w2=host.clientWidth||640;rd.setSize(w2,Hh);cam.aspect=w2/Hh;cam.updateProjectionMatrix();});
+  function forceIns(){ins=true;$('ins').checked=true;}
+  function mk(parent,txt,pressed,fn,dis,title){var b=document.createElement('button');b.type='button';b.className='sg les';b.style.marginRight='6px';b.style.marginBottom='4px';b.textContent=txt;b.setAttribute('aria-pressed',pressed?'true':'false');if(dis){b.disabled=true;b.style.opacity='0.45';b.title=title||'';}else{b.addEventListener('click',fn);}parent.appendChild(b);return b;}
+function chk(parent,txt,on,fn){var l=document.createElement('label');l.style.marginRight='10px';var i=document.createElement('input');i.type='checkbox';i.checked=!!on;i.addEventListener('change',function(){fn(this.checked);});l.appendChild(i);l.appendChild(document.createTextNode(' '+txt));parent.appendChild(l);}
+function viewFor(){var M=S.mods;if(M.coa||M.dap){return -0.75;}if(M.civ||M.cia||S.base==='dsav'){return -0.65;}if(M.vcs){return -0.4;}if(M.cvpa){return 0.6;}if(S.base==='ebs'||S.base==='fon'||M.vap){return 0.5;}if(M.eis){return -0.5;}return 0;}
+function setView(){root.rotation.set(0.05,viewFor(),0);}
+function changed(rv){S.src='';ins=true;$('ins').checked=true;renderCtl();build();if(rv){setView();}}
+function setBase(k){S.base=k;Object.keys(S.mods).forEach(function(m){if(blocked(m)){delete S.mods[m];}});changed(true);}
+function renderSide(){
+  var sb=$('sidebody');sb.textContent='';
+  function sec(t){var h=document.createElement('div');h.className='sidet';h.textContent=t;sb.appendChild(h);}
+  function row(name,desc,on,fn,dis,why){var b=document.createElement('button');b.type='button';b.className='srow';b.setAttribute('aria-pressed',on?'true':'false');if(dis){b.disabled=true;b.title=why||'';}else{b.addEventListener('click',fn);}
+    var n=document.createElement('span');n.className='srn';n.textContent=name;var d=document.createElement('span');d.className='srd';d.textContent=dis?('No se combina: '+why):desc;b.appendChild(n);b.appendChild(d);sb.appendChild(b);}
+  sec('Anatomía de base');
+  TBB.forEach(function(b){row(b[1],b[2],S.base===b[0],function(){setBase(b[0]);});});
+  sec('Lesiones que se suman');
+  TBM.forEach(function(m){var why=blocked(m[0]);row(m[1],m[2],!!S.mods[m[0]],function(){var mm=MODS.filter(function(x){return x[0]===m[0];})[0];if(S.mods[m[0]]){delete S.mods[m[0]];}else{S.mods[m[0]]=mm[2][0][0];}changed(true);},!!why,why);});
+  sec('Combinaciones frecuentes');
+  PRES.forEach(function(p){var b=document.createElement('button');b.type='button';b.className='srow';var n=document.createElement('span');n.className='srn';n.textContent=p.n;var d=document.createElement('span');d.className='srd';d.textContent=p.src.split(' (')[0].slice(0,120)+(p.src.length>120?'…':'');b.appendChild(n);b.appendChild(d);b.addEventListener('click',function(){applyPres(p);});sb.appendChild(b);});
+}
+function applyPres(p){S.base=p.b;S.mods={};Object.keys(p.m).forEach(function(k){S.mods[k]=p.m[k];});S.ck={};if(p.k){Object.keys(p.k).forEach(function(k){S.ck[k]=p.k[k];});}S.src=p.src;ins=true;$('ins').checked=true;renderCtl();build();setView();}
+function setMode(m){
+  MODE=m;
+  $('ctl').hidden=(m==='estudio');$('side').hidden=(m==='estudio');$('estb').hidden=(m!=='estudio');
+  Array.prototype.forEach.call(document.querySelectorAll('.md'),function(b){b.setAttribute('aria-pressed',b.getAttribute('data-m')===m?'true':'false');});
+  if(m==='estudio'){S.base=EJ.base;S.mods={};Object.keys(EJ.mods).forEach(function(k){S.mods[k]=EJ.mods[k];});S.ck={};S.src='';$('estbt').textContent='Ejemplo de estudio con la CIA y la CIV cargadas en sus pestañas: '+EJ.txt+'. En la app este es el modo que se abre por defecto: el corazón se arma solo con los datos cargados y no se edita acá. «Explorar» abre los controles para experimentar.';}
+  renderCtl();build();setView();
+}
+function renderCtl(){
+  var bb=$('baseb');bb.textContent='';
+  BASES.forEach(function(b){mk(bb,b[1],S.base===b[0],function(){setBase(b[0]);});});
+  var bvr=$('basevarrow'),bv=$('basevar');bv.textContent='';
+  var vars=BVARS[S.base],ck=BCK[S.base+'_'+S.bv[S.base]];
+  if(vars||ck){bvr.hidden=false;
+    if(vars){vars.forEach(function(v){mk(bv,v[1],S.bv[S.base]===v[0],function(){S.bv[S.base]=v[0];changed(false);});});}
+    if(ck){ck.forEach(function(c){chk(bv,c[1],S.ck[c[0]],function(on){S.ck[c[0]]=on;ins=true;$('ins').checked=true;S.src='';build();});});}
+  }else{bvr.hidden=true;}
+  var mb=$('modb');mb.textContent='';var bl=[];
+  MODS.forEach(function(m){var r=blocked(m[0]);if(r){bl.push(m[1]+': '+r);}mk(mb,m[1],!!S.mods[m[0]],function(){if(S.mods[m[0]]){delete S.mods[m[0]];}else{S.mods[m[0]]=m[2][0][0];}changed(true);},!!r,r);});
+  var nt=$('note');if(bl.length){nt.hidden=false;nt.textContent='No se combinan con esta selección: '+bl.join(' · ');}else{nt.hidden=true;}
+  var md=$('mods');md.textContent='';
+  MODS.forEach(function(m){var v=S.mods[m[0]];if(!v){return;}
+    var multi=m[2].length>1,cks=MCK[m[0]+'_'+v]||MCK[m[0]];
+    if(!multi&&!cks){return;}
+    var row=document.createElement('div');row.className='row';var sp=document.createElement('span');sp.className='tit';sp.textContent=m[1];row.appendChild(sp);
+    var box=document.createElement('span');row.appendChild(box);
+    if(multi){m[2].forEach(function(x){mk(box,x[1],v===x[0],function(){S.mods[m[0]]=x[0];changed(false);});});}
+    if(cks){cks.forEach(function(c){chk(box,c[1],S.ck[c[0]],function(on){S.ck[c[0]]=on;ins=true;$('ins').checked=true;S.src='';build();});});}
+    md.appendChild(row);});
+  renderSide();
+  var pb=$('presb');pb.textContent='';
+  PRES.forEach(function(p){mk(pb,p.n,false,function(){applyPres(p);});});
+}
+$('ins').addEventListener('change',function(){ins=this.checked;setIns();});
+$('nom').addEventListener('change',function(){noms=this.checked;lbs.forEach(function(l){l.el.style.display=noms?'':'none';});});
+$('fc').addEventListener('input',function(){var n=parseFloat(this.value);fc=isNaN(n)?0:Math.max(30,Math.min(200,n));});
+$('pz').addEventListener('click',function(){paused=!paused;this.textContent=paused?'Seguir':'Pausar';});
+$('ib').addEventListener('click',function(){var o=$('ip').hidden;$('ip').hidden=!o;this.setAttribute('aria-expanded',o?'true':'false');});
+Array.prototype.forEach.call(document.querySelectorAll('.md'),function(b){b.addEventListener('click',function(){setMode(b.getAttribute('data-m'));});});
+$('rst').addEventListener('click',function(){root.rotation.set(0.05,0,0);});
+renderCtl();
+build();
+requestAnimationFrame(frame);
+}
+boot();
+})();
+</script>
+</body>
+</html>

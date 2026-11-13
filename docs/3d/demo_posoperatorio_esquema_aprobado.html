@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Demo: esquema del posoperatorio de cirugía cardíaca (aprobado el 17/10/2026)</title>
+<style>
+:root{
+ --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+ --surface-1:#ffffff;--surface-2:#f4f4f1;
+ --text-primary:#1c1c1a;--text-secondary:#55554f;--text-muted:#77776f;
+ --border:rgba(0,0,0,.16);--border-strong:rgba(0,0,0,.32);
+ --bg-accent:#e6f1fb;--border-accent:#85b7eb;--text-accent:#0c447c;
+ --bg-info:#e6f1fb;--border-info:#85b7eb;
+ --bg-success:#eaf3de;--border-success:#7fb23a;
+ --bg-warning:#faeeda;--border-warning:#e19a1f;
+ --bg-danger:#fcebeb;--border-danger:#d9463f;
+}
+@media (prefers-color-scheme: dark){
+:root{
+ --surface-1:#1f1f1d;--surface-2:#2a2a27;
+ --text-primary:#f1f1ec;--text-secondary:#c2c2ba;--text-muted:#9a9a92;
+ --border:rgba(255,255,255,.18);--border-strong:rgba(255,255,255,.34);
+ --bg-accent:#12304f;--border-accent:#3f7fbf;--text-accent:#a9d0f5;
+ --bg-info:#12304f;--border-info:#3f7fbf;
+ --bg-success:#1f3a14;--border-success:#5f9a2c;
+ --bg-warning:#4a3411;--border-warning:#c98a1c;
+ --bg-danger:#4a1b19;--border-danger:#d9625b;
+}
+}
+html,body{margin:0;background:var(--surface-1);color:var(--text-primary);font-family:var(--font-sans);line-height:1.45}
+body{max-width:980px;margin:0 auto;padding:16px}
+button{font-family:inherit;color:var(--text-primary);background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:8px;cursor:pointer}
+button:hover{background:var(--surface-2)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--border-accent);outline-offset:2px}
+input[type=range]{accent-color:#3f7fbf}
+h1{font-size:16px;font-weight:600;margin:0 0 12px}
+</style>
+</head>
+<body>
+<h1>Demo del esquema del posoperatorio de cirugía cardíaca (aprobado el 17/10/2026)</h1>
+<style>
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.seg{padding:5px 10px;font-size:12px}
+.seg[aria-pressed="true"]{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.sec{font-size:12px;color:var(--text-secondary);margin:6px 0 4px}
+.sl{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin:0 0 6px;font-size:12px}
+.sl input{grid-column:1 / 3;width:100%}
+.sl output{font-weight:500}
+.sem{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:0.5px solid var(--border);font-size:13px}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:3px;flex:none;border:1px solid}
+.r{margin:0 0 6px;font-size:13px;line-height:1.4}
+.r b{font-weight:500;display:block;font-size:11px;color:var(--text-secondary)}
+</style>
+<h2 class="sr-only">Demostración del esquema del posoperatorio de cirugía cardíaca: cuatro cavidades cuadradas y juntas que se mueven, con los caños (aorta, arteria pulmonar, venas pulmonares y vena cava), dos pulmones clásicos con tráquea y bronquios que muestran las presiones pulmonares, el balón de contrapulsación, la curva de presión arterial, cinco semáforos y el patrón detectado.</h2>
+<div class="card"><svg id="hs" viewBox="0 0 600 496" width="100%" role="img" aria-label="Esquema animado del corazón, los caños y los pulmones en el posoperatorio" style="display:block"></svg></div>
+<div class="card"><div class="cg"><div id="colA"></div><div id="colB"></div></div></div>
+<div style="font-size:12px;color:var(--text-muted)">Demo con reglas ilustrativas y valores de ejemplo (superficie corporal de 1,8 m²): no es un caso real ni una recomendación de conducta. El latido está enlentecido para que se vea. Las definiciones de hipertensión pulmonar siguen la ESC/ERS 2022 y deben verificarse contra la guía de la biblioteca.</div>
+<script>
+(function(){
+var NS='http://www.w3.org/2000/svg';
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var C={ok:['var(--bg-success)','var(--border-success)'],warn:['var(--bg-warning)','var(--border-warning)'],bad:['var(--bg-danger)','var(--border-danger)'],none:['var(--surface-1)','var(--border-strong)']};
+var st={IC:1.8,PVC:3,PAPs:20,PAPd:8,PCP:7,PAM:62,TAPSE:22,der:false,pleD:false,pleI:false,bcia:false,ecmo:false,nad:false,dob:false,cx:'CABG'};
+var PRE={hipo:{IC:1.8,PVC:3,PAPs:20,PAPd:8,PCP:7,PAM:62,TAPSE:22,der:false},fvi:{IC:1.7,PVC:12,PAPs:40,PAPd:22,PCP:24,PAM:58,TAPSE:20,der:false},fvd:{IC:1.9,PVC:18,PAPs:28,PAPd:10,PCP:8,PAM:60,TAPSE:9,der:false},fvdp:{IC:1.9,PVC:18,PAPs:55,PAPd:25,PCP:8,PAM:60,TAPSE:11,der:false},vaso:{IC:3.6,PVC:6,PAPs:28,PAPd:12,PCP:13,PAM:52,TAPSE:22,der:false},tap:{IC:1.6,PVC:17,PAPs:30,PAPd:17,PCP:17,PAM:58,TAPSE:15,der:true},est:{IC:2.8,PVC:7,PAPs:26,PAPd:10,PCP:14,PAM:78,TAPSE:20,der:false}};
+var PBTN=[['hipo','Hipovolemia'],['fvi','Falla del VI'],['fvd','Falla del VD (PAP baja)'],['fvdp','Falla del VD (PAP alta)'],['vaso','Vasoplejía'],['tap','Taponamiento'],['est','Estable']];
+var NAME={hipo:'Hipovolemia',fvi:'Falla del VI',fvd:'Falla del VD',vaso:'Vasoplejía',tap:'Taponamiento',mixto:'Falla biventricular',sinp:'Bajo gasto sin patrón claro',est:'Sin patrón de bajo gasto'};
+var HALL={hipo:'precarga baja',fvi:'congestión pulmonar',fvd:'falla del VD',vaso:'resistencia vascular baja',tap:'sospecha de taponamiento',mixto:'falla biventricular',sinp:'bajo gasto',est:'sin bajo gasto'};
+var VER={hipo:'Cámaras chicas que casi se vacían al contraerse, vena cava aplastada y pulmones sin congestión: ver cómo responde al volumen.',fvi:'VI grande que casi no se contrae, AI grande y pulmones congestionados con presión pulmonar alta por detrás del corazón izquierdo: motilidad regional, insuficiencia mitral y VTI.',fvdA:'VD grande con poca contracción, septo aplanado hacia el VI, vena cava dilatada y presión pulmonar ALTA: el VD está contra una poscarga alta; ver la resistencia pulmonar y la ventilación.',fvdB:'VD grande con poca contracción, septo aplanado hacia el VI, vena cava dilatada y presión pulmonar BAJA: la falla es del propio VD (contractilidad), no de la poscarga.',vaso:'Corazón vigoroso con caños dilatados y presión baja: resistencia sistémica baja con gasto normal o alto; ver los vasoactivos.',tap:'Corazón chico dentro de un anillo de líquido, con las cámaras derechas aplastadas: derrame o coágulo, a veces loculado y posterior; considerar ETE.',mixto:'Presiones altas de los dos lados y poca contracción: falla biventricular; ver el soporte.',sinp:'Gasto bajo con presiones intermedias: valorar la contractilidad del VI y del VD y el soporte.',est:'Sin patrón de bajo gasto: seguir la evolución.'};
+var CX={CABG:'motilidad regional en el bull\u2019s eye',Valvular:'gradientes basales de la prótesis y fuga paravalvular',Aorta:'derrame pericárdico y flap residual',Congénita:'shunt residual',Trasplante:'función del VD'};
+var PREG=['¿Gasto cardíaco adecuado?','¿Precarga suficiente?','¿Taponamiento?','¿Falla del VD?','¿Congestión pulmonar?'];
+function clamp(x,a,b){a=(a===undefined)?0:a;b=(b===undefined)?1:b;return Math.max(a,Math.min(b,x));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function fmt(x){return x.toFixed(1).replace('.',',');}
+function pm(){return Math.round((st.PAPs+2*st.PAPd)/3);}
+function rvs(){return Math.round((st.PAM-st.PVC)/(st.IC*1.8)*8)*10;}
+function rvp(){return Math.max(0,(pm()-st.PCP)/(st.IC*1.8));}
+function pcls(){var m=pm(),r=rvp();if(m<=20){return ['ok','PAP normal'];}if(st.PCP<=15){return r>2?['bad','precapilar']:['warn','PAP alta con RVP baja'];}return r<=2?['warn','poscapilar aislada']:['bad','poscapilar combinada'];}
+function detect(){
+var low=st.IC<2.2,R=rvs();
+if(st.der&&st.IC<2.5){return 'tap';}
+if(low&&st.PCP>18&&st.PVC>=15){return 'mixto';}
+if(low&&st.PVC>=15&&st.PVC>st.PCP+2){return 'fvd';}
+if(low&&st.PCP>18){return 'fvi';}
+if(low&&st.PCP<12&&st.PVC<8){return 'hipo';}
+if(!low&&R<800){return 'vaso';}
+if(low){return 'sinp';}
+return 'est';
+}
+var G={};
+function geo(){
+var p=detect(),R=rvs();
+var o={};
+o.sAD=lerp(0.8,1.22,clamp(st.PVC/22));
+o.sAI=lerp(0.8,1.22,clamp(st.PCP/30));
+o.sVD=lerp(0.82,1.32,clamp((st.PVC-3)/18));
+o.sVI=lerp(0.74,1.25,clamp(st.PCP/28));
+if(p==='tap'){o.sAD*=0.88;o.sVD*=0.88;o.sVI*=0.9;}
+if(p==='hipo'){o.sVI=Math.min(o.sVI,0.8);o.sVD=Math.min(o.sVD,0.86);}
+o.ampVI={hipo:0.34,fvi:0.05,fvd:0.12,vaso:0.3,tap:0.1,est:0.18,mixto:0.05,sinp:0.12}[p];
+o.ampVD=lerp(0.03,0.2,clamp((st.TAPSE-8)/16));
+if(p==='hipo'){o.ampVD=Math.max(o.ampVD,0.26);}
+o.bulge=clamp((st.PVC-st.PCP)/14)*24;
+o.eff=st.der?12:0;
+o.vc=lerp(4,18,clamp(st.PVC/22));
+o.aoW=lerp(20,7,clamp((R-500)/1100));
+o.paW=lerp(7,15,clamp((pm()-12)/30));
+o.lung=st.PCP>18?'bad':(st.PCP>=15?'warn':'none');
+o.nb=st.PCP>22?4:(st.PCP>18?3:(st.PCP>=15?1:0));
+o.cAD=st.PVC>=15?'bad':((st.PVC>=12||st.PVC<4)?'warn':'ok');
+o.cAI=st.PCP>18?'bad':((st.PCP>=15||st.PCP<8)?'warn':'ok');
+o.cVD=(p==='fvd'||p==='mixto')?'bad':((p==='tap'||st.TAPSE<17)?'warn':'ok');
+o.cVI=st.IC>2.2?'ok':(st.IC>=1.8?'warn':'bad');
+o.p=p;
+return o;
+}
+var svg=document.getElementById('hs');svg.style.fontFamily='var(--font-sans)';
+function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(p){p.appendChild(e);}return e;}
+function vessel(d){
+var o=el('path',{d:d,fill:'none',stroke:'var(--border-strong)','stroke-linejoin':'round'},svg);
+var i=el('path',{d:d,fill:'none',stroke:'var(--surface-2)','stroke-linejoin':'round'},svg);
+return {set:function(w){o.setAttribute('stroke-width',w+3);i.setAttribute('stroke-width',w);}};
+}
+function txt(x,y,t,sz,w,anch,fill){var e=el('text',{x:x,y:y,'text-anchor':anch||'middle','font-size':sz,'font-weight':w||400,fill:fill||'var(--text-primary)'},svg);e.textContent=t;return e;}
+var lungR=el('path',{d:'M90 84 C68 76 36 98 28 138 C20 180 26 226 46 254 C60 270 82 264 90 248 C95 206 95 130 90 84 Z','stroke-width':1.5},svg);
+var lungL=el('path',{d:'M100 84 C122 76 154 98 162 138 C170 180 164 226 144 254 C130 270 108 264 100 248 C95 206 95 130 100 84 Z','stroke-width':1.5},svg);
+el('path',{d:'M30 146 Q62 150 92 160',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+el('path',{d:'M36 192 Q64 196 92 226',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+el('path',{d:'M160 150 Q130 170 100 214',fill:'none',stroke:'var(--border-strong)','stroke-width':1},svg);
+var tr=vessel('M95 14 L95 66');tr.set(9);
+['M95 66 L70 104 L62 150','M95 66 L120 104 L128 150'].forEach(function(d){el('path',{d:d,fill:'none',stroke:'var(--text-secondary)','stroke-width':4,opacity:0.55,'stroke-linecap':'round','stroke-linejoin':'round'},svg);});
+['M70 104 L48 124','M66 128 L44 146','M120 104 L142 124','M124 128 L146 146','M62 150 L52 176','M128 150 L138 176'].forEach(function(d){el('path',{d:d,fill:'none',stroke:'var(--text-secondary)','stroke-width':2.5,opacity:0.45,'stroke-linecap':'round'},svg);});
+var plR=el('ellipse',{cx:58,cy:252,rx:22,ry:11,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,display:'none'},svg);
+var plL=el('ellipse',{cx:132,cy:252,rx:22,ry:11,fill:'var(--bg-info)',stroke:'var(--border-info)','stroke-width':1.5,display:'none'},svg);
+var bl=[];for(var i=0;i<4;i++){bl.push([el('line',{x1:38+i*8,y1:196,x2:38+i*8,y2:232,stroke:'var(--border-info)','stroke-width':2},svg),el('line',{x1:126+i*8,y1:196,x2:126+i*8,y2:232,stroke:'var(--border-info)','stroke-width':2},svg)]);}
+txt(58,282,'',1);
+var pa=vessel('M340 257 L146 257');
+var pv=vessel('M166 160 L238 160 L238 118 L408 118 L408 172');pv.set(7);
+var vc=vessel('M284 372 L284 178 L330 178');
+var ao=vessel('M410 257 L490 257 L490 110 Q490 62 530 62 Q570 62 570 110 L570 322');
+var ecmo=el('path',{d:'M284 372 L284 388 L570 388 L570 322',fill:'none',stroke:'var(--border-accent)','stroke-width':3,'stroke-dasharray':'8 6',display:'none'},svg);
+txt(530,48,'Aorta',12,500);
+txt(268,332,'VCI',11,500,'end');
+var paT1=txt(222,230,'arteria pulmonar',11,500);
+var paT2=txt(222,244,'',11,500);
+var pcpT=txt(323,110,'',11,500);
+var ecmoT=txt(430,382,'ECMO VA',11,500);
+var drog=txt(330,406,'',11,400,'middle','var(--text-secondary)');
+var pbox=el('rect',{x:10,y:284,width:170,height:78,rx:8,'stroke-width':1.5},svg);
+var pb1=txt(18,302,'',11,500,'start'),pb2=txt(18,318,'',11,400,'start'),pb3=txt(18,334,'',11,400,'start'),pb4=txt(18,352,'',11,500,'start');
+txt(95,378,'Pulmones',12,500);
+var effo=el('rect',{x:248,y:92,width:248,height:244,rx:34,fill:'none',stroke:'var(--border-danger)',opacity:0.6},svg);
+el('rect',{x:256,y:100,width:232,height:228,rx:30,fill:'none',stroke:'var(--border-strong)','stroke-width':1,'stroke-dasharray':'6 4'},svg);
+function cham(){return el('rect',{rx:10,'stroke-width':1.5},svg);}
+var rAD=cham(),rAI=cham(),rVD=cham(),rVI=cham();
+var sep=el('path',{fill:'none',stroke:'var(--text-secondary)','stroke-width':2.5},svg);
+var tAD=txt(0,0,'AD',13,500),tAI=txt(0,0,'AI',13,500),tVD=txt(0,0,'VD',13,500),tVI=txt(0,0,'VI',13,500);
+var balon=el('ellipse',{cx:570,cy:215,rx:3,ry:34,fill:'var(--bg-accent)',stroke:'var(--border-accent)','stroke-width':1.5,display:'none'},svg);
+var balonT=txt(570,262,'BCIA',11,500);
+el('rect',{x:20,y:414,width:560,height:72,rx:8,fill:'var(--surface-1)',stroke:'var(--border)','stroke-width':0.5},svg);
+txt(28,434,'Presión arterial',11,400,'start','var(--text-secondary)');
+var wave=el('path',{fill:'none',stroke:'var(--text-primary)','stroke-width':1.8,'stroke-linejoin':'round'},svg);
+var cur=el('line',{x1:140,y1:420,x2:140,y2:482,stroke:'var(--border-accent)','stroke-width':1.5},svg);
+var augT=txt(360,430,'aumento diastólico',11,500);
+var X0=140,X1=560;
+function updWave(){
+var PP=clamp(20+14*(st.IC-2),14,60),D=st.PAM-PP/3,S=D+PP,N=D+0.62*PP,d='';
+for(var i=0;i<=80;i++){
+var f=i/80,P;
+if(f<0.12){P=D+PP*Math.sin(Math.PI/2*f/0.12);}
+else if(f<0.35){P=S-(S-N)*((f-0.12)/0.23);}
+else{P=N-(N-D)*(1-Math.exp(-(f-0.35)/0.25))/(1-Math.exp(-0.65/0.25));}
+if(st.bcia){P+=0.38*PP*Math.exp(-Math.pow((f-0.55)/0.11,2));if(f>0.88){P-=(f-0.88)/0.12*0.22*PP;}}
+var x=X0+f*(X1-X0),y=480-clamp((P-30)/110)*46;
+d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+}
+wave.setAttribute('d',d);
+}
+var BW=70,BH=76;
+function place(kind,f,kw,kh){
+var w=BW*f,h=BH*f,x,y;
+if(kind==='AD'){x=370-w;y=216-h;}
+else if(kind==='AI'){x=373;y=216-h;}
+else if(kind==='VD'){x=370-w;y=219;}
+else{x=373;y=219;}
+var cx=x+w/2,cy=y+h/2,w2=w*kw,h2=h*kh;
+return {x:cx-w2/2,y:cy-h2/2,w:w2,h:h2,cx:cx,cy:cy};
+}
+function setR(e,t,g,s){e.setAttribute('x',g.x.toFixed(1));e.setAttribute('y',g.y.toFixed(1));e.setAttribute('width',g.w.toFixed(1));e.setAttribute('height',g.h.toFixed(1));e.setAttribute('fill',C[s][0]);e.setAttribute('stroke',C[s][1]);t.setAttribute('x',g.cx.toFixed(1));t.setAttribute('y',(g.cy+5).toFixed(1));}
+var PER=1700,t0=null;
+function frame(now){
+if(t0===null){t0=now;}
+var phi=reduce?0.2:((now-t0)%PER)/PER;
+var s=phi<0.35?Math.sin(Math.PI*phi/0.35):0;
+var a=1+0.05*s;
+setR(rAD,tAD,place('AD',G.sAD,a,a),G.cAD);
+setR(rAI,tAI,place('AI',G.sAI,a,a),G.cAI);
+setR(rVD,tVD,place('VD',G.sVD,1-0.5*G.ampVD*s,1-G.ampVD*s),G.cVD);
+setR(rVI,tVI,place('VI',G.sVI,1-0.5*G.ampVI*s,1-G.ampVI*s),G.cVI);
+ao.set(G.aoW*(1+0.15*s));pa.set(G.paW*(1+0.1*s));vc.set(G.vc);
+var cx=(X0+phi*(X1-X0)).toFixed(1);cur.setAttribute('x1',cx);cur.setAttribute('x2',cx);
+if(st.bcia){var v=phi<0.35?0:(phi<0.45?(phi-0.35)/0.1:(phi<0.9?1:(1-phi)/0.1));balon.setAttribute('rx',(2+9*v).toFixed(1));}
+if(st.ecmo){ecmo.setAttribute('stroke-dashoffset',(-(now/40)%14).toFixed(1));}
+if(!reduce){requestAnimationFrame(frame);}
+}
+function updStatic(){
+sep.setAttribute('d','M371.5 219 Q'+(371.5+G.bulge).toFixed(1)+' 257 371.5 295');
+effo.setAttribute('stroke-width',G.eff);
+var lf=G.lung==='none'?'var(--surface-1)':C[G.lung][0],ls=G.lung==='none'?'var(--border-strong)':C[G.lung][1];
+lungR.setAttribute('fill',lf);lungR.setAttribute('stroke',ls);lungL.setAttribute('fill',lf);lungL.setAttribute('stroke',ls);
+for(var i=0;i<4;i++){var on=i<G.nb;bl[i][0].setAttribute('display',on?'inline':'none');bl[i][1].setAttribute('display',on?'inline':'none');}
+plR.setAttribute('display',st.pleD?'inline':'none');plL.setAttribute('display',st.pleI?'inline':'none');
+balon.setAttribute('display',st.bcia?'inline':'none');balonT.setAttribute('display',st.bcia?'inline':'none');augT.setAttribute('display',st.bcia?'inline':'none');
+ecmo.setAttribute('display',st.ecmo?'inline':'none');ecmoT.setAttribute('display',st.ecmo?'inline':'none');
+var v=[];if(st.nad){v.push('noradrenalina');}if(st.dob){v.push('dobutamina');}
+drog.textContent=v.length?('Vasoactivos: '+v.join(', ')):'Sin vasoactivos marcados';
+paT2.textContent='PAP '+st.PAPs+'/'+st.PAPd+' · media '+pm();
+pcpT.textContent='venas pulmonares hacia la AI · PCP '+st.PCP;
+var pc=pcls();
+pbox.setAttribute('fill',C[pc[0]][0]);pbox.setAttribute('stroke',C[pc[0]][1]);
+pb1.textContent='PAP media '+pm()+' · PCP '+st.PCP;
+pb2.textContent='Gradiente transpulmonar '+(pm()-st.PCP);
+pb3.textContent='RVP '+fmt(rvp())+' UW';
+pb4.textContent=pc[1];
+}
+var A=document.getElementById('colA'),B=document.getElementById('colB');
+function mk(tag,cls,txt2,par){var e=document.createElement(tag);if(cls){e.className=cls;}if(txt2!==undefined){e.textContent=txt2;}(par||A).appendChild(e);return e;}
+mk('div','sec','Ejemplos (cargan los datos)');
+var rowP=mk('div','grp');
+PBTN.forEach(function(k){var b=mk('button','seg',k[1],rowP);b.onclick=function(){load(k[0]);};});
+mk('div','sec','Datos (mové los controles)');
+var SL=[['IC','Índice cardíaco (L/min/m²)',0.8,5,0.1],['PVC','PVC, presión de la AD (mmHg)',0,25,1],['PAPs','PAP sistólica (mmHg)',15,90,1],['PAPd','PAP diastólica (mmHg)',5,50,1],['PCP','PCP (mmHg)',0,35,1],['PAM','Presión arterial media (mmHg)',40,110,1],['TAPSE','TAPSE (mm)',6,30,1]];
+var inp={},outp={};
+SL.forEach(function(s){
+var w=mk('div','sl');
+mk('span','',s[1],w);
+var o=mk('output','',String(st[s[0]]),w);
+var i=document.createElement('input');i.type='range';i.min=s[2];i.max=s[3];i.step=s[4];i.value=st[s[0]];i.setAttribute('aria-label',s[1]);
+i.addEventListener('input',function(){st[s[0]]=parseFloat(i.value);o.textContent=(s[0]==='IC')?fmt(st.IC):String(st[s[0]]);refresh();});
+w.appendChild(i);inp[s[0]]=i;outp[s[0]]=o;
+});
+outp.IC.textContent=fmt(st.IC);
+mk('div','sec','Pericardio, pleura, soporte y vasoactivos');
+var rowT=mk('div','grp');
+var TG=[['der','Derrame con compresión'],['pleD','Derrame pleural D'],['pleI','Derrame pleural I'],['bcia','Balón (BCIA)'],['ecmo','ECMO VA'],['nad','Noradrenalina'],['dob','Dobutamina']];
+var tb={};
+TG.forEach(function(t){var b=mk('button','seg',t[1],rowT);b.setAttribute('aria-pressed','false');b.onclick=function(){st[t[0]]=!st[t[0]];refresh();};tb[t[0]]=b;});
+var rowC=mk('div','grp');
+mk('span','sec','Cirugía',rowC);
+var sel=document.createElement('select');sel.setAttribute('aria-label','Tipo de cirugía');['CABG','Valvular','Aorta','Congénita','Trasplante'].forEach(function(c){var op=document.createElement('option');op.textContent=c;sel.appendChild(op);});
+sel.addEventListener('change',function(){st.cx=sel.value;renderRes();});rowC.appendChild(sel);
+var res=B;
+function load(k){var d=PRE[k];['IC','PVC','PAPs','PAPd','PCP','PAM','TAPSE'].forEach(function(n){st[n]=d[n];inp[n].value=d[n];outp[n].textContent=(n==='IC')?fmt(d[n]):String(d[n]);});st.der=d.der;refresh();}
+function fila(a,b){var d=document.createElement('div');d.className='r';var s=document.createElement('b');s.textContent=a;d.appendChild(s);d.appendChild(document.createTextNode(b));return d;}
+function sems(){
+var IC=st.IC,PCP=st.PCP,PVC=st.PVC,p=G.p;
+var f1=IC>2.2?'ok':(IC>=1.8?'warn':'bad');
+var f2=(PCP>=12&&PCP<=18)?'ok':(((PCP>=8&&PCP<12)||(PCP>18&&PCP<=22))?'warn':'bad');
+var eq=Math.abs(PVC-PCP)<=3&&PVC>=12;
+var f3=st.der?(IC<2.5?'bad':'warn'):(eq?'warn':'ok');
+var f4=(p==='fvd'||p==='mixto')?'bad':((PVC>=12||st.TAPSE<17)?'warn':'ok');
+var f5=PCP>18?'bad':(PCP>=15?'warn':'ok');
+return [
+[f1,'IC '+fmt(IC)+' · referencia: mayor de 2,2'],
+[f2,'PCP '+PCP+' · referencia: 12 a 18'],
+[f3,st.der?('Sugerido'+(eq?' · presiones igualadas':'')):(eq?'No hay derrame marcado, pero PVC y PCP están casi iguales':'No sugerido')],
+[f4,'PVC '+PVC+' · PAP media '+pm()+(st.TAPSE<17?' · TAPSE '+st.TAPSE+' mm (bajo)':'')],
+[f5,PCP>18?('PCP '+PCP+' · por encima de 18'):('PCP '+PCP)]
+];
+}
+function verTxt(p){if(p==='fvd'){return pm()>25?VER.fvdA:VER.fvdB;}return VER[p];}
+function renderRes(){
+res.textContent='';
+var S=sems();
+var h=document.createElement('div');h.className='sec';h.textContent='Cinco semáforos';res.appendChild(h);
+for(var i=0;i<5;i++){
+var r=document.createElement('div');r.className='sem';
+var dot=document.createElement('span');dot.className='dot';dot.style.background=C[S[i][0]][0];dot.style.borderColor=C[S[i][0]][1];
+var t=document.createElement('div');
+var q=document.createElement('div');q.style.fontWeight='500';q.textContent=PREG[i];
+var a=document.createElement('div');a.textContent=S[i][1];
+t.appendChild(q);t.appendChild(a);r.appendChild(dot);r.appendChild(t);res.appendChild(r);
+}
+var sp=document.createElement('div');sp.style.cssText='border-top:0.5px solid var(--border);margin-top:6px;padding-top:8px';
+var p=G.p,pc=pcls();
+var nm=NAME[p];if(p==='fvd'){nm+=pm()>25?' · con poscarga alta (PAP elevada)':' · de contractilidad (PAP baja)';}
+sp.appendChild(fila('Patrón detectado (orientativo)',nm));
+sp.appendChild(fila('Circuito pulmonar','PAP media '+pm()+', PCP '+st.PCP+', gradiente transpulmonar '+(pm()-st.PCP)+', RVP '+fmt(rvp())+' UW: '+pc[1]));
+sp.appendChild(fila('Otras lecturas','PAM '+st.PAM+' · RVS \u2248 '+rvs()+' dyn·s·cm\u207B\u2075'));
+sp.appendChild(fila('Lo que se ve en el dibujo',verTxt(p)));
+sp.appendChild(fila('Según la cirugía ('+st.cx+'), también mirar',CX[st.cx]));
+sp.appendChild(fila('Así saldría en el EN SUMA','PostCEC '+st.cx+', hora 12 \u2014 patrón '+NAME[p].toLowerCase()+' \u2014 IC '+fmt(st.IC)+' \u2014 '+HALL[p]+(st.PCP>18&&p!=='fvi'?' \u2014 congestión pulmonar':'')));
+res.appendChild(sp);
+}
+function refresh(){
+G=geo();
+for(var k in tb){tb[k].setAttribute('aria-pressed',st[k]);}
+updStatic();updWave();renderRes();
+if(reduce){frame(0);}
+}
+refresh();
+if(!reduce){requestAnimationFrame(frame);}
+})();
+</script>
+</body>
+</html>

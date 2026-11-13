@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EcoSmart · Demo arterias coronarias en 3D</title>
+<style>
+:root{--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--surface-0:#f6f5f1;--surface-1:#efede6;--surface-2:#ffffff;--text-primary:#1f1e1d;--text-secondary:#5f5e5a;--text-muted:#8a8982;--border:rgba(0,0,0,.12);--border-strong:rgba(0,0,0,.25);--border-stronger:rgba(0,0,0,.45);--bg-accent:#e6f1fb;--text-accent:#185fa5;--border-accent:#378add;--fill-accent:#378add;--bg-danger:#fcebeb;--text-danger:#a32d2d;--border-danger:#f09595;--bg-warning:#faeeda;--text-warning:#854f0b;--border-warning:#ef9f27;--bg-success:#eaf3de;--text-success:#3b6d11;--border-success:#97c459;--radius:8px;}
+@media (prefers-color-scheme:dark){:root{--surface-0:#1c1b19;--surface-1:#262522;--surface-2:#2e2d2a;--text-primary:#f1efe8;--text-secondary:#b4b2a9;--text-muted:#888780;--border:rgba(255,255,255,.14);--border-strong:rgba(255,255,255,.28);--border-stronger:rgba(255,255,255,.5);--bg-accent:#0c447c;--text-accent:#85b7eb;--bg-danger:#501313;--text-danger:#f7c1c1;--border-danger:#a32d2d;--bg-warning:#412402;--text-warning:#fac775;--border-warning:#854f0b;--bg-success:#173404;--text-success:#c0dd97;--border-success:#3b6d11;}}
+html{background:var(--surface-0)}
+body{margin:0 auto;max-width:760px;padding:20px 16px 40px;font-family:var(--font-sans);font-size:16px;line-height:1.5;color:var(--text-primary)}
+p{margin:0}
+button{font:inherit;font-size:13px;color:var(--text-primary);background:transparent;border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:5px 12px;cursor:pointer}
+button:hover{background:var(--surface-1)}
+button:active{transform:scale(.98)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+
+<h1 style="font-size:20px;font-weight:500;margin:0 0 4px;">EcoSmart · Demo arterias coronarias en el 3D del VI</h1>
+<p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px;">Archivo de demostración guardado el 08/11/2026. Modelo esquemático: no es una imagen del paciente. La anatomía coronaria es un dibujo estándar simplificado y los ángulos de las vistas de angiografía son típicos y aproximados (a verificar con una fuente antes de implementar). Necesita conexión a internet para cargar la librería 3D. Idea aprobada para la app: las vistas de angiografía irán en un botón desplegable, y las arterias se pintan siempre según lo que tiene el paciente; las arterias posiblemente involucradas van solo en pantalla, no en el informe.</p>
+
+<h2 class="sr-only">Demo en 3D del ventrículo izquierdo con arterias coronarias: el tramo de cada arteria que queda en gris depende del nivel de los segmentos alterados (basal, medio, apical), con etiquetas reducidas a letras.</h2>
+
+<div style="margin-bottom:10px;">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px;">
+<span style="font-size:12px;color:var(--text-secondary);width:92px;">Orientación</span>
+<button id="o0" style="font-size:12px;">Punta hacia mí</button>
+<button id="o1" style="font-size:12px;">Punta a la derecha</button>
+<button id="o2" style="font-size:12px;">Punta a la izquierda</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px;">
+<span style="font-size:12px;color:var(--text-secondary);width:92px;">Angiografía</span>
+<button id="g0" style="font-size:12px;">OAD caudal</button>
+<button id="g1" style="font-size:12px;">OAI caudal</button>
+<button id="g2" style="font-size:12px;">OAD craneal</button>
+<button id="g3" style="font-size:12px;">OAI craneal</button>
+<button id="g4" style="font-size:12px;">PA craneal</button>
+<button id="g5" style="font-size:12px;">OAI (CD)</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+<span style="font-size:12px;color:var(--text-secondary);width:92px;">Dominancia</span>
+<button id="d0" style="font-size:12px;">Derecha</button>
+<button id="d1" style="font-size:12px;">Codominante</button>
+<button id="d2" style="font-size:12px;">Izquierda</button>
+<span style="width:10px;"></span>
+<button id="tr" style="font-size:12px;">Transparente</button>
+<button id="an" style="font-size:12px;">Modo angiografía</button>
+<button id="lb" style="font-size:12px;">Letras</button>
+</div>
+<p id="vnote" style="font-size:12px;color:var(--text-muted);margin:6px 0 0;"></p>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;">
+<div style="flex:1 1 360px;min-width:300px;">
+<div id="wrap" style="position:relative;height:340px;border-radius:12px;background:var(--surface-1);overflow:hidden;touch-action:none;cursor:grab;"></div>
+<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;">DA descendente anterior · D diagonales · Cx circunfleja · MO marginales obtusas · CD coronaria derecha · DP descendente posterior · PL posterolateral. Gris: tramo posiblemente afectado según el nivel de los segmentos alterados. Las septales (se ven con «Transparente») y la marginal aguda no llevan letra.</p>
+<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Arrastrá para girar. Tocá un segmento (en el 3D o en el bull's eye) para cambiar su motilidad.</p>
+</div>
+
+<div style="flex:0 0 240px;max-width:100%;">
+<svg id="be" viewBox="0 0 220 220" width="240" role="img" aria-label="Bull's eye de 17 segmentos" style="max-width:100%;"></svg>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;">
+<button id="p0" style="font-size:12px;">Tu ejemplo</button>
+<button id="p1" style="font-size:12px;">Territorio DA</button>
+<button id="p2" style="font-size:12px;">Territorio CD</button>
+<button id="p3" style="font-size:12px;">Territorio Cx</button>
+<button id="p5" style="font-size:12px;">DA apical</button>
+<button id="p6" style="font-size:12px;">CD medio</button>
+<button id="p4" style="font-size:12px;">Limpiar</button>
+</div>
+<div style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:10px 12px;">
+<p style="font-size:13px;font-weight:500;margin:0 0 6px;">Arterias posiblemente involucradas</p>
+<div id="info" style="font-size:12px;line-height:1.55;"></div>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+if(typeof THREE==='undefined'){
+ $('wrap').innerHTML='<p style="padding:16px;font-size:13px;color:var(--text-secondary);">No se pudo cargar la librería 3D. Revisá la conexión a internet y recargá la página.</p>';
+}else{
+(function(){
+const R=1,L=2.2,rad=d=>d*Math.PI/180;
+const S=new Array(18).fill(0);
+const SC=[0x5ec26a,0xd4c24a,0xe0653a,0x9b6bd6],SCC=['#5ec26a','#d4c24a','#e0653a','#9b6bd6'];
+const T={DA:[1,2,7,8,13,14,17],CD:[3,4,9,10,15],CX:[5,6,11,12,16]};
+const NAME={DA:'DA',CD:'CD',CX:'Cx'};
+const ACOL={DA:0x2f6fed,CX:0xe0559c,CD:0x14a050,LM:0x8b7fd6},ACSS={DA:'#2f6fed',CX:'#e0559c',CD:'#14a050',LM:'#8b7fd6'};
+let dom=0,transp=false,angio=false,labelsOn=true,inv={DA:false,CX:false,CD:false},lvl={DA:null,CX:null,CD:null};
+
+function segOf(t,phi){
+ const p=((phi%360)+360)%360;
+ if(t<0.34)return 1+Math.floor(((p+30)%360)/60);
+ if(t<0.67)return 7+Math.floor(((p+30)%360)/60);
+ if(t<0.88)return 13+Math.floor(((p+45)%360)/90);
+ return 17;
+}
+
+const wrap=$('wrap');
+const W0=wrap.clientWidth||380,H0=340;
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(W0,H0);
+renderer.domElement.style.display='block';
+wrap.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,W0/H0,0.1,50);
+camera.position.set(0,0,7.5);
+scene.add(new THREE.AmbientLight(0xffffff,0.8));
+const dl=new THREE.DirectionalLight(0xffffff,0.6);dl.position.set(2,3,5);scene.add(dl);
+const group=new THREE.Group();scene.add(group);
+const body=new THREE.Group();body.position.z=-1.0;group.add(body);
+
+const TS=36,PS=72;
+const pos=[],nor=[],quadSeg=[];
+function sp(t,ph){
+ const rr=R*Math.sqrt(Math.max(0,1-t*t)),a=rad(ph);
+ const x=-Math.sin(a)*rr,y=Math.cos(a)*rr,z=L*t;
+ let nx=x/(R*R),ny=y/(R*R),nz=z/(L*L);const n=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+ return [x,y,z,nx/n,ny/n,nz/n];
+}
+for(let i=0;i<TS;i++)for(let j=0;j<PS;j++){
+ const t0=i/TS,t1=(i+1)/TS,p0=j*360/PS,p1=(j+1)*360/PS;
+ const A=sp(t0,p0),B=sp(t1,p0),C=sp(t1,p1),D=sp(t0,p1);
+ [A,B,C,A,C,D].forEach(v=>{pos.push(v[0],v[1],v[2]);nor.push(v[3],v[4],v[5]);});
+ quadSeg.push(segOf((t0+t1)/2,(p0+p1)/2));
+}
+const geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+const colArr=new Float32Array(quadSeg.length*6*3);
+geo.setAttribute('color',new THREE.BufferAttribute(colArr,3));
+const surfMat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true});
+const surf=new THREE.Mesh(geo,surfMat);body.add(surf);
+const wire=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({wireframe:true,color:0x888888,transparent:true,opacity:0.12}));
+wire.scale.set(1.012,1.012,1.012);body.add(wire);
+const rootGeo=new THREE.CylinderGeometry(0.28,0.28,0.6,24,1,true);rootGeo.rotateX(Math.PI/2);
+const rootMat=new THREE.MeshLambertMaterial({color:0xc98a7d,side:THREE.DoubleSide,transparent:true,opacity:0.85});
+const root=new THREE.Mesh(rootGeo,rootMat);root.position.set(-0.268,0.225,-0.25);body.add(root);
+
+const tmpC=new THREE.Color();
+function paint(){
+ let k=0;
+ for(let q=0;q<quadSeg.length;q++){
+  tmpC.setHex(angio?0x6b6b6b:SC[S[quadSeg[q]]]);
+  for(let v=0;v<6;v++){colArr[k++]=tmpC.r;colArr[k++]=tmpC.g;colArr[k++]=tmpC.b;}
+ }
+ geo.attributes.color.needsUpdate=true;
+}
+
+const vessels=new THREE.Group();body.add(vessels);
+let labelList=[];
+function P(t,ph,k){
+ k=k===undefined?1.03:k;const tt=Math.max(0,Math.min(1,t));
+ const rr=R*Math.sqrt(1-tt*tt)*k,a=rad(ph);
+ return new THREE.Vector3(-Math.sin(a)*rr,Math.cos(a)*rr,L*t);
+}
+const OL=new THREE.Vector3(-0.10,0.45,-0.12),OR=new THREE.Vector3(-0.49,0.39,-0.12);
+function defs(){
+ const d=[];
+ d.push({a:'LM',r:0.034,p:[OL,P(-0.05,20,1.0),P(0,28,1.02)]});
+ d.push({a:'DA',r:0.03,n:'DA',f:0.58,p:[P(0,28,1.02),P(0.08,32),P(0.25,34),P(0.45,34),P(0.65,32,1.02),P(0.85,28,1.01),P(0.97,20,1.0)]});
+ d.push({a:'DA',r:0.018,n:'D',f:0.85,p:[P(0.25,34),P(0.3,10),P(0.42,-15),P(0.6,-30,1.02)]});
+ d.push({a:'DA',r:0.015,p:[P(0.45,34),P(0.5,15),P(0.62,-5,1.02),P(0.78,-20,1.01)]});
+ [0.15,0.3,0.45,0.6,0.75].forEach(t=>{
+  d.push({a:'DA',r:0.011,inner:true,p:[P(t,34,1.0),P(t+0.01,50,0.88),P(t+0.02,66,0.76)]});
+ });
+ const cx=[P(0,28,1.02),P(0.03,0),P(0.04,-40),P(0.04,-80),P(0.05,-110)];
+ if(dom===2){cx.push(P(0.04,-140),P(0.03,-165),P(0.02,-192));}
+ if(dom===1){cx.push(P(0.04,-140));}
+ d.push({a:'CX',r:0.028,n:'Cx',f:0.45,p:cx});
+ d.push({a:'CX',r:0.017,n:'MO',f:0.85,p:[P(0.04,-45),P(0.2,-55),P(0.38,-60,1.02),P(0.55,-62,1.01)]});
+ d.push({a:'CX',r:0.015,p:[P(0.05,-90),P(0.22,-95),P(0.4,-100,1.02),P(0.58,-105,1.01)]});
+ const rca=[OR,P(-0.05,62,1.25),P(0,85,1.32),P(0,115,1.22)];
+ if(dom!==2){rca.push(P(0.01,145,1.08),P(0.02,168));}
+ d.push({a:'CD',r:0.03,n:'CD',f:0.55,p:rca});
+ d.push({a:'CD',r:0.016,p:[P(0,95,1.32),P(0.12,110,1.4),P(0.3,125,1.42),P(0.5,135,1.36)]});
+ const pda=[P(0.02,168),P(0.06,153),P(0.25,150),P(0.5,150,1.02),P(0.75,150,1.01),P(0.9,148,1.0)];
+ const pl=[P(0.04,205),P(0.2,213),P(0.38,218,1.02),P(0.52,220,1.01)];
+ const oPDA=dom===2?'CX':'CD',oPL=dom===0?'CD':'CX';
+ d.push({a:oPDA,r:0.022,n:'DP',f:0.55,p:pda});
+ [0.2,0.4,0.6].forEach(t=>{d.push({a:oPDA,r:0.01,inner:true,p:[P(t,150,1.0),P(t,135,0.88),P(t,120,0.76)]});});
+ if(dom===0)d.push({a:'CD',r:0.016,p:[P(0.02,168),P(0.02,188),P(0.04,208),P(0.05,225)]});
+ d.push({a:oPL,r:0.016,n:'PL',f:0.8,p:pl});
+ return d;
+}
+function rebuild(){
+ while(vessels.children.length){const m=vessels.children.pop();m.geometry.dispose();m.material.dispose();}
+ labelList.forEach(l=>wrap.removeChild(l.el));labelList=[];
+ const dfs=defs();
+ const tMax={DA:0,CX:0,CD:0};
+ dfs.forEach(df=>{if(tMax[df.a]!==undefined)df.p.forEach(v=>{tMax[df.a]=Math.max(tMax[df.a],v.z/L);});});
+ const eff={};
+ ['DA','CX','CD'].forEach(k=>{eff[k]=lvl[k]?Math.min(lvl[k].c,Math.max(0,tMax[k]-0.1)):null;});
+ const grayC=new THREE.Color(angio?0x666666:0x8f8f8f);
+ dfs.forEach(df=>{
+  const curve=new THREE.CatmullRomCurve3(df.p);
+  const g=new THREE.TubeGeometry(curve,48,df.r,8,false);
+  const pa2=g.attributes.position,ca=new Float32Array(pa2.count*3);
+  const base=new THREE.Color(angio?0xe8e8e8:ACOL[df.a]);
+  const e=eff[df.a];
+  for(let i=0;i<pa2.count;i++){
+   const t=Math.max(0,pa2.getZ(i)/L);
+   const c=(e!==null&&e!==undefined&&t>=e-1e-6)?grayC:base;
+   ca[i*3]=c.r;ca[i*3+1]=c.g;ca[i*3+2]=c.b;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(ca,3));
+  vessels.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true})));
+  if(df.n){
+   const el=document.createElement('div');el.textContent=df.n;
+   el.style.cssText='position:absolute;font-size:12px;font-weight:500;pointer-events:none;color:'+(angio?'#f0f0f0':ACSS[df.a])+';text-shadow:0 0 3px '+(angio?'#000':'var(--surface-1)')+',0 0 3px '+(angio?'#000':'var(--surface-1)')+';';
+   wrap.appendChild(el);
+   labelList.push({el:el,anchor:curve.getPoint(df.f)});
+  }
+ });
+}
+const vp=new THREE.Vector3(),nv=new THREE.Vector3();
+function placeLabels(){
+ labelList.forEach(l=>{
+  if(!labelsOn){l.el.style.display='none';return;}
+  l.el.style.display='block';
+  const a=l.anchor;
+  vp.copy(a);body.localToWorld(vp);vp.project(camera);
+  l.el.style.left=((vp.x*0.5+0.5)*wrap.clientWidth+4)+'px';
+  l.el.style.top=((-vp.y*0.5+0.5)*H0-16)+'px';
+  nv.set(a.x,a.y,0).normalize().applyQuaternion(group.quaternion);
+  const facing=nv.z>-0.1||transp||angio;
+  l.el.style.opacity=facing?1:0.25;
+ });
+}
+
+const pa=new THREE.Vector3(0.6,-0.5,0.6).normalize();
+const Yl=new THREE.Vector3(0,0,1).sub(pa.clone().multiplyScalar(pa.z)).normalize();
+const Xl=new THREE.Vector3().crossVectors(Yl,pa);
+const Rp=new THREE.Matrix4().makeBasis(Xl,Yl,pa);
+function viewQ(al,be){
+ const A=rad(al),B=rad(be);
+ const d=new THREE.Vector3(Math.sin(A)*Math.cos(B),Math.sin(B),Math.cos(A)*Math.cos(B));
+ const xc=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),d).normalize();
+ const yc=new THREE.Vector3().crossVectors(d,xc);
+ const Rv=new THREE.Matrix4().makeBasis(xc,yc,d).transpose();
+ return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().multiplyMatrices(Rv,Rp));
+}
+const AX=new THREE.Vector3(0,1,0);
+const OR_Q=[new THREE.Quaternion(),new THREE.Quaternion().setFromAxisAngle(AX,rad(90)),new THREE.Quaternion().setFromAxisAngle(AX,rad(-90))];
+const OR_N=['Orientación del VI, sin referencia al tórax: punta hacia el usuario.','Orientación del VI, sin referencia al tórax: punta a la derecha.','Orientación del VI, sin referencia al tórax: punta a la izquierda.'];
+const GV=[
+ {a:-30,b:-25,n:'OAD 30° caudal: suele mostrar la circunfleja y sus marginales, y la DA proximal.'},
+ {a:40,b:-30,n:'OAI 40° caudal (araña): suele mostrar el tronco y la bifurcación DA/circunfleja.'},
+ {a:-30,b:20,n:'OAD 30° craneal: suele mostrar la DA media y distal.'},
+ {a:40,b:30,n:'OAI 40° craneal: suele mostrar la DA media y las diagonales.'},
+ {a:0,b:30,n:'PA craneal: suele mostrar la DA y las diagonales.'},
+ {a:35,b:0,n:'OAI 35°: suele mostrar la CD proximal y media.'}
+];
+let target=null;
+function setBtn(ids,on){ids.forEach(id=>{$(id).style.borderColor='';});if(on)$(on).style.borderColor='var(--border-accent)';}
+const OB=['o0','o1','o2'],GB=['g0','g1','g2','g3','g4','g5'];
+OB.forEach((id,i)=>{$(id).onclick=()=>{target=OR_Q[i].clone();setBtn(GB,null);setBtn(OB,id);$('vnote').textContent=OR_N[i];};});
+GB.forEach((id,i)=>{$(id).onclick=()=>{target=viewQ(GV[i].a,GV[i].b);setBtn(OB,null);setBtn(GB,id);$('vnote').textContent=GV[i].n+' Ángulos típicos, aproximados: dependen de cada paciente (a verificar con una fuente).';};});
+setBtn(OB,'o0');$('vnote').textContent=OR_N[0];
+const DB=['d0','d1','d2'];
+DB.forEach((id,i)=>{$(id).onclick=()=>{dom=i;setBtn(DB,id);info();rebuild();};});
+setBtn(DB,'d0');
+function style(){
+ surfMat.opacity=angio?0.12:transp?0.22:1;surfMat.depthWrite=!(transp||angio);
+ wire.material.opacity=angio?0.25:transp?0.35:0.12;
+ rootMat.opacity=angio?0.15:0.85;
+ wrap.style.background=angio?'#101010':'var(--surface-1)';
+ $('tr').style.borderColor=transp?'var(--border-accent)':'';
+ $('an').style.borderColor=angio?'var(--border-accent)':'';
+ $('lb').style.borderColor=labelsOn?'var(--border-accent)':'';
+ paint();rebuild();
+}
+$('tr').onclick=()=>{transp=!transp;style();};
+$('an').onclick=()=>{angio=!angio;style();};
+$('lb').onclick=()=>{labelsOn=!labelsOn;$('lb').style.borderColor=labelsOn?'var(--border-accent)':'';};
+
+const be=$('be');
+const rings=[{r1:72,r2:100,ids:[1,2,3,4,5,6],off:-30,sp:60},{r1:45,r2:72,ids:[7,8,9,10,11,12],off:-30,sp:60},{r1:20,r2:45,ids:[13,14,15,16],off:-45,sp:90}];
+function bp(r,phi){const a=rad(phi);return [110-r*Math.sin(a),110-r*Math.cos(a)];}
+const segEl={};
+function arc(r1,r2,a,b){
+ const p1=bp(r2,a),p2=bp(r2,b),p3=bp(r1,b),p4=bp(r1,a);
+ return 'M'+p1+' A'+r2+','+r2+' 0 0 0 '+p2+' L'+p3+' A'+r1+','+r1+' 0 0 1 '+p4+' Z';
+}
+let beh='';
+rings.forEach(rg=>rg.ids.forEach((id,i)=>{
+ const a=rg.off+i*rg.sp,b=a+rg.sp,c=bp((rg.r1+rg.r2)/2,(a+b)/2);
+ beh+='<path data-s="'+id+'" d="'+arc(rg.r1,rg.r2,a,b)+'" stroke="var(--surface-2)" stroke-width="1.5" style="cursor:pointer;"/><text x="'+c[0]+'" y="'+(c[1]+4)+'" font-size="11" text-anchor="middle" fill="#1a1a1a" pointer-events="none">'+id+'</text>';
+}));
+beh+='<circle data-s="17" cx="110" cy="110" r="20" stroke="var(--surface-2)" stroke-width="1.5" style="cursor:pointer;"/><text x="110" y="114" font-size="11" text-anchor="middle" fill="#1a1a1a" pointer-events="none">17</text>';
+be.innerHTML=beh;
+be.querySelectorAll('[data-s]').forEach(el=>{segEl[el.dataset.s]=el;el.addEventListener('click',()=>{const s=+el.dataset.s;S[s]=(S[s]+1)%4;refresh();});});
+function paintBE(){for(let s=1;s<=17;s++)segEl[s].setAttribute('fill',SCC[S[s]]);}
+
+function level(k){
+ const l=T[k].filter(s=>S[s]>0);
+ if(!l.length)return null;
+ if(l.some(s=>s<=6))return {c:0,t:'toda la arteria'};
+ if(l.some(s=>s>=7&&s<=12))return {c:0.34,t:'desde el tercio medio'};
+ if(l.some(s=>s>=13&&s<=16))return {c:0.67,t:'tramo distal'};
+ return {c:0.88,t:'tramo distal (ápex)'};
+}
+function info(){
+ inv={DA:false,CX:false,CD:false};
+ let h='',n=0;
+ ['DA','CD','CX'].forEach(k=>{
+  const l=T[k].filter(s=>S[s]>0);
+  lvl[k]=level(k);
+  if(l.length){inv[k]=true;n++;h+='<p style="margin:0 0 3px;"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+ACSS[k]+';margin-right:6px;"></span><b style="font-weight:500;">'+NAME[k]+'</b> · segmentos '+l.join(', ')+'<br><span style="color:var(--text-secondary);">Tramo gris: '+lvl[k].t+'</span></p>';}
+ });
+ if(!n)h='<p style="margin:0;color:var(--text-secondary);">Sin trastornos sectoriales marcados.</p>';
+ else{
+  if(n>1)h+='<p style="margin:6px 0 0;color:var(--text-warning);">Compromete más de un territorio coronario.</p>';
+  h+='<p style="margin:6px 0 0;color:var(--text-secondary);">El tramo gris es orientativo: la motilidad no localiza la lesión con precisión, y la distribución varía entre pacientes y con la dominancia. Si el patrón no respeta territorios, considerar otras causas. Solo en pantalla: no va al informe.</p>';
+ }
+ $('info').innerHTML=h;
+}
+function refresh(){info();paint();paintBE();rebuild();}
+function setSeg(list,st){S.fill(0);list.forEach(s=>S[s]=st);refresh();}
+$('p0').onclick=()=>setSeg([3,5,9,11,14,16],1);
+$('p1').onclick=()=>setSeg(T.DA,2);
+$('p2').onclick=()=>setSeg(T.CD,1);
+$('p3').onclick=()=>setSeg(T.CX,1);
+$('p5').onclick=()=>setSeg([13,14,17],2);
+$('p6').onclick=()=>setSeg([9,10],1);
+$('p4').onclick=()=>setSeg([],0);
+
+const rc=new THREE.Raycaster(),m2=new THREE.Vector2(),qa=new THREE.Quaternion();
+let dragging=false,moved=0,lx=0,ly=0;
+const cv=renderer.domElement;
+cv.addEventListener('pointerdown',e=>{dragging=true;moved=0;lx=e.clientX;ly=e.clientY;target=null;cv.setPointerCapture(e.pointerId);wrap.style.cursor='grabbing';});
+cv.addEventListener('pointermove',e=>{
+ if(!dragging)return;
+ const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
+ qa.setFromAxisAngle(new THREE.Vector3(0,1,0),dx*0.01);group.quaternion.premultiply(qa);
+ qa.setFromAxisAngle(new THREE.Vector3(1,0,0),dy*0.01);group.quaternion.premultiply(qa);
+});
+cv.addEventListener('pointerup',e=>{
+ dragging=false;wrap.style.cursor='grab';
+ if(moved<5){
+  const r=cv.getBoundingClientRect();
+  m2.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+  rc.setFromCamera(m2,camera);
+  const h=rc.intersectObject(surf)[0];
+  if(h){const p=surf.worldToLocal(h.point.clone());const s=segOf(p.z/L,Math.atan2(-p.x,p.y)*180/Math.PI);S[s]=(S[s]+1)%4;refresh();}
+ }
+});
+window.addEventListener('resize',()=>{const w=wrap.clientWidth||W0;renderer.setSize(w,H0);camera.aspect=w/H0;camera.updateProjectionMatrix();});
+
+function loop(){
+ if(target){group.quaternion.slerp(target,0.12);if(group.quaternion.angleTo(target)<0.002){group.quaternion.copy(target);target=null;}}
+ renderer.render(scene,camera);placeLabels();
+ requestAnimationFrame(loop);
+}
+style();
+setSeg([3,5,9,11,14,16],1);
+loop();
+})();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo EcoSmart — Posoperatorio, nuevo orden (versión 9)</title>
+<style>
+:root{--bg:#ffffff;--s1:#f5f5f2;--s2:#e9e9e4;--tp:#1d1d1b;--ts:#55554f;--tm:#85857e;--acc:#185fa5;--bdr:rgba(0,0,0,.16);--bdr2:rgba(0,0,0,.34);--new:#0f6e56;--bnew:#e1f5ee;--warn:#854f0b;--bwarn:#faeeda;--lung:#e9edf3;--ok:#27500a;--bok:#eaf3de}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1c1a;--s1:#2a2a27;--s2:#363632;--tp:#f1f1ed;--ts:#b5b5ae;--tm:#8a8a83;--acc:#85b7eb;--bdr:rgba(255,255,255,.16);--bdr2:rgba(255,255,255,.34);--new:#5dcaa5;--bnew:#04342c;--warn:#ef9f27;--bwarn:#412402;--lung:#363a42;--ok:#c0dd97;--bok:#173404}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tp);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
+body{max-width:1280px;margin:0 auto;padding:14px}
+h1{font-size:16px;margin:0 0 4px;font-weight:600}
+.note{font-size:12.5px;background:var(--bnew);color:var(--new);border-radius:8px;padding:8px 10px;margin:0 0 10px}
+details.sim{border:.5px dashed var(--bdr2);border-radius:8px;padding:6px 10px;margin:0 0 12px;font-size:12.5px;color:var(--ts)}
+details.sim summary{cursor:pointer}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;margin-bottom:12px}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.g2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:900px){.cols,.g2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--s1);border:.5px solid var(--bdr);border-radius:10px;padding:10px 12px}
+.card.nw{border-color:var(--new)}
+.card h2{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 8px;color:var(--acc);font-weight:600}
+label.f{display:block;font-size:11.5px;color:var(--ts);margin:0 0 2px}
+input,select{width:100%;font:inherit;font-size:13px;padding:5px 7px;border:.5px solid var(--bdr2);border-radius:6px;background:var(--bg);color:var(--tp);min-height:32px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{display:flex;gap:8px;margin-bottom:8px}.row>div{flex:1;min-width:0}
+.mb{margin-bottom:8px}
+button{font:inherit;font-size:13px;color:var(--tp);background:var(--bg);border:.5px solid var(--bdr2);border-radius:6px;padding:6px 10px;cursor:pointer;min-height:32px}
+button:hover{background:var(--s2)}
+.dwrap{position:relative}
+.dbtn{width:100%;text-align:left;display:flex;justify-content:space-between}
+.menu{position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:230px;overflow:auto;border:.5px solid var(--bdr2);border-radius:6px;background:var(--bg);padding:4px 8px;display:none;z-index:30}
+.menu.open{display:block}
+.grp{padding:3px 0;border-bottom:.5px solid var(--bdr)}.grp:last-child{border:0}
+.chk{display:flex;gap:7px;align-items:center;font-size:13px;padding:3px 0;cursor:pointer}
+.chk input{width:16px;height:16px;min-height:0;padding:0;flex:none}
+.dg{border:.5px solid var(--bdr);border-radius:6px;padding:6px 8px;margin-top:6px;background:var(--bg)}
+.dg .h{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;margin-bottom:4px}
+.dg .h button{min-height:24px;padding:0 8px;font-size:13px;line-height:1}
+.dg .in{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--ts)}
+.dg .in input{min-height:26px;padding:3px 5px;font-size:12px}
+.gr3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.gr2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.sub{font-size:11.5px;color:var(--ts);margin:6px 0 4px;font-weight:600}
+.muted{font-size:12px;color:var(--tm)}
+.grey{background:var(--s2);border-radius:8px;padding:7px 9px;font-size:12.5px;margin-bottom:8px}
+.grey .l{display:flex;justify-content:space-between;gap:8px}
+.pill{display:inline-block;font-size:11.5px;border-radius:10px;padding:1px 8px;background:var(--bwarn);color:var(--warn);margin-left:6px}
+.pill.ok{background:var(--bok);color:var(--ok)}
+.tag{font-size:11px;color:var(--new);background:var(--bnew);border-radius:8px;padding:0 6px;margin-left:4px}
+.ch{font-size:12.5px;margin-bottom:7px}.ch b{font-size:11.5px;letter-spacing:.03em;color:var(--ts);text-transform:uppercase}
+.q{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:2px 0}
+.cirg{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px}
+small{font-weight:400}
+.vrow{display:grid;grid-template-columns:96px 1fr;gap:6px;align-items:center;margin:3px 0}
+svg{width:100%;height:auto;display:block}
+.leg{font-size:11.5px;color:var(--ts);margin-top:4px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 8px;vertical-align:-1px}
+.bar{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<h1>Posoperatorio de cirugía cardíaca — nuevo orden (demo, versión 9)</h1>
+<p class="note">Datos de ejemplo: no se guarda nada. Las tres columnas son independientes: si una crece, las otras no se mueven. Probá los casos de ejemplo (VD con falla, VI disminuido), la función de las cavidades, los chorros (como los del 2D de Válvulas) y los trazados finos dentro de las cavidades; y también las cirugías combinadas, las válvulas (tipo, plastia, TEER y TAVI, con latido), el Swan y el PiCCO, el puente, los drenajes, los derrames y el selector de fármacos.</p>
+<details class="sim"><summary>Simular lo que llega de la pestaña Válvulas</summary>
+  <div class="gr3" style="margin-top:6px">
+    <div><label class="f" for="sAo">Aórtica, en Válvulas</label><select id="sAo"><option value="">— sin dato —</option><option value="mec">Mecánica</option><option value="bio">Biológica</option><option value="tavi">TAVI (transcatéter)</option></select></div>
+    <div><label class="f" for="sMi">Mitral, en Válvulas</label><select id="sMi"><option value="">— sin dato —</option><option value="mec">Mecánica</option><option value="bio">Biológica</option><option value="pla">Plastia</option><option value="teer">TEER (clip)</option></select></div>
+    <div><label class="f" for="sTr">Tricúspide, en Válvulas</label><select id="sTr"><option value="">— sin dato —</option><option value="mec">Mecánica</option><option value="bio">Biológica</option><option value="pla">Plastia</option><option value="teer">TEER (clip)</option></select></div>
+  </div>
+</details>
+
+<details class="sim" open><summary>Datos que llegan de otras pestañas (simulados) y capas del dibujo</summary>
+  <div class="bar" style="margin:6px 0"><span class="muted">Casos de ejemplo:</span><button type="button" data-pre="nor">Normal</button><button type="button" data-pre="vd">VD con falla</button><button type="button" data-pre="vi">VI disminuido</button></div>
+  <div class="gr3">
+    <div><label class="f" for="fevi">FEVI (%)</label><input id="fevi" type="number" value="60"></div>
+    <div><label class="f" for="tapse">TAPSE (mm)</label><input id="tapse" type="number" value="24"></div>
+    <div><label class="f" for="cAD">AD</label><select id="cAD"><option value="nor">Normal</option><option value="dil">Dilatada</option></select></div>
+    <div><label class="f" for="eE">Onda E (cm/s)</label><input id="eE" type="number" value="80"></div>
+    <div><label class="f" for="eA">Onda A (cm/s)</label><input id="eA" type="number" value="60"></div>
+    <div><label class="f" for="cAI">AI</label><select id="cAI"><option value="nor">Normal</option><option value="dil">Dilatada</option></select></div>
+    <div><label class="f" for="cVD">VD</label><select id="cVD"><option value="nor">Normal</option><option value="dil">Dilatado</option></select></div>
+    <div><label class="f">Septum</label><label class="chk"><input type="checkbox" id="dsp"> Aplanado, en D</label></div>
+    <div></div>
+    <div><label class="f" for="gIM">Insuf. mitral</label><select id="gIM"><option value="">— sin dato —</option><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>
+    <div><label class="f" for="gIT">Insuf. tricúspide</label><select id="gIT"><option value="">— sin dato —</option><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>
+    <div><label class="f" for="gIAo">Insuf. aórtica</label><select id="gIAo"><option value="">— sin dato —</option><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>
+    <div><label class="f" for="gIP">Insuf. pulmonar</label><select id="gIP"><option value="">— sin dato —</option><option>Leve</option><option>Moderada</option><option>Severa</option></select></div>
+  </div>
+  <div class="bar" style="margin-top:8px"><span class="muted">Capas:</span>
+    <label class="chk"><input type="checkbox" id="kFun" checked> Función</label>
+    <label class="chk"><input type="checkbox" id="kJet" checked> Chorros</label>
+    <label class="chk"><input type="checkbox" id="kTr" checked> Trazados</label>
+    </div>
+</details>
+
+<div class="cols">
+  <div class="col">
+    <section class="card">
+      <h2>Contexto quirúrgico</h2>
+      <div class="sub" style="margin-top:0">Tipo de cirugía (se pueden combinar)</div>
+      <div class="cirg">
+        <label class="chk"><input type="checkbox" id="kCabg"> Revascularización</label>
+        <label class="chk"><input type="checkbox" id="kVal"> Valvular</label>
+        <label class="chk"><input type="checkbox" id="kAo"> Aorta (injerto)</label>
+        <label class="chk"><input type="checkbox" id="kOtra"> Otra</label>
+      </div>
+      <div id="cabgw" style="display:none" class="mb"><label class="f" for="gdest">Puente hacia</label>
+        <select id="gdest"><option value="vi">Esquina superior izquierda del VI</option><option value="ad">Aurícula derecha</option></select></div>
+      <div id="valw" style="display:none" class="mb">
+        <div class="sub">Válvulas operadas</div>
+        <div class="vrow"><label class="chk"><input type="checkbox" id="vkAo"> Aórtica</label><span><select id="vtAo"></select><span id="tgAo"></span></span></div>
+        <div class="vrow"><label class="chk"><input type="checkbox" id="vkMi"> Mitral</label><span><select id="vtMi"></select><span id="tgMi"></span></span></div>
+        <div class="vrow"><label class="chk"><input type="checkbox" id="vkTr"> Tricúspide</label><span><select id="vtTr"></select><span id="tgTr"></span></span></div>
+        <div class="vrow"><label class="chk"><input type="checkbox" id="vkPu"> Pulmonar</label><span><select id="vtPu"></select><span id="tgPu"></span></span></div>
+        <p class="muted" style="margin:2px 0 0">El tipo es el mismo dato que la morfología en Válvulas. Al marcar una válvula sin tipo, el dibujo muestra un anillo neutro hasta que lo elijas.</p>
+      </div>
+      <div class="row"><div><label class="f" for="hcec">Horas post-CEC</label><input id="hcec" type="number" placeholder="h"></div>
+        <div><label class="f" for="mon">Dispositivo de monitoreo</label><select id="mon"><option value="none">Sin monitoreo invasivo</option><option value="swan">Swan-Ganz</option><option value="picco">PiCCO</option></select></div></div>
+      <div class="sub">Drenajes</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label class="chk"><input type="checkbox" id="dD"> Pleural D</label>
+        <label class="chk"><input type="checkbox" id="dI"> Pleural I</label>
+        <label class="chk"><input type="checkbox" id="dM"> Mediastino</label>
+      </div>
+    </section>
+
+    <section class="card nw">
+      <h2>Monitoreo</h2>
+      <div id="nomon" class="muted">Sin monitoreo invasivo: cargá los datos hemodinámicos de la columna del medio.</div>
+      <div id="swan" style="display:none">
+        <div class="sub" style="margin-top:0">Swan-Ganz (tres columnas)</div>
+        <div class="gr3">
+          <div><label class="f">FC</label><input id="sFC" type="number"></div>
+          <div><label class="f">GC</label><input id="sGC" type="number" step="0.1"></div>
+          <div><label class="f">&nbsp;</label><input disabled placeholder="—"></div>
+          <div><label class="f">PAM</label><input type="number"></div>
+          <div><label class="f">PAD <small style="font-size:10px">(PVC)</small></label><input type="number"></div>
+          <div><label class="f">PCP</label><input id="sPCP" type="number"></div>
+          <div><label class="f">PSAP</label><input type="number"></div>
+          <div><label class="f">PmAP</label><input type="number"></div>
+          <div><label class="f">PDAP</label><input type="number"></div>
+        </div>
+      </div>
+      <div id="picco" style="display:none">
+        <div class="sub" style="margin-top:0">PiCCO (dos columnas)</div>
+        <div class="gr2">
+          <div><label class="f">GC</label><input id="pGC" type="number" step="0.1"></div>
+          <div><label class="f">IC</label><input type="number" step="0.1"></div>
+          <div><label class="f">ITBVI</label><input type="number"></div>
+          <div><label class="f">EVLWI</label><input type="number"></div>
+          <div><label class="f">SVRI</label><input type="number"></div>
+          <div><label class="f">&nbsp;</label><input disabled placeholder="—"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card nw">
+      <h2>Fármacos vasoactivos</h2>
+      <div class="dwrap">
+        <button type="button" class="dbtn" id="dbtn" aria-expanded="false" aria-haspopup="listbox"><span>Elegir fármaco <span id="dcount" class="muted"></span></span><span aria-hidden="true">▾</span></button>
+        <div class="menu" id="dmenu" role="listbox" aria-label="Lista de fármacos"></div>
+      </div>
+      <div id="drows"></div>
+      <p class="muted" style="margin:8px 0 0">La lista se recorre y se marca. Cada fármaco elegido aparece abajo; «✕» lo saca y borra lo que cargaste de él.</p>
+    </section>
+
+    <section class="card nw">
+      <h2>Datos hemodinámicos</h2>
+      <p class="muted" id="hnote" style="margin:0 0 6px"></p>
+      <div class="gr2">
+        <div id="wFC"><label class="f">FC (lpm)</label><input id="hFC" type="number" placeholder="70"></div>
+        <div id="wPAM"><label class="f">PAM (mmHg)</label><input type="number"></div>
+        <div><label class="f">PAS (mmHg)</label><input type="number"></div>
+        <div><label class="f">PA diastólica (mmHg)</label><input type="number"></div>
+        <div><label class="f">Relleno capilar (s)</label><input type="number" step="0.5"></div>
+        <div><label class="f">Lactato (mmol/L)</label><input type="number" step="0.1"></div>
+        <div><label class="f">Diuresis (ml/h)</label><input type="number"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card nw">
+      <h2>Asistencia circulatoria</h2>
+      <div class="row"><div><label class="f" for="aux">Dispositivo</label>
+        <select id="aux"><option value="">Ninguna</option><option value="bal">Balón de contrapulsación</option><option value="imp">Impella</option><option value="ecmoa">ECMO VA</option><option value="ecmov">ECMO VV</option></select></div>
+        <div><label class="f" id="auxl">Opción</label>
+          <select id="auxbal" style="display:none"><option>1:1</option><option>1:2</option><option>1:3</option></select>
+          <select id="auximp" style="display:none"><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option><option>P6</option><option>P7</option><option>P8</option><option>P9</option></select>
+          <input id="auxec" type="number" step="0.1" placeholder="L/min" style="display:none">
+          <input id="auxnone" disabled placeholder="—"></div></div>
+    </section>
+
+    <section class="card nw">
+      <h2>Eco y POCUS</h2>
+      <div class="grey"><div class="l"><span>Eco (de Hemodinámica)</span><span class="muted">faltan datos</span></div>
+        <div class="muted">TSVI · VTI · FC → GC e IC estimados</div></div>
+      <div class="sub" style="margin-top:0">Ventrículo derecho</div>
+      <div class="grey"><div class="l"><span>TAPSE — · VD/VI — · McConnell — · PSAP —</span></div>
+        <div class="l"><span>Conclusión</span><span class="pill">Sin datos para concluir</span></div></div>
+      <div class="gr2">
+        <div><label class="f">Derrame pericárdico</label><select id="peri"><option value="">— no evaluado —</option><option>Sin derrame</option><option>Leve</option><option>Moderado</option><option>Severo</option></select></div>
+        <div><label class="f">Características</label><select><option>— no evaluado —</option><option>Circunferencial</option><option>Localizado</option></select></div>
+        <div><label class="f">Derrame pleural D</label><select id="plD"><option value="">— no evaluado —</option><option>Ausente</option><option>Leve</option><option>Moderado</option><option>Severo</option></select></div>
+        <div><label class="f">Derrame pleural I</label><select id="plI"><option value="">— no evaluado —</option><option>Ausente</option><option>Leve</option><option>Moderado</option><option>Severo</option></select></div>
+        <div><label class="f">Líneas B</label><select id="lb"><option value="">— no evaluado —</option><option>Ausentes</option><option>Focales</option><option>Difusas</option></select></div>
+        <div><label class="f">Consolidación</label><select id="cons"><option value="">— no evaluado —</option><option>No</option><option>Sí</option></select></div>
+        <div><label class="f">Neumotórax</label><select id="nmx"><option value="">— no evaluado —</option><option>No</option><option>Sí</option></select></div>
+      </div>
+      <p class="muted" style="margin:6px 0 0">Pericardio y pulmón son el mismo dato que en la pestaña «Pericardio y pulmón».</p>
+    </section>
+  </div>
+</div>
+
+<div class="g2">
+  <section class="card nw">
+    <h2>Esquema del posoperatorio</h2>
+    <svg viewBox="0 0 420 310" role="img" aria-label="Esquema ilustrativo del posoperatorio con pulmones, corazón, aorta y los elementos según lo cargado">
+      <defs>
+        <pattern id="flw" width="6" height="5" patternUnits="userSpaceOnUse"><path d="M0 1H6" stroke="#fff" stroke-width="1.1" stroke-opacity=".6"/></pattern>
+        <pattern id="mesh" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M0 0L5 5M5 0L0 5" stroke="#7a4a00" stroke-width="1"/></pattern>
+        <clipPath id="clR"><rect x="16" y="60" width="70" height="150" rx="34"/></clipPath>
+        <clipPath id="clL"><rect x="92" y="60" width="70" height="150" rx="34"/></clipPath>
+      </defs>
+      <rect x="16" y="60" width="70" height="150" rx="34" fill="var(--lung)" stroke="var(--bdr2)" stroke-width="1"/>
+      <rect x="92" y="60" width="70" height="150" rx="34" fill="var(--lung)" stroke="var(--bdr2)" stroke-width="1"/>
+      <rect id="fR" x="16" y="210" width="70" height="0" fill="#378add" fill-opacity=".5" clip-path="url(#clR)"/>
+      <rect id="fL" x="92" y="210" width="70" height="0" fill="#378add" fill-opacity=".5" clip-path="url(#clL)"/>
+      <text x="51" y="82" text-anchor="middle" font-size="11" fill="var(--ts)">D</text>
+      <text x="127" y="82" text-anchor="middle" font-size="11" fill="var(--ts)">I</text>
+      <path d="M51 60V42H269V100M127 60V42" fill="none" stroke="#d8433b" stroke-width="3" opacity=".7"/>
+      <path d="M219 200V226H51V210M127 226V210" fill="none" stroke="#2f6fd0" stroke-width="3" opacity=".7"/>
+      <path d="M219 100V80" fill="none" stroke="#2f6fd0" stroke-width="3" opacity=".7"/>
+      <rect id="peri_r" x="176" y="84" width="136" height="132" rx="18" fill="#378add" fill-opacity=".12" stroke="#378add" stroke-width="3" style="display:none"/>
+      <rect id="rAD" x="196" y="100" width="46" height="42" rx="8" fill="var(--bg)" stroke="#2f6fd0" stroke-width="1.5"/>
+      <rect id="rAI" x="246" y="100" width="46" height="42" rx="8" fill="var(--bg)" stroke="#d8433b" stroke-width="1.5"/>
+      <rect id="rVD" x="196" y="146" width="46" height="54" rx="8" fill="var(--bg)" stroke="#2f6fd0" stroke-width="1.5"/>
+      <rect id="rVI" x="246" y="146" width="46" height="54" rx="8" fill="var(--bg)" stroke="#d8433b" stroke-width="1.5"/>
+      <text id="tAD" x="219" y="113" text-anchor="middle" font-size="11" fill="var(--tp)">AD</text>
+      <text id="tAI" x="269" y="113" text-anchor="middle" font-size="11" fill="var(--tp)">AI</text>
+      <text id="tVD" x="219" y="165" text-anchor="middle" font-size="11" fill="var(--tp)">VD</text>
+      <text id="tVI" x="269" y="165" text-anchor="middle" font-size="11" fill="var(--tp)">VI</text>
+      <path d="M292 172H322V60Q322 36 346 36Q370 36 370 60V250" fill="none" stroke="#d8433b" stroke-width="8" stroke-linejoin="round"/>
+      <path id="mesh_p" d="M322 172V60Q322 36 346 36Q370 36 370 60V120" fill="none" stroke="url(#mesh)" stroke-width="10" style="display:none"/>
+      <text x="346" y="26" text-anchor="middle" font-size="11" fill="var(--ts)">Ao</text>
+      <text x="150" y="240" text-anchor="middle" font-size="11" fill="var(--ts)">AP</text>
+      <path id="dsept" d="M244 146Q268 173 244 200Z" fill="#2f6fd0" fill-opacity=".28" stroke="#2f6fd0" stroke-width="1.5" style="display:none"/>
+      <g id="trIn" style="display:none"><g id="gTapIn"><path id="pTapIn" fill="none" stroke="#2f6fd0" stroke-width="0.8"/></g><g id="gEAIn"><path id="pEAIn" fill="none" stroke="#d8433b" stroke-width="0.8"/><text id="lE1" font-size="4.6" fill="#d8433b" fill-opacity=".7" text-anchor="middle">E</text><text id="lE2" font-size="4.6" fill="#d8433b" fill-opacity=".7" text-anchor="middle">E</text><text id="lA1" font-size="4.6" fill="#d8433b" fill-opacity=".7" text-anchor="middle">A</text><text id="lA2" font-size="4.6" fill="#d8433b" fill-opacity=".7" text-anchor="middle">A</text></g></g>
+      <g id="jIM" transform="translate(269 144)" style="display:none"><path fill="#2f6fd0" fill-opacity=".85"/><path fill="url(#flw)" fill-opacity=".55"/></g>
+      <g id="jIT" transform="translate(219 144)" style="display:none"><path fill="#2f6fd0" fill-opacity=".85"/><path fill="url(#flw)" fill-opacity=".55"/></g>
+      <g id="jIAo" transform="translate(292 172) rotate(-90)" style="display:none"><path fill="#d8433b" fill-opacity=".85"/><path fill="url(#flw)" fill-opacity=".55"/></g>
+      <g id="jIP" transform="translate(219 204)" style="display:none"><path fill="#d8433b" fill-opacity=".85"/><path fill="url(#flw)" fill-opacity=".55"/></g>
+      <g id="graftVI" style="display:none"><path d="M308 172C296 216 252 206 250 152" fill="none" stroke="#e08a1e" stroke-width="4" stroke-linecap="round"/><circle cx="308" cy="172" r="4" fill="#e08a1e"/><circle cx="250" cy="151" r="4" fill="#e08a1e"/></g>
+      <g id="graftAD" style="display:none"><path d="M322 120C300 66 252 74 242 116" fill="none" stroke="#e08a1e" stroke-width="4" stroke-linecap="round"/><circle cx="322" cy="120" r="4" fill="#e08a1e"/><circle cx="242" cy="116" r="4" fill="#e08a1e"/></g>
+      <g id="cSwan" style="display:none"><path d="M219 12V226H100" fill="none" stroke="#7f77dd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><circle cx="219" cy="122" r="3" fill="#7f77dd"/><ellipse id="sgBal" cx="100" cy="226" rx="5" ry="3.5" fill="#7f77dd" fill-opacity=".1" stroke="#7f77dd" stroke-width="1.3"/><text x="226" y="15" font-size="9" fill="#7f77dd">Swan-Ganz</text></g>
+      <g id="cPicco" style="display:none"><path d="M370 150V296" fill="none" stroke="#7f77dd" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"/><circle cx="370" cy="150" r="3" fill="#7f77dd"/><path d="M219 112V12H400V296H370" fill="none" stroke="#7f77dd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/><circle cx="219" cy="112" r="3" fill="#7f77dd"/><text x="385" y="308" text-anchor="middle" font-size="9" fill="#7f77dd">PiCCO</text></g>
+      <g id="ecmoA" style="display:none"><path id="ecmoAp" d="M196 121H176V268H370V252" fill="none" stroke="#2f6fd0" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/><text x="272" y="261" font-size="9" fill="#2f6fd0" text-anchor="middle">ECMO VA</text></g>
+      <g id="ecmoV" style="display:none"><path id="ecmoVp" d="M196 106H174V136H196" fill="none" stroke="#2f6fd0" stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/><text x="176" y="98" font-size="9" fill="#2f6fd0" text-anchor="middle">ECMO VV</text></g>
+      <g id="vAo" style="display:none" transform="translate(292 172) rotate(90)"></g>
+      <g id="vMi" style="display:none" transform="translate(269 144) rotate(180)"></g>
+      <g id="vTr" style="display:none" transform="translate(219 144) rotate(180)"></g>
+      <g id="vPu" style="display:none" transform="translate(219 204) rotate(180)"></g>
+      <g id="tD" style="display:none"><path d="M0 150H40" stroke="#6b6b66" stroke-width="4" stroke-linecap="round"/><circle cx="40" cy="150" r="3" fill="#6b6b66"/></g>
+      <g id="tI" style="display:none"><path d="M186 140H152" stroke="#6b6b66" stroke-width="4" stroke-linecap="round"/><circle cx="152" cy="140" r="3" fill="#6b6b66"/></g>
+      <g id="tM" style="display:none"><path d="M244 300V206" stroke="#6b6b66" stroke-width="4" stroke-linecap="round"/><circle cx="244" cy="206" r="3" fill="#6b6b66"/></g>
+    </svg>
+    <div class="leg"><span class="sw" style="background:#e08a1e"></span>puente<span class="sw" style="background:var(--tp)"></span>válvula mecánica<span class="sw" style="background:#c08a4a"></span>biológica<span class="sw" style="background:#1d9e75"></span>plastia o TEER (doble orificio)<span class="sw" style="background:#7a4a00"></span>malla en la aorta<span class="sw" style="background:#6b6b66"></span>drenajes y stent de TAVI<span class="sw" style="background:#7f77dd"></span>catéter de Swan o PiCCO (entrecortado)<span class="sw" style="background:#378add"></span>líquido</div>
+    <div class="bar"><button type="button" id="pz">Pausar</button><span class="muted" id="fcl"></span><button type="button" id="inc">Incluir en el PDF</button></div>
+    <p class="muted" style="margin:6px 0 0">Esquema ilustrativo y reducido, con categorías y no milímetros; las válvulas se abren y se cierran según la FC, el globo del Swan se infla de a ratos y la línea del ECMO se mueve (así ya está en la app). El dibujo real conserva su estilo.</p>
+  </section>
+
+  <div class="col">
+    <section class="card nw">
+      <h2>Características del esquema</h2>
+      <div id="chars"></div>
+    </section>
+    <section class="card nw">
+      <h2>Conclusión hemodinámica</h2>
+      <div class="q"><span>Patrón detectado (orientativo)</span><span class="pill">Datos insuficientes</span></div>
+      <div class="q"><span>¿Gasto cardíaco adecuado?</span><span id="qgc" class="pill">sin IC calculable</span></div>
+      <div class="q"><span>¿Precarga adecuada?</span><span id="qpc" class="pill">sin PCP</span></div>
+      <div class="q"><span>¿Compromiso pericárdico?</span><span id="qpe" class="pill ok">no consignado</span></div>
+      <div class="q"><span>¿Falla del VD?</span><span class="pill ok">sin TAPSE ni VD/VI</span></div>
+      <div class="q"><span>¿Congestión pulmonar?</span><span id="qcg" class="pill ok">no</span></div>
+      <p class="muted" style="margin:6px 0 8px">El informe, el EN SUMA y la hoja del PDF describen lo medido y lo observado, sin patrón y sin conducta.</p>
+      <button type="button">Integrar al informe</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var GROUPS=[['Noradrenalina'],['Adrenalina','Dobutamina','Dopamina','Milrinona','Levosimendán'],['Vasopresina','Terlipresina','Azul de metileno'],['Nitroglicerina','Nitroprusiato']];
+var chosen={};
+var VK=['Ao','Mi','Tr','Pu'];
+var VN={Ao:'aórtica',Mi:'mitral',Tr:'tricúspide',Pu:'pulmonar'};
+var TN={'':'tipo sin elegir',mec:'mecánica',bio:'biológica',pla:'plastia',teer:'TEER (clip)',tavi:'TAVI (transcatéter)'};
+var fromTab={Ao:'',Mi:'',Tr:'',Pu:''};
+var paused=false,t0=null;
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){paused=true;}
+
+function menu(){
+  var h='';
+  GROUPS.forEach(function(g){
+    h+='<div class="grp">';
+    g.forEach(function(n){h+='<label class="chk"><input type="checkbox" data-d="'+n+'"'+(chosen[n]?' checked':'')+'> '+n+'</label>';});
+    h+='</div>';
+  });
+  $('dmenu').innerHTML=h;
+  Array.prototype.forEach.call($('dmenu').querySelectorAll('input'),function(c){
+    c.addEventListener('change',function(){
+      var n=c.getAttribute('data-d');
+      if(c.checked){chosen[n]=true;}else{delete chosen[n];}
+      rows();upd();
+    });
+  });
+}
+function rows(){
+  var h='',n=0;
+  GROUPS.forEach(function(g){g.forEach(function(d){
+    if(!chosen[d])return;n++;
+    h+='<div class="dg"><div class="h"><span>'+d+'</span><button type="button" data-x="'+d+'" aria-label="Quitar '+d+'">✕</button></div>'
+     +'<div class="in"><input type="number" placeholder="dosis" aria-label="Dosis de '+d+'" style="width:30%"><input type="number" placeholder="mg" style="width:22%"> en <input type="number" placeholder="ml" style="width:22%"><input type="number" placeholder="ml/h" style="width:26%"></div></div>';
+  });});
+  $('drows').innerHTML=h;
+  $('dcount').textContent=n?('('+n+' marcados)'):'';
+  Array.prototype.forEach.call($('drows').querySelectorAll('button'),function(b){
+    b.addEventListener('click',function(){delete chosen[b.getAttribute('data-x')];menu();rows();upd();});
+  });
+}
+function closeMenu(){$('dmenu').classList.remove('open');$('dbtn').setAttribute('aria-expanded','false');}
+$('dbtn').addEventListener('click',function(e){
+  e.stopPropagation();
+  var o=$('dmenu').classList.toggle('open');
+  $('dbtn').setAttribute('aria-expanded',o?'true':'false');
+});
+document.addEventListener('click',function(e){if(!$('dmenu').contains(e.target))closeMenu();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMenu();});
+
+function fillTypes(){
+  var base='<option value="">— elegir tipo —</option><option value="mec">Mecánica</option><option value="bio">Biológica</option>';
+  var baseAo=base+'<option value="tavi">TAVI (transcatéter)</option>';
+  var rep2=base+'<option value="pla">Plastia</option><option value="teer">TEER (clip)</option>';
+  VK.forEach(function(k){
+    $('vt'+k).innerHTML=(k==='Mi'||k==='Tr')?rep2:(k==='Ao'?baseAo:base);
+  });
+}
+
+var G={};
+function num(id){var v=parseFloat($(id).value);return isNaN(v)?null:v}
+function layout(){
+  var ad=$('cAD').value==='dil',ai=$('cAI').value==='dil',vd=$('cVD').value==='dil';
+  G.AD=ad?{x:184,y:92,w:58,h:50}:{x:196,y:100,w:46,h:42};
+  G.AI=ai?{x:246,y:92,w:58,h:50}:{x:246,y:100,w:46,h:42};
+  G.VD=vd?{x:186,y:146,w:56,h:62}:{x:196,y:146,w:46,h:54};
+  G.VI={x:246,y:146,w:46,h:54};
+  ['AD','AI','VD','VI'].forEach(function(k){
+    var g=G[k],r=$('r'+k),t=$('t'+k);
+    r.setAttribute('x',g.x);r.setAttribute('y',g.y);r.setAttribute('width',g.w);r.setAttribute('height',g.h);
+    t.setAttribute('x',g.x+g.w/2);t.setAttribute('y',g.y+13);
+  });
+  show('dsept',$('dsp').checked);
+}
+function bump(p,c,w){var d=(p-c)/w;return Math.exp(-d*d)}
+function tapPath(w,h,p0,amp){
+  var d='',N=26,i,p,wv,x,y;
+  for(i=0;i<=N;i++){p=(i/N*1.6+p0)%1;wv=(1-Math.cos(2*Math.PI*p))/2;x=i/N*w;y=h*0.92-amp*wv;d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}
+  return d;
+}
+function eaPath(w,h,p0,e,a){
+  var d='',N=40,i,p,v,x,y;
+  for(i=0;i<=N;i++){p=(i/N*1.6+p0)%1;v=e*bump(p,0.2,0.08)+a*bump(p,0.68,0.06);x=i/N*w;y=(h-1)-v*(h-3);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);}
+  return d;
+}
+var JG={'Leve':[14,4],'Moderada':[24,7],'Severa':[34,11]};
+function plume(L,w,o){
+  return 'M-1.5 0C-2.5 '+(-L*0.25)+' '+(-w*0.8+o)+' '+(-L*0.45)+' '+(-w+o)+' '+(-L*0.7)+'C'+(-w*1.05+o)+' '+(-L*0.92)+' '+(-w*0.45+o)+' '+(-L)+' '+o+' '+(-L)+'C'+(w*0.45+o)+' '+(-L)+' '+(w*1.05+o)+' '+(-L*0.92)+' '+(w+o)+' '+(-L*0.7)+'C'+(w*0.8+o)+' '+(-L*0.45)+' 2.5 '+(-L*0.25)+' 1.5 0Z';
+}
+function placeEA(p0,aw,ah,e,a,on){
+  [0.2,0.68].forEach(function(c,ci){
+    var xs=[],k,x,v=ci?a:e,y=(ah-1)-v*(ah-3)-1.8;
+    for(k=-1;k<=2;k++){x=(c-p0+k)/1.6*aw;if(x>=3&&x<=aw-3)xs.push(x);}
+    [0,1].forEach(function(j){
+      var el=$((ci?'lA':'lE')+(j+1));
+      if(on&&xs[j]!==undefined){el.setAttribute('x',xs[j].toFixed(1));el.setAttribute('y',y.toFixed(1));el.style.display='';}else{el.style.display='none';}
+    });
+  });
+}
+var JD={IM:['gIM',true],IT:['gIT',true],IAo:['gIAo',false],IP:['gIP',false]};
+function animFn(ph,f){
+  var fun=$('kFun').checked,jet=$('kJet').checked,trc=$('kTr').checked;
+  var ef=num('fevi'),tp=num('tapse'),E=num('eE'),A=num('eA');
+  var sys=ph<0.35?Math.sin(Math.PI*ph/0.35):0;
+  var gI=G.VI,cx=gI.x+gI.w/2,cy=gI.y+gI.h/2,s=1;
+  if(fun&&ef!==null){s=1-0.2*Math.min(ef,70)/70*sys;}
+  $('rVI').setAttribute('transform','translate('+cx+' '+cy+') scale('+s.toFixed(3)+') translate('+(-cx)+' '+(-cy)+')');
+  var gD=G.VD,dx=gD.x+gD.w/2,dy=gD.y,sv=1;
+  if(fun&&tp!==null){sv=1-0.16*Math.min(tp,30)/30*sys;}
+  $('rVD').setAttribute('transform','translate('+dx+' '+dy+') scale(1 '+sv.toFixed(3)+') translate('+(-dx)+' '+(-dy)+')');
+  $('flw').setAttribute('patternTransform','translate(0 '+(paused?0:-((performance.now()/1000*26)%5)).toFixed(2)+')');
+  Object.keys(JD).forEach(function(k){
+    var el=$('j'+k),gr=$(JD[k][0]).value,m=JG[gr];
+    var a=JD[k][1]?(ph<0.35?Math.sin(Math.PI*ph/0.35):0):((ph>0.4&&ph<0.95)?Math.sin(Math.PI*(ph-0.4)/0.55):0);
+    if(!jet||!m||a<0.03){el.style.display='none';return;}
+    var L=m[0]*(0.35+0.65*a),w=m[1]*(0.55+0.45*a),o=paused?0:Math.sin(performance.now()/260+L)*0.8;
+    var d=plume(L,w,o);
+    el.firstChild.setAttribute('d',d);el.lastChild.setAttribute('d',d);
+    el.setAttribute('opacity',(0.95*Math.pow(a,0.8)).toFixed(2));
+    el.style.display='';
+  });
+  var p0=paused?0:((performance.now()/1000)*(f/60))%1;
+  var inside=trc;
+  show('trIn',inside);
+  var haveT=tp!==null,haveEA=(E!==null&&A!==null);
+  var tw=gD.w-8,th=gD.h-24,aw=G.AI.w-8,ah=G.AI.h-24;
+  if(inside){
+    $('gTapIn').setAttribute('transform','translate('+(gD.x+4)+' '+(gD.y+19)+')');
+    $('pTapIn').setAttribute('d',haveT?tapPath(tw,th,p0,Math.min(tp,30)/30*th*0.85):'M0 '+(th*0.5)+'H'+tw);
+    $('gEAIn').setAttribute('transform','translate('+(G.AI.x+4)+' '+(G.AI.y+19)+')');
+    $('pEAIn').setAttribute('d',haveEA?eaPath(aw,ah,p0,Math.min(E,150)/150,Math.min(A,150)/150):'M0 '+(ah-1)+'H'+aw);
+    placeEA(p0,aw,ah,haveEA?Math.min(E,150)/150:0,haveEA?Math.min(A,150)/150:0,haveEA);
+  }
+}
+var PRE={
+ nor:{fevi:60,tapse:24,eE:80,eA:60,cAD:'nor',cAI:'nor',cVD:'nor',dsp:false,gIM:'',gIT:'',gIAo:'',gIP:''},
+ vd:{fevi:55,tapse:11,eE:70,eA:70,cAD:'dil',cAI:'nor',cVD:'dil',dsp:true,gIM:'',gIT:'Moderada',gIAo:'',gIP:''},
+ vi:{fevi:28,tapse:20,eE:110,eA:30,cAD:'nor',cAI:'dil',cVD:'nor',dsp:false,gIM:'Severa',gIT:'',gIAo:'',gIP:''}
+};
+function setPre(n){
+  var p=PRE[n];
+  Object.keys(p).forEach(function(id){var e=$(id);if(e.type==='checkbox'){e.checked=p[id];}else{e.value=p[id];}});
+  upd();
+}
+Array.prototype.forEach.call(document.querySelectorAll('button[data-pre]'),function(b){
+  b.addEventListener('click',function(){setPre(b.getAttribute('data-pre'));});
+});
+function lvl(v){return v==='Leve'?22:v==='Moderado'?48:v==='Severo'?80:0}
+function show(id,on){$(id).style.display=on?'':'none'}
+
+function valveGeo(type,a){
+  var phi=a*72*Math.PI/180,L=8,c=Math.cos(phi),s=Math.sin(phi);
+  var lx=-8+L*c,rx=8-L*c,ey=-L*s,out='';
+  if(type===''){
+    out+='<circle r="10" fill="var(--bg)" stroke="var(--tm)" stroke-width="1.5" stroke-dasharray="3 3"/>';
+  }else if(type==='tavi'){
+    out+='<rect x="-9" y="-11" width="18" height="22" rx="3" fill="var(--bg)" stroke="#6b6b66" stroke-width="1.5"/>';
+    out+='<path d="M-9 -11L9 11M9 -11L-9 11M-9 0L0 -11L9 0L0 11Z" stroke="#6b6b66" stroke-width="1" fill="none"/>';
+    out+='<path d="M-7 0L'+(-7+6*c).toFixed(2)+' '+(-6*s).toFixed(2)+'M7 0L'+(7-6*c).toFixed(2)+' '+(-6*s).toFixed(2)+'" stroke="#c08a4a" stroke-width="2.4" stroke-linecap="round" fill="none"/>';
+  }else if(type==='teer'){
+    var oy=-2.2*a,ry=0.3+2.2*a;
+    out+='<circle r="10" fill="var(--bg)" stroke="#1d9e75" stroke-width="1.5"/>';
+    out+='<ellipse cx="-4.7" cy="'+oy.toFixed(2)+'" rx="2.8" ry="'+ry.toFixed(2)+'" fill="#1d9e75" fill-opacity="'+(0.25+0.6*a).toFixed(2)+'"/>';
+    out+='<ellipse cx="4.7" cy="'+oy.toFixed(2)+'" rx="2.8" ry="'+ry.toFixed(2)+'" fill="#1d9e75" fill-opacity="'+(0.25+0.6*a).toFixed(2)+'"/>';
+    out+='<path d="M-8 0Q-5 '+(-7*a).toFixed(2)+' -1.5 0M8 0Q5 '+(-7*a).toFixed(2)+' 1.5 0" stroke="var(--ts)" stroke-width="1.6" stroke-linecap="round" fill="none"/>';
+    out+='<rect x="-1.6" y="-5" width="3.2" height="10" rx="1.2" fill="var(--tp)"/>';
+  }else if(type==='mec'){
+    out+='<circle r="10" fill="var(--bg)" stroke="var(--tp)" stroke-width="1.5"/>';
+    out+='<path d="M-8 0L'+lx.toFixed(2)+' '+ey.toFixed(2)+'M8 0L'+rx.toFixed(2)+' '+ey.toFixed(2)+'" stroke="var(--tp)" stroke-width="3" stroke-linecap="round" fill="none"/>';
+  }else if(type==='bio'){
+    out+='<circle r="10" fill="var(--bg)" stroke="#c08a4a" stroke-width="1.5"/>';
+    out+='<path d="M-8 0Q'+((-8+lx)/2-2).toFixed(2)+' '+(ey/2+3).toFixed(2)+' '+lx.toFixed(2)+' '+ey.toFixed(2)+'M8 0Q'+((8+rx)/2+2).toFixed(2)+' '+(ey/2+3).toFixed(2)+' '+rx.toFixed(2)+' '+ey.toFixed(2)+'" stroke="#c08a4a" stroke-width="2.2" stroke-linecap="round" fill="none"/>';
+    out+='<circle cx="-8" cy="0" r="2.2" fill="#c08a4a"/><circle cx="8" cy="0" r="2.2" fill="#c08a4a"/>';
+  }else{
+    out+='<path d="M-10 0A10 10 0 1 1 10 0" fill="var(--bg)" stroke="#1d9e75" stroke-width="2.5"/>';
+    out+='<path d="M-8 0L'+lx.toFixed(2)+' '+ey.toFixed(2)+'M8 0L'+rx.toFixed(2)+' '+ey.toFixed(2)+'" stroke="var(--ts)" stroke-width="1.6" stroke-linecap="round" fill="none"/>';
+  }
+  return out;
+}
+function openFrac(k,ph){
+  var sist=(k==='Ao'||k==='Pu');
+  if(sist){return ph<0.35?Math.sin(Math.PI*ph/0.35):0;}
+  return (ph>0.4&&ph<0.95)?Math.sin(Math.PI*(ph-0.4)/0.55):0;
+}
+function fc(){
+  var m=$('mon').value;
+  var v=(m==='swan'&&$('sFC').value)?$('sFC').value:$('hFC').value;
+  var n=parseFloat(v);
+  return (n>=30&&n<=220)?n:70;
+}
+function draw(ph){
+  VK.forEach(function(k){
+    if($('vk'+k).checked&&$('kVal').checked){
+      $('v'+k).innerHTML=valveGeo($('vt'+k).value,openFrac(k,ph));
+    }
+  });
+}
+function frame(ts){
+  if(t0===null)t0=ts;
+  var f=fc(),ph=paused?0.15:(((ts-t0)/1000)*(f/60))%1;
+  var cyc=((ts/1000)%4)/4,inf=paused?0.5:(cyc<0.2?cyc/0.2:(cyc<0.35?1:(cyc<0.55?1-(cyc-0.35)/0.2:0)));
+  $('sgBal').setAttribute('rx',(3+6*inf).toFixed(2));$('sgBal').setAttribute('ry',(2+3*inf).toFixed(2));
+  var off=paused?0:-((ts/40)%11);
+  $('ecmoAp').setAttribute('stroke-dashoffset',off.toFixed(1));$('ecmoVp').setAttribute('stroke-dashoffset',off.toFixed(1));
+  animFn(ph,f);
+  draw(ph);
+  window.requestAnimationFrame(frame);
+}
+
+function syncTabs(){
+  var map={Ao:'sAo',Mi:'sMi',Tr:'sTr'};
+  Object.keys(map).forEach(function(k){
+    var v=$(map[k]).value;
+    if(v!==fromTab[k]){
+      fromTab[k]=v;
+      if(v){$('vt'+k).value=v;}
+    }
+    $('tg'+k).innerHTML=fromTab[k]?'<span class="tag">de Válvulas</span>':'';
+  });
+}
+function upd(){
+  syncTabs();layout();
+  var kC=$('kCabg').checked,kV=$('kVal').checked,kA=$('kAo').checked,kO=$('kOtra').checked;
+  var mon=$('mon').value,aux=$('aux').value;var isEc=(aux==='ecmoa'||aux==='ecmov');
+  show('cabgw',kC);show('valw',kV);
+  show('graftVI',kC&&$('gdest').value==='vi');show('graftAD',kC&&$('gdest').value==='ad');
+  show('mesh_p',kA);
+  VK.forEach(function(k){show('v'+k,kV&&$('vk'+k).checked);});
+  show('tD',$('dD').checked);show('tI',$('dI').checked);show('tM',$('dM').checked);
+  var hR=lvl($('plD').value),hL=lvl($('plI').value);
+  $('fR').setAttribute('y',210-hR);$('fR').setAttribute('height',hR);
+  $('fL').setAttribute('y',210-hL);$('fL').setAttribute('height',hL);
+  var pv=$('peri').value,pw={Leve:3,Moderado:6,Severo:10}[pv];
+  if(pw){show('peri_r',true);$('peri_r').setAttribute('stroke-width',pw);}else{show('peri_r',false);}
+  show('cSwan',mon==='swan');show('cPicco',mon==='picco');show('ecmoA',aux==='ecmoa');show('ecmoV',aux==='ecmov');
+  show('nomon',mon==='none');show('swan',mon==='swan');show('picco',mon==='picco');
+  show('wFC',mon!=='swan');show('wPAM',mon!=='swan');
+  $('hnote').textContent=mon==='swan'?'FC y PAM vienen del Swan-Ganz. PAS y PA diastólica se comparten con el Doppler aórtico.':'Solo lo que el monitoreo no trae. FC, PAS, PA diastólica y PAM se comparten con el Doppler aórtico.';
+  show('auxbal',aux==='bal');show('auximp',aux==='imp');show('auxec',isEc);show('auxnone',!aux);
+  $('auxl').textContent=aux==='bal'?'Relación':aux==='imp'?'Nivel P':isEc?'Flujo':'Opción';
+  var hasGC=(mon==='swan'&&$('sGC').value)||(mon==='picco'&&$('pGC').value);
+  $('qgc').textContent=hasGC?'con gasto cargado':'sin IC calculable';
+  $('qpc').textContent=(mon==='swan'&&$('sPCP').value)?'con PCP cargada':'sin PCP';
+  $('qpe').textContent=(pv&&pv!=='Sin derrame')?'derrame '+pv.toLowerCase():'no consignado';
+  $('qcg').textContent=($('lb').value==='Difusas')?'líneas B difusas':'no';
+  $('fcl').textContent='FC '+fc()+' lpm'+(paused&&reduce?' (movimiento reducido por tu sistema)':'');
+  var ct=[];
+  if(kC)ct.push('revascularización (puente a '+($('gdest').value==='vi'?'la cara superior izquierda del VI':'la aurícula derecha')+')');
+  if(kV){
+    var vs=[];VK.forEach(function(k){if($('vk'+k).checked)vs.push(VN[k]+' '+TN[$('vt'+k).value]);});
+    ct.push('valvular'+(vs.length?' ('+vs.join(', ')+')':''));
+  }
+  if(kA)ct.push('aorta con injerto');
+  if(kO)ct.push('otra');
+  var dr=Object.keys(chosen);
+  var auxT=aux==='bal'?'balón de contrapulsación '+$('auxbal').value:aux==='imp'?'Impella '+$('auximp').value:isEc?((aux==='ecmov'?'ECMO VV':'ECMO VA')+($('auxec').value?' '+$('auxec').value+' L/min':'')):'ninguna';
+  var drn=[];if($('dD').checked)drn.push('pleural derecho');if($('dI').checked)drn.push('pleural izquierdo');if($('dM').checked)drn.push('mediastino');
+  var monT=mon==='swan'?'Swan-Ganz':mon==='picco'?'PiCCO':'sin monitoreo invasivo';
+  var pl=[];if($('plD').value)pl.push('derecho '+$('plD').value.toLowerCase());if($('plI').value)pl.push('izquierdo '+$('plI').value.toLowerCase());
+  var pu=[];if($('lb').value)pu.push('líneas B '+$('lb').value.toLowerCase());if($('cons').value)pu.push('consolidación '+$('cons').value.toLowerCase());if($('nmx').value)pu.push('neumotórax '+$('nmx').value.toLowerCase());
+  var L=[['Cirugía',ct.length?ct.join(' + '):'sin consignar'],['Monitoreo',monT],['Soporte y vasoactivos','asistencia: '+auxT+'. Vasoactivos: '+(dr.length?dr.join(', '):'ninguno')+'.'],['Drenajes',drn.length?drn.join(', '):'sin drenajes'],['Pericardio',pv?pv.toLowerCase():'sin evaluar'],['Pleura',pl.length?pl.join('; '):'sin evaluar'],['Pulmón',pu.length?pu.join('; '):'sin evaluar']];
+  $('chars').innerHTML=L.map(function(r){return '<div class="ch"><b>'+r[0]+'</b><br>'+r[1]+'</div>'}).join('');
+}
+$('pz').addEventListener('click',function(){
+  paused=!paused;t0=null;
+  $('pz').textContent=paused?'Seguir':'Pausar';
+  upd();
+});
+$('inc').addEventListener('click',function(){
+  var on=$('inc').getAttribute('data-on')!=='1';
+  $('inc').setAttribute('data-on',on?'1':'0');
+  $('inc').textContent=on?'✓ Incluido en el PDF':'Incluir en el PDF';
+});
+VK.forEach(function(k){
+  $('vk'+k).addEventListener('change',upd);
+  $('vt'+k).addEventListener('change',upd);
+});
+Array.prototype.forEach.call(document.querySelectorAll('select,input'),function(e){
+  e.addEventListener('change',upd);e.addEventListener('input',upd);
+});
+fillTypes();menu();rows();upd();
+if(reduce){$('pz').textContent='Seguir';}
+window.requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

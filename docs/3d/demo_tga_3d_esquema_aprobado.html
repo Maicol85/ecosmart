@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo EcoSmart — Transposición de las grandes arterias (3D)</title>
+<style>
+:root{
+  --bg:#ffffff;--surface-1:#f5f5f2;--surface-2:#e9e9e4;
+  --text-primary:#1d1d1b;--text-secondary:#55554f;--text-muted:#85857e;
+  --text-accent:#185fa5;--bg-accent:#e6f1fb;--border-accent:#85b7eb;
+  --border:rgba(0,0,0,.16);--border-strong:rgba(0,0,0,.34);
+  --radius:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1c1c1a;--surface-1:#2a2a27;--surface-2:#363632;
+    --text-primary:#f1f1ed;--text-secondary:#b5b5ae;--text-muted:#8a8a83;
+    --text-accent:#85b7eb;--bg-accent:#0c447c;--border-accent:#378add;
+    --border:rgba(255,255,255,.16);--border-strong:rgba(255,255,255,.34);
+  }
+}
+html,body{margin:0;background:var(--bg);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+body{max-width:760px;margin:0 auto;padding:16px}
+button,select,input{font:inherit;font-size:13px;color:var(--text-primary);background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:5px 10px}
+input[type=checkbox]{padding:0;vertical-align:-2px}
+button{cursor:pointer}
+button:hover{background:var(--surface-2)}
+input[type=number]{background:var(--bg)}
+:focus-visible{outline:2px solid var(--text-accent);outline-offset:1px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+.wrap{background:var(--surface-1);border-radius:12px;padding:1rem}
+.row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 10px;font-size:13px;color:var(--text-secondary)}
+.row input.fcin{width:80px}
+.sg[aria-pressed="true"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+.cv{position:relative;width:100%;height:480px;background:var(--surface-2);border-radius:var(--radius);overflow:hidden;touch-action:none;cursor:grab}
+.cv canvas{display:block;width:100%;height:100%}
+.lbl{position:absolute;font-size:11px;font-weight:500;color:var(--text-primary);background:var(--surface-1);opacity:0.88;border:0.5px solid var(--border);border-radius:5px;padding:0 5px;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap}
+.inf{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:10px 0 0}
+.inf b{color:var(--text-primary);font-weight:500}
+.circ{font-size:13px;line-height:1.55;background:var(--bg-accent);color:var(--text-accent);border-radius:var(--radius);padding:8px 12px;margin:8px 0 0}
+.ref{font-size:12px;line-height:1.5;color:var(--text-muted);margin:6px 0 0}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-secondary);margin:8px 0 0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.nt{font-size:12px;color:var(--text-muted);line-height:1.5;margin:10px 0 0}
+.imgp{margin-top:12px;border-top:0.5px solid var(--border);padding-top:10px}
+.imgs{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.imi{width:200px;background:var(--surface-2);border:0.5px solid var(--border);border-radius:var(--radius);padding:8px;font-size:11px;color:var(--text-secondary);line-height:1.4}
+.imi img{width:100%;height:auto;display:block;margin-bottom:6px;border-radius:4px}
+.bt{font-size:14px;font-weight:500;margin:0 0 8px}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Demo en 3D de la transposición de las grandes arterias: corazón normal, TGA completa, TGA corregida y las cirugías de switch auricular, switch arterial y Rastelli, con la circulación por dentro, las comunicaciones y la frecuencia cardíaca.</h2>
+<div class="wrap">
+  <div class="row"><span>Anatomía</span>
+    <button type="button" class="sg an" data-a="norm" aria-pressed="true">Corazón normal</button>
+    <button type="button" class="sg an" data-a="dtga" aria-pressed="false">TGA completa (d-TGA)</button>
+    <button type="button" class="sg an" data-a="ltga" aria-pressed="false">TGA corregida (L-TGA)</button>
+  </div>
+  <div class="row" id="oprow" hidden><span>Cirugía</span>
+    <button type="button" class="sg op" data-o="none" aria-pressed="true">Sin cirugía</button>
+    <button type="button" class="sg op" data-o="mus" aria-pressed="false">Switch auricular (Mustard / Senning)</button>
+    <button type="button" class="sg op" data-o="jat" aria-pressed="false">Switch arterial (Jatene)</button>
+    <button type="button" class="sg op" data-o="ras" aria-pressed="false">Rastelli</button>
+  </div>
+  <div class="row" id="shrow" hidden><span>Comunicaciones</span>
+    <label><input type="checkbox" id="s_asd"> CIA o FOP</label>
+    <label><input type="checkbox" id="s_vsd"> CIV</label>
+    <label><input type="checkbox" id="s_pda"> DAP</label>
+  </div>
+  <div class="row"><label><input type="checkbox" id="ins"> Ver por dentro</label>
+    <label><input type="checkbox" id="nom" checked> Nombres</label>
+    <label for="fc">Frecuencia cardíaca (lpm)</label><input class="fcin" id="fc" type="number" inputmode="numeric" value="70" min="30" max="200">
+    <button type="button" id="pz">Pausar</button>
+    <span id="pzbox" hidden><button type="button" id="pzin">Incluir en el PDF</button> <button type="button" id="pzgo">Seguir</button></span>
+    <button type="button" id="rst">Vista de frente</button></div>
+  <div class="cv" id="cv" role="img" aria-label="Modelo 3D del corazón y los grandes vasos; se rota arrastrando"></div>
+  <div class="leg"><span><span class="sw" style="background:#2f6fd0"></span>sangre poco oxigenada</span><span><span class="sw" style="background:#d8433b"></span>sangre oxigenada</span><span><span class="sw" style="background:#e08a1e"></span>suturas y comunicaciones</span></div>
+  <p class="circ" id="circ"></p>
+  <p class="inf" id="inf"></p>
+  <p class="ref" id="ref"></p>
+  <div class="imgp" id="imgp" hidden>
+    <div class="bt">Imágenes <span style="font-weight:400;font-size:12px;color:var(--text-secondary)">se guardan solas al incluir en el PDF</span></div>
+    <div class="imgs" id="imgs"></div>
+  </div>
+  <p class="nt">Modelo 3D esquemático, no a escala. Se rota arrastrando. «Ver por dentro» vuelve transparente la pared y se enciende solo al elegir una cirugía o una comunicación. Los textos son de ejemplo y se verifican contra las guías de congénitas (Cowork). Necesita internet para cargar la librería 3D.</p>
+</div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var URL3='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+var CAP='Esquema ilustrativo generado a partir de los datos cargados. No es una imagen del estudio ni está a escala.';
+var C={blue:0x2f6fd0,red:0xd8433b,grey:0x9a9a95,orange:0xe08a1e};
+var anat='norm',op='none',sh={asd:false,vsd:false,pda:false},paused=false,fc=70,ins=false,noms=true;
+var INFO={
+ norm:'<b>Corazón normal.</b> Concordancia auriculoventricular y ventriculoarterial: la aorta nace del ventrículo izquierdo y la arteria pulmonar, del derecho. Los grandes vasos se cruzan.',
+ dtga:'<b>TGA completa (d-TGA).</b> Concordancia auriculoventricular y discordancia ventriculoarterial: la aorta nace del ventrículo derecho y la pulmonar del izquierdo. Salen en paralelo, con la aorta por delante y a la derecha. La vida depende de una comunicación entre los dos circuitos (CIA o FOP, CIV o DAP).',
+ ltga:'<b>TGA corregida (L-TGA).</b> Doble discordancia: la sangre sigue el circuito normal, pero pasa por el ventrículo equivocado en cada lado. El ventrículo sistémico es el derecho morfológico, que queda a la izquierda del paciente.',
+ mus:'<b>Switch auricular (Mustard o Senning).</b> Un túnel dentro de las aurículas cruza las dos corrientes. El ventrículo derecho queda como sistémico. Qué mirar: su función, la insuficiencia tricuspídea y las fugas u obstrucciones del túnel.',
+ jat:'<b>Switch arterial (Jatene).</b> Se cortan y se intercambian la aorta y la arteria pulmonar, y se pasan las coronarias a la neoaorta. Con la maniobra de Lecompte la pulmonar queda por delante de la aorta. Qué mirar: raíz neoaórtica (dilatación e insuficiencia), estenosis supravalvular pulmonar y de las ramas, y función del ventrículo izquierdo.',
+ ras:'<b>Rastelli (TGA con CIV y estenosis pulmonar).</b> Un túnel lleva la sangre del ventrículo izquierdo a la aorta a través de la CIV, y un conducto lleva la del derecho a la arteria pulmonar, que se liga en su origen. Qué mirar: el túnel, el gradiente del conducto y la CIV residual.'
+};
+var CIRC={
+ norm:'AD → VD → arteria pulmonar → pulmones → AI → VI → aorta → cuerpo',
+ dtga:'AD → VD → AORTA → cuerpo   ·   AI → VI → ARTERIA PULMONAR → pulmones → AI   (dos circuitos en paralelo)',
+ ltga:'AD → VI morfológico → arteria pulmonar → pulmones   ·   AI → VD morfológico → aorta',
+ mus:'cavas → túnel → válvula mitral → VI → arteria pulmonar   ·   venas pulmonares → válvula tricúspide → VD → aorta',
+ jat:'AD → VD → arteria pulmonar (neopulmonar)   ·   AI → VI → aorta (neoaorta)',
+ ras:'AI → VI → túnel por la CIV → aorta   ·   AD → VD → conducto → arteria pulmonar'
+};
+var REF={
+ norm:'',dtga:'',ltga:'',
+ mus:'Túneles dentro de las aurículas (con «Ver por dentro»): azul, la sangre de las cavas; rojo, la de las venas pulmonares.',
+ jat:'Anillos naranjas: líneas de sutura de la neoaorta y la neopulmonar. Tubos naranjas: coronarias reimplantadas en la neoaorta.',
+ ras:'Túnel rojo (por dentro): del VI a la aorta por la CIV. Conducto azul: del VD a la arteria pulmonar. Esfera gris: arteria pulmonar ligada en su origen.'
+};
+function cat(){var o=[];Array.prototype.forEach.call(arguments,function(a){a.forEach(function(p){var l=o[o.length-1];if(!l||l[0]!==p[0]||l[1]!==p[1]||l[2]!==p[2]){o.push(p);}});});return o;}
+var SV=[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
+var PVR=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.4,0.9,-0.7],[0.55,0.2,-0.3],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
+var PVL=[[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85],[0.5,0.95,-0.7]];
+var AO_ANT=[[-0.4,0.5,0.9],[-0.45,1.5,0.8],[-0.3,2.4,0.5],[0.3,2.9,0.2],[1.1,2.6,-0.4],[1.6,1.9,-0.8]];
+var AO_N=[[0.35,0.4,-0.05],[0.3,1.2,-0.15],[0.45,2.1,-0.3],[0.9,2.6,-0.5],[1.5,2.3,-0.7],[1.7,1.6,-0.9]];
+var PAP_T=[[0.35,0.3,-0.1],[0.4,1.3,-0.3],[0.5,2.0,-0.4]];
+var PAP_R=[[0.5,2.0,-0.4],[-0.2,2.2,-0.7],[-1.2,2.1,-1.0],[-1.9,1.8,-1.3]];
+var PAP_L=[[0.5,2.0,-0.4],[1.1,2.0,-0.7],[1.7,1.9,-0.95],[2.2,1.7,-1.2]];
+var PAA_T=[[-0.4,0.5,0.9],[-0.2,1.4,0.75],[0.1,2.0,0.4]];
+var PAA_R=[[0.1,2.0,0.4],[-0.6,2.3,-0.3],[-1.4,2.2,-0.9],[-1.9,1.8,-1.3]];
+var PAA_L=[[0.1,2.0,0.4],[0.9,2.15,-0.1],[1.6,2.0,-0.8],[2.2,1.7,-1.2]];
+var AO_LT=[[0.9,0.5,0.6],[0.95,1.5,0.5],[0.9,2.4,0.3],[1.2,2.9,0.0],[1.6,2.5,-0.5],[1.8,1.7,-0.8]];
+var PA_LT=[[-0.3,0.4,-0.1],[-0.3,1.4,-0.4],[-0.1,2.0,-0.5]];
+var PA_LT_R=[[-0.1,2.0,-0.5],[-0.7,2.2,-0.8],[-1.4,2.1,-1.0],[-1.9,1.8,-1.3]];
+var PA_LT_L=[[-0.1,2.0,-0.5],[0.6,2.1,-0.8],[1.5,2.0,-1.0],[2.2,1.7,-1.2]];
+var SV_LT=[[-1.6,3.0,-0.05],[-1.45,1.7,0.0],[-1.25,0.9,0.1],[-1.0,0.2,0.25],[-0.85,-0.6,0.4],[-0.6,-0.1,0.2],[-0.3,0.3,-0.05]];
+var PV_LT=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.45,0.9,-0.7],[0.6,0.2,-0.3],[0.7,-0.6,0.1],[0.8,-0.1,0.4],[0.9,0.4,0.6]];
+var AOR=[0.32,0.26],PAR=[0.32,0.22],PBR=[0.22,0.2];
+var LBV=[-0.9,-1.0,1.0],LBI=[0.9,-1.1,0.6];
+function scenario(){
+  var s={ch:{RA:C.blue,LA:C.red,RV:C.blue,LV:C.red},ar:[],fl:[],ex:[],lb:[]};
+  s.lb.push(['AD',[-1.25,1.9,0.15]],['AI',[0.5,1.8,-0.7]]);
+  s.fl.push({p:PVL,c:C.red});
+  var a=anat,o=(a==='dtga')?op:'none';
+  if(a==='norm'){
+    s.ar.push({p:cat(AO_N),c:C.red,r:AOR,br:1,from:'R'},{p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:PAR,from:'L'},{p:PAA_L,c:C.blue,r:PBR});
+    s.fl.push({p:cat(SV,PAA_T,PAA_L),c:C.blue},{p:cat(PVR,AO_N),c:C.red});
+    s.lb.push(['VD',LBV],['VI',LBI],['Ao',AO_N[2]],['AP',PAA_T[1]]);
+  }
+  if(a==='dtga'&&(o==='none'||o==='ras')){
+    s.ar.push({p:cat(AO_ANT),c:(o==='ras'?C.red:C.blue),r:AOR,br:1,from:'L'});
+    s.lb.push(['VD',LBV],['VI',LBI],['Ao',AO_ANT[2]]);
+    if(o==='none'){
+      s.ar.push({p:cat(PAP_T,PAP_R.slice(1)),c:C.red,r:PAR,from:'R'},{p:PAP_L,c:C.red,r:PBR});
+      s.fl.push({p:cat(SV,AO_ANT),c:C.blue},{p:cat(PVR,PAP_T,PAP_L),c:C.red});
+      s.lb.push(['AP',PAP_T[1]]);
+      if(sh.asd){
+        s.ex.push({t:'ring',c:[-0.45,0.95,-0.3],r:0.24,ry:true,in:true});
+        s.fl.push({p:[[-1.2,0.9,0.1],[-0.7,0.95,-0.15],[-0.15,1.0,-0.45],[0.3,1.0,-0.65]],c:C.blue,n:6,sp:0.5},{p:[[0.3,1.05,-0.6],[-0.15,1.05,-0.4],[-0.7,1.0,-0.1],[-1.2,0.95,0.1]],c:C.red,n:6,sp:0.5});
+      }
+      if(sh.vsd){
+        s.ex.push({t:'ring',c:[-0.05,-0.9,0.2],r:0.28,ry:true,in:true});
+        s.fl.push({p:[[-0.6,-0.9,0.4],[-0.1,-0.9,0.2],[0.3,-0.9,0.0],[0.6,-0.9,-0.1]],c:C.blue,n:6,sp:0.5},{p:[[0.6,-0.85,-0.1],[0.3,-0.85,0.0],[-0.1,-0.85,0.2],[-0.6,-0.85,0.4]],c:C.red,n:6,sp:0.5});
+      }
+      if(sh.pda){
+        var pd=[[0.55,2.1,-0.45],[0.75,2.35,-0.4],[0.9,2.6,-0.35]];
+        s.ex.push({t:'tube',p:pd,r:0.12,c:C.orange});
+        s.fl.push({p:pd,c:C.red,n:4,sp:0.5},{p:pd.slice().reverse(),c:C.blue,n:4,sp:0.5});
+      }
+    }else{
+      s.ar.push({p:cat(PAP_T.slice(0,2)),c:C.grey,r:[0.3,0.28],from:'R'});
+      s.ex.push({t:'sph',c:[0.4,1.3,-0.3],r:0.16,col:C.grey});
+      s.ex.push({t:'ring',c:[0.0,-0.7,0.3],r:0.28,ry:true,in:true});
+      var tun=[[0.5,-0.9,0.0],[0.0,-0.7,0.3],[-0.5,0.2,0.7],[-0.4,0.5,0.9]];
+      var con=[[-1.0,-1.6,0.9],[-1.7,-0.1,0.9],[-1.5,1.6,0.6],[-0.5,2.1,-0.3],[0.5,2.0,-0.4]];
+      s.ex.push({t:'tube',p:tun,r:0.2,c:C.red,op:0.5,in:true},{t:'tube',p:con,r:0.2,c:C.blue,op:0.65});
+      s.ar.push({p:PAP_R,c:C.blue,r:PBR},{p:PAP_L,c:C.blue,r:PBR});
+      s.fl.push({p:cat(PVR,tun,AO_ANT.slice(1)),c:C.red},{p:cat(SV.slice(0,5),con,PAP_L.slice(1)),c:C.blue});
+    }
+  }
+  if(a==='dtga'&&o==='mus'){
+    s.ch={RA:C.red,LA:C.red,RV:C.red,LV:C.blue};
+    var bl=[[-1.6,3.0,-0.05],[-1.4,1.7,0.0],[-1.0,1.0,0.0],[-0.2,0.8,-0.3],[0.4,0.4,-0.3],[0.55,0.0,-0.25],[0.65,-0.7,-0.15],[0.5,-0.2,-0.1]];
+    var rd=[[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.3,1.1,-0.9],[0.2,1.0,-0.6],[-0.4,0.9,0.0],[-0.9,0.4,0.2],[-0.95,0.0,0.3],[-0.85,-0.6,0.4],[-0.7,-0.2,0.55],[-0.55,0.3,0.75]];
+    s.ar.push({p:cat(AO_ANT),c:C.red,r:AOR,br:1,from:'L'},{p:cat(PAP_T,PAP_R.slice(1)),c:C.blue,r:PAR,from:'R'},{p:PAP_L,c:C.blue,r:PBR});
+    s.fl.push({p:cat(bl,PAP_T,PAP_L),c:C.blue},{p:cat(rd,AO_ANT),c:C.red});
+    s.ex.push({t:'tube',p:bl.slice(0,5),r:0.17,c:C.blue,op:0.5,in:true},{t:'tube',p:rd.slice(2,7),r:0.17,c:C.red,op:0.5,in:true});
+    s.lb.push(['VD',LBV],['VI',LBI],['Ao',AO_ANT[2]],['AP',PAP_T[1]]);
+  }
+  if(a==='dtga'&&o==='jat'){
+    s.ar.push({p:cat(AO_N),c:C.red,r:AOR,br:1,from:'R'},{p:cat(PAA_T,PAA_R.slice(1)),c:C.blue,r:PAR,from:'L'},{p:PAA_L,c:C.blue,r:PBR});
+    s.fl.push({p:cat(SV,PAA_T,PAA_L),c:C.blue},{p:cat(PVR,AO_N),c:C.red});
+    s.ex.push({t:'ring',c:[0.3,1.2,-0.15],r:0.3,col:C.orange},{t:'ring',c:[-0.2,1.4,0.75],r:0.3,col:C.orange},
+      {t:'tube',p:[[0.32,0.8,-0.1],[0.05,0.75,0.3]],r:0.05,c:C.orange},{t:'tube',p:[[0.4,0.8,-0.1],[0.75,0.7,-0.35]],r:0.05,c:C.orange});
+    s.lb.push(['VD',LBV],['VI',LBI],['Ao',AO_N[2]],['AP',PAA_T[1]]);
+  }
+  if(a==='ltga'){
+    s.ar.push({p:cat(AO_LT),c:C.red,r:AOR,br:1,from:'R'},{p:cat(PA_LT,PA_LT_R.slice(1)),c:C.blue,r:PAR,from:'L'},{p:PA_LT_L,c:C.blue,r:PBR});
+    s.fl.push({p:cat(SV_LT,PA_LT,PA_LT_L),c:C.blue},{p:cat(PV_LT,AO_LT),c:C.red});
+    s.lb.push(['VI morf.',LBV],['VD morf.',LBI],['Ao',AO_LT[2]],['AP',PA_LT[1]]);
+  }
+  return s;
+}
+function boot(){
+  if(window.THREE){init();return;}
+  var sc=document.createElement('script');sc.src=URL3;sc.onload=init;
+  sc.onerror=function(){$('cv').textContent='No se pudo cargar la librería 3D. Revisá la conexión.';};
+  document.head.appendChild(sc);
+}
+function init(){
+  var T=window.THREE,host=$('cv'),W=host.clientWidth||640,Hh=480;
+  var scene=new T.Scene(),cam=new T.PerspectiveCamera(38,W/Hh,0.1,100);
+  cam.position.set(0.1,0.0,12.5);cam.lookAt(0,-0.2,0);
+  var rd=new T.WebGLRenderer({antialias:true,alpha:true});
+  rd.setPixelRatio(Math.min(2,window.devicePixelRatio||1));rd.setSize(W,Hh);
+  host.appendChild(rd.domElement);
+  scene.add(new T.HemisphereLight(0xffffff,0x6b4a40,0.65));
+  var dl=new T.DirectionalLight(0xffffff,0.75);dl.position.set(3,5,8);scene.add(dl);
+  var dl2=new T.DirectionalLight(0xffd9c8,0.25);dl2.position.set(-5,-2,3);scene.add(dl2);
+  var root=new T.Group();root.rotation.x=0.05;scene.add(root);
+  var dyn=[],flows=[],pools=[],inOnly=[],lbs=[],shells=[],shellsDyn=[],time=0,flowT=0,last=performance.now(),drag=null;
+  function V(p){return new T.Vector3(p[0],p[1],p[2]);}
+  function cv(pts){return new T.CatmullRomCurve3(pts.map(V));}
+  function add(m,keep){root.add(m);if(!keep){dyn.push(m);}return m;}
+  function hshape(rx,ry,rz,taper,seed){
+    var g=new T.SphereGeometry(1,56,40),p=g.attributes.position,v=new T.Vector3(),i,t,f,n;
+    for(i=0;i<p.count;i++){
+      v.fromBufferAttribute(p,i);
+      t=v.y<0?Math.min(1,-v.y):0;f=1-taper*Math.pow(t,1.5);
+      v.x*=rx*f;v.z*=rz*f;v.y*=ry;
+      if(seed){n=1+0.018*Math.sin(v.x*4.1+seed)*Math.cos(v.y*3.3+seed*0.7)+0.012*Math.sin(v.z*5.2+v.y*2.0);v.multiplyScalar(n);}
+      p.setXYZ(i,v.x,v.y,v.z);
+    }
+    g.computeVertexNormals();return g;
+  }
+  function ttube(pts,r0,r1,col,opa,mat,keep){
+    var cu=cv(pts),seg=64,rs=16,g=new T.TubeGeometry(cu,seg,1,rs,false),pos=g.attributes.position,v=new T.Vector3(),c,i,j,t,r,idx;
+    for(i=0;i<=seg;i++){
+      t=i/seg;c=cu.getPointAt(t);r=r0+(r1-r0)*t;
+      for(j=0;j<=rs;j++){idx=i*(rs+1)+j;v.fromBufferAttribute(pos,idx);v.sub(c).multiplyScalar(r).add(c);pos.setXYZ(idx,v.x,v.y,v.z);}
+    }
+    g.computeVertexNormals();
+    var m;
+    if(mat){m=new T.Mesh(g,mat);}
+    else{m=new T.Mesh(g,new T.MeshStandardMaterial({color:col,roughness:0.45,metalness:0.0,transparent:true,opacity:opa||0.82}));m.material.depthWrite=false;}
+    add(m,keep);return m;
+  }
+  function cone(a,b,r,mat){
+    var da=V(b).sub(V(a)),L=da.length(),m=new T.Mesh(new T.ConeGeometry(r,L,24,1),mat);
+    m.position.copy(V(a).add(V(b)).multiplyScalar(0.5));
+    m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),da.normalize());
+    return m;
+  }
+  var matV=new T.MeshStandardMaterial({color:0xa6423c,roughness:0.55,metalness:0.0}),matA=new T.MeshStandardMaterial({color:0xbb5b58,roughness:0.6,metalness:0.0});
+  function ghost(k){return new T.MeshStandardMaterial({color:k==='v'?0xa6423c:0xbb5b58,roughness:0.6,transparent:true,opacity:0.16,depthWrite:false});}
+  function shell(g,mat,pos,rz,kind){
+    var m=new T.Mesh(g,mat);m.position.set(pos[0],pos[1],pos[2]);m.rotation.z=rz||0;add(m,true);shells.push({m:m,k:kind});return m;
+  }
+  shell(hshape(1.0,1.75,0.62,0.42,2.1),matV,[-0.75,-1.2,0.45],0.12,'v');
+  shell(hshape(1.1,2.1,0.95,0.5,1.3),matV,[0.65,-1.5,-0.1],0.3,'v');
+  shell(hshape(0.72,0.95,0.7,0,3.2),matA,[-1.25,0.8,0.1],0,'a');
+  shell(hshape(0.95,0.62,0.7,0,4.4),matA,[0.45,0.95,-0.7],0,'a');
+  var ap1=cone([-0.95,1.35,0.5],[-0.2,1.7,0.95],0.32,matA);add(ap1,true);
+  var ap2=cone([1.05,1.1,0.0],[1.4,1.7,0.55],0.27,matA);add(ap2,true);
+  ttube([[-1.6,3.1,-0.05],[-1.5,2.3,0],[-1.4,1.55,0]],0.22,0.22,C.blue,0.7,null,true);
+  ttube([[-1.3,-0.7,-0.1],[-1.25,-0.2,-0.05],[-1.25,0.25,0]],0.22,0.22,C.blue,0.7,null,true);
+  ttube([[-2.2,1.2,-1.4],[-1.4,1.2,-1.3],[-0.4,1.1,-0.9]],0.16,0.16,C.red,0.7,null,true);
+  ttube([[2.3,1.2,-1.4],[1.9,1.1,-1.1],[1.1,1.0,-0.85]],0.16,0.16,C.red,0.7,null,true);
+  function setIns(){
+    shells.forEach(function(s){s.m.material=ins?ghost(s.k):(s.k==='v'?matV:matA);});
+    shellsDyn.forEach(function(m){m.material=ins?ghost('v'):matV;});
+    [ap1,ap2].forEach(function(m){m.visible=!ins;});
+    pools.forEach(function(p){p.m.visible=ins;});
+    inOnly.forEach(function(m){m.visible=ins;});
+  }
+  function build(){
+    dyn.forEach(function(m){root.remove(m);if(m.geometry){m.geometry.dispose();}});
+    dyn=[];flows=[];pools=[];inOnly=[];shellsDyn=[];
+    lbs.forEach(function(l){l.el.remove();});lbs=[];
+    var s=scenario();
+    var def=[['RA',[-1.25,0.8,0.1],[0.6,0.8,0.56],0,0,'a'],['LA',[0.45,0.95,-0.7],[0.8,0.52,0.58],0,0,'a'],['RV',[-0.75,-1.2,0.45],[0.84,1.5,0.48],0.12,0.4,'v'],['LV',[0.65,-1.5,-0.1],[0.92,1.8,0.78],0.3,0.45,'v']];
+    def.forEach(function(d){
+      var m=new T.Mesh(hshape(d[2][0],d[2][1],d[2][2],d[4],0),new T.MeshStandardMaterial({color:s.ch[d[0]],roughness:0.35,transparent:true,opacity:0.6,depthWrite:false}));
+      m.position.set(d[1][0],d[1][1],d[1][2]);m.rotation.z=d[3];add(m);pools.push({m:m,k:d[5]});
+    });
+    s.ar.forEach(function(a){
+      var r=a.r||[0.3,0.24],t0=a.p[0];
+      if(a.from){
+        var inner=(a.from==='L')?[-0.75,-0.3,0.4]:[0.5,-0.4,-0.1],mid=[(inner[0]+t0[0])/2,(inner[1]+t0[1])/2,(inner[2]+t0[2])/2];
+        var vm=ttube([inner,mid,t0],0.44,0.36,0,0,matV);shellsDyn.push(vm);
+      }
+      var bulb=new T.Mesh(new T.SphereGeometry(0.42,20,16),new T.MeshStandardMaterial({color:a.c,roughness:0.45,transparent:true,opacity:0.82}));
+      bulb.material.depthWrite=false;bulb.scale.set(1,0.85,1);bulb.position.set(t0[0],t0[1]+0.1,t0[2]);add(bulb);
+      ttube(a.p,r[0],r[1],a.c,0.82);
+      if(a.br){
+        var cu=cv(a.p),best=0.5,by=-1e9,i,q;
+        for(i=0;i<=40;i++){q=cu.getPointAt(i/40);if(q.y>by){by=q.y;best=i/40;}}
+        [-0.07,0,0.07].forEach(function(d,k){
+          var u=Math.max(0.03,Math.min(0.97,best+d)),qq=cu.getPointAt(u);
+          ttube([[qq.x,qq.y,qq.z],[qq.x+(k-1)*0.1,qq.y+0.35,qq.z],[qq.x+(k-1)*0.2,qq.y+0.7,qq.z-0.05]],0.1,0.08,a.c,0.82);
+        });
+      }
+    });
+    s.ex.forEach(function(e){
+      var m=null;
+      if(e.t==='tube'){m=ttube(e.p,e.r,e.r,e.c,e.op||0.9);}
+      if(e.t==='ring'){
+        m=new T.Mesh(new T.TorusGeometry(e.r,0.045,8,24),new T.MeshStandardMaterial({color:e.col||C.orange,roughness:0.4}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);if(e.ry){m.rotation.y=Math.PI/2;}add(m);
+      }
+      if(e.t==='sph'){
+        m=new T.Mesh(new T.SphereGeometry(e.r,12,10),new T.MeshStandardMaterial({color:e.col,roughness:0.5}));
+        m.position.set(e.c[0],e.c[1],e.c[2]);add(m);
+      }
+      if(e.in&&m){inOnly.push(m);}
+    });
+    s.fl.forEach(function(f){
+      var cu=cv(f.p),n=f.n||14,ps=[],i;
+      for(i=0;i<n;i++){
+        var q=new T.Mesh(new T.SphereGeometry(0.075,8,8),new T.MeshBasicMaterial({color:f.c}));
+        add(q);ps.push({m:q,u:i/n});
+      }
+      flows.push({cu:cu,ps:ps,sp:f.sp||0.18});
+    });
+    s.lb.forEach(function(l){
+      var el=document.createElement('div');el.className='lbl';el.textContent=l[0];el.style.display=noms?'':'none';host.appendChild(el);
+      lbs.push({el:el,p:V(l[1]),t:l[0]});
+    });
+    var key=(anat==='dtga'&&op!=='none')?op:anat;
+    $('inf').innerHTML=INFO[key];
+    $('circ').textContent=CIRC[key];
+    $('ref').textContent=REF[key];
+    $('oprow').hidden=(anat!=='dtga');
+    $('shrow').hidden=!(anat==='dtga'&&op==='none');
+    setIns();
+  }
+  function sysf(p){
+    function sm(x){return x*x*(3-2*x);}
+    if(p<0.12){return sm(p/0.12);}
+    if(p<0.35){return 1;}
+    if(p<0.45){return 1-sm((p-0.35)/0.10);}
+    return 0;
+  }
+  function frame(now){
+    var dt=Math.min(0.1,(now-last)/1000);last=now;
+    if(!paused&&fc>0){time+=dt;flowT+=dt*fc/70;}
+    var f=0;
+    if(fc>0){var per=60/fc;f=sysf((time%per)/per);}
+    shells.forEach(function(s){var k=(s.k==='v')?(1-0.05*f):(1+0.035*f);s.m.scale.set(k,k,k);});
+    pools.forEach(function(p){var k=(p.k==='v')?(1-0.06*f):(1+0.04*f);p.m.scale.set(k,k,k);});
+    flows.forEach(function(fl){
+      fl.ps.forEach(function(p){
+        var u=(p.u+flowT*fl.sp)%1,q=fl.cu.getPointAt(u);
+        p.m.position.set(q.x,q.y,q.z);
+      });
+    });
+    root.updateMatrixWorld(true);
+    var w=host.clientWidth,h=Hh;
+    lbs.forEach(function(l){
+      var v=l.p.clone().applyMatrix4(root.matrixWorld).project(cam);
+      l.sx=(v.x*0.5+0.5)*w;l.sy=(-v.y*0.5+0.5)*h;
+      l.el.style.left=l.sx+'px';l.el.style.top=l.sy+'px';
+    });
+    rd.render(scene,cam);
+    requestAnimationFrame(frame);
+  }
+  host.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};host.setPointerCapture(e.pointerId);host.style.cursor='grabbing';});
+  host.addEventListener('pointermove',function(e){
+    if(!drag){return;}
+    root.rotation.y+=(e.clientX-drag.x)*0.01;
+    root.rotation.x=Math.max(-0.9,Math.min(0.9,root.rotation.x+(e.clientY-drag.y)*0.01));
+    drag={x:e.clientX,y:e.clientY};
+  });
+  function up(){drag=null;host.style.cursor='grab';}
+  host.addEventListener('pointerup',up);host.addEventListener('pointercancel',up);
+  $('rst').addEventListener('click',function(){root.rotation.set(0.05,0,0);});
+  window.addEventListener('resize',function(){var w2=host.clientWidth||640;rd.setSize(w2,Hh);cam.aspect=w2/Hh;cam.updateProjectionMatrix();});
+  function forceIns(){ins=true;$('ins').checked=true;}
+  Array.prototype.forEach.call(document.querySelectorAll('.an'),function(b){
+    b.addEventListener('click',function(){
+      anat=b.getAttribute('data-a');op='none';sh={asd:false,vsd:false,pda:false};
+      ['s_asd','s_vsd','s_pda'].forEach(function(i){$(i).checked=false;});
+      Array.prototype.forEach.call(document.querySelectorAll('.an'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+      Array.prototype.forEach.call(document.querySelectorAll('.op'),function(x){x.setAttribute('aria-pressed',x.getAttribute('data-o')==='none'?'true':'false');});
+      build();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.op'),function(b){
+    b.addEventListener('click',function(){
+      op=b.getAttribute('data-o');
+      if(op==='mus'||op==='ras'){forceIns();}
+      Array.prototype.forEach.call(document.querySelectorAll('.op'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+      build();
+    });
+  });
+  [['s_asd','asd'],['s_vsd','vsd'],['s_pda','pda']].forEach(function(a){
+    $(a[0]).addEventListener('change',function(){sh[a[1]]=this.checked;if(this.checked){forceIns();}build();});
+  });
+  $('ins').addEventListener('change',function(){ins=this.checked;setIns();});
+  $('nom').addEventListener('change',function(){noms=this.checked;lbs.forEach(function(l){l.el.style.display=noms?'':'none';});});
+  $('fc').addEventListener('input',function(){var n=parseFloat(this.value);fc=isNaN(n)?0:Math.max(30,Math.min(200,n));});
+  $('pz').addEventListener('click',function(){paused=true;this.hidden=true;$('pzbox').hidden=false;});
+  $('pzgo').addEventListener('click',function(){paused=false;$('pz').hidden=false;$('pzbox').hidden=true;});
+  $('pzin').addEventListener('click',function(){
+    var imgs=$('imgs');
+    if(imgs.children.length>=4){return;}
+    rd.render(scene,cam);
+    var cvs=rd.domElement,o=document.createElement('canvas');o.width=cvs.width;o.height=cvs.height;
+    var x=o.getContext('2d'),sc=cvs.width/host.clientWidth;
+    x.fillStyle='#ffffff';x.fillRect(0,0,o.width,o.height);
+    x.drawImage(cvs,0,0);
+    if(noms){
+      x.font='600 '+(11*sc)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';
+      lbs.forEach(function(l){
+        var tw=x.measureText(l.t).width+10*sc,px=l.sx*sc,py=l.sy*sc;
+        x.fillStyle='rgba(255,255,255,0.9)';x.fillRect(px-tw/2,py-8*sc,tw,16*sc);
+        x.fillStyle='#1d1d1b';x.fillText(l.t,px,py);
+      });
+    }
+    var box=document.createElement('div');box.className='imi';
+    var im=document.createElement('img');im.src=o.toDataURL('image/png');im.alt='Esquema 3D incluido';box.appendChild(im);
+    var t=document.createElement('div');t.textContent=CAP;box.appendChild(t);
+    var q=document.createElement('button');q.type='button';q.textContent='Quitar';q.style.marginTop='6px';
+    q.addEventListener('click',function(){box.remove();if(!imgs.children.length){$('imgp').hidden=true;}});
+    box.appendChild(q);imgs.appendChild(box);$('imgp').hidden=false;
+  });
+  build();
+  requestAnimationFrame(frame);
+}
+boot();
+})();
+</script>
+</body>
+</html>
