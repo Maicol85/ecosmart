@@ -226,40 +226,20 @@
        `style="color:…"` en la raíz clonada — y ojo, las cuatro comparten ids de glifo, así que
        extraer UNA sola pierde las letras, que viven en la de 4 cámaras. */
   .ete-proy { color: var(--ete-traza); }
-  /* ⚠️ CON DOS VISTAS LA COLUMNA DE ACCIONES BAJA. Flanqueando la imagen, cada vista paga
-     118 px de herramientas + 118 de acciones = 236 de cromo; con las dos abiertas son 472, y a
-     1280 px la imagen queda en 319 px por vista — medido, y es lo que hizo que TC-199 leyera un
-     trazo de 120 px como 116,1 (−3,2 %): a esa escala el clic entero de `clientX` ya cuesta
-     precisión. El mockup aprobado es el de UNA vista; con dos, la ecografía manda.
-     `!important` NO es pereza: `_vPanelHTML` emite el panel con estilos EN LÍNEA y un estilo en
-     línea le gana a la hoja sin importar la especificidad — es la misma trampa que este archivo
-     documenta para `[hidden]` y para la media query del visor. */
-  #cine-paneles.cine-2v .cine-acc,
-  #cine-paneles .cine-acc.cine-acc-abajo {
-    flex: 1 1 100% !important;
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    align-items: flex-start !important;
-  }
-  /* ⚠️ Y TAMBIÉN POR ANCHO, QUE ERA EL CASO QUE FALTABA Y EL PEOR. La condición real no es
-     «hay dos vistas» sino «¿entra la imagen?». Con UNA vista las dos columnas se comen
-     310 px del viewport (62 de modal + 118 + 118 + los dos gap), así que el lienzo queda en
-     `viewport − 310`: **10 px a 320, 65 a 375, 80 a 390**. En todo celular la ecografía perdía
-     el 60 % — y en el visor eso no es estética: `_medPunto` escala el clic por el ancho
-     mostrado, o sea que cada píxel del dedo pasaba a valer ocho de imagen. Este archivo ya
-     tiene escrito el criterio para el visor: «una ecografía en 158 px no se mira».
-     1023 es el breakpoint que el visor YA usa y ya está justificado; no se inventa otro. */
-  @media (max-width: 1023px) {
-    #cine-paneles .cine-acc {
-      flex: 1 1 100% !important;
-      flex-direction: row !important;
-      flex-wrap: wrap;
-      align-items: flex-start !important;
-    }
-    #cine-paneles .cine-acc > .cine-sep {
-      width: 1px !important; height: auto !important; align-self: stretch; margin: 0 2px !important;
-    }
-  }
+  /* ⚠️ LAPIDA — LA COLUMNA DE ACCIONES YA NO EXISTE (MEDIR-1, 2026-11-13).
+     Aca vivian TRES reglas que volvian FILA la columna vertical de acciones: con dos vistas
+     (`#cine-paneles.cine-2v .cine-acc`), por ancho (`@media (max-width:1023px)`) y la variante
+     `.cine-acc-abajo`, que ya estaba MUERTA antes de esta tanda —ningun JS de este archivo le
+     pone esa clase a nada, medido—. Los botones de medir, capturar y vista son hoy UNA barra
+     horizontal arriba de la imagen (`.cine-barra`, ver `_vPanelHTML`), asi que no hay nada que
+     girar: nacen en fila en los tres escenarios.
+     ⚠️ Y NO SE PODIAN DEJAR INERTES: `flex: 1 1 100% !important` sobre un hijo de `cine-panel`
+     —que es `display:flex;flex-direction:column`— se aplica al eje principal, o sea al ALTO.
+     La barra habria crecido verticalmente hasta comerse la columna en cuanto se abriera la
+     vista B o la ventana bajara de 1023 px. Las reglas no eran redundantes: eran un defecto
+     esperando el segundo panel.
+     Lo que SI sobrevive es el tratamiento de `btn-ghost` del visor, reescrito abajo contra
+     `.cine-barra`, que es donde viven ahora esos botones. */
   /* Los filetes separan TRES grupos —medir · capturar · vista— y sin ellos «Borrar» queda al
      lado de «Guardar», que hacen cosas opuestas. En fila pasan de horizontales a verticales. */
   /* ⚠️ MÁS DISCRETOS SIN BAJAR DE 44 px. El pedido decía «botones más chicos», y medido ya
@@ -278,12 +258,13 @@
      Y la devolución NO puede ser sólo `:hover`: el visor se usa con el dedo y ahí el hover no
      existe, así que la afordancia no volvería nunca. El borde se atenúa poco —lo suficiente para
      que la columna no compita con la ecografía— y se mantiene visible sin puntero. */
-  #cine-ov .cine-acc .btn-ghost { background: transparent; }
-  #cine-ov .cine-acc .btn-ghost:hover,
-  #cine-ov .cine-acc .btn-ghost:focus-visible { background: var(--bg3); }
-  #cine-paneles.cine-2v .cine-acc > .cine-sep {
-    width: 1px !important; height: auto !important; align-self: stretch; margin: 0 2px !important;
-  }
+  #cine-ov .cine-barra .btn-ghost { background: transparent; }
+  #cine-ov .cine-barra .btn-ghost:hover,
+  #cine-ov .cine-barra .btn-ghost:focus-visible { background: var(--bg3); }
+  /* ⚠️ LAPIDA — `#cine-paneles.cine-2v .cine-acc > .cine-sep` (MEDIR-1). Ponia el filete de pie
+     cuando la columna de acciones se volvia fila. La barra unica no lleva filetes: el pedido es
+     «todos del mismo formato», y un separador vuelve a declarar los tres grupos que se
+     fundieron. */
   /* ══ MODO MÍNIMO DEL VISOR ════════════════════════════════════════════════════════════════
      Al abrir un cineloop o una imagen se ven SOLO cuatro cosas: Reproducir con su barra y su
      contador, 📸 Capturar, 📏 Medir y la ✕ de arriba. Todo lo demás —las nueve herramientas, la
@@ -324,6 +305,109 @@
   #cine-ov.cine-min #cine-sync,
   #cine-ov.cine-min #dop-cajon,
   #cine-ov.cine-min #d2-cajon { display: none !important; }
+  /* ══ MEDIR-1 — VENTANA, BARRA UNICA Y DOS COLUMNAS ════════════════════════════════════════
+     ⚠️ MAXIMIZADA OCUPA TODA LA PANTALLA, y por eso hay que anular las CUATRO acotaciones que
+     el modal trae en LINEA —`max-width`, `width`, `max-height` y el `border-radius`— mas el
+     `padding` del overlay. Un estilo en linea le gana a la hoja sin importar la especificidad,
+     asi que sin `!important` la clase aplicaria y la ventana seguiria midiendo 1180 px: es el
+     mismo defecto que este archivo ya documenta para `[hidden]` y para el modo minimo. */
+  #cine-ov.cine-max { padding: 0 !important; }
+  #cine-ov.cine-max > #cine-modal {
+    max-width: none !important; width: 100% !important;
+    max-height: 100% !important; height: 100% !important;
+    border-radius: 0 !important;
+  }
+  /* El lienzo deja de estar atado a `56vh` cuando la ventana es la pantalla: ahi el limite lo
+     pone la columna, no una fraccion del alto del navegador. */
+  #cine-ov.cine-max [id$="cine-cv"] { max-height: none !important; }
+
+  /* ── LA BARRA UNICA ──────────────────────────────────────────────────────────────────────
+     ⚠️ UN SOLO FORMATO PARA TODOS: esquinas RECTAS y el MISMO ancho, que es el pedido literal.
+     El ancho se fija con `flex:0 0 <n>px` y no con `min-width`, porque `.btn` trae su propio
+     relleno y un boton de rotulo largo creceria por encima del resto — y «todos del mismo
+     ancho» dejaria de ser cierto en cuanto cambie un rotulo.
+     Va con `!important` por lo mismo de siempre en este overlay: `_vPanelHTML` emite cada boton
+     con estilos EN LINEA. */
+  /* ⚠️ `align-items: flex-start` Y NO `stretch`, Y ESTA MEDIDO: con `stretch` la fila estira
+     TODOS los botones al alto del mas alto, asi que los dos destacados arrastraban a los otros
+     seis a sus 56 px y «mas altos» dejaba de ser cierto — medido, los ocho salian en 56. Con
+     `flex-start` cada uno conserva el suyo: 44 los normales (el piso tactil global) y 56 los
+     dos que el pedido destaca. */
+  #cine-ov .cine-barra { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
+  #cine-ov .cine-barra .btn {
+    border-radius: 0 !important;
+    flex: 0 0 118px; min-width: 0; max-width: 118px;
+    padding: 6px 4px !important; font-size: 10.5px !important;
+    white-space: normal; line-height: 1.15;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+  /* ⚠️ LOS DOS DESTACADOS SON «Guardar» y «Capturar + medicion», por pedido: mas ALTOS y con el
+     color de acento. El alto se da con `min-height` sobre el piso tactil de 44 px que la regla
+     global de este archivo ya les pone — bajarlo lo romperia. */
+  #cine-ov .cine-barra .cine-b-alto {
+    min-height: 56px !important;
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+  }
+  #cine-ov .cine-barra .cine-b-alto:hover,
+  #cine-ov .cine-barra .cine-b-alto:focus-visible { filter: brightness(1.08); }
+
+  /* ── DOS COLUMNAS: IMAGEN A LA IZQUIERDA, MEDICION A LA DERECHA ──────────────────────────
+     ⚠️ EL CORTE VA SOBRE LA VENTANA (`@media`) Y NO SOBRE EL CONTENEDOR, que es la regla fija
+     de esta casa desde la orejuela: con `flex-wrap` el punto de quiebre depende del ancho que
+     le quede a la tarjeta y entonces «en pantallas angostas» deja de ser medible.
+     La tabla se lleva su propio desplazamiento (`overflow:auto`) para que la imagen, la
+     reproduccion y la tabla entren JUNTAS sin mover la ventana — el pedido literal. */
+  #cine-ov .cine-col-der { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  /* ⚠️ EL ALTO DEL MARCO, EN UNA SOLA VARIABLE. El modal trae `max-height:94vh` en LINEA y
+     maximizado pasa a toda la pantalla: las dos acotaciones de abajo tienen que seguir a ese
+     numero, y con el 94 escrito a mano en tres lugares bastaba con que uno quedara viejo para
+     que el modal volviera a desplazarse sin que nadie supiera cual de los tres mentia. */
+  #cine-ov { --cine-h: 94vh; }
+  #cine-ov.cine-max { --cine-h: 100vh; }
+  @media (min-width: 1100px) {
+    #cine-ov .cine-fila { flex-wrap: nowrap !important; }
+    /* ⚠️ LA COLUMNA SE ACOTA Y SE LLEVA SU PROPIO DESPLAZAMIENTO, que es el punto 3 del pedido:
+       la imagen, la reproduccion y la tabla tienen que entrar JUNTAS sin mover la ventana, y la
+       tabla puede desplazarse por dentro. Sin acotarla, la columna crece con su contenido
+       —medido: 1045 px de cajon 2D con el grupo VI abierto— la fila toma el alto del hijo mas
+       alto y el MODAL pasa a desplazarse: 379 px a 1440x900 y 473 a 1280x800.
+
+       ⚠️ EL REPARTO LO HACE FLEXBOX Y NO UNA RESTA, y el primer intento fue una resta: un
+       `max-height: calc(var(--cine-h) - 150px)`. Dejaba 30 px de desplazamiento en los DOS
+       tamaños, y la cuenta de por que son 30 es el ejemplo de lo fragil que es el metodo —el
+       relleno del modal (32), el encabezado (44), su margen (8), la barra (60), el hueco (5) y
+       los 12 px de margen superior del pie de «Sincronizar», que mide CERO de alto pero
+       conserva su margen—. Seis sumandos escritos en un solo numero magico, que el dia que
+       cambie cualquiera de ellos miente sin avisar.
+       Con `flex: 1 1 auto` + `min-height: 0` en la cadena, el hueco que sobra lo calcula el
+       navegador. `min-height: 0` en cada eslabon no es decorativo: el valor inicial de un hijo
+       flex es `auto`, o sea «no me encojas por debajo de mi contenido», y sin el la columna se
+       niega a achicarse y el desplazamiento vuelve al modal.
+       El modal CONSERVA su `overflow:auto` como red: si alguna vez no entra, se desplaza, que
+       es feo pero es mejor que recortar sin salida. */
+    #cine-ov #cine-paneles { flex: 1 1 auto; min-height: 0; align-items: stretch !important; }
+    #cine-ov [id$="cine-panel"] { min-height: 0; }
+    /* ⚠️ `align-items: stretch` CON `!important`, y es el eslabon que faltaba: la fila trae
+       `align-items:flex-start` EN LINEA, asi que la columna derecha tomaba su alto NATURAL
+       —650 px— y la fila crecia con ella. Medido: con todo lo demas puesto y sin esta linea el
+       modal se desplazaba 351 px, o sea PEOR que con la resta que esto vino a reemplazar. */
+    #cine-ov .cine-fila { flex: 1 1 auto; min-height: 0; align-items: stretch !important; }
+    #cine-ov .cine-col-der {
+      flex: 0 0 310px; max-width: 310px;
+      min-height: 0; overflow: auto;
+    }
+    /* Y la columna de la imagen tampoco puede desbordar sola: `56vh` de lienzo mas el
+       reproductor y la ayuda pasaban el alto del modal por su cuenta. */
+    #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 230px) !important; }
+  }
+  @media (max-width: 1099.98px) {
+    /* Por debajo de 1100 px el panel se apila DEBAJO de la imagen —el pedido literal— y ahi el
+       desplazamiento del modal es correcto: no hay forma de que las dos cosas entren juntas. */
+    #cine-ov .cine-col-der { flex: 1 1 100%; max-width: none; }
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -141468,15 +141552,72 @@ function _vPanelHTML(p, esB) {
         '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
         (esB ? btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', 'margin-left:auto;') : '') +
       '</div>' +
-      /* ZONA 2 (lateral) + ZONA 1 (imagen) + ZONA 3 (reproductor) + ZONA 4 (acciones).
-         ⚠️ LAS DOS COLUMNAS FLANQUEAN LA IMAGEN, y antes no: la de acciones vivía DEBAJO, en una
-         fila propia junto al panel guía. Medido en el layout anterior a 1280 px: la lateral de
-         herramientas arrancaba en y=114, al lado del lienzo, y la de acciones en **y=667**, o sea
-         73 px por debajo de donde termina la imagen. Las dos columnas tienen el MISMO ancho
-         (118 px) para que la simetría sea del layout y no del ojo. */
-      '<div class="cine-fila" style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">' +
-        '<div id="' + p + 'cine-side" style="flex:0 0 118px;min-width:0;display:flex;flex-direction:column;gap:3px;"></div>' +
-        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
+      /* ══ MEDIR-1 — LA BARRA UNICA, ARRIBA DE LA IMAGEN ══════════════════════════════════
+         ⚠️ LAS DOS COLUMNAS DE BOTONES QUE FLANQUEABAN LA IMAGEN SE FUNDIERON EN UNA SOLA FILA,
+         por pedido del medico. Antes eran la lateral de herramientas (118 px, a la izquierda) y
+         la de acciones (118 px, a la derecha); hoy las herramientas son el selector progresivo
+         de la columna derecha y las acciones son esta barra.
+         ⚠️ TODOS LOS IDS SE CONSERVAN —`cine-medir`, `cine-med-recal`, `cine-med-borrar`,
+         `cine-guardar`, `cine-cap`, `cine-med-cap`, `cine-add-b`, `cine-cerrar`— porque de ellos
+         cuelgan el cableado del modal, las reglas del modo minimo y los casos del suite. Lo que
+         cambia es DONDE estan, no como se llaman.
+         ⚠️ LOS SEPARADORES SALEN: el pedido es «una sola barra, todos del mismo formato», y un
+         filete entre grupos vuelve a declarar tres grupos. La clase `cine-sep` sigue existiendo
+         en la hoja de estilos —la usa el panel de Simpson— y queda sin blanco aca, que es
+         inofensivo.
+         ⚠️ Y LA CLASE `cine-acc` NO SE CONSERVA, que fue el primer intento y era un defecto:
+         de ella cuelgan tres reglas que ponen `flex: 1 1 100% !important` con dos vistas o por
+         debajo de 1023 px, y sobre un hijo de `cine-panel` —que es una COLUMNA flex— eso se
+         aplica al ALTO. La barra habria crecido hasta comerse la columna en cuanto se abriera
+         la vista B. El tratamiento de `btn-ghost` que si habia que conservar se reescribio en
+         la hoja contra `.cine-barra`; las otras tres quedaron con lapida. */
+      '<div class="cine-barra" id="' + p + 'cine-grp-med" style="margin-bottom:2px;">' +
+        /* ⚠️ VUELVE A SER LA COMPUERTA, Y EN LOS DOS SENTIDOS. Nació como entrada, pasó a ser
+           sólo salida —y por eso nacía oculto— y desde el modo mínimo (2026-10-01) es un
+           INTERRUPTOR: con la medición apagada dice «📏 Medir» y la enciende; con la medición
+           encendida dice «✕ Salir de medición» y vuelve al modo mínimo sin perder lo medido, la
+           calibración ni la herramienta elegida.
+           Nace VISIBLE porque es uno de los cuatro controles del modo mínimo, y nace con el
+           rótulo de «apagado» porque el visor SIEMPRE abre en mínimo. El rótulo, el
+           `aria-pressed` y la clase los pone `_vModoSync`, que es el único que los escribe. */
+        btn('cine-medir', 'btn-ghost', '📏 Medir', '', 'Muestra las herramientas de medición y calibración.') +
+        btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
+        btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
+        /* ⚠️ LOS DOS CON `cine-b-alto` SON LOS QUE EL PEDIDO DESTACA: mas altos y con el color de
+           acento. La clase sale de la hoja de estilos y no de un estilo en linea para que el
+           alto y el color vivan en UN lugar — con dos botones escribiendolo cada uno, el dia que
+           se agregue un tercero destacado saldria distinto. */
+        btn('cine-guardar', 'btn-primary cine-b-alto', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
+        btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
+        btn('cine-med-cap', 'btn-primary cine-b-alto', '📸 Capturar + medición', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
+        /* ⚠️ «➕ Vista» y «Cerrar» SE EMITEN SOLO EN LA VISTA A y conservan sus ids pelados —sin
+           prefijo—, igual que antes: son controles del MODAL y no de la vista, y duplicarlos
+           dejaria el documento con ids repetidos, que es el defecto que la barra de la vista B
+           ya pago una vez. La B tiene su «✕ Cerrar vista» en el encabezado, que es otra cosa. */
+        (esB ? '' :
+          '<span class="cine-grp-vista" style="display:contents;">' +
+            '<button type="button" class="btn btn-ghost" id="cine-add-b" ' +
+              'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
+            '<button type="button" class="btn btn-ghost" id="cine-cerrar" ' +
+              'title="Cierra el visor.">Cerrar</button>' +
+          '</span>') +
+        /* ⚠️ EL ROTULO VA ARRIBA Y EL CAMPO DEBAJO, dentro de una celda del ancho de un boton:
+           con la etiqueta y el campo en LINEA, su ancho minimo fija el de toda la barra. Es la
+           misma medicion que la columna de acciones ya habia pagado. */
+        '<span class="cine-etiq" style="display:flex;flex-direction:column;gap:2px;flex:0 0 150px;min-width:0;justify-content:center;">' +
+          '<label for="' + p + 'cine-cap-etiq" style="font-size:9.5px;color:var(--text2);">Etiqueta:</label>' +
+          '<input type="text" id="' + p + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
+            'placeholder="TAPSE, DDVI…" ' +
+            'title="Se dibuja en una franja blanca debajo de la imagen capturada." ' +
+            'style="font-size:10.5px;padding:3px 6px;width:100%;min-width:0;border-radius:5px;' +
+            'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
+        '</span>' +
+      '</div>' +
+      /* ZONA 1 (imagen) + ZONA 3 (reproductor) a la IZQUIERDA; el panel de medicion a la
+         DERECHA. El corte lo pone la media query de `cine-col-der` sobre la VENTANA: a 1100 px o
+         mas van lado a lado, y por debajo el panel se apila debajo de la imagen. */
+      '<div class="cine-fila" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;">' +
+        '<div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
           /* ⚠️ LOS DOS CANVAS VIVEN DENTRO DE `cine-recorte`, Y AHÍ ESTÁ TODO EL RECORTE.
              El envoltorio lleva `overflow:hidden` y el canvas se escala y se corre con
              PORCENTAJES (ver `_cineRecorteAplicar`): el margen negro queda fuera de la caja y no
@@ -141505,77 +141646,26 @@ function _vPanelHTML(p, esB) {
           '</div>' +
           '<div id="' + p + 'cine-ayuda" style="font-size:9.5px;color:var(--text2);line-height:1.45;"></div>' +
         '</div>' +
-        /* ZONA 4 — COLUMNA DERECHA, ahora HERMANA de la imagen y no debajo de ella en TRES grupos separados por filete: medir · capturar · vista.
-           Los separadores no son adorno: sin ellos los ocho botones se leen como una sola
-           lista y «Borrar» queda al lado de «Guardar», que hacen cosas opuestas.
-
-           ⚠️ «➕ Vista» y «Cerrar» SE MUDARON ACÁ desde el pie del modal, conservando sus ids
-           —`cine-add-b` y `cine-cerrar`—, así que el cableado del modal los sigue encontrando.
-           Se emiten SÓLO en la vista A: son controles del modal, no de la vista, y duplicarlos
-           en la B daría dos botones «Cerrar» cerrando lo mismo. La B tiene su «✕ Cerrar vista»
-           en el encabezado, que es otra cosa. */
-        '<div id="' + p + 'cine-acciones" class="cine-acc" style="flex:0 0 118px;min-width:0;display:flex;' +
-          'flex-direction:column;gap:4px;align-items:stretch;">' +
-          '<div id="' + p + 'cine-grp-med" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
-            /* ⚠️ VUELVE A SER LA COMPUERTA, Y AHORA EN LOS DOS SENTIDOS. Nació como entrada, pasó
-               a ser sólo salida —y por eso nacía oculto— y desde el modo mínimo (2026-10-01) es
-               un INTERRUPTOR: con la medición apagada dice «📏 Medir» y la enciende; con la
-               medición encendida dice «✕ Salir de medición» y vuelve al modo mínimo sin perder
-               lo medido, la calibración ni la herramienta elegida.
-               Nace VISIBLE porque es uno de los cuatro controles del modo mínimo, y nace con el
-               rótulo de «apagado» porque el visor SIEMPRE abre en mínimo. El rótulo, el
-               `aria-pressed` y la clase los pone `_vModoSync`, que es el único que los escribe:
-               escribirlos desde dos lados ya dejó a `_medFijosSync` peleando con `medToggle`.
-               `white-space:normal`: `.btn` trae `nowrap`, y el min-content del rótulo largo son
-               ~125 px contra los 118 de la columna — el único de los nueve que desbordaba. El
-               piso táctil de 44 px lo sostiene igual con dos renglones. */
-            btn('cine-medir', 'btn-ghost', '📏 Medir', 'white-space:normal;line-height:1.15;', 'Muestra las herramientas de medición y calibración.') +
-            btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
-            btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
-          '</div>' +
-          '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
-          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
-            btn('cine-guardar', 'btn-ghost', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
-            btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
-            btn('cine-med-cap', 'btn-primary', '📸 Capturar+Med', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
-          '</div>' +
-          /* ⚠️ EL RÓTULO VA ARRIBA Y EL CAMPO A `width:100%`, y no es cosmético: con la etiqueta
-             y el campo en una FILA, su ancho mínimo —el rótulo más los 150 px que el input tenía
-             cableados— es lo que fija el ancho mínimo de toda la columna. Medido: con eso la
-             columna salía en 199 px contra los 118 de la lateral izquierda, así que la simetría
-             que este cambio vino a conseguir se rompía por un solo control. */
-          /* `cine-etiq` es el gancho del modo mínimo. Va como CLASE y no como id porque el
-             envoltorio se emite una vez por vista y dos ids iguales dejarían al segundo muerto —
-             el defecto que la barra de la vista B ya pagó. */
-          '<div class="cine-etiq" style="display:flex;flex-direction:column;gap:2px;">' +
-            '<label for="' + p + 'cine-cap-etiq" style="font-size:10.5px;color:var(--text2);">Etiqueta:</label>' +
-            '<input type="text" id="' + p + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
-              'placeholder="TAPSE, DDVI…" ' +
-              'title="Se dibuja en una franja blanca debajo de la imagen capturada." ' +
-              'style="font-size:10.5px;padding:3px 6px;width:100%;min-width:0;border-radius:5px;' +
-              'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
-          '</div>' +
-          (esB ? '' :
-            '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
-            /* `cine-grp-vista` es el gancho del modo mínimo: «➕ Vista» y «Cerrar» quedan dentro
-               del modo de medición (decisión de Maicol, 2026-10-01). La ✕ del encabezado es la
-               que SIEMPRE está, así que esconder este «Cerrar» no deja a nadie atrapado. */
-            '<div class="cine-grp-vista" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
-              '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:3px 9px;font-size:10.5px;" ' +
-                'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
-              '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:3px 9px;font-size:10.5px;" ' +
-                'title="Cierra el visor.">Cerrar</button>' +
-            '</div>') +
+        /* ══ MEDIR-1 — LA COLUMNA DERECHA: EL PANEL DE MEDICION ═══════════════════════════
+           Aca viven el selector progresivo (`cine-side`) y el panel guia (`cine-med-barra`), y
+           en la vista A ademas la ranura `cine-der-slot`, a la que `_cineAbrir` muda los cajones
+           2D y Doppler y la tabla de Simpson. Los cajones son UNICOS del overlay —no hay uno por
+           vista— asi que viven en la A y no se duplican.
+           ⚠️ `cine-side` CONSERVA SU ID aunque ya no sea una «barra lateral»: de el cuelgan la
+           regla del modo minimo, `_medEl('cine-side')` y los casos. Lo que cambio es de que lado
+           de la imagen esta y que pinta adentro.
+           ⚠️ EL PANEL GUIA DEJA DE IR A ANCHO COMPLETO DEBAJO: el pedido quiere la imagen, la
+           reproduccion y la tabla JUNTAS sin mover la ventana, y una franja a todo el ancho
+           debajo de la imagen es justo lo que obligaba a bajar. Su tabla de Simpson entra porque
+           la columna son 310 px y la tabla se lleva su propio desplazamiento. */
+        '<div class="cine-col-der">' +
+          '<div id="' + p + 'cine-side" style="display:flex;flex-direction:column;gap:4px;min-width:0;"></div>' +
+          '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
+            'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
+            'background:var(--bg2);"></div>' +
+          (esB ? '' : '<div id="cine-der-slot" style="display:flex;flex-direction:column;gap:6px;min-width:0;"></div>') +
         '</div>' +
       '</div>' +
-      /* El panel GUÍA va DEBAJO de las dos columnas y a ancho completo. Es una tabla de datos
-         —el resultado de Simpson con su VFD/VFS/FEVI, la tabla por ventana, el selector de
-         ventana apical— y en una columna de 118 px no entra: se parte en renglones de dos
-         palabras. Pierde el `flex:1;min-width:0` porque ya no es hijo de una fila; `_medBarra`
-         le pone `display:''`, que para un div suelto es `block`, o sea el ancho del panel. */
-      '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
-        'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
-        'background:var(--bg2);"></div>' +
     '</div>';
 }
 
@@ -141752,6 +141842,59 @@ function _vToggleSync() {
 window._vToggleSync = _vToggleSync;
 
 
+/* ── VENTANA DEL VISOR: MAXIMIZAR / RESTAURAR (MEDIR-1) ───────────────────────────────────
+   ⚠️ EL ESTADO ES LA CLASE `cine-max` DEL OVERLAY Y NO UNA VARIABLE. Es la misma regla con la
+   que `_vModoSync` deriva `cine-min` de `medOn`: con un booleano paralelo, el dia que alguien
+   escriba la clase sin tocar el booleano —o al reves— el rotulo diria una cosa y la ventana
+   mostraria otra, y no habria forma de saber cual de los dos miente. Aca el unico que escribe
+   el rotulo, el titulo y el `aria-pressed` es `cineMaxSync`, y lo hace leyendo la clase.
+
+   ⚠️ EL ESTADO SOBREVIVE AL CIERRE, a proposito y por la misma razon que lo medido: una ventana
+   que el medico agranda y vuelve chica sola en la siguiente imagen es una ventana que hay que
+   volver a agrandar en cada cineloop. Es lo contrario que `cine-min`, que SIEMPRE vuelve: aquel
+   es el modo de trabajo —y abrir midiendo taparia la imagen—, este es el tamaño del marco.
+   Queda declarado porque son dos criterios opuestos sobre el mismo overlay. */
+function cineMaxActivo() {
+  const ov = document.getElementById('cine-ov');
+  return !!(ov && ov.classList.contains('cine-max'));
+}
+function cineMaxSync() {
+  const ov = document.getElementById('cine-ov');
+  if (!ov) return;
+  const b = document.getElementById('cine-maxi');
+  if (!b) return;
+  const on = cineMaxActivo();
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.title = on ? 'Restaurar el tamaño del visor' : 'Maximizar el visor';
+  const ico = document.getElementById('cine-maxi-ico');
+  /* `textContent` y no `innerHTML`: es un glifo, y esta casa no abre una ruta de marcado para
+     escribir un caracter. */
+  if (ico) ico.textContent = on ? '⤡' : '⛶';
+}
+function cineMaxToggle() {
+  const ov = document.getElementById('cine-ov');
+  if (!ov) return;
+  ov.classList.toggle('cine-max');
+  cineMaxSync();
+  /* El canvas se escala contra el tamaño de su caja, asi que al cambiar el marco hay que
+     repintar: sin esto la imagen queda del tamaño viejo dentro del marco nuevo, y las reglas
+     de medicion —que se posicionan contra el canvas— quedan corridas sobre la imagen.
+     ⚠️ `_cineRecorteAplicar` RECIBE SU VISTA POR PARAMETRO y no la resuelve contra `_V`: lee
+     `V.pfx` en su primera linea. Escrito como `_vCon(_vistaA, _cineRecorteAplicar)` —que fue el
+     primer intento— le llega `undefined`, el `TypeError` cae en este `catch` y el recorte NO se
+     reaplica, en silencio. `_medPintar` si resuelve contra `_V`, asi que ese va envuelto.
+     Las dos vistas, porque maximizar cambia el ancho de las dos. */
+  [_vistaA, _vistaB].forEach(V => {
+    if (!V) return;
+    try { if (typeof _cineRecorteAplicar === 'function') _cineRecorteAplicar(V); }
+    catch (e) { console.error('maxi/recorte', e); }
+    try { if (typeof _medPintar === 'function') _vCon(V, _medPintar); }
+    catch (e) { console.error('maxi/pintar', e); }
+  });
+}
+window.cineMaxToggle = cineMaxToggle;
+window.cineMaxActivo = cineMaxActivo;
+
 function _cineAbrir(loops) {
   _V = _vistaA;
   _cineDetener();
@@ -141765,8 +141908,11 @@ function _cineAbrir(loops) {
     /* Chrome estático por innerHTML; TODO lo que viene del archivo se escribe después con
        textContent. Nada del DICOM se interpola como HTML. */
     ov.innerHTML =
-      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1180px;width:100%;max-height:94vh;overflow:auto;padding:16px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
+      /* ⚠️ EL MODAL LLEVA `id` DESDE MEDIR-1, y no es cosmetico: «maximizar» tiene que poder
+         escribirle el ancho, y hasta aca el unico modo de alcanzarlo era `#cine-ov > div`, un
+         selector por POSICION que se rompe el dia que alguien agregue un hermano antes. */
+      '<div id="cine-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1180px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;flex-direction:column;">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;flex:0 0 auto;">' +
           '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
           /* Alternador de vista para pantallas angostas. Nace sin `display` en línea: quién lo
              muestra es la media query, porque depende del ANCHO y no del estado. */
@@ -141784,8 +141930,26 @@ function _cineAbrir(loops) {
              así que en escritorio esta ✕ es la única que puede empujarse al borde derecho. En
              angosto el primer `auto` se come el hueco y esta ✕ queda pegada al alternador, que es
              lo que corresponde — las dos al final de la fila. */
-          '<button type="button" id="cine-cerrar-todo" title="Cerrar el visor — lo medido se conserva" ' +
+          /* ⚠️ Y DESDE MEDIR-1 EL `margin-left:auto` LO LLEVA EL BOTON DE MAXIMIZAR, que es el
+             que ahora abre el par de arriba a la derecha. Dejarselo tambien a esta ✕ pondria DOS
+             margenes automaticos seguidos: el hueco se reparte entre ellos y los dos botones de
+             ventana quedan separados justo en el borde donde el pedido los quiere juntos.
+
+             ⚠️ MAXIMIZAR / RESTAURAR — pedido del medico (MEDIR-1). NO hay «Minimizar»: la orden
+             lo excluye a proposito y lo que podria significar quedo como pregunta en el reporte.
+             El estado vive en la CLASE `cine-max` del overlay y no en una variable: `_vModoSync`
+             ya deriva `cine-min` del mismo modo, y un booleano paralelo puede quedar en desacuerdo
+             con lo que la pantalla muestra — la leccion que este archivo ya documenta para
+             `medOn`. El rotulo, el titulo y el `aria-pressed` los escribe `cineMaxSync`, que es
+             el unico que los toca. */
+          '<button type="button" id="cine-maxi" aria-pressed="false" title="Maximizar el visor" ' +
             'style="margin-left:auto;width:44px;height:44px;padding:0;background:none;border:none;' +
+            'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
+            '<span id="cine-maxi-ico" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
+            'border:1px solid var(--border);color:var(--text);font-size:13px;line-height:24px;' +
+            'text-align:center;">⛶</span></button>' +
+          '<button type="button" id="cine-cerrar-todo" title="Cerrar el visor — lo medido se conserva" ' +
+            'style="width:44px;height:44px;padding:0;background:none;border:none;' +
             'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
             '<span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
             'border:1px solid var(--border);color:var(--text);font-size:14px;line-height:24px;' +
@@ -141850,11 +142014,40 @@ function _cineAbrir(loops) {
     document.body.appendChild(ov);
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
     ov.querySelector('#cine-cerrar-todo').onclick = cineCerrar;
+    ov.querySelector('#cine-maxi').onclick   = cineMaxToggle;
     ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
     ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
     _vCablear(_vistaA);
+    /* ══ MEDIR-1 — LOS CUATRO PANELES SE MUDAN A LA COLUMNA DERECHA ═══════════════════════
+       `cine-biplano`, `cine-simp-uni`, `dop-cajon` y `d2-cajon` nacen en el marcado de arriba
+       —debajo de las vistas y a todo el ancho— y se mudan aca adentro, a la ranura de la
+       columna derecha de la vista A. El pedido quiere la imagen, la reproduccion y la tabla
+       JUNTAS sin mover la ventana, y a todo el ancho debajo de la imagen es justo lo que
+       obligaba a bajar.
+       ⚠️ SE MUEVEN Y NO SE VUELVEN A EMITIR, a proposito: son nodos UNICOS del overlay —no hay
+       uno por vista— y su marcado tiene oyentes delegados ya registrados (`_dopObservar`,
+       `_d2Observar`). Reemitirlos dentro de `_vPanelHTML` los duplicaria en cuanto se abra la
+       vista B, y entonces `getElementById` devolveria el primero y el segundo quedaria
+       dibujado sin responder: el defecto que la barra de la vista B ya pago una vez.
+       ⚠️ Y VIVEN EN LA VISTA A y no en la que este midiendo: son del par de vistas, no de una.
+       `cine-der-slot` solo se emite con `esB` en falso, asi que la ranura es unica.
+       Falla ABIERTO: si la ranura no estuviera, los cuatro se quedan donde nacieron —debajo,
+       como hasta MEDIR-1— en vez de desaparecer. */
+    try {
+      const slot = ov.querySelector('#cine-der-slot');
+      if (slot) {
+        ['cine-biplano', 'cine-simp-uni', 'cine-dop-slot', 'd2-cajon'].forEach(id => {
+          const n = ov.querySelector('#' + id);
+          if (n) slot.appendChild(n);
+        });
+      }
+    } catch (e) {}
   }
+  /* El icono y el `aria-pressed` del boton de ventana se reponen en cada apertura: el estado
+     maximizado sobrevive al cierre (ver `cineMaxToggle`), asi que al reabrir el boton tiene que
+     decir «Restaurar» y no «Maximizar». */
+  try { cineMaxSync(); } catch (e) {}
   /* ⚠️ LAS SESIONES SOBREVIVEN AL CIERRE, ASÍ QUE ACÁ HAY QUE MIRAR DE QUÉ ESTUDIO SON.
      Hasta que el ✕ conservó lo medido, la fuga era imposible por accidente: el observador del
      overlay llamaba a `medApagar` y se llevaba puesto todo. Desde que se conserva, un strain
