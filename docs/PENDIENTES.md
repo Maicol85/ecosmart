@@ -16714,3 +16714,55 @@ los dos cajones, cinco celdas en todas las filas, el valor y la unidad en celdas
 botones y no va en cursiva). Cae **0/1 contra `ff8c585`** por once condiciones. **Tres mutaciones
 dirigidas, las tres muertas**: las calculadas con botones, la casilla sin `disabled` y «Borrar»
 vaciando el campo vecino.
+
+### M2-c — BLOQUE C de MEDIR-2: los nombres del Doppler pulmonar, y donde se llaman distinto
+
+**C1 — CONFIRMADO POR LECTURA ANTES DE TOCAR NADA: «VP» media lo mismo que «Vmax EP».** Las dos
+son velocidad pico de la valvula pulmonar en **m/s**, las dos con la herramienta `vel`
+(`_DOP_HERR`), las dos armables y vecinas en la misma tabla. Y **a `pul.vp` no la leia nadie**:
+ni un campo del informe, ni el Excel, ni el papel, ni `_dopDerivados`. Es lo que M1-b habia
+dejado como pregunta abierta.
+
+**C2 — FUNDIDAS EN UNA: «Vmax pulmonar» (m/s).** La clave que se conserva es **`pul.vmaxEp`**,
+que es la que **esta conectada a algo**: de ella sale «Grad Max EP». `pul.vp` se retira entero
+—estado, herramienta y rotulo— con su lapida en los dos lugares.
+⚠️ **SU GRADIENTE SE RENOMBRA A «Grad Max pulmonar», y es consecuencia y no un pedido**: con
+«Grad Max EP» debajo de «Vmax pulmonar» la tabla citaria una sigla que ya no existe en ninguna
+de sus filas.
+⚠️ **NO SE INVENTO NINGUNA BANDA, y esto es lo que el pedido manda**: `pul.vmaxEp` **no tenia**
+banda de plausibilidad y sigue sin tenerla. **Queda una pregunta para el medico** (ver abajo).
+
+**C3 — «Vmax IP» se abre en DOS, con los rotulos de la app palabra por palabra**: «Vmax
+proto-diast. IP» (`pul.vmaxIp`, la que ya estaba, homologa de **`ip_vmax`**) y «Vmax
+telediastólica IP» (`pul.vmaxIpTd`, **nueva**, homologa de **`ip_vtd`**). Los dos rotulos se leen
+del registro `_DOP_ROT` y el caso los compara contra las **etiquetas del formulario**, no contra
+un texto escrito en la prueba.
+⚠️ **TAMPOCO SE INVENTO BANDA**: medido, **ni `ip_vmax` ni `ip_vtd` tienen rango** en `DCM_RANGO`
+ni en `CHM_RANGO`, asi que el homologo no tiene nada que prestar y las dos filas quedan sin
+banda. Las dos que SI tenian —`pul.vtiPul` y `pul.diamTsvd`— la conservan, y el caso lo mide como
+control positivo.
+
+**C4 — DONDE SE LLAMAN DISTINTO EN OTRAS PANTALLAS (solo informado, nada tocado):**
+- **Velocidad pico pulmonar anterograda** — el dueño es **`vp_vmax`**, en Doppler Pulmonar, con
+  la etiqueta **«Vmax pulmonar (m/s) — Estenosis»**; su **espejo** en la tarjeta de Valvulas es
+  **`ep_vmax`**, rotulado **«Velocidad máxima pulmonar (m/s)»** (los sincroniza `vpVmaxSync` y el
+  par esta declarado en `VP_VMAX_PARES`); en el **PDF** sale como **«V. máx VP»**; y la cabecera
+  del **importador de Excel** es **«PV Vmax P»**, con etiqueta interna «Vmax pulmonar».
+  O sea **cuatro nombres para la misma magnitud**, sin contar el del visor.
+- **Vmax proto-diastolica de la IP** — `ip_vmax`, «Vmax proto-diast. IP (m/s)», con la sigla
+  corta **«Vmax-PD-IP»** al lado del rotulo; su derivado sale en el PDF como **«PAPm (IP)»**.
+- **Vmax telediastolica de la IP** — `ip_vtd`, «Vmax telediastólica IP (m/s)»; su derivado en el
+  PDF es **«PAPd (IP)»**.
+
+**PREGUNTA PARA EL MEDICO (dos):**
+1. **¿Le presto a «Vmax pulmonar» del visor la banda de `vp_vmax`, que es `[0,2 – 8]` m/s?** Es
+   la MISMA medicion y es la regla de la casa —prestar solo donde la pregunta es la misma—, pero
+   hoy esa fila no tiene banda y agregarsela **cambia lo que la app acepta**, asi que no se hizo
+   sin orden. Sin banda, un «25» tipeado por «2,5» entra sin una sola señal.
+2. **¿Y a las dos filas de la IP?** Ahi **no hay de donde prestar**: `ip_vmax` e `ip_vtd` no
+   tienen rango en ninguna de las dos tablas de la app, asi que habria que **elegir un corte
+   nuevo**, que es contenido clinico y lo decide el.
+
+**Cobertura: TC-883**, que cae **0/1 contra `ff8c585` por DOCE condiciones**. **Tres mutaciones
+dirigidas, las tres muertas**: el rotulo viejo de vuelta, una banda prestada a la telediastolica
+y los dos rotulos de la IP dejando de ser los de la app.

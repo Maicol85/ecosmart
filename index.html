@@ -149527,7 +149527,16 @@ function _dopNuevo() {
        duplicado —el pedido que lo creó prohibía tocar el cajón 2D— y el costo no era teórico: el
        Diam TSVD es una distancia sobre 2D, así que el médico lo mide allá, que es el único de los
        dos cajones que ofrece medirlo, y el volumen eyectivo no aparecía nunca. */
-    pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null, diamTsvd:null, vtiPul:null },
+    /* ⚠️ MEDIR-2 — `vp` SALIO Y EN SU LUGAR ENTRO `vmaxIpTd`. La fila «VP» media LO MISMO que
+       «Vmax EP» —las dos, velocidad pico de la valvula pulmonar en m/s, las dos con la
+       herramienta `vel`— y no la leia NADIE: ni un campo del informe, ni el Excel, ni el papel,
+       ni un derivado. Era la pregunta que M1-b dejo abierta y que el medico resolvio: las dos se
+       funden en una sola fila, «Vmax pulmonar», y la que se conserva es `vmaxEp`, que es la que
+       esta conectada a algo (de ella sale el gradiente maximo).
+       `vmaxIpTd` es la velocidad TELEDIASTOLICA de la insuficiencia pulmonar, el homologo del
+       campo `ip_vtd` del formulario; la que ya estaba (`vmaxIp`) es la PROTO-diastolica, o sea
+       `ip_vmax`. Hasta hoy la tabla ofrecia una sola «Vmax IP» sin decir cual de las dos. */
+    pul: { vmaxIp:null, vmaxIpTd:null, vmaxEp:null, tap:null, diamTsvd:null, vtiPul:null },
     /* `null` = ninguna válvula elegida, que es el estado INICIAL y el que dibuja sólo el
        selector. Antes era `'gen'` y pintaba las cinco filas genéricas de entrada. */
     modo: null,         // null | 'ao' | 'mit' | 'tri' | 'pul'
@@ -150015,7 +150024,9 @@ const _DOP_HERR = {
      sobre el mismo trazo pulmonar, y el pedido las nombraba así. Cruzarlas daría un número con
      unidades correctas y sin significado — que es el modo de falla que el propio VTI ya pagó
      al aceptar un modo M. */
-  'pul.tap':'tiempo', 'pul.vp':'vel', 'pul.vmaxIp':'vel', 'pul.vmaxEp':'vel',
+  /* ⚠️ LAPIDA — `pul.vp` (MEDIR-2). Ver la nota de `_dopNuevo`: media lo mismo que `pul.vmaxEp`
+     y no la leia nadie. */
+  'pul.tap':'tiempo', 'pul.vmaxIp':'vel', 'pul.vmaxIpTd':'vel', 'pul.vmaxEp':'vel',
   /* El VTI pulmonar se mide con la herramienta VTI, igual que los dos aórticos. El diámetro del
      TSVD NO entra acá: es una DISTANCIA sobre la imagen 2D y esa herramienta no alimenta este
      cajón — se escribe con el ✏️, como ya hace `ao.diam`. */
@@ -150137,7 +150148,11 @@ const _DOP_ROT = {
   'mit.ePrimaLat':"e' lateral", 'mit.vmaxIm':'Vmax IM', 'mit.vtiVm':'VTI VM',
   'mit.vtiIm':'VTI IM', 'mit.gradMedioVm':'Grad Medio VM', 'mit.pht':'THP VM',
   'tri.vmaxIt':'Vmax IT', 'tri.vmaxEt':'Vmax ET',
-  'pul.vmaxIp':'Vmax IP', 'pul.vmaxEp':'Vmax EP', 'pul.tap':'TAP', 'pul.vp':'VP',
+  /* Los dos rotulos de la insuficiencia pulmonar son LOS DE LA APP, palabra por palabra: los
+     mismos que llevan `ip_vmax` e `ip_vtd` en el formulario. Dos nombres para la misma medicion
+     es como el medico termina cargando la proto en el campo de la tele. */
+  'pul.vmaxIp':'Vmax proto-diast. IP', 'pul.vmaxIpTd':'Vmax telediastólica IP',
+  'pul.vmaxEp':'Vmax pulmonar', 'pul.tap':'TAP',
   'pul.diamTsvd':'Diam TSVD', 'pul.vtiPul':'VTI Pulmonar (TSVD)'
 };
 /* ⚠️ CADA DESCARGO DECLARA QUÉ FILA LO DISPARA (`si`), y eso NO es organización: van QUEMADOS en
@@ -150352,12 +150367,17 @@ function _dopFilas(modo) {
     if (D.gradEt != null) R('Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false, ['tri.vmaxEt']);
   } else if (md === 'pul') {
     const P = E.pul;
-    L('Vmax IP',    n(P.vmaxIp, 2),       'm/s',  'pul.vmaxIp', true);
+    /* ⚠️ LOS ROTULOS SALEN DE `_DOP_ROT` Y NO SE ESCRIBEN ACA (MEDIR-2): con el rotulo tipeado
+       en la fila y otro en el registro, la tabla y el cuadro de «corregir a mano» nombrarian
+       distinto el mismo campo. Es el mismo dueno unico que el selector de estructura ya usa. */
+    L(_DOP_ROT['pul.vmaxIp'],   n(P.vmaxIp, 2),   'm/s', 'pul.vmaxIp',   true);
     if (D.gradIp != null) L('Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']);
-    L('Vmax EP',    n(P.vmaxEp, 2),       'm/s',  'pul.vmaxEp', true);
-    if (D.gradEp != null) L('Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']);
+    L(_DOP_ROT['pul.vmaxIpTd'], n(P.vmaxIpTd, 2), 'm/s', 'pul.vmaxIpTd', true);
+    L(_DOP_ROT['pul.vmaxEp'],   n(P.vmaxEp, 2),   'm/s', 'pul.vmaxEp',   true);
+    /* El gradiente sigue al nombre de su velocidad: con «Grad Max EP» debajo de «Vmax pulmonar»
+       la tabla citaria una sigla que ya no existe en ninguna de sus filas. */
+    if (D.gradEp != null) L('Grad Máx pulmonar', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']);
     L('TAP',        n(P.tap, 0),          'ms',   'pul.tap',   true);
-    L('VP',         n(P.vp, 2),           'm/s',  'pul.vp',    true);
     R('Diam TSVD',  n(P.diamTsvd, 1),     'mm',   'pul.diamTsvd', false);
     /* ⚠️ EL RÓTULO NOMBRA EL SITIO, NO SÓLO LA VÁLVULA. El pedido lo llamó «VTI Pulmonar», pero
        la fórmula de abajo y la banda que presta (`vti_tsvd`, la misma de `ao.vtiTsvi`) exigen el

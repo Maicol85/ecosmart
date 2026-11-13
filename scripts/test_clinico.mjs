@@ -141164,6 +141164,109 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
   })();
 `);
 
+caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades como la app -- «VP» se fundio con «Vmax EP» en una sola «Vmax pulmonar» conservando la clave conectada, y «Vmax IP» se abrio en proto-diastolica y telediastolica--, sin inventar bandas', `
+  return (async () => {
+    const R = { err: '' };
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(600);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(400);
+      medHerramienta('vel'); dopModo('pul');
+      const P = _dopEstado().pul;
+      P.vmaxIp = 2.1; P.vmaxIpTd = 1.4; P.vmaxEp = 2.5;
+      _dopRender();
+      await esperar(300);
+      const t = document.querySelector('#dop-cajon table.med-tabla');
+      const filas = t ? [...t.querySelectorAll('tbody tr')].map(tr => {
+        const td = [...tr.children];
+        return { med:(td[0].textContent||'').trim(), val:(td[1].textContent||'').trim(),
+                 uni:(td[2].textContent||'').trim() }; }) : [];
+      R.hay = filas.length > 0;
+      R.rotulos = filas.map(f => f.med).join(' / ');
+      const de = r => filas.filter(f => f.med.indexOf(r) === 0)[0] || null;
+
+      /* -- (A) LA FUSION: una sola «Vmax pulmonar» y NINGUNA «VP» ni «Vmax EP» -- */
+      R.a_unaVmaxPulm = filas.filter(f => f.med.indexOf('Vmax pulmonar') === 0).length === 1;
+      R.a_sinVP = filas.filter(f => f.med === 'VP' || f.med.indexOf('VP ') === 0).length === 0;
+      R.a_sinVmaxEP = filas.filter(f => f.med.indexOf('Vmax EP') === 0).length === 0;
+      const vp = de('Vmax pulmonar');
+      R.a_val = vp ? vp.val : ''; R.a_uni = vp ? vp.uni : '';
+      /* LA CLAVE QUE SOBREVIVE ES LA CONECTADA: la que alimenta el gradiente maximo. */
+      R.a_clave = !!document.querySelector('[data-dop-armar="pul.vmaxEp"]');
+      R.a_claveVieja = !!document.querySelector('[data-dop-armar="pul.vp"]');
+      R.a_gradiente = !!de('Grad Máx pulmonar');
+      /* el estado ya no tiene el campo muerto */
+      R.a_sinEstado = !Object.prototype.hasOwnProperty.call(_dopNuevo().pul, 'vp');
+      R.a_sinHerr = (typeof _DOP_HERR !== 'undefined') && !_DOP_HERR['pul.vp'];
+
+      /* -- (B) LA INSUFICIENCIA PULMONAR, EN DOS FILAS CON LOS ROTULOS DE LA APP -- */
+      const pd = de('Vmax proto-diast. IP'), td2 = de('Vmax telediastólica IP');
+      R.b_proto = !!pd; R.b_tele = !!td2;
+      R.b_sinVmaxIpPelada = filas.filter(f => f.med === 'Vmax IP').length === 0;
+      R.b_valores = (pd ? pd.val : '') + '/' + (td2 ? td2.val : '');
+      R.b_unidades = (pd ? pd.uni : '') + '/' + (td2 ? td2.uni : '');
+      R.b_dosUnidades = !!pd && !!td2 && pd.uni === 'm/s' && td2.uni === 'm/s';
+      R.b_armables = !!document.querySelector('[data-dop-armar="pul.vmaxIp"]') &&
+                     !!document.querySelector('[data-dop-armar="pul.vmaxIpTd"]');
+      /* LOS ROTULOS SON LOS DE LA APP, palabra por palabra: salen de las etiquetas de ip_vmax e
+         ip_vtd del formulario. Se leen del documento y no se escriben aca. */
+      const lblDe = id => { const e = document.getElementById(id); if (!e) return '';
+        const fg = e.closest('.fg'); const l = fg ? fg.querySelector('label') : null;
+        if (!l) return '';
+        const c = l.cloneNode(true); [...c.querySelectorAll('span')].forEach(x => x.remove());
+        return (c.textContent||'').replace(' (m/s)', '').trim(); };
+      R.b_lblProto = lblDe('ip_vmax'); R.b_lblTele = lblDe('ip_vtd');
+      R.b_mismosRotulos = !!pd && !!td2 && R.b_lblProto !== '' && R.b_lblTele !== '' &&
+                          pd.med.indexOf(R.b_lblProto) === 0 && td2.med.indexOf(R.b_lblTele) === 0;
+      /* Y la herramienta de las dos es la MISMA que la de la velocidad que ya estaba. */
+      R.b_herr = _DOP_HERR['pul.vmaxIp'] + '/' + _DOP_HERR['pul.vmaxIpTd'];
+      R.b_mismaHerr = _DOP_HERR['pul.vmaxIpTd'] === _DOP_HERR['pul.vmaxIp'];
+
+      /* -- (C) NO SE INVENTO NINGUNA BANDA -- */
+      R.c_bandas = ['pul.vmaxEp','pul.vmaxIp','pul.vmaxIpTd'].map(k => String(_dopBanda(k))).join('/');
+      R.c_sinBandas = ['pul.vmaxEp','pul.vmaxIp','pul.vmaxIpTd'].every(k => _dopBanda(k) == null);
+      /* CONTROL POSITIVO: las dos que SI tienen banda la conservan, o sea que el lector funciona. */
+      R.c_control = JSON.stringify(_dopBanda('pul.vtiPul')) + '/' + JSON.stringify(_dopBanda('pul.diamTsvd'));
+      R.c_conservaLasQueHabia = _dopBanda('pul.vtiPul') != null && _dopBanda('pul.diamTsvd') != null;
+
+      /* -- (D) EL CAMPO NUEVO SE BORRA CON LAS TRES PUERTAS DEL CAJON -- */
+      _dopLimpiar();
+      await esperar(200);
+      R.d_limpio = _dopEstado().pul.vmaxIpTd == null;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['DENOMINADOR: la tabla pulmonar se pinto',          R.hay === true, R.rotulos],
+      ['(A) UNA sola «Vmax pulmonar»',                     R.a_unaVmaxPulm === true, R.rotulos],
+      ['(A) y ya no hay fila «VP»',                        R.a_sinVP === true, R.a_sinVP],
+      ['(A) ni «Vmax EP»',                                 R.a_sinVmaxEP === true, R.a_sinVmaxEP],
+      ['(A) en m/s, con el valor de la que estaba conectada', R.a_val === '2.50' && R.a_uni === 'm/s', R.a_val + ' ' + R.a_uni],
+      ['(A) conserva la clave pul.vmaxEp',                 R.a_clave === true, R.a_clave],
+      ['(A) y la clave muerta pul.vp no quedo',            R.a_claveVieja === false, R.a_claveVieja],
+      ['(A) su gradiente sigue saliendo',                  R.a_gradiente === true, R.a_gradiente],
+      ['(A) el estado nuevo ya no declara vp',             R.a_sinEstado === true, R.a_sinEstado],
+      ['(A) ni su herramienta',                            R.a_sinHerr === true, R.a_sinHerr],
+      ['(B) la IP va en DOS filas',                        R.b_proto && R.b_tele, R.b_valores],
+      ['(B) y ya no hay una «Vmax IP» sin apellido',       R.b_sinVmaxIpPelada === true, R.b_sinVmaxIpPelada],
+      ['(B) las dos en m/s',                               R.b_dosUnidades === true, R.b_unidades],
+      ['(B) las dos se pueden medir',                      R.b_armables === true, R.b_armables],
+      ['(B) con los ROTULOS DE LA APP, leidos del formulario', R.b_mismosRotulos === true, R.b_lblProto + ' | ' + R.b_lblTele],
+      ['(B) y la misma herramienta que la que ya estaba',  R.b_mismaHerr === true, R.b_herr],
+      ['(C) NO se invento ninguna banda para las tres',    R.c_sinBandas === true, R.c_bandas],
+      ['(C) CONTROL: las dos que tenian banda la conservan', R.c_conservaLasQueHabia === true, R.c_control],
+      ['(D) el campo nuevo lo borra «Limpiar»',            R.d_limpio === true, R.d_limpio]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
