@@ -135195,8 +135195,12 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
     /* ** ADAPTADA EN ECO-CONECTOR-3: el modal tiene CUATRO botones desde la pregunta de
        destino, asi que el censo los mira a los cuatro. El de equipo nuevo sigue pidiendo TRES
        y el cuarto se esconde solo, que es lo que hace que el mismo marcado sirva para las dos
-       preguntas -- y eso es justamente lo que (F) mide ahora. */
-    const bots = () => ['clnkav-b1','clnkav-b2','clnkav-b3','clnkav-b4']
+       preguntas -- y eso es justamente lo que (F) mide ahora.
+       ** Y ADAPTADA OTRA VEZ EN ECO-CONECTOR-5 (decision 6a): el modal tiene CINCO, porque la
+       pregunta de destino gana «Vista previa» -- mirar no es decidir, asi que no le saca el lugar a
+       ningun destino-- y «Descartar» se corre al QUINTO, que sigue siendo el ultimo porque lo que
+       destruye se queda al final. El censo mira los cinco. */
+    const bots = () => ['clnkav-b1','clnkav-b2','clnkav-b3','clnkav-b4','clnkav-b5']
       .map(id => { const b = EL(id); return (b && getComputedStyle(b).display !== 'none') ? (b.textContent || '').trim() : ''; });
     try {
       window.__clnkBaseTest = F.base;
@@ -135223,7 +135227,7 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       R.a_diceEquipo = R.a_txt.indexOf('GE del consultorio') > -1;
       R.a_diceHora = /a las [0-9][0-9]:[0-9][0-9]/.test(R.a_txt);
       R.a_bots = bots();
-      R.a_cuatroBotones = R.a_bots.filter(x => x).length === 4;
+      R.a_cincoBotones = R.a_bots.filter(x => x).length === 5;
       R.a_rotulos = R.a_bots.join(' | ');
       /* -- NI UN DATO DEL PACIENTE, Y NI UNA VISTA. El DICOM que el conector entrega trae el
             nombre adentro; la lista NO, y el aviso sale de la lista. Se comprueba contra el
@@ -135363,12 +135367,18 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       /* ** ADAPTADA EN ECO-CONECTOR-3, Y QUEDA MAS FUERTE. El aviso de imagenes pasa de tres
          salidas a CUATRO: la decision 1 agrega «Adjuntar a un estudio guardado». La condicion
          exige las cuatro por su texto, asi que se pone roja tanto si falta una como si alguien
-         agrega una quinta sin declararla. */
-      ['(A) CUATRO botones apilados',                         R.a_cuatroBotones, R.a_rotulos],
-      ['(A) y son las cuatro salidas de la decision',         String(R.a_rotulos || '').indexOf('estudio actual') > -1 &&
+         agrega una quinta sin declararla.
+         ** Y ESE DIA LLEGO, EN ECO-CONECTOR-5: la decision 6a agrega «Vista previa», que no es un
+         destino -- mirar no es decidir-- asi que no reemplaza a ninguna de las cuatro y el aviso
+         pasa a CINCO salidas. La condicion sigue exigiendo las cuatro de destino por su texto Y
+         ahora ademas la quinta, con lo que se pone roja igual si falta una o si aparece una sexta
+         sin declararla. */
+      ['(A) CINCO botones apilados',                          R.a_cincoBotones, R.a_rotulos],
+      ['(A) y son las cuatro salidas de destino',             String(R.a_rotulos || '').indexOf('estudio actual') > -1 &&
                                                               String(R.a_rotulos || '').indexOf('estudio guardado') > -1 &&
                                                               String(R.a_rotulos || '').indexOf('guardadas') > -1 &&
                                                               String(R.a_rotulos || '').indexOf('Descartar') > -1, String(R.a_rotulos)],
+      ['(A) mas «Vista previa», que no es un destino',        String(R.a_rotulos || '').indexOf('Vista previa') > -1, String(R.a_rotulos)],
       ['(B) no vuelve por las MISMAS imagenes',               R.b_noVolvio, R.b_segundaVez],
       ['(C) cerrar NO confirmo nada',                         R.c_confirmadas === 0, R.c_confirmadas],
       ['(C) ni borro nada',                                   R.c_borradas === 0, R.c_borradas],

@@ -140323,9 +140323,15 @@ window._dcmSaltarSQImpl = _dcmSaltarSQImpl;
      máquina sobre un techo de 4.
    · `performance.memory` es SÓLO de Chrome, así que hay respaldo: sin ese dato se estiman 256 MB
      de montón por GiB de equipo, que es prudente.
-   · EL PICO ES 1,8 VECES LOS PÍXELES CRUDOS: el médico midió 622,5 MB de pico para 351,9 MB de
-     píxeles. De ahí sale el factor, y por eso el tope se calcula sobre el PICO y no sobre el
-     tamaño del archivo.
+   · EL PICO SE ESTIMA EN 1,8 VECES LOS PÍXELES CRUDOS, y de las DOS mediciones que hay se toma
+     la PEOR. ECO-CONECTOR-4 midió **622,5 MB de pico** para 351,9 MB de píxeles —factor 1,77— y
+     esta tanda, sobre el mismo archivo y el mismo camino, midió **423,3 MB sobre la base**
+     —factor 1,20—, con el montón pasando de 27,2 a 451,3 MB y la conversión tardando 1,4 s. Las
+     dos son correctas y miden cosas distintas: una incluye los crudos todavía vivos y la otra el
+     delta después de soltarlos, y cuál se ve depende de cuándo el recolector pasa. **Se usa 1,77
+     redondeado a 1,8**, que es la más alta: el factor entra en un DENOMINADOR, así que el más
+     grande da el tope más chico, y equivocarse por prudencia cuesta una pregunta de más mientras
+     equivocarse por optimismo cuesta la pestaña.
 
    LA CUENTA, en un solo lugar:
        presupuesto = min( techo del montón × 0,5 , memoria del equipo × 0,25 )
@@ -140460,8 +140466,11 @@ window._dcmCrudoBytes = _dcmCrudoBytes;
    EL FACTOR SE MIDIÓ SOBRE DOS ARCHIVOS Y NO SOBRE UNO, y por eso es 4 y no 6:
      · el multicuadro sintético de 512×512 por 60 cuadros monocromo: 15,0 MB de píxeles → 3,66 MB
        de JPEG, o sea ÷4,1;
-     · el del médico, 1016×708 en color por 171 cuadros: 351,9 MB → 54,3 MB (medido en
-       ECO-CONECTOR-4), o sea ÷6,5.
+     · el del médico, 1016×708 en color por 171 cuadros: 351,9 MB → 54,3 MB, o sea **÷6,48** —el
+       número de ECO-CONECTOR-4, vuelto a medir en esta tanda sobre este árbol y con el archivo al
+       tamaño de verdad: dio exactamente lo mismo—.
+   LO QUE CUESTA, DECLARADO: con el divisor en 4, ese archivo se estima en **88,0 MB** y ocupa
+   54,3 — una sobreestimación del 62 %. El texto dice «estimado» por eso.
    Se toma el divisor MÁS CHICO de los dos, que da la estimación más GRANDE: pasarse por exceso
    hace que el médico espere que ocupe más de lo que ocupa; pasarse por defecto le promete un
    espacio que no va a alcanzar. Con una sola medición este número habría salido optimista. */
@@ -175261,8 +175270,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-2136';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794530217565;                 /* eco-build-ms */
+const ECO_BUILD    = '20261112-2150';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794531001386;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -175348,7 +175357,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-2136</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-2150</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
