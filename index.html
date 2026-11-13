@@ -361,6 +361,21 @@
      La tabla se lleva su propio desplazamiento (`overflow:auto`) para que la imagen, la
      reproduccion y la tabla entren JUNTAS sin mover la ventana — el pedido literal. */
   #cine-ov .cine-col-der { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  /* ══ MEDIR-2 — EL AREA TACTIL DE LOS BOTONES DEL SELECTOR ════════════════════════════════
+     ⚠️ SE VEN DE 28 px Y SE TOCAN EN 44, que es la regla fija de esta casa (PANT-2, PANT-13):
+     el area la da un `::after` absoluto y NUNCA un margen negativo ni un `min-height`, porque
+     agrandar el boton agranda la fila y el pedido del medico es justamente una columna
+     compacta. El `::after` no participa del flujo, asi que la columna no crece.
+     ⚠️ Y EL HUECO VERTICAL ENTRE LINEAS SUBE A 16 px POR ESTO MISMO, no por estetica: con el
+     `gap:3px` anterior dos lineas de botones quedaban a 31 px de distancia y dos areas de 44 se
+     SOLAPABAN 13 px — el toque habria caido en el boton de la linea de arriba. 28 + 16 = 44
+     exactos, que es el minimo que las separa sin encimarlas. El hueco HORIZONTAL se queda en 3:
+     ahi los botones estan uno al lado del otro y el area no se extiende a los costados. */
+  #cine-ov .cine-selbtn::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%;
+    transform: translateY(-50%); height: 44px;
+  }
+  #cine-ov .cine-selfila { row-gap: 16px; }
   /* El selector de estructura que vivia DENTRO de cada cajon. Lo reemplaza la tercera fila del
      selector progresivo; se esconde en vez de retirarse para no adaptar los cinco usos del
      suite que lo aprietan por su atributo. `display:none` lo saca ademas del orden de
@@ -141733,21 +141748,30 @@ function _medSideFila(rot, cuerpo) {
   return '<div style="display:flex;flex-direction:column;gap:2px;">' +
     '<span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
       'color:var(--text2);">' + escHtml(rot) + '</span>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + cuerpo + '</div></div>';
+    '<div class="cine-selfila" style="display:flex;flex-wrap:wrap;gap:3px;">' + cuerpo + '</div></div>';
 }
 
 /* Un boton del selector. `activo` lo rellena con el color del modo; `apagado` lo deja visible y
    sin efecto —el caso del boton «Volumen», que el pedido quiere a la vista con su leyenda—. */
 function _medSideBtn(id, rot, activo, col, apagado, tip) {
   const cv = 'var(' + col + ')';
-  return '<button type="button" class="btn btn-ghost"' + (id ? ' id="' + id + '"' : '') +
+  /* ⚠️ EL ROTULO NO VA CON EL COLOR CRUDO DEL GRUPO: va con el derivado legible. Ver
+     `_medColorLegible` — en tema claro el verde de Deformacion sobre el fondo del modal daba
+     3,44:1. El BORDE si usa el color crudo: ahi no hay texto que leer y es lo que identifica al
+     grupo de un vistazo.
+     ⚠️ Y LLEVA `position:relative` + la clase `cine-selbtn` PORQUE DE AHI CUELGA EL AREA TACTIL
+     de 44 px: el boton se ve de 28 y se toca en 44, que es el patron de esta casa desde PANT-2
+     —un `::after` absoluto, nunca un margen negativo—. Sin `relative` el pseudo se posicionaria
+     contra el contenedor y las areas de todos los botones se apilarian una sobre otra. */
+  const colTxt = apagado ? 'var(--text2)' : _medColorLegible(col);
+  return '<button type="button" class="btn btn-ghost cine-selbtn"' + (id ? ' id="' + id + '"' : '') +
     (tip ? ' title="' + escHtml(tip) + '"' : '') +
     (apagado ? ' disabled aria-disabled="true"' : '') +
-    ' style="padding:3px 7px;font-size:10px;min-height:28px;min-width:0;border-radius:5px;' +
+    ' style="position:relative;padding:3px 7px;font-size:10px;min-height:28px;min-width:0;border-radius:5px;' +
     'line-height:1.1;white-space:nowrap;border:1px solid ' + (apagado ? 'var(--border)' : cv) + ';' +
     (apagado ? 'background:transparent;color:var(--text2);opacity:.55;cursor:default;'
              : (activo ? 'background:' + cv + ';color:' + _medTextoSobre(col) + ';font-weight:700;'
-                       : 'background:transparent;color:' + cv + ';')) + '">' +
+                       : 'background:transparent;color:' + colTxt + ';')) + '">' +
     escHtml(rot) + '</button>';
 }
 
@@ -141816,9 +141840,18 @@ function _medSideRender() {
     }
   } catch (e) { console.error('selector/estructura', e); }
 
-  cont.innerHTML = _medSideFila('Modo', f1) +
-                   _medSideFila(_medSideRotNivel2(ab), f2) +
-                   _medSideFila('Estructura', f3);
+  /* ⚠️ LAS TRES FILAS SE JUNTAN CON `join` Y NO CON UNA CONCATENACION EN LA ASIGNACION, y es por
+     Semgrep: `ceibo-xss-innerhtml-concat` empareja por la FORMA —un `+` del lado derecho de un
+     `innerHTML`— y MEDIR-1 dejo ese aviso declarado (M1-d) en vez de tocarlo. El medico pidio
+     volver a la linea base sin silenciar la regla, asi que lo que cambia es la forma de armar la
+     lista; la seguridad real no cambia en nada y no cambiaba antes: las tres filas salen de
+     `_medSideFila`, que arma su marcado con constantes de este archivo y pasa por `escHtml` cada
+     texto que viene de un dato —el rotulo de la fila, el de cada boton y su `title`—. */
+  cont.innerHTML = [
+    _medSideFila('Modo', f1),
+    _medSideFila(_medSideRotNivel2(ab), f2),
+    _medSideFila('Estructura', f3)
+  ].join('');
 
   /* ⚠️ LOS OYENTES DEL NIVEL 3 SE CABLEAN ACA, al final del repintado: este nodo se REESCRIBE
      entero, asi que un manejador puesto sobre un boton se va con el nodo viejo y no hay fuga
@@ -146551,6 +146584,59 @@ function _medTextoSobre(varName) {
   const L = 0.2126 * f(r) + 0.7152 * f(g2) + 0.0722 * f(b2);
   /* Se elige el que MÁS contrasta, comparando los dos cocientes de WCAG. */
   return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#0b0f1a' : '#fff';
+}
+
+/* ══ MEDIR-2 — EL ROTULO DEL BOTON NO RELLENO, DERIVADO PARA QUE SE LEA ══════════════════════
+   ⚠️ EL COLOR DEL GRUPO NO SIEMPRE ALCANZA COMO COLOR DE TEXTO, Y ESTA MEDIDO. En el selector
+   progresivo el boton NO seleccionado va con el color del grupo sobre el fondo del modal, y en
+   TEMA CLARO `--green` (#1f9d6c) sobre blanco da 3,44:1 — por debajo del 4,5 que esta casa
+   exige. Lo cazo TC-208, no la lectura: el rediseño de MEDIR-1 cambio el fondo de esos botones
+   de `--bg3` a transparente y el verde dejo de alcanzar.
+   Se DERIVA en vez de cablear un segundo color por tema, que es la misma razon por la que
+   `_medTextoSobre` deriva el texto sobre relleno: asi sirve en los dos temas y con cualquier
+   color que se agregue mañana. Se mezcla el color del grupo contra `--text` —no contra negro—
+   para que el matiz siga diciendo de que grupo es.
+   Si no se puede medir el fondo, se devuelve el color tal cual: el lado que no rompe nada. */
+function _medLumDe(c) {
+  let r, g2, b2;
+  const h = /^#?([0-9a-f]{6})$/i.exec(String(c).trim());
+  if (h) { const q = h[1]; r = parseInt(q.slice(0,2),16); g2 = parseInt(q.slice(2,4),16); b2 = parseInt(q.slice(4,6),16); }
+  else {
+    const s = String(c);
+    if (s.indexOf('(') < 0) return null;
+    const n = s.slice(s.indexOf('(') + 1, s.lastIndexOf(')')).split(',').map(x => parseFloat(x));
+    if (!(n.length >= 3) || !isFinite(n[0])) return null;
+    r = n[0]; g2 = n[1]; b2 = n[2];
+  }
+  const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  return { L: 0.2126 * f(r) + 0.7152 * f(g2) + 0.0722 * f(b2), r, g: g2, b: b2 };
+}
+function _medContraste(L1, L2) {
+  return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+}
+function _medColorLegible(varName) {
+  const cv = 'var(' + varName + ')';
+  let col = '', fondo = '', texto = '';
+  try {
+    const cs = getComputedStyle(document.documentElement);
+    col   = cs.getPropertyValue(varName).trim();
+    fondo = cs.getPropertyValue('--bg2').trim();
+    texto = cs.getPropertyValue('--text').trim();
+  } catch (e) { return cv; }
+  const C = _medLumDe(col), F = _medLumDe(fondo), T = _medLumDe(texto);
+  if (!C || !F || !T) return cv;
+  if (_medContraste(C.L, F.L) >= 4.5) return cv;
+  /* Veinte pasos de mezcla contra el color de texto. Se devuelve el PRIMERO que alcanza, o sea
+     el que menos se aleja del color del grupo. */
+  for (let i = 1; i <= 20; i++) {
+    const k = i / 20;
+    const r = Math.round(C.r + (T.r - C.r) * k),
+          g = Math.round(C.g + (T.g - C.g) * k),
+          b = Math.round(C.b + (T.b - C.b) * k);
+    const M = _medLumDe('rgb(' + r + ',' + g + ',' + b + ')');
+    if (M && _medContraste(M.L, F.L) >= 4.5) return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+  return texto || cv;
 }
 const _MED_GRUPO_DE = (function () {
   const m = {}; _MED_HERRS.forEach(t => { m[t.h] = t.g; }); return m;

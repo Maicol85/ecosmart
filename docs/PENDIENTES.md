@@ -16619,3 +16619,68 @@ por JS mientras los saca del orden de tabulacion, que es lo que importa para el 
 
 Retirarlos de verdad es adaptar esos cinco usos. Queda como deuda de la proxima tanda que toque
 el visor.
+
+### M2-a — BLOQUE A de MEDIR-2: los cuatro rojos del visor, TC-850 y el aviso de Semgrep
+
+**Los cuatro rojos del visor eran NUEVOS y del rediseno**, verificado corriendolos contra
+`ff8c585` con el MISMO archivo de casos y solo el `index.html` distinto: los cuatro pasan alla.
+
+**DOS resultaron defectos REALES de accesibilidad que MEDIR-1 introdujo, y se arreglaron en la
+app en vez de aflojar el caso:**
+- **Contraste.** En TEMA CLARO el boton no seleccionado del grupo Deformacion iba con `--green`
+  (#1f9d6c) sobre el fondo del modal: **3,44:1**, por debajo del 4,5 que esta casa exige. Lo
+  causo el rediseno al cambiar ese fondo de `--bg3` a transparente. Hoy `_medColorLegible`
+  **deriva** el color hasta alcanzar 4,5 mezclandolo contra `--text`, igual que `_medTextoSobre`
+  deriva el texto sobre relleno. Medido: peor caso **4,70 de dia y 5,30 de noche**.
+- **Area tactil.** Los botones del selector median **28 px y nada mas**. Hoy se ven de 28 y se
+  tocan en **44** por un `::after` absoluto —el patron de PANT-2, nunca un margen negativo—, asi
+  que la columna no crece.
+
+**Las otras dos condiciones se INVIRTIERON, con su motivo escrito donde vive la condicion**: la
+jerarquia visual de la barra lateral vieja (grupo mas grande, peso 700, filete de 3 px, subitems
+sangrados) y los separadores de la columna de acciones. Las dos describian lo que el punto 2 del
+pedido vino a cambiar —«una sola barra, todos del mismo formato»— y hoy el caso exige lo
+contrario, o sea que falla por los dos lados.
+
+**TC-241 se adapto al sucesor**: `cine-acciones` ya no existe y lo reemplaza `cine-grp-med`,
+arriba de la imagen. Lo que el caso protegia —que los controles de una vista no se lean como de
+la otra— se conserva y se reforzo con dos condiciones nuevas: que la columna vieja no haya
+quedado y que cada barra cuelgue de SU panel.
+
+**TC-244 no estaba roto: su DENOMINADOR dejo de morder.** El caso acotaba `#cine-paneles` a 380
+px fijos para forzar el cambio de ancho de la imagen. Con el rediseno la imagen se lleva todo el
+ancho del panel, asi que en la ventana del arnes (756x469) el canvas queda acotado por su ALTO
+(56vh = **315 px**) y 380 ya no lo toca. Medido a los dos lados: en `ff8c585` el lienzo mide 570
+px y el canvas baja de 315 a **256**; hoy el lienzo mide 694 y el canvas se queda en 315. El tope
+pasa a derivarse del ancho medido (**70 %**), que muerde en cualquier layout.
+
+**TC-850 fallaba SIEMPRE aislado, y la causa NO era el azar del conector falso.** El id de equipo
+`eq_3f8a1c` es **fijo** en `_conector_falso.mjs`; lo que el caso esperaba era el **apodo** «GE del
+consultorio», que no sale de la lista de imagenes sino del cache `_clnkNombreEq`, que llena
+`_clnkCargarNombresEq` al leer `/v1/equipos`. O sea que el caso pasaba solo si algun caso anterior
+del lote ya habia abierto el panel: **dependencia de orden**, no intermitencia. Hoy pide la lista,
+toma el primer equipo **autorizado** y usa SU id y SU nombre con la misma regla que la app
+—apodo, si no el AET, si no el id—, con un denominador que declara que el conector trajo alguno.
+
+**Los dos intermitentes declarados pasan 2 de 2 corridos aislados**: TC-182 y TC-551.
+
+**El aviso de Semgrep de M1-d queda CERRADO y la linea base vuelve a 126/0.** Por decision del
+medico se reescribio la linea que lo disparaba: las tres filas se juntan con `join` en vez de
+concatenarse del lado derecho del `innerHTML`, que es la FORMA que la regla empareja. La
+seguridad real no cambia ni cambiaba: las tres salen de `_medSideFila`, que arma su marcado con
+constantes del archivo y pasa por `escHtml` cada texto que viene de un dato. **M1-d cerrado.**
+
+⚠️ **UNA MUTACION DEL BLOQUE SOBREVIVIO POR LA ESCENA Y SE DECLARA**: bajar el `row-gap` de la
+fila del selector de 16 a 3 px no pone rojo a TC-208, porque con Deformacion abierta **ninguna
+fila envuelve** —tres botones chicos entran en los 310 px de la columna— y el `row-gap` solo
+actua cuando una fila envuelve. Las otras tres murieron: el color crudo (TC-208, «LEGIBLE EN LOS
+DOS TEMAS», 3,44), el `::after` retirado (TC-208, «area tactil») y la concatenacion de vuelta
+(Semgrep **127** contra 126). El hueco de 16 px no es decorativo: con 3 px, dos lineas de botones
+quedan a 31 px y dos areas de 44 se solapan 13 px, o sea que el toque caeria en la linea de
+arriba. Queda cubierto por la sonda de MEDIR-2, que mide el solape en un ancho donde la fila SI
+envuelve.
+
+⚠️ **DOS DE LOS CINCO ADAPTADOS NO CAEN CONTRA LA LINEA BASE, y se declara**: TC-244 y TC-850.
+No quedaron mas debiles — lo que se les cambio es el DENOMINADOR en uno y la fuente del dato en el
+otro, y las dos cosas valen igual en los dos arboles—. Los otros tres (TC-208, TC-236, TC-241)
+caen alla por sus condiciones nuevas, o sea que siguen discriminando.

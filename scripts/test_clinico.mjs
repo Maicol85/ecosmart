@@ -25758,14 +25758,59 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
     const blG = Array.prototype.map.call(gr,   e => parseFloat(getComputedStyle(e).borderLeftWidth));
     const colG = Array.prototype.map.call(gr,  e => getComputedStyle(e).borderLeftColor);
     R.fsG = fsG.join(','); R.fsS = fsS.join(',');
-    R.grupoMasGrande = Math.min.apply(null, fsG) > Math.max.apply(null, fsS);
-    R.grupoMasPesado = Math.min.apply(null, fwG) >= 700;
-    R.grupoConFilete = Math.min.apply(null, blG) >= 3;
     R.coloresDistintos = new Set(colG).size === 3;
-    /* subordinacion: los subitems arrancan mas a la derecha que su grupo */
-    R.sangrado = Math.round(subs[0].getBoundingClientRect().left - gr[0].getBoundingClientRect().left);
-    R.tactil = Math.min.apply(null, Array.prototype.map.call(gr,
-      e => Math.round(e.getBoundingClientRect().height))) >= 44;
+    /* ⚠️ LAS CUATRO CONDICIONES DE JERARQUIA VISUAL SE INVIERTEN (MEDIR-2), y es el dia que el
+       rediseno de MEDIR-1 anunciaba. Este caso afirmaba la BARRA LATERAL VIEJA: el grupo con
+       tipografia mas grande, peso 700, filete de 3 px y los subitems sangrados debajo. El punto
+       2 del pedido del medico es «una sola barra, TODOS DEL MISMO FORMATO», asi que hoy la
+       jerarquia NO la da el tamano del boton sino el ROTULO de cada fila —«Modo», «Que medir»/
+       «Herramienta», «Estructura»— y los botones son todos iguales. Las condiciones de abajo
+       exigen exactamente eso, o sea que fallan por los DOS lados: si alguien volviera a
+       agrandar los grupos, y si alguien sacara los rotulos de fila.
+       ⚠️ LO QUE NO SE AFLOJA ES EL AREA TACTIL NI EL CONTRASTE: esas dos no son del diseno
+       viejo, son reglas fijas de esta casa, y el rediseno las habia roto de verdad. Se
+       arreglaron en la app: _medColorLegible y el pseudo ::after de .cine-selbtn. */
+    R.mismoFormato = Math.max.apply(null, fsG) === Math.min.apply(null, fsS) &&
+                     Math.min.apply(null, fsG) === Math.max.apply(null, fsS);
+    R.sinFilete = Math.max.apply(null, blG) <= 1;
+    R.sinPeso700 = Math.max.apply(null, fwG.concat([0])) < 700 ||
+                   /* el UNICO que puede ir en 700 es el seleccionado, que lleva relleno */
+                   fwG.filter(w => w >= 700).length <= 1;
+    /* La jerarquia vive en los rotulos de fila, que son los que dicen QUE se esta eligiendo. */
+    R.rotulos = [...side.querySelectorAll('span')].map(e => (e.textContent||'').trim())
+      .filter(t => t.length > 0 && t.length < 24);
+    /* ⚠️ ACA SE MIDE CON DEFORMACION ABIERTA, Y AHI LOS ROTULOS SON DOS Y NO TRES: el strain no
+       tiene estructuras que elegir, asi que la tercera fila NO se dibuja — es lo que la propia
+       funcion declara, y una fila con su rotulo y ningun boton debajo seria peor que no estar.
+       Se exige la lista EXACTA, asi que el caso se pone rojo por los dos lados: si desaparecen
+       los rotulos y si aparece una «Estructura» vacia. La fila de estructura con sus botones la
+       fijan TC-236 y los casos del cajon 2D. */
+    R.tresRotulos = R.rotulos.length === 2 &&
+                    R.rotulos[0] === 'Modo' && R.rotulos[1] === 'Qué medir' &&
+                    R.rotulos.indexOf('Estructura') < 0;
+    /* ⚠️ EL AREA TACTIL SE MIDE EN EL PSEUDO ::after Y NO EN EL ALTO DEL BOTON, como esta casa
+       la implementa desde PANT-2: el boton se ve de 28 px y se toca en 44. Medir el alto del
+       boton daria rojo sobre un area tactil correcta — y daria VERDE si alguien agrandara el
+       boton y borrara el pseudo, que es peor. Y se exige ademas que dos areas vecinas NO se
+       SOLAPEN: un area de 44 sobre botones a 31 px de distancia manda el toque al boton de
+       arriba, o sea que seria peor que no tenerla. */
+    const areaDe = e => { const cs = getComputedStyle(e, '::after');
+      return Math.round(parseFloat(cs.height) || 0); };
+    const todosSel = [...side.querySelectorAll('.cine-selbtn')];
+    R.nSel = todosSel.length;
+    R.tactil = todosSel.length > 0 && todosSel.every(e => areaDe(e) >= 44);
+    R.tactilMin = todosSel.length ? Math.min.apply(null, todosSel.map(areaDe)) : -1;
+    /* El solapamiento: para cada par de botones en COLUMNAS que se pisan horizontalmente, la
+       distancia entre centros tiene que ser >= 44. */
+    R.solapes = (() => { let n = 0;
+      for (let i = 0; i < todosSel.length; i++) for (let j = i + 1; j < todosSel.length; j++) {
+        const a = todosSel[i].getBoundingClientRect(), b = todosSel[j].getBoundingClientRect();
+        const pisaX = a.left < b.right - 1 && b.left < a.right - 1;
+        if (!pisaX) continue;
+        const d = Math.abs((a.top + a.height/2) - (b.top + b.height/2));
+        if (d > 0.5 && d < 44) n++;
+      }
+      return n; })();
 
     /* contraste en los DOS temas — sin regex: el template literal se come el escape */
     const lum = c => { const n = c.slice(c.indexOf('(')+1, c.lastIndexOf(')')).split(',')
@@ -25802,10 +25847,12 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
     return { extra: [
       /* 1 · barra lateral */
       ['los tres grupos estan y llevan color propio', R.nGrupos === 3 && R.coloresDistintos, R.nGrupos + ' grupos'],
-      ['el grupo es mas grande que sus subitems',     R.grupoMasGrande, 'grupo ' + R.fsG + ' vs sub ' + R.fsS],
-      ['y mas pesado, con filete de su color',        R.grupoMasPesado && R.grupoConFilete, R.grupoMasPesado],
-      ['los subitems quedan sangrados debajo',        R.sangrado >= 8, R.sangrado + ' px'],
-      ['el area tactil sigue en 44 px',               R.tactil, R.tactil],
+      /* INVERTIDAS en MEDIR-2 — ver la nota de arriba: una sola barra, todos del mismo formato */
+      ['TODOS LOS BOTONES, EL MISMO FORMATO',         R.mismoFormato, 'grupo ' + R.fsG + ' vs sub ' + R.fsS],
+      ['sin filete de grupo ni peso de encabezado',   R.sinFilete && R.sinPeso700, 'filete<=1 ' + R.sinFilete],
+      ['la jerarquia la dan los TRES rotulos de fila', R.tresRotulos, JSON.stringify(R.rotulos)],
+      ['el area tactil sigue en 44 px (denominador: hay botones)', R.tactil && R.nSel >= 3, R.nSel + ' botones, min ' + R.tactilMin + ' px'],
+      ['y dos areas tactiles NO se solapan',          R.solapes === 0, R.solapes + ' pares a menos de 44 px'],
       ['se midieron DOS temas (denominador)',         R.temasDifieren, R.temasDifieren],
       ['LEGIBLE EN LOS DOS TEMAS',                    R.legibleEnAmbos, 'peor osc ' + R.peorOsc + ' / claro ' + R.peorCla],
       /* 2 · rotulos por vista */
@@ -30184,7 +30231,15 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       _cineAbrir([loop([])]);
       await esperar(800);
       R.modal = !!document.getElementById('cine-ov');
-      R.seps = document.querySelectorAll('#cine-ov .cine-sep').length;
+      /* ⚠️ INVERTIDA EN MEDIR-2, y es el dia que MEDIR-1 anunciaba: la columna de acciones con
+         sus filetes entre grupos se fundio en UNA barra, por el punto 2 del pedido —«una sola
+         barra, todos del mismo formato»— y un separador vuelve a declarar los tres grupos que
+         se fundieron. Lo que se exige hoy es lo contrario: hay UNA barra por vista y NINGUN
+         separador adentro. Falla por los dos lados — si vuelven los filetes, y si desaparece
+         la barra—. La clase sigue existiendo en la hoja porque la usa el panel de Simpson, asi
+         que se cuenta DENTRO de la barra y no en todo el overlay. */
+      R.seps = document.querySelectorAll('#cine-ov .cine-barra .cine-sep').length;
+      R.barras = document.querySelectorAll('#cine-ov .cine-barra').length;
       /* IDS UNICOS: si quedaran los del pie, estos contarian 2 y el segundo estaria muerto.
          Se cuentan NODOS, no visibilidad, asi que el modo minimo no los altera. */
       R.nAddB = document.querySelectorAll('#cine-ov [id="cine-add-b"]').length;
@@ -30300,7 +30355,7 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
                                                      'addB=' + R.addB + ' cerrar=' + R.cerrar],
       ['y NO quedaron duplicados en el pie',         R.nAddB === 1 && R.nCerrar === 1,
                                                      'addB=' + R.nAddB + ' cerrar=' + R.nCerrar],
-      ['la columna va en grupos separados',          R.seps >= 2, 'separadores=' + R.seps],
+      ['UNA barra unica y SIN separadores adentro',  R.barras >= 1 && R.seps === 0, R.barras + ' barra(s), ' + R.seps + ' separadores'],
       ['DENOMINADOR: la imagen no trae escala',      R.sinCalPred === true, R.sinCalPred],
       ['sin calibrar, el aviso dice QUE HACER',      T1.indexOf('Antes de medir') >= 0 &&
                                                      T1.indexOf('distancia conocida') >= 0, T1.slice(0,110)],
@@ -30910,9 +30965,20 @@ caso('TC-244', 'Visor: el overlay se recalza al cambiar el ancho, y en angosto v
       const cont = document.getElementById('cine-paneles');
       const base = document.getElementById('cine-cv');
       const antes = Math.round(base.getBoundingClientRect().width);
-      cont.style.maxWidth = '380px';
+      /* ⚠️ EL TOPE SE DERIVA DEL ANCHO MEDIDO Y YA NO ES 380 px FIJOS (MEDIR-2), y el 380 dejo
+         de servir por una razon que NO es un defecto: el rediseno le dio a la imagen todo el
+         ancho del panel —la columna de herramientas se fue a la derecha y por debajo de 1100 px
+         se apila abajo—, asi que en la ventana del arnes (756x469) el canvas queda acotado por
+         su ALTO (56vh = 315 px) y 380 ya no lo toca. Medido contra la linea base: alla el
+         lienzo media 570 px y bajaba a 256; aca mide 694 y se queda en 315.
+         Con el 70 % del ancho medido el denominador vuelve a morder en CUALQUIER layout, que es
+         mas fuerte que el numero fijo que tenia. */
+      cont.style.maxWidth = Math.max(80, Math.round(antes * 0.7)) + 'px';
       await esperar(120);
       R.anchoCambio = Math.round(base.getBoundingClientRect().width) !== antes;
+      R.diagAncho = antes + '->' + Math.round(base.getBoundingClientRect().width) +
+        ' paneles=' + Math.round(cont.getBoundingClientRect().width) +
+        ' vp=' + innerWidth + 'x' + innerHeight;
       /* Sin despachar, el oyente no corre: cambiar un estilo no emite resize. */
       R.calceSinAviso = calce();
       window.dispatchEvent(new Event('resize'));
@@ -30974,7 +31040,7 @@ caso('TC-244', 'Visor: el overlay se recalza al cambiar el ancho, y en angosto v
     return { extra: [
       ['sin excepciones',                          !R.err, R.err],
       ['el overlay arranca calzado',               R.calceInicial === '0,0 0x0', R.calceInicial],
-      ['DENOMINADOR: angostar cambia la imagen',   R.anchoCambio === true, R.anchoCambio],
+      ['DENOMINADOR: angostar cambia la imagen',   R.anchoCambio === true, R.diagAncho],
       ['y sin el evento queda DESCALZADO',         R.calceSinAviso !== '0,0 0x0', R.calceSinAviso],
       ['el resize lo vuelve a calzar',             R.calceTrasResize === '0,0 0x0', R.calceTrasResize],
       ['hay alternador de vista',                  R.hayToggle === true, R.hayToggle],
@@ -31389,17 +31455,36 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
          impide que los controles de una vista se lean como de la otra. */
       const rc = id => { const e=document.getElementById(id); if (!e) return null;
         const r2=e.getBoundingClientRect(); return { l:r2.left, r:r2.right, t:r2.top, b:r2.bottom }; };
-      const accA=rc('cine-acciones'), barA=rc('cine-med-barra'), imgA=rc('cine-lienzo');
-      const accB=rc('b-cine-acciones'), barB=rc('b-cine-med-barra'), imgB=rc('b-cine-lienzo');
+      /* ⚠️ ADAPTADO EN MEDIR-2: el id cine-acciones YA NO EXISTE. El punto 2 del pedido fundio
+         la columna de acciones en la barra unica cine-grp-med, que va ARRIBA de la imagen y
+         dentro del panel de SU vista. Lo que se fijaba —«cada una dentro de su panel, que es lo
+         que impide que los controles de una vista se lean como de la otra»— se conserva entero
+         y se mide sobre el sucesor; lo que se INVIERTE es la posicion: antes debajo de la
+         imagen, hoy arriba. Y se agrega que la columna vieja no haya quedado: con el id viejo
+         vivo, las dos barras convivirian y el medico veria dos juegos de botones. */
+      const accA=rc('cine-grp-med'), barA=rc('cine-med-barra'), imgA=rc('cine-lienzo');
+      const accB=rc('b-cine-grp-med'), barB=rc('b-cine-med-barra'), imgB=rc('b-cine-lienzo');
+      R.sinColumnaVieja = !document.getElementById('cine-acciones') &&
+                          !document.getElementById('b-cine-acciones');
+      R.barraEnSuPanel = !!(document.getElementById('cine-grp-med') &&
+        document.getElementById('cine-grp-med').closest('[id$="cine-panel"]') === document.getElementById('cine-panel') &&
+        document.getElementById('b-cine-grp-med') &&
+        document.getElementById('b-cine-grp-med').closest('[id$="cine-panel"]') === document.getElementById('b-cine-panel'));
       /* GEOMETRIA POSITIVA PRIMERO: el lector de rects devuelve un objeto por el solo hecho de
          que el elemento EXISTA, y un elemento en display:none da todo en cero — con lo cual las
          dos comparaciones de abajo se cumplen y la condicion pasa SIN HABER MEDIDO NADA.
          Es alcanzable: por debajo de 768 px la media query esconde el panel B con display. */
       const vivo = r2 => !!(r2 && r2.l > 0 && r2.b > 0);
-      R.aDerechaA = !!(vivo(accA) && vivo(barA) && vivo(imgA) &&
-                       Math.abs(accA.l - barA.l) <= 4 && accA.t >= imgA.b - 2);
-      R.aDerechaB = !!(vivo(accB) && vivo(barB) && vivo(imgB) &&
-                       Math.abs(accB.l - barB.l) <= 4 && accB.t >= imgB.b - 2);
+      /* Hoy: la barra ARRIBA de su imagen, a ras del borde izquierdo de su propio panel. La
+         guia (cine-med-barra) se mudo a la columna derecha en MEDIR-1, asi que ya no es la
+         referencia de alineacion — lo es el panel, que es lo que de verdad separa una vista de
+         la otra. El ayudante vivo se conserva: un elemento escondido da todo en cero y la prueba
+         cumpliria sin haber medido nada. */
+      const panA = rc('cine-panel'), panB = rc('b-cine-panel');
+      R.aDerechaA = !!(vivo(accA) && vivo(panA) && vivo(imgA) &&
+                       Math.abs(accA.l - panA.l) <= 4 && accA.b <= imgA.t + 2);
+      R.aDerechaB = !!(vivo(accB) && vivo(panB) && vivo(imgB) &&
+                       Math.abs(accB.l - panB.l) <= 4 && accB.b <= imgB.t + 2);
       const prR = r2 => r2 ? ('l=' + Math.round(r2.l) + ' t=' + Math.round(r2.t) + ' b=' + Math.round(r2.b)) : 'null';
       R.diagB = 'acc[' + prR(accB) + '] guia[' + prR(barB) + '] img[' + prR(imgB) + ']';
       R.diagA = 'acc[' + prR(accA) + '] guia[' + prR(barA) + '] img[' + prR(imgA) + ']';
@@ -31448,8 +31533,10 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
       ['con la capa de medicion ya dibujada',    R.bCapaVisible === true, R.bCapaVisible],
       ['y 2D Distancia elegida',                 R.bHerr === 'dist' && R.bGrupo === '2d',
                                                  'herr=' + R.bHerr + ' grupo=' + R.bGrupo],
-      ['con dos vistas, las acciones de A bajan debajo de su imagen', R.aDerechaA === true, R.diagA],
-      ['  y las de B tambien',                   R.aDerechaB === true, R.diagB],
+      ['con dos vistas, la barra de A va ARRIBA de su imagen y en su panel', R.aDerechaA === true, R.diagA],
+      ['  y la de B tambien',                    R.aDerechaB === true, R.diagB],
+      ['la columna de acciones vieja NO quedo',  R.sinColumnaVieja === true, R.sinColumnaVieja],
+      ['y cada barra cuelga de SU panel',        R.barraEnSuPanel === true, R.barraEnSuPanel],
       ['la tabla UNICA trae las TRES filas',     R.rotUni === 'A4C,A2C,Biplano', R.rotUni],
       ['y se dibuja UNA sola vez',               R.panelesSimpson === 1, R.panelesSimpson],
       ['sin ninguna tabla en las barras de vista', R.tablasEnBarras === 0, R.tablasEnBarras],
@@ -135783,8 +135870,27 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
         ? (await CeiboImg.listar()).length : -1;
       R.pre_estudios = estudiosAntes;
 
+      /* ⚠️ EL EQUIPO SE LEE DEL CONECTOR Y NO SE ESCRIBE A MANO (MEDIR-2). Este caso fijaba el
+         id eq_3f8a1c y esperaba el apodo «GE del consultorio» escrito aca, y por eso fallaba
+         SIEMPRE corrido aislado: el apodo no sale de la lista de imagenes sino del cache
+         _clnkNombreEq, que lo llena _clnkCargarNombresEq al leer /v1/equipos — o sea que el
+         caso pasaba solo si ALGUN caso anterior del lote ya habia abierto el panel. Esa es la
+         dependencia de orden que lo tenia en la lista de intermitentes, y no el azar del token.
+         Hoy el caso pide la lista, toma el primer equipo AUTORIZADO y usa SU id y SU nombre
+         —apodo, si no el AET, si no el id, que es la misma regla que aplica la app—. Asi deja de
+         depender del orden del lote y de cualquier valor que el conector genere. */
+      await _clnkCargarNombresEq();
+      const _eqR = await clnkPedir('/v1/equipos', { conToken: true, espera: 5000 });
+      const _eqs = (_eqR && _eqR.ok && _eqR.datos && Array.isArray(_eqR.datos.equipos)) ? _eqR.datos.equipos : [];
+      const _eq = _eqs.filter(e => e && e.estado === 'autorizado')[0] || _eqs[0] || null;
+      R.a_eqId = _eq ? String(_eq.id) : '';
+      R.a_eqEsperado = _eq ? (((_eq.apodo != null && String(_eq.apodo).trim() !== '')
+        ? String(_eq.apodo).trim() : String(_eq.aet || _eq.id))) : '';
+      /* DENOMINADOR: sin equipo no hay nada que comparar y el caso diria que si sobre nada. */
+      R.a_hayEquipo = !!_eq && R.a_eqId !== '' && R.a_eqEsperado !== '';
+
       /* -- (A) GUARDAR EN LA BANDEJA -- */
-      R.a_n = await clnkAdjuntarABandeja(['img_a1','img_a2'], 'eq_3f8a1c');
+      R.a_n = await clnkAdjuntarABandeja(['img_a1','img_a2'], R.a_eqId);
       await new Promise(r => setTimeout(r, 1800));
       const l = await clnkbListar();
       R.a_envios = l.length;
@@ -135859,7 +135965,8 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
       ['DENOMINADOR: sin imagenes en el formulario',          R.pre_slots === 0, R.pre_slots],
       ['(A) guarda las dos en UN envio',                      R.a_n === 2 && R.a_envios === 1, R.a_n + '/' + R.a_envios],
       ['(A) el registro dice cuantas son',                    R.a_imgs === 2, R.a_imgs],
-      ['(A) de que equipo',                                   R.a_equipo === 'GE del consultorio', R.a_equipo],
+      ['(A) DENOMINADOR: el conector declara un equipo',      R.a_hayEquipo === true, R.a_eqId + ' / ' + R.a_eqEsperado],
+      ['(A) de que equipo',                                   R.a_hayEquipo && R.a_equipo === R.a_eqEsperado, R.a_equipo + ' (esperado ' + R.a_eqEsperado + ')'],
       ['(A) y cuando llegaron',                               R.a_fecha, R.a_fecha],
       ['(A) con su prefijo propio clnkb_',                    R.a_prefijo, R.a_prefijo],
       ['(B) NO toco el estudio abierto: cero slots',          R.b_slots === 0, R.b_slots],
