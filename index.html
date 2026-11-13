@@ -361,6 +361,11 @@
      La tabla se lleva su propio desplazamiento (`overflow:auto`) para que la imagen, la
      reproduccion y la tabla entren JUNTAS sin mover la ventana — el pedido literal. */
   #cine-ov .cine-col-der { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  /* El selector de estructura que vivia DENTRO de cada cajon. Lo reemplaza la tercera fila del
+     selector progresivo; se esconde en vez de retirarse para no adaptar los cinco usos del
+     suite que lo aprietan por su atributo. `display:none` lo saca ademas del orden de
+     tabulacion, que es lo que importa para quien navega con el teclado. */
+  #cine-ov .cine-selviejo { display: none !important; }
   /* ⚠️ EL ALTO DEL MARCO, EN UNA SOLA VARIABLE. El modal trae `max-height:94vh` en LINEA y
      maximizado pasa a toda la pantalla: las dos acotaciones de abajo tienen que seguir a ese
      numero, y con el 94 escrito a mano en tres lugares bastaba con que uno quedara viejo para
@@ -141683,49 +141688,169 @@ function _medDefOn() {
 
 /* La barra lateral: tres grupos, uno abierto, y el submenú debajo del suyo. Se pinta aparte
    del panel guía porque son dos zonas distintas y el guía se reescribe en cada medición. */
+/* ══ MEDIR-1 — EL SELECTOR PROGRESIVO: MODO → QUE MEDIR → ESTRUCTURA ═════════════════════
+   Tres filas chicas, una debajo de la otra, por pedido del medico. Reemplaza a la barra lateral
+   de grupos con submenu que vivia a la izquierda de la imagen.
+
+   ⚠️ LOS IDS DE LOS DOS PRIMEROS NIVELES SE CONSERVAN —`cine-g-<grupo>` y los `t.id` de
+   `_MED_HERRS`— porque de ellos cuelgan el suite y el cableado. Lo que cambia es la forma, no
+   los nombres: un renombre habria obligado a adaptar casos maduros para cero ganancia.
+
+   ⚠️ LA TERCERA FILA NO TIENE DUEÑO PROPIO: llama a `d2Modo` y a `dopModo`, que son los dueños
+   del estado desde antes de esta tanda. Con una variable propia, el selector y el cajon podrian
+   decir dos estructuras distintas del mismo estudio — el patron de «dos dueños del mismo valor»
+   que este archivo persigue desde el Diam TSVI.
+
+   ⚠️ «DEFORMACION» SIGUE SIENDO UN MODO aunque el pedido solo nombre «2D | Doppler/M»: la orden
+   dice tambien que se conservan todas las funciones actuales, y sus tres herramientas —Strain
+   VI, LARS y Strain VD— no tienen otra puerta. Aparece solo con el modulo encendido, que es la
+   primera capa del gate que ya existia. */
+const _MED_EST_2D = [
+  /* El ORDEN es el del pedido: Aorta, AI, VI, VD, AD, VCI.
+     ⚠️ «AD» NO ESTA, y no es un olvido: medido sobre `_d2Nuevo()`, la auricula derecha no tiene
+     NINGUNA medida de distancia en esta app —los cinco grupos con dato son vi, vd, ao, ai y
+     vci—. El pedido la nombra para el gesto de AREA (punto 6), que es otra herramienta. Poner
+     el boton aca daria una estructura que al abrirse muestra una tabla vacia, y agregarle una
+     fila seria contenido clinico, que lo decide el medico. Queda declarado. */
+  { m:'ao',  rot:'Aorta' },
+  { m:'ai',  rot:'AI' },
+  { m:'vi',  rot:'VI' },
+  { m:'vd',  rot:'VD' },
+  { m:'vci', rot:'VCI' }
+];
+/* El orden del pedido para Doppler: Mitral, Aortica, Tricuspide, Pulmonar. Los rotulos salen de
+   `_DOP_VALVULAS` —el mismo dueño que rotula la tabla y la imagen guardada— para que el selector
+   y la tabla no puedan nombrar la misma valvula de dos formas. */
+const _MED_EST_DOP = ['mit', 'ao', 'tri', 'pul'];
+
+/* El rotulo de la segunda fila cambia con el modo: en 2D se elige QUE se mide y en Doppler se
+   elige CON QUE se mide. Decirle «Que medir» a una fila de herramientas de trazado seria
+   mentirle al medico sobre lo que esta eligiendo. */
+function _medSideRotNivel2(g) { return g === 'dop' ? 'Herramienta' : 'Qué medir'; }
+
+function _medSideFila(rot, cuerpo) {
+  if (!cuerpo) return '';
+  return '<div style="display:flex;flex-direction:column;gap:2px;">' +
+    '<span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
+      'color:var(--text2);">' + escHtml(rot) + '</span>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + cuerpo + '</div></div>';
+}
+
+/* Un boton del selector. `activo` lo rellena con el color del modo; `apagado` lo deja visible y
+   sin efecto —el caso del boton «Volumen», que el pedido quiere a la vista con su leyenda—. */
+function _medSideBtn(id, rot, activo, col, apagado, tip) {
+  const cv = 'var(' + col + ')';
+  return '<button type="button" class="btn btn-ghost"' + (id ? ' id="' + id + '"' : '') +
+    (tip ? ' title="' + escHtml(tip) + '"' : '') +
+    (apagado ? ' disabled aria-disabled="true"' : '') +
+    ' style="padding:3px 7px;font-size:10px;min-height:28px;min-width:0;border-radius:5px;' +
+    'line-height:1.1;white-space:nowrap;border:1px solid ' + (apagado ? 'var(--border)' : cv) + ';' +
+    (apagado ? 'background:transparent;color:var(--text2);opacity:.55;cursor:default;'
+             : (activo ? 'background:' + cv + ';color:' + _medTextoSobre(col) + ';font-weight:700;'
+                       : 'background:transparent;color:' + cv + ';')) + '">' +
+    escHtml(rot) + '</button>';
+}
+
 function _medSideRender() {
   const cont = _medEl('cine-side');
   if (!cont) return;
   const ab = _medGrupoAbierto();
-  let html = '';
   /* PRIMERA CAPA del gate de Deformación: con el módulo apagado su grupo no se dibuja, así que
      sus tres herramientas —Strain VI, LARS y Strain VD— no están en el DOM. La segunda capa vive
      en `medHerramienta`, que se niega a seleccionarlas; y la tercera en `_medSoltarDef`, para el
      caso de apagar el módulo con el visor midiendo. Cada una tiene su condición en TC-248: una
      capa sin condición propia es una capa que nadie sabe si existe. */
-  _MED_GRUPOS.filter(G => G.g !== 'def' || _medDefOn()).forEach(G => {
-    const abierto = ab === G.g;
-    const cv = 'var(' + G.col + ')';
-    /* El grupo abierto va RELLENO con su color; el cerrado lleva el mismo color sólo en el
-       filete y el texto. Así los tres se leen como una familia y como el nivel de arriba, sin
-       que el cerrado grite igual que el abierto. */
-    html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-g-' + G.g + '" ' +
-      'title="' + escHtml(G.tip) + '" style="padding:7px 9px;font-size:12.5px;font-weight:700;' +
-      'letter-spacing:.2px;text-align:left;border-radius:7px;border:1px solid ' + cv + ';' +
-      'border-left-width:4px;' +
-      (abierto ? 'background:' + cv + ';color:' + _medTextoSobre(G.col) + ';'
-               : 'background:transparent;color:' + cv + ';') + '">' +
-      (abierto ? '▾ ' : '▸ ') + G.rot + '</button>';
-    if (abierto) {
-      /* El submenú es un CAJÓN: sangrado, con fondo propio y colgado del grupo por un filete
-         de su color, para que se lea como subordinado y no como tres botones más de la misma
-         lista. */
-      html += '<div style="display:flex;flex-direction:column;gap:1px;margin:3px 0 7px 12px;' +
-        'padding:4px 3px;background:var(--bg3);border-left:2px solid ' + cv + ';' +
-        'border-radius:0 6px 6px 0;">';
-      _MED_HERRS.filter(t => t.g === G.g).forEach(t => {
-        const sel = _medHerr === t.h;
-        html += '<button type="button" class="btn btn-ghost" id="' + _V.pfx + t.id + '" ' +
-          'title="' + escHtml(t.tip) + '" style="padding:3px 6px;font-size:10px;font-weight:' +
-          (sel ? '600' : '400') + ';text-align:left;border:none;border-radius:4px;' +
-          (sel ? 'background:' + cv + ';color:' + _medTextoSobre(G.col) + ';'
-               : 'background:transparent;color:var(--text2);') + '">' +
-          (sel ? '● ' : '· ') + t.rot + '</button>';
-      });
-      html += '</div>';
-    }
+  const grupos = _MED_GRUPOS.filter(G => G.g !== 'def' || _medDefOn());
+  const colDe = g => (_MED_GRUPOS.filter(x => x.g === g)[0] || { col:'--accent' }).col;
+
+  /* ── NIVEL 1 — MODO ───────────────────────────────────────────────────────────────────── */
+  let f1 = '';
+  grupos.forEach(G => {
+    f1 += _medSideBtn(_V.pfx + 'cine-g-' + G.g, G.rot, ab === G.g, G.col, false, G.tip);
   });
-  cont.innerHTML = html;
+
+  /* ── NIVEL 2 — QUE MEDIR (2D y Deformacion) / HERRAMIENTA (Doppler) ───────────────────── */
+  let f2 = '';
+  if (ab) {
+    const cv = colDe(ab);
+    _MED_HERRS.filter(t => t.g === ab).forEach(t => {
+      f2 += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv, false, t.tip);
+    });
+    /* ⚠️ «VOLUMEN» (AI BIPLANO) VA VISIBLE Y APAGADO, con su leyenda, que es el pedido literal
+       del punto 7. NO lleva id de herramienta y NO entra en `_MED_HERRS`: si entrara, lo
+       alcanzarian `medHerramienta` y el gate de Deformacion, y habria que inventarle un
+       `_medHerr` que ningun gesto sabe dibujar. Es un hueco declarado en la pantalla, no una
+       herramienta a medio hacer. */
+    if (ab === '2d') {
+      f2 += _medSideBtn('', 'Volumen', false, cv, true,
+        'Volumen de la AI por biplano — próximamente. Todavía no está implementado.');
+    }
+  }
+
+  /* ── NIVEL 3 — ESTRUCTURA ─────────────────────────────────────────────────────────────── */
+  /* Solo aparece donde hay estructuras que elegir: con Distancia en 2D y con el grupo Doppler
+     abierto. Con Simpson la «estructura» es el VI y la elige el propio modulo —su selector es el
+     de VENTANA apical, que vive en el panel guia—, asi que una fila aca repetiria esa decision
+     con otro nombre. Deformacion no tiene estructuras. */
+  let f3 = '';
+  try {
+    if (ab === '2d' && _medHerr === 'dist' && typeof d2Modo === 'function') {
+      const E = (typeof _d2Estado === 'function') ? _d2Estado() : null;
+      _MED_EST_2D.forEach(S => {
+        const con = (typeof _d2GrupoConDatos === 'function') && _d2GrupoConDatos(S.m);
+        f3 += _medSideBtn(_V.pfx + 'cine-est-' + S.m, S.rot + (con ? ' •' : ''),
+          !!(E && E.modo === S.m), colDe('2d'), false,
+          con ? 'Esta estructura ya tiene mediciones cargadas' : '');
+      });
+    } else if (ab === 'dop' && typeof dopModo === 'function') {
+      const E = (typeof _dopEstado === 'function') ? _dopEstado() : null;
+      _MED_EST_DOP.forEach(m => {
+        const V = (typeof _DOP_VALVULAS !== 'undefined')
+          ? _DOP_VALVULAS.filter(x => x.m === m)[0] : null;
+        if (!V) return;
+        const con = (typeof _dopValvConDatos === 'function') && _dopValvConDatos(m);
+        f3 += _medSideBtn(_V.pfx + 'cine-est-' + m, V.rot + (con ? ' •' : ''),
+          !!(E && E.modo === m), colDe('dop'), false,
+          con ? 'Esta válvula ya tiene mediciones cargadas' : '');
+      });
+    }
+  } catch (e) { console.error('selector/estructura', e); }
+
+  cont.innerHTML = _medSideFila('Modo', f1) +
+                   _medSideFila(_medSideRotNivel2(ab), f2) +
+                   _medSideFila('Estructura', f3);
+
+  /* ⚠️ LOS OYENTES DEL NIVEL 3 SE CABLEAN ACA, al final del repintado: este nodo se REESCRIBE
+     entero, asi que un manejador puesto sobre un boton se va con el nodo viejo y no hay fuga
+     posible. Los niveles 1 y 2 NO se cablean aca: los cablea `_medEstado`, que corre DESPUES de
+     llamar a esta funcion y ata cada control A SU VISTA con `_vBind`.
+
+     ⚠️ Y POR ESO EL NIVEL 3 TERMINA LLAMANDO A `_medEstado` Y NO A `_medSideRender`, que fue el
+     primer intento y era una FUGA: repintar sin recablear deja los botones de Modo y de Que
+     medir con el id puesto y sin oyente. Medido — tras tocar una estructura, apretar
+     «Doppler / M» no hacia absolutamente nada y la pantalla no daba ninguna señal. Es el
+     «visible, clicable, sin ningun efecto» que este archivo documenta con los siete acordeones
+     de Congenitas.
+
+     ⚠️ Y VAN ATADOS A SU VISTA con `_vBind`, igual que los demas controles de la barra: un
+     manejador pelado corre con la vista ACTIVA al momento del clic —la A por omision—, asi que
+     elegir una estructura en la vista B movia la de la A. Es la trampa del contexto ambiente
+     que este archivo ya cerro para el canvas y para la barra. */
+  try {
+    const pref = _V.pfx + 'cine-est-';
+    const _V0 = _V;
+    const todas = _MED_EST_2D.map(S => S.m).concat(_MED_EST_DOP);
+    todas.forEach(m => {
+      const b = document.getElementById(pref + m);
+      if (!b) return;
+      b.onclick = _vBind(_V0, function () {
+        if (_medGrupoAbierto() === 'dop') { if (typeof dopModo === 'function') dopModo(m); }
+        else if (typeof d2Modo === 'function') d2Modo(m);
+        try { if (typeof _medEstado === 'function') _medEstado(); else _medSideRender(); }
+        catch (e) { console.error('selector/repintar', e); }
+      });
+    });
+  } catch (e) { console.error('selector/cablear', e); }
 }
 
 /* Engancha los controles de UNA vista. Cada manejador corre con SU vista activa: sin eso,
@@ -150104,7 +150229,9 @@ function _dopRender() {
      Tocar la válvula abierta la CIERRA y vuelve al selector: `dopModo` alterna, igual que
      `medToggle`. Las cuatro salen de `_DOP_VALVULAS`, la misma lista que rotula la imagen
      guardada, así que una tabla no puede decir una válvula distinta de la que estaba abierta. */
-  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+  /* ⚠️ ESCONDIDO DESDE MEDIR-1 por el mismo motivo que su hermano del cajon 2D: el selector
+     progresivo de la columna derecha es el unico visible. Ver la nota de `_d2Render`. */
+  h += '<div class="cine-selviejo" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
     _DOP_VALVULAS.map(V => {
       /* El punto marca «esta válvula ya tiene datos». Va en el ROTULO y no en el color: un
          matiz de fondo no se ve sobre el botón activo, que es justamente el que menos falta
@@ -151081,7 +151208,14 @@ function _d2Render() {
   if (!_d2Visible()) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
   cont.style.display = 'block';
 
-  let h = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+  /* ⚠️ ESTE SELECTOR QUEDA ESCONDIDO DESDE MEDIR-1 (clase `cine-selviejo`), no retirado.
+     Quien elige la estructura es el selector progresivo de la columna derecha, y dos selectores
+     visibles del mismo estado es justo lo que el rediseño vino a cerrar. Se esconde en vez de
+     borrarse porque CINCO usos del suite lo aprietan por su `data-d2-modo` / `data-dop-modo`, y
+     `display:none` los deja funcionando —un `.click()` por JS no necesita que el nodo se vea—
+     mientras lo saca del orden de tabulacion, que es lo que importa para el teclado.
+     Queda declarado como deuda: retirarlo de verdad es adaptar esos cinco usos. */
+  let h = '<div class="cine-selviejo" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
     _D2_GRUPOS.map(G => {
       const con = _d2GrupoConDatos(G.m);
       return '<button type="button" class="btn ' + (E.modo === G.m ? 'btn-primary' : 'btn-ghost') +
