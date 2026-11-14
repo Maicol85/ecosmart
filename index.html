@@ -334,25 +334,39 @@
      `flex-start` cada uno conserva el suyo: 44 los normales (el piso tactil global) y 56 los
      dos que el pedido destaca. */
   #cine-ov .cine-barra { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; }
+  /* ══ MEDIR-3 — TODOS DEL MISMO TAMANIO FIJO, Y EL AZUL SOLO PARA UN MODO ══════════════════
+     ⚠️ EL ALTO PASA A SER UNO SOLO Y FIJO EN px, que es el punto B. Antes `align-items:flex-start`
+     dejaba a cada boton con su alto natural y los dos de la clase `cine-b-alto` median 56 px
+     contra los 44 de los otros seis — medido en los ocho cruces del arbol anterior: `barraAltoMin`
+     44 y `barraAltoMax` 56. Hoy el alto lo fija esta regla, asi que no depende del rotulo ni del
+     contenido: 44 px EXACTOS, que es ademas el piso tactil de esta casa.
+     ⚠️ Y EL ALTO VA CON `height` Y NO SOLO CON `min-height`: con el minimo, un rotulo de dos
+     lineas —«Capturar + medicion» a 118 px de ancho— crece por encima del resto y «todos del
+     mismo tamanio» deja de ser cierto en cuanto cambie un texto. */
   #cine-ov .cine-barra .btn {
     border-radius: 0 !important;
     flex: 0 0 118px; min-width: 0; max-width: 118px;
-    padding: 6px 4px !important; font-size: 10.5px !important;
-    white-space: normal; line-height: 1.15;
+    height: 44px !important; min-height: 44px !important; max-height: 44px !important;
+    padding: 4px !important; font-size: 10.5px !important;
+    white-space: normal; line-height: 1.1;
+    overflow: hidden;
     display: flex; align-items: center; justify-content: center; text-align: center;
   }
-  /* ⚠️ LOS DOS DESTACADOS SON «Guardar» y «Capturar + medicion», por pedido: mas ALTOS y con el
-     color de acento. El alto se da con `min-height` sobre el piso tactil de 44 px que la regla
-     global de este archivo ya les pone — bajarlo lo romperia. */
+  /* ⚠️ LAPIDA — `.cine-b-alto` (MEDIR-1). Daba 56 px de alto y el color de acento a «Guardar» y
+     a «Capturar + medicion». Las DOS son ACCIONES PUNTUALES, y el punto B fija que el azul es
+     SOLO del que representa un modo o una herramienta PRENDIDA: con una accion pintada igual que
+     un modo, el color deja de decir «esto esta activo» y pasa a decir «esto es importante», que
+     es una informacion que el medico no puede usar. La clase se sigue emitiendo —la leen tres
+     casos del suite— pero NO pinta nada; lo que la neutraliza es que la regla de arriba fija el
+     alto para todos y esta de aca abajo le devuelve el aspecto de un boton normal.
+     El azul del modo lo sigue poniendo `_vModoSync` sobre `cine-medir`, que es el unico
+     interruptor de la barra. */
   #cine-ov .cine-barra .cine-b-alto {
-    min-height: 56px !important;
-    background: var(--accent) !important;
-    border-color: var(--accent) !important;
-    color: #fff !important;
-    font-weight: 700 !important;
+    background: var(--bg3) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+    font-weight: 600 !important;
   }
-  #cine-ov .cine-barra .cine-b-alto:hover,
-  #cine-ov .cine-barra .cine-b-alto:focus-visible { filter: brightness(1.08); }
 
   /* ── DOS COLUMNAS: IMAGEN A LA IZQUIERDA, MEDICION A LA DERECHA ──────────────────────────
      ⚠️ EL CORTE VA SOBRE LA VENTANA (`@media`) Y NO SOBRE EL CONTENEDOR, que es la regla fija
@@ -361,6 +375,22 @@
      La tabla se lleva su propio desplazamiento (`overflow:auto`) para que la imagen, la
      reproduccion y la tabla entren JUNTAS sin mover la ventana — el pedido literal. */
   #cine-ov .cine-col-der { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  /* ══ MEDIR-3 — EL SELECTOR QUEDA FIJO Y SOLO SE DESPLAZA LA TABLA (punto A2) ═══════════════
+     ⚠️ HASTA ACA EL DESPLAZAMIENTO ERA DE LA COLUMNA ENTERA (`.cine-col-der { overflow:auto }`),
+     asi que el selector —y con el el boton «2D / Doppler / M»— se iba con el scroll y el medico
+     perdia de vista la unica via a las nueve herramientas. Ahora el `overflow` baja un nivel: la
+     columna se queda quieta y lo que se desplaza es `.cine-der-scroll`, que envuelve el panel
+     guia y la ranura de los cajones.
+     ⚠️ `flex: 0 0 auto` EN EL SELECTOR NO ES DECORATIVO: el valor inicial de un hijo flex es
+     `flex-shrink:1`, asi que con la tabla larga el navegador le robaba alto al selector antes de
+     desplazar nada. Y `min-height: 0` en el scroller es el otro eslabon: sin el, su base `auto`
+     significa «no me encojas por debajo de mi contenido» y el desplazamiento se vuelve a ir a la
+     columna. Es la misma cadena que MEDIR-1 documenta para el modal. */
+  #cine-ov .cine-col-der > [id$="cine-side"] { flex: 0 0 auto; }
+  #cine-ov .cine-der-scroll {
+    display: flex; flex-direction: column; gap: 6px;
+    flex: 1 1 auto; min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden;
+  }
   /* ══ MEDIR-2 — EL AREA TACTIL DE LOS BOTONES DEL SELECTOR ════════════════════════════════
      ⚠️ SE VEN DE 28 px Y SE TOCAN EN 44, que es la regla fija de esta casa (PANT-2, PANT-13):
      el area la da un `::after` absoluto y NUNCA un margen negativo ni un `min-height`, porque
@@ -376,6 +406,34 @@
     transform: translateY(-50%); height: 44px;
   }
   #cine-ov .cine-selfila { row-gap: 16px; }
+  /* ══ MEDIR-3 — LOS BOTONES DE LA FILA Y EL ⓘ: SE VEN CHICOS Y SE TOCAN EN 44 ══════════════
+     ⚠️ EL PISO TACTIL GLOBAL DE ESTE ARCHIVO LES PONE `min-height: 44px` A TODO `.btn`, y sobre
+     una fila de tabla eso es un problema REAL y no estetico: con tres botones de 44 px que
+     ENVUELVEN —y envolver es justo lo que el punto A3 pide cuando no entran— la fila pasaba a
+     medir 88 px y una tabla de ocho filas no cabia en ninguna pantalla. Se resuelve como esta
+     casa lo resuelve desde PANT-2: el boton se ve de 22 px y el area de toque la da un `::after`
+     ABSOLUTO de 44, que no participa del flujo y por lo tanto no agranda la fila. Nunca un
+     margen negativo.
+     ⚠️ Y `!important` PORQUE EL BOTON SALE CON ESTILOS EN LINEA desde `_medTablaHTML`: un estilo
+     en linea le gana a la hoja sin importar la especificidad — la misma razon de siempre en este
+     overlay. */
+  #cine-ov .med-fbot, #cine-ov .med-info {
+    position: relative;
+    min-height: 22px !important; height: 22px !important;
+    line-height: 1 !important;
+  }
+  #cine-ov .med-fbot::after, #cine-ov .med-info::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%;
+    transform: translateY(-50%); height: 44px;
+  }
+  /* El hueco VERTICAL entre dos lineas de botones de una misma celda: 22 + 22 = 44 exactos, que
+     es el minimo que impide que dos areas tactiles de 44 se encimen. Es la misma cuenta que
+     MEDIR-2 hizo para el selector (28 + 16), y la misma trampa: el atajo `gap` en linea fija los
+     DOS ejes, asi que el marcado emite `column-gap` y el vertical lo pone esta regla.
+     ⚠️ VA POR CLASE Y NO POR UN SELECTOR DE ATRIBUTO sobre el `style`: emparejar un trozo de
+     cadena de estilo es exactamente el tipo de regla que se rompe sin avisar el dia que alguien
+     reordene una declaracion. */
+  #cine-ov .med-fbots { row-gap: 22px; }
   /* El selector de estructura que vivia DENTRO de cada cajon. Lo reemplaza la tercera fila del
      selector progresivo; se esconde en vez de retirarse para no adaptar los cinco usos del
      suite que lo aprietan por su atributo. `display:none` lo saca ademas del orden de
@@ -415,13 +473,23 @@
        —650 px— y la fila crecia con ella. Medido: con todo lo demas puesto y sin esta linea el
        modal se desplazaba 351 px, o sea PEOR que con la resta que esto vino a reemplazar. */
     #cine-ov .cine-fila { flex: 1 1 auto; min-height: 0; align-items: stretch !important; }
+    /* ⚠️ MEDIR-3 — 310 → 380 px, Y EL `overflow` BAJA AL SCROLLER DE ADENTRO. Los 70 px salen
+       del ancho que gano el modal (1180 → 1500, acotado por la ventana), no de la imagen: a 1440
+       la columna de la imagen pasa de 828 a 1028 px al mismo tiempo. Los 380 son lo que necesita
+       la fila de una sola medida —nombre, valor grande con su unidad, los tres botones y la
+       casilla— sin desplazamiento horizontal, que es el punto A3; con los 310 anteriores el cajon
+       2D desbordaba 32 px con UNA tabla y el Doppler 179 con dos.
+       `overflow:hidden` acota la columna sin desplazarla: lo que se desplaza es el scroller. */
     #cine-ov .cine-col-der {
-      flex: 0 0 310px; max-width: 310px;
-      min-height: 0; overflow: auto;
+      flex: 0 0 380px; max-width: 380px;
+      min-height: 0; overflow: hidden;
     }
-    /* Y la columna de la imagen tampoco puede desbordar sola: `56vh` de lienzo mas el
-       reproductor y la ayuda pasaban el alto del modal por su cuenta. */
-    #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 230px) !important; }
+    /* Y la columna de la imagen tampoco puede desbordar sola: el lienzo mas el reproductor y la
+       ayuda pasaban el alto del modal por su cuenta.
+       ⚠️ MEDIR-3 — 230 → 190 px: la imagen gana 40 px de alto (punto A1). El numero se verifica
+       midiendo `modalScrollY` en los ocho cruces, que es la unica forma de saber si una resta de
+       estas sigue valiendo — la leccion que MEDIR-1 dejo escrita sobre este mismo calc. */
+    #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 190px) !important; }
   }
   @media (max-width: 1099.98px) {
     /* Por debajo de 1100 px el panel se apila DEBAJO de la imagen —el pedido literal— y ahi el
@@ -140171,6 +140239,79 @@ function _medVelCalEn(cal, y) {
   return (cal.y0 - y) * cal.cmsPorPx;
 }
 
+/* ══ MEDIR-3 — LA CALIBRACION DE VELOCIDAD CON DOS PUNTOS Y DOS VALORES (bloque C) ═══════════
+   ⚠️ HASTA ACA EL CERO SE SUPONIA. `_medVelClic` guardaba el PRIMER clic como `y0` y pedia UN
+   solo valor, el de la segunda marca: o sea que el medico tenia que acertarle a la linea de base
+   con el mouse y, si el cero no estaba visible en el recuadro —que es la mitad de los casos, lo
+   dice el comentario del dibujo—, no habia forma de calibrar bien. Hoy marca DOS puntos
+   CUALESQUIERA del eje, escribe el valor de cada uno, y de ahi salen LAS DOS COSAS: la escala y
+   la POSICION del cero, que puede quedar fuera del segmento marcado.
+
+   La cuenta, derivada de la unica formula que lee la velocidad —`_medVelCalEn`, que es
+   `v(y) = (y0 - y) * k`—, para que no haya dos modelos del mismo eje:
+       v0 = (y0 - yA) * k   y   v1 = (y0 - yB) * k
+       restando:  v0 - v1 = (yB - yA) * k   →   k = (v0 - v1) / (yB - yA)
+       y de la primera:  y0 = yA + v0 / k
+   Asi, con marcas en 0,5 y 1,0 m/s el cero cae donde corresponde aunque ninguna de las dos este
+   en el cero, que es el ejemplo del pedido.
+
+   ⚠️ ES UNA FUNCION PURA Y EXPUESTA, no una cuenta metida en el manejador del clic: asi el caso
+   la puede probar con valores conocidos sin simular dos clics y dos `prompt`, que es lo que la
+   verificacion pide. Devuelve `null` cuando no se puede sacar una escala, y el llamador traduce
+   el motivo a un mensaje de una linea.
+
+   Las dos entradas van en CM/S, que es la unidad interna de todo este bloque; quien pregunta al
+   medico convierte. */
+/* ══ MEDIR-3 — EL MODO M DESACTIVA LA HERRAMIENTA VELOCIDAD (bloque C) ═══════════════════════
+   Verdadero cuando TODAS las regiones medibles de la imagen tienen el eje vertical en
+   CENTIMETROS y ninguna declara velocidad: es un modo M —distancia contra tiempo— y una
+   velocidad medida ahi seria en realidad una distancia. El mensaje de la app ya lo decia al
+   intentar medir; lo que faltaba era que el boton no se ofreciera.
+
+   ⚠️ LA CONDICION ES «TODAS» Y NO «ALGUNA», y la mitad que falta es la que se olvida: una imagen
+   puede traer un recuadro de modo M junto a un Doppler espectral —el panel ya tiene una frase
+   para ese caso—, y con «alguna» la herramienta quedaria desactivada sobre una imagen en la que
+   SI se puede medir velocidad.
+   ⚠️ Y UNA CALIBRACION A MANO PUESTA MANDA SOBRE ESTO, igual que manda sobre la escala del
+   archivo: si el medico ya calibro, hay escala de velocidad y la herramienta sirve.
+   ⚠️ SIN REGIONES DECLARADAS DEVUELVE FALSO: ahi no se sabe que eje tiene la imagen, y es
+   justamente el caso en que la app ofrece calibrar a mano. Bloquearla dejaria al medico sin
+   ninguna via. */
+function _medVelBloqueadaM() {
+  try {
+    if (_medCalibVel) return false;
+    const regs = (typeof _medRegs === 'function') ? _medRegs() : null;
+    const cand = (regs || []).filter(r => r && r.uy != null);
+    if (!cand.length) return false;
+    if (cand.some(_dcmImgRegionVelocidad)) return false;
+    /* ⚠️ «MODO M» ES EL EJE Y EN CM **Y EL X NO EN CM**, y no alcanza con mirar el Y. Es la misma
+       definicion que el panel guia ya usaba para contar los trazos de modo M de una imagen, y la
+       diferencia es la que separa un modo M de una imagen 2D: en el 2D los DOS ejes estan en cm.
+       La primera version de este predicado solo miraba `uy === CM`, asi que bloqueaba Velocidad
+       sobre cualquier imagen 2D — y con eso el cajon Doppler dejaba de dibujarse, porque su
+       visibilidad cuelga de que alguna vista tenga una herramienta Doppler activa. Lo destapo la
+       sonda de dos motores: `dopTablas` paso de 2 a CERO en los ocho cruces. En una imagen 2D la
+       herramienta sigue ofreciendose y el mensaje de siempre explica que es para Doppler, que es
+       la conducta que ya habia; lo que esta tanda agrega es SOLO el caso del modo M. */
+    return cand.every(r => r.uy === DCMIMG_UNI_CM && r.ux !== DCMIMG_UNI_CM);
+  } catch (e) { return false; }
+}
+window._medVelBloqueadaM = _medVelBloqueadaM;
+
+function _medCalVelDos(yA, v0, yB, v1) {
+  if (!isFinite(yA) || !isFinite(yB) || !isFinite(v0) || !isFinite(v1)) return null;
+  const dy = yB - yA;
+  if (Math.abs(dy) < 5) return null;          // demasiado juntas: la escala saldria de 4 pixeles
+  const dv = v0 - v1;
+  if (dv === 0) return null;                  // el mismo valor dos veces: no hay escala
+  const k = dv / dy;
+  if (!isFinite(k) || k === 0) return null;
+  const y0 = yA + v0 / k;
+  if (!isFinite(y0)) return null;
+  return { y0: y0, cmsPorPx: k };
+}
+window._medCalVelDos = _medCalVelDos;
+
 /* La región que contiene al punto, en píxeles de la imagen. Si hay varias superpuestas gana
    la ÚLTIMA declarada, que es la más específica en la práctica (el 2D suele venir primero y
    los recuadros de Doppler después). */
@@ -141517,7 +141658,15 @@ function _vNueva(pfx, rot) {
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
     medTrazo: null, medVels: [], medTiempos: [], medVtis: [], medCalib: null, medCalibrando: false,
-    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
+    medCalibVel: null, medCalibrandoVel: false,
+    /* ⚠️ MEDIR-3 — LA PRIMERA MARCA DE LA CALIBRACION DE VELOCIDAD ES ESTADO POR VISTA, igual que
+       `medCalibVel`, y NO una variable de modulo. Es el mismo razonamiento con que `_medHerr` y
+       `_medPuntos` viven aca: con las dos vistas abiertas, calibrar en la A y empezar a calibrar
+       en la B compartirian el punto a medio marcar, asi que el segundo clic de la B se combinaria
+       con el valor que el medico tipeo en la A y la escala saldria de dos imagenes distintas.
+       Guarda `{ y, cms }` — la altura en pixeles de imagen y el valor ya convertido a cm/s. */
+    medCalVelP0: null,
+    medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
     lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false,
     /* De QUÉ estudio son las sesiones de arriba. `null` = no hay ninguna. Ver `_estEpoca`. */
@@ -141576,7 +141725,8 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
     _medVtis:'medVtis',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
-    _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
+    _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel',
+    _medCalVelP0:'medCalVelP0', _strain:'strain',
     _medEtiqueta:'medEtiqueta', _medEtiqAuto:'medEtiqAuto',
     _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
   };
@@ -141691,10 +141841,22 @@ function _vPanelHTML(p, esB) {
              reglas siguen calzando sobre la imagen.
              Sin recorte el envoltorio no lleva estilos propios y el canvas conserva su
              `max-width:100%;max-height:56vh`, o sea exactamente el layout de antes. */
-          '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:8px;' +
+          /* ⚠️ MEDIR-3 — EL NEGRO PASA DEL LIENZO AL RECORTE, Y ES EL PUNTO A1. Medido en los ocho
+             cruces del arbol anterior: el lienzo median 828 px y el canvas 600, o sea **228 px de
+             NEGRO** pintados a los costados de la imagen. El negro existe para enmarcar la
+             imagen, no para rellenar la columna, asi que se le pone al envoltorio que tiene el
+             tamanio de la imagen y el lienzo queda transparente.
+             ⚠️ Y NO SE TOCA LA GEOMETRIA DEL CANVAS: sigue midiendo `cols × filas` en pixeles y
+             `_medPintar` sigue posicionando el overlay contra `base.parentElement`, que sigue
+             siendo `cine-recorte`. `_medPunto` divide por `cv.width / r.width`, asi que las
+             coordenadas de imagen y la calibracion no se enteran — es lo que ya declara el
+             comentario del recorte. El `min-height` se queda en el lienzo: es el alto del estado
+             VACIO, cuando todavia no hay canvas que enmarcar. */
+          '<div id="' + p + 'cine-lienzo" style="position:relative;' +
             'display:flex;align-items:center;justify-content:center;min-height:200px;">' +
-            '<div id="' + p + 'cine-recorte" style="position:relative;overflow:hidden;line-height:0;">' +
-              '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:56vh;display:block;"></canvas>' +
+            '<div id="' + p + 'cine-recorte" style="position:relative;overflow:hidden;line-height:0;' +
+              'background:#000;border-radius:8px;">' +
+              '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:66vh;display:block;"></canvas>' +
               '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
             '</div>' +
           '</div>' +
@@ -141720,12 +141882,19 @@ function _vPanelHTML(p, esB) {
            reproduccion y la tabla JUNTAS sin mover la ventana, y una franja a todo el ancho
            debajo de la imagen es justo lo que obligaba a bajar. Su tabla de Simpson entra porque
            la columna son 310 px y la tabla se lleva su propio desplazamiento. */
+        /* ⚠️ MEDIR-3 — EL SELECTOR QUEDA FUERA DEL SCROLLER (punto A2). `cine-side` es hermano de
+           `.cine-der-scroll` y no hijo: asi se queda fijo arriba de la columna con el boton
+           «2D / Doppler / M» siempre a la vista, y lo que se desplaza es el panel guia y la
+           ranura de los cajones. Los dos ids se conservan —de ellos cuelgan la regla del modo
+           minimo, `_medEl` y los casos—; lo que cambia es que hay un envoltorio en medio. */
         '<div class="cine-col-der">' +
           '<div id="' + p + 'cine-side" style="display:flex;flex-direction:column;gap:4px;min-width:0;"></div>' +
-          '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
-            'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
-            'background:var(--bg2);"></div>' +
-          (esB ? '' : '<div id="cine-der-slot" style="display:flex;flex-direction:column;gap:6px;min-width:0;"></div>') +
+          '<div class="cine-der-scroll">' +
+            '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
+              'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
+              'background:var(--bg2);"></div>' +
+            (esB ? '' : '<div id="cine-der-slot" style="display:flex;flex-direction:column;gap:6px;min-width:0;"></div>') +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -141790,10 +141959,48 @@ const _MED_EST_DOP = ['mit', 'ao', 'tri', 'pul'];
    ⚠️ ESTO NO ESCRIBE NINGUN CAMPO, que es el pedido literal: el area queda en la lista del
    visor, se dibuja sobre la imagen con su rotulo y se publica en el panel guia. No hay un solo
    `_d2Poner` ni un solo id de formulario en este camino. */
+/* ══ MEDIR-3 — EL VD ENTRA AL GESTO DE AREA, EN SUS DOS FASES (bloque D) ═════════════════════
+   ⚠️ APARECE EN DOS FASES Y NO EN UNA SOLA ENTRADA, y es lo que el FAC exige: la fraccion de
+   acortamiento de area sale de DOS contornos del mismo ventriculo en dos momentos del ciclo, asi
+   que la aplicacion tiene que saber de cual es cada uno. Con una sola entrada «VD», el segundo
+   trazo no tendria forma de decir en que fase se tomo y el medico no podria corregir la sistole
+   sin borrar la diastole — que es exactamente lo que `_medAreas` hacia antes de MEDIR-2, cuando
+   dos contornos eran indistinguibles.
+   ⚠️ LOS NOMBRES LARGOS SON LOS DE LA APP, PALABRA POR PALABRA: «Área VD telediastólica» y
+   «Área VD telesistólica» son los rotulos impresos de `vd_area_d` y `vd_area_s`. El rotulo corto
+   del boton es el unico texto propio, porque el largo no entra en un boton de 28 px.
+   ⚠️ ESTO NO ESCRIBE NINGUN CAMPO, igual que las dos auriculas: el pedido lo dice con todas las
+   letras y el caso lo mide censando todos los controles del documento antes y despues de trazar.
+   `vd_area_d`, `vd_area_s` y `vd_fac` del formulario NO se tocan. */
 const _MED_EST_AREA = [
-  { m:'ai', rot:'AI', nom:'Área de AI' },
-  { m:'ad', rot:'AD', nom:'Área de AD' }
+  { m:'ai',  rot:'AI',        nom:'Área de AI' },
+  { m:'ad',  rot:'AD',        nom:'Área de AD' },
+  { m:'vdd', rot:'VD diást.', nom:'Área VD telediastólica' },
+  { m:'vds', rot:'VD sist.',  nom:'Área VD telesistólica' }
 ];
+/* Las dos fases del VD, en un solo lugar: de aca salen la tabla del FAC y su cuenta. */
+const _MED_EST_VD_D = 'vdd', _MED_EST_VD_S = 'vds';
+
+/* ⚠️ LA CUENTA ES UNA FUNCION PURA Y EXPUESTA, no una expresion dentro del pintor: asi el caso
+   la prueba con valores conocidos —y prueba el borde de la sistolica mayor que la diastolica—
+   sin tener que trazar dos contornos con el mouse. Devuelve `null` cuando falta un area, que es
+   lo que hace que la fila no se dibuje hasta tener las dos.
+   FAC = (diastole − sistole) / diastole × 100, que es la definicion que el formulario ya usa en
+   `calcVD`; esta funcion NO la copia de ahi porque ahi vive dentro del calculo del formulario y
+   lee del DOM — lo que se comparte es la definicion, no el codigo, y por eso el caso compara los
+   dos resultados con los mismos numeros. */
+function _medFacVD(areaD, areaS) {
+  /* ⚠️ `null`, `undefined` Y LA CADENA VACIA SE RECHAZAN ANTES DE `Number`, y la primera version
+     no lo hacia: `Number(null)` es **0** y `isFinite(0)` es true, asi que con la sistolica sin
+     medir el FAC salia (20 − 0) / 20 = **100 %** — un numero perfectamente plausible sobre un
+     dato que no existe, que es la peor forma de equivocarse. Lo encontro la sonda: `facSinUna`
+     daba FALSO donde tenia que dar verdadero. */
+  if (areaD == null || areaS == null || areaD === '' || areaS === '') return null;
+  const d = Number(areaD), s = Number(areaS);
+  if (!isFinite(d) || !isFinite(s) || !(d > 0)) return null;
+  return { fac: ((d - s) / d) * 100, invertido: s > d };
+}
+window._medFacVD = _medFacVD;
 var _medAreaEst = null;
 function medAreaEstructura(m) {
   _medAreaEst = (_medAreaEst === m) ? null : m;   // alterna, igual que `d2Modo` y `dopModo`
@@ -141945,7 +142152,108 @@ try {
   }, true);
 } catch (e) {}
 
-/* ══ MEDIR-2 — LA TABLA DE MEDIDAS EN CINCO COLUMNAS ═════════════════════════════════════════
+/* ══ MEDIR-3 — EL GLOBO ⓘ DEL PANEL DE MEDICION (punto A4) ═══════════════════════════════════
+   El pedido: en el panel queda UNA linea de instruccion y todo lo demas —advertencias, notas de
+   metodo, descargos— se MUEVE a un globo. «Se mueve» y no «se borra»: no se pierde una sola
+   palabra de texto clinico, y el caso lo comprueba buscando cada texto DENTRO del globo.
+
+   ⚠️ LOS TEXTOS SE REGISTRAN AL PINTAR Y NO SE INTERPOLAN EN EL BOTON. El boton lleva una CLAVE
+   en `data-med-info` y el texto vive en `_MED_INFO`, asi que ni una palabra del contenido pasa
+   por el marcado: con el texto en un `title` o en un `onclick` habria que escaparlo, y en un
+   manejador en linea el escape NO protege —el parser decodifica la entidad ANTES de compilar el
+   handler—, que es lo que este archivo documenta desde el saneo de los id de CardioSalud.
+
+   ⚠️ ES UN DIALOGO PROPIO Y NO UN `alert`, por lo mismo que el cartel de la comunidad: un `alert`
+   no se puede leer con el lector de pantalla ni cerrar con Escape de forma predecible, y encima
+   de un modal que ya esta abierto pisa el foco sin devolverlo. Lleva `role="dialog"`,
+   `aria-modal`, el foco en «Entendido», Escape, y SE DESTRUYE AL CERRAR — asi no deja un nodo ni
+   un id que los barridos de «Nuevo estudio» puedan alcanzar.
+
+   ⚠️ EL `z-index` ES MAYOR QUE EL DEL VISOR (400): sin eso el globo se abre DEBAJO del overlay
+   del cineloop y el medico aprieta ⓘ y no pasa nada visible — el «visible, clicable, sin ningun
+   efecto» que este archivo ya pago con los siete acordeones de Congenitas. */
+const _MED_INFO = Object.create(null);
+function _medInfoBoton(clave, tit, txts) {
+  const lista = (txts || []).filter(t => t != null && String(t).trim() !== '');
+  if (!lista.length) { delete _MED_INFO[clave]; return ''; }
+  _MED_INFO[clave] = { tit: tit, txts: lista.map(String) };
+  /* Se ve de 18 px y se toca en 44, con el `::after` absoluto de esta casa (PANT-2): agrandar el
+     boton agrandaria la fila, y el pedido es justamente un panel compacto. */
+  return '<button type="button" class="btn btn-ghost med-info" data-med-info="' + escHtml(clave) + '"' +
+    ' aria-label="' + escHtml(tit + ' — notas y advertencias') + '"' +
+    ' title="' + escHtml(tit + ' — notas y advertencias') + '"' +
+    ' style="position:relative;padding:0 5px;min-width:0;min-height:18px;height:18px;' +
+    'font-size:10.5px;line-height:1;border-radius:9px;">ⓘ</button>';
+}
+function _medInfoAbrir(clave) {
+  const d = _MED_INFO[clave];
+  if (!d) return;
+  const ov = document.createElement('div');
+  ov.id = 'med-info-ov';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-labelledby', 'med-info-tit');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+    'display:flex;align-items:center;justify-content:center;padding:18px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:18px 20px;' +
+    'box-shadow:0 10px 40px rgba(0,0,0,.35);';
+  const h = document.createElement('h4');
+  h.id = 'med-info-tit';
+  h.style.cssText = 'font-size:13px;margin-bottom:10px;color:var(--text);';
+  h.textContent = d.tit;
+  caja.appendChild(h);
+  /* Cada texto, su propio parrafo y TODO por `textContent`: estos textos nombran campos del
+     paciente y rotulos que pueden traer un apostrofe o un signo mayor. */
+  d.txts.forEach(t => {
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:11.5px;line-height:1.6;color:var(--text2);margin-bottom:9px;';
+    p.textContent = t;
+    caja.appendChild(p);
+  });
+  const fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;justify-content:flex-end;margin-top:4px;';
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.id = 'med-info-ok'; ok.className = 'btn btn-primary';
+  ok.style.cssText = 'padding:5px 16px;font-size:11.5px;';
+  ok.textContent = 'Entendido';
+  const cerrar = () => { try { ov.remove(); } catch (e) {}
+    document.removeEventListener('keydown', esc, true); };
+  /* `stopImmediatePropagation` porque el oyente genérico de accesibilidad de este archivo elige
+     el dialogo visible mas alto y le aprieta «Cerrar»: sin cortarlo, Escape acá cerraría el
+     VISOR y no el globo. Es la misma guarda que la hoja de los documentos de PANT-31. */
+  const esc = ev => { if (ev.key === 'Escape') { ev.stopImmediatePropagation(); ev.stopPropagation(); cerrar(); } };
+  ok.addEventListener('click', cerrar);
+  document.addEventListener('keydown', esc, true);
+  fila.appendChild(ok); caja.appendChild(fila);
+  ov.appendChild(caja); document.body.appendChild(ov);
+  try { ok.focus(); } catch (e) {}
+}
+window._medInfoAbrir = _medInfoAbrir;
+/* Lo que el globo de una clave tiene registrado, sin abrirlo. Lo usan la sonda de dos motores y
+   los casos para contar los textos movidos y comprobar que cada uno sigue existiendo: con la
+   lista sólo alcanzable desde el DOM del diálogo, la condición dependería de que el diálogo esté
+   abierto y de que el foco no se lo haya llevado otro overlay. */
+function _medPanelInfo(clave) {
+  if (clave === undefined) return Object.keys(_MED_INFO);
+  const d = _MED_INFO[clave];
+  return d ? { tit: d.tit, txts: d.txts.slice() } : null;
+}
+window._medPanelInfo = _medPanelInfo;
+/* Un solo oyente delegado para todo el documento, por lo mismo que el de la comunidad: los dos
+   cajones y el panel guia se repintan ENTEROS y un manejador por boton se iria con el nodo
+   viejo en cada repintado. */
+try {
+  document.addEventListener('click', function (ev) {
+    const t = ev.target && ev.target.closest ? ev.target.closest('[data-med-info]') : null;
+    if (!t) return;
+    ev.preventDefault(); ev.stopPropagation();
+    _medInfoAbrir(t.getAttribute('data-med-info'));
+  }, true);
+} catch (e) {}
+
+/* ══ MEDIR-2 — LA TABLA DE MEDIDAS ═══════════════════════════════════════════════════════════
    Punto 5 del pedido: Medida | Valor | Unid. | Medir y Borrar | casilla de la comunidad.
 
    ⚠️ UN SOLO ARMADOR PARA LOS DOS CAJONES, parametrizado por su prefijo de atributo. Con uno por
@@ -141958,44 +142266,93 @@ try {
    todavía no se midió.
    ⚠️ NO SE TOCA NI UN CORTE NI UNA BANDA: esta función sólo reparte en celdas lo que las dos
    `_*Filas` ya devolvían. */
-function _medTablaHTML(filas, pfx, destino) {
+/* ══ MEDIR-3 — UNA MEDIDA POR FILA, EL VALOR GRANDE Y LA UNIDAD ADENTRO ══════════════════════
+   Puntos A3 y A4. Lo que cambia respecto de MEDIR-2:
+
+   ⚠️ LAS COLUMNAS PASAN DE CINCO A CUATRO, Y LA UNIDAD SE MUDA DENTRO DEL VALOR. El pedido lo
+   dice con todas las letras —«valor GRANDE con la unidad chica»— y ademas es lo que hace que la
+   fila ENTRE: medido en los ocho cruces del arbol anterior, con cinco columnas el cajon 2D
+   desbordaba 32 px (Chrome) / 34 (WebKit) con UNA tabla y el Doppler 179 / 181 con dos, en una
+   columna de 310 px. Hoy son cuatro columnas en 380.
+
+   ⚠️ EL NOMBRE Y LOS BOTONES ENVUELVEN (`white-space: normal` y `flex-wrap`), que es el «si no
+   entra, la fila se parte en dos renglones» del pedido: una fila de `<table>` no se puede partir
+   en dos, pero sus celdas si, y lo que se parte es lo que sobra —el nombre largo y la botonera—
+   mientras el valor se queda entero en su linea. Con `nowrap`, un rotulo como «Vmax
+   telediastolica IP» fijaba el ancho minimo de la tabla y volvia el desplazamiento horizontal.
+
+   ⚠️ LAS MEDICIONES SIN ASIGNAR ENTRAN EN LA MISMA TABLA Y NO EN UNA SEGUNDA DEBAJO (punto A7:
+   «nada queda apilado abajo»). Van detras de una fila separadora a todo el ancho. Retirarlas no
+   era opcion: `_dopCapturar` cae en ellas cuando nadie armo un destino, y sin dibujarlas el
+   medico mide y el numero desaparece — es lo que su propio comentario ya declaraba.
+
+   ⚠️ NO SE TOCA NI UN CORTE NI UNA BANDA: esta funcion solo reparte en celdas lo que las dos
+   `_*Filas` ya devolvian, igual que en MEDIR-2. */
+function _medTablaHTML(filas, pfx, destino, sueltas) {
   const esc = escHtml;
-  let t = '<table class="med-tabla" style="width:100%;border-collapse:collapse;font-size:12.5px;">' +
+  const TH = 'padding:3px 5px;font-size:9px;font-weight:700;letter-spacing:.4px;' +
+             'text-transform:uppercase;color:var(--text2);';
+  let t = '<table class="med-tabla" style="width:100%;border-collapse:collapse;' +
+    'table-layout:fixed;font-size:10.5px;">' +
+    '<colgroup><col style="width:38%"><col style="width:24%"><col style="width:28%">' +
+    '<col style="width:10%"></colgroup>' +
     '<thead><tr style="border-bottom:1px solid var(--border);">' +
-    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
-      'text-transform:uppercase;color:var(--text2);">Medida</th>' +
-    '<th style="padding:3px 6px;text-align:right;font-size:9px;font-weight:700;letter-spacing:.4px;' +
-      'text-transform:uppercase;color:var(--text2);">Valor</th>' +
-    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
-      'text-transform:uppercase;color:var(--text2);">Unid.</th>' +
-    '<th style="padding:3px 6px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.4px;' +
-      'text-transform:uppercase;color:var(--text2);">Medir y Borrar</th>' +
-    '<th style="padding:3px 6px;text-align:center;font-size:9px;font-weight:700;letter-spacing:.4px;' +
-      'text-transform:uppercase;color:var(--text2);">' + esc(ANAHI_NOMBRE) + '</th>' +
+    '<th style="' + TH + 'text-align:left;">Medida</th>' +
+    '<th style="' + TH + 'text-align:right;">Valor</th>' +
+    '<th style="' + TH + 'text-align:left;">Acciones</th>' +
+    '<th style="' + TH + 'text-align:center;">' + esc(ANAHI_NOMBRE) + '</th>' +
     '</tr></thead><tbody>';
-  filas.forEach(f => {
+  const fila = f => {
     const calc = (f[3] == null);
     const marcado = (destino && destino === f[3]) ? 'background:var(--bg3);' : '';
     const bot = (rot, attr, tip) =>
-      ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" ' +
+      '<button type="button" class="btn btn-ghost med-fbot" style="padding:0 5px;font-size:10px;" ' +
       'title="' + esc(tip) + '" data-' + pfx + '-' + attr + '="' + esc(f[3]) + '">' + esc(rot) + '</button>';
     let acc = '';
     if (calc) {
-      acc = '<span style="font-size:9.5px;color:var(--text2);">calculada</span>';
+      /* ⚠️ MEDIR-3 — `f[7]` ES LA ETIQUETA DE LA CELDA DE ACCIONES, y es OPCIONAL: sin ella dice
+         «calculada», que es lo que decia siempre. Hace falta porque la tabla del FAC del VD trae
+         dos filas que NO tienen campo —se miden con el gesto de Area, no con un «Medir»— pero
+         tampoco son calculadas: decirles «calculada» seria afirmar que la aplicacion las deriva
+         de otra cosa, y el medico las trazo a mano. Las filas de los dos cajones no la pasan, asi
+         que su celda no cambia en una sola letra. */
+      acc = '<span style="font-size:9.5px;color:var(--text2);">' + esc(f[7] || 'calculada') + '</span>';
     } else {
       if (f[4]) acc += bot('Medir', 'armar', 'Elegí la herramienta y la próxima medición cae en este campo.');
       acc += bot('✏️', 'corr', 'Escribir el valor a mano.');
       if (f[1] != null) acc += bot('Borrar', 'borrar', 'Vacía este campo. No toca las demás medidas.');
     }
-    t += '<tr style="border-bottom:1px solid var(--border);' + marcado +
+    /* El VALOR en 17 px y la UNIDAD en 9,5: es el «numeros grandes y letra chica» del pedido, y
+       la unidad va DENTRO de la misma celda para no gastar una columna en tres caracteres. */
+    const val = (f[1] == null)
+      ? '<span style="font-size:15px;color:var(--text2);">—</span>'
+      : '<span style="font-size:17px;font-weight:700;letter-spacing:-.2px;">' + esc(f[1]) + '</span>' +
+        (f[2] ? '<span style="font-size:9.5px;color:var(--text2);margin-left:2px;">' + esc(f[2]) + '</span>' : '');
+    return '<tr style="border-bottom:1px solid var(--border);' + marcado +
          (calc ? 'font-style:italic;' : '') + '">' +
-      '<td style="padding:4px 6px;color:var(--text2);">' + esc(f[0]) + '</td>' +
-      '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' +
-        (f[1] == null ? '—' : esc(f[1])) + '</td>' +
-      '<td style="padding:4px 6px;color:var(--text2);white-space:nowrap;">' + esc(f[2] || '') + '</td>' +
-      '<td style="padding:4px 6px;white-space:nowrap;">' + acc + '</td>' +
+      /* ⚠️ EL RELLENO VERTICAL ES 11 px Y NO 5, Y SALE DE UNA MEDICION. Con 5 px la fila median
+         32 px de alto —22 del boton mas 10 de relleno— asi que dos botones de filas CONSECUTIVAS
+         quedaban a 32 px y sus areas tactiles de 44 se SOLAPABAN: la sonda conto **cuatro** pares
+         encimados sobre 13 botones. 22 + 11 + 11 = 44 EXACTOS, que es el minimo que las separa
+         sin encimarlas — la misma cuenta que MEDIR-2 hizo para el selector (28 + 16) y la misma
+         trampa, pagada en el otro eje. */
+      '<td style="padding:11px 5px;color:var(--text2);white-space:normal;word-break:break-word;' +
+        'line-height:1.25;">' + esc(f[0]) + '</td>' +
+      '<td style="padding:11px 5px;text-align:right;white-space:nowrap;' +
+        'font-variant-numeric:tabular-nums;">' + val + '</td>' +
+      '<td style="padding:11px 5px;"><span class="med-fbots" ' +
+        'style="display:flex;flex-wrap:wrap;column-gap:3px;align-items:center;">' + acc +
+        '</span></td>' +
       anahiCeldaHTML() + '</tr>';
-  });
+  };
+  filas.forEach(f => { t += fila(f); });
+  const S = (sueltas || []);
+  if (S.length) {
+    t += '<tr><td colspan="4" style="padding:7px 5px 3px;font-size:9px;font-weight:700;' +
+         'letter-spacing:.4px;text-transform:uppercase;color:var(--text2);' +
+         'border-bottom:1px solid var(--border);">Sin asignar a un campo</td></tr>';
+    S.forEach(f => { t += fila(f); });
+  }
   return t + '</tbody></table>';
 }
 
@@ -142060,18 +142417,26 @@ function _medSideRender() {
   let f2 = '';
   if (ab) {
     const cv = colDe(ab);
+    /* ⚠️ MEDIR-3 — VELOCIDAD SE APAGA EN MODO M (bloque C). Se deja VISIBLE y apagada, con su
+       motivo en el `title` y el detalle en el globo ⓘ del panel guia: retirarla dejaria al
+       medico buscando una herramienta que estuvo ahi la imagen anterior, que es peor que verla
+       inalcanzable y saber por que. El predicado es `_medVelBloqueadaM` y es el MISMO que
+       `medHerramienta` consulta para negarse a seleccionarla — con dos predicados, el boton y la
+       funcion podrian discrepar y el medico veria un boton apagado que igual cambia la
+       herramienta. */
+    const velM = (ab === 'dop') && _medVelBloqueadaM();
     _MED_HERRS.filter(t => t.g === ab).forEach(t => {
-      f2 += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv, false, t.tip);
+      const off = velM && t.h === 'vel';
+      f2 += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv, off,
+        off ? 'En esta imagen el eje vertical está en centímetros: es un modo M y ahí no se mide velocidad.'
+            : t.tip);
     });
-    /* ⚠️ «VOLUMEN» (AI BIPLANO) VA VISIBLE Y APAGADO, con su leyenda, que es el pedido literal
-       del punto 7. NO lleva id de herramienta y NO entra en `_MED_HERRS`: si entrara, lo
-       alcanzarian `medHerramienta` y el gate de Deformacion, y habria que inventarle un
-       `_medHerr` que ningun gesto sabe dibujar. Es un hueco declarado en la pantalla, no una
-       herramienta a medio hacer. */
-    if (ab === '2d') {
-      f2 += _medSideBtn('', 'Volumen', false, cv, true,
-        'Volumen de la AI por biplano — próximamente. Todavía no está implementado.');
-    }
+    /* ⚠️ LAPIDA — EL BOTON «VOLUMEN» (AI BIPLANO) SALE EN MEDIR-3 (punto A6). MEDIR-1 lo dejo
+       visible y apagado con su leyenda «proximamente» porque el pedido de entonces lo pedia asi;
+       el medico lo probo en la app y pidio retirarlo. No habia nada mas que sacar: nunca llevo id
+       de herramienta y nunca entro en `_MED_HERRS`, asi que no hay un `_medHerr` que soltar, ni
+       un oyente, ni un gesto, ni una fila de tabla — era un hueco declarado en la pantalla. Y por
+       eso mismo retirarlo NO TOCA NINGUN CALCULO, que es el pedido literal del punto A6. */
   }
 
   /* ── NIVEL 3 — ESTRUCTURA ─────────────────────────────────────────────────────────────── */
@@ -142350,7 +142715,13 @@ function _cineAbrir(loops) {
       /* ⚠️ EL MODAL LLEVA `id` DESDE MEDIR-1, y no es cosmetico: «maximizar» tiene que poder
          escribirle el ancho, y hasta aca el unico modo de alcanzarlo era `#cine-ov > div`, un
          selector por POSICION que se rompe el dia que alguien agregue un hermano antes. */
-      '<div id="cine-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1180px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;flex-direction:column;">' +
+      /* ⚠️ MEDIR-3 — EL ANCHO SUBE DE 1180 A 1500 px, Y ES EL PUNTO A1. Medido en el arbol
+         anterior: con la ventana en 1440 el modal se quedaba en 1180 y la imagen tenia 228 px de
+         NEGRO al costado mientras la columna de medicion no entraba y desbordaba 179 px. Lo que
+         se gana no se lo lleva uno solo: la imagen puede usar mas ancho y alto Y la columna
+         derecha pasa de 310 a 380 px. El tope sigue existiendo porque `width:100%` lo acota a la
+         ventana, asi que a 1280 el modal mide 1252 y no 1500. */
+      '<div id="cine-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1500px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;flex-direction:column;">' +
         '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;flex:0 0 auto;">' +
           '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
           /* Alternador de vista para pantallas angostas. Nace sin `display` en línea: quién lo
@@ -142611,6 +142982,20 @@ function _vModoSync() {
     b.setAttribute('aria-pressed', midiendo ? 'true' : 'false');
     b.classList.toggle('btn-primary', midiendo);
     b.classList.toggle('btn-ghost', !midiendo);
+    /* ══ MEDIR-3 — EL ROTULO DEL BOTON PRENDIDO, DERIVADO PARA QUE SE LEA (bloque B) ═════════
+       ⚠️ EL BLANCO DE `.btn-primary` NO LLEGA A 4,5:1 SOBRE EL AZUL DE NOCHE, Y ESTA MEDIDO: la
+       sonda de dos motores dio **3,21:1** en los cuatro cruces de tema oscuro —blanco sobre
+       `rgb(79,142,247)`— y 4,70 en los de tema claro. El pedido pide 4,5 en los DOS estados, y
+       este es el unico boton de la barra que se pinta: los otros siete dan de 13,2 a 15,9.
+       Se usa `_medTextoSobre`, que es el MISMO derivador con que MEDIR-2 resolvio el relleno de
+       los botones del selector: elige entre el casi negro y el blanco por el cociente de WCAG, y
+       sobre este azul elige el oscuro —6,60:1 de noche y 4,60 de dia—.
+       ⚠️ NO SE TOCA `.btn-primary` NI EL VALOR DE `--accent`: los dos viven en la hoja global y
+       los usa la aplicacion entera. Lo que se escribe es el color de ESTE boton, y se BORRA al
+       apagarse para que vuelva a mandar la hoja. */
+    try {
+      b.style.color = midiendo ? _medTextoSobre('--accent') : '';
+    } catch (e) { b.style.color = ''; }
   });
 }
 window._vModoSync = _vModoSync;
@@ -145875,6 +146260,14 @@ function medHerramienta(h) {
      el harness y desde cualquier llamador futuro, y un `_medHerr` en 'strain' con el grupo
      oculto es justo el estado que la tercera capa existe para deshacer. */
   if (_medEsDef(h) && !_medDefOn()) h = 'dist';
+  /* ⚠️ MEDIR-3 — TERCERA CAPA DEL BLOQUEO EN MODO M (bloque C): con el eje vertical en
+     centimetros, «Velocidad» cae al defecto igual que una herramienta de Deformacion con el
+     modulo apagado. El boton ya sale apagado desde `_medSideRender`, pero esta funcion es
+     alcanzable desde el arnes, desde un atajo y desde cualquier llamador futuro, y un `_medHerr`
+     en 'vel' sobre un modo M es justo el estado que ofreceria calibrar una escala de velocidad
+     sobre un eje de DISTANCIA — y el numero habria salido plausible. Mismo predicado que el
+     boton, para que no puedan discrepar. */
+  if (h === 'vel' && _medVelBloqueadaM()) h = 'dist';
   _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
               h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc' || h === 'vti') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
@@ -145902,7 +146295,10 @@ function medHerramienta(h) {
      habría salido plausible. Ahí la respuesta correcta es el aviso que explica qué es ese
      trazo, no una calibración. Lo cazó TC-193, que ya vigilaba ese aviso. */
   if (_medHerr === 'vel' && !_medCalibVel && !_medRegs().length) _medCalibrandoVel = true;
-  if (_medHerr !== 'vel') _medCalibrandoVel = false;
+  /* ⚠️ MEDIR-3 — Y SU PRIMERA MARCA CON ELLA. Sin esto, empezar a calibrar, cambiar de
+     herramienta y volver combinaba el segundo clic con un valor tipeado antes de cambiar — la
+     misma fuga que este archivo ya pago con `data-pop-mano` y con `_clnkPorConfirmar`. */
+  if (_medHerr !== 'vel') { _medCalibrandoVel = false; _medCalVelP0 = null; }
   const cv = _medEl('cine-med');
   if (cv) {
     /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
@@ -146169,6 +146565,31 @@ function _medPintar() {
       dibujarVD(_vd.trazos.s, CV.s, 'Sístole');
     }
     if (_vd.pendiente) dibujarVD(_vd.pendiente, '#fbbf24', null);
+  }
+
+  /* ══ MEDIR-3 — LA LINEA DEL CERO DE LA CALIBRACION MANUAL, ROTULADA (bloque C) ══════════════
+     ⚠️ SE DIBUJA AUNQUE NO HAYA NI UNA VELOCIDAD MEDIDA, y eso es el punto: el cero ya no se
+     marca con el mouse sino que SALE de los dos valores, asi que puede caer donde el medico no
+     lo espera — y si no se ve, no hay forma de darse cuenta de que la calibracion quedo mal. Se
+     dibuja a todo el ancho del canvas, en el mismo celeste de las velocidades, con el rotulo
+     «0» pegado al borde izquierdo.
+     Va ANTES del bucle de velocidades para que las cruces y sus etiquetas queden ENCIMA. */
+  if (_medCalibVel && isFinite(_medCalibVel.y0)) {
+    const y0 = _medCalibVel.y0;
+    if (y0 > -2 && y0 < cv.height + 2) {
+      cx.save();
+      cx.strokeStyle = '#60a5fa'; cx.fillStyle = '#60a5fa';
+      cx.setLineDash([7 * esc, 5 * esc]); cx.globalAlpha = .85;
+      cx.beginPath(); cx.moveTo(0, y0); cx.lineTo(cv.width, y0); cx.stroke();
+      cx.setLineDash([]); cx.globalAlpha = 1;
+      const rot = '0';
+      const w0 = cx.measureText(rot).width;
+      cx.fillStyle = 'rgba(0,0,0,.7)';
+      cx.fillRect(2 * esc, y0 - 16 * esc, w0 + 8 * esc, 18 * esc);
+      cx.fillStyle = '#60a5fa';
+      cx.fillText(rot, 6 * esc, y0 - 2 * esc);
+      cx.restore();
+    }
   }
 
   /* Velocidades: cruz en el punto, línea punteada hasta la base y la etiqueta. La línea
@@ -147238,26 +147659,56 @@ function _medEstado() {
     const mm = regs.filter(r => !_dcmImgRegionVelocidad(r) && r.uy === DCMIMG_UNI_CM && r.ux !== DCMIMG_UNI_CM).length;
     /* Qué escala manda y por qué, dicho siempre. Un número de velocidad sin saber de dónde
        salió la escala no se puede auditar, y acá conviven dos fuentes. */
+    /* ══ MEDIR-3 — UNA LINEA DE INSTRUCCION, Y EL RESTO AL GLOBO (puntos A4 y C) ═══════════════
+       ⚠️ LA INSTRUCCION ES LA DEL PEDIDO, PALABRA POR PALABRA: «Marcá dos puntos del eje y
+       escribí su valor.» Ya no dice «primero la línea de base», porque desde esta tanda el cero
+       NO se marca: se CALCULA de los dos valores. Dejar la instruccion vieja seria mandar al
+       medico a hacer un gesto que la aplicacion ya no necesita. */
     if (_medCalibrandoVel) {
-      txt = '<b>Calibrando la velocidad:</b> marcá primero la <b>línea de base</b> (velocidad cero) ' +
-            'y después una <b>marca conocida</b> de la escala lateral. Después escribís cuánto vale.' +
-            (_medPuntos.length ? ' <b style="color:#fbbf24;">Base marcada — ahora la marca conocida.</b>' : '');
+      txt = '<b>Calibrando la velocidad:</b> marcá dos puntos del eje y escribí su valor.' +
+            (_medCalVelP0 ? ' <b style="color:#fbbf24;">Falta la segunda marca.</b>' : '');
     } else if (_medCalibVel) {
       txt = 'Escala de velocidad <b>calibrada a mano</b>: ' + _medCalibVel.cmsPorPx.toFixed(4) +
-            ' cm/s por píxel, con el cero en y=' + _medCalibVel.y0.toFixed(0) + '. ' + _medComo() +
+            ' cm/s por píxel, con el cero en y=' + _medCalibVel.y0.toFixed(0) + '.' +
             (vr.length ? ' <b style="color:#fbbf24;">Está pisando la escala que trae el archivo.</b>' : '');
     } else if (vr.length) {
+      /* ⚠️ CON LA ESCALA DEL ARCHIVO NO SE PIDE CALIBRACION MANUAL, que es el pedido literal, y
+         ESO YA ERA ASI: la entrada automatica a modo calibracion esta acotada por
+         `!_medRegs().length` —o sea sin ninguna region declarada— en `medHerramienta`. Lo unico
+         que queda es el boton «Recalibrar vel.», que el pedido conserva a proposito: es una
+         decision explicita del medico sobre una escala que no le merece confianza. */
       txt = 'Escala de velocidad <b>tomada del archivo</b>: ' +
-        vr.map(r => Math.abs(r.dy).toFixed(3)).filter((v,k,a)=>a.indexOf(v)===k).join(' y ') + ' cm/s por píxel. ' + _medComo() +
-        (mm ? ' Hay además un trazo de modo M, con el eje en cm: ahí no se mide velocidad.' : '');
+        vr.map(r => Math.abs(r.dy).toFixed(3)).filter((v,k,a)=>a.indexOf(v)===k).join(' y ') + ' cm/s por píxel.';
+    } else if (_medVelBloqueadaM()) {
+      /* El modo M tiene su propio mensaje y su propio motivo: ahi el eje vertical son
+         CENTIMETROS, asi que lo que saldria no es una velocidad sino una distancia. */
+      txt = '<b>Velocidad no disponible en modo M:</b> el eje vertical está en centímetros.';
     } else {
-      txt = 'Esta imagen <b>no trae escala de velocidad</b>. Calibrá a mano: marcá la línea de base ' +
-            'y una marca conocida de la escala.';
+      txt = 'Esta imagen <b>no trae escala de velocidad</b>: marcá dos puntos del eje y escribí su valor.';
     }
-    txt += '<div style="font-size:10px;color:var(--text2);margin-top:4px;">' +
-      'La velocidad se muestra en módulo con la dirección al lado (↑ hacia el transductor, ↓ alejándose): ' +
-      'el archivo declara el signo y un jet que se aleja da negativo, pero un informe reporta la magnitud. ' +
-      'El gradiente no depende del signo (ΔP = 4·V²).</div>';
+    /* Los dos parrafos de metodo —la direccion y el signo, y como se calcula el cero— se mudan al
+       globo. No se pierde una palabra: el caso los busca ahi adentro. */
+    const _bVel = _medInfoBoton('vel', 'Velocidad y gradiente', [
+      'La velocidad se muestra en módulo con la dirección al lado (↑ hacia el transductor, ' +
+      '↓ alejándose): el archivo declara el signo y un jet que se aleja da negativo, pero un ' +
+      'informe reporta la magnitud. El gradiente no depende del signo (ΔP = 4·V²).',
+      'Calibración a mano: se marcan dos puntos cualesquiera del eje y se escribe el valor de ' +
+      'cada uno, en m/s. De esos dos valores salen la escala Y la posición del cero, que se ' +
+      'dibuja como una línea rotulada «0» — así el cero puede quedar fuera del tramo marcado, ' +
+      'que es lo habitual cuando la línea de base no entra en el recuadro.',
+      'Si el eje vertical está en centímetros es un modo M —distancia contra tiempo— y la ' +
+      'herramienta Velocidad queda desactivada: una velocidad medida ahí sería en realidad una ' +
+      'distancia.',
+      mm ? 'En esta imagen hay además un trazo de modo M, con el eje en cm: ahí no se mide velocidad.' : null,
+      'Mientras la escala la declare el archivo, la aplicación no pide calibrar a mano. ' +
+      '«Recalibrar vel.» queda disponible igual, para cuando la escala del archivo no merece confianza.'
+    ]);
+    /* ⚠️ EL BOTON SE EMITE DE LA MISMA LLAMADA QUE REGISTRA LOS TEXTOS, y la primera version
+       llamaba a `_medInfoBoton` DOS veces —una para registrar y otra para pintar— con lo que la
+       segunda, que pasaba una lista de relleno, SOBRESCRIBIA los cinco textos reales y el globo
+       se abria con una sola palabra. Un registro que se puede pisar por el orden de dos llamadas
+       es el patron de «dos dueños del mismo valor» que este archivo persigue. */
+    txt += '<div style="margin-top:4px;">' + _bVel + '</div>';
   }
   /* ══ MEDIR-2 — EL RESULTADO DEL AREA, POR ESTRUCTURA ══════════════════════════════════════
      Punto 6 del pedido: «cada una con su contorno y su resultado en cm²». Va acá, en el panel
@@ -147275,15 +147726,45 @@ function _medEstado() {
       else if (a && a.cm2 != null) sueltas++;
     });
     let li = '';
-    _MED_EST_AREA.forEach(S => {
+    /* Las dos auriculas siguen publicandose como dos lineas, igual que en MEDIR-2: son dos
+       resultados independientes y no hay nada que derivar de ellos. */
+    _MED_EST_AREA.filter(S => S.m === 'ai' || S.m === 'ad').forEach(S => {
       const v2 = porEst[S.m];
       li += '<div style="display:flex;justify-content:space-between;gap:10px;' +
         (v2 == null ? 'color:var(--text2);' : 'font-weight:600;') + '">' +
         '<span>' + escHtml(S.nom) + '</span><span>' +
         (v2 == null ? '—' : escHtml(v2.toFixed(2) + ' cm²')) + '</span></div>';
     });
+    /* ══ MEDIR-3 — EL VD VA EN TABLA, PORQUE TIENE UNA FILA DERIVADA (bloque D) ════════════════
+       ⚠️ VA POR `_medTablaHTML` Y NO COMO DOS LINEAS MAS: la tercera fila es un DERIVADO de las
+       otras dos, y la unica forma de que se vea como tal —en cursiva, sin botones y diciendolo—
+       es el armador que ya distingue las filas calculadas de las medidas. Con tres lineas
+       sueltas, el FAC se leeria como un tercer numero que alguien midio.
+       ⚠️ LA FILA DEL FAC NO SE DIBUJA HASTA TENER LAS DOS AREAS, que es el pedido literal: un
+       FAC a partir de una sola area no existe, y un «—» en su lugar invita a leerlo como «dio
+       cero». Lo decide `_medFacVD` devolviendo `null`.
+       ⚠️ Y NO SE MUESTRA NINGUN CORTE CLINICO, tambien por pedido: la app ya publica el suyo en
+       la pestaña VD, con su banda y su cita. Dos lugares que gradúen el mismo numero son dos
+       lugares que pueden discrepar. */
+    const _aD = porEst[_MED_EST_VD_D], _aS = porEst[_MED_EST_VD_S];
+    let tablaVD = '';
+    if (_aD != null || _aS != null) {
+      const fil = [];
+      _MED_EST_AREA.filter(S => S.m === _MED_EST_VD_D || S.m === _MED_EST_VD_S).forEach(S => {
+        const v2 = porEst[S.m];
+        fil.push([S.nom, v2 == null ? null : v2.toFixed(2), 'cm²', null, false, null, null, 'medida']);
+      });
+      const F = _medFacVD(_aD, _aS);
+      if (F) fil.push(['FAC VD (%)', F.fac.toFixed(0), '%', null, false, null, null, 'calculada']);
+      tablaVD = _medTablaHTML(fil, 'vdfac', null) +
+        (F && F.invertido
+          ? '<div style="font-size:9.5px;color:var(--yellow,#fbbf24);margin-top:3px;">' +
+            'El área sistólica salió mayor que la diastólica: revisá que las dos fases no estén invertidas.' +
+            '</div>'
+          : '');
+    }
     txt += '<div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--border);font-size:10.5px;">' +
-      li + '<div style="font-size:9.5px;color:var(--text2);margin-top:3px;">' +
+      li + tablaVD + '<div style="font-size:9.5px;color:var(--text2);margin-top:3px;">' +
       'Las dos aurículas se miden en la misma imagen, en A4C. No se escribe ningún campo.' +
       (sueltas ? ' Hay ' + sueltas + ' contorno(s) sin estructura elegida.' : '') +
       '</div></div>';
@@ -147395,24 +147876,49 @@ function _medVelClic(ev) {
   const p = _medPunto(ev, cv);
   if (!p) return;
 
-  /* ── Calibrando: primer clic la línea de base, segundo la marca conocida ── */
+  /* ── MEDIR-3 — Calibrando: DOS puntos cualesquiera, y el valor de CADA UNO ──────────────────
+     ⚠️ EL VALOR SE PREGUNTA JUSTO DESPUES DE CADA CLIC, y no los dos al final. Preguntados
+     juntos hay que decirle al medico cual de los dos prompts es cual —«la primera marca», «la
+     segunda»— y eso obliga a numerar los puntos en el dibujo; preguntado en el acto, el prompt
+     se refiere a la marca que acaba de hacer y no hay ambigüedad posible.
+     ⚠️ Y SE PREGUNTA EN m/s, que es la unidad del pedido y la del eje de un Doppler espectral en
+     el equipo. El bloque entero trabaja en cm/s, asi que la conversion vive ACA, en el borde, y
+     una sola vez. El panel guia publica la escala resultante para que el medico la pueda
+     contrastar.
+     ⚠️ SI EL SEGUNDO PUNTO NO SIRVE, EL PRIMERO SE CONSERVA: el valor ya tipeado no se vuelve a
+     pedir. Con el estado entero descartado, cada rechazo costaba dos prompts de nuevo. */
   if (_medCalibrandoVel) {
-    if (!_medPuntos.length) { _medPuntos.push(p); _medPintar(); _medEstado(); return; }
-    const a0 = _medPuntos[0]; _medPuntos = [];
-    const dy = Math.abs(p.y - a0.y);
-    if (dy < 5) {
-      alert('Los dos puntos están casi a la misma altura: no se puede sacar una escala de ahí.\n\nMarcá primero la línea de base (velocidad cero) y después una marca conocida de la escala.');
+    const pedir = cual => {
+      const txt = prompt('¿Cuánto vale ' + cual + '?\n\nEscribí el valor del eje en m/s (por ' +
+        'ejemplo 1.0, o 0.5). Puede ser cualquiera de los dos: con dos valores la aplicación ' +
+        'saca la escala Y dónde está el cero.', '');
+      if (txt === null) return null;
+      const v = parseFloat(String(txt).trim().replace(',', '.'));
+      if (!isFinite(v)) { alert('Ese valor no se entiende: escribí un número en m/s, por ejemplo 1.0.'); return null; }
+      return v * 100;                                  // m/s → cm/s, la unidad interna
+    };
+    if (!_medCalVelP0) {
+      const v0 = pedir('esta primera marca');
+      if (v0 === null) { _medPintar(); _medEstado(); return; }
+      _medCalVelP0 = { y: p.y, cms: v0 };
+      _medPuntos = [p];
       _medPintar(); _medEstado(); return;
     }
-    const txt = prompt('¿Cuánto vale esa marca?\n\nEscribí el valor en cm/s (por ejemplo 100 para 1 m/s).\nSe toma como magnitud: la dirección la da el lado de la línea de base.', '100');
-    if (txt === null) { _medPintar(); _medEstado(); return; }
-    const val = parseFloat(String(txt).replace(',', '.'));
-    if (!(val > 0) || !isFinite(val)) {
-      alert('Ese valor no se entiende. Escribí un número en cm/s, por ejemplo 100.');
+    if (Math.abs(p.y - _medCalVelP0.y) < 5) {
+      alert('Las dos marcas están casi a la misma altura: separalas más.');
       _medPintar(); _medEstado(); return;
     }
-    _medCalibVel = { y0: a0.y, cmsPorPx: val / dy };
+    const v1 = pedir('esta segunda marca');
+    if (v1 === null) { _medPintar(); _medEstado(); return; }
+    const cal = _medCalVelDos(_medCalVelP0.y, _medCalVelP0.cms, p.y, v1);
+    if (!cal) {
+      alert('Las dos marcas tienen el mismo valor: con eso no sale una escala.');
+      _medPintar(); _medEstado(); return;
+    }
+    _medCalibVel = cal;
     _medCalibrandoVel = false;
+    _medCalVelP0 = null;
+    _medPuntos = [];
     _medPintar(); _medEstado();
     return;
   }
@@ -147649,6 +148155,7 @@ window.medBorrar = medBorrar;
    mal; pero sólo se ACTIVA sola cuando el archivo no trae ninguna. */
 function medCalibrarVelocidad() {
   _medCalibVel = null; _medCalibrandoVel = true;
+  _medCalVelP0 = null;        // MEDIR-3: entrar a calibrar descarta una marca a medio hacer
   _medPuntos = [];
   _medVels = [];              // las velocidades medidas con la escala anterior ya no valen
   _medPintar(); _medEstado();
@@ -147747,6 +148254,7 @@ function medCambioDeImagen() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   _medCalibVel = null; _medCalibrandoVel = false;  // ídem la de velocidad
+  _medCalVelP0 = null;                             // MEDIR-3: y su primera marca con ella
   if (_simp) {
     _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
     _simp.ocultar = false;
@@ -147794,7 +148302,7 @@ window.medCambioDeImagen = medCambioDeImagen;
    otro paciente, se sueltan. Sin esa mitad, conservar sería una fuga entre pacientes. */
 function medCerrarVisor() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
-  _medCalibVel = null; _medCalibrandoVel = false;
+  _medCalibVel = null; _medCalibrandoVel = false; _medCalVelP0 = null;   // MEDIR-3
   _medGrupo = _MED_GRUPO_DEF;
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null;
   _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
@@ -147812,7 +148320,7 @@ window.medCerrarVisor = medCerrarVisor;
 
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
-  _medCalibVel = null; _medCalibrandoVel = false;
+  _medCalibVel = null; _medCalibrandoVel = false; _medCalVelP0 = null;   // MEDIR-3
   _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
   /* MEDIR-2: la estructura del gesto de Area se suelta con la herramienta. Dejarla puesta haria
@@ -150006,7 +150514,24 @@ const _DOP_BANDA_DE = {
      mismas mediciones en el formulario: es la regla de la casa —prestar sólo donde la pregunta
      es la misma— y acá lo es, campo por campo. */
   'pul.diamTsvd':'tsvd_diametro',
-  'pul.vtiPul':'vti_tsvd'
+  'pul.vtiPul':'vti_tsvd',
+  /* ══ MEDIR-3 — «Vmax pulmonar» TOMA LA BANDA DE `vp_vmax` (bloque E) ═══════════════════════
+     Es la primera de las dos preguntas que MEDIR-2 dejó abiertas en `M2-c`, y el médico la
+     contestó. Cumple la regla de la casa —prestar sólo donde la pregunta es la MISMA—, y acá lo
+     es con todas las letras: `pul.vmaxEp` es la velocidad pico anterógrada de la válvula
+     pulmonar en m/s, y `vp_vmax` («Vmax pulmonar (m/s) — Estenosis») es el DUEÑO de esa misma
+     magnitud en el formulario, con su espejo `ep_vmax`. La banda es [0,2 – 8] m/s.
+     ⚠️ ES UN FILTRO CONTRA ERRORES DE TIPEO Y NO UN CORTE DIAGNOSTICO, que es el pedido literal:
+     el 8 no dice «por encima de esto hay estenosis», dice «por encima de esto no es una
+     velocidad que un Doppler pueda medir». El techo deja pasar cualquier estenosis pulmonar real
+     —una severa ronda 4 m/s— y el piso de 0,2 atrapa el cero y el valor cargado en cm/s. La
+     conducta fuera de banda es la MISMA que la de las otras once: no se guarda y se dice por qué,
+     con el rango, por el camino de `_dopNormalizar` que ya existe. No se agrega ninguna rama.
+     ⚠️ LAS DOS VELOCIDADES DE LA INSUFICIENCIA PULMONAR QUEDAN SIN BANDA, a propósito:
+     `pul.vmaxIp` e `pul.vmaxIpTd` tienen homólogos (`ip_vmax`, `ip_vtd`) que NO tienen rango en
+     `DCM_RANGO` ni en `CHM_RANGO`, así que no hay nada que prestar — inventarle un número sería
+     el corte clínico que esta casa no decide sola. Declarado en `docs/PENDIENTES.md` → M3-b. */
+  'pul.vmaxEp':'vp_vmax'
 };
 function _dopBanda(campo) {
   const k = _DOP_BANDA_DE[campo];
@@ -150674,6 +151199,54 @@ function _dopVisible() {
   return _dopGrupoAbiertoEnAlguna();
 }
 
+/* ══ MEDIR-3 — LOS TEXTOS DEL GLOBO ⓘ DEL CAJON DOPPLER (punto A4) ═══════════════════════════
+   Son CINCO grupos y NINGUNO se pierde; el caso los busca dentro del globo, uno por uno:
+     1. que le falta al Vol Eyectivo VD. «No aparece y nada dice por que» es peor que no estar.
+     2. que incluye «Guardar tabla». El boton esta debajo de UNA tabla y guarda las CUATRO: sin
+        esta linea, el medico que midio cuatro valvulas y tiene la mitral en pantalla cree que
+        guardo la mitral y no vuelve a apretar por las otras tres. Nombra las que hay y no
+        «todas», y sale de `_dopSeccionesGuardado()` —las SECCIONES— y no de un predicado escrito
+        al lado: es la tercera superficie que enumera lo mismo y la primera version del sufijo ya
+        divergio por reconstruirlo.
+     3. la nota del ✏️. La edicion a mano no se descubre sola: un glifo de 10 px al lado de un
+        numero se lee como decoracion. Dice «las filas con ✏️» y no «cualquier valor» porque los
+        DERIVADOS no lo llevan —AVA, E/A, E/e', PSAP, los gradientes—: un calculado que se puede
+        pisar a mano es el «campo auto que se queda viejo» que este archivo documenta con
+        `vp_gmax`. Su compuerta mira LAS DOS listas, porque con la valvula cerrada y solo «sin
+        asignar» en pantalla esas filas SI llevan ✏️.
+     4. los descargos de `_dopDisc()`, que son los de toda la valvula y no solo los de las filas
+        con dato — a proposito, y por eso NO se cambia por `_dopDiscDe()`.
+     5. la leyenda de origen, que vivia solo en `_dopDiscDe` aunque la PRIMERA superficie donde el
+        medico se encuentra con «VTI TSVI · A+B» es este panel.
+   ⚠️ VA EN SU PROPIA FUNCION Y NO EN LINEA DENTRO DE `_dopRender`, para que el caso pueda pedir
+   la lista sin tener que abrir el globo y leer el DOM: asi la condicion que cuenta los textos
+   movidos no depende de que el dialogo este abierto. */
+function _dopInfoTxts(faltaTxt, hayFilas) {
+  const out = faltaTxt ? [faltaTxt] : [];
+  try {
+    if (_dopHayValores()) {
+      const conDatos = _dopSeccionesGuardado()
+        .map(s => s.m === 'gen' ? 'las mediciones sin asignar' : s.rot);
+      out.push('«Guardar tabla» incluye ' + conDatos.join(', ') +
+               ' — todo lo medido en esta sesión, no sólo la válvula abierta.');
+    }
+  } catch (e) {}
+  if (hayFilas) {
+    out.push('Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las reemplaza. ' +
+             'Los derivados se recalculan solos y no se editan.');
+  }
+  try { _dopDisc().forEach(t => out.push(t)); } catch (e) {}
+  try {
+    if (_dopMarcarOrigenes()) {
+      out.push('· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se ' +
+               'escribió a mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de ' +
+               'una misma vista.');
+    }
+  } catch (e) {}
+  return out;
+}
+window._dopInfoTxts = _dopInfoTxts;
+
 function _dopRender() {
   const cont = document.getElementById('dop-cajon');
   if (!cont) return;
@@ -150735,54 +151308,33 @@ function _dopRender() {
      antes: sin visor no se ofrece «Medir», porque no habría sobre qué. Se resuelve apagando el
      `armable` de la fila antes de pasarla al armador único, que así no necesita saber nada del
      visor. */
-  const tabla = (filas) =>
-    _medTablaHTML(hay ? filas : filas.map(f => { const g = f.slice(); g[4] = false; return g; }),
-                  'dop', E.destino);
-  /* ⚠️ DOS COLUMNAS, Y LA MÁS LARGA MANDA EL ALTO. Se reparte por `f[6]` y se dibujan dos tablas
-     lado a lado: con una sola tabla de cuatro celdas por fila, una columna con menos filas dejaba
-     huecos alineados con la otra y el ojo los leía como valores faltantes.
-     ⚠️ LA GUARDA ES SIMÉTRICA, y la mitad que falta es la que se olvida. Con una sola columna
-     poblada hay que caer a UNA tabla al ancho completo, en los dos sentidos: el flujo de la
-     ecuación de continuidad —medir sólo diámetro y los dos VTI, sin ninguna velocidad— deja la
-     IZQUIERDA vacía, y `tabla([])` con `flex:1` empujaba las cuatro filas de la AVA a la mitad
-     derecha con media pantalla en blanco al lado. Es el mismo defecto que este reparto vino a
-     corregir, espejado.
-     Va DESPUÉS de `tabla` a propósito: es un `const` que la referencia, y declararlo antes deja
-     una zona muerta temporal entre las dos líneas — este archivo ya documenta dos veces que un
-     TDZ en un `<script>` de nivel superior se lleva el bloque entero. */
-  const tablaCols = (filas) => {
-    const izq = filas.filter(f => f[6] !== 1), der = filas.filter(f => f[6] === 1);
-    if (!der.length) return tabla(izq);
-    if (!izq.length) return tabla(der);
-    return '<div style="display:flex;gap:10px;align-items:flex-start;">' +
-           '<div style="flex:1;min-width:0;">' + tabla(izq) + '</div>' +
-           '<div style="flex:1;min-width:0;">' + tabla(der) + '</div>' +
-           '</div>';
-  };
-
+  /* `hay` —¿hay imagen abierta?— se respeta igual que antes: sin visor no se ofrece «Medir»,
+     porque no habría sobre qué. Se resuelve apagando el `armable` de la fila antes de pasarla al
+     armador único, que así no necesita saber nada del visor. */
+  const sinArmar = (filas) =>
+    hay ? filas : filas.map(f => { const g = f.slice(); g[4] = false; return g; });
+  /* ══ MEDIR-3 — SE RETIRA EL REPARTO EN DOS COLUMNAS (puntos A3 y A7) ════════════════════════
+     ⚠️ LAPIDA DE `tablaCols`. Repartía las filas por `f[6]` y dibujaba DOS tablas lado a lado
+     dentro de la columna de medición. Es el defecto que el médico vio en su captura y está
+     medido: en los ocho cruces del árbol anterior el cajón desbordaba horizontalmente **179 px
+     en Chrome y 181 en WebKit** sobre una columna de 310, con pares de nombres a la misma altura
+     — o sea los títulos y las filas pisándose. El pedido es «una medida por fila, nunca dos lado
+     a lado», así que hoy hay UNA sola tabla y el `f[6]` de cada fila queda sin lector. No se
+     retira de `_dopFilas`: es un dato de la fila y sacarlo obligaría a tocar las siete funciones
+     que las arman, para cero ganancia.
+     ⚠️ Y LAS SUELTAS DEJAN DE SER UNA SEGUNDA TABLA DEBAJO. Entran en la MISMA tabla, detrás de
+     una fila separadora, que es el «nada queda apilado abajo» del punto A7. No se retiran:
+     `_dopCapturar` cae en ellas cuando nadie armó un destino y sin dibujarlas el médico mide y
+     el número desaparece — lo que su propio comentario ya declaraba. La guarda de «sólo aparecen
+     cuando hay algo» se conserva: el separador sale únicamente si la lista trae filas, porque un
+     rótulo «sin asignar» sobre una tabla de guiones entrena a ignorarlo. */
   const F = _dopFilas();
-  if (F.length) {
-    h += tablaCols(F);
-    /* ⚠️ «NO APARECE Y NADA DICE POR QUÉ» ES PEOR QUE NO ESTAR. El Vol Eyectivo VD se dibuja sólo
-       con sus dos insumos, y el caso de un insumo solo es el NORMAL, no el raro: el Diam TSVD es
-       una distancia sobre 2D, así que el médico lo mide en el cajón de Distancia 2D —el único de
-       los dos que ofrece medirlo— y el VTI lo traza acá. Es el recurso de `eteQpQsMotivo`:
-       distinguir «falta el dato» de «el número no da».
-       Desde el 2026-09-25 es UN SOLO CAMPO —`vd.tsvd` es alias de `pul.diamTsvd`— así que el
-       aviso nombra dónde medirlo, no otro campo. El texto anterior decía «son dos campos
-       distintos con el mismo rótulo» y remataba con la instrucción de aliasarlo «como corrección
-       de fondo»: dos afirmaciones que el código ya contradecía. */
-    if (E.modo === 'pul') {
-      const _P = E.pul, _falta = (_P.vtiPul != null && _P.diamTsvd == null) ? 'diam'
-                               : (_P.diamTsvd != null && _P.vtiPul == null) ? 'vti' : null;
-      if (_falta) {
-        h += '<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.45;">' +
-             'Para el <b>Vol Eyectivo VD</b> falta ' + (_falta === 'diam'
-               ? 'el <b>Diam TSVD</b>, que se mide con la regla en el cajón de Distancia 2D (grupo VD) — es el MISMO campo — o se carga acá con ✏️.'
-               : 'el <b>VTI Pulmonar (TSVD)</b>, trazado en el mismo nivel que el diámetro.') +
-             '</div>';
-      }
-    }
+  const S = _dopFilasSueltas();
+  if (F.length || S.length) {
+    h += _medTablaHTML(sinArmar(F), 'dop', E.destino, sinArmar(S));
+    /* ⚠️ LA ÚNICA LÍNEA DE TEXTO QUE QUEDA A LA VISTA ES LA INSTRUCCIÓN (punto A4): «Midiendo
+       para …». Todo lo demás —el aviso de qué le falta al Vol Eyectivo VD y los descargos de
+       `_dopDisc`— se mueve al globo ⓘ de más abajo. */
     if (E.destino) {
       h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
            escHtml(_DOP_ROT[E.destino] || E.destino) + '</b> — la próxima medición cae ahí.</div>';
@@ -150791,21 +151343,24 @@ function _dopRender() {
     h += '<div style="font-size:11.5px;color:var(--text2);line-height:1.5;">' +
          'Elegí una válvula para ver sus campos y medir sobre esta imagen.</div>';
   }
-
-  /* ⚠️ LAS MEDICIONES SIN CAMPO ARMADO SE MUESTRAN IGUAL, y esta mitad no es opcional.
-     `_dopCapturar` cae en las filas genéricas cuando nadie armó un destino, y eso sigue siendo
-     alcanzable: las herramientas del visor se pueden elegir desde la barra lateral sin tocar el
-     cajón. Sin este bloque esas mediciones existirían en el estado y NO se verían por ningún
-     camino — el médico mide y el número desaparece. Sólo aparece cuando hay algo: una tabla de
-     guiones bajo el rótulo «sin asignar» entrena a ignorarla. */
-  const S = _dopFilasSueltas();
-  if (S.length) {
-    h += '<div style="margin-top:10px;font-size:10.5px;color:var(--text2);">' +
-         'Mediciones sin asignar a un campo' + (F.length ? ' — armá una fila con «medir» para que caigan ahí' : '') +
-         '</div>' + tabla(S);
+  /* ⚠️ «NO APARECE Y NADA DICE POR QUÉ» ES PEOR QUE NO ESTAR, así que el aviso del Vol Eyectivo
+     VD NO se borra: pasa al globo. El Vol Eyectivo VD se dibuja sólo con sus dos insumos, y el
+     caso de un insumo solo es el NORMAL, no el raro: el Diam TSVD es una distancia sobre 2D, así
+     que el médico lo mide en el cajón de Distancia 2D —el único de los dos que ofrece medirlo— y
+     el VTI lo traza acá. Es el recurso de `eteQpQsMotivo`: distinguir «falta el dato» de «el
+     número no da». */
+  let _faltaTxt = null;
+  if (E.modo === 'pul') {
+    const _P = E.pul, _falta = (_P.vtiPul != null && _P.diamTsvd == null) ? 'diam'
+                             : (_P.diamTsvd != null && _P.vtiPul == null) ? 'vti' : null;
+    if (_falta) {
+      _faltaTxt = 'Para el Vol Eyectivo VD falta ' + (_falta === 'diam'
+        ? 'el Diam TSVD, que se mide con la regla en el cajón de Distancia 2D (grupo VD) — es el MISMO campo — o se carga acá con ✏️.'
+        : 'el VTI Pulmonar (TSVD), trazado en el mismo nivel que el diámetro.');
+    }
   }
 
-  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">' +
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px;">' +
     '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-dop-acc="limpiar">🗑️ Limpiar</button>' +
     /* ⚠️ EL RÓTULO DICE «TABLA», y no es cosmético: a dos centímetros está «📸 Capturar+Med»,
        que guarda la ECOGRAFÍA con sus calipers. Son dos gestos que producen dos entradas
@@ -150822,46 +151377,11 @@ function _dopRender() {
     (_dopHayValores()
       ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">💾 Guardar tabla</button>'
       : '') +
+    /* El globo va en la MISMA fila que los botones y no debajo: es un control de 22 px al lado de
+       dos de 44, y colgado aparte agregaria un renglon a una columna que el pedido quiere
+       compacta. */
+    _medInfoBoton('dop', 'Mediciones Doppler', _dopInfoTxts(_faltaTxt, F.length || S.length)) +
     '</div>';
-  /* ⚠️ SE DICE QUÉ INCLUYE, porque el botón está debajo de UNA tabla y guarda las CUATRO. Sin
-     esta línea, el médico que midió cuatro válvulas y tiene la mitral en pantalla cree que guardó
-     la mitral, y no vuelve a apretar por las otras tres. Nombra las que hay, no «todas»: un
-     enunciado genérico no se puede contrastar con lo que se está mirando. */
-  if (_dopHayValores()) {
-    /* Sale de las SECCIONES, no de un predicado escrito al lado: es la tercera superficie que
-       enumera lo mismo —con el sufijo del nombre y el `confirm` de «Limpiar»— y la primera versión
-       del sufijo ya divergió por reconstruirlo. Acá el rótulo largo SÍ va, porque la línea se lee
-       de corrido y no compite por el ancho de un título. */
-    const conDatos = _dopSeccionesGuardado()
-      .map(s => s.m === 'gen' ? 'las mediciones sin asignar' : s.rot);
-    h += '<div style="margin-top:6px;font-size:10.5px;color:var(--text2);line-height:1.45;">' +
-      '«Guardar tabla» incluye ' + escHtml(conDatos.join(', ')) +
-      ' — todo lo medido en esta sesión, no sólo la válvula abierta.</div>';
-  }
-  /* La edición a mano existe desde siempre por el ✏️ de cada fila, y no se descubre sola: un
-     glifo de 10 px al lado de un número se lee como decoración. La línea lo nombra una vez.
-     ⚠️ DICE «las filas con ✏️» Y NO «cualquier valor», que es lo que decía y era falso: los
-     DERIVADOS no lo llevan —AVA, E/A, E/e', e' promedio, PSAP, los gradientes— porque un campo
-     calculado que se puede pisar a mano es el «campo auto que se calcula una vez y se queda
-     viejo» que este archivo documenta con `vp_gmax`. Se corrigen sus insumos y se recalculan.
-     Y la compuerta mira LAS DOS tablas: con la válvula cerrada y sólo «sin asignar» en pantalla,
-     esas filas SÍ llevan ✏️ y la línea no salía. */
-  if (F.length || S.length) {
-    h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-      'Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las reemplaza. ' +
-      'Los derivados se recalculan solos y no se editan.</div>';
-  }
-  h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-    /* ⚠️ LA LEYENDA DE ORIGEN TAMBIÉN ACÁ. Vivía sólo en `_dopDiscDe`, que consumen el lienzo y la
-       meta — o sea que la PRIMERA superficie donde el médico se encuentra con «VTI TSVI · A+B» es
-       este panel, y ahí no había una palabra que lo explicara. El reparto que dice el comentario
-       del sufijo —marca corta arriba, significado al pie— sólo se cumplía en el papel.
-       NO se cambia `_dopDisc()` por `_dopDiscDe()`: el panel muestra a propósito los descargos de
-       toda la válvula, incluidas las filas vacías. */
-    _dopDisc().concat(_dopMarcarOrigenes()
-      ? ['· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se escribió a ' +
-         'mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de una misma vista.']
-      : []).map(t => escHtml(t)).join('<br>') + '</div>';
   cont.innerHTML = h;
   _dopObservar();
 }
@@ -151553,14 +152073,42 @@ function _d2Derivados() {
    IDÉNTICO … para que el armador sea el mismo», o sea que AUTORIZABA a compartirlo prometiendo
    una compatibilidad que no existe. Antes de unificar nada hay que decidir el `f[6]` de estas
    filas. */
+/* ══ MEDIR-3 — UN SOLO DUENIO DE «QUE FILA VA EN QUE TABLA» (puntos A5 y A7) ═════════════════
+   ⚠️ EL ORDEN DEL VI ES EL DEL PEDIDO: SIVd, DDVI, PPd, SIVs, DSVI, PPs — o sea diastole
+   completa y despues sistole completa, que es el orden en que el medico mide. Antes era por
+   PARES de la misma pared (SIVd, PPd, SIVs, PPs, DDVI, DSVI).
+
+   ⚠️ Y EL DIAM TSVI SE MUDA DEL VI A LA AORTA (punto A5). El campo NO cambia: sigue siendo
+   `vi.tsvi`, que es un ALIAS de `ao.diam` del cajon Doppler (`_D2_ALIAS`), asi que el valor
+   compartido con la AVA por continuidad y la ruta `diam_tsvi` al informe quedan intactas — lo
+   unico que se mueve es en que tabla se DIBUJA la fila. Se conserva la clave `vi.tsvi` y no se
+   renombra a `ao.tsvi` a proposito: de ese nombre cuelgan `_D2_ROT`, `_D2_BANDA_DE`, los dos
+   «Limpiar» y CINCO usos del suite, y un renombre seria adaptar casos maduros para cero ganancia
+   clinica. Lo que si habia que arreglar es la consecuencia:
+
+   ⚠️ `_d2GrupoConDatos` DERIVABA EL GRUPO DEL NOMBRE DEL CAMPO (`c.indexOf(m + '.') === 0`), asi
+   que con la fila en Aorta y la clave en `vi.` el punto de «esta estructura ya tiene mediciones»
+   habria salido en VI —donde ya no hay ninguna fila que lo muestre— y NO en Aorta, que es donde
+   el medico lo ve. De ese predicado cuelgan ademas el aviso de «Limpiar» y la compuerta de
+   guardado. Por eso el reparto pasa a vivir UNA sola vez, en esta tabla, y la leen las DOS
+   funciones: la que arma las filas y la que pregunta si un grupo tiene datos. Con la lista
+   escrita en dos lados, mover una fila vuelve a dejar las dos pantallas en desacuerdo. */
+const _D2_FILAS_DE = Object.assign(Object.create(null), {
+  vi:  ['vi.sivd', 'vi.ddvi', 'vi.ppd', 'vi.sivs', 'vi.dsvi', 'vi.pps'],
+  vd:  ['vd.basal', 'vd.medio', 'vd.longit', 'vd.tapse', 'vd.tsvd'],
+  ao:  ['ao.sinusal', 'ao.sinotub', 'ao.tubular', 'ao.cayado', 'ao.descend', 'ao.abdominal',
+        'vi.tsvi'],
+  ai:  ['ai.dap'],
+  vci: ['vci.vci']
+});
+
 function _d2Filas(modo) {
   const E = _d2Estado();
   const m = modo || E.modo;
   if (!m) return [];
   const f1 = c => [_D2_ROT[c], _d2Valor(c) == null ? null : Number(_d2Valor(c)).toFixed(1), 'mm', c, true, null];
-  let F = [];
+  let F = (_D2_FILAS_DE[m] || []).map(f1);
   if (m === 'vi') {
-    F = ['vi.sivd','vi.ppd','vi.sivs','vi.pps','vi.ddvi','vi.dsvi','vi.tsvi'].map(f1);
     const D = _d2Derivados();
     /* Los derivados van SIN campo (`f[3]` en null), que es lo que les saca el ✏️: un calculado
        que se puede pisar a mano es el «campo auto que se calcula una vez y se queda viejo» que
@@ -151569,15 +152117,15 @@ function _d2Filas(modo) {
       F.push(['Engrosamiento SIV', D.fepSiv.toFixed(0), '%', null, false, ['vi.sivd','vi.sivs']]);
     if (D.fepPp != null)
       F.push(['Engrosamiento PP', D.fepPp.toFixed(0), '%', null, false, ['vi.ppd','vi.pps']]);
-  } else if (m === 'vd') {
-    F = ['vd.basal','vd.medio','vd.longit','vd.tapse','vd.tsvd'].map(f1);
-  } else if (m === 'ao') {
-    F = ['ao.sinusal','ao.sinotub','ao.tubular','ao.cayado','ao.descend','ao.abdominal'].map(f1);
-  } else if (m === 'ai') {
-    F = ['ai.dap'].map(f1);
-  } else if (m === 'vci') {
-    F = ['vci.vci'].map(f1);
   }
+  /* ⚠️ ACA VIVIA UNA CADENA `else if` CON LA LISTA DE CADA GRUPO ESCRITA A MANO, Y DEJARLA ERA
+     UN DEFECTO MIO QUE LA SONDA ENCONTRO. `_D2_FILAS_DE` ya arma las filas arriba, pero esas
+     ramas REASIGNABAN `F` con las listas viejas, asi que el dueño unico valia solo para el VI
+     —la unica rama que no reasigna— y el Diam TSVI mudado a la tabla de Aorta no se dibujaba:
+     `tsviEnAo` daba FALSO en los ocho cruces mientras `_d2GrupoConDatos('ao')` daba VERDADERO,
+     o sea el punto de «esta estructura tiene mediciones» sobre una tabla que no la mostraba.
+     Es literalmente el patron de «dos dueños del mismo valor» que el comentario de arriba dice
+     que esto viene a cerrar, introducido al cerrarlo. */
   /* La marca de origen se agrega al RÓTULO, igual que en el cajón Doppler, y los derivados
      declaran sus insumos. */
   F.forEach(f => {
@@ -151588,14 +152136,17 @@ function _d2Filas(modo) {
 }
 window._d2Filas = _d2Filas;
 
+/* ⚠️ MEDIR-3 — PREGUNTA POR LAS FILAS QUE ESE GRUPO DIBUJA, Y NO POR EL NOMBRE DEL CAMPO.
+   Antes miraba `E[m]` mas los alias que EMPEZARAN con `m + '.'`, o sea que derivaba el grupo del
+   NOMBRE. Con el Diam TSVI mudado a la tabla de Aorta (punto A5) eso habria puesto el punto de
+   «esta estructura ya tiene mediciones» en VI —donde ya no hay ninguna fila que lo muestre— y no
+   en Aorta, que es donde el medico lo ve; y de este predicado cuelgan tambien el aviso de
+   «Limpiar» y la compuerta de guardado.
+   Hoy lee `_D2_FILAS_DE`, el mismo dueño que arma las filas, y por `_d2Valor` —que resuelve el
+   alias— cubre los campos propios y los ajenos con UNA sola regla, sin la rama aparte que el
+   comentario anterior necesitaba. */
 function _d2GrupoConDatos(m) {
-  const G = _d2Estado()[m];
-  if (G && Object.keys(G).some(k => G[k] != null)) return true;
-  /* ⚠️ LOS ALIAS NO VIVEN EN `E[m]`, así que hay que preguntarles aparte. Va derivado de
-     `_D2_ALIAS` y no con un `if (m === 'vi')` como estaba: con el segundo alias —el Diam TSVD—
-     esa rama habría dejado al grupo VD diciendo «sin datos» con el valor cargado, y de ahí sale
-     tanto el aviso de «Limpiar» como la compuerta de guardado. */
-  return Object.keys(_D2_ALIAS).some(c => c.indexOf(m + '.') === 0 && _d2Valor(c) != null);
+  return (_D2_FILAS_DE[m] || []).some(c => _d2Valor(c) != null);
 }
 function _d2HayValores() { return _D2_GRUPOS_DATO.some(_d2GrupoConDatos); }
 window._d2HayValores = _d2HayValores;
@@ -151718,16 +152269,20 @@ function _d2Render() {
          'Elegí un grupo para ver sus campos y medir sobre esta imagen.</div>';
   }
 
-  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">' +
+  /* ══ MEDIR-3 — LOS TEXTOS SE MUEVEN AL GLOBO ⓘ (punto A4) ═══════════════════════════════════
+     ⚠️ SE MUEVEN, NO SE BORRAN: los descargos de `_d2Disc()` y la nota del ✏️ son texto clinico
+     —uno de ellos avisa que un engrosamiento NEGATIVO puede ser una inversion de fases, y otro
+     que «Limpiar» aca le saca el Diam TSVI al AVA de la otra pantalla— y el pedido dice
+     explicitamente que no se pierda ninguno. El caso los busca DENTRO del globo, uno por uno.
+     Lo que queda a la vista en el panel es UNA sola linea de instruccion, que es la de
+     «Midiendo para …» o la de «Elegi un grupo …» segun el estado. */
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px;">' +
     '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-d2-acc="limpiar">🗑️ Limpiar</button>' +
+    _medInfoBoton('d2', 'Mediciones 2D',
+      (F.length ? ['Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las ' +
+                   'reemplaza. Los derivados se recalculan solos y no se editan.'] : [])
+        .concat(_d2Disc())) +
     '</div>';
-  if (F.length) {
-    h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-      'Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las reemplaza. ' +
-      'Los derivados se recalculan solos y no se editan.</div>';
-  }
-  h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-    _d2Disc().map(t => escHtml(t)).join('<br>') + '</div>';
   cont.innerHTML = h;
   _d2Observar();
 }
