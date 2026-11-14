@@ -3693,3 +3693,66 @@ TC-839, TC-841), tres de ellos **más fuertes** que antes. TC-161 pasa **sin ada
 **Tres hipótesis de la orden que resultaron falsas:** `_dcmImgLeer` no leía ningún dato del
 paciente; esta app no tiene ninguna barra de progreso; y el campo `origen` está en la lista
 cerrada del guardado pero su **valor** se normaliza, así que `'ceibolink'` no sobrevive.
+
+---
+
+## MEDIR-2 — 2026-11-13 · el visor completo y la comunidad bloqueada
+
+**Siete commits.** Sello `v20261113-1953`, md5 `08eb08c0`, 181.730 líneas. Línea base:
+**`671d52b`** (el cierre de MEDIR-1).
+
+Continúa MEDIR-1 y cierra sus cuatro puntos pendientes más el bloque de rojos y seguridad:
+
+1. **Bloque A — rojos y seguridad.** Los cuatro rojos del visor eran NUEVOS y del rediseño
+   (verificado contra `ff8c585`). **Dos eran defectos reales de accesibilidad** y se arreglaron
+   en la app: el contraste del rótulo del selector en tema claro (3,44:1 → 4,70) y su área táctil
+   (28 px → 44 por un `::after`). Las otras condiciones quedaron **invertidas**. TC-244 no estaba
+   roto: su denominador de 380 px fijos dejó de morder. **TC-850** no fallaba por el azar del
+   conector sino por **dependencia de orden**. **Semgrep vuelve a 126/0 y M1-d queda cerrado.**
+2. **Bloque B — la tabla de medidas en cinco columnas**, con un solo armador para los dos
+   cajones, las filas calculadas sin botones y «Borrar» por el camino que ya existía.
+3. **Bloque C — los nombres del Doppler pulmonar.** «VP» medía lo mismo que «Vmax EP» y se
+   fundieron en «Vmax pulmonar»; «Vmax IP» se abrió en proto y telediastólica. **Cero bandas
+   inventadas.**
+4. **Bloque D — el Área por aurícula (AI y AD)**, con su contorno rotulado y su resultado en el
+   panel guía. **No escribe un solo campo**, medido con el censo del formulario.
+5. **Bloque E — Simpson en mL y mL/m²**, indexado por `getBSA()`, con el aviso cuando falta el
+   peso o la talla. El cálculo no se tocó.
+6. **Bloque F — la comunidad de desarrollo de IA, bloqueada** en sus seis partes, con un solo
+   estado, un solo nombre, el cartel propio con su texto exacto y **cero envíos**.
+
+**Cobertura:** TC-882 a TC-886 (0/5 contra `671d52b`, ninguno por excepción) y **ocho** casos
+adaptados: TC-208, TC-236, TC-241, TC-244, TC-850, TC-250, TC-257 y TC-262. **13 mutaciones
+dirigidas, 12 muertas y 1 declarada** por sobrevivir a la escena.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **M2-a** a **M2-f**. El mapa:
+`docs/mapa/medir2-tabla-anahi.md`. La guía manual: `docs/GUIA_PRUEBA_MEDIR2.md`.
+
+**Dos preguntas para el médico (M2-c):** si prestarle a «Vmax pulmonar» del visor la banda de
+`vp_vmax` (`[0,2 – 8]` m/s), y qué hacer con las dos filas de la IP, que no tienen de dónde
+prestar.
+
+**Tres hipótesis de la orden que resultaron falsas:** el conector falso **no** genera el id de
+equipo al azar (es fijo; lo que faltaba era el apodo del caché); TC-244 **no** estaba roto sino su
+denominador; y **tres** rojos más del cajón 2D y del Doppler (TC-250, TC-257, TC-262) que la orden
+no nombraba y que la batería destapó.
+
+**La tanda se PAUSÓ** a pedido del médico con la batería en el lote 17 y se retomó al día
+siguiente. Lo que el cierre destapó, en `docs/PENDIENTES.md` → **M2-g**:
+
+- ⚠️ **El `row-gap` de 16 px NO aplicaba, y era un defecto real.** El marcado emitía `gap:3px`
+  **en línea** y ese atajo fija los dos ejes, así que le ganaba a la hoja: el hueco efectivo
+  seguía en 3 px y con la fila **envuelta** había **tres pares de áreas táctiles solapadas**.
+  Arreglado con `column-gap:3px` en línea y el vertical en la hoja, **sin `!important`**. Medido
+  en los ocho cruces de la sonda nueva, y **la mutación que antes sobrevivía ahora muere**: no
+  sobrevivía por la escena, era **equivalente**.
+- ⚠️ **«TC-882 y TC-883 pasan aislados» era una medición vieja**, de antes de los bloques C y F.
+  Corridos hoy fallan igual, y con ellos TC-886: los tres eran defectos **míos** —los toggles
+  `d2Modo` y `dopModo`, más un rótulo que el bloque C renombró— y no de la app. **Lote 16: 55/55.**
+- **Las tres rutas al informe, ejercitadas de verdad** y no sólo verificadas sobre el diff:
+  21,5 / 22,4 / 18,6 / 58 en los campos, en los ocho cruces.
+- **Cuatro de los trece casos no caen contra `671d52b`**, cada uno con su motivo: TC-236 y TC-241
+  afirman el rediseño de MEDIR-1, que ya está en esa base, y discriminan contra `ff8c585`; TC-244
+  y TC-850 cambiaron su denominador y su fuente de dato, que valen igual a los dos lados.
+
+**Sonda nueva:** `scripts/_probe_medir2.mjs` — dos motores × dos anchos × dos temas reales.

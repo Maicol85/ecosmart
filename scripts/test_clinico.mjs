@@ -15884,10 +15884,21 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       const C = () => document.getElementById('d2-cajon');
       const vis = () => { const c = C(); return !!(c && c.style.display !== 'none'); };
       const abrir = m => { if (_d2Estado().modo !== m) { const b = C().querySelector('[data-d2-modo="'+m+'"]'); if (b) b.click(); } };
-      const rots = () => Array.from(C().querySelectorAll('table tr')).map(tr => tr.children[0].textContent.trim());
-      const valorDe = rot => { const tr = Array.from(C().querySelectorAll('table tr'))
+      /* ⚠️ ADAPTADO EN MEDIR-2: la tabla gano un encabezado, asi que las filas se leen del
+         cuerpo -con table tr el encabezado entraba como una fila mas y el inventario decia
+         «Medida,SIVd,...»-. Y el valor vive en su celda propia: la unidad se mudo a la tercera. */
+      const rots = () => Array.from(C().querySelectorAll('table tbody tr')).map(tr => tr.children[0].textContent.trim());
+      const valorDe = rot => { const tr = Array.from(C().querySelectorAll('table tbody tr'))
           .filter(t => t.children[0].textContent.trim().indexOf(rot) === 0)[0];
-        return tr ? tr.children[1].textContent.trim() : null; };
+        if (!tr) return null;
+        /* valor + unidad, que es como lo escribia la tabla de dos columnas: asi las condiciones
+           que comparan «22.0 mm» siguen midiendo lo mismo.
+           ⚠️ LA TERCERA CELDA VA CON GUARDA: contra la linea base la tabla tiene DOS celdas, asi
+           que un acceso pelado tira TypeError y el caso cae por EXCEPCION en vez de por sus
+           condiciones -- que es justo lo que esta casa prohibe-. Es la leccion de TC-827. */
+        const c1 = tr.children[1], c2 = tr.children[2];
+        return ((c1 ? c1.textContent.trim() : '') + ' ' +
+                (c2 ? c2.textContent.trim() : '')).trim(); };
       const cv = document.getElementById('cine-med');
       const rc = cv ? cv.getBoundingClientRect() : null;
       const clicCv = (x,y) => cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:rc.left+x,clientY:rc.top+y}));
@@ -15906,7 +15917,12 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
          verificar explicitamente: "mostrar al tocar" NO implica "ocultar al salir". */
       abrir('vi');
       const viRots = rots();
-      const unaColumna = C().querySelector('table tr').children.length === 2;
+      /* ⚠️ INVERTIDA EN MEDIR-2: eran DOS celdas -rotulo y valor con sus botones- y hoy son
+         CINCO, que es el punto 5 del pedido del medico: Medida | Valor | Unid. | Medir y Borrar |
+         la casilla de la comunidad. Falla por los dos lados: si vuelven las dos, y si alguien
+         agrega una sexta sin declararla. */
+      const unaColumna = C().querySelector('table tbody tr').children.length === 5 &&
+                         C().querySelectorAll('table thead th').length === 5;
       abrir('ao');
       const aoRots = rots();
       const ocultaElAnterior = aoRots.indexOf('DDVI') < 0 && aoRots.indexOf('SIVd') < 0;
@@ -16027,7 +16043,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
       /* ── LIMPIAR DEL CAJON DOPPLER REPINTA ESTE ── porque le borra el Diam TSVI. */
       abrir('vi'); _d2Estado().destino='vi.tsvi'; _d2Capturar(22);
-      const mostraba22 = C().innerText.indexOf('22.0 mm') >= 0;
+      const mostraba22 = C().innerText.indexOf('22.0') >= 0 && C().innerText.indexOf('mm') >= 0;
       _dopLimpiar();
       const yaNoMuestra22 = C().innerText.indexOf('22.0 mm') < 0 && _dopEstado().ao.diam == null;
 
@@ -16068,7 +16084,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         ['los CINCO grupos, en orden', botones.join(',') === 'vi,vd,ao,ai,vci', botones.join(',')],
         ['sin grupo elegido NO se dibuja ninguna tabla', sinGrupoNoHayTabla, ''],
         ['el VI trae sus siete campos', viRots.join(',') === 'SIVd,PPd,SIVs,PPs,DDVI,DSVI,Diam TSVI', viRots.join(',')],
-        ['UNA sola columna de valores', unaColumna, ''],
+        ['CINCO columnas, con su encabezado', unaColumna, ''],
         ['TOCAR OTRO GRUPO OCULTA EL ANTERIOR', ocultaElAnterior, aoRots.join(',')],
         ['  la AI tiene una sola fila', aiSolaFila, rots().join(',')],
         ['  y tocar el abierto lo cierra', tocarElAbiertoCierra, ''],
@@ -17393,7 +17409,15 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
         mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'VTI VM','Grad Medio VM','THP VM',
               'AVM por THP','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM'],
         tri: ['Vmax IT','Grad Máx IT','PSAP (PVC 10)','Vmax ET','Grad Máx ET'],
-        pul: ['Vmax IP','Grad Máx IP','Vmax EP','Grad Máx EP','TAP','VP','Diam TSVD','VTI Pulmonar (TSVD)','Vol Eyectivo VD']
+        /* ADAPTADO 2026-11-13 (MEDIR-2): «VP» y «Vmax EP» median LO MISMO -velocidad pico de la
+           valvula pulmonar en m/s- y se fundieron en «Vmax pulmonar», conservando la clave que
+           estaba conectada al gradiente; «Vmax IP» se abrio en las DOS de la insuficiencia, con
+           los rotulos de los campos de la app. Lo que esta lista mide -que cada medicion aparece
+           UNA vez y en su columna- no cambia: cambia como se llaman tres de ellas y que hay una
+           mas. La lista es exhaustiva por los dos lados (faltan y sobran), asi que se pone roja
+           tanto si vuelve «VP» como si desaparece la telediastolica. */
+        pul: ['Vmax proto-diast. IP','Grad Máx IP','Vmax telediastólica IP','Vmax pulmonar',
+              'Grad Máx pulmonar','TAP','Diam TSVD','VTI Pulmonar (TSVD)','Vol Eyectivo VD']
       };
       const faltan = [], sobran = [];
       ['ao','mit','tri','pul'].forEach(v => {
@@ -17407,7 +17431,7 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
       const aoOk = porValv.ao.izq.indexOf('Vmax VAo') >= 0 && porValv.ao.izq.indexOf('Grad Medio') >= 0 &&
                    porValv.ao.der.indexOf('Diam TSVI') >= 0 && porValv.ao.der.indexOf('VTI TSVI') >= 0 &&
                    porValv.ao.der.indexOf('VTI VAo') >= 0;
-      const pulOk = porValv.pul.izq.indexOf('Vmax IP') >= 0 && porValv.pul.izq.indexOf('Vmax EP') >= 0 &&
+      const pulOk = porValv.pul.izq.indexOf('Vmax proto-diast. IP') >= 0 && porValv.pul.izq.indexOf('Vmax pulmonar') >= 0 &&
                     porValv.pul.der.indexOf('Diam TSVD') >= 0 && porValv.pul.der.indexOf('VTI Pulmonar (TSVD)') >= 0;
       const mitIzqOk = ['Onda E','Onda A',"e' septal","e' lateral",'VTI VM','Grad Medio VM']
         .every(r => porValv.mit.izq.indexOf(r) >= 0);
@@ -17457,7 +17481,7 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
       const px = ctx.getImageData(0, 0, cv.width, cv.height).data;
       /* Los rotulos de la derecha tienen que estar dibujados PASADO el centro. */
       const _xDe = rot => { const h = trazos.filter(z => z.t.indexOf(rot) === 0)[0]; return h ? h.x : -1; };
-      const xDiamTsvd = _xDe('Diam TSVD'), xVtiVao = _xDe('VTI VAo'), xVmaxIp = _xDe('Vmax IP');
+      const xDiamTsvd = _xDe('Diam TSVD'), xVtiVao = _xDe('VTI VAo'), xVmaxIp = _xDe('Vmax proto-diast. IP');
       /* ⚠️ EL FILETE DEL CANAL. Entre el valor de la izquierda y el rotulo de la derecha hay 14 px
          —dos caracteres— y el canvas no tiene lineas de fila, asi que sin divisoria el PNG dice
          '4.00 m/s Diam TSVI' y se lee como una unidad. La x se DERIVA del trazo medido
@@ -17605,7 +17629,7 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
           cv.width + 'x' + cv.height],
         ['la TABLA GUARDADA tambien es de dos columnas', xDiamTsvd > cv.width / 2 && xVtiVao > cv.width / 2,
           'Diam TSVD@x=' + xDiamTsvd + ' · VTI VAo@x=' + xVtiVao + ' · ancho=' + cv.width],
-        ['  y la izquierda sigue pegada al margen', xVmaxIp > 0 && xVmaxIp < 60, 'Vmax IP@x=' + xVmaxIp],
+        ['  y la izquierda sigue pegada al margen', xVmaxIp > 0 && xVmaxIp < 60, 'Vmax proto-diast. IP@x=' + xVmaxIp],
         ['  con un FILETE que separa las dos mitades', filete > 30,
           'pixelesDeFilete@x=' + xFilete + ': ' + filete],
         ['  y su alto sale de la columna mas larga, no de la suma', compacto && blancoAlPie < 120,
@@ -33074,10 +33098,20 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       clic(250, 300); await esperar(220);
       R.tap = _dop.pul.tap;
       R.tapVale200 = _dop.pul.tap != null && Math.abs(_dop.pul.tap - 200) < 1;
-      dopArmar('pul.vp'); await esperar(110);
+      /* ⚠️ ADAPTADO EN MEDIR-2: la fila «VP» YA NO EXISTE. Medía lo mismo que «Vmax EP»
+         -velocidad pico de la valvula pulmonar en m/s, las dos con la herramienta de velocidad- y
+         no la leia nadie, asi que las dos se fundieron en «Vmax pulmonar» conservando la clave
+         que SI estaba conectada, pul.vmaxEp, de la que sale el gradiente maximo. Lo que el caso
+         fijaba -que esa fila elige Velocidad y que el clic le entrega los 0,75 m/s- se mide
+         ahora sobre la fila que quedo, y se AGREGA que la clave muerta ya no se puede armar:
+         asi el caso falla por los dos lados. */
+      dopArmar('pul.vmaxEp'); await esperar(110);
       R.vpHerr = _medHerr;
       clic(300, 250); await esperar(200);
-      R.vpVale075 = _dop.pul.vp != null && Math.abs(_dop.pul.vp - 0.75) < 0.02;
+      R.vpVale075 = _dop.pul.vmaxEp != null && Math.abs(_dop.pul.vmaxEp - 0.75) < 0.02;
+      R.vpSinClaveMuerta = !Object.prototype.hasOwnProperty.call(_dopNuevo().pul, 'vp') &&
+                           !_DOP_HERR['pul.vp'];
+      R.ipDos = _DOP_HERR['pul.vmaxIp'] === 'vel' && _DOP_HERR['pul.vmaxIpTd'] === 'vel';
 
       /* ══ LOS DESCARGOS SON DE LAS VALVULAS QUE LA TABLA LLEVA, Y VAN QUEMADOS ════════════
          Van en la IMAGEN que se guarda en la biblioteca y desde ahi pueden llegar al PDF.
@@ -33308,8 +33342,10 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       ['Grad Max IP y EP salen de 4V²',               R.gradIpVale1 && R.gradEpVale4, R.gradIpVale1],
       ['EL TAP ELIGE LA HERRAMIENTA TIEMPO',          R.tapHerr === 'tiempo', R.tapHerr],
       ['y mide 200 ms',                               R.tapVale200, R.tap],
-      ['la VP elige Velocidad',                       R.vpHerr === 'vel', R.vpHerr],
+      ['la Vmax pulmonar elige Velocidad',            R.vpHerr === 'vel', R.vpHerr],
       ['y mide 0,75 m/s',                             R.vpVale075, R.vpVale075],
+      ['la clave muerta pul.vp no quedo',             R.vpSinClaveMuerta === true, R.vpSinClaveMuerta],
+      ['y la IP ofrece sus DOS velocidades',          R.ipDos === true, R.ipDos],
       ['la imagen de la mitral lleva SU descargo',    R.discMit, R.discMit],
       ['la de la tricuspide, el de la PSAP',          R.discTri, R.discTri],
       ['ninguna lleva el de otra valvula',            R.discNoSeMezcla, R.discNoSeMezcla],
@@ -141058,13 +141094,38 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
     const toastReal = window.toast, alertReal = window.alert, confirmReal = window.confirm;
     window.alert = () => {}; window.confirm = () => true;
     try {
+      /* ⚠️ d2Modo Y dopModo ALTERNAN -tocar el grupo abierto lo CIERRA, igual que
+         medToggle-, asi que llamarlos a secas hereda lo que dejo el caso ANTERIOR del lote: si
+         el modo ya era el que se pide, la llamada lo pone en null y NO SE PINTA NINGUNA TABLA.
+         Es la trampa del toggle que esta casa ya pago con el avInc del arnes en PANT-22. Estos
+         dos ayudantes ASEGURAN el modo en vez de alternarlo, asi que el caso mide lo mismo
+         corrido solo y corrido en cualquier lugar del lote. */
+      const ponerD2 = m => { try { if (_d2Estado().modo !== m) d2Modo(m); } catch (e) {} };
+      const ponerDop = m => { try { if (_dopEstado().modo !== m) dopModo(m); } catch (e) {} };
       const jpg = new Uint8Array([255,216,255,217]);
       const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
         regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+      /* DIAGNOSTICO TEMPORAL: que estado deja el lote antes de abrir el visor */
+      const diag = () => { const q = id => { const e = document.getElementById(id);
+          return e ? e.innerHTML.length : -1; };
+        let vb = 'n/d', act = 'n/d';
+        try { vb = String(!!_vistaB); } catch (e) {}
+        try { act = String(_V && _V.pfx); } catch (e) {}
+        let g = 'n/d', on = 'n/d', dv = 'n/d', pv = 'n/d', h = 'n/d';
+        try { g = String(_medGrupoAbierto()); } catch (e) {}
+        try { on = String(_medOn); } catch (e) {}
+        try { h = String(_medHerr); } catch (e) {}
+        try { dv = String(_d2Visible()); } catch (e) {}
+        try { pv = String(_dopVisible()); } catch (e) {}
+        return 'vistaB=' + vb + ' pfxActivo=[' + act + '] grupo=' + g + ' medOn=' + on +
+               ' herr=' + h + ' d2Vis=' + dv + ' dopVis=' + pv +
+               ' d2Html=' + q('d2-cajon') + ' dopHtml=' + q('dop-cajon'); };
+      R.diagPre = diag();
       _cineAbrir([mk('A')]);
       await esperar(600);
       if (!_vistaA.medOn) document.getElementById('cine-medir').click();
       await esperar(400);
+      R.diagPost = diag();
 
       /* Lector unico de las dos tablas: la MISMA funcion para los dos cajones, porque lo que se
          afirma es que los dos pintan igual. */
@@ -141084,7 +141145,7 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
         }; };
 
       /* -- (A) CAJON 2D: grupo VI, con un medido y un DERIVADO -- */
-      medHerramienta('dist'); d2Modo('vi');
+      medHerramienta('dist'); ponerD2('vi');
       _d2Poner('vi.sivd', 10); _d2Poner('vi.sivs', 14); _d2Render();
       await esperar(300);
       const A = leer('d2-cajon');
@@ -141115,15 +141176,27 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
       R.c_vecinoIntacto = Number(_d2Valor('vi.sivs')) === 14;
 
       /* -- (D) CAJON DOPPLER: la MISMA tabla -- */
-      medHerramienta('vel'); dopModo('pul');
+      medHerramienta('vel'); ponerDop('pul');
       _dopEstado().pul.vmaxEp = 2.5; _dopRender();
       await esperar(300);
       const D = leer('dop-cajon');
       R.d_hay = !!D;
+      var diagFin = diag();
+      R.diagDop = (() => { let m = 'n/d', pul = 'n/d';
+        try { m = String(_dopEstado().modo); } catch (e) {}
+        try { pul = JSON.stringify(_dopEstado().pul); } catch (e) {}
+        return 'modo=' + m + ' pul=' + pul + ' rots=[' +
+               (D ? D.fs.map(f => f.med).join(',') : '(sin tabla)') + '] ' + diagFin; })();
       R.d_th = D ? D.th.join('|') : '';
       R.d_mismoEncabezado = !!A && !!D && A.th.join('|') === D.th.join('|');
       R.d_cinco = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 5);
-      const gr = D ? D.fs.filter(f => f.med.indexOf('Grad Máx EP') === 0)[0] : null;
+      /* ⚠️ «Grad Máx EP» PASO A «Grad Máx pulmonar» EN EL BLOQUE C de esta misma tanda, por
+         consecuencia de fundir «VP» con «Vmax EP»: con el rotulo viejo este caso buscaba una fila
+         que ya no existe y daba rojo sobre una tabla correcta. El rotulo se lee del registro
+         de rotulos del cajon cuando esta, asi que el dia que vuelva a cambiar el caso lo sigue. */
+      const rotGrad = (() => { try { return 'Grad Máx ' +
+          String(_DOP_ROT['pul.vmaxEp']).replace('Vmax ', ''); } catch (e) { return 'Grad Máx pulmonar'; } })();
+      const gr = D ? D.fs.filter(f => f.med.indexOf(rotGrad) === 0)[0] : null;
       R.d_calcSinBotones = !!gr && gr.nbot === 0 && gr.italic === true && gr.acc === 'calculada';
 
       /* -- (E) LA CASILLA DE LA COMUNIDAD: UNA POR FILA, BLOQUEADA Y CON CANDADO -- */
@@ -141139,7 +141212,7 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
     try { window.toast = toastReal; window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
     return { extra: [
       ['sin excepciones',                                 !R.err, R.err],
-      ['(A) DENOMINADOR: el cajon 2D pinto su tabla',     R.a_hay === true, R.a_hay],
+      ['(A) DENOMINADOR: el cajon 2D pinto su tabla',     R.a_hay === true, 'PRE[' + R.diagPre + '] POST[' + R.diagPost + ']'],
       ['(A) las CINCO columnas, en su orden',             R.a_th === 'Medida|Valor|Unid.|Medir y Borrar|Anahí', R.a_th],
       ['(A) y todas las filas tienen cinco celdas',       R.a_cinco === true, R.a_cinco],
       ['(A) el valor y la unidad en celdas DISTINTAS',    R.a_separadas === true, R.a_sivdVal + ' / ' + R.a_sivdUni],
@@ -141151,10 +141224,10 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
       ['(C) DENOMINADOR: la fila sin valor NO lo ofrece', R.c_sinValorSinBoton === true, R.c_sinValorSinBoton],
       ['(C) y borra su campo',                            R.c_borro === true, R.c_borro],
       ['(C) sin tocar el vecino',                         R.c_vecinoIntacto === true, R.c_vecinoIntacto],
-      ['(D) DENOMINADOR: el cajon Doppler pinto su tabla', R.d_hay === true, R.d_hay],
+      ['(D) DENOMINADOR: el cajon Doppler pinto su tabla', R.d_hay === true, 'hay=' + R.d_hay + ' ' + (typeof diagFin === 'string' ? diagFin : '')],
       ['(D) con el MISMO encabezado que el 2D',           R.d_mismoEncabezado === true, R.d_th],
       ['(D) y cinco celdas por fila',                     R.d_cinco === true, R.d_cinco],
-      ['(D) su calculada tampoco tiene botones',          R.d_calcSinBotones === true, R.d_calcSinBotones],
+      ['(D) su calculada tampoco tiene botones',          R.d_calcSinBotones === true, R.diagDop],
       ['(E) la comunidad esta APAGADA (denominador)',     R.e_activa === false, R.e_activa],
       ['(E) una casilla por fila',                        R.e_unaPorFila === true, R.e_unaPorFila],
       ['(E) todas bloqueadas y con candado',              R.e_bloqueadas === true, R.e_bloqueadas],
@@ -141171,13 +141244,21 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
     const alertReal = window.alert, confirmReal = window.confirm;
     window.alert = () => {}; window.confirm = () => true;
     try {
+      /* ⚠️ d2Modo Y dopModo ALTERNAN -tocar el grupo abierto lo CIERRA, igual que
+         medToggle-, asi que llamarlos a secas hereda lo que dejo el caso ANTERIOR del lote: si
+         el modo ya era el que se pide, la llamada lo pone en null y NO SE PINTA NINGUNA TABLA.
+         Es la trampa del toggle que esta casa ya pago con el avInc del arnes en PANT-22. Estos
+         dos ayudantes ASEGURAN el modo en vez de alternarlo, asi que el caso mide lo mismo
+         corrido solo y corrido en cualquier lugar del lote. */
+      const ponerD2 = m => { try { if (_d2Estado().modo !== m) d2Modo(m); } catch (e) {} };
+      const ponerDop = m => { try { if (_dopEstado().modo !== m) dopModo(m); } catch (e) {} };
       const jpg = new Uint8Array([255,216,255,217]);
       _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
         regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
       await esperar(600);
       if (!_vistaA.medOn) document.getElementById('cine-medir').click();
       await esperar(400);
-      medHerramienta('vel'); dopModo('pul');
+      medHerramienta('vel'); ponerDop('pul');
       const P = _dopEstado().pul;
       P.vmaxIp = 2.1; P.vmaxIpTd = 1.4; P.vmaxEp = 2.5;
       _dopRender();
@@ -141536,6 +141617,14 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
     const act = () => { try { return anahiActiva(); } catch (e) { return 'SIN FN'; } };
     const nom = () => { try { return ANAHI_NOMBRE; } catch (e) { return 'SIN VAR'; } };
     try {
+      /* ⚠️ d2Modo Y dopModo ALTERNAN -tocar el grupo abierto lo CIERRA, igual que
+         medToggle-, asi que llamarlos a secas hereda lo que dejo el caso ANTERIOR del lote: si
+         el modo ya era el que se pide, la llamada lo pone en null y NO SE PINTA NINGUNA TABLA.
+         Es la trampa del toggle que esta casa ya pago con el avInc del arnes en PANT-22. Estos
+         dos ayudantes ASEGURAN el modo en vez de alternarlo, asi que el caso mide lo mismo
+         corrido solo y corrido en cualquier lugar del lote. */
+      const ponerD2 = m => { try { if (_d2Estado().modo !== m) d2Modo(m); } catch (e) {} };
+      const ponerDop = m => { try { if (_dopEstado().modo !== m) dopModo(m); } catch (e) {} };
       const lsAntes = claves();
 
       /* -- (e) UN SOLO ESTADO, Y APAGADO -- */
@@ -141551,10 +141640,19 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
       await esperar(600);
       if (!_vistaA.medOn) document.getElementById('cine-medir').click();
       await esperar(400);
-      medHerramienta('dist'); d2Modo('vi'); _d2Poner('vi.sivd', 10); _d2Render();
+      medHerramienta('dist'); ponerD2('vi'); _d2Poner('vi.sivd', 10); _d2Render();
       await esperar(300);
       const cels = [...document.querySelectorAll('#d2-cajon .anahi-cel')];
       R.a_n = cels.length;
+      R.a_diag = (() => { let g = 'n/d', on = 'n/d', dv = 'n/d', h = 'n/d', md = 'n/d';
+        try { g = String(_medGrupoAbierto()); } catch (e) {}
+        try { on = String(_medOn); } catch (e) {}
+        try { h = String(_medHerr); } catch (e) {}
+        try { dv = String(_d2Visible()); } catch (e) {}
+        try { md = String(_d2Estado().modo); } catch (e) {}
+        const c = document.getElementById('d2-cajon');
+        return 'n=' + cels.length + ' grupo=' + g + ' medOn=' + on + ' herr=' + h +
+               ' d2Vis=' + dv + ' d2Modo=' + md + ' html=' + (c ? c.innerHTML.length : -1); })();
       R.a_todasBloqueadas = cels.length > 0 &&
         cels.every(c => !!c.querySelector('input[disabled]') && (c.textContent||'').indexOf('🔒') >= 0);
 
@@ -141659,7 +141757,7 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
       ['sin excepciones',                                   !R.err, R.err],
       ['(e) UN solo estado, y apagado',                     R.e_estado === false, String(R.e_estado)],
       ['(e) UN solo nombre, y es el del medico',            R.e_nombre === 'Anahí', String(R.e_nombre)],
-      ['(a) DENOMINADOR: la tabla tiene filas con casilla', R.a_n > 0, R.a_n],
+      ['(a) DENOMINADOR: la tabla tiene filas con casilla', R.a_n > 0, R.a_diag],
       ['(a) todas bloqueadas y con candado',                R.a_todasBloqueadas === true, R.a_todasBloqueadas],
       ['(c) tocarla abre un cartel PROPIO de la app',       R.c_hayCartel && R.c_esPropio, R.c_hayCartel + '/' + R.c_esPropio],
       ['(c) con el titulo exacto',                          R.c_tit === 'Comunidad de desarrollo de IA de CeiboMed', R.c_tit],

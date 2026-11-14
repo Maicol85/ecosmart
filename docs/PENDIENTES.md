@@ -16881,3 +16881,55 @@ temprano si el modo elegir está apagado** y ahí sólo pinta su ayuda, así que
 da un contenedor de dos nodos — que se lee igual que «el botón no está». El caso lo prende y
 **repone el estado anterior al terminar**, porque dejarlo puesto le cambia el gesto de la galería
 a los casos que vienen después en el mismo lote.
+
+### M2-g — EL CIERRE DE MEDIR-2: lo que la verificación destapó después de la pausa
+
+**(1) ⚠️ EL `row-gap` DE 16 px NO APLICABA, Y ERA UN DEFECTO REAL — no sólo una mutación que
+sobrevivió por la escena.** La sonda de dos motores midió el `row-gap` **computado** de la fila
+del selector y dio **3px**, no 16: el marcado emitía `gap:3px` **en línea** y `gap` es un atajo
+que fija los **dos** ejes, así que le ganaba al `row-gap:16px` de la hoja sin importar la
+especificidad. Con la fila **envuelta** eso dejaba **TRES pares de áreas táctiles solapadas**, o
+sea el toque cayendo en la línea de arriba — exactamente el daño que la guarda venía a evitar.
+Es la misma trampa que la hoja del modo mínimo ya documenta para `display`.
+**Arreglado separando los ejes**: el marcado emite `column-gap:3px` y el vertical lo pone la hoja,
+**sin un solo `!important`**. Medido en los **ocho** cruces: `row-gap` **16px** y **cero** solapes
+con la fila envuelta, con su denominador —las líneas pasan de **3 a 5**, o sea que envolvió de
+verdad—.
+**Y ASÍ LA MUTACIÓN MUERE**: con el `row-gap` de la hoja bajado a 3 px, la sonda vuelve a contar
+**3 pares solapados** en los ocho cruces. **La declaración de M2-a queda corregida**: esa mutación
+no sobrevivía por la escena, sobrevivía porque **era equivalente** —el hueco efectivo ya era de
+3 px—.
+
+**(2) ⚠️ «TC-882 y TC-883 PASAN AISLADOS» ERA UNA MEDICIÓN VIEJA, Y LA HIPÓTESIS DE SENSIBILIDAD
+DE LOTE QUEDA DESMENTIDA.** Corridos aislados **hoy** fallan igual, y con ellos **TC-886**. Los
+tres son defectos **míos**, no de la app —el diagnóstico lo prueba: la tabla pinta sus cinco
+rótulos correctos, con `dopVis` en verdadero y 11.210 caracteres de marcado—. Las dos causas:
+- **`d2Modo` y `dopModo` ALTERNAN** —tocar el grupo abierto lo CIERRA, igual que `medToggle`—, así
+  que llamarlos a secas hereda el modo que dejó el caso anterior: si ya era el que se pide, la
+  llamada lo **apaga** y no se pinta ninguna tabla. Es la trampa del toggle que PANT-22 pagó con
+  el `avInc` del arnés. Los tres casos pasan a **asegurar** el modo en vez de alternarlo, así que
+  miden lo mismo corridos solos y en cualquier lugar del lote.
+- **TC-882 buscaba «Grad Máx EP»**, y el **bloque C de esta misma tanda** renombró esa fila a
+  «Grad Máx pulmonar»: el caso daba rojo sobre una tabla correcta. Hoy el rótulo se **deriva del
+  registro** `_DOP_ROT`, así que el día que vuelva a cambiar el caso lo sigue.
+**Los tres quedan verdes, y el lote 16 completo da 55/55.**
+⚠️ **Y LA PAUSA REGISTRÓ ESA MEDICIÓN VIEJA COMO BUENA**: «pasan aislados» se midió al cerrar el
+bloque B, **antes** de los bloques C y F, y no se revalidó. Una medición anterior al cambio no
+vale como medición del cambio.
+
+**(3) LAS TRES RUTAS AL INFORME, EJERCITADAS DE VERDAD Y NO SÓLO SOBRE EL DIFF.** La pausa las
+dejaba como hipótesis. La sonda siembra la entrada de cada una por donde la app la toma y mira el
+**campo** del informe, con su denominador —los cuatro arrancan vacíos—: `diam_tsvi` = **21.5**,
+`itv_tsvi` = **22.4**, `vti_tsvd` = **18.6** y `fevi` = **58**, en los **ocho** cruces.
+
+**(4) CUATRO DE LOS TRECE CASOS NO CAEN CONTRA `671d52b`, y se declara con su motivo.** Los nueve
+que caen lo hacen por **78 condiciones y NINGUNA por excepción**. Los cuatro que pasan:
+- **TC-236** y **TC-241**: sus condiciones quedaron **invertidas al rediseño de MEDIR-1**, que
+  **ya está** en esa base, así que es donde tienen que pasar. Discriminan contra **`ff8c585`** —la
+  línea base de MEDIR-1—, donde caen.
+- **TC-244**: lo que se le cambió es el **denominador**, que vale igual en los dos árboles.
+- **TC-850**: lee el equipo **del conector**, que es el mismo a los dos lados.
+Ninguno quedó más débil.
+⚠️ **Y TC-257 CAÍA POR EXCEPCIÓN contra esa base**: leía la **tercera** celda de la tabla, que en
+la de dos columnas no existe, así que el `TypeError` cortaba antes de medir. Cerrado con guarda
+—la lección de TC-827—, y hoy cae por condiciones.

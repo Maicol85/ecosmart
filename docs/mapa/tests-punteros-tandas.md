@@ -481,3 +481,45 @@ Diez casos nuevos. Las fichas están en el mapa de la tanda,
 rechaza, y eso dejó de ser cierto por orden del médico. Hoy exige que el mensaje de rechazo por
 tamaño **ya no esté** y que el mismo descriptor imposible **dispare la pregunta**, así que puede
 fallar por los dos lados.
+
+---
+
+## MEDIR-2 (2026-11-13) — TC-882 a TC-886
+
+El mapa de la tanda es `docs/mapa/medir2-tabla-anahi.md`; lo declarado, `docs/PENDIENTES.md` →
+**M2-a** a **M2-f**.
+
+| caso | qué fija |
+|---|---|
+| TC-882 | la tabla de medidas en cinco columnas en los DOS cajones, las calculadas sin botones y en cursiva, «Borrar» vaciando sólo su fila, la casilla de la comunidad bloqueada |
+| TC-883 | «VP» fundida con «Vmax EP» en «Vmax pulmonar» conservando la clave conectada, «Vmax IP» abierta en proto y telediastólica con los rótulos de la app, y cero bandas inventadas |
+| TC-884 | el Área con AI y AD en A4C, el contorno con SU estructura, el resultado en el panel guía, y el censo del formulario intacto |
+| TC-885 | Simpson en mL y mL/m², el aviso sin peso o sin talla, la FEVI sin indexar, y los mL sin moverse |
+| TC-886 | los seis puntos de la comunidad bloqueada, con `fetch` y `XMLHttpRequest.open` instrumentados |
+
+**Adaptados: TC-208, TC-236, TC-241, TC-244 y TC-850.** Los tres primeros con condiciones
+**invertidas** —afirmaban la barra lateral y la columna de acciones que MEDIR-1 fundió—; TC-244
+con su **denominador** derivado del ancho medido en vez de 380 px fijos; TC-850 leyendo el equipo
+**que el conector declara** en vez de un id y un apodo escritos a mano. Los motivos, en **M2-a**.
+
+⚠️ **Y UNA TERCERA LECCION, QUE SE PAGO AL RETOMAR: `d2Modo` Y `dopModo` SON TOGGLES.** Tocar el
+grupo abierto lo CIERRA, igual que `medToggle`, asi que llamarlos a secas hereda el modo que dejo
+el caso anterior del lote: si ya era el que se pide, la llamada lo **apaga** y no se pinta ninguna
+tabla. TC-882, TC-883 y TC-886 salian rojos por eso —y **tambien aislados**, asi que la hipotesis
+de «sensibilidad de lote» que la pausa habia anotado quedo desmentida—. Los tres pasan a
+**asegurar** el modo en vez de alternarlo, y el lote 16 completo da **55/55**. Es la trampa que
+PANT-22 pago con el `avInc` del arnes, por otra puerta.
+⚠️ **Y UNA CUARTA: UN ROTULO QUE OTRO BLOQUE DE LA MISMA TANDA RENOMBRO.** TC-882 se escribio en
+el bloque B buscando «Grad Max EP» y el bloque C renombro esa fila a «Grad Max pulmonar»: el caso
+daba rojo sobre una tabla correcta, y la medicion de «pasa aislado» era **anterior** a ese
+renombre. Hoy el rotulo se **deriva del registro** de rotulos del cajon. **Una medicion anterior
+al cambio no vale como medicion del cambio.**
+
+⚠️ **DOS LECCIONES DE ESCRITURA QUE ESTA TANDA VOLVIO A PAGAR.** (1) El **acento grave** dentro de
+mis propios comentarios, por vigesimotercera tanda seguida: **cinco** veces, en cuatro casos
+distintos, y sólo lo caza `node --check`. El generador de cada caso nuevo **cuenta** los acentos
+graves del cuerpo y exige exactamente dos. (2) **Un caso que cae por EXCEPCION no cae por
+condiciones**: TC-884 y TC-886 reventaban contra la línea base con un `TypeError` que cortaba
+antes de medir nada. Se cerró **barriendo el bloque por patrón** —todo acceso a lo nuevo por un
+ayudante con guarda, todo `R.x.slice`/`.indexOf` envuelto en `String(...)`— y no persiguiéndolos
+de a uno, que es la lección de TC-827 en PANT-37.

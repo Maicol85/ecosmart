@@ -160,6 +160,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
+| **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
 | **Tocar el VEREDICTO POR ARCHIVO del importador** —qué devuelven `mediosImportar` y `dcmImgImportar`, por qué `imgCompressLoad` devuelve una promesa, quién confirma a CeiboLink y cuándo—, **el TOPE de un DICOM sin comprimir** con su pregunta y su tope duro, **las MINIATURAS y el visor de «Sin estudio»**, o **los CINELOOPS en «Imágenes guardadas»** con su índice, su filtro y su exclusión del PPT | `docs/mapa/ec4-confirmar-pesados.md` |
@@ -272,7 +273,39 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,07 MB / 180.952 líneas**, medido con `wc -c` y `wc -l` el 2026-11-13 al cierre de la tanda **ECO-CONECTOR-5**, sobre el árbol ya sellado: sello **`v20261112-2150`**, md5 **`f381026b`**.
+  sin frameworks. Hoy **13,12 MB / 181.737 líneas**, medido con `wc -c` y `wc -l` el 2026-11-14 al cierre de la tanda **MEDIR-2**, sobre el árbol ya sellado: sello **`v20261114-0031`**, md5 **`3b0e2373`**.
+  ⚠️ **EL ÁRBOL SE RESELLÓ AL RETOMAR, Y FUE POR UN DEFECTO QUE LA SONDA DE DOS MOTORES
+  ENCONTRÓ**: el `row-gap` de 16 px de la fila del selector **no aplicaba**, porque el marcado
+  emitía el atajo `gap:3px` **en línea** y ése fija los dos ejes, así que le ganaba a la hoja — y
+  con la fila **envuelta** eso dejaba **tres pares de áreas táctiles solapadas**. El primer sello,
+  `v20261113-1953` con md5 `08eb08c0` y 181.730 líneas, es el de la pasada que se mató en el lote
+  17. Todo lo que se midió después —la batería, Semgrep, el celular, los ocho cruces y las
+  mutaciones— corrió sobre este árbol. Declarado en **M2-g**.
+  El diff de MEDIR-2 son **511 líneas agregadas y 53 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra **`671d52b`** —el cierre de MEDIR-1, que es la línea base de ESTA
+  tanda— **sobre el árbol ya sellado**, de las que **447** no son comentario, con **CERO**
+  `innerHTML`, `eval(` y `new Function` nuevos —las dos apariciones de `innerHTML` en el diff son
+  el comentario que declara el `join` y la línea que REEMPLAZA al `innerHTML` que ya estaba—,
+  **cero** claves y contraseñas, **cero** direcciones nuevas y **CERO llamadas de red nuevas**.
+  **SIETE ids nuevos, contados sobre el diff**: `anahi-ov`, `anahi-tit` y `anahi-ok` —los tres los
+  crea al vuelo el cartel y se destruyen al cerrarlo—, `cfg-card-anahi`, `cfg-anahi-tit`,
+  `cfg-anahi-txt` e `igio-exp-anahi`. El octavo que el diff muestra, `eco-build-sello`, **no es
+  nuevo**: es el del pie, que reaparece porque el sello cambió. **Ninguno** termina en `-aviso` ni
+  en `-badge` y **ninguno** cae en ninguno de los **veintidós** barridos por sufijo o prefijo de
+  id del archivo (13 `id$=` y 9 `id^=`), verificado uno por uno.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo lo de esta
+  tanda fuera del censo del estudio y del Excel **por construcción** y no por una lista: el bloque
+  de Configuración no tiene un solo control, el cartel tampoco, y la casilla de la tabla la pinta
+  el JS sin id.
+  ⚠️ **Y EL DIFF SE MIDIÓ PRIMERO CONTRA `ff8c585`, Y ESA CIFRA ERA FALSA PARA ESTA TANDA**: daba
+  **978 y 200**, porque `ff8c585` es la línea base de **MEDIR-1** y el diff mezclaba las dos
+  tandas —aparecían como «nuevos» `cine-maxi`, `cine-modal` y el `cine-cap-etiq` reindentado, que
+  son de MEDIR-1—. La línea base de una tanda es el cierre de la anterior.
+  ⚠️ **POR TRIGÉSIMA NOVENA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show ff8c585:index.html` da **180.952** líneas,
+  **13.072.280** bytes y el md5 **`f381026b`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,07 MB / 180.952 al cierre de la tanda **ECO-CONECTOR-5**, sello **`v20261112-2150`**, md5 **`f381026b`**.)
   El diff de ECO-CONECTOR-5 son **1.926 líneas agregadas y 104 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `5a9f0ca` **sobre el árbol ya sellado**, de las que **1.829** no son
   comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —contados sobre el diff y no
@@ -1201,6 +1234,200 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda MEDIR-2 (2026-11-13) — los cuatro rojos del visor, la tabla en cinco columnas, los
+nombres del Doppler pulmonar, el Área por aurícula, Simpson indexado y la comunidad bloqueada.**
+SIETE commits. Sello **`v20261113-1953`**, md5 **`08eb08c0`**, **181.730** líneas.
+Continúa **MEDIR-1** y cierra sus **cuatro puntos pendientes** (5, 6, 7 y 8) más el bloque de
+rojos y seguridad. **Nada de esta tanda llega al papel**: no escribe un campo del informe, no
+toca el EN SUMA, el PDF, el PPT ni el Excel —que queda en **457** columnas con **cero** campos
+guardados nuevos, por construcción: **cero `input`, `select` y `textarea` nuevos con `id`**—, y
+**las tres rutas al informe quedan idénticas**, verificado sobre el diff: ninguna línea de
+`medVtiCargar`, `medVtiDiametro` ni `_simpEscribirFEVI` se movió, y ningún `itv_tsvi`,
+`vti_tsvd`, `diam_tsvi`, `tsvd_diametro` ni el campo `fevi` aparece en el diff.
+**LOS CUATRO ROJOS DEL VISOR ERAN NUEVOS Y DEL REDISEÑO**, verificado corriéndolos contra
+`ff8c585` con el MISMO archivo de casos: los cuatro pasan allá.
+⚠️ **Y DOS RESULTARON DEFECTOS REALES DE ACCESIBILIDAD QUE MEDIR-1 INTRODUJO, así que se
+arreglaron en la app en vez de aflojar el caso.** (1) **Contraste**: en tema claro el botón no
+seleccionado del grupo Deformación iba con `--green` sobre el fondo del modal, **3,44:1**, por
+debajo del 4,5 de esta casa — lo causó el rediseño al cambiar ese fondo de `--bg3` a
+transparente. Hoy **`_medColorLegible` DERIVA** el color hasta alcanzar 4,5 mezclándolo contra
+`--text`, igual que `_medTextoSobre` deriva el texto sobre relleno; medido, el peor caso pasa a
+**4,70 de día y 5,30 de noche**. (2) **Área táctil**: los botones del selector medían **28 px y
+nada más**; hoy se ven de 28 y se tocan en **44** por un `::after` absoluto —el patrón de PANT-2,
+nunca un margen negativo—, con el hueco vertical de la fila subido a **16 px** porque 28 + 16 =
+44 exactos: con los 3 px anteriores, dos áreas de 44 se **solapaban 13 px** y el toque habría
+caído en la línea de arriba.
+**LAS OTRAS CONDICIONES SE INVIRTIERON, con su motivo donde vive cada una**: la jerarquía visual
+de la barra lateral vieja (grupo más grande, peso 700, filete, subitems sangrados) y los
+separadores de la columna de acciones describían **lo que el punto 2 del pedido vino a cambiar**
+—«una sola barra, todos del mismo formato»—, así que hoy el caso exige lo contrario y falla por
+los dos lados. **TC-241** se adaptó al sucesor `cine-grp-med` y ganó dos condiciones nuevas.
+⚠️ **TC-244 NO ESTABA ROTO: SU DENOMINADOR DEJÓ DE MORDER.** Acotaba `#cine-paneles` a **380 px
+fijos** para forzar el cambio de ancho de la imagen; con el rediseño la imagen se lleva **todo**
+el ancho del panel, así que en la ventana del arnés (**756×469**) el canvas queda acotado por su
+**ALTO** (56vh = **315 px**) y 380 ya no lo toca. Medido a los dos lados: en `ff8c585` el lienzo
+mide **570** px y el canvas baja de 315 a **256**; hoy el lienzo mide **694** y el canvas se
+queda en 315. El tope pasa a derivarse del **70 % del ancho medido**, que muerde en cualquier
+layout — o sea que quedó **más fuerte** que el número fijo.
+⚠️ **TC-850 FALLABA SIEMPRE AISLADO, Y LA CAUSA NO ERA EL AZAR DEL CONECTOR FALSO.** El id de
+equipo `eq_3f8a1c` es **fijo** en `_conector_falso.mjs`; lo que el caso esperaba era el **apodo**
+«GE del consultorio», que no sale de la lista de imágenes sino del caché `_clnkNombreEq`, que
+llena `_clnkCargarNombresEq` al leer `/v1/equipos`. O sea que el caso pasaba **sólo si algún caso
+anterior del lote ya había abierto el panel**: dependencia de orden, no intermitencia. Hoy pide
+la lista, toma el primer equipo **autorizado** y usa SU id y SU nombre con la misma regla que la
+app —apodo, si no el AET, si no el id—, con un denominador que declara que el conector trajo
+alguno. **Los dos intermitentes declarados, TC-182 y TC-551, pasan 2 de 2 corridos aislados.**
+**SEMGREP VUELVE A 126 WARNING / 0 ERROR, la línea base exacta, y M1-d queda CERRADO.** Por
+decisión del médico se reescribió la línea que disparaba `ceibo-xss-innerhtml-concat`: las tres
+filas del selector se juntan con **`join`** en vez de concatenarse del lado derecho del
+`innerHTML`, que es la **forma** que la regla empareja. La seguridad real no cambia ni cambiaba:
+las tres salen de `_medSideFila`, que arma su marcado con constantes del archivo y pasa por
+`escHtml` cada texto que viene de un dato. **Verificado por mutación: con la concatenación de
+vuelta, Semgrep da 127.**
+**LA TABLA DE MEDIDAS, EN CINCO COLUMNAS Y CON UN SOLO ARMADOR.** `_medTablaHTML(filas, pfx,
+destino)` lo consumen los **dos** cajones —`_d2Render` y `_dopRender`—: con uno por cajón, el día
+que una columna cambie de forma los dos pintarían distinto la misma fila. **Una fila es CALCULADA
+cuando no tiene campo (`f[3]` en null)**, y ese criterio **no es nuevo**: es el que `_d2Filas` ya
+declaraba para sacarles el ✏️. Van sin ningún botón, en cursiva y con la palabra «calculada».
+**«Borrar» no es un camino nuevo**: es el mismo que `dopCorregir` / `d2Corregir` recorren con el
+cuadro vacío, así que **no toca ni un corte ni una banda**, y **sólo se dibuja si la fila tiene
+valor** — por eso no pregunta. **El ✏️ se conserva**: para el Diam TSVD es la única vía de
+entrada.
+**EL DOPPLER PULMONAR: «VP» MEDÍA LO MISMO QUE «Vmax EP», CONFIRMADO POR LECTURA ANTES DE TOCAR
+NADA.** Las dos, velocidad pico de la válvula pulmonar en **m/s**, las dos con la herramienta
+`vel`, y a **`pul.vp` no la leía NADIE** —ni un campo del informe, ni el Excel, ni el papel, ni
+`_dopDerivados`—. Era la pregunta que **M1-b** dejó abierta. Se funden en **«Vmax pulmonar»**
+conservando **`pul.vmaxEp`**, que es la **conectada** (de ella sale el gradiente), y `pul.vp` se
+retira entero con su lápida. Su gradiente pasa a **«Grad Máx pulmonar»** por consecuencia: con el
+rótulo viejo la tabla citaría una sigla que ya no existe en ninguna de sus filas. **«Vmax IP» se
+abre en DOS**, «Vmax proto-diast. IP» (`pul.vmaxIp`, homóloga de **`ip_vmax`**) y «Vmax
+telediastólica IP» (`pul.vmaxIpTd`, **nueva**, homóloga de **`ip_vtd`**), con los rótulos de la
+app **palabra por palabra** —el caso los compara contra las etiquetas del formulario, no contra
+un texto escrito en la prueba—.
+⚠️ **NO SE INVENTÓ NINGUNA BANDA, Y ESTÁ MEDIDO**: ni `pul.vmaxEp` ni `ip_vmax` ni `ip_vtd` tienen
+rango en `DCM_RANGO` ni en `CHM_RANGO`, así que el homólogo no tiene nada que prestar. Las dos que
+sí la tienen —`pul.vtiPul` y `pul.diamTsvd`— la conservan, y el caso lo mide como control
+positivo. **Quedan DOS preguntas para el médico en M2-c**, y la primera es si prestarle a «Vmax
+pulmonar» la banda de `vp_vmax`, `[0,2 – 8]` m/s.
+⚠️ **Y ESA MISMA MAGNITUD TIENE CUATRO NOMBRES FUERA DEL VISOR**, informado y no tocado:
+`vp_vmax` («Vmax pulmonar (m/s) — Estenosis», el dueño), su espejo `ep_vmax` («Velocidad máxima
+pulmonar»), «V. máx VP» en el PDF y «PV Vmax P» en la cabecera del importador de Excel.
+**EL ÁREA, POR AURÍCULA.** Con la herramienta Área, la tercera fila del selector ofrece **AI** y
+**AD** (`_MED_EST_AREA`), cada contorno se guarda con SU estructura —`_medAreas` pasa de
+`{pts, cm2}` a `{pts, cm2, est}`—, se dibuja rotulado «Área de AI: … cm²» y el **panel guía**
+publica una línea por aurícula. **NO ESCRIBE UN SOLO CAMPO, y se mide**: el caso censa **todos**
+los `input`, `select` y `textarea` con `id` del documento fuera del visor, antes y después de
+trazar, y exige que la cadena sea **idéntica**. Por eso el resultado va al panel guía y **no al
+cajón 2D**, que es el que sí escribe campos. **Se publica la ÚLTIMA de cada estructura** —volver
+a trazar es cómo el médico corrige un contorno— y los contornos **sin** estructura se **cuentan
+aparte** para que no desaparezcan sin decirlo. **La estructura se suelta en `medApagar` y no en
+`cineCerrar`**, donde lo medido se conserva a propósito; el caso mide las dos mitades.
+**SIMPSON, EN mL Y mL/m².** La tabla pasa a siete columnas numéricas; la superficie sale de
+**`getBSA()`**, el dueño único, y la tabla **dice de dónde sale** con su valor. **El cálculo no se
+tocó** —lo indexado es una división de lo que `_simpFilasTabla` ya devolvía, y el caso compara los
+cuatro valores en mL con y sin superficie— y **tampoco cuándo se integra al informe**. **Sin peso
+o sin talla las tres columnas indexadas no se dibujan** y la tabla lo dice; **la FEVI no se
+indexa**, que es un porcentaje. **«Volumen» sigue visible y apagado** con su leyenda.
+**LA COMUNIDAD DE DESARROLLO DE IA, BLOQUEADA EN SUS SEIS PARTES.** **UN solo estado**
+(`ANAHI_ON`, hoy `false`, leído sólo por `anahiActiva()`) y **UN solo nombre** (`ANAHI_NOMBRE`),
+que las **cuatro** superficies **LEEN** en vez de tipear. La casilla con candado por fila, el
+botón «Para Anahí» **pegado** a Exportar en la columna de Imágenes guardadas —el caso mide que la
+distancia entre los dos sea exactamente 1— y dentro del menú de Exportar de Estudios guardados, y
+el bloque de Configuración **sin un botón ni un campo**.
+⚠️ **NINGUNO LLEVA `disabled`, Y ES MEDIDO**: un control deshabilitado **no emite click**, así que
+el médico tocaría el único control que tiene que **explicarle** por qué está bloqueado y no
+pasaría nada. Llevan `aria-disabled` y el candado, y el oyente de la casilla cuelga de la
+**celda**. **Un solo oyente delegado** para todo el documento: las tablas y la columna se
+repintan enteras.
+**El cartel es PROPIO de la app**, con `role="dialog"`, `aria-modal`, el foco en «Entendido» y
+Escape; **su texto es el exacto del médico** y el caso lo compara **carácter por carácter**. Todo
+entra por `textContent` —el cuerpo no tiene un solo elemento hijo— y el overlay **se destruye al
+cerrar**, así que no deja un id que los barridos de «Nuevo estudio» puedan alcanzar. Sale **la
+primera vez de cada sesión de la página** —el «ya lo vi» vive **en memoria y no en disco**, que es
+el pedido— y después va el aviso corto. **«Entendido» SÓLO cierra.**
+**NADA SE ENVÍA Y NADA SE GUARDA**, medido instrumentando **`fetch` y `XMLHttpRequest.open`
+ANTES de tocar nada**: **cero** llamadas en todo el camino, y las claves de `localStorage`
+idénticas antes y después, con su denominador.
+**Cobertura: TC-882 a TC-886**, los cinco cayendo **0/5 contra `671d52b`** —el cierre de MEDIR-1,
+que es la línea base de ESTA tanda— **y ninguno por excepción**. De los **trece** (los cinco
+nuevos y los ocho adaptados), **NUEVE caen contra `671d52b` por 78 condiciones y CERO
+excepciones**, y los **CUATRO que pasan se declaran con su motivo**: **TC-236** y **TC-241** tienen
+sus condiciones invertidas al **rediseño de MEDIR-1**, que ya está en esa base, así que discriminan
+contra **`ff8c585`**, donde caen; **TC-244** cambió su **denominador** y **TC-850** la **fuente**
+del dato, y las dos cosas valen igual a los dos lados. Ninguno quedó más débil.
+⚠️ **Y TC-257 CAÍA POR EXCEPCIÓN contra esa base**: leía la **tercera** celda de la tabla, que en
+la de dos columnas no existe, así que el `TypeError` cortaba antes de medir nada. Cerrado con
+guarda —la lección de TC-827— y hoy cae por condiciones. **OCHO casos adaptados**:
+**TC-208**, **TC-236**, **TC-241**, **TC-244** y **TC-850** del bloque A, más **TC-250**,
+**TC-257** y **TC-262**, que la batería destapó y el censo no: afirmaban la tabla de **dos**
+columnas y los nombres viejos de la pulmonar. Los ocho caen **0/8** contra `671d52b` con el mismo
+archivo de casos. **Ninguno borrado y ninguno aflojado**; los de jerarquía y de inventario quedan
+**invertidos**, o sea que fallan por los dos lados.
+**13 mutaciones dirigidas sobre el propio trabajo, 12 muertas y 1 declarada**, en un worktree y
+**nunca** sobre el vivo, con el md5 del vivo idéntico antes y después. ⚠️ **La que sobrevivió lo
+hizo por la ESCENA y no por el código**: bajar el `row-gap` de 16 a 3 px no pone rojo a TC-208,
+porque con Deformación abierta **ninguna fila envuelve** —tres botones chicos entran en los 310 px
+de la columna— y el `row-gap` sólo actúa al envolver. Queda declarada en **M2-a**.
+⚠️ **TRES COSAS QUE HICE MAL Y QUE COSTARON CORRIDAS.** (1) **Edité `test_clinico.mjs` mientras
+la batería corría** y la tiré en el lote 6: informó «275 de 894» con un `SyntaxError`. Es la
+trampa que este archivo documenta para el A/B, pagada por otra puerta. (2) El **acento grave**
+dentro de mis propios comentarios, por **vigesimotercera** tanda seguida: **cinco** veces, en
+cuatro casos distintos, y sólo lo caza `node --check`. (3) **Medí el diff contra `ff8c585`**, que
+es la línea base de **MEDIR-1** y no de ésta: daba 978 y 200 y mezclaba las dos tandas.
+**AL RETOMAR, LA VERIFICACIÓN DESTAPÓ TRES COSAS Y LAS TRES ESTÁN EN M2-g.**
+⚠️ **(1) EL `row-gap` DE 16 px NO APLICABA, Y ERA UN DEFECTO REAL —no sólo una mutación que
+sobrevivía por la escena—.** El marcado emitía `gap:3px` **en línea** y ese atajo fija los **dos**
+ejes, así que le ganaba al `row-gap` de la hoja sin importar la especificidad: el hueco efectivo
+seguía en **3 px** y con la fila **envuelta** había **TRES pares de áreas táctiles solapadas**, o
+sea el toque cayendo en la línea de arriba. Es la misma trampa que la hoja del modo mínimo ya
+documenta para `display`. Arreglado separando los ejes —`column-gap:3px` en línea, el vertical en
+la hoja, **sin un solo `!important`**—, y medido en los ocho cruces: `row-gap` **16px** y **cero**
+solapes, con su denominador (las líneas pasan de **3 a 5**, o sea que envolvió). **Y ASÍ LA
+MUTACIÓN MUERE POR SUS DOS PUERTAS**: con el `row-gap` de la hoja en 3 px, y con el atajo `gap`
+devuelto a la línea, la sonda vuelve a contar **tres** pares en los ocho cruces. La declaración de
+M2-a queda corregida: esa mutación era **equivalente**, no sobreviviente por escena.
+**15 mutaciones dirigidas, las 15 muertas**, en un worktree y **nunca** sobre el vivo, con el md5
+del vivo idéntico antes y después (`3b0e2373`).
+⚠️ **(2) «TC-882 Y TC-883 PASAN AISLADOS» ERA UNA MEDICIÓN VIEJA**, de antes de los bloques C y F,
+y no se revalidó: corridos hoy fallan igual, y con ellos **TC-886**. Los tres eran defectos
+**míos** y no de la app —el diagnóstico lo prueba: la tabla pinta sus cinco rótulos correctos—.
+Dos causas: **`d2Modo` y `dopModo` ALTERNAN**, así que llamarlos a secas hereda el modo del caso
+anterior y lo **apagan** (la trampa que PANT-22 pagó con el `avInc` del arnés), y **TC-882 buscaba
+«Grad Máx EP»**, que el **bloque C de esta misma tanda** renombró a «Grad Máx pulmonar». Los tres
+pasan a **asegurar** el modo y a **derivar** el rótulo del registro. **El lote 16 completo da
+55/55.** Una medición anterior al cambio no vale como medición del cambio.
+**(3) LAS TRES RUTAS AL INFORME, EJERCITADAS DE VERDAD** y no sólo verificadas sobre el diff: la
+sonda siembra la entrada de cada una por donde la app la toma y mira el **campo**, con su
+denominador —los cuatro arrancan vacíos—: `diam_tsvi` **21.5**, `itv_tsvi` **22.4**, `vti_tsvd`
+**18.6** y `fevi` **58**, en los **ocho** cruces.
+**CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES** (dos motores × 1440×900 y 1280×800 × dos temas
+**reales**, puestos por `ett_theme` + `loadTheme()` y **devueltos** por la sonda), con **UNA sola
+firma de valores**: el encabezado `Medida|Valor|Unid.|Medir y Borrar|Anahí` en los dos cajones,
+**ocho** filas con **una** calculada en cursiva y sin botones, las casillas bloqueadas, **una**
+«Vmax pulmonar» y **cero** «VP», las dos de la IP, **once** botones de selector de **28 px** con
+área táctil de **44**, `row-gap` **16px**, **cero** solapes —y cero tras restituir el ancho—, las
+dos estructuras del Área, «Volumen» apagado con su leyenda, el cartel con su título y su
+«Entendido» y el foco en `anahi-ok`, el bloque de Configuración sin botones ni campos, **cero**
+desplazamiento horizontal, **cero** textos recortados y **CERO errores de consola y de página en
+los dos motores**. El peor contraste es **5,30 de noche y 4,70 de día** en los ocho.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+⚠️ **Y LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO EN SU ÚLTIMO BLOQUE, POR
+LA MISMA TRAMPA DEL TOGGLE**: `d2Modo` apagaba el modo que el bloque anterior había dejado puesto,
+así que la celda no existía y el cartel daba **false** sobre un cartel que sí funciona.
+**Línea base al cierre: suite 889/894**, en **DIECISIETE** lotes cubriendo los **894 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en
+UNA sola pasada sobre el árbol sellado, con los **894 ejecutados**, el md5 de `index.html`
+**idéntico** antes y después (`3b0e2373`) y el pendrive `DISK_IMG` verificado **diecinueve** veces.
+Los rojos son **TC-376, TC-390 y TC-406**, los tres de siempre, más **TC-182 y TC-551**, los dos
+intermitentes declarados —**los dos pasan 2 de 2 corridos aislados**—. **Ningún rojo nuevo**, y
+**los cinco casos nuevos y los ocho adaptados en verde**. **Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin
+huérfanos nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base.
+**CELULAR: 59 hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta,
+medida con la máquina sola.
+Lo declarado, en **M2-a** a **M2-g** —con **M1-a** y **M1-d** CERRADOS—; el mapa, en
+`docs/mapa/medir2-tabla-anahi.md`; la sonda de dos motores, en `scripts/_probe_medir2.mjs`; la
+guía manual, en `docs/GUIA_PRUEBA_MEDIR2.md` (**12** pasos).
 
 **La tanda ECO-CONECTOR-5 (2026-11-13) — ver lo que espera, diálogos propios, vista previa y
 elegir imágenes en la galería.** OCHO commits. Sello **`v20261112-2150`**, md5 **`f381026b`**,

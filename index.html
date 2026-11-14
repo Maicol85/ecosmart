@@ -142004,7 +142004,14 @@ function _medSideFila(rot, cuerpo) {
   return '<div style="display:flex;flex-direction:column;gap:2px;">' +
     '<span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
       'color:var(--text2);">' + escHtml(rot) + '</span>' +
-    '<div class="cine-selfila" style="display:flex;flex-wrap:wrap;gap:3px;">' + cuerpo + '</div></div>';
+    /* ⚠️ `column-gap` EN LINEA Y NO `gap`, Y ESTO ES UN ARREGLO MEDIDO. Con `gap:3px` en linea el
+       `row-gap:16px` de la hoja NO aplicaba —un estilo en linea le gana a la hoja sin importar la
+       especificidad, y `gap` es un atajo que fija los DOS ejes—, asi que el hueco vertical seguia
+       en 3 px: la sonda de MEDIR-2 midio `row-gap` computado en **3px** y **TRES** pares de areas
+       tactiles solapadas con la fila envuelta. Es la misma trampa que la hoja del modo minimo ya
+       documenta para `display`. Separando los ejes, el horizontal se queda en 3 y el vertical lo
+       pone la hoja, sin un solo `!important`. */
+    '<div class="cine-selfila" style="display:flex;flex-wrap:wrap;column-gap:3px;">' + cuerpo + '</div></div>';
 }
 
 /* Un boton del selector. `activo` lo rellena con el color del modo; `apagado` lo deja visible y
@@ -176048,8 +176055,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261112-2150';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794531001386;                 /* eco-build-ms */
+const ECO_BUILD    = '20261114-0031';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794627085597;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -176135,7 +176142,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261112-2150</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261114-0031</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
