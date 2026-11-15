@@ -343,6 +343,15 @@
      ⚠️ Y EL ALTO VA CON `height` Y NO SOLO CON `min-height`: con el minimo, un rotulo de dos
      lineas —«Capturar + medicion» a 118 px de ancho— crece por encima del resto y «todos del
      mismo tamanio» deja de ser cierto en cuanto cambie un texto. */
+  /* ══ MEDIR-5 (M5-d) — LA EXCEPCION DE ANCHO, UNA SOLA Y DECLARADA ══════════════════════════
+     `cine-b-ancho` le da a UN boton el ancho que su rotulo necesita. Es una excepcion a la regla
+     de MEDIR-3 —«todos del mismo tamanio fijo, 118 px»— y esta declarada en M5-h con su motivo:
+     el rotulo que el medico aprobo para «Guardar» no entra en 118 px, y con `overflow:hidden` lo
+     que pasa es que se recorta SIN AVISAR. Un boton mas ancho se ve; un texto cortado no se lee.
+     Los 196 px salen de medir el rotulo a 10.5 px en dos lineas, que es lo que el alto de 44 px
+     permite. El ALTO no se toca: sigue siendo 44 px como los otros cinco, asi que la fila no
+     cambia de alto ni el piso tactil se mueve.
+     Va DESPUES de la regla general para ganarle con la misma especificidad. */
   #cine-ov .cine-barra .btn {
     border-radius: 0 !important;
     flex: 0 0 118px; min-width: 0; max-width: 118px;
@@ -352,6 +361,7 @@
     overflow: hidden;
     display: flex; align-items: center; justify-content: center; text-align: center;
   }
+  #cine-ov .cine-barra .btn.cine-b-ancho { flex: 0 0 196px; max-width: 196px; }
   /* ⚠️ LAPIDA — `.cine-b-alto` (MEDIR-1). Daba 56 px de alto y el color de acento a «Guardar» y
      a «Capturar + medicion». Las DOS son ACCIONES PUNTUALES, y el punto B fija que el azul es
      SOLO del que representa un modo o una herramienta PRENDIDA: con una accion pintada igual que
@@ -520,6 +530,37 @@
      y no deberia poder taparlo. El encabezado del modal ya declara `flex:0 0 auto`; esto lo hace
      consistente. Lo que sobra se desplaza en el modal, que es `overflow:auto`. */
   #cine-ov #cine-paneles { flex: 0 0 auto; }
+  /* ══ MEDIR-5 (M5-c) — EL ANCHO EXTRA DE 1920 Y 2560 px VA A LA IMAGEN ═════════════════════
+     ⚠️ HASTA ACA EL MODAL TOPABA EN 1500 px EN CUALQUIER PANTALLA, medido leyendo las @media del
+     visor: no habia ni una sola mencion de 1920 ni de 2560. En un monitor de 1920 sobraban ~390
+     px de fondo oscuro a los costados y en uno de 2560, mas de mil.
+
+     ⚠️ EL ANCHO EXTRA NO ESTIRA NINGUNA TABLA, Y ES POR CONSTRUCCION Y NO POR UNA REGLA NUEVA:
+     la columna de medicion esta FIJADA —380 px con una vista, 340 con dos por encima de 1369— y
+     la de la imagen es `flex:1`, asi que todo lo que el modal gane se lo lleva la imagen. Eso es
+     exactamente lo que el pedido pide y es la razon por la que alcanza con mover el tope.
+
+     POR QUE 1860 Y 2400, Y NO EL ANCHO ENTERO: el overlay lleva 14 px de relleno a cada lado, asi
+     que a 1920 hay 1892 disponibles y a 2560 hay 2532. Se dejan ~30 y ~130 px de aire para que el
+     modal siga leyendose como un modal y no como una pantalla completa — el fondo oscuro de los
+     costados es lo que dice que atras esta la app.
+
+     ⚠️ VAN CON `!important` PORQUE EL TOPE VIVE EN UN ESTILO EN LINEA del propio `#cine-modal`, y
+     un estilo en linea le gana a cualquier selector sin el. Y el de 2560 va DESPUES del de 1920 a
+     proposito: con la misma especificidad gana el ultimo que empareja.
+
+     ⚠️ NADA CAMBIA EN 1440, 1000 NI 390 px: las dos reglas arrancan en 1920, asi que por debajo el
+     tope sigue siendo el de siempre. Se verifica midiendo los cinco anchos.
+
+     EL ALTO NO SE TOCA, y se declara: `max-height:94vh` del modal y el
+     `calc(var(--cine-h) - 190px)` del canvas ya se derivan de la ventana, asi que en una pantalla
+     mas alta crecen solos. No hay un numero fijo de alto que subir. */
+  @media (min-width: 1920px) {
+    #cine-ov #cine-modal { max-width: 1860px !important; }
+  }
+  @media (min-width: 2560px) {
+    #cine-ov #cine-modal { max-width: 2400px !important; }
+  }
   /* ══ MEDIR-4 — LAS CUATRO COLUMNAS: 340 px POR COLUMNA Y UN CORTE PROPIO (bloque A, punto 5) ══
      ⚠️ CON DOS VISTAS LA COLUMNA BAJA DE 380 A 340 px, Y EL NUMERO SE MIDIO ANTES DE ESCRIBIRLO.
      Los 380 son lo que la fila de una medida necesita con UNA vista, y se conservan ahi. Con dos
@@ -141894,7 +141935,18 @@ function _vPanelHTML(p, esB) {
            acento. La clase sale de la hoja de estilos y no de un estilo en linea para que el
            alto y el color vivan en UN lugar — con dos botones escribiendolo cada uno, el dia que
            se agregue un tercero destacado saldria distinto. */
-        btn('cine-guardar', 'btn-primary cine-b-alto', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
+        /* ══ MEDIR-5 (M5-d) — EL ROTULO DICE QUE GUARDA Y DONDE ════════════════════════════
+           Decision del medico. «💾 Guardar» a secas, al lado de «📸 Capturar», se leia como dos
+           formas de guardar la misma cosa; lo medido es que guarda el cineloop ENTERO en
+           IndexedDB (`ceibomed_cine`) atado al uuid del estudio. El rotulo ahora lo dice.
+           ⚠️ SOLO EL ROTULO: no cambia una linea de `cineGuardarActual`.
+           ⚠️ Y ESTE BOTON NECESITA SU PROPIO ANCHO, lo que choca con la regla de MEDIR-3 de que
+           los de la barra miden 118 px todos iguales — queda declarado en M5-h. Con 118 px y
+           `overflow:hidden` el rotulo se recorta en silencio, que es peor que un boton mas ancho:
+           un texto cortado a la mitad no se puede leer y nada avisa. La clase `cine-b-ancho` le
+           da el ancho que el texto necesita, medido, y el alto sigue siendo 44 px como los demas. */
+        btn('cine-guardar', 'btn-primary cine-b-alto cine-b-ancho', '💾 Guardar el cineloop en el estudio', '',
+            'Guarda el cineloop completo en este dispositivo, dentro del estudio abierto.') +
         /* ══ MEDIR-5 (C1) — UN SOLO «CAPTURAR», QUE CAPTURA LO QUE SE VE ════════════════════
            ⚠️ «📸 Capturar + medicion» SE RETIRA y su conducta pasa a este boton, que ahora decide
            por lo que hay EN PANTALLA: sin mediciones dibujadas captura el cuadro pelado a
@@ -147471,9 +147523,59 @@ function _simpFilasTabla() {
   return filas;
 }
 
+/* ══ MEDIR-5 (M5-a) — EL PARCIAL DE LA DIASTOLE, QUE NO ES UNA FILA DE LA TABLA ════════════════
+   Decision del medico: al terminar la diastole se publica el VFD de esa ventana, diciendo que es
+   PARCIAL. Hasta MEDIR-4b no aparecia nada hasta cerrar la sistole, porque `_simpMonoDeS` exige
+   el par completo —devuelve VFD, VFS y FEVI juntos— y la fila de la tabla ES esa terna.
+
+   ⚠️ VIVE EN SU PROPIA FUNCION Y **NO** ENTRA EN `_simpFilasVivas`, Y DE ESO DEPENDE TODO LO
+   DEMAS. Esa funcion es la que consumen `_simpResumen` —o sea lo que se PERSISTE con el estudio—,
+   `_simpFilasTabla`, `_simpTablaCanvas` —la imagen que va a la biblioteca y al PDF— y la
+   integracion al informe. Metido ahi, un parcial se guardaria, saldria en el papel y se podria
+   integrar: justo las tres cosas que la decision prohibe. Asi que el parcial se dibuja SOLO en la
+   tabla de pantalla y por un camino aparte.
+
+   El volumen sale de `_simpVolumenML` con el MISMO diametro en los dos ejes, que es exactamente lo
+   que `_simpMonoDeS` hace para un monoplanar: no se agrega ninguna formula nueva.
+
+   La condicion es `P.d && !P.s`: con las dos fases hechas ya hay fila de verdad y un parcial al
+   lado seria el mismo numero dos veces. */
+function _simpVfdParcial(S, i) {
+  const P = S && S.pares && S.pares[i];
+  if (!P || !P.d || P.s) return null;
+  const vfd = _simpVolumenML(P.d.diamCm, P.d.diamCm, P.d.Lcm);
+  return (isFinite(vfd) && vfd > 0) ? { vfd: vfd } : null;
+}
+window._simpVfdParcial = _simpVfdParcial;
+
+/* Recorre las dos vistas con el mismo criterio de epoca que `_simpFilasVivas`: una sesion de otro
+   estudio no se muestra. El rotulo es el de la ventana declarada, y sin declarar cae al nombre de
+   la vista — el mismo reparto de alla, para que un parcial y su fila definitiva no se llamen
+   distinto al confirmarse la sistole. */
+function _simpFilasParciales() {
+  const out = [];
+  const _ag = (V, rotVista) => {
+    const S = V && V.simp;
+    if (!S || !_vEpocaVigente(V)) return;
+    [0, 1].forEach(i => {
+      const m = _simpVfdParcial(S, i);
+      if (!m) return;
+      const nk = S.nombres && S.nombres[i];
+      const W = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
+      out.push({ rot: W ? W.rot : (rotVista + (i ? ' · 2' : '')), m: m });
+    });
+  };
+  try { _ag(_vistaA, 'Vista A'); _ag(_vistaB, 'Vista B'); } catch (e) {}
+  return out;
+}
+window._simpFilasParciales = _simpFilasParciales;
+
 function _simpTablaHTML() {
   const filas = _simpFilasTabla();
-  if (!filas.length) return '';
+  const parc = (typeof _simpFilasParciales === 'function') ? _simpFilasParciales() : [];
+  /* La tabla se dibuja tambien con SOLO parciales: antes salia vacia hasta cerrar una sistole, que
+     es justo el hueco que esta decision viene a llenar. */
+  if (!filas.length && !parc.length) return '';
   const guardada = filas.some(f => f.guardada);
   const num = x => x.toFixed(1);
   const cel = (t, b2) => '<td style="padding:2px 6px;text-align:right;font-variant-numeric:tabular-nums;' +
@@ -147496,7 +147598,21 @@ function _simpTablaHTML() {
       cel(num(f.m.vfs), !f.mono) + (hayBsa ? cel(ix(f.m.vfs), !f.mono) : '') +
       cel(num(f.m.vey), !f.mono) + (hayBsa ? cel(ix(f.m.vey), !f.mono) : '') +
       cel(num(f.m.fevi), !f.mono) +
-    '</tr>').join('');
+    '</tr>').join('') +
+    /* ══ MEDIR-5 (M5-a) — LAS FILAS PARCIALES, AL FINAL Y EN CURSIVA ═══════════════════════
+       El VFD en su columna y un guion en las otras: el guion es el mismo recurso con que esta
+       tabla ya dice «no hay indexado» cuando falta la superficie, asi que se lee igual. Va en
+       CURSIVA y con la palabra «parcial» en el rotulo, que son las dos marcas con que el resto
+       del visor distingue un valor que todavia no es un resultado.
+       El pie dice que no se integra ni va al PDF; aca no se repite por fila. */
+    parc.map(f =>
+      '<tr style="font-style:italic;color:var(--text2);">' +
+        '<td style="padding:2px 6px;">' + f.rot + ' · parcial</td>' +
+        cel(num(f.m.vfd), false) + (hayBsa ? cel(ix(f.m.vfd), false) : '') +
+        cel('—', false) + (hayBsa ? cel('—', false) : '') +
+        cel('—', false) + (hayBsa ? cel('—', false) : '') +
+        cel('—', false) +
+      '</tr>').join('');
   return '<div style="margin-top:8px;">' +
     '<table style="width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.5;">' +
       '<thead><tr style="color:var(--text2);">' +
@@ -147517,6 +147633,17 @@ function _simpTablaHTML() {
          estado de lo que se está mirando, no una nota de método— y la línea de la superficie
          corporal, que publica el VALOR con el que se indexó y es un dato. */
       (guardada ? '<b>Tabla guardada con el estudio.</b> ' : '') +
+      /* ══ MEDIR-5 (M5-a) — QUE ES UN PARCIAL, DICHO DONDE SE LO VE ═══════════════════════
+         Sale SOLO si hay alguno: una nota permanente sobre un estado que casi nunca esta en
+         pantalla se vuelve ruido y se deja de leer. Dice las tres cosas que la decision exige
+         —que falta la sistole, que no hay FEVI y que no se integra ni va al PDF— y no promete
+         nada sobre el VFD, que ese SI esta medido. */
+      (parc.length
+        ? '<b>' + (parc.length > 1 ? 'Las filas' : 'La fila') + ' en cursiva ' +
+          (parc.length > 1 ? 'son parciales' : 'es parcial') + ':</b> falta la sístole, así que ' +
+          'todavía no hay volumen de fin de sístole ni FEVI. Un parcial <b>no se integra al ' +
+          'informe</b> ni va al PDF. '
+        : '') +
       (hayBsa
         ? 'Indexado por la superficie corporal del estudio: <b>' + bsa.toFixed(2) + ' m²</b>.'
         : '<b>Sólo en mL:</b> falta el peso o la talla, así que no se puede indexar por ' +
@@ -149759,7 +149886,21 @@ function medFijaToggle() {
       '📏 <b>Modo medición.</b> Tocá una imagen y se abre en el visor. El DICOM que declara su ' +
       'escala calibra solo; una imagen sin escala —JPG, PNG, BMP, o un DICOM que no la trae— se ' +
       'calibra a mano contra la regla de profundidad del ecógrafo. <b>Los videos MP4 no se ' +
-      'miden.</b> Las mediciones son sólo para ver en pantalla — <b>no salen en el PDF</b>.';
+      /* ══ MEDIR-5 (M5-e) — EL CARTEL DECIA ALGO QUE DEJO DE SER CIERTO ═══════════════════
+         Terminaba con «Las mediciones son sólo para ver en pantalla — no salen en el PDF», y
+         con C1 eso paso a ser falso: «📸 Capturar» captura el cuadro CON las mediciones
+         dibujadas y la captura va a la biblioteca de imagenes, desde donde el medico la puede
+         mandar al informe y al PDF. Con C3 pasa lo mismo con la tabla guardada en biblioteca.
+         Lo que SI sigue siendo cierto —y es lo que el medico necesita saber— es que las
+         mediciones no viajan SOLAS: no escriben ningun campo del informe y no se dibujan en el
+         papel por su cuenta. O sea que la frase vieja no era un exceso de cautela, era una
+         afirmacion equivocada en una direccion peligrosa: hacia creer que una captura con
+         medidas no iba a salir, cuando puede salir.
+         El texto nuevo dice las dos mitades: lo que no pasa solo, y como se hace que pase. */
+      'miden.</b> Las mediciones <b>no escriben ningún campo del informe</b> y no salen solas en ' +
+      'el PDF. Si querés que queden, usá <b>📸 Capturar</b>: la captura sale con las mediciones ' +
+      'dibujadas y va a la biblioteca de imágenes, donde decidís si entra al informe y al PDF. ' +
+      'Las tablas de medidas del visor salen por el mismo camino, con «Guardar en biblioteca».';
   }
   return _medFijaOn;
 }

@@ -43,7 +43,7 @@ const { srv, port } = await new Promise(res => {
 
 /* Se pueden acotar por entorno para validar el cuerpo antes de gastar la corrida completa; la
    que se informa es la COMPLETA. */
-const ANCHOS = (process.env.P5_ANCHOS || '1500,1440,1369,1280,1000,390')
+const ANCHOS = (process.env.P5_ANCHOS || '2560,1920,1440,1000,390')
   .split(',').map(x => parseInt(x, 10));
 const TEMAS = (process.env.P5_TEMAS || 'noche,dia').split(',');
 const _MOT = { chrome: () => _pw.chromium.launch({ channel:'chrome' }), webkit: () => _pw.webkit.launch() };

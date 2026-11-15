@@ -172,6 +172,85 @@
     barraA: (txt('cine-med-barra') || '').replace(/\s+/g, ' ').trim().slice(0, 260)
   };
 
+  /* ══ M5-a — LA FILA PARCIAL DE LA DIASTOLE ══════════════════════════════════════════════
+     Se mide EN ESTE MOMENTO, que es el unico con una sola fase confirmada: la vista A tiene la
+     diastole de la A2C y nada mas. Lo que importa no es solo que la fila se vea, sino que NO
+     entre en ninguna de las cuatro salidas que persisten, integran o imprimen. */
+  o.m5a = (function () { try {
+    const uni = $('cine-simp-uni');
+    const t = uni ? uni.querySelector('table') : null;
+    const filasTxt = t ? Array.from(t.querySelectorAll('tbody tr')).map(tr =>
+      Array.from(tr.querySelectorAll('td')).map(td => (td.textContent || '').trim())) : [];
+    const parc = (typeof _simpFilasParciales === 'function') ? _simpFilasParciales() : null;
+    const cursivas = t ? Array.from(t.querySelectorAll('tbody tr'))
+      .filter(tr => getComputedStyle(tr).fontStyle === 'italic').length : null;
+    return {
+      hayTabla: !!t,
+      nParciales: parc ? parc.length : null,
+      rotParcial: parc && parc[0] ? parc[0].rot : null,
+      vfdParcial: parc && parc[0] ? +parc[0].m.vfd.toFixed(4) : null,
+      filas: filasTxt,
+      filasEnCursiva: cursivas,
+      diceParcial: (txt('cine-simp-uni') || '').indexOf('parcial') > -1,
+      dicePorQue: (txt('cine-simp-uni') || '').indexOf('falta la sístole') > -1,
+      diceNoIntegra: (txt('cine-simp-uni') || '').indexOf('no se integra al informe') > -1,
+      /* ⚠️ LAS CUATRO SALIDAS QUE UN PARCIAL NO PUEDE TOCAR. */
+      vivas: (typeof _simpFilasVivas === 'function') ? _simpFilasVivas().length : null,
+      enTabla: (typeof _simpFilasTabla === 'function') ? _simpFilasTabla().length : null,
+      enResumen: (typeof _simpResumen === 'function')
+        ? (function () { const R = _simpResumen(); return R ? R.vistas.length : 0; })() : null,
+      enCanvas: (typeof _simpTablaCanvas === 'function') ? !!_simpTablaCanvas() : null,
+      /* Y el campo del informe sigue vacio: un parcial no se integra. */
+      campoFevi: (function () { const e = $('fevi'); return e ? String(e.value || '') : '(no existe)'; })()
+    };
+  } catch (e) { return 'ERR ' + e.message; } })();
+
+  /* ══ M5-c / M5-d / M5-e — EL ANCHO EXTRA, EL ROTULO Y EL CARTEL ═════════════════════════ */
+  o.m5cde = (function () { try {
+    const mod = $('cine-modal');
+    const cs = mod ? getComputedStyle(mod) : null;
+    const img = $('cine-recorte'), col = document.querySelector('#cine-panel .cine-col-der');
+    const g = $('cine-guardar');
+    const r = {
+      ventana: window.innerWidth,
+      modalMaxW: cs ? cs.maxWidth : null,
+      modalW: mod ? Math.round(mod.getBoundingClientRect().width) : null,
+      imagenW: img ? Math.round(img.getBoundingClientRect().width) : null,
+      colMedW: col ? Math.round(col.getBoundingClientRect().width) : null
+    };
+    if (g) {
+      const gc = g.getBoundingClientRect();
+      r.guardarRot = (g.textContent || '').trim();
+      r.guardarW = Math.round(gc.width); r.guardarH = Math.round(gc.height);
+      /* ⚠️ «RECORTADO» SE MIDE CON `scrollWidth`/`scrollHeight` CONTRA EL CLIENTE, no mirando el
+         texto: el boton es `overflow:hidden`, asi que un rotulo que no entra se corta en silencio
+         y el `textContent` sigue completo. */
+      r.guardarCortado = (g.scrollWidth > g.clientWidth + 1) || (g.scrollHeight > g.clientHeight + 1);
+      r.guardarScroll = g.scrollWidth + 'x' + g.scrollHeight + ' en ' + g.clientWidth + 'x' + g.clientHeight;
+    }
+    return r;
+  } catch (e) { return 'ERR ' + e.message; } })();
+
+  /* El cartel azul de la pestania Imagenes. No necesita el visor abierto. */
+  o.m5e = (function () { try {
+    const av = $('med-fija-aviso');
+    let prendido = false;
+    if (typeof _medFijaOn !== 'undefined' && !_medFijaOn && typeof medFijaToggle === 'function') {
+      medFijaToggle(); prendido = true;
+    }
+    const t = av ? (av.textContent || '').replace(/\s+/g, ' ').trim() : null;
+    if (prendido && typeof medFijaToggle === 'function') medFijaToggle();
+    return {
+      hay: !!av, largo: t ? t.length : null,
+      diceNoEscribeCampos: !!t && t.indexOf('no escriben ningún campo del informe') > -1,
+      diceComoQueden: !!t && t.indexOf('📸 Capturar') > -1,
+      diceBiblioteca: !!t && t.indexOf('Guardar en biblioteca') > -1,
+      /* La frase vieja YA NO puede estar: era la afirmacion equivocada. */
+      sigueLaVieja: !!t && t.indexOf('sólo para ver en pantalla') > -1,
+      texto: t ? t.slice(0, 420) : null
+    };
+  } catch (e) { return 'ERR ' + e.message; } })();
+
   /* Ahora el biplano completo: A2C en la A y A4C en la B. */
   sembrarSimp(_vistaA, 'a2c', true);
   await esp(300);
