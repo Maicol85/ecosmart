@@ -16933,3 +16933,160 @@ Ninguno quedó más débil.
 ⚠️ **Y TC-257 CAÍA POR EXCEPCIÓN contra esa base**: leía la **tercera** celda de la tabla, que en
 la de dos columnas no existe, así que el `TypeError` cortaba antes de medir. Cerrado con guarda
 —la lección de TC-827—, y hoy cae por condiciones.
+
+## MEDIR-3 (2026-11-14) — lo declarado
+
+Tanda **MEDIR-3**: el panel del visor, los botones de la barra, la calibración de velocidad con dos
+valores, el FAC del VD y la banda de «Vmax pulmonar». Línea base **`3e64801`** (cierre de MEDIR-2).
+El mapa está en `docs/mapa/medir3-panel-botones-calibracion.md` y el inventario del bloque 0 —con
+las cinco hipótesis medidas— en `docs/INVENTARIO_MEDIR3.md`.
+
+### M3-a — DECISIÓN DEL MÉDICO: el rótulo del FAC del VD, «FAC VD (%)» y no «FAC del VD (%)»
+
+La orden del bloque D escribe el rótulo de la tercera fila como **«FAC del VD (%)»**, con «del».
+El rótulo que la app imprime en su formulario —`vd_fac`— es **«FAC VD (%)»**, sin «del».
+
+Se usó **el de la app**, y el motivo es la regla fija de esta casa: **un solo nombre por magnitud**.
+Es exactamente de lo que se trató el bloque C de MEDIR-2, que tuvo que fundir «VP» con «Vmax EP»
+porque eran dos nombres de la misma velocidad, y es por lo que la misma orden pide que las dos filas
+de área lleven **«los rótulos exactos de la app»**. Con «FAC del VD» en el visor y «FAC VD» en la
+pestaña VD, la misma fracción de acortamiento tendría dos nombres a dos centímetros de distancia.
+
+**Qué falta**: que el médico confirme. Si prefiere «FAC del VD (%)», hay que cambiarlo en los **dos**
+lugares a la vez —el visor y el formulario— y no sólo acá, o el problema se invierte.
+Es una línea en `_medEstado` y una en el marcado del formulario, más la condición de TC-891 que hoy
+compara el rótulo del visor contra la etiqueta del formulario leída del documento.
+
+### M3-b — LAS DOS VELOCIDADES DE LA INSUFICIENCIA PULMONAR SIGUEN SIN BANDA
+
+Medido, y es la mitad de `M2-c` que el médico **no** contestó: `pul.vmaxIp` («Vmax proto-diast. IP»)
+y `pul.vmaxIpTd` («Vmax telediastólica IP») tienen homólogos en el formulario —`ip_vmax` e
+`ip_vtd`— que **no tienen rango** en `DCM_RANGO` ni en `CHM_RANGO`, así que no hay nada que
+prestarles.
+
+**No se les inventó un número**, por la regla de la casa: una banda de plausibilidad es un rango de
+lo medible, pero elegir sus dos extremos sobre una magnitud que la app no acota en ninguna parte es
+contenido clínico, y eso lo decide el médico. Y una banda mal puesta es **peor** que no tener banda:
+rechaza mediciones legítimas y lo hace en silencio — es lo que el cajón Doppler ya documenta
+habiendo tenido que sacar tres que había puesto.
+
+**Qué falta**: que el médico diga si quiere banda para esas dos y con qué extremos. Si la respuesta
+es sí, son **dos líneas** en `_DOP_BANDA_DE` más el rango en `DCM_RANGO`, y la condición (C) de
+TC-883 —que hoy exige que las dos sigan **sin** banda— se invierte.
+**TC-883 se pone roja el día que alguien les ponga una sin declararlo**, que es lo que esta entrada
+viene a proteger.
+
+### M3-c — LA IMAGEN NO SE AMPLÍA POR ENCIMA DE SU TAMAÑO, Y ES UNA DECISIÓN
+
+El punto A1 pide que «la imagen use más alto y ancho». Lo que se hizo: subir el tope del modal de
+1180 a 1500 px —con lo que la columna de la imagen pasa de **828 a 990 px** a 1440 de ventana—,
+subir el techo del lienzo de `56vh` a `66vh` y de `−230px` a `−190px`, y **sacar los 228 px de negro**
+que se pintaban al costado.
+
+**Lo que NO se hizo**: ampliar un archivo más chico que la caja. Un cineloop de 1016×708 —el tamaño
+del archivo real del médico— usa todo el ancho nuevo; uno de 600×500 se sigue dibujando en 600.
+
+**El motivo**: ampliarlo es interpolar píxeles que el ecógrafo **no midió**, y la orden prohíbe
+expresamente hacerle zoom («Si la única forma de ganar espacio es recortar o hacer zoom, FRENÁ y
+consultá»). Un eco ampliado se ve borroso y, lo que importa más, invita a medir sobre un borde que
+el interpolador inventó. **No se frenó la tanda** porque no era «la única forma»: el espacio salió
+del modal y del negro, que es espacio real.
+
+**Qué falta**: nada, salvo que el médico quiera lo otro. Si lo quiere, es `width:100%;height:auto`
+en el canvas, y hay que decidir qué se le dice al médico sobre la interpolación —y medir que
+`_medPunto` siga devolviendo las mismas coordenadas, que es lo que la nota del recorte promete—.
+
+### M3-d — LOS CINCO BLOQUES FUERON A UN SOLO COMMIT, Y LA ORDEN PEDÍA UNO POR BLOQUE
+
+La orden dice «Un bloque por commit, con punto de control». Los bloques A a E quedaron en **un**
+commit (`d179c64`).
+
+**El motivo**: los cinco caen sobre las **mismas tres funciones**. `_medTablaHTML` sirve a A3, a A4
+y a D —las cuatro columnas, el valor grande y la etiqueta `f[7]` de la tabla del FAC—;
+`_medSideRender` sirve a A6 y a D —el retiro de «Volumen» y las dos fases del VD están en el mismo
+bloque de quince líneas—; y `_dopRender` sirve a A3, A4 y A7. Separarlos habría obligado a
+reconstruir estados intermedios que nunca existieron, con el riesgo de commitear un árbol que no
+arranca.
+
+**Lo que NO se recortó**: la verificación. El bloque 0 fue a su propio commit, la cobertura va al
+suyo y la documentación al suyo.
+
+**Qué falta**: nada. Queda declarado porque la orden lo pedía distinto.
+
+### M3-e — CINCO DEFECTOS MÍOS QUE ENCONTRÓ LA MEDICIÓN Y NO LA LECTURA
+
+Los cinco están corregidos; quedan escritos porque los cinco son modos de falla que esta casa ya
+documenta y que volvieron a morder.
+
+1. **`_medVelBloqueadaM` miraba sólo `uy === CM`**, así que bloqueaba la herramienta Velocidad sobre
+   **cualquier imagen 2D** —donde los dos ejes están en cm— y no sólo sobre un modo M. Con eso el
+   cajón Doppler **dejaba de dibujarse**, porque su visibilidad cuelga de que alguna vista tenga una
+   herramienta Doppler activa: la sonda midió `dopTablas` **2 → 0** en los ocho cruces. Modo M es
+   `uy === CM` **y** `ux !== CM`, que es la definición que el panel guía ya usaba.
+2. **Dejé viva la cadena `else if` de `_d2Filas`**, que **reasignaba** las filas con las listas
+   viejas: el dueño único `_D2_FILAS_DE` valía sólo para el VI y el Diam TSVI **no se dibujaba** en
+   Aorta. Es el patrón de «dos dueños del mismo valor», introducido al cerrarlo.
+3. **`_medFacVD(20, null)` devolvía 100 %**, porque `Number(null)` es **0** y `isFinite(0)` es true:
+   un número plausible sobre un dato que no existe.
+4. **`_medInfoBoton` se llamaba DOS veces para el mismo globo** —una para registrar y otra para
+   pintar— y la segunda, con una lista de relleno, **sobrescribía** los cinco textos reales.
+5. **El relleno vertical de la celda de la tabla era 5 px**, así que la fila medía 32 y dos botones
+   de filas **consecutivas** tenían sus áreas táctiles de 44 px **solapadas**: cuatro pares sobre
+   trece botones. Es la misma cuenta que MEDIR-2 hizo para el selector, pagada en el otro eje.
+
+### M3-f — DOS TRAMPAS DE ESCRITURA, LAS DOS DE ESTA CASA
+
+1. **El acento grave dentro de MIS PROPIOS comentarios**, por **vigesimoquinta** tanda seguida:
+   cinco veces, en la sonda y en cuatro casos. Lo único que lo caza es `node --check`, porque lo que
+   queda a veces es JavaScript **válido**.
+2. **La barra invertida de una expresión regular no sobrevive al template literal** de una sonda:
+   `/rgb\(0, *0, *0\)/` llega como un **grupo** y no como un paréntesis literal, así que la prueba
+   daba falso sobre un fondo que **sí** es negro. Se cerró **no usando ninguna expresión regular**.
+
+### M3-h — TRES ROJOS QUE LA BATERÍA DESTAPÓ Y MI CENSO NO VIO
+
+La primera pasada completa dio **891/899** con **tres** rojos más de los esperados —**TC-193**,
+**TC-251** y **TC-256**—, y los tres eran **consecuencia autorizada** de los bloques A4 y C.
+Es el modo de falla que este archivo ya documenta una decena de veces: busqué los casos que miran
+el panel por los nombres que yo había tocado, y estos tres lo miran por otros.
+
+- **TC-256** esperaba la leyenda de qué significa la marca de VISTA **impresa en el panel**; el
+  punto A4 la mudó al globo ⓘ.
+- **TC-251** esperaba la línea de qué válvulas incluye «Guardar tabla» **impresa en el panel**;
+  ídem.
+- **TC-193** esperaba el `alert` «el eje está en CENTÍMETROS» al clickear sobre un modo M. **Ya no
+  salta**, y no por un defecto: desde el bloque C la herramienta Velocidad **queda apagada antes
+  del gesto**, así que el médico nunca llega a hacer ese clic. El pedido es justamente que «la
+  herramienta se desactive y el ⓘ explique por qué», o sea que el motivo se diga **antes** y no
+  después.
+
+Los tres están adaptados, los dos primeros leyendo el texto del registro del globo **y exigiendo
+que ya no esté impreso en el panel** —lo que distingue mover de duplicar—, y **TC-193 con su
+condición INVERTIDA**: hoy exige que la herramienta caiga a `dist`, que el botón salga apagado con
+los centímetros en su título, que el globo lo explique, y que el `alert` **no** salga. Lo que **no**
+cambió y se conserva es la invariante clínica: sobre un modo M **no se mide ninguna velocidad**.
+**Los tres caen 0/3 contra `3e64801`.**
+
+⚠️ **Y UNA CONDICIÓN MÍA DE TC-193 ESTABA MAL PENSADA**: pedía que el **panel guía** dijera
+«centímetros», y el panel guía no puede decirlo —esa línea sale sólo con la herramienta en `vel`, y
+el punto es que ya no lo está—. Se cambió por su **denominador**: que el panel haya pasado al de
+distancia, que es lo que prueba que la herramienta cayó de verdad y no que el panel se quedó vacío.
+
+### M3-g — LAS CINCO HIPÓTESIS DE LA ORDEN, Y LAS DOS PREMISAS QUE SE DIERON VUELTA
+
+Las cinco hipótesis quedaron **confirmadas** —H3 con un matiz: el cero era el **primer clic**, que
+se asumía sin preguntar su valor, y no «el punto donde se hace clic» para medir—. El detalle, con
+sus números, en `docs/INVENTARIO_MEDIR3.md`.
+
+**Dos premisas de la orden se dieron vuelta, y las dos cambiaron el trabajo**:
+
+1. **El punto A7 ya funcionaba para el cambio de estructura.** Medido en el navegador antes de tocar
+   nada: `_d2Filas()` devuelve `[]` sin grupo elegido y las filas de **un solo** grupo cuando hay
+   uno, así que ya se mostraba una tabla por estructura, la anterior ya desaparecía, al volver ya
+   reaparecía con su valor, y el paso 2D → Doppler → 2D también. Lo que **sí** quedaba apilado eran
+   las **dos tablas del reparto** de `tablaCols` y la de **«Mediciones sin asignar»**, y es lo que
+   esta tanda cerró. La condición nueva de TC-887 afirma lo que ya andaba **para que no se pierda**.
+2. **El punto B tenía dos culpables con nombre**: `cine-guardar` y `cine-med-cap`, por la clase
+   `cine-b-alto` que les daba 56 px y el azul de acento siendo **acciones**. Y además apareció algo
+   que la orden no nombraba: el **contraste del azul del modo** no llegaba a 4,5:1 en tema oscuro
+   (**3,21**), o sea que el único botón que la orden quería azul era el que no se podía leer.

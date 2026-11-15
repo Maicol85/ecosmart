@@ -3756,3 +3756,82 @@ siguiente. Lo que el cierre destapó, en `docs/PENDIENTES.md` → **M2-g**:
   y TC-850 cambiaron su denominador y su fuente de dato, que valen igual a los dos lados.
 
 **Sonda nueva:** `scripts/_probe_medir2.mjs` — dos motores × dos anchos × dos temas reales.
+
+---
+
+## MEDIR-3 (2026-11-14) — el panel del visor, los botones, la calibración de velocidad y el FAC del VD
+
+**Línea base:** `3e64801` (cierre de MEDIR-2), sello `v20261114-0031`, md5 `3b0e2373`.
+**Sello de cierre:** `v20261114-2057`. **Pendrive `DISK_IMG` montado** y verificado al abrir, en
+cada uno de los diecisiete lotes y al cerrar.
+
+El médico probó MEDIR-2 en Safari y pidió cambios al panel de medidas. Se **descartaron** la tabla
+única con todos los datos y la biblioteca de medidas: no se construyen. **No** entran en esta tanda
+las dos vistas, la casilla «A la app» ni escribir en ningún campo del informe.
+
+**Commits:** `8b75e08` (bloque 0, el inventario — no toca `index.html`) · `d179c64` (bloques A a E) ·
+el de cobertura · el de documentación y sello.
+
+### Qué se hizo
+
+- **A1** — el negro de los costados de la imagen pasa de **228 px a cero**: se mueve de
+  `cine-lienzo` a `cine-recorte`, que tiene el tamaño de la imagen. El tope del modal sube de
+  **1180 a 1500 px** y la columna de medición de **310 a 380**, así que la imagen y el panel ganan
+  espacio a la vez. **No se recortó la imagen, no se le hizo zoom y el canvas sigue en píxeles de
+  imagen**, así que la calibración no se entera.
+- **A2** — el selector queda **fijo** arriba: el `overflow` baja al `.cine-der-scroll` nuevo y
+  `cine-side` es su hermano con `flex:0 0 auto`.
+- **A3** — **una medida por fila**. Se retira `tablaCols`, que repartía en dos tablas lado a lado:
+  el cajón desbordaba **179 px** (Chrome) y **181** (WebKit). La tabla pasa de cinco columnas a
+  **cuatro**, con la unidad dentro del valor, porque con cinco no entraba ni sola (**32 / 34 px**).
+- **A4** — valor en **17 px** y unidad en **9,5**; **nueve textos** movidos a un globo ⓘ propio y
+  **ninguno perdido**.
+- **A5** — el VI queda **SIVd, DDVI, PPd, SIVs, DSVI, PPs** y el **Diam TSVI pasa a Aorta**,
+  conservando la clave `vi.tsvi` y con ella el valor compartido y la ruta `diam_tsvi`.
+- **A6** — sale el botón «Volumen», sin tocar ningún cálculo.
+- **A7** — medido: el cambio de estructura **ya funcionaba**; lo que quedaba apilado eran las dos
+  tablas del reparto y la de «sin asignar», y es lo que se cerró.
+- **B** — los ocho botones en **44 px** exactos y **118** de ancho, misma fila. El azul queda
+  **sólo** para el modo prendido; el contraste de su rótulo pasa de **3,21 a 5,96** de noche.
+- **C** — la calibración toma **dos puntos con el valor de cada uno**, en m/s, y de ahí salen la
+  escala **y** la posición del cero, que se dibuja rotulado «0». El modo M apaga la herramienta por
+  **tres capas**; «Recalibrar vel.» se conserva.
+- **D** — el VD entra al gesto de Área en sus **dos fases** y su tabla da las dos áreas con los
+  rótulos de la app más el **FAC** calculado. **No escribe un solo campo** y no publica ningún corte.
+- **E** — «Vmax pulmonar» toma la banda de `vp_vmax`, **[0,2 – 8] m/s**. Las dos de la IP quedan sin
+  banda, declarado.
+
+### Lo que la medición dio vuelta
+
+- **El punto A7 ya funcionaba** para el cambio de estructura, medido antes de tocar nada.
+- **El punto B tenía dos culpables con nombre** (`cine-guardar` y `cine-med-cap`, por
+  `cine-b-alto`) y además un tercer problema que la orden no nombraba: **el azul del modo no
+  llegaba a 4,5:1 de contraste**.
+- **H3 con matiz**: el cero era el **primer clic**, asumido sin preguntar su valor.
+
+### Cinco defectos míos que encontró la medición y no la lectura
+
+El predicado del modo M que bloqueaba cualquier imagen 2D y con eso **apagaba el cajón Doppler**;
+la cadena `else if` de `_d2Filas` que **reasignaba** las filas y dejaba el Diam TSVI fuera de Aorta;
+`_medFacVD(20, null)` dando **100 %**; `_medInfoBoton` llamado dos veces y **sobrescribiendo** sus
+propios textos; y el relleno de 5 px que dejaba **cuatro pares** de áreas táctiles solapadas entre
+filas. Todo en `docs/PENDIENTES.md` → **M3-e**.
+
+### Cobertura
+
+**Cinco casos nuevos, TC-887 a TC-891**, y **diez adaptados** —TC-882, TC-883, TC-885, TC-257,
+TC-262, TC-197, TC-249, más **TC-193, TC-251 y TC-256** que la batería destapó (**M3-h**)—, con
+cinco condiciones **invertidas**. **Los quince caen 0/15 contra `3e64801`** y ninguno por excepción.
+**Tres mutaciones dirigidas, las tres muertas**, en un worktree y nunca sobre el vivo, con el md5
+del vivo idéntico antes y después.
+
+**Línea base al cierre: suite 894/899** en diecisiete lotes, los 899 ejecutados, md5 idéntico y el
+pendrive verificado diecinueve veces; los rojos son los tres de siempre (TC-376, TC-390, TC-406) más
+los dos intermitentes declarados (TC-182, TC-551), que pasan aislados. **Ningún rojo nuevo.**
+**Semgrep 126/0**, sin huérfanos nuevos, **celular 59 / 67 con 18 ALTA** —la línea base exacta— y
+**Chrome y WebKit coincidiendo en los ocho cruces** con cero errores de consola y de página.
+**Las cuatro rutas al informe ejercitadas de verdad**: 21,5 / 22,4 / 18,6 / 58 en los dos motores.
+
+**Mapa:** `docs/mapa/medir3-panel-botones-calibracion.md` · **inventario:**
+`docs/INVENTARIO_MEDIR3.md` · **sonda:** `scripts/_probe_medir3.mjs` · **guía manual:**
+`docs/GUIA_PRUEBA_MEDIR3.md` (14 pasos) · **lo declarado:** `docs/PENDIENTES.md` → **M3-a** a **M3-g**.

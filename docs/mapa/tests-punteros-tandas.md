@@ -523,3 +523,35 @@ condiciones**: TC-884 y TC-886 reventaban contra la línea base con un `TypeErro
 antes de medir nada. Se cerró **barriendo el bloque por patrón** —todo acceso a lo nuevo por un
 ayudante con guarda, todo `R.x.slice`/`.indexOf` envuelto en `String(...)`— y no persiguiéndolos
 de a uno, que es la lección de TC-827 en PANT-37.
+
+## MEDIR-3 (2026-11-14) — el panel, los botones, la calibración y el FAC del VD
+
+**TC-887** el panel (A1, A2) y A7 · **TC-888** los botones y el contraste (B) · **TC-889** los nueve
+textos en el globo ⓘ (A4) · **TC-890** la calibración de dos valores y el modo M (C) · **TC-891** el
+FAC del VD (D).
+
+**Adaptados**, con su motivo escrito donde vive la condición: **TC-882** (cuatro columnas; la de
+celdas **invertida**) · **TC-883** (el corrimiento de celdas; la de la banda pulmonar **invertida**)
+· **TC-885** (el «Volumen» **invertido**) · **TC-257** (seis campos en el VI, el gesto por Aorta y
+cuatro columnas) · **TC-262** (el reparto en dos tablas **invertido**, y el aviso leído del globo) ·
+**TC-197** (la calibración de dos valores) · **TC-249** (las sueltas en la misma tabla).
+
+⚠️ **Y TRES MÁS QUE LA BATERÍA DESTAPÓ Y EL CENSO NO**: **TC-256** y **TC-251** esperaban en el
+panel dos textos que el punto A4 mudó al globo —la leyenda de la marca de vista y qué incluye
+«Guardar tabla»—, y **TC-193** esperaba el `alert` del modo M, que **ya no salta** porque la
+herramienta queda apagada **antes** del gesto: su condición quedó **invertida**. Ver
+`docs/PENDIENTES.md` → **M3-h**.
+
+⚠️ **TC-890 CAÍA POR EXCEPCIÓN**: `_medCalVelP0` no existe en la línea base y un acceso pelado tira
+`ReferenceError` que se lleva el caso entero. Se lee por `window.`, que devuelve `undefined` sin
+lanzar — lo que TC-827 tuvo que deshacer en PANT-37.
+
+⚠️ **DOS CONDICIONES NO SE PUEDEN MEDIR EN LA VENTANA DEL ARNÉS (756×469)**, y se cambiaron por
+otras que miden lo mismo en cualquier ventana: el ancho del modal se mide por su **tope computado**
+—no por el ancho pintado, que ahí es 728— y «los ocho en la misma fila» lleva su **denominador**
+(se exige sólo si el ancho alcanza; cuando no alcanza se exige que las áreas táctiles de dos líneas
+no se encimen). Es la lección de TC-244: un denominador que deja de morder no se afloja, se cambia.
+
+⚠️ **LOS CASOS NUEVOS DEVUELVEN SU IIFE Y DECLARAN SU `esperar`.** Sin el `return`, el runner dice
+«el caso no declara NINGUNA condición» y los cinco salían rojos sin diagnosticar nada — es lo que la
+nota de TC-753 ya documenta y lo pagué igual.
