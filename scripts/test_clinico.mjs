@@ -144306,6 +144306,408 @@ caso('TC-898', 'MEDIR-4b: el calculo del Simpson no se movio -- VFD, VFS y FEVI 
   })();
 `);
 
+/* ══ MEDIR-5 — LOS CINCO CASOS DE LA TANDA ══════════════════════════════════════════════════
+   Escena comun: el visor abierto con un fixture de DOS regiones —una 2D y una Doppler— que es lo
+   que permite medir sin calibrar a mano. Cada caso la arma y la desarma. */
+caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el cajon de cada una se dibuja en la columna de SU vista y no en la de la activa, y «Limpiar» del Simpson alcanza a las DOS sesiones sin dejar restos', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
+                   { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      _cineAbrir([mk('uno')]);
+      await esperar(420);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      /* La vista B se monta a mano: lo que se mide es el REPARTO de los cajones, no el picker. */
+      R.hayVistaB = (typeof vistaBAbrir === 'function');
+      R.haySlotSync = (typeof _vSlotSync === 'function');
+      /* Con UNA sola vista el cajon tiene que estar en la columna de la A. */
+      _vCon(_vistaA, () => medHerramienta('dist'));
+      await esperar(260);
+      const panelDe = id => { const n = document.getElementById(id); if (!n) return null;
+        if (n.closest('#b-cine-panel')) return 'B';
+        if (n.closest('#cine-panel')) return 'A';
+        return 'fuera'; };
+      R.unaVistaD2 = panelDe('d2-cajon');
+      /* DENOMINADOR: el cajon 2D se ve, o sea que hay algo que repartir. */
+      R.d2Visible = (typeof _d2Visible === 'function') ? _d2Visible() : null;
+      /* ── A2: «Limpiar» alcanza a las dos sesiones ── */
+      _vCon(_vistaA, () => medHerramienta('simpson'));
+      await esperar(260);
+      R.haySimpA = !!(_vistaA.simp);
+      R.hayLimpiar = (typeof medSimpsonLimpiarTabla === 'function');
+      R.usaTodas = false;
+      try {
+        const src = String(medSimpsonLimpiarTabla);
+        R.usaTodas = src.indexOf('_vTodas') > -1;
+      } catch (e) {}
+      /* Se siembra un par completo y se limpia: no tiene que quedar NINGUNA fila viva. */
+      if (R.haySimpA) {
+        const N = (typeof SIMP_N !== 'undefined') ? SIMP_N : 20;
+        const ramp = (a, b) => { const v = []; for (let i = 0; i < N; i++) v.push(a + (b - a) * i / (N - 1)); return v; };
+        _vCon(_vistaA, () => { const S = _simp;
+          S.pares[S.vista].d = { diamCm: ramp(4, 1.2), Lcm: 8.4 };
+          S.pares[S.vista].s = { diamCm: ramp(2.6, 0.8), Lcm: 8 };
+          S.res = _simpCalcular(); });
+        R.vivasAntes = (typeof _simpFilasVivas === 'function') ? _simpFilasVivas().length : null;
+        _vCon(_vistaA, () => medSimpsonLimpiarTabla());
+        await esperar(320);
+        R.vivasDespues = (typeof _simpFilasVivas === 'function') ? _simpFilasVivas().length : null;
+        R.paresVacios = !!(_vistaA.simp && !_vistaA.simp.pares[0].d && !_vistaA.simp.pares[0].s);
+      }
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: el repartidor de cajones existe',        R.haySlotSync === true, R.haySlotSync],
+      ['DENOMINADOR: el cajon 2D se ve con Distancia',        R.d2Visible === true, R.d2Visible],
+      ['con una sola vista, el cajon va a la columna de la A', R.unaVistaD2 === 'A', R.unaVistaD2],
+      ['DENOMINADOR: habia una fila viva antes de limpiar',   R.vivasAntes > 0, R.vivasAntes],
+      ['«Limpiar» recorre TODAS las vistas y no solo el destino', R.usaTodas === true, R.usaTodas],
+      ['y no queda NINGUNA fila viva',                        R.vivasDespues === 0, R.vivasDespues],
+      ['ni ningun par a medio borrar',                        R.paresVacios === true, R.paresVacios]
+    ] };
+  })();
+`);
+
+caso('TC-900', 'MEDIR-5 A3 y A4: al aparecer el resultado del Simpson la imagen y la fila de botones no se mueven -- el modal va anclado arriba y el lienzo no se encoge-- y la barra del video queda visible, habilitada y sin nada encima', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 }];
+      _cineAbrir([{ nombre:'uno', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(420);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(300);
+      const ov = document.getElementById('cine-ov');
+      R.anclado = ov ? getComputedStyle(ov).alignItems : null;
+      const li = document.getElementById('cine-lienzo');
+      const rc = document.getElementById('cine-recorte');
+      R.lienzoNoCede = li ? getComputedStyle(li).flexShrink : null;
+      const bar = document.querySelector('#cine-panel .cine-barra');
+      const yAntes = bar ? Math.round(bar.getBoundingClientRect().y) : null;
+      const liAntes = li ? Math.round(li.getBoundingClientRect().y) : null;
+      /* Aparece el resultado: se siembra un par completo de Simpson. */
+      _vCon(_vistaA, () => medHerramienta('simpson'));
+      await esperar(260);
+      const N = (typeof SIMP_N !== 'undefined') ? SIMP_N : 20;
+      const ramp = (a, b) => { const v = []; for (let i = 0; i < N; i++) v.push(a + (b - a) * i / (N - 1)); return v; };
+      _vCon(_vistaA, () => { const S = _simp;
+        S.pares[S.vista].d = { diamCm: ramp(4, 1.2), Lcm: 8.4 };
+        S.pares[S.vista].s = { diamCm: ramp(2.6, 0.8), Lcm: 8 };
+        S.res = _simpCalcular(); _medEstado(); });
+      await esperar(420);
+      R.uniVisible = (function () { const u = document.getElementById('cine-simp-uni');
+        if (!u) return false; const r = u.getBoundingClientRect();
+        return getComputedStyle(u).display !== 'none' && r.height > 0; })();
+      R.yDespues = bar ? Math.round(bar.getBoundingClientRect().y) : null;
+      R.liDespues = li ? Math.round(li.getBoundingClientRect().y) : null;
+      R.movioBarra = (yAntes != null && R.yDespues != null) ? (R.yDespues - yAntes) : null;
+      R.movioLienzo = (liAntes != null && R.liDespues != null) ? (R.liDespues - liAntes) : null;
+      /* El recorte no puede desbordar su lienzo: eso es lo que tapaba los botones. */
+      R.desborde = (function () { if (!li || !rc) return null;
+        const a = li.getBoundingClientRect(), b = rc.getBoundingClientRect();
+        return Math.round(a.y - b.y) + '/' + Math.round((b.y + b.height) - (a.y + a.height)); })();
+      /* La barra del video. */
+      const sl = document.getElementById('cine-slider');
+      R.sliderVisible = !!(sl && sl.getBoundingClientRect().height > 0 &&
+        getComputedStyle(sl).display !== 'none');
+      R.sliderHab = sl ? (sl.disabled === false) : null;
+      R.sliderTapado = (function () { if (!sl) return null;
+        const r = sl.getBoundingClientRect();
+        const el = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2));
+        return el ? (el === sl ? 'propio' : (el.id || el.className || el.tagName)) : 'fuera'; })();
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['el modal va ANCLADO ARRIBA y no centrado',            R.anclado === 'flex-start', R.anclado],
+      ['el lienzo no cede (flex-shrink 0)',                   R.lienzoNoCede === '0', R.lienzoNoCede],
+      ['DENOMINADOR: el resultado esta en pantalla',          R.uniVisible === true, R.uniVisible],
+      ['la fila de botones NO se movio',                      R.movioBarra === 0, R.movioBarra],
+      ['la imagen NO se movio',                               R.movioLienzo === 0, R.movioLienzo],
+      ['y el recorte no se desborda del lienzo',              R.desborde === '0/0', R.desborde],
+      ['la barra del video queda visible',                    R.sliderVisible === true, R.sliderVisible],
+      ['habilitada',                                          R.sliderHab === true, R.sliderHab],
+      /* ⚠️ «fuera» NO ES UN DEFECTO: es que el centro del slider cae por debajo del pliegue de la
+         ventana del arnes (756x469) y elementFromPoint devuelve null. Lo que esta condicion
+         afirma es que NINGUN OTRO elemento lo tapa, que es el hallazgo A4. Es el mismo limite de
+         medicion que TC-244 documenta para el ancho del modal. */
+      ['y sin NINGUN otro elemento encima',                   R.sliderTapado === 'propio' || R.sliderTapado === 'fuera',
+                                                               R.sliderTapado]
+    ] };
+  })();
+`);
+
+caso('TC-901', 'MEDIR-5 B4 a B8: los calculados del visor salen de los dueños de la app y dan el valor exacto -- AVA, DVI, volumen sistolico y su indexado, gasto cardiaco, E/A, E/e-prima, AVM por THP y PmAD--, viven en el bloque de abajo de la imagen y la FC es de SOLO LECTURA', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const sv = (id, v) => { const e = document.getElementById(id); if (e) { e.value = v;
+        e.dispatchEvent(new Event('input', { bubbles:true })); } };
+      sv('peso', '70'); sv('talla', '170'); sv('ao_fc', '70');
+      await esperar(220);
+      R.bsa = (typeof getBSA === 'function') ? getBSA() : null;
+      /* DENOMINADOR: los cinco dueños existen. Sin ellos el visor estaria duplicando formulas. */
+      R.dueños = ['_avaContinuidad','_avmPorPHT','_hemoVSEco','_hemoGCEco','pmadEstimar']
+        .filter(k => typeof window[k] === 'function' || typeof eval(k) === 'function').length;
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
+                   { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
+      _cineAbrir([{ nombre:'uno', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(420);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(280);
+      /* Insumos elegidos para que las cuentas den numeros redondos y auditables a mano:
+         diametro 20 mm -> area del TSVI = pi cm2; VTI TSVI 22 y VTI VAo 44 -> AVA = pi/2. */
+      _vCon(_vistaA, () => { const E = _dopEstado();
+        E.ao.diam = 20; E.ao.vtiTsvi = 22; E.ao.vtiAo = 44;
+        E.mit.ondaE = 80; E.mit.ondaA = 50; E.mit.ePrimaSept = 6; E.mit.ePrimaLat = 10;
+        E.mit.pht = 220;
+        E.tri.vciDiam = 18; E.tri.vciCol = '>50'; });
+      const D = _vCon(_vistaA, () => _dopDerivados());
+      const cerca = (a, b) => (a != null && Math.abs(a - b) < 0.005);
+      R.ava = D.ava; R.okAva = cerca(D.ava, Math.PI / 2);
+      R.dvi = D.dvi; R.okDvi = cerca(D.dvi, 0.5);
+      R.vs = D.vs;   R.okVs = cerca(D.vs, Math.PI * 22);
+      R.vsi = D.vsi; R.okVsi = cerca(D.vsi, (Math.PI * 22) / R.bsa);
+      R.fc = D.fc;   R.okFc = (D.fc === 70);
+      R.gc = D.gc;   R.okGc = cerca(D.gc, Math.PI * 22 * 70 / 1000);
+      R.ea = D.ea;   R.okEa = cerca(D.ea, 1.6);
+      R.ee = D.ee;   R.okEe = cerca(D.ee, 10);
+      R.avm = D.avmPht; R.okAvm = cerca(D.avmPht, 1);
+      R.pmad = D.pmad ? D.pmad.pmad : null; R.okPmad = (R.pmad === 3);
+      /* El bloque, debajo de los paneles y en cursiva. */
+      _vCon(_vistaA, () => { if (typeof dopModo === 'function') dopModo('ao'); });
+      await esperar(320);
+      const cc = document.getElementById('cine-calc');
+      R.hayBloque = !!cc;
+      R.debajo = (function () { const pn = document.getElementById('cine-paneles');
+        return !!(pn && cc && (pn.compareDocumentPosition(cc) & Node.DOCUMENT_POSITION_FOLLOWING)); })();
+      const t = cc ? cc.querySelector('table') : null;
+      R.nCalc = t ? t.querySelectorAll('tr').length : 0;
+      R.todasCursiva = t ? Array.from(t.querySelectorAll('tr'))
+        .every(tr => getComputedStyle(tr).fontStyle === 'italic') : null;
+      R.diceSoloVer = !!(cc && (cc.textContent || '').indexOf('solo ver') > -1) ||
+                      !!(cc && (cc.textContent || '').indexOf('sólo ver') > -1);
+      R.fcTitulo = !!(cc && (cc.textContent || '').indexOf('Frecuencia') > -1);
+      /* SOLO LECTURA POR CONSTRUCCION: cero controles dentro del bloque. */
+      R.fcSinControles = cc ? cc.querySelectorAll('input,select,textarea,button').length : null;
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+      try { const f = document.getElementById('ao_fc'); if (f) { f.value = '';
+        f.dispatchEvent(new Event('input', { bubbles:true })); } } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: los CINCO dueños de calculo existen',    R.dueños === 5, R.dueños],
+      ['DENOMINADOR: hay superficie corporal',                R.bsa > 0, R.bsa],
+      ['AVA por continuidad EXACTA',                          R.okAva === true, R.ava],
+      ['DVI EXACTO',                                          R.okDvi === true, R.dvi],
+      ['volumen sistolico EXACTO',                            R.okVs === true, R.vs],
+      ['volumen sistolico indexado EXACTO',                   R.okVsi === true, R.vsi],
+      ['la FC sale del informe',                              R.okFc === true, R.fc],
+      ['gasto cardiaco EXACTO',                               R.okGc === true, R.gc],
+      ['E/A EXACTO',                                          R.okEa === true, R.ea],
+      ['E/e-prima EXACTO',                                    R.okEe === true, R.ee],
+      ['AVM por THP EXACTA',                                  R.okAvm === true, R.avm],
+      ['PmAD por VCI y colapso EXACTA',                       R.okPmad === true, R.pmad],
+      ['el bloque va DEBAJO de los paneles',                  R.hayBloque === true && R.debajo === true,
+                                                               R.hayBloque + '/' + R.debajo],
+      ['con sus seis calculados',                             R.nCalc === 6, R.nCalc],
+      ['todos en cursiva',                                    R.todasCursiva === true, R.todasCursiva],
+      ['y declarando que son de solo ver',                    R.diceSoloVer === true, R.diceSoloVer],
+      ['la FC esta y es de SOLO LECTURA: cero controles',     R.fcTitulo === true && R.fcSinControles === 0,
+                                                               R.fcTitulo + '/' + R.fcSinControles]
+    ] };
+  })();
+`);
+
+caso('TC-902', 'MEDIR-5: el visor NO escribe nada en el informe -- medir, corregir a mano, guardar la tabla en la biblioteca y los calculados dejan el censo de los campos del formulario IDENTICO', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const promptReal = window.prompt;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    window.prompt = () => '33';
+    const censo = () => Array.from(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .filter(e => !e.closest('#cine-ov'))
+      .map(e => e.id + '=' + String(e.value == null ? '' : e.value)).join('|');
+    const hash = x => { let h = 0; for (let i = 0; i < x.length; i++) { h = (h * 31 + x.charCodeAt(i)) | 0; }
+      return (h >>> 0).toString(16); };
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
+                   { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
+      _cineAbrir([{ nombre:'uno', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(420);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(280);
+      R.antes = hash(censo());
+      R.nCampos = censo().length;
+      /* 1) escribir a mano en un campo NUEVO de los que esta tanda agrego. */
+      _vCon(_vistaA, () => { if (typeof dopModo === 'function') dopModo('mit'); });
+      await esperar(260);
+      _vCon(_vistaA, () => { try { dopCorregir('mit.triv'); } catch (e) {} });
+      await esperar(260);
+      R.triv = _vCon(_vistaA, () => _dopEstado().mit.triv);
+      /* 2) y en uno de la tricuspide. */
+      _vCon(_vistaA, () => { const E = _dopEstado();
+        E.tri.vtiVt = 40; E.tri.thpVt = 200; E.tri.vciDiam = 18; E.tri.vciCol = '<50'; });
+      if (typeof _dopRender === 'function') _dopRender();
+      await esperar(260);
+      /* 3) guardar la tabla en la biblioteca. */
+      R.hayGuardar = (typeof dopGuardarBiblioteca === 'function');
+      if (R.hayGuardar) { try { await dopGuardarBiblioteca(); } catch (e) {} }
+      await esperar(700);
+      R.despues = hash(censo());
+      R.igual = (R.antes === R.despues);
+      R.nDespues = censo().length;
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      window.prompt = promptReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: el censo tiene campos',                  R.nCampos > 1000, R.nCampos],
+      ['DENOMINADOR: el valor a mano entro en el cajon',      R.triv === 33, R.triv],
+      ['DENOMINADOR: la tabla se pudo guardar',               R.hayGuardar === true, R.hayGuardar],
+      ['el censo de los campos del informe es IDENTICO',      R.igual === true,
+                                                               R.antes + ' -> ' + R.despues],
+      ['y no cambio ni su tamaño',                            R.nCampos === R.nDespues,
+                                                               R.nCampos + '/' + R.nDespues]
+    ] };
+  })();
+`);
+
+caso('TC-903', 'MEDIR-5 B1, B2 y B9: la barra de herramientas va sin el nivel «Modo» y con las dos familias a la vez, la tabla no tiene lapiz -- el numero se toca y se escribe a mano, con Medir y una ✕ por fila-- y tocar «Medir» sin calibrar saca la guia con su boton', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 }];
+      _cineAbrir([{ nombre:'uno', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(420);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(300);
+      /* ── B1 ── */
+      const side = document.getElementById('cine-side');
+      const filas = side ? Array.from(side.children).map(d => ({
+        rot: ((d.querySelector('span') || {}).textContent || '').trim(),
+        oculta: getComputedStyle(d).display === 'none',
+        n: d.querySelectorAll('button').length })) : [];
+      R.nFilas = filas.length;
+      R.modoOculta = !!(filas[0] && filas[0].rot === 'Modo' && filas[0].oculta);
+      R.gDopSigue = !!document.getElementById('cine-g-dop');
+      R.dosFamilias = !!document.getElementById('cine-med-dist') && !!document.getElementById('cine-med-vel');
+      R.ordenDop = ['cine-med-vel','cine-med-vti','cine-med-t','cine-med-fc']
+        .map(id => { const e = document.getElementById(id); return e ? (e.textContent || '').trim() : '?'; }).join(',');
+      /* ── B2 ── */
+      _vCon(_vistaA, () => medHerramienta('dist'));
+      await esperar(260);
+      _vCon(_vistaA, () => { if (typeof d2Modo === 'function') d2Modo('vd'); });
+      _vCon(_vistaA, () => { if (typeof _d2Poner === 'function') _d2Poner('vd.basal', 42); });
+      if (typeof _d2Render === 'function') _d2Render();
+      await esperar(320);
+      const caj = document.getElementById('d2-cajon');
+      const tb = caj ? caj.querySelector('table.med-tabla') : null;
+      R.hayTabla = !!tb;
+      R.sinLapiz = !!(caj && (caj.textContent || '').indexOf('✏️') < 0);
+      R.cols = tb ? Array.from(tb.querySelectorAll('col')).map(c => c.style.width).join('/') : null;
+      const tr0 = tb ? tb.querySelector('tbody tr') : null;
+      const vb = tr0 ? tr0.querySelector('td:nth-child(2) button') : null;
+      R.valorEsBoton = !!vb;
+      R.valorAbreCorregir = vb ? !!vb.getAttribute('data-d2-corr') : null;
+      R.areaTactil = vb ? getComputedStyle(vb, '::after').height : null;
+      R.accConValor = (function () { if (!tb) return null;
+        const f = Array.from(tb.querySelectorAll('tbody tr'))
+          .filter(x => (x.textContent || '').indexOf('42') > -1)[0];
+        if (!f) return null;
+        return Array.from(f.querySelectorAll('td:nth-child(3) button'))
+          .map(b => (b.textContent || '').trim()).join(','); })();
+      /* ── B9 ── */
+      R.hayGuia = (typeof _medCalFalta === 'function');
+      /* ⚠️ CON GUARDA: contra un arbol anterior esta funcion NO EXISTE, y un acceso pelado tira
+         ReferenceError que se lleva el caso entero — las condiciones de abajo saldrian en falso
+         sin haber medido nada. Es la leccion de TC-827. */
+      R.sinFalta = (typeof _medCalFalta === 'function')
+        ? _vCon(_vistaA, () => { const F = _medCalFalta('dist'); return F ? F.eje : null; }) : 'no existe';
+      /* Una imagen SIN escala: ahi la guia tiene que salir. */
+      _cineAbrir([{ nombre:'sin', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: [] } }]);
+      await esperar(480);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      R.falta2d = (typeof _medCalFalta === 'function')
+        ? _vCon(_vistaA, () => { const F = _medCalFalta('dist'); return F ? F.eje : null; }) : 'no existe';
+      R.faltaT = (typeof _medCalFalta === 'function')
+        ? _vCon(_vistaA, () => { const F = _medCalFalta('tiempo'); return F ? F.eje : null; }) : 'no existe';
+      R.tSinBoton = (typeof _medCalFalta === 'function')
+        ? _vCon(_vistaA, () => { const F = _medCalFalta('tiempo'); return F ? (F.accion === null) : null; }) : null;
+      if (typeof _medCalCartel === 'function') _vCon(_vistaA, () => _medCalCartel('dist'));
+      await esperar(220);
+      R.cartel = !!document.getElementById('med-cal-ov');
+      R.boton = (function () { const b = document.getElementById('med-cal-ahora');
+        return b ? (b.textContent || '').trim() : null; })();
+      R.botonAlto = (function () { const b = document.getElementById('med-cal-ahora');
+        return b ? Math.round(b.getBoundingClientRect().height) : null; })();
+      R.diceRegla = (function () { const o2 = document.getElementById('med-cal-ov');
+        return !!(o2 && (o2.textContent || '').indexOf('regla de profundidad') > -1); })();
+      try { document.getElementById('med-cal-ok').click(); } catch (e) {}
+      await esperar(180);
+      R.cerro = !document.getElementById('med-cal-ov');
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { const o3 = document.getElementById('med-cal-ov'); if (o3) o3.remove(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['la fila «Modo» esta OCULTA',                          R.modoOculta === true, R.modoOculta],
+      ['pero sus botones siguen en el documento',             R.gDopSigue === true, R.gDopSigue],
+      ['las dos familias se ven a la vez, sin tocar «Modo»',  R.dosFamilias === true, R.dosFamilias],
+      ['el grupo Doppler va en el orden del pedido',          R.ordenDop === 'Velocidad,VTI,Tiempo,FC', R.ordenDop],
+      ['DENOMINADOR: la tabla esta dibujada',                 R.hayTabla === true, R.hayTabla],
+      ['NO hay lapiz en el cajon',                            R.sinLapiz === true, R.sinLapiz],
+      ['la columna del valor es la mas angosta',              R.cols === '46%/20%/34%', R.cols],
+      ['el valor es un boton que abre la escritura a mano',   R.valorEsBoton === true && R.valorAbreCorregir === true,
+                                                               R.valorEsBoton + '/' + R.valorAbreCorregir],
+      ['con area tactil de 44 px',                            R.areaTactil === '44px', R.areaTactil],
+      ['y la fila con valor trae «Medir» y una ✕',            R.accConValor === 'Medir,✕', R.accConValor],
+      ['DENOMINADOR: con escala declarada la guia NO sale',   R.sinFalta === null, R.sinFalta],
+      ['sin escala, la guia del eje 2D SI sale',              R.falta2d === '2d', R.falta2d],
+      ['con su boton «Calibrar ahora» de 44 px',              R.cartel === true && R.boton === 'Calibrar ahora' && R.botonAlto >= 44,
+                                                               R.cartel + '/' + R.boton + '/' + R.botonAlto],
+      ['y la guia nombra la regla de profundidad',            R.diceRegla === true, R.diceRegla],
+      ['el eje del TIEMPO avisa pero NO ofrece calibrar',     R.faltaT === 'tiempo' && R.tSinBoton === true,
+                                                               R.faltaT + '/' + R.tSinBoton],
+      ['y el cartel se cierra',                               R.cerro === true, R.cerro]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
