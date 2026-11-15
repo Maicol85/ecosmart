@@ -40,6 +40,146 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## MEDIR-5 — los arreglos del visor y la barra nueva (2026-11-15, EN CURSO)
+
+> ⚠️ **ESTA TANDA QUEDÓ ABIERTA.** La Parte A y los puntos C1 y C4 del añadido 2 están
+> hechos, medidos y commiteados (`bc6e53f` y `ed6899c`). **El árbol NO se selló** —el sello
+> sigue siendo `v20261115-0555`, el de MEDIR-4b, y `CLAUDE.md` no se tocó— porque sellar es
+> cerrar, y esta tanda no cerró. Lo que falta está en **M5-f**.
+
+### M5-a · A5 ES POR DISEÑO, no un fallo — y el VFD de la diástole sola SÍ es calculable
+
+El médico esperaba ver una tabla chica con «A2C · VFD xxx mL» al terminar la **diástole**, y
+hoy sólo aparece al terminar la sístole. **Medido**: con una sola fase confirmada,
+`_simpFilasVivas()` devuelve **0** filas y `_simpMonoDeS` devuelve `null`.
+
+**Es por diseño y no un defecto**: esa función devuelve VFD, VFS y FEVI **juntos**, así que
+exige el par completo, y la fila de la tabla es esa terna. **Pero el VFD de la diástole sola
+se puede calcular con la fórmula que ya existe** —`_simpVolumenML(P.d.diamCm, P.d.diamCm,
+P.d.Lcm)`, la misma que usa el monoplanar— así que lo que el médico pide es satisfacible **sin
+tocar ningún cálculo y sin contenido clínico nuevo**.
+
+**No se implementó en esta tanda**: no es un arreglo, es una función nueva, y el pedido de A5
+era decir si era diseño o fallo. **Decide el médico** si quiere esa línea en el panel de la
+vista mientras la sístole está pendiente.
+
+### M5-b · A9 NO SE REPRODUJO, y el único camino que lo produce es deliberado
+
+El hallazgo decía que los carteles de Diástole/Sístole y la barra del Simpson se ven también
+en Doppler. **No se reprodujo por el camino normal**, medido con **una** vista: al pasar a
+Velocidad, `pasos` baja a **0**, `uni` a **false** y `_simpUniHerrActiva()` a **false**.
+
+Con **dos** vistas el panel único SÍ queda visible con la vista A en Doppler, y eso es
+**correcto**: la vista B sigue trazando Simpson, y es la razón por la que ese predicado
+pregunta por «alguna vista» y no por la activa. Es probablemente lo que el médico vio.
+
+El único camino que deja el panel en Doppler con una sola vista es un **trazado sin
+confirmar**: `_simpUniHerrActiva` devuelve verdadero si hay `pendiente`, medido
+(`uniConDoppler: true`). **Eso es deliberado y está documentado**: es lo que sostiene el
+«Listo» de rescate que MEDIR-4b agregó justamente porque, con el contorno trazado y sin
+confirmar, tocar «medir» en el cajón 2D dejaba al médico sin ninguna forma de confirmar y el
+trazado se perdía al cambiar de cuadro. **No se tocó**: cerrarlo reintroduciría ese defecto.
+
+**Decide el médico** si prefiere que el panel se esconda igual y perder el rescate.
+
+### M5-c · A10 · NO existe ningún ajuste para 1920 ni 2560 px, y no se hizo
+
+**Medido leyendo el CSS** y no de memoria: las `@media` que tocan el visor son
+`(min-width:1369px)`, `(min-width:1100px) and (max-width:1368.98px)`, `(max-width:1099.98px)`,
+`(max-width:1023px)` y `(max-width:767px)`. **Cero** menciones de 1920 y **cero** de 2560.
+
+O sea que el ajuste que la orden dice que se pidió en MEDIR-4a **no está hecho**, y tampoco
+quedó declarado en `PENDIENTES.md` por aquella tanda. El modal topa en **1500 px**, así que en
+una pantalla de 1920 o 2560 sobra ancho sin usar a los costados. **Queda pendiente, sin hacer**,
+que es lo que A10 pide.
+
+### M5-d · C2 · A dónde va «Guardar», medido — y el nombre que se propone
+
+**No se renombró nada.** Lo medido sobre `cineGuardarActual`:
+
+- Guarda **el cineloop entero** —todos los cuadros— en **IndexedDB**, en el almacén
+  `ceibomed_cine` (`CeiboCine`), **atado al uuid del estudio abierto**. No va a un slot, no va
+  al informe y no va al PDF.
+- Mira la **cuota antes de escribir** y avisa con los números si no entra; por encima de
+  `CINE_AVISO_MB` pregunta.
+- Sin uuid todavía, **lo encola** y lo guarda cuando el estudio se guarde («📌 Se guarda al
+  guardar el estudio»).
+- `CeiboCine.recolectar(uuidsVivos)` **borra** todo registro cuyo uuid no sea de un estudio
+  vivo: muere con el estudio.
+- **SÍ entra al respaldo**: `_bkExportar` cuenta `cine` en sus niveles con medios.
+
+El toast actual —«Cineloop guardado (0.0 MB) · el navegador puede borrarlo si falta espacio: el
+pendrive sigue siendo el respaldo»— es **exacto** en lo que dice. Lo que no dice el **rótulo del
+botón** es *qué* guarda ni *dónde*: «💾 Guardar» al lado de «📸 Capturar» se lee como dos formas
+de guardar la misma cosa.
+
+**Nombre que se propone, para aprobación**: **«💾 Guardar el cineloop en el estudio»**.
+Alternativa más corta si no entra en los 118 px del botón: **«💾 Guardar el video»**.
+**No se aplica sin el OK del médico.**
+
+### M5-e · C5 · El cartel azul quedó DESACTUALIZADO con C1 — texto propuesto, sin aplicar
+
+El cartel del modo medición de la pestaña Imágenes termina con: «Las mediciones son sólo para
+ver en pantalla — **no salen en el PDF**».
+
+Con **C1** eso dejó de ser cierto del todo: «📸 Capturar» ahora captura el cuadro **con las
+mediciones dibujadas** y la captura va a la biblioteca de imágenes, desde donde el médico la
+puede mandar al informe y al PDF. Con **C3** —que todavía no está hecho— pasaría lo mismo con
+la tabla en imagen.
+
+Lo que **sigue siendo cierto** es que las mediciones **no viajan solas** al PDF: no escriben
+ningún campo y no se dibujan en el informe. Lo que es falso es el «sólo para ver en pantalla».
+
+**Texto que se propone, para aprobación**: «Las mediciones no escriben ningún campo del
+informe. Si querés que queden, usá **📸 Capturar**: la captura sale con las mediciones dibujadas
+y va a la biblioteca de imágenes, donde decidís si entra al PDF.»
+**No se cambia sin el OK del médico**, que es lo que C5 pide.
+
+### M5-f · LO QUE ESTA TANDA NO HIZO
+
+1. **C3** — «Guardar en biblioteca» al lado de «Limpiar» en las tablas del visor. **Medido**:
+   el cajón **Doppler ya lo tiene** («💾 Guardar tabla», `dopGuardarBiblioteca` con
+   `_dopCanvas()`); el **2D no**, y su propio comentario declara por qué —«Acá no se agregó, no
+   estaba en el pedido»—. Falta el renderizador de la tabla 2D a canvas y su botón, con el
+   mismo molde. Los dos del Simpson se dejan como están, que es lo que C3 pide.
+2. **La Parte B entera** (B1 a B9): la barra única sin «Modo», las filas nuevas de las cuatro
+   válvulas y de las cinco estructuras 2D, los calculados en cursiva, la mini tabla de FC y el
+   cartel de calibración. **El inventario ya está hecho** —las listas de filas completas, y qué
+   cálculo tiene dueño único expuesto y cuál está escrito en línea dentro de un evaluador que
+   lee el DOM— y está en el cuerpo de este bloque y en el commit de la Parte A.
+3. **La verificación completa**: la batería de los 906 casos, el barrido de mutaciones, el
+   celular, el censo de Excel y los casos nuevos que la orden pide (tabla de una vista que no
+   aparece en la otra, Limpiar sin restos, barra del video siempre visible, las cuentas de los
+   calculados, y que el visor no escriba nada en el informe).
+4. **La documentación**: el mapa de la tanda, `docs/GUIA_PRUEBA_MEDIR5.md`, y el sello y el md5
+   en `CLAUDE.md`.
+
+Lo que **sí** quedó medido y verificado está en los dos commits, con sus cifras.
+
+### M5-g · Las cuatro preguntas de la Parte B que quedan SIN decidir, con su estado de hoy
+
+1. **Qué hace la herramienta Doppler sobre una imagen 2D**: no mide. El camino de la velocidad
+   exige una región que declare escala de velocidad, y sin ella sale el mensaje literal «Esta
+   zona no declara escala de velocidad, así que no se puede integrar acá. Si el archivo no la
+   trae, calibrala con «Calibrar vel.» y volvé a trazar». Para el VTI hace falta **además** la
+   escala de tiempo, que **no se puede calibrar a mano**: la tiene que traer el archivo.
+2. **Si lo que se mide de FC en el visor reemplaza la FC del informe**: hoy **no**. El campo del
+   informe es **`ao_fc`**, con espejo `hemo_fc`, y el gasto cardíaco lo lee de ahí. La
+   herramienta FC del visor mide en la fila genérica del cajón y **no escribe ese campo**.
+3. **Una tabla única o una por vista**: es **una sola**, por diseño de MEDIR-4a, y **no se
+   tocó**. Lo que distingue el origen de cada número es la marca por fila `_dopSufOrigen`.
+4. **Qué campos existen para TRIV tricuspídeo (TDI) y anillo mitral**: el TRIV existe como
+   **`triv`** (transtorácico) y **`dt_triv`** (ETE). El anillo mitral existe como **`e_sep`**
+   (e′ septal), **`e_lat`** (e′ lateral) y **`diam_mit`** (diámetro del anillo). **NO existe**
+   ningún campo de **onda S tricuspídea por TDI** — `vd-sprime` es una banda de referencia, no
+   un campo. Si la Parte B lo necesita, es un campo nuevo y lo decide el médico.
+5. **«FAC VD (%)», las bandas de la IP y el corte de FAC > 35 %**, confirmados y **sin
+   cambiar**: el campo es **`vd_fac`**; el corte vive en **`UMBRAL_FAC_VD_NORMAL = 35`** con
+   fuente **ASE 2025, Tabla 1, folio 145** (normal > 35, severa ≤ 25); la velocidad
+   telediastólica de la IP ≥ 2 m/s tiene fuente **ESC/EACTS 2025, folio 555a**. ⚠️ **Y
+   `ip_vmax` e `ip_vtd` NO tienen banda de plausibilidad** en ninguna de las dos tablas de la
+   app, que es lo que **M3-b** ya dejó declarado: no hay de dónde prestársela.
+
 ## ECO-CONECTOR-5 — la vista previa, los diálogos propios y el modo elegir (2026-11-13)
 
 ### EC5-a · DECISIÓN PARA EL MÉDICO: el factor con que se estima lo que va a ocupar guardado
