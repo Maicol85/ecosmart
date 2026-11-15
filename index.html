@@ -6712,6 +6712,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           </label>
           <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
                   onclick="clnkLeerEstado()">🔄 Actualizar</button>
+          <!-- ⚠️ EL «?» DE LA GUIA COMPLETA — PANT-38, commit 4. Es el mismo mecanismo que los
+               otros globos de la app (`data-vinfo` + `vInfoClic`), asi que hereda su tarjeta, su
+               cierre con Escape y su area tactil de 44 px; lo unico propio es el glifo, que el
+               medico pidio como «?» y no como el ⓘ de los globos clinicos.
+               Va ACA, pegado a «Actualizar» y en la cabecera que se mira siempre, porque la guia
+               hace falta cuando algo no anda — y cuando algo no anda, lo primero que se aprieta
+               es «Actualizar».
+               Es ESTATICO, como sus dos vecinos: `clnkRender` no toca este renglon. -->
+          <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="clnk-guia"
+                  aria-expanded="false" style="font-size:13px;"
+                  aria-label="Cómo conectar el ecógrafo, paso a paso"
+                  onclick="vInfoClic(this)">?</button>
         </div>
         <div id="cfg-clnk-cuerpo">
           <!-- Los tres números de un vistazo. Sin vincular también se ven: `GET /v1/estado` no
@@ -6837,46 +6849,40 @@ window.cerrarSesionReal = cerrarSesionReal;
             <summary id="cfg-clnk-ayuda-btn">Cómo conectar el ecógrafo</summary>
             <div class="clnk-det-cuerpo">
               <div id="cfg-clnk-ayuda-cuerpo" style="font-size:11px;color:var(--text2);line-height:1.6;">
-              <p style="margin:0 0 4px;"><b>A confirmar con el ecógrafo real.</b> Estas tres vías
-                están escritas por adelantado: cuando se pruebe con el equipo del consultorio se
-                corrigen con lo que pase de verdad.</p>
-
-              <p style="margin:8px 0 3px;"><b>1 · Cable directo entre el ecógrafo y esta computadora</b></p>
-              <p style="margin:0 0 4px;">Es la más simple si los dos están en la misma sala y no
-                hay red. Con un cable de red entre los dos equipos hay que ponerle a cada uno una
-                dirección <b>fija, a mano</b>, de la misma familia: por ejemplo
-                <code>192.168.50.10</code> a esta computadora y <code>192.168.50.11</code> al
-                ecógrafo, los dos con máscara <code>255.255.255.0</code>. Después, en el ecógrafo
-                se carga el destino con los tres datos que muestra esta pantalla.</p>
-              <p style="margin:0 0 4px;">Si la dirección que aparece arriba empieza con
-                <b>169.254</b>, esa se la asignó sola la computadora porque nadie le dio una, y
-                <b>no sirve</b>: con esa el ecógrafo no la va a encontrar. Hay que fijar la
-                dirección a mano, como dice el párrafo anterior.</p>
-
-              <p style="margin:8px 0 3px;"><b>2 · Por la red del consultorio o del hospital</b></p>
-              <p style="margin:0 0 4px;">Si el ecógrafo y la computadora están enchufados a la
-                misma red, pedile a informática una <b>dirección fija</b> para esta computadora
-                —se dice «IP fija» o «reserva de DHCP»—. Sin eso, la dirección le puede cambiar
-                de un día para otro y el ecógrafo deja de encontrarla, con el mismo síntoma que
-                si estuviera apagada. Con la dirección fija, los tres datos de arriba se cargan
-                una vez y no se vuelven a tocar.</p>
-
-              <p style="margin:8px 0 3px;"><b>3 · Pendrive, como hasta ahora</b></p>
-              <p style="margin:0;">No hace falta nada de esto: en la pestaña <b>Imágenes</b>,
-                «Importar DICOM» sigue leyendo el pendrive del ecógrafo igual que siempre. Es la
-                vía que conviene mientras la red no esté resuelta, y sigue andando aunque
-                CeiboLink esté apagado.</p>
+              <!-- ⚠️ RESUMIDO A TRES RENGLONES — PANT-38, commit 4. Acá vivían las tres vías de
+                   red enteras, unas treinta líneas; el texto completo se mudó al «?» de arriba,
+                   que está al lado de «Actualizar». No se perdió una sola vía: las tres están en
+                   el globo, con su ejemplo de direcciones, su aviso del 169.254 y su «a
+                   confirmar con el ecógrafo real». Los DOS ids y el marcador
+                   `data-clnk-provisorio` se conservan: son el inventario de Config que TC-161
+                   fija. -->
+              <p style="margin:0 0 4px;">Hay <b>tres vías</b>: un cable de red directo entre el
+                ecógrafo y esta computadora, la red del consultorio o del hospital, o el
+                <b>pendrive</b> de siempre —«Importar DICOM» de la pestaña Imágenes, que sigue
+                andando aunque CeiboLink esté apagado—.</p>
+              <p style="margin:0 0 4px;">Las dos primeras necesitan que esta computadora tenga
+                una <b>dirección fija</b>, y que el técnico cargue en el ecógrafo los tres datos
+                de «Datos para configurar el ecógrafo».</p>
+              <p style="margin:0;">El paso a paso completo está en el <b>?</b> de arriba, al lado
+                de «Actualizar».</p>
               </div>
             </div>
           </details>
 
-          <!-- (i) Descargar: DESHABILITADO. Lleva `disabled` y además dice por qué, porque un
-               botón apagado sin motivo se lee como una falla de la app. -->
+          <!-- (i) Descargar — PANT-38, commit 4. Hasta esta tanda estaba DESHABILITADO con un
+               «próximamente» al lado; hoy abre la página de descargas en una pestaña nueva.
+               ⚠️ VA CON `rel="noopener"`, Y NO ES DECORATIVO. Sin eso la página que se abre
+               recibe un `window.opener` apuntando a esta, y desde ahí puede navegarla a donde
+               quiera: EcoSmart tiene el estudio del paciente en pantalla y sin guardar. Es la
+               primera vez que esta app abre una dirección externa —censado: cero `window.open` y
+               cero `target="_blank"` en todo el archivo antes de hoy—, así que esta línea es el
+               patrón que hereden las que vengan.
+               ⚠️ `noreferrer` ADEMÁS, para no filtrar a dónde lo abrió. -->
           <div style="margin-top:3px;">
-            <button type="button" class="btn btn-ghost" id="cfg-clnk-descargar" disabled
-                    style="font-size:11.5px;padding:5px 11px;opacity:.55;cursor:default;"
-                    title="Todavía no está publicado para descargar">⬇ Descargar CeiboLink</button>
-            <span style="font-size:10.5px;color:var(--text2);margin-left:7px;">próximamente</span>
+            <a id="cfg-clnk-descargar" class="btn btn-ghost"
+               href="https://descargas.ceibomed.com" target="_blank" rel="noopener noreferrer"
+               style="font-size:11.5px;padding:5px 11px;text-decoration:none;"
+               title="Abre la página de descargas de CeiboLink en una pestaña nueva">⬇ Descargar CeiboLink</a>
           </div>
         </div>
       </section>
@@ -52576,7 +52582,59 @@ const VINFO = Object.freeze({
        + 'de una recomendación de bosentán para el síndrome de Eisenmenger. Por eso esta sección '
        + 'no tiene panel de Evidencia y este globo no publica cortes ni conducta.'
   },
-  'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } }
+  'tarj-diast': { ancho: 356, dyn: function () { return qvDiast() } },
+  /* ══ LA GUIA COMPLETA DE CeiboLink — PANT-38, commit 4 ══════════════════════════════════════
+     El bloque «Como conectar el ecografo» del panel paso a tres renglones y el paso a paso se
+     mudo aca, al globo del «?» que esta al lado de «Actualizar». Es el mismo mecanismo que los
+     otros 142 globos de la app: `data-vinfo` + `vInfoClic`.
+     ⚠️ ESCRITA SOLO CON LO QUE EL PANEL Y LA DOCUMENTACION DEL CONECTOR YA DICEN. Nada de lo que
+     sigue es un paso inventado: los siete salen del orden de uso del contrato del conector y de
+     los bloques que este mismo panel ya muestra.
+     ⚠️ SIN EL CODIGO DE SEIS DIGITOS. Donde lo ve el medico es una decision pendiente —el propio
+     panel lo declara en el comentario de `CLNK_TXT_DONDE_CODIGO`—, asi que el paso 3 manda al
+     bloque «Vincular este navegador» y no cuenta de donde sale el numero.
+     ⚠️ SIN EL INSTALADOR DE WINDOWS. Su documento existe pero dice de si mismo que compila y
+     nada mas: no esta probado en una maquina real, asi que el paso 1 nombra la computadora sin
+     prometer un instalador que todavia no se probo. */
+  'clnk-guia': {
+    ancho: 460,
+    tit: 'Cómo conectar el ecógrafo, paso a paso',
+    lee: 'CeiboLink es un programa que corre en esta computadora y recibe las imágenes que el '
+       + 'ecógrafo manda por la red. EcoSmart se las pide a él: las imágenes no salen a internet.',
+    ojo: '1 · Instalá CeiboLink en esta computadora y dejalo encendido. Mientras esté apagado, '
+       + 'el ecógrafo no tiene a quién mandarle las imágenes.\n\n'
+       + '2 · Acá arriba, encendé «Activar CeiboLink». La luz de estado dice si responde.\n\n'
+       + '3 · Vinculá este navegador, una sola vez, en el bloque «Vincular este navegador». '
+       + 'Queda vinculado para siempre en esta computadora y en este navegador; si usás otro, se '
+       + 'vincula de nuevo.\n\n'
+       + '4 · Abrí «Datos para configurar el ecógrafo». Ahí salen los tres datos que el técnico '
+       + 'necesita: la dirección de esta computadora, el puerto y el nombre del destino.\n\n'
+       + '5 · El técnico carga esos tres datos en el ecógrafo, en la pantalla donde se configuran '
+       + 'los destinos DICOM. Eso se hace una vez.\n\n'
+       + '6 · La primera vez que ese ecógrafo mande algo, EcoSmart avisa de un equipo nuevo y '
+       + 'pregunta si se permite. Hasta que no se permita, sus imágenes quedan guardadas aparte y '
+       + 'no se ven.\n\n'
+       + '7 · Desde ahí, cada vez que el ecógrafo manda imágenes aparece un aviso para adjuntarlas '
+       + 'al estudio abierto, guardarlas en uno ya guardado o dejarlas esperando.\n\n'
+       + 'LAS TRES VÍAS DE RED\n\n'
+       + 'Cable directo entre el ecógrafo y esta computadora. Es la más simple si los dos están '
+       + 'en la misma sala y no hay red. Con un cable de red entre los dos hay que ponerle a cada '
+       + 'uno una dirección fija, a mano, de la misma familia: por ejemplo 192.168.50.10 a esta '
+       + 'computadora y 192.168.50.11 al ecógrafo, los dos con máscara 255.255.255.0. Si la '
+       + 'dirección que aparece en el panel empieza con 169.254, esa se la asignó sola la '
+       + 'computadora porque nadie le dio una, y no sirve: con esa el ecógrafo no la va a '
+       + 'encontrar.\n\n'
+       + 'Por la red del consultorio o del hospital. Si los dos están enchufados a la misma red, '
+       + 'pedile a informática una dirección fija para esta computadora —se dice «IP fija» o '
+       + '«reserva de DHCP»—. Sin eso, la dirección le puede cambiar de un día para otro y el '
+       + 'ecógrafo deja de encontrarla, con el mismo síntoma que si estuviera apagada.\n\n'
+       + 'Pendrive, como hasta ahora. No hace falta nada de esto: en la pestaña Imágenes, '
+       + '«Importar DICOM» sigue leyendo el pendrive del ecógrafo igual que siempre. Es la vía que '
+       + 'conviene mientras la red no esté resuelta, y sigue andando aunque CeiboLink esté '
+       + 'apagado.\n\n'
+       + 'Las tres vías están escritas contra lo que el conector dice de la red. Al probarlas con '
+       + 'el ecógrafo del consultorio se corrigen con lo que pase de verdad.'
+  }
 });
 let _vInfoId = null;
 /* ⚠️ UNA CLAVE PUEDE TENER VARIOS BOTONES, Y HASTA PANT-7 ESTA FUNCION DEVOLVIA SIEMPRE EL
