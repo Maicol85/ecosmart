@@ -136932,7 +136932,25 @@ const LV3D_TXT_TERRITORIO = 'Arrastrá para girar. En este modo tocar un segment
    abombar y el aneurisma dejara de hacerlo. */
 const LV3D_K_ANEURISMA = -0.6;
 
-const LV3D_N = 20, LV3D_M = 72, LV3D_SX = 1.04, LV3D_SY = 0.96, LV3D_ESC = 26, LV3D_DIST = 32;
+/* ⚠️ `LV3D_ESC` PASA DE 26 A 32 — PANT-38, commit 2. Es el UNICO lugar donde se decide cuanto
+   mide el corazon en el recuadro: lo lee `lv3dPant` y nadie mas, verificado.
+   ⚠️ LA REGLA DEL DDVI NO SE TOCA. `lv3dEscalaPorDD` sigue devolviendo `dd/48` acotado a
+   [0,72 – 1,6], y `_lv3d.P` se sigue derivando de ella: lo que cambia es el tamanio BASE con que
+   se proyecta, asi que un ventriculo dilatado sigue dibujandose mas grande que uno normal en la
+   misma proporcion de siempre.
+   ⚠️ EL FACTOR SALE DE UNA MEDICION DEL PEOR CASO Y NO DE UN OJO. Medido sobre `_lv3d.polis`
+   —los poligonos con sus coordenadas de pantalla— con DDVI 95 mm, que es donde la escala topa en
+   1,6; con la diastole fantasma PRENDIDA; en las tres vistas de punta, en Coronarias (3099
+   poligonos contra 1800), en cinco fases y en doce giros de 30 grados. El corazon ocupaba el
+   48,6 % del ancho y el 63,6 % del alto, y el borde que primero toca el recuadro es el de
+   ARRIBA: del centro de proyeccion (cy = H/2 − 8 = 182) al punto mas alto hay 120,8 px contra
+   los 182 que hay hasta el borde, o sea que el tope absoluto es 1,507.
+   Se toma 32 —factor 1,2308— y no el tope, por tres cosas que el bbox de los VERTICES no ve: el
+   grosor del trazo, el halo de los rotulos, y la brujula de abajo a la izquierda. Con 32 el peor
+   punto del corazon queda en y 33,3 (33 px de aire) y en x 136,5, y la brujula llega hasta x 104:
+   no se tocan en ningun giro. Con el tope de 1,507 el corazon entraria en x 92 y se le montaria
+   encima. */
+const LV3D_N = 20, LV3D_M = 72, LV3D_SX = 1.04, LV3D_SY = 0.96, LV3D_ESC = 32, LV3D_DIST = 32;
 const LV3D_W = 680, LV3D_H = 380;
 const LV3D_DD_REF = 48;                                       // mm — DDVI del preset «VI normal»
 const LV3D_BASE = { Red:2.6, Led:8.5, Res:1.75, Les:7.5 };    // unidades del modelo (demo 1)
@@ -137826,7 +137844,35 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
   // ── Brújula. «Punta» es el eje fundamental: sin él no se sabe de qué lado se está mirando. ──
   const ejes = [{v:[1,0,0],l:'Lat'}, {v:[-1,0,0],l:'Sep'}, {v:[0,1,0],l:'Ant'},
                 {v:[0,-1,0],l:'Inf'}, {v:[0,0,1],l:'Punta'}];
-  const ox = 58, oy = H - 48;
+  /* ⚠️ LOS ROTULOS ACOMODADOS — PANT-38, commit 2. Los CINCO TEXTOS son los mismos; lo que
+     cambia es donde se apoyan. Dos defectos medidos en «Punta hacia mi», que es la vista con que
+     abre el 3D:
+     · «Sep» se cortaba contra el borde IZQUIERDO. Su eje es [-1,0,0], asi que con `ox` en 58 caia
+       en `ex = 26` y el offset fijo de −28 lo arrancaba en x = **−2**: fuera del canvas.
+     · «Punta» y «Lat» se pegaban. El eje de la punta apunta a la camara (d = 1), asi que se
+       proyecta en el ORIGEN de la brujula y caia en x 62, mientras «Lat» caia en 94 — y «Punta»
+       mide unos 34 px de ancho, o sea que se tocaban.
+     Se arregla con tres cosas y ningun numero magico mas: la brujula se corre de 58 a 72, el
+     rotulo se ancla con `textAlign` en vez de un offset fijo de 28 px —que era el ancho supuesto
+     del texto mas largo—, y el eje que apunta a la camara (o de espaldas) deja de competir por el
+     centro y se escribe DEBAJO, centrado.
+     ⚠️ AL CENTRO CAEN DOS, NO UNO, Y ESO LO ENCONTRO LA MEDICION Y NO LA LECTURA. La primera
+     version de este bloque mandaba al centro todo eje con proyeccion plana chica, con el
+     argumento de que los cinco ejes son una base ortonormal y por lo tanto solo uno puede quedar
+     casi alineado con la camara. **Es falso**: los cinco ejes son [+X, −X, +Y, −Y, +Z], y +X y
+     −X son el MISMO eje con el signo cambiado. Con la punta a la derecha o a la izquierda —o sea
+     mirando a lo largo de X— «Lat» y «Sep» caen los DOS en el centro, y quedaban uno encima del
+     otro. En la version anterior a esta tanda no se superponian por PURA CASUALIDAD NUMERICA:
+     `cos(PI/2)` vale 6,1e−17 y no 0, asi que uno daba `r.x >= 0` y el otro no, y los offsets
+     fijos de +4 y −28 los separaban.
+     Se los reparte por el signo de la PROFUNDIDAD: el que viene hacia la camara a la derecha del
+     origen, el que va de espaldas a la izquierda. Medido: quedan a 29 px uno de otro.
+     ⚠️ EL CONTEXTO SE RESTITUYE CON save/restore. `textAlign` es estado del contexto y el
+     contexto es el MISMO entre cuadros: dejarlo puesto corre todo lo que se dibuje despues, en
+     este cuadro y en los 1.440 siguientes, y una fuga asi es ESTABLE —dos repintados dan el
+     mismo pixel— asi que una prueba de idempotencia no la ve. Es la leccion de PANT-34. */
+  const ox = 72, oy = H - 48;
+  ctx.save();
   ctx.font = '12px sans-serif'; ctx.lineWidth = 2;
   ejes.forEach(e => {
     const r = lv3dProy(e.v), ex = ox + r.x*32, ey = oy - r.y*32;
@@ -137834,8 +137880,16 @@ function lv3dPintar(ctx, W, H, pal, limpiar){
     ctx.strokeStyle = esPunta ? pal.texto : pal.texto2;
     ctx.fillStyle   = esPunta ? pal.texto : pal.texto2;
     ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.fillText(e.l, ex + (r.x>=0 ? 4 : -28), ey + (r.y>=0 ? -3 : 12));
+    const plano = Math.sqrt(r.x*r.x + r.y*r.y);
+    if (plano < 0.35){
+      ctx.textAlign = 'center';
+      ctx.fillText(e.l, ox + (r.d >= 0 ? 24 : -24), oy + 28);
+    } else {
+      ctx.textAlign = (r.x >= 0) ? 'left' : 'right';
+      ctx.fillText(e.l, ex + (r.x>=0 ? 5 : -5), ey + (r.y>=0 ? -4 : 13));
+    }
   });
+  ctx.restore();
 
   /* ── EL ROTULO DE LA VISTA DE ANGIOGRAFIA — PANT-34 (A3) ──────────────────────────────────
      Dice el NOMBRE de la vista elegida, tal cual figura en la lista, en el rincon DERECHO de
