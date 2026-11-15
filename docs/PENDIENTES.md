@@ -135,6 +135,82 @@ informe. Si querés que queden, usá **📸 Capturar**: la captura sale con las 
 y va a la biblioteca de imágenes, donde decidís si entra al PDF.»
 **No se cambia sin el OK del médico**, que es lo que C5 pide.
 
+### M5-h · El rotulo de «Guardar» no entra en los 118 px de la barra — excepcion declarada
+
+M5-d pidio renombrar el boton a «💾 Guardar el cineloop en el estudio». **Choca con la regla de
+MEDIR-3** de que los botones de la barra del visor miden **118 px todos iguales**, con
+`overflow:hidden`: ese rotulo se **recorta en silencio**, y un texto cortado a la mitad no se lee
+ni avisa.
+
+Se aplico el rotulo y se le dio a **ese boton y solo a ese** la clase `cine-b-ancho`, que lo lleva
+a **196 px**. El **alto no se toca**: sigue en 44 px como los otros cinco, asi que la fila no
+cambia de alto ni se mueve el piso tactil. Medido en los diez cruces: 196 × 44 y
+`guardarCortado` **false**, con `scrollWidth` igual a `clientWidth`.
+
+**Decide el medico** si prefiere el rotulo corto —«💾 Guardar el video»— y volver a los 118 px
+uniformes.
+
+### M5-i · CENSO DE CAMPOS DE B4 a B7 — lo que NO existe y no se invento
+
+Medido campo por campo sobre `_dop` (el estado del cajon Doppler) y sobre los `id` del formulario.
+
+**NO EXISTE EN NINGUNA PARTE** —ni como clave de `_dop` ni como campo del informe—, asi que
+**no se puede construir sin contenido clinico nuevo, y lo decide el medico**:
+
+| pedido | seccion | estado |
+|---|---|---|
+| **Diam jet TSVI** | B5, aortica | no existe |
+| **VC (vena contracta) aortica** | B5, aortica | no existe |
+| **VTI VT** | B6, tricuspide | no existe |
+| **G. Medio VT** | B6, tricuspide | no existe |
+| **THP VT** | B6, tricuspide | no existe |
+| **Onda S tricuspidea por TDI** | B6 | no existe (`vd-sprime` es una BANDA de referencia, no un campo) |
+
+**EXISTE COMO CAMPO DEL INFORME PERO NO EN EL CAJON DOPPLER**, asi que se puede agregar como fila
+nueva reusando el campo, sin inventar nada:
+
+| pedido | campo del informe |
+|---|---|
+| TRIV mitral | `triv` |
+| TDE | `tde` |
+| Vmax aliasing / PISA | `pisa_val`, `pisa_r` |
+| VC mitral | `im_vc` |
+| TRIV tricuspideo (TDI) | `dt_triv` |
+| Diam VCI | `vci_diam` |
+| Colapso de la VCI (desplegable) | `vci_col`, con sus dos opciones literales `>50` y `<50` |
+
+**YA ESTAN en `_dop`** y no hay nada que agregar: las cuatro del llenado mitral, THP mitral, VTI
+VM, G. Medio VM, Vmax IM, VTI IM; las cinco aorticas mas THP IAo; Vmax IT; y las seis pulmonares
+—TAP incluido—.
+
+**LOS CALCULOS QUE B4 a B7 PIDEN TIENEN DUEÑO EXPUESTO Y REUSABLE**, asi que no hay que duplicar
+ninguna formula: `_avaContinuidad`, `_avmPorPHT`, `_medGradMmHg` (4v²), `_hemoVSEco` (volumen
+sistolico del TSVI), `vliCalc` (su indexado), `_hemoGCEco` (gasto cardiaco) y `pmadEstimar(diam,
+col)` para la PmAD de B6. **Dos estan escritos EN LINEA** dentro de evaluadores que leen el DOM y
+habria que reportarlo antes de duplicarlos: **E/A** y **E/e′ promedio**, los dos dentro de
+`_dopDerivados` —que es del visor, asi que ahi si son reusables— y ademas en
+`calcDiastolBSE2024`, que lee el formulario. El **gradiente medio** no tiene funcion: se carga a
+mano.
+
+**Y la tabla de calculados que B4 y B5 piden ya tiene su mecanismo**: `_dopDerivados` y
+`_d2Derivados` emiten filas con `campo` en **null**, que es justo lo que las deja sin ✏️ y en
+cursiva con la palabra «calculada». No hace falta inventar una tabla aparte.
+
+### M5-j · Lo que quedo de la Parte B
+
+Hechos: **B1** (la barra unica) y **B3** (el orden del VD). Queda:
+
+1. **B2** — el valor mas angosto, sin ✏️, el numero tocable para escribir a mano con 44 px, y una
+   ✕ por dato. Toca `_medTablaHTML`, que es el armador de los DOS cajones.
+2. **B4 a B7** — las filas nuevas de las cuatro valvulas, con la salvedad de M5-i: seis items no
+   existen y hay que decidirlos.
+3. **B8** — la mini tabla de FC fija, de solo lectura. ⚠️ **Hay que resolver cual es el campo
+   dueño antes de construirla**: una lectura dio `ao_fc` con espejo `hemo_fc` y la otra dio
+   `hemo_fc`. No se construyo nada sobre una ambiguedad.
+4. **B9** — el cartel de guia de calibracion con su boton «Calibrar ahora».
+5. La **verificacion completa** (bateria de los 906 casos, mutaciones, celular, Excel), los
+   **casos nuevos** y la **documentacion** con el sello.
+
 ### M5-f · LO QUE ESTA TANDA NO HIZO
 
 1. **C3** — «Guardar en biblioteca» al lado de «Limpiar» en las tablas del visor. **Medido**:
