@@ -142159,20 +142159,14 @@ function anahiCartel() {
 }
 window.anahiCartel = anahiCartel;
 
-/* La celda de la tabla. Con la comunidad apagada la casilla va DESHABILITADA y con candado, y
-   quien la toca recibe la explicación — por eso el oyente cuelga de la celda y no de la casilla:
-   un `input` deshabilitado no emite eventos, así que sin esto el médico tocaría un control que
-   no contesta nada. */
-function anahiCeldaHTML() {
-  const act = anahiActiva();
-  return '<td class="anahi-cel" style="padding:4px 6px;text-align:center;white-space:nowrap;"' +
-    (act ? '' : ' title="' + escHtml(ANAHI_CORTO) + '"') + '>' +
-    '<input type="checkbox" class="anahi-chk"' + (act ? '' : ' disabled aria-disabled="true"') +
-    ' aria-label="' + escHtml(ANAHI_NOMBRE + ' — ' + ANAHI_CORTO) + '"' +
-    ' style="pointer-events:none;vertical-align:middle;">' +
-    (act ? '' : '<span aria-hidden="true" style="font-size:9px;margin-left:2px;">🔒</span>') +
-    '</td>';
-}
+/* ⚠️ LAPIDA — `anahiCeldaHTML` y la clase `anahi-cel` (MEDIR-4a, bloque E). Emitian la cuarta
+   columna de la tabla de medidas: una casilla por fila, deshabilitada, con candado y con
+   `pointer-events:none`, cuyo unico efecto era abrir el cartel que explica que esta bloqueada.
+   Por orden del medico la casilla por fila se retira y la tabla vuelve a tres columnas.
+   NO SE RETIRA NADA MAS de la comunidad de desarrollo de IA: los dos botones «Para <nombre>» y
+   el bloque de Configuracion se quedan como estaban, con el mismo estado unico (`ANAHI_ON`), el
+   mismo nombre unico (`ANAHI_NOMBRE`) y el mismo cartel. Y nada se envia ni se guarda, que es lo
+   que nunca pasaba: la casilla no tenia un solo camino de escritura. */
 /* El rótulo del botón del menú de Exportar lo escribe el dueño único del nombre, no el marcado:
    con el texto tipeado ahí, cambiar `ANAHI_NOMBRE` dejaría ese botón con el nombre viejo. Corre
    al cargar y es idempotente. */
@@ -142211,7 +142205,10 @@ try {
    por celda se iría con el nodo viejo en cada repintado. */
 try {
   document.addEventListener('click', function (ev) {
-    const t = ev.target && ev.target.closest ? ev.target.closest('.anahi-cel, .anahi-btn') : null;
+    /* ⚠️ MEDIR-4a — YA NO MIRA `.anahi-cel`: esa celda se retiro con la casilla por fila (bloque
+       E). Queda `.anahi-btn`, que es la de los DOS botones «Para <nombre>» — el de Imagenes
+       guardadas y el del menu de Exportar—, que no se tocaron. */
+    const t = ev.target && ev.target.closest ? ev.target.closest('.anahi-btn') : null;
     if (!t) return;
     if (anahiActiva()) return;      // activa: este camino deja de existir
     ev.preventDefault(); ev.stopPropagation();
@@ -142359,15 +142356,25 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
   const esc = escHtml;
   const TH = 'padding:3px 5px;font-size:9px;font-weight:700;letter-spacing:.4px;' +
              'text-transform:uppercase;color:var(--text2);';
+  /* ══ MEDIR-4a — LA TABLA VUELVE A TRES COLUMNAS: SALE LA CASILLA POR FILA (bloque E) ═══════
+     MEDIR-2 le habia agregado una cuarta columna con una casilla bloqueada por fila. Por orden
+     del medico se retira: lo que queda de la comunidad de desarrollo de IA son los DOS botones
+     «Para <nombre>» —el de Imagenes guardadas y el del menu de Exportar de Estudios guardados— y
+     el bloque de Configuracion, los tres exactamente como estaban.
+     ⚠️ EL 10 % QUE DEJA LA CASILLA SE REPARTE ENTRE LAS TRES QUE QUEDAN y no se le da todo a una:
+     con la columna de medidas en 340 px con dos vistas, el nombre es el que envuelve primero. 42
+     + 26 + 32 = 100.
+     ⚠️ Y NADA DE LO QUE SE ENVIA O SE GUARDA CAMBIA, porque nunca se enviaba ni se guardaba nada:
+     la casilla nacia deshabilitada, con candado y con `pointer-events:none`, y su unico efecto
+     era abrir el cartel que explica que esta bloqueada. */
   let t = '<table class="med-tabla" style="width:100%;border-collapse:collapse;' +
     'table-layout:fixed;font-size:10.5px;">' +
-    '<colgroup><col style="width:38%"><col style="width:24%"><col style="width:28%">' +
-    '<col style="width:10%"></colgroup>' +
+    '<colgroup><col style="width:42%"><col style="width:26%"><col style="width:32%">' +
+    '</colgroup>' +
     '<thead><tr style="border-bottom:1px solid var(--border);">' +
     '<th style="' + TH + 'text-align:left;">Medida</th>' +
     '<th style="' + TH + 'text-align:right;">Valor</th>' +
     '<th style="' + TH + 'text-align:left;">Acciones</th>' +
-    '<th style="' + TH + 'text-align:center;">' + esc(ANAHI_NOMBRE) + '</th>' +
     '</tr></thead><tbody>';
   const fila = f => {
     const calc = (f[3] == null);
@@ -142410,12 +142417,12 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
       '<td style="padding:11px 5px;"><span class="med-fbots" ' +
         'style="display:flex;flex-wrap:wrap;column-gap:3px;align-items:center;">' + acc +
         '</span></td>' +
-      anahiCeldaHTML() + '</tr>';
+      '</tr>';
   };
   filas.forEach(f => { t += fila(f); });
   const S = (sueltas || []);
   if (S.length) {
-    t += '<tr><td colspan="4" style="padding:7px 5px 3px;font-size:9px;font-weight:700;' +
+    t += '<tr><td colspan="3" style="padding:7px 5px 3px;font-size:9px;font-weight:700;' +
          'letter-spacing:.4px;text-transform:uppercase;color:var(--text2);' +
          'border-bottom:1px solid var(--border);">Mediciones sin asignar a un campo</td></tr>';
     S.forEach(f => { t += fila(f); });

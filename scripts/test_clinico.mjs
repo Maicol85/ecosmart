@@ -32684,7 +32684,7 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
          las sueltas desaparecen y tambien si vuelven a ser una tabla suelta. */
       R.sueltasSeVen = cajon.textContent.indexOf('sin asignar') > -1 &&
                        cajon.querySelectorAll('table.med-tabla').length === 1 &&
-                       cajon.querySelectorAll('table.med-tabla td[colspan="4"]').length === 1;
+                       cajon.querySelectorAll('table.med-tabla td[colspan="3"]').length === 1;
 
       /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
          Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
@@ -141217,7 +141217,7 @@ caso('TC-881', 'ECO-CONECTOR-5 decisiones 7d, 8 y 9: exportar SOLO lo elegido co
   })();
 `);
 
-caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO columnas en los dos cajones, con el valor grande y la unidad adentro, las filas calculadas sin botones y en cursiva, «Borrar» vacia SOLO su fila, y la casilla de la comunidad va bloqueada con candado', `
+caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4 + MEDIR-4a E: la tabla de medidas en TRES columnas en los dos cajones, con el valor grande y la unidad adentro, las filas calculadas sin botones y en cursiva, «Borrar» vacia SOLO su fila, y NINGUNA casilla de la comunidad por fila', `
   return (async () => {
     const R = { err: '' };
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -141264,12 +141264,19 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
          cinco columnas no entraba: medido en los ocho cruces del arbol anterior, el cajon 2D
          desbordaba 32 px (Chrome) / 34 (WebKit) con UNA tabla y el Doppler 179 / 181 con dos. El
          pedido dice ademas «valor GRANDE con la unidad chica», o sea en la MISMA celda. Las
-         celdas quedan: nombre | valor+unidad | acciones | comunidad. */
+         celdas quedan: nombre | valor+unidad | acciones | comunidad.
+         ⚠️ ADAPTADO EN MEDIR-4a (bloque E): LA CUARTA COLUMNA SE RETIRO POR ORDEN DEL MEDICO y
+         las celdas son TRES -- nombre | valor+unidad | acciones--. Las condiciones de la casilla
+         por fila quedan INVERTIDAS: hoy se exige que NO haya ninguna, ni columna, ni casilla, ni
+         candado, en los DOS cajones, asi que el caso falla por los dos lados -- si vuelve la
+         cuarta columna, y si desaparece la tabla. El filtro de filas baja de 4 a 3 celdas. */
       const leer = id => { const c = document.getElementById(id); if (!c) return null;
         const t = c.querySelector('table.med-tabla'); if (!t) return null;
         return {
           th: [...t.querySelectorAll('thead th')].map(e => (e.textContent||'').trim()),
-          fs: [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 4)
+          /* El censo de casillas y candados se hace sobre la FILA entera, no sobre una cuarta
+             celda que ya no existe: lo que se afirma es que no queda ninguna en ningun lado. */
+          fs: [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 3)
             .map(tr => { const td = [...tr.children];
             const sp = [...td[1].querySelectorAll('span')];
             return { cols: td.length, med: (td[0].textContent||'').trim(),
@@ -141280,9 +141287,9 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
               nbot: td[2].querySelectorAll('button').length,
               acc: (td[2].textContent||'').trim(),
               italic: getComputedStyle(tr).fontStyle === 'italic',
-              chk: td[3].querySelectorAll('input[type=checkbox]').length,
-              dis: !!td[3].querySelector('input[disabled]'),
-              candado: (td[3].textContent||'').indexOf('🔒') >= 0 }; })
+              chk: tr.querySelectorAll('input[type=checkbox]').length,
+              dis: !!tr.querySelector('input[disabled]'),
+              candado: (tr.textContent||'').indexOf('🔒') >= 0 }; })
         }; };
 
       /* -- (A) CAJON 2D: grupo VI, con un medido y un DERIVADO -- */
@@ -141292,7 +141299,7 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
       const A = leer('d2-cajon');
       R.a_hay = !!A;
       R.a_th = A ? A.th.join('|') : '';
-      R.a_cuatro = !!A && A.fs.length > 0 && A.fs.every(f => f.cols === 4);
+      R.a_cuatro = !!A && A.fs.length > 0 && A.fs.every(f => f.cols === 3);
       /* ⚠️ CONDICION INVERTIDA EN MEDIR-3. Afirmaba «el valor y la unidad en CELDAS DISTINTAS»,
          y eso dejo de ser cierto por el punto A4: hoy van en la MISMA celda, en dos elementos, el
          valor GRANDE y la unidad CHICA. Se exige las dos cosas —que esten en la misma celda y
@@ -141338,7 +141345,7 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
                (D ? D.fs.map(f => f.med).join(',') : '(sin tabla)') + '] ' + diagFin; })();
       R.d_th = D ? D.th.join('|') : '';
       R.d_mismoEncabezado = !!A && !!D && A.th.join('|') === D.th.join('|');
-      R.d_cuatro = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 4);
+      R.d_cuatro = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 3);
       /* ⚠️ MEDIR-3 — Y UNA SOLA TABLA, NO DOS. el reparto viejo partia las filas por su columna en dos
          tablas lado a lado y es lo que hacia que los titulos y las filas se pisaran. */
       R.d_unaSolaTabla = (() => { const c = document.getElementById('dop-cajon');
@@ -141354,22 +141361,25 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
       const gr = D ? D.fs.filter(f => f.med.indexOf(rotGrad) === 0)[0] : null;
       R.d_calcSinBotones = !!gr && gr.nbot === 0 && gr.italic === true && gr.acc === 'calculada';
 
-      /* -- (E) LA CASILLA DE LA COMUNIDAD: UNA POR FILA, BLOQUEADA Y CON CANDADO -- */
+      /* -- (E) INVERTIDA EN MEDIR-4a: LA CASILLA POR FILA YA NO EXISTE, EN NINGUNO DE LOS DOS
+         CAJONES -- Lo que queda de la comunidad de desarrollo de IA son los dos botones y el
+         bloque de Configuracion, y eso lo mide TC-886. */
       R.e_activa = (typeof anahiActiva === 'function') ? anahiActiva() : 'sin fn';
-      R.e_unaPorFila = !!A && A.fs.every(f => f.chk === 1);
-      R.e_bloqueadas = !!A && A.fs.every(f => f.dis === true && f.candado === true);
-      R.e_tambienDoppler = !!D && D.fs.every(f => f.chk === 1 && f.dis === true);
-      /* El nombre de la columna sale del DUEÑO UNICO, no escrito en la tabla. */
-      R.e_colNombre = A ? A.th[3] : '';
-      R.e_nombreUnico = !!A && A.th[3] === ANAHI_NOMBRE;
+      R.e_sinCasilla2D = !!A && A.fs.length > 0 && A.fs.every(f => f.chk === 0);
+      R.e_sinCandado2D = !!A && A.fs.every(f => f.candado === false && f.dis === false);
+      R.e_sinCasillaDop = !!D && D.fs.length > 0 && D.fs.every(f => f.chk === 0 && f.candado === false);
+      R.e_colNombre = A ? A.th.join('|') : '';
+      R.e_sinColumna = !!A && A.th.length === 3 && A.th.indexOf(ANAHI_NOMBRE) < 0;
+      /* Y la celda vieja no quedo en ninguna parte del documento. */
+      R.e_sinCeldaEnTodoElDoc = document.querySelectorAll('.anahi-cel, .anahi-chk').length === 0;
     } catch (e) { R.err = String((e && e.message) || e); }
     try { cineCerrar(); } catch (e) {}
     try { window.toast = toastReal; window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
     return { extra: [
       ['sin excepciones',                                 !R.err, R.err],
       ['(A) DENOMINADOR: el cajon 2D pinto su tabla',     R.a_hay === true, 'PRE[' + R.diagPre + '] POST[' + R.diagPost + ']'],
-      ['(A) las CUATRO columnas, en su orden',            R.a_th === 'Medida|Valor|Acciones|Anahí', R.a_th],
-      ['(A) y todas las filas tienen cuatro celdas',      R.a_cuatro === true, R.a_cuatro],
+      ['(A) INVERTIDA: las TRES columnas, en su orden',   R.a_th === 'Medida|Valor|Acciones', R.a_th],
+      ['(A) y todas las filas tienen tres celdas',        R.a_cuatro === true, R.a_cuatro],
       ['(A) ya NO hay columna de unidad suelta',          R.a_sinColUnidad === true, R.a_th],
       ['(A) INVERTIDA: valor y unidad en la MISMA celda', R.a_juntas === true, R.a_sivdVal + ' / ' + R.a_sivdUni],
       ['(A) el valor GRANDE y la unidad CHICA',           R.a_grandeChica === true, R.a_px],
@@ -141383,15 +141393,16 @@ caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO 
       ['(C) sin tocar el vecino',                         R.c_vecinoIntacto === true, R.c_vecinoIntacto],
       ['(D) DENOMINADOR: el cajon Doppler pinto su tabla', R.d_hay === true, 'hay=' + R.d_hay + ' ' + (typeof diagFin === 'string' ? diagFin : '')],
       ['(D) con el MISMO encabezado que el 2D',           R.d_mismoEncabezado === true, R.d_th],
-      ['(D) y cuatro celdas por fila',                    R.d_cuatro === true, R.d_cuatro],
+      ['(D) y tres celdas por fila',                      R.d_cuatro === true, R.d_cuatro],
       ['(D) UNA sola tabla, no dos lado a lado',          R.d_unaSolaTabla === true, R.d_unaSolaTabla],
       ['(D) y el cajon no desborda a lo ancho',           R.d_sinDesborde === true, R.d_sinDesborde],
       ['(D) su calculada tampoco tiene botones',          R.d_calcSinBotones === true, R.diagDop],
       ['(E) la comunidad esta APAGADA (denominador)',     R.e_activa === false, R.e_activa],
-      ['(E) una casilla por fila',                        R.e_unaPorFila === true, R.e_unaPorFila],
-      ['(E) todas bloqueadas y con candado',              R.e_bloqueadas === true, R.e_bloqueadas],
-      ['(E) tambien en el cajon Doppler',                 R.e_tambienDoppler === true, R.e_tambienDoppler],
-      ['(E) el nombre sale del dueno unico',              R.e_nombreUnico === true, R.e_colNombre]
+      ['(E) INVERTIDA: ninguna casilla por fila en el 2D', R.e_sinCasilla2D === true, R.e_sinCasilla2D],
+      ['(E) INVERTIDA: ni candado ni deshabilitado',       R.e_sinCandado2D === true, R.e_sinCandado2D],
+      ['(E) INVERTIDA: tampoco en el cajon Doppler',       R.e_sinCasillaDop === true, R.e_sinCasillaDop],
+      ['(E) INVERTIDA: la columna del nombre ya no esta',  R.e_sinColumna === true, R.e_colNombre],
+      ['(E) ni la celda en ninguna parte del documento',   R.e_sinCeldaEnTodoElDoc === true, R.e_sinCeldaEnTodoElDoc]
     ] };
   })();
 `);
@@ -141426,7 +141437,10 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
       /* ⚠️ ADAPTADO EN MEDIR-3: la unidad ya no es la TERCERA celda sino el segundo elemento DE
          la celda del valor. Las columnas pasaron de cinco a cuatro (punto A3) y el pedido pide
          «valor GRANDE con la unidad chica», o sea los dos juntos. */
-      const filas = t ? [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 4)
+      /* ⚠️ ADAPTADO EN MEDIR-4a (bloque E): el filtro pedia CUATRO celdas por fila y la cuarta
+         —la casilla de la comunidad— se retiro, asi que la lista salia VACIA y el denominador de
+         este caso daba cero sobre una tabla que SI estaba pintada. Hoy pide TRES. */
+      const filas = t ? [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 3)
         .map(tr => {
         const td = [...tr.children];
         const sp = [...td[1].querySelectorAll('span')];
@@ -141828,8 +141842,19 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
       await esperar(400);
       medHerramienta('dist'); ponerD2('vi'); _d2Poner('vi.sivd', 10); _d2Render();
       await esperar(300);
+      /* ⚠️ INVERTIDA EN MEDIR-4a (bloque E): LA CASILLA POR FILA SE RETIRO POR ORDEN DEL MEDICO.
+         Lo que se exige hoy es lo contrario de lo que este bloque exigia: que NO quede ni una
+         celda ni una casilla, en el cajon ni en todo el documento. Las otras cinco partes de la
+         comunidad -- los dos botones, el cartel, el aviso corto, el bloque de Configuracion, el
+         estado unico y el nombre unico -- NO se tocaron y se siguen midiendo igual.
+         El disparador del cartel pasa a ser el BOTON, que es el que queda: lleva la clase
+         anahi-btn, que es de donde cuelga el unico oyente delegado del documento. */
       const cels = [...document.querySelectorAll('#d2-cajon .anahi-cel')];
       R.a_n = cels.length;
+      R.a_sinCasillas = document.querySelectorAll('.anahi-cel, .anahi-chk').length === 0;
+      R.a_colsTabla = (() => { const t = document.querySelector('#d2-cajon table.med-tabla');
+        return t ? t.querySelectorAll('thead th').length : -1; })();
+      const dispara = () => document.querySelector('.anahi-btn');
       R.a_diag = (() => { let g = 'n/d', on = 'n/d', dv = 'n/d', h = 'n/d', md = 'n/d';
         try { g = String(_medGrupoAbierto()); } catch (e) {}
         try { on = String(_medOn); } catch (e) {}
@@ -141839,15 +141864,15 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
         const c = document.getElementById('d2-cajon');
         return 'n=' + cels.length + ' grupo=' + g + ' medOn=' + on + ' herr=' + h +
                ' d2Vis=' + dv + ' d2Modo=' + md + ' html=' + (c ? c.innerHTML.length : -1); })();
-      R.a_todasBloqueadas = cels.length > 0 &&
-        cels.every(c => !!c.querySelector('input[disabled]') && (c.textContent||'').indexOf('🔒') >= 0);
+      R.a_hayDisparador = !!dispara();
+      R.a_disparadorConCandado = !!dispara() && (dispara().textContent||'').indexOf('🔒') >= 0;
 
       /* -- (c) EL CARTEL PROPIO, LA PRIMERA VEZ -- */
       /* El «ya lo vi» vive en memoria y la suite corre todos los casos en UNA pagina, asi que se
          repone a mano para medir la PRIMERA vez de verdad. Es lo que haria una recarga. */
       try { _anahiCartelVisto = false; } catch (e) {}
       toasts = [];
-      if (cels[0]) cels[0].click();
+      if (dispara()) dispara().click();
       await esperar(260);
       const ov = document.getElementById('anahi-ov');
       R.c_hayCartel = !!ov;
@@ -141868,7 +141893,7 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
       R.c_lsIgual = claves() === lsAntesOk;
       /* La SEGUNDA vez: aviso corto, no el cartel. */
       toasts = [];
-      if (cels[0]) cels[0].click();
+      if (dispara()) dispara().click();
       await esperar(220);
       R.c_segundaSinCartel = !document.getElementById('anahi-ov');
       R.c_segundaToast = toasts.join(' | ');
@@ -141943,8 +141968,11 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
       ['sin excepciones',                                   !R.err, R.err],
       ['(e) UN solo estado, y apagado',                     R.e_estado === false, String(R.e_estado)],
       ['(e) UN solo nombre, y es el del medico',            R.e_nombre === 'Anahí', String(R.e_nombre)],
-      ['(a) DENOMINADOR: la tabla tiene filas con casilla', R.a_n > 0, R.a_diag],
-      ['(a) todas bloqueadas y con candado',                R.a_todasBloqueadas === true, R.a_todasBloqueadas],
+      ['(a) INVERTIDA: NINGUNA casilla por fila en el cajon', R.a_n === 0, R.a_diag],
+      ['(a) ni en todo el documento',                        R.a_sinCasillas === true, R.a_sinCasillas],
+      ['(a) y la tabla quedo en TRES columnas',              R.a_colsTabla === 3, R.a_colsTabla],
+      ['(a) el disparador que queda es el BOTON',            R.a_hayDisparador === true, R.a_hayDisparador],
+      ['(a) con su candado',                                 R.a_disparadorConCandado === true, R.a_disparadorConCandado],
       ['(c) tocarla abre un cartel PROPIO de la app',       R.c_hayCartel && R.c_esPropio, R.c_hayCartel + '/' + R.c_esPropio],
       ['(c) con el titulo exacto',                          R.c_tit === 'Comunidad de desarrollo de IA de CeiboMed', R.c_tit],
       ['(c) el cuerpo exacto',                              R.c_cuerpo === 'Estamos desarrollando una IA que ayude a medir en ecocardiografía. Los médicos que quieran pueden colaborar con sus propias mediciones. Esta opción todavía está bloqueada y no se envía nada. Cuando se active, vas a poder unirte desde Configuración: vas a leer las condiciones, aceptarlas y decidir qué enviar en cada ocasión. Podrás retirarte cuando quieras.', String(R.c_cuerpo||'').slice(0, 120)],
@@ -142084,12 +142112,12 @@ caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro 
          tablas del reparto y la de «sin asignar», que viven en TC-262 y TC-249. */
       const rotsD2 = () => $('d2-cajon')
         ? [...$('d2-cajon').querySelectorAll('table.med-tabla tbody tr')]
-            .filter(tr => tr.children.length >= 4)
+            .filter(tr => tr.children.length >= 3)
             .map(tr => (tr.children[0].textContent || '').trim()).join('/')
         : '';
       const valDe = rot => { const c = $('d2-cajon'); if (!c) return '';
         const tr = [...c.querySelectorAll('table.med-tabla tbody tr')]
-          .filter(x => x.children.length >= 4)
+          .filter(x => x.children.length >= 3)
           .filter(x => (x.children[0].textContent || '').trim().indexOf(rot) === 0)[0];
         return tr ? (tr.children[1].textContent || '').trim() : ''; };
       if (!_d2Estado() || _d2Estado().modo !== 'vi') d2Modo('vi');
@@ -142643,7 +142671,7 @@ caso('TC-891', 'MEDIR-3 bloque D: el VD entra al gesto de Area en sus dos fases 
       await esperar(320);
       const guia = document.getElementById('cine-med-barra');
       const filas = guia ? [...guia.querySelectorAll('table.med-tabla tbody tr')]
-        .filter(tr => tr.children.length >= 4)
+        .filter(tr => tr.children.length >= 3)
         .map(tr => ({ t: (tr.children[0].textContent || '').trim(),
                       v: (tr.children[1].textContent || '').trim(),
                       nbot: tr.children[2].querySelectorAll('button').length,
@@ -142687,7 +142715,7 @@ caso('TC-891', 'MEDIR-3 bloque D: el VD entra al gesto de Area en sus dos fases 
       await esperar(300);
       const g2 = document.getElementById('cine-med-barra');
       const f2 = g2 ? [...g2.querySelectorAll('table.med-tabla tbody tr')]
-        .filter(tr => tr.children.length >= 4)
+        .filter(tr => tr.children.length >= 3)
         .map(tr => (tr.children[0].textContent || '').trim()) : [];
       R.e_filas = f2.join(' / ');
       R.e_sinFac = f2.filter(t => t.indexOf('FAC') === 0).length === 0;
