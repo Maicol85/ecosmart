@@ -141895,8 +141895,17 @@ function _vPanelHTML(p, esB) {
            alto y el color vivan en UN lugar — con dos botones escribiendolo cada uno, el dia que
            se agregue un tercero destacado saldria distinto. */
         btn('cine-guardar', 'btn-primary cine-b-alto', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
-        btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
-        btn('cine-med-cap', 'btn-primary cine-b-alto', '📸 Capturar + medición', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
+        /* ══ MEDIR-5 (C1) — UN SOLO «CAPTURAR», QUE CAPTURA LO QUE SE VE ════════════════════
+           ⚠️ «📸 Capturar + medicion» SE RETIRA y su conducta pasa a este boton, que ahora decide
+           por lo que hay EN PANTALLA: sin mediciones dibujadas captura el cuadro pelado a
+           resolucion plena, y con mediciones captura el cuadro CON ellas y con su etiqueta. Eran
+           dos botones para la misma intencion —«guardame esto que estoy viendo»— y el medico
+           tenia que acordarse de cual apretar para no perder el trazado que acababa de hacer.
+           El ruteo vive en `medCapturar`, un dueño unico: con la decision escrita en el cableado,
+           el dia que se agregue otra puerta a la captura habria que acordarse de repetirla.
+           Su `title` ya no puede prometer una de las dos cosas, asi que dice las dos. */
+        btn('cine-cap', 'btn-primary cine-b-alto', '📸 Capturar', '',
+            'Captura el cuadro que estás viendo. Si hay mediciones dibujadas salen con él, y si no, sale limpio.') +
         /* ══ MEDIR-4 — «CERRAR VISTA», EN LAS DOS BARRAS, EN EL MISMO LUGAR Y CON EL MISMO
            ROTULO (punto 4 del bloque A) ═══════════════════════════════════════════════════════
            ⚠️ HASTA MEDIR-3 LA VISTA A NO TENIA NINGUNA FORMA DE CERRARSE SOLA: su boton decia
@@ -142758,7 +142767,13 @@ function _vCablear(V) {
      seguía midiendo— y el rótulo del botón de la A mintiendo. */
   on('cine-medir',   _vModoToggle);
   on('cine-guardar', cineGuardarActual);
-  on('cine-cap',     cineCapturar);
+  /* ══ MEDIR-5 (C1) — «Capturar» pasa por el ruteador y no por `cineCapturar` pelado ═════════
+     Se ata a `medCapturar`, que decide si la captura lleva las mediciones. Va envuelto en una
+     funcion y no por referencia directa porque esa funcion vive en OTRO bloque `<script>` —el de
+     la medicion— y asi se resuelve al APRETAR y no al cablear; con la referencia pelada, un
+     bloque que deje de parsear dejaria el boton atado a `undefined` en vez de a su respaldo.
+     Falla ABIERTO: sin el ruteador se cae a la captura de siempre, que es la conducta anterior. */
+  on('cine-cap',     () => (typeof medCapturar === 'function') ? medCapturar() : cineCapturar());
   on('cine-prev',    () => cineLoop(-1));
   on('cine-next',    () => cineLoop(1));
   const sl = q('cine-slider');
@@ -146508,6 +146523,44 @@ function _medEtiqAutoPoner() {
   if (et) et.value = v;
 }
 
+/* ══ MEDIR-5 (C1) — EL DUEÑO UNICO DE «CAPTURAR» ═══════════════════════════════════════════════
+   Un solo boton y una sola decision: se captura LO QUE SE VE. Con algo dibujado sobre la imagen
+   va la captura compuesta —el cuadro, el overlay de mediciones y la franja con la etiqueta y el
+   resultado— y sin nada dibujado va el cuadro pelado, a resolucion plena y desde el JPEG original,
+   que es mejor imagen que recomponerla sobre un canvas.
+
+   ⚠️ LA CUENTA ES LA MISMA QUE EL PANEL YA PUBLICA, y eso es a proposito: `_medEstado` arma su
+   «N medicion(es) en pantalla» con estos mismos cinco arreglos, asi que el boton y el cartel no
+   pueden discrepar sobre si hay algo dibujado. Las lineas de CALIBRACION no cuentan —no son una
+   medicion del paciente— y por eso van filtradas, igual que alla.
+   El Simpson entra por su `pendiente` y por sus pares confirmados: sus contornos se dibujan en el
+   overlay aunque no haya una sola linea en `_medLineas`, asi que sin esto un Simpson trazado se
+   capturaba SIN el trazado.
+   Falla HACIA LA CAPTURA COMPUESTA: ante cualquier duda es mejor incluir el trazado que perderlo,
+   porque la captura sin medidas siempre se puede repetir y el trazado no.
+
+   Las DOS funciones que enruta quedan intactas y expuestas: esto no cambia que captura cada una,
+   solo cual se llama. */
+function _medHayDibujo() {
+  try {
+    const n = (_medLineas || []).filter(l => !l.calibracion).length
+            + (_medAreas || []).length + (_medVels || []).length
+            + (_medTiempos || []).length + (_medVtis || []).length;
+    if (n > 0) return true;
+    if (_medTrazo) return true;
+    const S = (typeof _simp !== 'undefined') ? _simp : null;
+    if (S && (S.pendiente || (S.pares || []).some(P => P && (P.d || P.s)))) return true;
+    return false;
+  } catch (e) { return true; }
+}
+window._medHayDibujo = _medHayDibujo;
+
+function medCapturar() {
+  if (_medHayDibujo()) { medCapturarConMedicion(); return; }
+  cineCapturar();
+}
+window.medCapturar = medCapturar;
+
 function medCapturarConMedicion() {
   const D = _cineDatos; if (!D) { toast('❌ No hay ningún cineloop abierto'); return; }
   const base = _medEl('cine-cv');
@@ -148358,6 +148411,11 @@ function _medEstado() {
      el foco se pierde en la primera letra. */
   const cet = _medEl('cine-cap-etiq'), cbt = _medEl('cine-med-cap');
   if (cet) cet.oninput = _vBind(_V, function () { _medEtiqueta = cet.value; });
+  /* ⚠️ LAPIDA PARCIAL — `cine-med-cap` (MEDIR-5, C1). El boton «📸 Capturar + medicion» se retiro
+     de la barra: hoy hay UN solo «Capturar» y la decision la toma `medCapturar`. El cableado se
+     conserva porque `_on` ya salia sin hacer nada con el nodo ausente, y porque la etiqueta de
+     captura —que es el otro habitante de esta linea— si sigue viva. `medCapturarConMedicion` NO
+     se retira: es una de las dos salidas del ruteador. */
   _on(cbt, medCapturarConMedicion);
   const sxm = _medEl('cine-str-mas'), sxb = _medEl('cine-str-cap');
   ['2d','dop','def'].forEach(g2 => _on(_medEl('cine-g-' + g2), () => medGrupoToggle(g2)));
@@ -149709,6 +149767,24 @@ window.medFijaToggle = medFijaToggle;
 
 function medFijaClic(ev) {
   if (!_medFijaOn) return;
+  /* ══ MEDIR-5 (C4) — UN CONTROL DE LA CELDA SIGUE SIENDO SUYO, TAMBIEN EN MODO MEDICION ════
+     ⚠️ ESTE ERA EL DEFECTO C4. Este oyente se registra sobre `#img-grid` con `capture:true` —ver
+     el `addEventListener` del final del bloque— asi que corre ANTES que cualquier manejador de
+     adentro de la celda, y mas abajo hace `preventDefault()` + `stopPropagation()`. Resultado:
+     con el modo medicion encendido, la ✕ roja de una imagen —un `<button>` con su `onclick` en
+     linea, `imgRemove(event, idx)`— NUNCA recibia su clic, y en su lugar se abria el visor. El
+     medico apretaba «quitar» y le aparecia la imagen agrandada.
+     Tocar la IMAGEN abre el visor; tocar un CONTROL hace lo del control. Se mira el camino desde
+     el objetivo hasta la celda, asi que alcanza a la ✕ y a cualquier boton que se agregue
+     despues sin que haya que acordarse de esto.
+     ⚠️ LA CHAPA DE VIDEO ES LA EXCEPCION, Y ES DELIBERADO: su propio oyente delegado se niega a
+     abrir el reproductor con el modo medicion encendido —«abrir el reproductor ahi se leeria como
+     que la medicion arranco»— y deja que mande esta funcion, que explica por que un MP4 no se
+     mide. Dejarla caer en la salida de arriba reintroduciria eso. */
+  const ctrl = ev.target && ev.target.closest
+    ? ev.target.closest('button, [role="button"], a, input, select, textarea') : null;
+  if (ctrl && !(ctrl.closest && ctrl.closest('[data-video-badge]'))
+           && !ctrl.hasAttribute('data-video-badge')) return;
   const cell = ev.target && ev.target.closest ? ev.target.closest('#img-grid > div') : null;
   if (!cell) return;
   const idx = parseInt(cell.dataset.idx, 10);
