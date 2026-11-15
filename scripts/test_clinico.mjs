@@ -143250,6 +143250,259 @@ caso('TC-894', 'MEDIR-4a bloques A1, A5 y B: el resultado integrado vuelve ABAJO
   })();
 `);
 
+caso('TC-895', 'MEDIR-4a bloque C: «+ Vista» ofrece los cineloops Y las imagenes fijas guardadas del estudio -- con la marca «imagen fija» en la miniatura, sin dos rotulos iguales sin distinguirse y sin listar dos veces el mismo archivo--, y en una vista de imagen fija el Simpson queda bloqueado con un mensaje de una linea sin romper el biplano de dos cineloops', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = { toasts: [] };
+    const alertReal = window.alert, toastReal = window.toast;
+    const cineReal = { listar: null, leer: null }, imgReal = { leer: null };
+    const desdeRecReal = window._cineDesdeRegistro;
+    const guardarAntes = localStorage.getItem('cfg-guardar-imagenes');
+    window.alert = () => {};
+    window.toast = m => { R.toasts.push(String(m)); };
+    try {
+      /* ── EL FIXTURE: las cuatro situaciones que el pedido nombra ──
+         ⚠️ SE SUSTITUYE EL ALMACEN Y SE REPONE EN EL finally. CeiboCine y CeiboImg los usan
+         otros casos del lote, asi que dejarlos sustituidos seria sembrar un defecto en los
+         casos de abajo -- el modo de falla que este archivo documenta una decena de veces. */
+      const jpgBytes = new Uint8Array([255,216,255,217]);
+      const mkFrags = n => { const f = []; for (let i = 0; i < n; i++) f.push(jpgBytes); return f; };
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }];
+      const rec = (id, nombre, cuadros, bytes, tipo) => ({
+        id, uuid:'estudio-de-prueba-0001', nombre, cuadros, bytes, tipo,
+        ms:40, cols:600, filas:500, poster:'', ts:'2026-11-15T00:00:00.000Z',
+        datos: new Uint8Array(4 * cuadros), offs: cuadros, regiones: REG });
+      const LISTA = [
+        rec('id1', 'Q9JG9U01', 40, 1200000, 'loop'),
+        rec('id2', 'Q9JG9U02', 60, 2400000, 'loop'),
+        /* EL MISMO ARCHIVO DOS VECES: misma terna nombre / cuadros / bytes. */
+        rec('id3', 'Q9JG9U03', 30, 900000, 'loop'),
+        rec('id4', 'Q9JG9U03', 30, 900000, 'loop'),
+        /* DOS DISTINTOS CON IGUAL CODIGO: mismo nombre, distinto peso. Es el caso de los dos
+           Q9JG9U02 de la captura del medico, que el bloque 0 no pudo desempatar sin su almacen. */
+        rec('id5', 'Q9JG9U04', 50, 1500000, 'loop'),
+        rec('id6', 'Q9JG9U04', 50, 1900000, 'loop'),
+        /* UNA FIJA y UN DOCUMENTO: la primera entra, el segundo NO. */
+        rec('id7', 'FIJA0001', 1, 80000, 'fija'),
+        rec('id8', 'TABLA-SIMPSON', 1, 50000, 'doc')
+      ];
+      R.fixtureN = LISTA.length;
+
+      if (typeof CeiboCine !== 'undefined') {
+        cineReal.listar = CeiboCine.listar; cineReal.leer = CeiboCine.leer;
+        CeiboCine.listar = async () => LISTA.map(r => r);
+        CeiboCine.leer = async id => LISTA.filter(r => r.id === id)[0] || null;
+      }
+      if (typeof CeiboImg !== 'undefined') {
+        imgReal.leer = CeiboImg.leer;
+        CeiboImg.leer = async () => [];
+      }
+      window._cineDesdeRegistro = r => ({ nombre: r.nombre, cuadros: r.cuadros,
+        d:{ frags: mkFrags(r.cuadros), cols:600, filas:500, msCuadro:40, regiones: r.regiones } });
+
+      /* ── EL UUID DEL ESTUDIO, POR LA PUERTA QUE LO ESCRIBE ──
+         _imgUuidActual es un let de nivel de script, asi que no se puede escribir desde aca:
+         window._imgUuidActual crearia una propiedad NUEVA que no lo tapa. Se pasa por
+         imgRestaurar, que es una de las dos funciones que lo escriben. Sin esto _vElegirLoop
+         sale por su primera guarda y no hay selector que medir. */
+      /* ⚠️ EL ORDEN IMPORTA Y COSTO UNA CORRIDA: imgVaciar pone _imgUuidActual en null -- es
+         «paciente nuevo»--, asi que llamarlo DESPUES de sembrar el uuid lo borra y _vElegirLoop
+         sale por su primera guarda sin abrir el selector. El sintoma no se parece a la causa: el
+         caso informaba el uuid bien puesto (lo leia antes) y despues «el selector no abrio». */
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      await imgRestaurar('estudio-de-prueba-0001');
+      await esperar(240);
+      R.uuidPuesto = (typeof _imgUuidActual !== 'undefined') ? String(_imgUuidActual) : '(?)';
+
+      /* ── LA VISTA A, CON UN CINELOOP ── */
+      _cineAbrir([{ nombre:'A', cuadros:40,
+        d:{ frags: mkFrags(40), cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(320);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(320);
+      R.aEsFijaAlAbrir = !!_vistaA.esFija;
+
+      /* ── (A) EL SELECTOR DE VERDAD ──
+         No se llama al picker a mano: se aprieta «+ Vista» y se elige con un clic sobre la
+         miniatura, que es el gesto del medico. */
+      let promesa = vistaBAbrir();
+      for (let i = 0; i < 70 && !document.querySelector('[data-vpicker]'); i++) await esperar(60);
+      const ov = document.querySelector('[data-vpicker]');
+      R.a_abrio = !!ov;
+      R.a_tarjetas = [];
+      if (ov) {
+        const cards = [...ov.querySelectorAll('[data-vpick-i]')];
+        R.a_n = cards.length;
+        R.a_tarjetas = cards.map(c => ({
+          fija: c.getAttribute('data-vpick-fija'),
+          chip: !!c.querySelector('.vpick-chip'),
+          chipTxt: c.querySelector('.vpick-chip') ? (c.querySelector('.vpick-chip').textContent||'').trim() : '',
+          pie: ((c.lastElementChild && c.lastElementChild.textContent) || '').replace(/\\s+/g,' ').trim()
+        }));
+        const pies = R.a_tarjetas.map(t => t.pie);
+        R.a_pies = pies.join(' || ');
+        /* OCHO registros entran y SEIS tarjetas salen: el duplicado exacto se muestra una vez y
+           el documento no entra. */
+        R.a_seisDeOcho = R.a_n === 6;
+        R.a_piesUnicos = pies.length === new Set(pies).size;
+        R.a_sinDoc = pies.join('|').indexOf('TABLA-SIMPSON') < 0;
+        R.a_unaFija = R.a_tarjetas.filter(t => t.fija === '1').length === 1;
+        R.a_chipSoloEnLaFija = R.a_tarjetas.every(t => t.chip === (t.fija === '1'));
+        R.a_chipTxt = (R.a_tarjetas.filter(t => t.fija === '1')[0] || {}).chipTxt || '';
+        /* Los dos homonimos se distinguen por su ordinal Y por su peso, que es lo que de
+           verdad los separa. */
+        R.a_homonimos = pies.filter(t => t.indexOf('Q9JG9U04') >= 0).join(' || ');
+        R.a_homonimosDistinguidos = pies.filter(t => t.indexOf('Q9JG9U04') >= 0).length === 2 &&
+          R.a_homonimos.indexOf('(1 de 2)') >= 0 && R.a_homonimos.indexOf('(2 de 2)') >= 0 &&
+          R.a_homonimos.indexOf('1.4 MB') >= 0 && R.a_homonimos.indexOf('1.8 MB') >= 0;
+        /* Y el duplicado exacto NO lleva ordinal: no hay dos. */
+        R.a_duplicadoUnaVez = pies.filter(t => t.indexOf('Q9JG9U03') >= 0).length === 1 &&
+          pies.filter(t => t.indexOf('Q9JG9U03') >= 0)[0].indexOf(' de ') < 0;
+        /* El subtitulo dice las dos cosas y la limitacion, ANTES de elegir. */
+        R.a_sub = (() => { const ds = [...ov.querySelectorAll('div')];
+          for (const d of ds) { const t = (d.textContent||'');
+            if (t.indexOf('Tocá la miniatura') === 0) return t.replace(/\\s+/g,' ').trim(); }
+          return ''; })();
+        R.a_subDiceFijas = R.a_sub.indexOf('imágenes fijas') >= 0;
+        R.a_subDiceSimpson = R.a_sub.indexOf('Simpson') >= 0;
+        /* SE ELIGE LA FIJA, que es el camino nuevo. */
+        const idxFija = R.a_tarjetas.map(t => t.fija).indexOf('1');
+        R.a_idxFija = idxFija;
+        if (idxFija >= 0) cards[idxFija].click(); else cards[0].click();
+      }
+      await promesa;
+      await esperar(520);
+
+      /* ── (B) LA VISTA QUEDO MARCADA, Y SE ABRIO LA QUE SE ELIGIO ── */
+      R.b_paneles = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      R.b_esFija = (typeof _vistaB !== 'undefined' && _vistaB) ? !!_vistaB.esFija : null;
+      R.b_nombre = (_vistaB && _vistaB.datos && _vistaB.datos.loops && _vistaB.datos.loops[0])
+                   ? String(_vistaB.datos.loops[0].nombre || '') : '(?)';
+      R.b_aSigueNoFija = !!_vistaA && _vistaA.esFija === false;
+
+      /* ── (C) EL SIMPSON, BLOQUEADO EN LA FIJA ── */
+      R.toasts = [];
+      _vCon(_vistaB, () => { medHerramienta('simpson'); });
+      await esperar(260);
+      R.c_herrB = _vistaB ? String(_vistaB.medHerr) : '(?)';
+      R.c_cayoADist = R.c_herrB === 'dist';
+      R.c_toast = R.toasts.join(' | ');
+      R.c_unaLinea = R.toasts.length === 1 && R.c_toast.indexOf('\\n') < 0;
+      R.c_diceElMotivo = R.c_toast.indexOf('diástole y sístole') >= 0;
+      /* ⚠️ CON GUARDA: contra la linea base la funcion NO EXISTE, y un acceso pelado tira
+         ReferenceError que se lleva el caso entero -- la condicion «sin excepciones» sale roja y
+         las de abajo no llegan a evaluarse, asi que el caso dejaria de decir CUAL es la
+         diferencia. Es lo que TC-827 deshizo en PANT-37. */
+      const simpBloq = () => (typeof _medSimpsonBloqueadoFija === 'function')
+        ? _medSimpsonBloqueadoFija() : 'sin fn';
+      R.c_predicado = _vCon(_vistaB, simpBloq);
+      _vCon(_vistaB, () => { _medGrupo = '2d'; _medSideRender(); });
+      await esperar(240);
+      const bs = document.getElementById('b-cine-med-simp');
+      R.c_botonExiste = !!bs;
+      R.c_botonTit = bs ? String(bs.getAttribute('title') || '') : '';
+      R.c_botonApagado = R.c_botonTit.indexOf('imagen fija') >= 0;
+      /* Y las OTRAS herramientas 2D siguen disponibles: el pedido dice que en una fija se mide
+         distancia, area y Doppler. */
+      const bd = document.getElementById('b-cine-med-dist');
+      const ba = document.getElementById('b-cine-med-area');
+      R.c_distSigue = !!bd && String(bd.getAttribute('title')||'').indexOf('imagen fija') < 0;
+      R.c_areaSigue = !!ba && String(ba.getAttribute('title')||'').indexOf('imagen fija') < 0;
+
+      /* ── (D) CONTROL NEGATIVO: en la vista A, que es un cineloop, el Simpson SI entra ── */
+      R.toasts = [];
+      _vCon(_vistaA, () => { medHerramienta('simpson'); });
+      await esperar(260);
+      R.d_herrA = String(_vistaA.medHerr);
+      R.d_entra = R.d_herrA === 'simpson';
+      R.d_sinToast = R.toasts.length === 0;
+      R.d_predicado = _vCon(_vistaA, simpBloq);
+      _vCon(_vistaA, () => { _medGrupo = '2d'; _medSideRender(); });
+      await esperar(220);
+      const as = document.getElementById('cine-med-simp');
+      R.d_botonTit = as ? String(as.getAttribute('title') || '') : '';
+      R.d_botonNoApagado = R.d_botonTit.indexOf('imagen fija') < 0;
+
+      /* ── (E) ABRIR UNA FIJA NO ROMPE EL BIPLANO DE DOS CINELOOPS ──
+         Se cierra la vista fija, se abre otra con un CINELOOP y se comprueba que el cruce vuelva
+         a ser posible: la marca se suelta, el Simpson entra y las dos sesiones nacen. */
+      document.getElementById('b-cine-cerrar-v').click();
+      await esperar(460);
+      R.e_trasCerrar = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      promesa = vistaBAbrir();
+      for (let i = 0; i < 70 && !document.querySelector('[data-vpicker]'); i++) await esperar(60);
+      const ov2 = document.querySelector('[data-vpicker]');
+      R.e_abrio2 = !!ov2;
+      if (ov2) {
+        const cards2 = [...ov2.querySelectorAll('[data-vpick-i]')];
+        const idxLoop = cards2.map(c => c.getAttribute('data-vpick-fija')).indexOf('0');
+        if (idxLoop >= 0) cards2[idxLoop].click(); else cards2[0].click();
+      }
+      await promesa;
+      await esperar(520);
+      R.e_esFija2 = (typeof _vistaB !== 'undefined' && _vistaB) ? !!_vistaB.esFija : null;
+      R.toasts = [];
+      _vCon(_vistaB, () => { medHerramienta('simpson'); });
+      await esperar(260);
+      R.e_herrB2 = _vistaB ? String(_vistaB.medHerr) : '(?)';
+      R.e_entra2 = R.e_herrB2 === 'simpson';
+      R.e_sinToast2 = R.toasts.length === 0;
+      R.e_simpA = !!(_vistaA && _vistaA.simp);
+      R.e_simpB = !!(_vistaB && _vistaB.simp);
+      R.e_hayBiplano = typeof _vBiplanoDatos === 'function';
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      try { cineCerrar(); } catch (e) {}
+      /* SE REPONE TODO: los dos almacenes, el convertidor, el ajuste y el uuid del estudio.
+         imgRestaurar con un uuid invalido pone _imgUuidActual en null, que es la unica forma de
+         soltarlo desde aca. */
+      try { if (cineReal.listar) { CeiboCine.listar = cineReal.listar; CeiboCine.leer = cineReal.leer; } } catch (e) {}
+      try { if (imgReal.leer) { CeiboImg.leer = imgReal.leer; } } catch (e) {}
+      try { window._cineDesdeRegistro = desdeRecReal; } catch (e) {}
+      try { await imgRestaurar(''); } catch (e) {}
+      try { if (guardarAntes == null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', guardarAntes); } catch (e) {}
+      try { window.alert = alertReal; window.toast = toastReal; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['DENOMINADOR: el estudio tiene uuid',                R.uuidPuesto === 'estudio-de-prueba-0001', R.uuidPuesto],
+      ['DENOMINADOR: la vista A no es una fija',            R.aEsFijaAlAbrir === false, R.aEsFijaAlAbrir],
+      ['(A) «+ Vista» abre su selector',                    R.a_abrio === true, R.a_abrio],
+      ['(A) OCHO registros entran y SEIS tarjetas salen',   R.a_seisDeOcho === true, R.a_n + ' de ' + R.fixtureN],
+      ['(A) el documento NO se ofrece',                     R.a_sinDoc === true, R.a_pies],
+      ['(A) la imagen fija SI, y es una',                    R.a_unaFija === true, R.a_pies],
+      ['(A) con su marca «imagen fija» en la miniatura',     R.a_chipTxt === 'imagen fija', R.a_chipTxt],
+      ['(A) y la marca SOLO en ella',                        R.a_chipSoloEnLaFija === true, R.a_chipSoloEnLaFija],
+      ['(A) ningun rotulo repetido',                         R.a_piesUnicos === true, R.a_pies],
+      ['(A) el mismo archivo listado dos veces sale UNA vez', R.a_duplicadoUnaVez === true, R.a_pies],
+      ['(A) y dos distintos con igual codigo se distinguen', R.a_homonimosDistinguidos === true, R.a_homonimos],
+      ['(A) el subtitulo nombra las imagenes fijas',          R.a_subDiceFijas === true, R.a_sub],
+      ['(A) y avisa del Simpson ANTES de elegir',            R.a_subDiceSimpson === true, R.a_sub],
+      ['(B) se abre la que se eligio',                        R.b_nombre === 'FIJA0001', R.b_nombre],
+      ['(B) con las dos vistas montadas',                     R.b_paneles === 2, R.b_paneles],
+      ['(B) y la vista queda marcada como fija',              R.b_esFija === true, R.b_esFija],
+      ['(B) sin contagiar a la otra',                          R.b_aSigueNoFija === true, R.b_aSigueNoFija],
+      ['(C) el Simpson en la fija cae al defecto',            R.c_cayoADist === true, R.c_herrB],
+      ['(C) con un mensaje de UNA linea',                      R.c_unaLinea === true, R.c_toast],
+      ['(C) que dice el motivo',                               R.c_diceElMotivo === true, R.c_toast],
+      ['(C) el predicado dice SI',                             R.c_predicado === true, R.c_predicado],
+      ['(C) y el boton sale apagado, diciendolo',             R.c_botonApagado === true, R.c_botonTit],
+      ['(C) mientras Distancia y Area siguen disponibles',    R.c_distSigue && R.c_areaSigue,
+                                                               R.c_distSigue + '/' + R.c_areaSigue],
+      ['(D) CONTROL: en un cineloop el Simpson SI entra',     R.d_entra === true, R.d_herrA],
+      ['(D) sin ningun mensaje',                               R.d_sinToast === true, R.toasts.join('|')],
+      ['(D) el predicado dice NO',                             R.d_predicado === false, R.d_predicado],
+      ['(D) y su boton no esta apagado',                       R.d_botonNoApagado === true, R.d_botonTit],
+      ['(E) cerrando la fija queda una vista',                R.e_trasCerrar === 1, R.e_trasCerrar],
+      ['(E) y abriendo un cineloop la marca se suelta',       R.e_esFija2 === false, R.e_esFija2],
+      ['(E) el Simpson vuelve a entrar, sin mensaje',         R.e_entra2 && R.e_sinToast2, R.e_herrB2],
+      ['(E) con las DOS sesiones vivas para el biplano',      R.e_simpA && R.e_simpB && R.e_hayBiplano,
+                                                               R.e_simpA + '/' + R.e_simpB + '/' + R.e_hayBiplano]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;

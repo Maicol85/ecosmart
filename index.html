@@ -140334,6 +140334,18 @@ function _medVelBloqueadaM() {
 }
 window._medVelBloqueadaM = _medVelBloqueadaM;
 
+/* ══ MEDIR-4a (bloque C) — ¿EL SIMPSON ESTA BLOQUEADO EN ESTA VISTA? ═════════════════════════
+   Un solo predicado, leido por el boton y por `medHerramienta`, para que no puedan discrepar: el
+   boton se veria disponible y la herramienta caeria al defecto, o al reves. Es la misma forma
+   que `_medVelBloqueadaM`.
+   Lee la MARCA de la vista y no el conteo de cuadros — ver `_vNueva`, donde esta medido por que:
+   siete casos del suite trazan Simpson sobre fixtures de un cuadro y el visor siempre lo
+   permitio sobre una imagen suelta del pendrive. */
+function _medSimpsonBloqueadoFija() {
+  try { return !!(_V && _V.esFija); } catch (e) { return false; }
+}
+window._medSimpsonBloqueadoFija = _medSimpsonBloqueadoFija;
+
 function _medCalVelDos(yA, v0, yB, v1) {
   if (!isFinite(yA) || !isFinite(yB) || !isFinite(v0) || !isFinite(v1)) return null;
   const dy = yB - yA;
@@ -141705,6 +141717,17 @@ function _vNueva(pfx, rot) {
     medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
     lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false,
+    /* ⚠️ MEDIR-4a (bloque C) — ¿ESTA VISTA SE ABRIO DE UNA IMAGEN FIJA? Lo escribe
+       `_vElegirLoop` al elegir, y lo lee la cuarta capa de `medHerramienta` para que el Simpson
+       no se pueda elegir ahi: sus cuatro trazados son de diastole Y sistole, y una fija no tiene
+       dos momentos del ciclo.
+       ⚠️ ES UNA MARCA DE LA VISTA Y NO UN CONTEO DE CUADROS, y la diferencia esta medida: siete
+       casos del suite —TC-196, TC-227, TC-228, TC-237, TC-239, TC-241 y TC-245— trazan Simpson
+       sobre fixtures de UN cuadro, porque el visor siempre lo permitio sobre una imagen suelta
+       del pendrive. Un predicado por `frags.length` los habria puesto rojos a los siete y habria
+       sacado una funcion que el pedido no manda sacar. Lo que el pedido acota es la vista que se
+       abre ELIGIENDO una fija guardada, que es un camino NUEVO de esta tanda. */
+    esFija: false,
     /* De QUÉ estudio son las sesiones de arriba. `null` = no hay ninguna. Ver `_estEpoca`. */
     epoca: null
   };
@@ -142499,10 +142522,19 @@ function _medSideRender() {
        funcion podrian discrepar y el medico veria un boton apagado que igual cambia la
        herramienta. */
     const velM = (ab === 'dop') && _medVelBloqueadaM();
+    /* ⚠️ MEDIR-4a — Y EL SIMPSON SALE APAGADO EN UNA VISTA DE IMAGEN FIJA, con el MISMO predicado
+       que la cuarta capa de `medHerramienta`. Apagado y a la vista, no retirado: un boton que
+       desaparece deja al medico buscando una herramienta que estaba ahi hace un momento, y su
+       titulo es el unico lugar donde puede leer POR QUE no esta disponible. Es el criterio que
+       este archivo ya aplica a Velocidad sobre un modo M. */
+    const simpF = (ab === '2d') && _medSimpsonBloqueadoFija();
     _MED_HERRS.filter(t => t.g === ab).forEach(t => {
-      const off = velM && t.h === 'vel';
+      const off = (velM && t.h === 'vel') || (simpF && t.h === 'simpson');
       f2 += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv, off,
-        off ? 'En esta imagen el eje vertical está en centímetros: es un modo M y ahí no se mide velocidad.'
+        (velM && t.h === 'vel')
+          ? 'En esta imagen el eje vertical está en centímetros: es un modo M y ahí no se mide velocidad.'
+          : (simpF && t.h === 'simpson')
+            ? 'Esta vista es una imagen fija: Simpson necesita un cineloop con diástole y sístole.'
             : t.tip);
     });
     /* ⚠️ LAPIDA — EL BOTON «VOLUMEN» (AI BIPLANO) SALE EN MEDIR-3 (punto A6). MEDIR-1 lo dejo
@@ -142819,6 +142851,11 @@ function _cineAbrir(loops) {
   _V = _vistaA;
   _cineDetener();
   _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
+  /* ⚠️ MEDIR-4a — LA MARCA DE «VISTA DE IMAGEN FIJA» SE SUELTA ACA. El objeto de la vista A
+     sobrevive a cerrar y reabrir el visor, asi que una marca que quedara puesta dejaria el
+     Simpson bloqueado sobre el cineloop SIGUIENTE, por una razon que no esta en la pantalla. Es
+     la misma trampa que `_clnkPorConfirmar` y `data-pop-mano` ya pagaron. */
+  _V.esFija = false;
   let ov = document.getElementById('cine-ov');
   if (!ov) {
     ov = document.createElement('div');
@@ -146425,6 +146462,21 @@ function medHerramienta(h) {
      sobre un eje de DISTANCIA — y el numero habria salido plausible. Mismo predicado que el
      boton, para que no puedan discrepar. */
   if (h === 'vel' && _medVelBloqueadaM()) h = 'dist';
+  /* ⚠️ MEDIR-4a — CUARTA CAPA: EL SIMPSON NO SE PUEDE ELEGIR EN UNA VISTA DE IMAGEN FIJA
+     (bloque C). Sus cuatro trazados son de diastole Y sistole, y una imagen fija no tiene dos
+     momentos del ciclo: el medico trazaria los dos contornos sobre el MISMO cuadro y la FEVI
+     saldria en cero por construccion — un numero perfectamente presentable y falso.
+     El boton ya sale apagado desde `_medSideRender` con el MISMO predicado, pero esta funcion es
+     alcanzable desde el arnes, desde un atajo y desde cualquier llamador futuro: es la misma
+     cadena de capas que este archivo ya documenta para las herramientas de Deformacion con el
+     modulo apagado y para Velocidad sobre un modo M.
+     El mensaje es de UNA linea y es lo que el pedido pide. Sale por `toast` y no por `alert`
+     porque cuando esto corre el medico esta eligiendo una herramienta, no decidiendo nada: un
+     cuadro modal lo obligaria a confirmar que entendio. */
+  if (h === 'simpson' && _medSimpsonBloqueadoFija()) {
+    h = 'dist';
+    try { toast('Simpson necesita un cineloop con diástole y sístole: en una imagen fija no se puede trazar.'); } catch (e) {}
+  }
   _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
               h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc' || h === 'vti') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
@@ -148519,6 +148571,23 @@ let _vSync = false;
    El overlay va por ENCIMA del visor (z-index 401 contra 400) y se cierra con Escape, con el
    botón y con el clic afuera — las tres salidas que ya tiene el resto de los modales de la app.
    Sin alguna de ellas, un médico que no quiere ninguno de los cineloops queda atrapado. */
+/* ══ MEDIR-4a (bloque C) — ¿ESTE REGISTRO ES UNA IMAGEN FIJA? ════════════════════════════════
+   UN solo predicado, leido por la marca de la miniatura, por el texto del pie y por la marca que
+   se le pone a la vista. Con tres copias, el dia que `tipo` cambie de nombre la miniatura diria
+   una cosa y el bloqueo del Simpson otra.
+   Mira las DOS cosas y no solo `tipo`: esa base guarda los cineloops y el ORIGINAL de cada fija
+   DICOM, y su propio comentario declara que «un cineloop es `cuadros > 1`». Un registro de un
+   cuadro no tiene diastole y sistole, se llame como se llame. */
+/* La lista que el picker dibujo, para que quien llama indexe lo mismo que el medico vio. Es
+   estado de UN dialogo a la vez: el picker es modal y no hay dos abiertos. */
+let _vPickLista = [];
+
+function _vEsFija(r) {
+  if (!r) return false;
+  return String(r.tipo || '') === 'fija' || (r.cuadros | 0) <= 1;
+}
+window._vEsFija = _vEsFija;
+
 function _vPickerLoop(V, lista) {
   return new Promise(resolve => {
     const ov = document.createElement('div');
@@ -148530,10 +148599,17 @@ function _vPickerLoop(V, lista) {
                          'max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:14px;';
     const h = document.createElement('div');
     h.style.cssText = 'font-size:13px;font-weight:600;margin-bottom:4px;';
-    h.textContent = '¿Qué cineloop va en la vista ' + V.rot + '?';
+    h.textContent = '¿Qué imagen va en la vista ' + V.rot + '?';
     const sub = document.createElement('div');
     sub.style.cssText = 'font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;';
-    sub.textContent = 'Tocá la miniatura. Son los cineloops guardados en este estudio.';
+    /* ⚠️ MEDIR-4a — EL SUBTITULO DICE LAS DOS COSAS Y LA LIMITACION. Desde esta tanda la lista
+       trae los cineloops Y las imagenes fijas guardadas del estudio, asi que decir solo
+       «cineloops» seria mentir sobre la mitad de las miniaturas. Y dice que en una fija no se
+       puede trazar Simpson ANTES de que el medico elija, no despues: el mensaje de una linea que
+       aparece al elegir la herramienta es la red, no el aviso. */
+    sub.textContent = 'Tocá la miniatura. Son los cineloops y las imágenes fijas guardados en ' +
+      'este estudio. En una imagen fija se puede medir distancia, área y Doppler, pero no ' +
+      'trazar Simpson: necesita diástole y sístole.';
     const grid = document.createElement('div');
     grid.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
     let cerrado = false;
@@ -148545,16 +148621,59 @@ function _vPickerLoop(V, lista) {
       resolve(val);
     };
     const onEsc = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(null); } };
+    /* ⚠️ MEDIR-4a — LOS ROTULOS NO SE PUEDEN REPETIR SIN DISTINGUIRSE, y es un defecto REAL del
+       selector que el bloque 0 midio: el pie decia `cuadros + ' cuadros · ' + nombre`, y el
+       nombre es el del archivo del ecografo —«un UID, casi siempre», dice su propio comentario—.
+       Dos registros con el mismo nombre y la misma cantidad de cuadros se dibujaban
+       INDISTINGUIBLES, y el medico no tenia con que elegir: es la captura de los dos Q9JG9U02.
+       El criterio es el que el bloque 0 dejo escrito. Dos registros del MISMO archivo tienen el
+       mismo nombre, los mismos cuadros Y los mismos bytes; dos archivos distintos con igual
+       codigo difieren en al menos uno de los dos ultimos. Asi que:
+         · misma terna  -> es el mismo archivo listado dos veces, y se muestra UNA sola vez;
+         · mismo nombre y distinto peso o distintos cuadros -> son dos, y se distinguen con su
+           ordinal y con su PESO, que es lo que de verdad los separa.
+       El `id` del registro NO sirve para distinguirlos a la vista: es la clave del almacen y no
+       le dice nada al medico. */
+    const clave = r => String(r.nombre || '') + '|' + (r.cuadros | 0) + '|' +
+                        (typeof r.bytes === 'number' ? r.bytes : -1);
+    const yaVisto = Object.create(null);
+    lista = (lista || []).filter(r => {
+      const k = clave(r);
+      if (yaVisto[k]) return false;
+      yaVisto[k] = true; return true;
+    });
+    /* ⚠️ SE PUBLICA LA LISTA QUE DE VERDAD SE DIBUJO, porque el indice que esta funcion resuelve
+       es de ESTA lista y no de la que recibio. Sin esto, con un duplicado descartado quien llama
+       abriria el registro de al lado — un dato del paciente equivocado, en silencio. */
+    _vPickLista = lista;
+    const porNombre = Object.create(null);
+    lista.forEach(r => { const n = String(r.nombre || ''); porNombre[n] = (porNombre[n] | 0) + 1; });
+    const ordinal = Object.create(null);
     lista.forEach((r, i) => {
+      const fija = _vEsFija(r);
       const card = document.createElement('div');
       card.setAttribute('data-vpick-i', String(i));
+      card.setAttribute('data-vpick-fija', fija ? '1' : '0');
       card.style.cssText = 'width:150px;flex:0 0 auto;border:1.5px solid var(--border);' +
-                           'border-radius:10px;overflow:hidden;background:var(--bg3);cursor:pointer;';
+                           'border-radius:10px;overflow:hidden;background:var(--bg3);cursor:pointer;' +
+                           'position:relative;';
+      /* LA MARCA DE LA MINIATURA. Va como nodo y con `textContent`, nunca interpolada en HTML:
+         es la misma regla que el poster, que entra por `.src`. */
+      if (fija) {
+        const chip = document.createElement('span');
+        chip.className = 'vpick-chip';
+        chip.textContent = 'imagen fija';
+        chip.style.cssText = 'position:absolute;top:4px;left:4px;z-index:1;padding:1px 5px;' +
+          'border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.3px;' +
+          'background:var(--bg2);border:1px solid var(--border);color:var(--text);';
+        card.appendChild(chip);
+      }
       if (typeof _imgSrcOK === 'function' && _imgSrcOK(r.poster)) {
         const im = document.createElement('img');
         im.src = r.poster;                       // por propiedad, no por HTML
         im.loading = 'lazy';
-        im.alt = 'Cineloop de ' + (r.cuadros || '?') + ' cuadros';
+        im.alt = fija ? 'Imagen fija guardada del estudio'
+                      : 'Cineloop de ' + (r.cuadros || '?') + ' cuadros';
         im.style.cssText = 'width:100%;display:block;';
         card.appendChild(im);
       } else {
@@ -148562,11 +148681,24 @@ function _vPickerLoop(V, lista) {
         hueco.style.cssText = 'height:96px;display:flex;align-items:center;justify-content:center;' +
                               'color:var(--text2);font-size:11px;';
         hueco.textContent = 'sin miniatura';
+        hueco.style.minHeight = '96px';
         card.appendChild(hueco);
       }
       const pie = document.createElement('div');
-      pie.style.cssText = 'padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;';
-      pie.textContent = (r.cuadros || '?') + ' cuadros · ' + (r.nombre || 'Cineloop');
+      pie.style.cssText = 'padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;' +
+                          'word-break:break-word;';
+      const nm = String(r.nombre || '');
+      const repetido = (porNombre[nm] | 0) > 1;
+      let etiq = nm || (fija ? 'Imagen fija' : 'Cineloop');
+      if (repetido) {
+        ordinal[nm] = (ordinal[nm] | 0) + 1;
+        etiq = etiq + ' (' + ordinal[nm] + ' de ' + porNombre[nm] + ')';
+      }
+      const peso = (typeof _cineMB === 'function' && typeof r.bytes === 'number')
+        ? _cineMB(r.bytes) : '';
+      pie.textContent = (fija ? 'imagen fija' : (r.cuadros || '?') + ' cuadros') + ' · ' + etiq +
+        /* El peso se muestra SOLO cuando hace falta para distinguir: en el caso normal es ruido. */
+        (repetido && peso ? ' · ' + peso : '');
       card.appendChild(pie);
       card.onclick = () => cerrar(i);
       grid.appendChild(card);
@@ -148594,11 +148726,15 @@ async function _vElegirLoop(V) {
   if (!uuid) { alert('Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
   let lista = [];
   try { lista = await CeiboCine.listar(uuid); } catch (e) { lista = []; }
-  /* Se excluyen las fijas Y los documentos: la segunda vista abre un CINELOOP, y ofrecer
-     una tabla de resultados como si lo fuera es un elemento que al elegirlo no reproduce
-     nada. El tipo 'doc' lo acuña `_docGuardarEnBiblioteca`. */
-  lista = (lista || []).filter(r => r && r.tipo !== 'fija' && r.tipo !== 'doc');
-  if (!lista.length) { alert('Este estudio no tiene cineloops guardados para abrir en la segunda vista.'); return false; }
+  /* ⚠️ MEDIR-4a (bloque C) — LAS FIJAS ENTRAN; LOS DOCUMENTOS NO. Hasta MEDIR-3 el filtro
+     excluia las dos cosas con este motivo: «la segunda vista abre un CINELOOP, y ofrecer una
+     tabla de resultados como si lo fuera es un elemento que al elegirlo no reproduce nada». Ese
+     motivo sigue valiendo para el tipo 'doc' —que acuña `_docGuardarEnBiblioteca`— y NO vale para
+     una fija: una imagen fija del estudio es una imagen del paciente, se dibuja en el lienzo, se
+     le puede medir distancia, area y Doppler segun su region, y lo unico que no admite es el
+     Simpson. Por orden del medico se ofrecen las dos. */
+  lista = (lista || []).filter(r => r && r.tipo !== 'doc');
+  if (!lista.length) { alert('Este estudio no tiene cineloops ni imágenes guardadas para abrir en la segunda vista.'); return false; }
   /* ⚠️ ERA UN CUADRO DE TEXTO DEL NAVEGADOR CON UN MENÚ NUMERADO, y elegir un cineloop así
      es elegir a ciegas:
      el nombre que trae el registro es el del archivo del ecógrafo —un UID, casi siempre— así
@@ -148607,13 +148743,24 @@ async function _vElegirLoop(V) {
 
      Se arma con la API del DOM y el póster va por `.src`, nunca interpolado en HTML: es la
      misma regla que ya siguen la tira y el selector de imágenes del PPT. */
+  /* ⚠️ EL PICKER DEDUPLICA, ASI QUE EL INDICE QUE DEVUELVE ES DE *SU* LISTA Y NO DE ESTA.
+     Desde MEDIR-4a descarta los registros que son el mismo archivo listado dos veces, asi que
+     `lista[elegido]` apuntaria al registro equivocado en cuanto haya un duplicado. El picker
+     devuelve su propia lista por `_vPickLista`, que es la que se indexa. */
   const elegido = await _vPickerLoop(V, lista);
   if (elegido == null) return false;
+  const usada = (_vPickLista && _vPickLista.length) ? _vPickLista : lista;
+  const rec = usada[elegido];
+  if (!rec) return false;
   /* MISMA ruta que la tira: `_cineLoopDeDisco`. Lo único que cambia es dónde se abre. */
-  const loop = await _cineLoopDeDisco(lista[elegido].id);
-  if (!loop) { alert('Ese cineloop no se pudo leer del disco.'); return false; }
+  const loop = await _cineLoopDeDisco(rec.id);
+  if (!loop) { alert('Esa imagen no se pudo leer del disco.'); return false; }
   _vCon(V, () => {
     V.datos = { loops: [loop], i: 0, cuadro: 0, timer: null };
+    /* LA MARCA DE LA VISTA, puesta en el UNICO borde por donde entra una fija elegida. Con la
+       marca escrita en dos lados, el dia que se agregue otra puerta una de las dos se olvidaria
+       y el Simpson quedaria habilitado sobre una imagen sin sistole. */
+    V.esFija = _vEsFija(rec);
     _cineCargarLoop();
   });
   return true;
