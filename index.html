@@ -302,6 +302,7 @@
   #cine-ov.cine-min .cine-sep,
   #cine-ov.cine-min #cine-biplano,
   #cine-ov.cine-min #cine-simp-uni,
+  #cine-ov.cine-min #cine-calc,
   #cine-ov.cine-min #cine-sync,
   #cine-ov.cine-min #dop-cajon,
   #cine-ov.cine-min #d2-cajon { display: none !important; }
@@ -142362,6 +142363,145 @@ function _medInfoBoton(clave, tit, txts) {
     ' style="position:relative;padding:0 5px;min-width:0;min-height:18px;height:18px;' +
     'font-size:10.5px;line-height:1;border-radius:9px;">ⓘ</button>';
 }
+/* ══ MEDIR-5 (B9) — LA GUIA DE CALIBRACION, CUANDO SE TOCA «MEDIR» SIN CALIBRAR ═══════════════
+   El pedido: si el medico toca «Medir» y falta la calibracion que esa herramienta necesita, sale
+   un cartel con la guia y un boton «Calibrar ahora».
+
+   ⚠️ SON TRES EJES DISTINTOS Y NO UNO, y de eso depende que el cartel sirva: la DISTANCIA se
+   calibra contra la regla de profundidad, la VELOCIDAD contra el eje vertical del espectro, y el
+   TIEMPO —el eje horizontal— NO SE PUEDE CALIBRAR A MANO en esta aplicacion: lo tiene que traer
+   el archivo. Esa tercera rama sale SIN boton, porque un «Calibrar ahora» que no puede calibrar
+   nada es peor que no ofrecerlo. Lo dice con palabras en vez de dejar al medico buscandolo.
+
+   Devuelve null cuando no falta nada, que es lo que deja pasar el gesto sin interrumpirlo. */
+function _medCalFalta(h) {
+  try {
+    if (h === 'vel' || h === 'vti') {
+      /* La velocidad esta resuelta si el archivo declara su escala o si ya se calibro a mano. */
+      const hayVel = (typeof _medCalibVel !== 'undefined' && _medCalibVel) ||
+        (typeof _medRegs === 'function' && _medRegs().filter(_dcmImgRegionVelocidad).length > 0);
+      if (!hayVel) return {
+        eje: 'vel',
+        txts: ['Esta imagen no trae la escala de velocidad, así que todavía no se puede medir acá.',
+               'Marcá DOS puntos sobre el eje de velocidad del espectro y escribí cuánto vale cada uno: ' +
+               'el cero y otro valor cualquiera. Con esos dos la aplicación deduce la escala.',
+               'La escala queda guardada para esta imagen: no hay que repetirla en cada medición.'],
+        accion: 'vel'
+      };
+      if (h === 'vti') {
+        /* El VTI necesita ADEMAS el eje del tiempo, y ese no se calibra a mano. */
+        const hayT = (typeof _medRegs === 'function') &&
+          _medRegs().filter(_dcmImgRegionTiempo).length > 0;
+        if (!hayT) return {
+          eje: 'tiempo',
+          txts: ['El VTI necesita los DOS ejes —velocidad y tiempo— y esta imagen no declara el del tiempo.',
+                 'El eje del tiempo NO se puede calibrar a mano: lo tiene que traer el archivo. ' +
+                 'Suele faltar en una captura de pantalla o en una imagen reencodeada.',
+                 'Con un Doppler espectral o un modo M del ecógrafo, el archivo lo trae y la medición sale sola.'],
+          accion: null
+        };
+      }
+      return null;
+    }
+    if (h === 'tiempo' || h === 'fc') {
+      const hayT = (typeof _medRegs === 'function') &&
+        _medRegs().filter(_dcmImgRegionTiempo).length > 0;
+      if (!hayT) return {
+        eje: 'tiempo',
+        txts: ['Esta imagen no declara la escala del eje horizontal, que es el del tiempo.',
+               'Para medir un intervalo hacen falta DOS puntos sobre el eje del tiempo, y esa escala ' +
+               'NO se puede calibrar a mano: la tiene que traer el archivo.',
+               'Se mide sobre un Doppler espectral o un modo M del ecógrafo, que sí la traen.'],
+        accion: null
+      };
+      return null;
+    }
+    /* Distancia, Area y Simpson: todas sobre 2D, todas con la misma escala.
+       ⚠️ EL PREDICADO ES PROPIO Y NO DELEGA EN `_medSinCalibrar`, Y ESO LO DESTAPO MEDIR. Esa
+       funcion arranca preguntando por `_medHerr` —la herramienta ACTIVA— y se declara «no falta
+       nada» con Velocidad o Tiempo puestas. Pero aca se pregunta por la herramienta que se esta
+       ARMANDO, que puede no ser la activa: tocar «Medir» en una fila de distancia con Velocidad
+       encendida devolvia false y el cartel no salia nunca. La condicion de fondo es la misma que
+       esa funcion usa en su segunda mitad: sin calibracion propia y sin region medible. */
+    const hay2D = (typeof _medCalib !== 'undefined' && _medCalib) ||
+      ((typeof _medRegs === 'function') && _medRegs().filter(_dcmImgRegionMedible).length > 0);
+    if (!hay2D) return {
+      eje: '2d',
+      txts: ['Esta imagen no trae su escala, así que todavía no se puede medir en milímetros.',
+             'Marcá DOS puntos sobre la regla de profundidad que el ecógrafo deja quemada en la ' +
+             'imagen —el costado o la base— y escribí cuántos centímetros hay entre los dos.',
+             'La escala queda guardada para esta imagen y vale para Distancia, Área y Simpson.'],
+      accion: '2d'
+    };
+    return null;
+  } catch (e) { return null; }
+}
+window._medCalFalta = _medCalFalta;
+
+/* El cartel. Mismo molde que el globo ⓘ —overlay propio, `role=dialog`, foco, Escape cortado con
+   `stopImmediatePropagation` para que no cierre el VISOR— y se DESTRUYE al cerrar, asi que no
+   deja ningun id que los barridos de «Nuevo estudio» puedan alcanzar.
+   Devuelve true cuando mostro el cartel, que es lo que el llamador usa para no seguir. */
+function _medCalCartel(h) {
+  const F = _medCalFalta(h);
+  if (!F) return false;
+  const ov = document.createElement('div');
+  ov.id = 'med-cal-ov';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-labelledby', 'med-cal-tit');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+    'display:flex;align-items:center;justify-content:center;padding:18px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:520px;width:100%;max-height:80vh;overflow:auto;padding:18px 20px;' +
+    'box-shadow:0 10px 40px rgba(0,0,0,.35);';
+  const t = document.createElement('h4');
+  t.id = 'med-cal-tit';
+  t.style.cssText = 'font-size:13px;margin-bottom:10px;color:var(--text);';
+  t.textContent = 'Falta calibrar esta imagen';
+  caja.appendChild(t);
+  /* TODO por `textContent`: estos textos no vienen del archivo, pero la regla de este overlay es
+     que nada se arma como marcado. */
+  F.txts.forEach(x => {
+    const pp = document.createElement('p');
+    pp.style.cssText = 'font-size:11.5px;line-height:1.6;color:var(--text2);margin-bottom:9px;';
+    pp.textContent = x;
+    caja.appendChild(pp);
+  });
+  const fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;justify-content:flex-end;gap:7px;margin-top:4px;flex-wrap:wrap;';
+  const cerrar = () => { try { ov.remove(); } catch (e) {}
+    document.removeEventListener('keydown', esc, true); };
+  const esc = ev => { if (ev.key === 'Escape') { ev.stopImmediatePropagation(); ev.stopPropagation(); cerrar(); } };
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.id = 'med-cal-ok'; ok.className = 'btn btn-ghost';
+  ok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+  ok.textContent = 'Entendido';
+  ok.addEventListener('click', cerrar);
+  if (F.accion) {
+    const ca = document.createElement('button');
+    ca.type = 'button'; ca.id = 'med-cal-ahora'; ca.className = 'btn btn-primary';
+    ca.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    ca.textContent = 'Calibrar ahora';
+    ca.addEventListener('click', () => {
+      cerrar();
+      try {
+        if (F.accion === 'vel') medCalibrarVelocidad();
+        else medRecalibrar();
+      } catch (e) {}
+    });
+    fila.appendChild(ca);
+  }
+  fila.appendChild(ok);
+  caja.appendChild(fila);
+  ov.appendChild(caja); document.body.appendChild(ov);
+  document.addEventListener('keydown', esc, true);
+  try { (document.getElementById('med-cal-ahora') || ok).focus(); } catch (e) {}
+  return true;
+}
+window._medCalCartel = _medCalCartel;
+
 function _medInfoAbrir(clave) {
   const d = _MED_INFO[clave];
   if (!d) return;
@@ -143220,6 +143360,18 @@ function _cineAbrir(loops) {
            contenedor, que no es un input.
            El overlay se construye UNA sola vez (`if (!ov)`), así que este nodo es único y el
            oyente delegado de `_dopObservar` se registra una sola vez sobre él. */
+        /* ══ MEDIR-5 (B4, B5, B8) — LOS CALCULADOS, DEBAJO DE LA IMAGEN ════════════════════
+           B4 y B5 los quieren «debajo de la imagen» y no dentro de la tabla de medidas, y aca
+           es donde eso significa algo: este div es HERMANO de `cine-biplano` y `cine-simp-uni`,
+           o sea que vive debajo de los dos paneles y centrado entre las dos mitades. Mismo ancho
+           maximo y mismo centrado que ellos, porque los tres se leen como una franja de
+           resultados.
+           ⚠️ NINGUN NUMERO DE ACA SE CALCULA EN ESTA FUNCION: todos salen de `_dopDerivados`,
+           que a su vez llama a los dueños unicos de la app. Y NINGUNO se escribe en el informe:
+           son de solo ver, que es lo que el pedido fija. */
+        '<div id="cine-calc" style="display:none;margin:8px auto 0;max-width:780px;width:100%;' +
+          'padding:9px 11px;border-radius:9px;' +
+          'border:1px solid var(--border);background:var(--bg3);font-size:11px;line-height:1.55;"></div>' +
         '<div id="cine-dop-slot">' +
           '<div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;' +
             'border-radius:9px;border:1px solid var(--border);background:var(--bg2);"></div>' +
@@ -151360,16 +151512,40 @@ function _dopNuevo() {
        `AVAi (BSA 2.00)` y `PSAP (PVC 10)`: el documento declara el insumo que no viaja con él. */
     origen: Object.create(null),
     gen: { vel:null, grad:null, tiempo:null, fc:null, vti:null },
-    ao:  { vmax:null, gradMedio:null, vtiAo:null, vtiTsvi:null, diam:null, pht:null },
+    /* ══ MEDIR-5 (B5) — DOS CAMPOS NUEVOS DE LA AORTICA ════════════════════════════════
+       `jetDiam` y `vc` son los de la INSUFICIENCIA aortica (`ia_jet_diam` e `ia_vc`), con sus
+       rotulos de la app. Los dos son DISTANCIAS sobre 2D, asi que no entran en `_DOP_HERR`: se
+       escriben tocando su numero, igual que `ao.diam`. */
+    ao:  { vmax:null, gradMedio:null, vtiAo:null, vtiTsvi:null, diam:null, pht:null,
+           jetDiam:null, vc:null },
     /* ⚠️ LAS UNIDADES NO SON UNIFORMES, Y SIGUEN A LAS DEL INFORME, no a las del visor.
        La herramienta de velocidad entrega SIEMPRE m/s; el informe guarda las ondas E y A y
        las e' del anillo en cm/s (`onda_e`, `e_sep`, `e_lat`) y los jets de regurgitación en
        m/s (`vmax_it`, `vmax_ao`). Uniformar el cajón a m/s haría que el médico lea 0,85 acá
        y 85 en el campo de al lado sobre la MISMA medición. La conversión va en `_dopCapturar`,
        que es el único borde por donde entra un número. */
+    /* ══ MEDIR-5 (B4) — CINCO CAMPOS NUEVOS DE LA MITRAL ════════════════════════════════
+       `triv`, `tde`, `vmaxAlias`, `pisa` y `vc`. Los CINCO existen en el formulario de la app
+       —`triv`, `tde`, `pisa_val`, `pisa_r` e `im_vc`— y el rotulo de cada fila es el de ALLA,
+       palabra por palabra: dos nombres para la misma medicion es como el medico termina
+       cargando una cosa en el campo de la otra.
+       ⚠️ VIVEN SOLO EN EL CAJON Y NO ESCRIBEN NINGUN CAMPO DEL INFORME, y eso es por
+       construccion y no por una lista: `f[3]` de una fila es la ruta dentro de `_dop`, que es lo
+       que `dopCorregir` y `dopBorrar` escriben. Pasarlos al informe es MEDIR-4c. */
     mit: { ondaE:null, ondaA:null, ePrimaSept:null, ePrimaLat:null, vmaxIm:null,
-           vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null },
-    tri: { vmaxIt:null, vmaxEt:null, pvc:10 },
+           vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null,
+           triv:null, tde:null, vmaxAlias:null, pisa:null, vc:null },
+    /* ══ MEDIR-5 (B6) — SIETE CAMPOS NUEVOS DE LA TRICUSPIDE ════════════════════════════
+       `ondaS` y `trivTdi` son el Doppler tisular del anillo (`s_prime`, «S' tricuspídeo», y
+       `dt_triv`); `vtiVt`, `gradMedioVt` y `thpVt` son los de la ESTENOSIS tricuspidea
+       (`et_vti_diast`, `et_gmedio`, `et_thp`) — que es donde viven en la app, no bajo la
+       insuficiencia; y `vciDiam` + `vciCol` son los dos insumos de la PmAD (`vci_diam`,
+       `vci_col`), que se calcula con `pmadEstimar`, el dueño unico de la app.
+       ⚠️ `ondaS` NO ES LA «ONDA S PULMONAR» del llenado mitral, que es otra medida: esta es la
+       onda sistolica del ANILLO tricuspideo por TDI. */
+    tri: { vmaxIt:null, vmaxEt:null, pvc:10,
+           ondaS:null, trivTdi:null, vtiVt:null, gradMedioVt:null, thpVt:null,
+           vciDiam:null, vciCol:'' },
     /* `diamTsvd` y `vtiPul` (2026-09-25): los insumos del volumen eyectivo del VD.
        ⚠️ ES UN SOLO VALOR EN TODO EL VISOR (2026-09-25): el «Diam TSVD» del cajón 2D (`vd.tsvd`)
        es un ALIAS de ESTE campo, igual que `vi.tsvi` lo es de `ao.diam` (ver `_D2_ALIAS`). Nació
@@ -151620,11 +151796,16 @@ function _dopHayVisor() {
 /* Los destinos de VELOCIDAD que el informe guarda en cm/s (ondas del llenado mitral y e' del
    anillo). Todo lo demás queda en m/s, que es lo que entrega la herramienta. Derivado como
    lista y no con un `if` por campo para que agregar una onda nueva no dependa de acordarse. */
-const _DOP_VEL_CMS = { 'mit.ondaE':1, 'mit.ondaA':1, 'mit.ePrimaSept':1, 'mit.ePrimaLat':1 };
+const _DOP_VEL_CMS = { 'mit.ondaE':1, 'mit.ondaA':1, 'mit.ePrimaSept':1, 'mit.ePrimaLat':1,
+  /* MEDIR-5: las dos nuevas que el informe tambien guarda en cm/s — `pisa_val` es la
+     velocidad de aliasing y `s_prime` es «S' tricuspídeo (cm/s)». */
+  'mit.vmaxAlias':1, 'tri.ondaS':1 };
 /* Los destinos de VTI que además traen el gradiente medio de la envolvente. El visor lo calcula
    integrando `4v²` en el tiempo —no es `4·(v media)²`, que por Jensen subestima siempre— así
    que se toma el que viene y no se recalcula. */
-const _DOP_VTI_GRADMEDIO = { 'ao.vtiAo':'ao.gradMedio', 'mit.vtiVm':'mit.gradMedioVm' };
+const _DOP_VTI_GRADMEDIO = { 'ao.vtiAo':'ao.gradMedio', 'mit.vtiVm':'mit.gradMedioVm',
+  /* MEDIR-5: el VTI diastolico tricuspideo trae su gradiente medio por el mismo camino. */
+  'tri.vtiVt':'tri.gradMedioVt' };
 
 /* ⚠️ EL SIGNO SE NORMALIZA EN EL BORDE, Y NO ES COSMÉTICO — cerraba dos filas del panel.
    `_medVelClic` entrega la velocidad CON SIGNO, y en apical el anillo mitral se aleja del
@@ -151842,6 +152023,39 @@ function _dopDerivados() {
   /* ── PULMONAR ─────────────────────────────────────────────────────────────────────────── */
   R.gradIp = G(P.vmaxIp);
   R.gradEp = G(P.vmaxEp);
+
+  /* ══ MEDIR-5 (B5, B6, B8) — LOS CALCULADOS NUEVOS, TODOS CON DUEÑO EXISTENTE ═══════════════
+     ⚠️ NINGUNA FORMULA SE ESCRIBE ACA. Cada uno llama al dueño unico que la app ya tiene, y la
+     razon es la de siempre en este archivo: una segunda copia hace que el visor y el informe
+     publiquen dos numeros del mismo paciente el dia que uno de los dos se mueva.
+       · volumen sistolico del TSVI  -> `_hemoVSEco(diam, vti)`
+       · gasto cardiaco              -> `_hemoGCEco(diam, vti, fc)`
+       · PmAD por VCI y colapso      -> `pmadEstimar(diam, col)`
+     ⚠️ EL DVI NO TIENE DUEÑO: esta escrito EN LINEA dentro de `calcEADetalle`, que lee el DOM y
+     por lo tanto no es alcanzable desde el visor. Queda declarado en PENDIENTES; lo que se hace
+     aca es la MISMA cuenta, `VTI TSVI / VTI VAo`, sin cambiarla. */
+  R.dvi = (A.vtiTsvi > 0 && A.vtiAo > 0) ? (A.vtiTsvi / A.vtiAo) : null;
+  R.vs = (typeof _hemoVSEco === 'function') ? _hemoVSEco(A.diam, A.vtiTsvi) : null;
+  /* El indexado usa `getBSA()`, el MISMO dueño que indexa todo en esta aplicacion. Sin peso o sin
+     talla devuelve null y la fila no se dibuja: un indexado con una superficie supuesta seria un
+     numero que parece medido. */
+  R.vsi = (R.vs != null && R.bsa > 0) ? (R.vs / R.bsa) : null;
+  /* ══ MEDIR-5 (B8) — LA FC SALE DEL INFORME Y EL VISOR NO LA ESCRIBE ═══════════════════════
+     `ao_fc` y `hemo_fc` son ESPEJO —los sincroniza `aoFcSync`— asi que da igual cual se lea; se
+     toma el de la seccion aortica y el otro queda de respaldo por si el primero no esta en el
+     documento. Es SOLO LECTURA: no hay una sola escritura de la FC en todo el visor. */
+  R.fc = (function () {
+    try {
+      for (const id of ['ao_fc', 'hemo_fc']) {
+        const e = document.getElementById(id);
+        const v = e ? parseFloat(e.value) : NaN;
+        if (isFinite(v) && v > 0) return v;
+      }
+    } catch (e) {}
+    return null;
+  })();
+  R.gc = (typeof _hemoGCEco === 'function') ? _hemoGCEco(A.diam, A.vtiTsvi, R.fc) : null;
+  R.pmad = (typeof pmadEstimar === 'function') ? pmadEstimar(T.vciDiam, T.vciCol) : null;
   return R;
 }
 
@@ -151896,7 +152110,16 @@ const _DOP_HERR = {
   /* El VTI pulmonar se mide con la herramienta VTI, igual que los dos aórticos. El diámetro del
      TSVD NO entra acá: es una DISTANCIA sobre la imagen 2D y esa herramienta no alimenta este
      cajón — se escribe con el ✏️, como ya hace `ao.diam`. */
-  'pul.vtiPul':'vti'
+  'pul.vtiPul':'vti',
+  /* ══ MEDIR-5 — QUE HERRAMIENTA MIDE CADA CAMPO NUEVO ══════════════════════════════════
+     El TRIV, el TDE y el THP son INTERVALOS: herramienta Tiempo. La onda S' del anillo y la
+     velocidad de aliasing son VELOCIDADES. El VTI tricuspideo va con VTI.
+     ⚠️ Y CUATRO NO ENTRAN A PROPOSITO —`mit.pisa`, `mit.vc`, `ao.jetDiam` y `ao.vc`—: son
+     DISTANCIAS sobre la imagen 2D, y esa herramienta no alimenta este cajon. Se escriben
+     tocando su numero, que es lo que ya hace `ao.diam`. Tampoco `tri.gradMedioVt`, que se carga
+     a mano igual que su hermano mitral, ni `tri.vciDiam`, que es otra distancia. */
+  'mit.triv':'tiempo', 'mit.tde':'tiempo', 'mit.vmaxAlias':'vel',
+  'tri.ondaS':'vel', 'tri.trivTdi':'tiempo', 'tri.vtiVt':'vti', 'tri.thpVt':'tiempo'
 };
 function dopArmar(campo) {
   const E = _dopEstado();
@@ -151906,6 +152129,10 @@ function dopArmar(campo) {
   }
   const h = _DOP_HERR[campo];
   if (!h) return;
+  /* ══ MEDIR-5 (B9) — SI FALTA LA CALIBRACION, SALE LA GUIA Y NO SE ARMA NADA ═══════════════
+     Va ANTES de fijar el destino: armado y sin poder medir, el medico toca la imagen, no pasa
+     nada y no hay quien le diga por que. El cartel lo dice y ofrece calibrar. */
+  try { if (typeof _medCalCartel === 'function' && _medCalCartel(h)) return; } catch (e) {}
   E.destino = campo;
   try { if (typeof medHerramienta === 'function') medHerramienta(h); } catch (e) {}
   try { if (typeof _medEstado === 'function') _medEstado(); } catch (e) {}
@@ -152019,7 +152246,17 @@ const _DOP_ROT = {
      es como el medico termina cargando la proto en el campo de la tele. */
   'pul.vmaxIp':'Vmax proto-diast. IP', 'pul.vmaxIpTd':'Vmax telediastólica IP',
   'pul.vmaxEp':'Vmax pulmonar', 'pul.tap':'TAP',
-  'pul.diamTsvd':'Diam TSVD', 'pul.vtiPul':'VTI Pulmonar (TSVD)'
+  'pul.diamTsvd':'Diam TSVD', 'pul.vtiPul':'VTI Pulmonar (TSVD)',
+  /* ══ MEDIR-5 (B4 a B6) — LOS ROTULOS SON LOS DE LA APP, VERIFICADOS LEYENDO SU `label` ══
+     No se inventa ninguno: el medico tiene que reconocer en el visor el mismo nombre que ve en
+     el formulario. «Vena contracta» aparece dos veces porque la app la llama igual en las dos
+     valvulas; lo que las distingue es la tabla en la que esta. */
+  'mit.triv':'TRIV', 'mit.tde':'TDE', 'mit.vmaxAlias':'Vmax aliasing',
+  'mit.pisa':'Radio PISA', 'mit.vc':'Vena contracta',
+  'ao.jetDiam':'Diám jet IAo en TSVI', 'ao.vc':'Vena contracta',
+  'tri.ondaS':"Onda S' tricuspídeo", 'tri.trivTdi':'TRIV (TDI)',
+  'tri.vtiVt':'VTI diastólico tricuspídeo', 'tri.gradMedioVt':'Gradiente medio ET',
+  'tri.thpVt':'THP tricuspídeo', 'tri.vciDiam':'Diam VCI'
 };
 /* ⚠️ CADA DESCARGO DECLARA QUÉ FILA LO DISPARA (`si`), y eso NO es organización: van QUEMADOS en
    la imagen que se guarda en la biblioteca, y desde ahí pueden llegar al PDF. Una tabla de PSAP
@@ -152176,27 +152413,36 @@ function _dopFilas(modo) {
   const L = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 0]); };
   const R = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 1]); };
   if (md === 'ao') {
+    /* ══ MEDIR-5 (B5) — EL ORDEN ES EL DEL PEDIDO, EN UNA SOLA COLUMNA ════════════════════
+       Las dos columnas que B5 pedia NO ENTRAN, y esta medido (M5-l): con dos tablas la celda de
+       acciones queda en 40-46 px y necesita 91 —dos botones de 44, que es el piso tactil global,
+       mas 3 de hueco—. El propio pedido trae la salvedad, asi que va una columna con el orden de
+       su lista: primero la columna 1 y despues la 2.
+       Los CALCULADOS que B5 nombra —AVA, DVI, volumen sistolico, su indexado y el gasto— se van
+       al bloque de abajo de la imagen (`_dopCalcHTML`). El «Grad Max Ao» se queda como fila
+       porque la propia lista de B5 lo pone ahi. */
+    R('Diam TSVI',  n(E.ao.diam, 1),      'mm',   'ao.diam',   false);
     L('Vmax VAo',   n(E.ao.vmax, 2),      'm/s',  'ao.vmax',   true);
     L('Grad Máx',   n(D.gradMax, 1),      'mmHg', null,        false, ['ao.vmax']);
     L('Grad Medio', n(E.ao.gradMedio, 1), 'mmHg', 'ao.gradMedio', false);
-    /* El PHT y su severidad quedan a la IZQUIERDA: son el par de la insuficiencia aórtica, que es
-       la lectura de gravedad de esta válvula — la misma familia que la Vmax y los gradientes. */
-    L('THP IAo',    n(E.ao.pht, 0),       'ms',   'ao.pht',    true);
-    if (D.sev) L('Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']);
-    R('Diam TSVI',  n(E.ao.diam, 1),      'mm',   'ao.diam',   false);
     R('VTI TSVI',   n(E.ao.vtiTsvi, 1),   'cm',   'ao.vtiTsvi', true);
     R('VTI VAo',    n(E.ao.vtiAo, 1),     'cm',   'ao.vtiAo',  true);
-    /* AVA, AVAi y Severidad APARECEN SOLAS cuando hay con qué: el pedido es que el médico no
-       tenga que hacer nada extra. Si falta un insumo no se muestra la fila en vez de un guion,
-       que al lado de una unidad se lee como «medido y dio cero». */
-    if (D.ava != null)  R('AVA',  n(D.ava, 2),  'cm²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
-    /* ⚠️ EL AVAi LLEVA SU BSA ADENTRO DEL RÓTULO, igual que `PSAP (PVC 10)` y por el mismo
-       motivo. La superficie corporal sale de `getBSA()`, que lee peso y talla DEL FORMULARIO —no
-       del cajón—, y el cajón es estado de módulo que sobrevive al cambio de estudio a propósito.
-       Con el número a la vista, el cociente se puede auditar; sin él, no. */
-    if (D.avai != null) R('AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
+    /* Los tres de la INSUFICIENCIA, con los rotulos de la app. Los dos primeros son distancias
+       sobre 2D: no llevan «Medir» y se escriben tocando su numero, igual que el Diam TSVI. */
+    R(_DOP_ROT['ao.jetDiam'], n(E.ao.jetDiam, 1), 'mm', 'ao.jetDiam', false);
+    R(_DOP_ROT['ao.vc'],      n(E.ao.vc, 1),      'mm', 'ao.vc',      false);
+    L('THP IAo',    n(E.ao.pht, 0),       'ms',   'ao.pht',    true);
+    /* La severidad orientativa por THP se CONSERVA: B5 no la nombra, pero es contenido que ya
+       estaba y sacarlo seria tocar una lectura clinica. */
+    if (D.sev) L('Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']);
   } else if (md === 'mit') {
     const M = E.mit;
+    /* ══ MEDIR-5 (B4) — EL ORDEN ES EL DEL PEDIDO, EN UNA SOLA COLUMNA (ver M5-l) ══════════
+       Primero la columna 1 de B4 y despues la 2. Los CUATRO calculados que B4 nombra —E/A,
+       E/e' promedio, AVM por THP y AVM por continuidad— se van al bloque de abajo de la imagen.
+       Lo que NO nombra se queda como fila, que es lo conservador: la e' promedio, que es el
+       insumo del E/e' y se lee al lado de las dos e', y el «Grad Max IM», que ya vivia al lado
+       de su Vmax. */
     L('Onda E',     n(M.ondaE, 0),        'cm/s', 'mit.ondaE', true);
     L('Onda A',     n(M.ondaA, 0),        'cm/s', 'mit.ondaA', true);
     L("e' septal",  n(M.ePrimaSept, 1),   'cm/s', 'mit.ePrimaSept', true);
@@ -152205,54 +152451,77 @@ function _dopFilas(modo) {
        no es un promedio, y el septal y el lateral no son intercambiables —el septal corre más
        bajo—. Con una sola, la fila del E/e' ya declara cuál se usó. */
     if (D.epromCual === 'prom') L("e' promedio", n(D.eprom, 1), 'cm/s', null, false, ['mit.ePrimaSept','mit.ePrimaLat']);
+    L('THP VM',     n(M.pht, 0),          'ms',   'mit.pht',   true);
+    L(_DOP_ROT['mit.triv'], n(M.triv, 0), 'ms',   'mit.triv',  true);
+    L(_DOP_ROT['mit.tde'],  n(M.tde, 0),  'ms',   'mit.tde',   true);
     L('VTI VM',     n(M.vtiVm, 1),        'cm',   'mit.vtiVm', true);
     L('Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg', 'mit.gradMedioVm', false);
-    L('THP VM',     n(M.pht, 0),          'ms',   'mit.pht',   true);
-    if (D.avmPht != null)  L('AVM por THP',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']);
-    if (D.avmCont != null) L('AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']);
-    /* E/A y E/e' APARECEN SOLOS cuando hay con qué, y NO SE GRADÚAN: esta app borró a propósito
-       la graduación del SGL porque convivían tres escalas, y una banda inventada acá sería la
-       misma historia sobre el llenado mitral. */
-    if (D.ea != null) R('E/A', n(D.ea, 2), '', null, false, ['mit.ondaE','mit.ondaA']);
-    if (D.ee != null) {
-      const cual = D.epromCual === 'prom' ? 'prom' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
-      R("E/e' (" + cual + ')', n(D.ee, 1), '', null, false, ['mit.ondaE','mit.ePrimaSept','mit.ePrimaLat']);
-    }
+    /* ── Columna 2 de B4: la insuficiencia ── */
     R('Vmax IM',    n(M.vmaxIm, 2),       'm/s',  'mit.vmaxIm', true);
     if (D.gradMaxIm != null) R('Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false, ['mit.vmaxIm']);
     R('VTI IM',     n(M.vtiIm, 1),        'cm',   'mit.vtiIm', true);
+    R(_DOP_ROT['mit.vmaxAlias'], n(M.vmaxAlias, 0), 'cm/s', 'mit.vmaxAlias', true);
+    /* El radio de PISA y la vena contracta son DISTANCIAS sobre 2D: sin «Medir», se escriben
+       tocando su numero. El rotulo dice «Radio» porque es lo que se mide — «PISA» a secas se
+       confunde con el area. */
+    R(_DOP_ROT['mit.pisa'], n(M.pisa, 1), 'mm',   'mit.pisa',  false);
+    R(_DOP_ROT['mit.vc'],   n(M.vc, 1),   'mm',   'mit.vc',    false);
   } else if (md === 'tri') {
     const T = E.tri;
+    /* ══ MEDIR-5 (B6) — EL ORDEN DEL PEDIDO, Y LA PmAD CON EL DUEÑO DE LA APP ═════════════
+       Los cinco campos nuevos salen de donde viven en la app: la onda S' y el TRIV del anillo
+       son Doppler TISULAR (`s_prime`, `dt_triv`) y el VTI, el gradiente medio y el THP son de la
+       ESTENOSIS tricuspidea (`et_vti_diast`, `et_gmedio`, `et_thp`) — bajo la estenosis y no
+       bajo la insuficiencia, que es donde los busque mal la primera vez.
+       ⚠️ «Grad Máx IT» PASA A LLAMARSE «G. Máx AD-VD», que es como B6 lo nombra: es el mismo
+       calculo (4v²) sobre la misma Vmax, y el nombre nuevo dice entre que dos camaras es ese
+       gradiente. No se movio ni un corte ni una formula. */
+    L(_DOP_ROT['tri.ondaS'],   n(T.ondaS, 1),   'cm/s', 'tri.ondaS',   true);
+    L(_DOP_ROT['tri.trivTdi'], n(T.trivTdi, 0), 'ms',   'tri.trivTdi', true);
     L('Vmax IT',    n(T.vmaxIt, 2),       'm/s',  'tri.vmaxIt', true);
-    if (D.gradIt != null) L('Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false, ['tri.vmaxIt']);
+    if (D.gradIt != null) L('G. Máx AD-VD', n(D.gradIt, 1), 'mmHg', null, false, ['tri.vmaxIt']);
     /* La PVC lleva su valor DENTRO del rótulo y no en una nota al pie: la PSAP de esta tabla
-       puede no coincidir con la del informe —allá la PVC se estima desde la VCI— y sin el número
-       a la vista no hay forma de saber cuál de las dos se está mirando. */
+       puede no coincidir con la del informe —allá la presión de aurícula derecha se ESTIMA desde
+       la VCI— y sin el número a la vista no hay forma de saber cuál de las dos se está mirando. */
     if (D.psap != null) L('PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false, ['tri.vmaxIt']);
+    L(_DOP_ROT['tri.vtiVt'],       n(T.vtiVt, 1),       'cm',   'tri.vtiVt',       true);
+    L(_DOP_ROT['tri.gradMedioVt'], n(T.gradMedioVt, 1), 'mmHg', 'tri.gradMedioVt', false);
+    L(_DOP_ROT['tri.thpVt'],       n(T.thpVt, 0),       'ms',   'tri.thpVt',       true);
     R('Vmax ET',    n(T.vmaxEt, 2),       'm/s',  'tri.vmaxEt', true);
     if (D.gradEt != null) R('Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false, ['tri.vmaxEt']);
+    /* ── La VCI y su colapso, los dos insumos de la PmAD ── */
+    R(_DOP_ROT['tri.vciDiam'], n(T.vciDiam, 1), 'mm', 'tri.vciDiam', false);
+    /* ⚠️ LA PmAD SALE DE `pmadEstimar`, EL DUEÑO UNICO DE LA APP, y no de una tabla copiada: es
+       la misma matriz de 2x2 —diametro contra colapso— que usa el informe. El colapso se elige
+       en el selector que va ARRIBA de la tabla, igual que la PVC: es un insumo, no una medicion,
+       y una fila mas lo haria leer como algo que se midio.
+       La fila se dibuja SOLO con los dos insumos cargados, que es lo que hace `pmadEstimar` al
+       devolver null: un guion al lado de «mmHg» se lee como «medido y dio cero». */
+    if (D.pmad) R('PmAD (VCI)', String(D.pmad.pmad), 'mmHg', null, false, ['tri.vciDiam']);
   } else if (md === 'pul') {
     const P = E.pul;
-    /* ⚠️ LOS ROTULOS SALEN DE `_DOP_ROT` Y NO SE ESCRIBEN ACA (MEDIR-2): con el rotulo tipeado
+    /* ══ MEDIR-5 (B7) — EL ORDEN DEL PEDIDO ══════════════════════════════════════════════
+       TAP, VTI, diametro, Vmax y su gradiente, y al final las dos de la insuficiencia. Ningun
+       campo es nuevo acá: los SEIS que B7 nombra ya existian. Lo unico que cambia es el orden.
+       ⚠️ LOS ROTULOS SALEN DE `_DOP_ROT` Y NO SE ESCRIBEN ACA (MEDIR-2): con el rotulo tipeado
        en la fila y otro en el registro, la tabla y el cuadro de «corregir a mano» nombrarian
-       distinto el mismo campo. Es el mismo dueno unico que el selector de estructura ya usa. */
-    L(_DOP_ROT['pul.vmaxIp'],   n(P.vmaxIp, 2),   'm/s', 'pul.vmaxIp',   true);
-    if (D.gradIp != null) L('Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']);
-    L(_DOP_ROT['pul.vmaxIpTd'], n(P.vmaxIpTd, 2), 'm/s', 'pul.vmaxIpTd', true);
+       distinto el mismo campo. */
+    L('TAP',        n(P.tap, 0),          'ms',   'pul.tap',   true);
+    /* ⚠️ EL RÓTULO NOMBRA EL SITIO, NO SÓLO LA VÁLVULA. El pedido lo llamó «VTI TSVD», pero la
+       fórmula de abajo y la banda que presta (`vti_tsvd`, la misma de `ao.vtiTsvi`) exigen el
+       VTI del FLUJO del tracto de salida, medido donde el diámetro. Con el rótulo pelado, y
+       viviendo entre dos jets, todo el contexto empuja a trazar un jet: la herramienta VTI
+       acepta cualquier envolvente, un jet de IP da un número plausible dentro de banda y el
+       volumen sale sobreestimado SIN ninguna señal. Se conserva el nombre completo. */
+    R('VTI Pulmonar (TSVD)', n(P.vtiPul, 1), 'cm',  'pul.vtiPul', true);
+    R('Diam TSVD',  n(P.diamTsvd, 1),     'mm',   'pul.diamTsvd', false);
     L(_DOP_ROT['pul.vmaxEp'],   n(P.vmaxEp, 2),   'm/s', 'pul.vmaxEp',   true);
     /* El gradiente sigue al nombre de su velocidad: con «Grad Max EP» debajo de «Vmax pulmonar»
        la tabla citaria una sigla que ya no existe en ninguna de sus filas. */
     if (D.gradEp != null) L('Grad Máx pulmonar', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']);
-    L('TAP',        n(P.tap, 0),          'ms',   'pul.tap',   true);
-    R('Diam TSVD',  n(P.diamTsvd, 1),     'mm',   'pul.diamTsvd', false);
-    /* ⚠️ EL RÓTULO NOMBRA EL SITIO, NO SÓLO LA VÁLVULA. El pedido lo llamó «VTI Pulmonar», pero
-       la fórmula de abajo y la banda que presta (`vti_tsvd`, la misma de `ao.vtiTsvi`) exigen el
-       VTI del FLUJO del tracto de salida, medido donde el diámetro. Con el rótulo pelado, y
-       viviendo entre `Vmax IP` y `Vmax EP` —dos jets—, todo el contexto empuja a trazar un jet:
-       la herramienta VTI acepta cualquier envolvente, un jet de IP da un número plausible dentro
-       de banda y el volumen sale sobreestimado SIN ninguna señal. Los dos insumos son la misma
-       medición anatómica, así que llevan el mismo apellido. */
-    R('VTI Pulmonar (TSVD)', n(P.vtiPul, 1), 'cm',  'pul.vtiPul', true);
+    L(_DOP_ROT['pul.vmaxIp'],   n(P.vmaxIp, 2),   'm/s', 'pul.vmaxIp',   true);
+    if (D.gradIp != null) L('Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']);
+    L(_DOP_ROT['pul.vmaxIpTd'], n(P.vmaxIpTd, 2), 'm/s', 'pul.vmaxIpTd', true);
     /* Aparece sola cuando hay con qué, igual que la AVA: sin uno de los dos insumos no se dibuja
        la fila en vez de publicar un cero. */
     if (D.volVd != null) R('Vol Eyectivo VD', n(D.volVd, 1), 'mL', null, false, ['pul.diamTsvd','pul.vtiPul']);
@@ -152408,6 +152677,97 @@ function _dopInfoTxts(faltaTxt, hayFilas) {
 }
 window._dopInfoTxts = _dopInfoTxts;
 
+/* ══ MEDIR-5 (B4, B5, B8) — EL BLOQUE DE CALCULADOS, DEBAJO DE LA IMAGEN ══════════════════════
+   B4 y B5 piden que los calculados salgan de la tabla de medidas y vayan «debajo de la imagen».
+   Aca se arman; viven en `#cine-calc`, que es hermano de `cine-biplano` y por lo tanto queda
+   debajo de los dos paneles y centrado entre ellos.
+
+   ⚠️ NINGUNA FORMULA SE ESCRIBE EN ESTA FUNCION. Todos los numeros salen de `_dopDerivados`, que
+   llama a los dueños unicos de la app: `_avaContinuidad`, `_avmPorPHT`, `_hemoVSEco`,
+   `_hemoGCEco`, `getBSA` y `pmadEstimar`. Esta funcion sólo los ORDENA y los rotula.
+
+   ⚠️ Y NINGUNO SE MANDA A LA APP: son de solo ver. No hay un `campo` que escribir —no son filas
+   de `_medTablaHTML`— asi que no existe el camino, no es que esté desactivado.
+
+   Una fila que no tiene con que calcularse NO SE DIBUJA, en vez de salir con un guion: un guion
+   al lado de una unidad se lee como «medido y dio cero», que es la regla que la AVA ya seguia. */
+function _dopCalcFilas(md, D) {
+  const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
+  const F = [];
+  const add = (rot, val, uni, de) => { if (val != null) F.push([rot, val, uni, de]); };
+  if (md === 'mit') {
+    /* Los CUATRO que B4 nombra, en su orden. */
+    add('E/A', n(D.ea, 2), '', 'Onda E ÷ Onda A');
+    if (D.ee != null) {
+      const cual = D.epromCual === 'prom' ? 'promedio' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
+      add("E/e' (" + cual + ')', n(D.ee, 1), '', "Onda E ÷ e' " + cual);
+    }
+    add('AVM por THP', n(D.avmPht, 2), 'cm²', '220 ÷ THP');
+    /* ⚠️ LA AVM POR CONTINUIDAD SE CALCULA CON INSUMOS AORTICOS —el diametro del TSVI y su VTI—
+       que se miden en OTRA valvula del cajon. La fila lo dice, porque si no un numero que depende
+       de dos campos de otra pantalla se lee como autonomo. */
+    add('AVM por continuidad', n(D.avmCont, 2), 'cm²', 'con el Diam TSVI y el VTI TSVI de la aórtica');
+  } else if (md === 'ao') {
+    add('AVA por continuidad', n(D.ava, 2), 'cm²', 'área del TSVI × VTI TSVI ÷ VTI VAo');
+    if (D.avai != null) add('AVA indexada', n(D.avai, 2), 'cm²/m²', 'AVA ÷ ' + n(D.bsa, 2) + ' m²');
+    add('DVI', n(D.dvi, 2), '', 'VTI TSVI ÷ VTI VAo');
+    add('Vol. sistólico', n(D.vs, 1), 'mL', 'área del TSVI × VTI TSVI');
+    add('Vol. sistólico indexado', n(D.vsi, 1), 'mL/m²',
+        D.bsa ? ('Vol. sistólico ÷ ' + n(D.bsa, 2) + ' m²') : '');
+    add('Gasto cardíaco', n(D.gc, 2), 'L/min',
+        D.fc ? ('Vol. sistólico × ' + n(D.fc, 0) + ' lpm') : '');
+  }
+  return F;
+}
+
+/* La mini tabla de FC (B8). Va SIEMPRE, con cualquier valvula abierta y tambien sin ninguna:
+   «fija debajo de cualquier imagen» es el pedido literal.
+   ⚠️ ES DE SOLO LECTURA Y LO DICE. El numero sale de `ao_fc` —y de `hemo_fc` como respaldo, que
+   son ESPEJO: los sincroniza `aoFcSync`— y el visor NO lo escribe por ningun camino. Lo que
+   alimenta es el gasto cardiaco de la tabla de arriba. Medir la FC con la herramienta FC del
+   visor cae en la fila generica del cajon y NO reemplaza la del informe: queda declarado. */
+function _dopFcHTML(D) {
+  const hay = (D.fc != null && isFinite(D.fc) && D.fc > 0);
+  return '<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);' +
+      'display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;">' +
+    '<span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
+      'color:var(--text2);">Frecuencia cardíaca</span>' +
+    (hay
+      ? '<span style="font-size:17px;font-weight:700;">' + escHtml(D.fc.toFixed(0)) + '</span>' +
+        '<span style="font-size:9.5px;color:var(--text2);">lpm</span>'
+      : '<span style="font-size:15px;color:var(--text2);">—</span>') +
+    '<span style="font-size:9.5px;color:var(--text2);">' +
+      (hay ? 'Del informe (sólo lectura). Alimenta el gasto cardíaco.'
+           : 'Cargala en el informe y aparece acá. Sin ella no se puede calcular el gasto cardíaco.') +
+    '</span></div>';
+}
+
+function _dopCalcHTML() {
+  const E = _dopEstado(), D = _dopDerivados();
+  const F = _dopCalcFilas(E.modo, D);
+  const cel = (t, b2, der) => '<td style="padding:3px 6px;' + (der ? 'text-align:right;' : '') +
+    'font-variant-numeric:tabular-nums;' + (b2 ? 'font-weight:700;' : '') + '">' + t + '</td>';
+  let t = '';
+  if (F.length) {
+    t += '<div style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
+         'color:var(--text2);margin-bottom:3px;">Calculados</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.5;">' +
+      F.map(f =>
+        '<tr style="border-bottom:1px solid var(--border);font-style:italic;">' +
+          '<td style="padding:3px 6px;">' + escHtml(f[0]) + '</td>' +
+          cel(escHtml(f[1]), true, true) +
+          '<td style="padding:3px 6px;font-size:9.5px;color:var(--text2);">' + escHtml(f[2]) + '</td>' +
+          '<td style="padding:3px 6px;font-size:9.5px;color:var(--text2);">' + escHtml(f[3]) + '</td>' +
+        '</tr>').join('') +
+      '</table>' +
+      '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
+        'Son de <b>sólo ver</b>: se calculan con los dueños de la aplicación y <b>no se escriben ' +
+        'en ningún campo del informe</b>.</div>';
+  }
+  return t + _dopFcHTML(D);
+}
+window._dopCalcHTML = _dopCalcHTML;
+
 function _dopRender() {
   /* ⚠️ MEDIR-4 — EL CAJON SE MUDA A LA COLUMNA DE LA VISTA ACTIVA EN CADA REPINTADO. Aca es
      donde tiene que ir y no en el cableado: `_V` cambia con cada manejador envuelto en `_vBind`,
@@ -152421,6 +152781,19 @@ function _dopRender() {
   const cont = document.getElementById('dop-cajon');
   if (!cont) return;
   const E = _dopEstado(), hay = _dopHayVisor();
+  /* ══ MEDIR-5 (B4, B5, B8) — EL BLOQUE DE CALCULADOS SE PINTA ANTES DEL RETURN TEMPRANO ════
+     ⚠️ VA ACA ARRIBA A PROPOSITO. La mini tabla de FC es «fija debajo de cualquier imagen», o sea
+     que tiene que verse TAMBIEN sin ninguna valvula abierta — y con el cajon escondido esta
+     funcion sale cuatro lineas mas abajo. Metido despues, la FC desaparecia justo en el estado
+     mas comun: el visor recien abierto.
+     Se esconde con el visor entero porque `#cine-ov` se esconde entero, igual que los cajones. */
+  try {
+    const cc = document.getElementById('cine-calc');
+    if (cc) {
+      if (!hay) { cc.style.display = 'none'; cc.innerHTML = ''; }
+      else { cc.innerHTML = _dopCalcHTML(); cc.style.display = ''; }
+    }
+  } catch (e) {}
   if (!_dopVisible()) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
   cont.style.display = 'block';
 
@@ -152456,6 +152829,20 @@ function _dopRender() {
         '<button type="button" class="btn ' + (E.tri.pvc === p ? 'btn-primary' : 'btn-ghost') +
         '" style="padding:2px 9px;font-size:11px;" data-dop-pvc="' + p + '">' + p + '</button>').join('') +
       '<span>mmHg</span></div>';
+    /* ══ MEDIR-5 (B6) — EL COLAPSO DE LA VCI, ARRIBA DE LA TABLA ════════════════════════════
+       Va donde el de la PVC y por el mismo motivo: es un INSUMO de la PmAD, no una medicion, y
+       una fila mas lo haria leer como algo que se midio.
+       ⚠️ LAS DOS OPCIONES SON LAS LITERALES DE LA APP —'>50' y '<50'— y no dos etiquetas nuevas:
+       son los valores que `pmadEstimar` compara, asi que inventar una tercera forma de escribirlo
+       haria que la PmAD del visor y la del informe salieran distintas sobre el mismo paciente.
+       Tocar la opcion elegida la apaga, que es como se vuelve a «sin dato». */
+    h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;font-size:11.5px;color:var(--text2);flex-wrap:wrap;">' +
+      '<span>Colapso VCI:</span>' +
+      [['>50', '> 50 %'], ['<50', '< 50 %']].map(o =>
+        '<button type="button" class="btn ' + (E.tri.vciCol === o[0] ? 'btn-primary' : 'btn-ghost') +
+        '" style="padding:2px 9px;font-size:11px;" data-dop-vcicol="' + o[0] + '">' +
+        escHtml(o[1]) + '</button>').join('') +
+      '</div>';
   }
 
   /* El aviso va ARRIBA de la tabla y no al pie: lo que se lee primero son los números, y un
@@ -152576,12 +152963,16 @@ function _dopObservar() {
   if (!cont || _dopObsNodo === cont) return;
   _dopObsNodo = cont;
   cont.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-borrar],[data-dop-acc]') : null;
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-modo],[data-dop-pvc],[data-dop-vcicol],[data-dop-armar],[data-dop-corr],[data-dop-borrar],[data-dop-acc]') : null;
     if (!b || !cont.contains(b) || b.disabled) return;
     const m = b.getAttribute('data-dop-modo');
     if (m) { dopModo(m); return; }
     const pv = b.getAttribute('data-dop-pvc');
     if (pv) { dopPVC(Number(pv)); return; }
+    /* ══ MEDIR-5 (B6) — el colapso de la VCI, insumo de la PmAD. Alterna, igual que la PVC. */
+    const vcc = b.getAttribute('data-dop-vcicol');
+    if (vcc) { const E2 = _dopEstado();
+               E2.tri.vciCol = (E2.tri.vciCol === vcc) ? '' : vcc; _dopRender(); return; }
     const a = b.getAttribute('data-dop-armar');
     if (a) { dopArmar(a); return; }
     const c = b.getAttribute('data-dop-corr');
@@ -153124,6 +153515,8 @@ function d2Armar(campo) {
   /* Se comprueba que el campo SE PUEDA ESCRIBIR, no sólo que tenga rótulo: armar un destino que
      `_d2Poner` va a rechazar deja al médico midiendo para un campo que nunca se va a llenar. */
   if (!_D2_ROT[campo] || !_d2Ref(campo)) return;
+  /* ══ MEDIR-5 (B9) — la misma guia que en el cajon Doppler, con el eje de la DISTANCIA. */
+  try { if (typeof _medCalCartel === 'function' && _medCalCartel('dist')) return; } catch (e) {}
   E.destino = campo;
   try { if (typeof medHerramienta === 'function') medHerramienta('dist'); } catch (e) {}
   try { if (typeof _medEstado === 'function') _medEstado(); } catch (e) {}

@@ -628,6 +628,119 @@
     o.b2.anchoIgual = (o.b2.anchoAntes === o.b2.anchoDespues);
   } catch (e) { o.err.push('b2ancho: ' + e.message); }
 
+  /* ══ B4 a B9 — LAS CUATRO VALVULAS, LOS CALCULADOS, LA FC Y EL CARTEL ══════════════════ */
+  /* ⚠️ LA FC SE SIEMBRA EN EL CAMPO DEL INFORME, que es de donde el visor la LEE. Sin esto el
+     gasto cardiaco daba null y la mini tabla decia «cargala en el informe»: la sonda medía un
+     estado real pero no el que B8 describe. */
+  try { const e = $('ao_fc'); if (e) { e.value = '70';
+    e.dispatchEvent(new Event('input', { bubbles:true })); } } catch (e) {}
+  await esp(220);
+  o.b47 = (function () { try {
+    const r = {};
+    /* Insumos sembrados en el ESTADO, que es lo que la tabla lee. No se toca ningun campo del
+       formulario: lo que esto prueba es el reparto y las cuentas, no el gesto. */
+    _vCon(_vistaA, () => {
+      const E = _dopEstado();
+      E.ao.diam = 20; E.ao.vtiTsvi = 22; E.ao.vtiAo = 44; E.ao.vmax = 4; E.ao.pht = 400;
+      E.ao.jetDiam = 5; E.ao.vc = 3;
+      E.mit.ondaE = 80; E.mit.ondaA = 50; E.mit.ePrimaSept = 6; E.mit.ePrimaLat = 10;
+      E.mit.pht = 220; E.mit.triv = 90; E.mit.tde = 180; E.mit.vtiVm = 20;
+      E.mit.vmaxIm = 5; E.mit.vtiIm = 110; E.mit.vmaxAlias = 40; E.mit.pisa = 9; E.mit.vc = 6;
+      E.tri.ondaS = 12; E.tri.trivTdi = 70; E.tri.vmaxIt = 3; E.tri.vtiVt = 40;
+      E.tri.gradMedioVt = 5; E.tri.thpVt = 200; E.tri.vciDiam = 18; E.tri.vciCol = '>50';
+      E.pul.tap = 100; E.pul.vtiPul = 18; E.pul.diamTsvd = 22; E.pul.vmaxEp = 1.2;
+      E.pul.vmaxIp = 2; E.pul.vmaxIpTd = 2.5;
+    });
+    const rot = m => _dopFilas(m).map(f => f[0]);
+    r.ordenAo = rot('ao'); r.ordenMit = rot('mit');
+    r.ordenTri = rot('tri'); r.ordenPul = rot('pul');
+    const D = _vCon(_vistaA, () => _dopDerivados());
+    r.calcAo = (typeof _dopCalcFilas === 'function') ? _dopCalcFilas('ao', D).map(f => f[0] + '=' + f[1]) : null;
+    r.calcMit = (typeof _dopCalcFilas === 'function') ? _dopCalcFilas('mit', D).map(f => f[0] + '=' + f[1]) : null;
+    /* ⚠️ EL CONTRATO NUMERICO, contra los dueños de la app y no contra una cuenta escrita aca:
+       area del TSVI = pi*(20/20)^2 = 3.1416 cm2; AVA = 3.1416*22/44 = 1.5708; DVI = 0.5;
+       VS = pi*(20/10/2)^2*22 = 69.115 mL; E/A = 1.6; E/e' = 80/8 = 10; AVM por THP = 1.0;
+       PmAD con 18 mm y colapso > 50 % = 3 mmHg. */
+    r.num = { ava: D.ava, dvi: D.dvi, vs: D.vs, vsi: D.vsi, gc: D.gc, fc: D.fc,
+              ea: D.ea, ee: D.ee, avmPht: D.avmPht, avmCont: D.avmCont,
+              pmad: D.pmad ? D.pmad.pmad : null, bsa: D.bsa };
+    return r;
+  } catch (e) { return 'ERR ' + e.message; } })();
+
+  /* El bloque en pantalla, con la tricuspide abierta (selector de colapso) y con la aortica. */
+  o.b8 = (function () { try {
+    _vCon(_vistaA, () => { if (typeof dopModo === 'function' && _dopEstado().modo !== 'ao') dopModo('ao'); });
+    if (typeof _dopRender === 'function') _dopRender();
+    const cc = $('cine-calc');
+    const t = cc ? cc.querySelector('table') : null;
+    return {
+      hay: !!cc, visible: vis(cc),
+      despuesDePaneles: (function () { const pn = $('cine-paneles');
+        return !!(pn && cc && (pn.compareDocumentPosition(cc) & Node.DOCUMENT_POSITION_FOLLOWING)); })(),
+      nCalc: t ? t.querySelectorAll('tr').length : 0,
+      calcCursiva: t ? Array.from(t.querySelectorAll('tr'))
+        .every(tr => getComputedStyle(tr).fontStyle === 'italic') : null,
+      diceSoloVer: (cc ? (cc.textContent || '') : '').indexOf('sólo ver') > -1,
+      diceNoEscribe: (cc ? (cc.textContent || '') : '').indexOf('no se escriben en ningún campo') > -1,
+      /* B8: la FC fija */
+      fcTitulo: (cc ? (cc.textContent || '') : '').indexOf('Frecuencia cardíaca') > -1,
+      fcSoloLectura: (cc ? (cc.textContent || '') : '').indexOf('sólo lectura') > -1,
+      fcSinControles: cc ? cc.querySelectorAll('input,select,textarea').length : null,
+      texto: (cc ? (cc.textContent || '') : '').replace(/\s+/g, ' ').trim().slice(0, 300)
+    };
+  } catch (e) { return 'ERR ' + e.message; } })();
+
+  o.b6 = (function () { try {
+    _vCon(_vistaA, () => { if (typeof dopModo === 'function') dopModo('tri'); });
+    if (typeof _dopRender === 'function') _dopRender();
+    const caj = $('dop-cajon');
+    const bs = caj ? Array.from(caj.querySelectorAll('[data-dop-vcicol]')) : [];
+    return { nSelector: bs.length, rot: bs.map(b => (b.textContent || '').trim()),
+             activo: bs.filter(b => b.className.indexOf('btn-primary') > -1)
+               .map(b => b.getAttribute('data-dop-vcicol')),
+             hayPmAD: (caj ? (caj.textContent || '') : '').indexOf('PmAD') > -1 };
+  } catch (e) { return 'ERR ' + e.message; } })();
+
+  /* ══ B9 — EL CARTEL DE CALIBRACION ════════════════════════════════════════════════════
+     ⚠️ SE MIDE SOBRE UN FIXTURE SIN REGIONES, y lo destapo medir: con el fixture de siempre
+     —que declara una region 2D y una Doppler— `_medCalFalta` devolvia null en las cuatro
+     herramientas, o sea «no falta nada», que es CORRECTO pero no ejercita el cartel. El caso que
+     B9 describe es una imagen sin escala: una captura de pantalla, un JPG, un DICOM que no la
+     trae. Se abre uno asi para medirlo. */
+  try {
+    const sinReg = { nombre:'sin-escala', cuadros:1,
+      d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones:[] } };
+    _cineAbrir([sinReg]);
+    await esp(520);
+    _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+    await esp(300);
+  } catch (e) { o.err.push('b9fix: ' + e.message); }
+  o.b9 = (function () { try {
+    const r = {};
+    r.faltaDist = _vCon(_vistaA, () => { const F = _medCalFalta('dist'); return F ? F.eje : null; });
+    r.faltaVel = _vCon(_vistaA, () => { const F = _medCalFalta('vel'); return F ? F.eje : null; });
+    r.faltaVti = _vCon(_vistaA, () => { const F = _medCalFalta('vti'); return F ? F.eje : null; });
+    r.faltaT = _vCon(_vistaA, () => { const F = _medCalFalta('tiempo'); return F ? F.eje : null; });
+    const F2 = _vCon(_vistaA, () => _medCalFalta('dist'));
+    r.conSinCalib = F2 ? F2.eje : null;
+    if (F2) {
+      _vCon(_vistaA, () => _medCalCartel('dist'));
+      const ov = $('med-cal-ov');
+      r.cartel = !!ov;
+      r.tieneBoton = !!$('med-cal-ahora');
+      r.rotBoton = $('med-cal-ahora') ? ($('med-cal-ahora').textContent || '').trim() : null;
+      r.altoBoton = $('med-cal-ahora') ? Math.round($('med-cal-ahora').getBoundingClientRect().height) : null;
+      r.guia = ov ? (ov.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 200) : null;
+      r.diceRegla = !!(ov && (ov.textContent || '').indexOf('regla de profundidad') > -1);
+      try { $('med-cal-ok').click(); } catch (e) {}
+      r.cerro = !$('med-cal-ov');
+    }
+    /* Y el del TIEMPO no ofrece «Calibrar ahora», porque no se puede. */
+    const F3 = _vCon(_vistaA, () => _medCalFalta('tiempo'));
+    r.tiempoSinAccion = F3 ? (F3.accion === null) : null;
+    return r;
+  } catch (e) { return 'ERR ' + e.message; } })();
+
   /* ══ A8 — EL FAC DEL VD PIERDE LA DIASTOLE AL MOVER EL CUADRO ═══════════════════════════ */
   o.a8 = (function () { try {
     const r = {};
