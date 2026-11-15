@@ -24561,7 +24561,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       R.etiquetaSobrevive = (document.getElementById('cine-cap-etiq')||{}).value === 'TAPSE';
 
       capturado.length = 0;
-      document.getElementById('cine-med-cap').click();
+      document.getElementById('cine-cap').click();   /* MEDIR-5 C1: boton unico, rutea a medCapturarConMedicion con medidas dibujadas */
       await new Promise(r => setTimeout(r, 300));
       R.conMedCapturo = capturado.length === 1;
       const cCon = capturado.length ? await aCanvas(capturado[0].blob) : null;
@@ -24615,7 +24615,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       inp2.value = ''; inp2.dispatchEvent(new Event('input', { bubbles:true }));
       await new Promise(r => setTimeout(r, 90));
       capturado.length = 0;
-      document.getElementById('cine-med-cap').click();
+      document.getElementById('cine-cap').click();   /* MEDIR-5 C1: boton unico, rutea a medCapturarConMedicion con medidas dibujadas */
       await new Promise(r => setTimeout(r, 300));
       const cNo = capturado.length ? await aCanvas(capturado[0].blob) : null;
       R.sinEtiquetaMismaAltura = !!(cNo && cSin && cNo.height === cSin.height);
@@ -24658,7 +24658,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       const fo2 = CanvasRenderingContext2D.prototype.fillText;
       CanvasRenderingContext2D.prototype.fillText = function (t) { dibujadoV += ' ' + t; return fo2.apply(this, arguments); };
       capturado.length = 0;
-      document.getElementById('cine-med-cap').click();
+      document.getElementById('cine-cap').click();   /* MEDIR-5 C1: boton unico, rutea a medCapturarConMedicion con medidas dibujadas */
       CanvasRenderingContext2D.prototype.fillText = fo2;
       await new Promise(r => setTimeout(r, 260));
       R.canvasLiteral = dibujadoV.indexOf('<img src=x onerror=1>') >= 0;
@@ -24678,7 +24678,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       _vCon(_vistaB, () => { if (!_medOn) medToggle(); });
       await new Promise(r => setTimeout(r, 160));
       R.hayInputB = !!document.getElementById('b-cine-cap-etiq');
-      R.hayBotonB = !!document.getElementById('b-cine-med-cap');
+      R.hayBotonB = !!document.getElementById('b-cine-cap');   /* MEDIR-5 C1: boton unico */
 
       /* La etiqueta de B se escribe en B y NO en A. */
       const inpB = document.getElementById('b-cine-cap-etiq');
@@ -24690,7 +24690,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       /* Y el boton de B captura DE B: su loop se llama b.dcm y mide 400x320 igual, asi que lo
          que distingue es el SLOT reservado y que no reviente -- se mide el indice devuelto. */
       capturado.length = 0;
-      document.getElementById('b-cine-med-cap').click();
+      document.getElementById('b-cine-cap').click();   /* MEDIR-5 C1: boton unico */
       await new Promise(r => setTimeout(r, 320));
       R.bCapturo = capturado.length === 1;
       const cB = capturado.length ? await aCanvas(capturado[0].blob) : null;
@@ -30447,13 +30447,14 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       R.minAyuda   = rend('cine-ayuda');
       R.minRecal   = rend('cine-med-recal');
       R.minGuardar = rend('cine-guardar');
-      R.minMedCap  = rend('cine-med-cap');
+      /* MEDIR-5 C1: el boton cine-med-cap se retiro de la barra. El modo minimo sigue ESCONDIENDO
+         los cuatro que quedan y sigue MOSTRANDO cine-cap, que es lo que R.minCap afirma. */
       R.minAddB    = rend('cine-add-b');
       R.minEtiq    = rend('cine-cap-etiq');
       R.minCerrar  = rend('cine-cerrar');
       /* Y NO quedan enfocables con Tab: display:none los saca del orden de tabulacion.
          Se comprueba por offsetParent, que es null justo cuando el elemento no se renderiza. */
-      R.minNoFocusables = ['cine-med-recal','cine-guardar','cine-med-cap','cine-add-b','cine-cerrar']
+      R.minNoFocusables = ['cine-med-recal','cine-guardar','cine-add-b','cine-cerrar']
         .every(id => { const e = document.getElementById(id); return !!e && e.offsetParent === null; });
 
       if (!_medOn) medToggle();
@@ -30463,7 +30464,6 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       R.medSide    = rend('cine-side');
       R.medAyuda   = rend('cine-ayuda');
       R.medGuardar = rend('cine-guardar');
-      R.medMedCap  = rend('cine-med-cap');
       R.medEtiq    = rend('cine-cap-etiq');
       R.addB       = rend('cine-add-b');
       R.cerrar     = rend('cine-cerrar');
@@ -30567,19 +30567,19 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
                                                       'rot=' + R.minRot + ' pressed=' + R.minPressed],
       ['y NO se ve nada de medicion',                 R.minSide === false && R.minAyuda === false &&
                                                       R.minRecal === false && R.minGuardar === false &&
-                                                      R.minMedCap === false && R.minAddB === false &&
+                                                      R.minAddB === false &&
                                                       R.minCerrar === false && R.minEtiq === false,
                                                       'side=' + R.minSide + ' ayuda=' + R.minAyuda +
                                                       ' recal=' + R.minRecal + ' guardar=' + R.minGuardar +
-                                                      ' medcap=' + R.minMedCap + ' addB=' + R.minAddB +
+                                                      ' addB=' + R.minAddB +
                                                       ' cerrar=' + R.minCerrar + ' etiq=' + R.minEtiq],
       ['los escondidos NO quedan enfocables con Tab',  R.minNoFocusables === true, R.minNoFocusables],
       ['MEDICION: la clase se saca y aparece todo',    R.medClase === false && R.medSide === true &&
                                                       R.medAyuda === true && R.medGuardar === true &&
-                                                      R.medMedCap === true && R.medEtiq === true,
+                                                      R.medEtiq === true,
                                                       'clase=' + R.medClase + ' side=' + R.medSide +
                                                       ' ayuda=' + R.medAyuda + ' guardar=' + R.medGuardar +
-                                                      ' medcap=' + R.medMedCap + ' etiq=' + R.medEtiq],
+                                                      ' etiq=' + R.medEtiq],
       ['y el boton pasa a «Salir» y queda apretado',   R.medRot.indexOf('Salir') >= 0 &&
                                                       R.medPressed === 'true',
                                                       'rot=' + R.medRot + ' pressed=' + R.medPressed],
@@ -33831,7 +33831,7 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
       dopModo('mit'); await esperar(150);
       R.cerradoModo = _dop.modo;
       R.cerradoHayGuardar = !!cajon.querySelector('[data-dop-acc="guardar"]');
-      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A4): la linea que dice QUE incluye «Guardar tabla» se MOVIO
+      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A4): la linea que dice QUE incluye «Guardar en biblioteca» (rotulo unificado en MEDIR-5 C3) se MOVIO
          al globo ⓘ. Es texto que evita un error real —el boton esta debajo de UNA tabla y guarda
          las CUATRO— asi que no se borro: se lee del registro del globo, y se exige que ya NO este
          impresa en el panel. Falla por los dos lados. */

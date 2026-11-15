@@ -441,6 +441,72 @@
     tablasEnColB: document.querySelectorAll('#' + pfxB + 'cine-panel .cine-col-der table').length
   };
 
+  /* ══ C3 — «GUARDAR EN BIBLIOTECA» EN LAS DOS TABLAS ════════════════════════════════════
+     La escena de A1 ya dejo la mitral abierta en la A y el VD con un valor en la B, que es
+     exactamente lo que las dos compuertas necesitan. */
+  /* ⚠️ HAY QUE SEMBRAR UN VALOR DOPPLER, Y LO DESTAPO LA MEDICION: la escena de A1 abre la mitral
+     pero no mide nada en ella, asi que `_dopHayValores()` daba falso y el boton de guardar del
+     cajon Doppler NO se dibujaba — la sonda media su rotulo sobre un boton ausente y devolvia
+     null en los dos arboles, que se lee igual que «el rename no se aplico». */
+  try { _vCon(_vistaA, () => { const E = _dopEstado(); E.mit.ondaE = 80; });
+        if (typeof _dopRender === 'function') _dopRender(); } catch (e) { o.err.push('semDop: ' + e.message); }
+  await esp(300);
+  o.c3 = (function () { try {
+    const r = {};
+    const fila = id => { const n = $(id); if (!n) return null;
+      const bs = Array.from(n.querySelectorAll('[data-dop-acc],[data-d2-acc]'));
+      return bs.map(b => (b.textContent || '').trim()); };
+    r.accDop = fila('dop-cajon');
+    r.accD2 = fila('d2-cajon');
+    /* «Al lado de Limpiar» se mide por la distancia en el orden del DOM: 1 es pegado. */
+    const pegado = (id, attr) => { const n = $(id); if (!n) return null;
+      const bs = Array.from(n.querySelectorAll('[' + attr + ']'));
+      const iL = bs.findIndex(b => b.getAttribute(attr) === 'limpiar');
+      const iG = bs.findIndex(b => b.getAttribute(attr) === 'guardar');
+      return (iL < 0 || iG < 0) ? null : (iG - iL); };
+    r.pegadoDop = pegado('dop-cajon', 'data-dop-acc');
+    r.pegadoD2 = pegado('d2-cajon', 'data-d2-acc');
+    r.rotDop = (function () { const b = document.querySelector('[data-dop-acc="guardar"]');
+      return b ? (b.textContent || '').trim() : null; })();
+    r.rotD2 = (function () { const b = document.querySelector('[data-d2-acc="guardar"]');
+      return b ? (b.textContent || '').trim() : null; })();
+    /* El renderizador unico y los dos canvas. */
+    r.hayMedSecCanvas = (typeof _medSecCanvas === 'function');
+    r.secD2 = (typeof _d2SeccionesGuardado === 'function')
+      ? _d2SeccionesGuardado().map(s => s.rot + ':' + s.filas.length) : null;
+    r.sufD2 = (typeof _d2SufijoGuardado === 'function') ? _d2SufijoGuardado() : null;
+    const cvD2 = (typeof _d2Canvas === 'function') ? _d2Canvas() : null;
+    r.cvD2 = cvD2 ? (cvD2.width + 'x' + cvD2.height) : null;
+    /* ⚠️ EL HASH DEL CANVAS DEL DOPPLER: es lo que prueba que la extraccion a `_medSecCanvas`
+       no cambio un pixel. Se compara contra el mismo numero en el arbol anterior. */
+    const cvDop = (typeof _dopCanvas === 'function') ? _dopCanvas() : null;
+    r.cvDop = cvDop ? (cvDop.width + 'x' + cvDop.height) : null;
+    r.hashDop = cvDop ? (function () { const u = cvDop.toDataURL('image/png');
+      let h = 0; for (let i = 0; i < u.length; i++) { h = (h * 31 + u.charCodeAt(i)) | 0; }
+      return (h >>> 0).toString(16) + ':' + u.length; })() : null;
+    /* Y que guardar NO escriba un solo campo del informe: censo antes y despues. */
+    const censo = () => Array.from(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .filter(e => !e.closest('#cine-ov'))
+      .map(e => e.id + '=' + String(e.value == null ? '' : e.value)).join('|');
+    r.censoAntes = censo().length;
+    r.censoAntesHash = (function () { const u = censo(); let h = 0;
+      for (let i = 0; i < u.length; i++) { h = (h * 31 + u.charCodeAt(i)) | 0; }
+      return (h >>> 0).toString(16); })();
+    r._censoFn = true;
+    return r;
+  } catch (e) { return 'ERR ' + e.message; } })();
+  try {
+    if (typeof d2GuardarBiblioteca === 'function') { await d2GuardarBiblioteca(); await esp(900); }
+    const censo = () => Array.from(document.querySelectorAll('input[id], select[id], textarea[id]'))
+      .filter(e => !e.closest('#cine-ov'))
+      .map(e => e.id + '=' + String(e.value == null ? '' : e.value)).join('|');
+    o.c3.censoDespues = censo().length;
+    o.c3.censoDespuesHash = (function () { const u = censo(); let h = 0;
+      for (let i = 0; i < u.length; i++) { h = (h * 31 + u.charCodeAt(i)) | 0; }
+      return (h >>> 0).toString(16); })();
+    o.c3.censoIgual = (o.c3.censoAntesHash === o.c3.censoDespuesHash);
+  } catch (e) { o.err.push('c3guardar: ' + e.message); }
+
   /* ══ A8 — EL FAC DEL VD PIERDE LA DIASTOLE AL MOVER EL CUADRO ═══════════════════════════ */
   o.a8 = (function () { try {
     const r = {};

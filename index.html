@@ -152301,7 +152301,7 @@ function _dopInfoTxts(faltaTxt, hayFilas) {
     if (_dopHayValores()) {
       const conDatos = _dopSeccionesGuardado()
         .map(s => s.m === 'gen' ? 'las mediciones sin asignar' : s.rot);
-      out.push('«Guardar tabla» incluye ' + conDatos.join(', ') +
+      out.push('«Guardar en biblioteca» incluye ' + conDatos.join(', ') +
                ' — todo lo medido en esta sesión, no sólo la válvula abierta.');
     }
   } catch (e) {}
@@ -152458,7 +152458,7 @@ function _dopRender() {
        cuatro imágenes medidas, el selector cerrado, y ningún control para guardar lo que el propio
        panel marca con un punto en cada botón. El predicado de hoy cubre los dos. */
     (_dopHayValores()
-      ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">💾 Guardar tabla</button>'
+      ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">💾 Guardar en biblioteca</button>'
       : '') +
     /* El globo va en la MISMA fila que los botones y no debajo: es un control de 22 px al lado de
        dos de 44, y colgado aparte agregaria un renglon a una columna que el pedido quiere
@@ -152561,8 +152561,20 @@ function _dopSeccionesGuardado() {
   return S;
 }
 
-function _dopCanvas() {
-  const S = _dopSeccionesGuardado();
+/* ══ MEDIR-5 (C3) — EL RENDERIZADOR DE TABLA A CANVAS, PARAMETRIZADO ═══════════════════════════
+   ⚠️ ESTO ES UNA EXTRACCION PURA DE `_dopCanvas`, NO UN SEGUNDO RENDERIZADOR, y la diferencia es
+   todo el punto. C3 pide el mismo boton en el cajon 2D, y la salida que produce es una imagen que
+   CIRCULA SOLA —puede terminar en un PDF firmado—: con dos armados, la tabla del Doppler y la del
+   2D se irian separando sin que nada avise, que es el patron de «formula duplicada» que este
+   archivo ya persigue tres veces. Y copiar este dibujo en particular seria peor que lo habitual,
+   porque sus numeros estan MEDIDOS mirando la imagen y no deducidos: los 34 px de `secH` para que
+   la cebra no tape el filete, el filete de 1 px centrado en el canal de 14, el titulo y el rotulo
+   que se achican hasta entrar porque `fillText` recorta por la cola EN SILENCIO, y el alto que
+   sale de la columna MAS LARGA y no de la suma.
+   Lo unico que cambia respecto de antes son los tres parametros: el titulo, las secciones y los
+   descargos. El cuerpo es el mismo byte por byte, y se verifica comparando el `toDataURL` del
+   canvas del Doppler contra el del arbol anterior. */
+function _medSecCanvas(tit, S, discTxts) {
   /* ⚠️ `secH` TIENE QUE DEJAR PASAR EL FILETE. La cebra de la primera fila se pinta desde
      `y - 16`, así que con un alto de sección chico ese relleno tapa la línea divisoria: la escribí
      en 28 y el filete NO se dibujaba — verificado mirando la imagen, no el código. Con 34 la cebra
@@ -152571,7 +152583,7 @@ function _dopCanvas() {
      tabla y una Vmax de la pulmonar que pasa por la de la aorta. */
   const W = 640, pad = 22, filaH = 30, cabH = 46, secH = 34;
   const discLineas = [];
-  _dopDiscDe(S).forEach(t => {
+  (discTxts || []).forEach(t => {
     /* Partido a mano: `fillText` NO envuelve, recorta por la cola en silencio — y lo que se
        perdería es justamente el descargo. */
     let linea = '', pal = t.split(' ');
@@ -152606,7 +152618,6 @@ function _dopCanvas() {
      recorta por la cola EN SILENCIO, así que lo que desaparecería es justamente la lista de
      válvulas que el archivo contiene. Es el recurso de `_medFontQueEntra` y `_pptFsQueEntra`, con
      piso para que no termine ilegible. */
-  const tit = 'Mediciones Doppler' + _dopSufijoGuardado();
   let fsT = 17;
   c.font = 'bold ' + fsT + 'px system-ui, sans-serif';
   while (fsT > 11 && c.measureText(tit).width > W - 2 * pad) {
@@ -152681,6 +152692,13 @@ function _dopCanvas() {
   y += 12;
   discLineas.forEach(l => { c.fillText(l, pad, y); y += 15; });
   return cv;
+}
+window._medSecCanvas = _medSecCanvas;
+
+/* El canvas del cajon Doppler: lo unico que aporta son sus tres insumos. */
+function _dopCanvas() {
+  const S = _dopSeccionesGuardado();
+  return _medSecCanvas('Mediciones Doppler' + _dopSufijoGuardado(), S, _dopDiscDe(S));
 }
 window._dopCanvas = _dopCanvas;
 
@@ -153271,7 +153289,7 @@ function _d2Disc() {
   const d = [_D2_DISC_BASE, 'Estas mediciones NO se guardan: viven sólo mientras la pestaña está ' +
              'abierta. Anotá lo que necesites antes de cerrar.' +
              (guardables.length ? ' La excepción son ' + guardables.join(' y ') +
-              ', que viven en el cajón Doppler y entran en su «Guardar tabla».' : '')];
+              ', que viven en el cajón Doppler y entran en su «Guardar en biblioteca».' : '')];
   const F = _d2Filas();
   if (F.some(f => String(f[0]).indexOf('Engrosamiento') === 0)) {
     d.push('Engrosamiento parietal = (sistólico − diastólico) / diastólico. NO es la FEVI: ' +
@@ -153300,6 +153318,72 @@ function _d2Disc() {
   }
   return d;
 }
+
+/* ══ MEDIR-5 (C3) — «GUARDAR EN BIBLIOTECA» TAMBIEN EN EL CAJON 2D ════════════════════════════
+   El cajon Doppler tenia su boton desde antes; el 2D NO, y su propio comentario declaraba por que
+   —«Aca no se agrego, no estaba en el pedido»—. C3 pide el boton al lado de «Limpiar» en las dos
+   tablas, asi que esto completa el par usando el MISMO renderizador (`_medSecCanvas`) y la MISMA
+   puerta de guardado (`_docGuardarEnBiblioteca`) que el hermano.
+
+   ⚠️ NO GUARDA UN SOLO DATO NI ESCRIBE NINGUN CAMPO: lo que produce es una IMAGEN de la tabla, que
+   entra a la biblioteca de imagenes del estudio como cualquier captura. Los numeros del cajon 2D
+   siguen viviendo solo en memoria —`_d2Disc()` ya lo declara— y esta tanda no agrega persistencia
+   de tablas. Lo que la imagen habilita es que el medico decida mandarla al PDF con el 📄, que es
+   literalmente lo que C3 pide. */
+function _d2SeccionesGuardado() {
+  const S = [], medidas = f => f[1] != null;
+  /* Se recorren los CINCO grupos y no el abierto, por el mismo motivo que en el Doppler: el cajon
+     acumula, asi que mirar el grupo en pantalla diria «no hay nada» sobre un cajon con el VI
+     cargado y el selector cerrado — un mensaje falso sobre lo que el propio panel marca con un
+     punto en cada boton. */
+  _D2_GRUPOS.forEach(G => {
+    if (!_d2GrupoConDatos(G.m)) return;
+    /* El sufijo va SIN el glifo: entra en el titulo del documento, donde cinco emojis se comen el
+       ancho que necesitan los nombres. El rotulo completo si va en el encabezado de la seccion. */
+    const sin = String(G.rot).replace(/^[^A-Za-zÁÉÍÓÚÑ]+/, '');
+    S.push({ m: G.m, rot: G.rot, sufijo: sin, filas: _d2Filas(G.m).filter(medidas) });
+  });
+  return S;
+}
+window._d2SeccionesGuardado = _d2SeccionesGuardado;
+
+function _d2SufijoGuardado() {
+  const v = _d2SeccionesGuardado().map(s => s.sufijo);
+  return v.length ? ' — ' + v.join(' + ') : '';
+}
+
+function _d2Canvas() {
+  const S = _d2SeccionesGuardado();
+  return _medSecCanvas('Mediciones 2D' + _d2SufijoGuardado(), S, _d2Disc());
+}
+window._d2Canvas = _d2Canvas;
+
+async function d2GuardarBiblioteca() {
+  /* Con el cajon vacio no se guarda nada: una imagen de guiones ocupa lugar y no dice nada. */
+  if (!_d2SeccionesGuardado().length) {
+    if (typeof toast === 'function') toast('No hay ninguna medición todavía.');
+    return;
+  }
+  try {
+    const cv = _d2Canvas();
+    /* ⚠️ EL NOMBRE LLEVA LA ESTRUCTURA Y LA HORA, que es lo que C3 pide textualmente — y hace
+       falta por lo mismo que en el Doppler: el cajon acumula, asi que el flujo natural es guardar
+       parcial y volver a guardar, y dos tarjetas «2D — VI» con miniaturas de 150 px, donde una
+       tabla de numeros es ilegible, son indistinguibles. */
+    const hh = new Date();
+    const dosD = x => (x < 10 ? '0' : '') + x;
+    const nom = '2D' + _d2SufijoGuardado() + ' · ' + dosD(hh.getHours()) + ':' + dosD(hh.getMinutes());
+    const r = await _docGuardarEnBiblioteca(cv, nom, null);
+    /* Se emite DESPUES del toast generico de `_docGuardarEnBiblioteca`, que reescribe el mismo
+       nodo, y por eso lleva la instruccion del 📄 adentro: sin ella el mensaje que sobrevive
+       perderia la unica mencion de como la tabla llega al PDF. */
+    if (r && r.ok && typeof toast === 'function')
+      toast('💾 Tabla' + _d2SufijoGuardado() + ' guardada — con 📄 la mandás al PDF');
+  } catch (e) {
+    if (typeof toast === 'function') toast('No se pudo guardar la tabla.');
+  }
+}
+window.d2GuardarBiblioteca = d2GuardarBiblioteca;
 
 function _d2Render() {
   /* ⚠️ MEDIR-4 — LO MISMO QUE EN `_dopRender`, y por el mismo motivo: los dos cajones viven en la
@@ -153365,6 +153449,13 @@ function _d2Render() {
      «Midiendo para …» o la de «Elegi un grupo …» segun el estado. */
   h += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px;">' +
     '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-d2-acc="limpiar">🗑️ Limpiar</button>' +
+    /* ══ MEDIR-5 (C3) — AL LADO DE «LIMPIAR», IGUAL QUE EN EL CAJON DOPPLER ════════════════
+       ⚠️ LA COMPUERTA MIRA EL CAJON ENTERO (`_d2HayValores`) y no el grupo abierto, que es la
+       leccion que el hermano ya pago: con el selector cerrado y el VI cargado, mirar el grupo
+       abierto escondia el boton justo en el caso en que hace falta. */
+    (_d2HayValores()
+      ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-d2-acc="guardar">💾 Guardar en biblioteca</button>'
+      : '') +
     _medInfoBoton('d2', 'Mediciones 2D',
       (F.length ? ['Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las ' +
                    'reemplaza. Los derivados se recalculan solos y no se editan.'] : [])
@@ -153461,6 +153552,10 @@ function _d2Observar() {
     const acc = b.getAttribute('data-d2-acc');
     if (acc === 'limpiar' || acc === 'avisolimpiar') { _d2LimpiarConfirmar(); return; }
     if (acc === 'avisook') { d2AvisoConservar(); return; }
+    /* ══ MEDIR-5 (C3) — el guardado de la tabla 2D a la biblioteca de imagenes ══════════════
+       Va por el mismo oyente delegado que los demas: el cajon se repinta entero en cada cambio,
+       asi que un `onclick` por boton se perderia en el siguiente repintado. */
+    if (acc === 'guardar') { d2GuardarBiblioteca(); return; }
   });
 }
 
