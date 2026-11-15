@@ -275,7 +275,17 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,22 MB / 183.025 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-4b**, sobre el árbol ya sellado: sello **`v20261115-0555`**, md5 **`c875ae0f`**.
+  sin frameworks. Hoy **13,28 MB / 183.958 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 en la tanda **MEDIR-5**, que quedó ABIERTA, sobre el árbol ya sellado: sello **`v20261115-1403`**, md5 **`c574e436`**.
+  ⚠️ **MEDIR-5 NO CERRÓ, Y EL SELLO ESTÁ PUESTO IGUAL**: se selló antes de la batería —que es el
+  patrón de esta casa, para que el árbol que la suite mide sea el que queda commiteado— y la
+  batería dejó **36 rojos**, de los que **QUINCE son consecuencia de B1 y B2 y están SIN ADAPTAR**.
+  **La suite da 875/911 y eso NO es la línea base.** El detalle, caso por caso, en
+  `docs/PENDIENTES.md` → **M5-m**.
+  ⚠️ **Y LA CIFRA DE CELULAR DE ESTE ARCHIVO ESTÁ VIEJA**: publica «18 ALTA» y, medido con el MISMO
+  script en los DOS árboles —el vivo y `2cd2ee9`—, da **36 en los dos**. No hay regresión: lo que
+  está mal es el número publicado (**M5-n**). No se corrigió porque habría que saber con qué
+  versión del script salieron los 18.
+  (Antes: 13,22 MB / 183.025 al cierre de **MEDIR-4b**, sello `v20261115-0555`, md5 `c875ae0f`.)
   El diff de MEDIR-4b son **441 líneas agregadas y 69 quitadas** en `index.html`, medido con
   `git diff --numstat` contra **`74df0b6`** —el cierre de MEDIR-4a, que es la línea base de ESTA
   tanda— **sobre el árbol ya sellado**, de las que **379** no son comentario, con **cero** `eval(`
