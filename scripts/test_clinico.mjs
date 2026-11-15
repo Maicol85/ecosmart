@@ -15926,15 +15926,20 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
          verificar explicitamente: "mostrar al tocar" NO implica "ocultar al salir". */
       abrir('vi');
       const viRots = rots();
-      /* ⚠️ INVERTIDA EN MEDIR-2 y REAJUSTADA EN MEDIR-3: eran DOS celdas -rotulo y valor con sus
-         botones-, MEDIR-2 las llevo a CINCO y MEDIR-3 las dejo en CUATRO, con la unidad DENTRO
-         del valor: Medida | Valor | Acciones | la casilla de la comunidad. El motivo del segundo
-         cambio esta medido —con cinco columnas la tabla desbordaba su columna de 310 px por 32 px
-         con UNA tabla y por 179 con dos— y el pedido pide ademas «valor GRANDE con la unidad
-         chica», o sea los dos en la misma celda. Falla por los dos lados: si vuelven las cinco y
-         si alguien agrega una quinta sin declararla. */
-      const unaColumna = C().querySelector('table tbody tr').children.length === 4 &&
-                         C().querySelectorAll('table thead th').length === 4;
+      /* ⚠️ INVERTIDA EN MEDIR-2, REAJUSTADA EN MEDIR-3 Y OTRA VEZ EN MEDIR-4a: eran DOS celdas
+         -rotulo y valor con sus botones-, MEDIR-2 las llevo a CINCO, MEDIR-3 las dejo en CUATRO
+         con la unidad DENTRO del valor, y MEDIR-4a las deja en TRES -- Medida | Valor | Acciones
+         --, porque la casilla de la comunidad por fila se retiro por orden del medico (bloque E).
+         El motivo del segundo cambio esta medido —con cinco columnas la tabla desbordaba su
+         columna de 310 px por 32 px con UNA tabla y por 179 con dos— y el del tercero es que con
+         la columna de medidas en 340 px con dos vistas el nombre es el que envuelve primero.
+         Falla por los dos lados: si vuelve la cuarta y si alguien le saca una tercera.
+         ⚠️ Y ESTE CASO LO DESTAPO LA BATERIA COMPLETA Y NO MI CENSO: afirma el conteo con la
+         palabra «CUATRO» en su rotulo y con un un === 4 en el cuerpo, asi que buscar «med-tabla» o
+         «children.length >= 4» no lo encontro. Es el modo de falla que este archivo documenta una
+         decena de veces. */
+      const unaColumna = C().querySelector('table tbody tr').children.length === 3 &&
+                         C().querySelectorAll('table thead th').length === 3;
       abrir('ao');
       const aoRots = rots();
       const ocultaElAnterior = aoRots.indexOf('DDVI') < 0 && aoRots.indexOf('SIVd') < 0;
@@ -16108,7 +16113,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         ['y el Diam TSVI ya NO esta en el VI', viRots.indexOf('Diam TSVI') < 0, viRots.join(',')],
         /* ⚠️ ADAPTADO EN MEDIR-3 (punto A3): la tabla pasa de CINCO columnas a CUATRO, con la
            unidad dentro del valor. Con cinco no entraba en la columna de medicion. */
-        ['CUATRO columnas, con su encabezado', unaColumna, ''],
+        ['INVERTIDA: TRES columnas, con su encabezado', unaColumna, ''],
         ['TOCAR OTRO GRUPO OCULTA EL ANTERIOR', ocultaElAnterior, aoRots.join(',')],
         ['  la AI tiene una sola fila', aiSolaFila, rots().join(',')],
         ['  y tocar el abierto lo cierra', tocarElAbiertoCierra, ''],
@@ -142178,7 +142183,7 @@ caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro 
   })();
 `);
 
-caso('TC-888', 'MEDIR-3 bloque B: los ocho botones de la barra del visor miden lo mismo y van en la misma fila, el AZUL es solo del modo prendido y las acciones quedan grises, y el rotulo del prendido contrasta 4,5:1', `
+caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho): los botones de la barra del visor miden lo mismo y van en la misma fila, el AZUL es solo del modo prendido y las acciones quedan grises, y el rotulo del prendido contrasta 4,5:1', `
   return (async () => {
     const esperar = ms => new Promise(r => setTimeout(r, ms));
     const R = {};
@@ -142293,7 +142298,15 @@ caso('TC-888', 'MEDIR-3 bloque B: los ocho botones de la barra del visor miden l
     try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
     return { extra: [
       ['sin excepciones',                                  !R.err, R.err],
-      ['DENOMINADOR: la barra tiene sus ocho botones',     R.n === 8, R.n],
+      /* ⚠️ ADAPTADO EN MEDIR-4a (bloque A2): la barra tiene SIETE botones y no ocho, y los dos
+         numeros no son el mismo reparto. Salieron «+ Vista» y «Cerrar» —que se mudaron al
+         encabezado del modal, porque son controles del MODAL y en la barra de la vista A eran dos
+         mas que en la de la B: a 1280 y 1180 la A envolvia en TRES lineas contra las DOS de la B,
+         38 px de diferencia de alto— y entro «✕ Cerrar vista», que ahora se emite en las DOS
+         vistas. 6 compartidos + 1 = 7. Todo lo que este caso mide de verdad —mismo alto, mismo
+         ancho, misma fila, un solo azul y el contraste— se sigue midiendo igual.
+         Que los dos que salieron no vivan en ninguna barra lo fija TC-892. */
+      ['DENOMINADOR: la barra tiene sus siete botones',    R.n === 7, R.n],
       ['todos del MISMO alto',                             R.mismoAlto === true, 'min=' + R.alto + ' max=' + R.altoMax],
       ['y del mismo ancho',                                R.mismoAncho === true, R.detalle],
       ['en la MISMA fila cuando el ancho alcanza',         R.mismaFila === true,
