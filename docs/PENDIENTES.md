@@ -196,9 +196,59 @@ mano.
 `_d2Derivados` emiten filas con `campo` en **null**, que es justo lo que las deja sin ✏️ y en
 cursiva con la palabra «calculada». No hace falta inventar una tabla aparte.
 
+### M5-k · MI CENSO DE M5-i ESTABA MAL EN LOS SEIS: los campos EXISTEN
+
+**El medico tenia razon.** M5-i declaraba que seis items de B4 a B7 no existian en ninguna parte.
+Buscados de nuevo por sus rotulos y por otras escrituras, **los seis existen** y estan verificados
+uno por uno leyendo su `label`:
+
+| pedido | `id` | rotulo literal en la app | seccion |
+|---|---|---|---|
+| Diam jet TSVI | `ia_jet_diam` | «Diám jet IAo en TSVI (mm)» | Aortica · Insuficiencia |
+| VC aortica | `ia_vc` | «Vena contracta (mm)» | Aortica · Insuficiencia |
+| THP aortico | `ia_pht` | THP IAo | Aortica · Insuficiencia |
+| VC mitral | `im_vc` | «Vena contracta (mm)» | Mitral · Insuficiencia |
+| VTI VT | `et_vti_diast` | «VTI diastólico tricuspídeo (cm)» | Tricuspide · Estenosis |
+| G. Medio VT | `et_gmedio` | «Gradiente medio ET (mmHg)» | Tricuspide · Estenosis |
+| THP VT | `et_thp` | «THP tricuspídeo (ms)» | Tricuspide · Estenosis |
+| Onda S por TDI | `s_prime` | «S' tricuspídeo (cm/s)» | VD · Funcion sistolica |
+
+**Por que el censo fallo:** busque las tres de la tricuspide bajo la INSUFICIENCIA (`it_`) y viven
+bajo la ESTENOSIS (`et_`), que es otra seccion; y busque la onda S con nombres que no eran el
+suyo. **La leccion es la de siempre en esta casa: un `grep` por el `id` que uno imagina no es un
+censo. Hay que buscar por el ROTULO que el medico lee.**
+
+⚠️ **Y la `s_prime` NO es la «Onda S pulmonar» de la vena pulmonar**, que el medico advirtio
+expresamente que es otra medida: aquella vive en el llenado mitral y esta en la funcion sistolica
+del VD, con el rotulo que dice «tricuspídeo».
+
+**Ninguno se agrego todavia.** Cuando se agreguen, van como filas del visor que guardan en `_dop`,
+**sin escribir el campo del informe**: eso es MEDIR-4c.
+
+### M5-l · B4 y B5 piden DOS COLUMNAS, y no entran — medido
+
+**Choca con una decision medida de MEDIR-3**, que retiro el reparto en dos columnas
+(`tablaCols`) justamente porque desbordaba: «en los ocho cruces del arbol anterior el cajon
+desbordaba horizontalmente **179 px en Chrome y 181 en WebKit** sobre una columna de 310».
+
+Con los numeros de HOY tampoco entran, y la cuenta sale de lo medido en B2: la celda de acciones
+necesita **91 px de contenido** —dos botones de 44 px, que es el piso tactil global de `.btn`, mas
+3 de hueco—.
+
+| columna | tablas | ancho de tabla | contenido de la celda de acciones | |
+|---|---|---|---|---|
+| 380 px (una vista) | 1 | 347 px | 108 px | entra |
+| 380 px | **2** | 166 px | **46 px** | **no entra** |
+| 340 px (dos vistas) | 1 | 307 px | 94 px | entra |
+| 340 px | **2** | 146 px | **40 px** | **no entra** |
+
+**Se aplica la salvedad que el propio pedido B5 trae** —«si no entran, una sola columna y los
+calculados igual»— y que B4 implica. O sea: **una sola columna**, y los calculados en su tabla
+propia debajo de la imagen. Queda declarado en vez de intentarlo y desbordar.
+
 ### M5-j · Lo que quedo de la Parte B
 
-Hechos: **B1** (la barra unica) y **B3** (el orden del VD). Queda:
+Hechos: **B1** (la barra unica), **B2** (el valor angosto y tocable) y **B3** (el orden del VD). Queda:
 
 1. **B2** — el valor mas angosto, sin ✏️, el numero tocable para escribir a mano con 44 px, y una
    ✕ por dato. Toca `_medTablaHTML`, que es el armador de los DOS cajones.
