@@ -536,6 +536,98 @@
     o.c3.censoIgual = (o.c3.censoAntesHash === o.c3.censoDespuesHash);
   } catch (e) { o.err.push('c3guardar: ' + e.message); }
 
+  /* ══ B2 — LA TABLA: VALOR ANGOSTO, SIN LAPIZ, EL NUMERO TOCABLE, «MEDIR» Y ✕ ═══════════ */
+  o.b2 = (function () { try {
+    const caj = $('d2-cajon'); if (!caj) return 'sin cajon';
+    const t = caj.querySelector('table.med-tabla'); if (!t) return 'sin tabla';
+    const anchoCol = Array.from(t.querySelectorAll('col')).map(c => c.style.width);
+    const trs = Array.from(t.querySelectorAll('tbody tr'));
+    const filas = trs.map(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length < 3) return null;
+      const bs = Array.from(tds[2].querySelectorAll('button')).map(b => (b.textContent || '').trim());
+      const vb = tds[1].querySelector('button');
+      return {
+        nom: (tds[0].textContent || '').trim().slice(0, 22),
+        val: (tds[1].textContent || '').trim().slice(0, 14),
+        valEsBoton: !!vb,
+        valCorr: vb ? vb.getAttribute('data-d2-corr') : null,
+        valAlto: vb ? Math.round(vb.getBoundingClientRect().height) : null,
+        acc: bs,
+        cursiva: getComputedStyle(tr).fontStyle === 'italic',
+        altoFila: Math.round(tr.getBoundingClientRect().height)
+      };
+    }).filter(Boolean);
+    /* El area TACTIL del valor: el `::after` de `med-fbot` da 44 px sin agrandar la fila. */
+    const areaVal = (function () {
+      const vb = t.querySelector('tbody td:nth-child(2) button');
+      if (!vb) return null;
+      const r = vb.getBoundingClientRect();
+      const a = getComputedStyle(vb, '::after');
+      return { visible: Math.round(r.height), tactil: a.height };
+    })();
+    /* ⚠️ CERO PARES DE AREAS TACTILES SOLAPADAS entre los valores de filas consecutivas. */
+    const vbs = Array.from(t.querySelectorAll('tbody td:nth-child(2) button'))
+      .map(b => { const r = b.getBoundingClientRect();
+        return { c: r.y + r.height / 2 }; });
+    /* ⚠️ CON DENOMINADOR. Sin el, a 390 px la tabla devolvia alturas en CERO —el cajon no esta
+       renderizado a ese ancho— y la cuenta de solapes daba 4 sobre nada, que se lee igual que un
+       defecto. La medicion solo vale si la tabla tiene caja. */
+    const tienCaja = Math.round(t.getBoundingClientRect().height) > 0;
+    let solapes = tienCaja ? 0 : null;
+    if (tienCaja) for (let i = 1; i < vbs.length; i++)
+      if (Math.abs(vbs[i].c - vbs[i-1].c) < 44) solapes++;
+    return {
+      medible: tienCaja,
+      porQueNo: tienCaja ? null : (function () {
+        let n = t, cad = [];
+        while (n && n !== document.body) {
+          const s2 = getComputedStyle(n);
+          if (s2.display === 'none') cad.push((n.id || n.className || n.tagName) + ':display-none');
+          n = n.parentElement;
+        }
+        return cad.length ? cad.join(' > ') : 'con caja cero pero sin display:none';
+      })(),
+      anchoCol: anchoCol, layout: getComputedStyle(t).tableLayout,
+      nFilas: filas.length, filas: filas,
+      hayLapiz: (caj.textContent || '').indexOf('✏️') > -1,
+      lapizEnGlobo: (function () { try { const d = _medPanelInfo('d2');
+        return d ? d.txts.join(' ').indexOf('✏️') > -1 : null; } catch (e) { return 'ERR'; } })(),
+      globoDiceTocar: (function () { try { const d = _medPanelInfo('d2');
+        return d ? d.txts.join(' ').indexOf('TOCA EL NUMERO') > -1 : null; } catch (e) { return 'ERR'; } })(),
+      areaVal: areaVal, solapesValor: solapes,
+      /* El ancho de la tabla NO se mueve al pasar de guion a numero: se mide el ancho de la
+         columna del valor antes y despues de escribir uno. */
+      anchoAntes: (function () { const c = t.querySelector('tbody td:nth-child(2)');
+        return c ? Math.round(c.getBoundingClientRect().width) : null; })(),
+      /* ⚠️ POR QUE UNA FILA CON VALOR MIDE EL DOBLE: si los dos botones de acciones no entran en
+         su celda, envuelven, y `row-gap:22px` suma otros 44 px. Se mide el ancho de la celda y
+         el que de verdad ocupan los botones, que es lo unico que dice si hay que repartir
+         distinto o si es otra cosa. */
+      accCelda: (function () { const c = t.querySelector('tbody td:nth-child(3)');
+        return c ? Math.round(c.getBoundingClientRect().width) : null; })(),
+      accBotones: (function () {
+        const c = t.querySelector('tbody tr:nth-child(2) td:nth-child(3)');
+        if (!c) return null;
+        const bs = Array.from(c.querySelectorAll('button'));
+        return { n: bs.length, anchos: bs.map(b => Math.round(b.getBoundingClientRect().width)),
+                 suma: bs.reduce((a, b) => a + b.getBoundingClientRect().width, 0).toFixed(0),
+                 lineas: (function () { const ys = bs.map(b => Math.round(b.getBoundingClientRect().y));
+                   return ys.filter((v, i, a2) => a2.indexOf(v) === i).length; })() };
+      })()
+    };
+  } catch (e) { return 'ERR ' + e.message; } })();
+  try {
+    /* Se escribe un valor en una fila que estaba en guion y se vuelve a medir el ancho. */
+    _vCon(_vistaB, () => { if (typeof _d2Poner === 'function') _d2Poner('vd.medio', 33); });
+    if (typeof _d2Render === 'function') _d2Render();
+    await esp(320);
+    const t2 = $('d2-cajon') ? $('d2-cajon').querySelector('table.med-tabla') : null;
+    o.b2.anchoDespues = t2 ? (function () { const c = t2.querySelector('tbody td:nth-child(2)');
+      return c ? Math.round(c.getBoundingClientRect().width) : null; })() : null;
+    o.b2.anchoIgual = (o.b2.anchoAntes === o.b2.anchoDespues);
+  } catch (e) { o.err.push('b2ancho: ' + e.message); }
+
   /* ══ A8 — EL FAC DEL VD PIERDE LA DIASTOLE AL MOVER EL CUADRO ═══════════════════════════ */
   o.a8 = (function () { try {
     const r = {};

@@ -142482,7 +142482,21 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
      era abrir el cartel que explica que esta bloqueada. */
   let t = '<table class="med-tabla" style="width:100%;border-collapse:collapse;' +
     'table-layout:fixed;font-size:10.5px;">' +
-    '<colgroup><col style="width:42%"><col style="width:26%"><col style="width:32%">' +
+    /* ══ MEDIR-5 (B2) — LA COLUMNA DEL VALOR SE ANGOSTA ════════════════════════════════════
+       De 26 % a 20 %. Lo que gana es el NOMBRE, que con la columna en 340 px es el que envuelve
+       primero, y las acciones no lo necesitan porque pasaron de tres botones a dos.
+       ⚠️ «El valor pasa de guion a numero sin que cambie el ancho» YA se cumplia y no hubo que
+       hacer nada: la tabla es `table-layout:fixed` con el reparto en porcentajes, asi que el
+       contenido de una celda no puede mover una columna. Se mide igual, que es como se sabe que
+       sigue siendo cierto.
+       ⚠️ EL REPARTO ES 46 / 20 / 34 Y EL ULTIMO NUMERO SALE DE UNA MEDICION, POR UN PIXEL. Con
+       32 % la celda de acciones media 100 px y su relleno de 5 px por lado dejaba 90 de
+       contenido, mientras los dos botones necesitan 91: cada uno mide 44 px de ancho por el
+       piso tactil global de `.btn`, mas los 3 del hueco. Por ese pixel ENVOLVIAN, y con
+       `row-gap:22px` una fila con valor pasaba a medir 89 px contra los 45 de una vacia — el
+       doble de alto por un pixel que no se ve. Con 34 % la celda da 106 y los dos entran en
+       una linea. 46 + 20 + 34 = 100. */
+    '<colgroup><col style="width:46%"><col style="width:20%"><col style="width:34%">' +
     '</colgroup>' +
     '<thead><tr style="border-bottom:1px solid var(--border);">' +
     '<th style="' + TH + 'text-align:left;">Medida</th>' +
@@ -142505,16 +142519,40 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
          que su celda no cambia en una sola letra. */
       acc = '<span style="font-size:9.5px;color:var(--text2);">' + esc(f[7] || 'calculada') + '</span>';
     } else {
+      /* ══ MEDIR-5 (B2) — SALE EL ✏️ Y SALE «BORRAR»; QUEDAN «MEDIR» Y LA ✕ ═══════════════
+         El lapiz se retira porque su trabajo lo hace ahora el PROPIO NUMERO: tocarlo abre la
+         escritura a mano. Era un glifo de 10 px que no se descubria solo —lo decia su nota del
+         globo ⓘ— al lado del valor que ya invitaba a tocarse.
+         «Borrar» pasa a ✕ para que la fila entre en la columna de 340 px con dos vistas. El
+         atributo NO cambia (`-borrar`), asi que `dopBorrar` / `d2Borrar` y sus casos siguen
+         igual: lo unico que cambia es el rotulo. Y sigue borrando SOLO ese dato —«de a uno», que
+         es lo que B2 pide— porque esas funciones siempre vaciaron una clave sola. */
       if (f[4]) acc += bot('Medir', 'armar', 'Elegí la herramienta y la próxima medición cae en este campo.');
-      acc += bot('✏️', 'corr', 'Escribir el valor a mano.');
-      if (f[1] != null) acc += bot('Borrar', 'borrar', 'Vacía este campo. No toca las demás medidas.');
+      if (f[1] != null) acc += bot('✕', 'borrar', 'Borra sólo este dato. No toca las demás medidas.');
     }
     /* El VALOR en 17 px y la UNIDAD en 9,5: es el «numeros grandes y letra chica» del pedido, y
        la unidad va DENTRO de la misma celda para no gastar una columna en tres caracteres. */
-    const val = (f[1] == null)
+    const valTxt = (f[1] == null)
       ? '<span style="font-size:15px;color:var(--text2);">—</span>'
       : '<span style="font-size:17px;font-weight:700;letter-spacing:-.2px;">' + esc(f[1]) + '</span>' +
         (f[2] ? '<span style="font-size:9.5px;color:var(--text2);margin-left:2px;">' + esc(f[2]) + '</span>' : '');
+    /* ══ MEDIR-5 (B2) — EL NUMERO SE TOCA Y SE ESCRIBE A MANO ═══════════════════════════════
+       El valor de una fila medible pasa a ser un BOTON que abre la misma escritura a mano que
+       abria el ✏️: mismo atributo `-corr`, mismo `dopCorregir` / `d2Corregir`, misma validacion
+       contra la banda. Lo unico que cambia es por donde se entra.
+       ⚠️ EL GUION TAMBIEN SE TOCA, y es deliberado: una fila sin valor es justo donde el medico
+       quiere escribir uno, y dejarla inerte obligaria a medir para despues corregir.
+       ⚠️ Y REUSA LA CLASE `med-fbot`, QUE YA TRAE EL AREA TACTIL MEDIDA: se ve de 22 px y se toca
+       en 44 por un `::after` absoluto que NO participa del flujo, asi que la fila sigue midiendo
+       44 px de alto y dos areas de filas consecutivas se tocan sin encimarse (22 + 11 + 11 = 44,
+       la cuenta de MEDIR-3). Un `min-height:44px` directo habria dado filas de 66 px y una tabla
+       de diez filas que no entra en la columna.
+       Una fila CALCULADA no lleva boton: es de sólo ver, que es lo que B2 fija. */
+    const val = calc ? valTxt
+      : '<button type="button" class="btn btn-ghost med-fbot" ' +
+        'style="padding:0 4px;background:none;border:none;width:100%;justify-content:flex-end;" ' +
+        'title="Tocá el número para escribirlo a mano." ' +
+        'data-' + pfx + '-corr="' + esc(f[3]) + '">' + valTxt + '</button>';
     return '<tr style="border-bottom:1px solid var(--border);' + marcado +
          (calc ? 'font-style:italic;' : '') + '">' +
       /* ⚠️ EL RELLENO VERTICAL ES 11 px Y NO 5, Y SALE DE UNA MEDICION. Con 5 px la fila median
@@ -142817,11 +142855,30 @@ function _vMontarPanel(cont, pfx) {
    contiene al elemento ENFOCADO le quita el foco, y los dos render corren despues de apretar un
    boton de adentro del propio cajon. */
 function _vSlotSync() {
+  /* ⚠️ MEDIR-5 — ENTRE DOS CANDIDATAS GANA LA QUE ESTA A LA VISTA, y esto lo destapo medir a
+     390 px. Por debajo de 1024 la app muestra UNA vista por vez —`#cine-paneles > div` va a
+     `display:none` y la clase `cine-ver-b` alterna cual—, asi que una ranura puede existir dentro
+     de un panel escondido. Ahi el cajon quedaba invisible aunque hubiera algo que mostrar.
+     Con la vista del cajon escondida y la otra tambien midiendo, se elige la visible; si la unica
+     candidata es la escondida, el cajon viaja con ella y reaparece al cambiar de vista, que es la
+     conducta correcta: la tabla es de ESA imagen.
+     `offsetParent` es null justo cuando el elemento no se renderiza, que es lo que hace falta
+     saber; se mira el PANEL y no la ranura porque la ranura puede tener alto cero por estar
+     vacia. Falla ABIERTO: cualquier excepcion cae en la vista activa. */
+  const _vVisible = V => {
+    try {
+      const p = document.getElementById(((V && V.pfx) ? V.pfx : '') + 'cine-panel');
+      return !!p && p.offsetParent !== null;
+    } catch (e) { return true; }
+  };
   const dueno = pred => {
     try {
       if (typeof _vTodas !== 'function') return _V;
       const vs = _vTodas().filter(pred);
       if (!vs.length) return _V;
+      if (vs.indexOf(_V) >= 0 && _vVisible(_V)) return _V;
+      const vis = vs.filter(_vVisible);
+      if (vis.length) return vis[0];
       return (vs.indexOf(_V) >= 0) ? _V : vs[0];
     } catch (e) { return _V; }
   };
@@ -152334,8 +152391,10 @@ function _dopInfoTxts(faltaTxt, hayFilas) {
     }
   } catch (e) {}
   if (hayFilas) {
-    out.push('Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las reemplaza. ' +
-             'Los derivados se recalculan solos y no se editan.');
+    /* ⚠️ MEDIR-5 (B2) — ESTA NOTA NOMBRABA EL ✏️, QUE YA NO EXISTE. La edicion a mano sigue
+       sin descubrirse sola —es la razon por la que esta linea esta— pero ahora la puerta es el
+       propio numero, asi que lo que hay que decir es que se toca. */
+    out.push('TOCA EL NUMERO de una fila para escribirlo a mano, y volver a medirla lo reemplaza. Los calculados se recalculan solos y no se editan.');
   }
   try { _dopDisc().forEach(t => out.push(t)); } catch (e) {}
   try {
@@ -152466,7 +152525,7 @@ function _dopRender() {
                              : (_P.diamTsvd != null && _P.vtiPul == null) ? 'vti' : null;
     if (_falta) {
       _faltaTxt = 'Para el Vol Eyectivo VD falta ' + (_falta === 'diam'
-        ? 'el Diam TSVD, que se mide con la regla en el cajón de Distancia 2D (grupo VD) — es el MISMO campo — o se carga acá con ✏️.'
+        ? 'el Diam TSVD, que se mide con la regla en el cajón de Distancia 2D (grupo VD) — es el MISMO campo — o se carga acá tocando su número.'
         : 'el VTI Pulmonar (TSVD), trazado en el mismo nivel que el diámetro.');
     }
   }
@@ -153489,8 +153548,8 @@ function _d2Render() {
       ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-d2-acc="guardar">💾 Guardar en biblioteca</button>'
       : '') +
     _medInfoBoton('d2', 'Mediciones 2D',
-      (F.length ? ['Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las ' +
-                   'reemplaza. Los derivados se recalculan solos y no se editan.'] : [])
+      /* ⚠️ MEDIR-5 (B2) — igual que su hermana del cajon Doppler: la puerta es el numero. */
+      (F.length ? ['TOCA EL NUMERO de una fila para escribirlo a mano, y volver a medirla lo reemplaza. Los calculados se recalculan solos y no se editan.'] : [])
         .concat(_d2Disc())) +
     '</div>';
   cont.innerHTML = h;
