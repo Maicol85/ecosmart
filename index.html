@@ -144393,6 +144393,23 @@ function _simpRepintarOtraVista() {
 function medSimpsonSegundaVista() {
   if (!_simp || !_simpParCompleto(0)) return;
   _simp.vista = 1; _simp.fase = 'd'; _simp.pendiente = null;
+  /* ══ MEDIR-4b (A1) — LA SEGUNDA VENTANA DE UNA MISMA VISTA TAMBIEN NACE DECLARADA ═══════════
+     Es el mismo principio del punto A1 por la otra puerta. A1 declara la ventana de la ranura en
+     curso al abrir la herramienta; esta funcion es el camino del biplano trazado DENTRO de una
+     sola vista —cambiar de cineloop y trazar la otra apical—, y dejaba la ranura 1 sin nombre.
+
+     ⚠️ LO DESTAPO TC-228 Y NO LA LECTURA: con la ranura 1 sin declarar, la etiqueta del biplano
+     caia a «2 vistas» mientras la del monoplanar ya decia «A4C». O sea la mitad de la app
+     nombrando su ventana y la otra mitad contando, sobre el mismo estudio.
+
+     ⚠️ Y NO SE USA `_simpVentanaLibre`: esa funcion saltea la sesion en curso a proposito —para
+     que al nacer no se cuente a si misma—, asi que aca devolveria la ventana que la ranura 0 de
+     ESTA sesion ya tiene. La segunda ventana de una vista es, por definicion, la OTRA apical. */
+  if (!_simp.nombres[1]) {
+    const n0 = _simp.nombres[0];
+    const otra = _SIMP_VISTAS.filter(x => x.k !== n0)[0];
+    if (otra) _simp.nombres[1] = otra.k;
+  }
   _medPintar(); _medEstado();
 }
 window.medSimpsonSegundaVista = medSimpsonSegundaVista;

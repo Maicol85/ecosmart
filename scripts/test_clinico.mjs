@@ -16079,6 +16079,16 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         return !!(c && c.style.display !== 'none'); };
       const confAlcanzable = () => { const c = document.getElementById('cine-simp-uni');
         return !!(c && c.style.display !== 'none' && c.querySelector('#cine-simp-conf-u')); };
+      /* ADAPTADO EN MEDIR-4b (A2): confirmar dejo de vivir en UN solo sitio y ahora vive en el
+         sitio que corresponde al estado. Con la herramienta Simpson activa es el boton «Listo» de
+         la barra de dos pasos, al lado del canvas; al cambiar de herramienta la barra se esconde
+         —_simpPanel solo se dibuja con Simpson activo— y aparece el boton de RESCATE en el panel
+         de abajo. El invariante que este caso protege NO cambio: con un trazado sin confirmar,
+         confirmar sigue siendo alcanzable. Lo que cambio es por cual de las dos superficies, asi
+         que se pregunta por LAS DOS y el caso queda mas fuerte: exige que haya exactamente UNA
+         alcanzable en cada estado. */
+      const listoAlcanzable = () => !!document.querySelector('[data-simp-listo]');
+      const confirmarAlcanzable = () => (confAlcanzable() ? 1 : 0) + (listoAlcanzable() ? 1 : 0);
       grupo('2d'); clic('cine-med-simp');
       const cuadroConSimpson = cajaVis();
       const cuadroConDistancia = (clic('cine-med-dist'), cajaVis());
@@ -16094,9 +16104,11 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       if (_vistaA.simp) {
         _vistaA.simp.pendiente = { pts:[{x:1,y:1},{x:2,y:2}], i:0 };
         _simpUniPintar();
-        const conSimp = confAlcanzable();
+        /* Con Simpson activo tiene que estar el «Listo» de la barra de pasos y NO el de rescate;
+           al pasar a Distancia, exactamente al revas. Una sola superficie en cada estado. */
+        const conSimp = (confirmarAlcanzable() === 1) && listoAlcanzable() && !confAlcanzable();
         clic('cine-med-dist');
-        pendMantiene = conSimp && confAlcanzable();
+        pendMantiene = conSimp && (confirmarAlcanzable() === 1) && confAlcanzable() && !listoAlcanzable();
         _vistaA.simp.pendiente = null; _simpUniPintar();
         sinPendSeEsconde = !confAlcanzable();
       }
@@ -21975,8 +21987,14 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
       R.herrSimpson = _medHerr === 'simpson';
       R.panel1 = (document.getElementById('cine-med-barra').textContent || '');
       /* El flujo dejo de tener cuatro pasos fijos: ahora pide diastole de la vista que haya.
-         La condicion vieja exigia "Paso 1/4" y describia un flujo que ya no existe. */
-      R.dicePaso1 = R.panel1.indexOf('DIÁSTOLE') > -1;
+         La condicion vieja exigia "Paso 1/4" y describia un flujo que ya no existe.
+         ADAPTADO EN MEDIR-4b (A2): el panel pasa a ser una BARRA DE DOS PASOS, asi que el texto
+         ya no grita «DIÁSTOLE» en mayusculas: el paso se llama «1 Diástole» y se declara como el
+         que esta en curso con aria-current. Se exigen las dos cosas —que el rotulo este Y que sea
+         el paso actual—, o sea que la condicion quedo mas fuerte que buscar una palabra. */
+      R.pasoD = document.querySelector('[data-simp-paso="d"][data-simp-pfx=""]');
+      R.dicePaso1 = !!(R.pasoD && (R.pasoD.textContent||'').indexOf('Diástole') > -1 &&
+                       R.pasoD.getAttribute('aria-current') === 'step');
       R.pideAnillo = R.panel1.indexOf('anillo mitral') > -1;
 
       const cx0 = Math.round((reg.x0 + reg.x1) / 2);
@@ -22009,8 +22027,15 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
            dentro de la MISMA vista del visor, asi que las dos apicales terminaban trazadas
            sobre el mismo cineloop. Lo que este paso fija es el INVARIANTE —que con un
            monoplano el panel OFREZCA el camino al biplano— y no el boton que lo ofrecia. */
-        R.ofreceSegundaVista = R.panelMono.indexOf('Vista') > -1 &&
-                               R.panelMono.indexOf('biplano') > -1;
+        /* ADAPTADO EN MEDIR-4b (C3): el camino al biplano —«tocar ➕ Vista, o trazar la otra
+           ventana en esta misma vista»— se MUDO al globo ⓘ con el resto de las notas de metodo,
+           por orden de la tanda. El invariante no cambio: con un monoplano la app tiene que
+           OFRECER el camino al biplano; lo que cambio es donde lo dice. Se busca en el globo, que
+           es donde vive, y se exige ademas que el globo exista. */
+        R.notasGlobo = (typeof _medPanelInfo === 'function')
+          ? (function () { const d = _medPanelInfo('simp-metodo'); return d ? d.txts.join(' ') : ''; })() : '';
+        R.ofreceSegundaVista = R.notasGlobo.indexOf('Vista') > -1 &&
+                               R.notasGlobo.indexOf('biplano') > -1;
         /* El id cambio con la mudanza: el boton de integrar es unico y vive en el panel
            compartido. Buscar el viejo daria SIEMPRE verdadero, o sea una condicion vacua que
            pasa sin probar nada. */
@@ -22062,7 +22087,11 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         /* Ya no dice "no va al PDF" a secas, porque el biplano SI se puede integrar. Lo que
            tiene que decir es que todavia NO esta en el informe. */
         R.panelDiceNoPDF = R.panelRes.indexOf('NO está en el informe') > -1;
-        R.panelAvisaApex = R.panelRes.indexOf('escorzado') > -1;
+        /* ADAPTADO EN MEDIR-4b (C3): el aviso del apice escorzado se mudo al globo ⓘ, palabra por
+           palabra, con el resto de las notas de metodo. No se perdio: se busca donde vive. */
+        R.apexGlobo = (typeof _medPanelInfo === 'function')
+          ? (function () { const d = _medPanelInfo('simp-metodo'); return d ? d.txts.join(' ') : ''; })() : '';
+        R.panelAvisaApex = R.apexGlobo.indexOf('escorzado') > -1;
       }
 
       /* ── L ES LA MAS LARGA, NO EL PROMEDIO ──
@@ -22247,8 +22276,17 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
       await new Promise(r => setTimeout(r, 120));
       R.monoNoIntegra = String(feviEl.value || '') === '';
       /* La explicacion del monoplanar se mudo al panel unico junto con el resto del resultado.
-         El invariante no cambio: el panel tiene que decir POR QUE no se integra. */
-      R.monoExplicaPorQue = (document.getElementById('cine-simp-uni').textContent || '').indexOf('Método') > -1;
+         El invariante no cambio: la app tiene que decir POR QUE no se integra.
+         ADAPTADO EN MEDIR-4b (C3): la explicacion del campo «Método» se mudo al globo ⓘ con el
+         resto de las notas de metodo. En el panel queda la afirmacion corta —«Es monoplanar. No se
+         integra al informe ni va al PDF»— y el porque esta en el globo. Se exigen LAS DOS, asi que
+         el caso falla tanto si el panel deja de decir que no se integra como si el globo pierde el
+         motivo. */
+      R.monoPanelCorto = (document.getElementById('cine-simp-uni').textContent || '')
+        .indexOf('No se integra al informe') > -1;
+      R.monoGlobo = (typeof _medPanelInfo === 'function')
+        ? (function () { const d = _medPanelInfo('simp-metodo'); return d ? d.txts.join(' ') : ''; })() : '';
+      R.monoExplicaPorQue = R.monoPanelCorto && R.monoGlobo.indexOf('Método') > -1;
 
       /* ── EL BORRADO VISUAL AL REPRODUCIR ──
          Se compara el canvas: con el trazado dibujado hay pixeles pintados; al mover de cuadro
@@ -30665,7 +30703,14 @@ caso('TC-237', 'Simpson: la ventana declarada nombra la etiqueta, y la tabla cie
       ['DENOMINADOR: quedo biplano',               R.bi === true, R.bi],
       ['hay dos botones de ventana',               R.nBotones === 2, 'botones=' + R.nBotones],
       ['el boton viejo ya no existe',              R.botonViejo === false, R.botonViejo],
-      ['sin declarar, la etiqueta cae a la cantidad', (R.etiqSinDeclarar||'').indexOf('1 vista') === 0,
+      /* ⚠️ INVERTIDA EN MEDIR-4b (A1), y es el dia que esta condicion anunciaba. La etiqueta caia
+         a «1 vista» porque la sesion nacia con la ventana SIN DECLARAR —nombres en [null, null]—.
+         Desde el punto A1 la ventana se resuelve al ABRIR la herramienta, asi que ese estado ya no
+         existe para una sesion nueva y la etiqueta NOMBRA la ventana desde el primer trazado. Hoy
+         se exige lo contrario: que NO caiga a la cantidad y que diga A4C. Falla por los dos lados. */
+      ['INVERTIDA: la ventana nace declarada, la etiqueta NO cae a la cantidad',
+                                                   (R.etiqSinDeclarar||'').indexOf('1 vista') !== 0 &&
+                                                   (R.etiqSinDeclarar||'').indexOf('A4C') === 0,
                                                    R.etiqSinDeclarar],
       ['declarada, la etiqueta la NOMBRA',         (R.etiqA4C||'').indexOf('A4C ·') === 0, R.etiqA4C],
       ['y el biplano nombra las dos',              (R.etiqBi||'').indexOf('A4C+A2C ·') === 0, R.etiqBi],
@@ -31765,7 +31810,17 @@ caso('TC-245', 'Simpson: panel unico, y el TRAZADO manda sobre el selector al co
       const nId = id => document.querySelectorAll('#cine-ov #' + id).length;
       R.nConf = nId('cine-simp-conf-u'); R.nReset = nId('cine-simp-reset-u');
       R.nBib  = nId('cine-simp-bib-u');  R.nPdf   = nId('cine-simp-pdf-u');
-      R.unJuego = R.nConf === 1 && R.nReset === 1 && R.nBib === 1 && R.nPdf === 1;
+      /* ADAPTADO EN MEDIR-4b (A2): «Confirmar trazado» dejo de estar SIEMPRE en el panel de
+         abajo. Hoy confirmar vive en el boton «Listo» de la barra de dos pasos, al lado del
+         canvas, y el del panel de abajo quedo como boton de RESCATE que aparece SOLO cuando la
+         barra de pasos no esta en pantalla —al cambiar de herramienta con un trazado pendiente—.
+         Con la herramienta Simpson activa, que es la escena de este caso, nConf vale 0 a
+         proposito: hay UN boton visible a la vez, que es lo que «un unico boton» quiere decir.
+         El invariante de «un solo juego» no cambio y se exige igual para los otros tres, mas que
+         haya exactamente UNA superficie para confirmar. */
+      R.nListo = document.querySelectorAll('#cine-ov [data-simp-listo]').length;
+      R.unaSolaConfirmacion = (R.nConf + (R.nListo > 0 ? 1 : 0)) === 1;
+      R.unJuego = R.unaSolaConfirmacion && R.nReset === 1 && R.nBib === 1 && R.nPdf === 1;
 
       /* ── EL CASO: pendiente en B, selector apuntando a la A4C (vista A) ── */
       _simpSel = 'a4c';                                   // el selector dice A4C
@@ -31783,12 +31838,27 @@ caso('TC-245', 'Simpson: panel unico, y el TRAZADO manda sobre el selector al co
       const nCont = V => _vCon(V, () => { const S=V.simp; if (!S) return -1;
         return S.pares.reduce((n,p)=>n+(p.d?1:0)+(p.s?1:0), 0); });
       const a0 = nCont(_vistaA), b0 = nCont(_vistaB);
+      /* ⚠️ ADAPTADO EN MEDIR-4b (A2) CONSERVANDO EL INVARIANTE, QUE ES LO DELICADO DE ESTE CASO.
+         Lo que este caso prueba es que MANDA EL TRAZADO Y NO EL SELECTOR: el pendiente esta en la
+         vista B, el selector apunta a la A4C (vista A), y confirmar tiene que escribir en B.
+         Apretar el «Listo» de la vista B probaria eso TRIVIALMENTE —es el boton de B—, asi que la
+         condicion quedaria vacua. El boton que de verdad tiene que elegir la vista es el del panel
+         compartido, o sea el de RESCATE, y ese aparece cuando la barra de pasos no esta: se pasa la
+         vista B a Distancia, que es exactamente el estado para el que el rescate existe.
+         Asi el caso sigue midiendo que _simpDestino manda, y de paso ejercita el rescate. */
+      _vCon(_vistaB, () => { medHerramienta('dist'); });
+      await esperar(280);
+      R.rescateAparece = !!document.getElementById('cine-simp-conf-u');
+      R.pendSobrevive = _vCon(_vistaB, () => !!(_simp && _simp.pendiente));
       const btn = document.getElementById('cine-simp-conf-u');
       R.hayBoton = !!btn;
       if (btn) btn.click();
       await esperar(300);
       R.aIgual = nCont(_vistaA) === a0;
       R.bSubio = nCont(_vistaB) === b0 + 1;
+      /* Y se devuelve la herramienta, para no ensuciar lo que sigue. */
+      _vCon(_vistaB, () => { medHerramienta('simpson'); });
+      await esperar(200);
 
       /* ── SIN pendiente, ahi si manda el selector ── */
       _vCon(_vistaA, () => { if (_simp) _simp.pendiente = null; });
@@ -31819,6 +31889,8 @@ caso('TC-245', 'Simpson: panel unico, y el TRAZADO manda sobre el selector al co
                                                      [R.nConf,R.nReset,R.nBib,R.nPdf].join(',')],
       ['MANDA EL TRAZADO: el destino es la vista B', R.destinoEsB, R.destinoEsB],
       ['y el panel avisa que hay algo sin confirmar', R.selectorSigue, R.selectorSigue],
+      ['al cambiar de herramienta aparece el rescate', R.rescateAparece === true && R.pendSobrevive === true,
+                                                     R.rescateAparece + '/' + R.pendSobrevive],
       ['Confirmar escribe en B...',                  R.hayBoton && R.bSubio, R.bSubio],
       ['...y NO toca la vista A',                    R.aIgual, R.aIgual],
       ['sin pendiente manda el selector',            R.sinPendienteVaAlSelector, R.sinPendienteVaAlSelector],
@@ -34012,7 +34084,7 @@ caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero que
       R.et3 = window._medEtiqueta;
       R.nombraLasTres = ['A4C','A2C','A3C'].every(v => R.et3.indexOf(v) >= 0);
 
-      /* -- 3 - SIMPSON NO NOMBRA NINGUNA VISTA: la app no sabe cual trazo -- */
+      /* -- 3 - SIMPSON NOMBRA SU VENTANA: desde MEDIR-4b (A1) la app SI sabe cual trazo -- */
       medHerramienta('simpson');
       _simp.pares = [{ d:sp(80,240,'A'), s:sp(56,232,'A') }, { d:null, s:null }];
       const M1 = _simpCalcular();
@@ -34027,9 +34099,28 @@ caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero que
       R.etBi = window._medEtiqueta;
       R.resBi = _medResultadoCorto();
       R.simpsonCalcula = !!(M1 && M2 && isFinite(M1.fevi) && isFinite(M2.fevi) && !M1.bi && M2.bi);
-      R.simpsonSinVistas = ['A4C','A2C','A3C'].every(v =>
-        R.etMono.indexOf(v) < 0 && R.etBi.indexOf(v) < 0);
-      R.simpsonPorCantidad = R.etMono.indexOf('1 vista') >= 0 && R.etBi.indexOf('2 vistas') >= 0;
+      /* ⚠️ INVERTIDAS EN MEDIR-4b (A1). Este caso afirmaba que el Simpson NO nombra ninguna
+         ventana y que se rotula POR CANTIDAD —«1 vista», «2 vistas»—, y el motivo escrito era que
+         «la app no sabe cual trazo». Desde el punto A1 SI lo sabe: la ventana se resuelve al abrir
+         la herramienta, asi que la etiqueta la nombra. Hoy se exige lo contrario en las dos
+         mitades: que la nombre y que NO caiga a la cantidad. Falla por los dos lados. */
+      /* ⚠️ Y LA MITAD DEL BIPLANO SE PARTE EN DOS, porque las DOS cosas son ciertas y hay que
+         decirlas por separado. Esta escena siembra pares[1] A MANO, sin pasar por ninguna puerta
+         de la interfaz, asi que la ranura 1 queda SIN DECLARAR -- y ahi el respaldo por cantidad
+         NO es cosmetico: es lo que impide afirmar «A2C» sobre un trazado del que nadie dijo de que
+         ventana salio, que es lo que el propio comentario de _medEtiqVista ya declaraba.
+         Asi que se exige: (1) el monoplanar NOMBRA su ventana, porque A1 la declara al abrir;
+         (2) con la ranura 1 sin declarar, el biplano SIGUE cayendo a la cantidad; y (3) declarada
+         por la puerta real, la NOMBRA. Las tres condiciones fallan por los dos lados. */
+      R.simpsonSinVistas = (R.etMono.indexOf('A4C') >= 0);
+      R.simpsonPorCantidad = R.etMono.indexOf('1 vista') < 0 && R.etBi.indexOf('2 vistas') >= 0;
+      /* La ranura 1, declarada por medSimpsonElegirVista, que es la puerta del selector. */
+      medSimpsonElegirVista('a2c');
+      window._medEtiqueta = ''; window._medEtiqAuto = '';
+      _medEtiqAutoPoner();
+      R.etBiDeclarado = window._medEtiqueta;
+      R.nombresTrasDeclarar = (_simp.nombres || []).join(',');
+      R.biplanoNombraLasDos = R.etBiDeclarado.indexOf('A4C') >= 0 && R.etBiDeclarado.indexOf('A2C') >= 0;
       R.simpsonDistingue = R.resMono.indexOf('monoplano') >= 0 && R.resBi.indexOf('biplano') >= 0
                            && R.resMono.indexOf('biplano') < 0;
 
@@ -34100,10 +34191,12 @@ caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero que
       ['y NO la que falta',                            R.noNombraLaQueFalta, R.et2],
       ['y lleva el valor del calculo',                 R.llevaElValor, R.et2],
       ['con tres vistas nombra las tres',              R.nombraLasTres, R.et3],
-      ['SIMPSON NO NOMBRA NINGUNA VISTA',              R.simpsonSinVistas,
+      ['INVERTIDA: el monoplanar NOMBRA su ventana',   R.simpsonSinVistas,
         R.etMono + ' | ' + R.etBi],
-      ['y se rotula por CANTIDAD',                     R.simpsonPorCantidad,
-        R.etMono + ' | ' + R.etBi],
+      ['sin declarar, el biplano SIGUE cayendo a la cantidad',                     R.simpsonPorCantidad,
+                                                   R.etMono + ' | ' + R.etBi],
+      ['y declarada por el selector, NOMBRA LAS DOS',  R.biplanoNombraLasDos === true,
+                                                   R.nombresTrasDeclarar + ' -> ' + R.etBiDeclarado],
       ['monoplano y biplano se distinguen',            R.simpsonDistingue,
         R.resMono + ' | ' + R.resBi],
       ['MANDA LA HERRAMIENTA ACTIVA',                  R.otraHerrNoRotula, R.conDistancia],
@@ -143512,6 +143605,682 @@ caso('TC-895', 'MEDIR-4a bloque C: «+ Vista» ofrece los cineloops Y las imagen
       ['(E) el Simpson vuelve a entrar, sin mensaje',         R.e_entra2 && R.e_sinToast2, R.e_herrB2],
       ['(E) con las DOS sesiones vivas para el biplano',      R.e_simpA && R.e_simpB && R.e_hayBiplano,
                                                                R.e_simpA + '/' + R.e_simpB + '/' + R.e_hayBiplano]
+    ] };
+  })();
+`);
+
+caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRIR la herramienta y deja de poder cambiarse con un contorno confirmado, la barra de dos pasos lleva su tilde y UN solo «Listo» que confirma y avanza, cada fase se rehace sin perder la otra, y la barra de siete botones de la vista no se mueve', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = { toasts: [] };
+    const alertReal = window.alert, toastReal = window.toast;
+    window.alert = () => {};
+    window.toast = m => { R.toasts.push(String(m)); };
+    try {
+      /* ── DENOMINADORES. Contra el arbol anterior las dos piezas de esta tanda NO existen, y
+         este caso tiene que caer por CONDICION y no por excepcion: todo acceso va con guarda y
+         estas dos lineas declaran de que depende lo de abajo. */
+      R.hayLibre = (typeof _simpVentanaLibre === 'function');
+      R.hayBloq = (typeof _simpVentanaBloqueada === 'function');
+      R.hayRehacer = (typeof medSimpsonRehacer === 'function');
+
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }];
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([{ nombre:'A4C-fix', cuadros:1,
+        d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(340);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(320);
+
+      /* La barra de SIETE botones ANTES de tocar el Simpson: es el control de A3. */
+      const barraDe = () => {
+        /* El mismo selector que la sonda: la barra es hermana del panel guia dentro del panel de
+           la vista, asi que se busca por el PANEL y no subiendo al padre del texto guia -- por el
+           padre devolvia null y las dos condiciones de A3 salian rojas sobre una barra que esta. */
+        const b = document.getElementById('cine-med-barra');
+        const bar = document.querySelector('#cine-panel .cine-barra')
+                 || (b ? b.parentElement.querySelector('.cine-barra') : null);
+        if (!bar) return null;
+        const bs = Array.from(bar.querySelectorAll('button'));
+        return { n: bs.length, alto: Math.round(bar.getBoundingClientRect().height),
+                 rot: bs.map(x => (x.textContent||'').trim()).join('|') };
+      };
+      R.barraAntes = barraDe();
+
+      /* ── (A1) LA VENTANA, AL ABRIR LA HERRAMIENTA ── */
+      __t.herr('cine-med-simp');
+      await esperar(300);
+      R.a1_herr = (typeof _medHerr !== 'undefined') ? (_medHerr === 'simpson') : null;
+      R.a1_sesion = !!_simp;
+      /* Antes de esta tanda la sesion nacia con nombres en [null, null]. */
+      R.a1_nombres = (_simp && _simp.nombres) ? _simp.nombres.join(',') : '(sin sesion)';
+      R.a1_nace4c = !!(_simp && _simp.nombres && _simp.nombres[0] === 'a4c');
+      R.a1_libre = R.hayLibre ? _simpVentanaLibre() : '(no existe)';
+      R.a1_bloqSinContorno = R.hayBloq ? _simpVentanaBloqueada() : '(no existe)';
+      const panel = () => (document.getElementById('cine-med-barra') || {}).textContent || '';
+      R.a1_panelDiceVentana = panel().indexOf('Ventana de este par') > -1;
+      R.a1_panelDiceA4C = panel().indexOf('A4C') > -1;
+      /* Se puede cambiar ANTES de trazar, que es lo que A1 permite. */
+      medSimpsonElegirVista('a2c');
+      await esperar(160);
+      R.a1_tras2c = (_simp && _simp.nombres) ? _simp.nombres.join(',') : '(?)';
+      medSimpsonElegirVista('a4c');
+      await esperar(160);
+      R.a1_vuelta = (_simp && _simp.nombres) ? _simp.nombres.join(',') : '(?)';
+
+      /* ── (A2) LA BARRA DE DOS PASOS ── */
+      const pasos = () => Array.from(document.querySelectorAll('[data-simp-paso][data-simp-pfx=""]'));
+      const listo = () => document.querySelector('[data-simp-listo][data-simp-pfx=""]');
+      R.a2_nPasos = pasos().length;
+      R.a2_rot = pasos().map(b => (b.textContent||'').trim()).join(' / ');
+      R.a2_diceDiastole = R.a2_rot.indexOf('Diástole') > -1;
+      R.a2_diceSistole = R.a2_rot.indexOf('Sístole') > -1;
+      R.a2_actual = pasos().map(b => b.getAttribute('aria-current')).join(',');
+      /* UN solo «Listo» en todo el documento con una sola vista abierta. */
+      R.a2_nListo = document.querySelectorAll('[data-simp-listo]').length;
+      R.a2_rotListo = listo() ? (listo().textContent||'').trim() : '(sin boton)';
+      /* ⚠️ NO lleva disabled: un control deshabilitado no emite click y no podria explicar
+         por que no se puede. Lleva aria-disabled. */
+      R.a2_sinDisabled = listo() ? !listo().hasAttribute('disabled') : null;
+      R.a2_ariaSinTrazado = listo() ? listo().getAttribute('aria-disabled') : '(sin boton)';
+      /* Y con la herramienta Simpson activa NO se dibuja el boton de rescate del panel de abajo:
+         hay UN boton visible a la vez. */
+      R.a2_rescateConSimpson = !!document.getElementById('cine-simp-conf-u');
+
+      /* ── (A3) 44 px, UN SOLO ACENTO, Y LA BARRA DE SIETE INTACTA ── */
+      const rgb = s => { const m = /rgba?\\(([^)]+)\\)/.exec(String(s)); if (!m) return null;
+        const n = m[1].split(',').map(x => parseFloat(x));
+        return { r:n[0], g:n[1], b:n[2], a:(n.length > 3 ? n[3] : 1) }; };
+      const acento = (function () {
+        try { const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+          const d = document.createElement('div'); d.style.color = v; document.body.appendChild(d);
+          const c = rgb(getComputedStyle(d).color); d.remove(); return c; } catch (e) { return null; }
+      })();
+      const esAcento = el => { const c = rgb(getComputedStyle(el).backgroundColor);
+        if (!c || !acento) return false;
+        return Math.abs(c.r-acento.r) < 10 && Math.abs(c.g-acento.g) < 10 &&
+               Math.abs(c.b-acento.b) < 10 && c.a > 0.5; };
+      R.a3_altos = pasos().map(b => Math.round(b.getBoundingClientRect().height)).join(',');
+      R.a3_altoListo = listo() ? Math.round(listo().getBoundingClientRect().height) : null;
+      R.a3_todos44 = pasos().length > 0 && pasos().every(b => b.getBoundingClientRect().height >= 43.5) &&
+                     !!listo() && listo().getBoundingClientRect().height >= 43.5;
+      R.a3_conAcento = pasos().filter(esAcento).length;
+      R.barraDespues = barraDe();
+      R.a3_barraIntacta = !!(R.barraAntes && R.barraDespues &&
+        R.barraAntes.n === R.barraDespues.n && R.barraAntes.alto === R.barraDespues.alto &&
+        R.barraAntes.rot === R.barraDespues.rot);
+      R.a3_barraSiete = !!(R.barraDespues && R.barraDespues.n === 7);
+
+      /* ── EL TRAZADO, CON EL GESTO REAL ── */
+      const cv = document.getElementById('cine-med');
+      const ac = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const trazar = async (pts) => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await esperar(150);
+      };
+      const tri = (cx, yb, W, H) => {
+        const p = [], paso = 12, x0 = cx - W/2, x1 = cx + W/2, ya = yb - H;
+        const n1 = Math.ceil(Math.hypot(W/2, H) / paso);
+        for (let i = 0; i <= n1; i++) p.push({ x: x0 + (cx-x0)*i/n1, y: yb + (ya-yb)*i/n1 });
+        for (let i = 1; i <= n1; i++) p.push({ x: cx + (x1-cx)*i/n1, y: ya + (yb-ya)*i/n1 });
+        return p.map(q => ({ x: Math.round(q.x), y: Math.round(q.y) }));
+      };
+      const CX = 300, YB = 420, H = 260;
+
+      await trazar(tri(CX, YB, 200, H));
+      R.a2_pendiente = !!(_simp && _simp.pendiente);
+      R.a2_ariaConTrazado = listo() ? listo().getAttribute('aria-disabled') : '(sin boton)';
+      R.a2_listoPrendido = (R.a2_ariaConTrazado === null);
+      /* ⚠️ SE APRIETA EL BOTON, no se llama a medSimpsonConfirmar: lo que se prueba es que el
+         «Listo» de la barra de pasos esta cableado a SU vista. */
+      if (listo()) listo().click();
+      await esperar(240);
+      R.a2_diastoleHecha = !!(_simp && _simp.pares[_simp.vista].d);
+      R.a2_faseAvanzo = !!(_simp && _simp.fase === 's');
+      R.a2_tilde = pasos().map(b => (b.textContent||'').trim().charAt(0) === '✓').join(',');
+      R.a2_tildeEnD = pasos().length === 2 && (pasos()[0].textContent||'').trim().charAt(0) === '✓';
+      /* (A1) con un contorno confirmado la ventana YA NO se cambia. */
+      R.a1_bloqConContorno = R.hayBloq ? _simpVentanaBloqueada() : '(no existe)';
+      R.a1_panelDiceNoCambia = panel().indexOf('ya no se cambia') > -1;
+
+      await trazar(tri(CX, YB, 120, H));
+      if (listo()) listo().click();
+      await esperar(260);
+      R.a2_parCompleto = !!(_simp && _simp.pares[0].d && _simp.pares[0].s);
+      R.feviMono = (_simp && _simp.res) ? _simp.res.fevi : null;
+
+      /* ── (A2) REHACER UNA FASE SIN PERDER LA OTRA ── */
+      const pd = pasos().filter(b => b.getAttribute('data-simp-paso') === 'd')[0];
+      R.a2_hayPasoD = !!pd;
+      if (pd) pd.click();
+      await esperar(240);
+      R.a2_dBorrada = !!(_simp && !_simp.pares[0].d);
+      R.a2_sSobrevive = !!(_simp && _simp.pares[0].s);
+      R.a2_faseVolvioAD = !!(_simp && _simp.fase === 'd');
+      /* Y al volver a trazarla, el numero vuelve: rehacer no corrompe nada. */
+      await trazar(tri(CX, YB, 200, H));
+      if (listo()) listo().click();
+      await esperar(260);
+      R.a2_recuperado = !!(_simp && _simp.pares[0].d && _simp.pares[0].s);
+      R.feviTrasRehacer = (_simp && _simp.res) ? _simp.res.fevi : null;
+      R.a2_feviIgual = (R.feviMono != null && R.feviTrasRehacer != null)
+        ? Math.abs(R.feviTrasRehacer - R.feviMono) < 1e-9 : null;
+
+      try { cineCerrar(); } catch (e) {}
+      await esperar(180);
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                         !R.err, R.err],
+      ['DENOMINADOR: el arbol trae las piezas del bloque A',       R.hayLibre && R.hayBloq && R.hayRehacer,
+                                                                   R.hayLibre + '/' + R.hayBloq + '/' + R.hayRehacer],
+      ['DENOMINADOR: la herramienta Simpson quedo activa',         R.a1_herr === true && R.a1_sesion === true,
+                                                                   R.a1_herr + '/' + R.a1_sesion],
+      ['(A1) la ventana nace DECLARADA en A4C, no en null',        R.a1_nace4c === true, R.a1_nombres],
+      ['(A1) y la libre para esta vista es la A4C',                R.a1_libre === 'a4c', R.a1_libre],
+      ['(A1) sin contorno todavia se puede cambiar',               R.a1_bloqSinContorno === false, R.a1_bloqSinContorno],
+      ['(A1) el panel dice cual es la ventana del par',            R.a1_panelDiceVentana && R.a1_panelDiceA4C,
+                                                                   R.a1_panelDiceVentana + '/' + R.a1_panelDiceA4C],
+      ['(A1) cambiar antes de trazar funciona, y vuelve',          R.a1_tras2c === 'a2c,' && R.a1_vuelta === 'a4c,',
+                                                                   R.a1_tras2c + ' -> ' + R.a1_vuelta],
+      ['(A1) CON un contorno confirmado ya no se cambia',          R.a1_bloqConContorno === true, R.a1_bloqConContorno],
+      ['(A1) y el panel lo dice',                                  R.a1_panelDiceNoCambia === true, R.a1_panelDiceNoCambia],
+      ['(A2) DOS pasos, diastole y sistole',                       R.a2_nPasos === 2 && R.a2_diceDiastole && R.a2_diceSistole,
+                                                                   R.a2_nPasos + ' | ' + R.a2_rot],
+      ['(A2) el paso en curso se declara con aria-current',        R.a2_actual === 'step,false', R.a2_actual],
+      ['(A2) UN solo boton, y dice «Listo»',                       R.a2_nListo === 1 && R.a2_rotListo === 'Listo',
+                                                                   R.a2_nListo + ' | ' + R.a2_rotListo],
+      ['(A2) sin trazado se ve apagado pero NO lleva disabled',    R.a2_sinDisabled === true && R.a2_ariaSinTrazado === 'true',
+                                                                   R.a2_sinDisabled + '/' + R.a2_ariaSinTrazado],
+      ['(A2) y el «Confirmar» de abajo no se duplica',             R.a2_rescateConSimpson === false, R.a2_rescateConSimpson],
+      ['(A2) con un trazado pendiente el boton se prende',         R.a2_pendiente === true && R.a2_listoPrendido === true,
+                                                                   R.a2_pendiente + '/' + R.a2_ariaConTrazado],
+      ['(A2) «Listo» confirma la diastole Y avanza a sistole',     R.a2_diastoleHecha === true && R.a2_faseAvanzo === true,
+                                                                   R.a2_diastoleHecha + '/' + R.a2_faseAvanzo],
+      ['(A2) y el paso hecho queda con su tilde',                  R.a2_tildeEnD === true, R.a2_tilde],
+      ['(A2) los dos pasos completan el par',                      R.a2_parCompleto === true, R.a2_parCompleto],
+      ['(A2) rehacer la diastole NO se lleva la sistole',          R.a2_hayPasoD && R.a2_dBorrada && R.a2_sSobrevive,
+                                                                   R.a2_dBorrada + '/' + R.a2_sSobrevive],
+      ['(A2) y deja esa fase como la que se traza',                R.a2_faseVolvioAD === true, R.a2_faseVolvioAD],
+      ['(A2) al retrazarla el numero vuelve EXACTO',               R.a2_recuperado === true && R.a2_feviIgual === true,
+                                                                   R.feviMono + ' -> ' + R.feviTrasRehacer],
+      ['(A3) los dos pasos y el «Listo» miden 44 px',              R.a3_todos44 === true, R.a3_altos + ' | ' + R.a3_altoListo],
+      ['(A3) UN solo paso lleva el acento',                        R.a3_conAcento === 1, R.a3_conAcento],
+      ['(A3) la barra de la vista sigue con SIETE botones',        R.a3_barraSiete === true, R.barraDespues && R.barraDespues.n],
+      ['(A3) y no cambio de alto ni de orden',                     R.a3_barraIntacta === true,
+                                                                   (R.barraAntes && R.barraAntes.alto) + ' -> ' + (R.barraDespues && R.barraDespues.alto)]
+    ] };
+  })();
+`);
+
+caso('TC-897', 'MEDIR-4b bloques B y C: los trazados de las dos vistas conviven y alimentan el biplano sin guardar nada nuevo, la calibracion no se mezcla, DOS ventanas iguales no producen biplano -- una linea y cada vista con SU monoplanar distinguido--, el resultado va abajo y centrado con los tres numeros grandes y su tabla de tres filas, y cerrar una vista descarta su trazado dejando viva la monoplanar de la que queda', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = { toasts: [] };
+    const alertReal = window.alert, toastReal = window.toast;
+    const cineReal = { listar: null, leer: null }, imgReal = { leer: null };
+    const desdeRecReal = window._cineDesdeRegistro;
+    const guardarAntes = localStorage.getItem('cfg-guardar-imagenes');
+    window.alert = () => {};
+    window.toast = m => { R.toasts.push(String(m)); };
+    try {
+      /* ── DENOMINADOR: la pieza del bloque B de esta tanda. Contra el arbol anterior no existe. */
+      R.hayMisma = (typeof _vBiplanoMismaVentana === 'function');
+      R.hayBip = (typeof _vBiplanoDatos === 'function');
+
+      const jpg = new Uint8Array([255,216,255,217]);
+      const mkFrags = n => { const f = []; for (let i = 0; i < n; i++) f.push(jpg); return f; };
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }];
+      const LISTA = [{ id:'id1', uuid:'estudio-de-prueba-0001', nombre:'A2C-fix', cuadros:3,
+        bytes:900000, tipo:'loop', ms:40, cols:600, filas:500, poster:'',
+        ts:'2026-11-15T00:00:00.000Z', datos: new Uint8Array(12), offs:3, regiones: REG }];
+
+      /* ⚠️ SE SUSTITUYE EL ALMACEN Y SE REPONE EN EL finally: otros casos del lote lo usan, y
+         dejarlo sustituido seria sembrar un defecto en los casos de abajo. */
+      if (typeof CeiboCine !== 'undefined') {
+        cineReal.listar = CeiboCine.listar; cineReal.leer = CeiboCine.leer;
+        CeiboCine.listar = async () => LISTA.map(r => r);
+        CeiboCine.leer = async id => LISTA.filter(r => r.id === id)[0] || null;
+      }
+      if (typeof CeiboImg !== 'undefined') { imgReal.leer = CeiboImg.leer; CeiboImg.leer = async () => []; }
+      window._cineDesdeRegistro = r => ({ nombre: r.nombre, cuadros: r.cuadros,
+        d:{ frags: mkFrags(r.cuadros), cols:600, filas:500, msCuadro:40, regiones: r.regiones } });
+
+      /* El uuid por la puerta que lo escribe, y DESPUES de imgVaciar, que lo pone en null. */
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      await imgRestaurar('estudio-de-prueba-0001');
+      await esperar(240);
+      R.uuid = (typeof _imgUuidActual !== 'undefined') ? String(_imgUuidActual) : '(?)';
+      /* El peso y la talla, para que getBSA devuelva algo y las columnas indexadas existan. */
+      const sv = (id, v) => { const e = document.getElementById(id); if (e) { e.value = v;
+        e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); } };
+      sv('peso','70'); sv('talla','170');
+      R.bsa = (typeof getBSA === 'function') ? getBSA() : null;
+
+      const lsAntes = (function () { const a = []; for (let i=0;i<localStorage.length;i++) a.push(localStorage.key(i)); return a.sort(); })();
+
+      _cineAbrir([{ nombre:'A4C-fix', cuadros:1,
+        d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(340);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(320);
+
+      /* ⚠️ EL CONTORNO SE SIEMBRA CON _simpAceptar Y NO CON EVENTOS DE RATON SOBRE EL CANVAS,
+         que es el patron de TC-241, y la razon esta medida: la ventana del arnes mide 756 px de
+         ancho, o sea por DEBAJO del corte de dos vistas, asi que el canvas de la vista B no tiene
+         ancho util y las coordenadas mapeadas por getBoundingClientRect() salen degeneradas. La
+         primera version de este caso usaba el raton y daba pendiente:false en la B -- un trazado
+         que no entraba, sobre una vista que SI estaba abierta--. Con los puntos en coordenadas de
+         IMAGEN no hay mapeo que degenerar y la condicion mide lo que dice medir.
+         ⚠️ PERO EL «LISTO» SE APRIETA DE VERDAD: lo que este caso tiene que probar es que el boton
+         de la barra de pasos de la B confirma EN LA B, y para eso el clic tiene que ser un clic. */
+      const cont = (an, la) => { const pts = [];
+        for (let i = 0; i <= 40; i++) { const t = Math.PI * i / 40;
+          pts.push({ x: 300 - (an/2) * Math.cos(t), y: 430 - la * Math.sin(t) }); }
+        return pts; };
+      const sembrar = (V, an, la) => _vCon(V, () => _simpAceptar(cont(an, la)));
+      const listo = pfx => document.querySelector('[data-simp-listo][data-simp-pfx="' + pfx + '"]');
+
+      __t.herr('cine-med-simp');
+      await esperar(280);
+      R.semA1 = sembrar(_vistaA, 200, 260);
+      if (listo('')) listo('').click();
+      await esperar(200);
+      R.semA2 = sembrar(_vistaA, 120, 260);
+      if (listo('')) listo('').click();
+      await esperar(240);
+      R.parA = !!(_simp && _simp.pares[0].d && _simp.pares[0].s);
+      R.monoA = (_simp && _simp.res) ? Math.round(_simp.res.fevi * 10) / 10 : null;
+
+      /* ── LA VISTA B, POR LA PUERTA REAL: «+ Vista» y un clic en la miniatura ── */
+      let promesa = vistaBAbrir();
+      for (let i = 0; i < 70 && !document.querySelector('[data-vpicker]'); i++) await esperar(60);
+      R.pickAbrio = !!document.querySelector('[data-vpicker]');
+      const th = document.querySelector('[data-vpick-i]');
+      if (th) th.click();
+      await esperar(700);
+      try { await promesa; } catch (e) {}
+      await esperar(420);
+      R.vistaB = (typeof _vistaB !== 'undefined') && !!_vistaB;
+      R.nPaneles = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      const pfxB = R.vistaB ? _vistaB.pfx : '(?)';
+      R.pfxB = pfxB;
+
+      if (R.vistaB) {
+        /* (A1) la segunda vista se lleva la ventana LIBRE. */
+        _vCon(_vistaB, () => { if (!_vistaB.medOn) medToggle(); });
+        await esperar(320);
+        _vCon(_vistaB, () => medHerramienta('simpson'));
+        await esperar(300);
+        R.nombresB = (_vistaB.simp && _vistaB.simp.nombres) ? _vistaB.simp.nombres.join(',') : '(?)';
+        R.reparto = !!(_vistaA.simp && _vistaB.simp &&
+          _vistaA.simp.nombres[0] === 'a4c' && _vistaB.simp.nombres[0] === 'a2c');
+        /* (C1) los dos pasos en el panel de CADA vista, cada uno dentro del suyo. */
+        R.c1_pasosA = document.querySelectorAll('[data-simp-paso][data-simp-pfx=""]').length;
+        R.c1_pasosB = document.querySelectorAll('[data-simp-paso][data-simp-pfx="' + pfxB + '"]').length;
+        R.c1_listoB = !!listo(pfxB);
+        const p0b = document.querySelector('[data-simp-paso][data-simp-pfx="' + pfxB + '"]');
+        R.c1_barraBEnSuPanel = p0b ? !!p0b.closest('#' + pfxB + 'cine-panel') : null;
+        /* CERO ids duplicados DENTRO del visor. El censo crudo del documento devuelve decenas que
+           son de los SVG de matplotlib embebidos, preexistentes y ajenos a esto. */
+        R.idsDup = (function () {
+          const v = Object.create(null), d = [], ov = document.getElementById('cine-ov');
+          if (!ov) return '(sin visor)';
+          ov.querySelectorAll('[id]').forEach(e => { if (v[e.id]) { if (d.indexOf(e.id) < 0) d.push(e.id); } else v[e.id] = 1; });
+          return d.join(',');
+        })();
+
+        /* ⚠️ EL «LISTO» DE LA B TIENE QUE CONFIRMAR EN LA B. Con un ruteo por la vista activa
+           esto confirmaria en la A, porque _V fuera de un manejador envuelto es siempre _vistaA. */
+        R.semB1 = sembrar(_vistaB, 180, 260);
+        R.pendB = !!(_vistaB.simp && _vistaB.simp.pendiente);
+        if (listo(pfxB)) listo(pfxB).click();
+        await esperar(220);
+        R.dBhecha = !!(_vistaB.simp && _vistaB.simp.pares[0].d);
+        R.aIntacta = !!(_vistaA.simp && _vistaA.simp.pares[0].d && _vistaA.simp.pares[0].s);
+        R.semB2 = sembrar(_vistaB, 126, 260);
+        if (listo(pfxB)) listo(pfxB).click();
+        await esperar(320);
+
+        /* ── (B1) LOS DOS PARES CONVIVEN Y ALIMENTAN EL BIPLANO ── */
+        R.b1_losDos = !!(_vistaA.simp && _vistaA.simp.pares[0].d && _vistaA.simp.pares[0].s &&
+                         _vistaB.simp && _vistaB.simp.pares[0].d && _vistaB.simp.pares[0].s);
+        const B = R.hayBip ? _vBiplanoDatos() : null;
+        R.b1_hayBiplano = !!B;
+        R.b1_fevi = B ? Math.round(B.fevi * 1000) / 1000 : null;
+        /* Es una funcion del estado: dos llamadas dan lo mismo y no guardan nada. */
+        const B2 = R.hayBip ? _vBiplanoDatos() : null;
+        R.b1_estable = !!(B && B2 && Math.abs(B.fevi - B2.fevi) < 1e-12);
+        /* Y la sesion no gano un campo donde guardar el cruce. */
+        R.b1_claves = (_vistaA.simp ? Object.keys(_vistaA.simp).sort().join(',') : '(?)');
+        R.b1_sinCampoBiplano = R.b1_claves.indexOf('biplano') < 0;
+
+        /* ── (B2) LA CALIBRACION NO SE MEZCLA ── */
+        _vCon(_vistaA, () => { _medCalib = { mmPorPx: 0.123, mmPorPxY: 0.123 }; });
+        R.b2_a = _vistaA.medCalib ? _vistaA.medCalib.mmPorPx : null;
+        R.b2_b = _vistaB.medCalib ? _vistaB.medCalib.mmPorPx : null;
+        R.b2_noMezcla = (R.b2_a === 0.123 && R.b2_b === null);
+        _vCon(_vistaA, () => { _medCalib = null; });
+
+        /* ── (C2) LOS TRES NUMEROS GRANDES Y LA TABLA DE TRES FILAS ── */
+        const bip = document.getElementById('cine-biplano');
+        R.c2_visible = bip ? getComputedStyle(bip).display !== 'none' : null;
+        R.c2_grandes = bip ? Array.from(bip.querySelectorAll('div')).filter(d => {
+          const t = (d.textContent||'').trim();
+          return parseFloat(getComputedStyle(d).fontSize) >= 18 && /[0-9]/.test(t) && t.length < 16;
+        }).length : 0;
+        R.c2_clas = (function () { const s = (bip ? bip.textContent : '') || '';
+          return (typeof FEVI_CATS !== 'undefined' ? FEVI_CATS : []).filter(c => s.indexOf(c.adj) > -1).map(c => c.adj).join(','); })();
+        R.c2_fueraDeColumna = !!(bip && !bip.closest('.cine-col-der'));
+        R.c2_despuesDePaneles = (function () { const p = document.getElementById('cine-paneles');
+          return (p && bip) ? !!(p.compareDocumentPosition(bip) & Node.DOCUMENT_POSITION_FOLLOWING) : null; })();
+        R.c2_centrado = (function () { const m = document.getElementById('cine-modal');
+          if (!m || !bip) return null;
+          const a = bip.getBoundingClientRect(), b = m.getBoundingClientRect();
+          return Math.round((a.x - b.x) - ((b.x + b.width) - (a.x + a.width))); })();
+        const tb = document.getElementById('cine-simp-uni')
+          ? document.getElementById('cine-simp-uni').querySelector('table') : null;
+        R.c2_th = tb ? Array.from(tb.querySelectorAll('thead th')).map(x => (x.textContent||'').trim()).join('|') : '(sin tabla)';
+        R.c2_filas = tb ? Array.from(tb.querySelectorAll('tbody tr')).map(x => {
+          const c = x.querySelector('td'); return c ? (c.textContent||'').trim() : ''; }).join('|') : '(sin tabla)';
+        R.c2_nFilas = tb ? tb.querySelectorAll('tbody tr').length : 0;
+        R.c2_tresFilas = (R.c2_filas === 'A4C|A2C|Biplano');
+        R.c2_tieneIX = R.c2_th.indexOf('m²') > -1;
+        R.c2_sinDesborde = tb ? ((tb.scrollWidth - tb.clientWidth) <= 1) : null;
+
+        /* ── (B3, decision b) DOS VENTANAS IGUALES NO SON UN BIPLANO ── */
+        _vCon(_vistaB, () => { _vistaB.simp.nombres[0] = 'a4c'; });
+        _vBiplanoPintar();
+        await esperar(260);
+        R.b3_iguales = _vistaA.simp.nombres[0] + '/' + _vistaB.simp.nombres[0];
+        R.b3_sinBiplano = R.hayBip ? (_vBiplanoDatos() === null) : null;
+        R.b3_predicado = R.hayMisma ? _vBiplanoMismaVentana() : '(no existe)';
+        R.b3_mensaje = (document.getElementById('cine-biplano') || {}).textContent || '';
+        R.b3_diceMisma = R.b3_mensaje.indexOf('misma ventana') > -1;
+        /* Y cada vista queda con SU monoplanar: DOS filas, no una. */
+        R.b3_filas = (typeof _simpFilasTabla === 'function')
+          ? _simpFilasTabla().map(f => f.rot).join('|') : '(?)';
+        R.b3_nMono = (typeof _simpFilasTabla === 'function')
+          ? _simpFilasTabla().filter(f => f.mono).length : null;
+        R.b3_dosMono = (R.b3_nMono === 2);
+        R.b3_distinguidas = (R.b3_filas.indexOf('Vista') > -1);
+        /* Y al devolver la ventana, el biplano vuelve con su numero. */
+        _vCon(_vistaB, () => { _vistaB.simp.nombres[0] = 'a2c'; });
+        _vBiplanoPintar();
+        await esperar(240);
+        const BV = R.hayBip ? _vBiplanoDatos() : null;
+        R.b3_vuelve = !!BV;
+        R.b3_mismoNumero = (BV && R.b1_fevi != null) ? Math.abs(Math.round(BV.fevi*1000)/1000 - R.b1_fevi) < 1e-9 : null;
+
+        /* ── (B3, decision a) CERRAR UNA VISTA ── */
+        const VB = _vistaB;
+        vistaCerrarUna(VB);
+        await esperar(620);
+        R.a_vistaB = (typeof _vistaB !== 'undefined') && !!_vistaB;
+        R.a_paneles = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+        R.a_biplano = R.hayBip ? (_vBiplanoDatos() === null) : null;
+        R.a_simpCerrada = !!VB.simp;
+        R.a_monoViva = (_vistaA.simp && typeof _simpMonoDeS === 'function')
+          ? (function () { const m = _simpMonoDeS(_vistaA.simp, 0); return m ? Math.round(m.fevi*10)/10 : null; })() : null;
+        R.a_monoSigue = (R.a_monoViva != null && R.monoA != null && Math.abs(R.a_monoViva - R.monoA) < 0.15);
+        R.a_bipOculto = (function () { const b = document.getElementById('cine-biplano');
+          return b ? getComputedStyle(b).display === 'none' : null; })();
+        R.a_idsDup = (function () {
+          const v = Object.create(null), d = [], ov = document.getElementById('cine-ov');
+          if (!ov) return '(sin visor)';
+          ov.querySelectorAll('[id]').forEach(e => { if (v[e.id]) { if (d.indexOf(e.id) < 0) d.push(e.id); } else v[e.id] = 1; });
+          return d.join(',');
+        })();
+      }
+
+      /* ── (B1) NADA NUEVO EN EL ALMACENAMIENTO DEL NAVEGADOR ── */
+      const lsDespues = (function () { const a = []; for (let i=0;i<localStorage.length;i++) a.push(localStorage.key(i)); return a.sort(); })();
+      R.lsNuevas = lsDespues.filter(k => lsAntes.indexOf(k) < 0).filter(k => k !== 'ecosmart_autosave').join(',');
+
+      try { cineCerrar(); } catch (e) {}
+      await esperar(180);
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+      try { if (cineReal.listar) { CeiboCine.listar = cineReal.listar; CeiboCine.leer = cineReal.leer; } } catch (e) {}
+      try { if (imgReal.leer) { CeiboImg.leer = imgReal.leer; } } catch (e) {}
+      try { window._cineDesdeRegistro = desdeRecReal; } catch (e) {}
+      try { await imgRestaurar(''); } catch (e) {}
+      try { if (guardarAntes === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', guardarAntes); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                        !R.err, R.err],
+      ['DENOMINADOR: el arbol trae el predicado del bloque B',    R.hayMisma === true, R.hayMisma],
+      ['DENOMINADOR: la vista B abrio por el selector real',      R.pickAbrio === true && R.vistaB === true,
+                                                                  R.pickAbrio + '/' + R.vistaB + ' | ' + R.nPaneles + ' paneles'],
+      ['DENOMINADOR: hay superficie corporal para indexar',       !!(R.bsa && R.bsa > 0), R.bsa],
+      ['DENOMINADOR: los cuatro contornos entraron',              !R.semA1 && !R.semA2 && !R.semB1 && !R.semB2,
+                                                                  [R.semA1, R.semA2, R.semB1, R.semB2].join(' | ')],
+      ['(A1) la segunda vista se lleva la ventana LIBRE',         R.reparto === true, R.nombresB],
+      ['(C1) los dos pasos estan en el panel de CADA vista',     R.c1_pasosA === 2 && R.c1_pasosB === 2,
+                                                                  R.c1_pasosA + '/' + R.c1_pasosB],
+      ['(C1) y la barra de la B vive dentro del panel de la B',   R.c1_barraBEnSuPanel === true, R.c1_barraBEnSuPanel],
+      ['(C1) sin un solo id duplicado en el visor',              R.idsDup === '', R.idsDup],
+      ['(A2) el «Listo» de la B confirma EN LA B',               R.pendB === true && R.dBhecha === true,
+                                                                  R.pendB + '/' + R.dBhecha],
+      ['(A2) y no toca el par de la A',                          R.aIntacta === true, R.aIntacta],
+      ['(B1) los dos pares conviven a la vez',                   R.b1_losDos === true, R.b1_losDos],
+      ['(B1) y alimentan el biplano',                            R.b1_hayBiplano === true, R.b1_fevi],
+      ['(B1) que se calcula al vuelo, estable y sin guardarse',  R.b1_estable === true && R.b1_sinCampoBiplano === true,
+                                                                  R.b1_estable + ' | ' + R.b1_claves],
+      ['(B1) CERO claves nuevas en el navegador',                R.lsNuevas === '', R.lsNuevas],
+      ['(B2) la calibracion de una vista no pasa a la otra',     R.b2_noMezcla === true, R.b2_a + ' / ' + R.b2_b],
+      ['(C2) el resultado se ve, con TRES numeros grandes',      R.c2_visible === true && R.c2_grandes === 3,
+                                                                  R.c2_visible + ' | ' + R.c2_grandes],
+      ['(C2) con la clasificacion que la app ya usa',            R.c2_clas !== '', R.c2_clas],
+      ['(C2) abajo, fuera de la columna y centrado',             R.c2_fueraDeColumna && R.c2_despuesDePaneles && R.c2_centrado === 0,
+                                                                  R.c2_fueraDeColumna + '/' + R.c2_despuesDePaneles + '/' + R.c2_centrado],
+      ['(C2) la tabla trae A4C, A2C y Biplano',                  R.c2_tresFilas === true, R.c2_filas],
+      ['(C2) con columnas en mL y en mL/m2, sin desbordar',      R.c2_tieneIX === true && R.c2_sinDesborde === true,
+                                                                  R.c2_th + ' | ' + R.c2_sinDesborde],
+      ['(B3b) dos ventanas IGUALES no producen biplano',         R.b3_sinBiplano === true, R.b3_iguales],
+      ['(B3b) el predicado lo dice',                             R.b3_predicado === true, R.b3_predicado],
+      ['(B3b) y el panel lo explica en una linea',               R.b3_diceMisma === true, R.b3_mensaje.slice(0, 90)],
+      ['(B3b) cada vista queda con SU monoplanar, distinguida',  R.b3_dosMono === true && R.b3_distinguidas === true,
+                                                                  R.b3_filas],
+      ['(B3b) y al corregir la ventana el biplano vuelve igual', R.b3_vuelve === true && R.b3_mismoNumero === true,
+                                                                  R.b3_vuelve + ' | ' + R.b1_fevi],
+      ['(B3a) cerrar una vista deja UN panel',                   R.a_vistaB === false && R.a_paneles === 1,
+                                                                  R.a_vistaB + '/' + R.a_paneles],
+      ['(B3a) descarta el trazado de la cerrada',                R.a_simpCerrada === false, R.a_simpCerrada],
+      ['(B3a) el biplano desaparece y su panel se oculta',       R.a_biplano === true && R.a_bipOculto === true,
+                                                                  R.a_biplano + '/' + R.a_bipOculto],
+      ['(B3a) y la que queda conserva SU monoplanar',            R.a_monoSigue === true, R.monoA + ' -> ' + R.a_monoViva],
+      ['(B3a) sin ids duplicados despues de cerrar',             R.a_idsDup === '', R.a_idsDup]
+    ] };
+  })();
+`);
+
+caso('TC-898', 'MEDIR-4b: el calculo del Simpson no se movio -- VFD, VFS y FEVI de insumos sembrados dan el valor exacto de la linea base, monoplanar y biplano, con la clasificacion de la app--, las TRECE notas de metodo viven DENTRO del globo y ninguna quedo en el panel, y el boton de integrar sigue escribiendo la FEVI y el metodo en el informe', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      /* ══ LA LINEA BASE NUMERICA, SOBRE INSUMOS SEMBRADOS Y NO SOBRE EL GESTO ══════════════
+         ⚠️ ES ASI Y NO MIDIENDO LA FEVI QUE SALE DE TRAZAR CON EL RATON, y se descubrio
+         midiendo: el mismo triangulo da un numero LIGERAMENTE distinto segun el ancho de la
+         ventana, porque las coordenadas de imagen salen de getBoundingClientRect() del canvas y
+         el redondeo cambia. O sea que «los mismos trazados» no quiere decir «el mismo gesto»:
+         quiere decir los mismos diamCm y el mismo Lcm. Sembrandolos, el contrato es EXACTO.
+         Los diametros son una rampa fija: no representan un ventriculo, son un INSUMO. */
+      R.hayVol = (typeof _simpVolumenML === 'function');
+      R.hayClas = (typeof _simpClasificar === 'function');
+      R.discos = (typeof SIMP_N !== 'undefined') ? SIMP_N : null;
+      if (R.hayVol) {
+        const N = R.discos || 20;
+        const ramp = (a, b) => { const v = []; for (let i = 0; i < N; i++) v.push(a + (b - a) * i / (N - 1)); return v; };
+        const d4d = ramp(4.0, 1.2), d4s = ramp(2.6, 0.8), d2d = ramp(3.6, 1.0), d2s = ramp(2.4, 0.7);
+        const vfdM = _simpVolumenML(d4d, d4d, 8.4), vfsM = _simpVolumenML(d4s, d4s, 8.0);
+        const vfdB = _simpVolumenML(d4d, d2d, 8.4), vfsB = _simpVolumenML(d4s, d2s, 8.0);
+        R.vfdMono = Math.round(vfdM * 1e6) / 1e6;
+        R.vfsMono = Math.round(vfsM * 1e6) / 1e6;
+        R.feviMono = Math.round(((vfdM - vfsM) / vfdM) * 100 * 1e6) / 1e6;
+        R.vfdBi = Math.round(vfdB * 1e6) / 1e6;
+        R.vfsBi = Math.round(vfsB * 1e6) / 1e6;
+        R.feviBi = Math.round(((vfdB - vfsB) / vfdB) * 100 * 1e6) / 1e6;
+        R.clasMono = R.hayClas ? _simpClasificar(((vfdM - vfsM) / vfdM) * 100).txt : '(?)';
+        R.clasBi = R.hayClas ? _simpClasificar(((vfdB - vfsB) / vfdB) * 100).txt : '(?)';
+      }
+      /* Los seis valores de la linea base, medidos en el arbol de MEDIR-4a. Si alguien toca una
+         formula, un disco o un redondeo, estas seis igualdades se rompen. */
+      R.okVfdMono = (R.vfdMono === 49.362027);
+      R.okVfsMono = (R.vfsMono === 20.03344);
+      R.okFeviMono = (R.feviMono === 59.41528);
+      R.okVfdBi = (R.vfdBi === 43.875814);
+      R.okVfsBi = (R.vfsBi === 18.327059);
+      R.okFeviBi = (R.feviBi === 58.229699);
+      R.okTodos = R.okVfdMono && R.okVfsMono && R.okFeviMono && R.okVfdBi && R.okVfsBi && R.okFeviBi;
+      R.okDiscos = (R.discos === 20);
+
+      /* ══ LAS NOTAS DE METODO, DENTRO DEL GLOBO Y YA NO EN EL PANEL ════════════════════════ */
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }];
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([{ nombre:'A4C-fix', cuadros:1,
+        d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } }]);
+      await esperar(340);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(300);
+      __t.herr('cine-med-simp');
+      await esperar(260);
+
+      const cv = document.getElementById('cine-med');
+      const ac = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const trazar = async (pts) => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await esperar(150);
+      };
+      const tri = (cx, yb, W, H) => {
+        const p = [], paso = 12, x0 = cx - W/2, x1 = cx + W/2, ya = yb - H;
+        const n1 = Math.ceil(Math.hypot(W/2, H) / paso);
+        for (let i = 0; i <= n1; i++) p.push({ x: x0 + (cx-x0)*i/n1, y: yb + (ya-yb)*i/n1 });
+        for (let i = 1; i <= n1; i++) p.push({ x: cx + (x1-cx)*i/n1, y: ya + (yb-ya)*i/n1 });
+        return p.map(q => ({ x: Math.round(q.x), y: Math.round(q.y) }));
+      };
+      const listo = () => document.querySelector('[data-simp-listo][data-simp-pfx=""]');
+      await trazar(tri(300, 420, 200, 260));
+      if (listo()) listo().click(); else medSimpsonConfirmar();
+      await esperar(200);
+      await trazar(tri(300, 420, 120, 260));
+      if (listo()) listo().click(); else medSimpsonConfirmar();
+      await esperar(300);
+      R.hayPar = !!(_simp && _simp.pares[0].d && _simp.pares[0].s);
+
+      /* El globo: su boton, su clave registrada y sus parrafos. */
+      R.hayBoton = !!document.querySelector('[data-med-info="simp-metodo"]');
+      R.hayPanelInfo = (typeof _medPanelInfo === 'function');
+      const reg = R.hayPanelInfo ? _medPanelInfo('simp-metodo') : null;
+      R.nNotas = reg ? reg.txts.length : 0;
+      const GLOBO = reg ? reg.txts.join(' \\n ') : '';
+      const PANEL = ((document.getElementById('cine-simp-uni') || {}).textContent || '') + ' ' +
+                    ((document.getElementById('cine-biplano') || {}).textContent || '') + ' ' +
+                    ((document.getElementById('cine-med-barra') || {}).textContent || '');
+      const FR = [
+        ['no es el promedio de las dos ventanas', 'noEsPromedio'],
+        ['producto cruzado', 'productoCruzado'],
+        ['eje largo mas largo'.replace('mas', 'más'), 'ejeMasLargo'],
+        ['VEyec = VFD − VFS', 'veyec'],
+        ['SU monoplanar', 'cadaVentanaMono'],
+        ['ASE/EACVI 2015', 'aseEacvi'],
+        ['escala de SU imagen', 'escalaSuImagen'],
+        ['clasificacion de la FEVI es la misma que usa el informe'.replace('clasificacion', 'clasificación'), 'clasifInforme'],
+        ['apex esta bien visualizado'.replace('apex', 'ápex').replace('esta', 'está'), 'apexEscorzado'],
+        ['asume el ventriculo circular'.replace('ventriculo', 'ventrículo'), 'monoAsume'],
+        ['La guia recomienda el biplano'.replace('guia', 'guía'), 'guiaRecomienda'],
+        ['tocar «➕ Vista»', 'dosCaminos'],
+        ['contornos no se guardan', 'contornosNoGuardan']
+      ];
+      R.total = FR.length;
+      R.enGlobo = FR.filter(f => GLOBO.indexOf(f[0]) > -1).length;
+      R.enPanel = FR.filter(f => PANEL.indexOf(f[0]) > -1).length;
+      R.faltanEnGlobo = FR.filter(f => GLOBO.indexOf(f[0]) < 0).map(f => f[1]).join(',');
+      R.quedanEnPanel = FR.filter(f => PANEL.indexOf(f[0]) > -1).map(f => f[1]).join(',');
+      /* ⚠️ «ASE/EACVI 2015» es un NOMBRE DE GUIA, y hasta esta tanda se imprimia EN PANTALLA.
+         La regla de esta casa lo deja para el globo, asi que esta condicion mide las dos mitades:
+         que este en el globo Y que ya no este en el panel. */
+      R.guiaFueraDelPanel = (PANEL.indexOf('ASE/EACVI') < 0);
+      R.guiaEnGlobo = (GLOBO.indexOf('ASE/EACVI 2015') > -1);
+
+      /* ══ EL BOTON DE INTEGRAR SIGUE ESCRIBIENDO LO MISMO ══════════════════════════════════
+         Es un monoplanar, asi que el que ofrece integrar es el del panel unico; se usa el que
+         este. Lo que se mide es que escriba el campo y el metodo, que es lo que no cambio. */
+      const fv = document.getElementById('fevi');
+      if (fv) { fv.value = ''; fv.dispatchEvent(new Event('input', { bubbles:true })); }
+      R.feviAntes = fv ? String(fv.value || '') : '(sin campo)';
+      R.hayEscribir = (typeof _simpEscribirFEVI === 'function');
+      if (R.hayEscribir && _simp && _simp.res) {
+        R.escribio = _simpEscribirFEVI(_simp.res.fevi);
+        await esperar(220);
+      }
+      R.feviDespues = fv ? String(fv.value || '') : '(sin campo)';
+      R.metDespues = (function () { const m = document.getElementById('fevi_met');
+        return m ? String(m.value || '') : '(sin campo)'; })();
+      R.esperado = (_simp && _simp.res) ? _simp.res.fevi.toFixed(0) : null;
+      R.escribioIgual = (R.feviDespues === R.esperado);
+      R.metOK = (R.metDespues === 'Simpson biplano');
+
+      try { cineCerrar(); } catch (e) {}
+      await esperar(180);
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+      try { const f = document.getElementById('fevi'); if (f) { f.value = '';
+        f.dispatchEvent(new Event('input', { bubbles:true })); } } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                        !R.err, R.err],
+      ['DENOMINADOR: el motor de volumenes esta expuesto',       R.hayVol === true && R.hayClas === true,
+                                                                  R.hayVol + '/' + R.hayClas],
+      ['el metodo sigue siendo de 20 discos',                    R.okDiscos === true, R.discos],
+      ['VFD monoplanar EXACTO de la linea base',                 R.okVfdMono === true, R.vfdMono],
+      ['VFS monoplanar EXACTO',                                  R.okVfsMono === true, R.vfsMono],
+      ['FEVI monoplanar EXACTA',                                 R.okFeviMono === true, R.feviMono],
+      ['VFD biplano EXACTO',                                     R.okVfdBi === true, R.vfdBi],
+      ['VFS biplano EXACTO',                                     R.okVfsBi === true, R.vfsBi],
+      ['FEVI biplano EXACTA',                                    R.okFeviBi === true, R.feviBi],
+      ['los seis valores a la vez',                              R.okTodos === true,
+                                                                  R.vfdMono + '/' + R.vfsMono + '/' + R.feviMono + ' | ' +
+                                                                  R.vfdBi + '/' + R.vfsBi + '/' + R.feviBi],
+      ['y la clasificacion de esos numeros no se movio',         R.clasMono === 'normal' && R.clasBi === 'normal',
+                                                                  R.clasMono + '/' + R.clasBi],
+      ['DENOMINADOR: el par quedo trazado',                      R.hayPar === true, R.hayPar],
+      ['el globo de notas de metodo existe y esta registrado',   R.hayBoton === true && R.nNotas > 0,
+                                                                  R.hayBoton + ' | ' + R.nNotas + ' parrafos'],
+      ['las TRECE notas de metodo estan DENTRO del globo',       R.enGlobo === R.total,
+                                                                  R.enGlobo + '/' + R.total + ' faltan: ' + R.faltanEnGlobo],
+      ['y NINGUNA quedo en el panel',                            R.enPanel === 0, R.quedanEnPanel],
+      ['el nombre de la guia salio de la pantalla',              R.guiaFueraDelPanel === true && R.guiaEnGlobo === true,
+                                                                  R.guiaFueraDelPanel + '/' + R.guiaEnGlobo],
+      ['DENOMINADOR: el campo FEVI arrancaba vacio',             R.feviAntes === '', R.feviAntes],
+      ['integrar sigue escribiendo la FEVI en el informe',       R.escribioIgual === true,
+                                                                  R.feviAntes + ' -> ' + R.feviDespues + ' (esperado ' + R.esperado + ')'],
+      ['y el metodo queda en Simpson biplano',                   R.metOK === true, R.metDespues]
     ] };
   })();
 `);
