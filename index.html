@@ -491,6 +491,35 @@
        estas sigue valiendo — la leccion que MEDIR-1 dejo escrita sobre este mismo calc. */
     #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 190px) !important; }
   }
+  /* ══ MEDIR-5 (A3 y A4) — EL LIENZO NO SE ENCOGE, Y ESTA ES LA CAUSA QUE «TAPABA» ═══════════
+     ⚠️ ESTO ES LO QUE DE VERDAD TAPABA LOS BOTONES Y LA BARRA DEL VIDEO, y es PREEXISTENTE:
+     medido en los DOS arboles, al aparecer el resultado del Simpson `#cine-lienzo` se encogia a
+     su `min-height:200px` mientras el canvas se quedaba en sus 279 px de alto. El recorte, que
+     esta centrado dentro del lienzo, se desbordaba entonces 39 px ARRIBA y 39 px ABAJO: arriba
+     arrancaba en y=161 contra una barra de botones que termina en y=194 —33 px de solape, que es
+     literalmente «la imagen tapa la fila de botones»— y abajo se le iba encima a la barra del
+     video, donde `elementFromPoint` sobre el centro del slider devolvia `cine-med`.
+
+     LA CAUSA ES EL `flex-shrink` QUE VALE 1 POR OMISION. El modal topa en 94vh y es un flex en
+     columna, asi que cuando el resultado lo hace crecer, el navegador ENCOGE a sus hijos flex en
+     cascada —`#cine-paneles`, el panel, la fila, la columna de la imagen— hasta llegar al lienzo,
+     que cede hasta su minimo. Por eso `modalScrollY.desborda` daba 0: el encogimiento absorbia
+     el crecimiento en vez de desplazar. El canvas no cede porque su alto sale de `width`/`height`
+     y de su propio `max-height`, asi que la imagen queda mas grande que su caja.
+
+     Con `flex-shrink:0` el lienzo conserva el alto de su contenido y lo que sobra se DESPLAZA
+     dentro del modal, que ya es `overflow:auto`. Un desplazamiento se ve y se usa; un solape
+     tapa un boton sin decirlo.
+     Va por `[id$=]` porque la vista B lleva el prefijo `b-`, el mismo recurso que la regla del
+     canvas de arriba. */
+  #cine-ov [id$="cine-lienzo"] { flex: 0 0 auto; }
+  /* ⚠️ Y LA FILA DE PANELES TAMPOCO CEDE, por el MISMO motivo un nivel mas arriba. Con el lienzo
+     anclado el solape se corrio: `#cine-paneles` es hijo flex del modal, asi que cedia el, y
+     entonces el panel de la vista B desbordaba su propia caja hacia abajo — `elementFromPoint`
+     sobre el centro del slider de la B devolvia `cine-biplano`, que esta DESPUES en el documento
+     y no deberia poder taparlo. El encabezado del modal ya declara `flex:0 0 auto`; esto lo hace
+     consistente. Lo que sobra se desplaza en el modal, que es `overflow:auto`. */
+  #cine-ov #cine-paneles { flex: 0 0 auto; }
   /* ══ MEDIR-4 — LAS CUATRO COLUMNAS: 340 px POR COLUMNA Y UN CORTE PROPIO (bloque A, punto 5) ══
      ⚠️ CON DOS VISTAS LA COLUMNA BAJA DE 380 A 340 px, Y EL NUMERO SE MIDIO ANTES DE ESCRIBIRLO.
      Los 380 son lo que la fila de una medida necesita con UNA vista, y se conservan ahi. Con dos
@@ -142676,13 +142705,46 @@ function _vMontarPanel(cont, pfx) {
 
    Falla ABIERTO: sin ranura los cajones se quedan donde esten —debajo, como hasta MEDIR-1— en vez
    de desaparecer. */
+/* ══ MEDIR-5 (A1) — CADA CAJON VA A LA RANURA DE LA VISTA QUE LO TIENE ABIERTO ════════════════
+   ⚠️ HASTA MEDIR-4b LOS DOS CAJONES IBAN A LA RANURA DE LA VISTA ACTIVA, Y ESO ERA EL DEFECTO QUE
+   EL MEDICO REPORTO. La visibilidad de cada cajon se decide por «ALGUNA vista» —`_d2Visible` es
+   `_d2HerrEnAlguna` y `_dopVisible` es `_dopGrupoAbiertoEnAlguna`, las dos con razon, porque
+   `_medHerr` fuera de un manejador envuelto resuelve siempre contra `_vistaA`—. Juntar ese
+   «alguna» con una ranura «la activa» da el estado que se midio: con la vista A en Doppler/mitral
+   y la B en Distancia/VD, el cajon del VD —medido en la B— se dibujaba DENTRO de la columna de la
+   A, y la A mostraba DOS tablas mientras la B no mostraba NINGUNA (medido: tablasEnColA 2,
+   tablasEnColB 0, con la tabla diciendo «VD basal»).
+
+   La tabla sigue siendo UNA sola y se sigue MOVIENDO, que es la decision de MEDIR-4a y no se
+   toca: `_dop` y `_d2` son estado de modulo a proposito porque la ecuacion de continuidad necesita
+   insumos de planos distintos. Lo que cambia es a QUE ranura va: a la de la vista que tiene esa
+   herramienta abierta, no a la de la que esta activa.
+
+   Con las DOS vistas en la misma herramienta gana la ACTIVA, que es donde el medico esta midiendo.
+   Falla ABIERTO por los dos lados: sin dueño se cae a la vista activa, y sin ranura el cajon se
+   queda donde este —debajo, como hasta MEDIR-1— en vez de desaparecer.
+
+   ⚠️ SIGUE SIN MOVERSE SI YA ESTA EN SU RANURA, y no es una optimizacion: mover un nodo que
+   contiene al elemento ENFOCADO le quita el foco, y los dos render corren despues de apretar un
+   boton de adentro del propio cajon. */
 function _vSlotSync() {
-  const slot = document.getElementById((_V && _V.pfx ? _V.pfx : '') + 'cine-der-slot');
-  if (!slot) return;
-  ['cine-dop-slot', 'd2-cajon'].forEach(id => {
+  const dueno = pred => {
+    try {
+      if (typeof _vTodas !== 'function') return _V;
+      const vs = _vTodas().filter(pred);
+      if (!vs.length) return _V;
+      return (vs.indexOf(_V) >= 0) ? _V : vs[0];
+    } catch (e) { return _V; }
+  };
+  const mudar = (id, V) => {
     const n = document.getElementById(id);
-    if (n && n.parentElement !== slot) slot.appendChild(n);
-  });
+    if (!n) return;
+    const p = (V && V.pfx) ? V.pfx : ((_V && _V.pfx) ? _V.pfx : '');
+    const slot = document.getElementById(p + 'cine-der-slot');
+    if (slot && n.parentElement !== slot) slot.appendChild(n);
+  };
+  mudar('cine-dop-slot', dueno(V => V && V.medGrupo === 'dop'));
+  mudar('d2-cajon',      dueno(V => V && V.medHerr === 'dist'));
 }
 window._vSlotSync = _vSlotSync;
 
@@ -142860,8 +142922,22 @@ function _cineAbrir(loops) {
   if (!ov) {
     ov = document.createElement('div');
     ov.id = 'cine-ov';
+    /* ══ MEDIR-5 (A3) — EL MODAL SE ANCLA ARRIBA Y NO SE CENTRA VERTICALMENTE ═══════════════
+       ⚠️ `align-items:center` ERA LA CAUSA DEL HALLAZGO A3, y esta medido. Con el modal centrado
+       vertical, todo lo que CRECE adentro le mueve el borde de arriba hacia ARRIBA: al aparecer
+       el resultado del Simpson —`cine-biplano` mas `cine-simp-uni`, unos 200 px— el lienzo de la
+       vista A subia 106 px y se llevaba puesta la fila de botones y la barra del video. El hueco
+       entre la barra y la imagen quedaba en 7 px ANTES y DESPUES, que es lo que prueba que la
+       imagen no se movia respecto de la barra: subia el modal entero.
+       Y no volvia solo al apretar «Limpiar» —medido: seguia en −106— porque el panel del
+       resultado seguia dibujado con las filas de la OTRA vista (el hallazgo A2).
+
+       Anclado arriba, el espacio del resultado crece hacia ABAJO y la imagen y los botones no se
+       mueven, que es literalmente lo que el pedido pide. El modal sigue topando en 94vh y
+       `overflow:auto`, asi que lo que no entra se desplaza DENTRO del modal en vez de empujar su
+       borde. `justify-content:center` se queda: el centrado HORIZONTAL no mueve nada vertical. */
     ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);display:flex;' +
-                       'align-items:center;justify-content:center;padding:14px;';
+                       'align-items:flex-start;justify-content:center;padding:14px;';
     /* Chrome estático por innerHTML; TODO lo que viene del archivo se escribe después con
        textContent. Nada del DICOM se interpola como HTML. */
     ov.innerHTML =
@@ -144244,7 +144320,27 @@ function medSimpsonLimpiarTabla() {
   if (!confirm('¿Borrar la tabla de resultados de Simpson?\n\nSe borra la que está guardada con el estudio y también los trazados de esta sesión. No se puede deshacer.')) return;
   const el = document.getElementById('simpson_manual');
   if (el) el.value = '';
-  if (typeof _simpIniciar === 'function') _simpIniciar();
+  /* ══ MEDIR-5 (A2) — LIMPIAR ALCANZA A LAS DOS VISTAS, NO SOLO A LA DEL DESTINO ═══════════
+     ⚠️ ESTE ERA EL DEFECTO A2, Y ESTA MEDIDO. `_simpIniciar()` pelado reinicia la sesion de la
+     vista ACTIVA —el boton entra por `_simpEnDestino`, o sea la vista que tiene el trazado en
+     curso—, asi que con la A2C en la vista A y la A4C en la B, apretar «Limpiar» dejaba los
+     pares de la A en [false,false] y los de la B INTACTOS: la tabla seguia publicando la fila
+     A4C con sus volumenes. Es literalmente lo que el medico describio —«se borran los datos del
+     A2C pero los del A4C quedan»— y ademas es lo que dejaba el panel del resultado dibujado, con
+     lo que la imagen no volvia a su lugar (A3).
+     El texto de la confirmacion ya prometia borrar «los trazados de esta sesion» en plural, asi
+     que esto lo que hace es cumplirlo.
+     ⚠️ NO SE TOCA LA PERSISTENCIA: el `simpson_manual` se vaciaba ya desde antes en la linea de
+     arriba —esta funcion siempre borro lo guardado con el estudio, lo dice su propio comentario—
+     y no se agrega ningun guardado nuevo. Lo unico que cambia es a cuantas vistas alcanza.
+     Falla ABIERTO: sin `_vTodas` se cae al comportamiento de antes, que es mejor que no borrar. */
+  if (typeof _simpIniciar === 'function') {
+    try {
+      if (typeof _vTodas === 'function' && typeof _vCon === 'function')
+        _vTodas().forEach(V => { if (V) _vCon(V, () => _simpIniciar()); });
+      else _simpIniciar();
+    } catch (e) { try { _simpIniciar(); } catch (x) {} }
+  }
   if (typeof _medPintar === 'function') _medPintar();
   if (typeof _medEstado === 'function') _medEstado();
   if (typeof toast === 'function') toast('🗑️ Tabla de Simpson borrada');
@@ -147533,7 +147629,17 @@ function _simpUniSelector() {
   const d = _simpDestino();
   const actual = d ? _vCon(d.V, () => _simpNombre(d.i)) : null;
   const pend = !!_simpVistaPendiente();
-  return '<div style="margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">' +
+  /* ══ MEDIR-5 (A7) — LA FILA SE ACORTA AL CONTENIDO Y SE CENTRA ═══════════════════════════
+     ⚠️ MEDIDO: ocupaba 756 px de los 780 del panel, o sea el 97 % del ancho, con los dos botones
+     pegados a la izquierda y el resto vacio — que es lo que el medico llama «estorba». No la
+     centraba ni la angostaba nada: la fila era un flex a ancho completo.
+     `width:fit-content` la acorta a lo que de verdad ocupa y `margin-inline:auto` la centra, con
+     `justify-content:center` para cuando envuelve. NO se le pone un ancho en px: los rotulos
+     cambian de largo con la tilde ✅ y con las dos leyendas de estado, asi que un numero fijo
+     volveria a sobrar o a cortar. `max-width:100%` la deja envolver en el celular en vez de
+     desbordar. */
+  return '<div style="margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;' +
+    'justify-content:center;width:fit-content;max-width:100%;margin-inline:auto;">' +
     '<span style="font-size:10.5px;color:var(--text2);">Ventana:</span>' +
     _SIMP_VISTAS.map(V => {
       const u = _simpUbicarVentana(V.k);
@@ -148626,7 +148732,29 @@ function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
   /* El VTI SÍ se borra al cambiar de cuadro, a diferencia de Simpson: una envolvente es de ESE
      cuadro del espectro, y dejarla dibujada sobre otro invita a creer que se trazó ahí. */
-  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
+  /* ══ MEDIR-5 (A8) — LAS DOS AREAS DEL VD SOBREVIVEN AL CAMBIO DE CUADRO ══════════════════
+     ⚠️ ESTE ERA EL DEFECTO A8, Y ESTA MEDIDO: `_medAreas = []` se llevaba TODO, asi que el FAC
+     del VD perdia la diastole en cuanto el medico movia el cuadro del cineloop — y moverlo es
+     OBLIGATORIO, porque la telediastole y la telesistole estan en cuadros distintos, exactamente
+     igual que en el Simpson. Medido: las areas pasaban de [vdd:20, vds:12] a [] con un solo
+     `cineIr`, mientras el Simpson sobrevivia (el control positivo de que mover el cuadro no borra
+     todo, sino solo lo que esta linea tira).
+     La razon por la que el Simpson no se borra —el metodo EXIGE cambiar de cuadro— vale palabra
+     por palabra para el FAC, asi que las DOS areas del VD se conservan con el mismo criterio.
+     ⚠️ SE CONSERVAN SOLO ESAS DOS ESTRUCTURAS y no todas: el area de la AI y la de la AD se miden
+     en UN cuadro, y dejarlas dibujadas sobre otro invita a creer que se trazaron ahi, que es el
+     mismo motivo por el que el VTI si se borra. El filtro va por `est`, que es el campo con el
+     que la herramienta Area ya marca cada contorno desde MEDIR-2.
+     Falla CERRADO: sin las constantes se borra todo, que es la conducta de antes. */
+  _medAreas = (function () {
+    try {
+      const kd = (typeof _MED_EST_VD_D !== 'undefined') ? _MED_EST_VD_D : null;
+      const ks = (typeof _MED_EST_VD_S !== 'undefined') ? _MED_EST_VD_S : null;
+      if (!kd || !ks) return [];
+      return (_medAreas || []).filter(a => a && (a.est === kd || a.est === ks));
+    } catch (e) { return []; }
+  })();
+  _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   /* SIMPSON NO SE BORRA AL CAMBIAR DE CUADRO, y es la única medición que no.
      El método EXIGE cambiar de cuadro: la diástole y la sístole están en cuadros distintos,
      así que borrar los trazados confirmados haría imposible completar los cuatro pasos.
@@ -149336,7 +149464,16 @@ function _vBiplanoPintar() {
       'flex-wrap:wrap;margin-bottom:2px;">' +
       '<b style="font-size:12px;">Simpson biplano — A4C × A2C</b>' +
       '<span style="font-size:10px;color:var(--text2);">' + SIMP_N + ' discos</span>' +
-      _medInfoBoton('simp-metodo', 'Simpson — notas de método', _SIMP_NOTAS_METODO) +
+    /* ══ MEDIR-5 (A6) — EL ⓘ DE METODO SE RETIRA DE ACA Y QUEDA UNO SOLO, EN LA TABLA ═══════
+       ⚠️ ERAN DOS BOTONES CON EL MISMO TEXTO Y LA MISMA CLAVE, y esta medido: con el biplano en
+       pantalla la sonda contaba DOS `[data-med-info="simp-metodo"]`, los dos visibles, uno acá y
+       otro en `cine-simp-uni`. Los dos abrian el MISMO dialogo —misma clave, misma constante—
+       asi que el segundo no agregaba nada y el medico leia dos veces la misma oferta.
+       EL QUE SE QUEDA ES EL DE LA TABLA, que es el que el pedido nombra y ademas el unico que no
+       se puede perder: `_simpUniTexto` se dibuja tambien con un monoplanar y con las dos ventanas
+       iguales, y en esos dos estados este panel NO existe —si el ⓘ viviera solo aca, las notas
+       quedarian sin puerta justo en los casos que mas las necesitan—. Lo dice su comentario y
+       esta es la razon de elegir ese y no este. Las nueve notas no se tocan. */
     '</div>' +
     '<div style="display:flex;gap:4px;align-items:flex-end;justify-content:center;">' +
       _simpStat('VFD', R.vfd, 'mL', bsa, '', false) +
