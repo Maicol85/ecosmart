@@ -364,3 +364,21 @@ Aorta, A7 en sus dos formas, la calibración de dos valores, el FAC y la banda p
 ⚠️ **EL FIXTURE TRAE LAS DOS REGIONES, 2D Y DOPPLER**, como un DICOM de verdad. Con una sola región
 2D la herramienta Velocidad queda fuera de juego y el cajón Doppler no se dibuja: la primera corrida
 de esta sonda midió **cero** tablas sobre un cajón que funciona.
+
+---
+
+## ⚠️ MEDIR-4a (2026-11-15) — LO QUE DE ESTA SECCIÓN SE MOVIÓ
+
+Tres cosas de este mapa cambiaron en la tanda siguiente, y van acá para que no se lean viejas:
+
+1. **La barra tiene SIETE botones y no ocho.** «➕ Vista» y «Cerrar» se mudaron al encabezado del
+   modal —son controles del modal y en la barra de la vista A eran dos más que en la de la B— y
+   entró «✕ Cerrar vista», que ahora se emite en las **dos** vistas. Lo fija TC-888, adaptado.
+2. **La columna de medición mide 340 px con dos vistas** (los 380 se conservan con una sola), con
+   su propio corte en **1369 px**; por debajo, las medidas bajan debajo de su imagen.
+3. **La tabla de una medida por fila tiene TRES columnas**: la cuarta, la casilla de Anahí, se
+   retiró por orden del médico.
+
+Y los dos cajones **ya no viven siempre en la columna de la vista A**: se mudan a la ranura de la
+vista que se está midiendo (`_vSlotSync`). El mapa de esa tanda es
+`docs/mapa/medir4a-vistas-cierre.md`.

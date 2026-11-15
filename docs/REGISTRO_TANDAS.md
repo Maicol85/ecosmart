@@ -1,3 +1,55 @@
+## MEDIR-4a — las dos vistas alineadas, el cierre por vista, el resultado abajo, la casilla de Anahí retirada y «+ Vista» con imágenes fijas (2026-11-15)
+
+**SEIS commits.** `23b3aab` (bloques **A y B**: la plantilla única de barra, `vistaCerrarUna`, el
+prefijo libre, `_vSlotSync`, el resultado abajo y centrado, la columna de 340 px con su corte;
+TC-892 a TC-894 y las dos primeras sondas) · `9ff072f` (bloque **E**: la tabla vuelve a tres
+columnas; ocho casos adaptados) · `b859911` (bloque **C**: las fijas en «+ Vista», la
+deduplicación, la marca y la cuarta capa del Simpson; TC-895 y su sonda) · `c7f1ed0` (el
+**sellado** y el renglón de tamaño) · uno con los **dos casos que la batería destapó** (TC-257 y
+TC-888) · **éste** (la documentación, que no toca `index.html`).
+
+Línea base: **`e7a1f3e`**, el cierre del bloque 0 de MEDIR-4, cuyo `index.html` es **idéntico** al
+de MEDIR-3 — sello `v20261114-2057`, md5 `6545b13e`, **182.292** líneas, **13.163.769** bytes, los
+tres **verificados al abrir** con `git show`, `wc -l`, `wc -c` y `md5`, más el sello del pie: el
+renglón de tamaño de `CLAUDE.md` estaba **bien en las tres cifras**, por cuadragésima segunda vez
+seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**CUATRO bloques cerrados —A, B, E y C—, cada uno en su commit y con su verificación parcial. El
+bloque D NO SE EMPEZÓ**, que es lo que la orden manda («lo primero que cae es D»): no hay una línea
+de código suya en el árbol. Lo que queda por hacer, con lo que ya está listo para reusarse, está en
+**M4a-f**.
+
+**Lo que la medición corrigió de la orden y del inventario:** `_dop` y `_d2` **no** son estado por
+vista sino de **módulo**, y es a propósito —la ecuación de continuidad necesita insumos de dos
+planos, que con dos vistas son dos pantallas—, así que la tabla **no se partió** y se **muda** a la
+columna de la vista activa, con la marca de origen por fila que ya existía (**M4a-c**); y el corte
+de ancho es **1369 px y no 1368**, porque a 1368 la imagen mide 299. El bloque **B no necesitó
+código propio**, declarado antes de commitear. Y el Simpson se bloquea por una **marca de la
+vista** y no por el conteo de cuadros, porque **siete** casos del suite trazan Simpson sobre
+fixtures de un cuadro (**M4a-d**).
+
+**Verificación:** **suite 896/903** al cierre en diecisiete lotes, los **903 ejecutados y cero
+salteados**, md5 idéntico antes y después, pendrive verificado diecinueve veces, con los **tres**
+rojos de siempre —TC-376, TC-390, TC-406— más **cuatro de sensibilidad de lote, los cuatro verdes
+aislados**: TC-551, TC-557, TC-562 y TC-706;
+**3/3 mutaciones dirigidas muertas** sobre el árbol sellado, en un worktree y con el md5 del vivo
+idéntico antes y después; **Chrome y WebKit idénticos en los dieciséis cruces** con cero errores de
+consola y de página; Semgrep **126/0** (la línea base), **sin huérfanos nuevos**, celular **59 y 67
+con 18 ALTA** (la línea base), **17 de 19** bloques de JS inline parseando, Excel en **457**
+columnas y **cero** campos guardados nuevos.
+⚠️ **LA PRIMERA PASADA DE LA BATERÍA NO SE INFORMA, Y FUE UN ERROR MÍO**: edité
+`scripts/test_clinico.mjs` **mientras corría** —la trampa que este repositorio documenta y que
+MEDIR-2 ya pagó— así que los lotes de antes y los de después usaron archivos distintos. Dio
+894/903 y sirvió de diagnóstico: destapó **TC-257** y **TC-888**, los dos míos. La cifra que se
+informa sale de la pasada **limpia**, con el archivo de casos final.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **M4a-a** a **M4a-h**. El mapa, en
+`docs/mapa/medir4a-vistas-cierre.md`; las fichas, en `docs/mapa/tests-fichas-892.md`; la guía
+manual, en `docs/GUIA_PRUEBA_MEDIR4A.md`.
+
+---
+
 ## ECO-CONECTOR-5 — ver lo que espera, diálogos propios, vista previa y elegir en la galería (2026-11-13)
 
 **DIEZ commits.** `c69ba63` (1, el conector falso con nueve escenas y la sonda de línea base; no

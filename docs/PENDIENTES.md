@@ -16934,6 +16934,162 @@ Ninguno quedó más débil.
 la de dos columnas no existe, así que el `TypeError` cortaba antes de medir. Cerrado con guarda
 —la lección de TC-827—, y hoy cae por condiciones.
 
+## MEDIR-4a (2026-11-15) — lo declarado
+
+Tanda **MEDIR-4a**: las dos vistas alineadas, el cierre por vista, el resultado abajo, la casilla
+de Anahí retirada de cada fila y «+ Vista» con imágenes fijas. Línea base **`e7a1f3e`** (el bloque
+0 de MEDIR-4, cuyo `index.html` es idéntico al de MEDIR-3). Sello **`v20261115-0250`**, md5
+**`359755ea`**. El mapa está en `docs/mapa/medir4a-vistas-cierre.md`.
+
+**Cuatro bloques cerrados: A, B, E y C. El bloque D no se empezó** (ver **M4a-f**).
+
+### M4a-a — DECISIÓN PROVISORIA: la vista que sobrevive sigue diciendo «Vista B»
+
+Cerrando la vista A con la B abierta, lo que queda es el **objeto** de la B: conserva su prefijo
+`b-` y su `rot:'B'`, así que su encabezado sigue diciendo **«Vista B»** aunque sea la única
+abierta. La orden lo anticipa —«la B queda como única vista (decisión provisoria del médico:
+declará cómo quedaron los rótulos)»— y acá queda declarado cómo quedaron.
+
+**Por qué no se renombra**, y son dos razones distintas:
+
+1. **Los ids del panel no se tocan.** Renombrar `b-cine-cv` a `cine-cv` y compañía es cirugía
+   sobre una treintena de nodos, más los casos que los buscan por su id. No aporta nada clínico.
+2. **`rot` NO se puede reescribir**, y esto es lo que importa: de `V.rot` sale la **marca de
+   origen** de cada fila del cajón (`_dopMarcarOrigen`, `_d2MarcarOrigen`). Poniéndolo en `'A'`,
+   las mediciones que el médico **ya tomó** en la B pasarían a decir que salieron de otra imagen.
+   Una fila que miente sobre su procedencia es peor que un rótulo que dice «B» sobre la única
+   vista que queda.
+
+**Lo que SÍ queda consistente**: el `rot` y el rótulo del encabezado dicen lo mismo, así que no
+hay dos superficies en desacuerdo. Y la vista que se abre **después** toma el prefijo libre, con lo
+que vuelve a haber una «A» y una «B».
+
+**Qué decidir**: si el médico quiere que la única vista que queda diga «Vista» a secas, o que el
+rótulo se renumere. Lo segundo obliga a separar el rótulo de pantalla del `rot` del dato, que es
+una decisión de diseño y no un arreglo.
+
+### M4a-b — POR DEBAJO DEL CORTE, CON DOS VISTAS, EL MODAL SE DESPLAZA
+
+Medido en los dos motores: con dos vistas y la ventana por debajo de 1369 px, las medidas bajan
+debajo de su imagen —que es lo que el médico pidió para ese caso— y el modal pasa a desplazarse
+**342 px a 1280** y **303 a 1180**. Es inherente a apilar imagen y medidas en cada una de las dos
+mitades: el alto de un panel pasa a ser la suma de los dos.
+
+**No hay desplazamiento HORIZONTAL en ninguno de los dieciséis cruces**, que es lo que la orden
+prohíbe, y con **una** vista el modal no se desplaza en ninguno de los cuatro anchos.
+
+**Qué decidir**: si en ese rango conviene otra cosa —por ejemplo mostrar una vista a la vez con el
+alternador, que es lo que ya hace por debajo de 1024 px—. La orden lo deja como decisión
+provisoria.
+
+### M4a-c — LA TABLA DE MEDIDAS NO SE PARTIÓ POR VISTA, Y ES CONTENIDO CLÍNICO
+
+El inventario del bloque 0 publicaba que el estado de medición es por vista. Lo es para los
+**arreglos crudos** (`medPuntos`, `medCalibVel`, `simp`); **no** lo es para el cajón: `_dop` y
+`_d2` son `let` de **módulo**, uno por overlay.
+
+Y es **a propósito**. Su propio comentario lo declara: «el cajón acumula entre imágenes A
+PROPÓSITO —la ecuación de continuidad lo exige: el VTI del TSVI y el de la válvula aórtica se
+miden en planos distintos— y con DOS vistas abiertas esos dos planos pueden ser dos pantallas».
+
+**Partirlo en una tabla por vista dejaría a la AVA sin poder calcularse**, y eso es contenido
+clínico. Así que esta tanda **adaptó sin inventar**: la tabla sigue siendo una sola y se **muda a
+la columna de la vista que se está midiendo**, y lo que distingue el origen de cada número es la
+**marca por fila que ya existía** (`_dopSufOrigen`), que sólo aparece cuando hay más de un origen.
+Medido: con una vista la fila dice «TAPSE», con dos dice «TAPSE · A» y «VD basal · B».
+
+**Qué decidir**: si el médico quiere ver las dos tablas a la vez. Eso obliga a separar los insumos
+de la ecuación de continuidad de los de cada vista, que es una decisión clínica.
+
+### M4a-d — EL SIMPSON SE BLOQUEA POR LA MARCA DE LA VISTA Y NO POR EL CONTEO DE CUADROS
+
+El pedido dice que en una vista estática no se puede trazar Simpson. El predicado natural sería
+«la imagen tiene un solo cuadro», y **no se usó**, con la medición al lado: **siete** casos del
+suite —TC-196, TC-227, TC-228, TC-237, TC-239, TC-241 y TC-245— trazan Simpson sobre fixtures de
+**un** cuadro, porque el visor siempre lo permitió sobre una imagen suelta del pendrive. Un
+predicado por `frags.length` los habría puesto rojos a los siete y habría **sacado una función que
+el pedido no manda sacar**.
+
+Lo que se acota es la vista que se abre **eligiendo** una fija guardada en «+ Vista», que es un
+camino **nuevo** de esta tanda: `V.esFija`, escrita en el único borde por donde entra esa elección
+y soltada en `_cineAbrir`.
+
+**Lo que esto cuesta, declarado**: abriendo una imagen de un solo cuadro por **otra** puerta —el
+pendrive, la tira, «Imágenes guardadas»— el Simpson **sigue** disponible, y ahí el médico puede
+trazar los dos contornos sobre el mismo cuadro y obtener una FEVI de cero. Eso ya pasaba antes de
+esta tanda y no es una regresión; cerrarlo es una decisión del médico, porque le saca al visor una
+cosa que hoy permite.
+
+### M4a-e — NO SE PUDO CONFIRMAR SI LOS DOS Q9JG9U02 DEL MÉDICO ERAN EL MISMO ARCHIVO
+
+Lo que el bloque 0 dejó abierto (H4) **sigue abierto en su mitad de hecho**: hace falta el almacén
+del médico para saber si aquellos dos eran el mismo cineloop guardado dos veces o dos distintos
+con igual código. **No lo pude confirmar.**
+
+Lo que sí quedó cerrado es **lo que el selector hace con cada caso**, que es lo que el bloque C
+pedía, y las dos ramas están medidas con un fixture: la misma terna nombre/cuadros/bytes se
+muestra una vez, y dos con igual nombre y distinto peso se distinguen con su ordinal y su peso.
+Así que cuando el médico vuelva a ver esa pantalla, la propia pantalla le dirá cuál de las dos
+cosas era.
+
+### M4a-f — EL BLOQUE D NO SE EMPEZÓ, Y ES LO QUE LA ORDEN MANDA
+
+La orden fija el orden A, B, E, C, D y dice: «Si el presupuesto no alcanza, NO empieces el bloque
+siguiente: declaralo y se hace en otra tanda. Lo primero que cae es D». Se cerraron **A, B, E y
+C**, los cuatro con su verificación parcial y su commit, y **el D no se empezó**: no hay una línea
+de código suya en el árbol.
+
+**Lo que queda por hacer, con lo que ya está listo para reusarse:**
+
+1. **La ventana (A4C o A2C) se elige UNA vez al abrir la herramienta Simpson**, no en cada
+   trazado. Hoy `_simp.nombres` guarda la ventana de cada una de las dos ranuras.
+2. **La barra de dos pasos «1 Diástole → 2 Sístole»** con una línea de instrucción y un único
+   botón «Listo» que confirma la fase y pasa a la siguiente, con cada fase rehacible por separado.
+3. **Las medidas de cada ventana en SU panel**, a la derecha de su imagen: los dos pasos con su
+   tilde y, grandes, VFD, VFS y FEVI de esa ventana en mL y mL/m² —que es lo que
+   `_simpFilasTabla` ya calcula desde MEDIR-2—.
+4. **El resultado integrado abajo, en el medio** — el lugar **ya existe** y es lo que el bloque A
+   de esta tanda dejó hecho: `cine-biplano` y `cine-simp-uni`, centrados y debajo de los paneles.
+   Falta su contenido: VFD, VFS y FEVI del biplano grandes, la clasificación que la app YA usa (no
+   se inventan cortes) y la tabla con A4C, A2C y Biplano. El biplano se sigue calculando al vuelo
+   (`_vBiplanoDatos`): no se agrega almacenamiento.
+5. **Las advertencias y notas de método al ⓘ**, con el mecanismo que MEDIR-3 ya dejó
+   (`_medInfoBoton` + `_MED_INFO`), contando cuántos textos se mueven y comprobando que cada uno
+   siga existiendo.
+6. **El Simpson monoplanar de una sola ventana se sigue mostrando, rotulado como monoplanar.**
+
+**Y la cuarta mutación que la orden pide para el D** —«Listo» no pasa a la sístole— queda para esa
+tanda, con las tres de ésta ya muertas.
+
+### M4a-g — SEIS CASOS FILTRABAN LAS FILAS POR «CUATRO CELDAS», Y MI CENSO NO LOS VIO
+
+Retirar la cuarta columna de la tabla de medidas puso en rojo a **TC-249, TC-262, TC-883, TC-885,
+TC-887 y TC-891** por una razón que no tenía nada que ver con lo que esos casos afirman: su lector
+de filas filtraba por `tr.children.length >= 4`, así que con tres celdas la lista salía **vacía** y
+el denominador daba cero sobre una tabla que **sí** estaba pintada.
+
+El filtro vivía en **seis** lectores distintos con seis nombres de variable distintos, así que
+buscar «la tabla» no los encontró: los destapó **correr los casos que la miran**. Es el modo de
+falla que este archivo ya documenta una decena de veces, pagado otra vez.
+
+Los seis quedaron adaptados cambiando sólo ese filtro —un **denominador**, no una afirmación— y
+por eso **pasan en los dos árboles**: no quedaron más débiles, simplemente no son lo que
+discrimina.
+
+### M4a-h — TRES TRAMPAS DE ESCRITURA, LAS TRES DE ESTA CASA
+
+1. **El acento grave dentro de mis propios comentarios, por vigesimoctava tanda seguida** — en dos
+   sondas y en cinco bloques de casos. Y una vez lo que quedó fue JS **válido**: dos acentos graves
+   alrededor de `.click()` se cancelan, así que `node --check` **pasó** y lo cazó
+   `scripts/check_backticks.py`. Es la agravante que PANT-31 dejó escrita.
+2. **La clave de las condiciones es `extra`, no `ex`.** Con `ex` el runner dice «el caso no declara
+   NINGUNA condición» y lo reporta rojo sin medir nada — lo pagaron los tres casos del bloque A en
+   su primera corrida.
+3. **El orden de `imgVaciar` y `imgRestaurar` costó una corrida.** `imgVaciar` pone
+   `_imgUuidActual` en `null` —es «paciente nuevo»—, así que llamarlo **después** de sembrar el uuid
+   lo borraba y `_vElegirLoop` salía por su primera guarda. El síntoma no se parecía a la causa: el
+   caso informaba el uuid bien puesto (lo leía antes) y después «el selector no abrió».
+
 ## MEDIR-3 (2026-11-14) — lo declarado
 
 Tanda **MEDIR-3**: el panel del visor, los botones de la barra, la calibración de velocidad con dos

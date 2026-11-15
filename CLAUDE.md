@@ -160,6 +160,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la ESTENOSIS MITRAL en el LABORATORIO**: las seis categorías, las dos casillas del filtro, el gráfico de distribución, el PDF de auditoría o el PPT | `docs/mapa/laboratorio-estenosis-mitral.md` |
 | **Tocar la VISTA 2D de las válvulas**: el lector único del estado, las tarjetas, la tabla de cavidades, el dibujo, los chorros o el «por qué» | `docs/mapa/vista-2d-valvulas.md` |
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
+| **Tocar la ALINEACIÓN de las dos vistas del visor** —la plantilla única de barra, el «✕ Cerrar vista» de cada vista, el prefijo libre, la columna de 340 px con su corte de 1369 px—, **el RESULTADO integrado abajo y centrado**, **la TABLA que se muda a la columna de la vista activa**, **«+ Vista» con IMÁGENES FIJAS** —su marca, la deduplicación por nombre/cuadros/bytes o los homónimos distinguidos— o **el SIMPSON bloqueado en una vista de imagen fija** | `docs/mapa/medir4a-vistas-cierre.md` |
 | **Tocar el PANEL del visor** —el negro de los costados, el tope del modal, el selector FIJO con su scroller—, **la TABLA de una medida por fila** con su valor grande, **el GLOBO ⓘ del panel de medición**, **el orden del VI o el Diam TSVI en Aorta**, **los BOTONES de la barra y su contraste**, **la CALIBRACIÓN DE VELOCIDAD con dos valores** con su línea del cero y el modo M, **el FAC del VD** o **la banda de «Vmax pulmonar»** | `docs/mapa/medir3-panel-botones-calibracion.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
@@ -1259,7 +1260,15 @@ impecable.
 > SEGURIDAD y la tabla de Procedencia) siguen enteras y en su lugar, verificado byte por byte.
 <!-- L1:INDICE -->
 
-> ⚠️ **AL 2026-11-13 ESTE ARCHIVO PESA 347 KB —unos 95k tokens— Y «Estado vigente» TIENE TRECE
+> ⚠️ **AL 2026-11-15 ESTE ARCHIVO PESA 391 KB —unos 107k tokens— Y «Estado vigente» TIENE
+> DIECISÉIS TANDAS, NO TRES.** Medido con `wc -c` al cerrar MEDIR-4a. **MEDIR-4a TAMPOCO HIZO LA
+> MUDANZA, y se declara en vez de dejarlo pasar en silencio**: su orden no la pedía, el presupuesto
+> se fue en los cuatro bloques y su verificación de cierre, y un `sed` mal apuntado sobre este
+> archivo cuesta más que el tamaño. Es la **decimocuarta** tanda seguida que la posterga. Lo que
+> hay que mudar hoy a `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` es todo lo anterior a **MEDIR-3**,
+> o sea de **ECO-CONECTOR-5 hacia atrás**.
+>
+> ⚠️ **AL 2026-11-13 ESTE ARCHIVO PESABA 347 KB —unos 95k tokens— Y «Estado vigente» TENÍA TRECE
 > TANDAS, NO TRES.** Medido con `wc -c` al cerrar ECO-CONECTOR-5. La regla de la LIMPIEZA-1 dice
 > que acá quedan **las tres últimas**; de ECO-CONECTOR-1 hacia atrás —PANT-37, PANT-36, PANT-34,
 > PANT-33, PANT-32, PANT-31, PANT-30, PANT-29, PANT-28, PANT-26, PANT-27 y las dos de auditoría—
@@ -1274,6 +1283,165 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda MEDIR-4a (2026-11-15) — las dos vistas alineadas, el cierre por vista, el resultado
+abajo, la casilla de Anahí retirada y «+ Vista» con imágenes fijas.** SEIS commits. Sello
+**`v20261115-0250`**, md5 **`359755ea`**, **182.653** líneas.
+El médico probó MEDIR-3 y pidió cinco bloques. Se cerraron **CUATRO —A, B, E y C—**, cada uno con
+su commit y su verificación parcial; **el bloque D no se empezó** y queda declarado en **M4a-f**,
+que es lo que la orden manda («lo primero que cae es D»). **Esta tanda NO escribe en ningún campo
+del informe**: no se tocaron `_simpEscribirFEVI`, `medVtiDiametro` ni `medVtiCargar`, ni el botón
+«¿Integrás la FEVI biplano al informe?» — eso es de la tanda siguiente. El Excel queda en **457**
+columnas con **cero** campos guardados nuevos, por construcción: **cero `input`, `select` y
+`textarea` nuevos con `id`**, y lo único que se RETIRA es un control sin `id`.
+⚠️ **DOS PREMISAS DEL INVENTARIO DEL BLOQUE 0 SE DIERON VUELTA AL RE-MEDIRLAS, Y LA PRIMERA CAMBIÓ
+EL DISEÑO DEL BLOQUE A.** (1) **`_dop` y `_d2` NO son estado por vista: son estado de MÓDULO**, uno
+por overlay. Lo que aquella sonda medía eran los arreglos crudos de cada vista, que sí lo son. Y es
+**a propósito**: su propio comentario dice que «el cajón acumula entre imágenes A PROPÓSITO —la
+ecuación de continuidad lo exige: el VTI del TSVI y el de la válvula aórtica se miden en planos
+distintos— y con DOS vistas abiertas esos dos planos pueden ser dos pantallas». **Partir la tabla
+en una por vista dejaría a la AVA sin poder calcularse**, que es contenido clínico, así que se
+**adaptó sin inventar**: la tabla sigue siendo una sola y se **muda a la columna de la vista que se
+está midiendo**, y lo que distingue el origen de cada número es la **marca por fila que ya
+existía** (`_dopSufOrigen`), que sólo aparece con más de un origen — medido: con una vista la fila
+dice «TAPSE», con dos dice «TAPSE · A» y «VD basal · B». Declarado en **M4a-c**. (2) **El corte de
+ancho es 1369 px y no 1368**: medido barriendo la ventana de 1500 a 1180, a 1369 la imagen mide
+**300 px exactos** y a 1368 mide **299**, uno por debajo del piso que la orden fija.
+**BLOQUE A — LA ALINEACIÓN, EL CIERRE POR VISTA Y EL RESULTADO ABAJO.** `_vPanelHTML` ya era la
+única plantilla; lo que no era igual eran los botones. Hoy las dos barras tienen los **mismos
+SIETE** en el **mismo** orden: **`cine-cerrar-v` se emite en las DOS**, última posición, mismo
+rótulo y mismo índice, y **va en la barra y no en el encabezado** porque ahí la regla de
+`.cine-barra` le fija los 44 px exactos —en el encabezado su piso táctil hacía el de la B **30 px
+más alto**, y con él la barra y la imagen de la B arrancaban más abajo—. **«➕ Vista» y «Cerrar» se
+mudaron al encabezado del modal** conservando sus ids, sus funciones y la clase `cine-grp-vista`
+de la que cuelga el modo mínimo: en la barra eran dos botones más que en la B, así que a 1280 y
+1180 la A envolvía en **tres** líneas contra las **dos** de la B, **38 px** de diferencia.
+**`vistaCerrarUna(V)` cierra una vista cualquiera y, con una sola abierta, el visor.** La que
+sobrevive pasa a ser `_vistaA` **conservando su prefijo y su `rot`**: no se renombran los ids del
+panel, y **`rot` no se toca** porque de él sale la marca de origen de cada fila ya medida —
+reescribirlo haría que las mediciones del médico dijeran que salieron de otra imagen—. Que el
+rótulo que queda sea «Vista B» es la decisión provisoria, declarada en **M4a-a**.
+⚠️ **LA VISTA QUE SOBREVIVE SE ACTIVA *ANTES* DE DESTRUIR EL PANEL**, y de eso depende que los
+cajones no se vayan con él: desde esta tanda viven en la ranura de la vista activa, así que quitar
+el panel de la A se llevaría los dos nodos **con sus oyentes delegados** y la tabla no volvería.
+⚠️ **Y NO VA ENVUELTA EN `_vBind`**: ese `finally` repone la vista anterior, así que cerrando la
+vista activa dejaría `_V` apuntando a la **destruida** y el clic siguiente escribiría en una imagen
+que ya no está en el documento. (Hasta MEDIR-3 el de la B andaba por casualidad.)
+⚠️ **`vistaBAbrir` TOMA EL PREFIJO LIBRE Y NO SIEMPRE `b-`**: desde que se puede cerrar la A, la
+que queda puede ser la del `b-`, y montar otra con `b-` dejaría una treintena de ids **duplicados**
+con el panel nuevo dibujado sin responder a un solo clic. **Medido: cero ids duplicados** en los
+cuatro escenarios.
+**`_vSlotSync()`** muda `cine-dop-slot` y `d2-cajon` a la ranura de `_V` —que ahora existe en las
+dos vistas, prefijada— desde `_dopRender` y `_d2Render`, que es el único momento en que se sabe de
+qué vista es el número que se va a dibujar. **No mueve nada si ya está en su ranura**, y no es una
+optimización: mover un nodo que contiene al elemento **enfocado** le quita el foco, y los dos
+render corren después de apretar un botón de adentro del propio cajón.
+**`cine-biplano` y `cine-simp-uni` se quedan DEBAJO de los paneles**, centrados con margen
+automático y 780 px de ancho máximo. Es una **reversión explícita** de una decisión de MEDIR-1, por
+pedido del médico, y **sólo del resultado**: los dos cajones siguen mudándose a la columna.
+**La columna baja a 340 px con dos vistas a partir de 1369 px**; por debajo, la fila envuelve y las
+medidas bajan debajo de su imagen. **Los anchos medidos**: imagen **365 / 335 / 603 / 553** y
+columna **340 / 340 / 603 / 553** a 1500, 1440, 1280 y 1180; y 339 a 1448, 315 a 1400, 301 a 1372 y
+**300 exactos a 1369**. ⚠️ **Por debajo del corte el modal se desplaza** —342 px a 1280 y 303 a
+1180—, inherente a apilar las dos mitades y declarado en **M4a-b**; **cero desplazamiento
+horizontal** en los dieciséis cruces, y con una vista **cero** vertical en los cuatro anchos.
+⚠️ **NO SE RECORTÓ NI SE AMPLIÓ LA IMAGEN**: el canvas sigue midiendo `cols × filas` en píxeles y
+`_medPintar` sigue calzando el overlay contra `cine-recorte`, así que la calibración no se entera.
+**BLOQUE B — NO NECESITÓ CÓDIGO PROPIO, Y ES MEDIBLE.** La disposición de una sola vista sale de la
+**misma plantilla única** y del **mismo traslado del resultado** que el bloque A: la columna
+arranca a la derecha del lienzo, los dos paneles de resultado están **fuera** de `.cine-col-der` y
+**después** de `#cine-paneles`, el desbalance contra el modal es **0** y mostrando el resultado **el
+panel no se mueve un píxel** (380 → 380 y 1050 → 1050). Declarado antes de commitear.
+**BLOQUE E — SALE LA CASILLA DE ANAHÍ DE CADA FILA.** La tabla vuelve a **TRES** columnas con el
+`colgroup` en **42 / 26 / 32 %** y el `colspan` del separador en **3**; el 10 % que deja la casilla
+se reparte entre las tres y no se le da todo a una, porque con la columna en 340 px el nombre es el
+que envuelve primero. `anahiCeldaHTML` y la clase `anahi-cel` se retiran **con su lápida** y el
+oyente delegado deja de mirarla: le queda `.anahi-btn`. **Lo que NO se tocó**: los dos botones «Para
+Anahí», el cartel con su aviso corto, el bloque de Configuración, el estado único y el nombre
+único. **Nada se envía y nada se guarda**, que es lo que ya pasaba: la casilla nacía deshabilitada,
+con candado y con `pointer-events:none`.
+**BLOQUE C — «+ VISTA» OFRECE LOS CINELOOPS Y LAS IMÁGENES FIJAS.** El motivo escrito del filtro
+viejo vale para el tipo `'doc'` y **no** vale para una fija, que es una imagen del paciente y se le
+puede medir distancia, área y Doppler. **`_vEsFija(r)` es el único predicado** y lo leen la marca de
+la miniatura, el texto del pie y la marca de la vista. **La deduplicación usa el criterio que el
+bloque 0 dejó escrito**: la misma terna nombre + cuadros + bytes es el **mismo archivo** y se
+muestra **UNA** vez; dos con igual nombre y distinto peso son **dos** y se distinguen con su
+ordinal **«(1 de 2)»** y con su **peso**. ⚠️ **Y EL PICKER PUBLICA LA LISTA QUE DE VERDAD DIBUJÓ**
+(`_vPickLista`): el índice que resuelve es de **su** lista, así que con un duplicado descartado
+quien llama abriría el registro de al lado — **un dato del paciente equivocado, en silencio**.
+**El Simpson queda bloqueado en una vista de imagen fija por una CUARTA capa de `medHerramienta`**,
+la misma cadena que ya existe para Deformación con el módulo apagado y para Velocidad sobre un modo
+M: cae a Distancia y sale un mensaje de **UNA** línea, con el botón **apagado y a la vista** y el
+motivo en su título, mientras **Distancia, Área y las de Doppler siguen disponibles**.
+⚠️ **EL PREDICADO ES UNA MARCA DE LA VISTA (`V.esFija`) Y NO UN CONTEO DE CUADROS, Y LA DIFERENCIA
+ESTÁ MEDIDA**: **siete** casos del suite —TC-196, TC-227, TC-228, TC-237, TC-239, TC-241 y TC-245—
+trazan Simpson sobre fixtures de **un** cuadro, porque el visor siempre lo permitió sobre una imagen
+suelta del pendrive. Un predicado por `frags.length` los habría puesto rojos a los siete y habría
+**sacado una función que el pedido no manda sacar**. **La marca se suelta en `_cineAbrir`**: el
+objeto de la vista A sobrevive al cierre del visor y una marca pegada dejaría el Simpson bloqueado
+sobre el cineloop **siguiente** — la trampa que `_clnkPorConfirmar` y `data-pop-mano` ya pagaron.
+Lo que cuesta, declarado en **M4a-d**: por **otra** puerta —el pendrive, la tira— el Simpson sobre
+una imagen de un solo cuadro sigue disponible, como antes de esta tanda.
+**CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1500, 1440, 1280 y 1180 × los
+dos temas **reales**, puestos por `ett_theme` + `loadTheme()` y **devueltos** por la sonda), con
+**UNA sola firma de valores** y **CERO errores de consola y de página**: las dos imágenes a **0** px
+de diferencia de altura y de alto, las dos barras a **0** y **0**, los sliders a **0**, mismo orden,
+**7 y 7** botones con **2 y 2** líneas, **44 px exactos** y 118 de ancho los catorce, encabezados
+con **0** botones, el peor contraste **5,96 de noche y 4,70 de día**, el resultado con desbalance
+**0** contra el modal **y 0** contra el punto medio de los dos paneles, la tabla pasando de
+`cine-panel` a `b-cine-panel` y volviendo, **42** botones táctiles, **CERO** por debajo de 44 px,
+**CERO** pares de áreas solapadas, **CERO** valores de celda cortados, **CERO** textos recortados y
+**CERO** desplazamiento horizontal. Los **cuatro escenarios de cierre** y el **bloque C de punta a
+punta** se ejercitaron con el **gesto real** en los dos motores, con el mismo resultado.
+⚠️ **WebKit de Playwright no es Safari, y se declara** — y el médico usa Safari. Chrome va por el
+del sistema.
+**Cobertura: TC-892 a TC-895 nuevos**, los cuatro cayendo contra `e7a1f3e` con el mismo archivo de
+casos y sólo el `index.html` distinto, **por 44 condiciones (9 + 10 + 9 + 16) y CERO excepciones**.
+**ONCE casos adaptados**, ninguno borrado y ninguno aflojado: **TC-882** con sus bloques (A), (D) y
+(E) **INVERTIDOS**, **TC-886** con su (a) **INVERTIDO** y el disparador del cartel pasando de la
+celda al **botón**, **TC-257** y **TC-888** con su conteo **INVERTIDO** —tres columnas y siete
+botones—, **TC-249** con su `colspan`, y **TC-262, TC-883, TC-885, TC-887, TC-889 y TC-891** con
+sólo el **filtro** de filas de su lector. **Los cinco primeros caen contra la base**; los seis del
+filtro **pasan en los dos árboles** y se declaran: su cambio es un **denominador**, no una
+afirmación.
+⚠️ **OCHO CASOS LOS DESTAPÓ LA BATERÍA COMPLETA Y NO MI CENSO**, y las dos causas están en
+**M4a-g**: el filtro `children.length >= 4` vivía en **seis** lectores distintos con seis nombres de
+variable distintos, y **TC-257 y TC-888** afirmaban su conteo con la palabra «CUATRO» y «ocho» en su
+rótulo y un `=== 4` / `=== 8` en el cuerpo, así que buscar «med-tabla» no los encontró.
+**TRES MUTACIONES DIRIGIDAS, LAS TRES MUERTAS**, en un worktree y **nunca** sobre el vivo, con el
+md5 del vivo **idéntico** antes y después (`359755ea`) y las tres anclas verificadas **antes** de
+correr: el «Cerrar vista» de la A cerrando todo el visor mata **TC-893** por 7 condiciones, la barra
+de la A con un botón más mata **TC-892** por 3, y la tabla que se queda en la columna de la A mata
+**TC-893** por 3. **La cuarta que la orden pide —«Listo» no pasa a la sístole— es del bloque D y
+queda con él.**
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base. **CELULAR: 59
+hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta, medida con la
+máquina sola.
+**Línea base al cierre: suite 896/903**, en **DIECISIETE** lotes cubriendo los **903 casos
+distintos** —contados nombre por nombre con el patrón completo del id, **cero duplicados**—, en UNA
+sola pasada sobre el árbol sellado, con los **903 ejecutados y CERO salteados**, el md5 de
+`index.html` **idéntico** antes y después (`359755ea`) y el pendrive `DISK_IMG` verificado
+**diecinueve** veces: al abrir, en cada uno de los diecisiete lotes y al cerrar.
+Los rojos son **TC-376, TC-390 y TC-406**, los tres de siempre, más **cuatro de sensibilidad de
+lote, los cuatro caracterizados y los cuatro VERDES corridos aislados**: **TC-551** —el que `COR-f`
+declara, que mide el chorro de la orejuela sin pausar la animación: **3 de 3** verde solo, y 1 de 2
+en un lote de cinco—, **TC-557** —el que `TGA-h` declara—, **TC-562** y **TC-706** —éste declarado
+como preexistente en PANT-32, junto con TC-182 y TC-791—. **Ningún rojo nuevo**, y **los cuatro
+casos nuevos y los once adaptados en verde**.
+⚠️ **ES LA SEGUNDA PASADA, Y LA PRIMERA NO SE INFORMA PORQUE FUE UN ERROR MÍO**: edité
+`scripts/test_clinico.mjs` **mientras corría** —la trampa que este archivo documenta y que MEDIR-2
+ya pagó por la misma puerta— así que los lotes de antes y los de después usaron archivos distintos.
+Dio **894/903** y sirvió de **diagnóstico**: destapó **TC-257** y **TC-888**, los dos míos. Esta
+casa no informa un número de una pasada hecha con un archivo de casos anterior.
+⚠️ **Y TC-143 SALIÓ VERDE EN LA PASADA LIMPIA, PERO ES INTERMITENTE EN LOS DOS ÁRBOLES Y SE
+DECLARA**: falla con «Chart is not defined», o sea Chart.js del CDN sin terminar de cargar. Medido
+tres veces de cada lado con la CDN respondiendo 200: **3 de 3 verde en el árbol vivo** y **1 de 3 en
+la línea base**. No es de esta tanda.
+Lo declarado, en **M4a-a** a **M4a-h**; el mapa, en `docs/mapa/medir4a-vistas-cierre.md`; las
+fichas de los cuatro casos, en `docs/mapa/tests-fichas-892.md`; las sondas, en
+`scripts/_probe_medir4a.mjs`, `scripts/_probe_medir4cierre.mjs` y `scripts/_probe_medir4c.mjs`; la
+guía manual, en `docs/GUIA_PRUEBA_MEDIR4A.md` (**12** pasos).
 
 **La tanda MEDIR-3 (2026-11-14) — el panel del visor, los botones, la calibración de velocidad con
 dos valores y el FAC del VD.** CUATRO commits. Sello **`v20261114-2057`**, md5 **`6545b13e`**,

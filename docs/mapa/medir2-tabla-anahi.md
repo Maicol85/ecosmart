@@ -223,3 +223,19 @@ cinco columnas en los dos cajones, las filas calculadas, los nombres del Doppler
 denominador: las líneas pasan de 3 a 5—, las dos estructuras del Área, el botón «Volumen» apagado,
 el cartel con su texto, el bloque de Configuración, y **las tres rutas al informe ejercitadas de
 verdad**. Lleva su **detector de que son dos árboles** (`tieneLoNuevo`).
+
+---
+
+## ⚠️ MEDIR-4a (2026-11-15) — LA CASILLA DE ANAHÍ POR FILA SE RETIRÓ, Y LA TABLA VOLVIÓ A TRES COLUMNAS
+
+Por orden del médico. La cuarta columna de la tabla de medidas —una casilla por fila,
+deshabilitada, con candado y con `pointer-events:none`— **salió**: `_medTablaHTML` emite **tres**
+columnas (`Medida | Valor | Acciones`) con el `colgroup` en 42 / 26 / 32 % y el `colspan` del
+separador en 3. `anahiCeldaHTML` y la clase `anahi-cel` quedaron con su **lápida**, y el oyente
+delegado del documento dejó de mirarla: le queda `.anahi-btn`.
+
+**Todo lo demás de esta sección sigue vigente palabra por palabra**: el estado único `ANAHI_ON`, el
+nombre único `ANAHI_NOMBRE`, los dos botones «Para Anahí», el cartel propio con su aviso corto, el
+bloque de Configuración, y que **nada se envía y nada se guarda**.
+
+El mapa de esa tanda es `docs/mapa/medir4a-vistas-cierre.md` § 3.
