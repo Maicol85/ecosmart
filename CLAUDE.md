@@ -274,7 +274,28 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,16 MB / 182.292 líneas**, medido con `wc -c` y `wc -l` el 2026-11-14 al cierre de la tanda **MEDIR-3**, sobre el árbol ya sellado: sello **`v20261114-2057`**, md5 **`6545b13e`**.
+  sin frameworks. Hoy **13,19 MB / 182.653 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-4a**, sobre el árbol ya sellado: sello **`v20261115-0250`**, md5 **`359755ea`**.
+  El diff de MEDIR-4a son **433 líneas agregadas y 72 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra **`e7a1f3e`** —el cierre del bloque 0 de MEDIR-4, que es la línea
+  base de ESTA tanda— **sobre el árbol ya sellado**, de las que **363** no son comentario, con
+  **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **cero** claves y contraseñas, **cero**
+  direcciones nuevas y **CERO llamadas de red nuevas**.
+  **DOS ids nuevos en el marcado, contados sobre el diff**: `cine-cerrar-v` —el «✕ Cerrar vista»
+  de la vista A, que hasta MEDIR-3 existía sólo en la B con el prefijo `b-`— y `b-cine-der-slot`
+  —la ranura de los cajones de la vista B—. Los cinco que el diff además muestra —`cine-add-b`,
+  `cine-cerrar`, `cine-biplano`, `cine-simp-uni` y `eco-build-sello`— **ya existían** y
+  reaparecen porque sus líneas cambiaron. **Ninguno de los dos nuevos termina en `-aviso` ni en
+  `-badge`**, y **ninguno cae en ninguno de los veintidós barridos por sufijo o prefijo de id
+  del archivo** (13 `id$=` y 9 `id^=`), verificado uno por uno.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo lo de esta
+  tanda fuera del censo del estudio y del Excel **por construcción** y no por una lista: el Excel
+  queda en **457** columnas con **cero** campos guardados nuevos. **Y lo que se RETIRA es un
+  control**: la casilla de Anahí por fila, que nunca tuvo `id`.
+  ⚠️ **POR CUADRAGÉSIMA SEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show e7a1f3e:index.html` da **182.292**
+  líneas, **13.163.769** bytes y el md5 **`6545b13e`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,16 MB / 182.292 al cierre de la tanda **MEDIR-3**, sello **`v20261114-2057`**, md5 **`6545b13e`**.)
   El diff de MEDIR-3 son **775 líneas agregadas y 220 quitadas** en `index.html`, medido con
   `git diff --numstat` contra **`3e64801`** —el cierre de MEDIR-2, que es la línea base de ESTA
   tanda— **sobre el árbol ya sellado**, de las que **658** no son comentario, con **CERO**
