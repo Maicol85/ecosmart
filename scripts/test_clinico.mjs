@@ -17446,10 +17446,34 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
         /* ADAPTADO 2026-10-14 (D2): los rotulos del panel de revision del Doppler pasaron de
            «PHT» a «THP» en toda la app. Lo que estas listas miden —que cada medicion aparece una
            vez y en su columna— no cambia; cambia como se llama una de ellas. */
-        ao:  ['Vmax VAo','Grad Máx','Grad Medio','THP IAo','Severidad IAo','Diam TSVI','VTI TSVI','VTI VAo','AVA'],
-        mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'VTI VM','Grad Medio VM','THP VM',
-              'AVM por THP','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM'],
-        tri: ['Vmax IT','Grad Máx IT','PSAP (PVC 10)','Vmax ET','Grad Máx ET'],
+        /* ADAPTADO 2026-11-15 (MEDIR-5, B4 a B7): el medico pidio catorce campos nuevos, reusando
+           el rotulo exacto que cada uno tiene en el formulario de la app, y pidio renombrar un
+           derivado. Lo que esta lista mide -que cada medicion aparece UNA vez y en su columna- no
+           cambia; cambia el inventario, y por eso se reescribe entero en vez de aflojar la
+           condicion. La lista es exhaustiva por los DOS lados (faltan y sobran), asi que se pone
+           roja tanto si desaparece una fila vieja como si aparece una que nadie declaro.
+             · aortica   -> «Diám jet IAo en TSVI» y «Vena contracta» (de ia_jet_diam e ia_vc),
+                            mas los CUATRO calculados de B5: DVI, volumen sistolico, su indexado
+                            y el gasto cardiaco, los dos ultimos con su insumo en el rotulo.
+             · mitral    -> TRIV, TDE, «Vmax aliasing», «Radio PISA» y «Vena contracta».
+             · tricuspide-> la onda S' del anillo por TDI y su TRIV, los TRES de la ESTENOSIS
+                            tricuspidea -VTI diastolico, gradiente medio y THP- el Diam VCI y la
+                            PmAD que sale de pmadEstimar.
+             · «Grad Máx IT» pasa a «G. Máx AD-VD», que es como el medico lo nombro: el MISMO
+               calculo sobre la MISMA Vmax, con un nombre que dice entre que dos camaras es.
+           ⚠️ LAS FILAS CALCULADAS SIGUEN EN ESTA LISTA aunque B4 y B5 las muden al bloque de
+           debajo de la imagen: _dopFilas las sigue emitiendo —con la marca calc— porque de ella
+           salen tambien la IMAGEN que se guarda en la biblioteca y su meta. Lo que las esconde
+           es el filtro de pantalla, y eso lo miden TC-250 y TC-901. */
+        ao:  ['Vmax VAo','Grad Máx','Grad Medio','THP IAo','Severidad IAo','Diam TSVI','VTI TSVI','VTI VAo',
+              'Diám jet IAo en TSVI','Vena contracta','AVA',
+              'DVI','Vol. sistólico'],
+        mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'THP VM','TRIV','TDE','VTI VM','Grad Medio VM',
+              'AVM por THP','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM',
+              'Vmax aliasing','Radio PISA','Vena contracta'],
+        tri: ["Onda S' tricuspídeo",'TRIV (TDI)','Vmax IT','G. Máx AD-VD','PSAP (PVC 10)',
+              'VTI diastólico tricuspídeo','Gradiente medio ET','THP tricuspídeo',
+              'Vmax ET','Grad Máx ET','Diam VCI'],
         /* ADAPTADO 2026-11-13 (MEDIR-2): «VP» y «Vmax EP» median LO MISMO -velocidad pico de la
            valvula pulmonar en m/s- y se fundieron en «Vmax pulmonar», conservando la clave que
            estaba conectada al gradiente; «Vmax IP» se abrio en las DOS de la insuficiencia, con
@@ -23846,7 +23870,11 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       /* ── el boton existe y selecciona la herramienta ──
          Vive en el grupo colapsable "Deformacion", que arranca CERRADO: hay que abrirlo para
          que el boton exista en el DOM. Eso es el flujo real, no una concesion del caso. */
-      R.grupoCerradoAlPrincipio = !document.getElementById('cine-med-str');
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B1), CONDICION INVERTIDA: el selector dejo de tener el nivel
+         «Modo», asi que las TRES familias de herramientas se ven desde el arranque y ya no hay
+         un grupo «cerrado». Hoy se exige lo CONTRARIO —que el boton del strain este— asi que el
+         caso falla por los dos lados: si desaparece la fila y si volviera el acordeon. */
+      R.grupoCerradoAlPrincipio = !!document.getElementById('cine-med-str');
       _medGrupo = 'def'; _medEstado();
       await new Promise(r => setTimeout(r, 110));
       const bstr = document.getElementById('cine-med-str');
@@ -24014,7 +24042,7 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['el grupo Deformacion arranca cerrado',        R.grupoCerradoAlPrincipio, R.grupoCerradoAlPrincipio],
+      ['la fila de Deformacion se ve desde el arranque (B1)', R.grupoCerradoAlPrincipio, R.grupoCerradoAlPrincipio],
       ['el boton 💚 Strain esta en su grupo',          R.hayBoton && /Strain/.test(R.rotulo||''), R.rotulo],
       ['lo selecciona y arranca la sesion en diastole', R.herr === 'strain' && R.arrancoSesion, R.herr],
       ['el panel guia el paso 1',                      R.panelPaso1, R.panelPaso1],
@@ -25063,8 +25091,11 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
 
       /* ── 1 · GRUPOS ── */
       R.g2dAbierto = !!document.getElementById('cine-med-dist');
-      R.gDopCerrado = !document.getElementById('cine-med-vel');
-      R.gDefCerrado = !document.getElementById('cine-med-str');
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B1), LAS DOS INVERTIDAS: sin el nivel «Modo» las tres filas de
+         herramientas se emiten juntas. Se exige que los tres botones ESTEN, que es lo que B1
+         pide, en vez de que dos falten. */
+      R.gDopCerrado = !!document.getElementById('cine-med-vel');
+      R.gDefCerrado = !!document.getElementById('cine-med-str');
       R.hayCabeceras = !!document.getElementById('cine-g-2d') && !!document.getElementById('cine-g-dop') &&
                        !!document.getElementById('cine-g-def');
       /* Abrir Doppler cierra 2D: uno solo a la vez. Y ESTO es lo que la logica rota impedia. */
@@ -25195,9 +25226,12 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
 
     return { extra: [
       ['los tres grupos tienen cabecera',            R.hayCabeceras, R.hayCabeceras],
-      ['2D abierto por defecto, los otros cerrados', R.g2dAbierto && R.gDopCerrado && R.gDefCerrado, R.g2dAbierto],
+      ['las TRES familias se ven a la vez (B1)',     R.g2dAbierto && R.gDopCerrado && R.gDefCerrado, R.g2dAbierto],
       ['SE PUEDE ABRIR OTRO GRUPO',                  R.dopSeAbre, R.dopSeAbre],
-      ['y al abrirlo se cierra el anterior',         R.unoSoloALaVez, R.dosDSeCierra],
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B1), INVERTIDA: el selector ya NO es un acordeon — abrir un grupo
+         no cierra el otro, porque los dos estan siempre a la vista. Se exige que Distancia SIGA
+         estando despues de tocar la cabecera de Doppler. */
+      ['y al tocar otro grupo el anterior NO se cierra (B1)', R.dopSeAbre && !R.dosDSeCierra, R.dosDSeCierra],
       ['elegir una herramienta abre SU grupo',       R.herrAbreSuGrupo, R.herrAbreSuGrupo],
       ['el grupo de la activa no se colapsa',        R.activaNoSeColapsa, R.activaNoSeColapsa],
       ['antes de diastole sale su guia del ciclo',   R.guiaDiastole && R.noGuiaSistoleAun, R.guiaDiastole],
@@ -25294,7 +25328,9 @@ caso('TC-205', 'Strain VD pared libre: calculo y clasificacion con UN SOLO corte
       await montar('vd.dcm');
 
       /* ── 1 · la herramienta esta en el grupo Deformacion ── */
-      R.gDefCerrado = !document.getElementById('cine-med-vd');
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B1), INVERTIDA: con las tres filas a la vista el boton del strain
+         del VD esta desde el arranque. Lo que la condicion afirma hoy es que ESTA. */
+      R.gDefCerrado = !!document.getElementById('cine-med-vd');
       __t.herr('cine-med-vd');
       await new Promise(r=>setTimeout(r,140));
       R.herrVd = _medHerr === 'vd';
@@ -25435,7 +25471,8 @@ caso('TC-205', 'Strain VD pared libre: calculo y clasificacion con UN SOLO corte
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['la herramienta vive en Deformacion',        R.gDefCerrado && R.herrVd && R.convive, R.convive],
+      ['la herramienta vive en Deformacion, visible desde el arranque (B1)',
+                                                   R.gDefCerrado && R.herrVd && R.convive, R.convive],
       ['explica el metodo y la vista',              R.explica, R.explica],
       ['y avisa de NO incluir el septo',            R.avisaSepto, R.avisaSepto],
       ['guia el paso de diastole',                  R.pideDiastole, R.pideDiastole],
@@ -25970,8 +26007,16 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
        Se exige la lista EXACTA, asi que el caso se pone rojo por los dos lados: si desaparecen
        los rotulos y si aparece una «Estructura» vacia. La fila de estructura con sus botones la
        fijan TC-236 y los casos del cajon 2D. */
-    R.tresRotulos = R.rotulos.length === 2 &&
-                    R.rotulos[0] === 'Modo' && R.rotulos[1] === 'Qué medir' &&
+    /* ⚠️ ADAPTADO EN MEDIR-5 (B1): el selector ya no tiene UN nivel de herramientas que cambia de
+       rotulo —«Que medir» o «Herramienta» segun el grupo— sino UNA FILA POR FAMILIA. Con el
+       modulo de Deformacion encendido los rotulos son CUATRO: «Modo» —que sigue en el documento
+       pero ESCONDIDO, porque diecinueve usos del suite aprietan sus botones— mas «2D»,
+       «Doppler / M» y «Deformación». La fila «Estructura» sigue sin dibujarse con el strain
+       abierto, que es lo que el comentario de arriba explica y no cambio.
+       Se exige la lista EXACTA, asi que el caso se pone rojo por los dos lados. */
+    R.tresRotulos = R.rotulos.length === 4 &&
+                    R.rotulos[0] === 'Modo' && R.rotulos[1] === '2D' &&
+                    R.rotulos[2] === 'Doppler / M' && R.rotulos[3] === 'Deformación' &&
                     R.rotulos.indexOf('Estructura') < 0;
     /* ⚠️ EL AREA TACTIL SE MIDE EN EL PSEUDO ::after Y NO EN EL ALTO DEL BOTON, como esta casa
        la implementa desde PANT-2: el boton se ve de 28 px y se toca en 44. Medir el alto del
@@ -26035,7 +26080,8 @@ caso('TC-208', 'Strain: barra lateral por grupos, rotulos de pared por vista y b
       /* INVERTIDAS en MEDIR-2 — ver la nota de arriba: una sola barra, todos del mismo formato */
       ['TODOS LOS BOTONES, EL MISMO FORMATO',         R.mismoFormato, 'grupo ' + R.fsG + ' vs sub ' + R.fsS],
       ['sin filete de grupo ni peso de encabezado',   R.sinFilete && R.sinPeso700, 'filete<=1 ' + R.sinFilete],
-      ['la jerarquia la dan los TRES rotulos de fila', R.tresRotulos, JSON.stringify(R.rotulos)],
+      ['la jerarquia la dan los CUATRO rotulos de fila, con «Modo» escondido (B1)',
+                                                     R.tresRotulos, JSON.stringify(R.rotulos)],
       ['el area tactil sigue en 44 px (denominador: hay botones)', R.tactil && R.nSel >= 3, R.nSel + ' botones, min ' + R.tactilMin + ' px'],
       ['y dos areas tactiles NO se solapan',          R.solapes === 0, R.solapes + ' pares a menos de 44 px'],
       ['se midieron DOS temas (denominador)',         R.temasDifieren, R.temasDifieren],
@@ -30984,7 +31030,7 @@ caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no
    Defecto reportado: «Ese cineloop no se pudo leer del disco» al elegirlo para la vista B,
    sobre cineloops que la tira abre perfectamente.
 
-   ⚠️ `_cineDesdeRegistro` DEVUELVE UN OBJETO, NO UN ARRAY. La tira lo envolvia --
+   ⚠️ _cineDesdeRegistro DEVUELVE UN OBJETO, NO UN ARRAY. La tira lo envolvia --
    `_cineAbrir([...])`-- y el selector trataba el retorno como si ya fuera una lista, asi que
    `!loops.length` daba `undefined` y la guarda disparaba SIEMPRE. No era un problema de lectura:
    los bytes estaban --`listar` usa getAll y trae el registro entero-- y el mensaje culpaba al
@@ -33230,11 +33276,19 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
 
       /* Las catorce filas del acordeon mitral estan en la tabla. */
       const txtMit = cajon.textContent;
-      R.filasMit = ['Onda E','Onda A','E/A','e\\u0027 septal','e\\u0027 lateral','Vmax IM',
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B4): TRES de las catorce se mudaron al bloque de calculados que
+         vive DEBAJO de la imagen —E/A, AVM por THP y AVM por continuidad— asi que ya no estan en
+         la tabla de la valvula. Se siguen midiendo, pero alla: lo hace TC-901 con su contrato
+         numerico, y la imagen que se guarda en la biblioteca las lleva igual porque
+         _dopFilas las sigue emitiendo con la marca calc.
+         Lo que esta condicion afirma hoy son las ONCE que quedan EN LA TABLA. */
+      R.filasMit = ['Onda E','Onda A','e\\u0027 septal','e\\u0027 lateral','Vmax IM',
                     /* ADAPTADO 2026-10-14 (D2): «PHT» -> «THP» en los rotulos del panel. */
                     'Grad Máx IM','VTI VM','VTI IM','Grad Medio VM','THP VM',
-                    'AVM por THP','AVM por continuidad'].filter(t => txtMit.indexOf(t) < 0).join(',');
+                    'TRIV'].filter(t => txtMit.indexOf(t) < 0).join(',');
       R.mitCompleta = R.filasMit === '';
+      R.mitSobran = ['E/A','AVM por THP','AVM por continuidad']
+        .filter(t => txtMit.indexOf(t) > -1).join(',');
       /* ⚠️ Y SOLO LAS SUYAS: la seleccion progresiva (2026-09-24) muestra la tabla de UNA
          valvula por vez. Se busca el marcador de la aortica —la unica valvula que el caso deja
          cargada antes de este bloque— en el panel abierto en Mitral. */
@@ -33501,7 +33555,14 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       ['DENOMINADOR: el visor esta abierto',          R.hayVisor, R.hayVisor],
       ['DENOMINADOR: y el cajon se esta dibujando',   R.cajonVisible, R.cajonVisible],
       ['el acordeon Mitral se abre',                  R.modoMit, R.modoMit],
-      ['y trae sus catorce filas',                    R.mitCompleta, R.filasMit || 'todas'],
+      ['y trae sus ONCE filas de tabla (B4: tres se mudaron abajo)',
+                                                     R.mitCompleta, R.filasMit || 'todas'],
+      /* Y NI UNA DE LAS TRES QUE SE MUDARON, que es la otra mitad y la que el barrido de
+         mutaciones destapo: la condicion de arriba solo mira que no FALTE ninguna, asi que
+         devolver los calculados a la tabla de pantalla pasaba en verde. Es la distincion entre
+         «se movio» y «se duplico». */
+      ['y NI UNA de las tres que se mudaron abajo (B4)',
+                                                     R.mitSobran === '', R.mitSobran || 'ninguna'],
       ['y NINGUNA de otra valvula',                   R.mitSinAortica, R.mitSinAortica],
       ['la onda E se mide con Velocidad',             R.ondaEHerr, R.ondaEHerr],
       ['Y SE GUARDA EN cm/s, como el informe',        R.ondaEEnCms, R.ondaECms],
@@ -33689,7 +33750,11 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
       R.avaAparece = D3.ava != null;
       R.avaEsLaDeLaApp = D3.ava != null &&
         Math.abs(D3.ava - _avaContinuidad(_dop.ao.diam, _dop.ao.vtiTsvi, _dop.ao.vtiAo)) < 1e-12;
-      R.avaEnPantalla = cajon.textContent.indexOf('AVA') > -1;
+      /* ADAPTADO EN MEDIR-5 (B5): la AVA salio de la tabla de la valvula y se dibuja en el bloque
+         de calculados de debajo de la imagen. Se miran los DOS lugares, asi que la condicion sigue
+         afirmando lo mismo —que la AVA se VE— sin depender de cual de ellos la publica. */
+      R.avaEnPantalla = (cajon.textContent || '').indexOf('AVA') > -1 ||
+        (((document.getElementById('cine-calc') || {}).textContent) || '').indexOf('AVA') > -1;
 
       /* == IMAGEN 4 . vuelve a MITRAL: reabre con E/A y se completa con las dos e' ======= */
       await prep('mit-2');
@@ -33752,8 +33817,14 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
          el numero nuevo: esa funcion recalcula siempre. Lo que puede fallar es que dopCorregir
          deje de llamar a _dopRender, y entonces la pantalla se queda con la AVA vieja mientras
          el estado ya cambio — dos respuestas al mismo dato en la misma tarjeta. */
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B5): la AVA salio de la tabla de la valvula y vive en el bloque
+         de calculados de debajo de la imagen (#cine-calc). Lo que la condicion afirma es lo
+         MISMO —que el numero nuevo se ve— leido donde ahora se dibuja. Se miran los DOS lugares
+         para que el caso no dependa de cual de ellos lo publica. */
       R.avaNuevaEnPantalla = avaDesp != null &&
-        cajon.textContent.indexOf(Number(avaDesp).toFixed(2)) > -1;
+        ((cajon.textContent || '').indexOf(Number(avaDesp).toFixed(2)) > -1 ||
+         ((document.getElementById('cine-calc') || {}).textContent || '')
+           .indexOf(Number(avaDesp).toFixed(2)) > -1);
 
       /* == VOLVER A MEDIR UN CAMPO CON VALOR: pisa sin preguntar y recalcula ============ */
       const vtiAntes = _dop.ao.vtiTsvi;
@@ -142180,8 +142251,13 @@ caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro 
       _d2Render();
       await esperar(320);
       const b2 = $('cine-g-2d'), bdop = $('cine-g-dop');
-      R.b_visibles = !!(b2 && b2.getBoundingClientRect().height > 0) &&
-                     !!(bdop && bdop.getBoundingClientRect().height > 0);
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B1), INVERTIDA: la fila «Modo» se esconde. Sus botones SIGUEN en
+         el documento —display:none los deja respondiendo a un .click() por JS, que es lo que
+         necesitan los diecinueve usos del suite— pero ya no se ven ni se tabulan. Se exige las
+         DOS cosas: que existan y que NO tengan caja. */
+      R.b_visibles = !!b2 && !!bdop &&
+                     b2.getBoundingClientRect().height === 0 &&
+                     bdop.getBoundingClientRect().height === 0;
       /* DENOMINADOR del desplazamiento: la tabla TIENE filas, o sea que habia algo que desplazar. */
       R.b_filas = $('d2-cajon') ? $('d2-cajon').querySelectorAll('table.med-tabla tbody tr').length : 0;
       /* Nada desborda a lo ancho: ni el cajon, ni la columna, ni el documento. */
@@ -142262,7 +142338,8 @@ caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro 
       ['(A2) el scroller SI',                              R.b_scrollerDesplaza === true, R.b_scrollerDesplaza],
       ['(A2) y el selector no se encoge',                  R.b_sideNoSeEncoge === true, R.b_sideNoSeEncoge],
       ['(A2) DENOMINADOR: la tabla tiene filas',           R.b_filas >= 6, R.b_filas],
-      ['(A2) 2D y Doppler/M siguen visibles',              R.b_visibles === true, R.b_visibles],
+      ['(A2) 2D y Doppler/M siguen en el documento pero ESCONDIDOS (B1)',
+                                                          R.b_visibles === true, R.b_visibles],
       ['(A2) nada desborda a lo ancho',                    R.b_sinDesborde === true, R.b_desbordes],
       ['(A2) y la columna no es la que acumula el scroll',  R.b_scrollerEsElQueDesplaza === true,
                                                            'colDer=' + R.b_colDerScroll + ' modal=' + R.b_modalScroll],
@@ -142300,7 +142377,16 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
       R.detalle = M.map(x => x.id + ':' + x.w + 'x' + x.h).join(' ');
       const hs = M.map(x => x.h), ws = M.map(x => x.w), ys = M.map(x => x.y);
       R.mismoAlto = hs.length > 0 && Math.max.apply(null, hs) - Math.min.apply(null, hs) <= 1;
-      R.mismoAncho = ws.length > 0 && Math.max.apply(null, ws) - Math.min.apply(null, ws) <= 1;
+      /* ⚠️ ADAPTADO EN MEDIR-5 (M5-d): cine-guardar mide 196 px y NO 118, y es una excepcion
+         DECLARADA: el rotulo que el medico aprobo —«Guardar el cineloop en el estudio»— no entra
+         en 118 px y con overflow:hidden se recortaba en silencio. El ALTO sigue siendo 44 para
+         todos, que es lo que la condicion de al lado fija. Asi que se exige un ancho igual para
+         TODOS MENOS ese, y que ese sea exactamente el ancho de la excepcion: el caso se pone
+         rojo tanto si otro boton se desalinea como si la excepcion se cuela en un tercero. */
+      const _wsSinGuardar = M.filter(x => x.id !== 'cine-guardar').map(x => x.w);
+      R.mismoAncho = _wsSinGuardar.length > 0 &&
+        Math.max.apply(null, _wsSinGuardar) - Math.min.apply(null, _wsSinGuardar) <= 1 &&
+        (M.filter(x => x.id === 'cine-guardar')[0] || {}).w === 196;
       /* ⚠️ «LA MISMA FILA» SOLO SE PUEDE EXIGIR SI ENTRAN, y en la ventana del arnes —756 px—
          ocho botones de 118 px NO entran: envuelven, que es la conducta correcta y no un defecto.
          Asi que la condicion lleva su DENOMINADOR: una sola fila cuando el ancho alcanza, y
@@ -142346,7 +142432,10 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
       R.azulesPrendido = azules().join(',');
       R.soloElModo = R.azulesPrendido === 'cine-medir';
       /* Las acciones que ANTES eran azules y mas altas: hoy ni azules ni mas altas. */
-      const gu = document.getElementById('cine-guardar'), cp = document.getElementById('cine-med-cap');
+      /* ⚠️ ADAPTADO EN MEDIR-5 (C1): el boton que se mide es cine-cap, el unico «Capturar» que
+         queda. cine-med-cap se retiro, y con el nodo ausente las dos condiciones de abajo
+         salian en falso sin medir nada. */
+      const gu = document.getElementById('cine-guardar'), cp = document.getElementById('cine-cap');
       R.accionesGrises = !!gu && !!cp && !esAzul(getComputedStyle(gu).backgroundColor) &&
                                           !esAzul(getComputedStyle(cp).backgroundColor);
       R.accionesMismoAlto = !!gu && !!cp &&
@@ -142399,7 +142488,8 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
          vistas. 6 compartidos + 1 = 7. Todo lo que este caso mide de verdad —mismo alto, mismo
          ancho, misma fila, un solo azul y el contraste— se sigue midiendo igual.
          Que los dos que salieron no vivan en ninguna barra lo fija TC-892. */
-      ['DENOMINADOR: la barra tiene sus siete botones',    R.n === 7, R.n],
+      /* ⚠️ ADAPTADO EN MEDIR-5 (C1): «Capturar + medicion» se retiro y la barra quedo en SEIS. */
+      ['DENOMINADOR: la barra tiene sus seis botones (C1)', R.n === 6, R.n],
       ['todos del MISMO alto',                             R.mismoAlto === true, 'min=' + R.alto + ' max=' + R.altoMax],
       ['y del mismo ancho',                                R.mismoAncho === true, R.detalle],
       ['en la MISMA fila cuando el ancho alcanza',         R.mismaFila === true,
@@ -142452,7 +142542,12 @@ caso('TC-889', 'MEDIR-3 bloque A4: los textos de advertencia y de metodo del pan
       R.a_muestra = unido.slice(0, 160);
       /* LOS CINCO GRUPOS, uno por uno: no alcanza con contar. */
       R.a_falta = unido.indexOf('Vol Eyectivo VD falta') >= 0;
-      R.a_lapiz = unido.indexOf('Los derivados se recalculan solos') >= 0;
+      /* ⚠️ ADAPTADO EN MEDIR-5 (B2): el ✏️ se retiro y su trabajo lo hace el PROPIO NUMERO, asi
+         que la nota se reescribio — decia «Las filas con ✏️ se pueden escribir a mano» y hoy dice
+         que se TOCA el numero. La mitad que no cambio es que los calculados no se editan, y es
+         justo lo que esta condicion vigila: que la nota siga estando y siga diciendolo. */
+      R.a_lapiz = unido.indexOf('TOCA EL NUMERO') >= 0 &&
+                  unido.indexOf('no se editan') >= 0;
       R.a_descargo = unido.indexOf('no reemplaza') >= 0 || unido.indexOf('apoyo') >= 0 ||
                      R.a_txts.some(t => t.length > 60);
       R.a_todos = R.a_falta && R.a_lapiz && R.a_n >= 3;
@@ -143711,7 +143806,10 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
       R.a3_barraIntacta = !!(R.barraAntes && R.barraDespues &&
         R.barraAntes.n === R.barraDespues.n && R.barraAntes.alto === R.barraDespues.alto &&
         R.barraAntes.rot === R.barraDespues.rot);
-      R.a3_barraSiete = !!(R.barraDespues && R.barraDespues.n === 7);
+      /* ⚠️ ADAPTADO EN MEDIR-5 (C1): la barra quedo en SEIS botones al retirarse «Capturar +
+         medicion». Lo que este caso afirma sigue siendo lo mismo —que la barra de dos pasos del
+         Simpson NO le cambia el numero de botones a la barra de la vista— con el numero de hoy. */
+      R.a3_barraSiete = !!(R.barraDespues && R.barraDespues.n === 6);
 
       /* ── EL TRAZADO, CON EL GESTO REAL ── */
       const cv = document.getElementById('cine-med');
@@ -143833,7 +143931,7 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
                                                                    R.feviMono + ' -> ' + R.feviTrasRehacer],
       ['(A3) los dos pasos y el «Listo» miden 44 px',              R.a3_todos44 === true, R.a3_altos + ' | ' + R.a3_altoListo],
       ['(A3) UN solo paso lleva el acento',                        R.a3_conAcento === 1, R.a3_conAcento],
-      ['(A3) la barra de la vista sigue con SIETE botones',        R.a3_barraSiete === true, R.barraDespues && R.barraDespues.n],
+      ['(A3) la barra de la vista sigue con SEIS botones (C1)',    R.a3_barraSiete === true, R.barraDespues && R.barraDespues.n],
       ['(A3) y no cambio de alto ni de orden',                     R.a3_barraIntacta === true,
                                                                    (R.barraAntes && R.barraAntes.alto) + ' -> ' + (R.barraDespues && R.barraDespues.alto)],
       ['(A1) DENOMINADOR: la segunda ventana se pide con el par completo', R.sv_vista === 1, R.sv_vista],
@@ -144314,20 +144412,20 @@ caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el caj
     const esperar = ms => new Promise(r => setTimeout(r, ms));
     const R = {};
     const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const cineReal899 = {}, imgReal899 = {}, dsrReal899 = window._cineDesdeRegistro;
     window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
     try {
       const jpg = new Uint8Array([255,216,255,217]);
       const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
                    { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
       const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      __t.limpiar(); imgVaciar();
       _cineAbrir([mk('uno')]);
       await esperar(420);
       _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
       await esperar(260);
-      /* La vista B se monta a mano: lo que se mide es el REPARTO de los cajones, no el picker. */
       R.hayVistaB = (typeof vistaBAbrir === 'function');
       R.haySlotSync = (typeof _vSlotSync === 'function');
-      /* Con UNA sola vista el cajon tiene que estar en la columna de la A. */
       _vCon(_vistaA, () => medHerramienta('dist'));
       await esperar(260);
       const panelDe = id => { const n = document.getElementById(id); if (!n) return null;
@@ -144337,6 +144435,51 @@ caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el caj
       R.unaVistaD2 = panelDe('d2-cajon');
       /* DENOMINADOR: el cajon 2D se ve, o sea que hay algo que repartir. */
       R.d2Visible = (typeof _d2Visible === 'function') ? _d2Visible() : null;
+
+      /* ══ LA SEGUNDA VISTA, Y ES LO QUE DE VERDAD DISCRIMINA ═══════════════════════════════
+         ⚠️ SIN ELLA ESTE CASO NO PROBABA A1, y lo destapo el barrido de mutaciones: con UNA sola
+         vista, la vista activa ES la dueña del cajon, asi que devolver los dos cajones a la
+         ranura de la activa —el defecto que A1 cerro— es INDISTINGUIBLE. Hace falta que las dos
+         vistas tengan herramientas DISTINTAS: ahi cada cajon tiene que caer en SU columna.
+         El almacen se sustituye y se repone, igual que en TC-897. */
+      const UU899 = 'estudio-de-prueba-0001';
+      const LISTA899 = [{ id:'id899', uuid:UU899, nombre:'B-fix', cuadros:1, bytes:9000,
+        tipo:'loop', ms:40, cols:600, filas:500, poster:'', ts:'2026-11-15T00:00:00.000Z',
+        datos: new Uint8Array(12), offs:1, regiones: REG }];
+      if (typeof CeiboCine !== 'undefined') {
+        cineReal899.listar = CeiboCine.listar; cineReal899.leer = CeiboCine.leer;
+        CeiboCine.listar = async () => LISTA899.map(r => r);
+        CeiboCine.leer = async id => LISTA899.filter(r => r.id === id)[0] || null;
+      }
+      if (typeof CeiboImg !== 'undefined') { imgReal899.leer = CeiboImg.leer; CeiboImg.leer = async () => []; }
+      window._cineDesdeRegistro = r => ({ nombre: r.nombre, cuadros: r.cuadros,
+        d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: r.regiones } });
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      await imgRestaurar(UU899);
+      await esperar(240);
+      const pr899 = vistaBAbrir();
+      await esperar(640);
+      const th899 = document.querySelector('[data-vpick-i]');
+      R.pickAbrio = !!th899;
+      if (th899) { th899.click(); await esperar(820); }
+      try { await pr899; } catch (e) {}
+      await esperar(380);
+      R.dosVistas = !!_vistaB;
+      if (R.dosVistas) {
+        /* La A en Doppler con la mitral abierta; la B en Distancia con el VD. */
+        _vCon(_vistaA, () => { medHerramienta('vel'); if (typeof dopModo === 'function') dopModo('mit'); });
+        await esperar(260);
+        _vCon(_vistaB, () => { if (!_vistaB.medOn) medToggle(); medHerramienta('dist');
+                               if (typeof d2Modo === 'function') d2Modo('vd'); });
+        await esperar(260);
+        _vCon(_vistaB, () => { if (typeof _d2Poner === 'function') _d2Poner('vd.basal', 42); });
+        if (typeof _d2Render === 'function') _d2Render();
+        await esperar(360);
+        R.panelD2 = panelDe('d2-cajon');
+        R.panelDop = panelDe('cine-dop-slot');
+        R.tablasA = document.querySelectorAll('#cine-panel .cine-col-der table').length;
+        R.tablasB = document.querySelectorAll('#b-cine-panel .cine-col-der table').length;
+      }
       /* ── A2: «Limpiar» alcanza a las dos sesiones ── */
       _vCon(_vistaA, () => medHerramienta('simpson'));
       await esperar(260);
@@ -144347,33 +144490,73 @@ caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el caj
         const src = String(medSimpsonLimpiarTabla);
         R.usaTodas = src.indexOf('_vTodas') > -1;
       } catch (e) {}
-      /* Se siembra un par completo y se limpia: no tiene que quedar NINGUNA fila viva. */
+      /* ══ A2 — SE SIEMBRA UN PAR COMPLETO EN CADA VISTA Y SE LIMPIA ══════════════════════
+         ⚠️ SE MIDE LA CONDUCTA Y NO EL TEXTO FUENTE DE LA FUNCION, y eso lo destapo el barrido:
+         la primera version preguntaba si String(medSimpsonLimpiarTabla) mencionaba _vTodas, y
+         mi propio COMENTARIO dentro de la funcion lo menciona — la condicion era tautologica y la
+         mutacion que devolvia «Limpiar» a una sola vista sobrevivia. Hoy se siembra en LAS DOS y
+         se exige que las DOS queden vacias, que es lo que el medico pidio. */
       if (R.haySimpA) {
         const N = (typeof SIMP_N !== 'undefined') ? SIMP_N : 20;
         const ramp = (a, b) => { const v = []; for (let i = 0; i < N; i++) v.push(a + (b - a) * i / (N - 1)); return v; };
-        _vCon(_vistaA, () => { const S = _simp;
-          S.pares[S.vista].d = { diamCm: ramp(4, 1.2), Lcm: 8.4 };
-          S.pares[S.vista].s = { diamCm: ramp(2.6, 0.8), Lcm: 8 };
-          S.res = _simpCalcular(); });
+        /* ⚠️ LA SESION SE CREA CON _simpIniciar Y NO CON medHerramienta, y lo destapo medir:
+           por la herramienta, la sesion de la vista B no quedaba con su par completo —esa funcion
+           hace mas cosas, entre ellas prender la medicion y soltar trazados— y el denominador
+           salia falso sobre una siembra que creia hecha. Aca lo unico que importa es que las DOS
+           sesiones tengan datos antes de limpiar. */
+        const sembrar = V => _vCon(V, () => {
+          if (!V.simp && typeof _simpIniciar === 'function') _simpIniciar();
+          const S = V.simp; if (!S) return;
+          S.pares[0].d = { diamCm: ramp(4, 1.2), Lcm: 8.4 };
+          S.pares[0].s = { diamCm: ramp(2.6, 0.8), Lcm: 8 };
+          try { S.res = _simpCalcular(); } catch (e) {}
+        });
+        sembrar(_vistaA);
+        if (_vistaB) sembrar(_vistaB);
+        await esperar(260);
         R.vivasAntes = (typeof _simpFilasVivas === 'function') ? _simpFilasVivas().length : null;
+        /* ⚠️ SE MIRAN LAS DOS RANURAS Y NO SOLO LA PRIMERA: cada vista declara su ventana en la
+           ranura que quedo libre, asi que la de la B puede ser la 1 y no la 0. Mirando solo la 0
+           el denominador salia falso sobre un par que SI estaba sembrado. */
+        const parLleno = V => !!(V && V.simp && V.simp.pares.some(P => P && P.d && P.s));
+        R.parAantes = parLleno(_vistaA);
+        R.parBantes = parLleno(_vistaB);
+        /* Se limpia DESDE la vista A: la mutacion que alcanza solo al destino deja viva la B. */
         _vCon(_vistaA, () => medSimpsonLimpiarTabla());
-        await esperar(320);
+        await esperar(360);
         R.vivasDespues = (typeof _simpFilasVivas === 'function') ? _simpFilasVivas().length : null;
-        R.paresVacios = !!(_vistaA.simp && !_vistaA.simp.pares[0].d && !_vistaA.simp.pares[0].s);
+        R.paresVacios = !parLleno(_vistaA) &&
+          !!(_vistaA.simp && _vistaA.simp.pares.every(P => P && !P.d && !P.s));
+        R.paresVaciosB = !_vistaB || (!parLleno(_vistaB) &&
+          !!(_vistaB.simp && _vistaB.simp.pares.every(P => P && !P.d && !P.s)));
       }
     } catch (e) { R.err = String((e && e.message) || e); } finally {
       window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      /* ⚠️ EL ALMACEN SE REPONE: otros casos del lote lo usan, y dejarlo sustituido seria sembrar
+         un defecto en los casos de abajo. */
+      try { if (typeof CeiboCine !== 'undefined' && cineReal899.listar) {
+        CeiboCine.listar = cineReal899.listar; CeiboCine.leer = cineReal899.leer; } } catch (e) {}
+      try { if (typeof CeiboImg !== 'undefined' && imgReal899.leer) CeiboImg.leer = imgReal899.leer; } catch (e) {}
+      try { window._cineDesdeRegistro = dsrReal899; } catch (e) {}
       try { cineCerrar(); } catch (e) {}
     }
     return { extra: [
       ['sin excepciones',                                     !R.err, R.err],
       ['DENOMINADOR: el repartidor de cajones existe',        R.haySlotSync === true, R.haySlotSync],
+      ['DENOMINADOR: las DOS vistas quedaron montadas',       R.dosVistas === true, R.pickAbrio + '/' + R.dosVistas],
+      ['A1: el cajon 2D cae en la columna de la vista que lo tiene abierto',
+                                                              R.panelD2 === 'B', R.panelD2],
+      ['A1: y el Doppler en la de la OTRA',                   R.panelDop === 'A', R.panelDop],
+      ['A1: UNA tabla en cada columna, no dos en una',        R.tablasA === 1 && R.tablasB === 1,
+                                                              R.tablasA + '/' + R.tablasB],
       ['DENOMINADOR: el cajon 2D se ve con Distancia',        R.d2Visible === true, R.d2Visible],
       ['con una sola vista, el cajon va a la columna de la A', R.unaVistaD2 === 'A', R.unaVistaD2],
       ['DENOMINADOR: habia una fila viva antes de limpiar',   R.vivasAntes > 0, R.vivasAntes],
-      ['«Limpiar» recorre TODAS las vistas y no solo el destino', R.usaTodas === true, R.usaTodas],
-      ['y no queda NINGUNA fila viva',                        R.vivasDespues === 0, R.vivasDespues],
-      ['ni ningun par a medio borrar',                        R.paresVacios === true, R.paresVacios]
+      ['DENOMINADOR: las DOS vistas tenian su par completo',  R.parAantes === true && R.parBantes === true,
+                                                              R.parAantes + '/' + R.parBantes],
+      ['«Limpiar» no queda NINGUNA fila viva',                R.vivasDespues === 0, R.vivasDespues],
+      ['el par de la vista del destino queda vacio',          R.paresVacios === true, R.paresVacios],
+      ['y el de la OTRA vista TAMBIEN',                       R.paresVaciosB === true, R.paresVaciosB]
     ] };
   })();
 `);
@@ -144662,6 +144845,12 @@ caso('TC-903', 'MEDIR-5 B1, B2 y B9: la barra de herramientas va sin el nivel «
       await esperar(260);
       R.falta2d = (typeof _medCalFalta === 'function')
         ? _vCon(_vistaA, () => { const F = _medCalFalta('dist'); return F ? F.eje : null; }) : 'no existe';
+      /* Y CON OTRA HERRAMIENTA ACTIVA, que es lo que el barrido destapo: la rama 2D NO puede
+         delegar en la funcion que pregunta por la herramienta ACTIVA, porque se declara
+         satisfecha con Velocidad puesta. Aca se pregunta por la que se esta ARMANDO. */
+      R.falta2dConVel = (typeof _medCalFalta === 'function')
+        ? _vCon(_vistaA, () => { medHerramienta('vel');
+            const F = _medCalFalta('dist'); return F ? F.eje : null; }) : 'no existe';
       R.faltaT = (typeof _medCalFalta === 'function')
         ? _vCon(_vistaA, () => { const F = _medCalFalta('tiempo'); return F ? F.eje : null; }) : 'no existe';
       R.tSinBoton = (typeof _medCalFalta === 'function')
@@ -144698,6 +144887,7 @@ caso('TC-903', 'MEDIR-5 B1, B2 y B9: la barra de herramientas va sin el nivel «
       ['y la fila con valor trae «Medir» y una ✕',            R.accConValor === 'Medir,✕', R.accConValor],
       ['DENOMINADOR: con escala declarada la guia NO sale',   R.sinFalta === null, R.sinFalta],
       ['sin escala, la guia del eje 2D SI sale',              R.falta2d === '2d', R.falta2d],
+      ['y tambien con OTRA herramienta activa (B9)',         R.falta2dConVel === '2d', R.falta2dConVel],
       ['con su boton «Calibrar ahora» de 44 px',              R.cartel === true && R.boton === 'Calibrar ahora' && R.botonAlto >= 44,
                                                                R.cartel + '/' + R.boton + '/' + R.botonAlto],
       ['y la guia nombra la regla de profundidad',            R.diceRegla === true, R.diceRegla],

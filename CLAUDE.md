@@ -275,16 +275,18 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,28 MB / 183.958 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 en la tanda **MEDIR-5**, que quedó ABIERTA, sobre el árbol ya sellado: sello **`v20261115-1403`**, md5 **`c574e436`**.
-  ⚠️ **MEDIR-5 NO CERRÓ, Y EL SELLO ESTÁ PUESTO IGUAL**: se selló antes de la batería —que es el
-  patrón de esta casa, para que el árbol que la suite mide sea el que queda commiteado— y la
-  batería dejó **36 rojos**, de los que **QUINCE son consecuencia de B1 y B2 y están SIN ADAPTAR**.
-  **La suite da 875/911 y eso NO es la línea base.** El detalle, caso por caso, en
-  `docs/PENDIENTES.md` → **M5-m**.
-  ⚠️ **Y LA CIFRA DE CELULAR DE ESTE ARCHIVO ESTÁ VIEJA**: publica «18 ALTA» y, medido con el MISMO
-  script en los DOS árboles —el vivo y `2cd2ee9`—, da **36 en los dos**. No hay regresión: lo que
-  está mal es el número publicado (**M5-n**). No se corrigió porque habría que saber con qué
-  versión del script salieron los 18.
+  sin frameworks. Hoy **13,29 MB / 184.022 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-5**, sobre el árbol ya sellado: sello **`v20261115-1535`**, md5 **`52cb231e`**.
+  ⚠️ **LA CIFRA DE CELULAR DE ESTE ARCHIVO ESTABA MAL, Y QUEDA CORREGIDA ACÁ: SON 36 ALTA, NO 18.**
+  Medido con el MISMO script en los DOS árboles —el vivo y `2cd2ee9`, que es el cierre de
+  MEDIR-4b— da **36 en los dos**, y con `--todo` también 36. O sea que **no hubo ninguna
+  regresión**: lo que estaba mal era el número publicado. Las secciones de tanda de más abajo
+  siguen diciendo «18 ALTA» y **no se reescribieron**: son el registro de lo que cada tanda
+  midió en su momento, y falsearlo sería peor que dejarlo con esta advertencia arriba.
+  **Los 36 son TODOS preexistentes y ajenos al visor**, verificados uno por uno: los
+  `input.ind-chk` de los acordeones de Evidencia (41 del mismo tipo, 15×15 px), `#ecoHdrBurger`
+  (44×30) y `#cfg-clnk-on` (13×13). Ninguno sale del visor ni de esta tanda.
+  **No se corrigió el script** ni se tocó ninguno de esos controles: agrandar el área táctil de
+  los acordeones de Evidencia es otra tanda y lo decide el médico (**M5-n**).
   (Antes: 13,22 MB / 183.025 al cierre de **MEDIR-4b**, sello `v20261115-0555`, md5 `c875ae0f`.)
   El diff de MEDIR-4b son **441 líneas agregadas y 69 quitadas** en `index.html`, medido con
   `git diff --numstat` contra **`74df0b6`** —el cierre de MEDIR-4a, que es la línea base de ESTA
@@ -1316,6 +1318,106 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda MEDIR-5 (2026-11-15) — el visor: los siete hallazgos del medico, la barra unica, las
+tablas nuevas y la guia de calibracion.** DIECISIETE commits. Sello **`v20261115-1535`**, md5
+**`52cb231e`**, **184.022** lineas.
+El medico probo MEDIR-4b en Safari, armo una demo y pidio tres añadidos. **Nada de esta tanda
+escribe un campo del informe**, y es por construccion: `f[3]` de una fila es la ruta dentro de
+`_dop`. El Excel queda en **457** columnas con **cero** campos guardados nuevos, medido.
+**DE LOS DIEZ HALLAZGOS, SEIS ERAN DEFECTOS REALES Y TRES NO LO ERAN.** A5 es **por diseño** —la
+fila exige el par completo porque `_simpMonoDeS` devuelve VFD, VFS y FEVI juntos—, A9 **no se
+reprodujo** con una vista, y A10 **no existia**. Los otros siete quedaron cerrados.
+⚠️ **A3 TENIA DOS CAUSAS Y LA SEGUNDA ERA LA QUE DE VERDAD TAPABA.** `#cine-ov` centraba el modal
+vertical, asi que al crecer con el resultado el lienzo subia **106 px** y no volvia con «Limpiar».
+Pero lo que tapaba los botones era **el `flex-shrink` que vale 1 por omision**: el modal encogia a
+sus hijos en cascada y `#cine-lienzo` cedia hasta su `min-height:200px` mientras el canvas se
+quedaba en 279, asi que el recorte se desbordaba **39 px arriba —33 de solape con la fila de
+botones— y 39 abajo** sobre la barra del video. **Por eso `modalScrollY.desborda` daba 0**: el
+encogimiento absorbia el crecimiento en vez de desplazar. Hoy el lienzo y la fila de paneles no
+ceden: medido, **subio 0, volvio 0 y desborde 0/0**.
+⚠️ **A1 ERA «ALGUNA VISTA» CONTRA «LA ACTIVA».** La visibilidad de cada cajon se decide por «alguna
+vista» —con razon, porque `_medHerr` fuera de un manejador envuelto resuelve siempre contra
+`_vistaA`— y la ranura era la de la activa: con la A en Doppler y la B en Distancia, el cajon del
+VD medido en la B se dibujaba en la columna de la A, que mostraba **DOS** tablas mientras la B no
+mostraba **ninguna**. Hoy cada cajon va a la ranura de la vista que lo tiene abierto, y entre dos
+candidatas gana **la que esta a la vista** —lo destapo medir a 390 px, donde la app muestra una
+vista por vez—. La tabla sigue siendo UNA y sigue moviendose: la decision de MEDIR-4a no se toca.
+⚠️ **A8: `medReset` hacia `_medAreas = []`**, asi que el FAC del VD perdia la diastole al mover el
+cuadro — y moverlo es OBLIGATORIO. Hoy sobreviven **solo** las dos areas del VD; la AI y la AD se
+siguen borrando, que se miden en un cuadro.
+**LA BARRA UNICA (B1).** Se va el nivel «Modo»: las tres filas de herramientas se emiten juntas,
+con el grupo Doppler en el orden del pedido —Velocidad, VTI, Tiempo, FC—. La fila «Modo» **se
+esconde y no se retira**, con la clase `cine-selviejo`: **diecinueve** usos del suite aprietan
+`cine-g-*`. Y no rompe los cajones porque `medHerramienta` ya hacia
+`_medGrupo = _MED_GRUPO_DE[_medHerr]`. ⚠️ **La fila Estructura no hubo que tocarla**: `_MED_EST_2D`
+y `_MED_EST_DOP` **ya** estaban en el orden que B1 pide, y lo encontre midiendo en vez de creerle
+al inventario, que me habia dado el orden de otra constante.
+**LA TABLA (B2).** Sale el ✏️ y su trabajo lo hace **el propio numero**: tocar el valor abre la
+misma escritura a mano, con el mismo atributo y la misma validacion. El guion tambien se toca.
+«Borrar» pasa a ✕ y sigue borrando de a uno. Reusa `med-fbot`, que ya traia el area tactil medida:
+**se ve de 22 px y se toca en 44**. ⚠️ **El reparto 46/20/34 sale de una medicion, por UN PIXEL**:
+con 32 % la celda de acciones dejaba 90 px de contenido y los dos botones necesitan 91 —44 + 3 + 44,
+porque 44 es el piso tactil global—, asi que envolvian y una fila con valor medía **89 px contra
+45**. Hoy las cinco miden 45.
+**LAS CUATRO VALVULAS (B4 a B7), EN UNA COLUMNA.** Las dos no entran y esta medido: dejan 40-46 px
+donde hacen falta 91. **CATORCE campos nuevos**, todos reusando el rotulo exacto de la app.
+⚠️ **MI CENSO HABIA DICHO QUE SEIS NO EXISTIAN, Y ESTABA MAL EN LOS SEIS**: busque las tres de la
+tricuspide bajo la INSUFICIENCIA (`it_`) y viven bajo la ESTENOSIS (`et_`). La leccion: **un grep
+por el id que uno imagina no es un censo; hay que buscar por el ROTULO que el medico lee.**
+**LOS CALCULADOS, DEBAJO DE LA IMAGEN.** `#cine-calc` es hermano de `cine-biplano`. **Ninguna
+formula se escribe ahi**: cada numero sale del dueño unico de la app. El contrato, medido: AVA
+**1,5708**, DVI **0,50**, Vol. sistolico **69,115**, indexado **38,015**, GC **4,838 L/min** con FC
+70, E/A **1,60**, E/e′ **10,0**, AVM por THP **1,00**, AVM por continuidad **3,456** y PmAD **3
+mmHg**. El **DVI** es el unico sin dueño —esta en linea en `calcEADetalle`, que lee el DOM— y se
+hace la misma cuenta sin cambiarla.
+**LA FC (B8)** sale de `ao_fc` con `hemo_fc` de respaldo —son espejo— y alimenta el GC. Se pinta
+**antes** del return temprano de `_dopRender`, porque es «fija debajo de cualquier imagen». Medido:
+**cero controles** dentro del bloque, asi que la sola lectura es por construccion.
+**LA GUIA DE CALIBRACION (B9)**, con sus **tres** ejes distinguidos. La rama del **tiempo sale sin
+boton** a proposito: ese eje no se puede calibrar a mano, y un «Calibrar ahora» que no calibra nada
+es peor que no ofrecerlo.
+⚠️ **CUATRO DE LOS QUINCE CASOS QUE EL MEDICO PIDIO ADAPTAR NO ERAN ADAPTACIONES: ERAN DEFECTOS
+MIOS.** Y es lo que vale de no adaptar a ciegas. (1) **La imagen que se guarda en la biblioteca
+habia perdido la AVA, la AVM y los cocientes**: al mover los derivados fuera de `_dopFilas` se los
+quite tambien a `_dopSeccionesGuardado` y a `_dopMetaGuardado`, o sea a un artefacto que circula
+solo y puede llegar a un PDF firmado — contenido clinico perdido, no maquetado. Hoy se siguen
+emitiendo con la marca `f[8] = 'calc'` y lo unico que los esconde es `_dopFilasPantalla`.
+(2) **`vciCol: ''` hacia que la tricuspide contara como «ya tiene mediciones»** desde el arranque,
+porque el predicado pregunta por `!= null`. (3) **Una vista con la etiqueta escrita y sin medicion
+dibujada perdia la etiqueta** al capturar, porque el ruteo de C1 caia en la captura cruda.
+**ONCE adaptados de verdad**, cada uno con su decision escrita donde vive la condicion: cinco
+**INVERTIDOS** por B1, tres por el conteo de seis botones de C1 y tres por el inventario de filas.
+**Once de los quince caen contra `2cd2ee9`**; **cuatro pasan en los dos arboles y se declara**,
+porque su cambio fue de lectura o denominador y no una afirmacion.
+**Cobertura: TC-899 a TC-903**, los cinco cayendo **0/5** contra `2cd2ee9` y **ninguno por
+excepcion**. **17/17 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y nunca sobre el vivo, con el
+md5 del vivo **identico** antes y despues.
+⚠️ **EL PRIMER BARRIDO DEJO CUATRO SOBREVIVIENTES Y LAS CUATRO ERAN HUECOS DE COBERTURA**, cerrados
+con condiciones nuevas y sin aflojar una sola mutacion. **La peor era mia y es una leccion de
+metodo: una condicion que leia el TEXTO FUENTE de la funcion que mide** —si
+`String(medSimpsonLimpiarTabla)` mencionaba `_vTodas`— **era tautologica, porque el comentario que
+yo escribi dentro de esa funcion lo menciona.** Hoy se mide la conducta: se siembra en las dos
+vistas y se exige que las dos queden vacias. Y TC-899 pasó a montar una segunda vista, que es lo
+que lo hace probar A1 de verdad — al precio de volverse sensible al lote.
+**Linea base al cierre: suite 892/911**, en UNA sola pasada con el archivo de casos DEFINITIVO,
+sobre el arbol sellado, con el md5 de `index.html` **identico** antes y despues (`52cb231e`). Los
+**19** rojos son los tres de siempre (TC-376, TC-390, TC-406), cinco intermitentes ya declarados
+(TC-182, TC-557, TC-562, TC-706, TC-791), **diez de sensibilidad de lote verificados pasando 1/1
+aislados** (TC-420, TC-502, TC-601, TC-702, TC-869, TC-892, TC-893, TC-895, TC-897 y TC-899) y
+**TC-535**, que queda caracterizado y es preexistente: falla con «NO HAY jsPDF» —la CDN sin
+cargar—, pasa **2 de 3** y pasa en `2cd2ee9`. **Ningun rojo nuevo**, y los cinco casos nuevos y los
+quince adaptados en verde.
+**Semgrep 126 WARNING / 0 ERROR**, la linea base exacta. **CELULAR: 36 ALTA**, y la cifra de este
+archivo estaba mal — ver la advertencia del renglon de tamaño. **17 de 19 bloques de JS inline
+parsean.** **CHROME Y WEBKIT EN LOS DIEZ CRUCES** (dos motores x 2560, 1920, 1440, 1000 y 390 px)
+con resultados **identicos** y cero errores de consola y de pagina.
+**D1 ya estaba cumplido** y se verifico midiendo: **cero ⓘ encima de una imagen** y exactamente
+**uno** de metodo del Simpson, fuera de la imagen. **D2** no se toco. **D3** queda reportado: el
+icono es `cine-maxi` (⛶, «Maximizar el visor») y **NO hay «Minimizar»**, excluido a proposito desde
+MEDIR-1.
+Lo declarado, en **M5-a** a **M5-q**; el mapa, en `docs/mapa/medir5-visor-barra-tablas.md`; la guia
+manual para Safari, en `docs/GUIA_PRUEBA_MEDIR5.md` (**10** pasos).
 
 **La tanda MEDIR-4b (2026-11-15) — el Simpson en dos pasos, los trazados entre vistas y el
 resultado integrado.** CINCO commits. Sello **`v20261115-0555`**, md5 **`c875ae0f`**, **183.025**

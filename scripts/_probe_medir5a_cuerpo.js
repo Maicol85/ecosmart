@@ -43,6 +43,40 @@
     } catch (e) { return 'ERR ' + e.message; }
   })();
 
+  const medirD1 = () => { try {
+    const marcos = ['cine-recorte', pfxB + 'cine-recorte']
+      .map(id => { const n = $(id); if (!n) return null;
+        const r = n.getBoundingClientRect();
+        return (r.width > 0 && r.height > 0) ? { id: id, r: r } : null; })
+      .filter(Boolean);
+    const cruza = (a, b) => (a.x < b.x + b.width && b.x < a.x + a.width &&
+                             a.y < b.y + b.height && b.y < a.y + a.height);
+    const bs = Array.from(document.querySelectorAll('[data-med-info]'));
+    const det = bs.map(b => {
+      const r = b.getBoundingClientRect();
+      const vis2 = getComputedStyle(b).display !== 'none' && r.width > 0 && r.height > 0;
+      const enc = vis2 ? marcos.filter(m => cruza(r, m.r)).map(m => m.id) : [];
+      return { clave: b.getAttribute('data-med-info'), visible: vis2,
+               enImagen: enc, dentroDe: (function () {
+                 if (b.closest('#cine-simp-uni')) return 'cine-simp-uni';
+                 if (b.closest('#cine-calc')) return 'cine-calc';
+                 if (b.closest('#cine-biplano')) return 'cine-biplano';
+                 if (b.closest('#dop-cajon')) return 'dop-cajon';
+                 if (b.closest('#d2-cajon')) return 'd2-cajon';
+                 if (b.closest('#' + pfxB + 'cine-med-barra')) return 'barra-B';
+                 if (b.closest('#cine-med-barra')) return 'barra-A';
+                 return 'otro'; })() };
+    });
+    return {
+      nMarcos: marcos.length,
+      n: det.length, det: det,
+      /* EL NUMERO QUE IMPORTA: cuantos ⓘ quedan encima de una imagen. */
+      encimaDeImagen: det.filter(d => d.enImagen.length).length,
+      /* Y cuantos de METODO del Simpson hay, que D1 quiere en UNO solo y fuera de la imagen. */
+      metodo: det.filter(d => d.clave === 'simp-metodo')
+        .map(d => d.dentroDe + (d.enImagen.length ? ' [ENCIMA]' : ''))
+    };
+  } catch (e) { return 'ERR ' + e.message; } };
   /* ── El fixture: dos regiones como un DICOM, isotropicas, y TRES cuadros para poder moverse ── */
   const jpg = new Uint8Array([255,216,255,217]);
   const R2D  = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 };
@@ -320,6 +354,10 @@
   o.a6bip = globosMetodo();
   o.a6bip.bipVisible = vis($('cine-biplano'));
   o.a6bip.uniVisible = vis($('cine-simp-uni'));
+  /* ⚠️ D1 SE MIDE TAMBIEN ACA, QUE ES LA ESCENA DEL SIMPSON — la que el medico describe. Mas
+     abajo la herramienta activa ya es otra y el ⓘ de metodo no existe, asi que medirlo solo
+     alla devolvia una lista vacia sobre una pantalla que SI tiene uno. */
+  o.d1simp = medirD1();
 
   /* ══ A3 — LA FILA DE BOTONES CON EL RESULTADO EN PANTALLA ════════════════════════════════
      Se mide la barra de cada vista: su caja, si esta dentro del modal visible, y si algun nodo
@@ -740,6 +778,14 @@
     r.tiempoSinAccion = F3 ? (F3.accion === null) : null;
     return r;
   } catch (e) { return 'ERR ' + e.message; } })();
+
+  /* ══ D1 — ¿QUEDA ALGUN ⓘ ENCIMA DE UNA IMAGEN? ═════════════════════════════════════════
+     El medico ve un ⓘ «dentro de la imagen derecha». Se mide por GEOMETRIA y no por lectura del
+     codigo: se toma la caja de cada boton de informacion y se cruza contra la caja de cada marco
+     de imagen (`cine-recorte`) de las dos vistas. Si se solapan, ese ⓘ esta encima de la imagen. */
+
+
+  o.d1 = medirD1();
 
   /* ══ A8 — EL FAC DEL VD PIERDE LA DIASTOLE AL MOVER EL CUADRO ═══════════════════════════ */
   o.a8 = (function () { try {

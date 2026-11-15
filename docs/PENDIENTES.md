@@ -261,42 +261,113 @@ Hechos: **B1** (la barra unica), **B2** (el valor angosto y tocable) y **B3** (e
 5. La **verificacion completa** (bateria de los 906 casos, mutaciones, celular, Excel), los
    **casos nuevos** y la **documentacion** con el sello.
 
-### M5-m · LA BATERIA DEJO 36 ROJOS, Y QUINCE SON CONSECUENCIA DE B1 Y B2 — SIN ADAPTAR
+### M5-m · CERRADO — los quince se resolvieron, y CUATRO eran defectos reales y no adaptaciones
 
-**Suite 875/911** sobre el arbol sellado `v20261115-1403` (md5 `c574e436`), en UNA sola pasada.
-De los **36 rojos**:
+> **Reemplaza la version anterior de este item**, que declaraba quince casos sin adaptar.
 
-**(a) LOS DE SIEMPRE Y LOS DECLARADOS — diez, no son de esta tanda:**
-TC-376, TC-390, TC-406 (los tres de siempre); TC-182, TC-551, TC-557, TC-562, TC-706 y TC-791
-(los intermitentes ya declarados); y **TC-753**, que tiene razon: `CLAUDE.md` todavia no publica
-el sello nuevo cuando se corrio.
+**Suite 892/911** sobre el arbol sellado `v20261115-1535` (md5 `52cb231e`), en UNA sola pasada
+con el archivo de casos DEFINITIVO, con el md5 **identico** antes y despues.
 
-**(b) SENSIBILIDAD DE LOTE — cinco, verificados AISLADOS:** **TC-892, TC-893, TC-895, TC-897 y
-TC-903** fallan en la bateria por su DENOMINADOR —«las dos vistas montadas», «la tabla esta
-dibujada»— y **pasan 1/1 corridos solos**. Los 911 casos corren en UNA pagina y el estado
-acumulado les quita la escena. No son regresiones.
+**⚠️ DE LOS QUINCE, CUATRO NO ERAN ADAPTACIONES: ERAN DEFECTOS QUE YO HABIA INTRODUCIDO.** Esto es
+lo que vale de no adaptar a ciegas:
 
-**(c) ⚠️ QUINCE QUE SON CONSECUENCIA DIRECTA DE B1 Y B2, Y QUEDAN SIN ADAPTAR:**
+| caso | lo que afirmaba | el defecto que destapo |
+|---|---|---|
+| TC-256, TC-257 | que el derivado declara sus insumos y que el AVA declara las dos vistas | **la IMAGEN que se guarda en la biblioteca habia perdido la AVA, la AVM y los cocientes.** Al mover los derivados fuera de `_dopFilas`, se los quite tambien a `_dopSeccionesGuardado` y a `_dopMetaGuardado` — o sea a un artefacto que circula solo y puede llegar a un PDF firmado. **Contenido clinico perdido, no maquetado.** Hoy se siguen emitiendo con la marca `f[8] = 'calc'` y lo unico que los esconde es `_dopFilasPantalla` |
+| TC-249, TC-250, TC-251 | que una valvula sin datos se omite y que el titulo nombra solo la que lleva | **`vciCol: ''` hacia que la TRICUSPIDE contara como «ya tiene mediciones» desde el arranque**: `_dopValvConDatos` pregunta por `!= null` y una cadena vacia no lo es. Su boton salia con el punto, el titulo de la imagen la nombraba y las valvulas vacias dejaban de omitirse. Hoy arranca en `null`, y apagar el selector vuelve a `null` |
+| TC-202 | que el boton de la vista B captura y arma su franja | **una vista con la ETIQUETA escrita y ninguna medicion dibujada se capturaba en crudo y perdia la etiqueta** — contenido que el medico escribio. El boton viejo componia la franja siempre, asi que el hueco lo abrio el ruteo de C1. Hoy `_medHayDibujo` tambien mira la etiqueta |
 
-| caso | que afirma, y por que dejo de ser cierto |
-|---|---|
-| TC-199, TC-204, TC-205, TC-208 | el selector de **tres niveles**: «el grupo Deformacion arranca cerrado», «2D abierto por defecto, los otros cerrados», «la jerarquia la dan los TRES rotulos de fila». **B1 saco el nivel «Modo»**: hoy las filas se ven todas |
-| TC-887 | «(A2) 2D y Doppler/M siguen visibles» — mismo motivo |
-| TC-202, TC-888, TC-896 | la barra con **SIETE** botones. **C1 la dejo en SEIS** |
-| TC-249, TC-250, TC-251, TC-256, TC-257, TC-262 | el **inventario de filas** de los dos cajones y donde vive cada derivado: «trae sus catorce filas», «la AVA aparece sola», «el AVA declara LAS DOS vistas», «no falta ninguna fila del inventario anterior». **B4 a B7 reordenaron las cuatro valvulas y movieron los calculados al bloque de abajo** |
-| TC-889 | los textos del globo del cajon, que B2 reescribio al retirar el ✏️ |
+**LOS ONCE RESTANTES SI ERAN ADAPTACIONES**, cada una con su decision escrita donde vive la
+condicion y ninguna aflojada:
 
-**Verificado:** **TC-250 falla tambien AISLADO**, o sea que es adaptacion de verdad y no lote.
+- **B1, el selector sin «Modo»** — TC-199, TC-204, TC-205, TC-208 y TC-887. Las cinco quedan
+  **INVERTIDAS**: donde exigian que un grupo estuviera «cerrado» hoy exigen que las tres familias
+  se vean, y donde exigian que los botones de «Modo» fueran visibles hoy exigen que **existan y NO
+  tengan caja**. TC-208 pasa de tres rotulos a **cuatro**. Fallan por los dos lados.
+- **C1, la barra de seis** — TC-202, TC-888 y TC-896, con el conteo de siete a **seis**. TC-888
+  mide ademas el boton por su id nuevo y acepta los **196 px** de «Guardar» como la excepcion
+  declarada en **M5-h**, exigiendo que sea EXACTAMENTE ese y que los otros cinco sigan iguales.
+- **B4 a B7, el inventario** — TC-250, TC-251, TC-262 y TC-889. TC-262 reescribe su inventario
+  entero con los catorce campos nuevos y el renombre de «Grad Máx IT» a «G. Máx AD-VD». TC-250 y
+  TC-251 leen los calculados **donde ahora se dibujan** —el bloque de debajo de la imagen— y
+  TC-889 exige la nota del globo reescrita.
 
-**NINGUNO SE ADAPTO.** Cada uno necesita su decision escrita donde vive la condicion —invertirla,
-ampliarla o retirarla con su sucesor— y despues una pasada LIMPIA de la bateria entera con el
-archivo de casos final, porque **esta casa no informa un numero de una pasada hecha con un archivo
-de casos anterior**. Es lo que queda de esta tanda junto con el barrido de mutaciones.
+**ONCE DE LOS QUINCE CAEN CONTRA `2cd2ee9`**, o sea que siguen discriminando. **CUATRO pasan en los
+DOS arboles y se declara**: TC-249, TC-251, TC-256 y TC-257 — en esos el cambio fue de **lectura o
+denominador**, o se arreglo en el codigo, no una afirmacion nueva. Es la misma situacion que
+TC-863 y TC-245 ya declararon en esta casa.
 
-**Lo que SI quedo medido y en verde:** los cinco casos nuevos (TC-899 a TC-903), que caen 0/5
-contra `2cd2ee9` y ninguno por excepcion; Semgrep **126/0**; el celular en **36 ALTA**, identico en
-los dos arboles; el Excel en **457** columnas (TC-135 y TC-479 en verde); y los diez cruces de
-Chrome y WebKit en los cinco anchos con cero errores de consola y de pagina.
+**Los rojos que quedan (19) son TODOS conocidos o de lote, y ninguno es de esta tanda:**
+
+- **Los tres de siempre**: TC-376, TC-390, TC-406.
+- **Intermitentes ya declarados**: TC-182, TC-557, TC-562, TC-706, TC-791.
+- **Sensibilidad de lote, verificados pasando 1/1 AISLADOS**: TC-420, TC-502, TC-601, TC-702,
+  TC-869, TC-892, TC-893, TC-895, TC-897 y **TC-899**. Los 911 casos corren en UNA pagina y el
+  estado acumulado les quita la escena. ⚠️ **TC-899 entro en este grupo a proposito**: al cerrar el
+  hueco que el barrido de mutaciones destapo, el caso pasó a MONTAR una segunda vista, que es
+  exactamente lo que hace a los otros cuatro sensibles al lote. Es el precio de que de verdad
+  pruebe A1, y se paga con gusto.
+- **TC-535 queda CARACTERIZADO y es preexistente**: falla con «NO HAY jsPDF», o sea la CDN sin
+  cargar. Pasa **2 de 3** y pasa en `2cd2ee9`. Es la misma clase de intermitente que MEDIR-4a
+  documento con Chart.js.
+- **TC-753 volvio a VERDE** al actualizar `CLAUDE.md`.
+
+### M5-p · 17/17 MUTACIONES MUERTAS, y las CUATRO que sobrevivieron eran huecos de cobertura
+
+En un worktree y **nunca** sobre el vivo, con el md5 del vivo **identico** antes y despues
+(`52cb231e`) y las 17 anclas verificadas **ANTES** de correr.
+
+⚠️ **EL PRIMER BARRIDO DEJO CUATRO SOBREVIVIENTES Y LAS CUATRO ERAN HUECOS REALES**, cerrados con
+condiciones nuevas y **sin aflojar una sola mutacion**:
+
+1. **El reparto de los cajones (A1) no estaba probado.** TC-899 medía con UNA sola vista, y ahi la
+   vista activa ES la dueña del cajon: devolver los dos a la ranura de la activa —el defecto que
+   A1 cerro— era **indistinguible**. Hoy el caso monta la segunda vista, pone herramientas
+   distintas en cada una y exige que cada cajon caiga en SU columna, con UNA tabla por columna.
+2. **⚠️ LA CONDICION DE «LIMPIAR» ERA TAUTOLOGICA POR MI PROPIO COMENTARIO.** Preguntaba si
+   `String(medSimpsonLimpiarTabla)` mencionaba `_vTodas` — y el comentario que yo escribi DENTRO de
+   esa funcion lo menciona, asi que la mutacion que la devolvia a una sola vista sobrevivia. Hoy se
+   mide la CONDUCTA: se siembra un par completo en las DOS vistas y se exige que las DOS queden
+   vacias. **Un caso que lee el texto fuente de la funcion que mide no esta midiendo nada.**
+3. **TC-250 solo miraba que no FALTARA ninguna fila**, asi que devolver los calculados a la tabla
+   de pantalla pasaba en verde. Hoy exige ademas que **ni una de las tres** este ahi: es la
+   distincion entre «se movio» y «se duplico».
+4. **La rama 2D de la guia de calibracion.** El caso la medía con Distancia activa, y ahi
+   `_medSinCalibrar()` da lo mismo que el predicado propio. Hoy se mide **con Velocidad activa**,
+   que es el escenario donde delegar en esa funcion falla.
+
+⚠️ **Y UNA TRAMPA DE METODO QUE ESTA TANDA PAGO DOS VECES.** (1) El arnes de mutaciones crasheo a
+mitad por una lista sin inicializar y **dejo el worktree con una mutacion aplicada**; la corrida
+siguiente leyo ESE archivo como original y dio tres sobrevivientes falsos. Un barrido se corre
+sobre un arbol que se acaba de restituir. (2) Un script mio que quitaba acentos graves de
+comentarios se llevo puesto un **delimitador de template** de `test_clinico.mjs` y el archivo dejo
+de parsear. Se repuso a mano.
+
+### M5-q · D1, D2 y D3 del añadido 3
+
+**D1 — YA ESTABA CUMPLIDO, y se verifico midiendo en vez de tocar nada.** Medido por GEOMETRIA
+—cruzando la caja de cada boton de informacion contra la de cada marco de imagen de las dos
+vistas— en las DOS escenas que importan: **CERO ⓘ encima de una imagen**, y exactamente **UNO** de
+metodo del Simpson, en `cine-simp-uni`, que es la tabla de resultados y esta **fuera** de la
+imagen, con sus **nueve** parrafos completos. Lo cerro el arreglo **A6** de esta tanda, que retiro
+el duplicado de `cine-biplano`. **No se cambio nada**: el ⓘ que el medico veia dentro de la imagen
+ya no existe. Los otros tres ⓘ del visor —`vel`, `dop` y `d2`— no son de metodo del Simpson y
+viven en el panel guia y en los dos cajones, ninguno sobre la imagen.
+
+**D2 — no se agrego nada.** Una vista reabierta sin ventana declarada se puede medir entera,
+Simpson incluido. Es la decision que **M4b-e** ya habia dejado escrita y esta tanda no la toca.
+
+**D3 — el icono chico, reportado y SIN tocar.** Es `cine-maxi`, el glifo **⛶**, con
+`title="Maximizar el visor"`. Su manejador es `cineMaxToggle`, que alterna la clase `cine-max` del
+overlay —el estado vive en la CLASE y no en una variable, para que no pueda quedar en desacuerdo
+con lo que la pantalla muestra— y despues **reaplica el recorte y repinta la medicion en LAS DOS
+vistas**, porque maximizar les cambia el ancho a las dos. El rotulo, el `title` y el `aria-pressed`
+los escribe `cineMaxSync`, que es el unico que los toca.
+**NO hay ningun boton «Minimizar»**, y no es un olvido: el comentario del marcado lo declara desde
+MEDIR-1 —«la orden lo excluye a proposito y lo que podria significar quedo como pregunta en el
+reporte»—. Si el medico quiere uno, hay que decidir primero **que significaria**: el visor es un
+overlay a pantalla completa, asi que «minimizar» podria ser cerrarlo conservando lo medido —que es
+lo que ya hace la ✕— o reducirlo a una barra flotante, que es una pantalla nueva.
 
 ### M5-n · EL CELULAR: la cifra de la linea base de CLAUDE.md esta vieja
 

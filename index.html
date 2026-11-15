@@ -146837,6 +146837,13 @@ function _medHayDibujo() {
             + (_medTiempos || []).length + (_medVtis || []).length;
     if (n > 0) return true;
     if (_medTrazo) return true;
+    /* ⚠️ UNA ETIQUETA ESCRITA TAMBIEN ES ALGO QUE SE VE, Y LA BATERIA LO DESTAPO. Sin esto, una
+       vista con la etiqueta de captura tipeada y NINGUNA medicion dibujada se capturaba en crudo
+       —por `cineCapturar`— y la etiqueta se perdia: contenido que el medico escribio, desaparecido
+       sin aviso. El boton viejo «Capturar + medicion» componia la franja SIEMPRE, asi que el hueco
+       lo abrio el ruteo de C1. Lo cazo TC-202, que mide el alto de la captura de la vista B contra
+       la de una sin franja. */
+    if (String(_medEtiqueta || '').trim()) return true;
     const S = (typeof _simp !== 'undefined') ? _simp : null;
     if (S && (S.pendiente || (S.pares || []).some(P => P && (P.d || P.s)))) return true;
     return false;
@@ -151545,7 +151552,12 @@ function _dopNuevo() {
        onda sistolica del ANILLO tricuspideo por TDI. */
     tri: { vmaxIt:null, vmaxEt:null, pvc:10,
            ondaS:null, trivTdi:null, vtiVt:null, gradMedioVt:null, thpVt:null,
-           vciDiam:null, vciCol:'' },
+           /* ⚠️ `vciCol` ARRANCA EN `null` Y NO EN CADENA VACIA, Y LA BATERIA LO DESTAPO.
+              `_dopValvConDatos` y `_dopHayValores` preguntan por `!= null`, asi que una cadena
+              vacia hacia que la TRICUSPIDE contara como «ya tiene mediciones» desde el arranque:
+              su boton salia con el punto, el titulo de la imagen guardada la nombraba, y las
+              valvulas sin datos dejaban de omitirse. Un defecto real, no una adaptacion de casos. */
+           vciDiam:null, vciCol:null },
     /* `diamTsvd` y `vtiPul` (2026-09-25): los insumos del volumen eyectivo del VD.
        ⚠️ ES UN SOLO VALOR EN TODO EL VISOR (2026-09-25): el «Diam TSVD» del cajón 2D (`vd.tsvd`)
        es un ALIAS de ESTE campo, igual que `vi.tsvi` lo es de `ao.diam` (ver `_D2_ALIAS`). Nació
@@ -152412,6 +152424,19 @@ function _dopFilas(modo) {
      código es el patrón que este archivo persigue desde el `_dupKey`. */
   const L = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 0]); };
   const R = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 1]); };
+  /* ══ MEDIR-5 — LOS DERIVADOS QUE SE MUDARON AL BLOQUE DE ABAJO SIGUEN SALIENDO DE ACA ═══════
+     ⚠️ ESTO LO DESTAPO LA BATERIA, Y NO ERA SOLO UNA ADAPTACION DE CASOS. B4 y B5 piden que la
+     AVA, la AVM y los cocientes se vean DEBAJO de la imagen y no dentro de la tabla, y la primera
+     version los saco de `_dopFilas` directamente. El problema es que esa funcion no alimenta solo
+     la tabla de pantalla: tambien `_dopSeccionesGuardado`, o sea la IMAGEN que se guarda en la
+     biblioteca y que puede terminar en un PDF firmado, y `_dopMetaGuardado`, que es el dato de ese
+     registro. Sacarlos de ahi le quitaba la AVA a un artefacto que circula solo — una perdida de
+     contenido clinico, no un detalle de maquetado.
+     Hoy se siguen emitiendo con la marca `f[8] = 'calc'`, y lo unico que los esconde es el filtro
+     de `_dopFilasPantalla`. La imagen guardada queda COMPLETA y la pantalla, como el pedido pide.
+     Va en el OCTAVO elemento porque `f[7]` ya es la etiqueta de la celda de acciones. */
+  const Lc = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 0, null, 'calc']); };
+  const Rc = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 1, null, 'calc']); };
   if (md === 'ao') {
     /* ══ MEDIR-5 (B5) — EL ORDEN ES EL DEL PEDIDO, EN UNA SOLA COLUMNA ════════════════════
        Las dos columnas que B5 pedia NO ENTRAN, y esta medido (M5-l): con dos tablas la celda de
@@ -152435,6 +152460,21 @@ function _dopFilas(modo) {
     /* La severidad orientativa por THP se CONSERVA: B5 no la nombra, pero es contenido que ya
        estaba y sacarlo seria tocar una lectura clinica. */
     if (D.sev) L('Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']);
+    /* AVA y AVAi: marcadas `calc`, asi que NO se dibujan en la tabla de pantalla —estan en el
+       bloque de abajo— pero SI viajan en la imagen que se guarda y en su `meta`. El AVAi sigue
+       llevando su BSA dentro del rotulo, que es lo que lo hace auditable cuando el artefacto
+       circula solo. */
+    if (D.ava != null)  Rc('AVA',  n(D.ava, 2),  'cm²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
+    if (D.avai != null) Rc('AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
+    /* Y los CUATRO que B5 agrega. Van tambien marcados `calc`, asi que viajan en la imagen
+       guardada: son contenido calculado y el artefacto que circula solo tiene que llevarlo.
+       El gasto cardiaco lleva su FC adentro del rotulo por el mismo motivo que el AVAi su BSA:
+       la frecuencia sale del formulario y NO viaja con la imagen, asi que sin el numero a la
+       vista el cociente no se puede auditar. */
+    if (D.dvi != null) Rc('DVI', n(D.dvi, 2), '', null, false, ['ao.vtiTsvi','ao.vtiAo']);
+    if (D.vs  != null) Rc('Vol. sistólico', n(D.vs, 1), 'mL', null, false, ['ao.diam','ao.vtiTsvi']);
+    if (D.vsi != null) Rc('Vol. sist. indexado (BSA ' + n(D.bsa, 2) + ')', n(D.vsi, 1), 'mL/m²', null, false, ['ao.diam','ao.vtiTsvi']);
+    if (D.gc  != null) Rc('Gasto cardíaco (FC ' + n(D.fc, 0) + ')', n(D.gc, 2), 'L/min', null, false, ['ao.diam','ao.vtiTsvi']);
   } else if (md === 'mit') {
     const M = E.mit;
     /* ══ MEDIR-5 (B4) — EL ORDEN ES EL DEL PEDIDO, EN UNA SOLA COLUMNA (ver M5-l) ══════════
@@ -152466,6 +152506,17 @@ function _dopFilas(modo) {
        confunde con el area. */
     R(_DOP_ROT['mit.pisa'], n(M.pisa, 1), 'mm',   'mit.pisa',  false);
     R(_DOP_ROT['mit.vc'],   n(M.vc, 1),   'mm',   'mit.vc',    false);
+    /* Los cuatro de B4, marcados `calc`: fuera de la tabla, dentro de la imagen guardada. */
+    if (D.avmPht != null)  Lc('AVM por THP',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']);
+    /* ⚠️ EL AVM POR CONTINUIDAD DECLARA SUS TRES INSUMOS Y DOS SON AORTICOS, que se miden en otra
+       valvula del cajon: con dos vistas abiertas esos planos pueden ser dos pantallas distintas, y
+       la marca de origen de la fila sale de esta lista. */
+    if (D.avmCont != null) Lc('AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']);
+    if (D.ea != null) Rc('E/A', n(D.ea, 2), '', null, false, ['mit.ondaE','mit.ondaA']);
+    if (D.ee != null) {
+      const cual = D.epromCual === 'prom' ? 'prom' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
+      Rc("E/e' (" + cual + ')', n(D.ee, 1), '', null, false, ['mit.ondaE','mit.ePrimaSept','mit.ePrimaLat']);
+    }
   } else if (md === 'tri') {
     const T = E.tri;
     /* ══ MEDIR-5 (B6) — EL ORDEN DEL PEDIDO, Y LA PmAD CON EL DUEÑO DE LA APP ═════════════
@@ -152567,6 +152618,18 @@ function _dopAssertSueltas() {
   } catch (e) {}
 }
 try { document.addEventListener('DOMContentLoaded', _dopAssertSueltas); } catch (e) {}
+/* ══ MEDIR-5 — LO QUE LA TABLA DE PANTALLA MUESTRA ═════════════════════════════════════════════
+   `_dopFilas` es la lista COMPLETA y la consumen tres cosas: esta tabla, la imagen que se guarda
+   en la biblioteca y el `meta` de ese registro. Los derivados que B4 y B5 mudaron al bloque de
+   abajo de la imagen se esconden SOLO de la tabla, con la marca `f[8] === 'calc'`.
+   ⚠️ FILTRAR ACA Y NO EN EL ORIGEN es la diferencia que la bateria destapo: sacandolos de
+   `_dopFilas`, la imagen guardada perdia la AVA, la AVM y los cocientes — contenido clinico que se
+   iba de un artefacto que puede llegar a un PDF firmado. */
+function _dopFilasPantalla(modo) {
+  return _dopFilas(modo).filter(f => f[8] !== 'calc');
+}
+window._dopFilasPantalla = _dopFilasPantalla;
+
 function _dopFilasSueltas() {
   const E = _dopEstado(), F = [];
   const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
@@ -152885,7 +152948,7 @@ function _dopRender() {
      el número desaparece — lo que su propio comentario ya declaraba. La guarda de «sólo aparecen
      cuando hay algo» se conserva: el separador sale únicamente si la lista trae filas, porque un
      rótulo «sin asignar» sobre una tabla de guiones entrena a ignorarlo. */
-  const F = _dopFilas();
+  const F = _dopFilasPantalla();
   const S = _dopFilasSueltas();
   if (F.length || S.length) {
     h += _medTablaHTML(sinArmar(F), 'dop', E.destino, sinArmar(S));
@@ -152972,7 +153035,8 @@ function _dopObservar() {
     /* ══ MEDIR-5 (B6) — el colapso de la VCI, insumo de la PmAD. Alterna, igual que la PVC. */
     const vcc = b.getAttribute('data-dop-vcicol');
     if (vcc) { const E2 = _dopEstado();
-               E2.tri.vciCol = (E2.tri.vciCol === vcc) ? '' : vcc; _dopRender(); return; }
+               /* Apagar vuelve a `null` por el mismo motivo que arranca en `null`. */
+               E2.tri.vciCol = (E2.tri.vciCol === vcc) ? null : vcc; _dopRender(); return; }
     const a = b.getAttribute('data-dop-armar');
     if (a) { dopArmar(a); return; }
     const c = b.getAttribute('data-dop-corr');
@@ -178276,8 +178340,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261115-1403';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794762198769;                 /* eco-build-ms */
+const ECO_BUILD    = '20261115-1535';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794767737602;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -178363,7 +178427,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261115-1403</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261115-1535</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
