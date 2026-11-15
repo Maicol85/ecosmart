@@ -112,8 +112,12 @@ MUT = [
   [('<td style="padding:5px 8px;">50 a 95 %</td>', '<td style="padding:5px 8px;">50 a 90 %</td>')]),
  ('20 el 4 a 10 % de coartacion en la bicuspide pasa a 4 a 15 %', 'TC-822',
   [('Coartación (4 a 10 % de las bicúspides)', 'Coartación (4 a 15 % de las bicúspides)')]),
- ('21 el seno coronario sin techo pasa de «menos de 1 %» a «1 %»', 'TC-822',
-  [('seno coronario sin techo menos de 1 %.', 'seno coronario sin techo 1 %.')]),
+ # ⚠️ INVERTIDA EN PANT-38 (bloque 4a). Por decision del medico la tabla pasa a decir «1 %»,
+ # que es lo que la ACC/AHA 2025 imprime en su folio e149 —«unroofed coronary sinus (1%)»; el
+ # «<1%» de esa oracion es el del seno venoso inferior—. La mutacion se da vuelta: hoy lo que
+ # tiene que poner rojo al caso es volver a «menos de 1 %».
+ ('21 el seno coronario sin techo vuelve de «1 %» a «menos de 1 %»', 'TC-822',
+  [('seno coronario sin techo 1 %.', 'seno coronario sin techo menos de 1 %.')]),
  ('22 la CIV perimembranosa pierde el signo de aproximacion', 'TC-822',
   [('perimembranosa ≈80 %, muscular', 'perimembranosa 80 %, muscular')]),
  ('23 el patron coronario habitual de la TGA pasa de 65 % a 60 %', 'TC-822',

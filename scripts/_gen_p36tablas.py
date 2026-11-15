@@ -81,7 +81,7 @@ T2 = [
   'Forma parte de la tetralogía de Fallot, de la TGA y de la TGA corregida; la CIV de salida, con prolapso de la cúspide coronariana derecha, insuficiencia aórtica y aneurisma del seno de Valsalva; la perimembranosa, con VD de doble cámara; estenosis subaórtica. Por tipo: perimembranosa ≈80 %, muscular hasta 15 a 20 %, de salida ≈5 %.',
   'Tipo y número de defectos, válvula aórtica (prolapso, insuficiencia), seno de Valsalva, VD de doble cámara, tracto de salida del VI.'],
  ['Comunicación interauricular (CIA)',
-  'Drenaje venoso pulmonar anómalo, VCS izquierda persistente, estenosis valvular pulmonar, prolapso mitral. El seno venoso superior se asocia a conexión anómala de las venas pulmonares derechas. Por tipo: ostium secundum 80 %, ostium primum 15 %, seno venoso superior 5 %, seno venoso inferior menos de 1 %, seno coronario sin techo menos de 1 %.',
+  'Drenaje venoso pulmonar anómalo, VCS izquierda persistente, estenosis valvular pulmonar, prolapso mitral. El seno venoso superior se asocia a conexión anómala de las venas pulmonares derechas. Por tipo: ostium secundum 80 %, ostium primum 15 %, seno venoso superior 5 %, seno venoso inferior menos de 1 %, seno coronario sin techo 1 %.',
   'Venas pulmonares (sobre todo en el seno venoso), seno coronario dilatado (VCS izquierda), válvula pulmonar, válvula mitral.'],
  ['Anomalía de Ebstein',
   'CIA ostium secundum o foramen oval permeable; vías accesorias, incluidas las de tipo Mahaim (un tercio de los adultos con Ebstein y preexcitación tiene múltiples); también CIV y estenosis pulmonar.',

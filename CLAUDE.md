@@ -275,7 +275,17 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,29 MB / 184.022 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-5**, sobre el árbol ya sellado: sello **`v20261115-1535`**, md5 **`52cb231e`**.
+  sin frameworks. Hoy **13,31 MB / 184.278 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **PANT-38**, sobre el árbol ya sellado: sello **`v20261115-1954`**, md5 **`ceb16d2d`**.
+  El diff de PANT-38 son **308 líneas agregadas y 52 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `121bb99` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
+  `eval(` y `new Function` nuevos, **UN** id nuevo en el marcado —`lv3d-slot-botones`; los otros
+  dos que el diff muestra ya existían— y **CERO** `input`, `select` y `textarea` nuevos con `id`,
+  que es lo que deja todo esto fuera del censo del estudio y del Excel **por construcción**.
+  ⚠️ **POR CUADRAGÉSIMA CUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show 121bb99:index.html` da **184.022** líneas,
+  **13.287.956** bytes y el md5 **`52cb231e`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,29 MB / 184.022 al cierre de **MEDIR-5**, sello **`v20261115-1535`**, md5 **`52cb231e`**.)
   ⚠️ **LA CIFRA DE CELULAR DE ESTE ARCHIVO ESTABA MAL, Y QUEDA CORREGIDA ACÁ: SON 36 ALTA, NO 18.**
   Medido con el MISMO script en los DOS árboles —el vivo y `2cd2ee9`, que es el cierre de
   MEDIR-4b— da **36 en los dos**, y con `--todo` también 36. O sea que **no hubo ninguna
@@ -1318,6 +1328,120 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PANT-38 (2026-11-15) — el acomodo de Contractilidad, el menu de Documentos, CeiboLink
+y tres arreglos chicos.** CINCO commits. Sello **`v20261115-1954`**, md5 **`ceb16d2d`**,
+**184.278** lineas.
+
+**BLOQUE 1 — EL ACOMODO.** El cuadro de «Limpiar» e «Incluir bull's eye en PDF» se muda al hueco
+que ya estaba vacio debajo del territorio coronario. **Es un nodo que viaja, no una copia**:
+`lv3dBotonesSync` lo manda a `#lv3d-slot-botones` en escritorio y lo devuelve a `#lv3d-fila`
+—ANTES de `#lv3d-panel`— en 768 px o menos, con la guarda de `_vSlotSync` de MEDIR-4a.
+⚠️ **EL 3D NO GANA NI PIERDE UN PIXEL, Y SALE DE UNA CUENTA**: hallazgos toma 220+150+16 = **386
+px**, asi que el `1fr` del panel vale `total-386-16`, el mismo `total-220-150-32` de antes.
+Medido: lienzo y canvas **597x334 en l=608** a 1369 px, identicos a la linea base. `align-items`
+pasa de `stretch` a `start` —el comentario de «K2» defendia el `stretch` con un argumento que ya
+no aplica: ese bloque no esta mas en esta fila—. Medido en los 16 cruces: el cuadro **no se
+mueve** al abrir el 3D (0/0/0/0, contra dl **-671/-1168/-1808** y dh **+492/+769/+1127** en la
+base), Hallazgos crece **112 -> 254** px con cinco hallazgos y **no iguala** al panel (604), y a
+390 px todo es **identico a la base, caja por caja**.
+⚠️ **LA SIEMBRA SE VERIFICA POR `contrEstado`**: la primera version de la sonda uso ids
+inventados, `contrSetSegmento` los escribe igual, **nadie los lee**, y el texto cambiaba igual —o
+sea que «no crece» era la siembra vacia y no el arreglo—.
+**EL CORAZON, UN 23 % MAS GRANDE.** `LV3D_ESC` 26 -> **32**, el unico lugar donde se decide su
+tamanio; **la regla del DDVI no se toca**. El factor sale del peor caso medido sobre `_lv3d.polis`
+con DDVI 95 —donde la escala topa en 1,6—, con la diastole fantasma prendida, en tres vistas,
+Coronarias (3099 poligonos contra 1800), cinco fases y doce giros: pasa de **48,6 % del ancho y
+63,6 % del alto** a **59,8 % y 78,3 %**, sin salirse por ninguno de los cuatro bordes y con 33,3
+px de aire arriba. El tope absoluto es **1,507** y se tomo **1,2308** por el grosor del trazo, el
+halo de los rotulos y la brujula.
+**LOS ROTULOS DE EJES.** Los cinco textos son los mismos; la brujula se corre de 58 a 72, el
+rotulo se ancla con `textAlign` en vez de un offset fijo de 28 px, y el eje alineado con la camara
+va debajo. Medido interceptando `fillText`: antes «Sep» salia en x[**-2**, 19.4] —cortado— y
+«Punta» y «Lat» quedaban a **0,6 px**; y en «Punta a la izquierda» **«Punta» tambien se cortaba**,
+lo que NO estaba reportado. Hoy los cinco dentro del canvas y cero pares que se pisen, en las tres
+vistas y los dos tamanios. El contexto se restituye con `save`/`restore`: `textAlign` es estado
+del contexto y una fuga asi es **estable**, o sea invisible para una prueba de idempotencia.
+⚠️ **UN ERROR MIO QUE ENCONTRO LA SONDA Y NO LA LECTURA**: dije que solo un eje puede caer en el
+centro porque los cinco son una base ortonormal. **Es falso** —son [+X, -X, +Y, -Y, +Z], y +X y -X
+son el MISMO eje— asi que «Lat» y «Sep» caian juntos. En la version anterior no se superponian por
+**pura casualidad numerica**: `cos(PI/2)` vale 6,1e-17 y no 0.
+
+**BLOQUE 2 — EL MENU Y LA LISTA.** ⚠️ **LA CAUSA DEL RECORTE ES `.card{overflow:hidden}`, no un
+contexto de apilamiento**: el `z-index:260` ya funcionaba —en la captura del medico el menu se
+pinta por encima del EN SUMA— y el menu se cortaba en el borde SUPERIOR de la tarjeta del EN SUMA,
+por eso la primera entrada se leia «electrica». Mismo defecto y mismo arreglo que el menu de
+severidad valvular, con `:has()` para que la tarjeta vuelva a recortar al cerrarlo, mas
+`max-height` con `overflow-y:auto`. **Medido por hit-testing y no por geometria** —«sobresale N
+px» no cambia con el arreglo; lo que cambia es si se PINTA—: de **4 de 6** opciones alcanzables
+(5 de 6 en seis cruces) a **6 de 6 en los 16**.
+La lista pasa a una linea por documento; lo que cambia **no es el `flex:1`** del nombre, que se
+conserva, sino su `min-width` de 140 a **0** y el texto que se corta con puntos suspensivos, con
+el nombre entero en el `title`. Medido en catorce anchos de 390 a 2560, **cero regresiones**: a
+1000 y 1200 px pasa de 102 y 91 px con 0 y 3 filas en linea a **62 px con 6 de 6**; a 800 y 900,
+de 131 y 102 a **91**; a 390, de 116 a **101**.
+⚠️ **POR DEBAJO DE 1000 px SIGUE ENVOLVIENDO Y SE DECLARA** en vez de prometer una linea que no
+entra: ahi la grilla de Configuracion ya es de dos columnas y la fila mide entre 252 y 508 px.
+⚠️ **DOS INTENTOS ANTERIORES METIERON REGRESIONES QUE ENCONTRO EL BARRIDO**: `flex-wrap:nowrap`
+con una media query en 700 px rompia la banda 650–699 —y el ancho de la fila NO se deriva del
+viewport: la grilla pasa de una a dos columnas cerca de los 780, asi que la misma fila mide 668 px
+a 760 de viewport y 252 a 800—; y un piso de 140 px en el nombre rompia 650, 900, 1369 y 1440,
+porque con `flex-wrap` el navegador arma las lineas con el **flex-basis** y no con el ancho minimo.
+
+**BLOQUE 3 — CeiboLink.** «Descargar CeiboLink» deja de estar apagado y abre
+`https://descargas.ceibomed.com` con **`rel="noopener noreferrer"`**: ⚠️ **es la primera vez que
+esta app abre una direccion externa** —censado: cero `window.open` y cero `target="_blank"` en
+todo el archivo antes de hoy— asi que esa linea es el patron que hereden las que vengan, y sin
+`noopener` la pagina que se abre puede navegar a esta, con el estudio del paciente en pantalla y
+sin guardar. «Como conectar el ecografo» pasa de **1549 caracteres en ocho parrafos a 473 en
+tres** y el paso a paso se muda al **«?»** pegado a «Actualizar», con el mecanismo de los demas
+globos (`clnk-guia` en `VINFO`). **Sin el codigo de seis digitos** —decision pendiente que el
+propio panel declara— y **sin pasos del instalador de Windows**, que existe pero dice de si mismo
+que compila y nada mas. **Nada se perdio**: las diez piezas del texto viejo estan, nueve en el
+globo. ⚠️ **La marca de provisoriedad se REESCRIBIO en vez de copiarse**: «A confirmar con el
+ecografo real» cae bajo la regla fija de que ningun texto de la app dice que algo esta «a
+confirmar». La capa de comunicacion y los estados, intactos; el panel con los **mismos 4 controles
+con id**.
+
+**BLOQUE 4.** (a) La celda de la CIA pasa de «menos de 1 %» a **«1 %»**, que es lo que la ACC/AHA
+2025 imprime en su folio e149 —«unroofed coronary sinus (1%)»; el «<1%» de esa oracion es el del
+seno venoso inferior—. Se cambia en el generador y en el marcado, porque el marcado sale de
+`_gen_p36tablas.py` y no se retipea, y la mutacion 21 de `_mut_p36.py` queda **invertida**.
+(b) **P37-i CERRADO**: el deslizador «Apertura» y su nota se retiran en la rama «faltan datos» de
+`wiPintar`, donde el `return` temprano nunca los tocaba; **no se toca `_wiSim.area`**, asi que al
+reponer el dato el deslizador vuelve donde estaba.
+⚠️ **(c) TC-390 ESTABA DESACTUALIZADO, NO EL CODIGO**, contra lo que la orden suponia, y la
+evidencia es triple: la estenosis mitral **ya no es una severidad graduada** —lo declara el
+archivo al lado de `emCategoria()`—, la sigla pelada hoy es «EM presente.» —lo afirma **TC-398 en
+verde**, y **TC-42** tambien pasa— y **el desplegable no enciende `esqSevManual`**, que es una
+regla escrita al lado de `sevSinApagaDesdeSelect`. Adaptado sin aflojarlo, con dos condiciones
+**mas fuertes**.
+
+**Cobertura: TC-904 y TC-905**, que caen contra `121bb99` por **7 y 10 condiciones** y **ninguno
+por excepcion**. **NUEVE casos adaptados**: TC-390, TC-821, TC-471, TC-490, TC-500, TC-502,
+TC-781, TC-833 y TC-842, con **siete condiciones INVERTIDAS**. Los cuatro conteos de `VINFO`
+(**143 -> 144** y **69 -> 70**) son la consecuencia autorizada de la clave nueva.
+⚠️ **DOS CONDICIONES NO SE PUEDEN MEDIR EN LA VENTANA DEL ARNES (756x469) y se declaran**: que el
+cuadro viva en la ranura de arriba —ahi el ancho es **angosto** y vive en la fila **a proposito**,
+que es el punto 4 del pedido— y que las **seis** opciones del menu sean alcanzables —con 469 px de
+alto la primera queda arriba del borde—. La primera se mide llamando a `lv3dBotonesSync` en **sus
+dos ramas**, que es el dueno; la segunda exige que **todas las que entran en la pantalla** lo
+sean, y las seis las mide la sonda de dos motores con su ventana de 940.
+**Semgrep 126 WARNING / 0 ERROR**, la linea base exacta. **17 de 19 bloques de JS inline parsean.**
+**CHROME Y WEBKIT EN LOS 16 CRUCES** de cada bloque (1369 / 1920 / 2560 / 390 px x los dos temas
+**reales**, devueltos por la sonda), con cero desplazamiento horizontal, cero textos recortados y
+**cero errores de consola y de pagina**.
+⚠️ **EL PENDRIVE `DISK_IMG` NO ESTABA MONTADO EN NINGUNO DE LOS 17 LOTES**, asi que los casos que
+dependen de el **no prueban nada** en esta corrida y no son cobertura. Queda declarado.
+⚠️ **LO QUE ESTA TANDA PAGO**: el **acento grave dentro de mis propios comentarios** en el cuerpo
+de un caso —y al sacarlos con un bucle me lleve puestos los del runner, que si los necesita, y el
+archivo dejo de parsear por otra razon—; **`__t.show` y `__t.esp` no existen** (los invente: el API
+real es `set`, `val`, `limpiar`, `avInc`); **la barra invertida no sobrevive al template literal**,
+asi que la clase de espacio llego como la letra «s» y «Constancia» salio «Con tancia»;
+**`elementFromPoint` solo ve el viewport**, y el «?» de CeiboLink daba «FUERA» en los dieciseis
+cruces por caer bajo el pliegue; y el **boton «What if» vive en la vista 2D**, no en el formulario.
+El mapa, en `docs/mapa/pant38-contractilidad-documentos-ceibolink.md`; las sondas, en
+`scripts/_probe_p38b1.mjs`, `_probe_p38b2.mjs`, `_probe_p38b3.mjs` y `_probe_p38tam_cuerpo.js`.
 
 **La tanda MEDIR-5 (2026-11-15) — el visor: los siete hallazgos del medico, la barra unica, las
 tablas nuevas y la guia de calibracion.** DIECISIETE commits. Sello **`v20261115-1535`**, md5

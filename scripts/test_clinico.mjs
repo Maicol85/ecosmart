@@ -55244,15 +55244,27 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
        decision de Maicol lo revierte: ese estado es el gesto normal de abrir para mirar los
        numeros, y negarlo es publicar una negacion sobre una valvulopatia consignada. Lo que 4b
        protegia era el OTRO estado —«Sin» elegido a mano—, y lo protege la escena (1b) de abajo.
-       El EN SUMA sigue sin decir «Estenosis mitral.»: ahora dice la sigla sola, «EM.». */
+       El EN SUMA sigue sin decir «Estenosis mitral.»: dice la sigla sola. ⚠️ Desde PANT-38 esa
+       sigla se escribe «EM presente.» y no «EM.», que es lo que TC-398 afirma en verde. */
     ['denominador de la distincion: la escena (1) NO tiene marca manual y la (1b) la tiene en las dos mitades',
-      abiertoSinGradoMan === '{}' &&
-      sinAManoMan.indexOf('"em":true') > -1 && sinAManoMan.indexOf('"im":true') > -1,
-      'abierta=' + abiertoSinGradoMan + ' aMano=' + sinAManoMan],
+      /* ⚠️ ADAPTADO EN PANT-38 (bloque 4c). Exigia que elegir «Sin» a mano encendiera
+         esqSevManual, y eso dejo de ser cierto por una DECISION documentada en index.html:
+         fijar el grado por el DESPLEGABLE no enciende esa marca —la regla esta escrita al lado
+         de sevSinApagaDesdeSelect— y valvSev.aplicar va por el desplegable. Hoy se mide lo
+         que el caso vino a medir, que es que los DOS estados EXISTAN y se distingan, y se mide
+         por la superficie que el medico lee: el texto del informe. Sigue fallando si alguien
+         vuelve a unificarlos, que es el defecto que esta condicion cuida. */
+      abiertoSinGrado.inf !== sinAMano.inf,
+      'abierto=«' + abiertoSinGrado.inf + '» aMano=«' + sinAMano.inf + '»'],
     ['ESTADO 2 · botones abiertos y SIN grado: el narrativo dice «con estenosis e insuficiencia», sin grado',
       abiertoSinGrado.inf === 'Válvula mitral de morfología normal, con estenosis e insuficiencia.', dg],
     ['  y el EN SUMA es SOLO las siglas, sin «Estenosis mitral.» ni «Insuficiencia mitral.» ni palabra de grado',
-      abiertoSinGrado.suma.indexOf('EM.') > -1 && abiertoSinGrado.suma.indexOf('IM.') > -1 &&
+      /* ⚠️ ADAPTADO EN PANT-38 (bloque 4c): la sigla sola hoy es «EM presente.» y no «EM.».
+         Lo afirma TC-398 en verde. Lo que esta condicion cuida —que el EN SUMA no diga
+         «Estenosis mitral.» ni una palabra de grado— se mide igual, y mas fuerte: se exige la
+         frase ENTERA y no un fragmento que «EM presente.» tambien contendria. */
+      abiertoSinGrado.suma.indexOf('EM presente.') > -1 &&
+      abiertoSinGrado.suma.indexOf('IM presente.') > -1 &&
       abiertoSinGrado.suma.indexOf('Estenosis mitral.') === -1 &&
       abiertoSinGrado.suma.indexOf('Insuficiencia mitral.') === -1 &&
       !/leve|moderada|severa/i.test(abiertoSinGrado.suma), dg],
@@ -55284,12 +55296,22 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
     ['IM: la nota va ENTRE PARENTESIS pegada al grado, no antes ni al final de la oracion',
       notaIM.inf === 'Válvula mitral de morfología normal, con estenosis e insuficiencia moderada (jet excentrico, vena contracta no medible).', dg],
     ['IM: y el EN SUMA NO la lleva —«IM moderada.» pelado, al lado de la sigla de la otra mitad—',
-      notaIM.suma === 'EM. | IM moderada.', dg],
+      /* ⚠️ ADAPTADO EN PANT-38: la sigla pelada de la otra mitad hoy es «EM presente.» y no
+         «EM.». Lo afirma TC-398 en verde, y lo que esta condicion cuida —que la NOTA del
+         fundamento no suba al EN SUMA— se mide igual. */
+      notaIM.suma === 'EM presente. | IM moderada.' &&
+      notaIM.suma.indexOf('jet excentrico') === -1, dg],
 
     ['EM: la nota va ENTRE PARENTESIS pegada al grado',
-      notaEM.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable) e insuficiencia.', dg],
+      /* ⚠️ ADAPTADO EN PANT-38: la estenosis mitral YA NO ES UNA SEVERIDAD GRADUADA —lo declara
+         index.html al lado de emCategoria()— asi que el grado «moderada» que esta escena
+         elige se publica como «no significativa», que es su categoria. La nota sigue ENTRE
+         PARENTESIS pegada al grado, que es lo que esta condicion cuida. */
+      notaEM.inf === 'Válvula mitral de morfología normal, con estenosis no significativa (AVm no planimetrable) e insuficiencia.', dg],
     ['EM: y el EN SUMA NO la lleva —«EM moderada.» pelado—',
-      notaEM.suma === 'EM moderada. | IM.', dg],
+      /* ⚠️ ADAPTADO EN PANT-38, por lo mismo: la categoria binaria y la sigla con «presente». */
+      notaEM.suma === 'EM no significativa. | IM presente.' &&
+      notaEM.suma.indexOf('planimetrable') === -1, dg],
 
     ['CONTROL NEGATIVO: un cajon poblado SIN discrepancia no manda nada al informe',
       fundNulo === 'null/null' && pobladoSinDisc.inf.indexOf('colado') === -1 &&
@@ -55302,7 +55324,11 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
       'im=«' + __t.val('im_fund_nota') + '» em=«' + __t.val('em_fund_nota') + '»'],
 
     ['CONTROL NEGATIVO: con grados calculados de verdad el informe los sigue publicando',
-      conGrado.inf.indexOf('con estenosis severa') > -1 &&
+      /* ⚠️ ADAPTADO EN PANT-38: con la categoria binaria, el grado severo de la ESTENOSIS se
+         publica como «significativa» con su area y su metodo. El control negativo sigue
+         diciendo lo que vino a decir —que un grado calculado de verdad SI se publica— y la
+         insuficiencia, que si es graduada, conserva su «severa». */
+      conGrado.inf.indexOf('con estenosis significativa (AVm 1.20 cm² por planimetría)') > -1 &&
       conGrado.inf.indexOf('insuficiencia severa') > -1 &&
       conGrado.suma.indexOf('IM severa.') > -1, dg],
   ] };
@@ -66664,7 +66690,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        este caso mide -- la vista 2D es un panel que se abre--, asi que lo que cambia es el
        DENOMINADOR del registro y no lo que la condicion afirma. Se le exige la clave, igual
        que a las siete anteriores, asi que sacarlo vuelve a ponerlo en rojo. */
-    Object.keys(VINFO).length === 143 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144. Entra clnk-guia, el globo del «?» que abre la
+       guia de conexion de CeiboLink, en Configuracion. No vive en Valvulas ni en Referencias:
+       lo que esta condicion afirma de su propia pantalla no cambia. */
+    Object.keys(VINFO).length === 144 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -74059,9 +74088,15 @@ caso('TC-490', 'Tanda K: el 3D de la MITRAL —el lienzo se limpia ENTERO y el c
          la que ahora tiene dos hijos. Se exigen las DOS reglas nuevas, asi que la condicion
          sigue discriminando. Los pixeles los miden _probe_pant29contr.mjs y la sonda de dos
          motores, a cuatro anchos y en los dos temas. */
-      fuente.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') > -1
+      /* ⚠️ ADAPTADO EN PANT-38 (commit 1). La fila paso de TRES columnas a DOS porque el cuadro
+         de los botones se mudo arriba, al hueco debajo del territorio coronario: hoy la de
+         hallazgos se lleva lo que tenian las dos primeras juntas, 220 + 150 + 16 = 386 px, y el
+         1fr del panel vale el MISMO numero que antes. Lo que esta condicion cuida —que el
+         lienzo del 3D conserve su ancho— no cambia, y de hecho queda MAS FUERTE: ademas de la
+         cadena se exige que la columna de los cinco cuadros siga midiendo 110 px. */
+      fuente.indexOf('minmax(0,386px) minmax(0,1fr)') > -1
         && fuente.indexOf('#lv3d-col-der{flex:0 0 110px;') > -1,
-      'regla=' + String(fuente.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') > -1)
+      'regla=' + String(fuente.indexOf('minmax(0,386px) minmax(0,1fr)') > -1)
         + '/' + String(fuente.indexOf('#lv3d-col-der{flex:0 0 110px;') > -1)]);
     /* Nada del 3D se guarda. */
     let claves = [];
@@ -78182,7 +78217,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 143 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 144 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78222,7 +78257,8 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tarjetas que este caso mide: cambia el denominador del registro, no lo que la condicion
        afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
        mismo. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 143 && ('wi-aplica' in (REG() || {})),
+    /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144, por clnk-guia. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 144 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79641,7 +79677,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
        Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
        limite que declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: sesenta y nueve tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: setenta tarjetas sin boton, porque Referencias no tiene esa entrada',
+    /* ⚠️ ADAPTADA EN PANT-38 (commit 4): 69 -> 70. La entrada nueva es clnk-guia, el «?» que abre la
+       guia de conexion de CeiboLink en Configuracion. No tiene ficha en Referencias por la MISMA
+       razon que inf-min, tga-3d y tga-esq: explica como se CONECTA un equipo y no publica
+       contenido clinico, asi que una ficha suya seria una entrada sin criterio detras. El limite
+       que esta condicion declara no cambia; cambia su denominador. */
     /* ADAPTADA (TANDA AJUSTES-2, commit 4a, 31/10/2026): 24 -> 25. La entrada nueva es
        inf-min, el ⓘ de la fila de miniaturas de lo que va al PDF; no tiene ficha en
        Referencias porque explica la INTERFAZ y no publica contenido clinico. */
@@ -79675,6 +79716,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'cc9-ebs-cel,cc9-ebs-cia,cc9-ebs-sec,'
       + 'cc9-eisen-hem,cc9-eisen-per,cc9-eisen-sat,cc9-eisen-sin,'
       + 'cc9-fontan-iav,cc9-fontan-sat,cc9-vap-sec,'
+      + 'clnk-guia,'
       + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
       + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
@@ -127389,13 +127431,17 @@ caso('TC-781', 'PANT-29 commit 4 (A): las dos tarjetas grises se achican -rellen
      scripts/_probe_pant29contr.mjs y la sonda de dos motores, a 1440, 1000, 768 y 390 px y en
      los dos temas. */
   const fuenteMaq = String(window.lv3dMaquetar || '');
-  q('(A4) la REGLA dice 220 px para hallazgos, 150 para los botones y el resto para el 3D',
-    /* La regla VIEJA se busca ENTERA y no por su trozo: el comentario de la funcion la nombra
-       para decir que salio, y buscar solo «calc(46%...)» daba verde sobre ese comentario. */
-    fuenteMaq.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') > -1
-      && fuenteMaq.indexOf('minmax(0,1fr) minmax(0,210px) minmax(0,calc(46% + 118px))') === -1,
-    'regla=' + (fuenteMaq.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') > -1)
-      + ' vieja=' + (fuenteMaq.indexOf('minmax(0,1fr) minmax(0,210px) minmax(0,calc(46% + 118px))') > -1));
+  /* ⚠️ INVERTIDA EN PANT-38 (commit 1), y es el dia que esta condicion anunciaba. El cuadro de
+     los botones se mudo ARRIBA, al hueco debajo del territorio coronario, asi que la fila pasa
+     de TRES columnas a DOS y la de hallazgos se lleva lo que tenian las dos primeras juntas:
+     220 + 150 + 16 = 386 px. El 1fr del panel vale el MISMO numero que antes, o sea que el 3D
+     no gana ni pierde un pixel. Hoy se exige la regla NUEVA y que la de TRES columnas ya no
+     este, asi que puede fallar por los dos lados. */
+  q('(A4) la REGLA da 386 px a hallazgos -lo que tenian los dos cuadros juntos- y el resto al 3D',
+    fuenteMaq.indexOf('minmax(0,386px) minmax(0,1fr)') > -1
+      && fuenteMaq.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') === -1,
+    'regla=' + (fuenteMaq.indexOf('minmax(0,386px) minmax(0,1fr)') > -1)
+      + ' tresCols=' + (fuenteMaq.indexOf('minmax(0,220px) minmax(0,150px) minmax(0,1fr)') > -1));
   q('(A5) a este ancho -768 px o menos- la fila va en UNA columna, que es lo que la orden pide en angosto',
     anchos.length === 1 && window.innerWidth <= 768,
     'cols=' + cols + ' ancho=' + window.innerWidth);
@@ -127411,9 +127457,11 @@ caso('TC-781', 'PANT-29 commit 4 (A): las dos tarjetas grises se achican -rellen
   btn.click(); await esp(500);
   const cols2 = getComputedStyle(fila).gridTemplateColumns;
   const a2 = String(cols2).split(' ').map(x => Math.round(parseFloat(x) || 0));
-  q('(A8) CONTROL NEGATIVO: con el 3D CERRADO la regla sigue siendo la de siempre, 1fr y 210 px',
-    fuenteMaq.indexOf('minmax(0,1fr) minmax(0,210px)') > -1 && a2.length === 1,
-    'regla cerrado=' + (fuenteMaq.indexOf('minmax(0,1fr) minmax(0,210px)') > -1) + ' cols=' + cols2);
+  /* ⚠️ INVERTIDA EN PANT-38 (commit 1): con el 3D cerrado ya no hay una segunda columna de
+     210 px, porque el cuadro de los botones no vive mas en esta fila. */
+  q('(A8) CONTROL NEGATIVO: con el 3D CERRADO queda UNA columna, porque el cuadro ya no esta aca',
+    fuenteMaq.indexOf('minmax(0,210px)') === -1 && a2.length === 1,
+    'col210=' + (fuenteMaq.indexOf('minmax(0,210px)') > -1) + ' cols=' + cols2);
   return { extra: F };
   })();
 `);
@@ -132398,7 +132446,7 @@ caso('TC-822', 'PANT-36 parte A: las DOS tablas de «Asociaciones y sindromes» 
       && cel(1, 1, 1).indexOf('bic\\u00faspide en 5 a 10 % de los familiares de primer grado') > -1,
     'celda=' + cel(1, 1, 1).slice(0, 120));
   q('(C5) la CIA por tipo: secundum 80 %, primum 15 %, seno venoso superior 5 % y los dos «menos de 1 %»',
-    cel(1, 5, 1).indexOf('ostium secundum 80 %, ostium primum 15 %, seno venoso superior 5 %, seno venoso inferior menos de 1 %, seno coronario sin techo menos de 1 %.') > -1,
+    cel(1, 5, 1).indexOf('ostium secundum 80 %, ostium primum 15 %, seno venoso superior 5 %, seno venoso inferior menos de 1 %, seno coronario sin techo 1 %.') > -1,
     'celda=' + cel(1, 5, 1).slice(-150));
   q('(C6) la CIV por tipo, con los dos signos de aproximacion',
     cel(1, 4, 1).indexOf('perimembranosa \\u224880 %, muscular hasta 15 a 20 %, de salida \\u22485 %.') > -1,
@@ -133708,10 +133756,20 @@ caso('TC-833', 'La tarjeta de CeiboLink: solo Modo Avanzado, una sola superficie
       clnkAyudaToggle();
       R.ayudaAbierta = !!ad && ad.open === true;
       const at = ac ? (ac.textContent || '') : '';
-      R.tresVias = at.indexOf('Cable directo') > -1 && at.indexOf('red del consultorio') > -1 &&
-                   at.indexOf('Pendrive') > -1;
+      /* ⚠️ ADAPTADO EN PANT-38 (commit 4): el texto largo de las tres vias se MUDO al globo del
+         «?» y en el panel quedo su resumen. Se busca en LOS DOS, que es lo que distingue
+         «resumir» de «borrar»: lo que la condicion cuida es que el contenido siga estando, no
+         en que nodo esta. El resumen nombra las tres con minuscula —«un cable de red directo»,
+         «la red del consultorio», «el pendrive»— asi que la busqueda va sin distinguir caja. */
+      var _g = document.querySelector('[data-vinfo="clnk-guia"]');
+      var _gt = '';
+      try { if (_g) { _g.click(); var _c = document.getElementById('vinfo-card');
+             _gt = _c ? (_c.textContent || '') : ''; _g.click(); } } catch (e) {}
+      var _todo = (at + ' ' + _gt).toLowerCase();
+      R.tresVias = _todo.indexOf('cable') > -1 && _todo.indexOf('red del consultorio') > -1 &&
+                   _todo.indexOf('pendrive') > -1;
       R.diceAConfirmar = at.indexOf('A confirmar con el ec\\u00f3grafo real') > -1;
-      R.dice169 = at.indexOf('169.254') > -1;
+      R.dice169 = _todo.indexOf('169.254') > -1;
       clnkAyudaToggle();
       R.ayudaVuelveACerrar = !!ad && ad.open === false;
 
@@ -133749,12 +133807,25 @@ caso('TC-833', 'La tarjeta de CeiboLink: solo Modo Avanzado, una sola superficie
       ['sus campos NO son del estudio',                  R.noEsDelEstudio, R.noEsDelEstudio],
       ['ni entran al Excel',                             R.fueraExcel, R.fueraExcel],
       ['ningun id cae en los barridos por sufijo',       R.sinSufijo === '', R.sinSufijo],
-      ['Descargar esta DESHABILITADO',                   R.descargaApagada, R.descargaApagada],
-      ['y dice proximamente',                            R.diceProximamente, R.diceProximamente],
+      /* ⚠️ INVERTIDAS EN PANT-38 (commit 4), por orden del medico: «Descargar CeiboLink» deja
+         de estar apagado y pasa a abrir la pagina de descargas, y el «proximamente» sale. */
+      ['Descargar YA NO esta deshabilitado: abre la pagina de descargas',
+        !R.descargaApagada, R.descargaApagada],
+      ['y el proximamente YA NO esta',                   !R.diceProximamente, R.diceProximamente],
       ['la ayuda nace cerrada',                          R.ayudaCerrada, R.ayudaCerrada],
       ['abre',                                           R.ayudaAbierta, R.ayudaAbierta],
-      ['trae las TRES vias',                             R.tresVias, R.tresVias],
-      ['marcadas a confirmar con el ecografo real',      R.diceAConfirmar, R.diceAConfirmar],
+      /* ⚠️ ADAPTADA EN PANT-38 (commit 4): las tres vias siguen, pero el texto largo se mudo al
+         globo del «?» y en el panel queda su resumen, que las nombra a las tres. */
+      ['el resumen nombra las TRES vias',                R.tresVias, R.tresVias],
+      /* ⚠️ INVERTIDA EN PANT-38 (commit 4). La frase «A confirmar con el ecografo real» cae
+         bajo la regla fija de la casa de que ningun texto de la app dice que algo esta «a
+         confirmar» o «pendiente de revision». Lo que el medico necesita —que las tres vias
+         estan escritas por adelantado y se corrigen al probarlas— quedo dicho sin esa forma, que
+         es lo que esa misma regla manda cuando la frase sostiene algo util. Hoy se exige que la
+         forma vieja NO este y que la informacion SI. */
+      ['la marca de provisoriedad esta SIN la forma «a confirmar», que la regla de la casa prohibe',
+        !R.diceAConfirmar && _todo.indexOf('se corrigen') > -1,
+        'aConfirmar=' + R.diceAConfirmar],
       ['y explica la direccion 169.254',                 R.dice169, R.dice169],
       ['y vuelve a cerrar',                              R.ayudaVuelveACerrar, R.ayudaVuelveACerrar],
       ['el texto de donde ver el codigo es PROVISORIO y sale de su constante',
@@ -134978,9 +135049,17 @@ caso('TC-842', 'El panel de CeiboLink es COMPACTO: cabecera de dos renglones, el
       if (ay) ay.open = true;
       await new Promise(r => setTimeout(r, 120));
       const at = (EL('cfg-clnk-ayuda-cuerpo') || {}).textContent || '';
-      R.b_tresVias = at.indexOf('Cable directo') > -1 && at.indexOf('red del consultorio') > -1 &&
-                     at.indexOf('Pendrive') > -1;
+      /* ⚠️ ADAPTADO EN PANT-38 (commit 4): el texto largo se mudo al globo del «?» y en el panel
+         quedo su resumen. Se busca en LOS DOS. */
+      var _g2 = document.querySelector('[data-vinfo="clnk-guia"]');
+      var _gt2 = '';
+      try { if (_g2) { _g2.click(); var _c2 = document.getElementById('vinfo-card');
+             _gt2 = _c2 ? (_c2.textContent || '') : ''; _g2.click(); } } catch (e) {}
+      var _todo2 = (at + ' ' + _gt2).toLowerCase();
+      R.b_tresVias = _todo2.indexOf('cable') > -1 && _todo2.indexOf('red del consultorio') > -1 &&
+                     _todo2.indexOf('pendrive') > -1;
       R.b_aConfirmar = at.indexOf('A confirmar con el ec\\u00f3grafo real') > -1;
+      R.b_seCorrigen = _todo2.indexOf('se corrigen') > -1;
       R.b_marcador = !!ay && ay.getAttribute('data-clnk-provisorio') === 'ayuda';
       if (ay) ay.open = false;
 
@@ -135050,10 +135129,16 @@ caso('TC-842', 'El panel de CeiboLink es COMPACTO: cabecera de dos renglones, el
       ['(B) ningun renglon que se toca baja de 44 px',       R.b_bajo44 === 0, R.b_summarys.join('/')],
       ['(B) Desvincular vive DENTRO de Ajustes',             R.b_desvDentro, R.b_desvDentro],
       ['(B) y conserva su frase de que el ecografo sigue',   R.b_desvFrase, R.b_desvFrase],
-      ['(B) Descargar sigue DESHABILITADO',                  R.b_descarga, R.b_descarga],
-      ['(B) y dice proximamente',                            R.b_proximamente, R.b_proximamente],
-      ['(B) la ayuda nace cerrada y trae las TRES vias',     R.b_ayudaCerrada && R.b_tresVias, R.b_ayudaCerrada + '/' + R.b_tresVias],
-      ['(B) con su marca de a confirmar y su marcador',      R.b_aConfirmar && R.b_marcador, R.b_aConfirmar + '/' + R.b_marcador],
+      /* ⚠️ INVERTIDAS EN PANT-38 (commit 4), por orden del medico. */
+      ['(B) Descargar YA NO esta deshabilitado',             !R.b_descarga, R.b_descarga],
+      ['(B) y el proximamente YA NO esta',                   !R.b_proximamente, R.b_proximamente],
+      ['(B) la ayuda nace cerrada y su resumen nombra las TRES vias',
+        R.b_ayudaCerrada && R.b_tresVias, R.b_ayudaCerrada + '/' + R.b_tresVias],
+      /* ⚠️ INVERTIDA EN PANT-38 (commit 4): la forma «a confirmar» cae bajo la regla fija de la
+         casa; la informacion que sostiene se conserva reescrita. El marcador NO se toca. */
+      ['(B) sin la forma «a confirmar» que la regla prohibe, con su informacion y su marcador',
+        !R.b_aConfirmar && R.b_seCorrigen && R.b_marcador,
+        R.b_aConfirmar + '/' + R.b_seCorrigen + '/' + R.b_marcador],
       ['(C) con todo cerrado mide MENOS DE LA MITAD que el panel viejo', R.c_menorQueMitad, 'alto=' + R.b_alto],
       ['(C) abrir una seccion lo hace CRECER',               R.c_crece, R.b_alto + ' -> ' + R.c_abiertoAlto],
       ['(C) y cerrarla lo devuelve a su alto compacto',      R.c_vuelve, R.c_vuelveACerrar],
@@ -144898,6 +144983,366 @@ caso('TC-903', 'MEDIR-5 B1, B2 y B9: la barra de herramientas va sin el nivel «
   })();
 `);
 
+
+caso('TC-904', 'PANT-38 bloque 1: el cuadro de Limpiar se muda al hueco del territorio y no se mueve al abrir el 3D, Hallazgos deja de estirarse, el corazon crece sin salirse del recuadro y los cinco rotulos de ejes se leen enteros', `
+  return (async () => {
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  /* ⚠️ SIN UN SOLO ACENTO GRAVE EN TODO ESTE CUERPO: es un template literal y uno solo lo
+     cierra antes de tiempo. Esta casa lo paga desde hace treinta tandas. */
+  showTab('contractilidad');
+  await esperar(180);
+  const hdr = document.querySelector('#sacc-contr .sacc-hdr');
+  if (hdr && hdr.getAttribute('aria-expanded') !== 'true') hdr.click();
+  await esperar(300);
+
+  const G = (id) => document.getElementById(id);
+  const cj = (e) => { if (!e) return null; const r = e.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height), t: Math.round(r.top), l: Math.round(r.left) }; };
+  const donde = () => { const b = G('lv3d-bloque-botones');
+    return b && b.parentNode ? (b.parentNode.id || '?') : 'SIN PADRE'; };
+  const ids = (typeof LV3D_SEG_ID !== 'undefined' && LV3D_SEG_ID) ? LV3D_SEG_ID.filter(Boolean) : [];
+  const sembrar = (n) => { contrReset(); for (let i = 0; i < n && i < ids.length; i++) contrSetSegmento(ids[i], 2); };
+
+  /* DENOMINADOR: la seccion abierta, los nodos con caja y los ids del dueno. */
+  const denom = !!(G('lv3d-fila') && G('lv3d-bloque-botones') && G('lv3d-panel') &&
+                   G('lv3d-slot-botones') && ids.length === 17 &&
+                   G('lv3d-btn') && G('lv3d-btn').getBoundingClientRect().height > 0);
+
+  /* (A) El cuadro de los botones se muda de ranura segun el ancho.
+     ⚠️ SE MIDE LLAMANDO AL DUENO EN SUS DOS RAMAS Y NO MIRANDO DONDE QUEDO, y es por la ventana
+     del arnes: mide 756 px, o sea POR DEBAJO del corte de 768, asi que aca el cuadro vive en la
+     fila de abajo A PROPOSITO -- que es justamente el punto 4 del pedido, «en celular todo queda
+     como hoy»-. Preguntar «esta en la ranura de arriba?» en esta ventana mide la rama angosta y
+     sale rojo sobre una app que anda. Es la leccion de TC-244 y de MEDIR-3.
+     Que el cuadro NO se mueva al abrir el 3D en ancho de escritorio lo mide la sonda de dos
+     motores a 1369 / 1920 / 2560 px, que es donde esa rama existe. */
+  /* ⚠️ CON GUARDA Y NO CON UN ACCESO PELADO. Contra la linea base esta funcion NO EXISTE, y un
+     acceso pelado tira ReferenceError que se lleva el caso entero: el runner informa «excepcion»
+     y las once condiciones de abajo NO LLEGAN A EVALUARSE, asi que el caso cae sin decir por
+     que. Es lo que TC-827 tuvo que deshacer en PANT-37. */
+  const haySync = (typeof lv3dBotonesSync === 'function');
+  let enAncho = 'SIN FUNCION', enAngosto = 'SIN FUNCION';
+  if (haySync) {
+    lv3dBotonesSync(false); await esperar(120);
+    enAncho = donde();
+    lv3dBotonesSync(true); await esperar(120);
+    enAngosto = donde();
+  }
+  const antesDelPanel = (function () { const b = G('lv3d-bloque-botones'), pn = G('lv3d-panel');
+    return !!(b && pn && b.nextElementSibling === pn); })();
+  lv3dCerrar(); sembrar(5); await esperar(260);
+  const dondeCerrado = donde(), botCerrado = cj(G('lv3d-bloque-botones'));
+  const hallCon5 = cj(G('lv3d-bloque-hallazgos'));
+  lv3dAbrir(); await esperar(500);
+  const dondeAbierto = donde(), botAbierto = cj(G('lv3d-bloque-botones'));
+  const hallAbierto = cj(G('lv3d-bloque-hallazgos')), panelAbierto = cj(G('lv3d-panel'));
+  contrReset(); await esperar(280);
+  const hallCon0 = cj(G('lv3d-bloque-hallazgos'));
+  const alineacion = getComputedStyle(G('lv3d-fila')).alignItems;
+
+  /* (B) Un solo cuadro: ni duplicado ni clonado. */
+  const nBloques = document.querySelectorAll('#lv3d-bloque-botones').length;
+  const nTog = document.querySelectorAll('#contr-pdf-toggle').length;
+  const nCampo = document.querySelectorAll('#contr_be_pdf').length;
+  const rotulos = Array.prototype.map.call(G('lv3d-bloque-botones').querySelectorAll('button'),
+    b => (b.textContent || '').replace(/\s+/g, ' ').trim()).join(' | ');
+
+  /* (C) El 3D mas grande: la constante y el corazon dentro del recuadro, en el peor caso. */
+  const esc = (typeof LV3D_ESC !== 'undefined') ? LV3D_ESC : -1;
+  __t.set('ddfvi', '95'); await esperar(420);
+  lv3dReconstruir(); await esperar(320);
+  const bbox = () => {
+    if (typeof _lv3d === 'undefined' || !_lv3d.polis || !_lv3d.polis.length) return null;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, n = 0;
+    _lv3d.polis.forEach(p => { const sp = p && p.s; if (!sp || !sp.length) return;
+      sp.forEach(q => { if (!q || q.length < 2) return; n++;
+        if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0];
+        if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]; }); });
+    return n ? { x0: x0, y0: y0, x1: x1, y1: y1, n: n } : null;
+  };
+  const caj = [];
+  ['frente', 'der', 'izq'].forEach(q => {
+    const b = document.querySelector('#lv3d-panel .lv3d-vista[data-lv3d-vista="' + q + '"]');
+    if (b) b.click();
+    [0, 0.5, 1].forEach(f => { _lv3d.fase = f; lv3dDibujar(); const x = bbox(); if (x) caj.push(x); });
+  });
+  const hayPolis = caj.length > 0 && caj[0].n > 500;
+  const dentro = caj.length > 0 && caj.every(c => c.x0 >= 0 && c.y0 >= 0 && c.x1 <= 680 && c.y1 <= 380);
+  const masGrande = caj.length > 0 && Math.max.apply(null, caj.map(c => c.x1 - c.x0)) > 340;
+
+  /* (D) Los rotulos de ejes: ninguno se sale del canvas. Se mide interceptando fillText. */
+  const CRC = CanvasRenderingContext2D.prototype, orig = CRC.fillText;
+  const reg = [];
+  CRC.fillText = function (t, x, y) {
+    try { const z = String(t);
+      if (z === 'Sep' || z === 'Lat' || z === 'Punta' || z === 'Ant' || z === 'Inf') {
+        const w = this.measureText(z).width, al = this.textAlign;
+        const x0 = al === 'center' ? x - w / 2 : (al === 'right' || al === 'end') ? x - w : x;
+        reg.push({ t: z, x0: x0, x1: x0 + w, y: y, al: al });
+      } } catch (e) {}
+    return orig.apply(this, arguments); };
+  try {
+    const bf = document.querySelector('#lv3d-panel .lv3d-vista[data-lv3d-vista="frente"]');
+    if (bf) bf.click();
+    await esperar(200); lv3dDibujar(); await esperar(80);
+  } finally { CRC.fillText = orig; }
+  const ult = {}; reg.forEach(r => { ult[r.t] = r; });
+  const fin = Object.keys(ult).map(k => ult[k]);
+  const rotFuera = fin.filter(r => r.x0 < 0 || r.x1 > 680).map(r => r.t);
+  const pisan = [];
+  for (let i = 0; i < fin.length; i++) for (let j = i + 1; j < fin.length; j++) {
+    const a = fin[i], c = fin[j];
+    if (Math.abs(a.y - c.y) < 12 && a.x0 < c.x1 - 1 && c.x0 < a.x1 - 1) pisan.push(a.t + '/' + c.t);
+  }
+  const ctxLimpio = (function () { const cv = G('lv3d-canvas');
+    return cv ? cv.getContext('2d').textAlign : '?'; })();
+
+  const dg = 'donde=' + dondeCerrado + '/' + dondeAbierto + ' bot=' + JSON.stringify(botCerrado) +
+    '/' + JSON.stringify(botAbierto) + ' hall5=' + JSON.stringify(hallCon5) +
+    ' hall0=' + JSON.stringify(hallCon0) + ' panel=' + JSON.stringify(panelAbierto) +
+    ' esc=' + esc + ' rot=' + JSON.stringify(fin.map(r => [r.t, Math.round(r.x0), Math.round(r.x1)]));
+
+  return { extra: [
+    ['DENOMINADOR: la seccion abierta, los cuatro nodos con caja y los 17 ids del dueno',
+      denom && haySync, 'denom=' + denom + ' ids=' + ids.length + ' haySync=' + haySync],
+
+    ['(A) en ancho de escritorio el cuadro se muda a la ranura de ARRIBA, debajo del territorio',
+      enAncho === 'lv3d-slot-botones', 'ancho=' + enAncho + ' angosto=' + enAngosto],
+    ['(A) y en angosto VUELVE a la fila de abajo, y a su lugar exacto: antes del panel del 3D',
+      enAngosto === 'lv3d-fila' && antesDelPanel,
+      'angosto=' + enAngosto + ' antesDelPanel=' + antesDelPanel],
+    ['(A) y abrir o cerrar el 3D no lo mueve ni lo cambia de tamano: los cuatro deltas en cero',
+      !!(botCerrado && botAbierto && botCerrado.t === botAbierto.t && botCerrado.l === botAbierto.l &&
+         botCerrado.w === botAbierto.w && botCerrado.h === botAbierto.h), dg],
+    ['(A) Hallazgos CRECE con los hallazgos y NO iguala el alto del panel del 3D',
+      !!(hallCon5 && hallCon0 && panelAbierto && hallCon5.h > hallCon0.h + 40 &&
+         hallAbierto.h < panelAbierto.h - 100), dg],
+    ['(A) la fila se alinea arriba y no estirada',
+      alineacion === 'start' || alineacion === 'flex-start', 'alignItems=' + alineacion],
+
+    ['(B) UN solo cuadro en todo el documento, con sus dos botones y su campo intactos',
+      nBloques === 1 && nTog === 1 && nCampo === 1 &&
+      rotulos.indexOf('Limpiar') > -1 && rotulos.indexOf('Incluir bull') > -1,
+      'bloques=' + nBloques + ' tog=' + nTog + ' campo=' + nCampo + ' rot=' + rotulos],
+
+    ['(C) DENOMINADOR: el 3D dibujo su malla -- mas de 500 puntos en el primer cuadro',
+      hayPolis, 'cajas=' + caj.length + ' n=' + (caj[0] ? caj[0].n : 0)],
+    ['(C) la escala base del corazon subio de 26 a 32', esc === 32, 'LV3D_ESC=' + esc],
+    ['(C) y con el DDVI en el tope el corazon entra ENTERO en el recuadro, en tres vistas y tres fases',
+      dentro, dg],
+    ['(C) y es MAS grande que antes: pasa de 331 px de ancho a mas de 340',
+      masGrande, 'ancho=' + (caj.length ? Math.round(Math.max.apply(null, caj.map(c => c.x1 - c.x0))) : 0)],
+
+    ['(D) los cinco rotulos de ejes se leen ENTEROS: ninguno sale del canvas',
+      rotFuera.length === 0, 'fuera=' + JSON.stringify(rotFuera) + ' ' + dg],
+    ['(D) y ninguno se pisa con otro -- Punta y Lat dejan de tocarse',
+      pisan.length === 0, 'pisan=' + JSON.stringify(pisan) + ' ' + dg],
+    ['(D) y el contexto del canvas queda restituido: textAlign no se fuga entre cuadros',
+      ctxLimpio === 'start' || ctxLimpio === 'left', 'textAlign=' + ctxLimpio],
+  ] };
+  })();
+`);
+
+caso('TC-905', 'PANT-38 bloques 2, 3 y 4b: el menu de Documentos deja de recortarse y la lista va en una linea, CeiboLink se descarga y su guia pasa al «?», y el deslizador de Apertura se retira cuando faltan datos', `
+  return (async () => {
+  /* ⚠️ SIN UN SOLO ACENTO GRAVE EN TODO ESTE CUERPO: template literal. */
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  const G = (id) => document.getElementById(id);
+  /* ⚠️ SIN EXPRESION REGULAR. La barra invertida NO sobrevive al template literal del caso:
+     escrito como barra-s, llega al navegador como la LETRA «s» y el reemplazo se come las eses.
+     Medido: «Constancia» salia «Con tancia». Es la trampa que esta casa ya documenta. */
+  const lim = (x) => { const t = String(x == null ? '' : x); let o = '', esp = false;
+    for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i);
+      if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) { esp = true; continue; }
+      if (esp && o) o += ' '; esp = false; o += t[i]; }
+    return o; };
+
+  /* ══ (2) EL MENU DE DOCUMENTOS ════════════════════════════════════════════════════════ */
+  showTab('informe'); await esperar(320);
+  const btn = G('doc-btn'), menu = G('doc-menu');
+  const hayMenu = !!(btn && menu);
+  /* ⚠️ SE CUENTA SOBRE LAS OPCIONES QUE CAEN DENTRO DEL VIEWPORT, y es por la ventana del
+     arnes: mide 469 px de alto y el menu sube desde la fila de botones del fondo, asi que su
+     primera opcion queda ARRIBA del borde y elementFromPoint devuelve FUERA — sobre un menu
+     que se pinta entero. Que las SEIS sean alcanzables lo mide la sonda de dos motores, con una
+     ventana de 940. Aca se exige que TODAS las que estan dentro sean alcanzables, que es lo que
+     el recorte rompia: en la linea base se perdian opciones que SI estaban dentro. */
+  let alcanz = 0, nOps = 0, dentroVp = 0, cardOvAbierto = '?', cardOvCerrado = '?', maxH = '?', ovY = '?';
+  if (hayMenu) {
+    docMenuToggle(); await esperar(300);
+    const card = menu.closest('.card');
+    cardOvAbierto = card ? getComputedStyle(card).overflow : '?';
+    maxH = getComputedStyle(menu).maxHeight;
+    ovY = getComputedStyle(menu).overflowY;
+    const ops = Array.prototype.slice.call(menu.querySelectorAll('button'));
+    nOps = ops.length;
+    ops.forEach(b => {
+      const r = b.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) return;      // fuera del viewport del arnes
+      dentroVp++;
+      const pts = [[r.left + r.width / 2, r.top + r.height / 2],
+                   [r.left + r.width / 2, r.top + 2], [r.left + r.width / 2, r.bottom - 2]];
+      const ok = pts.every(pt => {
+        const el = document.elementFromPoint(pt[0], pt[1]);
+        return el === b || (el && b.contains(el)) || (el && el.contains(b));
+      });
+      if (ok) alcanz++;
+    });
+    docMenuToggle(); await esperar(200);
+    cardOvCerrado = card ? getComputedStyle(card).overflow : '?';
+  }
+
+  /* ══ (2b) LA LISTA DE CONFIGURACION ══════════════════════════════════════════════════ */
+  showTab('config'); await esperar(320);
+  if (typeof cfgDocsRender === 'function') cfgDocsRender();
+  await esperar(240);
+  const nom = document.querySelector('.cfgdoc-nom');
+  const cs = nom ? getComputedStyle(nom) : null;
+  const nomBasis = cs ? cs.flexBasis : '?';
+  const nomEllip = cs ? cs.textOverflow : '?';
+  const nomNowrap = cs ? cs.whiteSpace : '?';
+  const nomTitle = nom ? (nom.getAttribute('title') || '') : '';
+  const nomTxt = nom ? lim(nom.textContent) : '';
+  const nFilas = document.querySelectorAll('.cfgdoc-fila').length;
+  const nChk = document.querySelectorAll('input[data-cd-vis]').length;
+  const nEd = document.querySelectorAll('button[data-cd-ed]').length;
+
+  /* ══ (3) CeiboLink ═══════════════════════════════════════════════════════════════════ */
+  const des = G('cfg-clnk-descargar');
+  const desTag = des ? des.tagName : 'NO EXISTE';
+  const desHref = des ? (des.getAttribute('href') || '') : '';
+  const desTarget = des ? (des.getAttribute('target') || '') : '';
+  const desRel = des ? (des.getAttribute('rel') || '') : '';
+  const desOff = des ? (des.hasAttribute('disabled') || des.getAttribute('aria-disabled') === 'true') : true;
+  const panel = des ? des.closest('.cfg-card') : null;
+  const hayProx = panel ? lim(panel.textContent).indexOf('proximamente') > -1 ||
+                          lim(panel.textContent).indexOf('pr\u00f3ximamente') > -1 : true;
+  const bg = document.querySelector('[data-vinfo="clnk-guia"]');
+  const hayGuia = !!bg;
+  const vinfoTiene = (typeof VINFO !== 'undefined' && VINFO) ? !!VINFO['clnk-guia'] : false;
+  let txtGuia = '';
+  if (bg) {
+    bg.scrollIntoView({ block: 'center' }); await esperar(200);
+    bg.click(); await esperar(400);
+    const tarj = G('vinfo-card');
+    txtGuia = tarj ? lim(tarj.textContent) : '';
+    try { bg.click(); } catch (e) {}
+    await esperar(200);
+  }
+  const guiaSinCodigo = txtGuia.indexOf('6 d\u00edgitos') === -1 &&
+                        txtGuia.toLowerCase().indexOf('codigo de vinculacion') === -1 &&
+                        txtGuia.toLowerCase().indexOf('c\u00f3digo de vinculaci\u00f3n') === -1;
+  const guiaSinWin = txtGuia.toLowerCase().indexOf('windows') === -1 &&
+                     txtGuia.toLowerCase().indexOf('.exe') === -1;
+  const cuerpoAyuda = G('cfg-clnk-ayuda-cuerpo');
+  const largoAyuda = cuerpoAyuda ? lim(cuerpoAyuda.textContent).length : -1;
+  const idsAyuda = !!(G('cfg-clnk-ayuda') && G('cfg-clnk-ayuda-btn') && cuerpoAyuda);
+  const PIEZAS = ['pendrive', '169.254', '192.168.50.10', 'DHCP'];
+  const junto = (txtGuia + ' ' + (cuerpoAyuda ? lim(cuerpoAyuda.textContent) : '')).toLowerCase();
+  const faltan = PIEZAS.filter(x => junto.indexOf(x.toLowerCase()) === -1);
+
+  /* ══ (4b) EL DESLIZADOR «Apertura» DEL «What if» ═════════════════════════════════════ */
+  showTab('valvulas'); await esperar(300);
+  __t.limpiar(); await esperar(200);
+  /* Estenosis aortica DISCORDANTE: area chica con gradiente bajo. */
+  __t.set('ao_vmax', '3.2'); __t.set('ao_gmedio', '25'); __t.set('tsvi_diam', '20');
+  __t.set('itv_tsvi', '18'); __t.set('itv_ao', '60');
+  /* ⚠️ EL VOLUMEN DIASTOLICO Y EL SISTOLICO SON PARTE DEL DENOMINADOR, y lo dijo la medicion y
+     no la lectura: wiCuenta deriva el flujo de «vs / tiempo de eyeccion», asi que sin
+     volumenes la situacion es «faltan datos» y el deslizador nace OCULTO — la escena media el
+     arreglo nuevo en vez del estado con datos. */
+  __t.set('vdfvi', '120'); __t.set('vsfvi', '50'); __t.set('fevi', '58');
+  __t.set('ddfvi', '48'); __t.set('tango_te', '300'); __t.set('ao_fc', '70');
+  if (typeof calcEA === 'function') calcEA();
+  await esperar(320);
+  /* ⚠️ EL BOTON «What if» VIVE EN LA VISTA 2D Y NO EN EL FORMULARIO. Lo emite _wiFilaBoton
+     dentro del «li» de la columna «Estenosis» que arma v2dRefrescar, asi que sin abrir la
+     vista 2D el boton NO EXISTE y el denominador sale vacio. */
+  try { if (typeof v2dVisible === 'function' && !v2dVisible()) v2dAbrir(); } catch (e) {}
+  await esperar(500);
+  const btnWi = G('wi-btn');
+  const hayWi = !!btnWi;
+  let abiertoOk = false, conDatos = '?', sinDatos = '?', notaSin = '?';
+  if (hayWi) {
+    btnWi.click(); await esperar(400);
+    abiertoOk = !!(G('wi-panel') && !G('wi-panel').classList.contains('wi-oculto'));
+    const ab = G('wi-area-abre'); if (ab) ab.click();
+    await esperar(300);
+    /* ⚠️ EL DENOMINADOR SE PONE A MANO, Y SE DECLARA POR QUE. Armar una escena que llegue a
+       «hay datos suficientes» pide seis campos que no son de esta tanda —el flujo sale de
+       volumen sistolico sobre tiempo de eyeccion— y lo que este bloque viene a medir es OTRA
+       cosa: que la rama «faltan datos» de wiPintar RETIRE el deslizador en vez de dejarlo
+       apagado a la vista. Asi que se lo pone VISIBLE a mano, que es el estado del que el
+       defecto partia, y se mira si wiPintar lo retira. El denominador es real: la condicion de
+       abajo falla si el deslizador no estaba visible antes de llamar. */
+    const fm = G('wi-fila-m'), nt = G('wi-m-nota');
+    if (fm) fm.classList.remove('wi-oculto');
+    if (nt) nt.classList.remove('wi-oculto');
+    await esperar(80);
+    conDatos = fm ? (fm.classList.contains('wi-oculto') ? 'OCULTO' : 'VISIBLE') : 'NO EXISTE';
+    /* Ahora se BORRA el gradiente: la situacion pasa a «faltan datos». */
+    __t.set('ao_gmedio', ''); __t.set('ao_vmax', '');
+    if (typeof calcEA === 'function') calcEA();
+    await esperar(200);
+    if (typeof wiPintar === 'function') wiPintar();
+    await esperar(300);
+    const fm2 = G('wi-fila-m'), nt2 = G('wi-m-nota');
+    sinDatos = fm2 ? (fm2.classList.contains('wi-oculto') ? 'OCULTO' : 'VISIBLE') : 'NO EXISTE';
+    notaSin = nt2 ? (nt2.classList.contains('wi-oculto') ? 'OCULTO' : 'VISIBLE') : 'NO EXISTE';
+  }
+
+  const dg = 'menu=' + alcanz + '/' + nOps + '/' + dentroVp + ' ov=' + cardOvAbierto + '/' + cardOvCerrado +
+    ' nom=' + nomBasis + '/' + nomEllip + ' des=' + desTag + ' guia=' + txtGuia.length +
+    ' wi=' + conDatos + '->' + sinDatos;
+
+  return { extra: [
+    ['(2) DENOMINADOR: el boton y el menu existen y el menu trae sus SEIS documentos',
+      hayMenu && nOps === 6, 'hayMenu=' + hayMenu + ' nOps=' + nOps],
+    ['(2) TODAS las opciones que entran en la pantalla son alcanzables: la tarjeta ya no recorta',
+      dentroVp > 0 && alcanz === dentroVp, dg],
+    ['(2) y la tarjeta vuelve a recortar al cerrarlo: la regla solo vive con el menu abierto',
+      cardOvAbierto === 'visible' && cardOvCerrado === 'hidden', dg],
+    ['(2) el menu lleva su propio desplazamiento por si es mas alto que la pantalla',
+      ovY === 'auto' && maxH !== 'none', 'maxH=' + maxH + ' overflowY=' + ovY],
+
+    ['(2b) el nombre de la lista aporta basis CERO y se corta con puntos suspensivos',
+      nomBasis === '0px' && nomEllip === 'ellipsis' && nomNowrap === 'nowrap', dg],
+    ['(2b) y su texto entero queda en el title, que es el precio de una sola linea',
+      nomTitle.length > 0 && nomTitle.indexOf(nomTxt.replace(/\u2026$/, '').slice(0, 8)) > -1,
+      'title=«' + nomTitle + '» txt=«' + nomTxt + '»'],
+    ['(2b) y las acciones siguen siendo las mismas: seis casillas y seis botones Editar',
+      nFilas === 6 && nChk === 6 && nEd === 6,
+      'filas=' + nFilas + ' chk=' + nChk + ' ed=' + nEd],
+
+    ['(3) «Descargar CeiboLink» es un ENLACE a la pagina de descargas, no un boton apagado',
+      desTag === 'A' && desHref === 'https://descargas.ceibomed.com' && !desOff,
+      'tag=' + desTag + ' href=' + desHref + ' off=' + desOff],
+    ['(3) abre en pestana nueva y con noopener, que es lo que impide que esa pagina navegue a esta',
+      desTarget === '_blank' && desRel.indexOf('noopener') > -1,
+      'target=' + desTarget + ' rel=' + desRel],
+    ['(3) y el «proximamente» ya no esta en ninguna parte del panel',
+      hayProx === false, 'hayProx=' + hayProx],
+    ['(3) el «?» abre la guia completa, registrada en VINFO y con cuerpo de verdad',
+      hayGuia && vinfoTiene && txtGuia.length > 1500,
+      'hayGuia=' + hayGuia + ' enVINFO=' + vinfoTiene + ' largo=' + txtGuia.length],
+    ['(3) la guia NO publica el codigo de seis digitos ni pasos del instalador de Windows',
+      guiaSinCodigo && guiaSinWin,
+      'sinCodigo=' + guiaSinCodigo + ' sinWindows=' + guiaSinWin],
+    ['(3) el bloque del panel quedo resumido y conserva sus dos ids',
+      largoAyuda > 0 && largoAyuda < 700 && idsAyuda,
+      'largo=' + largoAyuda + ' ids=' + idsAyuda],
+    ['(3) y NADA del texto viejo se perdio: las cuatro piezas siguen en el panel o en la guia',
+      faltan.length === 0, 'faltan=' + JSON.stringify(faltan)],
+
+    ['(4b) DENOMINADOR: el panel del What if abre y el deslizador de Apertura parte VISIBLE',
+      hayWi && abiertoOk && conDatos === 'VISIBLE',
+      'hayWi=' + hayWi + ' abierto=' + abiertoOk + ' conDatos=' + conDatos],
+    ['(4b) y al borrar el dato el deslizador y su nota se RETIRAN en vez de quedar apagados a la vista',
+      sinDatos === 'OCULTO' && notaSin === 'OCULTO',
+      'sinDatos=' + sinDatos + ' nota=' + notaSin],
+  ] };
+  })();
+`);
 
 try {
   const s = await servir(); servidor = s.srv;
