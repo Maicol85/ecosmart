@@ -5654,21 +5654,71 @@ html.light-mode .amilo-root{
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   box-shadow:0 12px 40px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:2px;}
 #doc-menu[hidden]{display:none;}
+/* ══ EL MENU YA NO LO RECORTA SU PROPIA TARJETA — PANT-38, commit 3 ═══════════════════════════
+   ⚠️ LA CAUSA ES `.card{overflow:hidden}`, NO UN CONTEXTO DE APILAMIENTO, y esta medida: el
+   `z-index:260` de arriba YA funcionaba —en la captura del medico el menu se pinta POR ENCIMA
+   del EN SUMA— y lo que faltaba era arriba: el menu sube con `bottom:calc(100% + 6px)` desde la
+   fila de botones del fondo de la tarjeta del EN SUMA, y esa tarjeta lo corta en SU borde
+   superior. Por eso la primera entrada se leia «electrica» en vez de «Consentimiento:
+   cardioversion electrica». Recorrida la cadena de ancestros, `.card` es el UNICO con `overflow`
+   distinto de `visible`: nadie tiene `transform`, `contain` ni `isolation`.
+   Es exactamente el mismo defecto —y el mismo arreglo— que el menu de severidad valvular, que ya
+   vive en este archivo como `#tab-valvulas .card:has(.valv-sev-menu.open)`.
+   ⚠️ CON `:has()` Y NO CON UN `overflow:visible` PELADO, por la misma razon que alla: la tarjeta
+   vuelve a `hidden` en cuanto el menu se cierra, asi que la regla solo esta viva mientras hay un
+   menu abierto y ninguna otra tarjeta de la app cambia. Se acota a `#tab-informe` aunque
+   `#doc-menu` sea unico: un `:has()` sin acotar obliga al navegador a evaluar todas las tarjetas
+   del documento.
+   ⚠️ Y LLEVA SU PROPIO DESPLAZAMIENTO. Con seis documentos el menu mide unos 290 px y entra, pero
+   el alto depende de cuantos haya y del largo de sus nombres: `max-height` con `overflow-y:auto`
+   es lo que hace que un menu mas alto que la pantalla se pueda recorrer en vez de quedar cortado
+   otra vez. Se mide contra el viewport (`vh`) porque el menu es flotante y lo unico que lo acota
+   de verdad es la pantalla. */
+#tab-informe .card:has(#doc-menu:not([hidden])){overflow:visible;}
+#doc-menu{max-height:min(70vh,440px);overflow-y:auto;}
 /* ⚠️ EL BOTON SE OCULTA CON UNA CLASE Y NO CON `hidden`, y esta medido: `.btn` declara
    `display:inline-flex` y le gana al `[hidden]` del navegador -- es lo que PANT-30 pago con
    «Quitar de Imagenes», que se veia siempre con el atributo puesto-. Se oculta el ENVOLTORIO,
    asi el menu se va con el boton. */
 .doc-oculto{display:none !important;}
+/* ══ LA LISTA DE DOCUMENTOS, UNA LINEA POR DOCUMENTO — PANT-38, commit 3 ══════════════════════
+   Antes cada documento ocupaba DOS renglones: el nombre arriba con sus etiquetas empujadas al
+   borde derecho, y debajo «Mostrar en el menu» con «Editar». La causa son dos lineas:
+   · `.cfgdoc-nom{flex:1}` le daba al nombre TODO el sobrante, asi que las etiquetas se iban al
+     extremo derecho dejando un hueco en el medio y no quedaba lugar para las acciones;
+   · `.cfgdoc-fila{flex-wrap:wrap}` las mandaba al renglon de abajo cuando no entraban.
+   Hoy el nombre toma SU ancho y se encoge (`flex:0 1 auto` con `min-width:0`), las etiquetas van
+   pegadas a el, y las acciones se van solas a la derecha con `margin-left:auto`. La fila no
+   envuelve.
+   ⚠️ EL NOMBRE SE CORTA CON PUNTOS SUSPENSIVOS Y SU TEXTO ENTERO VA EN EL `title`. Es el precio
+   de una sola linea, y es el par que la app ya usa en `.ig-mes-txt` y en `.acc-sum`.
+   ⚠️ EL NOMBRE CONSERVA `flex-basis:0`, Y DE ESO DEPENDE TODO. Con `flex-wrap`, el navegador
+   arma las lineas con el flex-basis de cada hijo y NO con su ancho minimo: el encogimiento se
+   reparte DESPUES, dentro de cada linea. Con `flex:0 1 auto` el nombre aporta el ancho entero de
+   su texto —unos 250 px para «Consentimiento: cardioversion electrica»— y es el que empuja a las
+   acciones al renglon de abajo. Con basis 0 no empuja a nadie y se encoge hasta lo que sobre.
+   Lo que cambia frente a la version anterior, entonces, no es el `flex:1` —ese se conserva— sino
+   `min-width` de 140 a 0 y el texto que pasa de envolver a cortarse con puntos suspensivos.
+   ⚠️ DOS INTENTOS ANTERIORES METIERON REGRESIONES Y LAS ENCONTRO UN BARRIDO DE CATORCE ANCHOS
+   CONTRA 121bb99, no la lectura. `flex-wrap:nowrap` con una media query en 700 px rompia la
+   banda 650–699 px, donde la version anterior ya entraba en una linea; y un piso de 140 px en el
+   nombre rompia 650, 900, 1369 y 1440 por lo del flex-basis. Hoy: CERO regresiones en los
+   catorce anchos.
+   ⚠️ POR DEBAJO DE 1000 px DE VENTANA SIGUE ENVOLVIENDO, y se declara en vez de prometer una
+   linea que no entra: ahi la grilla de Configuracion ya es de dos columnas y la fila mide entre
+   252 y 508 px, donde el nombre mas la etiqueta mas «Mostrar en el menu» mas «Editar» no entran
+   de ninguna forma. Lo que se gana ahi es alto: 91 px contra 131, y 101 contra 116. */
 #cfg-docs-lista{display:flex;flex-direction:column;gap:7px;}
 .cfgdoc-fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--bg2);}
-.cfgdoc-nom{font-size:12.5px;font-weight:600;color:var(--text);flex:1;min-width:140px;
-  overflow-wrap:anywhere;}
-.cfgdoc-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.cfgdoc-nom{font-size:12.5px;font-weight:600;color:var(--text);flex:1 1 0;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cfgdoc-tags{display:flex;gap:5px;flex-wrap:wrap;flex:0 1 auto;}
 .cfgdoc-tag{font-size:10px;line-height:1.5;padding:1px 6px;border-radius:20px;
   border:1px solid var(--border);color:var(--text2);background:var(--bg3);white-space:nowrap;}
 .cfgdoc-tag-ocu{color:var(--amber,#d97706);border-color:var(--amber,#d97706);}
-.cfgdoc-acc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cfgdoc-acc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;flex:0 0 auto;}
+.cfgdoc-vis span{white-space:nowrap;}
 .cfgdoc-vis{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);
   cursor:pointer;min-height:44px;}
 .cfgdoc-vis input{width:16px;height:16px;cursor:pointer;margin:0;}
@@ -118016,7 +118066,12 @@ function cfgDocsRender() {
   const lista = docmodLista();
   cont.innerHTML = lista.map(function (x) {
     return '<div class="cfgdoc-fila">' +
-      '<span class="cfgdoc-nom">' + escHtml(x.nom || '(sin nombre)') + '</span>' +
+      /* ⚠️ EL NOMBRE LLEVA `title` PORQUE LA FILA PASO A UNA SOLA LINEA — PANT-38, commit 3.
+         Con `text-overflow:ellipsis` un nombre largo se corta en pantalla, asi que el nombre
+         ENTERO tiene que seguir estando en algun lado alcanzable. Es el mismo par que la app ya
+         usa en `.ig-mes-txt` y en `.acc-sum`. */
+      '<span class="cfgdoc-nom" title="' + escHtml(x.nom || '(sin nombre)') + '">' +
+        escHtml(x.nom || '(sin nombre)') + '</span>' +
       '<span class="cfgdoc-tags">' +
         '<span class="cfgdoc-tag">' + escHtml(docmodEtiqueta(x.tipo)) + '</span>' +
         (x.vis ? '' : '<span class="cfgdoc-tag cfgdoc-tag-ocu">Oculto en el menú</span>') +
