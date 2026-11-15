@@ -491,6 +491,42 @@
        estas sigue valiendo — la leccion que MEDIR-1 dejo escrita sobre este mismo calc. */
     #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 190px) !important; }
   }
+  /* ══ MEDIR-4 — LAS CUATRO COLUMNAS: 340 px POR COLUMNA Y UN CORTE PROPIO (bloque A, punto 5) ══
+     ⚠️ CON DOS VISTAS LA COLUMNA BAJA DE 380 A 340 px, Y EL NUMERO SE MIDIO ANTES DE ESCRIBIRLO.
+     Los 380 son lo que la fila de una medida necesita con UNA vista, y se conservan ahi. Con dos
+     vistas el modal reparte el mismo ancho entre cuatro columnas y la imagen se queda con lo que
+     sobra: medido en el bloque 0, a 1440 la imagen tenia 295 px —cinco por debajo del piso que el
+     pedido fija—, a 1280 215 y a 1180 165. Bajar la columna 40 px le devuelve 40 a cada imagen,
+     que es lo que la pone por encima de 300 a 1440.
+     Los 340 se aceptan solo porque la tabla sigue entrando sin desplazarse en horizontal, sin
+     solapes de area tactil y con el valor grande sin cortarse — se mide en los dos motores.
+
+     ⚠️ Y EL CORTE DE LAS CUATRO COLUMNAS ES PROPIO DEL MODO DE DOS VISTAS. Con una vista el corte
+     sigue siendo 1100 px. Con dos, para que la imagen llegue a 300 px hacen falta
+     2x300 + 2x340 + 60 de relleno y huecos = 1340 px de modal. El numero NO se dedujo de esa
+     cuenta: se barrio el ancho de la ventana de 1500 a 1180 y se leyo la imagen. A 1369 px mide
+     300 EXACTOS y a 1368 mide 299, uno por debajo del piso que el pedido fija, asi que el corte
+     es 1369 y no el 1368 de la cuenta. El modal topa en 1500, asi que por encima la imagen sigue
+     creciendo: 365 px a 1500, 339 a 1448, 315 a 1400 y 301 a 1372. Por debajo no hay
+     forma de que las cuatro columnas entren, y lo que el medico pidio para ese caso es que las
+     medidas bajen DEBAJO de su imagen: la fila vuelve a envolver y cada columna se lleva el ancho
+     completo de su panel. Queda una decision provisoria y declarada.
+
+     El selector es mas especifico que el de arriba —`#cine-paneles.cine-2v` agrega un id y una
+     clase— asi que le gana sin pelear por `!important`, incluido el `flex-wrap` de la fila. */
+  @media (min-width: 1369px) {
+    #cine-ov #cine-paneles.cine-2v .cine-col-der { flex: 0 0 340px; max-width: 340px; }
+  }
+  @media (min-width: 1100px) and (max-width: 1368.98px) {
+    #cine-ov #cine-paneles.cine-2v .cine-fila { flex-wrap: wrap !important; }
+    #cine-ov #cine-paneles.cine-2v .cine-col-der {
+      flex: 1 1 100%; max-width: none; overflow: visible;
+    }
+    /* Apiladas, la fila ya no tiene que estirar sus dos hijos al mismo alto: con `stretch` la
+       columna de la imagen crecia hasta el alto de la de medidas y la imagen quedaba flotando en
+       el medio de un hueco negro. */
+    #cine-ov #cine-paneles.cine-2v .cine-fila { align-items: flex-start !important; }
+  }
   @media (max-width: 1099.98px) {
     /* Por debajo de 1100 px el panel se apila DEBAJO de la imagen —el pedido literal— y ahi el
        desplazamiento del modal es correcto: no hay forma de que las dos cosas entren juntas. */
@@ -141762,7 +141798,14 @@ function _vPanelHTML(p, esB) {
       '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
         '<b style="font-size:11px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
         '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
-        (esB ? btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', 'margin-left:auto;') : '') +
+        /* ⚠️ MEDIR-4 — EL «CERRAR VISTA» SE FUE DE ACA A LA BARRA, Y ES LO QUE CIERRA LOS 30 px.
+           Hasta MEDIR-3 este encabezado llevaba el boton SOLO en la vista B, con
+           `margin-left:auto`. Medido en los doce cruces del bloque 0: eso hacia el encabezado de
+           la B 30 px mas alto que el de la A —el boton arrastra el piso tactil de 44— y con el
+           las dos barras y las dos imagenes arrancaban a 30 px de distancia. Hoy los dos
+           encabezados son IDENTICOS —rotulo y nombre del cineloop, nada mas— y el boton vive en
+           la barra, donde los tiene las dos vistas y donde la regla de `.cine-barra` le fija el
+           mismo alto que a los otros seis. */
       '</div>' +
       /* ══ MEDIR-1 — LA BARRA UNICA, ARRIBA DE LA IMAGEN ══════════════════════════════════
          ⚠️ LAS DOS COLUMNAS DE BOTONES QUE FLANQUEABAN LA IMAGEN SE FUNDIERON EN UNA SOLA FILA,
@@ -141802,17 +141845,27 @@ function _vPanelHTML(p, esB) {
         btn('cine-guardar', 'btn-primary cine-b-alto', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
         btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
         btn('cine-med-cap', 'btn-primary cine-b-alto', '📸 Capturar + medición', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
-        /* ⚠️ «➕ Vista» y «Cerrar» SE EMITEN SOLO EN LA VISTA A y conservan sus ids pelados —sin
-           prefijo—, igual que antes: son controles del MODAL y no de la vista, y duplicarlos
-           dejaria el documento con ids repetidos, que es el defecto que la barra de la vista B
-           ya pago una vez. La B tiene su «✕ Cerrar vista» en el encabezado, que es otra cosa. */
-        (esB ? '' :
-          '<span class="cine-grp-vista" style="display:contents;">' +
-            '<button type="button" class="btn btn-ghost" id="cine-add-b" ' +
-              'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
-            '<button type="button" class="btn btn-ghost" id="cine-cerrar" ' +
-              'title="Cierra el visor.">Cerrar</button>' +
-          '</span>') +
+        /* ══ MEDIR-4 — «CERRAR VISTA», EN LAS DOS BARRAS, EN EL MISMO LUGAR Y CON EL MISMO
+           ROTULO (punto 4 del bloque A) ═══════════════════════════════════════════════════════
+           ⚠️ HASTA MEDIR-3 LA VISTA A NO TENIA NINGUNA FORMA DE CERRARSE SOLA: su boton decia
+           «Cerrar» y llamaba a `cineCerrar`, o sea se llevaba el visor entero, y el «✕ Cerrar
+           vista» existia unicamente en la B. El medico con las dos vistas abiertas que queria
+           quedarse con la B no tenia ni un control que lo hiciera. Confirmado en el bloque 0
+           (H1).
+           Hoy sale de la MISMA plantilla para las dos, asi que no puede faltar en una: cierra
+           SOLO su vista mientras haya otra, y con una sola vista abierta cierra el visor —que es
+           lo unico que «cerrar la unica vista» puede querer decir—. El titulo lo dice.
+           ⚠️ VA EN LA BARRA Y NO EN EL ENCABEZADO porque ahi la regla de `.cine-barra` le fija
+           el alto de 44 px exactos como a los otros seis; en el encabezado su piso tactil
+           empujaba la imagen 30 px hacia abajo en una sola de las dos vistas.
+           ⚠️ Y «➕ Vista» Y «Cerrar» SE MUDARON AL ENCABEZADO DEL MODAL (ver `_cineAbrir`). Son
+           controles del MODAL y no de la vista —por eso se emitian solo en la A, con el id
+           pelado—, y mientras vivian en la barra de la A esa barra tenia OCHO botones contra los
+           SEIS de la B: medido, a 1280 y a 1180 la A envolvia en tres lineas y la B en dos, o sea
+           38 px de diferencia de alto. Sacarlos de la barra es lo que deja las dos con la misma
+           cuenta de botones; ninguno pierde su funcion ni su id. */
+        btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', '',
+            'Cierra esta vista. Si es la única abierta, cierra el visor. Lo medido se conserva.') +
         /* ⚠️ EL ROTULO VA ARRIBA Y EL CAMPO DEBAJO, dentro de una celda del ancho de un boton:
            con la etiqueta y el campo en LINEA, su ancho minimo fija el de toda la barra. Es la
            misma medicion que la columna de acciones ya habia pagado. */
@@ -141893,7 +141946,21 @@ function _vPanelHTML(p, esB) {
             '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
               'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
               'background:var(--bg2);"></div>' +
-            (esB ? '' : '<div id="cine-der-slot" style="display:flex;flex-direction:column;gap:6px;min-width:0;"></div>') +
+            /* ⚠️ MEDIR-4 — LA RANURA EXISTE EN LAS DOS VISTAS, Y ES LO QUE PONE LA TABLA AL LADO
+               DE LA IMAGEN QUE SE ESTA MIDIENDO. Hasta MEDIR-3 se emitia solo con `esB` en falso,
+               asi que los cajones vivian SIEMPRE en la columna de la A: midiendo en la B, el
+               numero aparecia en la columna de la otra imagen. Ahora hay una ranura por vista
+               —`cine-der-slot` y `b-cine-der-slot`, por el prefijo— y `_vSlotSync` muda los dos
+               cajones a la de la vista activa.
+               ⚠️ LOS CAJONES SIGUEN SIENDO NODOS UNICOS: se MUEVEN, no se reemiten. Reemitirlos
+               por vista los duplicaria y `getElementById` devolveria el primero, con el segundo
+               dibujado sin responder — el defecto que la barra de la vista B ya pago una vez. Y
+               hay una razon de fondo para que la TABLA sea una sola, medida en el bloque 0:
+               `_dop` y `_d2` son estado de MODULO a proposito, porque la ecuacion de continuidad
+               necesita insumos de planos distintos —el VTI del TSVI y el de la valvula aortica—
+               que con dos vistas abiertas son dos pantallas. Cada fila declara de que vista salio
+               su numero (`_dopSufOrigen`), que es como se distinguen sin partir la tabla. */
+            '<div id="' + p + 'cine-der-slot" style="display:flex;flex-direction:column;gap:6px;min-width:0;"></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -142545,6 +142612,41 @@ function _vMontarPanel(cont, pfx) {
   _vAccionesSync();
 }
 
+/* ══ MEDIR-4 — LOS DOS CAJONES VIVEN EN LA COLUMNA DE LA VISTA ACTIVA (bloque A, punto 1) ═════
+   Mueve `cine-dop-slot` y `d2-cajon` a la ranura de la vista que esta midiendo. Hasta MEDIR-3 la
+   ranura se emitia SOLO en la vista A, asi que midiendo en la B el valor aparecia en la columna
+   de la otra imagen — y la columna de la B tenia su selector y su panel guia pero nunca la tabla.
+
+   ⚠️ SE MUEVE EL NODO Y NO SE CLONA NI SE REEMITE. Los dos cajones son UNICOS del overlay: su
+   marcado tiene oyentes DELEGADOS ya registrados (`_dopObservar`, `_d2Observar`) y duplicarlos
+   dejaria el documento con ids repetidos, con `getElementById` devolviendo el primero y el
+   segundo dibujado sin responder. Es el defecto que la barra de la vista B ya pago una vez.
+
+   ⚠️ Y LA TABLA ES UNA SOLA A PROPOSITO, no por economia. Medido en el bloque 0: `_dop` y `_d2`
+   son estado de MODULO, y su propio comentario dice por que —«el cajon acumula entre imagenes A
+   PROPOSITO: la ecuacion de continuidad lo exige, el VTI del TSVI y el de la valvula aortica se
+   miden en planos distintos, y con DOS vistas abiertas esos dos planos pueden ser dos
+   pantallas»—. Partirla en una tabla por vista dejaria a la AVA sin poder calcularse, que es
+   contenido clinico y no una decision de maquetado. Lo que distingue el origen de cada numero es
+   la marca por fila que ya existe (`_dopSufOrigen`), y solo aparece cuando hay mas de un origen.
+
+   ⚠️ NO SE MUEVE SI YA ESTA EN SU RANURA, y no es una optimizacion: mover un nodo que contiene al
+   elemento ENFOCADO le quita el foco. Los dos render corren despues de apretar un boton de
+   adentro del propio cajon, asi que sin la guarda cada clic en «Medir» de una fila perderia el
+   foco del teclado.
+
+   Falla ABIERTO: sin ranura los cajones se quedan donde esten —debajo, como hasta MEDIR-1— en vez
+   de desaparecer. */
+function _vSlotSync() {
+  const slot = document.getElementById((_V && _V.pfx ? _V.pfx : '') + 'cine-der-slot');
+  if (!slot) return;
+  ['cine-dop-slot', 'd2-cajon'].forEach(id => {
+    const n = document.getElementById(id);
+    if (n && n.parentElement !== slot) slot.appendChild(n);
+  });
+}
+window._vSlotSync = _vSlotSync;
+
 function _vCablear(V) {
   const q = id => document.getElementById(V.pfx + id);
   const on = (id, fn) => { const e = q(id); if (e) e.onclick = _vBind(V, fn); };
@@ -142560,7 +142662,14 @@ function _vCablear(V) {
   on('cine-next',    () => cineLoop(1));
   const sl = q('cine-slider');
   if (sl) sl.oninput = _vBind(V, () => { _cineDetener(); cineIr(+sl.value); });
-  if (V !== _vistaA) on('cine-cerrar-v', vistaBCerrar);
+  /* ⚠️ MEDIR-4 — SE CABLEA EN LAS DOS VISTAS, Y *SIN* `_vBind`. El `on` de arriba envuelve en
+     `_vBind`, que repone la vista anterior en su `finally`: cerrando la vista que estaba activa,
+     ese `finally` dejaria `_V` apuntando a la vista DESTRUIDA y el clic siguiente escribiria en
+     una imagen que ya no esta en el documento. `vistaCerrarUna` decide ella misma cual queda
+     activa, asi que no puede correr dentro de un `_vCon`. (Hoy el de la B andaba por casualidad:
+     `_V` solia ser `_vistaA` al apretarlo, asi que el `finally` reponia justo la correcta.) */
+  const bcv = q('cine-cerrar-v');
+  if (bcv) bcv.onclick = function () { vistaCerrarUna(V); };
   /* Los fijos de la ZONA 4 son estáticos: se cablean una sola vez, acá. Antes vivían dentro
      de la barra —que se reconstruye en cada medición— y había que volver a atarlos siempre. */
   on('cine-med-recal',  () => (_medHerr === 'vel') ? medCalibrarVelocidad() : medRecalibrar());
@@ -142724,6 +142833,31 @@ function _cineAbrir(loops) {
       '<div id="cine-modal" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1500px;width:100%;max-height:94vh;overflow:auto;padding:16px;display:flex;flex-direction:column;">' +
         '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;flex:0 0 auto;">' +
           '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
+          /* ══ MEDIR-4 — «➕ Vista» Y «Cerrar» VIVEN ACA, NO EN LA BARRA DE LA VISTA A ══════════
+             Son controles del MODAL y no de ninguna de las dos vistas: por eso se emitian solo en
+             la A y con el id pelado. El problema era de alineacion y esta medido en el bloque 0:
+             en la barra de la A eran dos botones mas que en la de la B —ocho contra seis—, y a
+             1280 y a 1180 esos dos extras hacian envolver la barra de la A en TRES lineas contra
+             las DOS de la B, o sea 38 px de diferencia de alto y las dos imagenes arrancando a
+             distinta altura. Acá arriba las dos barras quedan con la misma cuenta de botones.
+             ⚠️ CONSERVAN SUS IDS Y SUS FUNCIONES: `cine-add-b` sigue llamando a `vistaBAbrir` y
+             `cine-cerrar` a `cineCerrar`, cableados mas abajo igual que antes. No se saco ni se
+             invento ninguna funcion: lo unico que cambio es DONDE estan.
+             ⚠️ Y CONSERVAN LA CLASE `cine-grp-vista`, que no es cosmetica: de ella cuelga la
+             regla del modo minimo que los esconde, y tres condiciones del suite exigen que en
+             modo minimo estos dos no se rendericen ni queden enfocables con Tab.
+             ⚠️ SIN `margin-left:auto`: el hueco se lo lleva el alternador de vista —que nace
+             `display:none` y solo lo muestra la media query angosta— o, en escritorio, el boton
+             de maximizar. Un tercer margen automatico aca repartiria el hueco en tres y los dos
+             botones de ventana dejarian de quedar juntos en el borde derecho. */
+          '<span class="cine-grp-vista" style="display:flex;gap:6px;align-items:center;">' +
+            '<button type="button" class="btn btn-ghost" id="cine-add-b" ' +
+              'style="padding:5px 12px;font-size:12px;" ' +
+              'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
+            '<button type="button" class="btn btn-ghost" id="cine-cerrar" ' +
+              'style="padding:5px 12px;font-size:12px;" ' +
+              'title="Cierra el visor.">Cerrar</button>' +
+          '</span>' +
           /* Alternador de vista para pantallas angostas. Nace sin `display` en línea: quién lo
              muestra es la media query, porque depende del ANCHO y no del estado. */
           '<button type="button" class="btn btn-ghost" id="cine-vtoggle" ' +
@@ -142770,7 +142904,19 @@ function _cineAbrir(loops) {
         '</div>' +
         /* El resultado biplano va ENTRE las dos vistas y no dentro de una: sale de las dos, y
            colgarlo de la A sugeriría que es de la A. */
-        '<div id="cine-biplano" style="display:none;margin-top:10px;padding:9px 11px;border-radius:9px;' +
+        /* ══ MEDIR-4 — EL RESULTADO INTEGRADO VUELVE ABAJO Y CENTRADO (punto 1 del bloque A) ═══
+           ⚠️ ES UNA REVERSION EXPLICITA DE UNA DECISION DE MEDIR-1, por pedido del medico, y solo
+           del RESULTADO: aquella tanda mudo estos dos paneles a la ranura de la columna derecha
+           de la vista A para que la imagen, la reproduccion y la tabla entraran juntas sin mover
+           la ventana. El efecto que el medico no quiso es que un resultado que sale de las DOS
+           vistas quedaba colgado dentro de UNA, y en una columna de 340 px. Hoy vuelven debajo de
+           los paneles, centrados entre las dos mitades. Los dos CAJONES no se mueven de la
+           columna: esos son las medidas de cada vista, no el resultado.
+           ⚠️ EL CENTRADO ES `margin-inline:auto` SOBRE UN ANCHO MAXIMO y no un `text-align`: lo
+           que el pedido quiere centrado es el BLOQUE entre las dos mitades, y su texto sigue
+           alineado a la izquierda, que es como se lee una tabla de valores. */
+        '<div id="cine-biplano" style="display:none;margin:10px auto 0;max-width:780px;width:100%;' +
+          'padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg3);font-size:12px;line-height:1.6;"></div>' +
         /* ⚠️ PANEL DE SIMPSON, UNO SOLO PARA LAS DOS VISTAS. La tabla, el texto y los botones
            vivían dentro de `cine-med-barra`, que es de CADA vista: con las dos midiendo Simpson
@@ -142782,7 +142928,11 @@ function _cineAbrir(loops) {
            si el cruce A × B existe.
            Lo que NO se movió acá es la guía del trazado: esa sigue en el panel de cada vista,
            al lado del canvas que se está trazando. Decisión de Maicol (2026-09-22). */
-        '<div id="cine-simp-uni" style="display:none;margin-top:8px;padding:9px 11px;border-radius:9px;' +
+        /* ⚠️ MEDIR-4 — CENTRADO Y ABAJO, por el mismo motivo y con el mismo recurso que
+           `cine-biplano`: los dos leen del MISMO calculo y juntos se leen como un solo panel, asi
+           que tienen que compartir el ancho y el centrado o quedarian escalonados. */
+        '<div id="cine-simp-uni" style="display:none;margin:8px auto 0;max-width:780px;width:100%;' +
+          'padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg2);font-size:11px;line-height:1.55;"></div>' +
         /* ⚠️ EL CAJÓN DOPPLER NACE ACÁ Y NO EXISTE EN NINGÚN OTRO LADO (2026-09-24). Antes se
            MUDABA entre esta ranura y un ancla de la pestaña Imágenes; hoy el marcado está acá
@@ -142830,6 +142980,13 @@ function _cineAbrir(loops) {
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
     _vCablear(_vistaA);
     /* ══ MEDIR-1 — LOS CUATRO PANELES SE MUDAN A LA COLUMNA DERECHA ═══════════════════════
+       ⚠️ MEDIR-4 — YA NO SON CUATRO, SON DOS. `cine-biplano` y `cine-simp-uni` se quedan DONDE
+       NACEN —debajo de los paneles y centrados—, que es el punto 1 del bloque A: el resultado
+       sale de las dos vistas y el medico no lo quiere dentro de una columna de una de ellas. Los
+       que siguen mudandose son los dos CAJONES, que son las medidas y van al lado de la imagen.
+       Y ahora la ranura de destino es la de la VISTA ACTIVA (`_vSlotSync`), no la de la A: aca
+       `_V` es `_vistaA` porque `_cineAbrir` se lo acaba de asignar, asi que la primera mudanza
+       cae en la A igual que antes.
        `cine-biplano`, `cine-simp-uni`, `dop-cajon` y `d2-cajon` nacen en el marcado de arriba
        —debajo de las vistas y a todo el ancho— y se mudan aca adentro, a la ranura de la
        columna derecha de la vista A. El pedido quiere la imagen, la reproduccion y la tabla
@@ -142841,18 +142998,11 @@ function _cineAbrir(loops) {
        vista B, y entonces `getElementById` devolveria el primero y el segundo quedaria
        dibujado sin responder: el defecto que la barra de la vista B ya pago una vez.
        ⚠️ Y VIVEN EN LA VISTA A y no en la que este midiendo: son del par de vistas, no de una.
-       `cine-der-slot` solo se emite con `esB` en falso, asi que la ranura es unica.
+       ⚠️ MEDIR-4 — ESO ULTIMO YA NO ES ASI: hay una ranura POR VISTA y los cajones van a la de
+       la vista activa. Lo que sigue valiendo es que los NODOS son unicos y se mueven.
        Falla ABIERTO: si la ranura no estuviera, los cuatro se quedan donde nacieron —debajo,
        como hasta MEDIR-1— en vez de desaparecer. */
-    try {
-      const slot = ov.querySelector('#cine-der-slot');
-      if (slot) {
-        ['cine-biplano', 'cine-simp-uni', 'cine-dop-slot', 'd2-cajon'].forEach(id => {
-          const n = ov.querySelector('#' + id);
-          if (n) slot.appendChild(n);
-        });
-      }
-    } catch (e) {}
+    try { _vSlotSync(); } catch (e) {}
   }
   /* El icono y el `aria-pressed` del boton de ventana se reponen en cada apertura: el estado
      maximizado sobrevive al cierre (ver `cineMaxToggle`), asi que al reabrir el boton tiene que
@@ -148488,8 +148638,14 @@ async function vistaBAbrir() {
   if (_vistaB) { await _vElegirLoop(_vistaB); return; }
   const cont = document.getElementById('cine-paneles');
   if (!cont) return;
-  const V = _vNueva('b-', 'B');
-  _vMontarPanel(cont, 'b-');
+  /* ⚠️ MEDIR-4 — EL PREFIJO ES EL QUE ESTE LIBRE Y NO SIEMPRE `b-`. Desde que se puede cerrar la
+     vista A, la que sobrevive puede ser la del prefijo `b-`: montar otra con `b-` dejaria el
+     documento con una treintena de ids DUPLICADOS y `getElementById` devolveria los del panel
+     viejo, asi que el nuevo se dibujaria sin responder a un solo clic. Hay dos lugares —`''`/A y
+     `b-`/B— y se toma el que la vista que queda no esta ocupando. */
+  const libre = (_vistaA && _vistaA.pfx === 'b-') ? { p: '', r: 'A' } : { p: 'b-', r: 'B' };
+  const V = _vNueva(libre.p, libre.r);
+  _vMontarPanel(cont, libre.p);
   _vistaB = V;
   _vCablear(V);
   const ok = await _vElegirLoop(V);
@@ -148508,14 +148664,52 @@ async function vistaBAbrir() {
 }
 window.vistaBAbrir = vistaBAbrir;
 
+/* ══ MEDIR-4 — CERRAR UNA VISTA, CUALQUIERA DE LAS DOS (bloque A, punto 4) ════════════════════
+   Hasta MEDIR-3 esto solo existia para la B: el boton de la A decia «Cerrar» y llamaba a
+   `cineCerrar`, o sea se llevaba el visor entero (H1 del bloque 0). Hoy las dos barras tienen el
+   mismo «✕ Cerrar vista» y las dos entran por aca.
+
+   ⚠️ CON UNA SOLA VISTA ABIERTA CIERRA EL VISOR, que es lo unico que «cerrar la unica vista»
+   puede querer decir. La ✕ del encabezado sigue cerrando todo siempre.
+
+   ⚠️ LA QUE SOBREVIVE PASA A SER `_vistaA`, Y CONSERVA SU PREFIJO Y SU ROTULO. Cerrando la A con
+   la B abierta, lo que queda es el OBJETO de la B: sigue con `pfx:'b-'` y `rot:'B'`, asi que su
+   panel sigue diciendo «Vista B» y `_medEl` lo sigue resolviendo bien. No se renombran los ids
+   del panel —seria cirugia sobre una treintena de nodos y sobre los casos que los buscan— y no
+   se toca `rot` porque de el sale la marca de origen de cada fila del cajon: reescribirlo a 'A'
+   haria que las mediciones ya tomadas dijeran que salieron de otra imagen. Que el rotulo que
+   queda sea «Vista B» es la decision provisoria y queda declarada.
+
+   ⚠️ LA VISTA QUE SOBREVIVE SE ACTIVA *ANTES* DE DESTRUIR EL PANEL, y de eso depende que los
+   cajones no se vayan con el: desde esta tanda viven en la ranura de la vista activa, asi que
+   cerrando la A con los cajones adentro, quitar su panel del documento se llevaria los dos nodos
+   —con sus oyentes delegados— y la tabla no volveria. `_vSlotSync` los muda primero. */
+function vistaCerrarUna(V) {
+  if (!V) return;
+  const otra = (V === _vistaA) ? _vistaB : _vistaA;
+  if (!otra) { cineCerrar(); return; }
+  _vCon(V, () => { _cineDetener(); medApagar(); });
+  _vistaA = otra;
+  _vistaB = null;
+  _V = otra;
+  try { _vSlotSync(); } catch (e) {}
+  const p = document.getElementById(V.pfx + 'cine-panel');
+  if (p && p.parentNode) p.parentNode.removeChild(p);
+  _vCerrarVistaResto();
+}
+window.vistaCerrarUna = vistaCerrarUna;
+
 function vistaBCerrar() {
   const V = _vistaB;
-  if (V) {
-    _vCon(V, () => { _cineDetener(); medApagar(); });
-    const p = document.getElementById('b-cine-panel');
-    if (p && p.parentNode) p.parentNode.removeChild(p);
-  }
-  _vistaB = null;
+  if (V) { vistaCerrarUna(V); return; }
+  _vCerrarVistaResto();
+}
+
+/* Lo que hay que reponer despues de quitar una vista: el cajon, la clase del layout, la
+   sincronizacion y el biplano. Sale a una funcion propia porque lo comparten las dos puertas
+   —cerrar una vista y el camino de `vistaBCerrar` sin vista B— y con dos copias el dia que se
+   agregue un paso una de las dos lo olvidaria. */
+function _vCerrarVistaResto() {
   /* ⚠️ Y SE REPINTA EL CAJÓN. `medApagar` devuelve el grupo al de fábrica pero NO llama a
      `_medEstado`, que es lo único que dispara `_dopRender`: cerrando la vista B con el grupo
      Doppler abierto SÓLO en ella, ninguna vista queda con `dop`, el predicado devuelve `false`
@@ -151248,6 +151442,15 @@ function _dopInfoTxts(faltaTxt, hayFilas) {
 window._dopInfoTxts = _dopInfoTxts;
 
 function _dopRender() {
+  /* ⚠️ MEDIR-4 — EL CAJON SE MUDA A LA COLUMNA DE LA VISTA ACTIVA EN CADA REPINTADO. Aca es
+     donde tiene que ir y no en el cableado: `_V` cambia con cada manejador envuelto en `_vBind`,
+     asi que el unico momento en que se sabe de que vista es el numero que se esta a punto de
+     dibujar es justo antes de dibujarlo. `_vSlotSync` no mueve nada si ya esta en su ranura, asi
+     que el caso comun no toca el documento ni pierde el foco del teclado.
+     Guarda `typeof` porque vive en OTRO bloque `<script>` —el del visor— y un `ReferenceError`
+     aca se llevaria puesto el cajon entero. Falla ABIERTO: sin la funcion, el cajon se queda
+     donde este. */
+  try { if (typeof _vSlotSync === 'function') _vSlotSync(); } catch (e) {}
   const cont = document.getElementById('dop-cajon');
   if (!cont) return;
   const E = _dopEstado(), hay = _dopHayVisor();
@@ -152219,6 +152422,10 @@ function _d2Disc() {
 }
 
 function _d2Render() {
+  /* ⚠️ MEDIR-4 — LO MISMO QUE EN `_dopRender`, y por el mismo motivo: los dos cajones viven en la
+     columna de la vista activa y el unico momento en que se sabe cual es, es justo antes de
+     dibujar. Ver el comentario de alla. */
+  try { if (typeof _vSlotSync === 'function') _vSlotSync(); } catch (e) {}
   const cont = document.getElementById('d2-cajon');
   if (!cont) return;
   const E = _d2Estado();

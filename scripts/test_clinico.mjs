@@ -142736,6 +142736,492 @@ caso('TC-891', 'MEDIR-3 bloque D: el VD entra al gesto de Area en sus dos fases 
 `);
 
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+   MEDIR-4a — BLOQUES A y B. Tres casos.
+
+   ⚠️ EL REPARTO ENTRE EL CASO Y LA SONDA ESTA DECIDIDO Y DECLARADO. La ventana del arnes mide
+   756x469, asi que la media query de 1100 px NO aplica y las CUATRO columnas no se pueden
+   medir aca: lo que el caso fija son las REGLAS de la hoja de estilos leidas de
+   `document.styleSheets` —el corte, los 340 px y el apilado— y lo que mide los PIXELES en los
+   cuatro anchos reales es `scripts/_probe_medir4a.mjs`, en Chrome y en WebKit. Es el mismo
+   reparto que TC-890 dejo escrito en MEDIR-3 para el ancho del modal.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-892', 'MEDIR-4a bloque A2: UNA sola plantilla de barra para las dos vistas -- mismos botones en el mismo orden y del mismo tamanio, los dos encabezados sin botones, el «Cerrar vista» en las dos y en el mismo lugar, y «+ Vista» y «Cerrar» fuera de toda barra', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, elegirReal = window._vElegirLoop;
+    window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const bin = atob(c.toDataURL('image/jpeg').split(',')[1]);
+        const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const reg2d = { tipo:1, x0:0, y0:0, x1:600, y1:240, ux:3, uy:3, dx:0.05, dy:0.05 };
+      const regDop = { tipo:2, x0:0, y0:250, x1:600, y1:500, ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0 };
+      const mkLoop = n => ({ nombre:n, cuadros:1,
+        d:{ frags:[jpeg], cols:600, filas:500, msCuadro:0, regiones:[reg2d, regDop] } });
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([ mkLoop('A.dcm') ]);
+      await esperar(260);
+
+      /* ── (A) MODO MINIMO: «+ Vista» y «Cerrar» siguen escondidos y fuera del Tab ──
+         Se mide ANTES de encender la medicion, que es el denominador: medido despues, la clase
+         cine-min ya no esta y el modo minimo no se ejercita. Los dos se mudaron de la barra de
+         la vista A al encabezado del modal, y de la clase cine-grp-vista cuelga la regla que
+         los esconde -- si se hubiera perdido la clase al mudarlos, esto sale rojo. */
+      const rend = id => { const e = document.getElementById(id); return !!e && e.offsetParent !== null; };
+      R.a_minClase  = document.getElementById('cine-ov').classList.contains('cine-min');
+      R.a_minAddB   = rend('cine-add-b');
+      R.a_minCerrar = rend('cine-cerrar');
+      R.a_minNoTab  = ['cine-add-b','cine-cerrar'].every(id => {
+        const e = document.getElementById(id); return !!e && e.offsetParent === null; });
+      R.a_minMedir  = rend('cine-medir');
+      R.a_minCerrarV = rend('cine-cerrar-v');
+
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(300);
+      R.a_medAddB   = rend('cine-add-b');
+      R.a_medCerrar = rend('cine-cerrar');
+
+      /* ── (B) LA SEGUNDA VISTA, POR EL CAMINO REAL ──
+         Lo UNICO que se sustituye es el selector de cineloop: vistaBAbrir es el unico camino
+         que escribe _vistaB —un let de nivel de script, que no se puede escribir desde
+         aca— y depende de _imgUuidActual y de CeiboCine. Todo el resto corre: montar,
+         cablear, activar la medicion, el boton de sincronizar y el biplano. */
+      window._vElegirLoop = async function (V) {
+        _vCon(V, () => { V.datos = { loops:[mkLoop('B.dcm')], i:0, cuadro:0, timer:null }; _cineCargarLoop(); });
+        return true;
+      };
+      await vistaBAbrir();
+      await esperar(520);
+      R.b_dosPaneles = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      R.b_hayB = !!_vistaB;
+
+      /* ── (C) LAS DOS BARRAS: MISMO ORDEN, MISMA CUENTA, MISMO TAMANIO ──
+         El orden se compara por los ids SIN el prefijo de la vista. Antes de esta tanda la barra
+         de la A tenia OCHO botones y la de la B SEIS, porque «+ Vista» y «Cerrar» se emitian
+         solo en la A. */
+      const barraDe = p => {
+        const b = p ? p.querySelector('.cine-barra') : null;
+        if (!b) return null;
+        const bs = [].slice.call(b.querySelectorAll('button'));
+        return { n: bs.length,
+          ids: bs.map(x => String(x.id || '(sin id)').replace('b-','')).join('|'),
+          altos: bs.map(x => Math.round(x.getBoundingClientRect().height)) };
+      };
+      const BA = barraDe(document.getElementById('cine-panel'));
+      const BB = barraDe(document.getElementById('b-cine-panel'));
+      R.c_hayDos = !!(BA && BB);
+      R.c_nA = BA ? BA.n : -1; R.c_nB = BB ? BB.n : -1;
+      R.c_idsA = BA ? BA.ids : ''; R.c_idsB = BB ? BB.ids : '';
+      R.c_mismoOrden = !!(BA && BB && BA.ids === BB.ids);
+      R.c_mismaCuenta = !!(BA && BB && BA.n === BB.n);
+      /* ⚠️ EL ALTO SE MIDE SOLO EN LA BARRA QUE SE VE, Y ES UN DENOMINADOR Y NO UNA CONCESION.
+         La ventana del arnes mide 756 px y por debajo de 1024 el visor muestra UNA vista a la
+         vez: la regla #cine-paneles > div { display:none } con su :first-child { display:flex }
+         es el conmutador de celular, que existe desde antes de esta tanda. El panel escondido no
+         tiene geometria, asi que sus botones informan CERO -- que no es un boton chico, es un
+         boton que no se esta dibujando. Los 44 px de las DOS barras a la vez los mide
+         scripts/_probe_medir4a.mjs a 1500, 1440, 1280 y 1180, donde las dos se ven.
+         Lo que SI se puede medir aca, y es lo que el punto 2 pide, es que las dos barras tengan
+         los mismos botones en el mismo orden: eso no depende de que esten a la vista. */
+      const tieneCaja = p => !!(p && p.getBoundingClientRect().width > 0);
+      R.c_panelAVisible = tieneCaja(document.getElementById('cine-panel'));
+      R.c_panelBVisible = tieneCaja(document.getElementById('b-cine-panel'));
+      R.c_unaSolaALaVez = R.c_panelAVisible !== R.c_panelBVisible;
+      const altosVis = [].concat(R.c_panelAVisible && BA ? BA.altos : [],
+                                 R.c_panelBVisible && BB ? BB.altos : []);
+      R.c_altos = altosVis.join(',');
+      R.c_todos44 = altosVis.length > 0 && altosVis.every(h => h === 44);
+
+      /* ── (D) LOS DOS ENCABEZADOS, SIN BOTONES ──
+         De aca salian los 30 px: el encabezado de la B llevaba el «✕ Cerrar vista» y el de la A
+         no, asi que las dos barras y las dos imagenes arrancaban a distinta altura. */
+      const encDe = p => { const e = p ? p.firstElementChild : null;
+        return e ? e.querySelectorAll('button').length : -1; };
+      R.d_botEncA = encDe(document.getElementById('cine-panel'));
+      R.d_botEncB = encDe(document.getElementById('b-cine-panel'));
+      R.d_ningunBoton = R.d_botEncA === 0 && R.d_botEncB === 0;
+
+      /* ── (E) «CERRAR VISTA» EN LAS DOS, MISMO ROTULO Y MISMO LUGAR ── */
+      const cvA = document.getElementById('cine-cerrar-v');
+      const cvB = document.getElementById('b-cine-cerrar-v');
+      R.e_enA = !!cvA; R.e_enB = !!cvB;
+      R.e_rotA = cvA ? (cvA.textContent||'').trim() : '';
+      R.e_rotB = cvB ? (cvB.textContent||'').trim() : '';
+      R.e_mismoRot = R.e_enA && R.e_enB && R.e_rotA === R.e_rotB;
+      const idxDe = el => el ? [].slice.call(el.parentElement.querySelectorAll('button')).indexOf(el) : -1;
+      R.e_idxA = idxDe(cvA); R.e_idxB = idxDe(cvB);
+      R.e_mismoLugar = R.e_idxA >= 0 && R.e_idxA === R.e_idxB;
+      R.e_losDosEnBarra = !!(cvA && cvA.closest('.cine-barra')) && !!(cvB && cvB.closest('.cine-barra'));
+
+      /* ── (F) «+ Vista» Y «Cerrar»: FUERA DE TODA BARRA Y UNA SOLA VEZ ──
+         Los ids pelados se conservan y las dos funciones siguen cableadas: es lo que la orden
+         pide al decir «no inventes ni saques funciones». */
+      R.f_addBEnBarra   = !!(document.getElementById('cine-add-b') && document.getElementById('cine-add-b').closest('.cine-barra'));
+      R.f_cerrarEnBarra = !!(document.getElementById('cine-cerrar') && document.getElementById('cine-cerrar').closest('.cine-barra'));
+      R.f_nAddB   = document.querySelectorAll('#cine-ov [id="cine-add-b"]').length;
+      R.f_nCerrar = document.querySelectorAll('#cine-ov [id="cine-cerrar"]').length;
+      R.f_addBCableado   = typeof (document.getElementById('cine-add-b')||{}).onclick === 'function';
+      R.f_cerrarCableado = typeof (document.getElementById('cine-cerrar')||{}).onclick === 'function';
+      R.f_cerrarTodoSigue = typeof (document.getElementById('cine-cerrar-todo')||{}).onclick === 'function';
+      R.f_syncSigue = !!document.getElementById('cine-sync');
+      /* Y ningun id duplicado en todo el visor, con las dos vistas montadas. */
+      R.f_dup = (function () {
+        const ov = document.getElementById('cine-ov'); if (!ov) return ['(sin overlay)'];
+        const vis = {}, dup = [];
+        ov.querySelectorAll('[id]').forEach(e => { if (vis[e.id]) { if (dup.indexOf(e.id)<0) dup.push(e.id); } else vis[e.id]=true; });
+        return dup;
+      })();
+      R.f_sinDup = R.f_dup.length === 0;
+
+      try { cineCerrar(); } catch (e) {}
+      await esperar(160);
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal;
+      window._vElegirLoop = elegirReal;
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['(A) DENOMINADOR: el visor abre en modo minimo',     R.a_minClase === true, R.a_minClase],
+      ['(A) y ahi «Medir» SI se ve',                        R.a_minMedir === true, R.a_minMedir],
+      ['(A) «+ Vista» sigue escondido en modo minimo',      R.a_minAddB === false, R.a_minAddB],
+      ['(A) «Cerrar» tambien',                              R.a_minCerrar === false, R.a_minCerrar],
+      ['(A) y los dos fuera del orden de tabulacion',        R.a_minNoTab === true, R.a_minNoTab],
+      ['(A) con la medicion encendida los dos reaparecen',   R.a_medAddB === true && R.a_medCerrar === true,
+                                                             R.a_medAddB + '/' + R.a_medCerrar],
+      ['(B) DENOMINADOR: las dos vistas montadas',          R.b_dosPaneles === 2 && R.b_hayB === true,
+                                                             R.b_dosPaneles + '/' + R.b_hayB],
+      ['(C) las dos barras con la MISMA cuenta de botones',  R.c_mismaCuenta === true, R.c_nA + ' vs ' + R.c_nB],
+      ['(C) y en el MISMO orden',                            R.c_mismoOrden === true, R.c_idsA + ' vs ' + R.c_idsB],
+      ['(C) DENOMINADOR: a 756 px el visor muestra UNA vista a la vez', R.c_unaSolaALaVez === true,
+                                                             'A=' + R.c_panelAVisible + ' B=' + R.c_panelBVisible],
+      ['(C) y los botones de la que se ve miden 44 px exactos', R.c_todos44 === true, R.c_altos],
+      ['(D) los dos encabezados SIN botones',                R.d_ningunBoton === true, R.d_botEncA + '/' + R.d_botEncB],
+      ['(E) «Cerrar vista» en las DOS vistas',               R.e_enA === true && R.e_enB === true, R.e_enA + '/' + R.e_enB],
+      ['(E) con el mismo rotulo',                            R.e_mismoRot === true, R.e_rotA + ' vs ' + R.e_rotB],
+      ['(E) en el mismo lugar de la barra',                  R.e_mismoLugar === true, R.e_idxA + '/' + R.e_idxB],
+      ['(E) y las dos DENTRO de la barra',                   R.e_losDosEnBarra === true, R.e_losDosEnBarra],
+      ['(F) «+ Vista» ya no vive en ninguna barra',          R.f_addBEnBarra === false, R.f_addBEnBarra],
+      ['(F) «Cerrar» tampoco',                               R.f_cerrarEnBarra === false, R.f_cerrarEnBarra],
+      ['(F) y cada uno existe UNA sola vez',                 R.f_nAddB === 1 && R.f_nCerrar === 1, R.f_nAddB + '/' + R.f_nCerrar],
+      ['(F) los dos siguen cableados',                       R.f_addBCableado && R.f_cerrarCableado,
+                                                             R.f_addBCableado + '/' + R.f_cerrarCableado],
+      ['(F) la ✕ del modal y «Sincronizar» siguen',          R.f_cerrarTodoSigue && R.f_syncSigue,
+                                                             R.f_cerrarTodoSigue + '/' + R.f_syncSigue],
+      ['(F) ningun id duplicado con las dos vistas',         R.f_sinDup === true, JSON.stringify(R.f_dup)]
+    ] };
+  })();
+`);
+
+caso('TC-893', 'MEDIR-4a bloque A4: cada vista cierra SOLO la suya -- cerrando la A la B queda como unica vista con el visor abierto y la tabla intacta, cerrando la unica se cierra el visor, y la vista que se abre despues toma el prefijo LIBRE sin duplicar un solo id', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, elegirReal = window._vElegirLoop;
+    window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const bin = atob(c.toDataURL('image/jpeg').split(',')[1]);
+        const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const reg2d = { tipo:1, x0:0, y0:0, x1:600, y1:240, ux:3, uy:3, dx:0.05, dy:0.05 };
+      const regDop = { tipo:2, x0:0, y0:250, x1:600, y1:500, ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0 };
+      const mkLoop = n => ({ nombre:n, cuadros:1,
+        d:{ frags:[jpeg], cols:600, filas:500, msCuadro:0, regiones:[reg2d, regDop] } });
+      /* El grupo del cajon se ASEGURA, no se alterna: d2Modo es un TOGGLE y llamarlo dos veces
+         con el mismo grupo lo APAGA, con lo que la tabla sale vacia y se lee igual que «la tabla
+         se perdio». Es la trampa que este archivo ya documenta y que la sonda pago una vez. */
+      const grupo2D = g => { const E = _d2Estado(); if (E.modo !== g) d2Modo(g); };
+      const abrirSegunda = async nom => {
+        window._vElegirLoop = async function (V) {
+          _vCon(V, () => { V.datos = { loops:[mkLoop(nom)], i:0, cuadro:0, timer:null }; _cineCargarLoop(); });
+          return true;
+        };
+        await vistaBAbrir(); await esperar(520);
+      };
+      const filasConValor = () => {
+        const n = document.getElementById('d2-cajon'); if (!n) return [];
+        return [].slice.call(n.querySelectorAll('.med-tabla tbody tr'))
+          .map(tr => String(tr.textContent||'').replace(/\\s+/g,' ').trim())
+          .filter(t => t && t.indexOf('\\u2014') < 0);
+      };
+      const dondeTabla = () => { const n = document.getElementById('d2-cajon'); if (!n) return 'no-existe';
+        const p = n.closest('[id$="cine-panel"]'); return p ? (p.id || '(sin id)') : '(fuera)'; };
+      const visorAbierto = () => { const ov = document.getElementById('cine-ov');
+        return !!ov && getComputedStyle(ov).display !== 'none'; };
+      const dup = () => { const ov = document.getElementById('cine-ov'); if (!ov) return ['(sin overlay)'];
+        const vis = {}, d = [];
+        ov.querySelectorAll('[id]').forEach(e => { if (vis[e.id]) { if (d.indexOf(e.id)<0) d.push(e.id); } else vis[e.id]=true; });
+        return d; };
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+
+      /* ── (A) DOS VISTAS, UNA MEDIDA EN CADA UNA ──
+         TAPSE 18 mm en la A y VD basal 52 mm en la B. La tabla es UNA sola a proposito —_d2
+         es estado de modulo porque la ecuacion de continuidad necesita insumos de planos
+         distintos— y lo que distingue el origen es la marca por fila que ya existia. */
+      _cineAbrir([ mkLoop('A.dcm') ]);
+      await esperar(260);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(300);
+      _vCon(_vistaA, () => { grupo2D('vd'); _d2Poner('vd.tapse', 18); _d2MarcarOrigen('vd.tapse'); _d2Render(); });
+      await esperar(220);
+      R.a_soloA = filasConValor().join(' || ');
+      R.a_unaSinMarca = R.a_soloA.indexOf('TAPSE') === 0 && R.a_soloA.indexOf(' · ') < 0;
+
+      await abrirSegunda('B.dcm');
+      _vCon(_vistaB, () => { grupo2D('vd'); _d2Poner('vd.basal', 52); _d2MarcarOrigen('vd.basal'); _d2Render(); });
+      await esperar(220);
+      R.a_dosVistas = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      R.a_filas2 = filasConValor().join(' || ');
+      R.a_tapseA = R.a_filas2.indexOf('TAPSE · A') >= 0;
+      R.a_basalB = R.a_filas2.indexOf('VD basal · B') >= 0;
+
+      /* ── (B) LA TABLA VA A LA COLUMNA DE LA VISTA QUE SE MIDE ── */
+      _vCon(_vistaA, () => _d2Render()); await esperar(180);
+      R.b_desdeA = dondeTabla();
+      _vCon(_vistaB, () => _d2Render()); await esperar(180);
+      R.b_desdeB = dondeTabla();
+      _vCon(_vistaA, () => _d2Render()); await esperar(180);
+      R.b_vuelveA = dondeTabla();
+      R.b_sigueALaVista = R.b_desdeA === 'cine-panel' && R.b_desdeB === 'b-cine-panel' && R.b_vuelveA === 'cine-panel';
+
+      /* ── (C) SE CIERRA LA A: LA B QUEDA COMO UNICA VISTA Y EL VISOR SIGUE ABIERTO ──
+         Con el gesto real. Hasta MEDIR-3 el boton de la A decia «Cerrar» y se llevaba el visor
+         entero: esta es la mitad del punto 4 que no existia. */
+      R.c_botonA = !!document.getElementById('cine-cerrar-v');
+      if (R.c_botonA) document.getElementById('cine-cerrar-v').click();
+      await esperar(460);
+      R.c_visorAbierto = visorAbierto();
+      R.c_paneles = [].slice.call(document.querySelectorAll('#cine-paneles [id$="cine-panel"]')).map(p => p.id).join(',');
+      R.c_unSoloPanel = R.c_paneles === 'b-cine-panel';
+      R.c_pfxActiva = _vistaA ? _vistaA.pfx : '(?)';
+      R.c_rotActiva = _vistaA ? _vistaA.rot : '(?)';
+      R.c_sinB = !_vistaB;
+      R.c_clase2v = !!(document.getElementById('cine-paneles') &&
+                       document.getElementById('cine-paneles').classList.contains('cine-2v'));
+      /* La tabla NO se fue con el panel destruido, y conserva las dos medidas con su marca. */
+      R.c_tablaDonde = dondeTabla();
+      R.c_filas = filasConValor().join(' || ');
+      R.c_conservaLasDos = R.c_filas.indexOf('TAPSE · A') >= 0 && R.c_filas.indexOf('VD basal · B') >= 0;
+      R.c_dup = dup().length;
+
+      /* ── (D) LA QUE SE ABRE DESPUES TOMA EL PREFIJO LIBRE ──
+         La que sobrevivio es la del prefijo b-; montar otra con b- dejaria una treintena de
+         ids duplicados y el panel nuevo no responderia a un solo clic. */
+      await abrirSegunda('C.dcm');
+      R.d_pfxNueva = _vistaB ? _vistaB.pfx : '(sin B)';
+      R.d_rotNueva = _vistaB ? _vistaB.rot : '(sin B)';
+      R.d_paneles = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      R.d_dup = dup();
+      R.d_sinDup = R.d_dup.length === 0;
+
+      /* ── (E) CON UNA SOLA VISTA, SU «CERRAR VISTA» CIERRA EL VISOR ──
+         ⚠️ CADA CLIC VA CON GUARDA, y no es por prolijidad: contra la linea base el boton de la
+         vista A NO EXISTE, y un un .click() sobre null tira un TypeError que se lleva el caso
+         entero -- la condicion «sin excepciones» sale roja y las de abajo no llegan a evaluarse,
+         asi que el caso dejaria de decir CUAL es la diferencia. Es lo que TC-827 deshizo en
+         PANT-37 y lo que TC-890 volvio a pagar en MEDIR-3. */
+      const bPrim = document.getElementById((_vistaA ? _vistaA.pfx : '') + 'cine-cerrar-v');
+      R.e_botonPrim = !!bPrim;
+      if (bPrim) bPrim.click();
+      await esperar(420);
+      R.e_quedaUna = document.querySelectorAll('#cine-paneles [id$="cine-panel"]').length;
+      R.e_visorSigue = visorAbierto();
+      const bUnica = document.getElementById((_vistaA ? _vistaA.pfx : '') + 'cine-cerrar-v');
+      R.e_botonUnica = !!bUnica;
+      if (bUnica) bUnica.click();
+      await esperar(420);
+      R.e_visorCerrado = !visorAbierto();
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal;
+      window._vElegirLoop = elegirReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['(A) DENOMINADOR: con UNA vista la fila va sin marca de origen', R.a_unaSinMarca === true, R.a_soloA],
+      ['(A) DENOMINADOR: las dos vistas montadas',          R.a_dosVistas === 2, R.a_dosVistas],
+      ['(A) la medida de la A dice «· A»',                  R.a_tapseA === true, R.a_filas2],
+      ['(A) y la de la B dice «· B»',                       R.a_basalB === true, R.a_filas2],
+      ['(B) la tabla va a la columna de la vista que se mide', R.b_sigueALaVista === true,
+                                                            R.b_desdeA + ' > ' + R.b_desdeB + ' > ' + R.b_vuelveA],
+      ['(C) la vista A tiene su propio «Cerrar vista»',     R.c_botonA === true, R.c_botonA],
+      ['(C) y cerrandola el visor SIGUE abierto',           R.c_visorAbierto === true, R.c_visorAbierto],
+      ['(C) con la B como unica vista',                     R.c_unSoloPanel === true, R.c_paneles],
+      ['(C) que pasa a ser la activa, con su prefijo',      R.c_pfxActiva === 'b-' && R.c_sinB === true,
+                                                            R.c_pfxActiva + '/' + R.c_rotActiva + '/sinB=' + R.c_sinB],
+      ['(C) y el layout vuelve a una sola vista',           R.c_clase2v === false, R.c_clase2v],
+      ['(C) la tabla NO se fue con el panel destruido',     R.c_tablaDonde === 'b-cine-panel', R.c_tablaDonde],
+      ['(C) y conserva las DOS medidas con su marca',       R.c_conservaLasDos === true, R.c_filas],
+      ['(C) sin ids duplicados',                            R.c_dup === 0, R.c_dup],
+      ['(D) la vista que se abre despues toma el prefijo libre', R.d_pfxNueva === '' && R.d_rotNueva === 'A',
+                                                            R.d_pfxNueva + '/' + R.d_rotNueva],
+      ['(D) dos paneles y NINGUN id duplicado',             R.d_paneles === 2 && R.d_sinDup === true,
+                                                            R.d_paneles + ' | ' + JSON.stringify(R.d_dup)],
+      ['(E) las dos tienen su boton de cerrar vista',       R.e_botonPrim === true && R.e_botonUnica === true,
+                                                            R.e_botonPrim + '/' + R.e_botonUnica],
+      ['(E) cerrando una de las dos queda la otra',         R.e_quedaUna === 1 && R.e_visorSigue === true,
+                                                            R.e_quedaUna + '/' + R.e_visorSigue],
+      ['(E) y la unica que queda cierra el VISOR',          R.e_visorCerrado === true, R.e_visorCerrado]
+    ] };
+  })();
+`);
+
+caso('TC-894', 'MEDIR-4a bloques A1, A5 y B: el resultado integrado vuelve ABAJO y centrado -- fuera de la columna de medidas, despues de los paneles y sin empujarlos--, los dos cajones se mudan a la ranura de la vista activa, y la hoja declara el corte de 1369 px con la columna en 340', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert;
+    window.alert = () => {};
+    try {
+      const mkJpeg = () => {
+        const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223'; g.fillRect(0,0,600,500);
+        const bin = atob(c.toDataURL('image/jpeg').split(',')[1]);
+        const u = new Uint8Array(bin.length);
+        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+        return u;
+      };
+      const jpeg = mkJpeg();
+      const reg2d = { tipo:1, x0:0, y0:0, x1:600, y1:240, ux:3, uy:3, dx:0.05, dy:0.05 };
+      const regDop = { tipo:2, x0:0, y0:250, x1:600, y1:500, ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0 };
+      const mkLoop = n => ({ nombre:n, cuadros:1,
+        d:{ frags:[jpeg], cols:600, filas:500, msCuadro:0, regiones:[reg2d, regDop] } });
+
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      _cineAbrir([ mkLoop('A.dcm') ]);
+      await esperar(260);
+      if (!_medOn) document.getElementById('cine-medir').click();
+      await esperar(300);
+
+      /* ── (A) EL RESULTADO, FUERA DE LA COLUMNA Y DEBAJO DE LOS PANELES ──
+         Hasta MEDIR-3 los dos se MUDABAN a la ranura de la columna derecha de la vista A, asi
+         que un resultado que sale de las DOS vistas quedaba colgado dentro de UNA. Es una
+         reversion explicita de esa decision, por pedido del medico. */
+      const bip = document.getElementById('cine-biplano');
+      const uni = document.getElementById('cine-simp-uni');
+      const pan = document.getElementById('cine-paneles');
+      R.a_hayBip = !!bip; R.a_hayUni = !!uni;
+      R.a_bipEnColumna = !!(bip && bip.closest('.cine-col-der'));
+      R.a_uniEnColumna = !!(uni && uni.closest('.cine-col-der'));
+      R.a_bipDespues = !!(pan && bip && (pan.compareDocumentPosition(bip) & Node.DOCUMENT_POSITION_FOLLOWING));
+      R.a_uniDespues = !!(pan && uni && (pan.compareDocumentPosition(uni) & Node.DOCUMENT_POSITION_FOLLOWING));
+      /* CENTRADO: el bloque lleva margen automatico a los dos lados y un ancho maximo. El
+         centrado en PIXELES lo mide la sonda de dos motores; aca se fija el mecanismo, porque la
+         ventana del arnes (756 px) es mas angosta que el ancho maximo del bloque. */
+      const csB = bip ? getComputedStyle(bip) : null;
+      const csU = uni ? getComputedStyle(uni) : null;
+      R.a_bipMaxW = csB ? csB.maxWidth : '';
+      R.a_uniMaxW = csU ? csU.maxWidth : '';
+      R.a_bipAuto = !!(bip && bip.style.margin.indexOf('auto') >= 0);
+      R.a_uniAuto = !!(uni && uni.style.margin.indexOf('auto') >= 0);
+      R.a_mismoAncho = R.a_bipMaxW === R.a_uniMaxW && R.a_bipMaxW !== '' && R.a_bipMaxW !== 'none';
+
+      /* ── (B) Y NO EMPUJA NI TAPA EL PANEL ──
+         Se mide el ancho de la columna y del lienzo con el resultado OCULTO y VISIBLE: si la
+         franja de abajo empujara, uno de los dos cambiaria. */
+      const colDer = document.querySelector('#cine-ov .cine-col-der');
+      const lienzo = document.getElementById('cine-lienzo');
+      const anchos = () => [ colDer ? Math.round(colDer.getBoundingClientRect().width) : -1,
+                             lienzo ? Math.round(lienzo.getBoundingClientRect().width) : -1 ].join('x');
+      R.b_sinRes = anchos();
+      if (bip) { bip.style.display = 'block'; bip.textContent = 'Resultado de prueba'; }
+      await esperar(200);
+      R.b_conRes = anchos();
+      R.b_noEmpuja = R.b_sinRes === R.b_conRes;
+      R.b_resVisible = !!(bip && bip.getBoundingClientRect().height > 0);
+      if (bip) { bip.style.display = 'none'; bip.textContent = ''; }
+      await esperar(140);
+
+      /* ── (C) LOS DOS CAJONES, EN LA RANURA DE LA VISTA ACTIVA ──
+         La ranura existe en las DOS vistas desde esta tanda; antes se emitia solo en la A. */
+      R.c_slotA = !!document.getElementById('cine-der-slot');
+      const d2 = document.getElementById('d2-cajon');
+      const dop = document.getElementById('cine-dop-slot');
+      R.c_d2EnSlot  = !!(d2 && d2.parentElement && d2.parentElement.id === 'cine-der-slot');
+      R.c_dopEnSlot = !!(dop && dop.parentElement && dop.parentElement.id === 'cine-der-slot');
+      R.c_d2EnColumna  = !!(d2 && d2.closest('.cine-col-der'));
+      R.c_dopEnColumna = !!(dop && dop.closest('.cine-col-der'));
+      R.c_haySync = typeof window._vSlotSync === 'function';
+
+      /* ── (D) LAS REGLAS DE LA HOJA: EL CORTE Y LOS 340 px ──
+         La ventana del arnes mide 756 px, asi que la media query de 1100 NO aplica y las cuatro
+         columnas no se pueden medir aca. Lo que el caso fija son las REGLAS; los PIXELES en
+         1500, 1440, 1280 y 1180 los mide scripts/_probe_medir4a.mjs en los dos motores. Es el
+         reparto que TC-890 dejo escrito. */
+      const reglas = (function () {
+        const out = [];
+        for (const hoja of document.styleSheets) {
+          let rs = null; try { rs = hoja.cssRules; } catch (e) { continue; }
+          if (!rs) continue;
+          for (const r of rs) {
+            if (r.type !== CSSRule.MEDIA_RULE) continue;
+            const q = String(r.conditionText || (r.media && r.media.mediaText) || '');
+            for (const r2 of r.cssRules || []) {
+              if (!r2.selectorText) continue;
+              if (r2.selectorText.indexOf('cine-2v') < 0) continue;
+              out.push({ q, sel: r2.selectorText, txt: r2.style.cssText });
+            }
+          }
+        }
+        return out;
+      })();
+      R.d_n = reglas.length;
+      R.d_lista = reglas.map(x => x.q + ' => ' + x.sel + ' { ' + x.txt + ' }').join('  ##  ');
+      R.d_corte340 = reglas.some(x => x.q.indexOf('1369px') >= 0 &&
+        x.sel.indexOf('cine-col-der') >= 0 && x.txt.indexOf('340px') >= 0);
+      R.d_apilaDebajo = reglas.some(x => x.q.indexOf('1368.98px') >= 0 &&
+        x.sel.indexOf('cine-col-der') >= 0 && x.txt.indexOf('100%') >= 0);
+      R.d_filaEnvuelve = reglas.some(x => x.q.indexOf('1368.98px') >= 0 &&
+        x.sel.indexOf('cine-fila') >= 0 && x.txt.indexOf('wrap') >= 0);
+
+      try { cineCerrar(); } catch (e) {}
+      await esperar(160);
+    } catch (e) { R.err = String((e && e.message) || e); } finally {
+      window.alert = alertReal;
+    }
+    return { extra: [
+      ['sin excepciones',                                   !R.err, R.err],
+      ['(A) DENOMINADOR: los dos paneles de resultado existen', R.a_hayBip && R.a_hayUni, R.a_hayBip + '/' + R.a_hayUni],
+      ['(A) el biplano NO vive en la columna de medidas',    R.a_bipEnColumna === false, R.a_bipEnColumna],
+      ['(A) el panel de Simpson tampoco',                    R.a_uniEnColumna === false, R.a_uniEnColumna],
+      ['(A) los dos van DESPUES de los paneles',             R.a_bipDespues && R.a_uniDespues,
+                                                             R.a_bipDespues + '/' + R.a_uniDespues],
+      ['(A) centrados con margen automatico',                R.a_bipAuto && R.a_uniAuto, R.a_bipAuto + '/' + R.a_uniAuto],
+      ['(A) y los dos con el MISMO ancho maximo',            R.a_mismoAncho === true, R.a_bipMaxW + ' vs ' + R.a_uniMaxW],
+      ['(B) DENOMINADOR: el resultado se ve',                R.b_resVisible === true, R.b_resVisible],
+      ['(B) y no empuja ni tapa el panel',                   R.b_noEmpuja === true, R.b_sinRes + ' -> ' + R.b_conRes],
+      ['(C) la vista activa tiene su ranura',                R.c_slotA === true, R.c_slotA],
+      ['(C) y los dos cajones viven adentro',                R.c_d2EnSlot && R.c_dopEnSlot, R.c_d2EnSlot + '/' + R.c_dopEnSlot],
+      ['(C) o sea en la columna de medidas',                 R.c_d2EnColumna && R.c_dopEnColumna,
+                                                             R.c_d2EnColumna + '/' + R.c_dopEnColumna],
+      ['(C) con el mudador expuesto',                        R.c_haySync === true, R.c_haySync],
+      ['(D) DENOMINADOR: la hoja declara reglas de dos vistas', R.d_n >= 3, R.d_n + ' | ' + R.d_lista],
+      ['(D) la columna baja a 340 px a partir de 1369',      R.d_corte340 === true, R.d_lista],
+      ['(D) y por debajo del corte se apila al ancho entero', R.d_apilaDebajo === true, R.d_lista],
+      ['(D) con la fila envolviendo',                         R.d_filaEnvuelve === true, R.d_lista]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
