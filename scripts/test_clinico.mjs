@@ -15785,7 +15785,16 @@ caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, 
       /* ── EL PANEL TAMBIEN EXPLICA LA MARCA ── era la primera superficie donde el medico la ve. */
       for (let i=0;i<3 && _vistaA.medGrupo!=='dop';i++) document.getElementById('cine-g-dop').click();
       dopModo('tri');
-      const panelExplica = (document.getElementById('dop-cajon').innerText || '').indexOf('VISTA') > -1;
+      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A4): la leyenda de que significa la marca de VISTA se
+         MOVIO al globo ⓘ del cajon, con los demas descargos — el pedido deja UNA sola linea de
+         instruccion a la vista. No se perdio: se lee del registro que el globo abre, y ADEMAS
+         se exige que ya NO se imprima en el panel, que es lo que distingue mover de duplicar.
+         Asi el caso falla por los dos lados. */
+      const _infoDopTxt = (() => { try {
+        return (((window._medPanelInfo && window._medPanelInfo('dop')) || {}).txts || []).join(' | ');
+      } catch (e) { return ''; } })();
+      const panelExplica = _infoDopTxt.indexOf('VISTA') > -1 &&
+        (document.getElementById('dop-cajon').innerText || '').indexOf('VISTA') < 0;
 
       /* ── UNA PROCEDENCIA SOBRE UN VALOR QUE YA NO ESTA ── la guarda por valor de
          '_dopSufOrigen' no tenia quien la ejerciera: sacarla dejaba el caso en VERDE. El unico
@@ -15841,7 +15850,7 @@ caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, 
         ['  y el pie aclara que la marca es la VISTA, no la imagen', pieAclaraImagen, ''],
         ['la clave del dato persistido va SIN la marca', clavesLimpias, Object.keys(meta.secciones[0].valores).join(' | ')],
         ['  y el origen viaja como DATO, en su propio campo', origenComoDato, JSON.stringify(meta.secciones[0].origenes || {})],
-        ['el PANEL tambien explica que significa la marca', panelExplica, ''],
+        ['el GLOBO del panel explica que significa la marca, y el panel ya no', panelExplica, _infoDopTxt.slice(0,90)],
         ['NO se marca la procedencia de un valor que ya no esta', sufHuerfano === '',
           'huerfano=«' + sufHuerfano + '»'],
         ['  DENOMINADOR: con la compuerta abierta, el que SI tiene valor se marca',
@@ -15917,12 +15926,15 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
          verificar explicitamente: "mostrar al tocar" NO implica "ocultar al salir". */
       abrir('vi');
       const viRots = rots();
-      /* ⚠️ INVERTIDA EN MEDIR-2: eran DOS celdas -rotulo y valor con sus botones- y hoy son
-         CINCO, que es el punto 5 del pedido del medico: Medida | Valor | Unid. | Medir y Borrar |
-         la casilla de la comunidad. Falla por los dos lados: si vuelven las dos, y si alguien
-         agrega una sexta sin declararla. */
-      const unaColumna = C().querySelector('table tbody tr').children.length === 5 &&
-                         C().querySelectorAll('table thead th').length === 5;
+      /* ⚠️ INVERTIDA EN MEDIR-2 y REAJUSTADA EN MEDIR-3: eran DOS celdas -rotulo y valor con sus
+         botones-, MEDIR-2 las llevo a CINCO y MEDIR-3 las dejo en CUATRO, con la unidad DENTRO
+         del valor: Medida | Valor | Acciones | la casilla de la comunidad. El motivo del segundo
+         cambio esta medido —con cinco columnas la tabla desbordaba su columna de 310 px por 32 px
+         con UNA tabla y por 179 con dos— y el pedido pide ademas «valor GRANDE con la unidad
+         chica», o sea los dos en la misma celda. Falla por los dos lados: si vuelven las cinco y
+         si alguien agrega una quinta sin declararla. */
+      const unaColumna = C().querySelector('table tbody tr').children.length === 4 &&
+                         C().querySelectorAll('table thead th').length === 4;
       abrir('ao');
       const aoRots = rots();
       const ocultaElAnterior = aoRots.indexOf('DDVI') < 0 && aoRots.indexOf('SIVd') < 0;
@@ -15997,7 +16009,10 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       if (D.origen) Object.keys(D.origen).forEach(k => delete D.origen[k]);
       D.ao.vtiTsvi = 20; D.ao.vtiAo = 100;
       const avaAntes = _dopDerivados().ava;
-      abrir('vi'); armar('vi.tsvi'); medir(40);    // 20.0 mm
+      /* ⚠️ ADAPTADO EN MEDIR-3: se abre AORTA y no VI, porque ahi vive la fila del Diam TSVI
+         desde el punto A5. La CLAVE no cambio —sigue siendo vi.tsvi, el alias de ao.diam—,
+         asi que lo que se afirma del valor compartido y del AVA sigue siendo lo mismo. */
+      abrir('ao'); armar('vi.tsvi'); medir(40);    // 20.0 mm
       const sinCampoPropio = !('tsvi' in _d2Estado().vi);
       const escribioEnDoppler = _dopEstado().ao.diam === 20;
       const ava = _dopDerivados().ava;
@@ -16042,7 +16057,9 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       const vacioNoAvisa = C().innerText.indexOf('estudio anterior') < 0;
 
       /* ── LIMPIAR DEL CAJON DOPPLER REPINTA ESTE ── porque le borra el Diam TSVI. */
-      abrir('vi'); _d2Estado().destino='vi.tsvi'; _d2Capturar(22);
+      /* ⚠️ ADAPTADO EN MEDIR-3: la fila del Diam TSVI vive en AORTA (punto A5), asi que para que
+         el cajon la MUESTRE hay que abrir ese grupo. La clave y el alias no cambiaron. */
+      abrir('ao'); _d2Estado().destino='vi.tsvi'; _d2Capturar(22);
       const mostraba22 = C().innerText.indexOf('22.0') >= 0 && C().innerText.indexOf('mm') >= 0;
       _dopLimpiar();
       const yaNoMuestra22 = C().innerText.indexOf('22.0 mm') < 0 && _dopEstado().ao.diam == null;
@@ -16083,8 +16100,15 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         ['DENOMINADOR: con Distancia activa el cajon 2D se ve', denomVisible, 'herr=' + _medHerr],
         ['los CINCO grupos, en orden', botones.join(',') === 'vi,vd,ao,ai,vci', botones.join(',')],
         ['sin grupo elegido NO se dibuja ninguna tabla', sinGrupoNoHayTabla, ''],
-        ['el VI trae sus siete campos', viRots.join(',') === 'SIVd,PPd,SIVs,PPs,DDVI,DSVI,Diam TSVI', viRots.join(',')],
-        ['CINCO columnas, con su encabezado', unaColumna, ''],
+        /* ⚠️ ADAPTADO EN MEDIR-3 (punto A5): el VI trae SEIS campos en el orden nuevo
+           —SIVd, DDVI, PPd, SIVs, DSVI, PPs, o sea diastole completa y despues sistole— y el
+           Diam TSVI se MUDO a la tabla de Aorta. Se exige el orden EXACTO y que el Diam TSVI
+           ya NO este aca, asi que el caso falla por los dos lados. */
+        ['el VI trae sus SEIS campos, en el orden nuevo', viRots.join(',') === 'SIVd,DDVI,PPd,SIVs,DSVI,PPs', viRots.join(',')],
+        ['y el Diam TSVI ya NO esta en el VI', viRots.indexOf('Diam TSVI') < 0, viRots.join(',')],
+        /* ⚠️ ADAPTADO EN MEDIR-3 (punto A3): la tabla pasa de CINCO columnas a CUATRO, con la
+           unidad dentro del valor. Con cinco no entraba en la columna de medicion. */
+        ['CUATRO columnas, con su encabezado', unaColumna, ''],
         ['TOCAR OTRO GRUPO OCULTA EL ANTERIOR', ocultaElAnterior, aoRots.join(',')],
         ['  la AI tiene una sola fila', aiSolaFila, rots().join(',')],
         ['  y tocar el abierto lo cierra', tocarElAbiertoCierra, ''],
@@ -17543,14 +17567,25 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
          Diam TSVD se mide en el cajon 2D, que es OTRO campo con el mismo rotulo. */
       _dopRender();
       const panel = document.getElementById('dop-cajon');
-      const avisaFaltaVti = !!panel && panel.textContent.indexOf('falta el VTI Pulmonar') >= 0;
+      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A4): el aviso de que le falta al Vol Eyectivo VD ya NO se
+         imprime en el panel — se MOVIO al globo ⓘ, junto con los demas descargos, porque el
+         pedido deja UNA sola linea de instruccion a la vista. No se perdio: se lee del
+         registro _medPanelInfo('dop'), que es el que el globo abre, y ADEMAS se exige que NO
+         este a la vista en el cajon. O sea que el caso falla si el texto desaparece Y si vuelve
+         a imprimirse en el panel. */
+      const infoDop = () => { try { return ((window._medPanelInfo('dop') || {}).txts || []).join(' | '); }
+                              catch (e) { return ''; } };
+      const avisaFaltaVti = infoDop().indexOf('falta el VTI Pulmonar') >= 0 &&
+        (!panel || panel.textContent.indexOf('falta el VTI Pulmonar') < 0);
       E.pul.diamTsvd = null; E.pul.vtiPul = 18;
       _dopRender();
-      const avisaFaltaDiam = !!panel && panel.textContent.indexOf('falta el Diam TSVD') >= 0 &&
-        panel.textContent.indexOf('Distancia 2D') >= 0;
+      const avisaFaltaDiam = infoDop().indexOf('falta el Diam TSVD') >= 0 &&
+        infoDop().indexOf('Distancia 2D') >= 0 &&
+        (!panel || panel.textContent.indexOf('falta el Diam TSVD') < 0);
       E.pul.diamTsvd = 25;
       _dopRender();
-      const sinAvisoConLosDos = !!panel && panel.textContent.indexOf('Para el Vol Eyectivo VD falta') < 0;
+      const sinAvisoConLosDos = infoDop().indexOf('Para el Vol Eyectivo VD falta') < 0 &&
+        (!panel || panel.textContent.indexOf('Para el Vol Eyectivo VD falta') < 0);
 
       /* ══ SEGUNDA PASADA — LA COLUMNA IZQUIERDA VACIA ══
          El flujo de la ecuacion de continuidad: medir SOLO el diametro y los dos VTI, sin ninguna
@@ -17600,8 +17635,15 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
          '_dopSeccionesGuardado'. O sea que la mitad vacia es alcanzable UNICAMENTE en el canvas, y
          la guarda simetrica de 'tablaCols' es defensa en profundidad, no un camino en uso. Se
          verifica la afirmacion: con el mismo estado, ninguna valvula deja una columna vacia. */
+      /* ⚠️ CONDICION INVERTIDA EN MEDIR-3 (puntos A3 y A7): el reparto en DOS tablas lado a lado
+         se RETIRO del panel. Era lo que hacia que los titulos y las filas se pisaran, y esta
+         medido: el cajon desbordaba 179 px (Chrome) / 181 (WebKit) sobre una columna de 310. En
+         el CANVAS el reparto por columna SIGUE vivo —de ahi la primera mitad de este caso— y eso
+         no cambio; lo que se exige aca es que en PANTALLA haya UNA sola tabla y que no desborde.
+         Falla por los dos lados: si el reparto vuelve al panel y si la tabla desaparece. */
       E2.modo = 'ao'; _dopRender();
-      const enFlex = panel ? panel.querySelectorAll('div[style*="display:flex"] table').length : -1;
+      const enFlex = panel ? panel.querySelectorAll('table.med-tabla').length : -1;
+      const noDesborda = !!panel && (panel.scrollWidth - panel.clientWidth) <= 1;
       const pantallaNuncaVacia = ['ao','mit','tri','pul'].every(v => {
         const Fv = _dopFilas(v);
         return Fv.filter(f => f[6] !== 1).length > 0 && Fv.filter(f => f[6] === 1).length > 0;
@@ -17639,7 +17681,7 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
           'secciones=' + (meta.secciones || []).map(x => x.valvula).join(',')],
         ['EL VOL EYECTIVO VD LLEVA SU DESCARGO', volTieneDisc, discCon.slice(0, 120)],
         ['  y no sobra cuando la fila no esta', discNoSobra, discSin.slice(0, 90)],
-        ['con un solo insumo, la pantalla dice cual falta (VTI)', avisaFaltaVti, ''],
+        ['con un solo insumo, el globo dice cual falta (VTI) y el panel NO', avisaFaltaVti, ''],
         ['  y cuando falta el diametro, nombra el cajon 2D', avisaFaltaDiam, ''],
         ['  y con los dos cargados no avisa nada', sinAvisoConLosDos, ''],
         ['DENOMINADOR: el flujo de la AVA deja la IZQUIERDA vacia', izq2 === 0 && der2 > 0,
@@ -17653,7 +17695,10 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
         ['  y esas filas se dibujan a ANCHO COMPLETO desde el margen', xDiamTsvi === 22,
           'Diam TSVI@x=' + xDiamTsvi],
         ['  en pantalla ese estado NO es alcanzable: las filas vacias salen con guion',
-          pantallaNuncaVacia && enFlex === 2, 'tablasDentroDelFlex=' + enFlex]
+          pantallaNuncaVacia === true, 'pantallaNuncaVacia=' + pantallaNuncaVacia],
+        ['  INVERTIDA: en pantalla hay UNA sola tabla, no dos lado a lado',
+          enFlex === 1, 'tablas=' + enFlex],
+        ['  y el cajon no desborda a lo ancho', noDesborda === true, noDesborda]
       ] };
     } finally {
       try { _dopLimpiar(); } catch (e) {}
@@ -22649,7 +22694,37 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
       await new Promise(r => setTimeout(r, 120));
       R.mmNoMide = _medVels.length === 0;
       R.avisoMm = dichos.join(' ');
-      R.avisoDiceCentimetros = /CENT[IÍ]METROS/i.test(R.avisoMm);
+      /* ⚠️ CONDICION INVERTIDA EN MEDIR-3 (bloque C): sobre un modo M la herramienta Velocidad
+         ya NO SE PUEDE ELEGIR, asi que el alert que explicaba que el eje esta en centimetros
+         NO SALTA — y no salta porque el medico nunca llega a hacer el clic. El pedido es que la
+         herramienta «se desactive y el ⓘ explique por que», o sea que el motivo se dice ANTES
+         del gesto y no despues. Se exige lo nuevo, y por los dos lados:
+           - la herramienta cae a dist en vez de quedar en vel;
+           - el BOTON sale apagado y su titulo nombra los centimetros;
+           - el GLOBO del panel de velocidad lo explica;
+           - y el panel guia lo dice en su linea de instruccion.
+         Lo que NO cambia y se conserva: que sobre un modo M no se mida ninguna velocidad
+         (mmNoMide), que es la invariante clinica. */
+      R.mmHerr = (typeof _medHerr !== 'undefined') ? _medHerr : '(no)';
+      R.mmNoSeElige = R.mmHerr !== 'vel';
+      R.mmPredicado = (typeof _medVelBloqueadaM === 'function') ? _medVelBloqueadaM() : '(sin fn)';
+      const _bvM = document.getElementById('cine-med-vel');
+      R.mmBotonApagado = !!_bvM && (_bvM.disabled === true || _bvM.getAttribute('aria-disabled') === 'true');
+      R.mmBotonTitulo = _bvM ? (_bvM.getAttribute('title') || '') : '';
+      R.mmTituloDiceCm = /CENT[IÍ]METROS/i.test(R.mmBotonTitulo);
+      R.mmGloboDiceCm = (() => { try {
+        const t = (((window._medPanelInfo && window._medPanelInfo('vel')) || {}).txts || []).join(' | ');
+        return /CENT[IÍ]METROS/i.test(t);
+      } catch (e) { return false; } })();
+      R.mmPanel = (document.getElementById('cine-med-barra') || {}).textContent || '';
+      /* ⚠️ EL PANEL GUIA NO DICE NADA DE CENTIMETROS, Y ESO ES CORRECTO: la linea de velocidad
+         sale SOLO con la herramienta en vel, y el punto de esto es justamente que ya no lo esta.
+         Lo que el panel muestra es la guia de DISTANCIA, y eso sirve de DENOMINADOR de que la
+         herramienta cayo de verdad — no es que el panel se haya quedado vacio. El motivo se dice
+         donde el medico lo busca: en el titulo del boton apagado y en el globo. */
+      R.mmPanelCayoADistancia = /calibr|distancia/i.test(R.mmPanel);
+      /* El alert YA NO tiene que salir: es la otra mitad de la inversion. */
+      R.avisoNoSalta = !/CENT[IÍ]METROS/i.test(R.avisoMm);
 
       /* ── las otras herramientas intactas ── */
       medApagar(); cineCerrar();
@@ -22704,7 +22779,13 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
       ['y el mensaje manda a usar Distancia',            R.mandaALaRegla, (R.avisoDosD||'').slice(0,70)],
       ['un modo M no cuenta como region de velocidad',   R.mmNoEsVelocidad, R.mmNoEsVelocidad],
       ['no se mide velocidad sobre el modo M',           R.mmNoMide, R.mmNoMide],
-      ['y el aviso dice que el eje esta en centimetros', R.avisoDiceCentimetros, (R.avisoMm||'').slice(0,70)],
+      ['INVERTIDA: en modo M la herramienta ya no se elige', R.mmNoSeElige === true, R.mmHerr],
+      ['  el predicado del modo M dice que bloquea',   R.mmPredicado === true, String(R.mmPredicado)],
+      ['  el boton sale apagado',                      R.mmBotonApagado === true, R.mmBotonApagado],
+      ['  y su titulo nombra los centimetros',         R.mmTituloDiceCm === true, (R.mmBotonTitulo||'').slice(0,80)],
+      ['  el globo ⓘ tambien lo explica',              R.mmGloboDiceCm === true, R.mmGloboDiceCm],
+      ['  DENOMINADOR: el panel guia paso al de distancia', R.mmPanelCayoADistancia === true, (R.mmPanel||'').slice(0,80)],
+      ['  y el alert YA NO salta: se dice antes del gesto', R.avisoNoSalta === true, (R.avisoMm||'').slice(0,70)],
       ['el pixel de referencia se lee CON SIGNO',        R.slConSigno, 'ry0 = ' + R.parseoSL],
       ['y un cero por encima del recuadro da velocidad sensata', R.velSensata, (R.velConSLNeg||0).toFixed(2) + ' cm/s'],
       ['la regla sigue funcionando',                     R.reglaSigue, R.reglaSigue],
@@ -23376,19 +23457,43 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       R.entroSolo = _medCalibrandoVel;
       R.barraDiceCalibrar = /Calibrando la velocidad/.test(document.getElementById('cine-med-barra').innerHTML);
 
-      /* Calibrar: base en y=400, marca conocida 100 px mas arriba = 100 cm/s. */
-      window.prompt = () => '100';
+      /* ⚠️ ADAPTADO EN MEDIR-3 (bloque C): LA CALIBRACION PIDE EL VALOR DE LOS DOS PUNTOS, en
+         m/s, y de los dos sale la escala Y la posicion del cero. Antes el PRIMER clic se asumia
+         cero sin preguntar y se pedia un solo valor, en cm/s.
+         Se reproduce el MISMO escenario de antes —base en y=400 y marca 100 px mas arriba a 1
+         m/s— con los dos valores escritos: 0 y 1.0. El resultado esperado NO cambia: 1 cm/s por
+         pixel y el cero en y=400, o sea que las cuatro condiciones de abajo siguen midiendo lo
+         mismo. */
+      let _nP = 0;
+      window.prompt = () => (_nP++ === 0 ? '0' : '1.0');   // m/s, uno por marca
       const yBase = 400, yMarca = 300;
       clic(cxm, yBase);
       await new Promise(r => setTimeout(r, 120));
       R.baseMarcada = _medPuntos.length === 1;
+      R.pidioElPrimerValor = _nP === 1;       // el valor se pide en el acto, no al final
       clic(cxm, yMarca);
       await new Promise(r => setTimeout(r, 160));
+      R.pidioLosDos = _nP === 2;
       R.calibro = !!_medCalibVel;
       R.factor = _medCalibVel && _medCalibVel.cmsPorPx;
       R.factorOk = Math.abs(R.factor - 1) < 1e-9;         // 100 cm/s en 100 px = 1 cm/s por px
       R.ceroOk = _medCalibVel && _medCalibVel.y0 === yBase;
       R.yaNoCalibra = !_medCalibrandoVel;
+      /* ⚠️ LO NUEVO DE MEDIR-3, Y ES EL EJEMPLO LITERAL DEL PEDIDO: con marcas en 0,5 y 1,0 m/s
+         —NINGUNA en el cero— la escala y el cero salen igual, y el cero cae FUERA del tramo
+         marcado. Se prueba sobre la funcion pura, que es la que la app usa. */
+      const cal2 = (typeof _medCalVelDos === 'function') ? _medCalVelDos(400, 50, 300, 100) : null;
+      R.dosValoresK = cal2 ? cal2.cmsPorPx : null;
+      R.dosValoresY0 = cal2 ? cal2.y0 : null;
+      R.dosValoresOk = !!cal2 && Math.abs(cal2.cmsPorPx - 0.5) < 1e-9 && Math.abs(cal2.y0 - 500) < 1e-9;
+      /* Y la lectura en la altura de cada marca devuelve el valor que se escribio. */
+      R.dosValoresLee = !!cal2 && Math.abs(_medVelCalEn(cal2, 300) - 100) < 1e-9 &&
+                                 Math.abs(_medVelCalEn(cal2, 400) - 50) < 1e-9;
+      /* El cero cae FUERA del tramo marcado: 500 esta debajo de los dos clics (300 y 400). */
+      R.ceroFueraDelTramo = !!cal2 && cal2.y0 > 400;
+      /* Los dos rechazos, con su mensaje de una linea. */
+      R.rechazaMismoValor = (typeof _medCalVelDos === 'function') && _medCalVelDos(400, 100, 300, 100) === null;
+      R.rechazaJuntas = (typeof _medCalVelDos === 'function') && _medCalVelDos(400, 50, 403, 100) === null;
 
       /* La aritmetica, contra los puntos que se marcaron. Guardada: si la calibracion no se
          completo, la condicion tiene que poder REPORTARLO en vez de reventar y llevarse el
@@ -23451,7 +23556,12 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       if (bcal) bcal.click();
       await new Promise(r => setTimeout(r, 140));
       R.forzoCalibrar = _medCalibrandoVel;
-      window.prompt = () => '50';
+      /* ⚠️ ADAPTADO EN MEDIR-3: dos valores, uno por marca, en m/s. Con un solo valor repetido
+         la calibracion se RECHAZA —«las dos marcas tienen el mismo valor»— y el estado se queda
+         en «calibrando», con lo que las dos condiciones de abajo median sobre una calibracion que
+         nunca se completo. */
+      let _nP2 = 0;
+      window.prompt = () => (_nP2++ === 0 ? '0' : '0.5');
       clic(cxm, 400); await new Promise(r => setTimeout(r, 110));
       clic(cxm, 300); await new Promise(r => setTimeout(r, 160));
       R.avisaQuePisa = /pisando la escala que trae el archivo/.test(document.getElementById('cine-med-barra').innerHTML);
@@ -23474,6 +23584,14 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       ['sin NINGUNA region, se ofrece sola',            R.entroSolo && R.barraDiceCalibrar, R.entroSolo],
       ['el primer clic marca la linea de base',         R.baseMarcada, R.diag],
       ['el segundo mas el valor deja la escala',        R.calibro && R.yaNoCalibra, R.diag],
+      ['MEDIR-3: pide el valor de CADA marca, en el acto', R.pidioElPrimerValor && R.pidioLosDos,
+                                                       'n=' + R.pidioLosDos + '/' + R.pidioElPrimerValor],
+      ['MEDIR-3: con 0,5 y 1,0 m/s saca escala Y cero',  R.dosValoresOk === true,
+                                                       'k=' + R.dosValoresK + ' y0=' + R.dosValoresY0],
+      ['MEDIR-3: y lee el valor escrito en cada altura', R.dosValoresLee === true, R.dosValoresLee],
+      ['MEDIR-3: el cero puede caer FUERA del tramo',   R.ceroFueraDelTramo === true, R.dosValoresY0],
+      ['MEDIR-3: rechaza el mismo valor dos veces',     R.rechazaMismoValor === true, R.rechazaMismoValor],
+      ['MEDIR-3: y las marcas demasiado juntas',        R.rechazaJuntas === true, R.rechazaJuntas],
       ['en la base la velocidad calibrada es 0 (exacto)', R.calBaseCero, R.velEnBase],
       ['a la altura de la marca da el valor escrito (exacto)', R.calMarca100, R.velArriba100],
       ['debajo de la base da negativo (exacto)',        R.debajoNegativo, R.velDebajo],
@@ -32383,13 +32501,13 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.clicModo = clkDop('[data-dop-modo="ao"]');
       await esperar(140);
       R.clicCambioModo = _dop.modo === 'ao';
-      /* ⚠️ DOS <table>, NO UNA (2026-09-25): desde el reparto en dos columnas cada valvula se
-         dibuja como dos tablas lado a lado dentro de un envoltorio flex. Contar tablas crudas
-         quedo acoplado al layout, asi que se mide lo que la condicion QUIERE decir: que la
-         aortica trae su tabla, y que son las DOS mitades del mismo envoltorio y no dos bloques
-         sueltos. */
-      R.valvulaTraeTabla = cajon.querySelectorAll('div[style*="display:flex"] > div > table').length === 2 &&
-                           cajon.querySelectorAll('table').length === 2 &&
+      /* ⚠️ VUELVE A SER UNA SOLA <table> EN MEDIR-3 (punto A3), y es la tercera redaccion de esta
+         condicion. Era una, el reparto en dos columnas de 2026-09-25 la hizo dos, y MEDIR-3
+         retiro ese reparto del panel porque desbordaba la columna de medicion por 179 px. Se
+         mide lo que la condicion QUIERE decir —que la aortica trae su tabla— mas que es UNA y que
+         no desborda, o sea las dos mitades del arreglo. */
+      R.valvulaTraeTabla = cajon.querySelectorAll('table.med-tabla').length === 1 &&
+                           (cajon.scrollWidth - cajon.clientWidth) <= 1 &&
                            cajon.textContent.indexOf('Vmax VAo') > -1;
       /* Y SOLO la suya: los campos de las otras tres valvulas no aparecen. */
       R.soloEsaValvula = cajon.textContent.indexOf('Onda E') < 0 &&
@@ -32558,12 +32676,15 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.genVel = _dop.gen.vel != null;
       R.genGrad = _dop.gen.grad != null;
       R.aorticaIntacta = JSON.stringify(_dop.ao) === antes;
-      /* Las sueltas NO tienen columnas —f[6] indefinido— asi que agregan UNA sola tabla a las
-         dos de la valvula: 3 en total. El numero subio con el reparto en columnas; lo que no
-         cambio es que el bloque «sin asignar» sea su propia tabla y no se mezcle con la aortica. */
+      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A7): las sueltas YA NO son una tabla aparte debajo. Entran
+         en la MISMA tabla de la valvula, detras de una fila separadora a todo el ancho, porque el
+         pedido dice «nada queda apilado abajo». Lo que NO cambio es que se VEAN y que se
+         distingan de las de la valvula: el separador las rotula. Se exige UNA sola tabla, el
+         rotulo presente, y la fila separadora con su celda a todo el ancho — asi el caso falla si
+         las sueltas desaparecen y tambien si vuelven a ser una tabla suelta. */
       R.sueltasSeVen = cajon.textContent.indexOf('sin asignar') > -1 &&
-                       cajon.querySelectorAll('table').length === 3 &&
-                       cajon.querySelectorAll('div[style*="display:flex"] > div > table').length === 2;
+                       cajon.querySelectorAll('table.med-tabla').length === 1 &&
+                       cajon.querySelectorAll('table.med-tabla td[colspan="4"]').length === 1;
 
       /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
          Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
@@ -33633,8 +33754,17 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
       dopModo('mit'); await esperar(150);
       R.cerradoModo = _dop.modo;
       R.cerradoHayGuardar = !!cajon.querySelector('[data-dop-acc="guardar"]');
-      R.cerradoDiceQueIncluye = cajon.textContent.indexOf('incluye') > -1 &&
-        cajon.textContent.indexOf('Aórtica') > -1 && cajon.textContent.indexOf('Mitral') > -1;
+      /* ⚠️ ADAPTADO EN MEDIR-3 (punto A4): la linea que dice QUE incluye «Guardar tabla» se MOVIO
+         al globo ⓘ. Es texto que evita un error real —el boton esta debajo de UNA tabla y guarda
+         las CUATRO— asi que no se borro: se lee del registro del globo, y se exige que ya NO este
+         impresa en el panel. Falla por los dos lados. */
+      const _infoDop251 = (() => { try {
+        return (((window._medPanelInfo && window._medPanelInfo('dop')) || {}).txts || []).join(' | ');
+      } catch (e) { return ''; } })();
+      R.cerradoDiceQueIncluye = _infoDop251.indexOf('incluye') > -1 &&
+        _infoDop251.indexOf('Aórtica') > -1 && _infoDop251.indexOf('Mitral') > -1 &&
+        cajon.textContent.indexOf('incluye') < 0;
+      R.cerradoInfoTxt = _infoDop251.slice(0, 120);
       valv('mit'); await esperar(150);
       let regs0 = [];
       try { regs0 = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regs0 = []; }
@@ -33758,7 +33888,7 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
                                                       'abierta=' + R.abiertaAlGuardar + ' tri/pul vacias=' + R.sinTriPul],
       ['DENOMINADOR: con el selector cerrado no hay valvula', R.cerradoModo === null, R.cerradoModo],
       ['y AUN ASI el boton de guardar esta',          R.cerradoHayGuardar, R.cerradoHayGuardar],
-      ['y el panel dice QUE valvulas incluye',        R.cerradoDiceQueIncluye, R.cerradoDiceQueIncluye],
+      ['y el GLOBO dice QUE valvulas incluye, no el panel', R.cerradoDiceQueIncluye, R.cerradoInfoTxt],
       ['la tabla combina LAS DOS valvulas',           R.tablaLlevaLasDos, R.valvulasTab],
       ['incluida la que NO estaba abierta',           R.tablaLlevaLaCerrada, R.tablaLlevaLaCerrada],
       ['y es UNA sola entrada, no una por valvula',   R.unaSolaEntrada, R.valvulasTab],
@@ -141087,7 +141217,7 @@ caso('TC-881', 'ECO-CONECTOR-5 decisiones 7d, 8 y 9: exportar SOLO lo elegido co
   })();
 `);
 
-caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los dos cajones, las filas calculadas sin botones y en cursiva, «Borrar» vacia SOLO su fila, y la casilla de la comunidad va bloqueada con candado', `
+caso('TC-882', 'MEDIR-2 bloque B + MEDIR-3 A3/A4: la tabla de medidas en CUATRO columnas en los dos cajones, con el valor grande y la unidad adentro, las filas calculadas sin botones y en cursiva, «Borrar» vacia SOLO su fila, y la casilla de la comunidad va bloqueada con candado', `
   return (async () => {
     const R = { err: '' };
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -141129,19 +141259,30 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
 
       /* Lector unico de las dos tablas: la MISMA funcion para los dos cajones, porque lo que se
          afirma es que los dos pintan igual. */
+      /* ⚠️ ADAPTADO EN MEDIR-3: LAS COLUMNAS PASARON DE CINCO A CUATRO Y LA UNIDAD SE MUDO
+         DENTRO DEL VALOR. El punto A3 pide «una medida por fila, sin scroll horizontal», y con
+         cinco columnas no entraba: medido en los ocho cruces del arbol anterior, el cajon 2D
+         desbordaba 32 px (Chrome) / 34 (WebKit) con UNA tabla y el Doppler 179 / 181 con dos. El
+         pedido dice ademas «valor GRANDE con la unidad chica», o sea en la MISMA celda. Las
+         celdas quedan: nombre | valor+unidad | acciones | comunidad. */
       const leer = id => { const c = document.getElementById(id); if (!c) return null;
         const t = c.querySelector('table.med-tabla'); if (!t) return null;
         return {
           th: [...t.querySelectorAll('thead th')].map(e => (e.textContent||'').trim()),
-          fs: [...t.querySelectorAll('tbody tr')].map(tr => { const td = [...tr.children];
+          fs: [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 4)
+            .map(tr => { const td = [...tr.children];
+            const sp = [...td[1].querySelectorAll('span')];
             return { cols: td.length, med: (td[0].textContent||'').trim(),
-              val: (td[1].textContent||'').trim(), uni: (td[2].textContent||'').trim(),
-              nbot: td[3].querySelectorAll('button').length,
-              acc: (td[3].textContent||'').trim(),
+              val: sp[0] ? (sp[0].textContent||'').trim() : '',
+              uni: sp[1] ? (sp[1].textContent||'').trim() : '',
+              valPx: sp[0] ? parseFloat(getComputedStyle(sp[0]).fontSize) : -1,
+              uniPx: sp[1] ? parseFloat(getComputedStyle(sp[1]).fontSize) : -1,
+              nbot: td[2].querySelectorAll('button').length,
+              acc: (td[2].textContent||'').trim(),
               italic: getComputedStyle(tr).fontStyle === 'italic',
-              chk: td[4].querySelectorAll('input[type=checkbox]').length,
-              dis: !!td[4].querySelector('input[disabled]'),
-              candado: (td[4].textContent||'').indexOf('🔒') >= 0 }; })
+              chk: td[3].querySelectorAll('input[type=checkbox]').length,
+              dis: !!td[3].querySelector('input[disabled]'),
+              candado: (td[3].textContent||'').indexOf('🔒') >= 0 }; })
         }; };
 
       /* -- (A) CAJON 2D: grupo VI, con un medido y un DERIVADO -- */
@@ -141151,12 +141292,20 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
       const A = leer('d2-cajon');
       R.a_hay = !!A;
       R.a_th = A ? A.th.join('|') : '';
-      R.a_cinco = !!A && A.fs.length > 0 && A.fs.every(f => f.cols === 5);
-      /* El valor y la unidad en CELDAS DISTINTAS: antes iban pegados en una sola. */
+      R.a_cuatro = !!A && A.fs.length > 0 && A.fs.every(f => f.cols === 4);
+      /* ⚠️ CONDICION INVERTIDA EN MEDIR-3. Afirmaba «el valor y la unidad en CELDAS DISTINTAS»,
+         y eso dejo de ser cierto por el punto A4: hoy van en la MISMA celda, en dos elementos, el
+         valor GRANDE y la unidad CHICA. Se exige las dos cosas —que esten en la misma celda y
+         que el valor sea mas grande que la unidad— asi que el caso falla por los DOS lados: si
+         vuelven a partirse en dos celdas y si dejan de tener tamanios distintos. */
       const sivd = A ? A.fs.filter(f => f.med.indexOf('SIVd') === 0)[0] : null;
       R.a_sivdVal = sivd ? sivd.val : '';
       R.a_sivdUni = sivd ? sivd.uni : '';
-      R.a_separadas = !!sivd && sivd.val === '10.0' && sivd.uni === 'mm';
+      R.a_juntas = !!sivd && sivd.val === '10.0' && sivd.uni === 'mm';
+      R.a_grandeChica = !!sivd && sivd.valPx >= 15 && sivd.uniPx > 0 && sivd.uniPx < sivd.valPx;
+      R.a_px = sivd ? (sivd.valPx + '/' + sivd.uniPx) : '';
+      /* Y NO queda ninguna columna de unidad suelta en el encabezado. */
+      R.a_sinColUnidad = !!A && A.th.indexOf('Unid.') < 0;
       /* -- (B) LA FILA CALCULADA SE VE DISTINTA Y NO TIENE BOTONES -- */
       const calc = A ? A.fs.filter(f => f.med.indexOf('Engrosamiento SIV') === 0)[0] : null;
       R.b_hayCalc = !!calc;
@@ -141189,7 +141338,13 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
                (D ? D.fs.map(f => f.med).join(',') : '(sin tabla)') + '] ' + diagFin; })();
       R.d_th = D ? D.th.join('|') : '';
       R.d_mismoEncabezado = !!A && !!D && A.th.join('|') === D.th.join('|');
-      R.d_cinco = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 5);
+      R.d_cuatro = !!D && D.fs.length > 0 && D.fs.every(f => f.cols === 4);
+      /* ⚠️ MEDIR-3 — Y UNA SOLA TABLA, NO DOS. el reparto viejo partia las filas por su columna en dos
+         tablas lado a lado y es lo que hacia que los titulos y las filas se pisaran. */
+      R.d_unaSolaTabla = (() => { const c = document.getElementById('dop-cajon');
+        return !!c && c.querySelectorAll('table.med-tabla').length === 1; })();
+      R.d_sinDesborde = (() => { const c = document.getElementById('dop-cajon');
+        return !!c && (c.scrollWidth - c.clientWidth) <= 1; })();
       /* ⚠️ «Grad Máx EP» PASO A «Grad Máx pulmonar» EN EL BLOQUE C de esta misma tanda, por
          consecuencia de fundir «VP» con «Vmax EP»: con el rotulo viejo este caso buscaba una fila
          que ya no existe y daba rojo sobre una tabla correcta. El rotulo se lee del registro
@@ -141205,17 +141360,19 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
       R.e_bloqueadas = !!A && A.fs.every(f => f.dis === true && f.candado === true);
       R.e_tambienDoppler = !!D && D.fs.every(f => f.chk === 1 && f.dis === true);
       /* El nombre de la columna sale del DUEÑO UNICO, no escrito en la tabla. */
-      R.e_colNombre = A ? A.th[4] : '';
-      R.e_nombreUnico = !!A && A.th[4] === ANAHI_NOMBRE;
+      R.e_colNombre = A ? A.th[3] : '';
+      R.e_nombreUnico = !!A && A.th[3] === ANAHI_NOMBRE;
     } catch (e) { R.err = String((e && e.message) || e); }
     try { cineCerrar(); } catch (e) {}
     try { window.toast = toastReal; window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
     return { extra: [
       ['sin excepciones',                                 !R.err, R.err],
       ['(A) DENOMINADOR: el cajon 2D pinto su tabla',     R.a_hay === true, 'PRE[' + R.diagPre + '] POST[' + R.diagPost + ']'],
-      ['(A) las CINCO columnas, en su orden',             R.a_th === 'Medida|Valor|Unid.|Medir y Borrar|Anahí', R.a_th],
-      ['(A) y todas las filas tienen cinco celdas',       R.a_cinco === true, R.a_cinco],
-      ['(A) el valor y la unidad en celdas DISTINTAS',    R.a_separadas === true, R.a_sivdVal + ' / ' + R.a_sivdUni],
+      ['(A) las CUATRO columnas, en su orden',            R.a_th === 'Medida|Valor|Acciones|Anahí', R.a_th],
+      ['(A) y todas las filas tienen cuatro celdas',      R.a_cuatro === true, R.a_cuatro],
+      ['(A) ya NO hay columna de unidad suelta',          R.a_sinColUnidad === true, R.a_th],
+      ['(A) INVERTIDA: valor y unidad en la MISMA celda', R.a_juntas === true, R.a_sivdVal + ' / ' + R.a_sivdUni],
+      ['(A) el valor GRANDE y la unidad CHICA',           R.a_grandeChica === true, R.a_px],
       ['(B) DENOMINADOR: hay una fila calculada',         R.b_hayCalc === true, R.b_hayCalc],
       ['(B) la calculada NO tiene botones',               R.b_sinBotones === true, R.b_sinBotones],
       ['(B) se ve distinta: cursiva y lo DICE',           R.b_cursiva && R.b_dice, R.b_cursiva + '/' + R.b_dice],
@@ -141226,7 +141383,9 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
       ['(C) sin tocar el vecino',                         R.c_vecinoIntacto === true, R.c_vecinoIntacto],
       ['(D) DENOMINADOR: el cajon Doppler pinto su tabla', R.d_hay === true, 'hay=' + R.d_hay + ' ' + (typeof diagFin === 'string' ? diagFin : '')],
       ['(D) con el MISMO encabezado que el 2D',           R.d_mismoEncabezado === true, R.d_th],
-      ['(D) y cinco celdas por fila',                     R.d_cinco === true, R.d_cinco],
+      ['(D) y cuatro celdas por fila',                    R.d_cuatro === true, R.d_cuatro],
+      ['(D) UNA sola tabla, no dos lado a lado',          R.d_unaSolaTabla === true, R.d_unaSolaTabla],
+      ['(D) y el cajon no desborda a lo ancho',           R.d_sinDesborde === true, R.d_sinDesborde],
       ['(D) su calculada tampoco tiene botones',          R.d_calcSinBotones === true, R.diagDop],
       ['(E) la comunidad esta APAGADA (denominador)',     R.e_activa === false, R.e_activa],
       ['(E) una casilla por fila',                        R.e_unaPorFila === true, R.e_unaPorFila],
@@ -141237,7 +141396,7 @@ caso('TC-882', 'MEDIR-2 bloque B: la tabla de medidas en CINCO columnas en los d
   })();
 `);
 
-caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades como la app -- «VP» se fundio con «Vmax EP» en una sola «Vmax pulmonar» conservando la clave conectada, y «Vmax IP» se abrio en proto-diastolica y telediastolica--, sin inventar bandas', `
+caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades como la app -- «VP» se fundio con «Vmax EP» en una sola «Vmax pulmonar» conservando la clave conectada, y «Vmax IP» se abrio en proto-diastolica y telediastolica--, con la banda de vp_vmax prestada en MEDIR-3 y las dos de la IP sin banda', `
   return (async () => {
     const R = { err: '' };
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -141264,10 +141423,16 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
       _dopRender();
       await esperar(300);
       const t = document.querySelector('#dop-cajon table.med-tabla');
-      const filas = t ? [...t.querySelectorAll('tbody tr')].map(tr => {
+      /* ⚠️ ADAPTADO EN MEDIR-3: la unidad ya no es la TERCERA celda sino el segundo elemento DE
+         la celda del valor. Las columnas pasaron de cinco a cuatro (punto A3) y el pedido pide
+         «valor GRANDE con la unidad chica», o sea los dos juntos. */
+      const filas = t ? [...t.querySelectorAll('tbody tr')].filter(tr => tr.children.length >= 4)
+        .map(tr => {
         const td = [...tr.children];
-        return { med:(td[0].textContent||'').trim(), val:(td[1].textContent||'').trim(),
-                 uni:(td[2].textContent||'').trim() }; }) : [];
+        const sp = [...td[1].querySelectorAll('span')];
+        return { med:(td[0].textContent||'').trim(),
+                 val: sp[0] ? (sp[0].textContent||'').trim() : '',
+                 uni: sp[1] ? (sp[1].textContent||'').trim() : '' }; }) : [];
       R.hay = filas.length > 0;
       R.rotulos = filas.map(f => f.med).join(' / ');
       const de = r => filas.filter(f => f.med.indexOf(r) === 0)[0] || null;
@@ -141309,9 +141474,23 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
       R.b_herr = _DOP_HERR['pul.vmaxIp'] + '/' + _DOP_HERR['pul.vmaxIpTd'];
       R.b_mismaHerr = _DOP_HERR['pul.vmaxIpTd'] === _DOP_HERR['pul.vmaxIp'];
 
-      /* -- (C) NO SE INVENTO NINGUNA BANDA -- */
+      /* -- (C) LAS BANDAS -- */
       R.c_bandas = ['pul.vmaxEp','pul.vmaxIp','pul.vmaxIpTd'].map(k => String(_dopBanda(k))).join('/');
-      R.c_sinBandas = ['pul.vmaxEp','pul.vmaxIp','pul.vmaxIpTd'].every(k => _dopBanda(k) == null);
+      /* ⚠️ CONDICION INVERTIDA EN MEDIR-3 PARA «Vmax pulmonar». MEDIR-2 la dejo SIN banda porque
+         no habia de donde prestarla y el corte era una decision clinica; el medico la contesto en
+         el bloque E de MEDIR-3: toma la de vp_vmax, [0,2 - 8] m/s, que es el DUEÑO de la misma
+         magnitud en el formulario. Es un filtro contra errores de tipeo y no un corte
+         diagnostico. Se exige el valor EXACTO prestado y que salga del dueño, asi que el caso
+         falla si desaparece y tambien si alguien le inventa otro numero.
+         LAS DOS DE LA IP SIGUEN SIN BANDA, y eso NO se invirtio: sus homologos ip_vmax e
+         ip_vtd no tienen rango en ninguna de las dos tablas de la app. */
+      R.c_bandaPulm = JSON.stringify(_dopBanda('pul.vmaxEp'));
+      R.c_bandaPulmEsLaDelDueno = (() => { try {
+        const d = (typeof DCM_RANGO !== 'undefined' && DCM_RANGO['vp_vmax']) ||
+                  (typeof CHM_RANGO !== 'undefined' && CHM_RANGO['vp_vmax']) || null;
+        return !!d && JSON.stringify(_dopBanda('pul.vmaxEp')) === JSON.stringify(d);
+      } catch (e) { return false; } })();
+      R.c_sinBandas = ['pul.vmaxIp','pul.vmaxIpTd'].every(k => _dopBanda(k) == null);
       /* CONTROL POSITIVO: las dos que SI tienen banda la conservan, o sea que el lector funciona. */
       R.c_control = JSON.stringify(_dopBanda('pul.vtiPul')) + '/' + JSON.stringify(_dopBanda('pul.diamTsvd'));
       R.c_conservaLasQueHabia = _dopBanda('pul.vtiPul') != null && _dopBanda('pul.diamTsvd') != null;
@@ -141341,7 +141520,9 @@ caso('TC-883', 'MEDIR-2 bloque C: el Doppler pulmonar nombra sus velocidades com
       ['(B) las dos se pueden medir',                      R.b_armables === true, R.b_armables],
       ['(B) con los ROTULOS DE LA APP, leidos del formulario', R.b_mismosRotulos === true, R.b_lblProto + ' | ' + R.b_lblTele],
       ['(B) y la misma herramienta que la que ya estaba',  R.b_mismaHerr === true, R.b_herr],
-      ['(C) NO se invento ninguna banda para las tres',    R.c_sinBandas === true, R.c_bandas],
+      ['(C) INVERTIDA: «Vmax pulmonar» ya TIENE banda',    R.c_bandaPulm === '[0.2,8]', R.c_bandaPulm],
+      ['(C) y es la de su dueño vp_vmax, no una inventada', R.c_bandaPulmEsLaDelDueno === true, R.c_bandaPulm],
+      ['(C) las DOS de la IP siguen SIN banda',            R.c_sinBandas === true, R.c_bandas],
       ['(C) CONTROL: las dos que tenian banda la conservan', R.c_conservaLasQueHabia === true, R.c_control],
       ['(D) el campo nuevo lo borra «Limpiar»',            R.d_limpio === true, R.d_limpio]
     ] };
@@ -141473,7 +141654,7 @@ caso('TC-884', 'MEDIR-2 bloque D: el gesto de Area ofrece «AI» y «AD» en A4C
   })();
 `);
 
-caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexados por la superficie corporal del estudio, y sin peso o sin talla sale SOLO en mL y lo dice -- sin tocar el calculo ni cuando se integra al informe', `
+caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexados por la superficie corporal del estudio, y sin peso o sin talla sale SOLO en mL y lo dice -- sin tocar el calculo ni cuando se integra al informe, y con el boton «Volumen» retirado en MEDIR-3', `
   return (async () => {
     const R = { err: '' };
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -141557,7 +141738,12 @@ caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexa
         f.m.vey === G[i].m.vey && f.m.fevi === G[i].m.fevi);
       R.d_valores = G.map(g => g.m.vfd + '/' + g.m.vfs + '/' + g.m.fevi).join(' ');
 
-      /* -- (E) «VOLUMEN» SIGUE VISIBLE Y APAGADO, con su leyenda -- */
+      /* -- (E) ⚠️ CONDICION INVERTIDA EN MEDIR-3: «VOLUMEN» YA NO ESTA (punto A6) --
+         MEDIR-1 lo dejo visible y apagado con su leyenda «proximamente» porque el pedido de
+         entonces lo pedia asi; el medico lo probo en la app y pidio retirarlo. Se exige que NO
+         este Y que el denominador siga valiendo —el selector sigue pintando sus herramientas—,
+         asi que el caso falla por los dos lados: si el boton vuelve y si el selector se queda
+         vacio y «no esta» se cumple por accidente. */
       const jpg = new Uint8Array([255,216,255,217]);
       _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
         regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
@@ -141569,9 +141755,10 @@ caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexa
       const vol = [...document.querySelectorAll('#cine-side button')]
         .filter(b => (b.textContent||'').trim() === 'Volumen')[0] || null;
       R.e_hay = !!vol;
-      R.e_apagado = !!vol && vol.disabled === true;
-      R.e_leyenda = vol ? (vol.getAttribute('title')||'') : '';
-      R.e_dicePronto = R.e_leyenda.indexOf('próximamente') >= 0;
+      R.e_rotulos = [...document.querySelectorAll('#cine-side button')]
+        .map(b => (b.textContent||'').trim()).join('|');
+      /* DENOMINADOR de la inversion: el selector SI pinto sus herramientas de 2D. */
+      R.e_denom = R.e_rotulos.indexOf('Distancia') >= 0 && R.e_rotulos.indexOf('Simpson') >= 0;
     } catch (e) { R.err = String((e && e.message) || e); }
     try { cineCerrar(); } catch (e) {}
     try { window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal; } catch (e) {}
@@ -141590,9 +141777,8 @@ caso('TC-885', 'MEDIR-2 bloque E: la tabla de Simpson publica mL y mL/m² indexa
       ['(B) y lo DICE, nombrando lo que falta',            R.b_avisa === true, String(R.b_txt).slice(-150)],
       ['(C) sin peso, lo mismo',                           R.c_sinIx && R.c_avisa, R.c_sinIx + '/' + R.c_avisa],
       ['(D) el calculo no se toco: los mismos mL',         R.d_mismos === true, R.d_valores],
-      ['(E) «Volumen» sigue visible',                      R.e_hay === true, R.e_hay],
-      ['(E) apagado',                                      R.e_apagado === true, R.e_apagado],
-      ['(E) y con su leyenda de proximamente',             R.e_dicePronto === true, R.e_leyenda]
+      ['(E) DENOMINADOR: el selector pinto sus herramientas', R.e_denom === true, R.e_rotulos],
+      ['(E) INVERTIDA: «Volumen» ya NO esta',              R.e_hay === false, R.e_rotulos]
     ] };
   })();
 `);
@@ -141787,6 +141973,768 @@ caso('TC-886', 'MEDIR-2 bloque F: la comunidad de desarrollo de IA va BLOQUEADA 
     ] };
   })();
 `);
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   MEDIR-3 (2026-11-14) — CINCO CASOS. Cada uno declara su DENOMINADOR y, donde la condicion
+   puede cumplirse por accidente, su CONTROL NEGATIVO.
+   ⚠️ TODOS ASEGURAN EL MODO EN VEZ DE ALTERNARLO. `d2Modo` y `dopModo` son toggles: llamarlos a
+   secas hereda el modo que dejo el caso anterior del lote y, si ya era el que se pide, lo APAGAN
+   y no se pinta ninguna tabla. Es lo que MEDIR-2 pago con TC-882, TC-883 y TC-886.
+   ⚠️ EL FIXTURE TRAE LAS DOS REGIONES, 2D Y DOPPLER. Con una sola region 2D la herramienta
+   Velocidad queda fuera de juego —desde MEDIR-3 el modo M la apaga— y el cajon Doppler no se
+   dibuja: la sonda de esta tanda midio CERO tablas por eso antes de arreglarlo.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro de los costados se va, la columna de medicion pasa a 380 px, y el selector queda FIJO arriba con el boton 2D/Doppler siempre visible mientras se desplaza solo la tabla', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = { red: [] };
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 };
+      const RDOP = { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 };
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[R2D, RDOP] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      const $ = id => document.getElementById(id);
+      const W = el => el ? Math.round(el.getBoundingClientRect().width) : -1;
+
+      /* ── (A1) EL NEGRO: el envoltorio que lo lleva tiene el tamanio de la imagen ── */
+      R.a_lienzoW = W($('cine-lienzo'));
+      R.a_recorteW = W($('cine-recorte'));
+      R.a_canvasW = W($('cine-cv'));
+      R.a_denom = R.a_canvasW > 0 && R.a_lienzoW > R.a_canvasW;   // la columna es MAS ancha que la imagen
+      R.a_negroCero = (R.a_recorteW - R.a_canvasW) <= 1;
+      const bgL = $('cine-lienzo') ? getComputedStyle($('cine-lienzo')).backgroundColor : '';
+      const bgR = $('cine-recorte') ? getComputedStyle($('cine-recorte')).backgroundColor : '';
+      R.a_bg = bgL + ' / ' + bgR;
+      R.a_lienzoTransp = bgL === 'rgba(0, 0, 0, 0)' || bgL === 'transparent';
+      const soloNums = c => String(c).replace(/[^0-9,]/g, '');
+      R.a_recorteNegro = soloNums(bgR).indexOf('0,0,0') === 0;
+      /* ⚠️ EL TOPE DEL MODAL SE MIDE POR ESTILO COMPUTADO Y NO POR EL ANCHO PINTADO, y la razon
+         es el DENOMINADOR: la ventana del arnes mide 756 px, asi que el modal se pinta en 728 y
+         «mas de 1180» es imposible de cumplir aca por mas que el tope haya subido. Lo que define
+         el cambio es el TOPE —paso de 1180 a 1500 px— y que el modal use todo el ancho que la
+         ventana le deja. Es la leccion de TC-244: un denominador que deja de morder no se afloja,
+         se cambia por uno que mida lo mismo en cualquier ventana. */
+      R.a_modalW = W($('cine-modal'));
+      R.a_modalTope = $('cine-modal') ? getComputedStyle($('cine-modal')).maxWidth : '(no)';
+      R.a_topeSubio = parseFloat(R.a_modalTope) >= 1500;
+      const ovw = $('cine-ov') ? $('cine-ov').clientWidth : 0;
+      const pad = $('cine-ov') ? (parseFloat(getComputedStyle($('cine-ov')).paddingLeft) || 0) : 0;
+      R.a_disponible = Math.round(ovw - 2 * pad);
+      R.a_usaTodo = Math.abs(R.a_modalW - Math.min(R.a_disponible, parseFloat(R.a_modalTope))) <= 2;
+      /* La columna de medicion gana espacio al mismo tiempo. */
+      const cd = document.querySelector('#cine-ov .cine-col-der');
+      R.a_colDerW = W(cd);
+      R.a_colDer380 = R.a_colDerW >= 375;
+      /* Y la geometria del canvas NO cambio: sigue en pixeles de imagen, asi que la calibracion
+         no se entera. Es la invariante que el pedido exige. */
+      R.a_canvasPx = $('cine-cv') ? ($('cine-cv').width + 'x' + $('cine-cv').height) : '(no)';
+      R.a_canvasEsImagen = R.a_canvasPx === '600x500';
+
+      /* ── (A2) EL SELECTOR FIJO, Y EL DESPLAZAMIENTO ES DE LA TABLA ── */
+      const sc = document.querySelector('#cine-ov .cine-der-scroll');
+      R.b_hayScroller = !!sc;
+      R.b_sideFuera = !!(sc && $('cine-side') && !sc.contains($('cine-side')));
+      R.b_cajonesDentro = !!(sc && $('cine-der-slot') && sc.contains($('cine-der-slot')));
+      R.b_colDerNoDesplaza = !!cd && getComputedStyle(cd).overflowY !== 'auto' &&
+                                     getComputedStyle(cd).overflowY !== 'scroll';
+      R.b_scrollerDesplaza = !!sc && getComputedStyle(sc).overflowY === 'auto';
+      /* El selector no se encoge: su base flex es 0 0 auto. */
+      R.b_sideNoSeEncoge = $('cine-side') ? getComputedStyle($('cine-side')).flexShrink === '0' : false;
+      /* Y «2D / Doppler / M» esta a la vista con la tabla larga puesta. */
+      if (typeof medHerramienta === 'function') medHerramienta('dist');
+      if (!_d2Estado() || _d2Estado().modo !== 'vi') d2Modo('vi');
+      ['vi.sivd','vi.ddvi','vi.ppd','vi.sivs','vi.dsvi','vi.pps'].forEach((c,i) => _d2Poner(c, 10 + i));
+      _d2Render();
+      await esperar(320);
+      const b2 = $('cine-g-2d'), bdop = $('cine-g-dop');
+      R.b_visibles = !!(b2 && b2.getBoundingClientRect().height > 0) &&
+                     !!(bdop && bdop.getBoundingClientRect().height > 0);
+      /* DENOMINADOR del desplazamiento: la tabla TIENE filas, o sea que habia algo que desplazar. */
+      R.b_filas = $('d2-cajon') ? $('d2-cajon').querySelectorAll('table.med-tabla tbody tr').length : 0;
+      /* Nada desborda a lo ancho: ni el cajon, ni la columna, ni el documento. */
+      R.b_desbordes = [
+        $('d2-cajon') ? ($('d2-cajon').scrollWidth - $('d2-cajon').clientWidth) : -1,
+        cd ? (cd.scrollWidth - cd.clientWidth) : -1,
+        document.documentElement.scrollWidth - document.documentElement.clientWidth
+      ].join('/');
+      R.b_sinDesborde = ($('d2-cajon').scrollWidth - $('d2-cajon').clientWidth) <= 1 &&
+                        (cd.scrollWidth - cd.clientWidth) <= 1 &&
+                        (document.documentElement.scrollWidth - document.documentElement.clientWidth) <= 1;
+      /* El modal no se desplaza verticalmente con todo puesto. */
+      /* ⚠️ NO SE AFIRMA «el modal no se desplaza»: la ventana del arnes mide 469 px de ALTO, asi
+         que ahi se desplaza siempre y la condicion no diria nada de esta tanda. Lo que SI se
+         afirma es de QUIEN es el desplazamiento: la columna de medicion no se desplaza —lo hace
+         su scroller— y eso es lo que el punto A2 cambio. El «el modal no se desplaza» a 1440x900
+         y a 1280x800 lo mide la sonda de dos motores, donde la ventana es la de verdad. */
+      R.b_modalScroll = $('cine-modal') ? ($('cine-modal').scrollHeight - $('cine-modal').clientHeight) : -1;
+      R.b_colDerScroll = cd ? (cd.scrollHeight - cd.clientHeight) : -1;
+      R.b_scrollerEsElQueDesplaza = R.b_colDerScroll <= 1;
+
+      /* ── (A7) UNA TABLA POR ESTRUCTURA, Y AL VOLVER REAPARECE CON SUS VALORES ──────────────
+         ⚠️ MEDIDO EN EL BLOQUE 0 DE ESTA TANDA: el cambio de estructura YA funcionaba antes de
+         MEDIR-3, asi que esta condicion NO afirma algo nuevo — afirma algo que no se puede
+         perder, y es lo que el punto A7 pide por escrito. Lo que MEDIR-3 cerro de A7 son las dos
+         tablas del reparto y la de «sin asignar», que viven en TC-262 y TC-249. */
+      const rotsD2 = () => $('d2-cajon')
+        ? [...$('d2-cajon').querySelectorAll('table.med-tabla tbody tr')]
+            .filter(tr => tr.children.length >= 4)
+            .map(tr => (tr.children[0].textContent || '').trim()).join('/')
+        : '';
+      const valDe = rot => { const c = $('d2-cajon'); if (!c) return '';
+        const tr = [...c.querySelectorAll('table.med-tabla tbody tr')]
+          .filter(x => x.children.length >= 4)
+          .filter(x => (x.children[0].textContent || '').trim().indexOf(rot) === 0)[0];
+        return tr ? (tr.children[1].textContent || '').trim() : ''; };
+      if (!_d2Estado() || _d2Estado().modo !== 'vi') d2Modo('vi');
+      _d2Poner('vi.ddvi', 52); _d2Render();
+      await esperar(280);
+      R.c_unaTabla = $('d2-cajon') ? $('d2-cajon').querySelectorAll('table.med-tabla').length === 1 : false;
+      R.c_vi52 = valDe('DDVI').indexOf('52') >= 0;
+      if (_d2Estado().modo !== 'vci') d2Modo('vci');
+      _d2Render();
+      await esperar(280);
+      R.c_anteriorDesaparece = rotsD2().indexOf('DDVI') < 0;
+      R.c_rotsVci = rotsD2();
+      if (_d2Estado().modo !== 'vi') d2Modo('vi');
+      _d2Render();
+      await esperar(280);
+      R.c_restaura = valDe('DDVI').indexOf('52') >= 0;
+      R.c_valVuelta = valDe('DDVI');
+      /* Y lo mismo pasando de 2D a Doppler y volviendo. */
+      medHerramienta('vel');
+      await esperar(300);
+      R.c_ocultoEnDop = !!$('d2-cajon') && getComputedStyle($('d2-cajon')).display === 'none';
+      medHerramienta('dist');
+      await esperar(300);
+      R.c_vuelveConValor = valDe('DDVI').indexOf('52') >= 0;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['(A1) DENOMINADOR: la columna es mas ancha que la imagen', R.a_denom === true,
+                                                           'lienzo=' + R.a_lienzoW + ' canvas=' + R.a_canvasW],
+      ['(A1) y aun asi NO sobra negro al costado',         R.a_negroCero === true,
+                                                           'recorte=' + R.a_recorteW + ' canvas=' + R.a_canvasW],
+      ['(A1) el negro vive en el envoltorio de la imagen', R.a_lienzoTransp && R.a_recorteNegro, R.a_bg],
+      ['(A1) el tope del modal subio de 1180 a 1500 px',   R.a_topeSubio === true, R.a_modalTope],
+      ['(A1) y usa todo el ancho que la ventana le deja',  R.a_usaTodo === true,
+                                                           'modal=' + R.a_modalW + ' disp=' + R.a_disponible],
+      ['(A1) y la columna de medicion gana espacio (380)', R.a_colDer380 === true, R.a_colDerW],
+      ['(A1) el canvas sigue en pixeles de IMAGEN',        R.a_canvasEsImagen === true, R.a_canvasPx],
+      ['(A2) hay un scroller propio para la tabla',        R.b_hayScroller === true, R.b_hayScroller],
+      ['(A2) el selector queda FUERA de el',               R.b_sideFuera === true, R.b_sideFuera],
+      ['(A2) y los cajones ADENTRO',                       R.b_cajonesDentro === true, R.b_cajonesDentro],
+      ['(A2) la columna NO es la que se desplaza',         R.b_colDerNoDesplaza === true, R.b_colDerNoDesplaza],
+      ['(A2) el scroller SI',                              R.b_scrollerDesplaza === true, R.b_scrollerDesplaza],
+      ['(A2) y el selector no se encoge',                  R.b_sideNoSeEncoge === true, R.b_sideNoSeEncoge],
+      ['(A2) DENOMINADOR: la tabla tiene filas',           R.b_filas >= 6, R.b_filas],
+      ['(A2) 2D y Doppler/M siguen visibles',              R.b_visibles === true, R.b_visibles],
+      ['(A2) nada desborda a lo ancho',                    R.b_sinDesborde === true, R.b_desbordes],
+      ['(A2) y la columna no es la que acumula el scroll',  R.b_scrollerEsElQueDesplaza === true,
+                                                           'colDer=' + R.b_colDerScroll + ' modal=' + R.b_modalScroll],
+      ['(A7) se muestra UNA sola tabla por estructura',     R.c_unaTabla === true, R.c_unaTabla],
+      ['(A7) DENOMINADOR: el VI muestra su DDVI en 52',     R.c_vi52 === true, R.c_vi52],
+      ['(A7) al cambiar de estructura, la anterior se va',  R.c_anteriorDesaparece === true, R.c_rotsVci],
+      ['(A7) y al volver REAPARECE con su valor',           R.c_restaura === true, R.c_valVuelta],
+      ['(A7) pasando a Doppler, el cajon 2D se oculta',     R.c_ocultoEnDop === true, R.c_ocultoEnDop],
+      ['(A7) y al volver trae el valor puesto',             R.c_vuelveConValor === true, R.c_vuelveConValor]
+    ] };
+  })();
+`);
+
+caso('TC-888', 'MEDIR-3 bloque B: los ocho botones de la barra del visor miden lo mismo y van en la misma fila, el AZUL es solo del modo prendido y las acciones quedan grises, y el rotulo del prendido contrasta 4,5:1', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      const barra = document.getElementById('cine-grp-med');
+      const bs = () => barra ? [...barra.querySelectorAll('button')] : [];
+      R.n = bs().length;
+      /* ── TAMANIO: uno solo, FIJO en px, y en la misma fila ── */
+      const med = () => bs().map(b => { const r = b.getBoundingClientRect();
+        return { id: b.id || '(sin id)', w: Math.round(r.width), h: Math.round(r.height),
+                 y: Math.round(r.top) }; });
+      const M = med();
+      R.detalle = M.map(x => x.id + ':' + x.w + 'x' + x.h).join(' ');
+      const hs = M.map(x => x.h), ws = M.map(x => x.w), ys = M.map(x => x.y);
+      R.mismoAlto = hs.length > 0 && Math.max.apply(null, hs) - Math.min.apply(null, hs) <= 1;
+      R.mismoAncho = ws.length > 0 && Math.max.apply(null, ws) - Math.min.apply(null, ws) <= 1;
+      /* ⚠️ «LA MISMA FILA» SOLO SE PUEDE EXIGIR SI ENTRAN, y en la ventana del arnes —756 px—
+         ocho botones de 118 px NO entran: envuelven, que es la conducta correcta y no un defecto.
+         Asi que la condicion lleva su DENOMINADOR: una sola fila cuando el ancho alcanza, y
+         cuando no alcanza se exige lo que importa en ese caso —que las areas tactiles de dos
+         lineas NO se encimen—, que es la leccion que MEDIR-2 pago con el row-gap del selector.
+         La fila unica a 1440x900 y 1280x800 la mide la sonda de dos motores. */
+      R.anchoBarra = barra ? Math.round(barra.clientWidth) : -1;
+      R.necesario = ws.length ? (Math.max.apply(null, ws) * ws.length + 4 * (ws.length - 1)) : -1;
+      R.entran = R.anchoBarra >= R.necesario;
+      R.lineas = (() => { const t = {}; ys.forEach(y => { t[y] = 1; }); return Object.keys(t).length; })();
+      R.mismaFila = !R.entran || (ys.length > 0 && Math.max.apply(null, ys) - Math.min.apply(null, ys) <= 1);
+      R.solapes = (() => { const b = bs(); let n = 0;
+        for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+          const r1 = b[i].getBoundingClientRect(), r2 = b[j].getBoundingClientRect();
+          if (!(r1.left < r2.right - 1 && r2.left < r1.right - 1)) continue;
+          const d = Math.abs((r1.top + r1.height/2) - (r2.top + r2.height/2));
+          if (d > 0.5 && d < 44) n++;
+        }
+        return n; })();
+      R.alto = hs.length ? Math.min.apply(null, hs) : -1;
+      R.altoMax = hs.length ? Math.max.apply(null, hs) : -1;
+      R.tactil = R.alto >= 44;
+      /* ⚠️ «FIJO EN px» SE MIDE CAMBIANDO EL ANCHO DEL CONTENEDOR: un ancho en porcentaje crece
+         con la pantalla y el pedido lo prohibe. Se acota el modal y se vuelve a medir. */
+      const modal = document.getElementById('cine-modal');
+      const wPrev = modal.style.width;
+      modal.style.width = '900px';
+      await esperar(260);
+      const M2 = med();
+      R.anchoTrasAcotar = M2.length ? Math.min.apply(null, M2.map(x => x.w)) : -1;
+      R.noCreceConLaPantalla = R.anchoTrasAcotar === R.alto * 0 + (ws.length ? Math.min.apply(null, ws) : -1);
+      modal.style.width = wPrev;
+      await esperar(220);
+
+      /* ── COLOR: azul SOLO el modo prendido ── */
+      const esAzul = bg => { const q = String(bg); if (q.indexOf('(') < 0) return false;
+        const n = q.slice(q.indexOf('(')+1, q.lastIndexOf(')')).split(',').map(x => parseFloat(x));
+        if (n.length < 3 || !isFinite(n[0])) return false;
+        if (n.length > 3 && n[3] === 0) return false;
+        return n[2] > 120 && n[2] - n[0] > 40 && n[2] - n[1] > 30; };
+      const azules = () => bs().filter(b => esAzul(getComputedStyle(b).backgroundColor))
+                               .map(b => b.id || '(sin id)');
+      R.azulesPrendido = azules().join(',');
+      R.soloElModo = R.azulesPrendido === 'cine-medir';
+      /* Las acciones que ANTES eran azules y mas altas: hoy ni azules ni mas altas. */
+      const gu = document.getElementById('cine-guardar'), cp = document.getElementById('cine-med-cap');
+      R.accionesGrises = !!gu && !!cp && !esAzul(getComputedStyle(gu).backgroundColor) &&
+                                          !esAzul(getComputedStyle(cp).backgroundColor);
+      R.accionesMismoAlto = !!gu && !!cp &&
+        Math.abs(Math.round(gu.getBoundingClientRect().height) - R.alto) <= 1 &&
+        Math.abs(Math.round(cp.getBoundingClientRect().height) - R.alto) <= 1;
+      /* CONTROL NEGATIVO: con el modo APAGADO no queda NINGUN azul. */
+      document.getElementById('cine-medir').click();
+      await esperar(320);
+      R.azulesApagado = azules().join(',');
+      R.ningunoApagado = R.azulesApagado === '';
+      document.getElementById('cine-medir').click();
+      await esperar(380);
+
+      /* ── CONTRASTE: 4,5:1 en los dos estados ── */
+      const lum = c => { const q = String(c); if (q.indexOf('(') < 0) return null;
+        const n = q.slice(q.indexOf('(')+1, q.lastIndexOf(')')).split(',').slice(0,3).map(x => parseFloat(x));
+        if (!isFinite(n[0])) return null;
+        const f = v => { v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+        return 0.2126*f(n[0]) + 0.7152*f(n[1]) + 0.0722*f(n[2]); };
+      const fondoDe = el => { let m = el;
+        while (m && m !== document.documentElement) { const bg = getComputedStyle(m).backgroundColor;
+          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg; m = m.parentElement; }
+        return 'rgb(255, 255, 255)'; };
+      const cont = el => { const st = getComputedStyle(el);
+        const L1 = lum(st.color);
+        const transp = st.backgroundColor === 'rgba(0, 0, 0, 0)' || st.backgroundColor === 'transparent';
+        const L2 = lum(transp ? fondoDe(el.parentElement) : st.backgroundColor);
+        if (L1 == null || L2 == null) return null;
+        return +(((Math.max(L1,L2)+0.05)/(Math.min(L1,L2)+0.05)).toFixed(2)); };
+      const cs = bs().map(b => ({ id: b.id, c: cont(b) })).filter(x => x.c != null);
+      R.contrastes = cs.map(x => x.id + '=' + x.c).join(' ');
+      R.peor = cs.length ? Math.min.apply(null, cs.map(x => x.c)) : -1;
+      R.contrasteOk = cs.length === R.n && R.peor >= 4.5;
+      /* Y el del PRENDIDO en particular, que es el que la hoja global dejaba en 3,21 de noche. */
+      const bm = document.getElementById('cine-medir');
+      R.contPrendido = bm ? cont(bm) : -1;
+      R.prendidoOk = R.contPrendido >= 4.5;
+      /* Se mide que el color del prendido lo escribe la app y no la hoja: es lo que lo arregla. */
+      R.prendidoColorPropio = !!bm && String(bm.style.color || '') !== '';
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['DENOMINADOR: la barra tiene sus ocho botones',     R.n === 8, R.n],
+      ['todos del MISMO alto',                             R.mismoAlto === true, 'min=' + R.alto + ' max=' + R.altoMax],
+      ['y del mismo ancho',                                R.mismoAncho === true, R.detalle],
+      ['en la MISMA fila cuando el ancho alcanza',         R.mismaFila === true,
+                                                           'entran=' + R.entran + ' lineas=' + R.lineas +
+                                                           ' ancho=' + R.anchoBarra + ' nec=' + R.necesario],
+      ['y envueltos, sus areas tactiles NO se encimAN',    R.solapes === 0, R.solapes],
+      ['con el piso tactil de 44 px',                      R.tactil === true, R.alto],
+      ['el ancho NO crece con la pantalla (fijo en px)',   R.noCreceConLaPantalla === true,
+                                                           'acotado=' + R.anchoTrasAcotar],
+      ['AZUL solo el modo prendido',                       R.soloElModo === true, R.azulesPrendido],
+      ['las dos acciones que eran azules quedan grises',   R.accionesGrises === true, R.accionesGrises],
+      ['y con el mismo alto que las demas',                R.accionesMismoAlto === true, R.accionesMismoAlto],
+      ['CONTROL: con el modo apagado NO hay ningun azul',  R.ningunoApagado === true, R.azulesApagado],
+      ['los ocho contrastan 4,5:1 o mas',                  R.contrasteOk === true, R.contrastes],
+      ['el PRENDIDO tambien, que era el que no llegaba',   R.prendidoOk === true, R.contPrendido],
+      ['y su rotulo lo escribe la app, no la hoja global', R.prendidoColorPropio === true, R.prendidoColorPropio]
+    ] };
+  })();
+`);
+
+caso('TC-889', 'MEDIR-3 bloque A4: los textos de advertencia y de metodo del panel de medicion se MUEVEN a un globo accesible y ninguno se pierde -- el globo es un dialogo propio con foco y Escape que NO cierra el visor, y en el panel queda una sola linea de instruccion', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 };
+      const RDOP = { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 };
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[R2D, RDOP] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      const $ = id => document.getElementById(id);
+
+      /* ── (A) EL CAJON DOPPLER: sus descargos viven en el globo y NO en el panel ── */
+      medHerramienta('vel');
+      if (!_dopEstado() || _dopEstado().modo !== 'pul') dopModo('pul');
+      _dopEstado().pul.vtiPul = 18; _dopEstado().pul.diamTsvd = null;
+      _dopRender();
+      await esperar(340);
+      const dc = $('dop-cajon');
+      R.a_hayCajon = !!dc && !!dc.querySelector('table.med-tabla');
+      R.a_info = (typeof _medPanelInfo === 'function') ? (_medPanelInfo('dop') || {}) : {};
+      R.a_txts = (R.a_info.txts || []);
+      R.a_n = R.a_txts.length;
+      const unido = R.a_txts.join(' || ');
+      R.a_muestra = unido.slice(0, 160);
+      /* LOS CINCO GRUPOS, uno por uno: no alcanza con contar. */
+      R.a_falta = unido.indexOf('Vol Eyectivo VD falta') >= 0;
+      R.a_lapiz = unido.indexOf('Los derivados se recalculan solos') >= 0;
+      R.a_descargo = unido.indexOf('no reemplaza') >= 0 || unido.indexOf('apoyo') >= 0 ||
+                     R.a_txts.some(t => t.length > 60);
+      R.a_todos = R.a_falta && R.a_lapiz && R.a_n >= 3;
+      /* ⚠️ «SE MOVIO» Y NO «SE DUPLICO»: el panel NO los imprime. Es la otra mitad y es la que
+         distingue mover de agregar. */
+      const vis = dc ? (dc.textContent || '') : '';
+      R.a_noEstaALaVista = vis.indexOf('Los derivados se recalculan solos') < 0 &&
+                           vis.indexOf('Vol Eyectivo VD falta') < 0;
+      /* Y queda UNA sola linea de instruccion: la de «Midiendo para …» cuando hay destino. */
+      _dopEstado().destino = 'pul.vtiPul'; _dopRender();
+      await esperar(260);
+      R.a_instruccion = ($('dop-cajon').textContent || '').indexOf('Midiendo para') >= 0;
+      _dopEstado().destino = null; _dopRender();
+      await esperar(200);
+
+      /* ── (B) EL BOTON: es un boton de verdad, con 44 px de area y su nombre accesible ── */
+      const bts = [...document.querySelectorAll('#cine-ov [data-med-info]')];
+      R.b_n = bts.length;
+      R.b_claves = bts.map(b => b.getAttribute('data-med-info')).join(',');
+      R.b_sonBotones = bts.length > 0 && bts.every(b => b.tagName === 'BUTTON');
+      R.b_areas = bts.map(b => Math.round(parseFloat(getComputedStyle(b, '::after').height) || 0)).join(',');
+      R.b_tactil = bts.length > 0 && bts.every(b =>
+        (parseFloat(getComputedStyle(b, '::after').height) || 0) >= 44);
+      R.b_aria = bts.every(b => (b.getAttribute('aria-label') || '').length > 5);
+
+      /* ── (C) EL GLOBO ABRE, ES UN DIALOGO, Y ESCAPE NO SE LLEVA EL VISOR ── */
+      const bdop = bts.filter(b => b.getAttribute('data-med-info') === 'dop')[0];
+      R.c_hayBoton = !!bdop;
+      if (bdop) bdop.click();
+      await esperar(280);
+      const gov = $('med-info-ov');
+      R.c_abre = !!gov;
+      R.c_rol = gov ? gov.getAttribute('role') : '(no)';
+      R.c_modal = gov ? gov.getAttribute('aria-modal') : '(no)';
+      R.c_foco = document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : '(no)';
+      R.c_focoOk = R.c_foco === 'med-info-ok';
+      R.c_parrafos = gov ? gov.querySelectorAll('p').length : -1;
+      R.c_losMismos = R.c_parrafos === R.a_n;
+      /* El texto del globo es el registrado, carácter por carácter. */
+      R.c_textoIgual = !!gov && [...gov.querySelectorAll('p')].map(e => e.textContent).join(' || ') === unido;
+      /* Y TODO entra por texto: ni un elemento dentro de los parrafos. */
+      R.c_sinMarcado = !!gov && [...gov.querySelectorAll('p')].every(e => e.children.length === 0);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await esperar(260);
+      R.c_cerroConEsc = !$('med-info-ov');
+      R.c_visorVivo = !!$('cine-ov');
+      /* Y NO deja nodo: se destruye al cerrar, asi que ningun barrido de «Nuevo estudio» lo
+         puede alcanzar. */
+      R.c_sinNodo = !$('med-info-ov') && !$('med-info-tit') && !$('med-info-ok');
+
+      /* ── (D) EL CAJON 2D TAMBIEN TIENE SU GLOBO, con los descargos de _d2Disc ── */
+      medHerramienta('dist');
+      if (!_d2Estado() || _d2Estado().modo !== 'vi') d2Modo('vi');
+      _d2Poner('vi.sivd', 14); _d2Poner('vi.sivs', 11); _d2Render();
+      await esperar(320);
+      const i2 = (typeof _medPanelInfo === 'function') ? (_medPanelInfo('d2') || {}) : {};
+      R.d_n = (i2.txts || []).length;
+      const u2 = (i2.txts || []).join(' || ');
+      R.d_muestra = u2.slice(0, 140);
+      /* El descargo del engrosamiento NEGATIVO es texto CLINICO y tiene que seguir existiendo:
+         distingue un adelgazamiento real de dos fases invertidas. */
+      R.d_negativo = u2.indexOf('NEGATIVO') >= 0;
+      R.d_noSeGuardan = u2.indexOf('NO se guardan') >= 0;
+      R.d_noALaVista = ($('d2-cajon').textContent || '').indexOf('NEGATIVO') < 0;
+      /* CONTROL NEGATIVO: sin la fila del engrosamiento, ese texto NO esta — o sea que el globo
+         sigue el estado y no publica una lista fija. */
+      _d2Poner('vi.sivs', null); _d2Render();
+      await esperar(300);
+      const u3 = ((typeof _medPanelInfo === 'function') ? ((_medPanelInfo('d2') || {}).txts || []) : []).join(' || ');
+      R.d_control = u3.indexOf('NEGATIVO') < 0;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['(A) DENOMINADOR: el cajon Doppler pinto su tabla', R.a_hayCajon === true, R.a_hayCajon],
+      ['(A) sus textos estan registrados en el globo',     R.a_todos === true, R.a_n + ': ' + R.a_muestra],
+      ['(A) el aviso del Vol Eyectivo VD, ahi adentro',    R.a_falta === true, R.a_falta],
+      ['(A) y la nota del lapiz tambien',                  R.a_lapiz === true, R.a_lapiz],
+      ['(A) SE MOVIERON: ya no se imprimen en el panel',   R.a_noEstaALaVista === true, R.a_noEstaALaVista],
+      ['(A) y queda UNA linea de instruccion',             R.a_instruccion === true, R.a_instruccion],
+      ['(B) DENOMINADOR: hay globos en el visor',          R.b_n >= 1, R.b_claves],
+      ['(B) son botones de verdad',                        R.b_sonBotones === true, R.b_sonBotones],
+      ['(B) con 44 px de area tactil',                     R.b_tactil === true, R.b_areas],
+      ['(B) y con nombre accesible',                       R.b_aria === true, R.b_aria],
+      ['(C) el globo ABRE',                                R.c_abre === true, R.c_abre],
+      ['(C) es un dialogo modal',                          R.c_rol === 'dialog' && R.c_modal === 'true', R.c_rol + '/' + R.c_modal],
+      ['(C) con el foco en «Entendido»',                   R.c_focoOk === true, R.c_foco],
+      ['(C) y trae los MISMOS textos registrados',         R.c_losMismos && R.c_textoIgual, R.c_parrafos + ' vs ' + R.a_n],
+      ['(C) todo por texto, sin marcado adentro',          R.c_sinMarcado === true, R.c_sinMarcado],
+      ['(C) Escape lo cierra',                             R.c_cerroConEsc === true, R.c_cerroConEsc],
+      ['(C) y NO se lleva el visor',                       R.c_visorVivo === true, R.c_visorVivo],
+      ['(C) y no deja ningun nodo suyo',                   R.c_sinNodo === true, R.c_sinNodo],
+      ['(D) el cajon 2D tambien tiene su globo',           R.d_n >= 2, R.d_n + ': ' + R.d_muestra],
+      ['(D) con el descargo del engrosamiento NEGATIVO',   R.d_negativo === true, R.d_negativo],
+      ['(D) y el de que no se guardan',                    R.d_noSeGuardan === true, R.d_noSeGuardan],
+      ['(D) ninguno a la vista en el panel',               R.d_noALaVista === true, R.d_noALaVista],
+      ['(D) CONTROL: sin la fila, ese texto NO esta',      R.d_control === true, R.d_control]
+    ] };
+  })();
+`);
+
+caso('TC-890', 'MEDIR-3 bloque C: la calibracion de velocidad sale de DOS puntos con el valor de cada uno -- de ahi la escala Y la posicion del cero, que se dibuja rotulado--, y en modo M la herramienta Velocidad queda apagada por sus tres capas', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, promptReal = window.prompt;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      /* ── (A) LA CUENTA, sobre la funcion pura: el ejemplo literal del pedido ── */
+      R.a_hayFn = typeof _medCalVelDos === 'function';
+      const cal = R.a_hayFn ? _medCalVelDos(400, 50, 300, 100) : null;   // 0,5 y 1,0 m/s en cm/s
+      R.a_k = cal ? cal.cmsPorPx : null;
+      R.a_y0 = cal ? cal.y0 : null;
+      R.a_escala = !!cal && Math.abs(cal.cmsPorPx - 0.5) < 1e-9;
+      R.a_cero = !!cal && Math.abs(cal.y0 - 500) < 1e-9;
+      /* El cero cae FUERA del tramo marcado (300 y 400): es para esto que hacen falta dos valores. */
+      R.a_ceroFuera = !!cal && cal.y0 > 400;
+      /* Y la lectura en cada altura devuelve el valor escrito, por el MISMO camino de la app. */
+      R.a_lee = !!cal && Math.abs(_medVelCalEn(cal, 300) - 100) < 1e-9 &&
+                         Math.abs(_medVelCalEn(cal, 400) - 50) < 1e-9;
+      /* CONTROL POSITIVO del orden: marcar al reves da la MISMA escala y el MISMO cero. */
+      const inv = R.a_hayFn ? _medCalVelDos(300, 100, 400, 50) : null;
+      R.a_ordenIgual = !!inv && !!cal && Math.abs(inv.cmsPorPx - cal.cmsPorPx) < 1e-9 &&
+                       Math.abs(inv.y0 - cal.y0) < 1e-9;
+      /* Los dos rechazos. */
+      R.a_mismoValor = R.a_hayFn && _medCalVelDos(400, 100, 300, 100) === null;
+      R.a_juntas = R.a_hayFn && _medCalVelDos(400, 50, 403, 100) === null;
+
+      /* ── (B) EL GESTO COMPLETO, con dos prompts, y la LINEA DEL CERO dibujada ── */
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[] } }]);                       // sin region: la app ofrece calibrar sola
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      medHerramienta('vel');
+      await esperar(300);
+      R.b_entroSolo = _medCalibrandoVel === true;
+      R.b_instruccion = (document.getElementById('cine-med-barra').textContent || '');
+      R.b_diceDosPuntos = R.b_instruccion.indexOf('marcá dos puntos del eje y escribí su valor') >= 0;
+      /* Los dos clics, con su valor cada uno. Se usa el canvas de medicion real. */
+      const cvm = document.getElementById('cine-med');
+      const clicEn = yImg => { const r = cvm.getBoundingClientRect();
+        const ev = new MouseEvent('click', { bubbles:true,
+          clientX: Math.round(r.left + r.width / 2),
+          clientY: Math.round(r.top + yImg * (r.height / cvm.height)) });
+        cvm.dispatchEvent(ev); };
+      let np = 0;
+      window.prompt = () => (np++ === 0 ? '0.5' : '1.0');
+      clicEn(400); await esperar(200);
+      R.b_pidioUno = np === 1;
+      /* ⚠️ SE LEE POR window Y NO PELADO: contra la linea base esta variable NO EXISTE, y un acceso
+         pelado tira ReferenceError que se lleva el caso ENTERO —la condicion «sin excepciones»
+         sale roja y las veinticuatro de abajo no llegan a evaluarse, asi que el caso cae sin
+         diagnosticar nada—. Es lo que TC-827 tuvo que deshacer en PANT-37. Leerla por window.
+         devuelve undefined sin lanzar, y en el arbol nuevo resuelve el MISMO accesor, porque
+         vive en window por defineProperty. */
+      R.b_primeraMarca = !!window._medCalVelP0;
+      clicEn(300); await esperar(240);
+      R.b_pidioDos = np === 2;
+      R.b_calibro = !!_medCalibVel;
+      R.b_k = _medCalibVel ? _medCalibVel.cmsPorPx : null;
+      R.b_y0 = _medCalibVel ? Math.round(_medCalibVel.y0) : null;
+      R.b_salioDeCalibrar = _medCalibrandoVel === false;
+      R.b_sueltaLaMarca = !window._medCalVelP0;
+      /* La escala sale de los dos valores: 50 cm/s en los pixeles que separan los dos clics.
+         Se compara contra lo que los clics REGISTRARON, no contra lo que yo quise clickear:
+         clientY es entero por especificacion y el viaje pantalla->imagen pierde subpixeles. */
+      R.b_escalaCoherente = !!_medCalibVel &&
+        Math.abs(_medVelCalEn(_medCalibVel, _medCalibVel.y0) - 0) < 1e-9;
+      /* ── LA LINEA DEL CERO SE DIBUJA, medida por PIXELES ── */
+      _medCalibVel = { y0: 420, cmsPorPx: 0.5 };
+      _medPintar();
+      await esperar(220);
+      const ctx = cvm.getContext('2d');
+      const tintaEn = y => { const fr = ctx.getImageData(0, Math.max(0, y - 2), cvm.width, 5);
+        let n = 0; for (let i = 3; i < fr.data.length; i += 4) if (fr.data[i] > 20) n++; return n; };
+      R.b_tintaEnElCero = tintaEn(420);
+      R.b_tintaLejos = tintaEn(120);
+      R.b_dibujaElCero = R.b_tintaEnElCero > 50;
+      /* CONTROL NEGATIVO: sin calibracion manual esa banda queda LIMPIA, o sea que la tinta es
+         de la linea y no de otra cosa que ya estaba. */
+      _medCalibVel = null; _medPintar();
+      await esperar(200);
+      R.b_sinCalSinLinea = tintaEn(420) === 0;
+
+      /* ── (C) EL MODO M APAGA VELOCIDAD, por sus tres capas ── */
+      _cineAbrir([{ nombre:'M', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:4, uy:3, dx:0.004, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:3 }] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      R.c_predicado = (typeof _medVelBloqueadaM === 'function') ? _medVelBloqueadaM() : '(sin fn)';
+      _medGrupo = 'dop';
+      _medEstado();
+      await esperar(320);
+      const bv = document.getElementById('cine-med-vel');
+      R.c_botonHay = !!bv;
+      R.c_botonApagado = !!bv && (bv.disabled === true || bv.getAttribute('aria-disabled') === 'true');
+      R.c_botonDice = bv ? (bv.getAttribute('title') || '') : '';
+      R.c_diceElMotivo = R.c_botonDice.indexOf('centímetros') >= 0 || R.c_botonDice.indexOf('modo M') >= 0;
+      /* TERCERA CAPA: la funcion se niega aunque la llamen desde afuera. */
+      medHerramienta('vel');
+      R.c_herrTras = _medHerr;
+      R.c_terceraCapa = _medHerr !== 'vel';
+      /* CONTROL NEGATIVO: sobre una imagen 2D NORMAL la herramienta NO se bloquea — el modo M es
+         el eje Y en cm Y el X en otra unidad, no cualquier eje en cm. */
+      _cineAbrir([{ nombre:'D', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      R.c_control2D = (typeof _medVelBloqueadaM === 'function') ? _medVelBloqueadaM() : '(sin fn)';
+      /* Y «Recalibrar vel.» se conserva. */
+      R.c_recal = !!document.getElementById('cine-med-recal');
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; window.prompt = promptReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['(A) DENOMINADOR: la funcion de dos valores existe', R.a_hayFn === true, R.a_hayFn],
+      ['(A) con 0,5 y 1,0 m/s la escala es 0,5 cm/s por px', R.a_escala === true, R.a_k],
+      ['(A) y el cero cae en y=500',                       R.a_cero === true, R.a_y0],
+      ['(A) o sea FUERA del tramo marcado',                R.a_ceroFuera === true, R.a_y0],
+      ['(A) y lee el valor escrito en cada altura',        R.a_lee === true, R.a_lee],
+      ['(A) CONTROL: el orden de las marcas no cambia nada', R.a_ordenIgual === true, R.a_ordenIgual],
+      ['(A) rechaza el mismo valor dos veces',             R.a_mismoValor === true, R.a_mismoValor],
+      ['(A) y las marcas demasiado juntas',                R.a_juntas === true, R.a_juntas],
+      ['(B) DENOMINADOR: sin escala en el archivo, calibra solo', R.b_entroSolo === true, R.b_entroSolo],
+      ['(B) la instruccion es la del pedido',              R.b_diceDosPuntos === true, String(R.b_instruccion).slice(0,110)],
+      ['(B) pide el valor de la PRIMERA marca en el acto', R.b_pidioUno && R.b_primeraMarca, R.b_pidioUno + '/' + R.b_primeraMarca],
+      ['(B) y el de la segunda despues',                   R.b_pidioDos === true, R.b_pidioDos],
+      ['(B) con eso queda calibrada',                      R.b_calibro === true, 'k=' + R.b_k + ' y0=' + R.b_y0],
+      ['(B) sale del modo calibracion y suelta la marca',  R.b_salioDeCalibrar && R.b_sueltaLaMarca, R.b_salioDeCalibrar + '/' + R.b_sueltaLaMarca],
+      ['(B) y en el cero la velocidad es cero',            R.b_escalaCoherente === true, R.b_escalaCoherente],
+      ['(B) la LINEA del cero se dibuja',                  R.b_dibujaElCero === true, R.b_tintaEnElCero],
+      ['(B) CONTROL: sin calibracion esa banda esta limpia', R.b_sinCalSinLinea === true, R.b_tintaLejos],
+      ['(C) en modo M el predicado dice que SI bloquea',   R.c_predicado === true, R.c_predicado],
+      ['(C) el boton Velocidad sale APAGADO',              R.c_botonApagado === true, R.c_botonHay + '/' + R.c_botonApagado],
+      ['(C) y dice por que',                               R.c_diceElMotivo === true, String(R.c_botonDice).slice(0,90)],
+      ['(C) TERCERA CAPA: la funcion tambien se niega',    R.c_terceraCapa === true, R.c_herrTras],
+      ['(C) CONTROL: sobre una imagen 2D NO bloquea',      R.c_control2D === false, R.c_control2D],
+      ['(C) y «Recalibrar vel.» se conserva',              R.c_recal === true, R.c_recal]
+    ] };
+  })();
+`);
+
+caso('TC-891', 'MEDIR-3 bloque D: el VD entra al gesto de Area en sus dos fases y su tabla publica las dos areas con los rotulos de la app mas el FAC calculado -- sin escribir un solo campo del formulario y sin publicar ningun corte clinico', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      /* ── (A) LA CUENTA, sobre la funcion pura ── */
+      R.a_hayFn = typeof _medFacVD === 'function';
+      const F1 = R.a_hayFn ? _medFacVD(20, 12) : null;
+      R.a_fac = F1 ? +F1.fac.toFixed(4) : null;
+      R.a_bien = !!F1 && Math.abs(F1.fac - 40) < 1e-9;          // (20-12)/20*100
+      R.a_noInvertido = !!F1 && F1.invertido === false;
+      const F2 = R.a_hayFn ? _medFacVD(12, 20) : null;
+      R.a_invertido = !!F2 && F2.invertido === true;
+      /* Falta un area: NO hay FAC. Sin esta guarda, Number(null) es 0 y salia 100 %. */
+      R.a_sinS = R.a_hayFn && _medFacVD(20, null) === null;
+      R.a_sinD = R.a_hayFn && _medFacVD(null, 12) === null;
+      R.a_vacio = R.a_hayFn && _medFacVD(20, '') === null;
+      R.a_ceroD = R.a_hayFn && _medFacVD(0, 0) === null;
+      /* Y es la MISMA definicion que el formulario: se comparan los dos con los mismos numeros. */
+      __t.set('vd_area_d', '20'); __t.set('vd_area_s', '12');
+      if (typeof calcVD === 'function') calcVD();
+      await esperar(260);
+      R.a_facCampo = (document.getElementById('vd_fac') || {}).value || '';
+      R.a_mismaDefinicion = String(Math.round(F1 ? F1.fac : -1)) === String(Math.round(Number(R.a_facCampo)));
+      __t.set('vd_area_d', ''); __t.set('vd_area_s', '');
+      if (typeof calcVD === 'function') calcVD();
+      await esperar(220);
+
+      /* ── (B) LAS DOS FASES EN EL SELECTOR ── */
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } }]);
+      await esperar(620);
+      if (!_vistaA.medOn) document.getElementById('cine-medir').click();
+      await esperar(420);
+      medHerramienta('area');
+      await esperar(340);
+      const rots = () => [...document.querySelectorAll('#cine-side button')]
+        .map(b => (b.textContent || '').trim());
+      R.b_rots = rots().join(' | ');
+      R.b_dosFases = R.b_rots.indexOf('VD diást.') >= 0 && R.b_rots.indexOf('VD sist.') >= 0;
+      /* DENOMINADOR: las dos auriculas siguen estando, o sea que el selector no se rehizo. */
+      R.b_siguenAuriculas = R.b_rots.indexOf('AI') >= 0 && R.b_rots.indexOf('AD') >= 0;
+      /* CONTROL NEGATIVO: con la herramienta de DISTANCIA esas dos opciones NO estan — la fila
+         del nivel 3 sigue el gesto y no es una lista fija. */
+      medHerramienta('dist');
+      await esperar(320);
+      R.b_control = rots().join(' | ').indexOf('VD diást.') < 0;
+      medHerramienta('area');
+      await esperar(320);
+      /* Y se eligen de verdad: el estado del gesto queda en esa fase. */
+      if (typeof medAreaEstructura === 'function') medAreaEstructura('vdd');
+      await esperar(200);
+      R.b_eligeFase = (typeof _medAreaEst !== 'undefined') ? _medAreaEst : '(no)';
+      R.b_eligeOk = R.b_eligeFase === 'vdd';
+
+      /* ── (C) LA TABLA DEL FAC EN EL PANEL GUIA, con los rotulos DE LA APP ── */
+      /* Los rotulos se leen del FORMULARIO y no se escriben aca: asi el dia que la app los
+         cambie el caso sigue a la app. */
+      const lblDe = id => { const e = document.getElementById(id); if (!e) return '';
+        const fg = e.closest('.fg'); const l = fg ? fg.querySelector('label') : null;
+        return l ? (l.textContent || '').replace(/\\s+/g, ' ').trim() : ''; };
+      R.c_lblD = lblDe('vd_area_d'); R.c_lblS = lblDe('vd_area_s');
+      /* El censo del formulario ANTES: ni un control puede cambiar. */
+      const censo = () => [...document.querySelectorAll('input[id],select[id],textarea[id]')]
+        .filter(e => !e.closest('#cine-ov'))
+        .map(e => e.id + '=' + (e.type === 'checkbox' ? (e.checked ? 1 : 0) : (e.value || ''))).join('|');
+      const antes = censo();
+      _medAreas.push({ pts: [], cm2: 20, est: 'vdd' });
+      _medAreas.push({ pts: [], cm2: 12, est: 'vds' });
+      _medEstado();
+      await esperar(320);
+      const guia = document.getElementById('cine-med-barra');
+      const filas = guia ? [...guia.querySelectorAll('table.med-tabla tbody tr')]
+        .filter(tr => tr.children.length >= 4)
+        .map(tr => ({ t: (tr.children[0].textContent || '').trim(),
+                      v: (tr.children[1].textContent || '').trim(),
+                      nbot: tr.children[2].querySelectorAll('button').length,
+                      acc: (tr.children[2].textContent || '').trim(),
+                      it: getComputedStyle(tr).fontStyle === 'italic' })) : [];
+      R.c_filas = filas.map(f => f.t + '=' + f.v).join(' / ');
+      R.c_tres = filas.length === 3;
+      const fd = filas.filter(f => f.t.indexOf('Área VD telediast') === 0)[0];
+      const fs = filas.filter(f => f.t.indexOf('Área VD telesist') === 0)[0];
+      const ff = filas.filter(f => f.t.indexOf('FAC') === 0)[0];
+      R.c_rotulosDeLaApp = !!fd && !!fs &&
+        R.c_lblD.indexOf(fd.t) >= 0 && R.c_lblS.indexOf(fs.t) >= 0;
+      R.c_valores = !!fd && !!fs && fd.v.indexOf('20.00') >= 0 && fs.v.indexOf('12.00') >= 0;
+      R.c_unidad = !!fd && fd.v.indexOf('cm²') >= 0;
+      R.c_hayFac = !!ff;
+      R.c_facValor = ff ? ff.v : '';
+      R.c_fac40 = !!ff && ff.v.indexOf('40') >= 0 && ff.v.indexOf('%') >= 0;
+      R.c_facSinBotones = !!ff && ff.nbot === 0 && ff.it === true && ff.acc === 'calculada';
+      /* Las dos areas NO son «calculada»: las midio el medico. */
+      R.c_areasSonMedidas = !!fd && !!fs && fd.acc === 'medida' && fs.acc === 'medida' && fd.nbot === 0;
+      /* NO ESCRIBE NADA: el censo entero, idéntico. */
+      R.c_censoIgual = censo() === antes;
+      R.c_facCampoVacio = ((document.getElementById('vd_fac') || {}).value || '') === '';
+      /* Y NO publica ningun corte clinico: ni «normal», ni «disfuncion», ni un numero de corte. */
+      const txtGuia = guia ? (guia.textContent || '') : '';
+      R.c_sinCortes = txtGuia.indexOf('35') < 0 && txtGuia.indexOf('disfunción') < 0 &&
+                      txtGuia.indexOf('normal') < 0;
+
+      /* ── (D) EL AVISO DE FASES INVERTIDAS, y su control ── */
+      R.d_sinAviso = txtGuia.indexOf('invertidas') < 0;
+      _medAreas.length = 0;
+      _medAreas.push({ pts: [], cm2: 12, est: 'vdd' });
+      _medAreas.push({ pts: [], cm2: 20, est: 'vds' });
+      _medEstado();
+      await esperar(300);
+      R.d_aviso = (document.getElementById('cine-med-barra').textContent || '').indexOf('invertidas') >= 0;
+      /* ── (E) FALTA UNA AREA: la fila del FAC no se dibuja ── */
+      _medAreas.length = 0;
+      _medAreas.push({ pts: [], cm2: 20, est: 'vdd' });
+      _medEstado();
+      await esperar(300);
+      const g2 = document.getElementById('cine-med-barra');
+      const f2 = g2 ? [...g2.querySelectorAll('table.med-tabla tbody tr')]
+        .filter(tr => tr.children.length >= 4)
+        .map(tr => (tr.children[0].textContent || '').trim()) : [];
+      R.e_filas = f2.join(' / ');
+      R.e_sinFac = f2.filter(t => t.indexOf('FAC') === 0).length === 0;
+      R.e_peroSiElArea = f2.filter(t => t.indexOf('Área VD telediast') === 0).length === 1;
+      /* ── (F) LA ESTRUCTURA SE SUELTA EN medApagar y NO en cineCerrar ── */
+      if (typeof medApagar === 'function') medApagar();
+      await esperar(220);
+      R.f_soltoFase = (typeof _medAreaEst !== 'undefined') ? (_medAreaEst === null) : false;
+      R.f_sinAreas = (_medAreas || []).length === 0;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    try { window.alert = alertReal; window.confirm = confirmReal; } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                  !R.err, R.err],
+      ['(A) DENOMINADOR: la funcion del FAC existe',       R.a_hayFn === true, R.a_hayFn],
+      ['(A) 20 y 12 cm² dan 40 %',                         R.a_bien === true, R.a_fac],
+      ['(A) y no marca fases invertidas',                  R.a_noInvertido === true, R.a_noInvertido],
+      ['(A) con la sistolica mayor, SI las marca',         R.a_invertido === true, R.a_invertido],
+      ['(A) falta la sistolica: NO hay FAC',               R.a_sinS === true, R.a_sinS],
+      ['(A) falta la diastolica: tampoco',                 R.a_sinD === true, R.a_sinD],
+      ['(A) ni con la cadena vacia',                       R.a_vacio === true, R.a_vacio],
+      ['(A) ni con la diastolica en cero',                 R.a_ceroD === true, R.a_ceroD],
+      ['(A) es la MISMA definicion que el formulario',     R.a_mismaDefinicion === true,
+                                                           R.a_fac + ' vs ' + R.a_facCampo],
+      ['(B) el selector ofrece las DOS fases del VD',      R.b_dosFases === true, R.b_rots],
+      ['(B) DENOMINADOR: y las dos auriculas siguen',      R.b_siguenAuriculas === true, R.b_rots],
+      ['(B) CONTROL: con Distancia esas opciones NO estan', R.b_control === true, R.b_control],
+      ['(B) y se eligen de verdad',                        R.b_eligeOk === true, R.b_eligeFase],
+      ['(C) la tabla trae TRES filas',                     R.c_tres === true, R.c_filas],
+      ['(C) con los rotulos exactos de la app',            R.c_rotulosDeLaApp === true,
+                                                           R.c_lblD + ' | ' + R.c_lblS],
+      ['(C) y los dos valores en cm²',                     R.c_valores && R.c_unidad, R.c_filas],
+      ['(C) el FAC calculado da 40 %',                     R.c_fac40 === true, R.c_facValor],
+      ['(C) sin botones, en cursiva y diciendolo',         R.c_facSinBotones === true, R.c_facSinBotones],
+      ['(C) y las dos areas dicen «medida», no «calculada»', R.c_areasSonMedidas === true, R.c_areasSonMedidas],
+      ['(C) NO escribe un solo campo del formulario',      R.c_censoIgual === true, R.c_censoIgual],
+      ['(C) y el FAC del formulario queda vacio',          R.c_facCampoVacio === true, R.c_facCampoVacio],
+      ['(C) sin publicar ningun corte clinico',            R.c_sinCortes === true, R.c_sinCortes],
+      ['(D) CONTROL: con las fases bien, no avisa',        R.d_sinAviso === true, R.d_sinAviso],
+      ['(D) y con la sistolica mayor, avisa',              R.d_aviso === true, R.d_aviso],
+      ['(E) falta un area: la fila del FAC no se dibuja',  R.e_sinFac === true, R.e_filas],
+      ['(E) pero la que se midio SI se ve',                R.e_peroSiElArea === true, R.e_filas],
+      ['(F) «Borrar» suelta la fase y los contornos',      R.f_soltoFase && R.f_sinAreas, R.f_soltoFase + '/' + R.f_sinAreas]
+    ] };
+  })();
+`);
+
 
 
 try {
