@@ -261,6 +261,69 @@ Hechos: **B1** (la barra unica), **B2** (el valor angosto y tocable) y **B3** (e
 5. La **verificacion completa** (bateria de los 906 casos, mutaciones, celular, Excel), los
    **casos nuevos** y la **documentacion** con el sello.
 
+### M5-m · LA BATERIA DEJO 36 ROJOS, Y QUINCE SON CONSECUENCIA DE B1 Y B2 — SIN ADAPTAR
+
+**Suite 875/911** sobre el arbol sellado `v20261115-1403` (md5 `c574e436`), en UNA sola pasada.
+De los **36 rojos**:
+
+**(a) LOS DE SIEMPRE Y LOS DECLARADOS — diez, no son de esta tanda:**
+TC-376, TC-390, TC-406 (los tres de siempre); TC-182, TC-551, TC-557, TC-562, TC-706 y TC-791
+(los intermitentes ya declarados); y **TC-753**, que tiene razon: `CLAUDE.md` todavia no publica
+el sello nuevo cuando se corrio.
+
+**(b) SENSIBILIDAD DE LOTE — cinco, verificados AISLADOS:** **TC-892, TC-893, TC-895, TC-897 y
+TC-903** fallan en la bateria por su DENOMINADOR —«las dos vistas montadas», «la tabla esta
+dibujada»— y **pasan 1/1 corridos solos**. Los 911 casos corren en UNA pagina y el estado
+acumulado les quita la escena. No son regresiones.
+
+**(c) ⚠️ QUINCE QUE SON CONSECUENCIA DIRECTA DE B1 Y B2, Y QUEDAN SIN ADAPTAR:**
+
+| caso | que afirma, y por que dejo de ser cierto |
+|---|---|
+| TC-199, TC-204, TC-205, TC-208 | el selector de **tres niveles**: «el grupo Deformacion arranca cerrado», «2D abierto por defecto, los otros cerrados», «la jerarquia la dan los TRES rotulos de fila». **B1 saco el nivel «Modo»**: hoy las filas se ven todas |
+| TC-887 | «(A2) 2D y Doppler/M siguen visibles» — mismo motivo |
+| TC-202, TC-888, TC-896 | la barra con **SIETE** botones. **C1 la dejo en SEIS** |
+| TC-249, TC-250, TC-251, TC-256, TC-257, TC-262 | el **inventario de filas** de los dos cajones y donde vive cada derivado: «trae sus catorce filas», «la AVA aparece sola», «el AVA declara LAS DOS vistas», «no falta ninguna fila del inventario anterior». **B4 a B7 reordenaron las cuatro valvulas y movieron los calculados al bloque de abajo** |
+| TC-889 | los textos del globo del cajon, que B2 reescribio al retirar el ✏️ |
+
+**Verificado:** **TC-250 falla tambien AISLADO**, o sea que es adaptacion de verdad y no lote.
+
+**NINGUNO SE ADAPTO.** Cada uno necesita su decision escrita donde vive la condicion —invertirla,
+ampliarla o retirarla con su sucesor— y despues una pasada LIMPIA de la bateria entera con el
+archivo de casos final, porque **esta casa no informa un numero de una pasada hecha con un archivo
+de casos anterior**. Es lo que queda de esta tanda junto con el barrido de mutaciones.
+
+**Lo que SI quedo medido y en verde:** los cinco casos nuevos (TC-899 a TC-903), que caen 0/5
+contra `2cd2ee9` y ninguno por excepcion; Semgrep **126/0**; el celular en **36 ALTA**, identico en
+los dos arboles; el Excel en **457** columnas (TC-135 y TC-479 en verde); y los diez cruces de
+Chrome y WebKit en los cinco anchos con cero errores de consola y de pagina.
+
+### M5-n · EL CELULAR: la cifra de la linea base de CLAUDE.md esta vieja
+
+`CLAUDE.md` publica «59 hallazgos a 360 px y 67 a 390, con **18 ALTA** en cada ancho». Medido hoy
+con el MISMO script en los DOS arboles —el vivo y `2cd2ee9`— da **36 ALTA en los dos**. O sea que
+**no hay regresion**: lo que esta mal es la cifra publicada, no el arbol. Los hallazgos que la
+componen son preexistentes y ajenos al visor (`input.ind-chk` de los acordeones de Evidencia,
+`#ecoHdrBurger`, `#cfg-clnk-on`). **No se corrigio la cifra de `CLAUDE.md`** porque habria que
+saber con que version del script salieron los 18.
+
+### M5-o · Los puntos abiertos, como estan HOY (sin decidir)
+
+1. **Que hace la herramienta Doppler sobre una imagen 2D**: no mide. Exige una region con escala de
+   velocidad y, para el VTI, ademas la del tiempo —que **no se puede calibrar a mano**—. Desde B9
+   eso ya no es un rechazo mudo: sale la guia con su boton.
+2. **Si la FC del visor reemplaza la del informe**: **no**. La mini tabla LEE `ao_fc` (espejo de
+   `hemo_fc`, sincronizados por `aoFcSync`) y es de solo lectura: cero controles. Medir la FC con
+   la herramienta cae en la fila generica del cajon y no toca el campo.
+3. **Una tabla o dos**: **una sola**, por diseño de MEDIR-4a. No se toco. Lo que distingue el
+   origen de cada numero es `_dopSufOrigen`.
+4. **TRIV tricuspideo y anillo mitral**: existen — `dt_triv` y `triv`; `e_sep`, `e_lat` y
+   `diam_mit`. Los dos primeros ya estan como filas del visor.
+5. **Etiqueta «FAC VD (%)», bandas de la IP y corte de FAC > 35 %**: sin cambiar. El campo es
+   `vd_fac`; el corte vive en `UMBRAL_FAC_VD_NORMAL = 35` con fuente **ASE 2025, Tabla 1, folio
+   145**; la IP telediastolica ≥ 2 m/s con fuente **ESC/EACTS 2025, folio 555a**; y `ip_vmax` e
+   `ip_vtd` **siguen sin banda de plausibilidad**, que es lo que **M3-b** declara.
+
 ### M5-f · LO QUE ESTA TANDA NO HIZO
 
 1. **C3** — «Guardar en biblioteca» al lado de «Limpiar» en las tablas del visor. **Medido**:
