@@ -275,7 +275,30 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,19 MB / 182.653 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-4a**, sobre el árbol ya sellado: sello **`v20261115-0250`**, md5 **`359755ea`**.
+  sin frameworks. Hoy **13,22 MB / 183.025 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **MEDIR-4b**, sobre el árbol ya sellado: sello **`v20261115-0555`**, md5 **`c875ae0f`**.
+  El diff de MEDIR-4b son **441 líneas agregadas y 69 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra **`74df0b6`** —el cierre de MEDIR-4a, que es la línea base de ESTA
+  tanda— **sobre el árbol ya sellado**, de las que **379** no son comentario, con **cero** `eval(`
+  y `new Function` nuevos, **cero** claves y contraseñas, **cero** direcciones nuevas y **CERO
+  llamadas de red nuevas**.
+  **CERO `innerHTML` nuevos que reciban una concatenación**: las TRES apariciones del diff son el
+  **comentario** que declara por qué el mensaje se arma antes de asignarlo, la línea que asigna esa
+  cadena **ya prearmada** —sólo literales, ni un dato del paciente— y la **cadena vacía** que
+  esconde el panel. Semgrep queda en su línea base.
+  **CERO ids nuevos en el marcado**: el único que el diff muestra, `eco-build-sello`, **ya existía**
+  y reaparece porque el sello cambió. Los tres del globo ⓘ —`med-info-ov`, `med-info-tit` y
+  `med-info-ok`— los crea al vuelo el diálogo de MEDIR-3 y **se destruyen al cerrarlo**. Los de la
+  barra de dos pasos **no son ids**: son los atributos `data-simp-paso`, `data-simp-listo` y
+  `data-simp-pfx`, y van **prefijados por vista** justamente para que no pueda haber un id
+  duplicado con las dos vistas abiertas.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo lo de esta tanda
+  fuera del censo del estudio y del Excel **por construcción** y no por una lista: el Excel queda en
+  **457** columnas con **cero** campos guardados nuevos.
+  ⚠️ **POR CUADRAGÉSIMA TERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 74df0b6:index.html` da **182.653**
+  líneas, **13.191.594** bytes y el md5 **`359755ea`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,19 MB / 182.653 al cierre de la tanda **MEDIR-4a**, sello **`v20261115-0250`**, md5 **`359755ea`**.)
   El diff de MEDIR-4a son **433 líneas agregadas y 72 quitadas** en `index.html`, medido con
   `git diff --numstat` contra **`e7a1f3e`** —el cierre del bloque 0 de MEDIR-4, que es la línea
   base de ESTA tanda— **sobre el árbol ya sellado**, de las que **363** no son comentario, con
@@ -1283,6 +1306,171 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda MEDIR-4b (2026-11-15) — el Simpson en dos pasos, los trazados entre vistas y el
+resultado integrado.** CINCO commits. Sello **`v20261115-0555`**, md5 **`c875ae0f`**, **183.025**
+líneas.
+El médico probó MEDIR-4a y pidió el bloque que **M4a-f** dejó escrito. Se cerraron **los TRES
+bloques —A, B y C—**. **Ningún campo del informe se escribe en esta tanda**: no se tocó
+`_simpEscribirFEVI`, ni `medVtiDiametro`, ni `medVtiCargar`, ni el botón «¿Integrás la FEVI biplano
+al informe?» — eso es MEDIR-4c. El Excel queda en **457** columnas con **cero** campos guardados
+nuevos, **por construcción**: **cero `input`, `select` y `textarea` nuevos con `id`** y **cero ids
+nuevos en el marcado**, contados sobre el diff.
+⚠️ **TRES DE LAS CINCO HIPÓTESIS DE LA ORDEN RESULTARON FALSAS, Y UNA DE ELLAS CAMBIÓ QUÉ HABÍA QUE
+HACER.** **H1** era media verdad: el cruce **sí** se calcula al vuelo —las nueve claves de una
+sesión no incluyen el biplano y dos llamadas dan lo mismo— pero los trazados **NO se pierden**:
+`simp` es un campo de la plantilla de vista y los dos pares **coexisten**, medido. **H2 es falsa**:
+nada se «pide» en cada trazado —cero diálogos, y ni `_simpAceptar` ni `medSimpsonConfirmar` ni
+`medSimpsonElegirVista` traen un `confirm` o un `prompt`—; lo que hay es un selector **persistente**,
+y **el hueco real era otro**: la ventana era **opcional** y se podía cambiar **a mitad de un par**,
+dejando los dos contornos del mismo par atribuidos a ventanas distintas. **H3 es falsa**: no hay
+nada que localizar, `simp` se declara al lado de `medCalib` y `medCalibVel` y `window._simp` es un
+**accesor** sobre la vista activa. **H4 confirmada.** **H5 confirmada en su mitad**, y las otras
+dos funciones que la orden le cuelga —`medVtiDiametro` y `medVtiCargar`— **no son del Simpson**: son
+las del VTI y el diámetro del cajón Doppler.
+⚠️ **Y LA ORDEN NO NOMBRABA EL DEFECTO MÁS GRAVE, QUE LA LECTURA ENCONTRÓ Y LA MEDICIÓN CONFIRMÓ.**
+`_vBiplanoDatos` cruzaba `pares[0]` de cada vista **POR POSICIÓN** —«el de la vista A hace de 4C y
+el de la B de 2C»— y **no miraba `nombres` en ningún momento**: con `a4c` declarado en **las dos**
+vistas seguía cruzando y publicaba **58,145 %**, *idéntica* a la del cruce correcto, **SIN UN SOLO
+AVISO**; y como `_simpFilasVivas` **deduplica por rótulo**, la fila de la segunda vista
+**DESAPARECÍA**. El médico veía **una** monoplanar y un «Biplano» armado con la misma ventana dos
+veces. Es exactamente lo que la decisión provisoria (b) manda cerrar, así que el bloque B la
+implementó **como un defecto a corregir** y no como una función nueva.
+**BLOQUE A — LA VENTANA UNA VEZ, Y LA BARRA DE DOS PASOS.** `_simpIniciar` declara la ventana de la
+ranura 0 con **`_simpVentanaLibre()`**, que le **pregunta a la otra vista** y no a un contador —con
+un contador, cerrar la vista de la A4C y abrir otra dejaría a las dos en A2C— y recorre **las dos
+ranuras** de cada vista. **`_simpVentanaBloqueada()`** cierra el hueco de H2: con un contorno
+confirmado la ventana ya no se cambia, y el panel lo dice. Se endureció además
+`medSimpsonElegirVista`, cuya condición exigía que la ranura **ya tuviera nombre**, así que una
+ranura **con** contorno y **sin** nombre se renombraba igual — justo lo que sus dos líneas de
+comentario dicen que no hay que hacer.
+La barra es **`_simpPasoChip`** + `_simpPanel`: dos pasos con su tilde, **una** línea de instrucción
+y **UN** botón «Listo». **El mecanismo de confirmar y avanzar no se inventó** —`medSimpsonConfirmar`
+ya daba vuelta la fase—; lo nuevo es la barra y **`medSimpsonRehacer(f)`**, que rehace una fase
+**sin perder la otra** (medido: se borra la diástole, la sístole sobrevive, y al retrazarla la FEVI
+vuelve **exacta**).
+⚠️ **LOS IDS VAN PREFIJADOS Y EL RUTEO POR `data-simp-pfx`, NO POR LA VISTA ACTIVA**: un id sin
+prefijo quedaría **duplicado** con las dos vistas abiertas y el botón de la B se vería sin
+responder, y `_V` fuera de un manejador envuelto es **siempre** `_vistaA`, así que un «Listo» que
+mirara la vista activa confirmaría en la A estando parado en la B. **Un solo oyente delegado** para
+las dos, porque el panel se repinta entero en cada confirmación.
+⚠️ **Y «CONFIRMAR TRAZADO» NO SE RETIRÓ A SECAS, PORQUE ESO REINTRODUCÍA UN DEFECTO DOCUMENTADO**:
+`_simpPanel` se dibuja **sólo** con la herramienta Simpson activa, así que con el contorno trazado y
+sin confirmar, tocar «medir» en el cajón 2D escondía la barra **con su «Listo» adentro**, el médico
+cambiaba de cuadro, `medReset` mataba el pendiente y lo trazado se perdía. Se conserva **con su
+id** como botón de **RESCATE** y se emite **sólo** cuando la barra no está en pantalla para la vista
+del pendiente: hay **un botón visible a la vez**. Medido en los dos estados, y **TC-257 quedó más
+fuerte**: hoy exige exactamente **una** superficie en cada uno.
+**BLOQUE B — LOS TRAZADOS CONVIVEN, Y DOS VENTANAS IGUALES NO SON UN BIPLANO.** **No hubo que
+agregar almacenamiento**: `simp` ya era por vista. **CERO claves nuevas** en el navegador —la única
+que aparece al trazar es `ecosmart_autosave`, el autoguardado de la app—. La calibración sigue
+siendo por vista: puesta en la A, la B sigue en `null`. El cruce ahora exige que las dos ventanas
+declaradas **difieran**, `_vBiplanoMismaVentana()` le da al panel su línea de **una sola oración**,
+y el rótulo repetido se **DISTINGUE** («A4C» y «A4C · Vista B») en vez de descartarse — medido:
+**DOS** filas monoplanares y cero biplano, y al corregir la ventana el biplano vuelve **con el mismo
+número**. ⚠️ **Si una ventana NO está declarada no se bloquea**, y es a propósito: ese caso es el de
+una sesión restaurada, y bloquear por no saber le quitaría al médico un biplano que hoy tiene
+(**M4b-e**). La decisión **(a)** ya pasaba y queda medida; **(c)** y **(d)** sin cambios.
+**BLOQUE C — EL RESULTADO INTEGRADO Y LAS NOTAS AL GLOBO.** **`_simpStat`** publica VFD, VFS y FEVI
+**grandes** —medido por su tamaño computado: **20, 20 y 26 px**— con la clasificación de
+**`FEVI_CATS`** (sin inventar un corte) y el indexado de **`getBSA()`**, que **no se dibuja** sin
+peso o sin talla. La tabla de **tres filas** A4C / A2C / Biplano con sus ocho columnas en mL y mL/m²
+**ya existía** desde MEDIR-2. El resultado va **fuera de la columna, después de los paneles y
+centrado** (desbalance **0**), sin desborde de tabla, sin desplazamiento horizontal y sin un texto
+cortado.
+**`_SIMP_NOTAS_METODO` son NUEVE párrafos con las TRECE frases del censo del inventario**: las trece
+**dentro** del globo ⓘ y **NINGUNA** en el panel, medido frase por frase. ⚠️ **Entre ellas
+«ASE/EACVI 2015», que hasta hoy se imprimía EN LA PANTALLA** — un nombre de guía a la vista, que es
+lo que este archivo deja **para el globo**. Viven en **una constante** y no repartidas en los tres
+pintores, que es de donde venían: la misma nota estaba en `_simpUniTexto` y en `_vBiplanoPintar`
+**con dos redacciones**. El ⓘ se emite **también** en `_simpUniTexto`, porque con un monoplanar ese
+panel no se dibuja y las notas quedarían sin puerta. **Se quedan en el panel las DOS advertencias
+que dependen de ESTE paciente** —que los cuatro trazados salieron de la misma imagen, y de qué
+archivos salieron—: no son notas de método sino un hallazgo sobre los datos en pantalla, y
+esconderlas sería tapar el único aviso de que el número de arriba **no** es un biplano (**M4b-b**).
+Y se marca `integrada` en las dos vistas tras integrar, **leyendo lo que `_simpEscribirFEVI`
+DEVUELVE** —esa función no se tocó—: sin la marca, el panel seguía diciendo «Todavía NO está en el
+informe» después de integrarlo.
+⚠️ **EL CONTRATO NUMÉRICO SE MIDE SOBRE INSUMOS SEMBRADOS Y NO SOBRE EL GESTO, Y ESO SE DESCUBRIÓ
+MIDIENDO**: el mismo triángulo trazado con el ratón da un número **ligeramente** distinto según el
+ancho de la ventana, porque las coordenadas de imagen salen de `getBoundingClientRect()` del canvas
+y el redondeo a píxel entero cambia —**58,145 %** a 1500 px en una sonda y **58,218 %** en la otra,
+los dos correctos—. «Los mismos trazados» quiere decir **los mismos `diamCm` y el mismo `Lcm`**.
+TC-898 compara seis valores a seis decimales: VFD monoplanar **49,362027**, VFS **20,03344**, FEVI
+**59,41528**; VFD biplano **43,875814**, VFS **18,327059**, FEVI **58,229699**, con **20** discos y
+las dos clasificaciones en «normal». **Pasan en los dos árboles a propósito**: son una guarda de
+regresión, no lo que discrimina (**M4b-a**).
+**Cobertura: TC-896 a TC-898**, los tres cayendo **0/3** contra `74df0b6` con el mismo archivo de
+casos y sólo el `index.html` distinto, por **42** condiciones y **NINGUNO por excepción**. **SEIS
+casos adaptados**, ninguno borrado y ninguno aflojado: **TC-257** quedó **más fuerte**; **TC-190**
+con tres condiciones y **TC-191** con una, las cuatro buscando en el globo lo que se mudó al globo;
+**TC-237 INVERTIDA**; **TC-228 INVERTIDA en dos mitades y PARTIDA EN TRES**; y **TC-245** con su
+ruta cambiada. **Cinco de los seis caen contra la base**; **TC-245 pasa en los dos árboles y se
+declara** en **M4b-c**: su cambio es de **ruta** y de **denominador**, no una afirmación.
+⚠️ **Y TC-228 DESTAPÓ UN DEFECTO REAL QUE MI CENSO NO VIO**: `medSimpsonSegundaVista` —el biplano
+trazado **dentro** de una sola vista— dejaba la ranura 1 **sin declarar**, así que la etiqueta del
+monoplanar decía «A4C» y la del biplano caía a «**2 vistas**»: la mitad de la app nombrando su
+ventana y la otra mitad contando, sobre el mismo estudio. Cerrado con el mismo principio de A1, y
+**sin usar `_simpVentanaLibre`**, que saltea la sesión en curso y devolvería la ventana que la
+ranura 0 ya tiene (**M4b-d**).
+⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, POR VIGESIMONOVENA TANDA SEGUIDA, SIETE
+VECES.** Lo que lo caza **no** es `node --check` —pasa cuando lo que queda es JS válido— sino
+**contar** los acentos graves del bloque y exigir el número exacto **antes** de insertar: esta vez
+el guardián **abortó la inserción**. ⚠️ **Y DE AHÍ SALE UNA MEJORA DE MÉTODO**: el cuerpo de la
+sonda vive en un **archivo aparte** (`_probe_medir4b_cuerpo.js`), leído con `readFile` y pasado como
+texto, así que los acentos graves son simplemente código y el problema **no existe**. Es lo que esta
+casa tendría que haber hecho hace veintiocho tandas.
+⚠️ **Y LA VENTANA DEL ARNÉS MIDE 756 px**, o sea por debajo del corte de dos vistas, así que el
+canvas de la vista B no tiene ancho útil y las coordenadas mapeadas salen **degeneradas**: la primera
+versión de TC-897 trazaba con el ratón y daba `pendiente:false` en la B —un trazado que no entraba
+sobre una vista que **sí** estaba abierta—. Se siembra con `_simpAceptar`, el patrón de TC-241,
+**conservando el clic real del «Listo»**.
+⚠️ **LOS TRES BLOQUES FUERON A UN SOLO COMMIT y no a tres**, contra lo que la orden pide, y se
+declara en **M4b-g**: se escribieron juntos porque C depende del predicado de B y B del reparto de
+A. **La verificación sí es por bloque.**
+**25/25 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después (`c875ae0f`) y las 25 anclas verificadas **antes** de correr. La
+**04** es la que **M4a-f** dejó pendiente: «Listo» confirma pero no pasa a la sístole.
+⚠️ **EL PRIMER BARRIDO DEJÓ DOS SOBREVIVIENTES Y DECÍAN COSAS DISTINTAS.** La **18** estaba **mal
+escrita**: insertaba la **lectura** de una caché que nadie llenaba, así que la guarda no se
+disparaba nunca y el cálculo seguía corriendo igual — una mutación que no cambia la conducta no
+prueba nada; reescrita para que **llene** la caché, muere por `b1_sinCampoBiplano`. La **21** era un
+**hueco real**: ningún caso pasaba por `medSimpsonSegundaVista` con la ranura 1 sin nombre, así que
+el arreglo de **M4b-d** no tenía prueba. Se cerró con **tres** condiciones nuevas en TC-896 y la
+mutación se reapuntó de TC-228 —que siembra `pares[1]` a mano y declara por el **selector**, otra
+puerta— a TC-896. ⚠️ **Y el barrido tardó 34,8 min, por encima del tope de 25 que la orden fija**:
+se declara.
+**Línea base al cierre: suite 899/906**, en **DIECISIETE** lotes cubriendo los **906 casos
+distintos** —contados con el patrón **completo** del id, **cero duplicados**—, en UNA sola pasada
+sobre el árbol sellado, con los **906 ejecutados**, el md5 de `index.html` **idéntico** antes y
+después (`c875ae0f`) y el pendrive `DISK_IMG` verificado **diecinueve** veces. Los rojos son
+**TC-376, TC-390 y TC-406**, los tres de siempre; **TC-182** y **TC-551**, los dos sensibles al lote
+ya declarados; **TC-753**, que tenía razón —`CLAUDE.md` todavía publicaba el sello anterior— y quedó
+**verde** al actualizarlo; y **TC-147**, que **no está en ninguna lista** y quedó caracterizado:
+**intermitente en los DOS árboles**, 1 de 3 en el vivo y **2 de 3 en la línea base**, así que es
+**preexistente** y no de esta tanda. **Ningún rojo nuevo**, y los tres casos nuevos y los seis
+adaptados en verde.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 19 bloques de JS inline parsean**, idéntico a la línea base. **CELULAR: 59
+hallazgos a 360 px y 67 a 390, con 18 ALTA en cada ancho** — la línea base exacta.
+**CHROME Y WEBKIT EN LOS 32 CRUCES** —dos motores × ocho anchos (1500, 1440, 1369, 1368, 1280,
+1000, 768 y 390) × los dos temas **reales**, devueltos por la sonda—, con **CERO errores de consola
+y de página** y **UNA sola firma de valores en 24 de los 32**. Los otros ocho son **dos desvíos
+caracterizados**: a 1369 px el centrado da **1 px** en vez de 0 —un redondeo, nada se corta— y a
+390 px **el trazado de la vista B no se registra**, que es un **límite de la medición y no de la
+app** —a ese ancho con dos vistas el canvas de la B no tiene ancho útil y las coordenadas mapeadas
+salen degeneradas, el mismo problema que TC-897 sortea sembrando con `_simpAceptar`—. Declarados en
+**M4b-j**.
+⚠️ **EL A/B DEL PAPEL NO SE CORRIÓ COMO ARNÉS DE 121 ESCENAS, y se declara (M4b-i)**: lo que lo
+sustituye es el **censo del diff** —cero funciones del papel tocadas, cero referencias a `fevi` o
+`fevi_met`, y `_simpEscribirFEVI` sólo como llamada— y la **batería completa** con **TC-135**,
+**TC-479**, **TC-824** y **TC-831** en verde, que son los casos que esta casa ya usa para fijar las
+**457** columnas y los cero campos guardados nuevos.
+Lo declarado, en **M4b-a** a **M4b-j**; el mapa, en `docs/mapa/medir4b-simpson-dos-pasos.md`; el
+inventario del bloque 0 con las cinco hipótesis, en `docs/INVENTARIO_MEDIR4B.md`; las fichas de los
+tres casos, en `docs/mapa/tests-fichas-896.md`; las sondas, en `scripts/_probe_medir4b0.mjs` y
+`scripts/_probe_medir4b.mjs` (+ su cuerpo); la guía manual **para Safari**, en
+`docs/GUIA_PRUEBA_MEDIR4B.md` (**10** pasos).
 
 **La tanda MEDIR-4a (2026-11-15) — las dos vistas alineadas, el cierre por vista, el resultado
 abajo, la casilla de Anahí retirada y «+ Vista» con imágenes fijas.** SEIS commits. Sello

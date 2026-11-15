@@ -16934,6 +16934,203 @@ Ninguno quedó más débil.
 la de dos columnas no existe, así que el `TypeError` cortaba antes de medir. Cerrado con guarda
 —la lección de TC-827—, y hoy cae por condiciones.
 
+## MEDIR-4b (2026-11-15) — lo declarado
+
+Tanda **MEDIR-4b**: el Simpson biplano en dos pasos, los trazados conservados entre vistas y el
+resultado integrado. Línea base **`74df0b6`** (cierre de MEDIR-4a). Sello **`v20261115-0555`**,
+md5 **`c875ae0f`**. El mapa está en `docs/mapa/medir4b-simpson-dos-pasos.md` y el inventario del
+bloque 0 —con las cinco hipótesis medidas— en `docs/INVENTARIO_MEDIR4B.md`.
+
+**Los tres bloques —A, B y C— se cerraron.** Ningún campo del informe se escribe en esta tanda:
+eso es MEDIR-4c.
+
+### M4b-a — EL CONTRATO NUMÉRICO SE MIDE SOBRE INSUMOS SEMBRADOS, NO SOBRE EL GESTO
+
+La orden pide que «con los MISMOS trazados de fixture, VFD, VFS y FEVI den exactamente lo mismo
+que en la línea base». Medido, **eso no se puede comprobar trazando con el ratón**: el mismo
+triángulo da un número **ligeramente** distinto según el ancho de la ventana, porque las
+coordenadas de imagen salen de `getBoundingClientRect()` del canvas y el redondeo a píxel entero
+cambia con el tamaño con que el canvas se dibuja.
+
+**Las dos mediciones que lo muestran:** la sonda del inventario, a 1500 px, dio FEVI biplano
+**58,145 %**; la sonda de los bloques, en el mismo ancho pero con el layout movido por el ciclo de
+rehacer, dio **58,218 %**. Los dos son correctos: los trazados **de píxeles** no eran los mismos.
+
+**Así que «los mismos trazados» quiere decir los mismos `diamCm` y el mismo `Lcm`**, no el mismo
+gesto. TC-898 siembra una rampa fija de diámetros y compara seis valores a seis decimales:
+
+| | valor |
+|---|---|
+| VFD monoplanar | **49,362027** mL |
+| VFS monoplanar | **20,03344** mL |
+| FEVI monoplanar | **59,41528** % |
+| VFD biplano | **43,875814** mL |
+| VFS biplano | **18,327059** mL |
+| FEVI biplano | **58,229699** % |
+
+Más los **20** discos y las dos clasificaciones en «normal». La mutación **25** —`π/4` a `π/3`—
+las mata.
+
+**Qué decidir:** nada; queda escrito para que la próxima tanda que toque el cálculo compare contra
+estos seis números y no contra una FEVI trazada a mano, que no es reproducible entre anchos.
+
+### M4b-b — DOS ADVERTENCIAS SE QUEDAN EN EL PANEL, Y ES UNA DECISIÓN
+
+El punto C3 dice que **todas** las advertencias y notas de método van al globo ⓘ. Se mudaron
+**nueve párrafos** con las **trece** frases del censo, y **dos advertencias se quedaron**:
+
+- «⚠️ Los cuatro trazados salieron de la MISMA imagen. Un biplano necesita dos ventanas
+  distintas…»
+- «Ventanas: *X* y *Y*.»
+
+**Por qué.** No son notas de método: son un **hallazgo sobre los datos que están en pantalla**, y
+las dos sólo aparecen cuando el hallazgo ocurre. La primera es el **único** aviso de que el número
+grande de arriba **no es un biplano** sino un monoplanar trazado dos veces; mandarla a un globo que
+el médico puede no abrir es esconder exactamente lo que evita que firme un número mal nombrado.
+
+Se quedó también la línea «Todavía NO está en el informe», que es **operativa** y va al lado de su
+botón, y la palabra «monoplanar» del rótulo, que es el nombre del resultado y no una nota.
+
+**Qué decidir:** si el médico prefiere que esas dos también se muden. Es una línea de código en
+`_simpUniTexto`; lo que no se puede es mudarlas **y** seguir afirmando que el aviso llega.
+
+### M4b-c — TC-245 PASA EN LOS DOS ÁRBOLES, Y SE DECLARA
+
+De los nueve casos que esta tanda toca —tres nuevos y seis adaptados—, **ocho caen** contra
+`74df0b6`. **TC-245 pasa a los dos lados.**
+
+**Por qué.** Su adaptación cambió la **ruta** y el **denominador**, no una afirmación. Lo que ese
+caso prueba es que **manda el trazado y no el selector**, y eso se sigue probando igual: hoy pasa
+la vista B a Distancia —el estado para el que el botón de rescate existe— y aprieta el del panel
+compartido, así que sigue midiendo que `_simpDestino` elige la vista del pendiente. Contra la línea
+base ese botón existe **siempre**, así que las condiciones nuevas —que el rescate aparezca y que el
+pendiente sobreviva— se cumplen allá también.
+
+**No quedó más débil**: ninguna condición se aflojó y las dos nuevas son ciertas en los dos
+árboles por una razón distinta en cada uno.
+
+### M4b-d — LA SEGUNDA VENTANA DE UNA MISMA VISTA: LO QUE TC-228 DESTAPÓ
+
+`medSimpsonSegundaVista` —el camino del biplano trazado **dentro** de una sola vista, cambiando de
+cineloop— dejaba la **ranura 1 sin declarar**. Resultado medido: la etiqueta del monoplanar decía
+«A4C» y la del biplano caía a «**2 vistas**». La mitad de la app nombrando su ventana y la otra
+mitad contando, sobre el mismo estudio.
+
+**Lo destapó TC-228 y no la lectura**: mi censo del bloque A miró `_simpIniciar` y el selector, y
+esa función no aparece en ninguno de los dos. Cerrado con el mismo principio de A1, y **sin usar
+`_simpVentanaLibre`**: esa función saltea la sesión en curso a propósito, así que ahí devolvería la
+ventana que la ranura 0 de **esa misma** sesión ya tiene. La segunda ventana de una vista es, por
+definición, **la otra apical**.
+
+**Lo que queda abierto, y es de la escena de prueba:** TC-228 siembra `pares[1]` **a mano**, sin
+pasar por ninguna puerta de la interfaz, así que en **esa** escena la ranura 1 sigue sin declararse
+y el biplano **sigue** cayendo a la cantidad. Eso **no es un defecto**: es el respaldo que impide
+afirmar «A2C» sobre un trazado del que nadie dijo de qué ventana salió, y el propio comentario de
+`_medEtiqVista` ya lo declaraba. El caso quedó **partido en tres** para decir las dos cosas por
+separado.
+
+### M4b-e — SI UNA VENTANA NO ESTÁ DECLARADA, EL CRUCE NO SE BLOQUEA
+
+La decisión (b) —dos ventanas iguales no dan biplano— se implementó comparando `nombres[0]` de las
+dos vistas. **Si una de las dos no está declarada, no se bloquea.**
+
+**Por qué.** Desde A1 toda sesión **nueva** nace con su ventana, así que ese caso es el de una
+sesión **vieja o restaurada**, y ahí no se sabe si son iguales o distintas. Bloquear por no saber
+le quitaría al médico un biplano que hoy tiene, sobre un estudio que no hizo nada mal.
+
+**Qué decidir:** si conviene que una sesión restaurada sin ventana declarada **pida** declararla
+antes de ofrecer el cruce. Eso es una decisión de diseño sobre estudios ya guardados, y la regla de
+esta casa es que un cambio de criterio no sale a reescribir lo que está en disco.
+
+### M4b-f — LO QUE NO SE HIZO, Y POR QUÉ
+
+1. **`docs/mapa/tests-punteros-tandas.md` sigue sin partirse.** Está en **36,3 KB**, o sea **ya por
+   encima** del techo de ~35 KB que `CLAUDE.md` fija, y esta tanda **no le agregó nada**: las
+   fichas de los tres casos salieron a `docs/mapa/tests-fichas-896.md`, que es lo que la regla
+   manda. La partición sigue pendiente.
+2. **La mudanza de «Estado vigente» de `CLAUDE.md` tampoco se hizo**, y es la **decimoquinta** tanda
+   seguida que la posterga. El archivo está en ~391 KB y la sección tiene **diecisiete** tandas en
+   vez de tres. Lo que hay que mudar hoy a `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` es todo lo
+   anterior a **MEDIR-4a**.
+
+### M4b-g — LOS TRES BLOQUES FUERON A UN SOLO COMMIT
+
+La orden pide un commit por bloque —2 para A, 3 para B, 4 para C— y **los tres entraron en uno**
+(`49a9e0f`). **Se escribieron juntos** porque C depende de B —el pintor del resultado necesita el
+predicado de las dos ventanas iguales— y B del reparto de ventana que A introduce.
+
+**La verificación sí es por bloque**: cada punto A1 a C5 tiene su medición propia en
+`scripts/_probe_medir4b.mjs`, y los tres casos nuevos se reparten por bloque.
+
+### M4b-i — EL A/B DEL PAPEL NO SE CORRIÓ COMO ARNÉS DE 121 ESCENAS, Y QUÉ LO SUSTITUYE
+
+La orden pide un A/B del papel contra HEAD con **cero diferencias** en informe, PDF, PPT y Excel.
+**No se corrió el arnés dedicado de 121 escenas**, por presupuesto, y se declara en vez de informar
+un cero que no se midió así.
+
+**Lo que sí se midió, y es lo que lo sustituye:**
+
+1. **El censo del diff**: **cero** funciones del papel tocadas —ni un `generarInforme`, `enSuma`,
+   `exportarPDF`, `generarPDF`, `PptxGenJS` ni `LAB_XLS_MAP` en las líneas agregadas—; **cero**
+   referencias a `getElementById('fevi')` o a `'fevi_met'`; y `_simpEscribirFEVI` aparece **sólo
+   como llamada** —su definición no está en el diff—.
+2. **La batería completa**, 906 casos, con **TC-135** y **TC-479** —que afirman las **457**
+   columnas del Excel— y **TC-824** y **TC-831** —que afirman cero campos guardados nuevos—
+   **VERDES**. Eso es más fuerte que una sonda propia: son los casos que esta casa ya usa para
+   fijar esas cifras.
+3. **El censo en el navegador**, idéntico en los **32** cruces: **381** claves del mapa del Excel
+   del Laboratorio, **1132** controles con `id` y **1007** que entran al censo del estudio.
+
+**Qué falta, dicho:** el A/B de 121 escenas con el PDF y el PPT **generados de verdad**, que es lo
+que las tandas anteriores corrieron. Si la próxima tanda vuelve a tocar el visor, conviene correrlo
+una vez para dejar la línea base de superficie firmada medida de esa forma también.
+
+### M4b-j — LA SONDA DE DOS MOTORES NO PUDO TRAZAR EN LA VISTA B A 390 px
+
+**32 cruces** —dos motores × ocho anchos (1500, 1440, 1369, 1368, 1280, 1000, 768 y 390) × los dos
+temas **reales**, puestos por `ett_theme` + `loadTheme()` y **devueltos** por la sonda—, con **CERO**
+errores de consola y de página y **UNA sola firma de valores en 24 de los 32**. Los otros ocho son
+dos desvíos, los dos caracterizados:
+
+1. **A 1369 px, el centrado del resultado da 1 px en vez de 0** (los cuatro cruces de ese ancho, en
+   los dos motores). Es un **redondeo**: el panel sigue centrado y nada se corta. No se arregla por
+   un píxel que ningún ojo distingue.
+2. **A 390 px, el trazado de la vista B no se registra** (los cuatro cruces de ese ancho, en los dos
+   motores): `pendiente` queda en `false` y la tabla sale con **una** fila en vez de tres.
+   **Es un límite de la MEDICIÓN y no de la app**, y es el mismo que TC-897 ya sortea: a 390 px con
+   dos vistas el canvas de la B **no tiene ancho útil**, así que las coordenadas que la sonda mapea
+   con `getBoundingClientRect()` salen degeneradas. Lo que **sí** quedó medido a 390 px y está
+   correcto: la vista B **abre** (dos paneles, prefijo `b-`), las **dos** barras de pasos se
+   dibujan, los **44 px**, el único acento, la barra de siete intacta, el rescate, el rehacer, las
+   **trece** notas en el globo, el censo y **cero** desplazamiento horizontal.
+
+**Qué falta, dicho:** medir el bloque B a 390 px sembrando con `_simpAceptar` en vez del ratón,
+como hace TC-897. No se hizo por presupuesto.
+
+### M4b-h — TRAMPAS DE ESCRITURA, Y UNA MEJORA DE MÉTODO
+
+1. **El acento grave dentro de mis propios comentarios, por VIGESIMONOVENA tanda seguida** — y esta
+   vez **siete** veces: dos en la sonda del inventario, cinco en los casos (el bloque nuevo y
+   cuatro de los seis adaptados). Lo que lo caza **no** es `node --check`, que pasa cuando lo que
+   queda es JS válido: es **contar** los acentos graves del bloque y exigir el número exacto
+   **antes** de insertar. Esta vez el guardián **abortó la inserción** en vez de dejarla entrar.
+2. **MEJORA: el cuerpo de la sonda vive en un archivo aparte** (`_probe_medir4b_cuerpo.js`), leído
+   con `readFile` y pasado a `page.evaluate` como texto. Así los acentos graves son simplemente
+   código y el problema **no existe**. Es lo que esta casa tendría que haber hecho hace veintiocho
+   tandas.
+3. **El selector de la barra de siete botones**, en TC-896: buscarla subiendo al padre del texto
+   guía devolvía `null` y las dos condiciones de A3 salían rojas sobre una barra que está. Se busca
+   por el **panel**, que es el selector que la sonda ya usaba.
+4. **La ventana del arnés mide 756 px**, o sea por debajo del corte de dos vistas, así que el canvas
+   de la vista B no tiene ancho útil y las coordenadas mapeadas salen degeneradas. La primera
+   versión de TC-897 trazaba con el ratón y daba `pendiente:false` en la B — un trazado que no
+   entraba sobre una vista que sí estaba abierta. Se siembra con `_simpAceptar`, que es el patrón de
+   TC-241, **conservando el clic real del «Listo»**.
+5. **El toggle de guardado de imágenes**: `imgRestaurar` sale temprano sin él, así que no dejaba el
+   uuid y el selector de la vista B no abría nunca. Y la foto de `localStorage` tiene que tomarse
+   **después** de prenderlo, o `cfg-guardar-imagenes` aparece como «clave nueva» y se lee como si
+   el Simpson escribiera en disco.
+
 ## MEDIR-4a (2026-11-15) — lo declarado
 
 Tanda **MEDIR-4a**: las dos vistas alineadas, el cierre por vista, el resultado abajo, la casilla

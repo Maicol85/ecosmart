@@ -19,6 +19,25 @@
   o.temaReal = document.documentElement.classList.contains('light-mode') ? 'dia' : 'noche';
   o.colorTexto = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
 
+  /* ══ EL CENSO: EXCEL Y CAMPOS DEL ESTUDIO ═══════════════════════════════════════════════════
+     Se mide ANTES de abrir el visor, que es cuando el formulario esta entero: 457 columnas y el
+     juego de campos que viajan dentro de cada estudio. Esta tanda no agrega ninguno, y la razon
+     es estructural —cero input/select/textarea nuevos con id— pero se mide igual. */
+  o.censo = (function () {
+    try {
+      const nExcel = (typeof LAB_XLS_MAP === 'object' && LAB_XLS_MAP)
+        ? Object.keys(LAB_XLS_MAP).length : null;
+      const conId = document.querySelectorAll('input[id], select[id], textarea[id]').length;
+      let delEstudio = null;
+      try {
+        if (typeof _noEsDelEstudio === 'function')
+          delEstudio = Array.from(document.querySelectorAll('input[id], select[id], textarea[id]'))
+            .filter(e => !_noEsDelEstudio(e.id)).length;
+      } catch (e) { delEstudio = 'ERR'; }
+      return { nExcel: nExcel, controlesConId: conId, delEstudio: delEstudio };
+    } catch (e) { return 'ERR ' + e.message; }
+  })();
+
   /* ── Contraste WCAG, el mismo calculo que la sonda de MEDIR-4a ── */
   const rgb = s => { const m = /rgba?\(([^)]+)\)/.exec(String(s)); if (!m) return null;
     const n = m[1].split(',').map(x => parseFloat(x));

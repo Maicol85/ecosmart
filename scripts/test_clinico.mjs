@@ -143774,6 +143774,23 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
       R.a2_feviIgual = (R.feviMono != null && R.feviTrasRehacer != null)
         ? Math.abs(R.feviTrasRehacer - R.feviMono) < 1e-9 : null;
 
+      /* ── (A1) LA SEGUNDA VENTANA DE UNA MISMA VISTA, POR SU PUERTA REAL ──
+         Es el camino del biplano trazado DENTRO de una sola vista: se cambia de cineloop y se
+         traza la otra apical. medSimpsonSegundaVista mueve la ranura a 1, y hasta esta tanda la
+         dejaba SIN DECLARAR -- la etiqueta del monoplanar decia «A4C» y la del biplano caia a «2
+         vistas», o sea la mitad de la app nombrando su ventana y la otra mitad contando.
+         ⚠️ ESTA CONDICION LA PIDIO EL BARRIDO DE MUTACIONES Y NO EL CENSO: la mutacion que apaga
+         esa declaracion SOBREVIVIO al primer barrido porque ningun caso pasaba por esa funcion
+         con la ranura 1 sin nombre -- TC-228 siembra pares[1] a mano y declara con el selector,
+         que es OTRA puerta. */
+      R.sv_antes = (_simp && _simp.nombres) ? _simp.nombres.join(',') : '(?)';
+      medSimpsonSegundaVista();
+      await esperar(220);
+      R.sv_vista = _simp ? _simp.vista : null;
+      R.sv_nombres = (_simp && _simp.nombres) ? _simp.nombres.join(',') : '(?)';
+      R.sv_declaro = !!(_simp && _simp.nombres[1] === 'a2c');
+      R.sv_noPisoLa0 = !!(_simp && _simp.nombres[0] === 'a4c');
+
       try { cineCerrar(); } catch (e) {}
       await esperar(180);
     } catch (e) { R.err = String((e && e.message) || e); } finally {
@@ -143818,7 +143835,11 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
       ['(A3) UN solo paso lleva el acento',                        R.a3_conAcento === 1, R.a3_conAcento],
       ['(A3) la barra de la vista sigue con SIETE botones',        R.a3_barraSiete === true, R.barraDespues && R.barraDespues.n],
       ['(A3) y no cambio de alto ni de orden',                     R.a3_barraIntacta === true,
-                                                                   (R.barraAntes && R.barraAntes.alto) + ' -> ' + (R.barraDespues && R.barraDespues.alto)]
+                                                                   (R.barraAntes && R.barraAntes.alto) + ' -> ' + (R.barraDespues && R.barraDespues.alto)],
+      ['(A1) DENOMINADOR: la segunda ventana se pide con el par completo', R.sv_vista === 1, R.sv_vista],
+      ['(A1) la SEGUNDA ventana de la misma vista nace declarada', R.sv_declaro === true,
+                                                                   R.sv_antes + ' -> ' + R.sv_nombres],
+      ['(A1) y no le pisa la ventana a la primera ranura',         R.sv_noPisoLa0 === true, R.sv_nombres]
     ] };
   })();
 `);

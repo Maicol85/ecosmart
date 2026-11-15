@@ -124,9 +124,15 @@ MUT = [
 
  # (18) EL BIPLANO SE CACHEA EN LA SESION. Deja de ser una funcion del estado: rehacer una fase
  #      ya no cambia el numero, asi que el panel publica el de los trazados viejos.
+ # ** ESTA MUTACION ESTABA MAL ESCRITA Y SOBREVIVIO POR ESO, no por un hueco: la version anterior
+ #    insertaba la LECTURA de una cache que nadie llenaba, asi que la guarda no se disparaba nunca y
+ #    el calculo seguia corriendo igual. Una mutacion que no cambia la conducta no prueba nada.
+ #    Hoy la LLENA, que es lo que un cacheo de verdad haria, y entonces `_vistaA.simp` gana una clave
+ #    `biplano` -- que es exactamente lo que TC-897 vigila con `b1_sinCampoBiplano`-- y ademas el
+ #    numero deja de recalcularse al rehacer una fase.
  ('18 el biplano se guarda en la sesion y deja de recalcularse', 'TC-897',
-  [("function _vBiplanoDatos() {\n  if (!_vistaB) return null;",
-    "function _vBiplanoDatos() {\n  if (!_vistaB) return null;\n  if (_vistaA.simp && _vistaA.simp.biplano) return _vistaA.simp.biplano;")]),
+  [("  if (!(vfd > 0) || !(vfs >= 0) || vfs > vfd) return null;\n  return { vfd, vfs, fevi: (vfd - vfs) / vfd * 100, Ld, Ls };",
+    "  if (!(vfd > 0) || !(vfs >= 0) || vfs > vfd) return null;\n  if (sa.biplano) return sa.biplano;\n  sa.biplano = { vfd, vfs, fevi: (vfd - vfs) / vfd * 100, Ld, Ls };\n  return sa.biplano;")]),
 
  # (19) CERRAR UNA VISTA NO DESCARTA SU TRAZADO. La decision (a) se cae: el biplano sigue
  #      publicandose con el contorno de una vista que ya no esta en pantalla.
@@ -142,7 +148,10 @@ MUT = [
 
  # (21) LA SEGUNDA VENTANA DE UNA MISMA VISTA DEJA DE DECLARARSE. La mitad de la app nombra su
  #      ventana y la otra mitad cuenta, sobre el mismo estudio.
- ('21 la segunda ventana de una misma vista no se declara', 'TC-228',
+ # ** ESTABA MAL DIRIGIDA: declaraba TC-228, que siembra pares[1] A MANO y declara con el
+ #    SELECTOR -- otra puerta--, asi que nunca pasaba por esta funcion. La condicion que la mata
+ #    nacio en TC-896 justamente cuando esta mutacion sobrevivio al primer barrido.
+ ('21 la segunda ventana de una misma vista no se declara', 'TC-896',
   [("  if (!_simp.nombres[1]) {\n    const n0 = _simp.nombres[0];",
     "  if (false) {\n    const n0 = _simp.nombres[0];")]),
 
