@@ -153,6 +153,35 @@
   };
   o.a3img = { antes: { A: medirImagen(''), B: medirImagen(pfxB) } };
 
+  /* ══ B1 / B3 — LA BARRA UNICA Y EL ORDEN DEL VD ════════════════════════════════════════ */
+  o.b1 = (function () { try {
+    const side = $('cine-side'); if (!side) return 'sin cine-side';
+    const filas = Array.from(side.children).map(d => ({
+      rot: (d.querySelector('span') || {}).textContent || '',
+      oculta: getComputedStyle(d).display === 'none',
+      btns: Array.from(d.querySelectorAll('button')).map(b => (b.textContent || '').trim())
+    }));
+    return {
+      nFilas: filas.length,
+      filas: filas,
+      /* La fila «Modo» sigue en el documento y sus botones siguen alcanzables por JS. */
+      modoOculta: !!(filas[0] && filas[0].oculta),
+      gDopExiste: !!$('cine-g-dop'),
+      gDopFueraDeTab: (function () { const e = $('cine-g-dop'); return !!e && e.offsetParent === null; })(),
+      /* Las herramientas de los DOS grupos a la vez, sin tocar «Modo». */
+      verDist: !!$('cine-med-dist'), verVel: !!$('cine-med-vel'),
+      verSimp: !!$('cine-med-simp'), verVti: !!$('cine-med-vti'),
+      ordenDop: ['cine-med-vel','cine-med-vti','cine-med-t','cine-med-fc']
+        .map(id => { const e = $(id); return e ? (e.textContent || '').trim() : null; })
+    };
+  } catch (e) { return 'ERR ' + e.message; } })();
+  o.b3 = (function () { try {
+    return (typeof _D2_FILAS_DE === 'object' && _D2_FILAS_DE)
+      ? { vd: _D2_FILAS_DE.vd.slice(),
+          rotVD: (typeof _d2Filas === 'function') ? _d2Filas('vd').map(f => f[0]) : null }
+      : null;
+  } catch (e) { return 'ERR ' + e.message; } })();
+
   /* ══ A5 — ¿SALE LA TABLA CHICA AL TERMINAR LA DIASTOLE? ══════════════════════════════════
      Se mide con UNA sola fase confirmada en la vista A y NADA en la B: si la tabla sale, el
      hallazgo es falso; si no sale, hay que decidir si es diseño o fallo. */

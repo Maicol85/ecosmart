@@ -142543,9 +142543,11 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
   return t + '</tbody></table>';
 }
 
-function _medSideFila(rot, cuerpo) {
+/* ⚠️ MEDIR-5 (B1) — `cls` ES OPCIONAL Y SIRVE PARA ESCONDER LA FILA «MODO» sin retirarla del
+   documento. Ver la nota larga de `_medSideRender`. */
+function _medSideFila(rot, cuerpo, cls) {
   if (!cuerpo) return '';
-  return '<div style="display:flex;flex-direction:column;gap:2px;">' +
+  return '<div' + (cls ? ' class="' + cls + '"' : '') + ' style="display:flex;flex-direction:column;gap:2px;">' +
     '<span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;' +
       'color:var(--text2);">' + escHtml(rot) + '</span>' +
     /* ⚠️ `column-gap` EN LINEA Y NO `gap`, Y ESTO ES UN ARREGLO MEDIDO. Con `gap:3px` en linea el
@@ -142600,40 +142602,52 @@ function _medSideRender() {
     f1 += _medSideBtn(_V.pfx + 'cine-g-' + G.g, G.rot, ab === G.g, G.col, false, G.tip);
   });
 
-  /* ── NIVEL 2 — QUE MEDIR (2D y Deformacion) / HERRAMIENTA (Doppler) ───────────────────── */
+  /* ══ MEDIR-5 (B1) — UNA SOLA BARRA: LAS HERRAMIENTAS DE TODOS LOS GRUPOS, A LA VEZ ═════════
+     El pedido es «herramientas en una sola barra y sin botones de modo 2D/Doppler». Hasta acá el
+     selector era de TRES niveles y el primero —«Modo»— decidía cuál de los otros se veía: para
+     llegar a Velocidad desde Distancia había que tocar «Doppler / M» y recién después la
+     herramienta. Hoy las filas de herramientas se emiten TODAS y el médico toca la que quiere.
+
+     ⚠️ LA FILA «MODO» SE ESCONDE, NO SE RETIRA, y es el mismo recurso con el que `cine-selviejo`
+     conserva los selectores viejos de los dos cajones. El motivo es el mismo y está medido:
+     DIECINUEVE usos del suite aprietan `cine-g-2d` / `cine-g-dop` / `b-cine-g-dop` para abrir un
+     grupo, y `display:none` los deja funcionando —un `.click()` por JS no necesita que el nodo se
+     vea— mientras los saca del orden de tabulación, que es lo que importa para el teclado.
+     Retirarlos de verdad es adaptar esos diecinueve usos, y queda declarado como deuda.
+
+     ⚠️ Y EL GRUPO SIGUE EXISTIENDO COMO ESTADO, que es lo que hace que esto no rompa nada:
+     `medHerramienta` ya hacía `_medGrupo = _MED_GRUPO_DE[_medHerr]` —«la herramienta elegida abre
+     SU grupo»— así que tocar Velocidad deja `medGrupo` en 'dop' y el cajón Doppler se sigue
+     mostrando por `_dopGrupoAbiertoEnAlguna`. Sin esa línea previa esto habría dejado los dos
+     cajones invisibles.
+
+     DEFORMACION NO SE RETIRA: el pedido no la nombra, y sus tres herramientas son funcionalidad
+     viva detrás de su módulo. Sigue con su gate de siempre, ahora como una fila más. */
   let f2 = '';
-  if (ab) {
-    const cv = colDe(ab);
-    /* ⚠️ MEDIR-3 — VELOCIDAD SE APAGA EN MODO M (bloque C). Se deja VISIBLE y apagada, con su
-       motivo en el `title` y el detalle en el globo ⓘ del panel guia: retirarla dejaria al
-       medico buscando una herramienta que estuvo ahi la imagen anterior, que es peor que verla
-       inalcanzable y saber por que. El predicado es `_medVelBloqueadaM` y es el MISMO que
-       `medHerramienta` consulta para negarse a seleccionarla — con dos predicados, el boton y la
-       funcion podrian discrepar y el medico veria un boton apagado que igual cambia la
-       herramienta. */
-    const velM = (ab === 'dop') && _medVelBloqueadaM();
-    /* ⚠️ MEDIR-4a — Y EL SIMPSON SALE APAGADO EN UNA VISTA DE IMAGEN FIJA, con el MISMO predicado
-       que la cuarta capa de `medHerramienta`. Apagado y a la vista, no retirado: un boton que
-       desaparece deja al medico buscando una herramienta que estaba ahi hace un momento, y su
-       titulo es el unico lugar donde puede leer POR QUE no esta disponible. Es el criterio que
-       este archivo ya aplica a Velocidad sobre un modo M. */
-    const simpF = (ab === '2d') && _medSimpsonBloqueadoFija();
-    _MED_HERRS.filter(t => t.g === ab).forEach(t => {
-      const off = (velM && t.h === 'vel') || (simpF && t.h === 'simpson');
-      f2 += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv, off,
-        (velM && t.h === 'vel')
+  grupos.forEach(G => {
+    const ab2 = G.g, cv2 = G.col;
+    let fg = '';
+    const velM2 = (ab2 === 'dop') && _medVelBloqueadaM();
+    const simpF2 = (ab2 === '2d') && _medSimpsonBloqueadoFija();
+    _MED_HERRS.filter(t => t.g === ab2).forEach(t => {
+      const off = (velM2 && t.h === 'vel') || (simpF2 && t.h === 'simpson');
+      fg += _medSideBtn(_V.pfx + t.id, t.rot, _medHerr === t.h, cv2, off,
+        (velM2 && t.h === 'vel')
           ? 'En esta imagen el eje vertical está en centímetros: es un modo M y ahí no se mide velocidad.'
-          : (simpF && t.h === 'simpson')
+          : (simpF2 && t.h === 'simpson')
             ? 'Esta vista es una imagen fija: Simpson necesita un cineloop con diástole y sístole.'
             : t.tip);
     });
-    /* ⚠️ LAPIDA — EL BOTON «VOLUMEN» (AI BIPLANO) SALE EN MEDIR-3 (punto A6). MEDIR-1 lo dejo
-       visible y apagado con su leyenda «proximamente» porque el pedido de entonces lo pedia asi;
-       el medico lo probo en la app y pidio retirarlo. No habia nada mas que sacar: nunca llevo id
-       de herramienta y nunca entro en `_MED_HERRS`, asi que no hay un `_medHerr` que soltar, ni
-       un oyente, ni un gesto, ni una fila de tabla — era un hueco declarado en la pantalla. Y por
-       eso mismo retirarlo NO TOCA NINGUN CALCULO, que es el pedido literal del punto A6. */
-  }
+    f2 += _medSideFila(G.rot, fg);
+  });
+
+  /* ⚠️ LAPIDA — EL ARMADO POR GRUPO ABIERTO (niveles 1 y 2 de MEDIR-1). Decidia que fila de
+     herramientas se veia a partir de `_medGrupo`; hoy se emiten las tres y `ab` ya no gobierna
+     QUE se ve, solo QUE ESTRUCTURAS ofrece el nivel 3.
+     ⚠️ LAPIDA — EL BOTON «VOLUMEN» (AI BIPLANO) SALIO EN MEDIR-3 (punto A6). Nunca llevo id de
+     herramienta ni entro en `_MED_HERRS`, asi que no hubo `_medHerr` que soltar, ni oyente, ni
+     gesto, ni fila de tabla — era un hueco declarado en la pantalla, y por eso retirarlo no
+     toco ningun calculo. */
 
   /* ── NIVEL 3 — ESTRUCTURA ─────────────────────────────────────────────────────────────── */
   /* Solo aparece donde hay estructuras que elegir: con Distancia en 2D y con el grupo Doppler
@@ -142641,15 +142655,23 @@ function _medSideRender() {
      de VENTANA apical, que vive en el panel guia—, asi que una fila aca repetiria esa decision
      con otro nombre. Deformacion no tiene estructuras. */
   let f3 = '';
+  /* ⚠️ MEDIR-5 (B1) — LA ESTRUCTURA LA DECIDE LA HERRAMIENTA ACTIVA, NO EL GRUPO ABIERTO. Con
+     las tres filas a la vista, `_medGrupo` dejó de ser lo que el médico está mirando y pasó a ser
+     sólo el estado que gobierna los dos cajones. La lista de estructuras tiene que seguir a la
+     herramienta que se va a usar.
+     Y esto es lo que cumple «Tiempo y FC no cambian la lista de estructuras»: las dos son del
+     grupo Doppler, así que elegirlas deja las CUATRO válvulas en su lugar en vez de vaciar la
+     fila. El respaldo a `ab` cubre el arranque, antes de que haya herramienta resuelta. */
+  const gAct = (typeof _MED_GRUPO_DE === 'object' && _MED_GRUPO_DE[_medHerr]) || ab;
   try {
     /* MEDIR-2 — con la herramienta Area las estructuras son las DOS auriculas, y la fila sale
        antes que la de Distancia porque comparten el mismo lugar del selector. */
-    if (ab === '2d' && _medHerr === 'area') {
+    if (gAct === '2d' && _medHerr === 'area') {
       _MED_EST_AREA.forEach(S => {
         f3 += _medSideBtn(_V.pfx + 'cine-est-area-' + S.m, S.rot, _medAreaEst === S.m,
           colDe('2d'), false, S.nom + ' — se mide en la apical de 4 cámaras.');
       });
-    } else if (ab === '2d' && _medHerr === 'dist' && typeof d2Modo === 'function') {
+    } else if (gAct === '2d' && _medHerr === 'dist' && typeof d2Modo === 'function') {
       const E = (typeof _d2Estado === 'function') ? _d2Estado() : null;
       _MED_EST_2D.forEach(S => {
         const con = (typeof _d2GrupoConDatos === 'function') && _d2GrupoConDatos(S.m);
@@ -142657,7 +142679,7 @@ function _medSideRender() {
           !!(E && E.modo === S.m), colDe('2d'), false,
           con ? 'Esta estructura ya tiene mediciones cargadas' : '');
       });
-    } else if (ab === 'dop' && typeof dopModo === 'function') {
+    } else if (gAct === 'dop' && typeof dopModo === 'function') {
       const E = (typeof _dopEstado === 'function') ? _dopEstado() : null;
       _MED_EST_DOP.forEach(m => {
         const V = (typeof _DOP_VALVULAS !== 'undefined')
@@ -142678,9 +142700,15 @@ function _medSideRender() {
      lista; la seguridad real no cambia en nada y no cambiaba antes: las tres filas salen de
      `_medSideFila`, que arma su marcado con constantes de este archivo y pasa por `escHtml` cada
      texto que viene de un dato —el rotulo de la fila, el de cada boton y su `title`—. */
+  /* ⚠️ MEDIR-5 (B1) — LA FILA «MODO» VA CON `cine-selviejo`, que es la clase con la que esta
+     hoja ya esconde los selectores viejos de los dos cajones: sus botones siguen en el documento
+     y siguen respondiendo a un `.click()` por JS —los diecinueve usos del suite— pero salen del
+     orden de tabulacion y de la vista. `f2` ya son FILAS completas, una por grupo, asi que entra
+     entero y no envuelto. Se sigue juntando con `join` y no con un `+` del lado derecho del
+     `innerHTML`, que es lo que empareja `ceibo-xss-innerhtml-concat`. */
   cont.innerHTML = [
-    _medSideFila('Modo', f1),
-    _medSideFila(_medSideRotNivel2(ab), f2),
+    _medSideFila('Modo', f1, 'cine-selviejo'),
+    f2,
     _medSideFila('Estructura', f3)
   ].join('');
 
@@ -147998,12 +148026,12 @@ const _MED_HERRS = [
     tip:'FEVI por método de discos. Se traza del anillo mitral al otro lado, pasando por el ápex.' },
   { h:'vel',     g:'dop', id:'cine-med-vel',  rot:'Velocidad',
     tip:'Clic en el pico del trazo espectral: velocidad y gradiente (ΔP = 4·V²). Necesita el eje en cm/s.' },
+  { h:'vti',     g:'dop', id:'cine-med-vti',  rot:'VTI',
+    tip:'Mantené apretado y recorré la envolvente del espectro: integral velocidad-tiempo en cm. Necesita los DOS ejes — cm/s y segundos.' },
   { h:'tiempo',  g:'dop', id:'cine-med-t',    rot:'Tiempo',
     tip:'Dos clics sobre el eje temporal: intervalo en ms (TDE, TRIV). Necesita el eje X en segundos — Doppler espectral o modo M.' },
   { h:'fc',      g:'dop', id:'cine-med-fc',   rot:'FC',
     tip:'Dos clics sobre la misma onda de dos latidos: intervalo RR y frecuencia (60.000 / RR).' },
-  { h:'vti',     g:'dop', id:'cine-med-vti',  rot:'VTI',
-    tip:'Mantené apretado y recorré la envolvente del espectro: integral velocidad-tiempo en cm. Necesita los DOS ejes — cm/s y segundos.' },
   { h:'strain',  g:'def', id:'cine-med-str',  rot:'Strain VI',
     tip:'Deformación del VI por dos contornos manuales, en diástole y en sístole.' },
   { h:'lars',    g:'def', id:'cine-med-lars', rot:'LARS',
@@ -153196,7 +153224,11 @@ function _d2Derivados() {
    escrita en dos lados, mover una fila vuelve a dejar las dos pantallas en desacuerdo. */
 const _D2_FILAS_DE = Object.assign(Object.create(null), {
   vi:  ['vi.sivd', 'vi.ddvi', 'vi.ppd', 'vi.sivs', 'vi.dsvi', 'vi.pps'],
-  vd:  ['vd.basal', 'vd.medio', 'vd.longit', 'vd.tapse', 'vd.tsvd'],
+  /* ⚠️ MEDIR-5 (B3) — EL TAPSE VA PRIMERO. Es el orden que el medico pidio y es el orden en
+     que se mide: el TAPSE sale del modo M del anillo tricuspideo y los tres diametros de la
+     misma apical. Es SOLO el orden de la lista: ni los rotulos, ni las claves, ni los campos,
+     ni las bandas se tocan. */
+  vd:  ['vd.tapse', 'vd.basal', 'vd.medio', 'vd.longit', 'vd.tsvd'],
   ao:  ['ao.sinusal', 'ao.sinotub', 'ao.tubular', 'ao.cayado', 'ao.descend', 'ao.abdominal',
         'vi.tsvi'],
   ai:  ['ai.dap'],
