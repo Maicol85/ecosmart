@@ -4760,6 +4760,18 @@ html.light-mode .amilo-root{
    este relleno, que no recorta nada: el alto de las dos tarjetas sigue saliendo del contenido. */
 #lv3d-bloque-hallazgos,#lv3d-bloque-botones{background:var(--bg3);border-radius:10px;
   padding:7px 9px;min-width:0;}
+/* ══ LA COLUMNA DE LA DERECHA DE ARRIBA — PANT-38, commit 1 ═══════════════════════════════════
+   El territorio coronario y, debajo, la ranura donde vive el cuadro de los botones en ancho de
+   escritorio. Es el hueco que ya estaba vacio: el bull's eye de la columna del medio es mas alto
+   que el territorio, asi que debajo del territorio sobraba lugar.
+   ⚠️ `align-items:stretch` ACA SI ES LO QUE SE QUIERE, y no es una contradiccion con el `start`
+   de la fila de abajo: lo que estira es el ANCHO (eje transversal de una columna), no el alto. El
+   alto de cada hijo lo sigue fijando su contenido, y el wrapper entero queda del alto de los dos.
+   ⚠️ LA RANURA VACIA NO OCUPA NI DEJA `gap`. En angosto el cuadro vuelve a la fila de abajo y la
+   ranura queda sin hijos: con `:empty` en `display:none` el territorio queda exactamente como
+   hoy, sin 14 px de aire debajo. Medido en los dos anchos. */
+.contr-col-der{display:flex;flex-direction:column;gap:14px;align-items:stretch;}
+#lv3d-slot-botones:empty{display:none;}
 /* ══ EL INTERIOR DEL 3D DEL VENTRICULO — «K3» (2026-10-16) ════════════════════════════════════
    El dibujo y los cinco cuadros de datos, lado a lado. El ancho de la columna de datos va en
    PIXELES: con una fraccion crece con la pantalla y le come ancho al cuadro gris, y la orden
@@ -14517,7 +14529,21 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div style="font-size:10.5px;color:var(--text2);margin-top:6px;line-height:1.45;">Modelo esquemático, ilustrativo: no es una imagen del paciente.</div>
         </div>
 
-        <!-- DERECHA: territorio coronario -->
+        <!-- DERECHA: territorio coronario, y DEBAJO la ranura de los botones — PANT-38, commit 1.
+             ⚠️ EL CUADRO DE LOS BOTONES NO SE DUPLICA: SE MUDA. Es el mismo nodo
+             `#lv3d-bloque-botones`, con sus mismos dos botones, sus mismos `onclick` y su mismo
+             campo oculto; lo que cambia es en que ranura vive. Una copia aca y otra en la fila de
+             abajo serian DOS «Incluir bull's eye en PDF» sobre el mismo campo del estudio, y el
+             dia que uno cambie el otro mentiria.
+             ⚠️ EL TERRITORIO VA ENVUELTO Y NO SE TOCA. El wrapper existe porque en un flex los
+             hermanos van AL LADO: para que los botones queden DEBAJO del territorio hace falta una
+             columna propia. El cuadro de territorio queda identico —su marcado, su `min-width` y su
+             ⓘ—, y el wrapper hereda el `align-items:flex-start` de la fila, asi que ninguno de los
+             dos se estira.
+             ⚠️ LA RANURA VACIA SE ESCONDE (`:empty`), y no es cosmetico: con `gap:14px` un hijo
+             vacio deja 14 px de aire debajo del territorio en angosto, donde el cuadro NO vive
+             aca. Un hijo en `display:none` no cuenta para el `gap`. -->
+        <div class="contr-col-der">
         <div style="background:var(--bg3);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--text2);min-width:170px;">
           <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Territorio coronario (borde)</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="width:18px;height:4px;background:#3ea8ff;display:inline-block;border-radius:2px;"></span>DA — 1,2,7,8,13,14,17</div>
@@ -14539,6 +14565,8 @@ window.cerrarSesionReal = cerrarSesionReal;
                Y además se lee mejor: la salvedad y su cita quedan juntas. -->
           <div style="font-size:10.5px;color:var(--text2);margin-top:8px;line-height:1.45;display:flex;align-items:center;gap:6px;min-height:44px;"><span>La distribución varía entre pacientes.</span><button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="contr-territorio" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre el reparto de los 17 segmentos entre las tres arterias coronarias" onclick="vInfoClic(this)">&#9432;</button></div>
         </div>
+          <div id="lv3d-slot-botones"></div>
+        </div><!-- /.contr-col-der -->
 
       </div>
 
@@ -138380,9 +138408,18 @@ function lv3dMaquetar(){
      incluye. Se mide el viewport porque es el umbral del pedido y el que usa
      `scripts/check_mobile.js`. */
   const angosto = window.innerWidth <= 768;
+  lv3dBotonesSync(angosto);
   fila.style.display = 'grid';
   fila.style.gap = '16px';
-  fila.style.alignItems = 'stretch';
+  /* ⚠️ `start` Y NO EL `stretch` DE ANTES, Y ES EL PEDIDO DEL MEDICO — PANT-38, commit 1.
+     El comentario de «K2» que esta arriba defendia el `stretch` con un argumento que YA NO
+     APLICA: decia que con `start` «el de los botones terminaba siendo una franja fina al lado de
+     un panel de 600 px», y el cuadro de los botones ya no esta en esta fila —se mudo arriba, al
+     hueco debajo del territorio coronario—. Lo que queda aca es el cuadro de hallazgos, y de ese
+     el medico pide exactamente lo contrario: «su alto es el del contenido: casi nada sin
+     hallazgos y creciendo hacia abajo con cada hallazgo». Con `stretch` media lo mismo que el
+     panel del 3D, o sea un recuadro gris de 600 px con dos renglones de texto arriba. */
+  fila.style.alignItems = 'start';
   /* ⚠️ EL PANEL CRECE EXACTAMENTE LO QUE OCUPA LA COLUMNA DE LOS CINCO CUADROS — «K3».
      Era `46%`, el ancho que el panel tenia cuando el dibujo lo ocupaba entero. Al poner los
      cinco cuadros A LA DERECHA del dibujo, con el 46% el cuadro gris se achicaba —medido: de
@@ -138401,10 +138438,50 @@ function lv3dMaquetar(){
      Con el 3D CERRADO no se toca nada: ahi no hay 3D al que darle el lugar, y fijar 220 px
      dejaria el texto de hallazgos en una columna angosta al lado de un hueco vacio.
      En angosto (768 px o menos) sigue siendo UNA columna, como hoy. */
+  /* ⚠️ EL 3D CONSERVA SU ANCHO EXACTO, Y SALE DE UNA CUENTA Y NO DE UN OJO — PANT-38, commit 1.
+     Con el cuadro de los botones mudado arriba, esta fila pasa de tres columnas a dos y la de
+     hallazgos se lleva lo que tenian las dos primeras JUNTAS: 220 + 150 + los 16 del hueco que
+     habia entre ellas = 386 px. El `1fr` del panel vale `total - 220 - 150 - 32` (dos huecos)
+     antes y `total - 386 - 16` (un hueco) despues, que es el MISMO numero: el 3D no gana ni
+     pierde un pixel, que es el punto 3 del pedido.
+     Con el 3D CERRADO queda UNA sola columna, y tambien es «lo que hoy tienen los dos juntos»:
+     alla hallazgos era `1fr` y los botones 210 px, o sea el ancho entero entre los dos.
+     En angosto (768 px o menos) sigue siendo UNA columna, como hoy, y ahi el cuadro de los
+     botones vuelve a esta fila —lo hace `lv3dBotonesSync`—, asi que las columnas declaradas
+     alcanzan a los dos o tres hijos sin cambiar nada. */
   fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)'
-    : (_lv3d.abierto ? 'minmax(0,220px) minmax(0,150px) minmax(0,1fr)'
-                     : 'minmax(0,1fr) minmax(0,210px)');
+    : (_lv3d.abierto ? 'minmax(0,386px) minmax(0,1fr)'
+                     : 'minmax(0,1fr)');
 }
+
+/* ══ EL CUADRO DE LOS BOTONES SE MUDA DE RANURA — PANT-38, commit 1 ═══════════════════════════
+   En ancho de escritorio vive ARRIBA, en `#lv3d-slot-botones`, debajo del territorio coronario;
+   en angosto vuelve a `#lv3d-fila`, entre hallazgos y el panel, que es donde esta hoy. Es UN
+   nodo que viaja, no dos copias: el punto 5 del pedido.
+   ⚠️ ES EL PATRON DE `_vSlotSync` DE MEDIR-4a, CON SU MISMA GUARDA: si el nodo YA esta en la
+   ranura que le toca no se lo toca. Mover un nodo que contiene al elemento ENFOCADO le quita el
+   foco, y aca adentro hay dos botones que el medico acaba de apretar —`contrReset` y
+   `toggleContrPDF` las dos disparan un repintado que pasa por aca—.
+   ⚠️ EN ANGOSTO VUELVE A SU LUGAR EXACTO Y NO AL FINAL, y de eso depende el punto 4 («en celular
+   todo queda como hoy»): con un `appendChild` pelado quedaria DESPUES del panel del 3D, o sea el
+   orden de lectura al reves. Se inserta ANTES de `#lv3d-panel`, que es su hermano siguiente de
+   siempre. */
+function lv3dBotonesSync(angosto){
+  const bl = document.getElementById('lv3d-bloque-botones');
+  const slot = document.getElementById('lv3d-slot-botones');
+  const fila = document.getElementById('lv3d-fila');
+  const panel = document.getElementById('lv3d-panel');
+  if (!bl || !slot || !fila) return;
+  if (angosto){
+    if (bl.parentNode === fila) return;
+    if (panel && panel.parentNode === fila) fila.insertBefore(bl, panel);
+    else fila.appendChild(bl);
+  } else {
+    if (bl.parentNode === slot) return;
+    slot.appendChild(bl);
+  }
+}
+window.lv3dBotonesSync = lv3dBotonesSync;
 
 function lv3dCablear(){
   if (_lv3d.cableado) return;
