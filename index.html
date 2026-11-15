@@ -144079,11 +144079,70 @@ function _simpIniciar() {
   _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}], nombres:[null,null],
             pendiente:null, res:null, avisoCuadro:false, ocultar:false, integrada:false };
   _vSellarEpoca();
+  /* ══ MEDIR-4b (A1) — LA VENTANA SE RESUELVE ACA, UNA SOLA VEZ, AL ABRIR LA HERRAMIENTA ═════
+     El pedido: «la ventana (A4C o A2C) se elige UNA sola vez al abrir la herramienta Simpson, no
+     en cada trazado».
+
+     ⚠️ Y NO HABIA NINGUN PROMPT QUE SACAR, que es lo que la hipotesis H2 suponia y el inventario
+     del bloque 0 midio: ni _simpAceptar ni medSimpsonConfirmar ni medSimpsonElegirVista abren un
+     cuadro de dialogo, y la sesion nacia con nombres en [null, null] — o sea con la ventana SIN
+     DECLARAR para siempre, rotulandose «por cantidad». El hueco real era otro: la ventana era
+     OPCIONAL y se podia cambiar A MITAD DE UN PAR, entre la diastole y la sistole. Asi que lo
+     que se agrega es que quede resuelta DESDE EL PRINCIPIO, y lo que se cierra es que pueda
+     cambiar una vez que hay un contorno confirmado (ver _simpVentanaBloqueada).
+
+     Se declara sobre la ranura 0, que es la que el cruce entre vistas usa. */
+  try { _simp.nombres[0] = _simpVentanaLibre(); } catch (e) {}
 }
 const _simpParCompleto = i => !!(_simp && _simp.pares[i] && _simp.pares[i].d && _simp.pares[i].s);
 /* Legado: una sesión creada antes de `nombres` (o restaurada) no lo tiene. */
 const _simpNombre = i => (_simp && _simp.nombres && _simp.nombres[i]) || null;
 const _SIMP_VISTAS = [{ k:'a4c', rot:'A4C' }, { k:'a2c', rot:'A2C' }];
+
+/* ══ MEDIR-4b (A1) — QUE VENTANA LE TOCA A UNA VISTA QUE RECIEN ABRE LA HERRAMIENTA ══════════
+   La que NINGUNA otra vista esté declarando. Con una sola vista eso es siempre la A4C, que es la
+   apical con la que se empieza; la segunda vista que abre Simpson se lleva la A2C, que es
+   exactamente el reparto que el cruce A × B necesita.
+
+   ⚠️ SE LE PREGUNTA A LA OTRA VISTA Y NO A UN CONTADOR, y de eso depende que el reparto siga
+   siendo correcto después de cerrar y reabrir: con un contador, cerrar la vista de la A4C y abrir
+   otra dejaría a las dos en A2C. Preguntándole a quien queda, no hay estado que se desincronice.
+
+   ⚠️ SE RECORREN LAS DOS RANURAS DE CADA VISTA, no sólo la 0: un biplano trazado DENTRO de una
+   sola vista —cambiando de cineloop, que es lo que el propio panel recomienda— declara las dos
+   ventanas en sus dos ranuras, y ahí no queda ninguna libre. En ese caso se devuelve la A4C y es
+   el bloque B el que se encarga de que dos ventanas iguales no produzcan un biplano. */
+function _simpVentanaLibre() {
+  const usadas = Object.create(null);
+  try {
+    _vTodas().forEach(V => {
+      const S = V && V.simp;
+      if (!S || !S.nombres || S === _simp) return;   // la sesión que se crea no cuenta
+      S.nombres.forEach(k => { if (k) usadas[k] = 1; });
+    });
+  } catch (e) {}
+  for (let i = 0; i < _SIMP_VISTAS.length; i++)
+    if (!usadas[_SIMP_VISTAS[i].k]) return _SIMP_VISTAS[i].k;
+  return _SIMP_VISTAS[0].k;
+}
+
+/* ¿La ventana de la ranura en curso ya no se puede cambiar? Se bloquea en cuanto hay UN contorno
+   confirmado en esa ranura.
+
+   ⚠️ ES LO QUE CIERRA EL HUECO QUE H2 DESTAPO. Cambiar la ventana entre la diástole y la sístole
+   dejaba los dos contornos del MISMO par atribuidos a ventanas distintas, y de `nombres` sale el
+   rótulo de la fila de la tabla: el médico habría visto una fila «A2C» cuyo contorno de diástole
+   se trazó sobre la 4C. Es la misma clase de daño que las paredes intercambiadas del strain, y el
+   propio `medSimpsonElegirVista` ya lo decía para el caso de renombrar —«renombrar cambiaría de
+   qué ventana son dos trazados ya confirmados, que es afirmar sobre una medición hecha»—: lo que
+   faltaba era aplicarlo cuando hay UNO solo. */
+function _simpVentanaBloqueada() {
+  if (!_simp) return false;
+  const P = _simp.pares[_simp.vista];
+  return !!(P && (P.d || P.s));
+}
+window._simpVentanaLibre = _simpVentanaLibre;
+window._simpVentanaBloqueada = _simpVentanaBloqueada;
 
 /* Declara QUÉ ventana es el par en curso. Es un SELECTOR, no sólo un rótulo: si esa ventana ya
    está declarada en el otro índice, se va a ese par en vez de duplicarla — dos pares con el
@@ -144094,11 +144153,17 @@ function medSimpsonElegirVista(v) {
   if (ya >= 0) {
     _simp.vista = ya;
   } else {
-    /* Si el par en curso YA tiene nombre y además tiene algún contorno, se pasa al otro en vez
-       de renombrarlo: renombrar cambiaría de qué ventana son dos trazados ya confirmados, que
-       es afirmar sobre una medición hecha. */
+    /* Si el par en curso tiene algún contorno, se pasa al otro en vez de renombrarlo: renombrar
+       cambiaría de qué ventana son dos trazados ya confirmados, que es afirmar sobre una medición
+       hecha.
+       ⚠️ MEDIR-4b (A1) — LA CONDICION DEJO DE EXIGIR QUE LA RANURA YA TUVIERA NOMBRE. Pedía
+       `_simpNombre(vista) && (P.d || P.s)`, así que una ranura CON contorno y SIN nombre —una
+       sesión restaurada, o una creada antes de que `_simpIniciar` declarara la ventana— se
+       renombraba igual, que es justo lo que las dos líneas de arriba dicen que no hay que hacer.
+       Desde A1 toda sesión nueva nace con su ventana declarada, así que para ellas esto no cambia
+       nada; lo que cierra es el caso de la sesión vieja. */
     const P = _simp.pares[_simp.vista];
-    if (_simpNombre(_simp.vista) && (P.d || P.s)) _simp.vista = (_simp.vista === 0) ? 1 : 0;
+    if (P.d || P.s) _simp.vista = (_simp.vista === 0) ? 1 : 0;
     _simp.nombres[_simp.vista] = v;
   }
   const P2 = _simp.pares[_simp.vista];
@@ -146879,40 +146944,162 @@ function _medBarra(html) {
    dice qué fase trazar y cómo, y tiene que estar al lado del canvas que se está trazando. En el
    panel de abajo quedaría a media pantalla de la imagen a la que se refiere. Decisión de Maicol
    (2026-09-22). */
+/* ══ MEDIR-4b (A2) — LA BARRA DE DOS PASOS, UNA LINEA DE INSTRUCCION Y UN SOLO «LISTO» ═══════
+   El pedido: «Una barra de dos pasos "1 Diástole → 2 Sístole", con una línea de instrucción. Un
+   ÚNICO botón "Listo" confirma el trazado de la fase actual y pasa a la siguiente. Se puede
+   rehacer cada fase por separado».
+
+   ⚠️ EL MECANISMO DE CONFIRMAR Y AVANZAR NO SE INVENTA: `medSimpsonConfirmar` ya pasaba el
+   pendiente al par Y daba vuelta la fase desde antes de esta tanda. Lo que se agrega es la barra
+   —los dos pasos con su tilde, para que el médico vea en cuál está y cuál ya hizo— y el poder
+   rehacer uno sin perder el otro. Lo que se saca es el «Confirmar trazado» del panel de abajo:
+   con los dos, habría DOS botones para una sola acción, que es lo que «un ÚNICO botón» prohíbe.
+
+   ⚠️ LOS IDS VAN PREFIJADOS, Y NO ES UN DETALLE: esto se dibuja en el panel de CADA vista, así
+   que un id sin prefijo quedaría DUPLICADO con las dos vistas abiertas y `getElementById`
+   devolvería siempre el de la primera — el botón de la vista B se vería y no haría nada. Es la
+   lección 12 de esta tanda y la que `vistaBAbrir` ya paga con su prefijo libre.
+
+   ⚠️ Y EL RUTEO VA POR `data-simp-pfx` Y NO POR LA VISTA ACTIVA. `_V` fuera de un manejador
+   envuelto en `_vBind` es SIEMPRE `_vistaA`, así que un «Listo» que mirara la vista activa
+   confirmaría en la A estando parado en la B. El prefijo viaja en el atributo y el oyente resuelve
+   la vista con él: es el mismo razonamiento con que `_simpUniHerrActiva` pregunta por `some` y no
+   por `_medHerr`.
+
+   ⚠️ NO LLEVA `disabled`. Un control deshabilitado NO emite click, así que el médico tocaría el
+   único control que tiene que EXPLICARLE por qué no puede y no pasaría nada. Lleva
+   `aria-disabled`, se ve apagado, y al tocarlo dice qué falta — es lo que el cartel de MEDIR-2
+   dejó escrito. */
+function _simpPasoChip(pfx, f, act, hecho, rot) {
+  const col = act ? _medTextoSobre('--accent') : '';
+  /* Se ve de 44 px de alto, que es el piso táctil de esta casa, y el azul es SOLO para el paso en
+     curso: el hecho va gris con su tilde y el que falta, gris apagado (A3). */
+  return '<button type="button" class="btn btn-ghost" data-simp-paso="' + f + '"' +
+    ' data-simp-pfx="' + escHtml(pfx) + '"' +
+    ' aria-current="' + (act ? 'step' : 'false') + '"' +
+    ' title="' + escHtml(hecho ? ('Rehacer el trazado de ' + rot.toLowerCase())
+                               : ('Paso ' + (f === 'd' ? '1' : '2') + ': ' + rot.toLowerCase())) + '"' +
+    ' style="flex:1 1 0;min-width:0;min-height:44px;padding:4px 8px;font-size:11px;' +
+    'line-height:1.25;white-space:normal;' +
+    (act ? 'background:var(--accent);color:' + col + ';font-weight:700;' : '') +
+    (!act && hecho ? 'opacity:.95;' : '') +
+    (!act && !hecho ? 'opacity:.62;' : '') + '">' +
+    (hecho ? '✓ ' : ((f === 'd' ? '1' : '2') + ' ')) + rot + '</button>';
+}
+
 function _simpPanel() {
   if (!_simp) return '';
-  const R = _simp.res;
-
-  /* ── Paso en curso: lo ÚNICO que queda en el panel de la vista ── */
-  const faseTxt = (_simp.fase === 'd') ? 'DIÁSTOLE' : 'SÍSTOLE';
-  const vistaTxt = (_simp.vista === 0) ? 'esta vista' : 'la SEGUNDA ventana (la otra apical)';
-  const falta = !_simpParCompleto(_simp.vista) || (_simp.vista === 1 && !_simpParCompleto(1));
-  if (!falta) {
-    /* Con el par completo no hay nada que guiar, y repetir acá el resultado sería devolver la
-       duplicación por la puerta de al lado. Se remite al panel de abajo, que es donde está. */
-    return '<div style="font-size:11px;line-height:1.55;">' +
-      '<b>Par completo en esta vista.</b>' +
-      '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-      'El resultado, la tabla y los botones están en el panel de Simpson, debajo de las dos ' +
-      'vistas.</div></div>';
-  }
+  const pfx = _V.pfx;
+  const P = _simp.pares[_simp.vista];
+  const hechoD = !!P.d, hechoS = !!P.s;
+  const esD = (_simp.fase === 'd');
   const nom = _simpNombre(_simp.vista);
-  return '<div style="font-size:12px;line-height:1.6;">' +
-    '<b>Trazá ' + faseTxt + '</b> en ' + vistaTxt +
-    (nom ? ' <span style="color:var(--text2);">(' + _SIMP_VISTAS.filter(x => x.k === nom)[0].rot + ')</span>' : '') + '.' +
-    '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-      'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
-      (_simp.pendiente
-        ? '<b style="color:#fbbf24;">Trazado listo — «Confirmar trazado» está en el panel de abajo.</b>'
-        : 'Mantené apretado y recorré el borde del ventrículo.') +
-      (_simp.avisoCuadro
-        ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo que confirmaste sigue valiendo y sigue contando para el cálculo; se dejó de dibujar para no confundirlo con este cuadro. El trazado sin confirmar se descartó.'
-        : '') +
-      (_simp.avisoImagen
-        ? '<br><b style="color:#22d36a;">Cambiaste de imagen y los trazados confirmados siguen ahí.</b> Es lo que hace falta para el biplano: la 4C y la 2C son adquisiciones distintas. Cada trazado guarda la escala de su propia imagen.'
-        : '') +
-    '</div></div>';
+  const rotVent = nom ? (_SIMP_VISTAS.filter(x => x.k === nom)[0] || {}).rot : null;
+
+  /* ── La barra de dos pasos, con la ventana de ESTE par a la derecha (A1) ── */
+  const barra = '<div style="display:flex;gap:5px;align-items:stretch;margin-bottom:6px;">' +
+      _simpPasoChip(pfx, 'd', esD, hechoD, 'Diástole') +
+      '<span style="align-self:center;color:var(--text2);font-size:12px;">→</span>' +
+      _simpPasoChip(pfx, 's', !esD, hechoS, 'Sístole') +
+    '</div>' +
+    (rotVent
+      ? '<div style="font-size:10px;color:var(--text2);margin-bottom:5px;">Ventana de este par: ' +
+        '<b style="color:var(--text);">' + rotVent + '</b>' +
+        (_simpVentanaBloqueada() ? ' — ya no se cambia' : ' — se cambia abajo, antes de trazar') +
+        '</div>'
+      : '');
+
+  /* ── Una sola línea de instrucción. Todo lo demás es del panel de abajo ── */
+  const completo = hechoD && hechoS;
+  const linea = completo
+    ? 'Par completo en esta vista. El resultado está debajo de las dos vistas.'
+    : (_simp.pendiente
+        ? 'Trazado listo — tocá «Listo» para confirmar ' + (esD ? 'la diástole' : 'la sístole') + '.'
+        : 'Trazá ' + (esD ? 'la diástole' : 'la sístole') + ': mantené apretado desde un lado del ' +
+          'anillo mitral hasta el otro.');
+
+  /* ── El único botón «Listo» ── */
+  const hayPend = !!_simp.pendiente;
+  const motivo = completo && !hayPend
+    ? 'Los dos pasos están hechos. Para cambiar uno, tocá su paso y volvé a trazarlo.'
+    : 'Primero trazá el contorno: mantené apretado y recorré el borde del ventrículo.';
+  const listo = '<button type="button" class="btn ' + (hayPend ? 'btn-primary' : 'btn-ghost') + '"' +
+    ' data-simp-listo="1" data-simp-pfx="' + escHtml(pfx) + '"' +
+    (hayPend ? '' : ' aria-disabled="true"') +
+    ' title="' + escHtml(hayPend ? 'Confirma el trazado de esta fase y pasa a la siguiente' : motivo) + '"' +
+    ' style="min-height:44px;padding:4px 14px;font-size:11.5px;font-weight:700;' +
+    (hayPend ? '' : 'opacity:.55;') + '">Listo</button>';
+
+  /* Los dos avisos de estado se quedan: son del trazado en curso, no notas de método. */
+  const avisos =
+    (_simp.avisoCuadro
+      ? '<div style="font-size:10px;color:#fbbf24;margin-top:4px;line-height:1.45;">' +
+        'Cambiaste de cuadro. Lo confirmado sigue valiendo; el trazado sin confirmar se descartó.</div>'
+      : '') +
+    (_simp.avisoImagen
+      ? '<div style="font-size:10px;color:#22d36a;margin-top:4px;line-height:1.45;">' +
+        'Cambiaste de imagen y los trazados confirmados siguen ahí.</div>'
+      : '');
+
+  return '<div style="font-size:12px;line-height:1.5;">' + barra +
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;line-height:1.45;">' +
+      linea + '</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' + listo + '</div>' +
+    avisos + '</div>';
 }
+
+/* ══ MEDIR-4b (A2) — REHACER UNA FASE SIN PERDER LA OTRA ══════════════════════════════════════
+   Borra el contorno de UNA fase de la ranura en curso y deja esa fase como la que se está
+   trazando. La otra no se toca, que es todo el punto: hasta hoy la única forma de corregir una
+   diástole mal trazada era «Empezar de nuevo», que se llevaba también la sístole.
+
+   ⚠️ SE RECALCULA Y SE REPINTA EL BIPLANO, porque el par deja de estar completo: sin esto, el
+   panel de abajo seguiría publicando la FEVI de un par al que le falta un contorno. */
+function medSimpsonRehacer(f) {
+  if (!_simp || (f !== 'd' && f !== 's')) return;
+  const P = _simp.pares[_simp.vista];
+  if (!P) return;
+  P[f] = null;
+  _simp.pendiente = null;
+  _simp.fase = f;
+  _simp.res = _simpCalcular();
+  /* Lo integrado deja de corresponder: el número del que salió ya no existe. */
+  _simp.integrada = false;
+  _medPintar(); _medEstado();
+  _vBiplanoPintar();
+  _simpRepintarOtraVista();
+}
+window.medSimpsonRehacer = medSimpsonRehacer;
+
+/* Un solo oyente delegado para la barra de pasos de las DOS vistas, por lo mismo que el del globo
+   ⓘ: el panel se repinta ENTERO en cada confirmación y un manejador por botón se iría con el nodo
+   viejo. La vista sale del prefijo que viaja en el atributo, nunca de `_V`. */
+try {
+  document.addEventListener('click', function (ev) {
+    const t = ev.target && ev.target.closest
+      ? ev.target.closest('[data-simp-paso],[data-simp-listo]') : null;
+    if (!t) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const pfx = t.getAttribute('data-simp-pfx') || '';
+    const V = _vTodas().filter(x => x.pfx === pfx)[0];
+    if (!V || !V.simp) return;
+    _vCon(V, () => {
+      if (t.hasAttribute('data-simp-listo')) {
+        /* Sin pendiente el botón EXPLICA en vez de no hacer nada: es por esto que no lleva
+           `disabled`. `medSimpsonConfirmar` ya avisa con su propio texto cuando no hay qué
+           confirmar, así que se le deja a él. */
+        medSimpsonConfirmar();
+        return;
+      }
+      const f = t.getAttribute('data-simp-paso');
+      const P = _simp.pares[_simp.vista];
+      /* Tocar el paso EN CURSO no hace nada: no hay nada que rehacer todavía. Tocar uno hecho lo
+         rehace. Tocar el que falta, estando en el otro, mueve la fase sin borrar nada. */
+      if (P && P[f]) { medSimpsonRehacer(f); return; }
+      if (_simp.fase !== f) { _simp.fase = f; _simp.pendiente = null; _medPintar(); _medEstado(); }
+    });
+  }, true);
+} catch (e) {}
 
 /* ── EL PANEL ÚNICO DE SIMPSON ───────────────────────────────────────────────────────────
    Un solo juego de tabla, texto y botones para las dos vistas. Lo que decide sobre QUÉ vista
@@ -147074,8 +147261,17 @@ function _simpFilasVivas() {
       if (!m) return;
       const nk = S.nombres && S.nombres[i];
       const V = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
-      const rot = V ? V.rot : (rotVista + (i ? ' · 2' : ''));
-      if (vistos.indexOf(rot) >= 0) return;
+      let rot = V ? V.rot : (rotVista + (i ? ' · 2' : ''));
+      /* ══ MEDIR-4b (B3, decisión b) — UN ROTULO REPETIDO SE DISTINGUE, NO SE DESCARTA ═══════
+         Con las dos vistas declarando la MISMA ventana, las dos filas se llamaban «A4C» y esta
+         dedup se comía la segunda: el médico veía UNA monoplanar donde había dos medidas. La
+         decisión (b) dice que ahí cada vista muestra SU monoplanar, así que la repetida se
+         desambigua con el nombre de su vista en vez de desaparecer.
+         ⚠️ EN EL CASO NORMAL —una 4C y una 2C— ESTO NO CAMBIA NADA: los rótulos no chocan, así
+         que no se agrega nada y la etiqueta sigue siendo la que la ventana declarada le da, que
+         es lo que TC-237 fija. */
+      if (vistos.indexOf(rot) >= 0) rot = rot + ' · ' + rotVista;
+      if (vistos.indexOf(rot) >= 0) return;   // sigue repetido: es de verdad la misma fila
       vistos.push(rot);
       filas.push({ rot: rot, m: m, mono: true });
     });
@@ -147148,16 +147344,16 @@ function _simpTablaHTML() {
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">FEVI %</th>' +
       '</tr></thead><tbody>' + cuerpo + '</tbody></table>' +
     '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
-      (guardada
-        ? '<b>Tabla guardada con el estudio.</b> Los contornos no se guardan, así que no se ' +
-          'puede seguir midiendo sobre ella: para eso hay que volver a trazar.<br>'
-        : '') +
-      'Cada ventana muestra SU monoplanar —el disco asumido circular—; el <b>biplano</b> es el ' +
-      'resultado del método y el que se integra. <b>No es el promedio de las dos:</b> usa el ' +
-      'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.' +
+      /* ══ MEDIR-4b (C3) — LAS DOS NOTAS DE METODO DE ESTE PIE SE MUDARON AL GLOBO ⓘ ════════
+         Salieron de acá «Cada ventana muestra SU monoplanar… No es el promedio de las dos… VEyec
+         = VFD − VFS» y «Los contornos no se guardan…»: las dos viven en `_SIMP_NOTAS_METODO` y se
+         leen en el ⓘ del panel. Se queda el TITULAR de que la tabla es la guardada —que es un
+         estado de lo que se está mirando, no una nota de método— y la línea de la superficie
+         corporal, que publica el VALOR con el que se indexó y es un dato. */
+      (guardada ? '<b>Tabla guardada con el estudio.</b> ' : '') +
       (hayBsa
-        ? '<br>Indexado por la superficie corporal del estudio: <b>' + bsa.toFixed(2) + ' m²</b>.'
-        : '<br><b>Sólo en mL:</b> falta el peso o la talla, así que no se puede indexar por ' +
+        ? 'Indexado por la superficie corporal del estudio: <b>' + bsa.toFixed(2) + ' m²</b>.'
+        : '<b>Sólo en mL:</b> falta el peso o la talla, así que no se puede indexar por ' +
           'superficie corporal.') +
       '</div>' +
     /* ⚠️ LOS BOTONES YA NO SALEN DE ACÁ: se mudaron al panel único (`_simpUniPintar`). Esta
@@ -147289,19 +147485,28 @@ function _simpUniTexto() {
          'monoplanar trazado dos veces. ';
   else if (!AB && R && R.bi && R.imgs && R.imgs.length > 1)
     t += 'Ventanas: ' + R.imgs.map(E).join(' y ') + '. ';
+  /* ══ MEDIR-4b (C3) — LA PROSA DE METODO SE MUDO AL GLOBO ⓘ ═══════════════════════════════
+     Lo que salió de acá son las notas GENERICAS —qué asume un monoplanar, qué recomienda la guía,
+     por qué no se integra, los dos caminos al biplano, y el ápex escorzado—: todas viven ahora en
+     `_SIMP_NOTAS_METODO`, palabra por palabra, y se leen en el ⓘ de este mismo panel. No se borró
+     ninguna, y el caso lo comprueba buscándolas DENTRO del globo.
+
+     ⚠️ LO QUE SE QUEDA SON LAS DOS ADVERTENCIAS QUE DEPENDEN DE ESTE PACIENTE, y es una decisión:
+     que los cuatro trazados salieron de la misma imagen, y de qué dos archivos salieron. No son
+     notas de método —son un hallazgo sobre los datos que están en pantalla— y mandarlas a un globo
+     que el médico puede no abrir es esconder el único aviso de que el número de arriba no es un
+     biplano. Queda declarado en PENDIENTES.
+     Se queda también el «monoplanar» como PALABRA del rótulo —lo pone `_simpUniCabecera`— y la
+     línea de que todavía no está en el informe, que es operativa y va al lado de su botón. */
   if (!bi)
-    t += '<b>Es monoplanar:</b> asume el ventrículo circular en el corte transversal. La guía ' +
-         'recomienda el biplano y los valores normales con los que se clasifica salen de ' +
-         'biplano. <b>No se integra al informe</b> ni va al PDF: el campo «Método» sólo tiene ' +
-         'Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el ' +
-         'método. <b>Para el biplano</b>, tocá «➕ Vista» y elegí el cineloop de la otra ' +
-         'apical, o trazá la otra ventana en esta misma vista cambiando de cineloop: lo ' +
-         'confirmado no se pierde. ';
+    t += '<b>Es monoplanar.</b> <b>No se integra al informe</b> ni va al PDF. ';
   else if (!_vCon(d ? d.V : _V, () => _simp && _simp.integrada) && !AB)
     t += '<b>Todavía NO está en el informe:</b> se integra con el botón de arriba. ';
-  t += '<b>⚠️ El método supone que el ápex está bien visualizado.</b> Un ápex escorzado ' +
-       'subestima los volúmenes; la guía lo lista como su limitación principal.';
-  return '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' + t + '</div>';
+  /* El ⓘ con las notas de método. Va acá y no sólo en `cine-biplano` porque con un monoplanar
+     —o con las dos ventanas iguales— ese panel no se dibuja, y las notas quedarían sin puerta. */
+  const info = _medInfoBoton('simp-metodo', 'Simpson — notas de método', _SIMP_NOTAS_METODO);
+  return '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
+    t + info + '</div>';
 }
 
 /* El selector de ventana. El activo sale del DESTINO, no de una variable propia: así el toggle
@@ -147343,8 +147548,25 @@ function _simpUniBotones() {
         b('cine-simp-pdf2', 'btn-primary', '📄 Incluir en PDF', 'Manda al informe la tabla ya guardada.') +
       '</div>'
     : '';
+  /* ══ MEDIR-4b (A2) — EL «LISTO» DE RESCATE: UN SOLO BOTON, Y NUNCA INALCANZABLE ════════════
+     El pedido quiere UN ÚNICO botón «Listo», y desde esta tanda ese botón vive en la barra de dos
+     pasos, al lado del canvas que se está trazando. Pero `_simpPanel` se dibuja SÓLO con la
+     herramienta Simpson activa (`_medEstado`), así que retirar este botón a secas reintroduciría
+     un defecto que este archivo ya documenta: con el contorno de diástole trazado y sin
+     confirmar, tocar «medir» en el cajón 2D pasa la vista a Distancia y el médico se quedaba sin
+     NINGUNA forma de confirmar — después cambiaba de cuadro, `medReset` mataba el pendiente y lo
+     trazado se perdía. Lo cazó /sharp-edges en su momento, no la lectura.
+
+     Así que el botón se conserva, con su id, pero sólo aparece cuando la barra de pasos NO está
+     en pantalla para la vista que tiene el pendiente. Hay UN botón visible a la vez —que es lo
+     que «un único botón» quiere decir— y no hay estado en el que confirmar sea imposible. */
+  const VP = (typeof _simpVistaPendiente === 'function') ? _simpVistaPendiente() : null;
+  const rescate = (VP && VP.medHerr !== 'simpson')
+    ? b('cine-simp-conf-u', 'btn-primary', 'Listo',
+        'Confirma el contorno que quedó pendiente. Actúa sobre la vista donde se trazó.')
+    : '';
   return '<div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">' +
-      b('cine-simp-conf-u',  'btn-primary', 'Confirmar trazado', 'Confirma el contorno pendiente. Actúa sobre la vista donde se trazó.') +
+      rescate +
       b('cine-simp-reset-u', 'btn-ghost',   'Empezar de nuevo', 'Descarta los trazados de la ventana seleccionada y vuelve a empezar.') +
       (hayTabla ? b('cine-simp-bib-u', 'btn-ghost', '💾 Guardar en biblioteca', 'Guarda la tabla como archivo del estudio. NO sale en el PDF.') : '') +
       (hayTabla ? b('cine-simp-limpiar-u', 'btn-ghost', '🗑️ Limpiar', 'Borra la tabla guardada con el estudio y los trazados de esta sesión.') : '') +
@@ -148958,12 +149180,99 @@ function _vBiplanoDatos() {
      hace de 4C y el de la B de 2C, que es lo que el médico está viendo lado a lado. */
   const pa = sa.pares && sa.pares[0], pb = sb.pares && sb.pares[0];
   if (!pa || !pb || !pa.d || !pa.s || !pb.d || !pb.s) return null;
+  /* ══ MEDIR-4b (B3, decisión b) — DOS VENTANAS IGUALES NO SON UN BIPLANO ═══════════════════
+     Hasta esta tanda este cruce tomaba `pares[0]` de cada vista POR POSICION —«el de la vista A
+     hace de 4C y el de la B de 2C»— y NO miraba `nombres` en ningún momento. El inventario del
+     bloque 0 lo midió: con `a4c` declarado en las DOS vistas seguía cruzando y publicaba una
+     FEVI idéntica a la del cruce correcto, SIN UN SOLO AVISO; y como `_simpFilasVivas` deduplica
+     por rótulo, la fila de la segunda vista DESAPARECÍA. O sea: el médico veía una monoplanar y
+     un «Biplano» armado con la misma ventana dos veces.
+
+     El biplano de la guía necesita dos planos ORTOGONALES: Σ(a·b) con a y b de la misma ventana
+     no es un biplano, es un monoplanar con un número más grande. Así que con las dos declaradas
+     iguales no se publica nada, y `_vBiplanoMismaVentana` le da al panel la línea que lo explica.
+
+     ⚠️ SI UNA NO ESTA DECLARADA, NO SE BLOQUEA, y es a propósito: desde A1 toda sesión nueva nace
+     con su ventana, así que este caso es el de una sesión vieja o restaurada, y ahí no se sabe si
+     son iguales o distintas. Bloquear por no saber le quitaría al médico un biplano que hasta hoy
+     tenía. Queda declarado. */
+  const na = sa.nombres && sa.nombres[0], nb = sb.nombres && sb.nombres[0];
+  if (na && nb && na === nb) return null;
   const Ld = Math.max(pa.d.Lcm, pb.d.Lcm), Ls = Math.max(pa.s.Lcm, pb.s.Lcm);
   const vfd = _simpVolumenML(pa.d.diamCm, pb.d.diamCm, Ld);
   const vfs = _simpVolumenML(pa.s.diamCm, pb.s.diamCm, Ls);
   if (!(vfd > 0) || !(vfs >= 0) || vfs > vfd) return null;
   return { vfd, vfs, fevi: (vfd - vfs) / vfd * 100, Ld, Ls };
 }
+
+/* ¿Las dos vistas tienen su par completo pero declarando LA MISMA ventana? Es lo único que el
+   panel necesita para poner la línea de la decisión (b); el cálculo no se repite acá.
+
+   ⚠️ SE PREGUNTA POR EL PAR COMPLETO Y NO SOLO POR EL NOMBRE: con un par a medio trazar todavía
+   no hay nada que decir, y el mensaje saldría mientras el médico está midiendo. */
+function _vBiplanoMismaVentana() {
+  if (!_vistaB) return false;
+  const sa = _vistaA.simp, sb = _vistaB.simp;
+  if (!sa || !sb) return false;
+  const pa = sa.pares && sa.pares[0], pb = sb.pares && sb.pares[0];
+  if (!pa || !pb || !pa.d || !pa.s || !pb.d || !pb.s) return false;
+  const na = sa.nombres && sa.nombres[0], nb = sb.nombres && sb.nombres[0];
+  return !!(na && nb && na === nb);
+}
+window._vBiplanoMismaVentana = _vBiplanoMismaVentana;
+
+/* ══ MEDIR-4b (C1, C2) — LOS TRES NUMEROS GRANDES ════════════════════════════════════════════
+   El pedido los quiere GRANDES: VFD, VFS y FEVI. Una celda por número, el rótulo chico arriba y
+   el valor abajo, con su unidad adentro —que es la forma que MEDIR-3 fijó para la tabla de
+   medidas— y el indexado debajo cuando hay superficie corporal.
+
+   ⚠️ EL INDEXADO SALE DE `getBSA()`, el dueño único de todo lo que se indexa en esta aplicación,
+   y SIN PESO O SIN TALLA NO SE INVENTA NADA: no se dibuja la línea. Publicar un indexado con una
+   superficie supuesta sería un número que parece medido. Es lo que MEDIR-2 ya dejó escrito para
+   la tabla.
+   ⚠️ NO SE RECALCULA NADA ACÁ: los tres valores llegan ya calculados. */
+function _simpStat(rot, val, uni, bsa, col, gr) {
+  const ix = (bsa && isFinite(val)) ? (val / bsa) : null;
+  return '<div style="flex:1 1 0;min-width:0;text-align:center;padding:2px 4px;">' +
+    '<div style="font-size:9.5px;color:var(--text2);letter-spacing:.3px;">' + rot + '</div>' +
+    '<div style="font-size:' + (gr ? '26' : '20') + 'px;font-weight:700;line-height:1.15;' +
+      'font-variant-numeric:tabular-nums;' + (col ? 'color:' + col + ';' : '') + '">' +
+      val.toFixed(1) +
+      '<span style="font-size:10px;font-weight:600;margin-left:2px;">' + uni + '</span></div>' +
+    (ix != null
+      ? '<div style="font-size:9.5px;color:var(--text2);font-variant-numeric:tabular-nums;">' +
+        ix.toFixed(1) + ' ' + uni + '/m²</div>'
+      : '') +
+    '</div>';
+}
+
+/* ══ MEDIR-4b (C3) — TODAS LAS NOTAS DE METODO DEL SIMPSON, EN UN SOLO LUGAR ══════════════════
+   El pedido: «La nota de que el biplano NO es el promedio de las dos ventanas se conserva en un
+   ⓘ. TODAS las advertencias y notas de método del Simpson van al ⓘ: no se borra ninguna, se
+   mueven».
+
+   ⚠️ «SE MUEVEN» Y NO «SE BORRAN»: no se pierde una palabra de texto clínico, y el caso lo
+   comprueba buscando cada texto DENTRO del globo y comprobando que YA NO esté en el panel. Es el
+   mismo mecanismo y la misma regla que MEDIR-3 aplicó al panel de medición.
+
+   ⚠️ VIVEN EN UNA CONSTANTE Y NO REPARTIDAS EN LOS TRES PINTORES, que es de donde venían: la
+   misma nota estaba en `_simpUniTexto` y en `_vBiplanoPintar` con dos redacciones, así que el
+   médico leía dos veces lo mismo con palabras distintas. Con un solo dueño eso no puede pasar.
+
+   ⚠️ Y ACA ES DONDE «ASE/EACVI 2015» PUEDE ESTAR. La orden de esta tanda dice que los textos de
+   la app no nombran guías, y `CLAUDE.md` deja la guía, la tabla y el folio PARA EL GLOBO ⓘ: hasta
+   hoy ese nombre se imprimía en el panel, a la vista, que es lo que la regla no quiere. */
+const _SIMP_NOTAS_METODO = [
+  'El biplano no es el promedio de las dos ventanas: usa el producto cruzado de los diámetros de la A4C y la A2C, y el eje largo más largo de las dos. Qué lado queda más alto depende de la geometría, así que no se puede describir como una diferencia con dirección fija.',
+  'Cada ventana muestra además SU monoplanar, que asume el disco circular. Las filas de arriba son de dónde salió el resultado; el que se integra al informe es el biplano. VEyec = VFD − VFS.',
+  'El eje largo que se usa es el más largo de las dos ventanas, en diástole y en sístole por separado (ASE/EACVI 2015).',
+  'Cada trazado usa la escala de SU imagen, no una sola para los cuatro: la A4C y la A2C son adquisiciones distintas y su profundidad también.',
+  'La clasificación de la FEVI es la misma que usa el informe.',
+  'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; la guía lo lista como su limitación principal.',
+  'Un monoplanar asume el ventrículo circular en el corte transversal. La guía recomienda el biplano, y los valores normales con los que se clasifica salen de biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
+  'Para el biplano hay dos caminos: tocar «➕ Vista» y abrir el cineloop de la otra apical, o trazar la otra ventana en esta misma vista cambiando de cineloop. Lo confirmado no se pierde.',
+  'Los contornos no se guardan con el estudio, sólo los números. Una tabla que volvió al reabrir el estudio no se puede seguir midiendo: para eso hay que volver a trazar.'
+];
 
 function _vBiplanoPintar() {
   /* El panel unico va PEGADO a este: los dos leen del mismo calculo y se repintan en los
@@ -148973,23 +149282,59 @@ function _vBiplanoPintar() {
   const c = document.getElementById('cine-biplano');
   if (!c) return;
   const R = _vBiplanoDatos();
-  if (!R) { c.style.display = 'none'; c.innerHTML = ''; return; }
+  if (!R) {
+    /* ══ MEDIR-4b (B3, decisión b) — LA LINEA DE LAS DOS VENTANAS IGUALES ═══════════════════
+       Es el único caso en que este panel dice algo sin tener un biplano: con las dos vistas
+       declarando la misma ventana no hay cruce que publicar, y callarse dejaría al médico con
+       dos monoplanares y ninguna explicación de por qué no aparece el biplano. Una línea. */
+    if (_vBiplanoMismaVentana()) {
+      c.style.display = '';
+      /* Se arma ANTES y se asigna de una, como el resto del panel: una concatenación del lado
+         derecho de `innerHTML` es lo que matchea `ceibo-xss-innerhtml-concat`, y la regla de la
+         casa es no sumar warnings. Acá es todo literal —ni un dato del paciente— pero la regla es
+         sintáctica y triagearla de nuevo cuesta más que escribirlo bien. */
+      const msgIgual = [
+        '<div style="font-size:11px;line-height:1.5;color:#fbbf24;">',
+        '<b>Las dos vistas están midiendo la misma ventana, así que no hay biplano.</b> ',
+        '<span style="color:var(--text2);">Cambiá la ventana de una de las dos y cada una queda ',
+        'con su monoplanar, abajo.</span></div>'
+      ].join('');
+      c.innerHTML = msgIgual;
+      return;
+    }
+    c.style.display = 'none'; c.innerHTML = ''; return;
+  }
   const k = _simpClasificar(R.fevi);
+  let bsa = null;
+  try { bsa = (typeof getBSA === 'function') ? getBSA() : null; } catch (e) { bsa = null; }
+  if (!(bsa != null && isFinite(bsa) && bsa > 0)) bsa = null;
+  const integrada = !!(_vistaA.simp && _vistaA.simp.integrada && _vistaB && _vistaB.simp && _vistaB.simp.integrada);
   c.style.display = '';
   /* Se arma y se asigna en un paso: `innerHTML = a + b + c` es lo que matchea
      `ceibo-xss-innerhtml-concat`, y la regla de la casa es no sumar warnings. Acá todo lo
      interpolado son números con toFixed y literales —nada del archivo DICOM llega a este
      marcado— pero la regla es sintáctica y triagear de nuevo cuesta más que escribirlo bien. */
   const html =
-    '<b>Simpson biplano — vista A × vista B</b> · 20 discos<br>' +
-    'VFD <b>' + R.vfd.toFixed(1) + ' mL</b> · VFS <b>' + R.vfs.toFixed(1) + ' mL</b> · ' +
-    'FEVI <b style="font-size:17px;color:' + k.col + ';">' + R.fevi.toFixed(1) + ' %</b> — ' +
-    '<b style="color:' + k.col + ';">' + k.txt + '</b>' +
+    '<div style="display:flex;align-items:center;gap:6px;justify-content:center;' +
+      'flex-wrap:wrap;margin-bottom:2px;">' +
+      '<b style="font-size:12px;">Simpson biplano — A4C × A2C</b>' +
+      '<span style="font-size:10px;color:var(--text2);">' + SIMP_N + ' discos</span>' +
+      _medInfoBoton('simp-metodo', 'Simpson — notas de método', _SIMP_NOTAS_METODO) +
+    '</div>' +
+    '<div style="display:flex;gap:4px;align-items:flex-end;justify-content:center;">' +
+      _simpStat('VFD', R.vfd, 'mL', bsa, '', false) +
+      _simpStat('VFS', R.vfs, 'mL', bsa, '', false) +
+      _simpStat('FEVI', R.fevi, '%', null, k.col, true) +
+    '</div>' +
+    '<div style="text-align:center;font-size:12px;font-weight:700;color:' + k.col + ';' +
+      'margin-top:1px;">' + k.txt + '</div>' +
     '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.5;">' +
-      'Eje largo ' + R.Ld.toFixed(1) + ' cm en diástole y ' + R.Ls.toFixed(1) + ' cm en sístole ' +
-      '(el más largo de las dos vistas, ASE/EACVI 2015). Cada trazado usa la escala de SU imagen. ' +
-      'La clasificación es la misma que usa el informe. ' +
-      '<b>Todavía NO está en el informe:</b> se integra con el botón.' +
+      (bsa
+        ? 'Indexado por la superficie corporal del estudio: <b>' + bsa.toFixed(2) + ' m²</b>. '
+        : '<b>Sólo en mL:</b> falta el peso o la talla, así que no se puede indexar por superficie corporal. ') +
+      (integrada
+        ? '<b style="color:#22d36a;">Integrada al campo FEVI del informe.</b>'
+        : '<b>Todavía NO está en el informe:</b> se integra con el botón.') +
     '</div>' +
     '<button type="button" class="btn btn-primary" id="cine-biplano-integ" ' +
       'style="margin-top:7px;padding:4px 11px;font-size:11px;">¿Integrás la FEVI biplano al informe?</button>';
@@ -148998,7 +149343,17 @@ function _vBiplanoPintar() {
   if (b) b.onclick = () => {
     const D = _vBiplanoDatos();
     if (!D) return;
-    _simpEscribirFEVI(D.fevi);
+    /* ⚠️ MEDIR-4b (C2) — SE MARCA `integrada` EN LAS DOS VISTAS, Y SOLO SI SE ESCRIBIO.
+       `_simpEscribirFEVI` NO SE TOCA: lo que escribe, a qué campos y su pregunta antes de pisar
+       un valor cargado quedan exactamente como estaban, y acá sólo se lee lo que DEVUELVE. Sin
+       esta marca el panel decía «Todavía NO está en el informe» después de integrarlo, porque
+       esta puerta —la del cruce A × B— nunca ponía la bandera que la otra sí ponía.
+       Se marcan LAS DOS porque el número salió de las dos: con una sola, cerrar esa vista
+       dejaría la otra diciendo que no se integró algo que sí se integró. */
+    if (_simpEscribirFEVI(D.fevi)) {
+      if (_vistaA.simp) _vistaA.simp.integrada = true;
+      if (_vistaB && _vistaB.simp) _vistaB.simp.integrada = true;
+    }
     _vBiplanoPintar();
   };
 }
