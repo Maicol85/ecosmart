@@ -82797,7 +82797,14 @@ function teerEstado() {
   const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]
     .concat(aplPrim ? [cs.c5, cs.c11] : [])
     .concat(aplSec  ? [cs.c2] : [])
-    .concat(aplSec && hayTethering ? [cs.c4] : [])
+    /* ⚠️ Y EL CERO NUNCA SALE DE LA LISTA, aunque no haya tethering. Lo destapo TC-95 en la
+       pasada definitiva, y era una regresion MIA en la direccion peligrosa: con un 0 tipeado en
+       la profundidad y sin tethering consignado, el criterio salia de la lista y el estudio
+       publicaba «APTO» ignorando en silencio un error de carga. Un 0 ahi NO es una medicion -esa
+       es la regla de los techos que este bloque documenta- asi que se queda dentro para que
+       aparezca como dato por ingresar. Sin tethering y con la profundidad MEDIDA o vacia, el
+       criterio no aplica y sale, que es lo que B5 pide. */
+    .concat(aplSec && (hayTethering || profFlail === 0) ? [cs.c4] : [])
     .concat(esSec   ? [cs.c7, cs.c8] : []);
   const evaluados    = veto.filter(c => c.ok !== null);
   const fallos       = veto.filter(c => c.ok === false);
@@ -179018,8 +179025,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261116-0547';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794818864153;                 /* eco-build-ms */
+const ECO_BUILD    = '20261116-0650';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794822623614;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -179105,7 +179112,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261116-0547</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261116-0650</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
