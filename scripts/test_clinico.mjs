@@ -82725,7 +82725,14 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
             Corriendo este caso SOLO el chip no existia y el conteo daba 15; despues de un caso
             que abriera Referencias, 16. Se PINTA ACA antes de contar, que es lo unico que hace
             el denominador estable — y de paso es lo que el medico ve cuando entra a la ficha. */
-      return n === 18 && _ecoPref === 'Criterio de EcoSmart: '; })(),
+      /* ADAPTADO 2026-11-16 (PARTE-2, 2.2): de DIECIOCHO a VEINTE. Los dos nuevos son los del
+         punto 2.2 -las bandas ALTAS de la RVS del posoperatorio y el reparto de feston por
+         angulo del ETE-, los dos cortes propios que la tanda vino a declarar y que hasta hoy
+         no estaban dichos en ninguna superficie VISIBLE: el de los festones estaba solo en un
+         comentario del codigo. Medido: el diff agrega exactamente DOS chips en todo el archivo,
+         37 -> 39 en el conteo crudo. Lo que esta condicion vigila -que todo corte sin fuente
+         lleve su chip y que el prefijo de las notas no se mueva- no cambia. */
+      return n === 20 && _ecoPref === 'Criterio de EcoSmart: '; })(),
     (function(){ let n = 0;
       Array.prototype.forEach.call(document.querySelectorAll('span'), x => {
         if ((x.textContent || '').trim() === 'CRITERIO DE ECOSMART') n++; });
@@ -91820,14 +91827,19 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
        cita de Busse dejo de ser la cadena contigua «Crit Care 2020;24:36» y hoy es «Crit Care,
        2020» en la linea y «24:36 · pagina 1 de 11» en el globo. Se exigen las DOS mitades por
        separado. Las dieciseis filas y los once localizadores siguen todos. */
-    (fPop ? fPop.querySelectorAll('table tr').length : 0) === 17
+    /* ADAPTADO 2026-11-16 (PARTE-2, 2.2c): la tabla de criterios declarados gana UNA fila -las
+       bandas ALTAS de la RVS del posoperatorio, cuyos cortes de 1200 y 1400 no salen de ninguna
+       fuente de la biblioteca- y con ella UN chip. Es consecuencia AUTORIZADA del punto 2.2 y no
+       una fila que se colo: medido, el diff de la tanda agrega exactamente un <tr> y dos chips
+       en todo el archivo. Los conteos se corren de a uno; nada mas se afloja. */
+    (fPop ? fPop.querySelectorAll('table tr').length : 0) === 18
       && ['ivaf075','Crit Care','24:36','folio 701','folio 716','folio 707','folio 152',
           'folio 58','folio 59','D6_11','SAC 2024','ESC/ERS 2022'].every(k => tPop.indexOf(k) > -1),
     'filas=' + (fPop ? fPop.querySelectorAll('table tr').length : 'NO') + ' | ' +
     ['ivaf075','folio 701','folio 716','folio 707','folio 152','folio 58','D6_11'].filter(k => tPop.indexOf(k) < 0).join(',')]);
   ex.push(['(G3) los CUATRO cortes sin fuente llevan su chip, y la errata de Busse esta declarada',
     (fPop ? [].slice.call(fPop.querySelectorAll('span'))
-      .filter(x => (x.textContent||'').trim() === 'CRITERIO DE ECOSMART').length : 0) === 4
+      .filter(x => (x.textContent||'').trim() === 'CRITERIO DE ECOSMART').length : 0) === 5
       && tPop.indexOf('errata') > -1 && tPop.indexOf('No nombra la PAM') > -1,
     'chips=' + (fPop ? [].slice.call(fPop.querySelectorAll('span'))
       .filter(x => (x.textContent||'').trim() === 'CRITERIO DE ECOSMART').length : 'NO')]);
@@ -93503,12 +93515,12 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       fvd ? (JSON.stringify(fvd) + ' colspan=' + cspVd) : 'FILA NO ENCONTRADA']);
     const fpop = FP ? FP.querySelector('table') : null;
     ex.push(['(C5) las DIECISEIS filas de la ficha del posoperatorio siguen, cada una con su ⓘ',
-      !!fpop && fpop.rows.length - 1 === 16
+      !!fpop && fpop.rows.length - 1 === 17   /* +1: la fila de las bandas altas de la RVS (2.2c) */
       && [].slice.call(fpop.rows).slice(1).every(r => r.cells[2] && r.cells[2].querySelector('details')),
       'filas=' + (fpop ? fpop.rows.length - 1 : -1) + ' con globo='
       + (fpop ? [].slice.call(fpop.rows).slice(1).filter(r => r.cells[2] && r.cells[2].querySelector('details')).length : -1)]);
     ex.push(['(C6) y sus CUATRO sellos «Criterio de EcoSmart» siguen ahi',
-      (FPT.match(/CRITERIO DE ECOSMART/g) || []).length === 4,
+      (FPT.match(/CRITERIO DE ECOSMART/g) || []).length === 5,  /* +1: el de la RVS (2.2c) */
       'sellos=' + (FPT.match(/CRITERIO DE ECOSMART/g) || []).length]);
 
     const FUGA = ['Clase I ·', 'Clase IIa ·', 'Clase IIb ·', 'Clase 1 ·', 'Clase 2a ·',
@@ -144637,12 +144649,18 @@ caso('TC-898', 'MEDIR-4b: el calculo del Simpson no se movio -- VFD, VFS y FEVI 
         ['eje largo mas largo'.replace('mas', 'más'), 'ejeMasLargo'],
         ['VEyec = VFD − VFS', 'veyec'],
         ['SU monoplanar', 'cadaVentanaMono'],
-        ['ASE/EACVI 2015', 'aseEacvi'],
+        /* ⚠️ ADAPTADAS 2026-11-16 (PARTE-2, 2.7): el ⓘ del Simpson pasa a citar «Lang 2015»,
+           autor-año, que es la forma de esta casa. Nombraba su fuente de TRES maneras y ninguna
+           lo era: «(ASE/EACVI 2015)» -sociedad-año- y «la guía» a secas DOS veces. El documento
+           es el mismo en los tres casos; lo que cambia es como se lo nombra.
+           Las dos claves siguen vigilando lo MISMO -que la nota viva DENTRO del globo y no en el
+           panel-, asi que la condicion no se afloja: solo se actualiza el texto que busca. */
+        ['Lang 2015', 'lang2015'],
         ['escala de SU imagen', 'escalaSuImagen'],
         ['clasificacion de la FEVI es la misma que usa el informe'.replace('clasificacion', 'clasificación'), 'clasifInforme'],
         ['apex esta bien visualizado'.replace('apex', 'ápex').replace('esta', 'está'), 'apexEscorzado'],
         ['asume el ventriculo circular'.replace('ventriculo', 'ventrículo'), 'monoAsume'],
-        ['La guia recomienda el biplano'.replace('guia', 'guía'), 'guiaRecomienda'],
+        ['Lang 2015 recomienda el biplano', 'langRecomienda'],
         ['tocar «➕ Vista»', 'dosCaminos'],
         ['contornos no se guardan', 'contornosNoGuardan']
       ];
@@ -144654,8 +144672,14 @@ caso('TC-898', 'MEDIR-4b: el calculo del Simpson no se movio -- VFD, VFS y FEVI 
       /* ⚠️ «ASE/EACVI 2015» es un NOMBRE DE GUIA, y hasta esta tanda se imprimia EN PANTALLA.
          La regla de esta casa lo deja para el globo, asi que esta condicion mide las dos mitades:
          que este en el globo Y que ya no este en el panel. */
-      R.guiaFueraDelPanel = (PANEL.indexOf('ASE/EACVI') < 0);
-      R.guiaEnGlobo = (GLOBO.indexOf('ASE/EACVI 2015') > -1);
+      /* ⚠️ ADAPTADA 2026-11-16 (PARTE-2, 2.7), y queda MAS FUERTE. Lo que esta condicion vigila
+         es que el nombre de la fuente viva en el GLOBO y no en la pantalla -la regla de la casa-,
+         y eso no cambia. Lo que cambio es COMO se la nombra: el ⓘ pasa a citar «Lang 2015»,
+         autor-año, en vez de «ASE/EACVI 2015», sociedad-año.
+         El lado del panel ahora exige que NINGUNA de las dos formas este ahi, no solo la vieja:
+         con la condicion anterior, mover el nombre nuevo a la pantalla habria pasado en verde. */
+      R.guiaFueraDelPanel = (PANEL.indexOf('ASE/EACVI') < 0 && PANEL.indexOf('Lang 2015') < 0);
+      R.guiaEnGlobo = (GLOBO.indexOf('Lang 2015') > -1);
 
       /* ══ EL BOTON DE INTEGRAR SIGUE ESCRIBIENDO LO MISMO ══════════════════════════════════
          Es un monoplanar, asi que el que ofrece integrar es el del panel unico; se usa el que

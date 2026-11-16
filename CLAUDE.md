@@ -276,7 +276,18 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,34 MB / 184.707 líneas**, medido con `wc -c` y `wc -l` el 2026-11-16 al cierre de la tanda **MEDIR-6**, sobre el árbol ya sellado: sello **`v20261116-0650`**, md5 **`f4f277b0`**.
+  sin frameworks. Hoy **13,37 MB / 184.940 líneas**, medido con `wc -c` y `wc -l` el 2026-11-16 al cierre de la tanda **PARTE-2**, sobre el árbol ya sellado: sello **`v20261116-1019`**, md5 **`73289048`**.
+  El diff de PARTE-2 son **390 líneas agregadas y 29 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `ac4be40` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
+  `eval(` y `new Function` nuevos, **CERO** `input`, `select` y `textarea` nuevos con `id` —y por
+  eso **cero** campos guardados nuevos y las **457** columnas de Excel quietas, medido con TC-135,
+  TC-479, TC-824 y TC-831 en verde— y **UN** `<tr>` y **DOS** chips «CRITERIO DE ECOSMART» nuevos,
+  contados sobre el diff (37 → 39 en el conteo crudo del archivo).
+  ⚠️ **POR CUADRAGÉSIMA SEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show ac4be40:index.html` da **184.707** líneas,
+  **13.343.271** bytes y el md5 **`f4f277b0`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,34 MB / 184.707 al cierre de **MEDIR-6**, sello **`v20261116-0650`**, md5 **`f4f277b0`**.)
   El diff de MEDIR-6 son **535 líneas agregadas y 112 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `b065c69` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
   `eval(` y `new Function` nuevos y **CINCO** `input` nuevos con `id` — los tres de la casilla
