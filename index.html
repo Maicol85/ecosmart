@@ -18923,7 +18923,7 @@ z
              que no cubre a toda la lista. -->
         <div style="font-size:11px; font-weight:700; color:var(--accent2); margin-bottom:6px;">CRITERIOS ANATÓMICOS</div>
         <div class="calc-row"><span class="calc-lbl">Velo anterior ≥20mm</span><span id="teer-c1">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Velo posterior ≥7mm (idealmente ≥10mm)</span><span id="teer-c1b">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Velo posterior — complejidad del agarre</span><span id="teer-c1b">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Longitud de coaptación ≥2mm</span><span id="teer-c2">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Área mitral ≥4.0cm²</span><span id="teer-c3">—</span></div>
         <!-- «Profundidad de coaptación», igual que el campo y que la hoja del PDF: el mismo
@@ -18964,6 +18964,14 @@ z
           <div><b>Fuentes.</b> Profundidad de coaptaci&oacute;n &lt;11 mm, flail gap &lt;10 mm y ancho
             del flail &lt;15 mm: Tamburino y cols., <i>Eur Heart J</i> 2010;31:1382-1389,
             Tabla 1, folio 1386, que EXCLUYE &ge;11 mm, &ge;10 mm y &ge;15 mm respectivamente.
+            Son los criterios de EXCLUSI&Oacute;N de un estudio peque&ntilde;o y no de una
+            gu&iacute;a, y esta aplicaci&oacute;n los usa por extensi&oacute;n sobre las medidas
+            del ETE. La profundidad de coaptaci&oacute;n se aplica al clip y s&oacute;lo cuando
+            hay tethering; para la reparaci&oacute;n quir&uacute;rgica el corte es otro &mdash;10 mm
+            o m&aacute;s&mdash; y cada resultado sale rotulado con su procedimiento.
+            La <b>longitud</b> de coaptaci&oacute;n de menos de 2 mm es OTRA medida de ese mismo
+            trabajo y no se mezcla con la profundidad: una mide cu&aacute;nto coaptan los velos y
+            la otra cu&aacute;n por debajo del plano del anillo lo hacen.
             Los tres coinciden con la columna &laquo;no complejo — ideal para TEER mitral&raquo;
             de la Tabla S2 del material suplementario de la ESC/EACTS 2025 (hoja 5), que
             agrega la altura de tenting &lt;10 mm. PSAP &le;70 mmHg, di&aacute;metro
@@ -18972,11 +18980,16 @@ z
           <div style="margin-top:4px;">
             <span style="display:inline-block; border:1px solid var(--border); border-radius:4px;
                          padding:1px 5px; margin-right:4px; font-size:9px; letter-spacing:.3px;">CRITERIO DE ECOSMART</span>
-            La longitud de los velos &mdash;anterior &ge;20 mm y posterior &ge;7 mm&mdash; es una
-            referencia propia de la aplicaci&oacute;n, porque las gu&iacute;as le&iacute;das no traen un corte para el
-            velo anterior. El protocolo EXPAND admite una profundidad de coaptaci&oacute;n
-            &le;11 mm; la aplicaci&oacute;n usa el l&iacute;mite del Tamburino 2010, as&iacute; que
-            11,0 mm exactos quedan fuera.
+            La longitud del velo anterior &mdash;&ge;20 mm&mdash; es una referencia propia de la
+            aplicaci&oacute;n, porque las gu&iacute;as le&iacute;das no traen un corte para ese velo.
+            El velo posterior no se grada con un corte &uacute;nico sino por tramos de dificultad
+            t&eacute;cnica del agarre: m&aacute;s de 10 mm no complejo, de 7 a 10 complejo, de 5 a 7
+            muy complejo y menos de 5 dif&iacute;cil o imposible. Es una advertencia y no modifica
+            el veredicto. Los tramos son un criterio propio de la aplicaci&oacute;n. El protocolo EXPAND admite una profundidad de coaptaci&oacute;n
+            &le;11 mm; la aplicaci&oacute;n usa el l&iacute;mite del estudio que publica la Tabla 1,
+            as&iacute; que 11,0 mm exactos quedan fuera. La altura de tenting de 10 mm tambi&eacute;n
+            es un criterio propio: el valor est&aacute; descrito para el TEER y esta pantalla lo
+            publica adem&aacute;s junto a los factores de la reparaci&oacute;n.
           </div>
         </div>
       </div>
@@ -37237,9 +37250,13 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
    sí misma, en dos superficies del mismo estudio.
    `DT_TRIV_HTP_PANEL` SE RETIRÓ: no quedó como alias. Un alias no puede divergir, pero sí puede
    hacer creer que hay dos cortes, y el archivo entero venía arrastrando esa lectura.
-   ⚠️ EL OPERADOR ES ESTRICTO Y SIGUE SIÉNDOLO en los dos lectores: 75 exactos NO es un elemento
-   a favor, 76 sí. Era así en `dopTricEstado` y en `_dtTrivRefTxt` antes de esta tanda, así que
-   el cambio es el número y nada más.
+   ⚠️ Y EL OPERADOR PASÓ A SER NO ESTRICTO EN LOS DOS LECTORES (B1, 2026-11-16). DECISIÓN DEL
+   MÉDICO, y REVIERTE lo que este mismo bloque declaraba: decía «75 exactos NO es un elemento a
+   favor, 76 sí». Hoy el corte es **≥ 75 ms**, así que 75 exactos SÍ cuenta. Los dos lectores
+   —`dopTricEstado` y `_dtTrivRefTxt`— se cambiaron juntos, que es lo que impide que la pantalla
+   y el informe contesten distinto sobre el mismo número; y las tres cadenas que publican el
+   operador lo dicen con «≥», porque un texto que diga «> 75» al lado de un 75 marcado como a
+   favor es la misma medición desmintiéndose sola.
    ⚠️ NINGUNA FUENTE DE LA BIBLIOTECA PUBLICA ESTE 75, y sigue declarado en `docs/PENDIENTES.md`
    → Y-b: la ASE 2025 de corazón derecho publica ≤ 73 ms (folio 168 y Tabla 6, folio 169) y lo
    hace para la función diastólica del VD, que es otra pregunta. Es un CRITERIO DE ECOSMART. */
@@ -37257,7 +37274,7 @@ function htpIndirectosFrase(){
   if (!r) return '';
   const p = [];
   if (r.tapBajo)  p.push('TAP < ' + DT_TAP_HTP + ' ms');
-  if (r.trivAlto) p.push('TRIV tricuspídeo > ' + DT_TRIV_HTP + ' ms');
+  if (r.trivAlto) p.push('TRIV tricuspídeo \u2265 ' + DT_TRIV_HTP + ' ms');
   return p.length ? '(' + p.join(' y ') + ')' : '';
 }
 window.htpIndirectosFrase = htpIndirectosFrase;
@@ -37286,7 +37303,7 @@ function dopTricEstado(src){
   const ea = (eOk && aOk && a > 0) ? Math.round((e / a) * 100) / 100 : null;
   const eep = (eOk && epOk && ep > 0) ? Math.round((e / ep) * 10) / 10 : null;
   /* Sólo cuentan los signos MEDIDOS y dentro de banda. Un campo vacío no sugiere nada. */
-  const trivAlto = trivOk && triv > DT_TRIV_HTP;
+  const trivAlto = trivOk && triv >= DT_TRIV_HTP;   // B1: ≥ 75 ms, no > 75
   const tapBajo  = tap != null && isFinite(tap) && tap < DT_TAP_HTP;
   /* `fuera` cuenta como DATO. Sin esto, una onda E de 9 m/s —un error de unidades— salía por el
      return temprano de `dopTricFrase` y el valor desaparecía del informe sin una palabra: el
@@ -37316,8 +37333,8 @@ const DT_TDE_ACORT = 120;
 function _dtTrivRefTxt() {
   const r = (typeof dopTricEstado === 'function') ? dopTricEstado() : null;
   if (!r || r.triv == null) return null;
-  const alto = r.triv > DT_TRIV_HTP;
-  return { txt: r.triv + ' ms' + (alto ? ' (>' + DT_TRIV_HTP + ' ms: a favor de HTP)' : ''),
+  const alto = r.triv >= DT_TRIV_HTP;               // B1: ≥ 75 ms, no > 75
+  return { txt: r.triv + ' ms' + (alto ? ' (\u2265' + DT_TRIV_HTP + ' ms: a favor de HTP)' : ''),
            alto: alto };
 }
 window._dtTrivRefTxt = _dtTrivRefTxt;
@@ -37330,7 +37347,8 @@ function calcDopTric(){
   /* ⚠️ EL TEXTO DEL TRIV TIENE UN DUEÑO ÚNICO Y DOS FILAS QUE LO MUESTRAN (B1, 30/10/2026).
      `_dtTrivRefTxt` arma la cadena y dice si está por encima del corte; esta función pinta las
      DOS —la de Doppler → tricúspide y la de VD/AD—, así que no pueden discrepar sobre el mismo
-     número. El comentario sale SÓLO por encima del corte; con 75 o menos va el valor solo. */
+     número. El comentario sale desde el corte INCLUIDO (B1): con 75 exactos ya sale, y con 74
+     o menos va el valor solo. */
   { const t = _dtTrivRefTxt();
     const _pinta = (id) => { const el = document.getElementById(id); if (!el) return;
       if (!t) { el.textContent = '—'; el.style.color = ''; return; }
@@ -50591,9 +50609,14 @@ window._imPeorIntegrado = _imPeorIntegrado;
    ⚠️ NI UNA PALABRA NUEVA NI UNA MENOS: son las seis lineas del `lee` de `vd-triv` y su
    `fuente`, movidas tal cual. El bloque de CRITERIO DE ECOSMART NO entra: es otra cosa —la
    frase del gradiente subestimado del informe— y sigue viviendo solo en su globo.
-   ⚠️ NO HAY CORTE NUEVO: el 75 ms es el de `DT_TRIV_HTP`, que el COR-2 dejo como dueño unico. */
+   ⚠️ NO HAY CORTE NUEVO: el 75 ms es el de `DT_TRIV_HTP`, que el COR-2 dejo como dueño unico.
+   ⚠️ Y LA PRIMERA LINEA DECIA «mas de 75 ms», QUE CONTRADECIA A SU PROPIA FUENTE (B1, 16/11).
+   `TRIV_DTI_FUENTE`, tres lineas mas abajo, cita el consenso como «normal menos de 75 ms,
+   anormal 75 ms o mas»: o sea que el documento del que sale el corte ya lo daba INCLUIDO y la
+   aplicacion lo leia estricto. El cambio de operador del medico alinea las dos cosas, y esta
+   linea pasa a decir «75 ms o mas» para que el globo no se desmienta a si mismo. */
 const TRIV_DTI_LEE =
-    'Medido con Doppler tisular en el anillo tricuspídeo lateral, prolongado —más de 75 ms— '
+    'Medido con Doppler tisular en el anillo tricuspídeo lateral, prolongado —75 ms o más— '
   + 'orienta a hipertensión pulmonar.\n'
   + 'Es un dato de apoyo, no un criterio validado.\n'
   + 'Se prolonga también en la miocardiopatía hipertrófica, en el bloqueo de rama derecha y '
@@ -52403,7 +52426,8 @@ const VINFO = Object.freeze({
     fuente: 'Celermajer DS y col., J Am Coll Cardiol 1992;19:1041-6. La definición y los cortes '
        + 'están en la hoja 2, folio 1042; la Tabla 3 está en la hoja 3, folio 1043; la precisión '
        + 'de la vista, en la hoja 5, folio 1045.',
-    ojo: 'El índice es orientativo, no una indicación. Se derivó en una serie retrospectiva de '
+    ojo: 'El índice es orientativo y no una indicación, y lo es especialmente EN ADULTOS: se '
+       + 'derivó en NEONATOS y acá se aplica por extensión. Salió de una serie retrospectiva de '
        + 'un solo centro de 50 neonatos con anomalía de Ebstein vistos entre 1961 y 1990, en la '
        + 'que el ecocardiograma neonatal permitió calcular el grado en 28 — el «100 %» del grado '
        + 'IV son 5 pacientes de 5 —, y no figura en la ESC 2020, cuyas indicaciones de cirugía en '
@@ -82487,6 +82511,20 @@ function teerFigSync(){
 }
 window.teerFigSync = teerFigSync; window.TEER_FIG = TEER_FIG;
 
+/* ══ B4 — EL TRAMO DE COMPLEJIDAD DEL VELO POSTERIOR (2026-11-16) ═══════════════════════════
+   Dueno unico del nombre de cada tramo: lo leen el criterio `c1b` y su fila de pantalla, asi que
+   no pueden nombrar el mismo milimetraje de dos maneras. Los cuatro tramos son los del medico.
+   Se entra por el tramo mas ancho y se baja, que es lo que resuelve los extremos repetidos de la
+   orden hacia abajo (7,0 es «complejo»; 5,0 es «muy complejo»). */
+function _teerVpTramo(mm) {
+  if (mm == null || !isFinite(mm)) return null;
+  if (mm > 10) return 'agarre no complejo';
+  if (mm >= 7) return 'agarre complejo';
+  if (mm >= 5) return 'agarre muy complejo';
+  return 'agarre dificil o imposible';
+}
+window._teerVpTramo = _teerVpTramo;
+
 function teerEstado() {
   const lva   = v('teer_lva'),  lvp = v('teer_lvp'),  gap = v('teer_gap');
   const area  = v('teer_area_mitral');
@@ -82511,6 +82549,20 @@ function teerEstado() {
      de velo y la anchura de flail son los de la degenerativa. c7 y c8 (COAPT) ya se gateaban
      así desde antes. */
   const esPrim = tipoIM === 'primaria', esSec = tipoIM === 'secundaria';
+  /* ══ B5 (2026-11-16) — EL TETHERING ES CONDICION DEL CRITERIO DEL CLIP ══════════════════════
+     Orden del medico: la profundidad de coaptacion de 11 mm o mas es desfavorable PARA EL CLIP y
+     solo si hay tethering. Sin esa condicion el criterio se aplicaba a cualquier mecanismo, y una
+     profundidad grande sin tethering no describe lo que el ensayo excluyo.
+     ⚠️ NO SE AGREGO NINGUN CAMPO: el tethering ya se consigna en DOS lugares de la app -el
+     Carpentier IIIb («tethering sistolico») y el mecanismo de la IM secundaria («tethering»)- y
+     se lee de los dos, porque el medico puede haber cargado uno y no el otro. Un campo nuevo
+     seria un tercer lugar donde decir lo mismo.
+     ⚠️ FALLA HACIA NO AFIRMAR: sin tethering consignado el criterio NO se evalua y queda en «sin
+     datos», que es como esta tabla ya trata un campo que falta. Dar por cumplido lo que no se
+     sabe es el error en la direccion peligrosa. */
+  const _tethCarp = (typeof sv === 'function') ? String(sv('ete_carpentier') || '') : '';
+  const _tethMec  = (typeof sv === 'function') ? String(sv('ete_mecanismo') || '') : '';
+  const hayTethering = _tethCarp === 'IIIb' || _tethMec === 'tethering';
   const aplPrim = !esSec;   // primaria o sin definir
   const aplSec  = !esPrim;  // secundaria o sin definir
   /* Las LONGITUDES DE VELO (c1, c1b) son COMUNES a los dos tipos y no se gatean. Una primera
@@ -82530,7 +82582,21 @@ function teerEstado() {
        fallo termina en «NO apto», un «agarre difícil» a secas se leía como un rechazo más.
        Es el reverso de c7/c8: aquéllos decían «NO apto» y no vetaban, que era mentira en la
        otra dirección. Un criterio tiene que decir exactamente cuánto pesa. */
-    c1b: lvp  !== null ? C('teer-c1b','Velo posterior ≥7 mm', lvp >= 7,  `${lvp}mm ≥7mm`,  `${lvp}mm <7mm — Advertencia: agarre difícil, evaluar con el operador. No modifica el veredicto.`) : C('teer-c1b','Velo posterior ≥7 mm', null),
+    /* ══ B4 (2026-11-16) — LOS CUATRO TRAMOS DE COMPLEJIDAD, EN VEZ DEL CORTE UNICO DE 7 mm ══
+       Orden del medico. El corte de 7 mm partia el agarre en dos —se puede o no se puede— y lo
+       que describe la longitud del velo posterior es un GRADIENTE de dificultad tecnica. El
+       velo ANTERIOR ≥20 mm (c1) no se toca.
+       ⚠️ SIGUE SIENDO UNA ADVERTENCIA Y NO UN VETO, igual que antes: su texto lo dice con todas
+       las letras y `vetoIds` no lo incluye. Lo que cambia es cuanta dificultad declara, no
+       cuanto pesa.
+       ⚠️ LOS BORDES: el medico escribio los tramos con los extremos repetidos —«7-10» y «5-7»—,
+       asi que se resolvieron hacia ABAJO, que es la lectura habitual de una banda: el limite
+       inferior pertenece a su tramo. O sea 7,0 exactos es «complejo» y 5,0 exactos es «muy
+       complejo». Queda declarado por si el medico lo quiere al revés. */
+    c1b: lvp  !== null ? C('teer-c1b','Velo posterior — complejidad del agarre', lvp > 10,
+           `${lvp}mm >10mm — agarre no complejo`,
+           `${lvp}mm — ${_teerVpTramo(lvp)}. Advertencia: evaluar con el operador. No modifica el veredicto.`)
+         : C('teer-c1b','Velo posterior — complejidad del agarre', null),
     /* `> 0` en CUATRO de los cinco criterios de techo (`v <= X`): c2, c4, c6 y c8. Un criterio de
        techo falla ABIERTO con el cero —«0mm ≤10mm ✓»— y en esos cuatro el cero no es una
        medición, es un campo sin llenar o un error de tipeo; ninguno de estos campos tiene `min`.
@@ -82581,7 +82647,7 @@ function teerEstado() {
        valor -los 11,0 mm exactos- y queda DECLARADA como criterio de EcoSmart en el pie del
        cuadro. No se elige el EXPAND porque la decision de Maicol es el limite del ensayo que
        publica la Tabla 1. */
-    c4:  (aplSec  && profFlail  !== null && profFlail  > 0) ? C('teer-c4','Profundidad de coaptación <11 mm', profFlail < 11, `${profFlail}mm <11mm`, `${profFlail}mm ≥11mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación <11 mm', null),
+    c4:  (aplSec  && profFlail  !== null && profFlail  > 0 && hayTethering) ? C('teer-c4','Profundidad de coaptación <11 mm — clip, con tethering', profFlail < 11, `${profFlail}mm <11mm`, `${profFlail}mm ≥11mm — anatomía compleja, Heart Team`) : C('teer-c4','Profundidad de coaptación <11 mm — clip, con tethering', null),
     /* c5 NO lleva la guarda `> 0`, y es la única excepción de los criterios de techo — decisión
        clínica de Maicol (2026-09-15). En los otros cuatro el cero no existe como medición; acá
        **0 mm es «no hay flail»**, que es el hallazgo de un prolapso sin flail y satisface
@@ -82879,12 +82945,18 @@ function calcTEER() {
 const REPAR_COAPT_MM    = 10;    // mm  — desfavorable con `>=` (la tabla escribe «≥1 cm»)
 const REPAR_ANGULO_GR   = 45;    // °   — desfavorable con `>`  (la tabla escribe «>45°»)
 const REPAR_TENTING_CM2 = 2.5;   // cm² — desfavorable con `>`  (la tabla escribe «>2,5-3 cm2»)
-const TEER_TENTING_MM   = 10;    // mm  — «ideal» para TEER con `<` (Tabla S2, pág. 5)
+/* ⚠️ B5 (2026-11-16) — LOS 10 mm DE ALTURA DE TENTING SON UN CRITERIO PROPIO DE ESTA
+   APLICACION, POR ORDEN DEL MEDICO. Este renglon los atribuia a la ESC/EACTS 2025, material
+   suplementario, Tabla S2 (hoja 5), y esa atribucion decia mas de lo que corresponde: ese valor
+   esta descrito para el TEER y la aplicacion lo publica tambien al lado de los factores de la
+   reparacion, o sea aplicado por extension. El numero NO cambia; lo que cambia es de quien se
+   dice que es. */
+const TEER_TENTING_MM   = 10;    // mm  — criterio propio de la aplicacion, con `<`
 /* ⚠️ EL PIE DECLARA EL RANGO DEL AREA DE TENTING (I-E2, 22/10/2026). La Tabla 7 lo escribe
    «>2,5-3 cm2», o sea un RANGO y no un numero: la app aplica su extremo BAJO (>2,5), que es el
    lado que no deja de marcar, y lo dice en vez de publicar un corte unico como si fuera de la
    fuente. Declarado tambien en la ficha de Referencias y en PENDIENTES.md. */
-const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de la guía de evaluación ecocardiográfica de la insuficiencia valvular (hoja 25; ese documento no lleva folio impreso), descrita para la insuficiencia mitral SECUNDARIA. El área de tenting la tabla la escribe como un rango, «>2,5-3 cm²», y la aplicación aplica su extremo bajo. La altura de tenting no figura en esa tabla: su corte de 10 mm es el de la ESC/EACTS 2025, material suplementario, Tabla S2 (hoja 5), para el TEER.';
+const REPAR_FUENTE_TXT  = 'Los tres factores salen de la Tabla 7 de la guía de evaluación ecocardiográfica de la insuficiencia valvular (hoja 25; ese documento no lleva folio impreso), descrita para la insuficiencia mitral SECUNDARIA: la profundidad de coaptación de 10 mm o más, el ángulo posterolateral de más de 45° y el área de tenting. El área de tenting la tabla la escribe como un RANGO, «>2,5-3 cm²», y la aplicación aplica su extremo bajo. La altura de tenting no figura en esa tabla: su corte de 10 mm es un criterio propio de esta aplicación.';
 const REPAR_NO_SEC_TXT  = 'Sin veredicto: los tres factores de la Tabla 7 están descritos para la insuficiencia mitral SECUNDARIA, y el mecanismo consignado no lo es. Las mediciones se muestran y no se integran.';
 const REPAR_PRIM_TXT    = 'Para la insuficiencia mitral PRIMARIA las cifras de esta pantalla son un criterio propio de la aplicación.';
 /* ⚠️ SON TRES ESTADOS Y HABIA DOS TEXTOS (AJ2-3, 2026-10-23). `imMecanismoIM()` devuelve
@@ -92199,16 +92271,18 @@ const IND_REFS = Object.freeze([
      ⚠️ NI UN NUMERO, UNA CLASE, UN FOLIO NI UNA TABLA SE PIERDE, y es lo que hace que esto no sea
      contenido clinico nuevo: la Clase I · Nivel C, el «> 1,5», la Clase IIa y la IIb, el corte de
      32 mm/m² y los datos de la publicacion son los MISMOS que la entrada ya traia. Lo unico que
-     cambia es de quien se dice cada cosa. */
+     cambia es de quien se dice cada cosa.
+     ⚠️ Y EN B3 (16/11/2026) SALIO EL CORTE DE 32 mm/m² DE ESTA FRASE, porque la seccion dejo de
+     aplicarlo: la regla se retiro por orden del medico. No es un numero que se perdio —no habia
+     donde publicarlo, ya no se aplica en ninguna parte—, es un criterio que dejo de existir. */
   { k:'escGuchCiv',
     full:'ESC 2020 — cardiopatías congénitas del adulto (Baumgartner H, et al. Eur Heart J ' +
          '2021;42(6):563-645), sección de comunicación interventricular. La guía indica el cierre ' +
          'con sobrecarga de volumen del VI y sin hipertensión pulmonar, INDEPENDIENTEMENTE DE LOS ' +
          'SÍNTOMAS (Clase I · Nivel C), y publica su Qp/Qs «> 1,5» dentro de los escenarios con ' +
          'hipertensión pulmonar establecida (Clase IIa y IIb). Los criterios que esta sección ' +
-         'aplica —los síntomas atribuibles al shunt, el Qp/Qs como criterio general de cierre y el ' +
-         'corte de DDVI indexado > 32 mm/m²— son un criterio propio de la aplicación. Esta ' +
-         'referencia no publica nivel de evidencia.' },
+         'aplica —los síntomas atribuibles al shunt y el Qp/Qs como criterio general de cierre— ' +
+         'son un criterio propio de la aplicación. Esta referencia no publica nivel de evidencia.' },
   /* ⚠️ ENTRADA AMPLIADA EL 2026-10-24 (J2-E6) con lo que se verificó en el PDF original. Antes
      decía sólo el nombre de la guía. No se le cambió el contenido clínico a nadie: lo que entra
      es la PROCEDENCIA —folio, tabla y regla de folio— de las dos filas que la sección de
@@ -104066,8 +104140,9 @@ function _indVT(){
 document.addEventListener('DOMContentLoaded', function(){ try { _vtAssertUmbrales(); } catch (e) {} });
 
 /* ── Comunicación interventricular ─────────────────────────────────────────────────────────
-   Los dos umbrales se LEEN de `CIV_QPQS_CIERRE` y `CIV_DDVI_IDX_CIERRE`, las mismas constantes
-   que aplica `_civConducta` en el Laboratorio, el PDF y el PPT.
+   El umbral se LEE de `CIV_QPQS_CIERRE`, la misma constante que aplica `_civConducta` en el
+   Laboratorio, el PDF y el PPT. ⚠️ ERA UN PAR Y HOY ES UNO SOLO: `CIV_DDVI_IDX_CIERRE` se retiró
+   en B3 por orden del médico (ver su lápida al lado de `_civConducta`).
 
    ⚠️ Lo que este panel NO reproduce es la CASCADA. `_civConducta` toma un registro de cohorte
    —lee por `_labNum(i, …)`— y no el formulario, así que desde acá no se la puede llamar sin
@@ -104106,7 +104181,7 @@ const CIV_PREG = Object.freeze([
 window.CIV_PREG = CIV_PREG;
 function _indCIV(){
   const qF = _indFn('ccQpQsDe'), bsaF = _indFn('getBSA');
-  const UQ = _indUmb('CIV_QPQS_CIERRE'), UD = _indUmb('CIV_DDVI_IDX_CIERRE');
+  const UQ = _indUmb('CIV_QPQS_CIERRE');
   const CRIT = _indLista('CIV_CONDUCTAS');
   const TIPO = Object.assign(Object.create(null), { perimembranosa:'Perimembranosa', muscular:'Muscular', infundibular:'Infundibular', inlet:'Inlet' });
   const tipo = _indS('ete_civ_tipo');
@@ -104149,18 +104224,18 @@ function _indCIV(){
           : _ge(q, UQ) ? '≥ ' + _indNum(UQ, 1) + ' — criterio de cierre'
           : q != null ? 'no alcanza ' + _indNum(UQ, 1)
           : 'no atribuible: hay más de un shunt con datos, o faltan los flujos del TSVI y del TSVD'),
-    /* Con la contraindicación puesta, el DDVI NO puede seguir marcando ✅ «criterio de cierre»:
-       la cascada de `_civConducta` corta en la contraindicación antes de mirar la dilatación, y
-       el panel imprime las filas en paralelo. Sin esto la misma tabla decía 🔴 «el cierre está
-       contraindicado» y ✅ «criterio de cierre por sí solo» — alcanzable en una CIV con shunt
-       invertido y el ventrículo todavía dilatado por la sobrecarga previa. */
-    UD == null ? _indSinUmbral('DDVI indexado')
-      : _indFila('DDVI indexado', ddfviFuera ? '—' : _indNum(ddviIdx, 1, 'mm/m²'),
-          (_gt(ddviIdx, UD) && !contra) ? 'ok' : (ddviIdx != null ? 'none' : 'ask'),
+    /* ⚠️ B3 — ESTA FILA YA NO AFIRMA NINGÚN CRITERIO, y es la razón por la que no se borró: el
+       DDVI indexado es un número MEDIDO del paciente y sacarlo lo haría desaparecer de la
+       pantalla. Lo que se fue es el corte de 32 mm/m², que era propio de la aplicación y que
+       este mismo bloque declaraba como ausente del documento. La fila queda descriptiva —nunca
+       ✅—, sin umbral y sin «criterio de cierre por sí solo», y manda a la pregunta de abajo,
+       que es donde la sobrecarga de volumen del ventrículo izquierdo se afirma.
+       Con esto se cae además la contradicción que el comentario anterior describía: ya no hay
+       forma de que la misma tabla diga «contraindicado» y «criterio de cierre» a la vez. */
+    _indFila('DDVI indexado', ddfviFuera ? '—' : _indNum(ddviIdx, 1, 'mm/m²'),
+          ddviIdx != null ? 'none' : 'ask',
           ddfviFuera ? 'el DDVI cargado está fuera de rango medible — revisar la unidad'
-          : (_gt(ddviIdx, UD) && contra) ? '> ' + UD + ' mm/m², pero con el shunt invertido la contraindicación manda sobre este criterio'
-          : _gt(ddviIdx, UD) ? '> ' + UD + ' mm/m² — sobrecarga de volumen del ventrículo izquierdo, criterio de cierre por sí solo'
-          : ddviIdx != null ? 'no alcanza ' + UD + ' mm/m²'
+          : ddviIdx != null ? 'esta aplicación no fija un corte sobre el DDVI indexado: la sobrecarga de volumen del ventrículo izquierdo se contesta más abajo'
           : 'requiere el DDVI y la superficie corporal (peso y talla)'),
     _indFila('Velocidad del jet', _indNum(_indN('ete_civ_vel'), 2, 'm/s'), _indN('ete_civ_vel') != null ? 'none' : 'ask',
       _indN('ete_civ_vel') != null ? 'una velocidad alta describe un defecto restrictivo' : 'sin medir'),
@@ -104182,10 +104257,12 @@ function _indCIV(){
      divergencia está declarada desde antes de esta tanda en la entrada `escGuchCiv` del registro
      de citas —la guía indica el cierre por sobrecarga de volumen del ventrículo izquierdo y sin
      hipertensión pulmonar, con independencia de los síntomas; su Qp/Qs es «> 1,5» y sólo dentro
-     de los escenarios con hipertensión pulmonar establecida; y el corte de DDVI indexado de
-     32 mm/m² no figura en el documento—. Esta tanda NO la resuelve: corregir el criterio es
-     contenido clínico y es decisión del médico. Lo que cambia es que ahora la tabla de verdad se
-     puede leer al lado, con su clase y su nivel, en vez de estar sólo descrita en la cita.
+     de los escenarios con hipertensión pulmonar establecida—. ⚠️ LA TERCERA DIVERGENCIA QUEDÓ
+     RESUELTA (B3, 2026-11-16): el corte de DDVI indexado de 32 mm/m², que no figuraba en el
+     documento, SE RETIRÓ por orden del médico, así que la aplicación ya no indica un cierre por
+     un número que ninguna guía publica. Las otras dos siguen declaradas en la cita. Lo que
+     cambia además es que ahora la tabla de verdad se puede leer al lado, con su clase y su
+     nivel, en vez de estar sólo descrita en la cita.
      Por eso el bloque cita `esc2020guch` —la guía, que es de donde salen estas líneas— y la
      línea de `guia` de la sección sigue citando `escGuchCiv`, que es la que lleva la advertencia.
 
@@ -167636,8 +167713,12 @@ function _ccQpQs(i) {
 }
 /* DDVI indexado = DDVI / ASC. Sube a nivel de módulo porque ahora lo leen la tarjeta del
    Laboratorio, el Bloque D de la CIV y las dos superficies de salida: era un local de
-   `labCCRender` y la segunda copia habría dicho otra cosa. El corte de 32 mm/m² no se inventa
-   acá — es el que la pantalla de Hemodinámica imprime bajo el valor («Normal < 32 mm/m²»).
+   `labCCRender` y la segunda copia habría dicho otra cosa.
+   ⚠️ ESTA FUNCION SOLO CALCULA EL INDICE: desde B3 (16/11/2026) no hay ningun corte de cierre
+   colgado de ella. El «Normal < 32 mm/m²» que la pantalla de Hemodinámica imprime bajo el valor
+   SE CONSERVA y es otra cosa: es una referencia de NORMALIDAD de la medicion, no un criterio de
+   cierre, y sacarla le quitaria al medico un valor de referencia que el pedido no manda sacar.
+   Lo que se retiro es la regla que indicaba un cierre por ese numero (`CIV_DDVI_IDX_CIERRE`).
    Sin peso o sin talla no hay ASC y devuelve null, que NO es «no dilatado». */
 function _ccDdviIdx(i) {
   const dd = _labNum(i,'ddfvi','ddvi'), p = _labNum(i,'peso'), t = _labNum(i,'talla');
@@ -167747,17 +167828,27 @@ function _ciaConducta(i) {
    Indicaciones —que necesita nombrar los mismos números en pantalla— los escriba por su cuenta.
    Dos literales iguales en dos superficies se desincronizan en la primera corrección. Los valores
    son exactamente los que ya tenía la cascada. */
-const CIV_QPQS_CIERRE     = 1.5;   // Qp/Qs ≥ 1,5 → cierre indicado (ESC 2023 GUCH)
-const CIV_DDVI_IDX_CIERRE = 32;    // mm/m² — DDVI indexado > 32 → cierre indicado
+const CIV_QPQS_CIERRE     = 1.5;   // Qp/Qs ≥ 1,5 → cierre indicado
+/* ⚠️ LÁPIDA DE `CIV_DDVI_IDX_CIERRE` (32 mm/m²), RETIRADA POR ORDEN DEL MÉDICO (B3, 2026-11-16).
+   Era un criterio PROPIO de la aplicación y el archivo ya lo declaraba como tal en tres lugares:
+   el bloque de la Evidencia de la CIV decía textualmente que «el corte de DDVI indexado de
+   32 mm/m² no figura en el documento» y que corregirlo «es contenido clínico y es decisión del
+   médico». Ésta es esa decisión.
+   Lo que queda es lo que la guía dice: la sobrecarga de volumen del ventrículo izquierdo sin
+   hipertensión pulmonar, y el Qp/Qs. La sobrecarga de volumen NO se deriva de un número: se
+   contesta en la pregunta `civ.ev.vidil` de la Evidencia, que es donde el médico la afirma.
+   ⚠️ `_ccDdviIdx` NO se retira: lo siguen leyendo la fila descriptiva de la Evidencia y la
+   propiedad de cohorte `_pDilVi` del Laboratorio. `_pDilVi` tampoco se toca y se declara: es una
+   propiedad DESCRIPTIVA compartida por cuatro fichas —CIA incluida—, no una conducta, y no lee
+   esta constante. */
 function _civConducta(i) {
   const q = _ccQpQsAtrib(i);
   if (q !== null && q < 1) return 'contra';
-  const d = _ccDdviIdx(i);
-  if ((q !== null && q >= CIV_QPQS_CIERRE) || (d !== null && d > CIV_DDVI_IDX_CIERRE)) return 'cierre';
-  if (q !== null && q < CIV_QPQS_CIERRE && d !== null && d <= CIV_DDVI_IDX_CIERRE) return 'exp';
+  if (q !== null && q >= CIV_QPQS_CIERRE) return 'cierre';
+  if (q !== null && q < CIV_QPQS_CIERRE) return 'exp';
   return null;
 }
-window.CIV_QPQS_CIERRE = CIV_QPQS_CIERRE; window.CIV_DDVI_IDX_CIERRE = CIV_DDVI_IDX_CIERRE;
+window.CIV_QPQS_CIERRE = CIV_QPQS_CIERRE;
 /* Las filas de las dos tablas, con su criterio y su guía. Una sola lista por defecto: el PDF y
    el PPT la recorren igual, así que no pueden mostrar conductas distintas ni criterios distintos
    para la misma conducta. El orden es el de la cascada. */
@@ -167771,9 +167862,9 @@ const CIA_CONDUCTAS = [
 ];
 const CIV_CONDUCTAS = [
   { k:'contra', lbl:'Cierre contraindicado', crit:'Qp/Qs < 1 - shunt neto invertido (ESC 2023 GUCH)' },
-  { k:'cierre', lbl:'Cierre indicado',       crit:'Qp/Qs >= 1,5 o DDVI indexado > 32 mm/m2 (ESC 2023 GUCH)' },
-  { k:'exp',    lbl:'Conducta expectante',   crit:'Qp/Qs < 1,5 sin dilatacion del VI (ESC 2023 GUCH)' },
-  { k:'nc',     lbl:'No clasificable',       crit:'Sin Qp/Qs atribuible ni DDVI indexado calculable' }
+  { k:'cierre', lbl:'Cierre indicado',       crit:'Qp/Qs >= 1,5, con sobrecarga de volumen del VI y sin hipertension pulmonar (ESC 2023 GUCH)' },
+  { k:'exp',    lbl:'Conducta expectante',   crit:'Qp/Qs < 1,5 (ESC 2023 GUCH)' },
+  { k:'nc',     lbl:'No clasificable',       crit:'Sin Qp/Qs atribuible' }
 ];
 /* Exportadas para que el panel de Indicaciones imprima el MISMO criterio que la tarjeta, el PDF
    y el PPT. Es un `const` de nivel superior, así que sin esta línea `window.CIV_CONDUCTAS` es
