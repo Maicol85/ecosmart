@@ -54581,6 +54581,22 @@ function evTarjetaCoa() {
    + 'SOSPECHA de la ESC 2024 de aorta (Figura 44; folio 120 de la edici\u00f3n en espa\u00f1ol de la SEC '
    + 'y folio 3649 de la edici\u00f3n inglesa). Ante ese hallazgo corresponde medir el gradiente '
    + 'pico-pico invasivo, que es el criterio de INDICACI\u00d3N: el Doppler sospecha, no indica.');
+  /* \u26a0\ufe0f EL OPERADOR DE LA APP NO ES EL DE LA GUIA, Y SE DECLARA ACA (2026-11-16). Desde esta
+     tanda los lectores del gradiente de coartacion operan en `>= 20` por decision del medico,
+     mientras la Figura 44 imprime `> 20` estricto. El bloque de arriba sigue citando a la guia
+     con su operador y su folio -una cita no se reescribe- y este dice lo que hace la app, asi
+     que el medico ve las dos cosas y la diferencia no queda escondida.
+     \u26a0\ufe0f EL ROTULO ES UN BLOQUE Y NO EL CHIP: esta tarjeta se arma por NODOS y `_evDiv` escribe
+     con `textContent`, asi que el `<span>` con borde que la app usa en las superficies de HTML
+     no se puede inyectar aca -y hacerlo con `innerHTML` por un adorno seria abrir una ruta de
+     marcado en una tarjeta que hoy no tiene ninguna-. El rotulo lleva el mismo NOMBRE, que es
+     lo que la orden pide que se vea. */
+  bl('Criterio de EcoSmart',
+     'El corte del gradiente MEDIO por Doppler se aplica como 20 mmHg O M\u00c1S. La Figura 44 '
+   + 'citada arriba lo imprime como \u00abmayor de 20 mmHg\u00bb, o sea con el operador estricto, de modo '
+   + 'que el valor de 20,0 exactos lo cuenta esta aplicaci\u00f3n y no la gu\u00eda. El mismo criterio '
+   + 'vale para el gradiente pico-pico invasivo y para el gradiente entre miembros superiores e '
+   + 'inferiores. Ning\u00fan otro valor cambia de categor\u00eda por esto.');
   bl('Gradiente pico-pico invasivo',
      'El cateterismo con manometr\u00eda, con un gradiente pico-pico de 20 mmHg o m\u00e1s, indica una '
    + 'coartaci\u00f3n hemodin\u00e1micamente significativa cuando no hay colaterales bien desarrolladas, '
@@ -85850,26 +85866,47 @@ function _coaConclusionTxt(src){
      La cola diastólica sigue bastando por sí sola: es el escenario en que el Doppler engaña.
      Manda a medir el pico-pico invasivo, que es el criterio de INDICACIÓN (Tabla 69, folio 121,
      y la misma Figura 44), no a intervenir. */
-  if ((gm!=null && gm > 20) || cola) return { clave:'significativa',
-    via: (gm!=null && gm > 20) ? 'gmedio' : 'cola',
+  /* ══ EL CORTE DE 20 mmHg OPERA EN «≥ 20» Y ES CRITERIO DE ECOSMART (2026-11-16) ═════════════
+     DECISION DE MAICOL. Los lectores del gradiente de coartacion pasan de `>` estricto a `>=`,
+     y los textos PROPIOS de la aplicacion lo dicen como «de 20 mmHg o mas».
+     ⚠️ ESTO APARTA A LA APP DE SU FUENTE A PROPOSITO, Y POR ESO SE ROTULA. La Figura 44 de la
+     ESC 2024 (folio 120) imprime «Gradiente MEDIO > 20 mmHg», con el `>` estricto -el comentario
+     que estaba mas abajo lo declaraba—, asi que el `>=` es de esta aplicacion y no de la guia.
+     Las CITAS de la guia -el `ref` de la seccion de Evidencia y las dos fichas de Referencias-
+     se dejan como la fuente las imprime: una cita que se reescribe deja de ser una cita. Lo que
+     cambia es el OPERADOR de la app y como la app enuncia SU criterio.
+     ⚠️ CONSECUENCIA MEDIBLE Y DECLARADA: un gradiente medio de 20,0 EXACTOS pasa de
+     «limitrofe» a «significativa», y un maximo de 20,0 exactos pasa a disparar la rama de
+     «sin gradiente medio registrado». Ningun otro valor cambia de rama.
+     ⚠️ Y EL PICO-PICO INVASIVO YA OPERABA EN `>= 20` desde antes de esta tanda (`ppSig`, mas
+     arriba), asi que lo que habia era una INCONSISTENCIA dentro de la propia app: el papel lo
+     tomaba con `>=` y la seccion de Evidencia con `'gt'` sobre el MISMO campo. Queda alineada. */
+  if ((gm!=null && gm >= 20) || cola) return { clave:'significativa',
+    via: (gm!=null && gm >= 20) ? 'gmedio' : 'cola',
     txt: pre + ' con criterios de significación por Doppler' +
-         (gm!=null && gm > 20 ? ' (gradiente medio ' + gm + ' mmHg, por encima de los 20 mmHg de la ESC 2024)' : '') +
-         (cola && !(gm!=null && gm > 20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
+         (gm!=null && gm >= 20 ? ' (gradiente medio ' + gm + ' mmHg, de 20 mmHg o más)' : '') +
+         (cola && !(gm!=null && gm >= 20) ? ' (cola diastólica con gradiente no concluyente)' : '') +
          ' — medir el gradiente pico-pico invasivo, que es el criterio de indicación de la ESC 2024 (Figura 44, folio 120)' };
   /* ⚠️ CON EL MÁXIMO ALTO Y EL MEDIO SIN MEDIR SE DICE QUÉ FALTA, en vez de concluir con el
      número que no es el de la guía. El máximo sigue describiendo la lesión y sigue mandando a
      completar estudio; lo que perdió es la potestad de afirmar la significación. */
-  if (g != null && g > 20 && gm == null) return { clave:'limitrofe', via:'sin_gmedio',
-    txt: pre + ' con gradiente máximo por Doppler de ' + Math.round(g) + ' mmHg y sin gradiente MEDIO registrado — el criterio de sospecha de la ESC 2024 es el gradiente medio por encima de 20 mmHg (Figura 44, folio 120); medir el gradiente pico-pico invasivo, que es el criterio de indicación' };
+  if (g != null && g >= 20 && gm == null) return { clave:'limitrofe', via:'sin_gmedio',
+    txt: pre + ' con gradiente máximo por Doppler de ' + Math.round(g) + ' mmHg y sin gradiente MEDIO registrado — el criterio de sospecha es el gradiente MEDIO, que esta aplicación toma de 20 mmHg o más; medir el gradiente pico-pico invasivo, que es el criterio de indicación' };
   /* El gradiente MEDIO vota, pero sólo hacia «completar estudio», nunca hacia la indicación de
      intervención: el criterio de la ESC 2020 es el pico-pico INVASIVO > 20 mmHg, y el medio por
      Doppler no tiene umbral guía equivalente. Antes se pedía el dato, se lo mostraba y no
      influía en ninguna rama — un campo que el médico llenaba para nada. */
   /* ⚠️ EL 12 mmHg DEL MÁXIMO ES CRITERIO DE ECOSMART Y NO SE TOCÓ: censada la Figura 44, ese
-     número no aparece en ninguno de sus seis criterios. Y el `gm >= 20` que queda acá sólo
-     alcanza al 20,0 EXACTO, porque la rama de arriba se lleva todo lo que lo supera: el
-     operador de la guía es `>` estricto. */
-  if ((g!=null && g >= 12) || (gm!=null && gm >= 20)) return { clave:'limitrofe', via:'gradiente',
+     número no aparece en ninguno de sus seis criterios.
+     ⚠️ Y EL `gm >= 20` QUE ESTABA ACA SE RETIRA PORQUE QUEDO MUERTO (2026-11-16). Este
+     comentario decia que «sólo alcanza al 20,0 EXACTO, porque la rama de arriba se lleva todo lo
+     que lo supera: el operador de la guía es `>` estricto» — y eso dejo de ser cierto en esta
+     misma tanda: con la rama de «significativa» operando en `>= 20`, el 20,0 exacto se lo lleva
+     ELLA, asi que por aca ya no puede pasar ningun `gm` de 20 o mas. Dejarlo seria codigo
+     inalcanzable con un comentario que afirma lo contrario de lo que el codigo hace, que es como
+     la proxima tanda vuelve a cambiar el operador creyendo que esta rama todavia decide algo.
+     El `g >= 12` del maximo SI sigue vivo y es el unico que queda. */
+  if (g!=null && g >= 12) return { clave:'limitrofe', via:'gradiente',
     txt: pre + ' con gradiente limítrofe — completar con angio-RMN o angio-TC y evaluar gradiente invasivo' };
   if (r!=null && r < 0.6) return { clave:'limitrofe', via:'istmo',
     txt: pre + ' con istmo hipoplásico respecto de la aorta descendente y gradiente no significativo — completar con imagen' };
@@ -101274,7 +101311,13 @@ const COA_PREG = Object.freeze([
     ref:'con coartación nativa o reparada e hipertensión SIN coartación hemodinámicamente significativa, el tratamiento médico dirigido por guías está recomendado para mantener controlada la presión en reposo y la ambulatoria: Clase 1 · Nivel B-NR, recomendación 9 (hoja 57, folio e171)',
     ref2Lbl:'ESC 2020',
     ref2:'la reparación en el hipertenso con gradiente no invasivo aumentado confirmado con medición invasiva es Clase I · Nivel C (hoja 42, folio 604)' },
-  { clave:'coa.ev.picopico20', lbl:'Gradiente invasivo pico-pico mayor de 20 mmHg', guia:'ao',
+  /* ⚠️ LAS ETIQUETAS DICEN «de 20 mmHg o más» Y LOS `ref` NO SE TOCAN (2026-11-16). El `lbl` es
+     la pregunta que hace ESTA aplicacion, asi que enuncia el criterio de la app -que desde esta
+     tanda es `>=`-; el `ref` de abajo es la CITA de la guia y sigue diciendo «mayor de 20 mmHg»
+     porque es lo que la fuente imprime. Las dos cosas conviven a proposito: reescribir la cita
+     para que coincida con el operador de la app seria atribuirle a la guia un umbral que no
+     publica, que es justo lo que la regla de citacion de esta casa prohibe. */
+  { clave:'coa.ev.picopico20', lbl:'Gradiente invasivo pico-pico de 20 mmHg o más', guia:'ao',
     rec:'Clase I · Nivel C — con hipertensión, es el número que confirma el gradiente no invasivo aumentado y con el que la reparación está indicada; y Clase IIa · Nivel C — en el normotenso con gradiente no invasivo aumentado confirmado, el tratamiento endovascular debe considerarse, Tabla 69, hoja 111, folio 3648',
     nota:'se pre-responde desde el campo «Gradiente pico-pico» de la pestaña de la coartación, con el operador de esta guía: mayor que 20 mmHg',
     refLbl:'ACC/AHA 2025',
@@ -101300,7 +101343,7 @@ const COA_PREG = Object.freeze([
     rec:'Clase I · Nivel C — está recomendado medirla así, Tabla 69, hoja 111, folio 3648',
     refLbl:'ACC/AHA 2025',
     ref:'la medición en reposo en miembros superiores e inferiores está recomendada como parte de la evaluación clínica de rutina, para buscar hipertensión y coartación residual o recurrente: Clase 1 · Nivel B-NR, recomendación 3 (hoja 57, folio e171)' },
-  { clave:'coa.ev.gradmmss', lbl:'Gradiente de presión sistólica entre miembros superiores e inferiores mayor de 20 mmHg', guia:'acc',
+  { clave:'coa.ev.gradmmss', lbl:'Gradiente de presión sistólica entre miembros superiores e inferiores de 20 mmHg o más', guia:'acc',
     rec:'su Tabla 25 lo lista entre los rasgos que sugieren significación hemodinámica, y con una coartación anatómica y hemodinámicamente significativa la cirugía o el stent están recomendados para prevenir la disfunción irreversible del ventrículo izquierdo por la sobrecarga crónica de presión: Clase 1 · Nivel B-NR, recomendación 8, hoja 57, folio e171',
     ref2Lbl:'ESC 2020',
     ref2:'su apartado 4.6.5 escribe que un gradiente de presión sistólica de 20 mmHg o más entre miembros superiores e inferiores indica recoartación y obliga a una evaluación invasiva (hoja 42, folio 604)' },
@@ -101380,14 +101423,24 @@ function _indCoAo(){
      de arriba ya escribe: desmarcada significa a la vez «la busqué y no está» y «no la busqué»,
      así que contesta «sí» marcada y NADA desmarcada. Traducirla a «no» sería convertir un campo
      que nadie tocó en una afirmación clínica. */
+  /* ⚠️ `'ge'` ES NUEVO Y VA EXPLICITO, NO POR OMISION (2026-11-16). El ternario de abajo tenia
+     DOS ramas, asi que cualquier operador que no fuera `'gt'` caia en `v < umbral`: pasarle
+     `'ge'` a la version anterior habria contestado «sí» a los valores por DEBAJO del umbral
+     —exactamente al reves— y en silencio, porque ningun valor de `op` se valida. Por eso se
+     escriben los tres casos y el ultimo queda como el `lt` que ya era. */
   const _coaNum = function (id, op, umbral) {
     const v = _indN(id);
     if (v == null) return '';
-    return (op === 'gt' ? (v > umbral) : (v < umbral)) ? 'si' : 'no';
+    const _ok = (op === 'gt') ? (v > umbral) : (op === 'ge') ? (v >= umbral) : (v < umbral);
+    return _ok ? 'si' : 'no';
   };
   const COA_RESP = {
     'coa.ev.hta': _indS('coa_hta'),
-    'coa.ev.picopico20': _coaNum('coa_gradiente_picopico', 'gt', 20),
+    /* ⚠️ `'ge'` Y NO `'gt'`: ESTO ERA UNA INCONSISTENCIA DENTRO DE LA PROPIA APP (2026-11-16).
+       El papel ya tomaba este MISMO campo con `>=` desde antes de esta tanda (`ppSig`), asi que
+       un pico-pico de 20,0 exactos contaba para el informe y NO para la seccion de Evidencia:
+       dos superficies decidiendo distinto sobre el mismo numero del mismo paciente. */
+    'coa.ev.picopico20': _coaNum('coa_gradiente_picopico', 'ge', 20),
     'coa.ev.estrech50': _coaNum('coa_estenosis_relativa', 'gt', 50),
     'coa.ev.cola': cola ? 'si' : '',
     'coa.ev.nativarep': _coaSit ? 'si' : ''
