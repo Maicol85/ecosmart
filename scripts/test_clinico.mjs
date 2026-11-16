@@ -145081,19 +145081,36 @@ caso('TC-904', 'PANT-38 bloque 1: el cuadro de Limpiar se muda al hueco del terr
         reg.push({ t: z, x0: x0, x1: x0 + w, y: y, al: al });
       } } catch (e) {}
     return orig.apply(this, arguments); };
+  /* ⚠️ SE MIDEN LAS TRES VISTAS Y NO SOLO LA FRONTAL, Y LO DESTAPO EL BARRIDO DE MUTACIONES.
+     En «Punta hacia mi» el unico eje que cae en el centro es la punta, asi que el reparto por el
+     signo de la profundidad no se ejercita: anular ese reparto pasaba en verde. El solape de
+     «Lat» con «Sep» ocurre en las vistas LATERALES, donde los dos extremos del eje X apuntan a
+     la camara. Se acumulan los tres juegos de rotulos y se exige cero fuera y cero solapes en
+     los tres. */
+  const porVista = {};
   try {
-    const bf = document.querySelector('#lv3d-panel .lv3d-vista[data-lv3d-vista="frente"]');
-    if (bf) bf.click();
-    await esperar(200); lv3dDibujar(); await esperar(80);
+    for (const q of ['frente', 'der', 'izq']) {
+      reg.length = 0;
+      const bf = document.querySelector('#lv3d-panel .lv3d-vista[data-lv3d-vista="' + q + '"]');
+      if (bf) bf.click();
+      await esperar(220); lv3dDibujar(); await esperar(80);
+      const u = {}; reg.forEach(r => { u[r.t] = r; });
+      porVista[q] = Object.keys(u).map(k => u[k]);
+    }
   } finally { CRC.fillText = orig; }
-  const ult = {}; reg.forEach(r => { ult[r.t] = r; });
-  const fin = Object.keys(ult).map(k => ult[k]);
-  const rotFuera = fin.filter(r => r.x0 < 0 || r.x1 > 680).map(r => r.t);
-  const pisan = [];
-  for (let i = 0; i < fin.length; i++) for (let j = i + 1; j < fin.length; j++) {
-    const a = fin[i], c = fin[j];
-    if (Math.abs(a.y - c.y) < 12 && a.x0 < c.x1 - 1 && c.x0 < a.x1 - 1) pisan.push(a.t + '/' + c.t);
-  }
+  const fueraTodas = [], pisanTodas = [];
+  Object.keys(porVista).forEach(q => {
+    const f = porVista[q] || [];
+    f.filter(r => r.x0 < 0 || r.x1 > 680).forEach(r => fueraTodas.push(q + ':' + r.t));
+    for (let i = 0; i < f.length; i++) for (let j = i + 1; j < f.length; j++) {
+      const a1 = f[i], c1 = f[j];
+      if (Math.abs(a1.y - c1.y) < 12 && a1.x0 < c1.x1 - 1 && c1.x0 < a1.x1 - 1)
+        pisanTodas.push(q + ':' + a1.t + '/' + c1.t);
+    }
+  });
+  const fin = porVista.frente || [];
+  const rotFuera = fueraTodas;
+  const pisan = pisanTodas;
   const ctxLimpio = (function () { const cv = G('lv3d-canvas');
     return cv ? cv.getContext('2d').textAlign : '?'; })();
 
@@ -145133,10 +145150,11 @@ caso('TC-904', 'PANT-38 bloque 1: el cuadro de Limpiar se muda al hueco del terr
     ['(C) y es MAS grande que antes: pasa de 331 px de ancho a mas de 340',
       masGrande, 'ancho=' + (caj.length ? Math.round(Math.max.apply(null, caj.map(c => c.x1 - c.x0))) : 0)],
 
-    ['(D) los cinco rotulos de ejes se leen ENTEROS: ninguno sale del canvas',
-      rotFuera.length === 0, 'fuera=' + JSON.stringify(rotFuera) + ' ' + dg],
-    ['(D) y ninguno se pisa con otro -- Punta y Lat dejan de tocarse',
-      pisan.length === 0, 'pisan=' + JSON.stringify(pisan) + ' ' + dg],
+    ['(D) los cinco rotulos de ejes se leen ENTEROS en las TRES vistas: ninguno sale del canvas',
+      rotFuera.length === 0 && (porVista.izq || []).length === 5, 'fuera=' + JSON.stringify(rotFuera) + ' ' + dg],
+    ['(D) y en las TRES vistas ninguno se pisa con otro -- Punta/Lat de frente y Lat/Sep de lado',
+      pisan.length === 0 && Object.keys(porVista).length === 3,
+      'pisan=' + JSON.stringify(pisan) + ' vistas=' + Object.keys(porVista).length + ' ' + dg],
     ['(D) y el contexto del canvas queda restituido: textAlign no se fuga entre cuadros',
       ctxLimpio === 'start' || ctxLimpio === 'left', 'textAlign=' + ctxLimpio],
   ] };
