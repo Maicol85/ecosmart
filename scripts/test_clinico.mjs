@@ -84811,7 +84811,18 @@ caso('TC-512', 'Trabajo H: las citas de aorta por sindrome —Tabla 62 solo Marf
   ex.push(['gradiente MEDIO de 21 mmHg da significacion por Doppler, con su folio',
     med21.c === 'significativa' && med21.t.indexOf('gradiente medio 21 mmHg') > -1 &&
     med21.t.indexOf('Figura 44, folio 120') > -1]);
-  ex.push(['el 20,0 EXACTO no la cruza: el operador de la guia es estricto', med20.c !== 'significativa']);
+  /* ⚠️ CONDICION INVERTIDA EL 16/11/2026, por decision del medico, y es el dia que el rotulo
+     de esta misma condicion anunciaba. Decia «el 20,0 EXACTO no la cruza: el operador de la
+     guia es estricto» y eso dejo de ser la conducta de la app: los lectores del gradiente de
+     coartacion pasaron a >=, asi que el 20,0 exacto SI la cruza. Se INVIERTE en vez de
+     borrarse, y queda MAS FUERTE: ademas de la rama exige que el texto publique el valor con
+     el operador nuevo, asi que falla por los DOS lados -si alguien devuelve el > estricto, y
+     si alguien cambia la rama sin cambiar el texto-.
+     El 19 sigue sin cruzarla y esa condicion no se toca: es la que prueba que lo que se movio
+     es UN borde y no la banda entera. */
+  ex.push(['el 20,0 EXACTO SI la cruza: el operador de la app es >= (criterio propio)',
+    med20.c === 'significativa' && med20.t.indexOf('gradiente medio 20 mmHg') > -1 &&
+    med20.t.indexOf('de 20 mmHg o más') > -1]);
   ex.push(['y con 19 tampoco', med19.c !== 'significativa']);
   ex.push(['el gradiente MAXIMO de 64 mmHg ya NO afirma significacion por si solo',
     max64.c !== 'significativa' && max64.t.indexOf('sin gradiente MEDIO registrado') > -1]);
@@ -87540,9 +87551,24 @@ caso('TC-519', 'Tanda AJ2: «sin datos» no es «no medible» en las cinco super
     String(hSin.concl).slice(-90)]);
   ex.push(['(K3) y declara la condicion de aplicacion del score',
     hSin.concl.indexOf('50 %') > -1, String(hSin.concl).slice(-70)]);
+  /* ⚠️ ADAPTADA EL 16/11/2026, Y QUEDA MAS FUERTE, NO MAS FLOJA. Esta condicion exigia la
+     cadena «y humoral)», o sea que el parentesis cerrara INMEDIATAMENTE despues del nombre del
+     dominio, y asi inferia que el dominio iba sin su aclaracion «(péptidos natriuréticos)» —que
+     es el defecto que AJ2-8b cerro, el de los dos parentesis seguidos—. La conclusion parcial
+     ahora agrega «, calculado con N de 3 dominios» DENTRO de ese parentesis, asi que el cierre
+     ya no va pegado al nombre y la cadena vieja no aparece.
+     Lo que se conserva es la INTENCION, y se afirma de forma DIRECTA en vez de por la posicion
+     del parentesis: que el dominio se nombre «humoral» a secas, que NO aparezca la forma con su
+     aclaracion, y que no haya dos parentesis de cierre seguidos. Prohibir «y humoral (»
+     explicitamente es mas fuerte que
+     deducirlo del cierre: con la condicion vieja, cualquier texto que se metiera en el medio la
+     rompia aunque el defecto no hubiera vuelto, que es exactamente lo que acaba de pasar.
+     ⚠️ La N de «N de 3 dominios» NO se afirma aca: va en el caso propio del cambio 2.4, que
+     queda pendiente y declarado. */
   ex.push(['(K4) un SOLO parentesis: el dominio humoral sin su aclaracion',
-    hSin.concl.indexOf('y humoral)') > -1 && hSin.concl.indexOf('))') === -1,
-    String(hSin.concl).slice(0, 110)]);
+    hSin.concl.indexOf('y humoral,') > -1 && hSin.concl.indexOf('y humoral (') === -1
+      && hSin.concl.indexOf('))') === -1,
+    String(hSin.concl).slice(0, 140)]);
   /* (c) el marcador en la hoja, y que NINGUNA otra hoja lo use. */
   ex.push(['(K5) la hoja del HFA-PEFF marca con ** sus criterios cumplidos',
     String(hSin.hoja).split('\\n').filter(l => l.indexOf('**') === 0).length >= 1,
