@@ -82231,6 +82231,24 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
   ex.push(['(C6) CONTROL NEGATIVO: el velo anterior sigue en 20 por sus dos lados',
     _teerEsc('teer_lva', '20').c1.indexOf('✓') === 0 && _teerEsc('teer_lva', '19').c1.indexOf('✗') === 0,
     '']);
+  /* ══ B5 — EL PIE DECLARA LA ALTURA DE TENTING COMO CRITERIO PROPIO ═══════════════════════
+     ⚠️ ESTA CONDICION LA PIDIO EL BARRIDO, no el censo: la mutacion que devuelve esa altura a una
+     guia de material suplementario SOBREVIVIO, o sea que nada afirmaba de quien se dice que es.
+     El numero (10 mm) no cambia -- lo que cambia es la atribucion-, asi que lo que se mide es el
+     TEXTO del pie: tiene que decir que es propio y NO nombrar la tabla de la que colgaba. */
+  ex.push(['(C8b) B5: el pie declara la altura de tenting como criterio PROPIO', (function () {
+    const F = (typeof REPAR_FUENTE_TXT !== 'undefined') ? String(REPAR_FUENTE_TXT) : '';
+    return F.indexOf('altura de tenting') > -1
+        && F.indexOf('criterio propio de esta aplicación') > -1
+        && F.indexOf('Tabla S2') < 0 && F.indexOf('material suplementario') < 0; })(),
+    (typeof REPAR_FUENTE_TXT !== 'undefined')
+      ? String(REPAR_FUENTE_TXT).slice(String(REPAR_FUENTE_TXT).indexOf('altura de tenting'), 9999).slice(0, 110)
+      : 'SIN CONSTANTE']);
+  /* Y el area de tenting sigue declarando su RANGO, que B5 confirmo sin tocar: control de que el
+     pie no se simplifico de mas al reescribirlo. */
+  ex.push(['(C8c) y el area de tenting sigue declarando su rango «>2,5-3»',
+    (typeof REPAR_FUENTE_TXT !== 'undefined') && String(REPAR_FUENTE_TXT).indexOf('>2,5-3 cm²') > -1,
+    true]);
   ex.push(['(C6b) y el posterior cumple desde MAS de 10, no desde 7 (B4)',
     _teerEsc('teer_lvp', '11').c1b.indexOf('✓') === 0 &&
     _teerEsc('teer_lvp', '10').c1b.indexOf('⚠') === 0 &&
@@ -117634,18 +117652,24 @@ caso('TC-692', 'Tanda PANT-13 (commit 7): las siete variantes anatomicas en una 
   ex.push(['(A0) DENOM: la seccion de variantes existe y su cuerpo tiene alto',
     !!sec && sec.getBoundingClientRect().height > 100, true]);
 
-  /* ── (A) LA GRILLA Y SUS SIETE CELDAS ── */
+  /* ── (A) LA GRILLA Y SUS OCHO CELDAS ──
+     ⚠️ ADAPTADO EN MEDIR-6 (D1, 16/11/2026): SIETE -> OCHO. La octava variante es el cor
+     triatriatum, que el medico pidio agregar. El invariante de esta tanda NO se movio -- una
+     celda por variante, cada rotulo tocable en 44 px, el detalle apareciendo solo con la casilla
+     marcada-- y la condicion (A3) queda MAS FUERTE: ademas de exigir que los SIETE de siempre no
+     cambien, exige que el nuevo este AL FINAL, asi que meterlo en el medio -lo que correria los
+     indices de la grilla- pone el caso en rojo. */
   const gr = sec ? sec.querySelector('.otr-var-grid') : null;
   ex.push(['(A1) la grilla existe', !!gr, true]);
-  ex.push(['(A2) con una celda por variante: SIETE',
-    gr ? gr.querySelectorAll('.otr-var-celda').length : 'NO', 7]);
+  ex.push(['(A2) con una celda por variante: OCHO',
+    gr ? gr.querySelectorAll('.otr-var-celda').length : 'NO', 8]);
   const IDS = window.OTR_VAR_IDS || [];
-  ex.push(['(A3) y los siete ids son los de siempre: ninguno cambio',
+  ex.push(['(A3) los SIETE de siempre no cambiaron y el nuevo va AL FINAL',
     Array.prototype.join.call(IDS, ','),
-    'otr_var_eustaquio,otr_var_chiari,otr_var_lipo,otr_var_tendones,otr_var_lambl,otr_var_senocor,otr_var_vcsip']);
-  ex.push(['(A4) las siete casillas siguen existiendo con esos ids',
+    'otr_var_eustaquio,otr_var_chiari,otr_var_lipo,otr_var_tendones,otr_var_lambl,otr_var_senocor,otr_var_vcsip,otr_var_cortri']);
+  ex.push(['(A4) las ocho casillas existen con esos ids',
     Array.prototype.filter.call(IDS, (id) => !EL(id)).join(','), '']);
-  ex.push(['(A5) y cada rotulo se puede tocar: 44 px de alto o mas',
+  ex.push(['(A5) y cada uno de los ocho rotulos se puede tocar: 44 px de alto o mas',
     (function () { if (!gr) return 'NO';
       const ls = gr.querySelectorAll('.otr-var-lab');
       return Array.prototype.filter.call(ls, (l) => l.getBoundingClientRect().height < 44).length })(), 0]);
@@ -146140,6 +146164,56 @@ caso('TC-911', 'MEDIR-6 D1: el Cor triatriatum entra como variante de Otros con 
       const inf2 = __t.informe();
       R.apagadaFueraInforme = String(inf2.inf || '').indexOf('Cor triatriatum') === -1;
       R.apagadaFueraSuma = String(inf2.suma || '').indexOf('Cor triatriatum') === -1;
+
+      /* ══ B2 — EL GRADO DE CELERMAJER NO CONDUCE NINGUNA CONCLUSION ════════════════════════
+         ⚠️ ESTE BLOQUE LO PIDIO EL BARRIDO DE MUTACIONES, no el censo: la mutacion que hace que
+         el grado DECIDA la conclusion de Ebstein SOBREVIVIO, o sea que nada lo afirmaba. B2 lo
+         verifico LEYENDO -- ebsConclusion usa cel.idx solo para decidir si HAY dato-- y leer no
+         es cubrir.
+         Se mide por la CONDUCTA: con las cinco areas puestas para dar el grado MAS ALTO, la
+         conclusion tiene que salir IGUAL que con el grado mas bajo. Si alguna vez el grado
+         entrara en ella, los dos textos dejarian de coincidir. */
+      try { if (typeof showTab === 'function') showTab('congenitas'); } catch (e) {}
+      await esperar(200);
+      const _ebsAreas = (ad, vdA, vdF, ai, vi) => {
+        __t.set('ebs_area_ad', String(ad)); __t.set('ebs_area_vd_atrial', String(vdA));
+        __t.set('ebs_area_vd_func', String(vdF)); __t.set('ebs_area_ai', String(ai));
+        __t.set('ebs_area_vi', String(vi));
+        __t.set('ebs_desplazamiento', '35');
+        if (typeof ebsSync === 'function') ebsSync();
+      };
+      /* grado BAJO: la relacion de areas chica */
+      _ebsAreas(6, 2, 20, 10, 30);
+      await esperar(160);
+      const celBajo = (typeof ebsCelermajer === 'function') ? ebsCelermajer() : null;
+      const cBajo = (typeof ebsConclusion === 'function') ? ebsConclusion() : null;
+      /* grado ALTO: la relacion de areas grande -- el grado IV es el tope de la escala */
+      _ebsAreas(40, 40, 4, 4, 6);
+      await esperar(160);
+      const celAlto = (typeof ebsCelermajer === 'function') ? ebsCelermajer() : null;
+      const cAlto = (typeof ebsConclusion === 'function') ? ebsConclusion() : null;
+      R.gradoIV = celAlto ? celAlto.grado : null;
+      /* ⚠️ LA CONCLUSION SI NOMBRA EL INDICE, Y ESO NO ES CONDUCIRLA. Medido: los dos textos
+         publican «Indice de Celermajer N.NN - grado X, orientativo por ecocardiografia» con su
+         valor, y TODO LO DEMAS es identico -- el desplazamiento y la situacion clinica, que son
+         de donde sale el veredicto-. Publicar un valor medido no es conducir una conclusion, y
+         esta casa no retira un numero medido.
+         Asi que lo que se compara es el RESTO: se saca esa oracion de los dos textos y se exige
+         que lo que queda coincida. La mutacion 06 -que hace que el grado DEVUELVA otra
+         conclusion- cambia justamente el resto, asi que sigue cayendo. */
+      /* ⚠️ SIN EXPRESION REGULAR, y no es una preferencia: la primera version uso
+         /Índice de Celermajer[^.]*\./ y la clase [^.] CORTA EN EL PUNTO DECIMAL del propio
+         indice -«0.13»-, asi que dejaba media oracion y los dos textos seguian difiriendo. Se
+         corta por indice, que no tiene ese problema. */
+      const _sinIndice = t => { const x = String(t || ''); const i = x.indexOf('Índice de Celermajer');
+        if (i < 0) return x;
+        const j = x.indexOf('ecocardiografía', i);
+        return j < 0 ? x.slice(0, i) : (x.slice(0, i) + x.slice(j + 'ecocardiografía'.length)); };
+      R.gradoNoConduce = !!(cBajo && cAlto
+                            && _sinIndice(cBajo.txt) === _sinIndice(cAlto.txt)
+                            && celBajo && celAlto && celBajo.grado !== celAlto.grado);
+      R.gradoDiag = 'grados ' + (celBajo ? celBajo.grado : '?') + '->' + (celAlto ? celAlto.grado : '?')
+                    + ' | el resto ' + ((cBajo && cAlto && _sinIndice(cBajo.txt) === _sinIndice(cAlto.txt)) ? 'IGUAL' : 'CAMBIO');
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     return { extra: [
       ['sin excepciones',                                     !R.err, R.err],
@@ -146161,6 +146235,10 @@ caso('TC-911', 'MEDIR-6 D1: el Cor triatriatum entra como variante de Otros con 
          medido, el separador real es ".\n". Lo que la condicion afirma es que hay un PUNTO antes,
          o sea que no queda pegada a la variante de al lado. */
       ['en una oracion APARTE: viene detras de un punto',     String(R.oracionAparte).charAt(0) === '.', JSON.stringify(R.oracionAparte)],
+      ['B2: el grado de Celermajer NO conduce la conclusion -- el grado IV no la cambia',
+                                                               R.gradoNoConduce === true, R.gradoDiag],
+      ['y el indice se sigue calculando: el grado IV es grado IV',
+                                                               R.gradoIV === 4, R.gradoIV],
       ['CONTROL NEGATIVO: apagada, fuera de las dos superficies',
                                                                R.apagadaFueraInforme === true && R.apagadaFueraSuma === true,
                                                                R.apagadaFueraInforme + '/' + R.apagadaFueraSuma]

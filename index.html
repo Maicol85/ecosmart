@@ -82784,9 +82784,20 @@ function teerEstado() {
      no «NO apto» — es una advertencia de factibilidad, no un criterio de exclusión del COAPT.
      Convertirlo en veto es una decisión clínica, no un arreglo; queda documentado en CLAUDE.md
      con su caso abierto (TC-86). */
+  /* ⚠️ B5 (16/11/2026) — SIN TETHERING, c4 NO ENTRA EN LA LISTA, igual que no entra con la IM
+     primaria. Y la diferencia NO es cosmética: un criterio que queda en `null` y SIGUE en la
+     lista se cuenta como **dato faltante**, así que todo estudio TEER sin tethering consignado
+     caía de «APTO» a «Posiblemente apto — falta 1 criterio», pidiéndole al médico un dato que en
+     ese mecanismo no corresponde. Es exactamente la trampa que el comentario de arriba documenta
+     para c2 y c4 con el tipo sin consignar, y la encontró la batería completa: cinco casos
+     maduros —TC-74, TC-89, TC-91, TC-GR-07 y el grupo del TEER— pasaron a rojo de golpe.
+     «Solo si hay tethering» quiere decir que el criterio NO APLICA sin él, no que falte: así se
+     comporta y así se cuenta. `c2` no se gatea por tethering — es la longitud de coaptación, otra
+     medida, que el pie declara aparte. */
   const veto = [cs.c1, cs.c3, cs.c6, cs.c9, cs.c10]
     .concat(aplPrim ? [cs.c5, cs.c11] : [])
-    .concat(aplSec  ? [cs.c2, cs.c4] : [])
+    .concat(aplSec  ? [cs.c2] : [])
+    .concat(aplSec && hayTethering ? [cs.c4] : [])
     .concat(esSec   ? [cs.c7, cs.c8] : []);
   const evaluados    = veto.filter(c => c.ok !== null);
   const fallos       = veto.filter(c => c.ok === false);
@@ -179007,8 +179018,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261116-0358';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794812292033;                 /* eco-build-ms */
+const ECO_BUILD    = '20261116-0547';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794818864153;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -179094,7 +179105,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261116-0358</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261116-0547</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
