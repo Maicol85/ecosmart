@@ -17893,3 +17893,51 @@ sus números, en `docs/INVENTARIO_MEDIR3.md`.
    `cine-b-alto` que les daba 56 px y el azul de acento siendo **acciones**. Y además apareció algo
    que la orden no nombraba: el **contraste del azul del modo** no llegaba a 4,5:1 en tema oscuro
    (**3,21**), o sea que el único botón que la orden quería azul era el que no se podía leer.
+
+---
+
+## Tanda PARTE-2 (2026-11-16) — lo declarado
+
+**La tanda NO está cerrada: no lleva sello.** Siete de los nueve cambios de la PARTE 2 están
+aplicados y commiteados; falta la 2.9, los casos nuevos, las mutaciones, la suite de 17 lotes,
+los dos motores y el sello.
+
+- **P2-a · La 2.9 NO se aplicó, y es a propósito.** El menú «Vista de angiografía»
+  (`#lv3d-coro-lista`) queda cortado abajo. La orden pide medirlo **en Chrome real antes y
+  después**, y en esta sesión no se pudo: el navegador integrado no abre un `index.html` de
+  13 MB y la escritura del PNG/sonda a `/tmp` quedó bloqueada por el clasificador de permisos.
+  **No se aplicó a ciegas** porque es un arreglo de maquetado y PANT-38 ya pagó **dos intentos
+  fallidos** en el menú hermano (el de Documentos), los dos cazados por el barrido.
+  **El arreglo está diseñado y medido por lectura:** el CSS del menú
+  (`index.html:4823`) es `position:absolute` dentro de una `.card`, y `.card` lleva
+  `overflow:hidden` — la misma causa que PANT-38 midió para Documentos. El patrón de la casa es
+  `:has()` + `max-height` con `overflow-y:auto`, acotado a su pestaña
+  (`#tab-informe .card:has(#doc-menu:not([hidden]))`, `index.html:5688`).
+  ⚠️ **Con un detalle que ese patrón no cubre:** este menú se abre con
+  `lista.style.display='flex'` y no con el atributo `hidden`, así que `:has()` no puede
+  engancharlo igual. Hay que **agregarle una clase al abrirlo** —el patrón de
+  `.valv-sev-menu.open`, `index.html:3518`— y colgar el `:has()` de esa clase.
+- **P2-b · La Figura 6 de la ESC 2020 no se pudo leer** (hoja 43, folio 605). Su leyenda sí
+  está en la capa de texto; su interior no: la hoja tiene **cero imágenes embebidas** y los
+  rótulos son dibujo vectorial. La atribución del `≥20` del pico-pico se apoya en el **texto**
+  de los folios 603 y 604, que sí se leyó, con su control del glifo. Si alguna vez se pudiera
+  renderizar, conviene confirmar que la figura no imprime otro operador que su propio texto.
+- **P2-c · La fila verificada de la tabla de festones es de Hahn ASE 2022** (Tabla 4, folio 28),
+  **no de Hahn 2013** como la orden anticipaba. La ⓘ de esa tabla queda para otra tanda, por
+  orden expresa; cuando se haga, hay que citar el documento que de verdad la sostiene.
+- **P2-d · El 50 mmHg de la TGA no existe.** La orden pedía rotularlo como criterio propio y
+  **no hay nada que rotular**: `tga_grad_subaortico` sólo tiene banda de plausibilidad (0 a 250)
+  y no decide en 50. Los únicos «50 mmHg» del módulo son **citas de guía con folio** (la presión
+  sistólica del VD de la estenosis de rama pulmonar, hoja 58 folio 620 y hoja 47 folio 609).
+- **P2-e · `ETE_PROYECCIONES` es código sin interfaz.** Sus dos contenedores,
+  `#ete-proy-tabs` y `#ete-proy-nota`, **no existen en el marcado**, así que nada de esa tabla
+  de festones por ángulo se dibuja. El rótulo de la 2.2(e) se puso en la tabla **viva**,
+  `ETE_CORTES`. Decidir si ese bloque se retira o se cablea es otra tanda.
+- **P2-f · Falta el caso propio de cada cambio.** El barrido acotado de esta sesión corrió **36
+  casos existentes** sobre las zonas tocadas (36 verdes, 2 adaptados), pero eso **no** reemplaza
+  un caso por cambio que **caiga** contra `ac4be40`. Faltan, en particular, el del `≥20` de la
+  coartación con su rótulo, el de la «N de 3 dominios» del HFA-PEFF, el de la especificidad de
+  la amiloidosis, el del límite de la bioprótesis, el de «Lang 2015» y el del descargo del AVM
+  del visor leyendo `EM_CONT_AVISO_TXT`.
+- **P2-g · El `biprótesis` de `index.html:93105` es preexistente** —idéntico en `origin/main`,
+  en otro contexto (homoinjertos y conductos)— y no se tocó.
