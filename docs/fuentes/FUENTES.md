@@ -5138,7 +5138,7 @@ los dos: se retiró de la ficha.
 
 | dato | fuente que trae el prompt | por qué no se pudo releer |
 |---|---|---|
-| Profundidad de coaptación del TEER, **<11 mm** | Tamburino 2010, *Eur Heart J*, Tabla 1, **folio 1386** | ese artículo **no está en la biblioteca** (censadas las carpetas de valvulopatías y ETE) |
+| Profundidad de coaptación del TEER, **<11 mm** | Tamburino 2010, *Eur Heart J*, Tabla 1, **folio 1386** | ~~ese artículo **no está en la biblioteca** (censadas las carpetas de valvulopatías y ETE)~~ ⚠️ **CORREGIDO EL 2026-11-16 (B5): SÍ ESTÁ EN LA BIBLIOTECA Y SE LEYÓ EN IMAGEN.** Tabla 1, **folio 1386**, confirmado. Este renglón era falso y además se contradecía con la tabla de reglas de folio de más abajo, que ya traía su archivo —`14- ETE/Percutaneos Mitral Valve repair withe the mitraclip system.pdf`— y su regla, **folio = hoja + 1381** (o sea que el folio 1386 es la hoja 5). Antes de declarar que una fuente falta, mirar esa tabla. |
 | PSAP **≤70 mmHg** y LVESD **≤70 mm** | ESC/EACTS 2025 de valvulopatías, **Tabla 7, folio 4678** | el PDF está en la biblioteca; **no se abrió en esta tanda** — el valor no se movió, sólo se citó |
 | ESC 2021 de insuficiencia cardíaca, Figura 17, folio 3664, «<70» | ídem | ídem |
 | Velo posterior graduado, **tabla suplementaria S2, hoja 5** | ESC/EACTS 2025 de valvulopatías, suplemento | **no se abrió**; lo que la tanda hace es DECLARAR que el velo anterior no tiene corte publicado |
@@ -6063,6 +6063,8 @@ citaba.
 | ASE/SCA 2013 (Hahn) | `14- ETE/PIIS0894731713005622.pdf` | folio = hoja + 920 |
 | ASE 2020 ETE quirúrgica (Nicoara) | `14- ETE/TEE-Surgical-Decision-Making_June2020.pdf` | folio = hoja + 691 |
 | Tamburino 2010 | `14- ETE/Percutaneos Mitral Valve repair withe the mitraclip system.pdf` | folio = hoja + 1381 |
+
+⚠️ **Tamburino 2010 — releído en imagen el 2026-11-16 (tanda MEDIR-6, B5).** Tabla 1, hoja 5, **folio 1386**: los criterios de exclusión del estudio, profundidad de coaptación **≥11 mm**, flail gap **≥10 mm** y ancho del flail **≥15 mm**. Son criterios de **exclusión de un estudio pequeño y no de una guía**, y la aplicación los usa **por extensión** sobre las medidas del ETE — así quedó escrito en el pie del cuadro de criterios TEER. La **longitud** de coaptación de **<2 mm** del mismo trabajo es **otra medida** y no se mezcla con la profundidad.
 | ESC/EACTS 2025 de valvulopatías | `04_Valvulopatias/2025 ESC:EACTS Guidelines…pdf` | folio = hoja + 4634 |
 | ESC 2024 de fibrilación auricular | `22_Hemodinamica_avanzada/ehae176.pdf` | folio = hoja + 3313 |
 | ESC 2024 de enfermedad arterial periférica y aórtica | `06_Aorta/Mazzolai_2024_Aorta.pdf` | folio = hoja − 1 |
