@@ -6554,6 +6554,11 @@ caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto',
     __t.set('teer_prof_flail','8'); __t.set('teer_area_mitral','5.2'); __t.set('teer_pasp','40');
     __t.set('teer_fevi','35'); __t.set('teer_dtsvi','62');
     __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    /* ⚠️ AGREGADO EN MEDIR-6 (B5): el criterio de la profundidad de coaptacion del clip ahora
+       exige TETHERING. Sin el, c4 queda «sin dato» y el veredicto deja de ser APTO -- o sea que
+       este caso, que mide OTRA cosa (el velo posterior), fallaba por un criterio ajeno. Se
+       consigna el tethering por una de sus dos puertas para que la escena llegue a APTO. */
+    __t.set('ete_carpentier','IIIb');
     return teerEstado(); }
   // La hoja se toma con el velo CORTO. Tomarla despues de base(9) la lee sobre un c1b que
   // cumple, o sea sobre un estudio sin advertencia — el test pasaba a preguntar por otra cosa.
@@ -6564,8 +6569,12 @@ caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto',
     ['pero NO suma fallo',                    corto.fallos === 0],
     ['y el veredicto sigue siendo APTO',      corto.clave === 'apto'],
     ['identico al del velo normal',           corto.clave === largo.clave],
-    ['el texto se declara advertencia',
-      corto.cs.c1b.txt.indexOf('Advertencia: agarre difícil') > -1],
+    /* ADAPTADA EN MEDIR-6 (B4): el texto del criterio pasa del corte unico al TRAMO. Lo que la
+       condicion mide no cambia -que se declare advertencia- pero el tramo se exige por su
+       nombre, que es lo que el cambio introdujo. */
+    ['el texto se declara advertencia y nombra su tramo',
+      corto.cs.c1b.txt.indexOf('Advertencia') > -1 &&
+      corto.cs.c1b.txt.indexOf('agarre dificil o imposible') > -1, corto.cs.c1b.txt],
     ['y dice que no mueve el veredicto',
       corto.cs.c1b.txt.indexOf('No modifica el veredicto') > -1],
     ['c1b queda FUERA de vetoIds, de ahi sale el color',
@@ -6581,12 +6590,30 @@ caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto',
        NO PIERDE PODER: la advertencia se sigue exigiendo ENTERA, en la pantalla, dos
        condiciones mas arriba. Lo que estas dos miden ahora es que la MEDICION llegue al papel
        sin recortarse y que el juicio no se cuele —las dos mitades del cambio—. */
+    /* ADAPTADA EN MEDIR-6 (B4): el rotulo perdio el corte unico. Se exige el rotulo nuevo y la
+       MEDICION, que es la mitad que no se puede perder. La raya larga la convierte a guion el
+       sanitizador del PDF, asi que no se la nombra. */
     ['la hoja del PDF imprime la medicion entera',
-      hoja.indexOf('Velo posterior >=7 mm | 4mm <7mm') > -1],
+      hoja.indexOf('Velo posterior') > -1 && hoja.indexOf('4mm') > -1, hoja.slice(hoja.indexOf('Velo posterior'), hoja.indexOf('Velo posterior') + 70)],
     ['y NO el juicio, que es de la pantalla', hoja.indexOf('Advertencia') === -1],
     ['la conclusion de la hoja describe',
       hoja.indexOf('Todos los criterios evaluados se cumplen.') > -1],
-    ['y no publica el veredicto', hoja.indexOf('APTO') === -1]
+    ['y no publica el veredicto', hoja.indexOf('APTO') === -1],
+    /* ══ B4 — LOS CUATRO TRAMOS, CON LOS DOS BORDES QUE SE RESOLVIERON HACIA ABAJO ═══════════
+       7,0 y 5,0 exactos son los dos valores que la orden del medico dejaba repetidos entre dos
+       tramos. Se exige el tramo de ABAJO en los dos, con su vecino inmediato del otro lado. */
+    ['11 mm: agarre no complejo, y es el unico que CUMPLE',
+      base(11).cs.c1b.ok === true, base(11).cs.c1b.txt],
+    ['10 mm: agarre complejo', base(10).cs.c1b.txt.indexOf('agarre complejo') > -1, base(10).cs.c1b.txt],
+    ['7,0 exactos: COMPLEJO, el borde resuelto hacia abajo',
+      base(7).cs.c1b.txt.indexOf('agarre complejo') > -1, base(7).cs.c1b.txt],
+    ['6,9 ya es muy complejo', base(6.9).cs.c1b.txt.indexOf('agarre muy complejo') > -1, base(6.9).cs.c1b.txt],
+    ['5,0 exactos: MUY COMPLEJO, el otro borde hacia abajo',
+      base(5).cs.c1b.txt.indexOf('agarre muy complejo') > -1, base(5).cs.c1b.txt],
+    ['4,9 ya es dificil o imposible',
+      base(4.9).cs.c1b.txt.indexOf('agarre dificil o imposible') > -1, base(4.9).cs.c1b.txt],
+    ['y NINGUNO de los cuatro tramos cambia el veredicto',
+      [11,10,7,6.9,5,4.9].every(x => base(x).vetoIds.has('teer-c1b') === false), true]
   ] };
 `);
 
@@ -9641,7 +9668,13 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
      informe. Los valores se movieron para seguir midiendo LO MISMO -un valor por encima del
      corte, el corte EXACTO, y uno por debajo-, no para que el caso pase: 80 esta arriba, 75 es
      el borde estricto y 70 ahora esta abajo. El TAP no se toco. */
+  /* ⚠️ ADAPTADO EN MEDIR-6 (B1, 16/11/2026). El corte del TRIV pasa de «> 75» a «>= 75» por
+     decision del medico, asi que 75 EXACTOS cuenta. Las condiciones que afirmaban el operador
+     estricto quedan INVERTIDAS -fallan por los dos lados- y los vecinos son 74 y 76.
+     El motivo esta en el bloque de DT_TRIV_HTP: la propia fuente del corte lo publica como
+     «anormal 75 ms o mas», asi que la app lo leia mas estricto que su documento. */
   const t80 = e({ triv:80 }), t75 = e({ triv:75 }), t70b = e({ triv:70 });
+  const t74 = e({ triv:74 }), t76 = e({ triv:76 });   // los dos vecinos del borde
   const t70 = t80;                       /* el escenario «por encima del corte» */
   const t60 = t75, t55 = t70b;           /* el borde exacto y uno por debajo */
   const p95 = e({ tap:95 }), p110 = e({ tap:110 });
@@ -9669,14 +9702,17 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
   return { extra: [
     // LA FRASE UNICA, en sus cuatro combinaciones.
     ['solo TAP 95 ms', p95.inf.inf.indexOf(FRC + ' (TAP < 105 ms).') > -1],
-    ['solo TRIV 80 ms', t70.inf.inf.indexOf(FRC + ' (TRIV tricuspídeo > 75 ms).') > -1],
+    ['solo TRIV 80 ms', t70.inf.inf.indexOf(FRC + ' (TRIV tricuspídeo ≥ 75 ms).') > -1],
     ['los dos, en una sola frase',
-      ambos.inf.inf.indexOf(FRC + ' (TAP < 105 ms y TRIV tricuspídeo > 75 ms).') > -1],
+      ambos.inf.inf.indexOf(FRC + ' (TAP < 105 ms y TRIV tricuspídeo ≥ 75 ms).') > -1],
     ['y el TAP se nombra UNA sola vez', ambos.inf.inf.split('TAP < 105 ms').length - 1 === 1],
     ['con TAP 110 y TRIV 70 no aparece nada', nada.inf.inf.indexOf(FR) === -1 && nada.inf.inf.indexOf(FRC) === -1],
     ['con los campos vacios tampoco', vacio.inf.inf.indexOf(FR) === -1 && vacio.inf.inf.indexOf(FRC) === -1],
     // Los dos lados de cada corte.
-    ['TRIV 75 exactos NO cuenta: el corte es >75 y sigue siendo estricto', t60.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    /* INVERTIDA EN MEDIR-6: antes exigia que 75 NO contara. */
+    ['TRIV 75 exactos SI cuenta: el corte incluye el borde', t60.inf.inf.indexOf('TRIV tricuspídeo ≥ 75 ms') > -1],
+    ['y 74 es el vecino que NO cuenta', t74.inf.inf.indexOf('TRIV tricuspídeo') === -1],
+    ['y 76 tambien cuenta', t76.inf.inf.indexOf('TRIV tricuspídeo ≥ 75 ms') > -1],
     ['TRIV 70 tampoco, que con el corte viejo SI contaba', t55.inf.inf.indexOf('TRIV tricuspídeo') === -1],
     ['TAP 110 no cuenta', p110.inf.inf.indexOf('TAP < 105') === -1],
     // El texto viejo no vuelve, en ninguna de las dos ramas.
@@ -9685,14 +9721,14 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
       ambos.inf.inf.indexOf('Se evidencian elementos indirectos') === -1],
     ['y tampoco en la rama con PSAP calculable, que es la otra mitad',
       conPsap.inf.inf.indexOf('Se suman elementos indirectos') === -1 &&
-      conPsap.inf.inf.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms y TRIV tricuspídeo > 75 ms).') > -1],
+      conPsap.inf.inf.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms y TRIV tricuspídeo ≥ 75 ms).') > -1],
     // EN SUMA: la misma frase, y solo sin PSAP estimable — como antes.
     ['al EN SUMA va la frase nueva con los dos signos',
-      ambos.inf.suma.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo > 75 ms), sin PSAP estimable.') > -1],
+      ambos.inf.suma.indexOf(FR + ' (TAP < 105 ms y TRIV tricuspídeo ≥ 75 ms), sin PSAP estimable.') > -1],
     /* El EN SUMA NO se toco: su redaccion sigue siendo la de HEAD, y eso es parte de lo que
        este caso tiene que seguir fijando. */
     ['y el TRIV solo tambien llega al EN SUMA',
-      t70.inf.suma.indexOf('TRIV tricuspídeo > 75 ms') > -1],
+      t70.inf.suma.indexOf('TRIV tricuspídeo ≥ 75 ms') > -1],
     // UNIDADES: cm/s.
     ['el campo dice cm/s, no m/s', (function(){
       const l = document.querySelector('label[for], .fg label');
@@ -14884,7 +14920,10 @@ caso('TC-170', 'CIA/CIV: la cascada es exhaustiva y la contraindicacion gana', `
       ['ese estudio sale del Bloque D y se declara',                       R.fuera === 1 && R.condN === R.n - 1, 'fuera=' + R.fuera + ' condN=' + R.condN + ' n=' + R.n],
       ['sin DDVI la dilatacion del VI no afirma 0 por ciento',            R.props.dilVi.de === 0, JSON.stringify(R.props.dilVi)],
       ['la dilatacion del VD tiene su propio denominador',                 R.props.dilVd.de === 9, JSON.stringify(R.props.dilVd)],
-      ['la CIV con DDVI indexado mayor a 32 indica cierre',                cv === 'cierre', cv],
+      /* ⚠️ INVERTIDA EN MEDIR-6 (B3): la regla de DDVI indexado > 32 mm/m2 se RETIRO por orden
+         del medico -- era un criterio propio y el archivo ya lo declaraba ausente de la guia--,
+         asi que ese mismo estudio queda EXPECTANTE por su Qp/Qs. Falla por los dos lados. */
+      ['la CIV con DDVI alto y Qp/Qs bajo ya NO indica cierre: queda expectante', cv === 'exp', cv],
       ['la CIV con DDVI normal y Qp/Qs bajo queda expectante',             cve === 'exp', cve]
     ] };
   })();
@@ -60628,7 +60667,13 @@ caso('TC-428', 'Doppler tricuspideo: TAP espejado, TDE, PAP media unica con su f
     if (o.ep)   __t.set('dt_eprime_lat', o.ep);
     return { triv: T('dt_triv_ref'), tde: T('dt_tde_ref'), diast: T('dt_diast_ref') };
   };
+  /* ⚠️ ADAPTADO EN MEDIR-6 (B1, 16/11/2026). El corte del TRIV pasa de «> 75» a «>= 75» por
+     decision del medico, asi que 75 EXACTOS cuenta. Las condiciones que afirmaban el operador
+     estricto quedan INVERTIDAS -fallan por los dos lados- y los vecinos son 74 y 76.
+     El motivo esta en el bloque de DT_TRIV_HTP: la propia fuente del corte lo publica como
+     «anormal 75 ms o mas», asi que la app lo leia mas estricto que su documento. */
   const triv75 = ref({ triv:'75' }), triv76 = ref({ triv:'76' });
+  const triv74 = ref({ triv:'74' });   // el vecino de abajo
   const tde119 = ref({ tde:'119' }), tde120 = ref({ tde:'120' });
   const relaj  = ref({ E:'30', A:'50', ep:'6' });
   const pseudo = ref({ E:'60', A:'50', ep:'8' });
@@ -60732,7 +60777,9 @@ caso('TC-428', 'Doppler tricuspideo: TAP espejado, TDE, PAP media unica con su f
       rotulos.length === 8 && rotulos[7].indexOf('diast') > -1
       && rotulos[2].indexOf('TAPSE/PSAP') > -1
       && rotulos[5].indexOf('TRIV') > -1 && rotulos[6].indexOf('TDE') > -1],
-    ['TRIV 75 va sin comentario', triv75.triv === '75 ms'],
+    /* INVERTIDA EN MEDIR-6 (B1): antes exigia que 75 fuera sin comentario. */
+    ['TRIV 75 YA lleva el comentario: el corte incluye el borde', triv75.triv.indexOf('75 ms: a favor de HTP') > -1, triv75.triv],
+    ['TRIV 74 va sin comentario', triv74.triv === '74 ms', triv74.triv],
     ['TRIV 76 lo lleva', triv76.triv.indexOf('75 ms: a favor de HTP') > -1],
     ['TDE 119 sale acortado', tde119.tde.indexOf('acortado') > -1],
     ['TDE 120 va sin comentario', tde120.tde === '120 ms'],
@@ -82122,6 +82169,11 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
     try { const s = EL('ete-seccion-teer');
       if (s && getComputedStyle(s).display === 'none' && _togEte) _togEte('teer'); } catch (e) {}
     SEL('teer_tipo_im', 'secundaria');
+    /* ⚠️ AGREGADO EN MEDIR-6 (B5): el criterio de la profundidad de coaptacion del clip pasa a
+       exigir TETHERING por orden del medico. Sin consignarlo, c4 queda «No ingresado» y los
+       cuatro bloques de abajo median sobre una fila vacia -- el denominador vacio que esta casa
+       documenta--. Se consigna por el Carpentier, una de sus dos puertas. */
+    SEL('ete_carpentier', 'IIIb');
     __t.set(campo, valor);
     try { if (typeof calcTEER === 'function') calcTEER(); } catch (e) {}
     return { c4: TXT('teer-c4'), c6: TXT('teer-c6'), c8: TXT('teer-c8'),
@@ -82142,16 +82194,28 @@ caso('TC-507', 'Tanda R: la VAB muestra la lesion PRESENTE sin grado con un solo
       const l = f ? f.querySelector('.calc-lbl') : null;
       const a = (function(){ const i = EL('teer_prof_flail'); const p = i ? i.parentNode : null;
         const sp = p ? p.querySelector('span') : null; return sp ? sp.textContent.trim() : ''; })();
-      return !!l && l.textContent.indexOf('<11mm') > -1 && a.indexOf('≥11mm') > -1; })(),
+      /* ADAPTADA EN MEDIR-6 (B5): el rotulo de la fila gano su procedimiento y su condicion
+         («— clip, con tethering»), asi que se exige el corte Y el procedimiento. La ayuda del
+         campo no se toco. */
+      return !!l && l.textContent.indexOf('<11mm') > -1 && l.textContent.indexOf('clip') > -1
+             && a.indexOf('≥11mm') > -1; })(),
     '']);
   ex.push(['(C5) CONTROL NEGATIVO: la PSAP y el DSFVI siguen en 70 por sus dos lados',
     _teerEsc('teer_pasp', '70').c6.indexOf('✓') === 0 && _teerEsc('teer_pasp', '71').c6.indexOf('✗') === 0
       && _teerEsc('teer_dtsvi', '70').c8.indexOf('✓') === 0 && _teerEsc('teer_dtsvi', '71').c8.indexOf('✗') === 0,
     '']);
-  ex.push(['(C6) CONTROL NEGATIVO: los dos velos siguen en 20 y en 7 por sus dos lados',
-    _teerEsc('teer_lva', '20').c1.indexOf('✓') === 0 && _teerEsc('teer_lva', '19').c1.indexOf('✗') === 0
-      && _teerEsc('teer_lvp', '7').c1b.indexOf('✓') === 0 && _teerEsc('teer_lvp', '6').c1b.indexOf('⚠') === 0,
+  /* ⚠️ ADAPTADA EN MEDIR-6 (B4): el velo ANTERIOR sigue en 20 por sus dos lados y no se toco.
+     El POSTERIOR dejo de tener un corte unico de 7: ahora el unico tramo que CUMPLE es «mas de
+     10», asi que 11 cumple y 10 ya no -- y 7, que antes cumplia, hoy advierte con su tramo. Es
+     el control negativo por los dos lados del borde NUEVO. */
+  ex.push(['(C6) CONTROL NEGATIVO: el velo anterior sigue en 20 por sus dos lados',
+    _teerEsc('teer_lva', '20').c1.indexOf('✓') === 0 && _teerEsc('teer_lva', '19').c1.indexOf('✗') === 0,
     '']);
+  ex.push(['(C6b) y el posterior cumple desde MAS de 10, no desde 7 (B4)',
+    _teerEsc('teer_lvp', '11').c1b.indexOf('✓') === 0 &&
+    _teerEsc('teer_lvp', '10').c1b.indexOf('⚠') === 0 &&
+    _teerEsc('teer_lvp', '7').c1b.indexOf('⚠') === 0,
+    [_teerEsc('teer_lvp', '11').c1b, _teerEsc('teer_lvp', '10').c1b, _teerEsc('teer_lvp', '7').c1b].join(' | ')]);
   ex.push(['(C7) el DSFVI dice TELESISTOLICO en la fila y en la ayuda del campo',
     (function(){ const e = EL('teer-c8'); const f = e && e.closest ? e.closest('.calc-row') : null;
       const l = f ? f.querySelector('.calc-lbl') : null;
@@ -92635,13 +92699,20 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      tienen que cumplirlo, y el conteo ES el denominador: agregar uno sin la clase pone esto en
      rojo. Los TRES numeros se mueven JUNTOS. Medido: los 65 dan 44x44, enVista y 5 de 5 puntos
      propios, y el unico sin clave sigue siendo el del corazon maestro. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y CINCO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapK.length === 65 && tapK.filter((x) => !x.k).length === 1
+  /* ⚠️ ADAPTADO EN MEDIR-6 (2026-11-16): 65 -> 66, Y NO ES UN CAMBIO DE ESTA TANDA. El globo
+     nuevo es 'clnk-guia', el de la guia de conexion de CeiboLink que PANT-38 mudo al «?»: esa
+     tanda lo agrego y dejo este conteo en 65, asi que TC-535 venia ROJO desde entonces --
+     verificado corriendolo contra 58be422, donde falla con estas MISMAS tres condiciones--.
+     Lo que estas condiciones exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el
+     conteo ES el denominador: agregar uno sin mover el numero lo saca de la medicion.
+     Los TRES numeros se mueven JUNTOS. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y SEIS globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapK.length === 66 && tapK.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44') && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y cinco miden 44x44 tambien con el mouse',
-    tapK.length === 65 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y seis miden 44x44 tambien con el mouse',
+    tapK.length === 66 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 65 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 66 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -97729,8 +97800,10 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
      el MISMO numero, que es lo que esta tanda vino a garantizar. */
   ex.push(['(B7) el corte es UNO SOLO: la pantalla y el papel dicen los mismos 75 ms',
     typeof window.DT_TRIV_HTP_PANEL === 'undefined' && DT_TRIV_HTP === 75 &&
-    (F('htpIndirectosFrase') ? htpIndirectosFrase().indexOf('> 75 ms') > -1 : 'SIN FN') === true &&
-    T('dt_triv_ref').indexOf('>75 ms: a favor de HTP') > -1,
+    /* ADAPTADA EN MEDIR-6 (B1): el operador pasa a «>=», asi que las dos cadenas lo dicen con
+       «≥». El corte sigue siendo UNO SOLO, que es lo que esta condicion mide. */
+    (F('htpIndirectosFrase') ? htpIndirectosFrase().indexOf('≥ 75 ms') > -1 : 'SIN FN') === true &&
+    T('dt_triv_ref').indexOf('≥75 ms: a favor de HTP') > -1,
     'panel=' + (typeof window.DT_TRIV_HTP_PANEL !== 'undefined' ? window.DT_TRIV_HTP_PANEL : 'retirada') +
     ' corte=' + DT_TRIV_HTP + ' frase=' + (F('htpIndirectosFrase') ? htpIndirectosFrase() : '?') +
     ' fila=' + T('dt_triv_ref')]);
@@ -98837,10 +98910,18 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
     }
   }
   const _ok74 = p => bordes[p][74].a === '74 ms' && bordes[p][74].b === '74 ms';
-  const _ok75 = p => bordes[p][75].a === '75 ms' && bordes[p][75].b === '75 ms';
-  const _ok76 = p => bordes[p][76].a.indexOf('(>75 ms: a favor de HTP)') > -1 &&
-                     bordes[p][76].b.indexOf('(>75 ms: a favor de HTP)') > -1;
-  ex.push(['(A1) 74 y 75 NO llevan la aclaracion: el operador es ESTRICTO, por las DOS puertas',
+  /* ⚠️ ADAPTADO EN MEDIR-6 (B1, 16/11/2026). El corte del TRIV pasa de «> 75» a «>= 75» por
+     decision del medico, asi que 75 EXACTOS cuenta. Las condiciones que afirmaban el operador
+     estricto quedan INVERTIDAS -fallan por los dos lados- y los vecinos son 74 y 76.
+     El motivo esta en el bloque de DT_TRIV_HTP: la propia fuente del corte lo publica como
+     «anormal 75 ms o mas», asi que la app lo leia mas estricto que su documento. */
+  const _ok75 = p => bordes[p][75].a.indexOf('(≥75 ms: a favor de HTP)') > -1 &&
+                     bordes[p][75].b.indexOf('(≥75 ms: a favor de HTP)') > -1;
+  const _ok76 = p => bordes[p][76].a.indexOf('(≥75 ms: a favor de HTP)') > -1 &&
+                     bordes[p][76].b.indexOf('(≥75 ms: a favor de HTP)') > -1;
+  /* INVERTIDA EN MEDIR-6 (B1): antes exigia que 74 Y 75 fueran sin aclaracion. Hoy 74 no la
+     lleva y 75 SI, porque el corte incluye su borde. Falla por los dos lados. */
+  ex.push(['(A1) 74 NO lleva la aclaracion y 75 SI: el corte incluye el borde, por las DOS puertas',
     _ok74('vd-triv') && _ok75('vd-triv') && _ok74('dt_triv') && _ok75('dt_triv'),
     JSON.stringify({ v74: bordes['vd-triv'][74].a, v75: bordes['vd-triv'][75].a,
                      d74: bordes['dt_triv'][74].b, d75: bordes['dt_triv'][75].b })]);
@@ -98851,9 +98932,12 @@ caso('TC-552', 'Tanda NOCTURNA B: el TRIV del VD en sus DOS referencias con los 
     [74, 75, 76].every(x => bordes['vd-triv'][x].a === bordes['vd-triv'][x].b),
     [74, 75, 76].map(x => x + ':' + (bordes['vd-triv'][x].a === bordes['vd-triv'][x].b)).join(' ')]);
   ex.push(['(A4) el amarillo aparece SOLO por encima del corte, y el texto lo dice tambien sin color',
-    bordes['vd-triv'][75].amarillo !== bordes['vd-triv'][76].amarillo &&
-    bordes['vd-triv'][76].a.indexOf('a favor de HTP') > -1,
-    '75=' + bordes['vd-triv'][75].amarillo + ' 76=' + bordes['vd-triv'][76].amarillo]);
+    /* INVERTIDA EN MEDIR-6 (B1): el par que distingue pasa de 75/76 a 74/75, porque 75 YA esta
+       por encima del corte y lleva su color. */
+    bordes['vd-triv'][74].amarillo !== bordes['vd-triv'][75].amarillo &&
+    bordes['vd-triv'][75].a.indexOf('a favor de HTP') > -1 &&
+    bordes['vd-triv'][74].a.indexOf('a favor de HTP') === -1,
+    '74=' + bordes['vd-triv'][74].amarillo + ' 75=' + bordes['vd-triv'][75].amarillo]);
   ex.push(['(A5) el espejo sigue copiando en los dos sentidos',
     bordes['vd-triv'][76].espejo === '76' && bordes['dt_triv'][76].espejo === '76',
     bordes['vd-triv'][76].espejo + ' / ' + bordes['dt_triv'][76].espejo]);
@@ -99190,14 +99274,21 @@ caso('TC-553', 'Tanda CORRECCIONES: el informe de la orejuela publica las medida
     pon('dt_triv', triv); pon('vmax_it', '3.6'); pon('tvia', '120'); pon('ad_area', '14');
     await esperar(350); return inf(); };
   const f74 = await frase('74'), f75 = await frase('75'), f76 = await frase('76');
-  ex.push(['(B1) el operador es ESTRICTO: 75 exactos NO es elemento a favor, 76 si',
-    f75.indexOf('elementos indirectos de HTP') === -1 &&
+  /* ⚠️ ADAPTADO EN MEDIR-6 (B1, 16/11/2026). El corte del TRIV pasa de «> 75» a «>= 75» por
+     decision del medico, asi que 75 EXACTOS cuenta. Las condiciones que afirmaban el operador
+     estricto quedan INVERTIDAS -fallan por los dos lados- y los vecinos son 74 y 76.
+     El motivo esta en el bloque de DT_TRIV_HTP: la propia fuente del corte lo publica como
+     «anormal 75 ms o mas», asi que la app lo leia mas estricto que su documento. */
+  /* INVERTIDA EN MEDIR-6 (B1): antes exigia que 75 NO fuera elemento a favor. */
+  ex.push(['(B1) el corte INCLUYE su borde: 75 exactos ya es elemento a favor, y 76 tambien',
+    f75.indexOf('elementos indirectos de HTP (TRIV tricusp') > -1 &&
     f76.indexOf('elementos indirectos de HTP (TRIV tricusp') > -1,
     '75=' + (f75.indexOf('elementos indirectos') > -1) + ' 76=' + (f76.indexOf('elementos indirectos') > -1)]);
   ex.push(['(B2) 74 ms tampoco: el corte VIEJO de 60 ya no gobierna el papel',
     f74.indexOf('elementos indirectos de HTP') === -1, f74.indexOf('TRIV tricusp') > -1 ? 'nombra el TRIV' : 'no lo nombra']);
   ex.push(['(B3) el informe nombra el corte NUEVO y no el viejo',
-    f76.indexOf('> 75 ms') > -1 && f76.indexOf('> 60 ms') === -1, f76.indexOf('> 75 ms') > -1 ? 'dice 75' : 'NO dice 75']);
+    f76.indexOf('≥ 75 ms') > -1 && f76.indexOf('> 60 ms') === -1 && f76.indexOf('> 75 ms') === -1,
+    f76.indexOf('≥ 75 ms') > -1 ? 'dice >=75' : 'NO dice >=75']);
   /* (i) · la IT no medida. Con IT declarada va la forma larga; sin IT, la corta. */
   limpiar(); pon('dt_triv', '80'); pon('tvia', '95'); pon('ad_area', '14');
   pon('it_grado', '2'); await esperar(400);
@@ -112269,11 +112360,23 @@ caso('TC-648', 'Tanda PANT-6: los dos tipos de IM del TEER siempre visibles, el 
     __t.set('teer_dtsvi','58'); __t.set('teer_area_mitral','4.4'); __t.set('teer_pasp','55');
     __t.set('teer_lva','22'); __t.set('teer_lvp','11');
     __t.set('teer_calcificacion','no'); __t.set('teer_clefts','no'); __t.set('teer_trombo','no');
+    /* ⚠️ AGREGADO EN MEDIR-6 (B5): con la IM secundaria, el criterio de la profundidad de
+       coaptacion del clip exige TETHERING; sin el queda «sin dato» y el veredicto no llega a
+       APTO. Este caso mide la MAQUETA y no ese criterio, asi que se consigna. */
+    __t.set('ete_carpentier','IIIb');
     try { calcTEER(); } catch (e) {}
     return ((document.getElementById('teer-resultado')||{}).textContent||'').trim() };
   ex.push(['(B1) con la IM primaria y los criterios cumplidos, APTO',
     ver('primaria').indexOf('APTO') > -1, true]);
   ex.push(['(B2) con la secundaria tambien', ver('secundaria').indexOf('APTO') > -1, true]);
+  /* ══ B5 — Y SIN TETHERING ESE CRITERIO NO SE EVALUA, que es la condicion nueva ════════════
+     Falla hacia NO afirmar: con la profundidad cargada y el tethering sin consignar, el criterio
+     queda sin dato en vez de darse por cumplido. */
+  ex.push(['(B2b) sin tethering consignado, la profundidad del clip NO se evalua', (() => {
+    __t.limpiar(); __t.set('teer_tipo_im','secundaria'); __t.set('teer_prof_flail','8');
+    try { calcTEER(); } catch (e) {}
+    const st = (typeof teerEstado === 'function') ? teerEstado() : null;
+    return !!(st && st.cs && st.cs.c4 && st.cs.c4.ok === null) })(), true]);
   /* CONTROL NEGATIVO: un veto sigue vetando. Sin esto, (B1) y (B2) pasarian con un veredicto fijo.
      ⚠️ EL FLAIL GAP ES UN CRITERIO DE LA IM PRIMARIA (tipo «prim»), asi que hay que volver a
      poner ese tipo: la primera version lo tecleaba con la escena de la SECUNDARIA todavia
@@ -113913,7 +114016,7 @@ caso('TC-664', 'Tanda PANT-9: la anomalia de Ebstein en tres columnas, con el pa
   ex.push(['(E5) y YA NO esta en el cuerpo', txt.indexOf('apical 4 c') > -1, false]);
   /* LA CAJA ROJA: es un AVISO QUE EVITA UN ERROR y va en el bloque «A tener en cuenta». */
   ex.push(['(E6) la CAJA ROJA esta en el bloque ojo del globo del grupo',
-    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('El \\u00edndice es orientativo, no una indicaci\\u00f3n') > -1) : false, true]);
+    REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('El \\u00edndice es orientativo y no una indicaci\\u00f3n') > -1) : false, true]);
   ex.push(['(E7) con sus cuatro cortes',
     REG && REG['cc9-ebs-cel'] ? (String(REG['cc9-ebs-cel'].ojo || '').indexOf('I <0,5') > -1) : false, true]);
   ex.push(['(E8) y con su origen, que hoy vive en su bloque de Fuente',
@@ -124324,10 +124427,12 @@ caso('TC-759', 'PANT-24 commit 4: la cita escGuchCiv declara el criterio como pr
     f.slice(f.length > 420 ? f.length - 420 : 0));
   q('(A5) NI UN NUMERO, UNA CLASE, UN FOLIO NI LA PUBLICACION SE PERDIERON',
     f.indexOf('Clase I · Nivel C') > -1 && f.indexOf('> 1,5') > -1 &&
-    f.indexOf('Clase IIa y IIb') > -1 && f.indexOf('32 mm/m') > -1 &&
+    /* ⚠️ INVERTIDA EN MEDIR-6 (B3): la cita ya NO lista el corte de 32 mm/m2 entre los
+       criterios que la seccion aplica, porque la seccion dejo de aplicarlo. */
+    f.indexOf('Clase IIa y IIb') > -1 && f.indexOf('32 mm/m') === -1 &&
     f.indexOf('2021;42(6):563-645') > -1 && f.indexOf('ESC 2020') > -1,
     'claseI=' + (f.indexOf('Clase I · Nivel C') > -1) + ' qpqs=' + (f.indexOf('> 1,5') > -1) +
-    ' IIaIIb=' + (f.indexOf('Clase IIa y IIb') > -1) + ' ddvi=' + (f.indexOf('32 mm/m') > -1) +
+    ' IIaIIb=' + (f.indexOf('Clase IIa y IIb') > -1) + ' sinDdvi=' + (f.indexOf('32 mm/m') === -1) +
     ' pub=' + (f.indexOf('2021;42(6):563-645') > -1));
 
   /* ── (B) EL CORTE DE 10 MM, en los TRES items donde el medico lo ve ── */
