@@ -146296,6 +146296,583 @@ caso('TC-911', 'MEDIR-6 D1: el Cor triatriatum entra como variante de Otros con 
   })();
 `);
 
+/* ══ TANDA PARTE-2 (2026-11-16) — UN CASO POR CAMBIO, TC-912 a TC-920 ════════════════════════
+   Los nueve afirman POSITIVAMENTE lo nuevo y los nueve CAEN contra ac4be40 con este mismo
+   archivo de casos, sin que ninguno caiga por excepcion: todo acceso va con guarda y las
+   constantes de nivel de script se nombran PELADAS -no por window-, que es la trampa que esta
+   casa documenta para _cm3d y que la sonda de la 2.9 volvio a pagar con _lv3d. */
+
+caso('TC-912', 'PARTE-2 (2.1): el corte de 20 mmHg de la coartacion opera en >= 20 -- el 20,0 EXACTO cruza a significativa con su texto, el 19 sigue sin cruzar, las dos etiquetas de la Evidencia dicen «de 20 mmHg o mas», y el globo declara el criterio propio SOLO para el medio Doppler mientras el pico-pico lleva la atribucion a la ESC 2020', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      const coa = o => { __t.limpiar();
+        try { if (typeof showTab === 'function') showTab('congenitas'); } catch (e) {}
+        Object.keys(o).forEach(k => __t.set(k, o[k]));
+        if (typeof coaSync === 'function') coaSync();
+        const c = (typeof coaConclusion === 'function') ? coaConclusion() : null;
+        return { c: c && c.clave, t: (c && c.txt) || '' }; };
+      await esperar(200);
+      const m20 = coa({ coa_gmedio:'20' }), m19 = coa({ coa_gmedio:'19' }), m21 = coa({ coa_gmedio:'21' });
+      R.c20 = m20.c; R.t20 = m20.t; R.c19 = m19.c; R.c21 = m21.c;
+      /* El 20,0 EXACTO es el borde que la decision movio: con el > estricto caia en limitrofe. */
+      R.veinteCruza = m20.c === 'significativa' && m20.t.indexOf('gradiente medio 20 mmHg') > -1
+                      && m20.t.indexOf('de 20 mmHg o más') > -1;
+      /* CONTROL NEGATIVO: lo que se movio es UN borde, no la banda. */
+      R.diecinueveNo = m19.c !== 'significativa';
+      R.veintiunoSi = m21.c === 'significativa';
+
+      /* Las dos etiquetas de pregunta de la seccion de Evidencia. Se leen del registro. */
+      const PR = (typeof COA_PREG !== 'undefined' && COA_PREG) ? COA_PREG : null;
+      R.hayPreg = !!PR;
+      if (PR) {
+        const pp = PR.filter(p => p.clave === 'coa.ev.picopico20')[0] || null;
+        const mm = PR.filter(p => p.clave === 'coa.ev.gradmmss')[0] || null;
+        R.lblPP = pp ? pp.lbl : 'NO ESTA';
+        R.lblMM = mm ? mm.lbl : 'NO ESTA';
+        R.notaPP = pp ? String(pp.nota || '') : 'NO ESTA';
+        /* La CITA de la ACC/AHA no se toca: sigue diciendo «mayor de 20 mmHg». */
+        R.refPPIntacto = pp ? String(pp.ref || '').indexOf('mayor de 20 mmHg') > -1 : false;
+      }
+
+      /* El globo ⓘ: el rotulo de criterio propio existe y nombra SOLO al medio Doppler, y el
+         bloque del pico-pico lleva su atribucion con folio. */
+      const T = (typeof evTarjetaCoa === 'function') ? evTarjetaCoa() : null;
+      R.hayTarjeta = !!T;
+      if (T) {
+        const d = document.createElement('div'); d.appendChild(T);
+        const txt = (d.textContent || '').replace(/\\s+/g, ' ');
+        R.globoTieneRotulo = txt.indexOf('Criterio de EcoSmart') > -1;
+        R.globoMedioEsPropio = txt.indexOf('El corte del gradiente MEDIO por Doppler se aplica como 20 mmHg O MÁS') > -1;
+        /* ⚠️ LA CONDICION QUE IMPIDE EL ERROR QUE YO MISMO COMETI: el rotulo NO puede decir que
+           el pico-pico ni el gradiente entre miembros sean criterio propio, porque la ESC 2020
+           los imprime con >= -folios 603 y 604-. Se exige la frase que dice lo contrario. */
+        R.globoNoExtiende = txt.indexOf('porque así los publica la fuente') > -1;
+        R.globoAtribuyePP = txt.indexOf('la ESC 2020 de cardiopatías congénitas del adulto en el folio 604') > -1;
+      }
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el evaluador y el registro de preguntas existen',
+                                                               R.hayPreg === true && R.hayTarjeta === true,
+                                                               R.hayPreg + '/' + R.hayTarjeta],
+      ['el 20,0 EXACTO cruza a significativa Y lo dice con el operador nuevo',
+                                                               R.veinteCruza === true, R.c20 + ' | ' + String(R.t20).slice(0, 130)],
+      ['CONTROL: el 19 sigue sin cruzarla',                    R.diecinueveNo === true, R.c19],
+      ['y el 21 la cruza, como antes',                         R.veintiunoSi === true, R.c21],
+      ['la etiqueta del pico-pico dice «de 20 mmHg o mas»',    R.lblPP === 'Gradiente invasivo pico-pico de 20 mmHg o más', R.lblPP],
+      ['y la del gradiente entre miembros tambien',            String(R.lblMM).indexOf('de 20 mmHg o más') > -1, R.lblMM],
+      ['su nota deja de atribuirle el operador estricto a la guia',
+                                                               String(R.notaPP).indexOf('20 mmHg o más') > -1
+                                                                 && String(R.notaPP).indexOf('mayor que 20 mmHg') === -1, R.notaPP],
+      ['CONTROL: la CITA de la ACC/AHA sigue diciendo «mayor de 20 mmHg»',
+                                                               R.refPPIntacto === true, R.refPPIntacto],
+      ['el globo declara el criterio propio',                  R.globoTieneRotulo === true, R.globoTieneRotulo],
+      ['y lo acota al gradiente MEDIO por Doppler',            R.globoMedioEsPropio === true, R.globoMedioEsPropio],
+      ['⚠️ y NO extiende el criterio propio al pico-pico ni al gradiente entre miembros',
+                                                               R.globoNoExtiende === true, R.globoNoExtiende],
+      ['el pico-pico lleva su atribucion a la ESC 2020 con folio',
+                                                               R.globoAtribuyePP === true, R.globoAtribuyePP]
+    ] };
+  })();
+`);
+
+caso('TC-913', 'PARTE-2 (2.2): los dos rotulos de criterio propio que faltaban -- las bandas ALTAS de la RVS del posoperatorio con sus cortes de 1200 y 1400 y SIN rotular el <800 que tiene fuentes, y el reparto de feston por angulo del ETE con su nota VISIBLE debajo del dibujo; y el censo del archivo pasa a VEINTE chips', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      await esperar(260);
+      const CHIP = 'CRITERIO DE ECOSMART';
+      /* ⚠️ ESTE CASO NO CENSA EL TOTAL DE CHIPS DEL ARCHIVO, Y ES A PROPOSITO: ese conteo ya lo
+         vigila TC-507 (I8), que lo arma en SU escena, y dependia de que pestanias estuvieran
+         abiertas -medido: daba 19 aca y 20 alla sobre el mismo arbol-. Dos casos contando lo
+         mismo de dos formas es como uno de los dos termina midiendo otra cosa. Aca se afirma
+         que existen LOS DOS chips que esta tanda agrego, que es lo que el punto 2.2 pide. */
+      const chips = [].slice.call(document.querySelectorAll('span'))
+        .filter(x => (x.textContent || '').trim() === CHIP);
+      R.nChips = chips.length;
+
+      /* ══ (A) LA FILA DE LA RVS, en la tabla de criterios declarados ════════════════════════ */
+      const filaRvs = chips.map(x => x.closest ? x.closest('tr') : null)
+        .filter(Boolean)
+        .filter(tr => (tr.textContent || '').indexOf('RVS') > -1
+                   && (tr.textContent || '').indexOf('1200') > -1)[0] || null;
+      R.hayFilaRvs = !!filaRvs;
+      const tRvs = filaRvs ? (filaRvs.textContent || '').replace(/\\s+/g, ' ') : '';
+      R.rvsCortes = tRvs.indexOf('1200') > -1 && tRvs.indexOf('1400') > -1;
+      R.rvsNombraPosop = tRvs.indexOf('posoperatorio') > -1;
+      /* ⚠️ EL <800 NO LLEVA ROTULO, y es la mitad que importa: su corte tiene DOS fuentes. Se
+         mide que las dos filas de la vasoplejia -que son las que publican el 800- NO tengan el
+         chip, en vez de confiar en que la fila nueva no las toque. */
+      const trs = [].slice.call(document.querySelectorAll('tr'));
+      const filasVaso = trs.filter(tr => (tr.textContent || '').indexOf('Vasoplejia') > -1);
+      R.nFilasVaso = filasVaso.length;
+      R.vasoSinChip = filasVaso.length > 0 && filasVaso.every(tr =>
+        ![].slice.call(tr.querySelectorAll('span')).some(x => (x.textContent || '').trim() === CHIP));
+      /* y el detalle dice por que el 800 queda afuera */
+      R.rvsExplica800 = tRvs.indexOf('800') > -1;
+
+      /* ══ (B) LA NOTA DE LOS FESTONES, visible y en la pantalla del ETE ═════════════════════ */
+      try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+      /* ⚠️ HAY QUE ABRIR LA SECCION, y lo destapo la primera corrida: el bloque del dibujo
+         mitral nace con display:none, asi que la nota existia y daba «no visible» -- medir la
+         visibilidad de algo dentro de un acordeon cerrado da false sobre una nota que si se ve
+         cuando el medico la mira. Es la misma trampa que PANT-20 pago con el globo de la
+         orejuela y PANT-36 con la subpestania de Referencias. */
+      try { if (typeof toggleEteSeccion === 'function') toggleEteSeccion('mitral'); } catch (e) {}
+      await esperar(300);
+      const _secM = document.getElementById('ete-seccion-mitral');
+      R.seccionAbierta = !!_secM && getComputedStyle(_secM).display !== 'none';
+      const notaFest = chips.concat([].slice.call(document.querySelectorAll('span'))
+          .filter(x => (x.textContent || '').trim() === CHIP))
+        .map(x => (x.parentElement || null))
+        .filter(Boolean)
+        .filter(p => (p.textContent || '').indexOf('festón por ángulo') > -1
+                  || (p.textContent || '').indexOf('feston por angulo') > -1)[0] || null;
+      R.hayNotaFest = !!notaFest;
+      const tF = notaFest ? (notaFest.textContent || '').replace(/\\s+/g, ' ') : '';
+      R.festSinFolio = tF.indexOf('sin folio') > -1;
+      R.festSesenta = tF.indexOf('60') > -1 && tF.indexOf('única') > -1;
+      /* ⚠️ VISIBLE, no solo presente: la declaracion estaba en un COMENTARIO del codigo, que es
+         justo lo que esta condicion viene a impedir que vuelva a pasar. */
+      R.festVisible = notaFest ? (function () {
+        let e = notaFest;
+        while (e && e !== document.body) {
+          if (getComputedStyle(e).display === 'none') return false;
+          e = e.parentElement;
+        }
+        return true; })() : false;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: la seccion del ETE mitral quedo ABIERTA', R.seccionAbierta === true, R.seccionAbierta],
+      ['la fila de las bandas de la RVS existe',               R.hayFilaRvs === true, R.hayFilaRvs],
+      ['y declara sus DOS cortes, el 1200 y el 1400',          R.rvsCortes === true, R.rvsCortes],
+      ['nombrando que son las del posoperatorio',              R.rvsNombraPosop === true, R.rvsNombraPosop],
+      ['DENOMINADOR: las dos filas de la vasoplejia estan',    R.nFilasVaso >= 2, R.nFilasVaso],
+      ['⚠️ y NINGUNA lleva el chip: el <800 tiene fuentes',    R.vasoSinChip === true, R.vasoSinChip],
+      ['la fila explica por que el 800 queda afuera',          R.rvsExplica800 === true, R.rvsExplica800],
+      ['la nota de los festones existe',                      R.hayNotaFest === true, R.hayNotaFest],
+      ['⚠️ y es VISIBLE, no un comentario del codigo',         R.festVisible === true, R.festVisible],
+      ['declara que va sin folio',                            R.festSinFolio === true, R.festSinFolio],
+      ['y que la de 60 grados es la unica verificada',         R.festSesenta === true, R.festSesenta]
+    ] };
+  })();
+`);
+
+caso('TC-914', 'PARTE-2 (2.3): la ficha de coaptacion dice los DOS cortes con su procedimiento -- «<11mm (clip, con tethering)» y el de 10 mm o mas de la reparacion quirurgica-- y deja de decir «Prof. coaptacion <=10mm», que juntaba el umbral de un procedimiento con la direccion del otro', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('referencias'); } catch (e) {}
+      await esperar(260);
+      /* La ficha se busca por su contenido y no por un id: lo que la condicion vigila es el
+         TEXTO, no donde vive. */
+      const cands = [].slice.call(document.querySelectorAll('div'))
+        .filter(d => (d.textContent || '').indexOf('IM Secundaria (COAPT)') > -1);
+      const ficha = cands.length ? cands[cands.length - 1] : null;
+      R.hayFicha = !!ficha;
+      const t = ficha ? (ficha.textContent || '').replace(/\\s+/g, ' ') : '';
+      R.txt = t.slice(0, 200);
+      /* ⚠️ LO VIEJO YA NO ESTA: es la mitad que hace que el caso falle por los dos lados. */
+      R.sinViejo = t.indexOf('Prof. coaptación ≤10mm') === -1;
+      /* y lo nuevo dice el corte del CLIP con su condicion de tethering */
+      R.clipOnce = t.indexOf('Prof. coaptación <11mm') > -1 && t.indexOf('clip, con tethering') > -1;
+      /* y nombra el OTRO corte, el de la reparacion quirurgica, para que no se confundan */
+      R.quirurgica = t.indexOf('reparación quirúrgica') > -1 && t.indexOf('10mm o más') > -1;
+      /* CONTROL: los otros dos bloques de la misma ficha ya lo decian bien y no se tocaron */
+      const todo = (document.body.textContent || '').replace(/\\s+/g, ' ');
+      R.bloqueRepar = todo.indexOf('distancia de coaptación ≥1 cm') > -1;
+      R.bloqueTeer = todo.indexOf('Profundidad de coaptación <11 mm') > -1
+                     && todo.indexOf('Tamburino') > -1;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: la ficha con el resumen COAPT existe',    R.hayFicha === true, R.hayFicha],
+      ['⚠️ ya NO dice «Prof. coaptacion <=10mm»',              R.sinViejo === true, R.txt],
+      ['dice el corte del clip con su condicion de tethering', R.clipOnce === true, R.clipOnce],
+      ['y nombra el otro corte, el de la reparacion quirurgica', R.quirurgica === true, R.quirurgica],
+      ['CONTROL: el bloque de reparabilidad sigue intacto',    R.bloqueRepar === true, R.bloqueRepar],
+      ['CONTROL: el bloque de criterios TEER sigue intacto',   R.bloqueTeer === true, R.bloqueTeer]
+    ] };
+  })();
+`);
+
+caso('TC-915', 'PARTE-2 (2.4): la conclusion parcial del HFA-PEFF dice con CUANTOS dominios calculo -- «calculado con N de 3 dominios» en el modulo completo y «de 2» en el modo solo-eco, donde el humoral esta excluido por diseño, con la N siguiendo a los dominios que de verdad tienen dato', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      await esperar(200);
+      const concl = so => {
+        const r = (typeof hfapeffScore === 'function') ? hfapeffScore(so) : null;
+        if (!r) return { t:'NO HAY SCORE', completo:null };
+        const t = (typeof hfapeffConclusion === 'function') ? hfapeffConclusion(r) : 'NO HAY CONCL';
+        return { t: String(t), completo: !!r.completo,
+                 hayFun: !!(r.func && r.func.hayDatos), hayMor: !!(r.morf && r.morf.hayDatos),
+                 hayHum: !!(r.hum && r.hum.hayDatos) }; };
+
+      /* ══ UN solo dominio con dato: el funcional. N tiene que ser 1 de 3 ═══════════════════ */
+      __t.set('fevi', '60');
+      __t.set('e_sep', '5'); __t.set('e_lat', '6');
+      if (typeof calcDiastol === 'function') calcDiastol();
+      await esperar(260);
+      const c1 = concl(false);
+      R.un = c1.t; R.unFun = c1.hayFun; R.unMor = c1.hayMor; R.unHum = c1.hayHum;
+      R.unDice1de3 = c1.t.indexOf('calculado con 1 de 3 dominios') > -1;
+      /* ⚠️ Y DENTRO del parentesis del puntaje parcial, no suelto al final: es lo que el
+         AJ2-8b protege -que no salgan dos parentesis seguidos- y lo que TC-519 (K4) vigila. */
+      const iPar = c1.t.indexOf('(puntaje parcial:'), iN = c1.t.indexOf('calculado con 1 de 3');
+      const iCie = c1.t.indexOf(')', iPar);
+      R.unDentroDelParentesis = iPar > -1 && iN > iPar && iCie > iN;
+      R.unSinDobleParen = c1.t.indexOf('))') === -1;
+
+      /* ══ EL MODO SOLO-ECO: el denominador es DOS, no tres ════════════════════════════════
+         ⚠️ ESTA ES LA CONDICION QUE IMPIDE EL «3» ESCRITO A MANO. En esa superficie el dominio
+         humoral esta excluido POR DISEÑO, asi que un «de 3» fijo seria literalmente falso:
+         diria que falta un dominio que esa vista no evalua.
+         ⚠️ Y SE MIDE ACA, con SOLO el funcional cargado, no mas abajo: con los dos dominios de
+         eco puestos el modo solo-eco queda COMPLETO -4/4- y no hay rama parcial que leer, asi
+         que la condicion mediria sobre una frase que no existe. Lo destapo la primera corrida. */
+      const cE = concl(true);
+      R.eco = cE.t; R.ecoCompleto = cE.completo;
+      R.ecoDiceDe2 = cE.t.indexOf('de 2 dominios') > -1 && cE.t.indexOf('de 3 dominios') === -1;
+
+      /* ══ DOS dominios con dato: el funcional y el morfologico. N pasa a 2 de 3 ════════════ */
+      /* ⚠️ LOS IDS DE CAMPO NO SON LOS QUE UNO IMAGINA, y lo destapo la primera corrida: el
+         dominio morfologico no lee ningun «lavi» -- hfapeffDatos lo DERIVA de ai_vol dividido
+         por la superficie corporal, asi que sin peso ni talla no hay LAVI-. Es el mismo error de
+         metodo que MEDIR-5 pago buscando las tres de la tricuspide bajo el id que imaginaba: un
+         grep por el id que uno supone no es un censo. */
+      __t.set('peso', '70'); __t.set('talla', '170');
+      __t.set('ai_vol', '90');
+      if (typeof calcAIVI === 'function') calcAIVI();
+      if (typeof calcDiastol === 'function') calcDiastol();
+      await esperar(300);
+      const c2 = concl(false);
+      R.dos = c2.t; R.dosMor = c2.hayMor;
+      R.dosDice2de3 = c2.t.indexOf('calculado con 2 de 3 dominios') > -1;
+
+      /* ══ CONTROL NEGATIVO: con los TRES dominios cargados la frase NO aparece ════════════ */
+      /* El peptido tampoco: el campo es hf_ntprobnp, no ntprobnp. */
+      __t.set('hf_ntprobnp', '900');
+      if (typeof hfapeffRender === 'function') hfapeffRender();
+      await esperar(300);
+      const c3 = concl(false);
+      R.tres = c3.t; R.tresCompleto = c3.completo;
+      R.completoSinFrase = c3.completo === true && c3.t.indexOf('calculado con') === -1;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: con un dominio cargado el parcial sale',  R.unFun === true && R.unHum === false,
+                                                               'fun=' + R.unFun + ' mor=' + R.unMor + ' hum=' + R.unHum],
+      ['con UN dominio dice «calculado con 1 de 3 dominios»',  R.unDice1de3 === true, String(R.un).slice(0, 150)],
+      ['y va DENTRO del parentesis del puntaje parcial',       R.unDentroDelParentesis === true, R.unDentroDelParentesis],
+      ['sin dos parentesis de cierre seguidos',                R.unSinDobleParen === true, R.unSinDobleParen],
+      ['con DOS dominios la N sube a 2 de 3',                  R.dosDice2de3 === true, String(R.dos).slice(0, 150)],
+      ['DENOMINADOR: en solo-eco todavia falta un dominio',    R.ecoCompleto === false, R.ecoCompleto],
+      ['⚠️ en el modo solo-eco el denominador es DOS y no tres', R.ecoDiceDe2 === true, String(R.eco).slice(0, 150)],
+      ['CONTROL: con los tres dominios la frase NO aparece',   R.completoSinFrase === true,
+                                                               'completo=' + R.tresCompleto + ' | ' + String(R.tres).slice(0, 110)]
+    ] };
+  })();
+`);
+
+caso('TC-916', 'PARTE-2 (2.5): el escenario E2A de amiloidosis deja de afirmar «VPP 100%» en los DOS textos que viajan al informe firmado -- el titulo y el cuerpo-- y publica «especificidad cercana al 100 %» CON la condicion que la fuente imprime: grado 2 o 3 y que la enfermedad se sospeche', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('amiloidosis'); } catch (e) {}
+      await esperar(300);
+      /* gradoGamma y protMonoc son var de nivel de script, asi que SI estan en window
+         -el archivo mismo las lee como window.gradoGamma-. El escenario E2A es grado 2 o 3
+         con proteinas monoclonales negativas. */
+      const esc = g => {
+        try { window.gradoGamma = g; window.protMonoc = 'negativo';
+              if (typeof actualizarAlgoritmo === 'function') actualizarAlgoritmo(); } catch (e) {}
+        const t = document.getElementById('algo-title'), b = document.getElementById('algo-body');
+        return { tit: t ? (t.textContent || '') : 'NO HAY', cuerpo: b ? (b.textContent || '') : 'NO HAY' }; };
+      const e2 = esc(2);
+      await esperar(220);
+      const e2b = { tit: (document.getElementById('algo-title') || {}).textContent || '',
+                    cuerpo: (document.getElementById('algo-body') || {}).textContent || '' };
+      R.tit = String(e2b.tit || e2.tit).slice(0, 160);
+      R.cuerpo = String(e2b.cuerpo || e2.cuerpo).replace(/\\s+/g, ' ');
+      R.hayEscenario = R.tit.indexOf('ATTR confirmado') > -1;
+
+      /* ⚠️ LOS DOS TEXTOS, y por separado: R2-E5 corrigio la FICHA de la pestania el 21/10 y
+         estos dos se quedaron atras, asi que la pestania decia «especificidad» y el informe
+         seguia diciendo «VPP 100 %» sobre el MISMO paciente. Por eso se afirman los dos. */
+      R.titSinVPP = R.tit.indexOf('VPP 100%') === -1 && R.tit.indexOf('VPP 100 %') === -1;
+      R.titConEspec = R.tit.indexOf('especificidad cercana al 100 %') > -1;
+      R.cuerpoSinVPP = R.cuerpo.indexOf('valor predictivo positivo del 100%') === -1;
+      R.cuerpoConEspec = R.cuerpo.indexOf('especificidad cercana al 100 %') > -1;
+      /* LA CONDICION, que es lo que la orden pedia que no se inventara: las DOS mitades que el
+         folio 1556 imprime -el grado 2 o 3, y que la enfermedad se sospeche-. */
+      R.cuerpoCondGrado = R.cuerpo.indexOf('grado 2 o 3') > -1;
+      R.cuerpoCondSospecha = R.cuerpo.indexOf('en quien la enfermedad se sospecha') > -1;
+      /* y conserva el «se ha propuesto» del original, en vez de afirmarlo la app */
+      R.cuerpoPropuesto = R.cuerpo.indexOf('se le ha propuesto') > -1;
+      /* CONTROL: la salvedad de los falsos positivos sigue entera */
+      R.salvedad = R.cuerpo.indexOf('falso positivo en amiloidosis AL') > -1;
+
+      /* CONTROL NEGATIVO: el grado 1 es OTRO escenario y no publica ninguna de las dos frases */
+      const e1 = esc(1);
+      await esperar(220);
+      const t1 = (document.getElementById('algo-title') || {}).textContent || '';
+      R.grado1 = String(t1).slice(0, 90);
+      R.grado1Otro = t1.indexOf('ATTR confirmado') === -1;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el escenario E2A se pinto',               R.hayEscenario === true, R.tit],
+      ['⚠️ el TITULO ya no dice «VPP 100%»',                   R.titSinVPP === true, R.tit],
+      ['y publica la especificidad',                           R.titConEspec === true, R.tit],
+      ['⚠️ el CUERPO tampoco afirma el valor predictivo del 100%', R.cuerpoSinVPP === true, String(R.cuerpo).slice(0, 170)],
+      ['y publica la especificidad',                           R.cuerpoConEspec === true, R.cuerpoConEspec],
+      ['con su condicion de grado 2 o 3',                      R.cuerpoCondGrado === true, R.cuerpoCondGrado],
+      ['y con la de que la enfermedad se sospeche',            R.cuerpoCondSospecha === true, R.cuerpoCondSospecha],
+      ['conservando el «se ha propuesto» de la fuente',        R.cuerpoPropuesto === true, R.cuerpoPropuesto],
+      ['CONTROL: la salvedad de los falsos positivos sigue',   R.salvedad === true, R.salvedad],
+      ['CONTROL NEGATIVO: el grado 1 es otro escenario',       R.grado1Otro === true, R.grado1]
+    ] };
+  })();
+`);
+
+caso('TC-917', 'PARTE-2 (2.6): los DOS globos de obstruccion protesica -- el de la mitral y el de la aortica-- declaran el limite de la aplicacion: evalua obstruccion y NO evalua deterioro estructural de la bioprotesis, sin agregar ningun calculo', `
+  return (async () => {
+    const R = {};
+    try {
+      /* VINFO es un const de nivel de script: se nombra PELADO. Con window.VINFO daria
+         undefined y el caso mediria sobre un registro vacio, que se lee igual que «no esta». */
+      const REG = (typeof VINFO !== 'undefined' && VINFO) ? VINFO : null;
+      R.hayReg = !!REG;
+      if (REG) {
+        const FRASE = 'evalúa obstrucción; no evalúa deterioro estructural de la bioprótesis';
+        const pm = REG['prot-obstr'] || null, pa = REG['ea-prot-sev'] || null;
+        R.hayMitral = !!pm; R.hayAortica = !!pa;
+        R.mitralDeclara = pm ? String(pm.ojo || '').indexOf(FRASE) > -1 : false;
+        R.aorticaDeclara = pa ? String(pa.ojo || '').indexOf(FRASE) > -1 : false;
+        /* ⚠️ VA EN EL ojo, que es el campo donde estas tarjetas ya ponen sus limitaciones, y
+           NO en el lee ni en la formula: ahi se leeria como un criterio y no como un limite. */
+        R.mitralNoEnLee = pm ? String(pm.lee || '').indexOf('deterioro estructural') === -1 : false;
+        R.aorticaNoEnLee = pa ? String(pa.lee || '').indexOf('deterioro estructural') === -1 : false;
+        /* CONTROL: lo que esos dos globos ya decian sigue entero, no se reemplazo nada */
+        R.mitralConserva = pm ? String(pm.ojo || '').indexOf('La velocidad pico se muestra con su banda') > -1 : false;
+        R.aorticaConserva = pa ? String(pa.ojo || '').indexOf('exige las DOS mitades') > -1 : false;
+        /* CONTROL NEGATIVO: NINGUN otro globo del registro gana la frase -- son DOS y solo dos */
+        R.cuantosLaTienen = Object.keys(REG).filter(k => {
+          const e = REG[k] || {};
+          return ['lee','ojo','formula','fuente'].some(f => String(e[f] || '').indexOf('deterioro estructural') > -1);
+        }).length;
+      }
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el registro de globos y las dos tarjetas existen',
+                                                               R.hayReg === true && R.hayMitral === true && R.hayAortica === true,
+                                                               R.hayReg + '/' + R.hayMitral + '/' + R.hayAortica],
+      ['el globo de la MITRAL declara el limite',              R.mitralDeclara === true, R.mitralDeclara],
+      ['el de la AORTICA tambien',                             R.aorticaDeclara === true, R.aorticaDeclara],
+      ['va en el «a tener en cuenta» y no en lo que la tarjeta LEE',
+                                                               R.mitralNoEnLee === true && R.aorticaNoEnLee === true,
+                                                               R.mitralNoEnLee + '/' + R.aorticaNoEnLee],
+      ['CONTROL: lo que esos globos ya decian sigue entero',   R.mitralConserva === true && R.aorticaConserva === true,
+                                                               R.mitralConserva + '/' + R.aorticaConserva],
+      ['CONTROL NEGATIVO: son DOS globos y solo dos',          R.cuantosLaTienen === 2, R.cuantosLaTienen]
+    ] };
+  })();
+`);
+
+caso('TC-918', 'PARTE-2 (2.7): el globo de notas de metodo del Simpson cita «Lang 2015», autor-año, en las TRES notas que nombraban su fuente -- la que decia «(ASE/EACVI 2015)», sociedad-año, y las DOS que decian «la guia» a secas-- sin perder ninguna de las trece notas', `
+  return (async () => {
+    const R = {};
+    try {
+      /* _SIMP_NOTAS_METODO es un const de nivel de script: se nombra PELADO. Con window.
+         daria undefined y el caso contaria cero notas, que se lee igual que «no estan». */
+      const N = (typeof _SIMP_NOTAS_METODO !== 'undefined' && _SIMP_NOTAS_METODO)
+        ? _SIMP_NOTAS_METODO : null;
+      R.hay = !!N;
+      if (N) {
+        R.total = N.length;
+        const T = N.join(' || ');
+        /* LO NUEVO: la forma autor-año, en las TRES notas que nombran la fuente. */
+        R.nLang = (T.match(/Lang 2015/g) || []).length;
+        R.ejeLargo = N.some(x => x.indexOf('más largo de las dos ventanas') > -1 && x.indexOf('(Lang 2015)') > -1);
+        R.apex = N.some(x => x.indexOf('Lang 2015 lo lista como su limitación principal') > -1);
+        R.mono = N.some(x => x.indexOf('Lang 2015 recomienda el biplano') > -1);
+        /* ⚠️ LO VIEJO YA NO ESTA, que es la mitad que hace que el caso falle por los dos lados:
+           ni la forma sociedad-año ni «la guia» a secas, que no nombraba nada. */
+        R.sinAseEacvi = T.indexOf('ASE/EACVI') === -1;
+        R.sinGuiaSuelta = T.indexOf('la guía lo lista') === -1 && T.indexOf('La guía recomienda') === -1;
+        /* CONTROL: ninguna de las trece notas se perdio ni se reemplazo por otra cosa. */
+        R.conservaBiplano = N.some(x => x.indexOf('no es el promedio de las dos ventanas') > -1);
+        R.conservaVeyec = N.some(x => x.indexOf('VEyec = VFD − VFS') > -1);
+        R.conservaContornos = N.some(x => x.indexOf('contornos no se guardan') > -1);
+      }
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      /* NUEVE PARRAFOS, no trece: las «trece frases» que MEDIR-4b censo viven repartidas en
+         estos nueve, y CLAUDE.md lo dice asi -- «NUEVE parrafos con las TRECE frases del censo»-.
+         Lo verifico la primera corrida: el registro trae 9. */
+      ['DENOMINADOR: el registro de notas existe y trae sus NUEVE parrafos',
+                                                               R.hay === true && R.total === 9,
+                                                               R.hay + '/' + R.total],
+      ['cita «Lang 2015» TRES veces',                          R.nLang === 3, R.nLang],
+      ['en la nota del eje largo',                             R.ejeLargo === true, R.ejeLargo],
+      ['en la del apex escorzado',                             R.apex === true, R.apex],
+      ['y en la del monoplanar',                               R.mono === true, R.mono],
+      ['⚠️ ya NO queda la forma sociedad-año «ASE/EACVI»',     R.sinAseEacvi === true, R.sinAseEacvi],
+      ['⚠️ ni «la guia» a secas, que no nombraba nada',        R.sinGuiaSuelta === true, R.sinGuiaSuelta],
+      ['CONTROL: las notas de contenido siguen enteras',       R.conservaBiplano === true && R.conservaVeyec === true
+                                                                 && R.conservaContornos === true,
+                                                               R.conservaBiplano + '/' + R.conservaVeyec + '/' + R.conservaContornos]
+    ] };
+  })();
+`);
+
+caso('TC-919', 'PARTE-2 (2.8): el cajon del visor gana la advertencia de validez del AVM por continuidad, y NO la copia: la LEE del dueño unico que ya usa el informe, asi que las dos superficies no pueden tener dos redacciones distintas', `
+  return (async () => {
+    const R = {};
+    try {
+      /* El dueño del informe SI esta en window -el archivo lo exporta-. El registro de
+         descargos del visor es un const de script y se nombra pelado. */
+      const DUENO = (typeof window.EM_CONT_AVISO_TXT === 'string') ? window.EM_CONT_AVISO_TXT : null;
+      const D = (typeof _DOP_DISC !== 'undefined' && _DOP_DISC) ? _DOP_DISC : null;
+      R.hayDueno = !!DUENO; R.hayReg = !!D;
+      R.dueno = DUENO;
+      if (DUENO && D && D.mit) {
+        const mit = D.mit;
+        /* el descargo que se dispara con la fila del AVM por continuidad */
+        const cands = mit.filter(x => (x.si || []).indexOf('AVM por continuidad') > -1);
+        R.nCand = cands.length;
+        /* ⚠️ LO QUE SE AFIRMA ES LA IDENTIDAD CON EL DUEÑO, no que el texto «diga algo
+           parecido»: es lo que hace imposible que las dos superficies divergan el dia que
+           alguien reescriba una de las dos. Si se hubiera copiado la cadena, esta condicion
+           pasaria HOY y se pondria roja en cuanto se tocara el dueño -- que es justo lo que
+           tiene que pasar-. */
+        R.leeElDueno = cands.some(x => String(x.txt || '') === DUENO + '.');
+        /* y el descargo de PROCEDENCIA que ya estaba sigue ahi: se AGREGO uno, no se reemplazo */
+        R.conservaProcedencia = cands.some(x => String(x.txt || '').indexOf('usa el VTI del TSVI y el diámetro del TSVI') > -1);
+        /* CONTROL NEGATIVO: el descargo del THP, que es de OTRA fila, no se toco */
+        R.thpIntacto = mit.some(x => (x.si || []).indexOf('AVM por THP') > -1
+                                  && String(x.txt || '').indexOf('ASE/EACVI 2021') > -1);
+      }
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el dueño del informe y el registro del visor existen',
+                                                               R.hayDueno === true && R.hayReg === true,
+                                                               R.hayDueno + '/' + R.hayReg],
+      ['la fila del AVM por continuidad tiene DOS descargos',  R.nCand === 2, R.nCand],
+      ['⚠️ y uno de ellos ES el texto del dueño del informe',  R.leeElDueno === true,
+                                                               'dueño=' + String(R.dueno).slice(0, 70)],
+      ['el descargo de procedencia que ya estaba sigue ahi',   R.conservaProcedencia === true, R.conservaProcedencia],
+      ['CONTROL: el descargo del THP, de otra fila, intacto',  R.thpIntacto === true, R.thpIntacto]
+    ] };
+  })();
+`);
+
+caso('TC-920', 'PARTE-2 (2.9): el menu «Vista de angiografia» deja de cortarse -- la tarjeta levanta su recorte SOLO mientras el menu esta abierto, engancha de la clase open y no del atributo hidden, y el menu lleva su propio desplazamiento con max-height y overflow-y auto', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('contractilidad'); } catch (e) {}
+      await esperar(260);
+
+      /* ══ (A) LA REGLA DE CSS EXISTE, acotada a su pestania y colgada de la CLASE ══════════
+         Se lee de las hojas de estilo y no del estilo computado: lo que la condicion vigila es
+         que la REGLA este escrita, acotada y enganchada de .open -- un estilo computado no
+         distingue de donde viene, y el acote es justo lo que evita que el navegador tenga que
+         evaluar todas las tarjetas del documento. */
+      let reglaHas = null, reglaScroll = null;
+      try {
+        const hojas = [].slice.call(document.styleSheets);
+        hojas.forEach(h => {
+          let rs = null; try { rs = h.cssRules } catch (e) { return }
+          [].slice.call(rs || []).forEach(r => {
+            const t = String(r.selectorText || '');
+            if (t.indexOf('lv3d-coro-lista') > -1 && t.indexOf(':has(') > -1) reglaHas = t + ' { ' + String(r.style && r.style.cssText || '') + ' }';
+            if (t.indexOf('#lv3d-coro-lista') > -1 && String(r.style && r.style.cssText || '').indexOf('max-height') > -1)
+              reglaScroll = t + ' { ' + String(r.style.cssText) + ' }';
+          });
+        });
+      } catch (e) {}
+      R.reglaHas = reglaHas; R.reglaScroll = reglaScroll;
+      R.hayHas = !!reglaHas;
+      R.hasAcotado = !!reglaHas && reglaHas.indexOf('#tab-contractilidad') > -1;
+      /* ⚠️ ENGANCHA DE LA CLASE Y NO DEL ATRIBUTO: este menu se abre poniendo style.display, no
+         con hidden, asi que un :not([hidden]) -la forma que sirvio para el menu de Documentos-
+         no tendria de donde agarrarse y la tarjeta seguiria recortando. */
+      R.hasPorClase = !!reglaHas && reglaHas.indexOf('.open') > -1
+                      && reglaHas.indexOf('hidden') === -1;
+      R.hasLevanta = !!reglaHas && reglaHas.indexOf('visible') > -1;
+      R.hayScroll = !!reglaScroll && reglaScroll.indexOf('overflow-y') > -1;
+
+      /* ══ (B) Y EL ESTILO COMPUTADO LO CONFIRMA sobre el nodo de verdad ════════════════════ */
+      const lista = document.getElementById('lv3d-coro-lista');
+      R.hayLista = !!lista;
+      if (lista) {
+        const cs = getComputedStyle(lista);
+        R.maxH = cs.maxHeight; R.ovY = cs.overflowY;
+        R.topeYScroll = cs.maxHeight !== 'none' && (cs.overflowY === 'auto' || cs.overflowY === 'scroll');
+      }
+
+      /* ══ (C) LA CLASE SE PONE AL ABRIR Y SE SACA AL CERRAR ════════════════════════════════
+         Se mide por el DUEÑO -lv3dCoroUI-, que es quien la pone en la misma linea que el
+         display: si alguna vez se desincronizan, un menu abierto volveria a quedar recortado. */
+      if (lista && typeof _lv3d !== 'undefined' && typeof lv3dCoroUI === 'function') {
+        try { if (typeof lv3dAbrir === 'function') lv3dAbrir(); } catch (e) {}
+        try { if (typeof lv3dCoroToggle === 'function') lv3dCoroToggle(); } catch (e) {}
+        await esperar(200);
+        _lv3d.coroLista = true; _lv3d.coroListaArt = false; lv3dCoroUI();
+        await esperar(160);
+        R.abiertoDisplay = getComputedStyle(lista).display;
+        R.abiertoClase = lista.classList.contains('open');
+        _lv3d.coroLista = false; lv3dCoroUI();
+        await esperar(160);
+        R.cerradoDisplay = getComputedStyle(lista).display;
+        R.cerradoClase = lista.classList.contains('open');
+      }
+      /* y el menu de ARTERIA recibe el mismo enganche */
+      const lArt = document.getElementById('lv3d-coro-lista-art');
+      R.artEnRegla = !!reglaHas && (reglaHas.indexOf('lv3d-coro-lista-art') > -1);
+      R.hayArt = !!lArt;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el menu y su gemelo de arteria existen',  R.hayLista === true && R.hayArt === true,
+                                                               R.hayLista + '/' + R.hayArt],
+      ['la regla que levanta el recorte existe',               R.hayHas === true, String(R.reglaHas).slice(0, 150)],
+      ['acotada a la pestania de Contractilidad',              R.hasAcotado === true, R.hasAcotado],
+      ['⚠️ enganchada de la clase .open y no del atributo hidden',
+                                                               R.hasPorClase === true, R.hasPorClase],
+      ['y pone el overflow en visible',                        R.hasLevanta === true, R.hasLevanta],
+      ['el menu lleva su propio desplazamiento',               R.hayScroll === true, String(R.reglaScroll).slice(0, 120)],
+      ['y el estilo computado lo confirma',                    R.topeYScroll === true,
+                                                               'maxH=' + R.maxH + ' ovY=' + R.ovY],
+      ['al abrirlo, la clase .open queda puesta',              R.abiertoClase === true && R.abiertoDisplay === 'flex',
+                                                               R.abiertoClase + '/' + R.abiertoDisplay],
+      ['CONTROL: al cerrarlo se saca, asi la tarjeta vuelve a recortar',
+                                                               R.cerradoClase === false && R.cerradoDisplay === 'none',
+                                                               R.cerradoClase + '/' + R.cerradoDisplay],
+      ['el menu de arteria recibe el mismo enganche',          R.artEnRegla === true, R.artEnRegla]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
