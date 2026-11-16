@@ -38822,6 +38822,23 @@ function hfapeffConclusion(r) {
     const techo = maxs.reduce(function (a, b) { return a + b; }, 0);
     const nom = (faltan.length === 1) ? 'falta el dominio ' + faltan[0]
       : 'faltan los dominios ' + faltan.slice(0, -1).join(', ') + ' y ' + faltan[faltan.length - 1];
+    /* ══ «CALCULADO CON N DE 3 DOMINIOS» (2026-11-16) ═════════════════════════════════════════
+       DECISION DE MAICOL: con un dominio sin datos el puntaje se calcula igual con los que haya
+       y la linea DICE con cuantos se calculo. Nunca se oculta el calculo ni se inventa el
+       dominio faltante.
+       ⚠️ LA MITAD DE ESTA DECISION YA ESTABA CUMPLIDA, y se midio antes de tocar: el puntaje
+       parcial YA se calculaba y YA salia con su «(puntaje parcial: falta el dominio …)» y con
+       «provisoria» cuando la categoria podia cambiar — eso lo dejo la tanda E3 el 22/10/2026.
+       Lo que faltaba era el DENOMINADOR explicito: el medico leia que faltaba un dominio pero
+       no con cuantos se habia calculado el numero que estaba leyendo.
+       ⚠️ EL DENOMINADOR SE DERIVA, NO SE ESCRIBE «3» A MANO. En el modo `soloEco` -el renglon de
+       la tabla del Doppler- el dominio humoral esta excluido POR DISEÑO y los dominios
+       aplicables son DOS, asi que un «de 3» fijo seria literalmente falso en esa superficie:
+       diria que falta un dominio que esa vista no evalua. Con el denominador derivado la frase
+       no puede mentir en ninguna de las dos. En el modulo completo da 3, que es lo pedido. */
+    const _domTot = r.soloEco ? 2 : 3;
+    const _domCon = _domTot - faltan.length;
+    const _conN = ', calculado con ' + _domCon + ' de ' + _domTot + ' dominios';
     const hoy = hfapeffInterp(r.total).nivel;
     const tope = hfapeffInterp(r.total + techo).nivel;
     const prov = (hoy !== tope)
@@ -38829,7 +38846,7 @@ function hfapeffConclusion(r) {
           ? 'el dominio que no se cargó puede modificarla'
           : 'los dominios que no se cargaron pueden modificarla')
       : '';
-    return p + ' (puntaje parcial: ' + nom + '). Probabilidad ' + hoy + prov + '.' + avisoFevi;
+    return p + ' (puntaje parcial: ' + nom + _conN + '). Probabilidad ' + hoy + prov + '.' + avisoFevi;
   }
   if (r.total <= 1) return p + ' — probabilidad baja de HFpEF.' + avisoFevi;
   if (r.total <= 4) return p + ' — probabilidad intermedia de HFpEF.' + avisoFevi;
@@ -51180,7 +51197,12 @@ const VINFO = Object.freeze({
     lee: 'Criterio EcoSmart: la obstrucción se informa como significativa cuando DOS o más criterios caen en la banda sugestiva, contando sólo los que se pudieron medir. Con uno solo queda como hallazgo aislado y no sube al informe; con ninguno no se afirma obstrucción.',
     formula: 'Gradiente medio mayor de 10 mmHg\nTHP mayor de 200 ms\nDVI mayor de 2,5\nAEO menor de 1 cm²',
     fuente: 'ASE 2024 (Zoghbi), Tabla 11 y texto de la pág. 24. La guía enumera esos cuatro criterios y avisa que la exactitud diagnóstica es mejor cuando la mayoría de los parámetros coincide. El umbral de dos es de la aplicación.',
-    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación. Y en una prótesis mecánica con el THP normal, un gradiente por encima de 5 mmHg orienta a regurgitación más que a estenosis, así que tampoco cuenta.'
+    /* ⚠️ EL LIMITE DE LA BIOPROTESIS, DECLARADO (2026-11-16). Esta aplicacion gradua la
+       OBSTRUCCION de la protesis y NO evalua su deterioro estructural, que es otra pregunta con
+       otros criterios. Censado antes de escribirlo: el archivo no tenia la frase en ningun lado
+       -cero apariciones de «deterioro estructural»-, asi que el limite no estaba dicho en
+       ninguna superficie. NO SE AGREGA NINGUN CALCULO: es una declaracion de alcance. */
+    ojo: 'La velocidad pico se muestra con su banda y no cuenta: la enumeración de la guía no la incluye. Con regurgitación protésica moderada o mayor, el AEO, el DVI y el gradiente medio se muestran y no concluyen, porque suben igual con la regurgitación. Y en una prótesis mecánica con el THP normal, un gradiente por encima de 5 mmHg orienta a regurgitación más que a estenosis, así que tampoco cuenta. Esta aplicación evalúa obstrucción; no evalúa deterioro estructural de la bioprótesis.'
   },
   'prot-ppm': {
     tit: 'Desajuste pr\u00f3tesis-paciente de la mitral',
@@ -51216,7 +51238,7 @@ const VINFO = Object.freeze({
     tit: 'Estenosis a\u00f3rtica prot\u00e9sica \u2014 qu\u00e9 cambia respecto de la nativa',
     lee: 'Velocidad pico \u2014 nativa: severa desde 4 m/s; pr\u00f3tesis: normal por debajo de 3, posible de 3 a 4, significativa desde 4. Gradiente medio \u2014 nativa: severa desde 40 mmHg; pr\u00f3tesis quir\u00fargica: normal por debajo de 20, posible de 20 a 34, significativa desde 35. DVI \u2014 nativa: severa por debajo de 0,25 y moderada hasta 0,50; pr\u00f3tesis: normal por encima de 0,35 y significativa por debajo de 0,25.',
     fuente: 'Nativa: EAE/ASE 2009 (Baumgartner), Tabla 3, p\u00e1g. 10. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 5, p\u00e1g. 19.',
-    ojo: 'El \u00e1rea valvular grad\u00faa una pr\u00f3tesis s\u00f3lo con el modelo cargado: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, que se carga con el bot\u00f3n «Modelo y tama\u00f1o» de la fila de morfolog\u00eda. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no.'
+    ojo: 'El \u00e1rea valvular grad\u00faa una pr\u00f3tesis s\u00f3lo con el modelo cargado: la tabla la expresa en desviaciones est\u00e1ndar respecto del valor de referencia del modelo implantado, que se carga con el bot\u00f3n «Modelo y tama\u00f1o» de la fila de morfolog\u00eda. Y para decir «significativa» exige las DOS mitades: un eje que depende del flujo y uno que no. Esta aplicación evalúa obstrucción; no evalúa deterioro estructural de la bioprótesis.'
   },
   /* \u26a0\ufe0f LA FUENTE CITA SOLO LO QUE SE LEYO EN EL ORIGINAL (G1, 2026-10-15). Los cortes de
      insuficiencia cardiaca (0,36), de fraccion levemente reducida, de resincronizacion y de
