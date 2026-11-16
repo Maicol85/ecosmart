@@ -562,6 +562,17 @@
   @media (min-width: 2560px) {
     #cine-ov #cine-modal { max-width: 2400px !important; }
   }
+  /* ══ A1 (MEDIR-6) — LOS CALCULADOS DENTRO DEL PANEL OCUPAN SU COLUMNA ═════════════════════
+     Al nivel del modal ese bloque es una franja centrada de 780 px, que es lo que corresponde
+     cuando vive debajo de los dos paneles. Mudado a la columna de la imagen esa franja lo dejaba
+     angosto y corrido al medio de su columna, así que la clase lo lleva al ancho que tiene.
+     ⚠️ CON `!important` PORQUE EL MARGEN Y EL TOPE SALEN DE UN ESTILO EN LÍNEA, igual que el tope
+     del modal de dos reglas más arriba: sin eso la hoja no le gana y el bloque se queda centrado.
+     La clase la pone y la saca `_vSlotSync`, que es quien sabe dónde está el nodo. */
+  #cine-ov #cine-calc.cine-calc-enpanel {
+    margin: 8px 0 0 !important;
+    max-width: none !important;
+  }
   /* ══ MEDIR-4 — LAS CUATRO COLUMNAS: 340 px POR COLUMNA Y UN CORTE PROPIO (bloque A, punto 5) ══
      ⚠️ CON DOS VISTAS LA COLUMNA BAJA DE 380 A 340 px, Y EL NUMERO SE MIDIO ANTES DE ESCRIBIRLO.
      Los 380 son lo que la fila de una medida necesita con UNA vista, y se conservan ahi. Con dos
@@ -142091,6 +142102,25 @@ function _vCon(V, fn) {
 /* Envuelve un manejador de evento para que corra en su vista. */
 const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () => fn.apply(null, a)); };
 
+/* ══ A5 (MEDIR-6) — EL NÚMERO DE LLEGADA DE CADA MEDICIÓN ══════════════════════════════════════
+   «Borrar» pasa a sacar UNA medición por clic, empezando por la última, y para eso hace falta
+   saber cuál fue la última. Las mediciones de una vista viven en CINCO colecciones separadas
+   —líneas, áreas, velocidades, tiempos y VTI—, cada una con su propio orden de llegada y ninguna
+   relacionada con las otras: dentro de un arreglo se sabe qué vino después, pero entre una
+   velocidad y un área no había forma de decirlo. Este contador es ese orden común.
+   ⚠️ ES POR VISTA, y no global, porque las cinco colecciones son por vista —`_medLineas` y sus
+   hermanas son accesores sobre `_V`, ver el MAPA de arriba—. Con un contador compartido, borrar en
+   la vista B podría elegir una medición de la A.
+   ⚠️ Y VIVE ACÁ, al lado de `_vBind`, porque los seis sitios que crean mediciones están repartidos
+   en TRES bloques `<script>` distintos: una función declarada en el nivel superior de este bloque
+   es alcanzable desde los tres, que es la misma razón por la que `_vCon` y `_vTodas` viven acá.
+   Falla ABIERTO: sin sello, la medición cuenta como número 0 y se borra última. */
+function _medSello(o) {
+  try { if (_V && o) { _V.medSeq = (_V.medSeq || 0) + 1; o.n = _V.medSeq; } } catch (e) {}
+  return o;
+}
+window._medSello = _medSello;
+
 /* Los nombres viejos, resolviendo contra la vista activa. */
 (function () {
   const MAPA = {
@@ -142175,7 +142205,7 @@ function _vPanelHTML(p, esB) {
            `aria-pressed` y la clase los pone `_vModoSync`, que es el único que los escribe. */
         btn('cine-medir', 'btn-ghost', '📏 Medir', '', 'Muestra las herramientas de medición y calibración.') +
         btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
-        btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
+        btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra UNA medición por clic, empezando por la última. La calibración manual se conserva.') +
         /* ⚠️ LOS DOS CON `cine-b-alto` SON LOS QUE EL PEDIDO DESTACA: mas altos y con el color de
            acento. La clase sale de la hoja de estilos y no de un estilo en linea para que el
            alto y el color vivan en UN lugar — con dos botones escribiendolo cada uno, el dia que
@@ -142280,6 +142310,18 @@ function _vPanelHTML(p, esB) {
             btn('cine-next', 'btn-ghost', '›', '', 'Cineloop siguiente.') +
           '</div>' +
           '<div id="' + p + 'cine-ayuda" style="font-size:9.5px;color:var(--text2);line-height:1.45;"></div>' +
+          /* ══ A1 (MEDIR-6) — LA RANURA DE LOS CALCULADOS, DEBAJO DE LA IMAGEN ═══════════════
+             El bloque `cine-calc` vivía al nivel del modal, hermano de `cine-biplano`, o sea
+             debajo de LOS DOS paneles y centrado: fue la decisión de MEDIR-5 y el médico la vio
+             «muy abajo», porque con la imagen alta hay que bajar para leer la AVA de la válvula
+             que se está midiendo. Esta ranura está en la columna IZQUIERDA, después de la imagen
+             y de sus controles, o sea debajo de la imagen y al lado izquierdo de la tabla de
+             medidas, que vive en `cine-der-slot` de la columna de al lado.
+             ⚠️ ES UNA RANURA Y EL NODO SE MUDA, como los dos cajones: reemitir el bloque por
+             vista lo duplicaría y `getElementById` devolvería el primero, con el segundo
+             dibujándose sin que nadie lo actualice — el defecto que la barra de la vista B ya
+             pagó una vez. `_vSlotSync` lo manda a la ranura de la vista que está midiendo. */
+          '<div id="' + p + 'cine-calc-slot" style="display:flex;flex-direction:column;min-width:0;"></div>' +
         '</div>' +
         /* ══ MEDIR-1 — LA COLUMNA DERECHA: EL PANEL DE MEDICION ═══════════════════════════
            Aca viven el selector progresivo (`cine-side`) y el panel guia (`cine-med-barra`), y
@@ -143266,15 +143308,47 @@ function _vSlotSync() {
       return (vs.indexOf(_V) >= 0) ? _V : vs[0];
     } catch (e) { return _V; }
   };
-  const mudar = (id, V) => {
+  const mudar = (id, V, ranura) => {
     const n = document.getElementById(id);
     if (!n) return;
     const p = (V && V.pfx) ? V.pfx : ((_V && _V.pfx) ? _V.pfx : '');
-    const slot = document.getElementById(p + 'cine-der-slot');
+    const slot = document.getElementById(p + (ranura || 'cine-der-slot'));
     if (slot && n.parentElement !== slot) slot.appendChild(n);
   };
   mudar('cine-dop-slot', dueno(V => V && V.medGrupo === 'dop'));
   mudar('d2-cajon',      dueno(V => V && V.medHerr === 'dist'));
+  /* ══ A1 (MEDIR-6) — LOS CALCULADOS VIAJAN A LA COLUMNA DE SU IMAGEN ═══════════════════════
+     Mismo mecanismo y mismo dueño que el cajón Doppler, porque los números de ese bloque salen
+     de `_dop`: el AVA, la AVM y los cocientes son de la válvula que ese cajón tiene abierta, así
+     que leerlos al lado de otra imagen es leerlos al lado de la imagen equivocada.
+     Sin ninguna vista midiendo en Doppler, `dueno` cae en la activa — que es lo que hace falta,
+     porque la mini tabla de FC es «fija debajo de cualquier imagen» y tiene que verse con el
+     visor recién abierto.
+     ⚠️ EN VENTANAS ANGOSTAS VUELVE AL NIVEL DEL MODAL, que es lo de hoy y lo que el pedido fija.
+     Por debajo de 1024 px la columna de medición se apila y la izquierda pasa a ancho completo:
+     ahí el bloque metido en el panel queda entre la imagen y la tabla, o sea justo el «hay que
+     bajar para leerlo» que este cambio vino a sacar. El corte es el MISMO 1024 con el que la app
+     ya muestra una vista por vez, y no un número nuevo.
+     ⚠️ SE REPONE DESPUÉS DE `cine-simp-uni` Y NO ANTES DE `cine-dop-slot`, que era su vecino
+     original: ese vecino lo mueve esta misma función tres líneas más arriba, así que como ancla
+     se va de lugar. `cine-simp-uni` se queda siempre al nivel del modal.
+     La clase dice dónde está: dentro del panel ocupa el ancho de la columna, y al nivel del modal
+     conserva su franja centrada de 780 px. */
+  try {
+    const cc = document.getElementById('cine-calc');
+    if (cc) {
+      const ancho = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1280;
+      if (ancho >= 1024) {
+        mudar('cine-calc', dueno(V => V && V.medGrupo === 'dop'), 'cine-calc-slot');
+        cc.classList.add('cine-calc-enpanel');
+      } else {
+        const modal = document.getElementById('cine-modal');
+        const ancla = document.getElementById('cine-simp-uni');
+        if (modal && ancla && cc.parentElement !== modal) modal.insertBefore(cc, ancla.nextSibling);
+        cc.classList.remove('cine-calc-enpanel');
+      }
+    }
+  } catch (e) {}
 }
 window._vSlotSync = _vSlotSync;
 
@@ -143310,7 +143384,7 @@ function _vCablear(V) {
   /* Los fijos de la ZONA 4 son estáticos: se cablean una sola vez, acá. Antes vivían dentro
      de la barra —que se reconstruye en cada medición— y había que volver a atarlos siempre. */
   on('cine-med-recal',  () => (_medHerr === 'vel') ? medCalibrarVelocidad() : medRecalibrar());
-  on('cine-med-borrar', medBorrar);
+  on('cine-med-borrar', medBorrarUna);   // A5: saca UNA medicion por clic, no todas
   on('cine-med-cap',    medCapturarConMedicion);
   const et = q('cine-cap-etiq');
   if (et) et.oninput = _vBind(V, () => { _medEtiqueta = et.value; });
@@ -143356,7 +143430,16 @@ function _vObservarAncho() {
     clearTimeout(_vResizeT);
     /* Con debounce: un arrastre de ventana dispara decenas de eventos y cada `_medPintar`
        redibuja todas las mediciones de la vista. */
-    _vResizeT = setTimeout(_vRepintarOverlays, 80);
+    /* ⚠️ A1 — Y EL REACOMODO DE LOS CALCULADOS VA ACÁ, no sólo en los dos render. El corte de
+       1024 px de `_vSlotSync` lo decide el ancho de la VENTANA, y `_dopRender` / `_d2Render`
+       corren cuando cambia una medición, no cuando el médico agranda el visor: sin este enganche,
+       cruzar el corte dejaba el bloque dentro del panel con la columna ya apilada —o al nivel del
+       modal con lugar de sobra al lado de la imagen— hasta la próxima medición. Va dentro del
+       mismo debounce porque mover un nodo es más caro que repintar, no menos. */
+    _vResizeT = setTimeout(() => {
+      try { if (typeof _vSlotSync === 'function') _vSlotSync(); } catch (e) {}
+      _vRepintarOverlays();
+    }, 80);
   });
 }
 
@@ -144610,8 +144693,8 @@ function _medAreaUp() {
        escala salen del MISMO trazo que el VTI, así que recalcularlos después sería una segunda
        derivación del mismo hecho — y `velManual` ni siquiera se podría reconstruir, porque la
        calibración puede haber cambiado entre que se trazó y que se lee el panel. */
-    _medVtis.push({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms,
-                    gradMax: r.gradMax, gradMedio: r.gradMedio, velManual: r.velManual });
+    _medVtis.push(_medSello({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms,
+                    gradMax: r.gradMax, gradMedio: r.gradMedio, velManual: r.velManual }));
     /* /* El cajón Doppler CAPTURA acá y no lee las listas después: `medCambioDeImagen` las
        vacía al cambiar de cineloop. Envuelto porque una falla del cajón no puede llevarse
        puesta la medición que el médico acaba de hacer. */
@@ -144639,7 +144722,7 @@ function _medAreaUp() {
   if (px2 < 9) { _medPintar(); return; }       // un clic suelto o un temblor: no es un contorno
   /* MEDIR-2: el contorno se queda con la estructura que estaba elegida. Sin estructura se
      guarda igual —el gesto de area suelto sigue existiendo— y se dibuja sin rotulo. */
-  _medAreas.push({ pts, cm2: _medAreaCm2(pts, v.esc), est: _medAreaEst || null });
+  _medAreas.push(_medSello({ pts, cm2: _medAreaCm2(pts, v.esc), est: _medAreaEst || null }));
   _medPintar(); _medEstado();
 }
 
@@ -148704,6 +148787,20 @@ function _vtiQpQs() {
            interp: (q == null) ? '' : eteQpQsInterp(q) };
 }
 
+/* ══ A3 (MEDIR-6) — LA LISTA DE ASIGNACIÓN, SÓLO DONDE ESE VTI SE MIDE ════════════════════════
+   Esta lista no estaba atada a ninguna válvula: se dibujaba con la herramienta VTI activa, con
+   cualquier válvula abierta o con ninguna, y mostraba TODAS las envolventes de la sesión con sus
+   dos botones —las ya asignadas incluidas—. El médico la vio en la tricúspide, que es justamente
+   donde ninguno de los dos tractos se mide.
+   Hoy la lista de asignación sale sólo con la **aórtica** o la **pulmonar** abiertas, que son los
+   planos de los que salen el TSVI y el TSVD, y lista sólo las **libres**.
+   ⚠️ EL ÍNDICE QUE VIAJA EN EL BOTÓN ES EL DE `_medVtis` Y NO EL DE LA LISTA FILTRADA. Es la
+   trampa que `_vPickLista` ya pagó en MEDIR-4a: `medVtiAsignar(i)` indexa la colección real, así
+   que con el índice de la lista dibujada, descartar una envolvente asignada corre todos los de
+   abajo y el botón asigna **otra medición del paciente**, en silencio. Se guarda el par.
+   ⚠️ Y LAS ASIGNADAS CONSERVAN SU BOTÓN, en un renglón compacto aparte. Sacarlas del todo dejaba
+   sin NINGUNA forma de corregir una asignación equivocada —el rol es exclusivo y se libera
+   tocando el mismo botón—, y una asignación cruzada da vuelta el Qp/Qs sin avisar. */
 function _vtiPanel() {
   const vs = _medVtis || [];
   let h = '<b>📐 VTI — integral velocidad-tiempo.</b> Mantené apretado y recorré la envolvente ' +
@@ -148712,10 +148809,40 @@ function _vtiPanel() {
     return h + '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;">Todavía no hay ' +
            'ninguna envolvente trazada.</div>';
   }
+  /* Falla ABIERTO: sin el cajón Doppler a mano la lista se sigue ofreciendo, que es la conducta
+     de antes de este cambio. Esconderla por no poder preguntar sería peor. */
+  let _vtiMd = null;
+  try { if (typeof _dopEstado === 'function') _vtiMd = _dopEstado().modo || null; } catch (e) { _vtiMd = 'ao'; }
+  const _vtiAcaSeMide = (_vtiMd == null || _vtiMd === 'ao' || _vtiMd === 'pul');
+  const _vtiLibres = [], _vtiPuestas = [];
+  vs.forEach((v, i) => { (v.rol ? _vtiPuestas : _vtiLibres).push([v, i]); });
+  if (!_vtiAcaSeMide) {
+    h += '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;">' +
+         'Hay <b>' + vs.length + '</b> envolvente(s) trazada(s). El TSVI y el TSVD se miden en la ' +
+         '<b>aórtica</b> y en la <b>pulmonar</b>: elegí una de esas dos para asignarlas al Qp/Qs.</div>';
+    return h;
+  }
+  if (_vtiPuestas.length) {
+    h += '<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">';
+    _vtiPuestas.forEach(par => {
+      const v = par[0], i = par[1];
+      const lado = v.rol === 'tsvi' ? '<b style="color:#60a5fa;">TSVI</b>'
+                                    : '<b style="color:#34d399;">TSVD</b>';
+      h += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">' +
+           '<span>' + lado + ' ← VTI <b>' + v.cm.toFixed(1) + ' cm</b></span>' +
+           '<button type="button" class="btn btn-ghost" data-vti-rol="' + escHtml(v.rol) +
+           '" data-vti-i="' + i + '" style="padding:1px 6px;font-size:10px;margin-left:auto;" ' +
+           'title="Libera esta envolvente para poder asignar otra">✕ liberar</button></div>';
+    });
+    h += '</div>';
+  }
+  if (!_vtiLibres.length) {
+    h += '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;">' +
+         'No queda ninguna envolvente sin asignar.</div>';
+  }
   h += '<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">';
-  vs.forEach((v, i) => {
-    const rot = v.rol === 'tsvi' ? ' · <b style="color:#60a5fa;">TSVI</b>'
-              : v.rol === 'tsvd' ? ' · <b style="color:#34d399;">TSVD</b>' : '';
+  _vtiLibres.forEach(par => {
+    const v = par[0], i = par[1];
     /* Los cuatro salen del MISMO trazo, así que van juntos: leer el VTI sin el gradiente al lado
        obliga a volver a trazar para obtenerlo. El gradiente medio puede ser null si el trazo no
        avanzó en el tiempo —ahí se omite en vez de imprimir un guion que se lee como un cero—. */
@@ -148733,10 +148860,13 @@ function _vtiPanel() {
        antes y después de recalibrar conviven en la misma lista, y sin la marca por fila dos
        números de escalas distintas se leen como dos mediciones comparables. */
     const esc = v.velManual ? ' <span style="color:var(--orange);" title="La escala de velocidad la calibró el médico a mano; el eje del tiempo sale del archivo.">· escala vel. manual</span>' : '';
+    /* ⚠️ LÁPIDA DE `rot`, la marca «· TSVI» / «· TSVD» que esta fila imprimía al lado de los ms.
+       Esta lista hoy trae SÓLO las libres, así que esa marca era, por construcción, siempre la
+       cadena vacía: el estado que describía se dibuja en el renglón compacto de arriba. */
     h += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;">' +
          '<span>VTI <b>' + v.cm.toFixed(1) + ' cm</b> · Vmax <b>' + (v.picoCms / 100).toFixed(2) +
          ' m/s</b>' + gx + gm +
-         ' · ' + Math.round(v.ms) + ' ms' + rot + esc + '</span>' +
+         ' · ' + Math.round(v.ms) + ' ms' + esc + '</span>' +
          '<button type="button" class="btn btn-ghost" data-vti-rol="tsvi" data-vti-i="' + i +
          '" style="padding:1px 6px;font-size:10px;margin-left:auto;">→ TSVI</button>' +
          '<button type="button" class="btn btn-ghost" data-vti-rol="tsvd" data-vti-i="' + i +
@@ -149020,7 +149150,7 @@ function _medEstado() {
      siempre inerte— serían un control que a veces no hace nada. El rótulo lo pone
      `_medFijosSync`, que es quien sabe en qué herramienta estamos. */
   _on(rc, () => (_medHerr === 'vel') ? medCalibrarVelocidad() : medRecalibrar());
-  _on(bb, medBorrar);
+  _on(bb, medBorrarUna);   // A5: saca UNA medicion por clic, no todas
   const sxc = _medEl('cine-str-conf'), sxr = _medEl('cine-str-reset');
   /* El input de etiqueta guarda y NO repinta: repintar en cada tecla reconstruye la barra y
      el foco se pierde en la primera letra. */
@@ -149158,8 +149288,8 @@ function _medVelClic(ev) {
   if (_medCalibVel) {
     const cmsM = _medVelCalEn(_medCalibVel, p.y);
     const msM = cmsM / 100;
-    _medVels.push({ x:p.x, y:p.y, cms:cmsM, ms:msM, mmHg: 4 * msM * msM,
-                    ry0: _medCalibVel.y0, manual: true });
+    _medVels.push(_medSello({ x:p.x, y:p.y, cms:cmsM, ms:msM, mmHg: 4 * msM * msM,
+                    ry0: _medCalibVel.y0, manual: true }));
     try { if (typeof _dopCapturar === 'function') _dopCapturar('vel', { ms:msM, mmHg: 4 * msM * msM }); } catch (e) {}
     _medPintar(); _medEstado();
     return;
@@ -149183,7 +149313,7 @@ function _medVelClic(ev) {
   }
   const cms = _dcmImgVelocidadEn(r, p.y);
   const ms = cms / 100;
-  _medVels.push({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: r.ry0 });
+  _medVels.push(_medSello({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: r.ry0 }));
   try { if (typeof _dopCapturar === 'function') _dopCapturar('vel', { ms, mmHg: 4 * ms * ms }); } catch (e) {}
   _medPintar(); _medEstado();
 }
@@ -149224,8 +149354,8 @@ function _medTiempoClic(ev) {
   /* La FC sale del mismo intervalo: 60.000 ms en un minuto. Se muestra SIEMPRE junto al
      intervalo que la produjo — en el pendrive hay trazos de 56 ms de ancho, donde no entra
      ningún RR, y con el intervalo a la vista un valor imposible se nota. */
-  _medTiempos.push({ ax:a.x, ay:a.y, bx:p.x, ms,
-                     lpm: (_medHerr === 'fc') ? 60000 / ms : null });
+  _medTiempos.push(_medSello({ ax:a.x, ay:a.y, bx:p.x, ms,
+                     lpm: (_medHerr === 'fc') ? 60000 / ms : null }));
   /* FC y Tiempo salen del MISMO intervalo y del mismo manejador: lo que las distingue es la
      herramienta activa, no el dato. */
   try { if (typeof _dopCapturar === 'function')
@@ -149276,7 +149406,7 @@ function _medClic(ev) {
      pendrive dx == dy y las dos fórmulas dan idéntico, así que esto no cambia nada hoy y
      queda bien para el día que llegue un equipo que no sea isotrópico. */
   const mm = Math.sqrt(Math.pow((p.x - a.x) * ea.mmPorPx, 2) + Math.pow((p.y - a.y) * ea.mmPorPxY, 2));
-  _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm });
+  _medLineas.push(_medSello({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm }));
   /* El cajón 2D se lleva la medición si hay un campo armado. Va DESPUÉS del `push`, así que la
      línea queda dibujada sobre la imagen aunque el valor caiga fuera de banda y el cajón lo
      rechace: lo que el médico marcó se ve, y el cajón dice por qué no lo guardó.
@@ -149369,6 +149499,11 @@ function medToggle() {
 }
 window.medToggle = medToggle;
 
+/* ⚠️ A5 (MEDIR-6) — ÉSTA SIGUE SIENDO LA DE SIEMPRE Y SE LLEVA TODO. El botón «Borrar» ya NO la
+   llama: pasó a `medBorrarUna`. Esta función queda porque es el reseteo de la vista que usan los
+   cambios de imagen y las puertas internas, y porque es con la que la batería arma sus escenas
+   —diecinueve usos—: un lienzo a medio borrar entre dos pasos de un caso mide otra cosa. Mismo
+   reparto que `_dopLimpiar` contra `_dopLimpiarConfirmar`. */
 function medBorrar() {
   _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
   _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
@@ -149376,6 +149511,40 @@ function medBorrar() {
   _medPintar(); _medEstado();
 }
 window.medBorrar = medBorrar;
+
+/* ══ A5 (MEDIR-6) — «BORRAR» SACA UNA MEDICIÓN POR CLIC, EMPEZANDO POR LA ÚLTIMA ═══════════════
+   Hasta hoy el botón vaciaba las cinco colecciones de un saque, así que una sola medición mal
+   trazada costaba todas las demás de esa imagen. Hoy es un deshacer.
+   El orden entre colecciones lo da el sello de `_medSello` (ver arriba): sin él, «la última» no
+   se puede saber entre una velocidad y un área.
+   ⚠️ UN GESTO A MEDIO HACER SE CANCELA PRIMERO, y no es un extra: los puntos sueltos y el trazo en
+   curso son lo MÁS reciente que hay en pantalla, así que borrar una medición terminada dejándolos
+   dibujados haría que el botón parezca que no hizo nada —el médico ve que el dibujo de arriba
+   sigue ahí—. Se cancelan de a uno, en ese orden.
+   ⚠️ LA LÍNEA DE CALIBRACIÓN NO ENTRA, igual que antes: no es una medición, y perderla obligaría a
+   recalibrar la imagen entera por apretar un botón de borrado.
+   Devuelve si borró algo, para que el caso pueda medir que un clic de más sobre la tabla vacía no
+   hace nada en vez de reventar. */
+function medBorrarUna() {
+  if ((_medPuntos || []).length) { _medPuntos = []; _medPintar(); _medEstado(); return true; }
+  if (_medTrazo) { _medTrazo = null; _medPintar(); _medEstado(); return true; }
+  const arrs = [_medLineas, _medAreas, _medVels, _medTiempos, _medVtis];
+  let bc = -1, bi = -1, bn = -Infinity;
+  arrs.forEach((a, ci) => {
+    (a || []).forEach((o, i) => {
+      if (ci === 0 && o && o.calibracion) return;
+      const n = (o && typeof o.n === 'number') ? o.n : 0;
+      /* El desempate es por colección y después por posición, para que una sesión restaurada sin
+         sellos —todas en 0— siga borrando de atrás hacia adelante y no al azar. */
+      if (n > bn || (n === bn && (ci > bc || (ci === bc && i > bi)))) { bn = n; bc = ci; bi = i; }
+    });
+  });
+  if (bc < 0) return false;
+  arrs[bc].splice(bi, 1);
+  _medPintar(); _medEstado();
+  return true;
+}
+window.medBorrarUna = medBorrarUna;
 
 /* Entra en modo calibración de velocidad. Se ofrece siempre con la herramienta de velocidad
    activa —no sólo cuando falta la escala— porque el médico puede ver que la del archivo está
@@ -151944,6 +152113,41 @@ function _dopLimpiar() {
 }
 window._dopLimpiar = _dopLimpiar;
 
+/* ══ A4 (MEDIR-6) — «LIMPIAR» BORRA LA ESTRUCTURA ABIERTA Y NO LAS CUATRO ══════════════════════
+   `_dopLimpiar` recrea el estado entero, así que el botón parado en la mitral se llevaba también
+   la aórtica, la tricúspide y la pulmonar. Con la selección progresiva el panel muestra UNA
+   válvula a la vez, o sea que el médico no podía ver lo que estaba destruyendo: el diálogo se lo
+   nombraba, pero nombrar no es lo mismo que no borrarlo.
+   ⚠️ `_dopLimpiar` NO SE TOCA Y SIGUE SIENDO LA DE SIEMPRE, y de eso depende la seguridad del
+   cambio: esa función la llaman «Nuevo estudio» (`limpiarCampos`) y `cerrarSesionReal`, y las dos
+   TIENEN que llevarse todo —si no, el visor abriría con las mediciones del paciente anterior, que
+   es exactamente el defecto que `_dopHayValores` existe para avisar—. Lo que se acota es el BOTÓN.
+   ⚠️ EL GRUPO SE REPONE DESDE `_dopNuevo()` Y NO PONIENDO SUS CAMPOS EN `null`. Los valores
+   iniciales no son todos `null` —`tri.vciCol` nace en cadena vacía, y MEDIR-4b ya pagó que un
+   `null` ahí hiciera contar a la tricúspide como «ya tiene mediciones»—, así que copiar el
+   sub-objeto recién hecho es la única forma de que la forma no se separe de su constructor.
+   `pvc` sobrevive: es una preferencia del médico y no una medición, que es por lo que tampoco la
+   cuentan `_dopValvConDatos` ni `_dopHayValores`. */
+function _dopLimpiarGrupo(m) {
+  const E = _dopEstado();
+  if (!E || !m || !E[m]) return;
+  const fresco = _dopNuevo();
+  if (!fresco || !fresco[m]) return;
+  const pvc = E[m].pvc;
+  E[m] = fresco[m];
+  if (pvc !== undefined) E[m].pvc = pvc;
+  /* Las marcas de origen viven en un mapa PLANO con la clave «grupo.campo», así que se barren por
+     su prefijo. Sin esto quedaría una procedencia colgando de un valor que ya no está, que es el
+     mismo defecto que `_dopSufOrigen` filtra por valor para no publicar. */
+  if (E.origen) Object.keys(E.origen).forEach(c => { if (c.split('.')[0] === m) delete E.origen[c]; });
+  /* Y el destino armado se desarma si apuntaba acá: «la próxima medición cae ahí» sobre un campo
+     que se acaba de vaciar manda el número a un lugar que el médico ya no tiene a la vista. */
+  if (E.destino && String(E.destino).split('.')[0] === m) E.destino = null;
+  _dopRender();
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
+}
+window._dopLimpiarGrupo = _dopLimpiarGrupo;
+
 /* ⚠️ LA CONFIRMACIÓN VA EN UN ENVOLTORIO, NO DENTRO DE `_dopLimpiar`. Esa función la llaman
    `limpiarCampos` (cada «Nuevo estudio» y cada reapertura) y `cerrarSesionReal`: el diálogo
    habría aparecido en una ruta automática, delante de alguien que no apretó nada. Es la misma
@@ -151953,9 +152157,14 @@ window._dopLimpiar = _dopLimpiar;
    tienen datos, que es la única forma de que la pregunta signifique algo.
    Con el cajón vacío no pregunta: un diálogo sobre nada entrena a contestar que sí. */
 function _dopLimpiarConfirmar() {
-  const con = _DOP_VALVULAS.filter(V => _dopValvConDatos(V.m)).map(V => _dopRotValv(V.m));
-  if (_dopValvConDatos('gen')) con.push('mediciones sin asignar');
-  if (!con.length) { _dopLimpiar(); return; }
+  /* ⚠️ A4 — EL ALCANCE ES LA ESTRUCTURA ABIERTA. Con el selector cerrado (`modo` en null) la
+     tabla que el médico está viendo es la de las mediciones sin asignar, así que ése es el grupo
+     que se limpia: el botón borra lo que está debajo de él y nada más. */
+  const E0 = _dopEstado();
+  const gAct = (E0 && E0.modo) ? E0.modo : 'gen';
+  const rotAct = (gAct === 'gen') ? 'mediciones sin asignar' : _dopRotValv(gAct);
+  if (!_dopValvConDatos(gAct)) { _dopLimpiarGrupo(gAct); return; }
+  const con = [rotAct];
   /* ⚠️ NOMBRA APARTE LOS VALORES QUE EL CAJÓN 2D MUESTRA COMO PROPIOS, y se DERIVA de
      `_D2_ALIAS` en vez de nombrarlos a mano. La versión anterior tenía el Diam TSVI escrito
      literal, y cuando el Diam TSVD pasó a ser el segundo alias (2026-09-25) el diálogo siguió
@@ -151963,22 +152172,32 @@ function _dopLimpiarConfirmar() {
      flujo es el NORMAL, no el raro: el médico mide el TSVD con la regla en el cajón 2D —el único
      que ofrece medirlo—, abre el grupo Doppler para trazar el VTI y toca «Limpiar» creyendo que
      limpia el Doppler. El comentario de antes, además, afirmaba una simetría con
-     `_d2LimpiarConfirmar` que había dejado de existir. Lo cazó `/sharp-edges`. */
+     `_d2LimpiarConfirmar` que había dejado de existir. Lo cazó `/sharp-edges`.
+     ⚠️ Y DESDE A4 SE FILTRA AL GRUPO QUE SE VA A LIMPIAR. Con el alcance acotado, nombrar los
+     tres alias habría avisado de dos valores que el botón ya no toca — un diálogo que sobreavisa
+     se contesta sin leer, que es justo lo que este mensaje existe para evitar. */
   const ajenos = [];
   try {
     Object.keys(_D2_ALIAS).forEach(c2 => {
       const q = _D2_ALIAS[c2].split('.');
+      if (q[0] !== gAct) return;
       const o = _dopEstado()[q[0]];
       if (o && o[q[1]] != null) ajenos.push(_D2_ROT[c2] || q[1]);
     });
   } catch (e) {}
   const extra = ajenos.length
     ? '\n\nIncluye ' + ajenos.join(' y ') + ', que el cajón 2D muestra como propios.' : '';
+  /* ⚠️ EL MENSAJE DICE QUÉ SOBREVIVE, y no es cortesía: hasta A4 este botón se llevaba las cuatro
+     válvulas, así que el médico que ya lo usó tiene aprendido lo contrario. Nombrar lo que queda
+     es lo que le dice que el alcance cambió. */
+  const otras = _DOP_GRUPOS_DATO.filter(g => g !== gAct && _dopValvConDatos(g)).length;
+  const quedan = otras
+    ? '\n\nLas otras ' + otras + ' estructura(s) con mediciones NO se tocan.' : '';
   const ok = (typeof confirm === 'function')
-    ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.' + extra + '\n\n' +
-              'Esto no se puede deshacer. ¿Limpiar el cajón?')
+    ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.' + extra + quedan + '\n\n' +
+              'Esto no se puede deshacer. ¿Limpiar?')
     : true;
-  if (ok) _dopLimpiar();
+  if (ok) _dopLimpiarGrupo(gAct);
 }
 window._dopLimpiarConfirmar = _dopLimpiarConfirmar;
 
@@ -153649,9 +153868,20 @@ const _D2_GRUPOS_DATO = ['vi', 'vd', 'ao', 'ai', 'vci'];
    DISTANCIA sobre 2D, así que el médico lo mide acá —es el único de los dos que ofrece medirlo,
    el del cajón Doppler es `armable:false`— y ese valor no llegaba al Vol Eyectivo VD. Los dos
    números a la vista en dos cajones del mismo visor y ninguna fila de volumen. Ahora es un solo
-   valor, y el mecanismo es el que ya existía. */
+   valor, y el mecanismo es el que ya existía.
+
+   ⚠️ Y LO MISMO PARA EL DIAMETRO DE LA VCI (A3). Nació duplicado por tercera vez y por el mismo
+   camino: `vci.vci` acá y `tri.vciDiam` en el cajón Doppler, los dos en mm y los dos prestando la
+   banda del MISMO campo de la app (`vci_diam`, ver `_D2_BANDA_DE`), sin una línea que los
+   relacione. La consecuencia la vio el médico: la VCI es una DISTANCIA sobre 2D, así que se mide
+   acá —es el único de los dos cajones que ofrece medirla— y la fila «Diam VCI» de la tricúspide
+   se quedaba en un guion con la medición hecha a dos centímetros.
+   Y lo que se perdía no era un rótulo: de `tri.vciDiam` cuelga la **PmAD**, que el cajón publica
+   como fila propia declarando ese campo como su insumo. O sea que medir la VCI y no ver ninguna
+   presión de aurícula derecha era el estado NORMAL, no el raro. Un solo valor, el mecanismo que ya
+   existía, y el origen cruza el alias por `_d2OrigenMapa` como en los otros dos. */
 const _D2_ALIAS = Object.assign(Object.create(null),
-  { 'vi.tsvi': 'ao.diam', 'vd.tsvd': 'pul.diamTsvd' });
+  { 'vi.tsvi': 'ao.diam', 'vd.tsvd': 'pul.diamTsvd', 'vci.vci': 'tri.vciDiam' });
 function _d2Ref(campo) {
   const a = _D2_ALIAS[campo];
   if (a) {
@@ -154287,6 +154517,30 @@ function _d2Limpiar() {
 }
 window._d2Limpiar = _d2Limpiar;
 
+/* ══ A4 (MEDIR-6) — EL MISMO ALCANCE ACOTADO QUE EL CAJÓN DOPPLER ══════════════════════════════
+   `_d2Limpiar` recrea el estado entero, así que el botón parado en el VI se llevaba también la
+   aorta, la AI, el VD y la VCI. Igual que allá, `_d2Limpiar` NO SE TOCA —la llaman «Nuevo
+   estudio» y el cierre de sesión, y las dos tienen que llevarse todo—; lo que se acota es el botón.
+   ⚠️ SE BARRE POR `_D2_FILAS_DE` Y NO POR EL PREFIJO DE LA CLAVE, y la diferencia no es de estilo:
+   `vi.tsvi` se DIBUJA en el grupo de la aorta y `vd.tsvd` en el del VD, así que un barrido por
+   prefijo limpiando «ao» dejaría intacto el único valor de esa tabla que el cajón Doppler lee, y
+   limpiando «vi» se llevaría un valor que el médico no tiene a la vista. Esa lista es el dueño
+   único del reparto desde MEDIR-3 y es la misma que consulta `_d2GrupoConDatos`.
+   ⚠️ Y SE VACÍA CON `_d2Poner(c, null)`, que es el camino que ya recorre `d2Corregir` al borrar:
+   resuelve el alias —o sea que el valor se va de `_dop` si vive allá— y repinta el otro cajón.
+   `_d2BorrarOrigen` va en el mismo paso: la marca de procedencia de un alias vive en `_dop.origen`
+   y un `_d2Nuevo()` no la alcanza, que es el defecto que la auditoría de cierre encontró acá. */
+function _d2LimpiarGrupo(m) {
+  const E = _d2Estado();
+  if (!E || !m) return;
+  const campos = _D2_FILAS_DE[m] || [];
+  if (!campos.length) return;
+  campos.forEach(c => { if (_d2Valor(c) != null) _d2Poner(c, null); _d2BorrarOrigen(c); });
+  if (E.destino && campos.indexOf(E.destino) >= 0) E.destino = null;
+  _d2Render();
+}
+window._d2LimpiarGrupo = _d2LimpiarGrupo;
+
 /* ⚠️ IMPORTAR IMÁGENES NO ES UNA DE LAS TRES PUERTAS, y por eso hace falta esto aparte.
    `_d2Limpiar` cubre «Limpiar», `limpiarCampos` y `cerrarSesion`; ninguna corre cuando el médico
    mete el pendrive del paciente siguiente SIN apretar «Nuevo estudio», que es un flujo real. El
@@ -154309,16 +154563,28 @@ window._d2ImagenesNuevas = _d2ImagenesNuevas;
 function d2AvisoConservar() { _d2Estado().avisoImg = false; _d2Render(); }
 
 function _d2LimpiarConfirmar() {
-  if (!_d2HayValores()) { _d2Limpiar(); return; }
-  const con = _D2_GRUPOS.filter(G => _d2GrupoConDatos(G.m)).map(G => G.rot.replace(/^\S+\s*/, ''));
+  /* ⚠️ A4 — EL ALCANCE ES LA ESTRUCTURA ABIERTA, igual que en el cajón Doppler. */
+  const E0 = _d2Estado();
+  const gAct = (E0 && E0.modo) ? E0.modo : null;
+  if (!gAct) return;                       // sin grupo abierto no hay tabla debajo del botón
+  if (!_d2GrupoConDatos(gAct)) { _d2LimpiarGrupo(gAct); return; }
+  const G = _D2_GRUPOS.filter(x => x.m === gAct)[0];
+  const con = G ? G.rot.replace(/^\S+\s*/, '') : gAct;
   /* ⚠️ NOMBRA LO QUE BORRA, y el Diam TSVI aparte: vive en el cajón Doppler, así que «Limpiar»
-     acá se lo saca al AVA de allá. Un borrado que alcanza otra pantalla tiene que decirlo. */
+     acá se lo saca al AVA de allá. Un borrado que alcanza otra pantalla tiene que decirlo.
+     ⚠️ Y DESDE A4 SÓLO SI ESE VALOR CAE EN LA TABLA QUE SE VA A LIMPIAR: avisar de un valor que
+     el botón ya no toca entrena a contestar sin leer. Se pregunta por `_D2_FILAS_DE`, que es
+     quien decide en qué tabla se dibuja cada campo. */
+  const campos = _D2_FILAS_DE[gAct] || [];
   const ajenos = [];
-  if (_d2Valor('vi.tsvi') != null) ajenos.push('el Diam TSVI, que el cajón Doppler usa para el AVA');
-  if (_d2Valor('vd.tsvd') != null) ajenos.push('el Diam TSVD, que usa para el volumen eyectivo del VD');
+  if (campos.indexOf('vi.tsvi') >= 0 && _d2Valor('vi.tsvi') != null) ajenos.push('el Diam TSVI, que el cajón Doppler usa para el AVA');
+  if (campos.indexOf('vd.tsvd') >= 0 && _d2Valor('vd.tsvd') != null) ajenos.push('el Diam TSVD, que usa para el volumen eyectivo del VD');
+  if (campos.indexOf('vci.vci') >= 0 && _d2Valor('vci.vci') != null) ajenos.push('el diámetro de la VCI, que la tricúspide usa para la PmAD');
   const extra = ajenos.length ? '\n\nTambién borra ' + ajenos.join(' y ') + '.' : '';
-  if (!confirm('¿Borrar las mediciones 2D de ' + con.join(', ') + '?' + extra)) return;
-  _d2Limpiar();
+  const otras = _D2_GRUPOS_DATO.filter(g => g !== gAct && _d2GrupoConDatos(g)).length;
+  const quedan = otras ? '\n\nLas otras ' + otras + ' estructura(s) con mediciones NO se tocan.' : '';
+  if (!confirm('¿Borrar las mediciones 2D de ' + con + '?' + extra + quedan)) return;
+  _d2LimpiarGrupo(gAct);
 }
 
 /* Oyente delegado en el CONTENEDOR, registrado una sola vez y recordando el NODO: mismo patrón y

@@ -17112,10 +17112,20 @@ caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D a
       _dopLimpiarConfirmar();
       const avisaTsvd = dicho.indexOf('Diam TSVD') > -1 && dicho.indexOf('cajón 2D') > -1;
       const noBorroAlCancelar = _d2Valor('vd.tsvd') === 25;
-      /* Y con el TSVI tambien cargado los nombra a los DOS, no a uno. */
+      /* ⚠️ INVERTIDA EN MEDIR-6 (A4). Esta condicion exigia que con el TSVI tambien cargado el
+         dialogo nombrara LOS DOS alias. Dejo de ser cierto -y de ser correcto- cuando «Limpiar»
+         paso a borrar solo la estructura abierta: aca la abierta es la PULMONAR, el Diam TSVI
+         vive en el grupo de la aortica y el boton NO lo va a tocar, asi que nombrarlo seria
+         avisar de un borrado que no ocurre -- y un dialogo que sobreavisa se contesta sin leer.
+         Hoy se exige que nombre SOLO el TSVD y que el TSVI SOBREVIVA al aceptar. Falla por los
+         dos lados: si el filtro desapareciera, nombraria los dos y la primera condicion caeria. */
       _d2Poner('vi.tsvi', 20);
       dicho = ''; _dopLimpiarConfirmar();
-      const avisaLosDos = dicho.indexOf('Diam TSVI') > -1 && dicho.indexOf('Diam TSVD') > -1;
+      const avisaSoloElSuyo = dicho.indexOf('Diam TSVD') > -1 && dicho.indexOf('Diam TSVI') < 0;
+      window.confirm = () => true;
+      _dopLimpiarConfirmar();
+      const tsviSobrevive = _d2Valor('vi.tsvi') === 20;
+      const tsvdSeFue = _d2Valor('vd.tsvd') === null;
       window.confirm = _cf;
 
       /* ── CORREGIR DESDE EL DOPPLER REPINTA EL CAJON 2D ──
@@ -17175,7 +17185,9 @@ caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D a
         ['  y declara que ESE valor SI sobrevive al guardado',
           disc.indexOf('excepción') > -1 && disc.indexOf('Diam TSVD') > -1, ''],
         ['«LIMPIAR» DEL DOPPLER AVISA QUE SE LLEVA EL TSVD DEL 2D', avisaTsvd, dicho.slice(0, 120)],
-        ['  y con los dos cargados nombra a los DOS', avisaLosDos, ''],
+        ['  y con la pulmonar abierta nombra SOLO el suyo (A4)', avisaSoloElSuyo, dicho.slice(0, 120)],
+        ['  el Diam TSVI de la aortica sobrevive (A4)', tsviSobrevive, tsviSobrevive],
+        ['  y el Diam TSVD de la pulmonar si se borra', tsvdSeFue, tsvdSeFue],
         ['  y cancelar no borra nada', noBorroAlCancelar, ''],
         ['CORREGIR desde el Doppler repinta el cajon 2D', repintaAlEscribir, ''],
         ['  y vaciarlo tambien', repintaAlBorrar, ''],
@@ -33860,12 +33872,24 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
          la barra y el salto entra CRUDO en el literal de regex, que deja de parsear. Es la
          trampa que este archivo documenta diez veces, hoy con la cara del salto de linea. */
       R.textoConfirm = textoConfirm.split(String.fromCharCode(10)).join(' ').slice(0, 70);
-      R.limpiarNombraLasValvulas = textoConfirm.indexOf('Mitral') > -1 && textoConfirm.indexOf('rtica') > -1;
+      /* ⚠️ INVERTIDA EN MEDIR-6 (A4), Y ES EL DIA QUE EL COMENTARIO DE ARRIBA ANUNCIABA.
+         Esta condicion exigia que el dialogo nombrara la mitral Y la aortica, porque «Limpiar»
+         se llevaba LAS CUATRO y nombrarlas era lo unico que lo hacia visible. Por orden del
+         medico el boton pasa a borrar SOLO la estructura abierta, asi que hoy se exige lo
+         contrario: nombra la abierta -la aortica- y NO la mitral, que no se toca. Puede fallar
+         por los dos lados. */
+      R.limpiarNombraSoloLaAbierta = textoConfirm.indexOf('rtica') > -1 && textoConfirm.indexOf('Mitral') < 0;
+      R.limpiarDiceQueQuedan = textoConfirm.indexOf('NO se tocan') > -1;
       R.limpiarCancelaNoBorra = _dop.ao.diam === 24 && _dop.mit.ondaE === R.img2OndaE;
       window.confirm = () => { confirms++; return true; };
       confirms = 0;
       cajon.querySelector('[data-dop-acc="limpiar"]').click(); await esperar(160);
-      R.limpiarAceptaBorra = _dop.ao.diam === null && _dop.mit.ondaE === null;
+      /* ⚠️ INVERTIDA EN MEDIR-6 (A4): antes exigia que aceptar vaciara las dos valvulas. Hoy
+         vacia la ABIERTA y la otra SOBREVIVE -- que es el pedido-. La mitral se comprueba contra
+         el valor que tenia, no contra «no es null»: asi se detecta tambien que se haya cambiado
+         por otro en vez de borrarse. */
+      R.limpiarAceptaBorraLaAbierta = _dop.ao.diam === null;
+      R.limpiarDejaLaOtra = _dop.mit.ondaE === R.img2OndaE;
       /* Y con el cajon vacio NO pregunta: un dialogo sobre nada entrena a contestar que si. */
       confirms = 0;
       cajon.querySelector('[data-dop-acc="limpiar"]').click(); await esperar(160);
@@ -34052,9 +34076,11 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
       ['el boton de la valvula cargada lleva punto',  R.puntoEnMitral && R.sinPuntoEnTri,
                                                       'mit=' + R.puntoEnMitral + ' tri=' + R.sinPuntoEnTri],
       ['Limpiar PREGUNTA antes de borrar',            R.limpiarPregunta, R.limpiarPregunta],
-      ['y nombra las valvulas que va a borrar',       R.limpiarNombraLasValvulas, R.textoConfirm],
+      ['nombra SOLO la estructura abierta (A4)',      R.limpiarNombraSoloLaAbierta, R.textoConfirm],
+      ['y dice que las otras no se tocan',            R.limpiarDiceQueQuedan, R.textoConfirm],
       ['cancelar NO borra',                           R.limpiarCancelaNoBorra, R.limpiarCancelaNoBorra],
-      ['aceptar SI borra',                            R.limpiarAceptaBorra, R.limpiarAceptaBorra],
+      ['aceptar SI borra la abierta',                 R.limpiarAceptaBorraLaAbierta, R.limpiarAceptaBorraLaAbierta],
+      ['y la OTRA valvula sobrevive (A4)',            R.limpiarDejaLaOtra, R.limpiarDejaLaOtra],
       ['y con el cajon vacio no pregunta',            R.vacioNoPregunta, R.vacioNoPregunta],
       ['cerrar el visor esconde el cajon',            R.cerradoOculto, R.cerradoOculto],
       ['y no deja rastro en la tab Imagenes',         R.cerradoSinRastro, R.cerradoSinRastro]
@@ -145361,6 +145387,537 @@ caso('TC-905', 'PANT-38 bloques 2, 3 y 4b: el menu de Documentos deja de recorta
   ] };
   })();
 `);
+
+caso('TC-906', 'MEDIR-6 A1: el bloque de calculados se dibuja DEBAJO de la imagen y a la izquierda de la tabla de medidas -- dentro del panel de la vista que mide, fuera de la columna derecha-- y vuelve al nivel del modal en una ventana angosta', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    /* La ventana del arnes mide ~756 px, o sea POR DEBAJO del corte de 1024 de _vSlotSync: en
+       ella la rama que este caso viene a medir no corre nunca. Se sustituye innerWidth, que es
+       el insumo del que ese corte depende, y se repone al salir -- el mismo recurso con que
+       ECO-CONECTOR-5 midio los topes de memoria sustituyendo deviceMemory. */
+    const anchoReal = window.innerWidth;
+    /* Se guarda el DESCRIPTOR y no el numero: innerWidth es un accesor heredado, asi que
+       reponerlo con un «value» deja una propiedad propia que tapa el getter para los casos
+       siguientes, y un «delete» a secas lo dejaba en undefined. Esto lo devuelve como estaba. */
+    const descAncho = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+    const ponerAncho = w => { try { Object.defineProperty(window, 'innerWidth', { value: w, configurable: true }); } catch (e) {} };
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
+                   { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      __t.resetVisor(); __t.limpiar(); imgVaciar();
+      _cineAbrir([mk('uno')]);
+      await esperar(430);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      __t.anchoDesktop();
+      R.hayFn = (typeof _vSlotSync === 'function');
+      /* La ranura nueva existe en las DOS vistas porque sale de _vPanelHTML, que es la plantilla
+         unica. Con una sola vista montada se comprueba la de la A. */
+      R.haySlot = !!document.getElementById('cine-calc-slot');
+      _dopRender();
+      await esperar(200);
+      const cc = document.getElementById('cine-calc');
+      R.hayCalc = !!cc;
+      /* DENOMINADOR: el bloque esta A LA VISTA y con contenido. La mini tabla de FC se pinta
+         antes del return temprano de _dopRender, asi que alcanza con el visor abierto. Sin esto
+         las condiciones de abajo medirian sobre un nodo escondido y vacio, que da lo mismo
+         este donde este. */
+      R.calcVisible = cc ? (getComputedStyle(cc).display !== 'none') : null;
+      R.calcConTexto = cc ? (cc.innerHTML.length > 40) : null;
+
+      ponerAncho(1440);
+      _vSlotSync();
+      await esperar(120);
+      R.anchoVisto = window.innerWidth;
+      R.padreAncho = (cc && cc.parentElement) ? cc.parentElement.id : null;
+      R.dentroDelPanel = cc ? !!cc.closest('#cine-panel') : null;
+      /* LO QUE DE VERDAD DISCRIMINA «a la izquierda de la tabla»: la tabla vive en la columna
+         derecha, asi que el bloque tiene que quedar FUERA de ella. Con el bloque dentro de
+         .cine-col-der estaria a la derecha y arriba de la tabla, no a su izquierda. */
+      R.fueraColDer = cc ? !cc.closest('.cine-col-der') : null;
+      R.claseEnPanel = cc ? cc.classList.contains('cine-calc-enpanel') : null;
+      /* Y «debajo de la imagen»: el orden del documento, que no depende del maquetado. En una
+         ventana de 756 px con la fila forzada, comparar cajas daria otra cosa. */
+      const li = document.getElementById('cine-lienzo');
+      R.despuesDeLaImagen = (li && cc)
+        ? !!(li.compareDocumentPosition(cc) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
+      const slot = document.getElementById('cine-calc-slot');
+      R.slotFueraColDer = slot ? !slot.closest('.cine-col-der') : null;
+      /* El tope de 780 px y el centrado se tienen que ir, o el bloque queda angosto y corrido
+         al medio de su columna. Son estilo EN LINEA, asi que lo que los vence es la hoja con
+         !important -- se mide el valor COMPUTADO y no la regla. */
+      R.topeEnPanel = cc ? getComputedStyle(cc).maxWidth : null;
+
+      ponerAncho(900);
+      _vSlotSync();
+      await esperar(120);
+      R.padreAngosto = (cc && cc.parentElement) ? cc.parentElement.id : null;
+      R.claseAngosto = cc ? cc.classList.contains('cine-calc-enpanel') : null;
+      R.topeAngosto = cc ? getComputedStyle(cc).maxWidth : null;
+      /* Vuelve a su vecino de siempre: despues de cine-simp-uni. No se ancla en cine-dop-slot
+         porque ese nodo lo mueve la misma funcion. */
+      const su = document.getElementById('cine-simp-uni');
+      R.vecinoAngosto = (su && su.nextElementSibling) ? su.nextElementSibling.id : null;
+
+      /* Y vuelve a entrar al panel al ensanchar: el reacomodo no es de ida sola. */
+      ponerAncho(1440);
+      _vSlotSync();
+      await esperar(120);
+      R.padreVuelta = (cc && cc.parentElement) ? cc.parentElement.id : null;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    try {
+      if (descAncho) Object.defineProperty(window, 'innerWidth', descAncho);
+      else delete window.innerWidth;
+    } catch (e) {}
+    R.anchoRepuesto = (typeof window.innerWidth === 'number' && window.innerWidth > 0
+                       && window.innerWidth === anchoReal);
+    window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                        !R.err, R.err],
+      ['DENOMINADOR: _vSlotSync existe y la ranura nueva tambien', R.hayFn === true && R.haySlot === true,
+                                                                   R.hayFn + '/' + R.haySlot],
+      ['DENOMINADOR: el bloque esta a la vista y con contenido',  R.calcVisible === true && R.calcConTexto === true,
+                                                                   R.calcVisible + '/' + R.calcConTexto],
+      ['DENOMINADOR: el ancho sustituido es el que se lee',       R.anchoVisto === 1440, R.anchoVisto],
+      ['en escritorio cae en la ranura nueva',                    R.padreAncho === 'cine-calc-slot', R.padreAncho],
+      ['dentro del panel de la vista',                            R.dentroDelPanel === true, R.dentroDelPanel],
+      ['y FUERA de la columna de la tabla',                       R.fueraColDer === true && R.slotFueraColDer === true,
+                                                                   R.fueraColDer + '/' + R.slotFueraColDer],
+      ['DESPUES de la imagen en el documento',                    R.despuesDeLaImagen === true, R.despuesDeLaImagen],
+      ['con la clase que le saca el tope de franja',              R.claseEnPanel === true && R.topeEnPanel === 'none',
+                                                                   R.claseEnPanel + '/' + R.topeEnPanel],
+      ['en ventana angosta vuelve al nivel del modal',            R.padreAngosto === 'cine-modal', R.padreAngosto],
+      ['ahi recupera su franja de 780 px y pierde la clase',      R.claseAngosto === false && R.topeAngosto === '780px',
+                                                                   R.claseAngosto + '/' + R.topeAngosto],
+      ['y queda pegado a cine-simp-uni, su vecino de siempre',    R.vecinoAngosto === 'cine-calc', R.vecinoAngosto],
+      ['al ensanchar vuelve a entrar al panel',                   R.padreVuelta === 'cine-calc-slot', R.padreVuelta],
+      ['el ancho real queda repuesto',                            R.anchoRepuesto === true, R.anchoRepuesto]
+    ] };
+  })();
+`);
+
+caso('TC-907', 'MEDIR-6 A2: la lista de asignacion de VTI sale SOLO con la aortica o la pulmonar abiertas y lista SOLO las envolventes sin asignar, con el indice REAL de _medVtis en cada boton', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:0, x1:600, y1:500, tipo:2 }];
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      __t.resetVisor(); __t.limpiar(); imgVaciar();
+      _cineAbrir([mk('uno')]);
+      await esperar(430);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      R.hayPanel = (typeof _vtiPanel === 'function');
+      /* TRES envolventes sembradas. La del MEDIO se asigna: es lo que hace que el indice
+         importe -- si la lista se dibujara con el indice del arreglo FILTRADO, la segunda fila
+         diria 1 y el boton asignaria la envolvente equivocada.
+         ⚠️ SIN EL SELLO DE LLEGADA DE A5, A PROPOSITO: A2 no depende de el, y usarlo aca hacia
+         que el caso cayera por ReferenceError contra la linea base -- donde esa funcion no
+         existe-- en vez de caer por sus condiciones, tapando las trece de abajo. */
+      _vCon(_vistaA, () => {
+        _medVtis = [];
+        _medVtis.push({ cm:18.0, ms:300, picoCms:120, gradMax:5.8, gradMedio:3.1 });
+        _medVtis.push({ cm:22.4, ms:310, picoCms:140, gradMax:7.8, gradMedio:4.2 });
+        _medVtis.push({ cm:25.9, ms:320, picoCms:160, gradMax:10.2, gradMedio:5.5 });
+        medVtiAsignar(1, 'tsvi');
+      });
+      await esperar(120);
+      R.nVtis = _vCon(_vistaA, () => (_medVtis || []).length);
+      R.rolDelMedio = _vCon(_vistaA, () => (_medVtis || [])[1] ? (_medVtis[1].rol || null) : null);
+      const iDe = h => { const m = String(h).split('data-vti-i="'); const out = [];
+        for (let k = 1; k < m.length; k++) out.push(m[k].split('"')[0]); return out.join(','); };
+      const rolesDe = h => { const m = String(h).split('data-vti-rol="'); const out = [];
+        for (let k = 1; k < m.length; k++) out.push(m[k].split('"')[0]); return out.join(','); };
+
+      /* ══ LA TRICUSPIDE: ahi NO se mide ninguno de los dos tractos ══════════════════════════ */
+      _dopEstado().modo = 'tri';
+      _dopRender(); await esperar(120);
+      const hTri = _vCon(_vistaA, () => _vtiPanel());
+      R.triDiceCuantas = hTri.indexOf('3') >= 0;
+      R.triMandaAlasDos = hTri.indexOf('rtica') >= 0 && hTri.indexOf('pulmonar') >= 0;
+      R.triSinBotones = iDe(hTri) === '';
+      /* CONTROL NEGATIVO del propio texto: en la tricuspide no se promete un Qp/Qs. */
+      R.triSinQpQs = hTri.indexOf('Qp/Qs = ') < 0;
+
+      /* ══ LA AORTICA: aca SI ════════════════════════════════════════════════════════════════ */
+      _dopEstado().modo = 'ao';
+      _dopRender(); await esperar(120);
+      const hAo = _vCon(_vistaA, () => _vtiPanel());
+      /* Primero el renglon compacto de la asignada (indice 1) y despues las dos libres con sus
+         dos botones cada una (indices 0 y 2). Lo que discrimina es que NO diga 0 y 1. */
+      R.aoIndices = iDe(hAo);
+      R.aoRoles = rolesDe(hAo);
+      R.aoDiceLiberar = hAo.indexOf('liberar') >= 0;
+      R.aoMuestraLibres = hAo.indexOf('18.0 cm') >= 0 && hAo.indexOf('25.9 cm') >= 0;
+      /* La asignada NO aparece como fila de asignacion: su VTI sale en el renglon compacto. */
+      R.aoAsignadaCompacta = hAo.indexOf('TSVI') >= 0 && hAo.indexOf('22.4 cm') >= 0;
+
+      /* ══ LA PULMONAR: la otra que corresponde ══════════════════════════════════════════════ */
+      _dopEstado().modo = 'pul';
+      _dopRender(); await esperar(120);
+      const hPul = _vCon(_vistaA, () => _vtiPanel());
+      R.pulIndices = iDe(hPul);
+
+      /* ══ Y EL BOTON LIBERA DE VERDAD, con el indice que la lista publico ═══════════════════ */
+      _vCon(_vistaA, () => medVtiAsignar(1, 'tsvi'));
+      await esperar(100);
+      R.trasLiberar = _vCon(_vistaA, () => (_medVtis || [])[1] ? (_medVtis[1].rol || null) : null);
+      _dopEstado().modo = 'ao'; _dopRender(); await esperar(120);
+      const hAo2 = _vCon(_vistaA, () => _vtiPanel());
+      R.aoIndicesTrasLiberar = iDe(hAo2);
+      R.aoSinLiberarYa = hAo2.indexOf('liberar') < 0;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                         !R.err, R.err],
+      ['DENOMINADOR: _vtiPanel existe y hay TRES envolventes',    R.hayPanel === true && R.nVtis === 3,
+                                                                   R.hayPanel + '/' + R.nVtis],
+      ['DENOMINADOR: la del medio quedo asignada a TSVI',         R.rolDelMedio === 'tsvi', R.rolDelMedio],
+      ['en la tricuspide NO hay lista de asignacion',             R.triSinBotones === true, R.triSinBotones],
+      ['pero dice cuantas hay y a donde ir',                      R.triDiceCuantas === true && R.triMandaAlasDos === true,
+                                                                   R.triDiceCuantas + '/' + R.triMandaAlasDos],
+      ['CONTROL NEGATIVO: ahi no promete ningun Qp/Qs',           R.triSinQpQs === true, R.triSinQpQs],
+      ['en la aortica lista SOLO las dos libres',                 R.aoMuestraLibres === true, R.aoMuestraLibres],
+      ['con el indice REAL de _medVtis (1, 0 y 2; no 0 y 1)',     R.aoIndices === '1,0,0,2,2', R.aoIndices],
+      ['y los roles que ofrece cada fila son los correctos',      R.aoRoles === 'tsvi,tsvi,tsvd,tsvi,tsvd', R.aoRoles],
+      ['la asignada va en el renglon compacto, con liberar',      R.aoDiceLiberar === true && R.aoAsignadaCompacta === true,
+                                                                   R.aoDiceLiberar + '/' + R.aoAsignadaCompacta],
+      ['la pulmonar tambien ofrece la lista',                     R.pulIndices === '1,0,0,2,2', R.pulIndices],
+      ['liberar con ese indice suelta la del medio',              R.trasLiberar === null, R.trasLiberar],
+      ['y entonces las TRES vuelven a estar libres',              R.aoIndicesTrasLiberar === '0,0,1,1,2,2', R.aoIndicesTrasLiberar],
+      ['sin ningun renglon de liberar',                           R.aoSinLiberarYa === true, R.aoSinLiberarYa]
+    ] };
+  })();
+`);
+
+caso('TC-908', 'MEDIR-6 A3: el diametro de la VCI medido en el cajon 2D llena la fila «Diam VCI» de la tricuspide y habilita la PmAD -- un solo valor por el alias, en los dos sentidos', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }];
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      __t.resetVisor(); __t.limpiar(); imgVaciar();
+      _dopLimpiar(); _d2Limpiar();
+      _cineAbrir([mk('uno')]);
+      await esperar(430);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      R.hayAlias = (typeof _D2_ALIAS !== 'undefined') ? !!_D2_ALIAS['vci.vci'] : null;
+      R.aliasApunta = (typeof _D2_ALIAS !== 'undefined') ? (_D2_ALIAS['vci.vci'] || null) : null;
+      /* DENOMINADOR: arranca vacio por los DOS lados. Sin esto la condicion de abajo podria
+         estar leyendo un valor que dejo el caso anterior. */
+      R.antesDop = _dopEstado().tri.vciDiam;
+      R.antesD2 = _d2Valor('vci.vci');
+      /* ⚠️ EL GRUPO DOPPLER TIENE QUE ESTAR ABIERTO O LA TABLA NO SE DIBUJA, y la primera
+         version de este caso lo pago: _dopRender sale temprano si _dopVisible() es falso y deja
+         el cajon con el innerHTML VACIO, asi que «la fila no trae 18.0» pasaba sobre una tabla
+         que no existia -- el denominador vacio que esta casa documenta. __t.herr pone el grupo
+         en «dop» antes de apretar la herramienta. */
+      __t.herr('cine-med-vel');
+      await esperar(200);
+      _dopEstado().modo = 'tri'; _dopRender(); await esperar(140);
+      /* La ventana de 600 y no de 200: la celda del valor es un boton con su atributo y su
+         estilo EN LINEA, asi que el numero cae bastante despues del rotulo. Con 200 la primera
+         version no llegaba y daba un rojo sobre una fila que SI traia el valor. */
+      const filaDe = (h, rot) => { const i = String(h).indexOf(rot); return i < 0 ? 'NO ESTA' : String(h).slice(i, i + 600); };
+      const cj0 = document.getElementById('dop-cajon');
+      /* DENOMINADOR DE VERDAD: la tabla de la tricuspide esta DIBUJADA. Sin esto, las dos
+         condiciones de abajo pasan sobre un cajon vacio. */
+      R.tablaDibujada = cj0 ? (cj0.innerHTML.indexOf('Diam VCI') >= 0) : null;
+      R.antesFilaGuion = cj0 ? (filaDe(cj0.innerHTML, 'Diam VCI').indexOf('18.0') < 0) : null;
+      R.antesSinPmAD = cj0 ? (cj0.innerHTML.indexOf('PmAD') < 0) : null;
+
+      /* ⚠️ LA PmAD PIDE LOS DOS INSUMOS, Y LA PRIMERA VERSION DE ESTE CASO SOLO DABA UNO:
+         pmadEstimar(diam, col) devuelve null sin el colapso, asi que la fila no salia y el rojo
+         no era de la app. El colapso se carga aparte -- lo que A3 arregla es que el DIAMETRO
+         llegue, que es el insumo que se perdia. */
+      _dopEstado().tri.vciCol = '>50';
+      /* Se escribe por la puerta del cajon 2D, que es la que recorre d2Corregir y la captura. */
+      _d2Poner('vci.vci', 18.0);
+      _d2Render(); _dopRender();
+      await esperar(180);
+      R.d2Lee = _d2Valor('vci.vci');
+      R.dopLee = _dopEstado().tri.vciDiam;
+      const cj = document.getElementById('dop-cajon');
+      R.filaTri = cj ? (filaDe(cj.innerHTML, 'Diam VCI').indexOf('18.0') >= 0) : null;
+      /* Y lo que de verdad se perdia no era un rotulo: de ese campo cuelga la PmAD. */
+      R.hayPmAD = cj ? (cj.innerHTML.indexOf('PmAD') >= 0) : null;
+      /* El origen cruza el alias, igual que los otros dos: la marca va a _dop.origen y no a
+         _d2.origen. Se marca por la puerta real (_d2MarcarOrigen, lo que hace la captura);
+         _d2Poner escribe el valor y no la procedencia. */
+      _d2MarcarOrigen('vci.vci', 'A');
+      R.origenCruza = (_dopEstado().origen || {})['tri.vciDiam'] === 'A';
+      R.origenNoEnD2 = !((_d2Estado().origen || {})['vci.vci']);
+
+      /* Y EN EL OTRO SENTIDO: escrito desde el cajon Doppler, el 2D lo ve. Un alias que
+         funcione solo de ida deja dos numeros del mismo paciente en dos pantallas. */
+      _d2Poner('vci.vci', null);
+      _dopEstado().tri.vciDiam = 21.5;
+      _d2Render(); await esperar(120);
+      R.vuelta = _d2Valor('vci.vci');
+      /* La unidad es la misma por los dos lados: los dos prestan la banda del mismo campo. */
+      R.bandaMisma = (typeof _D2_BANDA_DE !== 'undefined') ? (_D2_BANDA_DE['vci.vci'] || null) : null;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['el alias de la VCI existe',                            R.hayAlias === true, R.hayAlias],
+      ['y apunta al campo de la tricuspide',                   R.aliasApunta === 'tri.vciDiam', R.aliasApunta],
+      ['DENOMINADOR: arranca vacio por los dos lados',         R.antesDop == null && R.antesD2 == null,
+                                                                R.antesDop + '/' + R.antesD2],
+      ['DENOMINADOR: la tabla de la tricuspide esta dibujada', R.tablaDibujada === true, R.tablaDibujada],
+      ['DENOMINADOR: la fila arranca sin el valor',            R.antesFilaGuion === true, R.antesFilaGuion],
+      ['DENOMINADOR: y sin PmAD',                              R.antesSinPmAD === true, R.antesSinPmAD],
+      ['medido en 2D, el cajon 2D lo lee',                     R.d2Lee === 18, R.d2Lee],
+      ['y la tricuspide lo lee como SU valor',                 R.dopLee === 18, R.dopLee],
+      ['la fila «Diam VCI» lo muestra',                        R.filaTri === true, R.filaTri],
+      ['y aparece la PmAD, que cuelga de ese campo',           R.hayPmAD === true, R.hayPmAD],
+      ['el origen cruza el alias hacia el cajon Doppler',      R.origenCruza === true, R.origenCruza],
+      ['y NO se queda en el mapa del cajon 2D',                R.origenNoEnD2 === true, R.origenNoEnD2],
+      ['y el alias funciona tambien a la vuelta',              R.vuelta === 21.5, R.vuelta],
+      ['las dos puntas prestan la banda del mismo campo',      R.bandaMisma === 'vci_diam', R.bandaMisma]
+    ] };
+  })();
+`);
+
+caso('TC-909', 'MEDIR-6 A4: «Limpiar» borra SOLO la estructura abierta y deja las otras intactas, en los dos cajones, y el limpiado completo de «Nuevo estudio» sigue llevandose todo', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    let dicho = '';
+    window.alert = () => {}; window.confirm = m => { dicho = String(m || ''); return true; }; window.toast = () => {};
+    try {
+      __t.resetVisor(); __t.limpiar();
+      _dopLimpiar(); _d2Limpiar();
+      R.hayGrupo = (typeof _dopLimpiarGrupo === 'function');
+      R.hayGrupo2 = (typeof _d2LimpiarGrupo === 'function');
+      /* Tres valvulas cargadas, que es lo que hace medible el alcance: con una sola, borrar todo
+         y borrar la abierta son indistinguibles. */
+      _dopEstado().mit.e = 90;
+      _dopEstado().ao.vmax = 3.2;
+      _dopEstado().pul.vtiPul = 18.5;
+      R.antesMit = _dopValvConDatos('mit');
+      R.antesAo = _dopValvConDatos('ao');
+      R.antesPul = _dopValvConDatos('pul');
+      /* El modo se FIJA y no se alterna: dopModo es un toggle y heredaria el del caso anterior,
+         que es la trampa que MEDIR-2 pago entera. */
+      _dopEstado().modo = 'mit';
+      _dopRender(); await esperar(140);
+      _dopLimpiarConfirmar();
+      await esperar(140);
+      R.dijoMitral = dicho.indexOf('itral') >= 0;
+      R.dijoQueQuedan = dicho.indexOf('NO se tocan') >= 0;
+      R.mitBorrada = !_dopValvConDatos('mit');
+      R.aoSobrevive = _dopValvConDatos('ao');
+      R.pulSobrevive = _dopValvConDatos('pul');
+      R.modoVivo = _dopEstado().modo;
+      /* Y la aortica se limpia cuando ES la abierta: el alcance sigue al selector. */
+      _dopEstado().modo = 'ao';
+      _dopRender(); await esperar(120);
+      _dopLimpiarConfirmar();
+      await esperar(120);
+      R.aoBorradaDespues = !_dopValvConDatos('ao');
+      R.pulSigueViva = _dopValvConDatos('pul');
+
+      /* ══ EL CAJON 2D, con el mismo criterio ════════════════════════════════════════════════ */
+      _d2Poner('vi.ddvi', 48);
+      _d2Poner('ai.dap', 36);
+      R.antesVi = _d2GrupoConDatos('vi');
+      R.antesAi = _d2GrupoConDatos('ai');
+      _d2Estado().modo = 'vi';
+      _d2Render(); await esperar(120);
+      _d2LimpiarConfirmar();
+      await esperar(120);
+      R.viBorrado = !_d2GrupoConDatos('vi');
+      R.aiSobrevive = _d2GrupoConDatos('ai');
+
+      /* ══ Y «NUEVO ESTUDIO» SIGUE LLEVANDOSE TODO ═══════════════════════════════════════════
+         Es la mitad que no se puede perder: si el limpiado completo se hubiera acotado, el visor
+         abriria con las mediciones del paciente anterior. */
+      _dopEstado().mit.e = 90; _dopEstado().ao.vmax = 3.2;
+      _d2Poner('vi.ddvi', 48); _d2Poner('ai.dap', 36);
+      R.antesDelTotal = _dopHayValores() && _d2HayValores();
+      _dopLimpiar(); _d2Limpiar();
+      await esperar(120);
+      R.totalDop = !_dopHayValores();
+      R.totalD2 = !_d2HayValores();
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+    return { extra: [
+      ['sin excepciones',                                       !R.err, R.err],
+      ['las dos funciones acotadas existen',                    R.hayGrupo === true && R.hayGrupo2 === true,
+                                                                 R.hayGrupo + '/' + R.hayGrupo2],
+      ['DENOMINADOR: tres valvulas con datos antes de limpiar', R.antesMit === true && R.antesAo === true && R.antesPul === true,
+                                                                 R.antesMit + '/' + R.antesAo + '/' + R.antesPul],
+      ['parado en la mitral, se borra la mitral',               R.mitBorrada === true, R.mitBorrada],
+      ['y la aortica SOBREVIVE',                                R.aoSobrevive === true, R.aoSobrevive],
+      ['y la pulmonar tambien',                                 R.pulSobrevive === true, R.pulSobrevive],
+      ['el dialogo nombra la que borra',                        R.dijoMitral === true, R.dijoMitral],
+      ['y dice que las otras no se tocan',                      R.dijoQueQuedan === true, R.dijoQueQuedan],
+      ['la valvula abierta no se cierra',                       R.modoVivo === 'mit', R.modoVivo],
+      ['parado en la aortica, se borra la aortica',             R.aoBorradaDespues === true, R.aoBorradaDespues],
+      ['y la pulmonar sigue viva',                              R.pulSigueViva === true, R.pulSigueViva],
+      ['DENOMINADOR 2D: dos grupos con datos',                  R.antesVi === true && R.antesAi === true,
+                                                                 R.antesVi + '/' + R.antesAi],
+      ['en el cajon 2D se borra solo el grupo abierto',          R.viBorrado === true && R.aiSobrevive === true,
+                                                                 R.viBorrado + '/' + R.aiSobrevive],
+      ['DENOMINADOR: los dos cajones con datos otra vez',        R.antesDelTotal === true, R.antesDelTotal],
+      ['y «Nuevo estudio» sigue llevandose TODO',                R.totalDop === true && R.totalD2 === true,
+                                                                 R.totalDop + '/' + R.totalD2]
+    ] };
+  })();
+`);
+
+caso('TC-910', 'MEDIR-6 A5: «Borrar» saca UNA medicion por clic empezando por la ultima, cruzando las cinco colecciones por su numero de llegada, sin tocar la calibracion, y medBorrar sigue vaciando todo', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const REG = [{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:240, tipo:1 },
+                   { ux:4, uy:7, dx:0.004, dy:-0.5, ry0:420, rvy:0, x0:0, y0:250, x1:600, y1:500, tipo:2 }];
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:600, filas:500, msCuadro:40, regiones: REG } });
+      __t.resetVisor(); __t.limpiar(); imgVaciar();
+      _cineAbrir([mk('uno')]);
+      await esperar(430);
+      _vCon(_vistaA, () => { if (!_vistaA.medOn) medToggle(); });
+      await esperar(260);
+      R.haySello = (typeof _medSello === 'function');
+      R.hayUna = (typeof medBorrarUna === 'function');
+      R.hayTodo = (typeof medBorrar === 'function');
+      /* ⚠️ TODO ACCESO A LO NUEVO VA POR UN AYUDANTE CON GUARDA, y no pelado. Contra la linea
+         base _medSello y medBorrarUna NO EXISTEN, y un acceso pelado tira ReferenceError que se
+         lleva el caso entero: la condicion «sin excepciones» sale roja y las dieciseis de abajo
+         no llegan a evaluarse, asi que el caso no diagnostica su propia causa. Es lo que TC-827
+         tuvo que deshacer en PANT-37. Con la guarda, el caso cae por CONDICIONES. */
+      const sello = o => R.haySello ? _medSello(o) : o;
+      const borrarUna = () => R.hayUna ? _vCon(_vistaA, () => medBorrarUna()) : 'NO EXISTE';
+      /* ══ EL BOTON YA NO LLAMA AL BORRADO COMPLETO ══════════════════════════════════════════
+         Se mide por la CONDUCTA y no leyendo el cableado: con cuatro mediciones puestas, un clic
+         real en el boton tiene que dejar tres. */
+      const cuenta = () => _vCon(_vistaA, () => {
+        const l = (_medLineas || []).filter(x => !x.calibracion).length;
+        return l + (_medAreas || []).length + (_medVels || []).length +
+               (_medTiempos || []).length + (_medVtis || []).length;
+      });
+      /* Se siembra en orden conocido y CRUZANDO colecciones, que es lo que el numero de llegada
+         viene a resolver: entre una velocidad y un area no habia forma de decir cual vino
+         despues. La linea de calibracion se pone PRIMERA y no lleva sello. */
+      _vCon(_vistaA, () => {
+        _medLineas = []; _medAreas = []; _medVels = []; _medTiempos = []; _medVtis = [];
+        _medPuntos = []; _medTrazo = null;
+        _medLineas.push({ ax:1, ay:1, bx:9, by:9, mm:40, calibracion:true });
+        _medLineas.push(sello({ ax:2, ay:2, bx:8, by:8, mm:33 }));
+        _medVels.push(sello({ x:3, y:3, cms:120, ms:1.2, mmHg:5.8 }));
+        _medAreas.push(sello({ pts:[{x:1,y:1}], cm2:4.4, est:null }));
+        _medTiempos.push(sello({ ax:4, ay:4, bx:7, ms:300, lpm:null }));
+      });
+      await esperar(120);
+      R.sembradas = cuenta();
+      R.sellosEnOrden = _vCon(_vistaA, () => {
+        const a = (_medLineas[1] || {}).n, b = (_medVels[0] || {}).n;
+        const c = (_medAreas[0] || {}).n, d = (_medTiempos[0] || {}).n;
+        if (a == null || b == null || c == null || d == null) return 'SIN SELLO';
+        return (a < b && b < c && c < d) ? 'creciente' : (a + ',' + b + ',' + c + ',' + d);
+      });
+      R.calSinSello = _vCon(_vistaA, () => (_medLineas[0] || {}).n === undefined);
+
+      const btn = document.getElementById('cine-med-borrar');
+      R.hayBoton = !!btn;
+      R.botonVisible = btn ? (getComputedStyle(btn).display !== 'none') : null;
+      if (btn) { btn.click(); await esperar(140); }
+      R.trasUnClic = cuenta();
+      /* Y lo que se fue es la ULTIMA, o sea el tiempo: no un area ni la primera linea. */
+      R.tiemposTrasClic = _vCon(_vistaA, () => (_medTiempos || []).length);
+      R.areasTrasClic = _vCon(_vistaA, () => (_medAreas || []).length);
+
+      /* Los tres clics siguientes la van sacando en orden inverso de llegada. */
+      borrarUna();
+      await esperar(80);
+      R.areasTras2 = _vCon(_vistaA, () => (_medAreas || []).length);
+      borrarUna();
+      await esperar(80);
+      R.velsTras3 = _vCon(_vistaA, () => (_medVels || []).length);
+      borrarUna();
+      await esperar(80);
+      R.trasCuatro = cuenta();
+      /* LA CALIBRACION SOBREVIVE a los cuatro: perderla obligaria a recalibrar la imagen por
+         apretar un boton de borrado. */
+      R.calSobrevive = _vCon(_vistaA, () => (_medLineas || []).filter(x => x.calibracion).length);
+      /* Un clic de mas sobre la tabla vacia no hace nada y no revienta. */
+      R.deMas = borrarUna();
+
+      /* ══ UN GESTO A MEDIO HACER SE CANCELA PRIMERO ═════════════════════════════════════════ */
+      _vCon(_vistaA, () => {
+        _medVels.push(sello({ x:5, y:5, cms:99, ms:0.99, mmHg:3.9 }));
+        _medPuntos = [{ x:10, y:10 }];
+      });
+      await esperar(80);
+      R.conPunto = _vCon(_vistaA, () => (_medPuntos || []).length);
+      borrarUna();
+      await esperar(80);
+      R.puntosTras = _vCon(_vistaA, () => (_medPuntos || []).length);
+      R.velSigueTrasPunto = _vCon(_vistaA, () => (_medVels || []).length);
+
+      /* ══ Y EL BORRADO COMPLETO SIGUE EXISTIENDO, que es el reseteo de las puertas internas ══ */
+      _vCon(_vistaA, () => {
+        _medAreas.push(sello({ pts:[{x:2,y:2}], cm2:5.5, est:null }));
+        _medTiempos.push(sello({ ax:1, ay:1, bx:2, ms:280, lpm:null }));
+      });
+      R.antesDelTotal = cuenta();
+      _vCon(_vistaA, () => medBorrar());
+      await esperar(100);
+      R.trasTotal = cuenta();
+      R.calTrasTotal = _vCon(_vistaA, () => (_medLineas || []).filter(x => x.calibracion).length);
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                        !R.err, R.err],
+      ['las tres funciones existen',                             R.haySello === true && R.hayUna === true && R.hayTodo === true,
+                                                                  R.haySello + '/' + R.hayUna + '/' + R.hayTodo],
+      ['DENOMINADOR: cuatro mediciones sembradas',               R.sembradas === 4, R.sembradas],
+      ['con su numero de llegada creciente',                     R.sellosEnOrden === 'creciente', R.sellosEnOrden],
+      ['y la calibracion sin sello, porque no es una medicion',  R.calSinSello === true, R.calSinSello],
+      ['DENOMINADOR: el boton existe y esta a la vista',         R.hayBoton === true && R.botonVisible === true,
+                                                                  R.hayBoton + '/' + R.botonVisible],
+      ['un clic real deja TRES, no cero',                        R.trasUnClic === 3, R.trasUnClic],
+      ['y lo que se fue es la ULTIMA (el tiempo)',               R.tiemposTrasClic === 0 && R.areasTrasClic === 1,
+                                                                  R.tiemposTrasClic + '/' + R.areasTrasClic],
+      ['el segundo clic saca el area',                           R.areasTras2 === 0, R.areasTras2],
+      ['el tercero la velocidad',                                R.velsTras3 === 0, R.velsTras3],
+      ['y el cuarto deja la tabla vacia',                        R.trasCuatro === 0, R.trasCuatro],
+      ['la calibracion sobrevive a los cuatro',                  R.calSobrevive === 1, R.calSobrevive],
+      ['un clic de mas no hace nada y no revienta',              R.deMas === false, R.deMas],
+      ['DENOMINADOR: hay un gesto a medio hacer',                R.conPunto === 1, R.conPunto],
+      ['un gesto a medio hacer se cancela primero',              R.puntosTras === 0 && R.velSigueTrasPunto === 1,
+                                                                  R.puntosTras + '/' + R.velSigueTrasPunto],
+      ['DENOMINADOR: tres mediciones antes del borrado total',   R.antesDelTotal === 3, R.antesDelTotal],
+      ['medBorrar sigue vaciando todo de un saque',              R.trasTotal === 0, R.trasTotal],
+      ['conservando la calibracion',                             R.calTrasTotal === 1, R.calTrasTotal]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
