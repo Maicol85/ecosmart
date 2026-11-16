@@ -77657,7 +77657,8 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
          «Vena cava superior izquierda persistente» que el medico pidio al lado del seno
          coronario. Es adaptacion de DENOMINADOR y no de contrato: lo que este caso vigila es
          que la tabla exista y sea un array, no cuantas filas tiene. */
-      && Array.isArray(G('OTR_HALL')) && G('OTR_HALL').length === 9
+      /* ADAPTADO (MEDIR-6 D1): 9 -> 10. La entrada nueva es otr_var_cortri. */
+      && Array.isArray(G('OTR_HALL')) && G('OTR_HALL').length === 10
       && FN('otrHallazgos') && FN('otrBurbuja') && FN('etOndaESync') && FN('_otrRefClon'),
     'MIN=' + G('VT_PROT_OBSTR_MIN') + ' aislado=' + G('VT_PROT_AISLADO_TXT')
       + ' OTR_HALL=' + (Array.isArray(G('OTR_HALL')) ? G('OTR_HALL').length : G('OTR_HALL'))]);
@@ -77894,16 +77895,23 @@ caso('TC-499', 'Tanda CORTOS: la POSICION del selector de origen mitral y de los
         && LIN(a.suma, 'ASIA').length === 0; })(),
     (function(){ __t.limpiar(); CHK('otr_asia', false); S('otr_asia_nota', '(de 15 mm)');
       const a = inf('estandar'); return 'lineas con 15 mm=' + LIN(a.inf, '15 mm').length; })()]);
-  /* ADAPTADO (PANT-12, commit 3): SEIS -> SIETE variantes. La septima es otr_var_vcsip. El
-     invariante NO se movio —todas van al informe y NINGUNA al EN SUMA, y la tabla lo dice con
-     suma: null— y la condicion queda MAS FUERTE que antes: ademas del conteo exige que la
-     casilla nueva este inmediatamente DESPUES de la del seno coronario, que es donde el medico
-     la pidio, asi que mover una de las dos de lugar pone el caso en rojo. */
-  ex.push(['(f3) las SIETE variantes anatomicas van al informe y NINGUNA al EN SUMA, la tabla lo dice con suma: null, y la cava superior izquierda persistente va justo despues del seno coronario',
+  /* ADAPTADO (PANT-12, commit 3): SEIS -> SIETE variantes. La septima es otr_var_vcsip.
+     ⚠️ ADAPTADO OTRA VEZ EN MEDIR-6 (D1, 16/11/2026): SIETE -> OCHO, y el invariante SI se movio.
+     La octava es otr_var_cortri, y por orden del medico es la PRIMERA variante que sube al EN
+     SUMA, asi que «NINGUNA al EN SUMA» dejo de ser cierto. La condicion se parte en dos mitades
+     que juntas dicen mas que la anterior: las SIETE de siempre siguen con suma: null -- o sea que
+     ninguna se colo-- y el cor triatriatum es el UNICO con suma. Mover una al otro grupo pone el
+     caso en rojo por los dos lados. Lo demas no se afloja: el conteo, el orden de la cava y la
+     oracion del Chiari se conservan. */
+  ex.push(['(f3) las OCHO variantes van al informe; las SIETE de siempre NO al EN SUMA y el cor triatriatum SI, y la cava superior izquierda persistente va justo despues del seno coronario',
     (function(){ const H = G('OTR_HALL');
       if (!Array.isArray(H)) return false;
       const vars = H.filter(h => h.id.indexOf('otr_var_') === 0);
-      if (vars.length !== 7 || !vars.every(h => h.suma === null)) return false;
+      if (vars.length !== 8) return false;
+      const mudas = vars.filter(h => h.suma === null);
+      const conSuma = vars.filter(h => h.suma !== null);
+      if (mudas.length !== 7) return false;
+      if (conSuma.length !== 1 || conSuma[0].id !== 'otr_var_cortri') return false;
       const ids = H.map(h => h.id);
       if (ids.indexOf('otr_var_vcsip') !== ids.indexOf('otr_var_senocor') + 1) return false;
       __t.limpiar(); CHK('otr_var_chiari', true);
@@ -146061,6 +146069,105 @@ caso('TC-910', 'MEDIR-6 A5: «Borrar» saca UNA medicion por clic empezando por 
 `);
 
 
+caso('TC-911', 'MEDIR-6 D1: el Cor triatriatum entra como variante de Otros con el mismo cableado que ASIA y RAC -- su casilla, su caja de nota que aparece al marcar, el texto completo en una oracion aparte del informe, y el nombre MAS la nota en el EN SUMA', `
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    const EL = id => document.getElementById(id);
+    const V = id => (EL(id) || {}).value || '';
+    const VIS = id => { const e = EL(id); if (!e) return 'NO EXISTE';
+      return getComputedStyle(e).display === 'none' ? 'oculta' : 'visible'; };
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('otros'); } catch (e) {}
+      await esperar(220);
+      R.hayCasilla = !!EL('otr_var_cortri');
+      R.hayNota = !!EL('otr_var_cortri_nota');
+      /* El registro es el dueno UNICO de la frase: si el id no esta ahi, la casilla existe y no
+         publica nada -- el modo de falla mudo que OTR_HALL existe para impedir-. */
+      R.enRegistro = (typeof OTR_HALL !== 'undefined')
+        ? OTR_HALL.filter(h => h.id === 'otr_var_cortri').length : 0;
+      R.enVarIds = (typeof OTR_VAR_IDS !== 'undefined')
+        ? OTR_VAR_IDS.indexOf('otr_var_cortri') >= 0 : null;
+      /* DENOMINADOR: arranca apagada y su caja escondida, igual que las otras variantes. */
+      R.antesChk = !!(EL('otr_var_cortri') || {}).checked;
+      R.antesNota = VIS('otr_var_cortri_nota');
+
+      /* ══ LA CAJA APARECE AL MARCAR, por el sincronizador compartido ════════════════════════ */
+      __t.chk('otr_var_cortri', true);
+      if (typeof otrVarNotaSync === 'function') otrVarNotaSync();
+      await esperar(140);
+      R.trasChkNota = VIS('otr_var_cortri_nota');
+
+      /* ══ CON LA CASILLA APAGADA LA NOTA SE IGNORA, que es la regla de OTR_HALL ═════════════ */
+      __t.chk('otr_var_cortri', false);
+      __t.set('otr_var_cortri_nota', 'izquierdo, gradiente medio 6 mmHg');
+      const hApag = (typeof otrHallazgos === 'function') ? otrHallazgos() : [];
+      R.apagadoNoPublica = hApag.filter(x => x.id === 'otr_var_cortri').length === 0;
+
+      /* ══ CON NOTA: el informe lleva el texto COMPLETO y el EN SUMA el nombre MAS la nota ═══ */
+      __t.chk('otr_var_cortri', true);
+      if (typeof otrHallSync === 'function') otrHallSync();
+      await esperar(140);
+      const hCon = (typeof otrHallazgos === 'function') ? otrHallazgos() : [];
+      const fCon = hCon.filter(x => x.id === 'otr_var_cortri')[0] || null;
+      R.infCon = fCon ? fCon.inf : 'NO SALE';
+      R.sumaCon = fCon ? fCon.suma : 'NO SALE';
+
+      /* ══ SIN NOTA: sube el nombre solo, que es el estado mas frecuente ════════════════════ */
+      __t.set('otr_var_cortri_nota', '');
+      await esperar(120);
+      const hSin = (typeof otrHallazgos === 'function') ? otrHallazgos() : [];
+      const fSin = hSin.filter(x => x.id === 'otr_var_cortri')[0] || null;
+      R.infSin = fSin ? fSin.inf : 'NO SALE';
+      R.sumaSin = fSin ? fSin.suma : 'NO SALE';
+
+      /* ══ Y LLEGA AL PAPEL DE VERDAD, no solo al emisor ════════════════════════════════════ */
+      __t.set('otr_var_cortri_nota', 'izquierdo, gradiente medio 6 mmHg');
+      await esperar(120);
+      const inf = __t.informe();
+      R.enInforme = String(inf.inf || '').indexOf('Cor triatriatum izquierdo, gradiente medio 6 mmHg.') > -1;
+      R.enSuma = String(inf.suma || '').indexOf('Cor triatriatum izquierdo, gradiente medio 6 mmHg.') > -1;
+      /* CONTROL NEGATIVO: una oracion APARTE, o sea que no queda pegada a la variante de al lado.
+         Se mide pidiendo que el punto anterior exista. */
+      const iInf = String(inf.inf || '').indexOf('Cor triatriatum');
+      R.oracionAparte = iInf <= 0 ? 'no esta' : String(inf.inf || '').slice(iInf - 2, iInf);
+
+      /* ══ CONTROL NEGATIVO: apagada, no aparece en ninguna de las dos superficies ══════════ */
+      __t.chk('otr_var_cortri', false);
+      if (typeof otrHallSync === 'function') otrHallSync();
+      await esperar(160);
+      const inf2 = __t.informe();
+      R.apagadaFueraInforme = String(inf2.inf || '').indexOf('Cor triatriatum') === -1;
+      R.apagadaFueraSuma = String(inf2.suma || '').indexOf('Cor triatriatum') === -1;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['la casilla y su caja de nota existen',                R.hayCasilla === true && R.hayNota === true,
+                                                               R.hayCasilla + '/' + R.hayNota],
+      ['esta en el registro UNICO de hallazgos',              R.enRegistro === 1, R.enRegistro],
+      ['y en la lista que muestra su caja de nota',           R.enVarIds === true, R.enVarIds],
+      ['DENOMINADOR: arranca apagada y con la caja oculta',   R.antesChk === false && R.antesNota === 'oculta',
+                                                               R.antesChk + '/' + R.antesNota],
+      ['al marcarla, la caja de nota aparece',                R.trasChkNota === 'visible', R.trasChkNota],
+      ['CONTROL: apagada, la nota escrita se IGNORA',         R.apagadoNoPublica === true, R.apagadoNoPublica],
+      ['el informe lleva el texto completo en su oracion',    R.infCon === 'Cor triatriatum izquierdo, gradiente medio 6 mmHg.', R.infCon],
+      ['y el EN SUMA el nombre MAS la nota',                  R.sumaCon === 'Cor triatriatum izquierdo, gradiente medio 6 mmHg.', R.sumaCon],
+      ['sin nota, el informe dice el nombre solo',            R.infSin === 'Cor triatriatum.', R.infSin],
+      ['y el EN SUMA tambien',                                R.sumaSin === 'Cor triatriatum.', R.sumaSin],
+      ['llega al informe de verdad',                          R.enInforme === true, R.enInforme],
+      ['y al EN SUMA de verdad',                              R.enSuma === true, R.enSuma],
+      /* El informe separa las oraciones con punto y SALTO DE LINEA, no con punto y espacio:
+         medido, el separador real es ".\n". Lo que la condicion afirma es que hay un PUNTO antes,
+         o sea que no queda pegada a la variante de al lado. */
+      ['en una oracion APARTE: viene detras de un punto',     String(R.oracionAparte).charAt(0) === '.', JSON.stringify(R.oracionAparte)],
+      ['CONTROL NEGATIVO: apagada, fuera de las dos superficies',
+                                                               R.apagadaFueraInforme === true && R.apagadaFueraSuma === true,
+                                                               R.apagadaFueraInforme + '/' + R.apagadaFueraSuma]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
@@ -146167,7 +146274,9 @@ try {
     try { await ev(`try { sessionStorage.setItem('ett_auth','1') } catch (e) {}
       var ov = document.getElementById('login-overlay');
       if (ov && ov.style.display !== 'none') ov.style.display = 'none';
-      return 1;`); } catch (e) {}
+      return 1;`);
+
+ } catch (e) {}
     let fallos;
     try { fallos = evaluar(await ev(c.fn)); }
     catch (e) { fallos = [['excepcion', e.message, '']]; }

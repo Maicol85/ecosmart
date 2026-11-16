@@ -12592,6 +12592,16 @@ window.cerrarSesionReal = cerrarSesionReal;
                 <span>Vena cava superior izquierda persistente</span>
               </label>
             </div>
+            <!-- ══ D1 (2026-11-16) — COR TRIATRIATUM, con el MISMO molde que las otras variantes:
+                 su celda, su casilla, su caja de nota con la clase que la esconde hasta que la
+                 casilla se marca, y los MISMOS dos sincronizadores en el onchange. Nada propio. -->
+            <div class="otr-var-celda">
+              <label class="otr-var-lab">
+                <input type="checkbox" id="otr_var_cortri" onchange="otrHallSync();otrVarNotaSync()">
+                <span>Cor triatriatum</span>
+              </label>
+              <input type="text" id="otr_var_cortri_nota" class="otr-var-nota" maxlength="120" placeholder="Lado, gradiente (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
+            </div>
           </div>
           <div class="fg" style="margin:12px 0 4px;border-top:1px solid var(--border);padding-top:10px;">
             <label style="font-weight:600">&#129656; Anomal&iacute;as coronarias</label>
@@ -77675,7 +77685,13 @@ const OTR_HALL = Object.freeze([
   Object.freeze({ id: 'otr_var_lambl',     def: 'Excrecencias de Lambl',                               suma: null }),
   Object.freeze({ id: 'otr_var_senocor',   def: 'Seno coronario dilatado',                             suma: null }),
   Object.freeze({ id: 'otr_var_vcsip',     def: 'Vena cava superior izquierda persistente',           suma: null }),
-  Object.freeze({ id: 'otr_rac',           def: 'Arteria circunfleja retroaórtica',                    suma: 'RAC' })
+  Object.freeze({ id: 'otr_rac',           def: 'Arteria circunfleja retroaórtica',                    suma: 'RAC' }),
+  /* ⚠️ D1 — EL COR TRIATRIATUM LLEVA LA NOTA AL EN SUMA, y por eso trae `sumaNota` en vez de una
+     sigla. Los otros dos que suben —el ASIA y la RAC— lo hacen con su sigla sola, porque la sigla
+     ES el hallazgo; acá lo que el médico escribe en la caja (el lado, el gradiente) es parte de
+     lo que el EN SUMA tiene que decir, y por orden del médico sube con él. Con la caja vacía sube
+     el nombre solo, que es el estado más frecuente. */
+  Object.freeze({ id: 'otr_var_cortri',    def: 'Cor triatriatum',                                    suma: 'Cor triatriatum', sumaNota: true })
 ]);
 /* Datos y no HTML, por el mismo motivo que `vtProtObstr`: lo consumen el cuerpo del informe y el
    EN SUMA, y dos derivaciones del mismo hecho se desincronizan. Devuelve `[]` sin ninguna casilla
@@ -77718,9 +77734,11 @@ function otrHallazgos(src) {
        minimo que las separa y NO cambia nada cuando no hay frase, que es el unico estado
        alcanzable antes del D2. */
     const sep = ex ? ', ' : ' ';
+    /* D1: con `sumaNota` el EN SUMA lleva la nota pegada a la sigla, con el mismo espacio que el
+       cuerpo del informe usa para los otros ocho. Sin nota, la sigla sola. */
     out.push({ id: h.id,
                inf: h.def + (ex ? ' con ' + ex.txt : '') + (n ? sep + n : '') + '.',
-               suma: h.suma ? (h.suma + '.') : null });
+               suma: h.suma ? (h.suma + ((h.sumaNota && n) ? ' ' + n : '') + '.') : null });
   });
   return out;
 }
@@ -77739,8 +77757,12 @@ function otrHallSync() { if (typeof _refrescarInformeSiGenerado === 'function') 
    registro trae TODOS los hallazgos de la pestania Otros -el ASIA, la anomalia coronaria, el
    test de burbuja-, cuyas notas NO son condicionales, y recorriendolo entero esta funcion las
    escondia a todas. Medido: la condicion contaba 2 cajas de 4 donde antes contaba 4. */
+/* ⚠️ D1 (16/11/2026): entra `otr_var_cortri`. De esta lista cuelga que su caja de nota se muestre
+   al marcar la casilla y se esconda al apagarla -- sin la entrada, la celda existia y su caja no
+   aparecia nunca, que es el modo de falla mudo de siempre-. `otr_var_vcsip` sigue SIN caja, que es
+   por lo que esta lista no es la misma que `OTR_HALL`. */
 const OTR_VAR_IDS = Object.freeze(['otr_var_eustaquio', 'otr_var_chiari', 'otr_var_lipo',
-  'otr_var_tendones', 'otr_var_lambl', 'otr_var_senocor', 'otr_var_vcsip']);
+  'otr_var_tendones', 'otr_var_lambl', 'otr_var_senocor', 'otr_var_vcsip', 'otr_var_cortri']);
 function otrVarNotaSync() {
   OTR_VAR_IDS.forEach(function (id) {
     const c = document.getElementById(id);
