@@ -7078,8 +7078,15 @@ const HFA_LIMPIAR = `__t.limpiar();`;
 
 caso('TC-101', 'HFA-ICOS: el puntaje y las cuatro bandas, por los dos lados de cada corte', `
   ${HFA_LIMPIAR}
+  const _faltan = [];
   const marcar = ids => { ${HFA_LIMPIAR}
-    ids.forEach(id => { document.getElementById(id).checked = true; });
+    /* ⚠️ CON GUARDA, Y NO PELADO (MEDIR-6). Contra un arbol anterior a C1 los tres ids nuevos
+       NO EXISTEN, y un getElementById(id).checked pelado tira un TypeError que se lleva el caso entero:
+       la condicion «sin excepciones» sale roja y las de abajo no llegan a evaluarse. Con la
+       guarda el caso cae por CONDICIONES, que es lo que esta casa exige. La casilla que falta se
+       anota para que el diagnostico diga cual. */
+    ids.forEach(id => { const e = document.getElementById(id);
+      if (e) e.checked = true; else _faltan.push(id); });
     return hfaicosEstado(); };
   const vacio = hfaicosEstado();
   const p0 = marcar([]);
@@ -7094,8 +7101,13 @@ caso('TC-101', 'HFA-ICOS: el puntaje y las cuatro bandas, por los dos lados de c
      vale 2 ENTRE LAS TRES: partir una casilla no puede cambiar la escala del puntaje. */
   const cv = marcar(['hfaicos_cv_ic']);                // la terna vale 2 entre las tres
   const cvLegado = marcar(['hfaicos_cv_previa']);      // la vieja ya no suma
-  const cvTres = marcar(['hfaicos_cv_ic','hfaicos_cv_coron','hfaicos_cv_arrit']);
+  /* ⚠️ ADAPTADO EN MEDIR-6 (C1, 16/11/2026): la casilla coronaria se PARTIO EN TRES por orden
+     del medico -valvulopatia severa, infarto/angioplastia/cirugia, y angina estable- y se
+     retiro la regla de «el mayor de las tres». Son TRES casillas y TRES filas de pesos donde
+     habia una, asi que los conteos suben y el id viejo ya no existe. */
+  const cvTres = marcar(['hfaicos_cv_ic','hfaicos_cv_mi','hfaicos_cv_arrit']);
   return { extra: [
+    ['DENOMINADOR: las casillas que el caso marca EXISTEN todas', _faltan.length === 0, _faltan.join(',')],
     ['el modulo vacio NO publica «riesgo bajo»: no hay evaluacion', vacio.hayDatos === false],
     ['0 puntos -> BAJO',      p0.pts === 0 && p0.banda === 'BAJO'],
     ['1 punto  -> MEDIO',     p1.pts === 1 && p1.banda === 'MEDIO'],
@@ -7122,7 +7134,7 @@ caso('TC-101', 'HFA-ICOS: el puntaje y las cuatro bandas, por los dos lados de c
        hfaicosFactores(), que es quien suma. Son dos copias de la misma lista, asi que el
        puntaje que se MUESTRA al lado de cada fila puede divergir del que se CUENTA: el medico
        marcaria «2 pts» y el score sumaria 1. Esto las ata. */
-    ['las quince filas del catalogo existen en el DOM',
+    ['las DIECISIETE filas del catalogo existen en el DOM',
       hfaicosFactores().every(f => !!document.getElementById(f.id))],
     ['y no hay filas de mas en el HTML',
       document.querySelectorAll('#hfaicos-factores input[type=checkbox]').length === hfaicosFactores().length],
@@ -94414,7 +94426,8 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
       return e.value; };
     const escenaCO = () => { __t.limpiar();
       ['hfaicos_edad','hfaicos_sexo_fem','hfaicos_hta','hfaicos_dm','hfaicos_obesidad',
-       'hfaicos_tabaco','hfaicos_cv_previa','hfaicos_cv_ic','hfaicos_cv_coron','hfaicos_cv_arrit',
+       'hfaicos_tabaco','hfaicos_cv_previa','hfaicos_cv_ic','hfaicos_cv_vhd','hfaicos_cv_mi',
+       'hfaicos_cv_angina','hfaicos_cv_arrit',
        'hfaicos_fevi_lim','hfaicos_fevi_red','hfaicos_gls_alt','hfaicos_troponina','hfaicos_bnp']
         .forEach(id => { const e = EL(id); if (e) e.checked = false; });
       /* ⚠️ Y LA MARCA DE «LO DECIDIO UNA PERSONA» TAMBIEN SE BORRA: vive en un input oculto que
@@ -94430,14 +94443,19 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
     const capsula = () => T('hfaicos-resultado');
     const basales = () => T('co-riesgo-resultado');
 
-    /* ══ DENOMINADOR CO ══ La calculadora existe, tiene sus quince casillas y UN solo selector. */
+  /* ⚠️ ADAPTADO EN MEDIR-6 (C1, 16/11/2026): la casilla coronaria se PARTIO EN TRES por orden
+     del medico -valvulopatia severa, infarto/angioplastia/cirugia, y angina estable- y se
+     retiro la regla de «el mayor de las tres». Son TRES casillas y TRES filas de pesos donde
+     habia una, asi que los conteos suben y el id viejo ya no existe. */
+    /* ══ DENOMINADOR CO ══ La calculadora existe, tiene sus DIECISIETE casillas y UN selector. */
     escenaCO();
     const _casillas = ['hfaicos_edad','hfaicos_sexo_fem','hfaicos_hta','hfaicos_dm','hfaicos_obesidad',
-      'hfaicos_tabaco','hfaicos_cv_previa','hfaicos_cv_ic','hfaicos_cv_coron','hfaicos_cv_arrit',
+      'hfaicos_tabaco','hfaicos_cv_previa','hfaicos_cv_ic','hfaicos_cv_vhd','hfaicos_cv_mi',
+      'hfaicos_cv_angina','hfaicos_cv_arrit',
       'hfaicos_fevi_lim','hfaicos_fevi_red','hfaicos_gls_alt','hfaicos_troponina','hfaicos_bnp']
       .filter(id => !!EL(id));
-    ex.push(['  DENOMINADOR CO: las quince casillas existen y la capsula responde',
-      _casillas.length === 15 && capsula().length > 0,
+    ex.push(['  DENOMINADOR CO: las DIECISIETE casillas existen y la capsula responde',
+      _casillas.length === 17 && capsula().length > 0,
       'casillas=' + _casillas.length + ' capsula=' + capsula().slice(0, 40)]);
 
     /* (C1) UN SOLO SELECTOR DE FARMACO. El de bandas se retiro: si vuelve, este caso cae. */
@@ -94480,7 +94498,7 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
     /* (A4) IC previa = celda VH en las dos columnas. IAM previo = celda H. */
     escenaCO(); farmaco('antracicline'); tildar('hfaicos_cv_ic', true);
     const a4a = estado();
-    escenaCO(); farmaco('antracicline'); tildar('hfaicos_cv_coron', true);
+    escenaCO(); farmaco('antracicline'); tildar('hfaicos_cv_mi', true);
     const a4b = estado();
     ex.push(['(A4) IC previa = MUY ALTO y cardiopatia isquemica previa = ALTO',
       a4a.clave === 'muy_alto' && a4b.clave === 'alto',
@@ -94532,7 +94550,7 @@ caso('TC-540', 'Tanda D: la calculadora de riesgo CV aplicando la Tabla 4 de la 
     /* ══ (B) LA DERIVACION POR CATEGORIA ══ */
     const _der = {};
     [['bajo', [], ''], ['medio', ['hfaicos_cv_arrit'], 'trastuzumab'],
-     ['alto', ['hfaicos_cv_coron'], 'antracicline'], ['muy_alto', ['hfaicos_cv_ic'], 'antracicline']]
+     ['alto', ['hfaicos_cv_mi'], 'antracicline'], ['muy_alto', ['hfaicos_cv_ic'], 'antracicline']]
       .forEach(([esperado, ids, farm]) => {
         escenaCO(); farmaco(farm || 'antracicline'); ids.forEach(id => tildar(id, true));
         const e = estado(); _der[esperado] = { clave: e.clave, der: e.derivacion, cap: capsula() };
@@ -100428,14 +100446,33 @@ caso('TC-556', 'Tanda D2: la calculadora de riesgo CV no clasifica sin farmaco e
   /* (B5) RAF/MEK: la arritmia previa vale un solo punto, asi que no llega a moderado. */
   await escena('raf_mek', ['hfaicos_cv_arrit']);
   ex.push(['(B5) RAF/MEK con arritmia previa sola: BAJO', banda() === 'bajo', banda()]);
-  /* (B6) LA CASILLA DE ANTECEDENTE CORONARIO toma el MAYOR de sus tres filas: muy alto con
+  /* (B6) ⚠️ ADAPTADA EN MEDIR-6 (C1): ya NO hay «el mayor de sus tres filas». Esta condicion
+     mide ahora la fila del INFARTO, que conserva sus pesos por columna. Las dos de abajo son
+     nuevas y son las que distinguen las tres filas entre si.
+     Texto anterior: la casilla tomaba el MAYOR de sus tres filas: muy alto con
      anti-VEGF, alto con RAF/MEK y nada con BCR-ABL. Es la condicion que caza que se le invente
      un peso unico para las seis columnas. */
-  await escena('vegf', ['hfaicos_cv_coron']); const b6a = banda();
-  await escena('raf_mek', ['hfaicos_cv_coron']); const b6b = banda();
-  await escena('bcr_abl', ['hfaicos_cv_coron']); const b6c = banda();
-  ex.push(['(B6) el antecedente coronario da muy alto con anti-VEGF, alto con RAF/MEK y bajo con BCR-ABL',
+  /* ⚠️ ADAPTADO EN MEDIR-6 (C1, 16/11/2026): la casilla coronaria se PARTIO EN TRES por orden
+     del medico -valvulopatia severa, infarto/angioplastia/cirugia, y angina estable- y se
+     retiro la regla de «el mayor de las tres». Son TRES casillas y TRES filas de pesos donde
+     habia una, asi que los conteos suben y el id viejo ya no existe. */
+  await escena('vegf', ['hfaicos_cv_mi']); const b6a = banda();
+  await escena('raf_mek', ['hfaicos_cv_mi']); const b6b = banda();
+  await escena('bcr_abl', ['hfaicos_cv_mi']); const b6c = banda();
+  /* ══ C1 — Y LO QUE LA PARTICION VINO A ARREGLAR, que antes era imposible de distinguir ═════
+     Con anti-VEGF la valvulopatia severa NO pesa, asi que como UNICO antecedente tiene que dar
+     BAJO. Con la casilla agrupada daba «muy alto», porque se aplicaba el mayor de las tres: es
+     el caso que PENDIENTES declaraba en D2-a. Y el infarto, en la MISMA columna, sigue dando
+     muy alto -- o sea que la condicion distingue las dos filas y no solo baja una. */
+  await escena('vegf', ['hfaicos_cv_vhd']); const b6vhd = banda();
+  await escena('vegf', ['hfaicos_cv_angina']); const b6ang = banda();
+  ex.push(['(B6) el INFARTO da muy alto con anti-VEGF, alto con RAF/MEK y bajo con BCR-ABL',
     b6a === 'muy_alto' && b6b === 'alto' && b6c === 'bajo', b6a + '/' + b6b + '/' + b6c]);
+  /* Una cadena simple NO puede cruzar renglones: los dos rotulos van en una linea. */
+  ex.push(['(B6b) C1: la VALVULOPATIA SEVERA sola NO pesa con anti-VEGF -- el caso de D2-a',
+    b6vhd === 'bajo', b6vhd]);
+  ex.push(['(B6c) y la ANGINA ESTABLE sola SI pesa en esa columna: las tres filas se distinguen',
+    b6ang === 'muy_alto', b6ang]);
   /* (B7) LAS DOS FILAS DE EDAD no son las mismas en cada columna: con 70 anios el anti-VEGF da
      un punto y el BCR-ABL dos; con 76, los dos dan alto. */
   await escena('vegf', ['hfaicos_edad'], 70); const b7a = banda();
@@ -100471,8 +100508,8 @@ caso('TC-556', 'Tanda D2: la calculadora de riesgo CV no clasifica sin farmaco e
   await esperar(200);
   const _tab = document.querySelector('#co-t4-matriz table');
   /* (C0) DENOMINADOR: la matriz se dibujo, con sus filas y sus siete columnas. */
-  ex.push(['(C0) DENOMINADOR: la matriz existe con 14 filas y 7 columnas',
-    !!_tab && _tab.rows.length === 14 && _tab.rows[0].cells.length === 7,
+  ex.push(['(C0) DENOMINADOR: la matriz existe con 16 filas y 7 columnas',
+    !!_tab && _tab.rows.length === 16 && _tab.rows[0].cells.length === 7,
     _tab ? (_tab.rows.length + 'x' + _tab.rows[0].cells.length) : 'NO EXISTE']);
   /* (C1) CADA CELDA COINCIDE CON EL DUENO. Es la condicion que hace imposible que la tabla de
      referencia y el clasificador de al lado digan cosas distintas. */
@@ -100488,8 +100525,8 @@ caso('TC-556', 'Tanda D2: la calculadora de riesgo CV no clasifica sin farmaco e
       _n++; if (esp !== got) { _mal++; if (_det.length < 90) _det += facs[i].id + '/' + COLS[j][0] + ' ' + esp + '!=' + got + ' ' }
     }
   } catch (x) { _det = 'ERR ' + x.message }
-  ex.push(['(C1) las 66 celdas de la matriz coinciden UNA POR UNA con coT4Pesos()',
-    _n === 66 && _mal === 0, 'celdas=' + _n + ' discrepan=' + _mal + ' ' + _det]);
+  ex.push(['(C1) las 78 celdas de la matriz coinciden UNA POR UNA con coT4Pesos()',
+    _n === 78 && _mal === 0, 'celdas=' + _n + ' discrepan=' + _mal + ' ' + _det]);
   /* (C2) LA REGLA DE COMBINACION usa los MISMOS dos cortes que la cascada. */
   const _reg = T('co-t4-regla');
   ex.push(['(C2) la regla publica los cortes de _CO_T4_CORTES: 5 o mas para alto y de 2 a 4 para medio',

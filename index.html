@@ -25951,7 +25951,9 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
              La casilla VIEJA sigue existiendo debajo porque viaja en los estudios ya guardados y
              borrarla sería migrarlos; NO puntúa, y su fila sólo aparece cuando está tildada. -->
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_ic" onchange="hfaicosToggle('hfaicos_cv_ic')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Insuficiencia card&iacute;aca o miocardiopat&iacute;a previa</span><span data-hfa-pts-de="hfaicos_cv_ic" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_coron" onchange="hfaicosToggle('hfaicos_cv_coron')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Infarto, angioplastia o cirug&iacute;a coronaria, angina estable o valvulopat&iacute;a severa</span><span data-hfa-pts-de="hfaicos_cv_coron" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_vhd" onchange="hfaicosToggle('hfaicos_cv_vhd')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Valvulopat&iacute;a severa</span><span data-hfa-pts-de="hfaicos_cv_vhd" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_mi" onchange="hfaicosToggle('hfaicos_cv_mi')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Infarto, angioplastia o cirug&iacute;a coronaria</span><span data-hfa-pts-de="hfaicos_cv_mi" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_angina" onchange="hfaicosToggle('hfaicos_cv_angina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Angina estable</span><span data-hfa-pts-de="hfaicos_cv_angina" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_arrit" onchange="hfaicosToggle('hfaicos_cv_arrit')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Arritmia previa (FA, aleteo, TV o FV)</span><span data-hfa-pts-de="hfaicos_cv_arrit" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">2 pts</span></label>
         <label id="hfaicos_cv_previa_fila" hidden style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_cv_previa" onchange="hfaicosToggle('hfaicos_cv_previa')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Enfermedad CV previa (IC, CAD, FA, ACV) &mdash; sin especificar</span><span data-hfa-pts-de="hfaicos_cv_previa" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">&mdash;</span></label>
       </div>
@@ -61328,7 +61330,18 @@ function hfaicosFactores() {
        siga teniendo etiqueta cuando haya que nombrarla. */
     { id:'hfaicos_cv_previa', pts:0, lbl:'Enfermedad CV previa (IC, CAD, FA, ACV) — sin especificar', legado:true },
     { id:'hfaicos_cv_ic',     pts:2, lbl:'Insuficiencia cardíaca o miocardiopatía previa' },
-    { id:'hfaicos_cv_coron',  pts:2, lbl:'Infarto, angioplastia o cirugía coronaria, angina estable o valvulopatía severa' },
+    /* ⚠️ C1 (2026-11-16) — UNA CASILLA SE PARTIO EN TRES, POR ORDEN DEL MEDICO. Eran las TRES
+       filas de la Tabla 4 -«Severe VHD», «MI or PCI or CABG» y «Stable angina»- agrupadas en una,
+       y en cuatro de las seis columnas NO valen lo mismo, asi que la aplicacion tomaba «el MAYOR
+       de las tres». Ese precio estaba declarado en PENDIENTES -> D2-a con su caso: con anti-VEGF,
+       un paciente cuyo UNICO antecedente fuera una valvulopatia severa -«-» en esa columna- se
+       clasificaba como si tuviera un infarto. Hoy cada fila tiene su casilla y su peso.
+       ⚠️ LOS TRES VALEN 2 Y CUENTAN UNA SOLA VEZ, igual que antes: el PUNTAJE PROPIO no se toca
+       -lo fija la orden- asi que los tres entran en el grupo de `_hfaicosCvGrupo`, que suma 2 en
+       total. El maximo sigue siendo 13. */
+    { id:'hfaicos_cv_vhd',    pts:2, lbl:'Valvulopatía severa' },
+    { id:'hfaicos_cv_mi',     pts:2, lbl:'Infarto, angioplastia o cirugía coronaria' },
+    { id:'hfaicos_cv_angina', pts:2, lbl:'Angina estable' },
     { id:'hfaicos_cv_arrit',  pts:2, lbl:'Arritmia previa (fibrilación o aleteo auricular, taquicardia o fibrilación ventricular)' },
     /* Los dos de FEVI son MUTUAMENTE EXCLUYENTES: una misma FEVI basal no puede estar a la vez
        en 50-54% y por debajo de 50. Marcados los dos sumaban 3 puntos por una sola medición y
@@ -61346,7 +61359,13 @@ window.hfaicosFactores = hfaicosFactores;
 /* ══ LAS TRES CASILLAS QUE REEMPLAZAN A LA DE LEGADO ══════════════════════════════════════
    Se nombran UNA vez acá y las leen el camino de la Tabla 4, el camino por puntos y la línea
    del estudio viejo. Escribir la terna tres veces es cómo se desincronizan. */
-function _hfaicosCvTerna() { return ['hfaicos_cv_ic', 'hfaicos_cv_coron', 'hfaicos_cv_arrit']; }
+/* ⚠️ ERA UNA TERNA Y HOY SON CINCO (C1, 16/11/2026): la casilla coronaria se partio en tres.
+   El nombre deja de decir «terna» porque mentia. Lo que NO cambia es la regla: si alguna esta
+   marcada, el grupo suma 2 puntos en total y no 2 por casilla -- el puntaje propio tiene prohibido
+   moverse, asi que partir la casilla no puede cambiar la escala-. */
+function _hfaicosCvGrupo() { return ['hfaicos_cv_ic', 'hfaicos_cv_vhd', 'hfaicos_cv_mi',
+                                     'hfaicos_cv_angina', 'hfaicos_cv_arrit']; }
+function _hfaicosCvTerna() { return _hfaicosCvGrupo(); }   // lapida del nombre viejo
 
 /* MÁXIMO REAL, derivado del catálogo y no escrito a mano: las filas NO son los puntos —hay
    varias que valen 2 y dos pares que se excluyen—, así que el denominador se calcula.
@@ -61358,7 +61377,8 @@ function hfaicosMax() {
   return hfaicosFactores().reduce((t, f) => {
     if (f.legado) return t;                                   // no suma en ningún camino
     if (f.id === 'hfaicos_fevi_lim') return t;                // gana el excluyente mayor
-    if (f.id === 'hfaicos_cv_coron' || f.id === 'hfaicos_cv_arrit') return t;  // la terna vale 2 en total
+    if (f.id === 'hfaicos_cv_vhd' || f.id === 'hfaicos_cv_mi' ||
+        f.id === 'hfaicos_cv_angina' || f.id === 'hfaicos_cv_arrit') return t;  // el grupo vale 2 en total
     return t + f.pts;
   }, 0);
 }
@@ -61388,12 +61408,14 @@ function hfaicosMax() {
    radioterapia y «Otro»— no pasa por este camino: la tabla NO TIENE columna para ellos, y los
    atiende el puntaje propio de la aplicación, que se rotula como tal en pantalla.
 
-   ⚠️ `hfaicos_cv_coron` ES UNA CASILLA Y SON TRES FILAS DE LA TABLA —«Severe VHD», «MI or PCI or
-   CABG» y «Stable angina»—, y en cuatro de las seis columnas las tres NO valen lo mismo. Se aplica
-   el MAYOR de las tres, que es el lado seguro y el mismo criterio que la nota al pie g. El precio,
-   declarado en `docs/PENDIENTES.md` → D2-a: con anti-VEGF, un paciente cuyo ÚNICO antecedente sea
-   una valvulopatía severa —«–» en esa columna— se clasifica como si tuviera un infarto («VH»).
-   Partir la casilla en tres sería agregar campos guardados, que esta tanda tiene prohibido. */
+   ⚠️ LA CASILLA CORONARIA SE PARTIO EN TRES Y «EL MAYOR DE LAS TRES» SE RETIRO (C1, 16/11/2026).
+   Hasta hoy `hfaicos_cv_coron` era UNA casilla para TRES filas de la tabla —«Severe VHD», «MI or
+   PCI or CABG» y «Stable angina»—, que en cuatro de las seis columnas no valen lo mismo, y la
+   aplicación tomaba el MAYOR. Lo que eso costaba estaba declarado en `docs/PENDIENTES.md` → D2-a
+   con su caso: con anti-VEGF, un paciente cuyo ÚNICO antecedente fuera una valvulopatía severa
+   —«–» en esa columna— se clasificaba como si tuviera un infarto. Esa tanda tenía prohibido
+   agregar campos guardados; esta lo tiene autorizado, así que **D2-a queda cerrado**: hay una
+   casilla por fila y cada una lleva su propio peso por columna. */
 function coT4Pesos() {
   return {
     // Hypertension
@@ -61406,8 +61428,14 @@ function coT4Pesos() {
     hfaicos_tabaco:    { antracicline:'M1', trastuzumab:'M1', vegf:'M1', bcr_abl:'H',   mieloma:'M1', raf_mek:'M1' },
     // HF / cardiomyopathy / CTRCD
     hfaicos_cv_ic:     { antracicline:'VH', trastuzumab:'VH', vegf:'VH', bcr_abl:'H',   mieloma:'VH', raf_mek:'VH' },
-    // Severe VHD · MI o PCI o CABG · Stable angina — el MAYOR de las tres filas (ver el aviso de arriba)
-    hfaicos_cv_coron:  { antracicline:'H',  trastuzumab:'H',  vegf:'VH', bcr_abl:null,  mieloma:null, raf_mek:'H' },
+    /* ══ C1 — LAS TRES FILAS, CADA UNA CON SU PESO. Se retira «el MAYOR de las tres». ═════════
+       Severe VHD · MI o PCI o CABG · Stable angina. Los pesos son los que el medico fijo:
+         · antraciclinas, anti-HER2 y RAF/MEK -> las tres pesan IGUAL, alto
+         · anti-VEGF -> la valvulopatia severa NO pesa; las otras dos, muy alto
+         · BCR-ABL y mieloma multiple -> ninguna pesa */
+    hfaicos_cv_vhd:    { antracicline:'H',  trastuzumab:'H',  vegf:null, bcr_abl:null,  mieloma:null, raf_mek:'H' },
+    hfaicos_cv_mi:     { antracicline:'H',  trastuzumab:'H',  vegf:'VH', bcr_abl:null,  mieloma:null, raf_mek:'H' },
+    hfaicos_cv_angina: { antracicline:'H',  trastuzumab:'H',  vegf:'VH', bcr_abl:null,  mieloma:null, raf_mek:'H' },
     // Arrhythmia (nota a) — «–» en antraciclinas
     hfaicos_cv_arrit:  { antracicline:null, trastuzumab:'M2', vegf:'M2', bcr_abl:'M2',  mieloma:'M2', raf_mek:'M1' },
     // LVEF 50-54%
@@ -61563,7 +61591,11 @@ function _hfaicosHallazgos() {
     const n = parseFloat(String(e.value).replace(',', '.')); return isFinite(n) ? n : null; };
   const L = [];
   if (chk('hfaicos_cv_ic'))    L.push('insuficiencia cardíaca o miocardiopatía previa');
-  if (chk('hfaicos_cv_coron')) L.push('cardiopatía isquémica o valvulopatía severa previa');
+  /* C1: tres casillas, tres hallazgos. Se nombran por separado porque son tres antecedentes
+     distintos y uno de ellos —la valvulopatía— ya no pesa en todas las columnas. */
+  if (chk('hfaicos_cv_vhd'))    L.push('valvulopatía severa');
+  if (chk('hfaicos_cv_mi'))     L.push('infarto, angioplastia o cirugía coronaria previos');
+  if (chk('hfaicos_cv_angina')) L.push('angina estable');
   if (chk('hfaicos_cv_arrit')) L.push('arritmia previa');
   if (chk('hfaicos_troponina') || chk('hfaicos_bnp')) L.push('biomarcadores cardíacos por encima del límite normal');
   /* El número manda sobre la casilla cuando está cargado: la nota g dice «50 % o menos» y la
