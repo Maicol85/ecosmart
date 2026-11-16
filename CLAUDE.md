@@ -171,6 +171,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
+| **Tocar algo que la tanda MEDIR-6 movió** (16/11): el bloque de CALCULADOS debajo de la imagen con su ranura por vista y su corte de 1024 px, la lista de VTI por válvula con su índice real, el ALIAS de la VCI y la PmAD, «Limpiar» por estructura, «Borrar» de a uno con su número de llegada; el TRIV a **≥75 ms** en sus dos lectores; el ⓘ del índice de CELERMAJER; la CIV **sin** el DDVI indexado; los cuatro TRAMOS del velo posterior y los DOS cortes de coaptación por procedimiento con su tethering; las TRES casillas de la Tabla 4; el COR TRIATRIATUM; o la comprobación del PENDRIVE | `docs/mapa/medir6-triv-civ-teer-onco.md` |
 | **Tocar el ESQUEMA DE CIRCULACIÓN de la sangre de la TGA** —sus seis escenarios, las dos exclusiones de comunicación, la punta de flecha que depende de la dirección que la app guarda, la animación colgada del 3D, el corte de 1200 px o su ⓘ—, **la CONCLUSIÓN de la TGA en la columna izquierda**, o **la salida `papel` que saca la conducta del informe, del PDF y del PPT** | `docs/mapa/tga3-esquema-circulacion.md` |
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
 | **Tocar el PAPEL de la TGA operada con JATENE o con RASTELLI**, el dueño `TGA_CIR_OP`, o **agregar una sección al panel de Evidencia con PREGUNTAS de tres estados** —la de la transposición, la CIA, la CIV o la prevención de muerte súbita de la MCH—: dónde se persisten las respuestas, cómo se agrupan las recomendaciones por situación y qué quedó parado | `docs/mapa/t2-evidencia-congenitas.md` |
@@ -275,7 +276,19 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,31 MB / 184.278 líneas**, medido con `wc -c` y `wc -l` el 2026-11-15 al cierre de la tanda **PANT-38**, sobre el árbol ya sellado: sello **`v20261115-1954`**, md5 **`ceb16d2d`**.
+  sin frameworks. Hoy **13,34 MB / 184.707 líneas**, medido con `wc -c` y `wc -l` el 2026-11-16 al cierre de la tanda **MEDIR-6**, sobre el árbol ya sellado: sello **`v20261116-0650`**, md5 **`f4f277b0`**.
+  El diff de MEDIR-6 son **535 líneas agregadas y 112 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `b065c69` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
+  `eval(` y `new Function` nuevos y **CINCO** `input` nuevos con `id` — los tres de la casilla
+  coronaria partida (`hfaicos_cv_vhd`, `hfaicos_cv_mi`, `hfaicos_cv_angina`) y los dos del cor
+  triatriatum (`otr_var_cortri` y su nota—. O sea **cinco campos guardados nuevos** y **CERO
+  columnas de Excel**, medido: TC-135, TC-479, TC-824 y TC-831 pasan **sin adaptar**, así que las
+  **457** columnas no se movieron. Los `hfaicos_*` no están en `LAB_XLS_MAP`, verificado.
+  ⚠️ **POR CUADRAGÉSIMA QUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show b065c69:index.html` da **184.278** líneas,
+  **13.308.763** bytes y el md5 **`ceb16d2d`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,31 MB / 184.278 al cierre de **PANT-38**, sello **`v20261115-1954`**, md5 **`ceb16d2d`**.)
   El diff de PANT-38 son **308 líneas agregadas y 52 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `121bb99` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
   `eval(` y `new Function` nuevos, **UN** id nuevo en el marcado —`lv3d-slot-botones`; los otros
@@ -1328,6 +1341,113 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda MEDIR-6 (2026-11-16) — el visor, el TRIV, la CIV, el TEER, la Tabla 4 y el cor
+triatriatum.** OCHO commits. Sello **`v20261116-0358`**, md5 **`84a38aa2`**, **184.689** lineas.
+
+**NUEVE PREMISAS DEL PEDIDO SE DIERON VUELTA AL MEDIRLAS, Y SEIS ERAN «YA ESTABA HECHO».** Es lo
+que vale medir antes de tocar: **B1** tenia el corte en 75 y lo que faltaba era el operador, con
+Cabrita 2013 y Brechot 2008 **ya citados**; **B2** estaba cumplido en sus dos mitades —el globo ya
+decia «orientativo» y «50 neonatos» con sus folios, y el grado ya no conducia ninguna conclusion—;
+**B5** ya tenia el ≥11 mm desde R2 y lo que faltaba era el **tethering**; **C2** ya se rotulaba
+como criterio propio en cinco lugares; **E1** ya fallaba fuerte sin disco; y **A2** nunca estuvo
+atada a una valvula. **A3** resulto tener **TRES** duenos y no dos, y **A5** no tenia ningun orden
+comun entre sus cinco colecciones.
+
+**BLOQUE A — EL VISOR (A1 a A5).** El bloque de calculados **viaja** a una ranura nueva de la
+columna izquierda, despues de la imagen, con el **mismo dueno** que el cajon Doppler; por debajo de
+**1024 px** vuelve al nivel del modal y el reacomodo cuelga del `resize` que el visor ya tenia.
+La lista de VTI sale solo con la **aortica o la pulmonar** y lista solo las **libres**, con el
+**indice real de `_medVtis`** — con el de la lista filtrada el boton asigna **otra medicion del
+paciente**, en silencio, que es la trampa de `_vPickLista`—. El alias `'vci.vci' -> 'tri.vciDiam'`
+cierra el tercer duplicado: **lo que se perdia no era un rotulo, de ese campo cuelga la PmAD**.
+«Limpiar» borra la **estructura abierta** —`_dopLimpiar` y `_d2Limpiar` NO se tocan, las llaman
+«Nuevo estudio» y el cierre de sesion— y en el cajon 2D se barre por **`_D2_FILAS_DE`** y no por el
+prefijo, porque `vi.tsvi` se **dibuja** en el grupo de la aorta. Y «Borrar» saca **una por clic**
+por su numero de llegada (`_medSello`, por vista), cancelando primero un gesto a medio hacer y sin
+tocar la calibracion; **`medBorrar` queda intacta**, que es con la que la bateria arma sus escenas.
+**A6 queda afuera por decision del medico** y va en su propio prompt (**M6-a**).
+
+**BLOQUE B — LOS CINCO CAMBIOS CLINICOS.** El **TRIV** pasa a **≥ 75 ms** en los DOS lectores y en
+las tres cadenas. ⚠️ **Y EL GLOBO SE DESMENTIA A SI MISMO**: decia «prolongado —mas de 75 ms—»
+mientras su propia fuente, tres lineas mas abajo, cita el consenso como «normal menos de 75 ms,
+**anormal 75 ms o mas**». La app leia su corte mas estricto que el documento del que sale.
+El **indice de Celermajer** gana el encuadre de que en **adultos** se aplica por extension.
+La **CIV** pierde la regla de **DDVI indexado > 32 mm/m²** —el archivo ya la declaraba como
+criterio propio y decia que corregirla «es decision del medico»; **D2-a queda cerrado**— y con ella
+se cae la contradiccion de que la misma tabla dijera «contraindicado» y «criterio de cierre» a la
+vez. El **velo posterior** pasa a sus **cuatro tramos** con `_teerVpTramo` de dueno unico, y
+⚠️ **los bordes se resolvieron HACIA ABAJO**: 7,0 es «complejo» y 5,0 «muy complejo» (**M6-b**).
+La **coaptacion** queda con sus **dos cortes rotulados por procedimiento** —10 mm la reparacion
+quirurgica, 11 mm el clip **y solo con tethering**—, el tethering **sin agregar ningun campo**
+(se lee del Carpentier IIIb y del mecanismo, las dos puertas) y **fallando hacia no afirmar**; el
+pie dice que son **criterios de exclusion de un estudio y no de una guia**, aplicados **por
+extension** sobre el ETE, y separa la **longitud** de <2 mm de la **profundidad**. La **altura de
+tenting** de 10 mm pasa a **criterio propio**.
+
+**BLOQUE C — LA TABLA 4.** La casilla coronaria se parte en **tres** y se retira «el **mayor** de
+las tres». ⚠️ **EL PUNTAJE PROPIO NO SE MUEVE**: los tres entran en `_hfaicosCvGrupo` —que era
+`_hfaicosCvTerna` y mentia— y el grupo sigue sumando **2 en total**; el maximo sigue en **13**.
+**C2 cerrado sin tocar una linea.**
+
+**BLOQUE D — EL COR TRIATRIATUM**, con el molde de las otras variantes. ⚠️ **Es la primera que sube
+al EN SUMA**, y por eso trae `sumaNota`: el ASIA y la RAC suben con su sigla sola porque la sigla
+**es** el hallazgo, mientras que aca el lado y el gradiente que el medico escribe son parte de lo
+que el EN SUMA dice. Hubo que agregarlo a **`OTR_VAR_IDS`**, que no es la misma lista que
+`OTR_HALL`: de ella cuelga que su caja aparezca al marcar.
+
+**BLOQUE E — EL PENDRIVE.** La comprobacion **lee DICOMDIR** en vez de listar —`ls` sobre un volumen
+desmontado contesta **de cache**—, **mide cuanto tarda**, **declara cuantos archivos encontro** y
+corta si son cero, y da un **toque previo** antes del primer lote. Medido: DICOMDIR en **4 a 13 ms**
+y **341 archivos**. Y la mitad que ya estaba cumplida se verifico midiendola: **TC-181 da 1/1 con
+el disco y 0/1 sin el**.
+
+**Cobertura: TC-906 a TC-911**, los seis cayendo **0/6** contra su linea base y **ninguno por
+excepcion**. **QUINCE casos adaptados** —TC-86, TC-101, TC-133, TC-170, TC-251, TC-264, TC-428,
+TC-499, TC-507, TC-540, TC-549, TC-552, TC-553, TC-556, TC-648, TC-664 y TC-759— con **once
+condiciones INVERTIDAS**, o sea que fallan por los dos lados. Ninguno se aflojo ni perdio
+condiciones. ⚠️ **TC-535 no era de esta tanda**: falla con las mismas tres condiciones en los DOS
+arboles y es un resto de **PANT-38**, que agrego el globo `clnk-guia` y dejo el censo en 65; se
+movio a 66 (**M6-d**).
+**Linea base al cierre: suite 914/919**, en **DIECISIETE** lotes cubriendo los **919 casos
+distintos** —contados con el patron COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el arbol resellado, con los **919 ejecutados**, el md5 de `index.html` **identico** antes y despues
+(`f4f277b0`) y el pendrive `DISK_IMG` verificado **diecinueve** veces leyendo DICOMDIR, con sus
+**341** archivos declarados en cada control. Los rojos son **TC-376 y TC-406**, dos de los tres de
+siempre; **TC-182** y **TC-551**, los dos intermitentes ya declarados; y **TC-903**, que queda
+**caracterizado**: pasa **3 de 3 corrido aislado**, o sea sensibilidad de lote. **Ningun rojo
+nuevo**, y los seis casos nuevos y los dieciseis adaptados en verde.
+⚠️ **SON TRES PASADAS Y SOLO SE INFORMA LA ULTIMA, porque las dos primeras encontraron defectos
+MIOS y el archivo cambio despues.** La primera dio **909/919** y destapo el peor: cinco casos
+maduros en rojo de golpe —TC-74, TC-89, TC-91, TC-GR-07 y TC-692— por **un defecto real de mi B5**,
+que contaba `c4` como dato faltante sin tethering y hacia caer de «APTO» a «falta 1 criterio» a
+todo estudio sin tethering consignado. La segunda dio **913/919** y destapo **TC-95**, que fallaba
+**0/3 aislado**: mi arreglo habia abierto un agujero en la direccion peligrosa —un **0 tipeado** en
+la profundidad salia de la lista y el estudio decia «APTO» ignorando un error de carga—. Los dos
+estan arreglados y es exactamente para esto que la suite se corre entera.
+**25/25 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **identico** antes y despues, y las **25 anclas verificadas ANTES** de correr —lo que PANT-20
+pago con una corrida entera—. Cubren los cinco cambios clinicos (B1 a B5), C1 y D1.
+⚠️ **EL PRIMER BARRIDO DEJO DOS SOBREVIVIENTES Y LAS DOS ERAN HUECOS REALES**, cerrados con
+condiciones nuevas y **sin aflojar una sola mutacion**: que el **grado de Celermajer NO conduce** la
+conclusion —B2 lo verifico LEYENDO, y leer no es cubrir— y que el pie declara la **altura de
+tenting** como criterio propio. ⚠️ **Y MEDIR EL PRIMERO ENSEÑO ALGO**: la conclusion **si** nombra
+el indice y su grado, y eso **no** es conducirla, asi que lo que se compara es el RESTO del texto —
+publicar un valor medido no es conducir una conclusion, y esta casa no retira un numero medido.
+⚠️ **Cuatro anclas no emparejaron al verificarlas** y una fue por la **secuencia de escape**: el
+archivo trae `\u2265` y no el signo, asi que el ancla necesitaba la secuencia literal.
+**Semgrep 126 WARNING / 0 ERROR**, la linea base exacta. **Sin huerfanos nuevos.** **17 de 17
+bloques de JS inline parsean.** **CERO `innerHTML`, `eval(` y `new Function` nuevos.** **CINCO
+campos guardados nuevos** —los tres de la casilla partida y los dos del cor triatriatum— y **CERO
+columnas de Excel**: TC-135, TC-479, TC-824 y TC-831 pasan **sin adaptar**, asi que las **457** no
+se movieron.
+⚠️ **LO QUE ESTA TANDA PAGO**: el **acento grave dentro de mis propios comentarios** en el cuerpo
+de un caso, **tres veces** (TC-86, TC-101 y TC-499), por trigesima tanda seguida; y una trampa
+nueva, **un rotulo de condicion partido en dos renglones dentro de una cadena simple**, que no es
+JS valido. Las dos las caza `node --check`; lo que las previene es el barrido que **M6-e** deja
+escrito: contar los acentos graves SIN barra invertida del cuerpo de cada caso y exigir uno.
+El mapa, en `docs/mapa/medir6-triv-civ-teer-onco.md`; lo declarado, en **M6-a** a **M6-e**; el
+corredor de lotes, en `scripts/_lotes_medir6.sh`; el barrido, en `scripts/_mut_medir6.py`.
 
 **La tanda PANT-38 (2026-11-15) — el acomodo de Contractilidad, el menu de Documentos, CeiboLink
 y tres arreglos chicos.** CINCO commits. Sello **`v20261115-1954`**, md5 **`ceb16d2d`**,

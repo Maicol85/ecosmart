@@ -40,6 +40,56 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## MEDIR-6 — el visor, el TRIV, la CIV, el TEER, la Tabla 4 y el cor triatriatum (2026-11-16)
+
+> Mapa: **`docs/mapa/medir6-triv-civ-teer-onco.md`**. Sello **`v20261116-0650`**, md5 `f4f277b0`.
+
+### M6-a · A6 NO SE HIZO, y va en su propio prompt — por decisión del médico
+
+La tabla por lado del visor queda afuera. El estado seguirá siendo **uno** —`_dop` y `_d2` son
+estado de módulo **a propósito**, porque la ecuación de continuidad cruza planos que con dos
+vistas son dos pantallas— y cada lado filtrará por **`_dop.origen`**, que ya existe con sus tres
+valores (`'A'`, `'B'`, `'mano'`). Lo que falta es duplicar el nodo del cajón y filtrar al pintar.
+
+### M6-b · LOS BORDES DE LOS TRAMOS DEL VELO POSTERIOR SE RESOLVIERON HACIA ABAJO
+
+La orden escribió los cuatro tramos con los extremos **repetidos** —«más de 10 no complejo; 7–10
+complejo; 5–7 muy complejo; menos de 5 difícil o imposible»—, así que 7,0 y 5,0 exactos caían en
+dos tramos a la vez. Se resolvieron hacia **abajo**, que es la lectura habitual de una banda: el
+límite inferior pertenece a su tramo. O sea **7,0 es «complejo»** y **5,0 es «muy complejo»**.
+Queda declarado por si el médico lo quiere al revés: son dos operadores en `_teerVpTramo`.
+
+### M6-c · LO QUE NO SE TOCÓ DE LA CIV AL RETIRAR EL DDVI INDEXADO, con su motivo
+
+**B3 retiró la regla de cierre** (`CIV_DDVI_IDX_CIERRE`), y **D2-a queda cerrado**. Dos cosas que
+leen ese mismo número **no** se tocaron, y se declara por qué:
+
+- **El «Normal < 32 mm/m²» de Hemodinámica**, debajo del DDVI indexado: es una referencia de
+  **normalidad de la medición** y no un criterio de cierre. Sacarla le quitaría al médico un valor
+  de referencia que el pedido no manda sacar.
+- **`_pDilVi`**, la propiedad «Con dilatación del VI» del Laboratorio: es **descriptiva** de
+  cohorte, la comparten **cuatro** fichas —la CIA incluida— y no lee la constante retirada.
+  Retirarla cambiaría el Laboratorio de secciones que B3 no nombra.
+
+Si el médico quiere que el 32 desaparezca también de esos dos lugares, es otra decisión.
+
+### M6-d · TC-535 NO ERA DE ESTA TANDA — es un resto de PANT-38
+
+Falla con las **mismas tres condiciones** (K0, K1, K2) en los dos árboles, verificado contra
+`58be422`. PANT-38 agregó el globo **`clnk-guia`** de la guía de conexión de CeiboLink y dejó el
+censo de esa condición en **65**. Se movió a **66**, los tres números juntos. Venía rojo desde
+entonces.
+
+### M6-e · LOS ACENTOS GRAVES, POR TRIGÉSIMA TANDA SEGUIDA — y el barrido que lo cierra
+
+Tres veces en esta tanda, en **mis propios comentarios** dentro del cuerpo de un caso (TC-86,
+TC-101 y TC-499): cierran el template literal en la mitad. Y una cuarta trampa nueva: **un rótulo
+de condición partido en dos renglones dentro de una cadena simple**, que no es JS válido.
+
+Las dos las caza `node --check`, pero lo que las **previene** es un barrido: contar los acentos
+graves **sin barra invertida** del cuerpo de cada caso y exigir exactamente uno. Hoy da «ninguno»
+para los 919. **Conviene meterlo en el arnés**, antes de la primera corrida.
+
 ## MEDIR-5 — los arreglos del visor y la barra nueva (2026-11-15, EN CURSO)
 
 > ⚠️ **ESTA TANDA QUEDÓ ABIERTA.** La Parte A y los puntos C1 y C4 del añadido 2 están
