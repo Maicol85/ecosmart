@@ -12477,3 +12477,77 @@ Laboratorio.
   `parrafoCasillas`). El texto es el mismo, palabra por palabra.
 
 **Tabla «Cambios de evidencia»: ninguno.**
+
+---
+
+# La tanda PARTE-2 (2026-11-16) — el operador del corte de 20 mmHg de la coartación
+
+Una sola lectura nueva, y sirvió para **repartir** el crédito entre la fuente y la aplicación:
+qué medida de 20 mmHg opera en `≥` **porque la guía lo imprime así** y cuál lo hace **por
+decisión de esta aplicación**. El reparto importa porque de él depende dónde va el rótulo
+«Criterio de EcoSmart» y dónde no.
+
+## El documento y su regla de folio, re-comprobada
+
+| Documento | Ruta | Hojas | Regla | Comprobada en |
+|---|---|---|---|---|
+| **ESC 2020** de congénitas del adulto, **en inglés** (Baumgartner et al, *Eur Heart J* 2021;42:563-645) | `08_Cardiopatias_congenitas/ESC congenitos en ingles 2020.pdf` | **84** | folio = hoja + **562** | **hojas 42, 43, 44 y 60 → folios 604, 605, 606 y 622**, los cuatro leídos del folio impreso de la propia hoja |
+
+Es la misma regla que este archivo ya registraba en dos lugares; se volvió a comprobar en **cuatro**
+hojas y no en dos, y en las cuatro dio exacto.
+
+## Lo que la ESC 2020 imprime, leído literal
+
+Censadas **todas** las apariciones de «20 mmHg» de las hojas 40 a 47:
+
+| Medida | Operador que imprime la ESC 2020 | Folio |
+|---|---|---|
+| Gradiente de presión sistólica **brazo-pierna** | **≥ 20 mmHg** | **603** y **604** |
+| **Pico-pico invasivo** por manometría | **≥ 20 mmHg** | **604** |
+| El complementario del anterior, en la Tabla 69 | «< 20 mmHg» | 604 |
+
+La oración del pico-pico, literal (folio 604, apartado 4.6.3):
+
+> «Cardiac catheterization with manometry (a peak-to-peak gradient **≥20 mmHg**) indicates a
+> haemodynamically significant CoA in the absence of well-developed collaterals and is performed
+> in the setting of interventional treatment. It should be noted that, in patients under general
+> anaesthesia, invasive measurement of gradient may be underestimated.»
+
+El bloque «Gradiente pico-pico invasivo» del globo ⓘ de la coartación ya era una paráfrasis fiel
+de esa oración —incluidas las dos salvedades, la de las colaterales y la de la anestesia— pero
+**no nombraba de dónde salía**: desde esta tanda lleva su atribución y su folio.
+
+## ⚠️ El operador `≥` de este PDF NO se puede leer del texto extraído sin un control
+
+La extracción devuelve **`>_`** donde el documento imprime **≥**, y **`<_`** donde imprime ≤: el
+glifo se serializa como el signo más un guión bajo. Un censo que buscara el carácter `≥` daría
+**cero** sobre un documento que lo usa en todas sus tablas, y se leería como «la guía no usa ≥».
+
+**El control que lo cierra:** en las 84 hojas hay **87 apariciones de `>_` y 10 de `<_`**, y
+**cero** del `≥` y del `≤` literales. O sea que `>_` *es* la única forma en que este PDF puede
+expresar ≥ — no hay otra. Es la misma clase de trampa que PANT-19 y PANT-20 pagaron con el `±`
+serializado como «6», y que PANT-36 pagó con «(20–30%)» extraído como «(2030%)».
+
+## ⚠️ La Figura 6 (hoja 43, folio 605) NO se pudo leer, y se declara
+
+Esa hoja trae la **leyenda** de la Figura 6 en su capa de texto —«Figure 6 Management of
+coarctation and re-coarctation of the aorta»—, así que la figura está donde se dijo. Pero su
+**interior no es texto**: la hoja tiene **cero imágenes embebidas** y los rótulos del diagrama son
+dibujo vectorial, de modo que no hay nada que extraer, y renderizar la página a imagen quedó
+bloqueado en esta sesión.
+
+**La atribución de arriba NO se apoya en la figura**, se apoya en el **texto** de los folios 603 y
+604, que sí se leyó. Si alguna vez la figura publicara un operador distinto del de su propio texto,
+esta lectura habría que rehacerla — pero eso es una hipótesis, no un hallazgo. Queda en
+`docs/PENDIENTES.md`.
+
+## Tabla «Cambios de evidencia»
+
+| Qué | Antes | Ahora | Por qué |
+|---|---|---|---|
+| Operador del **gradiente medio por Doppler** | `> 20` | **`>= 20`**, rotulado **criterio de EcoSmart** | decisión del médico, 16/11/2026. Ninguna de las dos guías que publican esa medida lo imprime con `≥`: la ESC 2024 escribe «Gradiente MEDIO > 20 mmHg» (Figura 44, folio 120) y la ACC/AHA 2025, «mayor de 20 mmHg» (Tabla 25) |
+| Operador del **pico-pico invasivo** en la sección de Evidencia | `'gt'` | **`'ge'`** | **alineación con la fuente y con el propio papel**, no un criterio nuevo: el papel ya lo tomaba con `>=` y la ESC 2020 lo imprime `≥` (folio 604). **Sin rótulo** |
+| Operador del **gradiente entre miembros** (etiqueta) | «mayor de 20 mmHg» | «de 20 mmHg o más» | **la propia entrada ya citaba** «20 mmHg o más (hoja 42, folio 604)» en su `ref2`: la etiqueta contradecía a su cita. **Sin rótulo** |
+| Atribución del pico-pico en el globo ⓘ | sin fuente nombrada | **ESC 2020, folio 604** | la paráfrasis era fiel y anónima, así que su `≥` parecía propio de la app |
+| Citas de la **ACC/AHA 2025** (Tabla 25) y de la **ESC 2024** (Figura 44) | «mayor de 20 mmHg» | **intactas** | una cita que se reescribe deja de ser una cita |
+| Los dos renglones del resumen de coartación de Referencias | «mayor de 20 mmHg» | **intactos** | son dos de los quince resúmenes de **PANT-36**, que se **generan** con `scripts/_gen_p36resumenes.py` y tienen trazabilidad en `docs/CONTROL_CONGENITAS_P36.md`. Editarlos a mano desincroniza el generador |

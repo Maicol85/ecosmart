@@ -54613,18 +54613,42 @@ function evTarjetaCoa() {
      no se puede inyectar aca -y hacerlo con `innerHTML` por un adorno seria abrir una ruta de
      marcado en una tarjeta que hoy no tiene ninguna-. El rotulo lleva el mismo NOMBRE, que es
      lo que la orden pide que se vea. */
+  /* \u26a0\ufe0f EL ROTULO QUEDA SOLO EN EL MEDIO DOPPLER, Y ES UNA MEDICION (2026-11-16, ajuste).
+     La primera version de este bloque extendia el criterio propio al pico-pico invasivo y al
+     gradiente entre miembros superiores e inferiores, y ESO ERA FALSO en las dos: censadas
+     las apariciones de \u00ab20 mmHg\u00bb de la ESC 2020 de congenitas en sus hojas 40 a 47, esa guia
+     imprime `>=` para LAS DOS -el gradiente sistolico brazo-pierna en los folios 603 y 604, y
+     el pico-pico por manometria en el 604-, asi que ahi el `>=` de la app NO es propio: es el
+     de la fuente, y lleva su atribucion en los bloques de abajo en vez de un rotulo.
+     El unico que ninguna de las dos guias respalda tal cual es el gradiente MEDIO por Doppler:
+     la ESC 2024 lo imprime \u00ab> 20 mmHg\u00bb en su Figura 44 y la ACC/AHA 2025 \u00abmayor de 20 mmHg\u00bb en
+     su Tabla 25. Por eso el rotulo se queda con esa sola medida. */
   bl('Criterio de EcoSmart',
-     'El corte del gradiente MEDIO por Doppler se aplica como 20 mmHg O M\u00c1S. La Figura 44 '
-   + 'citada arriba lo imprime como \u00abmayor de 20 mmHg\u00bb, o sea con el operador estricto, de modo '
-   + 'que el valor de 20,0 exactos lo cuenta esta aplicaci\u00f3n y no la gu\u00eda. El mismo criterio '
-   + 'vale para el gradiente pico-pico invasivo y para el gradiente entre miembros superiores e '
-   + 'inferiores. Ning\u00fan otro valor cambia de categor\u00eda por esto.');
+     'El corte del gradiente MEDIO por Doppler se aplica como 20 mmHg O M\u00c1S. Las dos gu\u00edas que '
+   + 'lo publican lo imprimen con el operador estricto \u2014\u00abmayor de 20 mmHg\u00bb\u2014, de modo que el '
+   + 'valor de 20,0 exactos lo cuenta esta aplicaci\u00f3n y no ellas. Es la \u00fanica de las tres '
+   + 'medidas de 20 mmHg de esta pantalla en que el criterio es propio: el pico-pico invasivo y '
+   + 'el gradiente entre miembros superiores e inferiores se aplican como 20 mmHg o m\u00e1s porque '
+   + 'as\u00ed los publica la fuente, y cada uno lo dice en su bloque. Ning\u00fan otro valor cambia de '
+   + 'categor\u00eda por esto.');
   bl('Gradiente pico-pico invasivo',
      'El cateterismo con manometr\u00eda, con un gradiente pico-pico de 20 mmHg o m\u00e1s, indica una '
    + 'coartaci\u00f3n hemodin\u00e1micamente significativa cuando no hay colaterales bien desarrolladas, '
    + 'y se hace en el contexto del tratamiento intervencionista. Con el paciente bajo anestesia '
    + 'general la medici\u00f3n invasiva del gradiente puede subestimarse. Es el criterio de '
-   + 'indicaci\u00f3n: el Doppler no lo reemplaza.');
+   + 'indicaci\u00f3n: el Doppler no lo reemplaza. '
+     /* \u26a0\ufe0f LA ATRIBUCION ES NUEVA (2026-11-16) Y EL `>=` DE ESTA MEDIDA ES DE LA FUENTE, NO DE
+        LA APP. Este bloque ya parafraseaba al folio 604 casi palabra por palabra -incluida la
+        salvedad de la anestesia general- pero NO nombraba de donde salia, asi que el `>= 20`
+        del pico-pico parecia un criterio propio de la aplicacion y no lo es. Leido en el
+        original: \u00abCardiac catheterization with manometry (a peak-to-peak gradient >=20 mmHg)
+        indicates a haemodynamically significant CoA in the absence of well-developed collaterals
+        and is performed in the setting of interventional treatment. It should be noted that, in
+        patients under general anaesthesia, invasive measurement of gradient may be
+        underestimated.\u00bb Por eso esta medida NO lleva el rotulo de criterio propio. */
+   + 'Con ese operador \u201420 mmHg o m\u00e1s\u2014 lo publica la ESC 2020 de cardiopat\u00edas cong\u00e9nitas del '
+   + 'adulto en el folio 604 de su edici\u00f3n inglesa, que es tambi\u00e9n de donde salen la salvedad de '
+   + 'la anestesia y la de las colaterales.');
   bl('Estrechamiento relativo',
      'El estrechamiento del 50 % o m\u00e1s respecto del di\u00e1metro de la aorta al diafragma indica '
    + 'tratamiento percut\u00e1neo a considerar en el paciente hipertenso (Clase IIa \u00b7 Nivel C), aunque '
@@ -85888,15 +85912,28 @@ function _coaConclusionTxt(src){
      La cola diastólica sigue bastando por sí sola: es el escenario en que el Doppler engaña.
      Manda a medir el pico-pico invasivo, que es el criterio de INDICACIÓN (Tabla 69, folio 121,
      y la misma Figura 44), no a intervenir. */
-  /* ══ EL CORTE DE 20 mmHg OPERA EN «≥ 20» Y ES CRITERIO DE ECOSMART (2026-11-16) ═════════════
+  /* ══ EL CORTE DE 20 mmHg OPERA EN «≥ 20»; SOLO EL MEDIO DOPPLER ES PROPIO (2026-11-16) ══════
      DECISION DE MAICOL. Los lectores del gradiente de coartacion pasan de `>` estricto a `>=`,
      y los textos PROPIOS de la aplicacion lo dicen como «de 20 mmHg o mas».
-     ⚠️ ESTO APARTA A LA APP DE SU FUENTE A PROPOSITO, Y POR ESO SE ROTULA. La Figura 44 de la
-     ESC 2024 (folio 120) imprime «Gradiente MEDIO > 20 mmHg», con el `>` estricto -el comentario
-     que estaba mas abajo lo declaraba—, asi que el `>=` es de esta aplicacion y no de la guia.
-     Las CITAS de la guia -el `ref` de la seccion de Evidencia y las dos fichas de Referencias-
-     se dejan como la fuente las imprime: una cita que se reescribe deja de ser una cita. Lo que
-     cambia es el OPERADOR de la app y como la app enuncia SU criterio.
+     ⚠️ Y NO TODAS LAS MEDIDAS DE 20 mmHg SON CRITERIO PROPIO: HAY QUE MIRAR CUAL. Censadas las
+     apariciones de «20 mmHg» de la ESC 2020 de congenitas en sus hojas 40 a 47 (edicion
+     inglesa), esa guia imprime `>=` para DOS de las tres medidas de esta pantalla:
+       · gradiente sistolico brazo-pierna  -> «>= 20 mmHg», folios 603 y 604
+       · pico-pico invasivo por manometria -> «>= 20 mmHg», folio 604
+     En esas dos el `>=` de la app ES el de la fuente, asi que NO llevan rotulo: llevan su
+     atribucion. Y las dos entradas de Evidencia YA traian ese folio en su `ref2` desde antes de
+     esta tanda, o sea que la app ya tenia la lectura y lo que habia era una contradiccion
+     interna: la etiqueta decia «mayor de 20» y su propio `ref2`, «20 mmHg o mas».
+     EL UNICO QUE NINGUNA GUIA RESPALDA TAL CUAL ES EL GRADIENTE MEDIO POR DOPPLER: la ESC 2024
+     lo imprime «Gradiente MEDIO > 20 mmHg» en su Figura 44 (folio 120) y la ACC/AHA 2025, «mayor
+     de 20 mmHg» en su Tabla 25. Ahi si el `>=` es de esta aplicacion, y es la unica medida que
+     lleva el rotulo de criterio propio en el globo ⓘ.
+     Las CITAS se dejan como la fuente las imprime -el `ref` de la ACC/AHA y las dos fichas de
+     Referencias-: una cita que se reescribe deja de ser una cita.
+     ⚠️ LA FIGURA 6 DE LA ESC 2020 (hoja 43, folio 605) NO SE PUDO LEER: tiene cero imagenes
+     embebidas y su interior es dibujo vectorial, asi que su texto no esta en la capa de texto
+     del PDF. La atribucion de arriba se apoya en el TEXTO de los folios 603 y 604, que si se
+     leyo. Queda declarado en PENDIENTES.
      ⚠️ CONSECUENCIA MEDIBLE Y DECLARADA: un gradiente medio de 20,0 EXACTOS pasa de
      «limitrofe» a «significativa», y un maximo de 20,0 exactos pasa a disparar la rama de
      «sin gradiente medio registrado». Ningun otro valor cambia de rama.
@@ -101341,7 +101378,13 @@ const COA_PREG = Object.freeze([
      publica, que es justo lo que la regla de citacion de esta casa prohibe. */
   { clave:'coa.ev.picopico20', lbl:'Gradiente invasivo pico-pico de 20 mmHg o más', guia:'ao',
     rec:'Clase I · Nivel C — con hipertensión, es el número que confirma el gradiente no invasivo aumentado y con el que la reparación está indicada; y Clase IIa · Nivel C — en el normotenso con gradiente no invasivo aumentado confirmado, el tratamiento endovascular debe considerarse, Tabla 69, hoja 111, folio 3648',
-    nota:'se pre-responde desde el campo «Gradiente pico-pico» de la pestaña de la coartación, con el operador de esta guía: mayor que 20 mmHg',
+    /* ⚠️ EL `nota` DECIA «con el operador de esta guía: mayor que 20 mmHg» Y QUEDO FALSO EN ESTA
+       MISMA TANDA (2026-11-16): el lector pasa a `'ge'`, asi que ya no es «mayor que». Y el
+       operador nuevo NO es un criterio propio de la app -por eso esta pregunta no lleva rotulo-:
+       es el de la ESC 2020, que el `ref2` de abajo ya citaba con su folio desde antes que yo
+       tocara nada. Lo que habia era una contradiccion interna: la etiqueta y el `nota` decian
+       «mayor de 20» mientras el `ref2` de la misma entrada decia «20 mmHg o más». */
+    nota:'se pre-responde desde el campo «Gradiente pico-pico» de la pestaña de la coartación, con el operador de la ESC 2020 que cita más abajo: 20 mmHg o más. La guía de esta pregunta lo imprime con el operador estricto',
     refLbl:'ACC/AHA 2025',
     ref:'su Tabla 25 lista el gradiente pico-pico por cateterismo mayor de 20 mmHg entre los rasgos que sugieren significación hemodinámica, y con una coartación anatómica y hemodinámicamente significativa la cirugía o el stent están recomendados: Clase 1 · Nivel B-NR, recomendación 8 (hoja 57, folio e171)',
     ref2Lbl:'ESC 2020',
