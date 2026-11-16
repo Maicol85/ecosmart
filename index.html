@@ -23650,7 +23650,18 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                  criterio de inclusión, cuando es una advertencia que NO cambia el veredicto. -->
             <b>Comunes a los dos tipos:</b> Velo ant ≥20mm · Área mitral ≥4cm² · PSAP ≤70mmHg<br>
             <b>IM Primaria:</b> Ancho del flail &lt;15mm · Flail gap &lt;10mm<br>
-            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DSFVI ≤70mm · Prof. coaptación ≤10mm · Longitud de coaptación ≥2mm<br>
+            <!-- ⚠️ LOS DOS CORTES DE COAPTACION, CADA UNO CON SU PROCEDIMIENTO (2026-11-16).
+                 Esta linea decia «Prof. coaptación ≤10mm» como criterio TEER y estaba mal por
+                 DOS razones a la vez, las dos medidas contra la pantalla que dejo MEDIR-6:
+                 (1) el corte del CLIP es «<11 mm» y solo cuenta CON TETHERING -Tamburino 2010,
+                 Tabla 1, folio 1386, excluye ≥11 mm-, y (2) el de 10 mm no es del clip sino de
+                 la REPARACION QUIRURGICA, donde la Tabla 7 lo lista como caracteristica
+                 DESFAVORABLE a partir de 10 mm, o sea en el sentido CONTRARIO al que esta linea
+                 le daba. Un «≤10 mm» como criterio de inclusion del clip juntaba el umbral de un
+                 procedimiento con la direccion del otro. Los otros dos bloques de esta misma
+                 ficha ya lo decian bien -el de reparabilidad y el de «Criterios de TEER»-, asi
+                 que lo unico que quedaba desalineado era este resumen compacto. -->
+            <b>IM Secundaria (COAPT):</b> FEVI 20–50% · DSFVI ≤70mm · Prof. coaptación &lt;11mm (clip, con tethering; para la reparación quirúrgica el corte es otro — 10mm o más) · Longitud de coaptación ≥2mm<br>
             <b>Exclusión ambas:</b> Trombo AI (absoluta) · Calcificación densa zona clip · Clefts en zona agarre<br>
             <b>Advertencia, no exclusión:</b> Velo post ≥7mm (ideal ≥10mm) — factibilidad de agarre; se informa y no modifica el veredicto
           </div>
@@ -131338,12 +131349,24 @@ function actualizarAlgoritmo() {
   } else if(captaGamma && protNeg) {
     if(captaAlta) {
       tipo='E2A'; icon='🟣'; clasePanel='prob-alta'; claseEscenario='morado';
-      titulo = 'ATTR confirmado — Grado ' + gradoGamma + ' (VPP 100%)' + ettInfo;
+      titulo = 'ATTR confirmado — Grado ' + gradoGamma + ' (especificidad cercana al 100 %)' + ettInfo;
       /* La salvedad viaja DENTRO del cuerpo, no en un div de pantalla: este texto se emite al
          informe y al PDF, y salía afirmando «VPP 100%, no se requiere biopsia» sin ninguno de
          los falsos positivos que la app lista tres centímetros más arriba —entre ellos la
-         propia amiloidosis AL, que es justo el diagnóstico que este escenario excluye—. */
-      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. Este patrón tiene un valor predictivo positivo del 100% para ATTR, y con las proteínas monoclonales correctamente descartadas (inmunofijación en suero y orina más cadenas ligeras libres) no se requiere biopsia cardíaca. '
+         propia amiloidosis AL, que es justo el diagnóstico que este escenario excluye—.
+         ⚠️ «ESPECIFICIDAD CERCANA AL 100 %» Y NO «VPP 100 %», CON SU CONDICION (2026-11-16).
+         Es la misma correccion que R2-E5 le hizo a la ficha de la pestaña el 21/10/2026, que
+         hasta hoy NO habia llegado a estos dos textos —el titulo y el cuerpo—, que son los que
+         viajan al informe firmado y al PDF: la pestaña decia especificidad y el papel seguia
+         diciendo VPP. La fuente ya citada en el bloque de arriba lo dice literal en el folio
+         1556: «the specificity of GRADE 2 OR 3 bone scintigraphy for cardiac ATTR WHEN THE
+         DISEASE IS SUSPECTED has been proposed to be ALMOST 100%». Especificidad y valor
+         predictivo positivo no son lo mismo: el VPP depende de la prevalencia, asi que un 100 %
+         afirmado sobre un paciente cualquiera es una sobre-afirmacion. LA CONDICION NO SE
+         INVENTO: las dos mitades —el grado 2 o 3, y que la enfermedad se sospeche— son las que
+         el folio imprime, y por eso se escriben las dos. Se conserva «se le ha propuesto»,
+         que es el «has been proposed to be» del original y no una afirmacion de la app. */
+      cuerpo = 'Gammagrafía con captación cardíaca grado ' + gradoGamma + ' y proteínas monoclonales negativas. A la captación grado 2 o 3, en un paciente en quien la enfermedad se sospecha, se le ha propuesto una especificidad cercana al 100 % para ATTR cardíaca, y con las proteínas monoclonales correctamente descartadas (inmunofijación en suero y orina más cadenas ligeras libres) no se requiere biopsia cardíaca. '
         + 'Salvedad: la captación puede ser un falso positivo en amiloidosis AL, intoxicación por hidroxicloroquina, fracturas costales, calcificaciones valvulares e infarto de miocardio de menos de 4 semanas. Integrar con la clínica.';
       accion = '→ Continuar con pruebas genéticas del gen TTR para diferenciar ATTR wild-type (senil, sin mutación) de ATTR mutante (hereditario). Derivar a consulta especializada en amiloidosis para inicio de tratamiento específico (tafamidis, patisiran u otro según disponibilidad).';
     } else {
@@ -150401,11 +150424,18 @@ function _simpStat(rot, val, uni, bsa, col, gr) {
 const _SIMP_NOTAS_METODO = [
   'El biplano no es el promedio de las dos ventanas: usa el producto cruzado de los diámetros de la A4C y la A2C, y el eje largo más largo de las dos. Qué lado queda más alto depende de la geometría, así que no se puede describir como una diferencia con dirección fija.',
   'Cada ventana muestra además SU monoplanar, que asume el disco circular. Las filas de arriba son de dónde salió el resultado; el que se integra al informe es el biplano. VEyec = VFD − VFS.',
-  'El eje largo que se usa es el más largo de las dos ventanas, en diástole y en sístole por separado (ASE/EACVI 2015).',
+  /* ⚠️ EL ⓘ CITA «Lang 2015», AUTOR-AÑO (2026-11-16). Decia «(ASE/EACVI 2015)», que es
+     sociedad-año, y las dos notas de abajo decian «la guía» a secas sin nombrarla, asi que el
+     globo nombraba su fuente de tres formas distintas y ninguna era la que esta casa usa: la
+     forma de la app es autor-año —el archivo ya cita «Lang 2015, folio 12» en la tabla de
+     criterios propios—, y el enunciado de la tanda la fija para los ⓘ. El documento es el mismo
+     en los tres casos (Lang RM y cols., recomendaciones de cuantificacion de cavidades); lo que
+     cambia es como se lo nombra. */
+  'El eje largo que se usa es el más largo de las dos ventanas, en diástole y en sístole por separado (Lang 2015).',
   'Cada trazado usa la escala de SU imagen, no una sola para los cuatro: la A4C y la A2C son adquisiciones distintas y su profundidad también.',
   'La clasificación de la FEVI es la misma que usa el informe.',
-  'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; la guía lo lista como su limitación principal.',
-  'Un monoplanar asume el ventrículo circular en el corte transversal. La guía recomienda el biplano, y los valores normales con los que se clasifica salen de biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
+  'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; Lang 2015 lo lista como su limitación principal.',
+  'Un monoplanar asume el ventrículo circular en el corte transversal. Lang 2015 recomienda el biplano, y los valores normales con los que se clasifica salen de biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
   'Para el biplano hay dos caminos: tocar «➕ Vista» y abrir el cineloop de la otra apical, o trazar la otra ventana en esta misma vista cambiando de cineloop. Lo confirmado no se pierde.',
   'Los contornos no se guardan con el estudio, sólo los números. Una tabla que volvió al reabrir el estudio no se puede seguir midiendo: para eso hay que volver a trazar.'
 ];
@@ -152914,6 +152944,20 @@ const _DOP_DISC = {
   mit: [
     { txt:'THP puede subestimar AVM en IAo severa o post-valvuloplastia. En esos casos preferir AVM por continuidad. (ASE/EACVI 2021)',
       si:['AVM por THP'] },
+    /* ⚠️ LA ADVERTENCIA DE VALIDEZ DEL AVM POR CONTINUIDAD, LEIDA DEL DUEÑO DEL INFORME
+       (2026-11-16). Hasta hoy el visor traia solo la nota de PROCEDENCIA de abajo -de donde
+       salen sus dos insumos- y NO la de validez, que es la que el informe si publica: una tabla
+       de AVM por continuidad podia quedar quemada en una imagen de la biblioteca, y de ahi
+       llegar a un PDF, sin decir que con regurgitacion significativa esa ecuacion no vale.
+       NO SE COPIA LA CADENA, SE LEE `EM_CONT_AVISO_TXT`, que es el dueño unico que ya usa el
+       informe y que la app expone en `window` unas 110.000 lineas mas arriba. Copiarla cumpliria
+       el pedido hoy y lo rompe el dia que alguien reescriba una de las dos: con un solo dueño
+       las dos superficies NO PUEDEN tener dos redacciones distintas, que es lo que la orden
+       pide, y ademas es por construccion y no por una medicion a posteriori.
+       El orden de carga esta verificado: el dueño se define y se exporta a `window` MUCHO antes
+       de que se evalue este literal, asi que no hace falta diferirlo. */
+    { txt:(window.EM_CONT_AVISO_TXT || 'AVm por continuidad no válida con regurgitación significativa') + '.',
+      si:['AVM por continuidad'] },
     { txt:'AVM por continuidad: usa el VTI del TSVI y el diámetro del TSVI cargados en el acordeón Aórtica.',
       si:['AVM por continuidad'] }
   ],
