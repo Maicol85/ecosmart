@@ -12528,7 +12528,22 @@ glifo se serializa como el signo más un guión bajo. Un censo que buscara el ca
 expresar ≥ — no hay otra. Es la misma clase de trampa que PANT-19 y PANT-20 pagaron con el `±`
 serializado como «6», y que PANT-36 pagó con «(20–30%)» extraído como «(2030%)».
 
-## ⚠️ La Figura 6 (hoja 43, folio 605) NO se pudo leer, y se declara
+## La Figura 6 (hoja 43, folio 605) — leída en imagen por Maicol, no por mí
+
+**Dice «Peak-to-peak gradient ≥20 mmHg» en sus DOS cajas**, la de sin hipertensión y la de con
+hipertensión. Lectura **hecha en imagen por Maicol** y comunicada el 16/11/2026.
+
+⚠️ **Queda anotado de quién es la lectura, y no se la apropia esta sesión.** La regla de la casa
+es que «verificada» quiere decir texto completo leído; acá el texto completo lo leyó el médico y
+yo no pude (ver abajo por qué). Se registra como lectura suya para que la próxima tanda sepa que
+el dato está verificado y de qué forma, sin que parezca que salió de la medición automática.
+
+**Y confirma, por una vía independiente, lo que el texto ya decía:** los folios 603 y 604
+imprimen `≥ 20 mmHg` para el pico-pico invasivo y para el gradiente brazo-pierna. La figura y el
+texto del mismo documento **coinciden**, así que la hipótesis que esta sesión había dejado abierta
+—que la figura pudiera imprimir otro operador que su propio texto— queda **cerrada**.
+
+## ⚠️ Por qué esta sesión no la pudo leer
 
 Esa hoja trae la **leyenda** de la Figura 6 en su capa de texto —«Figure 6 Management of
 coarctation and re-coarctation of the aorta»—, así que la figura está donde se dijo. Pero su

@@ -17917,11 +17917,13 @@ los dos motores y el sello.
   `lista.style.display='flex'` y no con el atributo `hidden`, así que `:has()` no puede
   engancharlo igual. Hay que **agregarle una clase al abrirlo** —el patrón de
   `.valv-sev-menu.open`, `index.html:3518`— y colgar el `:has()` de esa clase.
-- **P2-b · La Figura 6 de la ESC 2020 no se pudo leer** (hoja 43, folio 605). Su leyenda sí
-  está en la capa de texto; su interior no: la hoja tiene **cero imágenes embebidas** y los
-  rótulos son dibujo vectorial. La atribución del `≥20` del pico-pico se apoya en el **texto**
-  de los folios 603 y 604, que sí se leyó, con su control del glifo. Si alguna vez se pudiera
-  renderizar, conviene confirmar que la figura no imprime otro operador que su propio texto.
+- **P2-b · CERRADO (16/11/2026). La Figura 6 de la ESC 2020** (hoja 43, folio 605) **dice
+  «Peak-to-peak gradient ≥20 mmHg» en sus DOS cajas** —sin y con hipertensión—. Lectura hecha
+  **en imagen por Maicol**, no por esta sesión: la hoja tiene cero imágenes embebidas y su
+  interior es dibujo vectorial, así que su texto no está en la capa de texto del PDF.
+  Confirma por vía independiente lo que el texto de los folios 603 y 604 ya decía, de modo que
+  la duda que este punto dejaba abierta —que la figura imprimiera otro operador que su propio
+  texto— queda resuelta: **coinciden**. Registrado en `docs/fuentes/FUENTES.md`.
 - **P2-c · La fila verificada de la tabla de festones es de Hahn ASE 2022** (Tabla 4, folio 28),
   **no de Hahn 2013** como la orden anticipaba. La ⓘ de esa tabla queda para otra tanda, por
   orden expresa; cuando se haga, hay que citar el documento que de verdad la sostiene.

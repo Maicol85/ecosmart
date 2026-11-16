@@ -4825,6 +4825,29 @@ html.light-mode .amilo-root{
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:6px;
   display:flex;flex-direction:column;gap:4px;box-shadow:0 6px 18px rgba(0,0,0,.20);}
 #lv3d-coro-lista-art{width:150px;}
+/* ══ EL MENU DE ANGIOGRAFIA NO SE CORTA ABAJO — 2.9 (2026-11-16) ══════════════════════════════
+   MEDIDO EN CHROME REAL ANTES DE TOCAR, y la hipotesis era la correcta: el que recorta es el
+   `div.card` que envuelve al panel, con `overflow:hidden` en los DOS ejes. A 1440x700 el menu
+   mide 499 px, la tarjeta termina 135,5 px antes de su borde inferior, y de sus DIEZ opciones
+   solo SIETE eran alcanzables al toque: TRES quedaban tapadas. Es el mismo defecto y el mismo
+   arreglo que PANT-38 midio para el menu de Documentos y, antes, para el de severidad valvular.
+   ⚠️ CON `:has()` Y NO CON UN `overflow:visible` PELADO, por la razon de siempre: la tarjeta
+   vuelve a `hidden` en cuanto el menu se cierra, asi que la regla solo esta viva mientras hay un
+   menu abierto y ninguna otra tarjeta de la app cambia nunca. Se acota a `#tab-contractilidad`
+   aunque los dos id sean unicos: un `:has()` sin acotar obliga al navegador a evaluar todas las
+   tarjetas del documento.
+   ⚠️ Y SE ENGANCHA DE LA CLASE `.open`, NO DE `:not([hidden])`. Este menu se abre poniendo
+   `style.display` desde `lv3dCoroUI`, no con el atributo `hidden`, asi que la forma que sirvio
+   para Documentos no tiene de donde agarrarse. La clase se pone en la misma linea que el
+   display, para que no puedan desincronizarse. Es el patron de `.valv-sev-menu.open`.
+   ⚠️ Y LLEVA SU PROPIO DESPLAZAMIENTO, que es la otra mitad del pedido. Levantar el recorte solo
+   no alcanza: con nueve vistas el menu mide casi 500 px, asi que en una ventana baja se saldria
+   de la PANTALLA, que es un recorte peor porque no tiene borde visible. `max-height` con
+   `overflow-y:auto` es lo que lo hace recorrible. Se mide contra el viewport (`vh`) porque el
+   menu es flotante y lo unico que lo acota de verdad es la pantalla. */
+#tab-contractilidad .card:has(#lv3d-coro-lista.open),
+#tab-contractilidad .card:has(#lv3d-coro-lista-art.open){overflow:visible;}
+#lv3d-coro-lista,#lv3d-coro-lista-art{max-height:min(70vh,440px);overflow-y:auto;}
 /* ══ EL ESQUEMA DE ANOMALIAS CORONARIAS, EN REFERENCIAS — PANT-34 (B) ══════════════════════
    El texto a la izquierda y el cuadro del esquema al costado; por debajo de 700 px de VENTANA el
    cuadro se apila DEBAJO del texto, centrado y hasta 300 px.
@@ -85962,10 +85985,12 @@ function _coaConclusionTxt(src){
      lleva el rotulo de criterio propio en el globo ⓘ.
      Las CITAS se dejan como la fuente las imprime -el `ref` de la ACC/AHA y las dos fichas de
      Referencias-: una cita que se reescribe deja de ser una cita.
-     ⚠️ LA FIGURA 6 DE LA ESC 2020 (hoja 43, folio 605) NO SE PUDO LEER: tiene cero imagenes
-     embebidas y su interior es dibujo vectorial, asi que su texto no esta en la capa de texto
-     del PDF. La atribucion de arriba se apoya en el TEXTO de los folios 603 y 604, que si se
-     leyo. Queda declarado en PENDIENTES.
+     ⚠️ Y LA FIGURA 6 DE LA ESC 2020 (hoja 43, folio 605) LO CONFIRMA POR OTRA VIA: dice
+     «Peak-to-peak gradient >= 20 mmHg» en sus DOS cajas, la de sin hipertension y la de con
+     hipertension. Esa lectura la hizo Maicol EN IMAGEN el 16/11/2026; esta sesion no pudo
+     -la hoja tiene cero imagenes embebidas y su interior es dibujo vectorial, asi que su texto
+     no esta en la capa de texto del PDF-. O sea que la figura y el texto del mismo documento
+     COINCIDEN, y la atribucion de arriba queda sostenida por los dos.
      ⚠️ CONSECUENCIA MEDIBLE Y DECLARADA: un gradiente medio de 20,0 EXACTOS pasa de
      «limitrofe» a «significativa», y un maximo de 20,0 exactos pasa a disparar la rama de
      «sin gradiente medio registrado». Ningun otro valor cambia de rama.
@@ -139147,9 +139172,23 @@ function lv3dCoroUI(){
   const dib = document.getElementById('lv3d-dibujo');
   if (dib) dib.classList.toggle('lv3d-coro-on', on);
   const lista = document.getElementById('lv3d-coro-lista');
-  if (lista) lista.style.display = (on && _lv3d.coroLista) ? 'flex' : 'none';
+  /* ⚠️ LA CLASE `open` ES LA QUE HACE POSIBLE EL ARREGLO DEL RECORTE (2.9, 2026-11-16).
+     El menu se abre poniendo `style.display` y NO el atributo `hidden`, asi que el `:has()` que
+     levanta el `overflow:hidden` de la tarjeta no tiene de donde agarrarse -con `hidden` le
+     alcanzaba `:not([hidden])`, como al menu de Documentos-. La clase es el enganche, y es el
+     mismo patron que la app ya usa en `.valv-sev-menu.open`.
+     Se pone en la MISMA linea que el display para que no puedan desincronizarse: un menu
+     abierto sin la clase volveria a quedar recortado, y la clase sin el menu abierto dejaria la
+     tarjeta sin recortar para siempre. */
+  if (lista) { lista.style.display = (on && _lv3d.coroLista) ? 'flex' : 'none';
+               lista.classList.toggle('open', !!(on && _lv3d.coroLista)); }
   const listaA = document.getElementById('lv3d-coro-lista-art');
-  if (listaA) listaA.style.display = (on && _lv3d.coroListaArt) ? 'flex' : 'none';
+  /* El de arteria lleva la MISMA clase y por el mismo motivo: son dos menus flotantes dentro de
+     la misma tarjeta recortada, y es mas corto darle el enganche a los dos que explicar por que
+     uno si y el otro no. Hoy tiene tres opciones y entra; el dia que gane una cuarta no vuelve
+     a aparecer este defecto. */
+  if (listaA) { listaA.style.display = (on && _lv3d.coroListaArt) ? 'flex' : 'none';
+                listaA.classList.toggle('open', !!(on && _lv3d.coroListaArt)); }
   /* El selector de arteria: titulo FIJO «Arteria», tilde en la activa, y `btn-primary` sobre el
      boton solo cuando esta en algo distinto de «Todas», que es el estado por omision. */
   const ab = panel.querySelector('.lv3d-coro-art-btn');
