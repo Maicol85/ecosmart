@@ -20866,8 +20866,22 @@ z
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
-        <div class="fg"><label>Miectomía o alcoholización septal previa</label>
+        <!-- ══ LAS DOS SE PREGUNTAN POR SEPARADO (3A, 2026-11-17, orden de Maicol) ═══════════
+             Hasta hoy era UN solo campo, «Miectomía o alcoholización septal previa», y las dos
+             respuestas APAGABAN el score. La miectomía sigue siendo exclusión; la alcoholización
+             ya no lo es: el score se calcula y se publica con su salvedad al lado.
+             ⚠️ EL ID DE LA MIECTOMÍA SE CONSERVA (`mch_ex_reduccion`) Y NO SE RENOMBRA, y es
+             deliberado: de él cuelgan la columna «MCH excl. reducción septal» del Excel del
+             Laboratorio y su alias en el importador, y esta tanda tiene orden expresa de no tocar
+             el Excel en nada. Renombrarlo rompería el round-trip de los estudios ya guardados.
+             El campo nuevo NO tiene columna: queda declarado en `docs/PENDIENTES.md` → P3A-d. -->
+        <div class="fg"><label>Miectomía previa</label>
           <select id="mch_ex_reduccion" onchange="mchSync()">
+            <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="fg"><label>Alcoholización septal previa</label>
+          <select id="mch_ex_alcohol" onchange="mchSync()">
             <option value="">—</option><option value="no_eval">No consta</option><option value="no">No</option><option value="si">Sí</option>
           </select>
         </div>
@@ -52301,8 +52315,10 @@ const VINFO = Object.freeze({
     ancho: 380,
     tit: 'Las exclusiones del modelo europeo',
     lee: 'El modelo de riesgo a 5 años no está pensado para atletas de competición, para personas '
-       + 'con enfermedades metabólicas o infiltrativas, ni después de una miectomía o una '
-       + 'alcoholización septal.\n'
+       + 'con enfermedades metabólicas o infiltrativas, ni después de una miectomía.\n'
+       + 'LA ALCOHOLIZACIÓN SEPTAL SE PREGUNTA APARTE Y NO APAGA EL NÚMERO: el porcentaje se '
+       + 'publica con una salvedad al lado, porque está validado en un estudio de adultos y con '
+       + 'hipertrofia severa u obstrucción residual el riesgo puede ser mayor.\n'
        + 'CÓMO LO APLICA ESTA PANTALLA: si alguno está MARCADO, no se publica el porcentaje y se '
        + 'dice cuál lo impide. Si quedan SIN CONTESTAR, el número se publica y el informe avisa '
        + 'que la aplicabilidad no se verificó. Los menores de 16 años se detectan solos.',
@@ -89000,6 +89016,20 @@ function mchGradMax(src){ return mchGrad(src).max; }
    no sólo en una. La asimetría con los tres binarios del score es deliberada: aquellos entran en
    la ecuación y un «no consta» tratado como 0 cambia el número; una exclusión sin contestar no
    cambia el número, cambia si el número corresponde. */
+/* ⚠️ LA SALVEDAD DE LA ALCOHOLIZACIÓN SEPTAL — UN SOLO DUEÑO (3A, 2026-11-17).
+   La alcoholización dejó de apagar el score, así que el número SE PUBLICA y lo que hay que decir
+   es con qué salvedad. Un solo dueño para las tres superficies que la dicen —el informe, el EN
+   SUMA y el resumen del Laboratorio—, que es la regla de este bloque: con el texto escrito en
+   cada una, la que se olvida de cambiar deja un informe firmado afirmando lo que las otras dos
+   niegan. Devuelve la cadena VACÍA cuando no corresponde, para que el llamador la pueda
+   concatenar sin preguntar. */
+function _mchAlcoholNota(src){
+  return (_ccSv('mch_ex_alcohol', src) === 'si')
+    ? 'Calculado tras alcoholización septal: validado en un estudio de adultos; con hipertrofia severa u obstrucción residual el riesgo puede ser mayor'
+    : '';
+}
+window._mchAlcoholNota = _mchAlcoholNota;
+
 function mchExclusiones(src){
   const _mchSv = id => _ccSv(id, src), _mchNv = id => _ccNv(id, src);
   const edad = _mchNv('edad');
@@ -89039,7 +89069,10 @@ function mchExclusiones(src){
     if (_val === 'si') act.push('parada cardíaca o taquicardia ventricular sostenida previa');
     else if (_val !== 'no') pend.push('parada cardíaca o taquicardia ventricular sostenida previa' +
       (_tv.sostenida ? ' — hay taquicardia ventricular SOSTENIDA cargada en el bloque de arritmia ventricular: confirmar si es un antecedente, porque en ese caso el score no es aplicable' : '')); }
-  chequear('mch_ex_reduccion','miectomía o alcoholización septal previa');
+  /* ⚠️ LA ALCOHOLIZACIÓN SEPTAL YA NO ES UNA EXCLUSIÓN (3A, 2026-11-17, orden de Maicol): no
+     entra en `chequear` ni apaga el score, y su salvedad la publica `_mchAlcoholNota`. La
+     miectomía sigue siendo exclusión y conserva su campo. */
+  chequear('mch_ex_reduccion','miectomía previa');
   return { activas: act, pendientes: pend };
 }
 /* La ECUACIÓN del HCM Risk-SCD, sola y sin tocar el DOM. Está separada de `mchScoreESC` porque
@@ -89562,6 +89595,11 @@ function mchConclusion(src){
       resumen += '. Taquicardia ventricular sostenida documentada: el score no está validado en ese escenario';
       papel += '. Taquicardia ventricular sostenida documentada: el score no está validado en ese escenario';
     } }
+  /* La salvedad de la alcoholización septal, con el MISMO molde que la de la TV sostenida de
+     arriba: va a las dos salidas y sólo si el score se publicó —con una exclusión activa no hay
+     número que calificar, así que decir «calculado tras alcoholización» sería falso—. */
+  { const _alc = _mchAlcoholNota(src);
+    if (_alc && !ex.activas.length) { resumen += '. ' + _alc; papel += '. ' + _alc; } }
   /* Y la aplicabilidad no verificada del modelo europeo. */
   if (!ex.activas.length && ex.pendientes.length) {
     const _aplic = ': ' + ex.pendientes.length +
@@ -90678,6 +90716,10 @@ function ccSumaLinea(sec){
       sal.push('no consta resonancia, que el ecocardiograma no evalúa');
     if (typeof tvEstado === 'function' && tvEstado().sostenida && !ex.activas.length)
       sal.push('taquicardia ventricular sostenida documentada, escenario en que el score no está validado');
+    /* La cuarta salvedad, del mismo dueño que las del informe. En minúscula como las otras tres:
+       los cuatro literales se escribieron para ir tras un ` — ` a mitad de frase. */
+    if (!ex.activas.length && _mchAlcoholNota())
+      sal.push('calculado tras alcoholización septal, validado en un estudio de adultos; con hipertrofia severa u obstrucción residual el riesgo puede ser mayor');
     /* Capitalizada: los tres literales se escribieron para ir tras un ` — ` a mitad de frase, y
        como línea propia arrancaban en minúscula en un informe firmado. */
     const salTxt = sal.join(' — ');
@@ -91074,7 +91116,9 @@ function critMCH(){
        'o realce tardío. Los diagramas siguen la versión 2020; el conteo de factores del informe usa la de 2024.</p>';
   h += '<p style="font-size:10px;color:var(--text2);line-height:1.6;margin:6px 0 0;">' +
        'El HCM Risk-SCD no está validado en menores de 16 años, atletas de competición, fenocopias metabólicas ' +
-       'o infiltrativas, formas sindrómicas, ni tras miectomía. Tampoco usa gradientes inducidos por ejercicio, ' +
+       'o infiltrativas, formas sindrómicas, ni tras miectomía. Tras una alcoholización septal sí se calcula, con ' +
+       'la salvedad de que está validado en un estudio de adultos y que con hipertrofia severa u obstrucción ' +
+       'residual el riesgo puede ser mayor. Tampoco usa gradientes inducidos por ejercicio, ' +
        'y con espesores ≥35 mm el riesgo calculado desciende por la relación no lineal: hay pocos datos ahí.</p>';
   return h;
 }
@@ -133167,7 +133211,10 @@ const _IG_SECTIONS = [
     {id:'mch_ex_fenocopia',lbl:'Excl.: fenocopia',map:_IG_SN},
     {id:'mch_ex_sindromica',lbl:'Excl.: forma sindrómica',map:_IG_SN},
     {id:'mch_ex_parada',lbl:'Excl.: parada o TV sostenida previa',map:_IG_SN},
-    {id:'mch_ex_reduccion',lbl:'Excl.: reducción septal previa',map:_IG_SN},
+    {id:'mch_ex_reduccion',lbl:'Excl.: miectomía previa',map:_IG_SN},
+    /* Alcoholización septal: NO lleva el prefijo «Excl.» porque desde la 3A no es una exclusión
+       —no apaga el score— sino una salvedad del número que se publica. */
+    {id:'mch_ex_alcohol',lbl:'Alcoholización septal previa',map:_IG_SN},
     {id:'mch_fam_ms_mch',lbl:'Familiar con MCH establecida',map:_IG_SN},
     {id:'mch_mult_mut',lbl:'Múltiples mutaciones patogénicas',map:_IG_SN},
     {id:'mch_ctx_hta',lbl:'HTA resistente',map:_IG_SN},
@@ -150681,7 +150728,7 @@ const _SIMP_NOTAS_METODO = [
   'El eje largo que se usa es el más largo de las dos ventanas, en diástole y en sístole por separado (Lang 2015).',
   'Cada trazado usa la escala de SU imagen, no una sola para los cuatro: la A4C y la A2C son adquisiciones distintas y su profundidad también.',
   'La clasificación de la FEVI es la misma que usa el informe.',
-  'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; Lang 2015 lo lista como su limitación principal.',
+  'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; Lang 2015 lo lista entre sus limitaciones.',
   'Un monoplanar asume el ventrículo circular en el corte transversal. Lang 2015 recomienda el biplano, y los valores normales con los que se clasifica salen de biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
   'Para el biplano hay dos caminos: tocar «➕ Vista» y abrir el cineloop de la otra apical, o trazar la otra ventana en esta misma vista cambiando de cineloop. Lo confirmado no se pierde.',
   'Los contornos no se guardan con el estudio, sólo los números. Una tabla que volvió al reabrir el estudio no se puede seguir midiendo: para eso hay que volver a trazar.'
@@ -184231,7 +184278,7 @@ const ECO_AYUDA = [
 <div class="mBox mAviso"><b>Marfan — el umbral quirúrgico lo elige el SÍNDROME, no el diámetro.</b> Loeys-Dietz opera desde 45 mm, Marfan desde 50 y la aortopatía no sindrómica desde 55; Turner va indexada por superficie corporal. <b>Sin síndrome declarado la app no concluye</b> — con 47 mm un Loeys-Dietz tiene indicación Clase I y una no sindrómica no tiene ninguna. El diámetro que decide es el mayor entre seno y ascendente.</div>
 <div class="mBox mAviso"><b>Aorta bicúspide — lo que decide es la aorta, no la válvula</b>, y la guía que aplica la app es la ESC 2024 de aorta. Los <b>45 mm no son un umbral quirúrgico por sí solos</b>: son el umbral para reemplazar la aorta cuando el paciente ya va a quirófano por la válvula.</div>
 <div class="mBox mAviso"><b>MCH — dos scores lado a lado, y no se promedian.</b> El europeo (HCM Risk-SCD) es una ecuación continua que devuelve un porcentaje a 5 años; el americano (AHA/ACC 2024) cuenta factores mayores. <b>Dan indicaciones opuestas</b> en el mismo paciente y la app imprime las dos con su guía.</div>
-<div class="mBox mAviso"><b>MCH — si falta una de las siete variables, no se publica el número.</b> Y las <b>exclusiones son compuertas, no advertencias</b>: el score no está validado en menores de 16 años, atletas de competición, fenocopias (Fabry, amiloidosis), post-miectomía o post-alcoholización, ni en prevención secundaria. Sin contestarlas, la app declara que la aplicabilidad no está verificada.</div>
+<div class="mBox mAviso"><b>MCH — si falta una de las siete variables, no se publica el número.</b> Y las <b>exclusiones son compuertas, no advertencias</b>: el score no está validado en menores de 16 años, atletas de competición, fenocopias (Fabry, amiloidosis), post-miectomía, ni en prevención secundaria. Sin contestarlas, la app declara que la aplicabilidad no está verificada.</div>
 <div class="mBox mAviso"><b>MCA — la anomalía regional de la motilidad es obligatoria, no una alternativa.</b> El Task Force exige aquinesia, disquinesia o aneurisma regional <b>Y</b> uno de los criterios dimensionales. Y cada categoría aporta <b>un solo criterio</b>, el de mayor jerarquía: marcá todas las celdas que cumpla el paciente, que el puntaje no las suma dos veces.</div>
 <div class="mBox mAviso"><b>Fallot — los volúmenes del VD se TRANSCRIBEN, y el método importa.</b> Los umbrales (VTDVD indexado ≥ 160 ml/m² o VTSVD indexado ≥ 80 ml/m²) están validados sobre <b>resonancia</b>, y el eco 3D subestima. Con método no consignado, eco 3D o tomografía, el valor se describe y <b>no vota</b>.</div>
 <div class="mBox mAviso"><b>Ebstein — el índice de Celermajer describe, no indica.</b> Se calcula con cinco áreas en telediástole y la app lo gradúa I a IV, pero <b>no figura en la ESC 2020</b> y por eco sobreestima. La indicación quirúrgica es clínica y no depende de este índice.</div>
