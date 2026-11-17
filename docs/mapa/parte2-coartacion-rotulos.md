@@ -202,3 +202,83 @@ recortada, y hoy entra por tener tres opciones, no por diseño.
    «FUERA» y el hit-test medía sobre un **denominador vacío** — que se lee igual que «no hay
    defecto». Hay que desplazar la **ventana** antes de medir; `scrollIntoView` sobre el menú no
    sirve, porque está dentro de un antecesor con `overflow:hidden`.
+
+---
+
+## 6 · La verificación de cierre
+
+**Un solo sello: `v20261116-1019`**, md5 `73289048`, 184.940 líneas. `index.html` **no se volvió a
+tocar** después de sellar — verificado: el md5 es idéntico antes y después de las dos corridas de
+suite y del barrido de mutaciones.
+
+### Cobertura: nueve casos nuevos, uno por cambio
+
+| Caso | Cambio | Qué afirma |
+|---|---|---|
+| **TC-912** | 2.1 | el 20,0 exacto cruza y el texto lo dice; el rótulo **acotado** al medio Doppler; la atribución del pico-pico con folio; el lector de la Evidencia en el borde |
+| **TC-913** | 2.2 | la fila de la RVS con sus dos cortes; el `<800` **sin** rótulo; la nota de los festones **visible** |
+| **TC-914** | 2.3 | los dos cortes con su procedimiento; ya no dice «≤10mm» |
+| **TC-915** | 2.4 | «N de 3 dominios» con la N real, dentro del paréntesis; **«de 2»** en solo-eco |
+| **TC-916** | 2.5 | los dos textos vivos, con las dos mitades de la condición |
+| **TC-917** | 2.6 | los dos globos, en el `ojo` y no en el `lee`; son dos y sólo dos |
+| **TC-918** | 2.7 | «Lang 2015» tres veces; ni «ASE/EACVI» ni «la guía» |
+| **TC-919** | 2.8 | el descargo **ES** el texto del dueño, por identidad |
+| **TC-920** | 2.9 | la regla de CSS acotada y enganchada de `.open`; la clase se pone y se **saca** |
+
+**Los nueve caen 0/9 contra `ac4be40`** —mismo archivo de casos, sólo el `index.html` distinto—
+por **49 condiciones**, y **ninguno por excepción ni por una guarda de denominador**: contadas,
+cero «sin excepciones» y cero «DENOMINADOR:» en rojo.
+
+### Mutaciones: 26 de 26 muertas
+
+En worktree y **nunca** sobre el árbol vivo, con las **26 anclas verificadas antes** de correr y
+el md5 del vivo idéntico después. **34,9 min.**
+
+⚠️ **El primer barrido dejó siete sobrevivientes, y se repartieron en tres clases** — es para esto
+que está el barrido:
+
+- **Cuatro eran condiciones mías demasiado flojas** (08, 11, 12, 13): buscaban una frase que la
+  mutación no tocaba porque estaba en otra oración del mismo texto. Se endureció la **condición**,
+  sin tocar la mutación. La peor era la 12: `indexOf('800')` sobrevivía a una mutación que da
+  vuelta el **sentido** de la frase.
+- **Dos eran escenas sin montar** (03, 04/05): nadie pisaba el lector de la Evidencia en el borde
+  de 20 exacto —se leían las etiquetas, nunca la **respuesta**— ni la rama del máximo sin medio
+  registrado.
+- **Y una era EQUIVALENTE**, declarada en **P2-h**: `g >= 20` → `g > 20` en la rama del máximo no
+  puede cambiar nada, porque ese máximo se **deriva** como `4·v²` y **`v·v === 5` no existe en
+  doble precisión**. Se reapuntó al umbral, que sí es alcanzable, en vez de aflojar el caso.
+
+### Los dos motores, 16 cruces
+
+Chrome real del sistema y WebKit × cuatro ventanas × dos temas, con **una sola firma de valores** y
+**cero errores de consola y de página**. WebKit de Playwright **no es Safari**, y se declara.
+
+⚠️ **La sonda se atrapó a sí misma**: la primera corrida devolvía tema «noche» en los dieciséis,
+porque leía la clase en `body` y esta app la pone en **`documentElement`** — ocho configuraciones
+medidas dos veces en el tema oscuro, el mismo defecto que PANT-34 encontró en cuatro tandas. Se vio
+**porque la sonda devuelve qué tema quedó puesto** en vez de asumirlo.
+
+### Suite final
+
+**928 de 928 ejecutados** en 17 lotes, una sola pasada sobre el árbol sellado, con el pendrive
+`DISK_IMG` verificado **diecinueve** veces leyendo DICOMDIR y el md5 idéntico antes y después.
+**918 verdes / 10 rojos**, y **ninguno nuevo**:
+
+- **TC-376 y TC-406** — dos de los tres de siempre.
+- **TC-147, TC-182, TC-551, TC-903** — los intermitentes que `CLAUDE.md` documenta.
+- **TC-99, TC-347, TC-348 y TC-796** — **preexistentes, y está probado**: los cuatro fallan
+  idéntico contra `ac4be40` en un worktree, con el mismo archivo de casos. Los dos del PDF caen por
+  «NO HAY jsPDF» (la CDN); TC-99 es cardio-onco y el diff toca **cero** líneas de ese módulo;
+  TC-796 cae por su propio denominador («0 editables») y esta tanda no toca los documentos.
+
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. Sin huérfanos nuevos. 17 de 17 bloques de
+JS inline parsean. `check_backticks` da cero hallazgos en `test_clinico.mjs`.
+
+### Lo que se conserva y lo que se borró
+
+Se conserva **`scripts/_mut_p2.py`**, que es el arnés del barrido —igual que `_mut_medir6.py`— y
+lleva su modo `--anclas`. Se borraron las sondas de medición (`_probe_p29*`, `_probe_p29b*`), el
+corredor copiado de lotes y sus logs.
+
+⚠️ **El corredor de MEDIR-6 escribe en `/tmp`**, que esta sesión tenía prohibido usar: se copió con
+las rutas dentro del proyecto y la copia se borró al terminar.
