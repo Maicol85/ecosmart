@@ -40226,7 +40226,16 @@ const A25_PLANO_F3 = Object.assign({
     /* En la columna de `a25.elevada`, asi que su arista es VERTICAL y su rotulo se ancla a la
        derecha, en el margen que queda libre: una calle menos que repartir. */
     Object.assign({ id: 'a25.fin-sinea', fila: 7, app: true, corto: 'presión elevada, falta la E/A para graduar',
-      tit: ['Elevada, falta', 'la E/A'] }, _a25(4))
+      tit: ['Elevada, falta', 'la E/A'] }, _a25(4)),
+    /* ⚠️ LA NOTITA DEL VALSALVA (3A, 2026-11-17). Va DEBAJO de la caja de grado III, con
+       `app: true` —o sea borde punteado— porque es exactamente eso: un estado de ESTA
+       aplicación y no una casilla de la figura. El pie del dibujo ya lo declara con esa misma
+       palabra para las demás, así que no hace falta una leyenda propia.
+       ⚠️ NO ENTRA EN EL CAMINO ROJO ni en la tabla compacta, y es deliberado: el camino marca
+       las casillas del ALGORITMO por las que pasó este paciente, y esta no es una de ellas.
+       Ninguna de las tres guías define un criterio para separar reversible de fijo. */
+    Object.assign({ id: 'a25.vals', fila: 8, app: true, corto: 'el Valsalva separa el restrictivo modificable del fijo',
+      tit: ['Con Valsalva:', 'modificable / fijo'] }, _a25(3))
   ],
   aristas: [
     { de: 'a25.entrada', a: 'a25.paso1' },
@@ -40258,7 +40267,8 @@ const A25_PLANO_F3 = Object.assign({
        va en rojo y con 3 px de trazo— no le pase por encima. */
     { de: 'a25.elevada', a: 'a25.fin-g2', et: 'E/A < 2', dx1: -60, calleRel: 18 },
     { de: 'a25.elevada', a: 'a25.fin-indet', et: "E/A ≥ 2, e' normal", dx1: -45, calleRel: 24 },
-    { de: 'a25.elevada', a: 'a25.fin-sinea', et: 'sin E/A' }
+    { de: 'a25.elevada', a: 'a25.fin-sinea', et: 'sin E/A' },
+    { de: 'a25.fin-g3', a: 'a25.vals' }
   ],
   tabla: [
     { paso: '1', tit: 'Paso 1 · tres variables', nodos: ['a25.paso1'] },
@@ -40429,7 +40439,7 @@ const A16B_PLANO = {
   pie: 'Lógica según el algoritmo de la Figura 8B, ASE/EACVI 2016, folio 290; dibujo propio, no es una reproducción de la figura. '
      + 'Nagueh SF y cols., J Am Soc Echocardiogr 2016;29(4):277-314. © 2016 American Society of Echocardiography: artículo NO de '
      + 'acceso abierto, así que no se reproduce ninguna figura ni el texto de sus cajas. '
-     + 'La caja punteada es un estado de esta aplicación y no una casilla de la figura.',
+     + 'Las cajas punteadas son estados de esta aplicación y no casillas de la figura.',
   nodos: [
     Object.assign({ id: 'a16b.entrada', fila: 0, corto: 'FEVI reducida, algoritmo de la Figura 8B',
       tit: ['FEVI < 50 % · presión de llenado y grado'] }, _a25(1, 3)),
@@ -40458,7 +40468,16 @@ const A16B_PLANO = {
     Object.assign({ id: 'a16b.fin-g2', fila: 4, corto: 'presión elevada, grado II',
       tit: ['Presión elevada,', 'grado II'] }, _a25(3)),
     Object.assign({ id: 'a16b.fin-g3', fila: 4, corto: 'presión elevada, grado III',
-      tit: ['Presión elevada,', 'grado III'] }, _a25(4))
+      tit: ['Presión elevada,', 'grado III'] }, _a25(4)),
+    /* ⚠️ LA NOTITA DEL VALSALVA (3A, 2026-11-17). Va DEBAJO de la caja de grado III, con
+       `app: true` —o sea borde punteado— porque es exactamente eso: un estado de ESTA
+       aplicación y no una casilla de la figura. El pie del dibujo ya lo declara con esa misma
+       palabra para las demás, así que no hace falta una leyenda propia.
+       ⚠️ NO ENTRA EN EL CAMINO ROJO ni en la tabla compacta, y es deliberado: el camino marca
+       las casillas del ALGORITMO por las que pasó este paciente, y esta no es una de ellas.
+       Ninguna de las tres guías define un criterio para separar reversible de fijo. */
+    Object.assign({ id: 'a16b.vals', fila: 5, app: true, corto: 'el Valsalva separa el restrictivo modificable del fijo',
+      tit: ['Con Valsalva:', 'modificable / fijo'] }, _a25(4))
   ],
   aristas: [
     { de: 'a16b.entrada', a: 'a16b.flujo' },
@@ -40481,7 +40500,8 @@ const A16B_PLANO = {
     { de: 'a16b.unoyuno', a: 'a16b.fin-indet' },
     { de: 'a16b.pos2', a: 'a16b.fin-g2' },
     { de: 'a16b.atajo1', a: 'a16b.fin-g1' },
-    { de: 'a16b.atajo3', a: 'a16b.fin-g3' }
+    { de: 'a16b.atajo3', a: 'a16b.fin-g3' },
+    { de: 'a16b.fin-g3', a: 'a16b.vals' }
   ],
   /* La columna del paso 2 solo aparece si el paciente llego ahi: con un atajo del flujo mitral
      la figura cierra sin preguntar los tres criterios, y dibujarlos en gris diria que se
