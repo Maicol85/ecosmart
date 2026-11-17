@@ -8130,11 +8130,33 @@ window.cerrarSesionReal = cerrarSesionReal;
                Su unico dueno es `diastBseGrisAvisoSync`. -->
           <div id="diast-bse-gris-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--orange);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
-        <div class="fg"><label>Ritmo</label>
-          <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
-            <option value="sinusal">Ritmo sinusal</option>
-            <option value="fa">Fibrilación auricular</option>
-          </select>
+        <!-- ══ RITMO A LA MITAD Y «Se modifica con Valsalva» AL LADO (3A, 2026-11-17) ═════════
+             Los dos reparten la celda con `flex:1 1 0`, así que cada uno mide la mitad; y con
+             `flex-wrap` más un piso de 132 px se APILAN cuando la celda se angosta, en vez de
+             quedar los dos apretados con el título cortado. A 390 px el `.grid-2` de arriba ya se
+             apila, así que esta fila recibe el ancho entero y los dos entran al lado; por debajo
+             de eso envuelven. Medido en el navegador.
+             ⚠️ EL SELECTOR NUEVO NO LLAMA A `calcDiastol`, y es deliberado: no cambia ningún
+             veredicto ni ningún conteo, sólo cómo se redacta el grado III. Llamarlo dispararía la
+             cadena entera de recálculo por un cambio de palabra. -->
+        <div class="fg" style="min-width:0;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+            <div style="flex:1 1 0;min-width:132px;">
+              <label>Ritmo</label>
+              <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
+                <option value="sinusal">Ritmo sinusal</option>
+                <option value="fa">Fibrilación auricular</option>
+              </select>
+            </div>
+            <div style="flex:1 1 0;min-width:132px;">
+              <label>Se modifica con Valsalva <button type="button" class="vinfo-btn" data-vinfo="diast-valsalva" aria-expanded="false" aria-label="Informaci&oacute;n sobre la maniobra de Valsalva en el grado III" onclick="vInfoClic(this)">&#9432;</button></label>
+              <select id="diast_valsalva" onchange="_refrescarInformeSiGenerado()" disabled>
+                <option value="">—</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
       <!-- ⚠️ LA VENA PULMONAR VIVE EN ESTA MISMA GRILLA, sin contenedor propio (2026-09-25,
@@ -8382,6 +8404,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row" id="venp-ara-row" style="display:none;"><span class="calc-lbl">Diferencia Ar−A</span><span class="calc-val" id="venp-ara">—</span></div>
         <div class="calc-row" id="venp-vel-row" style="display:none;"><span class="calc-lbl">Veloc. Ar pulmonar</span><span class="calc-val" id="venp-vel">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Funci&oacute;n diast&oacute;lica <button type="button" class="vinfo-btn" data-vinfo="tarj-diast" aria-expanded="false" aria-label="Criterios y cortes del algoritmo de funci&oacute;n diast&oacute;lica" onclick="vInfoClic(this)">&#9432;</button></span><span id="dd-interp">&mdash;</span></div>
+        <!-- La sugerencia del Valsalva, DEBAJO del cartel del resultado y dentro del mismo cuadro.
+             Su único dueño es `diastValsalvaSync`, el mismo que habilita el selector: con dos
+             dueños, la sugerencia podría ofrecer una maniobra para un grado que el selector no
+             acepta. Nace oculta. -->
+        <div id="diast-valsalva-sug" style="display:none;font-size:11px;color:var(--text2);margin:4px 0 0;line-height:1.35;"></div>
         <!-- Sólo aparece si los dos dominios de eco tienen datos y suman >= 2 -->
         <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl" id="hfapeff-eco-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
       </div>
@@ -38542,7 +38569,10 @@ function calcDiastolBSE2024() {
   /* `_bse2024` se conserva: lo mira la sonda de esta zona y no cuesta nada. */
   window._bse2024 = R.res;
   window._diastResult = { texto: R.texto, textoSuma: R.textoSuma,
-                          badge: R.badgeHtml, algoritmo: 'bse2024' };
+                          badge: R.badgeHtml, algoritmo: 'bse2024',
+                          /* La BSE 2024 no escribe grados: su categoría va igual, y el selector
+                             del Valsalva la lee y no la reconoce, que es lo correcto. */
+                          clave: (R.res && R.res.categoria) || null, ritmo: 'sinusal' };
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -40894,6 +40924,77 @@ const ASE16B_NODO_FIN = {
   insuf:  'a16b.fin-insuf'     // estado de la APP: sin E/A o sin ningun criterio
 };
 
+/* ══ EL VALSALVA DEL GRADO III — UN SOLO DUEÑO (3A, 2026-11-17) ══════════════════════════════
+   QUÉ DECIDE Y QUÉ NO. Ninguna de las tres guías define un criterio para separar un patrón
+   restrictivo reversible de uno fijo: la ASE 2025 y la ASE/EACVI 2016 MENCIONAN que el Valsalva
+   puede indicarlo y no dan corte, y la BSE 2024 define restrictivo reversible o irreversible por
+   la respuesta a la maniobra pero no usa grados. Así que esto NO calcula nada: es una respuesta
+   del médico que cambia CÓMO SE REDACTA el grado III, y nada más. No mueve un veredicto, no mueve
+   un conteo y no entra en ningún algoritmo.
+   ⚠️ POR QUÉ UN SOLO DUEÑO. Las palabras viajan a CUATRO superficies —el paréntesis del informe,
+   el EN SUMA, la notita de los dos esquemas y el estado del selector—, y con el texto escrito en
+   cada una la que se olvida de cambiar deja el EN SUMA diciendo «fijo» sobre un cuerpo que dice
+   «modificable», del mismo paciente y en el mismo documento.
+   ⚠️ LAS DOS FORMAS NO SON LA MISMA CADENA, y es a propósito: el paréntesis del informe dice
+   «patrón restrictivo fijo, no modificable con Valsalva» y el EN SUMA «grado III fijo (no
+   modificable con Valsalva)». Son las dos redacciones que fijó Maicol, y cada una está escrita
+   para el lugar donde se lee. */
+const DIAST_VALS_PATRON = Object.freeze({
+  si: 'modificable con Valsalva',
+  no: 'fijo, no modificable con Valsalva'
+});
+const DIAST_VALS_SUMA = Object.freeze({
+  si: 'modificable con Valsalva',
+  no: 'fijo (no modificable con Valsalva)'
+});
+/* La sugerencia de abajo del cartel. Son las DOS que pidió la orden y ninguna más: en
+   fibrilación auricular no sale nada, y la BSE 2024 no tiene grados a los que colgarla. */
+const DIAST_VALS_SUG = Object.freeze({
+  g3: 'El Valsalva puede indicar si el patrón restrictivo es modificable o fijo.',
+  g2: 'Ante sospecha de pseudonormalización, el Valsalva puede ayudar a distinguirla.'
+});
+/* El valor, saneado. Cualquier cosa que no sea «si» o «no» es «sin respuesta». */
+function _diastValsVal() {
+  const el = document.getElementById('diast_valsalva');
+  const v = el ? String(el.value || '') : '';
+  return (v === 'si' || v === 'no') ? v : '';
+}
+window._diastValsVal = _diastValsVal;
+/* Las dos cláusulas, con su espacio adelante y cadena VACÍA cuando no hay respuesta, para que el
+   llamador las concatene sin preguntar. */
+function diastValsPatron() { const v = _diastValsVal(); return v ? ' ' + DIAST_VALS_PATRON[v] : ''; }
+function diastValsSuma()   { const v = _diastValsVal(); return v ? ' ' + DIAST_VALS_SUMA[v]   : ''; }
+window.diastValsPatron = diastValsPatron; window.diastValsSuma = diastValsSuma;
+/* Habilita el selector, pinta la sugerencia y LIMPIA el valor cuando el resultado dejó de ser
+   grado III. Arranca deshabilitado desde el marcado y nunca se completa solo. */
+function diastValsalvaSync() {
+  const el  = document.getElementById('diast_valsalva');
+  const sug = document.getElementById('diast-valsalva-sug');
+  const r   = window._diastResult;
+  const algo  = (typeof sv === 'function' ? (sv('diast_algoritmo') || '') : '') || 'ase2025';
+  const ritmo = (typeof sv === 'function' ? (sv('diast_ritmo')      || '') : '') || 'sinusal';
+  /* ⚠️ EL RESULTADO TIENE QUE SER DE ESTE PROTOCOLO Y DE ESTE RITMO. `_diastResult` sobrevive a
+     un cambio de pestaña y a una restauración, y clasificar con uno viejo es exactamente cómo se
+     le borra al médico un dato que sí corresponde. Sin coincidencia, esta función no limpia. */
+  const fresco = !!(r && r.algoritmo === algo && r.ritmo === ritmo);
+  const clave  = fresco ? r.clave : null;
+  const aplica = clave === 'g3';
+  if (el) {
+    el.disabled = !aplica;
+    el.title = aplica ? '' : 'S\u00f3lo se completa con un grado III por la ASE 2025 o por la ASE/EACVI 2016.';
+    if (fresco && !aplica && el.value) {
+      el.value = '';
+      if (typeof _refrescarInformeSiGenerado === 'function') _refrescarInformeSiGenerado();
+    }
+  }
+  if (sug) {
+    const t = fresco ? (DIAST_VALS_SUG[clave] || '') : '';
+    sug.textContent = t;
+    sug.style.display = t ? 'block' : 'none';
+  }
+}
+window.diastValsalvaSync = diastValsalvaSync;
+
 function diastASE2025Evaluar() {
   const ep = v('e_sep'), el = v('e_lat');
   const E = v('onda_e'), A = v('onda_a');
@@ -41644,7 +41745,8 @@ function diastFAPintar(R) {
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = b;
   window._diastResult = { texto: R.texto || null, textoSuma: R.textoSuma || null,
-                          badge: b, algoritmo: R.algoritmo, faSinFrase: true };
+                          badge: b, algoritmo: R.algoritmo, faSinFrase: true,
+                          clave: R.clave, ritmo: 'fa' };
   return R;
 }
 window.diastFAPintar = diastFAPintar;
@@ -41664,7 +41766,8 @@ function calcDiastolASE2025() {
 
   const R = diastASE2025Evaluar();
   window._diastResult = { texto: R.texto, textoSuma: R.textoSuma,
-                          badge: badge(R.cls, R.badgeTxt), algoritmo: 'ase2025' };
+                          badge: badge(R.cls, R.badgeTxt), algoritmo: 'ase2025',
+                          clave: R.clave, ritmo: 'sinusal' };
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = window._diastResult.badge;
 }
@@ -42047,7 +42150,8 @@ function calcDiastolASE2016() {
   const b = badge(R.cls, R.badgeTxt);
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = b;
-  window._diastResult = { texto: R.texto, textoSuma: R.textoSuma, badge: b, algoritmo: 'ase2016' };
+  window._diastResult = { texto: R.texto, textoSuma: R.textoSuma, badge: b, algoritmo: 'ase2016',
+                          clave: R.clave, ritmo: 'sinusal' };
 }
 window.calcDiastolASE2016 = calcDiastolASE2016;
 
@@ -42092,6 +42196,17 @@ window.calcDiastol = function() {
        paciente no tiene el hallazgo». */
     try { if (typeof calcVenaPulm === 'function') calcVenaPulm(); }
     catch (e) { console.error('[venp] calcVenaPulm tras calcDiastol', e); }
+    /* ⚠️ EL SELECTOR DEL VALSALVA CUELGA DE ACÁ Y NO DE `RECALC_MODULOS`, Y ES DELIBERADO.
+       `diastValsalvaSync` LIMPIA el valor cuando el resultado deja de ser grado III, así que
+       necesita un resultado FRESCO: acá lo tiene por construcción, porque `calcDiastol` acaba de
+       escribirlo. En el embudo de restauración podría correr ANTES del cálculo y borrarle al
+       médico un dato que sí corresponde. Lo que esto cuesta, declarado en `docs/PENDIENTES.md` →
+       P3A-f: en una ruta de restauración donde `calcDiastol` no corra, el estado habilitado del
+       selector puede quedar atrasado hasta el próximo recálculo. El VALOR nunca se pierde, y la
+       frase del informe emite la cláusula SÓLO en la rama de grado III, así que un estado
+       atrasado no puede escribir un informe equivocado. */
+    try { if (typeof diastValsalvaSync === 'function') diastValsalvaSync(); }
+    catch (e) { console.error('[valsalva] diastValsalvaSync tras calcDiastol', e); }
     /* La fila de onda E de IM cuelga de ACA y no del `oninput` de `onda_e`/`onda_a` por el mismo
        argumento que ya justifica este envoltorio: `calcDiastol` tiene cuatro salidas y tres
        `return` tempranos, y el ritmo (`diast_ritmo`) —que decide si se compara contra la onda A—
@@ -51898,6 +52013,14 @@ const VINFO = Object.freeze({
      ⚠️ EL PARRAFO DEL DOPPLER DE VENAS PULMONARES de la hoja 66 -el patron trifasico, el
      gradiente medio sobre uno o dos ciclos- es de las venas pulmonares EN GENERAL y NO se usa
      aca: atribuirselo al cor triatriatum seria hacerle decir a la fuente algo que no dice. */
+  /* El globo del selector del Valsalva (3A). Autor y anio, sin folios en pantalla: los tres
+     documentos y sus folios estan en `docs/fuentes/FUENTES.md`. */
+  'diast-valsalva': {
+    tit: 'La maniobra de Valsalva en el grado III',
+    lee: 'Nagueh 2025 y Nagueh 2016 mencionan que el Valsalva puede indicar si el grado 3 es reversible o no, pero ninguna de las dos define un criterio: la decisi\u00f3n es del m\u00e9dico. Robinson 2024 s\u00ed define el llenado restrictivo como reversible o irreversible por la respuesta a la maniobra, y es la \u00fanica de las tres que lo hace; esa gu\u00eda no usa grados.',
+    fuente: 'ASE 2025 (Nagueh) y ASE/EACVI 2016 (Nagueh), apartados del patr\u00f3n restrictivo. BSE 2024 (Robinson), apartado del llenado restrictivo.',
+    ojo: 'Esta aplicaci\u00f3n no calcula nada con la respuesta: s\u00f3lo cambia c\u00f3mo se redacta el grado III en el informe y en el EN SUMA. El selector se habilita \u00fanicamente con un grado III por la ASE 2025 o por la ASE/EACVI 2016, nunca se completa solo, y si el resultado deja de ser grado III el valor se borra. En fibrilaci\u00f3n auricular no aplica, y la BSE 2024 no publica grados.'
+  },
   'otr-cortri': {
     tit: 'Cor triatriatum',
     lee: 'Membrana fibromuscular fenestrada que divide la aur\u00edcula izquierda en una c\u00e1mara proximal, que recibe las venas pulmonares, y una distal; se inserta en el septo interauricular por dentro y en la cresta lateral izquierda por fuera. La orejuela izquierda y la v\u00e1lvula mitral quedan las dos en la c\u00e1mara distal, y eso es lo que lo distingue de un anillo mitral supravalvular. Es poco frecuente: alrededor del 0,1 % de la cardiopat\u00eda cong\u00e9nita. Comparte fisiopatolog\u00eda con la estenosis mitral, as\u00ed que las manifestaciones se parecen.\n'
