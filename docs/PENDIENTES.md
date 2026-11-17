@@ -17902,7 +17902,27 @@ sus números, en `docs/INVENTARIO_MEDIR3.md`.
 aplicados y commiteados; falta la 2.9, los casos nuevos, las mutaciones, la suite de 17 lotes,
 los dos motores y el sello.
 
-- **P2-a · La 2.9 NO se aplicó, y es a propósito.** El menú «Vista de angiografía»
+- **P2-a · CERRADO (16/11/2026). La 2.9 se aplicó y se midió en Chrome real**, antes y después,
+  en ocho cruces de ventana y tema. La hipótesis era la correcta: el que recorta es el `div.card`
+  con `overflow:hidden` en los dos ejes. Antes: menú de 499 px, la tarjeta terminaba **135,5 px**
+  antes de su borde, `max-height:none`, y **7 de 10** opciones alcanzables al toque. Después:
+  cero antecesores que recorten, cero px tapados, `max-height:440px` con `overflow-y:auto`, y
+  **10 de 10** contando las dos posiciones del scroll. Lo fija **TC-920**.
+  ⚠️ **El enganche del `:has()` es la clase `.open` y no `:not([hidden])`**, porque este menú se
+  abre poniendo `style.display`: la forma que sirvió para el menú de Documentos no tenía de dónde
+  agarrarse. La clase se pone en la misma línea que el display.
+- **P2-h · La mutación 03 del barrido era EQUIVALENTE, y queda declarado.** Cambiaba `g >= 20` por
+  `g > 20` en la rama del gradiente máximo sin medio registrado, y ahí el máximo se **deriva** de
+  la Vmax como `4·v²`: **`v·v === 5` no existe en doble precisión** —medido con seis escrituras de
+  la raíz de 5, la más cercana da 20.000000000000004—, así que el `>=` y el `>` se comportan igual
+  para **toda entrada alcanzable**. Una mutación que no puede cambiar la conducta no prueba nada,
+  así que se **reapuntó al umbral** (20 → 30), que sí es alcanzable, en vez de aflojar el caso.
+  El borde de 20 exacto **sí** se prueba, pero en el lector de la **Evidencia**: ahí el pico-pico
+  es un campo que el médico tipea, así que el 20 entra tal cual (mutaciones 04 y 05).
+- **P2-i · El rótulo de la RVS cubre DOS cortes y la decisión nombraba uno.** Quedó en **1200 y
+  1400** por decisión del médico del 16/11, con el `<800` sin rótulo porque tiene sus dos fuentes.
+  Está medido que el 1400 tampoco sale de ninguna fuente de la biblioteca.
+- **P2-a (histórico) · lo que decía antes de cerrarse:** El menú «Vista de angiografía»
   (`#lv3d-coro-lista`) queda cortado abajo. La orden pide medirlo **en Chrome real antes y
   después**, y en esta sesión no se pudo: el navegador integrado no abre un `index.html` de
   13 MB y la escritura del PNG/sonda a `/tmp` quedó bloqueada por el clasificador de permisos.

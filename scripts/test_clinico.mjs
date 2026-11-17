@@ -146336,6 +146336,50 @@ caso('TC-912', 'PARTE-2 (2.1): el corte de 20 mmHg de la coartacion opera en >= 
         R.refPPIntacto = pp ? String(pp.ref || '').indexOf('mayor de 20 mmHg') > -1 : false;
       }
 
+      /* ══ LA RAMA DEL MAXIMO SIN MEDIO REGISTRADO, que el barrido destapo sin cubrir ══════
+         Vmax 2,5 da un gradiente maximo de 25 mmHg (4*v*v) y NO se carga el medio, asi que cae
+         en la rama «sin_gmedio». Hasta que el barrido lo marco, ningun caso la pisaba.
+         ⚠️ EL BORDE DE 20 EXACTO NO SE PUEDE PROBAR POR ACA, Y SE DECLARA: el maximo se DERIVA
+         de la Vmax como 4*v*v, y v*v === 5 no existe en doble precision -- medido con seis
+         escrituras de la raiz de 5, la mas cercana da 20.000000000000004-. O sea que en esa
+         rama el >= y el > se comportan igual para TODA entrada alcanzable. Por eso lo que se
+         afirma aca es el UMBRAL y el texto, no el operador. */
+      const soloMax = coa({ coa_vmax:'2.5' });
+      R.soloMaxClave = soloMax.c; R.soloMaxTxt = soloMax.t;
+      R.ramaSinMedio = soloMax.c === 'limitrofe'
+                       && soloMax.t.indexOf('sin gradiente MEDIO registrado') > -1;
+      /* y esa rama enuncia el criterio como PROPIO de la app, no como el de la guia */
+      R.ramaDiceApp = soloMax.t.indexOf('esta aplicación toma de 20 mmHg o más') > -1;
+      /* CONTROL: con un maximo por debajo de 20 la rama NO es esta */
+      const maxBajo = coa({ coa_vmax:'2.0' });
+      R.maxBajoOtra = maxBajo.t.indexOf('sin gradiente MEDIO registrado') === -1;
+
+      /* ══ EL LECTOR DE LA SECCION DE EVIDENCIA, en el borde de 20 EXACTO ══════════════════
+         Aca el operador SI se puede probar: el pico-pico es un campo que el medico tipea, asi
+         que el 20 entra tal cual. Es lo que cierra el hueco de las mutaciones que devuelven
+         'gt' o que le sacan el operador 'ge' al ayudante -- con 'ge' fuera, 'ge' cae en la rama
+         de v < umbral, o sea que contestaria al REVES y en silencio. */
+      const leeEv = () => { try { return _indCoAo() } catch (e) { return null } };
+      const valDe = (r, clave) => {
+        const q = (typeof COA_PREG !== 'undefined' ? COA_PREG : []).filter(x => x.clave === clave)[0];
+        const f = (q && r && r.clinica) ? r.clinica.filter(x => x && String(x.lbl) === q.lbl)[0] : null;
+        return f ? (f.ctrl ? 'CONTESTABLE' : String(f.val)) : 'NO ESTA'; };
+      /* ⚠️ LA SECCION NO SE ABRE SIN LA COARTACION PRESENTE, y lo destapo la primera corrida:
+         con solo el pico-pico sembrado el lector devolvia «NO ESTA» para la pregunta -- o sea
+         un denominador vacio, que se lee igual que «el operador no anda»-. Hay que sembrar la
+         situacion y la Vmax, como hace TC-520. */
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('congenitas'); } catch (e) {}
+      __t.set('coa_situacion', 'nativa'); __t.set('coa_vmax', '3.2'); __t.set('coa_hta', 'si');
+      __t.set('coa_gradiente_picopico', '20');
+      if (typeof coaSync === 'function') coaSync();
+      await esperar(260);
+      R.ev20 = valDe(leeEv(), 'coa.ev.picopico20');
+      __t.set('coa_gradiente_picopico', '19');
+      if (typeof coaSync === 'function') coaSync();
+      await esperar(260);
+      R.ev19 = valDe(leeEv(), 'coa.ev.picopico20');
+
       /* El globo ⓘ: el rotulo de criterio propio existe y nombra SOLO al medio Doppler, y el
          bloque del pico-pico lleva su atribucion con folio. */
       const T = (typeof evTarjetaCoa === 'function') ? evTarjetaCoa() : null;
@@ -146348,7 +146392,13 @@ caso('TC-912', 'PARTE-2 (2.1): el corte de 20 mmHg de la coartacion opera en >= 
         /* ⚠️ LA CONDICION QUE IMPIDE EL ERROR QUE YO MISMO COMETI: el rotulo NO puede decir que
            el pico-pico ni el gradiente entre miembros sean criterio propio, porque la ESC 2020
            los imprime con >= -folios 603 y 604-. Se exige la frase que dice lo contrario. */
-        R.globoNoExtiende = txt.indexOf('porque así los publica la fuente') > -1;
+        /* ⚠️ ESTA CONDICION LA ENDURECIO EL BARRIDO: antes solo buscaba «porque así los publica
+           la fuente», y la mutacion que borra la mitad de la oracion -la que dice CUAL es la
+           unica medida con criterio propio- la sobrevivia, porque esa frase queda mas adelante
+           en el mismo texto. Hoy se exige la oracion ENTERA, que es la que de verdad acota el
+           rotulo a una sola medida. */
+        R.globoNoExtiende = txt.indexOf('Es la única de las tres medidas de 20 mmHg de esta pantalla en que el criterio es propio') > -1
+                            && txt.indexOf('porque así los publica la fuente') > -1;
         R.globoAtribuyePP = txt.indexOf('la ESC 2020 de cardiopatías congénitas del adulto en el folio 604') > -1;
       }
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
@@ -146373,7 +146423,15 @@ caso('TC-912', 'PARTE-2 (2.1): el corte de 20 mmHg de la coartacion opera en >= 
       ['⚠️ y NO extiende el criterio propio al pico-pico ni al gradiente entre miembros',
                                                                R.globoNoExtiende === true, R.globoNoExtiende],
       ['el pico-pico lleva su atribucion a la ESC 2020 con folio',
-                                                               R.globoAtribuyePP === true, R.globoAtribuyePP]
+                                                               R.globoAtribuyePP === true, R.globoAtribuyePP],
+      ['la rama del maximo SIN medio registrado se dispara',   R.ramaSinMedio === true,
+                                                               R.soloMaxClave + ' | ' + String(R.soloMaxTxt).slice(0, 120)],
+      ['y enuncia el corte como criterio de la APP, no de la guia',
+                                                               R.ramaDiceApp === true, R.ramaDiceApp],
+      ['CONTROL: con el maximo por debajo de 20 esa rama no sale',
+                                                               R.maxBajoOtra === true, R.maxBajoOtra],
+      ['⚠️ la Evidencia contesta SI con el pico-pico en 20 EXACTO', R.ev20 === 'S' + String.fromCharCode(237), R.ev20],
+      ['CONTROL: con 19 contesta que NO',                      R.ev19 === 'No', R.ev19]
     ] };
   })();
 `);
@@ -146403,7 +146461,11 @@ caso('TC-913', 'PARTE-2 (2.2): los dos rotulos de criterio propio que faltaban -
                    && (tr.textContent || '').indexOf('1200') > -1)[0] || null;
       R.hayFilaRvs = !!filaRvs;
       const tRvs = filaRvs ? (filaRvs.textContent || '').replace(/\\s+/g, ' ') : '';
-      R.rvsCortes = tRvs.indexOf('1200') > -1 && tRvs.indexOf('1400') > -1;
+      /* ⚠️ ENDURECIDA POR EL BARRIDO: buscar «1400» a secas la sobrevivia una mutacion que
+         borra el corte superior, porque el 1400 queda igual en «límite alta 1200-1400». Hoy se
+         exige la FORMA de cada banda, que es lo que declara el corte. */
+      R.rvsCortes = tRvs.indexOf('normal 800') > -1 && tRvs.indexOf('1200') > -1
+                    && tRvs.indexOf('1400') > -1 && tRvs.indexOf('>1400') > -1;
       R.rvsNombraPosop = tRvs.indexOf('posoperatorio') > -1;
       /* ⚠️ EL <800 NO LLEVA ROTULO, y es la mitad que importa: su corte tiene DOS fuentes. Se
          mide que las dos filas de la vasoplejia -que son las que publican el 800- NO tengan el
@@ -146414,7 +146476,12 @@ caso('TC-913', 'PARTE-2 (2.2): los dos rotulos de criterio propio que faltaban -
       R.vasoSinChip = filasVaso.length > 0 && filasVaso.every(tr =>
         ![].slice.call(tr.querySelectorAll('span')).some(x => (x.textContent || '').trim() === CHIP));
       /* y el detalle dice por que el 800 queda afuera */
-      R.rvsExplica800 = tRvs.indexOf('800') > -1;
+      /* ⚠️ ENDURECIDA POR EL BARRIDO: «indexOf(800)» la sobrevivia una mutacion que da vuelta
+         el SENTIDO de la frase -- «el corte de 800 tampoco tiene fuente», que afirma lo
+         contrario de lo medido-. Hoy se exige lo que la fila tiene que DECIR: que ese corte es
+         distinto y que NO lleva el rotulo. */
+      R.rvsExplica800 = tRvs.indexOf('El corte de 800 es distinto y no lleva este rótulo') > -1
+                        && tRvs.indexOf('tampoco tiene fuente') === -1;
 
       /* ══ (B) LA NOTA DE LOS FESTONES, visible y en la pantalla del ETE ═════════════════════ */
       try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
@@ -146435,7 +146502,11 @@ caso('TC-913', 'PARTE-2 (2.2): los dos rotulos de criterio propio que faltaban -
                   || (p.textContent || '').indexOf('feston por angulo') > -1)[0] || null;
       R.hayNotaFest = !!notaFest;
       const tF = notaFest ? (notaFest.textContent || '').replace(/\\s+/g, ' ') : '';
-      R.festSinFolio = tF.indexOf('sin folio') > -1;
+      /* ⚠️ ENDURECIDA POR EL BARRIDO: «sin folio» sobrevivia a la mutacion que le quita a la
+         nota el hecho de ser criterio PROPIO, porque el «sin folio» esta en otra oracion. Lo
+         que la nota tiene que declarar es las DOS cosas. */
+      R.festSinFolio = tF.indexOf('sin folio') > -1
+                       && tF.indexOf('es una referencia propia de la aplicación') > -1;
       R.festSesenta = tF.indexOf('60') > -1 && tF.indexOf('única') > -1;
       /* ⚠️ VISIBLE, no solo presente: la declaracion estaba en un COMENTARIO del codigo, que es
          justo lo que esta condicion viene a impedir que vuelva a pasar. */
