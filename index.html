@@ -19614,7 +19614,7 @@ z
           <input type="hidden" id="ete_tavi_jet_horas" value="">
         </div>
         <div style="flex:1;min-width:220px;">
-          <div class="fg"><label>Extensión circunferencial total (%)</label>
+          <div class="fg"><label>Extensión circunferencial total (%) <button type="button" class="vinfo-btn" data-vinfo="tavi-pvl-ext" aria-expanded="false" aria-label="Informaci&oacute;n sobre la extensi&oacute;n circunferencial de la fuga paravalvular" onclick="vInfoClic(this)">&#9432;</button></label>
             <input type="number" id="ete_tavi_ext_circ" step="1" placeholder="%" oninput="eteTaviSync()">
             <div id="ete-tavi-ext-sug" style="font-size:11px;color:var(--text2);margin-top:4px;"></div>
           </div>
@@ -51297,8 +51297,15 @@ const VINFO = Object.freeze({
   'prot-gmed': {
     tit: 'Gradiente medio transprot\u00e9sico mitral',
     lee: 'Nativa: hasta 5 mmHg no se nombra, de 5 a menos de 10 es elevado y desde 10 es significativo. Pr\u00f3tesis: hasta 5 es normal, de 6 a 10 hay posible obstrucci\u00f3n y por encima de 10 es significativa.',
-    fuente: 'Nativa: ASE 2023 (Pandian), Tabla 1, folio 8. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27.',
-    ojo: 'El OPERADOR de cada r\u00e9gimen en los dos bordes: con 5 mmHg exactos la nativa dice elevado y la pr\u00f3tesis normal, y con 10 exactos la nativa dice significativo y la pr\u00f3tesis posible.'
+    fuente: 'Nativa: ASE 2023 (Pandian), Tabla 1, folio 8. Pr\u00f3tesis: ASE 2024 (Zoghbi), Tabla 11, p\u00e1g. 27; la lectura del mismo valor como regurgitaci\u00f3n, Tabla 12 de la misma gu\u00eda, p\u00e1g. 28.',
+    /* ⚠️ EL SOLAPAMIENTO DE LAS DOS TABLAS, EN PANTALLA (3A, 2026-11-17). La LOGICA ya estaba
+       -el Z6-2 retira el gradiente del recuento de obstruccion en ese regimen- y este archivo ya
+       citaba la Tabla 12 con su sensibilidad y su especificidad, pero SOLO EN UN COMENTARIO: el
+       medico que mira un 5,0 no tenia donde leer por que el mismo numero vale para las dos cosas.
+       Los numeros salen de la Tabla 12, folio 28, ya verificada en `docs/fuentes/FUENTES-protesis.md`. */
+    ojo: 'El OPERADOR de cada r\u00e9gimen en los dos bordes: con 5 mmHg exactos la nativa dice elevado y la pr\u00f3tesis normal, y con 10 exactos la nativa dice significativo y la pr\u00f3tesis posible. '
+       + 'Y EL 5 SE SOLAPA CON EL OTRO LADO: en una pr\u00f3tesis MEC\u00c1NICA con el tiempo de hemipresi\u00f3n normal, la misma gu\u00eda publica el gradiente medio de 5 mmHg o m\u00e1s como hallazgo que sugiere regurgitaci\u00f3n prot\u00e9sica significativa \u2014sensibilidad del 90 % y especificidad del 70 %, a frecuencias fisiol\u00f3gicas\u2014, as\u00ed que un 5,0 queda normal por la tabla de obstrucci\u00f3n y dentro del criterio de la de regurgitaci\u00f3n al mismo tiempo. '
+       + 'La aplicaci\u00f3n mantiene el veredicto de la tabla de obstrucci\u00f3n \u2014con 5,0 el gradiente es normal\u2014 y en ese r\u00e9gimen lo retira del recuento. Antes de leer un gradiente alto como estenosis conviene descartar un flujo transmitral aumentado y un desajuste entre el tama\u00f1o de la pr\u00f3tesis y la superficie corporal, que lo suben sin que la v\u00e1lvula est\u00e9 obstruida.'
   },
   'prot-thp': {
     tit: 'THP de la pr\u00f3tesis mitral',
@@ -51841,6 +51848,18 @@ const VINFO = Object.freeze({
         biblioteca lo trae, y la orden lo prohibe expresamente. */
   /* ⚠️ EL GLOBO DEL STRAIN DE PARED LIBRE (3A, 2026-11-17). Los cuatro tramos salen de los
      DUENOS y no se escriben a mano: el dia que un corte se mueva, el globo se mueve con el. */
+  /* ⚠️ EL GLOBO DE LA EXTENSION CIRCUNFERENCIAL DE LA TAVI (3A, 2026-11-17). Los tres grados
+     NO son nuevos: el motor `eteTaviRPV` los aplica desde la PRO-B3 con los cortes de la Tabla 8
+     de la ASE 2024. Lo que faltaba era decirlo en pantalla.
+     ⚠️ NO SE LE PONE A LA FUGA DE LA PROTESIS QUIRURGICA, que comparte el motor, y el motivo ya
+     esta escrito en este archivo: la VARC-3 es un documento de TAVI y pasarle su escala a una
+     protesis quirurgica le aplicaria un corte que esa guia no publica para ella. */
+  'tavi-pvl-ext': {
+    tit: 'Extensi\u00f3n circunferencial de la fuga paravalvular',
+    lee: 'Tres grados: por debajo del 10 % de la circunferencia, del 10 al 29 % y del 30 % o m\u00e1s. Se mide como la suma de las longitudes circunferenciales de la vena contracta de cada chorro \u2014sin contar el espacio no regurgitante que queda entre dos chorros\u2014 dividida por la circunferencia del borde externo de la v\u00e1lvula.',
+    fuente: 'Los tres cortes: ASE 2024 (Zoghbi), Tabla 8, folio 23. La escala prot\u00e9sica de la TAVI: VARC-3 2021 (G\u00e9n\u00e9reux), Tabla 16, folio 1846.',
+    ojo: 'La VARC-3 publica DOS escalas en la misma tabla: una de tres clases y una de CINCO, que parte la leve en leve y leve-moderada y la moderada en moderada y moderada-severa. Esta aplicaci\u00f3n agrupa esas cinco en tres, y agrupada as\u00ed la extensi\u00f3n circunferencial de la VARC-3 coincide con la de la ASE 2024. El veredicto de la c\u00e1psula gana el criterio M\u00c1S SEVERO entre los par\u00e1metros medidos, as\u00ed que un 9 % con una vena contracta de 0,7 cm sale severa; y por debajo del 10 % dice \u00ableve\u00bb, o \u00abtrivial\u00bb s\u00f3lo cuando hay tres par\u00e1metros medidos y los tres caen en esa banda.'
+  },
   'vd-strain-pl': {
     tit: 'Strain de pared libre del ventrículo derecho',
     lee: 'Se gradúa por el VALOR ABSOLUTO, así que −18 y 18 dan lo mismo. Cuatro tramos: normal por encima de '
