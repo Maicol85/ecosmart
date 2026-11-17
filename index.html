@@ -41211,19 +41211,29 @@ function diastASE2025Evaluar() {
       R.clave = 'g3';
       R.cls = 'red';
       R.badgeTxt = 'DD Grado III — ASE 2025';
-      /* Sin campo de Valsalva en la app no se puede separar IIIa (revierte) de IIIb (no
-         revierte), así que se informa el grado III y se nombra el dato que falta en vez de
-         elegir un subtipo al azar. */
-      R.texto = 'Disfunción diastólica grado III (patrón restrictivo). e\' reducida, E/A ' + ea.toFixed(2) +
-        ' (≥2,00) y presión de llenado elevada' + nPar +
-        '. La distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de Valsalva, no registrada.';
-      R.textoSuma = 'Disfunción diastólica grado III — patrón restrictivo, presión de llenado elevada.';
+      /* ⚠️ SE FUE LA FRASE DE IIIa / IIIb, Y CON ELLA LA ÚLTIMA MENCIÓN DIASTÓLICA DE ESE
+         VOCABULARIO EN TODA LA APLICACIÓN (3A, 2026-11-17, punto 13 de la orden). Decía que «la
+         distinción entre IIIa (reversible con Valsalva) y IIIb (fija) requiere la maniobra de
+         Valsalva, no registrada», y era cierto hasta hoy: no había campo. Ahora lo hay, y
+         NINGUNA de las tres guías usa esas letras —medido: la ASE 2025 y la ASE/EACVI 2016
+         hablan de grado 3 y mencionan la maniobra sin definir criterio, y la BSE 2024 no usa
+         grados—, así que el grado se dice sin letras y la maniobra se nombra con palabras.
+         ⚠️ EL `IIIa`/`IIIb` QUE QUEDA EN EL ARCHIVO ES EL CARPENTIER DE LA MITRAL y NO se toca:
+         es la clasificación del MECANISMO de la insuficiencia mitral, otra cosa con el mismo
+         nombre. Sus dos opciones del selector, su glosario, su paréntesis del informe y sus
+         rótulos siguen enteros.
+         ⚠️ LA RELACIÓN E/A SE CONSERVA (decisión de Maicol): lo que sale es la ENUMERACIÓN de qué
+         parámetros dieron positivos —«e' reducida, E/A X (≥2,00) y presión…»—, no el número. El
+         conteo `(N/M parámetros positivos)` también se queda, y es el REAL del algoritmo. */
+      R.texto = 'Disfunción diastólica grado III (patrón restrictivo' + diastValsPatron() +
+        ') con presión de llenado elevada, E/A ' + ea.toFixed(2) + nPar + '.';
+      R.textoSuma = 'Disfunción diastólica grado III' + diastValsSuma() + ', presión de llenado elevada.';
     } else if (ea < 2) {
       R.clave = 'g2';
       R.cls = 'orange';
       R.badgeTxt = 'DD Grado II — ASE 2025';
-      R.texto = 'Disfunción diastólica grado II (patrón pseudonormal). E/A ' + ea.toFixed(2) +
-        ' (<2,00) con presión de llenado elevada' + nPar + '.';
+      R.texto = 'Disfunción diastólica grado II (patrón pseudonormal) con presión de llenado elevada, E/A ' +
+        ea.toFixed(2) + nPar + '.';
       R.textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada.';
     } else {
       /* E/A ≥2 con e' CONSERVADA no es grado III: es el patrón del corazón joven y sano, donde
@@ -41253,7 +41263,9 @@ function diastASE2025Evaluar() {
     R.clave = 'normal';
     R.cls = 'green';
     R.badgeTxt = 'Función diastólica normal — ASE 2025';
-    R.texto = 'Función diastólica normal: e\' conservada con presión de llenado normal' + nPar + '.';
+    /* Sin el conteo y sin nombrar el parámetro: decisión de Maicol. Un «0/3 parámetros
+       positivos» al lado de una normalidad es el denominador de una búsqueda, no un hallazgo. */
+    R.texto = 'Función diastólica normal.';
     R.textoSuma = '';
     R.via = 'las tres principales negativas';
     R.camino.push('a25.todasneg');
@@ -41266,8 +41278,8 @@ function diastASE2025Evaluar() {
     R.clave = 'g1';
     R.cls = 'yellow';
     R.badgeTxt = 'DD Grado I — ASE 2025';
-    R.texto = 'Disfunción diastólica grado I (relajación alterada). e\' reducida, E/A ' + ea.toFixed(2) +
-      ' (≤0,80) y presión de llenado normal' + nPar + '.';
+    R.texto = 'Disfunción diastólica grado I (relajación alterada) con presión de llenado normal, E/A ' +
+      ea.toFixed(2) + nPar + '.';
     R.textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
     R.via = 'e\' reducida sola con E/A ≤ 0,80';
   } else if (seg2Eval === 0 && suplPos.length >= 1) {
@@ -42048,9 +42060,14 @@ function diastASE2016Evaluar() {
           'atajo E/A ≤ 0,8 con E ≤ 50 cm/s' + sufFevi);
   } else if (atajoG3) {
     R.camino.push('a16b.atajo3');
+    /* ⚠️ SIN CONTEO DE PARÁMETROS, y es una decisión medida (Maicol, 3A): esta rama llega por el
+       ATAJO `E/A ≥ 2`, o sea ANTES de contar los tres criterios de la Figura 8B, así que un
+       «(N/M parámetros positivos)» publicaría un recuento que no decidió nada. El conteo sigue
+       estando en la ventana 🧭, que es donde explica. La E/A SÍ va: es el valor que decidió. */
     poner('g3', 'red', 'Grado III — ASE 2016',
-          'Llenado diastólico restrictivo (Disfunción diastólica Grado III).',
-          'Disfunción diastólica Grado III (restrictivo).',
+          'Disfunción diastólica grado III (patrón restrictivo' + diastValsPatron() +
+            ') con presión de llenado elevada, E/A ' + ea.toFixed(2) + '.',
+          'Disfunción diastólica grado III' + diastValsSuma() + ', presión de llenado elevada.',
           'atajo E/A ≥ 2' + sufFevi);
 
   /* ══ LA CAJA DE LOS TRES CRITERIOS DE LA FIGURA 8B (folio 290) ═══════════════════════════════
