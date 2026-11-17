@@ -12619,10 +12619,17 @@ window.cerrarSesionReal = cerrarSesionReal;
                  su celda, su casilla, su caja de nota con la clase que la esconde hasta que la
                  casilla se marca, y los MISMOS dos sincronizadores en el onchange. Nada propio. -->
             <div class="otr-var-celda">
-              <label class="otr-var-lab">
-                <input type="checkbox" id="otr_var_cortri" onchange="otrHallSync();otrVarNotaSync()">
-                <span>Cor triatriatum</span>
-              </label>
+              <!-- ⚠️ EL GLOBO VA FUERA DEL `<label>` Y EN UNA FILA FLEX PROPIA (3A, 2026-11-17):
+                   ese label envuelve la casilla, así que un botón adentro la marcaría al tocarlo.
+                   La fila conserva los 44 px de alto que `.otr-var-lab` ya declara y el botón toma
+                   los suyos de la regla táctil global. Es el primer ⓘ de una celda de variante. -->
+              <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                <label class="otr-var-lab" style="min-width:0;">
+                  <input type="checkbox" id="otr_var_cortri" onchange="otrHallSync();otrVarNotaSync()">
+                  <span>Cor triatriatum</span>
+                </label>
+                <button type="button" class="vinfo-btn" data-vinfo="otr-cortri" aria-expanded="false" aria-label="Informaci&oacute;n sobre el cor triatriatum" onclick="vInfoClic(this)">&#9432;</button>
+              </div>
               <input type="text" id="otr_var_cortri_nota" class="otr-var-nota" maxlength="120" placeholder="Lado, gradiente (opcional)" oninput="_refrescarInformeSiGenerado()" style="display:none;">
             </div>
           </div>
@@ -51868,6 +51875,39 @@ const VINFO = Object.freeze({
      ⚠️ NO SE LE PONE A LA FUGA DE LA PROTESIS QUIRURGICA, que comparte el motor, y el motivo ya
      esta escrito en este archivo: la VARC-3 es un documento de TAVI y pasarle su escala a una
      protesis quirurgica le aplicaria un corte que esa guia no publica para ella. */
+  /* ⚠️ LA FICHA DEL COR TRIATRIATUM (3A, 2026-11-17). DOS MITADES, cada una de su fuente y
+     las dos leidas en el PDF de la biblioteca por esta sesion:
+       · ACC/AHA 2025 (Gurvitz), apartado 4.2.1 «Cor Triatriatum Sinister», hojas 49 a 51,
+         folios e163 a e165 -regla de folio: folio = «e» + hoja + 114-: la membrana fenestrada
+         con sus dos inserciones, las dos camaras, la orejuela y la mitral en la DISTAL, el
+         0,1 % de la cardiopatia congenita clinica, la fisiopatologia compartida con la estenosis
+         mitral, y la recomendacion diagnostica clase 2a nivel B-NR.
+       · ASE 2019 (Puchalski), hojas 66 y 67 del ORIGINAL EN INGLES, folios 195 y 196 -regla de
+         folio: folio = hoja + 129-: la tecnica, el Doppler color, el retorno venoso, el septo, la
+         mitral, el control tras la reseccion y el punto clave 2.
+     ⚠️ SE USA EL ORIGINAL EN INGLES Y NO LA TRADUCCION de la hoja 26 de ese mismo PDF, que
+     tiene un error de tipeo. Orden expresa.
+     ⚠️ NO LLEVA CLASIFICACION POR TIPOS: ninguna de las dos fuentes la trae, y los nombres que
+     circulan para eso (Lucas, Loeffler, Marin-Garcia, Niwayama, Thilenius) no se citan.
+     ⚠️ EL >15 mmHg SE PUBLICA COMO LA GUIA LO ENMARCA Y NADA MAS. El texto del folio e164 dice
+     «a previously proposed threshold for hemodynamically severe obstruction (mean estimated
+     membrane gradient >15 mm Hg at rest or with exercise, by noninvasive Doppler
+     interrogation)», o sea un umbral PROPUESTO PREVIAMENTE que la guia menciona, no un corte
+     propio. La aplicacion no gradua el cor triatriatum ni publica criterio de reparacion: no hay
+     un solo numero cableado. Por eso el globo lo nombra con ese encuadre.
+     ⚠️ EL PARRAFO DEL DOPPLER DE VENAS PULMONARES de la hoja 66 -el patron trifasico, el
+     gradiente medio sobre uno o dos ciclos- es de las venas pulmonares EN GENERAL y NO se usa
+     aca: atribuirselo al cor triatriatum seria hacerle decir a la fuente algo que no dice. */
+  'otr-cortri': {
+    tit: 'Cor triatriatum',
+    lee: 'Membrana fibromuscular fenestrada que divide la aur\u00edcula izquierda en una c\u00e1mara proximal, que recibe las venas pulmonares, y una distal; se inserta en el septo interauricular por dentro y en la cresta lateral izquierda por fuera. La orejuela izquierda y la v\u00e1lvula mitral quedan las dos en la c\u00e1mara distal, y eso es lo que lo distingue de un anillo mitral supravalvular. Es poco frecuente: alrededor del 0,1 % de la cardiopat\u00eda cong\u00e9nita. Comparte fisiopatolog\u00eda con la estenosis mitral, as\u00ed que las manifestaciones se parecen.\n'
+       + 'C\u00d3MO SE ESTUDIA POR V\u00cdA TRANSESOF\u00c1GICA. Se empieza en el plano esof\u00e1gico medio de cuatro c\u00e1maras con la sonda levemente retroflexionada, para no comprimir una c\u00e1mara venosa pulmonar que puede estar hipertensiva, y se gira en sentido antihorario para encontrar la membrana: se inserta por debajo de las venas pulmonares izquierdas y por encima de la orejuela.\n'
+       + 'EL DOPPLER COLOR identifica las comunicaciones entre la c\u00e1mara proximal y la distal en los planos de cuatro y de dos c\u00e1maras, y muestra el flujo turbulento que atraviesa la membrana cuando hay obstrucci\u00f3n. Los orificios suelen ser exc\u00e9ntricos, as\u00ed que conviene verlos en distintos \u00e1ngulos para encontrar la mejor alineaci\u00f3n, valorar el grado de estenosis y estimar la presi\u00f3n venosa pulmonar.\n'
+       + 'QU\u00c9 M\u00c1S RECORRER. El retorno venoso pulmonar entero, porque hay formas parciales en las que s\u00f3lo las venas derechas o s\u00f3lo las izquierdas entran en la c\u00e1mara proximal. El septo interauricular, desde cuatro c\u00e1maras, bicava y transg\u00e1strico, para identificar una comunicaci\u00f3n interauricular o un foramen oval permeable. Y la v\u00e1lvula mitral, para descartar lesiones obstructivas o insuficiencia.\n'
+       + 'TRAS LA RESECCI\u00d3N de la membrana, el transesof\u00e1gico ayuda a ver si queda membrana residual, un cortocircuito residual a nivel auricular y c\u00f3mo drenan las venas pulmonares.',
+    fuente: 'La descripci\u00f3n y la frecuencia: ACC/AHA 2025 (Gurvitz), apartado del cor triatriatum sinister. La t\u00e9cnica, el Doppler y el control tras la resecci\u00f3n: ASE 2019 (Puchalski), apartado del papel del transesof\u00e1gico en las anomal\u00edas de las aur\u00edculas, y sus puntos clave.',
+    ojo: 'En el adulto sin reparar, el transesof\u00e1gico o una imagen de corte es \u00fatil para identificar el tama\u00f1o y la localizaci\u00f3n del orificio de la membrana y para buscar defectos card\u00edacos cong\u00e9nitos asociados (clase 2a, nivel B-NR). La gu\u00eda nombra un gradiente medio estimado de la membrana por encima de 15 mmHg, en reposo o con ejercicio, pero LO PRESENTA COMO UN UMBRAL PROPUESTO PREVIAMENTE y no como un criterio propio: esta aplicaci\u00f3n no grad\u00faa el cor triatriatum y no publica ning\u00fan criterio de reparaci\u00f3n. Y ninguna de las dos fuentes lo clasifica por tipos.'
+  },
   'tavi-pvl-ext': {
     tit: 'Extensi\u00f3n circunferencial de la fuga paravalvular',
     lee: 'Tres grados: por debajo del 10 % de la circunferencia, del 10 al 29 % y del 30 % o m\u00e1s. Se mide como la suma de las longitudes circunferenciales de la vena contracta de cada chorro \u2014sin contar el espacio no regurgitante que queda entre dos chorros\u2014 dividida por la circunferencia del borde externo de la v\u00e1lvula.',
