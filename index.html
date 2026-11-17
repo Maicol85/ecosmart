@@ -7664,7 +7664,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                `parseFloat('−18')` da `NaN` y el campo quedaba con el valor a la vista, guardado,
                y el strain sin salir en ninguna superficie — pérdida muda de dato clínico. Lo
                normaliza `vdStrainPlNorm` en el `oninput`, y el `placeholder` no lo enseña. -->
-          <label>Strain de pared libre del VD (%)</label>
+          <label>Strain de pared libre del VD (%) <button type="button" class="vinfo-btn" data-vinfo="vd-strain-pl" aria-expanded="false" aria-label="Informaci&oacute;n sobre el strain de pared libre del VD" onclick="vInfoClic(this)">&#9432;</button></label>
           <input type="number" id="vd_strain_pl" placeholder="-18" step="0.1" oninput="vdStrainPlNorm(this);vdStrainPlSync();calcVD()">
           <div id="vd_strain_pl-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
           <!-- ⚠️ EL RESULTADO DE LA INTERPRETACIÓN YA NO VIVE ACÁ (tanda Y, commit 1, pedido del
@@ -32420,6 +32420,7 @@ const EV_FECHA_VS     = '2026-10-17';
 /* La re-verificacion del AJ1: la Tabla 1 y el texto del strain, leidos EN IMAGEN en la
    version de MAYO y comparados contra la de febrero. */
 const EV_FECHA_AJ1    = '2026-10-22';
+const EV_FECHA_P3A    = '2026-11-17';
 const EV_FECHA_AO2    = '2026-10-30';   // tanda AORTA-2: Figura 5 y Tabla 68 leidas en imagen
 const EV_FECHA_PANT8  = '2026-11-04';   // tanda PANT-8: tronco y ramas de la AP, y los tres TSVD
 /* ⚠️ LA EDICION INGLESA ES LA PRIMARIA EN ESTA FICHA Y EN LAS QUE VENGAN (AORTA-2, 30/10/2026).
@@ -32724,40 +32725,41 @@ const EV_REG = Object.freeze([
      are shown»- y el texto del folio 159 lo repite en prosa, «strain values more negative than
      20% to 25% for both RVFWS and RVGLS are generally considered as normal». Ninguno de los dos
      abre columnas de varon y de mujer. La app usaba -20 y -21 hasta el AJ1.
-     ⚠️ Y EL DUENO NO GRADUA: `VD_STRAIN_NORMAL` es un corte BINARIO -normal o por debajo de lo
-     normal-, asi que la ficha publica el de normalidad y NO las tres bandas de la Tabla 1. El
-     panel de medicion lo dice con palabras y nunca con el operador solo, porque «< -20 %» se
+     ⚠️ ESTE COMENTARIO DECIA QUE «EL DUENO NO GRADUA» Y QUE «la ficha publica el de normalidad
+     y NO las tres bandas de la Tabla 1», Y ERA FALSO EN SU PREMISA: esa tabla SI bandea el strain,
+     en sus cuatro columnas, y lo que no graduaba era la aplicacion. Desde la tanda 3A gradua los
+     cuatro tramos y esta ficha publica el corte de NORMALIDAD; los tres de disfuncion viven en
+     `FUN-VD-008`, que desde esta tanda tambien es de GUIA y esta verificada. El «< -20 %» se
      lee al reves. */
   Object.freeze({
     id: 'FUN-VD-007', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain longitudinal de la pared libre del VD',
-    valor: 'Normal cuando es más negativo que −20 % en valor absoluto. UN SOLO CORTE PARA LOS DOS SEXOS: ni la Tabla 1 ni el texto de la guía abren columnas de varón y de mujer',
+    valor: 'Normal cuando es más negativo que −20 % en valor absoluto. UN SOLO CORTE PARA LOS DOS SEXOS: ni la Tabla 1 ni el texto de la guía abren columnas de varón y de mujer. Los tres tramos de disfunción —leve, moderada y severa— los publica la misma fila de esa tabla y viven en la ficha FUN-VD-008',
     duenio: 'VD_STRAIN_NORMAL / _vdCalcular',
     guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1 y apartado del strain', folio: '145 y 159', hoja_pdf: 5,
     doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
     estado: 'verificado', fecha_verificacion: EV_FECHA_AJ1,
     fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1 (folio 145) y texto del folio 159',
   }),
-  /* ⚠️ LA BANDA `leve` DEL STRAIN NO TIENE FUENTE, Y POR ESO ES UNA FICHA APARTE (AJ7-3i,
-     2026-10-24). Cierra AJ5-e. No se cuelga de `FUN-VD-007` —que esta VERIFICADA contra la ASE
-     2025— porque mezclarlas haria que una ficha verificada declarara un corte que su documento no
-     publica, que es exactamente lo que el registro de citas existe para impedir. Nace como las
-     otras de su clase (ver `AOR-001`): `tipo: criterio propio de EcoSmart`, `estado: por
-     verificar`, y sin guia, folio ni DOI. `_evRefBiblio` SALTEA toda ficha que no este
-     `verificado`, asi que su fila del cuadro sale SIN CORCHETE —un corchete sobre un corte que la
-     fuente no publica respaldaria lo que esa fuente niega—.
-     CENSADO OTRA VEZ EN ESTA TANDA, sobre el registro del proyecto: ni `ASE25_T1` tiene entrada
-     de strain, ni la Tabla 1 del folio 145 lo bandea, ni el texto del folio 159 abre bandas —lo
-     unico que publican es el corte de NORMALIDAD, 20 % en valor absoluto, sin columnas de varon
-     y de mujer—. El 15 se aplica porque LA ORDEN FIJA EL NUMERO, igual que el 36 mm de la AJ4-1.
-     Moderada y severa NO EXISTEN en ningun lado y no se inventaron. */
+  /* ⚠️ ESTA FICHA ERA «criterio propio de EcoSmart / por verificar» Y PASA A SER DE GUIA (3A,
+     2026-11-17). Nacio en la AJ7-3i declarando que la banda `leve` «no tiene fuente», y el motivo
+     escrito era que «ni la Tabla 1 del folio 145 lo bandea, ni el texto del folio 159 abre
+     bandas»: es FALSO, y por eso tres superficies de esta aplicacion afirmaban que la guia no
+     publica lo que la guia publica. Leido en el PDF de la biblioteca
+     (`03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf`, hoja 5, folio 145
+     comprobado en el pie impreso), la fila del strain de pared libre de tres segmentos trae las
+     CUATRO columnas de la tabla: `>20` normal, `≤20 a ≥15` leve, `<15 a ≥11` moderada y `<11`
+     severa, con la nota al pie `*` «Absolute values and ranges for strain are shown».
+     CONSECUENCIA MEDIBLE, y es la que importa: `_evRefBiblio` saltea toda ficha que no este
+     `verificado`, asi que hasta hoy las filas de los tramos salian SIN CORCHETE. Ahora salen CON
+     corchete, que es lo que corresponde a un corte que su documento publica. */
   Object.freeze({
-    id: 'FUN-VD-008', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain de pared libre del VD: la banda de disfunción leve',
-    valor: 'Disfunción leve con un strain de pared libre de 15 a 20 % en valor absoluto, el 15 incluido. Por debajo de 15 la aplicación informa disfunción sistólica SIN graduar y no gradúa moderada ni severa: esos dos cortes no existen en la fuente. El corte de normalidad —más de 20 %— sí es de la guía y vive en la ficha FUN-VD-007. Desde la tanda AJ7 esta banda VOTA en la función sistólica del ventrículo derecho del informe firmado, y nunca puede llevar el grado más allá de leve',
-    duenio: 'VD_STRAIN_PL_LEVE / vdStrainPlCat',
-    guia: '', ubicacion: '', folio: '', hoja_pdf: null,
-    doi: '', fuente_original: '', tipo: 'criterio propio de EcoSmart',
-    estado: 'por verificar', fecha_verificacion: EV_FECHA_VER,
-    fuente_una_linea: '',
+    id: 'FUN-VD-008', zona: 'VD/AD — Ventrículo derecho', dato: 'Strain de pared libre del VD: los tres tramos de disfunción',
+    valor: 'Los tres en valor absoluto y los tres de la misma fila de la tabla: disfunción leve de 20 a 15 % —el 15 incluido—, moderada por debajo de 15 y hasta 11 % —el 11 incluido— y severa por debajo de 11 %. El corte de normalidad —más de 20 %— vive en la ficha FUN-VD-007. Los tres VOTAN en la función sistólica del ventrículo derecho del informe firmado y escriben su grado cuando el TAPSE y la onda S′ no pudieron darlo; cuando esos dos sí lo dieron, ese grado manda y el strain no lo sube',
+    duenio: 'VD_STRAIN_PL_LEVE y VD_STRAIN_PL_MOD / vdStrainPlCat',
+    guia: EV_GUIA_ASE2025VD, ubicacion: 'Tabla 1', folio: '145', hoja_pdf: 5,
+    doi: EV_DOI_ASE2025VD, fuente_original: '', tipo: 'guía',
+    estado: 'verificado', fecha_verificacion: EV_FECHA_P3A,
+    fuente_una_linea: 'ASE 2025 de mayo (Mukherjee), Tabla 1, folio 145',
   }),
   /* ══ DOS FICHAS NUEVAS DE PANT-7 (c3e) ══════════════════════════════════════════════════
      Una guia por ficha, que es la convencion de este registro: el signo 60/60 lo define la
@@ -34382,7 +34384,7 @@ function vdDisfPresente(src) {
            || (sp    !== null && anorm(vdSprimeCat(sp)))
            || (fac   !== null && anorm(vdFacCat(fac)))
            || (tei   !== null && anorm(vdTeiCat(tei)))
-           || strCat === 'leve' || strCat === 'bajo_leve');
+           || anorm(strCat));
   } catch (e) { return false; }
 }
 window.vdDisfPresente = vdDisfPresente;
@@ -34494,42 +34496,50 @@ function vdTeiCat(x) {
   if (n == null || !isFinite(n)) return null;
   return ase25Grado('vd_tei', n);
 }
-/* ══ STRAIN DE PARED LIBRE DEL VD — LOS CORTES DEL CAMPO TIPEADO (AJ5-5, 2026-10-24) ═══════
-   ⚠️ NO ENTRA EN `ASE25_T1`, Y EL MOTIVO YA ESTÁ ESCRITO EN ESTE ARCHIVO DOS VECES: la Tabla 1
-   de la ASE 2025 NO bandea el strain —le da UN corte de normalidad, «>20» en valor absoluto, con
-   la nota al pie «Absolute values and ranges for strain are shown»— y el texto del folio 159
-   habla de «más negativo que 20 % a 25 %», también sin bandas. La ficha `FUN-VD-007` lo declara
-   así: «el dueño no gradúa». Meterlo en la Tabla 1 fabricaría tres bandas que esa tabla no tiene.
-   ⚠️ DESDE LA AJ7-3i LA BANDA `leve` SÍ ESTÁ DECLARADA EN REFERENCIAS, y tiene ficha propia:
-      `FUN-VD-008`, con `tipo: criterio propio de EcoSmart` y `estado: por verificar`, para que la
-      fila del cuadro salga SIN CORCHETE. Era el defecto de AJ5-e: desde la AJ5-5 la pantalla
-      aplicaba una banda intermedia que el cuadro de Referencias no declaraba, o sea que la misma
-      aplicación afirmaba en una superficie que no graduaba y graduaba en otra. `FUN-VD-007` sigue
-      diciendo lo que dice la guía —el corte de normalidad— y nada más.
+/* ══ STRAIN DE PARED LIBRE DEL VD — LOS CUATRO TRAMOS DE LA TABLA 1 (3A, 2026-11-17) ═══════
+   ⚠️ ESTE BLOQUE AFIRMABA, DOS VECES Y «MEDIDO EN IMAGEN», QUE LA TABLA 1 NO BANDEA EL STRAIN, Y
+   ERA FALSO. Decía que la Tabla 1 «le da UN corte de normalidad, >20 en valor absoluto» y que
+   «meterlo en la Tabla 1 fabricaría tres bandas que esa tabla no tiene»; la ficha `FUN-VD-008`
+   decía que moderada y severa «no existen en la fuente», y el emisor del informe lo repetía otras
+   dos veces. Leído en el PDF de la biblioteca el 2026-11-17
+   (`03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf`, hoja 5, folio **145**
+   comprobado en el pie impreso «Mukherjee, M et al | 145»), la fila dice, con sus CUATRO
+   columnas —normal, leve, moderada y severa, que son las de toda la tabla—:
+       RV longitudinal free wall strain (three segment), %*   >20 | ≤20 a ≥15 | <15 a ≥11 | <11
+   y la nota al pie `*` es la que ya estaba citada: «Absolute values and ranges for strain are
+   shown» — o sea RANGOS, en plural, que es justamente lo que el comentario viejo negaba.
+   La fila de abajo bandea además el strain GLOBAL de seis segmentos (>17 | ≤17 a >13 | ≤13 a >9 |
+   ≤9); esa es OTRA magnitud y esta aplicación no la gradúa — ver `docs/PENDIENTES.md` → P3A-b.
+   Transcripción completa de la fila en `docs/fuentes/FUENTES.md`.
 
-   ⚠️ LO QUE LA APP TENÍA, MEDIDO, Y LO QUE LA ORDEN AGREGA — PORQUE NO ES LO MISMO:
-     · NORMAL: lo tenía. Es `VD_STRAIN_NORMAL` (−20 %), aplicado en el AJ1, sin diferencia por
-       sexo. Acá se reescribe en valor absoluto y se VIGILA contra ese dueño (ver el assert).
-     · LEVE de 15 a 20 inclusive: NO lo tenía. La orden dice «ya aplicados en el AJ1» y eso es
-       FALSO — el AJ1 unificó el corte de normalidad por sexo y no abrió ninguna banda. Se aplica
-       porque la orden fija el número, igual que el 36 mm de la AJ4-1, y queda REPORTADO.
-     · MODERADA y SEVERA: la app NO TIENE esos cortes, ni la Tabla 1, ni el texto del folio 159, ni
-       `Tabla_VD`, ni ninguna ficha de `IND_REFS` — censado. La orden dice «usa los que ya tiene la
-       app … no inventes ninguno», así que NO SE INVENTA NINGUNO: por debajo de 15 el campo dice
-       «por debajo de leve», que es la negación de las dos bandas que SÍ existen y no un grado
-       nuevo. `docs/PENDIENTES.md` → AJ5-e.
+   ⚠️ NO ENTRA EN `ASE25_T1` IGUAL, y el motivo cambió: ese registro es el dueño de las bandas que
+   el CUADRO DE REFERENCIAS del VD evalúa fila por fila, y el strain se gradúa por su valor
+   ABSOLUTO mientras las demás entradas de ese registro comparan el número tipeado. Mezclarlos
+   obligaría a que el evaluador supiera de cuál de las dos formas comparar cada fila. Las dos
+   fichas de Referencias —`FUN-VD-007` para el corte de normalidad y `FUN-VD-008` para los tres
+   tramos de disfunción— sí quedan las dos como GUÍA y verificadas, así que sus filas salen CON
+   corchete: hasta hoy la de los tramos salía sin él, porque se la declaraba criterio propio.
 
-   ⚠️ SE GRADÚA POR EL VALOR ABSOLUTO, así que −18 y 18 dan lo mismo. Es lo que dice la Tabla 1
-   y lo que ya dice la ficha `FUN-VD-007` («en valor absoluto»), y evita el modo de falla que este
-   archivo documenta para `#ref-cardiotox`: «< −20» leído literal significa lo contrario. */
-const VD_STRAIN_PL_NORMAL = 20;  // % en valor absoluto — normal con MÁS de 20 (ASE 2025 de mayo, Tabla 1 folio 145 y texto folio 159)
-const VD_STRAIN_PL_LEVE   = 15;  // % en valor absoluto — leve de 15 a 20 INCLUSIVE; el 15 exacto es leve (orden de Maicol, AJ5-5)
+   ⚠️ SE GRADÚA POR EL VALOR ABSOLUTO, así que −18 y 18 dan lo mismo. Es lo que dice la nota al pie
+   de la Tabla 1 y lo que ya decían las dos fichas, y evita el modo de falla que este archivo
+   documenta para `#ref-cardiotox`: «< −20» leído literal significa lo contrario. Por eso en
+   pantalla va con palabras y nunca con el operador solo. */
+const VD_STRAIN_PL_NORMAL = 20;  // % en valor absoluto — normal con MÁS de 20          (ASE 2025 de mayo, Tabla 1 folio 145)
+const VD_STRAIN_PL_LEVE   = 15;  // % en valor absoluto — leve de 20 a 15 INCLUSIVE       (misma fila de la misma tabla)
+const VD_STRAIN_PL_MOD    = 11;  // % en valor absoluto — moderada por debajo de 15 y hasta 11 INCLUSIVE; por debajo de 11, severa
 window.VD_STRAIN_PL_NORMAL = VD_STRAIN_PL_NORMAL; window.VD_STRAIN_PL_LEVE = VD_STRAIN_PL_LEVE;
+window.VD_STRAIN_PL_MOD = VD_STRAIN_PL_MOD;
 const VD_STRAIN_PL_TXT = Object.freeze({
-  normal:    'normal',
-  leve:      'leve',
-  bajo_leve: 'por debajo de leve'
+  normal:   'normal',
+  leve:     'leve',
+  moderada: 'moderada',
+  severa:   'severa'
 });
+/* Se exporta porque desde la tanda 3A lo lee el EMISOR DEL INFORME, que vive en otro bloque de
+   JS: el grado que publica el papel firmado sale de este mismo registro y no de una palabra
+   escrita a mano alla, para que la pantalla y el papel no puedan decir dos severidades distintas
+   del mismo numero. */
+window.VD_STRAIN_PL_TXT = VD_STRAIN_PL_TXT;
 /* ⚠️ EL ÚNICO DUEÑO DE «¿HAY UN STRAIN USABLE?» (AJ5-6). Tres estados NO son un valor:
      · vacío → no se midió;
      · `0` → tampoco. Una deformación nula no es un hallazgo, y con `!== null` el informe FIRMADO
@@ -34566,7 +34576,8 @@ function vdStrainPlCat(x) {
   const a = Math.abs(n);
   if (a > VD_STRAIN_PL_NORMAL) return 'normal';
   if (a >= VD_STRAIN_PL_LEVE)  return 'leve';
-  return 'bajo_leve';
+  if (a >= VD_STRAIN_PL_MOD)   return 'moderada';
+  return 'severa';
 }
 window.vdStrainPlCat = vdStrainPlCat;
 /* PINTA la categoría al lado del campo. Nunca escribe un valor, así que va en `RECALC_MODULOS`
@@ -34589,11 +34600,17 @@ function vdStrainPlSync() {
   const inp = document.getElementById('vd_strain_pl');
   const cat = vdStrainPlCat(inp ? inp.value : '');
   if (!cat) { el.textContent = '\u2014'; el.style.color = ''; return; }
+  /* Los cuatro tramos, con PALABRAS y nunca con el operador solo. El rango se escribe de mayor a
+     menor —«de 20 a 15»— porque es el orden en que la tabla lo imprime y el orden en que el
+     número empeora, que es como se lee un deterioro. */
   el.textContent = VD_STRAIN_PL_TXT[cat]
-    + (cat === 'normal' ? ' (más de ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
-     : cat === 'leve'   ? ' (de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
-     : ' (menos de ' + VD_STRAIN_PL_LEVE + ' % en valor absoluto — la aplicación no tiene corte de moderada ni de severa)');
-  el.style.color = cat === 'normal' ? 'var(--green)' : cat === 'leve' ? 'var(--yellow)' : 'var(--red)';
+    + (cat === 'normal'   ? ' (más de ' + VD_STRAIN_PL_NORMAL + ' % en valor absoluto)'
+     : cat === 'leve'     ? ' (de ' + VD_STRAIN_PL_NORMAL + ' a ' + VD_STRAIN_PL_LEVE + ' % en valor absoluto)'
+     : cat === 'moderada' ? ' (de menos de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_MOD + ' % en valor absoluto)'
+     : ' (menos de ' + VD_STRAIN_PL_MOD + ' % en valor absoluto)');
+  el.style.color = cat === 'normal' ? 'var(--green)'
+                 : cat === 'leve'   ? 'var(--yellow)'
+                 : cat === 'moderada' ? 'var(--orange)' : 'var(--red)';
 }
 window.vdStrainPlSync = vdStrainPlSync;
 /* El corte de normalidad tiene UN dueño en el módulo de Deformación (`VD_STRAIN_NORMAL`) y acá
@@ -51822,6 +51839,17 @@ const VINFO = Object.freeze({
         «<0.40 ms» y «<0.55 ms», con una unidad que un cociente no tiene.
      ⚠️ NO LLEVA EL VALOR NORMAL DEL TEI DEL VENTRICULO IZQUIERDO: ninguna de las fuentes de la
         biblioteca lo trae, y la orden lo prohibe expresamente. */
+  /* ⚠️ EL GLOBO DEL STRAIN DE PARED LIBRE (3A, 2026-11-17). Los cuatro tramos salen de los
+     DUENOS y no se escriben a mano: el dia que un corte se mueva, el globo se mueve con el. */
+  'vd-strain-pl': {
+    tit: 'Strain de pared libre del ventrículo derecho',
+    lee: 'Se gradúa por el VALOR ABSOLUTO, así que −18 y 18 dan lo mismo. Cuatro tramos: normal por encima de '
+       + VD_STRAIN_PL_NORMAL + ' %; disfunción leve de ' + VD_STRAIN_PL_NORMAL + ' a ' + VD_STRAIN_PL_LEVE
+       + ' %, el ' + VD_STRAIN_PL_LEVE + ' incluido; moderada por debajo de ' + VD_STRAIN_PL_LEVE + ' y hasta '
+       + VD_STRAIN_PL_MOD + ' %, el ' + VD_STRAIN_PL_MOD + ' incluido; y severa por debajo de ' + VD_STRAIN_PL_MOD + ' %.',
+    fuente: 'ASE 2025 (Mukherjee), Tabla 1 — fila del strain longitudinal de pared libre de tres segmentos.',
+    ojo: 'La guía no separa por sexo: la misma columna vale para el varón y para la mujer. Y es una magnitud distinta del strain global del ventrículo derecho, que promedia pared libre y septo y da valores menos negativos: publicarlo con estos cortes sería compararlo contra la fila equivocada.'
+  },
   'vd-tei': {
     ancho: 420,
     tit: 'El índice de Tei del ventrículo derecho',
@@ -55134,8 +55162,14 @@ function evRefPintar(id) {
       { ficha: 'FUN-VD-007', rot: 'Strain de pared libre — normal (valor absoluto)',
         h: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %', m: '> ' + Math.abs(VD_STRAIN_NORMAL) + ' %' },
       { ficha: 'FUN-VD-008', rot: 'Strain de pared libre — disfunción leve (valor absoluto)',
-        h: 'de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_NORMAL + ' %',
-        fuente: 'Decisión de la aplicación' },
+        h: 'de ' + VD_STRAIN_PL_NORMAL + ' a ' + VD_STRAIN_PL_LEVE + ' %',
+        m: 'de ' + VD_STRAIN_PL_NORMAL + ' a ' + VD_STRAIN_PL_LEVE + ' %' },
+      { ficha: 'FUN-VD-008', rot: 'Strain de pared libre — disfunción moderada (valor absoluto)',
+        h: 'de menos de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_MOD + ' %',
+        m: 'de menos de ' + VD_STRAIN_PL_LEVE + ' a ' + VD_STRAIN_PL_MOD + ' %' },
+      { ficha: 'FUN-VD-008', rot: 'Strain de pared libre — disfunción severa (valor absoluto)',
+        h: '< ' + VD_STRAIN_PL_MOD + ' %',
+        m: '< ' + VD_STRAIN_PL_MOD + ' %' },
       /* ══ EL TRONCO Y LAS RAMAS DE LA AP, Y LOS TRES TSVD (PANT-8, commit 5) ═════════════════
          Las filas se escriben acá y NO con `_evRefFilasT1`, y es a proposito: ese ayudante lee
          `ASE25_T1`, que es el dueno de las bandas que la PANTALLA del VD aplica. Ninguno de
@@ -63968,14 +64002,14 @@ function generarInforme(opts) {
          una afirmacion de normalidad al lado de un parametro alterado del mismo ventriculo.
          Medido en Chrome contra HEAD, en las tres bandas y en los dos bordes.
          LAS TRES REGLAS SON LAS DE LA ORDEN, y ninguna inventa un corte:
-           · de 15 a 20 % en valor absoluto -la banda `leve` de `vdStrainPlCat`- vota LEVE;
-           · por debajo de 15 VOTA pero NO escribe grado desde el E-3a -el AJ7 ponia «leve como
-             minimo» aca y esta linea quedo vencida; ver el bloque del piso, mas abajo-. Nunca
-             moderada ni severa: esos dos cortes
-             NO EXISTEN en ninguna fuente de la biblioteca. Censado otra vez en esta tanda: la
-             Tabla 1 de la ASE 2025 de mayo NO tiene entrada de strain -`ASE25_T1` tampoco-, el
-             texto del folio 159 publica un unico corte de normalidad, y ninguna ficha de
-             `IND_REFS` abre bandas. Lo unico que la fuente publica es el 20 %;
+           · de 20 a 15 % en valor absoluto -la banda `leve` de `vdStrainPlCat`- vota LEVE;
+           · por debajo de 15 y hasta 11 vota MODERADA, y por debajo de 11 vota SEVERA. LOS DOS
+             TRAMOS SON DE LA GUIA y entraron en la tanda 3A: la Tabla 1 de la ASE 2025 de mayo
+             bandea el strain en sus CUATRO columnas -folio 145, leido en el PDF de la
+             biblioteca-, y este bloque afirmaba lo contrario. Decia que esos dos cortes «NO
+             EXISTEN en ninguna fuente de la biblioteca» y que «la Tabla 1 no tiene entrada de
+             strain»: las dos cosas eran falsas. Lo unico cierto de aquel parrafo es que
+             `ASE25_T1` no lo trae, y eso es una decision de este archivo y no de la guia;
            · por encima de 20 -la banda `normal`- NO vota, igual que cualquier parametro normal.
          ⚠️ COMO COMBINA CON TAPSE Y ONDA S', MEDIDO ANTES DE ESCRIBIR: `vdDisf` es un OR de
             parametros -cada uno cuenta solo si esta medido y uno alcanza-, y el GRADO lo da
@@ -63995,7 +64029,10 @@ function generarInforme(opts) {
             -«strain de pared libre -18 %»- y no gradua. */
       const strCat  = (strVD !== null && typeof vdStrainPlCat === 'function')
                         ? vdStrainPlCat(strVD) : null;
-      const strVota = strCat === 'leve' || strCat === 'bajo_leve';
+      /* Vota cualquier tramo que no sea `normal`, y se escribe por la NEGATIVA a proposito: con
+         la lista de tramos enumerada, el dia que la guia abra un quinto el voto se perderia en
+         silencio. `null` -sin strain usable- no vota. */
+      const strVota = strCat !== null && strCat !== 'normal';
       /* ⚠️ EL `OR` SE LE PIDE AL DUEÑO (COR-2c, 2026-10-30) y no se calcula acá: la frase nueva
          del gradiente subestimado, 1.800 líneas más abajo, necesita la misma respuesta y este
          `const` no llega hasta allá. Los cinco predicados locales de arriba siguen existiendo
@@ -64010,24 +64047,26 @@ function generarInforme(opts) {
          `null` -un parametro normal, ninguno de los dos medido, o una excepcion- la frase queda
          EXACTAMENTE como estaba, que es la direccion segura. */
       let _vdDisfG = vdDisf ? ((typeof vdDisfGrado === 'function') ? vdDisfGrado(tapse, sp) : null) : null;
-      /* EL PISO DEL STRAIN (AJ7-3h), Y POR DEBAJO DE 15 YA NO HAY GRADO (E-3a, 2026-10-27).
-         DECISION DE MAICOL, y reemplaza el «leve como minimo» que el AJ7 habia puesto: con un
-         strain de pared libre por debajo de 15 % en valor absoluto el informe y el EN SUMA dicen
-         «disfuncion sistolica» SIN grado -ni leve, ni moderada, ni severa- y el valor va al lado,
-         como ya iba. Ejemplo medido: -12 % sale «Ventriculo derecho con disfuncion sistolica
-         (strain de pared libre -12 %)».
-         ⚠️ POR QUE ES MEJOR QUE «leve como minimo»: la fuente publica UN SOLO corte, el de
-         normalidad (ASE 2025 de mayo, Tabla 1 folio 145 y texto folio 159). «leve como minimo»
-         es una afirmacion de severidad —dice que es al menos leve y deja abierto que sea peor—
-         sobre una banda donde la guia no publica ningun corte. No graduar es lo que la fuente
-         permite decir. Censado otra vez en esta tanda: ni `ASE25_T1` ni ninguna ficha de
-         `IND_REFS` abre bandas de moderada o de severa para este parametro.
-         ⚠️ LO QUE NO CAMBIA, Y ESTA MEDIDO: el strain SIGUE VOTANDO -o sea que la frase afirma
-         disfuncion, no la calla-, la banda LEVE de 15 a 20 % inclusive sigue escribiendo «leve»,
-         por encima de 20 sigue sin votar, y si `vdDisfGrado(tapse, sp)` dio un grado ESE MANDA:
-         un TAPSE de 12 mm con una onda S' de 6 cm/s sigue publicando «moderada» con el strain en
-         -12. El strain nunca pudo y sigue sin poder subir un grado. */
-      if (!_vdDisfG && strCat === 'leve') _vdDisfG = 'leve';
+      /* EL GRADO DEL STRAIN (3A, 2026-11-17) — REEMPLAZA AL PISO DEL AJ7-3h Y AL «SIN GRADUAR»
+         DEL E-3a. Orden de Maicol: el strain gradua moderada y severa tambien en el informe
+         FIRMADO, alineado a la Tabla 1 de la ASE 2025. Hasta hoy, por debajo de 15 % el informe
+         decia «disfuncion sistolica» SIN grado, y el motivo escrito era que «la fuente publica UN
+         SOLO corte, el de normalidad» — que es FALSO: esa fila bandea en cuatro columnas
+         (>20 | ≤20 a ≥15 | <15 a ≥11 | <11), folio 145, leido en el PDF de la biblioteca el
+         2026-11-17 y transcrito en `docs/fuentes/FUENTES.md`.
+         ⚠️ EL GRADO SALE DEL MISMO DUENO QUE LA PANTALLA (`vdStrainPlCat` → `VD_STRAIN_PL_TXT`),
+         asi que la fila del cuadro de referencias y la frase del informe firmado no pueden decir
+         dos severidades distintas del mismo numero. Con la palabra escrita a mano aca, la que se
+         olvida de cambiar es la que miente.
+         ⚠️ LO QUE NO CAMBIA, Y ES DELIBERADO: si `vdDisfGrado(tapse, sp)` dio un grado, ESE MANDA.
+         TAPSE y onda S' son los duenos del grado y la regla «un parametro normal bloquea el
+         grado» sigue en pie, asi que el strain escribe el grado SOLO cuando ellos no pudieron
+         darlo — que es el caso que esta orden viene a cerrar: un TAPSE de 22 mm con un strain de
+         -9 % publicaba «disfuncion sistolica» a secas y ahora publica «disfuncion sistolica
+         severa». Lo que el strain sigue sin poder es SUBIR un grado que ellos ya escribieron: un
+         TAPSE de 12 mm con una onda S' de 6 cm/s sigue publicando «moderada» con el strain en -9.
+         Declarado en `docs/PENDIENTES.md` → P3A-c. */
+      if (!_vdDisfG && strVota) _vdDisfG = VD_STRAIN_PL_TXT[strCat];
       /* UN SOLO TEXTO PARA LAS NUEVE SUPERFICIES de esta zona: el informe en los tres estilos y
          las OCHO ramas del EN SUMA. Con el grado escrito en cada rama, la que se olvida deja el
          resumen diciendo «disfunción sistólica» sobre un cuerpo que dice «disfunción sistólica
