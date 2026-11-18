@@ -18136,3 +18136,85 @@ los dos motores y el sello.
   siempre» de sus dueños —`emAvmPdfPartes` y `_imMetodoPdfPartes`, que son los que de verdad
   deciden qué método entra y con qué número— y el suite las usa en **veinte** lugares como
   contrato. Borrarlas sería romper esa cobertura para no ganar nada.
+
+## Prompt 4 (2026-11-18) — lo declarado
+
+- **PR4-0 · El número del prompt.** La orden pide renombrarlo si el «4» ya estaba usado. Como
+  **etiqueta** estaba libre: no hay ninguna tanda, mapa, guía ni documento llamado «4». Lo que sí
+  está usado es el **prefijo** `P4-`, que por la convención de esta casa sería el de **PANT-4**, y
+  `T4-`, que es de TGA-4. Por eso las declaraciones de este prompt llevan **`PR4-`** y no `P4-`:
+  el número no se cambió, se le puso un prefijo que no colisiona.
+
+- **PR4-a · TC-949 pasa en los DOS árboles, y se declara.** El conteo de parámetros nunca estuvo
+  en `textoSuma` —vivía sólo en `texto`—, así que ese caso es una **guarda de regresión** para la
+  superficie que la orden nombra (el EN SUMA) y no lo que discrimina. Lo que cae contra el árbol
+  anterior es **TC-948** (informe narrativo) y **TC-950** (PDF).
+
+- **PR4-b · Las otras TRES colas del escenario de bajo gradiente de la estenosis aórtica NO se
+  tocaron.** La orden nombró la de la dobutamina. Las que quedan, palabra por palabra:
+  «Considerar score de calcio valvular por TAC para confirmar severidad.» (rama paradojal),
+  «Considerar medición incorrecta del TSVI o pseudo-severidad.» (bajo gradiente con flujo normal) y
+  «revisar el diámetro del tracto de salida y el trazado de las integrales velocidad-tiempo antes
+  de dar la severidad por establecida.» (FEVI reducida con volumen latido normal). Más la cola de
+  proximidad al umbral de 50 %, que pide confirmar la fracción por Simpson biplano. **Retirar texto
+  clínico es decisión del médico**, así que se reportan y se esperan.
+
+- **PR4-c · El punto 4 NO se implementó porque la fuente no coincide, y ya estaba declarado.** La
+  Tabla 1 de la ASE 2025 (hoja 5, folio **145**, comprobado en el pie impreso «Mukherjee, M et al |
+  145») trae **DOS** filas de strain del VD: `RV longitudinal free wall strain (three segment)` con
+  **>20 | ≤20 a ≥15 | <15 a ≥11 | <11**, y `RV longitudinal global strain (six segment)` con
+  **>17 | ≤17 a >13 | ≤13 a >9 | ≤9**. Los cortes que la orden pide son los de la **pared libre**,
+  que la aplicación **ya gradúa en esos cuatro tramos desde la 3A**; el strain **global** es otra
+  magnitud, tiene otros cortes y la aplicación **no tiene campo** para ella. Es lo mismo que
+  **P3A-b** ya decía. Si el médico decide agregar el campo, los cuatro tramos del global quedan
+  verificados arriba.
+
+- **PR4-d · Las TRES fuentes del corte del TRIV no están en la biblioteca, y las tres citas se
+  conservan.** Buscadas por nombre de archivo en «16- HTP», «03_VD_y_corazon_derecho», «17- Doppler
+  tisular y strain» y en todo el árbol de `~/Desktop/EcoSmart_Biblioteca_Fuentes`: **no están**
+  Cabrita IZ 2013 (*Eur Heart J Cardiovasc Imaging*), Bréchot N 2008 (*Eur J Echocardiogr*) ni
+  Howard LS 2012 (*Eur Respir Rev*) —el único «Howard» del árbol es Howard BV, coautor de un
+  artículo de aorta de 2012, que es otro documento—. Lo que sí hay en «16- HTP» es la guía de
+  corazón derecho de la ASE de mayo de 2025 (Mukherjee) y el material de estudio de la carpeta, y
+  en la de VD, además, Humbert 2022. Por la orden —«lo que no encuentres: declarar criterio de la
+  aplicación, NO sacarlo y NO inventar folio»— el globo `vd-triv` **declara el corte como criterio
+  de la aplicación** y las tres citas quedan **sin folio**, como estaban.
+
+- **PR4-e · Las CINCO fichas de severidad que ya existían no se reescribieron.** `ref-im`,
+  `ref-em`, `ref-ia`, `ref-eao` y `ref-it` ya publican su tabla de cortes con la fuente atribuida
+  **fila por fila**. Ponerles la línea de 10 px al pie sería reescribir texto clínico ya verificado
+  sin agregar un dato, así que se dejaron como están. Las tres que entraron —`ref-sevet`,
+  `ref-sevep` y `ref-sevip`— son las que **no tenían ficha**.
+
+- **PR4-f · El PPM mitral sigue sin verificar sus valores.** `docs/mapa/valvulas-constantes.md`
+  marca `VM_PROT_PPM_CORTES` como «no verificado: definición vista, valores no leídos». Desde la
+  PANT-20 el dueño único es `_vmPpmClasificar`, extraído de `vmProtEOA`, y el inventario de este
+  prompt lo registra con la Tabla 7 como fuente; **la lectura del valor en el PDF sigue
+  pendiente**. No se tocó ningún corte.
+
+- **PR4-g · La Tabla A8 no entra en la tabla fija de valores esperados.** No está indexada por
+  marca, modelo y tamaño sino por **referencia y situación**, y no tiene un solo consumidor en la
+  aplicación. Lo declara **P20-b** desde la PANT-20.
+
+- **PR4-h · `prot-vmax.ojo` sigue sin arreglar: el punto 8 era SÓLO informar.** La explicación en
+  criollo está en el reporte del prompt. El pendiente es **P3A-a** y no se movió.
+
+- **PR4-i · Los dos ids del aviso de independencia se RETIRARON.** `eco-indep-txt` traía las tres
+  primeras oraciones y `eco-indep-fin` la última: ese reparto existía para que el globo pudiera
+  intercalar su oración **dentro** de un párrafo. El punto 9 reparte el punto en **tres bloques**
+  con su dibujito, así que el corte dejó de existir y el globo lee los tres nodos nuevos
+  (`eco-indep-1`, `-2` y `-3`, listados en `INDEP_IDS`).
+
+- **PR4-j · El punto 3 estaba cumplido en el CÓDIGO antes de empezar, y lo que se cerró fue un
+  texto.** `DT_TRIV_HTP` vale 75 y sus dos lectores comparan con `>=` **desde el MEDIR-6 (B1)**:
+  el informe, el EN SUMA, las dos filas de referencia y la primera línea del globo ya decían «75 ms
+  o más». Lo que quedaba con el operador estricto era la sección de hipertensión pulmonar del panel
+  de Evidencia —«por encima de 75 ms»— y **tres comentarios** del archivo, uno de los cuales
+  todavía decía «TRIV tricuspídeo > 60 ms».
+
+- **PR4-k · El límite inferior de la estenosis pulmonar y la integración de la insuficiencia
+  pulmonar son criterio de la aplicación, y las dos fichas nuevas lo dicen.** El `<9 mmHg` por
+  debajo del cual la app no informa estenosis no lo publica ninguna de las tres fuentes de esa
+  fila, y ninguna guía publica una escala que combine los cuatro signos de la insuficiencia
+  pulmonar en un grado. Las dos cosas ya estaban declaradas en el código (`QV_ECOSMART` y
+  `IP_CRIT_FUENTE`); lo que cambia es que ahora también se leen en Referencias.

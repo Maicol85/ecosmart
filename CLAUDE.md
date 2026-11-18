@@ -202,6 +202,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CORTE de PRÓTESIS de la tanda PRO**: el cociente VTI mitral por régimen, el jet/TSVI y la FR de la IAo protésica, o el reverso diastólico de la TAVI | `docs/mapa/protesis-pro.md` |
 | **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
 | **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
+| **Tocar los CONTEOS de la diástole**, la frase de la dobutamina del informe, el corte del TRIV de los elementos indirectos de HTP, la **TABLA FIJA de valores esperados de prótesis** de Referencias, las **tres fichas de severidad** nuevas, el **resumen del posoperatorio** de `ref-pop`, o el **aviso de independencia** en tres bloques con su ⓘ | `docs/mapa/pr4-diastole-triv-referencias.md` |
 | Por qué algo está así, historia de una decisión | `grep` en `docs/historial/CLAUDE_historial_2026-10-01.md` |
 | **Tocar lo que se DESMARCA en congénitas, la PANTALLA o el 3D de la TGA, los DIBUJOS de los criterios TEER o el PAPEL de la miocardiopatía hipertrófica**: la matriz de los 105 selectores, el quinto origen de la VAB, los tres estados del 3D con sus dos exclusiones de comunicación, o las cuatro salidas de `mchConclusion` | `docs/mapa/cong2a-desmarcar-tga-teer.md` |
 | **Qué hizo cada tanda, con sus commits y lo que dejó pendiente** | `docs/REGISTRO_TANDAS.md` |
@@ -278,7 +279,33 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,47 MB / 186.036 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la **TAREA 2** (la ficha de consulta de Hemodinámica), sobre el árbol ya sellado: sello **`v20261118-0906`**, md5 **`28b76636`**.
+  sin frameworks. Hoy **13,50 MB / 186.399 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre del **prompt 4** (la diástole sin conteos, el TRIV, Referencias y el aviso), sobre el árbol ya sellado: sello **`v20261118-1640`**, md5 **`ec205ee0`**.
+  El diff del prompt 4 son **475 líneas agregadas y 112 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `4d5c0a4` —el último commit pusheado— **sobre el árbol ya sellado**,
+  de las que **424** no son comentario, con **CERO** `eval(` y `new Function` nuevos, **CERO**
+  claves y contraseñas, y **UNA** sola aparición de `innerHTML` en el diff, que es el **comentario**
+  que declara que la tabla fija de Referencias se pinta con **nodos** y no con ninguno.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo lo de este
+  prompt fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados
+  nuevos** y las **457** columnas quietas. Y **cero cortes clínicos movidos**: el único operador
+  que esta tanda tocó —el ≥ 75 del TRIV— **ya era así** en el código desde el MEDIR-6; lo que
+  cambió es un texto que decía «por encima de».
+  **CATORCE ids nuevos**, contados sobre el diff: los **tres** del aviso de independencia
+  (`eco-indep-1`, `-2` y `-3`), los **cuatro** contenedores de la tabla fija de prótesis
+  (`ref-pao-cat`, `ref-pm-cat`, `ref-ptric-cat`, `ref-ppulm-cat`), los **tres** de las fichas de
+  severidad (`ref-sevet`, `ref-sevep`, `ref-sevip`) y `ref-pop-resumen`; los otros cuatro que el
+  diff muestra —`ref-ptric`, `ref-trombo`, `ref-viv`, `ref-endo` y `eco-build-sello`— **ya
+  existían** y reaparecen porque sus líneas se movieron o porque el sello cambió. Ninguno de los
+  nuevos termina en `-aviso` ni en `-badge` y **ninguno cae en ninguno de los veintitrés barridos
+  por sufijo o prefijo de id del archivo**, verificado uno por uno.
+  ⚠️ **Y DOS IDS SE RETIRARON**: `eco-indep-txt` y `eco-indep-fin`, los dos nodos con que la
+  TAREA 1 partió el punto de independencia del aviso. El punto 9 lo reparte en tres bloques, así
+  que ese corte dejó de existir.
+  ⚠️ **POR QUINCUAGÉSIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de
+  las dos formas que esta casa manda: `git show 4d5c0a4:index.html` da **186.036** líneas,
+  **13.465.027** bytes y el md5 **`28b76636`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,47 MB / 186.036 al cierre de la **TAREA 2**, sello **`v20261118-0906`**, md5 **`28b76636`**.)
   El diff de la TAREA 2 son **278 líneas agregadas y 7 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `90d4460` —el cierre de la TAREA 1— **sobre el árbol ya sellado**,
   de las que **263** no son comentario, con **CERO**
@@ -1414,6 +1441,147 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**El prompt 4 (2026-11-18) — la diástole sin conteos, la dobutamina, el TRIV, Referencias y el
+aviso de independencia.** NUEVE puntos y SEIS commits de código, uno por tema. Sello
+**`v20261118-1640`**, md5 **`ec205ee0`**, **186.399** líneas. Línea base **`4d5c0a4`**, que era a la
+vez `origin/main` y el último commit pusheado.
+
+**DOS DE LOS NUEVE PUNTOS NO SE IMPLEMENTARON, Y LOS DOS POR MEDICIÓN.** El **4** —el strain
+GLOBAL del VD en cuatro tramos— porque **la fuente no coincide**: la Tabla 1 de la ASE 2025
+(hoja 5, folio **145**, comprobado en el pie impreso) trae **DOS** filas de strain del VD, y los
+cortes que la orden pide —`>20 | ≤20 a ≥15 | <15 a ≥11 | <11`— son los de la fila de la **pared
+libre de tres segmentos**, que esta aplicación **ya gradúa en esos cuatro tramos desde la 3A**. La
+fila del strain **global de seis segmentos** publica otros —`>17 | ≤17 a >13 | ≤13 a >9 | ≤9`—, es
+otra magnitud y la aplicación **no tiene campo** para ella. Es lo mismo que **P3A-b** ya declaraba.
+Y el **8** porque la orden decía «SOLO INFORMAR».
+
+**PUNTO 1 — LA DIÁSTOLE DEJA DE PUBLICAR EL CONTEO EN EL TEXTO ESCRITO.** De los **cuatro**
+algoritmos, el único que lo publicaba era la **ASE 2025 en ritmo sinusal**, con la constante `nPar`
+interpolada en **SEIS** ramas. La ASE/EACVI 2016 lo había perdido en la 3A; la BSE 2024 **nunca** lo
+tuvo —sus frases ENUMERAN los parámetros que votaron, no los cuentan— y los **tres** protocolos de
+FA tampoco: su conteo nació en `ventanaDet`. ⚠️ **Y LA TARJETA Y LA VENTANA 🧭 NO SE TOCARON**:
+`R.pos` y `R.total` siguen vivos y los sigue publicando `R.ventanaDet`, igual que `R.via`, los
+`det1`/`det2` de la FA y el «N de M criterios positivos» de la BSE y de la ASE 2016. Un conteo
+explica; no afirma.
+
+**PUNTO 2 — LA RECOMENDACIÓN DEL ECO CON DOBUTAMINA SALE DEL INFORME.** Lo que se retira es
+«Considerar ecocardiograma con dobutamina a bajas dosis para distinguir severidad verdadera de
+pseudo-severa.» de la rama de bajo flujo y bajo gradiente **clásica**; la descripción queda entera,
+con sus seis números. **El contenido retirado YA ESTÁ en la Evidencia**, en la nota del estadio
+**D2** de la Tabla 7 de la ACC/AHA 2020, y TC-951 lo mide con su propia condición: si esa nota
+desaparece, el caso se pone rojo —y lo que hay que mirar entonces es la Evidencia, no devolver la
+frase al papel—. ⚠️ **LAS OTRAS TRES COLAS DEL MISMO BLOQUE NO SE TOCARON** (**PR4-b**): el score
+de calcio por TAC, la revisión del TSVI y el repaso de las integrales. La orden nombró la de la
+dobutamina y retirar texto clínico es decisión del médico.
+
+**PUNTO 3 — EL TRIV YA CORTABA EN «75 ms O MÁS» Y LO QUE SE CERRÓ FUE UN TEXTO.** `DT_TRIV_HTP`
+vale 75 y sus **dos** lectores comparan con `>=` **desde el MEDIR-6 (B1)**. Lo que quedaba con el
+operador estricto era la sección de **hipertensión pulmonar** del panel de Evidencia —«por encima
+de 75 ms»: el panel decía una cosa y el informe firmado hacía otra sobre el mismo número— y **tres
+comentarios** del archivo, uno de los cuales todavía decía «TRIV tricuspídeo > 60 ms». Los dos
+elementos indirectos —TAP < 105 ms y TRIV— **se mantienen**. ⚠️ **Y LAS TRES FUENTES DEL CORTE NO
+ESTÁN EN LA BIBLIOTECA** (**PR4-d**): buscadas por nombre en «16- HTP», «03_VD_y_corazon_derecho»,
+«17- Doppler tisular y strain» y en todo el árbol, no están Cabrita 2013, Bréchot 2008 ni Howard LS
+2012 —el único «Howard» del árbol es Howard BV, de un artículo de aorta—. Las tres citas **se
+conservan sin folio**, como estaban, y el globo **declara el corte como criterio de la aplicación**,
+que es lo que la orden manda para lo que no se encuentra.
+
+**PUNTO 5 — REFERENCIAS · PRÓTESIS.** Las siete fichas quedan en el orden de las válvulas de la
+aplicación: **aórtica, mitral, tricúspide, pulmonar** y después las tres que no son de una posición.
+Es una **mudanza de nodos**: ni una palabra cambia, ningún id se toca y `REF_SUBTAB` no se entera.
+Y cada una de las cuatro posiciones gana una **tabla fija de valores esperados por marca, modelo y
+tamaño** que **LEE el mismo catálogo que el selector «Modelo y tamaño»** —`VMOD_TABLA` y las
+constantes `PROT_CAT_*`—, sus columnas del `_COLS` de ese catálogo, sus rótulos del `VMOD_COL_TXT`
+que ya existía y el formato de cada celda de `_vmPar`. **Ni un número escrito**: TC-953 recorre las
+cuatro tablas **celda por celda** contra el catálogo que el propio caso recorre, así que una sola
+cifra copiada a mano lo pone rojo. La **aórtica lleva DOS** tablas —quirúrgica y transcatéter—, el
+mismo reparto de `vModCatalogo`. Se pinta con **nodos** y no con `innerHTML`, y la primera vez que
+se abre la ficha. **«AEO» y no «EOA»**: las dos etiquetas de `VMOD_COL_TXT` y los cuatro literales
+del chip de la indexada predicha se habían quedado con la sigla inglesa.
+
+**PUNTO 6 — LOS CRITERIOS DE SEVERIDAD.** El inventario completo —las OCHO lesiones nativas, las
+CUATRO posiciones protésicas y el desajuste— vive en `docs/CONTROL_SEVERIDAD_REF.md` con su dueño y
+su fuente, y con las **ONCE** diferencias entre lo que la aplicación usa y lo que dice la guía, que
+**no se escriben en la aplicación**. En la app entraron las **TRES** lesiones que **no tenían
+ficha**: estenosis tricuspídea, estenosis pulmonar e insuficiencia pulmonar. **Ningún corte se
+tocó**, y es medible: TC-956 compara cada corte publicado contra su constante leída **en vivo** y
+además exige que esas constantes sigan en su valor.
+
+**PUNTO 7 — EL RESUMEN DEL POSOPERATORIO**, ocho bloques al principio de `ref-pop`, cada uno con su
+línea de 10 px con fuente y folio, generado por `scripts/_gen_pop_ref.py` junto con
+`docs/CONTROL_POP_REF.md`. **NADA** de las cinco contradicciones que el capítulo 12 del Word muestra
+sin resolver, **nada** de lo que marca «verificar a ojo», **ningún** coeficiente de escala de riesgo
+y **ninguna** conducta. La **tabla de criterios no se tocó**: sus diecisiete `tr` y sus diecisiete ⓘ
+siguen iguales.
+
+**PUNTO 9 — EL AVISO DE INDEPENDENCIA EN TRES BLOQUES.** La frase de cabecera pierde los dos
+artículos y el punto largo se reparte en **⚖️**, **📚** y **✏️**, con las mismas palabras. El ⓘ del
+título de Evidencia dice lo mismo **en los mismos tres bloques**, leyéndolos del aviso, más un
+**cuarto** separado por una línea fina que es lo único propio del globo; la tarjeta pasa de 400 a
+460 px. ⚠️ **EL ID VA EN EL DIV Y EL DIBUJITO ADENTRO**: con el emoji fuera del nodo habría dos
+dueños del icono.
+
+**DOS MOTORES, OCHO CRUCES.** Chrome del sistema y WebKit, en 1440 y 390 px, en los dos temas
+**reales** —puestos con `ett_theme` más `loadTheme()` y **devueltos** por la sonda—: **UNA sola
+combinación de valores en los ocho**, con **CERO errores de consola y de página**. Tres bloques con
+sus tres dibujitos, caja en seis, botón de continuar de 414×44 a 1440 y 284×44 a 390 y alcanzable en
+los ocho; globo de 44×44 con sus cuatro bloques leídos del aviso y la tarjeta de 460×216 y 374×248
+**dentro de la pantalla**; el orden de las siete fichas de prótesis, las **dos** tablas de la
+aórtica y una por posición con sus líneas de fuente, **AEO y cero EOA**, y a 390 px las cuatro
+tablas desplazando **dentro de su envoltorio** (310 contra 787, 740, 1.001, 1.100 y 1.064 px) con el
+documento **sin** desplazar; y el resumen del posoperatorio con sus ocho líneas en 10 px antes de la
+tabla de diecisiete filas.
+⚠️ **LA SONDA ENCONTRÓ DOS DENOMINADORES VACÍOS MÍOS**, los dos del punto 5: la subpestaña es
+**`valv`** y no `protesicas`, y «protesicas» es **además** una entrada **plegable**. Con cualquiera
+cerrada las tablas miden 0 × 0 y el desplazamiento da 0, que se lee igual que «no desborda».
+**WebKit de Playwright no es Safari, y se declara.**
+
+**COBERTURA: NUEVE casos nuevos, TC-948 a TC-956**, uno por punto y tres por superficie en el
+punto 1. **OCHO caen contra `4d5c0a4`** y **TC-949 pasa en los dos árboles, declarado en PR4-a**:
+el conteo nunca estuvo en `textoSuma`, así que ese caso es una guarda de regresión para la
+superficie que la orden nombra y no lo que discrimina.
+**DIECINUEVE casos adaptados, ninguno borrado y ninguno aflojado**: TC-453 (el literal del estado
+(a) sin su conteo), TC-291 (dos condiciones que exigían la ausencia de la palabra «dobutamina» y
+pasaron a exigir la del rótulo «BF/BG clásica», una de ellas con la mitad de «bajo flujo» que le
+faltaba, así que quedó **más fuerte**), TC-739 y TC-740 (el renombre de EOA a AEO), TC-502, TC-509,
+TC-761, TC-763, TC-817, TC-821 y TC-947 (los censos de Referencias: 42 → 45 entradas, 40 → 43 en el
+índice del buscador y 14 → 17 en el reparto de «valv»), TC-944 y TC-945 y TC-625 (el aviso y su
+globo, con tres condiciones **INVERTIDAS**) y **TC-925**, cuya condición del grado III pasó de
+EXIGIR el conteo a PROHIBIRLO.
+⚠️ **DOS DE LOS DIECINUEVE LOS DESTAPÓ LA SUITE COMPLETA Y NO MI CENSO**, y las dos causas son las
+de siempre: **TC-925** afirma el conteo partido en **dos** `indexOf` —«par» y «metros positivos)»,
+para no escribir la tilde—, así que ni «parámetros positivos» ni el patrón «N/M» lo encontraban; y
+**TC-947** cuenta el índice del buscador con su propio ayudante y su rótulo decía «CUARENTA», así
+que no caía en la búsqueda por «=== 40». Los **dos** caen contra `4d5c0a4` y los dos quedaron
+verdes.
+
+**Línea base al cierre: suite 957/964**, en **DIECIOCHO** lotes cubriendo los **964 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol sellado, con los **964 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`ec205ee0`) y el pendrive `DISK_IMG` verificado **veinte** veces leyendo DICOMDIR —en 3 a 5 ms, con
+sus **343** archivos de `GEMS_IMG` declarados en cada control— más un toque previo antes del primer
+lote. Los rojos son **TC-182, TC-376, TC-406, TC-551 y TC-903**, los cinco que la orden declara
+conocidos, más **TC-925 y TC-947**, que eran **míos** y son consecuencia autorizada de los puntos 1
+y 6. **Ningún rojo nuevo ajeno a la tanda.**
+⚠️ **EL LOTE 17 SE REHIZO ENTERO con el archivo de casos final** —es el que tiene a los dos—: da
+**54/55**, con **TC-903** como único rojo, que es uno de los intermitentes declarados. **No se
+rehizo la pasada completa**, y se declara con su motivo: `index.html` **no cambió** —mismo md5
+antes y después de adaptar los dos casos— y el único archivo que se movió fue el de casos. Es el
+mismo criterio con que la 3A no rehizo su pasada.
+
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **17 de 17
+bloques de JS inline parsean.** **CELULAR: 60 hallazgos a 360 px y 68 a 390, con 19 ALTA en cada
+ancho y 38 en total** — la línea base **exacta**, medida con el **mismo script en los dos árboles**.
+**Excel en 457 columnas y CERO campos guardados nuevos**, por construcción: **cero** `input`,
+`select` y `textarea` nuevos con `id`.
+
+El mapa, en `docs/mapa/pr4-diastole-triv-referencias.md`; el inventario de severidad, en
+`docs/CONTROL_SEVERIDAD_REF.md`; la trazabilidad del resumen del posoperatorio, en
+`docs/CONTROL_POP_REF.md`; lo declarado, en **PR4-0** a **PR4-k**; la guía manual, en
+`docs/GUIA_PRUEBA_PR4.md` (**14** pasos); la sonda de dos motores, en `scripts/_probe_pr4.mjs` con
+su cuerpo aparte; los dos generadores, en `scripts/_gen_pop_ref.py` y `scripts/_gen_sev_ref.py`; el
+corredor de lotes, en `scripts/_lotes_pr4.sh`.
 
 **La tanda CUADROS (2026-11-18) — los doce cuadros del PDF, la grilla de tres, las líneas de
 válvula y la tarjeta «Cuadros».** CUATRO commits. Sello **`v20261118-0219`**, md5 **`60fe3171`**,

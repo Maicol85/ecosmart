@@ -147636,7 +147636,7 @@ caso('TC-926', '3A (puntos 8 a 11): el EN SUMA corto con las tres formas del gra
   })();
 `);
 
-caso('TC-925', '3A (puntos 7 y 13): las frases del informe de la diastolica -- el grado III, el II y el I de la ASE 2025 pasan al estilo nuevo conservando la E/A y el conteo real, el normal queda en una sola oracion sin conteo, el grado III de la ASE 2016 va sin conteo porque llega por el atajo, las dos variantes del Valsalva salen del dueno unico, y se va la frase de IIIa / IIIb', `
+caso('TC-925', '3A (puntos 7 y 13) ADAPTADO EL 18/11: las frases del informe de la diastolica -- el grado III, el II y el I de la ASE 2025 pasan al estilo nuevo conservando la E/A y SIN conteo, el normal queda en una sola oracion sin conteo, el grado III de la ASE 2016 va sin conteo porque llega por el atajo, las dos variantes del Valsalva salen del dueno unico, y se va la frase de IIIa / IIIb', `
 
   return (async () => {
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -147696,14 +147696,24 @@ caso('TC-925', '3A (puntos 7 y 13): las frases del informe de la diastolica -- e
       R.m.a16si  = medir('ase2016', 'sinusal', 'g3', 'si', 35);
       R.m.a16no  = medir('ase2016', 'sinusal', 'g3', 'no', 35);
 
-      /* (A) EL GRADO III DE LA ASE 2025, en el estilo nuevo, con su conteo y con la E/A. */
+      /* (A) EL GRADO III DE LA ASE 2025, en el estilo nuevo y con la E/A.
+         ⚠️ ADAPTADA E INVERTIDA 18/11 (punto 1): la 3A exigia aqui el «(N/M parametros
+         positivos)», y la decision de Maicol del 18/11 —POSTERIOR a la 3A— lo saca del TEXTO
+         ESCRITO en los cuatro algoritmos. La condicion exige ahora las DOS mitades: el estilo
+         nuevo ENTERO con su E/A, y que el conteo NO este, asi que falla por los dos lados. El
+         conteo sigue en la ventana de la brujula y en la tarjeta, que son pantalla.
+         ⚠️ A ESTE CASO LO DESTAPO LA SUITE COMPLETA Y NO MI CENSO: busque los casos de la
+         diastolica por «parametros positivos» y por el patron «N/M», y este lo afirmaba partido
+         en dos indexOf —«par» y «metros positivos)»— para no escribir la tilde. Ninguno de los
+         dos patrones lo encontraba. */
       R.t3 = String(R.m.g3.texto || '');
       R.g3Ok = R.m.g3.clave === 'g3'
             && R.t3.indexOf('Disfunci') === 0
             && R.t3.indexOf('grado III (patr') > -1
             && R.t3.indexOf('restrictivo) con presi') > -1
             && R.t3.indexOf('llenado elevada, E/A ') > -1
-            && R.t3.indexOf('par') > -1 && R.t3.indexOf('metros positivos)') > -1;
+            && R.t3.indexOf('metros positivos)') === -1
+            && R.t3.indexOf('positivos') === -1;
       /* SALE LA ENUMERACION de que parametros dieron positivos. */
       R.sinEnum = R.t3.indexOf('reducida') === -1 && R.t3.indexOf('2,00') === -1;
       /* SALE LA FRASE DE IIIa / IIIb. */
@@ -147746,7 +147756,7 @@ caso('TC-925', '3A (puntos 7 y 13): las frases del informe de la diastolica -- e
       ['sin excepciones', !R.err, R.err],
       ['DENOMINADOR: el selector de protocolo y el del Valsalva existen',
                            R.hayAlgo === true && R.haySel === true, R.hayAlgo + '/' + R.haySel],
-      ['ASE 2025 grado III: estilo nuevo con su conteo real',
+      ['ASE 2025 grado III: estilo nuevo, con su E/A y SIN conteo (18/11)',
                            R.g3Ok === true, R.t3],
       ['sale la enumeracion de que parametros dieron positivos',
                            R.sinEnum === true, R.t3],
@@ -150555,7 +150565,12 @@ caso('TC-947', 'Tarea 2: el traslado -- Hemodinamica con sus cinco entradas en o
 
   /* (C) EL BUSCADOR INDEXA LA FICHA NUEVA SIN QUE HAYA QUE TOCARLO */
   const idx = (typeof _refIndiceArmar === 'function') ? _refIndiceArmar(true) : null;
-  ex.push(['(C1) el indice del buscador esta en CUARENTA entradas', idx ? idx.length : 'SIN INDICE', 40]);
+  /* ADAPTADO 18/11 (punto 6): 40 -> 43, por las TRES fichas de severidad nuevas de Valvulas
+     Nativas. Consecuencia autorizada del punto y no una entrada suelta: las tres viven DENTRO de
+     ref-nativas, que ya estaba en el reparto.
+     ⚠️ A ESTE CASO LO DESTAPO LA SUITE COMPLETA Y NO MI CENSO: cuenta el indice con su propio
+     ayudante y su rotulo decia «CUARENTA», asi que no caia en la busqueda por «=== 40». */
+  ex.push(['(C1) el indice del buscador esta en CUARENTA Y TRES entradas', idx ? idx.length : 'SIN INDICE', 43]);
   ex.push(['(C2) y la de Hemodinamica esta en el',
     idx ? idx.some((x) => String(x.ficha || x.id || '') === 'hemo') : 'SIN INDICE', true]);
 

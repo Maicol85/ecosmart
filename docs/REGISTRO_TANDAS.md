@@ -3930,3 +3930,56 @@ lotes, con el md5 idéntico antes y después y los tres rojos de siempre, ningun
 **sonda:** `scripts/_probe_cuad.mjs` · **generador de casos:** `scripts/_gen_cuad_casos.py` ·
 **lotes:** `scripts/_lotes_cuad.sh` · **guía manual:** `docs/GUIA_PRUEBA_CUADROS.md` (12 pasos) ·
 **lo declarado:** `docs/PENDIENTES.md` → **CUAD-a** a **CUAD-i**.
+
+## PROMPT 4 (2026-11-18) — la diástole sin conteos, la dobutamina, el TRIV, Referencias y el aviso
+
+**Nueve puntos.** SEIS commits de código, uno por tema, más la documentación. Sello
+**`v20261118-1640`**, md5 **`ec205ee0`**, **186.399** líneas. Línea base: **`4d5c0a4`**, el último
+commit pusheado, que era además `origin/main`.
+
+### Qué hizo cada punto
+
+| # | Qué | Commit |
+|---|---|---|
+| 1 | La diástole deja de publicar el conteo de parámetros en el TEXTO ESCRITO | `7d4d2fb` |
+| 2 | La recomendación del eco con dobutamina sale del informe | `67c7bf9` |
+| 3 | El TRIV de los elementos indirectos de HTP: la redacción y el criterio declarado | `18d3300` |
+| 4 | Strain GLOBAL del VD: **NO se implementó**, la fuente no coincide | — |
+| 5 | Referencias · prótesis: el orden de las fichas y la tabla fija de valores esperados | `aa0aa4b` |
+| 6 | Referencias · los criterios de severidad: el inventario y las tres fichas que faltaban | `3af09f3` |
+| 7 | Referencias · el resumen de consulta del posoperatorio | `119f444` |
+| 8 | `prot-vmax.ojo`: **sólo informado**, no se tocó | — |
+| 9 | El aviso de independencia en tres bloques y su ⓘ más grande | `f4c67f6` |
+
+### Lo que la medición dio vuelta
+
+- **El punto 4 no se hace.** La Tabla 1 de la ASE 2025 (folio 145) trae **dos** filas de strain del
+  VD, y los cortes que la orden pide —20 / 15 / 11— son los de la **pared libre**, que la
+  aplicación ya gradúa desde la 3A. Los del strain **global** son 17 / 13 / 9 y la aplicación no
+  tiene campo para esa magnitud.
+- **El punto 3 ya estaba cumplido en el código.** El `>=75` del TRIV vive en los dos lectores desde
+  el MEDIR-6. Lo que quedaba con el operador estricto era un texto del panel de Evidencia y tres
+  comentarios, uno de ellos todavía con el corte viejo de 60 ms.
+- **El punto 6 estaba cumplido en cinco octavos.** Referencias ya publicaba la tabla de cortes de
+  cinco lesiones nativas y de las cuatro posiciones protésicas. Lo que faltaba eran tres lesiones
+  sin ficha: estenosis tricuspídea, estenosis pulmonar e insuficiencia pulmonar.
+- **El punto 1 alcanzaba a UN solo algoritmo.** De los cuatro, sólo la ASE 2025 en ritmo sinusal
+  publicaba el conteo en el texto escrito; la ASE 2016 lo había perdido en la 3A y la BSE 2024 y
+  los tres protocolos de FA nunca lo tuvieron.
+
+### Las trampas que este prompt pagó
+
+- **El acento grave dentro de mis propios comentarios en el cuerpo de un caso**, por trigésima
+  tanda seguida: **cuatro** veces, en TC-944, TC-951, TC-953 y en la sonda. Lo caza `node --check`.
+- **`/\n/g` en un template literal**: el `\n` se convierte en un salto real y la expresión regular
+  queda abierta. Se cerró usando `String.fromCharCode(10)`.
+- **Dos denominadores vacíos en la sonda de dos motores**, los dos del punto 5: la subpestaña es
+  **`valv`** y no `protesicas`, y «protesicas» es **además** una entrada plegable que hay que
+  abrir. Con cualquiera de las dos cerrada las tablas miden 0 × 0 y el desplazamiento horizontal da
+  0, que se lee igual que «no desborda».
+- **El aviso legal nace cerrado**: su botón mide 0 × 0 en el arnés y la primera corrida de TC-955
+  dio «SIN CAJA».
+- **Los ⓘ de `ref-pop` no son `data-vinfo`**: son `summary` de un `details` nativo, y contarlos por
+  ese atributo daba CERO sobre una ficha que tiene diecisiete.
+- **«fuera de la tabla» no es «en el resumen»**: `ref-pop` tiene un ⓘ **preexistente** después de la
+  tabla, así que la medición hubo que acotarla al contenedor del resumen.
