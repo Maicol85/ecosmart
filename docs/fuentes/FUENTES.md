@@ -12566,3 +12566,133 @@ esta lectura habría que rehacerla — pero eso es una hipótesis, no un hallazg
 | Atribución del pico-pico en el globo ⓘ | sin fuente nombrada | **ESC 2020, folio 604** | la paráfrasis era fiel y anónima, así que su `≥` parecía propio de la app |
 | Citas de la **ACC/AHA 2025** (Tabla 25) y de la **ESC 2024** (Figura 44) | «mayor de 20 mmHg» | **intactas** | una cita que se reescribe deja de ser una cita |
 | Los dos renglones del resumen de coartación de Referencias | «mayor de 20 mmHg» | **intactos** | son dos de los quince resúmenes de **PANT-36**, que se **generan** con `scripts/_gen_p36resumenes.py` y tienen trazabilidad en `docs/CONTROL_CONGENITAS_P36.md`. Editarlos a mano desincroniza el generador |
+
+---
+
+## La tanda 3A (2026-11-17) — lo leído en los PDF
+
+### ASE 2025 de corazón derecho — Mukherjee M, Rudski LG y cols., *JASE* 2025;38(3):141-186
+
+Archivo: `03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf` (46 hojas).
+**Regla de folio: folio = hoja + 140**, comprobada en el pie impreso de la hoja leída:
+hoja 5 → «Journal of the American Society of Echocardiography · Volume 38 Number 3 ·
+Mukherjee, M et al · **145**».
+
+⚠️ **ESTA LECTURA DA VUELTA CUATRO AFIRMACIONES QUE `index.html` SOSTENÍA «MEDIDAS EN IMAGEN».**
+El archivo decía, en el comentario de los cortes, en la ficha `FUN-VD-008`, en el bloque de las
+tres reglas del voto y en el bloque del piso del strain, que **la Tabla 1 no bandea el strain** y
+que los cortes de moderada y de severa **«no existen en la fuente»**. Es falso. La **Tabla 1**
+(hoja 5, folio **145**) trae, con las cuatro columnas que tiene toda la tabla —Normal Reference
+Value · Mild · Moderate · Severe—:
+
+| fila de la Tabla 1 | Normal | Leve | Moderada | Severa |
+|---|---|---|---|---|
+| **RV longitudinal free wall strain (three segment), %\*** | **>20** | **≤20 a ≥15** | **<15 a ≥11** | **<11** |
+| RV longitudinal global strain (six segment), %\* | >17 | ≤17 a >13 | ≤13 a >9 | ≤9 |
+
+**Nota al pie `*` verificada, texto completo:** «Absolute values and ranges for strain are shown.»
+—o sea **rangos**, en plural, que es exactamente lo que el comentario viejo negaba—.
+La fila del strain **global** queda transcrita y **no se aplica**: es otra magnitud y la app no
+tiene campo para ella (`docs/PENDIENTES.md` → **P3A-b**).
+Dos filas de contexto, leídas en la misma tabla y con el mismo operador, que confirman que las
+cuatro columnas son las de siempre: `TAPSE, cm` **>1.7 | ≤1.7 a >1.3 | ≤1.3 a >1.0 | ≤1.0` y
+`FAC, %` **>35 | ≤35 a >29 | ≤29 a >22 | ≤22`.
+
+### ACC/AHA 2025 de congénitas del adulto — Gurvitz M y cols., *Circulation* 2026;153:e115-e251
+
+Archivo: `08_Cardiopatias_congenitas/gurvitz-et-al-2025-…-congenital-heart-disease-a.pdf`
+(137 hojas, la copia **sin** el sufijo `-2`). **Regla de folio: folio = «e» + hoja + 114.**
+Apartado **4.2.1 «Cor Triatriatum Sinister»**, hojas 49 a 51 → folios **e163 a e165**.
+
+Verificado, texto completo del *Synopsis*: «Cor triatriatum sinister is a rare congenital
+malformation (**0.1% of clinical congenital heart disease**) characterized by a **fenestrated
+fibromuscular membrane** that divides the left atrium into proximal and distal chambers, with
+attachments to the atrial septum medially and to the embryologic left lateral ridge laterally. The
+**distal chamber contains both the left atrial appendage and mitral valve**. Given a shared
+pathophysiology with mitral stenosis, clinical manifestations are similar.»
+
+Recomendación diagnóstica 1, verificada: **COR 2a · LOE B-NR** — el transesofágico o una imagen de
+corte «can be useful to identify the size and location of the membrane orifice and to assess for
+the presence of associated congenital cardiac defects».
+
+⚠️ **EL >15 mmHg ES UN UMBRAL PROPUESTO PREVIAMENTE Y NO UN CORTE DE LA GUÍA**, y por eso el globo
+lo publica con ese encuadre y la aplicación no gradúa el cor triatriatum. Texto verificado: «For
+asymptomatic patients, **a previously proposed threshold** for hemodynamically severe obstruction
+(**mean estimated membrane gradient >15 mm Hg at rest or with exercise, by noninvasive Doppler
+interrogation**) or evidence of PAH are each associated with adverse cardiac outcomes and comport
+with existing guidelines for mitral valve stenosis intervention.»
+
+⚠️ **LAS DOS COPIAS DEL PDF DIFIEREN SÓLO EN LA MARCA DE DESCARGA.** Medido carácter por carácter
+sobre las hojas 49, 50 y 51: **dos caracteres por hoja**, la fecha del pie («October **17**, 2026»
+contra «October **24**, 2026»). El contenido clínico es idéntico. **Se cita la copia sin el sufijo
+`-2`.**
+
+**Ninguna de las dos fuentes clasifica el cor triatriatum por tipos**, así que no se cita a Lucas,
+Loeffler, Marín-García, Niwayama ni Thilenius.
+
+### ASE 2019 de ETE en niños y cardiopatía congénita — Puchalski MD y cols., *JASE* 2019;32(2):173-215
+
+Archivo: `14- ETE/TEE-Ped-CHD-2019_Spanish.pdf` (86 hojas). **Las hojas 44 a 86 son el original en
+inglés; regla de folio: folio = hoja + 129.** Hoja 66 → folio **195**, hoja 67 → folio **196**.
+DOI 10.1016/j.echo.2018.08.016.
+⚠️ **SE USA EL ORIGINAL EN INGLÉS Y NO LA TRADUCCIÓN DE LA HOJA 26**, que tiene un error de tipeo.
+
+Apartado **«Role of TEE in Abnormalities of the Atria. Cor Triatriatum»**, hoja 66, folio 195 —
+verificado, texto completo: la banda fibromuscular que divide las aurículas en porción proximal y
+distal; la distinción con el anillo mitral supravalvular por la **localización de la orejuela
+izquierda, que es siempre distal a la membrana en el cor triatriatum sinister**; el estudio que
+**empieza en el plano esofágico medio de 4 cámaras con la sonda levemente retroflexionada** para
+no comprimir una posible cámara venosa pulmonar hipertensiva, y el **giro antihorario** para
+identificar la membrana y su inserción **por debajo de las venas pulmonares izquierdas y por
+encima de la orejuela**; el **Doppler color** para identificar las comunicaciones entre las dos
+cámaras en los planos de 4 y de 2 cámaras, con los **orificios frecuentemente excéntricos** que
+hay que ver **en distintos ángulos** para encontrar la mejor alineación, valorar el grado de
+estenosis y **estimar la presión venosa pulmonar**; el **retorno venoso pulmonar completo**,
+porque hay **formas parciales** en que sólo las venas derechas o sólo las izquierdas entran en la
+cámara proximal; el **septo interauricular** desde 4 cámaras, bicava y transgástrica, para
+identificar una CIA o un foramen oval permeable; la **válvula mitral**, para descartar lesiones
+obstructivas o insuficiencia; y, **tras la resección quirúrgica**, el transesofágico para ver
+membrana residual, cortocircuito residual a nivel auricular y el drenaje de las venas pulmonares.
+
+**Key Point 2**, hoja 67, folio 196 — verificado: el transesofágico «can identify unusual systemic
+venous anomalies … and atrial anomalies such as **juxtaposed atrial appendages and cor
+triatriatum**».
+
+⚠️ **EL PÁRRAFO DEL DOPPLER DE VENAS PULMONARES DE LA MISMA HOJA 66 NO SE USÓ**, y es a propósito:
+el patrón trifásico con onda S y D anterógradas y una onda A reversa corta, la medición del
+gradiente medio sobre uno o dos ciclos y la pérdida del patrón fásico son de las venas pulmonares
+**en general**. Atribuírselos al cor triatriatum sería hacerle decir a la fuente algo que no dice.
+
+### ASE 2024 de prótesis — Zoghbi WA y cols., y VARC-3 2021 — Généreux P y cols.
+
+Las dos ya estaban verificadas, texto completo, en `docs/fuentes/FUENTES-protesis.md`, y esta
+tanda **no releyó ningún PDF**: lo que hizo fue llevar a la pantalla lo que esa transcripción ya
+sostenía.
+- **Tabla 12, folio 28** (hoja 27): el gradiente medio **≥5 mmHg** en la prótesis **mecánica con
+  THP normal** como hallazgo sugestivo de regurgitación protésica significativa, **sensibilidad
+  90 %, especificidad 70 %**, a frecuencias fisiológicas. El mismo número que la **Tabla 11, folio
+  27** lee como normal: de ahí el solapamiento que el globo del gradiente declara.
+- **Tabla 8, folio 23** (hoja 22): la extensión circunferencial de la fuga `<10 / 10-29 / ≥30 %`.
+- **Tabla 16 de la VARC-3, folio 1846** (hoja 22): **las dos escalas en la misma tabla**, la de
+  tres clases (None/Trace · Mild · Moderate · Severe) y la de **cinco** (None/Trace · Mild ·
+  Mild-moderate · Moderate · Moderate-severe · Severe). Agrupada en tres, su extensión
+  circunferencial **coincide** con la de la ASE 2024.
+
+### Las tres guías de función diastólica — los autores que el globo cita
+
+Confirmados contra este mismo archivo antes de escribir el globo: **ASE 2025 = Nagueh SF** y cols.,
+*JASE* 2025;38(7):537-69 (folio = hoja + 536); **ASE/EACVI 2016 = Nagueh SF** y cols., *JASE*
+2016;29(4):277-314; **BSE 2024 = Robinson S** y cols., *Echo Res Pract* 2024;11:16.
+Ninguna de las tres define un criterio para separar el patrón restrictivo reversible del fijo: las
+dos de la ASE **mencionan** la maniobra de Valsalva sin publicar un corte, y la BSE define
+restrictivo reversible o irreversible por la respuesta a la maniobra pero **no usa grados**. El
+globo lo dice con autor y año, y sin folios en pantalla.
+
+### Cambios de evidencia — tanda 3A
+
+| dato | valor antes | valor ahora | fuente | fecha |
+|---|---|---|---|---|
+| Strain de pared libre del VD, tramos de disfunción | leve 15 a 20 % declarada **criterio propio**; moderada y severa **no existían** | **leve ≤20 a ≥15 · moderada <15 a ≥11 · severa <11**, las tres de **guía** y verificadas | ASE 2025 (Mukherjee), Tabla 1, folio 145 | 17/11/2026 |
+| El mismo strain, en el informe firmado | por debajo de 15 % decía «disfunción sistólica» **sin grado** | gradúa **moderada** y **severa** | la misma fila | 17/11/2026 |
+| Alcoholización septal previa en el HCM Risk-SCD | **exclusión**: apagaba el score | **salvedad**: el score se publica con su nota | orden de Maicol | 17/11/2026 |
+| Gradiente medio de la prótesis mitral, lectura del 5,0 | el solapamiento sólo en un comentario del código | declarado en el globo, con sensibilidad y especificidad | ASE 2024 (Zoghbi), Tablas 11 y 12, folios 27 y 28 | 17/11/2026 |

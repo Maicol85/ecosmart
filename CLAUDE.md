@@ -171,6 +171,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
 | **Tocar el RECUADRO de la hoja de congénitas del PDF, el rótulo de la caja «Tricúspide / PSAP», el ESQUEMA DE CIRCULACIÓN EN EL PDF con su botón único, el PANEL DE EVIDENCIA COMPACTO** —una línea por pregunta, los tres estados «Sí | No | ?», la etiqueta de guía, los grupos, el contador o las dos columnas por ancho de panel—, **o la CONCLUSIÓN DE PANTALLA de la TGA** | `docs/mapa/tga4-pdf-panel-compacto.md` |
 | **Tocar el DIAGRAMA 3D DE LA TRANSPOSICIÓN**: los dos ejes y su dueño único, el valor `dtga`, el campo de cirugía, las comunicaciones leídas de sus pestañas, la carga diferida con SRI, «Incluir en el PDF» o la cirugía en el papel | `docs/mapa/tga-diagrama-3d.md` |
+| **Tocar el VALSALVA del grado III** —el selector, su sugerencia, la cláusula del informe y del EN SUMA, la notita punteada de los dos esquemas—, **los CUATRO TRAMOS del strain de pared libre del VD**, **la ficha del COR TRIATRIATUM**, **el solapamiento de las Tablas 11 y 12 del gradiente protésico mitral**, **la extensión circunferencial de la fuga de la TAVI** o **la ALCOHOLIZACIÓN SEPTAL del HCM Risk-SCD** | `docs/mapa/p3a-valsalva-strain-cortri.md` |
 | **Tocar algo que la tanda MEDIR-6 movió** (16/11): el bloque de CALCULADOS debajo de la imagen con su ranura por vista y su corte de 1024 px, la lista de VTI por válvula con su índice real, el ALIAS de la VCI y la PmAD, «Limpiar» por estructura, «Borrar» de a uno con su número de llegada; el TRIV a **≥75 ms** en sus dos lectores; el ⓘ del índice de CELERMAJER; la CIV **sin** el DDVI indexado; los cuatro TRAMOS del velo posterior y los DOS cortes de coaptación por procedimiento con su tethering; las TRES casillas de la Tabla 4; el COR TRIATRIATUM; o la comprobación del PENDRIVE | `docs/mapa/medir6-triv-civ-teer-onco.md` |
 | **Tocar el ESQUEMA DE CIRCULACIÓN de la sangre de la TGA** —sus seis escenarios, las dos exclusiones de comunicación, la punta de flecha que depende de la dirección que la app guarda, la animación colgada del 3D, el corte de 1200 px o su ⓘ—, **la CONCLUSIÓN de la TGA en la columna izquierda**, o **la salida `papel` que saca la conducta del informe, del PDF y del PPT** | `docs/mapa/tga3-esquema-circulacion.md` |
 | **Tocar la EVIDENCIA DE CONGENITAS con sus DOS guias** —la ACC/AHA 2025 y la ESC 2020—, una pregunta de la transposicion, de la CIA o de la CIV, la regla «una pregunta, una guia», la linea de referencia de la otra guia, la nota de tramos que no coinciden, **o el EN SUMA de una valvula con PLASTIA o con TEER** | `docs/mapa/correvid-evidencia-congenitas.md` |
@@ -276,7 +277,20 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,37 MB / 184.940 líneas**, medido con `wc -c` y `wc -l` el 2026-11-16 al cierre de la tanda **PARTE-2**, sobre el árbol ya sellado: sello **`v20261116-1019`**, md5 **`73289048`**.
+  sin frameworks. Hoy **13,40 MB / 185.245 líneas**, medido con `wc -c` y `wc -l` el 2026-11-17 al cierre de la tanda **3A**, sobre el árbol ya sellado: sello **`v20261117-2129`**, md5 **`5c283337`**.
+  El diff de 3A son **444 líneas agregadas y 139 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `e24a81c` **sobre el árbol ya sellado**, de las que **388** no son
+  comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos y **DOS** `select` nuevos
+  con `id` —`diast_valsalva` y `mch_ex_alcohol`—; los otros dos que el diff muestra,
+  `diast_ritmo` y `otr_var_cortri`, **ya existían** y reaparecen porque sus líneas se movieron.
+  O sea **dos campos guardados nuevos** y **CERO columnas de Excel**: el Excel del Laboratorio
+  tiene orden expresa de no tocarse y su mapa es explícito, así que las **457** columnas no se
+  movieron. **CUATRO globos ⓘ nuevos** (143 → **148** en el registro, contado en el navegador).
+  ⚠️ **POR CUADRAGÉSIMA SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show e24a81c:index.html` da **184.940** líneas,
+  **13.366.139** bytes y el md5 **`73289048`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,37 MB / 184.940 al cierre de **PARTE-2**, sello **`v20261116-1019`**, md5 **`73289048`**.)
   El diff de PARTE-2 son **390 líneas agregadas y 29 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `ac4be40` **sobre el árbol ya sellado**, con **CERO** `innerHTML`,
   `eval(` y `new Function` nuevos, **CERO** `input`, `select` y `textarea` nuevos con `id` —y por
@@ -1352,6 +1366,91 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda 3A (2026-11-17) — el Valsalva del grado III, los cuatro tramos del strain del VD, la
+ficha del cor triatriatum y cuatro arreglos clínicos.** OCHO commits. Sello **`v20261117-2129`**,
+md5 **`5c283337`**, **185.245** líneas.
+
+**CINCO PREMISAS DEL PEDIDO SE DIERON VUELTA AL MEDIRLAS, Y TRES ERAN «YA ESTABA HECHO».** El
+corte del strain **por sexo ya no existía** —se unificó en la AJ1 y el −21 de la mujer sólo vive en
+una lápida—; los **tres grados de la fuga de la TAVI ya existían** desde la PRO-B3 con los cortes
+de la Tabla 8; y la **lógica del solapamiento de las Tablas 11 y 12 ya estaba** desde el Z6-2, con
+la sensibilidad y la especificidad citadas **en un comentario**. Lo que faltaba en los tres casos
+era decirlo en pantalla. El **`IIIa/IIIb`** de la app es, en 19 de sus 20 apariciones, el
+**Carpentier de la mitral** —otra clasificación con el mismo nombre— y la única diastólica era
+**una frase**. Y la **BSE 2024 no detecta llenado restrictivo**: sus tres categorías no llevan
+grado, así que **no se la tocó**, como la orden pedía.
+
+⚠️ **Y EL ARCHIVO AFIRMABA, EN CUATRO LUGARES Y «MEDIDO EN IMAGEN», QUE LA TABLA 1 DE LA ASE 2025
+NO BANDEA EL STRAIN. ERA FALSO, Y SE LEYÓ EL PDF PARA SABERLO.** El comentario de los cortes, la
+ficha `FUN-VD-008` («esos dos cortes no existen en la fuente»), el bloque de las tres reglas del
+voto y el bloque del piso del strain lo sostenían. La hoja 5, folio **145** comprobado en el pie
+impreso («Mukherjee, M et al | 145»), dice: `RV longitudinal free wall strain (three segment), %*`
+con **>20 | ≤20 a ≥15 | <15 a ≥11 | <11**, y su nota al pie `*` —la que el archivo ya citaba— dice
+«Absolute values and ranges for strain are shown», o sea **rangos, en plural**. Las cuatro
+afirmaciones quedan corregidas con su cita; la transcripción, en `docs/fuentes/FUENTES.md`.
+El strain gradúa ahora **moderada y severa también en el informe FIRMADO** (orden de Maicol), con
+el grado saliendo del **mismo registro** que la pantalla: un TAPSE de 22 mm con un strain de −9 %
+publicaba «disfunción sistólica» a secas y ahora publica «disfunción sistólica severa». `FUN-VD-008`
+pasó de criterio propio a **guía verificada**, así que sus filas salen **con corchete**.
+
+**EL VALSALVA, CON UN SOLO DUEÑO PARA CUATRO SUPERFICIES.** El selector «Se modifica con Valsalva»
+va al lado de «Ritmo», los dos a la mitad de la celda, y se habilita **sólo** con `clave === 'g3'`
+—el mismo identificador en la ASE 2025 y en la ASE/EACVI 2016—. Las dos redacciones **no son la
+misma cadena** y es a propósito: el informe dice «patrón restrictivo fijo, no modificable con
+Valsalva» y el EN SUMA «grado III fijo (no modificable con Valsalva)».
+⚠️ **LA LIMPIEZA LLEVA UNA GUARDA, Y ES LA LECCIÓN DE LAS REFERENCIAS QUE CONSERVABAN EL RESULTADO
+DEL VALOR VIEJO**: `_diastResult` sobrevive a un cambio de pestaña y a una restauración, así que
+ahora publica su `clave`, su `algoritmo` y su `ritmo`, y el sync limpia **únicamente** si coinciden
+con los actuales. Sin coincidencia no toca nada. Y cuelga de la envoltura de `calcDiastol` y **no**
+de `RECALC_MODULOS`, porque necesita un resultado fresco para poder limpiar (**P3A-f**).
+**La relación E/A se conserva** en las frases (decisión de Maicol); lo que salió es la
+**enumeración** de qué parámetros dieron positivos y el **operador** del corte. El grado III de la
+ASE 2016 va **sin conteo**, y es una medición: esa rama llega por el **atajo `E/A ≥ 2`**, antes de
+contar los tres criterios de la Figura 8B, así que un «(N/M)» publicaría un recuento que no decidió
+nada.
+
+**LAS DOS MITADES DEL COR TRIATRIATUM, LEÍDAS EN LOS PDF.** Gurvitz (hojas 49-51, folios e163 a
+e165) para la membrana fenestrada, las dos cámaras, la orejuela y la mitral **distales**, el 0,1 %
+y la clase **2a · B-NR**; Puchalski (hojas 66 y 67 del **original en inglés**, folios 195 y 196)
+para la técnica, el Doppler color, las formas parciales, el septo por tres planos y el control tras
+la resección. ⚠️ **EL >15 mmHg SE RESOLVIÓ LEYENDO, porque la orden se contradecía**: el folio e164
+lo llama «**a previously proposed threshold**», así que el globo lo publica con ese encuadre y la
+aplicación **no gradúa** el cor triatriatum ni cablea un solo número. **Sin tipos** y sin los cinco
+autores que la orden prohíbe, barrido sobre **todo** el registro de globos.
+
+**EL HCM.** `mch_ex_reduccion` queda como «Miectomía previa» y **conserva su id**, porque de él
+cuelga su columna del Excel del Laboratorio, que tiene orden expresa de no tocarse; la
+**alcoholización septal** pasa a un campo nuevo que **no es una exclusión**: el score se calcula y
+se publica con su salvedad, de un **dueño único** que leen el informe, el EN SUMA y el resumen del
+Laboratorio, con la misma guarda que la salvedad de la TV sostenida de al lado. Las otras tres
+superficies que la enumeraban quedaron al día.
+
+**Cobertura: TC-921 a TC-927**, los siete cayendo **0/7** contra `e24a81c` con el mismo archivo de
+casos y **ninguno por excepción**. **DOCE casos adaptados, SIETE de ellos INVERTIDOS** —TC-918,
+TC-453, TC-535 (E2) y (F2), TC-537 (C4), TC-526 (B4), TC-539 (C4) y (C5), TC-549 (A3)—: ocho de
+esas condiciones afirmaban lo que esta tanda vino a cambiar, y **cuatro sostenían que la ASE 2025
+no publica los cortes de moderada y de severa**. Los otros cinco son conteos (globos 144 → 148,
+tarjetas sin ficha 70 → 74, botones de 44 px 66 → 68, campos de la MCH 30 → 31, nodos de los planos
+19/14 → 20/15 y 16 → 17 en gris).
+⚠️ **LO QUE LA MEDICIÓN EN EL NAVEGADOR ENCONTRÓ Y LA LECTURA NO**: dos de los cuatro globos nuevos
+quedaron **sin la clase `vinfo-btn-44`** que sí usan sus vecinos inmediatos, así que medían 15×11
+al lado de uno de 44. Corregido y vuelto a medir.
+⚠️ **Y LA PRIMERA CORRIDA DE LA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO**: los cuatro botones y los
+dos selectores daban **0×0** porque sus pestañas estaban cerradas, y un 0×0 se lee igual que «el
+control no está». Se midió qué ancestro esconde cada uno y se abren con los abridores de la app.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **17 de 17 bloques de JS inline parsean.**
+**CHROME Y WEBKIT EN LOS OCHO CRUCES** (dos motores × 1369 y 390 px × los dos temas **reales**,
+devueltos por la sonda), con **cero errores de consola y de página**, los dos selectores **al lado**
+y a la mitad en los dos anchos, **cero** títulos cortados y **cero** desplazamiento horizontal.
+⚠️ **CUATRO TRAMPAS DE ESTA CASA, PAGADAS OTRA VEZ**: el acento grave dentro de mis propios
+comentarios en el cuerpo de un caso, **tres veces**; un `let` declarado dentro del `try` que **no
+alcanza al `return`**; el registro de fichas que se llama **`EV_REG` y no `IND_REFS`**; y una escena
+que no vaciaba sus insumos, así que el control negativo medía la escena anterior. El generador de
+casos de esta tanda construye el acento grave con `chr(96)` y **asegura que el cuerpo no tenga
+ninguno**.
+El mapa, en `docs/mapa/p3a-valsalva-strain-cortri.md`; lo declarado, en **P3A-a** a **P3A-l**; la
+sonda, en `scripts/_probe_3a.mjs` con su cuerpo aparte.
 
 **La tanda MEDIR-6 (2026-11-16) — el visor, el TRIV, la CIV, el TEER, la Tabla 4 y el cor
 triatriatum.** OCHO commits. Sello **`v20261116-0358`**, md5 **`84a38aa2`**, **184.689** lineas.

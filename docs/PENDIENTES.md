@@ -17963,3 +17963,76 @@ los dos motores y el sello.
   del visor leyendo `EM_CONT_AVISO_TXT`.
 - **P2-g · El `biprótesis` de `index.html:93105` es preexistente** —idéntico en `origin/main`,
   en otro contexto (homoinjertos y conductos)— y no se tocó.
+
+---
+
+## Tanda 3A (2026-11-17) — lo que quedó declarado
+
+- **P3A-a · `prot-vmax.ojo` NO se arregló, por orden expresa.** Esa tarjeta dice «Con el THP
+  normal, lo que orienta es la regurgitación» **sin los números de la Tabla 12** —el `≥1,9` de la
+  velocidad pico, y el `≥5` del gradiente con su sensibilidad del 90 % y su especificidad del
+  70 %—, mientras la de al lado (`prot-gmed`) sí los publica desde esta tanda. Es la misma familia
+  que el punto 1 y se midió igual: la Tabla 12 publica los **tres** parámetros juntos (velocidad
+  pico, gradiente medio y DVI) como hallazgos sugestivos de regurgitación protésica significativa
+  en la prótesis mecánica con THP normal, folio 28. Cerrarlo es una línea en el `ojo` de ese globo.
+- **P3A-b · La Tabla 1 de la ASE 2025 bandea también el strain GLOBAL del VD, y esta aplicación no
+  lo gradúa.** Leído en el mismo renglón de abajo del que esta tanda aplicó
+  (`03_VD_y_corazon_derecho/ASE-Right-Heart-Guidelines-May-2025.pdf`, hoja 5, folio **145**
+  comprobado en el pie): `RV longitudinal global strain (six segment), %*` con **>17 | ≤17 a >13 |
+  ≤13 a >9 | ≤9**. Es **otra magnitud** —promedia pared libre y septo y da valores menos
+  negativos—, el archivo ya advierte en tres lugares que no se la puede comparar contra la fila de
+  la pared libre, y la app **no tiene campo** para ella. Decisión de Maicol: si se agrega el campo,
+  estos son sus cuatro tramos ya verificados.
+- **P3A-c · El strain escribe el grado SOLO cuando el TAPSE y la onda S′ no pudieron darlo, y
+  sigue sin poder SUBIR uno que ellos ya escribieron.** Con TAPSE 22 mm y strain −9 % el informe
+  dice «disfunción sistólica severa», que es el caso que la orden vino a cerrar; pero con TAPSE
+  12 mm y onda S′ 6 cm/s —que entre los dos dan «moderada»— un strain de −9 % **no** la sube a
+  severa. Se conservó deliberadamente la invariante que `vdDisfGrado` declara desde la R3 —esos
+  dos son los dueños del grado, y un parámetro normal bloquea el grado—, porque cambiarla es
+  lógica de integración y no estaba en la orden. Decisión de Maicol.
+- **P3A-d · El Excel del Laboratorio no se tocó en nada, y eso deja un rótulo que ya no describe su
+  campo.** La columna se llama **«MCH excl. reducción septal»** y desde esta tanda su campo
+  (`mch_ex_reduccion`) pregunta **sólo por la miectomía**. El campo nuevo
+  (`mch_ex_alcohol`) **no tiene columna**. Las dos cosas son consecuencia de la orden —«Excel del
+  Laboratorio: no tocarlo en nada»— y de que renombrar el id habría roto el round-trip de los
+  estudios ya guardados. Cerrarlo son dos entradas en `_labExcelRow` y dos alias en el importador,
+  y mueve el total de **457** columnas.
+- **P3A-e · La cita del globo «Las exclusiones del modelo europeo» no se cambió.** Dice **ESC 2022,
+  hoja 66, folio 4062**, que es lo que una tanda anterior verificó; la orden de esta referencia la
+  lista de exclusiones a **ESC 2023 §7.1.5, folio 63 y Tabla 23**, que esta sesión **no leyó**. Por
+  la regla de la casa —lo que no se leyó en texto completo no se cita— se dejó la cita vigente y se
+  declara la diferencia.
+- **P3A-f · `diastValsalvaSync` cuelga de `calcDiastol` y NO de `RECALC_MODULOS`.** Necesita un
+  resultado **fresco** para poder limpiar el valor, y en el embudo de restauración podría correr
+  antes del cálculo y borrarle al médico un dato que sí corresponde. El costo: en una ruta de
+  restauración donde `calcDiastol` no corra, el **estado habilitado** del selector puede quedar
+  atrasado hasta el próximo recálculo. El **valor nunca se pierde**, y la cláusula del informe se
+  emite **sólo** en la rama de grado III, así que un estado atrasado no puede escribir un informe
+  equivocado. Además el sync sólo limpia si `_diastResult` coincide con el protocolo **y** el ritmo
+  actuales.
+- **P3A-g · El criterio suplementario «caída de E/A ≥50 % con Valsalva» NO se implementó** (punto
+  14 de la orden, que lo pedía anotado y no hecho). El esquema de la ASE 2025 no lo incluye entre
+  sus métodos suplementarios, y la guía sí lo trae: **pie † de la Figura 3, folio 554**, y el texto
+  del **folio 555, ítem e**. Decisión pendiente de Maicol: si entra, va en `ASE_SUPLEMENTARIOS`,
+  que está armado como lista justamente para que agregar uno no toque nada más.
+- **P3A-h · La relación E/A se imprime con PUNTO decimal en el informe, y es preexistente.** La
+  frase dice «E/A 2.50» porque sale de `ea.toFixed(2)`, igual que antes de esta tanda; lo que
+  cambió es que ahora se ve sola, porque el «(≥2,00)» que la acompañaba —y que sí llevaba coma—
+  salió por orden. No se tocó: un separador decimal en el papel es una decisión de formato que
+  alcanza a varias superficies.
+- **P3A-i · La ASE/EACVI 2016 quedó con dos estilos de frase.** Su grado III pasó al estilo nuevo
+  por orden, y sus otras nueve frases conservan el suyo —«Llenado diastólico pseudonormal con
+  presiones de llenado elevadas (Disfunción diastólica Grado II)»—, con «Grado» en mayúscula. La
+  orden sólo pedía el grado III. Unificar las nueve es una tanda de redacción.
+- **P3A-j · Las dos copias del PDF de la ACC/AHA 2025 difieren SÓLO en la marca de descarga.**
+  Medido carácter por carácter sobre las hojas 49, 50 y 51: la única diferencia son **dos
+  caracteres por hoja**, la fecha del pie «Downloaded from http://ahajournals.org by on October
+  **17**, 2026» contra «October **24**, 2026». El contenido clínico es idéntico. Se cita la copia
+  **sin** el sufijo `-2`, que es la que `FUENTES.md` ya usaba.
+- **P3A-k · TC-495 es sensible al lote y no de esta tanda.** Pasa **1/1 corrido aislado, dos
+  veces**, y su condición falla con `panel=false`: un denominador sobre un panel de Referencias que
+  otro caso del lote dejó cerrado. Esta tanda no toca Referencias → Válvulas.
+- **P3A-l · El pie del plano de la Figura 8B ya estaba mal antes de esta tanda.** Decía «La caja
+  punteada es un estado de esta aplicación» en **singular** mientras ese plano tenía **dos** nodos
+  con `app: true` (`a16b.fin-insuf` y `a16b.fin-normal`). Con la notita del Valsalva son tres y el
+  plural quedó correcto; queda anotado que la inexactitud venía de antes.
