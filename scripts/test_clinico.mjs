@@ -66944,10 +66944,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144. Entra clnk-guia, el globo del «?» que abre la
        guia de conexion de CeiboLink, en Configuracion. No vive en Valvulas ni en Referencias:
        lo que esta condicion afirma de su propia pantalla no cambia. */
-    /* 144 -> 148 en la 3A: entran vd-strain-pl, tavi-pvl-ext, otr-cortri y diast-valsalva.
+    /* ADAPTADO EN LA TAREA 1 (18/11/2026): 148 -> 149. La entrada nueva es ev-indep, el globo
+       del titulo del panel de Evidencia, que dice que EcoSmart es un software independiente.
+       144 -> 148 en la 3A: entran vd-strain-pl, tavi-pvl-ext, otr-cortri y diast-valsalva.
        Los dos que el caso nombra por clave siguen estando, que es lo que distingue un censo
        que crecio de uno que perdio una entrada. */
-    Object.keys(VINFO).length === 148 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    Object.keys(VINFO).length === 149 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -78508,7 +78510,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 148 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 149 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78549,10 +78551,12 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
        mismo. */
     /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144, por clnk-guia.
+       ⚠️ ADAPTADO EN LA TAREA 1 (18/11/2026): 148 -> 149. La nueva es ev-indep, el globo del
+       titulo del panel de Evidencia.
        ⚠️ ADAPTADO EN LA 3A: 144 -> 148. Las cuatro entradas nuevas son vd-strain-pl,
        tavi-pvl-ext, otr-cortri y diast-valsalva. NINGUNA esta en Valvulas: lo que cambia es el
        denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 148 && ('wi-aplica' in (REG() || {})),
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 149 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79971,8 +79975,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
        Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
        limite que declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: setenta y cuatro tarjetas sin boton, porque Referencias no tiene esa entrada',
-    /* ⚠️ ADAPTADA EN LA 3A: 70 -> 74. Las cuatro entradas nuevas son diast-valsalva,
+  ex.push(['(C3) LIMITE DECLARADO: setenta y cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
+    /* ⚠️ ADAPTADA EN LA TAREA 1 (18/11/2026): 74 -> 75. La entrada nueva es ev-indep, el globo
+       del titulo del panel de Evidencia. No tiene ficha en Referencias por la MISMA razon que
+       inf-min, tga-3d y clnk-guia: dice de QUE es la aplicacion y de donde salen las guias que
+       cita, no publica un corte ni una recomendacion, asi que una ficha suya seria una entrada
+       sin criterio detras. Y su texto no se puede duplicar en una ficha: lo LEE del aviso legal,
+       que es su dueno unico.
+    ⚠️ ADAPTADA EN LA 3A: 70 -> 74. Las cuatro entradas nuevas son diast-valsalva,
        otr-cortri, tavi-pvl-ext y vd-strain-pl. Ninguna tiene ficha en Referencias, y es por el
        MISMO motivo que las otras: explican un campo o una maniobra y no publican una entrada de
        biblioteca propia. El limite no cambia; cambia su denominador.
@@ -80017,7 +80027,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'clnk-guia,'
       + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
       + 'diast-valsalva,'
-      + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
+      + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,ev-indep,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
@@ -111074,8 +111084,20 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
   /* (B) LOS AVISOS GENERALES SE MANTIENEN, que es el control que separa el retiro de una poda. */
   const tDoc = textoDe(document.body);
   ex.push(['(B0) DENOM: se junto el texto del documento', tDoc.length > 50000, true]);
-  ex.push(['(B1) sigue el aviso de que la herramienta es de apoyo clinico',
-    /de apoyo cl[ií]nic/i.test(tDoc), true]);
+  /* ⚠️ ADAPTADA E INVERTIDA EN LA TAREA 1 (18/11/2026). Decia «sigue el aviso de que la
+     herramienta es de apoyo clinico» y buscaba la frase en el DOCUMENTO ENTERO: hoy el aviso
+     inicial ya no se presenta asi —la postura del medico es que la app registra y describe, y no
+     que es una ayuda para decidir—. Y medido, la condicion vieja habria seguido pasando SIN que
+     el aviso dijera nada: la frase «herramienta de apoyo clinico» tambien esta en el texto de
+     limitaciones de la calculadora de amiloidosis, asi que sobre el documento entero el
+     denominador era otro. Hoy mide EL AVISO, afirma la frase nueva Y exige que la vieja no este,
+     o sea que falla por los dos lados. */
+  const tAvi = (function () { const a = document.getElementById('modalAvisoEco');
+    return a ? _plano(textoDe(a)) : ''; })();
+  ex.push(['(B1a) DENOM: se junto el texto del aviso inicial', tAvi.length > 600, true]);
+  ex.push(['(B1) el aviso inicial dice que la herramienta REGISTRA y DESCRIBE, y ya no que es de apoyo clinico',
+    tAvi.indexOf('Herramienta para el registro y la descripción de estudios ecocardiográficos.') > -1
+      && !/apoyo cl[ií]nico para el registro/.test(tAvi), true]);
   ex.push(['(B2) sigue el aviso de que no reemplaza el juicio medico',
     /no reemplaza el juicio m[eé]dic/i.test(tDoc), true]);
   /* ⚠️ LAS DOS ETIQUETAS DE «esquema ilustrativo», UNA POR UNA, Y NO UN SOLO «existe»: la
@@ -150017,6 +150039,176 @@ caso('TC-943', 'CUADROS (C): el reparto de la grilla es el mismo en la tarjeta y
     ['y en el papel una fila es atomica: se pide hoja con su alto completo',
        R.atomica === true, String(R.atomica) + ' (' + R.largo + ' car.)']
   ] };
+`);
+
+/* == TAREA 1 -- EL AVISO DE INDEPENDENCIA Y EL LENGUAJE DESCRIPTIVO (18/11/2026) =============
+   TC-944 mide el aviso inicial y TC-945 el globo del titulo del panel de Evidencia.
+   ADVERTENCIA: LOS DOS LLEVAN GUARDA EN CADA ACCESO. Contra a58a223 el punto del aviso no existe
+   y el globo tampoco, asi que un acceso pelado tiraria TypeError y el caso caeria POR EXCEPCION,
+   con las condiciones de abajo sin evaluarse -- es lo que TC-827 tuvo que deshacer en PANT-37.
+   ADVERTENCIA: NI UNA EXPRESION REGULAR CON BARRA INVERTIDA. El cuerpo de un caso es un template
+   literal, asi que una secuencia de escape no sobrevive y la regex mide otra cosa en silencio. */
+caso('TC-944', 'Tarea 1: el aviso inicial dice que la aplicacion REGISTRA y DESCRIBE, los calculos son automaticos sin la palabra orientativos, y el punto de independencia esta completo con sus dos nodos y SIN la oracion que solo lleva el globo, con los tres renglones viejos y el boton intactos', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio <<' + t[1] + '>> esperado <<' + t[2] + '>>']) };
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13) + ']+', 'g');
+  const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+  const txtId = (id) => { const e = document.getElementById(id); return e ? plano(e.textContent) : null; };
+  const CH = String.fromCharCode;
+  const A1 = 'Herramienta para el registro y la descripci' + CH(243) + 'n de estudios ecocardiogr' + CH(225) + 'ficos.';
+  const av = document.getElementById('modalAvisoEco');
+  const t = av ? plano(av.textContent) : '';
+  ex.push(['(A0) DENOM: el aviso inicial existe y tiene texto', t.length > 600, true]);
+
+  /* (A) LA FRASE DE CABECERA */
+  ex.push(['(A1) dice que la herramienta es para el registro y la descripcion de estudios', t.indexOf(A1) > -1, true]);
+  ex.push(['(A2) y ya NO se presenta como apoyo clinico para el registro y analisis',
+    /apoyo cl[ií]nico para el registro/.test(t), false]);
+  ex.push(['(A3) la frase del juicio clinico SE MANTIENE',
+    t.indexOf('No reemplaza el juicio cl' + CH(237) + 'nico del m' + CH(233) + 'dico.') > -1, true]);
+
+  /* (B) LOS CALCULOS */
+  ex.push(['(B1) los calculos son automaticos',
+    t.indexOf('Los c' + CH(225) + 'lculos son autom' + CH(225) + 'ticos.') > -1, true]);
+  ex.push(['(B2) y la palabra orientativos ya no esta en el aviso', /orientativ/i.test(t), false]);
+  ex.push(['(B3) la interpretacion clinica final sigue siendo del medico tratante',
+    /interpretaci[óo]n cl[íi]nica final corresponde al m[ée]dico tratante/.test(t), true]);
+
+  /* (C) EL PUNTO DE INDEPENDENCIA, EN SUS DOS NODOS.
+     Los dos nodos NO son un gusto de marcado: el globo de TC-945 dice lo mismo con una oracion
+     INTERCALADA antes de la ultima, y la particion es lo que hace que la intercalacion sea
+     estructural en vez de un corte por el ultimo punto de una cadena. */
+  const C1 = txtId('eco-indep-txt'), C2 = txtId('eco-indep-fin');
+  ex.push(['(C0) los dos nodos del punto existen', !!C1 && !!C2, true]);
+  const ESP = 'EcoSmart es un software independiente: no tiene aval, patrocinio ni v' + CH(237)
+    + 'nculo con ninguna sociedad cient' + CH(237) + 'fica ni editorial. Las gu' + CH(237)
+    + 'as, consensos y art' + CH(237) + 'culos que se citan (autor y a' + CH(241)
+    + 'o) son publicaciones de terceros, mencionadas solo como origen de los criterios y puntos de corte que usa la aplicaci'
+    + CH(243) + 'n. Los textos de la aplicaci' + CH(243) + 'n son de redacci' + CH(243)
+    + 'n propia. Para el contenido completo y vigente de cada publicaci' + CH(243)
+    + 'n, consulte la fuente original.';
+  ex.push(['(C1) el texto completo del punto es el acordado, palabra por palabra',
+    (C1 && C2) ? ((C1 + ' ' + C2) === ESP) : 'SIN NODOS', true]);
+  ex.push(['(C2) y el aviso OMITE a proposito la oracion que solo lleva el globo',
+    (C1 && C2) ? ((C1 + ' ' + C2).indexOf('describe hallazgos') > -1) : 'SIN NODOS', false]);
+  ex.push(['(C3) el punto esta DENTRO de la caja gris del aviso, que pasa de tres puntos a CUATRO',
+    (function () { const e = document.getElementById('eco-indep-txt');
+      if (!e) return 'SIN NODO';
+      const caja = e.parentElement && e.parentElement.parentElement;
+      return caja ? caja.children.length : 'SIN CAJA'; })(), 4]);
+
+  /* (D) LO QUE LA ORDEN MANDA NO TOCAR */
+  ex.push(['(D1) el renglon de los datos locales esta intacto',
+    t.indexOf('Los datos se guardan localmente en el navegador (IndexedDB). No se transmiten a servidores externos. Export'
+      + CH(225) + ' backups regularmente.') > -1, true]);
+  ex.push(['(D2) el renglon de la responsabilidad de los desarrolladores esta intacto',
+    t.indexOf('Los desarrolladores no asumen responsabilidad por decisiones m' + CH(233)
+      + 'dicas basadas en este software.') > -1, true]);
+  const bt = av ? av.querySelector('button') : null;
+  ex.push(['(D3) el boton esta intacto: su rotulo', bt ? plano(bt.textContent) : 'SIN BOTON',
+    CH(10003) + ' Entendido ' + CH(8212) + ' Continuar']);
+  ex.push(['(D4) y su manejador', bt ? String(bt.getAttribute('onclick') || '') : 'SIN BOTON', 'cerrarAvisoEco()']);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-945', 'Tarea 1: el titulo del panel de Evidencia lleva un globo con el mismo mecanismo que los otros, de 44 px, hermano del titulo e inmediatamente despues, cuyo cuerpo LEE el punto del aviso y le intercala la oracion de que la aplicacion describe hallazgos, sin tocar el pie del panel', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio <<' + t[1] + '>> esperado <<' + t[2] + '>>']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13) + ']+', 'g');
+  const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+  const CH = String.fromCharCode;
+  try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+  ['modalAvisoEco', 'login-overlay'].forEach((id) => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+
+  /* (A) EL REGISTRO */
+  const REG = (typeof VINFO === 'object' && VINFO) ? VINFO : null;
+  ex.push(['(A0) DENOM: el registro de globos existe', !!REG, true]);
+  ex.push(['(A1) tiene la entrada ev-indep', !!(REG && REG['ev-indep']), true]);
+  ex.push(['(A2) y la arma por dyn, que es lo que le evita el rotulo de Que mide',
+    !!(REG && REG['ev-indep'] && typeof REG['ev-indep'].dyn === 'function'), true]);
+  ex.push(['(A3) NO tiene entrada en VINFO_REF, y es a proposito: Referencias no tiene esa ficha',
+    !!(typeof VINFO_REF === 'object' && VINFO_REF && VINFO_REF['ev-indep']), false]);
+
+  /* (B) EL BOTON, EN SU LUGAR.
+     DENOMINADOR: hay que ABRIR el panel. Un boton dentro de un overlay cerrado existe y mide
+     0 x 0, y _vInfoColocar se NIEGA a anclar contra ese rect: sin abrir, <<no abre>> se lee como
+     <<el mecanismo no funciona>>. */
+  try { if (typeof indicAbrir === 'function') indicAbrir(); } catch (e) {}
+  await esperar(320);
+  const ov = document.getElementById('indic-overlay');
+  ex.push(['(B0) DENOM: el panel quedo abierto', ov ? ov.style.display : 'SIN OVERLAY', 'block']);
+  const tit = document.getElementById('indic-titulo');
+  /* El titulo se compara ENTERO, con su glifo: CH(55357, 56523) es el par de sustitucion del
+     portapapeles U+1F4CB, asi que cortar por longitud de cadena cuenta dos unidades por un solo
+     caracter visible -- lo pago la primera corrida de este caso. */
+  ex.push(['(B1) el titulo sigue diciendo Evidencia segun guias',
+    tit ? plano(tit.textContent) : 'SIN TITULO',
+    CH(55357, 56523) + ' Evidencia seg' + CH(250) + 'n gu' + CH(237) + 'as']);
+  const b = document.querySelector('[data-vinfo="ev-indep"]');
+  ex.push(['(B2) el globo existe', !!b, true]);
+  ex.push(['(B3) es un BUTTON y sin atributo title, que es la convencion de los otros',
+    b ? (b.tagName + '/' + b.hasAttribute('title')) : 'SIN BOTON', 'BUTTON/false']);
+  ex.push(['(B4) anuncia su estado con aria-expanded', b ? b.getAttribute('aria-expanded') : 'SIN BOTON', 'false']);
+  ex.push(['(B5) y lleva etiqueta accesible', b ? (String(b.getAttribute('aria-label') || '').length > 20) : 'SIN BOTON', true]);
+  ex.push(['(B6) mide 44 x 44 px', b ? (function () { const r = b.getBoundingClientRect();
+    return Math.round(r.width) + 'x' + Math.round(r.height); })() : 'SIN BOTON', '44x44']);
+  /* HERMANO E INMEDIATAMENTE DESPUES, que es lo que quiere decir <<al lado del titulo>>: con el
+     flex:1 que el titulo tenia antes, el boton quedaba pegado al maximizar, en el extremo
+     derecho. Y hermano y no HIJO porque #indic-card nombra a indic-titulo en su aria-labelledby. */
+  ex.push(['(B7) es HERMANO del titulo e inmediatamente despues',
+    (b && tit) ? (b.parentElement === tit.parentElement && tit.nextElementSibling === b) : 'SIN NODOS', true]);
+  ex.push(['(B8) y el titulo ya no se estira, para que el globo quede contra el texto',
+    tit ? getComputedStyle(tit).flexGrow : 'SIN TITULO', '0']);
+
+  /* (C) EL CUERPO: LO MISMO QUE EL AVISO, CON LA ORACION INTERCALADA */
+  const A = document.getElementById('eco-indep-txt'), Z = document.getElementById('eco-indep-fin');
+  ex.push(['(C0) DENOM: los dos nodos del aviso de los que LEE existen', !!A && !!Z, true]);
+  if (b) { b.click(); }
+  await esperar(300);
+  const card = document.getElementById('vinfo-card');
+  ex.push(['(C1) la tarjeta se abrio', card ? getComputedStyle(card).display : 'SIN TARJETA', 'block']);
+  ex.push(['(C2) su titulo es el del software independiente',
+    (card && card.querySelector('h4')) ? plano(card.querySelector('h4').textContent) : 'SIN H4',
+    'EcoSmart es un software independiente']);
+  const cuerpo = (card && card.querySelector('p')) ? plano(card.querySelector('p').textContent) : 'SIN CUERPO';
+  const EXTRA = 'La aplicaci' + CH(243) + 'n describe hallazgos y no reemplaza el juicio cl'
+    + CH(237) + 'nico del m' + CH(233) + 'dico.';
+  /* SE COMPARA CONTRA LOS NODOS DEL AVISO Y NO CONTRA UN TEXTO ESCRITO ACA: lo que esta condicion
+     afirma es que el globo LEE el aviso, no que los dos digan una cadena que la prueba trae de su
+     casa. Con el texto escrito en el caso, cambiarlo en el aviso y olvidarlo en el registro daria
+     verde. */
+  ex.push(['(C3) el cuerpo es el punto del aviso con la oracion intercalada antes de la ultima',
+    (A && Z) ? (cuerpo === (plano(A.textContent) + ' ' + EXTRA + ' ' + plano(Z.textContent))) : 'SIN NODOS', true]);
+  ex.push(['(C4) y la oracion intercalada esta, que es la unica diferencia con el aviso',
+    cuerpo.indexOf(EXTRA) > -1, true]);
+  /* NINGUN BLOQUE DECLARA SU PROPIO TAMANIO DE CUERPO: regla fija del 2026-11-04. */
+  ex.push(['(C5) el cuerpo usa la letra de la tarjeta y no una propia',
+    (card && card.querySelector('p'))
+      ? (getComputedStyle(card.querySelector('p')).fontSize === getComputedStyle(card).fontSize)
+      : 'SIN CUERPO', true]);
+  ex.push(['(C6) el boton anuncia que esta abierto', b ? b.getAttribute('aria-expanded') : 'SIN BOTON', 'true']);
+  if (b) { b.click(); }
+  await esperar(260);
+  ex.push(['(C7) el segundo toque la cierra',
+    card ? getComputedStyle(card).display : 'SIN TARJETA', 'none']);
+
+  /* (D) EL PIE DEL PANEL NO SE TOCO */
+  const cd = document.getElementById('indic-card');
+  const pie = cd ? cd.lastElementChild : null;
+  ex.push(['(D1) el pie del panel sigue palabra por palabra',
+    pie ? plano(pie.textContent) : 'SIN PIE',
+    'No constituye recomendaci' + CH(243) + 'n terap' + CH(233)
+      + 'utica. No forma parte del informe ni del PDF. Requiere correlaci' + CH(243) + 'n con las gu'
+      + CH(237) + 'as.']);
+  try { if (typeof indicCerrar === 'function') indicCerrar(); } catch (e) {}
+  return { extra: EXP };
+  })();
 `);
 
 try {

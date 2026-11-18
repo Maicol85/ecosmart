@@ -278,7 +278,22 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,42 MB / 185.708 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la tanda **CUADROS**, sobre el árbol ya sellado: sello **`v20261118-0219`**, md5 **`60fe3171`**.
+  sin frameworks. Hoy **13,42 MB / 185.765 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la **TAREA 1** (el aviso de independencia), sobre el árbol ya sellado: sello **`v20261118-0832`**, md5 **`78f83745`**.
+  El diff de la TAREA 1 son **65 líneas agregadas y 8 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `a58a223` **sobre el árbol ya sellado**, de las que **59** no son
+  comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y
+  contraseñas, y **DOS** ids nuevos —`eco-indep-txt` y `eco-indep-fin`—: ninguno termina en
+  `-aviso` ni en `-badge` y **ninguno cae en ninguno de los veintitrés barridos por sufijo o
+  prefijo de id del archivo**, verificado uno por uno. Los otros dos que el diff muestra,
+  `eco-build-sello` e `indic-titulo`, **ya existían**.
+  **CERO `input`, `select` y `textarea` nuevos**, que es lo que deja todo lo de esta tarea fuera
+  del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y las
+  **457** columnas quietas.
+  ⚠️ **POR CUADRAGÉSIMA NOVENA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show a58a223:index.html` da **185.708** líneas,
+  **13.416.490** bytes y el md5 **`60fe3171`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,42 MB / 185.708 al cierre de **CUADROS**, sello **`v20261118-0219`**, md5 **`60fe3171`**.)
   El diff de CUADROS son **1.084 líneas agregadas y 621 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `d3ea944` **sobre el árbol ya sellado**, de las que **965** no son
   comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de

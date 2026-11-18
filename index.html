@@ -6400,7 +6400,19 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo" tabindex="-1"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:820px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;">
-      <span id="indic-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📋 Evidencia según guías</span>
+      <!-- ⚠️ EL `flex:1` SE MUDO AL ESPACIADOR DE ABAJO Y NO SE QUEDO EN EL TITULO. Con el
+           `flex:1` puesto acá, el `span` se estira hasta el final de la cabecera y el ⓘ aparece
+           pegado al ⤢, en el extremo derecho —o sea NO «al lado del título», que es lo que el
+           médico pidió—. Con el espaciador, el ⓘ queda contra el texto y los dos botones de
+           ventana siguen a la derecha, donde estaban.
+           ⚠️ Y EL BOTON ES HERMANO DEL `span`, NO SU HIJO: `#indic-card` nombra a `indic-titulo`
+           en su `aria-labelledby`, así que un botón adentro le metería su propia etiqueta al
+           nombre del diálogo. -->
+      <span id="indic-titulo" style="font-weight:700;font-size:13px;color:var(--accent2);">📋 Evidencia según guías</span>
+      <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="ev-indep" aria-expanded="false"
+              aria-label="EcoSmart es un software independiente: de dónde salen las guías que se citan"
+              onclick="vInfoClic(this)">&#9432;</button>
+      <span style="flex:1;"></span>
       <!-- ⚠️ EL ESTADO VA EN `aria-pressed` Y EN LA ETIQUETA, NO EN EL GLIFO. Un lector de
            pantalla no lee «⤢», así que sin `aria-label` el botón se anuncia vacío; y sin
            `aria-pressed` se anuncia igual estando el panel normal o maximizado. Las dos cosas las
@@ -51091,7 +51103,51 @@ function _wiGloboInfo(){
 }
 window._wiGloboInfo = _wiGloboInfo;
 
+/* ── EL GLOBO DEL TITULO DE «Evidencia segun guias» — TAREA 1, punto B (2026-11-18) ───────────
+   Dice lo mismo que el punto de independencia del aviso legal, CON una oracion mas intercalada
+   antes de la ultima: «La aplicacion describe hallazgos y no reemplaza el juicio clinico del
+   medico.» En el aviso esa oracion se omite A PROPOSITO porque el aviso ya la dice arriba, en su
+   primer parrafo.
+   ⚠️ EL TEXTO SE LEE DEL AVISO Y NO SE COPIA. Son dos superficies que tienen que decir lo mismo:
+   con el texto escrito dos veces, el dia que una se reescriba quedan dos versiones y la que se
+   olvida es la que se ve. Es la misma decision que `_vInfoLegadoTxt` ya dejo escrita.
+   ⚠️ LA INTERCALACION ES ESTRUCTURAL: el aviso parte su punto en `#eco-indep-txt` (las tres
+   primeras oraciones) y `#eco-indep-fin` (la ultima), asi que la oracion entra ENTRE los dos
+   nodos. Partir por el ultimo punto de una cadena es fragil: el texto trae «(autor y año)» y
+   cualquier abreviatura futura lo rompe sin que nada lo contradiga.
+   ⚠️ SI EL AVISO NO ESTUVIERA, LA TARJETA LO DICE en vez de abrir vacia: una tarjeta en blanco
+   se lee igual que «el boton no hace nada».
+   ⚠️ DEVUELVE UN NODO, NO UNA CADENA: `_vInfoColocar` hace `appendChild(dyn())`.
+   ⚠️ NINGUN BLOQUE DECLARA SU PROPIO TAMANO DE CUERPO —regla fija del 2026-11-04— y todo entra
+   por `textContent`. */
+var INDEP_EXTRA = 'La aplicaci\u00f3n describe hallazgos y no reemplaza el juicio cl\u00ednico del m\u00e9dico.';
+function _indepGloboInfo() {
+  var f = document.createDocumentFragment();
+  var h = document.createElement('h4');
+  h.id = 'vinfo-tit';
+  h.textContent = 'EcoSmart es un software independiente';
+  f.appendChild(h);
+  var a = document.getElementById('eco-indep-txt');
+  var b = document.getElementById('eco-indep-fin');
+  var p = document.createElement('p');
+  p.style.margin = '0';
+  if (a && b) {
+    p.textContent = (a.textContent || '').trim() + ' ' + INDEP_EXTRA + ' ' + (b.textContent || '').trim();
+  } else {
+    p.textContent = 'No se pudo leer el aviso legal de la aplicaci\u00f3n.';
+  }
+  f.appendChild(p);
+  return f;
+}
+window._indepGloboInfo = _indepGloboInfo;
+
 const VINFO = Object.freeze({
+  /* El globo del titulo del panel de Evidencia (TAREA 1, punto B). Su cuerpo lo arma
+     `_indepGloboInfo`, que LEE el punto de independencia del aviso legal: el aviso es el dueno
+     unico del texto. Va por `dyn` y no por `lee` por el mismo motivo que `wi-aplica`: la rama
+     `lee` pondria adelante el rotulo «Que mide», que no corresponde. */
+  'ev-indep': { tit: 'EcoSmart es un software independiente', ancho: 400,
+                dyn: function () { return _indepGloboInfo(); } },
   /* El globo del «What if» de la estenosis aortica (PANT-37, A4). Su cuerpo lo arma
      `_wiGloboInfo` de `WI_GLOBO`, que es el dueno unico del texto. */
   'wi-aplica': { tit: 'Cu\u00e1ndo aplica el What if', ancho: 340,
@@ -180026,8 +180082,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261118-0219';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794979193879;                 /* eco-build-ms */
+const ECO_BUILD    = '20261118-0832';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795001542568;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -180113,7 +180169,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-0219</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-0832</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -184695,8 +184751,8 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
       </div>
       <p style="font-size:13px;color:#CBD5E1;
         margin-bottom:16px;line-height:1.6;">
-        Herramienta de apoyo clínico para el registro
-        y análisis ecocardiográfico.
+        Herramienta para el registro y la
+        descripción de estudios ecocardiográficos.
         <strong>No reemplaza el juicio clínico
         del médico.</strong>
       </p>
@@ -184708,12 +184764,13 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
           el navegador (IndexedDB). No se transmiten
           a servidores externos. Exportá backups
           regularmente.</div>
-        <div>⚕️ Los cálculos automáticos son
-          orientativos. La interpretación clínica
+        <div>⚕️ Los cálculos son automáticos.
+          La interpretación clínica
           final corresponde al médico tratante.</div>
         <div>📋 Los desarrolladores no asumen
           responsabilidad por decisiones médicas
           basadas en este software.</div>
+        <div>⚖️ <span id="eco-indep-txt">EcoSmart es un software independiente: no tiene aval, patrocinio ni vínculo con ninguna sociedad científica ni editorial. Las guías, consensos y artículos que se citan (autor y año) son publicaciones de terceros, mencionadas solo como origen de los criterios y puntos de corte que usa la aplicación. Los textos de la aplicación son de redacción propia.</span> <span id="eco-indep-fin">Para el contenido completo y vigente de cada publicación, consulte la fuente original.</span></div>
       </div>
     </div>
     <button onclick="cerrarAvisoEco()"
