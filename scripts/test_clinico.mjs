@@ -1053,7 +1053,12 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
 
     // ── H · el grado 2 sin piso de E/A
     ['E/A 0,75 con presion elevada es grado II', h.badge.indexOf('DD Grado II') === 0, h.badge],
-    ['y el texto declara el rango <2,00', h.texto.indexOf('(<2,00)') > -1, h.texto],
+    /* ⚠️ INVERTIDA EN LA 3A (punto 7). La frase ya no imprime el OPERADOR del corte -«(<2,00)»-,
+       porque la orden saca de la frase la enumeracion de criterios. Lo que esa condicion de verdad
+       protegia es que el DATO llegue al papel, y eso se conserva y se exige mas fuerte: el valor
+       medido de la E/A con sus dos decimales. Volver a poner el operador la pone en rojo. */
+    ['la frase publica el VALOR de la E/A y ya no el operador del corte',
+      h.texto.indexOf('(<2,00)') === -1 && /E\\/A \\d+\\.\\d\\d/.test(h.texto), h.texto],
     ['y no queda indeterminado', h.badge.indexOf('Indeterminado') < 0, h.badge],
 
     // ── I · estado (a), literal exacto
@@ -2390,7 +2395,12 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
   const G1ALT = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).';
   const G1PRO = 'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).';
   const G2    = 'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).';
-  const G3    = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).';
+  /* ⚠️ ADAPTADA EN LA 3A (punto 7): el grado III de la 8B pasa al estilo nuevo -«Disfuncion
+     diastolica grado III (patron restrictivo) con presion de llenado elevada, E/A N»- y SIN
+     conteo, porque esta rama llega por el atajo antes de contar los tres criterios. Se compara
+     por PREFIJO y no por igualdad exacta, porque la frase ahora lleva el valor de la E/A, que es
+     distinto en cada escena; el valor en si lo fija TC-925. */
+  const G3PRE = 'Disfunción diastólica grado III (patrón restrictivo) con presión de llenado elevada, E/A ';
   const NORM  = 'Función diastólica normal.';
   const INDET = 'Función diastólica indeterminada.';
 
@@ -2454,8 +2464,9 @@ caso('TC-458', 'Diastolica ASE/EACVI 2016 en RITMO SINUSAL: los DOS algoritmos d
     ['atajo E <= 50: la E de 50,0 EXACTA entra', e50.texto === G1PRO, e50.texto],
     ['  y una E de 51 no entra, con la misma E/A <= 0,8', e51.texto !== G1PRO, e51.texto],
     ['atajo E/A >= 2: el 2,00 EXACTO es grado III (la figura escribe >=)',
-      ea200.texto === G3, ea200.texto],
-    ['  y 1,96 no es grado III', ea196.texto !== G3, ea196.texto],
+      String(ea200.texto || '').indexOf(G3PRE) === 0
+      && String(ea200.texto || '').indexOf('positivos') === -1, ea200.texto],
+    ['  y 1,96 no es grado III', String(ea196.texto || '').indexOf(G3PRE) !== 0, ea196.texto],
 
     // ── D · LOS CORTES DE LOS CUATRO CRITERIOS ────────────────────────────────────────────────
     ["E/e' > 14: 13,86 y el 14,00 EXACTO son negativos, 14,14 es positivo",
@@ -3357,7 +3368,10 @@ caso('TC-462', 'Diagramas de flujo de la ASE 2025 (ritmo sinusal y fibrilacion a
     .filter(n => { try { return typeof eval(n) === 'function' } catch (e) { return false } });
   ok(duenoPlano, 'DENOMINADOR: el despachador de planos existe', 'typeof: ' + typeof _bseDiagPlano);
   ok(planos.length === 4, 'DENOMINADOR: los CUATRO planos de la ASE existen (Figura 3, Figura 8, 8A y 8B)', 'planos: ' + planos.join(','));
-  ok(nodosPlano === '19/13/10/14', 'DENOMINADOR: los cuatro planos tienen 19, 13, 10 y 14 nodos', 'da ' + nodosPlano);
+  /* ⚠️ ADAPTADO EN LA 3A (punto 12): 19 -> 20 y 14 -> 15. El nodo nuevo de cada uno es la notita
+     punteada del Valsalva, debajo de la caja de grado III; la 8A no la lleva porque no gradua, y
+     por eso sus 13 y los 10 de la de FA no se mueven. */
+  ok(nodosPlano === '20/13/10/15', 'DENOMINADOR: los cuatro planos tienen 20, 13, 10 y 15 nodos', 'da ' + nodosPlano);
   ok(duenos.length === 3, 'DENOMINADOR: las tres funciones duenias existen', 'duenias: ' + duenos.join(','));
 
   // ══ B · RAMA -> ESCENA: las veintitres ramas de las cuatro vias ═══════════════════════════
@@ -3504,7 +3518,10 @@ caso('TC-462', 'Diagramas de flujo de la ASE 2025 (ritmo sinusal y fibrilacion a
   const grisVacio = vacio.dia.hay ? (vacio.dia.nodos || []).filter(n => !n.cam).length : -1;
   ok(vacio.dia.hay && (vacio.dia.enCam || []).length === 3, 'Con el formulario vacio el camino tiene TRES nodos y no inventa el resto',
      'nodos en camino: ' + (vacio.dia.enCam || []).join(','));
-  ok(grisVacio === 16, 'Los otros 16 nodos quedan en gris', 'quedan ' + grisVacio);
+  /* ⚠️ 16 -> 17 en la 3A: la notita del Valsalva no entra en el camino rojo, asi que queda en
+     gris como el resto de lo que este paciente no recorrio. Es deliberado: el camino marca las
+     casillas del ALGORITMO, y esa no es una de ellas. */
+  ok(grisVacio === 17, 'Los otros 17 nodos quedan en gris', 'quedan ' + grisVacio);
   ok(rojoFuera === 0, 'CONTROL NEGATIVO: ningun nodo FUERA del camino esta pintado de rojo', 'hay ' + rojoFuera + ' en rojo');
   ok(vacio.dia.fin === 'a25.fin-sindatos', 'El resultado del formulario vacio es la caja de datos insuficientes', 'da ' + vacio.dia.fin);
 
@@ -66778,7 +66795,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144. Entra clnk-guia, el globo del «?» que abre la
        guia de conexion de CeiboLink, en Configuracion. No vive en Valvulas ni en Referencias:
        lo que esta condicion afirma de su propia pantalla no cambia. */
-    Object.keys(VINFO).length === 144 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* 144 -> 148 en la 3A: entran vd-strain-pl, tavi-pvl-ext, otr-cortri y diast-valsalva.
+       Los dos que el caso nombra por clave siguen estando, que es lo que distingue un censo
+       que crecio de uno que perdio una entrada. */
+    Object.keys(VINFO).length === 148 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -78310,7 +78330,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 144 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 148 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -78350,8 +78370,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        tarjetas que este caso mide: cambia el denominador del registro, no lo que la condicion
        afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
        mismo. */
-    /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144, por clnk-guia. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 144 && ('wi-aplica' in (REG() || {})),
+    /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144, por clnk-guia.
+       ⚠️ ADAPTADO EN LA 3A: 144 -> 148. Las cuatro entradas nuevas son vd-strain-pl,
+       tavi-pvl-ext, otr-cortri y diast-valsalva. NINGUNA esta en Valvulas: lo que cambia es el
+       denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 148 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -79770,8 +79793,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
        Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
        limite que declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: setenta tarjetas sin boton, porque Referencias no tiene esa entrada',
-    /* ⚠️ ADAPTADA EN PANT-38 (commit 4): 69 -> 70. La entrada nueva es clnk-guia, el «?» que abre la
+  ex.push(['(C3) LIMITE DECLARADO: setenta y cuatro tarjetas sin boton, porque Referencias no tiene esa entrada',
+    /* ⚠️ ADAPTADA EN LA 3A: 70 -> 74. Las cuatro entradas nuevas son diast-valsalva,
+       otr-cortri, tavi-pvl-ext y vd-strain-pl. Ninguna tiene ficha en Referencias, y es por el
+       MISMO motivo que las otras: explican un campo o una maniobra y no publican una entrada de
+       biblioteca propia. El limite no cambia; cambia su denominador.
+    ⚠️ ADAPTADA EN PANT-38 (commit 4): 69 -> 70. La entrada nueva es clnk-guia, el «?» que abre la
        guia de conexion de CeiboLink en Configuracion. No tiene ficha en Referencias por la MISMA
        razon que inf-min, tga-3d y tga-esq: explica como se CONECTA un equipo y no publica
        contenido clinico, asi que una ficha suya seria una entrada sin criterio detras. El limite
@@ -79811,14 +79838,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'cc9-fontan-iav,cc9-fontan-sat,cc9-vap-sec,'
       + 'clnk-guia,'
       + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
+      + 'diast-valsalva,'
       + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,'
       + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
-      + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,'
+      + 'otr-cortri,'
+      + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,tavi-pvl-ext,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,tv-sec,va-morf-tipos,'
-      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-triv,vexus-lim,vm-carp,'
+      + 'vab-aorta,vab-cx,vab-friesgo,vab-func,vab-tit,vab-valv,vd-strain-pl,vd-triv,vexus-lim,vm-carp,'
       + 'vm-morf-tipos,vt-morf-tipos',
     sinBoton.join(',')]);
   /* Cuatro tarjetas, una de cada familia. La de la aorta y la del VI viven en AI/VI, la de la
@@ -89217,15 +89246,22 @@ caso('TC-526', 'Tanda AJ5-5: el strain de pared libre del VD entre el indice de 
   ex.push(['(B1) 21 es normal y 20 ya es leve: el corte es ESTRICTO por arriba',
     B['21'].cat === 'normal' && B['20'].cat === 'leve',
     '21=' + B['21'].cat + ' 20=' + B['20'].cat]);
-  ex.push(['(B2) 15 EXACTO es leve y 14 cae por debajo: el borde de abajo es inclusivo',
-    B['15'].cat === 'leve' && B['14'].cat === 'bajo_leve',
+  /* ⚠️ ADAPTADA EN LA 3A: lo que esta condicion fija -que el 15 EXACTO sea leve y el 14 caiga al
+     tramo de abajo- no cambia. Lo que cambia es el NOMBRE de ese tramo: era bajo_leve y ahora es
+     moderada, porque la Tabla 1 de la ASE 2025 lo bandea (folio 145, leido en el PDF). */
+  ex.push(['(B2) 15 EXACTO es leve y 14 cae al tramo de abajo: el borde es inclusivo',
+    B['15'].cat === 'leve' && B['14'].cat === 'moderada',
     '15=' + B['15'].cat + ' 14=' + B['14'].cat]);
   ex.push(['(B3) los dos signos dan LO MISMO en los cuatro bordes',
     ['21', '20', '15', '14'].every(v => B[v].cat === B['-' + v].cat),
     ['21', '20', '15', '14'].map(v => v + ':' + B[v].cat + '/' + B['-' + v].cat).join(' ')]);
-  ex.push(['(B4) por debajo de leve la pantalla DICE que la aplicacion no tiene corte de moderada ni severa',
-    B['14'].grado.indexOf('por debajo de leve') > -1
-      && B['14'].grado.indexOf('no tiene corte de moderada') > -1, B['14'].grado]);
+  /* ⚠️ INVERTIDA EN LA 3A. Esta condicion afirmaba que la pantalla DICE que la aplicacion no
+     tiene corte de moderada ni de severa, y esa frase era FALSA: la Tabla 1 los publica. Ahora la
+     pantalla nombra el tramo que le toca y la frase vieja NO puede volver. */
+  ex.push(['(B4) el tramo de abajo se nombra MODERADA con su rango, y ya no dice que la aplicacion no tiene ese corte',
+    B['14'].grado.indexOf('moderada') === 0
+      && B['14'].grado.indexOf('no tiene corte de moderada') === -1
+      && B['14'].grado.indexOf('por debajo de leve') === -1, B['14'].grado]);
   ex.push(['(B5) el informe publica el valor con el signo de la aplicacion en los TRES estilos, tipeado con signo o sin el',
     ['21', '-21'].every(v => B[v].e.indexOf('strain de pared libre \\u221221 %') > -1
       && B[v].c.indexOf('strain de pared libre \\u221221 %') > -1
@@ -92356,9 +92392,16 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      fuente no publica ningun corte. Lo que el caso sigue fijando es lo mismo de antes y mas
      fuerte: que el strain VOTA -la frase afirma disfuncion-, que NUNCA dice moderada ni severa,
      y ahora ademas que no dice LEVE, que es el grado que la version anterior le ponia. */
-  ex.push(['(E2) strain -12 % vota DISFUNCION SIN GRADO: ni leve, ni leve como minimo, ni moderada, ni severa',
-    /disfunción sistólica \\(strain de pared libre −12 %\\)/.test(eBajo)
-    && !/moderada|severa|leve/.test(eBajo), eBajo]);
+  /* ⚠️ INVERTIDA EN LA 3A (punto 3), POR ORDEN DE MAICOL. El informe FIRMADO gradua moderada y
+     severa desde esta tanda, alineado a la Tabla 1 de la ASE 2025 -leida en el PDF, folio 145-,
+     asi que un -12 % ya NO sale sin grado: sale «moderada». El motivo que esta condicion daba
+     -«la fuente no publica ningun corte» para esa banda- era FALSO.
+     Lo que el caso sigue fijando, y por los dos lados: que el strain VOTE -la frase afirma
+     disfuncion-, que publique su valor al lado, y que el grado sea el que le toca a ese tramo y
+     no otro: ni leve ni severa. Volver al «sin grado» pone la condicion en rojo. */
+  ex.push(['(E2) strain -12 % vota disfuncion MODERADA, que es el tramo que le toca en la Tabla 1',
+    /disfunción sistólica moderada \\(strain de pared libre −12 %\\)/.test(eBajo)
+    && !/leve|severa/.test(eBajo), eBajo]);
   ex.push(['(E3) CONTROL NEGATIVO: strain -25 % NO vota y la funcion sigue conservada',
     /función sistólica conservada/.test(eNorm), eNorm]);
   ex.push(['(E4) el borde 15 vota leve -el 15 esta INCLUIDO-',
@@ -92385,10 +92428,17 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   ex.push(['(F0) DENOMINADOR: el cuadro del VD de Referencias se pinta y tiene sus filas',
     filF.length > 20, 'n=' + filF.length]);
   const fLeve = filF.filter((x) => x.indexOf('Strain de pared libre — disfunción leve') === 0)[0] || '';
+  /* ⚠️ ADAPTADA EN LA 3A: el rango se escribe de MAYOR A MENOR -«de 20 a 15 %»-, que es el orden
+     en que la tabla lo imprime y en que el numero empeora. Sigue saliendo de las constantes. */
   ex.push(['(F1) existe la fila de la banda LEVE, derivada de las constantes',
-    /de 15 a 20 %/.test(fLeve), fLeve || 'NO ESTA']);
-  ex.push(['(F2) y va SIN CORCHETE: la fuente no publica ese corte',
-    fLeve !== '' && !/\\[\\d+\\]/.test(fLeve), fLeve]);
+    /de 20 a 15 %/.test(fLeve), fLeve || 'NO ESTA']);
+  /* ⚠️ INVERTIDA EN LA 3A. Esta condicion afirmaba que la fila va SIN corchete «porque la fuente
+     no publica ese corte», y eso era FALSO: la Tabla 1 de la ASE 2025 bandea el strain en sus
+     cuatro columnas (folio 145, leido en el PDF). La ficha FUN-VD-008 paso de criterio propio a
+     GUIA verificada, asi que su fila ahora lleva corchete -el armador de bibliografia saltea las
+     fichas no verificadas-, y volver a declararla criterio propio pone esto en rojo. */
+  ex.push(['(F2) y YA VA CON CORCHETE: la fuente SI publica ese corte',
+    fLeve !== '' && /\\[\\d+\\]/.test(fLeve), fLeve]);
   const fNorm = filF.filter((x) => x.indexOf('Strain de pared libre — normal') === 0)[0] || '';
   ex.push(['(F3) CONTROL: la fila de NORMALIDAD si lleva corchete, porque esa si es de la guia',
     /\\[\\d+\\]/.test(fNorm), fNorm || 'NO ESTA']);
@@ -92782,13 +92832,13 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      Lo que estas condiciones exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el
      conteo ES el denominador: agregar uno sin mover el numero lo saca de la medicion.
      Los TRES numeros se mueven JUNTOS. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y SEIS globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapK.length === 66 && tapK.filter((x) => !x.k).length === 1
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y OCHO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapK.length === 68 && tapK.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44') && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y seis miden 44x44 tambien con el mouse',
-    tapK.length === 66 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  ex.push(['(K1) los sesenta y ocho miden 44x44 tambien con el mouse',
+    tapK.length === 68 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 66 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapK.length === 68 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -93509,9 +93559,18 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
     const trVd = tvd ? [].slice.call(tvd.rows).filter(r => /disfunción leve/.test(N(r.cells[0] ? r.cells[0].textContent : '')))[0] : null;
     const fvd = trVd ? [].slice.call(trVd.cells).map(c => N(c.textContent)) : null;
     const cspVd = trVd && trVd.cells[1] ? trVd.cells[1].colSpan : 0;
-    ex.push(['(C4) la fila de la banda leve dice el valor y «Decisión de la aplicación» en UNA celda que ocupa las dos columnas de sexo',
-      !!fvd && fvd.length === 2 && cspVd === 2
-      && fvd[1].indexOf('de 15 a 20 %') > -1 && fvd[1].indexOf('Decisión de la aplicación') > -1,
+    /* ⚠️ INVERTIDA EN LA 3A (punto 3). Esta condicion afirmaba que la fila publica su valor con
+       «Decision de la aplicacion» en UNA celda que ocupa las dos columnas de sexo, porque la
+       banda se declaraba criterio propio. Dejo de ser cierto: la Tabla 1 de la ASE 2025 bandea el
+       strain en sus cuatro columnas (folio 145, leido en el PDF), la ficha paso a GUIA verificada
+       y la fila vuelve a las DOS columnas de sexo con el MISMO valor en las dos -ninguna de las
+       dos fuentes separa por sexo-.
+       SIGUE PUDIENDO FALLAR POR TRES LADOS: el valor tiene que estar, el rango va de mayor a
+       menor, y «Decision de la aplicacion» NO puede volver. */
+    ex.push(['(C4) la fila de la banda leve publica su valor en las DOS columnas de sexo, sin declararse criterio propio',
+      !!fvd && fvd.length === 3 && cspVd === 1
+      && fvd[1].indexOf('de 20 a 15 %') > -1 && fvd[2].indexOf('de 20 a 15 %') > -1
+      && fvd[1].indexOf('Decisión de la aplicación') === -1,
       fvd ? (JSON.stringify(fvd) + ' colspan=' + cspVd) : 'FILA NO ENCONTRADA']);
     const fpop = FP ? FP.querySelector('table') : null;
     ex.push(['(C5) las DIECISEIS filas de la ficha del posoperatorio siguen, cada una con su ⓘ',
@@ -94328,13 +94387,20 @@ caso('TC-539', 'Tanda E: el Carpentier con UN SOLO dato -gana el ETE, el campo d
       c20.inf + ' || ' + c18.inf]);
     ex.push(['(C3) -15 % vota LEVE -el 15 esta INCLUIDO en la banda leve-',
       /disfunción sistólica leve \\(/.test(c15.inf), c15.inf]);
-    ex.push(['(C4) -14.9 % y -12 % informan disfuncion sistolica SIN GRADO en el cuerpo',
-      /disfunción sistólica \\(strain de pared libre −14.9 %\\)/.test(c149.inf)
-        && /disfunción sistólica \\(strain de pared libre −12 %\\)/.test(c12.inf)
-        && !/leve|moderada|severa/.test(c149.inf) && !/leve|moderada|severa/.test(c12.inf),
+    /* ⚠️ INVERTIDA EN LA 3A (punto 3), POR ORDEN DE MAICOL: el informe FIRMADO gradua moderada y
+       severa, alineado a la Tabla 1 de la ASE 2025. Los dos valores de esta escena caen en el
+       tramo MODERADA -de menos de 15 a 11-, asi que la frase lo dice; y lo que la condicion sigue
+       exigiendo es que el VALOR salga con el signo de la aplicacion y que el grado sea el que le
+       toca a ese tramo y no otro. Volver al «sin grado» la pone en rojo. */
+    ex.push(['(C4) -14.9 % y -12 % informan disfuncion sistolica MODERADA en el cuerpo, con su valor',
+      /disfunción sistólica moderada \\(strain de pared libre −14.9 %\\)/.test(c149.inf)
+        && /disfunción sistólica moderada \\(strain de pared libre −12 %\\)/.test(c12.inf)
+        && !/leve|severa/.test(c149.inf) && !/leve|severa/.test(c12.inf),
       c149.inf + ' || ' + c12.inf]);
-    ex.push(['(C5) y el EN SUMA tampoco gradua: ni leve, ni leve como minimo, ni moderada, ni severa',
-      /VD con disfunción sistólica\\./.test(c12.suma) && !/leve|moderada|severa/.test(c12.suma),
+    /* ⚠️ INVERTIDA EN LA 3A, por lo mismo que la de arriba: las DOS superficies gradan y dicen lo
+       mismo, que es lo que el dueno unico garantiza. */
+    ex.push(['(C5) y el EN SUMA dice el MISMO grado que el cuerpo',
+      /VD con disfunción sistólica moderada\\./.test(c12.suma) && !/leve|severa/.test(c12.suma),
       c12.suma]);
     ex.push(['(C6) CONTROL: con TAPSE 12 y onda S prima 6, el DUEÑO del grado MANDA y publica moderada',
       /disfunción sistólica moderada/.test(cDue.inf), cDue.inf]);
@@ -97800,11 +97866,14 @@ caso('TC-549', 'Tanda Y (Parte 1): el resultado del strain del VD en el cuadro d
     return { vis: VIS('row-vd-strain-interp'), txt: T('vd-strain-interp'),
              marca: T('vd_strain_pl-marca') }; };
   const sN = bandaStrain('-21'), sL = bandaStrain('-18'), sB = bandaStrain('-12');
-  ex.push(['(A3) normal, leve y por debajo de leve se leen en la fila con el MISMO texto de antes',
+  /* ⚠️ ADAPTADA EN LA 3A: la fila sigue siendo la misma y en el mismo lugar -que es lo que este
+     caso afirma-, con los tramos renombrados y el rango escrito de mayor a menor. La frase que
+     decia que la aplicacion no tiene corte de moderada ni de severa NO puede volver. */
+  ex.push(['(A3) los tramos se leen en la fila, con moderada en lugar de «por debajo de leve»',
     sN.txt.indexOf('normal (más de 20 %') > -1 &&
-    sL.txt.indexOf('leve (de 15 a 20 %') > -1 &&
-    sB.txt.indexOf('por debajo de leve') > -1 &&
-    sB.txt.indexOf('no tiene corte de moderada ni de severa') > -1,
+    sL.txt.indexOf('leve (de 20 a 15 %') > -1 &&
+    sB.txt.indexOf('moderada') === 0 &&
+    sB.txt.indexOf('no tiene corte de moderada ni de severa') === -1,
     sN.txt + ' | ' + sL.txt + ' | ' + sB.txt]);
   ex.push(['(A4) y la fila se VE en las tres',
     sN.vis === true && sL.vis === true && sB.vis === true,
@@ -110999,7 +111068,10 @@ caso('TC-627', 'Tanda PANT-3: la pantalla de MCH conserva sus treinta campos, pa
   /* (A) EL CENSO DE IDS NO CAMBIA. */
   const ids = [];
   sec.querySelectorAll('input[id], select[id], textarea[id]').forEach((e) => ids.push(e.id));
-  ex.push(['(A1) la pantalla sigue teniendo sus treinta campos', ids.length, 30]);
+  /* ⚠️ 30 -> 31 EN LA 3A (punto 5): entra mch_ex_alcohol, porque la exclusion que preguntaba
+     por la miectomia Y la alcoholizacion se partio en dos. Lo que el caso afirma no cambia: que la
+     pantalla no PIERDA campos. */
+  ex.push(['(A1) la pantalla sigue teniendo sus treinta y un campos', ids.length, 31]);
   ['mch_espesor', 'mch_loc', 'mch_grad_reposo', 'mch_fam_ms', 'mch_tvns', 'mch_ex_atleta',
    'mch_mult_mut', 'mch_ctx_crecimiento'].forEach((k) => {
     ex.push(['(A) sigue el campo ' + k, ids.indexOf(k) >= 0, true]);
@@ -146779,7 +146851,12 @@ caso('TC-918', 'PARTE-2 (2.7): el globo de notas de metodo del Simpson cita «La
         /* LO NUEVO: la forma autor-año, en las TRES notas que nombran la fuente. */
         R.nLang = (T.match(/Lang 2015/g) || []).length;
         R.ejeLargo = N.some(x => x.indexOf('más largo de las dos ventanas') > -1 && x.indexOf('(Lang 2015)') > -1);
-        R.apex = N.some(x => x.indexOf('Lang 2015 lo lista como su limitación principal') > -1);
+        /* ⚠️ ADAPTADA EN LA 3A (punto 4), E INVERTIDA. La PARTE-2 fijo aqui la forma autor-anio y
+           esa mitad se CONSERVA: la nota sigue teniendo que decir «Lang 2015». Lo que cambia es la
+           redaccion -«entre sus limitaciones» en vez de «como su limitacion principal»-, asi que la
+           condicion exige la nueva Y que la vieja ya no este, y falla por los dos lados. */
+        R.apex = N.some(x => x.indexOf('Lang 2015 lo lista entre sus limitaciones') > -1)
+              && !N.some(x => x.indexOf('limitación principal') > -1);
         R.mono = N.some(x => x.indexOf('Lang 2015 recomienda el biplano') > -1);
         /* ⚠️ LO VIEJO YA NO ESTA, que es la mitad que hace que el caso falle por los dos lados:
            ni la forma sociedad-año ni «la guia» a secas, que no nombraba nada. */
@@ -146940,6 +147017,833 @@ caso('TC-920', 'PARTE-2 (2.9): el menu «Vista de angiografia» deja de cortarse
                                                                R.cerradoClase === false && R.cerradoDisplay === 'none',
                                                                R.cerradoClase + '/' + R.cerradoDisplay],
       ['el menu de arteria recibe el mismo enganche',          R.artEnRegla === true, R.artEnRegla]
+    ] };
+  })();
+`);
+
+caso('TC-927', '3A (puntos 12 y 13): la notita punteada del Valsalva debajo de la caja de grado III en los dos esquemas que gradan -- con su arista, su pie en plural y fuera de la tabla compacta-, la 8A sin ella porque no gradua, cero menciones diastolicas de IIIa/IIIb en los tres protocolos, y el Carpentier de la mitral intacto', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      await esperar(200);
+
+      /* DENOMINADOR: los tres planos existen. */
+      R.hay = {};
+      try { R.hay.f3 = !!(typeof A25_PLANO_F3 !== 'undefined' && A25_PLANO_F3.nodos);
+            R.hay.b8 = !!(typeof A16B_PLANO !== 'undefined' && A16B_PLANO.nodos);
+            R.hay.a8 = !!(typeof A16A_PLANO !== 'undefined' && A16A_PLANO.nodos);
+      } catch (e) { R.hayErr = String(e); }
+      R.hayPlanos = R.hay.f3 === true && R.hay.b8 === true && R.hay.a8 === true;
+
+      const leer = (plano, id) => {
+        const n = plano.nodos.filter(x => x.id === id)[0];
+        return { existe: !!n, app: n ? !!n.app : null,
+                 tit: n ? n.tit.join(' ') : null,
+                 aristas: plano.aristas.filter(a => a.a === id).length,
+                 desde: plano.aristas.filter(a => a.a === id).map(a => a.de).join(','),
+                 nApp: plano.nodos.filter(x => x.app).length,
+                 piePlural: String(plano.pie || '').indexOf('Las cajas punteadas') > -1,
+                 pieEstado: String(plano.pie || '').indexOf('estados de esta aplicaci') > -1,
+                 enTabla: (plano.tabla || []).some(t => (t.nodos || []).indexOf(id) > -1) };
+      };
+      R.f3 = leer(A25_PLANO_F3, 'a25.vals');
+      R.b8 = leer(A16B_PLANO, 'a16b.vals');
+      R.a8 = leer(A16A_PLANO, 'a16a.vals');
+
+      /* (A) LA NOTITA EXISTE EN LOS DOS PLANOS QUE GRADUAN, punteada y con su arista desde la caja
+         de grado III. */
+      R.notaOk = R.f3.existe === true && R.f3.app === true
+              && R.b8.existe === true && R.b8.app === true
+              && R.f3.aristas === 1 && R.b8.aristas === 1
+              && R.f3.desde === 'a25.fin-g3' && R.b8.desde === 'a16b.fin-g3';
+      R.textoOk = String(R.f3.tit).indexOf('Con Valsalva') === 0
+               && String(R.f3.tit).indexOf('modificable / fijo') > -1
+               && R.f3.tit === R.b8.tit;
+
+      /* (B) LA 8A NO LA LLEVA: ese algoritmo no gradua, no tiene casilla de grado III. Es el
+         control negativo del punto 12. */
+      R.a8Sin = R.a8.existe === false;
+      R.a8SinG3 = A16A_PLANO.nodos.filter(x => String(x.id).indexOf('fin-g3') > -1).length === 0;
+
+      /* (C) EL PIE DE LOS DOS DICE QUE SON ESTADOS DE LA APLICACION Y NO CASILLAS DE LA FIGURA,
+         en plural, que es lo que corresponde con mas de una. */
+      R.pieOk = R.f3.piePlural === true && R.f3.pieEstado === true
+             && R.b8.piePlural === true && R.b8.pieEstado === true;
+
+      /* (D) NO ENTRA EN LA TABLA COMPACTA: no es una casilla del algoritmo. */
+      R.fueraTabla = R.f3.enTabla === false && R.b8.enTabla === false;
+
+      /* (E) PUNTO 13 -- NO QUEDA NINGUNA MENCION DIASTOLICA DE IIIa / IIIb. Se barre el resultado
+         de los tres protocolos en el escenario de grado III, que es el unico que la tenia. */
+      try { if (typeof showTab === 'function') showTab('doppler'); } catch (e) {}
+      await esperar(200);
+      __t.set('peso', 70); __t.set('talla', 170);
+      __t.set('e_sep', 5); __t.set('e_lat', 7); __t.set('onda_e', 100); __t.set('onda_a', 40);
+      __t.set('vmax_it', 3.0); __t.set('ai_vol', 80);
+      R.letras = {};
+      [['ase2025', 60], ['ase2016', 35], ['bse2024', 60]].forEach(p => {
+        __t.set('diast_algoritmo', p[0]); __t.set('diast_ritmo', 'sinusal'); __t.set('fevi', p[1]);
+        try { calcDiastol(); } catch (e) {}
+        const r = window._diastResult || {};
+        const t = String(r.texto || '') + ' ' + String(r.textoSuma || '');
+        R.letras[p[0]] = { IIIa: t.indexOf('IIIa') > -1, IIIb: t.indexOf('IIIb') > -1,
+                           noReg: t.indexOf('no registrada') > -1 };
+      });
+      R.sinLetras = Object.keys(R.letras)
+        .every(k => !R.letras[k].IIIa && !R.letras[k].IIIb && !R.letras[k].noReg);
+
+      /* (F) CONTROL: EL CARPENTIER DE LA MITRAL SIGUE ENTERO. Es otra clasificacion con el mismo
+         nombre, y borrarla habria sido perder contenido clinico. */
+      R.carp = null;
+      try {
+        const s = document.getElementById('vm_carp');
+        const ops = s ? [].slice.call(s.options).map(o => o.value) : [];
+        R.carp = { hay: !!s, tieneIIIa: ops.indexOf('IIIa') > -1, tieneIIIb: ops.indexOf('IIIb') > -1,
+                   n: ops.length };
+      } catch (e) { R.carpErr = String(e); }
+      R.carpOk = !!(R.carp && R.carp.hay && R.carp.tieneIIIa && R.carp.tieneIIIb);
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: los tres planos existen', R.hayPlanos === true, JSON.stringify(R.hay)],
+      ['la notita punteada esta en los dos planos que gradan, con su arista desde la caja de grado III',
+                            R.notaOk === true, JSON.stringify({ f3: R.f3, b8: R.b8 })],
+      ['y las dos dicen el mismo texto', R.textoOk === true, R.f3.tit + ' // ' + R.b8.tit],
+      ['CONTROL: la 8A no la lleva, porque ese algoritmo no gradua',
+                            R.a8Sin === true && R.a8SinG3 === true, R.a8Sin + '/' + R.a8SinG3],
+      ['el pie de los dos la declara estado de la aplicacion y no casilla de la figura, en plural',
+                            R.pieOk === true, JSON.stringify({ f3: R.f3.piePlural, b8: R.b8.piePlural })],
+      ['no entra en la tabla compacta', R.fueraTabla === true, JSON.stringify(R.fueraTabla)],
+      ['ninguna frase de los tres protocolos menciona IIIa, IIIb ni el dato no registrado',
+                            R.sinLetras === true, JSON.stringify(R.letras)],
+      ['CONTROL: el Carpentier de la mitral sigue ofreciendo IIIa y IIIb',
+                            R.carpOk === true, JSON.stringify(R.carp)]
+    ] };
+  })();
+`);
+
+caso('TC-926', '3A (puntos 8 a 11): el EN SUMA corto con las tres formas del grado III y sin letras a/b, el selector que se habilita solo con grado III en las dos guias que gradan y se limpia al dejar de serlo, la BSE 2024 sin llenado restrictivo, la sugerencia con sus dos textos, y el globo con los tres autores sin folios en pantalla', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('doppler'); } catch (e) {}
+      await esperar(260);
+
+      const escena = n => {
+        __t.set('peso', 70); __t.set('talla', 170);
+        ['e_sep', 'e_lat', 'onda_e', 'onda_a', 'vmax_it', 'ai_vol'].forEach(k => __t.set(k, ''));
+        if (n === 'g3')     { __t.set('e_sep', 5);  __t.set('e_lat', 7);  __t.set('onda_e', 100);
+                              __t.set('onda_a', 40); __t.set('vmax_it', 3.0); __t.set('ai_vol', 80); }
+        if (n === 'g2')     { __t.set('e_sep', 5);  __t.set('e_lat', 7);  __t.set('onda_e', 100);
+                              __t.set('onda_a', 80); __t.set('vmax_it', 3.0); __t.set('ai_vol', 80); }
+      };
+      const medir = (algo, ritmo, esc, vals, fevi) => {
+        __t.set('diast_algoritmo', algo); __t.set('diast_ritmo', ritmo);
+        if (fevi !== undefined) __t.set('fevi', fevi);
+        escena(esc);
+        try { calcDiastol(); } catch (e) { return { error: String(e) }; }
+        if (vals) { const s = document.getElementById('diast_valsalva');
+          if (s) { s.disabled = false; s.value = vals;
+                   s.dispatchEvent(new Event('change', { bubbles: true })); }
+          try { calcDiastol(); } catch (e) {} }
+        const r = window._diastResult || {};
+        const s2 = document.getElementById('diast_valsalva');
+        const sg = document.getElementById('diast-valsalva-sug');
+        return { clave: r.clave || null, texto: r.texto || null, suma: r.textoSuma || null,
+                 desh: s2 ? !!s2.disabled : null, sel: s2 ? s2.value : null,
+                 sug: sg ? (sg.textContent || '').trim() : null,
+                 sugVis: sg ? getComputedStyle(sg).display : null };
+      };
+
+      /* DENOMINADOR: el selector nace en el guion y DESHABILITADO, y nunca se completa solo. */
+      const sel0 = document.getElementById('diast_valsalva');
+      R.nace = sel0 ? { val: sel0.value, desh: !!sel0.disabled, opciones: sel0.options.length } : null;
+      R.naceOk = !!(R.nace && R.nace.val === '' && R.nace.desh === true && R.nace.opciones === 3);
+
+      R.m = {};
+      R.m.g3   = medir('ase2025', 'sinusal', 'g3', '', 60);
+      R.m.g3si = medir('ase2025', 'sinusal', 'g3', 'si', 60);
+      R.m.g3no = medir('ase2025', 'sinusal', 'g3', 'no', 60);
+      R.m.g2   = medir('ase2025', 'sinusal', 'g2', '', 60);
+      R.m.fa   = medir('ase2025', 'fa', 'g3', '', 60);
+      R.m.bse  = medir('bse2024', 'sinusal', 'g3', '', 60);
+      R.m.a16  = medir('ase2016', 'sinusal', 'g3', '', 35);
+
+      /* (A) PUNTO 8 -- EL EN SUMA, CORTO Y SIN LETRAS. */
+      R.s3 = String(R.m.g3.suma || ''); R.ssi = String(R.m.g3si.suma || '');
+      R.sno = String(R.m.g3no.suma || '');
+      R.sumaOk = R.s3.indexOf('grado III, presi') > -1 && R.s3.indexOf('llenado elevada') > -1
+              && R.ssi.indexOf('grado III modificable con Valsalva, presi') > -1
+              && R.sno.indexOf('grado III fijo (no modificable con Valsalva), presi') > -1;
+      R.sumaSinLetras = [R.s3, R.ssi, R.sno]
+        .every(x => x.indexOf('IIIa') === -1 && x.indexOf('IIIb') === -1);
+      /* Y la ASE 2016 comparte la clausula, asi que su EN SUMA se redacta igual. */
+      R.suma16 = String(R.m.a16.suma || '');
+      R.suma16Ok = R.suma16.indexOf('grado III, presi') > -1;
+
+      /* (B) PUNTO 9 -- EL SELECTOR SE HABILITA SOLO CON GRADO III, Y NO EN FA NI EN LA BSE. */
+      R.hab = { g3: R.m.g3.desh, g2: R.m.g2.desh, fa: R.m.fa.desh, bse: R.m.bse.desh,
+                a16: R.m.a16.desh };
+      R.habOk = R.hab.g3 === false && R.hab.g2 === true && R.hab.fa === true
+             && R.hab.bse === true && R.hab.a16 === false;
+      /* LA BSE NO DETECTA LLENADO RESTRICTIVO, y es por lo que no se la toco: su clave no es g3. */
+      R.bseSinGrado = R.m.bse.clave !== 'g3' && String(R.m.bse.suma || '').indexOf('grado') === -1;
+
+      /* (C) LA LIMPIEZA: con el valor puesto, al dejar de ser grado III se BORRA. */
+      const a = medir('ase2025', 'sinusal', 'g3', 'no', 60);
+      const b = medir('ase2025', 'sinusal', 'g2', '', 60);
+      R.limp = { antes: a.sel, despues: b.sel, desh: b.desh };
+      R.limpOk = R.limp.antes === 'no' && R.limp.despues === '' && R.limp.desh === true;
+      /* Y la frase del grado II no arrastra la clausula del grado III. */
+      R.g2SinClausula = String(b.texto || '').indexOf('Valsalva') === -1
+                     && String(b.suma || '').indexOf('Valsalva') === -1;
+
+      /* (D) PUNTO 10 -- LA SUGERENCIA: dos textos y ninguno mas. */
+      R.sug = { g3: R.m.g3.sug, g2: R.m.g2.sug, fa: R.m.fa.sug, bse: R.m.bse.sug };
+      R.sugOk = String(R.sug.g3).indexOf('modificable o fijo') > -1
+             && String(R.sug.g2).indexOf('pseudonormalizaci') > -1
+             && R.sug.fa === '' && R.sug.bse === '';
+
+      /* (E) PUNTO 11 -- EL GLOBO, con los tres autores y sin folios. */
+      R.g = null;
+      try { const gg = VINFO['diast-valsalva'];
+        if (gg) { const t = [gg.tit, gg.lee, gg.fuente, gg.ojo].join(' ');
+          R.g = { n25: t.indexOf('Nagueh 2025') > -1, n16: t.indexOf('Nagueh 2016') > -1,
+                  rob: t.indexOf('Robinson 2024') > -1,
+                  sinCriterio: t.indexOf('no define un criterio') > -1
+                            || t.indexOf('ninguna de las dos define un criterio') > -1,
+                  medico: t.indexOf('del m') > -1,
+                  bse: t.indexOf('no usa grados') > -1,
+                  folio: t.indexOf('folio') > -1 }; }
+      } catch (e) { R.gErr = String(e); }
+      R.gOk = !!(R.g && R.g.n25 && R.g.n16 && R.g.rob && R.g.sinCriterio && R.g.bse
+                 && R.g.folio === false);
+
+      /* (F) EL SELECTOR NO MUEVE NINGUN VEREDICTO: la clave y el conteo no cambian con el valor. */
+      R.mismoVeredicto = R.m.g3.clave === R.m.g3si.clave && R.m.g3.clave === R.m.g3no.clave;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: el selector nace en el guion, deshabilitado y con tres opciones',
+                            R.naceOk === true, JSON.stringify(R.nace)],
+      ['EN SUMA corto con las tres formas del grado III',
+                            R.sumaOk === true, R.s3 + ' // ' + R.ssi + ' // ' + R.sno],
+      ['sin letras a/b en ninguna de las tres',
+                            R.sumaSinLetras === true, R.s3 + R.ssi + R.sno],
+      ['y la ASE 2016 lo redacta igual, porque comparte el dueno',
+                            R.suma16Ok === true, R.suma16],
+      ['el selector se habilita SOLO con grado III, en las dos guias que gradan',
+                            R.habOk === true, JSON.stringify(R.hab)],
+      ['la BSE 2024 no detecta llenado restrictivo y no escribe grado: por eso no se la toco',
+                            R.bseSinGrado === true, String(R.m.bse.suma)],
+      ['al dejar de ser grado III el valor se BORRA y el selector vuelve a gris',
+                            R.limpOk === true, JSON.stringify(R.limp)],
+      ['y la frase del grado II no arrastra la clausula',
+                            R.g2SinClausula === true, String(R.m.g2.texto).slice(0, 90)],
+      ['la sugerencia: dos textos, y nada en FA ni en la BSE',
+                            R.sugOk === true, JSON.stringify(R.sug)],
+      ['el globo cita a Nagueh 2025, Nagueh 2016 y Robinson 2024, sin folios en pantalla',
+                            R.gOk === true, JSON.stringify(R.g)],
+      ['CONTROL: el selector no mueve el veredicto',
+                            R.mismoVeredicto === true, R.m.g3.clave]
+    ] };
+  })();
+`);
+
+caso('TC-925', '3A (puntos 7 y 13): las frases del informe de la diastolica -- el grado III, el II y el I de la ASE 2025 pasan al estilo nuevo conservando la E/A y el conteo real, el normal queda en una sola oracion sin conteo, el grado III de la ASE 2016 va sin conteo porque llega por el atajo, las dos variantes del Valsalva salen del dueno unico, y se va la frase de IIIa / IIIb', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('doppler'); } catch (e) {}
+      await esperar(260);
+
+      /* Los insumos de los tres algoritmos, en UNA funcion: con una escena por caso, la que se
+         olvida de un campo mide otra cosa. */
+      const escena = n => {
+        __t.set('peso', 70); __t.set('talla', 170);
+        /* SE VACIAN PRIMERO LOS SEIS INSUMOS, siempre. Sin esto la escena de control heredaba los
+           valores de la anterior -medido: el indeterminado media el grado III de arriba-, que es
+           el modo de falla de una escena que no llega a su compuerta. */
+        ['e_sep', 'e_lat', 'onda_e', 'onda_a', 'vmax_it', 'ai_vol'].forEach(k => __t.set(k, ''));
+        if (n === 'g3')     { __t.set('e_sep', 5);  __t.set('e_lat', 7);  __t.set('onda_e', 100);
+                              __t.set('onda_a', 40); __t.set('vmax_it', 3.0); __t.set('ai_vol', 80); }
+        if (n === 'g2')     { __t.set('e_sep', 5);  __t.set('e_lat', 7);  __t.set('onda_e', 100);
+                              __t.set('onda_a', 80); __t.set('vmax_it', 3.0); __t.set('ai_vol', 80); }
+        if (n === 'g1')     { __t.set('e_sep', 5);  __t.set('e_lat', 7);  __t.set('onda_e', 50);
+                              __t.set('onda_a', 80); __t.set('vmax_it', 2.0); __t.set('ai_vol', 40); }
+        if (n === 'normal') { __t.set('e_sep', 10); __t.set('e_lat', 14); __t.set('onda_e', 80);
+                              __t.set('onda_a', 60); __t.set('vmax_it', 2.0); __t.set('ai_vol', 40); }
+      };
+      const medir = (algo, ritmo, esc, vals, fevi) => {
+        __t.set('diast_algoritmo', algo); __t.set('diast_ritmo', ritmo);
+        if (fevi !== undefined) __t.set('fevi', fevi);
+        escena(esc);
+        try { calcDiastol(); } catch (e) { return { error: String(e) }; }
+        /* El valor del selector se pone DESPUES del calculo, que es lo que hace el medico. */
+        if (vals) { const s = document.getElementById('diast_valsalva');
+          if (s) { s.disabled = false; s.value = vals;
+                   s.dispatchEvent(new Event('change', { bubbles: true })); }
+          try { calcDiastol(); } catch (e) {} }
+        const r = window._diastResult || {};
+        const s2 = document.getElementById('diast_valsalva');
+        const sg = document.getElementById('diast-valsalva-sug');
+        return { clave: r.clave || null, texto: r.texto || null, suma: r.textoSuma || null,
+                 desh: s2 ? !!s2.disabled : null, sel: s2 ? s2.value : null,
+                 sug: sg ? (sg.textContent || '').trim() : null };
+      };
+
+      /* DENOMINADOR: los tres protocolos y el selector existen. */
+      R.hayAlgo = !!document.getElementById('diast_algoritmo');
+      R.haySel = !!document.getElementById('diast_valsalva');
+
+      R.m = {};
+      R.m.g3     = medir('ase2025', 'sinusal', 'g3', '', 60);
+      R.m.g3si   = medir('ase2025', 'sinusal', 'g3', 'si', 60);
+      R.m.g3no   = medir('ase2025', 'sinusal', 'g3', 'no', 60);
+      R.m.g2     = medir('ase2025', 'sinusal', 'g2', '', 60);
+      R.m.g1     = medir('ase2025', 'sinusal', 'g1', '', 60);
+      R.m.normal = medir('ase2025', 'sinusal', 'normal', '', 60);
+      R.m.a16g3  = medir('ase2016', 'sinusal', 'g3', '', 35);
+      R.m.a16si  = medir('ase2016', 'sinusal', 'g3', 'si', 35);
+      R.m.a16no  = medir('ase2016', 'sinusal', 'g3', 'no', 35);
+
+      /* (A) EL GRADO III DE LA ASE 2025, en el estilo nuevo, con su conteo y con la E/A. */
+      R.t3 = String(R.m.g3.texto || '');
+      R.g3Ok = R.m.g3.clave === 'g3'
+            && R.t3.indexOf('Disfunci') === 0
+            && R.t3.indexOf('grado III (patr') > -1
+            && R.t3.indexOf('restrictivo) con presi') > -1
+            && R.t3.indexOf('llenado elevada, E/A ') > -1
+            && R.t3.indexOf('par') > -1 && R.t3.indexOf('metros positivos)') > -1;
+      /* SALE LA ENUMERACION de que parametros dieron positivos. */
+      R.sinEnum = R.t3.indexOf('reducida') === -1 && R.t3.indexOf('2,00') === -1;
+      /* SALE LA FRASE DE IIIa / IIIb. */
+      R.sinLetras = R.t3.indexOf('IIIa') === -1 && R.t3.indexOf('IIIb') === -1
+                 && R.t3.indexOf('Valsalva, no registrada') === -1;
+      /* SE CONSERVA LA E/A, que es la decision de Maicol. */
+      R.conEA = R.t3.indexOf('E/A 2.50') > -1 || R.t3.indexOf('E/A 2,50') > -1;
+
+      /* (B) LAS DOS VARIANTES DEL VALSALVA, en el parentesis del patron. */
+      R.valsOk = String(R.m.g3si.texto || '').indexOf('restrictivo modificable con Valsalva)') > -1
+              && String(R.m.g3no.texto || '').indexOf('restrictivo fijo, no modificable con Valsalva)') > -1;
+
+      /* (C) GRADO II Y GRADO I: mismo estilo, sin enumeracion y con la E/A. */
+      R.t2 = String(R.m.g2.texto || ''); R.t1 = String(R.m.g1.texto || '');
+      R.g2Ok = R.t2.indexOf('grado II (patr') > -1 && R.t2.indexOf('pseudonormal) con presi') > -1
+            && R.t2.indexOf('E/A ') > -1 && R.t2.indexOf('<2,00') === -1;
+      R.g1Ok = R.t1.indexOf('grado I (relajaci') > -1 && R.t1.indexOf('alterada) con presi') > -1
+            && R.t1.indexOf('llenado normal, E/A ') > -1 && R.t1.indexOf('reducida') === -1;
+
+      /* (D) NORMAL: una sola oracion, SIN conteo y sin nombrar el parametro. */
+      R.tn = String(R.m.normal.texto || '');
+      R.normalOk = R.tn === 'Funci' + String.fromCharCode(243) + 'n diast' + String.fromCharCode(243) + 'lica normal.';
+
+      /* (E) LA ASE 2016, grado III: estilo nuevo, con la E/A y SIN CONTEO -llega por el atajo. */
+      R.t16 = String(R.m.a16g3.texto || '');
+      R.a16Ok = R.m.a16g3.clave === 'g3'
+             && R.t16.indexOf('grado III (patr') > -1
+             && R.t16.indexOf('llenado elevada, E/A ') > -1
+             && R.t16.indexOf('positivos') === -1
+             && R.t16.indexOf('Llenado diast') === -1;
+      R.a16Vals = String(R.m.a16si.texto || '').indexOf('modificable con Valsalva)') > -1
+               && String(R.m.a16no.texto || '').indexOf('fijo, no modificable con Valsalva)') > -1;
+
+      /* (F) CONTROL: los indeterminados conservan su frase. */
+      R.ind = medir('ase2025', 'sinusal', 'nada', '', 60);
+      R.indOk = String(R.ind.texto || '').indexOf('Datos insuficientes') > -1
+             || String(R.ind.texto || '').indexOf('no clasificable') > -1;
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: el selector de protocolo y el del Valsalva existen',
+                           R.hayAlgo === true && R.haySel === true, R.hayAlgo + '/' + R.haySel],
+      ['ASE 2025 grado III: estilo nuevo con su conteo real',
+                           R.g3Ok === true, R.t3],
+      ['sale la enumeracion de que parametros dieron positivos',
+                           R.sinEnum === true, R.t3],
+      ['y sale la frase de IIIa / IIIb',
+                           R.sinLetras === true, R.t3],
+      ['se CONSERVA la relacion E/A',
+                           R.conEA === true, R.t3],
+      ['las dos variantes del Valsalva, en el parentesis del patron',
+                           R.valsOk === true,
+                           String(R.m.g3si.texto).slice(0, 90) + ' // ' + String(R.m.g3no.texto).slice(0, 95)],
+      ['grado II en el estilo nuevo, con la E/A y sin el operador',
+                           R.g2Ok === true, R.t2],
+      ['grado I en el estilo nuevo, con la E/A y sin enumeracion',
+                           R.g1Ok === true, R.t1],
+      ['normal: una sola oracion, sin conteo y sin nombrar el parametro',
+                           R.normalOk === true, R.tn],
+      ['ASE 2016 grado III: estilo nuevo, con la E/A y SIN conteo',
+                           R.a16Ok === true, R.t16],
+      ['y con sus dos variantes del Valsalva',
+                           R.a16Vals === true, String(R.m.a16no.texto).slice(0, 110)],
+      ['CONTROL: los indeterminados conservan su frase',
+                           R.indOk === true, String(R.ind.texto).slice(0, 90)]
+    ] };
+  })();
+`);
+
+caso('TC-924', '3A (punto 6): la ficha del cor triatriatum, con sus dos mitades -- Gurvitz para la membrana fenestrada, las dos camaras, la orejuela y la mitral distales, el 0,1 % y la clase 2a B-NR; Puchalski para la tecnica, el Doppler color y el control tras la reseccion -- el >15 mmHg con el encuadre de la guia, sin tipos ni autores prohibidos, y el globo fuera del label para que no marque la casilla', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('otros'); } catch (e) {}
+      try { const c = document.getElementById('ete-seccion-variantes');
+        if (c && getComputedStyle(c).display === 'none') toggleEteSeccion('variantes'); } catch (e) {}
+      await esperar(260);
+
+      /* DENOMINADOR: la casilla del cor triatriatum existe desde MEDIR-6 y ahora tiene su globo. */
+      R.hayCasilla = !!document.getElementById('otr_var_cortri');
+      const b = document.querySelector('[data-vinfo="otr-cortri"]');
+      R.hayBoton = !!b;
+
+      /* (A) LAS DOS MITADES, cada una con su fuente. */
+      R.f = null;
+      try { const g = VINFO['otr-cortri'];
+        if (g) { const t = [g.tit, g.lee, g.fuente, g.ojo].join(' ');
+          R.f = { chars: t.length,
+            /* mitad Gurvitz */
+            membrana: t.indexOf('fibromuscular fenestrada') > -1,
+            dos: t.indexOf('proximal') > -1 && t.indexOf('distal') > -1,
+            orejuela: t.indexOf('orejuela izquierda y la v') > -1,
+            frec: t.indexOf('0,1 %') > -1,
+            anillo: t.indexOf('anillo mitral supravalvular') > -1,
+            clase: t.indexOf('clase 2a') > -1 && t.indexOf('B-NR') > -1,
+            gurvitz: t.indexOf('Gurvitz') > -1,
+            /* mitad Puchalski */
+            retro: t.indexOf('retroflexionada') > -1,
+            cuatroCam: t.indexOf('cuatro c') > -1,
+            color: t.indexOf('Doppler color') > -1 || t.indexOf('DOPPLER COLOR') > -1,
+            excent: t.indexOf('exc') > -1,
+            parciales: t.indexOf('formas parciales') > -1,
+            septo: t.indexOf('bicava') > -1 && t.indexOf('transg') > -1,
+            mitral: t.indexOf('lesiones obstructivas') > -1,
+            resec: t.indexOf('membrana residual') > -1,
+            puch: t.indexOf('Puchalski') > -1,
+            /* lo que NO puede estar */
+            umbral: t.indexOf('PROPUESTO PREVIAMENTE') > -1,
+            noGradua: t.indexOf('no grad') > -1,
+            trifasico: t.indexOf('trif') > -1 }; }
+      } catch (e) { R.fErr = String(e); }
+      R.gurvitzOk = !!(R.f && R.f.membrana && R.f.dos && R.f.orejuela && R.f.frec
+                       && R.f.anillo && R.f.clase && R.f.gurvitz);
+      R.puchOk = !!(R.f && R.f.retro && R.f.cuatroCam && R.f.color && R.f.excent
+                    && R.f.parciales && R.f.septo && R.f.mitral && R.f.resec && R.f.puch);
+
+      /* (B) EL >15 mmHg VA CON EL ENCUADRE DE LA GUIA Y NO COMO CORTE PROPIO, y la aplicacion
+         declara que no gradua. */
+      R.umbralOk = !!(R.f && R.f.umbral && R.f.noGradua);
+
+      /* (C) SIN CLASIFICACION POR TIPOS Y SIN LOS AUTORES QUE LA ORDEN PROHIBE, barrido sobre
+         TODO el registro de globos y no solo sobre esta ficha. */
+      R.prohibidos = [];
+      try {
+        const todo = JSON.stringify(VINFO);
+        ['Lucas', 'Loeffler', 'Niwayama', 'Thilenius', 'Marin-Garcia']
+          .forEach(n => { if (todo.indexOf(n) > -1) R.prohibidos.push(n); });
+      } catch (e) {}
+      R.sinTipos = !!(R.f && String(R.f.chars) && R.prohibidos.length === 0);
+
+      /* (D) EL PARRAFO DEL DOPPLER DE VENAS PULMONARES EN GENERAL no se uso: el patron trifasico
+         es de las venas pulmonares y no del cor triatriatum. */
+      R.sinTrifasico = !!(R.f && R.f.trifasico === false);
+
+      /* (E) EL BOTON NO MARCA LA CASILLA: va FUERA del label, que es lo que esto prueba. */
+      R.noMarca = null;
+      try { const ck = document.getElementById('otr_var_cortri');
+        ck.checked = false; b.click(); R.noMarca = (ck.checked === false);
+        R.cajaGlobo = !!document.getElementById('vinfo-card');
+      } catch (e) { R.noMarcaErr = String(e); }
+      /* Y la casilla sigue funcionando por su cuenta. */
+      try { const ck2 = document.getElementById('otr_var_cortri');
+        ck2.click(); R.casillaFunciona = (ck2.checked === true); ck2.click(); } catch (e) {}
+
+      /* (F) EL GLOBO Y LA CASILLA NO SE SOLAPAN. */
+      try { const ck3 = document.getElementById('otr_var_cortri');
+        const rk = ck3.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        R.solapan = !(rb.left >= rk.right || rk.left >= rb.right);
+        R.conCaja = rb.width > 0 && rb.height > 0;
+      } catch (e) {}
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: la casilla y su globo existen, y el globo tiene caja de verdad',
+                              R.hayCasilla === true && R.hayBoton === true && R.conCaja === true,
+                              R.hayCasilla + '/' + R.hayBoton + '/' + R.conCaja],
+      ['MITAD GURVITZ: membrana fenestrada, las dos camaras, la orejuela y la mitral distales, el 0,1 %, el anillo supravalvular y la clase 2a B-NR',
+                              R.gurvitzOk === true, JSON.stringify(R.f)],
+      ['MITAD PUCHALSKI: la sonda retroflexionada, el Doppler color, los orificios excentricos, las formas parciales, el septo por tres planos, la mitral y el control tras la reseccion',
+                              R.puchOk === true, JSON.stringify(R.f)],
+      ['el >15 mmHg va como umbral PROPUESTO PREVIAMENTE y la aplicacion declara que no gradua',
+                              R.umbralOk === true, JSON.stringify(R.f && R.f.umbral)],
+      ['sin clasificacion por tipos y sin ninguno de los cinco autores prohibidos, en TODO el registro',
+                              R.prohibidos.length === 0, JSON.stringify(R.prohibidos)],
+      ['el patron trifasico de las venas pulmonares NO se le atribuye',
+                              R.sinTrifasico === true, JSON.stringify(R.f && R.f.trifasico)],
+      ['el globo NO marca la casilla: va fuera del label',
+                              R.noMarca === true, R.noMarca],
+      ['y abre su tarjeta', R.cajaGlobo === true, R.cajaGlobo],
+      ['CONTROL: la casilla sigue marcandose por su cuenta',
+                              R.casillaFunciona === true, R.casillaFunciona],
+      ['las dos areas no se solapan', R.solapan === false, R.solapan]
+    ] };
+  })();
+`);
+
+caso('TC-923', '3A (puntos 4 y 5): la nota del Simpson pasa a entre sus limitaciones conservando autor y anio, y la alcoholizacion septal deja de ser una exclusion del HCM Risk-SCD -- dos campos en el formulario, la miectomia sigue apagando el score, la alcoholizacion no, y su salvedad sale de un solo dueno; una condicion por superficie', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      await esperar(200);
+
+      /* (A) PUNTO 4 -- LA NOTA DEL SIMPSON. Una sola frase, y el globo queda con su autor y anio:
+         la PARTE-2 acaba de fijar autor-anio para estos globos. */
+      R.simpson = null;
+      try {
+        const n = (typeof _SIMP_NOTAS_METODO !== 'undefined' ? _SIMP_NOTAS_METODO : [])
+          .filter(x => String(x).indexOf('escorzado') > -1)[0];
+        if (n) R.simpson = { txt: String(n),
+                             nueva: String(n).indexOf('entre sus limitaciones') > -1,
+                             vieja: String(n).indexOf('limitaci') > -1 && String(n).indexOf('principal') > -1,
+                             lang: String(n).indexOf('Lang 2015') > -1,
+                             laguia: String(n).indexOf('la gu') > -1 };
+      } catch (e) { R.simpErr = String(e); }
+      R.simpsonOk = !!(R.simpson && R.simpson.nueva && !R.simpson.vieja && R.simpson.lang);
+
+      /* (B) PUNTO 5 -- SUPERFICIE 1: EL FORMULARIO tiene DOS campos con sus dos rotulos. */
+      try { if (typeof showTab === 'function') showTab('congenitas'); } catch (e) {}
+      await esperar(200);
+      const rot = id => { const e = document.getElementById(id);
+        const p = e && e.closest('.fg'); const l = p && p.querySelector('label');
+        return l ? (l.textContent || '').trim() : null; };
+      R.form = { miec: !!document.getElementById('mch_ex_reduccion'),
+                 alc: !!document.getElementById('mch_ex_alcohol'),
+                 rotMiec: rot('mch_ex_reduccion'), rotAlc: rot('mch_ex_alcohol') };
+      R.formOk = R.form.miec === true && R.form.alc === true
+              && R.form.rotMiec === 'Miectomia previa'.replace('Miectomia', 'Miectom\u00eda')
+              && String(R.form.rotAlc).indexOf('Alcoholizaci') === 0;
+
+      /* (C) SUPERFICIE 2: LA LISTA DE EXCLUSIONES. La miectomia apaga el score; la alcoholizacion
+         NO entra en ninguna de las dos listas. Es el corazon del punto 5. */
+      __t.set('mch_ex_atleta', 'no'); __t.set('mch_ex_fenocopia', 'no');
+      __t.set('mch_ex_sindromica', 'no'); __t.set('mch_ex_parada', 'no');
+      __t.set('mch_ex_reduccion', 'no'); __t.set('mch_ex_alcohol', 'si');
+      await esperar(120);
+      /* Van en R y no en un let del try: un let declarado adentro NO alcanza al return, y el
+         caso sale por EXCEPCION en vez de por condicion. Medido: lo pago este mismo caso. */
+      let e1 = null; try { e1 = mchExclusiones(); } catch (e) { R.exErr = String(e); }
+      R.e1 = e1 ? { a: e1.activas.slice(), p: e1.pendientes.slice() } : null;
+      R.alcNoExcluye = !!(e1 && e1.activas.length === 0 && e1.pendientes.length === 0);
+      R.alcTexto = !!(e1 && JSON.stringify(e1).indexOf('alcoholiz') === -1);
+      __t.set('mch_ex_reduccion', 'si');
+      let e2 = null; try { e2 = mchExclusiones(); } catch (e) {}
+      R.e2 = e2 ? { a: e2.activas.slice() } : null;
+      R.miecExcluye = !!(e2 && e2.activas.length === 1
+                         && String(e2.activas[0]).indexOf('miectom') > -1
+                         && String(e2.activas[0]).indexOf('alcoholiz') === -1);
+
+      /* (D) SUPERFICIE 3: LA SALVEDAD, de un solo dueno, y VACIA cuando no corresponde. */
+      __t.set('mch_ex_reduccion', 'no');
+      let n1 = null, n0 = null;
+      try { n1 = _mchAlcoholNota(); } catch (e) { R.notaErr = String(e); }
+      __t.set('mch_ex_alcohol', '');
+      try { n0 = _mchAlcoholNota(); } catch (e) {}
+      R.nota = { con: String(n1 || ''), sin: String(n0 === '' ? 'VACIA' : n0) };
+      R.notaOk = R.nota.con.indexOf('Calculado tras alcoholizaci') === 0
+              && R.nota.con.indexOf('validado en un estudio de adultos') > -1
+              && R.nota.con.indexOf('hipertrofia severa u obstrucci') > -1
+              && R.nota.sin === 'VACIA';
+
+      /* (E) SUPERFICIE 4: EL VER DETALLE de un estudio guardado lista los dos, y el nuevo SIN el
+         prefijo de exclusion, porque ya no es una. */
+      R.det = null;
+      try {
+        const campos = [];
+        (typeof _IG_SECTIONS !== 'undefined' ? _IG_SECTIONS : []).forEach(se => {
+          (se.fields || []).forEach(f => { if (String(f.id).indexOf('mch_ex_') === 0
+                                           || f.id === 'mch_ex_alcohol') campos.push(f); });
+        });
+        const m = campos.filter(f => f.id === 'mch_ex_reduccion')[0];
+        const a = campos.filter(f => f.id === 'mch_ex_alcohol')[0];
+        R.det = { miec: m ? m.lbl : null, alc: a ? a.lbl : null };
+      } catch (e) { R.detErr = String(e); }
+      R.detOk = !!(R.det && String(R.det.miec).indexOf('miectom') > -1
+                   && String(R.det.alc).indexOf('Alcoholizaci') === 0
+                   && String(R.det.alc).indexOf('Excl.') === -1);
+
+      /* (F) Y EL EXCEL DEL LABORATORIO NO SE TOCO: el campo viejo conserva su id, que es de donde
+         cuelga su columna. El nuevo no tiene columna, y eso es lo declarado. */
+      R.idViejo = !!document.getElementById('mch_ex_reduccion');
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: la nota del Simpson existe y cita a Lang 2015',
+                                   !!(R.simpson && R.simpson.lang), JSON.stringify(R.simpson)],
+      ['dice entre sus limitaciones y ya no su limitacion principal',
+                                   R.simpsonOk === true, JSON.stringify(R.simpson)],
+      ['FORMULARIO: dos campos con sus dos rotulos',
+                                   R.formOk === true, JSON.stringify(R.form)],
+      ['EXCLUSIONES: la alcoholizacion NO apaga el score ni entra en las dos listas',
+                                   R.alcNoExcluye === true && R.alcTexto === true,
+                                   JSON.stringify(R.e1)],
+      ['CONTROL: la miectomia SI lo apaga, y sola',
+                                   R.miecExcluye === true, JSON.stringify(R.e2)],
+      ['SALVEDAD: el dueno devuelve la frase exacta de la orden',
+                                   R.notaOk === true, JSON.stringify(R.nota)],
+      ['y la cadena VACIA cuando la alcoholizacion no esta marcada',
+                                   R.nota && R.nota.sin === 'VACIA', JSON.stringify(R.nota)],
+      ['VER DETALLE: lista los dos, y el nuevo sin el prefijo de exclusion',
+                                   R.detOk === true, JSON.stringify(R.det)],
+      ['el id del campo viejo se conserva, que es de donde cuelga su columna de Excel',
+                                   R.idViejo === true, R.idViejo]
+    ] };
+  })();
+`);
+
+caso('TC-922', '3A (puntos 1 y 2): los dos globos -- el del gradiente medio protesico mitral declara el solapamiento de la Tabla 11 con la Tabla 12 (>=5 mmHg, sensibilidad 90 %, especificidad 70 %, flujo alto y desajuste) sin mover el veredicto, y el de la extension circunferencial de la TAVI cita la Tabla 8 y la VARC-3 aclarando sus cinco clases agrupadas en tres', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      await esperar(200);
+
+      /* (A) EL GLOBO DEL GRADIENTE MEDIO PROTESICO declara el solapamiento con la otra tabla.
+         DENOMINADOR: el globo existe y conserva lo que ya decia de los dos operadores de borde. */
+      R.g1 = null;
+      try { const g = VINFO['prot-gmed'];
+        if (g) { const t = [g.tit, g.lee, g.fuente, g.ojo].join(' ');
+          R.g1 = { chars: t.length,
+                   bordes: t.indexOf('con 5 mmHg exactos la nativa dice elevado') > -1,
+                   solapa: t.indexOf('SE SOLAPA CON EL OTRO LADO') > -1,
+                   mecanica: t.indexOf('MEC') > -1,
+                   thp: t.indexOf('hemipresi') > -1,
+                   sens: t.indexOf('90 %') > -1, esp: t.indexOf('70 %') > -1,
+                   t12: t.indexOf('Tabla 12') > -1,
+                   flujo: t.indexOf('flujo transmitral aumentado') > -1,
+                   desaj: t.indexOf('desajuste') > -1 }; }
+      } catch (e) { R.g1Err = String(e); }
+      R.g1Ok = !!(R.g1 && R.g1.bordes && R.g1.solapa && R.g1.mecanica && R.g1.thp
+                  && R.g1.sens && R.g1.esp && R.g1.t12 && R.g1.flujo && R.g1.desaj);
+
+      /* (B) EL VEREDICTO NO SE MOVIO: con 5,0 el gradiente protesico sigue siendo NORMAL. Es lo
+         que la orden manda conservar, y lo que hace que este caso no sea solo de texto. */
+      R.cap = null;
+      try { if (typeof vmProtGmedCat === 'function') R.cap = vmProtGmedCat(5.0); } catch (e) {}
+      try { if (R.cap === null && typeof VM_PROT_GMED !== 'undefined') R.cap = 'sin-evaluador'; } catch (e) {}
+
+      /* (C) EL GLOBO DE LA EXTENSION CIRCUNFERENCIAL DE LA TAVI, con las dos fuentes y las cinco
+         clases agrupadas. */
+      R.g2 = null;
+      try { const g = VINFO['tavi-pvl-ext'];
+        if (g) { const t = [g.tit, g.lee, g.fuente, g.ojo].join(' ');
+          R.g2 = { chars: t.length,
+                   tres: t.indexOf('10 %') > -1 && t.indexOf('29 %') > -1 && t.indexOf('30 %') > -1,
+                   t8: t.indexOf('Tabla 8') > -1, ase: t.indexOf('ASE 2024') > -1,
+                   varc: t.indexOf('VARC-3') > -1, t16: t.indexOf('Tabla 16') > -1,
+                   cinco: t.indexOf('CINCO') > -1,
+                   agrupa: t.indexOf('agrupa esas cinco en tres') > -1,
+                   severo: t.indexOf('MAS SEVERO') > -1 || t.indexOf('M\u00c1S SEVERO') > -1,
+                   trivial: t.indexOf('trivial') > -1 }; }
+      } catch (e) { R.g2Err = String(e); }
+      R.g2Ok = !!(R.g2 && R.g2.tres && R.g2.t8 && R.g2.ase && R.g2.varc && R.g2.t16
+                  && R.g2.cinco && R.g2.agrupa && R.g2.severo && R.g2.trivial);
+
+      /* (D) LOS TRES GRADOS DEL MOTOR NO SE TOCARON, y es lo que convierte el globo en verdad:
+         un globo que describe tres grados sobre un motor de dos seria una afirmacion falsa.
+         Se mide con el gesto: se carga la extension y se lee la capsula. */
+      try { if (typeof showTab === 'function') showTab('ete'); } catch (e) {}
+      try { const c = document.getElementById('ete-seccion-tavi');
+        if (c && getComputedStyle(c).display === 'none') toggleEteSeccion('tavi'); } catch (e) {}
+      try { if (typeof eteTaviTab === 'function') eteTaviTab('post'); } catch (e) {}
+      await esperar(200);
+      R.grados = {};
+      [[5, 'leve'], [15, 'moderada'], [35, 'severa']].forEach(p => {
+        __t.set('ete_tavi_ext_circ', p[0]);
+        try { if (typeof eteTaviSync === 'function') eteTaviSync(); } catch (e) {}
+        let v = null;
+        try { const r = eteTaviRPV(); v = r ? String(r.sev || '') : null; } catch (e) { v = 'ERR'; }
+        R.grados[String(p[0])] = v;
+      });
+      R.tresGrados = R.grados['5'] === 'Leve' && R.grados['15'] === 'Moderada'
+                  && R.grados['35'] === 'Severa';
+      __t.set('ete_tavi_ext_circ', '');
+
+      /* (E) EL BOTON ESTA EN EL MARCADO y toma la clase de su VECINO de seccion, que lleva la de
+         44 px: medido en el navegador, sin ella quedaba en 15x11 al lado de uno de 44. */
+      const b = document.querySelector('[data-vinfo="tavi-pvl-ext"]');
+      R.hayBoton = !!b;
+      R.clase44 = !!b && String(b.className).indexOf('vinfo-btn-44') > -1;
+      const bq = document.querySelector('[data-vinfo="tavi-calc"]');
+      R.vecino44 = !!bq && String(bq.className).indexOf('vinfo-btn-44') > -1;
+
+      /* (F) Y LA FUGA DE LA PROTESIS QUIRURGICA NO RECIBE ESTE GLOBO: la VARC-3 es un documento
+         de TAVI. Es el control negativo del punto 2. */
+      const bq2 = document.getElementById('ea_pvl_ext');
+      R.quirurgicaSinGlobo = true;
+      try {
+        const cont = bq2 && bq2.closest('.fg');
+        R.quirurgicaSinGlobo = !(cont && cont.querySelector('[data-vinfo="tavi-pvl-ext"]'));
+      } catch (e) {}
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: el globo del gradiente medio protesico existe y conserva sus dos operadores de borde',
+                                      !!(R.g1 && R.g1.bordes), JSON.stringify(R.g1 && R.g1.bordes)],
+      ['declara el solapamiento con la otra tabla, acotado a la protesis MECANICA con THP normal',
+                                      R.g1Ok === true, JSON.stringify(R.g1)],
+      ['y nombra el >=5 con su sensibilidad del 90 % y su especificidad del 70 %',
+                                      !!(R.g1 && R.g1.sens && R.g1.esp && R.g1.t12),
+                                      JSON.stringify(R.g1)],
+      ['DENOMINADOR: el globo de la extension de la TAVI existe',
+                                      !!R.g2, JSON.stringify(R.g2 && R.g2.chars)],
+      ['cita las dos fuentes y aclara que la VARC-3 tiene CINCO clases agrupadas en tres',
+                                      R.g2Ok === true, JSON.stringify(R.g2)],
+      ['y el motor sigue dando los TRES grados que el globo describe',
+                                      R.tresGrados === true, JSON.stringify(R.grados)],
+      ['el boton esta en el marcado',  R.hayBoton === true, R.hayBoton],
+      ['y toma la clase de 44 px de su vecino de seccion',
+                                      R.clase44 === true && R.vecino44 === true,
+                                      R.clase44 + '/' + R.vecino44],
+      ['CONTROL: la fuga de la protesis QUIRURGICA no recibe este globo',
+                                      R.quirurgicaSinGlobo === true, R.quirurgicaSinGlobo]
+    ] };
+  })();
+`);
+
+caso('TC-921', '3A (punto 3): el strain de pared libre del VD gradua los CUATRO tramos de la Tabla 1 de la ASE 2025 -- normal >20, leve <=20 a >=15, moderada <15 a >=11 y severa <11, en valor absoluto, con sus cuatro bordes, el texto del cuadro de referencias, la ficha verificada, el globo, y el grado del informe firmado saliendo del MISMO registro que la pantalla', `
+
+  return (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const R = {};
+    try {
+      __t.limpiar();
+      try { if (typeof showTab === 'function') showTab('vd'); } catch (e) {}
+      await esperar(260);
+
+      /* DENOMINADOR: los tres duenos existen y el de Deformacion no se separo. Los numeros se les
+         piden a ellos y no se escriben aca; lo unico literal son los CUATRO NOMBRES de tramo, que
+         es lo que la orden fija. */
+      R.duenos = null;
+      try { R.duenos = { nor: VD_STRAIN_PL_NORMAL, lev: VD_STRAIN_PL_LEVE, mod: VD_STRAIN_PL_MOD,
+                         def: VD_STRAIN_NORMAL }; } catch (e) { R.duenosErr = String(e); }
+      R.hayDuenos = !!(R.duenos && R.duenos.nor === 20 && R.duenos.lev === 15 && R.duenos.mod === 11);
+      R.mismoDueno = !!(R.duenos && Math.abs(R.duenos.def) === R.duenos.nor);
+
+      /* (A) LOS CUATRO TRAMOS Y SUS CUATRO BORDES */
+      const cat = x => { try { return vdStrainPlCat(x); } catch (e) { return 'ERR'; } };
+      R.c = {};
+      [-25, -20.5, -20, -18, -15, -14.9, -13, -11, -10.9, -9].forEach(x => { R.c[String(x)] = cat(x); });
+      R.bordes = R.c['-20.5'] === 'normal' && R.c['-20'] === 'leve'
+              && R.c['-15'] === 'leve' && R.c['-14.9'] === 'moderada'
+              && R.c['-11'] === 'moderada' && R.c['-10.9'] === 'severa';
+      R.cuatro = R.c['-25'] === 'normal' && R.c['-18'] === 'leve'
+              && R.c['-13'] === 'moderada' && R.c['-9'] === 'severa';
+      R.abs = cat(9) === 'severa' && cat(25) === 'normal' && cat(18) === cat(-18);
+
+      /* (B) EL TEXTO DEL CUADRO DE REFERENCIAS, con palabras y no con el operador solo */
+      R.txt = {};
+      [[-25, 'normal'], [-18, 'leve'], [-13, 'moderada'], [-9, 'severa']].forEach(p => {
+        __t.set('vd_strain_pl', p[0]);
+        try { vdStrainPlSync(); } catch (e) {}
+        const el = document.getElementById('vd-strain-interp');
+        R.txt[p[1]] = el ? (el.textContent || '').trim() : null;
+      });
+      R.cuatroTextos = ['normal', 'leve', 'moderada', 'severa']
+        .every(k => typeof R.txt[k] === 'string' && R.txt[k].indexOf(k) === 0);
+      /* Y YA NO DICE QUE LA APLICACION NO TIENE ESOS CORTES: esa frase era FALSA. */
+      R.sinFraseVieja = Object.keys(R.txt)
+        .every(k => String(R.txt[k]).indexOf('no tiene corte de moderada') === -1);
+
+      /* (C) EL GRADO QUE PUBLICA EL INFORME SALE DEL MISMO REGISTRO QUE LA PANTALLA. Con la
+         palabra escrita a mano en el emisor, las dos superficies pueden decir dos severidades del
+         mismo numero. */
+      R.reg = null;
+      try { R.reg = { leve: VD_STRAIN_PL_TXT[cat(-18)], mod: VD_STRAIN_PL_TXT[cat(-13)],
+                      sev: VD_STRAIN_PL_TXT[cat(-9)] }; } catch (e) { R.regErr = String(e); }
+      R.gradoDelDueno = !!(R.reg && R.reg.leve === 'leve' && R.reg.mod === 'moderada'
+                           && R.reg.sev === 'severa');
+
+      /* (D) EL VOTO ES POR LA NEGATIVA: cualquier tramo que no sea normal vota. */
+      R.vota = { m25: cat(-25) !== 'normal', m18: cat(-18) !== 'normal',
+                 m13: cat(-13) !== 'normal', m9: cat(-9) !== 'normal' };
+      R.votaBien = R.vota.m25 === false && R.vota.m18 === true
+                && R.vota.m13 === true && R.vota.m9 === true;
+      /* Y el dueno del OR lo confirma sobre el formulario, con el resto de la funcion VACIO. */
+      __t.set('tapse', ''); __t.set('s_prime', ''); __t.set('vd_fac', ''); __t.set('vd_tei', '');
+      __t.set('vd_strain_pl', -9);
+      try { R.orSevero = (typeof vdDisfPresente === 'function') ? vdDisfPresente() : null; } catch (e) {}
+      __t.set('vd_strain_pl', -25);
+      try { R.orNormal = (typeof vdDisfPresente === 'function') ? vdDisfPresente() : null; } catch (e) {}
+      __t.set('vd_strain_pl', '');
+
+      /* (E) LA FICHA PASO A SER DE GUIA Y VERIFICADA: de eso depende que su fila salga CON
+         corchete, porque el armador de bibliografia saltea las fichas no verificadas.
+         El registro se llama EV_REG y no IND_REFS: medido: con el nombre equivocado este bloque
+         devolvia null y el caso salia rojo sobre una ficha que SI estaba bien. */
+      R.ficha = null;
+      try {
+        const f = (typeof EV_REG !== 'undefined' ? EV_REG : [])
+          .filter(x => x && x.id === 'FUN-VD-008')[0];
+        if (f) R.ficha = { tipo: f.tipo, estado: f.estado, folio: String(f.folio || ''),
+                           guia: String(f.guia || '').slice(0, 30) };
+      } catch (e) { R.fichaErr = String(e); }
+      R.fichaGuia = !!(R.ficha && R.ficha.estado === 'verificado'
+                       && R.ficha.folio === '145' && R.ficha.guia.indexOf('Mukherjee') === 0);
+
+      /* (F) EL GLOBO del campo existe, cita a Mukherjee y declara el valor absoluto y el sexo. */
+      R.globo = null;
+      try { const g = VINFO['vd-strain-pl'];
+        if (g) { const t = [g.tit, g.lee, g.fuente, g.ojo].join(' ');
+          R.globo = { chars: t.length, muk: t.indexOf('Mukherjee') > -1,
+                      abs: t.indexOf('VALOR ABSOLUTO') > -1,
+                      sexo: t.indexOf('no separa por sexo') > -1,
+                      cuatro: t.indexOf('Cuatro tramos') > -1 }; }
+      } catch (e) { R.globoErr = String(e); }
+      R.globoOk = !!(R.globo && R.globo.muk && R.globo.abs && R.globo.sexo && R.globo.cuatro);
+    } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+    return { extra: [
+      ['sin excepciones', !R.err, R.err],
+      ['DENOMINADOR: los tres duenos existen con 20, 15 y 11',
+                                           R.hayDuenos === true, JSON.stringify(R.duenos)],
+      ['el corte de normalidad NO se separo del modulo de Deformacion',
+                                           R.mismoDueno === true, JSON.stringify(R.duenos)],
+      ['los cuatro tramos clasifican',     R.cuatro === true, JSON.stringify(R.c)],
+      ['y los CUATRO BORDES caen del lado de la tabla',
+                                           R.bordes === true, JSON.stringify(R.c)],
+      ['se gradua por el VALOR ABSOLUTO',  R.abs === true, JSON.stringify(R.c)],
+      ['el cuadro de referencias nombra los cuatro tramos con palabras',
+                                           R.cuatroTextos === true, JSON.stringify(R.txt)],
+      ['y ya NO dice que la aplicacion no tiene corte de moderada ni de severa',
+                                           R.sinFraseVieja === true, JSON.stringify(R.txt)],
+      ['el grado del informe sale del MISMO registro que la pantalla',
+                                           R.gradoDelDueno === true, JSON.stringify(R.reg)],
+      ['el voto es por la negativa: los tres tramos de disfuncion votan y normal no',
+                                           R.votaBien === true, JSON.stringify(R.vota)],
+      ['el dueno del OR lo confirma con el resto de la funcion vacio',
+                                           R.orSevero === true && R.orNormal === false,
+                                           R.orSevero + '/' + R.orNormal],
+      ['la ficha FUN-VD-008 queda verificada con su folio 145',
+                                           R.fichaGuia === true, JSON.stringify(R.ficha)],
+      ['el globo del campo cita a Mukherjee y declara los cuatro tramos, el valor absoluto y el sexo',
+                                           R.globoOk === true, JSON.stringify(R.globo)]
     ] };
   })();
 `);
