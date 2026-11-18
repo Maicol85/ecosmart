@@ -79704,7 +79704,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      REF_SUBTAB no se mueve y lo que crece es el censo de fichas de la subpestana Valvulas. Lo
      que este caso vigila -que ninguna entrada quede fuera del reparto- no cambia.
      Sin acentos graves: el cuerpo de un caso es un template literal. */
-  ex.push(['(A2) DENOMINADOR: el censo encuentra las 41 entradas de la pestana',
+  /* ADAPTADO 18/11 (punto 6): 42 -> 45, por las TRES fichas de severidad nuevas de Valvulas
+     Nativas. Es consecuencia autorizada del punto 6 y no una entrada suelta: las tres viven DENTRO
+     de ref-nativas, que ya estaba en el reparto. */
+  ex.push(['(A2) DENOMINADOR: el censo encuentra las 45 entradas de la pestana',
     /* ADAPTADO el 2026-11-09 (PANT-28): 40 -> 43 por las tres fichas nuevas. */
     /* ADAPTADO el 2026-11-10 (PANT-29, commits 2 y 3): 43 -> 40. Las tres fichas grandes de
        PANT-28 se quitaron y su contenido pasa a dos resumenes dentro de ref-miocard y a cuatro
@@ -79719,7 +79722,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        consulta de Hemodinamica (ref-hemo), PRIMERA de su panel. Se exige ademas que la de eco
        pulmonar quede en ese panel y no en «Otros hallazgos», que es el traslado de esta tanda:
        asi la condicion distingue «entro una» de «entro una y se mudo otra». */
-    censo.n === 42 && censo.filas.some(f => f.id === 'asoc' && f.sub === 'congenitas')
+    censo.n === 45 && censo.filas.some(f => f.id === 'asoc' && f.sub === 'congenitas')
       && censo.filas.some(f => f.id === 'hemo' && f.sub === 'hemo')
       && censo.filas.some(f => f.id === 'pulmon' && f.sub === 'hemo'),
     'n=' + censo.n + ' asoc=' + JSON.stringify(censo.filas.filter(f => f.id === 'asoc'))]);
@@ -79759,8 +79762,11 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      de consulta, y las entradas de pericardio y de eco pulmonar SE MUDAN de «Otros hallazgos» a
      ella: es un TRASLADO y no una copia, asi que el saldo tiene las dos direcciones. Lo que esta
      condicion vigila no cambia; cambia su denominador. */
-  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 3 Congenitas + 1 Cardiotox + 5 Hemo + 7 Otros',
-    porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 14 && porSub.ao === 3 &&
+  /* ADAPTADO 18/11 (punto 6): «valv» 14 -> 17 y el total 42 -> 45, por las tres fichas de
+     severidad nuevas. Los otros SIETE repartos no se movieron, que es lo que esta condicion
+     protege. */
+  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 17 Valv + 3 Ao + 3 Congenitas + 1 Cardiotox + 5 Hemo + 7 Otros',
+    porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 17 && porSub.ao === 3 &&
     /* ADAPTADO el 2026-11-10 (PANT-29): congenitas 3 -> 2 (sale racong) y Otros 11 -> 9 (salen
        atleta y chagas). El total vuelve a CUARENTA, el de antes de PANT-28. */
     /* ADAPTADO el 2026-11-11 (PANT-36, parte A): congenitas 2 -> 3, por «Asociaciones y
@@ -79768,7 +79774,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        protege: una entrada que cayera en la subpestania equivocada la pone en rojo igual. */
     porSub.congenitas === 3 && porSub.cardiotox === 1 && porSub.hemo === 5 && porSub.otros === 7 &&
     (porSub.dim + porSub.fun + porSub.valv + porSub.ao + porSub.congenitas + porSub.cardiotox +
-     porSub.hemo + porSub.otros) === 42,
+     porSub.hemo + porSub.otros) === 45,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -79832,12 +79838,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      indexa sola -su indice recorre los encabezados con toggleRef de cada panel y no hubo que
      tocarlo-. El traslado de las otras dos no mueve este numero: cambian de panel, no de
      existencia. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 40 entradas (42 menos los dos agrupadores)',
+  /* ADAPTADO 18/11 (punto 6): 40 -> 43, las tres fichas de severidad nuevas. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 43 entradas (45 menos los dos agrupadores)',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
     /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 38 -> 39, por la entrada «Asociaciones y
        sindromes», que el buscador indexa sola: su indice recorre los h2.card-head con toggleRef
        de cada panel y no hubo que tocarlo. */
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 40; } catch (e) { return false; } })(),
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 43; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -84014,7 +84021,8 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          sindromes» (ref-asoc), en «Cardiopatia congenita» y pegada a la de anomalias coronarias.
          Se exige ademas que exista, por el mismo motivo de siempre: distinguir «entro una» de
          «se perdio una y entro otra». Las tres de PANT-28 se siguen exigiendo AL REVES. */
-      return n === 42 && !!EL('ref-hemo') && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+      /* ADAPTADO 18/11 (punto 6): 42 -> 45, las tres fichas de severidad nuevas. */
+      return n === 45 && !!EL('ref-hemo') && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
         && !EL('ref-racong') && !EL('ref-atleta') && !EL('ref-chagas')
         && !!EL('ref-coronarias') && !!EL('ref-miocard') && !!EL('ref-asoc')
         && !!EL('ref-pulmon') && !!EL('ref-pop')
@@ -125228,10 +125236,11 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
      corrige tambien el rotulo. */
   /* ADAPTADA EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. El traslado de
      las otras dos no mueve este numero. */
-  q('(A5) el censo esta en CUARENTA Y DOS entradas y ninguna quedo fuera de un panel',
+  /* ADAPTADA 18/11 (punto 6): 42 -> 45, las tres fichas de severidad nuevas. */
+  q('(A5) el censo esta en CUARENTA Y CINCO entradas y ninguna quedo fuera de un panel',
     /* ADAPTADO el 2026-11-10 (PANT-29, commits 2 y 3): 43 -> 40. Lo que el caso vigila -que
        ninguna entrada quede fuera de un panel- no cambia. */
-    total === 42 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
+    total === 45 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
 
   let malAria = [];
   for (const b of bots) {
@@ -125358,9 +125367,10 @@ caso('TC-763', 'PANT-25 commit 3: el buscador de Referencias encuentra lo mismo 
      sindromes», que el buscador indexa sola. El rotulo decia «CUARENTA Y UNA» desde PANT-28
      aunque el numero ya era 38: se corrige tambien el rotulo. */
   /* ADAPTADA EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica. */
-  q('(C0 DENOM) el indice se arma y tiene CUARENTA entradas',
+  /* ADAPTADA 18/11 (punto 6): 40 -> 43, las tres fichas de severidad nuevas. */
+  q('(C0 DENOM) el indice se arma y tiene CUARENTA Y TRES entradas',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
-  !!idx && idx.length === 40, 'indice=' + (idx ? idx.length : 'EXC'));
+  !!idx && idx.length === 43, 'indice=' + (idx ? idx.length : 'EXC'));
   if (!idx) return { extra: F };
 
   const crudas = idx.filter(e => String(e.subTit) === String(e.sub)).map(e => e.id);
@@ -132563,8 +132573,10 @@ caso('TC-817', 'PANT-34 (B1) a (B3): la ficha de anomalias coronarias de Referen
      estas dos condiciones vigilan -que la ficha de coronarias siga en su panel y que el censo
      que alimenta el buscador no pierda ninguna- no cambia. */
   /* ADAPTADO EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. */
-  q('(F1) siguen los CUARENTA Y DOS encabezados con toggleRef que alimentan el indice del buscador',
-    enc === 42, 'encabezados=' + enc);
+  /* ADAPTADO 18/11 (punto 6): 42 -> 45, las tres fichas de severidad nuevas de Valvulas
+     Nativas. Lo que esta condicion protege -que ningun encabezado se pierda- no cambia. */
+  q('(F1) siguen los CUARENTA Y CINCO encabezados con toggleRef que alimentan el indice del buscador',
+    enc === 45, 'encabezados=' + enc);
   q('(F2) y la subpestania de congenitas tiene sus TRES entradas, con la de coronarias segunda',
     REF_SUBTAB.congenitas.length === 3 && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias,asoc',
     'reparto=' + REF_SUBTAB.congenitas.join(','));
@@ -133008,11 +133020,13 @@ caso('TC-821', 'PANT-36 parte A: la entrada «Asociaciones y sindromes» es la T
   const censo = t ? Array.prototype.slice.call(t.querySelectorAll('h2.card-head'))
     .filter(h => (h.getAttribute('onclick') || '').indexOf('toggleRef(' + String.fromCharCode(39)) > -1).length : -1;
   /* ADAPTADO EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. */
-  q('(A4) el censo de entradas de Referencias esta en CUARENTA Y DOS', censo === 42, 'entradas=' + censo);
+  /* ADAPTADA 18/11 (punto 6): 42 -> 45, las tres fichas de severidad nuevas. */
+  q('(A4) el censo de entradas de Referencias esta en CUARENTA Y CINCO', censo === 45, 'entradas=' + censo);
   let ix = null; try { ix = window._refIndiceArmar(true) } catch (e) { ix = null }
-  /* ADAPTADO EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica. */
-  q('(A5) el indice del buscador esta en CUARENTA y la entrada de asociaciones esta, con su seccion',
-    !!ix && ix.length === 40 && ix.some(x => x.id === 'asoc' && x.sub === 'congenitas'),
+  /* ADAPTADO EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica.
+     ADAPTADO 18/11 (punto 6): 40 -> 43, las tres fichas de severidad nuevas. */
+  q('(A5) el indice del buscador esta en CUARENTA Y TRES y la entrada de asociaciones esta, con su seccion',
+    !!ix && ix.length === 43 && ix.some(x => x.id === 'asoc' && x.sub === 'congenitas'),
     'indice=' + (ix ? ix.length : 'EXC') + ' asoc=' + (ix ? JSON.stringify(ix.filter(x => x.id === 'asoc').map(x => x.sub)) : '-'));
   /* (B) el buscador la encuentra, y los controles no se movieron. */
   const busca = (s) => { if (!ix) return 'SIN INDICE';
@@ -151343,6 +151357,127 @@ caso('TC-955', 'Punto 9: el aviso de independencia en TRES bloques con su dibuji
         r ? [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)].join(',') + ' en ' + innerWidth + 'x' + innerHeight + ' margen ' + M : 'SIN TARJETA'],
       ['no tiene «X» de cerrar', sinX === true, String(sinX)],
       ['y el mismo ⓘ la cierra', cerro === 'none', String(cerro)]
+    ] };
+  })();
+`);
+
+/* ══ PUNTO 6 DE LA TAREA DEL 18/11 — LOS CRITERIOS DE SEVERIDAD EN REFERENCIAS ═══════════════
+   Referencias ya publicaba la tabla de cortes de CINCO lesiones nativas y de las CUATRO
+   posiciones proteticas. Lo que faltaba eran TRES lesiones sin ficha: estenosis tricuspidea,
+   estenosis pulmonar e insuficiencia pulmonar. Lo que este caso protege, ademas de que esten:
+     · que cada corte publicado sea EL MISMO que la constante dueña —se compara contra la
+       constante leida en vivo, no contra un numero escrito en el caso—;
+     · que NINGUN corte se haya movido, que es lo que la orden prohibe;
+     · y que ningun texto nuevo diga que dos fuentes no coinciden: eso vive en el .md. */
+caso('TC-956', 'Punto 6: las TRES fichas de severidad que faltaban -estenosis tricuspidea, estenosis pulmonar e insuficiencia pulmonar- con su tabla y su linea de fuente con folio, sin mover un corte y sin comparar fuentes', `
+  return (async () => {
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13, 160) + ']+', 'g');
+    const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+    try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+    ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+    try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
+    try { if (typeof refSubInit === 'function') refSubInit(); } catch (e) {}
+    try { if (typeof refSubTab === 'function') refSubTab('valv'); } catch (e) {}
+    try { if (typeof toggleRef === 'function') toggleRef('nativas', null); } catch (e) {}
+    await esperar(200);
+
+    const nat = document.getElementById('ref-nativas');
+    /* El orden de las entradas de «Valvulas Nativas», leido del DOM. */
+    const orden = nat ? Array.prototype.slice.call(nat.querySelectorAll('[onclick]'))
+      .map(h => { const m = String(h.getAttribute('onclick') || '');
+        if (m.indexOf('toggleRef(') !== 0) return null;
+        const a = m.indexOf(String.fromCharCode(39)), z = m.indexOf(String.fromCharCode(39), a + 1);
+        return m.slice(a + 1, z); }).filter(Boolean).join(',') : 'SIN';
+
+    const IDS = ['sevet', 'sevep', 'sevip'];
+    const abiertas = IDS.filter(id => { const h = nat ? nat.querySelector('[onclick*=' + String.fromCharCode(34)
+        + 'toggleRef(' + String.fromCharCode(39) + id + String.fromCharCode(39) + String.fromCharCode(34) + ']') : null;
+      if (h) h.click(); return !!h; });
+    await esperar(200);
+    const txt = {}; const pies = {}; const filas = {};
+    IDS.forEach(id => { const c = document.getElementById('ref-' + id);
+      txt[id] = c ? plano(c.textContent) : '';
+      filas[id] = c ? c.querySelectorAll('tbody tr').length : -1;
+      pies[id] = c ? Array.prototype.slice.call(c.querySelectorAll('div'))
+        .filter(d => plano(d.textContent).indexOf('Fuente: ') === 0 && d.children.length === 0) : [];
+    });
+
+    /* LOS CORTES, leidos de su DUEÑO en vivo. Si alguien mueve una constante, estas condiciones
+       se ponen rojas: es la guarda de «no se toco ningun corte» que la orden exige. */
+    const D = (function () {
+      const o = {};
+      try { o.etG = ET_CRIT.gmedio.signif; o.etGop = ET_CRIT.gmedio.op;
+            o.etT = ET_CRIT.thp.signif;    o.etTop = ET_CRIT.thp.op;
+            o.etA = ET_CRIT.avt.signif;    o.etAop = ET_CRIT.avt.op;
+            o.etV = ET_CRIT.vtiEnt.signif; o.etVop = ET_CRIT.vtiEnt.op; } catch (e) { o.et = 'ERR'; }
+      try { o.epN = EP_GMAX_NORMAL_MAX; o.epL = EP_GMAX_LEVE_MAX; o.epM = EP_GMAX_MOD_MAX; } catch (e) { o.ep = 'ERR'; }
+      try { o.ipT = IP_PHT_SEVERA; } catch (e) { o.ip = 'ERR'; }
+      return o;
+    })();
+
+    /* Ninguna frase que compare fuentes: la regla fija del 2026-11-04. */
+    const PROH = ['no coincide', 'no coinciden', 'difieren', 'discrepan', 'no se encontr',
+                  'sin resolver', 'contradic'];
+    const todo = IDS.map(id => txt[id]).join(' ');
+    const colados = PROH.filter(k => todo.indexOf(k) > -1);
+
+    return { extra: [
+      // ── DENOMINADORES.
+      ['«Valvulas Nativas» existe y se pudieron abrir las tres fichas nuevas',
+        !!nat && abiertas.length === 3, 'abiertas=' + abiertas.join(',')],
+      ['los cortes se leyeron de su dueño', D.et !== 'ERR' && D.ep !== 'ERR' && D.ip !== 'ERR',
+        JSON.stringify(D)],
+
+      // ── A · LAS TRES FICHAS, EN SU LUGAR Y DETRAS DE LAS CINCO QUE YA ESTABAN.
+      ['las OCHO entradas de Valvulas Nativas estan, con las tres nuevas detras de la tricuspidea',
+        orden === 'im,em,ia,eao,it,sevet,sevep,sevip', 'orden=' + orden],
+      ['cada una trae su tabla de criterios', filas.sevet === 4 && filas.sevep === 4 && filas.sevip === 5,
+        JSON.stringify(filas)],
+      ['y cada una su linea de fuente al pie, en 10 px y con su folio',
+        IDS.every(id => pies[id].length === 1
+          && getComputedStyle(pies[id][0]).fontSize === '10px'
+          && plano(pies[id][0].textContent).indexOf('folio') > -1),
+        IDS.map(id => id + '=' + pies[id].length + '/' + (pies[id][0] ? getComputedStyle(pies[id][0]).fontSize : 'SIN')).join(' · ')],
+
+      // ── B · CADA CORTE PUBLICADO ES EL DE SU DUEÑO.
+      ['la estenosis tricuspidea publica sus CUATRO cortes, los de ET_CRIT',
+        txt.sevet.indexOf('mayor de ' + D.etG + ' mmHg') > -1
+        && txt.sevet.indexOf(D.etT + ' ms o m\u00e1s') > -1
+        && txt.sevet.indexOf(D.etA + ' cm\u00b2 o menos') > -1
+        && txt.sevet.indexOf(D.etV + ' cm o m\u00e1s') > -1, txt.sevet.slice(0, 300)],
+      ['y dice que es BINARIA, que es lo que la guia publica',
+        txt.sevet.indexOf('no grad') > -1 && txt.sevet.indexOf('significativa') > -1, txt.sevet.slice(0, 200)],
+      ['los operadores del dueño siguen siendo los de siempre: > en el gradiente y >= en el THP y el VTI',
+        D.etGop === '>' && D.etTop === '>=' && D.etVop === '>=' && D.etAop === '<=',
+        [D.etGop, D.etTop, D.etVop, D.etAop].join(' ')],
+      ['la estenosis pulmonar publica sus tres bandas, las de EP_GMAX_*',
+        txt.sevep.indexOf('por debajo de ' + D.epL + ' mmHg') > -1
+        && txt.sevep.indexOf('de ' + D.epL + ' a ' + D.epM + ' mmHg') > -1
+        && txt.sevep.indexOf('por encima de ' + D.epM + ' mmHg') > -1, txt.sevep.slice(0, 320)],
+      ['y declara su limite inferior como criterio de la aplicacion, con el numero de la constante',
+        txt.sevep.indexOf('CRITERIO DE LA APLICACI\u00d3N') > -1
+        && txt.sevep.indexOf('por debajo de ' + D.epN + ' mmHg') > -1, txt.sevep.slice(0, 320)],
+      ['la insuficiencia pulmonar publica el corte del THP de IP_PHT_SEVERA y su folio',
+        txt.sevip.indexOf('por debajo de ' + D.ipT + ' ms') > -1
+        && txt.sevip.indexOf('folio 463') > -1, txt.sevip.slice(0, 320)],
+      ['y declara que combinar los cuatro signos es criterio de la aplicacion',
+        txt.sevip.indexOf('CRITERIO DE LA APLICACI\u00d3N') > -1
+        && txt.sevip.indexOf('peor de los signos') > -1, txt.sevip.slice(0, 320)],
+
+      // ── C · NINGUN CORTE SE MOVIO.
+      ['los cortes de las tres lesiones siguen en su valor',
+        D.etG === 5 && D.etT === 190 && D.etA === 1 && D.etV === 60
+        && D.epN === 9 && D.epL === 36 && D.epM === 64 && D.ipT === 100,
+        JSON.stringify(D)],
+
+      // ── D · NINGUNA FRASE COMPARA FUENTES.
+      ['ninguna de las tres fichas dice que dos fuentes no coinciden', colados.length === 0, colados.join(',')],
+
+      // ── E · LAS CINCO QUE YA ESTABAN SIGUEN AHI.
+      ['las cinco fichas de severidad que ya existian no se perdieron',
+        ['im', 'em', 'ia', 'eao', 'it'].every(id => !!document.getElementById('ref-' + id)),
+        ['im', 'em', 'ia', 'eao', 'it'].filter(id => !document.getElementById('ref-' + id)).join(',')]
     ] };
   })();
 `);

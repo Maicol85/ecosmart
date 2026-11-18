@@ -24191,6 +24191,80 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         &iacute;ndice de velocidad y &aacute;rea efectiva del orificio); la decisi&oacute;n es del m&eacute;dico.
       </div>
 
+      <!-- ══ LAS TRES FICHAS DE SEVERIDAD QUE FALTABAN (18/11, punto 6) ═══════════════
+           ⚠️ ESTE BLOQUE NO SE RETIPEA: sale de `scripts/_gen_sev_ref.py`, que emite el
+           marcado Y `docs/CONTROL_SEVERIDAD_REF.md` con el inventario completo de los
+           criterios de severidad que la aplicacion usa hoy -las ocho lesiones nativas, las
+           cuatro posiciones proteticas y el desajuste- y la lista de diferencias con la guia.
+           ⚠️ NINGUN CORTE SE TOCO. Lo que entra es la LECTURA del inventario.
+           ⚠️ LAS DIFERENCIAS ENTRE LA APLICACION Y LA GUIA NO SE ESCRIBEN ACA: la orden las
+           manda al .md y al reporte, y la regla fija del 2026-11-04 prohibe que un texto de
+           la aplicacion diga que dos fuentes no coinciden.
+           ⚠️ LAS CINCO FICHAS QUE YA EXISTIAN -IM, EM, IAo, EAo e IT- NO SE TOCARON: ya
+           publican su tabla de cortes con la fuente atribuida fila por fila. Lo que faltaba
+           eran estas TRES lesiones, que no tenian ficha. -->
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('sevet',this)">
+          🟡 ET — Estenosis Tricuspídea <span style="float:right;">&#9654;</span>
+        </h2>
+        <div id="ref-sevet" style="display:none;" class="card-body">
+          <div style="font-size:12px;line-height:1.7;margin:0 0 8px;">La guía no gradúa la estenosis tricuspídea: no hay leve, moderada ni severa validadas. La aplicación publica un veredicto binario —significativa o no significativa— con los cuatro hallazgos que la tabla enumera.</div>
+          <div style="overflow-x:auto;">
+          <table style="min-width:620px;border-collapse:collapse;font-size:11px;">
+            <thead><tr><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Criterio</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Lo que la aplicaci&oacute;n usa</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">De d&oacute;nde sale</th></tr></thead>
+            <tbody>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Gradiente medio tricuspídeo</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">mayor de 5 mmHg, a frecuencia cardíaca normal</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">ESC/EACTS 2025, §12.2, folio 4688. El 5,0 exacto NO cuenta: el operador es estricto.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Tiempo de hemipresión (THP)</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">190 ms o más</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">EAE/ASE 2009, Tabla 10, folio 19.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Área por continuidad</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">1 cm² o menos</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">EAE/ASE 2009, Tabla 10, folio 19.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>VTI de entrada tricuspídeo</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">60 cm o más</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">ASE 2023 (Pandian), Key Points, folio 16.</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: EAE/ASE 2009, Tabla 10 (folio 19) · ASE 2023 (Pandian), Key Points (folio 16) · ESC/EACTS 2025 de valvulopatías, §12 (folios 4687-4688).</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('sevep',this)">
+          🟢 EP — Estenosis Pulmonar <span style="float:right;">&#9654;</span>
+        </h2>
+        <div id="ref-sevep" style="display:none;" class="card-body">
+          <div style="font-size:12px;line-height:1.7;margin:0 0 8px;">Se clasifica por el gradiente máximo. Los cortes por velocidad que suelen citarse —3 y 4 m/s— son exactamente estos vistos por el otro lado, así que la aplicación usa un solo juego de números.</div>
+          <div style="overflow-x:auto;">
+          <table style="min-width:620px;border-collapse:collapse;font-size:11px;">
+            <thead><tr><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Criterio</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Lo que la aplicaci&oacute;n usa</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">De d&oacute;nde sale</th></tr></thead>
+            <tbody>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Gradiente máximo — leve</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">por debajo de 36 mmHg (velocidad por debajo de 3 m/s)</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">EAE/ASE 2009, folio 20 · ESC 2020 de cardiopatías congénitas del adulto, folio 436.e46 · ACC/AHA 2025, folio e177.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Gradiente máximo — moderada</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">de 36 a 64 mmHg (velocidad de 3 a 4 m/s)</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">Las mismas tres.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Gradiente máximo — severa</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">por encima de 64 mmHg (velocidad por encima de 4 m/s)</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">Las mismas tres.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Límite inferior de normalidad</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">por debajo de 9 mmHg la aplicación no informa estenosis</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">CRITERIO DE LA APLICACIÓN: las guías publican las bandas leve, moderada y severa, y no un límite inferior de normalidad.</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: EAE/ASE 2009 (folio 20) · ESC 2020 de cardiopatías congénitas del adulto (folio 436.e46) · ACC/AHA 2025 (folio e177).</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('sevip',this)">
+          🟢 IP — Insuficiencia Pulmonar <span style="float:right;">&#9654;</span>
+        </h2>
+        <div id="ref-sevip" style="display:none;" class="card-body">
+          <div style="font-size:12px;line-height:1.7;margin:0 0 8px;">Se consigna signo por signo y el grado es el peor de los signos cargados. Un signo cargado que no alcanza su criterio no vota, y una casilla sin marcar no es un signo ausente: sin ningún signo que vote, la aplicación no publica grado.</div>
+          <div style="overflow-x:auto;">
+          <table style="min-width:620px;border-collapse:collapse;font-size:11px;">
+            <thead><tr><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Criterio</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">Lo que la aplicaci&oacute;n usa</th><th style="padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;color:var(--accent2);">De d&oacute;nde sale</th></tr></thead>
+            <tbody>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Tiempo de hemipresión (THP)</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">por debajo de 100 ms: severa</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">ASE 2019 (Zoghbi), folio 463: un THP por debajo de 100 ms tiene buena sensibilidad y especificidad para insuficiencia pulmonar severa. Con 100 ms o más el parámetro no vota.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Ancho del chorro</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">angosto: leve · intermedio: moderada · ancho: severa</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">Se consigna con su categoría.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Señal de Doppler continuo</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">tenue: leve · densa variable: moderada · densa empinada: severa</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">Se consigna con su categoría.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Reversión del flujo en el tronco pulmonar distal</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">presente: severa</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">Se consigna si se buscó.</td></tr>
+              <tr><td style="padding:3px 6px;border-bottom:1px solid var(--border);"><b>Cómo se combinan</b></td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">manda el peor de los signos que votan</td><td style="padding:3px 6px;border-bottom:1px solid var(--border);">CRITERIO DE LA APLICACIÓN: ninguna guía publica una escala que combine los cuatro signos en un grado.</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: ASE 2019 (Zoghbi), folio 463, para el corte del THP.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
