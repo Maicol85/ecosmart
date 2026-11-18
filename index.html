@@ -1528,6 +1528,70 @@
      compartía fila con el textarea del informe y nada más. */
   .frases-slot { flex: 0 0 280px; position: relative; }
   .frases-slot[hidden] { display: none; }
+  /* ══ EL BOTÓN «CUADROS» Y SU TARJETA (tanda CUADROS, 18/11/2026) ════════════════════════════
+     El botón es chico, rectangular y SIN texto: los cuatro cuadraditos 2×2 son un SVG inline y no
+     un emoji, porque un emoji cambia de dibujo en cada sistema y acá el ícono ES el nombre del
+     botón. El alto de 44 px lo pone la regla global de todo `[onclick]`, igual que sus vecinos
+     «Frases» y «Evidencia»: no se declara acá ni se le pone un `display` en línea, que es la
+     clase de conflicto que ya dejó un hueco de 44 px sin botón en esta misma fila. */
+  #cuad-btn { position:relative; padding:0 10px; }
+  #cuad-btn .cuad-ico { display:block; width:16px; height:16px; }
+  /* ⚠️ EL AVISO NO ES SÓLO UN COLOR. Es un PUNTO que está o no está —una forma, no un tono—, y
+     además el `title` y el `aria-label` lo dicen con palabras en los dos estados, que es lo que lo
+     deja disponible para un lector de pantalla y para quien no distingue el color. Sin esto, un
+     cuadro quitado y olvidado saca un estudio sin ese dato. */
+  #cuad-btn .cuad-pt { position:absolute; top:5px; right:4px; width:8px; height:8px;
+    border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--bg2); }
+  #cuad-btn .cuad-pt[hidden] { display:none; }
+  #cuad-ov { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300;
+    display:flex; align-items:flex-start; justify-content:center; padding:24px 12px; overflow:auto; }
+  #cuad-ov[hidden] { display:none; }
+  /* ⚠️ `var(--bg2)` Y NO `var(--card)`: **`--card` NO EXISTE en esta aplicación** —lo documenta
+     CLAUDE.md con su defecto medido—, y una variable que no existe deja el fondo en el heredado. */
+  #cuad-card { background:var(--bg2); color:var(--text); border:1px solid var(--border);
+    border-radius:14px; max-width:1180px; width:100%; padding:14px 16px 18px; }
+  #cuad-card h3 { margin:0; font-size:15px; }
+  .cuad-hdr { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  .cuad-nota { font-size:11px; color:var(--text2); margin:0 0 10px; line-height:1.5; }
+  /* ⚠️ SEIS COLUMNAS Y NO TRES, y es lo que hace posible la regla de la última fila SIN cambiar de
+     contenedor: tres cuadros ocupan 2 columnas cada uno, dos ocupan 3 y uno solo ocupa las 6. Con
+     una grilla de tres no hay forma de partir una fila en mitades.
+     Y los doce cuadros son HERMANOS, no van en un div por fila: arrastrar entre filas sería mover
+     un nodo de un contenedor a otro, y con un solo padre el `insertBefore` alcanza. */
+  #cuad-grid { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:10px; }
+  #cuad-grid > [data-cuad-span="2"] { grid-column:span 2; }
+  #cuad-grid > [data-cuad-span="3"] { grid-column:span 3; }
+  #cuad-grid > [data-cuad-span="6"] { grid-column:span 6; }
+  .cuad-box { border:1px solid var(--border); border-radius:10px; background:var(--bg3);
+    padding:0 0 8px; min-width:0; }
+  .cuad-box.cuad-arr { opacity:.45; }
+  .cuad-bhdr { display:flex; align-items:center; gap:6px; padding:5px 6px 5px 8px;
+    border-bottom:1px solid var(--border); }
+  .cuad-btit { font-weight:700; font-size:11px; flex:1 1 0; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* `touch-action:none` para que el dedo arrastre el cuadro en vez de desplazar la tarjeta: sin
+     eso el navegador se queda el gesto y en celular no se puede reordenar. */
+  .cuad-grip { cursor:grab; touch-action:none; font-size:13px; color:var(--text2);
+    background:none; border:0; padding:0 4px; }
+  .cuad-x { background:none; border:0; color:var(--text2); font-size:13px; padding:0 4px; }
+  .cuad-brow { font-size:10.5px; line-height:1.55; padding:1px 8px; }
+  .cuad-brow b { font-weight:700; }
+  .cuad-blin { font-size:10.5px; line-height:1.5; padding:2px 8px 0; }
+  .cuad-blin.cuad-az { color:var(--accent); font-weight:700; }
+  .cuad-bnota { font-size:9.5px; color:var(--text2); padding:3px 8px 0; }
+  .cuad-vacio { font-size:10.5px; color:var(--text2); padding:4px 8px; font-style:italic; }
+  .cuad-franja { margin-top:12px; border-top:1px dashed var(--border); padding-top:10px; }
+  .cuad-franja-tit { font-size:10.5px; color:var(--text2); margin-bottom:6px; }
+  .cuad-chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .cuad-chip { font-size:11px; border:1px dashed var(--border); border-radius:999px;
+    background:var(--bg2); color:var(--text); padding:0 12px; }
+  @media (max-width: 760px) {
+    /* En celular un cuadro por fila: tres columnas de datos en 360 px no se leen. Va DESPUÉS de
+       las reglas de span —misma especificidad, gana la última— y por eso el span va en un atributo
+       y no en un estilo en línea, que le habría ganado a la media query. */
+    #cuad-grid > [data-cuad-span] { grid-column:span 6; }
+    #cuad-card { padding:10px 10px 14px; }
+  }
   .frases-panel {
     position: absolute; inset: 0;                          /* la media query de móvil lo reposiciona */
     display: flex; flex-direction: column; gap: 8px;
@@ -6300,6 +6364,35 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="doc-conf-acc">
       <button type="button" class="btn btn-ghost" id="doc-conf-seguir" onclick="docConfCerrar()">Seguir editando</button>
       <button type="button" class="btn btn-primary" id="doc-conf-ok" onclick="docConfAceptar()">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- ══ TARJETA «CUADROS DEL INFORME» — SÓLO PANTALLA (tanda CUADROS, 18/11/2026) ═══════════════
+     Muestra los MISMOS cuadros que va a imprimir el PDF, con los datos cargados y sin los datos
+     del paciente ni el texto del informe. No se editan números acá: se corrigen en los campos de
+     siempre, y esta tarjeta sólo decide QUÉ sale y EN QUÉ ORDEN.
+     El cuerpo lo pinta `cuadPintar` con nodos —`createElement` y `textContent`—: todo lo que entra
+     es un dato del paciente, así que no hay un `innerHTML` con una concatenación en ningún lado. -->
+<!-- ⚠️ `if(event.target===this)` LITERAL Y NO UNA FUNCION: `enhanceClickables` SALTEA los
+     elementos cuyo `onclick` contiene exactamente esa cadena —«overlay: clic-afuera-para-cerrar,
+     no es boton»—, y sin ella este `div` entraria por la rama que le pone `tabindex` y le deja la
+     tecla Espacio cerrando la tarjeta. Es el mismo idioma que usa `#indic-overlay`. -->
+<div id="cuad-ov" hidden role="dialog" aria-modal="true" aria-labelledby="cuad-tit" onclick="if(event.target===this)cuadCerrar();">
+  <div id="cuad-card">
+    <div class="cuad-hdr">
+      <h3 id="cuad-tit">Cuadros del informe</h3>
+      <span style="margin-left:auto;display:inline-flex;gap:8px;">
+        <button type="button" class="btn btn-ghost" id="cuad-rest" onclick="cuadRestablecer()">Restablecer</button>
+        <button type="button" class="btn btn-ghost" id="cuad-cerrar" onclick="cuadCerrar()">✕ Cerrar</button>
+      </span>
+    </div>
+    <p class="cuad-nota">Estos son los cuadros de datos que salen en el PDF, con lo que hay cargado.
+      Tocá la ✕ de un cuadro para sacarlo del informe y arrastralo de la manija para cambiarlo de
+      lugar. Los números se corrigen en los campos de siempre, no acá.</p>
+    <div id="cuad-grid"></div>
+    <div class="cuad-franja" id="cuad-franja" hidden>
+      <div class="cuad-franja-tit" id="cuad-franja-tit">Quitados del informe</div>
+      <div class="cuad-chips" id="cuad-chips"></div>
     </div>
   </div>
 </div>
@@ -26629,6 +26722,14 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                     onclick="indicAbrir()" aria-haspopup="dialog" aria-controls="indic-overlay"
                     aria-label="Evidencia según guías: sin hallazgos que activen evidencia. Sólo pantalla, no va al informe"
                     title="Evidencia según guías: sin hallazgos que activen evidencia. Sólo pantalla, no va al informe">📋 Evidencia</button>
+            <!-- ⚠️ EL BOTÓN VA A LA DERECHA DE «Evidencia», EN SU MISMA FILA (tanda CUADROS).
+                 Sin texto y con el ícono de cuatro cuadraditos; el punto de aviso nace OCULTO
+                 porque el estado de arranque es el de fábrica, y `cuadBtnSync` lo mantiene al día
+                 junto con el `title` y el `aria-label`, que dicen el estado con palabras. -->
+            <button type="button" class="btn btn-ghost" id="cuad-btn"
+                    onclick="cuadAbrir()" aria-haspopup="dialog" aria-controls="cuad-ov"
+                    aria-label="Cuadros del PDF: orden de fábrica"
+                    title="Cuadros del PDF: elegir qué cuadros salen y en qué orden (orden de fábrica)"><svg class="cuad-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"></rect><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor"></rect><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor"></rect><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"></rect></svg><span class="cuad-pt" id="cuad-pt" hidden></span></button>
           </span>
         </div>
       </div>
@@ -45549,7 +45650,12 @@ window.imPdfPisaIncluida = imPdfPisaIncluida;
    solo cuando hay dos, la celda con SOLO continuidad —PISA sin calcular— diria «33.6 mm²» a
    secas, que es justo el caso ambiguo.
    El dato no cambia: cambia el rotulo, y hacia decir mas. */
-function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
+/* ⚠️ EL DUEÑO DEVUELVE LAS PARTES Y NO LA CADENA (tanda CUADROS), porque hay DOS formas del mismo
+   dato: la fila de una tabla escribe «PISA: 26.1 mm²» y la línea de válvula de un cuadro del PDF
+   escribe «26.1 mm² (PISA)». Con dos funciones que decidan qué métodos entran, el día que la
+   casilla de PISA cambie de regla una de las dos superficies se queda con la anterior. Acá se
+   decide UNA vez qué método entra y con qué número; el formato lo pone quien dibuja. */
+function _imMetodoPdfPartes(idSpanPisa, idCampoCont, uni, dec) {
   const partes = [];
   /* ⚠️ LA CASILLA DE PISA ENTRA ACÁ EL 2026-10-14, y hasta ese día NO se consultaba a propósito.
      El motivo de entonces era que la reimpresión escribe `.checked` desde `campos` sobre todos los
@@ -45561,7 +45667,7 @@ function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
      El NÚMERO sigue siendo la otra compuerta: una casilla tildada sobre un método sin valor no
      imprime nada. */
   const p = imPdfPisaIncluida() ? _imPdfPisaTxt(idSpanPisa) : null;
-  if (p) partes.push('PISA: ' + p);
+  if (p) partes.push({ met:'PISA', val:p });
   /* NO se consulta `disabled`, y acá la razón NO es la misma que en `emAvmPdfVal` — conviene no
      copiar aquel comentario sin medir. Allá `calcEM` no corre durante la reimpresión, así que el
      `disabled` queda rancio y usarlo como compuerta BORRA el dato de un informe firmado. Acá sí
@@ -45574,9 +45680,15 @@ function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
      `disabled` y nada la vuelve a habilitar. Con la mutación puesta, esos dos caminos publicarían
      la fila sin la pata «Cont:». La guarda por el NÚMERO es la única que vale en las tres. */
   const cb = document.getElementById('im_pdf_cont');
-  if (cb && cb.checked) { const x = v(idCampoCont); if (x > 0) partes.push('Cont: ' + x.toFixed(dec) + uni); }
-  return partes.length ? partes.join(' · ') : null;
+  if (cb && cb.checked) { const x = v(idCampoCont); if (x > 0) partes.push({ met:'Cont', val: x.toFixed(dec) + uni }); }
+  return partes;
 }
+/* La forma de siempre, carácter por carácter: «PISA: x», «Cont: y» o las dos con « · » en medio. */
+function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
+  const p = _imMetodoPdfPartes(idSpanPisa, idCampoCont, uni, dec);
+  return p.length ? p.map(x => x.met + ': ' + x.val).join(' · ') : null;
+}
+window._imMetodoPdfPartes = _imMetodoPdfPartes;
 function imEroaPdfVal() { return _imMetodoPdfVal('eroa-val', 'im_eroa_cont', ' mm²', 1); }
 function imVolrPdfVal() { return _imMetodoPdfVal('volr-val', 'vr_cont', ' ml', 1); }
 /* ⚠️ LA FR FALTABA, Y ES LA REGLA 6 DE MAICOL (2026-10-13): «para cada método incluido aparecen
@@ -78986,6 +79098,832 @@ function _amiloDesfasadosRot() {
 }
 window._amiloDesfasadosRot = _amiloDesfasadosRot;
 
+/* ══ LOS CUADROS DE DATOS — UN SOLO DUEÑO PARA EL PAPEL Y PARA LA TARJETA (tanda CUADROS) ═════
+   Hasta esta tanda los cuadros del PDF eran CINCO literales dentro de `generarPDFReal`, cada uno
+   con su llamada a `drawTablaCompacta`, y la pantalla no tenía forma de verlos: la única manera
+   de saber qué iba a salir era generar el PDF. El botón «Cuadros» del Informe muestra los MISMOS
+   cuadros con los MISMOS datos, así que las definiciones salen a este dueño único y las dos
+   superficies las leen de acá. Con dos listas, el día que una fila cambie de cuadro la tarjeta
+   mostraría una cosa y el papel firmado otra.
+   ⚠️ ESTE BLOQUE NO TOCA jsPDF. `cuadCtx` y `cuadDefs` sólo leen el formulario y los dueños de
+   cálculo de la app, así que la tarjeta no necesita la biblioteca cargada ni generar un PDF para
+   pintarse — y el papel sigue dibujando con `drawTablaCompacta`, que no cambió de dueño.
+   ⚠️ Y NO HAY SEGUNDA DERIVACIÓN DE NINGÚN NÚMERO: los derivados que antes vivían en el bloque de
+   pre-cálculos de `generarPDFReal` se MUDARON acá enteros, y esa función los consume de este
+   objeto. No se copió una línea: se movió. */
+/* El orden de ARRANQUE y los doce identificadores. El id es lo que persiste en el estado de la
+   tarjeta, así que no puede derivarse del título: el título de dos cuadros es condicional. */
+const CUAD_IDS = Object.freeze(['ao','ai','advci','viest','visis','vd','vm','dti','trip','va','gc','otros']);
+/* ⚠️ EL ESTADO VIVE EN MEMORIA Y DURA LO QUE DURA LA APP ABIERTA (corrección del médico del
+   18/11/2026). Ni `localStorage` ni el estudio, así que recargar o cerrar la app devuelve el
+   orden de fábrica; pero NO lo descarta ni «Nuevo estudio» ni la apertura de otro estudio: una
+   configuración armada vale para TODOS los estudios que se abran después, hasta que el médico
+   toque «Restablecer».
+   ⚠️ Y POR ESO NO HAY NINGÚN GANCHO EN `limpiarCampos`, que es donde esta casa engancha todo lo
+   que tiene que volver a cero con «Nuevo estudio». Está escrito acá a propósito: la ausencia de
+   ese gancho ES la decisión, y sin esta nota el próximo pase lo agrega creyendo que falta.
+   Por la misma razón no se toca `cargarEstudioPorId`, que limpia antes de poblar. */
+let _cuadQuit = [];      // ids quitados a mano en la tarjeta
+let _cuadOrden = null;   // null = el orden de arranque
+/* Vuelve al orden de fábrica: los doce cuadros en el orden de `CUAD_IDS`. Su ÚNICO llamador es
+   el botón «Restablecer» de la tarjeta. */
+function cuadReset() { _cuadQuit = []; _cuadOrden = null; }
+/* El orden vigente, saneado contra `CUAD_IDS`: un id que no exista se descarta y uno que falte se
+   agrega al final. Así un estado viejo no puede esconder un cuadro nuevo ni dibujar uno que ya no
+   está. */
+function cuadOrdenVigente() {
+  const base = CUAD_IDS.slice();
+  if (!Array.isArray(_cuadOrden)) return base;
+  const out = _cuadOrden.filter(id => base.indexOf(id) >= 0);
+  base.forEach(id => { if (out.indexOf(id) < 0) out.push(id); });
+  return out;
+}
+/* ══ EL REPARTO DE LA GRILLA — LA MISMA REGLA EN LA TARJETA Y EN EL PDF ════════════════════════
+   Filas de tres. Lo que sobra: dos cuadros en la última fila van a mitades y uno solo se lleva la
+   fila entera; y cuando el total deja UNO suelto, las dos últimas filas van de a 2 + 2 —un cuadro
+   solo al final del papel se lee como si faltara algo al lado—.
+   Devuelve los TAMAÑOS de cada fila, no los cuadros: de esa lista salen el `drawTablaCompacta` de
+   cada fila del PDF y el `span` de cada tarjeta en pantalla, así que no pueden desacoplarse.
+   Medido contra los siete ejemplos de la orden: 12 -> 3·3·3·3 · 11 -> 3·3·3·2 · 10 -> 3·3·2·2 ·
+   7 -> 3·2·2 · 4 -> 2·2 · 2 -> 2 · 1 -> 1. */
+function cuadFilas(n) {
+  const t = Math.max(0, Math.floor(Number(n) || 0));
+  if (t === 0) return [];
+  if (t <= 3) return [t];
+  const r = t % 3;
+  if (r === 0) { const f = []; for (let i = 0; i < t / 3; i++) f.push(3); return f; }
+  if (r === 2) { const f = []; for (let i = 0; i < (t - 2) / 3; i++) f.push(3); f.push(2); return f; }
+  /* r === 1: las dos últimas filas de a 2. Con t = 4 no queda ninguna fila de tres. */
+  const f = []; for (let i = 0; i < (t - 4) / 3; i++) f.push(3); f.push(2); f.push(2); return f;
+}
+/* ⚠️ EL PAPEL NO PUBLICA UN SOLO VALOR DE REFERENCIA, POR ORDEN EXPRESA (tanda CUADROS). Hasta
+   esta tanda cada fila llevaba su columna `ref` con el corte de normalidad o la escala de
+   severidad —«H<=10 M<=9 mm», «(<3 / 3–7 / ≥7) mm»—, y salían del papel firmado. El mecanismo de
+   `ref` se CONSERVA en `drawTablaCompacta` y lo usa una sola fila: el gasto cardíaco, para decir
+   con qué frecuencia cardíaca se calculó. Eso no es un valor de referencia, es el insumo.
+   Las constantes de corte NO se tocaron: siguen gobernando la pantalla, el informe y la Evidencia.
+   Lo único que cambia es que el papel ya no las imprime. */
+/* Una morfología es un HALLAZGO cuando no es la opción normal de su válvula. Los cuatro `<select>`
+   tienen su propio texto para lo normal —«Normal» en tres y «Trivalva normal» en la aórtica— y la
+   pulmonar trae además «No especificada», que es no haber contestado y no un hallazgo. */
+const CUAD_MORF_SIN = Object.freeze(['', 'Normal', 'Trivalva normal', 'No especificada']);
+function _cuadMorfAlt(val) {
+  const s = String(val == null ? '' : val).trim();
+  return s !== '' && CUAD_MORF_SIN.indexOf(s) < 0 ? s : null;
+}
+/* «26.1 mm² (PISA)» y no «PISA: 26.1 mm²». Es OTRA FORMA del MISMO dueño —`_imMetodoPdfPartes`,
+   que es quien decide qué métodos entran y con qué número— y no un segundo cálculo: la línea de
+   válvula nombra el método entre paréntesis detrás del valor, que es el formato aprobado, y con
+   los dos métodos marcados los lista separados por « · ». */
+function _cuadMetTxt(partes) {
+  const p = Array.isArray(partes) ? partes : [];
+  return p.length ? p.map(x => x.val + ' (' + x.met + ')').join(' · ') : null;
+}
+/* Una pieza «rótulo valor» de una línea de válvula; se omite sola cuando no hay valor, así que la
+   línea nunca publica un rótulo pelado. */
+function _cuadPz(rot, val) {
+  const s = (val == null) ? '' : String(val).trim();
+  return s === '' ? null : (rot ? rot + ' ' + s : s);
+}
+function _cuadLinea(enc, piezas, azul) {
+  const ps = (piezas || []).filter(x => x != null && String(x).trim() !== '');
+  const e = String(enc == null ? '' : enc).trim();
+  if (!e && !ps.length) return null;
+  return { txt: e + (ps.length ? (e ? ': ' : '') + ps.join(' · ') : ''), azul: !!azul };
+}
+/* ══ LAS LÍNEAS DE VÁLVULA, DENTRO DEL CUADRO QUE CORRESPONDE ═════════════════════════════════
+   Decisión del médico (tanda CUADROS): la fila de cuadros de válvulas sale del PDF y cada lesión
+   se escribe como UNA LÍNEA dentro del cuadro de su estructura —la mitral en VM, la aórtica en VA,
+   la tricúspide y la pulmonar en el suyo—, sólo cuando hay alteración y sin repetir ningún número
+   que el cuadro ya publica en sus filas.
+   ⚠️ NINGÚN GRADO SE DECIDE ACÁ. Los grados, los métodos y las áreas salen de los dueños que ya
+   existían —`GT[imG]`, `emGradoVis`, `eaGradoNoPublica`, `_imMetodoPdfPartes`, `vmProtEOA`—, así
+   que la línea del papel no puede graduar distinto de la pantalla.
+   ⚠️ Y LO QUE EL CUADRO YA IMPRIME NO SE REPITE: la Vmax y el gradiente medio aórticos están en
+   las filas del cuadro VA, así que la línea de la estenosis publica el área y el área indexada, que
+   es lo que salió del cuadro «Gasto cardíaco». La misma regla con el AVm por THP de la mitral. */
+function cuadLineasVM(CX) {
+  const L = [];
+  const morf = _cuadMorfAlt(sv('vm_morf'));
+  if (morf) {
+    /* La prótesis lleva su DVI pegado al nombre: era una fila del cuadro de válvula mitral que se
+       retira, y es el número que sostiene el veredicto protésico. Sale de `vmProtEOA`, el dueño
+       que usa el informe, con el campo tipeado de respaldo por `_protPdf`. */
+    let dvi = null;
+    try { const p = vmProtEOA(); if (p && p.esProt && p.dvi != null) dvi = p.dvi.toFixed(2); } catch (e) {}
+    if (dvi == null) dvi = _protPdf('vm_morf', 'vm_dvi', '', 2);
+    L.push(_cuadLinea(morf, [_cuadPz('DVI', dvi)], true));
+  }
+  const imG = CX.imG;
+  if (imG > 0) {
+    L.push(_cuadLinea('IM ' + String(CX.GT[imG]).toLowerCase(), [
+      _cuadPz('VC', vPdf('im_vc', ' mm')),
+      _cuadPz('EROA', _cuadMetTxt(_imMetodoPdfPartes('eroa-val', 'im_eroa_cont', ' mm²', 1))),
+      _cuadPz('Vol.R', _cuadMetTxt(_imMetodoPdfPartes('volr-val', 'vr_cont', ' ml', 1))),
+      _cuadPz('FR', _cuadMetTxt(_imMetodoPdfPartes('freg-val', 'im_fr_cont', '%', 0)))
+    ]));
+  }
+  const emG = sv('em_grado');
+  if (emG && emG !== 'sin') L.push(_cuadLinea('EM ' + String(emGradoVis(emG)).toLowerCase(), []));
+  /* Las notas del médico son texto libre y NO son un hallazgo graduado: van sin encabezado y sin
+     azul, al final. Eran una fila del cuadro que se retira, así que sin esto se perderían. */
+  const nt = sv('vm_notas');
+  if (nt && String(nt).trim() !== '') L.push(_cuadLinea('', [String(nt).trim()]));
+  return L.filter(x => x);
+}
+function cuadLineasVA(CX) {
+  const L = [];
+  const morf = _cuadMorfAlt(sv('va_morf'));
+  if (morf) L.push(_cuadLinea(morf, [_cuadPz('AT', _protPdf('va_morf', 'va_at', ' ms', 0))], true));
+  /* El MISMO predicado de hoy: un grado vacío, «sin», «normal» o una raya no es una estenosis, y
+     con prótesis el grado no se publica (`eaGradoNoPublica`), que es la regla que ya gobernaba las
+     cuatro filas del cuadro de válvula aórtica. */
+  const g = sv('ea_grado');
+  const eaReal = !!(g && g !== 'sin' && g !== 'normal' && g !== '—' && String(g).trim() !== '');
+  if (eaReal && !eaGradoNoPublica(sv('va_morf'))) {
+    L.push(_cuadLinea('EA ' + String(g).toLowerCase(), [
+      _cuadPz('AVA', CX.avaC ? CX.avaC + ' cm2' : null),
+      _cuadPz('AVAi', CX.avaIdx)
+    ]));
+  }
+  const iaG = CX.iaG;
+  if (iaG > 0) {
+    L.push(_cuadLinea('IAo ' + String(CX.GT[iaG]).toLowerCase(), [
+      _cuadPz('VC', vPdf('ia_vc', ' mm')),
+      _cuadPz('THP', vPdf('ia_pht', ' ms'))
+    ]));
+  }
+  const nt = sv('va_notas');
+  if (nt && String(nt).trim() !== '') L.push(_cuadLinea('', [String(nt).trim()]));
+  return L.filter(x => x);
+}
+function cuadLineasTriPulm(CX) {
+  const L = [];
+  const morf = _cuadMorfAlt(sv('vt_morf'));
+  if (morf) L.push(_cuadLinea(morf, [_cuadPz('DVI', _protPdf('vt_morf', 'vt_dvi', '', 2))], true));
+  const itG = CX.itG;
+  if (itG > 0) {
+    L.push(_cuadLinea('IT ' + String(CX.GT[itG]).toLowerCase(), [
+      _cuadPz('VC', vPdf('it_vc', ' mm')),
+      /* ⚠️ `it_eroa` NO EXISTE COMO CAMPO EN ESTA APLICACION, Y SE CONSERVA ASI. Lo heredó la
+         fila «EROA IT» del cuadro de válvula tricúspide que esta tanda retira: medido, el id no
+         está en el formulario —el EROA por PISA de la IT vive en el nodo de pantalla `it-eroa` y
+         en el `input` de sólo lectura `vauto-it-eroa`—, así que esa fila nunca publicó un número
+         en ningún PDF firmado. Cablearlo acá AGREGARÍA un dato al papel, que es contenido clínico
+         y lo decide el médico: queda declarado y no corregido. */
+      _cuadPz('EROA', vPdf('it_eroa', ' mm2'))
+    ]));
+  }
+  /* El centinela de `et_grado` pasó de «Sin estenosis» a «sin» (grado binario, 2026-10-05) y se
+     excluyen LOS DOS: un estudio legado reabierto por una ruta que no pasa por la migración
+     publicaría «ET sin estenosis» como si fuera un hallazgo. */
+  const etG = sv('et_grado');
+  if (etG && etG !== 'sin' && etG !== 'Sin estenosis') L.push(_cuadLinea('ET ' + String(etG).toLowerCase(), []));
+  /* La pulmonar: su morfología y su grado de insuficiencia. El centinela de `ip_grado` es
+     «Sin insuficiencia», que es su opción vacía. */
+  const mp = _cuadMorfAlt(sv('vp_morf'));
+  if (mp) L.push(_cuadLinea(mp, [], true));
+  const ipG = sv('ip_grado');
+  if (ipG && ipG !== 'Sin insuficiencia') L.push(_cuadLinea('IP ' + String(ipG).toLowerCase(), []));
+  return L.filter(x => x);
+}
+/* ⚠️ «no corresponde» Y NO EL TEXTO LARGO, SÓLO EN EL PAPEL Y SÓLO POR LA IAo SEVERA (orden del
+   médico). El dueño del motivo sigue siendo `emAvmThpPdfMotivo`, que es el que usa el panel
+   «🖨️ Incluir en el informe» de la pantalla: ahí el texto largo se conserva, porque ese panel
+   existe para explicar POR QUÉ no sale. En una celda de 60 mm la frase entera se llevaba tres
+   renglones. Los otros dos motivos —la banda y «no se pudo verificar»— no se tocan. */
+const CUAD_AVM_THP_NOCORR = 'no corresponde';
+function cuadAvmThpTxt() {
+  const m = (typeof emAvmThpPdfMotivo === 'function') ? emAvmThpPdfMotivo() : '';
+  if (m && typeof EM_THP_IA_TXT !== 'undefined' && m === EM_THP_IA_TXT) return CUAD_AVM_THP_NOCORR;
+  return emAvmThpPdfTxt();
+}
+/* ══ LOS DERIVADOS DE LOS CUADROS — EL DUEÑO ÚNICO, MUDADO DESDE `generarPDFReal` ══════════════
+   Este bloque VIVÍA dentro de `generarPDFReal`, en su sección de pre-cálculos, y se movió entero y
+   textual: ni una fórmula se copió ni se reescribió. Ahora lo consumen los DOS: la función del PDF
+   lo destructura al arrancar —así el papel sigue imprimiendo exactamente los mismos números— y la
+   tarjeta de «Cuadros» lo usa sin jsPDF ni documento abierto.
+   Con una segunda derivación acá, la tarjeta y el papel firmado podrían publicar dos valores del
+   mismo cociente. */
+function cuadCtx() {
+  const bsa = getBSA();
+  const sexo = sv('sexo');
+  /* VI — lectura CON banda (`vPlaus`), la misma que usa el calc-box de la pantalla.
+     ⚠️ ESTE ES EL PAPEL QUE SE FIRMA Y SE ARCHIVA. Antes, un SIV de 110 mm imprimía una masa
+     indexada y una geometría calculadas sobre basura, y un VSFVI en litros imprimía «0.0 ml/m²»
+     al lado de su rango de normalidad — o sea que el informe afirmaba una medición normal sobre
+     un valor que la app, en otra superficie, ya sabía rechazar.
+     La marca NUNCA reemplaza al número —ver `MARCA_REVISAR`—: `drawTablaCompacta` no dibuja
+     las filas nulas, así que devolver `null` borraría la fila y el lector no se enteraría de
+     que se cargó algo; y reemplazar el valor borraría una medición que puede ser real. */
+  const _pDd = vPlaus('ddfvi'), _pDs = vPlaus('dsfvi'), _pSiv = vPlaus('siv'), _pPp = vPlaus('ppvi');
+  /* Crudo: las cuentas dan lo mismo que antes del cambio. La banda sólo agrega la marca. */
+  const dd=_pDd.crudo, ds=_pDs.crudo, sivV=_pSiv.crudo, pp=_pPp.crudo;
+  let masaIdx=null, rwtStr=null, geomStr=null;
+  if (dd&&sivV&&pp&&bsa) {
+    const mass = 0.8*(1.04*((dd/10+sivV/10+pp/10)**3-(dd/10)**3))+0.6;
+    masaIdx = (mass/bsa).toFixed(0)+' g/m2';
+    const rwt = 2*pp/dd;
+    rwtStr = rwt.toFixed(2);
+    geomStr = calcGeometriaVI(mass/bsa, rwt, sexo);
+  }
+  /* El número se conserva y se marca; la GEOMETRÍA, que es un patrón y no una medida, se
+     retira —publicarla sobre un insumo dudoso sería el juicio que no se puede sostener—. */
+  if (_pDd.fuera || _pSiv.fuera || _pPp.fuera) {
+    if (masaIdx) masaIdx += MARCA_REVISAR;
+    if (rwtStr)  rwtStr  += MARCA_REVISAR;
+    geomStr = null;
+  }
+  const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%'+((_pDd.fuera||_pDs.fuera)?MARCA_REVISAR:''):null;
+  const feviM  = sv('fevi_met');
+  const _pFevi = vPlaus('fevi');
+  // Con estimación visual muestra el rango completo (feviRangoTexto), no el piso.
+  const feviS  = _pFevi.crudo?feviRangoTexto(_pFevi.crudo)+(feviM?' ('+feviM+')':'')+(_pFevi.fuera?MARCA_REVISAR:''):null;
+  /* ⚠️ EL SGL NO SE VALIDA CON SU BANDA, Y NO ES UN OLVIDO. `DCM_RANGO.sgl` es `[-40,0]` y está
+     escrita para el camino DICOM, donde el signo se NORMALIZA antes del chequeo (lo dice su
+     propio comentario). En el formulario no hay normalización: el campo acepta el strain tipeado
+     en positivo —el borde del Laboratorio lo arregla con `-Math.abs()` y `calcDiastol` compara
+     con `Math.abs(sgl)`—, así que aplicar la banda acá convertiría un SGL de 18 —perfectamente
+     válido, y el 18 % es el valor NORMAL— en «fuera de rango» en el informe firmado, mientras la
+     hoja de strain del MISMO PDF lo sigue imprimiendo como 18 %.
+     Queda sin validar y declarado. Validarlo exige decidir antes dónde se normaliza el signo. */
+  const sglN   = v('sgl');
+  /* Sólo el número. Sin «Normal / Zona gris / Anormal»: la clasificación del SGL la hace el
+     médico en el narrativo, no la tabla de mediciones. Ver el comentario largo en calcSGL —
+     acá vivía la MITAD del informe firmado que se contradecía con su propia referencia. */
+  /* El valor NEGATIVO (AJ9-1c), por el mismo motivo que el informe narrativo: un «SGL 18%» en
+     la tabla de mediciones de un PDF firmado afirma un strain positivo. Sigue SIN rótulo. */
+  const sglS   = sglN ? sglNeg(sglN) + '%' : null;
+
+  /* VDFVI indexado. Su banda se agregó a `DCM_RANGO` el 2026-09-27: hasta entonces era el único
+     campo de esta tarjeta sin validar, al revés que su gemelo telesistólico de abajo. */
+  const _pVdf = vPlaus('vdfvi');
+  const vdfviIdx = (_pVdf.crudo && bsa) ? (_pVdf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVdf.fuera?MARCA_REVISAR:'') : null;
+  // VSFVI indexado — mismo cálculo y misma BSA que la fila de arriba
+  const _pVsf = vPlaus('vsfvi');
+  const vsfviIdx = (_pVsf.crudo && bsa) ? (_pVsf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVsf.fuera?MARCA_REVISAR:'') : null;
+
+  // AI
+  const _pAiVol = vPlaus('ai_vol');
+  /* ⚠️ LA FILA DICE POR QUÉ NO HAY ÍNDICE, EN VEZ DE DESAPARECER (J1, 2026-10-16). Con el
+     volumen medido y sin superficie corporal `aiIdx` quedaba en `null` y la fila se caía del
+     filtro de la tabla: el papel firmado no decía nada mientras su propio texto narrativo ya
+     declara el volumen sin indexar. El rótulo sale de `AI_SIN_IDX_ROT`, la MISMA constante
+     que publica la cápsula de la pantalla, así que las dos superficies no pueden
+     desincronizarse. La fila «Volumen AI» de arriba sigue imprimiendo los ml como siempre. */
+  const aiIdx  = (_pAiVol.crudo&&bsa)?(_pAiVol.crudo/bsa).toFixed(1)+' ml/m2'+(_pAiVol.fuera?MARCA_REVISAR:'')
+               : (aiVolSinIndexar(_pAiVol.crudo, bsa) ? AI_SIN_IDX_ROT : null);
+
+  /* Doppler mitral. Los cocientes E/A y E/e' se publican SÓLO con los dos insumos legibles: un
+     cociente calculado sobre una onda ilegible es un número con la misma pinta que uno bueno. */
+  const _pE = vPlaus('onda_e'), _pA = vPlaus('onda_a');
+  const ea     = (_pE.crudo&&_pA.crudo)?(_pE.crudo/_pA.crudo).toFixed(2)+((_pE.fuera||_pA.fuera)?MARCA_REVISAR:''):null;
+  const _pESep = vPlaus('e_sep'), _pELat = vPlaus('e_lat');
+  const eSep   = _pESep.crudo, eLat = _pELat.crudo;
+  /* El PROMEDIO hereda la duda de cualquiera de los dos anillos: con e' septal en 0,07 —m/s por
+     cm/s— el promedio daba «5.0 cm/s» sin una sola marca, y ese número es el denominador del
+     E/e'. Un promedio contaminado se ve igual que uno bueno. */
+  const _ePromDud = _pESep.fuera || _pELat.fuera;
+  const _ePromN = (eSep&&eLat)?((eSep+eLat)/2).toFixed(1):(eSep?eSep.toFixed(1):eLat?eLat.toFixed(1):null);
+  const eProm  = _ePromN;
+  const ePromS = _ePromN ? _ePromN + (_ePromDud ? MARCA_REVISAR : '') : null;
+  const ee     = (_pE.crudo&&eProm)?(_pE.crudo/PF(eProm)).toFixed(1)+((_pE.fuera||_pESep.fuera||_pELat.fuera)?MARCA_REVISAR:''):null;
+
+  // Aortic
+  const avaC   = v('ava_cont');
+  const avaIdx = (avaC&&bsa)?(avaC/bsa).toFixed(2)+' cm2/m2':null;
+  /* ══ EL GASTO CARDÍACO DEL PDF SE PUBLICA SÓLO CON FRECUENCIA CARDÍACA (F1, 2026-10-15) ════
+     Decisión de Maicol. Antes el respaldo era una FC de 70 marcada con «*»; medido en HEAD con
+     Ø TSVI 20 mm y VTI TSVI 20 cm, el PDF SIN FC imprimía «GC: 4.4 L/min*» y «IC: 2.20
+     L/min/m2» — dos números sostenidos por una frecuencia que nadie midió, en un informe
+     FIRMADO, y el «*» no tiene pie de página en ningún lado del documento: censo del archivo,
+     cero apariciones de una nota que lo explique. Hoy sin FC usable no hay fila.
+
+     ⚠️ CON LA FC CARGADA NO CAMBIA NI UN NÚMERO, y eso está medido: el `_fcUso` de HEAD ya era
+     la FC real cuando `hemoFCUsable` la aceptaba. Con FC 72 el papel decía y sigue diciendo
+     «4.5 L/min»; con 110, «6.9 L/min». Lo único que se retira es la rama del respaldo.
+
+     ⚠️ EL ROTULO DICE QUÉ FC SE USÓ, y va en el campo `ref` de la fila —no en `lbl`— porque esa
+     es la ranura que `drawTablaCompacta` tiene para el calificador: estampa «rotulo (ref):
+     valor», o sea «GC (con FC de 72 lpm): 4.5 L/min», que es el texto pedido. En `lbl` habría
+     entrado en negrita y le habría comido el ancho que la función reserva para envolver el
+     valor, porque el presupuesto de cada celda se mide sobre el rótulo en negrita.
+
+     ⚠️ EL ÍNDICE CARDÍACO SE VA CON ÉL, y es consecuencia y no decisión aparte: `icV` es
+     `coV / ASC`, así que publicarlo sin el GC sería publicar el índice de una magnitud que la
+     app acaba de negarse a imprimir, calculado con la MISMA FC inventada. La orden nombra sólo
+     el GC; dejar el IC sería conservar el defecto por la puerta de al lado.
+
+     ⚠️ LA PANTALLA NO CAMBIA: `calcHemo` ya dejaba el GC, el IC, la RVS y los dos perfiles en
+     `null` con la FC vacía o fuera de banda, con el MISMO predicado. Lo que esta línea cierra es
+     justamente que las dos superficies dejen de discrepar.
+
+     La banda pasó a `HEMO_FC_BANDA` / `hemoFCUsable` el 2026-10-06; el predicado sigue siendo el
+     mismo para la pantalla y para el papel, así que una FC fuera de banda (medido: 300) es el
+     MISMO estado que una FC vacía y tampoco vuelve a suponer 70. */
+  const _fcReal = v('hemo_fc');
+  const _fcUso  = hemoFCUsable(_fcReal) ? _fcReal : null;
+  const coV    = (_fcUso !== null && v('diam_tsvi') && v('itv_tsvi'))
+    ? (Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min' : null;
+  const _fcRef = (_fcUso !== null) ? 'con FC de ' + _fcUso + ' lpm' : '';
+  const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
+
+  // PSAP
+  /* Hereda la banda de su INSUMO: sin esto, el mismo PDF decia «V. max IT: fuera de rango» y
+     «Grad. IT: 313600 mmHg» sobre la misma Vmax de 280 (cm/s tipeados donde van m/s). */
+  const _pVit  = vPlaus('vmax_it');
+  const gradIT = _pVit.crudo?(4*_pVit.crudo**2).toFixed(0)+' mmHg'+(_pVit.fuera?MARCA_REVISAR:''):null;
+
+  // Valve grades
+  const GT = ['--','Leve','Moderada','Moderada-severa','Severa'];
+  const imG = parseInt(sv('im_grado'))||0;
+  const iaG = parseInt(sv('ia_grado'))||0;
+  const itG = parseInt(sv('it_grado'))||0;
+  return { _pDd:_pDd, _pDs:_pDs, _pSiv:_pSiv, _pPp:_pPp, dd:dd, ds:ds, sivV:sivV, pp:pp,
+           masaIdx:masaIdx, rwtStr:rwtStr, geomStr:geomStr, faStr:faStr,
+           feviM:feviM, _pFevi:_pFevi, feviS:feviS, sglN:sglN, sglS:sglS,
+           _pVdf:_pVdf, vdfviIdx:vdfviIdx, _pVsf:_pVsf, vsfviIdx:vsfviIdx,
+           _pAiVol:_pAiVol, aiIdx:aiIdx,
+           _pE:_pE, _pA:_pA, ea:ea, _pESep:_pESep, _pELat:_pELat, eSep:eSep, eLat:eLat,
+           _ePromDud:_ePromDud, _ePromN:_ePromN, eProm:eProm, ePromS:ePromS, ee:ee,
+           avaC:avaC, avaIdx:avaIdx,
+           _fcReal:_fcReal, _fcUso:_fcUso, coV:coV, _fcRef:_fcRef, icV:icV,
+           _pVit:_pVit, gradIT:gradIT,
+           GT:GT, imG:imG, iaG:iaG, itG:itG,
+           bsa:bsa, sexo:sexo };
+}
+/* ══ LOS DOCE CUADROS ══════════════════════════════════════════════════════════════════════════
+   Devuelve la lista COMPLETA, en el orden de arranque y sin filtrar: quién tiene datos lo decide
+   `cuadConDatos` y qué se dibuja `cuadVisibles`. Así la tarjeta puede mostrar un cuadro vacío en
+   la franja de quitados sin que el papel lo imprima.
+   Cada cuadro es `{id, titulo, items, items2, lineas, nota}`. `items2` es la SUB-COLUMNA derecha
+   —la vena pulmonar en el cuadro mitral, la pulmonar en el tricuspídeo, la continuidad en el
+   aórtico—: no es una cuarta columna de la fila, y por eso las tres vecinas conservan su ancho.
+   Ver la nota larga de `drawTablaCompacta`. */
+function cuadDefs() {
+  const CX = cuadCtx();
+  const defs = [];
+  /* ── 1. AORTA TORÁCICA ───────────────────────────────────────────────────────────────────────
+     Los segmentos se DERIVAN de `AO_SEGS` y no de una lista propia: cableados a mano a los tres
+     clásicos, el informe narrativo decía «el cayado aórtico se encuentra dilatado» y la tabla, dos
+     hojas después, listaba sólo Valsalva, sinotubular y ascendente.
+     ⚠️ LA ORDEN ENUMERA TRES SEGMENTOS —SV, ST y Ao ascendente— Y ACÁ SALEN LOS CINCO. No es una
+     licencia: el cayado y la aorta descendente son NÚMEROS MEDIDOS, y en esta casa ninguno
+     desaparece del papel. Si el médico quiere sólo tres, se decide y se quita; mientras tanto el
+     cuadro publica lo que se midió. Queda declarado.
+     ⚠️ EL ASTERISCO Y SU PIE VIENEN DEL CUADRO «Otros», QUE LOS PIERDE. Hasta esta tanda la
+     aorta se resumía DOS veces en el mismo papel: con sus cinco filas acá y otra vez como una
+     oración en «Otros». El pie sale sólo si algún segmento está dilatado — en una celda sin
+     valores de referencia, su ausencia se lee como afirmación de normalidad. */
+  const _aoCorto = { ao_sin:'SV', ao_st:'ST', ao_tub:'Ao asc', diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
+  let _aoDil = false;
+  const _aoIt = AO_SEGS.map(function (sg) {
+    const x = v(sg.k);
+    const dil = x ? aoSegDil(sg, x) : false;
+    if (dil) _aoDil = true;
+    return { lbl: _aoCorto[sg.k] || sg.lblC, val: x ? x + ' mm' + (dil ? '*' : '') : null };
+  });
+  /* ⚠️ EL Ø TSVI VIVE SÓLO ACÁ, POR ORDEN EXPRESA. Era además la tercera impresión del mismo
+     diámetro: esta fila, la fila «Ø TSVI» del cuadro de continuidad y el campo oculto del Doppler
+     aórtico son MIRRORS del mismo dato (`_TSVI_DIAM_CAMPOS`). El cuadro de continuidad publica
+     ahora el DVI en su lugar. */
+  _aoIt.push({ lbl:'Ø TSVI', val: v('diam_tsvi_ao') ? v('diam_tsvi_ao') + ' mm' : null });
+  defs.push({ id:'ao', titulo:'Aorta torácica', items:_aoIt,
+              nota: _aoDil ? '* Aorta dilatada' : null });
+
+  // ── 2. AURÍCULA IZQUIERDA ──
+  defs.push({ id:'ai', titulo:'Aurícula izquierda', items:[
+    { lbl:'Diám. AP',      val: v('ai_diam') ? v('ai_diam') + ' mm' : null },
+    { lbl:'Área AI',       val: v('ai_area') ? v('ai_area') + ' cm2' : null },
+    { lbl:'Volumen AI',    val: v('ai_vol')  ? v('ai_vol')  + ' ml' : null },
+    { lbl:'Vol. indexado', val: CX.aiIdx }
+  ]});
+
+  // ── 3. AURÍCULA DERECHA / VCI ──
+  defs.push({ id:'advci', titulo:'Aurícula derecha / VCI', items:[
+    { lbl:'Área AD',    val: v('ad_area') ? v('ad_area') + ' cm2' : null },
+    /* Con la casilla marcada la fila DICE que no se visualiza, en vez de desaparecer: una fila
+       ausente se lee como «no se midió» y la frase es la afirmación del ecografista. */
+    { lbl:'Diám. VCI',  val: (typeof vciNoVisOn === 'function' && vciNoVisOn()) ? 'No se visualiza'
+                             : (v('vci_diam') ? v('vci_diam') + ' mm' : null) },
+    /* El colapso lleva su unidad: el `<select>` guarda los tokens «>50» y «<50» y el papel los
+       imprimía pelados al lado de un diámetro que sí dice «mm». La guarda por token y no un `+ '%'`
+       pelado: un valor que no sea uno de los dos sale sin unidad en vez de inventarle una. */
+    { lbl:'Colapso VCI', val: (function () { const c = sv('vci_col');
+        return c ? ((c === '>50' || c === '<50') ? c + '%' : c) : null; })() },
+    { lbl:'PmAD',       val: v('pmad') ? v('pmad') + ' mmHg' : null },
+    /* VEXUS con el detalle de en qué se basó: «VEXUS 2» a secas obliga a confiar en que quien lo
+       cargó usó la regla correcta. */
+    { lbl:'VEXUS',      val: (function () {
+        const vx = (typeof vexusEstado === 'function') ? vexusEstado() : null;
+        if (!vx || vx.score === null) return null;
+        return vx.score + ' (' + vx.severos.length + '/' + vx.evaluados + ' severo'
+             + (vx.severos.length === 1 ? '' : 's')
+             + (vx.evaluados < 3 ? ', ' + vx.evaluados + '/3 vasos' : '') + ')'; })() }
+  ]});
+
+  /* ── 4. VI — ESTRUCTURA ──
+     ⚠️ LAS CUATRO PRIMERAS CONSUMEN EL OBJETO DE `vPlaus` Y NO LA VARIABLE YA VALIDADA: con un
+     SIV de 110 mm la fila DESAPARECÍA del papel firmado mientras «Masa idx» decía «fuera de
+     rango», o sea que el informe acusaba al derivado y escondía el insumo que lo causó. */
+  defs.push({ id:'viest', titulo:'VI — Estructura', items:[
+    { lbl:'SIV',       val: CX.sivV ? CX.sivV + ' mm' + (CX._pSiv.fuera ? MARCA_REVISAR : '') : null },
+    { lbl:'DDVI',      val: CX.dd   ? CX.dd   + ' mm' + (CX._pDd.fuera  ? MARCA_REVISAR : '') : null },
+    { lbl:'DSVI',      val: CX.ds   ? CX.ds   + ' mm' + (CX._pDs.fuera  ? MARCA_REVISAR : '') : null },
+    { lbl:'PP',        val: CX.pp   ? CX.pp   + ' mm' + (CX._pPp.fuera  ? MARCA_REVISAR : '') : null },
+    { lbl:'VDFVI idx', val: CX.vdfviIdx },
+    { lbl:'VSFVI idx', val: CX.vsfviIdx }
+  ]});
+
+  // ── 5. VI — FUNCIÓN SISTÓLICA ──
+  defs.push({ id:'visis', titulo:'VI — Función sistólica', items:[
+    { lbl:'FEVI',      val: CX.feviS },
+    { lbl:'FA',        val: CX.faStr },
+    { lbl:'SGL',       val: CX.sglS },
+    { lbl:'Vol. lat.', val: vPdf('vol_lat', ' ml') },
+    { lbl:'Masa idx',  val: CX.masaIdx },
+    { lbl:'RWT',       val: CX.rwtStr },
+    { lbl:'Geometria', val: CX.geomStr }
+  ]});
+
+  /* ── 6. VENTRÍCULO DERECHO ──
+     ⚠️ LA ORDEN ENUMERA SIETE FILAS —TAP, TAPSE, S', los tres diámetros y la FAC— Y ACÁ SALEN
+     NUEVE. La FEVD y la relación VD/VI son números MEDIDOS que no se publican en ningún otro
+     cuadro: retirarlos los borraría del papel. Queda declarado. */
+  defs.push({ id:'vd', titulo:'Ventrículo derecho', items:[
+    { lbl:'TAP',         val: vPdf('tvia', ' ms') },
+    { lbl:'TAPSE',       val: vPdf('tapse', ' mm') },
+    { lbl:"S'",          val: vPdf('s_prime', ' cm/s') },
+    { lbl:'Diám. basal', val: vPdf('vd_bas', ' mm') },
+    { lbl:'Diám. medio', val: vPdf('vd_mid', ' mm') },
+    { lbl:'Longitud',    val: vPdf('vd_long', ' mm') },
+    { lbl:'FAC',         val: vPdf('vd_fac', '%') },
+    { lbl:'FEVD',        val: vPdf('fevd', '%') },
+    /* Con número sale el número; sólo sin él el papel publica el tramo que eligió el médico. */
+    { lbl:'VD/VI',       val: (function () { const n = vPdf('vd_vi', '', 2);
+        if (n !== null) return n;
+        return (typeof vdViTexto === 'function') ? vdViTexto(true) : null; })() }
+  ]});
+
+  /* ── 7. VM — TRANSMITRAL / VENA PULMONAR ──
+     ⚠️ EL TÍTULO NOMBRA LAS DOS ESTRUCTURAS SIEMPRE, y hasta esta tanda era condicional. Lo fija
+     la orden, que enumera los doce cuadros por su nombre, y el nombre es además lo que el médico
+     arrastra en la tarjeta: un título que cambia con los datos sería un cuadro que cambia de
+     nombre entre dos estudios. Lo que la sub-columna NO hace es inventar filas: sin vena pulmonar
+     medida sus cinco ítems salen nulos, el filtro los descarta y el cuadro se dibuja a una sola
+     columna. El defecto que el título condicional vino a cerrar —«Veloc. Ar: 42 cm/s» leyéndose
+     como un Doppler mitral— queda cerrado igual, y por construcción. */
+  defs.push({ id:'vm', titulo:'VM — Transmitral / Vena pulmonar', items:[
+    { lbl:'Onda E',  val: vPdf('onda_e', ' cm/s') },
+    { lbl:'Onda A',  val: vPdf('onda_a', ' cm/s') },
+    { lbl:'E/A',     val: CX.ea },
+    { lbl:'TDE',     val: vPdf('tde', ' ms') },
+    { lbl:'TRIV',    val: vPdf('triv', ' ms') },
+    { lbl:'THP',     val: vPdf('thp', ' ms') },
+    { lbl:'AVm THP', val: cuadAvmThpTxt() }
+  ], items2:[
+    /* `> 0` y no truthiness, igual que `venpArA`: con el predicado viejo un 0 desaparecía de la
+       tabla mientras el derivado que lo usa sí se imprimía. */
+    { lbl:'Dur. A mit.', val: v('venp_dur_a')  > 0 ? v('venp_dur_a')  + ' ms' : null },
+    { lbl:'S/D pulm.',   val: (typeof venpSDTxt === 'function') ? venpSDTxt() : null },
+    { lbl:'Dur. Ar',     val: v('venp_dur_ar') > 0 ? v('venp_dur_ar') + ' ms' : null },
+    { lbl:'Veloc. Ar',   val: v('venp_vel_ar') > 0 ? v('venp_vel_ar') + ' cm/s' : null },
+    /* La diferencia la calcula `venpArA()`, la MISMA que la pantalla. Rehacer la resta acá sería
+       la segunda copia de una fórmula cuya versión impresa se pudre sin que se note desde la app. */
+    { lbl:'Ar-A',        val: (function () { const d = (typeof venpArA === 'function') ? venpArA() : null;
+        return d == null ? null : (d + ' ms'); })() }
+  ], lineas: cuadLineasVM(CX) });
+
+  // ── 8. DTI MITRAL ──
+  defs.push({ id:'dti', titulo:'DTI mitral', items:[
+    { lbl:"e' septal",  val: CX.eSep ? CX.eSep + ' cm/s' + (CX._pESep.fuera ? MARCA_REVISAR : '') : null },
+    { lbl:"e' lateral", val: CX.eLat ? CX.eLat + ' cm/s' + (CX._pELat.fuera ? MARCA_REVISAR : '') : null },
+    { lbl:"e' prom.",   val: CX.ePromS ? CX.ePromS.replace(/( \(revisar\))?$/, ' cm/s$1') : null },
+    { lbl:"E/e'",       val: CX.ee }
+  ]});
+
+  /* ── 9. TRICÚSPIDE / PULMONAR ──
+     La válvula pulmonar y las dos presiones derivadas de su insuficiencia pasan a la sub-columna
+     DERECHA, con su rótulo en el título. Hasta esta tanda las cuatro filas «VP» vivían dentro del
+     cuadro «Tricúspide / PSAP» sin ningún divisor, y el médico leyó «Morf. VP: Prótesis biológica»
+     y lo entendió de la tricúspide. */
+  defs.push({ id:'trip', titulo:'Tricúspide / Pulmonar', items:[
+    { lbl:'V. máx IT', val: vPdf('vmax_it', ' m/s') },
+    { lbl:'Grad. IT',  val: CX.gradIT },
+    { lbl:'PSAP',      val: vPdf('psap_calc', ' mmHg') },
+    { lbl:'PAP media', val: sv('pap_med') || null }
+  ], items2:[
+    { lbl:'V. máx VP', val: vPdf('vp_vmax', ' m/s') },
+    { lbl:'G. máx VP', val: vPdf('vp_gmax', ' mmHg') },
+    { lbl:'DVI VP',    val: _protPdf('vp_morf', 'vp_dvi', '', 2) },
+    /* Sin PmAD NO se publica la fila: el `(pm||0)` de antes imprimía `4·V²` bajo el rótulo «PAPm»,
+       subestimando la presión pulmonar en el valor entero de la PmAD sin ninguna marca. */
+    { lbl:'PAPm (IP)', val: (function () { const vm = v('ip_vmax'), pm = v('pmad');
+        return (vm && pm !== null) ? (4 * vm * vm + pm).toFixed(0) + ' mmHg' : null; })() },
+    { lbl:'PAPd (IP)', val: (function () { const vt = v('ip_vtd'), pm = v('pmad');
+        return (vt && pm !== null) ? (4 * vt * vt + pm).toFixed(0) + ' mmHg' : null; })() }
+  ], lineas: cuadLineasTriPulm(CX) });
+
+  /* ── 10. VA — GRADIENTES Y CONTINUIDAD ──
+     Las dos columnas que hasta esta tanda eran dos cuadros de la misma fila. El Ø TSVI sale —vive
+     en el cuadro de la aorta— y en su lugar va el DVI, que es el cociente de los dos VTI de al
+     lado y sale de `_eaCritDvi`, el dueño que ya lo calcula con sus dos bandas de plausibilidad
+     puestas: parsear el nodo de pantalla habría leído «— (revisar la unidad…)» como número. */
+  defs.push({ id:'va', titulo:'VA — Gradientes y continuidad', items:[
+    { lbl:'V. máx Ao', val: vPdf('vmax_ao', ' m/s') },
+    { lbl:'G. máx',    val: vPdf('gmax_calc', ' mmHg') },
+    { lbl:'G. medio',  val: vPdf('gmedio_ao', ' mmHg') }
+  ], items2:[
+    { lbl:'VTI TSVI',  val: vPdf('itv_tsvi', ' cm') },
+    { lbl:'VTI Vao',   val: vPdf('itv_ao', ' cm') },
+    { lbl:'DVI',       val: (function () {
+        try { const d = _eaCritDvi(); return (d && d.val != null) ? d.val.toFixed(2) : null; }
+        catch (e) { return null; } })() }
+  ], lineas: cuadLineasVA(CX) });
+
+  /* ── 11. GASTO CARDÍACO ──
+     ⚠️ SIN AVA NI AVA INDEXADO, POR ORDEN EXPRESA: los dos pasaron a la línea de la estenosis
+     aórtica del cuadro VA. Sin estenosis el papel no los publica, que es la consecuencia aceptada.
+     ⚠️ LA FC VA EN `ref` Y NO EN EL RÓTULO: es la única `ref` que queda en todo el papel y no es
+     un valor de referencia sino el insumo con el que se calculó el gasto. En `lbl` habría entrado
+     en negrita y le habría comido el ancho que la celda reserva para envolver el valor. Sin FC
+     usable no hay fila —ni de GC ni de IC—, que es la decisión del F1: el «*» de la FC supuesta no
+     tenía pie de página en ninguna parte del documento. */
+  defs.push({ id:'gc', titulo:'Gasto cardíaco', items:[
+    { lbl:'Vol. sistól.', val: vPdf('vs_calc', ' ml') },
+    { lbl:'VLI',          val: (function () { const x = (typeof vliCalc === 'function') ? vliCalc() : null;
+        return x === null ? null : x.toFixed(0) + ' ml/m2'; })() },
+    { lbl:'GC', ref: CX._fcRef, val: CX.coV },
+    { lbl:'IC',           val: CX.icV }
+  ]});
+
+  /* ── 12. OTROS ──
+     UNA sola línea con « · » entre sus partes, por orden expresa, y SIN la aorta: el cuadro de la
+     aorta ya publica sus cinco segmentos con su asterisco, así que la oración que vivía acá era la
+     segunda escritura del mismo hallazgo en el mismo papel.
+     El pulmón sale de `pulAvSuma()` y las variantes de `otrHallazgos()`, los dos dueños que ya
+     escriben el informe narrativo y el EN SUMA: acá no se redacta ni una frase. */
+  const _otr = [];
+  if (sv('pericardio'))  _otr.push(String(sv('pericardio')).trim());
+  if (sv('otras_notas')) _otr.push(String(sv('otras_notas')).trim());
+  try {
+    if (typeof pulAvanzadoHayDatos === 'function' && pulAvanzadoHayDatos()
+        && typeof pulAvSuma === 'function') {
+      pulAvSuma().forEach(function (s) { const t = String(s || '').replace(/\.$/, '').trim();
+        if (t) _otr.push(t); });
+    }
+  } catch (e) {}
+  try {
+    if (typeof otrHallazgos === 'function') {
+      otrHallazgos().forEach(function (h) { const t = String(h && h.inf || '').replace(/\.$/, '').trim();
+        if (t) _otr.push(t); });
+    }
+  } catch (e) {}
+  /* Sin rótulo: la celda es una sola y el título del cuadro ya dice «Otros». `drawTablaCompacta`
+     imprime el valor solo cuando `lbl` viene vacío. */
+  defs.push({ id:'otros', titulo:'Otros', items:[
+    { lbl:'', val: _otr.length ? _otr.join(' · ') : null }
+  ]});
+
+  return defs;
+}
+/* ¿Este cuadro tiene algo que dibujar? La MISMA regla que el papel aplicaba con su filtro: alguna
+   fila con valor, o alguna línea de válvula. La nota del asterisco NO cuenta: sin filas no hay
+   asterisco que explicar. */
+function cuadConDatos(d) {
+  if (!d) return false;
+  const hay = arr => (arr || []).some(i => i && i.val != null && String(i.val).trim() !== '');
+  return hay(d.items) || hay(d.items2) || ((d.lineas || []).length > 0);
+}
+/* Los cuadros que de verdad se dibujan, en el orden vigente y sin los quitados a mano. Es el único
+   punto que decide eso, y lo consultan el papel y la tarjeta. */
+function cuadVisibles() {
+  const porId = Object.create(null);
+  cuadDefs().forEach(d => { porId[d.id] = d; });
+  return cuadOrdenVigente()
+    .filter(id => _cuadQuit.indexOf(id) < 0)
+    .map(id => porId[id])
+    .filter(d => d && cuadConDatos(d));
+}
+window.cuadDefs = cuadDefs; window.cuadVisibles = cuadVisibles; window.cuadFilas = cuadFilas;
+window.cuadConDatos = cuadConDatos; window.cuadReset = cuadReset;
+/* ══ LA TARJETA «CUADROS» — SÓLO PANTALLA, Y SÓLO DECIDE QUÉ SALE Y EN QUÉ ORDEN ═══════════════
+   No escribe un campo, no toca el estudio guardado, no toca el Excel, no toca el informe ni el EN
+   SUMA: lo único que mueve son `_cuadQuit` y `_cuadOrden`, las dos variables de memoria que lee
+   `cuadVisibles`. Cerrarla sin tocar nada deja el PDF idéntico al de no haberla abierto.
+   El cuerpo se pinta con nodos —`createElement` y `textContent`— y no con `innerHTML`: todo lo que
+   entra es un dato del paciente o algo que el médico escribió. */
+/* ¿La configuración es la de fábrica? Compara CONTENIDO y no identidad: un arrastre que termina
+   devolviendo cada cuadro a su lugar deja `_cuadOrden` escrito pero el orden es el de fábrica, y
+   el punto de aviso no tiene por qué quedar prendido. */
+function cuadPersonalizado() {
+  if (_cuadQuit.length) return true;
+  const o = cuadOrdenVigente();
+  return o.some((id, i) => id !== CUAD_IDS[i]);
+}
+/* El punto de aviso y las palabras. ⚠️ EL AVISO NO VIVE SÓLO EN EL COLOR: el punto es una forma
+   que está o no está, y el `title` y el `aria-label` dicen el estado en los dos casos. Un cuadro
+   quitado y olvidado saca un estudio sin ese dato, así que el botón tiene que delatarse. */
+function cuadBtnSync() {
+  const b = document.getElementById('cuad-btn'), p = document.getElementById('cuad-pt');
+  if (!b) return;
+  const per = cuadPersonalizado();
+  if (p) p.hidden = !per;
+  const q = _cuadQuit.length;
+  const txt = per
+    ? ('Cuadros del PDF: orden personalizado'
+       + (q ? (' — ' + q + (q === 1 ? ' cuadro quitado' : ' cuadros quitados')) : ' — orden cambiado'))
+    : 'Cuadros del PDF: elegir qué cuadros salen y en qué orden (orden de fábrica)';
+  b.setAttribute('title', txt);
+  b.setAttribute('aria-label', per ? txt : 'Cuadros del PDF: orden de fábrica');
+}
+window.cuadPersonalizado = cuadPersonalizado; window.cuadBtnSync = cuadBtnSync;
+function cuadAbrir() {
+  const ov = document.getElementById('cuad-ov');
+  if (!ov) return;
+  cuadPintar();
+  ov.hidden = false;
+  /* El foco al botón de cerrar, que es lo que `indicAbrir` hace con su tarjeta: sin esto el foco
+     se queda en el botón de abajo, detrás del overlay. */
+  const c = document.getElementById('cuad-cerrar'); if (c) { try { c.focus() } catch (e) {} }
+  document.addEventListener('keydown', _cuadEsc, true);
+}
+function cuadCerrar() {
+  const ov = document.getElementById('cuad-ov');
+  if (ov) ov.hidden = true;
+  document.removeEventListener('keydown', _cuadEsc, true);
+  cuadBtnSync();
+  const b = document.getElementById('cuad-btn'); if (b) { try { b.focus() } catch (e) {} }
+}
+/* ⚠️ CON `stopImmediatePropagation` Y EN CAPTURA, igual que la hoja de los documentos: el oyente
+   genérico de accesibilidad elige el diálogo visible más alto y le aprieta su botón de cerrar, así
+   que sin cortar acá un Escape podía cerrar OTRO diálogo en vez de esta tarjeta. */
+function _cuadEsc(ev) {
+  if (ev.key !== 'Escape') return;
+  const ov = document.getElementById('cuad-ov');
+  if (!ov || ov.hidden) return;
+  ev.stopImmediatePropagation(); ev.preventDefault();
+  cuadCerrar();
+}
+window.cuadAbrir = cuadAbrir; window.cuadCerrar = cuadCerrar;
+/* El span de cada cuadro en la grilla de SEIS columnas sale del MISMO reparto que el PDF
+   (`cuadFilas`): tres por fila ocupan 2 columnas, dos ocupan 3 y uno solo las 6. Con dos reglas
+   distintas, la tarjeta prometería una disposición que el papel no respeta. */
+function _cuadSpans(n) {
+  const out = [];
+  cuadFilas(n).forEach(k => { for (let i = 0; i < k; i++) out.push(6 / k) });
+  return out;
+}
+function cuadPintar() {
+  const g = document.getElementById('cuad-grid');
+  if (!g) return;
+  while (g.firstChild) g.removeChild(g.firstChild);
+  const defs = cuadDefs();
+  const porId = Object.create(null); defs.forEach(d => { porId[d.id] = d });
+  const vis = cuadOrdenVigente().filter(id => _cuadQuit.indexOf(id) < 0)
+                                .filter(id => porId[id] && cuadConDatos(porId[id]));
+  const spans = _cuadSpans(vis.length);
+  vis.forEach((id, i) => {
+    const d = porId[id];
+    const box = document.createElement('div');
+    box.className = 'cuad-box';
+    box.setAttribute('data-cuad-id', id);
+    box.setAttribute('data-cuad-span', String(spans[i]));
+    const hdr = document.createElement('div'); hdr.className = 'cuad-bhdr';
+    const grip = document.createElement('button');
+    grip.type = 'button'; grip.className = 'cuad-grip';
+    grip.textContent = '⠿';
+    grip.setAttribute('aria-label', 'Mover el cuadro ' + d.titulo);
+    grip.setAttribute('title', 'Arrastrar para cambiarlo de lugar');
+    grip.addEventListener('pointerdown', _cuadArrDown);
+    const tit = document.createElement('div'); tit.className = 'cuad-btit';
+    tit.textContent = d.titulo; tit.setAttribute('title', d.titulo);
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'cuad-x'; x.textContent = '✕';
+    x.setAttribute('aria-label', 'Quitar del informe el cuadro ' + d.titulo);
+    x.setAttribute('title', 'Quitar del informe');
+    x.addEventListener('click', () => cuadQuitar(id));
+    hdr.appendChild(grip); hdr.appendChild(tit); hdr.appendChild(x);
+    box.appendChild(hdr);
+    /* Las dos sub-columnas se listan una detrás de la otra: en la tarjeta la caja es angosta y
+       partirla en dos dejaría dos palabras por renglón. El PAPEL sí las parte, y eso no es una
+       divergencia de contenido: son las mismas filas en el mismo orden. */
+    [d.items, d.items2].forEach(arr => (arr || []).forEach(it => {
+      if (it.val == null || String(it.val).trim() === '') return;
+      const r = document.createElement('div'); r.className = 'cuad-brow';
+      if (it.lbl) { const b = document.createElement('b'); b.textContent = it.lbl; r.appendChild(b);
+        r.appendChild(document.createTextNode((it.ref ? ' (' + it.ref + ')' : '') + ': ' + it.val)); }
+      else { r.appendChild(document.createTextNode(String(it.val))); }
+      box.appendChild(r);
+    }));
+    (d.lineas || []).forEach(l => {
+      if (!l || l.txt == null || String(l.txt).trim() === '') return;
+      const p = document.createElement('div');
+      p.className = 'cuad-blin' + (l.azul ? ' cuad-az' : '');
+      p.textContent = l.txt; box.appendChild(p);
+    });
+    if (d.nota) { const p = document.createElement('div'); p.className = 'cuad-bnota';
+      p.textContent = d.nota; box.appendChild(p); }
+    g.appendChild(box);
+  });
+  if (!vis.length) {
+    const p = document.createElement('div'); p.className = 'cuad-vacio';
+    p.setAttribute('data-cuad-span', '6');
+    p.textContent = 'Todavía no hay datos cargados: el PDF no publica ningún cuadro.';
+    g.appendChild(p);
+  }
+  /* La franja de los quitados. Se recupera con UN toque, y el chip dice el nombre del cuadro: con
+     un número o un ícono el médico no sabe qué está reponiendo. */
+  const fr = document.getElementById('cuad-franja'), ch = document.getElementById('cuad-chips');
+  if (fr && ch) {
+    while (ch.firstChild) ch.removeChild(ch.firstChild);
+    const quit = cuadOrdenVigente().filter(id => _cuadQuit.indexOf(id) >= 0);
+    fr.hidden = quit.length === 0;
+    quit.forEach(id => {
+      const d = porId[id];
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'cuad-chip';
+      b.textContent = '+ ' + (d ? d.titulo : id);
+      b.setAttribute('aria-label', 'Devolver al informe el cuadro ' + (d ? d.titulo : id));
+      b.setAttribute('title', 'Devolver al informe');
+      b.addEventListener('click', () => cuadRecuperar(id));
+      ch.appendChild(b);
+    });
+  }
+  cuadBtnSync();
+}
+window.cuadPintar = cuadPintar;
+function cuadQuitar(id) { if (_cuadQuit.indexOf(id) < 0) _cuadQuit.push(id); cuadPintar(); }
+function cuadRecuperar(id) { _cuadQuit = _cuadQuit.filter(x => x !== id); cuadPintar(); }
+function cuadRestablecer() { cuadReset(); cuadPintar(); }
+window.cuadQuitar = cuadQuitar; window.cuadRecuperar = cuadRecuperar;
+window.cuadRestablecer = cuadRestablecer;
+/* ══ EL ARRASTRE, CON EVENTOS DE PUNTERO ══════════════════════════════════════════════════════
+   `pointerdown` / `pointermove` / `pointerup` y no `dragstart`: el arrastre nativo de HTML no
+   existe con el dedo, y la orden pide que funcione en celular y tablet. La manija lleva
+   `touch-action:none` para que el navegador no se quede el gesto.
+   ⚠️ SE MUEVE EL NODO Y SE REPINTA AL SOLTAR, no en cada movimiento: repintar destruiría la manija
+   que tiene capturado el puntero y el arrastre se cortaría solo al primer píxel. El orden se
+   COMMITEA leyendo el DOM en el `pointerup`. */
+let _cuadArrEl = null;
+function _cuadArrDown(ev) {
+  const box = ev.currentTarget.parentNode && ev.currentTarget.parentNode.parentNode;
+  if (!box || !box.getAttribute || !box.getAttribute('data-cuad-id')) return;
+  _cuadArrEl = box;
+  box.classList.add('cuad-arr');
+  try { ev.currentTarget.setPointerCapture(ev.pointerId) } catch (e) {}
+  ev.currentTarget.addEventListener('pointermove', _cuadArrMove);
+  ev.currentTarget.addEventListener('pointerup', _cuadArrUp);
+  ev.currentTarget.addEventListener('pointercancel', _cuadArrUp);
+  ev.preventDefault();
+}
+function _cuadArrMove(ev) {
+  if (!_cuadArrEl) return;
+  const g = document.getElementById('cuad-grid'); if (!g) return;
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  const over = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
+  if (!over || over === _cuadArrEl) return;
+  const r = over.getBoundingClientRect();
+  /* Antes o después según de qué lado del centro cayó el puntero, mirando el eje que de verdad
+     ordena: con una sola fila es el horizontal, y con el cuadro apilado en celular el vertical. */
+  const antes = (r.width >= r.height * 1.2)
+    ? (ev.clientX < r.left + r.width / 2)
+    : (ev.clientY < r.top + r.height / 2);
+  g.insertBefore(_cuadArrEl, antes ? over : over.nextSibling);
+}
+function _cuadArrUp(ev) {
+  const t = ev.currentTarget;
+  if (t) { t.removeEventListener('pointermove', _cuadArrMove);
+           t.removeEventListener('pointerup', _cuadArrUp);
+           t.removeEventListener('pointercancel', _cuadArrUp);
+           try { t.releasePointerCapture(ev.pointerId) } catch (e) {} }
+  if (!_cuadArrEl) return;
+  _cuadArrEl.classList.remove('cuad-arr');
+  _cuadArrEl = null;
+  cuadOrdenDesdeDOM();
+  cuadPintar();
+}
+/* ⚠️ LOS QUITADOS CONSERVAN SU LUGAR. La grilla sólo tiene los cuadros visibles, así que el orden
+   nuevo son los del DOM más los quitados en el lugar relativo que tenían: sin esto, quitar un
+   cuadro y arrastrar otro mandaba el quitado al final y al recuperarlo aparecía donde no estaba. */
+function cuadOrdenDesdeDOM() {
+  const g = document.getElementById('cuad-grid'); if (!g) return;
+  const dom = [];
+  Array.prototype.forEach.call(g.children, n => {
+    const id = n.getAttribute && n.getAttribute('data-cuad-id');
+    if (id) dom.push(id);
+  });
+  if (!dom.length) return;
+  const prev = cuadOrdenVigente();
+  const out = []; let k = 0;
+  prev.forEach(id => {
+    if (_cuadQuit.indexOf(id) >= 0) out.push(id);
+    else if (k < dom.length) out.push(dom[k++]);
+  });
+  while (k < dom.length) out.push(dom[k++]);
+  _cuadOrden = out;
+}
+window.cuadOrdenDesdeDOM = cuadOrdenDesdeDOM;
 function generarPDF() {
   if (document.getElementById('pdf-review-overlay')) return;
   /* ══ EL PAPEL AVISA ANTES DE SALIR (AJ7-2d, 2026-10-24), y cierra AJ3-c. ═══════════════════
@@ -79595,19 +80533,33 @@ function generarPDFReal(_aj) {
                       así que un <textarea> con sólo un Enter o espacios pasaba el filtro y la celda
                       salía como «Notas: » —etiqueta y dos puntos sin nada—, y una sección cuyo
                       único ítem fuera blanco generaba una columna entera con sólo el rótulo. */
+                   /* ⚠️ LAS LÍNEAS DE VÁLVULA Y LA NOTA AL PIE VIAJAN CON LA SECCIÓN (tanda
+                      CUADROS). Son el contenido de la fila de cuadros de válvulas que salió del
+                      PDF: una por hallazgo, dentro del cuadro de su estructura. */
+                   lineas: (s.lineas||[]).filter(l => l && l.txt != null && String(l.txt).trim() !== ''),
+                   nota: (s.nota != null && String(s.nota).trim() !== '') ? s.nota : null,
                    items: (s.items||[]).filter(i => i.val != null && String(i.val).trim() !== '') }))
       /* ⚠️ `items2` TAMBIÉN CUENTA. Con el filtro mirando sólo `items`, un estudio con las cinco
          mediciones de vena pulmonar y ninguna transmitral perdía la columna ENTERA del PDF, las
          cinco filas incluidas, sin ningún aviso — y es alcanzable: el criterio de velocidad de Ar
          no necesita ningún campo transmitral. Lo cazó `/sharp-edges`. */
-      .filter(s => s.items.length > 0 || s.items2.length > 0);
+      /* ⚠️ UNA SECCIÓN CON SÓLO LÍNEAS DE VÁLVULA SE QUEDA. Es alcanzable y no es raro: una
+         aórtica calcificada con su grado y sin un gradiente medido deja el cuadro sin filas y con
+         su línea, y con el filtro mirando sólo los ítems ese hallazgo desaparecía del papel —y, lo
+         que es peor, corría a las dos secciones vecinas de lugar en la fila—. La NOTA no cuenta:
+         sin filas no hay asterisco que explicar. */
+      .filter(s => s.items.length > 0 || s.items2.length > 0 || s.lineas.length > 0);
     if (!secs.length) return;
 
     const n    = secs.length;
     const cW   = pgW / n;
     // Espaciado compacto A4: header 4.4 mm; filas con altura dinámica (envuelven texto largo sin desbordar)
     const hH = 5.1, lineH = 3.5;   // rowPad viene de _TBL (varía por plantilla)
-    const maxR = Math.max(...secs.map(s => Math.max(s.items.length, s.items2.length)));
+    /* `Math.max()` sin argumentos da -Infinity, así que el `0` del final NO es decorativo: una
+       fila cuyas secciones sólo tengan líneas de válvula entraría con maxR = -Infinity y los dos
+       bucles de abajo no correrían ninguna vez, pero `rowY`/`rowH` quedarían vacíos y `acc` en 0.
+       Con el 0 explícito el caso es el mismo y está escrito. */
+    const maxR = Math.max(0, ...secs.map(s => Math.max(s.items.length, s.items2.length)));
     /* Ancho útil de CADA sub-columna. Sin `items2` es la columna entera, así que las secciones
        que no se parten miden y se dibujan igual que siempre. */
     /* Con `items` vacío no hay nada a la izquierda que separar, así que `items2` pasa a ser la
@@ -79662,7 +80614,11 @@ function generarPDFReal(_aj) {
     secs.forEach(sec => { const w = _subW(sec);
       [sec.items, sec.items2].forEach(arr => arr.forEach(it => {
         _tb(7); it._lw = doc.getTextWidth(it.lbl);
-        it._suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
+        /* ⚠️ SIN RÓTULO SALE EL VALOR SOLO, sin los dos puntos delante (tanda CUADROS). El
+           cuadro «Otros» publica UNA sola celda con todos sus hallazgos separados por « · » y su
+           rótulo es el título del cuadro: con el `': '` de siempre el papel firmado empezaba la
+           celda con dos puntos colgando. */
+        it._suf = it.lbl ? (it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val) : it.val;
         /* `w` y no `cW`: medir con el ancho entero y dibujar en la mitad es exactamente cómo el
            valor se sale de su celda — el defecto que este archivo ya pagó en el bloque de firma
            midiendo con Helvetica y estampando con Times. */
@@ -79680,7 +80636,27 @@ function generarPDFReal(_aj) {
     }
     const rowY = []; let acc = 0;
     for (let ri = 0; ri < maxR; ri++) { rowY[ri] = acc; acc += rowH[ri]; }
-    const tblH = hH + acc;
+    /* ══ EL ALTO DE LAS LÍNEAS DE VÁLVULA Y DE LA NOTA ════════════════════════════════════════
+       Van DEBAJO de las filas, a lo ancho de la sección entera —cruzando las dos sub-columnas— y
+       cada una envuelta a ese ancho. El alto del bloque es el de la sección que más líneas tenga,
+       como ya pasa con las filas: si cada sección creciera por su cuenta, los bordes de las tres
+       cajas de una fila quedarían a tres alturas distintas.
+       Se mide con la MISMA fuente con la que se dibuja (`_tn`): medir con una y estampar con otra
+       es exactamente cómo un texto se sale de su caja, y es el defecto que el bloque de firma ya
+       pagó midiendo con Helvetica y dibujando con Times. */
+    const _linPadT = 1.2, _linH = 3.4;
+    secs.forEach(sec => {
+      const w = cW - 4;
+      sec._lin = [];
+      _tn(6.6);
+      sec.lineas.forEach(l => { doc.splitTextToSize(_tSan(l.txt), Math.max(10, w))
+        .forEach((ln, i) => sec._lin.push({ t: ln, azul: !!l.azul, primera: i === 0 })); });
+      if (sec.nota) { _tn(6.2); doc.splitTextToSize(_tSan(sec.nota), Math.max(10, w))
+        .forEach(ln => sec._lin.push({ t: ln, nota: true })); }
+    });
+    const _linN = Math.max(0, ...secs.map(s => s._lin.length));
+    const _linBloque = _linN ? (_linPadT + _linN * _linH + 0.6) : 0;
+    const tblH = hH + acc + _linBloque;
 
     checkPage(tblH + 3);
 
@@ -79731,6 +80707,26 @@ function generarPDFReal(_aj) {
           it._lines.forEach((ln, li) => {
             doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 3.0 + li * lineH);
           });
+        });
+      });
+    }
+
+    // ── líneas de válvula y nota al pie, por sección ──
+    /* ⚠️ EL AZUL SALE DE `_C('TEMA')`, el color de la plantilla vigente, y NO de un literal: es el
+       mismo acento con el que la hoja pinta sus títulos, así que la línea de la morfología se lee
+       como lo que es —un hallazgo— en las ocho plantillas y no un azul suelto en las que no son
+       azules. Y NO depende sólo del color: la línea lleva el nombre del hallazgo escrito.
+       La nota al pie va un punto más chica y en gris, que es el papel que cumple. */
+    if (_linN) {
+      const _yLin = y + hH + acc + _linPadT;
+      const _az = _C('TEMA'), _vc = _C(_TBL.valCol), _gr = [120,120,120];
+      secs.forEach((sec, si) => {
+        const sx = mL + si * cW + 2;
+        sec._lin.forEach((ln, li) => {
+          if (ln.nota) { _tn(6.2); tc(_gr[0],_gr[1],_gr[2]); }
+          else if (ln.azul) { _tb(6.6); tc(_az[0],_az[1],_az[2]); }
+          else { _tn(6.6); tc(_vc[0],_vc[1],_vc[2]); }
+          doc.text(ln.t, sx, _yLin + li * _linH + 2.2);
         });
       });
     }
@@ -79836,137 +80832,30 @@ function generarPDFReal(_aj) {
   const cTipo = sv('centro_tipo'), cNom = sv('centro_nombre');
   const centroStr = (cTipo&&cNom)?cTipo+': '+cNom:(cNom||cTipo||null);
 
-  /* VI — lectura CON banda (`vPlaus`), la misma que usa el calc-box de la pantalla.
-     ⚠️ ESTE ES EL PAPEL QUE SE FIRMA Y SE ARCHIVA. Antes, un SIV de 110 mm imprimía una masa
-     indexada y una geometría calculadas sobre basura, y un VSFVI en litros imprimía «0.0 ml/m²»
-     al lado de su rango de normalidad — o sea que el informe afirmaba una medición normal sobre
-     un valor que la app, en otra superficie, ya sabía rechazar.
-     La marca NUNCA reemplaza al número —ver `MARCA_REVISAR`—: `drawTablaCompacta` no dibuja
-     las filas nulas, así que devolver `null` borraría la fila y el lector no se enteraría de
-     que se cargó algo; y reemplazar el valor borraría una medición que puede ser real. */
-  const _pDd = vPlaus('ddfvi'), _pDs = vPlaus('dsfvi'), _pSiv = vPlaus('siv'), _pPp = vPlaus('ppvi');
-  /* Crudo: las cuentas dan lo mismo que antes del cambio. La banda sólo agrega la marca. */
-  const dd=_pDd.crudo, ds=_pDs.crudo, sivV=_pSiv.crudo, pp=_pPp.crudo;
-  let masaIdx=null, rwtStr=null, geomStr=null;
-  if (dd&&sivV&&pp&&bsa) {
-    const mass = 0.8*(1.04*((dd/10+sivV/10+pp/10)**3-(dd/10)**3))+0.6;
-    masaIdx = (mass/bsa).toFixed(0)+' g/m2';
-    const rwt = 2*pp/dd;
-    rwtStr = rwt.toFixed(2);
-    geomStr = calcGeometriaVI(mass/bsa, rwt, sexo);
-  }
-  /* El número se conserva y se marca; la GEOMETRÍA, que es un patrón y no una medida, se
-     retira —publicarla sobre un insumo dudoso sería el juicio que no se puede sostener—. */
-  if (_pDd.fuera || _pSiv.fuera || _pPp.fuera) {
-    if (masaIdx) masaIdx += MARCA_REVISAR;
-    if (rwtStr)  rwtStr  += MARCA_REVISAR;
-    geomStr = null;
-  }
-  const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%'+((_pDd.fuera||_pDs.fuera)?MARCA_REVISAR:''):null;
-  const feviM  = sv('fevi_met');
-  const _pFevi = vPlaus('fevi');
-  // Con estimación visual muestra el rango completo (feviRangoTexto), no el piso.
-  const feviS  = _pFevi.crudo?feviRangoTexto(_pFevi.crudo)+(feviM?' ('+feviM+')':'')+(_pFevi.fuera?MARCA_REVISAR:''):null;
-  /* ⚠️ EL SGL NO SE VALIDA CON SU BANDA, Y NO ES UN OLVIDO. `DCM_RANGO.sgl` es `[-40,0]` y está
-     escrita para el camino DICOM, donde el signo se NORMALIZA antes del chequeo (lo dice su
-     propio comentario). En el formulario no hay normalización: el campo acepta el strain tipeado
-     en positivo —el borde del Laboratorio lo arregla con `-Math.abs()` y `calcDiastol` compara
-     con `Math.abs(sgl)`—, así que aplicar la banda acá convertiría un SGL de 18 —perfectamente
-     válido, y el 18 % es el valor NORMAL— en «fuera de rango» en el informe firmado, mientras la
-     hoja de strain del MISMO PDF lo sigue imprimiendo como 18 %.
-     Queda sin validar y declarado. Validarlo exige decidir antes dónde se normaliza el signo. */
-  const sglN   = v('sgl');
-  /* Sólo el número. Sin «Normal / Zona gris / Anormal»: la clasificación del SGL la hace el
-     médico en el narrativo, no la tabla de mediciones. Ver el comentario largo en calcSGL —
-     acá vivía la MITAD del informe firmado que se contradecía con su propia referencia. */
-  /* El valor NEGATIVO (AJ9-1c), por el mismo motivo que el informe narrativo: un «SGL 18%» en
-     la tabla de mediciones de un PDF firmado afirma un strain positivo. Sigue SIN rótulo. */
-  const sglS   = sglN ? sglNeg(sglN) + '%' : null;
-
-  /* VDFVI indexado. Su banda se agregó a `DCM_RANGO` el 2026-09-27: hasta entonces era el único
-     campo de esta tarjeta sin validar, al revés que su gemelo telesistólico de abajo. */
-  const _pVdf = vPlaus('vdfvi');
-  const vdfviIdx = (_pVdf.crudo && bsa) ? (_pVdf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVdf.fuera?MARCA_REVISAR:'') : null;
-  // VSFVI indexado — mismo cálculo y misma BSA que la fila de arriba
-  const _pVsf = vPlaus('vsfvi');
-  const vsfviIdx = (_pVsf.crudo && bsa) ? (_pVsf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVsf.fuera?MARCA_REVISAR:'') : null;
-
-  // AI
-  const _pAiVol = vPlaus('ai_vol');
-  /* ⚠️ LA FILA DICE POR QUÉ NO HAY ÍNDICE, EN VEZ DE DESAPARECER (J1, 2026-10-16). Con el
-     volumen medido y sin superficie corporal `aiIdx` quedaba en `null` y la fila se caía del
-     filtro de la tabla: el papel firmado no decía nada mientras su propio texto narrativo ya
-     declara el volumen sin indexar. El rótulo sale de `AI_SIN_IDX_ROT`, la MISMA constante
-     que publica la cápsula de la pantalla, así que las dos superficies no pueden
-     desincronizarse. La fila «Volumen AI» de arriba sigue imprimiendo los ml como siempre. */
-  const aiIdx  = (_pAiVol.crudo&&bsa)?(_pAiVol.crudo/bsa).toFixed(1)+' ml/m2'+(_pAiVol.fuera?MARCA_REVISAR:'')
-               : (aiVolSinIndexar(_pAiVol.crudo, bsa) ? AI_SIN_IDX_ROT : null);
-
-  /* Doppler mitral. Los cocientes E/A y E/e' se publican SÓLO con los dos insumos legibles: un
-     cociente calculado sobre una onda ilegible es un número con la misma pinta que uno bueno. */
-  const _pE = vPlaus('onda_e'), _pA = vPlaus('onda_a');
-  const ea     = (_pE.crudo&&_pA.crudo)?(_pE.crudo/_pA.crudo).toFixed(2)+((_pE.fuera||_pA.fuera)?MARCA_REVISAR:''):null;
-  const _pESep = vPlaus('e_sep'), _pELat = vPlaus('e_lat');
-  const eSep   = _pESep.crudo, eLat = _pELat.crudo;
-  /* El PROMEDIO hereda la duda de cualquiera de los dos anillos: con e' septal en 0,07 —m/s por
-     cm/s— el promedio daba «5.0 cm/s» sin una sola marca, y ese número es el denominador del
-     E/e'. Un promedio contaminado se ve igual que uno bueno. */
-  const _ePromDud = _pESep.fuera || _pELat.fuera;
-  const _ePromN = (eSep&&eLat)?((eSep+eLat)/2).toFixed(1):(eSep?eSep.toFixed(1):eLat?eLat.toFixed(1):null);
-  const eProm  = _ePromN;
-  const ePromS = _ePromN ? _ePromN + (_ePromDud ? MARCA_REVISAR : '') : null;
-  const ee     = (_pE.crudo&&eProm)?(_pE.crudo/PF(eProm)).toFixed(1)+((_pE.fuera||_pESep.fuera||_pELat.fuera)?MARCA_REVISAR:''):null;
-
-  // Aortic
-  const avaC   = v('ava_cont');
-  const avaIdx = (avaC&&bsa)?(avaC/bsa).toFixed(2)+' cm2/m2':null;
-  /* ══ EL GASTO CARDÍACO DEL PDF SE PUBLICA SÓLO CON FRECUENCIA CARDÍACA (F1, 2026-10-15) ════
-     Decisión de Maicol. Antes el respaldo era una FC de 70 marcada con «*»; medido en HEAD con
-     Ø TSVI 20 mm y VTI TSVI 20 cm, el PDF SIN FC imprimía «GC: 4.4 L/min*» y «IC: 2.20
-     L/min/m2» — dos números sostenidos por una frecuencia que nadie midió, en un informe
-     FIRMADO, y el «*» no tiene pie de página en ningún lado del documento: censo del archivo,
-     cero apariciones de una nota que lo explique. Hoy sin FC usable no hay fila.
-
-     ⚠️ CON LA FC CARGADA NO CAMBIA NI UN NÚMERO, y eso está medido: el `_fcUso` de HEAD ya era
-     la FC real cuando `hemoFCUsable` la aceptaba. Con FC 72 el papel decía y sigue diciendo
-     «4.5 L/min»; con 110, «6.9 L/min». Lo único que se retira es la rama del respaldo.
-
-     ⚠️ EL ROTULO DICE QUÉ FC SE USÓ, y va en el campo `ref` de la fila —no en `lbl`— porque esa
-     es la ranura que `drawTablaCompacta` tiene para el calificador: estampa «rotulo (ref):
-     valor», o sea «GC (con FC de 72 lpm): 4.5 L/min», que es el texto pedido. En `lbl` habría
-     entrado en negrita y le habría comido el ancho que la función reserva para envolver el
-     valor, porque el presupuesto de cada celda se mide sobre el rótulo en negrita.
-
-     ⚠️ EL ÍNDICE CARDÍACO SE VA CON ÉL, y es consecuencia y no decisión aparte: `icV` es
-     `coV / ASC`, así que publicarlo sin el GC sería publicar el índice de una magnitud que la
-     app acaba de negarse a imprimir, calculado con la MISMA FC inventada. La orden nombra sólo
-     el GC; dejar el IC sería conservar el defecto por la puerta de al lado.
-
-     ⚠️ LA PANTALLA NO CAMBIA: `calcHemo` ya dejaba el GC, el IC, la RVS y los dos perfiles en
-     `null` con la FC vacía o fuera de banda, con el MISMO predicado. Lo que esta línea cierra es
-     justamente que las dos superficies dejen de discrepar.
-
-     La banda pasó a `HEMO_FC_BANDA` / `hemoFCUsable` el 2026-10-06; el predicado sigue siendo el
-     mismo para la pantalla y para el papel, así que una FC fuera de banda (medido: 300) es el
-     MISMO estado que una FC vacía y tampoco vuelve a suponer 70. */
-  const _fcReal = v('hemo_fc');
-  const _fcUso  = hemoFCUsable(_fcReal) ? _fcReal : null;
-  const coV    = (_fcUso !== null && v('diam_tsvi') && v('itv_tsvi'))
-    ? (Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min' : null;
-  const _fcRef = (_fcUso !== null) ? 'con FC de ' + _fcUso + ' lpm' : '';
-  const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
-
-  // PSAP
-  /* Hereda la banda de su INSUMO: sin esto, el mismo PDF decia «V. max IT: fuera de rango» y
-     «Grad. IT: 313600 mmHg» sobre la misma Vmax de 280 (cm/s tipeados donde van m/s). */
-  const _pVit  = vPlaus('vmax_it');
-  const gradIT = _pVit.crudo?(4*_pVit.crudo**2).toFixed(0)+' mmHg'+(_pVit.fuera?MARCA_REVISAR:''):null;
-
-  // Valve grades
-  const GT = ['--','Leve','Moderada','Moderada-severa','Severa'];
-  const imG = parseInt(sv('im_grado'))||0;
-  const iaG = parseInt(sv('ia_grado'))||0;
-  const itG = parseInt(sv('it_grado'))||0;
+  /* ⚠️ LOS DERIVADOS DE LOS CUADROS SE CONSUMEN, NO SE CALCULAN ACÁ (tanda CUADROS). Todo este
+     bloque —la lectura con banda del VI, la masa, la geometría, la FEVI, el SGL, los dos volúmenes
+     indexados, el índice de la AI, los cocientes del Doppler mitral, el AVA, el gasto cardíaco con
+     su frecuencia y los tres grados valvulares— se mudó ENTERO Y TEXTUAL a `cuadCtx`, que es el
+     dueño que leen también los cuadros de la tarjeta de «Cuadros». No se copió: se movió, y esta
+     función lo destructura para que el resto de sus 900 líneas siga nombrando las mismas
+     variables. Con dos derivaciones, la tarjeta y el papel firmado podrían publicar dos valores
+     del mismo cociente. */
+  const _CX = cuadCtx();
+  const _pDd = _CX._pDd, _pDs = _CX._pDs, _pSiv = _CX._pSiv, _pPp = _CX._pPp;
+  const dd = _CX.dd, ds = _CX.ds, sivV = _CX.sivV, pp = _CX.pp;
+  const masaIdx = _CX.masaIdx, rwtStr = _CX.rwtStr, geomStr = _CX.geomStr, faStr = _CX.faStr;
+  const feviM = _CX.feviM, _pFevi = _CX._pFevi, feviS = _CX.feviS;
+  const sglN = _CX.sglN, sglS = _CX.sglS;
+  const _pVdf = _CX._pVdf, vdfviIdx = _CX.vdfviIdx, _pVsf = _CX._pVsf, vsfviIdx = _CX.vsfviIdx;
+  const _pAiVol = _CX._pAiVol, aiIdx = _CX.aiIdx;
+  const _pE = _CX._pE, _pA = _CX._pA, ea = _CX.ea;
+  const _pESep = _CX._pESep, _pELat = _CX._pELat, eSep = _CX.eSep, eLat = _CX.eLat;
+  const _ePromDud = _CX._ePromDud, _ePromN = _CX._ePromN, eProm = _CX.eProm, ePromS = _CX.ePromS;
+  const ee = _CX.ee;
+  const avaC = _CX.avaC, avaIdx = _CX.avaIdx;
+  const _fcReal = _CX._fcReal, _fcUso = _CX._fcUso, coV = _CX.coV, _fcRef = _CX._fcRef, icV = _CX.icV;
+  const _pVit = _CX._pVit, gradIT = _CX.gradIT;
+  const GT = _CX.GT, imG = _CX.imG, iaG = _CX.iaG, itG = _CX.itG;
 
   // ════════════════════════════════════════════════════════════
   // 1+2. ENCABEZADO (4 plantillas) + DATOS DEL PACIENTE
@@ -80652,484 +81541,29 @@ function generarPDFReal(_aj) {
   }
   y = _hdrCerrar(_yHdr);
 
-  // ════════════════════════════════════════════════════════════
-  // BLOQUE 1 (3 col): Raíz de Aorta | Aurícula Izquierda | Aurícula Derecha / VCI
-  // ════════════════════════════════════════════════════════════
-  drawTablaCompacta([
-    /* Etiquetas abreviadas: la columna es angosta y «Unión sinotubular» sola se llevaba
-       media fila, forzando el envoltorio del valor a una segunda línea. El valor de
-       referencia al lado desambigua qué es cada una. */
-    /* Las filas se DERIVAN de AO_SEGS. Estaban cableadas a mano con los tres segmentos
-       clásicos, así que al agregar el cayado y la descendente el informe firmado quedaba
-       diciendo «el cayado aórtico se encuentra moderadamente dilatado» en el narrativo y la
-       tabla, dos páginas después, listaba sólo Valsalva/ST/Ao asc — sin fila de cayado. Es el
-       mismo defecto que el narrativo ya había cerrado para `ao_tub`, reabierto por la tabla.
-       Los rótulos cortos viven acá porque son de esta tabla; el resto sale de la lista. */
-    {titulo:'Aorta torácica', items:(function(){
-      const CORTO = { ao_sin:'SV', ao_st:'ST', ao_tub:'Ao asc', diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
-      const filas = AO_SEGS.map(function(sg){
-        const x = v(sg.k);
-        /* ⚠️ EL SIMBOLO SALE DE `aoSegSim` Y NO ES `<=` EN LOS CINCO (VS5): el seno de Valsalva
-           cuenta su corte como dilatado, asi que su referencia impresa dice «<40 mm». Se usa la
-           forma ASCII, que es la que esta tabla ya usa en el resto de sus referencias. */
-        /* ⚠️ EL NUMERO SALE DE `aoSegRef` Y NO DE `sg.ref` (AJ4-1): en la RAIZ depende del sexo,
-           asi que en una mujer esta tabla imprime «<36 mm». Con el literal, el PDF habria
-           publicado el corte del varon al lado de un valor juzgado con el de la mujer. */
-        return { lbl: CORTO[sg.k] || sg.lblC, ref: (sg.incRef ? '<' : '<=') + aoSegRef(sg) + ' mm', val: x ? x + ' mm' : null };
-      });
-      filas.push({ lbl:'Ø TSVI', ref:'', val:v('diam_tsvi_ao')?v('diam_tsvi_ao')+' mm':null });
-      return filas;
-    })()},
-    {titulo:'Aurícula Izquierda', items:[
-      /* ⚠️ El área decía «<22 cm2» y ese 22 NO TIENE FUENTE: se confunde con el promedio de volumen
-         indexado normal (22 ± 6 ml/m²), que es otra magnitud. Los dos cortes salen ahora de las
-         constantes, así que la referencia impresa en el papel firmado no puede separarse del
-         predicado que usan la cápsula y el informe. */
-      {lbl:'Diám. AP',     ref:'H<=' + AI_DIAM_NORMAL_MAX_H + ' M<=' + AI_DIAM_NORMAL_MAX_M + ' mm',  val:v('ai_diam')?v('ai_diam')+' mm':null},
-      {lbl:'Área AI',      ref:'<=' + UMBRAL_AI_AREA_DILATADA + ' cm2', val:v('ai_area')?v('ai_area')+' cm2':null},
-      {lbl:'Volumen AI',   ref:'',           val:v('ai_vol') ?v('ai_vol') +' ml':null},
-      /* `<=` y no `<`: el clasificador trata el 34,0 exacto como NORMAL (`idx <= UMBRAL_LAVI_DILATADO`,
-         y el comentario de la constante dice «>34 → dilatada»). Con `<` el papel firmado imprimía un
-         LAVI de 34,0 —alcanzable, `(68/2.00).toFixed(1)`— al lado de una referencia que lo excluye,
-         mientras la cápsula de la pantalla decía «Normal (≤34 ml/m²)». Las otras dos superficies que
-         publican este corte ya lo decían bien (la tarjeta de Referencias y el manual). */
-      {lbl:'Vol. indexado',ref:'<=' + UMBRAL_LAVI_DILATADO + ' ml/m2', val:aiIdx},
-    ]},
-    {titulo:'Aurícula Derecha / VCI', items:[
-      /* ⚠️ LAS DOS REFERENCIAS SE DERIVAN DEL DUENO (VS4, 2026-10-17) y las dos cambian de
-         número: el área de la AD pasa de «<18» a «<19» (ASE 2025, Tabla 1) y el diámetro de la
-         VCI pasa de un rango «16-20 mm» a «<=21 mm», que es lo que la guía escribe —«A normal
-         IVC diameter is <=2.1 cm», folio 160— y lo que la app aplica desde este commit. El
-         rango viejo le ponía a lo normal un PISO que ninguna guía da, y contradecía a la propia
-         app sobre el 21 exacto. */
-      {lbl:'Área AD',     ref:'<' + UMBRAL_AD_AREA_NORMAL + ' cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
-      /* PANT-11, commit 3: con la casilla marcada la fila DICE que no se visualiza, en vez de
-         desaparecer. Una fila ausente se lee como «no se midio»; la frase es la afirmacion del
-         ecografista. Las otras dos filas de la cava se callan: sin cava no hay colapso ni
-         presion que publicar, y repetirlo tres veces no agrega nada. */
-      {lbl:'Diám. VCI',   ref:'<=' + VCI_DIAM_DILATADA_MIN + ' mm',
-       val:(typeof vciNoVisOn === 'function' && vciNoVisOn()) ? 'No se visualiza'
-           : (v('vci_diam')?v('vci_diam')+' mm' :null)},
-      /* ⚠️ EL COLAPSO LLEVA SU UNIDAD (H2, 2026-10-16). El `<select>` guarda los tokens «>50»
-         y «<50» y el papel firmado los imprimía PELADOS, al lado de un diámetro que sí dice
-         «mm»: un «>50» sin unidad en un informe clínico se lee como lo que el lector suponga.
-         Las otras tres superficies ya lo decían: el informe narrativo escribe «colapso mayor al
-         50%», el PPT hace `val + '%'` sobre estos mismos dos tokens y la propia `<option>` se
-         rotula «>50%». El PDF era el único que callaba la unidad, así que se alinea con el
-         MISMO formato que ya usan las otras dos —sin espacio—, no con uno nuevo.
-         La guarda por token y no un `+ '%'` pelado: un valor que no sea uno de los dos sale sin
-         unidad en vez de inventarle una. El EN SUMA no nombra la VCI, censado. */
-      {lbl:'Colapso VCI', ref:'',         val:(function(){
-        const c = sv('vci_col');
-        return c ? (c === '>50' || c === '<50' ? c + '%' : c) : null; })()},
-      {lbl:'PmAD',        ref:'',         val:v('pmad')    ?v('pmad')    +' mmHg':null},
-      /* VEXUS con el detalle de en qué se basó: "VEXUS 2" a secas obliga a confiar en que
-         quien lo cargó usó la regla correcta. Con "(1/3 severo)" el que lee el informe puede
-         reconstruirlo. Si no es calculable, la fila no aparece. */
-      {lbl:'VEXUS',       ref:'0-3',      val:(()=>{
-        const vx = (typeof vexusEstado === 'function') ? vexusEstado() : null;
-        if (!vx || vx.score === null) return null;
-        return vx.score + ' (' + vx.severos.length + '/' + vx.evaluados + ' severo'
-          + (vx.severos.length === 1 ? '' : 's') + (vx.evaluados < 3 ? ', ' + vx.evaluados + '/3 vasos' : '') + ')';
-      })()},
-    ]},
-  ]);
 
   // ════════════════════════════════════════════════════════════
-  // BLOQUE 2 (3 col): VI Estructura | VI Función Sistólica | Ventrículo Derecho
+  // LOS CUADROS DE DATOS — doce, de a tres por fila
   // ════════════════════════════════════════════════════════════
-  drawTablaCompacta([
-    {titulo:'VI - Estructura', items:[
-      /* ⚠️ ESTAS CUATRO NO PUEDEN USAR LA VARIABLE LOCAL YA VALIDADA: `sivV` es `null` cuando el
-         valor es ilegible, y `sivV ? … : null` hace que la fila DESAPAREZCA del papel firmado.
-         Medido: con SIV 110 la fila se borraba entera mientras «Masa idx» decía «fuera de
-         rango», o sea que el informe acusaba al derivado y escondía el insumo que lo causó.
-         Se consume el objeto de `vPlaus`, que distingue «no hay dato» de «hay dato ilegible». */
-      {lbl:'SIV',       ref:'H<=10 M<=9 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
-      {lbl:'DDVI',      ref:'H<=' + DDVI_NORMAL_MAX_H + ' M<=' + DDVI_NORMAL_MAX_M + ' mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
-      {lbl:'DSVI',      ref:'H<=40 M<=35 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
-      {lbl:'PP',        ref:'H<=10 M<=9 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
-      /* ⚠️ «H<75 M<61» ERA FALSO EN LAS DOS DIRECCIONES, Y EL CÓDIGO NUNCA ESTUVO MAL.
-         `vdfviInterp` clasifica con `> 74` y `> 61` desde siempre —medido: 74,0 normal y 74,1
-         levemente dilatado; 61,0 normal en la mujer—, que es exactamente lo que dice la ASE 2015
-         («74 mL/m2 for men and 61 mL/m2 for women … as the upper limits of the normal range»).
-         La etiqueta impresa decía otra cosa: el «H<75» daba por normal un 74,5 que el badge
-         llama dilatado, y el «M<61» daba por anormal un 61,0 exacto que el badge llama normal.
-         O sea que el papel firmado y la pantalla se contradecían en los dos bordes.
-         Se escribe con `<=` igual que la fila de VSFVI de acá abajo, que ya usa esa convención. */
-      {lbl:'VDFVI idx', ref:'H<=74 M<=61 ml/m²',  val:vdfviIdx},
-      /* Límites superiores de normalidad de la ASE/EACVI 2015, que el documento imprime en su
-         recomendación destacada: 31 ml/m² en el varón y 24 en la mujer. Se escriben con `<=`
-         —y no «H<32 M<25»— porque es lo que dice la fuente; el `>=` de las filas de FEVI y FA
-         de esta misma tabla ya usa esa convención ASCII.
-         ⚠️ NO es el 45 ml/m² del panel de Evidencia: ése es el umbral de INTERVENCIÓN de la
-         ESC/EACTS 2025 para la insuficiencia aórtica, no un límite de normalidad. */
-      {lbl:'VSFVI idx', ref:'H<=31 M<=24 ml/m²', val:vsfviIdx},
-    ]},
-    {titulo:'VI - Funcion sistolica', items:[
-      // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
-      {lbl:'FEVI',      ref:'>=' + UMBRAL_FEVI_NORMAL + '%',           val:feviS},   // el piso de la banda preservada; las cuatro bandas estan en Referencias
-      {lbl:'FA',        ref:'>=28%',           val:faStr},
-      /* SIN referencia, a diferencia del resto de la tabla. `>=-18%` era un CUARTO umbral
-         para el mismo dato —el badge del formulario cortaba en 20 y 16— y era la mitad
-         impresa de la contradicción: «SGL (>=-18%): -18% - Zona gris» decía que el valor
-         alcanza la referencia y que igual no es normal. Quitada la etiqueta, dejar la
-         referencia seguiría afirmando dónde está lo normal, que es justo lo que se decidió
-         que no haga la tabla. `_suf` ya contempla ref vacía: sale «SGL: -18%». */
-      {lbl:'SGL',       ref:'',                val:sglS},
-      {lbl:'Vol. lat.', ref:'55-100 ml',       val:vPdf('vol_lat',' ml')},
-      {lbl:'Masa idx',  ref:'H<=' + UMBRAL_MASA_HVI_H + ' M<=' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
-      {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
-      {lbl:'Geometria', ref:'',                val:geomStr},
-    ]},
-    {titulo:'Ventrículo Derecho', items:[
-      {lbl:'TAP',         ref:'>105 ms',    val:vPdf('tvia',' ms')},
-      /* ⚠️ LAS REFERENCIAS IMPRESAS SIGUEN AL OPERADOR DEL DUENO (VS2, 2026-10-17): la Tabla 1
-         de la ASE 2025 da lo NORMAL con `>`, asi que el papel ya no puede decir «>=17 mm» sobre
-         una capsula que llama leve al 17 exacto. La de la onda S' ya decia «>9.5» y se deriva
-         para que no vuelva a quedar vieja sola. */
-      {lbl:'TAPSE',       ref:'>' + UMBRAL_TAPSE_NORMAL + ' mm',      val:vPdf('tapse',' mm')},
-      {lbl:"S'",          ref:'>' + UMBRAL_SPRIME_NORMAL + ' cm/s',   val:vPdf('s_prime',' cm/s')},
-      /* Los tres diámetros con SU referencia (ASE 2015). El medio y el longitudinal se imprimían
-         sin corte, así que el lector no tenía cómo saber que un VD medio de 42 mm está dilatado
-         — y hasta este commit la app tampoco lo decía en el informe. */
-      /* ⚠️ LAS TRES REFERENCIAS SIGUEN AL OPERADOR DEL DUENO (VS3): la Tabla 1 de la ASE 2025
-         da lo NORMAL con `<`, así que el papel ya no puede decir «<=41 mm» sobre una cápsula que
-         llama leve al 41 exacto. El longitudinal baja además de 86 a 82 mm. */
-      {lbl:'Diám. basal', ref:'<' + VD_BAS_NORMAL_MAX + ' mm',   val:vPdf('vd_bas',' mm')},
-      {lbl:'Diám. medio', ref:'<' + VD_MID_NORMAL_MAX + ' mm',   val:vPdf('vd_mid',' mm')},
-      {lbl:'Longitud',    ref:'<' + VD_LONG_NORMAL_MAX + ' mm',  val:vPdf('vd_long',' mm')},
-      /* FAC y FEVD van juntas y con SU propia referencia cada una: son dos medidas distintas de
-         lo mismo (2D por áreas vs 3D) y confundir los cortes —35 % y 45 %— convierte un VD
-         normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
-         código clasifica con «<=41»: el mismo borde escrito de dos formas, ahora derivado de la
-         constante. */
-      {lbl:'FAC',         ref:'>' + UMBRAL_FAC_VD_NORMAL + '%', val:vPdf('vd_fac','%')},
-      {lbl:'FEVD',        ref:'>' + UMBRAL_FEVD_NORMAL + '%',   val:vPdf('fevd','%')},
-      /* ⚠️ CON NÚMERO SALE EXACTAMENTE LO DE HEAD —`vPdf` con sus dos decimales y su marca
-         «(revisar)»— y sólo cuando NO hay número el papel publica el tramo que eligió el
-         médico (G3, 2026-10-15). `vdViTexto(true)` da la forma ASCII, que es la que esta
-         tabla ya usa en sus referencias (`'<=' + VD_BAS_NORMAL_MAX + ' mm'`). */
-      {lbl:'VD/VI',       ref:'',           val:(function(){ const _n = vPdf('vd_vi','',2);
-        if (_n !== null) return _n;
-        return (typeof vdViTexto === 'function') ? vdViTexto(true) : null; })()},
-    ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // BLOQUE 3 (3 col): Flujo Transmitral | DTI Mitral | Tricúspide / PSAP
-  // ════════════════════════════════════════════════════════════
-  /* ══ LAS CUATRO FILAS DE LA VALVULA PULMONAR, CON UN DUENO UNICO (TGA-4, 2026-11-02) ════════
-     Salen del literal de la seccion para que el TITULO y las FILAS se decidan con la MISMA
-     lista: un predicado aparte que repitiera las condiciones de cada fila es una segunda copia,
-     y el dia que una cambie el encabezado nombraria la valvula pulmonar sin ninguna fila debajo
-     —o al reves—. El orden dentro de la seccion no se mueve: van donde estaban, entre «PAP
-     media» y «PAPm (IP)». */
-  const _vpFil = [
-    {lbl:'V. máx VP',  ref:'', val:vPdf('vp_vmax',' m/s')},
-    {lbl:'G. máx VP',  ref:'', val:vPdf('vp_gmax',' mmHg')},
-    {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
-    // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
-    {lbl:'DVI VP',     ref:'', val:_protPdf('vp_morf','vp_dvi','',2)},
-  ];
-  const _vpHayFil = _vpFil.some(f => f.val != null && String(f.val).trim() !== '');
-  drawTablaCompacta([
-    /* ⚠️ EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY, Y SE CONSERVA AUNQUE LA PANTALLA YA NO
-       TENGA PANEL (decisión de esta segunda pasada, que el pedido dejó a criterio).
-       El motivo nunca fue espejar la pantalla: es que `Veloc. Ar: 42 cm/s` y `Ar-A: 35 ms` salían
-       bajo un encabezado que dice «Flujo transmitral», sin divisor vertical y con la misma
-       tipografía que las filas mitrales — en el papel firmado se leen como un Doppler mitral, y
-       «vena pulmonar» no aparecía ni una vez en todo el PDF.
-       Y el argumento se REFUERZA con el cambio: en pantalla los rótulos dicen «Dur. onda Ar
-       pulmonar» y «Veloc. Ar pulmonar» completos, así que ahí se entiende de qué estructura son.
-       El PDF los abrevia a «Dur. Ar» y «Veloc. Ar» para entrar en media columna, o sea que es
-       JUSTAMENTE la superficie donde el encabezado hace más falta, no menos. Un documento firmado
-       que circula sin la app al lado no tiene dónde desambiguar.
-       Sigue siendo condicional: sin datos de vena pulmonar el título es el de siempre y el PDF
-       sale idéntico. */
-    {titulo: (typeof venpHay === 'function' && venpHay())
-               ? 'VM — Transmitral / Vena pulmonar' : 'VM — Flujo transmitral', items:[
-      {lbl:'Onda E',    ref:'',  val:vPdf('onda_e',' cm/s')},
-      {lbl:'Onda A',    ref:'',  val:vPdf('onda_a',' cm/s')},
-      {lbl:'E/A',       ref:'',  val:ea},
-      /* ⚠️ «TDE» Y NO «TDA» DESDE EL 2026-10-12. El campo es `tde` —tiempo de desaceleración de
-         la onda E— y en toda la app, en las tres guías y en el Excel se llama TDE; en el PDF
-         firmado salía «TDA», que se lee como la onda A y es la otra. Es un rótulo, no un valor:
-         el número no cambia. */
-      {lbl:'TDE',       ref:'',  val:vPdf('tde',' ms')},
-      {lbl:'TRIV',      ref:'',  val:vPdf('triv',' ms')},
-      {lbl:'THP',       ref:'',  val:vPdf('thp',' ms')},
-      /* `emAvmThpPdfTxt()` y no `vPdf('avm_thp',' cm2')`: la fila «AVm» de la tabla de Estenosis
-         mitral imprime ESTA MISMA área, así que la compuerta de banda del THP tiene un solo dueño
-         y las dos filas no pueden contradecirse en el papel firmado. Ver su nota. */
-      {lbl:'AVm THP',   ref:'',  val:emAvmThpPdfTxt()},
-    ],
-    /* ⚠️ SUB-COLUMNA DERECHA: VENA PULMONAR. Va como `items2` de ESTA sección y no como una
-       cuarta columna — ver la nota larga en `drawTablaCompacta`—: así «DTI mitral» y
-       «Tricúspide / PSAP» conservan su ancho y el bloque conserva su altura.
-       Si el médico no midió vena pulmonar, los cinco ítems salen `null`, el filtro los descarta,
-       `items2` queda vacío y la tabla se dibuja exactamente como antes.
-       ⚠️ LA DIFERENCIA LA CALCULA `venpArA()`, LA MISMA QUE LA PANTALLA. Rehacer la resta acá
-       sería la segunda copia de una fórmula cuya versión impresa se pudre sin que se note desde
-       la app — la trampa que este archivo documenta con `vp_gmax` y con la fórmula duplicada
-       pantalla/informe. Si `venpArA` no existe, la fila no sale: mejor sin el derivado que con
-       uno calculado por otro camino.
-       Sin referencias en la columna `ref`: los dos cortes de la guía viven en las alertas de la
-       pantalla, y ponerlos acá sería una tercera escritura del mismo umbral. */
-    items2:[
-      /* `> 0` y no truthiness, igual que `venpArA`: con el predicado viejo un 0 desaparecía de la
-         tabla mientras el derivado que lo usa sí se imprimía. Los dos bordes, el mismo criterio. */
-      {lbl:'Dur. A mit.', ref:'', val:v('venp_dur_a') >0?v('venp_dur_a') +' ms':null},
-      {lbl:'S/D pulm.',   ref:'', val:(typeof venpSDTxt==='function')?venpSDTxt():null},
-      {lbl:'Dur. Ar',     ref:'', val:v('venp_dur_ar')>0?v('venp_dur_ar')+' ms':null},
-      /* ⚠️ ESTAS DOS SÍ LLEVAN `ref`, y las otras tres no. En esta tabla la columna `ref` es la de
-         UMBRALES, y son las únicas dos filas que tienen uno: imprimir un Ar−A de 35 ms sin su
-         corte, al lado de filas que sí lo llevan (`E/e' <14`, `PSAP <=35 mmHg`), deja el único
-         criterio interpretado en la pantalla y fuera del documento firmado.
-         Salen de las CONSTANTES, así que no son una tercera escritura del umbral: es lo mismo que
-         esta tabla ya hace con `UMBRAL_TAPSE_NORMAL` y `UMBRAL_PSAP_ELEVADA`. Y son los dos del
-         pedido, ninguno más. */
-      {lbl:'Veloc. Ar',   ref:'>' + VENP_AR_VEL_CMS + ' cm/s', val:v('venp_vel_ar')>0?v('venp_vel_ar')+' cm/s':null},
-      {lbl:'Ar-A',        ref:'>' + ARA_MS + ' ms', val:(()=>{ const d=(typeof venpArA==='function')?venpArA():null;
-                                             return d==null?null:(d+' ms'); })()},
-    ]},
-    {titulo:'DTI mitral', items:[
-      /* Igual que las cuatro de VI-Estructura: un valor ilegible se DICE, no borra la fila.
-         Con e_sep = 0,07 (m/s por cm/s) la fila desaparecia del papel firmado y el E/e' se
-         seguia publicando como «promedio» calculado con un solo anillo. */
-      {lbl:"e' septal",  ref:'>7 cm/s',  val:eSep?eSep+' cm/s'+(_pESep.fuera?MARCA_REVISAR:''):null},
-      {lbl:"e' lateral", ref:'>10 cm/s', val:eLat?eLat+' cm/s'+(_pELat.fuera?MARCA_REVISAR:''):null},
-      {lbl:"e' prom.",   ref:'',         val:ePromS?ePromS.replace(/( \(revisar\))?$/,' cm/s$1'):null},
-      /* ⚠️ `<=14` Y DERIVADO DE LA CONSTANTE. Decía `<14`, que EXCLUYE el 14,0 exacto — y la app
-         clasifica con `> 14`, así que ese mismo valor salía en negro en pantalla y fuera de rango
-         en el documento firmado. Es el borde que el pintado nuevo destapó. Lo cazó `/sharp-edges`. */
-      {lbl:"E/e'",       ref:'<=' + UMBRAL_EE_ELEVADA,      val:ee},
-    ]},
-    /* ⚠️ EL TITULO NOMBRA LA VALVULA PULMONAR CUANDO LA HAY (TGA-4, 2026-11-02), Y ES EL MISMO
-       ARREGLO QUE ESTE BLOQUE YA LE HIZO A LA VENA PULMONAR. El medico leyo en la primera hoja
-       «Morf. VP: Prótesis biológica» bajo un encabezado que dice «Tricúspide / PSAP» y lo
-       entendio de la TRICUSPIDE. Las cuatro filas `VP` son la VALVULA pulmonar —otra estructura—
-       y el encabezado no la nombraba ni una vez: en un documento firmado que circula sin la app
-       al lado no hay donde desambiguar, que es palabra por palabra el argumento con que la
-       sub-columna de la vena pulmonar gano su titulo condicional seis lineas mas arriba.
-       ⚠️ LA AGRUPACION NO SE TOCA: las filas se quedan donde estan. El corazon derecho entero
-       —insuficiencia tricuspidea, presion pulmonar y valvula pulmonar— sigue en una sola caja de
-       la tabla de tres columnas; lo unico que cambia es el ROTULO, que es lo que la orden pide.
-       ⚠️ «Válv. pulmonar» Y NO «V. pulmonar»: la caja vecina dice «Vena pulmonar», asi que una
-       «V.» abreviada se leeria como la vena. El titulo se achica solo hasta entrar (ver el bucle
-       de `_sz` en `drawTablaCompacta`), igual que el de la vena pulmonar, que es mas largo que
-       el original por el mismo motivo.
-       Sigue siendo CONDICIONAL: sin datos de valvula pulmonar el titulo es el de siempre y el
-       PDF sale identico. */
-    {titulo:'Tricúspide / PSAP' + (_vpHayFil ? ' / Válv. pulmonar' : ''), items:[
-      {lbl:'V. máx IT',  ref:'',                    val:vPdf('vmax_it',' m/s')},
-      {lbl:'Grad. IT',   ref:'',                    val:gradIT},
-      /* La columna `ref` de esta tabla es la de UMBRALES DE SEVERIDAD, y cuatro bandas al lado
-         de la PSAP son una graduación de hipertensión pulmonar en todo menos en el nombre —
-         justo lo que la app se cuida de no hacer en todas las otras superficies («rango, no
-         grado de HTP»). Se sostenía por el contrapeso de la salvedad del narrativo; al salir
-         ésa (2026-09-14) la tabla quedaba como la única lectura, y la más afirmativa.
-         Queda el corte de normalidad, que sí es un valor de referencia. */
-      {lbl:'PSAP',       ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg',   val:vPdf('psap_calc',' mmHg')},
-      {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
-      ..._vpFil,
-      /* Sin PmAD NO se publica la fila. El `(pm||0)` de antes imprimía `4·V²` —el gradiente
-         entre arteria pulmonar y ventrículo derecho— bajo el rótulo «PAPm», subestimando la
-         presión pulmonar en el valor entero de la PmAD (5-15 mmHg) sin ninguna marca. Y desde
-         que el narrativo dice «falta la PmAD», el mismo PDF traía la advertencia en una página
-         y el número inventado en la otra. Misma regla en las dos superficies. */
-      {lbl:'PAPm (IP)',  ref:'', val:(()=>{const vm=v('ip_vmax'),pm=v('pmad');return (vm&&pm!==null)?(4*vm*vm+pm).toFixed(0)+' mmHg':null;})()},
-      {lbl:'PAPd (IP)',  ref:'', val:(()=>{const vt=v('ip_vtd'),pm=v('pmad');return (vt&&pm!==null)?(4*vt*vt+pm).toFixed(0)+' mmHg':null;})()},
-    ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // BLOQUE 4 (3 col): Gradientes Ao | Continuidad TSVI | AVA / GC / IC
-  // ════════════════════════════════════════════════════════════
-  drawTablaCompacta([
-    {titulo:'VA — Gradientes', items:[
-      {lbl:'V. máx Ao',   ref:'', val:vPdf('vmax_ao',' m/s')},
-      {lbl:'G. máx',      ref:'', val:vPdf('gmax_calc',' mmHg')},
-      {lbl:'G. medio',    ref:'', val:vPdf('gmedio_ao',' mmHg')},
-    ]},
-    {titulo:'Continuidad TSVI', items:[
-      {lbl:'VTI TSVI',  ref:'', val:vPdf('itv_tsvi',' cm')},
-      {lbl:'VTI Vao',   ref:'', val:vPdf('itv_ao',' cm')},
-      {lbl:'Ø TSVI',    ref:'', val:vPdf('diam_tsvi',' mm')},
-    ]},
-    {titulo:'AVA / GC / IC', items:[
-      /* ⚠️ LA REFERENCIA IMPRESA SE MUEVE CON EL CORTE (VAL2, 2026-10-17): el techo de la banda
-         moderada es 1,5 INCLUSIVE, así que «>1.0–1.49» era el rango de ayer en un papel FIRMADO. */
-      {lbl:'AVA',         ref:'(>' + AVA_MOD_MAX.toFixed(1) + ' / >' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + ' / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:avaC?avaC+' cm2':null},
-      {lbl:'AVA idx',     ref:'<0.6 cm2/m2', val:avaIdx},
-      {lbl:'Vol. sistól.',ref:'55-100 ml',    val:vPdf('vs_calc',' ml')},
-      /* VLI: el informe lo cita para decidir entre «paradojal» y «flujo normal», así que el
-         número tiene que estar también en la tabla de mediciones — si no, el lector no puede
-         verificar la frase que sostiene el escenario. Sale de `vliCalc`, la misma función que
-         pinta la cápsula: no se recalcula acá. */
-      {lbl:'VLI',         ref:'>' + UMBRAL_VLI_BAJO + ' ml/m2', val:(()=>{const x=(typeof vliCalc==='function')?vliCalc():null;return x===null?null:x.toFixed(0)+' ml/m2';})()},
-      /* El `ref` lleva la FC que entró en la cuenta — ver el comentario de `coV`. Sin FC usable
-         `coV` es `null` y `drawTablaCompacta` NO dibuja la fila, que es el comportamiento pedido;
-         `_fcRef` queda en cadena vacía, o sea exactamente el `ref:''` de antes. */
-      {lbl:'GC',          ref:_fcRef,         val:coV},
-      {lbl:'IC',          ref:'',             val:icV},
-    ]},
-  ]);
-
-  // ════════════════════════════════════════════════════════════
-  // BLOQUE 5 (4 col): Válvula Mitral | Válvula Aórtica | Válvula Tricúspide | Otros (pericardio + raíz aorta)
-  // ════════════════════════════════════════════════════════════
-  const eaReal = sv('ea_grado') && sv('ea_grado') !== 'sin' && sv('ea_grado') !== 'normal' && sv('ea_grado') !== '—' && sv('ea_grado').trim() !== '';
-  /* Antes: «Raiz de Aorta de calibre normal (Seno Valsalva 34 mm).» — una oración entera
-     para un dato que el informe narrativo ya dice con las mismas palabras, y que además
-     repetía el seno de Valsalva que la tabla del Bloque 1 ya lista. Ahora sólo los valores
-     efectivamente cargados, abreviados, y la palabra «dilatada» únicamente cuando lo está:
-     «de calibre normal» es relleno, «dilatada» es un hallazgo. */
-  const aoDesc = (function () {
-    /* Cada segmento tiene su umbral y se marca por separado. Con un flag global sobre el
-       seno de Valsalva, una aorta ascendente de 48 mm (ref <=36) salía sin la palabra
-       «dilatada» — y en una celda sin valores de referencia esa ausencia se lee como
-       afirmación de normalidad. Se marca el segmento con un asterisco y se aclara al pie.
-       Etiquetas expandidas y no «SV»/«ST»: acá NO va el valor de referencia al lado que las
-       desambigüe, y en cardiología «SV» es volumen sistólico y «ST» el segmento del ECG. */
-    /* Los segmentos y sus umbrales salen de AO_SEGS, no de una lista propia: era la tercera
-       copia del mismo criterio y, al agregar el cayado y la aorta descendente, esta celda
-       —rotulada «Aorta torácica»— seguía resumiendo sólo tres y se leía como afirmación de
-       normalidad sobre una aorta que el narrativo declaraba dilatada. */
-    const LBL_CORTO = { ao_sin:'Valsalva', ao_st:'Sinotub.', ao_tub:'Ao asc',
-                        diam_cayado:'Cayado', diam_ao_toracica:'Ao desc' };
-    const partes = []; let algunoDilatado = false;
-    AO_SEGS.forEach(sg => {
-      const x = v(sg.k); if (!x) return;
-      const dil = aoSegDil(sg, x); if (dil) algunoDilatado = true;
-      partes.push((LBL_CORTO[sg.k] || sg.lblC) + ' ' + x + (dil ? '*' : ''));
+  /* ⚠️ UNA SOLA LLAMADA Y UN SOLO DUEÑO, Y ANTES ERAN CINCO LITERALES ACÁ (tanda CUADROS). Las
+     definiciones viven en `cuadDefs`, el reparto de las filas en `cuadFilas` y qué cuadros salen
+     en `cuadVisibles` — los tres los lee también la tarjeta de «Cuadros» del Informe, así que la
+     pantalla y el papel firmado no pueden mostrar cuadros distintos ni en distinto orden.
+     ⚠️ Y ESTO CORRE IGUAL EN LAS OCHO PLANTILLAS DE PDF. Las plantillas sólo deciden el
+     ENCABEZADO (`_hdrClasico` y sus siete hermanas) y los colores y la tipografía de la tabla
+     (`_TBL`): ninguna arma sus propios cuadros, así que el orden y los quitados valen para todos
+     los estilos por construcción y no por una lista.
+     ⚠️ UNA FILA ES ATÓMICA: `drawTablaCompacta` hace su `checkPage` con el alto de la fila
+     completa, así que una fila que no entra pasa entera a la hoja siguiente y ningún cuadro se
+     corta entre dos hojas. Las hojas se llenan en orden, sin huecos. */
+  (function () {
+    const _defs = cuadVisibles();
+    let _i = 0;
+    cuadFilas(_defs.length).forEach(function (k) {
+      drawTablaCompacta(_defs.slice(_i, _i + k));
+      _i += k;
     });
-    if (!partes.length) return null;
-    return partes.join(' · ') + ' mm' + (algunoDilatado ? ' (* dilatado)' : '');
   })();
-  drawTablaCompacta([
-    {titulo:'Válvula Mitral', items:[
-      {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
-      {lbl:'IM',            ref:'', val:imG?GT[imG]:null},
-      {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:vPdf('im_vc',' mm')},
-      {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:imEroaPdfVal()},
-      {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:imVolrPdfVal()},
-      /* ⚠️ FILA NUEVA (regla 6, 2026-10-13): la FR va PEGADA al EROA y al Vol-R porque la regla
-         pide que los tres aparezcan JUNTOS por método, y porque los tres salen de la misma Tabla 8
-         de la ASE 2017 (folio 332). Los cortes de la columna `ref` son los de `IM_CORTES.fr`
-         —`<30` leve, `30` a `<50` moderada, `≥50` severa— escritos con la misma notación que sus
-         dos vecinas. Con `null` la fila se omite entera, igual que las otras. */
-      {lbl:'FR',            ref:'(<30 / 30–50 / ≥50) %', val:imFrPdfVal()},
-      /* ⚠️ `emGradoVis` Y NO `_cap`: el valor guardado sigue siendo «severa» y lo que se imprime
-         es «Significativa». Con `_cap` esta fila decía «Severa» al lado de una frase del cuerpo que
-         dice «significativa» —dos palabras para el mismo dato en el MISMO papel firmado—. `_cap`
-         sigue en uso para los otros grados de la tabla, que no cambian de vocabulario. */
-      {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?emGradoVis(sv('em_grado')):null},
-      /* ⚠️ LA COLUMNA `ref` PUBLICABA LA ESCALERA DEROGADA EN EL PAPEL FIRMADO: «(>2.5 / 1.5–2.5
-         / ≤1.5) cm²», o sea leve/moderada/severa por área. Desde el 28/09 la app no gradúa la EM
-         por área y la banda «leve» no la publica ninguna guía. Queda el ÚNICO corte vivo. Es la
-         regla que este archivo ya fijó con el AVA aórtica: los rótulos se mueven con el predicado
-         o el PDF se contradice solo. */
-      {lbl:'AVm',           ref:'(severa ≤1.5) cm²', val:emAvmPdfVal()},
-      /* ⚠️ ESTA FILA YA NO VA SIN ESCALA — y el párrafo que decía lo contrario vivía acá hasta el
-         2026-09-29. Decía «los cortes de prótesis los define la Fase 2, y hasta entonces acá va el
-         valor y nada más»: la Fase 2 llegó, la escala es la de la ASE 2024 (Tabla 11, p. 27) y es
-         PROTÉSICA, no la nativa que ese párrafo temía. Se reescribe en vez de dejarlo al lado de la
-         línea que lo desmiente — «un archivo que afirma las dos cosas a dos líneas de distancia
-         garantiza que el próximo pase lo vuelva a dar vuelta».
-
-         ⚠️ Y LA FILA SE GATEA POR LA MORFOLOGÍA. El campo se esconde al elegir una morfología que
-         no es prótesis, pero el VALOR queda —el barrido de `guardarInforme` no mira visibilidad—,
-         así que sin esta guarda el PDF imprimía «DVI 0,32» sobre una válvula que dice «Normal».
-         No se BORRA el dato: si el médico vuelve a prótesis tiene que seguir ahí. Es la misma
-         distinción que ya hizo `calcVD` con la FAC, resuelta del lado del que publica. */
-      /* La columna `ref` es la de umbrales de severidad. Estaba VACÍA desde la Fase 1 —«no
-         calculan nada todavía»— así que el papel firmado publicaba un DVI sin decir contra
-         qué se lee, al lado de filas que sí traen su escala. Es el mismo defecto que los
-         rótulos del AVA que seguían diciendo «< 1,0». Los cortes son los de la Tabla 11. */
-      /* ⚠️ SALE DE `vmProtEOA().dvi`, NO DEL CAMPO CRUDO. `_protPdf` lee `vm_dvi` —el tipeado— y el
-         narrativo concluye con el CALCULADO, así que con los dos presentes el mismo PDF imprimía
-         «DVI 1.50» con su escala de normalidad a centímetros de «hallazgos sugestivos de
-         obstrucción (DVI 2.80)». Antes de este cambio la fila salía SIN escala y el narrativo no
-         concluía nada: la contradicción la crean las dos mitades de este commit a la vez.
-         ⚠️ Y LA ESCALA SE DERIVA DE LAS CONSTANTES que gobiernan el veredicto. Escrita a mano,
-         mover un corte deja el papel firmado publicando la escala anterior al lado del veredicto
-         nuevo — es lo que ya pasó con los rótulos del AVA que seguían diciendo «< 1,0». */
-      {lbl:'DVI',
-       ref:'(<' + VM_PROT_DVI_NORMAL_MAX + ' / ' + VM_PROT_DVI_NORMAL_MAX + '-' + VM_PROT_DVI_SIGNIF_MIN + ' / >' + VM_PROT_DVI_SIGNIF_MIN + ')',
-       val:(function(){
-         try { const _p = vmProtEOA(); if (_p.esProt && _p.dvi != null) return _p.dvi.toFixed(2); } catch (e) {}
-         return _protPdf('vm_morf','vm_dvi','',2);
-       })()},
-      {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
-    ]},
-    {titulo:'Válvula Aórtica', items:[
-      {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
-      /* ⚠️ CON PRÓTESIS NO SE IMPRIME EL GRADO, y SÓLO esta fila se calla. `ea_grado` queda con la
-         lectura de cortes nativos cuando el médico pasa a prótesis (ver `eaGradoNoPublica`), y el
-         papel firmado publicaba «EA grado: Severa» al lado de la cápsula protésica que dice que no
-         hay criterios de estenosis. Las filas de AVA, V. max y G. medio NO se tocan: son datos
-         MEDIDOS, y son justamente los que sostienen el veredicto protésico de la Tabla 5 — callar
-         el grado no es callar la medición. Por eso no se endurece `eaReal`, que gatea las cuatro. */
-      {lbl:'EA grado',      ref:'', val:(eaReal && !eaGradoNoPublica(sv('va_morf')))?_cap(sv('ea_grado')):null},
-      {lbl:'AVA',           ref:'(>' + AVA_MOD_MAX.toFixed(1) + ' / >' + AVA_SEVERA_MAX.toFixed(1) + ' a ≤' + AVA_MOD_MAX.toFixed(1) + ' / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
-      /* Mismas bandas que las filas del bloque de gradientes: sin esto, un mismo PDF decia
-         «V. máx Ao: fuera de rango» arriba y «V. max: 280 m/s» dos bloques mas abajo. */
-      /* ⚠️ EL BORDE DEL RANGO SEVERO SALE DE `EA_CRIT`, Y EL OPERADOR ERA EL EQUIVOCADO. El papel
-         decía «>4» y «>40» mientras el motor decide con `>=` —`vmax >= EA_CRIT.vmax` y
-         `gmedio >= EA_CRIT.gmed`, en `eaEscenario` y en `clasificarEA_Vmax`—, así que una Vmax de
-         exactamente 4,0 m/s o un gradiente medio de exactamente 40 mmHg se graduaban SEVEROS por
-         una escala impresa que los excluye. El médico que controla el grado contra la columna de
-         referencia del PDF encontraba que no cerraba, justo en el borde.
-         Los números se DERIVAN de `EA_CRIT` en vez de escribirse a mano: eran la quinta y sexta
-         copia del mismo corte, y es el defecto que este archivo ya pagó con los rótulos del AVA
-         que seguían diciendo «< 1,0» después de mover el umbral. Cortes y operador SIN CAMBIAR:
-         esto corrige lo que el papel DICE, no lo que la app decide.
-         `≥` se escribe tal cual —igual que el `≤` de la fila AVA de arriba— y `amiloSanPDF` lo
-         translitera a «>=» al dibujar, porque helvetica/WinAnsi destroza el glifo. Verificado en el
-         flujo real de jsPDF. Fuente: ESC/EACTS 2025, Tabla 4. */
-      {lbl:'V. max',        ref:'(<3 / 3–4 / ≥' + EA_CRIT.vmax.toFixed(1).replace('.', ',') + ') m/s', val:eaReal?vPdf('vmax_ao',' m/s'):null},
-      {lbl:'G. medio',      ref:'(<20 / 20–40 / ≥' + EA_CRIT.gmed + ') mmHg', val:eaReal?vPdf('gmedio_ao',' mmHg'):null},
-      {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
-      {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
-      {lbl:'THP',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
-      /* El DVI aórtico NO tiene fila propia acá: ya se publica desde el cálculo único de la
-         continuidad, y una fila tipeada a mano al lado sería el segundo valor. */
-      {lbl:'AT',            ref:'', val:_protPdf('va_morf','va_at',' ms',0)},
-      {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
-    ]},
-    {titulo:'Válvula Tricúspide', items:[
-      {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
-      {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
-      /* El centinela de `et_grado` paso de 'Sin estenosis' a 'sin' (grado binario, 2026-10-05).
-         Se excluyen LOS DOS: un estudio legado reabierto antes de `_migrarCamposLegacy` —o leido
-         por una ruta que no pasa por el— imprimiria la fila «ET grado: Sin estenosis» en un PDF
-         firmado, que es afirmar una valoracion donde no hubo respuesta. */
-      {lbl:'ET grado',      ref:'', val:(function(){ const g=sv('et_grado');
-        return (g && g!=='Sin estenosis' && g!=='sin') ? g : null; })()},
-      /* ⚠️ «3 a <7» y «≥7», no «3–7» y «>7» (2026-10-07). El texto anterior era FALSO justo en
-         7,0: `IT_CRIT.vc` es `leveMax:3 · modMax:7 · modInc:false`, así que una vena contracta de
-         7,0 mm graduóa SEVERA desde el 2026-10-07 — y la columna de referencia del PDF firmado
-         seguía diciendo que 7 era moderada. Es el mismo rango que `itRangoDe('vc', …)` imprime en
-         el cuadro de pantalla. Sigue siendo un literal y no se deriva de la tabla porque la
-         columna `ref` de `drawTablaCompacta` es texto fijo para las cinco secciones. */
-      {lbl:'VC IT',         ref:'(<3 / 3 a <7 / ≥7) mm', val:vPdf('it_vc',' mm')},
-      {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:vPdf('it_eroa',' mm2')},
-      /* El gradiente se DERIVA de la Vmax IT, así que hereda su banda: sin esto, una Vmax de 280
-         —cm/s tipeados donde van m/s— imprimía un gradiente de 313.600 mmHg. */
-      {lbl:'Grad. VD-AD',   ref:'', val:(function(){ const p=vPlaus('vmax_it');
-        return p.crudo ? (4*p.crudo*p.crudo).toFixed(0)+' mmHg'+(p.fuera?MARCA_REVISAR:'') : null; })()},
-      // Idem la fila del Bloque 3: un solo corte de normalidad, no una escala de cuatro bandas.
-      {lbl:'PSAP',          ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg', val:vPdf('psap_calc',' mmHg')},
-      // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
-      {lbl:'DVI',           ref:'', val:_protPdf('vt_morf','vt_dvi','',2)},
-    ]},
-    {titulo:'Otros', items:[
-      {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
-      {lbl:'Masas / Notas', ref:'', val:sv('otras_notas')||null},
-      {lbl:'Aorta torácica', ref:'', val:aoDesc},
-    ]},
-  ]);
 
   // ════════════════════════════════════════════════════════════
   // TECNICA ETE Y SEDACION — antes del informe narrativo
