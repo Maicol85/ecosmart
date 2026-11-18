@@ -2922,8 +2922,19 @@ caso('TC-459', 'Parametros complementarios de la funcion diastolica: las TRES op
     ['  y el 30 EXACTO (30 kg con 100 cm) tampoco', est(i30.ven, /IMC/) === 'neg', est(i30.ven, /IMC/)],
     ['DENOMINADOR: un IMC de verdad por encima de 30 SI es POSITIVO (90 kg con 170 cm)',
       est(i90.ven, /IMC/) === 'POS', est(i90.ven, /IMC/)],
-    ['el PDF rotula «TDE» y no «TDA»', /\\{lbl:'TDE'/.test(fuente) && !/\\{lbl:'TDA'/.test(fuente),
-      String(/\\{lbl:'TDE'/.test(fuente)) + ' / TDA=' + String(/\\{lbl:'TDA'/.test(fuente))]
+    /* ADAPTADO 2026-11-18 (tanda CUADROS): esta condicion buscaba el LITERAL del rotulo en el
+       texto fuente del documento, y las definiciones de los cuadros salieron de generarPDFReal a
+       cuadDefs -- con otro espaciado--, asi que el patron dejo de emparejar sobre un rotulo que
+       esta bien. Se mide la DEFINICION del cuadro mitral, que es mas fuerte: pregunta por la
+       conducta y no por como esta escrito el codigo. */
+    ['el PDF rotula «TDE» y no «TDA»', (function () {
+      try {
+        const vm = cuadDefs().filter(d => d.id === 'vm')[0];
+        const rot = (vm.items || []).map(i => i.lbl);
+        return rot.indexOf('TDE') > -1 && rot.indexOf('TDA') < 0;
+      } catch (e) { return false }
+    })(), (function () { try { return cuadDefs().filter(d => d.id === 'vm')[0].items.map(i => i.lbl).join('|') }
+           catch (e) { return 'ERR ' + e.message } })()]
   ] };
 `);
 caso('TC-460', 'Diagrama de flujo de la BSE 2024 en la ventana del Algoritmo: las VEINTICUATRO ramas de las Figuras 17, 18 y 19 con el camino rojo terminando en el nodo del veredicto, el umbral de ancho que esconde el dibujo, la tabla compacta por pasos, el paciente sin datos sin camino inventado, y las ventanas de la ASE 2025 y la ASE/EACVI 2016 sin moverse', `
@@ -18273,8 +18284,19 @@ caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes e
         ['el PDF NO desplaza nada al agregar la sub-columna', sinDesplazar, 'sin=' + cSin.length + ' con=' + cCon.length],
         ['  y los cinco campos salen', nuevosEnPDF.length === 5, nuevosEnPDF.join(' | ')],
         ['el PDF SIGUE nombrando la vena pulmonar', tituloCon.indexOf('Vena pulmonar') >= 0, tituloCon],
-        ['  y sin datos el titulo es el de siempre', tituloSin === 'VM - Flujo transmitral', tituloSin],
-        ['los dos cortes salen impresos', cortesEnPDF.length === 2, cortesEnPDF.join(' | ')]
+        /* ADAPTADAS E INVERTIDAS 2026-11-18 (tanda CUADROS), las dos: el medico fijo los doce
+           cuadros POR SU NOMBRE, asi que el titulo de este deja de ser condicional y nombra la
+           vena pulmonar SIEMPRE -- un titulo que cambia con los datos seria un cuadro que cambia
+           de nombre entre dos estudios, y en la tarjeta nueva es lo que el medico arrastra--; y el
+           papel ya no publica NINGUN valor de referencia, asi que los dos cortes salieron de la
+           columna de referencias. Los dos umbrales NO se movieron: siguen en las alertas de la pantalla.
+           Las dos condiciones quedan INVERTIDAS, o sea que fallan por los dos lados. */
+        ['  y sin datos el titulo TAMBIEN nombra la vena pulmonar',
+          tituloSin === 'VM - Transmitral / Vena pulmonar', tituloSin],
+        ['  y ya no existe el titulo condicional viejo',
+          tituloSin.indexOf('Flujo transmitral') < 0, tituloSin],
+        ['los dos cortes YA NO salen impresos: el papel no publica valores de referencia',
+          cortesEnPDF.length === 0, cortesEnPDF.join(' | ')]
       ] };
     } finally {
       window.valvSevConfirmada = _sevPrev;
@@ -35949,8 +35971,12 @@ caso('TC-279', 'VSFVI: indexado por la misma BSA, cortes ASE por sexo, y el crit
       /* Los parentesis y la barra invertida vienen escapados del stream, asi que se compara
          sobre el texto con las barras sacadas. */
       const pdfTxt = String(filaPDF || '').replace(/\\\\/g, '');
-      ex.push(['el PDF dibuja la fila VSFVI idx con el rango de la ASE y el valor indexado',
-        /VSFVI idx/.test(pdfTxt) && /H<=31 M<=24 ml\\/m/.test(pdfTxt) && /30\\.0 ml\\/m/.test(pdfTxt),
+      /* ADAPTADO E INVERTIDO 2026-11-18 (tanda CUADROS): el papel ya no publica el rango -- no
+         publica NINGUN valor de referencia--, pero la fila y su valor indexado siguen ahi, que
+         es lo que este caso vino a fijar. El corte no se movio: vive en la constante. */
+      ex.push(['el PDF dibuja la fila VSFVI idx con su valor indexado y YA NO con el rango',
+        /VSFVI idx/.test(pdfTxt) && /30\\.0 ml\\/m/.test(pdfTxt)
+          && !/H<=31 M<=24/.test(pdfTxt),
         pdfErr || pdfTxt.slice(0, 120)]);
 
       ex.push(['ningun valor del caso fue rechazado por su control',
@@ -36138,7 +36164,11 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
       const esperado = {
         'SIV':'10 mm', 'DDVI':'50 mm', 'DSVI':'34 mm', 'PP':'10 mm',
         'VSFVI idx':'30.0 ml/m', 'Masa idx':'91 g/m2', 'RWT':'0.40',
-        'FEVI':'60%', 'Vol. lat.':'75 ml', 'TAPSE':'20 mm', 'Grad. VD-AD':'25 mmHg'
+        /* ADAPTADO 2026-11-18 (tanda CUADROS): «Grad. VD-AD» era una fila del cuadro de
+           VALVULA TRICUSPIDE, y esa fila de cuadros salio del PDF. El MISMO numero -- 4 por la
+           Vmax al cuadrado -- lo publica «Grad. IT» en el cuadro «Tricuspide / Pulmonar», que no
+           se movio: no se perdio el dato, cambio el cuadro donde vive. */
+        'FEVI':'60%', 'Vol. lat.':'75 ml', 'TAPSE':'20 mm', 'Grad. IT':'25 mmHg'
       };
       const malas = Object.keys(esperado).filter(k => fila(t1, k).indexOf(esperado[k]) === -1);
       ex.push(['con un estudio normal las once filas imprimen lo mismo que antes del cambio',
@@ -36147,8 +36177,13 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
       /* ── 2 · EL ROTULO DE VDFVI DICE LO QUE EL CODIGO APLICA ──
          Decia «H<75 M<61» mientras vdfviInterp clasifica con > 74 y > 61: el papel daba por
          normal un 74,5 que la pantalla llama dilatado, y por anormal un 61,0 que llama normal. */
-      ex.push(['la fila de VDFVI idx imprime el rango H<=74 M<=61, que es el que aplica el badge',
-        /H<=74 M<=61/.test(fila(t1, 'VDFVI idx')), fila(t1, 'VDFVI idx')]);
+      /* ADAPTADO E INVERTIDO 2026-11-18 (tanda CUADROS): el papel no publica NINGUN valor de
+         referencia, asi que el rango salio con la columna entera. Lo que este caso protegia -- que
+         el rotulo impreso no contradiga al operador del codigo -- se cumple hoy por construccion:
+         no hay rotulo que pueda contradecirlo. La fila y su valor siguen en el papel. */
+      ex.push(['la fila de VDFVI idx imprime su valor y YA NO un rango que pueda contradecir al badge',
+        fila(t1, 'VDFVI idx').indexOf('70.0 ml/m') > -1
+          && /H<=74 M<=61/.test(fila(t1, 'VDFVI idx')) === false, fila(t1, 'VDFVI idx')]);
 
       /* ── 3 · LA MEDICION DUDOSA SE MARCA, PERO NO SE BORRA NI SE REEMPLAZA ──
          ⚠️ Decision de Maicol (2026-09-27). La primera version imprimia «fuera de rango» EN LUGAR
@@ -36162,7 +36197,10 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
       const r2 = capturar();
       if (r2.err) return { extra:[['el PDF se genero con datos ilegibles', false, r2.err]] };
       const t2 = r2.t;
-      const DEBEN = ['SIV','DDVI','VSFVI idx','Masa idx','RWT','FEVI','TAPSE',"S'",'Grad. VD-AD'];
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): «Grad. VD-AD» era la fila del cuadro de valvula
+         tricuspide; el MISMO numero, con la MISMA marca heredada de su insumo, lo publica hoy
+         «Grad. IT» en el cuadro «Tricuspide / Pulmonar». */
+      const DEBEN = ['SIV','DDVI','VSFVI idx','Masa idx','RWT','FEVI','TAPSE',"S'",'Grad. IT'];
       const sinMarca = DEBEN.filter(k => fila(t2, k).indexOf('(revisar)') === -1);
       ex.push(['las nueve mediciones dudosas quedan marcadas y ninguna se borra del papel',
         sinMarca.length === 0, sinMarca.length ? sinMarca.map(k => k + ' -> ' + fila(t2, k)).join(' | ') : 'las nueve']);
@@ -40765,8 +40803,13 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
       const bin = atob(cap.split(',')[1]);
       const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
       let m, txt = []; while ((m = re.exec(bin))) txt.push(m[1]);
-      const i = txt.findIndex(x => x.trim() === 'EROA');
-      return i < 0 ? '(sin fila EROA) total=' + txt.length : txt.slice(i, i + 6).join(' ');
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): la fila «EROA» del cuadro de VALVULA MITRAL salio
+         del PDF con toda esa fila de cuadros, y el dato pasa a la LINEA de la insuficiencia
+         mitral DENTRO del cuadro VM -- una linea por hallazgo--, donde el metodo va entre
+         parentesis detras del valor: «EROA 50.3 mm2 (PISA)». Se busca el fragmento que
+         CONTIENE la palabra, no un texto que sea exactamente ella. */
+      const i = txt.findIndex(x => x.indexOf('EROA') > -1);
+      return i < 0 ? '(sin fila EROA) total=' + txt.length : txt.slice(i, i + 3).join(' ');
     };
     const pdfVivo = () => filasPdf(() => generarPDFReal());
     /* \`pdfDeInformeGuardado\` tiene guard de reentrada y lo baja recien cuando termina su
@@ -40964,10 +41007,18 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
       ['la continuidad nace DESMARCADA y habilitada — el default es PISA, que es lo que ya salia',
         naceDesmarcada, 'checked=' + (cbC() && cbC().checked) + ' disabled=' + (cbC() && cbC().disabled)],
       ['la casilla informa el valor que ofrece', spanCont.indexOf('33.6') > -1, spanCont],
+      /* ADAPTADAS 2026-11-18: el formato de la LINEA de valvula pone el metodo entre parentesis
+         detras del valor. Es OTRA FORMA del MISMO dueno -- _imMetodoPdfPartes decide que metodo
+         entra y con que numero--, no un segundo calculo. */
+      /* ⚠️ SIN LOS PARENTESIS EN EL PATRON: el flujo del PDF los trae ESCAPADOS con barra
+         invertida, asi que buscar «(PISA)» da rojo sobre un papel que lo dice. Es la misma
+         trampa que TC-295 ya documenta para su propia sonda. */
       ['por defecto el PDF lleva PISA y NO la continuidad',
-        pdfDefault.indexOf('PISA: 50.3') > -1 && pdfDefault.indexOf('Cont') < 0, pdfDefault],
+        pdfDefault.indexOf('50.3') > -1 && pdfDefault.indexOf('PISA') > -1
+          && pdfDefault.indexOf('Cont') < 0, pdfDefault],
       ['tildada, el PDF lleva los DOS y cada numero dice de que metodo salio',
-        pdfConCont.indexOf('PISA: 50.3') > -1 && pdfConCont.indexOf('Cont: 33.6') > -1, pdfConCont],
+        pdfConCont.indexOf('50.3') > -1 && pdfConCont.indexOf('PISA') > -1
+          && pdfConCont.indexOf('33.6') > -1 && pdfConCont.indexOf('Cont') > -1, pdfConCont],
       ['la casilla de PISA SI se desmarca cuando la continuidad esta tildada',
         pisaSeDestilda === false, String(pisaSeDestilda)],
       ['pero NO si es la ultima tildada: vuelve sola y el panel dice por que',
@@ -40976,7 +41027,7 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
       ['sin valor la casilla se deshabilita', sinValorDeshabilita,
         'checked=' + (cbC() && cbC().checked) + ' disabled=' + (cbC() && cbC().disabled)],
       ['y el PDF NO imprime la continuidad sin numero, aunque la casilla siga tildada',
-        pdfSinValor.indexOf('PISA: 50.3') > -1 && pdfSinValor.indexOf('Cont') < 0, pdfSinValor],
+        pdfSinValor.indexOf('50.3') > -1 && pdfSinValor.indexOf('PISA') > -1 && pdfSinValor.indexOf('Cont') < 0, pdfSinValor],
       ['la decision se guarda con el estudio', claveChk === '1' && claveToc === '1',
         '__chk=' + claveChk + ' __tocado=' + claveToc],
       ['«Nuevo estudio» borra la decision y repone PISA', trasLimpiar,
@@ -40985,9 +41036,9 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
       ['DENOMINADOR: tras «Nuevo estudio» la casilla queda deshabilitada', chkDeshabilitada,
         'disabled=' + (cbC() && cbC().disabled)],
       ['reimprimir un guardado CON continuidad la conserva — la guarda es el numero, no el estado visual',
-        pdfReimp.indexOf('PISA: 50.3') > -1 && pdfReimp.indexOf('Cont: 33.6') > -1, pdfReimp],
+        pdfReimp.indexOf('50.3') > -1 && pdfReimp.indexOf('PISA') > -1 && pdfReimp.indexOf('33.6') > -1 && pdfReimp.indexOf('Cont') > -1, pdfReimp],
       ['un estudio SIN las claves (anterior al selector) reimprime la EROA de PISA igual',
-        pdfViejo.indexOf('PISA: 50.3') > -1 && pdfViejo.indexOf('Cont') < 0, pdfViejo],
+        pdfViejo.indexOf('50.3') > -1 && pdfViejo.indexOf('PISA') > -1 && pdfViejo.indexOf('Cont') < 0, pdfViejo],
       ['el selector NO toca el informe ni el EN SUMA',
         r1.inf === r2.inf && r1.suma === r2.suma, 'inf igual=' + (r1.inf === r2.inf) + ' suma igual=' + (r1.suma === r2.suma)],
       ['ni agrega columnas al Excel', colsXls === '(ninguna)', colsXls],
@@ -41001,7 +41052,7 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
         'eroa=«' + eroaContVacia + '» volr=«' + volrContPresente + '»'],
       ['la casilla sigue ofreciendose: gobierna las DOS filas, no solo la EROA', casillaSigueOfrecida,
         'disabled=' + (cbC() && cbC().disabled)],
-      ['y el Vol-R por continuidad llega al informe', pdfSoloVolr.indexOf('Cont: 43.7 ml') > -1, pdfSoloVolr],
+      ['y el Vol-R por continuidad llega al informe', pdfSoloVolr.indexOf('43.7 ml') > -1 && pdfSoloVolr.indexOf('Cont') > -1, pdfSoloVolr],
       ['DENOMINADOR: el paciente en pantalla tiene OTRA EROA que el estudio que se reimprime',
         eroaB.indexOf('32.2') > -1, eroaB],
       ['reimprimir NO le deja al paciente en pantalla los numeros del estudio reimpreso',
@@ -42082,13 +42133,25 @@ caso('TC-307', 'Las superficies dejan de publicar la escalera derogada: Referenc
         em150.avm === '1.47' && em150.cat === 'severa' && pl(cx150).indexOf('severa') > -1,
         '130: cx=«' + cx130 + '» em=' + em130.cat + ' · 150: cx=«' + cx150 + '» em=' + em150.cat],
       // (4)
-      ['DENOMINADOR: se esta leyendo la funcion que arma el PDF, y contiene la fila del AVm mitral',
-        fuentePdf.length > 10000 && fuentePdf.indexOf("{lbl:'AVm',") > -1,
+      /* ADAPTADAS E INVERTIDAS 2026-11-18 (tanda CUADROS): la fila «AVm» vivia en el cuadro de
+         VALVULA MITRAL, y esa fila de cuadros SALIO del PDF entera. El area por THP conserva su
+         fila propia en el cuadro VM y los otros dos metodos pasan a la LINEA de la estenosis
+         mitral, asi que no se perdio ningun numero. Y la columna de referencia ya no existe en
+         NINGUNA celda del papel, asi que la escalera derogada no puede volver por ahi: lo que se
+         exige ahora es que no este, ni la vieja ni la nueva. Falla por los dos lados. */
+      ['DENOMINADOR: el dueno del AVm sigue existiendo y devuelve sus partes por metodo',
+        (function () { try { return Array.isArray(emAvmPdfPartes()) } catch (e) { return false } })(),
+        (function () { try { return JSON.stringify(emAvmPdfPartes().map(x => x.met)) } catch (e) { return 'ERR' } })()],
+      ['⚠️ la fila «AVm» del cuadro de valvula mitral YA NO EXISTE en el papel, y con ella se fue la escalera derogada',
+        fuentePdf.length > 10000 && fuentePdf.indexOf("{lbl:'AVm',") === -1 &&
+        fuentePdf.indexOf('(>2.5 / 1.5–2.5 / ≤1.5) cm²') === -1 &&
+        fuentePdf.indexOf('(severa ≤1.5) cm²') === -1,
         'largo=' + fuentePdf.length],
-      ['⚠️ y su columna de referencia deja de publicar la escalera derogada en el papel FIRMADO: queda el unico corte vivo',
-        fuentePdf.indexOf('(severa ≤1.5) cm²') > -1 &&
-        fuentePdf.indexOf('(>2.5 / 1.5–2.5 / ≤1.5) cm²') === -1,
-        (fuentePdf.match(/\{lbl:'AVm',[^}]*\}/g) || []).join(' | ')]
+      ['⚠️ y el area por THP conserva su fila propia en el cuadro mitral: ningun numero se perdio',
+        (function () { try {
+          const vm = cuadDefs().filter(d => d.id === 'vm')[0];
+          return (vm.items || []).some(i => i.lbl === 'AVm THP');
+        } catch (e) { return false } })(), 'AVm THP']
     ] };
   })();
 `);
@@ -42736,12 +42799,28 @@ caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el oper
          asi que la referencia impresa pasa de «<40 mm» a «H<=40 M<=38 mm», con el formato que
          las filas de volumenes de esa misma tabla ya usaban. La condicion sigue midiendo lo que
          importa: que el rotulo del papel firmado coincida con el operador del codigo. */
-      ['la ref del diametro dice H<=40 M<=38 mm — el corte es > 40 y > 38',
-        t.indexOf('H<=40 M<=38 mm') > -1, txt.filter(x => x.indexOf('mm): ') > -1).join(' / ')],
-      ['la ref del area dice <=20 cm2 — el corte es >20',
-        t.indexOf('<=20 cm2') > -1, txt.filter(x => x.indexOf('cm2') > -1).join(' / ')],
-      ['la ref del volumen indexado dice <=34 — el clasificador trata el 34,0 como NORMAL',
-        t.indexOf('<=34 ml/m2') > -1, txt.filter(x => x.indexOf('ml/m2') > -1).join(' / ')],
+      /* ADAPTADAS E INVERTIDAS 2026-11-18 (tanda CUADROS): el papel YA NO PUBLICA NINGUNA
+         referencia -- la columna entera salio del PDF por orden del medico--, asi que las tres
+         no estan ni pueden estar. Lo que este caso vino a proteger -- que el rotulo no se separe
+         del operador que aplica el codigo -- se protege ahora donde el rotulo vive: en las
+         CONSTANTES, que no se movieron, y en la pantalla. Las tres MEDICIONES siguen en el
+         papel con su numero, que es lo que no podia perderse. */
+      ['el papel ya NO publica la ref del diametro de la AI',
+        t.indexOf('H<=40 M<=38 mm') === -1 && t.indexOf('H<=40') === -1,
+        txt.filter(x => x.indexOf('mm): ') > -1).join(' / ')],
+      ['ni la del area', t.indexOf('<=20 cm2') === -1, txt.filter(x => x.indexOf('cm2') > -1).join(' / ')],
+      ['ni la del volumen indexado', t.indexOf('<=34 ml/m2') === -1,
+        txt.filter(x => x.indexOf('ml/m2') > -1).join(' / ')],
+      ['pero los TRES cortes siguen en su constante, con el operador de siempre',
+        (function () { try {
+          return AI_DIAM_NORMAL_MAX_H === 40 && AI_DIAM_NORMAL_MAX_M === 38
+              && UMBRAL_AI_AREA_DILATADA === 20 && UMBRAL_LAVI_DILATADO === 34;
+        } catch (e) { return false } })(),
+        (function () { try { return [AI_DIAM_NORMAL_MAX_H, AI_DIAM_NORMAL_MAX_M,
+          UMBRAL_AI_AREA_DILATADA, UMBRAL_LAVI_DILATADO].join('/') } catch (e) { return 'ERR' } })()],
+      ['y las tres MEDICIONES siguen en el papel',
+        t.indexOf('Di') > -1 && t.indexOf('rea AI') > -1 && t.indexOf('Vol. indexado') > -1,
+        txt.slice(0, 40).join(' / ')],
       ['y el 22 cm2 NO aparece en el documento firmado',
         t.indexOf('22 cm2') === -1, t.indexOf('22 cm2') > -1 ? 'aparece' : 'no aparece']
     ] };
@@ -44355,8 +44434,13 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       const bin = atob(cap.split(',')[1]);
       const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
       let m, txt = []; while ((m = re.exec(bin))) txt.push(m[1]);
-      const fila = lbl => { const i = txt.findIndex(x => x.trim() === lbl);
-        return i < 0 ? '(sin fila ' + lbl + ')' : txt.slice(i + 1, i + 3).join(' ').trim(); };
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): el EROA y el Vol-R eran FILAS del cuadro de
+         valvula mitral, y esa fila de cuadros salio del PDF; el dato pasa a la LINEA de la
+         insuficiencia mitral DENTRO del cuadro VM, donde los dos van en el MISMO renglon con el
+         metodo entre parentesis detras del valor. Se busca el fragmento que CONTIENE el rotulo
+         y se devuelve desde ahi. */
+      const fila = lbl => { const i = txt.findIndex(x => x.indexOf(lbl) > -1);
+        return i < 0 ? '(sin fila ' + lbl + ')' : txt.slice(i, i + 2).join(' ').trim(); };
       /* «todo» es para barrer CADENAS en el papel —la salvedad del cociente no puede llegar ahi—.
          Va aparte de eroa/volr, que son filas posicionales, y no cambia ninguna comparacion. */
       return { eroa: fila('EROA'), volr: fila('Vol.R'), n: txt.length, todo: txt.join(' | ') };
@@ -44644,8 +44728,11 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
         igual(R.r1, R.r2) && igual(R.r1, R.r3),
         'r1=«' + R.r1.eroa + '» / r2=«' + R.r2.eroa + '» / r3=«' + R.r3.eroa + '»'],
       ['y lleva LAS DOS patas, PISA y continuidad',
-        R.r1.eroa.indexOf('PISA:') > -1 && R.r1.eroa.indexOf('Cont:') > -1
-        && R.r1.volr.indexOf('PISA:') > -1 && R.r1.volr.indexOf('Cont:') > -1,
+        /* ADAPTADO 2026-11-18: el metodo va entre parentesis detras del valor -- «50.3 mm2
+           (PISA)»-- y el flujo del PDF trae los parentesis ESCAPADOS, asi que se busca el nombre
+           del metodo y no el formato viejo con dos puntos. */
+        R.r1.eroa.indexOf('PISA') > -1 && R.r1.eroa.indexOf('Cont') > -1
+        && R.r1.volr.indexOf('PISA') > -1 && R.r1.volr.indexOf('Cont') > -1,
         R.r1.eroa + ' ‖ ' + R.r1.volr],
 
       // ── EL INVARIANTE DE SEGURIDAD ──
@@ -44661,7 +44748,7 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
 
       // ── NO SE INVENTA NI SE MIGRA ──
       ['⚠️ un estudio guardado SIN la clave imprime lo que imprimia: solo la pata de continuidad, sin PISA inventado desde pisa_r',
-        R.viejo.eroa.indexOf('PISA') === -1 && R.viejo.eroa.indexOf('Cont:') > -1 && R.viejoOculto === '',
+        R.viejo.eroa.indexOf('PISA') === -1 && R.viejo.eroa.indexOf('Cont') > -1 && R.viejoOculto === '',
         '«' + R.viejo.eroa + '» oculto=«' + R.viejoOculto + '»'],
 
       // ── FUGA ENTRE PACIENTES, LAS DOS DIRECCIONES ──
@@ -44698,7 +44785,7 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       ['y el oculto quedo restaurado (si no, las condiciones de abajo medirian sobre un valor puesto por el caso)',
         R.ocultoRestaurado, String(R.ocultoRestaurado)],
       ['DENOMINADOR de la fuga: la reimpresion de A OCURRIO de verdad (si sale por el guard de reentrada, «el oculto no cambio» se cumple solo)',
-        !!R.reimpDeA && R.reimpDeA.eroa.indexOf('PISA: 50.3') > -1, R.reimpDeA ? R.reimpDeA.eroa : '(no corrio)'],
+        !!R.reimpDeA && R.reimpDeA.eroa.indexOf('50.3') > -1 && R.reimpDeA.eroa.indexOf('PISA') > -1, R.reimpDeA ? R.reimpDeA.eroa : '(no corrio)'],
       ['DENOMINADOR del cociente: sin IAo la fila se calcula, con su valor y SIN texto extra',
         ratioSinIA !== '—' && ratioSinIA !== '(no existe)' &&
         ratioSinIA.indexOf('criterio EcoSmart') < 0, ratioSinIA],
@@ -44737,7 +44824,7 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       ['⚠️ la PROTESIS no se movio: con morfologia protesica e IAo moderada la fila sigue en «—», y nunca lleva la salvedad que cita a Pandian',
         ratioProtIAmod === '—', ratioProtIAmod],
       ['el cociente Y SU SALVEDAD no llegan al informe ni al EN SUMA ni al PDF: son de pantalla',
-        cocienteEnPapel.length === 0 && pdfC.n > 50, cocienteEnPapel.join('/') || 'limpio (' + pdfC.n + ' fragmentos)'],
+        cocienteEnPapel.length === 0 && pdfC.n > 40, cocienteEnPapel.join('/') || 'limpio (' + pdfC.n + ' fragmentos)'],
 
       ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
     ] };
@@ -44789,8 +44876,13 @@ caso('TC-312', 'El panel «Incluir en el informe» de IM no arrastra el PISA de 
       const bin = atob(cap.split(',')[1]);
       const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
       let m, t = []; while ((m = re.exec(bin))) t.push(m[1]);
-      const i = t.findIndex(x => x.trim() === 'EROA');
-      return i < 0 ? '(sin fila EROA)' : t.slice(i + 1, i + 3).join(' ').trim();
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): la fila «EROA» del cuadro de VALVULA MITRAL salio
+         del PDF con toda esa fila de cuadros, y el dato pasa a la LINEA de la insuficiencia
+         mitral DENTRO del cuadro VM -- una linea por hallazgo--, donde el metodo va entre
+         parentesis detras del valor: «EROA 50.3 mm2 (PISA)». Se busca el fragmento que
+         CONTIENE la palabra, no un texto que sea exactamente ella. */
+      const i = t.findIndex(x => x.indexOf('EROA') > -1);
+      return i < 0 ? '(sin fila EROA)' : t.slice(i, i + 2).join(' ').trim();
     };
     const sembrar = (nom, conPisa) => {
       __t.limpiar();
@@ -45432,11 +45524,26 @@ caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Secci
        gobiernan el veredicto: escrita a mano, mover un corte deja el papel publicando la escala
        anterior al lado del veredicto nuevo. Se mira que las dos constantes esten en la expresion
        y que no quede el literal. */
-    ['el PDF publica la escala del DVI y la DERIVA de las constantes, no de un literal',
-      String(generarPDFReal).indexOf('VM_PROT_DVI_NORMAL_MAX') > -1 &&
-      String(generarPDFReal).indexOf('VM_PROT_DVI_SIGNIF_MIN') > -1 &&
-      String(generarPDFReal).indexOf(String.fromCharCode(39) + '(<2.2 / 2.2-2.5 / >2.5)') === -1,
-      'deriva=' + (String(generarPDFReal).indexOf('VM_PROT_DVI_NORMAL_MAX') > -1)],
+    /* ADAPTADA E INVERTIDA 2026-11-18 (tanda CUADROS): la fila «DVI» vivia en el cuadro de
+       VALVULA MITRAL con su escala en la columna de referencias, y las dos salieron del papel --
+       la fila de cuadros de valvulas entera y TODOS los valores de referencia--. El DVI de la
+       protesis mitral se publica ahora pegado a su morfologia, en la LINEA de valvula del cuadro
+       VM, y SIN escala: el papel ya no publica ninguna. Lo que este caso protegia -- que la escala
+       impresa no se separe de las constantes que gobiernan el veredicto -- se cumple hoy por
+       construccion, porque no hay escala impresa que pueda separarse. Las dos constantes siguen
+       existiendo y gobernando el veredicto, y eso es lo que se mide. */
+    ['el papel ya NO publica ninguna escala del DVI, ni derivada ni literal',
+      String(generarPDFReal).indexOf(String.fromCharCode(39) + '(<2.2 / 2.2-2.5 / >2.5)') === -1 &&
+      String(cuadLineasVM).indexOf('VM_PROT_DVI_NORMAL_MAX') === -1,
+      'sin escala en el papel'],
+    ['y las dos constantes del veredicto siguen vivas',
+      (function(){ try { return VM_PROT_DVI_NORMAL_MAX === 2.2 && VM_PROT_DVI_SIGNIF_MIN === 2.5 }
+                   catch (e) { return false } })(),
+      (function(){ try { return VM_PROT_DVI_NORMAL_MAX + '/' + VM_PROT_DVI_SIGNIF_MIN }
+                   catch (e) { return 'ERR' } })()],
+    ['el DVI de la protesis mitral sigue saliendo al papel, pegado a su morfologia',
+      String(cuadLineasVM).indexOf('vmProtEOA') > -1 && String(cuadLineasVM).indexOf("'DVI'") > -1,
+      'en la linea de valvula'],
 
     // ── el IMC tenia DOS copias inline y esta habria sido la tercera ──
     /* El IMC estaba escrito DOS veces inline —calcBSA y el encabezado del PDF— y el PPM habria
@@ -50044,11 +50151,17 @@ caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen
         !tiene(R.ceroTexto.inf, 'fuera de rango —') && !tiene(R.ceroVmaxTexto.inf, 'fuera de rango —'),
         'thp0=«' + recorteN(R.ceroTexto.inf) + '»'],
       // ── EL PAPEL DE VERDAD ────────────────────────────────────────────────────────────────
-      ['DENOMINADOR del papel: el PDF se genero y, con el THP legible, las DOS filas imprimen el area',
-        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.dentro && R.pdf.dentro.largo > 5000 && R.pdf.dentro.celdasOk >= 2,
+      /* ADAPTADAS 2026-11-18 (tanda CUADROS): eran DOS celdas porque el area por THP se imprimia
+         en la fila «AVm THP» del cuadro transmitral Y en la fila «AVm» del cuadro de VALVULA
+         MITRAL. Esa fila de cuadros salio del PDF entera, asi que hoy la celda es UNA. No se
+         perdio nada: los otros metodos -- continuidad y planimetria-- pasan a la LINEA de la
+         estenosis mitral dentro del mismo cuadro, y esta escena no los tiene marcados.
+         El literal del motivo sigue siendo UNO solo, que es lo que este caso vino a fijar. */
+      ['DENOMINADOR del papel: el PDF se genero y, con el THP legible, la celda imprime el area',
+        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.dentro && R.pdf.dentro.largo > 5000 && R.pdf.dentro.celdasOk === 1,
         JSON.stringify(R.pdf && R.pdf.dentro)],
-      ['⚠️ EN EL PDF REAL, las DOS celdas dicen «no evaluable» — y es la condicion que cubre el CABLEADO de las dos filas, no solo su emisor',
-        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.celdas === 2,
+      ['⚠️ EN EL PDF REAL, la celda dice «no evaluable» — y es la condicion que cubre el CABLEADO de la fila, no solo su emisor',
+        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.celdas === 1,
         JSON.stringify(R.pdf && R.pdf.fuera)],
       ['⚠️ y el area de 1833 cm² NO aparece en NINGUNA parte del documento firmado',
         !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.area1833 === 0,
@@ -50689,7 +50802,11 @@ caso('TC-345', 'EA protesica: el grado nativo residual NO se publica en EN SUMA,
     const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
     const partes = String(p).split(' | ');
     return { grado: __t.val('ea_grado'), suma: r.suma, inf: r.inf,
-             pdfTieneFila: partes.some(function (t) { return t.trim() === 'EA grado'; }),
+             /* ADAPTADO 2026-11-18 (tanda CUADROS): «EA grado» era una FILA del cuadro de
+                valvula aortica, y esa fila de cuadros salio del PDF. El grado se publica ahora en
+                la LINEA de la estenosis aortica dentro del cuadro VA -- «EA severa: AVA ...»--,
+                que es la misma compuerta: con protesis no se emite. */
+             pdfTieneFila: partes.some(function (t) { return t.trim().indexOf('EA ') === 0; }),
              xlsGrado: x['EA grado'], xlsIII: x['EAo_III (Severa)'],
              xlsI: x['EAo_I (Leve)'], xlsII: x['EAo_II (Moderada)'],
              vmaxSigue: __t.val('vmax_ao') }; };
@@ -50799,18 +50916,25 @@ caso('TC-347', 'PDF: el borde del rango severo de Vmax y gradiente medio sale de
   /* amiloSanPDF translitera el glifo a >= al dibujar, porque helvetica/WinAnsi lo destroza; por
      eso se busca >= y no el caracter, que es lo que de verdad queda en el papel. */
   return { extra: [
+    /* ADAPTADO E INVERTIDO 2026-11-18 (tanda CUADROS): el papel YA NO PUBLICA NINGUN valor de
+       referencia -- la columna entera salio del PDF por orden del medico--, asi que las dos
+       escalas no estan ni pueden estar. Los CORTES no se movieron: siguen gobernando la pantalla,
+       el informe y la Evidencia, y eso es lo que este caso sigue fijando. Las dos filas MEDIDAS
+       siguen en el papel con su numero, que es lo que no podia perderse. */
     ['DENOMINADOR: la sonda capturo el flujo de texto del PDF y trae el bloque aortico',
-      p !== 'SONDA VACIA' && p.indexOf('V. max') > -1 && p.indexOf('G. medio') > -1,
+      p !== 'SONDA VACIA' && p.indexOf('V. m') > -1 && p.indexOf('G. medio') > -1,
       'flujo=' + String(p).slice(0, 120)],
     ['los cortes NO se movieron: EA_CRIT sigue en 4,0 m/s y 40 mmHg',
       EC.vmax === 4.0 && EC.gmed === 40, 'vmax=' + EC.vmax + ' gmed=' + EC.gmed],
-    ['⚠️ la escala de Vmax imprime el borde severo con >= y el valor de EA_CRIT',
-      p.indexOf('/ >=4,0) m/s') > -1, 'no aparece la escala nueva de Vmax'],
-    ['⚠️ la escala del gradiente medio imprime >= y el valor de EA_CRIT',
-      p.indexOf('/ >=40)') > -1, 'no aparece la escala nueva del gradiente'],
-    ['y ya no queda el borde viejo con > estricto en ninguna de las dos',
-      p.indexOf('/ >4) m/s') === -1 && p.indexOf('/ >40)') === -1,
-      'sigue el texto viejo en el papel'],
+    ['⚠️ el papel ya NO publica la escala de Vmax: no hay valores de referencia en el PDF',
+      p.indexOf('>=4,0) m/s') === -1 && p.indexOf('>4) m/s') === -1,
+      'sigue publicando una escala de Vmax'],
+    ['⚠️ ni la del gradiente medio',
+      p.indexOf('>=40)') === -1 && p.indexOf('>40)') === -1,
+      'sigue publicando una escala del gradiente'],
+    ['y las dos MEDICIONES siguen en el papel con su numero',
+      p.indexOf('4.5 m/s') > -1 && p.indexOf('45 mmHg') > -1,
+      'flujo=' + String(p).slice(0, 200)],
   ] };
 `);
 
@@ -54343,7 +54467,11 @@ caso('TC-434', 'PDF: la referencia de la vena contracta tricuspidea dice «(<3 /
       /* La fila se dibuja en DOS llamadas: el rotulo «VC IT» y, aparte, la referencia con el
          valor. Se busca la que lleva la referencia. */
       const fila = r.textos.filter(function (t) { return /\\(<3 \\//.test(t) && /mm/.test(t); });
-      return { err: r.err, n: r.textos.length, rotulo: r.textos.indexOf('VC IT') > -1, fila: fila }; };
+      /* La medicion, donde vive hoy: la linea de la insuficiencia tricuspidea del cuadro
+         «Tricuspide / Pulmonar», que la publica como «IT <grado>: VC <n> mm». */
+      const vcEnLinea = r.textos.some(function (t) { return t.indexOf('IT ') === 0 && t.indexOf('VC ') > -1; });
+      return { err: r.err, n: r.textos.length, rotulo: r.textos.indexOf('VC IT') > -1,
+               vcEnLinea: vcEnLinea, fila: fila }; };
 
     const conVC   = escena(6.9);
     const severa  = escena(7);
@@ -54361,29 +54489,39 @@ caso('TC-434', 'PDF: la referencia de la vena contracta tricuspidea dice «(<3 /
                 '6.9': itGradoDe('vc', 6.9), '7': itGradoDe('vc', 7) };
 
     return { extra: [
-      ['  DENOMINADOR: con la vena contracta cargada la fila «VC IT» SI se dibuja en el PDF',
-        !conVC.err && conVC.rotulo && conVC.fila.length === 1,
-        JSON.stringify(conVC)],
-      ['  CONTROL NEGATIVO: sin vena contracta tricuspidea esa fila NO se dibuja',
-        !sinVC.err && !sinVC.rotulo && !tieneNuevo(sinVC) && !tieneViejo(sinVC),
+      /* ADAPTADAS E INVERTIDAS 2026-11-18 (tanda CUADROS). La fila «VC IT» vivia en el cuadro de
+         VALVULA TRICUSPIDE con su escala en la columna de referencias, y las dos salieron del
+         papel: la fila de cuadros de valvulas entera y TODOS los valores de referencia. La
+         MEDICION no se perdio -- sale en la LINEA de la insuficiencia tricuspidea del cuadro
+         «Tricuspide / Pulmonar»-- y los CORTES tampoco se movieron: lo que cambia es que el papel
+         ya no los imprime. Las cuatro fallan por los dos lados. */
+      ['  DENOMINADOR: con la vena contracta cargada, su MEDICION sale en el papel',
+        !conVC.err && conVC.vcEnLinea === true, JSON.stringify(conVC)],
+      ['  CONTROL NEGATIVO: sin vena contracta tricuspidea no sale ninguna medicion de VC IT',
+        !sinVC.err && sinVC.vcEnLinea === false && !tieneNuevo(sinVC) && !tieneViejo(sinVC),
         JSON.stringify(sinVC)],
-      ['la referencia dice «(<3 / 3 a <7 / >=7) mm»',
-        tieneNuevo(conVC), JSON.stringify(conVC.fila)],
-      ['⚠️ y ya NO dice «(<3 / 3-7 / >7) mm», que era falso en 7,0',
+      ['el papel ya NO publica la escala «(<3 / 3 a <7 / >=7) mm»',
+        !tieneNuevo(conVC) && !tieneNuevo(severa), JSON.stringify(conVC.fila)],
+      ['⚠️ ni la vieja «(<3 / 3-7 / >7) mm», que era falsa en 7,0',
         !tieneViejo(conVC) && !tieneViejo(severa),
         JSON.stringify(conVC.fila) + ' | ' + JSON.stringify(severa.fila)],
       ['el texto describe lo que la app calcula: <3 leve, 3 a <7 moderada, 7,0 SEVERA',
         g['2.9'] === 'leve' && g['3'] === 'moderada' && g['6.9'] === 'moderada' &&
         g['7'] === 'severa', JSON.stringify(g)],
-      ['la IM y la IAo del PDF NO se tocaron: siguen con su propio rango',
+      ['la IM y la IAo del PDF publican su MEDICION y ya no su escala',
         (function () { const t = conVC.err ? [] : escena(6.9).fila; return true; })() &&
         (function () { __t.limpiar(); __t.set('nombre','TC434b'); __t.set('im_vc','7');
           __t.set('ia_vc','6');
           const r = generar();
+          /* INVERTIDA por la misma razon: el papel no publica NINGUNA escala, asi que las de
+             la IM y la IAo tampoco estan. Lo que se exige es que sus MEDICIONES sigan saliendo,
+             cada una en la linea de su valvula. */
           const im = r.textos.some(function (x) { return x.indexOf('(<3 / 3-7 / >=7) mm') > -1; });
           const ia = r.textos.some(function (x) { return x.indexOf('(<3 / 3-6 / >6) mm') > -1; });
-          return im && ia; })(),
-        'VC IM y VC IAo con su escala original'],
+          const imMed = r.textos.some(function (x) { return x.indexOf('IM ') === 0 && x.indexOf('VC 7 mm') > -1; });
+          const iaMed = r.textos.some(function (x) { return x.indexOf('IAo ') === 0 && x.indexOf('VC 6 mm') > -1; });
+          return !im && !ia && imMed && iaMed; })(),
+        'la IM y la IAo salen con su medicion y sin escala'],
     ] }; })();
 `);
 
@@ -68267,7 +68405,12 @@ caso('TC-475', 'Tanda F: el VSFVI y el volumen latido automaticos del VI, el GC 
             const fila = function(rot){ return reg.filter(function(e){ return e.t === rot })
               .map(function(b){ return reg.filter(function(e){ return Math.abs(e.y - b.y) < 0.6 && e.x >= b.x - 0.01 })
                 .sort(function(p,q){ return p.x - q.x }).map(function(e){ return e.t }).join('') }) };
-            return { gc: fila('GC'), ic: fila('IC'), n: reg.length } }) };
+            /* ADAPTADO 2026-11-18 (tanda CUADROS): se piden dos filas mas. El cuadro dejo de
+               llamarse «AVA / GC / IC» y es «Gasto cardiaco», sin el AVA ni el AVA indexado --
+               que pasaron a la linea de la estenosis aortica--, asi que la condicion vieja
+               -- contar elementos del PDF -- ya no dice lo que decia. */
+            return { gc: fila('GC'), ic: fila('IC'), vs: fila('Vol. sistól.'),
+                     ava: fila('AVA'), n: reg.length } }) };
       const escPdf = function(fc){ __t.limpiar();
         __t.set('nombre','TC475'); __t.set('peso','80'); __t.set('talla','180');
         __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('itv_ao','55');
@@ -68289,8 +68432,14 @@ caso('TC-475', 'Tanda F: el VSFVI y el volumen latido automaticos del VI, el GC 
         'sin=' + JSON.stringify(pSin.ic) + ' con=' + JSON.stringify(pCon.ic)]);
       ex.push(['CONTROL: una FC fuera de la banda [20,250] es el MISMO estado que sin FC, y no vuelve a suponer 70',
         pFue.gc.length === 0 && pFue.ic.length === 0, 'gc=' + JSON.stringify(pFue.gc)]);
-      ex.push(['CONTROL: con el AVA cargado la seccion «AVA / GC / IC» no desaparece, solo le faltan las dos filas del gasto',
-        pSin.n > 40, 'n sin FC=' + pSin.n]);
+      /* ADAPTADO E INVERTIDO 2026-11-18 (tanda CUADROS): el cuadro no desaparece sin FC -- sigue
+         publicando el volumen sistolico--, y ADEMAS ya no publica el AVA ni el AVA indexado.
+         Falla por los dos lados: en el arbol anterior el AVA SI salia en esa caja. */
+      ex.push(['CONTROL: sin FC el cuadro del gasto no desaparece, sigue publicando el volumen sistolico',
+        pSin.vs.length === 1 && pSin.n > 20, 'vs=' + JSON.stringify(pSin.vs) + ' n=' + pSin.n]);
+      ex.push(['y el AVA ya NO vive en ese cuadro: paso a la linea de la estenosis aortica',
+        pSin.ava.length === 0 && pCon.ava.length === 0,
+        'sin=' + JSON.stringify(pSin.ava) + ' con=' + JSON.stringify(pCon.ava)]);
     }
 
     /* ══ F2 — EL AVA INDEXADA MUESTRA SU GRADO Y EL RENGLON INTEGRADO DICE CUAL DECIDE ════ */
@@ -73405,8 +73554,26 @@ caso('TC-487', 'Tanda H: la AURICULA IZQUIERDA con un solo dueno —el volumen i
        colapso lleva su unidad, que el simbolo del sexo se DIBUJA y no se escribe, y que sin
        sexo no hay simbolo ni hueco. Es el mismo reparto que TC-460 y TC-485 ya usan. */
     { const f = FUENTE();
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): buscaba el LITERAL de la expresion en el texto
+         fuente, y la fila se mudo de generarPDFReal a cuadDefs -- con un parentesis de mas--,
+         asi que el patron dejo de emparejar sobre una fila que esta bien. Se mide la CONDUCTA
+         sobre la definicion del cuadro, que es mas fuerte: con el token sale con unidad, y con
+         un valor que no sea uno de los dos NO se le inventa ninguna. */
       ex.push(['el colapso de la VCI lleva su unidad en el PDF, y por TOKEN y no con un + pelado',
-        f.indexOf("c === '>50' || c === '<50' ? c + '%' : c") > -1, '']);
+        (function () {
+          try {
+            const cel = () => { const d = cuadDefs().filter(x => x.id === 'advci')[0];
+              const it = (d.items || []).filter(i => i.lbl === 'Colapso VCI')[0];
+              return it ? String(it.val) : null; };
+            __t.set('vci_col', '>50'); const a = cel();
+            __t.set('vci_col', '<50'); const b = cel();
+            /* Y sin colapso cargado NO hay celda: la unidad no se le inventa a una ausencia.
+               No se prueba con un valor ajeno porque el select no lo acepta -- asignarle uno que
+               no esta en sus opciones lo deja vacio, que es otra escena. */
+            __t.set('vci_col', ''); const c = cel();
+            return a === '>50%' && b === '<50%' && (c === 'null' || c === null);
+          } catch (e) { return false }
+        })(), '']);
       ex.push(['DENOMINADOR: el select del colapso sigue teniendo sus dos tokens y nada mas',
         (function(){ const e = EL('vci_col'); if (!e) return false;
           const v = Array.prototype.slice.call(e.options).map(function(o){ return o.value; });
@@ -92962,7 +93129,12 @@ caso('TC-536', 'Eco Estres sin interfaz no llega a ninguna superficie firmada: c
       let m; const txt = [];
       while ((m = re.exec(bin))) txt.push(m[1]);
       const pags = (bin.match(/\\/Type\\s*\\/Page[^s]/g) || []).length;
-      return { ok: pags > 0 && txt.length >= 15, t: txt.join(' | '), n: txt.length, pags: pags };
+      /* ADAPTADO 2026-11-18 (tanda CUADROS): el umbral baja de 15 a 10. Con el formulario VACIO
+         el papel ya no dibuja CUATRO filas de cuadros de valvulas con sus rotulos: de los doce
+         cuadros sale sólo «Otros», porque el pericardio arranca con su opcion por omision. El
+         denominador sigue cumpliendo su papel -- que el PDF se genero y tiene texto que contar--
+         y se mide sobre lo que el papel de verdad trae hoy. */
+      return { ok: pags > 0 && txt.length >= 10, t: txt.join(' | '), n: txt.length, pags: pags };
     };
 
     /* Los SEIS marcadores que solo puede emitir la seccion de Eco Estres del PDF, verificados
@@ -93108,7 +93280,7 @@ caso('TC-536', 'Eco Estres sin interfaz no llega a ninguna superficie firmada: c
     return { extra: [
       // ── DENOMINADORES ─────────────────────────────────────────────────────────────────
       ['D1 · jsPDF llego por CDN', true, 'si, ya verificado arriba'],
-      ['D2 · el PDF con formulario VACIO tiene paginas y al menos 15 textos que contar',
+      ['D2 · el PDF con formulario VACIO tiene paginas y al menos 10 textos que contar',
         R.p1.ok, R.p1.pags + ' pag / ' + R.p1.n + ' textos'],
       ['D3 · el PDF con un estudio cargado tiene paginas y al menos 15 textos',
         R.p2.ok, R.p2.pags + ' pag / ' + R.p2.n + ' textos'],
@@ -109802,14 +109974,27 @@ caso('TC-614', 'Tanda TGA-4: la caja «Tricuspide / PSAP» del PDF nombra la val
   if (typeof limpiarCampos === 'function') { try { limpiarCampos(true) } catch (e) {} }
   S('nombre', 'Prueba TGA4'); S('ci', '614'); S('vmax_it', '2.6');
   const sinVP = await pdfTit();
-  ex.push(['(A0) DENOM: el PDF se genero y trae la caja', sinVP.indexOf('TRICÚSPIDE / PSAP') >= 0 || sinVP.indexOf('Tricúspide / PSAP') >= 0, true]);
-  ex.push(['(A1) CONTROL NEGATIVO: sin datos de valvula pulmonar el titulo no la nombra',
-    sinVP.indexOf('Válv. pulmonar') >= 0, false]);
+  /* ADAPTADO E INVERTIDO 2026-11-18 (tanda CUADROS). La caja dejo de llamarse «Tricuspide /
+     PSAP» y es «Tricuspide / Pulmonar», con la valvula pulmonar en su propia SUB-COLUMNA y el
+     rotulo en el titulo SIEMPRE: el medico fijo los doce cuadros por su nombre, y un titulo que
+     cambia con los datos seria un cuadro que cambia de nombre entre dos estudios -- en la tarjeta
+     nueva es lo que el medico arrastra. Las dos condiciones fallan por los dos lados. */
+  ex.push(['(A0) DENOM: el PDF se genero y trae la caja, que ahora se llama «Tricuspide / Pulmonar»',
+    sinVP.indexOf('Tricúspide / Pulmonar') >= 0 || sinVP.indexOf('TRICÚSPIDE / PULMONAR') >= 0, true]);
+  ex.push(['(A0b) y ya no existe el titulo viejo',
+    sinVP.indexOf('Tricúspide / PSAP') >= 0 || sinVP.indexOf('TRICÚSPIDE / PSAP') >= 0, false]);
+  ex.push(['(A1) INVERTIDA: el titulo nombra la pulmonar TAMBIEN sin datos de valvula pulmonar',
+    sinVP.indexOf('Pulmonar') >= 0 || sinVP.indexOf('PULMONAR') >= 0, true]);
   S('vp_morf', 'Prótesis biológica'); S('vp_vmax', '2.5'); S('vp_gmax', '25');
   const conVP = await pdfTit();
-  ex.push(['(A2) DENOM: la fila de la morfologia esta en el PDF', conVP.indexOf('Morf. VP') >= 0, true]);
-  ex.push(['(A3) con la protesis cargada el titulo nombra la valvula pulmonar',
-    conVP.indexOf('Válv. pulmonar') >= 0 || conVP.indexOf('VÁLV. PULMONAR') >= 0, true]);
+  /* ADAPTADO 2026-11-18: la morfologia dejo de ser una FILA del cuadro y es una LINEA de valvula
+     dentro de el -- una por hallazgo, marcada con el color de la plantilla--, asi que el dato NO
+     se perdio: se busca donde vive ahora. */
+  ex.push(['(A2) DENOM: la morfologia de la pulmonar esta en el PDF, como linea de valvula',
+    conVP.indexOf('Prótesis biológica') >= 0, true]);
+  ex.push(['(A2b) y ya no sale como fila «Morf. VP»', conVP.indexOf('Morf. VP') >= 0, false]);
+  ex.push(['(A3) con la protesis cargada el titulo sigue nombrando la valvula pulmonar',
+    conVP.indexOf('Tricúspide / Pulmonar') >= 0 || conVP.indexOf('TRICÚSPIDE / PULMONAR') >= 0, true]);
   /* (A4) Y la agrupacion no se movio: la insuficiencia tricuspidea sigue en la misma caja. */
   ex.push(['(A4) la agrupacion no cambia: la IT sigue en la caja', conVP.indexOf('V. máx IT') >= 0, true]);
   return { extra: EXP };

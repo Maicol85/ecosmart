@@ -230,6 +230,53 @@ function (opt) {
     T.censoIgual = (censo() === antes);
     O.tarjeta = T;
   }
+  /* ══ (D2) QUITAR UNO, DOS Y TRES, Y REORDENAR: EL PDF LO REFLEJA ════════════════════════
+     Se generan los PDF de verdad y se leen sus BYTES -- el documento sale sin comprimir, asi que
+     el texto dibujado aparece literal--. Los fragmentos son ASCII porque el PDF va en WinAnsi, y
+     la busqueda es insensible a mayusculas porque dos plantillas escriben los titulos en
+     versalitas. */
+  if (opt.pdfcfg) {
+    var CF = {};
+    var TIT = [['gc','Gasto card'],['dti','DTI mitral'],['otros','Otros'],['ao','Aorta tor'],
+               ['ai','cula izquierda']];
+    function bytes() {
+      var cap = null;
+      var J = window.jspdf && window.jspdf.jsPDF;
+      if (!J) return null;
+      window.jspdf.jsPDF = function (o) { var d = new J(o);
+        d.save = function () { try { cap = this.output('datauristring') } catch (e) {} return this }; return d };
+      try { _pdfAjustarA4() } catch (e) {}
+      window.jspdf.jsPDF = J;
+      try { return atob(String(cap).split(',')[1]) } catch (e) { return null }
+    }
+    function cuenta(b) {
+      var o = {};
+      TIT.forEach(function (t) {
+        var B = String(b || '').toUpperCase(), T = t[1].toUpperCase(), n = 0, i = B.indexOf(T);
+        while (i >= 0) { n++; i = B.indexOf(T, i + 1) }
+        o[t[0]] = n;
+      });
+      return o;
+    }
+    cuadReset();
+    CF.cero = cuenta(bytes());
+    _cuadQuit = ['gc'];           CF.uno  = cuenta(bytes());
+    _cuadQuit = ['gc','dti'];     CF.dos  = cuenta(bytes());
+    _cuadQuit = ['gc','dti','otros']; CF.tres = cuenta(bytes());
+    _cuadQuit = [];
+    _cuadOrden = ['otros','ao','ai','advci','viest','visis','vd','vm','dti','trip','va','gc'];
+    CF.orden = cuenta(bytes());
+    /* Y con la tarjeta abierta y cerrada SIN tocar nada, el PDF pesa lo mismo. */
+    cuadReset();
+    var b1 = bytes();
+    cuadAbrir(); cuadCerrar();
+    var b2 = bytes();
+    CF.igual = !!(b1 && b2 && b1.length === b2.length);
+    CF.largos = (b1 ? b1.length : -1) + '/' + (b2 ? b2.length : -1);
+    cuadReset();
+    O.pdfcfg = CF;
+  }
+
   /* ══ (E) LA CONFIGURACION SOBREVIVE A «Nuevo estudio» Y A ABRIR OTRO ESTUDIO ══════════════
      Correccion del medico del 18/11/2026. `cargarEstudioPorId` limpia antes de poblar, asi que si
      `limpiarCampos` no la descarta, ninguna de las dos puertas la descarta.

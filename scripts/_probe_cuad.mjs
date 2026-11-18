@@ -63,7 +63,7 @@ for (const motor of MOTORES) {
       for (const pl of plantillas) {
         if (pl) await pg.evaluate('(function(p){ try{ setPdfPlantilla(p) }catch(e){} })(' + JSON.stringify(pl) + ')');
         await pg.waitForTimeout(150);
-        const r = await pg.evaluate('(' + CUERPO + ')(' + JSON.stringify({ escena, cfg: arg('cfg'), tarjeta: arg('tarjeta') === '1', pdf: arg('nopdf') !== '1' }) + ')');
+        const r = await pg.evaluate('(' + CUERPO + ')(' + JSON.stringify({ escena, cfg: arg('cfg'), tarjeta: arg('tarjeta') === '1', pdfcfg: arg('pdfcfg') === '1', pdf: arg('nopdf') !== '1' }) + ')');
         const clave = motor + '/' + escena + '/' + w + (pl ? '/' + pl : '');
         if (r.pdf && r.pdf.b64 && PDFBASE) {
           const ruta = PDFBASE + '-' + escena + (pl ? '-' + pl : '') + '.pdf';

@@ -45424,7 +45424,13 @@ window._emPdfThpSpanSync = _emPdfThpSpanSync;
    Los métodos se leen de los campos ya calculados (`avm_cont` guarda «0.79 cm²» y v() se
    queda con el número); no se recalculan acá a propósito: una segunda copia de la fórmula
    se pudre sin que se vea desde la app, que es como se rompió el bloque diastólico. */
-function emAvmPdfVal() {
+/* ⚠️ EL DUEÑO DEVUELVE LAS PARTES Y NO LA CADENA (tanda CUADROS), por el mismo motivo que
+   `_imMetodoPdfPartes`: hay DOS consumidores con dos necesidades. La fila de la tabla quiere los
+   tres métodos juntos; la LÍNEA de la estenosis mitral del cuadro VM quiere los que el cuadro NO
+   publica ya como fila —el área por THP tiene fila propia ahí arriba—, así que pide las partes y
+   saltea la del THP. Con dos funciones que decidan qué método entra, el día que una casilla cambie
+   de regla una de las dos superficies se queda con la anterior. */
+function emAvmPdfPartes() {
   const partes = [];
   const marcado = id => { const c = document.getElementById(id); return !!(c && c.checked); };
   /* THP lleva prefijo porque ya no es el único método de la celda, y la fila no puede
@@ -45437,16 +45443,21 @@ function emAvmPdfVal() {
      prefijo salía «THP: no evaluable (THP fuera de rango)». Se compara contra la constante y no
      contra un `indexOf`, para que renombrar el literal no deje el prefijo colgado. */
   const _thpTxt = emAvmThpPdfTxt();
-  if (_thpTxt) partes.push(emAvmThpPdfEsMotivo(_thpTxt) ? _thpTxt : 'THP: ' + _thpTxt);
-  if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push('Cont: ' + x.toFixed(2) + ' cm2'); }
+  if (_thpTxt) partes.push({ met:'THP', txt: emAvmThpPdfEsMotivo(_thpTxt) ? _thpTxt : 'THP: ' + _thpTxt });
+  if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push({ met:'Cont', txt:'Cont: ' + x.toFixed(2) + ' cm2' }); }
   /* `v('avm_plan') || v('avm_ete')` hasta el 2026-10-08. Medido en HEAD antes del cambio: con el
      área por ETE como única medición, el PDF FIRMADO publicaba «Plan: 1.20 cm2» —y con 150 tipeado
      donde van cm², «Plan: 150.00 cm2», sin marca, porque `avm_ete` no tenía banda en ninguna
      tabla—. Hoy el papel sólo publica planimetría transtorácica. */
-  if (marcado('em_pdf_plan')) { const x = v('avm_plan'); if (x) partes.push('Plan: ' + x.toFixed(2) + ' cm2'); }
-  return partes.length ? partes.join(' · ') : null;
+  if (marcado('em_pdf_plan')) { const x = v('avm_plan'); if (x) partes.push({ met:'Plan', txt:'Plan: ' + x.toFixed(2) + ' cm2' }); }
+  return partes;
 }
-window.emAvmPdfVal = emAvmPdfVal;
+/* La forma de siempre, carácter por carácter. */
+function emAvmPdfVal() {
+  const p = emAvmPdfPartes();
+  return p.length ? p.map(x => x.txt).join(' · ') : null;
+}
+window.emAvmPdfVal = emAvmPdfVal; window.emAvmPdfPartes = emAvmPdfPartes;
 
 /* ══ Selector de metodo de las filas EROA y Vol.R del PDF de IM ══
    El PDF YA imprimia las dos filas, con los valores de PISA (`eroa-val` / `volr-val`, que escribe
@@ -79224,7 +79235,16 @@ function cuadLineasVM(CX) {
     ]));
   }
   const emG = sv('em_grado');
-  if (emG && emG !== 'sin') L.push(_cuadLinea('EM ' + String(emGradoVis(emG)).toLowerCase(), []));
+  if (emG && emG !== 'sin') {
+    /* ⚠️ EL AREA POR THP NO SE REPITE: tiene fila propia en este mismo cuadro («AVm THP»), y la
+       orden pide que la línea no repita ningún número que el cuadro ya publica. Lo que SÍ entra
+       son los otros métodos —continuidad y planimetría—, que no tienen fila en ninguna parte y
+       hasta esta tanda salían en la fila «AVm» del cuadro de válvula mitral, que se retira. */
+    let pm = [];
+    try { pm = emAvmPdfPartes().filter(x => x && x.met !== 'THP').map(x => x.txt); } catch (e) {}
+    L.push(_cuadLinea('EM ' + String(emGradoVis(emG)).toLowerCase(),
+                      pm.length ? [_cuadPz('AVm', pm.join(' · '))] : []));
+  }
   /* Las notas del médico son texto libre y NO son un hallazgo graduado: van sin encabezado y sin
      azul, al final. Eran una fila del cuadro que se retira, así que sin esto se perderían. */
   const nt = sv('vm_notas');
@@ -80654,8 +80674,11 @@ function generarPDFReal(_aj) {
     secs.forEach(sec => {
       const w = cW - 4;
       sec._lin = [];
-      _tn(6.6);
-      sec.lineas.forEach(l => { doc.splitTextToSize(_tSan(l.txt), Math.max(10, w))
+      /* ⚠️ LA LÍNEA DE LA MORFOLOGÍA SE MIDE EN NEGRITA, QUE ES COMO SE DIBUJA. Medirla con la
+         normal y estamparla en negrita es exactamente cómo un texto se sale de su caja — el
+         defecto que el bloque de firma ya pagó midiendo con Helvetica y dibujando con Times. */
+      sec.lineas.forEach(l => { if (l.azul) _tb(6.6); else _tn(6.6);
+        doc.splitTextToSize(_tSan(l.txt), Math.max(10, w))
         .forEach((ln, i) => sec._lin.push({ t: ln, azul: !!l.azul, primera: i === 0 })); });
       if (sec.nota) { _tn(6.2); doc.splitTextToSize(_tSan(sec.nota), Math.max(10, w))
         .forEach(ln => sec._lin.push({ t: ln, nota: true })); }
@@ -180003,8 +180026,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261117-2129';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1794961789856;                 /* eco-build-ms */
+const ECO_BUILD    = '20261118-0219';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1794979193879;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -180090,7 +180113,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261117-2129</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-0219</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
