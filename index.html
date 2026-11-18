@@ -25322,6 +25322,49 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <span style="float:right;">▶</span>
     </h2>
     <div id="ref-pop" style="display:none;" class="card-body">
+      <!-- ══ RESUMEN DE CONSULTA DEL POSOPERATORIO (18/11, punto 7) ════════════════════
+           ⚠️ ESTE BLOQUE NO SE RETIPEA: sale de `scripts/_gen_pop_ref.py`, que emite el
+           marcado Y `docs/CONTROL_POP_REF.md` con la trazabilidad de cada afirmacion y la
+           lista de lo que quedo afuera con su motivo. La fuente son los capitulos 8 a 10
+           del Word de Cowork, leido solo para esto.
+           ⚠️ NO AGREGA NI CAMBIA UNA FILA DE LA TABLA DE CRITERIOS de abajo, y no lleva
+           ningun globo ⓘ nuevo: es material de consulta, con su linea de fuente al pie de
+           cada bloque en 10 px, el molde de las fichas de Hemodinamica.
+           ⚠️ NADA DE LO QUE EL WORD MARCA «verificar a ojo», NINGUNA de las cinco
+           contradicciones que su capitulo 12 muestra sin resolver, NINGUN coeficiente de
+           escala de riesgo y NINGUNA conducta ni dosis. Y ningun texto dice que dos
+           fuentes no coinciden ni que algo no se encontro: eso vive en el .md. -->
+      <div id="ref-pop-resumen">
+      <div style="font-weight:700;color:var(--accent2);margin:0 0 2px;">Resumen de consulta</div>
+      <div style="font-size:11px;color:var(--text2);margin:0 0 10px;">Material de lectura. Para el contenido completo y vigente de cada publicaci&oacute;n, consulte la fuente original.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Bajo gasto posoperatorio: lo que la guía del posoperatorio complicado consigna</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">La guía española del posoperatorio complicado consigna, junto al índice cardíaco, la afectación de órganos —oliguria— y la necesidad de inotrópicos o de soporte mecánico circulatorio, siempre en ausencia de hipovolemia relativa.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Llanos 2020, hoja 6 del PDF (la guía no trae folio impreso).</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Shock postcardiotomía</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Es la forma más grave del bajo gasto: la imposibilidad de separar al paciente de la circulación extracorpórea, o un shock que persiste después de la cirugía a pesar de los fármacos vasoactivos y del balón de contrapulsación.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Llanos 2020, hoja 8 del PDF.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Síndrome vasopléjico: frecuencia y mecanismo</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Afecta hasta cerca de la mitad de los pacientes, en mayor o menor grado.</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Su fisiopatología se parece a la del shock séptico sin agente infeccioso: el insulto quirúrgico, la isquemia-reperfusión y la propia circulación extracorpórea. Los cortes con que esta aplicación la evalúa están en la tabla de criterios de más abajo.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Llanos 2020, hoja 9 del PDF.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Sangrado excesivo</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Se considera sangrado excesivo un volumen mayor de un litro en las primeras veinticuatro horas.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Llanos 2020, hoja 5 del PDF.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Riesgo quirúrgico: EuroSCORE II</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Es un modelo de regresión logística construido con 22.381 pacientes de 154 centros de 43 países, reclutados entre mayo y julio de 2010, con una mortalidad global del 3,9 %.</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">En su validación, sobre 5.553 pacientes, la mortalidad observada fue del 4,18 % frente al 3,95 % predicho, con un área bajo la curva de 0,8095. El clearance de creatinina que el modelo usa se calcula por Cockcroft-Gault.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Nashef 2012, folios 734, 736 y 743.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Riesgo quirúrgico: los modelos de la STS de 2018</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Modelan nueve desenlaces: mortalidad operatoria, accidente cerebrovascular, falla renal, ventilación prolongada, reoperación, infección profunda de la herida esternal o mediastinitis, una variable compuesta de morbimortalidad, y la estadía posoperatoria prolongada y la corta.</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">Cubren cinco procedimientos: puente coronario aislado, recambio aórtico aislado, mitral aislado, aórtico con puente coronario y mitral con puente coronario. Se desarrollaron con 439.092 pacientes de puente coronario, 150.150 valvulares y 81.588 valvulares con puente, entre julio de 2011 y junio de 2014, y se validaron entre julio de 2014 y diciembre de 2016.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Shahian 2018, folios 1411 y 1412.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Resultados del puente coronario en el registro de la STS</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">La mortalidad del puente coronario pasó del 3,05 % entre 1997 y 1999 a cerca del 2 % en 2008 y a menos del 2 % en 2013. La morbilidad mayor fue del 13,4 % sobre 503.478 pacientes, y la infección profunda de la herida esternal, menor del 3 %.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Braunwald 10.ª ed., folios 1213 y 1215.</div>
+      <div style="font-weight:700;margin:10px 0 3px;">Manejo de sangre perioperatorio</div>
+      <div style="font-size:12px;line-height:1.7;margin:0 0 4px;">La guía conjunta de la Sociedad de Cirujanos Torácicos, la Sociedad Americana de Circulación Extracorpórea y la Sociedad de Anestesiólogos Cardiovasculares reúne veintitrés recomendaciones nuevas o actualizadas tras revisar 1.227 resúmenes y 87 artículos. Sus Tablas 1 y 2 las listan con su clase y su nivel.</div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Tibi 2021, folios 981 a 984.</div>
+      </div><!-- /ref-pop-resumen -->
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><b>Vasoplejia</b> &mdash; definici&oacute;n <b>propuesta</b></td><td style="padding:5px 8px;text-align:center;">PAM &lt;65 mmHg <b>+</b> IC &gt;2,2 L/min/m&sup2; <b>+</b> RVS &lt;800 dinas&middot;s&middot;cm&#8315;&#8309; <b>sin indexar</b></td><td style="padding:5px 8px;">Unic-Stojanovic D y col., <i>Interdiscip CardioVasc Thorac Surg</i>, 2025 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: vasoplejia, definici&oacute;n propuesta">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">40(4):ivaf075 &middot; <b>hoja 1 de 4</b>. Es un <b>editorial</b>, no una gu&iacute;a, y declara que existen varias definiciones.</div></details></td></tr>

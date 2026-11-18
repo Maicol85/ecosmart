@@ -151109,6 +151109,113 @@ caso('TC-953', 'Punto 5: las siete fichas de protesis en orden, y la tabla fija 
   })();
 `);
 
+/* ══ PUNTO 7 DE LA TAREA DEL 18/11 — EL RESUMEN DE CONSULTA DEL POSOPERATORIO ════════════════
+   La ficha «ref-pop» gana un resumen BREVE al PRINCIPIO, con el molde de las fichas de
+   Hemodinamica: el contenido primero y, al pie de cada bloque, una linea de 10 px con la fuente y
+   su folio. El material sale de los capitulos 8 a 10 del Word de Cowork.
+   Lo que este caso protege, ademas de que el resumen este: que NO haya tocado la tabla de
+   criterios de abajo —ni una fila, ni un globo— y que NADA de lo que el Word muestra sin resolver
+   o marca para verificar a ojo haya entrado. */
+caso('TC-954', 'Punto 7: el resumen de consulta del posoperatorio va al principio de ref-pop, con su linea de fuente y folio por bloque, sin tocar la tabla de criterios y sin ninguna de las cinco contradicciones del Word', `
+  return (async () => {
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+    ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+    try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
+    try { if (typeof refSubTab === 'function') refSubTab('hemo'); } catch (e) {}
+    await esperar(150);
+    const f = document.getElementById('ref-pop');
+    if (f && getComputedStyle(f).display === 'none') {
+      const h = f.previousElementSibling; if (h) h.click(); await esperar(150);
+    }
+    const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13, 160) + ']+', 'g');
+    const t = f ? String(f.textContent || '').replace(_ESP, ' ') : '';
+
+    /* El resumen va ANTES de la tabla: se compara la posicion de su titulo contra la del primer
+       encabezado de la tabla de criterios. Sin esta condicion, «el resumen esta» se cumpliria
+       igual si quedara pegado al final de la ficha. */
+    const iRes = t.indexOf('Resumen de consulta');
+    const iTab = t.indexOf('Criterio');
+
+    /* Las lineas de fuente: UNA por bloque, en 10 px, con la palabra «folio» o «hoja». Se cuentan
+       sobre los nodos y por su tamanio COMPUTADO, no por su estilo escrito. */
+    const pies = f ? Array.prototype.slice.call(f.querySelectorAll('div'))
+      .filter(d => String(d.textContent || '').indexOf('Fuente: ') === 0
+                   && d.children.length === 0) : [];
+    const diez = pies.filter(d => getComputedStyle(d).fontSize === '10px');
+    const conFolio = pies.filter(d => { const x = String(d.textContent || '');
+      return x.indexOf('folio') > -1 || x.indexOf('hoja') > -1; });
+
+    /* Lo que el resumen tiene que decir, una por bloque: ocho afirmaciones y sus ocho fuentes. */
+    const DEBE = ['Shock postcardiotom', 'circulaci\u00f3n extracorp\u00f3rea',
+                  'cerca de la mitad de los pacientes', 'shock s\u00e9ptico sin agente infeccioso',
+                  'mayor de un litro en las primeras veinticuatro horas',
+                  '22.381 pacientes', '0,8095', 'Cockcroft-Gault',
+                  'Modelan nueve desenlaces', '439.092', '503.478', 'veintitr\u00e9s recomendaciones',
+                  '1.227 res\u00famenes', 'Nashef 2012', 'Shahian 2018', 'Tibi 2021',
+                  'Llanos 2020', 'Braunwald'];
+    const faltan = DEBE.filter(k => t.indexOf(k) < 0);
+
+    /* Y LO QUE NO PUEDE ESTAR. Las cinco contradicciones que el capitulo 12 del Word muestra sin
+       resolver, los coeficientes de las escalas de riesgo, las dosis de la vasoplejia y las dos
+       filas marcadas «verificar a ojo». Y ni una frase que diga que dos fuentes no coinciden. */
+    const PROHIBIDO = ['lactato', 'SvO', 'ScvO', 'Swan', 'cat\u00e9ter de arteria pulmonar',
+                       'enclavada', 'azul de metileno', 'hidroxocobalamina', 'angiotensina',
+                       'tranex\u00e1mico', 'leucorreducida', '5,324537', '0,0285181',
+                       'no coincide', 'no se encontr', 'verificar a ojo', 'discrepan',
+                       '64,7', '64,6'];
+    const colados = PROHIBIDO.filter(k => t.indexOf(k) > -1);
+
+    /* La tabla de criterios: SIN tocar. Diecisiete «tr» —la de encabezado y las dieciseis filas—
+       y los mismos globos que ya tenia, que son los de sus filas. */
+    const trs = f ? f.querySelectorAll('table tr').length : -1;
+    /* ⚠️ LOS ⓘ DE ESTA FICHA NO SON «data-vinfo»: son botones propios con el glifo U+24D8 y un
+       «aria-label» que dice de que fuente es el detalle. Se cuentan por su GLIFO, que es lo que el
+       medico ve, y no por un atributo que esta ficha no usa — la primera version de este caso
+       contaba «data-vinfo» y daba CERO sobre una ficha que tiene dieciseis. Y el elemento es un
+       «summary» de un «details» nativo, que es el mecanismo de esta ficha: buscandolo entre
+       botones y spans tambien daba cero. */
+    const GL = String.fromCharCode(9432);
+    const todos = f ? Array.prototype.slice.call(f.querySelectorAll('summary, button, span, a'))
+      .filter(b => String(b.textContent || '').trim() === GL) : [];
+    const globos = todos.length;
+    /* ⚠️ «fuera de la tabla» NO ES «en el resumen», y la ficha lo demuestra: tiene un ⓘ
+       PREEXISTENTE despues de la tabla —el de las tres reservas de la ficha—, asi que la primera
+       version de esta condicion contaba ese y daba 1 sobre un resumen que no agrega ninguno. Se
+       mide DENTRO del contenedor del resumen, que tiene su propio id. */
+    const res = document.getElementById('ref-pop-resumen');
+    const globosEnResumen = res ? Array.prototype.slice.call(res.querySelectorAll('summary, button, span, a'))
+      .filter(b => String(b.textContent || '').trim() === GL).length : -1;
+
+    return { extra: [
+      // ── DENOMINADORES.
+      ['la ficha del posoperatorio existe y se abrio', !!f && t.length > 2000, 'largo=' + t.length],
+      ['la tabla de criterios sigue ahi', trs === 17, 'tr=' + trs],
+
+      // ── EL RESUMEN, Y AL PRINCIPIO.
+      ['el resumen esta y va ANTES de la tabla de criterios',
+        iRes > -1 && iTab > -1 && iRes < iTab, 'resumen=' + iRes + ' tabla=' + iTab],
+      ['sus OCHO bloques llevan su linea de fuente al pie', pies.length === 8, 'pies=' + pies.length],
+      ['las ocho lineas de fuente estan en 10 px', diez.length === pies.length && pies.length > 0,
+        diez.length + ' de ' + pies.length],
+      ['y las ocho nombran su folio o su hoja', conFolio.length === pies.length && pies.length > 0,
+        conFolio.length + ' de ' + pies.length],
+      ['el resumen dice las dieciocho cosas que tiene que decir', faltan.length === 0, 'faltan: ' + faltan.join(', ')],
+
+      // ── LO QUE EL WORD MUESTRA SIN RESOLVER O MARCA PARA VERIFICAR: NO ENTRA.
+      ['ninguna de las cinco contradicciones del Word, ningun coeficiente de riesgo, ninguna dosis y ninguna marca de verificar',
+        colados.length === 0, 'se colaron: ' + colados.join(', ')],
+
+      // ── LA TABLA NO SE TOCO Y EL RESUMEN NO AGREGA NI UN GLOBO.
+      ['el resumen no agrega un solo globo', globosEnResumen === 0, 'globos en el resumen=' + globosEnResumen],
+      /* DIECISIETE: los dieciseis de las filas de la tabla mas el PREEXISTENTE de las tres
+         reservas, que vive despues de la tabla y no es del resumen. */
+      ['la ficha conserva sus DIECISIETE globos', globos === 17, 'globos=' + globos],
+      ['y el contenedor del resumen existe', !!res, String(!!res)]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
