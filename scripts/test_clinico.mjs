@@ -111194,8 +111194,11 @@ caso('TC-625', 'Tanda PANT-3: ninguna pantalla ni documento dice que algo este p
   const tAvi = (function () { const a = document.getElementById('modalAvisoEco');
     return a ? _plano(textoDe(a)) : ''; })();
   ex.push(['(B1a) DENOM: se junto el texto del aviso inicial', tAvi.length > 600, true]);
+  /* ADAPTADO 18/11 (punto 9A): la frase pierde los dos articulos y queda «para registro y
+     descripcion». La condicion sigue afirmando la frase ENTERA y exigiendo que la vieja de
+     «apoyo clinico» no este, asi que falla por los dos lados. */
   ex.push(['(B1) el aviso inicial dice que la herramienta REGISTRA y DESCRIBE, y ya no que es de apoyo clinico',
-    tAvi.indexOf('Herramienta para el registro y la descripción de estudios ecocardiográficos.') > -1
+    tAvi.indexOf('Herramienta para registro y descripción de estudios ecocardiográficos.') > -1
       && !/apoyo cl[ií]nico para el registro/.test(tAvi), true]);
   ex.push(['(B2) sigue el aviso de que no reemplaza el juicio medico',
     /no reemplaza el juicio m[eé]dic/i.test(tDoc), true]);
@@ -150175,7 +150178,7 @@ caso('TC-943', 'CUADROS (C): el reparto de la grilla es el mismo en la tarjeta y
    con las condiciones de abajo sin evaluarse -- es lo que TC-827 tuvo que deshacer en PANT-37.
    ADVERTENCIA: NI UNA EXPRESION REGULAR CON BARRA INVERTIDA. El cuerpo de un caso es un template
    literal, asi que una secuencia de escape no sobrevive y la regex mide otra cosa en silencio. */
-caso('TC-944', 'Tarea 1: el aviso inicial dice que la aplicacion REGISTRA y DESCRIBE, los calculos son automaticos sin la palabra orientativos, y el punto de independencia esta completo con sus dos nodos y SIN la oracion que solo lleva el globo, con los tres renglones viejos y el boton intactos', `
+caso('TC-944', 'Tarea 1 y punto 9A: el aviso inicial dice que la aplicacion es para REGISTRO y DESCRIPCION sin los dos articulos, los calculos son automaticos sin la palabra orientativos, y el punto de independencia esta en TRES bloques con su dibujito y SIN la oracion que solo lleva el globo, con los tres renglones viejos y el boton intactos', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -150184,13 +150187,16 @@ caso('TC-944', 'Tarea 1: el aviso inicial dice que la aplicacion REGISTRA y DESC
   const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
   const txtId = (id) => { const e = document.getElementById(id); return e ? plano(e.textContent) : null; };
   const CH = String.fromCharCode;
-  const A1 = 'Herramienta para el registro y la descripci' + CH(243) + 'n de estudios ecocardiogr' + CH(225) + 'ficos.';
+  /* ADAPTADO 18/11 (punto 9A): sin los dos articulos. */
+  const A1 = 'Herramienta para registro y descripci' + CH(243) + 'n de estudios ecocardiogr' + CH(225) + 'ficos.';
   const av = document.getElementById('modalAvisoEco');
   const t = av ? plano(av.textContent) : '';
   ex.push(['(A0) DENOM: el aviso inicial existe y tiene texto', t.length > 600, true]);
 
   /* (A) LA FRASE DE CABECERA */
-  ex.push(['(A1) dice que la herramienta es para el registro y la descripcion de estudios', t.indexOf(A1) > -1, true]);
+  ex.push(['(A1) dice que la herramienta es para registro y descripcion de estudios', t.indexOf(A1) > -1, true]);
+  ex.push(['(A1b) y ya NO lleva los dos articulos que la orden saco',
+    t.indexOf('para el registro y la descripci') > -1, false]);
   ex.push(['(A2) y ya NO se presenta como apoyo clinico para el registro y analisis',
     /apoyo cl[ií]nico para el registro/.test(t), false]);
   ex.push(['(A3) la frase del juicio clinico SE MANTIENE',
@@ -150203,28 +150209,34 @@ caso('TC-944', 'Tarea 1: el aviso inicial dice que la aplicacion REGISTRA y DESC
   ex.push(['(B3) la interpretacion clinica final sigue siendo del medico tratante',
     /interpretaci[óo]n cl[íi]nica final corresponde al m[ée]dico tratante/.test(t), true]);
 
-  /* (C) EL PUNTO DE INDEPENDENCIA, EN SUS DOS NODOS.
-     Los dos nodos NO son un gusto de marcado: el globo de TC-945 dice lo mismo con una oracion
-     INTERCALADA antes de la ultima, y la particion es lo que hace que la intercalacion sea
-     estructural en vez de un corte por el ultimo punto de una cadena. */
-  const C1 = txtId('eco-indep-txt'), C2 = txtId('eco-indep-fin');
-  ex.push(['(C0) los dos nodos del punto existen', !!C1 && !!C2, true]);
-  const ESP = 'EcoSmart es un software independiente: no tiene aval, patrocinio ni v' + CH(237)
-    + 'nculo con ninguna sociedad cient' + CH(237) + 'fica ni editorial. Las gu' + CH(237)
+  /* (C) EL PUNTO DE INDEPENDENCIA, EN SUS TRES BLOQUES.
+     ADAPTADO E INVERTIDO 18/11 (punto 9A): eran DOS nodos -«eco-indep-txt» con las tres primeras
+     oraciones y «eco-indep-fin» con la ultima- dentro de UN solo parrafo. Hoy son TRES bloques,
+     cada uno con su dibujito, y los dos ids viejos NO existen. La condicion exige las dos mitades:
+     que los tres nodos esten con su texto palabra por palabra Y que los dos viejos ya no esten,
+     asi que se pone roja por los dos lados. Las palabras no cambiaron: se repartieron. */
+  const C1 = txtId('eco-indep-1'), C2 = txtId('eco-indep-2'), C3 = txtId('eco-indep-3');
+  ex.push(['(C0) los TRES bloques del punto existen', !!C1 && !!C2 && !!C3, true]);
+  ex.push(['(C0b) y los dos nodos viejos ya NO estan',
+    !!document.getElementById('eco-indep-txt') || !!document.getElementById('eco-indep-fin'), false]);
+  const E1 = CH(9878) + CH(65039) + ' EcoSmart es un software independiente: no tiene aval, patrocinio ni v' + CH(237)
+    + 'nculo con ninguna sociedad cient' + CH(237) + 'fica ni editorial.';
+  const E2 = CH(55357, 56538) + ' Las gu' + CH(237)
     + 'as, consensos y art' + CH(237) + 'culos que se citan (autor y a' + CH(241)
     + 'o) son publicaciones de terceros, mencionadas solo como origen de los criterios y puntos de corte que usa la aplicaci'
-    + CH(243) + 'n. Los textos de la aplicaci' + CH(243) + 'n son de redacci' + CH(243)
-    + 'n propia. Para el contenido completo y vigente de cada publicaci' + CH(243)
+    + CH(243) + 'n. Para el contenido completo y vigente de cada publicaci' + CH(243)
     + 'n, consulte la fuente original.';
-  ex.push(['(C1) el texto completo del punto es el acordado, palabra por palabra',
-    (C1 && C2) ? ((C1 + ' ' + C2) === ESP) : 'SIN NODOS', true]);
+  const E3 = CH(9999) + CH(65039) + ' Los textos de la aplicaci' + CH(243) + 'n son de redacci' + CH(243) + 'n propia.';
+  ex.push(['(C1a) el primer bloque es el acordado, con su dibujito', C1, E1]);
+  ex.push(['(C1b) el segundo bloque es el acordado, con su dibujito', C2, E2]);
+  ex.push(['(C1c) el tercer bloque es el acordado, con su dibujito', C3, E3]);
   ex.push(['(C2) y el aviso OMITE a proposito la oracion que solo lleva el globo',
-    (C1 && C2) ? ((C1 + ' ' + C2).indexOf('describe hallazgos') > -1) : 'SIN NODOS', false]);
-  ex.push(['(C3) el punto esta DENTRO de la caja gris del aviso, que pasa de tres puntos a CUATRO',
-    (function () { const e = document.getElementById('eco-indep-txt');
+    (C1 && C2 && C3) ? ((C1 + ' ' + C2 + ' ' + C3).indexOf('describe hallazgos') > -1) : 'SIN NODOS', false]);
+  ex.push(['(C3) los tres estan DENTRO de la caja gris del aviso, que pasa de cuatro puntos a SEIS',
+    (function () { const e = document.getElementById('eco-indep-1');
       if (!e) return 'SIN NODO';
-      const caja = e.parentElement && e.parentElement.parentElement;
-      return caja ? caja.children.length : 'SIN CAJA'; })(), 4]);
+      const caja = e.parentElement;
+      return caja ? caja.children.length : 'SIN CAJA'; })(), 6]);
 
   /* (D) LO QUE LA ORDEN MANDA NO TOCAR */
   ex.push(['(D1) el renglon de los datos locales esta intacto',
@@ -150241,7 +150253,7 @@ caso('TC-944', 'Tarea 1: el aviso inicial dice que la aplicacion REGISTRA y DESC
   })();
 `);
 
-caso('TC-945', 'Tarea 1: el titulo del panel de Evidencia lleva un globo con el mismo mecanismo que los otros, de 44 px, hermano del titulo e inmediatamente despues, cuyo cuerpo LEE el punto del aviso y le intercala la oracion de que la aplicacion describe hallazgos, sin tocar el pie del panel', `
+caso('TC-945', 'Tarea 1 y punto 9B: el titulo del panel de Evidencia lleva un globo con el mismo mecanismo que los otros, de 44 px, hermano del titulo e inmediatamente despues, cuyo cuerpo LEE los TRES bloques del aviso con sus dibujitos y agrega un CUARTO bloque separado, sin tocar el pie del panel', `
   return (async () => {
   const EXP = [];
   const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
@@ -150294,8 +150306,11 @@ caso('TC-945', 'Tarea 1: el titulo del panel de Evidencia lleva un globo con el 
     tit ? getComputedStyle(tit).flexGrow : 'SIN TITULO', '0']);
 
   /* (C) EL CUERPO: LO MISMO QUE EL AVISO, CON LA ORACION INTERCALADA */
-  const A = document.getElementById('eco-indep-txt'), Z = document.getElementById('eco-indep-fin');
-  ex.push(['(C0) DENOM: los dos nodos del aviso de los que LEE existen', !!A && !!Z, true]);
+  /* ADAPTADO 18/11 (punto 9B): el globo lee TRES nodos y emite uno por bloque, mas un CUARTO
+     bloque propio. La condicion se compara contra los nodos del aviso y no contra un texto escrito
+     aca, que es lo que afirma que el globo LEE el aviso. */
+  const AV = ['eco-indep-1', 'eco-indep-2', 'eco-indep-3'].map(id => document.getElementById(id));
+  ex.push(['(C0) DENOM: los TRES nodos del aviso de los que LEE existen', AV.every(n => !!n), true]);
   if (b) { b.click(); }
   await esperar(300);
   const card = document.getElementById('vinfo-card');
@@ -150303,21 +150318,25 @@ caso('TC-945', 'Tarea 1: el titulo del panel de Evidencia lleva un globo con el 
   ex.push(['(C2) su titulo es el del software independiente',
     (card && card.querySelector('h4')) ? plano(card.querySelector('h4').textContent) : 'SIN H4',
     'EcoSmart es un software independiente']);
-  const cuerpo = (card && card.querySelector('p')) ? plano(card.querySelector('p').textContent) : 'SIN CUERPO';
+  const ps = card ? Array.prototype.slice.call(card.querySelectorAll('p')) : [];
+  const cuerpos = ps.map(x => plano(x.textContent));
+  const cuerpo = cuerpos.join(' ');
   const EXTRA = 'La aplicaci' + CH(243) + 'n describe hallazgos y no reemplaza el juicio cl'
     + CH(237) + 'nico del m' + CH(233) + 'dico.';
   /* SE COMPARA CONTRA LOS NODOS DEL AVISO Y NO CONTRA UN TEXTO ESCRITO ACA: lo que esta condicion
      afirma es que el globo LEE el aviso, no que los dos digan una cadena que la prueba trae de su
      casa. Con el texto escrito en el caso, cambiarlo en el aviso y olvidarlo en el registro daria
      verde. */
-  ex.push(['(C3) el cuerpo es el punto del aviso con la oracion intercalada antes de la ultima',
-    (A && Z) ? (cuerpo === (plano(A.textContent) + ' ' + EXTRA + ' ' + plano(Z.textContent))) : 'SIN NODOS', true]);
-  ex.push(['(C4) y la oracion intercalada esta, que es la unica diferencia con el aviso',
+  ex.push(['(C3a) el globo emite CUATRO bloques: los tres del aviso y el propio', ps.length, 4]);
+  ex.push(['(C3) los tres primeros son los TRES bloques del aviso, en su orden y con su dibujito',
+    AV.every(n => !!n) ? (cuerpos.slice(0, 3).join(' | ') === AV.map(n => plano(n.textContent)).join(' | ')) : 'SIN NODOS', true]);
+  ex.push(['(C3b) y el cuarto es la oracion propia del globo, SEPARADA en su propio bloque',
+    cuerpos[3], EXTRA]);
+  ex.push(['(C4) y la oracion propia esta, que es la unica diferencia con el aviso',
     cuerpo.indexOf(EXTRA) > -1, true]);
   /* NINGUN BLOQUE DECLARA SU PROPIO TAMANIO DE CUERPO: regla fija del 2026-11-04. */
-  ex.push(['(C5) el cuerpo usa la letra de la tarjeta y no una propia',
-    (card && card.querySelector('p'))
-      ? (getComputedStyle(card.querySelector('p')).fontSize === getComputedStyle(card).fontSize)
+  ex.push(['(C5) los CUATRO bloques usan la letra de la tarjeta y no una propia',
+    ps.length ? ps.every(x => getComputedStyle(x).fontSize === getComputedStyle(card).fontSize)
       : 'SIN CUERPO', true]);
   ex.push(['(C6) el boton anuncia que esta abierto', b ? b.getAttribute('aria-expanded') : 'SIN BOTON', 'true']);
   if (b) { b.click(); }
@@ -151001,7 +151020,9 @@ caso('TC-953', 'Punto 5: las siete fichas de protesis en orden, y la tabla fija 
     try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
     ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
     try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
-    try { if (typeof refSubTab === 'function') refSubTab('protesicas'); } catch (e) {}
+    /* ⚠️ LA SUBPESTANIA ES «valv»: «protesicas» es una ENTRADA dentro de ella, y con la clave
+       equivocada «refSubTab» avisa por consola y el panel queda oculto. */
+    try { if (typeof refSubTab === 'function') refSubTab('valv'); } catch (e) {}
     await esperar(180);
 
     /* ── A · EL ORDEN, leido del DOM y no de una lista escrita aca ── */
@@ -151212,6 +151233,116 @@ caso('TC-954', 'Punto 7: el resumen de consulta del posoperatorio va al principi
          reservas, que vive despues de la tabla y no es del resumen. */
       ['la ficha conserva sus DIECISIETE globos', globos === 17, 'globos=' + globos],
       ['y el contenedor del resumen existe', !!res, String(!!res)]
+    ] };
+  })();
+`);
+
+/* ══ PUNTO 9 DE LA TAREA DEL 18/11 — EL AVISO DE INDEPENDENCIA Y SU ⓘ ════════════════════════
+   Lo que este caso protege es la pieza que el punto pide y que TC-944 y TC-945 no cubren con una
+   sola condicion: que los TRES bloques del aviso esten y que el globo los LEA. Por eso compara el
+   globo contra los nodos del aviso y NO contra un texto escrito en el caso: con el texto escrito
+   aca, borrar un bloque del aviso y dejar el globo copiando daria verde. */
+caso('TC-955', 'Punto 9: el aviso de independencia en TRES bloques con su dibujito, y el globo del titulo de Evidencia leyendolos mas su cuarto bloque propio, que se cae si cualquiera de los tres desaparece', `
+  return (async () => {
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13, 160) + ']+', 'g');
+    const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+    const CH = String.fromCharCode;
+
+    /* ── A · EL AVISO. Se MUESTRA para medirlo: nace en «display:none» y lo abre el flujo del
+       login, asi que en el arnes esta cerrado y un boton dentro de un contenedor cerrado mide
+       0 x 0 —la primera corrida de este caso dio «SIN CAJA» por eso—. Su display es «flex», que
+       es lo que su propio marcado declara con «align-items» y «justify-content». ── */
+    const av = document.getElementById('modalAvisoEco');
+    const _avAntes = av ? av.style.display : null;
+    if (av) av.style.display = 'flex';
+    await esperar(120);
+    const IDS = ['eco-indep-1', 'eco-indep-2', 'eco-indep-3'];
+    const nodos = IDS.map(id => document.getElementById(id));
+    const textos = nodos.map(n => n ? plano(n.textContent) : null);
+    /* Los tres dibujitos, por su punto de codigo y no por el glifo pegado en el archivo: la
+       balanza y el lapiz llevan selector de variacion y el libro es un par de sustitucion. */
+    const DIB = [CH(9878), CH(55357, 56538), CH(9999)];
+    const conDib = textos.map((t, i) => !!t && t.indexOf(DIB[i]) === 0);
+    /* Hermanos en la MISMA caja gris y en su orden, detras de los tres puntos que no se tocan. */
+    const caja = nodos[0] ? nodos[0].parentElement : null;
+    const hijos = caja ? Array.prototype.slice.call(caja.children) : [];
+    const pos = nodos.map(n => hijos.indexOf(n));
+    /* El boton de continuar, alcanzable: si el aviso no entra, el aviso se desplaza. */
+    const bt = av ? av.querySelector('button') : null;
+    const btOk = (function () {
+      if (!bt || !av) return 'SIN BOTON';
+      const r = bt.getBoundingClientRect();
+      if (r.width < 10 || r.height < 10) return 'SIN CAJA';
+      /* O entra en la ventana, o su contenedor puede desplazarse hasta el. */
+      const dentro = r.bottom <= innerHeight + 1 && r.top >= -1;
+      let scr = null, e = bt.parentElement;
+      while (e && e !== document.body) {
+        if (e.scrollHeight > e.clientHeight + 2) { scr = e; break; }
+        e = e.parentElement;
+      }
+      return dentro ? 'DENTRO' : (scr ? 'DESPLAZABLE' : 'NI ENTRA NI SE DESPLAZA');
+    })();
+
+    /* ── B · EL GLOBO. Hay que cerrar el aviso y abrir el panel: un boton dentro de un overlay
+       cerrado mide 0 x 0 y la tarjeta se niega a anclar contra ese rect. ── */
+    try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+    ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+    try { if (typeof indicAbrir === 'function') indicAbrir(); } catch (e) {}
+    await esperar(300);
+    const b = document.querySelector('[data-vinfo=' + CH(34) + 'ev-indep' + CH(34) + ']');
+    if (b) b.click();
+    await esperar(300);
+    const card = document.getElementById('vinfo-card');
+    const ps = card ? Array.prototype.slice.call(card.querySelectorAll('p')) : [];
+    const cuerpos = ps.map(x => plano(x.textContent));
+    const EXTRA = 'La aplicaci' + CH(243) + 'n describe hallazgos y no reemplaza el juicio cl'
+      + CH(237) + 'nico del m' + CH(233) + 'dico.';
+    /* El AIRE entre bloques: cada uno de los tres primeros deja margen abajo, y el cuarto va
+       separado con una linea fina arriba. Se mide por el estilo COMPUTADO. */
+    const aire = ps.slice(0, 3).every(x => parseFloat(getComputedStyle(x).marginBottom) >= 8);
+    const sep = ps.length === 4
+      ? (parseFloat(getComputedStyle(ps[3]).paddingTop) >= 6
+         && getComputedStyle(ps[3]).borderTopStyle !== 'none') : false;
+    const r = card ? card.getBoundingClientRect() : null;
+    const M = (typeof VINFO_MARGEN === 'number') ? VINFO_MARGEN : 8;
+    const dentro = r ? (r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1) : false;
+    /* Y las tres puertas de cierre que el medico ya acordo: SIN «X», con el mismo ⓘ. */
+    const sinX = card ? (card.textContent || '').indexOf(CH(10005)) < 0 : 'SIN TARJETA';
+    if (b) b.click();
+    await esperar(260);
+    const cerro = card ? getComputedStyle(card).display : 'SIN TARJETA';
+
+    return { extra: [
+      // ── DENOMINADORES.
+      ['el aviso inicial existe', !!av, String(!!av)],
+      ['el globo del titulo de Evidencia existe y la tarjeta abrio',
+        !!b && ps.length > 0, 'boton=' + !!b + ' bloques=' + ps.length],
+
+      // ── A · LOS TRES BLOQUES DEL AVISO.
+      ['los TRES bloques del aviso existen', textos.every(t => !!t && t.length > 30),
+        textos.map((t, i) => IDS[i] + '=' + (t ? t.length : 'NULL')).join(' · ')],
+      ['cada uno ARRANCA con su dibujito: balanza, libros y lapiz', conDib.every(Boolean), conDib.join(',')],
+      ['los tres son hermanos en la caja del aviso, en su orden, detras de los tres puntos que no se tocan',
+        pos.join(',') === '3,4,5', 'posiciones=' + pos.join(',')],
+      ['y la caja tiene SEIS puntos', hijos.length === 6, 'hijos=' + hijos.length],
+      ['el boton de continuar es alcanzable', btOk === 'DENTRO' || btOk === 'DESPLAZABLE', btOk],
+
+      // ── B · EL GLOBO LEE EL AVISO. Esta es la condicion que se cae si un bloque desaparece.
+      ['el globo emite CUATRO bloques', ps.length === 4, 'bloques=' + ps.length],
+      ['sus tres primeros son los TRES del aviso, en su orden y con su dibujito: los LEE, no los copia',
+        textos.every(t => !!t) && cuerpos.slice(0, 3).join(' | ') === textos.join(' | '),
+        'globo=' + cuerpos.slice(0, 3).join(' | ').slice(0, 160)],
+      ['y el cuarto es la oracion propia del globo', cuerpos[3] === EXTRA, String(cuerpos[3])],
+
+      // ── C · EL AIRE Y LA TARJETA.
+      ['los tres primeros bloques dejan aire abajo', aire === true, ps.slice(0, 3).map(x => getComputedStyle(x).marginBottom).join(',')],
+      ['el cuarto va separado con una linea fina arriba', sep === true,
+        ps.length === 4 ? (getComputedStyle(ps[3]).paddingTop + '/' + getComputedStyle(ps[3]).borderTopStyle) : 'SIN CUARTO'],
+      ['la tarjeta no se sale de la pantalla', dentro === true,
+        r ? [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)].join(',') + ' en ' + innerWidth + 'x' + innerHeight + ' margen ' + M : 'SIN TARJETA'],
+      ['no tiene «X» de cerrar', sinX === true, String(sinX)],
+      ['y el mismo ⓘ la cierra', cerro === 'none', String(cerro)]
     ] };
   })();
 `);

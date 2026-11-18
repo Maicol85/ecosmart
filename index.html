@@ -51438,49 +51438,70 @@ function _wiGloboInfo(){
 window._wiGloboInfo = _wiGloboInfo;
 
 /* ── EL GLOBO DEL TITULO DE «Evidencia segun guias» — TAREA 1, punto B (2026-11-18) ───────────
-   Dice lo mismo que el punto de independencia del aviso legal, CON una oracion mas intercalada
-   antes de la ultima: «La aplicacion describe hallazgos y no reemplaza el juicio clinico del
-   medico.» En el aviso esa oracion se omite A PROPOSITO porque el aviso ya la dice arriba, en su
-   primer parrafo.
+   Dice lo mismo que el punto de independencia del aviso legal, en LOS MISMOS TRES BLOQUES y con
+   los mismos dibujitos, MAS un cuarto bloque separado: «La aplicacion describe hallazgos y no
+   reemplaza el juicio clinico del medico.» En el aviso esa oracion se omite A PROPOSITO porque el
+   aviso ya la dice arriba, en su primer parrafo.
    ⚠️ EL TEXTO SE LEE DEL AVISO Y NO SE COPIA. Son dos superficies que tienen que decir lo mismo:
    con el texto escrito dos veces, el dia que una se reescriba quedan dos versiones y la que se
    olvida es la que se ve. Es la misma decision que `_vInfoLegadoTxt` ya dejo escrita.
-   ⚠️ LA INTERCALACION ES ESTRUCTURAL: el aviso parte su punto en `#eco-indep-txt` (las tres
-   primeras oraciones) y `#eco-indep-fin` (la ultima), asi que la oracion entra ENTRE los dos
-   nodos. Partir por el ultimo punto de una cadena es fragil: el texto trae «(autor y año)» y
-   cualquier abreviatura futura lo rompe sin que nada lo contradiga.
+   ⚠️ Y AHORA SON TRES NODOS Y NO DOS (18/11, punto 9B). El aviso partio su punto en tres bloques
+   con su dibujito, asi que el globo LEE los tres y emite uno por bloque: el reparto dejo de ser
+   una intercalacion dentro de un parrafo y paso a ser la estructura de las dos superficies.
+   El CUARTO bloque es lo UNICO propio del globo, y va separado por una linea fina.
+   ⚠️ EL DIBUJITO VIENE DENTRO DEL NODO que se lee, asi que no hay un segundo juego de iconos
+   que pueda quedarse atras.
    ⚠️ SI EL AVISO NO ESTUVIERA, LA TARJETA LO DICE en vez de abrir vacia: una tarjeta en blanco
    se lee igual que «el boton no hace nada».
    ⚠️ DEVUELVE UN NODO, NO UNA CADENA: `_vInfoColocar` hace `appendChild(dyn())`.
    ⚠️ NINGUN BLOQUE DECLARA SU PROPIO TAMANO DE CUERPO —regla fija del 2026-11-04— y todo entra
-   por `textContent`. */
+   por `textContent`. Lo que estos parrafos declaran es el AIRE entre bloques, que es lo que el
+   medico pidio para que no se lea como un parrafo corrido. */
 var INDEP_EXTRA = 'La aplicaci\u00f3n describe hallazgos y no reemplaza el juicio cl\u00ednico del m\u00e9dico.';
+/* Los tres nodos del aviso, en su orden. UNA sola lista: la leen el globo y su caso. */
+var INDEP_IDS = ['eco-indep-1', 'eco-indep-2', 'eco-indep-3'];
 function _indepGloboInfo() {
   var f = document.createDocumentFragment();
   var h = document.createElement('h4');
   h.id = 'vinfo-tit';
   h.textContent = 'EcoSmart es un software independiente';
   f.appendChild(h);
-  var a = document.getElementById('eco-indep-txt');
-  var b = document.getElementById('eco-indep-fin');
-  var p = document.createElement('p');
-  p.style.margin = '0';
-  if (a && b) {
-    p.textContent = (a.textContent || '').trim() + ' ' + INDEP_EXTRA + ' ' + (b.textContent || '').trim();
+  var nodos = INDEP_IDS.map(function (id) { return document.getElementById(id); });
+  if (nodos.every(function (n) { return !!n; })) {
+    nodos.forEach(function (n, i) {
+      var p = document.createElement('p');
+      p.style.margin = (i === 0 ? '0 0 10px' : '0 0 10px');
+      p.textContent = (n.textContent || '').trim();
+      f.appendChild(p);
+    });
+    var q = document.createElement('p');
+    /* El cuarto va SEPARADO: una linea fina arriba y mas aire, que es lo que lo distingue de los
+       tres que vienen del aviso. */
+    q.style.margin = '12px 0 0';
+    q.style.paddingTop = '10px';
+    q.style.borderTop = '1px solid var(--border)';
+    q.textContent = INDEP_EXTRA;
+    f.appendChild(q);
   } else {
-    p.textContent = 'No se pudo leer el aviso legal de la aplicaci\u00f3n.';
+    var e = document.createElement('p');
+    e.style.margin = '0';
+    e.textContent = 'No se pudo leer el aviso legal de la aplicaci\u00f3n.';
+    f.appendChild(e);
   }
-  f.appendChild(p);
   return f;
 }
 window._indepGloboInfo = _indepGloboInfo;
+window.INDEP_IDS = INDEP_IDS;
 
 const VINFO = Object.freeze({
   /* El globo del titulo del panel de Evidencia (TAREA 1, punto B). Su cuerpo lo arma
      `_indepGloboInfo`, que LEE el punto de independencia del aviso legal: el aviso es el dueno
      unico del texto. Va por `dyn` y no por `lee` por el mismo motivo que `wi-aplica`: la rama
      `lee` pondria adelante el rotulo «Que mide», que no corresponde. */
-  'ev-indep': { tit: 'EcoSmart es un software independiente', ancho: 400,
+  /* 18/11, punto 9B: la tarjeta pasa de 400 a 460 px —«mas grande y con mas aire»—. El ancho se
+     acota solo a la ventana menos el margen (`_vInfoColocar`), asi que en celular no se sale: ahi
+     vale lo que entre. */
+  'ev-indep': { tit: 'EcoSmart es un software independiente', ancho: 460,
                 dyn: function () { return _indepGloboInfo(); } },
   /* El globo del «What if» de la estenosis aortica (PANT-37, A4). Su cuerpo lo arma
      `_wiGloboInfo` de `WI_GLOBO`, que es el dueno unico del texto. */
@@ -185274,7 +185295,9 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
       </div>
       <p style="font-size:13px;color:#CBD5E1;
         margin-bottom:16px;line-height:1.6;">
-        Herramienta para el registro y la
+        <!-- 18/11, punto 9A: «para registro y descripción», sin los dos artículos. La frase del
+             juicio clínico se mantiene, y en negrita. -->
+        Herramienta para registro y
         descripción de estudios ecocardiográficos.
         <strong>No reemplaza el juicio clínico
         del médico.</strong>
@@ -185293,7 +185316,21 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
         <div>📋 Los desarrolladores no asumen
           responsabilidad por decisiones médicas
           basadas en este software.</div>
-        <div>⚖️ <span id="eco-indep-txt">EcoSmart es un software independiente: no tiene aval, patrocinio ni vínculo con ninguna sociedad científica ni editorial. Las guías, consensos y artículos que se citan (autor y año) son publicaciones de terceros, mencionadas solo como origen de los criterios y puntos de corte que usa la aplicación. Los textos de la aplicación son de redacción propia.</span> <span id="eco-indep-fin">Para el contenido completo y vigente de cada publicación, consulte la fuente original.</span></div>
+        <!-- ══ EL PUNTO DE INDEPENDENCIA, EN TRES BLOQUES (18/11, punto 9A) ══════════════════
+             Era UN solo párrafo largo con sus dos nodos `eco-indep-txt` y `eco-indep-fin`. Pasa a
+             TRES bloques, cada uno con su dibujito delante, igual que los otros tres puntos del
+             aviso (🔒, ⚕ y 📋), que no se tocan. LAS PALABRAS NO CAMBIAN: se reparten.
+             ⚠️ EL ID VA EN EL DIV Y EL DIBUJITO ADENTRO, y no en un `span` con el emoji afuera.
+             De estos tres nodos LEE el globo ⓘ del título del panel de Evidencia, así que con el
+             emoji fuera del nodo habría DOS dueños del dibujito —el aviso y el globo— y el día que
+             uno cambie, las dos superficies mostrarían iconos distintos para el mismo bloque.
+             ⚠️ LOS DOS IDS VIEJOS SE RETIRAN con su lápida: `eco-indep-txt` traía las tres primeras
+             oraciones juntas y `eco-indep-fin` la última, que es justo el reparto que este punto
+             deshace. Ninguno de los tres ids nuevos termina en `-aviso` ni en `-badge` —los dos
+             barridos por sufijo de «Nuevo estudio»— ni cae en ningún barrido por prefijo. -->
+        <div id="eco-indep-1">⚖️ EcoSmart es un software independiente: no tiene aval, patrocinio ni vínculo con ninguna sociedad científica ni editorial.</div>
+        <div id="eco-indep-2">📚 Las guías, consensos y artículos que se citan (autor y año) son publicaciones de terceros, mencionadas solo como origen de los criterios y puntos de corte que usa la aplicación. Para el contenido completo y vigente de cada publicación, consulte la fuente original.</div>
+        <div id="eco-indep-3">✏️ Los textos de la aplicación son de redacción propia.</div>
       </div>
     </div>
     <button onclick="cerrarAvisoEco()"
