@@ -150795,6 +150795,110 @@ caso('TC-950', 'Diastole sin conteos (18/11): el PDF generado de verdad no trae 
   })();
 `);
 
+/* ══ PUNTO 2 DE LA TAREA DEL 18/11 — LA RECOMENDACION FUERA DEL PAPEL ════════════════════════
+   El informe firmado no recomienda un estudio. Lo que se retira es la oracion «Considerar
+   ecocardiograma con dobutamina a bajas dosis para distinguir severidad verdadera de
+   pseudo-severa.» de la rama de bajo flujo y bajo gradiente CLASICA; lo que DESCRIBE —la forma,
+   la FEVI reducida y los seis numeros— se queda entero, y eso es la otra mitad del caso.
+   El contenido retirado YA ESTA en la Evidencia, en la nota del estadio D2 de la Tabla 7 de la
+   ACC/AHA 2020, asi que no se agrego nada: lo mide la ultima condicion. */
+caso('TC-951', 'Punto 2: el informe de la EAo de bajo flujo y bajo gradiente clasica ya no recomienda un eco con dobutamina, y la descripcion de la forma queda entera en las tres superficies', `
+  return (async () => {
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      return { extra: [['la libreria jsPDF llego por CDN', false, 'no cargo en 8 s']] };
+    }
+    const faltan = [];
+    const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+    /* La escena es la de TC-10: AVA 0,80 por continuidad, gradiente medio 25, FEVI 30 y volumen
+       latido indexado por debajo de 35, con el grado puesto en severa como ese caso lo hace. */
+    const escena = () => {
+      __t.limpiar(); S('nombre', 'DOBU Test'); S('ci', '4444444-4');
+      S('peso', '70'); S('talla', '170');
+      S('diam_tsvi', '20'); S('itv_tsvi', '18'); S('itv_ao', '71');
+      S('vmax_ao', '2.8'); S('gmedio_ao', '25'); S('fevi', '30');
+      const e = document.getElementById('ea_grado'); if (e) e.value = 'severa';
+    };
+
+    const Orig = window.jspdf.jsPDF;
+    let ultimo = null;
+    function Env() { const d = new Orig(...arguments);
+      d.save = function () { return Promise.resolve(); }; ultimo = d; return d; }
+    Env.prototype = Orig.prototype;
+    window.jspdf.jsPDF = Env;
+
+    escena();
+    const r = __t.informe();
+    const sub = (typeof eaEscenario === 'function') ? (eaEscenario() || {}).sub : 'SIN FUNCION';
+    generarInforme();
+    ultimo = null;
+    await generarPDFReal({});
+    const pdf = ultimo ? atob(ultimo.output('datauristring').split(',')[1]) : null;
+
+    /* La Evidencia: la seccion de la estenosis aortica, con la escena ya cargada y los sintomas
+       en «si», llega al estadio D2 —severa sintomatica con FEVI por debajo de 50— y su nota es la
+       que nombra el eco de estres con dobutamina. Se lee el TEXTO del panel, que es lo que el
+       medico lee, y no el objeto que lo arma. */
+    let evid = '', clicSx = false;
+    try {
+      if (typeof indicAbrir === 'function') indicAbrir();
+      await new Promise(rr => setTimeout(rr, 120));
+      const cu = document.getElementById('indic-cuerpo');
+      /* La respuesta de sintomas NO es un campo: es un control de tres estados del panel, y se
+         contesta por el MISMO gesto del medico —un clic sobre su boton— porque el estado vive en
+         «_indClin», que no esta en «window». El estadio D2 de la Tabla 7 sale con sintomas en
+         «si» y FEVI por debajo de 50, y su nota es la que nombra el eco con dobutamina. */
+      const b = cu && cu.querySelector("[data-ind-clin='ea.sintomas'][data-ind-val='si']");
+      if (b) { b.click(); clicSx = true; await new Promise(rr => setTimeout(rr, 120)); }
+      const cu2 = document.getElementById('indic-cuerpo');
+      evid = cu2 ? (cu2.textContent || '') : '';
+      /* Y ademas el DUEÑO del estadio, por su nombre pelado: «_indEstEA» es un const de nivel de
+         script, asi que no esta en «window» y se alcanza por su nombre. La nota que devuelve es la
+         MISMA que «_indEstFila» imprime en el panel, asi que esto no es una segunda fuente: es la
+         de arriba sin depender de que la seccion este desplegada en el momento de leer. */
+      try { evid += ' || DUENIO: ' + ((_indEstEA() || {}).nota || ''); } catch (e2) { evid += ' || DUENIO ERROR ' + ((e2 && e2.message) || e2); }
+      evid += ' || grado=' + (__t.val('ea_grado') || '');
+      if (typeof indicCerrar === 'function') indicCerrar();
+    } catch (e) { evid = 'ERROR ' + ((e && e.message) || e); }
+
+    window.jspdf.jsPDF = Orig;
+    __t.limpiar();
+
+    const VARIANTES = ['dobutamina', 'Considerar ecocardiograma'];
+    const hay = (s) => VARIANTES.filter(v => String(s || '').indexOf(v) > -1);
+
+    return { extra: [
+      ['todos los campos de la escena existen', faltan.length === 0, faltan.join(' | ')],
+      // ── DENOMINADORES: la rama es la que se vino a tocar y el papel se genero.
+      ['la escena cae en la forma clasica de bajo flujo y bajo gradiente', sub === 'bfbg_clasica', String(sub)],
+      ['el PDF se genero', !!pdf, 'pdf=' + !!pdf],
+      /* Y la DESCRIPCION sigue entera: sin esto, borrar el parrafo completo tambien pasaria. */
+      ['el informe sigue describiendo la forma clasica',
+        r.inf.indexOf('de bajo flujo y bajo gradiente (BF/BG cl\u00e1sica)') > -1 &&
+        r.inf.indexOf('dado FEVI reducida') > -1, r.inf.slice(0, 400)],
+      ['el EN SUMA sigue trayendo su linea de la forma clasica',
+        r.suma.indexOf('BF/BG cl\u00e1sica') > -1, r.suma.split(String.fromCharCode(10)).join(' | ').slice(0, 300)],
+      ['el PDF trae la forma clasica', !!pdf && pdf.indexOf('cl') > -1 && pdf.indexOf('BF/BG') > -1,
+        pdf ? pdf.indexOf('BF/BG') : -1],
+
+      // ── LO QUE LA TAREA PIDE.
+      ['el informe narrativo NO recomienda el eco con dobutamina', hay(r.inf).length === 0, hay(r.inf).join(',')],
+      ['el EN SUMA tampoco', hay(r.suma).length === 0, hay(r.suma).join(',')],
+      ['el PDF tampoco', !!pdf && hay(pdf).length === 0, hay(pdf).join(',')],
+
+      /* Y el contenido NO se perdio del todo: la Evidencia lo sigue publicando con su guia. Si
+         esta condicion se pone roja, lo que hay que mirar es si la Evidencia dejo de decirlo —no
+         hay que devolverlo al papel—. */
+      /* DENOMINADOR del bloque de Evidencia: el control de sintomas existia y se pudo contestar. */
+      ['el control de sintomas de la Evidencia se contesto', clicSx === true, String(clicSx)],
+      ['la Evidencia sigue nombrando el eco de estres con dobutamina en el estadio D2',
+        evid.indexOf('dobutamina') > -1, evid.slice(-420)]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
