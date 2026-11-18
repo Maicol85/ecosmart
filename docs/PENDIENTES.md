@@ -18036,3 +18036,17 @@ los dos motores y el sello.
   punteada es un estado de esta aplicación» en **singular** mientras ese plano tenía **dos** nodos
   con `app: true` (`a16b.fin-insuf` y `a16b.fin-normal`). Con la notita del Valsalva son tres y el
   plural quedó correcto; queda anotado que la inexactitud venía de antes.
+- **P3A-m · El barrido de celular pasa de 36 a 38 hallazgos ALTA, y el +1 por ancho es un ⓘ
+  plano.** Medido con el mismo script en los dos árboles: la línea base da **18 ALTA a 360 px y 18
+  a 390** y este árbol da **19 y 19**, con la **lista de selectores idéntica** —cero exclusivos del
+  árbol nuevo—. La categoría ALTA de ese barrido es, entera, `button.vinfo-btn` de **16×12 px**: son
+  los ⓘ **planos** de la aplicación, dieciocho de ellos preexistentes. El que entra es uno de los
+  dos globos de esta tanda que quedaron **sin** la clase `vinfo-btn-44`, y no quedaron así por
+  descuido: cada globo nuevo toma la clase de **su vecino inmediato**, medido en el navegador, y los
+  vecinos de `diast-valsalva` y de `otr-cortri` —`tarj-diast` y `otr-rac`— son planos. El CSS del
+  archivo declara que **15×11 a 17×13 px con el mouse es el estándar** y que los 44×44 salen de
+  `@media (pointer: coarse)`, así que en una pantalla táctil los dos miden 44. Darles la clase de
+  44 px los haría inconsistentes con su propia fila y apretaría dos renglones que hoy entran.
+  Cerrar esto de verdad es la decisión que ya está anotada como **M5-n**: agrandar el área táctil de
+  los ⓘ planos **de toda la aplicación**, en una tanda propia y con la medición de las dos columnas
+  del acordeón de Evidencia al lado.
