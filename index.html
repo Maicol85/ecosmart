@@ -79884,9 +79884,15 @@ function _cuadArrMove(ev) {
   const over = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
   if (!over || over === _cuadArrEl) return;
   const r = over.getBoundingClientRect();
-  /* Antes o después según de qué lado del centro cayó el puntero, mirando el eje que de verdad
-     ordena: con una sola fila es el horizontal, y con el cuadro apilado en celular el vertical. */
-  const antes = (r.width >= r.height * 1.2)
+  /* ⚠️ EL EJE SE DECIDE POR LA POSICIÓN DE LOS DOS CUADROS Y NO POR LA FORMA DE UNO. La primera
+     versión miraba si el cuadro era más ancho que alto: en celular, donde va uno por fila y mide
+     todo el ancho, eso daba «más ancho» y el gesto se ordenaba por el eje horizontal, o sea por el
+     eje que ahí no ordena nada. Si los dos se superponen verticalmente están en la MISMA fila y
+     manda la x; si no, están uno debajo del otro y manda la y. */
+  const ra = _cuadArrEl.getBoundingClientRect();
+  const solape = Math.min(ra.bottom, r.bottom) - Math.max(ra.top, r.top);
+  const mismaFila = solape > Math.min(ra.height, r.height) * 0.5;
+  const antes = mismaFila
     ? (ev.clientX < r.left + r.width / 2)
     : (ev.clientY < r.top + r.height / 2);
   g.insertBefore(_cuadArrEl, antes ? over : over.nextSibling);
