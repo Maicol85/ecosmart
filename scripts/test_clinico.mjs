@@ -150899,6 +150899,92 @@ caso('TC-951', 'Punto 2: el informe de la EAo de bajo flujo y bajo gradiente cla
   })();
 `);
 
+/* ══ PUNTO 3 DE LA TAREA DEL 18/11 — LOS ELEMENTOS INDIRECTOS DE HTP ═════════════════════════
+   Los dos se MANTIENEN: TAP por debajo de 105 ms y TRIV tricuspideo. Lo que esta tarea cierra es
+   la REDACCION y las FUENTES. Medido antes de tocar nada: el operador ya era «75 ms o mas» en los
+   dos lectores desde el MEDIR-6 (B1) —el informe, el EN SUMA y la fila de referencia ya lo
+   decian asi, y lo fija TC-133—, asi que lo que quedaba eran dos cosas:
+     · la seccion de HTP del panel de Evidencia decia «por encima de 75 ms», que es el operador
+       ESTRICTO: el panel decia una cosa y el papel firmado hacia otra sobre el mismo numero;
+     · y el globo ⓘ no declaraba el corte como criterio de la aplicacion, aunque el consenso de
+       Howard, el estudio de Cabrita y el de Brechot NO estan en la biblioteca de fuentes de este
+       repositorio —verificado por nombre de archivo en las carpetas de HTP, de VD y de Doppler
+       tisular—. Las tres citas NO se sacan, que es lo que la orden pide, y no se les invento folio. */
+caso('TC-952', 'Punto 3: los elementos indirectos de HTP se mantienen, el TRIV corta en 75 ms o mas en TODAS las superficies y el globo declara el criterio como propio de la aplicacion', `
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+
+  /* El texto de la seccion de HTP del panel de Evidencia, por su DUEÑO: «_indHTP» es un const de
+     nivel de script y se alcanza por su nombre pelado. Se serializa entero —filas, notas y el
+     bloque de criterios propios— porque lo que se busca es una frase, no una fila. */
+  const htpTxt = () => { try { return JSON.stringify(_indHTP() || {}); } catch (e) { return 'ERROR ' + ((e && e.message) || e); } };
+
+  const esc = (triv, tap) => {
+    __t.limpiar(); S('peso', '80'); S('talla', '180');
+    /* La velocidad de la IT va SIEMPRE: la seccion de HTP del panel se abre solo con la VRT
+       medible o con algun signo de la Figura 5, y el TRIV no es uno de ellos —no suma a la
+       probabilidad y nunca lo hizo—. Sin esto «_indHTP» devuelve null y las dos condiciones de la
+       redaccion se medirian sobre un objeto vacio, que se lee igual que «la frase no esta». */
+    S('vmax_it', '3.0');
+    if (triv != null) S('dt_triv', String(triv));
+    if (tap != null) S('tvia', String(tap));
+    if (typeof calcDopTric === 'function') calcDopTric();
+    const r = __t.informe();
+    let ref = null; try { ref = _dtTrivRefTxt(); } catch (e) { ref = { txt: 'ERROR', alto: null }; }
+    return { inf: r.inf, suma: r.suma, ref: ref, htp: htpTxt() };
+  };
+
+  /* Los dos vecinos del borde y los dos elementos juntos. 75 exactos tienen que contar. */
+  const t74 = esc(74, null), t75 = esc(75, null), t76 = esc(76, null);
+  const dos = esc(80, 95);
+
+  let lee = 'NO EXISTE', fte = 'NO EXISTE';
+  try { lee = TRIV_DTI_LEE; } catch (e) {}
+  try { fte = TRIV_DTI_FUENTE; } catch (e) {}
+
+  const FRASE = 'TRIV tricusp\u00eddeo \u2265 75 ms';
+
+  return { extra: [
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    // ── DENOMINADOR: la seccion de HTP se pudo leer y trae su bloque de criterios propios.
+    ['la seccion de HTP del panel se pudo leer y nombra el TRIV',
+      t75.htp.indexOf('ERROR') !== 0 && t75.htp.indexOf('TRIV tricusp') > -1,
+      t75.htp.slice(0, 160)],
+
+    // ── A · LOS DOS ELEMENTOS SE MANTIENEN.
+    ['el TAP por debajo de 105 ms sigue siendo elemento indirecto',
+      dos.inf.indexOf('TAP < 105 ms') > -1, dos.inf.slice(0, 300)],
+    ['y el TRIV tricuspideo tambien, en la MISMA oracion',
+      dos.inf.indexOf('(TAP < 105 ms y ' + FRASE + ')') > -1, dos.inf.slice(0, 300)],
+
+    // ── B · EL CORTE INCLUYE EL BORDE, por los dos lados.
+    ['con TRIV 75 exactos el informe lo publica', t75.inf.indexOf(FRASE) > -1, t75.inf.slice(0, 240)],
+    ['con 76 tambien', t76.inf.indexOf(FRASE) > -1, t76.inf.slice(0, 240)],
+    ['con 74 NO lo publica', t74.inf.indexOf(FRASE) < 0, t74.inf.slice(0, 240)],
+    ['la fila de referencia marca el 75 como alto y el 74 no',
+      t75.ref && t75.ref.alto === true && t74.ref && t74.ref.alto === false,
+      '75=' + JSON.stringify(t75.ref) + ' 74=' + JSON.stringify(t74.ref)],
+    ['y su texto lleva el operador que incluye el borde',
+      !!t75.ref && String(t75.ref.txt).indexOf('\u226575 ms: a favor de HTP') > -1,
+      t75.ref ? t75.ref.txt : 'null'],
+
+    // ── C · LA REDACCION DEL PANEL DE EVIDENCIA, que es lo que esta tarea corrige.
+    ['la seccion de HTP dice «de 75 ms o m\u00e1s»',
+      t75.htp.indexOf('de 75 ms o m\u00e1s') > -1, t75.htp.indexOf('de 75 ms o m\u00e1s')],
+    ['y ya NO dice «por encima de 75 ms», que es el operador estricto',
+      t75.htp.indexOf('por encima de 75 ms') < 0, t75.htp.indexOf('por encima de 75 ms')],
+
+    // ── D · EL GLOBO: declara el criterio como propio y NO pierde ninguna de sus tres citas.
+    ['el globo del TRIV declara el criterio como propio de la aplicacion',
+      fte.indexOf('CRITERIO DE LA APLICACI\u00d3N') === 0, fte.slice(0, 120)],
+    ['y conserva las tres publicaciones que ya nombraba, sin folio inventado',
+      fte.indexOf('Howard LS') > -1 && fte.indexOf('Cabrita IZ') > -1 && fte.indexOf('Br\u00e9chot N') > -1 &&
+      fte.indexOf('folio') < 0, fte.slice(0, 400)],
+    ['la primera linea del globo sigue diciendo «75 ms o m\u00e1s»',
+      lee.indexOf('prolongado \u201475 ms o m\u00e1s\u2014') > -1, lee.slice(0, 160)]
+  ] };
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
