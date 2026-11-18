@@ -856,8 +856,19 @@ caso('TC-28', "Diastolica normal: e' conservada, 0/3 parametros positivos", `
   __t.set('onda_e','70'); __t.set('onda_a','70'); __t.set('e_sep','10'); __t.set('e_lat','13');
   __t.set('ai_vol','40'); __t.set('vmax_it','2.0');
   const r = __t.informe();
+  /* ⚠️ INVERTIDA EN LA 3A (punto 7), POR DECISION DE MAICOL: la frase de la diastolica NORMAL queda
+     en UNA sola oracion -«Funcion diastolica normal.»- SIN el conteo y sin nombrar el parametro.
+     El motivo que dio: un «0/3 parametros positivos» al lado de una normalidad es el denominador
+     de una busqueda, no un hallazgo.
+     La condicion sigue exigiendo la frase, y ahora exige ademas que el conteo NO este, asi que
+     falla por los dos lados: si alguien le devuelve el parentesis, esto se pone rojo.
+     ⚠️ A ESTE CASO LO DESTAPO LA SUITE COMPLETA Y NO MI CENSO, y es el modo de falla que este
+     archivo documenta: busque los casos que tocan la diastolica por sus palabras -restrictivo,
+     pseudonormal, grado III, _diastResult-, y este afirma su frase con una lista de inclusion que dice
+     «0/3 parametros positivos». Ninguna de esas palabras aparece aca. */
   return { inf: r.inf, suma: r.suma,
-    debe: ['Función diastólica normal', '(0/3 parámetros positivos)'],
+    debe: ['Función diastólica normal.'],
+    noDebe: ['parámetros positivos'],
     noSuma: ['Disfunción diastólica'] };
 `);
 

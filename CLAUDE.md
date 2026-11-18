@@ -1449,8 +1449,30 @@ alcanza al `return`**; el registro de fichas que se llama **`EV_REG` y no `IND_R
 que no vaciaba sus insumos, así que el control negativo medía la escena anterior. El generador de
 casos de esta tanda construye el acento grave con `chr(96)` y **asegura que el cuerpo no tenga
 ninguno**.
-El mapa, en `docs/mapa/p3a-valsalva-strain-cortri.md`; lo declarado, en **P3A-a** a **P3A-l**; la
-sonda, en `scripts/_probe_3a.mjs` con su cuerpo aparte.
+**Línea base al cierre: suite 931/935**, en **DIECISIETE** lotes de 55 cubriendo los **935 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, con los **935
+ejecutados** (55 de 55 en cada uno de los diecisiete), el md5 de `index.html` **idéntico** antes y
+después (`5c283337`) y el pendrive `DISK_IMG` verificado **diecinueve** veces leyendo DICOMDIR —en
+5 a 13 ms, con sus **343** archivos de `GEMS_IMG` declarados en cada control— más un toque previo
+de 287 ms antes del primer lote.
+Los rojos son **TC-376** y **TC-406**, dos de los de siempre —los dos fallan igual corridos
+aislados—, y **TC-182** y **TC-903**, los dos intermitentes ya declarados, que **pasan 1/1 corridos
+aislados**. **Ningún rojo nuevo**, y los siete casos nuevos y los trece adaptados en verde.
+⚠️ **LA PASADA DIO 930/935 Y EL QUINTO ROJO ERA MÍO: TC-28**, que no está en ninguna lista de
+intermitentes y falla **0/3 aislado**. Era **consecuencia autorizada** del punto 7 —exigía el
+«(0/3 parámetros positivos)» en la frase de la diastólica normal, que la decisión de Maicol mandó
+sacar— y **lo destapó la suite completa y no mi censo**: busqué los casos de la diastólica por sus
+palabras (restrictivo, pseudonormal, grado III, `_diastResult`) y ése afirma su frase con una lista
+de inclusión que dice «0/3 parámetros positivos», sin ninguna de esas palabras. Quedó **INVERTIDO**
+—exige la frase **y** que el conteo ya no esté— y **cae contra `e24a81c`**.
+⚠️ **NO SE REHIZO LA PASADA COMPLETA, y se declara con su motivo**: `index.html` **no cambió**
+—mismo md5 antes y después de adaptar el caso—, y el único archivo que se movió fue el de casos, en
+el cuerpo de **TC-28**. Se rehizo **su lote entero**, el 1, con el archivo de casos final: **55/55**,
+con el md5 del árbol idéntico al abrir y al cerrar. Es el mismo criterio con que PANT-20 no rehizo
+su pasada.
+El mapa, en `docs/mapa/p3a-valsalva-strain-cortri.md`; lo declarado, en **P3A-a** a **P3A-m**; la
+sonda, en `scripts/_probe_3a.mjs` con su cuerpo aparte; el corredor de lotes, en
+`scripts/_lotes_3a.sh`.
 
 **La tanda MEDIR-6 (2026-11-16) — el visor, el TRIV, la CIV, el TEER, la Tabla 4 y el cor
 triatriatum.** OCHO commits. Sello **`v20261116-0358`**, md5 **`84a38aa2`**, **184.689** lineas.
