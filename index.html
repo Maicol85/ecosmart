@@ -25042,6 +25042,250 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
        ⚠️ SE AGREGA A `REF_SUBTAB` EN EL MISMO COMMIT. La tanda J se olvido de ese paso con
        `constriccion` y la ficha quedo suelta fuera de las seis subpestanas -existia, se abria y el
        buscador la indexaba, pero el medico que navegara por las solapas no la encontraba nunca-. -->
+  <!-- ══ HEMODINAMICA — MATERIAL DE CONSULTA (TAREA 2, 18/11/2026) ════════════════════════════
+       Decision del medico: la subpestania Hemodinamica de Referencias pasa a tener material de
+       consulta BREVE —el contenido primero y, al pie de cada bloque, una linea chica con el autor,
+       el anio y el folio—. Hasta hoy esa subpestania tenia dos entradas, el posoperatorio y la
+       constriccion frente a restriccion, y ninguna ficha de hemodinamica propia: los globos
+       `hemo-ic`, `hemo-rvs` y `hemo-forr` no tienen destino en Referencias, que es lo que el censo
+       de TC-502 declara desde la tanda J2.
+       ⚠️ EL CONTENIDO NO SE RETIPEA: sale de `scripts/_gen_hemo_ref.py`, donde la especificacion de
+       cada bloque y la fuente de cada afirmacion viven UNA sola vez; de ahi salen este marcado Y
+       `docs/CONTROL_HEMO_REF.md`. Es el patron que PANT-36 dejo escrito con `_gen_p36tablas.py`.
+       ⚠️ TODO REDACTADO DE NUEVO. Ninguna tabla ni parrafo de las guias se copia; el origen es el
+       Word de estudio que armo Cowork, que es solo lectura y no se toco.
+       ⚠️ NINGUN TEXTO COMPARA DOS FUENTES NI DICE QUE ALGO NO SE ENCONTRO —regla fija del
+       2026-11-04— Y NINGUNO DICE QUE ALGO ESTE PENDIENTE DE REVISION —regla fija del 2026-11-02—.
+       Lo que el Word marca «verificar a ojo», «sin fuente», «contradiccion entre fuentes» o «folio
+       no comprobado» quedo AFUERA, y la lista de las veintiocho cosas que quedaron afuera con su
+       motivo esta en `docs/CONTROL_HEMO_REF.md`: no en la aplicacion.
+       ⚠️ CERO DOSIS DE FARMACOS.
+       ⚠️ LAS TABLAS ANCHAS VAN EN UN SCROLLER PROPIO (`overflow-x:auto` con `min-width`), que es el
+       patron MEDIDO de `ref-asoc` y `ref-tumores`: a 390 px desplazan DENTRO del envoltorio y
+       dejan el documento en cero.
+       ⚠️ EL TAPONAMIENTO NO DUPLICA A `ref-pericardio`: los signos ecocardiograficos con su
+       sensibilidad y su especificidad, los grados del derrame y la clase de la pericardiocentesis
+       siguen viviendo SOLO ahi, y esta ficha manda a esa, que desde esta tanda esta en la misma
+       subpestania. Lo que publica aca es la clinica, el volumen que hace falta y que evitar. -->
+  <div class="card">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('hemo',this)">
+      🩺 Hemodinámica — gasto cardíaco, shock y soporte circulatorio
+      <span style="float:right;">▶</span>
+    </h2>
+    <div id="ref-hemo" style="display:none;" class="card-body">
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Determinantes del gasto cardíaco</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Contractilidad:</b> propiedad del músculo cardíaco que no depende de las condiciones de carga.<br>
+        • <b>Precarga:</b> carga que soporta la fibra al final de la diástole; se estima por la presión o el volumen telediastólicos.<br>
+        • <b>Poscarga:</b> carga que enfrenta la fibra durante la eyección; su índice más simple es la presión aórtica.<br>
+        • <b>Ley de Starling:</b> relación entre el llenado diastólico y el trabajo de eyección.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Braunwald 10.ª ed., cap. 21, folio 447.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Orden de abordaje del gasto bajo</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Paso</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Determinante</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qué se hace</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">1</td><td style="padding:5px 8px;">Causas inmediatas</td><td style="padding:5px 8px;">Descartar taponamiento pericárdico y shock hemorrágico.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">2</td><td style="padding:5px 8px;">Ritmo y frecuencia</td><td style="padding:5px 8px;">Corregir las alteraciones del ritmo y de la frecuencia.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">3</td><td style="padding:5px 8px;">Precarga</td><td style="padding:5px 8px;">Valorarla y dar volumen o diuréticos según el caso.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">4</td><td style="padding:5px 8px;">Poscarga</td><td style="padding:5px 8px;">Estimarla e iniciar vasopresores o vasodilatadores.</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">5</td><td style="padding:5px 8px;">Contractilidad</td><td style="padding:5px 8px;">Evaluarla; inotrópicos y, si hace falta, soporte circulatorio mecánico.</td></tr>
+      </table>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>En el ventrículo derecho</b> rigen los mismos determinantes, con dos particularidades: el tabique interventricular pesa sobre su contractilidad y la hipertensión pulmonar sobre su poscarga.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Llanos 2020, hoja 6 del PDF (la guía no trae folio impreso).</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Gasto cardíaco: cómo se mide</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Método</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qué aporta y dónde rinde</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Fick</td><td style="padding:5px 8px;">GC = VO₂ / (diferencia arteriovenosa de O₂ × 1,36 × Hb × 10). Rinde mejor con gasto bajo y con insuficiencia tricuspídea. El VO₂ «asumido» se toma como 125 ml/m².</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Termodilución</td><td style="padding:5px 8px;">Tiende a sobrestimar el gasto cuando es menor de 2,5 l/min, y tiene error con insuficiencia tricuspídea grave.</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">Termodilución transpulmonar</td><td style="padding:5px 8px;">Aporta volumen telediastólico global, índice de función cardíaca y agua pulmonar extravascular.</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Fick y termodilución: Braunwald 10.ª ed., folios 377 y 378 (leídos en imagen). Termodilución transpulmonar: Cecconi 2014, folios 1808–1809.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Resistencias: fórmulas</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Variable</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fórmula</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">RVS</td><td style="padding:5px 8px;">80 × (presión aórtica media − presión media de aurícula derecha) / gasto sistémico</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">RVP</td><td style="padding:5px 8px;">80 × (presión media de arteria pulmonar − presión media de aurícula izquierda) / gasto pulmonar</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Resistencia pulmonar total</td><td style="padding:5px 8px;">80 × presión media de arteria pulmonar / gasto pulmonar</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Índice de RVS</td><td style="padding:5px 8px;">(aórtica − aurícula derecha) × 80 / índice cardíaco</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">RVP en unidades Wood</td><td style="padding:5px 8px;">(presión media de arteria pulmonar − enclavada) / gasto cardíaco</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Resistencia pulmonar total en unidades Wood</td><td style="padding:5px 8px;">presión media de arteria pulmonar / gasto cardíaco</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">Distensibilidad arterial pulmonar</td><td style="padding:5px 8px;">volumen latido / (presión pulmonar sistólica − diastólica)</td></tr>
+      </table></div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>La constante 80</b> convierte unidades Wood (mmHg/l/min) en dyn·s·cm⁻⁵.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: RVS, RVP, resistencia pulmonar total y la constante 80: Braunwald 10.ª ed., folios 378–379 (leídos en imagen). Índice de RVS: Grossman &amp; Baim 8.ª ed., Ec. 11.16, folio 260. Unidades Wood y distensibilidad: Humbert 2022, Tabla 11, folio 30.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Valores de referencia</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Variable</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Valor</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Presión de aurícula derecha</td><td style="padding:5px 8px;">2 a 6 mmHg</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Presión pulmonar media</td><td style="padding:5px 8px;">8 a 20 mmHg</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Presión pulmonar sistólica / diastólica</td><td style="padding:5px 8px;">15 a 30 / 4 a 12 mmHg</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Enclavada media</td><td style="padding:5px 8px;">15 mmHg o menos</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Índice cardíaco</td><td style="padding:5px 8px;">2,5 a 4,0 l/min/m²</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Gasto cardíaco</td><td style="padding:5px 8px;">4 a 8 l/min</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Volumen latido</td><td style="padding:5px 8px;">60 a 100 ml (indexado 33 a 47 ml/m²)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Saturación venosa mixta</td><td style="padding:5px 8px;">65 a 80 %</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">RVP</td><td style="padding:5px 8px;">0,3 a 2,0 unidades Wood</td></tr>
+        <tr style="background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Resistencia pulmonar total</td><td style="padding:5px 8px;">menos de 3 unidades Wood</td></tr>
+      </table>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Presión venosa central:</b> normal de 2 a 8 mmHg. Un valor cercano a 10 o 12 sugiere falla aislada del ventrículo derecho o biventricular, y conviene evitar 15 o más. La presión venosa central equivale aproximadamente a la mitad de la enclavada.<br>
+        • <b>Lo que no debe guiar la reanimación:</b> la presión venosa central, la enclavada o el volumen telediastólico global tomados por separado, ni una presión de llenado absoluta como objetivo.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Valores normales: Humbert 2022, Tabla 11, folio 30 (edición de la SEC en español). Presión venosa central: SAC 2024, §4.2, folios 20–21. Lo que no debe guiar la reanimación: Cecconi 2014, folios 1802 y 1806.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Cortes de RVS que aparecen con su contexto</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Contexto</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Menos de 1.200 dyn·s·cm⁻⁵</td><td style="padding:5px 8px;">Objetivo de la terapia dirigida de Stevenson, junto a enclavada menor de 15, aurícula derecha menor de 8, índice cardíaco mayor de 2,2 y presión sistólica mayor de 80.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Más de 1.400</td><td style="padding:5px 8px;">En la miocardiopatía hipertrófica obstructiva.</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">Más de 1.500</td><td style="padding:5px 8px;">Columna de RVS en la tabla de fenotipos del shock cardiogénico.</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: SAC 2024, folio 22 (Stevenson), folio 73 (miocardiopatía hipertrófica obstructiva) y Tabla 2, folio 3 (fenotipos).</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Los cuatro patrones de shock</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Definición:</b> forma generalizada y potencialmente letal de falla circulatoria aguda asociada a utilización inadecuada de oxígeno. La hipotensión —sistólica menor de 90, media menor de 65 o caída de 40 mmHg o más— no es necesaria para definirlo, y el lactato suele estar por encima de 2 mmol/l. Los cuatro patrones son hipovolémico, cardiogénico, obstructivo y distributivo.
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Patrón</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">PVC</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Enclavada</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Gasto</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">RVS</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">SvO₂</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Hipovolémico</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Cardiogénico por infarto del ventrículo izquierdo</td><td style="padding:5px 8px;">normal o ↑</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Cardiogénico por infarto del ventrículo derecho</td><td style="padding:5px 8px;">↑↑</td><td style="padding:5px 8px;">normal o ↑</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Obstructivo por taponamiento</td><td style="padding:5px 8px;">↑↑</td><td style="padding:5px 8px;">↑↑</td><td style="padding:5px 8px;">↓ o ↓↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Obstructivo por embolia pulmonar masiva</td><td style="padding:5px 8px;">↑↑</td><td style="padding:5px 8px;">normal o ↓</td><td style="padding:5px 8px;">↓↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Distributivo temprano</td><td style="padding:5px 8px;">normal o ↑</td><td style="padding:5px 8px;">normal</td><td style="padding:5px 8px;">↓, normal o ↑</td><td style="padding:5px 8px;">↑, normal o ↓</td><td style="padding:5px 8px;">normal o ↓</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Distributivo temprano tras fluidos</td><td style="padding:5px 8px;">normal o ↑</td><td style="padding:5px 8px;">normal o ↑</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↓</td><td style="padding:5px 8px;">↑, normal o ↓</td></tr>
+        <tr style="background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Distributivo tardío</td><td style="padding:5px 8px;">normal</td><td style="padding:5px 8px;">normal</td><td style="padding:5px 8px;">↓</td><td style="padding:5px 8px;">↑</td><td style="padding:5px 8px;">↑ o ↓</td></tr>
+      </table></div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>En el obstructivo</b> suben la presión venosa central y la RVS y bajan el gasto y la saturación venosa; el taponamiento iguala las presiones; en la embolia masiva la enclavada queda normal o baja; en el distributivo la RVS baja con hipovolemia relativa.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Definición, los cuatro patrones y el lactato: Cecconi 2014, folios 1796 y 1800. Tabla de patrones: Civetta 2017, cap. 44, Tabla 44.2, hoja 1341 del PDF (la fuente no trae folio impreso); flechas leídas en la imagen del libro escaneado.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Forrester: enclavada e índice cardíaco</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Subgrupo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Enclavada (mmHg)</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Índice cardíaco (l/min/m²)</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">I</td><td style="padding:5px 8px;">menos de 18</td><td style="padding:5px 8px;">más de 2,2</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">II</td><td style="padding:5px 8px;">más de 18</td><td style="padding:5px 8px;">más de 2,2</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">III</td><td style="padding:5px 8px;">menos de 18</td><td style="padding:5px 8px;">menos de 2,2</td></tr>
+        <tr style="background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">IV</td><td style="padding:5px 8px;">más de 18</td><td style="padding:5px 8px;">menos de 2,2</td></tr>
+      </table>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Los subgrupos van en números romanos</b> en esa tabla; las etiquetas A, B, L y C no figuran en ella.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Braunwald 10.ª ed., Tabla 52-9, folio 1120.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Fenotipos hemodinámicos del shock cardiogénico</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:620px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Variable</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Ventrículo izquierdo dominante</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Ventrículo derecho dominante</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Biventricular</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Presión sistólica (mmHg)</td><td style="padding:5px 8px;">menos de 90</td><td style="padding:5px 8px;">menos de 90</td><td style="padding:5px 8px;">menos de 90</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Presión venosa central (mmHg)</td><td style="padding:5px 8px;">menos de 14</td><td style="padding:5px 8px;">más de 14</td><td style="padding:5px 8px;">más de 14</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Enclavada (mmHg)</td><td style="padding:5px 8px;">más de 18</td><td style="padding:5px 8px;">menos de 18</td><td style="padding:5px 8px;">variable</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Venosa central / enclavada</td><td style="padding:5px 8px;">menos de 0,86</td><td style="padding:5px 8px;">más de 0,86</td><td style="padding:5px 8px;">más de 0,86</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Índice de pulsatilidad pulmonar</td><td style="padding:5px 8px;">más de 1,5</td><td style="padding:5px 8px;">menos de 1,5</td><td style="padding:5px 8px;">menos de 1,5</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Índice cardíaco (l/min/m²)</td><td style="padding:5px 8px;">menos de 2,2</td><td style="padding:5px 8px;">menos de 2,2</td><td style="padding:5px 8px;">menos de 2,2</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">RVS (dyn·s·cm⁻⁵)</td><td style="padding:5px 8px;">más de 1.500</td><td style="padding:5px 8px;">más de 1.500</td><td style="padding:5px 8px;">más de 1.500</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: SAC 2024, Tabla 2, folio 3 (adaptada de van Diepen, <i>Circulation</i> 2017;136:e232).</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Respuesta a fluidos y objetivos de perfusión</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Variables dinámicas antes que estáticas</b> para predecir la respuesta a fluidos (nivel 1, B); la prueba de fluidos está recomendada (nivel 1, C).<br>
+        • <b>La variación de presión de pulso y la de volumen sistólico</b> sirven solo con ventilación mecánica totalmente controlada.<br>
+        • <b>Cómo se hace la prueba:</b> bolo de 500 ml en menos de 30 minutos, o elevación pasiva de piernas a 45° durante 4 minutos. La respuesta es positiva con un aumento del gasto cardíaco de 10 a 15 % o más.<br>
+        • <b>Una caída de la presión auricular derecha</b> de 1 mmHg o más en inspiración espontánea predice respuesta.<br>
+        • <b>Presión arterial media:</b> el objetivo se individualiza, con 65 mmHg o más como punto de partida; se tolera menos en la hemorragia no controlada sin traumatismo craneal grave y se admite más en el septicémico hipertenso.<br>
+        • <b>Marcadores de hipoperfusión:</b> lactato seriado, saturación venosa central y brecha venoarterial de pCO₂ mayor de 6 mmHg.<br>
+        • <b>La ecocardiografía</b> es la modalidad inicial preferida; en el paciente complejo se agregan el catéter de arteria pulmonar o la termodilución transpulmonar.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Cecconi 2014: recomendaciones, folios 1802 y 1806; prueba de respuesta, folios 1805–1806; presión arterial media, Tabla 5, folio 1802; marcadores y ecocardiografía, folio 1801.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Ecocardiografía en la valoración de volumen y del ventrículo derecho</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Interpretación</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">E/E′ menor de 8</td><td style="padding:5px 8px;">Presiones de llenado bajas.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">E/E′ de 8 a 15</td><td style="padding:5px 8px;">No fiable para estimar la presión.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">E/E′ mayor de 15</td><td style="padding:5px 8px;">Presiones de llenado altas.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Cociente de áreas telediastólicas VD/VI de 0,6 a 1</td><td style="padding:5px 8px;">Dilatación moderada del ventrículo derecho.</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">VD/VI mayor de 1</td><td style="padding:5px 8px;">Dilatación grave del ventrículo derecho.</td></tr>
+      </table>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Cecconi 2014, folios 1806–1807.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Monitoreo y soporte: qué aporta cada uno</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Herramienta</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qué aporta y para qué se usa</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Catéter de arteria pulmonar (Swan-Ganz)</td><td style="padding:5px 8px;">Define el perfil hemodinámico, sirve para ajustar el tratamiento y para guiar el destete de vasoactivos. Braunwald lo indica en la hipotensión que no corrige con volumen, en la hipotensión con insuficiencia cardíaca, en el compromiso hemodinámico grave, en las lesiones mecánicas y en el infarto del ventrículo derecho.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Termodilución transpulmonar (PiCCO)</td><td style="padding:5px 8px;">Aporta el volumen telediastólico global, el índice de función cardíaca y el agua pulmonar extravascular.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Balón de contrapulsación intraaórtico</td><td style="padding:5px 8px;">Clase I, nivel C, para separar de la circulación extracorpórea cuando resulta difícil; clase IIa en otras indicaciones.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Asistencia percutánea del ventrículo izquierdo</td><td style="padding:5px 8px;">Braunwald menciona dispositivos de hasta 5 l/min.</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">ECMO venoarterial</td><td style="padding:5px 8px;">Se considera dentro de las 6 horas del shock cardiogénico refractario; sus contraindicaciones están listadas en el texto de la guía.</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Usos del catéter: SAC 2024, §4.4, folios 21–22. Indicaciones de Braunwald: Tabla 52-8, folio 1119. Termodilución transpulmonar: Cecconi 2014, folios 1808–1809. Balón de contrapulsación: SAC 2024, §5.3, folios 34–35. Asistencia percutánea: Braunwald 10.ª ed., folio 1123. ECMO venoarterial: Lorusso 2021 (guía ELSO), folio 828.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">ECMO venoarterial: puntos de la guía</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Tema</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Qué dice la guía</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Meta de oxigenación</td><td style="padding:5px 8px;">Relación entre transporte y consumo de oxígeno mayor de 3, con saturación venosa mixta por encima de 66 %.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Pronóstico (puntaje SAVE)</td><td style="padding:5px 8px;">Clases I a V, con supervivencia de 75, 58, 42, 30 y 18 %.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Descarga del ventrículo izquierdo</td><td style="padding:5px 8px;">Disparadores: edema pulmonar, presión de pulso menor de 5 a 10 mmHg, contraste espontáneo y válvula aórtica cerrada con distensión del ventrículo.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Monitoreo</td><td style="padding:5px 8px;">Oximetría en la radial derecha, considerar el catéter de arteria pulmonar y ecocardiografía.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Ventilación</td><td style="padding:5px 8px;">Volumen corriente de 6 a 8 ml/kg de peso ideal.</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Reducción de flujo</td><td style="padding:5px 8px;">Bajarlo de a 500 ml cada 5 a 10 minutos.</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Destete</td><td style="padding:5px 8px;">Presión arterial media mayor de 60, onda S′ lateral de 6 cm/s o más, presión venosa central de 10 o menos y fracción de eyección de 25 a 30 % o más.</td></tr>
+        <tr style="background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Registro</td><td style="padding:5px 8px;">La tabla del registro reúne 14.580 corridas con una supervivencia del 44 %.</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Lorusso 2021 (guía ELSO de ECMO venoarterial): meta de oxigenación, folio 827; puntaje SAVE, Tabla 2, folio 830; descarga del ventrículo, folios 830 y 835; monitoreo, folios 834–835; ventilación, Tabla 9, folio 841; reducción de flujo, folio 841; destete y registro, folios 841–842.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Hipertensión pulmonar: definiciones hemodinámicas</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Categoría</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Pulmonar media</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Enclavada</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">RVP</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Hipertensión pulmonar</td><td style="padding:5px 8px;">más de 20 mmHg</td><td style="padding:5px 8px;">—</td><td style="padding:5px 8px;">—</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Precapilar</td><td style="padding:5px 8px;">más de 20</td><td style="padding:5px 8px;">15 mmHg o menos</td><td style="padding:5px 8px;">más de 2 unidades Wood</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Poscapilar aislada</td><td style="padding:5px 8px;">más de 20</td><td style="padding:5px 8px;">más de 15 mmHg</td><td style="padding:5px 8px;">2 unidades Wood o menos</td></tr>
+        <tr style="background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Poscapilar y precapilar combinada</td><td style="padding:5px 8px;">más de 20</td><td style="padding:5px 8px;">más de 15 mmHg</td><td style="padding:5px 8px;">más de 2 unidades Wood</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Humbert 2022, Tabla 5, folio 21 (edición de la SEC en español).</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Hipertensión pulmonar: signos ecocardiográficos y estratificación de riesgo</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Signos de apoyo:</b> cociente VD/VI mayor de 1, índice de excentricidad del ventrículo izquierdo mayor de 1,1 y área de aurícula derecha mayor de 18 cm². La probabilidad se estima a partir de la velocidad de regurgitación tricuspídea junto con estos signos.
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
+        <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Variable</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Riesgo bajo</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Riesgo intermedio</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Riesgo alto</th></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Área de aurícula derecha (cm²)</td><td style="padding:5px 8px;">menos de 18</td><td style="padding:5px 8px;">18 a 26</td><td style="padding:5px 8px;">más de 26</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Presión de aurícula derecha (mmHg)</td><td style="padding:5px 8px;">menos de 8</td><td style="padding:5px 8px;">8 a 14</td><td style="padding:5px 8px;">más de 14</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:700;">Índice cardíaco (l/min/m²)</td><td style="padding:5px 8px;">2,5 o más</td><td style="padding:5px 8px;">2,0 a 2,4</td><td style="padding:5px 8px;">menos de 2,0</td></tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;font-weight:700;">Índice de volumen sistólico (ml/m²)</td><td style="padding:5px 8px;">más de 38</td><td style="padding:5px 8px;">31 a 38</td><td style="padding:5px 8px;">menos de 31</td></tr>
+        <tr style=""><td style="padding:5px 8px;font-weight:700;">Saturación venosa mixta (%)</td><td style="padding:5px 8px;">más de 65</td><td style="padding:5px 8px;">60 a 65</td><td style="padding:5px 8px;">menos de 60</td></tr>
+      </table></div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Signos de apoyo: Humbert 2022, Tabla 10, folio 28; la probabilidad, Figura 5, folio 28. Estratificación: Humbert 2022, Tabla 16, folio 41.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Falla del ventrículo derecho en el shock</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Diagnóstico hemodinámico:</b> índice cardíaco menor de 2,2, presión venosa central mayor de 15 mmHg y cociente entre venosa central y enclavada mayor de 1.<br>
+        • <b>Objetivo de presión:</b> presión auricular derecha de 8 a 12 mmHg.<br>
+        • <b>Fenotipo en el shock cardiogénico:</b> presión venosa central mayor de 14, enclavada menor de 18, cociente mayor de 0,86 e índice de pulsatilidad pulmonar menor de 1,5.<br>
+        • <b>El catéter de arteria pulmonar</b> en el shock refractario con disfunción del ventrículo derecho es una sugerencia de nivel 2, calidad C.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Diagnóstico, objetivo y fenotipo: SAC 2024, §6.5, folios 59–61, y Tabla 2, folio 3. Catéter en el shock refractario: Cecconi 2014, folio 1809.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Taponamiento: clínica y tratamiento</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Qué es:</b> un síndrome pericárdico en el que el derrame altera el llenado cardíaco hasta reducir el gasto.<br>
+        • <b>Cuánto líquido hace falta:</b> con acumulación rápida —por ejemplo un hemopericardio— el límite se alcanza con 200 a 300 ml; con acumulación lenta puede llegar a 1 o 2 litros antes del taponamiento.<br>
+        • <b>Tríada de Beck:</b> hipotensión, aumento de la presión yugular y ruidos cardíacos atenuados; puede faltar en el taponamiento de acumulación lenta.<br>
+        • <b>Taponamiento agudo:</b> se asocia a taquicardia y presión arterial menor de 90 mmHg.<br>
+        • <b>Pulso paradójico:</b> descenso de la presión sistólica de más de 10 mmHg en inspiración, por interdependencia ventricular exagerada.<br>
+        • <b>Electrocardiograma:</b> taquicardia, voltajes bajos y alternancia eléctrica.<br>
+        • <b>Tratamiento definitivo:</b> el drenaje, de preferencia la pericardiocentesis con aguja guiada por ecocardiografía o fluoroscopia, sin demora si hay inestabilidad, con la alternativa quirúrgica. Sus complicaciones van del 4 al 10 % según la monitorización, el operador y el contexto.<br>
+        • <b>Qué evitar:</b> la ventilación con presión positiva y los diuréticos. La administración temporal de fluidos puede estabilizar mientras se espera el drenaje.<br>
+        • <b>Los signos ecocardiográficos</b> con su sensibilidad y su especificidad, los grados del derrame y la clase de la pericardiocentesis están en la ficha de derrame pericárdico y taponamiento de esta misma sección.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Schulz-Menger 2025 (guía ESC de miocarditis y pericarditis, edición en español), folio 69.</div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:2px 0 6px;">Shock cardiogénico: definición, estadios y objetivos</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px;">
+        • <b>Definición de la guía ELSO:</b> presión sistólica menor de 90 mmHg, diuresis menor de 30 ml/h, lactato mayor de 2 mmol/l, saturación venosa mixta menor de 60 %, alteración de la conciencia, sostenidos durante 6 horas.<br>
+        • <b>Índice cardíaco:</b> menor de 1,8 l/min/m² con soporte y de 2,0 a 2,2 sin soporte.<br>
+        • <b>Estadios:</b> el consenso argentino usa los estadios SCAI de la A a la E. El lactato por encima de 2 mmol/l figura en la guía de la ACC.<br>
+        • <b>Monitoreo:</b> presión arterial media de 65 mmHg o más, clase I nivel B; presión arterial invasiva, clase I nivel B.<br>
+        • <b>Objetivos de la terapia dirigida de Stevenson:</b> enclavada menor de 15, aurícula derecha menor de 8, RVS menor de 1.200, índice cardíaco mayor de 2,2 y presión sistólica mayor de 80.
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin:4px 0 14px;">Fuente: Definición: Lorusso 2021 (guía ELSO), folio 827. Índice cardíaco y estadios: SAC 2024, folio 3. Lactato: Sinha 2025, folio 1622. Monitoreo: SAC 2024, §4.3, folio 21. Objetivos de Stevenson: SAC 2024, folio 22.</div>
+    </div>
+  </div>
+
   <div class="card">
     <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('pop',this)">
       🫀 Posoperatorio de cirug&iacute;a card&iacute;aca
@@ -25070,7 +25314,16 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">&iquest;Falla del ventr&iacute;culo derecho?</td><td style="padding:5px 8px;text-align:center;">TAPSE &lt;17 mm &middot; VD/VI &gt;0,9</td><td style="padding:5px 8px;"><b>AHA/ACC 2026</b> de embolia pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del ventr&iacute;culo derecho">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);"><b>Tabla 4, folio e989</b>. Son los mismos dos cortes que aplica la c&aacute;psula de sobrecarga del ventr&iacute;culo derecho &mdash; TAPSE por debajo de 17 mm y VD/VI por encima de 0,9 &mdash;: no se grad&uacute;an de otra forma ac&aacute;.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Falla del VD <b>por poscarga</b> o <b>por contractilidad</b></td><td style="padding:5px 8px;text-align:center;">PmAP &gt;20 mmHg</td><td style="padding:5px 8px;"><b>La partici&oacute;n no tiene fuente</b>; el n&uacute;mero s&iacute;: <b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: falla del VD por poscarga o por contractilidad">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo cuelga &laquo;poscarga&raquo; o &laquo;contractilidad&raquo; de ese umbral. El n&uacute;mero es la definici&oacute;n de hipertensi&oacute;n pulmonar de la ESC/ERS 2022. Sin PAP media no se parte, y se dice.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Hipertensi&oacute;n pulmonar &mdash; definici&oacute;n</td><td style="padding:5px 8px;text-align:center;">PmAP &gt;20 mmHg &middot; poscapilar con PCP &gt;15 &middot; RVP &gt;2 UW</td><td style="padding:5px 8px;"><b>ESC/ERS 2022</b> de hipertensi&oacute;n pulmonar <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: definici&oacute;n de hipertensi&oacute;n pulmonar">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">El corte de la resistencia vascular pulmonar &mdash; 2 UW &mdash; es la &uacute;nica unidad de corte que la aplicaci&oacute;n usa para esa resistencia.</div></details></td></tr>
-        <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Volumen aproximado del derrame pleural</td><td style="padding:5px 8px;text-align:center;">V (ml) = D (mm) &times; 20</td><td style="padding:5px 8px;"><b>Volpicelli G</b> y col., <i>Intensive Care Med</i>, 2026 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: volumen del derrame pleural">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Enunciado <b>D6_11, hoja 19</b>. Sus l&iacute;mites est&aacute;n en el globo &#9432; del bloque de pleura: dec&uacute;bito supino, corte transversal lateral sobre el &aacute;ngulo costofr&eacute;nico, y validada en pacientes cr&iacute;ticos bajo ventilaci&oacute;n invasiva.</div></details></td></tr>
+        <!-- ⚠️ LA FILA DEL VOLUMEN DEL DERRAME PLEURAL SALIO DE ACA EN LA TAREA 2 (18/11/2026),
+             y es lo unico que esta ficha pierde. Era una COPIA LITERAL de la fila de la ficha de
+             ecografia pulmonar —la misma formula V (ml) = D (mm) x 20 y la misma fuente, Volpicelli
+             2026, enunciado D6_11, hoja 19—, y la decision del medico manda que el material de
+             consulta del derrame pleural quede con UNA sola copia. Desde esta tanda esa ficha vive
+             en la MISMA subpestania que esta, asi que el camino sigue a un toque de distancia.
+             ⚠️ LA FILA DE LOS GRADOS DEL DERRAME —leve, moderado y severo con su chip— SE QUEDA, y
+             es una decision y no un olvido: no es material de consulta de una guia sino el criterio
+             propio de ESTE modulo, su ⓘ habla de «las fuentes de este modulo», y mudarla obligaria
+             a reescribir ese texto, que es contenido clinico y lo decide el medico. -->
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:1px 5px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>Grados del derrame pleural</td><td style="padding:5px 8px;text-align:center;">leve &lt;1 cm &middot; moderado 1&ndash;3 cm &middot; severo &gt;3 cm</td><td style="padding:5px 8px;"><b>Sin fuente.</b> <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: grados del derrame pleural">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">Ninguna de las fuentes de este m&oacute;dulo grad&uacute;a el derrame pleural por tama&ntilde;o. <b>No se retiran</b>: describen el tama&ntilde;o, no dictan una conducta.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3)"><td style="padding:5px 8px;">Evaluaci&oacute;n ecocardiogr&aacute;fica <b>tras cirug&iacute;a mitral</b></td><td style="padding:5px 8px;text-align:center;">insuficiencia residual o nueva, motilidad de los velos, estenosis iatrog&eacute;nica y movimiento anterior sist&oacute;lico</td><td style="padding:5px 8px;"><b>Nicoara A</b> y col. (ASE / SCA / STS), <i>J Am Soc Echocardiogr</i>, 2020 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: evaluaci&oacute;n tras cirug&iacute;a mitral">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);">33:692&ndash;734 &middot; <b>&sect;3.1.5 y Tabla 3, folio 701</b>.</div></details></td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;">Evaluaci&oacute;n ecocardiogr&aacute;fica <b>tras revascularizaci&oacute;n</b></td><td style="padding:5px 8px;text-align:center;">motilidad regional y global en los segmentos revascularizados, <b>repetida</b> en el posoperatorio</td><td style="padding:5px 8px;">Nicoara A y col., 2020 <details style="display:inline-block;vertical-align:top;margin-left:3px;"><summary style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);" aria-label="Ver el detalle de la fuente: evaluaci&oacute;n tras revascularizaci&oacute;n">&#9432;</summary><div style="margin-top:4px;font-weight:400;color:var(--text2);"><b>&sect;4.2, folio 716</b>; la tabla de puntos clave es la <b>Tabla 8, folio 707</b>. La gu&iacute;a explica por qu&eacute; se repite: el injerto puede acodarse en cualquier momento, y sobre todo al cerrar el estern&oacute;n.</div></details></td></tr>
@@ -84172,13 +84425,31 @@ const REF_SUBTAB = Object.freeze({
      apila las tarjetas: la decision del medico la pone debajo de «Anomalias coronarias». */
   congenitas: Object.freeze(['congenitas', 'coronarias', 'asoc']),
   cardiotox:  Object.freeze(['cardiotox']),
-  hemo:       Object.freeze(['pop', 'constriccion']),
+  /* ⚠️ TAREA 2 (18/11/2026): la subpestania pasa de DOS entradas a CINCO, y la clave `hemo` se
+     agrega ACA EN EL MISMO COMMIT QUE SU FICHA, por la leccion que `constriccion` dejo en la
+     tanda J: una ficha fuera de este reparto existe, se abre desde su encabezado y el buscador la
+     indexa, pero el medico que navegue por las solapas no la encuentra nunca.
+     ⚠️ `pericardio` Y `pulmon` SE MUDAN DESDE `otros` Y NO SE COPIAN. La decision del medico manda
+     que el material de consulta de pericardio y taponamiento y el de edema y derrame pleural pasen
+     a Hemodinamica con UNA sola copia. Mudarlas no rompe un solo globo ni un solo enlace: `refIr`
+     deriva la subpestania del DOM —`closest('.ref-subpanel')`— y no de una tabla, asi que
+     `pul-balik` y los dos de `pop` siguen llegando a su ficha. Verificado antes de mover.
+     ⚠️ `pulmon` SE MUDA ENTERA y no partida: la ficha publica las lineas B, el sindrome
+     intersticial, el punto pulmon y el volumen del derrame pleural en una sola tabla, y partirla
+     dejaria DOS fichas donde la decision pide UNA copia.
+     ⚠️ `pop` QUEDA ULTIMA y no se toca: su contenido es materia de la etapa siguiente. Lo unico
+     que sale de ella son las dos filas del derrame pleural, que duplicaban a `pulmon`. */
+  hemo:       Object.freeze(['hemo', 'pericardio', 'constriccion', 'pulmon', 'pop']),
   /* ⚠️ `atleta` Y `chagas` SALIERON DE ACA EN PANT-29, commit 2, EN EL MISMO COMMIT QUE SUS
      FICHAS: la decision (1) del medico las reemplaza por dos resumenes breves DENTRO de
      `ref-miocard`, que ya esta en este reparto. Una clave sin ficha deja el reparto apuntando a
      la nada, y es la cara inversa de la leccion que `constriccion` dejo en la tanda J. */
-  otros: Object.freeze(['oai', 'burbujas', 'fop', 'pericardio',
-                        'pulmon', 'tumores', 'embolig', 'miocard', 'formulas'])
+  /* ⚠️ `pericardio` Y `pulmon` SALIERON DE ACA EN LA TAREA 2 (18/11/2026), en el mismo commit en
+     que entraron a `hemo`: es un traslado y no una copia. Una clave en dos listas haria que
+     `refSubInit` moviera la MISMA tarjeta dos veces y el medico la viera en una sola de las dos
+     solapas, la ultima que la reciba. */
+  otros: Object.freeze(['oai', 'burbujas', 'fop',
+                        'tumores', 'embolig', 'miocard', 'formulas'])
 });
 const REF_SUB_ORDEN = Object.freeze(['calc', 'dim', 'fun', 'valv', 'ao',
                                      'congenitas', 'cardiotox', 'hemo', 'otros']);
@@ -180082,8 +180353,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261118-0832';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795001542568;                 /* eco-build-ms */
+const ECO_BUILD    = '20261118-0906';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795003606725;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -180169,7 +180440,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-0832</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-0906</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

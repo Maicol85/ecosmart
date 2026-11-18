@@ -79703,7 +79703,13 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        coronarias». Lo que el caso vigila -que el censo no pierda ni duplique ninguna entrada-
        no cambia; se exige ademas que la que entro sea ESA, para que la condicion siga
        distinguiendo «entro una» de «se perdio una y entro otra». */
-    censo.n === 41 && censo.filas.some(f => f.id === 'asoc' && f.sub === 'congenitas'),
+    /* ADAPTADO EN LA TAREA 2 (18/11/2026): 41 -> 42. La entrada nueva es la ficha de material de
+       consulta de Hemodinamica (ref-hemo), PRIMERA de su panel. Se exige ademas que la de eco
+       pulmonar quede en ese panel y no en «Otros hallazgos», que es el traslado de esta tanda:
+       asi la condicion distingue «entro una» de «entro una y se mudo otra». */
+    censo.n === 42 && censo.filas.some(f => f.id === 'asoc' && f.sub === 'congenitas')
+      && censo.filas.some(f => f.id === 'hemo' && f.sub === 'hemo')
+      && censo.filas.some(f => f.id === 'pulmon' && f.sub === 'hemo'),
     'n=' + censo.n + ' asoc=' + JSON.stringify(censo.filas.filter(f => f.id === 'asoc'))]);
   /* ADAPTADO 2026-11-08 (PANT-25): la constriccion se MUDO a la pestania Hemodinamica, con el
      posoperatorio. La condicion sigue siendo la misma -que esa ficha este en el reparto y no
@@ -79737,16 +79743,20 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO 2026-11-08 (PANT-25): «Otros hallazgos» pierde CINCO fichas y nacen tres repartos
      nuevos. El total sigue en CUARENTA -5+4+14+3+2+1+2+9-, que es lo que prueba que ninguna
      entrada se perdio por el camino, y el reparto de las cuatro que no se tocaron es identico. */
-  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 3 Congenitas + 1 Cardiotox + 2 Hemo + 9 Otros',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026). La subpestania Hemodinamica gana su ficha de material
+     de consulta, y las entradas de pericardio y de eco pulmonar SE MUDAN de «Otros hallazgos» a
+     ella: es un TRASLADO y no una copia, asi que el saldo tiene las dos direcciones. Lo que esta
+     condicion vigila no cambia; cambia su denominador. */
+  ex.push(['(A4) el reparto es 5 Dim + 4 Fun + 14 Valv + 3 Ao + 3 Congenitas + 1 Cardiotox + 5 Hemo + 7 Otros',
     porSub.dim === 5 && porSub.fun === 4 && porSub.valv === 14 && porSub.ao === 3 &&
     /* ADAPTADO el 2026-11-10 (PANT-29): congenitas 3 -> 2 (sale racong) y Otros 11 -> 9 (salen
        atleta y chagas). El total vuelve a CUARENTA, el de antes de PANT-28. */
     /* ADAPTADO el 2026-11-11 (PANT-36, parte A): congenitas 2 -> 3, por «Asociaciones y
        sindromes». Los otros SIETE repartos no se movieron, que es lo que esta condicion
        protege: una entrada que cayera en la subpestania equivocada la pone en rojo igual. */
-    porSub.congenitas === 3 && porSub.cardiotox === 1 && porSub.hemo === 2 && porSub.otros === 9 &&
+    porSub.congenitas === 3 && porSub.cardiotox === 1 && porSub.hemo === 5 && porSub.otros === 7 &&
     (porSub.dim + porSub.fun + porSub.valv + porSub.ao + porSub.congenitas + porSub.cardiotox +
-     porSub.hemo + porSub.otros) === 41,
+     porSub.hemo + porSub.otros) === 42,
     JSON.stringify(porSub)]);
   /* Clic REAL en cada boton: activa SU panel y apaga los otros cuatro. */
   const subEstado = [];
@@ -79806,12 +79816,16 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ADAPTADO EN PANT-11 (commits 10 y 11): 34 -> 36, por las dos fichas nuevas. La resta de los
      dos agrupadores no cambia: 38 entradas menos dos. */
   /* ADAPTADO 2026-11-06 (PANT-20): 36 -> 38, las dos fichas nuevas, que el buscador SI indexa. */
-  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 39 entradas (41 menos los dos agrupadores)',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica, que el buscador
+     indexa sola -su indice recorre los encabezados con toggleRef de cada panel y no hubo que
+     tocarlo-. El traslado de las otras dos no mueve este numero: cambian de panel, no de
+     existencia. */
+  ex.push(['(B1) DENOMINADOR: el buscador existe y su indice tiene las 40 entradas (42 menos los dos agrupadores)',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
     /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 38 -> 39, por la entrada «Asociaciones y
        sindromes», que el buscador indexa sola: su indice recorre los h2.card-head con toggleRef
        de cada panel y no hubo que tocarlo. */
-    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 39; } catch (e) { return false; } })(),
+    !!EL('ref-busca') && (function () { try { return FN('_refIndiceArmar') && window._refIndiceArmar(true).length === 40; } catch (e) { return false; } })(),
     'indice=' + (function () { try { return window._refIndiceArmar(true).length; } catch (e) { return 'EXC'; } })()]);
   ex.push(['(B2) «RWT» encuentra la GEOMETRIA DEL VI y dice su subpestana',
     !bRWT.err && bRWT.n > 0 && bRWT.ids.indexOf('vi') >= 0 && bRWT.subs.indexOf('Dimensiones') >= 0,
@@ -83935,7 +83949,8 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
      Hemodinamica antes de «Otros hallazgos». Lo que esta condicion vigila -que Calculadoras siga
      PRIMERA y que el censo de entradas no pierda ni duplique ninguna- no cambia: el censo sigue
      dando el mismo numero, porque ninguna entrada se creo ni se borro, solo cambiaron de panel. */
-  ex.push(['(F3) son NUEVE subpestanas de Referencias y el censo de entradas esta en 41',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. */
+  ex.push(['(F3) son NUEVE subpestanas de Referencias y el censo de entradas esta en 42',
     (function () { const ORDEN = OB('REF_SUB_ORDEN') || [];
       if (ORDEN.length !== 9 || ORDEN[0] !== 'calc') return false;
       /* El censo: un h2.card-head con un onclick de toggleRef dentro de #tab-refs. Es la misma
@@ -83987,7 +84002,7 @@ caso('TC-509', 'Trabajo B (ADAPTADO por el B2): la columna izquierda con sus ONC
          sindromes» (ref-asoc), en «Cardiopatia congenita» y pegada a la de anomalias coronarias.
          Se exige ademas que exista, por el mismo motivo de siempre: distinguir «entro una» de
          «se perdio una y entro otra». Las tres de PANT-28 se siguen exigiendo AL REVES. */
-      return n === 41 && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
+      return n === 42 && !!EL('ref-hemo') && !!EL('ref-fop') && !!EL('ref-hfapeff') && !!EL('ref-constriccion')
         && !EL('ref-racong') && !EL('ref-atleta') && !EL('ref-chagas')
         && !!EL('ref-coronarias') && !!EL('ref-miocard') && !!EL('ref-asoc')
         && !!EL('ref-pulmon') && !!EL('ref-pop')
@@ -92056,11 +92071,31 @@ caso('TC-534', 'Tanda G: la grilla de drogas sin la columna vacia y el acordeon 
        fuente de la biblioteca- y con ella UN chip. Es consecuencia AUTORIZADA del punto 2.2 y no
        una fila que se colo: medido, el diff de la tanda agrega exactamente un <tr> y dos chips
        en todo el archivo. Los conteos se corren de a uno; nada mas se afloja. */
-    (fPop ? fPop.querySelectorAll('table tr').length : 0) === 18
+    /* ADAPTADO E INVERTIDO EN LA TAREA 2 (18/11/2026): 18 -> 17 filas, y el enunciado D6_11
+       pasa de EXIGIDO a PROHIBIDO en esta ficha. La fila del volumen aproximado del derrame
+       pleural sale de aca porque era una COPIA LITERAL de la fila de la ficha de ecografia
+       pulmonar -misma formula y misma fuente, Volpicelli 2026, enunciado D6_11, hoja 19- y la
+       decision del medico manda UNA sola copia. Se exige las DOS mitades: que ya no este aca y
+       que SIGA estando alla, asi que la condicion falla por los dos lados y un borrado que se
+       lleve las dos la pone en rojo.
+       La fila de los GRADOS del derrame se QUEDA y se exige: no es material de consulta de una
+       guia sino el criterio propio de este modulo, con su chip. */
+    (fPop ? fPop.querySelectorAll('table tr').length : 0) === 17
       && ['ivaf075','Crit Care','24:36','folio 701','folio 716','folio 707','folio 152',
-          'folio 58','folio 59','D6_11','SAC 2024','ESC/ERS 2022'].every(k => tPop.indexOf(k) > -1),
+          'folio 58','folio 59','SAC 2024','ESC/ERS 2022'].every(k => tPop.indexOf(k) > -1)
+      && tPop.indexOf('D6_11') < 0
+      && tPop.indexOf('Volumen aproximado del derrame pleural') < 0
+      && tPop.indexOf('Grados del derrame pleural') > -1
+      && (function () { const fu = document.getElementById('ref-pulmon');
+            if (!fu) return false;
+            if (getComputedStyle(fu).display === 'none') {
+              try { toggleRef('pulmon', fu.previousElementSibling) } catch (e) {} }
+            const t = (fu.textContent || '');
+            return t.indexOf('D6_11') > -1
+              && t.indexOf('Volumen aproximado del derrame pleural') > -1; })(),
     'filas=' + (fPop ? fPop.querySelectorAll('table tr').length : 'NO') + ' | ' +
-    ['ivaf075','folio 701','folio 716','folio 707','folio 152','folio 58','D6_11'].filter(k => tPop.indexOf(k) < 0).join(',')]);
+    ['ivaf075','folio 701','folio 716','folio 707','folio 152','folio 58'].filter(k => tPop.indexOf(k) < 0).join(',') +
+    ' | D6_11 en pop=' + (tPop.indexOf('D6_11') > -1)]);
   ex.push(['(G3) los CUATRO cortes sin fuente llevan su chip, y la errata de Busse esta declarada',
     (fPop ? [].slice.call(fPop.querySelectorAll('span'))
       .filter(x => (x.textContent||'').trim() === 'CRITERIO DE ECOSMART').length : 0) === 5
@@ -125075,15 +125110,33 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
     rep('congenitas') === 'congenitas,coronarias,asoc', 'congenitas=[' + rep('congenitas') + ']');
   q('(A3b) Cardiotoxicidad lleva su ficha', rep('cardiotox') === 'cardiotox',
     'cardiotox=[' + rep('cardiotox') + ']');
-  q('(A3c) Hemodinamica lleva el posoperatorio y la constriccion', rep('hemo') === 'pop,constriccion',
+  /* ADAPTADA E INVERTIDA EN LA TAREA 2 (18/11/2026): la subpestania pasa de DOS entradas a
+     CINCO -entra su ficha de material de consulta y se mudan las de pericardio y de eco pulmonar
+     desde «Otros hallazgos»-, en el orden que el medico fijo. Se exige el orden EXACTO y que el
+     posoperatorio quede ULTIMO, que es la decision: su contenido es materia de la etapa
+     siguiente. Falla por los dos lados. */
+  q('(A3c) Hemodinamica lleva su ficha de consulta, pericardio, constriccion, eco pulmonar y el posoperatorio ULTIMO',
+    rep('hemo') === 'hemo,pericardio,constriccion,pulmon,pop',
     'hemo=[' + rep('hemo') + ']');
 
   const otros = (REF_SUBTAB.otros || []).map(String);
-  const quedaron = ['congenitas','coronarias','cardiotox','pop','constriccion'].filter(k => otros.indexOf(k) > -1);
-  q('(A4) «Otros hallazgos» ya NO tiene ninguna de las CINCO que se movieron',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026): las CINCO que se movieron en PANT-25 pasan a SIETE.
+     Las dos nuevas son la de pericardio y la de eco pulmonar, que la decision del medico manda a
+     Hemodinamica. */
+  const quedaron = ['congenitas','coronarias','cardiotox','pop','constriccion',
+                    'pericardio','pulmon'].filter(k => otros.indexOf(k) > -1);
+  q('(A4) «Otros hallazgos» ya NO tiene ninguna de las SIETE que se movieron',
     quedaron.length === 0, 'siguen en otros: ' + quedaron.join(','));
-  q('(A4b) y SI conserva el pericardio, las masas y las fuentes emboligenas',
-    otros.indexOf('pericardio') > -1 && otros.indexOf('tumores') > -1 && otros.indexOf('embolig') > -1,
+  /* ADAPTADA E INVERTIDA EN LA TAREA 2 (18/11/2026). Exigia que «Otros hallazgos» CONSERVARA el
+     pericardio, y la decision del medico lo manda a Hemodinamica junto con el eco pulmonar. Hoy
+     exige las DOS mitades: que las dos se hayan ido Y que las otras siete sigan, asi que falla
+     por los dos lados -una poda que se llevara una de mas la pone en rojo igual-.
+     ⚠️ LA DESTAPO LA CORRIDA DE ESTE CASO Y NO MI CENSO: busque los casos que cuentan entradas de
+     Referencias, y esta condicion no cuenta ninguna: nombra tres claves. Es el modo de falla que
+     este archivo ya documenta una decena de veces. */
+  q('(A4b) ya NO tiene el pericardio ni el eco pulmonar, y SI conserva las otras siete',
+    otros.indexOf('pericardio') < 0 && otros.indexOf('pulmon') < 0
+      && otros.join(',') === 'oai,burbujas,fop,tumores,embolig,miocard,formulas',
     'otros=[' + otros.join(',') + ']');
 
   /* ⚠️ SE CUENTAN SOLO LAS QUE LLEVAN toggleRef, QUE SON LAS ENTRADAS: las tarjetas de
@@ -125102,10 +125155,12 @@ caso('TC-761', 'PANT-25 commit 3: Referencias se ordena como la app — NUEVE pe
      sindromes». Lo que esta condicion vigila -que ninguna entrada quede fuera de un panel- no
      cambia. El rotulo decia «CUARENTA Y TRES» desde PANT-28 aunque el numero ya era 40: se
      corrige tambien el rotulo. */
-  q('(A5) el censo esta en CUARENTA Y UNA entradas y ninguna quedo fuera de un panel',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. El traslado de
+     las otras dos no mueve este numero. */
+  q('(A5) el censo esta en CUARENTA Y DOS entradas y ninguna quedo fuera de un panel',
     /* ADAPTADO el 2026-11-10 (PANT-29, commits 2 y 3): 43 -> 40. Lo que el caso vigila -que
        ninguna entrada quede fuera de un panel- no cambia. */
-    total === 41 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
+    total === 42 && sinPanel.length === 0, 'entradas=' + total + ' sinPanel=' + sinPanel.join(','));
 
   let malAria = [];
   for (const b of bots) {
@@ -125231,9 +125286,10 @@ caso('TC-763', 'PANT-25 commit 3: el buscador de Referencias encuentra lo mismo 
   /* ADAPTADO el 2026-11-11 (PANT-36, parte A): 38 -> 39, por la entrada «Asociaciones y
      sindromes», que el buscador indexa sola. El rotulo decia «CUARENTA Y UNA» desde PANT-28
      aunque el numero ya era 38: se corrige tambien el rotulo. */
-  q('(C0 DENOM) el indice se arma y tiene TREINTA Y NUEVE entradas',
+  /* ADAPTADA EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica. */
+  q('(C0 DENOM) el indice se arma y tiene CUARENTA entradas',
     /* ADAPTADO el 2026-11-10 (PANT-29): 41 -> 38, las tres fichas grandes que salieron. */
-  !!idx && idx.length === 39, 'indice=' + (idx ? idx.length : 'EXC'));
+  !!idx && idx.length === 40, 'indice=' + (idx ? idx.length : 'EXC'));
   if (!idx) return { extra: F };
 
   const crudas = idx.filter(e => String(e.subTit) === String(e.sub)).map(e => e.id);
@@ -132435,8 +132491,9 @@ caso('TC-817', 'PANT-34 (B1) a (B3): la ficha de anomalias coronarias de Referen
      «Asociaciones y sindromes» (asoc), que entra debajo de la de anomalias coronarias. Lo que
      estas dos condiciones vigilan -que la ficha de coronarias siga en su panel y que el censo
      que alimenta el buscador no pierda ninguna- no cambia. */
-  q('(F1) siguen los CUARENTA Y UN encabezados con toggleRef que alimentan el indice del buscador',
-    enc === 41, 'encabezados=' + enc);
+  /* ADAPTADO EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. */
+  q('(F1) siguen los CUARENTA Y DOS encabezados con toggleRef que alimentan el indice del buscador',
+    enc === 42, 'encabezados=' + enc);
   q('(F2) y la subpestania de congenitas tiene sus TRES entradas, con la de coronarias segunda',
     REF_SUBTAB.congenitas.length === 3 && REF_SUBTAB.congenitas.join(',') === 'congenitas,coronarias,asoc',
     'reparto=' + REF_SUBTAB.congenitas.join(','));
@@ -132879,10 +132936,12 @@ caso('TC-821', 'PANT-36 parte A: la entrada «Asociaciones y sindromes» es la T
   const t = document.getElementById('tab-refs');
   const censo = t ? Array.prototype.slice.call(t.querySelectorAll('h2.card-head'))
     .filter(h => (h.getAttribute('onclick') || '').indexOf('toggleRef(' + String.fromCharCode(39)) > -1).length : -1;
-  q('(A4) el censo de entradas de Referencias pasa de 40 a 41', censo === 41, 'entradas=' + censo);
+  /* ADAPTADO EN LA TAREA 2 (18/11/2026): 41 -> 42, por la ficha de Hemodinamica. */
+  q('(A4) el censo de entradas de Referencias esta en CUARENTA Y DOS', censo === 42, 'entradas=' + censo);
   let ix = null; try { ix = window._refIndiceArmar(true) } catch (e) { ix = null }
-  q('(A5) el indice del buscador pasa de 38 a 39 y la entrada nueva esta, con su seccion',
-    !!ix && ix.length === 39 && ix.some(x => x.id === 'asoc' && x.sub === 'congenitas'),
+  /* ADAPTADO EN LA TAREA 2 (18/11/2026): 39 -> 40, por la ficha de Hemodinamica. */
+  q('(A5) el indice del buscador esta en CUARENTA y la entrada de asociaciones esta, con su seccion',
+    !!ix && ix.length === 40 && ix.some(x => x.id === 'asoc' && x.sub === 'congenitas'),
     'indice=' + (ix ? ix.length : 'EXC') + ' asoc=' + (ix ? JSON.stringify(ix.filter(x => x.id === 'asoc').map(x => x.sub)) : '-'));
   /* (B) el buscador la encuentra, y los controles no se movieron. */
   const busca = (s) => { if (!ix) return 'SIN INDICE';
@@ -150207,6 +150266,220 @@ caso('TC-945', 'Tarea 1: el titulo del panel de Evidencia lleva un globo con el 
       + 'utica. No forma parte del informe ni del PDF. Requiere correlaci' + CH(243) + 'n con las gu'
       + CH(237) + 'as.']);
   try { if (typeof indicCerrar === 'function') indicCerrar(); } catch (e) {}
+  return { extra: EXP };
+  })();
+`);
+
+
+/* == TAREA 2 -- LA FICHA DE CONSULTA DE HEMODINAMICA (18/11/2026) ============================
+   TC-946 mide la ficha nueva y TC-947 el traslado de las dos entradas, los globos que apuntan a
+   ellas y la fila duplicada del derrame pleural.
+   ADVERTENCIA: LOS DOS LLEVAN GUARDA EN CADA ACCESO. Contra a58a223 la ficha no existe, asi que
+   un acceso pelado tiraria TypeError y el caso caeria POR EXCEPCION con las condiciones de abajo
+   sin evaluarse -- es lo que TC-827 tuvo que deshacer en PANT-37.
+   ADVERTENCIA: NI UNA EXPRESION REGULAR CON BARRA INVERTIDA. El cuerpo de un caso es un template
+   literal, asi que una secuencia de escape no sobrevive y la condicion mide otra cosa en
+   silencio. */
+caso('TC-946', 'Tarea 2: la ficha de consulta de Hemodinamica -- dieciocho bloques con el contenido primero y su linea de fuente de 10 px al pie con autor, anio y folio, trece tablas cortas, los nueve temas que la orden pide, y CERO de lo que el Word marca verificar a ojo, sin fuente o en disputa, cero dosis de farmacos y cero frases que comparen dos fuentes', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio <<' + t[1] + '>> esperado <<' + t[2] + '>>']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13, 160) + ']+', 'g');
+  const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+  const CH = String.fromCharCode;
+  try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+  ['modalAvisoEco', 'login-overlay'].forEach((id) => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+  try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
+  try { if (typeof refSubInit === 'function') refSubInit(); } catch (e) {}
+  try { if (typeof refSubTab === 'function') refSubTab('hemo', document.getElementById('ref-subtab-hemo')); } catch (e) {}
+  await esperar(250);
+
+  /* (A) LA FICHA EXISTE Y ABRE CON EL MECANISMO DE LAS OTRAS */
+  const f = document.getElementById('ref-hemo');
+  ex.push(['(A0) la ficha de Hemodinamica existe', !!f, true]);
+  const h = f ? f.previousElementSibling : null;
+  ex.push(['(A1) su encabezado la abre con toggleRef, como las otras cuarenta y una',
+    h ? (String(h.getAttribute('onclick') || '').indexOf('toggleRef(' + CH(39) + 'hemo' + CH(39)) > -1) : 'SIN CABEZA', true]);
+  if (f && f.style.display === 'none' && h) { h.click(); }
+  await esperar(250);
+  ex.push(['(A2) y queda abierta al tocarlo', f ? getComputedStyle(f).display : 'SIN FICHA', 'block']);
+  const t = f ? plano(f.textContent) : '';
+  ex.push(['(A3) DENOM: la ficha tiene cuerpo', t.length > 12000, true]);
+
+  /* (B) EL FORMATO: EL CONTENIDO PRIMERO Y SU LINEA DE FUENTE AL PIE
+     La orden pide una linea chica de fuente al pie de CADA bloque, con autor, anio y folio. Se
+     cuentan los pies y se exige que sean tantos como bloques, que vayan en 10 px y que cada uno
+     nombre un folio, una hoja, una tabla o una ecuacion. */
+  const pies = f ? Array.prototype.filter.call(f.querySelectorAll('div'),
+    (e) => plano(e.textContent).indexOf('Fuente:') === 0 && !e.querySelector('div')) : [];
+  const titulos = f ? f.querySelectorAll('div[style*="font-weight:700"][style*="accent2"]').length : 0;
+  ex.push(['(B0) hay DIECIOCHO bloques con titulo', titulos, 18]);
+  ex.push(['(B1) y DIECIOCHO lineas de fuente al pie, una por bloque', pies.length, 18]);
+  ex.push(['(B2) las dieciocho van en 10 px, que es la letra de un pie de ficha de esta casa',
+    pies.filter((e) => getComputedStyle(e).fontSize === '10px').length, 18]);
+  ex.push(['(B3) y las dieciocho nombran su folio, su hoja, su tabla o su ecuacion',
+    pies.filter((e) => { const x = plano(e.textContent);
+      return x.indexOf('folio') > -1 || x.indexOf('hoja') > -1 || x.indexOf('Tabla') > -1 || x.indexOf('Ec.') > -1; }).length, 18]);
+  ex.push(['(B4) el contenido va en tablas y cuadros cortos, no en parrafos largos: TRECE tablas',
+    f ? f.querySelectorAll('table').length : 'SIN FICHA', 13]);
+
+  /* (C) LO QUE LA ORDEN MANDA QUE ENTRE, UNO POR UNO */
+  const dice = (x) => t.indexOf(x) > -1;
+  ex.push(['(C1) determinantes del gasto cardiaco',
+    dice('Contractilidad:') && dice('Ley de Starling') && dice('Poscarga:'), true]);
+  ex.push(['(C2) formulas de gasto y de resistencias',
+    dice('La constante 80') && dice('Distensibilidad arterial pulmonar')
+      && dice('unidades Wood'), true]);
+  ex.push(['(C3) valores normales',
+    dice('2,5 a 4,0 l/min/m') && dice('0,3 a 2,0 unidades Wood') && dice('4 a 8 l/min'), true]);
+  ex.push(['(C4) la tabla de los cuatro shocks, con sus columnas',
+    dice('Hipovol') && dice('Obstructivo por taponamiento') && dice('Distributivo tard')
+      && dice('Cardiog') && dice('lactato suele estar por encima de 2 mmol/l'), true]);
+  ex.push(['(C5) que aporta cada monitoreo y cada soporte',
+    dice('Swan-Ganz') && dice('PiCCO') && dice('contrapulsaci')
+      && dice('percut') && dice('ECMO venoarterial'), true]);
+  ex.push(['(C6) respuesta a fluidos y monitoreo',
+    dice('500 ml') && dice('10 a 15 %') && dice('elevaci'), true]);
+  ex.push(['(C7) hipertension pulmonar y ventriculo derecho',
+    dice('Poscapilar y precapilar combinada') && dice('Falla del ventr'), true]);
+  ex.push(['(C8) taponamiento', dice('ada de Beck') && dice('200 a 300 ml'), true]);
+  ex.push(['(C9) shock cardiogenico y soporte mecanico',
+    dice('Estadios:') && dice('Stevenson') && dice('SAVE'), true]);
+
+  /* (D) LO QUE LA ORDEN MANDA QUE NO ENTRE
+     ⚠️ Y NO SE DICE QUE FALTA: la regla fija del 2026-11-04 prohibe que un texto de la app diga
+     que dos fuentes no coinciden o que algo no se encontro. Lo que quedo afuera se declara en
+     docs/CONTROL_HEMO_REF.md, no en la aplicacion. */
+  ex.push(['(D1) nada marcado verificar a ojo: la RVS de 1.170 de Grossman no esta', dice('1.170'), false]);
+  ex.push(['(D2) ni los caudales de los dispositivos, que la fuente trae desordenados',
+    dice('Impella') || dice('TandemHeart') || dice('7 l/min'), false]);
+  ex.push(['(D3) ni los tres cortes de TAPSE/PSAP, que son el valor en disputa',
+    dice('TAPSE') || dice('0,19'), false]);
+  ex.push(['(D4) ni la tabla de presiones por cuadro de Braunwald, con folio no comprobado',
+    dice('12 a 16, VD 25') || dice('50-60/12'), false]);
+  ex.push(['(D5) ni el riesgo quirurgico ni el manejo de sangre, que van en la etapa del posoperatorio',
+    dice('EuroSCORE') || dice('STS') || dice('tranex'), false]);
+  ex.push(['(D6) ni el posoperatorio: la vasoplejia no esta', dice('vasopl'), false]);
+  ex.push(['(D7) ni el SDRA', dice('SDRA'), false]);
+  ex.push(['(D8) CERO dosis de farmacos',
+    ['g/kg/min', 'dobutamina', 'noradrenalina', 'milrinona', 'vasopresina']
+      .filter((k) => t.toLowerCase().indexOf(k.toLowerCase()) > -1).join(','), '']);
+  ex.push(['(D9) NINGUN texto compara dos fuentes, dice que algo no se encontro ni que algo este pendiente',
+    ['no coincide', 'difieren', 'discrepan', 'se contradicen', 'sin resolver', 'no se encontr',
+     'ninguna fuente publica', 'pendiente de revisi', 'sin validar', 'a confirmar',
+     'verificar a ojo', 'folio no comprobado', 'sin fuente vista']
+      .filter((k) => t.toLowerCase().indexOf(k) > -1).join(','), '']);
+
+  /* (E) GEOMETRIA: nada recortado y las tablas anchas desplazan DENTRO de su envoltorio */
+  let rec = 0, desb = 0;
+  if (f) {
+    Array.prototype.forEach.call(f.querySelectorAll('div,td,th,b'), (e) => {
+      if (e.children.length) return;
+      if (e.scrollWidth - e.clientWidth > 1) rec++; });
+    Array.prototype.forEach.call(f.querySelectorAll('table'), (e) => {
+      const c = e.parentElement;
+      if (c && getComputedStyle(c).overflowX === 'auto') return;
+      if (e.getBoundingClientRect().width - c.clientWidth > 1) desb++; });
+  }
+  ex.push(['(E1) cero textos recortados en la ficha', rec, 0]);
+  ex.push(['(E2) ninguna tabla desborda sin un envoltorio que la desplace', desb, 0]);
+  ex.push(['(E3) las NUEVE tablas anchas van en su propio envoltorio con desplazamiento',
+    f ? f.querySelectorAll('div[style*="overflow-x"]').length : 'SIN FICHA', 9]);
+  ex.push(['(E4) y la ficha no se desplaza a lo ancho ella misma',
+    f ? (f.scrollWidth - f.clientWidth) : 'SIN FICHA', 0]);
+  return { extra: EXP };
+  })();
+`);
+
+caso('TC-947', 'Tarea 2: el traslado -- Hemodinamica con sus cinco entradas en orden y el posoperatorio ultimo, Otros hallazgos con siete, ninguna entrada en dos paneles ni suelta, los tres globos que llegan a su ficha mudada, el buscador en cuarenta, y el volumen del derrame pleural con UNA sola copia', `
+  return (async () => {
+  const EXP = [];
+  const ex = { push: (t) => EXP.push([t[0], String(t[1]) === String(t[2]),
+                 'dio <<' + t[1] + '>> esperado <<' + t[2] + '>>']) };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const _ESP = new RegExp('[' + String.fromCharCode(32, 9, 10, 13, 160) + ']+', 'g');
+  const plano = (x) => String(x == null ? '' : x).replace(_ESP, ' ').trim();
+  try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+  ['modalAvisoEco', 'login-overlay'].forEach((id) => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+  try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
+  try { if (typeof refSubInit === 'function') refSubInit(); } catch (e) {}
+  await esperar(250);
+
+  /* (A) EL REPARTO, MEDIDO EN EL DOM Y NO EN LA TABLA
+     Lo que importa no es que REF_SUBTAB diga una cosa, sino que refSubInit haya puesto cada
+     tarjeta en SU panel: es la leccion que constriccion dejo en la tanda J. */
+  const entradasDe = (k) => { const q = document.getElementById('ref-sub-' + k);
+    return q ? Array.prototype.map.call(q.querySelectorAll('.card-body[id^="ref-"]'),
+      (e) => e.id.replace('ref-', '')).join(',') : 'SIN PANEL'; };
+  ex.push(['(A1) Hemodinamica lleva CINCO entradas en el orden fijado, con el posoperatorio ULTIMO',
+    entradasDe('hemo'), 'hemo,pericardio,constriccion,pulmon,pop']);
+  ex.push(['(A2) y «Otros hallazgos» queda con SIETE: pierde pericardio y eco pulmonar',
+    entradasDe('otros'), 'oai,burbujas,fop,tumores,embolig,miocard,formulas']);
+  /* ES UN TRASLADO Y NO UNA COPIA: una clave en dos listas haria que refSubInit moviera la MISMA
+     tarjeta dos veces y el medico la viera en una sola solapa, la ultima que la reciba. */
+  const censo = {}, dobles = [];
+  ['calc','dim','fun','valv','ao','congenitas','cardiotox','hemo','otros'].forEach((k) => {
+    const q = document.getElementById('ref-sub-' + k); if (!q) return;
+    Array.prototype.forEach.call(q.querySelectorAll('.card-body[id^="ref-"]'), (e) => {
+      const id = e.id.replace('ref-', '');
+      if (censo[id]) dobles.push(id);
+      censo[id] = 1; }); });
+  ex.push(['(A3) ninguna entrada quedo en DOS paneles', dobles.join(','), '']);
+  ex.push(['(A4) y ninguna quedo SUELTA fuera de los nueve paneles',
+    Array.prototype.map.call(document.querySelectorAll('.card-body[id^="ref-"]'),
+      (e) => e.id.replace('ref-', '')).filter((id) => !censo[id]).join(','), '']);
+
+  /* (B) LOS GLOBOS Y ENLACES QUE APUNTAN A LAS FICHAS MUDADAS
+     refIr deriva la subpestania del DOM -closest de ref-subpanel- y no de una tabla, asi que
+     mudar una ficha no rompe su enlace. Esto lo MIDE en vez de suponerlo. */
+  ex.push(['(B0) el assert de VINFO_REF no encuentra una sola falla',
+    (typeof _vinfoRefAssert === 'function') ? _vinfoRefAssert().join(' | ') : 'SIN FN', '']);
+  const irA = (clave) => {
+    try {
+      const ok = refVerReferencia(clave);
+      const destino = VINFO_REF[clave];
+      const cuerpo = document.getElementById('ref-' + destino);
+      const card = cuerpo ? cuerpo.closest('.card') : null;
+      const pan = card ? card.closest('.ref-subpanel') : null;
+      return [ok ? 'ok' : 'NO', destino, pan ? pan.id.replace('ref-sub-', '') : 'SIN PANEL',
+              cuerpo ? getComputedStyle(cuerpo).display : 'SIN CUERPO'].join('/');
+    } catch (e) { return 'EXC ' + String(e.message).slice(0, 50); }
+  };
+  ex.push(['(B1) el globo del eco pulmonar llega a su ficha, que ahora vive en Hemodinamica',
+    irA('pul-balik'), 'ok/pulmon/hemo/block']);
+  ex.push(['(B2) y los dos del posoperatorio siguen llegando a la suya',
+    irA('pop-vaso') + ' | ' + irA('pop-senales'), 'ok/pop/hemo/block | ok/pop/hemo/block']);
+
+  /* (C) EL BUSCADOR INDEXA LA FICHA NUEVA SIN QUE HAYA QUE TOCARLO */
+  const idx = (typeof _refIndiceArmar === 'function') ? _refIndiceArmar(true) : null;
+  ex.push(['(C1) el indice del buscador esta en CUARENTA entradas', idx ? idx.length : 'SIN INDICE', 40]);
+  ex.push(['(C2) y la de Hemodinamica esta en el',
+    idx ? idx.some((x) => String(x.ficha || x.id || '') === 'hemo') : 'SIN INDICE', true]);
+
+  /* (D) LA FILA DUPLICADA DEL DERRAME PLEURAL QUEDA EN UNA SOLA FICHA */
+  const abrir = (id) => { const d = document.getElementById(id);
+    if (!d) return null;
+    if (getComputedStyle(d).display === 'none') {
+      try { toggleRef(id.replace('ref-', ''), d.previousElementSibling) } catch (e) {} }
+    return d; };
+  const fp = abrir('ref-pop'), fu = abrir('ref-pulmon');
+  ex.push(['(D0) DENOM: las dos fichas existen y tienen cuerpo',
+    !!fp && !!fu && plano(fp.textContent).length > 1200 && plano(fu.textContent).length > 1200, true]);
+  const tp = fp ? plano(fp.textContent) : '', tu = fu ? plano(fu.textContent) : '';
+  ex.push(['(D1) la ficha del posoperatorio ya no publica el volumen aproximado del derrame pleural',
+    tp.indexOf('Volumen aproximado del derrame pleural') > -1, false]);
+  ex.push(['(D2) ni el enunciado de su fuente', tp.indexOf('D6_11') > -1, false]);
+  ex.push(['(D3) y la de eco pulmonar SI lo publica, con su enunciado: queda UNA sola copia',
+    tu.indexOf('Volumen aproximado del derrame pleural') > -1 && tu.indexOf('D6_11') > -1
+      && tu.indexOf('hoja 19') > -1, true]);
+  ex.push(['(D4) la fila de los GRADOS del derrame se queda en el posoperatorio, con su chip',
+    tp.indexOf('Grados del derrame pleural') > -1 && tp.indexOf('CRITERIO DE ECOSMART') > -1, true]);
+  ex.push(['(D5) y la ficha del posoperatorio queda en DIECISIETE filas',
+    fp ? fp.querySelectorAll('table tr').length : 'SIN FICHA', 17]);
+  ex.push(['(D6) con sus CINCO chips de criterio propio intactos',
+    fp ? (fp.textContent.match(new RegExp('CRITERIO DE ECOSMART', 'g')) || []).length : 'SIN FICHA', 5]);
   return { extra: EXP };
   })();
 `);

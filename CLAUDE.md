@@ -278,7 +278,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,42 MB / 185.765 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la **TAREA 1** (el aviso de independencia), sobre el árbol ya sellado: sello **`v20261118-0832`**, md5 **`78f83745`**.
+  sin frameworks. Hoy **13,47 MB / 186.036 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la **TAREA 2** (la ficha de consulta de Hemodinámica), sobre el árbol ya sellado: sello **`v20261118-0906`**, md5 **`28b76636`**.
+  El diff de la TAREA 2 son **278 líneas agregadas y 7 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `90d4460` —el cierre de la TAREA 1— **sobre el árbol ya sellado**,
+  de las que **263** no son comentario, con **CERO**
+  `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y **UN** id nuevo
+  —`ref-hemo`—, que no termina en `-aviso` ni en `-badge` y **no cae en ninguno de los veintitrés
+  barridos por sufijo o prefijo de id del archivo**.
+  **CERO `input`, `select` y `textarea` nuevos**: lo de esta tarea queda fuera del censo del
+  estudio y del Excel **por construcción**, con **cero campos guardados nuevos** y las **457**
+  columnas quietas. Y **CERO cálculos, cero PDF, cero informe, cero EN SUMA y cero Laboratorio**:
+  es sólo la pestaña Referencias.
+  ⚠️ **EL CONTENIDO DE LA FICHA NO SE RETIPEA**: sale de `scripts/_gen_hemo_ref.py`, que emite el
+  marcado **y** `docs/CONTROL_HEMO_REF.md` —la trazabilidad de los dieciocho bloques y la lista de
+  las veintiocho cosas que quedaron afuera con su motivo—. Nada de lo que quedó afuera se nombra
+  en la aplicación: la regla fija del 2026-11-04 prohíbe que un texto diga que dos fuentes no
+  coinciden o que algo no se encontró.
+  (Antes: 13,42 MB / 185.765 al cierre de la **TAREA 1**, sello **`v20261118-0832`**, md5 **`78f83745`**.)
   El diff de la TAREA 1 son **65 líneas agregadas y 8 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `a58a223` **sobre el árbol ya sellado**, de las que **59** no son
   comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y
