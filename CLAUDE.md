@@ -110,6 +110,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CARTEL DE PÉPTIDOS del HFA-PEFF, su puntaje o el plan Básico/Avanzado**: el espejo del péptido, el ritmo que se lee, los cortes por tipo o por qué `showTab` no chequea el plan | `docs/mapa/hfapeff-peptidos.md` |
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
+| **Tocar un CUADRO DE DATOS del PDF** —los doce, su orden, la grilla de tres, las líneas de válvula dentro de cada cuadro, el asterisco de la aorta— **o el botón «Cuadros» del Informe** con su tarjeta, su punto de aviso y su arrastre con el dedo | `docs/mapa/cuadros-pdf-tarjeta.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, PPT) | `docs/mapa/informe-pdf-excel.md` |
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
@@ -277,7 +278,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,40 MB / 185.245 líneas**, medido con `wc -c` y `wc -l` el 2026-11-17 al cierre de la tanda **3A**, sobre el árbol ya sellado: sello **`v20261117-2129`**, md5 **`5c283337`**.
+  sin frameworks. Hoy **13,42 MB / 185.708 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre de la tanda **CUADROS**, sobre el árbol ya sellado: sello **`v20261118-0219`**, md5 **`60fe3171`**.
+  El diff de CUADROS son **1.084 líneas agregadas y 621 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `d3ea944` **sobre el árbol ya sellado**, de las que **965** no son
+  comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de
+  `innerHTML` en el diff son los comentarios que declaran que la tarjeta se pinta con nodos y no
+  con ninguno—, **CERO** claves y contraseñas, y **ONCE** ids nuevos, todos con prefijo **`cuad-`**:
+  ninguno termina en `-aviso` ni en `-badge` y **ninguno cae en ninguno de los veintitrés barridos
+  por sufijo o prefijo de id del archivo**, verificado uno por uno. El duodécimo que el diff muestra,
+  `eco-build-sello`, **ya existía** y reaparece porque el sello cambió.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo lo de esta tanda
+  fuera del censo del estudio y del Excel **por construcción** y no por una lista: **cero campos
+  guardados nuevos** y las **457** columnas quietas.
+  ⚠️ **POR CUADRAGÉSIMA OCTAVA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show d3ea944:index.html` da **185.245** líneas,
+  **13.395.233** bytes y el md5 **`5c283337`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,40 MB / 185.245 al cierre de **3A**, sello **`v20261117-2129`**, md5 **`5c283337`**.)
   El diff de 3A son **444 líneas agregadas y 139 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `e24a81c` **sobre el árbol ya sellado**, de las que **388** no son
   comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos y **DOS** `select` nuevos
@@ -1366,6 +1383,114 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda CUADROS (2026-11-18) — los doce cuadros del PDF, la grilla de tres, las líneas de
+válvula y la tarjeta «Cuadros».** CUATRO commits. Sello **`v20261118-0219`**, md5 **`60fe3171`**,
+**185.708** líneas.
+
+**EL PDF DEJA DE ARMAR SUS CUADROS CON CINCO LITERALES DENTRO DE `generarPDFReal`.** Son **DOCE**,
+de a **tres por fila**, y salen de un dueño único —`cuadDefs`— que lee también la tarjeta nueva del
+Informe. Con dos listas, la pantalla y el papel firmado podrían mostrar cuadros distintos y en
+distinto orden. **Y NO HAY SEGUNDA DERIVACIÓN DE NINGÚN NÚMERO**: los derivados que vivían en el
+bloque de pre-cálculos de esa función se **mudaron enteros y textuales** a `cuadCtx`, que
+`generarPDFReal` ahora **consume** — no se copió una línea, se movió.
+
+**LO QUE SALIÓ DEL PAPEL.** La **fila de cuadros de válvulas** en los **ocho** estilos —también en
+los que caía en una segunda hoja—; **TODOS los valores de referencia** —el mecanismo de `ref` se
+conserva y lo usa **una sola fila**, el gasto cardíaco para decir con qué frecuencia se calculó, que
+no es una referencia sino el insumo—; el resumen de la aorta que «Otros» publicaba por segunda vez
+en el mismo papel; el **Ø TSVI** del cuadro de continuidad, que era la tercera impresión del mismo
+diámetro; y el **AVA** del cuadro del gasto. **Ninguna constante de corte se tocó**: siguen
+gobernando la pantalla, el informe y la Evidencia.
+
+**LO QUE ENTRÓ.** Las **líneas de válvula** —una por hallazgo, dentro del cuadro de su estructura,
+la morfología marcada con el color de la plantilla y sin repetir ningún número que el cuadro ya
+publica en sus filas—; el **asterisco** de los segmentos aórticos dilatados con su pie; el **DVI**
+en el cuadro de continuidad, de `_eaCritDvi`, el dueño que ya lo calcula con sus dos bandas puestas;
+y «Otros» en **una sola línea** con el pericardio, las masas, el pulmón y las variantes anatómicas.
+
+⚠️ **DOS CUADROS PUBLICAN MÁS FILAS QUE LAS QUE LA ORDEN ENUMERA, Y ES DELIBERADO.** La orden lista
+tres segmentos aórticos y siete filas de VD; acá salen **cinco** y **nueve**. El cayado, la aorta
+descendente, la FEVD y la relación VD/VI son **números MEDIDOS** que no se publican en ningún otro
+cuadro: retirarlos los borraría del papel, y en esta casa ningún número medido desaparece. Declarado
+en **CUAD-a**.
+
+**LA GRILLA, LA MISMA REGLA EN LOS DOS LADOS.** `cuadFilas(n)`: 12 → 3·3·3·3 · 11 → 3·3·3·2 ·
+10 → 3·3·2·2 · 7 → 3·2·2 · 4 → 2·2 · 2 → 2 · 1 → 1. En el papel, una llamada a
+`drawTablaCompacta` por fila, y una fila es **atómica** —su `checkPage` pide hoja con el alto
+completo—, así que ningún cuadro se corta entre dos hojas. En la tarjeta, una grilla de **SEIS**
+columnas con un `span` por cuadro: con tres no hay forma de partir una fila en mitades. El span va
+en un **atributo** y no en un estilo en línea, porque la media query de celular le gana al atributo
+y no le ganaría a un estilo en línea.
+
+**EL BOTÓN Y LA TARJETA.** Botón chico, rectangular, **sin texto**, con el ícono de cuatro
+cuadraditos en SVG —un emoji cambia de dibujo en cada sistema y acá el ícono **es** el nombre del
+botón—, a la derecha de «Evidencia». La tarjeta muestra los **mismos** cuadros con los mismos datos,
+sin datos del paciente y sin el texto del informe; se quita un cuadro con su ✕, se recupera de la
+franja de quitados con un toque, se reordena **arrastrando con eventos de puntero** —el arrastre
+nativo de HTML no existe con el dedo— y «Restablecer» vuelve al orden de fábrica.
+⚠️ **EL EJE DEL ARRASTRE SE DECIDE POR LA POSICIÓN DE LOS DOS CUADROS Y NO POR LA FORMA DE UNO**: la
+primera versión miraba si el cuadro era más ancho que alto, y en celular —uno por fila, ancho
+completo— eso ordenaba por el eje que ahí no ordena nada. Lo destapó un caso.
+⚠️ **EL AVISO NO VIVE SÓLO EN EL COLOR**: el punto es una **forma** que está o no está, y el `title`
+y el `aria-label` lo dicen con palabras en los dos estados.
+⚠️ **LA CONFIGURACIÓN VIVE EN MEMORIA Y DURA LO QUE DURA LA APP ABIERTA** (corrección del médico):
+no la descarta ni «Nuevo estudio» ni abrir otro estudio, y **por eso NO hay ningún gancho en
+`limpiarCampos`** — la ausencia de ese gancho ES la decisión, escrita ahí para que el próximo pase
+no lo agregue creyendo que falta.
+
+**CUATRO DUEÑOS PARTIDOS EN DOS FORMAS, NO DUPLICADOS.** `_imMetodoPdfPartes` y `emAvmPdfPartes`
+devuelven las **partes** y no la cadena, porque hay dos consumidores con dos formatos: la fila de
+una tabla escribe «PISA: 26.1 mm²» y la línea de válvula «26.1 mm² (PISA)». Con dos funciones
+decidiendo qué método entra, el día que una casilla cambie de regla una de las dos superficies se
+queda con la anterior. `_imMetodoPdfVal` y `emAvmPdfVal` conservan su salida carácter por carácter.
+
+**LO MEDIDO.** PDF generado de verdad y **mirado rasterizado**: el mismo estudio pasa de **TRES
+hojas a DOS**, con el informe narrativo fluyendo a la hoja 2. **Los OCHO estilos** sin una fila de
+válvulas y sin un valor de referencia, con la configuración reflejada en los ocho — verificado por
+los **bytes** del PDF, que sale sin comprimir. **Chrome y WebKit coinciden en los seis cruces**
+(dos motores × 1369, 900 y 390 px) con **cero errores de consola y de página**: botón 44×44 sin
+texto y con sus cuatro rectángulos, manija y ✕ en 44×44, **tres cuadros por fila a 1369 y 900 y UNO
+a 390**, cero textos recortados y **cero desplazamiento horizontal propio** —el de 900 px es
+preexistente, medido con la tarjeta cerrada—. La tarjeta **no escribe un solo campo**: censo de
+todos los `input`, `select` y `textarea` con id idéntico antes y después. **Semgrep 126 WARNING /
+0 ERROR**, la línea base exacta; **sin huérfanos nuevos**; **celular 38 ALTA**, la línea base
+exacta medida con el **mismo script en los dos árboles**.
+
+**COBERTURA: TC-928 a TC-943**, uno por cada punto de la orden, los dieciséis cayendo **0/16 contra
+`d3ea944`** por **92 condiciones** y **ninguno por excepción**. **DIECISIETE casos adaptados**
+—TC-260, TC-279, TC-281, TC-295, TC-299, TC-307, TC-311, TC-315, TC-337, TC-345, TC-347, TC-434,
+TC-459, TC-475, TC-487, TC-536 y TC-614—, con **catorce condiciones invertidas**; ninguno borrado y
+ninguno aflojado. **QUINCE de los diecisiete caen 0/15 contra `d3ea944`**; los otros **dos pasan en
+los dos árboles y se declaran** en **CUAD-j**: uno cambió su **extractor** y el otro un
+**denominador**, y ninguna de las dos cosas es una afirmación.
+⚠️ **DOCE DE ESOS DIECISIETE LOS DESTAPÓ LA CORRIDA DE LOTES Y NO MI CENSO**, y las dos causas son
+las de siempre: afirmaban una fila del cuadro de válvulas **por su rótulo exacto** —y el dato se
+mudó a la línea, donde el rótulo está dentro de una oración— o buscaban un **literal en el texto
+fuente** de `generarPDFReal`, que es justo lo que esta tanda mudó a otra función. Las dos clases
+quedaron reescritas midiendo la **conducta** y no cómo está escrito el código.
+⚠️ **LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de riesgo**: los
+**380** casos cuyo cuerpo toca el PDF, el informe narrativo, el EN SUMA o el Laboratorio,
+seleccionados por el patrón de su propio cuerpo y no a ojo. Los 571 restantes **no se ejecutaron**.
+**Línea base al cierre: 377/380** en **SIETE** lotes, en UNA sola pasada sobre el árbol sellado, con
+el md5 de `index.html` **idéntico** antes y después (`60fe3171`) y el pendrive `DISK_IMG` verificado
+**nueve** veces leyendo DICOMDIR, en 14 a 19 ms. Los rojos son **TC-376** y **TC-406**, dos de los de
+siempre, y **TC-182**, el intermitente declarado, que pasa **2 de 2 corrido aislado**. **Ningún rojo
+nuevo**, y los dieciséis casos nuevos y los diecisiete adaptados en verde.
+⚠️ **SON DOS PASADAS Y SÓLO SE INFORMA LA SEGUNDA**, porque la primera fue de **diagnóstico**: dio
+363/380 y destapó los doce casos adaptados que el censo no había visto. Esta casa no informa un
+número de una pasada hecha con un archivo de casos anterior.
+⚠️ **Y LO QUE ESTA TANDA PAGÓ**: el **acento grave dentro de mis propios comentarios** en el cuerpo
+de un caso, **cinco** veces —el generador de los casos lo **aborta** antes de insertar nada, que es
+la única forma, porque lo que queda a veces es JS válido y `node --check` pasa—; una **expresión
+regular con barra invertida** en el cuerpo de un caso; **`display:none` sin geometría** —el botón
+medía 0×0 sin abrir la pestaña del Informe—; el **overlay de login** tapando la página entera, con
+`elementFromPoint` devolviendo `login-overlay` en todos los puntos; y un objeto de `cuadDefs`
+**leído antes** de cambiar el dato, que devolvía el estado anterior.
+El mapa, en `docs/mapa/cuadros-pdf-tarjeta.md`; las fichas, en `docs/mapa/tests-fichas-928.md`; lo
+declarado, en **CUAD-a** a **CUAD-i**; la guía manual, en `docs/GUIA_PRUEBA_CUADROS.md` (12 pasos);
+la sonda, en `scripts/_probe_cuad.mjs`; el generador de casos, en `scripts/_gen_cuad_casos.py`; el
+corredor de lotes, en `scripts/_lotes_cuad.sh`.
 
 **La tanda 3A (2026-11-17) — el Valsalva del grado III, los cuatro tramos del strain del VD, la
 ficha del cor triatriatum y cuatro arreglos clínicos.** OCHO commits. Sello **`v20261117-2129`**,

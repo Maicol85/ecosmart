@@ -321,3 +321,14 @@ TC-586 a TC-590. Punteros en `docs/mapa/tests-punteros-tandas.md`, fichas en
    árbol viejo (`TAB`, `APT`, `SC`, `AP`, `RG`, `FE`): sin ellos, la primera línea que nombrara
    `MFS_SCORE` los mataba con un `TypeError` sin decir qué invariante se rompió. Es la lección de
    TC-546.
+
+## ⇢ Puntero — la tanda CUADROS (2026-11-18)
+
+**TC-928 a TC-943** — los doce cuadros del PDF, la grilla de tres, las líneas de válvula, el botón
+«Cuadros» y su tarjeta. Fichas en **`docs/mapa/tests-fichas-928.md`**; el mapa de lo que cubren, en
+`docs/mapa/cuadros-pdf-tarjeta.md`. Los dieciséis se generan con `scripts/_gen_cuad_casos.py`, que
+**aborta si un cuerpo trae un acento grave o una barra invertida** —las dos trampas que esta casa
+paga una vez por tanda—, y los dieciséis caen **0/16 contra `d3ea944`** sin una sola excepción.
+
+⚠️ **El puntero va acá y NO en `docs/mapa/tests-punteros-tandas.md`**, que está en 36,3 KB, o sea
+ya cruzado el techo de 35 KB. Partirlo queda declarado en `docs/PENDIENTES.md` → **CUAD-h**.

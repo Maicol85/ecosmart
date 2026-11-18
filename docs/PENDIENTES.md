@@ -18050,3 +18050,89 @@ los dos motores y el sello.
   Cerrar esto de verdad es la decisión que ya está anotada como **M5-n**: agrandar el área táctil de
   los ⓘ planos **de toda la aplicación**, en una tanda propia y con la medición de las dos columnas
   del acordeón de Evidencia al lado.
+
+## Tanda CUADROS (2026-11-18) — lo que quedó declarado
+
+- **CUAD-a · DOS cuadros publican más filas que las que la orden enumera, y es deliberado.** La
+  orden lista el cuadro de la aorta con **SV, ST y Ao ascendente** y el del VD con **siete** filas
+  (TAP, TAPSE, S′, los tres diámetros y la FAC). Acá salen **cinco** segmentos y **nueve** filas.
+  El cayado aórtico, la aorta descendente, la FEVD y la relación VD/VI son **números MEDIDOS** que
+  no se publican en ningún otro cuadro del papel: retirarlos los borraría del PDF firmado, y la
+  regla de esta casa es que **ningún número medido desaparece**. Las filas de la aorta se derivan
+  de `AO_SEGS` justamente porque cablearlas a mano a los tres clásicos ya produjo un defecto —el
+  narrativo decía «el cayado aórtico se encuentra dilatado» y la tabla, dos hojas después, listaba
+  sólo tres segmentos—. **Si el médico quiere sólo tres y sólo siete, se decide y se quitan**: es
+  una línea en `cuadDefs`.
+
+- **CUAD-b · `it_eroa` no existe como campo, y se conserva así.** La fila «EROA IT» del cuadro de
+  válvula tricúspide que esta tanda retira leía `vPdf('it_eroa', ' mm2')`, y ese id **no está en el
+  formulario**: el EROA por PISA de la insuficiencia tricuspídea vive en el nodo de pantalla
+  `it-eroa` y en el `input` de sólo lectura `vauto-it-eroa`. O sea que esa fila **nunca publicó un
+  número en ningún PDF firmado**. La línea de válvula de la tricúspide hereda la lectura tal cual,
+  con su lápida. Cablearla a `vauto-it-eroa` **agregaría** un dato al papel, que es contenido
+  clínico y lo decide el médico.
+
+- **CUAD-c · El AVA y el AVA indexado sólo salen si hay estenosis aórtica.** Es la consecuencia
+  aceptada de la orden: los dos se retiran del cuadro del gasto cardíaco y pasan a la **línea de la
+  estenosis aórtica**, que sólo existe con un grado de estenosis cargado. Un estudio con el AVA
+  calculado y sin grado de estenosis **ya no publica el área** en el papel. Medido: en el escenario
+  de TC-475 —con los tres insumos de la continuidad y sin grado— el AVA no aparece en el PDF.
+
+- **CUAD-d · La configuración de cuadros se aplica también a la REIMPRESIÓN de un estudio
+  guardado.** `pdfDeInformeGuardado` entra por el mismo camino que el botón, así que un estudio
+  reimpreso con una configuración puesta sale con los cuadros de esa configuración y **no con los
+  del documento que se firmó**. Es la consecuencia directa de la corrección del médico del
+  18/11/2026 —«se aplica a TODOS los estudios que se abran o carguen»—, y queda declarada porque
+  toca un documento firmado: si el médico quiere que la reimpresión reproduzca el papel original,
+  hay que guardar la configuración CON el estudio, que es exactamente lo que esa corrección
+  excluye.
+
+- **CUAD-e · El texto largo del AVm por THP queda SOLO en la pantalla.** Por orden del médico, con
+  insuficiencia aórtica severa la celda del papel dice **«no corresponde»** y nada más. El dueño
+  del motivo sigue siendo `emAvmThpPdfMotivo`, y el panel «🖨️ Incluir en el informe» conserva
+  `EM_THP_IA_TXT` entero, porque ese panel existe para explicar POR QUÉ no sale. **Queda declarado
+  que las dos superficies dicen el mismo hecho con dos textos distintos**, igual que ya estaba
+  declarado que la banda y la IAo tienen precedencias distintas entre el badge y el papel.
+
+- **CUAD-f · Las unidades se conservan en la línea de la estenosis aórtica, y el ejemplo de la
+  orden no las trae.** El ejemplo aprobado dice «EA severa: AVA 0.96 · AVAi 0.49» y acá sale
+  «EA severa: AVA 0.66 cm2 · AVAi 0.34 cm2/m2». Es deliberado: un número sin unidad en un informe
+  firmado es el defecto que esta casa ya pagó con el colapso de la VCI —«el papel firmado los
+  imprimía pelados, al lado de un diámetro que sí dice mm»—. **Si el médico prefiere la forma del
+  ejemplo, se quitan: es el `_cuadPz` de `cuadLineasVA`.**
+
+- **CUAD-g · «dos columnas con los rótulos Tricúspide y Pulmonar» se resolvió con el TÍTULO.** La
+  orden pide que el cuadro vaya en dos columnas «con los rótulos», y los dos rótulos están en el
+  título del cuadro —«Tricúspide / Pulmonar»—, que es el mismo idioma con el que el cuadro mitral
+  ya nombra sus dos mitades desde la tanda TGA-4. **No se agregó un segundo renglón de encabezado
+  por sub-columna**: eso le sumaría alto a TODA la fila —las tres cajas comparten el encabezado— y
+  es diseño nuevo, que la orden prohíbe. Queda declarado por si el médico quería los rótulos
+  dentro del cuadro.
+
+- **CUAD-h · `docs/mapa/tests-punteros-tandas.md` NO se tocó, y es por su tamaño.** Está en
+  **36,3 KB**, o sea **ya cruzado** el techo de 35 KB que esta casa fija, y `CLAUDE.md` declara
+  desde PANT-31 que «la próxima tanda que lo toque tiene que partirlo». Partirlo es media hora de
+  `sed` sobre un archivo de punteros y no es de esta tanda, así que el puntero de los dieciséis
+  casos nuevos fue a `docs/mapa/tests.md` —20,9 KB, con lugar de sobra— y al mapa propio de la
+  tanda. **Queda pendiente partirlo.**
+
+- **CUAD-i · La suite COMPLETA no se corrió, por orden expresa.** Se corrieron los **lotes de
+  riesgo**: los 380 casos cuyo cuerpo toca el PDF, el informe narrativo, el EN SUMA o el
+  Laboratorio, seleccionados por el patrón de su propio cuerpo y no a ojo. Los 571 restantes **no
+  se ejecutaron en esta tanda** y se declara.
+
+- **CUAD-j · DOS de los diecisiete casos adaptados PASAN en los dos árboles, y se declara.**
+  **TC-345** cambió su **extractor** —buscaba un fragmento de texto igual a «EA grado», que era el
+  rótulo de una fila del cuadro de válvula aórtica, y hoy busca un fragmento que **empieza con**
+  «EA », que es como arranca la línea de la estenosis—: ese predicado es cierto también en el árbol
+  anterior, donde «EA grado» empieza con «EA ». Es un cambio de **lectura**, no una afirmación.
+  **TC-536** bajó un **denominador** de 15 a 10 textos en el PDF del formulario vacío, porque el
+  papel ya no dibuja las cuatro filas de cuadros de válvulas: un umbral más bajo es cierto en los
+  dos lados por construcción. Los otros **quince** caen **0/15 contra `d3ea944`**.
+
+- **CUAD-k · Cuatro funciones del PDF quedaron sin consumidor en `index.html`, y se conservan.**
+  `emAvmPdfVal`, `imEroaPdfVal`, `imVolrPdfVal` e `imFrPdfVal` eran las que llenaban las filas del
+  cuadro de válvula mitral que esta tanda retira. **No se borran**: siguen siendo la «forma de
+  siempre» de sus dueños —`emAvmPdfPartes` y `_imMetodoPdfPartes`, que son los que de verdad
+  deciden qué método entra y con qué número— y el suite las usa en **veinte** lugares como
+  contrato. Borrarlas sería romper esa cobertura para no ganar nada.

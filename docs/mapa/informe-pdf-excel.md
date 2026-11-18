@@ -566,3 +566,14 @@ caja está `hidden`, así que hubo que darle un argumento `forzar`. Y el lienzo 
 navegador limpió el buffer.
 
 Detalle en `docs/mapa/pant13-explorar-tga-masas.md` § 3 y § 6.
+
+## ⇒ LOS CUADROS DE DATOS DEL PDF TIENEN MAPA PROPIO — tanda CUADROS (2026-11-18)
+
+**`docs/mapa/cuadros-pdf-tarjeta.md`.** El PDF ya **no** arma sus cuadros con cinco literales
+dentro de `generarPDFReal`: son **DOCE**, de a **tres por fila**, y salen de `cuadDefs`, el dueño
+único que lee también la tarjeta **«Cuadros»** del Informe. Se **eliminan** la fila de cuadros de
+válvulas —en los ocho estilos— y **todos** los valores de referencia; las lesiones pasan a líneas
+dentro del cuadro de su estructura.
+
+⚠️ **Este puntero va corto a propósito: el mapa está a 600 bytes del techo de 35 KB y la próxima
+tanda que lo toque tiene que partirlo.**

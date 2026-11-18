@@ -3887,3 +3887,46 @@ los dos intermitentes declarados (TC-182, TC-551), que pasan aislados. **Ningún
 **Mapa:** `docs/mapa/medir3-panel-botones-calibracion.md` · **inventario:**
 `docs/INVENTARIO_MEDIR3.md` · **sonda:** `scripts/_probe_medir3.mjs` · **guía manual:**
 `docs/GUIA_PRUEBA_MEDIR3.md` (14 pasos) · **lo declarado:** `docs/PENDIENTES.md` → **M3-a** a **M3-g**.
+
+## CUADROS (2026-11-18) — los doce cuadros del PDF, la grilla de tres y la tarjeta «Cuadros»
+
+**Qué se pidió.** Un nuevo armado del PDF —doce cuadros de datos, de a tres por fila, con las
+lesiones valvulares como líneas dentro del cuadro de su estructura y sin un solo valor de
+referencia— y un botón nuevo en el Informe que abra una tarjeta con esos mismos cuadros, donde el
+médico pueda quitarlos, recuperarlos y reordenarlos arrastrando. **Dos correcciones a mitad de
+camino**: la configuración **no se descarta** al abrir otro estudio ni al limpiar —vale para todos
+hasta «Restablecer»— y el botón muestra un **punto de aviso** cuando no es la de fábrica.
+
+**El diseño.** Las definiciones salen de `generarPDFReal` a un **dueño único**, `cuadDefs`, que lee
+también la tarjeta: con dos listas, la pantalla y el papel firmado podrían mostrar cuadros
+distintos. Los derivados que vivían en el bloque de pre-cálculos de esa función se **mudaron
+enteros y textuales** a `cuadCtx`, que `generarPDFReal` ahora **consume** — no se copió una línea.
+
+**Lo que salió del papel:** la fila de cuadros de válvulas en los **ocho** estilos —también en los
+que caía en una segunda hoja—, **todos** los valores de referencia, el resumen de la aorta que
+«Otros» publicaba por segunda vez, y el AVA del cuadro del gasto. **Lo que entró:** las líneas de
+válvula, el asterisco de la aorta con su pie, el DVI en el cuadro de continuidad y el cuadro
+«Otros» en una sola línea.
+
+**Dos cuadros publican más filas que las que la orden enumera, y es deliberado:** el cayado, la
+aorta descendente, la FEVD y la relación VD/VI son números MEDIDOS que no salen en ningún otro
+cuadro, y en esta casa ninguno desaparece del papel. Declarado en **CUAD-a**.
+
+**Lo medido.** PDF generado de verdad y **mirado rasterizado** —el mismo estudio pasa de **tres
+hojas a dos**—; los **ocho estilos** sin una fila de válvulas y sin un valor de referencia, con la
+configuración reflejada en los ocho; **Chrome y WebKit** coincidiendo en los seis cruces con cero
+errores de consola y de página; la tarjeta **sin escribir un solo campo**, con el censo de todos
+los controles con id idéntico antes y después; **Semgrep 126 / 0**, sin huérfanos nuevos y
+**celular 38 ALTA**, la línea base exacta medida con el mismo script en los dos árboles.
+
+**La cobertura.** **TC-928 a TC-943**, uno por cada punto de la orden, los dieciséis cayendo
+**0/16 contra `d3ea944`** por 92 condiciones y **ninguno por excepción**. **Cinco casos
+adaptados** —TC-260, TC-307, TC-459, TC-475 y TC-614—, con **nueve condiciones invertidas**.
+**La suite COMPLETA no se corrió, por orden expresa**: se corrieron los **lotes de riesgo**, los
+380 casos cuyo cuerpo toca el PDF, el informe, el EN SUMA o el Laboratorio — **377/380** en siete
+lotes, con el md5 idéntico antes y después y los tres rojos de siempre, ninguno nuevo.
+
+**Mapa:** `docs/mapa/cuadros-pdf-tarjeta.md` · **fichas:** `docs/mapa/tests-fichas-928.md` ·
+**sonda:** `scripts/_probe_cuad.mjs` · **generador de casos:** `scripts/_gen_cuad_casos.py` ·
+**lotes:** `scripts/_lotes_cuad.sh` · **guía manual:** `docs/GUIA_PRUEBA_CUADROS.md` (12 pasos) ·
+**lo declarado:** `docs/PENDIENTES.md` → **CUAD-a** a **CUAD-i**.
