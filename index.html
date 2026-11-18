@@ -7993,8 +7993,9 @@ window.cerrarSesionReal = cerrarSesionReal;
              `DT_TRIV_HTP`, y el campo deja de ser «sólo de pantalla».
              ⚠️ LA FILA NO SE DIBUJA SIN VALOR, y la esconde `vdRefVisSync`, que es el dueño
              único del `display` de las filas condicionales de este cuadro: el pintor no lo toca.
-             ⚠️ EL AMARILLO NO ES LA ÚNICA SEÑAL: el texto dice «(>75 ms: a favor de HTP)», que
-             es lo que se lee con el color apagado, en impresión o con daltonismo. -->
+             ⚠️ EL AMARILLO NO ES LA ÚNICA SEÑAL: el texto dice «(≥75 ms: a favor de HTP)», que
+             es lo que se lee con el color apagado, en impresión o con daltonismo. El operador
+             incluye el borde desde el MEDIR-6: este comentario decía «(>75 ms…)». -->
         <div class="calc-row" id="row-vd-triv-ref" style="display:none;">
           <span class="calc-lbl">TRIV (DTI) — dato de referencia
             <button type="button" class="vinfo-btn" data-vinfo="vd-triv" aria-expanded="false"
@@ -37772,7 +37773,7 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
 const DT_TRIV_HTP = 75, DT_TAP_HTP = 105;
 
 /* ══ LA FRASE ÚNICA DE LOS SIGNOS INDIRECTOS ═════════════════════════════════════════════════
-   Devuelve «(TAP < 105 ms)», «(TRIV tricuspídeo > 60 ms)», los dos unidos por «y», o '' si no
+   Devuelve «(TAP < 105 ms)», «(TRIV tricuspídeo ≥ 75 ms)», los dos unidos por «y», o '' si no
    hay ninguno MEDIDO. Existe para que los tres sitios que la nombran —las dos ramas de la línea
    de la válvula tricúspide y el EN SUMA— digan exactamente lo mismo: antes el TAP estaba escrito
    a mano en las dos ramas con dos redacciones distintas («Se suman…» y «Se evidencian…»), y el
@@ -41502,9 +41503,10 @@ function diastASE2025Evaluar() {
   const cLars = lars !== null && lars <= 18;
   const cTriv = triv !== null && triv <= 70;
 
-  /* Las TRES principales, para el «(N/M parámetros positivos)» de las frases. El E/e' ocupa UNA
-     posición y tres filas en la ventana: es un criterio con tres alternativas, no tres criterios
-     — contarlo tres veces le daría triple peso al mismo dato. */
+  /* Las TRES principales. El conteo que sale de acá alimenta `R.ventanaDet` —PANTALLA— y ya NO
+     ninguna frase escrita (18/11). El E/e' ocupa UNA posición y tres filas en la ventana: es un
+     criterio con tres alternativas, no tres criterios — contarlo tres veces le daría triple peso
+     al mismo dato. */
   [ { ev: true,    ok: R.ePrimReducida },
     { ev: eeEval,  ok: cEe },
     { ev: v3Eval,  ok: cV3 }
@@ -41569,7 +41571,12 @@ function diastASE2025Evaluar() {
      medidos —esa rama no afirma normalidad, afirma relajación alterada con presión normal, que
      es el lado conservador— y es además la rama que hace que un paciente sin chorro de IT, que
      es entre el 40 y el 60 % según la BSE, pueda seguir saliendo grado 1. */
-  const nPar = ' (' + R.pos + '/' + R.total + ' parámetros positivos)';
+  /* ⚠️ SE FUE EL «(N/M parámetros positivos)» DE LAS SIETE FRASES DE ESTA FUNCIÓN (decisión de
+     Maicol del 18/11, POSTERIOR al 3A y que reemplaza lo que el 3A dejó escrito ahí arriba): el
+     texto ESCRITO —informe narrativo, EN SUMA y PDF— no publica ningún conteo de parámetros en
+     ninguno de los cuatro algoritmos. La constante `nPar` ya no existe; `R.pos` y `R.total`
+     siguen vivos y los sigue publicando `R.ventanaDet`, que es PANTALLA y se queda, igual que la
+     tarjeta del algoritmo con cada criterio en verde o en rojo. Un conteo explica, no afirma. */
   const soloE = (E === null && tr === null && psap === null && lavi === null && lars === null && triv === null);
   const todasNeg = !R.ePrimReducida && eeEval && !cEe && v3Eval && !cV3;
   const todasPos = R.ePrimReducida && cEe && cV3;
@@ -41590,8 +41597,7 @@ function diastASE2025Evaluar() {
       R.clave = 'altaSinEa';
       R.cls = 'orange';
       R.badgeTxt = 'DD — Presión elevada (ASE 2025)';
-      R.texto = 'Presión de llenado elevada' + nPar +
-        '. Completar cociente E/A para determinar grado.';
+      R.texto = 'Presión de llenado elevada. Completar cociente E/A para determinar grado.';
       R.textoSuma = 'Disfunción diastólica — presión de llenado elevada.';
     } else if (ea >= 2 && R.ePrimReducida) {
       R.clave = 'g3';
@@ -41609,17 +41615,18 @@ function diastASE2025Evaluar() {
          nombre. Sus dos opciones del selector, su glosario, su paréntesis del informe y sus
          rótulos siguen enteros.
          ⚠️ LA RELACIÓN E/A SE CONSERVA (decisión de Maicol): lo que sale es la ENUMERACIÓN de qué
-         parámetros dieron positivos —«e' reducida, E/A X (≥2,00) y presión…»—, no el número. El
-         conteo `(N/M parámetros positivos)` también se queda, y es el REAL del algoritmo. */
+         parámetros dieron positivos —«e' reducida, E/A X (≥2,00) y presión…»—, no el número.
+         ⚠️ Y EL CONTEO `(N/M parámetros positivos)` YA NO ESTÁ: lo retiró la decisión del 18/11,
+         posterior a ésta. Sigue en la ventana 🧭 y en la tarjeta, que son pantalla. */
       R.texto = 'Disfunción diastólica grado III (patrón restrictivo' + diastValsPatron() +
-        ') con presión de llenado elevada, E/A ' + ea.toFixed(2) + nPar + '.';
+        ') con presión de llenado elevada, E/A ' + ea.toFixed(2) + '.';
       R.textoSuma = 'Disfunción diastólica grado III' + diastValsSuma() + ', presión de llenado elevada.';
     } else if (ea < 2) {
       R.clave = 'g2';
       R.cls = 'orange';
       R.badgeTxt = 'DD Grado II — ASE 2025';
       R.texto = 'Disfunción diastólica grado II (patrón pseudonormal) con presión de llenado elevada, E/A ' +
-        ea.toFixed(2) + nPar + '.';
+        ea.toFixed(2) + '.';
       R.textoSuma = 'Disfunción diastólica grado II — presión de llenado elevada.';
     } else {
       /* E/A ≥2 con e' CONSERVADA no es grado III: es el patrón del corazón joven y sano, donde
@@ -41627,7 +41634,7 @@ function diastASE2025Evaluar() {
       R.clave = 'indetComb';
       R.cls = 'gray';
       R.badgeTxt = 'Indeterminado — ASE 2025';
-      R.texto = 'Presión de llenado elevada' + nPar + ' con E/A ' + ea.toFixed(2) + ' y ' +
+      R.texto = 'Presión de llenado elevada con E/A ' + ea.toFixed(2) + ' y ' +
         (R.ePrimReducida ? 'e\' reducida' : 'e\' conservada') +
         ': la combinación no cumple criterios de grado I, II ni III. Grado indeterminado — correlacionar con clínica.';
       R.textoSuma = '';
@@ -41650,7 +41657,9 @@ function diastASE2025Evaluar() {
     R.cls = 'green';
     R.badgeTxt = 'Función diastólica normal — ASE 2025';
     /* Sin el conteo y sin nombrar el parámetro: decisión de Maicol. Un «0/3 parámetros
-       positivos» al lado de una normalidad es el denominador de una búsqueda, no un hallazgo. */
+       positivos» al lado de una normalidad es el denominador de una búsqueda, no un hallazgo.
+       Desde el 18/11 ninguna de las siete frases de esta función lleva conteo, así que ésta ya
+       no es la excepción: es la regla. */
     R.texto = 'Función diastólica normal.';
     R.textoSuma = '';
     R.via = 'las tres principales negativas';
@@ -41665,7 +41674,7 @@ function diastASE2025Evaluar() {
     R.cls = 'yellow';
     R.badgeTxt = 'DD Grado I — ASE 2025';
     R.texto = 'Disfunción diastólica grado I (relajación alterada) con presión de llenado normal, E/A ' +
-      ea.toFixed(2) + nPar + '.';
+      ea.toFixed(2) + '.';
     R.textoSuma = 'Disfunción diastólica grado I — relajación alterada con presión de llenado normal.';
     R.via = 'e\' reducida sola con E/A ≤ 0,80';
   } else if (seg2Eval === 0 && suplPos.length >= 1) {
@@ -41710,8 +41719,7 @@ function diastASE2025Evaluar() {
     R.clave = 'normalSinGrado';
     R.cls = 'gray';
     R.badgeTxt = 'Presión de llenado normal — ASE 2025';
-    R.texto = 'Presión de llenado del VI normal' + nPar +
-      '. No se puede graduar la disfunción diastólica con los datos disponibles.';
+    R.texto = 'Presión de llenado del VI normal. No se puede graduar la disfunción diastólica con los datos disponibles.';
     R.textoSuma = 'Presión de llenado del VI normal.';
     R.via = 'segundo paso 0 de ' + seg2Eval + (seg2Via === 'TRIV' ? ' (por TRIV)' : '');
   }
@@ -51299,7 +51307,8 @@ const TRIV_DTI_LEE =
   + 'Conviene corregirlo por la frecuencia cardíaca.\n'
   + 'No suma a la probabilidad de hipertensión pulmonar.';
 const TRIV_DTI_FUENTE =
-    'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
+    'CRITERIO DE LA APLICACIÓN: el corte de 75 ms lo fija esta aplicación.\n'
+  + 'El corte de 75 ms viene de un consenso —Howard LS y cols., Eur Respir Rev '
   + '2012;21:239-248: normal menos de 75 ms, anormal 75 ms o más— y de un estudio que lo '
   + 'comparó con la presión pulmonar estimada por ecografía, sin cateterismo —Cabrita IZ y '
   + 'cols., Eur Heart J Cardiovasc Imaging 2013;14:51-55: sensibilidad 94 % y especificidad '
@@ -66213,9 +66222,17 @@ function generarInforme(opts) {
       const _cercaDelBorde = (_eaR.feviOk && fevi >= 45 && fevi < 55)
         ? ' La proximidad al umbral de 50 % obliga a confirmar la fracción de eyección por método cuantitativo (Simpson biplano) antes de encaminar el estudio confirmatorio.' : '';
       if (_eaR.sub === 'bfbg_clasica') {
+        /* ⚠️ SE FUE «Considerar ecocardiograma con dobutamina a bajas dosis para distinguir
+           severidad verdadera de pseudo-severa.» (decisión de Maicol, 18/11): el informe firmado
+           no recomienda un estudio. Lo que describe —bajo flujo, bajo gradiente, FEVI reducida y
+           los números— se queda entero. El contenido retirado YA ESTÁ en la Evidencia, en la nota
+           del estadio D2 de la Tabla 7 de la ACC/AHA 2020, que dice que la tabla pide confirmar el
+           área con velocidad de 4 m/s o más en el eco de estrés con dobutamina: no se agregó nada.
+           ⚠️ Y NO SE TOCARON LAS OTRAS TRES COLAS DE ESTE BLOQUE —el score de calcio por TAC, la
+           medición del TSVI y el repaso de las integrales—: la orden nombró la de la dobutamina y
+           retirar texto clínico es decisión del médico. Declarado en PR4-b. */
         inf.push(`Estenosis aórtica severa por AVA, de bajo flujo y bajo gradiente (BF/BG clásica), `
-          + `dado FEVI reducida${_d}. Considerar ecocardiograma con dobutamina a bajas dosis para `
-          + `distinguir severidad verdadera de pseudo-severa.` + _cercaDelBorde);
+          + `dado FEVI reducida${_d}.` + _cercaDelBorde);
       } else if (_eaR.sub === 'bfbg_paradojal') {
         inf.push(`Estenosis aórtica severa por AVA, de bajo flujo y bajo gradiente paradojal${_d}. `
           + `Considerar score de calcio valvular por TAC para confirmar severidad.` + _cercaDelBorde);
@@ -66534,7 +66551,7 @@ function generarInforme(opts) {
     const _vtMorfAparte = /^con\s/.test(vtDe || '');
     /* ══ LA ORACIÓN DE LOS ELEMENTOS A FAVOR DE HTP, EN TRES FORMAS (COR-2c, 2026-10-30) ══════
        Decisión del médico del 30/10. `htpIndirectosFrase()` sigue siendo el dueño de la LISTA
-       —«(TRIV tricuspídeo > 75 ms y TAP < 105 ms)»— y esto decide cómo se la presenta. Un solo
+       —«(TRIV tricuspídeo ≥ 75 ms y TAP < 105 ms)»— y esto decide cómo se la presenta. Un solo
        lugar y cuatro ramas de `tricLine` que lo consumen sin saber cuál salió, que es lo que
        impide que dos ramas digan cosas distintas del mismo paciente.
          (i) LA IT NO ESTÁ MEDIDA y hay elementos → se dice que no está medida y se nombran.
@@ -106607,8 +106624,13 @@ function _indHTP(){
      ⚠️ Y LAS DOS ENTRAN TAMBIÉN EN `notas`, que es lo que se pinta dentro del «Ver detalle»:
      dejarlas afuera publicaría la mitad del razonamiento de la sección. */
   const _propios = [
+    /* ⚠️ DECÍA «por encima de 75 ms», QUE ES EL OPERADOR ESTRICTO, Y EL CORTE INCLUYE EL BORDE
+       desde el MEDIR-6 (B1): `trivAlto` es `triv >= DT_TRIV_HTP`, así que 75 exactos SÍ se
+       publican. Con «por encima de» esta sección decía una cosa y el informe firmado hacía otra
+       sobre el mismo número. Pasa a «de 75 ms o más», que es la forma que ya usan el ⓘ, la fila
+       de referencia y la frase del informe. (PR4-c, 18/11) */
     { txt:'CRITERIO DE ECOSMART — sin fuente verificada en la biblioteca. Un TRIV tricuspídeo '
-        + 'por encima de 75 ms se publica como elemento a favor de hipertensión pulmonar. El '
+        + 'de 75 ms o más se publica como elemento a favor de hipertensión pulmonar. El '
         + 'corte viene de un consenso y de un estudio comparado con ecocardiografía, no con '
         + 'cateterismo, y ninguno de los dos está en la biblioteca; el ⓘ «El TRIV del '
         + 'ventrículo derecho» dice de dónde sale cada número. No suma a la probabilidad.',

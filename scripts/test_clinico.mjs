@@ -1002,7 +1002,12 @@ caso('TC-453', 'Diastolica ASE 2025: las tres variables de la Figura 3 con su se
   const m = esc({ e_sep:'10', e_lat:'13', onda_e:'70', onda_a:'70', ai_vol:'70', vmax_it:'2.0',
                   lars:'10', venp_sd:'' });
 
-  const EST_A = 'Presión de llenado del VI normal (1/3 parámetros positivos). No se puede graduar la disfunción diastólica con los datos disponibles.';
+  /* ADAPTADO 18/11: el literal pierde el «(1/3 parámetros positivos)» por la decision de Maicol
+     que saca el conteo del TEXTO ESCRITO en los cuatro algoritmos. La condicion sigue exigiendo el
+     literal ENTERO de la frase, asi que se pone roja igual si alguien le cambia una palabra; el
+     conteo, que ahora NO puede estar, lo fija TC-948 por los dos lados. El de la ventana 🧭 no se
+     toca: ahi el conteo se queda, porque la ventana explica y el papel afirma. */
+  const EST_A = 'Presión de llenado del VI normal. No se puede graduar la disfunción diastólica con los datos disponibles.';
   const EST_B = 'No se puede estimar la presión de llenado del VI con los datos disponibles; completar los parámetros del segundo paso (Vol AI, LARS, S/D o TRIV).';
 
   return { extra: [
@@ -39571,8 +39576,12 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
     const r2 = esc({ va_morf:'Prótesis mecánica', diam_tsvi:'19', itv_tsvi:'18', itv_ao:'63',
       vmax_ao:'3.4', gmedio_ao:'28' });
     ex.push(['con protesis NO se publica el escenario nativo de bajo gradiente: ni la linea de severa por AVA en el EN SUMA ni el parrafo de la dobutamina',
+      /* ADAPTADO 18/11: la palabra «dobutamina» YA NO ESTA en ningun informe —la saco la decision
+         de Maicol de este mismo dia—, asi que esa mitad pasaba a ser tautologica y se reemplaza por
+         el rotulo de la forma clasica, que es lo que el parrafo nativo publica y la protesis no
+         puede publicar. La otra mitad, «bajo flujo», ya estaba. */
       pl(r2.suma).indexOf('severa por ava') === -1 &&
-      pl(r2.inf).indexOf('dobutamina') === -1 &&
+      pl(r2.inf).indexOf('bf/bg clasica') === -1 &&
       pl(r2.inf).indexOf('bajo flujo') === -1,
       'suma=«' + r2.suma.replace(/\\n/g, ' | ') + '»']);
 
@@ -39637,8 +39646,11 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
     const rMano = __t.informe();
     ex.push(['con protesis y el grado puesto A MANO en severa, el escenario nativo de bajo gradiente sigue apagado: ni la linea de severa por AVA ni el parrafo de la dobutamina',
       __t.val('ea_grado') === 'severa' &&
+      /* ADAPTADO 18/11: igual que la de arriba, y aca el reemplazo ADEMAS agrega la mitad que
+         faltaba —este bloque no miraba «bajo flujo»—, asi que la condicion quedo mas fuerte. */
       pl(rMano.suma).indexOf('severa por ava') === -1 &&
-      pl(rMano.inf).indexOf('dobutamina') === -1 &&
+      pl(rMano.inf).indexOf('bf/bg clasica') === -1 &&
+      pl(rMano.inf).indexOf('bajo flujo') === -1 &&
       pl(rMano.inf).indexOf('estenosis protesica') > -1,
       'ea_grado=' + __t.val('ea_grado') + ' suma=«' + rMano.suma.replace(/\\n/g, ' | ') + '»']);
 
@@ -150533,6 +150545,253 @@ caso('TC-947', 'Tarea 2: el traslado -- Hemodinamica con sus cinco entradas en o
   ex.push(['(D6) con sus CINCO chips de criterio propio intactos',
     fp ? (fp.textContent.match(new RegExp('CRITERIO DE ECOSMART', 'g')) || []).length : 'SIN FICHA', 5]);
   return { extra: EXP };
+  })();
+`);
+
+/* ══ TAREA DEL 18/11 — LA DIASTOLE SIN CONTEOS, UN CASO POR SUPERFICIE ════════════════════
+   La decision de Maicol del 18/11 saca el «(N/M parametros positivos)» del TEXTO ESCRITO en los
+   cuatro algoritmos, y deja la tarjeta del algoritmo y la ventana 🧭 —que son PANTALLA— intactas.
+   Medido antes de escribir: el unico que lo publicaba era la ASE 2025 en ritmo sinusal, en SEIS
+   de sus ramas; la ASE 2016 lo habia perdido en la 3A, y la BSE 2024 y los tres protocolos de FA
+   nunca lo tuvieron —sus frases nombran los parametros, no los cuentan—. */
+caso('TC-948', 'Diastole sin conteos (18/11): las SEIS ramas de la ASE 2025 en ritmo sinusal que publicaban el parentesis del conteo ya no lo publican en el INFORME NARRATIVO, y la frase descriptiva de cada una queda entera', `
+
+  /* Las SEIS escenas son las SEIS ramas de la ASE 2025 en ritmo sinusal que hasta el 18/11
+     publicaban el parentesis del conteo. Cada una se arma con los campos minimos para caer en su
+     compuerta y NADA mas: lo que se mide es la frase, no el gesto.
+       altaSinEa  — las tres principales positivas y la E/A sin cargar (onda_a OMITIDA);
+       g3         — E/A 2,00 con e' reducida;
+       g2         — E/A 1,50 con presion elevada;
+       indetComb  — presion elevada por el segundo paso, E/A 2,00 y e' CONSERVADA;
+       g1         — e' reducida sola con E/A 0,67;
+       normalSinGrado — segundo paso evaluado y NEGATIVO (Vol AI indexado 10 ml/m2).
+     ⚠️ «calcDiastol()» SE LLAMA A MANO por el mismo motivo que en TC-453: no esta cableada al
+     Vol AI ni a la velocidad de la IT, asi que una escena que termine por uno de esos dos
+     mediria el veredicto del paciente ANTERIOR y pasaria en verde por la razon equivocada. */
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+  const esc = (m) => {
+    __t.limpiar(); S('peso', '80'); S('talla', '180'); S('fevi', '60');
+    const orden = ['ai_vol', 'vmax_it', 'e_sep', 'e_lat', 'onda_e', 'onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, texto: d.texto || '', tsuma: d.textoSuma || '',
+             clave: d.clave || '' };
+  };
+  const E = {
+    altaSinEa: esc({ e_sep:'5', e_lat:'7', onda_e:'90', ai_vol:'80', vmax_it:'3.0' }),
+    g3:        esc({ e_sep:'5', e_lat:'7', onda_e:'100', onda_a:'50', ai_vol:'80', vmax_it:'3.0' }),
+    g2:        esc({ e_sep:'5', e_lat:'7', onda_e:'90',  onda_a:'60', ai_vol:'80', vmax_it:'3.0' }),
+    indetComb: esc({ e_sep:'10', e_lat:'13', onda_e:'100', onda_a:'50', ai_vol:'80' }),
+    g1:        esc({ e_sep:'5', e_lat:'7', onda_e:'40', onda_a:'60', vmax_it:'2.0' }),
+    normalSinGrado: esc({ e_sep:'5', e_lat:'7', onda_e:'70', onda_a:'70', vmax_it:'2.0', ai_vol:'20' })
+  };
+  const CLAVES = Object.keys(E);
+  /* Las SEIS formas del conteo, por NUMERO y por palabra: el parentesis entero, la palabra sola
+     y los cuatro numeradores posibles sobre el denominador de tres. Buscar solo «parametros» no
+     alcanza —la orden lo pide asi— porque un «1/3» pelado es el mismo conteo con otra escritura. */
+  const CONTEOS = ['parametros positivos', 'par\u00e1metros positivos', ' positivos)'];
+  /* Y el conteo por NUMERO, sin expresiones regulares —una barra invertida no sobrevive al
+     template literal de un caso— y SIN denominador fijo: el de la rama indetComb es «0/2», asi
+     que una lista de cuatro literales sobre tres no lo habria visto. Esto empareja cualquier
+     digito, barra, digito. */
+  const numEn = (s) => { const t = String(s || ''); const d = '0123456789'; const h = [];
+    for (let i = 1; i < t.length - 1; i++) {
+      if (t[i] === '/' && d.indexOf(t[i - 1]) > -1 && d.indexOf(t[i + 1]) > -1) h.push(t.slice(i - 1, i + 2));
+    } return h; };
+  const conteoEn = (s) => CONTEOS.filter(c => String(s || '').indexOf(c) > -1).concat(numEn(s));
+
+  /* La frase que cada rama tiene que seguir publicando, SIN el parentesis. Son las seis de HEAD
+     menos el conteo: lo demas —la E/A, el patron, el «modificable / fijo» del Valsalva— queda. */
+  const FRASE = {
+    altaSinEa: 'Presi\u00f3n de llenado elevada. Completar cociente E/A para determinar grado.',
+    g3:        ') con presi\u00f3n de llenado elevada, E/A 2.00.',
+    g2:        'Disfunci\u00f3n diast\u00f3lica grado II (patr\u00f3n pseudonormal) con presi\u00f3n de llenado elevada, E/A 1.50.',
+    indetComb: 'Presi\u00f3n de llenado elevada con E/A 2.00 y ',
+    g1:        'Disfunci\u00f3n diast\u00f3lica grado I (relajaci\u00f3n alterada) con presi\u00f3n de llenado normal, E/A 0.67.',
+    normalSinGrado: 'Presi\u00f3n de llenado del VI normal. No se puede graduar la disfunci\u00f3n diast\u00f3lica con los datos disponibles.'
+  };
+  const sinConteo = CLAVES.filter(k => conteoEn(E[k].inf).length === 0);
+  const conFrase  = CLAVES.filter(k => E[k].inf.indexOf(FRASE[k]) > -1);
+  const textos    = CLAVES.map(k => E[k].texto);
+  const distintos = textos.filter((t, i) => textos.indexOf(t) === i);
+
+  return { extra: [
+    // ── DENOMINADORES. Sin estos tres, «ninguna dice el conteo» se cumple sobre seis frases vacias.
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    ['las seis escenas publicaron una frase de diastolica',
+      CLAVES.every(k => E[k].texto.length > 10), CLAVES.map(k => k + '=' + E[k].texto.length).join(' | ')],
+    ['y son SEIS frases DISTINTAS: ninguna escena cayo en la rama de otra',
+      distintos.length === 6, 'distintas=' + distintos.length],
+    ['la linea de la diastolica esta en el informe de las seis',
+      CLAVES.every(k => E[k].inf.indexOf(E[k].texto) > -1), CLAVES.filter(k => E[k].inf.indexOf(E[k].texto) < 0).join(',')],
+
+    // ── LO QUE LA TAREA PIDE: ninguna de las seis publica conteo en el informe.
+    ['ninguna de las SEIS ramas publica el conteo en el informe narrativo',
+      sinConteo.length === 6,
+      CLAVES.filter(k => conteoEn(E[k].inf).length).map(k => k + ' -> ' + conteoEn(E[k].inf).join(',')).join(' | ')],
+    // ── Y LA OTRA MITAD: la frase descriptiva no se perdio al sacarle el parentesis.
+    ['cada rama conserva su frase descriptiva entera', conFrase.length === 6,
+      CLAVES.filter(k => E[k].inf.indexOf(FRASE[k]) < 0).map(k => k + ' dio <<' + E[k].texto + '>>').join(' | ')],
+    /* El grado III sigue nombrando el patron restrictivo y el Valsalva no se toco: lo que salio es
+       el conteo y nada mas. Sin esta condicion, borrar media frase tambien pasaria en verde. */
+    ['el grado III sigue diciendo «patron restrictivo»',
+      E.g3.texto.indexOf('Disfunci\u00f3n diast\u00f3lica grado III (patr\u00f3n restrictivo') === 0, E.g3.texto]
+  ] };
+`);
+
+caso('TC-949', 'Diastole sin conteos (18/11): el EN SUMA de las SEIS ramas no publica el conteo, y las cinco lineas que tiene que escribir siguen enteras', `
+
+  /* Las SEIS escenas son las SEIS ramas de la ASE 2025 en ritmo sinusal que hasta el 18/11
+     publicaban el parentesis del conteo. Cada una se arma con los campos minimos para caer en su
+     compuerta y NADA mas: lo que se mide es la frase, no el gesto.
+       altaSinEa  — las tres principales positivas y la E/A sin cargar (onda_a OMITIDA);
+       g3         — E/A 2,00 con e' reducida;
+       g2         — E/A 1,50 con presion elevada;
+       indetComb  — presion elevada por el segundo paso, E/A 2,00 y e' CONSERVADA;
+       g1         — e' reducida sola con E/A 0,67;
+       normalSinGrado — segundo paso evaluado y NEGATIVO (Vol AI indexado 10 ml/m2).
+     ⚠️ «calcDiastol()» SE LLAMA A MANO por el mismo motivo que en TC-453: no esta cableada al
+     Vol AI ni a la velocidad de la IT, asi que una escena que termine por uno de esos dos
+     mediria el veredicto del paciente ANTERIOR y pasaria en verde por la razon equivocada. */
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+  const esc = (m) => {
+    __t.limpiar(); S('peso', '80'); S('talla', '180'); S('fevi', '60');
+    const orden = ['ai_vol', 'vmax_it', 'e_sep', 'e_lat', 'onda_e', 'onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    return { inf: r.inf, suma: r.suma, texto: d.texto || '', tsuma: d.textoSuma || '',
+             clave: d.clave || '' };
+  };
+  const E = {
+    altaSinEa: esc({ e_sep:'5', e_lat:'7', onda_e:'90', ai_vol:'80', vmax_it:'3.0' }),
+    g3:        esc({ e_sep:'5', e_lat:'7', onda_e:'100', onda_a:'50', ai_vol:'80', vmax_it:'3.0' }),
+    g2:        esc({ e_sep:'5', e_lat:'7', onda_e:'90',  onda_a:'60', ai_vol:'80', vmax_it:'3.0' }),
+    indetComb: esc({ e_sep:'10', e_lat:'13', onda_e:'100', onda_a:'50', ai_vol:'80' }),
+    g1:        esc({ e_sep:'5', e_lat:'7', onda_e:'40', onda_a:'60', vmax_it:'2.0' }),
+    normalSinGrado: esc({ e_sep:'5', e_lat:'7', onda_e:'70', onda_a:'70', vmax_it:'2.0', ai_vol:'20' })
+  };
+  const CLAVES = Object.keys(E);
+  /* Las SEIS formas del conteo, por NUMERO y por palabra: el parentesis entero, la palabra sola
+     y los cuatro numeradores posibles sobre el denominador de tres. Buscar solo «parametros» no
+     alcanza —la orden lo pide asi— porque un «1/3» pelado es el mismo conteo con otra escritura. */
+  const CONTEOS = ['parametros positivos', 'par\u00e1metros positivos', ' positivos)'];
+  /* Y el conteo por NUMERO, sin expresiones regulares —una barra invertida no sobrevive al
+     template literal de un caso— y SIN denominador fijo: el de la rama indetComb es «0/2», asi
+     que una lista de cuatro literales sobre tres no lo habria visto. Esto empareja cualquier
+     digito, barra, digito. */
+  const numEn = (s) => { const t = String(s || ''); const d = '0123456789'; const h = [];
+    for (let i = 1; i < t.length - 1; i++) {
+      if (t[i] === '/' && d.indexOf(t[i - 1]) > -1 && d.indexOf(t[i + 1]) > -1) h.push(t.slice(i - 1, i + 2));
+    } return h; };
+  const conteoEn = (s) => CONTEOS.filter(c => String(s || '').indexOf(c) > -1).concat(numEn(s));
+
+  /* ⚠️ ESTE CASO PASA TAMBIEN CONTRA EL ARBOL ANTERIOR, Y SE DECLARA: el conteo nunca estuvo en
+     «textoSuma» —vivia solo en «texto»—, asi que lo que esta condicion es, es una GUARDA de
+     regresion para la superficie que la orden nombra. Lo que SI discrimina contra el arbol
+     anterior es TC-948 (informe) y TC-950 (PDF). Declarado en PENDIENTES -> PR4-a. */
+  const LINEA = {
+    altaSinEa: 'Disfunci\u00f3n diast\u00f3lica — presi\u00f3n de llenado elevada.',
+    g3:        'Disfunci\u00f3n diast\u00f3lica grado III, presi\u00f3n de llenado elevada.',
+    g2:        'Disfunci\u00f3n diast\u00f3lica grado II — presi\u00f3n de llenado elevada.',
+    g1:        'Disfunci\u00f3n diast\u00f3lica grado I — relajaci\u00f3n alterada con presi\u00f3n de llenado normal.',
+    normalSinGrado: 'Presi\u00f3n de llenado del VI normal.'
+  };
+  const CON = Object.keys(LINEA);
+  const sinConteo = CLAVES.filter(k => conteoEn(E[k].suma).length === 0);
+
+  return { extra: [
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    /* DENOMINADOR: cinco de las seis escriben una linea en el EN SUMA. «indetComb» NO escribe
+       ninguna a proposito —su «textoSuma» es cadena vacia desde antes de esta tarea—, y por eso
+       no esta en la lista: exigirsela seria pedirle a la app algo que nunca hizo. */
+    ['las cinco ramas que escriben EN SUMA lo escribieron',
+      CON.every(k => E[k].tsuma.length > 10), CON.map(k => k + '=' + E[k].tsuma.length).join(' | ')],
+    ['y la sexta (indetComb) sigue sin escribir linea de EN SUMA', E.indetComb.tsuma === '', '<<' + E.indetComb.tsuma + '>>'],
+    ['las cinco lineas estan en el EN SUMA, literales',
+      CON.every(k => E[k].suma.indexOf(LINEA[k]) > -1),
+      CON.filter(k => E[k].suma.indexOf(LINEA[k]) < 0).map(k => k + ' dio <<' + E[k].tsuma + '>>').join(' | ')],
+
+    ['ninguna de las SEIS ramas publica el conteo en el EN SUMA',
+      sinConteo.length === 6,
+      CLAVES.filter(k => conteoEn(E[k].suma).length).map(k => k + ' -> ' + conteoEn(E[k].suma).join(',')).join(' | ')]
+  ] };
+`);
+
+caso('TC-950', 'Diastole sin conteos (18/11): el PDF generado de verdad no trae el conteo, leido sobre el content stream del documento', `
+  return (async () => {
+    /* jsPDF llega por CDN: sin esta espera el caso da rojo intermitente por la red, que es peor
+       que no tenerlo. Mismo patron que TC-160. */
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      return { extra: [['la libreria jsPDF llego por CDN', false, 'no cargo en 8 s']] };
+    }
+    const faltan = [];
+    const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+    const Orig = window.jspdf.jsPDF;
+    let ultimo = null;
+    function Env() { const d = new Orig(...arguments);
+      /* save() es propiedad de la INSTANCIA: se anula aca o el caso baja un archivo por PDF.
+         Y se instala y se RESTAURA en este mismo caso, que es la leccion de TC-805: una
+         envoltura que sobrevive al caso rompe al siguiente de su lote. */
+      d.save = function () { return Promise.resolve(); };
+      ultimo = d; return d; }
+    Env.prototype = Orig.prototype;
+    window.jspdf.jsPDF = Env;
+
+    const leer = async (m) => {
+      __t.limpiar(); S('nombre', 'DIAST Conteo'); S('ci', '5555555-5');
+      S('peso', '80'); S('talla', '180'); S('fevi', '60');
+      const orden = ['ai_vol', 'vmax_it', 'e_sep', 'e_lat', 'onda_e', 'onda_a'];
+      orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+      calcDiastol();
+      generarInforme();
+      ultimo = null;
+      await generarPDFReal({});
+      if (!ultimo) return null;
+      /* El content stream sale SIN comprimir, asi que los operadores de texto se leen literales.
+         «atob» devuelve una cadena de BYTES, y jsPDF escribe WinAnsi: las vocales acentuadas
+         caen en el mismo punto de codigo que en Unicode, asi que «presion» con tilde empareja. */
+      return atob(ultimo.output('datauristring').split(',')[1]);
+    };
+
+    /* DOS escenas: la de grado II —que publicaba «(3/3 parametros positivos)»— y la de presion
+       normal sin grado, que publicaba «(0/3 ...)». Una sola escena no distingue «salio el conteo»
+       de «salio toda la linea». */
+    const g2 = await leer({ e_sep:'5', e_lat:'7', onda_e:'90', onda_a:'60', ai_vol:'80', vmax_it:'3.0' });
+    const ns = await leer({ e_sep:'5', e_lat:'7', onda_e:'70', onda_a:'70', ai_vol:'20', vmax_it:'2.0' });
+
+    window.jspdf.jsPDF = Orig;
+    __t.limpiar();
+
+    const CONTEOS = ['positivos', '0/3', '1/3', '2/3', '3/3'];
+    const hay = (s) => CONTEOS.filter(c => String(s || '').indexOf(c) > -1);
+
+    return { extra: [
+      ['todos los campos de las dos escenas existen', faltan.length === 0, faltan.join(' | ')],
+      ['los dos PDF se generaron', !!g2 && !!ns, 'g2=' + !!g2 + ' ns=' + !!ns],
+      /* DENOMINADOR: la linea de la diastolica ESTA en el papel. Sin esto, «no dice el conteo»
+         se cumple sobre un PDF que no trae la frase, que es contar sobre cero. */
+      ['la palabra «diastolica» esta en los dos PDF',
+        !!g2 && g2.indexOf('diast\u00f3lica') > -1 && !!ns && ns.indexOf('diast\u00f3lica') > -1,
+        'g2=' + (g2 ? g2.indexOf('diast\u00f3lica') : -1) + ' ns=' + (ns ? ns.indexOf('diast\u00f3lica') : -1)],
+      ['el PDF del grado II nombra el patron pseudonormal',
+        !!g2 && g2.indexOf('pseudonormal') > -1, g2 ? g2.indexOf('pseudonormal') : -1],
+      ['el PDF de presion normal dice que no se puede graduar',
+        !!ns && ns.indexOf('No se puede graduar') > -1, ns ? ns.indexOf('No se puede graduar') : -1],
+
+      ['el PDF del grado II no trae ningun conteo', !!g2 && hay(g2).length === 0, hay(g2).join(',')],
+      ['el PDF de presion normal sin grado tampoco', !!ns && hay(ns).length === 0, hay(ns).join(',')]
+    ] };
   })();
 `);
 
