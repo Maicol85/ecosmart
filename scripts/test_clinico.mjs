@@ -92890,9 +92890,11 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
   ['modalAvisoEco','login-overlay'].forEach((id) => {
     try { const m = document.getElementById(id); if (m) m.style.display = 'none'; } catch (e) {}
   });
-  const tapK = (function(){
-    const out = [];
-    Array.prototype.forEach.call(document.querySelectorAll('button.vinfo-btn-44'), (b) => {
+  /* ⚠️ EL MEDIDOR PASO A SER UNA FUNCION EN LA TAREA 1 (18/11/2026), y ni una linea de COMO
+     mide cambio: lo que cambia es que ahora se la llama DOS veces, con los dos grupos de globos
+     que hay que medir en estados distintos del documento. Con el cuerpo copiado habria dos
+     medidores y el dia que uno se arregle el otro se queda con el defecto. */
+  const _medirG = (b) => {
       /* ⚠️ ADAPTADO EN LA AJ9: PRIMERO SE ABRE LA SECCION POR SU ENCABEZADO, Y DESPUES SE
          FUERZAN LOS display. Forzar a secas da una caja BASURA cuando el acordeon esta
          cerrado: medido, a los 756 px de ancho que da este Chrome headless -el mismo numero
@@ -92926,11 +92928,39 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
                    [(r.left + r.right) / 2, (r.top + r.bottom) / 2]];
       const hits = pts.map((p) => { const e2 = document.elementFromPoint(p[0], p[1]);
         return e2 === b ? 'propio' : (e2 ? (e2.tagName + (e2.id ? '#' + e2.id : '')) : 'nada'); });
-      out.push({ k: b.getAttribute('data-vinfo'), w: Math.round(r.width), h: Math.round(r.height),
-                 enVista: r.top >= 0 && r.bottom <= window.innerHeight,
-                 propios: hits.filter((h) => h === 'propio').length, hits: hits });
-    });
+      return { k: b.getAttribute('data-vinfo'), w: Math.round(r.width), h: Math.round(r.height),
+               enVista: r.top >= 0 && r.bottom <= window.innerHeight,
+               propios: hits.filter((h) => h === 'propio').length, hits: hits };
+  };
+  /* ══ LOS DOS GRUPOS, Y POR QUE NO SE MIDEN EN LA MISMA PASADA ═══════════════════════════════
+     ⚠️ ADAPTADO EN LA TAREA 1 (18/11/2026): 68 -> 69. El globo nuevo es ev-indep, el ⓘ del aviso
+     de independencia, y es el PRIMERO de la app que vive DENTRO de un overlay modal: la cabecera
+     del panel de Evidencia.
+     Y eso rompia la pasada unica por una razon medida, no por el recuento: este grupo CIERRA el
+     panel antes de medir -lo dice el comentario de arriba, palabra por palabra- y despues el
+     medidor fuerza display:block en todo ancestro escondido para darle caja al boton. Con
+     ev-indep en la lista, ese forzado REABRIA #indic-overlay, que es fixed y tapa el documento
+     entero; desde ahi, los 68 globos que se midieran despues informaban CERO puntos propios con
+     hits DIV#indic-cuerpo. Medido en la corrida aislada: 68 de los 69 daban propios:0 y el unico
+     con propios:5 era ev-indep.
+     Asi que se miden en DOS pasadas, en este orden:
+       · primero los de FUERA del panel, con el panel CERRADO -exactamente como hasta hoy-;
+       · despues el del panel, con su panel ABIERTO, que es su estado legitimo, y se cierra.
+     ⚠️ LA EXIGENCIA DE 44x44 NO SE AFLOJA PARA NINGUNO: las tres condiciones de abajo corren
+     sobre la CONCATENACION de los dos grupos, asi que los 69 tienen que medir 44x44, tener caja,
+     estar en vista y dar sus cinco puntos propios. */
+  const tapK = Array.prototype.slice.call(document.querySelectorAll('button.vinfo-btn-44'))
+    .filter((b) => !(b.closest && b.closest('#indic-overlay')))
+    .map(_medirG);
+  const tapEv = (function () {
+    const bs = Array.prototype.slice.call(
+      document.querySelectorAll('#indic-overlay button.vinfo-btn-44'));
+    if (!bs.length) return [];
+    try { if (F('indicAbrir')) indicAbrir() } catch (e) {}
+    const out = bs.map(_medirG);
+    try { if (F('indicCerrar')) indicCerrar() } catch (e) {}
     return out; })();
+  const tapTodos = tapK.concat(tapEv);
   /* ⚠️ ADAPTADO EN LA TANDA D: DOS -> TRES. El que entra es co-riesgo-basal, el globo de la
      clasificacion de riesgo cardiovascular basal, que nace con la clase vinfo-btn-44 por la misma
      razon que los otros dos: es un objetivo tactil y el piso de la casa son 44 px.
@@ -93055,13 +93085,23 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      Lo que estas condiciones exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el
      conteo ES el denominador: agregar uno sin mover el numero lo saca de la medicion.
      Los TRES numeros se mueven JUNTOS. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y OCHO globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapK.length === 68 && tapK.filter((x) => !x.k).length === 1
-      && !!document.querySelector('#cm3d-ib.vinfo-btn-44') && tapK.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapK)]);
-  ex.push(['(K1) los sesenta y ocho miden 44x44 tambien con el mouse',
-    tapK.length === 68 && tapK.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapK)]);
+  /* ⚠️ ADAPTADAS EN LA TAREA 1 (18/11/2026): SESENTA Y OCHO -> SESENTA Y NUEVE. La entrada nueva
+     es ev-indep. Las tres corren sobre tapTodos, que es la concatenacion de los dos grupos, y se
+     exige ADEMAS el reparto -68 de fuera del panel y 1 adentro-: asi el caso no puede quedar
+     verde si el globo del panel desaparece y aparece otro en cualquier otra parte.
+     ⚠️ NINGUNA SE AFLOJO: los 69 siguen teniendo que medir 44x44, tener caja, estar en vista y
+     dar sus CINCO puntos propios. Verificado por mutacion en un worktree: quitarle la clase al
+     globo nuevo, achicarlo por debajo de 44 px y taparlo con un vecino ponen en rojo (K0), (K1)
+     y (K2) respectivamente. */
+  ex.push(['(K0) DENOMINADOR: los SESENTA Y NUEVE globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapTodos.length === 69 && tapK.length === 68 && tapEv.length === 1
+      && tapTodos.filter((x) => !x.k).length === 1
+      && !!document.querySelector('#cm3d-ib.vinfo-btn-44')
+      && tapTodos.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapTodos)]);
+  ex.push(['(K1) los sesenta y nueve miden 44x44 tambien con el mouse',
+    tapTodos.length === 69 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapK.length === 68 && tapK.every((x) => x.propios === 5), JSON.stringify(tapK)]);
+    tapTodos.length === 69 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -93801,8 +93841,20 @@ caso('TC-537', 'Tanda A: las ocho Evidencias compactas despiertas a la vez sin u
       && fvd[1].indexOf('Decisión de la aplicación') === -1,
       fvd ? (JSON.stringify(fvd) + ' colspan=' + cspVd) : 'FILA NO ENCONTRADA']);
     const fpop = FP ? FP.querySelector('table') : null;
+    /* ⚠️ ADAPTADA EN LA TAREA 2 (18/11/2026): DIECISIETE filas de datos -> DIECISEIS. La fila
+       del volumen aproximado del derrame pleural salio de esta ficha A PROPOSITO: era una copia
+       literal de la de ecografia pulmonar -misma formula V (ml) = D (mm) x 20 y misma fuente,
+       Volpicelli 2026, enunciado D6_11, hoja 19- y la decision del medico manda UNA sola copia.
+       No es un defecto de la app: el caso pasa 2/2 contra a58a223 y cae 0/2 en el arbol vivo por
+       esta sola condicion.
+       ⚠️ Y EL ROTULO YA DECIA «DIECISEIS» MIENTRAS EL CODIGO EXIGIA 17: desde el PARTE-2, que
+       sumo la fila de las bandas altas de la RVS, el numero se corrio y el rotulo se quedo. Hoy
+       los dos dicen lo mismo, que es lo que hace que la condicion se pueda leer.
+       ⚠️ SIGUE PUDIENDO FALLAR POR LOS DOS LADOS: el recuento tiene que dar DIECISEIS exactas
+       -una fila de mas y una de menos la ponen en rojo- y las dieciseis tienen que conservar su
+       ⓘ en la tercera celda. */
     ex.push(['(C5) las DIECISEIS filas de la ficha del posoperatorio siguen, cada una con su ⓘ',
-      !!fpop && fpop.rows.length - 1 === 17   /* +1: la fila de las bandas altas de la RVS (2.2c) */
+      !!fpop && fpop.rows.length - 1 === 16
       && [].slice.call(fpop.rows).slice(1).every(r => r.cells[2] && r.cells[2].querySelector('details')),
       'filas=' + (fpop ? fpop.rows.length - 1 : -1) + ' con globo='
       + (fpop ? [].slice.call(fpop.rows).slice(1).filter(r => r.cells[2] && r.cells[2].querySelector('details')).length : -1)]);
