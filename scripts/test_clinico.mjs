@@ -129630,7 +129630,7 @@ caso('TC-794', 'PANT-30: la seccion de protesis en el PDF de auditoria -- entre 
    es un template literal, asi que un acento grave lo cierra y una barra invertida no sobrevive
    (medido once veces en este repositorio, y esta tanda lo volvio a pagar). */
 
-caso('TC-795', 'PANT-31: el boton «Documentos» en el rincon derecho alineado por la derecha con «Evidencia», y la hoja COMPLETA -- toda la tinta dentro del papel blanco, la A4 en milimetros y el cuerpo en los puntos de su definicion', `
+caso('TC-795', 'PANT-31 (ADAPTADO por la CUADROS: el ULTIMO de la fila, no «Evidencia»): el boton «Documentos» en el rincon derecho alineado por la derecha con el ULTIMO boton de la fila de «Evidencia», y la hoja COMPLETA -- toda la tinta dentro del papel blanco, la A4 en milimetros y el cuerpo en los puntos de su definicion', `
   return (async () => {
   const F = []; const q = (d, ok, diag) => F.push([d, !!ok, diag == null ? '' : String(diag)]);
   const esp = ms => new Promise(r => setTimeout(r, ms));
@@ -129645,8 +129645,26 @@ caso('TC-795', 'PANT-31: el boton «Documentos» en el rincon derecho alineado p
      borde DERECHO. Las dos filas son hijas de la misma tarjeta y comparten ese borde. */
   q('los dos botones NO estan en la misma fila, que es el denominador de la decision',
     Math.abs(rb.y - ri.y) > 100, Math.round(rb.y - ri.y) + ' px de y');
-  q('el borde derecho del boton coincide con el de «Evidencia»', Math.abs(rb.right - ri.right) <= 1,
-    Math.round(rb.right) + ' contra ' + Math.round(ri.right));
+  /* ⚠️ ADAPTADO POR LA TANDA CUADROS (18/11/2026): SE COMPARA CONTRA EL ULTIMO BOTON DE ESA
+     FILA, DERIVADO, Y NO CONTRA «Evidencia». La decision de PANT-31 es que «Documentos» se alinea
+     con el borde derecho de la FILA que contiene a «Evidencia» --las dos filas son hijas de la
+     misma tarjeta y comparten ese borde--, y hasta CUADROS «Evidencia» ERA el ultimo de su fila,
+     asi que apuntarle a el daba lo mismo. El boton «Cuadros» entro a su derecha y le corrio el
+     borde 52 px --673 contra 725--, con el borde de la fila QUIETO en 725: la decision no se
+     movio, lo que se movio es quien la cierra.
+     Se toma el ultimo boton VISIBLE por el orden del DOM, asi que la condicion sigue valiendo el
+     dia que entre otro boton, y «Cuadros» no se nombra en ninguna parte. El filtro de visible
+     es parte de la afirmacion: un boton apagado no cierra nada. */
+  const btnsEv = Array.prototype.slice.call(iB.parentElement.children)
+    .filter(e => e.tagName === 'BUTTON' && !!e.offsetParent);
+  const ultEv = btnsEv.length ? btnsEv[btnsEv.length - 1] : null;
+  q('(DENOM) la fila de «Evidencia» tiene algun boton visible, que es el que la cierra', !!ultEv,
+    btnsEv.length + ' visibles · ultimo ' + (ultEv ? (ultEv.id || '(sin id)') : 'NINGUNO'));
+  const ru = ultEv ? ultEv.getBoundingClientRect() : null;
+  q('el borde derecho del boton coincide con el del ULTIMO boton de esa fila, sea cual sea',
+    !!ru && Math.abs(rb.right - ru.right) <= 1,
+    ru ? (Math.round(rb.right) + ' contra ' + Math.round(ru.right) + ' en ' + (ultEv.id || '(sin id)'))
+       : 'la fila no tiene ningun boton visible');
   const fila = b.closest('div');
   const rf = fila.getBoundingClientRect();
   q('y queda pegado al borde derecho de SU fila', Math.abs(rb.right - rf.right) <= 1,
