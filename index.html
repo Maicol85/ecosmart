@@ -24227,6 +24227,10 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
                     justo lo que la nota de la pantalla de Valvulas resume. -->
             <b style="color:var(--accent2);">AT y AT/ET (ASE 2024, Tabla 5, hoja 18 &middot; folio 19):</b> la tabla los lista entre los par&aacute;metros que se aplican a todas las pr&oacute;tesis a&oacute;rticas, y la Figura 13 de esa misma hoja los usa para describir el contorno del chorro &mdash;pico temprano o tard&iacute;o&mdash;. <b>AT:</b> &lt;80 ms normal &middot; 80&ndash;100 ms posible estenosis &middot; &gt;100 ms sugiere estenosis significativa. <b>AT/ET</b> (el AT dividido por el tiempo de eyecci&oacute;n del ventr&iacute;culo izquierdo)<b>:</b> &lt;0,32 normal &middot; 0,32&ndash;0,37 posible estenosis &middot; &gt;0,37 sugiere estenosis significativa. La nota al pie marca el AT &mdash;y el contorno del chorro&mdash; como afectables por la funci&oacute;n del ventr&iacute;culo izquierdo y por la frecuencia card&iacute;aca. Para hablar de estenosis significativa la tabla pide adem&aacute;s un par&aacute;metro que depende del flujo y otro que no, y ninguno de estos dos lleva esas marcas.
           </div>
+          <!-- La tabla fija de valores esperados (18/11, punto 5). El contenedor nace VACIO:
+               lo llena `vModRefTablaPintar` la primera vez que se abre la ficha, leyendo el
+               MISMO catalogo que el selector «Modelo y tamanio». Ni un numero en el marcado. -->
+          <div id="ref-pao-cat"></div>
         </div>
       </div>
 
@@ -24266,6 +24270,94 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             sensibilidad 89 %, especificidad 91 %). La app lo aplica en la fila
             «Ratio VTI mitral / VTI TSVI» del bloque de Insuficiencia Mitral, con su ⓘ.
           </div>
+          <!-- La tabla fija de valores esperados (18/11, punto 5). El contenedor nace VACIO:
+               lo llena `vModRefTablaPintar` la primera vez que se abre la ficha, leyendo el
+               MISMO catalogo que el selector «Modelo y tamanio». Ni un numero en el marcado. -->
+          <div id="ref-pm-cat"></div>
+        </div>
+      </div>
+
+      <!-- ══ EL ORDEN DE LAS SIETE FICHAS DE PROTESIS (18/11, punto 5) ══════════════════════
+           Las dos fichas de la tanda PANT-20 nacieron al final del contenedor, DESPUES de
+           trombosis, valve-in-valve y endocarditis, y el medico las encontraba separadas de las
+           otras dos posiciones. Quedan en el orden de las valvulas de la aplicacion —aortica,
+           mitral, tricuspide, pulmonar— y las tres fichas que NO son de una posicion van
+           despues. Es una MUDANZA de nodos: ni una palabra de las cuatro fichas cambia, ningun
+           id se toca y `REF_SUBTAB` sigue sin enterarse, porque ese registro reubica el
+           CONTENEDOR y no cada ficha. El buscador tampoco: arma su indice recorriendo los
+           encabezados del panel, asi que sigue a este orden solo.
+           ⚠️ Y LA TRICUSPIDE VA ANTES DE LA PULMONAR, que es el orden de las ocho valvulas del
+           Laboratorio y el de las secciones de Evidencia de protesis (`ordenProt`): con el
+           inverso, dos superficies de la misma aplicacion ordenarian lo mismo de dos maneras. -->
+      <!-- ══ LA TABLA 15 Y LA TABLA 19 EN REFERENCIAS (PANT-20, commit 7) ══════════════
+           Las dos fichas son NUEVAS: medido en el commit 1, la sub-pestana de protesicas tenia
+           CINCO fichas -aortica, mitral, trombosis, valve-in-valve y endocarditis- y NINGUNA de
+           protesis pulmonar ni tricuspide, aunque la aplicacion aplica esas dos tablas desde la
+           tanda PRO-C1 (VP_PROT_T15 y VT_PROT_T19).
+           ⚠️ VAN DENTRO DE `ref-protesicas`, asi que `REF_SUBTAB` NO se toca: ese registro reubica
+           el CONTENEDOR entero y no cada ficha, y `valv` ya lo lista. Una ficha puesta fuera del
+           contenedor existiria, se abriria desde su encabezado y el buscador la indexaria, pero
+           el medico que navegue por las solapas no la encontraria nunca -la leccion que
+           `constriccion` dejo en la tanda J-. La primera version de este commit las dejo afuera
+           y lo cazo la medicion, no la lectura.
+           Mismo molde que las dos fichas de arriba y que el bloque que PANT-18 dejo en la
+           aortica. Todo leido EN IMAGEN a 300 ppp, con el folio comprobado en el pie o el
+           encabezado impreso. SIN globos nuevos, sin comparar una fuente con otra y sin tocar
+           una sola linea de la logica de graduacion ni del papel. -->
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ptric',this)">
+          🟣 Prótesis Tricúspide — ASE 2024 <span style="float:right;">▶</span>
+        </h2>
+        <div id="ref-ptric" style="display:none;" class="card-body">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 19, hoja 35 · folio 36</div>
+          <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Bioprotésica</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Mecánica</th></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico de E (m/s)</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td><td style="padding:5px 8px;text-align:center;">&ge;1,9</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&ge;9</td><td style="padding:5px 8px;text-align:center;">&ge;6</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Tiempo de hemipresión (ms)</td><td style="padding:5px 8px;text-align:center;">&ge;200</td><td style="padding:5px 8px;text-align:center;">&ge;130</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área efectiva (cm²)</td><td style="padding:5px 8px;text-align:center;">&lt;1,5</td><td style="padding:5px 8px;text-align:center;">&lt;2,0</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Índice de velocidad Doppler</td><td style="padding:5px 8px;text-align:center;">&ge;3,3</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td></tr>
+          </table>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> son parámetros <i>sugestivos</i> de estenosis protésica, y se valoran en ausencia de insuficiencia aórtica o tricuspídea. El límite superior normal del índice de velocidad Doppler varía con el tamaño y el tipo de la prótesis. El VTI del cociente es el de la prótesis tricuspídea.
+            <br><br>
+            <b style="color:var(--accent2);">La velocidad de E, en dos unidades:</b> la guía la imprime en metros por segundo y esta aplicación la pide en centímetros por segundo, que es la unidad del ecógrafo y la del campo que ya existía. Son el mismo número: 2,1 m/s equivale a 210 cm/s y 1,9 a 190.
+            <br><br>
+            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A9 (hoja 62 · folio 63), con el tiempo de hemipresión, el gradiente medio, la velocidad de E, el VTI, el cociente de VTI y el área por ecuación de continuidad, indexada y sin indexar. Se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas.
+          </div>
+          <!-- La tabla fija de valores esperados (18/11, punto 5). El contenedor nace VACIO:
+               lo llena `vModRefTablaPintar` la primera vez que se abre la ficha, leyendo el
+               MISMO catalogo que el selector «Modelo y tamanio». Ni un numero en el marcado. -->
+          <div id="ref-ptric-cat"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ppulm',this)">
+          🟢 Prótesis Pulmonar — ASE 2024 <span style="float:right;">▶</span>
+        </h2>
+        <div id="ref-ppulm" style="display:none;" class="card-body">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 15, hoja 32 · folio 33</div>
+          <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Posible obstrucción</th></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — bioprótesis (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;3,2</td><td style="padding:5px 8px;text-align:center;">&ge;3,2</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — homoinjerto (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;2,5</td><td style="padding:5px 8px;text-align:center;">&ge;2,5</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — bioprótesis (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">&ge;20</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — homoinjerto (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;15</td><td style="padding:5px 8px;text-align:center;">&ge;15</td></tr>
+          </table>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> sus dos columnas son «normal» y «posible obstrucción», y no publica una tercera de obstrucción severa. Los valores suponen un volumen sistólico del ventrículo derecho normal, y advierte que el Doppler continuo puede ser difícil por la posición del homoinjerto o de la bioprótesis, así que conviene usar planos paraesternales y supraesternales fuera de eje.
+            <br><br>
+            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A7 (hoja 61 · folio 62), y en esta aplicación se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas. Esa tabla expresa sus datos como media con desvío estándar o como mediana con rango intercuartílico, y en varias filas publica un límite superior en vez de un valor central.
+          </div>
+          <!-- La tabla fija de valores esperados (18/11, punto 5). El contenedor nace VACIO:
+               lo llena `vModRefTablaPintar` la primera vez que se abre la ficha, leyendo el
+               MISMO catalogo que el selector «Modelo y tamanio». Ni un numero en el marcado. -->
+          <div id="ref-ppulm-cat"></div>
         </div>
       </div>
 
@@ -24312,69 +24404,6 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         </div>
       </div>
 
-      <!-- ══ LA TABLA 15 Y LA TABLA 19 EN REFERENCIAS (PANT-20, commit 7) ══════════════
-           Las dos fichas son NUEVAS: medido en el commit 1, la sub-pestana de protesicas tenia
-           CINCO fichas -aortica, mitral, trombosis, valve-in-valve y endocarditis- y NINGUNA de
-           protesis pulmonar ni tricuspide, aunque la aplicacion aplica esas dos tablas desde la
-           tanda PRO-C1 (VP_PROT_T15 y VT_PROT_T19).
-           ⚠️ VAN DENTRO DE `ref-protesicas`, asi que `REF_SUBTAB` NO se toca: ese registro reubica
-           el CONTENEDOR entero y no cada ficha, y `valv` ya lo lista. Una ficha puesta fuera del
-           contenedor existiria, se abriria desde su encabezado y el buscador la indexaria, pero
-           el medico que navegue por las solapas no la encontraria nunca -la leccion que
-           `constriccion` dejo en la tanda J-. La primera version de este commit las dejo afuera
-           y lo cazo la medicion, no la lectura.
-           Mismo molde que las dos fichas de arriba y que el bloque que PANT-18 dejo en la
-           aortica. Todo leido EN IMAGEN a 300 ppp, con el folio comprobado en el pie o el
-           encabezado impreso. SIN globos nuevos, sin comparar una fuente con otra y sin tocar
-           una sola linea de la logica de graduacion ni del papel. -->
-      <div class="card">
-        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ppulm',this)">
-          🟢 Prótesis Pulmonar — ASE 2024 <span style="float:right;">▶</span>
-        </h2>
-        <div id="ref-ppulm" style="display:none;" class="card-body">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 15, hoja 32 · folio 33</div>
-          <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Normal</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Posible obstrucción</th></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — bioprótesis (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;3,2</td><td style="padding:5px 8px;text-align:center;">&ge;3,2</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico — homoinjerto (m/s)</td><td style="padding:5px 8px;text-align:center;">&lt;2,5</td><td style="padding:5px 8px;text-align:center;">&ge;2,5</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — bioprótesis (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">&ge;20</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — homoinjerto (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;15</td><td style="padding:5px 8px;text-align:center;">&ge;15</td></tr>
-          </table>
-          </div>
-          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
-            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> sus dos columnas son «normal» y «posible obstrucción», y no publica una tercera de obstrucción severa. Los valores suponen un volumen sistólico del ventrículo derecho normal, y advierte que el Doppler continuo puede ser difícil por la posición del homoinjerto o de la bioprótesis, así que conviene usar planos paraesternales y supraesternales fuera de eje.
-            <br><br>
-            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A7 (hoja 61 · folio 62), y en esta aplicación se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas. Esa tabla expresa sus datos como media con desvío estándar o como mediana con rango intercuartílico, y en varias filas publica un límite superior en vez de un valor central.
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('ptric',this)">
-          🟣 Prótesis Tricúspide — ASE 2024 <span style="float:right;">▶</span>
-        </h2>
-        <div id="ref-ptric" style="display:none;" class="card-body">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-style:italic;">ASE 2024 · Tabla 19, hoja 35 · folio 36</div>
-          <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Bioprotésica</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Mecánica</th></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Velocidad pico de E (m/s)</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td><td style="padding:5px 8px;text-align:center;">&ge;1,9</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&ge;9</td><td style="padding:5px 8px;text-align:center;">&ge;6</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Tiempo de hemipresión (ms)</td><td style="padding:5px 8px;text-align:center;">&ge;200</td><td style="padding:5px 8px;text-align:center;">&ge;130</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área efectiva (cm²)</td><td style="padding:5px 8px;text-align:center;">&lt;1,5</td><td style="padding:5px 8px;text-align:center;">&lt;2,0</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Índice de velocidad Doppler</td><td style="padding:5px 8px;text-align:center;">&ge;3,3</td><td style="padding:5px 8px;text-align:center;">&ge;2,1</td></tr>
-          </table>
-          </div>
-          <div style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
-            <b style="color:var(--accent2);">Lo que la tabla dice de sí misma:</b> son parámetros <i>sugestivos</i> de estenosis protésica, y se valoran en ausencia de insuficiencia aórtica o tricuspídea. El límite superior normal del índice de velocidad Doppler varía con el tamaño y el tipo de la prótesis. El VTI del cociente es el de la prótesis tricuspídea.
-            <br><br>
-            <b style="color:var(--accent2);">La velocidad de E, en dos unidades:</b> la guía la imprime en metros por segundo y esta aplicación la pide en centímetros por segundo, que es la unidad del ecógrafo y la del campo que ya existía. Son el mismo número: 2,1 m/s equivale a 210 cm/s y 1,9 a 190.
-            <br><br>
-            <b style="color:var(--accent2);">Valores esperados por modelo y tamaño:</b> la misma guía los publica en su Tabla A9 (hoja 62 · folio 63), con el tiempo de hemipresión, el gradiente medio, la velocidad de E, el VTI, el cociente de VTI y el área por ecuación de continuidad, indexada y sin indexar. Se consultan con el botón «Modelo y tamaño» de la pantalla de Válvulas.
-          </div>
-        </div>
-      </div>
 
     </div>
   </div>
@@ -76902,7 +76931,12 @@ const VMOD_PPM_TXT = Object.freeze({ no:'sin desajuste', moderado:'moderado', se
 const VMOD_COL_TXT = Object.freeze({
   pico:{lbl:'Gradiente pico esperado', uni:' mmHg', chip:0},
   medio:{lbl:'Gradiente medio esperado', uni:' mmHg', chip:1},
-  eoa:{lbl:'EOA esperada', uni:' cm²', chip:1},
+  /* ⚠️ «AEO» Y NO «EOA» (18/11, punto 5). El area del orificio efectivo de una protesis se
+     llama AEO en esta aplicacion desde el renombre que P19-g documenta, y estas DOS etiquetas
+     —las del componente «Modelo y tamanio»— se habian quedado con la sigla inglesa. Son el DUEÑO
+     UNICO del rotulo: de aca leen los chips del selector Y la tabla fija de Referencias, asi que
+     las dos superficies no pueden volver a nombrarlo de dos maneras. */
+  eoa:{lbl:'AEO esperada', uni:' cm²', chip:1},
   dvi:{lbl:'DVI esperado', uni:'', chip:0},
   vpico:{lbl:'Velocidad pico esperada', uni:' m/s', chip:0},
   thp:{lbl:'THP esperado', uni:' ms', chip:1},
@@ -76912,7 +76946,7 @@ const VMOD_COL_TXT = Object.freeze({
   at:{lbl:'AT esperado', uni:' ms', chip:0},
   evel:{lbl:'Velocidad pico de E esperada', uni:' m/s', chip:0},
   vti:{lbl:'VTI esperado', uni:' cm', chip:0},
-  ieoa:{lbl:'EOA indexada esperada', uni:' cm\u00b2/m\u00b2', chip:1}
+  ieoa:{lbl:'AEO indexada esperada', uni:' cm\u00b2/m\u00b2', chip:1}
 });
 let _vModPos = null;          // posicion abierta, o null
 let _vModCur = null;          // modelo elegido en la card, todavia sin confirmar
@@ -77044,18 +77078,18 @@ function vModSync(pos){
   const eo = E.vals.eoa;
   const idx = eo ? vModIndexada(pos, eo[0]) : null;
   if (eo && !idx)
-    chips.appendChild(_vmChip('EOA indexada predicha','falta el peso y la talla'));
+    chips.appendChild(_vmChip('AEO indexada predicha','falta el peso y la talla'));
   else if (idx){
     /* DECISION 6 del medico: una posicion SIN cortes publicados -la tricuspide y la pulmonar, que
        la Tabla 7 no cubre- publica SOLO el numero. Una categoria ahi seria un corte inventado. */
     if (idx.ppm==null){
-      chips.appendChild(_vmChip('EOA indexada predicha', idx.eoai.toFixed(2)+' cm²/m²'));
+      chips.appendChild(_vmChip('AEO indexada predicha', idx.eoai.toFixed(2)+' cm²/m²'));
     } else {
       const em=document.createElement('em'); em.textContent=VMOD_PPM_TXT[idx.ppm]||'—';
       const frag=document.createDocumentFragment();
       frag.appendChild(document.createTextNode(idx.eoai.toFixed(2)+' cm²/m² · '));
       frag.appendChild(em);
-      chips.appendChild(_vmChip('EOA indexada predicha', frag));
+      chips.appendChild(_vmChip('AEO indexada predicha', frag));
     }
   }
   /* la linea de abajo: el tipo, el ASC, el IMC y los cortes aplicados, mas «Ocultar» */
@@ -77336,7 +77370,7 @@ function _vModDraft(){
     });
     const eo=D.vals.eoa, idx=eo?vModIndexada(pos,eo[0]):null;
     const d2=document.createElement('div');
-    const s2=document.createElement('span'); s2.textContent='EOA indexada predicha';
+    const s2=document.createElement('span'); s2.textContent='AEO indexada predicha';
     const b2=document.createElement('b');
     b2.textContent = idx ? (idx.eoai.toFixed(2)+' cm²/m²'
                             + (idx.ppm==null ? '' : (' · '+(VMOD_PPM_TXT[idx.ppm]||'—'))))
@@ -77466,6 +77500,154 @@ window.vModCatalogo=vModCatalogo; window.vModBuscar=vModBuscar; window.vModEsper
 window.vModIndexada=vModIndexada; window.vModSync=vModSync; window.vModSyncTodos=vModSyncTodos;
 window.vModAbrir=vModAbrir; window.vModCerrar=vModCerrar; window.vModClic=vModClic;
 window.vModElegir=vModElegir; window.vModQuitar=vModQuitar; window.vModMorfSync=vModMorfSync;
+
+/* ══ LA TABLA FIJA DE VALORES ESPERADOS EN REFERENCIAS (18/11, punto 5) ══════════════════════
+   Cuatro tablas de consulta —una por posicion— con los valores esperados por marca, modelo y
+   tamanio. NO hay un solo numero escrito aca: cada tabla LEE el mismo catalogo que el selector
+   «Modelo y tamanio» de la aplicacion (`VMOD_TABLA` y las constantes `PROT_CAT_*`), sus columnas
+   del `_COLS` de ese catalogo, sus rotulos del `VMOD_COL_TXT` que ya existia y el formato de
+   cada celda de `_vmPar`, que es el que decide entre «valor ± desvio» y el TEXTO IMPRESO de las
+   medianas con rango y de los limites superiores. Un solo dueno del dato y un solo dueno del
+   rotulo: con los numeros copiados, el dia que una celda del catalogo se corrija la ficha de
+   Referencias seguiria publicando la vieja, y eso en una tabla de valores esperados es un error
+   de lectura sobre un paciente.
+   ⚠️ SE PINTA CON NODOS Y NO CON `innerHTML`, asi que no hay ni una concatenacion que Semgrep
+   pueda marcar y ni un camino por el que un nombre de modelo pueda entrar como marcado.
+   ⚠️ SE PINTA LA PRIMERA VEZ QUE SE ABRE LA FICHA, desde `toggleRef`, igual que las entradas de
+   AI y de VI y que la tabla de cirugia aortica: son 108 modelos entre las cuatro tablas y
+   armarlas al cargar la pagina es trabajo que la enorme mayoria de las sesiones no usa.
+   ⚠️ LA AORTICA LLEVA DOS TABLAS, y es el mismo reparto que hace `vModCatalogo`: la A4 para las
+   quirurgicas y la A1/A2/A3 para las transcateter. Son dos poblaciones distintas con columnas
+   distintas —la de TAVI trae DVI— y juntarlas inventaria una columna vacia en la mitad de las
+   filas.
+   ⚠️ ACA NO SE INDEXA NADA. La AEO indexada necesita el peso y la talla DEL PACIENTE, y esta es
+   una tabla de consulta sin paciente: va el valor esperado de la AEO y nada mas, que es lo que la
+   orden pide. La unica columna indexada que sale es la `ieoa` de la Tabla A9, que es la AEO
+   indexada DE LA PROPIA SERIE publicada y no una cuenta de esta aplicacion.
+   ⚠️ LA TABLA A8 —tricuspide transcateter— NO ENTRA, y no es un olvido: no esta indexada por
+   marca, modelo y tamanio sino por referencia y situacion, y no tiene un solo consumidor en la
+   aplicacion. Lo declara P20-b desde la PANT-20. */
+const VMOD_REF_TABLAS = Object.freeze({
+  pao:   Object.freeze([ Object.freeze({ t:'PROT_CAT_A4',   tit:'Prótesis aórticas quirúrgicas' }),
+                         Object.freeze({ t:'PROT_CAT_TAVI', tit:'Prótesis aórticas transcatéter (TAVI)' }) ]),
+  pm:    Object.freeze([ Object.freeze({ t:'PROT_CAT_A5',   tit:'Prótesis mitrales' }) ]),
+  ptric: Object.freeze([ Object.freeze({ t:'PROT_CAT_A9',   tit:'Prótesis tricuspídeas' }) ]),
+  ppulm: Object.freeze([ Object.freeze({ t:'PROT_CAT_A7',   tit:'Prótesis pulmonares' }) ])
+});
+window.VMOD_REF_TABLAS = VMOD_REF_TABLAS;
+/* Las tres palabras del tipo, derivadas del MISMO token `t` con que `vModCatalogo` filtra: un
+   modelo sin tipo impreso se ofrece bajo cualquier morfologia, y la celda lo dice en vez de
+   adivinarlo. */
+const VMOD_REF_TIPO = Object.freeze({ mec:'mecánica', bio:'biológica' });
+/* El encabezado sale del rotulo del dueno sin la palabra «esperado/esperada»: la tabla entera es
+   de valores esperados y repetirla en siete columnas no cabe en un celular. Es una
+   transformacion del dueno unico, no un segundo juego de etiquetas. */
+function _vmRefCol(k) {
+  const c = VMOD_COL_TXT[k]; if (!c) return k;
+  return String(c.lbl).replace(' esperada', '').replace(' esperado', '') + (c.uni || '');
+}
+function _vmRefTd(txt, th, span) {
+  const e = document.createElement(th ? 'th' : 'td');
+  e.style.padding = '3px 6px';
+  e.style.borderBottom = '1px solid var(--border)';
+  e.style.whiteSpace = 'nowrap';
+  if (th) { e.style.textAlign = 'left'; e.style.fontWeight = '700'; e.style.color = 'var(--accent2)'; }
+  if (span) e.rowSpan = span;
+  e.textContent = (txt == null || txt === '') ? '—' : String(txt);
+  return e;
+}
+/* UNA tabla, armada del catalogo que le toca. Devuelve null si ese catalogo no esta cargado o no
+   tiene modelos: una posicion sin datos se queda SIN tabla y el bloque lo dice, en vez de dibujar
+   un encabezado vacio que se lee como una tabla que no trajo nada. */
+function vModRefTabla(clave) {
+  const lista = window[clave] || null, cols = window[clave + '_COLS'] || null;
+  if (!lista || !lista.length || !cols || !cols.length) return null;
+  const env = document.createElement('div');
+  env.style.overflowX = 'auto';
+  const t = document.createElement('table');
+  t.style.minWidth = (260 + cols.length * 120) + 'px';
+  t.style.borderCollapse = 'collapse';
+  t.style.fontSize = '11px';
+  const thead = document.createElement('thead');
+  const tr = document.createElement('tr');
+  ['Marca y modelo', 'Tipo', 'Tamaño'].forEach(h => tr.appendChild(_vmRefTd(h, true)));
+  cols.forEach(k => tr.appendChild(_vmRefTd(_vmRefCol(k), true)));
+  thead.appendChild(tr); t.appendChild(thead);
+  const tb = document.createElement('tbody');
+  let filas = 0;
+  lista.forEach(m => {
+    const ss = m.s || [];
+    ss.forEach((f, i) => {
+      const fila = document.createElement('tr');
+      if (i === 0) {
+        const nom = m.n + (m.d ? ' — ' + m.d : '');
+        fila.appendChild(_vmRefTd(nom, false, ss.length));
+        fila.appendChild(_vmRefTd(VMOD_REF_TIPO[m.t] || '', false, ss.length));
+      }
+      /* El tamanio de un modelo de UNA sola fila sin tamanio impreso —el homoinjerto, las
+         bioprotesis genericas, los dos de «native outflow» de la A7 y los valve-in-valve— sale
+         como raya, que es lo que su celda trae: el catalogo no lo imprime y `vModEsperados` ya lo
+         trata asi para no pedirlo. */
+      fila.appendChild(_vmRefTd(f[0] || ''));
+      cols.forEach((k, j) => fila.appendChild(_vmRefTd(_vmPar(f[j + 1]))));
+      tb.appendChild(fila); filas++;
+    });
+  });
+  if (!filas) return null;
+  t.appendChild(tb); env.appendChild(t);
+  return { nodo: env, modelos: lista.length, filas: filas };
+}
+window.vModRefTabla = vModRefTabla;
+/* La linea de fuente, con su folio, al pie y en 10 px — el molde de las fichas de Hemodinamica.
+   Sale del `_FTE` del catalogo, que es donde la hoja y el folio ya viven verificados. */
+function _vmRefFuente(clave) {
+  const F = window[clave + '_FTE'] || null;
+  const d = document.createElement('div');
+  d.style.cssText = 'font-size:10px;color:var(--text2);margin:4px 0 14px;';
+  if (!F) { d.textContent = 'Fuente: el catálogo de esta posición no declara su hoja ni su folio.'; return d; }
+  const hoja = F.hojas ? (String(F.hojas).indexOf(' a ') > -1 ? 'hojas ' : 'hoja ') + F.hojas : '';
+  const fol  = F.folios ? (String(F.folios).indexOf(' a ') > -1 ? 'folios ' : 'folio ') + F.folios : '';
+  d.textContent = 'Fuente: ' + F.guia + ', Tabla ' + F.tabla
+                + (hoja ? ', ' + hoja : '') + (fol ? ' · ' + fol : '') + '.';
+  return d;
+}
+/* Pinta las tablas de UNA ficha, la primera vez que se abre. Idempotente por la marca
+   `data-vmod-ref`: `toggleRef` la llama en cada apertura. */
+function vModRefTablaPintar(id) {
+  const defs = VMOD_REF_TABLAS[id]; if (!defs) return;
+  const c = document.getElementById('ref-' + id + '-cat'); if (!c) return;
+  if (c.getAttribute('data-vmod-ref') === 'si') return;
+  c.textContent = '';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-weight:700;color:var(--accent2);margin:14px 0 2px;';
+  h.textContent = 'Valores esperados por marca, modelo y tamaño';
+  c.appendChild(h);
+  const nota = document.createElement('div');
+  nota.style.cssText = 'font-size:11px;color:var(--text2);margin:0 0 8px;';
+  nota.textContent = 'Son los mismos valores que ofrece el botón «Modelo y tamaño» de la aplicación. '
+                   + 'Cada celda va como la tabla la publica: valor ± desvío estándar, o el texto impreso '
+                   + 'cuando la tabla da una mediana con rango o un límite. La AEO indexada no figura acá '
+                   + 'porque se calcula con el peso y la talla del paciente.';
+  c.appendChild(nota);
+  defs.forEach(def => {
+    const T = vModRefTabla(def.t);
+    const st = document.createElement('div');
+    st.style.cssText = 'font-weight:700;margin:10px 0 4px;';
+    st.textContent = def.tit;
+    c.appendChild(st);
+    if (!T) {
+      const v = document.createElement('div');
+      v.style.cssText = 'font-size:11px;color:var(--text2);margin:0 0 10px;';
+      v.textContent = 'Esta posición no tiene tabla de valores esperados en el catálogo de la aplicación.';
+      c.appendChild(v);
+      return;
+    }
+    c.appendChild(T.nodo);
+    c.appendChild(_vmRefFuente(def.t));
+  });
+  c.setAttribute('data-vmod-ref', 'si');
+}
+window.vModRefTablaPintar = vModRefTablaPintar;
 
 /* ══ TABLA 7 DE LA ASE 2024, FOLIO 20 — EL PPM AORTICO (W1-5 del censo W1) ════════════════════
    «Doppler parameter criteria of aortic valve and mitral valve PPM», leída RENDERIZANDO porque el
@@ -85224,6 +85406,11 @@ function toggleRef(id, headEl) {
   /* La tabla de cirugia aortica se arma igual: su cuerpo sale de `AO_CX_T` y del dueno de la
      pestana VAB, no del marcado. */
   if (!visible && id === 'aocx' && typeof aoCxPintar === 'function') { try { aoCxPintar() } catch (e) {} }
+  /* Las cuatro fichas de protesis arman su tabla de valores esperados la primera vez que se
+     abren: la tabla sale del catalogo del selector «Modelo y tamanio» y no del marcado, y son 108
+     modelos entre las cuatro. `vModRefTablaPintar` es idempotente y sale sola si la ficha no es
+     una de las cuatro. */
+  if (!visible && typeof vModRefTablaPintar === 'function') { try { vModRefTablaPintar(id) } catch (e) {} }
 }
 
 /* ══ ETE MITRAL — LA TABLA DUENA DE LOS CORTES POR ANGULO (Y3c1, 2026-10-18) ══════════════

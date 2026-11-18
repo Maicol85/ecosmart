@@ -123489,10 +123489,14 @@ caso('TC-739', 'PANT-20 commit 5: el componente en la TRICUSPIDE publica la EOA 
         'esp = ' + JSON.stringify(cols.map(c => E.vals[c]))]);
     }
     const ch = chips().join('  ');
-    ex.push(['(B2) publica la EOA indexada ESPERADA, que es la de la propia serie',
-      ch.indexOf('EOA indexada esperada') > -1, 'chips = ' + ch]);
+    /* ADAPTADO 18/11 (punto 5): el rotulo pasa de «EOA» a «AEO». No es una preferencia: en esta
+       aplicacion el area del orificio efectivo de una protesis se llama AEO desde el renombre que
+       P19-g documenta, y estas dos etiquetas de VMOD_COL_TXT se habian quedado con la sigla
+       inglesa. La condicion sigue exigiendo el rotulo ENTERO. */
+    ex.push(['(B2) publica la AEO indexada ESPERADA, que es la de la propia serie',
+      ch.indexOf('AEO indexada esperada') > -1, 'chips = ' + ch]);
     /* LA DECISION 6: la indexada PREDICHA sale SOLO como numero */
-    const pred = chips().filter(t => t.indexOf('EOA indexada predicha') > -1).join(' ');
+    const pred = chips().filter(t => t.indexOf('AEO indexada predicha') > -1).join(' ');
     const PAL = ['sin desajuste', 'moderado', 'severo'];
     ex.push(['(C0 DENOM) la EOA indexada predicha se publica', pred.length > 0, 'chip = ' + pred]);
     ex.push(['(C1) sale SOLO como numero: ninguna de las tres palabras del desajuste',
@@ -123606,7 +123610,7 @@ caso('TC-740', 'PANT-20 commit 6: el componente en la PULMONAR publica lo IMPRES
     await abrir('Pr\\u00f3tesis mec\\u00e1nica');
     S('vp_prot_modelo', 'St. Jude'); S('vp_prot_tam', '21');
     if (F('vModSync')) vModSync('vp'); await esperar(130);
-    const pred = chips().filter(t => t.indexOf('EOA indexada predicha') > -1).join(' ');
+    const pred = chips().filter(t => t.indexOf('AEO indexada predicha') > -1).join(' ');
     ex.push(['(D0 DENOM) la St. Jude 21 publica su EOA indexada predicha', pred.length > 0,
       'chip = ' + pred]);
     ex.push(['(D1) sale SOLO como numero, sin ninguna de las tres palabras del desajuste',
@@ -150983,6 +150987,126 @@ caso('TC-952', 'Punto 3: los elementos indirectos de HTP se mantienen, el TRIV c
     ['la primera linea del globo sigue diciendo «75 ms o m\u00e1s»',
       lee.indexOf('prolongado \u201475 ms o m\u00e1s\u2014') > -1, lee.slice(0, 160)]
   ] };
+`);
+
+/* ══ PUNTO 5 DE LA TAREA DEL 18/11 — REFERENCIAS · PROTESIS ══════════════════════════════════
+   Dos cosas: el ORDEN de las siete fichas y la TABLA FIJA de valores esperados por posicion.
+   Lo que este caso protege de la tabla no es su aspecto: es que los numeros salgan del MISMO
+   catalogo que el selector «Modelo y tamanio». La condicion que lo mide recorre las cuatro tablas
+   celda por celda y las compara contra el catalogo recorrido por su cuenta, asi que una sola cifra
+   copiada a mano la pone roja. */
+caso('TC-953', 'Punto 5: las siete fichas de protesis en orden, y la tabla fija de valores esperados por posicion leyendo el MISMO catalogo que el selector, celda por celda', `
+  return (async () => {
+    const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+    try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+    ['modalAvisoEco', 'login-overlay'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+    try { if (typeof showTab === 'function') showTab('refs'); } catch (e) {}
+    try { if (typeof refSubTab === 'function') refSubTab('protesicas'); } catch (e) {}
+    await esperar(180);
+
+    /* ── A · EL ORDEN, leido del DOM y no de una lista escrita aca ── */
+    const cont = document.getElementById('ref-protesicas');
+    const orden = cont ? Array.prototype.slice.call(cont.querySelectorAll('[onclick^=\u0022toggleRef(\u0022]'))
+      .map(h => { const m = String(h.getAttribute('onclick') || ''); const a = m.indexOf(String.fromCharCode(39));
+                  const b = m.indexOf(String.fromCharCode(39), a + 1); return m.slice(a + 1, b); }) : [];
+    const ESPERADO = ['pao', 'pm', 'ptric', 'ppulm', 'trombo', 'viv', 'endo'];
+
+    /* ── B · ABRIR LAS CUATRO FICHAS por el MISMO gesto del medico: su encabezado. ── */
+    const abrir = (id) => { const h = cont && cont.querySelector('[onclick*=' + String.fromCharCode(34)
+                              + 'toggleRef(' + String.fromCharCode(39) + id + String.fromCharCode(39) + String.fromCharCode(34) + ']');
+                            if (h) h.click(); return !!h; };
+    const POS = ['pao', 'pm', 'ptric', 'ppulm'];
+    const abiertas = POS.filter(abrir);
+    await esperar(220);
+
+    /* ── C · LO QUE EL CATALOGO DICE, recorrido por este caso y no por la aplicacion. ── */
+    const DEF = { pao: ['PROT_CAT_A4', 'PROT_CAT_TAVI'], pm: ['PROT_CAT_A5'],
+                  ptric: ['PROT_CAT_A9'], ppulm: ['PROT_CAT_A7'] };
+    const parDe = (c) => { if (!c) return '\u2014';
+      if (c[2]) return String(c[2]);
+      const n = (x) => (x == null) ? '' : String(x);
+      return (c[1] == null) ? n(c[0]) : (n(c[0]) + ' \u00b1 ' + n(c[1])); };
+    const delCat = (clave) => {
+      const l = window[clave] || [], co = window[clave + '_COLS'] || [];
+      const filas = [];
+      l.forEach(m => (m.s || []).forEach(f => {
+        filas.push([String(f[0] || '\u2014')].concat(co.map((k, j) => parDe(f[j + 1]))));
+      }));
+      return { filas: filas, cols: co.length, modelos: l.length };
+    };
+    /* Lo que la FICHA dibujo. Se saltean las dos primeras celdas de la fila del primer tamanio de
+       cada modelo —marca y tipo, que van con rowspan— quedandose con las ultimas 1+cols. */
+    const dePantalla = (id) => {
+      const c = document.getElementById('ref-' + id + '-cat');
+      if (!c) return null;
+      return Array.prototype.slice.call(c.querySelectorAll('table')).map(t => {
+        const ths = Array.prototype.slice.call(t.querySelectorAll('thead th')).map(x => (x.textContent || '').trim());
+        const filas = Array.prototype.slice.call(t.querySelectorAll('tbody tr')).map(tr => {
+          const tds = Array.prototype.slice.call(tr.querySelectorAll('td')).map(x => (x.textContent || '').trim());
+          return tds.slice(tds.length - (ths.length - 2));
+        });
+        return { ths: ths, filas: filas };
+      });
+    };
+
+    const malas = [], faltanTab = [], fuentes = [];
+    POS.forEach(id => {
+      const vistas = dePantalla(id);
+      if (!vistas || vistas.length !== DEF[id].length) { faltanTab.push(id + ' dibujo ' + (vistas ? vistas.length : 'null') + ' de ' + DEF[id].length); return; }
+      DEF[id].forEach((clave, k) => {
+        const esp = delCat(clave), vis = vistas[k];
+        if (vis.ths.length !== esp.cols + 3) { malas.push(id + '/' + clave + ' columnas ' + vis.ths.length + ' vs ' + (esp.cols + 3)); return; }
+        if (vis.filas.length !== esp.filas.length) { malas.push(id + '/' + clave + ' filas ' + vis.filas.length + ' vs ' + esp.filas.length); return; }
+        for (let i = 0; i < esp.filas.length; i++) {
+          const a = esp.filas[i].join(' | '), b = vis.filas[i].join(' | ');
+          if (a !== b) { malas.push(id + '/' + clave + ' fila ' + i + ': <<' + b + '>> esperaba <<' + a + '>>'); break; }
+        }
+      });
+      const c = document.getElementById('ref-' + id + '-cat');
+      const pies = Array.prototype.slice.call(c.querySelectorAll('div')).map(d => (d.textContent || '').trim())
+                     .filter(t => t.indexOf('Fuente: ') === 0);
+      fuentes.push(id + '=' + pies.length + (pies.filter(t => t.indexOf('folio') > -1).length === pies.length ? '/folios' : '/SIN FOLIO'));
+    });
+
+    /* ── D · LA SIGLA. La tabla nombra el area del orificio protesico AEO y nunca EOA. ── */
+    const txtTablas = POS.map(id => { const c = document.getElementById('ref-' + id + '-cat'); return c ? (c.textContent || '') : ''; }).join(' ');
+
+    /* ── E · IDEMPOTENCIA: cerrar y volver a abrir no duplica ni una tabla. ── */
+    /* ⚠️ CON GUARDA, y no es un adorno: contra un arbol SIN el contenedor un acceso pelado tira
+       un TypeError que se lleva el caso ENTERO y deja las ocho condiciones de arriba sin evaluar,
+       que es exactamente lo que TC-827 tuvo que deshacer en PANT-37. */
+    const nFilas = () => { const c = document.getElementById('ref-pm-cat');
+                           return c ? c.querySelectorAll('tbody tr').length : -1; };
+    const antes = nFilas();
+    abrir('pm'); await esperar(80); abrir('pm'); await esperar(180);
+    const despues = nFilas();
+
+    return { extra: [
+      // ── DENOMINADORES.
+      ['el contenedor de protesicas existe y trae SIETE fichas', orden.length === 7, orden.join(',')],
+      ['las cuatro fichas de posicion se pudieron abrir por su encabezado', abiertas.length === 4, abiertas.join(',')],
+
+      // ── A · EL ORDEN QUE LA TAREA PIDE.
+      ['las siete fichas estan en el orden aortica, mitral, tricuspide, pulmonar y despues las tres que no son de una posicion',
+        orden.join(',') === ESPERADO.join(','), 'dio ' + orden.join(',') + ' · esperaba ' + ESPERADO.join(',')],
+
+      // ── C · LA TABLA, celda por celda contra el catalogo.
+      ['cada posicion dibujo todas sus tablas: la aortica DOS -quirurgica y transcateter- y las otras tres UNA',
+        faltanTab.length === 0, faltanTab.join(' | ')],
+      ['las cuatro tablas coinciden con el catalogo del selector celda por celda, encabezado y conteo de filas incluidos',
+        malas.length === 0, malas.slice(0, 3).join(' || ')],
+      ['cada tabla lleva su linea de fuente con folio al pie',
+        fuentes.length === 4 && fuentes.every(f => f.indexOf('/folios') > -1) && fuentes.every(f => f.indexOf('=0') < 0),
+        fuentes.join(' · ')],
+
+      // ── D · AEO y no EOA.
+      ['las tablas nombran el area del orificio protesico AEO', txtTablas.indexOf('AEO') > -1, txtTablas.indexOf('AEO')],
+      ['y NO dicen EOA en ninguna de las cuatro', txtTablas.indexOf('EOA') < 0, txtTablas.indexOf('EOA')],
+
+      // ── E · IDEMPOTENCIA.
+      ['abrir y cerrar la ficha no duplica las filas', antes > 0 && despues === antes, antes + ' -> ' + despues]
+    ] };
+  })();
 `);
 
 try {
