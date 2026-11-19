@@ -6850,7 +6850,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <span>Activar CeiboLink</span>
           </label>
           <button type="button" class="btn btn-ghost" style="font-size:11.5px;padding:5px 11px;"
-                  onclick="clnkLeerEstado()">🔄 Actualizar</button>
+                  onclick="clnkActualizar()">🔄 Actualizar</button>
           <!-- ⚠️ EL «?» DE LA GUIA COMPLETA — PANT-38, commit 4. Es el mismo mecanismo que los
                otros globos de la app (`data-vinfo` + `vInfoClic`), asi que hereda su tarjeta, su
                cierre con Escape y su area tactil de 44 px; lo unico propio es el glifo, que el
@@ -127748,8 +127748,16 @@ function igImgVisorCablear() {
   const ir = document.getElementById('ig-imgv-ir');
   if (ir) ir.addEventListener('click', () => {
     if (!_igVisor || _igVisor.id == null) return;
+    /* ⚠️ EL ID SE COPIA ANTES DE CERRAR, Y ERA **EL** DEFECTO DE «Ir al estudio».
+       `igImgVisorCerrar` pone `_igVisor` en null, asi que la linea de abajo leia `null.id` y
+       tiraba un TypeError que se llevaba el manejador entero: la imagen se cerraba —esa parte
+       si corria— y `verDetalleInforme` no llegaba a correr nunca, con lo que el medico volvia a
+       la galeria tal como estaba. Dos funciones mas abajo, `igImgVisorMedir` ya tenia este
+       arreglo escrito CON SU COMENTARIO explicando esta misma trampa: eran las mismas dos
+       lineas, una con la copia y la otra sin ella. */
+    const id = _igVisor.id;
     igImgVisorCerrar();
-    if (typeof verDetalleInforme === 'function') verDetalleInforme(_igVisor.id);
+    if (typeof verDetalleInforme === 'function') verDetalleInforme(id);
   });
   const medir = document.getElementById('ig-imgv-medir');
   if (medir) medir.addEventListener('click', () => igImgVisorMedir());
@@ -144472,8 +144480,9 @@ function _medCalFalta(h) {
       if (!hayVel) return {
         eje: 'vel',
         txts: ['Esta imagen no trae la escala de velocidad, así que todavía no se puede medir acá.',
-               'Marcá DOS puntos sobre el eje de velocidad del espectro y escribí cuánto vale cada uno: ' +
-               'el cero y otro valor cualquiera. Con esos dos la aplicación deduce la escala.',
+               'Marcá DOS puntos sobre el eje de velocidad del espectro y escribí cuánto vale cada uno ' +
+               'en <b>m/s</b> —dos valores cualesquiera; no hace falta que uno sea el cero—. Con esos ' +
+               'dos la aplicación deduce la escala y dónde está el cero.',
                'La escala queda guardada para esta imagen: no hay que repetirla en cada medición.'],
         accion: 'vel'
       };
@@ -144518,7 +144527,8 @@ function _medCalFalta(h) {
       eje: '2d',
       txts: ['Esta imagen no trae su escala, así que todavía no se puede medir en milímetros.',
              'Marcá DOS puntos sobre la regla de profundidad que el ecógrafo deja quemada en la ' +
-             'imagen —el costado o la base— y escribí cuántos centímetros hay entre los dos.',
+             'imagen —el costado o la base— y escribí cuántos MILÍMETROS hay entre los dos ' +
+             '(1 cm = 10 mm).',
              'La escala queda guardada para esta imagen y vale para Distancia, Área y Simpson.'],
       accion: '2d'
     };
@@ -146187,6 +146197,10 @@ function cineCerrar() {
      archivo entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
+  /* PUNTO 2 — si este visor se abrio desde la vista previa de CeiboLink, el cartel estaba
+     escondido debajo: vuelve ahora, con sus cinco botones intactos. No hace nada si no fue el
+     caso, y nada si el aviso se cerro de verdad mientras tanto. */
+  if (typeof clnkPrevDestapar === 'function') { try { clnkPrevDestapar(); } catch (e) {} }
   /* ⚠️ Y LOS PÍXELES SE BORRAN, que hasta el 2026-09-26 no pasaba. Soltar `datos` libera los
      17 MB y NO toca el bitmap ya dibujado: el canvas de cada vista se quedaba con su último
      cuadro. Para la vista A daba igual —`_cineAbrir` llama a `_cineCargarLoop`, que la repinta—
@@ -150775,9 +150789,16 @@ function _medEstado() {
        sola en modo calibrar con cero regiones, así que la instrucción del paso tiene que estar
        acá y no sólo en la rama de abajo, que se alcanza únicamente si canceló la calibración. */
     txt = '<b>Antes de medir, calibrá la escala.</b> Trazá una distancia conocida del ecógrafo ' +
-          '—por ejemplo 1 cm de la regla de profundidad del lateral— y después escribí cuánto mide.';
+          '—por ejemplo 1 cm de la regla de profundidad del lateral— y después escribí cuántos ' +
+          '<b>milímetros</b> mide (1 cm = 10 mm).';
   } else if (_medCalib) {
-    txt = 'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' + _medComo();
+    /* ⚠️ LA CONFIRMACION VA PRIMERA Y EN UNA LINEA (punto 1d), y se ve CADA VEZ que el medico
+       vuelve a medir: es lo que le permite darse cuenta de que fijo 10 mm donde queria 100 antes
+       de medir diez cosas con la escala mal. El factor por pixel se queda detras, que es lo que
+       permite auditar la medicion. El numero sale de `_medCalFrase`, el dueño unico. */
+    const _frCal = _medCalFrase();
+    txt = (_frCal ? '<b>' + _frCal + '</b>. ' : '') +
+          'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' + _medComo();
   } else if (medibles.length) {
     const e = medibles.map(r => (r.dx * 10).toFixed(4)).filter((v, i, a) => a.indexOf(v) === i);
     txt = 'Escala <b>tomada del archivo</b>: ' + e.join(' y ') + ' mm por píxel' +
@@ -150789,7 +150810,8 @@ function _medEstado() {
        —«no trae la escala»— y recién después decía qué hacer; el médico leía un diagnóstico
        sobre el archivo cuando lo que necesitaba era el paso siguiente. */
     txt = '<b>Antes de medir, calibrá la escala.</b> Trazá una distancia conocida del ecógrafo ' +
-          '—la regla de profundidad del lateral— y escribí cuánto mide.' +
+          '—la regla de profundidad del lateral— y escribí cuántos <b>milímetros</b> mide ' +
+          '(1 cm = 10 mm).' +
           '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
           'Este archivo no declara la escala, así que cualquier número sin calibrar sería ' +
           'inventado. Tocá <b>Recalibrar →</b> para empezar.</div>';
@@ -151166,7 +151188,138 @@ function _medTiempoClic(ev) {
   _medPintar(); _medEstado();
 }
 
-function _medClic(ev) {
+/* ══ PUNTO 1 (b, c y d) — EL CUADRO QUE PIDE LOS MILIMETROS, Y LA FRASE QUE LO CONFIRMA ══════
+   ⚠️ ESTO REEMPLAZA A UN `prompt` NATIVO, Y EL MOTIVO ES DE SEGURIDAD CLINICA. El cuadro del
+   navegador venia con «10» puesto de antemano y no puede llevar ni la unidad al lado ni un boton
+   que se niegue a aceptar un campo vacio: el cartel de la guia decia «centimetros» y el cuadro
+   preguntaba «milimetros», asi que quien leia el cartel y aceptaba el 10 que ya estaba escrito
+   se quedaba con una escala DIEZ VECES mal — y despues cada distancia de esa imagen salia diez
+   veces chica, con el aspecto de un numero medido. No hay segunda red: la escala manual es la
+   unica que esa imagen tiene.
+
+   ⚠️ NI UN SOLO `id` EN SUS NODOS, y no es un gusto: el censo del estudio y el Excel recorren
+   `input[id]`, y `limpiarCampos` tambien. Un campo con id acá entraria a las 457 columnas por
+   existir. Se alcanza por `data-med-calmm`, que es el mismo recurso que usa el selector de
+   cineloop (`data-vpick-i`) y lo que permite que una prueba lo maneje con el gesto real.
+
+   ⚠️ SE DESTRUYE AL CERRAR, asi que no deja ningun nodo que los barridos por sufijo de «Nuevo
+   estudio» puedan alcanzar, y Escape va cortado con `stopImmediatePropagation` EN CAPTURA: sin
+   eso, Escape sobre este cuadro cierra el VISOR y se lleva la medicion a medio hacer. Es el
+   mismo molde que `_medInfoAbrir` y `_medCalCartel`.
+
+   Devuelve el largo en MILIMETROS, o null si el medico cancelo. */
+function _medCalPedirMm() {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.setAttribute('data-med-calmm', 'ov');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+      'display:flex;align-items:center;justify-content:center;padding:18px;';
+    const caja = document.createElement('div');
+    caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+      'max-width:360px;width:100%;padding:16px 18px;box-shadow:0 18px 48px rgba(0,0,0,.5);';
+    const h = document.createElement('div');
+    h.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:6px;';
+    h.textContent = 'Escala de la imagen';
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;';
+    sub.textContent = '¿Cuántos milímetros mide la línea que marcaste?';
+    const fila = document.createElement('div');
+    fila.style.cssText = 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    /* ⚠️ SIN VALOR PUESTO DE ANTEMANO (punto 1b): el numero se escribe a proposito. Con un 10 ya
+       escrito, aceptar sin leer es un gesto de un clic y la escala sale mal sin que nadie haya
+       decidido nada. Y `type=text` con `inputmode` y no `type=number`: el `number` deja pegar
+       signos y notacion cientifica, y el filtro tiene que correr igual. */
+    inp.value = '';
+    inp.setAttribute('inputmode', 'decimal');
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    inp.setAttribute('maxlength', '8');
+    inp.setAttribute('data-med-calmm', 'inp');
+    inp.setAttribute('aria-label', 'Largo de la línea marcada, en milímetros');
+    inp.style.cssText = 'width:110px;font-size:14px;text-align:center;';
+    const uni = document.createElement('span');
+    uni.style.cssText = 'font-size:13px;font-weight:700;';
+    uni.textContent = 'mm';
+    fila.appendChild(inp); fila.appendChild(uni);
+    /* La pista del punto 1c. Es la conversion que el medico necesita en el momento en que mira la
+       regla del ecografo, que esta en centimetros. */
+    const pista = document.createElement('div');
+    pista.style.cssText = 'font-size:10.5px;color:var(--text2);margin:6px 0 0;';
+    pista.textContent = '1 cm = 10 mm';
+    const fbot = document.createElement('div');
+    fbot.style.cssText = 'display:flex;justify-content:flex-end;gap:7px;margin-top:12px;flex-wrap:wrap;';
+    const bno = document.createElement('button');
+    bno.type = 'button'; bno.className = 'btn btn-ghost';
+    bno.setAttribute('data-med-calmm', 'no');
+    bno.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bno.textContent = 'Cancelar';
+    const bok = document.createElement('button');
+    bok.type = 'button'; bok.className = 'btn btn-primary';
+    bok.setAttribute('data-med-calmm', 'ok');
+    bok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bok.textContent = 'Fijar la escala';
+    fbot.appendChild(bno); fbot.appendChild(bok);
+    caja.appendChild(h); caja.appendChild(sub); caja.appendChild(fila);
+    caja.appendChild(pista); caja.appendChild(fbot);
+    ov.appendChild(caja);
+    /* El valor, leido en UN solo lugar: lo usan el estado del boton, la tecla Enter y el clic.
+       Con tres lecturas, el boton podria habilitarse con algo que la aceptacion despues rechaza. */
+    const val = () => {
+      const v = parseFloat(String(inp.value || '').trim().replace(',', '.'));
+      return (isFinite(v) && v > 0) ? v : null;
+    };
+    /* ⚠️ EL BOTON NO SE HABILITA CON EL CAMPO VACIO (punto 1b), y arranca deshabilitado: el
+       estado de fabrica es el que no deja aceptar nada. */
+    const sync = () => { bok.disabled = (val() === null); };
+    let cerrado = false;
+    const cerrar = (v) => {
+      if (cerrado) return;
+      cerrado = true;
+      document.removeEventListener('keydown', esc, true);
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      resolve(v);
+    };
+    const esc = ev => {
+      if (ev.key !== 'Escape') return;
+      ev.stopImmediatePropagation(); ev.stopPropagation();
+      cerrar(null);
+    };
+    inp.addEventListener('input', sync);
+    inp.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const v = val();
+      if (v !== null) cerrar(v);
+    });
+    bok.addEventListener('click', () => { const v = val(); if (v !== null) cerrar(v); });
+    bno.addEventListener('click', () => cerrar(null));
+    ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(null); });
+    document.addEventListener('keydown', esc, true);
+    document.body.appendChild(ov);
+    sync();
+    try { inp.focus(); } catch (e) {}
+  });
+}
+window._medCalPedirMm = _medCalPedirMm;
+
+/* ══ PUNTO 1d — LA CONFIRMACION, EN UN SOLO LUGAR ════════════════════════════════════════════
+   Un dueño unico para la frase: la dice el aviso del momento en que se calibra Y el panel guia
+   cada vez que el medico vuelve a medir. Con dos textos escritos a mano, el dia que cambie el
+   numero que se publica uno de los dos quedaria viejo.
+   ⚠️ DEVUELVE CADENA VACIA SI LA CALIBRACION NO TRAE SU LARGO DE REFERENCIA: una calibracion
+   armada a mano desde una prueba o restaurada de otro lado tiene el factor y no el largo, y
+   entonces el panel dice lo que decia antes en vez de inventar un numero. */
+function _medCalFrase() {
+  if (!_medCalib || _medCalib.mmRef == null) return '';
+  return 'Escala fijada: la línea marcada = ' + String(_medCalib.mmRef) + ' mm';
+}
+window._medCalFrase = _medCalFrase;
+
+async function _medClic(ev) {
   const cv = _medEl('cine-med');
   const p = _medPunto(ev, cv);
   if (!p) return;
@@ -151176,14 +151329,28 @@ function _medClic(ev) {
   if (dpx < 2) { _medPintar(); return; }                  // dos clics en el mismo lugar
 
   if (_medCalibrando) {
-    const resp = prompt('¿Cuánto mide esa línea, en milímetros?', '10');
-    if (resp === null) { _medPintar(); return; }
-    const mm = parseFloat(String(resp).replace(',', '.'));
-    if (!isFinite(mm) || mm <= 0) { alert('Escribí un número de milímetros mayor que cero.'); _medPintar(); return; }
-    _medCalib = { mmPorPx: mm / dpx };
-    _medCalibrando = false;
-    _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm, calibracion:true });
-    _medPintar(); _medEstado();
+    /* ⚠️ LA VISTA SE CAPTURA ANTES DEL `await` Y SE VUELVE A ENTRAR EN ELLA PARA ESCRIBIR, y de
+       eso depende que calibrar en la vista B no escriba en la A. `cv.onclick` va envuelto en
+       `_vBind`, cuyo `finally` repone la vista anterior en cuanto la parte SINCRONICA vuelve: con
+       un `await` en el medio, todo lo de abajo correria con `_V` apuntando otra vez a `_vistaA`.
+       Es la misma trampa que este archivo documenta para «Listo» del Simpson y para
+       `vistaCerrarUna`. Con el `prompt` nativo el problema no existia porque bloqueaba el hilo. */
+    const V = _V;
+    const mm = await _medCalPedirMm();
+    if (mm === null) { _vCon(V, () => { _medPintar(); _medEstado(); }); return; }
+    _vCon(V, () => {
+      /* ⚠️ Y SE VUELVE A MIRAR EL ESTADO DESPUES DEL `await`: si mientras el cuadro estaba
+         abierto la imagen cambio, `medCambioDeImagen` ya puso `_medCalibrando` en falso y el
+         largo que el medico acaba de escribir es de una imagen que ya no esta. Falla hacia NO
+         calibrar, que es el lado en que un numero no sale inventado. */
+      if (!_medCalibrando) { _medPintar(); _medEstado(); return; }
+      _medCalib = { mmPorPx: mm / dpx, mmRef: mm };
+      _medCalibrando = false;
+      _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm, calibracion:true });
+      _medPintar(); _medEstado();
+      /* La confirmacion del momento, con el MISMO dueño que la del panel (punto 1d). */
+      if (typeof toast === 'function') toast('📐 ' + _medCalFrase());
+    });
     return;
   }
 
@@ -180700,8 +180867,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261118-1640';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795030825613;                 /* eco-build-ms */
+const ECO_BUILD    = '20261119-1634';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795116898994;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -180787,7 +180954,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261118-1640</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261119-1634</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -182139,7 +182306,12 @@ async function clnkLeerConexion() {
     var dir = String((x && x.direccion) || '');
     var iface = String((x && x.interfaz) || '');
     var nota = iface ? ('Conexión «' + iface + '».') : '';
-    if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'Es la que conviene dar.';
+    /* ⚠️ «CeiboLink sugiere ésta» Y NO «es la que conviene dar»: la marca de probable la pone
+       el CONECTOR y EcoSmart no la puede verificar —no sabe si el adaptador que el sistema llama
+       «Wi-Fi» es inalambrico, ni al reves—. Dicho como recomendacion de EcoSmart, un acierto del
+       conector y un error suyo se leen igual; dicho como sugerencia, el medico sabe de quien es
+       el criterio. Lo unico que esta app juzga por su cuenta es el 169.254 de mas abajo. */
+    if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'CeiboLink sugiere ésta.';
     _clnkDato(fila, 'Dirección', dir, nota);
   });
   cont.appendChild(fila);
@@ -182579,10 +182751,35 @@ window.clnkRefrescar = clnkRefrescar;
 /* Se llama al ABRIR el panel, que es cuando importa, y con el botón «Actualizar». Sin sondeo
    periódico: eso es del paso siguiente. */
 function clnkOnMostrar() {
+  /* ⚠️ EL MENSAJE DE VINCULACION SE LIMPIA AL ABRIR EL PANEL. Vive en `cfg-clnk-vmsg`, que hasta
+     hoy solo se vaciaba con el modulo apagado o en Modo Basico: «EcoSmart se desvinculo en este
+     navegador…» quedaba PEGADO ahi, debajo del campo del codigo, y se volvia a ver cada vez que
+     el medico entraba a Configuracion, como si fuera de un intento recien hecho. Es un mensaje
+     de resultado de UNA accion: su lugar es el momento en que se hizo. */
+  _clnkVmsgLimpiar();
   clnkRender();
   if (clnkActivo()) clnkLeerEstado();
 }
 window.clnkOnMostrar = clnkOnMostrar;
+
+/* El renglon de mensajes de la vinculacion, vaciado en UN solo lugar: lo usan «Actualizar» y la
+   apertura del panel. `clnkVincular` y `clnkDesvincular` NO pasan por aca —ellos lo vacian y
+   enseguida escriben el suyo—, y por eso esto no va dentro de `clnkLeerEstado`: las dos lo
+   llaman al final, asi que vaciarlo ahi borraria el mensaje que acaban de escribir. */
+function _clnkVmsgLimpiar() {
+  var vm = document.getElementById('cfg-clnk-vmsg');
+  if (vm) vm.textContent = '';
+}
+window._clnkVmsgLimpiar = _clnkVmsgLimpiar;
+
+/* «🔄 Actualizar». Es `clnkLeerEstado` mas el vaciado del mensaje viejo: el boton dice que
+   vuelve a preguntar, y un mensaje de hace dos dias al lado de una lectura de ahora mismo se
+   lee como parte de esa lectura. */
+function clnkActualizar() {
+  _clnkVmsgLimpiar();
+  clnkLeerEstado();
+}
+window.clnkActualizar = clnkActualizar;
 
 /* La ayuda es un `<details>` NATIVO desde ECO-CONECTOR-2: abre y cierra con el teclado sin una
    línea de JS. Esta función se conserva —y con su nombre— porque es la que se puede llamar
@@ -183214,6 +183411,64 @@ async function _clnkPrevBajar(id) {
    está en la bandeja, así que «Asignar este envío» y «Borrar el envío» no tienen a qué apuntar.
    ⚠️ AL CERRARLO NO QUEDA NADA GUARDADO: los dos visores reciben los bytes por parámetro y no
    escriben en ninguna base. */
+/* ══ PUNTO 2 — EL CARTEL SE ESCONDE MIENTRAS EL VISOR ESTA ABIERTO ═══════════════════════════
+   EL DEFECTO, MEDIDO: `#clnkav-ov` vive en la capa 700 y los dos visores que esta vista previa
+   abre viven mas abajo —el de cineloop en la 400 y el lightbox de una fija en la 402—, asi que al
+   tocar una miniatura el visor se abria DEBAJO y el cartel le tapaba el centro con su caja opaca
+   de 440 px. No es de un sistema operativo: es orden de capas, y por eso pasa igual en Windows y
+   en Mac.
+
+   ⚠️ SE ESCONDE Y NO SE CIERRA, y es toda la diferencia: `clnkAvisoCerrar` apaga
+   `_clnkAvisoAbierto`, olvida el grupo, borra los cinco manejadores y vacia el cuerpo — o sea que
+   «← Volver a la pregunta» se quedaria sin nada a donde volver. Moviendo UN `display` los nodos
+   siguen enteros: el titulo, el texto, la tira de miniaturas y los cinco botones con sus
+   manejadores vuelven tal cual estaban.
+
+   ⚠️ NO SE TOCA LA CAPA DE NINGUN MODAL. Subirle la capa al visor —la otra forma de arreglarlo—
+   lo pondria por encima de los demas modales de la app, que no es lo que se pidio.
+
+   ⚠️ Y SE TAPA DESPUES DE ABRIR EL VISOR, no antes: `_clnkPrevTapar` exige ver un visor a la
+   vista para esconder el cartel. Si el visor no llego a abrirse —un archivo que no se pudo leer—
+   el cartel se queda visible, que es el lado seguro: el medico no se queda con la pantalla vacia. */
+var _clnkPrevTapado = false;
+
+function _clnkPrevVisorALaVista() {
+  try {
+    var c = document.getElementById('cine-ov');
+    if (c && c.style.display !== 'none' && c.offsetWidth > 0) return true;
+    if (document.getElementById('clnkb-ver')) return true;
+  } catch (e) {}
+  return false;
+}
+window._clnkPrevVisorALaVista = _clnkPrevVisorALaVista;
+
+function _clnkPrevTapar() {
+  if (_clnkPrevTapado) return false;
+  if (!_clnkPrevVisorALaVista()) return false;
+  var ov = document.getElementById('clnkav-ov');
+  if (!ov || ov.style.display === 'none') return false;
+  ov.style.display = 'none';
+  _clnkPrevTapado = true;
+  return true;
+}
+window._clnkPrevTapar = _clnkPrevTapar;
+
+/* Lo llaman los DOS cierres de visor —`cineCerrar` y `_clnkbVerCerrar`—, que son los unicos
+   caminos por los que cada uno se va de la pantalla.
+   ⚠️ NO REPONE UN CARTEL QUE YA SE CERRO: si mientras el visor estaba abierto algo cerro el aviso
+   de verdad, `_clnkAvisoAbierto` quedo en falso y reponer el `display` dibujaria un modal
+   fantasma, con sus botones apuntando a una pregunta que ya no existe. */
+function clnkPrevDestapar() {
+  if (!_clnkPrevTapado) return false;
+  _clnkPrevTapado = false;
+  if (!_clnkAvisoAbierto) return false;
+  var ov = document.getElementById('clnkav-ov');
+  if (!ov) return false;
+  ov.style.display = 'flex';
+  return true;
+}
+window.clnkPrevDestapar = clnkPrevDestapar;
+
 async function clnkPrevAbrir(id, nombre) {
   if (typeof toast === 'function') toast('⏳ Bajando para mirar…');
   var b = await _clnkPrevBajar(id);
@@ -183232,12 +183487,13 @@ async function clnkPrevAbrir(id, nombre) {
   }
   var cl = _dcmClasificar(d, String(nombre || 'imagen'));
   if (cl.rechazo) { if (typeof toast === 'function') toast('❌ ' + cl.rechazo); return false; }
-  if (cl.loop) { _cineAbrir([cl.loop]); return true; }
+  if (cl.loop) { _cineAbrir([cl.loop]); _clnkPrevTapar(); return true; }
   var du = '';
   try { du = await dstDataURL(cl.fija.jpeg, 'image/jpeg'); } catch (e) { du = ''; }
   if (!du) { if (typeof toast === 'function') toast('❌ No se pudo mostrar esa imagen'); return false; }
   /* El primer parámetro vacío es lo que apaga las dos acciones de la bandeja. */
   _clnkbVerFija('', du, 0, 1, String(nombre || ''));
+  _clnkPrevTapar();
   return true;
 }
 window.clnkPrevAbrir = clnkPrevAbrir;
@@ -183994,6 +184250,9 @@ function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
 function _clnkbVerCerrar() {
   var ov = document.getElementById('clnkb-ver');
   if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+  /* PUNTO 2 — el mismo retorno que en `cineCerrar`: este lightbox es el que la vista previa usa
+     para una imagen fija. */
+  if (typeof clnkPrevDestapar === 'function') { try { clnkPrevDestapar(); } catch (e) {} }
 }
 window._clnkbVerCerrar = _clnkbVerCerrar;
 

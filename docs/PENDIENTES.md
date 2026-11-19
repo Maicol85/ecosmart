@@ -40,6 +40,98 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PROMPT 5 — la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio» (2026-11-19)
+
+### P5-a · TC-187 es SENSIBLE AL LOTE, y está medido que no es de esta tanda
+
+Corrido con `--solo`, TC-187 falla por cuatro condiciones de su **primer** bloque —el de la
+aritmética con la escala del archivo, que esta tanda no toca—: «dos clics dejan UNA medicion»,
+«los mm son EXACTAMENTE largo x dx x 10», el mapeo del clic y la ventana chica.
+
+**Medido contra el árbol anterior (`35a7c97`) y con el archivo de casos anterior**: falla por
+**las mismas cuatro condiciones y con la misma tolerancia** (5.19 px). La causa es que corriendo
+solo el canvas no tiene ancho útil cuando el caso mide, así que los dos clics se mapean al mismo
+punto, la distancia da menos de 2 px y `_medClic` sale en silencio — sin aviso, que es por lo que
+`R.sinAviso` pasa igual. Se evalúa **en su lote**, que es donde la batería lo corre.
+
+**Y TC-161 es el segundo caso con la misma sensibilidad**, medido igual: con `--solo` falla por
+«cada una tiene su titulo» porque la tarjeta de la comunidad de desarrollo de IA tiene el título
+vacío —lo escribe el JS al repintar Config—, y **falla idéntico, con la misma lista, contra el
+árbol anterior**. En la suite completa sale **verde**. Ninguno de los dos es de esta tanda.
+
+### P5-b · El texto de la calibración de VELOCIDAD se reescribió, no sólo se le puso la unidad
+
+La orden pide «revisá TODOS los textos de calibración … y dejá un solo criterio». El del eje de
+velocidad decía «escribí cuánto vale cada uno: **el cero y otro valor cualquiera**», y eso
+describe mal el mecanismo que MEDIR-3 instaló: desde esa tanda son **dos puntos cualesquiera** y
+de los dos sale la escala **y** dónde está el cero, que puede quedar fuera del tramo marcado.
+Quedó: «escribí cuánto vale cada uno en **m/s** —dos valores cualesquiera; no hace falta que uno
+sea el cero—. Con esos dos la aplicación deduce la escala y dónde está el cero.»
+
+**Ningún número ni operador se movió**: el cuadro de la velocidad pedía y sigue pidiendo m/s, y la
+conversión a cm/s sigue viviendo en el borde, una sola vez. Si el médico prefiere la redacción
+anterior, es un texto.
+
+### P5-c · La razón entre las dos escalas no sale exactamente 10, y por qué
+
+Calibrar la misma línea con 10 mm y con 100 mm da **0,04945 y 0,50085 mm por píxel**, o sea una
+razón de **10,127** y no 10. No es un defecto: las dos líneas marcadas no miden exactamente lo
+mismo en píxeles de imagen —**202,206** y **199,659**—. El `clientX` de un evento es un entero por
+especificación, así que el viaje imagen → pantalla → imagen pierde subpíxeles, y entre la primera
+y la segunda calibración el panel guía **crece** (gana la línea de la confirmación), con lo que el
+canvas cambia de tamaño y el redondeo cambia con él. Es la misma cuantización que TC-187 mide
+aparte, y la tiene también un clic de verdad.
+
+Lo que TC-957 verifica es **exacto** y no con una tolerancia inventada: cada factor por su propio
+largo da el número escrito (10 y 100, con 1e-12), y la razón de las dos escalas es **exactamente**
+diez veces la razón inversa de los dos largos reales. Lo único que cambió es el número que se
+escribió.
+
+### P5-d · La calibración de VELOCIDAD sigue preguntando con dos cuadros del navegador
+
+El punto 1 de la orden nombra el campo de la **distancia**, y es el que pasó a un cuadro propio
+con su campo vacío, su unidad al lado y su botón que no acepta nada. La velocidad sigue con **dos
+`prompt` nativos**, uno por marca, cada uno con su campo vacío (ése nunca trajo un valor puesto) y
+su validación. **No se tocó**, y se declara: si el médico quiere el mismo cuadro propio para la
+velocidad —con la unidad al lado y el botón apagado— es otra tanda, y conviene hacerla junto con
+la del tiempo para no quedarse con dos mecanismos.
+
+⚠️ **Y EL SUSTITUTO DEL PROMPT SE DEJÓ PUESTO EN TC-187 COMO RED.** Contra un árbol anterior el
+cuadro propio no existe y el `prompt` del navegador **bloquea la página para siempre**: la batería
+entera queda colgada esperando un clic que nadie da. Lo pagó una corrida de verificación de esta
+tanda. Con la red puesta, contra un árbol viejo ese caso corre y cae por **una** condición —la del
+cuadro propio— en vez de colgar.
+
+### P5-e · Lo que NO se tocó, con su motivo
+
+- **«Medir» desde Imágenes guardadas**, que avisa que hay que abrir el estudio para medir: orden
+  expresa del médico, se decide después.
+- **El eje del TIEMPO sigue sin calibrarse a mano** —lo tiene que traer el archivo—, y su rama del
+  cartel sale **sin botón** a propósito: un «Calibrar ahora» que no puede calibrar nada es peor
+  que no ofrecerlo.
+- **La capa de ningún modal se movió.** El cartel de la vista previa se **esconde** mientras el
+  visor está abierto; subirle la capa al visor —la otra forma de arreglarlo— lo pondría por encima
+  de los demás modales de la app.
+- **`verDetalleInforme` no se tocó** para arreglar «Ir al estudio»: lo que faltaba era copiar el
+  id antes de cerrar el visor.
+
+### P5-f · La segunda marca de `L1:INDICE` de CLAUDE.md
+
+Al tocar `CLAUDE.md` se vio que tiene **dos** pares de marcas `<!-- L1:INDICE -->`: el de las
+líneas 2 a 35, que es el que TC-753 chequea, y un segundo par mucho más abajo. **No se tocó**
+—no es de esta tanda y TC-753 usa el primero—, pero queda anotado: si alguna vez el primero se
+mueve o se borra, ese caso empezaría a chequear un bloque que no es el índice.
+
+### P5-g · El cuadro de los milímetros vive en la capa 460, debajo del cartel de CeiboLink (700)
+
+Es la misma capa que los otros dos cuadros del módulo de medición (`_medInfoAbrir` y
+`_medCalCartel`), así que no es algo que esta tanda introduzca. Queda anotado porque la pregunta es
+razonable: ¿puede el cartel taparlo? **Hoy no es alcanzable.** En el camino de la vista previa el
+cartel se esconde justo antes de abrir el visor, así que mientras el médico mide no está; y por
+cualquier otro camino, un aviso abierto es un modal que cubre la página, así que no se puede llegar
+a tocar «Medir» detrás de él. Si alguna vez un aviso deja de cubrir la página, estos tres cuadros
+hay que subirlos por encima de 700.
+
 ## MEDIR-6 — el visor, el TRIV, la CIV, el TEER, la Tabla 4 y el cor triatriatum (2026-11-16)
 
 > Mapa: **`docs/mapa/medir6-triv-civ-teer-onco.md`**. Sello **`v20261116-0650`**, md5 `f4f277b0`.

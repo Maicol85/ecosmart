@@ -21509,8 +21509,30 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
       _cineDatos.loops[0].d.regiones = [];
       medRecalibrar();
       R.entraEnCalibracion = _medCalibrando;
-      window.prompt = () => '10';                 // la linea de 200 px mide 10 mm
+      /* ADAPTADO (prompt 5, punto 1b): YA NO ES UN PROMPT NATIVO del navegador. El cuadro es propio, el campo
+         nace VACIO y el boton de aceptar no se habilita hasta que hay un numero mayor que cero, asi
+         que no hay un valor por omision que aceptar sin leer. Se maneja con el gesto real
+         --escribir y apretar-- y no sustituyendo una funcion del navegador. El 10 sigue siendo el
+         mismo 10 de antes, asi que la aritmetica de abajo no se toca. */
+      /* ⚠️ Y EL SUSTITUTO DEL PROMPT NATIVO SE DEJA PUESTO COMO RED, aunque este arbol ya no lo
+         use: contra un arbol anterior el cuadro propio no existe y el prompt del navegador BLOQUEA
+         la pagina para siempre, con lo que la bateria entera queda colgada esperando un clic que
+         nadie da. Es la trampa que ECO-CONECTOR-5 documenta. Con la red puesta, contra un arbol
+         viejo este caso corre y cae por UNA condicion --la del cuadro propio-- en vez de colgar. */
+      window.prompt = () => '10';
+      const calmm = async (txt) => {
+        const vino = await esperar(() => !!document.querySelector('[data-med-calmm="ov"]'), 60);
+        if (!vino) return false;
+        const i = document.querySelector('[data-med-calmm="inp"]');
+        const b = document.querySelector('[data-med-calmm="ok"]');
+        i.value = String(txt);
+        i.dispatchEvent(new Event('input', { bubbles: true }));
+        b.click();
+        await new Promise(r => setTimeout(r, 70));
+        return true;
+      };
       clic(ax, ay); clic(ax + 200, ay);
+      R.cuadroDeMm = await calmm('10');           // la linea de 200 px mide 10 mm
       await new Promise(r => setTimeout(r, 120));
       R.calibro = !!_medCalib;
       R.factorManual = _medCalib ? _medCalib.mmPorPx : 0;
@@ -21636,6 +21658,8 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
       ['habia una medicion antes de cambiar de cuadro',  R.antesDelCuadro === 1, R.antesDelCuadro],
       ['al cambiar de cuadro se borran',                 R.trasCambiarCuadro === 0, R.trasCambiarCuadro],
       ['«Recalibrar» entra en modo calibracion',         R.entraEnCalibracion, R.entraEnCalibracion],
+      ['y el largo se pide en el cuadro PROPIO de milimetros, no en un prompt del navegador',
+                                                         R.cuadroDeMm === true, R.cuadroDeMm],
       ['la calibracion manual guarda el factor correcto', R.factorCorrecto, R.factorManual],
       ['y despues mide con esa escala',                  R.mideConManual, R.mideConManual],
       ['el archivo Doppler trae una zona NO medible',    !DOP || R.dopTieneAmbas, DOP ? R.dopTieneAmbas : 'sin archivo Doppler'],
@@ -135119,7 +135143,13 @@ caso('TC-838', 'Datos para el ecografo: las tres cosas, TODAS las direcciones, l
       R.dicePuerto = txt.indexOf('4242') > -1;
       R.diceAet = txt.indexOf('PUENTE') > -1;
       R.diceDir = txt.indexOf('192.168.1.23') > -1;
-      R.diceProbable = txt.indexOf('conviene dar') > -1;
+      /* ADAPTADO E INVERTIDO (prompt 5, punto 3a): la frase pasa de «Es la que conviene dar.»
+         --que se lee como una recomendacion de EcoSmart-- a «CeiboLink sugiere esta.», que es lo
+         que de verdad es: la marca de probable la pone el CONECTOR y esta app no la puede
+         verificar. Se exige la frase NUEVA **y** que la vieja ya no este, asi que el caso puede
+         fallar por los dos lados. */
+      R.diceProbable = txt.indexOf('CeiboLink sugiere') > -1;
+      R.sinFraseVieja = txt.indexOf('conviene dar') < 0;
       R.diceInterfaz = txt.indexOf('en7') > -1;
       R.nCopiar = cont() ? cont().querySelectorAll('[data-clnk-copiar]').length : 0;
 
@@ -135146,7 +135176,7 @@ caso('TC-838', 'Datos para el ecografo: las tres cosas, TODAS las direcciones, l
       await new Promise(r => setTimeout(r, 600));
       txt = cont().textContent || '';
       R.lasDos = txt.indexOf('192.168.1.23') > -1 && txt.indexOf('10.0.0.5') > -1;
-      R.ningunaProbable = txt.indexOf('conviene dar') < 0;
+      R.ningunaProbable = txt.indexOf('CeiboLink sugiere') < 0 && txt.indexOf('conviene dar') < 0;
       R.avisoDelConector = txt.indexOf('Hay m\\u00e1s de una direcci\\u00f3n') > -1;
 
       /* ── Una 169.254: se EXPLICA que no sirve ── */
@@ -135196,7 +135226,9 @@ caso('TC-838', 'Datos para el ecografo: las tres cosas, TODAS las direcciones, l
       ['dice el puerto DICOM',                            R.dicePuerto, R.dicePuerto],
       ['dice el nombre (AET)',                            R.diceAet, R.diceAet],
       ['dice la direccion',                               R.diceDir, R.diceDir],
-      ['y cual conviene darle al tecnico',                R.diceProbable, R.diceProbable],
+      ['y dice que CeiboLink SUGIERE una, sin recomendarla en nombre de EcoSmart',
+                                                         R.diceProbable && R.sinFraseVieja,
+                                                         R.diceProbable + ' / vieja fuera=' + R.sinFraseVieja],
       ['y de que conexion es',                            R.diceInterfaz, R.diceInterfaz],
       ['hay botones Copiar',                              R.nCopiar >= 3, 'n=' + R.nCopiar],
       ['el valor va por el atributo, no en un onclick',   R.copiarTienePuerto && R.sinOnclickInline,
@@ -151493,6 +151525,488 @@ caso('TC-956', 'Punto 6: las TRES fichas de severidad que faltaban -estenosis tr
       ['las cinco fichas de severidad que ya existian no se perdieron',
         ['im', 'em', 'ia', 'eao', 'it'].every(id => !!document.getElementById('ref-' + id)),
         ['im', 'em', 'ia', 'eao', 'it'].filter(id => !document.getElementById('ref-' + id)).join(',')]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 5 · PUNTO 1 — LA CALIBRACION A MANO ══════════════════════════════════════════════
+   La unidad era la MISMA cosa dicha de dos formas: el cartel de la guia decia «escribi cuantos
+   centimetros hay entre los dos» y el cuadro que aparecia despues preguntaba «en milimetros» con
+   un 10 ya escrito. Quien leia el cartel y aceptaba ese 10 se quedaba con la escala diez veces
+   mal, y desde ahi cada distancia de esa imagen salia diez veces chica con el aspecto de un
+   numero medido. Este caso fija las cuatro mitades del arreglo: una sola unidad, el campo sin
+   valor puesto, la unidad y la pista a la vista, y la confirmacion de lo que quedo fijado.     */
+caso('TC-957', 'Punto 1: la calibracion de distancia habla en MILIMETROS en el cartel y en el cuadro, el campo nace VACIO y no se puede aceptar vacio ni con basura, 10 mm y 100 mm dan escalas distintas, y la confirmacion dice lo que se escribio', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    if (typeof window._medCalPedirMm !== 'function' || typeof window._medCalFrase !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el cuadro propio de milimetros', false,
+        'no existen _medCalPedirMm / _medCalFrase: este arbol todavia pregunta con un prompt del navegador']] };
+    }
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const promptOrig = window.prompt, alertOrig = window.alert, toastOrig = window.toast;
+    let usoPrompt = false;
+    window.prompt = function () { usoPrompt = true; return null; };
+    window.alert = () => {};
+    const toasts = [];
+    window.toast = m => { toasts.push(String(m)); };
+    const R = {};
+    let regsReales = null;
+    try {
+      const u = bytes(P.loop);
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      R.abrio = !!_cineDatos;
+      if (!_medOn) medToggle();
+      R.modo = _medOn === true;
+      const cv = document.getElementById('cine-med');
+      const barra = () => (document.getElementById('cine-med-barra').textContent || '');
+      const clic = (x, y) => { const r = cv.getBoundingClientRect();
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true,
+          clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) })); };
+      /* Se fuerza un archivo SIN regiones, que es el caso en que la app calibra a mano: una fija
+         JPG o PNG del ecografo es exactamente esto. */
+      regsReales = _cineDatos.loops[0].d.regiones;
+      _cineDatos.loops[0].d.regiones = [];
+
+      /* ── A · LOS DOS TEXTOS DICEN LO MISMO: MILIMETROS ──────────────────────────────── */
+      const g = _medCalFalta('dist');
+      R.hayCartel = !!g;
+      R.cartel = g ? g.txts.join(' | ') : '';
+      R.cartelDiceMm = R.cartel.indexOf('MIL') > -1 && R.cartel.indexOf('1 cm = 10 mm') > -1;
+      R.cartelSinCm = R.cartel.indexOf('centimetros hay entre') < 0 &&
+                      R.cartel.indexOf('cent' + String.fromCharCode(237) + 'metros hay entre') < 0;
+      medRecalibrar();
+      R.entra = _medCalibrando === true;
+      R.panelCal = barra();
+      R.panelDiceMm = R.panelCal.indexOf('mil') > -1 && R.panelCal.indexOf('1 cm = 10 mm') > -1;
+
+      /* ── B · EL CUADRO: campo vacio, unidad al lado, pista, y nada que aceptar ──────── */
+      const ax = 20, ay = 20;
+      const abrir = async (dx) => {
+        clic(ax, ay); clic(ax + dx, ay);
+        return await esperar(() => !!document.querySelector('[data-med-calmm="ov"]'), 60);
+      };
+      R.cuadro1 = await abrir(200);
+      const ov = document.querySelector('[data-med-calmm="ov"]');
+      const inp = ov ? ov.querySelector('[data-med-calmm="inp"]') : null;
+      const bok = ov ? ov.querySelector('[data-med-calmm="ok"]') : null;
+      R.campoVacio = !!inp && String(inp.value) === '';
+      R.campoSinId = !!inp && !inp.id;
+      R.diceMm = !!ov && (ov.textContent || '').indexOf('mm') > -1;
+      R.pista = !!ov && (ov.textContent || '').indexOf('1 cm = 10 mm') > -1;
+      R.okApagadoVacio = !!bok && bok.disabled === true;
+      const tipear = v => { inp.value = String(v); inp.dispatchEvent(new Event('input', { bubbles:true })); };
+      tipear('abc'); R.okApagadoBasura = bok.disabled === true;
+      tipear('0');   R.okApagadoCero = bok.disabled === true;
+      tipear('-5');  R.okApagadoNeg = bok.disabled === true;
+      tipear('10');  R.okPrendido = bok.disabled === false;
+      bok.click();
+      await new Promise(r => setTimeout(r, 90));
+      R.cerro = !document.querySelector('[data-med-calmm="ov"]');
+
+      /* ── C · DIEZ MILIMETROS ───────────────────────────────────────────────────────── */
+      R.calibro10 = !!_medCalib;
+      const l1 = _medLineas.filter(l => l.calibracion)[0];
+      const largo1 = l1 ? Math.hypot(l1.bx - l1.ax, l1.by - l1.ay) : 0;
+      R.f10 = _medCalib ? _medCalib.mmPorPx : 0;
+      R.exacto10 = !!_medCalib && largo1 > 0 && Math.abs(_medCalib.mmPorPx - 10/largo1) < 1e-12;
+      R.panel10 = barra();
+      R.dice10 = R.panel10.indexOf('Escala fijada') > -1 && R.panel10.indexOf('= 10 mm') > -1;
+      R.toast10 = toasts.some(t => t.indexOf('Escala fijada') > -1 && t.indexOf('= 10 mm') > -1);
+
+      /* ── D · LA MISMA LINEA, CIEN MILIMETROS: OTRA ESCALA ──────────────────────────── */
+      medRecalibrar();
+      R.panelTrasRecal = barra().indexOf('Escala fijada') < 0;
+      R.cuadro2 = await abrir(200);
+      const ov2 = document.querySelector('[data-med-calmm="ov"]');
+      const inp2 = ov2 ? ov2.querySelector('[data-med-calmm="inp"]') : null;
+      R.campoVacio2 = !!inp2 && String(inp2.value) === '';
+      inp2.value = '100'; inp2.dispatchEvent(new Event('input', { bubbles:true }));
+      ov2.querySelector('[data-med-calmm="ok"]').click();
+      await new Promise(r => setTimeout(r, 90));
+      const l2 = _medLineas.filter(l => l.calibracion)[0];
+      const largo2 = l2 ? Math.hypot(l2.bx - l2.ax, l2.by - l2.ay) : 0;
+      R.f100 = _medCalib ? _medCalib.mmPorPx : 0;
+      R.exacto100 = !!_medCalib && largo2 > 0 && Math.abs(_medCalib.mmPorPx - 100/largo2) < 1e-12;
+      R.distintas = R.f10 > 0 && R.f100 > 0 && R.f10 !== R.f100;
+      /* ⚠️ LA RAZON NO SALE EXACTAMENTE 10 Y NO ES UN DEFECTO: las dos lineas marcadas no miden
+         exactamente lo mismo en pixeles de imagen. El clientX de un evento es un entero por especificacion, asi
+         que el viaje imagen -> pantalla -> imagen pierde subpixeles, y entre la primera y la
+         segunda calibracion el panel guia CRECE --gana la linea de la confirmacion-- con lo que el
+         canvas cambia de tamanio y el redondeo cambia con el. Es la misma cuantizacion que TC-187
+         mide aparte, y la tiene tambien un clic de verdad.
+         Asi que la identidad se verifica EXACTA y corregida por los dos largos reales: la razon de
+         las dos escalas es diez veces la razon inversa de las dos lineas. Lo unico que cambio es
+         el numero que se escribio. */
+      R.largo1 = largo1; R.largo2 = largo2;
+      R.razon = R.f10 > 0 ? (R.f100 / R.f10) : 0;
+      R.razonEsperada = largo2 > 0 ? (10 * largo1 / largo2) : 0;
+      R.razonExacta = largo1 > 0 && largo2 > 0 && Math.abs(R.razon - R.razonEsperada) < 1e-9;
+      R.panel100 = barra();
+      R.dice100 = R.panel100.indexOf('Escala fijada') > -1 && R.panel100.indexOf('= 100 mm') > -1;
+
+      /* ── E · Y MIDE CON LA ESCALA FIJADA ──────────────────────────────────────────── */
+      clic(ax, ay + 40); clic(ax + 100, ay + 40);
+      await new Promise(r => setTimeout(r, 140));
+      const lm = _medLineas.filter(l => !l.calibracion);
+      R.midio = lm.length === 1;
+      R.mideConLa100 = lm.length === 1 &&
+        Math.abs(lm[0].mm - Math.hypot(lm[0].bx-lm[0].ax, lm[0].by-lm[0].ay) * _medCalib.mmPorPx) < 1e-9;
+
+      /* ── F · CANCELAR NO FIJA NADA ────────────────────────────────────────────────── */
+      medRecalibrar();
+      R.cuadro3 = await abrir(150);
+      const ov3 = document.querySelector('[data-med-calmm="ov"]');
+      if (ov3) ov3.querySelector('[data-med-calmm="no"]').click();
+      await new Promise(r => setTimeout(r, 90));
+      R.cancelSinEscala = !_medCalib && _medCalibrando === true;
+      R.cancelCerro = !document.querySelector('[data-med-calmm="ov"]');
+      /* CONTROL: en todo el camino no se uso ni un cuadro del navegador. */
+      R.sinPromptNativo = usoPrompt === false;
+    } finally {
+      try { if (regsReales && _cineDatos && _cineDatos.loops[0]) _cineDatos.loops[0].d.regiones = regsReales; } catch (e) {}
+      try { const z = document.querySelector('[data-med-calmm="ov"]'); if (z && z.parentNode) z.parentNode.removeChild(z); } catch (e) {}
+      try { medApagar(); cineCerrar(); } catch (e) {}
+      window.prompt = promptOrig; window.alert = alertOrig; window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: el visor abrio el cineloop y el modo medicion esta prendido', R.abrio && R.modo, R.abrio + '/' + R.modo],
+      ['el cartel de la guia pide MILIMETROS y da la conversion', R.hayCartel && R.cartelDiceMm, R.cartel.slice(0, 190)],
+      ['y ya no pide centimetros', R.cartelSinCm, R.cartelSinCm],
+      ['el panel guia tambien habla de milimetros', R.panelDiceMm, R.panelCal.slice(0, 160)],
+      ['«Recalibrar» entra en modo calibracion', R.entra, R.entra],
+      ['dos clics abren el cuadro PROPIO (no un prompt del navegador)', R.cuadro1 === true, R.cuadro1],
+      ['el campo nace VACIO', R.campoVacio, JSON.stringify(inpV(R))],
+      ['y no lleva id, asi que no entra al censo del estudio ni al Excel', R.campoSinId, R.campoSinId],
+      ['el cuadro muestra la unidad mm y la pista «1 cm = 10 mm»', R.diceMm && R.pista, R.diceMm + '/' + R.pista],
+      ['aceptar esta APAGADO con el campo vacio', R.okApagadoVacio, R.okApagadoVacio],
+      ['y con basura, con cero y con un negativo', R.okApagadoBasura && R.okApagadoCero && R.okApagadoNeg,
+        [R.okApagadoBasura, R.okApagadoCero, R.okApagadoNeg].join('/')],
+      ['y se prende recien con un numero mayor que cero', R.okPrendido, R.okPrendido],
+      ['al aceptar el cuadro se va y la escala queda fijada', R.cerro && R.calibro10, R.cerro + '/' + R.calibro10],
+      ['con 10 mm el factor es EXACTAMENTE 10 dividido el largo marcado', R.exacto10, R.f10],
+      ['el panel confirma «Escala fijada: la linea marcada = 10 mm»', R.dice10, R.panel10.slice(0, 150)],
+      ['y lo dice tambien en el momento de fijarla', R.toast10, (toastsV(R))],
+      ['recalibrar borra la confirmacion vieja', R.panelTrasRecal, R.panelTrasRecal],
+      ['el campo vuelve a nacer vacio en la segunda vuelta', R.campoVacio2, R.campoVacio2],
+      ['con 100 mm sobre LA MISMA linea el factor es 100 dividido ese largo', R.exacto100, R.f100],
+      ['y es OTRA escala, no el mismo numero', R.distintas, R.f10 + ' -> ' + R.f100],
+      ['unas diez veces mas grande, exacto al corregir por los dos largos marcados', R.razonExacta,
+        'razon=' + R.razon.toFixed(6) + ' esperada=' + R.razonEsperada.toFixed(6) +
+        ' (largos ' + R.largo1.toFixed(3) + ' y ' + R.largo2.toFixed(3) + ' px)'],
+      ['el panel confirma los 100 mm', R.dice100, R.panel100.slice(0, 150)],
+      ['y despues mide con esa escala', R.midio && R.mideConLa100, R.midio + '/' + R.mideConLa100],
+      ['cancelar no deja escala y sigue pidiendo calibrar', R.cancelSinEscala && R.cancelCerro, R.cancelSinEscala + '/' + R.cancelCerro],
+      ['CONTROL: no se abrio ni un cuadro del navegador en todo el camino', R.sinPromptNativo, R.sinPromptNativo]
+    ] };
+    function inpV(x) { return { vacio: x.campoVacio }; }
+    function toastsV(x) { return 'toast=' + x.toast10; }
+  })();
+`);
+
+/* ══ PROMPT 5 · PUNTO 2 — EL CARTEL QUE TAPABA LA IMAGEN ═════════════════════════════════════
+   `#clnkav-ov` vive en la capa 700 y los dos visores que la vista previa abre viven mas abajo
+   --400 el de cineloop, 402 el lightbox de una fija--, asi que al tocar una miniatura el visor se
+   abria DEBAJO del cartel y la caja opaca de 440 px le tapaba el centro. No es de un sistema
+   operativo: es orden de capas, y por eso pasaba igual en Windows y en Mac.                   */
+caso('TC-958', 'Punto 2: con el visor abierto el cartel de la vista previa se esconde y vuelve ENTERO -- sus cinco botones con sus manejadores-- al cerrarlo; sin visor no se esconde, y un cartel cerrado de verdad no resucita', `
+  return (async () => {
+    const P = ${JSON.stringify(PENDRIVE)};
+    if (!P.loop) return { extra: [[
+      'hace falta un cineloop real del pendrive', false, 'no se encontro: quedo SIN verificar']] };
+    if (typeof window._clnkPrevTapar !== 'function' || typeof window.clnkPrevDestapar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol esconde el cartel con el visor abierto', false,
+        'no existen _clnkPrevTapar / clnkPrevDestapar']] };
+    }
+    const bytes = x => { const b = atob(x.b64); const a = new Uint8Array(b.length);
+      for (let i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; };
+    const esperar = async (c, n) => { for (let i=0;i<(n||60);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; window.alert = () => {};
+    const R = {};
+    const u = bytes(P.loop);
+    const abrirVisor = async () => {
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      await dcmImgImportar([new File([u], P.loop.nombre)]);
+      await esperar(() => !!_cineDatos, 80);
+      return !!document.getElementById('cine-ov') &&
+             getComputedStyle(document.getElementById('cine-ov')).display !== 'none';
+    };
+    const cov = () => document.getElementById('clnkav-ov');
+    const cinco = () => ['b1','b2','b3','b4','b5'].filter(k => {
+      const b = document.getElementById('clnkav-' + k);
+      return b && b.style.display !== 'none' && String(b.textContent || '') !== '';
+    }).length;
+    let tocado = 0;
+    const cincoBotones = () => [
+      { txt: '← Volver a la pregunta', fn: function () { tocado++; } },
+      { txt: 'dos', fn: function () {} },
+      { txt: 'tres', fn: function () {} },
+      { txt: 'cuatro', fn: function () {} },
+      { txt: 'cinco', fn: function () {} }];
+    try {
+      R.visor1 = await abrirVisor();
+      R.zCine = getComputedStyle(document.getElementById('cine-ov')).zIndex;
+      clnkAvisoAbrir('Vista previa de prueba', 'Mirar no guarda nada.', cincoBotones());
+      R.abrio = !!cov() && cov().style.display === 'flex';
+      R.zAviso = getComputedStyle(cov()).zIndex;
+      R.avisoArriba = Number(R.zAviso) > Number(R.zCine);
+      R.cincoAntes = cinco();
+
+      /* ── TAPAR: el cartel se esconde y el visor queda a la vista ───────────────────── */
+      R.tapo = _clnkPrevTapar() === true;
+      R.escondido = getComputedStyle(cov()).display === 'none';
+      R.visorSigue = getComputedStyle(document.getElementById('cine-ov')).display !== 'none';
+      R.flagSigue = _clnkAvisoAbierto === true;
+      R.cincoTapado = cinco();
+      R.textoSigue = String((document.getElementById('clnkav-txt') || {}).textContent || '');
+      R.textoIntacto = R.textoSigue.indexOf('Mirar no guarda nada') > -1;
+      /* Y no se tapa dos veces: el segundo intento no hace nada. */
+      R.noDuplica = _clnkPrevTapar() === false;
+
+      /* ── CERRAR EL VISOR: el cartel vuelve ENTERO ──────────────────────────────────── */
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.volvio = getComputedStyle(cov()).display === 'flex';
+      R.cincoVuelta = cinco();
+      R.visorCerrado = getComputedStyle(document.getElementById('cine-ov')).display === 'none';
+      /* El primer boton es el que la vista previa usa para «Volver a la pregunta»: que siga
+         respondiendo es lo que prueba que los manejadores no se perdieron. */
+      document.getElementById('clnkav-b1').click();
+      await new Promise(r => setTimeout(r, 80));
+      R.botonAnda = tocado === 1;
+
+      /* ── CONTROL NEGATIVO: sin un visor a la vista NO se esconde nada ──────────────── */
+      clnkAvisoCerrar();
+      tocado = 0;
+      clnkAvisoAbrir('Otra', 'x', [{ txt: 'ok', fn: function () {} }]);
+      R.sinVisorNoTapa = _clnkPrevTapar() === false && getComputedStyle(cov()).display === 'flex';
+      R.sinVisorVista = _clnkPrevVisorALaVista() === false;
+
+      /* ── LA OTRA MITAD DEL PUNTO 2: EL LIGHTBOX DE UNA IMAGEN FIJA ────────────────
+         La vista previa abre DOS visores segun lo que haya en la miniatura, y el de una fija es
+         otro nodo (clnkb-ver, capa 402) con su propio cierre. Sin esto, la mitad del arreglo
+         quedaba sin cubrir y el caso no lo diria. */
+      clnkAvisoCerrar();
+      tocado = 0;
+      clnkAvisoAbrir('Cuarta', 'z', cincoBotones());
+      _clnkbVerFija('', __t.ec5Jpeg(), 0, 1, 'prueba');
+      await new Promise(r => setTimeout(r, 120));
+      R.fijaAbrio = !!document.getElementById('clnkb-ver');
+      R.zFija = R.fijaAbrio ? getComputedStyle(document.getElementById('clnkb-ver')).zIndex : 'SIN NODO';
+      R.fijaDebajo = R.fijaAbrio && Number(R.zFija) < Number(R.zAviso);
+      R.tapoFija = _clnkPrevTapar() === true;
+      R.fijaEscondio = getComputedStyle(cov()).display === 'none';
+      _clnkbVerCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.fijaVolvio = getComputedStyle(cov()).display === 'flex' && cinco() === 5;
+
+      /* ── Y UN CARTEL CERRADO DE VERDAD NO RESUCITA ────────────────────────────────── */
+      clnkAvisoCerrar();
+      R.visor2 = await abrirVisor();
+      clnkAvisoAbrir('Tercera', 'y', cincoBotones());
+      R.tapo2 = _clnkPrevTapar() === true;
+      clnkAvisoCerrar();
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 120));
+      R.noResucita = getComputedStyle(cov()).display === 'none' && _clnkAvisoAbierto === false;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { medApagar(); cineCerrar(); } catch (e) {}
+      window.toast = toastOrig; window.alert = alertOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: el visor del cineloop abrio', R.visor1 === true, R.visor1],
+      ['el cartel abre con sus CINCO botones', R.abrio && R.cincoAntes === 5, R.abrio + ' / ' + R.cincoAntes],
+      ['y vive POR ENCIMA del visor, que es la causa del problema', R.avisoArriba,
+        'aviso=' + R.zAviso + ' visor=' + R.zCine],
+      ['con el visor abierto el cartel se esconde', R.tapo && R.escondido, R.tapo + '/' + R.escondido],
+      ['el visor queda a la vista', R.visorSigue, R.visorSigue],
+      ['pero el aviso NO se cerro: sigue abierto por dentro', R.flagSigue, R.flagSigue],
+      ['sus cinco botones y su texto siguen enteros mientras esta escondido',
+        R.cincoTapado === 5 && R.textoIntacto, R.cincoTapado + ' / ' + R.textoIntacto],
+      ['esconder dos veces no hace nada la segunda', R.noDuplica, R.noDuplica],
+      ['al cerrar el visor el cartel VUELVE', R.volvio && R.visorCerrado, R.volvio + '/' + R.visorCerrado],
+      ['con sus cinco botones', R.cincoVuelta === 5, R.cincoVuelta],
+      ['y el primero -- «Volver a la pregunta»-- sigue respondiendo', R.botonAnda, R.botonAnda],
+      ['el lightbox de una imagen FIJA tambien vive debajo del cartel', R.fijaAbrio && R.fijaDebajo,
+        'fija=' + R.zFija + ' aviso=' + R.zAviso],
+      ['con la fija abierta el cartel se esconde, y vuelve entero al cerrarla',
+        R.tapoFija && R.fijaEscondio && R.fijaVolvio,
+        R.tapoFija + '/' + R.fijaEscondio + '/' + R.fijaVolvio],
+      ['CONTROL: sin un visor a la vista no se esconde nada', R.sinVisorNoTapa && R.sinVisorVista,
+        R.sinVisorNoTapa + '/' + R.sinVisorVista],
+      ['y un cartel que se cerro de verdad no vuelve al cerrar el visor',
+        R.visor2 === true && R.tapo2 === true && R.noResucita, 'visor=' + R.visor2 + ' tapo=' + R.tapo2 + ' no resucita=' + R.noResucita]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 5 · PUNTO 3b — EL MENSAJE QUE QUEDABA PEGADO ═════════════════════════════════════
+   «EcoSmart se desvinculo en este navegador...» vive en el renglon de mensajes de la vinculacion
+   y hasta hoy solo se vaciaba con el modulo apagado o en Modo Basico: se volvia a ver cada vez
+   que el medico entraba a Configuracion, debajo del campo del codigo, como si fuera de un
+   intento recien hecho.                                                                       */
+caso('TC-959', 'Punto 3b: el mensaje de la vinculacion se limpia al abrir el panel y al tocar «Actualizar», y NO lo limpia clnkLeerEstado por su cuenta -- que es lo que dejaria sin mensaje a vincular y a desvincular', `
+  return (async () => {
+    if (typeof window._clnkVmsgLimpiar !== 'function' || typeof window.clnkActualizar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol limpia el mensaje de la vinculacion', false,
+        'no existen _clnkVmsgLimpiar / clnkActualizar']] };
+    }
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const toastOrig = window.toast; window.toast = () => {};
+    try {
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 300));
+      const vm = () => document.getElementById('cfg-clnk-vmsg');
+      R.existe = !!vm();
+      /* El mensaje que quedaba pegado, puesto por la misma via que lo deja «Desvincular». */
+      const poner = () => { if (vm()) vm().textContent = 'EcoSmart se desvinculo en este navegador.'; };
+
+      /* ── A · «Actualizar» lo limpia ──────────────────────────────────────────────── */
+      poner();
+      R.puesto1 = String(vm().textContent || '').length > 0;
+      clnkActualizar();
+      R.limpioActualizar = String(vm().textContent || '') === '';
+
+      /* ── B · abrir el panel lo limpia ───────────────────────────────────────────── */
+      poner();
+      R.puesto2 = String(vm().textContent || '').length > 0;
+      clnkOnMostrar();
+      R.limpioAlAbrir = String(vm().textContent || '') === '';
+
+      /* ── C · y entrar a Configuracion de nuevo tambien, que es el gesto real ────── */
+      poner();
+      showTab('guardados');
+      await new Promise(r => setTimeout(r, 120));
+      showTab('config'); cfgOnShow();
+      await new Promise(r => setTimeout(r, 300));
+      R.limpioAlReabrir = String(vm().textContent || '') === '';
+
+      /* ── D · CONTROL: leer el estado por su cuenta NO lo limpia ──────────────────────────
+         Vincular y desvincular escriben su mensaje y LLAMAN a esa funcion al final: si vaciara
+         el renglon, el medico no veria ninguno de los dos resultados. */
+      poner();
+      clnkLeerEstado();
+      R.leerEstadoNoLimpia = String(vm().textContent || '').length > 0;
+      await new Promise(r => setTimeout(r, 400));
+      R.leerEstadoNoLimpiaTrasVolver = String(vm().textContent || '').length > 0;
+      _clnkVmsgLimpiar();
+
+      /* ── E · y el boton del marcado es el que llama a «Actualizar» ──────────────── */
+      const bs = [].slice.call(document.querySelectorAll('#cfg-card-clnk button'));
+      const act = bs.filter(b => String(b.textContent || '').indexOf('Actualizar') > -1)[0];
+      R.hayBoton = !!act;
+      R.botonLlama = !!act && String(act.getAttribute('onclick') || '').indexOf('clnkActualizar') > -1;
+    } finally {
+      try { _clnkVmsgLimpiar(); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: el renglon de mensajes de la vinculacion esta en el panel', R.existe, R.existe],
+      ['habia un mensaje puesto antes de cada medicion', R.puesto1 && R.puesto2, R.puesto1 + '/' + R.puesto2],
+      ['«Actualizar» lo limpia', R.limpioActualizar, R.limpioActualizar],
+      ['abrir el panel lo limpia', R.limpioAlAbrir, R.limpioAlAbrir],
+      ['y salir de Configuracion y volver tambien', R.limpioAlReabrir, R.limpioAlReabrir],
+      ['CONTROL: leer el estado por su cuenta NO lo limpia -- vincular y desvincular lo llaman al final',
+        R.leerEstadoNoLimpia && R.leerEstadoNoLimpiaTrasVolver,
+        R.leerEstadoNoLimpia + '/' + R.leerEstadoNoLimpiaTrasVolver],
+      ['el boton del panel llama a clnkActualizar y no a clnkLeerEstado',
+        R.hayBoton && R.botonLlama, R.hayBoton + '/' + R.botonLlama]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 5 · PUNTO 4 — «Ir al estudio» ════════════════════════════════════════════════════
+   LA CAUSA: `igImgVisorCerrar` pone `_igVisor` en null, y el manejador leia `_igVisor.id`
+   DESPUES de llamarla. El TypeError se llevaba el manejador entero: la imagen se cerraba --esa
+   parte si corria-- y `verDetalleInforme` no llegaba a correr nunca, con lo que el medico volvia
+   a la galeria tal como estaba. Dos funciones mas abajo, `igImgVisorMedir` ya tenia el arreglo
+   escrito con su comentario: eran las mismas dos lineas, una con la copia del id y la otra sin
+   ella.                                                                                       */
+caso('TC-960', 'Punto 4: «Ir al estudio» desde una imagen de la galeria ABRE el estudio -- la vista de detalle con el nombre del paciente-- y no vuelve a la galeria por una excepcion', `
+  return (async () => {
+    if (typeof window.igImgVisorAbrir !== 'function' || typeof window.verDetalleInforme !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el visor de la galeria y la vista de detalle', false,
+        'no existen igImgVisorAbrir / verDetalleInforme']] };
+    }
+    const R = {};
+    const U = 'ir000000-0000-4000-8000-00000000ir01'.replace('ir0000', 'ab0000').replace('0000ir01', '0000ab01');
+    const PX = __t.ec5Jpeg();
+    const infOrig = window.getInformes;
+    const gOrig = window.imgGuardadoActivo;
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; window.alert = () => {};
+    const errores = [];
+    const onErr = ev => { errores.push(String((ev && ev.message) || ev)); };
+    window.addEventListener('error', onErr);
+    const EL = id => document.getElementById(id);
+    const vis = id => EL(id) ? getComputedStyle(EL(id)).display : 'SIN NODO';
+    try {
+      window.imgGuardadoActivo = () => true;
+      await CeiboImg.guardar(U, [{ dataURL: PX, calidad:'media', origen:'estudio' }], []);
+      window.getInformes = () => [{ id: 7771, uuid: U, nombre:'Paciente Ir Al Estudio', ci:'999',
+        doc_tipo:'CI', fecha_estudio:'2026-11-19', fecha_guardado: Date.now(), campos: {} }];
+      await __t.ec5Esp(40);
+      showTab('guardados');
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      igImgInvalidar();
+      await igImgIndiceCargar();
+      await __t.ec5Esp(250);
+      igImgVisorAbrir(U, 0, 1, false);
+      await __t.ec5Esp(300);
+      R.visorAbrio = !!EL('ig-imgv-ov') && EL('ig-imgv-ov').classList.contains('open');
+      R.tieneId = !!_igVisor && _igVisor.id === 7771;
+      R.hayBoton = !!EL('ig-imgv-ir');
+      /* DENOMINADOR: antes del gesto, el detalle esta cerrado y la lista abierta. Sin esto,
+         «el detalle quedo abierto» no distingue el arreglo de un detalle que ya estaba. */
+      R.antesDetalle = vis('ig-detalle-view');
+      R.antesLista = vis('ig-lista-view');
+      R.denom = R.antesDetalle === 'none' && R.antesLista !== 'none';
+      errores.length = 0;
+      /* EL GESTO REAL: el clic en el boton, no la funcion por dentro. */
+      EL('ig-imgv-ir').click();
+      await __t.ec5Esp(400);
+      R.visorCerro = !!EL('ig-imgv-ov') && !EL('ig-imgv-ov').classList.contains('open');
+      R.detalleAbrio = vis('ig-detalle-view') === 'block';
+      R.listaEscondida = vis('ig-lista-view') === 'none';
+      R.diceElPaciente = String((EL('ig-detalle-view') || {}).textContent || '').indexOf('Paciente Ir Al Estudio') > -1;
+      R.sinExcepcion = errores.length === 0;
+      R.errores = errores.join(' | ').slice(0, 140);
+    } finally {
+      window.removeEventListener('error', onErr);
+      try { if (typeof volverAListaInformes === 'function') volverAListaInformes(); } catch (e) {}
+      try { if (typeof igVistaCambiar === 'function') igVistaCambiar('inf'); } catch (e) {}
+      try { await CeiboImg.borrar(U); } catch (e) {}
+      window.getInformes = infOrig; window.imgGuardadoActivo = gOrig;
+      window.toast = toastOrig; window.alert = alertOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: el visor de la imagen abrio con su estudio identificado',
+        R.visorAbrio && R.tieneId && R.hayBoton, R.visorAbrio + '/' + R.tieneId + '/' + R.hayBoton],
+      ['DENOMINADOR: antes del gesto el detalle estaba cerrado', R.denom,
+        'detalle=' + R.antesDetalle + ' lista=' + R.antesLista],
+      ['al tocar «Ir al estudio» la imagen se cierra', R.visorCerro, R.visorCerro],
+      ['y la vista de DETALLE del estudio queda abierta', R.detalleAbrio, vis('ig-detalle-view')],
+      ['con la lista escondida detras', R.listaEscondida, R.listaEscondida],
+      ['y es el estudio de ESA imagen: dice su paciente', R.diceElPaciente, R.diceElPaciente],
+      ['sin una sola excepcion en el camino', R.sinExcepcion, R.errores || '(ninguna)']
     ] };
   })();
 `);

@@ -163,6 +163,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la ALINEACIÓN de las dos vistas del visor** —la plantilla única de barra, el «✕ Cerrar vista» de cada vista, el prefijo libre, la columna de 340 px con su corte de 1369 px—, **el RESULTADO integrado abajo y centrado**, **la TABLA que se muda a la columna de la vista activa**, **«+ Vista» con IMÁGENES FIJAS** —su marca, la deduplicación por nombre/cuadros/bytes o los homónimos distinguidos— o **el SIMPSON bloqueado en una vista de imagen fija** | `docs/mapa/medir4a-vistas-cierre.md` |
 | **Tocar el PANEL del visor** —el negro de los costados, el tope del modal, el selector FIJO con su scroller—, **la TABLA de una medida por fila** con su valor grande, **el GLOBO ⓘ del panel de medición**, **el orden del VI o el Diam TSVI en Aorta**, **los BOTONES de la barra y su contraste**, **la CALIBRACIÓN DE VELOCIDAD con dos valores** con su línea del cero y el modo M, **el FAC del VD** o **la banda de «Vmax pulmonar»** | `docs/mapa/medir3-panel-botones-calibracion.md` |
+| **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
@@ -279,7 +280,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,50 MB / 186.399 líneas**, medido con `wc -c` y `wc -l` el 2026-11-18 al cierre del **prompt 4** (la diástole sin conteos, el TRIV, Referencias y el aviso), sobre el árbol ya sellado: sello **`v20261118-1640`**, md5 **`ec205ee0`**.
+  sin frameworks. Hoy **13,51 MB / 186.658 líneas**, medido con `wc -c` y `wc -l` el 2026-11-19 al cierre del **prompt 5** (la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio»), sobre el árbol ya sellado: sello **`v20261119-1634`**, md5 **`6ff0372e`**.
+  El diff del prompt 5 son **281 líneas agregadas y 22 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `35a7c97` —el cierre del prompt 4, que era a la vez `origin/main`—
+  **sobre el árbol ya sellado**, de las que **262** no son comentario, con **CERO** `innerHTML`,
+  `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y **CERO** `input`, `select` y
+  `textarea` nuevos con `id` — que es lo que deja todo esto fuera del censo del estudio y del Excel
+  **por construcción**: **cero campos guardados nuevos** y las **457** columnas quietas. El único
+  id que el diff muestra en el marcado es `eco-build-sello`, que ya existía y reaparece porque el
+  sello cambió; el cuadro nuevo de milímetros **no lleva un solo `id`** y se alcanza por
+  `data-med-calmm`, justamente para no entrar a ese censo por existir.
+  **Y CERO cálculos, cero cortes, cero umbrales y cero fórmulas**: lo que esta tanda movió son
+  textos, un orden de capas y dos líneas de navegación.
+  ⚠️ **POR QUINCUAGÉSIMA PRIMERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 35a7c97:index.html` da **186.399**
+  líneas, **13.498.944** bytes y el md5 **`ec205ee0`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,50 MB / 186.399 al cierre del **prompt 4**, sello **`v20261118-1640`**, md5 **`ec205ee0`**.)
   El diff del prompt 4 son **475 líneas agregadas y 112 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `4d5c0a4` —el último commit pusheado— **sobre el árbol ya sellado**,
   de las que **424** no son comentario, con **CERO** `eval(` y `new Function` nuevos, **CERO**
@@ -1441,6 +1458,121 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**El prompt 5 (2026-11-19) — la calibración en milímetros, el cartel que tapaba el visor, los dos
+textos de CeiboLink y «Ir al estudio».** CUATRO arreglos chicos y un commit. Sello
+**`v20261119-1634`**, md5 **`6ff0372e`**, **186.658** líneas. Línea base **`35a7c97`**, que era a
+la vez `origin/main` y el último commit pusheado. **Sin push: lo corre Maicol.**
+
+**NADA DE CÁLCULO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas, cero
+unidades internas. Lo que cambió son **textos**, un **orden de capas** y **dos líneas de
+navegación**. Y **CERO** `input`, `select` y `textarea` nuevos con `id`, que deja todo esto fuera
+del censo del estudio y del Excel **por construcción**: cero campos guardados nuevos y las **457**
+columnas quietas.
+
+**PUNTO 1 — LA CALIBRACIÓN A MANO HABLA EN MILÍMETROS EN LOS DOS LUGARES, Y EL NÚMERO HAY QUE
+ESCRIBIRLO.** El cartel de la guía decía «escribí cuántos **centímetros** hay entre los dos» y el
+cuadro que aparecía después preguntaba «en **milímetros**» **con «10» ya escrito**: quien leía el
+cartel y aceptaba ese 10 se quedaba con la escala **diez veces mal**, y desde ahí cada distancia de
+esa imagen salía diez veces chica **con el aspecto de un número medido**. No hay segunda red: en
+una fija del ecógrafo la escala manual es la única que esa imagen tiene.
+El `prompt` nativo se reemplazó por un cuadro propio —`_medCalPedirMm`, que devuelve una promesa—
+porque un cuadro del navegador **no puede** llevar la unidad al lado ni un botón que se niegue a
+aceptar un campo vacío. **El campo nace vacío**, el botón **arranca apagado** y se prende recién
+con un número mayor que cero, al lado dice **mm** y debajo **«1 cm = 10 mm»**. La confirmación
+—**«Escala fijada: la línea marcada = N mm»**— sale del **dueño único** `_medCalFrase` y la dicen
+el aviso del momento **y** el panel guía cada vez que se vuelve a medir, delante del factor por
+píxel, que se queda porque es lo único que permite auditar una medición.
+⚠️ **NI UN SOLO `id` EN SUS NODOS**: el censo, el Excel y `limpiarCampos` recorren `input[id]`, así
+que un campo con id entraría a las 457 columnas **por existir**. Se alcanza por `data-med-calmm`,
+el mismo recurso que el selector de cineloop — y es lo que permite que la prueba lo maneje **con el
+gesto real**, escribiendo y apretando, en vez de sustituir una función del navegador.
+⚠️ **LA VISTA SE CAPTURA ANTES DEL `await` Y SE VUELVE A ENTRAR EN ELLA PARA ESCRIBIR.** `cv.onclick`
+va envuelto en `_vBind`, cuyo `finally` repone la vista anterior en cuanto la parte **sincrónica**
+vuelve: con un `await` en el medio, calibrar en la vista B escribiría en la **A**. Con el `prompt`
+nativo el problema no existía porque bloqueaba el hilo — es el precio de haberlo cambiado, y es la
+misma trampa que «Listo» del Simpson y `vistaCerrarUna` ya pagaron. Y **se vuelve a mirar el estado
+después del `await`**: si la imagen cambió, `medCambioDeImagen` ya apagó `_medCalibrando` y el largo
+recién escrito es de una imagen que ya no está. **Falla hacia NO calibrar.**
+El texto de la **velocidad** nombra ahora su propia unidad —**m/s**, la que su cuadro pide— y de
+paso deja de describir mal el mecanismo de MEDIR-3: son **dos valores cualesquiera** y no «el cero
+y otro». **La velocidad sigue con dos `prompt` nativos** y el **eje del tiempo sigue sin calibrarse
+a mano** (**P5-d**, **P5-e**).
+
+**PUNTO 2 — EL CARTEL DE LA VISTA PREVIA DEJA DE TAPAR LA IMAGEN, Y LA CAUSA ERA ORDEN DE CAPAS.**
+`#clnkav-ov` vive en la **capa 700**; el visor de cineloop en la **400** y el lightbox de una fija
+en la **402**, así que el visor se abría **debajo** y la caja opaca de 440 px le tapaba el centro.
+**No es de un sistema operativo**: por eso pasaba igual en Windows y en Mac. Hoy
+`_clnkPrevTapar()` lo **esconde** —y no lo cierra: `clnkAvisoCerrar` apaga el estado, **olvida el
+grupo** y borra los cinco manejadores, con lo que «← Volver a la pregunta» se quedaría sin nada a
+donde volver— y `clnkPrevDestapar()` lo repone desde los **dos** cierres de visor.
+⚠️ **NO SE TOCÓ LA CAPA DE NINGÚN MODAL**, que es la otra forma de arreglarlo y pondría el visor por
+encima de todo lo demás. ⚠️ **SE TAPA DESPUÉS DE ABRIR EL VISOR**: si el visor no llegó a abrirse,
+el cartel se queda visible, que es el lado seguro. ⚠️ **Y NO REPONE UN CARTEL QUE YA SE CERRÓ**: con
+`_clnkAvisoAbierto` en falso, reponer el `display` dibujaría un **modal fantasma** con sus botones
+apuntando a una pregunta que ya no existe.
+
+**PUNTO 3 — LOS DOS TEXTOS DE LA TARJETA.** «Es la que conviene dar.» pasa a **«CeiboLink sugiere
+ésta.»**: la marca de `probable` la pone **el conector** y esta app no la puede verificar —no sabe
+si el adaptador que el sistema llama «Wi-Fi» es inalámbrico, ni al revés—, así que dicho como
+recomendación propia un acierto y un error se leen igual. Y el mensaje de la vinculación **deja de
+quedar pegado**: `_clnkVmsgLimpiar` lo vacía en **un** lugar y lo llaman «🔄 Actualizar» —que pasó a
+tener su propia función— y la apertura del panel.
+⚠️ **EL VACIADO NO VA DENTRO DE `clnkLeerEstado`, Y ES LA DECISIÓN DE FONDO**: `clnkVincular` y
+`clnkDesvincular` escriben su mensaje y **la llaman al final**, así que vaciarlo ahí borraría el
+resultado que acaban de escribir. **TC-959 lo fija con un control explícito.**
+
+**PUNTO 4 — «Ir al estudio» ABRE EL ESTUDIO, Y LA CAUSA ESTÁ MEDIDA.** `igImgVisorCerrar` pone
+`_igVisor` en `null`, y el manejador leía `_igVisor.id` **después** de llamarla: el **TypeError** se
+llevaba el manejador entero, la imagen se cerraba —esa parte sí corría— y `verDetalleInforme` **no
+llegaba a correr nunca**. Reproducido contra `35a7c97`: `Uncaught TypeError: Cannot read properties
+of null (reading 'id')`.
+⚠️ **Y DOS FUNCIONES MÁS ABAJO, `igImgVisorMedir` YA TENÍA EL ARREGLO ESCRITO CON SU COMENTARIO
+explicando esta misma trampa**: eran las mismas dos líneas, una con la copia del id y la otra sin
+ella — por eso «Medir» abría el estudio y «Ir al estudio» no. El arreglo es copiar el id a una local
+antes de cerrar, **no toca ninguna otra pantalla** y **«Medir» no se tocó**, por orden expresa.
+
+**Cobertura: TC-957 a TC-960**, los cuatro cayendo **0/4 contra `35a7c97`** con el mismo archivo de
+casos —tres por su denominador declarado y **TC-960 por sus condiciones reales, con la excepción
+en la mano**—. **DOS casos adaptados: TC-187**, que pasa a manejar el cuadro propio con el gesto
+real y gana una condición, y **TC-838**, **INVERTIDO** (exige la frase nueva **y** que la vieja ya
+no esté); los dos caen también contra la línea base.
+⚠️ **TC-187 ES SENSIBLE AL LOTE Y NO ES DE ESTA TANDA, y está medido**: con `--solo` falla por
+cuatro condiciones de su **primer** bloque —el de la escala del archivo, que esta tanda no toca— y
+falla **igual, por las mismas cuatro y con la misma tolerancia, contra el árbol anterior y con el
+archivo de casos anterior**. Corriendo solo, el canvas no tiene ancho útil y los dos clics se mapean
+al mismo punto. **En su lote sale verde** (**P5-a**).
+⚠️ **Y EL SUSTITUTO DEL `prompt` SE DEJÓ PUESTO EN TC-187 COMO RED**: contra un árbol viejo el cuadro
+nativo **bloquea la página para siempre** y la batería entera queda colgada esperando un clic que
+nadie da. **Lo pagó una corrida de verificación de esta tanda.**
+
+**Línea base al cierre: suite 963/968**, en **DIECIOCHO** lotes cubriendo los **968 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol sellado, con los **968 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`6ff0372e`) y el pendrive `DISK_IMG` verificado **veinte** veces leyendo DICOMDIR, con sus **343**
+archivos de `GEMS_IMG` declarados en cada control. Los rojos son **TC-182, TC-376, TC-406, TC-551 y
+TC-903**, los cinco que esta casa ya declara conocidos. **NINGÚN ROJO NUEVO**, y los cuatro casos
+nuevos, los dos adaptados y **TC-753** en verde.
+
+⚠️ **Y EL LOTE 18 SE REHIZO ENTERO DESPUÉS DE LA PASADA, con su motivo**: al revisar la cobertura
+se vio que TC-958 ejercitaba **un solo** visor —el del cineloop— y la vista previa abre **dos**,
+porque el lightbox de una imagen fija es otro nodo con su propia capa y su propio cierre. O sea que
+la mitad del arreglo del punto 2 estaba sin cubrir y el caso no lo decía. Se le agregaron dos
+condiciones y el lote entero volvió a correr: **33/33**, con el md5 de `index.html` **idéntico**
+al abrir y al cerrar. **No se rehizo la pasada completa**: `index.html` no cambió y el único
+archivo que se movió fue el de casos. Es el mismo criterio con que la 3A y el prompt 4 no
+rehicieron la suya.
+
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **17 de 17
+bloques de JS inline parsean.** **CELULAR: 38 ALTA**, la línea base exacta. **CERO `innerHTML`,
+`eval(` y `new Function` nuevos** y cero claves ni contraseñas.
+⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, TRES VECES EN ESTA TANDA** —en el cuerpo de
+dos casos y en una adaptación—, por trigésima tanda seguida. Las tres las cazó el guardián que
+cuenta los acentos graves **antes** de insertar, más `node --check`.
+
+El mapa, en `docs/mapa/p5-calibracion-capas-navegacion.md`; lo declarado, en **P5-a** a **P5-g**;
+la guía manual, en `docs/GUIA_PRUEBA_P5.md` (**14** pasos); el corredor de lotes, en
+`scripts/_lotes_p5.sh`.
 
 **El prompt 4 (2026-11-18) — la diástole sin conteos, la dobutamina, el TRIV, Referencias y el
 aviso de independencia.** NUEVE puntos y SEIS commits de código, uno por tema. Sello
