@@ -183139,8 +183139,59 @@ window.clnkAvisoPreguntar = clnkAvisoPreguntar;
    médico ve cuántas son antes de adjuntar, y que adjuntar es un gesto suyo y no automático. */
 var CLNK_VENTANA_MS = 120000;
 
-function clnkAgrupar(lista) {
+/* ══ BLOQUE C y J · SE AGRUPA POR EL `lote` DEL PUENTE, NO POR UNA VENTANA PROPIA ════════════
+   El contrato §P8 lo dice con todas las letras: «no inventes un campo propio para esto: el
+   `lote` del puente ya existe, y uno propio los haria chocar», y «no dupliques el plazo: usa
+   `lote_cierra`, que ya viene calculado». Hasta el prompt 6 esta funcion juntaba por equipo y
+   por hora con `CLNK_VENTANA_MS`, su propia copia de los dos minutos.
+
+   Con `lote` en las imagenes se agrupa por `lote` y punto. SIN `lote` —un puente 1.1— se cae a
+   la ventana propia, que es lo que el bloque J conserva: ese camino NO se borra y queda
+   declarado como el viejo y no como la regla.
+
+   `tandas` es opcional y es de la 1.4: de ahi sale `enCuarentena`, que es lo unico que dice
+   cuantas de esa tanda NO estan en la lista. */
+function clnkAgrupar(lista, tandas) {
   var l = (Array.isArray(lista) ? lista : []).filter(function (i) { return i && i.id; });
+  var porLote = l.length > 0 && l.every(function (i) { return i.lote; });
+  if (porLote) {
+    var ms0 = function (i) { var t = Date.parse(String(i.recibida || '')); return isFinite(t) ? t : NaN; };
+    var mapa = Object.create(null), orden = [];
+    l.forEach(function (i) {
+      var k = String(i.lote);
+      if (!mapa[k]) {
+        mapa[k] = { equipo: String(i.equipo || ''), lote: k, ids: [], imagenes: [],
+                    primero: NaN, ultimo: NaN };
+        orden.push(k);
+      }
+      var g = mapa[k];
+      g.ids.push(i.id); g.imagenes.push(i);
+      var t = ms0(i);
+      if (isFinite(t)) {
+        if (!isFinite(g.primero) || t < g.primero) g.primero = t;
+        if (!isFinite(g.ultimo) || t > g.ultimo) g.ultimo = t;
+      }
+    });
+    /* ══ LA CUARENTENA SE CUENTA SOBRE **TODAS** LAS TANDAS, NO SOBRE LA PROPIA ══════════════
+       Y eso sale de medir el contrato, no de una preferencia: la cuarentena es POR EQUIPO y un
+       lote es por equipo, asi que `en_cuarentena` de la tanda de un grupo VISIBLE es siempre
+       cero —si su equipo estuviera sin autorizar, ninguna de sus imagenes saldria en la lista—.
+       Contarlo por lote dejaria la frase de §P8 inalcanzable.
+       Lo que §P8 describe es otra cosa: «llegaron 3 del Sonoscape, autoriza el equipo para
+       verlas». Las tandas que vienen con `en_cuarentena` son las de OTRO equipo, el que espera
+       decision, y por eso `imagenes` no las trae. El total es lo que le dice al medico que lo
+       que va a ver al tocar el cartel es MENOS de lo que llego.
+       Sin la lista queda en cero, y cero es lo correcto: no se puede afirmar que haya algo
+       esperando sin el dato. */
+    if (Array.isArray(tandas)) {
+      var cuar = 0;
+      tandas.forEach(function (t) { cuar += Math.max(0, Number(t && t.en_cuarentena) || 0); });
+      if (cuar > 0) orden.forEach(function (k) { mapa[k].enCuarentena = cuar; });
+    }
+    /* Las tandas que NO tienen ni una imagen en la lista —todas en cuarentena— no forman grupo:
+       no hay nada que adjuntar ni que descartar. De esas avisa el aviso de equipo nuevo. */
+    return orden.map(function (k) { return mapa[k]; });
+  }
   /* Por equipo y por hora. `Date.parse` sobre el ISO con «Z» del contrato; lo que no se entiende
      va al final y forma grupo aparte, en vez de ordenarse como si fuera el instante cero. */
   var ms = function (i) { var t = Date.parse(String(i.recibida || '')); return isFinite(t) ? t : NaN; };
@@ -183176,9 +183227,78 @@ window.clnkAgrupar = clnkAgrupar;
    cerró el aviso el lunes no volviera a verlo nunca, con las imágenes esperando en el conector. */
 var _clnkAvisadas = Object.create(null);
 
-/* El nombre del equipo para el aviso: el apodo si tiene, y si no el AET. Se lee de la lista de
-   equipos, que es la única que trae el apodo. */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE D · LAS QUE EL MEDICO YA HABIA DESCARTADO
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   LA CAUSA, MEDIDA EN EL BLOQUE 0 Y NO LEIDA: el puente deriva el `id` de cada imagen del
+   CONTENIDO del archivo, asi que el mismo archivo re-enviado vuelve con el MISMO id. Para
+   `clnkRevisarImagenes` eso es indistinguible de «esta imagen ya se aviso», que es la regla de
+   `_clnkAvisadas`. Reproducido con el gesto del medico: aviso -> descartar -> el ecografo manda
+   las mismas -> el aviso NO sale. Con la lista vaciada a mano y sin tocar nada mas, vuelve.
+
+   ⚠️ NO ALCANZA CON VACIAR LA LISTA ENTERA AL DESCARTAR, y por eso hay dos listas y no una. Esa
+   lista cumple un trabajo real: sin ella, un aviso que el medico cerro con la ✕ vuelve a abrirse
+   en el sondeo siguiente, cada quince segundos. Lo que hay que olvidar son los ids que SE
+   DESTRUYERON, que son los unicos de los que se sabe que lo que vuelva con ese id es un envio
+   NUEVO.
+
+   `_clnkDescartadas` es lo que permite DECIRLO, que es la otra mitad del pedido: el medico tiene
+   que saber que esas que ve son las que el acaba de borrar y que el ecografo las volvio a
+   mandar, o va a creer que la app no las borro.
+
+   ⚠️ EN MEMORIA Y NO PERSISTIDO, igual que `_clnkAvisadas` y por el mismo motivo: en disco, el
+   medico que descarto algo el lunes seguiria leyendo «ya las habias descartado» un mes despues. */
+var _clnkDescartadas = Object.create(null);
+
+/* Marca en el grupo cuantas de sus imagenes el medico ya habia descartado en esta sesion. */
+function _clnkRepetidas(g) {
+  var n = 0;
+  (g.ids || []).forEach(function (id) { if (_clnkDescartadas[id]) n++; });
+  g.nRepetidas = n;
+  return g;
+}
+window._clnkRepetidas = _clnkRepetidas;
+
+/* El nombre del equipo para el aviso. Se lee de la lista de equipos, que es la única que trae el
+   apodo y `nombre_para_mostrar`. */
 var _clnkNombreEq = Object.create(null);
+
+/* ══ BLOQUE C e I · COMO SE NOMBRA UN EQUIPO, EN UN SOLO LUGAR ═══════════════════════════════
+   EL ORDEN ES: el apodo si está, y si no `nombre_para_mostrar`; el `aet` queda como último
+   recurso y para RECONOCER al equipo entre dos sondeos, no para mostrarlo. Es lo que el
+   contrato §3.4 recomienda textualmente.
+
+   EL DEFECTO QUE CIERRA: con `apodo || aet` el equipo del buzón se veía **«BUZON:»** crudo —con
+   los dos puntos y en mayúsculas—, que es lo que el médico vio en Windows. `nombre_para_mostrar`
+   lo trae ya resuelto por el puente: «Buzón de esta computadora».
+
+   ⚠️ NO SE TRADUCE EL PREFIJO ACÁ, y es una decisión. El contrato §P5 dice que desde la 1.4 «el
+   prefijo NO hay que traducirlo en EcoSmart». Dos traducciones —la del puente y una propia—
+   serían dos textos que se separan el día que el puente agregue una tercera carpeta. Contra un
+   puente 1.3.x el campo no viene y ahí sí vale la regla vieja, que es el bloque J y vive en
+   `clnkNombreEqDe`. */
+function clnkNombreEqDe(e) {
+  if (!e) return '';
+  var ap = (e.apodo != null) ? String(e.apodo).trim() : '';
+  if (ap) return ap;
+  var npm = (e.nombre_para_mostrar != null) ? String(e.nombre_para_mostrar).trim() : '';
+  if (npm) return npm;
+  /* ══ BLOQUE J · LA REGLA VIEJA, contra un puente 1.3.x que no manda el campo ══════════════
+     Leer el prefijo del `aet`, que es lo que §P5 dice que «sigue valiendo» si hay que sostener
+     las dos versiones. Sin esto, contra un puente viejo el equipo del buzón volvería a verse
+     «BUZON:» crudo — que es el defecto que este bloque vino a cerrar. */
+  var aet = String(e.aet || '');
+  if (aet.indexOf('BUZON:') === 0) {
+    var s1 = aet.slice(6);
+    return s1 ? ('Buzón de esta computadora, carpeta «' + s1 + '»') : 'Buzón de esta computadora';
+  }
+  if (aet.indexOf('ENTRADA:') === 0) {
+    var s2 = aet.slice(8);
+    return s2 ? ('Carpeta de entrada, carpeta «' + s2 + '»') : 'Carpeta de entrada';
+  }
+  return aet || String(e.id || '');
+}
+window.clnkNombreEqDe = clnkNombreEqDe;
 
 async function _clnkCargarNombresEq() {
   var r = await clnkPedir('/v1/equipos', { conToken: true, espera: 5000 });
@@ -183186,8 +183306,7 @@ async function _clnkCargarNombresEq() {
   var l = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
   l.forEach(function (e) {
     if (!e || !e.id) return;
-    var ap = (e.apodo != null) ? String(e.apodo).trim() : '';
-    _clnkNombreEq[String(e.id)] = ap || String(e.aet || e.id);
+    _clnkNombreEq[String(e.id)] = clnkNombreEqDe(e);
   });
 }
 
@@ -183244,16 +183363,57 @@ var _clnkAvisoGrupo = null;
 function _clnkAvisoTexto(g, nom, cuando) {
   /* `cuando` ya viene con su preposición —«a las 23:43», «ayer a las 23:43»—, que es lo que
      permite que la fecha entre sin que el texto diga «a las ayer». */
-  return 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops) + ' del equipo ' + nom +
-         (cuando ? ' ' + cuando : '') + '.';
+  var t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
+          ' del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
+  /* ══ BLOQUE D · LAS QUE EL MEDICO YA HABIA DESCARTADO ══════════════════════════════════════
+     El puente deriva el `id` del contenido, asi que el MISMO archivo re-enviado vuelve con el
+     mismo id. Decirlo evita que el medico crea que las que acaba de borrar «volvieron solas»
+     por un defecto de la app. */
+  if (g.nRepetidas) {
+    t += ' ' + (g.nRepetidas === 1 ? 'Una de ellas ya la habías descartado'
+                                   : g.nRepetidas + ' de ellas ya las habías descartado') +
+         ': el ecógrafo las volvió a mandar.';
+  }
+  /* ══ BLOQUE C · LA CUARENTENA ══════════════════════════════════════════════════════════════
+     §P8 lo pide con todas las letras: una tanda con imagenes en cuarentena NO las publica en
+     `imagenes`, asi que sin esta frase el medico toca el cartel y llega a una lista mas corta
+     que el numero que leyo —o vacia—. */
+  if (g.enCuarentena) {
+    t += ' ' + (g.enCuarentena === 1 ? 'Otra está esperando' : 'Otras ' + g.enCuarentena + ' están esperando') +
+         ' que autorices el equipo: hasta entonces no se pueden ver.';
+  }
+  return t;
 }
 
-/* Cuenta por tipo de un grupo. `tipo` lo manda CeiboLink en su lista: «imagen» es una fija y
-   «video» es un cineloop. Es lo que la decisión 2 pide y lo único que la lista permite. */
+/* ══ BLOQUE C · LA CLASE DE UNA IMAGEN, EN UN SOLO LUGAR ═════════════════════════════════════
+   Las cuatro clases son DISJUNTAS y se deciden en ESTE orden, que no es arbitrario:
+
+     1 · `tipo === 'informe'` manda sobre todo lo demas. Un PDF tampoco se puede ver, pero
+         «1 informe» le dice al medico MAS que «1 archivo que no se puede ver»;
+     2 · `se_puede_ver === false` manda sobre el tipo. Un TIF llega con `tipo: 'imagen'` y
+         NINGUN navegador de los que el medico usa lo dibuja: contarlo como imagen le promete
+         que lo va a poder mirar, que es el defecto que reporto;
+     3 · `tipo === 'video'` es un cineloop;
+     4 · lo que queda es una imagen.
+
+   ⚠️ SE COMPARA CONTRA `false` Y NO CON UN `!`: contra un puente 1.1 el campo NO VIENE, y
+   `!undefined` es verdadero — con lo que TODAS las imagenes de un DICOM se contarian como «no
+   se pueden ver». Es la mitad del bloque J que vive aca. */
+function _clnkClase(i) {
+  if (!i) return 'fija';
+  if (String(i.tipo) === 'informe') return 'informe';
+  if (i.se_puede_ver === false) return 'noVer';
+  if (String(i.tipo) === 'video') return 'loop';
+  return 'fija';
+}
+window._clnkClase = _clnkClase;
+
+/* Cuenta por clase de un grupo. */
 function _clnkTipos(g) {
-  var f = 0, v = 0;
-  (g.imagenes || []).forEach(function (i) { if (String(i.tipo) === 'video') v++; else f++; });
-  g.nFijas = f; g.nLoops = v;
+  var c = { fija: 0, loop: 0, informe: 0, noVer: 0 };
+  (g.imagenes || []).forEach(function (i) { c[_clnkClase(i)]++; });
+  g.nFijas = c.fija; g.nLoops = c.loop;
+  g.nInformes = c.informe; g.nNoVer = c.noVer;
   return g;
 }
 
@@ -183275,7 +183435,8 @@ async function clnkRevisarImagenes(forzar) {
   var r = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
   if (!r.vigente || !r.ok) return false;
   var lista = (r.datos && Array.isArray(r.datos.imagenes)) ? r.datos.imagenes : [];
-  var todos = clnkAgrupar(lista).map(_clnkTipos);
+  var tandas = (r.datos && Array.isArray(r.datos.tandas)) ? r.datos.tandas : null;
+  var todos = clnkAgrupar(lista, tandas).map(_clnkTipos).map(_clnkRepetidas);
 
   /* ── ACTUALIZAR EL CARTEL ABIERTO ─────────────────────────────────────────────────────
      El grupo que corresponde es el del MISMO equipo que contiene alguno de los ids que el
@@ -184120,7 +184281,8 @@ async function clnkVistaPrevia() {
       [{ txt: 'Cerrar', fn: function () { clnkAvisoCerrar(); } }]);
     return false;
   }
-  var gs = clnkAgrupar(lista).map(_clnkTipos);
+  var gs = clnkAgrupar(lista, (r.datos && Array.isArray(r.datos.tandas)) ? r.datos.tandas : null)
+             .map(_clnkTipos).map(_clnkRepetidas);
   var g = gs[0];
   await _clnkCargarNombresEq();
   var nom = _clnkNombreEq[g.equipo] || g.equipo || 'el ecógrafo';
@@ -184322,7 +184484,17 @@ async function clnkDescartar(ids) {
     var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]),
                             { metodo: 'DELETE', conToken: true, espera: 8000 });
     if (!r.vigente) { clnkAvisoCerrar(); return ok; }
-    if (r.ok || r.estado === 404) ok++; else mal++;
+    if (r.ok || r.estado === 404) {
+      ok++;
+      /* ══ BLOQUE D · SE OLVIDA EL ID QUE SE ACABA DE DESTRUIR ════════════════════════════
+         Es la mitad del arreglo. Esa imagen ya no existe en el puente, asi que lo que vuelva
+         con ese id es un envio NUEVO y tiene que avisar. Y se anota en la otra lista, que es
+         lo que deja DECIRLE al medico que las volvio a mandar el ecografo.
+         ⚠️ SOLO LOS QUE SE BORRARON DE VERDAD: un 503 deja la imagen en el puente, y olvidarla
+         ahi haria que el sondeo siguiente volviera a avisar de algo que el medico ya decidio. */
+      try { delete _clnkAvisadas[l[i]]; } catch (e) {}
+      _clnkDescartadas[l[i]] = true;
+    } else mal++;
   }
   clnkAvisoCerrar();
   if (typeof toast === 'function') {
@@ -185020,6 +185192,15 @@ async function _clnkSondear(forzado) {
     /* El módulo pudo apagarse mientras esto volvía y `vigente` no lo cubre si nadie subió el
        token de generación —apagarlo lo sube, pero esconder la pestaña no—. */
     if (!clnkSondeoDebe()) return;
+    /* ══ BLOQUE D · LA SEGUNDA CAUSA: EL SONDEO PONE AL DIA LA TARJETA ══════════════════════
+       MEDIDO EN EL BLOQUE 0: con el panel A LA VISTA y la lista vacia, la tarjeta decia «sin
+       imagenes esperando»; entraban OCHO y se sondeaba, y seguia diciendo lo MISMO. Solo
+       `clnkLeerEstado()` a mano la movia. Es el otro sintoma que el medico reporto —«la tarjeta
+       de CeiboLink tambien queda en 0 aunque el puente las tiene»— y es INDEPENDIENTE de la
+       lista de avisadas: con esa lista vacia, la tarjeta se quedaba vieja igual.
+       `clnkRefrescar` trae sus dos guardas puestas —el panel a la vista y el agrupado de 400 ms—
+       asi que con Configuracion cerrada esto no manda un solo pedido. */
+    try { clnkRefrescar(); } catch (e) {}
     /* EQUIPO NUEVO PRIMERO: hasta que el médico decida, las imágenes de ese equipo están en
        cuarentena y NO salen en la lista (§3.8), así que avisar de las imágenes antes sería
        mandarlo a buscar algo que todavía no puede levantar. */
@@ -185054,7 +185235,8 @@ async function _clnkSondear(forzado) {
           try {
             var rl = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
             if (rl.ok && rl.vigente && rl.datos && Array.isArray(rl.datos.imagenes)) {
-              var gs = clnkAgrupar(rl.datos.imagenes);
+              var gs = clnkAgrupar(rl.datos.imagenes,
+                        Array.isArray(rl.datos.tandas) ? rl.datos.tandas : null);
               if (gs.length) nFin = gs[gs.length - 1].ids.length;
             }
           } catch (e) {}
@@ -185231,13 +185413,25 @@ window._clnkEsSR = _clnkEsSR;
 /* Cuántos archivos de cada tipo, para el texto del aviso. `tipo` lo manda CeiboLink en su lista
    (§3.8, «imagen» o «video»); desde el pendrive no se sabe sin abrir cada archivo, así que ahí el
    texto cuenta archivos y no tipos — decir «3 imágenes» sobre un cineloop sería mentir. */
-function dstCuenta(n, nFijas, nLoops) {
+/* ══ BLOQUE C · LA CUENTA, EN CUATRO CLASES ══════════════════════════════════════════════════
+   EL DEFECTO QUE CIERRA: esta funcion contaba DOS clases —«video» era un cineloop y TODO LO
+   DEMAS una fija—, asi que un TXT de un informe se contaba como «1 imagen». El medico lo vio en
+   Windows el 19/11 y es exactamente lo que reporto.
+   Las cuatro son DISJUNTAS y se reparten en el orden de `_clnkClase`, que es donde vive la
+   regla. Los dos ultimos argumentos son OPCIONALES: los tres llamadores viejos siguen pasando
+   dos y reciben el mismo texto que antes. */
+function dstCuenta(n, nFijas, nLoops, nInformes, nNoVer) {
   if (nFijas === null || nFijas === undefined) {
     return n + (n === 1 ? ' archivo' : ' archivos');
   }
   var p = [];
   if (nFijas) p.push(nFijas + (nFijas === 1 ? ' imagen' : ' imágenes'));
   if (nLoops) p.push(nLoops + (nLoops === 1 ? ' cineloop' : ' cineloops'));
+  if (nInformes) p.push(nInformes + (nInformes === 1 ? ' informe' : ' informes'));
+  if (nNoVer) p.push(nNoVer + (nNoVer === 1 ? ' archivo que no se puede ver'
+                                            : ' archivos que no se pueden ver'));
+  /* Con tres o cuatro partes, «y» entre todas se lee mal: coma hasta la ultima. */
+  if (p.length > 2) return p.slice(0, -1).join(', ') + ' y ' + p[p.length - 1];
   return p.length ? p.join(' y ') : (n + (n === 1 ? ' archivo' : ' archivos'));
 }
 window.dstCuenta = dstCuenta;

@@ -152468,6 +152468,376 @@ caso('TC-962', 'Bloque B: cerrado con la equis se achica a una burbuja con el nu
   })();
 `);
 
+/* == PROMPT 6 . BLOQUE C -- EL TEXTO DEL CARTEL ==============================================
+   `dstCuenta` contaba DOS clases: «video» era un cineloop y TODO LO DEMAS una fija, asi que un
+   TXT de un informe salia como «1 imagen». El medico lo vio en Windows el 19/11. Y el equipo del
+   buzon se veia «BUZON:» crudo, porque la fila dibujaba el apodo o, si no, el AET.            */
+caso('TC-963', 'Bloque C: el cartel cuenta por separado imagenes, cineloops, informes y los que no se pueden ver; nombra al equipo en criollo; avisa de la cuarentena; y el apodo entra por textContent', `
+  return (async () => {
+    if (typeof window._clnkClase !== 'function' || typeof window.clnkNombreEqDe !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol clasifica por las cuatro clases y nombra al equipo', false,
+        'no existen _clnkClase / clnkNombreEqDe']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* ── A · LAS CUATRO CLASES, UNA POR UNA, SOBRE EL CLASIFICADOR UNICO ───────────
+         El orden importa y por eso se prueban los cruces: un TIF llega con tipo «imagen» y
+         NINGUN navegador lo dibuja, y un PDF tampoco se ve pero «informe» dice mas. */
+      R.clases = {
+        jpg: _clnkClase({ tipo: 'imagen',  se_puede_ver: true }),
+        mp4: _clnkClase({ tipo: 'video',   se_puede_ver: true }),
+        pdf: _clnkClase({ tipo: 'informe', se_puede_ver: false }),
+        tif: _clnkClase({ tipo: 'imagen',  se_puede_ver: false }),
+        avi: _clnkClase({ tipo: 'video',   se_puede_ver: false }),
+        des: _clnkClase({ tipo: 'archivo', se_puede_ver: false }),
+        /* CONTRA UN PUENTE 1.1 EL CAMPO NO VIENE: un DICOM de siempre tiene que seguir
+           contandose como imagen, y no como «no se puede ver». */
+        viejo: _clnkClase({ tipo: 'imagen' }),
+        viejoLoop: _clnkClase({ tipo: 'video' })
+      };
+
+      /* ── B · dstCuenta DICE LAS CUATRO ─────────────────────────────────────────── */
+      R.cuenta4 = dstCuenta(7, 2, 1, 1, 3);
+      R.cuenta1 = dstCuenta(1, 0, 0, 1, 0);
+      R.cuentaVieja = dstCuenta(4, 3, 1);
+      R.cuentaSinTipos = dstCuenta(3, null, null);
+
+      /* ── C · EL CARTEL DE UNA TANDA DEL BUZON CUENTA POR SEPARADO ────────────────
+         La escena trae un JPG, un MP4, un PDF y un TIF del mismo equipo de carpeta. */
+      await ctl({ equipos: 4, escena: 'tandaBuzon' });
+      await esp(200);
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      R.cAbierto = abierto();
+      R.cTxt = txt();
+      R.cDiceImagen = R.cTxt.indexOf('1 imagen') > -1;
+      R.cDiceLoop = R.cTxt.indexOf('1 cineloop') > -1;
+      R.cDiceInforme = R.cTxt.indexOf('1 informe') > -1;
+      R.cDiceNoVer = R.cTxt.indexOf('1 archivo que no se puede ver') > -1;
+      /* EL DEFECTO DEL MEDICO: cuatro archivos contados como cuatro imagenes. */
+      R.cNoDiceCuatro = R.cTxt.indexOf('4 im') === -1;
+      /* ── D · EL EQUIPO SE NOMBRA EN CRIOLLO, no con el AET crudo ───────────────── */
+      R.dDiceBuzon = R.cTxt.indexOf('n de esta computadora') > -1;
+      R.dSinCrudo = R.cTxt.indexOf('BUZON:') === -1;
+      clnkAvisoCerrar();
+
+      /* ── E · EL NOMBRE, SOBRE EL DUENIO UNICO: las filas de la tabla del contrato ─ */
+      R.nom = {
+        ecografo: clnkNombreEqDe({ aet: 'GE_VIVID_01', nombre_para_mostrar: 'GE_VIVID_01', apodo: null }),
+        buzon: clnkNombreEqDe({ aet: 'BUZON:', nombre_para_mostrar: 'Buzon de esta computadora', apodo: null }),
+        apodoManda: clnkNombreEqDe({ aet: 'BUZON:', nombre_para_mostrar: 'Buzon de esta computadora',
+                                     apodo: 'Sonoscape del consultorio' }),
+        /* BLOQUE J · contra un puente 1.3.x el campo no viene y vale la regla vieja. */
+        sinCampoBuzon: clnkNombreEqDe({ aet: 'BUZON:sonoscape', apodo: null }),
+        sinCampoEntrada: clnkNombreEqDe({ aet: 'ENTRADA:', apodo: null }),
+        sinCampoEcografo: clnkNombreEqDe({ aet: 'GE_VIVID_01', apodo: null })
+      };
+
+      /* ── F · LA CUARENTENA: el cartel dice que hay que autorizar el equipo ───────
+         La escena trae una imagen visible del equipo autorizado y UNA en cuarentena de un
+         equipo que espera decision: la lista no la trae, asi que sin esta frase el medico toca
+         el cartel y llega a una lista mas corta que el numero que leyo. */
+      await ctl({ equipos: 2, escena: 'cuarentena' });
+      await esp(200);
+      const im = await GET('/v1/imagenes');
+      R.fVisibles = (im.imagenes || []).length;
+      R.fTandas = (im.tandas || []).length;
+      R.fCuarEnTandas = (im.tandas || []).reduce((a, t) => a + (t.en_cuarentena || 0), 0);
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      R.fTxt = txt();
+      R.fDiceAutorizar = R.fTxt.indexOf('autorices el equipo') > -1;
+      clnkAvisoCerrar();
+      /* CONTROL NEGATIVO: sin nada en cuarentena, la frase NO esta. */
+      await ctl({ equipos: 1, escena: 'masNuevas' });
+      await esp(200);
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      R.fSinCuarTxt = txt();
+      R.fNoDiceAutorizar = R.fSinCuarTxt.indexOf('autorices el equipo') === -1;
+      clnkAvisoCerrar();
+
+      /* ── G · TODO LO QUE ESCRIBE UNA PERSONA ENTRA POR textContent ───────────────
+         El apodo del equipo con marcado adentro: ni un elemento inyectado en el cartel. */
+      await ctl({ equipos: 1 });
+      const eqs = await GET('/v1/equipos');
+      const idEq = eqs.equipos[0].id;
+      await fetch(F.base + '/v1/equipos/' + idEq, { method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + TK() },
+        body: JSON.stringify({ apodo: 'Eco <img src=x onerror=1> raro' }) });
+      await ctl({ escena: 'unaSuelta2' });
+      await esp(200);
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      const nodo = EL('clnkav-txt');
+      R.gTxt = String((nodo || {}).textContent || '');
+      R.gDiceLiteral = R.gTxt.indexOf('Eco <img src=x onerror=1> raro') > -1;
+      R.gCeroElementos = nodo ? nodo.querySelectorAll('*').length : -1;
+      R.gCeroImg = document.querySelectorAll('#clnkav-ov img[onerror]').length;
+      clnkAvisoCerrar();
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['el clasificador reparte en CUATRO clases disjuntas: un JPG es imagen y un MP4 cineloop',
+        R.clases.jpg === 'fija' && R.clases.mp4 === 'loop',
+        R.clases.jpg + '/' + R.clases.mp4],
+      ['un PDF es INFORME, aunque tampoco se pueda ver', R.clases.pdf === 'informe', R.clases.pdf],
+      ['un TIF NO es imagen: es «no se puede ver» -- el defecto que el medico reporto',
+        R.clases.tif === 'noVer', R.clases.tif],
+      ['un AVI y un desconocido tampoco', R.clases.avi === 'noVer' && R.clases.des === 'noVer',
+        R.clases.avi + '/' + R.clases.des],
+      ['CONTROL 1.1: sin el campo del puente un DICOM sigue siendo imagen y un multicuadro cineloop',
+        R.clases.viejo === 'fija' && R.clases.viejoLoop === 'loop',
+        R.clases.viejo + '/' + R.clases.viejoLoop],
+      ['la cuenta dice las cuatro, con coma hasta la ultima',
+        R.cuenta4.indexOf('2 im') > -1 && R.cuenta4.indexOf('1 cineloop') > -1 &&
+        R.cuenta4.indexOf('1 informe') > -1 && R.cuenta4.indexOf('3 archivos que no se pueden ver') > -1,
+        R.cuenta4],
+      ['en singular tambien', R.cuenta1.indexOf('1 informe') > -1, R.cuenta1],
+      ['CONTROL: los llamadores viejos, con dos cuentas, reciben el MISMO texto que antes',
+        R.cuentaVieja.indexOf('3 im') > -1 && R.cuentaVieja.indexOf('1 cineloop') > -1 &&
+        R.cuentaVieja.indexOf('informe') === -1 && R.cuentaSinTipos.indexOf('3 archivos') > -1,
+        R.cuentaVieja + ' | ' + R.cuentaSinTipos],
+      ['DENOMINADOR: el cartel de la tanda del buzon abrio', R.cAbierto, R.cAbierto],
+      ['y cuenta POR SEPARADO la imagen, el cineloop, el informe y el que no se puede ver',
+        R.cDiceImagen && R.cDiceLoop && R.cDiceInforme && R.cDiceNoVer, R.cTxt],
+      ['sin contar los cuatro como imagenes', R.cNoDiceCuatro, R.cTxt],
+      ['el equipo del buzon se nombra en criollo y NO con el AET crudo',
+        R.dDiceBuzon && R.dSinCrudo, 'dice=' + R.dDiceBuzon + ' sinCrudo=' + R.dSinCrudo],
+      ['el duenio unico del nombre: un ecografo se dice por su AET y el buzon en criollo',
+        R.nom.ecografo === 'GE_VIVID_01' && R.nom.buzon === 'Buzon de esta computadora',
+        R.nom.ecografo + ' | ' + R.nom.buzon],
+      ['y el APODO manda sobre los dos', R.nom.apodoManda === 'Sonoscape del consultorio', R.nom.apodoManda],
+      ['BLOQUE J: sin el campo del puente vale la regla vieja del prefijo del AET',
+        R.nom.sinCampoBuzon.indexOf('carpeta') > -1 &&
+        R.nom.sinCampoEntrada === 'Carpeta de entrada' &&
+        R.nom.sinCampoEcografo === 'GE_VIVID_01',
+        R.nom.sinCampoBuzon + ' | ' + R.nom.sinCampoEntrada + ' | ' + R.nom.sinCampoEcografo],
+      ['DENOMINADOR: el puente informa una tanda en cuarentena que NO esta en la lista',
+        R.fVisibles === 1 && R.fTandas === 2 && R.fCuarEnTandas === 1,
+        'visibles=' + R.fVisibles + ' tandas=' + R.fTandas + ' cuar=' + R.fCuarEnTandas],
+      ['con algo en cuarentena el cartel dice que hay que autorizar el equipo',
+        R.fDiceAutorizar, R.fTxt],
+      ['CONTROL NEGATIVO: sin nada en cuarentena esa frase NO esta',
+        R.fNoDiceAutorizar, R.fSinCuarTxt],
+      ['el apodo que escribe una persona entra por textContent: se ve LITERAL y cero elementos',
+        R.gDiceLiteral && R.gCeroElementos === 0 && R.gCeroImg === 0,
+        'literal=' + R.gDiceLiteral + ' elementos=' + R.gCeroElementos + ' img=' + R.gCeroImg]
+    ] };
+  })();
+`);
+
+/* == PROMPT 6 . BLOQUE D -- LAS IMAGENES REPETIDAS ===========================================
+   LA CAUSA SON DOS COSAS INDEPENDIENTES, medidas en el bloque 0 con el gesto del medico:
+     1 - `_clnkAvisadas` no se vaciaba al descartar, y el puente deriva el `id` del CONTENIDO,
+         asi que el mismo archivo re-enviado vuelve con el mismo id;
+     2 - el sondeo NUNCA refrescaba la tarjeta: con el panel a la vista entraban ocho imagenes y
+         los chips seguian diciendo «sin imagenes esperando».
+   Este caso fija las dos, con el control de que la equis sigue sin reabrir el aviso -- que es el
+   trabajo que la lista de avisadas hace y que no se podia romper al arreglar la primera.      */
+caso('TC-964', 'Bloque D: descartadas y re-enviadas vuelven a avisar diciendo que ya las habia descartado, un borrado que fallo NO se olvida, y el sondeo pone al dia la tarjeta', `
+  return (async () => {
+    if (typeof window._clnkRepetidas !== 'function' || typeof window.clnkDescartar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol recuerda lo que el medico descarto', false,
+        'no existen _clnkRepetidas / clnkDescartar']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    const chips = () => { const n = EL('cfg-clnk-nums'); return n ? String(n.textContent || '') : ''; };
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* ── A · LLEGA UN ENVIO Y SE AVISA ──────────────────────────────────────────── */
+      await ctl({ escena: 'unEnvio' });
+      await _clnkSondear(true);
+      await esp(900);
+      R.aAbrio = abierto();
+      R.aAvisadas = Object.keys(window._clnkAvisadas || {}).length;
+
+      /* ── B · SE DESCARTA: el puente las borra y la app OLVIDA sus ids ──────────── */
+      await clnkDescartar(['img_a1', 'img_a2', 'img_a3']);
+      await esp(900);
+      const e1 = await ctl({});
+      R.bBorradas = (e1.escenario.borradas || []).length;
+      R.bPendientes = e1.escenario.imagenes_pendientes;
+      R.bOlvido = !window._clnkAvisadas['img_a1'] && !window._clnkAvisadas['img_a2'] &&
+                  !window._clnkAvisadas['img_a3'];
+      R.bAnoto = !!(window._clnkDescartadas && window._clnkDescartadas['img_a1']);
+
+      /* ── C · EL ECOGRAFO MANDA LAS MISMAS: el aviso SALE ───────────────────────── */
+      await ctl({ escena: 'unEnvio' });
+      await esp(200);
+      await _clnkSondear(true);
+      await esp(1100);
+      R.cAbrio = abierto();
+      R.cTxt = txt();
+      R.cDiceRepetidas = R.cTxt.indexOf('ya las hab') > -1 || R.cTxt.indexOf('ya la hab') > -1;
+      R.cDiceVolvio = R.cTxt.indexOf('volvi') > -1 && R.cTxt.indexOf('mandar') > -1;
+      clnkAvisoCerrar();
+
+      /* ── D · CONTROL: la equis NO hace que vuelva a avisar en la misma sesion ────
+         Es lo que la lista de avisadas protege, y lo que NO se podia romper al arreglar C: sin
+         ella el aviso se reabre cada quince segundos sobre lo mismo. */
+      await ctl({ escena: 'unaSuelta' });
+      await esp(200);
+      await _clnkSondear(true); await esp(900);
+      R.dAbrio1 = abierto();
+      clnkAvisoCerrar();
+      await _clnkSondear(true); await esp(900);
+      R.dReabrio = abierto();
+      clnkAvisoCerrar();
+
+      /* ── E · CONTROL: una que el puente NO pudo borrar no se olvida ──────────────
+         Un 503 deja la imagen en el puente: olvidarla haria que el sondeo siguiente volviera a
+         avisar de algo que el medico ya decidio. */
+      await ctl({ reset: true, equipos: 1, escena: 'unaSuelta3' });
+      await esp(200);
+      await _clnkSondear(true); await esp(900);
+      R.eAviso = abierto();
+      await ctl({ orthancCaido: true });
+      await clnkDescartar(['img_z3']);
+      await esp(700);
+      R.eSigueAvisada = !!window._clnkAvisadas['img_z3'];
+      R.eNoAnotada = !(window._clnkDescartadas || {})['img_z3'];
+      await ctl({ orthancCaido: false });
+      clnkAvisoCerrar();
+
+      /* ── F · LA SEGUNDA CAUSA: EL SONDEO PONE AL DIA LA TARJETA ──────────────────
+         Con el panel A LA VISTA: lista vacia, entran OCHO, se sondea, y los chips tienen que
+         moverse SIN que nadie apriete «Actualizar». */
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(700);
+      clnkLeerEstado();
+      await esp(900);
+      R.fALaVista = clnkPanelALaVista();
+      R.fAntes = chips();
+      await ctl({ escena: 'previaOcho' });
+      await esp(200);
+      await _clnkSondear(true);
+      await esp(1500);
+      R.fTras = chips();
+      R.fSeMovio = R.fAntes !== R.fTras && R.fTras.indexOf('8 im') > -1;
+      clnkAvisoCerrar();
+      /* CONTROL: con el panel ESCONDIDO la guarda de clnkRefrescar sigue puesta. */
+      showTab('informe');
+      await esp(500);
+      R.fEscondido = clnkPanelALaVista();
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el primer envio aviso', R.vinculado && R.aAbrio,
+        R.vinculado + '/' + R.aAbrio],
+      ['DENOMINADOR: las tres quedaron marcadas como avisadas', R.aAvisadas >= 3, R.aAvisadas],
+      ['DENOMINADOR: el puente las borro de verdad', R.bBorradas === 3 && R.bPendientes === 0,
+        'borradas=' + R.bBorradas + ' pendientes=' + R.bPendientes],
+      ['al descartar, la app OLVIDA esos ids -- es la causa que el bloque 0 midio',
+        R.bOlvido, R.bOlvido],
+      ['y los ANOTA como descartados, para poder decirlo', R.bAnoto, R.bAnoto],
+      ['con las MISMAS imagenes de vuelta, el aviso SALE', R.cAbrio, R.cAbrio],
+      ['y dice que ya las habia descartado', R.cDiceRepetidas, R.cTxt],
+      ['y que el ecografo las volvio a mandar', R.cDiceVolvio, R.cTxt],
+      ['CONTROL: cerrar con la equis sigue NO reabriendo el aviso en la misma sesion',
+        R.dAbrio1 && !R.dReabrio, 'abrio=' + R.dAbrio1 + ' reabrio=' + R.dReabrio],
+      ['CONTROL: una que el puente NO pudo borrar no se olvida ni se anota',
+        R.eAviso && R.eSigueAvisada && R.eNoAnotada,
+        'aviso=' + R.eAviso + ' sigue=' + R.eSigueAvisada + ' noAnotada=' + R.eNoAnotada],
+      ['DENOMINADOR: el panel estaba a la vista y arrancaba sin imagenes esperando',
+        R.fALaVista && R.fAntes.indexOf('sin im') > -1, R.fALaVista + ' | ' + R.fAntes],
+      ['el SONDEO pone al dia la tarjeta: los chips se mueven sin apretar «Actualizar»',
+        R.fSeMovio, R.fAntes + '  ->  ' + R.fTras],
+      ['CONTROL: con el panel escondido la guarda de clnkRefrescar sigue puesta',
+        R.fEscondido === false, R.fEscondido]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la

@@ -194,6 +194,12 @@ function escenas() {
        olvida el grupo y VUELVE a avisar»-- recibia «no hay nada que avisar» y daba rojo sobre
        una app que se porta bien. Un id por escena que necesite un aviso NUEVO. */
     unaSuelta2: () => [ img('img_z2', 'eq_3f8a1c', iso(t0 + 100000), 'imagen', uno) ],
+    /* UNA CUARTA, con su propio id. Por la MISMA razon, pagada por cuarta vez: el bloque G de
+       TC-963 usa `unaSuelta2`, asi que el bloque E de TC-964 --que necesita «hay un aviso NUEVO
+       en pantalla» como denominador para despues probar un borrado que falla-- recibia «no hay
+       nada que avisar» y el caso daba rojo en su denominador. UN ID POR ESCENA QUE NECESITE UN
+       AVISO NUEVO. */
+    unaSuelta3: () => [ img('img_z3', 'eq_3f8a1c', iso(t0 + 104000), 'imagen', uno) ],
     /* DOS de 16 MB del mismo envio, para saber si el pico de memoria se ACUMULA o si el camino
        de a una suelta el buffer de la anterior. Es la pregunta que la orden hace. */
     dosGrandes: () => {
