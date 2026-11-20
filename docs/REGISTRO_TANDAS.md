@@ -58,7 +58,23 @@ en WebKit.
 **El arnés:** `scripts/_conector_falso.mjs` pasa a hablar el contrato **1.4** con una compuerta por
 versión, dieciséis escenas nuevas y un **MP4 real de 1.491 bytes** generado con ffmpeg y embutido
 como texto. El corredor de lotes es `scripts/_lotes_p6.sh` y la guía manual
-`docs/GUIA_PRUEBA_P6.md`, en catorce pasos.
+`docs/GUIA_PRUEBA_P6.md`, en catorce pasos —QUINCE desde el cierre de P6-j—.
+
+**El cierre de P6-j y P6-k (2026-11-20), cuatro commits.** Sello **`v20261120-1207`**, md5
+**`555ee5c0`**, **187.983** líneas; línea base `ad38d37`. **P6-j**: la guarda del **disparo** del
+rebote de `clnkRefrescar` gana **`document.hidden`** —una línea de código y nueve de comentario—,
+así que con la pestaña del navegador tapada no sale ni un pedido: medido con
+`scripts/_probe_p6_845.mjs`, de **cuatro a CERO**, con `clnkPanelALaVista()` todavía en `true` ahí
+—esa función **no se tocó**—. **P6-k**: el conector falso gana **`unaSuelta4`** y el bloque D de
+TC-964 deja de gastarle el aviso a TC-970; `index.html` no se toca.
+**TC-845, TC-964 y TC-970 pasan 1/1 aislados** y **TC-961 a TC-970 da 10/10**. **Suite 966/978** en
+dieciocho lotes, UNA pasada, md5 idéntico antes y después, con los dos arreglados en verde;
+**Semgrep 126/0**, **celular 38 ALTA**, sin huérfanos nuevos y **17/17** de JS inline —las cuatro la
+línea base—.
+⚠️ De los doce rojos, **TC-753 tenía razón** —la pasada corrió antes de escribir la
+documentación— y **SEIS son intermitentes del entorno que NO son de estos arreglos**: en un
+worktree sobre `ad38d37`, con el mismo archivo de casos, fallan **6 de 6**, y corridos solos
+**0/1 los seis**. Declarados en **P6-l** y **P6-m**, sin aflojar una condición.
 
 **Qué NO se tocó, con su motivo:** once cosas en `docs/PENDIENTES.md` → **P6-a** a **P6-k**. Las
 que necesitan decisión de Maicol: si con dos equipos mandando a la vez se deben ofrecer las dos

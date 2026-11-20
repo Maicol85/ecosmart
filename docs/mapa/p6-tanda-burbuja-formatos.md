@@ -153,16 +153,22 @@ todas las letras.
 aviso que el médico cerró con la ✕ vuelve cada quince segundos. Se olvidan **sólo** los ids que se
 destruyeron, y **sólo** si el puente los borró de verdad — un 503 deja la imagen allá.
 
-### ⚠️ ABIERTO · el `clnkRefrescar()` del sondeo manda cuatro pedidos con la pestaña oculta
+### ✅ CERRADO el 2026-11-20 · el `clnkRefrescar()` del sondeo mandaba cuatro pedidos con la pestaña oculta
 
-**TC-845 (D) está rojo por esto y NO se arregló**: la ficha entera, con la causa medida y el
-arreglo de una línea, está en `docs/PENDIENTES.md` → **P6-j**. En corto: ese `clnkRefrescar()` arma
+**La guarda del DISPARO del rebote pregunta también por `document.hidden`** (commit `4dc264c`, sello
+`v20261120-1207`), así que con la pestaña del navegador tapada **no sale ni un pedido**: medido, de
+cuatro a **cero**, con `clnkPanelALaVista()` **todavía en `true`** ahí —esa función **no se tocó**—.
+⚠️ **Si alguna vez hay que volver acá: la línea va en el callback del rebote y NO adentro de
+`clnkPanelALaVista`**, que la leen seis sumideros donde la pestaña del navegador está a la vista por
+definición; y `clnkSondeoDebe()` no sirve de reemplazo porque pide además el vínculo. El diagnóstico
+entero está en `docs/PENDIENTES.md` → **P6-j**, y la sonda en `scripts/_probe_p6_845.mjs`.
+
+**Cómo era, que es lo que explica por qué la línea existe:** ese `clnkRefrescar()` arma
 un rebote de **400 ms** en **cada** turno del sondeo, y cuando dispara su guarda
 `clnkPanelALaVista()` sigue diciendo que sí —mide la **caja del nodo**, y esconder la pestaña del
-navegador no le quita la caja—, así que la cadena de `clnkLeerEstado` sale igual. La compuerta del
-sondeo **funciona** y el temporizador queda apagado: es **una** ronda de cuatro pedidos a loopback,
-una sola vez. **Antes de tocarlo, leer P6-j**: `clnkPanelALaVista` la leen seis sumideros y no se
-toca, y `clnkSondeoDebe()` no sirve de reemplazo porque pide además el token.
+navegador no le quita la caja—, así que hasta el 20/11 la cadena de `clnkLeerEstado` **salía
+igual**. La compuerta del sondeo **funcionaba** y el temporizador quedaba apagado: era **una** ronda
+de cuatro pedidos a loopback, una sola vez —no era grave, pero era tráfico que nadie pidió—.
 
 ---
 
@@ -340,7 +346,7 @@ motores, dos temas, cuatro anchos y movimiento reducido). Cada una con su cuerpo
 aparte, que es la lección de MEDIR-4b.
 
 **El corredor de lotes:** `scripts/_lotes_p6.sh`. **La guía manual:**
-`docs/GUIA_PRUEBA_P6.md`, catorce pasos.
+`docs/GUIA_PRUEBA_P6.md`, QUINCE pasos desde el cierre de P6-j, que le agregó el de la pestaña tapada.
 
 **El insertador de casos:** el cuerpo de cada caso se escribió en su propio archivo y se insertó
 con un script que **le quita los acentos graves una vez, con su guardia**. Es la lección de

@@ -281,7 +281,16 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,60 MB / 187.974 líneas**, medido con `wc -c` y `wc -l` el 2026-11-20 al cierre del **prompt 6** (la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo), sobre el árbol ya sellado: sello **`v20261120-0019`**, md5 **`0a1b2c03`**.
+  sin frameworks. Hoy **13,60 MB / 187.983 líneas**, medido con `wc -c` y `wc -l` el 2026-11-20 al cierre del **cierre de P6-j y P6-k** (el rebote del sondeo con la pestaña oculta y la escena propia de TC-964), sobre el árbol ya sellado: sello **`v20261120-1207`**, md5 **`555ee5c0`**.
+  El diff de ese cierre son **TRECE líneas agregadas y CUATRO quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `ad38d37` **sobre el árbol ya sellado**, de las que **UNA sola no es
+  comentario** —`if (document.hidden) return;`, dentro del rebote de `clnkRefrescar`—, con **cero**
+  `innerHTML`, `eval(` y `new Function` nuevos, **cero** ids nuevos —el único que el diff muestra,
+  `eco-build-sello`, ya existía y reaparece porque el sello cambió— y **cero** `input`, `select` y
+  `textarea` nuevos: las **457** columnas quietas y cero campos guardados nuevos, **por
+  construcción**. Las otras doce son **NUEVE** de comentario —el que declara por qué esa línea va
+  ahí y no adentro de `clnkPanelALaVista`— y las **TRES** del sello.
+  (Antes: 13,60 MB / 187.974 al cierre del **prompt 6**, sello **`v20261120-0019`**, md5 **`0a1b2c03`**.)
   El diff del prompt 6 son **1.389 líneas agregadas y 73 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `7873930` —el cierre del prompt 5— **sobre el árbol ya sellado**, de
   las que **1.166** no son comentario, con **CERO** `eval(` y `new Function` nuevos, **CERO**
@@ -1481,6 +1490,74 @@ impecable.
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
+**El cierre de P6-j y P6-k (2026-11-20) — el rebote del sondeo con la pestaña oculta y la escena
+propia de TC-964.** DOS arreglos y CUATRO commits. Sello **`v20261120-1207`**, md5 **`555ee5c0`**,
+**187.983** líneas. Línea base **`ad38d37`**, el cierre del prompt 6. **Sin push: lo corre Maicol.**
+
+**P6-j — LA GUARDA DEL DISPARO GANA UNA LÍNEA, Y NADA MÁS.** TC-845 (D) exigía **cero** pedidos al
+conector con la pestaña del navegador oculta y salían **cuatro** —la cadena entera de
+`clnkLeerEstado`—. La compuerta del sondeo funcionaba y el temporizador quedaba apagado: lo que
+aterrizaba era el **rebote de 400 ms** que el bloque D arma en **cada** turno, armado con la pestaña
+a la vista y disparado adentro de la ventana en que ya no lo está. Hoy la guarda del disparo
+pregunta también por **`document.hidden`**.
+⚠️ **NO SE TOCÓ `clnkPanelALaVista`, Y ES LA DECISIÓN DE FONDO**: esa función mide la **caja del
+nodo** —y hace bien, porque esconder la pestaña del navegador no le quita la caja: medido, devuelve
+`true` con la pestaña oculta— y la leen **seis** sumideros donde esa pestaña está a la vista por
+definición. Y **no sirve `clnkSondeoDebe()`** en su lugar: pide además el vínculo, así que
+cambiaría la conducta de esos seis.
+**Medido con `scripts/_probe_p6_845.mjs`**, con su control de la hipótesis: la escena 1 pasa de
+**cuatro pedidos a CERO**, con `clnkPanelALaVista()` **todavía en `true`** ahí —o sea que esa
+función no cambió—, y la escena 2 —el rebote disparado **antes** de ocultar— sigue en **cero**.
+
+**P6-k — UNA ESCENA CON IDS PROPIOS, Y `index.html` NO SE TOCA.** TC-970 pasaba **3 de 3 aislado** y
+salía rojo en el lote 18 porque el bloque **D de TC-964** —del mismo lote— usaba la escena
+`unaSuelta` y le **gastaba el aviso**: el aviso no vuelve por las mismas imágenes en la misma
+sesión y los 978 casos corren en UNA página. El conector falso gana **`unaSuelta4`** —id `img_z4`—
+y el bloque apunta ahí. **Quinta vez que esta casa paga esa trampa**, y la quinta escena con id
+propio por el mismo motivo.
+⚠️ **Y AL ESCRIBIR SU COMENTARIO PAGUÉ EL ACENTO GRAVE DENTRO DEL CUERPO DE UN CASO**, por
+trigesimosegunda tanda seguida. `node --check` lo cazó con un «missing ) after argument list» que
+apuntaba a la línea del `caso(` y no a la del acento.
+
+**LO MEDIDO.** **TC-845, TC-964 y TC-970 pasan 1/1 corridos aislados**, y el grupo **TC-961 a
+TC-970 da 10/10**. **Semgrep 126 WARNING / 0 ERROR**, **celular 38 ALTA**, **sin huérfanos nuevos**
+y **17 de 17** bloques de JS inline parsean —las cuatro la línea base exacta, corridas **una por
+vez** con la máquina sola—.
+
+**Suite completa: 966/978**, en los **dieciocho** lotes, en UNA sola pasada sobre el árbol sellado,
+con los **978 ejecutados**, el md5 de `index.html` **idéntico** antes y después (`555ee5c0`) y el
+pendrive `DISK_IMG` verificado **veinte** veces con sus **343** archivos de `GEMS_IMG`. **TC-845 y
+TC-970 en verde**, que es lo que esta pasada venía a arreglar.
+Los rojos son **doce**: los **cinco** conocidos —TC-182, TC-376, TC-406, TC-551 y TC-903—,
+**TC-753** y **SEIS** intermitentes.
+⚠️ **TC-753 TENÍA RAZÓN, Y ES UN COSTO DE ORDEN QUE QUEDA ESCRITO**: la pasada corrió **antes** de
+escribir la documentación, así que el árbol ya estaba sellado en `v20261120-1207` y `CLAUDE.md`
+todavía publicaba `v20261120-0019`. Con la documentación al día **vuelve a verde** y su **lote 14 se
+rehizo entero**. **El sello se escribe acá ANTES de la pasada, o el caso sale rojo con razón.**
+⚠️ **Y LOS SEIS INTERMITENTES —TC-99, TC-147, TC-347, TC-348, TC-350 y TC-796— NO SON DE ESTOS DOS
+ARREGLOS, y está medido de la forma que esta casa manda**: en un worktree sobre **`ad38d37`** —el
+árbol **anterior**, md5 `0a1b2c03`, el mismo que la pasada de ayer dejó en 971/978—, con el
+**mismo** archivo de casos y el mismo conector falso y sólo el `index.html` distinto, los seis
+fallan **6 de 6**; en el árbol vivo esa misma selección da **5 de 6**, o sea que el viejo falla
+**más**. Y los seis fallan **corridos estrictamente solos**: **0/1 los seis**, así que no es
+sensibilidad de lote.
+**La causa visible es la CDN sin llegar a tiempo** —TC-347 lo dice con todas las letras, «flujo=NO
+HAY jsPDF», el mismo síntoma que TC-535 y TC-143 ya tienen declarado— y flapea: tres corridas de la
+misma terna dieron **1/3** y **0/3**.
+⚠️ **PERO LA CDN NO ESTÁ CAÍDA, Y ESO QUEDA SIN EXPLICAR**: `curl` le saca el jsPDF en **0,43 a
+0,56 s**, y una sonda propia que abre `index.html` en el mismo Chrome y espera **seis segundos**
+encuentra los **cinco** scripts en **200** y `jspdf`, `Chart` y `XLSX` **definidos**. El archivo
+llega; lo que no alcanza es el momento en que el caso mide. **TC-796 falla por otra cosa** —«0
+editables»— y **TC-99** por una condición de contenido, así que no todos comparten la causa.
+**Ninguna condición se aflojó y ningún caso se tocó**: los seis quedan declarados en **P6-l**, con
+lo que falta medirles —cuatro corridas de cada lado, que es lo que esta casa exige para un
+intermitente—. **TC-99** y **TC-147** ya estaban declarados como intermitentes; los otros cuatro no,
+y quedan declarados ahora.
+
+Lo declarado, en **P6-j** y **P6-k** (RESUELTOS), **P6-l** (los seis intermitentes) y **P6-m**
+(TC-753); el mapa, en `docs/mapa/p6-tanda-burbuja-formatos.md` § 4; la guía, en
+`docs/GUIA_PRUEBA_P6.md`, con su paso de la pestaña oculta.
+
 **El prompt 6 (2026-11-20) — la tanda, la burbuja, los formatos del buzón y los datos del
 ecógrafo.** ONCE bloques, A a K, y los once se hicieron. OCHO commits, uno por bloque o por par de
 bloques. Sello **`v20261120-0019`**, md5 **`0a1b2c03`**, **187.974** líneas. Línea base
@@ -1672,7 +1749,7 @@ de comando contiene esa cadena—, así que no termina nunca. La suite había ce
 
 El mapa, en `docs/mapa/p6-tanda-burbuja-formatos.md`; el inventario del bloque 0, en
 `docs/INVENTARIO_P6.md`; lo declarado, en **P6-a** a **P6-k**; la guía manual contra CeiboLink
-1.4.0 real, en `docs/GUIA_PRUEBA_P6.md` (**14** pasos); las sondas, en `scripts/_probe_p6base.mjs`,
+1.4.0 real, en `docs/GUIA_PRUEBA_P6.md` (**14** pasos; **15** desde el cierre de P6-j); las sondas, en `scripts/_probe_p6base.mjs`,
 `_probe_p6a.mjs`, `_probe_p6b0.mjs`, `_probe_p6b.mjs`, `_probe_p6dos.mjs` y
 `_probe_p6_845.mjs` —la del defecto—, cada una con su cuerpo aparte; el corredor de lotes, en
 `scripts/_lotes_p6.sh`.

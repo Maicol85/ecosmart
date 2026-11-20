@@ -215,13 +215,26 @@ acciones», rotulado como «Nombre que declara el equipo (AET)».
 Ponele un apodo a uno de los equipos de carpeta: «Sonoscape del consultorio». Desde ahí, el apodo
 **manda** sobre el nombre en criollo, en la fila y en el cartel.
 
-## 13 · Lo que no se puede probar sin romper nada
+## 13 · El sondeo se calla con la pestaña tapada
+
+Con el panel de CeiboLink **a la vista** y el ecógrafo mandando, abrí otra pestaña del navegador y
+dejá EcoSmart atrás un minuto. Volvé.
+
+- Mientras EcoSmart está tapado, **no tiene que haber ni un pedido** al puente. Si el puente
+  muestra su registro, ahí se ve: cero líneas en ese minuto.
+- Al volver, el panel se pone al día **solo** y el cartel sale si entró algo.
+
+Es el arreglo de **P6-j**: hasta el 20/11 el sondeo armaba un repaso del panel cada quince
+segundos y ese repaso **disparaba igual** con la pestaña tapada, mandando cuatro pedidos. No era
+grave —una ronda a la máquina misma, una sola vez— pero es tráfico que nadie pidió.
+
+## 14 · Lo que no se puede probar sin romper nada
 
 - **Que la contraseña no viaja**: hay una prueba del lado del puente.
 - **Que las imágenes en cuarentena no se pueden ver**: autorizá y bloqueá un equipo y fijate que
   el cartel diga que hay que autorizarlo.
 
-## 14 · La compatibilidad, con un conector VIEJO
+## 15 · La compatibilidad, con un conector VIEJO
 
 Si tenés a mano el instalador **1.3.0**, instalalo encima conservando la vinculación y repetí:
 
