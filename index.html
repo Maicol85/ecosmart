@@ -180983,8 +180983,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261120-0019';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795144764900;                 /* eco-build-ms */
+const ECO_BUILD    = '20261120-1207';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795187262140;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181070,7 +181070,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261120-0019</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261120-1207</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -183030,8 +183030,17 @@ function clnkRefrescar() {
   _clnkRefTimer = setTimeout(function () {
     _clnkRefTimer = null;
     /* Se vuelve a preguntar al disparar y no sólo al encolar: entre el gesto y los 400 ms el
-       médico pudo apagar el módulo o cambiar de pestaña. */
+       médico pudo apagar el módulo o cambiar de pestaña.
+       ⚠️ Y «cambiar de pestaña» son DOS cosas: la de la app y la del NAVEGADOR. `clnkPanelALaVista`
+       sólo puede ver la primera —mide la CAJA del nodo, y esconder la pestaña del navegador no le
+       quita la caja: medido, devuelve `true` con la pestaña oculta—, así que la segunda se pregunta
+       ACÁ y no adentro de esa función, que la leen seis sumideros más donde la pestaña del
+       navegador está a la vista por definición. Y no sirve `clnkSondeoDebe()` en su lugar: pide
+       además el vínculo, así que cambiaría la conducta de esos seis. Sin esta línea, un rebote
+       armado por el sondeo con la pestaña visible dispara adentro de la ventana en que ya no lo
+       está y manda la cadena entera de `clnkLeerEstado` —cuatro pedidos—. Lo fija TC-845 (D). */
     if (!clnkActivo() || !clnkPanelALaVista()) return;
+    if (document.hidden) return;
     try { clnkLeerEstado(); } catch (e) {}
   }, CLNK_REF_MS);
   return true;
