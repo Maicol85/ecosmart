@@ -1,3 +1,87 @@
+## PROMPT 6 — la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo (2026-11-20)
+
+**OCHO commits.** `236326a` (**bloque 0**: la línea base medida en Chrome, con la causa del punto D
+reproducida con el gesto del médico; no toca una línea de `index.html`) · `daffb65` (**bloque A**:
+el cartel con la primera imagen, el conector falso llevado a 1.4 con su compuerta por versión;
+TC-961, TC-839 adaptado) · `0f25613` (**bloque B**: la burbuja; TC-962) · `fdaa85c` (**bloques C y
+D**: las cuatro clases, el nombre en criollo, la cuarentena, las repetidas y la tarjeta al día;
+TC-963 y TC-964) · `3e5d1fe` (**bloques E y F**: el ruteo por formato, el reproductor partido,
+`CeiboVideo.agregar`, la tarjeta de los que no se ven; TC-965 y TC-966) · `7f60e93` (**bloques G, H
+e I**: las direcciones con su rótulo, la carpeta compartida, `bytes_aviso` y los nombres donde el
+médico decide; TC-967 a TC-969) · `2876c5f` (**bloque J**: la regla vieja del lote; TC-970) ·
+`f5e4859` (**bloque K**: la guía manual, el **sellado** y la sonda de dos motores) · **éste** (la
+documentación, que no toca `index.html`).
+
+Línea base: **`7873930`**, el cierre del prompt 5 y a la vez `origin/main` — sello
+`v20261119-1634`, md5 `6ff0372e`, **186.658** líneas, **13.514.126** bytes, los tres **verificados
+al abrir** con `git show`, `wc -l`, `wc -c` y `md5`, más el sello del pie: el renglón de tamaño de
+`CLAUDE.md` estaba **bien en las tres cifras**, por quincuagésima segunda vez seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+**LOS ONCE BLOQUES DE LA ORDEN SE HICIERON, A a K.** Nada quedó sin empezar.
+
+**LA CAUSA DEL PUNTO D ERAN DOS COSAS INDEPENDIENTES, y la hipótesis de la orden explicaba la
+mitad.** Reproducido con el gesto del médico en Chrome real: `_clnkAvisadas` no se vaciaba al
+descartar —el puente deriva el `id` del **contenido**, así que el mismo archivo re-enviado vuelve
+con el mismo id— **y** el sondeo nunca refrescaba la tarjeta. Con la lista vaciada a mano y sin
+tocar nada más el aviso volvía; con la tarjeta, no. Arreglar sólo la primera habría dejado el
+segundo síntoma intacto.
+
+**Y `dstLeer` YA FUNCIONABA, lo que cambió qué había que hacer en el bloque E:** clasifica por los
+**bytes** con `_firmaArchivo`, así que un JPG ya entraba como imagen y un MP4 como video. Lo roto
+eran `_clnkPrevMini` y `clnkPrevAbrir`, que llamaban a `_dcmImgLeer` **sin preguntar** — y esa
+función lanza, textuales, los dos mensajes que el médico vio.
+
+**Lo que la medición corrigió de la orden:** la frase de la cuarentena de §P8 era **inalcanzable**
+contándola por lote —la cuarentena es por equipo y un lote es por equipo, así que `en_cuarentena`
+de un grupo visible es siempre cero— y se cuenta sobre **todas** las tandas; «avisar siempre» en el
+bloque D no podía ser vaciar la lista entera, porque esa lista es la que evita que un aviso cerrado
+con la ✕ vuelva cada quince segundos; y el bloque J necesitaba **código nuevo** y no sólo
+respaldos: la regla vieja de §P8 es esperar a que `lote_cierra` pase, y la app avisaba en el acto.
+
+**Cuatro defectos propios que la medición destapó y la lectura no:** el cartel volvía solo un turno
+después del cierre de la tanda; la burbuja tapaba **tres** botones a 1000 px; un cineloop DICOM
+perdía su marca 🎬 cuando el icono salió sólo del formato; y una cabecera `ftyp` de 32 bytes no es
+un video —`_firmaArchivo` la reconoce, pero `_videoPoster` no saca un cuadro de algo sin un solo
+fotograma—.
+
+**Cobertura: TC-961 a TC-970**, uno por bloque, los diez cayendo contra el árbol anterior de su
+propio bloque. **UN caso adaptado:** TC-839 (la versión del escenario, que ahora se **lee** en vez
+de escribirse) — los 26 casos de CeiboLink quedaron en verde sin tocarlos.
+
+**La sonda de dos motores:** 32 cruces —Chrome del sistema y WebKit × 1440, 1280, 1000 y 390 px ×
+los dos temas **reales** × movimiento normal y **reducido**— con **cero errores de consola y de
+página** y **una sola combinación de valores**, con dos diferencias declaradas: las animaciones se
+paran con movimiento reducido dejando el dibujo **visible**, y la burbuja mide 46 px en Chrome y 47
+en WebKit.
+
+**El arnés:** `scripts/_conector_falso.mjs` pasa a hablar el contrato **1.4** con una compuerta por
+versión, dieciséis escenas nuevas y un **MP4 real de 1.491 bytes** generado con ffmpeg y embutido
+como texto. El corredor de lotes es `scripts/_lotes_p6.sh` y la guía manual
+`docs/GUIA_PRUEBA_P6.md`, en catorce pasos.
+
+**Qué NO se tocó, con su motivo:** once cosas en `docs/PENDIENTES.md` → **P6-a** a **P6-k**. Las
+que necesitan decisión de Maicol: si con dos equipos mandando a la vez se deben ofrecer las dos
+tandas (**P6-a**), si un MP4 debe entrar también a «Imágenes guardadas» (**P6-b**), y si una
+dirección cuyo medio no se pudo averiguar debe decirlo (**P6-e**).
+
+**La verificación de cierre, con la máquina sola y una medición por vez:** suite **971/978** en los
+dieciocho lotes, en UNA sola pasada sobre el árbol sellado, con los 978 ejecutados, el md5 de
+`index.html` idéntico antes y después (`0a1b2c03`) y el pendrive `DISK_IMG` verificado veinte veces.
+**Semgrep 126 WARNING / 0 ERROR**, **celular 38 ALTA**, **sin huérfanos nuevos** y **17 de 17**
+bloques de JS inline parsean — las cuatro, la línea base exacta.
+
+⚠️ **DOS ROJOS SON MÍOS Y QUEDAN ABIERTOS, declarados y no tapados**, además de los cinco que esta
+casa ya declara conocidos (TC-182, TC-376, TC-406, TC-551, TC-903): **TC-845** es un **defecto real
+de esta tanda** —con la pestaña del navegador oculta salen cuatro pedidos, por el rebote de 400 ms
+que el bloque D arma en cada turno; la compuerta del sondeo funciona y el temporizador sigue
+apagado, así que es una ronda y no un sondeo— y **no se arregló en esta pasada**, por la regla del
+prompt de informar antes de tocar código nuevo (**P6-j**, con el arreglo de una línea escrito).
+**TC-970** es **sensibilidad de lote del arnés y no de la app**: pasa 3 de 3 aislado y se lo gasta
+TC-964, del mismo lote, usando la escena `unaSuelta` antes (**P6-k**).
+
+**El mapa:** `docs/mapa/p6-tanda-burbuja-formatos.md`.
+
 ## MEDIR-4a — las dos vistas alineadas, el cierre por vista, el resultado abajo, la casilla de Anahí retirada y «+ Vista» con imágenes fijas (2026-11-15)
 
 **SEIS commits.** `23b3aab` (bloques **A y B**: la plantilla única de barra, `vistaCerrarUna`, el

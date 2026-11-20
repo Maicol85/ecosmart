@@ -40,6 +40,165 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PROMPT 6 — la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo (2026-11-20)
+
+### P6-a · Con DOS equipos mandando a la vez, el cartel sigue a la tanda MÁS NUEVA y la otra espera
+
+**Qué hace hoy.** `GET /v1/estado` publica los cuatro campos de **una sola** tanda: la más nueva
+por última llegada, que es la que el médico acaba de provocar (§3.1 lo dice con todas las letras,
+y las otras están en la lista de §P8). El bloque A sale por ahí mientras esa tanda esté abierta,
+así que una **segunda** tanda ya cerrada de otro equipo no se ofrece hasta que la primera cierre.
+
+**Por qué se dejó así.** La ruta del sondeo no lleva token y no dice de qué equipo es la tanda, a
+propósito. Para ofrecer las dos a la vez habría que pedir `GET /v1/imagenes` —con token— en cada
+turno del sondeo rápido, o sea cada cuatro segundos: el panel bajaría el inventario del conector
+quince veces por minuto para un caso que es el de dos ecógrafos mandando al mismo tiempo.
+
+**Lo que lo acota.** Nada se pierde: en cuanto la primera tanda cierra, `clnkRevisarImagenes`
+ofrece lo que haya, y «Ver lo que espera» lo trae en cualquier momento. **Decisión del médico** si
+quiere que se ofrezcan las dos.
+
+### P6-b · «Imágenes guardadas» no acepta un MP4, y el camino al estudio guardado SÍ
+
+**Qué entra hoy, medido con TC-965:**
+
+| Destino | JPG, PNG, BMP | MP4, MOV |
+|---|---|---|
+| estudio **actual** | sí | **sí** |
+| estudio **guardado** | sí | **sí**, nuevo en este prompt |
+| **imágenes guardadas** (la bandeja) | sí | **no** |
+
+**Por qué el tercero no.** La bandeja es `ceibomed_bandeja`, su propia base, y su visor
+(`clnkbVer`) reparte en **dos** clases: una fija y un cineloop. Un video necesita una tercera, y
+con ella su propio camino de asignación a un estudio. Lo que se hizo en cambio fue el del estudio
+guardado, que es el que faltaba de verdad —`CeiboVideo` sólo tenía `guardar`, que **reemplaza**—
+y donde el video queda indexado por estudio como cualquier otro.
+
+**Lo que cuesta:** un MP4 del buzón que el médico no quiera adjuntar todavía tiene que esperar en
+el conector —hasta su plazo de 24 horas— o entrar a un estudio. El mensaje lo dice y nombra la
+alternativa. **Decisión del médico** si vale la tercera clase.
+
+### P6-c · El `Content-Type` del conector no se usa para decidir: se usa el `formato`
+
+El contrato §P3 dice que «el `Content-Type` de la respuesta ya es confiable para decidir cómo
+mostrarlo». Esta app **no lo lee**: decide con `formato` de la lista, que viene antes de bajar un
+byte. Es deliberado y es lo que hace posible el bloque F —no bajar lo que no se puede ver—: para
+mirar la cabecera de la respuesta hay que haber hecho el pedido.
+
+`clnkPedir` con `bytes: true` tampoco expone las cabeceras hoy. Si alguna vez hace falta cruzar los
+dos, es una pieza más en esa capa; mientras tanto, el único que decide es `formato`, y
+`se_puede_ver` manda sobre él.
+
+### P6-d · La sigla de un formato que la tabla no conoce es «otro», no el valor crudo
+
+`clnkFmtDe` tiene ficha para los doce formatos del §P2. Con cualquier otro valor —`desconocido`, o
+uno que una versión futura del puente agregue— la sigla es **«otro»** y el ícono 📁, y **no** se
+dibuja la cadena que el puente mandó.
+
+**Por qué:** ese campo es texto del conector, y ponerlo tal cual en la pantalla es texto de afuera
+sin necesidad. El precio es que un formato nuevo se ve como «otro» hasta que se le agregue su fila,
+que es una línea de la tabla.
+
+### P6-e · «desconocido» no se escribe, pero el médico tampoco sabe que no se pudo averiguar
+
+El contrato prohíbe escribir «desconocido» como etiqueta, y no se escribe: esa dirección sale con
+su número y su interfaz y nada más. Lo que **no** se le dice al médico es que de esa interfaz no se
+pudo averiguar el medio — se ve exactamente igual que una que el puente no clasificó.
+
+Se dejó así porque la alternativa es una frase que dice «no sé», que es justamente lo que el
+contrato manda no poner. **Decisión del médico** si quiere una tercera forma.
+
+### P6-f · El aviso de equipo nuevo sigue teniendo prioridad sobre el cartel de la tanda
+
+`_clnkSondear` mira `equipos_esperando` **antes** que la tanda, y eso no se tocó: es la decisión que
+esta app ya tenía escrita —hasta que el médico decida, las imágenes de ese equipo están en
+cuarentena y no salen en la lista, así que avisar de ellas primero sería mandarlo a buscar algo que
+todavía no puede levantar—.
+
+**Lo que esto implica para el bloque C:** la frase «otras N están esperando que autorices el
+equipo» se alcanza desde **«Ver lo que espera»** y desde la vista previa, no desde el sondeo —que
+ahí ya sacó el aviso de equipo nuevo, que es la decisión que desbloquea esas imágenes—. Está
+medido en TC-963, que llega por el camino forzado.
+
+### P6-g · Lo que NO se pudo probar acá, y queda para la guía manual
+
+1. **El conector real.** Todo se midió contra `scripts/_conector_falso.mjs`, que ahora habla el
+   contrato 1.4 con su compuerta por versión. El falso es un servidor HTTP de verdad —no un
+   `fetch` sustituido— así que prueba CORS, el token que viaja y la diferencia entre un 404 y un
+   503; lo que no prueba es el puente.
+2. **La animación a ojo.** Que el contador suba **sin que el dibujo se reinicie de un salto** se
+   mide por identidad del nodo SVG (TC-961) y por `animationName` calculado (los 32 cruces), pero
+   que se **vea** fluido no.
+3. **La burbuja en una pantalla real.** Que no tape un botón está medido con `elementFromPoint` en
+   cinco anchos y en los 32 cruces, con el documento desplazado al final; que el latido se note sin
+   molestar, no.
+4. **«Reducir animaciones» del sistema de verdad.** Se midió con la emulación de Playwright en 16
+   de los 32 cruces, y la regla de la hoja se afirma en TC-962. La preferencia real de Windows, no.
+
+### P6-h · WebKit de Playwright no es Safari
+
+Los 32 cruces corrieron en el **Chrome del sistema** y en el **WebKit de Playwright**. No son
+Safari, y el médico usa Windows. Queda declarado como en las tandas anteriores.
+
+### P6-i · El renglón de tamaño de CLAUDE.md, y los mapas que esperan
+
+El renglón que se encontró al abrir estaba **bien** (ver la sección del prompt 6 en `CLAUDE.md`).
+Y «Estado vigente» sigue con **más de tres tandas**: la mudanza a
+`docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` se posterga otra vez, y se declara en vez de dejarlo
+pasar en silencio. Lo que hay que mudar hoy es todo lo anterior a **PR4** (el prompt 4).
+
+`docs/mapa/tests-punteros-tandas.md` está en **36,4 KB**, o sea **por encima** del techo de ~35 KB
+que este archivo fija: la próxima tanda que lo toque tiene que partirlo.
+
+### P6-j · ⚠️ ABIERTO · TC-845 (D): con la pestaña del navegador oculta salen CUATRO pedidos
+
+**Es un defecto REAL de esta tanda y NO se arregló**, por la regla del prompt de informar antes de
+tocar código nuevo en la pasada de verificación.
+
+**Qué pasa.** El bloque (D) de TC-845 exige **cero** pedidos al conector con la pestaña del
+navegador oculta, y salen **cuatro**: `/v1/estado`, `/v1/conexion`, `/v1/equipos` y `/v1/ajustes`,
+que son la cadena entera de `clnkLeerEstado`.
+
+**Qué NO es.** No es la compuerta del sondeo: `clnkSondeoDebe()` da **falso** con la pestaña oculta
+y `_clnkSondear` sale por su guarda sin mandar nada propio. El **temporizador sigue apagado**, así
+que no hay sondeo corriendo: es **una** ronda, una sola vez.
+
+**La causa, medida con control de la hipótesis** (`scripts/_probe_p6_845.mjs`): el **rebote de
+400 ms** de `clnkRefrescar`, que el bloque D arma en **cada** turno del sondeo. Se arma mientras la
+pestaña está a la vista y dispara adentro de la ventana en que ya no lo está. Su guarda al disparar
+—`clnkPanelALaVista()`— sigue diciendo que **sí**, y es correcto que lo diga: mide la **caja del
+nodo**, y esconder la pestaña del navegador **no le quita la caja** (medido: `true` con la pestaña
+oculta). El comentario de esa función dice «el médico pudo apagar el módulo o **cambiar de
+pestaña**», y la pestaña que no ve es la del navegador.
+
+**Las dos mediciones que lo fijan.** (1) Contra `7873930`, con el **mismo** archivo de casos y el
+mismo conector falso y sólo el `index.html` distinto, TC-845 **pasa**. (2) Dejando que el rebote
+dispare **antes** de ocultar, con la pestaña oculta da **cero**.
+
+**El arreglo es UNA línea**: agregarle a la guarda del disparo —la que ya revisa `clnkActivo()` y
+`clnkPanelALaVista()`— la visibilidad de la pestaña del navegador, que es lo que su propio
+comentario quiere decir. ⚠️ **NO se toca `clnkPanelALaVista`**: la leen seis sumideros donde la
+pestaña del navegador está a la vista por definición, y meterle la visibilidad ahí cambiaría esos
+seis caminos. Y ⚠️ **no sirve usar `clnkSondeoDebe()` en su lugar**: ése pide además el token y el
+vínculo, así que cambiaría la conducta de los sumideros.
+
+**Lo que cuesta arreglarlo**: vuelve a sellar `index.html`, así que hay que rehacer la suite —o al
+menos su lote— y volver a publicar el sello y el md5 en `CLAUDE.md`, que es lo que TC-753 vigila.
+
+### P6-k · ⚠️ ABIERTO · TC-970 es sensibilidad de lote, y es del arnés y no de la app
+
+Pasa **3 de 3 corrido aislado** y sale rojo en su lote por la condición «contra un 1.1.0 el aviso
+SÍ sale en el acto».
+
+**La causa, medida.** **TC-964** —del mismo lote y de esta misma tanda— usa la escena `unaSuelta`
+antes de pasar a la suya, y el aviso **no vuelve por las mismas imágenes en la misma sesión**: los
+978 casos corren en UNA página. Es la **quinta** vez que esta casa paga esa trampa, y mi propio
+bloque D ya la había pagado creando `unaSuelta3`.
+
+**El arreglo no toca `index.html`**: una escena del conector falso con **ids propios** —el camino de
+`unaSuelta2` y `unaSuelta3`— y el `escena:` del caso apuntando ahí. Sólo hay que rehacer **su
+lote**, el 18, porque el árbol no cambia.
+
 ## PROMPT 5 — la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio» (2026-11-19)
 
 ### P5-a · TC-187 es SENSIBLE AL LOTE, y está medido que no es de esta tanda

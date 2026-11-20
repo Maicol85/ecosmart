@@ -163,6 +163,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la ALINEACIÓN de las dos vistas del visor** —la plantilla única de barra, el «✕ Cerrar vista» de cada vista, el prefijo libre, la columna de 340 px con su corte de 1369 px—, **el RESULTADO integrado abajo y centrado**, **la TABLA que se muda a la columna de la vista activa**, **«+ Vista» con IMÁGENES FIJAS** —su marca, la deduplicación por nombre/cuadros/bytes o los homónimos distinguidos— o **el SIMPSON bloqueado en una vista de imagen fija** | `docs/mapa/medir4a-vistas-cierre.md` |
 | **Tocar el PANEL del visor** —el negro de los costados, el tope del modal, el selector FIJO con su scroller—, **la TABLA de una medida por fila** con su valor grande, **el GLOBO ⓘ del panel de medición**, **el orden del VI o el Diam TSVI en Aorta**, **los BOTONES de la barra y su contraste**, **la CALIBRACIÓN DE VELOCIDAD con dos valores** con su línea del cero y el modo M, **el FAC del VD** o **la banda de «Vmax pulmonar»** | `docs/mapa/medir3-panel-botones-calibracion.md` |
+| **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
@@ -280,7 +281,28 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,51 MB / 186.658 líneas**, medido con `wc -c` y `wc -l` el 2026-11-19 al cierre del **prompt 5** (la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio»), sobre el árbol ya sellado: sello **`v20261119-1634`**, md5 **`6ff0372e`**.
+  sin frameworks. Hoy **13,60 MB / 187.974 líneas**, medido con `wc -c` y `wc -l` el 2026-11-20 al cierre del **prompt 6** (la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo), sobre el árbol ya sellado: sello **`v20261120-0019`**, md5 **`0a1b2c03`**.
+  El diff del prompt 6 son **1.389 líneas agregadas y 73 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `7873930` —el cierre del prompt 5— **sobre el árbol ya sellado**, de
+  las que **1.166** no son comentario, con **CERO** `eval(` y `new Function` nuevos, **CERO**
+  claves y contraseñas, **CERO** `iframe` nuevos y **UNA** sola aparición de `innerHTML` en el
+  diff, que es el **comentario** que declara que el dibujo de la tanda se arma con
+  `createElementNS` y no con ninguno.
+  **CERO `input`, `select` y `textarea` nuevos con `id`**, que es lo que deja todo esto fuera del
+  censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y las
+  **457** columnas quietas. **Y cero cortes clínicos, cero fórmulas y cero umbrales**: lo que este
+  prompt movió son textos, un ruteo por formato, una cadencia de sondeo y dos lecturas nuevas del
+  canal local.
+  **DOS ids nuevos, los dos creados al vuelo**: `clnk-tanda-svg` —el dibujo del cartel— y
+  `clnk-burbuja`. El único que el diff muestra en el marcado, `eco-build-sello`, **ya existía** y
+  reaparece porque el sello cambió. Ninguno de los dos termina en `-aviso` ni en `-badge` y
+  **ninguno cae en ninguno de los veintitrés barridos por sufijo o prefijo de id del archivo**,
+  verificado uno por uno.
+  ⚠️ **POR QUINCUAGÉSIMA SEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 7873930:index.html` da **186.658**
+  líneas, **13.514.126** bytes y el md5 **`6ff0372e`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,51 MB / 186.658 al cierre del **prompt 5** (la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio»), sobre el árbol ya sellado: sello **`v20261119-1634`**, md5 **`6ff0372e`**.
   El diff del prompt 5 son **281 líneas agregadas y 22 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `35a7c97` —el cierre del prompt 4, que era a la vez `origin/main`—
   **sobre el árbol ya sellado**, de las que **262** no son comentario, con **CERO** `innerHTML`,
@@ -1458,6 +1480,202 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**El prompt 6 (2026-11-20) — la tanda, la burbuja, los formatos del buzón y los datos del
+ecógrafo.** ONCE bloques, A a K, y los once se hicieron. OCHO commits, uno por bloque o por par de
+bloques. Sello **`v20261120-0019`**, md5 **`0a1b2c03`**, **187.974** líneas. Línea base
+**`7873930`**, el cierre del prompt 5 y a la vez `origin/main`. **Sin push: lo corre Maicol.**
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Lo que este
+prompt movió son textos, un ruteo por formato, una cadencia de sondeo y dos lecturas nuevas del
+canal local. Y **CERO** `input`, `select` y `textarea` nuevos con `id`, que deja todo esto fuera del
+censo del estudio y del Excel **por construcción**: cero campos guardados nuevos y las **457**
+columnas quietas.
+
+**EL BLOQUE 0 — LA CAUSA DEL PUNTO D ERAN DOS COSAS INDEPENDIENTES, Y LA HIPÓTESIS DE LA ORDEN
+EXPLICABA LA MITAD.** Reproducido con el gesto del médico en el Chrome del sistema, no leyendo:
+(1) **`_clnkAvisadas` no se vaciaba al descartar**, y el puente deriva el `id` de cada imagen del
+**contenido** del archivo, así que el mismo archivo re-enviado vuelve con el **mismo id** —para
+`clnkRevisarImagenes` eso es indistinguible de «ya se avisó»—; con la lista vaciada a mano y **sin
+tocar nada más** el aviso volvía, y con ids nuevos salía igual. (2) **El sondeo NUNCA refrescaba
+la tarjeta**: con el panel a la vista y la lista vacía decía «sin imágenes esperando», entraban
+**OCHO** y se sondeaba, y seguía diciendo lo mismo; sólo `clnkLeerEstado()` a mano la movía.
+**Arreglar sólo la primera habría dejado el segundo síntoma intacto.**
+
+⚠️ **Y `dstLeer` YA FUNCIONABA, lo que cambió qué había que hacer en el bloque E:** la puerta de
+los tres sumideros clasifica por los **BYTES** con `_firmaArchivo`, así que un JPG ya entraba como
+imagen y un MP4 como video. Lo roto eran `_clnkPrevMini` y `clnkPrevAbrir`, que llamaban a
+`_dcmImgLeer` **sin preguntar** — y esa función lanza, textuales, los dos mensajes que el médico
+vio: «no tiene la marca «DICM» en el byte 128» y «el archivo es demasiado corto para ser un DICOM».
+**Lo roto era mirar, no adjuntar.**
+
+**BLOQUE A — EL CARTEL SALE CON LA PRIMERA IMAGEN.** `clnkTandaDe(d)` lee los cuatro campos de
+`GET /v1/estado` y pregunta por el **TIPO** de `tanda_abierta` y no por su verdad: con un `!`, un
+puente que no manda el campo y uno que manda `false` se leerían igual. El cartel sale con el dibujo
+de las imágenes viajando —SVG por `createElementNS`, cero `innerHTML`— y los cuatro destinos
+**apagados**; al cerrar la tanda dice «Listo: el envío terminó.», los botones se prenden y el
+dibujo **se para**. El sondeo pasa a **4 s** mientras hay tanda abierta, con `clnkSondeoSync`
+todavía idempotente.
+⚠️ **DURANTE LA TANDA ABIERTA SOLO SE USA `GET /v1/estado`**, que no lleva token y pesa ~150 bytes:
+por eso el cartel dice **cuántos** y no **de quién** —esa ruta a propósito no dice el equipo—. Con
+un sondeo de cuatro segundos pidiendo la lista con token, el panel bajaría el inventario del
+conector quince veces por minuto.
+⚠️ **Y DICE «ARCHIVOS» Y NO «IMÁGENES»**, apartándose de la frase de ejemplo del contrato:
+`tanda_imagenes` cuenta TODO lo que entró, y «están llegando 4 imágenes» sobre un PDF y un TXT es
+exactamente el defecto que el médico reportó.
+⚠️ **EL PLAZO LO DA EL PUENTE Y NO SE DUPLICA.** `CLNK_VENTANA_MS` queda **sólo** como camino viejo.
+
+**BLOQUE B — LA BURBUJA.** Con la ✕ y la tanda abierta el cartel se **achica** a una burbuja abajo
+a la derecha, con la misma animación —el mismo dibujo, reusado— y el número subiendo; al cerrar la
+tanda dice «Llegaron N archivos — tocá para elegir» y **late** con un ciclo de 2,6 s. **NO SE
+REABRE SOLA.**
+⚠️ **EL RINCÓN ESTÁ MEDIDO:** a 1280×900 no hay un solo elemento fijo ni pegajoso ahí —el toast
+vive abajo **al centro** en la capa 999— y cero botones tienen su centro en el rincón de 170×170.
+La burbuja va en la capa **690**: por debajo de los modales (700) y del toast (999), **sin moverle
+la capa a nadie**.
+⚠️ **DOS DEFECTOS REALES QUE LA SONDA DESTAPÓ Y LA LECTURA NO:** el cartel **volvía solo** en el
+turno siguiente al cierre de la tanda —el turno caía en `clnkRevisarImagenes`, que no sabe nada de
+la burbuja, así que «no se reabre sola» duraba UN turno— y a 1000 px la burbuja **tapaba TRES
+botones** del selector de estilo del informe, medido con `elementFromPoint`. Lo segundo no se
+cierra moviéndola: la burbuja **reserva su alto** en el cuerpo, con el alto **medido** y no escrito,
+y lo **devuelve** al irse.
+
+**BLOQUE C — EL CARTEL CUENTA LAS CUATRO CLASES.** `dstCuenta` contaba **dos** —«video» era un
+cineloop y TODO LO DEMÁS una fija— así que un TXT salía como «1 imagen». `_clnkClase` es el dueño
+único, con las cuatro **disjuntas** y en un orden que no es arbitrario: informe manda sobre todo
+—un PDF tampoco se ve, pero «1 informe» dice MÁS—, después `se_puede_ver === false` manda sobre el
+tipo —un TIF llega con `tipo: 'imagen'`—, después video, y lo que queda es imagen. El equipo se
+nombra con `clnkNombreEqDe`: apodo, si no `nombre_para_mostrar`.
+⚠️ **SE COMPARA CONTRA `false` Y NO CON UN `!`:** contra un puente 1.1 el campo no viene y
+`!undefined` es verdadero — todas las imágenes de un DICOM se contarían como «no se pueden ver».
+⚠️ **Y LA CUARENTENA SE CUENTA SOBRE **TODAS** LAS TANDAS, que salió de medir el contrato:** es por
+equipo y un lote es por equipo, así que `en_cuarentena` de un grupo **visible** es siempre cero, y
+contándolo por lote la frase de §P8 quedaba **inalcanzable**.
+**Y `clnkAgrupar` PASA A AGRUPAR POR EL `lote` DEL PUENTE**, que es lo que §P8 prohíbe duplicar con
+todas las letras.
+
+**BLOQUE D — LAS REPETIDAS VUELVEN A AVISAR.** `clnkDescartar` **olvida** el id que acaba de
+destruir y lo **anota** en `_clnkDescartadas`, que es lo que permite decirle al médico que ya las
+había descartado y que el ecógrafo las volvió a mandar; y el sondeo llama a `clnkRefrescar`, que
+trae sus dos guardas puestas.
+⚠️ **NO ALCANZA CON VACIAR LA LISTA ENTERA, y por eso hay DOS listas:** sin `_clnkAvisadas` un aviso
+cerrado con la ✕ vuelve cada quince segundos. Se olvidan **sólo** los ids que se destruyeron, y
+**sólo** si el puente los borró de verdad — un 503 deja la imagen allá. Los dos controles están en
+el caso.
+
+**BLOQUES E y F — EL FORMATO DECIDE CÓMO SE MIRA.** `clnkFmtDe` es el dueño único de la ficha de
+los doce formatos del §P2, con **cuatro** salidas: DICOM al visor de siempre, imagen al lightbox,
+video al reproductor **sin «Capturar frame»** —mirar no es decidir—, y lo que no se ve **no se baja
+y no se abre**. El reproductor se partió en dos (`videoVerBlob(blob, conCaptura)`) sin cambiarle
+una línea de comportamiento. Los formatos que no se ven salen en una **tarjeta** con su ícono y su
+sigla, la lista de los aceptados **derivada de la tabla**, y **SOLO el botón Descartar** —lo que
+reemplaza lo que el documento del puente propone sobre adjuntarlos—.
+**Una foto del buzón entra a los TRES destinos, y un VIDEO también entra a un estudio guardado** —
+el camino que **no existía**: `CeiboVideo` sólo tenía `guardar`, que **reemplaza** todos los videos
+del estudio.
+⚠️ **UN CINELOOP DICOM PERDÍA SU MARCA 🎬** cuando el icono salió sólo del formato: los seis de la
+tira de TC-877 salieron 📷. Era una **pérdida** de información, no una mejora.
+⚠️ **Y UNA CABECERA `ftyp` DE 32 BYTES NO ES UN VIDEO:** `_firmaArchivo` la reconoce —lo único que
+mide son cuatro bytes— pero `_videoPoster` no saca un cuadro de algo sin un solo fotograma. El
+falso lleva ahora un MP4 **real** de 1.491 bytes, un color de 32×32 por dos décimas generado con
+ffmpeg y embutido como texto. **Sin un dato de nadie: es un color.**
+
+**BLOQUES G, H e I.** Cada dirección con su rótulo —**cable** o **Wi-Fi**, y **«desconocido» NUNCA
+se escribe**—, las sin enlace **apagadas** pero legibles y copiables, `null` **normal** porque un
+dato que falta no es un «no», y las 169.254 al final con una partición **estable**: lo único que
+esta pantalla mueve. Panel de carpeta compartida con la frase de la contraseña y **CERO campos**
+para escribirla, medido. El umbral del aviso de espacio lo da **`bytes_aviso`** con dos guardas, y
+el tope se dice tal cual lo informa el puente —**dejó de ser 2 GB fijos**—. Y la fila donde el
+médico aprieta PERMITIR dice el nombre en criollo y distingue **«copiado a mano»** de **«por
+red»**, que es la diferencia que §P5 explica y que no se puede omitir.
+
+**BLOQUE J — LA REGLA VIEJA NECESITABA CÓDIGO NUEVO.** Los otros ocho bloques fueron dejando su
+camino viejo, pero faltaba el aviso: §P8 describe **dos** reglas y la de la 1.3 es «avisar recién
+cuando `lote_cierra` ya pasó», y la app avisaba en el acto. `clnkGrupoListo(g)` toma el
+`lote_cierra` **más nuevo** del grupo —el cierre **se corre** cuando entra otra imagen— y sin el
+campo el grupo está **listo**, que es la regla de antes de la 1.3: hacerlo esperar lo dejaría sin
+avisar nunca.
+
+**EL ARNÉS:** el conector falso pasa a hablar el contrato **1.4** con una **compuerta por versión**
+—cada campo detrás de la versión que lo trajo— así que una sola sonda mide también el bloque J.
+Suma los cuatro campos de la tanda, `bytes_aviso`, la lista `tandas` con su lote derivado como el
+puente lo deriva, `nombre_para_mostrar`, `origen`/`formato`/`se_puede_ver`/`lote`, el
+`tipo`/`enlace` de cada dirección, `carpeta_compartida`, el `Content-Type` por formato con
+`nosniff`, los dos equipos de carpeta y **dieciséis escenas nuevas**.
+⚠️ **Su `t0` pasó de tres a cinco minutos:** con tres, las escenas de antes del prompt 6 quedaban
+con la tanda **abierta** y sus botones apagados.
+
+**LOS DOS MOTORES:** Chrome del sistema y WebKit, en 1440, 1280, 1000, 768 y 390 px, en los dos
+temas **reales** —puestos con `ett_theme` más `loadTheme()` y **devueltos** por la sonda—:
+**32 cruces**, **UNA** sola combinación de valores, con **CERO errores de consola y de página**.
+Las **dos** diferencias son declaradas: con «reducir animaciones» del sistema las dos animaciones
+se detienen **dejando el dibujo visible** (`animando` 3 → 0 y el latido en `none`), que es lo que el
+bloque B pide; y la burbuja mide **46 px en Chrome y 47 en WebKit**, que es métrica de fuente.
+⚠️ **WebKit de Playwright no es Safari, y se declara.**
+⚠️ **Y LA PRIMERA CORRIDA DE ESA SONDA MIDIÓ SOBRE UN DENOMINADOR VACÍO**: con `equipos: 5` viene
+un equipo esperando decisión y **el aviso de equipo nuevo gana**, así que `svg:false` y `viajan:0`
+en los 32 — que se lee igual que «el cartel no sale». Es `equipos: 4`.
+
+**Cobertura: TC-961 a TC-970**, uno por bloque, cada uno cayendo contra el árbol anterior de **su**
+bloque. **UN caso adaptado, TC-839**: su control positivo afirmaba el literal `'1.1.0'` del conector
+falso, que esta tanda llevó a 1.4; hoy lee la versión **de la escena**, así que un cambio futuro de
+versión no lo hace caer por algo que no es suyo.
+
+**Línea base al cierre: suite 971/978**, en **DIECIOCHO** lotes cubriendo los **978 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol sellado, con los **978 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`0a1b2c03`) y el pendrive `DISK_IMG` verificado **veinte** veces leyendo DICOMDIR, con sus **343**
+archivos de `GEMS_IMG` declarados en cada control.
+Los rojos son **siete**: los **cinco** que esta casa ya declara conocidos —TC-182, TC-376, TC-406,
+TC-551 y TC-903— **más DOS que son MÍOS y quedan ABIERTOS, declarados y no tapados**:
+
+- ⚠️ **TC-845 es un DEFECTO REAL de esta tanda, y está medido con control de la hipótesis.** Su
+  bloque (D) exige **cero** pedidos con la pestaña del navegador oculta y encuentra **cuatro**:
+  `/v1/estado`, `/v1/conexion`, `/v1/equipos` y `/v1/ajustes`, que son la cadena entera de
+  `clnkLeerEstado`. **La compuerta del sondeo funciona** —`clnkSondeoDebe()` da falso y
+  `_clnkSondear` no manda nada propio—; lo que aterriza es el **rebote de 400 ms** que el bloque D
+  arma en **cada** turno al llamar a `clnkRefrescar()`, armado mientras la pestaña estaba a la
+  vista y disparado adentro de la ventana en que ya no lo está. Su guarda al disparar,
+  `clnkPanelALaVista()`, sigue diciendo que **sí**: mide la **caja del nodo**, y esconder la pestaña
+  del navegador no le quita la caja —medido, `true` con la pestaña oculta—. El comentario de esa
+  función dice «el médico pudo apagar el módulo o **cambiar de pestaña**», y la pestaña que no ve es
+  justamente la del navegador. **Falla contra el lado barato**: es **una** ronda de cuatro pedidos a
+  loopback, una sola vez, y **el temporizador sigue apagado**, así que no hay sondeo que siga
+  corriendo. Medido: contra `7873930`, con el **mismo** archivo de casos y el mismo conector falso,
+  TC-845 pasa; y dejando que el rebote dispare **antes** de ocultar, con la pestaña oculta da
+  **cero**. **NO se arregló en esta pasada**, por la regla del prompt de informar antes de tocar
+  código nuevo. El arreglo es **una línea**: agregarle a la guarda del disparo la visibilidad de la
+  pestaña del navegador. **No se toca `clnkPanelALaVista`**, que la leen seis sumideros donde la
+  pestaña del navegador **está** a la vista por definición. → **P6-j**
+- **TC-970 es sensibilidad de lote y es de mi arnés, no de la app**: pasa **3 de 3 corrido aislado**
+  y sale rojo en su lote por la condición del 1.1.0. La causa está medida: **TC-964**, del mismo
+  lote y de esta misma tanda, usa la escena `unaSuelta` antes de pasar a la suya, y el aviso **no
+  vuelve por las mismas imágenes en la misma sesión** —los 978 casos corren en UNA página—. Es la
+  quinta vez que esta casa paga esa trampa, y mi propio bloque D ya la había pagado creando
+  `unaSuelta3`. El arreglo es del conector falso y del caso, **no de `index.html`**: una escena con
+  ids propios. → **P6-k**
+
+**Ningún rojo nuevo ajeno a la tanda**, y los otros nueve casos nuevos y el adaptado en verde.
+
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **17 de 17
+bloques de JS inline parsean.** **CELULAR: 38 ALTA**, la línea base exacta. **CERO `eval(` y
+`new Function` nuevos**, **cero** claves y contraseñas, **cero** `iframe` nuevos y **UNA** sola
+aparición de `innerHTML` en el diff, que es el **comentario** que declara que el dibujo se arma con
+`createElementNS`. **Excel en 457 columnas y CERO campos guardados nuevos**, por construcción.
+⚠️ **EL ACENTO GRAVE DENTRO DE MIS PROPIOS COMENTARIOS, VEINTIDÓS VECES EN ESTA TANDA** —en el
+cuerpo de seis casos—, por trigésima primera tanda seguida. Lo que lo cerró es de método: el cuerpo
+de cada caso se escribe en **su propio archivo** y lo inserta `insertar.py`, que los cuenta y
+**aborta** antes de insertar nada.
+⚠️ **Y LA SUITE SE CREYÓ COLGADA SIETE HORAS POR UNA TRAMPA DEL VIGILANTE, NO DE LA SUITE**: el
+`until ! pgrep -qf "_lotes_p6.sh"` que esperaba su fin **se empareja a sí mismo** —su propia línea
+de comando contiene esa cadena—, así que no termina nunca. La suite había cerrado a la hora.
+
+El mapa, en `docs/mapa/p6-tanda-burbuja-formatos.md`; el inventario del bloque 0, en
+`docs/INVENTARIO_P6.md`; lo declarado, en **P6-a** a **P6-k**; la guía manual contra CeiboLink
+1.4.0 real, en `docs/GUIA_PRUEBA_P6.md` (**14** pasos); las sondas, en `scripts/_probe_p6base.mjs`,
+`_probe_p6a.mjs`, `_probe_p6b0.mjs`, `_probe_p6b.mjs`, `_probe_p6dos.mjs` y
+`_probe_p6_845.mjs` —la del defecto—, cada una con su cuerpo aparte; el corredor de lotes, en
+`scripts/_lotes_p6.sh`.
 
 **El prompt 5 (2026-11-19) — la calibración en milímetros, el cartel que tapaba el visor, los dos
 textos de CeiboLink y «Ir al estudio».** CUATRO arreglos chicos y un commit. Sello
