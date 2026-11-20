@@ -2891,6 +2891,43 @@
   /* El contador del renglon: lo escribe el JS y no tiene por que verse como el titulo. */
   .clnk-det-cnt { font-weight:400; color:var(--text2); font-size:10.5px; }
 
+  /* ══ PROMPT 6 · LA ANIMACION DE LA TANDA (bloques A y B) ══════════════════════════════════
+     Las imagenes viajan del ecografo a la computadora. Son TRES cuadraditos con el mismo
+     recorrido y el arranque escalonado, que es lo que da la sensacion de una fila continua sin
+     tres animaciones distintas que mantener.
+
+     ⚠️ EL COLOR VA POR UNA **REGLA DE CSS** Y NO COMO `var()` EN UN ATRIBUTO DE PRESENTACION.
+     Es la trampa que POP-B pago con `--amber` y PANT-13 con `--card`: un `fill="var(--x)"`
+     escrito como atributo es invalido en tiempo de computo y, como `fill` se HEREDA, cae en el
+     negro de la raiz. Por una regla SI resuelve, y de paso sigue al tema solo.
+
+     ⚠️ EL LATIDO DE LA BURBUJA ES `brightness` Y NO UN SEGUNDO COLOR, y es lo que cumple
+     «cambio continuo de tonalidad del MISMO celeste del boton»: el fondo es `--accent` —el
+     mismo del boton primario— y lo unico que se mueve es su luminosidad, asi que el tono no
+     cambia de color. Con dos colores escritos a mano el celeste del latido y el del boton se
+     separarian el dia que el tema cambie uno de los dos.
+
+     ⚠️ Y CON «REDUCIR ANIMACIONES» DEL SISTEMA LAS DOS QUEDAN **QUIETAS PERO VISIBLES**: los
+     cuadraditos se paran repartidos en el recorrido con opacidad 1 —no desaparecen— y la
+     burbuja se queda en su celeste. Apagar la animacion no puede apagar la informacion. */
+  @keyframes clnk-viaja {
+      0% { transform:translateX(0);     opacity:0; }
+     12% { opacity:1; }
+     88% { opacity:1; }
+    100% { transform:translateX(116px); opacity:0; }
+  }
+  .clnk-viaja { animation:clnk-viaja 1.9s linear infinite; }
+  #clnk-tanda-svg .clnk-eq   { fill:var(--bg3);  stroke:var(--text2); stroke-width:1.5; }
+  #clnk-tanda-svg .clnk-pant { fill:var(--accent); opacity:.35; }
+  #clnk-tanda-svg .clnk-viaja{ fill:var(--accent); }
+  #clnk-tanda-svg .clnk-rot  { fill:var(--text2); font-size:8.5px; }
+  @keyframes clnk-late { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.38); } }
+  .clnk-late { animation:clnk-late 2.6s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .clnk-viaja { animation:none; opacity:1; }
+    .clnk-late  { animation:none; }
+  }
+
   /* ══ VISOR DE CINELOOP — LAYOUT POR ANCHO ════════════════════════════════════════════════
      El visor no tenía NI UNA regla responsive: `#cine-paneles` era `display:flex` fijo, así
      que las dos vistas se repartían el ancho que hubiera. Medido con las dos abiertas:
@@ -182884,6 +182921,13 @@ function clnkAvisoProgreso(texto) {
 function clnkAvisoCerrar() {
   var ov = document.getElementById('clnkav-ov');
   if (ov) ov.style.display = 'none';
+  /* ══ BLOQUE A · SI LO QUE SE CIERRA ES EL CARTEL DE UNA TANDA ABIERTA, SE DEJA LA MARCA ══
+     Sin esto el sondeo lo vuelve a abrir cuatro segundos despues, y el medico que lo cerro
+     porque estaba trabajando se queda con un cartel que reaparece solo. La marca se limpia
+     cuando la tanda cierra, que es cuando hay algo nuevo que decir.
+     ⚠️ SE MIRA `_clnkTanda` Y NO EL CUERPO DEL CARTEL: el cuerpo se vacia dos lineas mas abajo,
+     asi que preguntarle a el daria la respuesta de la proxima vez. */
+  if (_clnkAvisoAbierto && _clnkTanda) _clnkTandaCerradaPorMedico = true;
   _clnkAvisoAbierto = false;
   /* ⚠️ Y SE OLVIDA EL GRUPO. Sin esta línea, el próximo sondeo creería que todavía hay un aviso
      de imágenes en pantalla y trataría de ACTUALIZAR un cartel cerrado: el médico no vería
@@ -183249,6 +183293,241 @@ function _clnkAvisoArmarAcciones(g) {
   });
 }
 window.clnkRevisarImagenes = clnkRevisarImagenes;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE A · EL CARTEL SALE CON LA PRIMERA IMAGEN (CONTRATO 1.4 §3.1)
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   EL DEFECTO QUE ESTO CIERRA, Y ESTA MEDIDO EN `docs/INVENTARIO_P6.md`: hasta hoy el unico
+   agrupador de esta app era `clnkAgrupar`, que junta por equipo y por hora con su propia ventana
+   de dos minutos, asi que el aviso salia recien cuando el envio terminaba. Con un equipo que
+   exporta de a una imagen por minuto —que es lo que hace un Sonoscape a una carpeta compartida—
+   el medico veia la pantalla QUIETA mientras sus imagenes llegaban.
+
+   ⚠️ EL PLAZO LO DA EL PUENTE Y NO SE DUPLICA. El contrato §P8 lo dice con todas las letras: los
+   dos minutos son fijos del lado del puente, y `tanda_cierra` ya viene calculado. Esta app NO
+   vuelve a sumar un plazo propio: lee `tanda_abierta` y punto. `CLNK_VENTANA_MS` se conserva
+   —el bloque J lo necesita contra un puente 1.3.x, que no manda la tanda— y queda declarado como
+   el camino viejo y no como la regla.
+
+   ⚠️ DURANTE LA TANDA ABIERTA SOLO SE USA `GET /v1/estado`, QUE NO LLEVA TOKEN Y PESA ~150 BYTES.
+   Esa ruta publica el conteo y las fechas, y a proposito NO dice de que equipo es. Por eso el
+   cartel abierto dice cuantos y no de quien: el equipo, los tipos y la cuarentena salen de
+   `GET /v1/imagenes` cuando el envio termina, que es cuando hay algo que decidir. Con un sondeo
+   cada cuatro segundos pidiendo la lista entera con token, el panel estaria bajando el inventario
+   del conector quince veces por minuto.
+
+   ⚠️ Y DICE «ARCHIVOS» Y NO «IMAGENES», que es un apartamiento DELIBERADO de la frase de ejemplo
+   del contrato. Lo que `tanda_imagenes` cuenta es todo lo que entro, y por el buzon entran
+   informes y archivos que no se pueden ver: «estan llegando 4 imagenes» sobre un PDF y un TXT es
+   exactamente el defecto que el medico reporto. Cuando la tanda cierra y se sabe de que tipo es
+   cada uno, el cartel los cuenta por separado (bloque C). */
+
+/* Cada cuanto se sondea MIENTRAS hay una tanda abierta. Cuatro segundos: el pedido fija de tres
+   a cinco y el medio es lo que no se discute. Fuera de la tanda, `CLNK_SONDEO_MS` de siempre. */
+var CLNK_SONDEO_TANDA_MS = 4000;
+
+/* La tanda abierta que el cartel esta mostrando, o `null`. Es lo que distingue «hay una tanda
+   abierta» de «hay un cartel de tanda en pantalla», que son dos cosas distintas: el medico puede
+   cerrar el cartel con la ✕ y la tanda sigue abierta. */
+var _clnkTanda = null;
+
+/* El medico cerro el cartel de ESTA tanda con la ✕. Mientras este puesto, el sondeo NO lo vuelve
+   a abrir: lo que lo reemplaza es la burbuja del bloque B. */
+var _clnkTandaCerradaPorMedico = false;
+
+/* Los cuatro campos de la tanda, o `null` si el puente no los manda — que es lo que pasa contra
+   un 1.3.x y es la mitad del bloque J. Se pregunta por el TIPO de `tanda_abierta` y no por su
+   verdad: con `!d.tanda_abierta`, un puente que no manda el campo y uno que manda `false` se
+   leen igual, y son cosas distintas. */
+function clnkTandaDe(d) {
+  if (!d || typeof d.tanda_abierta !== 'boolean') return null;
+  return { abierta: !!d.tanda_abierta,
+           n: Math.max(0, Number(d.tanda_imagenes) || 0),
+           ultima: String(d.tanda_ultima || ''),
+           cierra: String(d.tanda_cierra || '') };
+}
+window.clnkTandaDe = clnkTandaDe;
+
+/* Un color del tema, RESUELTO de los estilos calculados y con respaldo explicito. Es la regla
+   fija de esta casa para cualquier dibujo: `var()` en un atributo de presentacion es invalido en
+   tiempo de computo y cae en el negro heredado. Acá se usa para lo que NO puede ir por una regla
+   de CSS, como el `stroke` de una linea que se dibuja una sola vez. */
+function _clnkColorVar(nombre, resp) {
+  try {
+    var v = String(getComputedStyle(document.documentElement).getPropertyValue(nombre) || '').trim();
+    if (v) return v;
+  } catch (e) {}
+  return resp;
+}
+window._clnkColorVar = _clnkColorVar;
+
+/* ══ EL DIBUJO: LAS IMAGENES VIAJAN DEL ECOGRAFO A LA COMPUTADORA ════════════════════════════
+   Se arma con `createElementNS` y NO con `innerHTML`: es la regla de la casa para todo dibujo, y
+   acá además no hay un solo dato que venga de afuera, asi que no hay nada que escapar.
+   Los colores van por las reglas `#clnk-tanda-svg .clnk-*`, que SI resuelven `var()` y siguen al
+   tema sin una linea de JS. */
+function clnkTandaDibujo() {
+  var NS = 'http://www.w3.org/2000/svg';
+  var sv = document.createElementNS(NS, 'svg');
+  sv.setAttribute('id', 'clnk-tanda-svg');
+  sv.setAttribute('viewBox', '0 0 240 58');
+  sv.setAttribute('width', '240');
+  sv.setAttribute('height', '58');
+  sv.setAttribute('role', 'img');
+  sv.setAttribute('aria-label', 'Las imágenes están viajando del ecógrafo a esta computadora');
+  sv.style.cssText = 'display:block;margin:0 auto 2px;max-width:100%;';
+  var mk = function (tag, at, clase) {
+    var e = document.createElementNS(NS, tag);
+    Object.keys(at).forEach(function (k) { e.setAttribute(k, at[k]); });
+    if (clase) e.setAttribute('class', clase);
+    sv.appendChild(e);
+    return e;
+  };
+  /* El ecografo, a la izquierda: la caja y su pantalla. */
+  mk('rect', { x: 4, y: 10, width: 44, height: 32, rx: 4 }, 'clnk-eq');
+  mk('rect', { x: 10, y: 15, width: 32, height: 16, rx: 2 }, 'clnk-pant');
+  var t1 = mk('text', { x: 26, y: 54, 'text-anchor': 'middle' }, 'clnk-rot');
+  t1.textContent = 'ecógrafo';
+  /* La computadora, a la derecha: la caja, su pantalla y el pie. */
+  mk('rect', { x: 192, y: 10, width: 44, height: 28, rx: 3 }, 'clnk-eq');
+  mk('rect', { x: 198, y: 15, width: 32, height: 17, rx: 2 }, 'clnk-pant');
+  mk('rect', { x: 206, y: 38, width: 16, height: 4, rx: 2 }, 'clnk-eq');
+  var t2 = mk('text', { x: 214, y: 54, 'text-anchor': 'middle' }, 'clnk-rot');
+  t2.textContent = 'esta compu';
+  /* Los TRES que viajan, con el mismo recorrido y el arranque escalonado. El retraso va en un
+     estilo en linea y no en tres reglas: es el UNICO valor que cambia entre los tres. */
+  [0, 0.63, 1.26].forEach(function (d, k) {
+    var r = mk('rect', { x: 58, y: 20, width: 12, height: 9, rx: 1.5 }, 'clnk-viaja');
+    r.setAttribute('data-clnk-viaja', String(k));
+    r.style.animationDelay = d + 's';
+  });
+  return sv;
+}
+window.clnkTandaDibujo = clnkTandaDibujo;
+
+/* El cuerpo del cartel de la tanda: el dibujo, el contador y el renglon de estado. Se vuelve a
+   pintar entero en cada sondeo SOLO si hace falta; el contador se actualiza sin tocar el dibujo,
+   porque reemplazar el SVG reiniciaría la animación en cada turno y se veria como un tirón. */
+function clnkTandaCuerpo(cu, n, cerrada) {
+  if (!cu) return false;
+  var ya = cu.querySelector('[data-clnk-tanda-n]');
+  if (!ya) {
+    cu.textContent = '';
+    cu.appendChild(clnkTandaDibujo());
+    var cont = _clnkNodo('div',
+      'text-align:center;font-size:26px;font-weight:700;color:var(--text);line-height:1.1;', '');
+    cont.setAttribute('data-clnk-tanda-n', '1');
+    cu.appendChild(cont);
+    var est = _clnkNodo('div',
+      'text-align:center;font-size:11px;color:var(--text2);margin-top:3px;', '');
+    est.setAttribute('data-clnk-tanda-estado', '1');
+    cu.appendChild(est);
+    ya = cont;
+  }
+  ya.textContent = String(n);
+  var e2 = cu.querySelector('[data-clnk-tanda-estado]');
+  if (e2) {
+    e2.textContent = cerrada ? 'Listo: el envío terminó.'
+                             : (n === 1 ? 'archivo recibido hasta ahora' : 'archivos recibidos hasta ahora');
+  }
+  /* Con la tanda cerrada los cuadraditos se paran: dejar la animacion corriendo diria que
+     todavia esta llegando algo. Se saca la clase y se repone la opacidad, para que queden
+     repartidos y visibles en vez de desaparecer. */
+  Array.prototype.forEach.call(cu.querySelectorAll('[data-clnk-viaja]'), function (r, k) {
+    if (cerrada) {
+      /* ⚠️ LA QUIETUD SE DECLARA EN UN ATRIBUTO, y no es por comodidad de la prueba: leer
+         `style.animation` NO sirve para medirla —la forma corta borra el `animation-delay` que
+         el dibujo puso, asi que lo que devuelve el getter no distingue «parado» de «nunca
+         arranco»— y el `animationName` calculado depende de que la hoja ya este aplicada. La
+         marca es un hecho del DOM: esta o no esta. */
+      r.setAttribute('class', '');
+      r.setAttribute('data-clnk-quieto', '1');
+      r.style.animation = 'none';
+      r.style.opacity = '1';
+      r.setAttribute('transform', 'translate(' + (k * 42) + ',0)');
+    }
+  });
+  return true;
+}
+window.clnkTandaCuerpo = clnkTandaCuerpo;
+
+/* Apaga los botones VISIBLES del aviso. Es lo que deja el cartel de la tanda abierta sin
+   decisiones que tomar: mientras el envio no termino, adjuntar adjuntaria menos de lo que va a
+   llegar, y descartar borraria una tanda a medio recibir.
+   ⚠️ NO SE ESCONDEN, SE APAGAN: el medico tiene que ver DONDE van a estar los botones, o el
+   cartel parece colgado. Y la ✕ queda viva, que es la unica salida que la tanda abierta ofrece
+   —y la que el bloque B convierte en burbuja—. */
+function _clnkAvisoApagarBotones(apagar) {
+  var n = 0;
+  CLNK_AV_BOTONES.forEach(function (k) {
+    var b = document.getElementById('clnkav-' + k);
+    if (!b || b.style.display === 'none' || !b.textContent) return;
+    b.disabled = !!apagar;
+    b.style.opacity = apagar ? '.55' : '';
+    if (apagar) b.title = 'Esperá a que termine el envío';
+    else b.removeAttribute('title');
+    n++;
+  });
+  return n;
+}
+window._clnkAvisoApagarBotones = _clnkAvisoApagarBotones;
+
+/* Los rotulos de los destinos, SIN los ids todavia. Salen de la MISMA lista que `dstPreguntar`
+   arma cuando el envio termina: con dos listas, el cartel abierto prometeria un boton que
+   despues no esta. Lo unico que no se dibuja es «Vista previa», que depende de tener las filas
+   de la lista en la mano. */
+var CLNK_TANDA_BOTONES = ['📎 Adjuntar al estudio actual', '🗂 Adjuntar a un estudio guardado',
+                          '🖼 Adjuntar a imágenes guardadas', '🗑 Descartar'];
+
+/* Abre —o actualiza— el cartel de una tanda ABIERTA. Devuelve true si quedo algo en pantalla.
+   ⚠️ NO SE ABRE ENCIMA DE OTRA PREGUNTA, igual que el aviso de siempre: un cartel sobre el
+   «¿guardás antes de cerrar?» le tapa al medico la pregunta que decide si pierde un estudio. Y
+   no se pierde nada: la tanda sigue abierta y el proximo turno vuelve a ofrecerla. */
+function clnkTandaCartel(t) {
+  if (!t || !t.abierta) return false;
+  if (_clnkTandaCerradaPorMedico) return false;
+  /* Ya hay un cartel de ESTA tanda: se actualiza el numero y nada mas. */
+  if (_clnkAvisoAbierto && _clnkTanda) {
+    _clnkTanda = t;
+    clnkTandaCuerpo(document.getElementById('clnkav-cuerpo'), t.n, false);
+    return true;
+  }
+  if (_clnkAvisoAbierto) return false;                 // hay otro aviso: no se pisa
+  if (clnkAvisoHayOtraPregunta()) return false;
+  var bots = CLNK_TANDA_BOTONES.map(function (x) { return { txt: x, fn: null }; });
+  var ok = clnkAvisoAbrir('Están llegando imágenes del ecógrafo',
+    'El ecógrafo está enviando. Cuando termine vas a poder elegir dónde van.', bots);
+  if (!ok) return false;
+  _clnkTanda = t;
+  clnkTandaCuerpo(clnkAvisoCuerpo(), t.n, false);
+  _clnkAvisoApagarBotones(true);
+  return true;
+}
+window.clnkTandaCartel = clnkTandaCartel;
+
+/* La tanda cerro: el cartel pasa a su forma final, UNA SOLA VEZ. Lo que la arma es el mismo
+   `clnkRevisarImagenes` de siempre —con `forzar`, para que rearme el cartel abierto en vez de
+   intentar engordarlo— asi que el cartel final es, byte por byte, el que el medico ya conoce.
+   Lo unico que se le agrega es el renglon «Listo» y que los botones se prenden. */
+async function clnkTandaCerrar() {
+  var teniaCartel = !!(_clnkAvisoAbierto && _clnkTanda);
+  _clnkTanda = null;
+  if (!teniaCartel) return false;
+  var ok = false;
+  try { ok = await clnkRevisarImagenes(true); } catch (e) { ok = false; }
+  if (!ok) { clnkAvisoCerrar(); return false; }
+  _clnkAvisoApagarBotones(false);
+  var cu = document.getElementById('clnkav-cuerpo');
+  if (cu) {
+    /* `dstPreguntar` vacia el cuerpo al abrir, asi que el dibujo se vuelve a pintar —esta vez
+       quieto— con el numero que la lista dio. */
+    var n = (_clnkAvisoGrupo && _clnkAvisoGrupo.ids) ? _clnkAvisoGrupo.ids.length : 0;
+    cu.style.display = '';
+    clnkTandaCuerpo(cu, n, true);
+  }
+  return true;
+}
+window.clnkTandaCerrar = clnkTandaCerrar;
 
 /* ══ EL BOTÓN «VER LO QUE ESPERA» (ECO-CONECTOR-5, decisión 1) ══════════════════════════════
    Hasta esta tanda, para volver a ver un aviso cerrado con la ✕ había que RECARGAR la página:
@@ -184484,13 +184763,37 @@ window.clnkSondeoDebe = clnkSondeoDebe;
 /* Arranca o para el temporizador según el predicado. Es IDEMPOTENTE: llamarla dos veces no deja
    dos temporizadores, que es lo que pasaría enganchándola en cinco lugares sin esta guarda —y
    dos temporizadores son el doble de pedidos y dos avisos por la misma imagen—. */
+/* ══ BLOQUE A · LA CADENCIA SIGUE A LA TANDA ══════════════════════════════════════════════════
+   Mientras hay una tanda ABIERTA se sondea cada cuatro segundos, que es lo que hace que el
+   contador del cartel suba a la velocidad a la que las imagenes llegan; el resto del tiempo, los
+   quince de siempre. UN SOLO lugar lo decide, para que el temporizador y el oyente no puedan
+   discrepar. */
+function clnkSondeoMs() {
+  return _clnkTanda ? CLNK_SONDEO_TANDA_MS : CLNK_SONDEO_MS;
+}
+window.clnkSondeoMs = clnkSondeoMs;
+
+/* El periodo del temporizador que esta puesto AHORA. Hace falta porque `setInterval` no lo
+   publica: sin esto no hay forma de saber si el que corre es el rapido o el lento, y la funcion
+   dejaria de ser idempotente —cada llamada tiraria el temporizador para poner otro igual—. */
+var _clnkSondeoMsPuesto = 0;
+
 function clnkSondeoSync() {
   var debe = clnkSondeoDebe();
+  var ms = clnkSondeoMs();
+  /* El cambio de cadencia es lo UNICO que tira un temporizador vivo. Con el mismo periodo no se
+     toca nada, que es lo que conserva la idempotencia que los cinco enganches necesitan. */
+  if (debe && _clnkSondeoTimer && _clnkSondeoMsPuesto !== ms) {
+    clearInterval(_clnkSondeoTimer);
+    _clnkSondeoTimer = null;
+  }
   if (debe && !_clnkSondeoTimer) {
-    _clnkSondeoTimer = setInterval(_clnkSondear, CLNK_SONDEO_MS);
+    _clnkSondeoMsPuesto = ms;
+    _clnkSondeoTimer = setInterval(_clnkSondear, ms);
   } else if (!debe && _clnkSondeoTimer) {
     clearInterval(_clnkSondeoTimer);
     _clnkSondeoTimer = null;
+    _clnkSondeoMsPuesto = 0;
   }
   return !!_clnkSondeoTimer;
 }
@@ -184515,12 +184818,41 @@ async function _clnkSondear(forzado) {
        cuarentena y NO salen en la lista (§3.8), así que avisar de las imágenes antes sería
        mandarlo a buscar algo que todavía no puede levantar. */
     if ((Number(d.equipos_esperando) || 0) > 0) { clnkAvisarEquipoNuevo(); return; }
+    /* ══ BLOQUE A · LA TANDA, ANTES QUE LA LISTA ═══════════════════════════════════════════
+       Con una tanda ABIERTA el cartel sale con la primera imagen y el numero sube en cada turno,
+       sin pedir la lista: eso es para lo que estan los cuatro campos de §3.1. Cuando la tanda
+       CIERRA —y solo entonces— se pide `GET /v1/imagenes` y el cartel pasa a su forma final.
+       ⚠️ CONTRA UN PUENTE 1.3.x `clnkTandaDe` DEVUELVE `null` y este bloque entero no corre: se
+       cae al camino de siempre, que agrupa por `lote` o por la ventana propia. Es el bloque J. */
+    var T = clnkTandaDe(d);
+    if (T) {
+      if (T.abierta) {
+        clnkTandaCartel(T);
+        return;
+      }
+      if (_clnkTanda) {
+        /* La tanda que el cartel estaba mostrando acaba de cerrar. */
+        _clnkTandaCerradaPorMedico = false;
+        await clnkTandaCerrar();
+        return;
+      }
+      /* Sin tanda abierta y sin cartel de tanda, la marca de «lo cerre con la ✕» no tiene a que
+         referirse: dejarla puesta haria que la tanda SIGUIENTE no sacara su cartel. */
+      _clnkTandaCerradaPorMedico = false;
+    }
     if ((Number(d.imagenes_pendientes) || 0) > 0) await clnkRevisarImagenes();
   } catch (e) {
     /* Un sondeo que lanza no puede matar al temporizador ni llegarle al médico como un error:
        es trabajo de fondo que nadie pidió. Se anota y se reintenta al próximo turno. */
     try { console.warn('[clnk/sondeo]', e); } catch (e2) {}
-  } finally { _clnkSondeando = false; }
+  } finally {
+    _clnkSondeando = false;
+    /* La cadencia se re-sincroniza AL FINAL DE CADA TURNO y en el `finally`, no en el camino
+       feliz: el turno sale temprano por media docena de puertas, y en cualquiera de ellas la
+       tanda pudo abrirse o cerrarse. Es idempotente, asi que con la cadencia sin cambios no
+       hace nada. */
+    try { clnkSondeoSync(); } catch (e3) {}
+  }
 }
 window._clnkSondear = _clnkSondear;
 

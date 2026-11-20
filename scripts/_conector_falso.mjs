@@ -68,18 +68,84 @@ const TOKEN_DE_PRUEBA = randomBytes(32).toString('hex');   // 64 hexadecimales, 
    contrato no tiene ese campo, y mandarlo seria inventar contrato. */
 const MIN = 60 * 1000;
 
-function img(id, equipo, recibida, tipo, buf, cuarentena) {
-  return { id: id, equipo: equipo, recibida: recibida, bytes: buf.length, tipo: tipo,
+function img(id, equipo, recibida, tipo, buf, cuarentena, extra) {
+  const o = { id: id, equipo: equipo, recibida: recibida, bytes: buf.length, tipo: tipo,
            modalidad: 'US', vista: null,
            vence: new Date(Date.parse(recibida) + 24 * 60 * MIN).toISOString().replace(/\.\d+Z$/, 'Z'),
+           /* ══ CONTRATO 1.3 (§P2) ══ Los tres campos de cada imagen. Por omision es un DICOM que
+              entro por el receptor, que es lo que todas las escenas anteriores eran. */
+           origen: 'dicom', formato: 'dicom', se_puede_ver: true,
            _buf: buf, _cuarentena: !!cuarentena };
+  if (extra) Object.keys(extra).forEach(k => { o[k] = extra[k]; });
+  return o;
+}
+
+/* ══ LOS BYTES DEL BUZON (CONTRATO 1.3 §P2) ═══════════════════════════════════════════════════
+   NINGUNO TRAE UN DATO DE NADIE: son cabeceras armadas a mano, del largo minimo que hace falta
+   para que la firma se mida. El JPG y el PNG son dibujos del programa; los que no se pueden ver
+   son su cabecera y nada mas, porque lo que prueban es que EcoSmart NO los abra.
+   ⚠️ EL `formato` DEL PUENTE SE MIDE POR EL CONTENIDO, asi que estos bytes tienen que tener la
+   firma de verdad: un TIF cuya firma no sea 49 49 2A 00 lo clasificaria como `desconocido` y la
+   prueba mediria otra cosa. */
+const _P = (...n) => Uint8Array.from(n);
+function _ascii(t) { return Uint8Array.from(t.split('').map(c => c.charCodeAt(0))); }
+function _junta(...partes) {
+  let n = 0; partes.forEach(x => { n += x.length; });
+  const u = new Uint8Array(n); let k = 0;
+  partes.forEach(x => { u.set(x, k); k += x.length; });
+  return u;
+}
+/* Un ISO-BMFF minimo: la caja `ftyp` con la marca que mide `_firmaArchivo`. */
+function _ftyp(marca) {
+  return _junta(_P(0, 0, 0, 24), _ascii('ftyp'), _ascii(marca), _P(0, 0, 2, 0),
+                _ascii('isomiso2'), new Uint8Array(4));
+}
+const BUZON_BYTES = {
+  jpg: _junta(JPEG_1x1, new Uint8Array(64)),
+  png: _junta(_P(0x89), _ascii('PNG'), _P(0x0D, 0x0A, 0x1A, 0x0A),
+              _P(0, 0, 0, 13), _ascii('IHDR'), _P(0, 0, 0, 8, 0, 0, 0, 8, 8, 2, 0, 0, 0),
+              new Uint8Array(40)),
+  /* BM + el tamanio de cabecera DIB en el byte 14, que es lo que el detector cruza. */
+  bmp: _junta(_ascii('BM'), _P(0x80, 0, 0, 0), new Uint8Array(8), _P(40, 0, 0, 0),
+              new Uint8Array(100)),
+  mp4: _ftyp('isom'),
+  mov: _ftyp('qt  '),
+  tif: _junta(_P(0x49, 0x49, 0x2A, 0x00), _P(8, 0, 0, 0), new Uint8Array(120)),
+  avi: _junta(_ascii('RIFF'), _P(0x80, 0, 0, 0), _ascii('AVI '), _ascii('LIST'),
+              new Uint8Array(100)),
+  /* ASF/WMV: su GUID de cabecera, los 16 bytes que lo identifican. */
+  wmv: _junta(_P(0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11,
+                 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C), new Uint8Array(96)),
+  pdf: _junta(_ascii('%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n'), new Uint8Array(48)),
+  txt: _ascii('INFORME\nSin un dato de nadie: esto es una cabecera de prueba.\n'),
+  html: _ascii('<!doctype html><html><body><p>informe de prueba</p></body></html>'),
+  desconocido: _junta(_P(0x5A, 0x5A, 0x5A, 0x5A), new Uint8Array(60)),
+};
+/* `tipo` y `se_puede_ver` tal como los fija §P2: los seis que no se ven y los cuatro que si. */
+const BUZON_TIPO = { jpg: 'imagen', png: 'imagen', bmp: 'imagen', mp4: 'video', mov: 'video',
+                     tif: 'imagen', avi: 'video', wmv: 'video',
+                     pdf: 'informe', txt: 'informe', html: 'informe', desconocido: 'archivo' };
+const BUZON_VE = { jpg: true, png: true, bmp: true, mp4: true, mov: true,
+                   tif: false, avi: false, wmv: false,
+                   pdf: false, txt: false, html: false, desconocido: false };
+/* Una imagen del BUZON. El `origen` es lo que la distingue de una que entro por el receptor. */
+function buz(id, equipo, recibida, formato, cuarentena) {
+  return img(id, equipo, recibida, BUZON_TIPO[formato], BUZON_BYTES[formato], cuarentena,
+             { origen: 'buzon', formato: formato, se_puede_ver: BUZON_VE[formato],
+               modalidad: null });
 }
 
 /* El instante base de las escenas es AHORA y no una fecha escrita: la hora del aviso que ve el
    medico sale de `recibida`, y con una fecha fija el aviso diria siempre la misma hora de 2026
    — que es una prueba que pasa sin mirar el reloj. */
 function escenas() {
-  const t0 = Date.now() - 3 * MIN;
+  /* ⚠️ CINCO MINUTOS Y NO TRES, Y ES POR EL CONTRATO 1.4. Desde que el falso publica la tanda,
+     `abierta` se deriva de la ULTIMA llegada mas dos minutos: con t0 a tres minutos, las escenas
+     cuyo ultimo desplazamiento llega a 100 s quedaban con la tanda ABIERTA, y una tanda abierta
+     deja los botones del cartel apagados. O sea que mover este numero es lo que deja a las
+     escenas de antes del prompt 6 portandose como antes. Las que necesitan una tanda ABIERTA la
+     piden por su cuenta, con su propio instante. */
+  const t0 = Date.now() - 5 * MIN;
   const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
   /* Los bytes se generan UNA vez por escena y se comparten: el DICOM de un cuadro son 570
      bytes, pero el grande son 16 MB y armarlo tres veces es medio giga por pedido. */
@@ -349,6 +415,79 @@ function escenas() {
     paraGaleria3: () => [
       img('img_g6b', 'eq_3f8a1c', iso(t0 + 42000), 'imagen', uno),
     ],
+    /* ══ EL BUZON (CONTRATO 1.3 §P2, PROMPT 6) ═══════════════════════════════════════════
+       LOS NUEVE QUE EL ECOGRAFO FALSO SUELTA, mas los dos videos que si se ven. Seis de los
+       once NO se pueden ver, que es justo lo que los bloques E y F tienen que probar. */
+    buzonMixto: () => [
+      buz('img_bz_jpg', 'eq_buzon', iso(t0),          'jpg'),
+      buz('img_bz_png', 'eq_buzon', iso(t0 + 4000),   'png'),
+      buz('img_bz_mp4', 'eq_buzon', iso(t0 + 8000),   'mp4'),
+      buz('img_bz_tif', 'eq_buzon', iso(t0 + 12000),  'tif'),
+      buz('img_bz_avi', 'eq_buzon', iso(t0 + 16000),  'avi'),
+      buz('img_bz_pdf', 'eq_buzon', iso(t0 + 20000),  'pdf'),
+      buz('img_bz_txt', 'eq_buzon', iso(t0 + 24000),  'txt'),
+      buz('img_bz_des', 'eq_buzon', iso(t0 + 28000),  'desconocido'),
+    ],
+    /* SOLO LAS QUE SE VEN: una por cada camino de vista previa y de visor. */
+    buzonVisibles: () => [
+      buz('img_bv_jpg', 'eq_buzon', iso(t0),         'jpg'),
+      buz('img_bv_png', 'eq_buzon', iso(t0 + 5000),  'png'),
+      buz('img_bv_bmp', 'eq_buzon', iso(t0 + 10000), 'bmp'),
+      buz('img_bv_mp4', 'eq_buzon', iso(t0 + 15000), 'mp4'),
+      buz('img_bv_mov', 'eq_buzon', iso(t0 + 20000), 'mov'),
+    ],
+    /* SOLO LOS QUE NO SE VEN: los seis del bloque F, cada uno con su sigla. */
+    buzonNoVisibles: () => [
+      buz('img_bn_tif', 'eq_buzon', iso(t0),         'tif'),
+      buz('img_bn_avi', 'eq_buzon', iso(t0 + 4000),  'avi'),
+      buz('img_bn_wmv', 'eq_buzon', iso(t0 + 8000),  'wmv'),
+      buz('img_bn_pdf', 'eq_buzon', iso(t0 + 12000), 'pdf'),
+      buz('img_bn_txt', 'eq_buzon', iso(t0 + 16000), 'txt'),
+      buz('img_bn_des', 'eq_buzon', iso(t0 + 20000), 'desconocido'),
+    ],
+    /* UNA SOLA FOTO del buzon, con su id propio: la prueba del visor de una fija. */
+    buzonUnaFoto: () => [ buz('img_bu_jpg', 'eq_buzon', iso(t0), 'jpg') ],
+    /* UN SOLO VIDEO del buzon, con su id propio. */
+    buzonUnVideo: () => [ buz('img_bu_mp4', 'eq_buzon', iso(t0), 'mp4') ],
+    /* UNO QUE NO SE VE, solo: la tarjeta del bloque F con un solo archivo. */
+    buzonUnTif: () => [ buz('img_bu_tif', 'eq_buzon', iso(t0), 'tif') ],
+    /* EL EQUIPO DE LA CARPETA COMPARTIDA, que es otro equipo aunque la subcarpeta se llame
+       igual: es lo que el bloque I tiene que poder distinguir. */
+    porRed: () => [ buz('img_er_jpg', 'eq_entrada', iso(t0), 'jpg') ],
+
+    /* ══ LA TANDA ABIERTA (CONTRATO 1.4 §3.1) ════════════════════════════════════════════
+       ⚠️ EL INSTANTE ES **AHORA** Y NO `t0`, y de eso depende todo el bloque A: `abierta` se
+       deriva de la ultima llegada mas dos minutos, asi que una escena con fechas viejas tiene
+       la tanda CERRADA por definicion y el cartel inmediato no se puede medir sobre ella. */
+    tandaUna: () => [ img('img_t1', 'eq_3f8a1c', iso(Date.now() - 2000), 'imagen', uno) ],
+    tandaDos: () => [
+      img('img_t1', 'eq_3f8a1c', iso(Date.now() - 9000), 'imagen', uno),
+      img('img_t2', 'eq_3f8a1c', iso(Date.now() - 2000), 'imagen', uno),
+    ],
+    tandaTres: () => [
+      img('img_t1', 'eq_3f8a1c', iso(Date.now() - 16000), 'imagen', uno),
+      img('img_t2', 'eq_3f8a1c', iso(Date.now() - 9000),  'imagen', uno),
+      img('img_t3', 'eq_3f8a1c', iso(Date.now() - 2000),  'video',  loop),
+    ],
+    /* LAS MISMAS TRES, pero con la tanda ya CERRADA: es el «Listo» del bloque A. */
+    tandaCerrada: () => [
+      img('img_t1', 'eq_3f8a1c', iso(t0),           'imagen', uno),
+      img('img_t2', 'eq_3f8a1c', iso(t0 + 7000),    'imagen', uno),
+      img('img_t3', 'eq_3f8a1c', iso(t0 + 14000),   'video',  loop),
+    ],
+    /* UNA TANDA ABIERTA CON SUS IMAGENES EN CUARENTENA: el aviso tiene que decir que hay que
+       autorizar el equipo, o el medico toca el cartel y llega a una lista vacia (§P8). */
+    tandaCuarentena: () => [
+      img('img_tq1', 'eq_9b2e7d', iso(Date.now() - 4000), 'imagen', uno, true),
+      img('img_tq2', 'eq_9b2e7d', iso(Date.now() - 1000), 'imagen', uno, true),
+    ],
+    /* UNA TANDA ABIERTA DEL BUZON, con las cuatro clases a la vez: es el texto del bloque C. */
+    tandaBuzon: () => [
+      buz('img_tb1', 'eq_buzon', iso(Date.now() - 12000), 'jpg'),
+      buz('img_tb2', 'eq_buzon', iso(Date.now() - 9000),  'mp4'),
+      buz('img_tb3', 'eq_buzon', iso(Date.now() - 6000),  'pdf'),
+      buz('img_tb4', 'eq_buzon', iso(Date.now() - 2000),  'tif'),
+    ],
     vacio: () => [],
   };
 }
@@ -365,21 +504,68 @@ function equiposDe(cuantos) {
      sobrevivia porque el bloque anterior ya habia avisado de B. */
   const C = { id: 'eq_tercero', estado: 'pendiente', aet: 'ECOTERCERO', ip: '127.0.0.2',
               apodo: null, imagenes: 2, ultimo_envio: '2026-11-10T21:50:00Z' };
+  /* ══ LOS DOS EQUIPOS DE CARPETA (CONTRATO 1.3 §P5) ══════════════════════════════════════
+     Los dos puntos no son un caracter valido en un AET de DICOM, asi que un equipo de carpeta
+     nunca se confunde con un ecografo. Y los DOS prefijos son equipos DISTINTOS aunque la
+     subcarpeta se llame igual: en el buzon escribe la cuenta del medico, en la carpeta de
+     entrada escribe cualquiera que tenga las credenciales del recurso compartido.
+     ⚠️ EL APODO DEL DE ENTRADA TRAE UN NOMBRE DE SUBCARPETA CON MARCADO ADENTRO, a proposito:
+     el contrato avisa que el puente valida que no haya controles ni invisibles y NADA MAS, asi
+     que quien lo dibuja tiene que usar `textContent`. Si alguna vez se dibuja con `innerHTML`,
+     esto lo pone en evidencia en vez de dejarlo pasar. */
+  const Z = { id: 'eq_buzon', estado: 'autorizado', aet: 'BUZON:', ip: '127.0.0.1',
+              apodo: null, imagenes: 8, ultimo_envio: '2026-11-19T20:44:52Z' };
+  const Y = { id: 'eq_entrada', estado: 'autorizado', aet: 'ENTRADA:sonoscape<img src=x>',
+              ip: '127.0.0.1', apodo: null, imagenes: 1,
+              ultimo_envio: '2026-11-19T20:45:10Z' };
+  /* UN EQUIPO DE CARPETA ESPERANDO DECISION: es la fila donde el medico aprieta PERMITIR, que
+     es justo donde el bloque I pide que se vea de donde vino. */
+  const W = { id: 'eq_entrada_pend', estado: 'pendiente', aet: 'ENTRADA:', ip: '127.0.0.1',
+              apodo: null, imagenes: 2, ultimo_envio: '2026-11-19T20:46:00Z' };
   if (cuantos === 0) return [];
   if (cuantos === 1) return [A];
+  if (cuantos === 4) return [A, Z, Y];
+  if (cuantos === 5) return [A, Z, Y, W];
   if (cuantos >= 3) return [A, B, C];
   return [A, B];
 }
 
+/* ══ `nombre_para_mostrar` (CONTRATO 1.4 §3.4) ════════════════════════════════════════════════
+   El `aet` traducido a algo que una persona pueda leer. Las cinco filas de la tabla del §3.4,
+   al pie de la letra, y NUNCA viene vacio: con un AET sin ninguno de los dos prefijos devuelve
+   el AET. NO incluye el apodo, a proposito: el apodo viaja en su propio campo. */
+function nombreParaMostrar(aet) {
+  const a = String(aet || '');
+  if (a.indexOf('BUZON:') === 0) {
+    const sub = a.slice(6);
+    return sub ? ('Buz\u00f3n de esta computadora, carpeta \u00ab' + sub + '\u00bb')
+               : 'Buz\u00f3n de esta computadora';
+  }
+  if (a.indexOf('ENTRADA:') === 0) {
+    const sub = a.slice(8);
+    return sub ? ('Carpeta de entrada, carpeta \u00ab' + sub + '\u00bb') : 'Carpeta de entrada';
+  }
+  return a;
+}
+
 function escenarioDeFabrica() {
   return {
-    /* 1.1.0 implementa el contrato 1.1. Poniendo '1.0.0' las dos rutas nuevas dan 404, que es
-       lo que el contrato §7 dice que pasa contra un conector viejo. */
-    version: '1.1.0',
+    /* ⚠️ DE FABRICA ES **1.4.0**, QUE ES EL PUENTE EN VIGENCIA, y de eso depende el bloque J.
+       El falso publica cada campo detras de la version que lo trajo: con '1.3.0' desaparecen
+       los cuatro de la tanda, `bytes_aviso`, la lista `tandas` y `nombre_para_mostrar`; con
+       '1.1.0' desaparecen ademas `origen`, `formato`, `se_puede_ver`, `lote`, el `tipo`/`enlace`
+       de cada direccion y `carpeta_compartida`; y con '1.0.0' las dos rutas nuevas dan 404, que
+       es lo que el contrato §7 dice que pasa contra un conector viejo. Asi una sola sonda mide
+       las tres compatibilidades sin tres falsos. */
+    version: '1.4.0',
     orthanc_vivo: true,
     imagenes_pendientes: 3,
     equipos_esperando: 1,
     bytes_usados: 48234112,
+    /* ⚠️ DESDE LA 1.4.0 EL TOPE **NO ES FIJO**: se deriva del disco. Se deja el valor viejo de
+       fabrica para que el aviso de espacio se pueda probar con los mismos numeros de antes, y
+       `bytes_aviso` se DERIVA abajo —el 80 % del tope, que es lo que §3.1 dice— en vez de
+       escribirse: con los dos sueltos, una prueba podria medir un aviso que no corresponde. */
     bytes_tope: 2147483648,
 
     codigo: CODIGO_DE_PRUEBA,
@@ -399,13 +585,28 @@ function escenarioDeFabrica() {
        otras» de «se cayo todo». El archivo da 503 y la imagen SIGUE en la lista. */
     bajarFalla: [],
 
+    /* ══ CONEXION (CONTRATO 1.3 §P7) ══════════════════════════════════════════════════════
+       UNA SOLA direccion de fabrica y marcada como la probable, que es el caso bueno: el
+       bloque G se mide con `conexionVarias`, que pone las cinco que la pantalla tiene que saber
+       dibujar. `tipo` y `enlace` van en cada una desde la 1.3. */
     conexion: {
       puerto_dicom: 4242,
       aet_puente: 'PUENTE',
       direcciones: [
-        { direccion: '192.168.1.23', interfaz: 'en7', probable: true },
+        { direccion: '192.168.1.23', interfaz: 'en7', probable: true,
+          tipo: 'cable', enlace: true },
       ],
       aviso: null,
+      /* ⚠️ LA RUTA Y EL USUARIO SALEN DE UN ARCHIVO QUE ESCRIBE UNA PERSONA, y el contrato dice
+         que el puente garantiza que la ruta es absoluta y NADA sobre su contenido. La ruta de
+         fabrica trae marcado adentro a proposito, por el mismo motivo que el apodo del equipo
+         de entrada: si alguna vez se dibuja con `innerHTML`, se ve. */
+      carpeta_compartida: {
+        ruta: 'C:\\CeiboLink-Entrada<img src=x onerror=1>',
+        usuario: 'ecografo',
+        existe: true,
+        aviso: null,
+      },
     },
 
     equipos: equiposDe(2),
@@ -425,15 +626,103 @@ function escenarioDeFabrica() {
 /* El estado que `GET /v1/estado` publica se CALCULA de la lista. Las imagenes en cuarentena no
    cuentan como pendientes: §3.8 dice que no salen en la lista, asi que EcoSmart no las puede
    levantar y contarlas seria prometer trabajo que no hay. */
+/* La ventana del puente: DOS MINUTOS desde la ultima imagen del lote. Es fija del lado del
+   puente —§P8 lo dice con todas las letras— y por eso vive aca y no en un ajuste. */
+const VENTANA_LOTE_MS = 2 * MIN;
+
+/* ══ EL LOTE Y LA TANDA, DERIVADOS (CONTRATO 1.3 §P8 y 1.4) ═══════════════════════════════════
+   El lote es POR EQUIPO: una imagen entra al lote abierto de SU equipo si todavia no cerro, y
+   si no abre uno nuevo.
+   ⚠️ EL CIERRE **NO SE GUARDA, SE CALCULA**: es la fecha de la imagen mas nueva del lote mas la
+   ventana, asi que si entra una imagen mas el cierre se corre solo. Un cierre guardado al crear
+   el lote quedaria viejo en cuanto llegue la segunda imagen.
+   ⚠️ Y LAS TANDAS VIENEN **TODAS**, abiertas y cerradas, y tambien las que tienen TODAS sus
+   imagenes en cuarentena: `imagenes` no trae las de un equipo sin autorizar, asi que una tanda
+   que solo tuviera esas no apareceria en ninguna parte y el aviso no podria decir «autoriza el
+   equipo para verlas». */
+function derivarLotes(S) {
+  const ahora = Date.now();
+  const iso = ms => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+  const ms = i => { const t = Date.parse(String(i.recibida || '')); return isFinite(t) ? t : ahora; };
+  const orden = S.imagenes.slice().sort((a, b) => {
+    const ea = String(a.equipo || ''), eb = String(b.equipo || '');
+    if (ea !== eb) return ea < eb ? -1 : 1;
+    return ms(a) - ms(b);
+  });
+  const lotes = [];
+  let g = null;
+  orden.forEach(i => {
+    const t = ms(i);
+    if (g && g.equipo === String(i.equipo || '') && (t - g.ultimoMs) <= VENTANA_LOTE_MS) {
+      g.ultimoMs = t; g.imagenes++;
+      if (i._cuarentena) g.en_cuarentena++;
+    } else {
+      g = { lote: 'lt_' + i.id.replace(/^img_/, ''), equipo: String(i.equipo || ''),
+            imagenes: 1, en_cuarentena: i._cuarentena ? 1 : 0,
+            primeraMs: t, ultimoMs: t };
+      lotes.push(g);
+    }
+    i._lote = g;
+  });
+  S.imagenes.forEach(i => {
+    const L = i._lote;
+    if (!L) return;
+    i.lote = L.lote;
+    i.lote_cierra = iso(L.ultimoMs + VENTANA_LOTE_MS);
+  });
+  S.tandas = lotes.map(L => ({
+    lote: L.lote, equipo: L.equipo, imagenes: L.imagenes, en_cuarentena: L.en_cuarentena,
+    primera: iso(L.primeraMs), ultima: iso(L.ultimoMs),
+    cierra: iso(L.ultimoMs + VENTANA_LOTE_MS),
+    /* `abierta` lo decide el puente con UN SOLO RELOJ para toda la respuesta (§P8). */
+    abierta: (L.ultimoMs + VENTANA_LOTE_MS) > ahora,
+  }));
+  /* Los cuatro campos de `GET /v1/estado` son de la tanda abierta MAS NUEVA POR ULTIMA LLEGADA,
+     que es la que el medico acaba de provocar (§3.1). Las otras estan en la lista de §P8. */
+  const abiertas = S.tandas.filter(t => t.abierta)
+                           .sort((a, b) => Date.parse(b.ultima) - Date.parse(a.ultima));
+  const T = abiertas[0] || null;
+  S.tanda_abierta = !!T;
+  S.tanda_imagenes = T ? T.imagenes : 0;
+  S.tanda_ultima = T ? T.ultima : '';
+  S.tanda_cierra = T ? T.cierra : '';
+  return S;
+}
+
 function sincronizar(S) {
-  const vis = S.imagenes.filter(i => !i._cuarentena);
+  const auto = S.equipos.filter(e => e.estado === 'autorizado').map(e => e.id);
+  /* ⚠️ PENDIENTES SON LAS QUE SALEN EN LA LISTA, o sea las de un equipo AUTORIZADO y sin marca
+     de cuarentena. La version anterior miraba solo la marca, asi que una imagen de un equipo
+     PENDIENTE contaba como pendiente y no aparecia en la lista: el estado decia «hay 2» y
+     `/v1/imagenes` devolvia cero, que es un escenario que el puente de verdad no produce. */
+  const vis = S.imagenes.filter(i => !i._cuarentena && auto.indexOf(i.equipo) >= 0);
   S.imagenes_pendientes = vis.length;
   S.equipos_esperando = S.equipos.filter(e => e.estado === 'pendiente').length;
+  /* `bytes_aviso` es el 80 % del tope, DERIVADO (§3.1). */
+  S.bytes_aviso = Math.round(Number(S.bytes_tope || 0) * 0.8);
+  derivarLotes(S);
   /* ⚠️ `bytes_usados` NO se deriva, y es a proposito: el aviso de espacio de EcoSmart se prueba
      fijando ese numero cerca del tope, y una derivada de tres DICOM sinteticos de 570 bytes no
      llega nunca. Se escribe por `/_control`, que es para lo que esa ruta esta. */
   return S;
 }
+
+/* ══ LA COMPUERTA DE VERSION ══════════════════════════════════════════════════════════════════
+   Cada campo se publica detras de la version que lo trajo, que es lo que deja medir el bloque J
+   —la compatibilidad contra un puente viejo— con UN solo falso. Se compara el numero MENOR y no
+   la cadena: '1.4.0' y '1.4.3' implementan los dos el contrato 1.4 (§7). */
+function menor(S) {
+  const m = String(S.version || '').split('.');
+  return (Number(m[0]) || 0) * 100 + (Number(m[1]) || 0);
+}
+const es14 = S => menor(S) >= 104;
+const es13 = S => menor(S) >= 103;
+
+/* El `Content-Type` por formato medido (CONTRATO 1.3 §P3). Todo lo que no es DICOM, imagen ni
+   video sale como `application/octet-stream`, que es lo que hace que el navegador lo BAJE en vez
+   de interpretarlo: NUNCA se manda `text/html` ni `application/pdf`. */
+const TIPO_MIME = { dicom: 'application/dicom', jpg: 'image/jpeg', png: 'image/png',
+                    bmp: 'image/bmp', mp4: 'video/mp4', mov: 'video/quicktime' };
 
 /* Los origenes que este falso acepta. El de verdad solo acepta el de produccion; este acepta
    ademas loopback porque la bateria sirve la app desde un puerto al azar. NUNCA `*`. */
@@ -562,6 +851,9 @@ export function servirConectorFalso(opciones) {
             imagenes: E.v.imagenes.map(i => i.id),
             imagenes_pendientes: E.v.imagenes_pendientes,
             equipos: E.v.equipos.map(e => e.id + ':' + e.estado),
+            tanda_abierta: E.v.tanda_abierta, tanda_imagenes: E.v.tanda_imagenes,
+            tandas: (E.v.tandas || []).map(t => t.lote + ':' + t.imagenes + ':' +
+                                                (t.abierta ? 'abierta' : 'cerrada')),
             confirmadas: E.v.confirmadas, borradas: E.v.borradas } });
           return;
         }
@@ -569,11 +861,21 @@ export function servirConectorFalso(opciones) {
         /* ── 3.1 estado — SIN token ── */
         if (esM('GET', /^\/v1\/estado$/)) {
           sincronizar(S);
-          json(rq, 200, {
+          const cu = {
             version: S.version, orthanc_vivo: S.orthanc_vivo,
             imagenes_pendientes: S.imagenes_pendientes, equipos_esperando: S.equipos_esperando,
             bytes_usados: S.bytes_usados, bytes_tope: S.bytes_tope, vinculado: S.vinculado,
-          });
+          };
+          /* Los CINCO campos de la 1.4. Contra un puente mas viejo no vienen, y EcoSmart tiene
+             que volver a la regla de la 1.3: agrupar por `lote` y avisar al cerrar (§P8). */
+          if (es14(S)) {
+            cu.bytes_aviso = S.bytes_aviso;
+            cu.tanda_abierta = S.tanda_abierta;
+            cu.tanda_imagenes = S.tanda_imagenes;
+            cu.tanda_ultima = S.tanda_ultima;
+            cu.tanda_cierra = S.tanda_cierra;
+          }
+          json(rq, 200, cu);
           return;
         }
 
@@ -628,7 +930,15 @@ export function servirConectorFalso(opciones) {
           if (S.version.indexOf('1.0.') === 0) {
             err(rq, 404, 'no_encontrado', 'No encontrado.'); return;
           }
-          json(rq, 200, S.conexion);
+          /* El `tipo`, el `enlace` de cada direccion y `carpeta_compartida` son de la 1.3
+             (§P7): contra un puente 1.1 la pantalla tiene que poder dibujar igual sin ellos. */
+          if (es13(S)) { json(rq, 200, S.conexion); return; }
+          const cx = Object.assign({}, S.conexion);
+          delete cx.carpeta_compartida;
+          cx.direcciones = (S.conexion.direcciones || []).map(x => {
+            const c = Object.assign({}, x); delete c.tipo; delete c.enlace; return c;
+          });
+          json(rq, 200, cx);
           return;
         }
 
@@ -668,6 +978,9 @@ export function servirConectorFalso(opciones) {
           json(rq, 200, { equipos: S.equipos.map(e => {
             const c = Object.assign({}, e);
             if (viejo) delete c.apodo;
+            /* `nombre_para_mostrar` es de la 1.4 (§3.4) y NUNCA viene vacio: con un AET sin
+               ninguno de los dos prefijos devuelve el AET. */
+            if (es14(S)) c.nombre_para_mostrar = nombreParaMostrar(e.aet);
             return c;
           }) });
           return;
@@ -731,11 +1044,22 @@ export function servirConectorFalso(opciones) {
            SOLO las de equipos AUTORIZADOS, que es lo que §3.8 fija: lo que esta en cuarentena
            no aparece. Y el `_buf` no sale: la lista del contrato no tiene ese campo. */
         if (esM('GET', /^\/v1\/imagenes$/)) {
+          sincronizar(S);
           const auto = S.equipos.filter(e => e.estado === 'autorizado').map(e => e.id);
           const vis = S.imagenes.filter(i => !i._cuarentena && auto.indexOf(i.equipo) >= 0);
-          json(rq, 200, { imagenes: vis.map(i => {
-            const c = Object.assign({}, i); delete c._buf; delete c._cuarentena; return c;
-          }) });
+          const cuerpo = { imagenes: vis.map(i => {
+            const c = Object.assign({}, i);
+            delete c._buf; delete c._cuarentena; delete c._lote;
+            /* §P2 y §P8 llegaron en la 1.3: contra un puente anterior la imagen no los trae. */
+            if (!es13(S)) {
+              delete c.origen; delete c.formato; delete c.se_puede_ver;
+              delete c.lote; delete c.lote_cierra;
+            }
+            return c;
+          }) };
+          /* La lista `tandas` es de la 1.4 y VIENE COMPLETA: todas, abiertas y cerradas. */
+          if (es14(S)) cuerpo.tandas = S.tandas.slice();
+          json(rq, 200, cuerpo);
           return;
         }
 
@@ -758,9 +1082,17 @@ export function servirConectorFalso(opciones) {
             err(rq, 503, 'no_disponible', 'El almacen no responde. Volve a intentar.');
             return;
           }
-          rq.writeHead(200, { 'Content-Type': 'application/dicom',
+          /* ══ EL `Content-Type` SALE DEL FORMATO MEDIDO (CONTRATO 1.3 §P3) ═════════════
+             Antes era siempre `application/dicom`. Y lleva SIEMPRE `nosniff` y `attachment`:
+             todo lo que no es DICOM, imagen ni video sale como `application/octet-stream`, que
+             es lo que hace que el navegador lo baje en vez de interpretarlo. */
+          const fmt = String(im.formato || 'dicom');
+          const ext = fmt === 'dicom' ? 'dcm' : fmt;
+          rq.writeHead(200, { 'Content-Type': es13(S) ? (TIPO_MIME[fmt] || 'application/octet-stream')
+                                                      : 'application/dicom',
                               'Content-Length': im._buf.length,
-                              'Content-Disposition': 'attachment; filename="' + im.id + '.dcm"',
+                              'X-Content-Type-Options': 'nosniff',
+                              'Content-Disposition': 'attachment; filename="' + im.id + '.' + ext + '"',
                               'Cache-Control': 'no-store' });
           rq.end(Buffer.from(im._buf));
           return;

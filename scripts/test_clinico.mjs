@@ -135292,11 +135292,19 @@ caso('TC-839', 'Contra un conector 1.0 las dos rutas nuevas se ESCONDEN, no dan 
                nodo SI esta, y es por nodos que se cuenta;
            3 - la version pasa de una linea del bloque de estado a la LUZ de la cabecera, que
                es lo que se mira siempre. El dato es el mismo. */
+      /* ADAPTADO PROMPT 6, bloque A: el conector falso pasa a hablar el contrato **1.4**, que es
+         el que el puente en vigencia implementa, asi que su version de fabrica deja de ser
+         '1.1.0'. Lo que este caso afirma NO cambia -que el panel DICE la version cuando el
+         conector contesta, y que contra un 1.0 las dos rutas nuevas se esconden en vez de dar
+         error- y por eso la condicion sigue siendo la misma pregunta con el numero de hoy.
+         El numero se lee del escenario en vez de escribirse: con el literal, el dia que el falso
+         suba a 1.5 este caso vuelve a caer por una razon que no es la suya. */
       R.v11Conexion = (function(){ const d = document.getElementById('cfg-clnk-det-conexion');
         return !!d && d.getBoundingClientRect().height > 0; })();
       R.v11Apodo = document.getElementById('cfg-clnk-equipos').querySelectorAll('[data-clnk-apodo]').length;
+      R.v11Version = String((await (await fetch(F.base + '/v1/estado')).json()).version || '');
       R.v11DiceVersion = ((document.getElementById('cfg-clnk-luz') || {}).textContent || '')
-                           .indexOf('1.1.0') > -1;
+                           .indexOf(R.v11Version) > -1;
 
       /* ── AHORA 1.0 ── */
       localStorage.removeItem('ett_ceibolink_token');
@@ -135350,7 +135358,7 @@ caso('TC-839', 'Contra un conector 1.0 las dos rutas nuevas se ESCONDEN, no dan 
       ['sin excepciones',                                     !R.err, R.err],
       ['CONTROL POSITIVO 1.1: el bloque de conexion se ve',   R.v11Conexion, R.v11Conexion],
       ['CONTROL POSITIVO 1.1: hay campo de apodo',            R.v11Apodo === 2, 'n=' + R.v11Apodo],
-      ['CONTROL POSITIVO 1.1: dice la version',               R.v11DiceVersion, R.v11DiceVersion],
+      ['CONTROL POSITIVO 1.1: dice la version',               R.v11DiceVersion, 'v=' + R.v11Version + ' ' + R.v11DiceVersion],
       ['1.0: dice la version vieja',                          R.diceVersionVieja, R.diceVersionVieja],
       ['1.0: el bloque de conexion queda ESCONDIDO',          R.conexionEscondida, R.conexionEscondida],
       ['y vacio',                                             R.conexionVacia, R.conexionVacia],
@@ -152007,6 +152015,207 @@ caso('TC-960', 'Punto 4: «Ir al estudio» desde una imagen de la galeria ABRE e
       ['con la lista escondida detras', R.listaEscondida, R.listaEscondida],
       ['y es el estudio de ESA imagen: dice su paciente', R.diceElPaciente, R.diceElPaciente],
       ['sin una sola excepcion en el camino', R.sinExcepcion, R.errores || '(ninguna)']
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 6 · BLOQUE A — EL CARTEL SALE CON LA PRIMERA IMAGEN ══════════════════════════════
+   Hasta el prompt 6 el aviso salia recien cuando el envio terminaba, porque el unico agrupador
+   era `clnkAgrupar` con su propia ventana de dos minutos. Con un equipo que exporta de a una
+   imagen por minuto el medico veia la pantalla quieta mientras sus imagenes llegaban. El
+   contrato 1.4 agrega los cuatro campos de la tanda a `GET /v1/estado` -- la ruta SIN token--
+   justamente para esto.
+   El control negativo es un puente 1.3.0: ahi los campos no vienen y el cartel de tanda NO sale,
+   que es lo que impide que este caso pase sobre un cartel que sale siempre.                   */
+caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo viajando y el contador subiendo, los botones apagados hasta que la tanda cierra, y el plazo lo da el puente', `
+  return (async () => {
+    if (typeof window.clnkTandaCartel !== 'function' || typeof window.clnkTandaDe !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el cartel de la tanda', false,
+        'no existen clnkTandaCartel / clnkTandaDe']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const tit = () => String((EL('clnkav-title') || {}).textContent || '');
+    const cu = () => EL('clnkav-cuerpo');
+    const num = () => { const n = cu() && cu().querySelector('[data-clnk-tanda-n]'); return n ? String(n.textContent) : ''; };
+    const est = () => { const n = cu() && cu().querySelector('[data-clnk-tanda-estado]'); return n ? String(n.textContent) : ''; };
+    const bots = () => CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+      .filter(b => b && b.style.display !== 'none' && b.textContent)
+      .map(b => ({ txt: String(b.textContent), off: !!b.disabled }));
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* ── DENOMINADOR: el puente manda los cuatro campos de la tanda ─────────────── */
+      const st0 = await (await fetch(F.base + '/v1/estado')).json();
+      R.mandaCampos = (typeof st0.tanda_abierta === 'boolean');
+
+      /* ── A · CON UNA SOLA IMAGEN EL CARTEL SALE YA ──────────────────────────────── */
+      await ctl({ escena: 'tandaUna' });
+      const stA = await (await fetch(F.base + '/v1/estado')).json();
+      R.unaAbierta = stA.tanda_abierta === true && stA.tanda_imagenes === 1;
+      await _clnkSondear(true);
+      await esp(600);
+      R.aAbrio = abierto();
+      R.aTitulo = tit();
+      R.aN = num();
+      R.aEstado = est();
+      R.aSvg = !!EL('clnk-tanda-svg');
+      R.aViajan = cu() ? cu().querySelectorAll('[data-clnk-viaja]').length : 0;
+      R.aBots = bots();
+      R.aTodosOff = R.aBots.length > 0 && R.aBots.every(b => b.off);
+      R.aCadencia = clnkSondeoMs();
+      /* NO DICE «imagenes» mientras no sabe de que tipo son: es el defecto del TXT contado
+         como imagen, y la unica forma de que no vuelva es prohibir la palabra aca. */
+      R.aNoDiceImagenes = (R.aEstado + ' ' + num()).indexOf('imagen') === -1;
+
+      /* ── B · EL CONTADOR SUBE, Y EL DIBUJO NO SE REINICIA ───────────────────────── */
+      const svg1 = EL('clnk-tanda-svg');
+      await ctl({ escena: 'tandaTres' });
+      await _clnkSondear(true);
+      await esp(600);
+      R.bN = num();
+      R.bMismoSvg = EL('clnk-tanda-svg') === svg1;
+      R.bSigueOff = bots().length > 0 && bots().every(b => b.off);
+      R.bTitulo = tit();
+
+      /* ── C · LA TANDA CIERRA: «Listo», los botones se prenden y el dibujo se para ─ */
+      await ctl({ escena: 'tandaCerrada' });
+      await _clnkSondear(true);
+      await esp(1800);
+      R.cAbierto = abierto();
+      R.cTitulo = tit();
+      R.cEstado = est();
+      R.cN = num();
+      R.cBots = bots();
+      R.cTodosOn = R.cBots.length >= 4 && R.cBots.every(b => !b.off);
+      R.cQuietos = (() => {
+        const l = cu() ? cu().querySelectorAll('[data-clnk-viaja]') : [];
+        return l.length > 0 && Array.prototype.every.call(l,
+          r => r.getAttribute('data-clnk-quieto') === '1');
+      })();
+      R.cCadencia = clnkSondeoMs();
+      clnkAvisoCerrar();
+
+      /* ── D · LA EQUIS CON LA TANDA ABIERTA: NO SE REABRE SOLA ───────────────────── */
+      await ctl({ escena: 'vacio' });
+      await _clnkSondear(true); await esp(300);
+      await ctl({ escena: 'tandaDos' });
+      await _clnkSondear(true); await esp(600);
+      R.dAbrio = abierto();
+      clnkAvisoCerrar();
+      R.dMarca = window._clnkTandaCerradaPorMedico === true;
+      await _clnkSondear(true); await esp(600);
+      R.dReabrio = abierto();
+      const stD = await (await fetch(F.base + '/v1/estado')).json();
+      R.dTandaSigue = stD.tanda_abierta === true;
+
+      /* ── E · CONTROL NEGATIVO: CONTRA UN PUENTE 1.3.0 NO HAY CARTEL DE TANDA ─────
+         Es la mitad del bloque J que se mide aca: sin esto, «el cartel sale» pasaria tambien con
+         un cartel que sale siempre, y la compatibilidad no estaria probada por ningun lado. */
+      window._clnkTandaCerradaPorMedico = false;
+      window._clnkTanda = null;
+      await ctl({ version: '1.3.0', escena: 'tandaTres' });
+      const st13 = await (await fetch(F.base + '/v1/estado')).json();
+      R.e13SinCampos = !('tanda_abierta' in st13);
+      R.e13TandaNull = clnkTandaDe(st13) === null;
+      R.e13Cadencia = clnkSondeoMs();
+      await ctl({ version: '1.4.0' });
+
+      /* ── F · LA CADENCIA SIGUE A LA TANDA Y EL SINCRONIZADOR ES IDEMPOTENTE ─────── */
+      window._clnkTanda = null; clnkSondeoSync();
+      R.fLento = window._clnkSondeoMsPuesto;
+      window._clnkTanda = { abierta: true, n: 1 }; clnkSondeoSync();
+      R.fRapido = window._clnkSondeoMsPuesto;
+      const t1 = window._clnkSondeoTimer;
+      clnkSondeoSync(); clnkSondeoSync();
+      R.fIdem = window._clnkSondeoTimer === t1;
+      window._clnkTanda = null; clnkSondeoSync();
+      R.fVuelve = window._clnkSondeoMsPuesto;
+      R.fEnRango = R.fRapido >= 3000 && R.fRapido <= 5000;
+
+      /* ── G · EL PLAZO NO SE DUPLICA: el cartel no lee ninguna ventana propia ─────
+         El contrato §P8 lo prohibe con todas las letras. Se mide sobre el TEXTO FUENTE de las
+         dos funciones del cartel: si alguna vuelve a sumar un plazo, esto se pone rojo. */
+      R.gSinVentana = String(clnkTandaCartel).indexOf('CLNK_VENTANA_MS') === -1 &&
+                      String(window.clnkTandaCerrar).indexOf('CLNK_VENTANA_MS') === -1 &&
+                      String(clnkTandaDe).indexOf('CLNK_VENTANA_MS') === -1;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el puente manda los cuatro campos de la tanda',
+        R.vinculado && R.mandaCampos, R.vinculado + '/' + R.mandaCampos],
+      ['DENOMINADOR: con UNA imagen el puente dice tanda abierta y 1',
+        R.unaAbierta, R.unaAbierta],
+      ['con la PRIMERA imagen el cartel ya esta en pantalla', R.aAbrio, R.aAbrio],
+      ['y dice que estan LLEGANDO, no que llegaron',
+        R.aTitulo.indexOf('llegando') > -1, R.aTitulo],
+      ['con el contador en 1 y el dibujo de las imagenes viajando -- TRES que viajan',
+        R.aN === '1' && R.aSvg && R.aViajan === 3,
+        'n=' + R.aN + ' svg=' + R.aSvg + ' viajan=' + R.aViajan],
+      ['y NO dice «imagenes» mientras no sabe de que tipo son -- el TXT contado como imagen',
+        R.aNoDiceImagenes, R.aEstado],
+      ['los cuatro destinos se ven y estan APAGADOS',
+        R.aBots.length === 4 && R.aTodosOff, R.aBots.map(b => b.txt + ':' + b.off).join(' | ')],
+      ['el sondeo pasa a su cadencia rapida mientras la tanda esta abierta',
+        R.aCadencia === 4000, R.aCadencia],
+      ['el contador SUBE en el sondeo siguiente', R.bN === '3', R.bN],
+      ['sin reiniciar el dibujo -- es el MISMO svg, no uno nuevo', R.bMismoSvg, R.bMismoSvg],
+      ['y los botones siguen apagados mientras siga llegando',
+        R.bSigueOff && R.bTitulo.indexOf('llegando') > -1, R.bSigueOff + '/' + R.bTitulo],
+      ['cuando la tanda CIERRA el cartel pasa a su forma final', R.cAbierto &&
+        R.cTitulo.indexOf('Llegaron') > -1, R.cTitulo],
+      ['dice «Listo»', R.cEstado.indexOf('Listo') > -1, R.cEstado],
+      ['los botones se PRENDEN -- y aparece la vista previa, que son cinco',
+        R.cTodosOn && R.cBots.length === 5, R.cBots.map(b => b.txt + ':' + b.off).join(' | ')],
+      ['el dibujo se para -- quieto pero visible', R.cQuietos, R.cQuietos],
+      ['y la cadencia vuelve a la lenta', R.cCadencia === 15000, R.cCadencia],
+      ['DENOMINADOR: el cartel de la tanda abrio antes de cerrarlo con la equis', R.dAbrio, R.dAbrio],
+      ['cerrado con la equis NO se reabre solo, con la tanda todavia abierta',
+        R.dMarca && !R.dReabrio && R.dTandaSigue,
+        'marca=' + R.dMarca + ' reabrio=' + R.dReabrio + ' sigueAbierta=' + R.dTandaSigue],
+      ['CONTROL NEGATIVO: contra un puente 1.3.0 los campos no vienen y no hay cartel de tanda',
+        R.e13SinCampos && R.e13TandaNull && R.e13Cadencia === 15000,
+        'sinCampos=' + R.e13SinCampos + ' null=' + R.e13TandaNull + ' cad=' + R.e13Cadencia],
+      ['la cadencia cambia de periodo y vuelve, y el sincronizador no duplica el temporizador',
+        R.fLento === 15000 && R.fEnRango && R.fIdem && R.fVuelve === 15000,
+        'lento=' + R.fLento + ' rapido=' + R.fRapido + ' idem=' + R.fIdem + ' vuelve=' + R.fVuelve],
+      ['el plazo lo da el puente: el cartel NO lee ninguna ventana propia -- lo prohibe el §P8',
+        R.gSinVentana, R.gSinVentana]
     ] };
   })();
 `);
