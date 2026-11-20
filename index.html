@@ -182033,14 +182033,22 @@ function _clnkLuz(cont, color, rotulo, detalle) {
    así que la regla global de este archivo le pone sus 44 px de alto. Lo que se achica es el
    relleno y la letra. Un botón de 30 px en la tarjeta que se rediseñó para poder usarse sería
    el defecto que el rediseño viene a arreglar. */
-function _clnkDato(cont, rotulo, valor, nota) {
-  var caja = _clnkNodo('div', 'display:flex;flex-direction:column;gap:2px;min-width:0;');
+/* ⚠️ `apagada` ES EL QUINTO ARGUMENTO Y ES OPCIONAL (PROMPT 6, bloque G). Lo usa una direccion
+   que el puente informa SIN ENLACE: mas gris y mas chica, para que no se mezcle con la buena en
+   una lista que se lee de arriba abajo. El contrato §P7 lo pide con su motivo medido: «en la Mac
+   del medico hay tres adaptadores USB de red que se informan como cable sin ningun cable puesto».
+   ⚠️ APAGADA PERO LEGIBLE Y COPIABLE: se baja el contraste, NO se esconde ni se deshabilita el
+   boton. Una direccion sin enlace puede ser la buena con el cable todavia sin enchufar. */
+function _clnkDato(cont, rotulo, valor, nota, apagada) {
+  var caja = _clnkNodo('div', 'display:flex;flex-direction:column;gap:2px;min-width:0;' +
+    (apagada ? 'opacity:.58;' : ''));
+  if (apagada) caja.setAttribute('data-clnk-dir-apagada', '1');
   caja.appendChild(_clnkNodo('span',
     'font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;', rotulo));
   var l = _clnkNodo('div', 'display:flex;align-items:center;gap:5px;flex-wrap:wrap;');
   l.appendChild(_clnkNodo('code',
-    'font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg2);',
-    valor || '—'));
+    'font-size:' + (apagada ? '11' : '12.5') + 'px;font-weight:600;padding:2px 7px;' +
+    'border-radius:5px;background:var(--bg2);', valor || '—'));
   if (valor) {
     var b = _clnkNodo('button', 'padding:2px 8px;font-size:10.5px;', 'Copiar');
     b.type = 'button'; b.className = 'btn btn-ghost';
@@ -182133,11 +182141,17 @@ function _clnkPlural(n, uno, varios) { return n === 1 ? ('1 ' + uno) : (n + ' ' 
    ninguna relación visible con EcoSmart. Darse cuenta es comparar los dos números de
    `GET /v1/estado`, y eso sólo lo puede hacer esta pantalla.
 
+   ⚠️ DESDE EL PROMPT 6 EL UMBRAL DEL AVISO LO DA EL PUENTE: `bytes_aviso` de §3.1, que es el
+   80 % del tope. Y `bytes_tope` DEJÓ DE SER 2 GB FIJOS en la 1.4.0 —se deriva del disco— así
+   que un porcentaje propio calculado sobre un tope que ya no es el de antes diría «conviene
+   descartar» en un momento que no es el que el conector eligió. El 85 % propio queda como
+   RESPALDO para un puente que no manda el campo, y nada más: es el bloque J.
+
    LOS DOS UMBRALES, Y DE DÓNDE SALEN. El contrato publica una imagen de ejemplo de 16.120.122
    bytes, así que la unidad real de este cálculo es «cuántas imágenes más entran» y no un
    porcentaje suelto:
-     · ÁMBAR al 85 %. Sobre el tope de 2 GB del conector eso deja ~322 MB, o sea unas veinte
-       imágenes: tiempo de sobra para adjuntar o descartar sin apuro.
+     · ÁMBAR: `bytes_aviso` del conector. Sin ese campo, el 85 % de respaldo — que sobre el tope
+       viejo de 2 GB dejaba ~322 MB, o sea unas veinte imágenes.
      · ROJO al 95 %, que deja ~107 MB —unas seis, o sea UN estudio—, o cuando lo libre no
        alcanza para DOS imágenes grandes (32 MB), lo que pase primero. El piso en bytes hace
        falta porque con un tope chico el porcentaje no significa nada: 95 % de 100 MB deja 5 MB,
@@ -182151,11 +182165,16 @@ var CLNK_ESP_PISO = 32 * 1024 * 1024;      // dos imágenes grandes
 
 /* Devuelve `null` cuando no hay nada que avisar, o `{ nivel, txt }`. Se extrae con nombre para
    poder probarlo sin red: un caso le pasa los dos números y mira el veredicto. */
-function clnkEspacio(usados, tope) {
+function clnkEspacio(usados, tope, aviso) {
   var u = Number(usados), t = Number(tope);
   if (!isFinite(u) || !isFinite(t) || t <= 0 || u < 0) return null;
   var libre = t - u;
   var frac = u / t;
+  /* ⚠️ EL UMBRAL DEL AVISO ES EL DEL CONECTOR, con dos guardas: que sea un número y que esté
+     ADENTRO del tope. Un `bytes_aviso` mayor que el tope no avisaría nunca, y uno de cero
+     avisaría siempre con el conector vacío. Sin campo válido, el 85 % de siempre. */
+  var av = Number(aviso);
+  var umbral = (isFinite(av) && av > 0 && av < t) ? av : (t * CLNK_ESP_AMBAR);
   /* ⚠️ EL PISO EN BYTES SÓLO MANDA SI EL TOPE ES GRANDE FRENTE A ÉL, Y ESO LO DESTAPÓ UN CASO
      VIEJO: con un tope chico —un conector que informe 1 MB, o la respuesta recortada de una
      prueba— el piso daba «casi sin lugar» sobre un conector VACÍO, porque 1 MB libre es menos
@@ -182169,10 +182188,11 @@ function clnkEspacio(usados, tope) {
       'Cuando se llene, el ECÓGRAFO va a rechazar los envíos y el aviso lo vas a ver en el ' +
       'equipo, no acá. Adjuntá o descartá lo que está esperando.' };
   }
-  if (frac >= CLNK_ESP_AMBAR) {
+  if (u >= umbral) {
     return { nivel: 'ambar', txt:
-      'CeiboLink usó ' + _clnkBytes(u) + ' de ' + _clnkBytes(t) + '. Conviene adjuntar o ' +
-      'descartar lo que está esperando antes de que se llene.' };
+      'CeiboLink usó ' + _clnkBytes(u) + ' de ' + _clnkBytes(t) + ', y queda ' +
+      _clnkBytes(libre) + ' libre. Conviene adjuntar o descartar lo que está esperando antes ' +
+      'de que se llene: con el tope lleno, el ecógrafo va a rechazar los envíos.' };
   }
   return null;
 }
@@ -182270,7 +182290,7 @@ async function clnkLeerEstado() {
         'NO está recibiendo imágenes del ecógrafo: el receptor no responde.'));
     }
   }
-  var e = clnkEspacio(d.bytes_usados, d.bytes_tope);
+  var e = clnkEspacio(d.bytes_usados, d.bytes_tope, d.bytes_aviso);
   if (e) _clnkAviso(cont, e.txt, e.nivel === 'rojo' ? 'var(--red, #c0392b)' : 'var(--amber, #d98c00)');
   _clnkVersionVieja = String(d.version || '').indexOf('1.0.') === 0;
   if (vinculado) {
@@ -182394,6 +182414,42 @@ async function clnkDesvincular() {
 window.clnkDesvincular = clnkDesvincular;
 
 /* ── (e) Datos para configurar el ecógrafo ─────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE G · LOS DATOS PARA CONFIGURAR EL ECOGRAFO
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   EL ROTULO DE CADA DIRECCION. El contrato §P7 trae `tipo` en cada una justamente porque el
+   aviso de «hay mas de una» dice «dale al tecnico LA DEL CABLE» y la lista decia `en7` y `en0`:
+   el medico no tenia con que elegir.
+
+   ⚠️ «DESCONOCIDO» NUNCA SE ESCRIBE EN LA PANTALLA, y el contrato lo pide con todas las letras:
+   es un valor que el puente usa para decir «no lo se», no una etiqueta para el medico. Con ese
+   valor —o sin el campo, que es lo que pasa contra un puente 1.1— sale la direccion y su
+   interfaz, y nada mas. */
+function clnkDirRotulo(x) {
+  var t = String((x && x.tipo) || '');
+  if (t === 'cable') return 'cable';
+  if (t === 'wifi') return 'Wi-Fi';
+  return '';
+}
+window.clnkDirRotulo = clnkDirRotulo;
+
+/* ══ EL ORDEN: **NO SE REORDENA**, SALVO LAS 169.254 AL FINAL ════════════════════════════════
+   El puente ya las manda ordenadas —primero las que tienen enlace, despues las que no se
+   pudieron averiguar, al final las que no— y §P7 dice «NO las reordenes». Lo unico que esta
+   pantalla mueve son las 169.254, que el pedido manda poner al final y apagadas.
+
+   ⚠️ LA PARTICION ES **ESTABLE**: adentro de cada uno de los dos grupos el orden del puente
+   queda intacto, asi que su criterio de enlace sigue valiendo. Un `sort` con un comparador
+   propio volveria a ordenar las dos listas y tiraria ese trabajo. */
+function clnkDirsOrden(dirs) {
+  var l = (Array.isArray(dirs) ? dirs : []).slice();
+  var auto = function (x) {
+    return String((x && x.direccion) || '').indexOf('169.254.') === 0;
+  };
+  return l.filter(function (x) { return !auto(x); }).concat(l.filter(auto));
+}
+window.clnkDirsOrden = clnkDirsOrden;
+
 async function clnkLeerConexion() {
   var cont = document.getElementById('cfg-clnk-conexion');
   var det = document.getElementById('cfg-clnk-det-conexion');
@@ -182427,17 +182483,32 @@ async function clnkLeerConexion() {
   /* TODAS las direcciones, en la MISMA sección, con el aviso del conector. El contrato §3.13
      dice que como máximo UNA puede venir marcada como la probable y que puede no haber ninguna:
      el panel no elige por su cuenta, lo DICE. */
-  dirs.forEach(function (x) {
+  clnkDirsOrden(dirs).forEach(function (x) {
     var dir = String((x && x.direccion) || '');
     var iface = String((x && x.interfaz) || '');
-    var nota = iface ? ('Conexión «' + iface + '».') : '';
+    var rot = clnkDirRotulo(x);
+    var auto = dir.indexOf('169.254.') === 0;
+    /* ⚠️ `enlace` TIENE **TRES** ESTADOS Y SOLO UNO APAGA. `false` es «el cable no esta puesto»;
+       `null` es «no se pudo averiguar», y eso NO es un «no», asi que se muestra normal — lo dice
+       el contrato §P7 y es la diferencia entre informar y afirmar. Contra un puente 1.1 el campo
+       no viene y `undefined !== false`, asi que tampoco apaga: es el bloque J. */
+    var sinEnlace = (x && x.enlace === false);
+    var partes = [];
+    if (rot) partes.push(rot);
+    if (iface) partes.push('conexión «' + iface + '»');
+    var nota = partes.join(' · ');
+    if (sinEnlace) nota += (nota ? '. ' : '') + (rot === 'cable' ? 'Sin cable puesto.' : 'Sin enlace.');
+    else if (nota) nota += '.';
     /* ⚠️ «CeiboLink sugiere ésta» Y NO «es la que conviene dar»: la marca de probable la pone
        el CONECTOR y EcoSmart no la puede verificar —no sabe si el adaptador que el sistema llama
        «Wi-Fi» es inalambrico, ni al reves—. Dicho como recomendacion de EcoSmart, un acierto del
        conector y un error suyo se leen igual; dicho como sugerencia, el medico sabe de quien es
-       el criterio. Lo unico que esta app juzga por su cuenta es el 169.254 de mas abajo. */
+       el criterio. Lo unico que esta app juzga por su cuenta es el 169.254.
+       ⚠️ Y EL ROTULO **NO** ELIGE: §P7 lo dice textualmente —«saber que una interfaz es cable no
+       dice que ESE cable vaya al ecografo»— asi que `probable` sigue siendo del puente. */
     if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'CeiboLink sugiere ésta.';
-    _clnkDato(fila, 'Dirección', dir, nota);
+    if (auto) nota = (nota ? nota + ' ' : '') + 'Se la asignó sola la computadora: no le sirve al equipo.';
+    _clnkDato(fila, 'Dirección', dir, nota, sinEnlace || auto);
   });
   cont.appendChild(fila);
   /* El aviso del conector, tal cual lo manda, cuando hay más de una dirección o ninguna. */
@@ -182458,7 +182529,69 @@ async function clnkLeerConexion() {
       'encontrar esta computadora. Hay que fijarle una dirección a mano, como se explica en ' +
       '«Cómo conectar el ecógrafo».', 'var(--amber, var(--text2))');
   }
+  clnkCarpetaPanel(cont, d.carpeta_compartida);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE G · EL PANEL DE LA CARPETA COMPARTIDA
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   ⚠️ CON EL CAMPO EN `null` EL PANEL ENTERO NO SE DIBUJA, y el contrato lo pide con su motivo:
+   «no hay carpeta compartida» y «hay una y está vacía» son dos cosas distintas. Un panel vacío
+   con un botón de copiar una ruta que no existe manda al técnico a escribir nada.
+
+   ⚠️ LA RUTA Y EL USUARIO ENTRAN POR `textContent`, que es lo que `_clnkDato` ya hace. Salen de
+   un archivo de configuración que escribe una PERSONA, y el contrato garantiza que la ruta es
+   absoluta, que no es la raíz de un disco y que no es ni padre ni hija de la carpeta de datos, y
+   **nada sobre su contenido**: validar no es escapar.
+
+   ⚠️ LA CONTRASEÑA ES UNA FRASE Y NO UN CAMPO, Y NO SE AGREGA UNO «POR COMODIDAD». El puente no
+   la tiene en ninguna parte —ni en el estado, ni en la configuración, ni en memoria— porque es la
+   de una cuenta del sistema operativo que el médico crea a mano. Para mostrarla habría que
+   guardarla, y guardarla significa acordarse de no escribirla en el registro, en el respaldo, en
+   un mensaje de error ni en una respuesta del canal: cuatro lugares por donde se escapa, para
+   ahorrarle al médico UNA vez de escribirla. Hay una prueba del lado del puente que se pone roja
+   si la respuesta de esa ruta menciona la palabra. */
+function clnkCarpetaPanel(cont, cp) {
+  if (!cont) return false;
+  if (!cp || typeof cp !== 'object') return false;
+  var caja = _clnkNodo('div',
+    'margin-top:12px;padding-top:10px;border-top:1px solid var(--border);');
+  caja.setAttribute('data-clnk-carpeta', '1');
+  caja.appendChild(_clnkNodo('div',
+    'font-size:11px;font-weight:700;color:var(--text);margin:0 0 6px;',
+    'Carpeta compartida, para un equipo que no manda DICOM'));
+  var fila = _clnkNodo('div', 'display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;');
+  var ruta = (cp.ruta != null) ? String(cp.ruta) : '';
+  _clnkDato(fila, 'Carpeta', ruta,
+    'Es lo que hay que escribir en el ecógrafo.');
+  var usuario = (cp.usuario != null) ? String(cp.usuario) : '';
+  if (usuario) _clnkDato(fila, 'Usuario', usuario, 'La cuenta con la que entra el equipo.');
+  caja.appendChild(fila);
+  /* El aviso del conector, TAL CUAL lo manda: el suyo distingue «está configurada y no está en
+     el disco» de «no se pudo comprobar», que llevan a hacer dos cosas distintas. */
+  if (cp.aviso) {
+    var ca = _clnkNodo('div', 'margin-top:8px;');
+    caja.appendChild(ca);
+    _clnkAviso(ca, String(cp.aviso), 'var(--amber, var(--text2))');
+  }
+  /* La frase de la contraseña, SOLO con un usuario anotado: sin él no hay cuenta que nombrar. */
+  if (usuario) {
+    var fr = _clnkNodo('div',
+      'font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:8px;');
+    fr.setAttribute('data-clnk-carpeta-pwd', '1');
+    fr.appendChild(document.createTextNode('La contraseña es la que le pusiste a la cuenta '));
+    var u = document.createElement('bdi');
+    u.style.cssText = 'font-weight:700;color:var(--text);';
+    u.textContent = usuario;
+    fr.appendChild(u);
+    fr.appendChild(document.createTextNode(
+      ' cuando la creaste. CeiboLink no la guarda ni la puede mostrar.'));
+    caja.appendChild(fr);
+  }
+  cont.appendChild(caja);
+  return true;
+}
+window.clnkCarpetaPanel = clnkCarpetaPanel;
 window.clnkLeerConexion = clnkLeerConexion;
 
 /* ── (f) Los equipos ───────────────────────────────────────────────────────────────────────── */
@@ -182551,6 +182684,20 @@ window.clnkLeerEquipos = clnkLeerEquipos;
    Es lo que la decisión 12d pide, y el motivo es el mismo que abre la sección sola: mientras
    nadie decida, sus imágenes no existen para EcoSmart. Las demás acciones de ese equipo —y las
    tres de un equipo ya resuelto— viven detrás de su plegable. */
+/* De dónde vino un equipo, en una palabra: «copiado a mano» para el buzón y «por red» para la
+   carpeta compartida. Con un ecógrafo de verdad devuelve cadena vacía y no se dibuja nada: no
+   hay nada que distinguir.
+   ⚠️ SE LEE DEL PREFIJO DEL `aet` Y NO DE `nombre_para_mostrar`: el `aet` es la IDENTIDAD y
+   viaja igual en las dos versiones del contrato, así que esto funciona también contra un puente
+   1.3.x que no manda el nombre en criollo. Es el bloque J. */
+function clnkEqProcedencia(eq) {
+  var aet = String((eq && eq.aet) || '');
+  if (aet.indexOf('BUZON:') === 0) return 'copiado a mano';
+  if (aet.indexOf('ENTRADA:') === 0) return 'por red';
+  return '';
+}
+window.clnkEqProcedencia = clnkEqProcedencia;
+
 function _clnkFilaEquipo(cont, eq) {
   var id = String((eq && eq.id) || '');
   var est = String((eq && eq.estado) || '');
@@ -182572,8 +182719,26 @@ function _clnkFilaEquipo(cont, eq) {
   var apodo = (eq && eq.apodo != null) ? String(eq.apodo) : '';
   var nom = document.createElement('bdi');
   nom.style.cssText = 'font-size:12px;font-weight:700;';
-  nom.textContent = apodo || String((eq && eq.aet) || id || 'Equipo');
+  /* ══ BLOQUE I · EL NOMBRE, POR EL DUEÑO ÚNICO ════════════════════════════════════════════
+     EL DEFECTO: esta línea dibujaba `apodo || aet`, así que el equipo del buzón se veía
+     **«BUZON:»** crudo —con los dos puntos y en mayúsculas— justo en la fila donde el médico
+     aprieta PERMITIR o BLOQUEAR. Es lo que el médico vio en Windows.
+     `clnkNombreEqDe` es el mismo dueño que nombra al equipo en el cartel: con dos reglas, la
+     fila y el aviso podrían llamar distinto al mismo equipo. */
+  nom.textContent = clnkNombreEqDe(eq) || 'Equipo';
   linea.appendChild(nom);
+  /* ══ BLOQUE I · DE DÓNDE VINO, Y NO ES PROLIJIDAD ════════════════════════════════════════
+     Los DOS prefijos son equipos DISTINTOS aunque la subcarpeta se llame igual, y el contrato
+     §P5 explica por qué con todas las letras: en el buzón escribe la cuenta del médico y nadie
+     más; en la carpeta de entrada escribe **cualquiera que tenga las credenciales del recurso
+     compartido, desde cualquier máquina de la red**. Autorizar «lo que copié a mano» no es lo
+     mismo que autorizar todo lo que llegue por la red, y ésta es la fila donde eso se decide. */
+  var proc = clnkEqProcedencia(eq);
+  if (proc) {
+    linea.appendChild(_clnkNodo('span',
+      'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:var(--text2);',
+      proc));
+  }
   linea.appendChild(_clnkNodo('span',
     'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:' + par[1] + ';',
     par[0]));
@@ -184530,12 +184695,21 @@ async function clnkAvisarEquipoNuevo() {
   if (!eq) return false;
   _clnkEqAvisados[String(eq.id)] = true;
   var id = String(eq.id);
-  /* El AET y nada más: un equipo que espera decisión no tiene apodo todavía —nadie se lo puso—
-     y el contrato manda `null`. Entra por `textContent`, como todo lo que viene del conector. */
-  var aet = String(eq.aet || id);
+  /* ══ BLOQUE I · EL NOMBRE EN CRIOLLO Y DE DÓNDE VINO ══════════════════════════════════════
+     Hasta el prompt 6 acá iba el AET pelado, así que el aviso de un equipo de carpeta decía
+     «Un equipo nuevo, BUZON:, mandó imágenes» — y ésta es la pantalla donde el médico decide.
+     `clnkNombreEqDe` lo dice en criollo y `clnkEqProcedencia` dice si lo copió él o si lo dejó
+     alguien por la red, que es la diferencia que no se puede omitir.
+     Entra por `textContent`, como todo lo que viene del conector: el nombre de la subcarpeta lo
+     escribe una persona y el puente valida que no traiga controles ni invisibles, nada más. */
+  var nomEq = clnkNombreEqDe(eq) || id;
+  var proc = clnkEqProcedencia(eq);
   clnkAvisoAbrir(
     'Un equipo nuevo mandó imágenes',
-    'Un equipo nuevo, ' + aet + ', mandó imágenes. ¿Permitir o bloquear? Hasta que decidas, sus ' +
+    'Un equipo nuevo, ' + nomEq + ', mandó imágenes' +
+      (proc === 'por red' ? ' (llegaron por la carpeta compartida de la red, no las copiaste vos)'
+       : proc === 'copiado a mano' ? ' (las copiaste a la carpeta de esta computadora)' : '') +
+      '. ¿Permitir o bloquear? Hasta que decidas, sus ' +
       'imágenes quedan guardadas y EcoSmart no las puede tomar.',
     [{ txt: '✅ Permitir', fn: function () {
          clnkAvisoCerrar();

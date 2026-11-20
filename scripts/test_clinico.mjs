@@ -153293,6 +153293,575 @@ caso('TC-966', 'Bloque F: los formatos que no se pueden ver salen en una tarjeta
   })();
 `);
 
+/* == PROMPT 6 . BLOQUE G -- LOS DATOS PARA CONFIGURAR EL ECOGRAFO ============================
+   El aviso del puente dice «dale al tecnico LA DEL CABLE que va al ecografo» y la lista decia
+   `en7` y `en0`: el medico no tenia con que elegir. Y en la Mac del medico hay tres adaptadores
+   USB que se informan como «cable» sin ningun cable puesto, mezclados con la buena.
+   El control del bloque J es un puente 1.1: ahi no vienen ni `tipo`, ni `enlace`, ni
+   `carpeta_compartida`, y la pantalla tiene que dibujar igual sin ellos.                       */
+caso('TC-967', 'Bloque G: todas las direcciones con su rotulo cable o Wi-Fi, «desconocido» nunca escrito, las sin enlace apagadas y las 169.254 al final, con el aviso del puente, el boton de copiar y el panel de la carpeta compartida con la frase de la contrasenia', `
+  return (async () => {
+    if (typeof window.clnkDirRotulo !== 'function' || typeof window.clnkCarpetaPanel !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol rotula las direcciones y dibuja la carpeta compartida', false,
+        'no existen clnkDirRotulo / clnkCarpetaPanel']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      const CX = async (c) => { await ctl({ conexion: c }); clnkLeerConexion(); await esp(900); };
+      const cuerpoCx = () => EL('cfg-clnk-conexion');
+      const cajas = () => { const c = cuerpoCx(); return c ? [].slice.call(c.querySelectorAll('code')) : []; };
+      const dirs = () => cajas().map(x => String(x.textContent || '')).filter(x => x.indexOf('.') > -1);
+      const notaDe = (dir) => {
+        const c = cuerpoCx(); if (!c) return '';
+        const cod = [].slice.call(c.querySelectorAll('code')).filter(x => String(x.textContent) === dir)[0];
+        if (!cod) return '';
+        const caja = cod.parentNode && cod.parentNode.parentNode;
+        return caja ? String(caja.textContent || '') : '';
+      };
+      const apagadaDe = (dir) => {
+        const c = cuerpoCx(); if (!c) return null;
+        const cod = [].slice.call(c.querySelectorAll('code')).filter(x => String(x.textContent) === dir)[0];
+        if (!cod) return null;
+        const caja = cod.parentNode && cod.parentNode.parentNode;
+        return caja ? caja.getAttribute('data-clnk-dir-apagada') === '1' : null;
+      };
+      /* El panel abierto: un details cerrado NO da geometria. */
+      const det = EL('cfg-clnk-det-conexion');
+      if (det) det.open = true;
+
+      /* ── A · CINCO DIRECCIONES: cable, Wi-Fi, desconocido, sin enlace y 169.254 ───
+         El orden que el puente manda ya pone primero las que tienen enlace; lo UNICO que esta
+         pantalla mueve son las 169.254, al final. */
+      await CX({ puerto_dicom: 4242, aet_puente: 'PUENTE',
+        direcciones: [
+          { direccion: '192.168.1.23', interfaz: 'en7', probable: false, tipo: 'cable', enlace: true },
+          { direccion: '169.254.7.7',  interfaz: 'en9', probable: false, tipo: 'cable', enlace: true },
+          { direccion: '192.168.1.50', interfaz: 'en0', probable: false, tipo: 'wifi',  enlace: true },
+          { direccion: '10.0.0.9',     interfaz: 'bridge0', probable: false, tipo: 'desconocido', enlace: null },
+          { direccion: '192.168.4.4',  interfaz: 'en5', probable: false, tipo: 'cable', enlace: false }
+        ],
+        aviso: 'Hay mas de una direccion. Dale al tecnico la del cable que va al ecografo.',
+        carpeta_compartida: null });
+      R.aDirs = dirs();
+      R.aTodas = R.aDirs.length === 5;
+      /* Las 169.254 AL FINAL, y el resto en el orden que el puente mando. */
+      R.aOrden = R.aDirs.join(',');
+      R.aAutoUltima = R.aDirs[R.aDirs.length - 1] === '169.254.7.7';
+      R.aEstable = R.aDirs.indexOf('192.168.1.23') < R.aDirs.indexOf('192.168.1.50') &&
+                   R.aDirs.indexOf('192.168.1.50') < R.aDirs.indexOf('10.0.0.9');
+      R.aCable = notaDe('192.168.1.23').indexOf('cable') > -1;
+      R.aWifi = notaDe('192.168.1.50').indexOf('Wi-Fi') > -1;
+      /* «desconocido» NUNCA se escribe: ni en esa nota ni en ninguna. */
+      R.aSinDesconocido = String((cuerpoCx() || {}).textContent || '').indexOf('desconocido') === -1;
+      R.aNotaDesc = notaDe('10.0.0.9');
+      R.aApagSinEnlace = apagadaDe('192.168.4.4') === true;
+      R.aNormalNull = apagadaDe('10.0.0.9') === false;
+      R.aNormalCable = apagadaDe('192.168.1.23') === false;
+      R.aApagAuto = apagadaDe('169.254.7.7') === true;
+      R.aDiceSinCable = notaDe('192.168.4.4').indexOf('Sin cable') > -1;
+      R.aAvisoPuente = String((cuerpoCx() || {}).textContent || '')
+        .indexOf('Dale al tecnico la del cable') > -1;
+      R.aCopiar = cuerpoCx()
+        ? cuerpoCx().querySelectorAll('[data-clnk-copiar]').length : 0;
+      R.aCopiaDirs = cuerpoCx()
+        ? [].slice.call(cuerpoCx().querySelectorAll('[data-clnk-copiar]'))
+             .map(b => b.getAttribute('data-clnk-copiar')).filter(v => v.indexOf('.') > -1).length : 0;
+
+      /* ── B · UNA SOLA Y PROBABLE: el caso bueno ─────────────────────────────────── */
+      await CX({ puerto_dicom: 4242, aet_puente: 'PUENTE',
+        direcciones: [{ direccion: '192.168.1.23', interfaz: 'en7', probable: true,
+                        tipo: 'cable', enlace: true }],
+        aviso: null, carpeta_compartida: null });
+      R.bUna = dirs().length === 1;
+      R.bSugiere = notaDe('192.168.1.23').indexOf('CeiboLink sugiere') > -1;
+      R.bNormal = apagadaDe('192.168.1.23') === false;
+
+      /* ── C · EL PANEL DE LA CARPETA COMPARTIDA ─────────────────────────────────── */
+      await CX({ puerto_dicom: 4242, aet_puente: 'PUENTE',
+        direcciones: [{ direccion: '192.168.1.23', interfaz: 'en7', probable: true, tipo: 'cable', enlace: true }],
+        aviso: null,
+        carpeta_compartida: { ruta: 'C:/CeiboLink-Entrada<img src=x onerror=1>',
+                              usuario: 'ecografo', existe: true, aviso: null } });
+      const cp = document.querySelector('[data-clnk-carpeta]');
+      R.cPanel = !!cp;
+      R.cDiceRuta = cp ? String(cp.textContent || '').indexOf('C:/CeiboLink-Entrada<img src=x onerror=1>') > -1 : false;
+      R.cCeroElementos = cp ? cp.querySelectorAll('img').length : -1;
+      R.cDiceUsuario = cp ? String(cp.textContent || '').indexOf('ecografo') > -1 : false;
+      R.cPwd = !!document.querySelector('[data-clnk-carpeta-pwd]');
+      R.cPwdTxt = R.cPwd ? String(document.querySelector('[data-clnk-carpeta-pwd]').textContent || '') : '';
+      R.cPwdDice = R.cPwdTxt.indexOf('no la guarda') > -1 && R.cPwdTxt.indexOf('ecografo') > -1;
+      /* CERO campos para la contrasenia: no se agrega uno «por comodidad». */
+      R.cSinCampoPwd = cp ? cp.querySelectorAll('input, textarea, select').length : -1;
+      R.cCopiaRuta = cp
+        ? [].slice.call(cp.querySelectorAll('[data-clnk-copiar]'))
+             .some(b => String(b.getAttribute('data-clnk-copiar')).indexOf('CeiboLink-Entrada') > -1) : false;
+
+      /* ── D · CON LA CARPETA EN null EL PANEL ENTERO NO SE DIBUJA ───────────────── */
+      await CX({ puerto_dicom: 4242, aet_puente: 'PUENTE',
+        direcciones: [{ direccion: '192.168.1.23', interfaz: 'en7', probable: true, tipo: 'cable', enlace: true }],
+        aviso: null, carpeta_compartida: null });
+      R.dSinPanel = !document.querySelector('[data-clnk-carpeta]');
+
+      /* ── E · SIN USUARIO: el aviso del puente y NINGUNA frase de contrasenia ───── */
+      await CX({ puerto_dicom: 4242, aet_puente: 'PUENTE',
+        direcciones: [{ direccion: '192.168.1.23', interfaz: 'en7', probable: true, tipo: 'cable', enlace: true }],
+        aviso: null,
+        carpeta_compartida: { ruta: 'C:/CeiboLink-Entrada', usuario: null, existe: true,
+          aviso: 'Falta anotar con que usuario entra el ecografo. Es el que creaste al compartir la carpeta.' } });
+      const cp2 = document.querySelector('[data-clnk-carpeta]');
+      R.ePanel = !!cp2;
+      R.eAvisoPuente = cp2 ? String(cp2.textContent || '').indexOf('Falta anotar con que usuario') > -1 : false;
+      R.eSinPwd = !document.querySelector('[data-clnk-carpeta-pwd]');
+
+      /* ── F · BLOQUE J: contra un puente 1.1 no hay tipo, ni enlace, ni carpeta ─── */
+      await ctl({ version: '1.1.0' });
+      clnkLeerConexion(); await esp(900);
+      R.fDirs = dirs().length;
+      R.fSinApagadas = cuerpoCx()
+        ? cuerpoCx().querySelectorAll('[data-clnk-dir-apagada]').length === 0 : null;
+      R.fSinPanel = !document.querySelector('[data-clnk-carpeta]');
+      R.fSinRotulo = cuerpoCx()
+        ? String(cuerpoCx().textContent || '').indexOf('cable') === -1 : null;
+      await ctl({ version: '1.4.0' });
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['se muestran TODAS las direcciones, las cinco', R.aTodas, R.aDirs.join(' | ')],
+      ['las 169.254 van AL FINAL', R.aAutoUltima, R.aOrden],
+      ['y lo demas NO se reordena: el orden del puente queda intacto adentro del grupo',
+        R.aEstable, R.aOrden],
+      ['cada una con su rotulo: cable y Wi-Fi', R.aCable && R.aWifi,
+        'cable=' + R.aCable + ' wifi=' + R.aWifi],
+      ['«desconocido» NUNCA se escribe en la pantalla', R.aSinDesconocido,
+        'nota de la desconocida: ' + R.aNotaDesc],
+      ['la que no tiene enlace queda APAGADA y lo dice',
+        R.aApagSinEnlace && R.aDiceSinCable,
+        'apagada=' + R.aApagSinEnlace + ' dice=' + R.aDiceSinCable],
+      ['la que NO SE PUDO AVERIGUAR queda NORMAL -- un dato que falta no es un «no»',
+        R.aNormalNull && R.aNormalCable,
+        'null=' + R.aNormalNull + ' conEnlace=' + R.aNormalCable],
+      ['las 169.254 quedan apagadas y con su explicacion', R.aApagAuto, R.aApagAuto],
+      ['el aviso del puente sale TAL CUAL', R.aAvisoPuente, R.aAvisoPuente],
+      ['y cada direccion tiene su boton de copiar', R.aCopiaDirs === 5,
+        'dirs=' + R.aCopiaDirs + ' total=' + R.aCopiar],
+      ['con UNA sola direccion y marcada, se dice que el conector la sugiere, y queda normal',
+        R.bUna && R.bSugiere && R.bNormal,
+        'una=' + R.bUna + ' sugiere=' + R.bSugiere + ' normal=' + R.bNormal],
+      ['el panel de la carpeta compartida se dibuja con su ruta y su usuario',
+        R.cPanel && R.cDiceRuta && R.cDiceUsuario,
+        'panel=' + R.cPanel + ' ruta=' + R.cDiceRuta + ' usuario=' + R.cDiceUsuario],
+      ['y la ruta entra por textContent: se ve LITERAL y cero elementos inyectados',
+        R.cCeroElementos === 0, R.cCeroElementos],
+      ['con la frase de la contrasenia, que NOMBRA la cuenta y dice que no se guarda',
+        R.cPwd && R.cPwdDice, R.cPwdTxt],
+      ['y CERO campos para escribirla -- no se agrega uno por comodidad',
+        R.cSinCampoPwd === 0, R.cSinCampoPwd],
+      ['la ruta se puede copiar', R.cCopiaRuta, R.cCopiaRuta],
+      ['CONTROL: con la carpeta en null el panel ENTERO no se dibuja', R.dSinPanel, R.dSinPanel],
+      ['sin usuario anotado sale el aviso del puente y NINGUNA frase de contrasenia',
+        R.ePanel && R.eAvisoPuente && R.eSinPwd,
+        'panel=' + R.ePanel + ' aviso=' + R.eAvisoPuente + ' sinPwd=' + R.eSinPwd],
+      ['BLOQUE J: contra un puente 1.1 las direcciones se dibujan igual, sin rotulo, sin apagar ninguna y sin panel de carpeta',
+        R.fDirs === 1 && R.fSinApagadas && R.fSinPanel && R.fSinRotulo,
+        'dirs=' + R.fDirs + ' sinApagadas=' + R.fSinApagadas + ' sinPanel=' + R.fSinPanel +
+        ' sinRotulo=' + R.fSinRotulo]
+    ] };
+  })();
+`);
+
+/* == PROMPT 6 . BLOQUE H -- EL ESPACIO =======================================================
+   `bytes_tope` DEJO DE SER 2147483648 en la 1.4.0: se deriva del disco. Un porcentaje propio
+   calculado sobre un tope que ya no es el de antes diria «conviene descartar» en un momento que
+   no es el que el conector eligio. El control es el camino de siempre: con 11 de 50 GB -- el
+   22 %-- el 85 % propio NO avisaria, y el aviso del puente SI.                                 */
+caso('TC-968', 'Bloque H: el umbral del aviso de espacio lo da bytes_aviso del puente y el tope se dice tal cual lo informa -- nada de 2 GB escritos a mano--, con las dos guardas del campo y el 85 por ciento como respaldo', `
+  return (async () => {
+    if (typeof window.clnkEspacio !== 'function' || clnkEspacio.length < 3) {
+      return { extra: [['DENOMINADOR: este arbol lee bytes_aviso del puente', false,
+        'clnkEspacio no toma el tercer argumento']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      const GB = 1024 * 1024 * 1024;
+      const chips = () => { const n = EL('cfg-clnk-nums'); return n ? String(n.textContent || '') : ''; };
+      const aviso = () => { const n = EL('cfg-clnk-estado'); return n ? String(n.textContent || '') : ''; };
+
+      /* ── A · EL UMBRAL LO DA EL PUENTE, SOBRE LA FUNCION SOLA ───────────────────
+         Un tope de 50 GB con el aviso en 10 GB: con 11 GB usados eso es el 22 %, muy por debajo
+         del 85 % propio, asi que si el aviso no saliera la app estaria usando su porcentaje. */
+      R.aConAviso = clnkEspacio(11 * GB, 50 * GB, 10 * GB);
+      R.aSale = !!(R.aConAviso && R.aConAviso.nivel === 'ambar');
+      R.aPorcentajePropio = clnkEspacio(11 * GB, 50 * GB, null);
+      R.aNoSaldria = R.aPorcentajePropio === null;
+      /* Y al revés: con el aviso MAS ARRIBA que lo usado, no avisa. */
+      R.aAntes = clnkEspacio(5 * GB, 50 * GB, 40 * GB);
+      R.aNoAvisa = R.aAntes === null;
+      /* El respaldo del 85 % sigue valiendo SIN el campo. */
+      R.aRespaldo = clnkEspacio(44 * GB, 50 * GB, null);
+      R.aRespaldoSale = !!(R.aRespaldo && R.aRespaldo.nivel === 'ambar');
+      /* El ROJO no se movio: el 95 %. */
+      R.aRojo = clnkEspacio(48 * GB, 50 * GB, 10 * GB);
+      R.aRojoSale = !!(R.aRojo && R.aRojo.nivel === 'rojo');
+
+      /* ── B · DOS GUARDAS DEL CAMPO ──────────────────────────────────────────────
+         Un bytes_aviso mayor que el tope no avisaria NUNCA, y uno en cero avisaria SIEMPRE con
+         el conector vacio: los dos se caen al porcentaje de siempre. */
+      R.bMayorQueTope = clnkEspacio(44 * GB, 50 * GB, 80 * GB);
+      R.bMayorCae = !!(R.bMayorQueTope && R.bMayorQueTope.nivel === 'ambar');
+      R.bCero = clnkEspacio(1, 50 * GB, 0);
+      R.bCeroNoAvisa = R.bCero === null;
+
+      /* ── C · EL TOPE QUE SE DICE ES EL DEL PUENTE, NO 2 GB ──────────────────────
+         bytes_tope dejo de ser 2147483648 en la 1.4.0: se deriva del disco. */
+      await ctl({ reset: true, equipos: 1, escena: 'vacio',
+                  bytes_tope: 50 * GB, bytes_usados: 11 * GB });
+      showTab('config'); cfgOnShow();
+      await esp(500);
+      clnkLeerEstado();
+      await esp(1100);
+      const st = await (await fetch(F.base + '/v1/estado')).json();
+      R.cAvisoPuente = Number(st.bytes_aviso);
+      R.cDerivado = R.cAvisoPuente === Math.round(50 * GB * 0.8);
+      R.cChips = chips();
+      R.cDiceTope = R.cChips.indexOf('50.0 GB') > -1;
+      R.cNoDice2GB = R.cChips.indexOf('2.0 GB') === -1;
+      R.cAviso = aviso();
+      /* 11 de 50 GB es el 22 %: por debajo del 85 % propio y por ENCIMA del 80 % del puente?
+         No: 11 < 40. Asi que aca NO tiene que avisar, y es el control de que el numero del
+         puente es el que manda y no uno inventado. */
+      R.cSinAviso = R.cAviso.indexOf('conviene adjuntar') === -1 &&
+                    R.cAviso.indexOf('Conviene adjuntar') === -1;
+
+      /* ── D · CON LO USADO POR ENCIMA DE bytes_aviso, LA TARJETA LO DICE ──────── */
+      await ctl({ bytes_tope: 50 * GB, bytes_usados: 41 * GB });
+      clnkLeerEstado();
+      await esp(1100);
+      R.dAviso = aviso();
+      R.dDice = R.dAviso.indexOf('onviene adjuntar') > -1;
+      R.dDiceLibre = R.dAviso.indexOf('libre') > -1;
+      R.dDiceRechazo = R.dAviso.indexOf('rechazar los env') > -1;
+      R.dChips = chips();
+
+      /* ── E · BLOQUE J: contra un puente que no manda bytes_aviso ──────────────
+         El 85 % propio vuelve a ser el umbral, y la tarjeta sigue diciendo el tope del puente. */
+      await ctl({ version: '1.1.0', bytes_tope: 50 * GB, bytes_usados: 44 * GB });
+      clnkLeerEstado();
+      await esp(1100);
+      const st13 = await (await fetch(F.base + '/v1/estado')).json();
+      R.eSinCampo = !('bytes_aviso' in st13);
+      R.eAviso = aviso();
+      R.eDice = R.eAviso.indexOf('onviene adjuntar') > -1;
+      R.eDiceTope = chips().indexOf('50.0 GB') > -1;
+      await ctl({ version: '1.4.0' });
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['el umbral del aviso lo DA EL PUENTE: con 11 de 50 GB y el aviso en 10, avisa',
+        R.aSale, JSON.stringify(R.aConAviso && R.aConAviso.nivel)],
+      ['CONTROL: con el porcentaje propio ese mismo caso NO avisaria -- es el 22 %',
+        R.aNoSaldria, String(R.aPorcentajePropio)],
+      ['y con el aviso del puente mas arriba que lo usado, no avisa', R.aNoAvisa, String(R.aAntes)],
+      ['BLOQUE J: sin el campo, el 85 % propio sigue siendo el respaldo',
+        R.aRespaldoSale, R.aRespaldo && R.aRespaldo.nivel],
+      ['el ROJO no se movio: sigue en el 95 %', R.aRojoSale, R.aRojo && R.aRojo.nivel],
+      ['GUARDA: un aviso MAYOR que el tope no avisaria nunca, asi que se cae al porcentaje',
+        R.bMayorCae, R.bMayorQueTope && R.bMayorQueTope.nivel],
+      ['GUARDA: un aviso en CERO avisaria siempre con el conector vacio, asi que tampoco vale',
+        R.bCeroNoAvisa, String(R.bCero)],
+      ['DENOMINADOR: el puente DERIVA bytes_aviso como el 80 % del tope',
+        R.cDerivado, R.cAvisoPuente],
+      ['la tarjeta dice el tope DEL PUENTE y no «2.0 GB» escrito a mano',
+        R.cDiceTope && R.cNoDice2GB, R.cChips],
+      ['CONTROL: por debajo del umbral del puente la tarjeta NO avisa', R.cSinAviso, R.cAviso.slice(0, 90)],
+      ['por encima de bytes_aviso la tarjeta lo dice, con lo que queda libre y con el motivo',
+        R.dDice && R.dDiceLibre && R.dDiceRechazo, R.dAviso.slice(0, 160)],
+      ['BLOQUE J: contra un puente sin el campo el aviso sale por el 85 % y el tope sigue siendo el del puente',
+        R.eSinCampo && R.eDice && R.eDiceTope,
+        'sinCampo=' + R.eSinCampo + ' avisa=' + R.eDice + ' tope=' + R.eDiceTope]
+    ] };
+  })();
+`);
+
+/* == PROMPT 6 . BLOQUE I -- LOS NOMBRES DONDE EL MEDICO DECIDE ===============================
+   La fila dibujaba `apodo || aet`, asi que el equipo del buzon se veia «BUZON:» crudo -- con los
+   dos puntos y en mayusculas-- JUSTO en la fila donde el medico aprieta PERMITIR o BLOQUEAR. Y
+   los dos prefijos son equipos DISTINTOS aunque la subcarpeta se llame igual: en el buzon
+   escribe la cuenta del medico y nadie mas; en la carpeta de entrada escribe cualquiera que
+   tenga las credenciales del recurso compartido, desde cualquier maquina de la red.            */
+caso('TC-969', 'Bloque I: la fila de Permitir o Bloquear y el cartel de equipo nuevo dicen el nombre en criollo y distinguen «copiado a mano» de «por red», con el AET crudo guardado en el plegable como identidad', `
+  return (async () => {
+    if (typeof window.clnkEqProcedencia !== 'function' || typeof window.clnkNombreEqDe !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol distingue de donde vino un equipo', false,
+        'no existen clnkEqProcedencia / clnkNombreEqDe']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      const filaDe = (id) => {
+        const c = EL('cfg-clnk-equipos');
+        if (!c) return null;
+        const b = [].slice.call(c.querySelectorAll('[data-clnk-eq]'))
+          .filter(x => x.getAttribute('data-clnk-eq') === id)[0];
+        if (!b) return null;
+        let n = b;
+        while (n && n.parentNode && !(n.parentNode === c)) n = n.parentNode;
+        return n;
+      };
+
+      /* ── A · LAS CUATRO FILAS: el ecografo, el buzon y los dos de la carpeta ───── */
+      await ctl({ equipos: 5 });
+      clnkLeerEstado();
+      await esp(1400);
+      const eqs = await GET('/v1/equipos');
+      R.aN = (eqs.equipos || []).length;
+      R.aNombres = (eqs.equipos || []).map(e => e.nombre_para_mostrar).join(' | ');
+      const cont = EL('cfg-clnk-equipos');
+      /* ⚠️ SE LEE EL RENGLON VISIBLE Y NO EL textContent DEL CONTENEDOR, y lo destapo la
+         primera corrida de este caso: el plegable de cada equipo lleva el AET crudo ROTULADO
+         --es la identidad y tiene que estar-- y textContent lo devuelve aunque el details
+         este cerrado. Es la trampa que este archivo ya documenta: un details cerrado no da
+         GEOMETRIA, pero el NODO si esta. Lo que este bloque afirma es sobre el renglon donde el
+         medico aprieta PERMITIR, asi que se clona y se le saca el plegable. */
+      R.aTexto = (function () {
+        if (!cont) return '';
+        const c2 = cont.cloneNode(true);
+        [].slice.call(c2.querySelectorAll('details')).forEach(d => d.remove());
+        return String(c2.textContent || '');
+      })();
+      R.aSinCrudoBuzon = R.aTexto.indexOf('BUZON:') === -1;
+      R.aSinCrudoEntrada = R.aTexto.indexOf('ENTRADA:sonoscape') === -1;
+      R.aDiceBuzon = R.aTexto.indexOf('n de esta computadora') > -1;
+      R.aDiceEntrada = R.aTexto.indexOf('Carpeta de entrada') > -1;
+      R.aDiceAMano = R.aTexto.indexOf('copiado a mano') > -1;
+      R.aDicePorRed = R.aTexto.indexOf('por red') > -1;
+      R.aDiceEcografo = R.aTexto.indexOf('GE del consultorio') > -1;
+      /* El AET crudo SIGUE estando, pero en el plegable y rotulado: es la identidad. */
+      const dets = cont ? [].slice.call(cont.querySelectorAll('details')) : [];
+      dets.forEach(d => { d.open = true; });
+      await esp(300);
+      R.aAetEnPlegable = cont
+        ? String(cont.textContent || '').indexOf('BUZON:') > -1 : false;
+      /* La subcarpeta con marcado adentro entra por textContent: cero elementos inyectados. */
+      R.aCeroImg = cont ? cont.querySelectorAll('img').length : -1;
+      R.aLiteral = cont
+        ? String(cont.textContent || '').indexOf('sonoscape<img src=x>') > -1 : false;
+      dets.forEach(d => { d.open = false; });
+
+      /* ── B · LA PROCEDENCIA, SOBRE EL DUENIO UNICO ─────────────────────────────── */
+      R.proc = {
+        buzon: clnkEqProcedencia({ aet: 'BUZON:' }),
+        buzonSub: clnkEqProcedencia({ aet: 'BUZON:sonoscape' }),
+        entrada: clnkEqProcedencia({ aet: 'ENTRADA:' }),
+        entradaSub: clnkEqProcedencia({ aet: 'ENTRADA:sonoscape' }),
+        ecografo: clnkEqProcedencia({ aet: 'GE_VIVID_01' }),
+        /* BLOQUE J: el prefijo del AET viaja igual en las dos versiones del contrato. */
+        sinNombre: clnkEqProcedencia({ aet: 'ENTRADA:eq' })
+      };
+
+      /* ── C · EL CARTEL DE EQUIPO NUEVO: nombre en criollo y de donde vino ───────
+         La escena deja ENTRADA: esperando decision, que es el caso que importa: es la carpeta
+         donde escribe cualquiera que tenga las credenciales del recurso compartido. */
+      await ctl({ reset: true, equipos: 5, escena: 'porRed' });
+      await esp(250);
+      try { Object.keys(window._clnkEqAvisados || {}).forEach(k => { delete window._clnkEqAvisados[k]; }); } catch (e) {}
+      await clnkAvisarEquipoNuevo();
+      await esp(900);
+      R.cAbierto = abierto();
+      R.cTxt = txt();
+      R.cDiceCriollo = R.cTxt.indexOf('Carpeta de entrada') > -1;
+      R.cSinCrudo = R.cTxt.indexOf('ENTRADA:') === -1;
+      R.cDicePorRed = R.cTxt.indexOf('carpeta compartida de la red') > -1;
+      R.cDiceNoLasCopiaste = R.cTxt.indexOf('no las copiaste vos') > -1;
+      const nodoTxt = EL('clnkav-txt');
+      R.cCeroElementos = nodoTxt ? nodoTxt.querySelectorAll('*').length : -1;
+      clnkAvisoCerrar();
+
+      /* ── D · CONTROL: un ecografo de verdad NO dice de donde vino ──────────────── */
+      await ctl({ reset: true, equipos: 2, escena: 'cuarentena' });
+      await esp(250);
+      try { Object.keys(window._clnkEqAvisados || {}).forEach(k => { delete window._clnkEqAvisados[k]; }); } catch (e) {}
+      await clnkAvisarEquipoNuevo();
+      await esp(900);
+      R.dTxt = txt();
+      R.dSinProcedencia = R.dTxt.indexOf('por la red') === -1 &&
+                          R.dTxt.indexOf('copiaste') === -1;
+      R.dDiceAet = R.dTxt.indexOf('ECOFALSO') > -1;
+      clnkAvisoCerrar();
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el panel lista los cuatro equipos', R.vinculado && R.aN === 4,
+        R.vinculado + '/' + R.aN],
+      ['DENOMINADOR: el puente manda el nombre en criollo de cada uno',
+        R.aNombres.indexOf('de esta computadora') > -1 && R.aNombres.indexOf('Carpeta de entrada') > -1,
+        R.aNombres],
+      ['la fila NO muestra el AET crudo del buzon ni de la carpeta',
+        R.aSinCrudoBuzon && R.aSinCrudoEntrada,
+        'buzon=' + R.aSinCrudoBuzon + ' entrada=' + R.aSinCrudoEntrada],
+      ['sino el nombre en criollo de cada uno', R.aDiceBuzon && R.aDiceEntrada,
+        'buzon=' + R.aDiceBuzon + ' entrada=' + R.aDiceEntrada],
+      ['y el apodo cuando el medico le puso uno', R.aDiceEcografo, R.aDiceEcografo],
+      ['distingue «copiado a mano» de «por red», que es la diferencia que no se puede omitir',
+        R.aDiceAMano && R.aDicePorRed,
+        'aMano=' + R.aDiceAMano + ' porRed=' + R.aDicePorRed],
+      ['el AET crudo sigue estando, en el plegable y rotulado: es la identidad',
+        R.aAetEnPlegable, R.aAetEnPlegable],
+      ['la subcarpeta que escribe una persona entra por textContent: LITERAL y cero elementos',
+        R.aLiteral && R.aCeroImg === 0, 'literal=' + R.aLiteral + ' img=' + R.aCeroImg],
+      ['el duenio unico de la procedencia: buzon y carpeta, con y sin subcarpeta',
+        R.proc.buzon === 'copiado a mano' && R.proc.buzonSub === 'copiado a mano' &&
+        R.proc.entrada === 'por red' && R.proc.entradaSub === 'por red',
+        JSON.stringify(R.proc)],
+      ['CONTROL: un ecografo de verdad no tiene procedencia que decir',
+        R.proc.ecografo === '', JSON.stringify(R.proc.ecografo)],
+      ['BLOQUE J: sale del prefijo del AET, que viaja igual en las dos versiones del contrato',
+        R.proc.sinNombre === 'por red', R.proc.sinNombre],
+      ['DENOMINADOR: el cartel de equipo nuevo abrio', R.cAbierto, R.cAbierto],
+      ['y dice el nombre en criollo, no el AET crudo',
+        R.cDiceCriollo && R.cSinCrudo, 'criollo=' + R.cDiceCriollo + ' sinCrudo=' + R.cSinCrudo],
+      ['y que llegaron POR LA RED y no las copio el medico -- en la pantalla donde decide',
+        R.cDicePorRed && R.cDiceNoLasCopiaste, R.cTxt.slice(0, 170)],
+      ['todo por textContent: cero elementos en el texto del cartel', R.cCeroElementos === 0,
+        R.cCeroElementos],
+      ['CONTROL: con un ecografo de verdad el cartel NO habla de procedencia y dice su AET',
+        R.dSinProcedencia && R.dDiceAet, R.dTxt.slice(0, 120)]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
