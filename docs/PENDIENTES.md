@@ -150,10 +150,19 @@ pasar en silencio. Lo que hay que mudar hoy es todo lo anterior a **PR4** (el pr
 `docs/mapa/tests-punteros-tandas.md` está en **36,4 KB**, o sea **por encima** del techo de ~35 KB
 que este archivo fija: la próxima tanda que lo toque tiene que partirlo.
 
-### P6-j · ⚠️ ABIERTO · TC-845 (D): con la pestaña del navegador oculta salen CUATRO pedidos
+### P6-j · ✅ RESUELTO el 2026-11-20 · TC-845 (D): con la pestaña del navegador oculta salían CUATRO pedidos
 
-**Es un defecto REAL de esta tanda y NO se arregló**, por la regla del prompt de informar antes de
-tocar código nuevo en la pasada de verificación.
+**CERRADO en el commit `4dc264c`** (sello `v20261120-1207`). La guarda del **disparo** del rebote
+—la que ya revisaba `clnkActivo()` y `clnkPanelALaVista()`— gana **`document.hidden`**, que es el
+idioma de esta casa para la pestaña del navegador y lo que su propio comentario quería decir.
+**NO se tocó `clnkPanelALaVista`** ni se usó `clnkSondeoDebe()`, por los dos motivos que esta
+entrada ya daba. **Medido con `scripts/_probe_p6_845.mjs`**: la escena 1 pasa de **cuatro pedidos a
+CERO** con la pestaña oculta, con `clnkPanelALaVista()` **todavía en `true`** ahí —o sea que esa
+función no cambió—, y la escena 2 —el rebote disparado **antes** de ocultar— sigue en cero, que es
+el control. **TC-845 pasa 1/1 aislado y en su lote**, y los **diecisiete** bloques de JS inline
+parsean.
+
+El relato de abajo se conserva porque es el diagnóstico, y lo que enseña no caduca.
 
 **Qué pasa.** El bloque (D) de TC-845 exige **cero** pedidos al conector con la pestaña del
 navegador oculta, y salen **cuatro**: `/v1/estado`, `/v1/conexion`, `/v1/equipos` y `/v1/ajustes`,
@@ -185,7 +194,7 @@ vínculo, así que cambiaría la conducta de los sumideros.
 **Lo que cuesta arreglarlo**: vuelve a sellar `index.html`, así que hay que rehacer la suite —o al
 menos su lote— y volver a publicar el sello y el md5 en `CLAUDE.md`, que es lo que TC-753 vigila.
 
-### P6-k · ⚠️ ABIERTO · TC-970 es sensibilidad de lote, y es del arnés y no de la app
+### P6-k · ✅ RESUELTO el 2026-11-20 · TC-970 era sensibilidad de lote, y era del arnés y no de la app
 
 Pasa **3 de 3 corrido aislado** y sale rojo en su lote por la condición «contra un 1.1.0 el aviso
 SÍ sale en el acto».
@@ -195,9 +204,61 @@ antes de pasar a la suya, y el aviso **no vuelve por las mismas imágenes en la 
 978 casos corren en UNA página. Es la **quinta** vez que esta casa paga esa trampa, y mi propio
 bloque D ya la había pagado creando `unaSuelta3`.
 
-**El arreglo no toca `index.html`**: una escena del conector falso con **ids propios** —el camino de
-`unaSuelta2` y `unaSuelta3`— y el `escena:` del caso apuntando ahí. Sólo hay que rehacer **su
-lote**, el 18, porque el árbol no cambia.
+**CERRADO en el commit `ded9f8e`, y NO toca `index.html`**: el conector falso gana **`unaSuelta4`**
+—id **`img_z4`**, que no aparece en ninguna otra escena— y el bloque **D de TC-964** apunta ahí, que
+es el camino de `unaSuelta2` y `unaSuelta3`. **Medido**: TC-964 y TC-970 pasan **1/1 aislados**, el
+grupo **TC-961 a TC-970 da 10/10**, y en la corrida completa el **lote 18** los deja a los dos en
+verde.
+
+⚠️ **Y AL ESCRIBIR SU COMENTARIO PAGUÉ EL ACENTO GRAVE DENTRO DEL CUERPO DE UN CASO**, por
+trigesimosegunda tanda seguida: `node --check` lo cazó con un «missing ) after argument list» que
+apuntaba a la línea del `caso(`, no a la del acento.
+
+### P6-l · ⚠️ ABIERTO · SEIS rojos INTERMITENTES en la pasada de cierre, y ninguno es de los dos arreglos
+
+La corrida completa del 2026-11-20 dio **966/978** con **doce** rojos: los **cinco** que esta casa
+declara conocidos —TC-182, TC-376, TC-406, TC-551 y TC-903—, **TC-753** —que tenía razón, ver
+abajo— y **SEIS** más: **TC-99, TC-147, TC-347, TC-348, TC-350 y TC-796**.
+
+**NINGUNO de los seis es de esta pasada, y está medido de la forma que esta casa manda**: en un
+worktree sobre **`ad38d37`** —el árbol **anterior** a los dos arreglos, md5 `0a1b2c03`, el mismo
+que la pasada de ayer dejó en 971/978—, con el **mismo** archivo de casos y el **mismo** conector
+falso y sólo el `index.html` distinto, los seis fallan **6 de 6**. En el árbol vivo esa misma
+selección da **5 de 6**, o sea que el árbol viejo falla **más**.
+
+**Y los seis fallan también corridos ESTRICTAMENTE SOLOS**, uno por corrida: **0/1 los seis**. No es
+sensibilidad de lote: es intermitencia del entorno.
+
+**La causa, hasta donde se midió.** TC-347 lo dice con todas las letras —«flujo=**NO HAY jsPDF**»—,
+que es la CDN sin llegar a tiempo, el mismo síntoma que este archivo ya documenta para **TC-535** y
+**TC-143**. Y flapea: tres corridas de la misma terna dieron **1/3** y **0/3**.
+⚠️ **Pero la CDN NO está caída, y eso es lo que queda sin explicar**: `curl` le saca el jsPDF en
+**0,43 a 0,56 s**, y una sonda propia que abre `index.html` en el mismo Chrome y espera **seis
+segundos** encuentra los **cinco** scripts en **200** y `jspdf`, `Chart` y `XLSX` **definidos**. O
+sea que el archivo llega y lo que no alcanza es el momento en que el caso mide.
+**TC-796 falla por otra cosa** —«0 editables», la hoja sin su párrafo editable— y **TC-99** por una
+condición de contenido, así que no todos comparten la causa.
+
+**Lo que ya estaba declarado de dos de ellos**: **TC-99** está caracterizado como intermitente que
+**no se reproduce** en la entrada homónima de una tanda anterior de este mismo archivo, y **TC-147**
+como intermitente **en los dos árboles** — 1 de 3 en el vivo y 2 de 3 en la base— en la sección de
+MEDIR-4b de `CLAUDE.md`. Los otros cuatro —**TC-347, TC-348, TC-350 y TC-796**— **no estaban
+declarados** y quedan declarados acá.
+
+**Qué falta.** Caracterizarlos con **cuatro corridas de cada lado**, que es lo que esta casa exige
+para un intermitente —«un intermitente no se caracteriza con una corrida»—, y encontrar por qué el
+caso mide antes de que el navegador tenga la biblioteca cuando `curl` la trae en medio segundo. La
+hipótesis a probar primero es la espera de los casos que **no** tienen el bucle de ochenta turnos
+que sí tienen sus hermanos. **No se aflojó ni una condición ni se tocó un caso.**
+
+### P6-m · ✅ EXPLICADO · TC-753 salía rojo porque tenía razón
+
+Ese caso vigila que `CLAUDE.md` publique el **sello** y el **md5** que el pie de `index.html` trae
+hoy, y la corrida completa se hizo **antes** de escribir la documentación: el árbol ya estaba
+sellado en `v20261120-1207` y `CLAUDE.md` todavía publicaba `v20261120-0019`. Es el costo de orden
+que esta entrada deja escrito para la próxima vez: **el sello se escribe en `CLAUDE.md` antes de la
+pasada, o el caso sale rojo con razón**. Con la documentación al día, **TC-753 vuelve a verde** y su
+**lote 14** se rehizo entero.
 
 ## PROMPT 5 — la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio» (2026-11-19)
 
