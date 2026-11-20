@@ -183463,6 +183463,40 @@ var _clnkAvisadas = Object.create(null);
    medico que descarto algo el lunes seguiria leyendo «ya las habias descartado» un mes despues. */
 var _clnkDescartadas = Object.create(null);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE J · LA REGLA VIEJA: CONTRA UN PUENTE 1.3.x SE ESPERA A QUE EL LOTE CIERRE
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   El contrato §P8 describe DOS reglas, una por version, y el bloque J pide que la vieja siga
+   valiendo donde la nueva no se puede aplicar:
+
+     · 1.4 — con `tanda_abierta` el cartel sale con la PRIMERA imagen y el numero sube. Eso lo
+       hace el bloque A, antes de llegar aca;
+     · 1.3 — sin los cuatro campos de la tanda, hay que agrupar por `lote` y avisar **recien
+       cuando `lote_cierra` ya paso**.
+
+   ⚠️ Y EL MOTIVO DE LA REGLA VIEJA ESTA MEDIDO EN EL PROPIO CONTRATO (leccion 66): el retraso
+   que ve el medico es el sondeo de EcoSmart, de unos quince segundos, no la ingesta del puente.
+   Avisando en el primer sondeo saldria «llego 1 imagen» y un minuto despues «llegaron 3» — DOS
+   avisos del mismo estudio, que es el problema que el agrupado viene a resolver.
+
+   ⚠️ SIN `lote_cierra` EL GRUPO ESTA LISTO, y es a proposito: contra un puente 1.1 ese campo no
+   existe y la regla de entonces era avisar en el acto. Hacerlo esperar lo dejaria sin avisar
+   NUNCA, que es peor que avisar dos veces.
+
+   ⚠️ Y SI `lote_cierra` YA PASO CUANDO LA IMAGEN APARECE POR PRIMERA VEZ, se avisa en el acto:
+   es lo que pasa con una imagen suelta y con todo lo que estaba esperando cuando EcoSmart se
+   abrio. Tambien lo dice §P8. */
+function clnkGrupoListo(g) {
+  var ms = NaN;
+  (g && g.imagenes ? g.imagenes : []).forEach(function (i) {
+    var t = Date.parse(String((i && i.lote_cierra) || ''));
+    if (isFinite(t) && (!isFinite(ms) || t > ms)) ms = t;
+  });
+  if (!isFinite(ms)) return true;          // sin el campo: la regla de antes de la 1.3
+  return Date.now() >= ms;
+}
+window.clnkGrupoListo = clnkGrupoListo;
+
 /* Marca en el grupo cuantas de sus imagenes el medico ya habia descartado en esta sesion. */
 function _clnkRepetidas(g) {
   var n = 0;
@@ -183679,6 +183713,11 @@ async function clnkRevisarImagenes(forzar) {
   }
 
   var grupos = forzar ? todos : todos.filter(function (g) {
+    /* ══ BLOQUE J · PRIMERO, QUE EL LOTE HAYA CERRADO ═══════════════════════════════════════
+       Contra un puente 1.4 esto no cambia nada: a este punto se llega con la tanda ya cerrada
+       —el bloque A devuelve antes mientras esta abierta— asi que `lote_cierra` ya paso. Contra
+       un 1.3.x es LA regla, y contra un 1.1 el campo no viene y el grupo esta listo. */
+    if (!clnkGrupoListo(g)) return false;
     /* Un grupo se avisa si tiene AL MENOS UNA imagen sin avisar. Con «ninguna avisada», una
        imagen nueva que cae dentro de la ventana de un envío ya avisado no se avisaría nunca. */
     return g.ids.some(function (id) { return !_clnkAvisadas[id]; });

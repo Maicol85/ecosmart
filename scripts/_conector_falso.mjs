@@ -540,6 +540,14 @@ function escenas() {
       buz('img_tb3', 'eq_buzon', iso(Date.now() - 6000),  'pdf'),
       buz('img_tb4', 'eq_buzon', iso(Date.now() - 2000),  'tif'),
     ],
+    /* ══ PARA EL BLOQUE J ════════════════════════════════════════════════════════════════
+       UNA IMAGEN QUE ACABA DE LLEGAR, con su propio id: contra un puente 1.3.0 su `lote_cierra`
+       todavia no paso, asi que la regla vieja dice que el aviso NO sale todavia. Es el control
+       negativo de la compatibilidad: sin el, «avisa» pasaria tambien con una app que avisa
+       siempre. */
+    recienLlegada: () => [ img('img_j1', 'eq_3f8a1c', iso(Date.now() - 1500), 'imagen', uno) ],
+    /* Y UNA CON EL LOTE YA CERRADO, tambien con su propio id. */
+    loteCerrado: () => [ img('img_j2', 'eq_3f8a1c', iso(t0), 'imagen', uno) ],
     vacio: () => [],
   };
 }

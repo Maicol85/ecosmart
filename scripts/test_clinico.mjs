@@ -153862,6 +153862,240 @@ caso('TC-969', 'Bloque I: la fila de Permitir o Bloquear y el cartel de equipo n
   })();
 `);
 
+/* == PROMPT 6 . BLOQUE J -- LA COMPATIBILIDAD ================================================
+   El contrato describe DOS reglas de aviso, una por version, y las dos tienen que valer:
+     . 1.4 -- el cartel sale con la PRIMERA imagen y el numero sube (bloque A);
+     . 1.3 -- agrupar por `lote` y avisar RECIEN cuando `lote_cierra` ya paso.
+   El motivo de la vieja esta medido en el propio contrato: el retraso que ve el medico es el
+   sondeo de EcoSmart, de unos quince segundos. Avisando en el primer sondeo saldria «llego 1
+   imagen» y un minuto despues «llegaron 3» -- DOS avisos del mismo estudio.
+   El control negativo es lo que hace que esto pruebe algo: con el lote todavia ABIERTO el aviso
+   NO sale, y con el ya cerrado SI.                                                             */
+caso('TC-970', 'Bloque J: contra un puente 1.3.x se espera a que el lote cierre antes de avisar y contra un 1.1 se avisa en el acto, con el panel entero funcionando sin una sola excepcion y las nueve piezas del prompt con su camino viejo', `
+  return (async () => {
+    if (typeof window.clnkGrupoListo !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la regla vieja del lote', false,
+        'no existe clnkGrupoListo']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      const chips = () => { const n = EL('cfg-clnk-nums'); return n ? String(n.textContent || '') : ''; };
+      const errs = [];
+      const onErr = ev => { errs.push(String((ev && ev.message) || ev).slice(0, 80)); };
+      window.addEventListener('error', onErr);
+
+      /* ── A · CONTRA UN PUENTE 1.3.0 ─────────────────────────────────────────────── */
+      await ctl({ version: '1.3.0', equipos: 1, escena: 'recienLlegada' });
+      await esp(250);
+      const st13 = await (await fetch(F.base + '/v1/estado')).json();
+      R.aVersion = String(st13.version || '');
+      R.aSinTanda = !('tanda_abierta' in st13);
+      R.aSinAviso = !('bytes_aviso' in st13);
+      R.aTandaNull = clnkTandaDe(st13) === null;
+      const im13 = await GET('/v1/imagenes');
+      R.aSinTandas = !('tandas' in im13);
+      R.aConLote = (im13.imagenes || []).every(x => !!x.lote && !!x.lote_cierra);
+      R.aConFormato = (im13.imagenes || []).every(x => typeof x.se_puede_ver === 'boolean');
+      const eq13 = await GET('/v1/equipos');
+      R.aSinNombre = (eq13.equipos || []).every(e => !('nombre_para_mostrar' in e));
+      /* LA REGLA VIEJA: el lote NO cerro, asi que el aviso NO sale todavia. */
+      errs.length = 0;
+      await _clnkSondear(true);
+      await esp(1100);
+      R.aNoAviso = !abierto();
+      R.aSinCartelTanda = !document.querySelector('[data-clnk-tanda-n]');
+      R.aSinBurbuja = !(EL('clnk-burbuja') && EL('clnk-burbuja').style.display !== 'none');
+      R.aCadencia = clnkSondeoMs();
+      R.aSinErrores = errs.length === 0;
+      R.aErrores = errs.join(' | ');
+      /* Y CON EL LOTE YA CERRADO, SI SALE: es el control positivo de la regla vieja. */
+      await ctl({ escena: 'loteCerrado' });
+      await esp(250);
+      await _clnkSondear(true);
+      await esp(1100);
+      R.aAvisoTrasCerrar = abierto();
+      R.aTxt = txt();
+      /* y el equipo se nombra por la regla vieja del prefijo del AET: aca es un ecografo. */
+      R.aDiceApodo = R.aTxt.indexOf('GE del consultorio') > -1;
+      clnkAvisoCerrar();
+      /* el predicado, sobre la funcion sola y con sus tres casos */
+      R.listo = {
+        sinCampo: clnkGrupoListo({ imagenes: [{ id: 'a' }] }),
+        yaPaso: clnkGrupoListo({ imagenes: [{ lote_cierra: new Date(Date.now() - 60000).toISOString() }] }),
+        todavia: clnkGrupoListo({ imagenes: [{ lote_cierra: new Date(Date.now() + 60000).toISOString() }] }),
+        /* el MAS NUEVO del grupo manda: si una imagen corrio el cierre, se espera */
+        corrido: clnkGrupoListo({ imagenes: [
+          { lote_cierra: new Date(Date.now() - 60000).toISOString() },
+          { lote_cierra: new Date(Date.now() + 60000).toISOString() }] })
+      };
+
+      /* ── B · EL PANEL ENTERO CONTRA UN 1.3.0, sin reventar ─────────────────────── */
+      showTab('config'); cfgOnShow();
+      await esp(500);
+      errs.length = 0;
+      clnkLeerEstado();
+      await esp(1500);
+      const dt = EL('cfg-clnk-det-conexion'); if (dt) dt.open = true;
+      await esp(300);
+      R.bChips = chips();
+      R.bHayTope = R.bChips.indexOf('GB') > -1 || R.bChips.indexOf('MB') > -1;
+      R.bCarpeta = !!document.querySelector('[data-clnk-carpeta]');
+      R.bRotuloCable = (function () { const c = EL('cfg-clnk-conexion');
+        return c ? String(c.textContent || '').indexOf('cable') > -1 : false; })();
+      R.bEquipos = (function () { const c = EL('cfg-clnk-equipos');
+        return c ? c.querySelectorAll('[data-clnk-eq]').length : 0; })();
+      R.bSinErrores = errs.length === 0;
+      R.bErrores = errs.join(' | ');
+
+      /* ── C · CONTRA UN PUENTE 1.1.0: nada de 1.3 tampoco ──────────────────────── */
+      await ctl({ version: '1.1.0', equipos: 1, escena: 'unaSuelta' });
+      await esp(250);
+      const im11 = await GET('/v1/imagenes');
+      R.cSinLote = (im11.imagenes || []).every(x => !('lote' in x) && !('formato' in x) &&
+                                                    !('se_puede_ver' in x) && !('origen' in x));
+      const cx11 = await GET('/v1/conexion');
+      R.cSinTipo = (cx11.direcciones || []).every(x => !('tipo' in x) && !('enlace' in x));
+      R.cSinCarpeta = !('carpeta_compartida' in cx11);
+      /* El aviso SI sale: sin lote_cierra el grupo esta listo, que es la regla de entonces. */
+      errs.length = 0;
+      await _clnkSondear(true);
+      await esp(1100);
+      R.cAviso = abierto();
+      R.cTxt = txt();
+      /* Y la cuenta vuelve a DOS clases: sin se_puede_ver, un DICOM es una imagen. */
+      R.cCuentaImagen = R.cTxt.indexOf('1 imagen') > -1;
+      R.cSinNoVer = R.cTxt.indexOf('no se puede ver') === -1;
+      R.cSinErrores = errs.length === 0;
+      R.cErrores = errs.join(' | ');
+      clnkAvisoCerrar();
+      clnkLeerEstado();
+      await esp(1400);
+      R.cChips = chips();
+      R.cPanelVivo = R.cChips.indexOf('esperando') > -1;
+      R.cSinCarpetaPanel = !document.querySelector('[data-clnk-carpeta]');
+
+      /* ── D · LOS OCHO AYUDANTES, UNO POR UNO, SIN LOS CAMPOS NUEVOS ─────────────
+         Es el censo del bloque J: cada pieza del prompt 6 tiene que tener su camino viejo, y
+         esto lo afirma pieza por pieza en vez de confiar en que el panel «no revento». */
+      R.piezas = {
+        tanda: clnkTandaDe({ version: '1.1.0' }) === null,
+        agrupaPorVentana: (function () {
+          const t0 = Date.now() - 10 * 60000;
+          const g = clnkAgrupar([
+            { id: 'x1', equipo: 'e1', recibida: new Date(t0).toISOString() },
+            { id: 'x2', equipo: 'e1', recibida: new Date(t0 + 20000).toISOString() },
+            { id: 'x3', equipo: 'e1', recibida: new Date(t0 + 30 * 60000).toISOString() }]);
+          return g.length === 2 && g[0].ids.length === 2 && g[1].ids.length === 1;
+        })(),
+        agrupaPorLote: (function () {
+          const g = clnkAgrupar([
+            { id: 'y1', equipo: 'e1', lote: 'L1', recibida: new Date().toISOString() },
+            { id: 'y2', equipo: 'e1', lote: 'L2', recibida: new Date().toISOString() }]);
+          return g.length === 2;
+        })(),
+        clase: _clnkClase({ tipo: 'imagen' }) === 'fija' && _clnkClase({ tipo: 'video' }) === 'loop',
+        nombre: clnkNombreEqDe({ aet: 'BUZON:x' }).indexOf('carpeta') > -1,
+        formato: clnkFmtDe({}).ver === 'dicom',
+        rotulo: clnkDirRotulo({}) === '' && clnkDirRotulo({ tipo: 'desconocido' }) === '',
+        espacio: (function () {
+          const GB = 1024 * 1024 * 1024;
+          return !!(clnkEspacio(44 * GB, 50 * GB) || {}).nivel;
+        })(),
+        procedencia: clnkEqProcedencia({ aet: 'ENTRADA:x' }) === 'por red',
+        grupoListo: clnkGrupoListo({ imagenes: [{ id: 'z' }] }) === true
+      };
+      await ctl({ version: '1.4.0' });
+      window.removeEventListener('error', onErr);
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['DENOMINADOR: contra un 1.3.0 vienen el lote y el formato, y NO la tanda, las tandas, el aviso de espacio ni el nombre en criollo',
+        R.aVersion === '1.3.0' && R.aSinTanda && R.aSinAviso && R.aSinTandas &&
+        R.aConLote && R.aConFormato && R.aSinNombre,
+        'v=' + R.aVersion + ' sinTanda=' + R.aSinTanda + ' sinAviso=' + R.aSinAviso +
+        ' sinTandas=' + R.aSinTandas + ' conLote=' + R.aConLote + ' conFmt=' + R.aConFormato +
+        ' sinNombre=' + R.aSinNombre],
+      ['sin los cuatro campos, clnkTandaDe devuelve null y NO hay cartel de tanda ni burbuja',
+        R.aTandaNull && R.aSinCartelTanda && R.aSinBurbuja && R.aCadencia === 15000,
+        'null=' + R.aTandaNull + ' cartel=' + R.aSinCartelTanda + ' burbuja=' + R.aSinBurbuja +
+        ' cadencia=' + R.aCadencia],
+      ['LA REGLA VIEJA: con el lote todavia ABIERTO el aviso NO sale -- dos avisos del mismo estudio es el problema que el agrupado resuelve',
+        R.aNoAviso, R.aNoAviso],
+      ['CONTROL POSITIVO: con el lote ya CERRADO si sale', R.aAvisoTrasCerrar, R.aAvisoTrasCerrar],
+      ['y el equipo se nombra por la regla vieja: el apodo, que viaja en las dos versiones',
+        R.aDiceApodo, R.aTxt.slice(0, 110)],
+      ['el predicado del lote, con sus cuatro casos: sin campo listo, ya paso listo, todavia no espera, y el MAS NUEVO manda',
+        R.listo.sinCampo === true && R.listo.yaPaso === true &&
+        R.listo.todavia === false && R.listo.corrido === false,
+        JSON.stringify(R.listo)],
+      ['el panel entero funciona contra un 1.3.0: dice el tope, rotula el cable, dibuja la carpeta y lista los equipos',
+        R.bHayTope && R.bRotuloCable && R.bCarpeta && R.bEquipos >= 1,
+        'tope=' + R.bHayTope + ' cable=' + R.bRotuloCable + ' carpeta=' + R.bCarpeta +
+        ' equipos=' + R.bEquipos],
+      ['sin una sola excepcion contra un 1.3.0', R.aSinErrores && R.bSinErrores,
+        (R.aErrores || '') + (R.bErrores || '') || '(ninguna)'],
+      ['DENOMINADOR: contra un 1.1.0 no viene ni el lote, ni el formato, ni el tipo de la direccion, ni la carpeta',
+        R.cSinLote && R.cSinTipo && R.cSinCarpeta,
+        'sinLote=' + R.cSinLote + ' sinTipo=' + R.cSinTipo + ' sinCarpeta=' + R.cSinCarpeta],
+      ['contra un 1.1.0 el aviso SI sale en el acto -- sin lote_cierra, la regla de entonces',
+        R.cAviso, R.cAviso],
+      ['y la cuenta vuelve a dos clases: un DICOM es una imagen y no «no se puede ver»',
+        R.cCuentaImagen && R.cSinNoVer, R.cTxt.slice(0, 110)],
+      ['el panel sigue vivo y sin panel de carpeta', R.cPanelVivo && R.cSinCarpetaPanel,
+        'vivo=' + R.cPanelVivo + ' sinCarpeta=' + R.cSinCarpetaPanel],
+      ['sin una sola excepcion contra un 1.1.0', R.cSinErrores, R.cErrores || '(ninguna)'],
+      ['EL CENSO: las NUEVE piezas del prompt 6 tienen su camino viejo, una por una',
+        Object.keys(R.piezas).every(k => R.piezas[k] === true),
+        JSON.stringify(R.piezas)]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
