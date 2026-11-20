@@ -152752,8 +152752,11 @@ caso('TC-964', 'Bloque D: descartadas y re-enviadas vuelven a avisar diciendo qu
 
       /* ── D · CONTROL: la equis NO hace que vuelva a avisar en la misma sesion ────
          Es lo que la lista de avisadas protege, y lo que NO se podia romper al arreglar C: sin
-         ella el aviso se reabre cada quince segundos sobre lo mismo. */
-      await ctl({ escena: 'unaSuelta' });
+         ella el aviso se reabre cada quince segundos sobre lo mismo.
+         ⚠️ LA ESCENA LLEVA UN ID PROPIO (P6-k): con la escena unaSuelta este bloque le GASTABA
+         el aviso a TC-970 (C), del mismo lote, que lo necesita nuevo —el aviso no vuelve por las mismas
+         imagenes en la misma sesion y los 978 casos corren en UNA pagina—. */
+      await ctl({ escena: 'unaSuelta4' });
       await esp(200);
       await _clnkSondear(true); await esp(900);
       R.dAbrio1 = abierto();

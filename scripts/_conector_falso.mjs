@@ -246,6 +246,12 @@ function escenas() {
        nada que avisar» y el caso daba rojo en su denominador. UN ID POR ESCENA QUE NECESITE UN
        AVISO NUEVO. */
     unaSuelta3: () => [ img('img_z3', 'eq_3f8a1c', iso(t0 + 104000), 'imagen', uno) ],
+    /* UNA QUINTA, con su propio id. Por la MISMA razon, pagada por QUINTA vez y declarada en
+       P6-k: el bloque D de TC-964 usaba `unaSuelta` y le GASTABA el aviso a TC-970 (C), del
+       mismo lote, que necesita «contra un 1.1.0 el aviso SI sale en el acto». TC-970 pasaba
+       3 de 3 aislado y salia rojo en el lote 18, sobre una app que se porta bien.
+       UN ID POR ESCENA QUE NECESITE UN AVISO NUEVO. */
+    unaSuelta4: () => [ img('img_z4', 'eq_3f8a1c', iso(t0 + 108000), 'imagen', uno) ],
     /* DOS de 16 MB del mismo envio, para saber si el pico de memoria se ACUMULA o si el camino
        de a una suelta el buffer de la anterior. Es la pregunta que la orden hace. */
     dosGrandes: () => {
