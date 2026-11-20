@@ -100,6 +100,50 @@ function _ftyp(marca) {
   return _junta(_P(0, 0, 0, 24), _ascii('ftyp'), _ascii(marca), _P(0, 0, 2, 0),
                 _ascii('isomiso2'), new Uint8Array(4));
 }
+/* ══ UN MP4 DE VERDAD, DE 1.491 BYTES ═════════════════════════════════════════════════════════
+   Un color plano de 32x32 por dos decimas, H.264 en yuv420p, generado UNA vez con ffmpeg y
+   embutido como texto -- igual que `JPEG_1x1`, que este repositorio ya trae como arreglo de
+   bytes--. NO TIENE UN DATO DE NADIE: es un color.
+
+   ⚠️ HACE FALTA QUE SEA DECODIFICABLE DE VERDAD, y eso lo destapo un caso. La primera version
+   del falso mandaba una caja `ftyp` de 32 bytes: `_firmaArchivo` la reconocia como video -- lo
+   unico que esa funcion mide son los cuatro bytes de la marca-- asi que la clasificacion, el
+   ruteo del visor y la tira pasaban; pero `_videoPoster` no puede sacar un cuadro de algo que no
+   trae ni un fotograma, y el camino de adjuntar un video a un estudio guardado salia por su rama
+   de «este navegador no lo pudo decodificar». Una cabecera alcanza para probar la FORMA; para
+   probar que un video se ve hace falta un video. */
+const MP4_MINI_B64 =
+  'AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMpbW9vdgAAAGxtdmhkAAAAAAAAAAAA' +
+  'AAAAAAAD6AAAAMgAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA' +
+  'AABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlR0cmFrAAAAXHRraGQAAAADAAAA' +
+  'AAAAAAAAAAABAAAAAAAAAMgAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAA' +
+  'AAAAAAAAAABAAAAAACAAAAAgAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAADIAAAAAAABAAAA' +
+  'AAHMbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAACABVxAAAAAAALWhkbHIAAAAAAAAAAHZp' +
+  'ZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABd21pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAA' +
+  'ACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAATdzdGJsAAAAt3N0c2QAAAAAAAAA' +
+  'AQAAAKdhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAACAAIABIAAAASAAAAAAAAAABFExhdmM2' +
+  'My4xLjEwMiBsaWJ4MjY0AAAAAAAAAAAAAAAAGP//AAAALWF2Y0MBQsAK/+EAFmdCwAraJbARAAAD' +
+  'AAEAAAMAFA8SJqABAARozg/IAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAAYxAAAAAAAAAA' +
+  'GHN0dHMAAAAAAAAAAQAAAAIAAAQAAAAAFHN0c3MAAAAAAAAAAQAAAAEAAAAcc3RzYwAAAAAAAAAB' +
+  'AAAAAQAAAAIAAAABAAAAHHN0c3oAAAAAAAAAAAAAAAIAAAJxAAAACQAAABRzdGNvAAAAAAAAAAEA' +
+  'AANZAAAAYXVkdGEAAABZbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAA' +
+  'AAAsaWxzdAAAACSpdG9vAAAAHGRhdGEAAAABAAAAAExhdmY2My4xLjEwMgAAAAhmcmVlAAACgm1k' +
+  'YXQAAAJUBgX//1DcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY1IHIzMjIyIGIzNTYwNWEg' +
+  'LSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDI1IC0gaHR0cDovL3d3' +
+  'dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MCByZWY9MSBkZWJsb2Nr' +
+  'PTA6MDowIGFuYWx5c2U9MDowIG1lPWRpYSBzdWJtZT0wIHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAg' +
+  'bWl4ZWRfcmVmPTAgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0wIDh4OGRjdD0wIGNx' +
+  'bT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PTAgdGhyZWFk' +
+  'cz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEg' +
+  'aW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9' +
+  'MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTAgaW50cmFfcmVm' +
+  'cmVzaD0wIHJjPWNyZiBtYnRyZWU9MCBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9' +
+  'NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0wAIAAAAAVZYiEOhGKAAIO8cAAQOI4AAgQydde' +
+  'AAAABUGaIDKL';
+function _deB64(b) {
+  return Uint8Array.from(Buffer.from(b, 'base64'));
+}
+
 const BUZON_BYTES = {
   jpg: _junta(JPEG_1x1, new Uint8Array(64)),
   png: _junta(_P(0x89), _ascii('PNG'), _P(0x0D, 0x0A, 0x1A, 0x0A),
@@ -108,8 +152,10 @@ const BUZON_BYTES = {
   /* BM + el tamanio de cabecera DIB en el byte 14, que es lo que el detector cruza. */
   bmp: _junta(_ascii('BM'), _P(0x80, 0, 0, 0), new Uint8Array(8), _P(40, 0, 0, 0),
               new Uint8Array(100)),
-  mp4: _ftyp('isom'),
-  mov: _ftyp('qt  '),
+  mp4: _deB64(MP4_MINI_B64),
+  /* El MOV se arma con la MISMA pista y la marca `qt  `, que es lo unico que lo distingue para
+     `_firmaArchivo`: un segundo fichero de prueba no agregaria informacion. */
+  mov: (function () { const u = _deB64(MP4_MINI_B64); u.set(_ascii('qt  '), 8); return u; })(),
   tif: _junta(_P(0x49, 0x49, 0x2A, 0x00), _P(8, 0, 0, 0), new Uint8Array(120)),
   avi: _junta(_ascii('RIFF'), _P(0x80, 0, 0, 0), _ascii('AVI '), _ascii('LIST'),
               new Uint8Array(100)),

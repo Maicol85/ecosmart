@@ -152837,6 +152837,25 @@ const CeiboVideo = (function () {
         };
       }).then(r => !!(r.ok && r.val));
     },
+    /* ══ AGREGAR SIN REEMPLAZAR (PROMPT 6, bloque E) ══════════════════════════════════════
+       `guardar` reemplaza TODOS los videos del estudio, que es lo correcto cuando lo que se
+       guarda es el estudio abierto entero. Pero adjuntar un MP4 del conector a un estudio
+       GUARDADO con `guardar` le borraria sus videos: el estudio elegido no esta en pantalla, asi
+       que `imgSlots` no los tiene y la lista que se le pasaria seria sólo el nuevo.
+       ⚠️ VIVE ADENTRO DE `CeiboVideo` Y NO EN EL SUMIDERO, por el mismo motivo por el que
+       `CeiboImg.agregar` vive adentro de `CeiboImg`: la forma del registro y el indice `uuid`
+       son invariantes de esta tienda, y una segunda copia a veinte mil lineas de distancia es
+       como se pierde un video el dia que la forma cambie. */
+    agregar(uuid, vids) {
+      return _tx('readwrite', (os, ok) => {
+        (vids || []).forEach(v => {
+          if (!v || !v.blob) return;
+          os.put({ id: v.id, uuid: uuid, nombre: String(v.nombre || ''),
+                   tipo: String(v.tipo || ''), bytes: v.bytes || 0, blob: v.blob });
+        });
+        ok(true);
+      }).then(r => !!(r.ok && r.val));
+    },
     /* `null` = no se pudo leer · `[]` = este estudio no tiene. Un solo valor haría que un fallo
        transitorio se tradujera en «no hay video» y, aguas abajo, en un borrado. */
     leer(uuid) {
@@ -153077,7 +153096,28 @@ function videoAbrir(idx) {
           'volver se lee del almacenamiento del navegador.');
     return;
   }
-  const url = URL.createObjectURL(rec.blob);
+  return videoVerBlob(rec.blob, true);
+}
+window.videoAbrir = videoAbrir;
+
+/* ══ EL REPRODUCTOR, PARTIDO EN DOS (PROMPT 6, bloque E) ══════════════════════════════════════
+   El cuerpo del visor de video sale de `videoAbrir` SIN cambiarle una linea de comportamiento, y
+   `videoAbrir` queda resolviendo el blob del slot y llamando aca. Lo pide el bloque E: un MP4
+   que llega por el buzon tiene que poder MIRARSE antes de decidir donde va, y ese blob no esta
+   en ningun slot — no hay a que indice apuntarle.
+
+   ⚠️ `conCaptura` ES LO QUE DISTINGUE LOS DOS USOS, y no es un detalle de prolijidad: «Capturar
+   frame» RESERVA UN SLOT y escribe una imagen en el estudio abierto. Desde la vista previa de
+   CeiboLink eso romperia la invariante que ECO-CONECTOR-5 fijo con todas las letras: MIRAR NO ES
+   DECIDIR. Un video que todavia esta esperando en el conector no puede dejar nada en el estudio
+   del paciente que el medico tiene en pantalla.
+
+   ⚠️ Y CON UN SOLO REPRODUCTOR, no dos: con dos marcados, el dia que se afine el aviso de uno
+   el otro se queda viejo. Es el mismo argumento con que esta app extendio el modal del aviso en
+   vez de escribir otro. */
+function videoVerBlob(blob, conCaptura) {
+  if (!blob) return false;
+  const url = URL.createObjectURL(blob);
   const ov = document.createElement('div');
   ov.setAttribute('data-video-modal', '1');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:99999;display:flex;' +
@@ -153090,8 +153130,13 @@ function videoAbrir(idx) {
 
   const nota = document.createElement('div');
   nota.style.cssText = 'font-size:11.5px;color:#e5e7eb;text-align:center;max-width:620px;line-height:1.5;';
-  nota.textContent = '🎬 ' + VIDEO_AVISO_TXT + ' Pausá en el cuadro que quieras y capturalo: ' +
-                     'el video NO sale en el PDF, el cuadro capturado sí.';
+  /* ⚠️ EL AVISO TAMBIEN DEPENDE DE `conCaptura`: la mitad que habla de capturar un cuadro para
+     el PDF no tiene sentido sobre un video que todavia espera en el conector y que no esta en
+     ningun estudio. */
+  nota.textContent = conCaptura
+    ? ('🎬 ' + VIDEO_AVISO_TXT + ' Pausá en el cuadro que quieras y capturalo: ' +
+       'el video NO sale en el PDF, el cuadro capturado sí.')
+    : '🎬 Mirar no guarda nada: el video sigue esperando en CeiboLink igual.';
   ov.appendChild(nota);
 
   const pie = document.createElement('div');
@@ -153104,13 +153149,16 @@ function videoAbrir(idx) {
   const cerrar = () => { try { v.pause(); } catch (e) {}
     try { URL.revokeObjectURL(url); } catch (e) {}
     try { document.body.removeChild(ov); } catch (e) {} };
-  pie.appendChild(mk('📸 Capturar frame', 'btn-primary', () => videoCapturarFrame(v), 'capturar'));
+  if (conCaptura) {
+    pie.appendChild(mk('📸 Capturar frame', 'btn-primary', () => videoCapturarFrame(v), 'capturar'));
+  }
   pie.appendChild(mk('Cerrar', 'btn-ghost', cerrar, 'cerrar'));
   ov.appendChild(pie);
   ov.onclick = ev => { if (ev.target === ov) cerrar(); };
   document.body.appendChild(ov);
+  return true;
 }
-window.videoAbrir = videoAbrir;
+window.videoVerBlob = videoVerBlob;
 
 /* El cuadro capturado va a OTRO slot, como imagen fija. No reemplaza al video: el médico puede
    querer varios cuadros del mismo video, y perder el video al capturar el primero sería una
@@ -183488,7 +183536,7 @@ function _clnkAvisoArmarAcciones(g) {
   return dstPreguntar({
     origen: 'ceibolink',
     equipo: g.equipo,
-    items: clnkItems(g.ids),
+    items: clnkItems(g.ids, g.imagenes || []),
     /* Las filas CRUDAS de la lista, para la vista previa: traen `tipo`, `bytes` y `recibida`, que
        es lo que permite dibujar la marca, el peso y la hora SIN bajar un byte. */
     prev: g.imagenes || [],
@@ -183731,11 +183779,21 @@ async function clnkTandaCerrar() {
   _clnkAvisoApagarBotones(false);
   var cu = document.getElementById('clnkav-cuerpo');
   if (cu) {
-    /* `dstPreguntar` vacia el cuerpo al abrir, asi que el dibujo se vuelve a pintar —esta vez
-       quieto— con el numero que la lista dio. */
     var n = (_clnkAvisoGrupo && _clnkAvisoGrupo.ids) ? _clnkAvisoGrupo.ids.length : 0;
     cu.style.display = '';
-    clnkTandaCuerpo(cu, n, true);
+    /* ⚠️ SI EL CUERPO YA TIENE ALGO, NO SE PISA, y eso es el bloque F: `dstPreguntar` pudo
+       dejar ahi la tarjeta de los formatos que no se pueden ver, y `clnkTandaCuerpo` VACIA el
+       cuerpo cuando no encuentra su contador. Repintar el dibujo se llevaria la tarjeta puesta,
+       que es la unica pantalla donde el medico lee por que no va a poder mirar lo que llego. */
+    if (cu.firstChild) {
+      var li = _clnkNodo('div',
+        'text-align:center;font-size:11px;color:var(--text2);margin-top:6px;',
+        'Listo: el envío terminó.');
+      li.setAttribute('data-clnk-tanda-estado', '1');
+      cu.appendChild(li);
+    } else {
+      clnkTandaCuerpo(cu, n, true);
+    }
   }
   return true;
 }
@@ -183991,6 +184049,82 @@ window.clnkVerLoQueEspera = clnkVerLoQueEspera;
    cabecera del DICOM y se conoce recién al bajarlo. Por eso hay DOS puertas: una antes de bajar,
    por el tamaño del archivo, y otra después de leer la cabecera, por los píxeles. Las dos se
    declaran y las dos terminan en lo mismo: la marca, el peso y un botón «Mirar igual». */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUES E y F · EL FORMATO DECIDE COMO SE MIRA
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   EL DEFECTO, MEDIDO EN EL BLOQUE 0 Y NO LEIDO: `_clnkPrevMini` y `clnkPrevAbrir` llamaban a
+   `_dcmImgLeer` SIN PREGUNTAR, y esa funcion lanza, textuales, los dos mensajes que el medico vio
+   en Windows: «no tiene la marca «DICM» en el byte 128» con un JPG y «el archivo es demasiado
+   corto para ser un DICOM» con un PNG y con un MP4. Lo que llega por el buzon no es DICOM.
+
+   ⚠️ `dstLeer` —la puerta de los TRES sumideros— YA FUNCIONABA, y eso cambio que habia que
+   hacer: clasifica por los BYTES con `_firmaArchivo`, asi que un JPG ya entraba como imagen y un
+   MP4 como video. Lo roto era mirar, no adjuntar.
+
+   La tabla da la sigla, el icono, la extension y el MIME de cada formato del contrato §P2. Lo
+   que NO decide es si se puede ver: eso lo decide `se_puede_ver`, que es el campo que el
+   contrato pone para eso. */
+var CLNK_FMT = {
+  dicom: { sigla: 'DICOM', icono: '\uD83D\uDCF7', ver: 'dicom', mime: 'application/dicom', ext: 'dcm' },
+  jpg:   { sigla: 'JPG',   icono: '\uD83D\uDCF7', ver: 'imagen', mime: 'image/jpeg', ext: 'jpg' },
+  png:   { sigla: 'PNG',   icono: '\uD83D\uDCF7', ver: 'imagen', mime: 'image/png',  ext: 'png' },
+  bmp:   { sigla: 'BMP',   icono: '\uD83D\uDCF7', ver: 'imagen', mime: 'image/bmp',  ext: 'bmp' },
+  mp4:   { sigla: 'MP4',   icono: '\uD83C\uDFAC', ver: 'video',  mime: 'video/mp4',  ext: 'mp4' },
+  mov:   { sigla: 'MOV',   icono: '\uD83C\uDFAC', ver: 'video',  mime: 'video/quicktime', ext: 'mov' },
+  tif:   { sigla: 'TIF',   icono: '\uD83D\uDDBC', ver: 'no', mime: 'application/octet-stream', ext: 'tif' },
+  avi:   { sigla: 'AVI',   icono: '\uD83C\uDFAC', ver: 'no', mime: 'application/octet-stream', ext: 'avi' },
+  wmv:   { sigla: 'WMV',   icono: '\uD83C\uDFAC', ver: 'no', mime: 'application/octet-stream', ext: 'wmv' },
+  pdf:   { sigla: 'PDF',   icono: '\uD83D\uDCC4', ver: 'no', mime: 'application/octet-stream', ext: 'pdf' },
+  txt:   { sigla: 'TXT',   icono: '\uD83D\uDCC4', ver: 'no', mime: 'application/octet-stream', ext: 'txt' },
+  html:  { sigla: 'HTML',  icono: '\uD83D\uDCC4', ver: 'no', mime: 'application/octet-stream', ext: 'html' }
+};
+
+/* Los que esta app SI sabe mostrar, en una sola cadena. Se DERIVA de la tabla y no se escribe:
+   el dia que entre un formato nuevo, la frase que el medico lee se pone al dia sola. */
+function clnkFmtAceptados() {
+  var l = [];
+  Object.keys(CLNK_FMT).forEach(function (k) {
+    if (CLNK_FMT[k].ver !== 'no' && l.indexOf(CLNK_FMT[k].sigla) < 0) l.push(CLNK_FMT[k].sigla);
+  });
+  return l.length > 1 ? (l.slice(0, -1).join(', ') + ' y ' + l[l.length - 1]) : l.join('');
+}
+window.clnkFmtAceptados = clnkFmtAceptados;
+
+/* La ficha de una fila de la lista. NUNCA devuelve `null`. */
+function clnkFmtDe(i) {
+  var f = String((i && i.formato) || '').toLowerCase();
+  var d = CLNK_FMT[f];
+  if (!d) {
+    /* ⚠️ SIN CAMPO `formato` ES UN DICOM, Y ESA ES LA MITAD DEL BLOQUE J: contra un puente 1.1
+       la lista no trae el campo y todo lo que llega es DICOM por el receptor del 4242. Con un
+       `formato` que la tabla no conoce —`desconocido`, o uno que una version futura agregue— no
+       se mira, y la sigla es «otro» y NO el valor crudo: ese campo es una cadena del puente y
+       dibujarla tal cual seria poner texto de afuera en la pantalla sin necesidad. */
+    d = f ? { sigla: 'otro', icono: '\uD83D\uDCC1', ver: 'no',
+              mime: 'application/octet-stream', ext: 'dat' }
+          : CLNK_FMT.dicom;
+  }
+  /* ⚠️ `se_puede_ver` DEL PUENTE MANDA SOBRE LA TABLA. Es el campo que el contrato §P2 pone para
+     decidir la interfaz —«la regla para EcoSmart es una sola»— y la tabla de arriba es para la
+     sigla, el icono y la extension. Si una version del puente marca un TIF como visible porque
+     lo convirtio, se mira; si marca un JPG como no visible, no se intenta. */
+  if (i && i.se_puede_ver === false && d.ver !== 'no') {
+    d = { sigla: d.sigla, icono: d.icono, ver: 'no', mime: d.mime, ext: d.ext };
+  }
+  /* ⚠️ UN DICOM DE VARIOS CUADROS SIGUE LLEVANDO SU MARCA DE CINELOOP, Y ESTO LO DESTAPO UN
+     CASO VIEJO Y NO LA LECTURA. La primera version sacaba el icono SOLO del formato, y como un
+     cineloop DICOM tiene `formato: 'dicom'` igual que una fija, los seis de la tira de TC-877
+     salieron 📷 y el multicuadro perdio su 🎬. Era una PERDIDA de informacion, no una mejora:
+     dentro del DICOM lo que distingue una fija de un cineloop es `tipo`, que la lista si trae.
+     Para los formatos del buzon manda el formato, que es mas preciso que `tipo` —un TIF llega
+     con `tipo: 'imagen'`—. */
+  if (d.ver === 'dicom' && String((i && i.tipo) || '') === 'video') {
+    d = { sigla: d.sigla, icono: '\uD83C\uDFAC', ver: d.ver, mime: d.mime, ext: d.ext };
+  }
+  return d;
+}
+window.clnkFmtDe = clnkFmtDe;
+
 var CLNK_PREV_VISTA = 6;              // cuántas celdas se ven de una; el resto, desplazando
 var _clnkPrevGen = 0;
 
@@ -184012,8 +184146,33 @@ function _clnkPrevNodo(tag, css, txt) {
   return e;
 }
 
-/* La miniatura de UN archivo, con los bytes ya en la mano. No escribe en ninguna parte. */
-async function _clnkPrevMini(buf, nombre) {
+/* La miniatura de UN archivo, con los bytes ya en la mano. No escribe en ninguna parte.
+   ⚠️ SE RUTEA POR EL FORMATO ANTES DE TOCAR `_dcmImgLeer`. Esa funcion LANZA sobre cualquier
+   cosa que no sea un DICOM Parte 10 —medido: «no tiene la marca DICM» con un JPG y «demasiado
+   corto» con un PNG y con un MP4—, y es el defecto que el medico vio. */
+async function _clnkPrevMini(buf, nombre, fmt) {
+  var F = fmt || CLNK_FMT.dicom;
+  if (F.ver === 'no') return { noVer: true, sigla: F.sigla, icono: F.icono };
+  if (F.ver === 'imagen') {
+    /* Los bytes YA son una imagen que el navegador dibuja: se hace el dataURL con su MIME y se
+       reduce con la MISMA funcion que usa la grilla. Cero DICOM en el camino. */
+    var du = '';
+    try { du = await dstDataURL(buf, F.mime); } catch (e) { du = ''; }
+    if (!du) return { err: 'no se pudo leer la imagen' };
+    var th = '';
+    try { th = await dstThumb(du); } catch (e) { th = ''; }
+    return { thumb: th || du };
+  }
+  if (F.ver === 'video') {
+    /* El primer cuadro, con el MISMO extractor que usa el importador de videos del estudio. Si
+       el navegador no decodifica ese codec se cae al icono: un cuadro vacio seria peor. */
+    try {
+      var bl = new Blob([buf], { type: F.mime });
+      var inf = (typeof _videoPoster === 'function') ? await _videoPoster(bl) : null;
+      if (inf && inf.poster) return { thumb: inf.poster, esVideo: true };
+    } catch (e) {}
+    return { soloIcono: true, icono: F.icono, sigla: F.sigla };
+  }
   var d = null;
   try { d = _dcmImgLeer(buf); } catch (e) { return { err: String((e && e.message) || e).slice(0, 90) }; }
   if (!d) return { err: 'no se pudo leer' };
@@ -184115,8 +184274,44 @@ function clnkPrevDestapar() {
 }
 window.clnkPrevDestapar = clnkPrevDestapar;
 
-async function clnkPrevAbrir(id, nombre) {
+async function clnkPrevAbrir(id, nombre, fila) {
+  /* ══ BLOQUE E · NUNCA SE INTENTA DICOM SOBRE UN ARCHIVO QUE NO LO ES ═══════════════════════
+     Es la primera linea del cuerpo y no una rama mas abajo, a proposito: lo que el medico vio en
+     Windows fue la rueda girando y los dos mensajes de `_dcmImgLeer`, que esta funcion llamaba
+     SIN preguntar. Con la ficha del formato en la mano, el DICOM es UNA de cuatro salidas. */
+  var F = clnkFmtDe(fila || {});
+  if (F.ver === 'no') {
+    /* Ni se baja. Lo que el medico puede hacer con esto es descartarlo, y eso lo ofrece el
+       cartel (bloque F). */
+    if (typeof toast === 'function') {
+      toast('ℹ ' + F.sigla + ': este formato no se puede ver acá. Esta app muestra ' +
+            clnkFmtAceptados() + '.');
+    }
+    return false;
+  }
   if (typeof toast === 'function') toast('⏳ Bajando para mirar…');
+  if (F.ver === 'imagen' || F.ver === 'video') {
+    var bb = await _clnkPrevBajar(id);
+    if (!bb || bb.cancelado) return false;
+    if (bb.err) { if (typeof toast === 'function') toast('❌ ' + bb.err); return false; }
+    if (F.ver === 'video') {
+      /* El MISMO reproductor del estudio, SIN «Capturar frame»: mirar no es decidir. */
+      var okv = false;
+      try { okv = videoVerBlob(new Blob([bb.buf], { type: F.mime }), false); } catch (e) { okv = false; }
+      bb.buf = null;
+      if (!okv && typeof toast === 'function') toast('❌ No se pudo abrir ese video');
+      return !!okv;
+    }
+    var duI = '';
+    try { duI = await dstDataURL(bb.buf, F.mime); } catch (e) { duI = ''; }
+    bb.buf = null;
+    if (!duI) { if (typeof toast === 'function') toast('❌ No se pudo mostrar esa imagen'); return false; }
+    /* El lightbox de la bandeja, con sus dos acciones APAGADAS: el primer parametro vacio es lo
+       que las apaga, igual que en el camino del DICOM de mas abajo. */
+    _clnkbVerFija('', duI, 0, 1, String(nombre || ''));
+    _clnkPrevTapar();
+    return true;
+  }
   var b = await _clnkPrevBajar(id);
   if (!b || b.cancelado) return false;
   if (b.err) { if (typeof toast === 'function') toast('❌ ' + b.err); return false; }
@@ -184160,8 +184355,13 @@ function _clnkPrevPintar(cu, filas) {
     c.setAttribute('data-clnk-prev-celda', String(k));
     var caja = _clnkPrevNodo('div', 'height:70px;display:flex;align-items:center;' +
       'justify-content:center;background:#000;color:#cbd5e1;font-size:17px;');
-    /* LA MARCA SALE DE LA LISTA, SIN BAJAR NADA: «video» es un cineloop y todo lo demás una fija. */
-    caja.textContent = (String(it.tipo) === 'video') ? '🎬' : '📷';
+    /* LA MARCA SALE DE LA LISTA, SIN BAJAR NADA. Desde el prompt 6 sale del FORMATO y no del
+       `tipo`: un PDF llevaba 📷 porque no era «video», y un TIF prometia una foto que ningun
+       navegador dibuja. */
+    var FT = clnkFmtDe(it);
+    caja.textContent = FT.icono;
+    caja.setAttribute('data-clnk-prev-sigla', FT.sigla);
+    caja.setAttribute('data-clnk-prev-ver', FT.ver);
     caja.setAttribute('data-clnk-prev-caja', '1');
     c.appendChild(caja);
     var pie = _clnkPrevNodo('div', 'font-size:9.5px;line-height:1.35;padding:3px 4px;color:var(--text2);');
@@ -184189,10 +184389,23 @@ function _clnkPrevPintar(cu, filas) {
         if (titulo) b.title = titulo;
         b.addEventListener('click', function (ev) {
           ev.stopPropagation();
-          clnkPrevAbrir(cl.it.id, String(cl.it.id) + '.dcm');
+          clnkPrevAbrir(cl.it.id, String(cl.it.id), cl.it);
         });
         cl.caja.appendChild(b);
       };
+      var FF = clnkFmtDe(it);
+      /* ══ BLOQUE F · LO QUE NO SE PUEDE VER **NO SE BAJA** ════════════════════════════════
+         Ni un byte. La celda dice su sigla y su icono, y el pie dice que no se puede ver: bajar
+         un AVI de 40 MB para no poder dibujarlo es gastar el disco del medico en nada. Es la
+         regla de §P2 llevada hasta el final: «con `se_puede_ver: false`, NO intentes una vista
+         previa». */
+      if (FF.ver === 'no') {
+        cel.caja.textContent = FF.icono;
+        cel.caja.title = FF.sigla + ': este formato no se puede ver acá';
+        cel.pie.textContent = FF.sigla + ' · no se puede ver';
+        cel.c.setAttribute('data-clnk-prev-nover', '1');
+        continue;
+      }
       /* LA PRIMERA PUERTA: el tamaño del archivo, que la lista SÍ da. */
       if ((Number(it.bytes) || 0) > _clnkPrevTopeArchivo()) {
         cel.pie.textContent = dstMB(it.bytes || 0) + ' · pesado';
@@ -184208,9 +184421,17 @@ function _clnkPrevPintar(cu, filas) {
         cel.pie.textContent = b2.err.slice(0, 40);
         continue;
       }
-      var m = await _clnkPrevMini(b2.buf, String(it.id) + '.dcm');
+      var m = await _clnkPrevMini(b2.buf, String(it.id) + '.' + FF.ext, FF);
       b2.buf = null;                                      // se suelta el archivo entero
       if (gen !== _clnkPrevGen) return;
+      if (m.soloIcono) {
+        /* Un video que este navegador no supo decodificar: el icono y su sigla, con el boton
+           para intentarlo en grande si el medico quiere. */
+        cel.caja.textContent = m.icono;
+        cel.pie.textContent = m.sigla + ' · ' + dstMB(it.bytes || 0);
+        ponerBoton(cel, '👁 Mirar', 'Abre el reproductor');
+        continue;
+      }
       if (m.pesado) {
         cel.pie.textContent = dstMB(m.crudo) + ' sin comprimir';
         ponerBoton(cel, '👁 Mirar igual', 'Son ' + _dcmDosPesos(m.crudo));
@@ -184227,9 +184448,9 @@ function _clnkPrevPintar(cu, filas) {
       im.src = m.thumb;
       im.alt = 'Vista previa de una imagen que llegó del ecógrafo';
       im.style.cssText = 'width:94px;height:70px;object-fit:cover;display:block;cursor:pointer;';
-      im.addEventListener('click', function (idd) {
-        return function () { clnkPrevAbrir(idd, String(idd) + '.dcm'); };
-      }(it.id));
+      im.addEventListener('click', function (fila) {
+        return function () { clnkPrevAbrir(fila.id, String(fila.id), fila); };
+      }(it));
       cel.caja.appendChild(im);
     }
   })();
@@ -185354,12 +185575,18 @@ function _clnkPonerSiVacio(id, valor, puesto) {
   return true;
 }
 
-function _clnkArchivo(buf, nombre) {
-  try { return new File([buf], nombre, { type: 'application/dicom' }); }
+/* ⚠️ EL `mime` ES EL TERCER ARGUMENTO Y ES OPCIONAL (PROMPT 6, bloque E). Hasta hoy esta
+   funcion le ponia `application/dicom` y la extension `.dcm` a TODO lo que bajaba del conector,
+   y eso dejo de ser cierto con el buzon: el nombre que el medico ve en un mensaje de error decia
+   `.dcm` sobre un JPG. No rompia `dstLeer` —que clasifica por los BYTES con `_firmaArchivo` y no
+   por el `type` del File—, pero mentia en la unica parte que el medico lee. */
+function _clnkArchivo(buf, nombre, mime) {
+  var m = String(mime || 'application/dicom');
+  try { return new File([buf], nombre, { type: m }); }
   catch (e) {
     /* Respaldo para navegadores sin constructor de File. Los dos importadores usan sólo
        `.arrayBuffer()` y `.name`, así que un Blob con nombre alcanza. */
-    var b = new Blob([buf], { type: 'application/dicom' });
+    var b = new Blob([buf], { type: m });
     try { b.name = nombre; } catch (e2) {}
     return b;
   }
@@ -185936,11 +186163,13 @@ window.dstAlActual = dstAlActual;
    apagado sería escribir en disco justamente lo que ese ajuste promete que no se escribe, y
    confirmarle el borrado a CeiboLink después de no haber escrito sería perder la imagen.
 
-   ⚠️ UN MP4/MOV NO ENTRA A UN ESTUDIO GUARDADO, y se DICE. Los videos viven en su propia base
-   indexada por estudio y entran por el slot que los referencia; sumar ese tercer camino sin poder
-   probarlo contra un estudio que no está abierto es cómo se pierde un video en silencio. Queda
-   declarado y el archivo no se toca: desde CeiboLink sólo llegan DICOM, así que esto sólo alcanza
-   al pendrive. */
+   ⚠️ UN MP4/MOV **SI** ENTRA A UN ESTUDIO GUARDADO DESDE EL PROMPT 6, y el comentario que
+   estaba acá decía lo contrario con un motivo que dejó de ser cierto: decía «desde CeiboLink
+   sólo llegan DICOM, así que esto sólo alcanza al pendrive», y con el buzón del contrato 1.3
+   llegan MP4 y MOV. El bloque E pide que se pueda adjuntar por los MISMOS caminos que un DICOM.
+   Lo que hacía falta era `CeiboVideo.agregar` —esta tienda sólo tenía `guardar`, que REEMPLAZA
+   todos los videos del estudio— y el póster, que sale del MISMO extractor que usa el importador
+   del estudio abierto. */
 async function dstAGuardado(ctx, inf) {
   var l = (ctx && ctx.items) || [];
   if (!l.length || !inf) { clnkAvisoCerrar(); return 0; }
@@ -185984,8 +186213,48 @@ async function dstAGuardado(ctx, inf) {
       continue;
     }
     if (r.clase === 'video') {
-      fallos.push(r.nombre + ': los videos MP4/MOV todavía no se pueden adjuntar a un estudio ' +
-                  'guardado. Abrí el estudio y usá «Importar imágenes y videos» desde la pestaña Imágenes.');
+      /* ══ BLOQUE E · EL VIDEO AL ESTUDIO ELEGIDO ═══════════════════════════════════════════
+         DOS escrituras y en este orden: primero el BLOB en su tienda, y solo si entró, el slot
+         que lo referencia. Al revés, un fallo de la primera dejaría en «Imágenes guardadas» un
+         slot con `videoId` apuntando a un video que no existe — que es exactamente lo que
+         `videoPersistir` ya se niega a hacer con los huérfanos. */
+      if (typeof CeiboVideo === 'undefined' || typeof _videoPoster !== 'function') {
+        fallos.push(r.nombre + ': este navegador no tiene dónde guardar el video.');
+        continue;
+      }
+      var infv = null;
+      try { infv = await _videoPoster(r.blob); } catch (e) { infv = null; }
+      if (!infv || !infv.poster) {
+        fallos.push(r.nombre + ': el archivo tiene la marca de un MP4/MOV pero este navegador ' +
+                    'no lo pudo decodificar — puede ser el códec. Probá convertirlo a H.264.' +
+                    (ctx.origen === 'ceibolink' ? ' Sigue esperando en CeiboLink.' : ''));
+        continue;
+      }
+      var vid = (typeof _videoNuevoId === 'function') ? _videoNuevoId()
+                                                      : ('v' + Date.now() + Math.random().toString(36).slice(2, 7));
+      var okv = await CeiboVideo.agregar(uuid, [{ id: vid, nombre: r.nombre,
+                     tipo: (r.blob && r.blob.type) || 'video/mp4',
+                     bytes: (r.blob && r.blob.size) || 0, blob: r.blob }]).catch(function () { return false; });
+      if (!okv) {
+        fallos.push(r.nombre + ': no se pudo guardar el video' +
+                    (ctx.origen === 'ceibolink' ? '. Sigue esperando en CeiboLink.' : ''));
+        continue;
+      }
+      var oks = await CeiboImg.agregar(uuid, [{ dataURL: infv.poster,
+                     calidad: (typeof IMG_CAL_DEF !== 'undefined' ? IMG_CAL_DEF : 'media'),
+                     /* ⚠️ SIN `videoDur`, Y ES MEDIDO: ese campo NO esta en la allowlist de
+                        `CeiboImg.agregar` ni en la de `guardar`, asi que es de sesion y se cae
+                        al persistir TAMBIEN por el camino del estudio abierto. Pasarlo diria que
+                        sobrevive. */
+                     origen: 'estudio', videoId: vid,
+                     videoNombre: r.nombre }]).catch(function () { return false; });
+      if (!oks) {
+        fallos.push(r.nombre + ': el video se guardó pero no se pudo poner en el estudio' +
+                    (ctx.origen === 'ceibolink' ? '. Sigue esperando en CeiboLink.' : ''));
+        continue;
+      }
+      ok++;
+      if (ctx.origen === 'ceibolink' && l[i].id) confirmar.push(l[i].id);
       continue;
     }
     if (r.clase === 'loop') {
@@ -186212,9 +186481,62 @@ window.dstABandeja = dstABandeja;
    tiene, y al guardar después el estudio, `CeiboImg.guardar` reemplaza `imgs` con lo que haya en
    `imgSlots` — o sea que las recién escritas DESAPARECERÍAN. Lo dice la decisión 3 y acá está la
    razón medida. */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE F · LA TARJETA DE LOS QUE NO SE PUEDEN VER
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   Una fila por archivo, con su icono y su SIGLA, y debajo la lista de los que esta app si acepta
+   —derivada de la tabla de formatos y no escrita a mano—.
+
+   ⚠️ Y **SOLO EL BOTON DESCARTAR** cuando no hay NADA que se pueda ver, que es lo que el pedido
+   del prompt 6 dice textualmente y lo que REEMPLAZA a lo que el documento del puente propone
+   sobre descargar y adjuntar esos archivos. El motivo es el del propio contrato llevado al
+   final: ofrecer «adjuntar al estudio» un TIF que ningun navegador dibuja pone en el informe del
+   paciente un archivo que nadie va a poder mirar desde la app, y la app no tiene donde
+   guardarlo que no sea un slot de imagen.
+
+   ⚠️ CON UN GRUPO MEZCLADO LOS DESTINOS SE QUEDAN: si hay AL MENOS UNO que se puede ver, los
+   cuatro botones siguen teniendo sentido para ese, y la tarjeta se agrega al cuerpo para que el
+   medico sepa cuales de los que llegaron no va a poder mirar. */
+function clnkNoVerTarjeta(cu, filas, todos) {
+  if (!cu) return 0;
+  var l = (Array.isArray(filas) ? filas : []).filter(function (i) { return clnkFmtDe(i).ver === 'no'; });
+  if (!l.length) return 0;
+  var caja = _clnkNodo('div',
+    'border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:var(--bg3);');
+  caja.setAttribute('data-clnk-nover-tarjeta', String(l.length));
+  caja.appendChild(_clnkNodo('div', 'font-size:10px;color:var(--text2);text-transform:uppercase;' +
+    'letter-spacing:.3px;margin-bottom:5px;',
+    todos ? 'No se pueden ver acá' : 'De estos, no se pueden ver acá'));
+  l.forEach(function (i) {
+    var F = clnkFmtDe(i);
+    var fila = _clnkNodo('div', 'display:flex;align-items:center;gap:8px;padding:2px 0;');
+    fila.setAttribute('data-clnk-nover-fila', F.sigla);
+    fila.appendChild(_clnkNodo('span', 'font-size:17px;flex:0 0 auto;', F.icono));
+    fila.appendChild(_clnkNodo('span',
+      'font-size:11.5px;font-weight:700;color:var(--text);flex:0 0 auto;', F.sigla));
+    fila.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);',
+      dstMB(i.bytes || 0)));
+    caja.appendChild(fila);
+  });
+  caja.appendChild(_clnkNodo('div',
+    'font-size:10.5px;color:var(--text2);line-height:1.45;margin-top:6px;',
+    'Esta app puede mostrar ' + clnkFmtAceptados() + '. El resto llega igual y se puede ' +
+    'descartar desde acá.'));
+  cu.appendChild(caja);
+  return l.length;
+}
+window.clnkNoVerTarjeta = clnkNoVerTarjeta;
+
 function dstPreguntar(ctx) {
   if (!ctx || !ctx.items || !ctx.items.length) return false;
-  var cuenta = dstCuenta(ctx.items.length, ctx.nFijas, ctx.nLoops);
+  var cuenta = dstCuenta(ctx.items.length, ctx.nFijas, ctx.nLoops, ctx.nInformes, ctx.nNoVer);
+  /* ══ BLOQUE F · CUANTOS DE LOS QUE LLEGARON NO SE PUEDEN VER ══════════════════════════════
+     Se cuenta sobre `ctx.prev`, que son las filas CRUDAS de la lista del contrato: desde el
+     pendrive no hay lista —no se sabe el formato sin abrir cada archivo— asi que ahi esto da
+     cero y el modal se porta como siempre. */
+  var _pv = (ctx.prev && ctx.prev.length) ? ctx.prev : [];
+  var _nv = _pv.filter(function (i) { return clnkFmtDe(i).ver === 'no'; }).length;
+  var _soloNoVer = _pv.length > 0 && _nv === _pv.length && _nv === ctx.items.length;
   var texto = ctx.texto || ('Llegaron ' + cuenta + '.');
   var bots = [
     { txt: '📎 Adjuntar al estudio actual',
@@ -186257,7 +186579,7 @@ function dstPreguntar(ctx) {
      caso: `clnkAvisoAbrir` reparte por POSICIÓN, así que con un cuarto botón vacío el «Cancelar»
      del pendrive caía en el QUINTO y el cuarto quedaba como un hueco escondido. Se ve igual, pero
      el botón que cancela dejaba de ser el último visible en su propia posición. */
-  if (ctx.prev && ctx.prev.length) {
+  if (ctx.prev && ctx.prev.length && !_soloNoVer) {
     bots.splice(3, 0, { txt: '👁 Vista previa',
       fn: function () {
         /* Se guarda el estado del aviso para que «Volver a la pregunta» devuelva EXACTAMENTE
@@ -186265,7 +186587,18 @@ function dstPreguntar(ctx) {
         clnkVistaPreviaDe(ctx.prev, ctx.nombreEq || '', _clnkAvisoGuardar());
       } });
   }
-  return clnkAvisoAbrir(ctx.titulo || 'Imágenes', texto, bots);
+  /* ══ BLOQUE F · SIN NADA QUE SE PUEDA VER, **SOLO DESCARTAR** ══════════════════════════════
+     Se filtra la lista YA ARMADA en vez de armar otra: con dos listas, el dia que un destino
+     cambie de rotulo el camino de los que no se ven se queda con el viejo. El de descartar es el
+     ULTIMO del arreglo, asi que queda en su propia posicion — que es lo que `clnkAvisoAbrir`
+     reparte por POSICION y lo que ECO-CONECTOR-3 pago con el boton escondido. */
+  if (_soloNoVer) {
+    bots = bots.filter(function (b) { return String(b.txt).indexOf('Descartar') > -1 ||
+                                             String(b.txt).indexOf('Cancelar') > -1; });
+  }
+  var _ok = clnkAvisoAbrir(ctx.titulo || 'Imágenes', texto, bots);
+  if (_ok && _nv) clnkNoVerTarjeta(clnkAvisoCuerpo(), _pv, _soloNoVer);
+  return _ok;
 }
 window.dstPreguntar = dstPreguntar;
 
@@ -186273,9 +186606,15 @@ window.dstPreguntar = dstPreguntar;
    Los `items` bajan su archivo cuando se les pide y no antes: si el médico elige «Descartar» no
    se baja un solo byte. `buf` queda colgado del item para que el sumidero del estudio abierto
    pueda completar los datos del paciente sin volver a leer el archivo. */
-function clnkItems(ids) {
+/* ⚠️ `filas` ES OPCIONAL Y TRAE EL FORMATO (PROMPT 6, bloque E): con ella el archivo que baja
+   lleva su extension y su MIME de verdad, y sin ella se cae a `.dcm`, que es lo que era hasta
+   hoy y lo que corresponde contra un puente 1.1 — donde todo lo que llega ES un DICOM. */
+function clnkItems(ids, filas) {
+  var porId = Object.create(null);
+  (Array.isArray(filas) ? filas : []).forEach(function (f) { if (f && f.id) porId[String(f.id)] = f; });
   return (Array.isArray(ids) ? ids : []).filter(Boolean).map(function (id) {
-    var it = { id: id, nombre: id + '.dcm' };
+    var F = clnkFmtDe(porId[String(id)] || {});
+    var it = { id: id, nombre: id + '.' + F.ext, fmt: F };
     it.traer = async function () {
       /* CINCO MINUTOS y no los ocho segundos de siempre: el contrato §5 le da a esta ruta
          justamente cinco, porque un cineloop de 16 MB por loopback no es instantáneo. */
@@ -186284,7 +186623,7 @@ function clnkItems(ids) {
       if (!r.vigente) { it.cancelado = true; return null; }
       if (!r.ok || !r.datos) { it.err = r.msg || 'no se pudo bajar'; return null; }
       it.buf = r.datos;
-      return _clnkArchivo(r.datos, it.nombre);
+      return _clnkArchivo(r.datos, it.nombre, F.mime);
     };
     return it;
   });

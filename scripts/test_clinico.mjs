@@ -152838,6 +152838,461 @@ caso('TC-964', 'Bloque D: descartadas y re-enviadas vuelven a avisar diciendo qu
   })();
 `);
 
+/* == PROMPT 6 . BLOQUE E -- FOTOS Y VIDEOS QUE NO SON DICOM ==================================
+   `_clnkPrevMini` y `clnkPrevAbrir` llamaban a `_dcmImgLeer` SIN preguntar, y esa funcion lanza,
+   textuales, los dos mensajes que el medico vio en Windows: «no tiene la marca DICM» con un JPG
+   y «el archivo es demasiado corto para ser un DICOM» con un PNG y con un MP4.
+   El corazon del caso es el ESPIA de `_dcmImgLeer`, con su control positivo: sin el, «no se
+   intenta DICOM» pasaria tambien sobre una tira que no dibuja nada.                            */
+caso('TC-965', 'Bloque E: la vista previa y el visor rutean por FORMATO -- foto, video o DICOM--, nunca se intenta DICOM sobre lo que no lo es, lo que no se ve no se baja, y una foto y un video del buzon entran a los tres destinos', `
+  return (async () => {
+    if (typeof window.clnkFmtDe !== 'function' || typeof window.videoVerBlob !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol rutea por formato y tiene el reproductor partido', false,
+        'no existen clnkFmtDe / videoVerBlob']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* ⚠️ EL ESPIA DE _dcmImgLeer ES EL CORAZON DE ESTE CASO. Esa funcion es la que LANZA los
+         dos mensajes que el medico vio -- «no tiene la marca DICM» con un JPG y «demasiado
+         corto» con un PNG y con un MP4-- y la vista previa y el visor la llamaban SIN preguntar.
+         Es una declaracion de funcion de nivel global, asi que reemplazar la propiedad de window
+         reemplaza lo que ven los llamadores de adentro. Se repone en el finally. */
+      const dcmOrig = window._dcmImgLeer;
+      let dcmN = 0, dcmQue = [];
+      window._dcmImgLeer = function (b) {
+        dcmN++;
+        try { return dcmOrig.apply(this, arguments); }
+        catch (e) { dcmQue.push(String((e && e.message) || e).slice(0, 50)); throw e; }
+      };
+      /* CONTROL POSITIVO DEL ESPIA: con un DICOM de verdad, SI tiene que llamarse. */
+      await ctl({ equipos: 1, escena: 'previa' });
+      await esp(200);
+      dcmN = 0;
+      await clnkVistaPrevia();
+      await esp(2600);
+      R.espiaAnda = dcmN > 0;
+      clnkAvisoCerrar();
+
+      /* ── A · LA TIRA CON LOS CINCO QUE SE VEN: miniatura de verdad, cero DICOM ──── */
+      await ctl({ equipos: 4, escena: 'buzonVisibles' });
+      await esp(250);
+      dcmN = 0; dcmQue = [];
+      await clnkVistaPrevia();
+      await esp(4200);
+      const tira = document.querySelector('[data-clnk-prev-tira]');
+      R.aCeldas = tira ? tira.querySelectorAll('[data-clnk-prev-celda]').length : 0;
+      R.aImgs = tira ? tira.querySelectorAll('img').length : 0;
+      R.aDcm = dcmN;
+      R.aQue = dcmQue.join(' | ');
+      R.aSiglas = tira ? Array.prototype.map.call(tira.querySelectorAll('[data-clnk-prev-caja]'),
+                    c => c.getAttribute('data-clnk-prev-sigla')).join(',') : '';
+      clnkAvisoCerrar();
+
+      /* ── B · LOS SEIS QUE NO SE VEN: ni un byte bajado, icono y sigla ───────────── */
+      await ctl({ escena: 'buzonNoVisibles' });
+      await esp(250);
+      const pedidos = [];
+      const fOrig = window.fetch;
+      window.fetch = function (u, o) {
+        const uu = String(u || '');
+        if (uu.indexOf('/archivo') > -1) pedidos.push(uu.slice(-40));
+        return fOrig.apply(this, arguments);
+      };
+      dcmN = 0;
+      await clnkVistaPrevia();
+      await esp(2600);
+      window.fetch = fOrig;
+      const tira2 = document.querySelector('[data-clnk-prev-tira]');
+      R.bCeldas = tira2 ? tira2.querySelectorAll('[data-clnk-prev-celda]').length : 0;
+      R.bNoVer = tira2 ? tira2.querySelectorAll('[data-clnk-prev-nover]').length : 0;
+      R.bBajadas = pedidos.length;
+      R.bDcm = dcmN;
+      R.bSiglas = tira2 ? Array.prototype.map.call(tira2.querySelectorAll('[data-clnk-prev-caja]'),
+                    c => c.getAttribute('data-clnk-prev-sigla')).join(',') : '';
+      clnkAvisoCerrar();
+
+      /* ── C · EL VISOR DE UNA FOTO: el lightbox, cero DICOM ─────────────────────── */
+      await ctl({ escena: 'buzonUnaFoto' });
+      await esp(250);
+      const li = await GET('/v1/imagenes');
+      const fJpg = (li.imagenes || [])[0];
+      R.cFmt = fJpg ? fJpg.formato : '';
+      dcmN = 0; dcmQue = [];
+      await clnkPrevAbrir(fJpg.id, fJpg.id, fJpg);
+      await esp(1200);
+      R.cLightbox = !!EL('clnkb-ver');
+      R.cDcm = dcmN;
+      try { _clnkbVerCerrar(); } catch (e) {}
+      await esp(300);
+
+      /* ── D · EL VISOR DE UN VIDEO: el reproductor, SIN «Capturar frame» ─────────
+         Capturar RESERVA UN SLOT y escribe en el estudio abierto: desde la vista previa eso
+         romperia la invariante de que MIRAR NO ES DECIDIR. */
+      await ctl({ escena: 'buzonUnVideo' });
+      await esp(250);
+      const li2 = await GET('/v1/imagenes');
+      const fMp4 = (li2.imagenes || [])[0];
+      R.dFmt = fMp4 ? fMp4.formato : '';
+      dcmN = 0;
+      const slotsAntes = (typeof imgSlots !== 'undefined')
+        ? imgSlots.filter(x => x && x.dataURL).length : -1;
+      await clnkPrevAbrir(fMp4.id, fMp4.id, fMp4);
+      await esp(1400);
+      const ovv = document.querySelector('[data-video-modal]');
+      R.dReproductor = !!ovv;
+      R.dTieneVideo = !!(ovv && ovv.querySelector('[data-video-player]'));
+      R.dSinCapturar = !!ovv && ovv.querySelectorAll('[data-video-act="capturar"]').length === 0;
+      R.dTieneCerrar = !!ovv && ovv.querySelectorAll('[data-video-act="cerrar"]').length === 1;
+      R.dDcm = dcmN;
+      R.dSlotsIguales = ((typeof imgSlots !== 'undefined')
+        ? imgSlots.filter(x => x && x.dataURL).length : -2) === slotsAntes;
+      if (ovv) { const bc = ovv.querySelector('[data-video-act="cerrar"]'); if (bc) bc.click(); }
+      await esp(300);
+      /* CONTROL: el reproductor del ESTUDIO sigue trayendo «Capturar frame». */
+      R.dConCaptura = String(window.videoVerBlob).indexOf('conCaptura') > -1;
+
+      /* ── E · UNO QUE NO SE PUEDE VER: NUNCA se intenta DICOM ───────────────────── */
+      await ctl({ escena: 'buzonUnTif' });
+      await esp(250);
+      const li3 = await GET('/v1/imagenes');
+      const fTif = (li3.imagenes || [])[0];
+      dcmN = 0; toasts.length = 0;
+      const abrioTif = await clnkPrevAbrir(fTif.id, fTif.id, fTif);
+      await esp(600);
+      R.eNoAbrio = abrioTif === false;
+      R.eDcm = dcmN;
+      R.eDijo = toasts.join(' | ');
+      R.eDiceSigla = R.eDijo.indexOf('TIF') > -1;
+      R.eDiceAceptados = R.eDijo.indexOf('JPG') > -1 && R.eDijo.indexOf('MP4') > -1;
+
+      /* ── F · ADJUNTAR UNA FOTO DEL BUZON A LOS TRES DESTINOS, y confirmar ──────── */
+      window._dcmImgLeer = dcmOrig;
+      const uuA = 'aa000000-0000-4000-8000-0000000006e5';
+      const gOrig = window.imgGuardadoActivo;
+      window.imgGuardadoActivo = () => true;
+      const infOrig = window.getInformes;
+      window.getInformes = () => [{ id: 6551, uuid: uuA, nombre: 'Paciente Buzon',
+        ci: '888', doc_tipo: 'CI', fecha_estudio: '2026-11-19', fecha_guardado: Date.now(), campos: {} }];
+      await ctl({ reset: true, equipos: 4, escena: 'buzonUnaFoto' });
+      await esp(250);
+      const li4 = await GET('/v1/imagenes');
+      const f4 = (li4.imagenes || [])[0];
+      /* 1) AL ESTUDIO ABIERTO */
+      const slotsA = (typeof imgSlots !== 'undefined') ? imgSlots.filter(x => x && x.dataURL).length : -1;
+      await dstAlActual({ origen: 'ceibolink', items: clnkItems([f4.id], [f4]), prev: [f4],
+                          nFijas: 1, nLoops: 0 });
+      await esp(1600);
+      R.fAlActual = ((typeof imgSlots !== 'undefined') ? imgSlots.filter(x => x && x.dataURL).length : -2) > slotsA;
+      /* 2) A UN ESTUDIO GUARDADO */
+      await ctl({ reset: true, equipos: 4, escena: 'buzonVisibles' });
+      await esp(250);
+      const li5 = await GET('/v1/imagenes');
+      const f5 = (li5.imagenes || []).filter(x => x.formato === 'png')[0];
+      await dstAGuardado({ origen: 'ceibolink', items: clnkItems([f5.id], [f5]), prev: [f5],
+                           nFijas: 1, nLoops: 0 }, { uuid: uuA, nombre: 'Paciente Buzon' });
+      await esp(1800);
+      const g5 = await CeiboImg.leer(uuA);
+      R.fAGuardado = Array.isArray(g5) && g5.length >= 1;
+      const e5 = await ctl({});
+      R.fConfirmo = (e5.escenario.confirmadas || []).indexOf(f5.id) > -1;
+      /* 3) UN VIDEO A UN ESTUDIO GUARDADO -- el camino que NO existia */
+      const f6 = (li5.imagenes || []).filter(x => x.formato === 'mp4')[0];
+      await dstAGuardado({ origen: 'ceibolink', items: clnkItems([f6.id], [f6]), prev: [f6],
+                           nFijas: 0, nLoops: 1 }, { uuid: uuA, nombre: 'Paciente Buzon' });
+      await esp(2600);
+      const vids = await CeiboVideo.leer(uuA);
+      R.fVideoGuardado = Array.isArray(vids) && vids.length >= 1;
+      const g6 = await CeiboImg.leer(uuA);
+      R.fSlotDelVideo = Array.isArray(g6) && g6.some(x => x && x.videoId);
+      R.fAgregarExiste = typeof CeiboVideo.agregar === 'function';
+      /* 4) A LA BANDEJA */
+      await ctl({ reset: true, equipos: 4, escena: 'buzonUnaFoto' });
+      await esp(250);
+      const li7 = await GET('/v1/imagenes');
+      const f7 = (li7.imagenes || [])[0];
+      const bAntes = (await clnkbListar()) || [];
+      await dstABandeja({ origen: 'ceibolink', items: clnkItems([f7.id], [f7]), prev: [f7],
+                          nFijas: 1, nLoops: 0 });
+      await esp(1800);
+      const bTras = (await clnkbListar()) || [];
+      R.fABandeja = bTras.length > bAntes.length;
+      try { for (const r of bTras) await clnkbBorrar(r.id); } catch (e) {}
+      try { await CeiboImg.borrar(uuA); } catch (e) {}
+      try { await CeiboVideo.guardar(uuA, []); } catch (e) {}
+      window.getInformes = infOrig; window.imgGuardadoActivo = gOrig;
+      window._dcmImgLeer = dcmOrig;
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['DENOMINADOR: el espia de _dcmImgLeer funciona -- con un DICOM SI se llama',
+        R.espiaAnda, R.espiaAnda],
+      ['la tira dibuja los CINCO del buzon que se ven, con miniatura de verdad',
+        R.aCeldas === 5 && R.aImgs >= 3, 'celdas=' + R.aCeldas + ' img=' + R.aImgs],
+      ['y NUNCA intenta DICOM sobre ellos -- cero llamadas', R.aDcm === 0,
+        R.aDcm + (R.aQue ? ' (' + R.aQue + ')' : '')],
+      ['cada celda lleva la SIGLA de su formato', R.aSiglas.indexOf('JPG') > -1 &&
+        R.aSiglas.indexOf('PNG') > -1 && R.aSiglas.indexOf('MP4') > -1, R.aSiglas],
+      ['los SEIS que no se pueden ver se dibujan con su icono y su sigla',
+        R.bCeldas === 6 && R.bNoVer === 6, 'celdas=' + R.bCeldas + ' noVer=' + R.bNoVer],
+      ['sin bajar UN SOLO BYTE de ninguno, y sin intentar DICOM',
+        R.bBajadas === 0 && R.bDcm === 0, 'bajadas=' + R.bBajadas + ' dcm=' + R.bDcm],
+      ['con las seis siglas a la vista',
+        R.bSiglas.indexOf('TIF') > -1 && R.bSiglas.indexOf('AVI') > -1 &&
+        R.bSiglas.indexOf('WMV') > -1 && R.bSiglas.indexOf('PDF') > -1 &&
+        R.bSiglas.indexOf('TXT') > -1, R.bSiglas],
+      ['DENOMINADOR: el puente informa el formato de la foto', R.cFmt === 'jpg', R.cFmt],
+      ['el visor de una FOTO del buzon abre el lightbox, con cero DICOM',
+        R.cLightbox && R.cDcm === 0, 'lightbox=' + R.cLightbox + ' dcm=' + R.cDcm],
+      ['DENOMINADOR: el puente informa el formato del video', R.dFmt === 'mp4', R.dFmt],
+      ['el visor de un VIDEO del buzon abre el reproductor de verdad, con cero DICOM',
+        R.dReproductor && R.dTieneVideo && R.dDcm === 0,
+        'rep=' + R.dReproductor + ' video=' + R.dTieneVideo + ' dcm=' + R.dDcm],
+      ['SIN «Capturar frame» -- mirar no es decidir-- y con su «Cerrar»',
+        R.dSinCapturar && R.dTieneCerrar, 'sinCapturar=' + R.dSinCapturar + ' cerrar=' + R.dTieneCerrar],
+      ['y sin escribir un solo slot en el estudio abierto', R.dSlotsIguales, R.dSlotsIguales],
+      ['CONTROL: el reproductor es UNO solo y la captura es su parametro',
+        R.dConCaptura, R.dConCaptura],
+      ['con un TIF el visor NO abre y NUNCA intenta DICOM',
+        R.eNoAbrio && R.eDcm === 0, 'noAbrio=' + R.eNoAbrio + ' dcm=' + R.eDcm],
+      ['y lo DICE con su sigla y con la lista de los que si se aceptan',
+        R.eDiceSigla && R.eDiceAceptados, R.eDijo],
+      ['una foto del buzon entra al ESTUDIO ABIERTO', R.fAlActual, R.fAlActual],
+      ['entra a un ESTUDIO GUARDADO y se le confirma el borrado al puente',
+        R.fAGuardado && R.fConfirmo, 'guardado=' + R.fAGuardado + ' confirmo=' + R.fConfirmo],
+      ['y un VIDEO tambien entra a un estudio guardado -- el camino que NO existia',
+        R.fAgregarExiste && R.fVideoGuardado && R.fSlotDelVideo,
+        'agregar=' + R.fAgregarExiste + ' video=' + R.fVideoGuardado + ' slot=' + R.fSlotDelVideo],
+      ['y entra a IMAGENES GUARDADAS', R.fABandeja, R.fABandeja]
+    ] };
+  })();
+`);
+
+/* == PROMPT 6 . BLOQUE F -- LOS FORMATOS QUE NO SE PUEDEN VER ================================
+   Esto REEMPLAZA lo que el documento del puente propone sobre descargar y adjuntar esos
+   archivos: ofrecer «adjuntar al estudio» un TIF que ningun navegador dibuja pone en el informe
+   del paciente un archivo que nadie va a poder mirar desde la app.
+   Los dos controles negativos son los que impiden que el caso pase sobre un modal que SIEMPRE
+   ofrece un solo boton: con todos visibles no hay tarjeta, y desde el pendrive -- donde no hay
+   lista y no se sabe el formato sin abrir cada archivo-- el modal se porta como siempre.      */
+caso('TC-966', 'Bloque F: los formatos que no se pueden ver salen en una tarjeta con su icono y su sigla y SOLO el boton Descartar, con la lista de los que si se aceptan; mezclados, los destinos se quedan', `
+  return (async () => {
+    if (typeof window.clnkNoVerTarjeta !== 'function' || typeof window.clnkFmtAceptados !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la tarjeta de los formatos que no se ven', false,
+        'no existen clnkNoVerTarjeta / clnkFmtAceptados']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; const toasts = [];
+    window.toast = (m) => { toasts.push(String(m)); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const TK = () => localStorage.getItem('ett_ceibolink_token') || '';
+    const GET = async (ruta) => (await fetch(F.base + ruta,
+      { headers: { Authorization: 'Bearer ' + TK() } })).json();
+    const EL = id => document.getElementById(id);
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const txt = () => String((EL('clnkav-txt') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      const bots = () => CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+        .filter(b => b && b.style.display !== 'none' && b.textContent)
+        .map(b => String(b.textContent));
+      const tarjeta = () => document.querySelector('[data-clnk-nover-tarjeta]');
+      const filas = () => { const t = tarjeta();
+        return t ? Array.prototype.map.call(t.querySelectorAll('[data-clnk-nover-fila]'),
+          f => f.getAttribute('data-clnk-nover-fila')).join(',') : ''; };
+
+      /* ── A · LA LISTA DE ACEPTADOS SE DERIVA DE LA TABLA, no se escribe ─────────── */
+      R.aceptados = clnkFmtAceptados();
+
+      /* ── B · SEIS QUE NO SE PUEDEN VER: tarjeta y SOLO Descartar ────────────────── */
+      await ctl({ equipos: 4, escena: 'buzonNoVisibles' });
+      await esp(250);
+      await clnkRevisarImagenes(true);
+      await esp(1200);
+      R.bAbierto = abierto();
+      R.bBots = bots();
+      R.bSoloDescartar = R.bBots.length === 1 && R.bBots[0].indexOf('Descartar') > -1;
+      R.bTarjeta = !!tarjeta();
+      R.bN = tarjeta() ? tarjeta().getAttribute('data-clnk-nover-tarjeta') : '';
+      R.bFilas = filas();
+      R.bDiceAceptados = tarjeta()
+        ? String(tarjeta().textContent || '').indexOf(R.aceptados) > -1 : false;
+      R.bIconos = tarjeta()
+        ? Array.prototype.filter.call(tarjeta().querySelectorAll('[data-clnk-nover-fila] span'),
+            x => String(x.textContent || '').length === 1 ||
+                 String(x.textContent || '').charCodeAt(0) > 0xD000).length : 0;
+      R.bCuenta = txt();
+      clnkAvisoCerrar();
+
+      /* ── C · UN GRUPO MEZCLADO: los destinos SE QUEDAN y la tarjeta lista los suyos
+         Con al menos UNO que se puede ver, los cuatro destinos siguen teniendo sentido. */
+      await ctl({ escena: 'buzonMixto' });
+      await esp(250);
+      await clnkRevisarImagenes(true);
+      await esp(1200);
+      R.cBots = bots();
+      R.cTieneDestinos = R.cBots.filter(x => x.indexOf('Adjuntar') > -1).length === 3;
+      R.cTienePrevia = R.cBots.filter(x => x.indexOf('Vista previa') > -1).length === 1;
+      R.cTarjeta = !!tarjeta();
+      R.cN = tarjeta() ? tarjeta().getAttribute('data-clnk-nover-tarjeta') : '';
+      R.cFilas = filas();
+      R.cRotulo = tarjeta() ? String(tarjeta().textContent || '').indexOf('De estos') > -1 : false;
+      R.cCuenta = txt();
+      clnkAvisoCerrar();
+
+      /* ── D · CONTROL NEGATIVO: sin ninguno que no se vea, NO hay tarjeta ────────── */
+      await ctl({ escena: 'buzonVisibles' });
+      await esp(250);
+      await clnkRevisarImagenes(true);
+      await esp(1200);
+      R.dBots = bots();
+      R.dSinTarjeta = !tarjeta();
+      R.dCuatroDestinos = R.dBots.filter(x => x.indexOf('Adjuntar') > -1).length === 3;
+      clnkAvisoCerrar();
+
+      /* ── E · CONTROL NEGATIVO 2: desde el PENDRIVE no hay lista, asi que el modal se
+         porta como siempre -- cuatro salidas y «Cancelar» de ultimo. */
+      const itemsFalsos = [{ id: '', nombre: 'x.dcm', traer: async () => null }];
+      dstPreguntar({ origen: 'pendrive', items: itemsFalsos, cancelar: true,
+                     titulo: 'Desde el pendrive', texto: 'prueba' });
+      await esp(300);
+      R.eBots = bots();
+      R.eSinTarjeta = !tarjeta();
+      R.eUltimoCancelar = R.eBots.length > 0 &&
+        R.eBots[R.eBots.length - 1].indexOf('Cancelar') > -1;
+      clnkAvisoCerrar();
+
+      /* ── F · EL BOTON DE DESCARTAR ES EL QUE DESCARTA DE VERDAD ────────────────── */
+      await ctl({ reset: true, equipos: 4, escena: 'buzonUnTif' });
+      await esp(250);
+      await clnkRevisarImagenes(true);
+      await esp(1200);
+      R.fBots = bots();
+      R.fSolo = R.fBots.length === 1;
+      const bd = CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+        .filter(b => b && b.style.display !== 'none' && String(b.textContent).indexOf('Descartar') > -1)[0];
+      R.fHayBoton = !!bd;
+      if (bd) { bd.click(); await esp(1600); }
+      const eF = await ctl({});
+      R.fBorro = (eF.escenario.borradas || []).length === 1;
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { Object.keys(window._clnkDescartadas || {}).forEach(k => { delete window._clnkDescartadas[k]; }); } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['la lista de formatos aceptados se DERIVA de la tabla, con los seis',
+        R.aceptados.indexOf('DICOM') > -1 && R.aceptados.indexOf('JPG') > -1 &&
+        R.aceptados.indexOf('PNG') > -1 && R.aceptados.indexOf('BMP') > -1 &&
+        R.aceptados.indexOf('MP4') > -1 && R.aceptados.indexOf('MOV') > -1, R.aceptados],
+      ['DENOMINADOR: el cartel de los seis que no se ven abrio', R.bAbierto, R.bAbierto],
+      ['con SOLO el boton Descartar', R.bSoloDescartar, R.bBots.join(' | ')],
+      ['y una tarjeta con una fila por archivo', R.bTarjeta && R.bN === '6',
+        'tarjeta=' + R.bTarjeta + ' n=' + R.bN],
+      /* La escena son TIF, AVI, WMV, PDF, TXT y un DESCONOCIDO: de ese ultimo la sigla es
+         «otro» y NO el valor crudo del campo, que es una cadena del puente y dibujarla tal cual
+         seria poner texto de afuera en la pantalla sin necesidad. */
+      ['cada una con su SIGLA, y el desconocido como «otro» y no con el valor crudo',
+        R.bFilas === 'TIF,AVI,WMV,PDF,TXT,otro' &&
+        R.bFilas.indexOf('desconocido') === -1, R.bFilas],
+      ['y su icono', R.bIconos >= 6, R.bIconos],
+      ['y la tarjeta dice que formatos SI se aceptan', R.bDiceAceptados, R.bDiceAceptados],
+      ['el texto los cuenta como «no se pueden ver», no como imagenes',
+        R.bCuenta.indexOf('no se pueden ver') > -1 && R.bCuenta.indexOf('6 im') === -1,
+        R.bCuenta],
+      ['con un grupo MEZCLADO los tres destinos y la vista previa SE QUEDAN',
+        R.cTieneDestinos && R.cTienePrevia, R.cBots.join(' | ')],
+      ['y la tarjeta lista SOLO los que no se pueden ver, con su rotulo propio',
+        R.cTarjeta && R.cN === '5' && R.cRotulo,
+        'tarjeta=' + R.cTarjeta + ' n=' + R.cN + ' rotulo=' + R.cRotulo + ' | ' + R.cFilas],
+      ['CONTROL NEGATIVO: con todos visibles NO hay tarjeta y los destinos estan',
+        R.dSinTarjeta && R.dCuatroDestinos,
+        'sinTarjeta=' + R.dSinTarjeta + ' | ' + R.dBots.join(' | ')],
+      ['CONTROL NEGATIVO: desde el pendrive el modal se porta como siempre, sin tarjeta y con Cancelar al final',
+        R.eSinTarjeta && R.eUltimoCancelar, R.eBots.join(' | ')],
+      ['el unico boton descarta DE VERDAD en el puente',
+        R.fSolo && R.fHayBoton && R.fBorro,
+        'solo=' + R.fSolo + ' boton=' + R.fHayBoton + ' borro=' + R.fBorro]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
