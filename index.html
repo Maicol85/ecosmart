@@ -2917,12 +2917,43 @@
     100% { transform:translateX(116px); opacity:0; }
   }
   .clnk-viaja { animation:clnk-viaja 1.9s linear infinite; }
-  #clnk-tanda-svg .clnk-eq   { fill:var(--bg3);  stroke:var(--text2); stroke-width:1.5; }
-  #clnk-tanda-svg .clnk-pant { fill:var(--accent); opacity:.35; }
-  #clnk-tanda-svg .clnk-viaja{ fill:var(--accent); }
-  #clnk-tanda-svg .clnk-rot  { fill:var(--text2); font-size:8.5px; }
+  /* ⚠️ SE IDENTIFICA POR **CLASE** Y NO POR EL id DEL SVG, y es lo que permite que haya DOS
+     dibujos a la vez: el del cartel y el de la burbuja del bloque B. Con el selector colgado de
+     un id, el segundo dibujo saldria sin un solo color -- o habria que duplicar el id, que es
+     peor. El del cartel conserva su id porque es el que las pruebas buscan por nombre. */
+  .clnk-dib .clnk-eq   { fill:var(--bg3);  stroke:var(--text2); stroke-width:1.5; }
+  .clnk-dib .clnk-pant { fill:var(--accent); opacity:.35; }
+  .clnk-dib .clnk-viaja{ fill:var(--accent); }
+  .clnk-dib .clnk-rot  { fill:var(--text2); font-size:8.5px; }
   @keyframes clnk-late { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.38); } }
   .clnk-late { animation:clnk-late 2.6s ease-in-out infinite; }
+  /* ══ BLOQUE B · LA BURBUJA ════════════════════════════════════════════════════════════════
+     ABAJO A LA DERECHA, y esa esquina esta MEDIDA: a 1280x900 no hay un solo elemento fijo ni
+     pegajoso ahi —el encabezado es pegajoso arriba, la barra lateral a la izquierda y el toast
+     abajo AL CENTRO— y cero botones visibles tienen su centro en el rincon de 170x170.
+     ⚠️ LA CAPA ES **690** Y NO SE LE MUEVE LA CAPA A NADIE. Queda por debajo de los modales de
+     la app (700) —asi que una pregunta abierta la cubre, que es lo correcto— y por debajo del
+     toast (999), asi que la burbuja NO puede tapar un aviso. Los seis modales y los dos
+     paneles conservan exactamente la capa que tenian.
+     ⚠️ Y SE ACOTA AL ANCHO DE LA PANTALLA con `max-width`, que es lo que la deja entera a 390 px
+     en vez de empujar el documento y sacarle el desplazamiento horizontal al medico. */
+  #clnk-burbuja {
+    position:fixed; right:16px; bottom:16px; z-index:690;
+    display:flex; align-items:center; gap:9px;
+    max-width:calc(100vw - 32px); min-height:44px;
+    padding:8px 13px; border:none; border-radius:24px;
+    background:var(--accent, #2f6fe0); color:#fff;
+    font-size:12.5px; font-weight:700; text-align:left;
+    box-shadow:0 8px 22px rgba(0,0,0,.42); cursor:pointer;
+  }
+  #clnk-burbuja:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+  #clnk-burbuja .clnk-bur-n { font-size:17px; font-weight:800; line-height:1; }
+  /* Dentro de la burbuja el dibujo va sobre el celeste, asi que sus piezas se dibujan en
+     blanco: las variables del tema no tienen contraste contra el acento. */
+  #clnk-burbuja .clnk-dib .clnk-eq   { fill:rgba(255,255,255,.18); stroke:#fff; stroke-width:1.4; }
+  #clnk-burbuja .clnk-dib .clnk-pant { fill:#fff; opacity:.5; }
+  #clnk-burbuja .clnk-dib .clnk-viaja{ fill:#fff; }
+  #clnk-burbuja .clnk-dib .clnk-rot  { display:none; }
   @media (prefers-reduced-motion: reduce) {
     .clnk-viaja { animation:none; opacity:1; }
     .clnk-late  { animation:none; }
@@ -182016,6 +182047,15 @@ if (!window._clnkCopiarCableado) {
 function clnkToggle(on) {
   _clnkLS(CLNK_ON, on ? '1' : '0');
   _clnkGen++;                     // apagar también invalida lo que esté en vuelo
+  /* ⚠️ APAGAR EL MODULO SE LLEVA LA BURBUJA. Es el unico nodo de CeiboLink que vive FUERA de la
+     tarjeta y del modal, asi que es el unico que podria quedarse latiendo en una app donde el
+     medico acaba de apagar el conector — y la regla de este archivo es que con el modulo apagado
+     no queda nada de CeiboLink en pantalla. */
+  if (!on) {
+    try { clnkBurbujaOcultar(); } catch (e) {}
+    _clnkTanda = null;
+    _clnkTandaCerradaPorMedico = false;
+  }
   clnkRender();
   /* El sondeo se re-sincroniza en CADA cambio de estado del módulo, y por eso `clnkSondeoSync`
      es idempotente: con cinco enganches sin esa guarda quedarían cinco temporizadores. */
@@ -182927,7 +182967,13 @@ function clnkAvisoCerrar() {
      cuando la tanda cierra, que es cuando hay algo nuevo que decir.
      ⚠️ SE MIRA `_clnkTanda` Y NO EL CUERPO DEL CARTEL: el cuerpo se vacia dos lineas mas abajo,
      asi que preguntarle a el daria la respuesta de la proxima vez. */
-  if (_clnkAvisoAbierto && _clnkTanda) _clnkTandaCerradaPorMedico = true;
+  if (_clnkAvisoAbierto && _clnkTanda) {
+    _clnkTandaCerradaPorMedico = true;
+    /* ══ BLOQUE B · EL CARTEL SE ACHICA A UNA BURBUJA ══════════════════════════════════════
+       El cartel no desaparece: se achica. Con el numero que el ultimo sondeo supo, para que la
+       burbuja no nazca en cero y salte al siguiente turno. */
+    try { clnkBurbuja(_clnkTanda.n, false); } catch (e) {}
+  }
   _clnkAvisoAbierto = false;
   /* ⚠️ Y SE OLVIDA EL GRUPO. Sin esta línea, el próximo sondeo creería que todavía hay un aviso
      de imágenes en pantalla y trataría de ACTUALIZAR un cartel cerrado: el médico no vería
@@ -183366,13 +183412,18 @@ window._clnkColorVar = _clnkColorVar;
    acá además no hay un solo dato que venga de afuera, asi que no hay nada que escapar.
    Los colores van por las reglas `#clnk-tanda-svg .clnk-*`, que SI resuelven `var()` y siguen al
    tema sin una linea de JS. */
-function clnkTandaDibujo() {
+function clnkTandaDibujo(id, ancho) {
   var NS = 'http://www.w3.org/2000/svg';
   var sv = document.createElementNS(NS, 'svg');
-  sv.setAttribute('id', 'clnk-tanda-svg');
+  /* El id es OPCIONAL: el dibujo del cartel lo lleva —es el que las pruebas buscan por nombre—
+     y el de la burbuja no, porque los dos pueden estar en el documento a la vez y dos nodos con
+     el mismo id dejan al segundo inalcanzable. Los colores salen de la CLASE. */
+  if (id) sv.setAttribute('id', id);
+  sv.setAttribute('class', 'clnk-dib');
+  sv.setAttribute('data-clnk-dib', '1');
   sv.setAttribute('viewBox', '0 0 240 58');
-  sv.setAttribute('width', '240');
-  sv.setAttribute('height', '58');
+  sv.setAttribute('width', String(ancho || 240));
+  sv.setAttribute('height', String(Math.round((ancho || 240) * 58 / 240)));
   sv.setAttribute('role', 'img');
   sv.setAttribute('aria-label', 'Las imágenes están viajando del ecógrafo a esta computadora');
   sv.style.cssText = 'display:block;margin:0 auto 2px;max-width:100%;';
@@ -183413,7 +183464,7 @@ function clnkTandaCuerpo(cu, n, cerrada) {
   var ya = cu.querySelector('[data-clnk-tanda-n]');
   if (!ya) {
     cu.textContent = '';
-    cu.appendChild(clnkTandaDibujo());
+    cu.appendChild(clnkTandaDibujo('clnk-tanda-svg', 240));
     var cont = _clnkNodo('div',
       'text-align:center;font-size:26px;font-weight:700;color:var(--text);line-height:1.1;', '');
     cont.setAttribute('data-clnk-tanda-n', '1');
@@ -183528,6 +183579,161 @@ async function clnkTandaCerrar() {
   return true;
 }
 window.clnkTandaCerrar = clnkTandaCerrar;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   BLOQUE B · LA BURBUJA
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   El medico que cierra el cartel con la ✕ mientras las imagenes llegan esta diciendo «no me
+   tapes la pantalla», no «no me avises»: el cartel se achica a una burbuja abajo a la derecha,
+   con la misma animacion y el numero subiendo. Al cerrar la tanda late despacio hasta que el
+   medico la abre.
+
+   ⚠️ NO SE REABRE SOLA, Y ES LA MITAD QUE IMPORTA. Volver a abrir el cartel grande por su
+   cuenta deshace exactamente el gesto que el medico acaba de hacer. La burbuja late —que es una
+   senial que se ve con el rabillo del ojo y no interrumpe— y espera.
+
+   ⚠️ EL LATIDO ES `brightness` SOBRE `--accent`, el MISMO celeste del boton primario, asi que lo
+   que cambia es la tonalidad y no el color. Con dos colores escritos a mano, el dia que el tema
+   mueva uno el latido y el boton se separarian.
+
+   ⚠️ ES UN `<button>` DE VERDAD y no un `div` con `onclick`: asi lo alcanza la regla tactil
+   global de 44 px de esta app, se enfoca con el teclado y se abre con Enter y con Espacio. Es la
+   misma leccion que el bloque de miniaturas de ECO-CONECTOR-4 dejo escrita.
+
+   ⚠️ Y DICE «ARCHIVOS», por el mismo motivo que el cartel abierto del bloque A: el numero sale
+   de `tanda_imagenes`, que cuenta TODO lo que entro. El desglose por tipo lo da el cartel grande
+   cuando el medico la abre, que es cuando la app ya pidio la lista. */
+
+var CLNK_BUR_ID = 'clnk-burbuja';
+
+/* Lo que la burbuja esta mostrando: el numero y si la tanda ya cerro. Vive aparte de
+   `_clnkTanda` porque la burbuja SOBREVIVE al cierre de la tanda —late esperando— y `_clnkTanda`
+   se pone en null ahi. */
+var _clnkBur = null;
+
+function clnkBurbujaNodo() {
+  var b = document.getElementById(CLNK_BUR_ID);
+  if (b) return b;
+  b = document.createElement('button');
+  b.type = 'button';
+  b.id = CLNK_BUR_ID;
+  b.setAttribute('aria-live', 'polite');
+  /* El dibujo chico, SIN id: el del cartel puede estar en el documento a la vez. */
+  b.appendChild(clnkTandaDibujo('', 72));
+  var caja = document.createElement('span');
+  caja.style.cssText = 'display:flex;flex-direction:column;gap:1px;min-width:0;';
+  var n = document.createElement('span');
+  n.className = 'clnk-bur-n';
+  n.setAttribute('data-clnk-bur-n', '1');
+  caja.appendChild(n);
+  var t = document.createElement('span');
+  t.style.cssText = 'font-weight:600;font-size:11px;opacity:.95;';
+  t.setAttribute('data-clnk-bur-txt', '1');
+  caja.appendChild(t);
+  b.appendChild(caja);
+  b.addEventListener('click', function (ev) { ev.preventDefault(); clnkBurbujaAbrir(); });
+  document.body.appendChild(b);
+  return b;
+}
+window.clnkBurbujaNodo = clnkBurbujaNodo;
+
+/* Muestra o actualiza la burbuja. `cerrada` es «la tanda termino»: ahi deja de viajar y late. */
+/* El `padding-bottom` que el cuerpo tenia antes de que la burbuja reservara el suyo. Se guarda
+   el valor EN LINEA y no el calculado: reponer el calculado dejaria un estilo en linea que la
+   hoja no puso, y el dia que la hoja lo cambie el cuerpo se quedaria con este. */
+var _clnkBurPadPrev = null;
+
+/* ══ LA BURBUJA RESERVA SU ALTO, Y ESO LO DESTAPO LA MEDICION ════════════════════════════════
+   A 1000 px la burbuja tapaba TRES botones del selector de estilo del informe —medido con
+   `elementFromPoint` sobre el centro de cada boton visible—. Un elemento fijo encima del
+   contenido tapa lo que le toque, asi que lo que lo cierra no es moverla: es que el documento
+   pueda desplazarse lo suficiente para que nada quede debajo. Con el alto reservado, el final
+   del documento queda POR ENCIMA de la burbuja y cualquier boton se alcanza desplazando.
+   ⚠️ SE MIDE EL ALTO REAL y no se escribe un numero: la burbuja crece con el texto y con el
+   tamanio de letra del sistema. */
+function _clnkBurReservar(b) {
+  try {
+    var h = Math.ceil(b.getBoundingClientRect().height) + 32;
+    if (_clnkBurPadPrev === null) _clnkBurPadPrev = document.body.style.paddingBottom || '';
+    document.body.style.paddingBottom = h + 'px';
+    return h;
+  } catch (e) { return 0; }
+}
+
+function clnkBurbuja(n, cerrada) {
+  var b = clnkBurbujaNodo();
+  _clnkBur = { n: Math.max(0, Number(n) || 0), cerrada: !!cerrada };
+  b.style.display = 'flex';
+  var ne = b.querySelector('[data-clnk-bur-n]');
+  var te = b.querySelector('[data-clnk-bur-txt]');
+  if (ne) ne.textContent = String(_clnkBur.n);
+  if (te) {
+    te.textContent = cerrada
+      ? ('Llegaron ' + _clnkPlural(_clnkBur.n, 'archivo', 'archivos') + ' — tocá para elegir')
+      : 'están llegando…';
+  }
+  b.setAttribute('aria-label', cerrada
+    ? ('Llegaron ' + _clnkPlural(_clnkBur.n, 'archivo', 'archivos') + ' del ecógrafo. Tocá para elegir dónde van.')
+    : ('Están llegando archivos del ecógrafo: ' + _clnkBur.n + ' hasta ahora.'));
+  b.title = String(b.getAttribute('aria-label') || '');
+  /* El latido SOLO con la tanda cerrada: latiendo mientras llegan, la senial que dice «ya podés
+     decidir» estaria puesta cuando todavia no se puede. */
+  if (cerrada) b.classList.add('clnk-late'); else b.classList.remove('clnk-late');
+  /* Y los cuadraditos se paran al cerrar, igual que en el cartel. */
+  Array.prototype.forEach.call(b.querySelectorAll('[data-clnk-viaja]'), function (r, k) {
+    if (cerrada) {
+      r.setAttribute('class', '');
+      r.setAttribute('data-clnk-quieto', '1');
+      r.style.animation = 'none';
+      r.style.opacity = '1';
+      r.setAttribute('transform', 'translate(' + (k * 42) + ',0)');
+    }
+  });
+  /* El alto se reserva DESPUES de poner el texto: antes, la caja todavia no tiene su alto. */
+  _clnkBurReservar(b);
+  return true;
+}
+window.clnkBurbuja = clnkBurbuja;
+
+function clnkBurbujaOcultar() {
+  var b = document.getElementById(CLNK_BUR_ID);
+  _clnkBur = null;
+  /* El alto reservado vuelve a lo que estaba, y la marca se suelta: si no, una burbuja que
+     aparece y se va dos veces dejaria guardado el padding que ella misma puso. */
+  if (_clnkBurPadPrev !== null) {
+    try { document.body.style.paddingBottom = _clnkBurPadPrev; } catch (e) {}
+    _clnkBurPadPrev = null;
+  }
+  if (!b) return false;
+  b.style.display = 'none';
+  b.classList.remove('clnk-late');
+  return true;
+}
+window.clnkBurbujaOcultar = clnkBurbujaOcultar;
+
+/* El clic: la burbuja se va y el cartel grande vuelve. Con la tanda ya cerrada se arma su forma
+   final —la pregunta de destino de siempre—; con la tanda todavia abierta, el cartel de la tanda.
+   ⚠️ SE LIMPIA `_clnkTandaCerradaPorMedico` ANTES de abrir: esa marca es la que el sondeo mira
+   para no reabrir, y dejarla puesta haria que el cartel se cerrara solo en el turno siguiente. */
+async function clnkBurbujaAbrir() {
+  var cerrada = !!(_clnkBur && _clnkBur.cerrada);
+  clnkBurbujaOcultar();
+  _clnkTandaCerradaPorMedico = false;
+  if (cerrada) {
+    _clnkTanda = null;
+    var ok = false;
+    try { ok = await clnkRevisarImagenes(true); } catch (e) { ok = false; }
+    if (!ok && typeof toast === 'function') {
+      toast('ℹ CeiboLink ya no tiene esas imágenes esperando');
+    }
+    return ok;
+  }
+  /* Todavia llegando: el cartel de la tanda, con lo que el ultimo sondeo supo. */
+  var t = _clnkTanda || { abierta: true, n: (_clnkBur ? _clnkBur.n : 0) };
+  _clnkTanda = null;                                   // para que `clnkTandaCartel` lo abra
+  return clnkTandaCartel({ abierta: true, n: t.n || 0, ultima: '', cierra: '' });
+}
+window.clnkBurbujaAbrir = clnkBurbujaAbrir;
 
 /* ══ EL BOTÓN «VER LO QUE ESPERA» (ECO-CONECTOR-5, decisión 1) ══════════════════════════════
    Hasta esta tanda, para volver a ver un aviso cerrado con la ✕ había que RECARGAR la página:
@@ -184827,19 +185033,51 @@ async function _clnkSondear(forzado) {
     var T = clnkTandaDe(d);
     if (T) {
       if (T.abierta) {
+        /* ══ BLOQUE B · CON EL CARTEL CERRADO POR EL MEDICO, EL NUMERO SUBE EN LA BURBUJA ══
+           Y el cartel NO vuelve: es lo que «no se reabre sola» quiere decir. */
+        if (_clnkTandaCerradaPorMedico || _clnkBur) {
+          _clnkTanda = T;                     // la cadencia rapida sigue valiendo
+          clnkBurbuja(T.n, false);
+          return;
+        }
         clnkTandaCartel(T);
         return;
       }
       if (_clnkTanda) {
-        /* La tanda que el cartel estaba mostrando acaba de cerrar. */
+        /* La tanda que el cartel —o la burbuja— estaba mostrando acaba de cerrar. */
+        if (_clnkTandaCerradaPorMedico || _clnkBur) {
+          /* ══ BLOQUE B · LA BURBUJA PASA A SU FORMA FINAL Y LATE ═════════════════════════
+             Sin reabrir el cartel. El numero final sale de la lista y no de `tanda_imagenes`:
+             el conteo del estado incluye lo que esta en cuarentena, y lo que la burbuja promete
+             al tocarla es lo que el cartel va a ofrecer. */
+          var nFin = T.n;
+          try {
+            var rl = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
+            if (rl.ok && rl.vigente && rl.datos && Array.isArray(rl.datos.imagenes)) {
+              var gs = clnkAgrupar(rl.datos.imagenes);
+              if (gs.length) nFin = gs[gs.length - 1].ids.length;
+            }
+          } catch (e) {}
+          _clnkTanda = null;
+          clnkBurbuja(nFin, true);
+          return;
+        }
         _clnkTandaCerradaPorMedico = false;
         await clnkTandaCerrar();
         return;
       }
       /* Sin tanda abierta y sin cartel de tanda, la marca de «lo cerre con la ✕» no tiene a que
-         referirse: dejarla puesta haria que la tanda SIGUIENTE no sacara su cartel. */
+         referirse: dejarla puesta haria que la tanda SIGUIENTE no sacara su cartel.
+         ⚠️ PERO NO SE TOCA LA BURBUJA QUE YA ESTA LATIENDO: esa espera al medico y no a otra
+         tanda. Lo unico que la saca es su propio clic. */
       _clnkTandaCerradaPorMedico = false;
     }
+    /* ⚠️ CON UNA BURBUJA ESPERANDO, EL AVISO DE SIEMPRE **NO** SE ABRE, Y ESTO LO DESTAPO LA
+       SONDA Y NO LA LECTURA. Sin esta guarda el turno siguiente al cierre de la tanda caia en
+       `clnkRevisarImagenes`, que no sabe nada de la burbuja, y volvia a abrir el cartel grande
+       —o sea que «no se reabre sola» duraba un turno—. El medico ya dijo que no le tape la
+       pantalla: lo que lo trae de vuelta es SU clic, o «Ver lo que espera», que pasa forzado. */
+    if (_clnkBur) return;
     if ((Number(d.imagenes_pendientes) || 0) > 0) await clnkRevisarImagenes();
   } catch (e) {
     /* Un sondeo que lanza no puede matar al temporizador ni llegarle al médico como un error:

@@ -152220,6 +152220,254 @@ caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo vi
   })();
 `);
 
+/* ══ PROMPT 6 · BLOQUE B — LA BURBUJA ════════════════════════════════════════════════════════
+   El medico que cierra el cartel con la equis mientras las imagenes llegan dice «no me tapes la
+   pantalla», no «no me avises». La burbuja es lo que queda, y su invariante es que NO SE REABRE
+   SOLA: lo que la trae de vuelta es SU clic.
+   DOS DEFECTOS QUE ESTE CASO FIJA Y QUE LA SONDA DESTAPO, no la lectura: el cartel volvia solo
+   en el turno siguiente al cierre de la tanda -- `clnkRevisarImagenes` no sabe nada de la
+   burbuja-- y a 1000 px la burbuja tapaba TRES botones del selector de estilo del informe.    */
+caso('TC-962', 'Bloque B: cerrado con la equis se achica a una burbuja con el numero subiendo, al cerrar la tanda late sin reabrirse sola, el clic abre el cartel, y no tapa ni un boton', `
+  return (async () => {
+    if (typeof window.clnkBurbuja !== 'function' || typeof window.clnkBurbujaAbrir !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la burbuja', false,
+        'no existen clnkBurbuja / clnkBurbujaAbrir']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const BU = () => EL('clnk-burbuja');
+    const bVis = () => { const b = BU(); return !!(b && b.style.display !== 'none' && b.offsetWidth > 0); };
+    const bN = () => { const b = BU(); const n = b && b.querySelector('[data-clnk-bur-n]'); return n ? String(n.textContent) : ''; };
+    const bTxt = () => { const b = BU(); return b ? String(b.textContent || '') : ''; };
+    const late = () => !!(BU() && BU().classList.contains('clnk-late'));
+    const cartel = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* ── A · LA EQUIS CON LA TANDA ABIERTA DEJA LA BURBUJA ──────────────────────── */
+      await ctl({ escena: 'tandaDos' });
+      await _clnkSondear(true); await esp(600);
+      R.aCartel = cartel();
+      R.aBurAntes = bVis();
+      clnkAvisoCerrar();
+      await esp(200);
+      R.aBurTras = bVis();
+      R.aN = bN();
+      R.aLate = late();
+      R.aViajan = BU() ? BU().querySelectorAll('[data-clnk-viaja]').length : 0;
+      R.aEsBoton = !!(BU() && BU().tagName === 'BUTTON');
+      R.aCapa = BU() ? getComputedStyle(BU()).zIndex : '';
+      R.aDiceLlegando = bTxt().indexOf('llegando') > -1;
+
+      /* ── B · EL NUMERO SUBE EN LA BURBUJA Y EL CARTEL NO VUELVE ─────────────────── */
+      await ctl({ escena: 'tandaTres' });
+      await _clnkSondear(true); await esp(600);
+      R.bN = bN();
+      R.bCartel = cartel();
+      R.bLate = late();
+
+      /* ── C · AL CERRAR LA TANDA: dice «Llegaron N» y LATE, sin reabrir el cartel ── */
+      await ctl({ escena: 'tandaCerrada' });
+      await _clnkSondear(true); await esp(1400);
+      R.cTxt = bTxt();
+      R.cN = bN();
+      R.cLate = late();
+      R.cCartel = cartel();
+      R.cCiclo = BU() ? String(getComputedStyle(BU()).animationDuration) : '';
+      R.cQuietos = (() => {
+        const l = BU() ? BU().querySelectorAll('[data-clnk-viaja]') : [];
+        return l.length > 0 && Array.prototype.every.call(l, r => r.getAttribute('data-clnk-quieto') === '1');
+      })();
+
+      /* ── D · NO SE REABRE SOLA, en TRES turnos mas ─────────────────────────────── */
+      await _clnkSondear(true); await esp(300);
+      await _clnkSondear(true); await esp(300);
+      await _clnkSondear(true); await esp(300);
+      R.dCartel = cartel();
+      R.dBur = bVis();
+      R.dLate = late();
+
+      /* ── E · EL CLIC ABRE EL CARTEL GRANDE ─────────────────────────────────────── */
+      BU().click();
+      await esp(1500);
+      R.eCartel = cartel();
+      R.eBur = bVis();
+      R.eTitulo = String((EL('clnkav-title') || {}).textContent || '');
+      R.eMarca = window._clnkTandaCerradaPorMedico === false;
+      clnkAvisoCerrar();
+      clnkBurbujaOcultar();
+
+      /* ── F · NO TAPA NINGUN BOTON, Y RESERVA SU ALTO ───────────────────────────────
+         Un elemento fijo encima del contenido tapa lo que le toque en cualquier desplazamiento;
+         lo que se puede garantizar -- y lo que la medicion encontro roto a 1000 px-- es que el
+         FINAL del documento quede por encima de ella. Se mide desplazado al final, que es donde
+         la reserva tiene que morder. */
+      const yOrig = window.scrollY;
+      clnkBurbuja(7, true);
+      await esp(250);
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await esp(300);
+      const rb = BU().getBoundingClientRect();
+      R.fDentro = rb.left >= 0 && rb.top >= 0 && rb.right <= window.innerWidth + 0.6 &&
+                  rb.bottom <= window.innerHeight + 0.6;
+      R.fPad = document.body.style.paddingBottom;
+      R.fReservo = parseFloat(R.fPad) >= rb.height;
+      const tapados = [];
+      Array.prototype.forEach.call(document.querySelectorAll('button, [role=button], .btn, a[href], summary, input, select'), el => {
+        const b = BU();
+        if (el === b || b.contains(el)) return;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return;
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return;
+        const t = document.elementFromPoint(cx, cy);
+        if (t && (t === b || b.contains(t))) tapados.push((el.id || el.tagName.toLowerCase()));
+      });
+      R.fTapados = tapados.length;
+      R.fQuienes = tapados.slice(0, 4).join(',');
+      R.fScrollX = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      /* CONTROL: hay botones VISIBLES para tapar. Sin denominador, «cero tapados» pasa sobre
+         una pantalla sin un solo boton. */
+      R.fDenom = (function () {
+        let n = 0;
+        Array.prototype.forEach.call(document.querySelectorAll('button, .btn'), el => {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight) n++;
+        });
+        return n;
+      })();
+      clnkBurbujaOcultar();
+      await esp(150);
+      R.fPadRepuesto = document.body.style.paddingBottom === '';
+      window.scrollTo(0, yOrig);
+
+      /* ── G · CON REDUCIR ANIMACIONES QUEDA QUIETA PERO VISIBLE ────────────────────
+         El arnes no puede cambiar la preferencia del sistema, asi que se mide la REGLA: que la
+         hoja apague las dos animaciones dentro de la consulta de movimiento reducido y que NO
+         apague la visibilidad. La emulacion de verdad va en la sonda de dos motores. */
+      R.gRegla = (function () {
+        let apagaViaja = false, apagaLate = false, apagaVisible = false, hayMedia = false;
+        for (const h of document.styleSheets) {
+          let rs; try { rs = h.cssRules; } catch (e) { continue; }
+          if (!rs) continue;
+          for (const r of rs) {
+            if (!r || r.type !== CSSRule.MEDIA_RULE) continue;
+            if (String(r.conditionText || '').indexOf('prefers-reduced-motion') < 0) continue;
+            for (const q of r.cssRules) {
+              const sel = String(q.selectorText || '');
+              const txt = String(q.style ? q.style.cssText : '');
+              /* ⚠️ SE PREGUNTA POR LA PROPIEDAD Y NO POR EL TEXTO DE LA REGLA, y lo destapo la
+                 primera corrida: el navegador SERIALIZA la forma corta -- «animation:none» sale
+                 como «animation: none 0s ease 0s 1 normal none running»-- asi que buscar
+                 «animation: none» en el texto de la regla da falso sobre una regla que SI la
+                 apaga. Por eso se pregunta por «animationName», que es exacto. */
+              const an = q.style ? String(q.style.animationName || '') : '';
+              const dsp = q.style ? String(q.style.display || '') : '';
+              const vis = q.style ? String(q.style.visibility || '') : '';
+              const opa = q.style ? String(q.style.opacity || '') : '';
+              if (sel.indexOf('clnk-viaja') > -1) {
+                hayMedia = true;
+                if (an === 'none') apagaViaja = true;
+                if (dsp === 'none' || vis === 'hidden' || opa === '0') apagaVisible = true;
+              }
+              if (sel.indexOf('clnk-late') > -1) {
+                hayMedia = true;
+                if (an === 'none') apagaLate = true;
+                if (dsp === 'none' || vis === 'hidden') apagaVisible = true;
+              }
+              if (txt === '__nunca__') apagaVisible = apagaVisible;
+            }
+          }
+        }
+        return { hayMedia, apagaViaja, apagaLate, apagaVisible };
+      })();
+
+      /* ── H · APAGAR EL MODULO SE LLEVA LA BURBUJA ─────────────────────────────── */
+      clnkBurbuja(3, true);
+      R.hAntes = bVis();
+      clnkToggle(false);
+      R.hTras = bVis();
+      R.hPad = document.body.style.paddingBottom === '';
+      clnkToggle(true);
+    } finally {
+      try { clnkAvisoCerrar(); clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el cartel de la tanda abrio antes de la equis',
+        R.vinculado && R.aCartel && !R.aBurAntes,
+        R.vinculado + '/' + R.aCartel + '/sinBurbujaAntes=' + !R.aBurAntes],
+      ['cerrado con la equis mientras llegan, se achica a una BURBUJA',
+        R.aBurTras, R.aBurTras],
+      ['con el numero que el ultimo sondeo supo y la MISMA animacion -- tres que viajan',
+        R.aN === '2' && R.aViajan === 3, 'n=' + R.aN + ' viajan=' + R.aViajan],
+      ['sin latir todavia, porque todavia estan llegando',
+        !R.aLate && R.aDiceLlegando, 'late=' + R.aLate + ' dice=' + R.aDiceLlegando],
+      ['es un BOTON de verdad y vive en la capa 690 -- por debajo de los modales y del toast',
+        R.aEsBoton && R.aCapa === '690', R.aEsBoton + '/' + R.aCapa],
+      ['el numero SUBE en la burbuja y el cartel NO vuelve',
+        R.bN === '3' && !R.bCartel && !R.bLate, 'n=' + R.bN + ' cartel=' + R.bCartel],
+      ['al cerrar la tanda dice «Llegaron N» y LATE',
+        R.cTxt.indexOf('Llegaron 3') > -1 && R.cLate, R.cTxt.slice(-44) + ' late=' + R.cLate],
+      ['con un ciclo de 2 a 3 segundos',
+        parseFloat(R.cCiclo) >= 2 && parseFloat(R.cCiclo) <= 3, R.cCiclo],
+      ['y el dibujo se para -- quieto pero visible', R.cQuietos, R.cQuietos],
+      ['NO SE REABRE SOLA: tres turnos mas de sondeo y el cartel sigue cerrado',
+        !R.dCartel && R.dBur && R.dLate,
+        'cartel=' + R.dCartel + ' burbuja=' + R.dBur + ' late=' + R.dLate],
+      ['con el clic abre el cartel GRANDE y la burbuja se va',
+        R.eCartel && !R.eBur && R.eTitulo.indexOf('Llegaron') > -1,
+        R.eTitulo + ' burbuja=' + R.eBur],
+      ['y suelta la marca, para que el sondeo no la cierre en el turno siguiente',
+        R.eMarca, R.eMarca],
+      ['DENOMINADOR: hay botones visibles que podrian quedar tapados', R.fDenom > 0, R.fDenom],
+      ['desplazado al FINAL del documento no tapa NI UN boton', R.fTapados === 0,
+        R.fTapados + (R.fQuienes ? ' (' + R.fQuienes + ')' : '')],
+      ['porque reserva su alto en el cuerpo, y lo DEVUELVE al irse',
+        R.fReservo && R.fPadRepuesto, 'pad=' + R.fPad + ' repuesto=' + R.fPadRepuesto],
+      ['queda entera dentro de la pantalla y sin desplazamiento horizontal',
+        R.fDentro && !R.fScrollX, R.fDentro + '/' + R.fScrollX],
+      ['con movimiento reducido la hoja para las DOS animaciones y NO apaga la visibilidad',
+        R.gRegla.hayMedia && R.gRegla.apagaViaja && R.gRegla.apagaLate && !R.gRegla.apagaVisible,
+        JSON.stringify(R.gRegla)],
+      ['apagar el modulo se lleva la burbuja y devuelve el alto reservado',
+        R.hAntes && !R.hTras && R.hPad, 'antes=' + R.hAntes + ' tras=' + R.hTras + ' pad=' + R.hPad]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
