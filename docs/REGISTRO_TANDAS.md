@@ -1,3 +1,46 @@
+## PROMPT 7 — la burbuja del cartel terminado, el silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
+
+**OCHO commits de código, uno por tarea A a H, más éste de documentación.** `e122e31` (**A**: la
+burbuja del cartel terminado, con sus dos guardas contra los «dos carteles contradictorios»;
+TC-971) · `a8ad565` (**B**: el sondeo ocioso de 15 s a 4 s, con su costo medido; TC-972, TC-961
+adaptado) · `5f28f35` (**C**: la ventana de silencio propia con su pestillo, que revierte por orden
+del médico la regla del prompt 6; TC-973, TC-970 y TC-845 adaptados) · `9569ab7` (**D**: el aspecto
+apagado por clase, el alcance, los cinco botones del cartel abierto y `_clnkTandaEnPantalla`;
+TC-974, TC-961 con dos condiciones invertidas) · `c4e5aa0` (**E**: los tres alias y la frase del
+SCP; TC-975) · `675aad1` (**F**: las miniaturas de «Imágenes sin estudio» y el borrado de a una;
+TC-976) · `7079d9d` (**G**: el mensaje de medir una fija; TC-977) · `a05f00e` (**H**: los seis
+intermitentes, estabilizados en el arnés y no en el producto) · **éste** (**I**: la documentación,
+que no toca `index.html`).
+
+Línea base: **`2a1bc79`**, el cierre de P6-j y P6-k — sello `v20261120-1207`, md5 `555ee5c0`,
+**187.983** líneas, **13.597.295** bytes, los tres **verificados al abrir** con `git show`, `wc -l`,
+`wc -c` y `md5`, más el sello del pie: el renglón de tamaño de `CLAUDE.md` estaba **bien en las tres
+cifras**, por quincuagésima tercera vez seguida.
+**El push lo corre Maicol: esta tanda tenía orden expresa de NO pushear.**
+
+Sello al cierre: **`v20261121-0308`**, md5 **`cf41995d`**, **188.426** líneas. El árbol se **reselló**
+—de `v20261121-0202`— porque la primera pasada completa destapó una **regresión real de la tarea
+B**: con el sondeo a cuatro segundos, la lectura de fondo se comía el mensaje del reinicio del
+receptor. Declarada y cerrada en **P7-0**, con su commit `96fe58e`.
+
+**Línea base al cierre: suite 979/985** en dieciocho lotes, los 985 ejecutados, md5 idéntico antes
+y después (`cf41995d`), pendrive verificado veinte veces con sus 343 archivos y las tres
+bibliotecas de la CDN en los dieciocho lotes. Seis rojos: los cinco conocidos y **TC-847**, que era
+mío y pasaba aislado; adaptado y su **lote 15 rehecho entero: 55/55**, sin tocar `index.html`. El
+estado real es **980/985 con los cinco conocidos**.
+
+**Lo que dejó pendiente:** **P7-b** (el número de la burbuja se queda viejo si siguen llegando
+archivos), **P7-c** (el título del cartel abierto sigue diciendo «imágenes»), **P7-d** (los filtros
+heredados de «Desde imágenes guardadas», **sólo revisado y reportado** por orden expresa), **P7-e**
+(la vista previa pierde el contador al volver), **P7-l** (borrar de a una no existe para un cineloop
+desde la pantalla) y **P7-m** (el área táctil de los acordeones de Evidencia, que es el M5-n).
+**Lo que cerró:** **P6-l**, los seis intermitentes, con su causa medida y el arreglo en el arnés.
+
+**La decisión de fondo, declarada en P7-a:** la app ahora tiene una ventana de silencio **propia**
+de veinte segundos que convive con los dos minutos del puente. Revierte una regla escrita del
+prompt 6, por orden expresa del médico, y lo que **no** cambia es que el puente sigue guardando los
+archivos su plazo entero.
+
 ## PROMPT 6 — la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo (2026-11-20)
 
 **OCHO commits.** `236326a` (**bloque 0**: la línea base medida en Chrome, con la causa del punto D

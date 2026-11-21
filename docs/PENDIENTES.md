@@ -214,7 +214,16 @@ verde.
 trigesimosegunda tanda seguida: `node --check` lo cazó con un «missing ) after argument list» que
 apuntaba a la línea del `caso(`, no a la del acento.
 
-### P6-l · ⚠️ ABIERTO · SEIS rojos INTERMITENTES en la pasada de cierre, y ninguno es de los dos arreglos
+### P6-l · ✅ CERRADO el 2026-11-21 por la tarea H del prompt 7 — ver **P7-f** · SEIS rojos INTERMITENTES en la pasada de cierre, y ninguno es de los dos arreglos
+
+> **CERRADO.** La causa era UNA sola: el caso medía antes de que la CDN entregara la biblioteca.
+> Se arregló en el **arnés** —`test_clinico.mjs` espera a jsPDF, Chart y XLSX antes del primer
+> caso y publica cuánto tardaron— sin tocar una línea de `index.html` ni una condición. Los seis,
+> más TC-143 y TC-535, pasan **8 de 8 en cinco corridas seguidas**. El diagnóstico entero, con la
+> tabla de síntomas y el arrastre de TC-147 sobre TC-99, está en **P7-f**.
+>
+> Lo de abajo es el texto original del 2026-11-20, que se conserva porque es lo que llevó a la
+> medición:
 
 La corrida completa del 2026-11-20 dio **966/978** con **doce** rojos: los **cinco** que esta casa
 declara conocidos —TC-182, TC-376, TC-406, TC-551 y TC-903—, **TC-753** —que tenía razón, ver
@@ -259,6 +268,222 @@ sellado en `v20261120-1207` y `CLAUDE.md` todavía publicaba `v20261120-0019`. E
 que esta entrada deja escrito para la próxima vez: **el sello se escribe en `CLAUDE.md` antes de la
 pasada, o el caso sale rojo con razón**. Con la documentación al día, **TC-753 vuelve a verde** y su
 **lote 14** se rehizo entero.
+
+## PROMPT 7 — la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
+
+> Sello **`v20261121-0308`**, md5 **`cf41995d`**, **188.426** líneas. Línea base **`2a1bc79`**.
+> Ocho commits de código, uno por tarea A a H. **Sin push: lo corre Maicol.**
+> **Nada clínico se movió**, y es medible: cero cortes, cero umbrales, cero fórmulas, cero campos
+> guardados nuevos y las **457** columnas del Excel quietas **por construcción** —cero `input`,
+> `select` y `textarea` nuevos en el diff—.
+
+### P7-0 · ✅ RESUELTO el 2026-11-21 · la tarea B se comía en cuatro segundos el mensaje del reinicio del receptor
+
+**Lo encontró la pasada completa, no la lectura.** `clnkLeerAjustes` borraba el mensaje de
+`cfg-clnk-amsg`, y a esa función la llama `clnkLeerEstado`, al que llama el rebote de
+`clnkRefrescar` que el **sondeo** arma en cada turno. Con el sondeo a quince segundos el mensaje
+duraba hasta quince; con el sondeo a **cuatro** se borraba en cuatro.
+
+**Qué se comía.** «Guardado. Cambiar el nombre reinicia el receptor: por unos segundos no entran
+imágenes, y hay que cargar el nombre nuevo en el ecógrafo» — una **instrucción** de dos renglones.
+El que no la lee se queda con el ecógrafo apuntando a un nombre que ya no existe. Cuatro segundos
+no alcanzan.
+
+**Cómo se corrigió.** `clnkLeerAjustes` deja de borrarlo y la limpieza se mueve a los **gestos** del
+médico: `clnkGuardarAjustes` ya lo vaciaba al empezar —así que un mensaje de error no sobrevive al
+intento siguiente— y `clnkOnMostrar` lo vacía al abrir el panel, que es cuando de verdad dejó de
+aplicar. Lo que deja de borrarlo es la lectura de fondo, que nadie pidió. **Queda mejor que antes de
+la tarea B, no igual.** Lo fija **TC-840**, que es el que lo cazó.
+
+**El árbol se reselló por esto**, de `v20261121-0202` a `v20261121-0308`, y la pasada completa se
+rehizo entera.
+
+### P7-a · ⚠️ DECISIÓN DEL MÉDICO QUE **REVIERTE** UNA REGLA DEL PROMPT 6: la app ahora duplica el plazo de la tanda
+
+El prompt 6 dejó escrito, citando el §P8 del contrato, que **«el plazo lo da el puente y NO se
+duplica»**: `tanda_cierra` ya viene calculado y la app sólo leía `tanda_abierta`. La tarea C del
+prompt 7, **por orden expresa del médico**, agrega una ventana de silencio **propia y más corta**
+—`CLNK_SILENCIO_MS = 20000`— que declara cerrada una tanda aunque el puente la siga teniendo
+abierta.
+
+**Lo que NO cambia, y es lo que hace que esto sea seguro:** el puente sigue guardando los archivos
+su plazo entero. No se borra ni se confirma nada antes de tiempo, y `CLNK_VENTANA_MS` sigue siendo
+el camino viejo del bloque J, sin tocar. Lo único que se adelanta es **cuándo el médico puede
+decidir**.
+
+**Queda declarado para que no se «arregle» de vuelta**: si alguna vez el conector cambia su plazo,
+hay **dos** reglas que mirar y no una.
+
+### P7-b · ⚠️ ABIERTO · con la burbuja puesta, su número se queda viejo si siguen llegando archivos
+
+Con el cartel cerrado y la burbuja latiendo, el sondeo entra por `if (_clnkBur) return;` y **no
+actualiza el número**: la burbuja puede decir «Llegaron 3» con cuatro esperando. **No se pierde
+nada** —el clic llama a `clnkRevisarImagenes(true)`, que vuelve a pedir la lista y ofrece los
+cuatro— pero el número miente hasta que el médico la toca.
+
+**Por qué no se arregló, que es la decisión conservadora:** el número exacto del grupo sale de
+`GET /v1/imagenes`, que lleva token y recorre el almacén del conector; pedirla en cada turno de
+cuatro segundos es exactamente lo que el bloque A evitó. El único número barato es
+`imagenes_pendientes` de `/v1/estado`, que es **el total de todos los equipos** y no el del grupo
+que la burbuja promete: usarlo haría que la burbuja prometiera más de lo que el cartel ofrece al
+tocarla, que es peor que un número viejo.
+
+### P7-c · ⚠️ ABIERTO · el título del cartel de la tanda abierta sigue diciendo «imágenes» y no «archivos»
+
+El bloque C del prompt 6 fijó que el cartel **no diga «imágenes» mientras no sabe de qué tipo
+son** —un PDF y un TXT contados como imágenes fue un defecto que el médico reportó— y el cuerpo lo
+cumple: dice «archivos recibidos hasta ahora». El **título** se quedó con «Están llegando imágenes
+del ecógrafo», que es la misma afirmación que la regla prohíbe.
+
+**No se tocó porque la tarea D no lo pide** —pide que el título diga «Están llegando…», y lo dice—
+y porque cambiarlo mueve un literal que **TC-961** afirma. Es un renglón de trabajo, no una
+decisión clínica.
+
+### P7-d · ⚠️ ABIERTO Y SOLO REPORTADO · «Desde imágenes guardadas» hereda los filtros de fecha de Guardados
+
+**Lo que el médico vio:** al entrar por ese botón, filtros de fecha de antes (13/11 a 14/11)
+seguían activos, con «Ninguna imagen coincide con los filtros activos» y «Mostrando 2 de 11
+estudios».
+
+**Medido, y NO es un defecto de los filtros.** `imgDesdeGuardadas()` llama a
+`renderInformesGuardados()`, que corre `aplicarFiltros` → `_aplicarFiltrosCrudo`, que lee
+`ig-fecha-desde` e `ig-fecha-hasta` **tal como quedaron de antes**. Esos dos campos viven **sólo
+en el DOM**: no hay una sola clave de `localStorage` para ellos —verificado— así que duran lo que
+dura la página abierta, que en una app de un solo archivo es toda la jornada. Filtrados los
+estudios, `igImgPintar(filtrados)` pinta **las imágenes de esos estudios** y escribe «Ninguna
+imagen coincide con los filtros activos» cuando no queda ninguno; el «Mostrando 2 de 11 estudios»
+es el contador de siempre.
+
+**Que las imágenes se filtren por el estudio de cada una es una decisión escrita en el marcado
+desde que existe la pantalla**: «los filtros son los de arriba y se aplican por el ESTUDIO de cada
+imagen, así que duplicarlos acá habría sido la primera forma de que las dos pantallas filtraran
+distinto».
+
+**Lo que falta es de USO, no de lógica:** el botón deja al médico en una vista donde un filtro
+puesto minutos antes para otra cosa le esconde justo lo que vino a buscar, y el mensaje **no dice
+cuál filtro**. Tres salidas posibles, todas decisión del médico: (1) `imgDesdeGuardadas()` limpia
+las fechas y el buscador antes de entrar —es `limpiarFiltros()`, que ya existe—; (2) el mensaje
+nombra los filtros activos y ofrece limpiarlos; (3) se deja como está y la guía lo explica.
+**No se cambió nada: la orden decía SOLO REVISÁ Y REPORTÁ.**
+
+### P7-e · ⚠️ ABIERTO · «Vista previa» del cartel abierto pierde el contador al volver
+
+Mientras el médico mira la vista previa de una tanda que sigue abierta, el sondeo le **actualiza el
+contador por detrás** —el cartel está escondido, no cerrado— pero `_clnkAvisoReponer` repone el
+**título y el texto guardados**, así que «Volver a la pregunta» devuelve el número que había al
+entrar. El turno siguiente del sondeo —cuatro segundos— lo corrige solo.
+
+No se arregló porque el arreglo es guardar también el cuerpo *vivo* en vez del fragmento, y eso
+toca el mecanismo que ECO-CONECTOR-5 dejó medido para la pregunta anidada.
+
+### P7-f · ✅ RESUELTO el 2026-11-21 · **P6-l queda CERRADO**: los seis intermitentes eran la CDN, y se arregló en el arnés
+
+**La causa es una sola y está medida.** El caso corría **antes** de que la CDN terminara de
+entregar la biblioteca que necesita:
+
+| caso | síntoma |
+|---|---|
+| TC-347, TC-348, TC-350 | «flujo=**NO HAY jsPDF**» |
+| TC-147 | `ReferenceError: Chart is not defined` en `labDestroyChart` |
+| TC-99 | caía **por arrastre**: TC-147, del mismo lote, lanzaba a mitad del render del Laboratorio y dejaba esa pestaña a medio pintar |
+| TC-796 | pasaba 3 de 3 en esta máquina; queda cubierto igual |
+
+Eso explica lo que P6-l dejó sin explicar: **la CDN no está caída** —`curl` entrega el jsPDF en
+0,43 a 0,56 s y una sonda que espera seis segundos encuentra los cinco scripts en 200— y lo que no
+alcanzaba era **el momento en que el caso medía**.
+
+**El arreglo es del arnés y no del producto**, que es lo que la tarea H manda: `test_clinico.mjs`
+espera a `jsPDF`, `Chart` y `XLSX` **antes del primer caso**, con un tope de doce segundos, y
+**publica en el encabezado de la corrida** cuánto tardaron. **No se tocó una línea de
+`index.html` ni una condición de un caso.** La app arranca completa sin ellas a propósito —los
+scripts de la CDN van con `defer`— y lo único que no se puede hacer en esa ventana es exportar.
+
+⚠️ **No se afloja nada y no se espera en silencio:** si al cabo del plazo alguna no llegó, el
+encabezado lo **dice** y los casos salen rojos con su motivo. Un arnés que espera callado y sigue
+es el que convierte una CDN caída en «no hay cobertura».
+
+**Medido:** los seis —más **TC-143** y **TC-535**, que esta casa declara con la misma causa— pasan
+**8 de 8 en CINCO corridas seguidas**, con las tres bibliotecas en 250 a 500 ms. Antes del arreglo,
+tres corridas de los seis dieron **1/6, 5/6 y 2/6**.
+
+### P7-g · ✅ MEDIDO · el costo del sondeo de cuatro segundos
+
+El comentario que fijaba los quince segundos sostenía que bajarlo sería «sin un solo beneficio
+clínico». La medición del médico con el VINNO lo desmintió: el primer cartel tardaba **de 12 a 15
+segundos** —con el conector falso, 3— y lo que se ve en ese rato es la pantalla quieta con las
+imágenes ya llegadas.
+
+El cuerpo de `GET /v1/estado` pesa **64 bytes** contra el conector falso (~150 en el contrato) y un
+turno contra loopback tarda **1,5 ms**:
+
+| cadencia | pedidos/min | KB/min | MB en 8 h | % de un hilo |
+|---|---|---|---|---|
+| cada 15 s | 4,0 | 0,25 | 0,12 | 0,010 |
+| cada 4 s | 15,0 | 0,94 | 0,46 | 0,037 |
+
+Once pedidos más por minuto de 64 bytes cada uno. **Las tres condiciones no se tocaron**: el sondeo
+sigue corriendo sólo con el módulo activo, vinculado y la pestaña a la vista, y el chequeo de
+`document.hidden` que **P6-j** le puso al rebote de `clnkRefrescar` sigue puesto —con la cadencia
+cuatro veces más rápida importa más que antes, no menos—.
+
+### P7-h · ✅ EXPLICADO · por qué los botones seguían apagados más de tres minutos
+
+**La regla que cierra la tanda no es de esta app:** la decide el **puente** y son **dos minutos de
+silencio** desde la última llegada (contrato §P8; `derivarLotes` del conector falso lo reproduce
+con `VENTANA_LOTE_MS = 2 min`). Los tres minutos que el médico midió son esos dos minutos **más**
+el turno de sondeo que tardaba en enterarse —hasta 15 s hasta la tarea B—, sobre un envío cuya
+**última** imagen llegó más tarde de lo que parecía.
+
+⚠️ **Ni el sondeo ni la reapertura de la burbuja la reinician, y esto se midió y no se supuso:**
+ninguno de los dos toca `tanda_ultima`, que es de lo único de lo que cuelga el plazo. El sondeo
+sólo **lee** `/v1/estado` y la burbuja sólo mueve estado de pantalla.
+
+### P7-i · ✅ EXPLICADO · el defecto de los «botones pálidos que funcionan»
+
+`_clnkAvisoApagarBotones` ponía la opacidad en un **estilo en línea** y `clnkAvisoAbrir` —la única
+puerta por la que el modal cambia de contenido— **no la borraba**. El cartel siguiente nacía con
+`disabled = false` y la opacidad `.55` todavía puesta. **Los dos caminos que lo producen, los dos
+sin pasar por `_clnkAvisoApagarBotones(false)`:** `clnkBurbujaAbrir` —el que el médico usó— y la
+rama de ACTUALIZAR de `clnkRevisarImagenes`.
+
+Hoy el aspecto va por una **clase** que la apertura limpia de los cinco botones en un solo lugar, y
+el apagado es `disabled` **de verdad** más la clase: un botón deshabilitado no emite click, que es
+lo que impide el estado al revés.
+
+### P7-j · ⚠️ DECLARADO · una trampa nueva de medición: la transición de CSS
+
+`.btn` declara `transition: opacity .15s`, así que un `getComputedStyle` **inmediato** tras agregar
+la clase devuelve el valor de **arranque** —1— y no el de destino. La clase ya estaba puesta y el
+`cursor` y el `filter` ya eran los nuevos, y la opacidad daba 1: el caso salía rojo sobre una app
+que se porta bien, y buscar un `!important` que no existe costó una corrida.
+
+**Cómo se mide bien:** esperar más que la duración declarada —300 ms para 150— y, al diagnosticar,
+leer `cursor` y `filter` además de `opacity`: si esas dos cambiaron, la regla **sí** aplica y lo que
+falta es tiempo, no especificidad.
+
+### P7-k · ✅ EXPLICADO · por qué «Imágenes sin estudio» de la pestaña Imágenes estaba atrasada
+
+Hay **dos** pantallas que muestran la bandeja: `clnkb-sec` en la pestaña Imágenes y `ig-bandeja` en
+Guardados. **ECO-CONECTOR-3** le agregó «Asignar» y **ECO-CONECTOR-4** las miniaturas... **sólo a la
+segunda**, así que la primera se quedó con el texto pelado y «Borrar». Su comentario todavía decía
+«NO se muestran las imágenes… una miniatura invita a un gesto que todavía no existe», y las dos
+mitades de ese argumento habían caducado dos tandas atrás. Desde la tarea F las dos usan el **mismo
+pintor** y ofrecen lo mismo.
+
+### P7-l · ⚠️ ABIERTO · borrar de a una NO existe para un CINELOOP desde la pantalla
+
+`clnkbBorrarUna(id, clase, k)` sabe borrar un cineloop —su parámetro `clase` lo contempla y TC-976
+lo mide— pero el **botón** vive en `_clnkbVerFija`, que es el lightbox de una **fija**. El cineloop
+abre `_cineAbrir`, el visor maduro del estudio, y meterle un botón que borre de la bandeja ahí es
+enhebrarle un modo a una pantalla que el médico usa todos los días — el mismo cambio que
+ECO-CONECTOR-3 decidió **no** hacer con `igItemHTML`. Para un cineloop quedan «Borrar el envío» y
+la función, que ya está.
+
+### P7-m · ⚠️ ABIERTO · el área táctil de los acordeones de Evidencia sigue en 15 px
+
+Los **38 hallazgos ALTA** del barrido de celular son la línea base exacta y **ninguno es de este
+prompt**: son los `input.ind-chk` de los acordeones del panel de Evidencia (15×15 px),
+`#ecoHdrBurger` y `#cfg-clnk-on`. Es el **M5-n** que MEDIR-5 dejó declarado y que decide el médico.
 
 ## PROMPT 5 — la calibración en milímetros, el cartel que tapaba el visor, los dos textos de CeiboLink y «Ir al estudio» (2026-11-19)
 

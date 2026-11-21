@@ -10,6 +10,18 @@ comunicación están en `docs/mapa/ceibolink-panel.md`; el aviso y la bandeja en
 veredicto por archivo en `docs/mapa/ec4-confirmar-pesados.md`; la vista previa y la galería en
 `docs/mapa/ec5-previa-galeria.md`.
 
+⚠️ **EL PROMPT 7 (2026-11-21) MOVIÓ SIETE COSAS DE ESTE MISMO MÓDULO, Y VIVEN EN SU PROPIO MAPA:**
+`docs/mapa/p7-burbuja-silencio-botones.md`. Lo que cambia respecto de lo que se lee más abajo:
+
+| de este mapa | qué le pasó |
+|---|---|
+| la burbuja (§2) | ahora **también** sale al cerrar un cartel ya TERMINADO, quieta y latiendo |
+| `CLNK_SONDEO_MS` | pasó de **15000 a 4000**, con su costo medido |
+| «el plazo lo da el puente y NO se duplica» (§1 y §8) | **revertido por orden del médico**: la app tiene su propia ventana de silencio de 20 s, `CLNK_SILENCIO_MS`, con un pestillo |
+| `CLNK_TANDA_BOTONES` (§1) | pasó de cuatro cadenas a **CINCO** entradas con manejador: tres apagados, Vista previa y Descartar **vivos** |
+| `_clnkAvisoApagarBotones` (§1) | el aspecto apagado va por una **clase** y gana su alcance |
+| los datos del ecógrafo (§6) | cada uno lleva su línea «En tu ecógrafo puede llamarse:» |
+
 ---
 
 ## 1 · El cartel que sale con la primera imagen (bloque A)

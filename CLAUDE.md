@@ -145,7 +145,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-971.md` (TC-971 a TC-977), `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -163,6 +163,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la ALINEACIÓN de las dos vistas del visor** —la plantilla única de barra, el «✕ Cerrar vista» de cada vista, el prefijo libre, la columna de 340 px con su corte de 1369 px—, **el RESULTADO integrado abajo y centrado**, **la TABLA que se muda a la columna de la vista activa**, **«+ Vista» con IMÁGENES FIJAS** —su marca, la deduplicación por nombre/cuadros/bytes o los homónimos distinguidos— o **el SIMPSON bloqueado en una vista de imagen fija** | `docs/mapa/medir4a-vistas-cierre.md` |
 | **Tocar el PANEL del visor** —el negro de los costados, el tope del modal, el selector FIJO con su scroller—, **la TABLA de una medida por fila** con su valor grande, **el GLOBO ⓘ del panel de medición**, **el orden del VI o el Diam TSVI en Aorta**, **los BOTONES de la barra y su contraste**, **la CALIBRACIÓN DE VELOCIDAD con dos valores** con su línea del cero y el modo M, **el FAC del VD** o **la banda de «Vmax pulmonar»** | `docs/mapa/medir3-panel-botones-calibracion.md` |
+| **Tocar la BURBUJA que queda al cerrar un cartel TERMINADO, la VENTANA DE SILENCIO de la app con su pestillo, la CADENCIA del sondeo ocioso, los CINCO botones del cartel de la tanda —los tres apagados y los dos vivos—, los NOMBRES que un dato tiene en el ecógrafo, las MINIATURAS de «Imágenes sin estudio» con el borrado de a una, o el mensaje de MEDIR una fija** | `docs/mapa/p7-burbuja-silencio-botones.md` |
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
@@ -274,6 +275,16 @@ la regla: `tests.md` **27,7 KB**, `informe-pdf-excel.md` 27,2 (no se tocó),
 `arneses-ab-mutacion.md` **15,0 KB**. La ficha del caso salió a archivo propio
 (`tests-fichas-550.md`, 6,2 KB) en vez de engordar `tests.md`.
 
+⚠️ **Al 2026-11-21, tras el PROMPT 7, el mapa nuevo nació mediano** —`p7-burbuja-silencio-botones.md`,
+**16,8 KB**— y el que recibió el puntero quedó medido ANTES de escribirlo, que es la regla:
+`p6-tanda-burbuja-formatos.md` **19,3 → 20,2 KB**. Las fichas de los siete casos salieron a archivo
+propio (`tests-fichas-971.md`, **7,9 KB**) porque `tests-punteros-tandas.md` está en **36,4 KB** y
+`tests-fichas.md` en 34,6: los dos **por encima** del techo.
+⚠️ **Y POR ESO `tests-punteros-tandas.md` NO SE TOCÓ**: agregarle un puntero de tres líneas a un
+archivo que ya cruzó el techo es exactamente lo que esta regla viene a evitar. El enlace a las
+fichas nuevas vive en la tabla de arriba, que es donde se busca. **La próxima tanda que lo toque
+tiene que partirlo** — hace ocho tandas que lo dice.
+
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
 ---
@@ -281,7 +292,32 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,60 MB / 187.983 líneas**, medido con `wc -c` y `wc -l` el 2026-11-20 al cierre del **cierre de P6-j y P6-k** (el rebote del sondeo con la pestaña oculta y la escena propia de TC-964), sobre el árbol ya sellado: sello **`v20261120-1207`**, md5 **`555ee5c0`**.
+  sin frameworks. Hoy **13,63 MB / 188.426 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre del **prompt 7** (la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, las miniaturas de «Sin estudio», el mensaje de medir y los seis intermitentes), sobre el árbol ya sellado: sello **`v20261121-0308`**, md5 **`cf41995d`**.
+  El diff del prompt 7 son **487 líneas agregadas y 44 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `2a1bc79` **sobre el árbol ya sellado**, de las que **228 son código
+  de verdad**, 242 comentario y 17 en blanco — las 487 cierran exacto.
+  ⚠️ **ESE 227 NO SE MIDIÓ CON EL FILTRO DE SIEMPRE, Y LA DIFERENCIA IMPORTA**: el filtro que esta
+  casa viene usando descarta los renglones que arrancan con `/*`, `*` o `//`, y cuenta como código
+  **los renglones de continuación de un comentario de bloque que no arrancan con asterisco** — que
+  en este archivo son la mayoría. Con ese filtro este diff daría **430**. El 227 sale de llevar el
+  estado del comentario de bloque, que es lo que de verdad separa código de prosa. Las cifras «no
+  comentario» de las tandas anteriores están medidas con el filtro viejo y son, por lo tanto,
+  **altas**.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **cero** claves y
+  contraseñas, y **CERO** `input`, `select` y `textarea` nuevos — que es lo que deja todo esto
+  fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y
+  las **457** columnas quietas. El único id que el diff muestra en el marcado es
+  `eco-build-sello`, que ya existía y reaparece porque el sello cambió; lo nuevo son **atributos**
+  —`data-clnk-alias`, `data-clnkb-medir`, `data-clnkb-medir-una`, `data-clnkb-medir-nota`— y una
+  **clase**, `clnk-av-off`, ninguno de los cuales entra a ninguno de los veintitrés barridos por
+  sufijo o prefijo de id del archivo.
+  **Y CERO cortes clínicos, cero fórmulas y cero umbrales**: lo que este prompt movió son dos
+  cadencias, una ventana de silencio propia, textos y pantallas.
+  ⚠️ **POR QUINCUAGÉSIMA TERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 2a1bc79:index.html` da **187.983**
+  líneas, **13.597.295** bytes y el md5 **`555ee5c0`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,60 MB / 187.983 al cierre del **cierre de P6-j y P6-k**, sello **`v20261120-1207`**, md5 **`555ee5c0`**.)
   El diff de ese cierre son **TRECE líneas agregadas y CUATRO quitadas** en `index.html`, medido con
   `git diff --numstat` contra `ad38d37` **sobre el árbol ya sellado**, de las que **UNA sola no es
   comentario** —`if (document.hidden) return;`, dentro del rebote de `clnkRefrescar`—, con **cero**
@@ -1489,6 +1525,206 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**El prompt 7 (2026-11-21) — la burbuja del cartel terminado, el sondeo de cuatro segundos, la
+ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir.**
+NUEVE tareas, A a I, y las nueve se hicieron. OCHO commits de código, uno por tarea. Sello
+**`v20261121-0308`**, md5 **`cf41995d`**, **188.426** líneas. Línea base **`2a1bc79`**, el cierre de
+P6-j y P6-k. **Sin push: lo corre Maicol.**
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Lo que este
+prompt movió son dos cadencias, una ventana de silencio propia, textos y pantallas. Y **CERO**
+`input`, `select` y `textarea` nuevos, que deja todo esto fuera del censo del estudio y del Excel
+**por construcción**: cero campos guardados nuevos y las **457** columnas quietas.
+
+**LO QUE EL MÉDICO MIDIÓ CON EL VINNO REAL, Y QUE ES LO QUE ORDENA LA TANDA.** Dieciséis imágenes
+llegaron al cartel y se pudieron adjuntar, con el envío completo en 30 s. El primer cartel de
+«equipo nuevo» tardó **12 a 15 s** (con el ecofalso, 3). La tanda 2 —seis imágenes y un cineloop—
+llegó entera en menos de 30 s y los botones de adjuntar siguieron «apagados» **más de tres
+minutos**, y **funcionaban igual al tocarlos**. Tamaños reales: fija de 177 a 258 KB, cineloop de
+**7,0 MB** con 102 cuadros; el contador de espacio era correcto.
+
+**TAREA A — LA BURBUJA SALÍA SÓLO CERRANDO UN CARTEL QUE TODAVÍA LLEGABA.** Con la tanda ya cerrada
+`clnkTandaCerrar` pone `_clnkTanda` en `null`, así que la rama que la levantaba no entraba y el
+cartel desaparecía entero: el médico que cerraba para despejar la pantalla perdía la única puerta a
+sus archivos hasta el próximo «Ver lo que espera». Hoy `clnkAvisoCerrar(porMedico)` levanta la
+burbuja **quieta y latiendo**, con el número de los **ids del grupo** y no de `tanda_imagenes`, que
+incluye la cuarentena.
+⚠️ **LAS DOS GUARDAS CONTRA LOS «DOS CARTELES CONTRADICTORIOS», LAS DOS MEDIDAS.** (1) Sólo los
+**tres** caminos del médico pasan `true` —la ✕, el clic en el fondo y Escape—: `dstResumen` cierra
+con «Entendido» **después** de adjuntar y `_clnkAvisoGrupo` seguía puesto ahí, así que una burbuja
+levantada en cualquier cierre diría «Llegaron N archivos» sobre archivos recién adjuntados. (2) Los
+cuatro destinos **sueltan** el grupo, así que no se puede resucitar un envío ya decidido ni cerrando
+el resumen con la ✕. «Vista previa» **no** lo suelta: mirar no es decidir. (3) `_clnkPregAbierta`
+la apaga mientras hay una pregunta anidada, donde `_clnkAvisoReponer` reabre el modal dos líneas
+después.
+
+**TAREA B — EL SONDEO OCIOSO BAJA A CUATRO SEGUNDOS, Y UNA PREMISA ESCRITA QUEDÓ DESMENTIDA.** El
+comentario que fijaba los quince decía que bajarlo sería «**sin un solo beneficio clínico**»: la
+medición del médico lo desmiente, porque lo que ve en esos quince segundos es la pantalla quieta con
+sus imágenes ya llegadas. **El costo está medido**, que es lo que la tarea pide declarar: el cuerpo
+de `GET /v1/estado` pesa **64 bytes** contra el conector falso (~150 en el contrato) y un turno
+contra loopback tarda **1,5 ms** — de 4 a **15 pedidos/min**, de 0,25 a **0,94 KB/min**, de 0,12 a
+**0,46 MB en ocho horas** y de 0,010 a **0,037 % de un hilo**. El de la tanda abierta **no se
+movió**: sigue en los 4000 que el prompt 6 fijó entre 3 y 5 s, y `clnkSondeoMs()` sigue siendo el
+dueño único aunque los dos valores ahora coincidan.
+
+**TAREA C — LA REGLA QUE CIERRA LA TANDA ES DEL PUENTE, Y SON DOS MINUTOS.** `tanda_cierra` ya viene
+calculado y `tanda_abierta` sale de compararlo con el reloj del puente (§P8). Los tres minutos que
+el médico midió son esos dos **más** el turno de sondeo que tardaba en enterarse, sobre un envío
+cuya **última** imagen llegó más tarde de lo que parecía.
+⚠️ **NI EL SONDEO NI LA REAPERTURA DE LA BURBUJA LA REINICIAN, y esto se midió y no se supuso:**
+ninguno de los dos toca `tanda_ultima`, que es de lo único de lo que cuelga el plazo.
+Esta app **no puede** tocar el plazo del puente, así que lo que se agrega es una regla propia **más
+corta** en una constante sola, `CLNK_SILENCIO_MS = 20000`, con **un solo dueño**
+—`clnkSilencioCumplido`— leído por los **dos** caminos que deciden cuándo se puede decidir:
+`clnkTandaAbierta`, que el sondeo consume en vez del `tanda_abierta` del puente, y `clnkGrupoListo`,
+el filtro del aviso de siempre. Con la regla en uno solo, el cartel diría «Listo» mientras el aviso
+sigue esperando dos minutos.
+⚠️ **ESTO REVIERTE, POR ORDEN EXPRESA DEL MÉDICO, la regla del prompt 6 que decía «el plazo lo da
+el puente y NO se duplica».** Lo que **no** cambia es que el puente sigue guardando los archivos su
+plazo entero: no se borra ni se confirma nada antes de tiempo. Declarado en **P7-a**.
+**FALLA HACIA «NO CERRAR»**: sin `tanda_ultima`, con una fecha que no se entiende o con la tanda
+vacía devuelve `false` y manda el puente. Y **un PESTILLO** impide el ida y vuelta: una vez que la
+app declaró cerrada una tanda no la vuelve a abrir, y lo que entra después **engorda** el cartel que
+ya está en pantalla —la rama de actualizar, que retitula «Llegaron más imágenes del ecógrafo»—. El
+pestillo se suelta cuando el **puente** dice que la tanda cerró.
+
+**TAREA D — EL DEFECTO DE LOS «BOTONES PÁLIDOS QUE FUNCIONAN» ERA UNA LÍNEA.**
+`_clnkAvisoApagarBotones` ponía la opacidad en un estilo **en línea** y `clnkAvisoAbrir` no la
+borraba, así que el cartel siguiente nacía con `disabled = false` y la opacidad `.55` todavía
+puesta. **Los dos caminos que lo producen, los dos sin pasar por `_clnkAvisoApagarBotones(false)`:**
+`clnkBurbujaAbrir` —el que el médico usó— y la rama de ACTUALIZAR de `clnkRevisarImagenes`. Hoy el
+aspecto va por una **clase** que la apertura limpia de los cinco en un solo lugar, y el apagado es
+`disabled` de verdad más la clase: un botón deshabilitado no emite click, que es lo que impide el
+estado al revés.
+El cartel abierto deja de ser una pantalla sin nada que hacer: `CLNK_TANDA_BOTONES` pasa de cuatro
+cadenas a **CINCO** entradas con su manejador, en el mismo orden que `dstPreguntar`, con los tres
+destinos apagados y **Vista previa y Descartar vivos**, que piden la lista **recién al tocarlos**
+(`_clnkTandaGrupo`).
+⚠️ **`_clnkTandaEnPantalla` ES NUEVA Y HACE FALTA**: la vista previa reemplaza el cuerpo del modal,
+y `clnkTandaCuerpo` —que no encuentra ahí su contador— lo **vacía** y repinta el dibujo encima,
+borrándole al médico la tira que está mirando. La bandera viaja con el estado del aviso, así que
+«Volver a la pregunta» devuelve también la capacidad de seguir actualizando el contador. Y
+`clnkTandaCerrar` con la vista previa encima **no toca nada y no pierde la tanda**: con `_clnkTanda`
+en `null` ese cartel se quedaba diciendo «Están llegando» para siempre.
+
+**TAREA E — LOS NOMBRES QUE EL DATO TIENE EN EL ECÓGRAFO.** Los rótulos actuales **no se tocan**;
+cada dato gana debajo una línea más chica, «En tu ecógrafo puede llamarse:», y el panel dice una
+sola vez que **SCP = el equipo que recibe las imágenes (esta computadora)**. `_clnkDato` gana un
+sexto argumento opcional, aparte de `nota` porque la dirección usa las dos a la vez.
+⚠️ **SÓLO EL VINNO ESTÁ CONFIRMADO**, así que el panel **no dice de qué marca** es cada nombre:
+dice «puede llamarse» y lista las formas. TC-975 lo mide buscando **once** nombres de marca y
+exigiendo **cero**.
+
+**TAREA F — «IMÁGENES SIN ESTUDIO» DE LA PESTAÑA IMÁGENES ESTABA DOS TANDAS ATRASADA.** Hay **dos**
+pantallas que muestran la bandeja; ECO-CONECTOR-3 le agregó «Asignar» y ECO-CONECTOR-4 las
+miniaturas **sólo a la de Guardados**, y la otra se quedó con texto y «Borrar» —su comentario
+todavía decía «una miniatura invita a un gesto que todavía no existe», con las dos mitades de ese
+argumento ya caducadas—. Hoy las dos usan el **mismo pintor** y ofrecen lo mismo.
+**`clnkbBorrarUna(id, clase, k)` es nueva**: opera sobre el arreglo del registro —no sobre una
+copia— y si no queda nada **borra el registro**. El visor gana «🗑 Borrar esta imagen», antes de
+«Borrar el envío» porque es la acción más chica, con su confirmación propia.
+⚠️ **NO TOCA NINGÚN ESTUDIO Y NO CONFIRMA NADA A CEIBOLINK, por construcción**: esta base no tiene
+una sola ruta hacia `imgSlots` y los ids ya se confirmaron al entrar a la bandeja. TC-976 lo mide
+censando **todos** los controles con id de la app antes y después y exigiendo que la cadena sea
+idéntica.
+
+**TAREA G — «NO PASA NADA AL INTENTAR MEDIR» ERA LITERAL.** El lightbox de una fija no tenía un
+botón de medir, así que no había nada que tocar ni nada que dijera por qué. Hoy el mensaje exacto
+—«Para medir, asignala a un estudio»— vive en **una** constante que leen un renglón a la vista y un
+botón «📏 Medir».
+⚠️ **EL BOTÓN VA SIN `disabled`**: uno deshabilitado no emite click, así que el médico tocaría el
+único control que tiene que **explicarle** por qué está bloqueado y no pasaría nada. **La regla no
+se toca**: las mediciones siguen viviendo dentro del estudio, y los cines siguen midiéndose —TC-977
+lo fija con un control positivo que abre un cineloop y exige su botón de medir **y** la ausencia de
+este mensaje—.
+
+**TAREA H — LOS SEIS INTERMITENTES ERAN LA CDN, Y SE ARREGLÓ EN EL ARNÉS. P6-l QUEDA CERRADO.** La
+causa es **una sola**: el caso corría antes de que la CDN entregara su biblioteca —«NO HAY jsPDF» en
+TC-347, TC-348 y TC-350; `Chart is not defined` en TC-147— y **TC-99 caía por ARRASTRE**, porque
+TC-147, del mismo lote, lanzaba a mitad del render del Laboratorio y dejaba esa pestaña a medio
+pintar. Eso explica lo que P6-l no podía: **la CDN no está caída** —`curl` entrega el jsPDF en 0,43
+a 0,56 s— y lo que no alcanzaba era **el momento en que el caso medía**.
+`test_clinico.mjs` espera a **jsPDF, Chart y XLSX antes del primer caso**, con tope de doce
+segundos, y **publica cuánto tardaron**. **No se tocó una línea de `index.html` ni una condición de
+un caso**, que es lo que la tarea manda. ⚠️ **Y no se espera en silencio**: si alguna no llegó, el
+encabezado lo dice y los casos salen rojos con su motivo. **Medido: los seis —más TC-143 y TC-535,
+que esta casa declara con la misma causa— pasan 8 de 8 en CINCO corridas seguidas**, con las tres
+bibliotecas en 250 a 500 ms; antes del arreglo, tres corridas dieron **1/6, 5/6 y 2/6**.
+
+**COBERTURA: SIETE casos nuevos, TC-971 a TC-977**, uno por tarea de la A a la G, y los siete caen
+contra `2a1bc79` con el mismo archivo de casos — tres por condiciones (ocho, dos y siete) y cuatro
+por su **denominador declarado**, y **ninguno por excepción**. **TRES casos adaptados**: **TC-961**
+en cinco condiciones —tres de cadencia, que leen la constante en vez del 15000 escrito a mano, y dos
+**INVERTIDAS** por la tarea D: antes exigía que los cinco botones estuvieran apagados y ahora exige
+que los dos de abajo **no** lo estén, así que falla por los dos lados—, **TC-970** y **TC-845** en
+su condición de cadencia. Ninguno borrado y ninguno aflojado.
+⚠️ **DOS DE LOS TRES ADAPTADOS LOS DESTAPÓ LA CORRIDA Y NO MI CENSO**: TC-970 y TC-845 afirmaban los
+15000 con otros nombres de variable.
+
+**LÍNEA BASE AL CIERRE: suite 979/985**, en **DIECIOCHO** lotes cubriendo los **985 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol resellado, con los **985 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`cf41995d`), el pendrive `DISK_IMG` verificado **veinte** veces con sus **343** archivos de
+`GEMS_IMG`, y **las tres bibliotecas de la CDN en los dieciocho lotes** —que es la tarea H
+midiéndose a sí misma—. **Los siete casos nuevos y los tres adaptados, en verde.**
+Los rojos son **seis**: los **cinco** que la orden declara conocidos —TC-182, TC-376, TC-406,
+TC-551 y TC-903— y **TC-847**, que era **mío**: pasaba **aislado** y salía rojo en su **lote 15**.
+Adaptado y vuelto a correr su lote entero: **55/55**, con el md5 del árbol idéntico al abrir y al
+cerrar. **No se rehizo la pasada completa**, y se declara con su motivo: `index.html` **no cambió**
+y el único archivo que se movió fue el de casos — el mismo criterio con que la 3A y el prompt 4 no
+rehicieron la suya. **El estado real es 980/985 con los cinco rojos conocidos.**
+
+⚠️ **ES LA SEGUNDA PASADA, Y LA PRIMERA NO SE INFORMA PORQUE DESTAPÓ UNA REGRESIÓN MÍA Y EL ÁRBOL
+CAMBIÓ DESPUÉS.** Dio **976/985** con **nueve** rojos: los cinco conocidos y **cuatro** que pasan
+contra `2a1bc79` con el mismo archivo de casos, o sea los cuatro de esta tanda, y los cuatro
+fallando también **aislados**.
+**TC-840 ERA UNA REGRESIÓN REAL DEL PRODUCTO Y SE ARREGLÓ EN EL PRODUCTO**: `clnkLeerAjustes`
+borraba el mensaje de `cfg-clnk-amsg`, y a esa función la llama el rebote que el **sondeo** arma en
+cada turno — con el sondeo a cuatro segundos, el mensaje «Guardado. Cambiar el nombre reinicia el
+receptor: por unos segundos no entran imágenes, y hay que cargar el nombre nuevo en el ecógrafo» se
+borraba en cuatro, y **no alcanzan para leer dos renglones de una instrucción**. Hoy la limpieza
+vive en los **gestos** del médico —guardar y abrir el panel— y no en la lectura de fondo: queda
+**mejor** que antes de la tarea B. El árbol se reselló por eso, de `v20261121-0202` a
+`v20261121-0308`.
+Los otros tres eran de los casos, y los tres quedaron adaptados **sin aflojar una condición**:
+**TC-850 (G) INVERTIDO** —afirmaba que «Sin estudio» no tiene miniaturas, que es justo lo que la
+tarea F cambió—, **TC-873 (F)** y **TC-847 (F)**, que miden llamadas **explícitas** y a los que el
+sondeo de cuatro segundos se les metía en la ventana de medición.
+⚠️ **Y TC-847 ENSEÑÓ DOS COSAS.** Una: **parar el temporizador NO alcanza** — un turno ya en vuelo
+sigue su curso, porque `_clnkSondear` es `async`, así que lo que lo cierra es dejar la escena en
+`vacio`. Dos: **el diagnóstico engañaba**, porque `clnkAvisoCerrar` esconde el modal pero **no
+vacía el título ni el párrafo**, así que el caso informaba el texto del aviso **anterior** y parecía
+que el cartel de imágenes estaba encima; lo que fallaba era que `clnkAvisarEquipoNuevo` **no vuelve
+por el mismo equipo en la misma sesión** y un turno del sondeo ya había avisado.
+
+**VERIFICACIÓN AL CIERRE. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta —y
+ninguno es de este prompt: son los `input.ind-chk` de los acordeones de Evidencia, `#ecoHdrBurger` y
+`#cfg-clnk-on`, que es el **M5-n** que decide el médico—. **CERO** `innerHTML`, `eval(` y
+`new Function` nuevos, **cero** claves y contraseñas. **Excel en 457 columnas y CERO campos
+guardados nuevos**, por construcción.
+
+⚠️ **TRES TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave** dentro de mis propios comentarios,
+por trigesimotercera tanda seguida: el guardián de `_insertar_p7.py` lo cazó dos veces **antes** de
+insertar y `node --check` una tercera, después de un reemplazo que metió uno en un comentario ya
+insertado. (2) La **barra invertida** de una expresión regular, que no sobrevive al template: el
+guardián también la abortó. (3) **UNA NUEVA, y queda escrita**: `.btn` declara
+`transition: opacity .15s`, así que un `getComputedStyle` **inmediato** devuelve el valor de
+**arranque** y no el de destino — la clase ya estaba puesta y el `cursor` y el `filter` ya eran los
+nuevos, y la opacidad daba 1. El caso salía rojo sobre una app que se porta bien, y buscar un
+`!important` que no existe costó una corrida. Declarada en **P7-j**.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO, y se declara en vez de
+dejarlo pasar en silencio**: la orden no la pedía y el presupuesto se fue en las nueve tareas y su
+verificación. Es la **decimoquinta** tanda seguida que la posterga. Lo que hay que mudar hoy es todo
+lo anterior a **MEDIR-4a**, o sea de **MEDIR-3 hacia atrás**.
+
+Lo declarado, en **P7-a** a **P7-m** —con **P6-l CERRADO** por la tarea H—; el mapa, en
+`docs/mapa/p7-burbuja-silencio-botones.md`; la guía manual contra CeiboLink real, en
+`docs/GUIA_PRUEBA_P7.md`; el corredor de lotes, en `scripts/_lotes_p7.sh`; el insertador de casos
+con su guardián de acentos graves, en `scripts/_insertar_p7.py`.
 
 **El cierre de P6-j y P6-k (2026-11-20) — el rebote del sondeo con la pestaña oculta y la escena
 propia de TC-964.** DOS arreglos y CUATRO commits. Sello **`v20261120-1207`**, md5 **`555ee5c0`**,

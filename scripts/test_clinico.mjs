@@ -136525,6 +136525,18 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       try { if (typeof clnkBurbujaOcultar === 'function') clnkBurbujaOcultar(); } catch (e) {}
       await new Promise(r => setTimeout(r, 300));
       try { clnkAvisoCerrar(); } catch (e) {}
+      /* ** Y SE OLVIDA QUE YA SE AVISO DE ESE EQUIPO, QUE ES LO QUE DE VERDAD FALTABA.
+         clnkAvisarEquipoNuevo NO vuelve por el mismo equipo en la misma sesion -esa es su
+         regla, y el conector falso ya la documenta con su tercer equipo-: con el sondeo ocioso a
+         CUATRO segundos un turno propio, que llama a esa misma funcion cuando hay equipos
+         esperando, alcanza a avisar de eq_9b2e7d ANTES que este bloque, y entonces la llamada
+         explicita devuelve false. Pasaba AISLADO y salia rojo en su lote 15, que es la firma.
+         ⚠️ Y EL DIAGNOSTICO ENGANIA: clnkAvisoCerrar esconde el modal pero NO vacia el titulo
+         ni el parrafo, asi que txt() devolvia el texto del aviso ANTERIOR y parecia que el
+         cartel de imagenes estaba encima. Lo que fallaba era f_abrio, y nada mas.
+         Olvidarlo no afloja nada: (F) mide el MOLDE del aviso, no la regla de una vez por
+         sesion. */
+      try { window._clnkEqAvisados = Object.create(null); } catch (e) {}
       R.f_abrio = await clnkAvisarEquipoNuevo();
       await new Promise(r => setTimeout(r, 400));
       R.f_visible = visible();
