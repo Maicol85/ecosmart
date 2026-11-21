@@ -185577,13 +185577,26 @@ window.clnkAdjuntarABandeja = clnkAdjuntarABandeja;
    Sin esto el médico tendría que abrir Configuración y apretar «Actualizar» para enterarse de
    que llegó una imagen —o sea que no se enteraría—.
 
-   ⚠️ QUINCE SEGUNDOS, Y DE AHÍ SALE EL NÚMERO. `GET /v1/estado` no lleva token, devuelve ~150
-   bytes y el contrato dice textualmente que se puede consultar «cada pocos segundos». Con 15 s
-   son cuatro pedidos por minuto a loopback, que no se mide en ninguna parte, y el aviso llega
-   como máximo 15 s después de que el ecógrafo terminó de mandar —menos de lo que tarda el
-   médico en volver a la computadora—. Con 5 s el pedido correría doce veces por minuto mientras
-   el médico escribe, sin un solo beneficio clínico; con 60 s el médico llega antes que el aviso
-   y concluye que esto no funciona.
+   ⚠️ CUATRO SEGUNDOS, Y EL NUMERO LO CORRIGIO UNA MEDICION DEL MEDICO (PROMPT 7, TAREA B).
+   Este renglon decia QUINCE, y su argumento era que «con 5 s el pedido correria doce veces por
+   minuto mientras el medico escribe, SIN UN SOLO BENEFICIO CLINICO». Esa premisa resulto falsa
+   al probar con el ecografo de verdad: el primer cartel tardaba de 12 a 15 segundos en salir
+   —contra 3 con el conector falso— y lo que el medico ve en esos quince segundos es la pantalla
+   QUIETA mientras sus imagenes ya llegaron. El beneficio clinico es ese: la diferencia entre
+   «esto anda» y «esto no se entero».
+
+   EL COSTO ESTA MEDIDO Y ES EL QUE LA TAREA B PIDE DECLARAR. `GET /v1/estado` no lleva token y
+   su cuerpo pesa 64 bytes contra el conector falso (~150 en el contrato), y un turno contra
+   loopback tarda 1,5 ms:
+     · cada 15 s →  4 pedidos/min · 0,25 KB/min · 0,12 MB en ocho horas · 0,010 % de un hilo
+     · cada  4 s → 15 pedidos/min · 0,94 KB/min · 0,46 MB en ocho horas · 0,037 % de un hilo
+   O sea once pedidos mas por minuto de 64 bytes cada uno. Lo que se compra con eso es que el
+   cartel salga a los cuatro segundos del primer archivo en vez de a los quince.
+
+   ⚠️ Y SIGUE CORRIENDO SOLO CON CEIBOLINK ACTIVO, VINCULADO Y LA PESTAÑA A LA VISTA: las tres
+   condiciones viven en `clnkSondeoDebe()` y no se tocaron. Con la pestaña del navegador tapada
+   no sale un solo pedido —ni del temporizador, que queda apagado, ni del rebote de
+   `clnkRefrescar`, que desde P6-j pregunta por `document.hidden` antes de disparar—.
 
    ⚠️ Y LA LISTA DE IMÁGENES SÓLO SE PIDE SI EL ESTADO DICE QUE HAY ALGO. `GET /v1/imagenes`
    lleva token y recorre el almacén del conector; `estado` publica el contador justamente para
@@ -185599,7 +185612,7 @@ window.clnkAdjuntarABandeja = clnkAdjuntarABandeja;
    ⚠️ Y TODA RESPUESTA EN VUELO SE DESCARTA SI EL ESTADO CAMBIÓ: `clnkPedir` compara `_clnkGen`
    y devuelve `vigente`. Sin eso, apagar el módulo y recibir medio segundo después la respuesta
    de un sondeo anterior abriría un aviso de imágenes sobre un módulo apagado. */
-var CLNK_SONDEO_MS = 15000;
+var CLNK_SONDEO_MS = 4000;
 var _clnkSondeoTimer = null;
 var _clnkSondeando = false;
 
@@ -185624,6 +185637,11 @@ window.clnkSondeoDebe = clnkSondeoDebe;
    contador del cartel suba a la velocidad a la que las imagenes llegan; el resto del tiempo, los
    quince de siempre. UN SOLO lugar lo decide, para que el temporizador y el oyente no puedan
    discrepar. */
+/* ⚠️ DESDE LA TAREA B LOS DOS VALORES COINCIDEN EN 4000, Y LA FUNCION SE QUEDA IGUAL. Lo que
+   vale de ella no es que los numeros sean distintos sino que haya UN SOLO lugar donde se decide
+   el periodo: el dia que uno de los dos se mueva —el de la tanda esta fijado entre 3 y 5 s por
+   el pedido del prompt 6 y el ocioso por la tarea B del 7— el temporizador y el oyente no pueden
+   discrepar. Y `_clnkSondeoMsPuesto` sigue haciendo falta por lo mismo. */
 function clnkSondeoMs() {
   return _clnkTanda ? CLNK_SONDEO_TANDA_MS : CLNK_SONDEO_MS;
 }

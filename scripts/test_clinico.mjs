@@ -152203,16 +152203,17 @@ caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo vi
       ['los botones se PRENDEN -- y aparece la vista previa, que son cinco',
         R.cTodosOn && R.cBots.length === 5, R.cBots.map(b => b.txt + ':' + b.off).join(' | ')],
       ['el dibujo se para -- quieto pero visible', R.cQuietos, R.cQuietos],
-      ['y la cadencia vuelve a la lenta', R.cCadencia === 15000, R.cCadencia],
+      ['y la cadencia vuelve a la ociosa -- ADAPTADO por la tarea B del prompt 7: son 4000 y no 15000, y se lee de la constante para que el numero viva en UN solo lugar',
+        R.cCadencia === CLNK_SONDEO_MS, R.cCadencia + ' vs ' + CLNK_SONDEO_MS],
       ['DENOMINADOR: el cartel de la tanda abrio antes de cerrarlo con la equis', R.dAbrio, R.dAbrio],
       ['cerrado con la equis NO se reabre solo, con la tanda todavia abierta',
         R.dMarca && !R.dReabrio && R.dTandaSigue,
         'marca=' + R.dMarca + ' reabrio=' + R.dReabrio + ' sigueAbierta=' + R.dTandaSigue],
       ['CONTROL NEGATIVO: contra un puente 1.3.0 los campos no vienen y no hay cartel de tanda',
-        R.e13SinCampos && R.e13TandaNull && R.e13Cadencia === 15000,
+        R.e13SinCampos && R.e13TandaNull && R.e13Cadencia === CLNK_SONDEO_MS,
         'sinCampos=' + R.e13SinCampos + ' null=' + R.e13TandaNull + ' cad=' + R.e13Cadencia],
       ['la cadencia cambia de periodo y vuelve, y el sincronizador no duplica el temporizador',
-        R.fLento === 15000 && R.fEnRango && R.fIdem && R.fVuelve === 15000,
+        R.fLento === CLNK_SONDEO_MS && R.fEnRango && R.fIdem && R.fVuelve === CLNK_SONDEO_MS,
         'lento=' + R.fLento + ' rapido=' + R.fRapido + ' idem=' + R.fIdem + ' vuelve=' + R.fVuelve],
       ['el plazo lo da el puente: el cartel NO lee ninguna ventana propia -- lo prohibe el §P8',
         R.gSinVentana, R.gSinVentana]
@@ -154286,6 +154287,141 @@ caso('TC-971', 'Tarea A: el cartel TERMINADO cerrado con la equis o con un clic 
       ['CONTROL NEGATIVO: un aviso sin grupo -- el de equipo nuevo -- tampoco la levanta',
         R.hAbrio && R.hSinBurbuja, 'abrio=' + R.hAbrio + ' sinBurbuja=' + R.hSinBurbuja],
       ['la bandera de la pregunta anidada existe y arranca apagada', R.iBandera, R.iBandera]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 7 · TAREA B — EL PRIMER CARTEL, A LOS CUATRO SEGUNDOS ═════════════════════════
+   Medido con el VINNO real y cable directo: el primer cartel de «equipo nuevo» tardaba de 12 a
+   15 segundos en salir -con el conector falso, 3- y lo que el medico ve en ese rato es la
+   pantalla quieta con sus imagenes ya llegadas. La causa era el sondeo ocioso cada 15 s, cuyo
+   comentario sostenia que bajarlo seria «sin un solo beneficio clinico»: esa premisa quedo
+   desmentida por la medicion, y el costo de los cuatro segundos esta declarado en el codigo. */
+caso('TC-972', 'Tarea B: el sondeo ocioso baja a cuatro segundos, asi que el primer cartel sale a los ~4 s del primer archivo y no a los quince, y sigue corriendo SOLO con CeiboLink activo, vinculado y la pestana a la vista', `
+  return (async () => {
+    if (typeof window.clnkSondeoMs !== 'function' || typeof window.clnkSondeoDebe !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el sondeo', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+
+      /* -- A - LA CONSTANTE OCIOSA CUMPLE EL OBJETIVO DE LA TAREA B ------------------ */
+      R.aOciosa = CLNK_SONDEO_MS;
+      R.aTanda = CLNK_SONDEO_TANDA_MS;
+      window._clnkTanda = null; clnkSondeoSync();
+      R.aPuesta = window._clnkSondeoMsPuesto;
+      R.aMs = clnkSondeoMs();
+
+      /* -- B - EL DUENO UNICO SIGUE SIENDO clnkSondeoMs ------------------------------ */
+      window._clnkTanda = { abierta: true, n: 1 }; clnkSondeoSync();
+      R.bConTanda = clnkSondeoMs();
+      R.bPuesta = window._clnkSondeoMsPuesto;
+      const t1 = window._clnkSondeoTimer;
+      clnkSondeoSync(); clnkSondeoSync();
+      R.bIdem = window._clnkSondeoTimer === t1;
+      window._clnkTanda = null; clnkSondeoSync();
+      R.bVuelve = window._clnkSondeoMsPuesto;
+
+      /* -- C - EL PRIMER CARTEL SALE EN UN TURNO, O SEA DENTRO DE LA CADENCIA -------- */
+      await ctl({ escena: 'tandaUna' });
+      const t0 = Date.now();
+      await _clnkSondear(true);
+      await esp(700);
+      R.cMs = Date.now() - t0;
+      R.cCartel = !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+      R.cUnTurno = R.cMs < CLNK_SONDEO_MS;
+      clnkAvisoCerrar();
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+
+      /* -- D - LAS TRES CONDICIONES DEL SONDEO SIGUEN INTACTAS ----------------------- */
+      R.dDebe = clnkSondeoDebe() === true;
+      const fte = String(clnkSondeoDebe);
+      R.dMiraActivo = fte.indexOf('clnkActivo') > -1;
+      R.dMiraVinculo = fte.indexOf('clnkVinculado') > -1;
+      R.dMiraOculta = fte.indexOf('document.hidden') > -1;
+      /* Con el modulo apagado el predicado dice NO y no se manda un solo pedido. */
+      clnkToggle(false);
+      R.dApagado = clnkSondeoDebe() === false;
+      R.dSinTimer = (clnkSondeoSync(), window._clnkSondeoTimer === null);
+      clnkToggle(true);
+      clnkSondeoSync();
+      R.dVuelveTimer = window._clnkSondeoTimer !== null;
+
+      /* -- E - EL CHEQUEO DE PESTANA OCULTA DE P6-j SIGUE PUESTO --------------------- */
+      /* Se mide sobre el TEXTO FUENTE porque lo que la tarea B manda conservar es ESA linea:
+         el rebote de clnkRefrescar se arma en cada turno y dispara 400 ms despues, cuando la
+         pestana ya puede estar tapada. Con la cadencia a cuatro segundos eso pasa cuatro veces
+         mas seguido, asi que la guarda importa mas que antes, no menos. */
+      R.eGuarda = String(window.clnkRefrescar).indexOf('document.hidden') > -1;
+      /* Y el denominador: clnkPanelALaVista NO se toco -- mide la caja del nodo, que la pestana
+         tapada no le quita, y la leen seis sumideros donde la pestana esta a la vista. */
+      R.ePanelIntacto = String(window.clnkPanelALaVista).indexOf('document.hidden') === -1;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['el sondeo ocioso baja a CUATRO segundos -- era quince, y eran de 12 a 15 s de pantalla quieta con el ecografo real',
+        R.aOciosa === 4000, R.aOciosa],
+      ['y es el periodo que el temporizador pone de verdad, no solo el que la constante dice',
+        R.aPuesta === 4000 && R.aMs === 4000, 'puesta=' + R.aPuesta + ' ms=' + R.aMs],
+      ['el de la tanda abierta NO se movio: sigue en los 4000 que el prompt 6 fijo entre 3 y 5 s',
+        R.aTanda === 4000, R.aTanda],
+      ['clnkSondeoMs sigue siendo el dueno unico del periodo, con la tanda y sin ella',
+        R.bConTanda === CLNK_SONDEO_TANDA_MS && R.bPuesta === CLNK_SONDEO_TANDA_MS &&
+        R.bVuelve === CLNK_SONDEO_MS,
+        'conTanda=' + R.bConTanda + ' puesta=' + R.bPuesta + ' vuelve=' + R.bVuelve],
+      ['y el sincronizador no duplica el temporizador con el mismo periodo', R.bIdem, R.bIdem],
+      ['DENOMINADOR: el cartel sale en UN turno de sondeo', R.cCartel && R.cUnTurno,
+        'cartel=' + R.cCartel + ' ms=' + R.cMs],
+      ['el sondeo corre SOLO con el modulo activo, vinculado y la pestana a la vista -- las tres condiciones, en un solo lugar',
+        R.dDebe && R.dMiraActivo && R.dMiraVinculo && R.dMiraOculta,
+        'debe=' + R.dDebe + ' activo=' + R.dMiraActivo + ' vinc=' + R.dMiraVinculo + ' oculta=' + R.dMiraOculta],
+      ['CONTROL NEGATIVO: con el modulo apagado el predicado dice NO y el temporizador se va',
+        R.dApagado && R.dSinTimer && R.dVuelveTimer,
+        'apagado=' + R.dApagado + ' sinTimer=' + R.dSinTimer + ' vuelve=' + R.dVuelveTimer],
+      ['el chequeo de pestana oculta del arreglo P6-j sigue puesto en el rebote de clnkRefrescar',
+        R.eGuarda, R.eGuarda],
+      ['y clnkPanelALaVista sigue SIN mirarla, que es lo que P6-j dejo escrito',
+        R.ePanelIntacto, R.ePanelIntacto]
     ] };
   })();
 `);
