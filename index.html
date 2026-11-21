@@ -185628,6 +185628,16 @@ async function clnkbVer(idEnvio, clase, k) {
 }
 window.clnkbVer = clnkbVer;
 
+/* ══ TAREA G (PROMPT 7) · POR QUE UNA FIJA NO SE MIDE ACA ═════════════════════════════════
+   El medico probo medir sobre una fija de la vista previa y NO PASABA NADA, y es literal: este
+   lightbox no tiene —ni tenia— un boton de medir, asi que no habia nada que tocar ni nada que
+   dijera por que. El cineloop si se mide, porque va a `_cineAbrir`, que es el visor con el
+   medidor adentro; una fija de aca no tiene estudio al que escribirle la medicion, y la regla de
+   esta casa es que las mediciones viven DENTRO del estudio.
+   El texto vive en UNA constante que leen el renglon y el boton: con dos, el dia que cambie uno
+   la pantalla diria una cosa y el aviso otra. */
+var CLNKB_MEDIR_MSG = 'Para medir, asignala a un estudio';
+
 /* El lightbox de una fija de la bandeja, con las dos acciones de la decisión 3. */
 function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
   var prev = document.getElementById('clnkb-ver');
@@ -185699,11 +185709,31 @@ function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
     bB.addEventListener('click', function () { _clnkbVerCerrar(); });
     fila.appendChild(bB);
   }
+  /* ══ TAREA G · «MEDIR», A LA VISTA Y DICIENDO POR QUE NO ══════════════════════════════════
+     ⚠️ SIN `disabled`, Y ES UNA REGLA MEDIDA DE ESTA CASA: un boton deshabilitado NO emite
+     click, asi que el medico tocaria el unico control que tiene que EXPLICARLE por que esta
+     bloqueado y no pasaria nada — que es exactamente el defecto que esta tarea viene a cerrar.
+     Lleva `aria-disabled`, se ve apagado, y al tocarlo dice el motivo. */
+  var bM = _igBandNodo('button', 'padding:7px 14px;font-size:12px;opacity:.62;', '📏 Medir');
+  bM.type = 'button'; bM.className = 'btn btn-ghost';
+  bM.setAttribute('aria-disabled', 'true');
+  bM.setAttribute('data-clnkb-medir', '1');
+  bM.title = CLNKB_MEDIR_MSG;
+  bM.onclick = function () {
+    if (typeof toast === 'function') toast('ℹ ' + CLNKB_MEDIR_MSG + '.');
+  };
+  fila.appendChild(bM);
   var bC = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', 'Cerrar');
   bC.type = 'button'; bC.className = 'btn btn-ghost';
   bC.onclick = _clnkbVerCerrar;
   fila.appendChild(bC);
   ov.appendChild(fila);
+  /* Y el mismo texto a la vista, para que se lea sin tocar nada. Sale de la MISMA constante. */
+  var nM = _igBandNodo('div',
+    'font-size:11px;color:#cbd5e1;text-align:center;max-width:86vw;line-height:1.45;',
+    CLNKB_MEDIR_MSG + '. Las mediciones viven dentro del estudio.');
+  nM.setAttribute('data-clnkb-medir-nota', '1');
+  ov.appendChild(nM);
   ov.addEventListener('click', function (ev) { if (ev.target === ov) _clnkbVerCerrar(); });
   document.body.appendChild(ov);
   try { bC.focus(); } catch (e) {}

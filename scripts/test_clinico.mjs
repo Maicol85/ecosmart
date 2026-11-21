@@ -155171,6 +155171,131 @@ caso('TC-976', 'Tarea F: «Imagenes sin estudio» de la pestana Imagenes muestra
   })();
 `);
 
+/* ══ PROMPT 7 · TAREA G — POR QUE UNA FIJA NO SE MIDE EN LA VISTA PREVIA ══════════════════
+   «No pasa nada al intentar medir» era literal: el lightbox de una fija no tenia un boton de
+   medir, asi que no habia nada que tocar ni nada que dijera por que. El cineloop si se mide
+   porque va a `_cineAbrir`, que es el visor con el medidor adentro.
+   LA REGLA NO SE TOCA: las mediciones viven dentro del estudio. Lo que se agrega es decirlo. */
+caso('TC-977', 'Tarea G: una fija de la vista previa dice «Para medir, asignala a un estudio» -- a la vista y al tocar Medir-- en vez de no hacer nada, y el cineloop sigue abriendo el visor con su medidor', `
+  return (async () => {
+    if (typeof window._clnkbVerCerrar !== 'function' || typeof _clnkbVerFija !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el lightbox de una fija', false, '']] };
+    }
+    if (typeof CLNKB_MEDIR_MSG === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene el mensaje de la tarea G', false,
+        'no existe CLNKB_MEDIR_MSG']] };
+    }
+    const R = {};
+    const toastOrig = window.toast;
+    const avisos = [];
+    window.toast = (t) => { avisos.push(String(t || '')); };
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#20a070'; cx.fillRect(0, 0, 8, 8);
+    const PX = cv.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
+    let creado = null;
+    try {
+      /* -- A - EL TEXTO EXACTO QUE EL MEDICO PIDIO, EN UNA CONSTANTE SOLA ------------ */
+      R.aMsg = String(CLNKB_MEDIR_MSG);
+      R.aExacto = R.aMsg === 'Para medir, asignala a un estudio';
+
+      /* -- B - LA VISTA PREVIA DE UNA FIJA: el renglon y el boton ------------------- */
+      /* El primer parametro vacio es la vista previa: esa imagen NO esta en la bandeja. */
+      _clnkbVerFija('', PX, 0, 1, 'Eco de prueba G');
+      await esp(300);
+      const ov = EL('clnkb-ver');
+      R.bOverlay = !!ov;
+      const txt = ov ? String(ov.textContent || '') : '';
+      R.bDiceALaVista = txt.indexOf(R.aMsg) > -1;
+      R.bNota = !!(ov && ov.querySelector('[data-clnkb-medir-nota]'));
+      const bM = ov ? ov.querySelector('[data-clnkb-medir]') : null;
+      R.bHayBoton = !!bM;
+      R.bRotulo = bM ? String(bM.textContent || '') : '';
+      R.bDiceMedir = R.bRotulo.indexOf('Medir') > -1;
+      /* ⚠️ SIN disabled: un boton deshabilitado no emite click, y este es justamente el que
+         tiene que explicar por que no se puede. Lleva aria-disabled y se ve apagado. */
+      R.bSinDisabled = !!(bM && bM.disabled === false);
+      R.bAria = !!(bM && bM.getAttribute('aria-disabled') === 'true');
+      R.bApagado = bM ? Number(getComputedStyle(bM).opacity) < 0.9 : false;
+      R.bTactil = bM ? bM.getBoundingClientRect().height >= 36 : false;
+
+      /* -- C - AL TOCARLO DICE EL MOTIVO, QUE ES LO QUE ANTES NO PASABA ------------- */
+      avisos.length = 0;
+      if (bM) bM.click();
+      await esp(250);
+      R.cAvisos = avisos.slice();
+      R.cDijo = avisos.some(t => t.indexOf(R.aMsg) > -1);
+      /* y NO abre ningun medidor ni cierra el visor */
+      R.cSigueAbierto = !!EL('clnkb-ver');
+      R.cSinVisorCine = !(EL('cine-ov') && EL('cine-ov').style.display !== 'none');
+      _clnkbVerCerrar();
+      await esp(150);
+
+      /* -- D - LA FIJA DE LA BANDEJA DICE LO MISMO --------------------------------- */
+      _clnkbVerFija('clnkb_falso_p7g', PX, 0, 2, 'Eco de prueba G');
+      await esp(250);
+      const ov2 = EL('clnkb-ver');
+      R.dDice = ov2 ? String(ov2.textContent || '').indexOf(R.aMsg) > -1 : false;
+      R.dBoton = !!(ov2 && ov2.querySelector('[data-clnkb-medir]'));
+      _clnkbVerCerrar();
+      await esp(150);
+
+      /* -- E - CONTROL POSITIVO: EL CINELOOP SIGUE ABRIENDO SU VISOR CON EL MEDIDOR -- */
+      const th = await dstThumb(PX);
+      const total = J.length * 3;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(3);
+      for (let i = 0; i < 3; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      creado = 'clnkb_p7g_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen: 'ceibolink', equipo: 'Eco de prueba G',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [],
+        loops: [{ nombre: 'loop.dcm', cuadros: 3, ms: 40, cols: 1, filas: 1, poster: th,
+                  datos: datos, offs: offs, bytes: total, clnkId: '' }] });
+      await esp(60);
+      R.eAbrio = await clnkbVer(creado, 'loop', 0);
+      await esp(500);
+      const cine = EL('cine-ov');
+      R.eCine = !!(cine && cine.style.display !== 'none');
+      /* el visor del cineloop trae su boton de medir, que es lo que «siguen midiendose» quiere
+         decir -- y NO trae el mensaje de la fija */
+      R.eMedir = !!EL('cine-medir');
+      R.eSinMensaje = cine ? String(cine.textContent || '').indexOf(R.aMsg) === -1 : true;
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      await esp(200);
+    } finally {
+      try { _clnkbVerCerrar(); } catch (e) {}
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      try { if (creado) await clnkbBorrar(creado); } catch (e) {}
+      try { if (typeof clnkbRepintarTodo === 'function') clnkbRepintarTodo(); } catch (e) {}
+      window.toast = toastOrig; window.confirm = confOrig;
+    }
+    return { extra: [
+      ['el mensaje es el que el medico pidio, palabra por palabra', R.aExacto, R.aMsg],
+      ['DENOMINADOR: la vista previa de una fija abre su lightbox', R.bOverlay, R.bOverlay],
+      ['y dice A LA VISTA que para medir hay que asignarla a un estudio',
+        R.bDiceALaVista && R.bNota, 'texto=' + R.bDiceALaVista + ' nota=' + R.bNota],
+      ['con un boton «Medir» que se ve apagado y se puede tocar',
+        R.bHayBoton && R.bDiceMedir && R.bApagado && R.bTactil,
+        'hay=' + R.bHayBoton + ' rotulo=' + R.bRotulo + ' apagado=' + R.bApagado + ' alto=' + R.bTactil],
+      ['SIN disabled, que es lo que permite que explique por que no se puede',
+        R.bSinDisabled && R.bAria, 'disabled=' + (!R.bSinDisabled) + ' aria=' + R.bAria],
+      ['al tocarlo DICE el motivo -- antes no pasaba nada', R.cDijo, R.cAvisos.join(' | ')],
+      ['y no abre ningun medidor ni cierra lo que el medico esta mirando',
+        R.cSigueAbierto && R.cSinVisorCine,
+        'abierto=' + R.cSigueAbierto + ' sinCine=' + R.cSinVisorCine],
+      ['la fija de la bandeja dice lo mismo, con el mismo boton',
+        R.dDice && R.dBoton, 'dice=' + R.dDice + ' boton=' + R.dBoton],
+      ['CONTROL POSITIVO: el cineloop sigue abriendo el visor con su medidor, sin este mensaje',
+        R.eAbrio && R.eCine && R.eMedir && R.eSinMensaje,
+        'abrio=' + R.eAbrio + ' cine=' + R.eCine + ' medir=' + R.eMedir + ' sinMsg=' + R.eSinMensaje]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
