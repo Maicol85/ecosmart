@@ -154099,6 +154099,197 @@ caso('TC-970', 'Bloque J: contra un puente 1.3.x se espera a que el lote cierre 
   })();
 `);
 
+/* ══ PROMPT 7 · TAREA A — LA BURBUJA TRAS CERRAR UN CARTEL **TERMINADO** ═══════════════════
+   El medico probo el prompt 6 con el VINNO real y encontro que la burbuja aparece SOLO si cierra
+   el cartel mientras los archivos llegan: cerrando uno ya terminado el cartel desaparecia entero
+   y se quedaba sin ninguna puerta a sus archivos. La causa es que `clnkTandaCerrar` pone
+   `_clnkTanda` en `null`, asi que la rama que levantaba la burbuja no entraba.
+   Lo que este caso fija ademas son las DOS guardas que impiden los «dos carteles
+   contradictorios»: solo el gesto del medico la levanta, y decidir el destino suelta el grupo. */
+caso('TC-971', 'Tarea A: el cartel TERMINADO cerrado con la equis o con un clic afuera se achica a la burbuja quieta que dice «Llegaron N archivos», el clic la devuelve entera, y decidir el destino NO la deja aparecer', `
+  return (async () => {
+    if (typeof window.clnkBurbuja !== 'function' || typeof window.clnkAvisoCerrar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la burbuja y el cierre del aviso', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const BU = () => EL('clnk-burbuja');
+    const bVis = () => { const b = BU(); return !!(b && b.style.display !== 'none' && b.offsetWidth > 0); };
+    const bN = () => { const b = BU(); const n = b && b.querySelector('[data-clnk-bur-n]'); return n ? String(n.textContent) : ''; };
+    const bTxt = () => { const b = BU(); return b ? String(b.textContent || '') : ''; };
+    const late = () => !!(BU() && BU().classList.contains('clnk-late'));
+    const cartel = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const tit = () => String((EL('clnkav-title') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+
+      /* -- A - EL CARTEL TERMINADO SALE, Y NO HAY BURBUJA TODAVIA -------------------- */
+      await ctl({ escena: 'tandaFin' });
+      await _clnkSondear(true); await esp(1400);
+      R.aCartel = cartel();
+      R.aTitulo = tit();
+      R.aGrupo = !!(window._clnkAvisoGrupo && window._clnkAvisoGrupo.ids &&
+                    window._clnkAvisoGrupo.ids.length === 3);
+      R.aSinBurbuja = !bVis();
+
+      /* -- B - LA EQUIS DE VERDAD LA DEJA, QUIETA Y LATIENDO ------------------------- */
+      EL('clnkav-x').click();
+      await esp(300);
+      R.bCartelSeFue = !cartel();
+      R.bBur = bVis();
+      R.bN = bN();
+      R.bTxt = bTxt();
+      R.bLate = late();
+      R.bQuietos = (() => {
+        const l = BU() ? BU().querySelectorAll('[data-clnk-viaja]') : [];
+        return l.length > 0 && Array.prototype.every.call(l,
+          r => r.getAttribute('data-clnk-quieto') === '1');
+      })();
+
+      /* -- C - NO SE REABRE SOLA, NI CON TRES TURNOS DE SONDEO ----------------------- */
+      await _clnkSondear(true); await esp(300);
+      await _clnkSondear(true); await esp(300);
+      await _clnkSondear(true); await esp(300);
+      R.cCartel = cartel();
+      R.cBurSigue = bVis();
+
+      /* -- D - EL CLIC LA DEVUELVE ENTERA -------------------------------------------- */
+      /* La guarda NO es prolijidad: contra el arbol anterior la burbuja no existe y un
+         BU().click() pelado tira un TypeError que se lleva el caso entero -- el rojo sale como
+         «excepcion» y las condiciones de abajo no llegan a evaluarse, asi que el caso deja de
+         decir POR QUE cae. Es la leccion que TC-827 dejo escrita en PANT-37. */
+      const bq = BU(); if (bq) bq.click();
+      await esp(1400);
+      R.dCartel = cartel();
+      R.dTitulo = tit();
+      R.dBurSeFue = !bVis();
+
+      /* -- E - EL CLIC EN EL FONDO HACE LO MISMO QUE LA EQUIS ------------------------ */
+      EL('clnkav-ov').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await esp(300);
+      R.eBur = bVis();
+      R.eTxt = bTxt();
+      try { clnkBurbujaOcultar(); } catch (e) {}
+
+      /* -- F - CONTROL NEGATIVO 1: sin el argumento NO hay burbuja ------------------- */
+      await _clnkSondear(true); await esp(300);
+      window._clnkAvisoGrupo = null;
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      R.fCartel = cartel();
+      R.fGrupo = !!(window._clnkAvisoGrupo && window._clnkAvisoGrupo.ids.length);
+      clnkAvisoCerrar();
+      await esp(200);
+      R.fSinBurbuja = !bVis();
+
+      /* -- G - CONTROL NEGATIVO 2: decidir el destino SUELTA el grupo ---------------- */
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      await ctl({ escena: 'tandaFin2' });
+      window._clnkAvisoGrupo = null;
+      await clnkRevisarImagenes(true);
+      await esp(900);
+      R.gCartel = cartel();
+      R.gGrupoAntes = !!(window._clnkAvisoGrupo && window._clnkAvisoGrupo.ids.length === 2);
+      const bots = CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+        .filter(b => b && b.style.display !== 'none' && b.textContent);
+      const bd = bots.filter(b => String(b.textContent).indexOf('Descartar') > -1)[0];
+      R.gHayDescartar = !!bd;
+      if (bd) bd.click();
+      await esp(300);
+      R.gGrupoTras = window._clnkAvisoGrupo === null;
+      await esp(1500);
+      clnkAvisoCerrar(true);
+      await esp(300);
+      R.gSinBurbuja = !bVis();
+
+      /* -- H - CONTROL NEGATIVO 3: un aviso SIN grupo tampoco la levanta ------------- */
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkAvisoGrupo = null;
+      clnkAvisoAbrir('Hay un equipo esperando tu decision', 'texto',
+        [{ txt: 'Cerrar', fn: function () { clnkAvisoCerrar(true); } }]);
+      await esp(150);
+      R.hAbrio = cartel();
+      EL('clnkav-x').click();
+      await esp(250);
+      R.hSinBurbuja = !bVis();
+
+      /* -- I - LA BANDERA DE LA PREGUNTA ANIDADA EXISTE Y ARRANCA EN FALSO ----------- */
+      R.iBandera = window._clnkPregAbierta === false;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { window._clnkAvisoGrupo = null; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo, el cartel TERMINADO salio y su grupo trae los tres ids',
+        R.vinculado && R.aCartel && R.aGrupo, R.aTitulo + ' grupo=' + R.aGrupo],
+      ['DENOMINADOR: antes de cerrarlo NO hay ninguna burbuja', R.aSinBurbuja, R.aSinBurbuja],
+      ['la equis lo cierra y deja la burbuja en su lugar',
+        R.bCartelSeFue && R.bBur, 'cerro=' + R.bCartelSeFue + ' burbuja=' + R.bBur],
+      ['que dice «Llegaron N archivos - toca para elegir» con el numero del grupo',
+        R.bN === '3' && R.bTxt.indexOf('Llegaron') > -1 &&
+        R.bTxt.indexOf('elegir') > -1 && R.bTxt.indexOf('3') > -1, 'n=' + R.bN + ' txt=' + R.bTxt],
+      ['con la animacion QUIETA, que es la forma de «la llegada ya se completo»',
+        R.bQuietos, R.bQuietos],
+      ['y latiendo, que es la senial de que ya se puede decidir', R.bLate, R.bLate],
+      ['NO se reabre sola: tres turnos de sondeo y el cartel no vuelve',
+        !R.cCartel && R.cBurSigue, 'cartel=' + R.cCartel + ' burbuja=' + R.cBurSigue],
+      ['el clic en la burbuja devuelve el cartel entero y la burbuja se va',
+        R.dCartel && R.dTitulo.indexOf('Llegaron') > -1 && R.dBurSeFue,
+        'cartel=' + R.dCartel + ' tit=' + R.dTitulo + ' seFue=' + R.dBurSeFue],
+      ['el clic en el fondo hace lo mismo que la equis',
+        R.eBur && R.eTxt.indexOf('Llegaron') > -1, 'bur=' + R.eBur + ' txt=' + R.eTxt],
+      ['CONTROL NEGATIVO: cerrar SIN el gesto del medico no levanta ninguna burbuja',
+        R.fCartel && R.fGrupo && R.fSinBurbuja,
+        'cartel=' + R.fCartel + ' grupo=' + R.fGrupo + ' sinBurbuja=' + R.fSinBurbuja],
+      ['DENOMINADOR: el cartel del control de la decision salio con sus dos ids y su Descartar',
+        R.gCartel && R.gGrupoAntes && R.gHayDescartar,
+        'cartel=' + R.gCartel + ' grupo=' + R.gGrupoAntes + ' bot=' + R.gHayDescartar],
+      ['CONTROL NEGATIVO: apretar un destino SUELTA el grupo, asi que la burbuja no resucita un envio ya decidido',
+        R.gGrupoTras && R.gSinBurbuja,
+        'grupoTras=' + R.gGrupoTras + ' sinBurbuja=' + R.gSinBurbuja],
+      ['CONTROL NEGATIVO: un aviso sin grupo -- el de equipo nuevo -- tampoco la levanta',
+        R.hAbrio && R.hSinBurbuja, 'abrio=' + R.hAbrio + ' sinBurbuja=' + R.hSinBurbuja],
+      ['la bandera de la pregunta anidada existe y arranca apagada', R.iBandera, R.iBandera]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la

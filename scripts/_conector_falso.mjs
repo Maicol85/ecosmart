@@ -554,6 +554,48 @@ function escenas() {
     recienLlegada: () => [ img('img_j1', 'eq_3f8a1c', iso(Date.now() - 1500), 'imagen', uno) ],
     /* Y UNA CON EL LOTE YA CERRADO, tambien con su propio id. */
     loteCerrado: () => [ img('img_j2', 'eq_3f8a1c', iso(t0), 'imagen', uno) ],
+
+    /* ══ PROMPT 7 ══════════════════════════════════════════════════════════════════════════
+       ⚠️ CADA ESCENA CON IDS PROPIOS, por SEXTA vez: el aviso no vuelve por las MISMAS imagenes
+       en la misma sesion y la bateria corre los casos en UNA pagina, asi que reusar una escena
+       ya avisada da «no hay nada que avisar» y la prueba mide otra cosa. Lo pago TC-970. */
+
+    /* TAREA A · TRES ARCHIVOS CON LA TANDA YA CERRADA, con ids propios: es el cartel TERMINADO
+       que la tarea A manda achicar a una burbuja al cerrarlo. */
+    tandaFin: () => [
+      img('img_f1', 'eq_3f8a1c', iso(t0),         'imagen', uno),
+      img('img_f2', 'eq_3f8a1c', iso(t0 + 6000),  'imagen', uno),
+      img('img_f3', 'eq_3f8a1c', iso(t0 + 13000), 'imagen', uno),
+    ],
+    /* TAREA A · el control negativo del grupo: un envio cerrado con ids propios para el camino
+       de la decision. */
+    tandaFin2: () => [
+      img('img_f4', 'eq_3f8a1c', iso(t0 + 20000), 'imagen', uno),
+      img('img_f5', 'eq_3f8a1c', iso(t0 + 27000), 'imagen', uno),
+    ],
+    /* TAREA C · UNA TANDA QUE EL PUENTE TIENE ABIERTA Y QUE LLEVA MAS DE LA VENTANA DE SILENCIO
+       DE LA APP CALLADA: la ultima llegada fue hace 40 s, o sea que para el puente la tanda
+       sigue abierta —su ventana son dos minutos— y para la app ya cerro. Es la unica escena
+       donde las dos reglas discrepan, que es lo que la tarea C viene a medir. */
+    silencio: () => [
+      img('img_s1', 'eq_3f8a1c', iso(Date.now() - 52000), 'imagen', uno),
+      img('img_s2', 'eq_3f8a1c', iso(Date.now() - 40000), 'imagen', uno),
+    ],
+    /* TAREA C · LA MISMA TANDA CON UNA IMAGEN MAS RECIEN LLEGADA: el puente la sigue teniendo
+       abierta y la app, que ya la habia cerrado por silencio, NO puede volver a decir «estan
+       llegando» — tiene que ENGORDAR el cartel que ya esta en pantalla. */
+    silencioMas: () => [
+      img('img_s1', 'eq_3f8a1c', iso(Date.now() - 52000), 'imagen', uno),
+      img('img_s2', 'eq_3f8a1c', iso(Date.now() - 40000), 'imagen', uno),
+      img('img_s3', 'eq_3f8a1c', iso(Date.now() - 1000),  'imagen', uno),
+    ],
+    /* TAREA D · UNA TANDA ABIERTA DE VERDAD —ultima llegada hace dos segundos— con TRES
+       archivos, para medir los botones del cartel mientras sigue llegando. */
+    tandaViva: () => [
+      img('img_v1', 'eq_3f8a1c', iso(Date.now() - 12000), 'imagen', uno),
+      img('img_v2', 'eq_3f8a1c', iso(Date.now() - 7000),  'imagen', uno),
+      img('img_v3', 'eq_3f8a1c', iso(Date.now() - 2000),  'imagen', uno),
+    ],
     vacio: () => [],
   };
 }

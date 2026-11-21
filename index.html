@@ -30076,13 +30076,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
      termina en `-aviso` ni en `-badge`, que son los barridos por sufijo de «Nuevo estudio». -->
 <div id="clnkav-ov" role="dialog" aria-modal="true" aria-labelledby="clnkav-title"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
-     onclick="if(event.target===this)clnkAvisoCerrar()">
+     onclick="if(event.target===this)clnkAvisoCerrar(true)">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:440px;width:100%;padding:22px 24px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
     <div style="display:flex;align-items:flex-start;gap:10px;margin:0 0 10px;">
       <h3 id="clnkav-title" style="margin:0;font-size:17px;color:var(--text);flex:1;">CeiboLink</h3>
       <button type="button" class="btn btn-ghost" id="clnkav-x" aria-label="Cerrar"
               style="font-size:12px;padding:3px 10px;flex:0 0 auto;"
-              onclick="clnkAvisoCerrar()">✕</button>
+              onclick="clnkAvisoCerrar(true)">✕</button>
     </div>
     <p id="clnkav-txt" style="margin:0 0 20px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);"></p>
     <!-- ══ EL CUERPO, PARA CONTENIDO RICO (ECO-CONECTOR-5) ══════════════════════════════════
@@ -183102,6 +183102,13 @@ window.clnkAyudaToggle = clnkAyudaToggle;
    abre. Con dos marcados, el día que se afine el botón de uno el otro se queda viejo. */
 var _clnkAvisoAccion = { b1: null, b2: null, b3: null, b4: null, b5: null };
 var _clnkAvisoAbierto = false;
+/* ══ TAREA A · HAY UNA PREGUNTA ANIDADA ESPERANDO SU RESPUESTA ════════════════════════════════
+   La pone `clnkAvisoPreguntar`, que guarda el estado del cartel, hace OTRA pregunta sobre el
+   mismo modal y repone todo al contestarla. Mientras este puesta, cerrar con la equis NO levanta
+   la burbuja de la tarea A: ahi el modal se vuelve a abrir dos lineas despues —lo repone
+   `_clnkAvisoReponer`— y quedarian la burbuja Y el cartel a la vez, que es exactamente los «dos
+   carteles contradictorios» que el pedido prohibe. */
+var _clnkPregAbierta = false;
 /* Las cinco claves en UN solo lugar: con la lista escrita en la apertura, en el cierre y en el
    selector del oyente, agregar un botón exige acordarse de tres sitios -- y el que se olvide deja
    un botón que se pinta y no hace nada, o un manejador que sobrevive a la apertura siguiente. */
@@ -183180,7 +183187,16 @@ function clnkAvisoProgreso(texto) {
   });
 }
 
-function clnkAvisoCerrar() {
+/* ══ TAREA A · `porMedico` ES EL GESTO DE CERRAR SIN DECIDIR, Y SOLO ESE LEVANTA LA BURBUJA ══
+   Lo pasan los TRES caminos del medico —la equis, el clic en el fondo y Escape— y NINGUNO de los
+   botones que deciden algo. La diferencia no es de prolijidad y esta medida: `dstResumen` cierra
+   con «Entendido» DESPUES de adjuntar, y `_clnkAvisoGrupo` sigue puesto ahi —el grupo se pone en
+   `clnkRevisarImagenes` y nadie lo soltaba—, asi que una burbuja levantada en cualquier cierre
+   diria «Llegaron N archivos — toca para elegir» sobre archivos que el medico acaba de adjuntar.
+   Los cuatro sumideros ademas SUELTAN el grupo, asi que la burbuja no puede resucitar un envio
+   ya decidido ni por este camino: son las dos guardas, y la segunda sola no alcanza porque el
+   medico puede cerrar el resumen con la equis en vez de con «Entendido». */
+function clnkAvisoCerrar(porMedico) {
   var ov = document.getElementById('clnkav-ov');
   if (ov) ov.style.display = 'none';
   /* ══ BLOQUE A · SI LO QUE SE CIERRA ES EL CARTEL DE UNA TANDA ABIERTA, SE DEJA LA MARCA ══
@@ -183195,6 +183211,20 @@ function clnkAvisoCerrar() {
        El cartel no desaparece: se achica. Con el numero que el ultimo sondeo supo, para que la
        burbuja no nazca en cero y salte al siguiente turno. */
     try { clnkBurbuja(_clnkTanda.n, false); } catch (e) {}
+  } else if (porMedico === true && _clnkAvisoAbierto && !_clnkPregAbierta &&
+             _clnkAvisoGrupo && _clnkAvisoGrupo.ids && _clnkAvisoGrupo.ids.length) {
+    /* ══ TAREA A · EL CARTEL **TERMINADO** TAMBIEN SE ACHICA A UNA BURBUJA ════════════════════
+       Hasta hoy la burbuja salia solo cerrando el cartel de una tanda ABIERTA: con la tanda ya
+       cerrada `_clnkTanda` vale `null` —lo pone `clnkTandaCerrar`— asi que la rama de arriba no
+       entraba y el cartel desaparecia entero. El medico que cerraba para despejar la pantalla
+       perdia la unica puerta a sus archivos hasta el proximo «Ver lo que espera».
+       Va QUIETA y latiendo, que es la forma de «la llegada ya se completo»: los archivos estan
+       todos y lo unico que falta es decidir.
+       ⚠️ EL NUMERO SALE DE LOS **ids DEL GRUPO** y no de `tanda_imagenes`: el conteo del estado
+       incluye lo que esta en cuarentena, y lo que la burbuja promete al tocarla es exactamente
+       lo que el cartel va a ofrecer. Es el mismo criterio que el bloque B ya aplica al cerrar la
+       tanda con la burbuja puesta. */
+    try { clnkBurbuja(_clnkAvisoGrupo.ids.length, true); } catch (e) {}
   }
   _clnkAvisoAbierto = false;
   /* ⚠️ Y SE OLVIDA EL GRUPO. Sin esta línea, el próximo sondeo creería que todavía hay un aviso
@@ -183235,7 +183265,7 @@ if (!window._clnkAvCableado) {
   /* Escape cierra, igual que el resto de los modales de esta app. Cerrar = dejarlas esperando:
      no se pierde nada, las imágenes siguen en CeiboLink hasta su plazo. */
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && _clnkAvisoAbierto) clnkAvisoCerrar();
+    if (ev.key === 'Escape' && _clnkAvisoAbierto) clnkAvisoCerrar(true);
   });
 }
 
@@ -183312,11 +183342,16 @@ function clnkAvisoPreguntar(titulo, texto, opciones, pintarCuerpo) {
   var est = _clnkAvisoGuardar();
   var ops = (opciones || []).filter(function (o) { return o && o.clave && o.txt; });
   if (!ops.length) return Promise.resolve('');
+  _clnkPregAbierta = true;
   return new Promise(function (resolver) {
     var cerrado = false;
     var terminar = function (clave) {
       if (cerrado) return;
       cerrado = true;
+      /* TAREA A · la bandera se suelta ANTES de reponer, no despues: `_clnkAvisoReponer` puede
+         dejar el modal cerrado —cuando no estaba abierto al preguntar— y una bandera que
+         sobreviviera dejaria a la burbuja apagada para todo el resto de la sesion. */
+      _clnkPregAbierta = false;
       _clnkAvisoReponer(est);
       resolver(clave);
     };
@@ -186760,9 +186795,19 @@ function dstPreguntar(ctx) {
   var _nv = _pv.filter(function (i) { return clnkFmtDe(i).ver === 'no'; }).length;
   var _soloNoVer = _pv.length > 0 && _nv === _pv.length && _nv === ctx.items.length;
   var texto = ctx.texto || ('Llegaron ' + cuenta + '.');
+  /* ══ TAREA A · DECIDIR SUELTA EL GRUPO ═══════════════════════════════════════════════════
+     `_clnkAvisoGrupo` es «el envio que el cartel tiene en pantalla y todavia no se decidio». Los
+     cuatro destinos SON la decision, asi que en cuanto el medico aprieta uno el grupo deja de
+     estar pendiente — y la burbuja de la tarea A, que se levanta de ese grupo, no puede
+     resucitarlo. «Vista previa» NO lo suelta: mirar no es decidir, y volver a la pregunta tiene
+     que encontrar el mismo envio.
+     Y de paso cierra una puerta que ya estaba abierta: con el grupo puesto y el modal de
+     progreso en pantalla, `clnkRevisarImagenes` entraba por su rama de ACTUALIZAR y le
+     reescribia el titulo al progreso. */
+  var _decidio = function () { _clnkAvisoGrupo = null; };
   var bots = [
     { txt: '📎 Adjuntar al estudio actual',
-      fn: function () { dstAlActual(ctx); } },
+      fn: function () { _decidio(); dstAlActual(ctx); } },
     { txt: '🗂 Adjuntar a un estudio guardado',
       fn: function () {
         dstElegirEstudio(function (inf) {
@@ -186782,14 +186827,16 @@ function dstPreguntar(ctx) {
                        'Se agregan al final. No se cambia ningún dato del paciente de ese estudio.')) {
             return;
           }
+          _decidio();
           dstAGuardado(ctx, inf);
         });
       } },
     { txt: '🖼 Adjuntar a imágenes guardadas',
-      fn: function () { dstABandeja(ctx); } },
+      fn: function () { _decidio(); dstABandeja(ctx); } },
     { txt: ctx.cancelar ? 'Cancelar' : '🗑 Descartar',
       fn: function () {
         if (ctx.cancelar) { clnkAvisoCerrar(); return; }
+        _decidio();
         clnkDescartar(ctx.items.map(function (x) { return x.id; }).filter(Boolean));
       } }
   ];
