@@ -154863,6 +154863,140 @@ caso('TC-974', 'Tarea D: con la tanda abierta el cartel dice «Estan llegando» 
   })();
 `);
 
+/* ══ PROMPT 7 · TAREA E — LOS NOMBRES QUE EL DATO TIENE EN EL ECOGRAFO ════════════════════
+   El tecnico que abre el menu DICOM del equipo no ve «Puerto DICOM» ni «Nombre (AET)»: ve
+   «Puerto SCP», «SCP AET» y «Direccion SCP». La linea chica es el puente entre los dos
+   vocabularios, y la frase del SCP dice que es ESTA computadora y no el ecografo.
+   ⚠️ SOLO EL VINNO ESTA CONFIRMADO, asi que el panel NO dice de que marca es cada nombre: dice
+   «puede llamarse» y lista las formas. Este caso lo mide buscando once nombres de marca en el
+   panel y exigiendo CERO. */
+caso('TC-975', 'Tarea E: cada dato para el ecografo lleva debajo su linea «En tu ecografo puede llamarse:» con los tres nombres, el panel dice que SCP es esta computadora, y NO se afirma de que marca es ningun nombre', `
+  return (async () => {
+    if (typeof window._clnkDato !== 'function' && typeof _clnkDato !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el pintor de un dato', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+
+      /* El plegable de «Datos para el ecografo» tiene que estar ABIERTO: lo que esta en
+         display:none no tiene geometria y el texto de un details cerrado tampoco se lee como
+         lo lee el medico. */
+      const det = EL('cfg-clnk-det-conexion');
+      if (det) det.open = true;
+      await clnkLeerConexion();
+      await esp(500);
+      const cont = EL('cfg-clnk-conexion');
+      R.hayPanel = !!(cont && cont.textContent.length > 20);
+      const txt = cont ? String(cont.textContent || '') : '';
+
+      /* -- A - LOS ROTULOS ACTUALES NO SE TOCARON ----------------------------------- */
+      const rotulos = cont ? Array.prototype.map.call(
+        cont.querySelectorAll('span'), e => String(e.textContent || '')) : [];
+      R.aPuerto = rotulos.indexOf('Puerto DICOM') > -1;
+      R.aAet = rotulos.indexOf('Nombre (AET)') > -1;
+      R.aDir = rotulos.indexOf('Dirección') > -1;
+
+      /* -- B - LA FRASE DEL SCP, UNA SOLA VEZ --------------------------------------- */
+      R.bScp = txt.indexOf('SCP = el equipo que recibe las imágenes (esta computadora)') > -1;
+      R.bScpUna = txt.split('SCP = el equipo que recibe').length === 2;
+
+      /* -- C - LA LINEA CHICA, EN CADA DATO ---------------------------------------- */
+      const alias = cont ? Array.prototype.map.call(
+        cont.querySelectorAll('[data-clnk-alias]'), e => String(e.textContent || '')) : [];
+      R.cCuantos = alias.length;
+      R.cTodosConFrase = alias.length > 0 &&
+        alias.every(t => t.indexOf('En tu ecógrafo puede llamarse:') > -1);
+      R.cPuerto = alias.some(t => t.indexOf('Puerto SCP') > -1 &&
+                                  t.indexOf('Port') > -1);
+      R.cAet = alias.some(t => t.indexOf('SCP AET') > -1 && t.indexOf('AE Title') > -1 &&
+                               t.indexOf('AET') > -1);
+      R.cDir = alias.some(t => t.indexOf('Dirección SCP') > -1 &&
+                               t.indexOf('IP del servidor') > -1 &&
+                               t.indexOf('Server IP') > -1);
+      /* Y la linea va DEBAJO del valor, no encima: el orden del DOM dentro de la caja. */
+      R.cOrden = (() => {
+        const al = cont ? cont.querySelector('[data-clnk-alias]') : null;
+        if (!al || !al.parentNode) return false;
+        const hijos = Array.prototype.slice.call(al.parentNode.children);
+        const cod = al.parentNode.querySelector('code');
+        if (!cod) return false;
+        const iAl = hijos.indexOf(al);
+        const iVal = hijos.indexOf(cod.parentNode);
+        return iAl > -1 && iVal > -1 && iAl > iVal;
+      })();
+
+      /* -- D - NO SE AFIRMA DE QUE MARCA ES NINGUN NOMBRE -------------------------- */
+      /* Solo VINNO esta confirmado. La linea dice «puede llamarse» y lista las formas: ni una
+         marca de ecografo aparece en el panel. */
+      const marcas = ['VINNO', 'Philips', 'philips', 'GE ', 'Siemens', 'Mindray', 'Sonoscape',
+                      'Toshiba', 'Canon', 'Samsung', 'Esaote'];
+      R.dMarcas = marcas.filter(m => txt.indexOf(m) > -1);
+      R.dSinMarcas = R.dMarcas.length === 0;
+      R.dDicePuede = txt.indexOf('puede llamarse') > -1;
+
+      /* -- E - SIGUE SIN AGREGAR UN SOLO CONTROL ----------------------------------- */
+      R.eControles = cont ? cont.querySelectorAll('input, select, textarea').length : -1;
+      /* y los botones Copiar siguen siendo los de siempre: uno por dato con valor */
+      R.eCopiar = cont ? cont.querySelectorAll('[data-clnk-copiar]').length : 0;
+    } finally {
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el panel de datos para el ecografo tiene contenido',
+        R.vinculado && R.hayPanel, R.vinculado + '/' + R.hayPanel],
+      ['los rotulos actuales NO se tocaron: Puerto DICOM, Nombre (AET) y Direccion',
+        R.aPuerto && R.aAet && R.aDir,
+        'puerto=' + R.aPuerto + ' aet=' + R.aAet + ' dir=' + R.aDir],
+      ['el panel dice que SCP es el equipo que recibe las imagenes, esta computadora',
+        R.bScp, R.bScp],
+      ['y lo dice UNA sola vez, no una por dato', R.bScpUna, R.bScpUna],
+      ['cada dato lleva debajo su linea «En tu ecografo puede llamarse:»',
+        R.cCuantos >= 3 && R.cTodosConFrase, 'lineas=' + R.cCuantos + ' conFrase=' + R.cTodosConFrase],
+      ['el puerto lista Puerto SCP, Puerto y Port', R.cPuerto, R.cPuerto],
+      ['el nombre lista SCP AET, AE Title y AET', R.cAet, R.cAet],
+      ['la direccion lista Direccion SCP, IP del servidor y Server IP', R.cDir, R.cDir],
+      ['y la linea va DEBAJO del valor, no encima', R.cOrden, R.cOrden],
+      ['NO se afirma de que marca es ningun nombre -- solo el VINNO esta confirmado -- y se dice «puede llamarse»',
+        R.dSinMarcas && R.dDicePuede, 'marcas=' + R.dMarcas.join(',') + ' puede=' + R.dDicePuede],
+      ['y el panel sigue SIN un solo campo para escribir, con sus botones Copiar intactos',
+        R.eControles === 0 && R.eCopiar >= 2,
+        'controles=' + R.eControles + ' copiar=' + R.eCopiar]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la

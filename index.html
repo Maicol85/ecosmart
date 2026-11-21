@@ -182050,7 +182050,14 @@ function _clnkLuz(cont, color, rotulo, detalle) {
    del medico hay tres adaptadores USB de red que se informan como cable sin ningun cable puesto».
    ⚠️ APAGADA PERO LEGIBLE Y COPIABLE: se baja el contraste, NO se esconde ni se deshabilita el
    boton. Una direccion sin enlace puede ser la buena con el cable todavia sin enchufar. */
-function _clnkDato(cont, rotulo, valor, nota, apagada) {
+/* ⚠️ `alias` ES EL SEXTO ARGUMENTO Y ES OPCIONAL (PROMPT 7, TAREA E). Es la linea chica «En tu
+   ecografo puede llamarse:» con los nombres que el MISMO dato tiene en el menu DICOM de un
+   equipo. Va aparte de `nota` porque la direccion usa las dos a la vez: la nota dice de ESTA
+   computadora —el rotulo, la conexion, el enlace— y el alias dice como lo llama el ecografo.
+   ⚠️ SOLO EL VINNO ESTA CONFIRMADO, asi que la linea NO dice de que marca es cada nombre: dice
+   «puede llamarse» y lista las formas. Afirmar «en Philips se llama X» sin haberlo visto en un
+   Philips es exactamente lo que esta casa no escribe. */
+function _clnkDato(cont, rotulo, valor, nota, apagada, alias) {
   var caja = _clnkNodo('div', 'display:flex;flex-direction:column;gap:2px;min-width:0;' +
     (apagada ? 'opacity:.58;' : ''));
   if (apagada) caja.setAttribute('data-clnk-dir-apagada', '1');
@@ -182070,6 +182077,19 @@ function _clnkDato(cont, rotulo, valor, nota, apagada) {
   if (nota) {
     caja.appendChild(_clnkNodo('span',
       'font-size:10px;color:var(--text2);line-height:1.4;max-width:230px;', nota));
+  }
+  /* TAREA E · la linea de los nombres alternativos, DEBAJO del dato y mas chica todavia que la
+     nota: es una ayuda para encontrar el campo, no un dato que haya que copiar. */
+  if (alias) {
+    var al = _clnkNodo('div', 'max-width:230px;margin-top:1px;');
+    al.setAttribute('data-clnk-alias', '1');
+    al.appendChild(_clnkNodo('span',
+      'font-size:9.5px;color:var(--text2);line-height:1.35;display:block;',
+      'En tu ecógrafo puede llamarse:'));
+    al.appendChild(_clnkNodo('span',
+      'font-size:9.5px;color:var(--text2);line-height:1.35;display:block;font-weight:600;',
+      alias));
+    caja.appendChild(al);
   }
   cont.appendChild(caja);
   return caja;
@@ -182485,11 +182505,21 @@ async function clnkLeerConexion() {
   /* ══ LOS TRES EN UNA FILA ══ `flex-wrap` y no una grilla de tres: a 390 px los tres chips no
      entran, y una grilla fija los apretaría hasta cortar el número. Envueltos, bajan solos. */
   var fila = _clnkNodo('div', 'display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;');
-  _clnkDato(fila, 'Puerto DICOM', String(d.puerto_dicom == null ? '' : d.puerto_dicom), '');
-  _clnkDato(fila, 'Nombre (AET)', String(d.aet_puente || ''), '');
+  /* ══ TAREA E · QUE ES UN «SCP» ═══════════════════════════════════════════════════════════
+     Los tres nombres alternativos de abajo lo nombran, asi que hay que decir que significa: el
+     tecnico que abre el menu DICOM del ecografo ve «SCP AET» y «Puerto SCP» y no tiene por que
+     saber que el SCP es esta computadora y no el equipo. Va ARRIBA de los tres datos porque es
+     lo que los hace legibles, y una vez sola. */
+  cont.appendChild(_clnkNodo('p', 'font-size:10.5px;color:var(--text2);margin:0 0 9px;' +
+    'line-height:1.5;', 'SCP = el equipo que recibe las imágenes (esta computadora).'));
+  _clnkDato(fila, 'Puerto DICOM', String(d.puerto_dicom == null ? '' : d.puerto_dicom), '',
+            false, 'Puerto SCP · Puerto · Port');
+  _clnkDato(fila, 'Nombre (AET)', String(d.aet_puente || ''), '',
+            false, 'SCP AET · AE Title · AET');
   var dirs = Array.isArray(d.direcciones) ? d.direcciones : [];
   if (!dirs.length) {
-    _clnkDato(fila, 'Dirección', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.');
+    _clnkDato(fila, 'Dirección', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.',
+              false, 'Dirección SCP · IP del servidor · Server IP');
   }
   /* TODAS las direcciones, en la MISMA sección, con el aviso del conector. El contrato §3.13
      dice que como máximo UNA puede venir marcada como la probable y que puede no haber ninguna:
@@ -182519,7 +182549,8 @@ async function clnkLeerConexion() {
        dice que ESE cable vaya al ecografo»— asi que `probable` sigue siendo del puente. */
     if (x && x.probable === true) nota = (nota ? nota + ' ' : '') + 'CeiboLink sugiere ésta.';
     if (auto) nota = (nota ? nota + ' ' : '') + 'Se la asignó sola la computadora: no le sirve al equipo.';
-    _clnkDato(fila, 'Dirección', dir, nota, sinEnlace || auto);
+    _clnkDato(fila, 'Dirección', dir, nota, sinEnlace || auto,
+              'Dirección SCP · IP del servidor · Server IP');
   });
   cont.appendChild(fila);
   /* El aviso del conector, tal cual lo manda, cuando hay más de una dirección o ninguna. */
