@@ -185348,11 +185348,61 @@ function clnkbBorrar(id) {
   return _clnkbTx('readwrite', function (os, ok) { os.delete(id); ok(true); }).then(function (r) { return r === true; });
 }
 
-/* ══ LA PANTALLA, MÍNIMA ══════════════════════════════════════════════════════
-   Cantidad, equipo, fecha y borrar. NO se muestran las imágenes, y es la decisión 6: adjuntar
-   desde ací a un estudio es ECO-CONECTOR-3, y una miniatura invita a un gesto que todavía no
-   existe. Todo lo que viene del conector —el nombre del equipo— entra por `textContent` y en un
-   `bdi`, por lo mismo que la fila de equipos del panel. */
+/* ══ TAREA F (PROMPT 7) · BORRAR **UNA** DE UN ENVIO ═══════════════════════════════════════
+   Hasta hoy la bandeja solo sabia borrar el envio ENTERO. El medico que recibe diez y quiere
+   tirar dos tenia que borrar las diez o quedarse con las diez.
+
+   ⚠️ NO TOCA NINGUN ESTUDIO NI CONFIRMA NADA A CEIBOLINK, y las dos cosas son por construccion:
+   esta base no tiene una sola ruta de codigo hacia `imgSlots` —es la decision 6 de
+   ECO-CONECTOR-2— y los ids de este envio ya se confirmaron cuando entro a la bandeja, asi que
+   no queda nada que borrar del otro lado.
+   ⚠️ SE OPERA SOBRE EL ARREGLO DEL REGISTRO Y NO SOBRE UNA COPIA: `Array.isArray(reg.imgs)` de
+   un registro sin el campo devuelve `false` y se sale, en vez de recortar un arreglo vacio y
+   escribir el registro igual.
+   ⚠️ Y SI NO QUEDA NADA, EL REGISTRO SE BORRA: un envio vacio en la lista es una fila que dice
+   «sin archivos» y ofrece asignarla a un estudio. */
+function clnkbBorrarUna(id, clase, k) {
+  if (!id) return Promise.resolve({ ok: false, motivo: 'sin id' });
+  var i = Number(k);
+  return _clnkbTx('readwrite', function (os, listo) {
+    var q = os.get(id);
+    q.onsuccess = function () {
+      var reg = q.result;
+      if (!reg) { listo({ ok: false, motivo: 'ese envío ya no está' }); return; }
+      var campo = (String(clase) === 'loop') ? 'loops' : 'imgs';
+      if (!Array.isArray(reg[campo]) || !(i >= 0 && i < reg[campo].length)) {
+        listo({ ok: false, motivo: 'esa imagen ya no está' });
+        return;
+      }
+      reg[campo].splice(i, 1);
+      var quedan = ((reg.imgs || []).length + (reg.loops || []).length);
+      if (!quedan) { os.delete(id); listo({ ok: true, quedan: 0, vacio: true }); return; }
+      os.put(reg);
+      listo({ ok: true, quedan: quedan, vacio: false });
+    };
+  }).then(function (r) { return r || { ok: false, motivo: 'no se pudo escribir' }; });
+}
+window.clnkbBorrarUna = clnkbBorrarUna;
+
+/* Las DOS pantallas que muestran la bandeja se repintan juntas: la seccion de la pestaña
+   Imagenes y el bloque «Sin estudio» de Guardados. Con una sola, la otra sigue mostrando la
+   imagen que el medico acaba de borrar. */
+function clnkbRepintarTodo() {
+  try { if (typeof clnkbRender === 'function') clnkbRender(); } catch (e) {}
+  try { if (typeof igBandejaRender === 'function') igBandejaRender(); } catch (e) {}
+}
+window.clnkbRepintarTodo = clnkbRepintarTodo;
+
+/* ══ LA PANTALLA ══════════════════════════════════════════════════════════════
+   Cantidad, equipo, fecha, miniaturas, asignar y borrar. Todo lo que viene del conector —el
+   nombre del equipo— entra por `textContent` y en un `bdi`, por lo mismo que la fila de equipos
+   del panel.
+   ⚠️ ESTE RENGLÓN DECÍA «NO se muestran las imágenes, y es la decisión 6: adjuntar desde acá a
+   un estudio es ECO-CONECTOR-3, y una miniatura invita a un gesto que todavía no existe».
+   Las dos mitades de ese argumento caducaron: ECO-CONECTOR-3 agregó asignar y ECO-CONECTOR-4 las
+   miniaturas, pero SÓLO al bloque de Guardados — esta sección se quedó con el texto pelado, y el
+   médico la encontró así. Desde la tarea F del prompt 7 las dos pantallas muestran lo mismo y
+   ofrecen lo mismo, con el MISMO pintor. */
 /* La cuenta de un envío de la bandeja, en castellano y por tipo. Un solo lugar: lo usan la
    sección de la pestaña Imágenes y el bloque «Sin estudio» de Guardados, que si dijeran cosas
    distintas sobre el mismo envío serían dos pantallas peleando. */
@@ -185391,10 +185441,25 @@ async function clnkbRender() {
        qué ocupa lo que tiene ahí antes de decidir si lo asigna o lo borra. */
     f.appendChild(_clnkNodo('span', 'font-size:11px;color:var(--text2);',
       _clnkbCuenta(x) + (_clnkFecha(x.recibida) ? ' · ' + _clnkFecha(x.recibida) : '')));
-    var b = _clnkNodo('button', 'padding:3px 10px;font-size:10.5px;margin-left:auto;', 'Borrar');
+    /* ══ TAREA F · LAS MISMAS ACCIONES QUE EL BLOQUE DE GUARDADOS ════════════════════════
+       Las dos pantallas muestran el MISMO envio: con acciones distintas serian dos pantallas
+       peleando, que es lo que `_clnkbCuenta` ya evita para el texto. */
+    var acc = _clnkNodo('span', 'margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;');
+    var bA = _clnkNodo('button', 'padding:3px 10px;font-size:10.5px;', '📎 Asignar a un estudio');
+    bA.type = 'button'; bA.className = 'btn btn-ghost';
+    bA.onclick = function () { clnkbAsignarPreguntar(x.id); };
+    acc.appendChild(bA);
+    var b = _clnkNodo('button', 'padding:3px 10px;font-size:10.5px;', 'Borrar');
     b.type = 'button'; b.className = 'btn btn-ghost';
     b.setAttribute('data-clnkb-borrar', x.id);
-    f.appendChild(b);
+    acc.appendChild(b);
+    f.appendChild(acc);
+    /* ══ TAREA F · LA FILA DE MINIATURAS ══════════════════════════════════════════════════
+       Esta seccion mostraba texto y «Borrar» y nada mas: el medico decidia sobre un envio SIN
+       PODER MIRAR que habia adentro. El pintor es el MISMO que el del bloque de Guardados
+       —`_igBandMiniaturas`, que dibuja de `thumbs` y `posters`, o sea sin materializar un solo
+       byte de cineloop— asi que las dos pantallas no pueden divergir. */
+    try { f.appendChild(_igBandMiniaturas(x)); } catch (e) {}
     lis.appendChild(f);
   });
   return l.length;
@@ -185604,6 +185669,30 @@ function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
     bA.type = 'button'; bA.className = 'btn';
     bA.onclick = function () { _clnkbVerCerrar(); clnkbAsignarPreguntar(idEnvio); };
     fila.appendChild(bA);
+    /* ══ TAREA F · BORRAR **ESTA** IMAGEN, DE A UNA ═════════════════════════════════════
+       Va ANTES de «Borrar el envío» porque es la accion mas chica de las dos, y las dos
+       preguntan: borrar de la bandeja no se deshace. El texto dice CUAL, con su numero, para
+       que no se confunda con la otra.
+       ⚠️ NO TOCA NINGUN ESTUDIO: la bandeja no tiene una sola ruta hacia `imgSlots`. */
+    var bU = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', '🗑 Borrar esta imagen');
+    bU.type = 'button'; bU.className = 'btn btn-ghost';
+    bU.setAttribute('data-clnkb-borrar-una', '1');
+    bU.onclick = async function () {
+      if (typeof confirm === 'function' &&
+          !confirm('¿Borrar la imagen ' + (k + 1) + ' de ' + total + ' de este envío?\n\n' +
+                   'Se borra de «Sin estudio» y NO SE PUEDE RECUPERAR. Las demás del envío ' +
+                   'quedan donde están.')) return;
+      var r = await clnkbBorrarUna(idEnvio, 'img', k);
+      _clnkbVerCerrar();
+      if (typeof toast === 'function') {
+        toast(r && r.ok
+          ? (r.vacio ? '🗑 Era la última: el envío salió de «Sin estudio»'
+                     : '🗑 Imagen borrada — quedan ' + r.quedan + ' en el envío')
+          : ('❌ No se pudo borrar: ' + ((r && r.motivo) || 'error')));
+      }
+      clnkbRepintarTodo();
+    };
+    fila.appendChild(bU);
     var bB = _igBandNodo('button', 'padding:7px 14px;font-size:12px;', '🗑 Borrar el envío');
     bB.type = 'button'; bB.className = 'btn btn-ghost';
     bB.setAttribute('data-clnkb-borrar', idEnvio);

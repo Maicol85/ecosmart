@@ -154997,6 +154997,180 @@ caso('TC-975', 'Tarea E: cada dato para el ecografo lleva debajo su linea «En t
   })();
 `);
 
+/* ══ PROMPT 7 · TAREA F — «IMAGENES SIN ESTUDIO» DE LA PESTANA IMAGENES ═══════════════════
+   Hay DOS pantallas que muestran la bandeja: `clnkb-sec` en la pestana Imagenes y `ig-bandeja`
+   en Guardados. ECO-CONECTOR-3 le agrego «Asignar» y ECO-CONECTOR-4 las miniaturas... SOLO a la
+   segunda, asi que la primera se quedo con texto y «Borrar», que es como el medico la encontro.
+   Desde esta tarea las dos usan el MISMO pintor de miniaturas y ofrecen lo mismo, y el visor
+   grande gana «Borrar esta imagen», que hasta hoy no existia por ningun camino: el que recibia
+   diez y queria tirar dos tenia que borrar las diez. */
+caso('TC-976', 'Tarea F: «Imagenes sin estudio» de la pestana Imagenes muestra las miniaturas de cada envio y ofrece asignarlo, y el visor grande borra DE A UNA sin tocar ningun estudio ni el resto del envio', `
+  return (async () => {
+    if (typeof window.clnkbBorrarUna !== 'function' || typeof window.clnkbGuardar !== 'function' ||
+        typeof window.clnkbRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el borrado de a una de la bandeja', false,
+        'no existe clnkbBorrarUna']] };
+    }
+    const R = {};
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#4080c0'; cx.fillRect(0, 0, 8, 8);
+    const PX = cv.toDataURL('image/jpeg', 0.8);
+    const J = Uint8Array.from(atob(PX.split(',')[1]), c => c.charCodeAt(0));
+    let creado = null;
+    /* El censo de TODOS los controles con id de la app, fuera del visor de la bandeja: lo que
+       esta tarea NO puede hacer es escribir en un estudio, y esto lo mide en vez de prometerlo. */
+    const censo = () => Array.prototype.map.call(
+      document.querySelectorAll('input[id], select[id], textarea[id]'),
+      e => e.id + '=' + String(e.value || '')).join('|');
+    try {
+      const th = await dstThumb(PX);
+      const total = J.length * 3;
+      const datos = new Uint8Array(total);
+      const offs = new Int32Array(3);
+      for (let i = 0; i < 3; i++) { offs[i] = i * J.length; datos.set(J, i * J.length); }
+      creado = 'clnkb_p7f_' + Date.now().toString(36);
+      await clnkbGuardar({ id: creado, origen: 'ceibolink', equipo: 'Eco de prueba F',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: th, clnkId: '' },
+               { dataURL: PX, thumb: th, clnkId: '' },
+               { dataURL: PX, thumb: th, clnkId: '' }],
+        loops: [{ nombre: 'loop.dcm', cuadros: 3, ms: 40, cols: 1, filas: 1, poster: th,
+                  datos: datos, offs: offs, bytes: total, clnkId: '' }] });
+      /* Un turno del bucle antes de showTab: es el defecto preexistente P30-d -- showTab lee el
+         window.event global, que justo despues de una escritura en IndexedDB es el success de
+         la transaccion y no tiene classList. */
+      await esp(40);
+      showTab('imagenes');
+      await esp(60);
+
+      /* -- A - LA SECCION DE LA PESTANA IMAGENES, CON SUS MINIATURAS ----------------- */
+      await clnkbRender();
+      await esp(300);
+      const lis = EL('clnkb-lista');
+      R.aHayLista = !!lis;
+      const fila = lis ? Array.prototype.slice.call(lis.children).filter(f =>
+        String(f.textContent || '').indexOf('Eco de prueba F') > -1)[0] : null;
+      R.aHayFila = !!fila;
+      const minis = fila ? Array.prototype.slice.call(fila.querySelectorAll('button')).filter(b =>
+        String(b.getAttribute('aria-label') || '').indexOf('Imagen ') === 0 ||
+        String(b.getAttribute('aria-label') || '').indexOf('Cineloop ') === 0) : [];
+      R.aMinis = minis.length;
+      R.aSonBotones = minis.length > 0 && minis.every(b => b.tagName === 'BUTTON');
+      R.aTactil = minis.length > 0 &&
+        minis.every(b => parseFloat(getComputedStyle(b).minHeight) >= 44);
+      R.aConImagen = minis.filter(b => !!b.querySelector('img')).length;
+      const btns = fila ? Array.prototype.map.call(fila.querySelectorAll('button'),
+        b => String(b.textContent || '')) : [];
+      R.aAsignar = btns.some(t => t.indexOf('Asignar') > -1);
+      R.aBorrar = btns.some(t => t.indexOf('Borrar') > -1);
+
+      /* -- B - EL VISOR GRANDE, CON SUS CUATRO ACCIONES ----------------------------- */
+      const antes = censo();
+      R.bAbrio = await clnkbVer(creado, 'img', 0);
+      await esp(300);
+      const ov = EL('clnkb-ver');
+      R.bOverlay = !!ov;
+      const vb = ov ? Array.prototype.map.call(ov.querySelectorAll('button'),
+        b => String(b.textContent || '')) : [];
+      R.bBotones = vb;
+      R.bUna = vb.some(t => t.indexOf('Borrar esta imagen') > -1);
+      R.bEnvio = vb.some(t => t.indexOf('Borrar el envío') > -1);
+      R.bAsig = vb.some(t => t.indexOf('Asignar este envío') > -1);
+      R.bCerrar = vb.some(t => t === 'Cerrar');
+      /* y el orden: la accion mas chica antes que la que se lleva el envio entero */
+      R.bOrden = vb.findIndex(t => t.indexOf('Borrar esta imagen') > -1) <
+                 vb.findIndex(t => t.indexOf('Borrar el envío') > -1);
+
+      /* -- C - BORRA UNA Y SOLO UNA, SIN TOCAR NINGUN ESTUDIO ----------------------- */
+      const bU = ov ? Array.prototype.slice.call(ov.querySelectorAll('button')).filter(b =>
+        String(b.textContent || '').indexOf('Borrar esta imagen') > -1)[0] : null;
+      R.cHayBoton = !!bU;
+      if (bU) bU.click();
+      await esp(700);
+      const reg1 = await clnkbLeer(creado);
+      R.cQuedanImgs = reg1 ? (reg1.imgs || []).length : -1;
+      R.cQuedanLoops = reg1 ? (reg1.loops || []).length : -1;
+      R.cCerro = !EL('clnkb-ver');
+      R.cCenso = censo() === antes;
+
+      /* -- D - EL CINELOOP SE BORRA POR SU PROPIO CAMPO, NO POR EL DE LAS FIJAS ------ */
+      const rL = await clnkbBorrarUna(creado, 'loop', 0);
+      const reg2 = await clnkbLeer(creado);
+      R.dLoopOk = !!(rL && rL.ok);
+      R.dQuedanImgs = reg2 ? (reg2.imgs || []).length : -1;
+      R.dQuedanLoops = reg2 ? (reg2.loops || []).length : -1;
+
+      /* -- E - CUANDO NO QUEDA NADA, EL REGISTRO SE VA --------------------------- */
+      await clnkbBorrarUna(creado, 'img', 0);
+      const rU = await clnkbBorrarUna(creado, 'img', 0);
+      R.eVacio = !!(rU && rU.ok && rU.vacio && rU.quedan === 0);
+      const reg3 = await clnkbLeer(creado);
+      R.eSeFue = reg3 === null;
+      creado = null;
+
+      /* -- F - CONTROLES NEGATIVOS DEL BORRADO DE A UNA ----------------------------- */
+      const r1 = await clnkbBorrarUna('', 'img', 0);
+      const r2 = await clnkbBorrarUna('clnkb_no_existe_p7f', 'img', 0);
+      R.fSinId = !!(r1 && r1.ok === false);
+      R.fNoExiste = !!(r2 && r2.ok === false);
+
+      /* -- G - CONTROL NEGATIVO: la VISTA PREVIA no ofrece ninguna de las tres ------ */
+      /* El primer parametro vacio es lo que apaga las acciones del envio: ahi la imagen NO
+         esta en la bandeja, esta esperando en CeiboLink. */
+      _clnkbVerFija('', PX, 0, 1, 'Eco de prueba F');
+      await esp(250);
+      const ov2 = EL('clnkb-ver');
+      const vb2 = ov2 ? Array.prototype.map.call(ov2.querySelectorAll('button'),
+        b => String(b.textContent || '')) : [];
+      R.gBotones = vb2;
+      R.gSinUna = !vb2.some(t => t.indexOf('Borrar esta imagen') > -1);
+      R.gSinEnvio = !vb2.some(t => t.indexOf('Borrar el envío') > -1);
+      R.gSinAsig = !vb2.some(t => t.indexOf('Asignar este envío') > -1);
+      _clnkbVerCerrar();
+    } finally {
+      try { _clnkbVerCerrar(); } catch (e) {}
+      try { if (creado) await clnkbBorrar(creado); } catch (e) {}
+      try { await clnkbRender(); } catch (e) {}
+      window.toast = toastOrig; window.confirm = confOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: el envio de prueba quedo en la bandeja y su fila se dibuja en la pestana Imagenes',
+        R.aHayLista && R.aHayFila, 'lista=' + R.aHayLista + ' fila=' + R.aHayFila],
+      ['la seccion dibuja UNA miniatura por archivo -- tres fijas y un cineloop',
+        R.aMinis === 4, R.aMinis],
+      ['y son BOTONES de verdad, con su piso tactil de 44 px y su imagen dibujada',
+        R.aSonBotones && R.aTactil && R.aConImagen === 4,
+        'botones=' + R.aSonBotones + ' tactil=' + R.aTactil + ' conImg=' + R.aConImagen],
+      ['la fila ofrece asignar el envio y borrarlo, igual que el bloque de Guardados',
+        R.aAsignar && R.aBorrar, 'asignar=' + R.aAsignar + ' borrar=' + R.aBorrar],
+      ['DENOMINADOR: tocar una abre el visor grande', R.bAbrio && R.bOverlay,
+        'abrio=' + R.bAbrio + ' overlay=' + R.bOverlay],
+      ['con Cerrar, Borrar esta imagen, y el Asignar y el Borrar del envio que ya existian',
+        R.bUna && R.bEnvio && R.bAsig && R.bCerrar, R.bBotones.join(' | ')],
+      ['y «Borrar esta imagen» va ANTES que «Borrar el envio», que es la accion mas grande',
+        R.bOrden, R.bOrden],
+      ['borra UNA y solo una: quedan dos fijas y el cineloop intacto',
+        R.cHayBoton && R.cQuedanImgs === 2 && R.cQuedanLoops === 1,
+        'imgs=' + R.cQuedanImgs + ' loops=' + R.cQuedanLoops],
+      ['cierra el visor y NO toca un solo campo de ningun estudio',
+        R.cCerro && R.cCenso, 'cerro=' + R.cCerro + ' censoIgual=' + R.cCenso],
+      ['el cineloop se borra por su propio campo y no por el de las fijas',
+        R.dLoopOk && R.dQuedanImgs === 2 && R.dQuedanLoops === 0,
+        'ok=' + R.dLoopOk + ' imgs=' + R.dQuedanImgs + ' loops=' + R.dQuedanLoops],
+      ['cuando no queda nada el registro se va de «Sin estudio»',
+        R.eVacio && R.eSeFue, 'vacio=' + R.eVacio + ' seFue=' + R.eSeFue],
+      ['CONTROL NEGATIVO: sin id o con un envio que no existe, no se escribe nada y lo dice',
+        R.fSinId && R.fNoExiste, 'sinId=' + R.fSinId + ' noExiste=' + R.fNoExiste],
+      ['CONTROL NEGATIVO: la VISTA PREVIA no ofrece ninguna de las tres -- esa imagen no esta en la bandeja',
+        R.gSinUna && R.gSinEnvio && R.gSinAsig, R.gBotones.join(' | ')]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la
