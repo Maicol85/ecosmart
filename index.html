@@ -27470,6 +27470,7 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
             <input type="file" id="ig-import-file" accept=".json,application/json" style="display:none" onchange="if(this.files&&this.files[0]){importarInformesJSON(this.files[0]);this.value='';}">
             <input type="file" id="lab-import-xlsx" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="if(this.files&&this.files[0]){labImportarXLSX(this.files[0]);this.value='';}">
             <input type="file" id="ig-import-dcm" accept=".dcm,.DCM,.chm,.CHM,application/dicom" multiple style="display:none" onchange="if(this.files&&this.files.length){dcmImportarSR(this.files);this.value='';}">
+            <button class="btn btn-ghost" id="ig-btn-borrar-varios" onclick="igBorrarVariosAbrir()" title="Elegir varios estudios y borrarlos de una vez">🗑️ Borrar varios…</button>
             <button class="btn btn-danger" id="ig-btn-borrar-todos" onclick="limpiarTodosInformes()" title="Eliminar todos los informes">🗑️ Eliminar todos</button>
           </div>
         </div>
@@ -129345,6 +129346,225 @@ function eliminarInforme(id) {
   renderInformesGuardados();
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA EQ · C2 · BORRAR VARIOS ESTUDIOS, CON UNA SOLA CONFIRMACION
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   Hasta hoy habia dos extremos y nada en el medio: la papelera de UNA fila y «Eliminar todos».
+   El medico que quiere tirar seis de prueba tenia que apretar seis veces y contestar seis
+   `confirm`.
+
+   LO QUE ESTO NO ES, Y ES LA RAZON POR LA QUE P8-d LO DEJO PARA UNA TANDA PROPIA: borrar un
+   estudio no es borrar una imagen. Los riesgos, medidos sobre el archivo, y como los trata esto:
+
+     1 · UN ESTUDIO VIVE EN CUATRO ALMACENES —`CeiboStore` (lista local y «chunks»), `CeiboImg`,
+         `CeiboCine` y `CeiboVideo`— y los tres ultimos NO se borran por estudio: los barre
+         `imgRecolectarHuerfanas`, que compara contra la lista de VIVOS. Por eso aca los estudios
+         salen TODOS de la lista primero y el recolector corre UNA sola vez al final. Al reves
+         —borrar uno, recolectar, borrar el siguiente— son N barridos de las tres bases.
+     2 · EL RECOLECTOR SE ABSTIENE si el almacen no es IndexedDB o si algun estudio VIVO no tiene
+         uuid valido. En ese caso las imagenes de lo borrado quedan como huerfanas ocupando lugar
+         —no es un error de correccion y es la conducta que ya existia— y `limpiarTodosInformes`
+         tiene exactamente el mismo limite. Se declara y no se tapa.
+     3 · «TODAS» ES AMBIGUO EN ESTA PANTALLA porque hay filtros por nombre, por fecha y los
+         clinicos. Se resuelve DICIENDOLO: la lista que se ofrece es la que el filtro deja ver
+         —`igListaEnPantalla`, el mismo dueño que usa el exportador— y el cartel lo escribe.
+     4 · EL ESTUDIO ABIERTO EN EL FORMULARIO puede estar entre los elegidos. Ahi el formulario se
+         queda apuntando a un uuid que ya no existe y un guardado posterior volveria a escribir
+         sus imagenes sin dueño. La confirmacion lo DICE con su nombre; no se bloquea, porque
+         borrar el estudio que uno tiene abierto es un gesto legitimo.
+     5 · NO SE PUEDE DESHACER, y las imagenes solo estan en un respaldo si el medico exporto con
+         el nivel que las incluye —lo avisa el propio exportador—. La confirmacion lo repite.
+
+   ⚠️ NO SE TOCA `eliminarInforme` NI `limpiarTodosInformes`: son dos caminos maduros que la
+   bateria recorre, y este es un tercero que no los necesita. */
+function igBorrarVariosAbrir() {
+  var lista = [];
+  try { lista = igListaEnPantalla() || []; } catch (e) { lista = []; }
+  if (!lista.length) { toast('⚠️ No hay estudios en la lista para borrar'); return false; }
+  var sel = Object.create(null);
+  var ov = document.createElement('div');
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Borrar varios estudios');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:755;background:rgba(0,0,0,.62);display:flex;' +
+    'align-items:center;justify-content:center;padding:16px;';
+  var c = document.createElement('div');
+  c.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:560px;width:100%;max-height:86vh;display:flex;flex-direction:column;' +
+    'padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.45);';
+  var h = document.createElement('div');
+  h.style.cssText = 'font-size:14px;font-weight:700;margin-bottom:6px;';
+  h.textContent = '🗑️ Borrar varios estudios';
+  c.appendChild(h);
+  var ay = document.createElement('div');
+  ay.style.cssText = 'font-size:11.5px;line-height:1.6;color:var(--text2);margin-bottom:9px;';
+  ay.textContent = 'Se listan los ' + lista.length +
+    (lista.length === 1 ? ' estudio que el filtro deja ver' : ' estudios que el filtro deja ver') +
+    '. «Todos» marca sólo a ésos. Con el estudio se borran sus imágenes, sus cineloops y sus ' +
+    'videos.';
+  c.appendChild(ay);
+  var fila = document.createElement('div');
+  fila.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;';
+  var cta = document.createElement('div');
+  cta.style.cssText = 'font-size:11.5px;font-weight:700;margin-left:auto;';
+  var cuerpo = document.createElement('div');
+  cuerpo.style.cssText = 'overflow:auto;border:1px solid var(--border);border-radius:8px;' +
+    'padding:4px 6px;margin-bottom:10px;';
+  var cuenta = function () {
+    var n = 0, k;
+    for (k in sel) { if (sel[k]) n++; }
+    return n;
+  };
+  var pintarCuenta = function () {
+    var n = cuenta();
+    cta.textContent = n ? ('Elegidos: ' + n) : 'Todavía no elegiste nada';
+    bBorrar.disabled = !n;
+    bBorrar.textContent = n ? ('🗑 Borrar ' + n) : '🗑 Borrar';
+  };
+  [['☑ Todos', true], ['☐ Ninguno', false]].forEach(function (d) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.style.cssText = 'padding:5px 11px;font-size:11px;';
+    b.textContent = d[0];
+    b.title = d[1] ? 'Marca los estudios que el filtro deja ver' : 'Desmarca todo';
+    b.addEventListener('click', function () {
+      lista.forEach(function (inf) {
+        if (d[1]) sel[String(inf.id)] = true; else delete sel[String(inf.id)];
+      });
+      [].forEach.call(cuerpo.querySelectorAll('input[type=checkbox]'), function (x) {
+        x.checked = !!sel[x.getAttribute('data-ig-borr')];
+      });
+      pintarCuenta();
+    });
+    fila.appendChild(b);
+  });
+  fila.appendChild(cta);
+  c.appendChild(fila);
+  /* ⚠️ LAS CASILLAS VAN SIN `id`: el censo del estudio, el Excel y los barridos de «Nuevo
+     estudio» recorren los controles CON `id`, asi que una casilla con id entraria a las 457
+     columnas por existir. Se alcanzan por `data-ig-borr`. */
+  lista.forEach(function (inf) {
+    var lab = document.createElement('label');
+    lab.style.cssText = 'display:flex;gap:7px;align-items:center;min-height:34px;font-size:12px;' +
+      'padding:1px 2px;';
+    var chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.style.cssText = 'width:auto;margin:0;';
+    chk.setAttribute('data-ig-borr', String(inf.id));
+    chk.addEventListener('change', function () {
+      if (chk.checked) sel[String(inf.id)] = true; else delete sel[String(inf.id)];
+      pintarCuenta();
+    });
+    lab.appendChild(chk);
+    /* El nombre y el documento los escribio una persona: `textContent`, nunca marcado. */
+    var nm = document.createElement('bdi');
+    nm.style.cssText = 'font-weight:700;';
+    nm.textContent = String(inf.nombre || '—');
+    lab.appendChild(nm);
+    var dt = document.createElement('span');
+    dt.style.cssText = 'color:var(--text2);font-size:11px;';
+    dt.textContent = '· ' + String(inf.ci || '—') + ' · ' +
+      (inf.fecha_estudio ? String(inf.fecha_estudio).split('-').reverse().join('/') : '—');
+    lab.appendChild(dt);
+    cuerpo.appendChild(lab);
+  });
+  c.appendChild(cuerpo);
+  var pie = document.createElement('div');
+  pie.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+  var bCerrar = document.createElement('button');
+  bCerrar.type = 'button'; bCerrar.className = 'btn btn-ghost';
+  bCerrar.style.cssText = 'flex:1;justify-content:center;';
+  bCerrar.textContent = 'Cancelar';
+  var cerrar = function () {
+    try { document.removeEventListener('keydown', esc, true); } catch (e) {}
+    if (ov.parentNode) ov.parentNode.removeChild(ov);
+  };
+  var esc = function (ev) {
+    if (ev && ev.key === 'Escape') { ev.stopImmediatePropagation(); cerrar(); }
+  };
+  bCerrar.addEventListener('click', cerrar);
+  var bBorrar = document.createElement('button');
+  bBorrar.type = 'button'; bBorrar.className = 'btn btn-danger';
+  bBorrar.style.cssText = 'flex:1;justify-content:center;';
+  bBorrar.addEventListener('click', async function () {
+    var ids = [];
+    lista.forEach(function (inf) { if (sel[String(inf.id)]) ids.push(inf.id); });
+    if (!ids.length) return;
+    var ok = await igBorrarVariosConfirmar(lista, ids);
+    if (!ok) return;
+    cerrar();
+    igBorrarVariosEjecutar(ids);
+  });
+  pie.appendChild(bCerrar);
+  pie.appendChild(bBorrar);
+  c.appendChild(pie);
+  ov.appendChild(c);
+  ov.addEventListener('click', function (ev) { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', esc, true);
+  document.body.appendChild(ov);
+  pintarCuenta();
+  try { bCerrar.focus(); } catch (e) {}
+  return true;
+}
+window.igBorrarVariosAbrir = igBorrarVariosAbrir;
+
+/* La confirmacion, con los cinco riesgos puestos en castellano y el numero adentro. */
+function igBorrarVariosConfirmar(lista, ids) {
+  var elegidos = lista.filter(function (i) { return ids.indexOf(i.id) >= 0; });
+  var pac = Object.create(null), n = 0;
+  elegidos.forEach(function (i) {
+    /* Un paciente es nombre + documento: dos estudios del mismo paciente no son dos pacientes,
+       y dos homonimos con documento distinto si lo son. */
+    var k = String(i.nombre || '').trim().toLowerCase() + '|' + String(i.ci || '').trim();
+    if (!pac[k]) { pac[k] = true; n++; }
+  });
+  var abierto = '';
+  try {
+    var uuidAb = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
+    if (uuidAb) {
+      var e = elegidos.filter(function (i) { return i && i.uuid === uuidAb; })[0];
+      if (e) abierto = String(e.nombre || 'el estudio abierto');
+    }
+  } catch (e) {}
+  var lineas = [
+    '¿Borrar ' + ids.length + (ids.length === 1 ? ' estudio' : ' estudios') + ' de ' +
+      (n === 1 ? '1 paciente' : n + ' pacientes distintos') + '?',
+    'Se borra el informe, los datos, las imágenes, los cineloops y los videos de cada uno. ' +
+      'NO SE PUEDE DESHACER.',
+    'Si no tenés un respaldo exportado con el nivel que incluye las imágenes, esas imágenes no ' +
+      'están en ninguna otra parte.'
+  ];
+  if (abierto) {
+    lineas.push('⚠️ Uno de los elegidos es el que tenés abierto en el formulario (' + abierto +
+      '). Después de borrarlo, no lo guardes: guardarlo volvería a escribir sus imágenes sin ' +
+      'estudio. Usá «Nuevo estudio» antes.');
+  }
+  return borrConfirmar('Borrar ' + ids.length + (ids.length === 1 ? ' estudio' : ' estudios'),
+                       lineas, '🗑 Borrar ' + ids.length);
+}
+
+/* ⚠️ UNA ESCRITURA POR ALMACEN Y UN SOLO BARRIDO AL FINAL. Es el riesgo 1 de arriba: el
+   recolector compara contra los VIVOS, asi que tiene que correr cuando ya no queda ninguno de
+   los borrados en la lista. */
+function igBorrarVariosEjecutar(ids) {
+  var fuera = Object.create(null);
+  (ids || []).forEach(function (id) { fuera[String(id)] = true; });
+  var n = 0;
+  var locales = CeiboStore.getLocal().slice();
+  var quedan = locales.filter(function (i) { return !fuera[String(i && i.id)]; });
+  n += (locales.length - quedan.length);
+  if (quedan.length !== locales.length) CeiboStore.setLocal(quedan);
+  var ch = getInformesChunked();
+  var ch2 = ch.filter(function (i) { return !fuera[String(i && i.id)]; });
+  if (ch2.length !== ch.length) { n += (ch.length - ch2.length); saveInformesChunked(ch2); }
+  imgRecolectarHuerfanas();
+  toast(n ? ('🗑️ ' + n + (n === 1 ? ' estudio eliminado' : ' estudios eliminados'))
+          : '⚠️ No se eliminó ningún estudio');
+  renderInformesGuardados();
+  return n;
+}
+window.igBorrarVariosEjecutar = igBorrarVariosEjecutar;
+
 function limpiarTodosInformes() {
   if (!confirm('¿Eliminar TODOS los informes guardados? Esta acción no se puede deshacer.')) return;
   CeiboStore.setLocal([]);
@@ -183735,6 +183955,87 @@ function clnkEqConexion(ip) {
 }
 window.clnkEqConexion = clnkEqConexion;
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA EQ · PARTE C · LA CONFIRMACION PROPIA DE UN BORRADO DE VARIOS
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   Devuelve una promesa: `true` solo si el medico aprieta el boton de borrar.
+
+   ⚠️ ES UN CARTEL PROPIO Y NO UN `confirm`, y es la regla que P8-b3 dejo escrita con sangre:
+   ningun camino que un caso de la bateria recorra abre un dialogo nativo —el `alert` del aviso de
+   «ya estaban» colgo una corrida de 31 casos y el de la regla de paciente colgo la suite en el
+   lote 16 de 18—. Y ademas un `confirm` no puede poner el numero en negrita ni separar «cuantos»
+   de «no se puede deshacer», que es justo lo que esta confirmacion tiene que decir.
+   ⚠️ SE CREA Y SE DESTRUYE, como `_guardAvisoPaciente`: asi no deja un `id` en el documento que
+   los barridos por sufijo de «Nuevo estudio» puedan alcanzar.
+   ⚠️ EL OYENTE DE ESCAPE SE SACA SIEMPRE, en los dos caminos de cierre. Es la otra mitad de la
+   leccion de P8-b3: ese cartel registraba Escape en fase de captura con
+   `stopImmediatePropagation` y un caso lo dejaba abierto, asi que cuarenta y cinco casos despues
+   se comia el Escape de otro dialogo. Aca la promesa se resuelve SIEMPRE y el oyente se va con
+   ella.
+   ⚠️ TODO ENTRA POR `textContent`: los parrafos pueden traer un nombre de paciente o un nombre de
+   equipo, que los escribio una persona. */
+function borrConfirmar(titulo, parrafos, rotuloSi) {
+  return new Promise(function (resolver) {
+    var ov, cerrado = false;
+    var fin = function (v) {
+      if (cerrado) return;
+      cerrado = true;
+      try { document.removeEventListener('keydown', esc, true); } catch (e) {}
+      try { if (ov && ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      resolver(!!v);
+    };
+    var esc = function (ev) {
+      if (ev && ev.key === 'Escape') { ev.stopImmediatePropagation(); fin(false); }
+    };
+    try {
+      ov = document.createElement('div');
+      ov.setAttribute('role', 'dialog');
+      ov.setAttribute('aria-modal', 'true');
+      ov.setAttribute('aria-label', String(titulo || 'Confirmar'));
+      ov.style.cssText = 'position:fixed;inset:0;z-index:760;background:rgba(0,0,0,.62);' +
+        'display:flex;align-items:center;justify-content:center;padding:16px;';
+      var c = document.createElement('div');
+      c.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+        'max-width:470px;width:100%;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.45);';
+      var h = document.createElement('div');
+      h.style.cssText = 'font-size:14px;font-weight:700;margin-bottom:9px;color:var(--text);';
+      h.textContent = String(titulo || '');
+      c.appendChild(h);
+      (Array.isArray(parrafos) ? parrafos : [parrafos]).forEach(function (t, i) {
+        if (t == null || t === '') return;
+        var d = document.createElement('div');
+        d.style.cssText = 'font-size:12px;line-height:1.6;margin-bottom:8px;color:' +
+          (i === 0 ? 'var(--text);font-weight:700;' : 'var(--text2);');
+        d.textContent = String(t);
+        c.appendChild(d);
+      });
+      var fila = document.createElement('div');
+      fila.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
+      var bSi = document.createElement('button');
+      bSi.type = 'button'; bSi.className = 'btn btn-danger';
+      bSi.style.cssText = 'flex:1;justify-content:center;';
+      bSi.textContent = String(rotuloSi || 'Borrar');
+      bSi.addEventListener('click', function () { fin(true); });
+      var bNo = document.createElement('button');
+      bNo.type = 'button'; bNo.className = 'btn btn-ghost';
+      bNo.style.cssText = 'flex:1;justify-content:center;';
+      bNo.textContent = 'Cancelar';
+      bNo.addEventListener('click', function () { fin(false); });
+      /* «Cancelar» PRIMERO y con el foco puesto: el que viene apretando Enter no borra nada. */
+      fila.appendChild(bNo);
+      fila.appendChild(bSi);
+      c.appendChild(fila);
+      ov.appendChild(c);
+      /* Un clic en el fondo cancela, igual que la ✕ de los demas modales de esta app. */
+      ov.addEventListener('click', function (ev) { if (ev.target === ov) fin(false); });
+      document.addEventListener('keydown', esc, true);
+      document.body.appendChild(ov);
+      try { bNo.focus(); } catch (e) {}
+    } catch (e) { fin(false); }
+  });
+}
+window.borrConfirmar = borrConfirmar;
+
 /* ══ TANDA EQ · BLOQUE B · EL BORRADOR DEL APODO ══════════════════════════════════════════════
    Lo que el medico tecleo y todavia no guardo, en memoria y por id de equipo. Hace falta porque
    el sondeo repinta la lista de fondo: sin esto, cada cuatro segundos el campo volvia al valor
@@ -186759,6 +187060,211 @@ window.clnkbBorrarUna = clnkbBorrarUna;
 /* Las DOS pantallas que muestran la bandeja se repintan juntas: la seccion de la pestaña
    Imagenes y el bloque «Sin estudio» de Guardados. Con una sola, la otra sigue mostrando la
    imagen que el medico acaba de borrar. */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA EQ · C1 · BORRAR VARIAS DE UN ENVIO, EN UNA SOLA TRANSACCION
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   `clnkbBorrarUna` existe desde el prompt 7 y alcanza para tirar una. Llamarla N veces NO sirve
+   para tirar N: cada llamada abre su propia transaccion y cada `splice` CORRE los indices de lo
+   que venia despues, asi que la segunda llamada borra OTRO archivo. Es exactamente el defecto que
+   la PARTE 1 de P8 cerro en `CeiboImg.quitar`, y la razon por la que esto existe.
+
+   ⚠️ SE BORRA DE MAYOR A MENOR INDICE, dentro de cada campo: asi ningun `splice` mueve a los que
+   todavia no se borraron.
+   ⚠️ Y SE EXIGEN LOS LARGOS ESPERADOS. Los indices son POSICIONES y la pantalla los saco de una
+   lectura anterior: si entre el pintado y el borrado entro otro envio —o el medico borro una de a
+   una desde el visor— las posiciones ya no significan lo mismo. Con los largos de `esperados` que
+   no coinciden NO SE BORRA NADA y se dice, en vez de tirar el archivo equivocado en silencio.
+
+   ⚠️ NO TOCA NINGUN ESTUDIO NI CONFIRMA NADA A CEIBOLINK, por construccion: esta base no tiene
+   una sola ruta hacia `imgSlots` y los ids de este envio ya se confirmaron al entrar a la
+   bandeja. Es la misma invariante que `clnkbBorrarUna` declara. */
+function clnkbBorrarVarias(id, items, esperados) {
+  if (!id || !Array.isArray(items) || !items.length) {
+    return Promise.resolve({ ok: false, borradas: 0, motivo: 'no se eligió nada' });
+  }
+  return _clnkbTx('readwrite', function (os, listo) {
+    var q = os.get(id);
+    q.onsuccess = function () {
+      var reg = q.result;
+      if (!reg) { listo({ ok: false, borradas: 0, motivo: 'ese envío ya no está' }); return; }
+      var im = Array.isArray(reg.imgs) ? reg.imgs : [];
+      var lo = Array.isArray(reg.loops) ? reg.loops : [];
+      if (esperados && (Number(esperados.n) !== im.length ||
+                        Number(esperados.nLoops) !== lo.length)) {
+        listo({ ok: false, borradas: 0, desfasado: true,
+                motivo: 'ese envío cambió desde que lo viste' });
+        return;
+      }
+      var kI = [], kL = [];
+      items.forEach(function (it) {
+        var k = Number(it && it.k);
+        if (!(k >= 0)) return;
+        if (String(it.clase) === 'loop') { if (k < lo.length) kL.push(k); }
+        else if (k < im.length) kI.push(k);
+      });
+      var baja = function (a, b) { return b - a; };
+      kI.sort(baja); kL.sort(baja);
+      var n = 0;
+      kI.forEach(function (k) { im.splice(k, 1); n++; });
+      kL.forEach(function (k) { lo.splice(k, 1); n++; });
+      if (!n) { listo({ ok: false, borradas: 0, motivo: 'esas imágenes ya no están' }); return; }
+      reg.imgs = im; reg.loops = lo;
+      var quedan = im.length + lo.length;
+      /* Un envio vacio en la lista es una fila que dice «sin archivos» y ofrece asignarla a un
+         estudio: se borra el registro, igual que hace `clnkbBorrarUna`. */
+      if (!quedan) { os.delete(id); listo({ ok: true, borradas: n, quedan: 0, vacio: true }); return; }
+      os.put(reg);
+      listo({ ok: true, borradas: n, quedan: quedan, vacio: false });
+    };
+  }).then(function (r) { return r || { ok: false, borradas: 0, motivo: 'no se pudo escribir' }; });
+}
+window.clnkbBorrarVarias = clnkbBorrarVarias;
+
+/* ══ C1 y C3 · EL MODO ELEGIR DE LA BANDEJA ═══════════════════════════════════════════════════
+   El mismo comportamiento que la biblioteca de «Imágenes guardadas» —un interruptor, «Todas» y
+   «Ninguna», un contador y UNA confirmacion que dice cuantas— porque son la misma pregunta en
+   dos pantallas: el medico no tiene por que aprender dos gestos para lo mismo.
+
+   ⚠️ EL ESTADO ES UNO SOLO PARA LAS DOS PANTALLAS que muestran la bandeja —la seccion de la
+   pestaña Imagenes y el bloque «Sin estudio» de Guardados—, y `clnkbRepintarTodo` las repinta
+   juntas. Con un estado por pantalla, lo elegido en una no existiria en la otra y «Borrar lo
+   elegido» borraria cosas distintas segun donde se apriete.
+   ⚠️ LA CLAVE LLEVA EL ENVIO: `envio|clase|indice`. Sin el envio, el archivo 0 de un envio y el 0
+   de otro serian el mismo elegido.
+   ⚠️ EN MEMORIA Y NO EN DISCO: es una seleccion, no una preferencia. */
+var _clnkbElegir = false;
+var _clnkbSel = Object.create(null);
+
+function _clnkbClave(id, clase, k) { return String(id) + '|' + String(clase) + '|' + String(k); }
+
+function clnkbElegirModo(on) {
+  _clnkbElegir = !!on;
+  if (!_clnkbElegir) _clnkbSel = Object.create(null);
+  clnkbRepintarTodo();
+  return _clnkbElegir;
+}
+window.clnkbElegirModo = clnkbElegirModo;
+
+function clnkbSelCuenta() {
+  var n = 0, i;
+  for (i in _clnkbSel) { if (_clnkbSel[i]) n++; }
+  return n;
+}
+window.clnkbSelCuenta = clnkbSelCuenta;
+
+/* Las claves elegidas, agrupadas por envio. Es lo que `clnkbBorrarElegidas` recorre. */
+function _clnkbSelPorEnvio() {
+  var m = Object.create(null), k;
+  for (k in _clnkbSel) {
+    if (!_clnkbSel[k]) continue;
+    var p = String(k).split('|');
+    if (p.length !== 3) continue;
+    if (!m[p[0]]) m[p[0]] = [];
+    m[p[0]].push({ clase: p[1], k: Number(p[2]) });
+  }
+  return m;
+}
+
+/* ⚠️ «TODAS» ALCANZA LO QUE ESTA A LA VISTA, Y LO DICE: la bandeja puede tener envios que la
+   pantalla todavia no pinto. Es la misma regla que la galeria resolvio diciendolo. */
+async function clnkbSelTodas(v) {
+  if (!v) { _clnkbSel = Object.create(null); clnkbRepintarTodo(); return 0; }
+  var l = [];
+  try { l = await clnkbListar(); } catch (e) { l = []; }
+  l.forEach(function (x) {
+    var i;
+    for (i = 0; i < (x.n || 0); i++) _clnkbSel[_clnkbClave(x.id, 'img', i)] = true;
+    for (i = 0; i < (x.nLoops || 0); i++) _clnkbSel[_clnkbClave(x.id, 'loop', i)] = true;
+  });
+  clnkbRepintarTodo();
+  return clnkbSelCuenta();
+}
+window.clnkbSelTodas = clnkbSelTodas;
+
+/* UNA sola confirmacion para todo lo elegido, con el numero adentro. */
+async function clnkbBorrarElegidas() {
+  var n = clnkbSelCuenta();
+  if (!n) { if (typeof toast === 'function') toast('⚠️ Primero elegí al menos un archivo.'); return 0; }
+  var porEnvio = _clnkbSelPorEnvio();
+  var nEnvios = Object.keys(porEnvio).length;
+  var ok = await borrConfirmar(
+    '¿Borrar ' + n + (n === 1 ? ' archivo' : ' archivos') + ' de «Imágenes sin estudio»?',
+    ['Se borran ' + n + (n === 1 ? ' archivo' : ' archivos') +
+       (nEnvios > 1 ? (' de ' + nEnvios + ' envíos distintos') : '') + '.',
+     'NO SE PUEDE DESHACER. Son los archivos que CeiboLink dejó sin asignar a ningún estudio: ' +
+       'no se toca ningún estudio guardado ni sus imágenes.',
+     'Lo que no elegiste se queda donde está, y podés asignarlo a un estudio.'],
+    '🗑 Borrar ' + n);
+  if (!ok) return 0;
+  /* Los largos esperados salen de la MISMA lectura que pinto las miniaturas. */
+  var l = [];
+  try { l = await clnkbListar(); } catch (e) { l = []; }
+  var porId = Object.create(null);
+  l.forEach(function (x) { porId[x.id] = { n: x.n || 0, nLoops: x.nLoops || 0 }; });
+  var borradas = 0, fallos = 0, desf = 0;
+  var ids = Object.keys(porEnvio);
+  for (var i = 0; i < ids.length; i++) {
+    var r = null;
+    try { r = await clnkbBorrarVarias(ids[i], porEnvio[ids[i]], porId[ids[i]]); } catch (e) { r = null; }
+    if (r && r.ok) borradas += r.borradas;
+    else if (r && r.desfasado) desf++;
+    else fallos++;
+  }
+  _clnkbSel = Object.create(null);
+  clnkbRepintarTodo();
+  if (typeof toast === 'function') {
+    toast(borradas
+      ? ('🗑️ ' + borradas + (borradas === 1 ? ' archivo borrado' : ' archivos borrados') +
+         (desf ? ' · ' + desf + ' envío(s) habían cambiado y no se tocaron' : '') +
+         (fallos ? ' · ' + fallos + ' no se pudieron borrar' : ''))
+      : '⚠️ No se borró nada' + (desf ? ': el envío cambió desde que lo viste' : ''));
+  }
+  return borradas;
+}
+window.clnkbBorrarElegidas = clnkbBorrarElegidas;
+
+/* La barra del modo elegir, ARRIBA de la lista. Una sola funcion para las dos pantallas. */
+function _clnkbBarra(lis) {
+  var f = _clnkNodo('div', 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;' +
+    'padding:4px 0 7px;border-bottom:1px solid var(--border);margin-bottom:4px;');
+  var lab = document.createElement('label');
+  lab.style.cssText = 'display:flex;gap:6px;align-items:center;min-height:30px;font-size:11.5px;';
+  var chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.checked = _clnkbElegir;
+  chk.setAttribute('data-clnkb-elegir', '1');
+  chk.style.cssText = 'width:auto;margin:0;';
+  chk.addEventListener('change', function () { clnkbElegirModo(chk.checked); });
+  lab.appendChild(chk);
+  lab.appendChild(document.createTextNode(' Elegir archivos'));
+  f.appendChild(lab);
+  if (_clnkbElegir) {
+    [['☑ Todas', true], ['☐ Ninguna', false]].forEach(function (d) {
+      var b = _clnkNodo('button', 'padding:4px 10px;font-size:10.5px;', d[0]);
+      b.type = 'button'; b.className = 'btn btn-ghost';
+      b.setAttribute('data-clnkb-sel', d[1] ? 'todas' : 'ninguna');
+      b.title = d[1] ? 'Marca todos los archivos que están a la vista' : 'Desmarca todo';
+      b.addEventListener('click', function () { clnkbSelTodas(d[1]); });
+      f.appendChild(b);
+    });
+    var n = clnkbSelCuenta();
+    f.appendChild(_clnkNodo('span', 'font-size:11px;font-weight:700;',
+      n ? ('Elegidos: ' + n) : 'Todavía no elegiste nada'));
+    if (n) {
+      var bb = _clnkNodo('button', 'padding:4px 11px;font-size:10.5px;margin-left:auto;',
+        '🗑 Borrar lo elegido');
+      bb.type = 'button'; bb.className = 'btn btn-danger';
+      bb.setAttribute('data-clnkb-borrar-sel', '1');
+      bb.addEventListener('click', function () { clnkbBorrarElegidas(); });
+      f.appendChild(bb);
+    }
+  } else {
+    f.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);',
+      'Al prenderlo, cada toque sobre una miniatura la marca en vez de abrirla.'));
+  }
+  lis.appendChild(f);
+}
+
 function clnkbRepintarTodo() {
   try { if (typeof clnkbRender === 'function') clnkbRender(); } catch (e) {}
   try { if (typeof igBandejaRender === 'function') igBandejaRender(); } catch (e) {}
@@ -186796,6 +187302,7 @@ async function clnkbRender() {
   lis.textContent = '';
   if (!l.length) { sec.style.display = 'none'; if (cnt) cnt.textContent = ''; return 0; }
   sec.style.display = '';
+  _clnkbBarra(lis);                 // C1 · el modo elegir, el mismo en las dos pantallas
   var tot = l.reduce(function (a, x) { return a + (x.n || 0) + (x.nLoops || 0); }, 0);
   if (cnt) cnt.textContent = '(' + l.length + (l.length === 1 ? ' envío' : ' envíos') + ' · ' +
                              tot + (tot === 1 ? ' archivo' : ' archivos') + ')';
@@ -186873,6 +187380,7 @@ async function igBandejaRender() {
   lis.textContent = '';
   if (!l.length) { sec.style.display = 'none'; if (cnt) cnt.textContent = ''; return 0; }
   sec.style.display = '';
+  _clnkbBarra(lis);                 // C1 · el modo elegir, el mismo en las dos pantallas
   var tot = l.reduce(function (a, x) { return a + (x.n || 0) + (x.nLoops || 0); }, 0);
   var by = l.reduce(function (a, x) { return a + (x.bytesLoops || 0); }, 0);
   if (cnt) cnt.textContent = '(' + l.length + (l.length === 1 ? ' envío' : ' envíos') + ' · ' +
@@ -186956,6 +187464,31 @@ function _igBandMini(idEnvio, clase, k, src, pie, bytes) {
     b.appendChild(_igBandNodo('span',
       'position:absolute;left:3px;bottom:3px;font-size:9px;line-height:1;padding:2px 4px;' +
       'border-radius:4px;background:rgba(0,0,0,.66);color:#fff;pointer-events:none;', '🎞'));
+  }
+  /* ══ C1 · EN MODO ELEGIR, EL TOQUE MARCA Y NO ABRE ════════════════════════════════════════
+     Los dos significados son EXCLUYENTES: un toque sobre la miniatura hace UNA cosa, que es la
+     misma regla que la galeria de «Imágenes guardadas» ya aplica con su modo elegir. Y la marca
+     no vive solo en el color: lleva su tilde y su `aria-pressed`, para el que no distingue el
+     borde y para el lector de pantalla. */
+  if (_clnkbElegir) {
+    var cl = _clnkbClave(idEnvio, clase, k);
+    var elegida = !!_clnkbSel[cl];
+    b.setAttribute('aria-pressed', elegida ? 'true' : 'false');
+    b.title = (clase === 'loop' ? 'Cineloop ' : 'Imagen ') + (k + 1) +
+              (elegida ? ' — elegida, tocá para desmarcarla' : ' — tocá para elegirla');
+    b.setAttribute('aria-label', b.title);
+    if (elegida) {
+      b.style.borderColor = 'var(--accent, #2f6fe0)';
+      b.style.boxShadow = '0 0 0 2px var(--accent, #2f6fe0)';
+      b.appendChild(_igBandNodo('span',
+        'position:absolute;right:3px;top:3px;font-size:10px;line-height:1;padding:2px 4px;' +
+        'border-radius:4px;background:var(--accent, #2f6fe0);color:#fff;pointer-events:none;', '✓'));
+    }
+    b.onclick = function () {
+      if (_clnkbSel[cl]) delete _clnkbSel[cl]; else _clnkbSel[cl] = true;
+      clnkbRepintarTodo();
+    };
+    return b;
   }
   b.onclick = function () { clnkbVer(idEnvio, clase, k); };
   return b;
