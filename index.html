@@ -180994,8 +180994,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261120-1207';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795187262140;                 /* eco-build-ms */
+const ECO_BUILD    = '20261121-0308';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795241284166;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181081,7 +181081,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261120-1207</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-0308</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -182940,8 +182940,18 @@ async function clnkLeerAjustes() {
   var a = document.getElementById('cfg-clnk-aet');
   if (h) h.value = String(d.horas_retencion == null ? '' : d.horas_retencion);
   if (a) a.value = String(d.aet_puente || '');
-  var m = document.getElementById('cfg-clnk-amsg');
-  if (m) m.textContent = '';
+  /* ══ EL MENSAJE **NO** SE BORRA ACA, Y ES UNA REGRESION QUE LA TAREA B DEL PROMPT 7 INTRODUJO ══
+     Esta funcion la llama `clnkLeerEstado`, y a `clnkLeerEstado` lo llama el rebote de
+     `clnkRefrescar` que el SONDEO arma en cada turno. Con el sondeo a quince segundos el mensaje
+     «Guardado. Cambiar el nombre reinicia el receptor: por unos segundos no entran imagenes, y
+     hay que cargar el nombre nuevo en el ecografo» duraba hasta quince segundos; con el sondeo a
+     CUATRO se borraba en cuatro, que no alcanza para leer dos renglones. Y ese mensaje es una
+     INSTRUCCION: el que no lo lee se queda con el ecografo apuntando a un nombre que ya no
+     existe. Lo cazo TC-840 en la pasada de cierre.
+     ⚠️ NO SE PIERDE LA LIMPIEZA QUE ESTA LINEA HACIA, se mueve a los gestos del medico: la
+     escribe `clnkGuardarAjustes` al empezar —asi que un mensaje de error no sobrevive al intento
+     siguiente— y `clnkOnMostrar` al abrir el panel. Lo que deja de borrarlo es la lectura de
+     fondo, que nadie pidio. */
 }
 window.clnkLeerAjustes = clnkLeerAjustes;
 
@@ -183092,6 +183102,11 @@ window.clnkRefrescar = clnkRefrescar;
 /* Se llama al ABRIR el panel, que es cuando importa, y con el botón «Actualizar». Sin sondeo
    periódico: eso es del paso siguiente. */
 function clnkOnMostrar() {
+  /* ⚠️ Y EL DE AJUSTES TAMBIEN (PROMPT 7). Hasta hoy lo borraba `clnkLeerAjustes`, o sea CUALQUIER
+     lectura de fondo: con el sondeo a cuatro segundos eso se come en cuatro un mensaje de dos
+     renglones que el medico tiene que leer. Acá es el gesto de ABRIR el panel el que lo da por
+     leido, que es cuando de verdad dejo de aplicar. */
+  try { var ma = document.getElementById('cfg-clnk-amsg'); if (ma) ma.textContent = ''; } catch (e) {}
   /* ⚠️ EL MENSAJE DE VINCULACION SE LIMPIA AL ABRIR EL PANEL. Vive en `cfg-clnk-vmsg`, que hasta
      hoy solo se vaciaba con el modulo apagado o en Modo Basico: «EcoSmart se desvinculo en este
      navegador…» quedaba PEGADO ahi, debajo del campo del codigo, y se volvia a ver cada vez que

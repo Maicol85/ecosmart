@@ -136505,8 +136505,26 @@ caso('TC-847', 'El aviso de imagenes: SIN datos del paciente, tres botones, no v
       R.e_unSoloEquipo = (txt().match(/del equipo/g) || []).length === 1;
       clnkAvisoCerrar();
 
-      /* -- (F) EL AVISO DE EQUIPO NUEVO: mismo molde, tres salidas, y el AET como TEXTO -- */
-      await ctrl({ reset:true, equipos:2 });
+      /* -- (F) EL AVISO DE EQUIPO NUEVO: mismo molde, tres salidas, y el AET como TEXTO --
+         ** ADAPTADO POR LAS TAREAS B Y C DEL PROMPT 7: SE PARA EL SONDEO Y SE CIERRA LO QUE HAYA.
+         Este caso mide LLAMADAS EXPLICITAS -- clnkRevisarImagenes y clnkAvisarEquipoNuevo
+         llamadas a mano-- y no el sondeo. Con el ocioso a cuatro segundos y la ventana de silencio de
+         veinte, un turno propio alcanzaba a abrir el aviso de IMAGENES entre dos bloques, y
+         entonces el de equipo nuevo no se abre -- no se pisa otra pregunta, que es la regla de
+         ECO-CONECTOR-2--: el caso medía el cartel equivocado. Se para el temporizador y se cierra
+         lo que haya quedado, sin tocar una sola condicion. */
+      const tmrEq = window._clnkSondeoTimer;
+      if (tmrEq) { clearInterval(tmrEq); window._clnkSondeoTimer = null; }
+      /* ** Y LA ESCENA PASA A «vacio», QUE ES LO QUE DE VERDAD LO CIERRA. Parar el temporizador no
+         alcanza: un turno YA EN VUELO -- _clnkSondear es async-- sigue su curso y abre el aviso
+         de imagenes DESPUES del cierre, dentro de los 400 ms de la medicion. Sin imagenes
+         esperando no hay nada que pueda abrirlo, y equipos:2 deja igual el equipo pendiente,
+         que es lo unico que (F) necesita. */
+      await ctrl({ reset:true, equipos:2, escena:'vacio' });
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { if (typeof clnkBurbujaOcultar === 'function') clnkBurbujaOcultar(); } catch (e) {}
+      await new Promise(r => setTimeout(r, 300));
+      try { clnkAvisoCerrar(); } catch (e) {}
       R.f_abrio = await clnkAvisarEquipoNuevo();
       await new Promise(r => setTimeout(r, 400));
       R.f_visible = visible();
@@ -137074,8 +137092,13 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
       R.f_quedanEnConector = (esc.escenario.imagenes || []).length;
       R.f_listaLocal = (window._clnkPorConfirmar || []).length;
 
-      /* -- (G) LA PANTALLA ES MINIMA: cantidad, equipo, fecha y borrar; y NINGUNA miniatura,
-            porque adjuntar desde ahi a un estudio todavia no existe -- */
+      /* -- (G) LA PANTALLA: cantidad, equipo, fecha, MINIATURAS y borrar --
+            ** ADAPTADO E **INVERTIDO** POR LA TAREA F DEL PROMPT 7. Este bloque afirmaba
+            «NINGUNA miniatura, porque adjuntar desde ahi a un estudio todavia no existe», y las
+            dos mitades de ese argumento caducaron: ECO-CONECTOR-3 agrego asignar y la tarea F
+            llevo las miniaturas a esta pantalla, que se habia quedado atras de la de Guardados.
+            Hoy la condicion exige que las miniaturas ESTEN -- una por archivo-- asi que falla por
+            los dos lados: si desaparecen, y si vuelven a no estar. */
       showTab('imagenes');
       await new Promise(r => setTimeout(r, 900));
       R.g_visible = !!sec && sec.getBoundingClientRect().height > 0;
@@ -137131,7 +137154,8 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
       ['(F) el conector las saco de su lista',                R.f_quedanEnConector === 1, R.f_quedanEnConector],
       ['(F) y la lista local quedo vacia',                    R.f_listaLocal === 0, R.f_listaLocal],
       ['(G) la seccion se ve y dice la cantidad',             R.g_visible && R.g_diceCantidad, R.g_visible],
-      ['(G) SIN miniaturas: adjuntar desde ahi no existe aun', R.g_sinMiniaturas === 0, R.g_sinMiniaturas],
+      ['(G) CON miniaturas, una por archivo -- INVERTIDO por la tarea F del prompt 7: antes exigia CERO',
+                                                              R.g_sinMiniaturas === 2, R.g_sinMiniaturas],
       ['(G) con su boton Borrar',                             R.g_botonBorrar === 1, R.g_botonBorrar],
       ['(G) y DICE que no salen en ningun informe',           R.g_diceQueNoSale, R.g_diceQueNoSale],
       ['(H) borrar lo saca',                                  R.h_quedan === 0, R.h_quedan],
@@ -140716,6 +140740,15 @@ caso('TC-873', 'ECO-CONECTOR-5 decisiones 2 y 3: el aviso dice la FECHA cuando l
       /* ── (F) AGRUPA: cinco llamadas seguidas NO son cinco lecturas ──────────────────────*/
       showTab('config'); if (window.cfgOnShow) cfgOnShow();
       await __t.ec5Esp(600);
+      /* ** ADAPTADO POR LA TAREA B DEL PROMPT 7: SE PARA EL SONDEO PERIODICO PARA MEDIR.
+         Lo que esta condicion dice es «CINCO GESTOS del medico son UNA sola lectura», y eso es lo
+         que el rebote de 400 ms garantiza. Con el sondeo ocioso a CUATRO segundos -antes quince-
+         un turno propio aterriza adentro de la ventana de 1200 ms y suma su propio /v1/estado:
+         la cuenta daba 2 y el caso salia rojo sobre un rebote que funciona. Se para el
+         temporizador, se mide, y se lo repone -- no se afloja la condicion, que sigue exigiendo
+         UNA-. */
+      const tmrPrev = window._clnkSondeoTimer;
+      if (tmrPrev) { clearInterval(tmrPrev); window._clnkSondeoTimer = null; }
       const fOrig2 = window.fetch;
       let nE2 = 0;
       window.fetch = function (u) { if (String(u).indexOf('/v1/estado') > -1) nE2++; return fOrig2.apply(this, arguments); };
@@ -140724,7 +140757,7 @@ caso('TC-873', 'ECO-CONECTOR-5 decisiones 2 y 3: el aviso dice la FECHA cuando l
         await __t.ec5Esp(1200);
         R.f_lecturas = nE2;
         R.f_unaSola = nE2 === 1;
-      } finally { window.fetch = fOrig2; }
+      } finally { window.fetch = fOrig2; try { clnkSondeoSync(); } catch (e) {} }
     } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
     finally {
       try {
