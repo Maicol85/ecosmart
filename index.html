@@ -182766,7 +182766,7 @@ function clnkToggle(on) {
   /* El sondeo se re-sincroniza en CADA cambio de estado del módulo, y por eso `clnkSondeoSync`
      es idempotente: con cinco enganches sin esa guarda quedarían cinco temporizadores. */
   if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
-  if (on) clnkLeerEstado();
+  if (on) clnkLeerEstado(true);
   if (typeof toast === 'function') {
     toast(on ? '🔗 CeiboLink activado' : 'CeiboLink desactivado');
   }
@@ -182853,9 +182853,104 @@ window.clnkEspacio = clnkEspacio;
    se repinta. El color no es la única señal: va con su rótulo, porque un círculo verde y uno
    rojo del mismo tamaño no se distinguen con un monitor mal calibrado ni con un daltonismo
    rojo-verde. */
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA EQ · BLOQUE B · EL SONDEO NO REDIBUJA EL PANEL
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   LOS DOS DEFECTOS QUE EL MEDICO REPORTO SON EL MISMO, Y ESTAN MEDIDOS en `scripts/_probe_eq0.mjs`:
+   un turno de sondeo producia **40 mutaciones del DOM** de la tarjeta con el MISMO contenido, y
+   reescribia la lista de equipos entera —`cont.textContent = ''` y de nuevo— cada cuatro segundos.
+   Consecuencias medidas: el campo del apodo se destruia y volvia a nacer (`mismoNodo:false`), lo
+   tecleado se perdia («Vinno del consultorio» -> cadena vacia), el foco se perdia, los plegables
+   abiertos se cerraban, y los campos de Ajustes se sobreescribian con el valor del puente
+   —tecleando «MI_NOMBRE» quedaba «PUENTE»—. La «pestañada» cada pocos segundos es eso mismo.
+
+   ⚠️ NO SE TOCA LA CADENCIA, por orden expresa: lo que se arregla es el REPINTADO. Tres reglas,
+   en este orden:
+     1 · mientras el medico tiene el foco DENTRO de la tarjeta, el repintado se posterga. No se
+         pierde nada: el sondeo vuelve en cuatro segundos y la firma sigue distinta;
+     2 · si lo que volvio es IGUAL a lo ultimo pintado, no se escribe un solo nodo;
+     3 · si cambio de verdad, se repinta conservando lo que el medico abrio, lo que tecleo y
+         donde tenia el foco.
+   ⚠️ LA REGLA 2 NO ALCANZA SOLA, y por eso estan las tres: al guardar un apodo la firma SI cambia
+   —ese es el caso en que hay que repintar— y ahi es donde el foco y el plegable se perdian. */
+function _clnkEscribiendo() {
+  try {
+    var card = document.getElementById('cfg-card-clnk');
+    var a = document.activeElement;
+    if (!card || !a || a === document.body) return false;
+    if (!card.contains(a)) return false;
+    var t = String(a.tagName || '').toLowerCase();
+    return (t === 'input' || t === 'textarea' || t === 'select');
+  } catch (e) { return false; }
+}
+window._clnkEscribiendo = _clnkEscribiendo;
+
+/* Lo que el medico tiene abierto y donde tiene el foco, para reponerlo despues de repintar.
+   ⚠️ SE GUARDA POR `data-clnk-det` Y NO POR POSICION: la lista se reordena cuando el puente
+   agrega un equipo, y un plegable repuesto por indice se abriria en el equipo de al lado. */
+/* El foco dentro de ESTE contenedor, sea un campo o un boton. `_clnkEscribiendo` mira solo los
+   campos de toda la tarjeta; esto cubre al medico que llego con el tabulador a «Separar» y al que
+   esta leyendo con el teclado: repintar le mueve el foco al principio del documento. */
+function _clnkFocoEn(cont) {
+  try {
+    var a = document.activeElement;
+    return !!(cont && a && a !== document.body && cont.contains(a));
+  } catch (e) { return false; }
+}
+
+function _clnkEstadoPanel(cont) {
+  var st = { abiertos: Object.create(null), foco: '', ini: 0, fin: 0 };
+  if (!cont) return st;
+  try {
+    [].forEach.call(cont.querySelectorAll('[data-clnk-det]'), function (d) {
+      if (d.open) st.abiertos[d.getAttribute('data-clnk-det')] = true;
+    });
+    var a = document.activeElement;
+    if (a && cont.contains(a) && a.hasAttribute && a.hasAttribute('data-clnk-apodo')) {
+      st.foco = 'apodo:' + a.getAttribute('data-clnk-apodo');
+      try { st.ini = a.selectionStart; st.fin = a.selectionEnd; } catch (e) {}
+    }
+  } catch (e) {}
+  return st;
+}
+
+function _clnkReponerPanel(cont, st) {
+  if (!cont || !st) return;
+  try {
+    [].forEach.call(cont.querySelectorAll('[data-clnk-det]'), function (d) {
+      if (st.abiertos[d.getAttribute('data-clnk-det')]) d.open = true;
+    });
+    if (st.foco.indexOf('apodo:') === 0) {
+      var id = st.foco.slice(6);
+      var cs = cont.querySelectorAll('[data-clnk-apodo]');
+      for (var i = 0; i < cs.length; i++) {
+        if (cs[i].getAttribute('data-clnk-apodo') === id) {
+          cs[i].focus();
+          try { cs[i].setSelectionRange(st.ini, st.fin); } catch (e) {}
+          return;
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+/* ⚠️ LA LUZ TAMBIEN SE GUARDA CONTRA SU PROPIO VALOR: la pintan `clnkLeerEstado` en sus cinco
+   ramas y el flash de «Preguntando…», y con el conector contestando siempre lo mismo eran tres
+   escrituras por turno sobre un texto identico. */
+var _clnkLuzFirma = '';
+var _clnkEstFirma = '';
+var _clnkEqFirma = '';
+var _clnkConexFirma = '';
+
 function _clnkPintarLuz(color, rotulo, detalle) {
   var n = document.getElementById('cfg-clnk-luz');
   if (!n) return;
+  var fi = String(color) + '|' + String(rotulo) + '|' + String(detalle || '');
+  /* Con el mismo valor NO se escribe nada, y se compara contra lo pintado y no contra la ultima
+     llamada: `clnkRender` vacia la luz al apagar el modulo, asi que la firma se limpia ahi
+     mismo —sin eso, volver a Avanzado dejaria la luz en blanco porque «no cambio nada»—. */
+  if (fi === _clnkLuzFirma && n.firstChild) return;
+  _clnkLuzFirma = fi;
   n.textContent = '';
   n.appendChild(_clnkNodo('span',
     'width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:' + color + ';'));
@@ -182872,24 +182967,57 @@ function _clnkChip(cont, txt, fuerte) {
     (fuerte ? 'font-weight:700;color:var(--text);' : ''), txt));
 }
 
-async function clnkLeerEstado() {
+/* ══ BLOQUE B · `porMedico` ES EL GESTO Y NO LA LECTURA DE FONDO ══════════════════════════════
+   Lo pasan los cinco caminos del medico —«Actualizar», abrir el panel, el interruptor, vincular y
+   desvincular— y NO el rebote del sondeo. Lo unico que cambia es el flash de «Preguntando…»: en
+   un gesto es la respuesta a que apreto algo, y cuatro veces por minuto sin que nadie lo pidiera
+   es la «pestañada» que el medico reporto. */
+async function clnkLeerEstado(porMedico) {
   var cont = document.getElementById('cfg-clnk-estado');
   var nums = document.getElementById('cfg-clnk-nums');
   if (!cont) return;
-  if (!clnkActivo()) { cont.textContent = ''; if (nums) nums.textContent = ''; return; }
-  cont.textContent = '';
-  if (nums) nums.textContent = '';
-  _clnkPintarLuz('var(--text2)', 'Preguntando…', '');
+  if (!clnkActivo()) {
+    cont.textContent = ''; if (nums) nums.textContent = '';
+    _clnkEstFirma = '';
+    return;
+  }
+  var lz0 = document.getElementById('cfg-clnk-luz');
+  /* La primera lectura de la sesion SI muestra el flash aunque nadie la haya pedido: ahi la
+     tarjeta esta vacia y el médico tiene que ver que algo esta pasando. */
+  var primera = !lz0 || !lz0.firstChild;
+  if (porMedico || primera) {
+    cont.textContent = '';
+    if (nums) nums.textContent = '';
+    _clnkEstFirma = '';
+    _clnkPintarLuz('var(--text2)', 'Preguntando…', '');
+  }
   var r = await clnkPedir('/v1/estado', {});
   if (!r.vigente) return;         // el médico apagó o cambió de modo mientras esto volvía
   cont = document.getElementById('cfg-clnk-estado');
   nums = document.getElementById('cfg-clnk-nums');
   if (!cont) return;
-  cont.textContent = '';
-  if (nums) nums.textContent = '';
+  /* ══ BLOQUE B · LA FIRMA DE LO QUE SE VA A PINTAR ══════════════════════════════════════════
+     Con el conector contestando lo mismo —que es lo normal: el medico mira el panel y no pasa
+     nada— no se escribe un solo nodo. Entra TODO lo que esta parte dibuja: la luz, los tres
+     chips, el aviso de espacio y la rama de error, porque dos estados distintos con la misma
+     firma dejarian la tarjeta diciendo lo de antes. */
+  var dd = r.datos || {};
+  var firmaEst = [r.red ? 'red' : '', r.ok ? 'ok' : ('e' + r.estado), String(r.msg || ''),
+                  String(dd.version || ''), String(!!dd.orthanc_vivo),
+                  String(dd.imagenes_pendientes), String(dd.equipos_esperando),
+                  String(dd.bytes_usados), String(dd.bytes_tope), String(dd.bytes_aviso),
+                  String(clnkVinculado())].join('|');
+  var pintar = (firmaEst !== _clnkEstFirma) || !_clnkEstFirma;
+  if (pintar) {
+    _clnkEstFirma = firmaEst;
+    cont.textContent = '';
+    if (nums) nums.textContent = '';
+  }
   if (r.red) {
     _clnkPintarLuz('var(--text2)', 'No responde', '');
-    _clnkAviso(cont, r.msg, 'var(--amber, var(--text2))');
+    /* ⚠️ CADA AÑADIDO VA DETRAS DE `pintar`: sin vaciar el contenedor, un `appendChild` por turno
+       apila el mismo aviso cuatro veces por minuto. */
+    if (pintar) _clnkAviso(cont, r.msg, 'var(--amber, var(--text2))');
     /* Sin conector no hay nada que leer de las otras rutas: se esconden en vez de dejar tres
        plegables vacíos que parecen roto. */
     _clnkEsconderDependientes();
@@ -182897,7 +183025,7 @@ async function clnkLeerEstado() {
   }
   if (!r.ok) {
     _clnkPintarLuz('var(--text2)', 'No contestó bien', 'código ' + r.estado);
-    _clnkAviso(cont, r.msg, 'var(--text2)');
+    if (pintar) _clnkAviso(cont, r.msg, 'var(--text2)');
     _clnkEsconderDependientes();
     return;
   }
@@ -182924,7 +183052,7 @@ async function clnkLeerEstado() {
     _clnkPintarLuz('var(--green, #2e9e5b)', 'Conectado', vers || '—');
   }
   /* ══ LOS TRES NÚMEROS ══ */
-  if (nums) {
+  if (nums && pintar) {
     var fila = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;');
     var pend = Number(d.imagenes_pendientes) || 0;
     var esp = Number(d.equipos_esperando) || 0;
@@ -182941,7 +183069,7 @@ async function clnkLeerEstado() {
     }
   }
   var e = clnkEspacio(d.bytes_usados, d.bytes_tope, d.bytes_aviso);
-  if (e) _clnkAviso(cont, e.txt, e.nivel === 'rojo' ? 'var(--red, #c0392b)' : 'var(--amber, #d98c00)');
+  if (e && pintar) _clnkAviso(cont, e.txt, e.nivel === 'rojo' ? 'var(--red, #c0392b)' : 'var(--amber, #d98c00)');
   _clnkVersionVieja = String(d.version || '').indexOf('1.0.') === 0;
   if (vinculado) {
     clnkLeerConexion();
@@ -183031,7 +183159,7 @@ async function clnkVincular() {
   /* Recién vinculado: el sondeo pasa a corresponder, así que arranca ahora y no al próximo
      cambio de pestaña. */
   if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
-  clnkLeerEstado();
+  clnkLeerEstado(true);
 }
 window.clnkVincular = clnkVincular;
 
@@ -183059,7 +183187,7 @@ async function clnkDesvincular() {
   clnkRender();
   /* Sin token no se sondea: el predicado lo dice y esto lo aplica en el acto. */
   if (typeof clnkSondeoSync === 'function') { try { clnkSondeoSync(); } catch (e) {} }
-  clnkLeerEstado();
+  clnkLeerEstado(true);
 }
 window.clnkDesvincular = clnkDesvincular;
 
@@ -183117,8 +183245,9 @@ async function clnkLeerConexion() {
   cont = document.getElementById('cfg-clnk-conexion');
   det = document.getElementById('cfg-clnk-det-conexion');
   if (!cont) return;
-  cont.textContent = '';
   if (r.estado === 404) {
+    cont.textContent = '';
+    _clnkConexFirma = '';
     /* Conector 1.0: se esconde, no se avisa. Lo manda el contrato §7. */
     if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} }
     return;
@@ -183126,6 +183255,20 @@ async function clnkLeerConexion() {
   if (!r.ok) { if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} } return; }
   if (det) det.style.display = '';
   var d = r.datos || {};
+  /* ══ BLOQUE B · ESTA SECCION TAMPOCO SE REPINTA SI NO CAMBIO ════════════════════════════════
+     Son tres datos fijos de una computadora: el puerto, el nombre y las direcciones. Repintarlos
+     cuatro veces por minuto era la mitad de la «pestañada», y con el foco en uno de sus botones
+     de «Copiar» —el medico leyendole la direccion al tecnico por telefono— el repintado se lo
+     llevaba. La firma incluye la carpeta compartida porque de ella cuelga su propio panel. */
+  var firmaCx = JSON.stringify([d.puerto_dicom, d.aet_puente, d.aviso,
+    (Array.isArray(d.direcciones) ? d.direcciones : []).map(function (x) {
+      return [x && x.direccion, x && x.interfaz, x && x.tipo, x && x.enlace, x && x.probable];
+    }), d.carpeta_compartida || null]);
+  _clnkConexDirs = Array.isArray(d.direcciones) ? d.direcciones.slice() : [];
+  if (_clnkFocoEn(cont)) return;
+  if (firmaCx === _clnkConexFirma && cont.firstChild) return;
+  _clnkConexFirma = firmaCx;
+  cont.textContent = '';
   cont.appendChild(_clnkNodo('p', 'font-size:11px;color:var(--text2);margin:0 0 8px;line-height:1.5;',
     'Dale estos datos a quien configure el ecógrafo. En el menú DICOM del equipo hay que cargar ' +
     'un destino nuevo que apunte a esta computadora.'));
@@ -183144,7 +183287,6 @@ async function clnkLeerConexion() {
   _clnkDato(fila, 'Nombre (AET)', String(d.aet_puente || ''), '',
             false, 'SCP AET · AE Title · AET');
   var dirs = Array.isArray(d.direcciones) ? d.direcciones : [];
-  _clnkConexDirs = dirs.slice();
   if (!dirs.length) {
     _clnkDato(fila, 'Dirección', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.',
               false, 'Dirección SCP · IP del servidor · Server IP');
@@ -183294,10 +183436,42 @@ async function clnkLeerEquipos() {
   cont = document.getElementById('cfg-clnk-equipos');
   det = document.getElementById('cfg-clnk-det-equipos');
   if (!cont) return;
-  cont.textContent = '';
-  if (!r.ok) { if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} } return; }
+  if (!r.ok) {
+    if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} }
+    cont.textContent = '';
+    _clnkEqFirma = '';
+    return;
+  }
   if (det) det.style.display = '';
   var lista = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  /* ══════════════════════════════════════════════════════════════════════════════════════════
+     BLOQUE B · LAS TRES REGLAS DEL REPINTADO
+     ══════════════════════════════════════════════════════════════════════════════════════════
+     ⚠️ 1 · CON EL FOCO ADENTRO DE LA TARJETA NO SE TOCA NADA. Es el defecto que el medico
+     reporto con todas las letras —«en Apodo y acciones no se puede escribir»—: cada cuatro
+     segundos esta funcion destruia el campo y lo volvia a crear, asi que lo tecleado, el foco y
+     el plegable abierto se perdian. Postergar no pierde nada: el sondeo vuelve enseguida.
+     ⚠️ 2 · CON LA MISMA LISTA, LAS MISMAS DIRECCIONES Y LOS MISMOS GRUPOS, no se escribe un solo
+     nodo. En la firma entra TODO lo que esta funcion dibuja, y las direcciones de esta
+     computadora entran porque de ellas sale el rotulo de cada linea: sin ellas, el primer
+     pintado de la sesion —que llega antes que `/v1/conexion`— se quedaria sin rotulos para
+     siempre.
+     ⚠️ 3 · SI CAMBIO DE VERDAD, se repinta conservando lo que el medico abrio y donde tenia el
+     foco. La regla 2 sola no alcanza: al guardar un apodo la firma CAMBIA, y es justo ahi donde
+     el plegable se cerraba en la cara del medico. */
+  var firma = JSON.stringify([lista.map(function (e) {
+    return [String(e && e.id), String(e && e.estado), String(e && e.aet),
+            String(e && e.nombre_para_mostrar || ''), String(e && e.ip || ''),
+            (e && e.apodo == null) ? null : String(e.apodo),
+            Number(e && e.imagenes) || 0, String(e && e.ultimo_envio || '')];
+  }), (_clnkConexDirs || []).map(function (x) {
+    return [String(x && x.direccion), String(x && x.tipo || '')];
+  }), clnkEqGrupos(), !!_clnkVersionVieja]);
+  if (_clnkEscribiendo() || _clnkFocoEn(cont)) return;          // regla 1
+  if (firma === _clnkEqFirma && cont.firstChild) return;        // regla 2
+  _clnkEqFirma = firma;
+  var _st = _clnkEstadoPanel(cont);                            // regla 3
+  cont.textContent = '';
   /* La lista cruda del ultimo pedido. La leen `clnkAccionEquipo` —para saber que direcciones son
      del mismo equipo al guardar un apodo o al unir— y la firma del bloque B. Es una copia de lo
      que acaba de llegar y no una segunda fuente: se reescribe en cada lectura. */
@@ -183333,12 +183507,14 @@ async function clnkLeerEquipos() {
      direcciones adentro. `clnkEqAgrupar` conserva el orden del puente. */
   var grupos = clnkEqAgrupar(lista);
   grupos.forEach(function (g) { _clnkFilaGrupo(cont, g, grupos.length); });
+  _clnkReponerPanel(cont, _st);
   /* ══ (d) LA AYUDA DE LAS ACCIONES, UNA SOLA Y PLEGABLE ════════════════════════════
      Antes este párrafo de tres oraciones se repetía DEBAJO DE CADA EQUIPO: con dos equipos, el
      mismo texto dos veces; con cinco, cinco. Y es el texto que se lee UNA vez en la vida. */
   var ay = document.createElement('details');
   ay.className = 'clnk-det';
   ay.style.cssText = 'margin-top:4px;background:transparent;border-style:dashed;';
+  ay.setAttribute('data-clnk-det', 'ayuda');
   var sm = document.createElement('summary');
   sm.style.cssText = 'font-size:11px;font-weight:400;color:var(--text2);';
   sm.textContent = 'Qué hace cada acción';
@@ -183913,11 +184089,29 @@ async function clnkAccionEquipo(id, acc) {
         : acc === 'bloquear' ? '🚫 Equipo bloqueado' : 'Equipo olvidado');
   }
   clnkLeerEquipos();
-  clnkLeerEstado();
+  /* El medico acaba de decidir algo: la lectura es consecuencia de SU gesto, asi que el flash de
+     «Preguntando…» es la respuesta a lo que apreto y no una pestañada de fondo. */
+  clnkLeerEstado(true);
 }
 window.clnkAccionEquipo = clnkAccionEquipo;
 
 /* ── (g) Ajustes ───────────────────────────────────────────────────────────────────────────── */
+/* El ultimo valor que dio el puente para cada campo de Ajustes. Con eso se distingue «el campo
+   dice lo que el puente dijo» de «el medico lo cambio y todavia no guardo», que es lo unico que
+   permite no pisarle lo tecleado sin dejar de poner al dia un campo que nadie toco. */
+var _clnkAjUlt = Object.create(null);
+
+function _clnkAjPoner(el, v, k) {
+  if (!el) return;
+  var tenia = Object.prototype.hasOwnProperty.call(_clnkAjUlt, k) ? _clnkAjUlt[k] : null;
+  var tocado = (tenia !== null && String(el.value) !== tenia);
+  _clnkAjUlt[k] = v;
+  if (document.activeElement === el) return;      // lo esta escribiendo ahora
+  if (tocado) return;                             // lo cambio y no lo guardo todavia
+  if (String(el.value) === v) return;             // ya dice lo mismo: no se escribe nada
+  el.value = v;
+}
+
 async function clnkLeerAjustes() {
   var det = document.getElementById('cfg-clnk-det-ajustes');
   if (!det) return;
@@ -183934,8 +184128,13 @@ async function clnkLeerAjustes() {
   var d = r.datos || {};
   var h = document.getElementById('cfg-clnk-horas');
   var a = document.getElementById('cfg-clnk-aet');
-  if (h) h.value = String(d.horas_retencion == null ? '' : d.horas_retencion);
-  if (a) a.value = String(d.aet_puente || '');
+  /* ══ BLOQUE B · LA LECTURA DE FONDO NO PISA LO QUE EL MEDICO ESCRIBIO ═══════════════════════
+     MEDIDO: con el foco en «Nombre de CeiboLink» y «MI_NOMBRE» tecleado, un turno del sondeo
+     dejaba el campo en «PUENTE» —el valor del puente— y el foco afuera. Es el mismo defecto que
+     el apodo, por otra puerta, y el mismo que la tarea B del prompt 7 pago con el mensaje de
+     «Guardado»: la lectura de fondo escribiendo arriba del medico. */
+  _clnkAjPoner(h, String(d.horas_retencion == null ? '' : d.horas_retencion), 'horas');
+  _clnkAjPoner(a, String(d.aet_puente || ''), 'aet');
   /* ══ EL MENSAJE **NO** SE BORRA ACA, Y ES UNA REGRESION QUE LA TAREA B DEL PROMPT 7 INTRODUJO ══
      Esta funcion la llama `clnkLeerEstado`, y a `clnkLeerEstado` lo llama el rebote de
      `clnkRefrescar` que el SONDEO arma en cada turno. Con el sondeo a quince segundos el mensaje
@@ -183993,33 +184192,49 @@ async function clnkGuardarAjustes() {
 window.clnkGuardarAjustes = clnkGuardarAjustes;
 
 /* ── El repintado ──────────────────────────────────────────────────────────────────────────── */
+/* ══ BLOQUE B · ESCRIBIR UN ESTILO QUE YA DICE LO MISMO TAMBIEN ES UNA MUTACION ═══════════════
+   `clnkRender` corre en cada turno del sondeo y ponia el `display` de SEIS nodos y el texto de
+   uno, siempre con el mismo valor. El navegador anota una mutacion de atributo igual, y eso era
+   lo que quedaba de la «pestañada» despues de guardar las tres secciones por firma: de 40
+   mutaciones por turno a 2, y con esto a 0. */
+function _clnkDisp(el, v) {
+  if (el && el.style.display !== v) el.style.display = v;
+}
+
+function _clnkTxt(el, v) {
+  if (el && el.textContent !== v) el.textContent = v;
+}
+
 function clnkRender() {
   var card = document.getElementById('cfg-card-clnk');
   /* La tarjeta ENTERA, no sólo el cuerpo: en Modo Básico no queda ni el título. */
-  if (card) card.style.display = _clnkModoAvanzado() ? '' : 'none';
+  _clnkDisp(card, _clnkModoAvanzado() ? '' : 'none');
   var chk = document.getElementById('cfg-clnk-on');
   if (chk) chk.checked = _clnkEncendido();   // refleja lo PERSISTIDO, no el modo
   /* El texto provisorio de dónde ve el médico el código entra por `textContent` desde su
      constante: así el día que se decida se cambia en UN lugar y no en el marcado. */
   var dnd = document.getElementById('cfg-clnk-donde');
-  if (dnd) dnd.textContent = CLNK_TXT_DONDE_CODIGO;
+  _clnkTxt(dnd, CLNK_TXT_DONDE_CODIGO);
   var on = clnkActivo();
   var cue = document.getElementById('cfg-clnk-cuerpo');
-  if (cue) cue.style.display = on ? '' : 'none';
+  _clnkDisp(cue, on ? '' : 'none');
   var vin = clnkVinculado();
   var bv = document.getElementById('cfg-clnk-bloque-vincular');
-  if (bv) bv.style.display = vin ? 'none' : '';
+  _clnkDisp(bv, vin ? 'none' : '');
   var bd = document.getElementById('cfg-clnk-bloque-desvincular');
-  if (bd) bd.style.display = vin ? '' : 'none';
+  _clnkDisp(bd, vin ? '' : 'none');
   /* El renglón de «Ver lo que espera» / «Vista previa»: las dos rutas que usan llevan token.
      `flex` y no la cadena vacía, por lo mismo que `_igMostrar` guarda el display original: el
      contenedor es un `display:flex` declarado en línea, y restaurarlo con '' lo dejaría en
      `block` —los dos botones apilados—. */
   var ba = document.getElementById('cfg-clnk-acciones');
-  if (ba) ba.style.display = vin ? 'flex' : 'none';
+  _clnkDisp(ba, vin ? 'flex' : 'none');
   var b = document.getElementById('cfg-clnk-vincular-btn');
   var inp = document.getElementById('cfg-clnk-codigo');
-  if (b && inp) b.disabled = String(inp.value || '').replace(/[^0-9]/g, '').length !== 6;
+  if (b && inp) {
+    var ds = String(inp.value || '').replace(/[^0-9]/g, '').length !== 6;
+    if (b.disabled !== ds) b.disabled = ds;
+  }
   /* Apagado o en Modo Básico se LIMPIA, por el mismo motivo escrito que tenía el panel viejo:
      sin esto, volver a Avanzado repone una lectura vieja sin fecha y sin marca de obsoleta, que
      además puede haber terminado DESPUÉS de que el modo la apagara. */
@@ -184033,6 +184248,7 @@ function clnkRender() {
        escondido sería una luz sobre un panel que no se ve. */
     var lz = document.getElementById('cfg-clnk-luz');
     if (lz) lz.textContent = '';
+    _clnkLuzFirma = '';          // ver `_clnkPintarLuz`: lo vaciado no cuenta como pintado
     var vm = document.getElementById('cfg-clnk-vmsg');
     if (vm) vm.textContent = '';
     _clnkEsconderDependientes();
@@ -184110,7 +184326,10 @@ function clnkOnMostrar() {
      de resultado de UNA accion: su lugar es el momento en que se hizo. */
   _clnkVmsgLimpiar();
   clnkRender();
-  if (clnkActivo()) clnkLeerEstado();
+  /* Abrir el panel es un gesto: los campos de Ajustes vuelven a mostrar lo que el puente tiene
+     guardado, en vez de un valor a medio escribir de hace media hora. */
+  _clnkAjUlt = Object.create(null);
+  if (clnkActivo()) clnkLeerEstado(true);
 }
 window.clnkOnMostrar = clnkOnMostrar;
 
@@ -184129,7 +184348,7 @@ window._clnkVmsgLimpiar = _clnkVmsgLimpiar;
    lee como parte de esa lectura. */
 function clnkActualizar() {
   _clnkVmsgLimpiar();
-  clnkLeerEstado();
+  clnkLeerEstado(true);
 }
 window.clnkActualizar = clnkActualizar;
 
