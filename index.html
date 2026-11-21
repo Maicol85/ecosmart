@@ -181834,8 +181834,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261121-1600';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795287616221;                 /* eco-build-ms */
+const ECO_BUILD    = '20261121-1813';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795295588355;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181921,7 +181921,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1600</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1813</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -183993,6 +183993,13 @@ function borrConfirmar(titulo, parrafos, rotuloSi) {
       ov.setAttribute('role', 'dialog');
       ov.setAttribute('aria-modal', 'true');
       ov.setAttribute('aria-label', String(titulo || 'Confirmar'));
+      /* MARCA PROPIA, y no es decoracion: una prueba que busca «el primer [role=dialog] visible»
+         encuentra el cartel que dejo abierto OTRO caso del mismo lote, no encuentra su boton y se
+         queda esperando una promesa que solo un clic resuelve -- colgo la suite en el lote 18 de
+         19, con TC-990 pasando aislado--. Con la marca, cada cartel se busca a si mismo.
+         Va como ATRIBUTO y sin `id`: un id entraria al censo del estudio y a los barridos de
+         «Nuevo estudio» por existir. */
+      ov.setAttribute('data-borr-conf', '1');
       ov.style.cssText = 'position:fixed;inset:0;z-index:760;background:rgba(0,0,0,.62);' +
         'display:flex;align-items:center;justify-content:center;padding:16px;';
       var c = document.createElement('div');

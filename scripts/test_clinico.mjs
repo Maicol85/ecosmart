@@ -151519,6 +151519,10 @@ caso('TC-955', 'Punto 9: el aviso de independencia en TRES bloques con su dibuji
     await esperar(260);
     const cerro = card ? getComputedStyle(card).display : 'SIN TARJETA';
 
+    /* EL PANEL DE EVIDENCIA SE CIERRA: lo abrimos para medir el globo y dejarlo abierto le mete
+       un [role=dialog] visible -- indic-card-- a los 54 casos que siguen en el lote, que es lo que
+       colgo la suite en el lote 18 de 19 (EQ-i). */
+    try { if (typeof indicCerrar === 'function') indicCerrar(); } catch (e) {}
     return { extra: [
       // ── DENOMINADORES.
       ['el aviso inicial existe', !!av, String(!!av)],
@@ -156976,9 +156980,15 @@ caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas
       document.querySelectorAll('input[id], select[id], textarea[id]'), e => e.id).join('|');
     const dialogos = () => Array.prototype.slice.call(document.querySelectorAll('[role=dialog]'))
       .filter(d => d.getBoundingClientRect().height > 0);
+    /* El cartel de ESTE caso se busca por su marca propia y no como «el primer dialogo visible»:
+       con uno que dejo abierto otro caso del mismo lote, el primero era el ajeno. */
+    const confirms = () => dialogos().filter(d => d.hasAttribute('data-borr-conf'));
+    const ajenos = () => dialogos().filter(d => !d.hasAttribute('data-borr-conf'))
+      .map(d => d.id || d.getAttribute('aria-label') || '(sin nombre)');
     let creado = null;
     try {
       R.censoAntes = censo();
+      R.ajenosAlEmpezar = ajenos().join(' | ');
       const cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
       const cx = cv.getContext('2d'); cx.fillStyle = '#4080c0'; cx.fillRect(0, 0, 8, 8);
       const PX = cv.toDataURL('image/jpeg', 0.8);
@@ -157020,7 +157030,7 @@ caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas
       /* -- C - UNA SOLA CONFIRMACION, Y ES PROPIA ----------------------------------- */
       const p = clnkbBorrarElegidas();
       await esp(450);
-      const dlg = dialogos();
+      const dlg = confirms();
       R.cDialogos = dlg.length;
       R.cTexto = dlg.length ? String(dlg[0].textContent || '') : '';
       R.cDiceCuantos = R.cTexto.indexOf('2 archivos') >= 0;
@@ -157030,7 +157040,16 @@ caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas
         .filter(b => (b.textContent || '').indexOf('Borrar') >= 0)[0] : null;
       R.cHaySi = !!bSi;
       if (bSi) bSi.click();
-      R.cBorradas = await p;
+      /* ⚠️ LA ESPERA VA ACOTADA. borrConfirmar resuelve SOLO con un clic, con Escape o con un
+         clic en el fondo, asi que un await pelado sobre su promesa no da un rojo cuando el
+         cartel no aparece: cuelga la suite entera y se lee como «la maquina se trabo». Paso de
+         verdad en el lote 18 de 19 con este caso pasando aislado. Si vence el tope, se suelta la
+         promesa con Escape y la condicion de abajo sale ROJA con su motivo. */
+      R.cBorradas = await Promise.race([p, esp(9000).then(() => 'SIN RESPUESTA')]);
+      if (R.cBorradas === 'SIN RESPUESTA') {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await esp(250);
+      }
       await esp(400);
       /* -- D - LOS INDICES NO SE CORRIERON: QUEDA LA DEL MEDIO --------------------- */
       const reg = await clnkbLeer(creado);
@@ -157071,6 +157090,9 @@ caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas
       ['tocar dos miniaturas las marca, y la marca se ve y se anuncia',
         R.bElegidas === 2 && R.bMarcadas === 2, 'sel=' + R.bElegidas + ' marcadas=' + R.bMarcadas],
       ['y aparece el boton de borrar lo elegido', R.bHayBorrar, R.bHayBorrar],
+      ['DENOMINADOR: la pantalla arranca sin ningun cartel ajeno abierto -- con uno abierto este '
+        + 'caso buscaba su boton en el cartel de al lado y colgaba la suite',
+        R.ajenosAlEmpezar === '', R.ajenosAlEmpezar || 'ninguno'],
       ['UNA sola confirmacion, que dice CUANTAS se borran y que no se puede deshacer',
         R.cDialogos === 1 && R.cDiceCuantos && R.cDiceIrreversible,
         'dialogos=' + R.cDialogos + ' cuantos=' + R.cDiceCuantos + ' irrev=' + R.cDiceIrreversible],
@@ -157121,12 +157143,24 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
     const EL = id => document.getElementById(id);
     const dialogos = () => Array.prototype.slice.call(document.querySelectorAll('[role=dialog]'))
       .filter(d => d.getBoundingClientRect().height > 0);
+    /* Cada cartel se busca A SI MISMO y no como «el primer dialogo visible»: con el panel de
+       Evidencia abierto por otro caso del lote -- indic-card lleva role=dialog--, el primero era
+       el ajeno, este caso le buscaba casillas que no tiene y reventaba con «reading click».
+       Paso de verdad en el lote 18 de 19 mientras el caso pasaba aislado. */
+    const modales = () => dialogos().filter(
+      d => String(d.getAttribute('aria-label') || '').indexOf('Borrar varios estudios') === 0);
+    const confirms = () => dialogos().filter(d => d.hasAttribute('data-borr-conf'));
+    const mios = () => modales().concat(confirms());
+    const ajenos = () => dialogos()
+      .filter(d => mios().indexOf(d) < 0)
+      .map(d => d.id || d.getAttribute('aria-label') || '(sin nombre)');
     const censo = () => Array.prototype.map.call(
       document.querySelectorAll('input[id], select[id], textarea[id]'), e => e.id).join('|');
     const locOrig = CeiboStore.getLocal().slice();
     const bOrig = EL('ig-buscar') ? EL('ig-buscar').value : null;
     try {
       R.censoAntes = censo();
+      R.ajenosAlEmpezar = ajenos().join(' | ');
       /* CUATRO estudios de prueba: dos del MISMO paciente -mismo nombre y documento- y dos de
          pacientes distintos, para que «cuantos pacientes» signifique algo. Nada de datos de
          nadie: son nombres inventados. */
@@ -157147,7 +157181,7 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
       /* -- A - EL MODAL LISTA LO QUE EL FILTRO DEJA VER Y LO DICE ------------------- */
       R.aAbrio = igBorrarVariosAbrir();
       await esp(350);
-      const mod = dialogos()[0];
+      const mod = modales()[0];
       R.aModal = !!mod;
       R.aCasillas = mod ? mod.querySelectorAll('[data-ig-borr]').length : -1;
       R.aSinId = mod ? mod.querySelectorAll('input[id]').length : -1;
@@ -157163,10 +157197,11 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
       const bB = Array.prototype.slice.call(mod.querySelectorAll('button'))
         .filter(b => (b.textContent || '').indexOf('Borrar 2') >= 0)[0];
       R.bHayBoton = !!bB;
-      bB.click();
+      if (bB) bB.click();
       await esp(500);
-      const conf = dialogos();
-      R.bDialogos = conf.length;
+      const conf = confirms();
+      /* DOS: el modal de elegir y su confirmacion -- contados entre los PROPIOS--. */
+      R.bDialogos = mios().length;
       const ct = conf.length ? String(conf[conf.length - 1].textContent || '') : '';
       R.bConfTexto = ct;
       R.bDiceDosEstudios = ct.indexOf('2 estudios') >= 0;
@@ -157180,20 +157215,20 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
       if (bSi) bSi.click();
       await esp(900);
       R.bQuedan = (CeiboStore.getLocal() || []).map(i => i.id).join(',');
-      R.bCerro = dialogos().length === 0;
+      R.bCerro = mios().length === 0;
       R.bToast = toasts.slice(-1)[0] || '';
       /* -- C - LA CUENTA DE PACIENTES DISTINGUE DOS PERSONAS ------------------------ */
       R.cAbrio = igBorrarVariosAbrir();
       await esp(350);
-      const mod2 = dialogos()[0];
+      const mod2 = modales()[0];
       const cs2 = Array.prototype.slice.call(mod2.querySelectorAll('[data-ig-borr]'));
       cs2.forEach(x => x.click());
       await esp(220);
       const bB2 = Array.prototype.slice.call(mod2.querySelectorAll('button'))
         .filter(b => (b.textContent || '').indexOf('Borrar 2') >= 0)[0];
-      bB2.click();
+      if (bB2) bB2.click();
       await esp(500);
-      const conf2 = dialogos();
+      const conf2 = confirms();
       const ct2 = conf2.length ? String(conf2[conf2.length - 1].textContent || '') : '';
       R.cDiceDosPacientes = ct2.indexOf('2 pacientes distintos') >= 0;
       /* CONTROL NEGATIVO: cancelar NO borra nada. */
@@ -157205,9 +157240,9 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
       await esp(400);
       R.cTrasCancelar = (CeiboStore.getLocal() || []).map(i => i.id).join(',');
       /* el modal de elegir sigue abierto: cancelar la confirmacion no lo cierra */
-      R.cModalSigue = dialogos().length >= 1;
-      const bX = dialogos().length ? Array.prototype.slice.call(
-        dialogos()[0].querySelectorAll('button'))
+      R.cModalSigue = modales().length >= 1;
+      const bX = modales().length ? Array.prototype.slice.call(
+        modales()[0].querySelectorAll('button'))
         .filter(b => (b.textContent || '').indexOf('Cancelar') >= 0)[0] : null;
       if (bX) bX.click();
       await esp(300);
@@ -157217,7 +157252,9 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
     } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
     finally {
       try {
-        dialogos().forEach(d => { if (d.parentNode) d.parentNode.removeChild(d); });
+        /* SOLO los propios: la version anterior barria TODO [role=dialog] visible, asi que con
+           el panel de Evidencia abierto le arrancaba del documento el nodo indic-card. */
+        mios().forEach(d => { if (d.parentNode) d.parentNode.removeChild(d); });
         CeiboStore.setLocal(locOrig);
         if (bOrig !== null && EL('ig-buscar')) EL('ig-buscar').value = bOrig;
         renderInformesGuardados();
@@ -157227,6 +157264,8 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
     }
     return { extra: [
       ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: la pantalla arranca sin ningun cartel ajeno abierto',
+        R.ajenosAlEmpezar === '', R.ajenosAlEmpezar || 'ninguno'],
       ['DENOMINADOR: hay CUATRO estudios en la lista y el boton existe',
         R.aEnLista === 4 && R.aHayBoton, 'enLista=' + R.aEnLista + ' boton=' + R.aHayBoton],
       ['el modal lista los cuatro y DICE que son los que el filtro deja ver',
