@@ -136302,7 +136302,8 @@ caso('TC-845', 'El sondeo: cero pedidos apagado, sin vincular y con la pestania 
       ['(D) y CERO pedidos mientras esta oculta',              R.d_pedidos === 0, R.d_pedidos],
       ['(D) al VOLVER a la vista sondea en el acto',           R.d_alVolver > 0, R.d_alVolver],
       ['(D) y el temporizador vuelve',                         R.d_timerVuelve, R.d_timerVuelve],
-      ['(E) el intervalo son los 15 s declarados',             R.e_ms === 15000, R.e_ms],
+      ['(E) el intervalo es el ocioso declarado -- ADAPTADO por la tarea B del prompt 7: son CUATRO segundos y no quince, y se leen de la constante',
+                                                              R.e_ms === CLNK_SONDEO_MS && R.e_ms === 4000, R.e_ms],
       ['(F) una respuesta en vuelo se marca NO vigente',       R.f_vigenteFalso, R.f_vigenteFalso],
       ['(F) CONTROL POSITIVO: sin cambiar nada SI es vigente', R.f_vigenteCierto, R.f_vigenteCierto],
       ['DENOMINADOR: habia token antes del 401',               R.g_tokenAntes, R.g_tokenAntes],
@@ -154065,7 +154066,7 @@ caso('TC-970', 'Bloque J: contra un puente 1.3.x se espera a que el lote cierre 
         ' sinTandas=' + R.aSinTandas + ' conLote=' + R.aConLote + ' conFmt=' + R.aConFormato +
         ' sinNombre=' + R.aSinNombre],
       ['sin los cuatro campos, clnkTandaDe devuelve null y NO hay cartel de tanda ni burbuja',
-        R.aTandaNull && R.aSinCartelTanda && R.aSinBurbuja && R.aCadencia === 15000,
+        R.aTandaNull && R.aSinCartelTanda && R.aSinBurbuja && R.aCadencia === CLNK_SONDEO_MS,
         'null=' + R.aTandaNull + ' cartel=' + R.aSinCartelTanda + ' burbuja=' + R.aSinBurbuja +
         ' cadencia=' + R.aCadencia],
       ['LA REGLA VIEJA: con el lote todavia ABIERTO el aviso NO sale -- dos avisos del mismo estudio es el problema que el agrupado resuelve',
@@ -154422,6 +154423,204 @@ caso('TC-972', 'Tarea B: el sondeo ocioso baja a cuatro segundos, asi que el pri
         R.eGuarda, R.eGuarda],
       ['y clnkPanelALaVista sigue SIN mirarla, que es lo que P6-j dejo escrito',
         R.ePanelIntacto, R.ePanelIntacto]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 7 · TAREA C — LA VENTANA DE SILENCIO ══════════════════════════════════════════
+   LA REGLA QUE CIERRA LA TANDA ES DEL PUENTE y son DOS MINUTOS de silencio desde la ultima
+   llegada. Eso explica lo que el medico midio con el VINNO: la tanda entera entro en menos de
+   30 s y los botones siguieron apagados mas de tres minutos. NO la reinician ni el sondeo ni la
+   reapertura de la burbuja -ninguno de los dos toca `tanda_ultima`, que es de lo unico que
+   cuelga el plazo-.
+   Esta app no puede acortar el plazo del puente, asi que lo que se agrega es una regla propia
+   MAS CORTA, con su pestillo para que no haya ida y vuelta. Revierte, por orden expresa del
+   medico, la regla del prompt 6 que decia «el plazo lo da el puente y no se duplica»; lo que NO
+   cambia es que el puente sigue guardando los archivos su plazo entero. */
+caso('TC-973', 'Tarea C: la app declara cerrada la tanda a los veinte segundos de silencio aunque el puente la siga teniendo abierta, con un pestillo que impide el ida y vuelta, y lo que llega despues ENGORDA el cartel en vez de abrir otro', `
+  return (async () => {
+    if (typeof window.clnkTandaAbierta !== 'function' ||
+        typeof window.clnkSilencioCumplido !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la ventana de silencio de la app', false,
+        'no existen clnkTandaAbierta / clnkSilencioCumplido']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const cartel = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const tit = () => String((EL('clnkav-title') || {}).textContent || '');
+    const nGrupo = () => (window._clnkAvisoGrupo && window._clnkAvisoGrupo.ids)
+                          ? window._clnkAvisoGrupo.ids.length : 0;
+    const AHORA = () => new Date().toISOString();
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      window._clnkSilencioLatch = false;
+
+      /* -- A - LA CONSTANTE, Y QUE FALLA HACIA «NO CERRAR» --------------------------- */
+      R.aConst = CLNK_SILENCIO_MS;
+      window._clnkSilencioLatch = false;
+      R.aSinFecha = clnkSilencioCumplido('') === false;
+      R.aBasura = clnkSilencioCumplido('no es una fecha') === false;
+      R.aAhora = clnkSilencioCumplido(AHORA()) === false;
+      R.aVieja = clnkSilencioCumplido(new Date(Date.now() - 30000).toISOString()) === true;
+
+      /* -- B - LAS DOS REGLAS DISCREPAN, Y ESO ES EXACTAMENTE LO QUE LA TAREA C PIDE -- */
+      await ctl({ escena: 'silencio' });
+      const stB = await (await fetch(F.base + '/v1/estado')).json();
+      R.bPuenteAbierta = stB.tanda_abierta === true;
+      R.bN = stB.tanda_imagenes;
+      window._clnkSilencioLatch = false;
+      const TB = clnkTandaDe(stB);
+      R.bLeeAbierta = !!(TB && TB.abierta === true);
+      R.bSilencio = Math.round(clnkSilencioMs(TB ? TB.ultima : '') / 1000);
+      R.bAppCerrada = clnkTandaAbierta(TB) === false;
+      R.bLatch = window._clnkSilencioLatch === true;
+
+      /* -- C - EL SONDEO ARMA EL CARTEL FINAL, SIN ESPERAR LOS DOS MINUTOS ----------- */
+      window._clnkSilencioLatch = false;
+      window._clnkTanda = null;
+      await _clnkSondear(true); await esp(700);
+      R.cAbrio = cartel();
+      R.cTit = tit();
+      R.cDiceLlegando = R.cTit.indexOf('llegando') > -1;
+
+      /* -- D - LO QUE LLEGA DESPUES ENGORDA EL CARTEL, NO ABRE OTRO ------------------ */
+      await ctl({ escena: 'silencioMas' });
+      const stD = await (await fetch(F.base + '/v1/estado')).json();
+      R.dPuenteSigueAbierta = stD.tanda_abierta === true;
+      await _clnkSondear(true); await esp(900);
+      R.dUnSoloCartel = cartel();
+      R.dTit = tit();
+      R.dCrecio = nGrupo();
+      R.dNoVuelveALlegando = R.dTit.indexOf('llegando') === -1;
+      R.dLatchSigue = window._clnkSilencioLatch === true;
+      clnkAvisoCerrar();
+      try { clnkBurbujaOcultar(); } catch (e) {}
+
+      /* -- E - EL PESTILLO SE SUELTA CUANDO EL PUENTE DICE QUE LA TANDA CERRO -------- */
+      await ctl({ escena: 'vacio' });
+      await _clnkSondear(true); await esp(400);
+      R.eLatchSuelto = window._clnkSilencioLatch === false;
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      await ctl({ escena: 'tandaViva' });
+      await _clnkSondear(true); await esp(700);
+      R.eCartelNuevo = cartel();
+      R.eTit = tit();
+      R.eDiceLlegando = R.eTit.indexOf('llegando') > -1;
+      R.eCadencia = clnkSondeoMs();
+      clnkAvisoCerrar();
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      window._clnkSilencioLatch = false;
+
+      /* -- F - clnkGrupoListo HONRA LA MISMA VENTANA, QUE ES EL OTRO CAMINO ---------- */
+      const dosMin = new Date(Date.now() + 120000).toISOString();
+      const gViejo = { ultimo: Date.now() - 30000,
+                       imagenes: [{ lote_cierra: dosMin }] };
+      const gNuevo = { ultimo: Date.now() - 1000,
+                       imagenes: [{ lote_cierra: dosMin }] };
+      R.fViejoListo = clnkGrupoListo(gViejo) === true;
+      R.fNuevoNoListo = clnkGrupoListo(gNuevo) === false;
+      R.fSinCampo = clnkGrupoListo({ ultimo: Date.now(), imagenes: [{}] }) === true;
+
+      /* -- G - CONTROLES NEGATIVOS DEL VEREDICTO ------------------------------------ */
+      window._clnkSilencioLatch = false;
+      R.gNull = clnkTandaAbierta(null) === false;
+      window._clnkSilencioLatch = false;
+      R.gCerradaPuente = clnkTandaAbierta({ abierta: false, n: 3, ultima: AHORA() }) === false;
+      window._clnkSilencioLatch = false;
+      R.gRecien = clnkTandaAbierta({ abierta: true, n: 3, ultima: AHORA() }) === true;
+      window._clnkSilencioLatch = false;
+      R.gVacia = clnkTandaAbierta({ abierta: true, n: 0,
+                   ultima: new Date(Date.now() - 60000).toISOString() }) === true;
+      window._clnkSilencioLatch = false;
+      R.gSinFecha = clnkTandaAbierta({ abierta: true, n: 3, ultima: '' }) === true;
+
+      /* -- H - EL PLAZO DEL PUENTE NO SE TOCO: CLNK_VENTANA_MS SIGUE SIENDO EL VIEJO - */
+      R.hVentana = CLNK_VENTANA_MS === 120000;
+      R.hCartelSinVentana = String(clnkTandaCartel).indexOf('CLNK_VENTANA_MS') === -1 &&
+                            String(window.clnkTandaCerrar).indexOf('CLNK_VENTANA_MS') === -1 &&
+                            String(clnkTandaDe).indexOf('CLNK_VENTANA_MS') === -1;
+      R.hSilencioUnico = String(clnkTandaAbierta).indexOf('clnkSilencioCumplido') > -1 &&
+                         String(clnkGrupoListo).indexOf('CLNK_SILENCIO_MS') > -1;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { window._clnkSilencioLatch = false; window._clnkAvisoGrupo = null; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['la ventana de silencio de la app son VEINTE segundos, en una constante sola',
+        R.aConst === 20000, R.aConst],
+      ['y FALLA HACIA NO CERRAR: sin fecha, con basura o recien llegado dice que no',
+        R.aSinFecha && R.aBasura && R.aAhora && R.aVieja,
+        'sinFecha=' + R.aSinFecha + ' basura=' + R.aBasura + ' ahora=' + R.aAhora + ' vieja=' + R.aVieja],
+      ['DENOMINADOR: el puente tiene la tanda ABIERTA con sus dos archivos y 40 s de silencio',
+        R.bPuenteAbierta && R.bN === 2 && R.bLeeAbierta && R.bSilencio >= 20,
+        'puente=' + R.bPuenteAbierta + ' n=' + R.bN + ' silencio=' + R.bSilencio + 's'],
+      ['y la app la declara CERRADA, que es la regla nueva y la unica discrepancia que existe',
+        R.bAppCerrada && R.bLatch, 'cerrada=' + R.bAppCerrada + ' pestillo=' + R.bLatch],
+      ['el cartel sale en su forma FINAL sin esperar los dos minutos del puente',
+        R.cAbrio && !R.cDiceLlegando, 'abrio=' + R.cAbrio + ' tit=' + R.cTit],
+      ['DENOMINADOR: con un archivo mas el puente SIGUE teniendo la tanda abierta',
+        R.dPuenteSigueAbierta, R.dPuenteSigueAbierta],
+      ['lo que llega despues ENGORDA el cartel -- un solo cartel, con los tres ids',
+        R.dUnSoloCartel && R.dCrecio === 3,
+        'cartel=' + R.dUnSoloCartel + ' ids=' + R.dCrecio + ' tit=' + R.dTit],
+      ['y NO vuelve a decir «estan llegando»: el pestillo lo impide, que es lo que evita los dos carteles contradictorios',
+        R.dNoVuelveALlegando && R.dLatchSigue,
+        'tit=' + R.dTit + ' pestillo=' + R.dLatchSigue],
+      ['el pestillo se suelta cuando el PUENTE dice que la tanda cerro', R.eLatchSuelto, R.eLatchSuelto],
+      ['y la tanda SIGUIENTE vuelve a sacar su cartel de «estan llegando», con la cadencia rapida',
+        R.eCartelNuevo && R.eDiceLlegando && R.eCadencia === CLNK_SONDEO_TANDA_MS,
+        'cartel=' + R.eCartelNuevo + ' tit=' + R.eTit + ' cad=' + R.eCadencia],
+      ['clnkGrupoListo honra la MISMA ventana: con el lote del puente a dos minutos, treinta segundos de silencio ya alcanzan',
+        R.fViejoListo && R.fNuevoNoListo,
+        'viejo=' + R.fViejoListo + ' nuevo=' + R.fNuevoNoListo],
+      ['y sin lote_cierra sigue valiendo la regla de antes de la 1.3', R.fSinCampo, R.fSinCampo],
+      ['CONTROL NEGATIVO: sin tanda, con la tanda cerrada del puente, recien llegada, vacia o sin fecha, el veredicto es el que corresponde',
+        R.gNull && R.gCerradaPuente && R.gRecien && R.gVacia && R.gSinFecha,
+        'null=' + R.gNull + ' cerrada=' + R.gCerradaPuente + ' recien=' + R.gRecien +
+        ' vacia=' + R.gVacia + ' sinFecha=' + R.gSinFecha],
+      ['el plazo del PUENTE no se toco: CLNK_VENTANA_MS sigue en dos minutos y el cartel no lo lee',
+        R.hVentana && R.hCartelSinVentana,
+        'ventana=' + R.hVentana + ' cartelLimpio=' + R.hCartelSinVentana],
+      ['y la ventana de silencio tiene UN SOLO dueno, leido por los dos caminos',
+        R.hSilencioUnico, R.hSilencioUnico]
     ] };
   })();
 `);

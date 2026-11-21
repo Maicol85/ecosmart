@@ -183537,7 +183537,17 @@ function clnkGrupoListo(g) {
     if (isFinite(t) && (!isFinite(ms) || t > ms)) ms = t;
   });
   if (!isFinite(ms)) return true;          // sin el campo: la regla de antes de la 1.3
-  return Date.now() >= ms;
+  if (Date.now() >= ms) return true;
+  /* ══ TAREA C · LA VENTANA DE SILENCIO DE LA APP, EL **MISMO** DUEÑO QUE EL CARTEL ═════════
+     Sin esta linea las dos mitades discreparian y se nota: la app declara cerrada la tanda a los
+     veinte segundos y arma su cartel por `clnkRevisarImagenes(true)`, pero el turno siguiente
+     —y cualquier archivo que entre despues— cae en el camino NO forzado, donde este filtro
+     seguiria esperando los dos minutos del puente. El cartel diria «Llegaron» y el aviso de
+     siempre no saldria hasta dos minutos mas tarde.
+     ⚠️ Se mide sobre `g.ultimo`, que es la ULTIMA llegada del grupo y lo pone `clnkAgrupar` en
+     sus dos ramas. Sin ese dato —no deberia pasar— manda el plazo del puente. */
+  if (isFinite(g && g.ultimo) && (Date.now() - g.ultimo) >= CLNK_SILENCIO_MS) return true;
+  return false;
 }
 window.clnkGrupoListo = clnkGrupoListo;
 
@@ -183850,6 +183860,76 @@ function clnkTandaDe(d) {
            cierra: String(d.tanda_cierra || '') };
 }
 window.clnkTandaDe = clnkTandaDe;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TAREA C (PROMPT 7) · LA VENTANA DE SILENCIO DE LA APP
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   LA REGLA QUE CIERRA LA TANDA NO ES DE ESTA APP: la decide el PUENTE y son DOS MINUTOS DE
+   SILENCIO desde la ultima llegada —`tanda_cierra` ya viene calculado y `tanda_abierta` sale de
+   compararlo con el reloj del puente (contrato §P8, y `derivarLotes` del conector falso lo
+   reproduce)—. Eso es lo que explica, medido, lo que el medico vio con el VINNO: la tanda 2
+   entro entera en menos de 30 s y los botones de adjuntar siguieron apagados mas de tres
+   minutos. No los reiniciaba ni el sondeo ni la burbuja —se midio: ninguno de los dos toca
+   `tanda_ultima`, que es lo unico de lo que cuelga el plazo—: eran los DOS MINUTOS del puente,
+   mas el turno de sondeo de hasta 15 s que tardaba en enterarse, sobre un envio cuya ULTIMA
+   imagen llego mas tarde de lo que parecia.
+
+   ⚠️ ESTA APP NO PUEDE ACORTAR EL PLAZO DEL PUENTE —el CeiboLink instalado no se toca— ASI QUE
+   LO QUE SE AGREGA ES UNA REGLA PROPIA **MAS CORTA**, Y ESO REVIERTE UNA REGLA ESCRITA EN EL
+   PROMPT 6. Aquella decia, citando §P8, «el plazo lo da el puente y NO se duplica». Hoy, por
+   orden expresa del medico (tarea C del prompt 7), la app declara cerrada una tanda cuando lleva
+   `CLNK_SILENCIO_MS` sin recibir nada, aunque el puente la siga teniendo abierta.
+   LO QUE **NO** CAMBIA, y es lo que hace que esto sea seguro: el puente sigue guardando los
+   archivos su plazo entero —no se borra ni se confirma nada antes de tiempo— y `CLNK_VENTANA_MS`
+   sigue siendo el camino viejo del bloque J, sin tocar. Lo unico que se adelanta es CUANDO el
+   medico puede decidir.
+
+   ⚠️ FALLA HACIA «NO CERRAR»: sin `tanda_ultima` —o con una fecha que no se entiende— devuelve
+   `false` y manda el puente, que es la conducta de antes de esta tarea. Y pide ademas que la
+   tanda tenga al menos un archivo: una tanda vacia no tiene nada que cerrar. */
+var CLNK_SILENCIO_MS = 20000;
+
+/* Cuanto hace que no llega nada, en milisegundos, o `NaN` si la fecha no se entiende. */
+function clnkSilencioMs(iso) {
+  var t = Date.parse(String(iso || ''));
+  if (!isFinite(t)) return NaN;
+  return Date.now() - t;
+}
+window.clnkSilencioMs = clnkSilencioMs;
+
+/* ¿Lleva callado lo suficiente? UN SOLO lugar lo decide, y lo leen los DOS caminos que deciden
+   cuando se puede decidir: el cartel de la tanda y el filtro de `clnkGrupoListo`. Con la regla
+   escrita en los dos, el cartel diria «Listo» mientras el aviso de siempre sigue esperando. */
+function clnkSilencioCumplido(iso) {
+  var d = clnkSilencioMs(iso);
+  if (!isFinite(d)) return false;
+  return d >= CLNK_SILENCIO_MS;
+}
+window.clnkSilencioCumplido = clnkSilencioCumplido;
+
+/* ══ EL PESTILLO ═══════════════════════════════════════════════════════════════════════════
+   Una vez que la app declaro cerrada una tanda, NO la vuelve a abrir aunque entre otro archivo:
+   eso es lo que impide el ida y vuelta entre «Estan llegando» y «Llegaron» sobre el mismo envio,
+   que es el «dos carteles contradictorios» que la tarea C prohibe. Lo que pasa con lo que llega
+   despues es que ENGORDA el cartel que ya esta en pantalla —`clnkRevisarImagenes` tiene esa rama
+   desde ECO-CONECTOR-2 y retitula «Llegaron mas imagenes del ecografo»—, asi que no se pierde
+   nada.
+   El pestillo se suelta cuando el PUENTE dice que la tanda cerro, que es su propia nocion de
+   «este envio termino»: la tanda siguiente vuelve a sacar su cartel. */
+var _clnkSilencioLatch = false;
+
+/* El veredicto de la app sobre si la tanda sigue abierta. Lo consume `_clnkSondear` en vez de
+   `T.abierta`, que es el del puente. */
+function clnkTandaAbierta(t) {
+  if (!t || !t.abierta) { _clnkSilencioLatch = false; return false; }
+  if (_clnkSilencioLatch) return false;
+  if ((Number(t.n) || 0) > 0 && clnkSilencioCumplido(t.ultima)) {
+    _clnkSilencioLatch = true;
+    return false;
+  }
+  return true;
+}
+window.clnkTandaAbierta = clnkTandaAbierta;
 
 /* Un color del tema, RESUELTO de los estilos calculados y con respaldo explicito. Es la regla
    fija de esta casa para cualquier dibujo: `var()` en un atributo de presentacion es invalido en
@@ -185709,7 +185789,13 @@ async function _clnkSondear(forzado) {
        cae al camino de siempre, que agrupa por `lote` o por la ventana propia. Es el bloque J. */
     var T = clnkTandaDe(d);
     if (T) {
-      if (T.abierta) {
+      /* ══ TAREA C · EL VEREDICTO ES EL DE LA APP, NO EL DEL PUENTE ════════════════════════
+         `clnkTandaAbierta` arranca del `tanda_abierta` del puente y le aplica la ventana de
+         silencio MAS CORTA de esta app, con su pestillo. Se llama UNA sola vez por turno porque
+         mueve ese pestillo: dos llamadas en el mismo turno no dan dos respuestas distintas, pero
+         leerlo dos veces esconderia el momento en que cambia. */
+      var _abierta = clnkTandaAbierta(T);
+      if (_abierta) {
         /* ══ BLOQUE B · CON EL CARTEL CERRADO POR EL MEDICO, EL NUMERO SUBE EN LA BURBUJA ══
            Y el cartel NO vuelve: es lo que «no se reabre sola» quiere decir. */
         if (_clnkTandaCerradaPorMedico || _clnkBur) {
