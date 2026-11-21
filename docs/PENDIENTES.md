@@ -583,6 +583,12 @@ idéntico antes y después—: con `borrConfirmar` mutado para que **el cartel n
 documento**, el caso que antes colgaba para siempre cierra **en 15 s** con `0/1` y dos renglones
 legibles, `dialogos=0` y `SIN RESPUESTA`.
 
+**LA PASADA QUE SE INFORMA, sobre el árbol final y con el repositorio quieto: 994/999**, los
+**999 ejecutados** en **diecinueve** lotes, md5 `7b8c4739` **idéntico** al abrir y al cerrar,
+pendrive verificado **veintiuna** veces y **ningún lote cortado por tiempo**. Los cinco rojos son
+**los cinco conocidos** —TC-182, TC-376, TC-406, TC-551 y TC-903— y **no hay ninguno nuevo**.
+El lote 18, que era el que colgaba, cerró **55 de 55**.
+
 **Y el corredor gana un tope por lote.** `scripts/_lotes_eq_1419.sh` corre un rango
 (`LOTE_DESDE`/`LOTE_HASTA`, por omisión 14 y 19) con un **tope de 900 s por lote**: un lote trabado
 se corta, **se dice en el log** —«LOTE N CORTADO POR TIEMPO… el último caso impreso es el que se

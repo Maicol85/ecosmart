@@ -1715,12 +1715,19 @@ overlay, la espera acotada a nueve segundos con Escape al vencer, TC-955 cerrand
 cartel que nunca se agrega al documento, TC-990 cierra **en 15 s con 0/1** y el motivo
 «SIN RESPUESTA». Y el corredor gana **tope por lote** (`scripts/_lotes_eq_1419.sh`, con
 `LOTE_DESDE`/`LOTE_HASTA`): corta, lo dice en el log y sigue.
-**Rehechos los lotes 14 a 19 sobre el árbol sellado: 284 ejecutados, 283 verdes y UN rojo,
-TC-903**, que es uno de los cinco conocidos; **los lotes 14 y 18 volvieron a correrse enteros
-después del arreglo y dieron 55/55 los dos**, con el md5 de `index.html` idéntico antes y después
-y **ningún lote cortado por tiempo**. **Los lotes 1 a 13 no se rehicieron**, y se declara con su
-motivo: la pasada que los corrió arrancó antes de `c6a4357`, así que **la pasada única sobre el
-árbol final sigue pendiente** —es lo que esta casa informa como línea base—.
+**LÍNEA BASE AL CIERRE: suite 994/999**, en **DIECINUEVE** lotes cubriendo los **999 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en **UNA sola pasada
+sobre el árbol sellado**, con los **999 ejecutados**, el md5 de `index.html` **idéntico** antes y
+después (`7b8c4739`), el pendrive `DISK_IMG` verificado **veintiuna** veces con sus **343**
+archivos de `GEMS_IMG` y **ningún lote cortado por tiempo**. Los rojos son **TC-182, TC-376,
+TC-406, TC-551 y TC-903**: los **cinco** que esta casa ya declara conocidos, **ninguno nuevo**, y
+los siete casos de la tanda y los tres adaptados en verde.
+⚠️ **Y ES LA PASADA QUE SE INFORMA, no la de diagnóstico**: aquella arrancó a las 16:07 y
+`c6a4357` entró a las 16:10, así que sus lotes 1 y 2 midieron un árbol y el resto otro. Esta corrió
+con **ningún archivo del repositorio tocado mientras corría** —ni este—, que es la condición que
+TC-753 mide y que el lote 14 de la corrida anterior sacó en rojo con razón.
+(Antes, sobre el mismo árbol: los lotes 14 a 19 dieron **283 verdes y un rojo**, TC-903, y los
+lotes 14 y 18 rehechos tras el arreglo dieron **55/55** los dos.)
 ⚠️ **Y TC-753 SALIÓ ROJO POR MI CULPA**: edité `CLAUDE.md` **mientras** corría el lote 14, que es
 la lección que PANT-20 ya dejó escrita —el sello y los documentos se escriben ANTES de la pasada—.
 Con los documentos al día vuelve a **verde**, aislado y en su lote.

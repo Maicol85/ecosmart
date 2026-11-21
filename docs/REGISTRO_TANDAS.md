@@ -22,6 +22,11 @@ el contrato. Lo único que podría agregar algún día es la **máscara de red**
 **Cobertura.** TC-985 a TC-991 nuevos, los siete cayendo 0/7 contra la base —TC-987 por sus
 condiciones reales—; TC-850 (D) adaptado y más fuerte. **P8-c, P8-d y P8-f cerrados.**
 
+**Línea base al cierre: suite 994/999**, los 999 ejecutados en diecinueve lotes, en UNA sola
+pasada sobre el árbol sellado `v20261121-1813`, con el md5 idéntico antes y después, el pendrive
+verificado veintiuna veces y ningún lote cortado por tiempo. Los cinco rojos son los **cinco
+conocidos** —TC-182, TC-376, TC-406, TC-551 y TC-903—: **ninguno nuevo**.
+
 **Verificación.** Semgrep 126/0, sin huérfanos nuevos, 17/17 bloques de JS inline, celular 38 ALTA,
 cero `innerHTML`/`eval`/`new Function` nuevos, cero campos guardados nuevos y Excel en 457.
 
