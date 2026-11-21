@@ -155328,6 +155328,39 @@ try {
   }
   const listo = await ev(`return typeof generarInforme === 'function';`);
   if (!listo) throw new Error('La app no termino de cargar (generarInforme no existe).');
+
+  /* ══ TAREA H (PROMPT 7) · SE ESPERA A LAS BIBLIOTECAS DEL CDN **ANTES** DEL PRIMER CASO ═════
+     La causa de los intermitentes que P6-l declara esta medida y es siempre la misma: el caso
+     corre antes de que el CDN termine de entregar la biblioteca, y el sintoma es «NO HAY jsPDF»
+     -TC-347, TC-348, TC-350- o un ReferenceError de «Chart is not defined» -TC-147-. La app
+     arranca COMPLETA sin ellas a proposito: los scripts del CDN van con `defer` y lo unico que
+     se rompe es exportar.
+
+     ⚠️ SE ARREGLA EN EL ARNES Y NO EN EL PRODUCTO, que es lo que la tarea H manda: la app no
+     tiene por que esperar a nadie para dejar trabajar al medico. Lo que no puede pasar es que
+     un caso MIDA en esa ventana.
+     ⚠️ Y NO SE AFLOJA NINGUNA CONDICION: si al cabo del plazo alguna no llego, se DICE en el
+     encabezado de la corrida y los casos salen rojos con su motivo, como hasta hoy. Un arnes
+     que espera en silencio y sigue es el que convierte un CDN caido en «no hay cobertura».
+
+     Las tres que esta suite usa: jsPDF -el PDF-, Chart -los graficos del Laboratorio- y XLSX
+     -el Excel-. Doce segundos: medido, el CDN las entrega en 0,4 a 0,6 s con la red sana. */
+  let _cdnMs = 0;
+  let _cdn = { jspdf: false, chart: false, xlsx: false };
+  for (let i = 0; i < 48; i++) {
+    _cdn = await ev(`return { jspdf: typeof window.jspdf !== 'undefined',
+                              chart:  typeof window.Chart !== 'undefined',
+                              xlsx:   typeof window.XLSX  !== 'undefined' };`)
+      .catch(() => ({ jspdf: false, chart: false, xlsx: false }));
+    if (_cdn.jspdf && _cdn.chart && _cdn.xlsx) break;
+    await new Promise(r => setTimeout(r, 250));
+    _cdnMs += 250;
+  }
+  console.log('  bibliotecas del CDN: jsPDF=%s Chart=%s XLSX=%s (en %d ms)%s',
+    _cdn.jspdf, _cdn.chart, _cdn.xlsx, _cdnMs,
+    (_cdn.jspdf && _cdn.chart && _cdn.xlsx) ? ''
+      : '  ** ALGUNA NO LLEGO: los casos que la usan van a salir ROJOS con su motivo **');
+
   await ev(PRELUDIO + ' return 1;');
   // Cartel legal de arranque: tapa la pantalla y algunos click() del test.
   await ev(`try{ if (typeof cerrarAvisoEco==='function') cerrarAvisoEco(); }catch(e){} return 1;`);
