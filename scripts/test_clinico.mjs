@@ -100432,17 +100432,29 @@ caso('TC-554', 'Tanda AJUSTES-1: el cactus sin riesgo, los lobulos sin la nota d
   await esperar(450);
   inf();
   const o3 = await ordPdf();
+  /* ADAPTADO EN P8 (2026-11-21) E INVERTIDO, asi que falla por los DOS lados. Las dos
+     condiciones afirmaban que la celda de la grilla ofrece un boton rotulado «Incluir en el
+     PDF», y la orden del medico lo RETIRA: era 10 px de alto, debajo del selector de calidad,
+     y gris sobre gris -- el medico no lo encontro nunca y se fue a «Imagenes guardadas» a
+     traer la imagen de vuelta. Hoy el estado es una pastilla que ES su propio control.
+     (E5) exige ahora las dos mitades: que el boton viejo YA NO ESTE y que la pastilla si. */
   const reinc = [].slice.call(document.querySelectorAll('#img-grid button'))
     .filter(function (b) { return /Incluir en el PDF/.test(b.textContent || '') });
-  ex.push(['(E5) la ✕ QUITA del PDF y NO borra: el slot sigue y la grilla ofrece reincluirla',
-    o3 === 'A' && nSlots() === slotsAntes && reinc.length === 1 && leer().n === 2,
-    'pdf=' + o3 + ' slots=' + slotsAntes + '->' + nSlots() + ' boton=' + reinc.length + ' fila=' + leer().n]);
-  if (reinc[0]) reinc[0].click();
+  const past = [].slice.call(document.querySelectorAll('#img-grid [data-img-pdf]'));
+  const pastFuera = past.filter(function (b) { return b.getAttribute('aria-pressed') === 'false' });
+  ex.push(['(E5) la ✕ QUITA del PDF y NO borra: el slot sigue, el boton viejo NO esta y la pastilla queda en «al PDF»',
+    o3 === 'A' && nSlots() === slotsAntes && reinc.length === 0 &&
+    past.length === nSlots() && pastFuera.length === 1 && leer().n === 2,
+    'pdf=' + o3 + ' slots=' + slotsAntes + '->' + nSlots() + ' botonViejo=' + reinc.length +
+    ' pastillas=' + past.length + ' fuera=' + pastFuera.length + ' fila=' + leer().n]);
+  if (pastFuera[0]) pastFuera[0].click();
   await esperar(450);
   inf();
   const o4 = await ordPdf();
-  ex.push(['(E6) y se puede VOLVER A INCLUIR desde «Imagenes del estudio»',
-    o4 === 'BA' && leer().n === 3, 'pdf=' + o4 + ' fila=' + leer().n]);
+  ex.push(['(E6) y se puede VOLVER A INCLUIR tocando la pastilla de la biblioteca',
+    o4 === 'BA' && leer().n === 3 &&
+    document.querySelectorAll('#img-grid [data-img-pdf][aria-pressed="false"]').length === 0,
+    'pdf=' + o4 + ' fila=' + leer().n]);
   limpiar();
   try { if (F('imgVaciar')) imgVaciar() } catch (e) {}
   try { if (F('_recalcModulos')) _recalcModulos('tc554') } catch (e) {}
