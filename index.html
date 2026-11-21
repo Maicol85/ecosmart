@@ -186691,7 +186691,12 @@ async function clnkEqUnirPreguntar(id) {
     'Elegí con qué equipo querés unir «' + clnkEqNombreGrupo(clnkEqAgrupar([yo])[0]) + '». ' +
     'Los dos van a verse como un solo equipo, con sus direcciones juntas. No se toca ningún ' +
     'permiso ni se borra ninguna imagen, y se puede deshacer con «Separar».',
-    [{ clave: 'unir', txt: '🔗 Unir' }, { clave: '', txt: 'Cancelar' }],
+    /* ⚠️ «Cancelar» LLEVA UNA CLAVE NO VACIA, Y ESTO LO ENCONTRO LA LECTURA Y NO UNA MEDICION:
+       `clnkAvisoPreguntar` filtra sus opciones con `o && o.clave && o.txt`, asi que una clave
+       vacia se DESCARTA — el boton no se habria dibujado nunca y al medico le quedaba «Unir» o
+       la ✕. La promesa resuelve con la cadena vacia por la ✕ y por Escape, y la condicion de
+       abajo pregunta por `!== 'unir'`, asi que los tres caminos de no-unir terminan igual. */
+    [{ clave: 'unir', txt: '🔗 Unir' }, { clave: 'no', txt: 'Cancelar' }],
     function (cu) {
       if (!cu) return;
       sel = document.createElement('select');
