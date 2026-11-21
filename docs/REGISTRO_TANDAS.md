@@ -1,7 +1,8 @@
 ## Tanda EQ — los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios (2026-11-21)
 
-**Sello** `v20261121-1600` · **md5** `68ec4373` · **190.359** líneas · línea base `77196c5`
-(cierre de la PARTE 1 de P8) · **sin push**.
+**Sello** `v20261121-1813` · **md5** `7b8c4739` · **190.371** líneas · línea base `77196c5`
+(cierre de la PARTE 1 de P8) · **sin push**. (El `v20261121-1600`/`68ec4373` es el primer sello,
+el de la pasada que se colgó en el lote 18; **EQ-i** cuenta por qué se reselló dos veces.)
 
 **Qué se hizo.** Tres partes, cinco commits. **A** · un renglón por equipo agrupando por `aet`,
 con una línea por dirección y su tipo de conexión deducido; la pregunta del «¿es el mismo equipo
@@ -24,7 +25,16 @@ condiciones reales—; TC-850 (D) adaptado y más fuerte. **P8-c, P8-d y P8-f ce
 **Verificación.** Semgrep 126/0, sin huérfanos nuevos, 17/17 bloques de JS inline, celular 38 ALTA,
 cero `innerHTML`/`eval`/`new Function` nuevos, cero campos guardados nuevos y Excel en 457.
 
-**Lo declarado:** `docs/PENDIENTES.md` → **EQ-a** a **EQ-h**. El mapa, en
+⚠️ **LA PASADA COMPLETA SE COLGÓ EN EL LOTE 18 Y LA CAUSA ERA NUESTRA** (**EQ-i**): TC-990 hacía
+`await` sobre la promesa de `borrConfirmar`, que **sólo** un clic resuelve, así que no encontrar el
+botón —porque `dlg[0]` era un cartel que dejó abierto otro caso del lote— **congelaba la suite** en
+vez de dar un rojo. Cerrado en tres piezas: el overlay lleva `data-borr-conf`, la espera va acotada
+a nueve segundos con Escape al vencer, y el caso gana un denominador que **nombra** el cartel
+ajeno. **Verificado por mutación**: con el cartel que nunca se agrega al documento, el caso cierra
+en **15 s** con `0/1` en vez de colgar. Y el corredor gana **tope por lote**
+(`scripts/_lotes_eq_1419.sh`, con `LOTE_DESDE`/`LOTE_HASTA`).
+
+**Lo declarado:** `docs/PENDIENTES.md` → **EQ-a** a **EQ-i**. El mapa, en
 `docs/mapa/eq-equipos-panel-borrado.md`; la guía manual con el VINNO, en `docs/GUIA_PRUEBA_EQ.md`.
 
 ## PROMPT 7 — la burbuja del cartel terminado, el silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)

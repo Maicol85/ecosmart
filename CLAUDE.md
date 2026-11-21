@@ -293,10 +293,15 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,75 MB / 190.359 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **EQ** (los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios), sobre el árbol ya sellado: sello **`v20261121-1600`**, md5 **`68ec4373`**.
-  El diff de EQ son **1.375 líneas agregadas y 80 quitadas** en `index.html`, medido con
-  `git diff --numstat` contra `77196c5` **sobre el árbol ya sellado**, de las que **924 son código
-  de verdad**, 392 comentario y 59 en blanco — las 1.375 cierran exacto, y el filtro lleva el
+  sin frameworks. Hoy **13,75 MB / 190.371 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **EQ** (los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios), sobre el árbol ya sellado: sello **`v20261121-1813`**, md5 **`7b8c4739`**.
+  ⚠️ **ES EL TERCER SELLO DE LA TANDA Y LOS DOS ANTERIORES NO VALEN COMO LÍNEA BASE**: el primero,
+  `v20261121-1600` con md5 `68ec4373` y 190.359 líneas, es el de la pasada que se colgó en el lote
+  18; después entró `c6a4357` —el «Cancelar» del cartel de Unir— sin resellar, y este tercero
+  agrega la marca `data-borr-conf` del cartel de confirmación, que es lo que cierra **EQ-i**. Todo
+  lo que se mide se mide sobre ESTE.
+  El diff de EQ son **1.387 líneas agregadas y 80 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `77196c5` **sobre el árbol ya sellado**, de las que **925 son código
+  de verdad**, 403 comentario y 59 en blanco — las 1.387 cierran exacto, y el filtro lleva el
   estado del comentario de bloque, que es lo que de verdad separa código de prosa.
   Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
   **CERO** `<input>`, `<select>` y `<textarea>` nuevos en el marcado: los **TRES** controles que
@@ -304,6 +309,9 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
   «Borrar varios» y el desplegable de «Unir»— y **ninguno lleva `id`**, que es lo que los deja
   fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y
   las **457** columnas quietas. **Y cero cortes clínicos, cero fórmulas y cero umbrales.**
+  **Y lo último que entró es un ATRIBUTO y no un control**: `data-borr-conf` en el overlay de
+  `borrConfirmar`, para que cada cartel se busque a sí mismo en vez de confiar en el orden del DOM
+  —**EQ-i**—; sin `id`, así que no entra a ningún censo ni a ningún barrido.
   **UN solo id nuevo en el marcado** —`ig-btn-borrar-varios`—, que no termina en `-aviso` ni en
   `-badge` y **no cae en ninguno de los veintitrés barridos por sufijo o prefijo de id del
   archivo**, verificado uno por uno; el otro que el diff muestra, `eco-build-sello`, ya existía y
@@ -1466,6 +1474,22 @@ impecable.
 - **`_cm3d` no está en `window`**: es un `const` de nivel de script, así que vive en el ámbito
   léxico global y se alcanza **por su nombre pelado**. Con `window._cm3d` el guardia corta y la
   medición sale sobre un denominador vacío, que se lee igual que «todo bien».
+- **Un caso que deja abierto el panel de Evidencia se lo deja a los 54 que siguen en su lote.**
+  `indic-card` lleva `role="dialog"`, así que cualquier prueba que busque «el primer `[role=dialog]`
+  visible» encuentra **ese** y no el suyo. Lo dejaba **TC-955**, que lo abre para medir un globo y
+  no lo cerraba: colgó TC-990 y reventó TC-991 en el lote 18 de 19, los dos pasando aislados. **Un
+  caso que abre el panel lo cierra con `indicCerrar` antes de devolver sus condiciones**, y ninguna
+  limpieza barre `[role=dialog]` a secas —eso le arranca el nodo `indic-card` del documento—.
+- **Un `await` sobre una promesa que sólo un clic resuelve CUELGA LA SUITE, no la pone en rojo.**
+  `borrConfirmar` —y cualquier cartel propio que devuelva una promesa— resuelve con un clic, con
+  Escape o con un clic en el fondo: si el caso no encuentra el botón, el `await` **no vence nunca**.
+  La pasada de la tanda EQ se quedó **una hora y media** clavada en el lote 18 de 19 por esto, con
+  el caso pasando **1/1 aislado**, y un `node` que no imprime nada es indistinguible de uno lento.
+  **Dos reglas:** acotar la espera con `Promise.race` y soltar la promesa con Escape al vencer —así
+  el síntoma es un rojo con su motivo—, y **buscar el cartel por una marca propia**
+  (`[data-borr-conf]`) y no como «el primer `[role=dialog]` visible», que con uno que dejó abierto
+  otro caso del mismo lote es **el ajeno**. Y el corredor de lotes lleva **tope por lote**
+  (`scripts/_lotes_eq_1419.sh`): corta, lo dice en el log y sigue con el siguiente.
 - **Acentos graves en el cuerpo de un caso de test.** El cuerpo es un template literal: un
   backtick —aunque esté dentro de un comentario— cierra la cadena y el archivo deja de parsear
   con un `SyntaxError` que apunta decenas de líneas ANTES del culpable.
@@ -1567,8 +1591,8 @@ impecable.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda EQ (2026-11-21) — los equipos de CeiboLink, el panel que no se redibuja y el borrado de
-a varios.** TRES partes (A, B y C) y CINCO commits. Sello **`v20261121-1600`**, md5
-**`68ec4373`**, **190.359** líneas. Línea base **`77196c5`**, el cierre de la PARTE 1 de P8.
+a varios.** TRES partes (A, B y C) y SIETE commits. Sello **`v20261121-1813`**, md5
+**`7b8c4739`**, **190.371** líneas. Línea base **`77196c5`**, el cierre de la PARTE 1 de P8.
 **Sin push: lo corre Maicol.** **El puente NO se tocó, y ningún punto lo necesitaba** → **EQ-a**.
 
 **NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
@@ -1676,6 +1700,30 @@ control es la casilla del modo elegir.
 **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta —y las dos
 casillas nuevas llevan su piso táctil de 44 px aunque el barrido no las alcance, declarado en
 **EQ-f**—. **Los 16 casos del panel de CeiboLink y los 25 de la bandeja y los avisos, en verde.**
+Las cuatro medidas se rehicieron sobre el **tercer** sello, el `v20261121-1813`, y dan lo mismo.
+
+⚠️ **LA PASADA COMPLETA SE COLGÓ UNA HORA Y MEDIA EN EL LOTE 18 DE 19 Y LA CAUSA ERA NUESTRA
+—queda en EQ-i—.** TC-990 hacía `await` sobre la promesa de `borrConfirmar`, que **sólo** un clic
+resuelve, después de apretar el botón de «el primer `[role=dialog]` visible»; con el panel de
+Evidencia abierto por **TC-955** —que lo abre para medir un globo y no lo cerraba— ese botón no
+existía, así que la suite **se congelaba** en vez de dar un rojo, y el mismo cartel ajeno reventó
+a TC-991 con «reading 'click'». **Cerrado en cuatro piezas**: la marca `data-borr-conf` en el
+overlay, la espera acotada a nueve segundos con Escape al vencer, TC-955 cerrando el panel con
+`indicCerrar`, y TC-991 buscando su modal por su `aria-label` y limpiando **sólo lo propio** —su
+`finally` barría todo `[role=dialog]` y le arrancaba el nodo `indic-card` del documento—.
+**Verificado por mutación** en un worktree, con el md5 del vivo idéntico antes y después: con el
+cartel que nunca se agrega al documento, TC-990 cierra **en 15 s con 0/1** y el motivo
+«SIN RESPUESTA». Y el corredor gana **tope por lote** (`scripts/_lotes_eq_1419.sh`, con
+`LOTE_DESDE`/`LOTE_HASTA`): corta, lo dice en el log y sigue.
+**Rehechos los lotes 14 a 19 sobre el árbol sellado: 284 ejecutados, 283 verdes y UN rojo,
+TC-903**, que es uno de los cinco conocidos; **los lotes 14 y 18 volvieron a correrse enteros
+después del arreglo y dieron 55/55 los dos**, con el md5 de `index.html` idéntico antes y después
+y **ningún lote cortado por tiempo**. **Los lotes 1 a 13 no se rehicieron**, y se declara con su
+motivo: la pasada que los corrió arrancó antes de `c6a4357`, así que **la pasada única sobre el
+árbol final sigue pendiente** —es lo que esta casa informa como línea base—.
+⚠️ **Y TC-753 SALIÓ ROJO POR MI CULPA**: edité `CLAUDE.md` **mientras** corría el lote 14, que es
+la lección que PANT-20 ya dejó escrita —el sello y los documentos se escriben ANTES de la pasada—.
+Con los documentos al día vuelve a **verde**, aislado y en su lote.
 
 ⚠️ **CUATRO TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios
 comentarios**, por trigesimocuarta tanda seguida: **nueve** veces, en tres casos; el guardián de

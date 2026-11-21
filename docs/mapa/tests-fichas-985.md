@@ -19,3 +19,26 @@ atajo para decir que nada de la bandeja entra al censo del estudio. La sección 
 —la casilla «Elegir archivos»— así que hoy mide lo que de verdad lo decide: **cero controles con
 `id`**, más una condición **nueva (D2)** de que el único control es el del modo elegir. Queda **más
 fuerte**: un campo con id la pone en rojo, y uno sin id que no sea ése también.
+
+---
+
+### TC-990 · lo que se le agregó el 2026-11-21 al cerrar EQ-i
+
+Este caso **colgó la pasada completa una hora y media en el lote 18 de 19** pasando **1/1 corrido
+aislado** y **7/7** con sus seis vecinos. Hacía `await` sobre la promesa de `borrConfirmar` después
+de apretar el botón de *«el primer `[role=dialog]` visible»*, y con un cartel que dejó abierto otro
+caso del lote ese botón no existía: esa promesa **sólo** la resuelve un clic, un Escape o un clic
+en el fondo.
+
+Hoy tiene tres piezas más, y **ninguna afloja una condición**:
+- busca su cartel por **`[data-borr-conf]`**, la marca que `borrConfirmar` pone en su overlay;
+- **acota la espera a nueve segundos** con `Promise.race` y, si vence, suelta la promesa con un
+  `keydown` de Escape — la condición «borra las DOS elegidas» sale **roja** con el motivo
+  «SIN RESPUESTA» en vez de congelar la suite;
+- gana un **denominador** que declara que la pantalla arrancó sin ningún cartel ajeno abierto y
+  **lo nombra** (por su `id` o su `aria-label`) si hay uno, así el síntoma apunta a su causa.
+
+**Verificado por mutación**, en un worktree y nunca sobre el árbol vivo —md5 `114b27dc` idéntico
+antes y después—: con `borrConfirmar` mutado para que el cartel **no se agregue nunca al
+documento**, el caso cierra **en 15 s** con `0/1` y dos renglones legibles (`dialogos=0` y
+`SIN RESPUESTA`) en vez de no terminar nunca.

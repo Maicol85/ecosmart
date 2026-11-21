@@ -548,6 +548,68 @@ manda— consume más de la mitad de una ventana de contexto antes de empezar a 
 hora de trabajo y conviene que sea una tanda propia, con su verificación byte por byte de que
 ninguna de las ocho secciones de REGLAS se movió.
 
+### EQ-i · ✅ RESUELTO el 2026-11-21 · la pasada completa se colgó una hora y media en el lote 18, y era de TC-990
+
+**Qué se encontró.** La pasada de diagnóstico escribió su última línea a las **16:37** y el proceso
+siguió vivo **una hora y media** sin imprimir nada. El último caso del log es **TC-989 ✓**, así que
+el que no cerró es el siguiente en el orden del archivo: **TC-990**, el último del **lote 18 de 19**
+(casos 936 a 990). Los lotes **1 a 17 cerraron enteros**; el 19 nunca arrancó.
+
+**Cuál es la causa, y es NUESTRA y no del entorno.** El caso hace
+`const p = clnkbBorrarElegidas();`, busca **«el primer `[role=dialog]` visible»**, le aprieta su
+botón «Borrar» y después hace **`await p`**. `borrConfirmar` devuelve una promesa que **sólo** un
+clic, un Escape o un clic en el fondo resuelven: si el botón no se encuentra, ese `await` **no
+vence nunca**. O sea que cualquier estado que impida dar con el cartel no produce un rojo, **congela
+la suite entera** —y un `node` que no imprime nada es indistinguible de uno lento, así que el
+corredor lo esperaba para siempre—.
+
+**Qué lo disparó, medido.** TC-990 pasa **1/1 corrido aislado** y **7/7** corrido con sus seis
+vecinos (TC-985 a TC-991), así que es **sensibilidad de lote**: algún caso anterior del lote 18 deja
+un `[role=dialog]` visible, y entonces `dlg[0]` es **el cartel ajeno**, que no tiene botón
+«Borrar». **No es del entorno**: el pendrive se verificó en los dieciséis controles, las tres
+bibliotecas del CDN llegaron en los dieciocho lotes y no hubo un solo Chrome huérfano.
+
+**Cómo se corrigió**, en tres piezas y **sin tocar un solo corte ni una función de la app**:
+1. El overlay de `borrConfirmar` lleva **`data-borr-conf="1"`**, así que cada cartel **se busca a sí
+   mismo** en vez de confiar en el orden del DOM. Va como **atributo y sin `id`**, que es lo que lo
+   deja fuera del censo del estudio y de los barridos de «Nuevo estudio» **por construcción**.
+2. TC-990 busca por esa marca, **acota la espera a nueve segundos** y, si vence, **suelta la promesa
+   con Escape** y la condición sale **ROJA** con el motivo «SIN RESPUESTA».
+3. Gana además un **denominador** que declara que la pantalla arrancó sin ningún cartel ajeno
+   abierto y **lo nombra** si hay uno: la próxima vez el síntoma apunta a su propia causa.
+
+**Verificado por mutación**, en un worktree y **nunca** sobre el árbol vivo —md5 `114b27dc`
+idéntico antes y después—: con `borrConfirmar` mutado para que **el cartel no se agregue nunca al
+documento**, el caso que antes colgaba para siempre cierra **en 15 s** con `0/1` y dos renglones
+legibles, `dialogos=0` y `SIN RESPUESTA`.
+
+**Y el corredor gana un tope por lote.** `scripts/_lotes_eq_1419.sh` corre un rango
+(`LOTE_DESDE`/`LOTE_HASTA`, por omisión 14 y 19) con un **tope de 900 s por lote**: un lote trabado
+se corta, **se dice en el log** —«LOTE N CORTADO POR TIEMPO… el último caso impreso es el que se
+colgó»— y la corrida sigue con el siguiente. Las guardas del pendrive, del md5 y del recuento se
+conservan **tal cual**.
+
+**Y EL CARTEL AJENO TENÍA NOMBRE: `indic-card`, EL PANEL DE EVIDENCIA.** Lo dijo el denominador
+nuevo en la primera corrida de los lotes 14 a 19 —«encontrado: indic-card»—, que es exactamente
+para lo que se escribió. Quien lo deja abierto es **TC-955** (punto 9 del prompt 4): abre el panel
+**dos veces** para medir el globo del título de Evidencia y **no lo cierra**, así que les deja un
+`[role=dialog]` visible a los **54 casos que siguen en su lote**. Hoy lo cierra con `indicCerrar`
+antes de devolver sus condiciones, y **no se le aflojó ninguna**.
+
+**Y EL MISMO CARTEL AJENO ROMPÍA TAMBIÉN A TC-991**, que fallaba rápido en vez de colgarse:
+tomaba `dialogos()[0]`, le buscaba casillas que el panel de Evidencia no tiene y reventaba con
+«Cannot read properties of undefined (reading 'click')». Hoy busca su modal por su
+`aria-label` —«Borrar varios estudios»— y su confirmación por `[data-borr-conf]`, cuenta sus DOS
+carteles **entre los propios**, y gana el mismo denominador.
+⚠️ **Y SU LIMPIEZA ERA PEOR QUE EL DEFECTO**: el `finally` barría **todo** `[role=dialog]` visible,
+así que con el panel de Evidencia abierto le **arrancaba del documento el nodo `indic-card`**. Hoy
+saca sólo los suyos.
+
+⚠️ **Y LA PASADA DE DIAGNÓSTICO NO SIRVE COMO NÚMERO INFORMADO POR UNA SEGUNDA RAZÓN**: arrancó a
+las 16:07 y el commit `c6a4357` —el «Cancelar» del cartel de Unir— entró a las **16:10**, o sea
+durante el lote 2. Los lotes 1 y parte del 2 midieron el árbol anterior y el resto el nuevo.
+**Un número de una pasada hecha sobre dos árboles no se informa.**
+
 ## PROMPT 7 — la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
 
 > Sello **`v20261121-0308`**, md5 **`cf41995d`**, **188.426** líneas. Línea base **`2a1bc79`**.

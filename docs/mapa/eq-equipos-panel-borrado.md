@@ -253,3 +253,31 @@ id entraría a las 457 columnas **por existir**. Se alcanzan por `data-clnkb-ele
 Los siete caen **0/7** contra `77196c5` con el mismo archivo de casos: seis por su denominador
 declarado y **TC-987 por sus condiciones reales** (`abierto=false`, `grupo=false`, `avisadas=0` con
 dos imágenes esperando), que es el defecto del médico reproducido.
+
+---
+
+## 11 · La marca del cartel de confirmación, y por qué la espera va acotada (EQ-i)
+
+**Dueño:** `borrConfirmar`, que es el único cartel de confirmación propio de esta tanda.
+
+El overlay lleva **`data-borr-conf="1"`** además de su `role="dialog"` y su `aria-modal`. No es
+decoración: una prueba que busca *«el primer `[role=dialog]` visible»* encuentra el cartel que dejó
+abierto **otro caso del mismo lote**, no da con su botón «Borrar» y se queda esperando una promesa
+que **sólo un clic, un Escape o un clic en el fondo** resuelven. Eso colgó la pasada completa
+**una hora y media en el lote 18 de 19**, con TC-990 pasando **1/1 corrido aislado**.
+
+La marca va como **atributo y sin `id`**: un id entraría al censo del estudio, a las columnas del
+Excel y a los barridos por sufijo de «Nuevo estudio» **por existir**. Es el mismo criterio con que
+los tres controles de esta tanda no llevan ninguno.
+
+**Quien espere esa promesa desde una prueba tiene dos obligaciones**, y las dos están en TC-990:
+- buscar el cartel **por su marca** (`[role=dialog][data-borr-conf]`) y no por el orden del DOM;
+- **acotar la espera** con `Promise.race` y, al vencer, soltar la promesa con un `keydown` de
+  Escape — así un cartel que no aparece da un **rojo con su motivo** («SIN RESPUESTA») y no un
+  proceso que no imprime nada, que es indistinguible de uno lento.
+
+Y el corredor de lotes lleva **tope por lote**: `scripts/_lotes_eq_1419.sh` corre un rango
+(`LOTE_DESDE` / `LOTE_HASTA`, por omisión 14 y 19) con `LOTE_TOPE` segundos por lote; vencido,
+corta ese lote, **lo dice en el log** —«LOTE N CORTADO POR TIEMPO… el último caso impreso es el que
+se colgó»— y sigue con el siguiente. Las guardas del pendrive, del md5 y del recuento se conservan
+tal cual las dejó `_lotes_p7.sh`.
