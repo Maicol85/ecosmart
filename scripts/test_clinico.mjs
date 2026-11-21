@@ -152088,7 +152088,15 @@ caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo vi
       R.aSvg = !!EL('clnk-tanda-svg');
       R.aViajan = cu() ? cu().querySelectorAll('[data-clnk-viaja]').length : 0;
       R.aBots = bots();
-      R.aTodosOff = R.aBots.length > 0 && R.aBots.every(b => b.off);
+      /* ADAPTADO por la tarea D del prompt 7: ya no se apagan los cinco. Los TRES destinos
+         siguen apagados -adjuntar adjuntaria menos de lo que va a llegar- y Vista previa y
+         Descartar quedan vivos. La condicion queda INVERTIDA: antes exigia que TODOS estuvieran
+         apagados y ahora exige que los dos de abajo NO lo esten, asi que falla por los dos
+         lados. */
+      R.aTodosOff = R.aBots.length > 0 &&
+        R.aBots.filter(b => b.txt.indexOf('Adjuntar') > -1).every(b => b.off) &&
+        R.aBots.filter(b => b.txt.indexOf('Adjuntar') === -1).every(b => !b.off) &&
+        R.aBots.filter(b => b.txt.indexOf('Adjuntar') === -1).length === 2;
       R.aCadencia = clnkSondeoMs();
       /* NO DICE «imagenes» mientras no sabe de que tipo son: es el defecto del TXT contado
          como imagen, y la unica forma de que no vuelva es prohibir la palabra aca. */
@@ -152101,7 +152109,9 @@ caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo vi
       await esp(600);
       R.bN = num();
       R.bMismoSvg = EL('clnk-tanda-svg') === svg1;
-      R.bSigueOff = bots().length > 0 && bots().every(b => b.off);
+      R.bSigueOff = bots().length > 0 &&
+        bots().filter(b => b.txt.indexOf('Adjuntar') > -1).every(b => b.off) &&
+        bots().filter(b => b.txt.indexOf('Adjuntar') === -1).every(b => !b.off);
       R.bTitulo = tit();
 
       /* ── C · LA TANDA CIERRA: «Listo», los botones se prenden y el dibujo se para ─ */
@@ -152190,13 +152200,13 @@ caso('TC-961', 'Bloque A: el cartel sale con la PRIMERA imagen, con el dibujo vi
         'n=' + R.aN + ' svg=' + R.aSvg + ' viajan=' + R.aViajan],
       ['y NO dice «imagenes» mientras no sabe de que tipo son -- el TXT contado como imagen',
         R.aNoDiceImagenes, R.aEstado],
-      ['los cuatro destinos se ven y estan APAGADOS',
-        R.aBots.length === 4 && R.aTodosOff, R.aBots.map(b => b.txt + ':' + b.off).join(' | ')],
+      ['ADAPTADO por la tarea D del prompt 7: se ven los CINCO, con los tres destinos APAGADOS y Vista previa y Descartar vivos',
+        R.aBots.length === 5 && R.aTodosOff, R.aBots.map(b => b.txt + ':' + b.off).join(' | ')],
       ['el sondeo pasa a su cadencia rapida mientras la tanda esta abierta',
         R.aCadencia === 4000, R.aCadencia],
       ['el contador SUBE en el sondeo siguiente', R.bN === '3', R.bN],
       ['sin reiniciar el dibujo -- es el MISMO svg, no uno nuevo', R.bMismoSvg, R.bMismoSvg],
-      ['y los botones siguen apagados mientras siga llegando',
+      ['y los tres destinos siguen apagados mientras siga llegando -- ADAPTADO por la tarea D',
         R.bSigueOff && R.bTitulo.indexOf('llegando') > -1, R.bSigueOff + '/' + R.bTitulo],
       ['cuando la tanda CIERRA el cartel pasa a su forma final', R.cAbierto &&
         R.cTitulo.indexOf('Llegaron') > -1, R.cTitulo],
@@ -154621,6 +154631,234 @@ caso('TC-973', 'Tarea C: la app declara cerrada la tanda a los veinte segundos d
         'ventana=' + R.hVentana + ' cartelLimpio=' + R.hCartelSinVentana],
       ['y la ventana de silencio tiene UN SOLO dueno, leido por los dos caminos',
         R.hSilencioUnico, R.hSilencioUnico]
+    ] };
+  })();
+`);
+
+/* ══ PROMPT 7 · TAREA D — BOTONES Y TEXTOS COHERENTES ═════════════════════════════════════
+   El medico encontro el cartel diciendo «Llegaron» con los botones de adjuntar PALIDOS y que
+   FUNCIONAN al tocarlos. La causa medida: `_clnkAvisoApagarBotones` ponia la opacidad en un
+   estilo EN LINEA y `clnkAvisoAbrir` no la borraba, asi que el cartel siguiente -el que arma
+   `clnkBurbujaAbrir`, que es el camino que el medico uso, o la rama de ACTUALIZAR de
+   `clnkRevisarImagenes`- nacia habilitado y palido. Hoy el aspecto va por una CLASE que la
+   apertura limpia en un solo lugar.
+   Y el cartel abierto deja de ser una pantalla sin nada que hacer: los tres destinos apagados
+   de verdad, y Vista previa y Descartar vivos, que piden la lista recien al tocarlos. */
+caso('TC-974', 'Tarea D: con la tanda abierta el cartel dice «Estan llegando» con los TRES destinos deshabilitados de verdad y con aspecto apagado, y Vista previa y Descartar vivos; al cerrar dice «Llegaron» y se prenden los cinco, sin que el aspecto apagado sobreviva a la pregunta siguiente', `
+  return (async () => {
+    if (typeof window._clnkAvisoApagarBotones !== 'function' ||
+        typeof window.clnkTandaVistaPrevia !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene los botones del cartel de la tarea D', false,
+        'no existen _clnkAvisoApagarBotones / clnkTandaVistaPrevia']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const cartel = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const tit = () => String((EL('clnkav-title') || {}).textContent || '');
+    /* Se mide el ASPECTO computado y no un estilo en linea: lo que el medico ve es el resultado
+       de la clase, y el defecto que reporto era justamente un estilo en linea que sobrevivia. */
+    const bots = () => CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+      .filter(b => b && b.style.display !== 'none' && b.textContent)
+      .map(b => ({ txt: String(b.textContent), off: !!b.disabled,
+                   clase: b.classList.contains('clnk-av-off'),
+                   aria: b.getAttribute('aria-disabled') === 'true',
+                   op: Number(getComputedStyle(b).opacity),
+                   cur: String(getComputedStyle(b).cursor),
+                   fil: String(getComputedStyle(b).filter).slice(0, 20) }));
+    const esAdj = b => b.txt.indexOf('Adjuntar') > -1;
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      window._clnkSilencioLatch = false;
+
+      /* -- A - LA TANDA ABIERTA: titulo, tres apagados de VERDAD, dos vivos ---------- */
+      await ctl({ escena: 'tandaViva' });
+      await _clnkSondear(true); await esp(700);
+      R.aCartel = cartel();
+      R.aTit = tit();
+      R.aDiceLlegando = R.aTit.indexOf('llegando') > -1 && R.aTit.indexOf('Llegaron') === -1;
+      const bA = bots();
+      R.aN = bA.length;
+      R.aAdj = bA.filter(esAdj);
+      R.aVivos = bA.filter(b => !esAdj(b));
+      /* Deshabilitados DE VERDAD: disabled -un boton deshabilitado no emite click- mas el
+         aria y el aspecto. Es el estado que el medico encontro al reves. */
+      R.aAdjOff = R.aAdj.length === 3 && R.aAdj.every(b => b.off && b.clase && b.aria && b.op < 0.9);
+      R.aVivosOn = R.aVivos.length === 2 &&
+                   R.aVivos.every(b => !b.off && !b.clase && !b.aria && b.op > 0.9);
+      R.aTieneVistaPrevia = R.aVivos.some(b => b.txt.indexOf('Vista previa') > -1);
+      R.aTieneDescartar = R.aVivos.some(b => b.txt.indexOf('Descartar') > -1);
+      R.aEnPantalla = window._clnkTandaEnPantalla === true;
+
+      /* -- B - LOS APAGADOS NO EMITEN CLICK ----------------------------------------- */
+      let clicks = 0;
+      const espia = () => { clicks++; };
+      const b1 = EL('clnkav-b1');
+      b1.addEventListener('click', espia);
+      b1.click();
+      await esp(120);
+      b1.removeEventListener('click', espia);
+      R.bSinClick = clicks === 0;
+
+      /* -- C - LA TANDA CIERRA: titulo, los CINCO vivos y el aspecto limpio --------- */
+      await ctl({ escena: 'tandaCerrada' });
+      await _clnkSondear(true); await esp(1800);
+      R.cTit = tit();
+      R.cDiceLlegaron = R.cTit.indexOf('Llegaron') > -1 && R.cTit.indexOf('llegando') === -1;
+      const bC = bots();
+      R.cN = bC.length;
+      R.cTodosOn = bC.length === 5 &&
+        bC.every(b => !b.off && !b.clase && !b.aria && b.op > 0.9);
+      R.cEnPantalla = window._clnkTandaEnPantalla === false;
+      clnkAvisoCerrar();
+      try { clnkBurbujaOcultar(); } catch (e) {}
+
+      /* -- D - EL DEFECTO DEL MEDICO: el aspecto apagado NO sobrevive a la apertura -- */
+      /* Se reproduce el camino exacto: se apagan los botones y se abre OTRA pregunta encima,
+         sin pasar por _clnkAvisoApagarBotones(false). Es lo que hace clnkBurbujaAbrir y lo
+         que hace la rama de ACTUALIZAR de clnkRevisarImagenes. */
+      clnkAvisoAbrir('Prueba', 'texto',
+        [{ txt: 'Adjuntar al estudio actual', fn: null }, { txt: 'Descartar', fn: null }]);
+      _clnkAvisoApagarBotones(true);
+      /* ⚠️ SE ESPERA ANTES DE MEDIR LA OPACIDAD, Y NO ES PRUDENCIA: .btn declara
+         transition: opacity .15s, asi que un getComputedStyle inmediato devuelve el valor de
+         ARRANQUE -1- y no el de destino. Medido: la clase ya estaba puesta y el cursor y el
+         filtro ya eran los nuevos, pero la opacidad daba 1 y el caso salia rojo sobre una app
+         que se porta bien. */
+      await esp(300);
+      const bD0 = bots();
+      R.dDet = bD0;
+      R.dApagados = bD0.length === 2 && bD0.every(b => b.off && b.clase && b.op < 0.9);
+      clnkAvisoAbrir('Otra pregunta', 'texto',
+        [{ txt: 'Adjuntar al estudio actual', fn: null }, { txt: 'Descartar', fn: null }]);
+      await esp(300);
+      const bD1 = bots();
+      R.dLimpios = bD1.length === 2 &&
+        bD1.every(b => !b.off && !b.clase && !b.aria && b.op > 0.9);
+      clnkAvisoCerrar();
+
+      /* -- E - EL ALCANCE: soloAdjuntar apaga los tres y deja los otros -------------- */
+      clnkAvisoAbrir('Prueba', 'texto', [
+        { txt: 'Adjuntar al estudio actual', fn: null },
+        { txt: 'Adjuntar a un estudio guardado', fn: null },
+        { txt: 'Adjuntar a imagenes guardadas', fn: null },
+        { txt: 'Vista previa', fn: null },
+        { txt: 'Descartar', fn: null }]);
+      R.eN = _clnkAvisoApagarBotones(true, true);
+      const bE = bots();
+      R.eAdj = bE.filter(esAdj).every(b => b.off) && bE.filter(esAdj).length === 3;
+      R.eOtros = bE.filter(b => !esAdj(b)).every(b => !b.off) && bE.filter(b => !esAdj(b)).length === 2;
+      /* CONTROL: sin el segundo argumento los apaga a los CINCO, que es lo que hacia antes. */
+      _clnkAvisoApagarBotones(true);
+      R.eTodos = bots().every(b => b.off);
+      clnkAvisoCerrar();
+
+      /* -- F - «VISTA PREVIA» DEL CARTEL ABIERTO FUNCIONA DE VERDAD ----------------- */
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      window._clnkSilencioLatch = false;
+      await ctl({ escena: 'tandaViva' });
+      await _clnkSondear(true); await esp(700);
+      R.fCartel = cartel();
+      const bvp = bots().length ? CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+        .filter(b => b && b.style.display !== 'none' &&
+                     String(b.textContent).indexOf('Vista previa') > -1)[0] : null;
+      R.fHayBoton = !!bvp;
+      if (bvp) bvp.click();
+      await esp(1500);
+      R.fPrevia = tit().indexOf('mirar') > -1 || tit().indexOf('Mirar') > -1 ||
+                  !!document.querySelector('[data-clnk-prev-celda]');
+      R.fTitPrevia = tit();
+      /* y la bandera se apago, asi que el sondeo ya no le pisa el cuerpo */
+      R.fEnPantalla = window._clnkTandaEnPantalla === false;
+      const n0 = (() => { const c = EL('clnkav-cuerpo');
+        return c ? c.innerHTML.length : 0; })();
+      await _clnkSondear(true); await esp(400);
+      const n1 = (() => { const c = EL('clnkav-cuerpo');
+        return c ? c.innerHTML.length : 0; })();
+      R.fNoPisa = n0 > 0 && n1 === n0;
+      /* «Volver a la pregunta» devuelve el cartel Y la bandera */
+      const bvolver = CLNK_AV_BOTONES.map(k => EL('clnkav-' + k))
+        .filter(b => b && b.style.display !== 'none' &&
+                     String(b.textContent).indexOf('Volver') > -1)[0];
+      R.fHayVolver = !!bvolver;
+      if (bvolver) bvolver.click();
+      await esp(400);
+      R.fVolvio = tit().indexOf('llegando') > -1;
+      R.fBanderaVuelve = window._clnkTandaEnPantalla === true;
+    } finally {
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      try { window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false; } catch (e) {}
+      try { window._clnkSilencioLatch = false; window._clnkAvisoGrupo = null; } catch (e) {}
+      try { await ctl({ reset: true }); } catch (e) {}
+      try { clnkToggle(onOrig === '1'); } catch (e) {}
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token'); else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkSondeoSync(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo y el cartel de la tanda abierta salio',
+        R.vinculado && R.aCartel, R.vinculado + '/' + R.aCartel],
+      ['con la tanda abierta el titulo dice que estan LLEGANDO, no que llegaron',
+        R.aDiceLlegando, R.aTit],
+      ['se ven CINCO botones', R.aN === 5, R.aN],
+      ['los TRES de adjuntar estan deshabilitados de verdad y con aspecto apagado -- disabled, aria-disabled y opacidad',
+        R.aAdjOff, R.aAdj.map(b => b.txt + ':off=' + b.off + ',clase=' + b.clase + ',op=' + b.op).join(' | ')],
+      ['y Vista previa y Descartar quedan HABILITADOS y con aspecto normal',
+        R.aVivosOn && R.aTieneVistaPrevia && R.aTieneDescartar,
+        R.aVivos.map(b => b.txt + ':off=' + b.off + ',op=' + b.op).join(' | ')],
+      ['un boton apagado NO emite click, asi que no puede funcionar pareciendo que no',
+        R.bSinClick, R.bSinClick],
+      ['cuando la tanda cierra el titulo dice que LLEGARON', R.cDiceLlegaron, R.cTit],
+      ['y los CINCO quedan vivos, sin rastro del aspecto apagado',
+        R.cN === 5 && R.cTodosOn, R.cN + ' ' + JSON.stringify(bots ? '' : '')],
+      ['la bandera del cartel de la tanda se prende al dibujarlo y se apaga al reemplazarlo',
+        R.aEnPantalla && R.cEnPantalla, 'abierta=' + R.aEnPantalla + ' cerrada=' + R.cEnPantalla],
+      ['DENOMINADOR: el apagado deja los dos botones apagados', R.dApagados,
+        JSON.stringify(R.dDet || [])],
+      ['EL DEFECTO DEL MEDICO: el aspecto apagado NO sobrevive a la pregunta siguiente, asi que no hay botones palidos que funcionan',
+        R.dLimpios, R.dLimpios],
+      ['el apagado por alcance toca los TRES destinos y deja los otros dos',
+        R.eAdj && R.eOtros, 'adj=' + R.eAdj + ' otros=' + R.eOtros + ' n=' + R.eN],
+      ['CONTROL NEGATIVO: sin el alcance los apaga a los cinco, que es lo que hacia antes',
+        R.eTodos, R.eTodos],
+      ['DENOMINADOR: el cartel abierto trae su boton de Vista previa',
+        R.fCartel && R.fHayBoton, 'cartel=' + R.fCartel + ' boton=' + R.fHayBoton],
+      ['y al tocarlo abre la vista previa de verdad, con su «Volver a la pregunta»',
+        R.fPrevia && R.fHayVolver, 'previa=' + R.fPrevia + ' volver=' + R.fHayVolver + ' tit=' + R.fTitPrevia],
+      ['el sondeo NO le pisa el cuerpo a la vista previa mientras el medico la mira',
+        R.fEnPantalla && R.fNoPisa, 'bandera=' + R.fEnPantalla + ' noPisa=' + R.fNoPisa],
+      ['y «Volver a la pregunta» devuelve el cartel Y la capacidad de seguir actualizandolo',
+        R.fVolvio && R.fBanderaVuelve, 'volvio=' + R.fVolvio + ' bandera=' + R.fBanderaVuelve]
     ] };
   })();
 `);

@@ -2927,6 +2927,17 @@
   .clnk-dib .clnk-rot  { fill:var(--text2); font-size:8.5px; }
   @keyframes clnk-late { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.38); } }
   .clnk-late { animation:clnk-late 2.6s ease-in-out infinite; }
+  /* ══ TAREA D (PROMPT 7) · EL ASPECTO DESHABILITADO DE UN BOTON DEL AVISO ══════════════════
+     POR UNA CLASE Y NO POR UN `style.opacity` EN LINEA, y la diferencia la pago el medico: el
+     estilo en linea que `_clnkAvisoApagarBotones` ponia NO lo borraba `clnkAvisoAbrir`, asi que
+     el cartel SIGUIENTE —el que arma `dstPreguntar` cuando la tanda cierra, o el que vuelve al
+     tocar la burbuja— nacia con los botones habilitados y PALIDOS. Es exactamente lo que el
+     medico reporto: «dice Llegaron con los botones apagados pero que funcionan».
+     Con una clase, la apertura la saca de los cinco botones en un solo lugar y el estado no
+     puede sobrevivir a la pregunta siguiente. */
+  #clnkav-botones .clnk-av-off {
+    opacity:.45; filter:grayscale(.6); cursor:not-allowed; box-shadow:none;
+  }
   /* ══ BLOQUE B · LA BURBUJA ════════════════════════════════════════════════════════════════
      ABAJO A LA DERECHA, y esa esquina esta MEDIDA: a 1280x900 no hay un solo elemento fijo ni
      pegajoso ahi —el encabezado es pegajoso arriba, la barra lateral a la izquierda y el toast
@@ -183158,11 +183169,23 @@ function clnkAvisoAbrir(titulo, texto, bot) {
      siguiente. */
   var cu = document.getElementById('clnkav-cuerpo');
   if (cu) { cu.textContent = ''; cu.style.display = 'none'; }
+  /* TAREA D · lo que se dibuja desde acá ya NO es el cartel de la tanda. */
+  _clnkTandaEnPantalla = false;
   CLNK_AV_BOTONES.forEach(function (k, i) {
     var b = document.getElementById('clnkav-' + k);
     var d = (bot || [])[i];
     _clnkAvisoAccion[k] = (d && typeof d.fn === 'function') ? d.fn : null;
     if (!b) return;
+    /* ══ TAREA D · LA APERTURA LIMPIA EL ESTADO APAGADO, SIEMPRE Y EN UN SOLO LUGAR ════════
+       Sin esto el aspecto apagado SOBREVIVE a la pregunta siguiente: `_clnkAvisoApagarBotones`
+       lo pone al abrir el cartel de la tanda y NINGUNO de los caminos que arman el cartel final
+       lo sacaba —ni la rama de ACTUALIZAR de `clnkRevisarImagenes`, ni `clnkBurbujaAbrir`, que
+       es el que el medico uso—. El resultado es un boton habilitado y palido: funciona y parece
+       que no. Se limpia aca y no en los tres caminos, por el mismo motivo de siempre. */
+    b.classList.remove('clnk-av-off');
+    b.removeAttribute('aria-disabled');
+    b.removeAttribute('title');
+    b.style.opacity = '';
     if (d && d.txt) { b.textContent = String(d.txt); b.style.display = ''; b.disabled = false; }
     else { b.textContent = ''; b.style.display = 'none'; }
   });
@@ -183294,6 +183317,10 @@ function _clnkAvisoGuardar() {
   var est = { abierto: _clnkAvisoAbierto,
               titulo: t ? t.textContent : '', texto: x ? x.textContent : '',
               cuerpoVisible: !!(cu && cu.style.display !== 'none'),
+              /* TAREA D · la bandera del cartel de la tanda viaja con el estado: sin ella,
+                 «Volver a la pregunta» devuelve el cartel pero el sondeo ya no lo reconoce y el
+                 contador se queda clavado hasta que el medico lo cierre. */
+              tanda: _clnkTandaEnPantalla,
               frag: null, botones: [] };
   if (cu) {
     est.frag = document.createDocumentFragment();
@@ -183326,6 +183353,7 @@ function _clnkAvisoReponer(est) {
     if (!b) return;
     b.textContent = d.txt; b.style.display = d.vis; b.disabled = d.dis;
   });
+  _clnkTandaEnPantalla = !!est.tanda;
   if (!est.abierto) {
     if (ov) ov.style.display = 'none';
     _clnkAvisoAbierto = false;
@@ -183848,6 +183876,15 @@ var _clnkTanda = null;
    a abrir: lo que lo reemplaza es la burbuja del bloque B. */
 var _clnkTandaCerradaPorMedico = false;
 
+/* ══ TAREA D (PROMPT 7) · LO QUE HAY EN PANTALLA ES EL CARTEL DE LA TANDA ════════════════════
+   Hace falta desde que el cartel abierto ofrece «Vista previa»: esa pantalla REEMPLAZA el cuerpo
+   del modal, y `clnkTandaCuerpo` —que no encuentra su contador ahi— lo VACIA y repinta el dibujo
+   encima, o sea que el sondeo le borraria al medico la tira de miniaturas que esta mirando.
+   La pone `clnkTandaCartel` al dibujar y la saca `clnkAvisoAbrir`, que es la unica puerta por la
+   que el modal cambia de contenido; se guarda y se repone con el resto del estado, asi que
+   «Volver a la pregunta» devuelve tambien la capacidad de seguir actualizando el contador. */
+var _clnkTandaEnPantalla = false;
+
 /* Los cuatro campos de la tanda, o `null` si el puente no los manda — que es lo que pasa contra
    un 1.3.x y es la mitad del bloque J. Se pregunta por el TIPO de `tanda_abierta` y no por su
    verdad: con `!d.tanda_abierta`, un puente que no manda el campo y uno que manda `false` se
@@ -184045,15 +184082,33 @@ window.clnkTandaCuerpo = clnkTandaCuerpo;
    ⚠️ NO SE ESCONDEN, SE APAGAN: el medico tiene que ver DONDE van a estar los botones, o el
    cartel parece colgado. Y la ✕ queda viva, que es la unica salida que la tanda abierta ofrece
    —y la que el bloque B convierte en burbuja—. */
-function _clnkAvisoApagarBotones(apagar) {
+/* ⚠️ TAREA D · `soloAdjuntar` APAGA SOLO LOS TRES DESTINOS, Y NO ES UN GUSTO. Mientras el envio
+   no termino, ADJUNTAR adjuntaria menos de lo que va a llegar —ese es el motivo del apagado— pero
+   MIRAR y DESCARTAR no tienen ese problema: la vista previa no decide nada y descartar una tanda
+   a medio recibir es una decision que el medico puede querer tomar igual. Hasta la tarea D se
+   apagaban los cinco, asi que el cartel abierto no ofrecia NADA que hacer.
+   ⚠️ Y SE APAGA CON `disabled` DE VERDAD **MAS** LA CLASE: el medico reporto botones que se ven
+   apagados y funcionan, o sea el estado al reves. Un boton `disabled` no emite click, y el
+   `aria-disabled` lo dice el lector de pantalla. */
+function _clnkAvisoApagarBotones(apagar, soloAdjuntar) {
   var n = 0;
   CLNK_AV_BOTONES.forEach(function (k) {
     var b = document.getElementById('clnkav-' + k);
     if (!b || b.style.display === 'none' || !b.textContent) return;
-    b.disabled = !!apagar;
-    b.style.opacity = apagar ? '.55' : '';
-    if (apagar) b.title = 'Esperá a que termine el envío';
-    else b.removeAttribute('title');
+    var t = String(b.textContent);
+    var esAdjuntar = t.indexOf('Adjuntar') > -1;
+    var off = !!apagar && (!soloAdjuntar || esAdjuntar);
+    b.disabled = off;
+    if (off) {
+      b.classList.add('clnk-av-off');
+      b.setAttribute('aria-disabled', 'true');
+      b.title = 'Esperá a que termine el envío';
+    } else {
+      b.classList.remove('clnk-av-off');
+      b.removeAttribute('aria-disabled');
+      b.removeAttribute('title');
+    }
+    b.style.opacity = '';
     n++;
   });
   return n;
@@ -184064,8 +184119,63 @@ window._clnkAvisoApagarBotones = _clnkAvisoApagarBotones;
    arma cuando el envio termina: con dos listas, el cartel abierto prometeria un boton que
    despues no esta. Lo unico que no se dibuja es «Vista previa», que depende de tener las filas
    de la lista en la mano. */
-var CLNK_TANDA_BOTONES = ['📎 Adjuntar al estudio actual', '🗂 Adjuntar a un estudio guardado',
-                          '🖼 Adjuntar a imágenes guardadas', '🗑 Descartar'];
+/* ⚠️ TAREA D · SON **CINCO** Y EN EL MISMO ORDEN QUE `dstPreguntar`, con «Vista previa»
+   intercalada antes de «Descartar». Hasta hoy eran cuatro y los cuatro apagados, asi que el
+   cartel de una tanda abierta no ofrecia NADA que hacer durante todo el envio. Los tres
+   destinos siguen apagados —adjuntar adjuntaria menos de lo que va a llegar— y los otros dos
+   quedan vivos: mirar no decide nada, y descartar una tanda a medio recibir es una decision que
+   el medico puede querer tomar igual. */
+var CLNK_TANDA_BOTONES = [
+  { txt: '📎 Adjuntar al estudio actual',        fn: null },
+  { txt: '🗂 Adjuntar a un estudio guardado',    fn: null },
+  { txt: '🖼 Adjuntar a imágenes guardadas',     fn: null },
+  { txt: '👁 Vista previa',                 fn: function () { clnkTandaVistaPrevia(); } },
+  { txt: '🗑 Descartar',                    fn: function () { clnkTandaDescartar(); } }
+];
+
+/* ══ TAREA D · EL GRUPO DE LA TANDA, PEDIDO **AL TOCAR** Y NO EN CADA SONDEO ═════════════════
+   Los dos botones vivos necesitan la lista —`GET /v1/imagenes`, que lleva token y recorre el
+   almacen del conector—, y bajarla en cada turno de cuatro segundos seria pedirle el inventario
+   entero quince veces por minuto. El bloque A dejo escrito por que el sondeo usa solo
+   `/v1/estado`: la ruta cara se paga UNA vez, cuando el medico la pide. */
+async function _clnkTandaGrupo() {
+  var r = await clnkPedir('/v1/imagenes', { conToken: true, espera: 8000 });
+  if (!r.vigente || !r.ok) return null;
+  var lista = (r.datos && Array.isArray(r.datos.imagenes)) ? r.datos.imagenes : [];
+  var tandas = (r.datos && Array.isArray(r.datos.tandas)) ? r.datos.tandas : null;
+  var gs = clnkAgrupar(lista, tandas).map(_clnkTipos).map(_clnkRepetidas);
+  if (!gs.length) return null;
+  /* La MAS NUEVA, que es la que el cartel esta mostrando. Es el mismo criterio con que el
+     bloque B saca el numero final de la burbuja. */
+  return gs[gs.length - 1];
+}
+
+/* «Vista previa» con la tanda todavia abierta. Guarda el estado del cartel para que «Volver a la
+   pregunta» devuelva EXACTAMENTE este, con su dibujo, su contador y sus cinco botones. */
+async function clnkTandaVistaPrevia() {
+  var g = await _clnkTandaGrupo();
+  if (!g) {
+    if (typeof toast === 'function') toast('ℹ Todavía no se puede mirar lo que está llegando');
+    return false;
+  }
+  await _clnkCargarNombresEq();
+  var nom = _clnkNombreEq[g.equipo] || g.equipo || 'el ecógrafo';
+  return clnkVistaPreviaDe(g.imagenes, nom, _clnkAvisoGuardar());
+}
+window.clnkTandaVistaPrevia = clnkTandaVistaPrevia;
+
+/* «Descartar» con la tanda todavia abierta. Descarta lo que HAY hasta ahora, que es lo unico
+   que se puede prometer: lo que entre despues va a quedar esperando y el proximo turno lo
+   ofrece. `clnkDescartar` trae su propia confirmacion, que dice cuantas y que no se recuperan. */
+async function clnkTandaDescartar() {
+  var g = await _clnkTandaGrupo();
+  if (!g) {
+    if (typeof toast === 'function') toast('ℹ Todavía no se puede descartar lo que está llegando');
+    return 0;
+  }
+  return clnkDescartar(g.ids);
+}
+window.clnkTandaDescartar = clnkTandaDescartar;
 
 /* Abre —o actualiza— el cartel de una tanda ABIERTA. Devuelve true si quedo algo en pantalla.
    ⚠️ NO SE ABRE ENCIMA DE OTRA PREGUNTA, igual que el aviso de siempre: un cartel sobre el
@@ -184075,20 +184185,27 @@ function clnkTandaCartel(t) {
   if (!t || !t.abierta) return false;
   if (_clnkTandaCerradaPorMedico) return false;
   /* Ya hay un cartel de ESTA tanda: se actualiza el numero y nada mas. */
-  if (_clnkAvisoAbierto && _clnkTanda) {
+  /* ⚠️ TAREA D · SE EXIGE ADEMAS QUE LO QUE HAY EN PANTALLA SEA **ESTE** CARTEL. Con la vista
+     previa abierta el cuerpo del modal es la tira de miniaturas, y `clnkTandaCuerpo` no
+     encuentra ahi su contador: lo VACIA y repinta el dibujo encima, borrandole al medico lo que
+     esta mirando. */
+  if (_clnkAvisoAbierto && _clnkTanda && _clnkTandaEnPantalla) {
     _clnkTanda = t;
     clnkTandaCuerpo(document.getElementById('clnkav-cuerpo'), t.n, false);
     return true;
   }
   if (_clnkAvisoAbierto) return false;                 // hay otro aviso: no se pisa
   if (clnkAvisoHayOtraPregunta()) return false;
-  var bots = CLNK_TANDA_BOTONES.map(function (x) { return { txt: x, fn: null }; });
+  var bots = CLNK_TANDA_BOTONES.map(function (x) { return { txt: x.txt, fn: x.fn }; });
   var ok = clnkAvisoAbrir('Están llegando imágenes del ecógrafo',
-    'El ecógrafo está enviando. Cuando termine vas a poder elegir dónde van.', bots);
+    'El ecógrafo está enviando. Cuando termine vas a poder elegir dónde van. Mientras tanto ' +
+    'podés mirar lo que ya llegó o descartarlo.', bots);
   if (!ok) return false;
   _clnkTanda = t;
+  _clnkTandaEnPantalla = true;
   clnkTandaCuerpo(clnkAvisoCuerpo(), t.n, false);
-  _clnkAvisoApagarBotones(true);
+  /* TAREA D · el segundo argumento apaga SOLO los tres destinos. */
+  _clnkAvisoApagarBotones(true, true);
   return true;
 }
 window.clnkTandaCartel = clnkTandaCartel;
@@ -184098,12 +184215,22 @@ window.clnkTandaCartel = clnkTandaCartel;
    intentar engordarlo— asi que el cartel final es, byte por byte, el que el medico ya conoce.
    Lo unico que se le agrega es el renglon «Listo» y que los botones se prenden. */
 async function clnkTandaCerrar() {
+  /* ⚠️ TAREA D · CON LA VISTA PREVIA ENCIMA NO SE TOCA NADA **Y NO SE PIERDE LA TANDA**. Rearmar
+     el cartel aca llamaria a `clnkAvisoAbrir`, que pone el modal en `flex` y lo dibujaria POR
+     ENCIMA del visor que el medico tiene abierto. Se deja `_clnkTanda` puesto a proposito: el
+     turno siguiente vuelve a intentar, y en cuanto el medico vuelve a la pregunta la tanda se
+     cierra de verdad. Con `_clnkTanda` en null ese cartel se quedaba diciendo «Estan llegando»
+     para siempre. */
+  if (_clnkAvisoAbierto && _clnkTanda && !_clnkTandaEnPantalla) return false;
   var teniaCartel = !!(_clnkAvisoAbierto && _clnkTanda);
   _clnkTanda = null;
   if (!teniaCartel) return false;
   var ok = false;
   try { ok = await clnkRevisarImagenes(true); } catch (e) { ok = false; }
   if (!ok) { clnkAvisoCerrar(); return false; }
+  /* TAREA D · ahora redundante —`clnkAvisoAbrir` ya limpia el estado apagado de los cinco— y se
+     conserva a proposito: es la unica linea que declara que al cerrar la tanda los botones se
+     PRENDEN, y cuesta cinco iteraciones sobre cinco nodos. */
   _clnkAvisoApagarBotones(false);
   var cu = document.getElementById('clnkav-cuerpo');
   if (cu) {
