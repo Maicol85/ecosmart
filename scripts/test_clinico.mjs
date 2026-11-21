@@ -228,6 +228,20 @@ const PRELUDIO = `
          #lab-imp-modal abierto y TC-252 media los trece segmentos del ETE debajo de el. */
       try { if (typeof labImpCerrar === 'function') labImpCerrar(); } catch (e) {}
       try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
+      /* ══ P8 · EL CARTEL DE LA REGLA DE PACIENTE, QUE NINGUN CASO TIENE POR QUE CERRAR ══════
+         _guardAvisoPaciente es un overlay propio con un oyente de Escape en fase de CAPTURA
+         que hace stopImmediatePropagation: mientras esta abierto, se come el Escape de cualquier
+         otro dialogo. TC-851 lo abre --es el caso de la regla de paciente: llama a
+         guardarInforme sin documento-- y no lo cierra, porque hasta P8 ese camino no abria nada.
+         Resultado medido: TC-889, cuarenta y cinco casos despues en el MISMO lote, fallaba en
+         «(C) Escape lo cierra» sobre un globo que funciona perfecto. Su lote da 55/55 contra el
+         arbol anterior y 54/55 contra este, asi que no era un intermitente: era este overlay.
+         Va en el reset del runner y no en TC-851 por el mismo argumento que todo lo demas de
+         aca: con una linea por caso, el que se olvide hereda el estado del anterior y falla con
+         un diagnostico que no apunta a su propia causa. */
+      try { const _gp = document.getElementById('guard-pac-ov');
+            if (_gp) { const _b = _gp.querySelector('button'); if (_b) _b.click();
+                       if (_gp.parentNode) _gp.parentNode.removeChild(_gp); } } catch (e) {}
       /* Y las sesiones a mano: cerrar ya no se las lleva. Se recorre _vTodas por si vistaBCerrar
          fallo y la B sigue montada. */
       try {
@@ -155669,10 +155683,20 @@ caso('TC-981', 'P8 1.2: quitar del PDF NO borra de la biblioteca --sigue en disc
     };
     const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
     const uuid = 'p8-tc981-0000-0000-0000-00000000bbbb';
+    let _cfgPrev = null;
     try {
+      /* ADAPTADO: el caso PRENDE el ajuste en vez de EXIGIRLO, y lo repone en su finally. Los
+         dos pasaban aislados y salian rojos en el lote 18 con «esta apagado»: un caso anterior
+         lo deja en 0 y no lo restituye, y los 992 corren en UNA pagina. Un denominador que
+         depende de lo que haga el caso de al lado no es un denominador. */
+      _cfgPrev = (function () { try { return localStorage.getItem('cfg-guardar-imagenes'); }
+                                catch (e) { return null; } })();
+      try { if (typeof cfgToggleGuardarImagenes === 'function') cfgToggleGuardarImagenes(true);
+            else localStorage.setItem('cfg-guardar-imagenes', '1'); } catch (e) {}
+      await esp(80);
       if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
-        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» esta activo', false,
-          'esta apagado']] };
+        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» se pudo prender', false,
+          'no se pudo prender']] };
       }
       imgVaciar(); await esp(60);
       showTab('imagenes'); await esp(80);
@@ -155722,6 +155746,8 @@ caso('TC-981', 'P8 1.2: quitar del PDF NO borra de la biblioteca --sigue en disc
     } finally {
       window.toast = toastOrig;
       try { window._imgUuidActual = null; imgVaciar(); } catch (e) {}
+      try { if (_cfgPrev === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', _cfgPrev); } catch (e) {}
       try { await CeiboImg.quitar(uuid, [0, 1]); } catch (e) {}
       try { await CeiboImg.quitar('p8-tc981-0000-0000-0000-00000000cccc', [0]); } catch (e) {}
     }
@@ -155923,10 +155949,20 @@ caso('TC-984', 'P8 1.3 (dato real del VINNO por router): tres carteles seguidos 
     for (let k = 0; k < 9; k++) TODAS.push(archivo(k));
     const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
     const uuid = 'p8-tc984-0000-0000-0000-00000000eeee';
+    let _cfgPrev = null;
     try {
+      /* ADAPTADO: el caso PRENDE el ajuste en vez de EXIGIRLO, y lo repone en su finally. Los
+         dos pasaban aislados y salian rojos en el lote 18 con «esta apagado»: un caso anterior
+         lo deja en 0 y no lo restituye, y los 992 corren en UNA pagina. Un denominador que
+         depende de lo que haga el caso de al lado no es un denominador. */
+      _cfgPrev = (function () { try { return localStorage.getItem('cfg-guardar-imagenes'); }
+                                catch (e) { return null; } })();
+      try { if (typeof cfgToggleGuardarImagenes === 'function') cfgToggleGuardarImagenes(true);
+            else localStorage.setItem('cfg-guardar-imagenes', '1'); } catch (e) {}
+      await esp(80);
       if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
-        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» esta activo', false,
-          'esta apagado']] };
+        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» se pudo prender', false,
+          'no se pudo prender']] };
       }
       imgVaciar(); await esp(80);
       showTab('imagenes'); await esp(100);
@@ -156013,6 +156049,8 @@ caso('TC-984', 'P8 1.3 (dato real del VINNO por router): tres carteles seguidos 
     } finally {
       window.toast = toastOrig; window.alert = alertOrig;
       try { window._imgUuidActual = null; imgVaciar(); } catch (e) {}
+      try { if (_cfgPrev === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', _cfgPrev); } catch (e) {}
       try { await CeiboImg.quitar(uuid, [0,1,2,3,4,5,6,7,8]); } catch (e) {}
       try { await CeiboImg.quitar('p8-tc984-0000-0000-0000-00000000ffff', [0]); } catch (e) {}
     }

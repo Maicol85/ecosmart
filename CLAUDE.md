@@ -292,8 +292,8 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,67 MB / 189.004 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la **PARTE 1 de P8** (la biblioteca del estudio, la selección del PDF, los duplicados, el borrado y medir sin botón), sobre el árbol ya sellado: sello **`v20261121-1143`**, md5 **`11fe51ba`**.
-  El diff de P8 son **619 líneas agregadas y 41 quitadas** en `index.html`, medido con
+  sin frameworks. Hoy **13,67 MB / 189.064 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la **PARTE 1 de P8** (la biblioteca del estudio, la selección del PDF, los duplicados, el borrado y medir sin botón), sobre el árbol ya sellado: sello **`v20261121-1256`**, md5 **`8aaa289b`**.
+  El diff de P8 son **682 líneas agregadas y 44 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `7ed031b` **sobre el árbol ya sellado**, con **CERO** `eval(` y
   `new Function` nuevos, **CERO** claves y contraseñas, y **UNA** sola aparición de `innerHTML`,
   que es el **comentario** que declara que el renglón de cuenta entra por `textContent`.
@@ -1645,6 +1645,14 @@ por `_dstAviso`, y **fuera de una tanda eso es un `alert` NATIVO** que el runner
 batería entera quedó colgada esperando un clic y hubo que matar una corrida de 31 casos. Nació
 `_dstNota` —junta dentro de una tanda, `toast` fuera—, y la regla es que **un aviso que no exige
 una decisión va por ahí**.
+⚠️ **Y SE PAGÓ DOS VECES, POR OTRA PUERTA.** El cartel de 1.5 salió primero por `alert` y **colgó
+la suite en el lote 16**: **TC-851 es, justamente, el caso de la regla de paciente** —llama a
+`guardarInforme()` esperando `false` con imágenes de CeiboLink y sin documento— y **no sustituye
+`alert`**, porque hasta hoy ese camino no abría ninguno. Hubo que matar la corrida en el lote 16
+de 18. Hoy es un **cartel propio** (`_guardAvisoPaciente`): se crea al llamarlo, se destruye al
+cerrarlo —así no deja un id que los barridos de «Nuevo estudio» alcancen—, no se va solo, no
+bloquea nada, y todo entra por `textContent`. **La regla que queda: ningún camino que un caso
+recorra abre un diálogo nativo.**
 
 **1.6 · Medir sin botón que activar.** Se retira «📏 Medir» de la pantalla; `medFijaToggle` y
 `_medFijaOn` **siguen existiendo** (los llaman seis casos). Un clic sobre la imagen abre el visor
@@ -1676,9 +1684,33 @@ invertidas. Los tres caen contra la línea base. **Ninguno borrado y ninguno afl
 ⚠️ **TRES CASOS LOS DESTAPÓ LA BATERÍA Y NO MI CENSO** —TC-234, TC-242 y TC-179—, y los tres
 señalaban defectos **míos**, no consecuencias autorizadas.
 
+**LÍNEA BASE AL CIERRE: suite 984/992** en **DIECINUEVE** lotes, **los 992 ejecutados de 992**, en
+UNA sola pasada sobre el árbol sellado, con el md5 de `index.html` **idéntico** antes y después
+(`8aaa289b`) y el pendrive `DISK_IMG` verificado **veintiuna** veces con sus **343** archivos de
+`GEMS_IMG`. **Los siete casos nuevos y los tres adaptados, en verde.**
+Los ocho rojos fueron los **cinco** conocidos —TC-182, TC-376, TC-406, TC-551 y TC-903— más
+**TRES que eran MÍOS**, los tres de **aislamiento de lote** y los tres arreglados:
+- **TC-981 y TC-984** fallaban por su propio denominador —«Guardar imágenes con los estudios»
+  **apagado**—: un caso anterior del lote 18 lo deja en 0 y no lo restituye, y los 992 corren en
+  UNA página. Hoy **lo prenden ellos** y lo reponen en su `finally`: un denominador que depende de
+  lo que haga el caso de al lado no es un denominador.
+- **TC-889 NO era un intermitente, y la medición lo prueba:** su lote da **55/55 contra
+  `7ed031b`** y 54/55 contra este. La causa es **mía y exacta**: `_guardAvisoPaciente` registra su
+  Escape en fase de **captura** con `stopImmediatePropagation`, y **TC-851 lo abre y no lo
+  cierra** —es el caso de la regla de paciente, y hasta P8 ese camino no abría nada—, así que
+  cuarenta y cinco casos después se comía el Escape del globo del panel de medición. Se cierra en
+  el **reset del runner** y no en TC-851, por el mismo argumento que todo lo que vive ahí.
+**Rehechos los lotes 16 y 18 con el archivo de casos final: 55/55 los dos.** No se rehizo la
+pasada completa, y se declara con su motivo: **`index.html` no cambió** —mismo md5 `8aaa289b`
+antes y después— y lo único que se movió fue el archivo de casos. Es el mismo criterio con que la
+3A y el prompt 4 no rehicieron la suya. **El estado real es 987/992 con los cinco rojos
+conocidos.**
+
 **VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
-**17 de 17** bloques de JS inline parsean. El PDF **medido de verdad**: con la marca puesta
-imprime **0** imágenes y tras «Todas al PDF» imprime la del slot.
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta, medido con
+la máquina sola —y ninguno es de esta tanda: son los `input.ind-chk` de los acordeones de
+Evidencia, que es el **M5-n** que decide el médico—. El PDF **medido de verdad**: con la marca
+puesta imprime **0** imágenes y tras «Todas al PDF» imprime la del slot.
 
 **El prompt 7 (2026-11-21) — la burbuja del cartel terminado, el sondeo de cuatro segundos, la
 ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir.**

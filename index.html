@@ -125789,6 +125789,75 @@ function _guardarConSemaforo(informes, cb) {
   } catch (e) { _guardLiberar(); throw e; }
 }
 
+/* ══ P8 · 1.5 · EL CARTEL QUE NO SE VA SOLO, Y QUE **NO** ES UN `alert` NATIVO ══════════════
+   ⚠️ ESTE AVISO SALIO PRIMERO POR `alert` Y COLGO LA SUITE EN EL LOTE 16. `TC-851` es,
+   justamente, el caso de la regla de paciente: llama a `guardarInforme()` esperando `false` con
+   imagenes de CeiboLink y sin documento, y NO sustituye `alert` --no tenia por que: hasta hoy
+   este camino no abria ninguno--. Un dialogo nativo sin manejador bloquea la pagina para
+   siempre y la bateria entera queda esperando un clic que nadie da. Es la MISMA trampa que
+   `_dstNota` vino a cerrar unas horas antes en esta tanda, pagada por segunda vez y por otra
+   puerta. Queda escrita: **ningun camino que un caso recorra abre un dialogo nativo**.
+   Es un cartel PROPIO: se crea al llamarlo, se destruye al cerrarlo --asi no deja un id que los
+   barridos de «Nuevo estudio» puedan alcanzar--, no se va solo, y no bloquea nada: la funcion
+   que lo abre devuelve `false` en la linea siguiente, como antes.
+   Todo entra por `textContent`: no hay un solo dato en `innerHTML`. */
+function _guardAvisoPaciente(falta, nEsp) {
+  try {
+    var prev = document.getElementById('guard-pac-ov');
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+    var ov = document.createElement('div');
+    ov.id = 'guard-pac-ov';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Todavía no se puede guardar este estudio');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.62);display:flex;' +
+                       'align-items:center;justify-content:center;padding:16px;';
+    var c = document.createElement('div');
+    c.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+                      'max-width:460px;width:100%;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.45);';
+    var h = document.createElement('div');
+    h.style.cssText = 'font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text);';
+    h.textContent = '⚠️ Todavía no se puede guardar este estudio';
+    c.appendChild(h);
+    var p1 = document.createElement('div');
+    p1.style.cssText = 'font-size:12px;line-height:1.6;color:var(--text);margin-bottom:8px;';
+    p1.textContent = 'Tiene imágenes que llegaron del ecógrafo, y para guardarlas hace falta el ' +
+                     'nombre Y el documento del paciente: es la regla que evita que un estudio ' +
+                     'quede con las imágenes de otra persona.';
+    c.appendChild(p1);
+    var p2 = document.createElement('div');
+    p2.style.cssText = 'font-size:12.5px;font-weight:700;line-height:1.6;color:var(--amber,#e0a030);margin-bottom:8px;';
+    p2.textContent = 'Falta ' + String(falta || '') + '.';
+    c.appendChild(p2);
+    /* El numero de lo que espera SOLO si lo hay: «0 imágenes siguen esperando» es ruido. */
+    if (nEsp) {
+      var p3 = document.createElement('div');
+      p3.style.cssText = 'font-size:12px;line-height:1.6;color:var(--text2);margin-bottom:10px;';
+      p3.textContent = nEsp + (nEsp === 1 ? ' imagen sigue' : ' imágenes siguen') +
+        ' esperando en CeiboLink y NO se perdieron: se guardan en cuanto completes el dato y ' +
+        'vuelvas a apretar Guardar.';
+      c.appendChild(p3);
+    }
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-primary';
+    b.style.cssText = 'width:100%;justify-content:center;';
+    b.textContent = 'Entendido — ir al campo que falta';
+    var cerrar = function () {
+      try { document.removeEventListener('keydown', esc, true); } catch (e) {}
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+    };
+    var esc = function (ev) { if (ev.key === 'Escape') { ev.stopImmediatePropagation(); cerrar(); } };
+    b.addEventListener('click', cerrar);
+    document.addEventListener('keydown', esc, true);
+    c.appendChild(b);
+    ov.appendChild(c);
+    document.body.appendChild(ov);
+    try { b.focus(); } catch (e) {}
+    return true;
+  } catch (e) { return false; }
+}
+window._guardAvisoPaciente = _guardAvisoPaciente;
+
 function guardarInforme(onDone) {
   /* El espejo se sincroniza justo antes de capturar el formulario: la marca de severidad
      fijada a mano vive en window y viaja con el estudio por el input oculto `sev_manual`.
@@ -125840,16 +125909,7 @@ function guardarInforme(onDone) {
         ? _clnkPorConfirmar.length : 0;
       var _falta = (!nombre && !ci) ? 'el NOMBRE y el DOCUMENTO'
                  : (!nombre ? 'el NOMBRE' : 'el DOCUMENTO');
-      if (typeof alert === 'function') {
-        alert('Todavía no se puede guardar este estudio.\n\n' +
-              'Tiene imágenes que llegaron del ecógrafo, y para guardarlas hace falta el nombre ' +
-              'Y el documento del paciente — es la regla que evita que un estudio quede con las ' +
-              'imágenes de otra persona.\n\nFalta ' + _falta + '.\n\n' +
-              (_nEsp ? (_nEsp + (_nEsp === 1 ? ' imagen sigue' : ' imágenes siguen') +
-                        ' esperando en CeiboLink y NO se perdieron: se guardan en cuanto ' +
-                        'completes el dato y vuelvas a apretar Guardar.\n\n') : '') +
-              'Te llevo al campo que falta.');
-      }
+      _guardAvisoPaciente(_falta, _nEsp);
     } catch (e) {}
     try {
       if (typeof irATabPaciente === 'function') irATabPaciente();
@@ -181553,8 +181613,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261121-1143';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795272184048;                 /* eco-build-ms */
+const ECO_BUILD    = '20261121-1256';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795276600450;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181640,7 +181700,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1143</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1256</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

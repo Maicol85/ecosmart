@@ -349,6 +349,27 @@ sin la clave no rompe nada.
 **La regla de seguridad se mantiene intacta:** no se le confirma nada al puente al adjuntar
 (**P8-b**), así que el puente conserva su copia hasta que el estudio se guarde.
 
+### P8-b3 · ✅ RESUELTO el 2026-11-21 · el cartel de 1.5 se comía el Escape de otros diálogos
+
+**No es un intermitente, y la medición lo prueba:** el lote de TC-889 da **55/55 contra `7ed031b`**
+y 54/55 contra el árbol de P8.
+
+**La causa, exacta:** `_guardAvisoPaciente` —el cartel nuevo de 1.5— registra su Escape en fase de
+**captura** con `stopImmediatePropagation`, y **TC-851 lo abre y no lo cierra**: es, justamente, el
+caso de la regla de paciente (llama a `guardarInforme()` sin documento con imágenes de CeiboLink),
+y hasta P8 ese camino no abría ningún cartel, así que no tenía por qué cerrarlo. Cuarenta y cinco
+casos después, en el mismo lote, **TC-889 fallaba en «(C) Escape lo cierra»** sobre un globo del
+panel de medición que funciona perfecto.
+
+**Dónde se arregló y por qué ahí:** en el **reset del runner**, no en TC-851. Con una línea por
+caso, el que se olvide hereda el estado del anterior y falla con un diagnóstico que no apunta a su
+propia causa — que es exactamente lo que acababa de pasar.
+
+**Y la lección de producto, que esta tanda pagó DOS VECES por dos puertas distintas:** el aviso de
+«ya estaban» salió primero por `_dstAviso` —que fuera de una tanda es un `alert` **nativo**— y
+colgó una corrida de 31 casos; el cartel de 1.5 salió primero por `alert` y **colgó la suite en el
+lote 16 de 18**. **Ningún camino que un caso recorra abre un diálogo nativo.**
+
 ### P8-c · ⚠️ ABIERTO · selección múltiple en «Imágenes sin estudio» (la bandeja)
 
 **No se hizo.** Hoy la bandeja borra el **envío entero** (`clnkbBorrar`) o **de a una** desde el
