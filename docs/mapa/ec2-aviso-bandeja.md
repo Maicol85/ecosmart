@@ -280,3 +280,13 @@ reemplazado. El mapa es **`docs/mapa/ec3-destino-unico.md`**, y lo que cambió:
 - **La confirmación** a CeiboLink ya no se pierde cuando el estudio tiene **sólo** un cineloop, y no
   ocurre si alguna escritura falló.
 - **Un cineloop se guarda solo** con el estudio, y la tira lo muestra «sin guardar» hasta entonces.
+
+---
+
+## La tanda EQ cerró P8-c y el cartel que no salía (2026-11-21)
+
+**El borrado de a varios de la bandeja** —modo elegir compartido por las dos pantallas,
+«Todas / Ninguna» y `clnkbBorrarVarias` en UNA transacción— y **el cartel de imágenes que no salía
+mientras quedara un equipo pendiente ya avisado** están en
+`docs/mapa/eq-equipos-panel-borrado.md` §§ 6, 7 y 9. El `return` incondicional de `_clnkSondear`
+era la causa: la hipótesis de «sólo se dispara cuando el número aumenta» quedó desmentida.

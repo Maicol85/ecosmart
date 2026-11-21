@@ -137169,9 +137169,19 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
       R.c_sinCambio = R.c_estudios === estudiosAntes;
       /* Ni a la lista de informes guardados. */
       R.c_informes = (function(){ try { return (getInformes() || []).length } catch (e) { return -1 } })();
-      /* -- (D) NO ENTRA AL EXCEL NI AL CENSO DEL ESTUDIO: la seccion no tiene un solo campo -- */
+      /* -- (D) NO ENTRA AL EXCEL NI AL CENSO DEL ESTUDIO -- */
+      /* ⚠️ ADAPTADO EN LA TANDA EQ (C1), Y LA CONDICION QUEDA MAS FUERTE. Esta seccion gano UN
+         control: la casilla «Elegir archivos» del modo de borrado de a varios, que el medico
+         pidio. Lo que esta condicion afirmaba —«no tiene un solo campo»— era el ATAJO para decir
+         que nada de aca entra al censo del estudio ni al Excel; lo que de verdad lo decide es que
+         ningun control lleve id, porque las tres listas del censo recorren los que SI lo
+         llevan. Hoy se mide eso, y ademas que el unico control sea el del modo elegir: asi un
+         campo nuevo con id pone el caso en rojo igual, y uno sin id tambien si no es ese. */
       const sec = EL('clnkb-sec');
-      R.d_campos = sec ? sec.querySelectorAll('input,select,textarea').length : -1;
+      R.d_campos = sec ? sec.querySelectorAll('input[id],select[id],textarea[id]').length : -1;
+      R.d_controles = sec ? sec.querySelectorAll('input,select,textarea').length : -1;
+      R.d_soloElegir = sec ? (sec.querySelectorAll('[data-clnkb-elegir]').length === 1 &&
+                              R.d_controles === 1) : false;
       R.d_enTab = !!sec && !!EL('tab-imagenes') && EL('tab-imagenes').contains(sec);
       /* -- (E) NO ENTRA AL PDF: el bucle del PDF lee imgSlots, y ahi no hay nada -- */
       R.e_slotsParaPdf = imgSlots.filter(s => s && s.dataURL).length;
@@ -137237,7 +137247,10 @@ caso('TC-850', 'La bandeja sin estudio: base PROPIA, no aparece en ninguna lista
       ['(B) el predicado de la regla sigue en NO',            R.b_predicado === false, R.b_predicado],
       ['(B) y el formulario sigue vacio',                     R.b_nombre === '', R.b_nombre],
       ['(C) no entra a la lista de estudios con imagenes',    R.c_sinCambio, R.pre_estudios + ' -> ' + R.c_estudios],
-      ['(D) su seccion no tiene UN SOLO campo',               R.d_campos === 0, R.d_campos],
+      ['(D) su seccion no tiene UN SOLO campo CON id, que es lo que el censo del estudio y el Excel recorren',
+        R.d_campos === 0, R.d_campos],
+      ['(D2) y su unico control es la casilla del modo elegir de la tanda EQ',
+        R.d_soloElegir, 'controles=' + R.d_controles],
       ['(D) y vive en la pestania Imagenes',                  R.d_enTab, R.d_enTab],
       ['(E) el PDF lee imgSlots, que sigue vacio',            R.e_slotsParaPdf === 0, R.e_slotsParaPdf],
       ['(F) SE CONFIRMO a CeiboLink, porque ya quedo guardada', R.f_confirmadas === 'img_a1,img_a2', R.f_confirmadas],
@@ -156055,6 +156068,1194 @@ caso('TC-984', 'P8 1.3 (dato real del VINNO por router): tres carteles seguidos 
       try { await CeiboImg.quitar('p8-tc984-0000-0000-0000-00000000ffff', [0]); } catch (e) {}
     }
     return { extra: ex, diag: R };
+  })();
+`);
+
+/* ══ TANDA EQ · A1 — UN RENGLON POR EQUIPO ════════════════════════════════════════════════
+   EL DEFECTO QUE EL MEDICO MIDIO CON EL VINNO EN WINDOWS: el MISMO equipo aparecia dos veces
+   —«Vinno» 10:38 con la direccion del cable directo y «Vinno» 11:14 con la del router—, sin nada
+   que los distinguiera. El puente hace bien en mandar dos: su identidad es AET + IP (§3.4) y no
+   puede saber si son la misma maquina. Lo que faltaba es del lado de EcoSmart.
+   Este caso mide las tres cosas a la vez: que el rotulo de conexion afirma SOLO lo que se puede
+   saber, que agrupar NO autoriza nada, y que con una sola direccion el renglon no se movio. */
+caso('TC-985', 'Tanda EQ A1: el VINNO duplicado se ve como UN renglon con sus dos direcciones adentro, cada una con su tipo de conexion deducido, su estado y su boton para separarla; agrupar NO autoriza nada y el contador cuenta equipos', `
+  return (async () => {
+    if (typeof window.clnkEqAgrupar !== 'function' || typeof window.clnkEqConexion !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol agrupa los equipos por equipo', false,
+        'no existen clnkEqAgrupar / clnkEqConexion']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const grOrig = localStorage.getItem('ett_clnk_eqgrupos');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const txt = () => String((EL('cfg-clnk-equipos') || {}).textContent || '');
+    /* ⚠️ SE CUENTAN LOS RENGLONES Y NO LOS HIJOS: el contenedor lleva ademas la ayuda «Que hace
+       cada accion», que es un details y no un renglon de equipo. */
+    const filas = () => { const c = EL('cfg-clnk-equipos');
+      return c ? c.querySelectorAll(':scope > div').length : -1; };
+    try {
+      localStorage.removeItem('ett_clnk_eqgrupos');
+      _clnkEqG = null;
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      /* Las DOS direcciones de esta computadora: una de cable y una de Wi-Fi, en redes distintas.
+         De ellas sale el rotulo de cada linea del equipo. */
+      const CONEX = { puerto_dicom: 4242, aet_puente: 'PUENTE', aviso: null,
+        carpeta_compartida: null,
+        direcciones: [
+          { direccion: '192.168.1.23', interfaz: 'en7', probable: true, tipo: 'cable', enlace: true },
+          { direccion: '10.0.5.4', interfaz: 'en0', probable: false, tipo: 'wifi', enlace: true }] };
+      /* El MISMO VINNO desde dos direcciones: la del cable directo (169.254, que se la asigno
+         sola la maquina) y la del router. Mas un equipo de carpeta, con ip de esta computadora. */
+      const VC = { id: 'eq_vc', estado: 'autorizado', aet: 'VINNO', ip: '169.254.11.5',
+        nombre_para_mostrar: 'VINNO', apodo: null, imagenes: 5,
+        ultimo_envio: '2026-11-21T13:38:00Z' };
+      const VR = { id: 'eq_vr', estado: 'pendiente', aet: 'VINNO', ip: '10.0.5.90',
+        nombre_para_mostrar: 'VINNO', apodo: null, imagenes: 2,
+        ultimo_envio: '2026-11-21T14:14:00Z' };
+      const BZ = { id: 'eq_bz', estado: 'autorizado', aet: 'BUZON:', ip: '127.0.0.1',
+        nombre_para_mostrar: 'Buzon de esta computadora', apodo: null, imagenes: 1,
+        ultimo_envio: '2026-11-21T13:00:00Z' };
+      await ctl({ reset: true, equipos: [VC, VR, BZ], escena: 'vacio', conexion: CONEX });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(1200);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      await clnkLeerEquipos();
+      await esp(250);
+
+      /* -- A - EL ROTULO DE CONEXION, LA FUNCION PURA -------------------------------- */
+      R.aLoop = clnkEqConexion('127.0.0.1');
+      R.aLoop6 = clnkEqConexion('::1');
+      R.aLink = clnkEqConexion('169.254.11.5');
+      R.aCable = clnkEqConexion('192.168.1.44');
+      R.aRouter = clnkEqConexion('10.0.5.90');
+      R.aAjena = clnkEqConexion('8.8.8.8');
+      R.aVacia = clnkEqConexion('');
+
+      /* -- B - TRES EQUIPOS DEL PUENTE, DOS RENGLONES ------------------------------- */
+      R.bFilas = filas();
+      R.bDosDir = txt().indexOf('2 direcciones') >= 0;
+      R.bIpCable = txt().indexOf('169.254.11.5') >= 0;
+      R.bIpRouter = txt().indexOf('10.0.5.90') >= 0;
+      R.bRotCable = txt().indexOf('cable directo') >= 0;
+      R.bRotRouter = txt().indexOf('red del router') >= 0;
+      /* La direccion de ESTA computadora no se dibuja: no es la de ningun ecografo. */
+      R.bSinLoopback = txt().indexOf('127.0.0.1') === -1;
+      R.bCnt = String((EL('cfg-clnk-eq-cnt') || {}).textContent || '');
+      R.bContadorDosEquipos = R.bCnt.indexOf('2') === 1;
+      /* UN solo campo de apodo por equipo, no por direccion. */
+      R.bApodos = EL('cfg-clnk-equipos').querySelectorAll('[data-clnk-apodo]').length;
+      /* Y nada de esto inyecta marcado. */
+      R.bImgs = EL('cfg-clnk-equipos').querySelectorAll('img').length;
+
+      /* -- C - AGRUPAR NO AUTORIZA NADA -------------------------------------------- */
+      const eqs = await fetch(F.base + '/v1/equipos', { headers: {
+        Authorization: 'Bearer ' + localStorage.getItem('ett_ceibolink_token') } }).then(r => r.json());
+      R.cEstados = (eqs.equipos || []).map(e => e.id + ':' + e.estado).join(',');
+      R.cSiguePendiente = R.cEstados.indexOf('eq_vr:pendiente') >= 0;
+      /* Y los dos chips de estado estan, uno por direccion. */
+      R.cChips = (txt().match(/Esperando tu decisi/g) || []).length;
+
+      /* -- D - SEPARAR Y UNIR ----------------------------------------------------- */
+      R.dHaySeparar = txt().indexOf('Separar') >= 0;
+      R.dHayUnir = txt().indexOf('Unir con otro equipo') >= 0;
+      await clnkAccionEquipo('eq_vr', 'separar');
+      await esp(350);
+      R.dTrasSeparar = filas();
+      const eqs2 = await fetch(F.base + '/v1/equipos', { headers: {
+        Authorization: 'Bearer ' + localStorage.getItem('ett_ceibolink_token') } }).then(r => r.json());
+      R.dPermisoIntacto = (eqs2.equipos || []).map(e => e.id + ':' + e.estado).join(',') === R.cEstados;
+      /* La decision queda PERSISTIDA. */
+      R.dPersistido = String(localStorage.getItem('ett_clnk_eqgrupos') || '').indexOf('eq_vr') >= 0;
+      /* Y volver a unirlas devuelve el renglon unico. */
+      clnkEqGrupoFijar('eq_vr', 'aet:VINNO');
+      await clnkLeerEquipos();
+      await esp(300);
+      R.dTrasUnir = filas();
+
+      /* -- E - CONTROL NEGATIVO: con UNA sola direccion, el renglon es el de siempre -- */
+      await ctl({ equipos: [{ id: 'eq_solo', estado: 'pendiente', aet: 'UNO', ip: '192.168.1.44',
+        nombre_para_mostrar: 'UNO', apodo: null, imagenes: 1,
+        ultimo_envio: '2026-11-21T13:00:00Z' }] });
+      await clnkLeerEquipos();
+      await esp(300);
+      R.eFilas = filas();
+      R.eSinChipDirecciones = txt().indexOf('direcciones') === -1;
+      R.eSinSeparar = txt().indexOf('Separar') === -1;
+      /* Permitir y Bloquear siguen EN EL RENGLON, a la vista, sin abrir nada. */
+      /* ⚠️ SE PREGUNTA POR EL RENGLON Y NO POR LA GEOMETRIA: un details cerrado esconde su
+         contenido, pero medirlo por height > 0 depende de como el navegador implemente el
+         plegable —en una medicion con Playwright los botones de adentro informaron 44 px con el
+         plegable CERRADO—. Lo que esta condicion afirma es que los dos urgentes estan en el
+         renglon, o sea FUERA de cualquier plegable, y eso se pregunta por el arbol. */
+      R.eUrgentes = Array.prototype.slice.call(
+        EL('cfg-clnk-equipos').querySelectorAll('[data-clnk-acc]'))
+        .filter(b => !b.closest('[data-clnk-det]'))
+        .map(b => b.getAttribute('data-clnk-acc')).join(',');
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        window.__clnkBaseTest = baseOrig;
+        if (grOrig === null) localStorage.removeItem('ett_clnk_eqgrupos');
+        else localStorage.setItem('ett_clnk_eqgrupos', grOrig);
+        _clnkEqG = null;
+        if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+        else localStorage.setItem('ett_ceibolink_token', tkOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        applyViewMode();
+        clnkAvisoCerrar(); clnkBurbujaOcultar();
+        clnkSondeoSync();
+      } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['sin error', !R.err, R.err || 'ok'],
+      ['el rotulo de conexion afirma SOLO lo que se puede saber: esta computadora, cable directo con 169.254 y red del router por la red de la interfaz Wi-Fi',
+        R.aLoop === 'esta computadora' && R.aLoop6 === 'esta computadora' &&
+        R.aLink === 'cable directo' && R.aRouter === 'red del router',
+        'loop=' + R.aLoop + ' link=' + R.aLink + ' router=' + R.aRouter],
+      ['por la red de una interfaz de cable dice «por el cable» y NO «cable directo»: un cable puede ir a un switch',
+        R.aCable === 'por el cable', R.aCable],
+      ['y si no empareja ninguna direccion de esta computadora, NO se dice nada',
+        R.aAjena === '' && R.aVacia === '', 'ajena=' + R.aAjena + ' vacia=' + R.aVacia],
+      ['DENOMINADOR: el puente manda TRES equipos y la lista dibuja DOS renglones',
+        R.bFilas === 2, R.bFilas],
+      ['el renglon del VINNO dice que tiene DOS direcciones', R.bDosDir, R.bDosDir],
+      ['y las dos direcciones estan a la vista, cada una con su tipo de conexion',
+        R.bIpCable && R.bIpRouter && R.bRotCable && R.bRotRouter,
+        'cable=' + R.bIpCable + '/' + R.bRotCable + ' router=' + R.bIpRouter + '/' + R.bRotRouter],
+      ['la direccion de ESTA computadora no se dibuja: el buzon no tiene direccion que mostrar',
+        R.bSinLoopback, R.bSinLoopback],
+      ['el contador del renglon cerrado cuenta EQUIPOS y no direcciones', R.bContadorDosEquipos, R.bCnt],
+      ['UN solo campo de apodo por equipo, no uno por direccion', R.bApodos === 2, R.bApodos],
+      ['y nada de esto inyecta marcado', R.bImgs === 0, R.bImgs],
+      ['AGRUPAR NO AUTORIZA NADA: la direccion que esperaba decision la sigue esperando',
+        R.cSiguePendiente, R.cEstados],
+      ['cada direccion lleva su propio chip de estado', R.cChips === 1, R.cChips],
+      ['hay un boton para separar una direccion y otro para unir dos equipos',
+        R.dHaySeparar && R.dHayUnir, 'separar=' + R.dHaySeparar + ' unir=' + R.dHayUnir],
+      ['separar parte el renglon en dos y NO toca ningun permiso',
+        R.dTrasSeparar === 3 && R.dPermisoIntacto,
+        'filas=' + R.dTrasSeparar + ' permisos=' + R.dPermisoIntacto],
+      ['y la decision queda guardada, asi que sobrevive al proximo sondeo', R.dPersistido, R.dPersistido],
+      ['unir las dos devuelve el renglon unico', R.dTrasUnir === 2, R.dTrasUnir],
+      ['CONTROL NEGATIVO: con UNA sola direccion el renglon es el de siempre, sin chip de direcciones ni Separar',
+        R.eFilas === 1 && R.eSinChipDirecciones && R.eSinSeparar,
+        'filas=' + R.eFilas + ' sinChip=' + R.eSinChipDirecciones + ' sinSep=' + R.eSinSeparar],
+      ['y con una sola direccion Permitir y Bloquear siguen EN EL RENGLON, a la vista',
+        R.eUrgentes === 'permitir,bloquear', R.eUrgentes]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · A2 — EL MISMO EQUIPO DESDE OTRA DIRECCION ═════════════════════════════════
+   El puente vuelve a pedir decision porque su identidad es AET + IP, y hace bien: no puede saber
+   si son la misma maquina. Lo que el medico veia era «Un equipo nuevo, VINNO, mando imagenes»
+   sobre el ecografo que habia autorizado una hora antes, sin nada con que decidir.
+   La regla de seguridad no se toca: el «Si» hace exactamente lo que hace el boton Permitir, por
+   la misma ruta del puente, y nadie se autoriza por su nombre. */
+caso('TC-986', 'Tanda EQ A2: un nombre YA conocido que llega desde una direccion nueva pregunta si es el mismo equipo en vez de decir «equipo nuevo»; el «Si» permite por la misma ruta que el boton y el «No» lo separa dejandolo en cuarentena, y NINGUNO se autoriza por su nombre', `
+  return (async () => {
+    if (typeof window.clnkEqGrupoDe !== 'function' || typeof window.clnkAvisarEquipoNuevo !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol agrupa equipos y avisa de uno nuevo', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const grOrig = localStorage.getItem('ett_clnk_eqgrupos');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const GET = (ruta) => fetch(F.base + ruta, { headers: {
+      Authorization: 'Bearer ' + localStorage.getItem('ett_ceibolink_token') } }).then(r => r.json());
+    const titulo = () => String((EL('clnkav-title') || {}).textContent || '');
+    const cuerpo = () => String((EL('clnkav-txt') || {}).textContent || '');
+    const boton = (n) => { const b = EL('clnkav-b' + n);
+      return (b && b.style.display !== 'none') ? String(b.textContent || '') : ''; };
+    const olvidarAvisados = () => {
+      try { Object.keys(_clnkEqAvisados).forEach(k => { delete _clnkEqAvisados[k]; }); } catch (e) {}
+    };
+    const VC = { id: 'eq_vc2', estado: 'autorizado', aet: 'VINNO', ip: '169.254.11.5',
+      nombre_para_mostrar: 'VINNO', apodo: null, imagenes: 2, ultimo_envio: '2026-11-21T13:38:00Z' };
+    const VR = { id: 'eq_vr2', estado: 'pendiente', aet: 'VINNO', ip: '10.0.5.90',
+      nombre_para_mostrar: 'VINNO', apodo: null, imagenes: 1, ultimo_envio: '2026-11-21T14:14:00Z' };
+    const OT = { id: 'eq_ot2', estado: 'pendiente', aet: 'OTRO_ECO', ip: '10.0.5.91',
+      nombre_para_mostrar: 'OTRO_ECO', apodo: null, imagenes: 1, ultimo_envio: '2026-11-21T14:20:00Z' };
+    try {
+      localStorage.removeItem('ett_clnk_eqgrupos');
+      _clnkEqG = null;
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: [VC, VR], escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(1200);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+
+      /* -- A - LA PREGUNTA, EN VEZ DE «UN EQUIPO NUEVO» ------------------------------ */
+      olvidarAvisados();
+      clnkAvisoCerrar();
+      R.aAbrio = await clnkAvisarEquipoNuevo();
+      await esp(300);
+      R.aTitulo = titulo();
+      R.aEsPregunta = R.aTitulo.toLowerCase().indexOf('es el mismo') >= 0 &&
+                      R.aTitulo.indexOf('VINNO') >= 0;
+      R.aNoDiceNuevo = R.aTitulo.indexOf('equipo nuevo') === -1;
+      R.aTexto = cuerpo();
+      R.aDiceLasDos = R.aTexto.indexOf('10.0.5.90') >= 0 && R.aTexto.indexOf('169.254.11.5') >= 0;
+      R.aBotones = [boton(1), boton(2), boton(3), boton(4), boton(5)].filter(Boolean).join(' | ');
+      /* Mientras no contesta, NADIE se autorizo. */
+      R.aEstados = (await GET('/v1/equipos')).equipos.map(e => e.id + ':' + e.estado).join(',');
+
+      /* -- B - EL «NO» LO SEPARA Y LO DEJA EN CUARENTENA ----------------------------- */
+      const b2 = EL('clnkav-b2');
+      R.bHayNo = !!b2 && /No, es otro/.test(b2.textContent || '');
+      if (b2) b2.click();
+      await esp(900);
+      R.bEstados = (await GET('/v1/equipos')).equipos.map(e => e.id + ':' + e.estado).join(',');
+      R.bSiguePendiente = R.bEstados.indexOf('eq_vr2:pendiente') >= 0;
+      const cont = EL('cfg-clnk-equipos');
+      R.bFilas = cont ? cont.querySelectorAll(':scope > div').length : -1;
+      R.bPersistido = String(localStorage.getItem('ett_clnk_eqgrupos') || '').indexOf('eq_vr2') >= 0;
+
+      /* -- C - EL «SI» PERMITE POR LA MISMA RUTA QUE EL BOTON DEL PANEL -------------- */
+      clnkEqGrupoFijar('eq_vr2', 'aet:VINNO');
+      await clnkLeerEquipos();
+      await esp(250);
+      olvidarAvisados();
+      clnkAvisoCerrar();
+      R.cAbrio = await clnkAvisarEquipoNuevo();
+      await esp(300);
+      R.cTitulo = titulo();
+      const b1 = EL('clnkav-b1');
+      R.cHaySi = !!b1 && /Si|Sí/.test(b1.textContent || '');
+      if (b1) b1.click();
+      await esp(1300);
+      R.cEstados = (await GET('/v1/equipos')).equipos.map(e => e.id + ':' + e.estado).join(',');
+      R.cAutorizado = R.cEstados.indexOf('eq_vr2:autorizado') >= 0;
+      const cont2 = EL('cfg-clnk-equipos');
+      R.cFilas = cont2 ? cont2.querySelectorAll(':scope > div').length : -1;
+
+      /* -- D - CONTROL NEGATIVO: un nombre que NO conoce sigue siendo «equipo nuevo» -- */
+      await ctl({ equipos: [VC, OT] });
+      olvidarAvisados();
+      clnkAvisoCerrar();
+      R.dAbrio = await clnkAvisarEquipoNuevo();
+      await esp(400);
+      R.dTitulo = titulo();
+      R.dEsNuevo = R.dTitulo.indexOf('equipo nuevo') >= 0;
+      R.dNoEsPregunta = R.dTitulo.toLowerCase().indexOf('es el mismo') === -1;
+      R.dEstados = (await GET('/v1/equipos')).equipos.map(e => e.id + ':' + e.estado).join(',');
+      R.dSigueEnCuarentena = R.dEstados.indexOf('eq_ot2:pendiente') >= 0;
+
+      /* -- E - Y EL GRUPO SALE DEL AET, NO DEL NOMBRE QUE SE DIBUJA ---------------- */
+      R.eMismoGrupo = clnkEqGrupoDe({ id: 'x1', aet: 'VINNO' }) ===
+                      clnkEqGrupoDe({ id: 'x2', aet: 'VINNO', apodo: 'otro apodo' });
+      R.eOtroGrupo = clnkEqGrupoDe({ id: 'x3', aet: 'VINNO' }) !==
+                     clnkEqGrupoDe({ id: 'x4', aet: 'OTRO' });
+      R.eApodoNoAgrupa = clnkEqGrupoDe({ id: 'x5', aet: 'A', apodo: 'Eco' }) !==
+                         clnkEqGrupoDe({ id: 'x6', aet: 'B', apodo: 'Eco' });
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        window.__clnkBaseTest = baseOrig;
+        if (grOrig === null) localStorage.removeItem('ett_clnk_eqgrupos');
+        else localStorage.setItem('ett_clnk_eqgrupos', grOrig);
+        _clnkEqG = null;
+        if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+        else localStorage.setItem('ett_ceibolink_token', tkOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        applyViewMode();
+        olvidarAvisados();
+        clnkAvisoCerrar(); clnkBurbujaOcultar();
+        clnkSondeoSync();
+      } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: el aviso se abrio', R.aAbrio === true, R.aAbrio],
+      ['un nombre conocido desde una direccion nueva PREGUNTA si es el mismo equipo, y no dice «un equipo nuevo»',
+        R.aEsPregunta && R.aNoDiceNuevo, R.aTitulo],
+      ['y dice las DOS direcciones, la nueva y la que ya estaba autorizada',
+        R.aDiceLasDos, R.aTexto.slice(0, 120)],
+      ['con tres respuestas: si, no y mas tarde', R.aBotones.split(' | ').length === 3, R.aBotones],
+      ['NINGUN equipo se autoriza por su nombre: mientras no contesta sigue en cuarentena',
+        R.aEstados.indexOf('eq_vr2:pendiente') >= 0, R.aEstados],
+      ['el «No, es otro equipo» lo separa en su propio renglon y lo DEJA en cuarentena',
+        R.bHayNo && R.bSiguePendiente && R.bFilas === 2,
+        'no=' + R.bHayNo + ' pendiente=' + R.bSiguePendiente + ' filas=' + R.bFilas],
+      ['y esa decision queda guardada', R.bPersistido, R.bPersistido],
+      ['el «Si, es el mismo» lo autoriza de verdad, por la misma ruta del puente que el boton Permitir',
+        R.cHaySi && R.cAutorizado, 'si=' + R.cHaySi + ' estados=' + R.cEstados],
+      ['y queda en UN solo renglon con sus dos direcciones', R.cFilas === 1, R.cFilas],
+      ['CONTROL NEGATIVO: un nombre que NO conoce sigue saliendo como «un equipo nuevo» y en cuarentena',
+        R.dAbrio === true && R.dEsNuevo && R.dNoEsPregunta && R.dSigueEnCuarentena,
+        'titulo=' + R.dTitulo + ' cuarentena=' + R.dSigueEnCuarentena],
+      ['el grupo sale del AET y no del nombre que se dibuja: el apodo no agrupa ni separa',
+        R.eMismoGrupo && R.eOtroGrupo && R.eApodoNoAgrupa,
+        'mismo=' + R.eMismoGrupo + ' otro=' + R.eOtroGrupo + ' apodo=' + R.eApodoNoAgrupa]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · A4 — EL CARTEL QUE NO SALIA ═══════════════════════════════════════════════
+   LA HIPOTESIS DEL MEDICO QUEDO DESMENTIDA. No es que el cartel «solo se dispare cuando el numero
+   de imagenes aumenta mientras EcoSmart mira»: `_clnkSondear` devolvia SIEMPRE que hubiera un
+   equipo esperando decision, y `clnkAvisarEquipoNuevo` no vuelve por el MISMO equipo en la misma
+   sesion. Con eso, UN solo equipo pendiente ya avisado —el segundo «Vinno» del duplicado, o uno
+   que el medico dejo en «Mas tarde»— dejaba al sondeo sin llegar NUNCA a revisar las imagenes, y
+   el unico camino que seguia funcionando era «Ver lo que espera», que llama forzado.
+   Medido en `scripts/_probe_eq0.mjs` contra el arbol anterior: dos turnos sin cartel con DOS
+   imagenes esperando. */
+caso('TC-987', 'Tanda EQ A4: con un equipo pendiente YA avisado y dos imagenes esperando, el sondeo SI abre el cartel de «llegaron imagenes» -- antes volvia sin mirarlas y el cartel no salia nunca-, y cuando la pregunta del equipo SI se abre el turno termina ahi', `
+  return (async () => {
+    if (typeof window.clnkAvisarEquipoNuevo !== 'function' || typeof window._clnkSondear !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el sondeo y el aviso de equipo nuevo', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const grOrig = localStorage.getItem('ett_clnk_eqgrupos');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const titulo = () => String((EL('clnkav-title') || {}).textContent || '');
+    const abierto = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    /* ⚠️ CERRAR «porMedico» LEVANTA LA BURBUJA (tarea A del prompt 7), y con una burbuja en
+       pantalla el sondeo vuelve ANTES de revisar las imagenes a proposito. Sin bajarla, el turno
+       siguiente mide sobre un cartel que no se abrio. */
+    const cerrar = () => { try { clnkAvisoCerrar(); } catch (e) {}
+                           try { clnkBurbujaOcultar(); } catch (e) {} };
+    const olvidarAvisados = () => {
+      try { Object.keys(_clnkEqAvisados).forEach(k => { delete _clnkEqAvisados[k]; }); } catch (e) {}
+    };
+    const olvidarImgs = () => {
+      try { Object.keys(_clnkAvisadas).forEach(k => { delete _clnkAvisadas[k]; }); } catch (e) {}
+    };
+    const t0 = Date.now() - 9 * 60000;
+    const iso = (ms) => new Date(ms).toISOString().replace(/.[0-9][0-9][0-9]Z$/, 'Z');
+    const VC = { id: 'eq_a4c', estado: 'autorizado', aet: 'VINNO4', ip: '169.254.11.5',
+      nombre_para_mostrar: 'VINNO4', apodo: null, imagenes: 2, ultimo_envio: iso(t0) };
+    const VR = { id: 'eq_a4r', estado: 'pendiente', aet: 'OTRO4', ip: '10.0.5.90',
+      nombre_para_mostrar: 'OTRO4', apodo: null, imagenes: 1, ultimo_envio: iso(t0 + 60000) };
+    const im = (id, ms) => ({ id: id, equipo: 'eq_a4c', recibida: iso(ms), bytes: 570,
+      tipo: 'imagen', modalidad: 'US', vista: null, origen: 'dicom', formato: 'dicom',
+      se_puede_ver: true });
+    try {
+      localStorage.removeItem('ett_clnk_eqgrupos');
+      _clnkEqG = null;
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: [VC, VR],
+                  imagenes: [im('img_a4_1', t0), im('img_a4_2', t0 + 9000)] });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(1200);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      cerrar();
+      /* DENOMINADOR: el estado dice que hay DOS imagenes esperando Y UN equipo por decidir. */
+      const d = await fetch(F.base + '/v1/estado').then(r => r.json());
+      R.pend = Number(d.imagenes_pendientes) || 0;
+      R.esperando = Number(d.equipos_esperando) || 0;
+
+      /* -- A - EL CASO DEL MEDICO: el pendiente YA fue avisado ----------------------- */
+      olvidarImgs();
+      _clnkEqAvisados['eq_a4r'] = true;      // el medico ya contesto «Mas tarde»
+      cerrar();
+      await esp(200);
+      await _clnkSondear(true);
+      await esp(1300);
+      R.aAbierto = abierto();
+      R.aTitulo = titulo();
+      R.aEsDeImagenes = R.aTitulo.toLowerCase().indexOf('llegaron') >= 0;
+      R.aGrupo = !!window._clnkAvisoGrupo;
+      R.aAvisadas = Object.keys(_clnkAvisadas).length;
+
+      /* -- B - Y SI LA PREGUNTA DEL EQUIPO SI SE ABRE, EL TURNO TERMINA AHI ---------- */
+      olvidarImgs();
+      olvidarAvisados();
+      cerrar();
+      await esp(200);
+      await _clnkSondear(true);
+      await esp(1300);
+      R.bTitulo = titulo();
+      R.bEsDelEquipo = R.bTitulo.toLowerCase().indexOf('equipo') >= 0 &&
+                       R.bTitulo.toLowerCase().indexOf('llegaron im') === -1;
+      R.bNoAvisoImgs = Object.keys(_clnkAvisadas).length === 0;
+
+      /* -- C - CONTROL: sin NINGUN equipo pendiente, el cartel sale igual ------------ */
+      await ctl({ equipos: [VC] });
+      olvidarImgs();
+      cerrar();
+      await esp(200);
+      await _clnkSondear(true);
+      await esp(1300);
+      R.cAbierto = abierto();
+      R.cTitulo = titulo();
+      R.cEsDeImagenes = R.cTitulo.toLowerCase().indexOf('llegaron') >= 0;
+
+      /* -- D - Y EL CAMINO FORZADO -«Ver lo que espera»- sigue funcionando ----------- */
+      olvidarImgs();
+      cerrar();
+      await esp(200);
+      R.dForzado = await clnkRevisarImagenes(true);
+      await esp(500);
+      R.dTitulo = titulo();
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        window.__clnkBaseTest = baseOrig;
+        if (grOrig === null) localStorage.removeItem('ett_clnk_eqgrupos');
+        else localStorage.setItem('ett_clnk_eqgrupos', grOrig);
+        _clnkEqG = null;
+        if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+        else localStorage.setItem('ett_ceibolink_token', tkOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        applyViewMode();
+        olvidarAvisados(); olvidarImgs();
+        cerrar();
+        clnkSondeoSync();
+      } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: hay DOS imagenes esperando y UN equipo por decidir',
+        R.pend === 2 && R.esperando === 1, 'pend=' + R.pend + ' esperando=' + R.esperando],
+      ['con el equipo pendiente YA avisado, el sondeo SI abre el cartel de las imagenes -- antes volvia sin mirarlas y no salia nunca',
+        R.aAbierto && R.aEsDeImagenes, 'abierto=' + R.aAbierto + ' titulo=' + R.aTitulo],
+      ['y el cartel queda armado con su grupo y sus dos imagenes anotadas',
+        R.aGrupo && R.aAvisadas === 2, 'grupo=' + R.aGrupo + ' avisadas=' + R.aAvisadas],
+      ['EQUIPO NUEVO PRIMERO sigue valiendo: cuando la pregunta del equipo se abre, el turno termina ahi y no avisa de las imagenes',
+        R.bEsDelEquipo && R.bNoAvisoImgs, 'titulo=' + R.bTitulo + ' sinAvisar=' + R.bNoAvisoImgs],
+      ['CONTROL: sin ningun equipo pendiente el cartel sale igual, con el mismo numero quieto -- o sea que la hipotesis de «solo se dispara cuando el numero aumenta» es FALSA',
+        R.cAbierto && R.cEsDeImagenes, 'abierto=' + R.cAbierto + ' titulo=' + R.cTitulo],
+      ['y «Ver lo que espera» sigue funcionando', R.dForzado === true &&
+        R.dTitulo.toLowerCase().indexOf('llegaron') >= 0, 'forzado=' + R.dForzado + ' ' + R.dTitulo]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · A5 — EL SEGUNDO CARTEL CUENTA LAS NUEVAS ══════════════════════════════════
+   Con un envio de nueve imagenes cuya ultima llega tarde, el segundo cartel decia «Llegaron 9
+   imagenes» aunque ocho ya se habian ofrecido y el medico ya las habia adjuntado. El numero que
+   necesita es el de las nuevas, y el total va aparte para que no parezca que las otras se
+   perdieron. Lo que evita que algo entre dos veces sigue siendo la deduplicacion por archivo de
+   la PARTE 1 —nombre mas hash del contenido— y no recortar lo que el cartel ofrece: una imagen
+   que el medico dejo en «Mas tarde» no se puede perder porque despues llego otra. */
+caso('TC-988', 'Tanda EQ A5: cuando una imagen llega tarde, el segundo cartel cuenta UNA -las nuevas- y dice el total del envio en vez de decir que llegaron las nueve otra vez; el camino forzado sigue diciendo el total', `
+  return (async () => {
+    if (typeof window._clnkNuevas !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol cuenta las imagenes NUEVAS de un grupo', false,
+        'no existe _clnkNuevas']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const cuerpo = () => String((EL('clnkav-txt') || {}).textContent || '');
+    const cerrar = () => { try { clnkAvisoCerrar(); } catch (e) {}
+                           try { clnkBurbujaOcultar(); } catch (e) {} };
+    const olvidarImgs = () => {
+      try { Object.keys(_clnkAvisadas).forEach(k => { delete _clnkAvisadas[k]; }); } catch (e) {}
+    };
+    const t0 = Date.now() - 9 * 60000;
+    const iso = (ms) => new Date(ms).toISOString().replace(/.[0-9][0-9][0-9]Z$/, 'Z');
+    const EQ = { id: 'eq_a5', estado: 'autorizado', aet: 'ECO_A5', ip: '192.168.1.60',
+      nombre_para_mostrar: 'ECO_A5', apodo: null, imagenes: 3, ultimo_envio: iso(t0) };
+    const im = (id, ms) => ({ id: id, equipo: 'eq_a5', recibida: iso(ms), bytes: 570,
+      tipo: 'imagen', modalidad: 'US', vista: null, origen: 'dicom', formato: 'dicom',
+      se_puede_ver: true });
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: [EQ],
+                  imagenes: [im('img_a5_1', t0), im('img_a5_2', t0 + 9000)] });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(1200);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      cerrar();
+
+      /* -- A - EL PRIMER CARTEL DICE LAS DOS QUE LLEGARON --------------------------- */
+      olvidarImgs();
+      cerrar();
+      await esp(200);
+      R.aAbrio = await clnkRevisarImagenes();
+      await esp(500);
+      R.aTexto = cuerpo();
+      R.aDiceDos = R.aTexto.indexOf('2 imágenes') >= 0 || R.aTexto.indexOf('2 imagenes') >= 0;
+      R.aSinMas = R.aTexto.indexOf('En total hay') === -1;
+      R.aAvisadas = Object.keys(_clnkAvisadas).length;
+
+      /* -- B - LLEGA UNA TERCERA DEL MISMO ENVIO: EL CARTEL CUENTA **UNA** ----------- */
+      cerrar();
+      await esp(200);
+      await ctl({ imagenes: [im('img_a5_1', t0), im('img_a5_2', t0 + 9000),
+                             im('img_a5_3', t0 + 18000)] });
+      await esp(200);
+      R.bAbrio = await clnkRevisarImagenes();
+      await esp(500);
+      R.bTexto = cuerpo();
+      R.bDiceUna = R.bTexto.indexOf('1 imagen más') >= 0;
+      R.bDiceTotal = R.bTexto.indexOf('En total hay') >= 0 &&
+                     (R.bTexto.indexOf('3 imágenes esperando') >= 0 ||
+                      R.bTexto.indexOf('3 imagenes esperando') >= 0);
+      R.bNoDiceTres = R.bTexto.indexOf('Llegaron 3') === -1;
+      R.bDiceQueNoDuplica = R.bTexto.indexOf('no se vuelve a agregar') >= 0;
+      /* Y el cartel sigue ofreciendo el ENVIO ENTERO: lo que evita el duplicado es la
+         deduplicacion por archivo de la PARTE 1, no recortar lo que se ofrece. */
+      R.bGrupoEntero = window._clnkAvisoGrupo ? window._clnkAvisoGrupo.ids.length : -1;
+
+      /* -- C - EL CAMINO FORZADO DICE EL TOTAL: ahi no hay «nuevas» ------------------ */
+      cerrar();
+      await esp(200);
+      R.cForzado = await clnkRevisarImagenes(true);
+      await esp(500);
+      R.cTexto = cuerpo();
+      R.cDiceTres = R.cTexto.indexOf('Llegaron 3') >= 0;
+      R.cSinTotal = R.cTexto.indexOf('En total hay') === -1;
+
+      /* -- D - LA CUENTA POR TIPO ES LA DE LAS NUEVAS, NO LA DEL ENVIO --------------- */
+      const g = { ids: ['x1', 'x2', 'x3'],
+        imagenes: [{ id: 'x1', tipo: 'imagen' }, { id: 'x2', tipo: 'video' },
+                   { id: 'x3', tipo: 'imagen' }] };
+      olvidarImgs();
+      _clnkAvisadas['x1'] = true;
+      _clnkAvisadas['x2'] = true;
+      _clnkNuevas(g);
+      R.dNuevas = g.nNuevas;
+      R.dTipos = g.tiposNuevas.fija + '/' + g.tiposNuevas.loop;
+      olvidarImgs();
+      _clnkNuevas(g);
+      R.dTodas = g.nNuevas;
+      R.dTiposTodas = g.tiposNuevas.fija + '/' + g.tiposNuevas.loop;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        window.__clnkBaseTest = baseOrig;
+        if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+        else localStorage.setItem('ett_ceibolink_token', tkOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        applyViewMode();
+        olvidarImgs();
+        cerrar();
+        clnkSondeoSync();
+      } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: el primer cartel dice las DOS que llegaron, sin hablar de total',
+        R.aAbrio === true && R.aDiceDos && R.aSinMas && R.aAvisadas === 2,
+        'abrio=' + R.aAbrio + ' avisadas=' + R.aAvisadas + ' ' + R.aTexto.slice(0, 70)],
+      ['cuando llega una tarde, el segundo cartel cuenta UNA -las nuevas- y no las tres',
+        R.bAbrio === true && R.bDiceUna && R.bNoDiceTres, R.bTexto.slice(0, 110)],
+      ['y dice el total del envio, para que no parezca que las otras desaparecieron',
+        R.bDiceTotal, R.bTexto.slice(0, 160)],
+      ['y dice que lo ya adjuntado no se vuelve a agregar', R.bDiceQueNoDuplica, R.bDiceQueNoDuplica],
+      ['el cartel sigue ofreciendo el ENVIO ENTERO: lo que evita el duplicado es la deduplicacion por archivo, no recortar lo que se ofrece',
+        R.bGrupoEntero === 3, R.bGrupoEntero],
+      ['el camino forzado -«Ver lo que espera»- dice el TOTAL: ahi no hay «nuevas» porque se ignora lo ya avisado',
+        R.cForzado === true && R.cDiceTres && R.cSinTotal, R.cTexto.slice(0, 90)],
+      ['la cuenta por tipo es la de las NUEVAS: con dos avisadas queda UNA fija y CERO cineloops',
+        R.dNuevas === 1 && R.dTipos === '1/0', 'n=' + R.dNuevas + ' tipos=' + R.dTipos],
+      ['CONTROL NEGATIVO: sin ninguna avisada, son las TRES con sus dos tipos',
+        R.dTodas === 3 && R.dTiposTodas === '2/1', 'n=' + R.dTodas + ' tipos=' + R.dTiposTodas]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · B1 — EL SONDEO NO REDIBUJA EL PANEL ═══════════════════════════════════════
+   Los dos defectos que el medico reporto son el mismo: «en Apodo y acciones no se puede
+   escribir» y «hay una pestañada cada pocos segundos, solo en Configuracion». Medido antes de
+   tocar nada, un turno de sondeo producia 40 mutaciones del DOM de la tarjeta CON EL MISMO
+   CONTENIDO, y reescribia la lista de equipos entera cada cuatro segundos: el campo se destruia
+   y volvia a nacer, asi que lo tecleado, el foco y el plegable abierto se perdian.
+   La cadencia NO se toco, por orden expresa. Lo que cambia es el repintado. */
+caso('TC-989', 'Tanda EQ B1: el sondeo deja de redibujar el panel -cero mutaciones del DOM con el mismo contenido-, el apodo se puede escribir aunque pasen cuatro turnos, y la lectura de fondo no pisa los campos de Ajustes', `
+  return (async () => {
+    if (typeof window._clnkEscribiendo !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el repintado por firma', false,
+        'no existe _clnkEscribiendo']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const grOrig = localStorage.getItem('ett_clnk_eqgrupos');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const campo = (id) => {
+      const cs = document.querySelectorAll('[data-clnk-apodo]');
+      for (let i = 0; i < cs.length; i++) {
+        if (cs[i].getAttribute('data-clnk-apodo') === id) return cs[i];
+      }
+      return null;
+    };
+    const mide = async (fn, ms) => {
+      let n = 0;
+      const obs = new MutationObserver(l => { n += l.length; });
+      obs.observe(EL('cfg-card-clnk'),
+        { childList: true, subtree: true, characterData: true, attributes: true });
+      await fn();
+      await esp(ms);
+      obs.disconnect();
+      return n;
+    };
+    const A = { id: 'eq_b1a', estado: 'autorizado', aet: 'ECO_B1', ip: '192.168.1.61',
+      nombre_para_mostrar: 'ECO_B1', apodo: null, imagenes: 3,
+      ultimo_envio: '2026-11-21T13:00:00Z' };
+    const C = { id: 'eq_b1c', estado: 'autorizado', aet: 'ECO_B2', ip: '192.168.1.62',
+      nombre_para_mostrar: 'ECO_B2', apodo: null, imagenes: 1,
+      ultimo_envio: '2026-11-21T13:05:00Z' };
+    try {
+      localStorage.removeItem('ett_clnk_eqgrupos');
+      _clnkEqG = null;
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: [A], escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp0 = EL('cfg-clnk-codigo');
+      inp0.value = String(F.codigo); clnkCodigoInput(inp0);
+      await clnkVincular();
+      await esp(1400);
+      R.vinculado = clnkVinculado();
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+
+      /* -- A - UN TURNO CON EL MISMO CONTENIDO NO ESCRIBE NADA ----------------------- */
+      R.aQuieto = await mide(() => _clnkSondear(true), 1300);
+      R.aLectura = await mide(() => clnkLeerEstado(), 1300);
+      /* CONTROL POSITIVO: la lectura que el MEDICO pide si repinta -- es la respuesta a su gesto. */
+      R.aMedico = await mide(() => clnkLeerEstado(true), 1300);
+
+      /* -- B - EL APODO SE PUEDE ESCRIBIR ------------------------------------------- */
+      /* ⚠️ SIN LA SECCION ABIERTA, EL CAMPO ESTA DENTRO DE UN «details» CERRADO Y focus() NO
+         HACE NADA: activeElement se queda en BODY y toda la medicion pasaria sobre un campo que
+         nadie enfoco. Es la trampa de la geometria sin caja que este archivo documenta. */
+      const sec = EL('cfg-clnk-det-equipos');
+      if (sec) sec.open = true;
+      await esp(150);
+      const inp = campo('eq_b1a');
+      R.bHayCampo = !!inp;
+      const det = inp ? inp.closest('details') : null;
+      if (det) det.open = true;
+      await esp(80);
+      inp.focus();
+      inp.value = 'Eco del consultorio';
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      R.bFocoPuesto = document.activeElement === inp;
+      for (let i = 0; i < 4; i++) { await _clnkSondear(true); await esp(220); }
+      await clnkLeerEquipos();
+      await esp(300);
+      const inp2 = campo('eq_b1a');
+      const det2 = inp2 ? inp2.closest('details') : null;
+      R.bMismoNodo = inp2 === inp;
+      R.bTexto = inp2 ? inp2.value : null;
+      R.bFoco = document.activeElement === inp2;
+      R.bAbierto = !!(det2 && det2.open);
+
+      /* -- C - Y SI LA LISTA CAMBIA DE VERDAD, REPINTA SIN PERDER EL BORRADOR -------- */
+      inp2.blur();
+      await ctl({ equipos: [A, C] });
+      await clnkLeerEquipos();
+      await esp(400);
+      const inp3 = campo('eq_b1a');
+      const det3 = inp3 ? inp3.closest('details') : null;
+      const cont = EL('cfg-clnk-equipos');
+      R.cFilas = cont ? cont.querySelectorAll(':scope > div').length : -1;
+      R.cNodoNuevo = inp3 !== inp2;
+      R.cTexto = inp3 ? inp3.value : null;
+      R.cAbierto = !!(det3 && det3.open);
+
+      /* -- D - CON EL FOCO ADENTRO, EL REPINTADO SE POSTERGA ------------------------- */
+      inp3.focus();
+      await ctl({ equipos: [A] });
+      _clnkEqFirma = 'firma-vieja-forzada';
+      await clnkLeerEquipos();
+      await esp(300);
+      R.dMismoNodo = campo('eq_b1a') === inp3;
+      R.dTexto = campo('eq_b1a') ? campo('eq_b1a').value : null;
+      R.dFoco = document.activeElement === campo('eq_b1a');
+      campo('eq_b1a').blur();
+      await clnkLeerEquipos();
+      await esp(300);
+      R.dTrasBlur = EL('cfg-clnk-equipos').querySelectorAll(':scope > div').length;
+
+      /* -- E - LOS CAMPOS DE AJUSTES ------------------------------------------------- */
+      const secA = EL('cfg-clnk-det-ajustes');
+      if (secA) secA.open = true;
+      await esp(150);
+      const aet = EL('cfg-clnk-aet');
+      const hor = EL('cfg-clnk-horas');
+      R.eAetPuente = aet ? aet.value : null;
+      aet.focus();
+      aet.value = 'MI_NOMBRE';
+      R.eFocoPuesto = document.activeElement === aet;
+      await clnkLeerAjustes();
+      await esp(300);
+      R.eConFoco = aet.value;
+      aet.blur();
+      await clnkLeerAjustes();
+      await esp(300);
+      R.eTrasBlur = aet.value;
+      /* CONTROL POSITIVO: un campo que nadie toco SI se pone al dia. */
+      await ctl({ ajustes: { horas_retencion: 30, aet_puente: 'OTRONOMBRE' } });
+      await clnkLeerAjustes();
+      await esp(300);
+      R.eHoras = hor.value;
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        window.__clnkBaseTest = baseOrig;
+        if (grOrig === null) localStorage.removeItem('ett_clnk_eqgrupos');
+        else localStorage.setItem('ett_clnk_eqgrupos', grOrig);
+        _clnkEqG = null;
+        if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+        else localStorage.setItem('ett_ceibolink_token', tkOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        applyViewMode();
+        clnkAvisoCerrar(); clnkBurbujaOcultar();
+        clnkSondeoSync();
+      } catch (e) {}
+      window.toast = toastOrig;
+    }
+    return { extra: [
+      ['DENOMINADOR: se vinculo con el conector falso', R.vinculado, R.vinculado],
+      ['sin error', !R.err, R.err || 'ok'],
+      ['un turno de sondeo con el MISMO contenido no escribe un solo nodo de la tarjeta -- eran 40 mutaciones por turno, que es la pestañada que el medico reporto',
+        R.aQuieto === 0, R.aQuieto],
+      ['y una lectura de fondo tampoco', R.aLectura === 0, R.aLectura],
+      ['CONTROL POSITIVO: la lectura que el MEDICO pide SI repinta, con su «Preguntando…»',
+        R.aMedico > 0, R.aMedico],
+      ['DENOMINADOR: el campo del apodo existe y recibio el foco de verdad',
+        R.bHayCampo && R.bFocoPuesto, 'campo=' + R.bHayCampo + ' foco=' + R.bFocoPuesto],
+      ['con CUATRO turnos de sondeo y el foco adentro, el campo es el MISMO nodo y no se recrea',
+        R.bMismoNodo, R.bMismoNodo],
+      ['lo tecleado sigue ahi', R.bTexto === 'Eco del consultorio', R.bTexto],
+      ['el foco sigue en el campo', R.bFoco, R.bFoco],
+      ['y el plegable que el medico abrio sigue abierto', R.bAbierto, R.bAbierto],
+      ['si la lista cambia de verdad SI se repinta -- un equipo mas, dos renglones',
+        R.cFilas === 2 && R.cNodoNuevo, 'filas=' + R.cFilas + ' nodoNuevo=' + R.cNodoNuevo],
+      ['y el repintado conserva el borrador y lo que estaba abierto',
+        R.cTexto === 'Eco del consultorio' && R.cAbierto,
+        'texto=' + R.cTexto + ' abierto=' + R.cAbierto],
+      ['con el foco adentro y la firma cambiada, el repintado se POSTERGA: ni el nodo, ni el texto, ni el foco se mueven',
+        R.dMismoNodo && R.dTexto === 'Eco del consultorio' && R.dFoco,
+        'nodo=' + R.dMismoNodo + ' texto=' + R.dTexto + ' foco=' + R.dFoco],
+      ['y al salir del campo el repintado postergado se aplica', R.dTrasBlur === 1, R.dTrasBlur],
+      ['DENOMINADOR: el campo de Ajustes recibio el foco', R.eFocoPuesto, R.eFocoPuesto],
+      ['la lectura de fondo no pisa un campo de Ajustes enfocado -- tecleando MI_NOMBRE quedaba PUENTE',
+        R.eConFoco === 'MI_NOMBRE', R.eConFoco],
+      ['ni uno que el medico cambio y todavia no guardo', R.eTrasBlur === 'MI_NOMBRE', R.eTrasBlur],
+      ['CONTROL POSITIVO: un campo que nadie toco SI se pone al dia', R.eHoras === '30', R.eHoras]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · C1 — BORRAR DE A VARIAS EN LA BANDEJA (P8-c) ══════════════════════════════
+   El prompt 7 dejo el borrado de a UNA desde el visor y el del envio entero. Faltaba el medio, y
+   es lo que P8-c dejo declarado. Llamar N veces al borrado de a una NO sirve: cada llamada abre
+   su propia transaccion y cada splice CORRE los indices de lo que venia despues, asi que la
+   segunda borra OTRO archivo —es el mismo defecto que la PARTE 1 de P8 cerro en CeiboImg.quitar—.
+   Por eso este caso mide CUAL quedo y no solo cuantas: con las marcas MARCA0, MARCA1 y MARCA2,
+   eligiendo la primera y la tercera tiene que quedar exactamente MARCA1. */
+caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas y Ninguna, y borra lo elegido con UNA sola confirmacion propia -sin dialogo nativo-, en una transaccion que NO corre los indices; con el envio cambiado no borra nada', `
+  return (async () => {
+    if (typeof window.clnkbBorrarVarias !== 'function' || typeof window.clnkbElegirModo !== 'function' ||
+        typeof window.borrConfirmar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el borrado de varias de la bandeja', false,
+        'no existen clnkbBorrarVarias / clnkbElegirModo / borrConfirmar']] };
+    }
+    const R = {};
+    const toastOrig = window.toast;
+    let toasts = [];
+    window.toast = (t) => { toasts.push(String(t)); };
+    /* ⚠️ NINGUN CAMINO QUE UN CASO RECORRA PUEDE ABRIR UN DIALOGO NATIVO (regla P8-b3): el alert
+       del aviso de «ya estaban» colgo una corrida de 31 casos y el cartel de la regla de paciente
+       colgo la suite en el lote 16 de 18. Se cuentan en vez de prometerlo. */
+    const confOrig = window.confirm, alertOrig = window.alert, promptOrig = window.prompt;
+    let nativos = [];
+    window.confirm = (t) => { nativos.push('confirm'); return true; };
+    window.alert = (t) => { nativos.push('alert'); };
+    window.prompt = (t) => { nativos.push('prompt'); return null; };
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const censo = () => Array.prototype.map.call(
+      document.querySelectorAll('input[id], select[id], textarea[id]'), e => e.id).join('|');
+    const dialogos = () => Array.prototype.slice.call(document.querySelectorAll('[role=dialog]'))
+      .filter(d => d.getBoundingClientRect().height > 0);
+    let creado = null;
+    try {
+      R.censoAntes = censo();
+      const cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
+      const cx = cv.getContext('2d'); cx.fillStyle = '#4080c0'; cx.fillRect(0, 0, 8, 8);
+      const PX = cv.toDataURL('image/jpeg', 0.8);
+      const th = await dstThumb(PX);
+      creado = 'clnkb_eqc1_' + Date.now().toString(36);
+      /* TRES fijas con marca propia y UN cineloop: la marca es lo que permite afirmar CUAL quedo
+         y no solo cuantas. */
+      await clnkbGuardar({ id: creado, origen: 'ceibolink', equipo: 'Eco de prueba C1',
+        recibida: new Date().toISOString(), ts: new Date().toISOString(),
+        imgs: [{ dataURL: PX, thumb: th, clnkId: 'MARCA0' },
+               { dataURL: PX, thumb: th, clnkId: 'MARCA1' },
+               { dataURL: PX, thumb: th, clnkId: 'MARCA2' }],
+        loops: [{ nombre: 'loop.dcm', cuadros: 3, ms: 40, cols: 1, filas: 1, poster: th,
+                  bytes: 100, clnkId: 'LOOP0' }] });
+      /* Un turno del bucle antes de showTab: es el defecto preexistente P30-d. */
+      await esp(40);
+      showTab('imagenes');
+      await esp(60);
+      await clnkbRender();
+      await esp(300);
+      const lis = EL('clnkb-lista');
+      R.aHayBarra = !!(lis && lis.querySelector('[data-clnkb-elegir]'));
+      R.aSinModo = !(lis && lis.querySelector('[data-clnkb-sel]'));
+      /* -- A - PRENDER EL MODO ELEGIR ----------------------------------------------- */
+      clnkbElegirModo(true);
+      await esp(350);
+      const lis2 = EL('clnkb-lista');
+      R.aTodas = !!lis2.querySelector('[data-clnkb-sel="todas"]');
+      R.aNinguna = !!lis2.querySelector('[data-clnkb-sel="ninguna"]');
+      const minis = () => Array.prototype.slice.call(
+        EL('clnkb-lista').querySelectorAll('button[aria-pressed]'));
+      R.aMinis = minis().length;
+      /* -- B - ELEGIR LA 1.a Y LA 3.a CON EL GESTO REAL ----------------------------- */
+      minis()[0].click(); await esp(220);
+      minis()[2].click(); await esp(280);
+      R.bElegidas = clnkbSelCuenta();
+      R.bMarcadas = minis().filter(b => b.getAttribute('aria-pressed') === 'true').length;
+      R.bHayBorrar = !!EL('clnkb-lista').querySelector('[data-clnkb-borrar-sel]');
+      /* -- C - UNA SOLA CONFIRMACION, Y ES PROPIA ----------------------------------- */
+      const p = clnkbBorrarElegidas();
+      await esp(450);
+      const dlg = dialogos();
+      R.cDialogos = dlg.length;
+      R.cTexto = dlg.length ? String(dlg[0].textContent || '') : '';
+      R.cDiceCuantos = R.cTexto.indexOf('2 archivos') >= 0;
+      R.cDiceIrreversible = R.cTexto.indexOf('NO SE PUEDE DESHACER') >= 0;
+      R.cNativosAntes = nativos.length;
+      const bSi = dlg.length ? Array.prototype.slice.call(dlg[0].querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Borrar') >= 0)[0] : null;
+      R.cHaySi = !!bSi;
+      if (bSi) bSi.click();
+      R.cBorradas = await p;
+      await esp(400);
+      /* -- D - LOS INDICES NO SE CORRIERON: QUEDA LA DEL MEDIO --------------------- */
+      const reg = await clnkbLeer(creado);
+      R.dQuedan = reg ? (reg.imgs || []).map(x => x.clnkId).join(',') : 'NO';
+      R.dLoops = reg ? (reg.loops || []).length : -1;
+      /* -- E - CON EL ENVIO CAMBIADO NO SE BORRA NADA ------------------------------- */
+      const r2 = await clnkbBorrarVarias(creado, [{ clase: 'img', k: 0 }], { n: 99, nLoops: 99 });
+      R.eOk = r2.ok;
+      R.eDesfasado = !!r2.desfasado;
+      const reg2 = await clnkbLeer(creado);
+      R.eQuedan = reg2 ? (reg2.imgs || []).map(x => x.clnkId).join(',') : 'NO';
+      /* -- F - «TODAS» Y «NINGUNA» ------------------------------------------------- */
+      await clnkbSelTodas(true);
+      R.fTodas = clnkbSelCuenta();
+      await clnkbSelTodas(false);
+      R.fNinguna = clnkbSelCuenta();
+      /* -- G - APAGAR EL MODO DEVUELVE EL TOQUE QUE ABRE --------------------------- */
+      clnkbElegirModo(false);
+      await esp(300);
+      R.gSinPressed = EL('clnkb-lista').querySelectorAll('button[aria-pressed]').length === 0;
+      R.gSinBarraSel = !EL('clnkb-lista').querySelector('[data-clnkb-sel]');
+      R.censoDespues = censo();
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try { if (creado) await clnkbBorrar(creado); } catch (e) {}
+      try { clnkbElegirModo(false); } catch (e) {}
+      try { await clnkbRepintarTodo(); } catch (e) {}
+      window.toast = toastOrig;
+      window.confirm = confOrig; window.alert = alertOrig; window.prompt = promptOrig;
+    }
+    return { extra: [
+      ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: la bandeja dibujo sus CUATRO archivos con su barra de elegir',
+        R.aMinis === 4 && R.aHayBarra, 'minis=' + R.aMinis + ' barra=' + R.aHayBarra],
+      ['sin el modo prendido no hay botones de lote', R.aSinModo, R.aSinModo],
+      ['con el modo prendido aparecen «Todas» y «Ninguna», igual que en la biblioteca',
+        R.aTodas && R.aNinguna, 'todas=' + R.aTodas + ' ninguna=' + R.aNinguna],
+      ['tocar dos miniaturas las marca, y la marca se ve y se anuncia',
+        R.bElegidas === 2 && R.bMarcadas === 2, 'sel=' + R.bElegidas + ' marcadas=' + R.bMarcadas],
+      ['y aparece el boton de borrar lo elegido', R.bHayBorrar, R.bHayBorrar],
+      ['UNA sola confirmacion, que dice CUANTAS se borran y que no se puede deshacer',
+        R.cDialogos === 1 && R.cDiceCuantos && R.cDiceIrreversible,
+        'dialogos=' + R.cDialogos + ' cuantos=' + R.cDiceCuantos + ' irrev=' + R.cDiceIrreversible],
+      ['y es un cartel PROPIO: cero confirm, alert y prompt nativos en todo el camino',
+        R.cNativosAntes === 0 && nativos.length === 0, nativos.join(',') || 'cero'],
+      ['borra las DOS elegidas', R.cBorradas === 2, R.cBorradas],
+      ['LOS INDICES NO SE CORREN: eligiendo la 1.a y la 3.a queda exactamente la 2.a',
+        R.dQuedan === 'MARCA1', R.dQuedan],
+      ['y el cineloop, que no se eligio, sigue ahi', R.dLoops === 1, R.dLoops],
+      ['con el envio cambiado desde que se pinto NO se borra nada y se dice',
+        R.eOk === false && R.eDesfasado && R.eQuedan === 'MARCA1',
+        'ok=' + R.eOk + ' desfasado=' + R.eDesfasado + ' quedan=' + R.eQuedan],
+      ['«Todas» marca lo que esta a la vista y «Ninguna» desmarca todo',
+        R.fTodas === 2 && R.fNinguna === 0, 'todas=' + R.fTodas + ' ninguna=' + R.fNinguna],
+      ['apagar el modo devuelve el toque que ABRE la imagen', R.gSinPressed && R.gSinBarraSel,
+        'sinPressed=' + R.gSinPressed + ' sinBarra=' + R.gSinBarraSel],
+      ['y nada de esto agrega un control con id: el censo del estudio es identico',
+        R.censoAntes === R.censoDespues, R.censoAntes === R.censoDespues]
+    ] };
+  })();
+`);
+
+/* ══ TANDA EQ · C2 — BORRAR VARIOS ESTUDIOS (P8-d) ════════════════════════════════════════
+   P8-d lo dejo EVALUADO Y NO HECHO con su motivo: un estudio vive en CUATRO almacenes y los tres
+   de medios no se borran por estudio sino con un barrido de huerfanas contra los VIVOS, asi que
+   hay que sacarlos todos de la lista primero y recolectar UNA vez. Y «todos» es ambiguo en una
+   pantalla con filtros, que es la misma ambiguedad que la galeria resolvio diciendolo.
+   Los cinco riesgos estan escritos arriba de `igBorrarVariosAbrir`; este caso mide los que se
+   pueden medir: que se diga de que lista se habla, que la cuenta de pacientes distinga personas,
+   que se borre SOLO lo elegido, que cancelar no borre nada y que no entre ningun control nuevo al
+   censo del estudio. */
+caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO deja ver y lo dice, cuenta pacientes distintos, borra solo los elegidos con UNA confirmacion propia que nombra lo irreversible, y sus casillas no entran al censo del estudio', `
+  return (async () => {
+    if (typeof window.igBorrarVariosAbrir !== 'function' ||
+        typeof window.igBorrarVariosEjecutar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el borrado de varios estudios', false,
+        'no existe igBorrarVariosAbrir']] };
+    }
+    const R = {};
+    const toastOrig = window.toast;
+    let toasts = [];
+    window.toast = (t) => { toasts.push(String(t)); };
+    const confOrig = window.confirm, alertOrig = window.alert;
+    let nativos = [];
+    window.confirm = (t) => { nativos.push('confirm'); return true; };
+    window.alert = (t) => { nativos.push('alert'); };
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const dialogos = () => Array.prototype.slice.call(document.querySelectorAll('[role=dialog]'))
+      .filter(d => d.getBoundingClientRect().height > 0);
+    const censo = () => Array.prototype.map.call(
+      document.querySelectorAll('input[id], select[id], textarea[id]'), e => e.id).join('|');
+    const locOrig = CeiboStore.getLocal().slice();
+    const bOrig = EL('ig-buscar') ? EL('ig-buscar').value : null;
+    try {
+      R.censoAntes = censo();
+      /* CUATRO estudios de prueba: dos del MISMO paciente -mismo nombre y documento- y dos de
+         pacientes distintos, para que «cuantos pacientes» signifique algo. Nada de datos de
+         nadie: son nombres inventados. */
+      const est = (id, nom, ci, f, uuid) => ({ id: id, nombre: nom, ci: ci, doc_tipo: 'CI',
+        fecha_estudio: f, uuid: uuid, campos: {}, informe: '' });
+      CeiboStore.setLocal([
+        est(90901, 'PRUEBA EQ UNO', '11111111', '2026-11-01', 'uuid-eq-901'),
+        est(90902, 'PRUEBA EQ UNO', '11111111', '2026-11-05', 'uuid-eq-902'),
+        est(90903, 'PRUEBA EQ DOS', '22222222', '2026-11-02', 'uuid-eq-903'),
+        est(90904, 'PRUEBA EQ TRES', '33333333', '2026-11-03', 'uuid-eq-904')]);
+      await esp(40);
+      showTab('guardados');
+      await esp(80);
+      renderInformesGuardados();
+      await esp(500);
+      R.aEnLista = (igListaEnPantalla() || []).length;
+      R.aHayBoton = !!EL('ig-btn-borrar-varios');
+      /* -- A - EL MODAL LISTA LO QUE EL FILTRO DEJA VER Y LO DICE ------------------- */
+      R.aAbrio = igBorrarVariosAbrir();
+      await esp(350);
+      const mod = dialogos()[0];
+      R.aModal = !!mod;
+      R.aCasillas = mod ? mod.querySelectorAll('[data-ig-borr]').length : -1;
+      R.aSinId = mod ? mod.querySelectorAll('input[id]').length : -1;
+      R.aDice = mod ? String(mod.textContent || '').indexOf('el filtro deja ver') >= 0 : false;
+      R.aDiceQueSeVan = mod ? String(mod.textContent || '').indexOf('cineloops') >= 0 : false;
+      /* -- B - ELEGIR DOS DEL MISMO PACIENTE: la confirmacion dice UN paciente ------ */
+      const cs = Array.prototype.slice.call(mod.querySelectorAll('[data-ig-borr]'));
+      const porId = (id) => cs.filter(x => x.getAttribute('data-ig-borr') === String(id))[0];
+      porId(90901).click();
+      porId(90902).click();
+      await esp(220);
+      R.bCuenta = String(mod.textContent || '').indexOf('Elegidos: 2') >= 0;
+      const bB = Array.prototype.slice.call(mod.querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Borrar 2') >= 0)[0];
+      R.bHayBoton = !!bB;
+      bB.click();
+      await esp(500);
+      const conf = dialogos();
+      R.bDialogos = conf.length;
+      const ct = conf.length ? String(conf[conf.length - 1].textContent || '') : '';
+      R.bConfTexto = ct;
+      R.bDiceDosEstudios = ct.indexOf('2 estudios') >= 0;
+      R.bDiceUnPaciente = ct.indexOf('1 paciente') >= 0;
+      R.bDiceIrreversible = ct.indexOf('NO SE PUEDE DESHACER') >= 0;
+      R.bDiceRespaldo = ct.indexOf('respaldo') >= 0;
+      const bSi = conf.length ? Array.prototype.slice.call(
+        conf[conf.length - 1].querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Borrar 2') >= 0)[0] : null;
+      R.bHayConfirmar = !!bSi;
+      if (bSi) bSi.click();
+      await esp(900);
+      R.bQuedan = (CeiboStore.getLocal() || []).map(i => i.id).join(',');
+      R.bCerro = dialogos().length === 0;
+      R.bToast = toasts.slice(-1)[0] || '';
+      /* -- C - LA CUENTA DE PACIENTES DISTINGUE DOS PERSONAS ------------------------ */
+      R.cAbrio = igBorrarVariosAbrir();
+      await esp(350);
+      const mod2 = dialogos()[0];
+      const cs2 = Array.prototype.slice.call(mod2.querySelectorAll('[data-ig-borr]'));
+      cs2.forEach(x => x.click());
+      await esp(220);
+      const bB2 = Array.prototype.slice.call(mod2.querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Borrar 2') >= 0)[0];
+      bB2.click();
+      await esp(500);
+      const conf2 = dialogos();
+      const ct2 = conf2.length ? String(conf2[conf2.length - 1].textContent || '') : '';
+      R.cDiceDosPacientes = ct2.indexOf('2 pacientes distintos') >= 0;
+      /* CONTROL NEGATIVO: cancelar NO borra nada. */
+      const bNo = conf2.length ? Array.prototype.slice.call(
+        conf2[conf2.length - 1].querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Cancelar') >= 0)[0] : null;
+      R.cHayCancelar = !!bNo;
+      if (bNo) bNo.click();
+      await esp(400);
+      R.cTrasCancelar = (CeiboStore.getLocal() || []).map(i => i.id).join(',');
+      /* el modal de elegir sigue abierto: cancelar la confirmacion no lo cierra */
+      R.cModalSigue = dialogos().length >= 1;
+      const bX = dialogos().length ? Array.prototype.slice.call(
+        dialogos()[0].querySelectorAll('button'))
+        .filter(b => (b.textContent || '').indexOf('Cancelar') >= 0)[0] : null;
+      if (bX) bX.click();
+      await esp(300);
+      /* -- D - CERO DIALOGOS NATIVOS Y EL CENSO IGUAL ------------------------------ */
+      R.censoDespues = censo();
+      R.nativos = nativos.join(',');
+    } catch (e) { R.err = String((e && e.message) || e).slice(0, 170); }
+    finally {
+      try {
+        dialogos().forEach(d => { if (d.parentNode) d.parentNode.removeChild(d); });
+        CeiboStore.setLocal(locOrig);
+        if (bOrig !== null && EL('ig-buscar')) EL('ig-buscar').value = bOrig;
+        renderInformesGuardados();
+      } catch (e) {}
+      window.toast = toastOrig;
+      window.confirm = confOrig; window.alert = alertOrig;
+    }
+    return { extra: [
+      ['sin error', !R.err, R.err || 'ok'],
+      ['DENOMINADOR: hay CUATRO estudios en la lista y el boton existe',
+        R.aEnLista === 4 && R.aHayBoton, 'enLista=' + R.aEnLista + ' boton=' + R.aHayBoton],
+      ['el modal lista los cuatro y DICE que son los que el filtro deja ver',
+        R.aAbrio === true && R.aCasillas === 4 && R.aDice,
+        'casillas=' + R.aCasillas + ' dice=' + R.aDice],
+      ['y dice que con el estudio se van sus imagenes, cineloops y videos', R.aDiceQueSeVan,
+        R.aDiceQueSeVan],
+      ['sus casillas NO llevan id, asi que no entran al censo del estudio ni al Excel',
+        R.aSinId === 0, R.aSinId],
+      ['elegir dos muestra el contador', R.bCuenta && R.bHayBoton,
+        'cuenta=' + R.bCuenta + ' boton=' + R.bHayBoton],
+      ['UNA sola confirmacion, propia, que dice cuantos estudios y cuantos PACIENTES',
+        R.bDialogos === 2 && R.bDiceDosEstudios && R.bDiceUnPaciente,
+        'dialogos=' + R.bDialogos + ' estudios=' + R.bDiceDosEstudios + ' paciente=' + R.bDiceUnPaciente],
+      ['y avisa que no se puede deshacer y que las imagenes solo estan en un respaldo',
+        R.bDiceIrreversible && R.bDiceRespaldo,
+        'irrev=' + R.bDiceIrreversible + ' respaldo=' + R.bDiceRespaldo],
+      ['borra SOLO los dos elegidos y deja los otros dos', R.bQuedan === '90903,90904', R.bQuedan],
+      ['el modal se cierra y lo dice con su numero', R.bCerro && R.bToast.indexOf('2 estudios') >= 0,
+        'cerro=' + R.bCerro + ' toast=' + R.bToast],
+      ['dos estudios de pacientes distintos se cuentan como DOS pacientes',
+        R.cDiceDosPacientes, R.cDiceDosPacientes],
+      ['CONTROL NEGATIVO: cancelar la confirmacion no borra nada y deja el modal abierto',
+        R.cHayCancelar && R.cTrasCancelar === '90903,90904' && R.cModalSigue,
+        'tras=' + R.cTrasCancelar + ' sigue=' + R.cModalSigue],
+      ['CERO confirm y alert nativos en todo el camino', R.nativos === '', R.nativos || 'cero'],
+      ['y el censo de controles con id es identico antes y despues',
+        R.censoAntes === R.censoDespues, R.censoAntes === R.censoDespues]
+    ] };
   })();
 `);
 

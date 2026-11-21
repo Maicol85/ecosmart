@@ -370,7 +370,7 @@ propia causa — que es exactamente lo que acababa de pasar.
 colgó una corrida de 31 casos; el cartel de 1.5 salió primero por `alert` y **colgó la suite en el
 lote 16 de 18**. **Ningún camino que un caso recorra abre un diálogo nativo.**
 
-### P8-c · ⚠️ ABIERTO · selección múltiple en «Imágenes sin estudio» (la bandeja)
+### P8-c · ✅ RESUELTO por la tanda EQ (2026-11-21) · selección múltiple en «Imágenes sin estudio» (la bandeja)
 
 **No se hizo.** Hoy la bandeja borra el **envío entero** (`clnkbBorrar`) o **de a una** desde el
 visor grande (`clnkbBorrarUna`, prompt 7). Falta el modo elegir con una sola confirmación.
@@ -384,7 +384,12 @@ que es justo el defecto que P8 acaba de cerrar en `CeiboImg.quitar`.
 En la **biblioteca** («Imágenes guardadas») la selección múltiple con una sola confirmación **ya
 existía** desde ECO-CONECTOR-5 —medido— y esta tanda le agregó «☑ Todas» / «☐ Ninguna».
 
-### P8-d · ⚠️ EVALUADO Y NO HECHO · borrado múltiple de ESTUDIOS
+**CERRADO en la tanda EQ (C1):** el modo elegir entra en el pintor compartido —así que las dos
+pantallas ofrecen lo mismo y comparten la selección— y `clnkbBorrarVarias(id, items, esperados)`
+borra en **UNA** transacción, de mayor a menor índice y exigiendo los largos esperados. Lo fija
+**TC-990**, que mide **cuál** quedó y no sólo cuántas: eligiendo la 1.ª y la 3.ª queda `MARCA1`.
+
+### P8-d · ✅ RESUELTO por la tanda EQ (2026-11-21) · borrado múltiple de ESTUDIOS
 
 El punto 1.4 pedía «evaluar lo mismo para estudios». **Evaluado: no se construyó.**
 
@@ -395,6 +400,11 @@ significaría «todos los que el filtro deja ver» —exactamente la ambigüedad
 resolvió diciéndolo—. Es una tanda propia, con su confirmación nombrando cuántos estudios y
 cuántos pacientes distintos.
 
+**CERRADO en la tanda EQ (C2):** se construyó con los cinco riesgos escritos arriba de
+`igBorrarVariosAbrir` —los cuatro almacenes con un solo barrido al final, el recolector que se
+abstiene, la ambigüedad del filtro **dicha**, el estudio abierto nombrado y lo irreversible—. La
+confirmación dice cuántos estudios **y cuántos pacientes distintos**. Lo fija **TC-991**.
+
 ### P8-e · ⚠️ DECLARADO · las miniaturas del Informe no abren el visor
 
 El punto 1.6 pide medir «desde la biblioteca y desde la grilla/miniaturas del PDF». Se hizo en la
@@ -402,7 +412,7 @@ El punto 1.6 pide medir «desde la biblioteca y desde la grilla/miniaturas del P
 selección del PDF y sus gestos son reordenar y quitar. La misma imagen se abre desde la
 biblioteca, que es la pantalla donde vive. Si el médico lo quiere ahí también, es una línea.
 
-### P8-f · ⚠️ ABIERTO · la «pestañada» de ⚙️ Configuración va a ser MÁS seguida, no menos
+### P8-f · ✅ RESUELTO por la tanda EQ (2026-11-21) · la «pestañada» de ⚙️ Configuración
 
 El parpadeo cada ~15 s que el médico vio es el **sondeo de CeiboLink** repintando su tarjeta:
 `clnkSondeoDebe()` lo gatea por `clnkPanelALaVista()` y por `document.hidden`, así que **sólo
@@ -411,8 +421,13 @@ a 4 s** (`clnkSondeoMs() === 4000`, medido), así que en el árbol de hoy se va 
 seguido**.
 
 **Lo que hay que arreglar es el REPINTADO, no la cadencia:** `clnkLeerEstado` reescribe la
-tarjeta entera en cada turno. Lo correcto es escribir sólo lo que cambió. Decisión del médico:
-¿se arregla el repintado, o se vuelve a subir la cadencia?
+tarjeta entera en cada turno. Lo correcto es escribir sólo lo que cambió.
+
+**CERRADO en la tanda EQ (B1), y la cadencia NO se tocó** —fue la orden expresa—. Medido: un turno
+producía **40 mutaciones del DOM** de la tarjeta con el MISMO contenido, y hoy produce **CERO**.
+Las tres reglas —postergar con el foco adentro, firma por sección, y conservar lo abierto, el
+borrador y el foco al repintar— están en `docs/mapa/eq-equipos-panel-borrado.md` § 8. Y de paso
+cerró el otro síntoma, que era el mismo defecto: **el apodo no se podía escribir**.
 
 ### P8-g · ⚠️ NO EMPEZADA · la PARTE 2 (el visor de cineloop)
 
@@ -424,6 +439,114 @@ campos de la app— **no se tocaron**. El **2.7 sí está contestado entero**, e
 Lo único que quedó medido y que la Parte 2 necesita: el **desfase de la Vista B** no se pudo
 medir porque `vistaBAbrir()` llama a `_vElegirLoop(V)`, que **espera que el médico elija una
 imagen**, y sin elección la vista se cierra sola. Hay que medirlo con el picker real a ≥1369 px.
+
+## EQ — los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios (2026-11-21)
+
+> Sello **`v20261121-1600`**, md5 **`68ec4373`**, **190.359** líneas. Línea base **`77196c5`**, el
+> cierre de la PARTE 1 de P8. El mapa, en `docs/mapa/eq-equipos-panel-borrado.md`; la guía manual
+> para Windows con el VINNO, en `docs/GUIA_PRUEBA_EQ.md`.
+>
+> **P8-c, P8-d y P8-f quedan CERRADOS.**
+
+### EQ-a · ✅ EL PUENTE NO NECESITA NINGÚN CAMBIO, y queda dicho
+
+El prompt pide reportarlo si algún punto lo requiere. **Ninguno lo requiere**, y el motivo está
+leído en el contrato y no supuesto:
+
+- el duplicado del VINNO es la **conducta declarada** del puente —§3.4: «la identidad de un equipo
+  es AET + IP» y «si el mismo AET aparece desde otra IP, es un equipo distinto y vuelve a pedir
+  decisión»—, y hace bien: no puede saber si son la misma máquina;
+- todo lo que hace falta para juntarlos **ya viaja**: `aet` e `ip` de cada equipo (§3.4) y las
+  direcciones de esta computadora con su `tipo` (§P7);
+- el permiso sigue siendo **uno por dirección**, del puente, y se cambia por sus rutas de siempre
+  (`/permitir`, `/bloquear`, `DELETE`). Agrupar es una vista.
+
+**Lo único que el puente podría agregar algún día, y no hace falta:** la **máscara de red** de cada
+dirección en `GET /v1/conexion`. Con ella se podría afirmar la red exacta en vez de suponer un /24
+—ver **EQ-b**—. No se pide: el rótulo ya informa lo que se puede saber y se calla el resto.
+
+### EQ-b · ⚠️ DECLARADO · «por el cable» no dice «cable directo», y es a propósito
+
+El pedido nombra dos rótulos, «cable directo» y «red del router». La app dice **«cable directo»**
+sólo con `169.254.x.x`, que es el único caso con certeza: es la dirección que se asigna sola una
+máquina que **no recibió ninguna**, o sea que del otro lado no hay router.
+
+Cuando la dirección del ecógrafo cae en la red de una interfaz **de cable** de esta computadora, lo
+que se puede afirmar es que **entró por ese cable** — no si ese cable va derecho al equipo o a un
+switch. El contrato §3.13 ya lo declara: «el programa no puede distinguir el cable del Wi-Fi sin
+adivinar». Con un router en el medio, «cable directo» sería **falso** justo en la fila donde el
+médico decide permitir o bloquear.
+
+**Lo que cuesta, medido:** si el técnico puso direcciones a mano en los dos extremos de un cable
+directo, el rótulo dirá «por el cable» y no «cable directo». Lo que lo cerraría es la máscara de
+red (EQ-a) más saber si hay un servidor DHCP en esa red, y eso no está en el contrato.
+**Decisión del médico:** ¿alcanza «por el cable», o se prefiere arriesgar «cable directo» ahí?
+
+### EQ-c · ⚠️ DECLARADO · la biblioteca sigue confirmando con un diálogo nativo
+
+C3 pide que el comportamiento sea el mismo en los tres lugares, y lo es en lo que el médico hace:
+interruptor, «Todas / Ninguna», contador y **una** confirmación. Lo que no es igual es la **forma**
+de esa confirmación: la bandeja y los estudios usan `borrConfirmar` —cartel propio, regla P8-b3— y
+la biblioteca (`igSelEliminar`) sigue con un `confirm` **nativo**, que es preexistente.
+
+**No se unificó, y el motivo es el costo medido:** `igSelEliminar` es un camino maduro que la
+batería recorre con `confirm` sustituido en varios casos; cambiarlo obliga a adaptarlos para cero
+ganancia funcional. **Queda para una tanda que lo pida**, y es una llamada: reemplazar ese
+`confirm` por `await borrConfirmar(...)` y adaptar los casos que lo sustituyen.
+
+### EQ-d · ⚠️ PREEXISTENTE · el recolector de huérfanas se abstiene, y entonces las imágenes quedan ocupando lugar
+
+`imgRecolectarHuerfanas` devuelve 0 sin borrar nada si el almacén no es IndexedDB o si **algún
+estudio vivo** no tiene uuid válido. En ese caso, al borrar varios estudios sus imágenes,
+cineloops y videos quedan **huérfanos ocupando espacio** —no es un error de corrección: no se
+pierde nada de lo que queda vivo—.
+
+**Es la conducta que ya existía**: `eliminarInforme` y `limpiarTodosInformes` comparten el mismo
+límite. El borrado de a varios **no lo empeora** —corre el barrido una vez en vez de N— y no lo
+arregla. Lo que lo cerraría es un borrado por estudio en las tres bases, que es otra tanda.
+
+### EQ-e · ⚠️ DECLARADO · la agrupación es local a este navegador
+
+`ett_clnk_eqgrupos` vive en `localStorage`: **no** viaja en el respaldo —`exportBackup` saca
+estudios y medios— y no viaja a otra computadora ni a otro navegador. Las consecuencias, dichas:
+en una máquina nueva los dos «Vinno» del mismo AET **se juntan solos** (el grupo por omisión es el
+`aet`, así que lo normal sale bien), y lo que se pierde es lo que el médico haya **separado** o
+**unido a mano**. Son dos clics de rehacer.
+
+No se agregó al respaldo a propósito: el respaldo es del paciente, y esto es una preferencia de
+pantalla de un navegador. **Decisión del médico** si alguna vez quiere que viaje.
+
+### EQ-f · ⚠️ DECLARADO · las dos casillas nuevas no las mide el barrido de celular
+
+`node scripts/check_mobile.js` da **38 ALTA**, la línea base exacta. Las dos casillas que esta
+tanda agrega —«Elegir archivos» de la bandeja y las del modal de «Borrar varios»— **no entran al
+barrido**, y por dos motivos: la sección de la bandeja está escondida cuando no hay ningún envío
+—y el barrido corre sobre un perfil limpio—, y el modal de estudios se crea al tocarlo.
+
+**Se les puso el piso táctil igual, sin esperar a que el barrido lo pidiera**: las dos etiquetas
+llevan `min-height:44px`, y la etiqueta es lo que conmuta la casilla. Los **41** `input.ind-chk` de
+los acordeones de Evidencia que el barrido informa siguen siendo la deuda de **M5-n**, que decide
+el médico.
+
+### EQ-g · ⚠️ NO EMPEZADA · la PARTE 2 de P8 sigue esperando
+
+Los puntos **2.1 a 2.6** del visor de cineloop —los dos tamaños, la columna acoplada, los botones
+de flecha, las medidas pegadas al cuadro, una tabla por vista y el círculo rojo/verde— siguen sin
+tocarse. Es **P8-g**, y este prompt no los nombra.
+
+### EQ-h · ⚠️ POSTERGADA POR DECIMOSEXTA TANDA SEGUIDA · la mudanza de «Estado vigente» de `CLAUDE.md`
+
+`ecosmart/CLAUDE.md` pesa **568 KB** —unos **155k tokens**— y su «Estado vigente» tiene **diecisiete**
+tandas, no las tres que su propia regla promete. Lo que hay que mudar a
+`docs/archivo/CLAUDE_HISTORIAL_TANDAS.md` es todo lo anterior a **P8 PARTE 1**, o sea de
+**el prompt 7 hacia atrás**.
+
+**Esta tanda tampoco la hizo, y se declara en vez de dejarlo pasar en silencio:** el prompt no la
+pide, y un `sed` mal apuntado sobre el archivo que gobierna todas las sesiones cuesta más que el
+tamaño. **Ya es un problema medible**: leer ese archivo entero —que es lo que su primera regla
+manda— consume más de la mitad de una ventana de contexto antes de empezar a trabajar. Es media
+hora de trabajo y conviene que sea una tanda propia, con su verificación byte por byte de que
+ninguna de las ocho secciones de REGLAS se movió.
 
 ## PROMPT 7 — la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
 

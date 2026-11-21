@@ -170,6 +170,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
 | **Tocar el VEREDICTO POR ARCHIVO del importador** —qué devuelven `mediosImportar` y `dcmImgImportar`, por qué `imgCompressLoad` devuelve una promesa, quién confirma a CeiboLink y cuándo—, **el TOPE de un DICOM sin comprimir** con su pregunta y su tope duro, **las MINIATURAS y el visor de «Sin estudio»**, o **los CINELOOPS en «Imágenes guardadas»** con su índice, su filtro y su exclusión del PPT | `docs/mapa/ec4-confirmar-pesados.md` |
+| **Tocar los EQUIPOS de CeiboLink** —el renglón por equipo con sus direcciones, el rótulo de conexión por rango, separar y unir, la pregunta del «mismo equipo con otra dirección»—, **el SONDEO que no redibuja el panel** —las tres reglas, el borrador del apodo, las firmas— **o el BORRADO DE A VARIOS** de la bandeja y de los estudios con su confirmación propia | `docs/mapa/eq-equipos-panel-borrado.md` |
 | **Tocar el PANEL DE CeiboLink de Configuración** —el interruptor, el estado con su luz, la vinculación, los datos para el ecógrafo, la lista de equipos con su apodo, los ajustes o la ayuda de las tres vías—, **la CAPA DE COMUNICACIÓN con el conector** —el token, el token de generación, la traducción de errores o el mensaje de fallo de red—, o **los seis ayudantes que sobrevivieron al panel de Orthanc** | `docs/mapa/ceibolink-panel.md` |
 | **Tocar el PANEL COMPACTO de CeiboLink** —la cabecera de dos renglones, los cuatro plegables nativos, el renglón de un equipo, el hueco de la grilla—, **el SONDEO**, **el AVISO de imágenes o de equipo nuevo** con su agrupación por tiempo, **ADJUNTAR al estudio** con su confirmación al guardar, **la BANDEJA de imágenes sin estudio**, o **la REGLA de nombre Y documento** y el aviso de espacio | `docs/mapa/ec2-aviso-bandeja.md` |
 | **Tocar el PANEL EN LÍNEA de la vista 2D**: el botón que prende y apaga, el apagado automático, la sincronía en vivo, el alto del dibujo o la línea de fase | `docs/mapa/vista-2d-en-linea.md` |
@@ -292,7 +293,30 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,67 MB / 189.064 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la **PARTE 1 de P8** (la biblioteca del estudio, la selección del PDF, los duplicados, el borrado y medir sin botón), sobre el árbol ya sellado: sello **`v20261121-1256`**, md5 **`8aaa289b`**.
+  sin frameworks. Hoy **13,75 MB / 190.359 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **EQ** (los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios), sobre el árbol ya sellado: sello **`v20261121-1600`**, md5 **`68ec4373`**.
+  El diff de EQ son **1.375 líneas agregadas y 80 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `77196c5` **sobre el árbol ya sellado**, de las que **924 son código
+  de verdad**, 392 comentario y 59 en blanco — las 1.375 cierran exacto, y el filtro lleva el
+  estado del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos en el marcado: los **TRES** controles que
+  esta tanda agrega los crea el JS —la casilla del modo elegir de la bandeja, las del modal de
+  «Borrar varios» y el desplegable de «Unir»— y **ninguno lleva `id`**, que es lo que los deja
+  fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y
+  las **457** columnas quietas. **Y cero cortes clínicos, cero fórmulas y cero umbrales.**
+  **UN solo id nuevo en el marcado** —`ig-btn-borrar-varios`—, que no termina en `-aviso` ni en
+  `-badge` y **no cae en ninguno de los veintitrés barridos por sufijo o prefijo de id del
+  archivo**, verificado uno por uno; el otro que el diff muestra, `eco-build-sello`, ya existía y
+  reaparece porque el sello cambió.
+  ⚠️ **POR QUINCUAGÉSIMA QUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 77196c5:index.html` da **189.064**
+  líneas, **13.672.907** bytes y el md5 **`8aaa289b`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  ⚠️ **PERO EL PÁRRAFO DE «Estado vigente» DE P8 SÍ ESTABA UNA RESELLADA ATRÁS**: publica
+  `v20261121-1139` con md5 `36f90f39` y 188.968 líneas, que es el primer sello de esa tanda, y el
+  commit de verificación la reselló. **Cuando las dos partes de este archivo no coincidan, hay que
+  creerle al archivo y no a ninguna de las dos.**
+  (Antes: 13,67 MB / 189.064 al cierre de la **PARTE 1 de P8** (la biblioteca del estudio, la selección del PDF, los duplicados, el borrado y medir sin botón), sello **`v20261121-1256`**, md5 **`8aaa289b`**.)
   El diff de P8 son **682 líneas agregadas y 44 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `7ed031b` **sobre el árbol ya sellado**, con **CERO** `eval(` y
   `new Function` nuevos, **CERO** claves y contraseñas, y **UNA** sola aparición de `innerHTML`,
@@ -1541,6 +1565,143 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda EQ (2026-11-21) — los equipos de CeiboLink, el panel que no se redibuja y el borrado de
+a varios.** TRES partes (A, B y C) y CINCO commits. Sello **`v20261121-1600`**, md5
+**`68ec4373`**, **190.359** líneas. Línea base **`77196c5`**, el cierre de la PARTE 1 de P8.
+**Sin push: lo corre Maicol.** **El puente NO se tocó, y ningún punto lo necesitaba** → **EQ-a**.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
+`<input>`, `<select>` y `<textarea>` nuevos en el marcado —los TRES controles los crea el JS y
+**ninguno lleva `id`**—, que deja todo esto fuera del censo del estudio y del Excel **por
+construcción**: cero campos guardados nuevos y las **457** columnas quietas.
+
+⚠️ **DOS PREMISAS DEL REPORTE DEL MÉDICO RESULTARON FALSAS, Y UNA CAMBIÓ QUÉ HABÍA QUE
+CONSTRUIR.** Medido con el conector falso en `scripts/_probe_eq0.mjs`, antes de tocar una línea:
+- **«El cartel sólo se dispara cuando el número de imágenes AUMENTA mientras EcoSmart mira» es
+  FALSO.** Con **cero** equipos pendientes, el mismo número quieto saca el cartel. La causa real
+  es otra y es estructural: `_clnkSondear` hacía `return` **siempre** que hubiera un equipo
+  esperando decisión, y `clnkAvisarEquipoNuevo` **no vuelve por el mismo equipo en la misma
+  sesión**. Con eso, **UN solo equipo pendiente ya avisado** —el segundo «Vinno» del duplicado, o
+  uno que el médico dejó en «Más tarde»— dejaba al sondeo sin llegar **NUNCA** a revisar las
+  imágenes. El único camino que seguía funcionando era «Ver lo que espera», que llama **forzado**:
+  es exactamente lo que el médico vio. **Y eso ATA el defecto del cartel al del duplicado**, que
+  el reporte traía como dos cosas separadas.
+- **«No se puede escribir el apodo» y «hay una pestañada cada pocos segundos» son EL MISMO
+  DEFECTO.** Un turno de sondeo producía **40 mutaciones del DOM** de la tarjeta **con el mismo
+  contenido**: el campo se destruía y volvía a nacer (`mismoNodo:false`), lo tecleado se perdía
+  («Vinno del consultorio» → cadena vacía), el foco se perdía y los plegables se cerraban. Y había
+  un tercero que el reporte no nombraba: **los campos de Ajustes se sobreescribían** —tecleando
+  `MI_NOMBRE` quedaba `PUENTE`—.
+
+**PARTE A · LOS EQUIPOS.** El duplicado del VINNO es la conducta **declarada** del puente —§3.4:
+«la identidad de un equipo es AET + IP» y «si el mismo AET aparece desde otra IP, es un equipo
+distinto y vuelve a pedir decisión»— y hace bien: no puede saber si son la misma máquina. Lo que
+faltaba es del lado de EcoSmart, y **todo lo que hace falta ya viaja**.
+- **A1 · un renglón por equipo**, agrupando por **`aet`** y no por el nombre que se dibuja: el
+  apodo lo pone y lo saca el médico, y agrupar por lo que se ve haría que **poner un apodo juntara
+  dos equipos distintos**. Una línea por dirección, con su chip de estado y su botón «Separar».
+- **El rótulo de conexión afirma sólo lo que se puede saber**: **«cable directo»** únicamente con
+  `169.254` —nadie le dio dirección, o sea que no hay router—, **«red del router»** si cae en la
+  red de una interfaz **Wi-Fi** de esta computadora, **«por el cable»** si cae en una de cable, y
+  **NADA** si no se puede saber. ⚠️ **NO dice «cable directo» por una interfaz de cable**: un
+  cable puede ir a un switch, y con un router en el medio sería **falso** justo en la fila donde
+  el médico decide → **EQ-b**. Las direcciones de **esta computadora** (buzón y carpeta) **no se
+  dibujan**: no son de ningún ecógrafo, y así esas filas quedan idénticas a antes.
+- **A2 · un nombre conocido desde una dirección nueva PREGUNTA** «¿Es el mismo X con otra
+  dirección?», diciendo las dos. El **«Sí»** hace exactamente lo que hace «Permitir», por la misma
+  ruta del puente; el **«No»** lo **separa** y lo deja **en cuarentena** —el contrato admite dos
+  ecógrafos con el mismo AET, y ése es el caso que el «No» declara—. **NINGÚN equipo se autoriza
+  por su nombre.** ⚠️ **Con callbacks y no con `clnkAvisoPreguntar`**: a esa función la espera el
+  sondeo, y una promesa que se resuelve con un clic lo dejaría parado mientras el médico piensa.
+- **A3 · separar y unir**, las dos locales y persistidas en `ett_clnk_eqgrupos`, las dos
+  escribiendo el **mismo** campo —así no pueden discrepar—, y «Olvidar» por dirección saca la
+  vieja **sin tocar el permiso de la que queda**. El desplegable de «Unir» va sin `id` y se lee
+  **antes** de resolver la promesa, porque el cartel repone su cuerpo al terminar; y va en un
+  desplegable y no en los botones porque el cartel tiene **cinco** ranuras y con cinco equipos no
+  habría dónde poner «Cancelar».
+- **A4 · el cartel que no salía**, arreglado en una línea: se **espera** el resultado y sólo se
+  vuelve **si de verdad abrió** la pregunta. «Equipo nuevo primero» sigue valiendo. ⚠️ **Sin el
+  `await`, la promesa devuelve un objeto —que es verdadero— y el `return` seguiría pasando
+  siempre.**
+- **A5 · el segundo cartel cuenta las NUEVAS** y dice el total aparte, con los tipos **de las
+  nuevas**; `_clnkNuevas` se llama **antes de marcar** en los dos caminos, porque `_clnkAvisadas`
+  se llena justo después. ⚠️ **El cartel sigue ofreciendo el envío ENTERO**, a propósito: una
+  imagen que el médico dejó en «Más tarde» no se puede perder porque después llegó otra. Lo que
+  evita el duplicado es la **deduplicación por archivo** de la PARTE 1, no recortar lo que se
+  ofrece.
+
+**PARTE B · EL PANEL. La cadencia NO se tocó** —orden expresa— y las mutaciones por turno pasan de
+**40 a CERO**. Tres reglas, en este orden: con el foco adentro de la tarjeta se **posterga**; con
+la misma respuesta **no se escribe un solo nodo** (firma por sección, más la luz guardada contra su
+propio valor y `clnkRender` comparando antes de escribir un `display`); y si cambió de verdad se
+repinta **conservando** lo abierto, el borrador del apodo y el foco con su cursor.
+⚠️ **La regla 2 sola no alcanza**: al guardar un apodo la firma **cambia**, y es justo ahí donde el
+plegable se cerraba en la cara del médico. Los plegables se guardan por `data-clnk-det` y no por
+posición, porque la lista se reordena. Los campos de **Ajustes** no se pisan si están enfocados ni
+si el médico los cambió y no guardó; con el campo intacto **sí** se ponen al día (24 → 30, medido)
+y **abrir el panel** vuelve a lo guardado. El flash de «Preguntando…» queda para los **seis** gestos
+del médico.
+
+**PARTE C · EL BORRADO DE A VARIOS. P8-c, P8-d y P8-f quedan CERRADOS.**
+- **C1 · la bandeja** gana modo elegir, «☑ Todas / ☐ Ninguna», contador y **UNA** confirmación que
+  dice cuántos. El pintor es el **compartido**, así que las dos pantallas ofrecen lo mismo y
+  comparten la selección. **`clnkbBorrarVarias(id, items, esperados)` borra en UNA transacción, de
+  mayor a menor índice**: llamar N veces al borrado de a una corre los índices entre llamada y
+  llamada y la segunda borra **OTRO** archivo, que es el defecto que la PARTE 1 cerró en
+  `CeiboImg.quitar`. **Y exige los largos esperados**: si el envío cambió desde que se pintó, **no
+  borra nada y lo dice**.
+- **C2 · los estudios**, con los **cinco riesgos** escritos arriba de `igBorrarVariosAbrir`: los
+  cuatro almacenes con **un solo** barrido de huérfanas al final —el recolector compara contra los
+  **vivos**—, el recolector que **se abstiene** (→ **EQ-d**), la ambigüedad de «todos» resuelta
+  **diciéndolo** (la lista es `igListaEnPantalla`, el mismo dueño que usa el exportador), el
+  **estudio abierto** nombrado en la confirmación, y lo irreversible repetido. La confirmación dice
+  cuántos estudios **y cuántos pacientes distintos**. `eliminarInforme` y `limpiarTodosInformes`
+  **no se tocan**.
+- **C3 · el mismo gesto en los tres lugares.** Lo único que no se unificó es la **forma** de la
+  confirmación: la biblioteca sigue con un `confirm` nativo, preexistente → **EQ-c**.
+- **Ningún camino nuevo abre un diálogo nativo** (regla P8-b3): `borrConfirmar` es propio, se crea
+  y se destruye, «Cancelar» va primero y enfocado, y **el oyente de Escape se retira SIEMPRE** —la
+  otra mitad de esa misma lección—.
+
+**COBERTURA: SIETE casos nuevos, TC-985 a TC-991**, y los siete caen **0/7** contra `77196c5` con
+el mismo archivo de casos: seis por su denominador declarado y **TC-987 por sus condiciones
+reales** —`abierto=false`, `grupo=false`, `avisadas=0` con dos imágenes esperando—, que es el
+defecto del médico reproducido en un caso. **UN caso adaptado, TC-850 (D), y quedó MÁS FUERTE**:
+su condición «su sección no tiene un solo campo» era el atajo para decir que nada de la bandeja
+entra al censo; hoy mide **cero controles con `id`** más una condición **nueva** de que el único
+control es la casilla del modo elegir.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta —y las dos
+casillas nuevas llevan su piso táctil de 44 px aunque el barrido no las alcance, declarado en
+**EQ-f**—. **Los 16 casos del panel de CeiboLink y los 25 de la bandeja y los avisos, en verde.**
+
+⚠️ **CUATRO TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios
+comentarios**, por trigesimocuarta tanda seguida: **nueve** veces, en tres casos; el guardián de
+`_insertar_p7.py` cazó dos antes de insertar y `node --check` las otras —y una vez lo que quedó era
+JS **válido** y sólo se vio por el `SyntaxError` de más arriba—. (2) La **barra invertida** de una
+expresión regular, que el mismo guardián abortó. (3) **El overlay de login está en
+`CLNK_AV_BLOQUEANTES`**, así que la primera corrida de la sonda midió «el cartel no sale» con el
+login puesto: un denominador vacío sobre una app que se portaba bien. (4) **NUEVA, y queda
+escrita**: cerrar un cartel «porMedico» **levanta la burbuja** (tarea A del prompt 7), y con una
+burbuja en pantalla `_clnkSondear` vuelve **antes** de revisar las imágenes a propósito — sin
+bajarla, el turno siguiente mide sobre un cartel que no se abrió y se lee igual que «el arreglo no
+anda».
+⚠️ **Y UNA QUINTA, de medición**: con la sección «Equipos» cerrada, el campo del apodo está dentro
+de un `<details>` cerrado y **`focus()` no hace nada** —`activeElement` se queda en `BODY`—, así
+que la primera medición de la Parte B dijo «el foco se pierde» sobre un campo que nadie había
+enfocado.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por decimosexta tanda
+seguida, y **ya es un problema medible**: este archivo pesa **568 KB** —unos 155k tokens— y leerlo
+entero, que es lo que su primera regla manda, consume más de la mitad de una ventana antes de
+empezar. Declarado con su motivo y su alcance en **EQ-h**.
+
+Lo declarado, en **EQ-a** a **EQ-h**; el mapa, en `docs/mapa/eq-equipos-panel-borrado.md`; las
+fichas, en `docs/mapa/tests-fichas-985.md`; la guía manual para Windows con el VINNO —doce pasos,
+cable directo y router—, en `docs/GUIA_PRUEBA_EQ.md`; las sondas, en `scripts/_probe_eq0.mjs` con
+sus tres cuerpos.
 
 **P8, PARTE 1 (2026-11-21) — la biblioteca del estudio, la selección del PDF, los duplicados, el
 borrado y medir sin botón.** SIETE puntos (1.1 a 1.7) y SEIS commits. Sello

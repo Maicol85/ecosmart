@@ -1,3 +1,32 @@
+## Tanda EQ — los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios (2026-11-21)
+
+**Sello** `v20261121-1600` · **md5** `68ec4373` · **190.359** líneas · línea base `77196c5`
+(cierre de la PARTE 1 de P8) · **sin push**.
+
+**Qué se hizo.** Tres partes, cinco commits. **A** · un renglón por equipo agrupando por `aet`,
+con una línea por dirección y su tipo de conexión deducido; la pregunta del «¿es el mismo equipo
+con otra dirección?»; separar, unir y olvidar por dirección; el cartel de imágenes que no salía; y
+el segundo cartel contando las nuevas. **B** · el sondeo que dejó de redibujar el panel, de **40
+mutaciones por turno a cero**, con el apodo que ya se puede escribir y los campos de Ajustes que no
+se pisan — **sin tocar la cadencia**. **C** · borrado de a varios en la bandeja y en los estudios,
+con una confirmación **propia** y en una sola transacción.
+
+**Dos premisas del reporte resultaron falsas**: el cartel no dependía de que el número aumentara
+—lo bloqueaba un equipo pendiente ya avisado, lo que **ata** ese defecto al del duplicado— y «no se
+puede escribir el apodo» y «la pestañada» eran **el mismo** defecto.
+
+**El puente no se tocó y ningún punto lo necesitaba** (EQ-a): todo lo que hacía falta ya viaja en
+el contrato. Lo único que podría agregar algún día es la **máscara de red**, y no se pide.
+
+**Cobertura.** TC-985 a TC-991 nuevos, los siete cayendo 0/7 contra la base —TC-987 por sus
+condiciones reales—; TC-850 (D) adaptado y más fuerte. **P8-c, P8-d y P8-f cerrados.**
+
+**Verificación.** Semgrep 126/0, sin huérfanos nuevos, 17/17 bloques de JS inline, celular 38 ALTA,
+cero `innerHTML`/`eval`/`new Function` nuevos, cero campos guardados nuevos y Excel en 457.
+
+**Lo declarado:** `docs/PENDIENTES.md` → **EQ-a** a **EQ-h**. El mapa, en
+`docs/mapa/eq-equipos-panel-borrado.md`; la guía manual con el VINNO, en `docs/GUIA_PRUEBA_EQ.md`.
+
 ## PROMPT 7 — la burbuja del cartel terminado, el silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
 
 **OCHO commits de código, uno por tarea A a H, más éste de documentación.** `e122e31` (**A**: la

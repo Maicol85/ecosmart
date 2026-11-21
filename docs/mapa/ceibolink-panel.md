@@ -377,3 +377,13 @@ reemplazado. El mapa es **`docs/mapa/ec3-destino-unico.md`**, y lo que cambió:
 - **La confirmación** a CeiboLink ya no se pierde cuando el estudio tiene **sólo** un cineloop, y no
   ocurre si alguna escritura falló.
 - **Un cineloop se guarda solo** con el estudio, y la tira lo muestra «sin guardar» hasta entonces.
+
+---
+
+## La tanda EQ movió el panel y los equipos (2026-11-21)
+
+**Un renglón por equipo con sus direcciones adentro**, la pregunta del «¿es el mismo equipo con
+otra dirección?», separar y unir, el rótulo de conexión por rango, y **el sondeo que dejó de
+redibujar el panel** —de 40 mutaciones por turno a cero, con el apodo que ya se puede escribir—:
+todo eso vive en `docs/mapa/eq-equipos-panel-borrado.md` §§ 2 a 5 y 8.
+`_clnkFilaEquipo` pasó a llamarse **`_clnkFilaGrupo`** y recibe un grupo, no un equipo.

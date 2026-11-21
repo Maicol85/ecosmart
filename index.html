@@ -129445,7 +129445,8 @@ function igBorrarVariosAbrir() {
      columnas por existir. Se alcanzan por `data-ig-borr`. */
   lista.forEach(function (inf) {
     var lab = document.createElement('label');
-    lab.style.cssText = 'display:flex;gap:7px;align-items:center;min-height:34px;font-size:12px;' +
+    /* 44 px: la fila entera es el area tactil, y conmuta la casilla por ser su etiqueta. */
+    lab.style.cssText = 'display:flex;gap:7px;align-items:center;min-height:44px;font-size:12px;' +
       'padding:1px 2px;';
     var chk = document.createElement('input');
     chk.type = 'checkbox';
@@ -181833,8 +181834,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261121-1256';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795276600450;                 /* eco-build-ms */
+const ECO_BUILD    = '20261121-1600';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795287616221;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181920,7 +181921,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1256</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1600</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -187228,7 +187229,11 @@ function _clnkbBarra(lis) {
   var f = _clnkNodo('div', 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;' +
     'padding:4px 0 7px;border-bottom:1px solid var(--border);margin-bottom:4px;');
   var lab = document.createElement('label');
-  lab.style.cssText = 'display:flex;gap:6px;align-items:center;min-height:30px;font-size:11.5px;';
+  /* ⚠️ 44 px DE ALTO EN LA ETIQUETA, Y NO 30: la casilla mide 13 px y el que la toca con el dedo
+     toca la ETIQUETA, que es la que conmuta la casilla. Es el piso tactil que este archivo le
+     exige a todo lo demas, y los 41 `input.ind-chk` de los acordeones de Evidencia son
+     exactamente la deuda que el barrido de celular viene informando (M5-n). */
+  lab.style.cssText = 'display:flex;gap:6px;align-items:center;min-height:44px;font-size:11.5px;';
   var chk = document.createElement('input');
   chk.type = 'checkbox';
   chk.checked = _clnkbElegir;
