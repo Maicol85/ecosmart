@@ -269,6 +269,141 @@ que esta entrada deja escrito para la próxima vez: **el sello se escribe en `CL
 pasada, o el caso sale rojo con razón**. Con la documentación al día, **TC-753 vuelve a verde** y su
 **lote 14** se rehizo entero.
 
+## P8 — la biblioteca del estudio, la selección del PDF, los duplicados y el borrado (2026-11-21)
+
+> El inventario medido está en `docs/INVENTARIO_P8.md`; el mapa, en
+> `docs/mapa/p8-biblioteca-pdf.md`; la guía manual para Windows, en `docs/GUIA_PRUEBA_P8.md`.
+
+### P8-a · ⚠️ ABIERTO Y SOLO REPORTADO · el VTI de una fija Doppler del VINNO: 136,7 cm contra los 21,66 del equipo
+
+**La causa NO está cerrada, y no se tocó una línea de cálculo.** Lo medido y leído entero:
+
+- Hay **un solo** cálculo de VTI, `_vtiDe(pts)`: trapecios sobre `Σ (|v₁|+|v₂|)/2 · |Δx_px| · dx`,
+  con `dx` = `PhysicalDeltaX` **en segundos** por píxel. Las unidades se cancelan solas y **no
+  hay ningún factor inventado**. El eje del tiempo sale **siempre** de la región del archivo y
+  **no se puede calibrar a mano**.
+- **«El aviso dijo 167,8 y la tabla 136,7» queda EXPLICADO y no es una contradicción:** 167,8
+  supera la banda de plausibilidad (0,5–150 cm), así que ese trazo fue **rechazado** y nunca
+  entró a `_medVtis`. El 136,7 es un trazo **anterior** que sí pasó. Son dos trazos distintos; lo
+  que confunde es que el rechazo **deja la fila vieja a la vista** sin decir que no la reemplazó.
+- La razón contra el equipo es **6,31×**. Como el panel publica además la **Vmax** y el médico no
+  la reportó mal, la escala de **velocidad** está bien → el error está en el **eje del tiempo** o
+  en el **ancho del trazo**.
+
+**Dos candidatas, y el discriminador ya está en pantalla:**
+
+| Candidata | Qué la respalda | Qué la confirmaría |
+|---|---|---|
+| **A · trazo de varios latidos** (la más probable) | un VTI de TSVI normal son ~21 cm en ~300 ms de eyección, y 6,31 × 21,66 ≈ 136,7 es la envolvente de **~6 latidos** o de todo el barrido. **La app no tiene ninguna guarda de duración**: la banda admite seis latidos sin una palabra. Y `|Δx|` suma también los tramos en que el trazo vuelve sobre sí mismo | los **ms** que la fila imprime: **más de 1.000** |
+| **B · `PhysicalDeltaX` del VINNO** | las 301 regiones medidas de esta casa son de **GE y Sonoscape**; **nunca se midió un VINNO**. La unidad se verifica (`ux === 4`), así que una unidad equivocada se rechaza — pero un **valor** distinto de `dx` escala el VTI y deja la Vmax intacta, que es el patrón exacto | los ms en **~250-400** con el VTI igual de alto. Hace falta el `.dcm` |
+
+**Decisión que falta (de Maicol):** la corrección segura es una **guarda de duración** —si el
+trazo abarca más de lo que puede durar la eyección de un latido, decirlo en vez de publicar el
+número— y **eso es un corte clínico nuevo**, que esta casa no mueve sin su decisión. Las dos
+preguntas: (1) ¿qué duración máxima? (2) ¿rechaza como la banda, o publica con una salvedad?
+
+**Y una mejora que NO necesita decisión y tampoco se hizo:** cuando un trazo se rechaza, decir
+que **la fila de arriba es de otro trazo**. Hoy el médico ve el rechazo y una fila con un número,
+y los lee juntos.
+
+### P8-b · ⚠️ DECISIÓN DE MAICOL (2026-11-21) · al adjuntar NO se le confirma el borrado al puente
+
+El punto 1.3 pedía «al adjuntarlas a la biblioteca darlas por recibidas para que no se
+re-ofrezcan». **Se eligió no hacerlo** y quedarse con la deduplicación.
+
+**Lo que se mantiene:** la regla de que nunca se borra en CeiboLink algo que EcoSmart no haya
+guardado completo. La confirmación sigue viviendo **dentro** del `ok` de `CeiboImg.guardar`.
+
+**Lo que cuesta, declarado:** si el estudio no se guarda, el puente sigue ofreciendo el lote —y
+«Ver lo que espera» lo ofrece igual, porque ignora `_clnkAvisadas` a propósito—. Lo que ya no
+pasa es que entren duplicadas.
+
+### P8-b2 · ✅ RESUELTO el 2026-11-21 · cada cartel adjuntaba TODO lo acumulado: 24 imágenes en vez de 9
+
+**El dato real que lo abrió,** medido por el médico con el VINNO **por router**: el equipo mandó
+**9** imágenes y la última llegó tarde, así que hubo **tres carteles** — 7, después 8 (las 7 de
+antes más la nueva) y después 9 (todas otra vez). **Total en el estudio: 24.**
+
+**La causa:** cada cartel ofrece **todo lo que el puente tiene acumulado**, no sólo lo nuevo.
+
+**Lo que ya lo atajaba y lo que no.** La deduplicación por archivo (nombre + hash del contenido)
+lo cerraba **dentro de una sesión**. El hueco era el otro caso que el médico pidió cubrir: el
+**reenvío completo después de GUARDAR**. Ahí `imgSlots` se repuebla del disco y `_srcKey` **vivía
+sólo en memoria**, así que el lote entero volvía a entrar.
+
+**Cómo se corrigió:** `_srcKey` **pasa a persistirse**, en las dos allowlists de `CeiboImg`
+—escritura y lectura—, con el mismo criterio con que `noPdf` entró en AJUSTES-2. Son ~45 bytes por
+imagen; **no es un campo del estudio ni una columna de Excel**; y un registro de antes de P8 que no
+la trae simplemente **no deduplica**, que es el comportamiento anterior, en vez de romper.
+
+**Y no hace falta recordar qué carteles hubo:** `imgSlots` **es** la biblioteca, así que un solo
+barrido cubre las dos mitades —«sólo se agregan las que no están ya en el estudio **o en la
+biblioteca**»—.
+
+**Medido en TC-984:** los tres carteles dejan el estudio con **9 y no con 24** (7 → 8 con 7 «ya
+estaban» → 9 con 8 «ya estaban»), las nueve cuentan como **entradas** en los tres carteles —así
+que nada queda esperando por error—, ninguna sale en el PDF, el reenvío completo tras guardar y
+reabrir no duplica ninguna, una décima imagen **sí** entra (control negativo) y un registro viejo
+sin la clave no rompe nada.
+
+**La regla de seguridad se mantiene intacta:** no se le confirma nada al puente al adjuntar
+(**P8-b**), así que el puente conserva su copia hasta que el estudio se guarde.
+
+### P8-c · ⚠️ ABIERTO · selección múltiple en «Imágenes sin estudio» (la bandeja)
+
+**No se hizo.** Hoy la bandeja borra el **envío entero** (`clnkbBorrar`) o **de a una** desde el
+visor grande (`clnkbBorrarUna`, prompt 7). Falta el modo elegir con una sola confirmación.
+
+**Lo que hace falta, medido:** el pintor es compartido —`_igBandMiniaturas` → `_igBandMini`, que
+emite un `<button>` por archivo— y las dos pantallas (`clnkbRender` y `igBandejaRender`) lo usan,
+así que el modo entra en **un** lugar. Y hace falta un `clnkbBorrarVarias(id, items)` que opere
+en **UNA** transacción: borrar de a una en N llamadas corre los índices entre llamada y llamada,
+que es justo el defecto que P8 acaba de cerrar en `CeiboImg.quitar`.
+
+En la **biblioteca** («Imágenes guardadas») la selección múltiple con una sola confirmación **ya
+existía** desde ECO-CONECTOR-5 —medido— y esta tanda le agregó «☑ Todas» / «☐ Ninguna».
+
+### P8-d · ⚠️ EVALUADO Y NO HECHO · borrado múltiple de ESTUDIOS
+
+El punto 1.4 pedía «evaluar lo mismo para estudios». **Evaluado: no se construyó.**
+
+**El motivo:** borrar un estudio no es borrar una imagen. Un estudio lleva el informe, los campos,
+el paciente, su registro de imágenes, sus cineloops y sus videos, en **cuatro** almacenes
+distintos; y la pantalla de Guardados tiene además el filtro por nombre y fecha, así que «todos»
+significaría «todos los que el filtro deja ver» —exactamente la ambigüedad que en la galería se
+resolvió diciéndolo—. Es una tanda propia, con su confirmación nombrando cuántos estudios y
+cuántos pacientes distintos.
+
+### P8-e · ⚠️ DECLARADO · las miniaturas del Informe no abren el visor
+
+El punto 1.6 pide medir «desde la biblioteca y desde la grilla/miniaturas del PDF». Se hizo en la
+**grilla**; las **miniaturas del Informe** no abren el visor, y es deliberado: esa fila es la
+selección del PDF y sus gestos son reordenar y quitar. La misma imagen se abre desde la
+biblioteca, que es la pantalla donde vive. Si el médico lo quiere ahí también, es una línea.
+
+### P8-f · ⚠️ ABIERTO · la «pestañada» de ⚙️ Configuración va a ser MÁS seguida, no menos
+
+El parpadeo cada ~15 s que el médico vio es el **sondeo de CeiboLink** repintando su tarjeta:
+`clnkSondeoDebe()` lo gatea por `clnkPanelALaVista()` y por `document.hidden`, así que **sólo
+corre con la tarjeta a la vista**, o sea en Configuración. **El prompt 7 bajó la cadencia de 15 s
+a 4 s** (`clnkSondeoMs() === 4000`, medido), así que en el árbol de hoy se va a ver **más
+seguido**.
+
+**Lo que hay que arreglar es el REPINTADO, no la cadencia:** `clnkLeerEstado` reescribe la
+tarjeta entera en cada turno. Lo correcto es escribir sólo lo que cambió. Decisión del médico:
+¿se arregla el repintado, o se vuelve a subir la cadencia?
+
+### P8-g · ⚠️ NO EMPEZADA · la PARTE 2 (el visor de cineloop)
+
+Los puntos **2.1 a 2.6** —los dos tamaños, la columna acoplada, los botones de flecha, las
+medidas pegadas al cuadro, una tabla por vista y el círculo rojo/verde con su sincronía con los
+campos de la app— **no se tocaron**. El **2.7 sí está contestado entero**, en
+`docs/INVENTARIO_P8.md` § 2.7.
+
+Lo único que quedó medido y que la Parte 2 necesita: el **desfase de la Vista B** no se pudo
+medir porque `vistaBAbrir()` llama a `_vElegirLoop(V)`, que **espera que el médico elija una
+imagen**, y sin elección la vista se cierra sola. Hay que medirlo con el picker real a ≥1369 px.
+
 ## PROMPT 7 — la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir (2026-11-21)
 
 > Sello **`v20261121-0308`**, md5 **`cf41995d`**, **188.426** líneas. Línea base **`2a1bc79`**.

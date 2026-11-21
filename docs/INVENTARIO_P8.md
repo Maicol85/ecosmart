@@ -145,11 +145,30 @@ El puente deriva el id de cada imagen **del contenido**, así que un reenvío vu
 **mismo id** — pero **el slot no se queda con ese id**, así que al volver a adjuntar no hay
 contra qué comparar. Las dos copias quedan con el mismo `dataURL` y nada lo nota.
 
-**Cómo se corrige.** (1) guardar el id del puente en el slot (`clnkId`); (2) una lista de ids
-ya adjuntados **a este estudio**, que se vacíe en «Nuevo estudio» como `_clnkPorConfirmar`;
-(3) al adjuntar, saltear el id ya presente y **decirlo**. Y dar por recibidas al adjuntar es
-una **decisión de riesgo**: hoy el diseño explícito es «nunca se borra en CeiboLink algo que
-EcoSmart no haya guardado completo» → §Decisiones.
+### ⚠️ Y EL MÉDICO MANDÓ EL DATO QUE PRECISA LA CAUSA (VINNO por router)
+
+El equipo mandó **9** imágenes y la última llegó tarde, así que hubo **tres carteles**:
+
+| cartel | lo que el puente ofreció | lo que se adjuntó |
+|---|---|---|
+| 1.º | las 7 que tenía | 7 |
+| 2.º | las 7 **más** la 8.ª | 8 |
+| 3.º | las 8 **más** la 9.ª | 9 |
+| | | **total en el estudio: 24, en vez de 9** |
+
+**Cada cartel adjunta TODO lo que el puente tiene acumulado, no sólo lo nuevo.** Eso explica la
+aritmética exacta (7+8+9) y confirma que el mecanismo no es «el puente re-ofrece un lote viejo»
+sino «el cartel siempre ofrece el inventario completo».
+
+**Cómo se corrige** —y es lo que esta tanda implementó—: la deduplicación se aplica **siempre al
+adjuntar**, contra **toda la biblioteca del estudio**, con la clave del archivo
+(nombre + hash del contenido). `imgSlots` **es** la biblioteca, así que un solo barrido cubre
+«no están ya en el estudio **o** en la biblioteca» y **no hace falta recordar qué carteles hubo**.
+Y la clave **se persiste**, porque el otro caso que el médico pidió cubrir —el **reenvío completo
+después de guardar**— repuebla `imgSlots` del disco y una clave sólo en memoria no lo ataja.
+
+**Lo que NO se hace** (decisión de Maicol): dar por recibidas al adjuntar. Se mantiene «nunca se
+borra en CeiboLink algo que EcoSmart no haya guardado completo» → §Decisiones y **P8-b**.
 
 ---
 

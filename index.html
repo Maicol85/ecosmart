@@ -23671,9 +23671,12 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
         <button type="button" class="btn btn-ghost" id="img-pdf-ninguna" style="padding:5px 12px;"
                 title="Saca del PDF todas las imágenes. No borra ninguna: siguen en la biblioteca"
                 onclick="imgPdfTodas(false)">🗂 Ninguna al PDF</button>
-        <button type="button" class="btn btn-ghost" id="med-fija-btn" style="padding:5px 12px;"
-                title="Medir sobre una imagen DICOM, con la escala que trae el archivo"
-                onclick="medFijaToggle()">📏 Medir</button>
+        <!-- ⚠️ P8 · 1.6 · ACA VIVIA EL BOTON «📏 Medir», Y SE RETIRA POR ORDEN EXPRESA. Era el
+             interruptor que habia que acordarse de apretar para que un toque sobre una imagen
+             abriera el visor; en la biblioteca de Guardados nunca hizo falta. Hoy un clic sobre
+             la imagen abre el visor directo, con una ventana de 260 ms que el doble clic
+             --«ampliada»-- cancela. `medFijaToggle()` sigue existiendo: la llaman seis casos de
+             la bateria y es el camino programatico; lo unico que ya no hay es el boton. -->
         <button type="button" class="btn btn-ghost" style="padding:5px 12px;"
                 title="Importar imágenes del ecógrafo. Los archivos del pendrive del GE Vivid no tienen extensión (carpeta GEMS_IMG): elegilos igual, el formato se reconoce por el contenido."
                 onclick="dcmImgPick()">🩻 Importar DICOM</button>
@@ -74785,6 +74788,10 @@ function imgRestaurar(uuid) {
                                            trae y `!!undefined` es `false`, asi que abre
                                            incluido, que es el comportamiento de siempre. */
                                         noPdf: !!s.noPdf,
+                                        /* P8 (1.3): la clave del archivo de origen VIAJA, o el
+                                           reenvio completo del mismo grupo vuelve a entrar
+                                           entero despues de reabrir el estudio. */
+                                        _srcKey: (typeof s._srcKey === 'string' ? s._srcKey : undefined),
                                         videoId: (s.videoId || undefined),
                                         videoNombre: (s.videoNombre || undefined) }));
     while (imgSlots.length < 2) imgSlots.push(null);
@@ -124642,6 +124649,29 @@ const CeiboImg = (function () {
                                                   escala», que es falso — la escala está, lo
                                                   que se perdió es el vínculo. Son ~40 bytes. */
                                                _dcmId: (s._dcmId || undefined),
+                                               /* ══ P8 (1.3) · `_srcKey` PERSISTE, Y HACE FALTA ═══
+                                                  Es la clave del archivo de origen --nombre mas
+                                                  hash de su contenido-- y es con lo que se
+                                                  reconoce un reenvio del ecografo. Vivia solo en
+                                                  memoria, y el medico encontro por que no
+                                                  alcanza: el VINNO por router mando 9 imagenes,
+                                                  la ultima tarde, y CADA cartel adjunta TODO lo
+                                                  que el puente tiene acumulado --7, despues 8,
+                                                  despues 9: 24 en el estudio en vez de 9--.
+                                                  Dentro de una sesion la clave en memoria lo
+                                                  ataja; pero despues de GUARDAR y REABRIR el
+                                                  estudio, `imgSlots` se repuebla del disco y la
+                                                  clave no estaba, asi que un reenvio completo
+                                                  volvia a entrar entero.
+                                                  Son ~45 bytes por imagen y es el mismo criterio
+                                                  con que `noPdf` entro en AJUSTES-2: un registro
+                                                  viejo no la trae, `undefined` no empareja con
+                                                  nada, y entonces no deduplica --que es el
+                                                  comportamiento de antes-- en vez de romper.
+                                                  ⚠️ NO ES UN CAMPO DEL ESTUDIO NI UNA COLUMNA DE
+                                                  EXCEL: vive en el objeto del slot, como `star`,
+                                                  `nota`, `esquema` y `noPdf`. */
+                                               _srcKey: (typeof s._srcKey === 'string' ? s._srcKey : undefined),
                                                /* ⚠️ LAS TRES MARCAS DE LA IMAGEN, Y SON TODO LO QUE
                                                   ESTA TANDA PERSISTE. `star` es la ESTRELLA DE
                                                   IMAGEN —distinta de «Casos de interés», que es
@@ -124774,11 +124804,25 @@ const CeiboImg = (function () {
        Es lo que la decisión 7a pide y es cierto por construcción, no por cuidado.
 
        Devuelve `{quitadas, quedan, borrado}` o `null` si el estudio no tenía registro. */
-    quitar(uuid, idxs) {
+    /* ══ P8 · 1.4 · EL INDICE SE VERIFICA CONTRA EL CONTENIDO ANTES DE BORRAR ══════════════
+       El medico reporto que «el borrado individual a veces no se concreta: la confirmacion se
+       acepta y la imagen sigue, o reaparece». Los indices de esta funcion son POSICIONES, y la
+       galeria los saca de un indice y de una cache de `dataURL` por estudio
+       (`_igImgBlobs`): cualquier escritura que corra entremedio --guardar el estudio abierto,
+       adjuntar un envio, borrar otra imagen-- los CORRE de lugar sin que la pantalla se entere.
+       Un indice corrido no falla: borra OTRA imagen del mismo estudio, y las dos son validas,
+       asi que nada lo delata.
+       Desde esta tanda quien llama puede pasar `esperados[i]`, el `dataURL` que la pantalla creia
+       que estaba en esa posicion, y acá se COMPRUEBA. Lo que no coincide NO se borra y se
+       informa en `desfasados`: el medico recibe «no se pudo, volvé a intentar» en vez de perder
+       la imagen equivocada en silencio.
+       Sin `esperados` se comporta exactamente como antes, asi que los llamadores viejos no
+       cambian. */
+    quitar(uuid, idxs, esperados) {
       if (!_uuidValido(uuid)) return Promise.resolve(null);
       const ix = (idxs || []).map(Number).filter(n => isFinite(n) && n >= 0);
       if (!ix.length) return Promise.resolve(null);
-      const set = new Set(ix);
+      const esp = Array.isArray(esperados) ? esperados : null;
       return _tx('readwrite', (os, ok) => {
         const q = os.get(uuid);
         q.onsuccess = () => {
@@ -124787,20 +124831,36 @@ const CeiboImg = (function () {
           const imgs0 = Array.isArray(r.imgs) ? r.imgs : [];
           const esqs0 = Array.isArray(r.esqs) ? r.esqs : [];
           const nI = imgs0.length;
+          /* El filtro de desfase corre ANTES de armar el `Set`: lo que no coincide se saca de la
+             lista de indices a borrar, no se marca despues. */
+          let desfasados = 0;
+          const ixOk = ix.filter((n, k) => {
+            if (!esp) return true;
+            const e = esp[k];
+            if (e === undefined || e === null) return true;      // sin esperado: no se verifica
+            const act = (n < nI) ? imgs0[n] : esqs0[n - nI];
+            if (act && act.dataURL === e) return true;
+            desfasados++; return false;
+          });
+          if (!ixOk.length) { ok({ quitadas: 0, quedan: nI + esqs0.length, borrado: false,
+                                   desfasados: desfasados }); return; }
+          const set = new Set(ixOk);
           const imgs = imgs0.filter((x, i) => !set.has(i));
           const esqs = esqs0.filter((x, i) => !set.has(nI + i));
           const quitadas = (imgs0.length - imgs.length) + (esqs0.length - esqs.length);
-          if (!quitadas) { ok({ quitadas: 0, quedan: nI + esqs0.length, borrado: false }); return; }
+          if (!quitadas) { ok({ quitadas: 0, quedan: nI + esqs0.length, borrado: false,
+                                desfasados: desfasados }); return; }
           if (!imgs.length && !esqs.length) {
             os.delete(uuid);
-            ok({ quitadas: quitadas, quedan: 0, borrado: true });
+            ok({ quitadas: quitadas, quedan: 0, borrado: true, desfasados: desfasados });
             return;
           }
           const reg = { uuid, imgs: imgs, bytes: _bytes(imgs) + _bytes(esqs),
                         ts: new Date().toISOString() };
           if (esqs.length) reg.esqs = esqs;
           os.put(reg);
-          ok({ quitadas: quitadas, quedan: imgs.length + esqs.length, borrado: false });
+          ok({ quitadas: quitadas, quedan: imgs.length + esqs.length, borrado: false,
+               desfasados: desfasados });
         };
       }).then(r => r || null);
     },
@@ -125763,7 +125823,34 @@ function guardarInforme(onDone) {
   try { _clnkExige = (typeof clnkEstudioTieneImagenes === 'function') && clnkEstudioTieneImagenes(); }
   catch (e) { _clnkExige = false; }
   if (_clnkExige && (!nombre || !ci)) {
+    /* ══ P8 · 1.5 · EL AVISO NO PUEDE SER UN TOAST ═══════════════════════════════════════
+       El medico reporto que «sin documento cargado el estudio no se guarda y no avisa por que».
+       MEDIDO: si avisa, y con el motivo exacto --`guardarInforme` devuelve false y emite el
+       toast de abajo--. Lo que esta roto es la FORMA: un toast se desvanece a los pocos
+       segundos y, con el sondeo de CeiboLink repintando su tarjeta cada cuatro segundos, es
+       justo el aviso que se pierde mientras el medico mira otra cosa. Y lo que se pierde es la
+       unica explicacion de por que su estudio con veintidos imagenes no se guarda.
+       Se agrega un cartel QUE NO SE VA SOLO, con tres cosas que el toast no decia: QUE falta
+       exactamente, CUANTAS imagenes estan esperando, y --lo que mas importa-- que NO SE
+       PERDIERON. El toast se conserva: es el que la bateria mide y es el que queda a la vista
+       despues de aceptar. */
     toast('⚠️ Hay imágenes que llegaron del ecógrafo: para guardar hace falta el nombre Y el documento');
+    try {
+      var _nEsp = (typeof _clnkPorConfirmar !== 'undefined' && _clnkPorConfirmar)
+        ? _clnkPorConfirmar.length : 0;
+      var _falta = (!nombre && !ci) ? 'el NOMBRE y el DOCUMENTO'
+                 : (!nombre ? 'el NOMBRE' : 'el DOCUMENTO');
+      if (typeof alert === 'function') {
+        alert('Todavía no se puede guardar este estudio.\n\n' +
+              'Tiene imágenes que llegaron del ecógrafo, y para guardarlas hace falta el nombre ' +
+              'Y el documento del paciente — es la regla que evita que un estudio quede con las ' +
+              'imágenes de otra persona.\n\nFalta ' + _falta + '.\n\n' +
+              (_nEsp ? (_nEsp + (_nEsp === 1 ? ' imagen sigue' : ' imágenes siguen') +
+                        ' esperando en CeiboLink y NO se perdieron: se guardan en cuanto ' +
+                        'completes el dato y vuelvas a apretar Guardar.\n\n') : '') +
+              'Te llevo al campo que falta.');
+      }
+    } catch (e) {}
     try {
       if (typeof irATabPaciente === 'function') irATabPaciente();
       var _n1 = document.getElementById(nombre ? 'ci' : 'nombre');
@@ -126404,6 +126491,39 @@ function igElegirModo(on) {
   return v;
 }
 window.igElegirModo = igElegirModo;
+
+/* ══ P8 · 1.4 · MARCAR TODAS LAS QUE SE VEN ════════════════════════════════════════════════
+   El medico pidio «marcar varias o marcar todas» y la galeria ya tenia el modo elegir con UNA
+   confirmacion desde ECO-CONECTOR-5 --medido-- pero habia que tocar las veintidos de a una.
+
+   ⚠️ ALCANZA A LO QUE ESTA EN PANTALLA, Y SE DICE. Esta galeria agrupa por mes y los meses
+   nacen PLEGADOS: las miniaturas de un mes cerrado no existen en el DOM, asi que «todas» no
+   puede significar «todas las del disco» sin leer el indice entero y marcar cosas que el medico
+   no esta viendo. Marcar lo que se ve es lo unico que el medico puede auditar de un vistazo, y
+   el contador de la columna le dice cuantas quedaron.
+   ⚠️ PASA POR `igSelToggle`, que es el dueño de la clave y de la forma de cada entrada; lo que
+   se mira antes es si ya esta, para que «Todas» no desmarque lo que ya estaba marcado. */
+function igSelTodas(on) {
+  if (!_igElegir) { igSelRes('Prendé «Elegir imágenes» primero.'); return 0; }
+  const ths = [].slice.call(document.querySelectorAll('.ig-img-th'));
+  if (!ths.length) { igSelRes('No hay miniaturas a la vista. Abrí un mes y volvé a intentar.'); return 0; }
+  let n = 0;
+  ths.forEach(th => {
+    const uuid = th.dataset.igUuid, idx = parseInt(th.dataset.igIdx, 10);
+    const cine = th.dataset.igCine || '';
+    const ya = _igSelPos(uuid, idx, cine) >= 0;
+    if (ya === !!on) return;
+    igSelToggle({ uuid: uuid, idx: idx, n: parseInt(th.dataset.igN, 10),
+                  cineId: cine, video: th.dataset.igVideo === '1',
+                  esquema: th.dataset.igEsq === '1', nombre: th.dataset.igNom || '' });
+    n++;
+  });
+  igSelRes(n ? ((on ? 'Marcadas ' : 'Desmarcadas ') + n + ' de las ' + ths.length +
+                ' que están a la vista. Un mes plegado no entra: abrilo y volvé a tocar «Todas».')
+             : (on ? 'Ya estaban todas marcadas.' : 'No había ninguna marcada.'));
+  return n;
+}
+window.igSelTodas = igSelTodas;
 
 function igSelToggle(it) {
   if (!it) return false;
@@ -127287,6 +127407,21 @@ function igSelSidePintar(cont) {
     cont.appendChild(ay);
     return;
   }
+  /* Los dos de lote, ARRIBA del contador: son lo primero que se busca con veintidos miniaturas
+     en pantalla, y van en el mismo molde que los demas botones de la columna. */
+  const filaT = document.createElement('div');
+  filaT.style.cssText = 'display:flex;gap:5px;margin:4px 0 6px;';
+  [['☑ Todas', true, 'Marca todas las miniaturas que están a la vista'],
+   ['☐ Ninguna', false, 'Desmarca todo lo elegido']].forEach(d => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'btn btn-ghost';
+    b.id = d[1] ? 'ig-sel-todas' : 'ig-sel-ninguna';
+    b.style.cssText = 'flex:1;font-size:11px;padding:6px 6px;min-height:34px;justify-content:center;';
+    b.textContent = d[0]; b.title = d[2];
+    b.addEventListener('click', () => igSelTodas(d[1]));
+    filaT.appendChild(b);
+  });
+  cont.appendChild(filaT);
   const c = igSelCuenta();
   const cta = document.createElement('div');
   cta.id = 'ig-sel-cnt';
@@ -127398,21 +127533,32 @@ async function igSelEliminar(lista) {
     if (!porUuid.has(e.uuid)) porUuid.set(e.uuid, []);
     porUuid.get(e.uuid).push(e.idx);
   });
-  let nQ = 0, nL = 0, fallos = 0, vaciados = 0;
+  let nQ = 0, nL = 0, fallos = 0, vaciados = 0, desf = 0;
   const abierto = (typeof _imgUuidActual !== 'undefined') ? _imgUuidActual : null;
   const claves = Array.from(porUuid.keys());
+  /* ⚠️ P8 · SE INVALIDA LA CACHE ANTES DE LEER, Y NO DESPUES. `_igSelBlobs` va por
+     `igImgBlobs`, que tiene cache POR ESTUDIO: con la cache tibia de antes de la ultima
+     escritura, los `dataURL` que se leen no corresponden a los indices y el borrado terminaba
+     sacando del formulario el slot EQUIVOCADO --o ninguno, y entonces el guardado siguiente
+     reescribia en disco la imagen recien borrada: «reaparece»--. Leer de disco cuesta una
+     lectura y es lo unico que hace que la comparacion de abajo signifique algo. */
+  try { igImgInvalidar(); } catch (e) {}
   for (let k = 0; k < claves.length; k++) {
     const uuid = claves[k];
     const idxs = porUuid.get(uuid);
-    /* Los `dataURL` se leen ANTES de borrar: después del borrado ya no están para comparar. */
+    /* Los `dataURL` se leen ANTES de borrar: después del borrado ya no están para comparar.
+       ⚠️ Y SE LEEN SIEMPRE, no solo con el estudio abierto: son los `esperados` con que
+       `CeiboImg.quitar` comprueba que el indice no se corrio. */
     let dus = null;
-    if (abierto && abierto === uuid) {
-      try { dus = await _igSelBlobs(uuid, idxs); } catch (e) { dus = null; }
-    }
+    try { dus = await _igSelBlobs(uuid, idxs); } catch (e) { dus = null; }
     let r = null;
-    try { r = await CeiboImg.quitar(uuid, idxs); } catch (e) { r = null; }
+    try {
+      r = await CeiboImg.quitar(uuid, idxs,
+            Array.isArray(dus) ? dus.map(x => (x && x.dataURL) || null) : null);
+    } catch (e) { r = null; }
     if (!r) { fallos += idxs.length; continue; }
     nQ += r.quitadas;
+    if (r.desfasados) desf += r.desfasados;
     if (r.quitadas < idxs.length) fallos += (idxs.length - r.quitadas);
     if (r.borrado) vaciados++;
     if (abierto && abierto === uuid && Array.isArray(dus)) {
@@ -127440,6 +127586,14 @@ async function igSelEliminar(lista) {
     toast(fallos
       ? ('⚠️ Se borraron ' + (nQ + nL) + ' y ' + fallos + ' no se pudo')
       : ('🗑 Se borraron ' + (nQ + nL) + ' de las imágenes guardadas'));
+  }
+  /* ⚠️ P8 · EL DESFASE SE DICE, Y SE DICE QUE NO SE BORRO NADA EQUIVOCADO. Es la mitad del
+     arreglo que el medico puede ver: antes el sintoma era «acepte y la imagen sigue» sin una
+     palabra. */
+  if (desf) {
+    igSelRes(desf + (desf === 1 ? ' imagen no se borró' : ' imágenes no se borraron') +
+      ' porque la lista de esta pantalla estaba vieja: el estudio cambió desde que la abriste. ' +
+      'NO se borró ninguna otra en su lugar. La pantalla ya está al día — volvé a elegirla.');
   }
   /* ⚠️ SE DICE QUÉ PASÓ CON UN ESTUDIO QUE SE QUEDÓ SIN IMÁGENES: el ESTUDIO sigue guardado con
      todos sus datos, lo que se fue es su registro de imágenes. Sin esta frase, el médico que
@@ -141911,6 +142065,9 @@ function imgRenderCountBtns(){
 }
 
 function imgRender(){
+  /* P8 · 1.6: si la grilla se repinta entre el clic y los 260 ms, la celda que el temporizador
+     iba a abrir ya no es la misma imagen. Se cancela. */
+  if (typeof _medClicCancelar === 'function') { try { _medClicCancelar(); } catch (e) {} }
   imgEnsureLen();
   imgRenderCountBtns();
   /* ══ P8 · LA CUENTA, EN UN RENGLON ════════════════════════════════════════════════════════
@@ -142301,7 +142458,33 @@ window.imgSetCalidad = imgSetCalidad;
    porque se abrió otro estudio, o `_imgComprimir` falló—, y hasta esta tanda quien llamaba no
    tenía forma de enterarse. Sobre eso se apoyaba el defecto que el médico encontró: un archivo
    que no entró se le confirmaba igual a CeiboLink, o sea que se BORRABA de allá. */
-function imgCompressLoad(file, idx, origen){
+/* ══ P8 · 1.3 · LA CLAVE DE UN ARCHIVO: SU NOMBRE Y SU CONTENIDO ════════════════════════════
+   ⚠️ EL PRIMER INTENTO DEDUPLICABA POR EL `dataURL` COMPRIMIDO, Y LA BATERIA LO DESMINTIO EN DOS
+   CASOS. TC-234 importa DOS DICOM con los MISMOS pixeles y distinta REGION --uno declara su
+   escala y el otro no-- y el slot guarda el JPEG recomprimido, no la cabecera: los dos daban
+   bytes identicos y el segundo se descartaba. Son dos archivos clinicamente distintos --uno se
+   mide con la escala del archivo y el otro hay que calibrarlo a mano-- asi que descartar uno es
+   perder informacion. TC-242 pago lo mismo con tres fijas hechas de los mismos bytes.
+   La clave es NOMBRE + hash del contenido: un reenvio del ecografo trae el mismo nombre y los
+   mismos bytes --el puente deriva su id del contenido, asi que es el MISMO archivo-- y dos
+   capturas distintas no comparten las dos cosas.
+   ⚠️ Y LA DEDUPLICACION ES **OPT-IN DESDE LAS DOS PUERTAS DE IMPORTACION**: sin clave no se
+   deduplica nada. Eso deja afuera, a proposito, la captura del visor y el pegado con Ctrl+V --el
+   medico captura el mismo cuadro dos veces porque quiere-- y deja adentro el cable, el pendrive
+   y «Desde imagenes guardadas», que son las puertas donde llega un lote repetido.
+   El hash es FNV-1a de 32 bits sobre la cadena base64, que es lo que ya se tiene en la mano: no
+   hace falta leer el archivo otra vez ni traer una libreria. */
+function _imgClaveArchivo(nombre, base64) {
+  var h = 0x811c9dc5, t = String(base64 || '');
+  for (var i = 0; i < t.length; i++) {
+    h ^= t.charCodeAt(i);
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return String(nombre || '') + '|' + t.length + '|' + h.toString(16);
+}
+window._imgClaveArchivo = _imgClaveArchivo;
+
+function imgCompressLoad(file, idx, origen, nombreSrc){
   return new Promise(resolve => {
   const reader = new FileReader();
   reader.onerror = function(){ resolve(false); };
@@ -142310,6 +142493,39 @@ function imgCompressLoad(file, idx, origen){
     const gen = _imgGen;
     _imgComprimir(original, IMG_CAL_DEF).then(url => {
       if (gen !== _imgGen) { resolve(false); return; }   // se cambió de estudio mientras se comprimía
+      /* ══ P8 · 1.3 · LA MISMA IMAGEN NO ENTRA DOS VECES ═══════════════════════════════════
+         El medico adjunto 22 imagenes del VINNO, el estudio no se guardo --sin documento no se
+         guarda, ver 1.5-- asi que nada se le confirmo al puente; mas tarde el puente las volvio
+         a ofrecer y entraron OTRA VEZ: 44 en vez de 22.
+         ⚠️ POR QUE NO SE DEDUPLICA POR EL id DEL PUENTE. Medido: el slot NO guarda ese id
+         --`_clnkPorConfirmar` es una lista PLANA de ids sin mapa a slot, y no se puede mantener
+         uno porque este `.then()` elige su slot despues y el medico puede mover, borrar e
+         intercalar antes de guardar--. Deduplicar por CONTENIDO no necesita ese mapa, y ademas
+         cubre el pendrive y el «+» a mano, que el id no cubriria.
+         ⚠️ SE COMPARAN LAS DOS COSAS. `dataURL` es el JPEG ya comprimido: el mismo archivo da
+         bytes IDENTICOS --medido--, pero si el medico le bajo la calidad a la primera copia ese
+         string cambio. `_orig` es el base64 crudo y sobrevive a eso. Las dos comparaciones son
+         de string y cortan por largo, asi que no cuestan nada.
+         ⚠️ Y DEVUELVE `'dup'`, NO `false`. Un `false` haria que el archivo contara como «no
+         entro» y el aviso diria que sigue esperando en CeiboLink --o sea que el medico iria a
+         buscarlo-- y que NO se confirmara al guardar, dejando la copia alla para siempre. La
+         imagen SI esta en el estudio: lo que no se hizo es duplicarla.
+         ⚠️ LO QUE NO SE HACE, POR DECISION DE MAICOL (2026-11-21): NO se le confirma el borrado
+         al puente al adjuntar. Se mantiene la regla de que nunca se borra en CeiboLink algo que
+         EcoSmart no haya guardado completo; lo que se agrega es no duplicar. Declarado en
+         docs/PENDIENTES.md → P8-b. */
+      /* ══ P8 (1.3) · SE COMPARA CONTRA TODA LA BIBLIOTECA DEL ESTUDIO ═════════════════════
+         `imgSlots` ES la biblioteca --lo que llego en esta sesion y lo que `imgRestaurar` trajo
+         del disco-- asi que un solo barrido cubre las dos mitades de lo que el medico pidio:
+         «solo se agregan las que no estan ya en el estudio o en la biblioteca».
+         ⚠️ Y ESTO ES LO QUE CIERRA EL CASO DE LOS TRES CARTELES SEGUIDOS. Cada cartel del puente
+         ofrece TODO lo acumulado --7, despues 8, despues 9-- y no solo lo nuevo, asi que el
+         segundo trae las 7 de antes y el tercero las 8. Sin comparar contra lo que ya esta, el
+         estudio quedaba con 24. No hace falta recordar que carteles hubo: alcanza con preguntar
+         si ESTE archivo ya esta. */
+      const _clv = nombreSrc ? _imgClaveArchivo(nombreSrc, original) : '';
+      const _dup = _clv ? imgSlots.findIndex(s0 => s0 && s0._srcKey === _clv) : -1;
+      if (_dup >= 0) { imgRender(); resolve('dup'); return; }
       let target = idx;
       if (target==null || target<0 || target>=imgSlots.length || imgSlots[target]){
         let t = imgSlots.findIndex(s=>!s);
@@ -142343,6 +142559,10 @@ function imgCompressLoad(file, idx, origen){
          que es un gesto EXPLICITO del medico, y siguen entrando incluidos. */
       imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original,
                            noPdf: true,
+                           /* Solo en memoria, como `_orig`: `CeiboImg.guardar` tiene lista blanca
+                              y esto no esta en ella. La deduplicacion vale para la SESION, que
+                              es donde el medico recibe el lote repetido. */
+                           _srcKey: _clv || undefined,
                            origen: (origen === 'visor' ? 'visor'
                                   : origen === 'ceibolink' ? 'ceibolink' : 'estudio') };
       imgMarcarEditado();
@@ -143720,7 +143940,8 @@ async function dcmImgImportar(fileList, slotPreferido, origen, tanda) {
     listos.forEach((x, i) => {
       /* Entra por la MISMA puerta que una foto elegida a mano. El Blob lleva su tipo para
          que el `data:` que produce FileReader salga como image/jpeg y pase `_imgSrcOK`. */
-      _pf.push(imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i], origen));
+      _pf.push(imgCompressLoad(new Blob([x.jpeg], { type:'image/jpeg' }), idxs[i], origen,
+                               String(x.nombre || '')));
       /* Y aparte se conserva el ORIGINAL para poder medir: el JPEG del slot sale
          recomprimido y redimensionado, así que la escala del DICOM ya no le aplica.
          El id se ata al objeto del slot en cuanto exista — ver `_medFlushPendientes`. */
@@ -143730,16 +143951,35 @@ async function dcmImgImportar(fileList, slotPreferido, origen, tanda) {
       x._medId = id;
     });
     const _okF = await Promise.all(_pf);
+    /* ⚠️ P8 · UNA REPETIDA NO DEJA UN PENDIENTE NI UNA FIJA HUERFANA. `imgCompressLoad` devuelve
+       `'dup'` sin crear slot, asi que su entrada de `_medPendientes` no encontraria nunca su
+       lugar --se queda en la lista para siempre-- y el guardado de abajo escribiria en disco el
+       original de una fija que no tiene slot. Se sueltan las dos cosas acá, que es el unico
+       lugar que sabe cual fue repetida. */
+    let _dupD = 0;
     listos.forEach((x, i) => {
+      if (_okF[i] === 'dup') {
+        _dupD++;
+        res[x._i].ok = true; res[x._i].motivo = 'ya estaba en el estudio';
+        _medPendientes = _medPendientes.filter(p => p.id !== x._medId);
+        try { delete _medFijas[x._medId]; } catch (e) {}
+        x._medId = null;
+        return;
+      }
       if (_okF[i]) { res[x._i].ok = true; res[x._i].motivo = ''; }
       else _noD(x._i, 'no se pudo preparar la imagen para el estudio');
     });
+    if (_dupD) {
+      _dstNota(_dupD + (_dupD === 1 ? ' imagen DICOM ya estaba' : ' imágenes DICOM ya estaban') +
+        ' en este estudio, así que no se duplicaron.');
+    }
     _medFlushPendientes();
     /* Si además se puede guardar, la fija queda en disco y reaparece en la tira al reabrir
        el estudio — que es el único camino que sobrevive, porque el `_dcmId` del slot no se
        persiste (ver la nota del módulo). */
     if (_cinePuedeGuardar().ok) {
       for (const x of listos) {
+        if (!x._medId || !_medFijas[x._medId]) continue;   // repetida: no hay original que guardar
         try { await medFijaGuardar(_medFijas[x._medId], x._medId); } catch (e) {}
       }
       await cineStripRender();
@@ -143948,6 +144188,8 @@ async function mediosImportar(fileList, slotPreferido, origen, tanda) {
   /* Las imágenes que DE VERDAD quedaron en un slot. Es lo que cuentan los avisos de abajo:
      `imagenes.length` son las que se clasificaron como imagen, que no es lo mismo. */
   let imgsOk = 0;
+  /* Las que ya estaban: no son un rechazo y no son una entrada nueva. Su propio renglon. */
+  let imgsDup = 0;
   const _no = (i, m) => { res[i].ok = false; res[i].motivo = m; rechazos.push(res[i].nombre + ': ' + m); };
 
   for (let i = 0; i < files.length; i++) {
@@ -143991,9 +144233,16 @@ async function mediosImportar(fileList, slotPreferido, origen, tanda) {
        que una imagen que nunca llegó al formulario contaba como entrada. En paralelo y no en
        serie: son independientes entre sí y el orden ya lo fijó la reserva de arriba. */
     const _puestas = await Promise.all(imagenes.map((x, k) =>
-      imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[k], origen)));
+      imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[k], origen,
+                      String((x.f && x.f.name) || ''))));
+    /* ⚠️ UNA REPETIDA CUENTA COMO ENTRADA Y SE DICE APARTE. Es `ok` porque la imagen esta en el
+       estudio --por la copia de antes-- y porque quien llamo tiene que poder confirmarsela al
+       puente; y se cuenta aparte porque «entraron 22» sobre un lote que ya estaba es la clase de
+       numero que hace creer que hay 44. */
     imagenes.forEach((x, k) => {
-      if (_puestas[k]) { res[x.i].ok = true; res[x.i].motivo = ''; imgsOk++; }
+      if (_puestas[k] === 'dup') { res[x.i].ok = true; res[x.i].motivo = 'ya estaba en el estudio';
+                                   imgsDup++; }
+      else if (_puestas[k]) { res[x.i].ok = true; res[x.i].motivo = ''; imgsOk++; }
       else _no(x.i, 'no se pudo preparar la imagen para el estudio');
     });
   }
@@ -144013,6 +144262,16 @@ async function mediosImportar(fileList, slotPreferido, origen, tanda) {
   if (imgsOk) partes.push(imgsOk + ' imagen(es)');
   if (videosOk) partes.push(videosOk + ' video(s)');
   const entraron = imgsOk + videosOk;
+  /* El renglon de las repetidas sale SIEMPRE que haya alguna, con o sin rechazos, y dice que no
+     se duplicaron: es la unica forma de que el medico entienda por que el lote de 22 dejo 22 y
+     no 44. */
+  if (imgsDup) {
+    _dstNota(imgsDup + (imgsDup === 1 ? ' imagen ya estaba' : ' imágenes ya estaban') +
+      ' en este estudio, así que no se duplicaron.' +
+      (origen === 'ceibolink'
+        ? '\n\nEl ecógrafo las volvió a mandar. Se dan por adjuntadas y se le confirman a ' +
+          'CeiboLink cuando guardes el estudio.' : ''));
+  }
 
   const TOPE = 12;
   const detalle = (l) => l.slice(0, TOPE).map(s => '· ' + s).join('\n\n') +
@@ -152859,8 +153118,31 @@ function medFijaToggle() {
 }
 window.medFijaToggle = medFijaToggle;
 
+/* ══ P8 · 1.6 · UN CLIC SOBRE LA IMAGEN ABRE EL VISOR, SIN BOTON QUE ACTIVAR ════════════════
+   El medico lo pidio con todas las letras: «es la misma imagen y se abre el mismo visor». Medido
+   antes de tocar nada: en la biblioteca de Guardados el visor abria con un toque, y en esta
+   grilla no abria nada hasta apretar «📏 Medir».
+
+   ⚠️ POR QUE HABIA UN BOTON, Y QUE CUESTA SACARLO. La celda ya tiene TRES gestos propios: doble
+   clic = AMPLIADA, toque sostenido de 450 ms = intercambiar, arrastre = reordenar. Un clic
+   simple que abra el visor choca con el doble clic, porque un doble clic dispara primero DOS
+   clics. Se resuelve con una ventana de 260 ms: el clic simple queda en espera y el segundo clic
+   la CANCELA. El precio, declarado: abrir el visor tarda un cuarto de segundo mas que antes.
+   ⚠️ `medFijaToggle` Y `_medFijaOn` NO SE RETIRAN. El boton de pantalla si --es el que la orden
+   manda sacar-- pero la funcion la llaman seis casos de la bateria y sigue siendo el camino
+   programatico; con el modo encendido lo unico que cambia es el realce punteado de las celdas.
+   ⚠️ Y LA VENTANA SE CANCELA TAMBIEN EN `imgRender`: si la grilla se repinta entre el clic y el
+   vencimiento, la celda que el temporizador iba a abrir ya no es la misma.
+   ⚠️ LAS MINIATURAS DEL INFORME NO ABREN EL VISOR, y es deliberado: esa fila es la seleccion del
+   PDF y su unico gesto es reordenar y quitar. La MISMA imagen se abre desde la biblioteca, que
+   es la pantalla donde vive. Declarado en docs/PENDIENTES.md → P8-e. */
+let _medClicTimer = null;
+function _medClicCancelar() {
+  if (_medClicTimer) { clearTimeout(_medClicTimer); _medClicTimer = null; }
+}
+window._medClicCancelar = _medClicCancelar;
+
 function medFijaClic(ev) {
-  if (!_medFijaOn) return;
   /* ══ MEDIR-5 (C4) — UN CONTROL DE LA CELDA SIGUE SIENDO SUYO, TAMBIEN EN MODO MEDICION ════
      ⚠️ ESTE ERA EL DEFECTO C4. Este oyente se registra sobre `#img-grid` con `capture:true` —ver
      el `addEventListener` del final del bloque— asi que corre ANTES que cualquier manejador de
@@ -152975,9 +153257,46 @@ async function medFijaAbrirGuardada(id) {
 }
 window.medFijaAbrirGuardada = medFijaAbrirGuardada;
 
+/* ══ P8 · 1.6 · EL ENVOLTORIO QUE ESPERA AL DOBLE CLIC ══════════════════════════════════════
+   Un doble clic dispara DOS clics antes del `dblclick`, asi que abrir el visor en el primero
+   haria imposible el gesto de «ampliada». La ventana de 260 ms es lo que los separa: el primer
+   clic queda agendado y el segundo lo cancela.
+   ⚠️ SE RESUELVE LA CELDA POR SU `data-idx` AL VENCER, no se guarda el nodo: `imgRender` rearma
+   la grilla entera y el nodo que se capturo pudo dejar de existir --o peor, ser otra imagen--.
+   Si al vencer la celda no esta, no se abre nada.
+   ⚠️ Y EL `stopPropagation` NO SE ADELANTA: el `click` propio de la celda solo escribe
+   `imgActiveSlot`, que es inofensivo, y cortarlo acá romperia el «+» de un slot vacio. Lo que
+   corta la propagacion es `medFijaClic` cuando de verdad va a abrir. */
+function _medClicEnvoltorio(ev) {
+  /* Un CONTROL de la celda --la pastilla del PDF, la ✕, los radios de calidad-- es suyo: la
+     misma salida que `medFijaClic` ya tenia, aplicada antes de agendar nada. */
+  const ctrl = ev.target && ev.target.closest
+    ? ev.target.closest('button, [role="button"], a, input, select, textarea') : null;
+  if (ctrl && !(ctrl.closest && ctrl.closest('[data-video-badge]'))
+           && !ctrl.hasAttribute('data-video-badge')) return;
+  const cell = ev.target && ev.target.closest ? ev.target.closest('#img-grid > div') : null;
+  if (!cell) return;
+  const idx = parseInt(cell.dataset.idx, 10);
+  if (!isFinite(idx)) return;
+  const s0 = (typeof imgSlots !== 'undefined') ? imgSlots[idx] : null;
+  if (!s0 || !s0.dataURL) return;                      // slot vacio: manda su boton «Agregar»
+  _medClicCancelar();
+  _medClicTimer = setTimeout(function () {
+    _medClicTimer = null;
+    const c2 = document.querySelector('#img-grid > div[data-idx="' + idx + '"]');
+    if (!c2) return;                                   // la grilla se repinto: no es la misma
+    const im = c2.querySelector('img') || c2;
+    medFijaClic({ target: im, preventDefault: function () {}, stopPropagation: function () {} });
+  }, 260);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const grid = document.getElementById('img-grid');
-  if (grid) grid.addEventListener('click', medFijaClic, true);
+  if (!grid) return;
+  grid.addEventListener('click', _medClicEnvoltorio, true);
+  /* El doble clic CANCELA la apertura y deja que mande `imgToggleAmpliar`, que es el manejador
+     que la celda ya tenia. */
+  grid.addEventListener('dblclick', _medClicCancelar, true);
 });
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
@@ -181234,8 +181553,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261121-0308';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795241284166;                 /* eco-build-ms */
+const ECO_BUILD    = '20261121-1143';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795272184048;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -181321,7 +181640,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-0308</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-1143</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -186734,6 +187053,25 @@ function _dstAviso(txt) {
   return true;
 }
 window._dstAviso = _dstAviso;
+
+/* ══ P8 · UNA NOTA QUE NO BLOQUEA ═══════════════════════════════════════════════════════════
+   Hermana de `_dstAviso` y con la MISMA mitad de arriba: dentro de una tanda se junta y sale en
+   el resumen unico. Lo que cambia es la otra mitad: fuera de una tanda va por `toast` y no por
+   `alert`.
+   ⚠️ Y ESTO LO PAGUE EN ESTA MISMA TANDA. El aviso de «ya estaban en este estudio» salio primero
+   por `_dstAviso`, y fuera de una tanda eso es un `alert` NATIVO: la bateria entera quedo colgada
+   esperando un clic que nadie da --el runner no lo sustituye-- y hubo que matar la corrida. Es la
+   trampa que este archivo ya documenta para TC-187 y la pague por otra puerta.
+   La regla que queda: un aviso que NO exige una decision va por `_dstNota`; `_dstAviso` es para
+   lo que el medico tiene que leer antes de seguir. */
+function _dstNota(txt) {
+  var t = String(txt || '');
+  if (!t) return false;
+  if (_dstJuntando) { _dstMsgs.push(t); return true; }
+  if (typeof toast === 'function') { toast(t); return true; }
+  return false;
+}
+window._dstNota = _dstNota;
 
 /* El resumen final: qué entró, qué quedó esperando y por qué. UN diálogo de la app, con el
    detalle en el cuerpo y un solo botón. Si no hay nada que contar no abre nada —el toast de

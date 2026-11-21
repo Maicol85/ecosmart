@@ -292,7 +292,23 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,63 MB / 188.426 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre del **prompt 7** (la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, las miniaturas de «Sin estudio», el mensaje de medir y los seis intermitentes), sobre el árbol ya sellado: sello **`v20261121-0308`**, md5 **`cf41995d`**.
+  sin frameworks. Hoy **13,67 MB / 189.004 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la **PARTE 1 de P8** (la biblioteca del estudio, la selección del PDF, los duplicados, el borrado y medir sin botón), sobre el árbol ya sellado: sello **`v20261121-1143`**, md5 **`11fe51ba`**.
+  El diff de P8 son **619 líneas agregadas y 41 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `7ed031b` **sobre el árbol ya sellado**, con **CERO** `eval(` y
+  `new Function` nuevos, **CERO** claves y contraseñas, y **UNA** sola aparición de `innerHTML`,
+  que es el **comentario** que declara que el renglón de cuenta entra por `textContent`.
+  **CERO `input`, `select` y `textarea` nuevos**, que es lo que deja todo esto fuera del censo
+  del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y las **457**
+  columnas quietas. **Y cero cortes clínicos, cero fórmulas y cero umbrales.**
+  **TRES ids nuevos** —`img-cuenta`, `img-pdf-todas` e `img-pdf-ninguna`—, ninguno terminando en
+  `-aviso` ni en `-badge` y **ninguno** cayendo en ninguno de los veintidós barridos por sufijo o
+  prefijo de id del archivo, verificado uno por uno; los dos de la galería (`ig-sel-todas`,
+  `ig-sel-ninguna`) se crean al vuelo y tampoco caen en ninguno.
+  ⚠️ **POR QUINCUAGÉSIMA CUARTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 7ed031b:index.html` da **188.426**
+  líneas, **13.628.580** bytes y el md5 **`cf41995d`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,63 MB / 188.426 al cierre del **prompt 7** (la burbuja del cartel terminado, el sondeo de cuatro segundos, la ventana de silencio, los botones, los nombres del ecógrafo, las miniaturas de «Sin estudio», el mensaje de medir y los seis intermitentes), sobre el árbol ya sellado: sello **`v20261121-0308`**, md5 **`cf41995d`**.
   El diff del prompt 7 son **487 líneas agregadas y 44 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `2a1bc79` **sobre el árbol ya sellado**, de las que **228 son código
   de verdad**, 242 comentario y 17 en blanco — las 487 cierran exacto.
@@ -1525,6 +1541,144 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**P8, PARTE 1 (2026-11-21) — la biblioteca del estudio, la selección del PDF, los duplicados, el
+borrado y medir sin botón.** SIETE puntos (1.1 a 1.7) y SEIS commits. Sello
+**`v20261121-1139`**, md5 **`36f90f39`**, **188.968** líneas. Línea base **`7ed031b`**, el cierre
+del prompt 7. **Sin push: lo corre Maicol.** ⚠️ **LA PARTE 2 —el visor de cineloop, puntos 2.1 a
+2.6— NO SE EMPEZÓ**, y se declara en **P8-g**; el **2.7 sí está contestado entero**.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
+`input`, `select` y `textarea` nuevos, que deja todo esto fuera del censo del estudio y del Excel
+**por construcción**: cero campos guardados nuevos y las **457** columnas quietas.
+
+**TRES PREMISAS DEL REPORTE DEL MÉDICO RESULTARON FALSAS, Y ESO CAMBIÓ QUÉ HABÍA QUE CONSTRUIR.**
+Está todo en `docs/INVENTARIO_P8.md`, medido en Chrome con imágenes sintéticas:
+- **«Con pendrive entran solo a la biblioteca» es FALSO.** El cable y el pendrive comparten UNA
+  puerta —`mediosImportar` → `imgCompressLoad` → `imgSlots`— y las dos entraban al PDF: 3 slots,
+  3 en el papel, `origen: ['ceibolink','ceibolink','estudio']`. Lo que del pendrive no ocupa slot
+  son los **cineloops**, que van a su cola. **No había un camino bueno que copiar.**
+- **«En la grilla siguen figurando como incluidas» es FALSO**: las dos listas YA estaban
+  sincronizadas —`infMinCapturas` bajaba 3→2 en el acto y la celda decía «Fuera del PDF» con su
+  botón—. Lo roto era la **LEGIBILIDAD**: 10 px pegados al borde de abajo, **debajo** del selector
+  de calidad, y el botón `--bg2` sobre banda `--bg3`, o sea **gris sobre gris**. Las dos quejas
+  —«siguen incluidas» y «el botón casi no se ve»— son **el mismo defecto**.
+- **«No avisa por qué» es FALSO**: `guardarInforme` devuelve `false` y emite el toast con el
+  motivo exacto. Lo roto es la **forma**: un toast se desvanece, y con el sondeo repintando cada
+  cuatro segundos es justo el aviso que se pierde.
+
+**EL MODELO, Y POR QUÉ NO HUBO MIGRACIÓN.** `imgSlots` es la **biblioteca**; la selección del PDF
+son los slots **sin `noPdf`**. ⚠️ **SE REUSÓ `noPdf` Y NO UN CAMPO NUEVO**, y es lo que evita
+reescribir lo guardado: los **seis** emisores del PDF, `infMinCapturas` y la lista blanca de
+`CeiboImg` ya preguntaban por `!s.noPdf` desde AJUSTES-2. Un estudio guardado antes de hoy no
+trae la marca, `!!undefined` es `false`, y **se reimprime idéntico** —medido: 1 slot, 1 en el
+PDF—. **Lo único que cambió es con qué marca NACE una imagen nueva.** Un `enPdf` invertido habría
+dejado todos los estudios viejos imprimiendo sin imágenes.
+
+**1.1 · Todo lo que llega entra a la biblioteca y FUERA del PDF**, por la puerta única, así que
+alcanza al cable, al pendrive, al «+», al pegado y a la captura del visor **por construcción y no
+por una lista**. Los **esquemas** no pasan por ahí y siguen entrando **incluidos**: su botón ES el
+gesto explícito del médico, y lo fija TC-978 (D1) como control negativo.
+
+**1.2 · La pastilla es el estado Y el control.** `＋ AL PDF` / `✓ EN EL PDF` arriba a la izquierda
+de cada celda, con `aria-pressed`, delegada **una sola vez** y en fase de captura. Se retiran el
+cartel y su botón gris sobre gris. La ✕ roja conserva su `title="Eliminar"` —lo exige un caso— y
+pasa por `imgBorrarBib`, que **pregunta** y dice que la pastilla es la otra cosa; `imgRemove`
+queda intacta, que la llaman tres casos y `igSelEliminar`. **El «doble borrado» desaparece por
+construcción**: hay UN borrado y vive en la biblioteca.
+La fila de miniaturas es el **destino del arrastre** —tipo propio `application/x-eco-bib`, porque
+las propias miniaturas ponen su índice en `text/plain` para reordenar— y **se ve vacía** cuando
+hay biblioteca: sin eso no habría dónde soltar ni nada que avisara que el informe va a salir sin
+imágenes. Más «📄 Todas al PDF» / «🗂 Ninguna al PDF» y el renglón «N en la biblioteca · M en el
+PDF».
+
+**1.3 · La deduplicación, y el primer intento que la batería desmintió.** La clave es **nombre del
+archivo + hash FNV‑1a de su contenido** (`_imgClaveArchivo` → `slot._srcKey`, sólo en memoria), y
+es **opt-in desde las dos puertas de importación**: sin clave no se deduplica nada, lo que deja
+afuera a propósito la captura del visor y el pegado.
+⚠️ **EL PRIMER INTENTO DEDUPLICABA POR EL `dataURL` COMPRIMIDO Y ERA UN DEFECTO REAL.** TC-234
+importa **dos DICOM con los mismos píxeles y distinta región** —uno declara su escala y el otro
+no— y el slot guarda el JPEG recomprimido, no la cabecera: los dos daban bytes idénticos y el
+segundo se descartaba. Son dos archivos **clínicamente distintos**. TC-242 pagó lo mismo con tres
+fijas hechas de los mismos bytes. **Lo encontró la batería, no la lectura.**
+Una repetida devuelve **`'dup'`** y no `false`: con `false` contaría como «no entró», el aviso
+diría que sigue esperando en CeiboLink y **no se confirmaría al guardar**.
+⚠️ **NO SE LE CONFIRMA NADA AL PUENTE AL ADJUNTAR** (decisión de Maicol): se mantiene la regla de
+que nunca se borra allá lo que EcoSmart no guardó completo. Declarado en **P8-b**.
+
+⚠️ **Y EL MÉDICO MANDÓ UN DATO REAL A MITAD DE LA TANDA QUE PRECISA LA CAUSA, Y ABRIÓ UN HUECO QUE
+LA CLAVE EN MEMORIA NO CUBRÍA.** Con el VINNO **por router**, el equipo mandó **9** imágenes y la
+última llegó tarde: hubo **tres carteles**, y **cada cartel adjunta TODO lo que el puente tiene
+acumulado, no sólo lo nuevo** —7, después 8, después 9—, así que el estudio quedaba con
+**24 en vez de 9**. La deduplicación por archivo ya lo atajaba **dentro de una sesión**; lo que no
+cubría era el otro caso que él pidió: **el reenvío completo después de GUARDAR**. Ahí `imgSlots`
+se repuebla del disco y `_srcKey` **vivía sólo en memoria**, así que el lote entero volvía a
+entrar. Por eso **`_srcKey` pasa a persistirse**, en las dos allowlists —escritura y lectura—, con
+el mismo criterio con que `noPdf` entró en AJUSTES-2: son ~45 bytes por imagen, **no es un campo
+del estudio ni una columna de Excel**, y un registro viejo que no la trae simplemente **no
+deduplica** en vez de romper.
+**Y no hace falta recordar qué carteles hubo:** `imgSlots` **es** la biblioteca, así que un solo
+barrido cubre las dos mitades de lo que el médico pidió —«sólo se agregan las que no están ya en
+el estudio **o en la biblioteca**»—. Alcanza con preguntar si **este** archivo ya está.
+**Lo cubre TC-984**, que simula los tres carteles y mide **9 y no 24**, con el reenvío completo
+tras guardar y reabrir dejando las nueve, una décima imagen entrando como control negativo, y un
+registro de antes de P8 que no rompe nada. Cae contra `7ed031b` por su denominador.
+
+**1.4 · El borrado que «no se concreta», y su causa.** `CeiboImg.quitar(uuid, idxs, esperados)`
+gana un tercer argumento **opcional**: el `dataURL` que la pantalla creía que estaba en cada
+posición. Lo que no coincide **no se borra** y se informa en `desfasados`. Los índices son
+POSICIONES y la galería los saca de un índice y de una **caché por estudio**; cualquier escritura
+entremedio los corre, y **un índice corrido no falla: borra OTRA imagen del mismo estudio**.
+`igSelEliminar` **invalida la caché antes de leer** —antes lo hacía después— y dice el desfase en
+vez de perder la imagen equivocada en silencio.
+Más «☑ Todas» / «☐ Ninguna» en la galería, que alcanza a **lo que está a la vista** y **lo dice**:
+los meses nacen plegados y «todas» no puede significar lo que el médico no está viendo.
+⚠️ **La selección múltiple en «Imágenes sin estudio» NO se hizo** → **P8-c**. En la biblioteca ya
+existía desde ECO-CONECTOR-5, medido. Y el borrado múltiple de **estudios** queda **evaluado y no
+construido**, con su motivo → **P8-d**.
+
+**1.5 · El aviso ya no se va solo.** La regla no cambió; se suma un cartel que no se desvanece,
+con tres cosas que el toast no decía: qué falta, **cuántas** imágenes esperan y que **no se
+perdieron**.
+⚠️ **Y ACÁ SE PAGÓ UNA TRAMPA NUEVA, QUE QUEDA ESCRITA**: el aviso de «ya estaban» salió primero
+por `_dstAviso`, y **fuera de una tanda eso es un `alert` NATIVO** que el runner no sustituye: la
+batería entera quedó colgada esperando un clic y hubo que matar una corrida de 31 casos. Nació
+`_dstNota` —junta dentro de una tanda, `toast` fuera—, y la regla es que **un aviso que no exige
+una decisión va por ahí**.
+
+**1.6 · Medir sin botón que activar.** Se retira «📏 Medir» de la pantalla; `medFijaToggle` y
+`_medFijaOn` **siguen existiendo** (los llaman seis casos). Un clic sobre la imagen abre el visor
+por `_medClicEnvoltorio`, con una **ventana de 260 ms** que el `dblclick` —«ampliada»— cancela, y
+que `imgRender` también cancela; la celda se **re-resuelve por su `data-idx`** al vencer, no se
+guarda el nodo. El precio, declarado: abrir el visor tarda un cuarto de segundo más.
+Las **miniaturas del Informe no abren el visor**, deliberado → **P8-e**.
+
+**1.7 · EL VTI DEL VINNO NO SE CERRÓ, Y NO SE TOCÓ UNA LÍNEA DE CÁLCULO.** Hay **un solo** cálculo
+(`_vtiDe`), la matemática está bien y el eje del tiempo sale **siempre** del archivo. **«El aviso
+dijo 167,8 y la tabla 136,7» queda EXPLICADO y no es una contradicción**: 167,8 supera la banda
+(0,5–150 cm), así que ese trazo se **rechazó** y nunca entró a la lista; el 136,7 es un trazo
+anterior. Lo que confunde es que el rechazo **deja la fila vieja a la vista**. La razón contra los
+21,66 del equipo es **6,31×** y, como la Vmax está bien, el error está en el **eje del tiempo** o
+en el **ancho del trazo**: o es un trazo de **~6 latidos** —la app no tiene **ninguna guarda de
+duración** y la banda admite seis— o es el `PhysicalDeltaX` del VINNO, que esta casa **nunca
+midió** (las 301 regiones medidas son de GE y Sonoscape). **El discriminador ya está en pantalla:
+los `ms` de esa fila.** La corrección segura es un **corte clínico nuevo** → **P8-a**.
+
+**COBERTURA: SIETE casos nuevos, TC-978 a TC-984**, uno por punto más el de los tres carteles
+acumulados, y los siete **caen contra `7ed031b`** con el mismo archivo de casos **por su denominador declarado**. **TRES casos
+adaptados**: **TC-179** (dos condiciones **INVERTIDAS** en dos mitades: que al importar NO salga
+en el PDF **y** que SÍ salga en cuanto se la manda, más una tercera sobre la marca del slot
+—porque las dos de PDF pasaban en el árbol viejo por otro motivo y no discriminaban—, y además
+pasa a medir **SU** imagen y no «la primera llena», que era por qué pasaba en su lote y fallaba
+aislada); **TC-182** (lo mismo para el cuadro capturado del visor, que es la decisión del médico
+«Capturar → biblioteca → yo elijo»); y **TC-554** con sus condiciones **(E5)** y **(E6)**
+invertidas. Los tres caen contra la línea base. **Ninguno borrado y ninguno aflojado.**
+⚠️ **TRES CASOS LOS DESTAPÓ LA BATERÍA Y NO MI CENSO** —TC-234, TC-242 y TC-179—, y los tres
+señalaban defectos **míos**, no consecuencias autorizadas.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. El PDF **medido de verdad**: con la marca puesta
+imprime **0** imágenes y tras «Todas al PDF» imprime la del slot.
 
 **El prompt 7 (2026-11-21) — la burbuja del cartel terminado, el sondeo de cuatro segundos, la
 ventana de silencio, los botones, los nombres del ecógrafo, «Sin estudio» y el mensaje de medir.**

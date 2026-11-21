@@ -20188,9 +20188,21 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
        Sin esto, el unico respaldo de "viaja al PDF" seria el razonamiento. */
     imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
     const fPdf = new File([new Uint8Array(mk())], 'pdf.dcm');
+    /* ADAPTADO EN P8 (2026-11-21): se mide LA IMAGEN QUE ESTE CASO IMPORTA, no «la primera llena».
+       Tomar la primera hacia que el caso midiera el slot que le dejara el caso ANTERIOR del lote
+       --el suite corre los 985 en UNA pagina-- y por eso esta condicion pasaba en su lote y
+       fallaba aislada. Es el modo de falla que este archivo ya documenta una decena de veces. */
+    const _antesUrls = imgSlots.filter(s => s && s.dataURL).map(s => s.dataURL);
     await dcmImgImportar([fPdf]);
-    await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.some(s=>s&&s.dataURL)) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},5000); });
-    const urlSlot = (imgSlots.find(s=>s&&s.dataURL)||{}).dataURL || '';
+    await new Promise(r => { const t=setInterval(()=>{ if (imgSlots.some(s=>s&&s.dataURL&&_antesUrls.indexOf(s.dataURL)<0)) { clearInterval(t); r(); } },50); setTimeout(()=>{clearInterval(t);r();},5000); });
+    const _slotNuevo = imgSlots.filter(s=>s&&s.dataURL&&_antesUrls.indexOf(s.dataURL)<0)[0] || null;
+    const urlSlot = (_slotNuevo||{}).dataURL || '';
+    /* La MARCA del slot, que es lo que de verdad discrimina: las dos condiciones de PDF de abajo
+       dependen de que generarPDFReal llegue a dibujar la pagina de imagenes, y contra el arbol
+       anterior la primera pasada de este caso no la dibujaba por otro motivo --medido: el caso
+       entero salia verde alla-- o sea que no probaban el cambio. Esto si: contra el arbol
+       anterior el slot nace SIN la marca. */
+    const marcaFuera = !!(_slotNuevo && _slotNuevo.noPdf === true);
     __t.set('nombre','DICOMPDF'); __t.set('ci','4444444-4'); __t.set('edad','55');
     generarInforme();
     for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
@@ -20204,6 +20216,25 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
     try { await generarPDFReal(); } catch(e) { errPdf = e && e.message; }
     window.jspdf.jsPDF = Orig;
     const enPDF = !!urlSlot && vistas.indexOf(urlSlot) > -1;
+    /* INVERTIDA EN DOS MITADES EN P8, asi que falla por los dos lados. Por orden del medico una
+       imagen que ENTRA al estudio ya no sale en el PDF hasta que el la manda: entra a la
+       biblioteca con su marca y el papel arranca vacio. Afirmar que «SALE» al importarla paso a
+       describir el defecto que esta tanda cierra --el VINNO mando 22 por cable y las 22 salian
+       en el informe firmado--. Se exige que NO salga al llegar Y que SI salga en cuanto se la
+       manda, que es la mitad que prueba que el camino al papel sigue entero. */
+    let enPDF2 = false;
+    try {
+      if (typeof imgPdfTodas === 'function') imgPdfTodas(true);
+      const vistas2 = [];
+      const W2 = function () { const d2 = new Orig(...arguments);
+        const ai2 = d2.addImage.bind(d2);
+        d2.addImage = function (data) { try { vistas2.push(String(data)); } catch (e) {} return ai2.apply(d2, arguments); };
+        d2.save = function () { return Promise.resolve(); }; return d2; };
+      W2.prototype = Orig.prototype; window.jspdf.jsPDF = W2;
+      try { await generarPDFReal(); } catch (e) {}
+      window.jspdf.jsPDF = Orig;
+      enPDF2 = !!urlSlot && vistas2.indexOf(urlSlot) > -1;
+    } catch (e) {}
 
     /* ── 7c. lo que cambia al sacar el filtro del selector ──
        Sin el atributo accept el selector muestra TODO, asi que el rechazo por bytes deja de ser un
@@ -20288,7 +20319,11 @@ caso('TC-179', 'Importar DICOM: extrae el JPEG, rechaza lo que no puede abrir y 
       ['no rompe una imagen normal ya cargada',          normalIntacta, normalIntacta],
       ['un .dcm con el cuadro partido llega entero al slot', partidoEntro, partidoEntro],
       ['el PDF real se genera sin errores',               errPdf === null, errPdf],
-      ['y la imagen DICOM SALE en el PDF firmado',        enPDF, vistas.length + ' addImage · slot ' + urlSlot.slice(0,28)],
+      ['(P8) el slot nace con la marca de «fuera del PDF»', marcaFuera,
+        'noPdf=' + (_slotNuevo ? String(_slotNuevo.noPdf) : 'SIN SLOT')],
+      ['(P8) al importarla NO sale en el PDF: entra a la biblioteca', !enPDF,
+        vistas.length + ' addImage · slot ' + urlSlot.slice(0,28)],
+      ['(P8) y SALE en el PDF firmado en cuanto se la manda', enPDF2, 'enPDF2=' + enPDF2],
       ['reserva slots libres, en orden y sin pisar los ocupados', ordenOK, JSON.stringify(res3)],
       ['el boton existe en la tab Imagenes',             btn.length === 1, btn.length],
       /* SIN filtro de extension, a proposito: el GE Vivid escribe los archivos del pendrive
@@ -20776,6 +20811,22 @@ caso('TC-182', 'Cineloop: navegar, reproducir a la velocidad del archivo y captu
       try { await generarPDFReal(); } catch(e) { res.errPdf = e && e.message; }
       window.jspdf.jsPDF = Orig;
       res.enPDF = vistas.indexOf(slot.dataURL) > -1;
+      /* INVERTIDA EN DOS MITADES EN P8 (2026-11-21). El medico lo pidio con todas las letras:
+         «la imagen va por otro camino (Capturar -> biblioteca -> yo elijo si va al PDF)». Un
+         cuadro capturado del visor entra a la biblioteca y no al papel. */
+      res.enPDF2 = false;
+      try {
+        if (typeof imgPdfTodas === 'function') imgPdfTodas(true);
+        const vistas2 = [];
+        const W2 = function () { const d3 = new Orig(...arguments);
+          const ai3 = d3.addImage.bind(d3);
+          d3.addImage = function (data) { try { vistas2.push(String(data)); } catch (e) {} return ai3.apply(d3, arguments); };
+          d3.save = function () { return Promise.resolve(); }; return d3; };
+        W2.prototype = Orig.prototype; window.jspdf.jsPDF = W2;
+        try { await generarPDFReal(); } catch (e) {}
+        window.jspdf.jsPDF = Orig;
+        res.enPDF2 = vistas2.indexOf(slot.dataURL) > -1;
+      } catch (e) {}
 
       /* ── cerrar suelta los 17 MB del cineloop ── */
       cineCerrar();
@@ -20807,7 +20858,8 @@ caso('TC-182', 'Cineloop: navegar, reproducir a la velocidad del archivo y captu
       ['LO CAPTURADO ES EL CUADRO QUE SE ESTABA VIENDO',  res.esElCuadroVisto, 'cuadro ' + (medio+1) + ' de ' + N],
       ['y NO el cuadro 0',                                res.noEsElCuadro0, res.noEsElCuadro0],
       ['el PDF real se genera sin errores',               res.errPdf === null, res.errPdf],
-      ['y ese cuadro SALE en el PDF firmado',             res.enPDF, res.enPDF],
+      ['(P8) el cuadro capturado NO sale solo en el PDF: va a la biblioteca', !res.enPDF, res.enPDF],
+      ['(P8) y SALE en cuanto se lo manda al PDF',        res.enPDF2, res.enPDF2],
       ['cerrar suelta el cineloop de la memoria',         res.cerro, res.cerro]
     ] };
   })();
@@ -155350,6 +155402,621 @@ caso('TC-977', 'Tarea G: una fija de la vista previa dice «Para medir, asignala
         R.eAbrio && R.eCine && R.eMedir && R.eSinMensaje,
         'abrio=' + R.eAbrio + ' cine=' + R.eCine + ' medir=' + R.eMedir + ' sinMsg=' + R.eSinMensaje]
     ] };
+  })();
+`);
+
+caso('TC-978', 'P8 1.1: todo lo que llega --cable y pendrive-- entra a la BIBLIOTECA del estudio y NINGUNA sale en el PDF, con su pastilla «al PDF» y su renglon de cuenta; y un esquema incluido a mano SI entra', `
+  return (async () => {
+    if (typeof window._imgEnPdf !== 'function' || typeof window.imgPdfTodas !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modelo de biblioteca de P8', false,
+        'no existe _imgEnPdf']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; window.alert = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p8.jpg', { type: 'image/jpeg' });
+    };
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    try {
+      imgVaciar(); await esp(60);
+      showTab('imagenes'); await esp(80);
+      R.antes = vivas();
+      /* -- A - POR EL CABLE ------------------------------------------------------------- */
+      const r1 = await mediosImportar([jpg('#c02020'), jpg('#20c020')], undefined, 'ceibolink');
+      await esp(120);
+      R.aSlots = vivas(); R.aOk = r1.ok; R.aEnPdf = infMinCapturas().length;
+      R.aTodasFuera = imgSlots.filter(s => s && s.dataURL).every(s => s.noPdf === true);
+      ex.push(['(A1) dos imagenes del cable entran a la BIBLIOTECA', R.aSlots === 2 && R.aOk === 2,
+        'slots=' + R.aSlots + ' ok=' + R.aOk]);
+      ex.push(['(A2) y NINGUNA sale en el PDF, con la marca puesta en las dos',
+        R.aEnPdf === 0 && R.aTodasFuera, 'enPdf=' + R.aEnPdf + ' marcadas=' + R.aTodasFuera]);
+      /* -- B - POR EL PENDRIVE, SIN ORIGEN: LA MISMA REGLA ------------------------------ */
+      const r2 = await mediosImportar([jpg('#2020c0')], undefined, undefined);
+      await esp(120);
+      R.bSlots = vivas(); R.bEnPdf = infMinCapturas().length;
+      ex.push(['(B1) la del pendrive entra igual y tampoco sale en el PDF',
+        R.bSlots === 3 && r2.ok === 1 && R.bEnPdf === 0,
+        'slots=' + R.bSlots + ' ok=' + r2.ok + ' enPdf=' + R.bEnPdf]);
+      /* -- C - EL RENGLON DE CUENTA DICE LAS DOS COSAS ---------------------------------- */
+      const ct = (EL('img-cuenta') || {}).textContent || '';
+      R.cuenta = ct;
+      ex.push(['(C1) el renglon dice cuantas hay y cuantas salen',
+        ct.indexOf('3 en la biblioteca') >= 0 && ct.indexOf('0 en el PDF') >= 0, 'txt=' + ct]);
+      /* -- D - CONTROL NEGATIVO: UN ESQUEMA ES UN GESTO EXPLICITO Y ENTRA INCLUIDO ------- */
+      const cc = document.createElement('canvas'); cc.width = 10; cc.height = 10;
+      cc.getContext('2d').fillRect(0, 0, 10, 10);
+      const nEsq0 = infMinEsquemas().length;
+      esqIncluirEnPDFImg('p8esq', 'Esquema P8', cc.toDataURL('image/png'));
+      await esp(120);
+      const iE = imgSlots.findIndex(s => s && s.esqClave === 'p8esq');
+      R.dEsqEnPdf = infMinEsquemas().length;
+      R.dEsqMarca = iE >= 0 ? !!imgSlots[iE].noPdf : 'NO ESTA';
+      ex.push(['(D1) CONTROL NEGATIVO: un esquema incluido a mano SI entra al PDF',
+        R.dEsqEnPdf === nEsq0 + 1 && R.dEsqMarca === false,
+        'esqs=' + nEsq0 + '->' + R.dEsqEnPdf + ' marca=' + R.dEsqMarca]);
+      /* -- E - LA PASTILLA EXISTE EN CADA CELDA Y DICE EL ESTADO ------------------------ */
+      const pas = Array.prototype.slice.call(document.querySelectorAll('#img-grid [data-img-pdf]'));
+      const fuera = pas.filter(b => b.getAttribute('aria-pressed') === 'false');
+      R.ePas = pas.length; R.eFuera = fuera.length;
+      ex.push(['(E1) cada imagen tiene su pastilla y las tres estan en «al PDF»',
+        pas.length >= 3 && fuera.length >= 3 &&
+        (fuera[0].textContent || '').indexOf('AL PDF') >= 0,
+        'pastillas=' + pas.length + ' fuera=' + fuera.length]);
+      /* -- F - Y EL BOTON VIEJO NO EXISTE ---------------------------------------------- */
+      const viejo = Array.prototype.slice.call(document.querySelectorAll('#img-grid button'))
+        .filter(b => /Incluir en el PDF/.test(b.textContent || ''));
+      R.fViejo = viejo.length;
+      ex.push(['(F1) el boton gris sobre gris «Incluir en el PDF» de la celda ya no esta',
+        viejo.length === 0 && EL('img-grid').textContent.indexOf('Fuera del PDF') < 0,
+        'botones=' + viejo.length]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-979', 'P8 1.2: la grilla y las miniaturas del informe son LA MISMA lista -la pastilla manda al PDF, la cruz de la miniatura la saca y la pastilla lo refleja-, la fila vacia se ve y es el destino del arrastre, y los dos botones de lote', `
+  return (async () => {
+    if (typeof window.imgTogglePdf !== 'function' || typeof window._infMinDropCablear !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la pastilla y el drop de P8', false,
+        'faltan imgTogglePdf / _infMinDropCablear']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const EL = id => document.getElementById(id);
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p8.jpg', { type: 'image/jpeg' });
+    };
+    const past = i => { const c = document.querySelector('#img-grid > div[data-idx="' + i + '"]');
+                        return c ? c.querySelector('[data-img-pdf]') : null; };
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    try {
+      imgVaciar(); await esp(60);
+      showTab('imagenes'); await esp(80);
+      await mediosImportar([jpg('#c02020'), jpg('#20c020')], undefined, 'ceibolink');
+      await esp(140);
+      const idxs = imgSlots.map((s, i) => (s && s.dataURL) ? i : -1).filter(i => i >= 0);
+      R.denom = idxs.length;
+      if (idxs.length < 2) return { extra: [['DENOMINADOR: entraron dos imagenes', false,
+        'entraron ' + idxs.length]] };
+      const i0 = idxs[0];
+      /* -- A - LA PASTILLA MANDA AL PDF, Y LA MINIATURA APARECE ------------------------- */
+      past(i0).click(); await esp(140);
+      R.aEnPdf = infMinCapturas().length;
+      R.aPastilla = (past(i0) || {}).getAttribute ? past(i0).getAttribute('aria-pressed') : '(no)';
+      showTab('informe'); await esp(150); infMinPintar();
+      R.aMinis = document.querySelectorAll('#inf-min-lista [data-min-tipo=captura]').length;
+      R.aCont = (EL('inf-min-cont') || {}).textContent || '';
+      ex.push(['(A1) la pastilla la manda al PDF y la fila del informe la muestra',
+        R.aEnPdf === 1 && R.aPastilla === 'true' && R.aMinis === 1 &&
+        R.aCont.indexOf('En el PDF: 1') >= 0,
+        'enPdf=' + R.aEnPdf + ' aria=' + R.aPastilla + ' minis=' + R.aMinis + ' cont=' + R.aCont]);
+      ex.push(['(A2) y la biblioteca no cambio', vivas() === 2, 'slots=' + vivas()]);
+      /* -- B - LA CRUZ DE LA MINIATURA LA SACA, Y LA PASTILLA LO REFLEJA ---------------- */
+      const x1 = document.querySelector('#inf-min-lista [data-min-tipo=captura] .inf-min-x');
+      R.bHayX = !!x1;
+      if (x1) x1.click();
+      await esp(200); infMinPintar();
+      R.bEnPdf = infMinCapturas().length;
+      R.bMinis = document.querySelectorAll('#inf-min-lista [data-min-tipo=captura]').length;
+      showTab('imagenes'); await esp(120);
+      R.bPastilla = (past(i0) || {}).getAttribute ? past(i0).getAttribute('aria-pressed') : '(no)';
+      ex.push(['(B1) quitar la miniatura la saca del PDF y la pastilla vuelve a «al PDF»',
+        R.bEnPdf === 0 && R.bMinis === 0 && R.bPastilla === 'false' && vivas() === 2,
+        'enPdf=' + R.bEnPdf + ' minis=' + R.bMinis + ' aria=' + R.bPastilla + ' slots=' + vivas()]);
+      /* -- C - LA FILA VACIA SE VE Y ES EL DESTINO DEL ARRASTRE ------------------------- */
+      showTab('informe'); await esp(150); infMinPintar();
+      const caja = EL('inf-min-fila');
+      R.cVisible = !!(caja && getComputedStyle(caja).display !== 'none');
+      R.cPlaceholder = !!document.querySelector('#inf-min-lista [data-min-vacio]');
+      R.cCableada = !!(caja && caja._p8drop);
+      ex.push(['(C1) con el PDF vacio y biblioteca cargada la fila SE VE, invita y esta cableada',
+        R.cVisible && R.cPlaceholder && R.cCableada,
+        'visible=' + R.cVisible + ' invita=' + R.cPlaceholder + ' cableada=' + R.cCableada]);
+      const dt = new DataTransfer(); dt.setData('application/x-eco-bib', String(i0));
+      caja.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      caja.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+      await esp(180);
+      R.cTrasDrop = infMinCapturas().length;
+      ex.push(['(C2) soltar una imagen de la biblioteca en la fila la incluye',
+        R.cTrasDrop === 1 && vivas() === 2, 'enPdf=' + R.cTrasDrop + ' slots=' + vivas()]);
+      /* CONTROL NEGATIVO: un drop sin el tipo propio NO incluye nada */
+      const dt2 = new DataTransfer(); dt2.setData('text/plain', String(idxs[1]));
+      caja.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt2 }));
+      await esp(150);
+      R.cNeg = infMinCapturas().length;
+      ex.push(['(C3) CONTROL NEGATIVO: un drop con solo text/plain no incluye nada',
+        R.cNeg === 1, 'enPdf=' + R.cNeg]);
+      /* -- D - LOS DOS BOTONES DE LOTE -------------------------------------------------- */
+      showTab('imagenes'); await esp(120);
+      R.dBotones = [!!EL('img-pdf-todas'), !!EL('img-pdf-ninguna')];
+      imgPdfTodas(true); await esp(120); R.dTodas = infMinCapturas().length;
+      imgPdfTodas(false); await esp(120); R.dNinguna = infMinCapturas().length;
+      ex.push(['(D1) «Todas al PDF» y «Ninguna al PDF» existen y van en los dos sentidos',
+        R.dBotones[0] && R.dBotones[1] && R.dTodas === 2 && R.dNinguna === 0 && vivas() === 2,
+        'botones=' + R.dBotones.join(',') + ' todas=' + R.dTodas + ' ninguna=' + R.dNinguna +
+        ' slots=' + vivas()]);
+    } finally {
+      window.toast = toastOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-980', 'P8 1.2: borrar de la biblioteca PREGUNTA y la saca tambien del PDF y de las miniaturas; con «cancelar» no borra nada; e imgRemove sigue siendo la puerta programatica sin pregunta', `
+  return (async () => {
+    if (typeof window.imgBorrarBib !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene imgBorrarBib', false, 'no existe']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p8.jpg', { type: 'image/jpeg' });
+    };
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    const confOrig = window.confirm;
+    let preguntas = 0, textoConf = '';
+    try {
+      imgVaciar(); await esp(60);
+      showTab('imagenes'); await esp(80);
+      await mediosImportar([jpg('#c02020'), jpg('#20c020')], undefined, 'ceibolink');
+      await esp(140);
+      const idxs = imgSlots.map((s, i) => (s && s.dataURL) ? i : -1).filter(i => i >= 0);
+      if (idxs.length < 2) return { extra: [['DENOMINADOR: entraron dos imagenes', false,
+        'entraron ' + idxs.length]] };
+      const i0 = idxs[0];
+      imgPdfTodas(true); await esp(120);
+      R.denomEnPdf = infMinCapturas().length;
+      ex.push(['(0) DENOMINADOR: las dos estan en la biblioteca Y en el PDF',
+        vivas() === 2 && R.denomEnPdf === 2, 'slots=' + vivas() + ' enPdf=' + R.denomEnPdf]);
+      /* -- A - CON «CANCELAR» NO BORRA NADA -------------------------------------------- */
+      window.confirm = function (t) { preguntas++; textoConf = String(t); return false; };
+      const cel = document.querySelector('#img-grid > div[data-idx="' + i0 + '"]');
+      const eq = cel ? cel.querySelector('button[title="Eliminar"]') : null;
+      R.aHayX = !!eq;
+      if (eq) eq.click();
+      await esp(150);
+      R.aPreguntas = preguntas; R.aSlots = vivas(); R.aEnPdf = infMinCapturas().length;
+      ex.push(['(A1) la ✕ roja PREGUNTA y con «cancelar» no borra ni saca del PDF',
+        R.aHayX && preguntas === 1 && R.aSlots === 2 && R.aEnPdf === 2,
+        'x=' + R.aHayX + ' preg=' + preguntas + ' slots=' + R.aSlots + ' enPdf=' + R.aEnPdf]);
+      ex.push(['(A2) y la pregunta manda a la pastilla para el caso de solo sacarla del PDF',
+        textoConf.indexOf('biblioteca') >= 0 && textoConf.indexOf('pastilla') >= 0,
+        'txt=' + textoConf.slice(0, 120)]);
+      /* -- B - CON «SI» SE VA DE LA BIBLIOTECA **Y** DEL PDF --------------------------- */
+      window.confirm = function () { return true; };
+      const cel2 = document.querySelector('#img-grid > div[data-idx="' + i0 + '"]');
+      const eq2 = cel2 ? cel2.querySelector('button[title="Eliminar"]') : null;
+      if (eq2) eq2.click();
+      await esp(200);
+      R.bSlots = vivas(); R.bEnPdf = infMinCapturas().length;
+      ex.push(['(B1) borrar de la biblioteca la saca TAMBIEN del PDF y de las miniaturas',
+        R.bSlots === 1 && R.bEnPdf === 1,
+        'slots=2->' + R.bSlots + ' enPdf=2->' + R.bEnPdf]);
+      showTab('informe'); await esp(150); infMinPintar();
+      R.bMinis = document.querySelectorAll('#inf-min-lista [data-min-tipo=captura]').length;
+      ex.push(['(B2) la fila del informe queda con una sola miniatura',
+        R.bMinis === 1, 'minis=' + R.bMinis]);
+      /* -- C - imgRemove SIGUE SIENDO EL CAMINO SIN PREGUNTA (lo usan tres casos) ------- */
+      const n0 = vivas(); preguntas = 0;
+      imgRemove(null, imgSlots.findIndex(s => s && s.dataURL));
+      await esp(140);
+      R.cSlots = vivas(); R.cPreg = preguntas;
+      ex.push(['(C1) imgRemove sigue borrando sin preguntar: es la puerta programatica',
+        R.cSlots === n0 - 1 && R.cPreg === 0, 'slots=' + n0 + '->' + R.cSlots + ' preg=' + R.cPreg]);
+    } finally {
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-981', 'P8 1.2: quitar del PDF NO borra de la biblioteca --sigue en disco con su marca y la decision sobrevive a reabrir-- y un registro SIN la marca, de antes de P8, se reimprime INCLUIDO', `
+  return (async () => {
+    if (typeof window._imgEnPdf !== 'function' || typeof CeiboImg === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene el modelo de P8 y CeiboImg', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p8.jpg', { type: 'image/jpeg' });
+    };
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    const uuid = 'p8-tc981-0000-0000-0000-00000000bbbb';
+    try {
+      if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
+        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» esta activo', false,
+          'esta apagado']] };
+      }
+      imgVaciar(); await esp(60);
+      showTab('imagenes'); await esp(80);
+      await mediosImportar([jpg('#c02020'), jpg('#20c020')], undefined, 'ceibolink');
+      await esp(140);
+      if (vivas() !== 2) return { extra: [['DENOMINADOR: entraron dos imagenes', false,
+        'entraron ' + vivas()]] };
+      imgPdfTodas(true); await esp(120);
+      window._imgUuidActual = uuid;
+      /* -- A - SE GUARDAN LAS DOS, LAS DOS EN EL PDF ----------------------------------- */
+      await imgPersistir(uuid);
+      await esp(200);
+      const b1 = await CeiboImg.leer(uuid);
+      R.aBib = Array.isArray(b1) ? b1.length : String(b1);
+      R.aFuera = Array.isArray(b1) ? b1.filter(s => s && s.noPdf).length : -1;
+      ex.push(['(A1) DENOMINADOR: las dos quedan en disco y ninguna marcada fuera del PDF',
+        R.aBib === 2 && R.aFuera === 0, 'bib=' + R.aBib + ' fuera=' + R.aFuera]);
+      /* -- B - QUITAR DEL PDF Y GUARDAR: SIGUE EN LA BIBLIOTECA ------------------------ */
+      const i0 = imgSlots.findIndex(s => s && s.dataURL);
+      infMinQuitarCaptura(i0); await esp(140);
+      await imgPersistir(uuid); await esp(200);
+      const b2 = await CeiboImg.leer(uuid);
+      R.bBib = Array.isArray(b2) ? b2.length : String(b2);
+      R.bFuera = Array.isArray(b2) ? b2.filter(s => s && s.noPdf).length : -1;
+      R.bEnPdf = infMinCapturas().length;
+      ex.push(['(B1) quitar del PDF NO borra de la biblioteca: sigue en disco, marcada fuera',
+        R.bBib === 2 && R.bFuera === 1 && R.bEnPdf === 1,
+        'bib=' + R.bBib + ' fuera=' + R.bFuera + ' enPdf=' + R.bEnPdf]);
+      /* -- C - Y LA DECISION SOBREVIVE A REABRIR -------------------------------------- */
+      imgVaciar(); await esp(100);
+      await imgRestaurar(uuid); await esp(250);
+      R.cSlots = vivas(); R.cEnPdf = infMinCapturas().length;
+      ex.push(['(C1) al reabrir vuelven las dos y UNA sigue fuera del PDF',
+        R.cSlots === 2 && R.cEnPdf === 1, 'slots=' + R.cSlots + ' enPdf=' + R.cEnPdf]);
+      /* -- D - CONTROL NEGATIVO: UN ESTUDIO VIEJO SIN LA MARCA SALE INCLUIDO ----------- */
+      const du = imgSlots.filter(s => s && s.dataURL)[0].dataURL;
+      const viejo = 'p8-tc981-0000-0000-0000-00000000cccc';
+      await CeiboImg.guardar(viejo, [{ dataURL: du, ampliada: false, calidad: 'media' }]);
+      await esp(150);
+      imgVaciar(); await esp(100);
+      await imgRestaurar(viejo); await esp(250);
+      R.dSlots = vivas(); R.dEnPdf = infMinCapturas().length;
+      R.dSinMarca = imgSlots.filter(s => s && s.dataURL).every(s => !s.noPdf);
+      ex.push(['(D1) CONTROL NEGATIVO: un registro SIN la marca -un estudio de antes de P8- se reimprime INCLUIDO',
+        R.dSlots === 1 && R.dEnPdf === 1 && R.dSinMarca,
+        'slots=' + R.dSlots + ' enPdf=' + R.dEnPdf + ' sinMarca=' + R.dSinMarca]);
+    } finally {
+      window.toast = toastOrig;
+      try { window._imgUuidActual = null; imgVaciar(); } catch (e) {}
+      try { await CeiboImg.quitar(uuid, [0, 1]); } catch (e) {}
+      try { await CeiboImg.quitar('p8-tc981-0000-0000-0000-00000000cccc', [0]); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-982', 'P8 1.3: el mismo lote del ecografo dos veces no se duplica --tres y no seis--, las repetidas cuentan como entradas para poder confirmarlas, se dice que ya estaban, el aviso NO es un alert nativo, y una imagen distinta si entra', `
+  return (async () => {
+    if (typeof window._dstNota !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la deduplicacion de P8', false,
+        'no existe _dstNota']] };
+    }
+    const R = {}; const ex = [];
+    const dichos = [];
+    const toastOrig = window.toast; window.toast = t => { dichos.push(String(t)); };
+    const alertOrig = window.alert; window.alert = t => { dichos.push('ALERT:' + String(t)); };
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p8dup.jpg', { type: 'image/jpeg' });
+    };
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    try {
+      imgVaciar(); await esp(60);
+      showTab('imagenes'); await esp(80);
+      const lote = [jpg('#c02020'), jpg('#20c020'), jpg('#2020c0')];
+      /* -- A - LA PRIMERA VEZ ENTRAN LAS TRES ----------------------------------------- */
+      const r1 = await mediosImportar(lote, undefined, 'ceibolink');
+      await esp(160);
+      R.aSlots = vivas(); R.aOk = r1.ok;
+      ex.push(['(A1) DENOMINADOR: la primera vez entran las tres',
+        R.aSlots === 3 && R.aOk === 3, 'slots=' + R.aSlots + ' ok=' + R.aOk]);
+      /* -- B - EL MISMO LOTE OTRA VEZ: 3 Y NO 6 --------------------------------------- */
+      dichos.length = 0;
+      const r2 = await mediosImportar(lote, undefined, 'ceibolink');
+      await esp(160);
+      R.bSlots = vivas(); R.bOk = r2.ok;
+      R.bMotivos = (r2.res || []).map(x => x.motivo || '(entro)');
+      ex.push(['(B1) el ecografo las vuelve a mandar y NO se duplican: siguen siendo tres',
+        R.bSlots === 3, 'slots=' + R.aSlots + '->' + R.bSlots]);
+      ex.push(['(B2) y las tres cuentan como ENTRADAS, para que se le puedan confirmar al puente',
+        R.bOk === 3 && R.bMotivos.filter(m => m.indexOf('ya estaba') >= 0).length === 3,
+        'ok=' + R.bOk + ' motivos=' + R.bMotivos.join('/')]);
+      const txt = dichos.join(' | ');
+      R.bAviso = txt.slice(0, 180);
+      ex.push(['(B3) y se DICE que ya estaban y que no se duplicaron',
+        /ya estab/i.test(txt) && /no se duplicaron/i.test(txt), 'dichos=' + R.bAviso]);
+      ex.push(['(B4) el aviso NO es un alert nativo: fuera de una tanda va por toast',
+        txt.indexOf('ALERT:') < 0, 'dichos=' + R.bAviso]);
+      /* -- C - CONTROL NEGATIVO: UNA IMAGEN DISTINTA SI ENTRA -------------------------- */
+      dichos.length = 0;
+      const r3 = await mediosImportar([jpg('#f0a000')], undefined, 'ceibolink');
+      await esp(160);
+      R.cSlots = vivas();
+      ex.push(['(C1) CONTROL NEGATIVO: una imagen distinta entra, y SIN el aviso de repetida',
+        R.cSlots === 4 && r3.ok === 1 && !/ya estab/i.test(dichos.join(' ')),
+        'slots=' + R.cSlots + ' ok=' + r3.ok]);
+      /* -- D - Y LA REPETIDA NO ENTRA AL PDF POR LA PUERTA DE ATRAS -------------------- */
+      R.dEnPdf = infMinCapturas().length;
+      ex.push(['(D1) nada de esto mete una imagen en el PDF', R.dEnPdf === 0, 'enPdf=' + R.dEnPdf]);
+      /* -- E - EL ATAJO POR _orig AGUANTA UN CAMBIO DE CALIDAD ----------------------- */
+      const i0 = imgSlots.findIndex(s => s && s.dataURL);
+      if (typeof imgSetCalidad === 'function') { imgSetCalidad(i0, 'mini'); await esp(500); }
+      R.eCal = imgSlots[i0] ? imgSlots[i0].calidad : '(no)';
+      const n0 = vivas();
+      await mediosImportar([lote[0]], undefined, 'ceibolink');
+      await esp(160);
+      R.eSlots = vivas();
+      ex.push(['(E1) con la calidad ya bajada la repetida se ataja igual, por el original en memoria',
+        R.eCal === 'mini' && R.eSlots === n0, 'cal=' + R.eCal + ' slots=' + n0 + '->' + R.eSlots]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-983', 'P8 1.4: CeiboImg.quitar verifica el contenido del indice antes de borrar --con un esperado que no coincide no borra nada y declara el desfase-- y la galeria marca y desmarca de una vez lo que esta a la vista', `
+  return (async () => {
+    if (typeof window.igSelTodas !== 'function' || typeof CeiboImg === 'undefined' ||
+        !CeiboImg.quitar) {
+      return { extra: [['DENOMINADOR: este arbol tiene igSelTodas y CeiboImg.quitar', false,
+        'falta']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const cv = document.createElement('canvas'); cv.width = 10; cv.height = 10;
+    const cx = cv.getContext('2d');
+    const du = k => { cx.fillStyle = ['#a01010', '#10a010', '#1010a0'][k % 3];
+                      cx.fillRect(0, 0, 10, 10); return cv.toDataURL('image/jpeg', 0.7 + k * 0.05); };
+    const uuid = 'p8-tc983-0000-0000-0000-00000000dddd';
+    try {
+      const A = du(0), B = du(1), C = du(2);
+      R.denomDistintos = (A !== B && B !== C && A !== C);
+      ex.push(['(0) DENOMINADOR: las tres imagenes de prueba son distintas entre si',
+        R.denomDistintos, 'A==B? ' + (A === B) + ' B==C? ' + (B === C)]);
+      await CeiboImg.guardar(uuid, [{ dataURL: A, ampliada: false, calidad: 'media' },
+                                    { dataURL: B, ampliada: false, calidad: 'media' },
+                                    { dataURL: C, ampliada: false, calidad: 'media' }]);
+      await esp(180);
+      const l0 = await CeiboImg.leer(uuid);
+      R.aGuardadas = Array.isArray(l0) ? l0.length : String(l0);
+      ex.push(['(A1) DENOMINADOR: el estudio de prueba quedo con tres imagenes en disco',
+        R.aGuardadas === 3, 'bib=' + R.aGuardadas]);
+      /* -- B - EL GUARDIAN DE DESFASE: UN INDICE CON OTRO CONTENIDO NO BORRA ----------- */
+      const r1 = await CeiboImg.quitar(uuid, [0], ['no-es-el-dataURL-de-esa-posicion']);
+      R.bQuitadas = r1 ? r1.quitadas : 'null';
+      R.bDesf = r1 ? r1.desfasados : 'null';
+      const l1 = await CeiboImg.leer(uuid);
+      R.bBib = Array.isArray(l1) ? l1.length : String(l1);
+      ex.push(['(B1) con un «esperado» que no coincide NO se borra nada, y se informa el desfase',
+        R.bQuitadas === 0 && R.bDesf === 1 && R.bBib === 3,
+        'quitadas=' + R.bQuitadas + ' desfasados=' + R.bDesf + ' bib=' + R.bBib]);
+      /* -- C - Y CON EL ESPERADO CORRECTO BORRA EXACTAMENTE ESA ----------------------- */
+      const r2 = await CeiboImg.quitar(uuid, [1], [B]);
+      R.cQuitadas = r2 ? r2.quitadas : 'null';
+      R.cDesf = r2 ? r2.desfasados : 'null';
+      const l2 = await CeiboImg.leer(uuid);
+      R.cBib = Array.isArray(l2) ? l2.length : String(l2);
+      R.cQuedanAyC = Array.isArray(l2) &&
+        l2.length === 2 && l2[0].dataURL === A && l2[1].dataURL === C;
+      ex.push(['(C1) con el esperado correcto borra ESA, y quedan las otras dos en su orden',
+        R.cQuitadas === 1 && R.cDesf === 0 && R.cBib === 2 && R.cQuedanAyC,
+        'quitadas=' + R.cQuitadas + ' bib=' + R.cBib + ' ordenOk=' + R.cQuedanAyC]);
+      /* -- D - SIN «esperados» SE PORTA COMO ANTES (los llamadores viejos no cambian) -- */
+      const r3 = await CeiboImg.quitar(uuid, [0]);
+      R.dQuitadas = r3 ? r3.quitadas : 'null';
+      const l3 = await CeiboImg.leer(uuid);
+      R.dBib = Array.isArray(l3) ? l3.length : String(l3);
+      ex.push(['(D1) sin esperados se comporta igual que antes: borra por indice',
+        R.dQuitadas === 1 && R.dBib === 1, 'quitadas=' + R.dQuitadas + ' bib=' + R.dBib]);
+      /* -- E - «Todas» / «Ninguna» EN LA GALERIA ------------------------------------- */
+      /* Un turno del bucle ANTES de showTab: es el defecto preexistente P30-d -- showTab lee
+         el window.event global, que justo despues de una escritura en IndexedDB es el success
+         de la transaccion y no tiene classList. Es la misma guarda que TC-976 ya documenta, y
+         este caso la pago en su primera corrida con un TypeError que se llevo el caso entero. */
+      await esp(60);
+      showTab('guardados'); await esp(140);
+      R.eBotonTodas = typeof window.igSelTodas === 'function';
+      /* Sin modo elegir tiene que negarse en vez de marcar a ciegas. */
+      if (typeof window.igElegirModo === 'function') { try { igElegirModo(false); } catch (e) {} }
+      await esp(80);
+      R.eSinModo = igSelTodas(true);
+      ex.push(['(E1) «Todas» existe y sin el modo elegir no marca nada',
+        R.eBotonTodas && R.eSinModo === 0, 'fn=' + R.eBotonTodas + ' sinModo=' + R.eSinModo]);
+      if (typeof window.igElegirModo === 'function') { try { igElegirModo(true); } catch (e) {} }
+      await esp(250);
+      const ths = document.querySelectorAll('.ig-img-th').length;
+      R.eThs = ths;
+      const marco = igSelTodas(true);
+      R.eMarco = marco;
+      R.eSel = (typeof window.igSelCuenta === 'function') ? igSelCuenta().total : -1;
+      ex.push(['(E2) con el modo prendido marca las miniaturas que estan a la vista',
+        ths === 0 ? (marco === 0) : (marco === ths && R.eSel === ths),
+        'aLaVista=' + ths + ' marcadas=' + marco + ' sel=' + R.eSel]);
+      const desm = igSelTodas(false);
+      R.eDesm = desm;
+      R.eSel2 = (typeof window.igSelCuenta === 'function') ? igSelCuenta().total : -1;
+      ex.push(['(E3) y «Ninguna» las desmarca todas de una vez',
+        R.eSel2 === 0, 'desmarcadas=' + desm + ' sel=' + R.eSel2]);
+      if (typeof window.igElegirModo === 'function') { try { igElegirModo(false); } catch (e) {} }
+    } finally {
+      window.toast = toastOrig;
+      try { await CeiboImg.quitar(uuid, [0, 1, 2]); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-984', 'P8 1.3 (dato real del VINNO por router): tres carteles seguidos que ofrecen TODO lo acumulado --7, 8 y 9-- dejan el estudio con NUEVE y no con 24; la clave del archivo viaja al disco, asi que el reenvio completo despues de guardar y reabrir no duplica ninguna; una imagen nueva si entra; y un registro de antes de P8 no rompe nada', `
+  return (async () => {
+    if (typeof window._imgClaveArchivo !== 'function' || typeof CeiboImg === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene la clave de archivo de P8', false,
+        'no existe _imgClaveArchivo']] };
+    }
+    const R = {}; const ex = [];
+    const toastOrig = window.toast; window.toast = () => {};
+    const alertOrig = window.alert; window.alert = () => {};
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    /* NUEVE imagenes sinteticas, cada una distinta y con su propio nombre: es lo que el VINNO
+       manda, y nada de esto tiene un dato de paciente. */
+    const archivo = (k) => {
+      const c = document.createElement('canvas'); c.width = 32; c.height = 24;
+      const x = c.getContext('2d');
+      x.fillStyle = 'rgb(' + (20 + k * 22) + ',' + (200 - k * 15) + ',' + (60 + k * 18) + ')';
+      x.fillRect(0, 0, 32, 24);
+      x.fillStyle = '#000'; x.fillRect(k, 2, 5, 5);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'VINNO_' + k + '.dcm', { type: 'image/jpeg' });
+    };
+    const TODAS = [];
+    for (let k = 0; k < 9; k++) TODAS.push(archivo(k));
+    const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
+    const uuid = 'p8-tc984-0000-0000-0000-00000000eeee';
+    try {
+      if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
+        return { extra: [['DENOMINADOR: «Guardar imagenes con los estudios» esta activo', false,
+          'esta apagado']] };
+      }
+      imgVaciar(); await esp(80);
+      showTab('imagenes'); await esp(100);
+      ex.push(['(0) DENOMINADOR: las nueve de prueba son distintas entre si',
+        new Set(TODAS.map(f => f.name)).size === 9, 'nombres=' + new Set(TODAS.map(f => f.name)).size]);
+
+      /* ══ A · LOS TRES CARTELES SEGUIDOS, CADA UNO CON TODO LO ACUMULADO ═══════════════════
+         Es el caso que el medico midio con el VINNO por router: el puente ofrece TODO lo que
+         tiene, no solo lo nuevo. 7, despues 8, despues 9. Sin deduplicacion el estudio quedaba
+         con 7+8+9 = 24. */
+      const r1 = await mediosImportar(TODAS.slice(0, 7), undefined, 'ceibolink');
+      await esp(260);
+      R.a1 = vivas(); R.a1ok = r1.ok;
+      ex.push(['(A1) el primer cartel adjunta las SIETE que el puente tenia',
+        R.a1 === 7 && R.a1ok === 7, 'slots=' + R.a1 + ' ok=' + R.a1ok]);
+      const r2 = await mediosImportar(TODAS.slice(0, 8), undefined, 'ceibolink');
+      await esp(280);
+      R.a2 = vivas(); R.a2ok = r2.ok;
+      R.a2dup = (r2.res || []).filter(x => String(x.motivo).indexOf('ya estaba') >= 0).length;
+      ex.push(['(A2) el segundo cartel trae las 7 de antes y la 8.a, y el estudio queda en OCHO',
+        R.a2 === 8 && R.a2ok === 8 && R.a2dup === 7,
+        'slots=' + R.a2 + ' ok=' + R.a2ok + ' yaEstaban=' + R.a2dup]);
+      const r3 = await mediosImportar(TODAS.slice(0, 9), undefined, 'ceibolink');
+      await esp(300);
+      R.a3 = vivas(); R.a3ok = r3.ok;
+      R.a3dup = (r3.res || []).filter(x => String(x.motivo).indexOf('ya estaba') >= 0).length;
+      ex.push(['(A3) el tercer cartel trae las 8 de antes y la 9.a, y el estudio queda en NUEVE y no en 24',
+        R.a3 === 9 && R.a3ok === 9 && R.a3dup === 8,
+        'slots=' + R.a3 + ' ok=' + R.a3ok + ' yaEstaban=' + R.a3dup]);
+      ex.push(['(A4) y las nueve cuentan como ENTRADAS en los tres carteles: nada queda esperando por error',
+        R.a1ok + R.a2ok + R.a3ok === 24 && R.a3 === 9,
+        'ok=' + R.a1ok + '+' + R.a2ok + '+' + R.a3ok + ' slots=' + R.a3]);
+      /* y ninguna de las nueve sale en el PDF: siguen siendo biblioteca */
+      R.aEnPdf = infMinCapturas().length;
+      ex.push(['(A5) las nueve quedan en la biblioteca y NINGUNA en el PDF',
+        R.aEnPdf === 0, 'enPdf=' + R.aEnPdf]);
+
+      /* ══ B · REENVIO COMPLETO DESPUES DE GUARDAR Y REABRIR ═══════════════════════════════
+         La clave del archivo tiene que VIAJAR al disco: si viviera solo en memoria, reabrir el
+         estudio y recibir el reenvio completo volveria a meter las nueve. */
+      window._imgUuidActual = uuid;
+      await imgPersistir(uuid); await esp(400);
+      const bib = await CeiboImg.leer(uuid);
+      R.bBib = Array.isArray(bib) ? bib.length : String(bib);
+      R.bConClave = Array.isArray(bib) ? bib.filter(x => x && typeof x._srcKey === 'string').length : -1;
+      ex.push(['(B1) las nueve quedan en disco Y con su clave de archivo',
+        R.bBib === 9 && R.bConClave === 9, 'bib=' + R.bBib + ' conClave=' + R.bConClave]);
+      imgVaciar(); await esp(150);
+      await imgRestaurar(uuid); await esp(450);
+      R.bTrasReabrir = vivas();
+      R.bClaveViva = imgSlots.filter(s => s && typeof s._srcKey === 'string').length;
+      ex.push(['(B2) al reabrir vuelven las nueve con su clave puesta',
+        R.bTrasReabrir === 9 && R.bClaveViva === 9,
+        'slots=' + R.bTrasReabrir + ' conClave=' + R.bClaveViva]);
+      const r4 = await mediosImportar(TODAS, undefined, 'ceibolink');
+      await esp(300);
+      R.bTrasReenvio = vivas();
+      R.b4dup = (r4.res || []).filter(x => String(x.motivo).indexOf('ya estaba') >= 0).length;
+      ex.push(['(B3) el reenvio COMPLETO despues de guardar y reabrir no duplica NINGUNA',
+        R.bTrasReenvio === 9 && r4.ok === 9 && R.b4dup === 9,
+        'slots=' + R.bTrasReabrir + '->' + R.bTrasReenvio + ' ok=' + r4.ok + ' yaEstaban=' + R.b4dup]);
+
+      /* ══ C · CONTROL NEGATIVO: UNA DECIMA IMAGEN SI ENTRA ════════════════════════════════ */
+      const r5 = await mediosImportar([archivo(9)], undefined, 'ceibolink');
+      await esp(260);
+      R.cSlots = vivas();
+      ex.push(['(C1) CONTROL NEGATIVO: una imagen NUEVA del mismo equipo si entra',
+        R.cSlots === 10 && r5.ok === 1, 'slots=' + R.cSlots + ' ok=' + r5.ok]);
+      /* ══ D · Y UN REGISTRO VIEJO SIN LA CLAVE NO ROMPE NADA ════════════════════════════ */
+      const viejo = 'p8-tc984-0000-0000-0000-00000000ffff';
+      await CeiboImg.guardar(viejo, [{ dataURL: imgSlots.filter(s => s && s.dataURL)[0].dataURL,
+                                       ampliada: false, calidad: 'media' }]);
+      await esp(200);
+      imgVaciar(); await esp(150);
+      await imgRestaurar(viejo); await esp(400);
+      R.dSlots = vivas();
+      R.dSinClave = imgSlots.filter(s => s && s.dataURL).every(s => s._srcKey === undefined);
+      const r6 = await mediosImportar([TODAS[0]], undefined, 'ceibolink');
+      await esp(260);
+      R.dTras = vivas();
+      ex.push(['(D1) un registro de antes de P8 no trae la clave, no deduplica y NO rompe',
+        R.dSlots === 1 && R.dSinClave && R.dTras === 2,
+        'slots=' + R.dSlots + ' sinClave=' + R.dSinClave + ' tras=' + R.dTras]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try { window._imgUuidActual = null; imgVaciar(); } catch (e) {}
+      try { await CeiboImg.quitar(uuid, [0,1,2,3,4,5,6,7,8]); } catch (e) {}
+      try { await CeiboImg.quitar('p8-tc984-0000-0000-0000-00000000ffff', [0]); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
   })();
 `);
 
