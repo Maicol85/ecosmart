@@ -183075,6 +183075,14 @@ window.clnkDesvincular = clnkDesvincular;
    es un valor que el puente usa para decir «no lo se», no una etiqueta para el medico. Con ese
    valor —o sin el campo, que es lo que pasa contra un puente 1.1— sale la direccion y su
    interfaz, y nada mas. */
+/* ══ TANDA EQ · LAS DIRECCIONES DE ESTA COMPUTADORA, CACHEADAS ════════════════════════════════
+   Las guarda `clnkLeerConexion` y las lee `clnkEqConexion` para decir por donde llego un equipo.
+   ⚠️ SE CACHEAN Y NO SE VUELVEN A PEDIR: `clnkLeerEstado` llama a las dos lecturas sin esperar a
+   la primera, asi que la de equipos puede pintar antes de que vuelva la de conexion. Cacheadas,
+   el unico pintado sin rotulo es el primero de la sesion, y el turno siguiente lo repone —la
+   firma del bloque B incluye estas direcciones justamente para eso—. */
+var _clnkConexDirs = [];
+
 function clnkDirRotulo(x) {
   var t = String((x && x.tipo) || '');
   if (t === 'cable') return 'cable';
@@ -183136,6 +183144,7 @@ async function clnkLeerConexion() {
   _clnkDato(fila, 'Nombre (AET)', String(d.aet_puente || ''), '',
             false, 'SCP AET · AE Title · AET');
   var dirs = Array.isArray(d.direcciones) ? d.direcciones : [];
+  _clnkConexDirs = dirs.slice();
   if (!dirs.length) {
     _clnkDato(fila, 'Dirección', '', 'CeiboLink no encontró ninguna dirección de red en esta computadora.',
               false, 'Dirección SCP · IP del servidor · Server IP');
@@ -183289,15 +183298,22 @@ async function clnkLeerEquipos() {
   if (!r.ok) { if (det) { det.style.display = 'none'; try { det.open = false; } catch (e) {} } return; }
   if (det) det.style.display = '';
   var lista = (r.datos && Array.isArray(r.datos.equipos)) ? r.datos.equipos : [];
+  /* La lista cruda del ultimo pedido. La leen `clnkAccionEquipo` —para saber que direcciones son
+     del mismo equipo al guardar un apodo o al unir— y la firma del bloque B. Es una copia de lo
+     que acaba de llegar y no una segunda fuente: se reescribe en cada lectura. */
+  _clnkEqLista = lista.slice();
   var pend = lista.filter(function (e) { return String(e && e.estado) === 'pendiente'; }).length;
   /* ══ EL CONTADOR EN EL RENGLÓN CERRADO ══ Es lo que hace que un plegable cerrado sirva: sin
      esto, «Equipos» cerrado no dice si hay uno, cinco o ninguno, y el médico lo abre siempre
      «por si acaso» —o sea que el plegable no ahorra nada—. */
   var cnt = document.getElementById('cfg-clnk-eq-cnt');
+  /* ⚠️ CUENTA EQUIPOS Y NO DIRECCIONES, o sea GRUPOS: con el VINNO duplicado el renglon cerrado
+     decia «(2)» sobre UN solo ecografo, que es la misma confusion que la lista. */
+  var nGr = clnkEqAgrupar(lista).length;
   if (cnt) {
     cnt.textContent = !lista.length ? '(ninguno todavía)'
-      : (pend ? '(' + lista.length + ' · ' + _clnkPlural(pend, 'espera tu decisión', 'esperan tu decisión') + ')'
-              : '(' + lista.length + ')');
+      : (pend ? '(' + nGr + ' · ' + _clnkPlural(pend, 'espera tu decisión', 'esperan tu decisión') + ')'
+              : '(' + nGr + ')');
   }
   /* ⚠️ CON UN EQUIPO ESPERANDO DECISIÓN, LA SECCIÓN SE ABRE SOLA. Es la única de las tres que
      puede estar pidiendo algo: hasta que el médico decida, las imágenes de ese equipo quedan en
@@ -183312,7 +183328,11 @@ async function clnkLeerEquipos() {
       'para que lo autorices.'));
     return;
   }
-  lista.forEach(function (eq) { _clnkFilaEquipo(cont, eq); });
+  /* ══ TANDA EQ · A1 · UN RENGLON POR EQUIPO Y NO POR DIRECCION ════════════════════════════
+     El puente manda un equipo por AET + IP (§3.4); el medico ve UNO por equipo, con sus
+     direcciones adentro. `clnkEqAgrupar` conserva el orden del puente. */
+  var grupos = clnkEqAgrupar(lista);
+  grupos.forEach(function (g) { _clnkFilaGrupo(cont, g, grupos.length); });
   /* ══ (d) LA AYUDA DE LAS ACCIONES, UNA SOLA Y PLEGABLE ════════════════════════════
      Antes este párrafo de tres oraciones se repetía DEBAJO DE CADA EQUIPO: con dos equipos, el
      mismo texto dos veces; con cinco, cinco. Y es el texto que se lee UNA vez en la vida. */
@@ -183359,72 +183379,367 @@ function clnkEqProcedencia(eq) {
 }
 window.clnkEqProcedencia = clnkEqProcedencia;
 
-function _clnkFilaEquipo(cont, eq) {
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   TANDA EQ · A1, A2 y A3 · UN RENGLON POR EQUIPO, CON SUS DIRECCIONES ADENTRO
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   EL DEFECTO QUE EL MEDICO MIDIO CON EL VINNO EN WINDOWS: el MISMO equipo aparecia DOS veces en
+   la lista —«Vinno» 10:38 con la direccion del cable directo y «Vinno» 11:14 con la del router—,
+   sin nada que los distinguiera, y el que ya estaba autorizado volvia a pasar por cuarentena
+   como si fuera nuevo.
+
+   ⚠️ LA CAUSA NO ES UN DEFECTO DEL PUENTE Y NO NECESITA TOCARLO, y esta leida en el contrato:
+   §3.4 dice con todas las letras que «la identidad de un equipo es AET + IP» y que «si el mismo
+   AET aparece desde otra IP, es un equipo distinto y vuelve a pedir decision». O sea que el
+   puente manda DOS equipos a proposito —no puede saber si son la misma maquina— y cada uno trae
+   SU `ip` y SU `aet`. Lo que falta es del lado de EcoSmart: juntarlos en un renglon y preguntarle
+   al medico. Con eso, esta tanda no pide ninguna ruta nueva, ningun campo nuevo y ninguna ruta de
+   union del lado del puente.
+
+   ⚠️ EL GRUPO POR OMISION ES EL `aet` Y NO EL NOMBRE QUE SE DIBUJA. El apodo lo pone y lo saca el
+   medico, y el contrato dice que «dos equipos podrian tener el mismo apodo sin que el puente se
+   confunda»: agrupar por lo que se ve haria que poner un apodo juntara dos equipos distintos. El
+   `aet` es la mitad de la identidad que NO cambia cuando el mismo ecografo llega por otra
+   direccion.
+
+   ⚠️ Y EL `aet` SOLO NO ALCANZA, por eso hay un store: el mismo contrato admite «dos ecografos
+   con el mismo AET en dos IP». Para ese caso esta «Separar»; para el inverso —el mismo equipo que
+   cambio de AET— esta «Unir». Las dos escriben el MISMO campo, asi que no pueden discrepar.
+
+   ⚠️ NINGUN EQUIPO SE AUTORIZA POR SU NOMBRE. El store solo decide como se AGRUPA la vista: el
+   permiso sigue siendo del puente, uno por direccion, y lo unico que lo cambia es el medico
+   apretando Permitir. Un grupo con una direccion autorizada y otra esperando decision se dibuja
+   asi, con cada chip en su linea. */
+/* La clave que guarda el medico: id de equipo -> grupo. Es lo UNICO que esta tanda persiste, y
+   no es un dato clinico ni un campo del estudio: son nombres de equipo. */
+var _clnkEqLista = [];
+
+/* Los ids de las direcciones del MISMO equipo que una dada. Con la lista vacia —o con un id que
+   no esta— devuelve ese id solo: lo que no puede pasar es que un apodo no se guarde en ninguna
+   parte porque la cache estaba fria. */
+function clnkEqMiembrosDe(id) {
+  var k = String(id || '');
+  if (!k) return [];
+  var yo = (_clnkEqLista || []).filter(function (e) { return e && String(e.id) === k; })[0];
+  if (!yo) return [k];
+  var cl = clnkEqGrupoDe(yo);
+  var out = (_clnkEqLista || []).filter(function (e) { return e && clnkEqGrupoDe(e) === cl; })
+    .map(function (e) { return String(e.id); });
+  return out.length ? out : [k];
+}
+window.clnkEqMiembrosDe = clnkEqMiembrosDe;
+
+var CLNK_EQG = 'ett_clnk_eqgrupos';
+var _clnkEqG = null;
+
+function clnkEqGrupos() {
+  if (_clnkEqG) return _clnkEqG;
+  _clnkEqG = Object.create(null);
+  try {
+    var t = localStorage.getItem(CLNK_EQG);
+    if (t) {
+      var o = JSON.parse(t);
+      /* ⚠️ SE VALIDA LO QUE VUELVE DEL DISCO: un arreglo o un nulo pasarian el `typeof` y
+         `Object.keys` de un arreglo devuelve indices, con lo que un grupo se llamaria «0». */
+      if (o && typeof o === 'object' && !Array.isArray(o)) {
+        Object.keys(o).forEach(function (k) {
+          if (typeof o[k] === 'string' && o[k]) _clnkEqG[String(k)] = String(o[k]).slice(0, 90);
+        });
+      }
+    }
+  } catch (e) {}
+  return _clnkEqG;
+}
+window.clnkEqGrupos = clnkEqGrupos;
+
+function clnkEqGrupoFijar(id, grupo) {
+  var k = String(id || '');
+  if (!k) return false;
+  var m = clnkEqGrupos();
+  m[k] = String(grupo || '').slice(0, 90);
+  try { localStorage.setItem(CLNK_EQG, JSON.stringify(m)); } catch (e) { return false; }
+  return true;
+}
+window.clnkEqGrupoFijar = clnkEqGrupoFijar;
+
+/* El grupo de un equipo: lo que el medico decidio, y si no decidio nada, su `aet`.
+   ⚠️ LAS DOS FORMAS LLEVAN PREFIJO —`aet:` o `id:`— para que no puedan chocar: sin el, un equipo
+   cuyo AET fuera el id de otro caeria en su grupo. */
+function clnkEqGrupoDe(eq) {
   var id = String((eq && eq.id) || '');
-  var est = String((eq && eq.estado) || '');
-  var par = CLNK_ESTADOS[est] || [est || '—', 'var(--text2)'];
-  var espera = (est === 'pendiente');
+  var g = clnkEqGrupos()[id];
+  if (g) return g;
+  var aet = String((eq && eq.aet) || '');
+  return aet ? ('aet:' + aet) : ('id:' + id);
+}
+window.clnkEqGrupoDe = clnkEqGrupoDe;
+
+/* Los equipos del puente, agrupados, EN EL ORDEN EN QUE LLEGARON. No se reordena: el puente los
+   manda en su orden y la lista no se puede mover sola mientras el medico la lee —es la misma
+   regla que `clnkDirsOrden` respeta para las direcciones—. */
+function clnkEqAgrupar(lista) {
+  var l = Array.isArray(lista) ? lista : [];
+  var orden = [], mapa = Object.create(null);
+  l.forEach(function (eq) {
+    if (!eq) return;
+    var k = clnkEqGrupoDe(eq);
+    if (!mapa[k]) {
+      mapa[k] = { clave: k, miembros: [], imagenes: 0, pendientes: 0, autorizados: 0,
+                  bloqueados: 0, ultimo: '' };
+      orden.push(k);
+    }
+    var g = mapa[k];
+    g.miembros.push(eq);
+    g.imagenes += (Number(eq.imagenes) || 0);
+    var est = String(eq.estado || '');
+    if (est === 'pendiente') g.pendientes++;
+    else if (est === 'autorizado') g.autorizados++;
+    else if (est === 'bloqueado') g.bloqueados++;
+    /* El ultimo envio del grupo. Se comparan las cadenas ISO tal cual: el contrato garantiza
+       UTC con `Z` y el mismo formato, asi que el orden de texto es el orden del reloj y no hace
+       falta parsear nada. */
+    var u = String(eq.ultimo_envio || '');
+    if (u > g.ultimo) g.ultimo = u;
+  });
+  return orden.map(function (k) { return mapa[k]; });
+}
+window.clnkEqAgrupar = clnkEqAgrupar;
+
+/* El nombre del grupo. Se prefiere el miembro QUE TIENE APODO: el apodo es del medico y vale
+   para el equipo entero, asi que ponerselo a una direccion lo nombra en las dos. */
+function clnkEqNombreGrupo(g) {
+  var ms = (g && g.miembros) || [];
+  var conApodo = ms.filter(function (e) {
+    return e && e.apodo != null && String(e.apodo).trim() !== '';
+  })[0];
+  return clnkNombreEqDe(conApodo || ms[0]) || 'Equipo';
+}
+window.clnkEqNombreGrupo = clnkEqNombreGrupo;
+
+/* ══ POR DONDE LLEGO UNA DIRECCION, Y QUE SE CALLA ════════════════════════════════════════════
+   El pedido dice «cable directo» o «red del router», deducido por el rango, y «si no se puede
+   saber con seguridad, mostrar solo la direccion». Lo que se puede afirmar es esto y nada mas:
+
+     1 · una direccion de esta computadora (`127.`) no es un ecografo: es el buzon o la carpeta
+         compartida, y de eso ya habla `clnkEqProcedencia`;
+     2 · `169.254.x.x` es **cable directo** con certeza: es la direccion que se asigna sola una
+         maquina que NO recibio ninguna, o sea que del otro lado no hay router. Es el unico rango
+         que esta app juzga por su cuenta, igual que en el panel de direcciones;
+     3 · si la direccion cae en la MISMA red /24 que exactamente UNA de las direcciones de esta
+         computadora, se dice por donde entro: **red del router** si esa interfaz es Wi-Fi —un
+         Wi-Fi necesita un punto de acceso, asi que hay router— y **por el cable** si es cable;
+     4 · si no empareja ninguna, o emparejan dos de tipos distintos, **no se dice nada** y queda
+         solo la direccion.
+
+   ⚠️ NO SE DICE «CABLE DIRECTO» POR UNA INTERFAZ DE CABLE, y es la diferencia entre informar y
+   afirmar: un cable puede ir al ecografo o a un switch, y el contrato §3.13 ya declara que «el
+   programa no puede distinguir el cable del Wi-Fi sin adivinar». Lo que esta app sabe es por
+   QUE INTERFAZ entro; si ese cable va derecho al equipo no lo sabe, y con un router en el medio
+   «cable directo» seria falso justo en la fila donde el medico decide.
+   ⚠️ Y LA MASCARA NO VIENE EN EL CONTRATO: el /24 es un supuesto, por eso la regla 3 informa la
+   interfaz y no la topologia. */
+function clnkEqConexion(ip) {
+  var s = String(ip || '').trim();
+  if (!s) return '';
+  if (s === '::1' || s.indexOf('127.') === 0) return 'esta computadora';
+  if (s.indexOf('169.254.') === 0) return 'cable directo';
+  var p = s.split('.');
+  if (p.length !== 4) return '';
+  var pre = p[0] + '.' + p[1] + '.' + p[2];
+  var hayCable = false, hayWifi = false;
+  (_clnkConexDirs || []).forEach(function (x) {
+    var d = String((x && x.direccion) || '').split('.');
+    if (d.length !== 4) return;
+    if (d[0] + '.' + d[1] + '.' + d[2] !== pre) return;
+    var t = String((x && x.tipo) || '');
+    if (t === 'cable') hayCable = true;
+    else if (t === 'wifi') hayWifi = true;
+  });
+  if (hayCable === hayWifi) return '';     // ninguna, o las dos: no se puede saber
+  return hayWifi ? 'red del router' : 'por el cable';
+}
+window.clnkEqConexion = clnkEqConexion;
+
+/* ══ TANDA EQ · BLOQUE B · EL BORRADOR DEL APODO ══════════════════════════════════════════════
+   Lo que el medico tecleo y todavia no guardo, en memoria y por id de equipo. Hace falta porque
+   el sondeo repinta la lista de fondo: sin esto, cada cuatro segundos el campo volvia al valor
+   del puente —o sea que el apodo se borraba solo mientras se escribia, que es el defecto que el
+   medico reporto—. Se olvida cuando el apodo se guarda o cuando el campo queda igual al guardado.
+   ⚠️ EN MEMORIA Y NO EN DISCO, a proposito: es un texto a medio escribir, no una preferencia.
+   Recargar la pagina lo pierde, igual que cualquier campo a medio llenar de esta app. */
+var _clnkApodoBorr = Object.create(null);
+
+function _clnkApodoBorrador(id) {
+  var k = String(id || '');
+  return Object.prototype.hasOwnProperty.call(_clnkApodoBorr, k) ? _clnkApodoBorr[k] : null;
+}
+
+function _clnkApodoAnotar(id, v) {
+  var k = String(id || '');
+  if (k) _clnkApodoBorr[k] = String(v == null ? '' : v);
+}
+
+function _clnkApodoOlvidar(id) {
+  var k = String(id || '');
+  if (k) delete _clnkApodoBorr[k];
+}
+
+/* UN solo oyente delegado para todos los campos de apodo: la lista se repinta entera, asi que
+   un oyente por campo dejaria uno nuevo en cada turno del sondeo. */
+if (!window._clnkApodoCableado) {
+  window._clnkApodoCableado = true;
+  document.addEventListener('input', function (ev) {
+    var t = ev && ev.target;
+    if (!t || !t.getAttribute || !t.hasAttribute('data-clnk-apodo')) return;
+    _clnkApodoAnotar(t.getAttribute('data-clnk-apodo'), t.value);
+  }, true);
+}
+
+/* ══ TANDA EQ · EL RENGLON ES EL GRUPO, Y ADENTRO VAN SUS DIRECCIONES ════════════════════════
+   Esta funcion se llamaba `_clnkFilaEquipo` y dibujaba UN equipo del puente. Ahora dibuja un
+   GRUPO: con una sola direccion sale exactamente igual que antes —misma linea, mismo chip, mismo
+   «Permitir / Bloquear» a la vista—, y con varias crece una linea por direccion.
+
+   ⚠️ CON UNA SOLA DIRECCION, EL CHIP DE ESTADO Y LOS DOS BOTONES URGENTES SE QUEDAN EN LA LINEA
+   DE ARRIBA, Y NO ES NOSTALGIA: el equipo del buzon y los de la carpeta compartida llegan con
+   `ip` de esta computadora, asi que NO tienen linea de direccion —no hay direccion que mostrarle
+   al medico— y los botones que decidieron su cuarentena tienen que seguir visibles. Con varias
+   direcciones pasan a la linea de SU direccion, porque ahi lo que se permite es una direccion y
+   no «el equipo»: es la decision 12d leida con el duplicado en la mano.
+
+   ⚠️ UN SOLO CAMPO DE APODO POR GRUPO, con el id del PRIMER miembro en `data-clnk-apodo`. El
+   apodo es del equipo y no de la direccion; `clnkAccionEquipo` lo escribe en los miembros del
+   grupo de ese id, asi que las dos direcciones se llaman igual y el cartel no puede nombrarlas
+   distinto. */
+function _clnkFilaGrupo(cont, g, nGrupos) {
+  var ms = (g && g.miembros) || [];
+  if (!ms.length) return;
+  var uno = (ms.length === 1);
+  var prim = ms[0];
+  var idPrim = String((prim && prim.id) || '');
+  var esperaAlguna = (g.pendientes > 0);
   var caja = _clnkNodo('div',
     'border-bottom:1px solid var(--border);padding:6px 0;');
 
   var linea = _clnkNodo('div', 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;');
+  /* La luz del grupo: si ALGUNA direccion espera decision, manda ese color — es la unica que
+     pide algo, y es lo que el medico busca de un vistazo. */
+  var par = esperaAlguna ? (CLNK_ESTADOS['pendiente'] || ['pendiente', 'var(--text2)'])
+                         : (CLNK_ESTADOS[String((prim && prim.estado) || '')] ||
+                            [String((prim && prim.estado) || '—'), 'var(--text2)']);
   linea.appendChild(_clnkNodo('span',
     'width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:' + par[1] + ';'));
-  /* ⚠️ EL APODO VA EN UN `bdi`, ADEMÁS DE `textContent`. Es texto libre que escribe una persona,
+  /* ⚠️ EL NOMBRE VA EN UN `bdi`, ADEMÁS DE `textContent`. Es texto libre que escribe una persona,
      y con un carácter que da vuelta la lectura —el bidi override U+202E y sus parientes— la fila
      del equipo A se puede LEER con el nombre y la dirección del equipo B. Y ésta es justo la
      fila donde el médico decide permitir o bloquear. `textContent` impide que se EJECUTE;
      `bdi` impide que se LEA al revés, que es un problema distinto y no lo arregla escapar.
      El conector dice que rechaza esos caracteres, pero validar no es escapar y una versión
      futura puede dejar de rechazarlos: el aislamiento va de este lado. */
-  var apodo = (eq && eq.apodo != null) ? String(eq.apodo) : '';
   var nom = document.createElement('bdi');
   nom.style.cssText = 'font-size:12px;font-weight:700;';
-  /* ══ BLOQUE I · EL NOMBRE, POR EL DUEÑO ÚNICO ════════════════════════════════════════════
-     EL DEFECTO: esta línea dibujaba `apodo || aet`, así que el equipo del buzón se veía
-     **«BUZON:»** crudo —con los dos puntos y en mayúsculas— justo en la fila donde el médico
-     aprieta PERMITIR o BLOQUEAR. Es lo que el médico vio en Windows.
-     `clnkNombreEqDe` es el mismo dueño que nombra al equipo en el cartel: con dos reglas, la
-     fila y el aviso podrían llamar distinto al mismo equipo. */
-  nom.textContent = clnkNombreEqDe(eq) || 'Equipo';
+  /* `clnkEqNombreGrupo` es el mismo dueño que nombra al equipo en el cartel, por `clnkNombreEqDe`:
+     con dos reglas, la fila y el aviso podrían llamar distinto al mismo equipo. */
+  nom.textContent = clnkEqNombreGrupo(g);
   linea.appendChild(nom);
-  /* ══ BLOQUE I · DE DÓNDE VINO, Y NO ES PROLIJIDAD ════════════════════════════════════════
+  /* ══ DE DÓNDE VINO, Y NO ES PROLIJIDAD ════════════════════════════════════════════════════
      Los DOS prefijos son equipos DISTINTOS aunque la subcarpeta se llame igual, y el contrato
      §P5 explica por qué con todas las letras: en el buzón escribe la cuenta del médico y nadie
      más; en la carpeta de entrada escribe **cualquiera que tenga las credenciales del recurso
      compartido, desde cualquier máquina de la red**. Autorizar «lo que copié a mano» no es lo
      mismo que autorizar todo lo que llegue por la red, y ésta es la fila donde eso se decide. */
-  var proc = clnkEqProcedencia(eq);
+  var proc = clnkEqProcedencia(prim);
   if (proc) {
     linea.appendChild(_clnkNodo('span',
       'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:var(--text2);',
       proc));
   }
-  linea.appendChild(_clnkNodo('span',
-    'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:' + par[1] + ';',
-    par[0]));
-  var f = _clnkFecha(eq && eq.ultimo_envio);
+  if (uno) {
+    linea.appendChild(_clnkNodo('span',
+      'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:' + par[1] + ';',
+      par[0]));
+  } else {
+    /* Con varias, el chip del renglón dice CUÁNTAS son: es lo que convierte dos filas que el
+       médico no podía distinguir en una que se entiende de un vistazo. */
+    linea.appendChild(_clnkNodo('span',
+      'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:var(--text2);',
+      ms.length + ' direcciones'));
+  }
+  var f = _clnkFecha(g.ultimo);
   linea.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);',
-    (Number(eq && eq.imagenes) || 0) + ' imág.' + (f ? ' · ' + f : '')));
-  var mk = function (dest, acc, txt, clase) {
+    (Number(g.imagenes) || 0) + ' imág.' + (f ? ' · ' + f : '')));
+  var mk = function (dest, id, acc, txt, clase, titulo) {
     var b = _clnkNodo('button', 'padding:3px 10px;font-size:11px;', txt);
     b.type = 'button'; b.className = 'btn ' + (clase || 'btn-ghost');
     b.setAttribute('data-clnk-eq', id);
     b.setAttribute('data-clnk-acc', acc);
+    if (titulo) b.title = titulo;
     dest.appendChild(b);
   };
-  if (espera) {
+  if (uno && esperaAlguna) {
     var urg = _clnkNodo('span', 'display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;');
-    mk(urg, 'permitir', 'Permitir', 'btn-primary');
-    mk(urg, 'bloquear', 'Bloquear');
+    mk(urg, idPrim, 'permitir', 'Permitir', 'btn-primary');
+    mk(urg, idPrim, 'bloquear', 'Bloquear');
     linea.appendChild(urg);
   }
   caja.appendChild(linea);
 
-  /* El plegable del equipo: el apodo y el resto de las acciones. */
+  /* ══ UNA LINEA POR DIRECCION ════════════════════════════════════════════════════════════════
+     ⚠️ LAS DIRECCIONES DE ESTA COMPUTADORA NO SE DIBUJAN, y es una decision: el buzon y la
+     carpeta compartida llegan con `127.0.0.1`, que no es la direccion de ningun ecografo y no le
+     sirve al medico para distinguir nada — de donde vinieron ya lo dice el chip de procedencia.
+     Con eso, las filas de esos tres equipos quedan exactamente como antes de esta tanda. */
+  ms.forEach(function (eq) {
+    var id = String((eq && eq.id) || '');
+    var ip = String((eq && eq.ip) || '');
+    var rot = clnkEqConexion(ip);
+    if (!ip || rot === 'esta computadora') {
+      /* Sin direccion que mostrar, lo que no puede faltar son los botones de su cuarentena. */
+      if (!uno && String(eq.estado) === 'pendiente') {
+        var sl = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;' +
+          'margin:3px 0 0 16px;');
+        sl.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);',
+          clnkEqProcedencia(eq) || 'esta computadora'));
+        mk(sl, id, 'permitir', 'Permitir', 'btn-primary');
+        mk(sl, id, 'bloquear', 'Bloquear');
+        caja.appendChild(sl);
+      }
+      return;
+    }
+    var pe = CLNK_ESTADOS[String((eq && eq.estado) || '')] ||
+             [String((eq && eq.estado) || '—'), 'var(--text2)'];
+    var l2 = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;' +
+      'margin:3px 0 0 16px;');
+    /* La direccion la da el conector: `bdi` por el mismo motivo que el nombre. */
+    var dir = document.createElement('bdi');
+    dir.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);';
+    dir.textContent = ip;
+    l2.appendChild(dir);
+    if (rot) {
+      l2.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);', '· ' + rot));
+    }
+    if (!uno) {
+      l2.appendChild(_clnkNodo('span',
+        'font-size:10px;padding:1px 6px;border-radius:9px;background:var(--bg2);color:' + pe[1] + ';',
+        pe[0]));
+      var acc = _clnkNodo('span', 'display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;');
+      if (String(eq.estado) === 'pendiente') {
+        mk(acc, id, 'permitir', 'Permitir', 'btn-primary');
+        mk(acc, id, 'bloquear', 'Bloquear');
+      }
+      /* «Separar» es el escape de la agrupacion automatica: el contrato admite dos ecografos con
+         el mismo AET en dos direcciones, y con esto el medico lo dice. NO toca el permiso. */
+      mk(acc, id, 'separar', 'Separar',
+         'btn-ghost', 'Tratar esta dirección como otro equipo, sin tocar su permiso');
+      l2.appendChild(acc);
+    }
+    caja.appendChild(l2);
+  });
+
+  /* El plegable del grupo: el apodo y el resto de las acciones. */
   var d = document.createElement('details');
   d.className = 'clnk-det';
   d.style.cssText = 'margin:5px 0 2px;background:transparent;border:none;';
+  d.setAttribute('data-clnk-det', 'eq:' + g.clave);
   var sm = document.createElement('summary');
   sm.style.cssText = 'font-size:10.5px;font-weight:400;color:var(--text2);min-height:44px;padding:0;';
   sm.textContent = 'Apodo y acciones';
@@ -183432,12 +183747,20 @@ function _clnkFilaEquipo(cont, eq) {
   var cu = _clnkNodo('div', 'padding:0 0 4px;');
   cu.className = 'clnk-det-cuerpo';
   /* El AET también es texto que viene del equipo: `bdi` por el mismo motivo que el apodo. */
-  var aetL = _clnkNodo('div', 'font-size:10.5px;color:var(--text2);margin-bottom:5px;');
-  aetL.appendChild(_clnkNodo('span', '', 'Nombre que declara el equipo (AET): '));
-  var aetB = document.createElement('bdi');
-  aetB.textContent = String((eq && eq.aet) || '—');
-  aetL.appendChild(aetB);
-  cu.appendChild(aetL);
+  ms.forEach(function (eq) {
+    var aetL = _clnkNodo('div', 'font-size:10.5px;color:var(--text2);margin-bottom:5px;');
+    aetL.appendChild(_clnkNodo('span', '', 'Nombre que declara el equipo (AET): '));
+    var aetB = document.createElement('bdi');
+    aetB.textContent = String((eq && eq.aet) || '—');
+    aetL.appendChild(aetB);
+    var ip2 = String((eq && eq.ip) || '');
+    if (!uno && ip2) {
+      var ipB = document.createElement('bdi');
+      ipB.textContent = ' · ' + ip2;
+      aetL.appendChild(ipB);
+    }
+    cu.appendChild(aetL);
+  });
   /* El apodo se edita con `PUT /v1/equipos/{id}`, que NO existe en un conector 1.0: ahí la fila
      de edición no se dibuja, en vez de ofrecer un control que va a dar 404. */
   if (!_clnkVersionVieja) {
@@ -183445,25 +183768,53 @@ function _clnkFilaEquipo(cont, eq) {
     fe.appendChild(_clnkNodo('span', 'font-size:10.5px;color:var(--text2);', 'Apodo'));
     var inp = document.createElement('input');
     inp.type = 'text';
-    inp.value = apodo;
+    /* ══ BLOQUE B · EL BORRADOR MANDA SOBRE LO GUARDADO ════════════════════════════════════
+       Si el medico escribio algo y todavia no apreto «Guardar», lo que se repinta es SU texto y
+       no el del puente: un repintado de fondo que repusiera el valor guardado le borraria el
+       apodo a medio escribir, que es justamente el defecto que esta tanda cierra. */
+    var borr = _clnkApodoBorrador(idPrim);
+    inp.value = (borr === null)
+      ? ((prim && prim.apodo != null) ? String(prim.apodo) : '')
+      : borr;
     inp.maxLength = 40;
     inp.placeholder = 'Como lo llamás vos';
     inp.setAttribute('autocomplete', 'off');
     inp.setAttribute('spellcheck', 'false');
-    inp.setAttribute('data-clnk-apodo', id);
+    inp.setAttribute('data-clnk-apodo', idPrim);
     inp.style.cssText = 'flex:1;min-width:120px;font-size:12px;';
     fe.appendChild(inp);
     var bg = _clnkNodo('button', 'padding:3px 9px;font-size:10.5px;', 'Guardar');
     bg.type = 'button'; bg.className = 'btn btn-ghost';
-    bg.setAttribute('data-clnk-eq', id);
+    bg.setAttribute('data-clnk-eq', idPrim);
     bg.setAttribute('data-clnk-acc', 'apodo');
     fe.appendChild(bg);
     cu.appendChild(fe);
   }
   var bot = _clnkNodo('div', 'display:flex;gap:6px;flex-wrap:wrap;');
-  if (est !== 'autorizado') mk(bot, 'permitir', 'Permitir');
-  if (est !== 'bloqueado')  mk(bot, 'bloquear', 'Bloquear');
-  mk(bot, 'olvidar', 'Olvidar');
+  if (uno) {
+    if (String(prim.estado) !== 'autorizado') mk(bot, idPrim, 'permitir', 'Permitir');
+    if (String(prim.estado) !== 'bloqueado')  mk(bot, idPrim, 'bloquear', 'Bloquear');
+    mk(bot, idPrim, 'olvidar', 'Olvidar');
+  } else {
+    /* ══ A3 · «QUITAR EL VIEJO», UNA DIRECCION A LA VEZ ═════════════════════════════════════
+       Olvidar saca esa direccion de la lista SIN borrar una imagen y SIN tocar el permiso de la
+       que se queda —son dos equipos distintos para el puente—, que es exactamente lo que el
+       pedido pide: «quitar el viejo sin perder el permiso del que se queda». */
+    ms.forEach(function (eq) {
+      var ip3 = String((eq && eq.ip) || '');
+      mk(bot, String(eq.id || ''), 'olvidar',
+         'Olvidar ' + (ip3 || clnkEqProcedencia(eq) || 'esta dirección'), 'btn-ghost',
+         'Saca esta dirección de la lista. No borra ninguna imagen ni toca las demás');
+    });
+  }
+  /* ══ A3 · UNIR DOS EQUIPOS QUE EL MEDICO SABE QUE SON UNO ═══════════════════════════════════
+     El duplicado del VINNO se junta solo, porque el `aet` es el mismo. Esto es para el otro caso:
+     el mismo ecografo que ademas cambio de AET —se le reconfiguro el nombre DICOM— y entonces no
+     hay nada automatico que los pueda juntar. Sale solo si hay otro grupo con el que unirlo. */
+  if (nGrupos > 1) {
+    mk(bot, idPrim, 'unir', 'Unir con otro equipo', 'btn-ghost',
+       'Mostrar dos equipos como uno, con sus direcciones juntas');
+  }
   cu.appendChild(bot);
   d.appendChild(cu);
   caja.appendChild(d);
@@ -183484,6 +183835,19 @@ async function clnkAccionEquipo(id, acc) {
   if (!id || !acc) return;
   var cont = document.getElementById('cfg-clnk-equipos');
   var r;
+  /* ══ TANDA EQ · A1 y A3 · LAS DOS ACCIONES QUE NO PASAN POR EL PUENTE ═══════════════════════
+     Separar y unir cambian COMO SE AGRUPA LA VISTA y nada mas: ni una ruta, ni un permiso, ni una
+     imagen. Van antes de todo lo demas para que quede escrito que no mandan un solo pedido. */
+  if (acc === 'separar') {
+    clnkEqGrupoFijar(id, 'id:' + id);
+    if (typeof toast === 'function') toast('Esta dirección queda como otro equipo');
+    clnkLeerEquipos();
+    return;
+  }
+  if (acc === 'unir') {
+    await clnkEqUnirPreguntar(id);
+    return;
+  }
   if (acc === 'apodo') {
     /* ⚠️ SE BUSCA RECORRIENDO Y NO CON UN SELECTOR ARMADO POR CONCATENACIÓN. El `id` lo da el
        conector, así que no es un literal de este archivo: metido dentro de un selector de
@@ -183501,11 +183865,24 @@ async function clnkAccionEquipo(id, acc) {
       if (typeof toast === 'function') toast('⚠️ El apodo admite hasta 40 caracteres.');
       return;
     }
-    r = await clnkPedir('/v1/equipos/' + encodeURIComponent(id),
-                        { metodo: 'PUT', conToken: true, cuerpo: { apodo: v } });
-    if (!r.vigente) return;
-    if (r.estado === 404 && _clnkVersionVieja) return;     // 1.0: no existe la ruta
-    if (!r.ok) { if (typeof toast === 'function') toast('⚠️ ' + (r.msg || 'No se pudo guardar el apodo.')); return; }
+    /* ══ TANDA EQ · EL APODO ES DEL EQUIPO Y NO DE LA DIRECCION ════════════════════════════
+       Se escribe en TODAS las direcciones del grupo, de a una. El apodo es lo que `clnkNombreEqDe`
+       publica, y es el nombre que el cartel de imagenes usa: puesto en una sola direccion, el
+       mismo ecografo se llamaria de dos formas segun por donde haya llegado el envio.
+       ⚠️ DE A UNA Y EN SERIE, por lo mismo que el adjuntado: cada PUT reinicia nada pero el
+       conector contesta de a uno, y un fallo a mitad de camino se tiene que poder decir. */
+    var ids = clnkEqMiembrosDe(id);
+    var fallo = '';
+    for (var m = 0; m < ids.length; m++) {
+      r = await clnkPedir('/v1/equipos/' + encodeURIComponent(ids[m]),
+                          { metodo: 'PUT', conToken: true, cuerpo: { apodo: v } });
+      if (!r.vigente) return;
+      if (r.estado === 404 && _clnkVersionVieja) return;   // 1.0: no existe la ruta
+      if (!r.ok) { fallo = r.msg || 'No se pudo guardar el apodo.'; break; }
+    }
+    if (fallo) { if (typeof toast === 'function') toast('⚠️ ' + fallo); return; }
+    /* Guardado: el borrador ya no manda, o el campo se quedaria con lo tecleado para siempre. */
+    ids.forEach(function (k) { _clnkApodoOlvidar(k); });
     if (typeof toast === 'function') toast(v ? '✅ Apodo guardado' : '✅ Apodo quitado');
     clnkLeerEquipos();
     return;
@@ -184357,8 +184734,22 @@ var _clnkAvisoGrupo = null;
 function _clnkAvisoTexto(g, nom, cuando) {
   /* `cuando` ya viene con su preposición —«a las 23:43», «ayer a las 23:43»—, que es lo que
      permite que la fecha entre sin que el texto diga «a las ayer». */
-  var t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
-          ' del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
+  var t;
+  /* ══ TANDA EQ · A5 · SI PARTE DEL GRUPO YA SE OFRECIO, EL NUMERO ES EL DE LAS NUEVAS ════════
+     ⚠️ SOLO CUANDO HAY ALGUNA NUEVA Y NO SON TODAS: con el camino forzado —«Ver lo que espera»—
+     `_clnkAvisadas` se ignora a proposito y pueden estar todas avisadas, y ahi el numero que
+     corresponde es el del envio entero. Y «más» en vez de «nuevas» porque `dstCuenta` ya trae su
+     singular: «1 imagen más» se lee bien y «1 imagen nuevas» no. */
+  if (g.nNuevas > 0 && g.nNuevas < g.ids.length) {
+    var tn = g.tiposNuevas || { fija: 0, loop: 0, informe: 0, noVer: 0 };
+    t = 'Llegaron ' + dstCuenta(g.nNuevas, tn.fija, tn.loop, tn.informe, tn.noVer) +
+        ' más del equipo ' + nom + (cuando ? ' ' + cuando : '') + '. En total hay ' +
+        dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
+        ' esperando de este envío: lo que ya adjuntaste no se vuelve a agregar.';
+  } else {
+    t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
+        ' del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
+  }
   /* ══ BLOQUE D · LAS QUE EL MEDICO YA HABIA DESCARTADO ══════════════════════════════════════
      El puente deriva el `id` del contenido, asi que el MISMO archivo re-enviado vuelve con el
      mismo id. Decirlo evita que el medico crea que las que acaba de borrar «volvieron solas»
@@ -184402,6 +184793,33 @@ function _clnkClase(i) {
 }
 window._clnkClase = _clnkClase;
 
+/* ══ TANDA EQ · A5 · CUANTAS DE ESTE GRUPO SON NUEVAS ════════════════════════════════════════
+   EL DEFECTO QUE CIERRA: con un envio de nueve imagenes cuya ultima llega tarde, el segundo
+   cartel decia «Llegaron 9 imagenes» aunque ocho ya se habian ofrecido —y el medico ya las habia
+   adjuntado—. El numero que necesita es el de las NUEVAS.
+
+   ⚠️ SE CUENTA ANTES DE MARCAR, en los dos caminos de `clnkRevisarImagenes`, y por eso hay UN
+   solo dueno: `_clnkAvisadas` se llena justo despues, asi que contar despues daria cero siempre.
+   ⚠️ SE CUENTA TAMBIEN POR TIPO: el texto arma «2 imagenes y 1 cineloop» con `dstCuenta`, asi que
+   con el total por tipo y el numero de nuevas la frase diria «llegaron 3 mas» sobre los tipos de
+   las nueve. Son los tipos DE LAS NUEVAS.
+   ⚠️ Y EL CARTEL SIGUE OFRECIENDO EL GRUPO ENTERO, a proposito: una imagen que el medico dejo en
+   «Mas tarde» no se puede perder porque despues llego otra. Lo que evita que algo entre dos veces
+   es la deduplicacion por archivo de la PARTE 1 —nombre mas hash del contenido, persistida en
+   `_srcKey`—, no un recorte de lo que se ofrece. */
+function _clnkNuevas(g) {
+  var c = { fija: 0, loop: 0, informe: 0, noVer: 0 };
+  var n = 0;
+  (g.ids || []).forEach(function (id) { if (!_clnkAvisadas[id]) n++; });
+  (g.imagenes || []).forEach(function (i) {
+    if (i && !_clnkAvisadas[String(i.id)]) c[_clnkClase(i)]++;
+  });
+  g.nNuevas = n;
+  g.tiposNuevas = c;
+  return g;
+}
+window._clnkNuevas = _clnkNuevas;
+
 /* Cuenta por clase de un grupo. */
 function _clnkTipos(g) {
   var c = { fija: 0, loop: 0, informe: 0, noVer: 0 };
@@ -184444,6 +184862,7 @@ async function clnkRevisarImagenes(forzar) {
              g.ids.some(function (id) { return prev.ids.indexOf(id) >= 0; });
     })[0];
     if (!g2 || g2.ids.length <= prev.ids.length) return false;
+    _clnkNuevas(g2);                      // TANDA EQ · A5 · ANTES de marcar
     g2.ids.forEach(function (id) { _clnkAvisadas[id] = true; });
     _clnkAvisoGrupo = g2;
     /* ⚠️ LAS ACCIONES PRIMERO Y EL TÍTULO DESPUÉS, Y NO ES UN GUSTO DE ORDEN: rearmar llama a
@@ -184472,6 +184891,7 @@ async function clnkRevisarImagenes(forzar) {
   if (!grupos.length) return false;
   await _clnkCargarNombresEq();
   var g = grupos[0];
+  _clnkNuevas(g);                         // TANDA EQ · A5 · ANTES de marcar
   g.ids.forEach(function (id) { _clnkAvisadas[id] = true; });
   _clnkAvisoGrupo = g;
   _clnkAvisoArmarAcciones(g);
@@ -185650,6 +186070,49 @@ async function clnkAvisarEquipoNuevo() {
   if (!eq) return false;
   _clnkEqAvisados[String(eq.id)] = true;
   var id = String(eq.id);
+  /* ══ TANDA EQ · A2 · UN NOMBRE CONOCIDO DESDE UNA DIRECCION NUEVA ══════════════════════════
+     El puente hace bien en volver a preguntar —la identidad es AET + IP (§3.4)— pero el medico no
+     tiene con que decidir: ve «Un equipo nuevo, VINNO, mando imagenes» sobre el ecografo que
+     autorizo hace una hora. Si el grupo de este equipo YA tiene una direccion autorizada, la
+     pregunta es la que corresponde.
+
+     ⚠️ NO SE AUTORIZA SOLO: la respuesta la da el medico, y el «Si» hace exactamente lo que
+     haria «Permitir» —`clnkAccionEquipo(id, 'permitir')`, la misma ruta y la misma
+     confirmacion—. Lo que se evita es tener que adivinar si es el mismo equipo.
+     ⚠️ EL «NO» LO SEPARA, y eso no es cosmetico: queda como equipo propio, en su renglon, y SIGUE
+     EN CUARENTENA —el contrato dice que dos ecografos pueden compartir el AET, y ese es
+     justamente el caso que el «No» declara—.
+     ⚠️ SE USAN CALLBACKS Y NO `clnkAvisoPreguntar`: esta funcion la espera el sondeo, y una
+     promesa que se resuelve cuando el medico hace clic dejaria el sondeo parado mientras piensa. */
+  var hermanas = l.filter(function (e) {
+    return e && String(e.id) !== id && String(e.estado) === 'autorizado' &&
+           clnkEqGrupoDe(e) === clnkEqGrupoDe(eq);
+  });
+  if (hermanas.length) {
+    var nomH = clnkNombreEqDe(hermanas[0]) || clnkNombreEqDe(eq) || id;
+    var ipN = String(eq.ip || ''), ipV = String(hermanas[0].ip || '');
+    var rotN = clnkEqConexion(ipN), rotV = clnkEqConexion(ipV);
+    clnkAvisoAbrir(
+      '¿Es el mismo ' + nomH + ' con otra dirección?',
+      'Llegaron imágenes de un equipo que se llama igual que uno que ya autorizaste, pero desde ' +
+      'otra dirección' + (ipN ? ' (' + ipN + (rotN ? ', ' + rotN : '') + ')' : '') +
+      '. El que ya tenés autorizado llega desde ' + (ipV || 'otra dirección') +
+      (rotV ? ' (' + rotV + ')' : '') + '. Pasa cuando el mismo ecógrafo se conecta por el cable ' +
+      'y por el router. Si es el mismo, se suma a su renglón y no vuelve a pedirte permiso; si es ' +
+      'otro equipo, queda esperando tu decisión como uno nuevo.',
+      [{ txt: '✅ Sí, es el mismo', fn: function () {
+           clnkAvisoCerrar();
+           clnkAccionEquipo(id, 'permitir');
+         } },
+       { txt: 'No, es otro equipo', fn: function () {
+           clnkAvisoCerrar();
+           clnkEqGrupoFijar(id, 'id:' + id);
+           if (typeof toast === 'function') toast('Queda como equipo nuevo, esperando tu decisión');
+           clnkLeerEquipos();
+         } },
+       { txt: 'Más tarde', fn: function () { clnkAvisoCerrar(); } }]);
+    return true;
+  }
   /* ══ BLOQUE I · EL NOMBRE EN CRIOLLO Y DE DÓNDE VINO ══════════════════════════════════════
      Hasta el prompt 6 acá iba el AET pelado, así que el aviso de un equipo de carpeta decía
      «Un equipo nuevo, BUZON:, mandó imágenes» — y ésta es la pantalla donde el médico decide.
@@ -185678,6 +186141,62 @@ async function clnkAvisarEquipoNuevo() {
   return true;
 }
 window.clnkAvisarEquipoNuevo = clnkAvisarEquipoNuevo;
+
+/* ══ TANDA EQ · A3 · UNIR DOS EQUIPOS QUE SON UNO ═════════════════════════════════════════════
+   El duplicado del VINNO se junta solo, porque el `aet` es el mismo. Esto es para el otro caso: el
+   mismo ecografo al que ademas se le cambio el nombre DICOM, donde no hay nada automatico que los
+   pueda juntar.
+
+   ⚠️ LA LISTA VA EN UN DESPLEGABLE Y NO EN LOS BOTONES DEL CARTEL, y es una medicion: el cartel
+   tiene CINCO ranuras de boton (`CLNK_AV_BOTONES`), asi que con cinco equipos en la lista no habria
+   donde poner «Cancelar». El desplegable no tiene tope.
+   ⚠️ Y VA SIN `id`: el censo del estudio y el Excel recorren los controles con `id`, asi que un
+   `select` con id entraria a las 457 columnas por existir. Se alcanza por `data-clnk-unir`.
+   ⚠️ SE LEE EL VALOR ANTES DE RESOLVER: `clnkAvisoPreguntar` repone el cuerpo del modal al
+   terminar, asi que el nodo queda desprendido —se sigue pudiendo leer, pero no buscar por el DOM—.
+   Por eso la referencia se guarda en la cerradura y no se vuelve a consultar el documento. */
+async function clnkEqUnirPreguntar(id) {
+  var yo = (_clnkEqLista || []).filter(function (e) { return e && String(e.id) === String(id); })[0];
+  if (!yo) return false;
+  var miCl = clnkEqGrupoDe(yo);
+  var grupos = clnkEqAgrupar(_clnkEqLista || []).filter(function (g) { return g.clave !== miCl; });
+  if (!grupos.length) {
+    if (typeof toast === 'function') toast('No hay otro equipo con el que unirlo.');
+    return false;
+  }
+  var sel = null;
+  var cl = await clnkAvisoPreguntar(
+    'Unir dos equipos en uno',
+    'Elegí con qué equipo querés unir «' + clnkEqNombreGrupo(clnkEqAgrupar([yo])[0]) + '». ' +
+    'Los dos van a verse como un solo equipo, con sus direcciones juntas. No se toca ningún ' +
+    'permiso ni se borra ninguna imagen, y se puede deshacer con «Separar».',
+    [{ clave: 'unir', txt: '🔗 Unir' }, { clave: '', txt: 'Cancelar' }],
+    function (cu) {
+      if (!cu) return;
+      sel = document.createElement('select');
+      sel.setAttribute('data-clnk-unir', '1');
+      sel.style.cssText = 'width:100%;font-size:12px;';
+      grupos.forEach(function (g, i) {
+        var o = document.createElement('option');
+        o.value = String(i);
+        /* El nombre lo escribio una persona: `textContent` y nunca marcado. */
+        o.textContent = clnkEqNombreGrupo(g) +
+          (g.miembros.length > 1 ? (' (' + g.miembros.length + ' direcciones)') : '');
+        sel.appendChild(o);
+      });
+      cu.appendChild(sel);
+    });
+  if (cl !== 'unir') return false;
+  var i = sel ? (Number(sel.value) || 0) : -1;
+  var destino = grupos[i];
+  if (!destino) return false;
+  /* Todas las direcciones de MI grupo pasan al grupo elegido. */
+  clnkEqMiembrosDe(id).forEach(function (k) { clnkEqGrupoFijar(k, destino.clave); });
+  if (typeof toast === 'function') toast('🔗 Equipos unidos');
+  clnkLeerEquipos();
+  return true;
+}
+window.clnkEqUnirPreguntar = clnkEqUnirPreguntar;
 
 /* ══ ADJUNTAR AL ESTUDIO ACTUAL (decisión 4) ═════════════════════════════════
    Por cada imagen: se baja el DICOM, se envuelve en un File y entra por `mediosImportar`, que es
@@ -186691,7 +187210,26 @@ async function _clnkSondear(forzado) {
     /* EQUIPO NUEVO PRIMERO: hasta que el médico decida, las imágenes de ese equipo están en
        cuarentena y NO salen en la lista (§3.8), así que avisar de las imágenes antes sería
        mandarlo a buscar algo que todavía no puede levantar. */
-    if ((Number(d.equipos_esperando) || 0) > 0) { clnkAvisarEquipoNuevo(); return; }
+    /* ══ TANDA EQ · A4 · SOLO SE VUELVE SI DE VERDAD SE ABRIO EL AVISO ════════════════════
+       EL DEFECTO, MEDIDO: esta linea devolvia SIEMPRE que hubiera un equipo esperando decision,
+       y `clnkAvisarEquipoNuevo` no vuelve por el MISMO equipo en la misma sesion. O sea que
+       bastaba UN equipo pendiente ya avisado —el segundo «Vinno» del duplicado, o uno que el
+       medico dejo en «Mas tarde»— para que el sondeo NUNCA MAS llegara a revisar las imagenes:
+       el cartel de «llegaron imagenes» no salia aunque hubiera imagenes esperando, y el unico
+       camino que seguia funcionando era «Ver lo que espera», que llama forzado. Es exactamente
+       lo que el medico reporto, y la hipotesis de que «solo se dispara cuando el numero aumenta»
+       quedo DESMENTIDA: con cero equipos pendientes el mismo numero quieto saca el cartel.
+       Medido en `scripts/_probe_eq0.mjs`: dos turnos sin cartel con el pendiente puesto, cartel
+       en el turno siguiente al sacarlo, con las mismas dos imagenes esperando.
+       ⚠️ SE ESPERA EL RESULTADO: sin el `await`, la promesa devuelve un objeto —que es
+       verdadero— y el `return` seguiria pasando siempre. */
+    if ((Number(d.equipos_esperando) || 0) > 0) {
+      var abrio = false;
+      try { abrio = await clnkAvisarEquipoNuevo(); } catch (e) { abrio = false; }
+      /* EQUIPO NUEVO PRIMERO sigue valiendo: si se abrio la pregunta, el turno termina ahi. Lo
+         que ya no pasa es quedarse en este punto cuando no habia nada que preguntar. */
+      if (abrio) return;
+    }
     /* ══ BLOQUE A · LA TANDA, ANTES QUE LA LISTA ═══════════════════════════════════════════
        Con una tanda ABIERTA el cartel sale con la primera imagen y el numero sube en cada turno,
        sin pedir la lista: eso es para lo que estan los cuatro campos de §3.1. Cuando la tanda
