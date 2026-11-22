@@ -143384,7 +143384,14 @@ const DCMIMG_UNI_SEG = 4;           // 4 = segundos
 
 function _dcmImgRegionVelocidad(r) {
   return !!(r && r.uy === DCMIMG_UNI_CMS && r.dy && isFinite(r.dy) && r.dy !== 0 &&
-            r.ry0 != null && isFinite(r.ry0));
+            r.ry0 != null && isFinite(r.ry0) &&
+            /* P10 - LA FILA DEL CERO NECESITA LAS DOS PIEZAS, no solo `ry0`. `ry0` es un
+               DESPLAZAMIENTO desde el borde de arriba del recuadro, asi que sin
+               `RegionLocationMinY0` no hay fila que calcular. Es Tipo 1 en el estandar -o sea
+               obligatorio- pero se exige igual: un archivo roto que la omita tiene que caer en
+               -no se puede medir velocidad aca-, que es el lado seguro, y no en una fila cero
+               corrida por el alto entero del recuadro. */
+            r.y0 != null && isFinite(r.y0));
 }
 
 /* ¿Se puede medir un TIEMPO en esta región? Alcanza con que el eje X esté en segundos.
@@ -143407,11 +143414,77 @@ function _dcmImgMsEntre(r, x1, x2) {
   return Math.abs(x2 - x1) * r.dx * 1000;
 }
 
-/* cm/s en el punto, según la propia región. `rvy` es el valor físico en el píxel de
-   referencia: es 0 en los 132 casos medidos, pero se usa igual en vez de suponerlo. */
-function _dcmImgVelocidadEn(r, y) {
-  return (r.rvy || 0) + (y - r.ry0) * r.dy;
+/* ══ P10 — LA FILA DE LA LÍNEA DE CERO DE UNA REGIÓN ESPECTRAL ═══════════════════════
+
+   ⚠️ ESTE ERA EL DEFECTO DEL VTI DE 136,7 cm DEL VINNO, y afectaba a TODA velocidad del
+   visor. `ReferencePixelY0` (0018,6022) **NO es una fila de la imagen**: es un DESPLAZAMIENTO
+   desde `RegionLocationMinY0` (0018,601A), o sea desde el borde de arriba del recuadro. Lo dice
+   el estándar —PS3.3 C.8.5.5, aclarado por el Supplement 84— y para una región Doppler ese
+   píxel es la línea de cero velocidad.
+
+   Leerlo como absoluto metía un OFFSET CONSTANTE de `y0 · dy` cm/s en cada velocidad, que
+   arrastraba la Vmax, los dos gradientes —4V², así que el error entra al cuadrado— y el VTI
+   —offset × tiempo—. Medido sobre el pendrive: de 22,8 a 292,1 cm/s, mediana 110,1 (1,1 m/s).
+
+   LA MEDICIÓN QUE LO DECIDE, en `scripts/_probe_p10regs.mjs` sobre 138 regiones con el eje Y en
+   cm/s: leído RELATIVO, el cero cae dentro del recuadro en las **138 de 138**; leído ABSOLUTO,
+   en **71**. Y `rx0` cae en un borde del recuadro en 97 de 138 leído relativo y en NINGUNA
+   leído absoluto. El caso que lo decide solo es un tisular (`dy = −0,1119`): relativo da
+   ±25 cm/s con la base centrada, absoluto da 0 a −49 con la base en el borde de arriba, y ahí
+   la e′ y la a′ no se podrían medir.
+
+   NO TOCA EL EJE DEL TIEMPO ni las distancias 2D: los dos salen de una DIFERENCIA de píxeles,
+   donde el píxel de referencia se cancela. Por eso los 305 ms del caso del VINNO eran correctos
+   y el VTI no.
+
+   Es un DUEÑO ÚNICO a propósito: la fila del cero la necesitan la velocidad, el chequeo de
+   coherencia y la línea que el visor dibuja hasta la base. Con la cuenta escrita en tres
+   lugares, el día que cambie uno de los tres quedaría viejo. */
+function _dcmImgBaseY(r) {
+  return (r && isFinite(r.y0) ? r.y0 : 0) + (r ? r.ry0 : 0);
 }
+
+/* cm/s en el punto, según la propia región. `rvy` es el valor físico en el píxel de
+   referencia: es 0 en los 138 casos medidos, pero se usa igual en vez de suponerlo. */
+function _dcmImgVelocidadEn(r, y) {
+  return (r.rvy || 0) + (y - _dcmImgBaseY(r)) * r.dy;
+}
+window._dcmImgBaseY = _dcmImgBaseY;
+
+/* ══ P10 (2.2) — ¿LA ESCALA DE VELOCIDAD DE ESTA REGIÓN ES CONFIABLE? ═════════════════════════
+
+   Devuelve el MOTIVO en una línea, o `null` si no hay nada que objetar. Es un chequeo de la
+   ESCALA, no un criterio clínico: no mira si la velocidad es alta o baja, mira si el archivo
+   describe un eje que pueda ser el de un Doppler.
+
+   LO ÚNICO QUE COMPRUEBA ES QUE EL CERO CAIGA DENTRO DEL RECUADRO DEL TRAZO, y es exactamente
+   el detector de la clase de defecto que esta tanda corrigió: con la lectura vieja —`ry0` como
+   fila absoluta— el cero se iba fuera del recuadro en **67 de las 138** regiones de velocidad
+   del pendrive, y en el caso del VINNO se iba unos 400 píxeles por encima. Con la lectura
+   corregida cae dentro en las **138 de 138**, así que sobre datos reales este aviso **no sale
+   nunca** — y si mañana un equipo escribe el píxel de referencia con otra convención, sale.
+
+   ⚠️ AVISA, NO RECHAZA, y es deliberado. Un equipo PUEDE correr la línea de base fuera del
+   recuadro para ganar rango en un flujo de un solo sentido; ahí este aviso es un falso positivo.
+   Rechazar le sacaría al médico una medición buena; avisar le deja el número, la marca de que la
+   escala es dudosa y el camino a calibrar a mano, que es lo que el pedido pide.
+
+   ⚠️ Y NO SE APLICA CON LA CALIBRACIÓN MANUAL PUESTA: ahí la escala la fijó el médico y la del
+   archivo ya no se usa para nada. Esa precedencia la decide quien llama, igual que
+   `_vtiVelCmsEn`. */
+const MED_ESC_DUDOSA = 'La escala de velocidad de esta imagen no se pudo leer bien; el valor puede no ser confiable.';
+
+function _dcmImgEscalaVelDudosa(r) {
+  if (!r || !_dcmImgRegionVelocidad(r)) return null;
+  if (r.y0 == null || r.y1 == null || !isFinite(r.y0) || !isFinite(r.y1)) return null;
+  const b = _dcmImgBaseY(r);
+  if (b >= r.y0 && b <= r.y1) return null;
+  return 'El archivo pone la línea de cero velocidad ' +
+         Math.round(b < r.y0 ? (r.y0 - b) : (b - r.y1)) + ' píxeles ' +
+         (b < r.y0 ? 'por encima' : 'por debajo') + ' del recuadro del trazo, o sea fuera de lo ' +
+         'que se ve.';
+}
+window._dcmImgEscalaVelDudosa = _dcmImgEscalaVelDudosa;
 
 /* ¿Se puede medir un VTI acá? EXIGE LOS DOS EJES, y eso lo separa de sus dos vecinas: la
    velocidad sólo necesita el eje Y en cm/s y el tiempo sólo el eje X en segundos, pero el VTI
@@ -143537,7 +143610,11 @@ function _vtiDe(pts) {
      0,5-150 cm no hay VTI fisiológico posible: es un trazo mal hecho o una escala equivocada,
      y publicar el número sería peor que no medir. Misma regla que la banda de `eteQpQs`. */
   if (cm < 0.5 || cm > 150) {
-    return { ok:false, motivo:'El VTI sale en ' + cm.toFixed(1) + ' cm, que no es un valor posible.\n\nRevisá que hayas recorrido la envolvente de un solo latido y dentro del trazo espectral.' };
+    /* P10 (2.2) — EL MENSAJE NOMBRA LA ESCALA Y OFRECE CALIBRARLA. El corte de la banda NO se
+       movió: lo que cambia es que antes mandaba a revisar el trazo y nada más, y la mitad de las
+       veces el trazo está bien y lo que está mal es el eje. */
+    return { ok:false, motivo:'El VTI sale en ' + cm.toFixed(1) + ' cm, que no es un valor posible.\n\nRevisá que hayas recorrido la envolvente de un solo latido y dentro del trazo espectral.' +
+      (_medCalibVel ? '' : '\n\nSi el trazo está bien, la escala de velocidad de esta imagen puede estar mal leída: usá «Calibrar vel.» y volvé a trazar.') };
   }
   /* El PICO, que es lo que el médico reconoce de un vistazo y sirve para verificar el trazo. */
   let pico = 0;
@@ -143551,7 +143628,10 @@ function _vtiDe(pts) {
            gradMedio: segundos > 0 ? gradSeg / segundos : null,
            /* DE DÓNDE SALIÓ LA ESCALA. Conviven dos fuentes y el panel tiene que poder decirlo:
               «un número de velocidad sin saber de dónde salió la escala no se puede auditar». */
-           velManual: !!_medCalibVel };
+           velManual: !!_medCalibVel,
+           /* P10 (2.2) — LA ESCALA DEL ARCHIVO ES DUDOSA. Sólo tiene sentido cuando la velocidad
+              salió del archivo: con la calibración manual puesta, la del archivo no se usó. */
+           escalaDudosa: _medCalibVel ? null : _dcmImgEscalaVelDudosa(r0) };
 }
 
 /* ── CALIBRACIÓN MANUAL DE VELOCIDAD ─────────────────────────────────────────────────────
@@ -147713,7 +147793,11 @@ function _medAreaUp() {
        derivación del mismo hecho — y `velManual` ni siquiera se podría reconstruir, porque la
        calibración puede haber cambiado entre que se trazó y que se lee el panel. */
     _medVtis.push(_medSello({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms,
-                    gradMax: r.gradMax, gradMedio: r.gradMedio, velManual: r.velManual }));
+                    gradMax: r.gradMax, gradMedio: r.gradMedio, velManual: r.velManual,
+                    escalaDudosa: r.escalaDudosa || null }));
+    /* P10 (2.2) — el aviso sale DESPUÉS de guardar la medición, no en vez de ella: el pedido
+       dice que no se muestre «como si fuera confiable», no que se tire. La fila queda marcada. */
+    if (r.escalaDudosa) { try { _medEscalaCartel(r.escalaDudosa); } catch (e) {} }
     /* /* El cajón Doppler CAPTURA acá y no lee las listas después: `medCambioDeImagen` las
        vacía al cambiar de cineloop. Envuelto porque una falla del cajón no puede llevarse
        puesta la medición que el médico acaba de hacer. */
@@ -152340,7 +152424,15 @@ function _medVelClic(ev) {
   }
   const cms = _dcmImgVelocidadEn(r, p.y);
   const ms = cms / 100;
-  _medVels.push(_medSello({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: r.ry0 }));
+  /* ⚠️ SE GUARDA LA FILA DEL CERO YA RESUELTA Y NO EL `ry0` CRUDO (P10): de ella sale la
+     línea punteada que el visor dibuja desde la marca hasta la base, y con el valor crudo esa
+     línea apuntaba al mismo lugar equivocado del que salía la velocidad —o sea que el dibujo
+     confirmaba el error en vez de delatarlo—. Es el mismo número que usa `_dcmImgVelocidadEn`,
+     por su dueño único. */
+  const _escDud = _dcmImgEscalaVelDudosa(r);
+  _medVels.push(_medSello({ x:p.x, y:p.y, cms, ms, mmHg: 4 * ms * ms, ry0: _dcmImgBaseY(r),
+                  escalaDudosa: _escDud || null }));
+  if (_escDud) { try { _medEscalaCartel(_escDud); } catch (e) {} }
   try { if (typeof _dopCapturar === 'function') _dopCapturar('vel', { ms, mmHg: 4 * ms * ms }); } catch (e) {}
   _medPintar(); _medEstado();
 }
@@ -152507,6 +152599,84 @@ function _medCalPedirMm() {
   });
 }
 window._medCalPedirMm = _medCalPedirMm;
+
+/* ══ P10 (2.2) — EL CARTEL DE «ESTA ESCALA NO SE PUDO LEER BIEN» ═════════════════════════════
+
+   Cartel PROPIO de EcoSmart, con el molde de `_medCalPedirMm`: se crea al llamarlo y se destruye
+   al cerrarlo —así no deja ningún nodo que los barridos por sufijo de «Nuevo estudio» puedan
+   alcanzar—, Escape va cortado en CAPTURA para que no cierre el visor con la medición a medio
+   hacer, y todo entra por `textContent`.
+
+   ⚠️ NO DEVUELVE UNA PROMESA Y NO BLOQUEA NADA. La medición ya está hecha y guardada cuando esto
+   sale: el cartel informa y ofrece un camino, no decide. Una promesa que sólo un clic resuelve es
+   lo que colgó la pasada de la tanda EQ hora y media en el lote 18.
+
+   ⚠️ Y SALE UNA SOLA VEZ POR IMAGEN. Con el aviso en cada trazo, el médico que mide cinco
+   envolventes de la misma imagen lo cierra cinco veces y a la tercera lo cierra sin leerlo — que
+   es cómo un aviso deja de proteger. La marca por fila queda igual en las cinco. */
+let _medEscDudAvisado = false;
+
+function _medEscalaCartel(motivo) {
+  if (_medEscDudAvisado) return;
+  _medEscDudAvisado = true;
+  const ov = document.createElement('div');
+  ov.setAttribute('data-med-escdud', 'ov');
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+    'display:flex;align-items:center;justify-content:center;padding:18px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:400px;width:100%;padding:16px 18px;box-shadow:0 18px 48px rgba(0,0,0,.5);';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:6px;';
+  h.textContent = '⚠️ Escala de velocidad dudosa';
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:8px;';
+  sub.textContent = MED_ESC_DUDOSA;
+  const det = document.createElement('div');
+  det.style.cssText = 'font-size:10.5px;color:var(--text2);line-height:1.5;';
+  det.textContent = String(motivo || '');
+  const fbot = document.createElement('div');
+  fbot.style.cssText = 'display:flex;justify-content:flex-end;gap:7px;margin-top:12px;flex-wrap:wrap;';
+  const bcal = document.createElement('button');
+  bcal.type = 'button'; bcal.className = 'btn btn-primary';
+  bcal.setAttribute('data-med-escdud', 'cal');
+  bcal.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+  bcal.textContent = 'Calibrar a mano';
+  const bok = document.createElement('button');
+  bok.type = 'button'; bok.className = 'btn btn-ghost';
+  bok.setAttribute('data-med-escdud', 'ok');
+  bok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+  bok.textContent = 'Entendido';
+  fbot.appendChild(bcal); fbot.appendChild(bok);
+  caja.appendChild(h); caja.appendChild(sub); caja.appendChild(det); caja.appendChild(fbot);
+  ov.appendChild(caja);
+  let cerrado = false;
+  const cerrar = () => {
+    if (cerrado) return;
+    cerrado = true;
+    document.removeEventListener('keydown', esc, true);
+    try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+  };
+  const esc = ev => {
+    if (ev.key !== 'Escape') return;
+    ev.stopImmediatePropagation(); ev.stopPropagation();
+    cerrar();
+  };
+  bok.addEventListener('click', cerrar);
+  bcal.addEventListener('click', () => {
+    cerrar();
+    /* El MISMO camino que el botón «Calibrar vel.» de la barra, y no una copia: con dos, el día
+       que la calibración necesite un paso más uno de los dos quedaría sin él. */
+    try { medCalibrarVelocidad(); } catch (e) {}
+  });
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', esc, true);
+  document.body.appendChild(ov);
+  try { bok.focus(); } catch (e) {}
+}
+window._medEscalaCartel = _medEscalaCartel;
 
 /* ══ PUNTO 1d — LA CONFIRMACION, EN UN SOLO LUGAR ════════════════════════════════════════════
    Un dueño unico para la frase: la dice el aviso del momento en que se calibra Y el panel guia
@@ -152844,6 +153014,10 @@ function medCambioDeImagen() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   _medCalibVel = null; _medCalibrandoVel = false;  // ídem la de velocidad
+  /* P10 — el aviso de escala dudosa vuelve a estar disponible con la imagen nueva. Pegado a la
+     imagen y no a la sesión: la de al lado puede traer la escala bien o traerla igual de mal, y
+     en los dos casos el médico tiene que enterarse. */
+  _medEscDudAvisado = false;
   _medCalVelP0 = null;                             // MEDIR-3: y su primera marca con ella
   if (_simp) {
     _simp.pendiente = null;                        // el trazado sin confirmar era de la otra imagen
