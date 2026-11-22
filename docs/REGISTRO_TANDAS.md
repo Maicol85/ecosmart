@@ -4300,6 +4300,20 @@ tamaño y el segundo Esc cierra; las medidas quedan atadas a su cuadro y **vuelv
 dejó de dibujar el contorno de la diástole al empezar la sístole —medido por píxeles: **4235 → 0**,
 con su control positivo—.
 
+### La línea base al cierre
+
+**Suite 1017/1024** en **diecinueve** lotes, los 1024 ejecutados, en una sola pasada sobre el
+árbol sellado, md5 idéntico antes y después (`0de4570e`), el pendrive verificado veintiuna veces
+con sus 343 archivos y ningún lote cortado por tiempo. **Siete rojos y ninguno de la tanda:**
+TC-376, TC-406 y TC-551 fallan **idénticos contra `1d7caeb`**, y TC-557, TC-562, TC-706 y TC-899
+pasan en una selección chica —sensibilidad de lote, los cuatro ya declarados—. TC-182, TC-889 y
+TC-903 salieron verdes.
+
+**Chrome y WebKit coinciden en los doce cruces** (dos motores × tres tamaños × dos temas reales),
+con una sola combinación de valores por tamaño, desplazamiento del modal **cero** en los doce,
+solape de la columna **cero**, el milímetro guardado idéntico al cambiar de tamaño y **cero
+errores de consola y de página en los dos motores**.
+
 ### Las trampas que esta tanda pagó
 
 - **El acento grave dentro de mis propios comentarios en el cuerpo de un caso**, por trigésima

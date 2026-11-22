@@ -1830,6 +1830,38 @@ de pantalla ya no es un píxel de imagen. TC-257 pasa a clickear en píxeles de 
 inversa exacta de `_medPunto`— y a tolerar 0,3 mm; TC-250 cambia una **igualdad exacta de
 flotantes** por una tolerancia. Declarados en **P11-b**.
 
+**LÍNEA BASE AL CIERRE: suite 1017/1024**, en **DIECINUEVE** lotes cubriendo los **1024 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada
+sobre el árbol sellado, con los **1024 ejecutados**, el md5 de `index.html` **idéntico** antes y
+después (`0de4570e`), el pendrive `DISK_IMG` verificado **veintiuna** veces leyendo DICOMDIR con
+sus **343** archivos de `GEMS_IMG`, **ningún lote cortado por tiempo** y **ningún archivo del
+repositorio tocado mientras corría** —el sello y los documentos se escribieron ANTES, que es la
+lección que PANT-20 y el cierre de P6-j pagaron con TC-753 en rojo con razón—.
+
+**Los SIETE rojos, y NINGUNO es de esta tanda**, medido de las dos formas que esta casa manda:
+
+- **TC-376, TC-406 y TC-551** fallan **idénticos contra `1d7caeb`** con el mismo archivo de casos
+  y sólo el `index.html` distinto. Los dos primeros son los «de siempre»; el tercero es el que
+  **COR-f** declara —mide el chorro de la orejuela sin pausar la animación—.
+- **TC-557, TC-562, TC-706 y TC-899** son **sensibilidad de lote** y los cuatro **pasan en una
+  selección chica**: los cuatro ya están declarados —TC-557 en `TGA-h`, TC-562 y TC-706 entre los
+  cinco intermitentes que MEDIR-5 declara, y TC-899 con la nota de P10 de que falla igual contra
+  la base—.
+- **TC-182, TC-889 y TC-903**, los otros tres intermitentes declarados, salieron **VERDES**.
+
+**Los ocho casos nuevos y los dos adaptados, en verde.**
+
+**CHROME Y WEBKIT COINCIDEN EN LOS DOCE CRUCES** (dos motores × 1440×900, 1920×1080 y 2560×1440 ×
+los dos temas **reales**, puestos con `ett_theme` más `loadTheme()` y **devueltos** por la sonda),
+con **UNA sola combinación de valores por tamaño** e idéntica entre motores: la imagen en
+**941×656 / 1184×825 / 1670×1164** en Normal y **1018×709 / 1325×923 / 1841×1283** en pantalla
+completa, **desplazamiento del modal CERO** en los doce, **solape de la columna sobre la imagen
+CERO**, la barra en la columna, «Capturar» y el botón de tamaño sobre la imagen, el **milímetro
+guardado idéntico** al cambiar de tamaño, el primer Esc **saliendo del tamaño sin cerrar**, las dos
+vistas con **UNA** columna que **sigue al foco**, **cero ids duplicados** y **CERO errores de
+consola y de página en los dos motores**.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+
 **VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
 **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
 
