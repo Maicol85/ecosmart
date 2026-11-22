@@ -23647,30 +23647,50 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
 <!-- ═══════════════════════ TAB: IMÁGENES ═══════════════════════ -->
 <div id="tab-imagenes" class="tab-section">
   <div class="card">
-    <h2 class="card-head">🖼️ Biblioteca de imágenes del estudio</h2>
+    <h2 class="card-head">🖼️ Imágenes del estudio</h2>
     <div class="card-body">
       <!-- ⚠️ P8 · ESTE TEXTO DECIA «con qué calidad sale en el PDF» SOBRE TODAS LAS IMAGENES, Y
            DEJO DE SER CIERTO: desde esta tanda una imagen que llega NO sale en el PDF hasta que
            el medico la manda. El texto nuevo dice las dos mitades --que todo lo que llega vive
            aca, y como se manda al informe-- porque la mitad que falta es la que hace que el
            medico crea que perdio sus imagenes. -->
-      <p style="font-size:11px;color:var(--text2);margin:0 0 10px;">Acá vive <b>todo lo que llega</b> al estudio: del ecógrafo por cable, del pendrive, por archivo, por cámara o pegando con Ctrl/Cmd+V. <b>Nada sale en el PDF hasta que vos lo mandes</b>: tocá la pastilla <b>＋ AL PDF</b> de cada imagen, arrastrala a la fila de miniaturas del Informe, o usá «Todas al PDF». La pastilla verde <b>✓ EN EL PDF</b> se toca otra vez para sacarla del informe — <b>la imagen no se borra</b>. La ✕ roja sí la borra de la biblioteca, y pregunta antes. Doble click (PC) o tap prolongado (mobile) la marca como <b>ampliada</b> (ancho completo y media página en el PDF). Reordená arrastrando. Si activás «Guardar imágenes con los estudios» en ⚙️ Config quedan guardadas en este dispositivo y vuelven al reabrir el estudio; si no, viven sólo en esta sesión. <b>Al exportar podés elegir si van</b>: el nivel «Informes + imágenes» las incluye y el «Backup completo» suma además cineloops y videos.</p>
+      <!-- ══ P9 · 1.1 y 1.2 · DOS SECCIONES, Y EL ORDEN ES EL DEL MEDICO ═══════════════
+           ARRIBA lo que va al PDF, ABAJO la biblioteca con todo lo que llega. Hasta P8 habia
+           UNA sola grilla --la biblioteca-- y el estado de PDF vivia en una pastilla adentro
+           de cada celda: para saber que sale en el informe habia que leer veintidos pastillas,
+           una por una. El medico probo eso en Windows y pidio este modelo.
+           ⚠️ LAS DOS GRILLAS LEEN EL MISMO `imgSlots` CON EL MISMO PREDICADO (`_imgEnPdf`), y
+           las repinta el MISMO dueño (`imgRender`): no hay una segunda lista que pueda decir
+           otra cosa, que es exactamente lo que el modelo de dos listas suele costar. Y la de
+           arriba es la MISMA lista que las miniaturas del Informe --las dos salen de
+           `infMinCapturas()`-- asi que sacar de una es sacar de la otra, por construccion. -->
+      <h3 style="font-size:13px;font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:7px;">📄 Imágenes que van al PDF <span id="img-pdf-cnt" style="font-size:10.5px;font-weight:600;color:var(--text2);"></span></h3>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 8px;line-height:1.5;">Se eligen <b>arrastrando desde la biblioteca</b> o con el botón <b>AL PDF</b> de cada miniatura. La <b>✕ roja</b> de acá arriba <b>sólo la saca del PDF</b>: la imagen sigue en la biblioteca.</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <!-- ⚠️ LOS DOS BOTONES DE LOTE SE MUDAN ACA, a la seccion que gobiernan. En P8 vivian
+             en la fila de «Cantidad de slots» de la biblioteca, que es la otra seccion: un
+             control que cambia lo de arriba parado abajo. Conservan sus `id`, que los miran
+             dos casos de la bateria. -->
+        <button type="button" class="btn btn-ghost" id="img-pdf-todas" style="padding:5px 12px;"
+                title="Manda al PDF todas las imágenes de la biblioteca (los videos y los esquemas no se tocan)"
+                onclick="imgPdfTodas(true)">📄 Todas al PDF</button>
+        <button type="button" class="btn btn-ghost" id="img-pdf-ninguna" style="padding:5px 12px;"
+                title="Saca del PDF todas las imágenes. No borra ninguna: siguen en la biblioteca"
+                onclick="imgPdfTodas(false)">🗂 Ninguna al PDF</button>
+      </div>
+      <!-- La grilla de arriba. Nace VACIA y puede quedarse vacia: es el estado normal de un
+           estudio recien llegado del ecografo, y el renglon de adentro lo dice con palabras en
+           vez de dejar un hueco que se lee como un error. -->
+      <div id="img-pdf-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:64px;"></div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 12px;"></div>
+      <h3 style="font-size:13px;font-weight:700;margin:0 0 4px;">🗂 Biblioteca de imágenes del estudio</h3>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 8px;line-height:1.5;">Acá llega <b>todo</b>: del ecógrafo por cable o Wi-Fi, del pendrive y de archivos. La <b>✕ roja</b> de acá abajo <b>la elimina</b> —pregunta antes—. Doble click (PC) o tap prolongado (mobile) la marca como <b>ampliada</b>: sale a ancho completo en el PDF. Los <b>videos y cineloops</b> viven acá y <b>nunca</b> salen en el PDF. Con «Guardar imágenes con los estudios» de ⚙️ Config quedan en este dispositivo y vuelven al reabrir el estudio.</p>
       <!-- El renglon de cuenta: lo escribe `imgRender` y es lo que deja ver de un vistazo que
            hay veintidos en la biblioteca y ninguna en el papel. -->
       <div id="img-cuenta" style="font-size:11.5px;color:var(--text2);margin:0 0 10px;font-weight:600;"></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
         <span style="font-size:12px;color:var(--text2);font-weight:600;">Cantidad de slots:</span>
         <div id="img-count-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-        <!-- ⚠️ P8 · LOS DOS BOTONES DE LOTE. «Todas al PDF» es la decision de Maicol del
-             2026-11-21: con el papel arrancando vacio, el estudio en que SI quiere las veintidos
-             no puede costar veintidos toques. El de sacar esta al lado porque es el gesto con el
-             que se confunde, y porque es el unico que deshace al otro de una vez. -->
-        <button type="button" class="btn btn-ghost" id="img-pdf-todas" style="padding:5px 12px;margin-left:auto;"
-                title="Manda al PDF todas las imágenes de la biblioteca (los esquemas no se tocan)"
-                onclick="imgPdfTodas(true)">📄 Todas al PDF</button>
-        <button type="button" class="btn btn-ghost" id="img-pdf-ninguna" style="padding:5px 12px;"
-                title="Saca del PDF todas las imágenes. No borra ninguna: siguen en la biblioteca"
-                onclick="imgPdfTodas(false)">🗂 Ninguna al PDF</button>
         <!-- ⚠️ P8 · 1.6 · ACA VIVIA EL BOTON «📏 Medir», Y SE RETIRA POR ORDEN EXPRESA. Era el
              interruptor que habia que acordarse de apretar para que un toque sobre una imagen
              abriera el visor; en la biblioteca de Guardados nunca hizo falta. Hoy un clic sobre
@@ -74761,6 +74781,9 @@ function imgRestaurar(uuid) {
                                            se imprimiría en el PDF —con un cuadro que nadie
                                            eligió— y el reproductor desaparecería. */
                                         _dcmId: (s._dcmId || undefined),
+                                        /* P9 (1.6): ver la nota de `_docId` en la allowlist de
+                                           escritura. Las DOS listas son dos listas. */
+                                        _docId: (s._docId || undefined),
                                         /* Las tres marcas VIAJAN o se pierden al guardar:
                                            `imgPersistir` escribe desde `imgSlots`, así que un
                                            slot restaurado sin ellas las borra del disco en el
@@ -75077,6 +75100,11 @@ window.imgStorageRender = imgStorageRender;
    a los tres segundos y el panel se queda. */
 
 function imgVaciar() {
+  /* ⚠️ P9 (1.5) · LA CUENTA DE CINES ES **POR ESTUDIO**. `_bibCinesN` lo publica la tira, que es
+     asincrona: sin ponerlo en cero acá, «Nuevo estudio» dejaba en pantalla los cineloops del
+     paciente ANTERIOR hasta que la tira volviera a dibujar --y en la bateria, donde los casos
+     comparten una sola pagina, un caso contaba el cine que dejo el de al lado--. */
+  if (typeof _bibCinesN !== 'undefined') _bibCinesN = 0;
   if (typeof imgSlots === 'undefined') return;
   // Invalida cualquier restauración en vuelo: sin esto, una lectura lanzada por el estudio
   // anterior aterrizaba sobre el formulario en blanco del paciente nuevo.
@@ -124650,6 +124678,12 @@ const CeiboImg = (function () {
                                                   escala», que es falso — la escala está, lo
                                                   que se perdió es el vínculo. Son ~40 bytes. */
                                                _dcmId: (s._dcmId || undefined),
+                                               /* P9 (1.6): el vinculo con el REGISTRO de una tabla de
+                                                  medidas que ya fue al PDF. Sin el, al reabrir el estudio
+                                                  la tarjeta «documento» vuelve a dibujarse al lado de su
+                                                  propia casilla y la misma cosa se ve dos veces. Son ~40
+                                                  bytes y el mismo criterio que `_dcmId`. */
+                                               _docId: (s._docId || undefined),
                                                /* ══ P8 (1.3) · `_srcKey` PERSISTE, Y HACE FALTA ═══
                                                   Es la clave del archivo de origen --nombre mas
                                                   hash de su contenido-- y es con lo que se
@@ -124754,6 +124788,12 @@ const CeiboImg = (function () {
                                                calidad: (typeof s.calidad === 'string' ? s.calidad : 'media'),
                                                origen: (s.origen === 'visor' ? 'visor' : 'estudio'),
                                                _dcmId: (s._dcmId || undefined),
+                                               /* P9 (1.6): el vinculo con el REGISTRO de una tabla de
+                                                  medidas que ya fue al PDF. Sin el, al reabrir el estudio
+                                                  la tarjeta «documento» vuelve a dibujarse al lado de su
+                                                  propia casilla y la misma cosa se ve dos veces. Son ~40
+                                                  bytes y el mismo criterio que `_dcmId`. */
+                                               _docId: (s._docId || undefined),
                                                star: !!s.star,
                                                nota: (typeof s.nota === 'string' && s.nota)
                                                        ? s.nota.slice(0, IG_IMG_NOTA_MAX) : undefined,
@@ -142356,18 +142396,17 @@ function imgRender(){
      el medico necesita los dos a la vista: sin esto, veintidos imagenes en la biblioteca y cero
      en el informe se ven igual que veintidos incluidas. Sale del MISMO predicado que la pastilla.
      Por `textContent`: no entra un solo dato a `innerHTML`. */
-  const _ct = document.getElementById('img-cuenta');
-  if (_ct) {
-    const _vv = imgSlots.filter(s => s && s.dataURL && !s.videoId && !s.esquema);
-    const _np = _vv.filter(_imgEnPdf).length;
-    _ct.textContent = !_vv.length
-      ? 'La biblioteca está vacía.'
-      : ('🗂 ' + _vv.length + ' en la biblioteca · 📄 ' + _np + ' en el PDF' +
-         (_np === 0 ? ' — ninguna sale en el informe todavía' : ''));
-  }
+  imgCuentaPintar();
   /* ⚠️ LA FILA DE MINIATURAS SIGUE A `imgSlots` (AJ1-5): agregar o borrar una captura, incluir
      o quitar el esquema de la orejuela y cambiar la calidad pasan todos por aca. */
   if (typeof infMinPintar === 'function') { try { infMinPintar() } catch(e){} }
+  /* ══ P9 · 1.2 · LA GRILLA DE ARRIBA SE REPINTA DESDE ACA, Y NO DESDE SU PROPIO DUEÑO ═══
+     Es la misma razon por la que `infMinPintar` cuelga de aca desde AJ1-5: todo lo que mueve
+     `imgSlots` --agregar, borrar, mandar al PDF, sacar, reordenar, cambiar la calidad-- pasa
+     por `imgRender`. Con un repintador propio habria que acordarse de llamarlo en cada uno de
+     esos caminos, y el primero que se olvide deja la grilla de arriba diciendo que una imagen
+     sale en el informe cuando ya no sale. */
+  if (typeof imgPdfRender === 'function') { try { imgPdfRender() } catch(e){} }
   const grid = document.getElementById('img-grid'); if(!grid) return;
   grid.innerHTML = '';
   imgSlots.forEach((slot, idx)=>{
@@ -142458,6 +142497,188 @@ function imgRender(){
     });
   }
 }
+
+
+/* ══ P9 · 1.5 · EL CONTADOR, EN SU PROPIA FUNCION ════════════════════════════════════════
+   Lo necesita tambien `cineStripRender`, que es quien sabe cuantos cineloops hay --los lee de
+   IndexedDB, asi que es asincrono-- y NO puede llamar a `imgRender` entero: hay un
+   MutationObserver sobre `#img-grid` que vuelve a disparar la tira en cada repintado de la
+   grilla, y las dos funciones se llamarian en circulo. */
+function imgCuentaPintar() {
+  const _ct = document.getElementById('img-cuenta');
+  if (_ct) {
+    const _vv = imgSlots.filter(s => s && s.dataURL && !s.videoId && !s.esquema);
+    const _np = _vv.filter(_imgEnPdf).length;
+    /* ══ P9 · 1.5 · LOS CINES ENTRAN A LA CUENTA ═══════════════════════════════════════
+       En P8 esta linea contaba SOLO las fijas, asi que un estudio con tres fijas y cuarenta
+       y un cineloops decia «3 en la biblioteca» --y el medico, que acababa de ver los cines
+       en la tira de abajo, no tenia forma de saber si contaban o no--. Los cines son parte
+       de la biblioteca y nunca salen en el PDF: se dicen aparte, que es lo que el medico
+       pidio con esas palabras. */
+    const _cn = _imgCinesEnBiblioteca();
+    const _pl = (n, sg, pl) => n + ' ' + (n === 1 ? sg : pl);
+    _ct.textContent = (!_vv.length && !_cn)
+      ? 'La biblioteca está vacía.'
+      : ('🗂 ' + _pl(_vv.length, 'imagen fija', 'imágenes fijas') + ' y ' +
+         _pl(_cn, 'cine', 'cines') + ' en la biblioteca · 📄 ' + _np + ' en el PDF' +
+         (_np === 0 ? ' — ninguna sale en el informe todavía' : ''));
+  }
+}
+window.imgCuentaPintar = imgCuentaPintar;
+
+/* ══ P9 · 1.5 · CUANTOS CINES HAY EN LA BIBLIOTECA ════════════════════════════════════════
+   Son dos cosas y las dos cuentan: los VIDEOS que ocupan casilla --un MP4 del ecografo-- y los
+   CINELOOPS, que nunca ocupan casilla y viven en la tira de abajo (en disco o en la cola de lo
+   adjuntado sin guardar). El numero de la tira lo publica `cineStripRender` en `_bibCinesN`
+   porque es asincrono --lee IndexedDB-- y `imgRender` es sincrono: pedirselo aca obligaria a
+   volver asincrono el repintador de la grilla, que lo llaman decenas de lugares.
+   ⚠️ ARRANCA EN CERO Y NO EN «no se». Un cero de mas en la cuenta de cines se corrige solo en
+   cuanto la tira pinta; un «?» en pantalla no se corrige nunca y se lee como un defecto. */
+let _bibCinesN = 0;
+function _imgCinesEnBiblioteca() {
+  let n = 0;
+  (typeof imgSlots !== 'undefined' ? imgSlots : []).forEach(s => { if (s && s.videoId) n++; });
+  return n + (typeof _bibCinesN === 'number' ? _bibCinesN : 0);
+}
+window._imgCinesEnBiblioteca = _imgCinesEnBiblioteca;
+
+/* ══ P9 · 1.1 a 1.3 · LA GRILLA DE ARRIBA: LO QUE VA AL PDF ═══════════════════════════════
+   Pinta `infMinCapturas()`, que es EXACTAMENTE la lista de las miniaturas del Informe y
+   exactamente lo que los seis emisores del PDF recorren. O sea que «esa grilla es la misma
+   lista que las miniaturas del Informe» no es una promesa de este codigo: es la misma funcion.
+
+   ⚠️ LA ✕ DE ACA ARRIBA **NO BORRA**: llama a `infMinQuitarCaptura`, que marca `noPdf`. La que
+   borra es la de abajo, y es la unica. Dos ✕ rojas con dos significados distintos es lo que el
+   medico encontro confuso en P8 --donde la de abajo borraba y la pastilla sacaba del PDF--; lo
+   que las distingue ahora es la SECCION en la que viven, y cada una lo dice en su `title`.
+
+   ⚠️ NINGUN `id` EN LAS CELDAS. El censo del estudio y el Excel recorren `input[id]` y los
+   barridos de «Nuevo estudio» recorren ids por sufijo: una celda con id entraria a los tres por
+   existir. Se alcanza por `data-idx`, igual que la grilla de abajo. */
+function imgPdfRender() {
+  const g = document.getElementById('img-pdf-grid');
+  if (!g) return;
+  const caps = (typeof infMinCapturas === 'function') ? infMinCapturas() : [];
+  const cnt = document.getElementById('img-pdf-cnt');
+  if (cnt) cnt.textContent = caps.length
+    ? ('· ' + caps.length + (caps.length === 1 ? ' imagen' : ' imágenes'))
+    : '· ninguna todavía';
+  g.innerHTML = '';
+  if (!caps.length) {
+    const v = document.createElement('div');
+    v.setAttribute('data-pdf-vacio', '1');
+    v.style.cssText = 'grid-column:1/-1;border:1.5px dashed var(--border);border-radius:10px;' +
+      'padding:16px 12px;text-align:center;font-size:11.5px;color:var(--text2);line-height:1.6;';
+    v.textContent = 'Todavía no mandaste ninguna imagen al PDF. Arrastrá una de la biblioteca de abajo, o tocá su botón «＋ AL PDF».';
+    g.appendChild(v);
+  } else caps.forEach(c => {
+    const idx = c.i, slot = c.slot, amp = !!slot.ampliada;
+    const cell = document.createElement('div');
+    cell.dataset.idx = idx;
+    cell.setAttribute('draggable', 'true');
+    cell.style.cssText = 'position:relative;border:1.5px solid ' + (amp ? 'var(--accent)' : 'var(--green)') +
+      ';border-radius:10px;background:var(--bg2);min-height:120px;display:flex;align-items:center;' +
+      'justify-content:center;overflow:hidden;' + (amp ? 'box-shadow:0 0 0 2px var(--accent);' : '');
+    const im = document.createElement('img');
+    try { im.src = _imgSrcOK(slot.dataURL) ? slot.dataURL : ''; } catch (e) { im.src = ''; }
+    im.loading = 'lazy';
+    im.alt = 'Imagen ' + (idx + 1) + ' del PDF';
+    im.style.cssText = 'max-width:100%;max-height:190px;display:block;pointer-events:none;';
+    cell.appendChild(im);
+    /* ⚠️ P9 · 1.7 · LA MARCA DE «AMPLIADA» DICE LA PALABRA. Hasta hoy, en la fila del Informe
+       y en esta vista, lo unico que distinguia una imagen ampliada era un reborde de color: el
+       medico la marcaba y no tenia forma de confirmar que habia quedado marcada --ni de saber
+       que significaba ese borde--. El borde se conserva; lo que se agrega es el texto. */
+    if (amp) {
+      const b = document.createElement('span');
+      b.style.cssText = 'position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;' +
+        'font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;';
+      b.textContent = 'AMPLIADA';
+      cell.appendChild(b);
+    }
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.title = 'Sacar del PDF (no se borra: sigue en la biblioteca)';
+    x.setAttribute('data-pdf-quitar', String(idx));
+    x.style.cssText = 'position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;' +
+      'border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;z-index:2;';
+    x.textContent = '✕';
+    cell.appendChild(x);
+    const pie = document.createElement('div');
+    pie.style.cssText = 'position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);' +
+      'color:#fff;font-size:10px;padding:3px 6px;pointer-events:none;';
+    pie.textContent = (caps.indexOf(c) + 1) + ' de ' + caps.length + (amp ? ' · ampliada' : '');
+    cell.appendChild(pie);
+    /* El doble clic marca «ampliada» y NO abre el visor: lo cancela `_medClicCancelar`, que ya
+       esta cableado en captura sobre este contenedor. */
+    cell.addEventListener('dblclick', () => { if (imgSlots[idx]) imgToggleAmpliar(idx); });
+    g.appendChild(cell);
+  });
+  _imgPdfCablear(g);
+}
+window.imgPdfRender = imgPdfRender;
+
+/* Los oyentes de la grilla de arriba, UNA sola vez y por delegacion: `imgPdfRender` rearma el
+   contenedor entero en cada repintado, asi que colgarlos de las celdas acumularia uno por
+   pintada --y los perderia justo cuando la grilla se vacia, que es el estado en que el destino
+   del arrastre mas se necesita--. Mismo patron que `_infMinDropCablear`. */
+function _imgPdfCablear(g) {
+  if (!g || g._p9) return;
+  g._p9 = true;
+  g.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-pdf-quitar]') : null;
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const i = parseInt(b.getAttribute('data-pdf-quitar'), 10);
+    if (isFinite(i) && typeof infMinQuitarCaptura === 'function') infMinQuitarCaptura(i);
+  }, true);
+  /* ⚠️ SE ACEPTA EL TIPO PROPIO DE LA BIBLIOTECA **Y** EL `text/plain` DE ESTA MISMA GRILLA, y
+     se distinguen: el primero INCLUYE en el PDF, el segundo REORDENA. Con un solo tipo, soltar
+     una miniatura de aca sobre otra celda de aca incluiria algo que ya esta incluido en vez de
+     moverlo, que es el gesto que el medico espera. */
+  const tiene = (ev, t) => {
+    try { return Array.prototype.indexOf.call(ev.dataTransfer.types || [], t) >= 0; }
+    catch (e) { return false; }
+  };
+  /* Sin `preventDefault` en `dragover` el `drop` NO LLEGA. Es la regla del HTML5 que mas se
+     olvida y su sintoma --la fila parece rechazar el gesto-- es identico al de un oyente que no
+     se registro. */
+  g.addEventListener('dragover', ev => {
+    if (!tiene(ev, 'application/x-eco-bib') && !tiene(ev, 'text/plain')) return;
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'copy'; } catch (e) {}
+  });
+  g.addEventListener('drop', ev => {
+    let bib = '', pl = '';
+    try { bib = String(ev.dataTransfer.getData('application/x-eco-bib') || ''); } catch (e) {}
+    try { pl = String(ev.dataTransfer.getData('text/plain') || ''); } catch (e) {}
+    const origen = bib !== '' ? parseInt(bib, 10) : NaN;
+    if (isFinite(origen)) {
+      ev.preventDefault();
+      const s0 = imgSlots[origen];
+      /* Un VIDEO nunca sale en el PDF: se dice, en vez de dejar que el gesto no haga nada. */
+      if (s0 && s0.videoId) {
+        if (typeof toast === 'function') toast('🎬 Los videos y cineloops no salen en el PDF');
+        return;
+      }
+      if (s0 && s0.dataURL && typeof infMinReincluir === 'function') infMinReincluir(origen);
+      return;
+    }
+    const mov = pl !== '' ? parseInt(pl, 10) : NaN;
+    if (!isFinite(mov)) return;
+    ev.preventDefault();
+    const cel = ev.target && ev.target.closest ? ev.target.closest('#img-pdf-grid > div[data-idx]') : null;
+    if (!cel) return;
+    const dest = parseInt(cel.dataset.idx, 10);
+    if (isFinite(dest) && dest !== mov && typeof imgSwap === 'function') imgSwap(mov, dest);
+  });
+  g.addEventListener('dragstart', ev => {
+    const cel = ev.target && ev.target.closest ? ev.target.closest('#img-pdf-grid > div[data-idx]') : null;
+    if (!cel) return;
+    try { ev.dataTransfer.setData('text/plain', String(cel.dataset.idx)); } catch (e) {}
+  });
+}
+window._imgPdfCablear = _imgPdfCablear;
 
 /* Selector de calidad, debajo de cada imagen.
 
@@ -142590,17 +142811,50 @@ window.imgPdfTodas = imgPdfTodas;
    Es el UNICO borrado que queda: desde esta tanda la ✕ de la fila de miniaturas y la pastilla
    SOLO sacan del PDF. O sea que el «doble borrado» del reporte desaparece por construccion --no
    hay dos listas-- y no por una guarda que haya que acordarse de mantener. */
+/* ══ P9 · 1.3 · CARTEL PROPIO Y CON LA CANTIDAD ═══════════════════════════════════════════
+   ⚠️ ACA VIVIA UN `confirm` NATIVO Y SE RETIRA POR ORDEN EXPRESA: ninguna ruta nueva ni de
+   prueba abre un dialogo del navegador. Y hay un motivo medido ademas del estetico --un `alert`
+   o un `confirm` que un caso no sustituye CUELGA LA BATERIA ENTERA esperando un clic que nadie
+   da, y esta casa lo pago dos veces en P8--.
+   El cartel dice LA CANTIDAD y de donde se va, que es lo que el medico pidio: con dos ✕ rojas
+   en pantalla --una que saca del PDF y otra que borra-- el texto tiene que decir cual se apreto.
+   Devuelve una PROMESA: quien la llama desde un `onclick` no la espera, y los casos si. */
 function imgBorrarBib(ev, idx) {
   if (ev) { try { ev.stopPropagation(); } catch (e) {} }
   const s = imgSlots[idx];
-  if (!s || !s.dataURL) return false;
+  if (!s || !s.dataURL) return Promise.resolve(false);
   const enPdf = _imgEnPdf(s);
-  if (typeof confirm === 'function' && !confirm(
-      '¿Borrar esta imagen de la biblioteca del estudio?' +
-      (enPdf ? '\n\nEstá en el PDF, así que también sale del informe.' : '') +
-      '\n\nSi lo que querés es sacarla del PDF y conservarla, tocá la pastilla «EN EL PDF» en vez de esto.')) return false;
-  imgRemove(null, idx);
-  return true;
+  const esVideo = !!s.videoId;
+  const qué = esVideo ? '1 video' : '1 imagen';
+  const ps = ['Se va a eliminar ' + qué + ' de la biblioteca de este estudio.'];
+  if (enPdf) ps.push('Está en el PDF, así que también sale del informe y de la grilla de arriba.');
+  ps.push('Si lo que querés es sacarla del PDF y conservarla, usá la ✕ roja de la grilla de arriba («Imágenes que van al PDF») o la pastilla «✓ EN EL PDF» de esta misma miniatura.');
+  ps.push('Esto no se puede deshacer.');
+  const pedir = (typeof borrConfirmar === 'function')
+    ? borrConfirmar('¿Eliminar ' + qué + ' de la biblioteca?', ps, 'Eliminar')
+    : Promise.resolve(true);
+  return pedir.then(si => {
+    if (!si) return false;
+    /* ══ P9 · 1.3 · «LA ✕ ROJA DE ABAJO ELIMINA DE LA BIBLIOTECA Y DE TODOS LADOS» ═════════
+       Se lleva ademas lo que CUELGA del slot y que el medico no ve como una cosa aparte: el
+       ORIGINAL DICOM de una fija --sus pixeles sin recomprimir y sus regiones de escala-- y el
+       REGISTRO de una tabla de medidas mandada al PDF. Hasta P8 esos dos se borraban desde la
+       ✕ de su tarjeta en la tira; desde que la tira deja de repetir lo que ya tiene casilla
+       (1.6), esa tarjeta no se dibuja y sin esto el original se quedaba ocupando espacio sin
+       ninguna forma de alcanzarlo.
+       ⚠️ EL ESTUDIO SE BORRA PRIMERO EN PANTALLA Y DESPUES EN DISCO, y el borrado de disco va
+       en su propio `catch`: que falle no puede dejar la imagen a medio sacar de la grilla. */
+    const ids = [];
+    if (s._dcmId) ids.push(s._dcmId);
+    if (s._docId) ids.push(s._docId);
+    imgRemove(null, idx);
+    if (ids.length && typeof CeiboCine !== 'undefined') {
+      Promise.all(ids.map(i2 => { try { return CeiboCine.borrar(i2); } catch (e) { return null; } }))
+        .then(() => { if (typeof cineStripRender === 'function') cineStripRender(); })
+        .catch(() => {});
+    }
+    return true;
+  });
 }
 window.imgBorrarBib = imgBorrarBib;
 
@@ -142608,7 +142862,10 @@ function imgSwap(a,b){ if(a===b) return; const t=imgSlots[a]; imgSlots[a]=imgSlo
 function imgToggleAmpliar(idx){ if(imgSlots[idx]){ imgSlots[idx].ampliada = !imgSlots[idx].ampliada; imgRender(); } }
 function imgRemove(e, idx){ if(e) e.stopPropagation(); imgSlots[idx]=null; imgMarcarEditado(); imgRender(); }
 function imgPick(idx){ imgActiveSlot = idx; const inp=document.getElementById('img-file-input'); if(inp){ inp.value=''; inp.click(); } }
-function imgFileChosen(e){ const f=e.target.files && e.target.files[0]; if(f) imgCompressLoad(f, imgActiveSlot); e.target.value=''; }
+/* ⚠️ P9 · 1.4 · ESTA ES LA PUERTA DE «A MANO»: el «＋ Agregar imagen» de una casilla, la foto
+   del celular y el archivo elegido del celular abren los TRES este mismo input. Por eso lleva
+   `'mano'`, que es lo que hace que la imagen nazca tambien en el PDF. */
+function imgFileChosen(e){ const f=e.target.files && e.target.files[0]; if(f) imgCompressLoad(f, imgActiveSlot, 'mano'); e.target.value=''; }
 
 // Compresión: máx 800x600, JPEG 65%
 /* ══ Calidad de imagen ══
@@ -142838,8 +143095,22 @@ function imgCompressLoad(file, idx, origen, nombreSrc){
          pendrive --las fijas DICOM tambien pasan por aca--, el «+» de un slot y la captura del
          visor. Los esquemas de los diagramas NO pasan por aca: los arma `esqIncluirEnPDFImg`,
          que es un gesto EXPLICITO del medico, y siguen entrando incluidos. */
+      /* ══ P9 · 1.4 · LO QUE LLEGA SOLO VA SOLO A LA BIBLIOTECA; LO QUE PONE EL MEDICO A
+         MANO VA TAMBIEN AL PDF ════════════════════════════════════════════════════════════
+         `'mano'` es un CUARTO origen y entra por esta misma puerta: lo pasan el «＋ Agregar
+         imagen» de una casilla --que es tambien la foto o el archivo del celular, porque los
+         tres abren el MISMO input-- y el pegado con Ctrl/Cmd+V. Todo lo demas --el ecografo por
+         cable o Wi-Fi, el pendrive, «Importar DICOM», «Importar imagenes y videos», las
+         capturas del visor y «Desde imagenes guardadas»-- sigue naciendo fuera del PDF.
+         ⚠️ SE DECIDE EN LA PUERTA UNICA Y NO EN CADA LLAMADOR: con la marca escrita en los diez
+         sitios que llaman a esta funcion, el primero que se agregue sin ella manda al informe
+         firmado una imagen que nadie eligio --que es exactamente el defecto que P8 cerro--.
+         ⚠️ Y `'mano'` NO SE PERSISTE COMO ORIGEN: se normaliza a `estudio` abajo, por la misma
+         razon que `ceibolink` --las dos pantallas que consumen ese campo reparten por el par
+         cerrado `['estudio','visor']` y un tercer valor haria DESAPARECER la imagen de
+         «Imagenes guardadas»--. Lo que viaja de esta decision es `noPdf`, que ya se persiste. */
       imgSlots[target] = { dataURL: url, ampliada:false, calidad: IMG_CAL_DEF, _orig: original,
-                           noPdf: true,
+                           noPdf: (origen !== 'mano'),
                            /* Solo en memoria, como `_orig`: `CeiboImg.guardar` tiene lista blanca
                               y esto no esta en ella. La deduplicacion vale para la SESION, que
                               es donde el medico recibe el lote repetido. */
@@ -153442,7 +153713,12 @@ function medFijaClic(ev) {
     ? ev.target.closest('button, [role="button"], a, input, select, textarea') : null;
   if (ctrl && !(ctrl.closest && ctrl.closest('[data-video-badge]'))
            && !ctrl.hasAttribute('data-video-badge')) return;
-  const cell = ev.target && ev.target.closest ? ev.target.closest('#img-grid > div') : null;
+  /* ⚠️ P9 (1.7) · LAS DOS GRILLAS. Esto decia `#img-grid > div` y por eso un clic sobre la
+     grilla de arriba --la del PDF-- no abria nada: el envoltorio agendaba la apertura y esta
+     funcion no encontraba celda. «Medir igual desde la biblioteca y desde la grilla de arriba»
+     exige que la celda se resuelva por su marca y no por el contenedor en que esta. */
+  const cell = ev.target && ev.target.closest
+    ? ev.target.closest('#img-grid > div[data-idx], #img-pdf-grid > div[data-idx]') : null;
   if (!cell) return;
   const idx = parseInt(cell.dataset.idx, 10);
   if (!isFinite(idx)) return;
@@ -153555,7 +153831,15 @@ function _medClicEnvoltorio(ev) {
     ? ev.target.closest('button, [role="button"], a, input, select, textarea') : null;
   if (ctrl && !(ctrl.closest && ctrl.closest('[data-video-badge]'))
            && !ctrl.hasAttribute('data-video-badge')) return;
-  const cell = ev.target && ev.target.closest ? ev.target.closest('#img-grid > div') : null;
+  /* ══ P9 · 1.7 · EL MISMO GESTO EN LAS DOS GRILLAS ══════════════════════════════════════
+     «Medir igual desde la biblioteca y desde la grilla de arriba» se cumple con UN solo
+     envoltorio parametrizado por el contenedor donde se registro, y no con una copia: con dos,
+     la ventana de 260 ms que separa el clic del doble clic tendria dos valores el dia que uno
+     cambie, y el gesto de «ampliada» dejaria de funcionar en una de las dos sin que nada lo
+     diga. El contenedor se toma de `currentTarget` --donde esta el oyente-- y no de un id
+     escrito a mano. */
+  const host = (ev.currentTarget && ev.currentTarget.id) ? ev.currentTarget.id : 'img-grid';
+  const cell = ev.target && ev.target.closest ? ev.target.closest('#' + host + ' > div') : null;
   if (!cell) return;
   const idx = parseInt(cell.dataset.idx, 10);
   if (!isFinite(idx)) return;
@@ -153564,7 +153848,7 @@ function _medClicEnvoltorio(ev) {
   _medClicCancelar();
   _medClicTimer = setTimeout(function () {
     _medClicTimer = null;
-    const c2 = document.querySelector('#img-grid > div[data-idx="' + idx + '"]');
+    const c2 = document.querySelector('#' + host + ' > div[data-idx="' + idx + '"]');
     if (!c2) return;                                   // la grilla se repinto: no es la misma
     const im = c2.querySelector('img') || c2;
     medFijaClic({ target: im, preventDefault: function () {}, stopPropagation: function () {} });
@@ -153572,12 +153856,14 @@ function _medClicEnvoltorio(ev) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  const grid = document.getElementById('img-grid');
-  if (!grid) return;
-  grid.addEventListener('click', _medClicEnvoltorio, true);
-  /* El doble clic CANCELA la apertura y deja que mande `imgToggleAmpliar`, que es el manejador
-     que la celda ya tenia. */
-  grid.addEventListener('dblclick', _medClicCancelar, true);
+  ['img-grid', 'img-pdf-grid'].forEach(function (id) {
+    const grid = document.getElementById(id);
+    if (!grid) return;
+    grid.addEventListener('click', _medClicEnvoltorio, true);
+    /* El doble clic CANCELA la apertura y deja que mande `imgToggleAmpliar`, que es el manejador
+       que la celda ya tenia. */
+    grid.addEventListener('dblclick', _medClicCancelar, true);
+  });
 });
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
@@ -157593,7 +157879,25 @@ async function _bibAlSlot(id, slotPreferido) {
   if (!(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese archivo no es una imagen'); return false; }
   const idx = _dcmImgReservar(1, slotPreferido)[0];
   if (typeof idx !== 'number' || idx < 0) { toast('❌ No hay ningún espacio libre en la grilla de imágenes'); return false; }
-  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'visor');
+  /* ⚠️ P9 · 1.6 · `'mano'` Y NO `'visor'`: apretar el 📄 de una tarjeta de la biblioteca ES el
+     gesto explicito del medico de mandarla al PDF, asi que la imagen tiene que nacer INCLUIDA.
+     Con `'visor'` nacia fuera del PDF y el toast decia «ahora sale en el PDF»: el boton mentia.
+     Es el mismo criterio que el «＋ Agregar imagen» y el pegado. */
+  const _pLoad = imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'mano');
+  /* ⚠️ Y SE SELLA EL VINCULO CON SU REGISTRO. Sin esto, la tabla de medidas quedaba DOS veces en
+     la biblioteca --su casilla en la grilla y su tarjeta «documento» en la tira-- porque son dos
+     objetos distintos sin nada que los relacione. Con el id puesto, la tira saltea el registro
+     que ya tiene casilla, igual que hace con el original DICOM de una fija desde siempre.
+     Se escribe DESPUES de que el slot exista: `imgCompressLoad` es asincrona y elige su casilla
+     adentro, asi que escribirlo antes lo pondria sobre lo que hubiera en `imgSlots[idx]`. */
+  try {
+    if (_pLoad && typeof _pLoad.then === 'function') _pLoad.then(r2 => {
+      if (r2 === true && imgSlots[idx]) {
+        imgSlots[idx]._docId = id;
+        if (typeof cineStripRender === 'function') { try { cineStripRender(); } catch (e) {} }
+      }
+    });
+  } catch (e) {}
   const desviado = (typeof slotPreferido === 'number' && idx !== slotPreferido);
   toast(desviado
     ? '📄 Ese espacio estaba ocupado — fue al ' + (idx + 1) + '. Ahora sale en el PDF'
@@ -157831,16 +158135,27 @@ async function cineStripRender() {
   /* Un DICOM fijo está en las DOS fuentes —el slot con su `_dcmId` y el registro en disco con el
      MISMO id— y es UNA sola cosa. Se deduplica por id, quedándose con la tarjeta del slot, que
      es la que sabe en qué posición del PDF va. */
+  /* ══ P9 · 1.6 · LO QUE YA TIENE CASILLA **NO** SE REPITE ACA ═══════════════════════════
+     ⚠️ ESTE BUCLE EMPUJABA UNA FICHA POR CADA SLOT, Y ESO ES LO QUE HACIA QUE UNA SOLA COSA SE
+     VIERA TRES VECES: la grilla de la biblioteca ya la dibuja, y una tabla de medidas mandada
+     al PDF con el 📄 aparecia ademas como «imagen · calibracion manual» aca y como «documento»
+     por su registro de disco. El medico lo reporto con esas tres palabras.
+     Hoy la regla es una sola y se lee de un vistazo: **la tira muestra lo que NO tiene casilla**
+     --cineloops, documentos y originales sin slot-- y la grilla muestra las casillas. Juntas son
+     la biblioteca, y cada cosa aparece exactamente una vez.
+     ⚠️ EL RECORRIDO DE LOS SLOTS SE CONSERVA, porque de el salen las DOS listas de deduplicacion
+     de los registros de disco: `_dcmId` para el original de una fija y `_docId` para una tabla
+     de medidas que ya fue al PDF. Sin ellas, el registro volveria a dibujarse y el duplicado
+     seguiria en pie por el otro lado.
+     ⚠️ Y BORRAR EL ORIGINAL DE UNA FIJA PASA AHORA POR LA ✕ DE LA GRILLA (`imgBorrarBib`), que
+     se lleva el slot Y lo que cuelgue de el: hasta hoy ese ✕ vivia en la ficha de la tira, que
+     es justo la que deja de dibujarse. */
   const idsEnSlot = [];
   const fichas = [];
   (typeof imgSlots !== 'undefined' ? imgSlots : []).forEach((s, i) => {
     if (!s || !s.dataURL) return;
-    if (s.videoId) {
-      fichas.push({ clase: 'video', idx: i, poster: s.dataURL,
-                    rot: 'video', nota: 'sólo documentación',
-                    nombre: s.videoNombre || 'Video del estudio' });
-      return;
-    }
+    if (s._docId) idsEnSlot.push(s._docId);
+    if (s.videoId) return;
     if (s._dcmId) {
       idsEnSlot.push(s._dcmId);
       const orig = _medFijas[s._dcmId];
@@ -157851,16 +158166,11 @@ async function cineStripRender() {
       /* El ✕ borra el ORIGINAL guardado en el dispositivo, así que sólo se ofrece si de verdad
          hay uno. Sin esta comprobación aparecería también sobre una fija que todavía no se
          persistió —estudio sin guardar— y el clic no borraría nada, en silencio. */
-      const rec = recs.filter(r => r.id === s._dcmId)[0];
-      fichas.push({ clase: 'dicom', idx: i, id: s._dcmId, poster: s.dataURL,
-                    rot: 'DICOM', nota: auto ? 'escala del archivo' : 'calibración manual',
-                    nombre: (orig && orig.nombre) || 'Imagen DICOM',
-                    deDisco: !!rec, bytes: rec ? (rec.bytes || 0) : 0 });
+      /* `auto` y `rec` se siguen calculando porque los lee el comentario de arriba: la ficha
+         ya no se dibuja, pero el id tiene que quedar en `idsEnSlot`. */
+      void auto; void recs;
       return;
     }
-    fichas.push({ clase: 'imagen', idx: i, poster: s.dataURL,
-                  rot: 'imagen', nota: 'calibración manual',
-                  nombre: 'Imagen del estudio' });
   });
   /* Lo que está en disco y NO tiene slot: los cineloops —que nunca ocupan slot— y las fijas de
      un slot que el médico borró, que siguen ocupando espacio y por eso se muestran con su ✕. */
@@ -157876,9 +158186,15 @@ async function cineStripRender() {
                     bytes:r.bytes || 0, deDisco:true });
       return;
     }
+    /* ⚠️ P9 (1.6) · LA FIJA SIN CASILLA DICE SI TRAE ESCALA, igual que la decia cuando la
+       ficha salia del slot. Esa nota es lo unico que le dice al medico si va a poder medir sin
+       calibrar a mano, y al dejar de dibujarse las fichas de los slots se habria perdido para
+       siempre: el registro trae sus regiones, asi que se deriva del mismo predicado. */
+    const _auto = !!((r.regiones || []).filter(_dcmImgRegionMedible).length);
     fichas.push({ clase: r.cuadros > 1 ? 'cine' : 'dicom', id: r.id, poster: r.poster,
                   rot: r.cuadros > 1 ? String(r.cuadros) + ' cuadros' : 'DICOM',
-                  nota: r.cuadros > 1 ? 'cineloop guardado' : 'sin slot en la grilla',
+                  nota: r.cuadros > 1 ? 'cineloop guardado'
+                      : (_auto ? 'escala del archivo' : 'calibración manual'),
                   nombre: r.nombre || '', bytes: r.bytes || 0, deDisco: true });
   });
   /* ══ LO ADJUNTADO QUE TODAVÍA NO ESTÁ EN DISCO (ECO-CONECTOR-3, decisión 5) ════════════
@@ -157903,6 +158219,15 @@ async function cineStripRender() {
                     nombre: pend[k].nombre || '', bytes: by, deDisco: false });
     }
   } catch (e) { console.warn('[tira/pendientes]', e); }
+  /* ══ P9 · 1.5 · LA TIRA PUBLICA CUANTOS CINES HAY ══════════════════════════════════════
+     Es el unico lugar que lo sabe --los cineloops viven en IndexedDB y en la cola de lo
+     adjuntado sin guardar, y ninguno ocupa casilla-- y el renglon de la cuenta es sincrono. Se
+     publica en una variable y se repinta SOLO ese renglon: llamar a `imgRender` desde aca
+     dispararia el MutationObserver de `#img-grid`, que vuelve a llamar a esta funcion. */
+  if (typeof _bibCinesN !== 'undefined') {
+    _bibCinesN = fichas.filter(f => f.clase === 'cine' || f.clase === 'cinepend').length;
+    if (typeof imgCuentaPintar === 'function') { try { imgCuentaPintar(); } catch (e) {} }
+  }
   if (!fichas.length) { cont.innerHTML = ''; return; }
   const total = recs.reduce((a, r) => a + (r.bytes || 0), 0);
   /* El id va por `data-cine-id` y NO interpolado adentro de un `onclick`.
@@ -158161,7 +158486,8 @@ function imgPasteHandler(e){
   for (let i=0;i<items.length;i++){
     if (items[i].type && items[i].type.indexOf('image')===0){
       const file = items[i].getAsFile();
-      if (file){ e.preventDefault(); imgCompressLoad(file, (imgSlots[imgActiveSlot] ? -1 : imgActiveSlot)); }
+      /* P9 · 1.4: pegar es un gesto EXPLICITO del medico, asi que entra tambien al PDF. */
+      if (file){ e.preventDefault(); imgCompressLoad(file, (imgSlots[imgActiveSlot] ? -1 : imgActiveSlot), 'mano'); }
       break;
     }
   }

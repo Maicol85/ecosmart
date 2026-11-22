@@ -21291,8 +21291,8 @@ caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abi
       R.tiraRaw = tira(); R.uuidC = (_imgUuidActual === infC.uuid);
       const recsC = await CeiboCine.listar(infC.uuid);
       R.tipos = recsC.map(x => x.tipo + ':' + x.cuadros).join(',');
-      R.tiraEnC = recsC.length === 1 && R.tipos === 'fija:1' &&
-                  tira().indexOf('imagen fija') > -1;
+      R.tiraRepiteC = tira().indexOf('imagen fija') > -1;
+      R.tiraEnCp9 = recsC.length === 1 && R.tipos === 'fija:1' && R.tiraRepiteC === false;
     } finally {
       window.alert = alertOrig; window.confirm = confirmOrig;
       if (prev === null) localStorage.removeItem(TOG); else localStorage.setItem(TOG, prev);
@@ -21315,7 +21315,14 @@ caso('TC-185', 'Cineloops al reabrir desde Guardados, con la tab Imagenes ya abi
       ['una lectura que llega tarde NO pinta',           R.tokenFrena, R.tokenFrena],
       ['las imagenes fijas se vacian con «Nuevo estudio»', R.slotsVacios, R.slotsVacios],
       ['y vuelven al reabrir, como siempre',             R.fijasVuelven, R.fijasVuelven],
-      ['una imagen fija guardada aparece en la tira, marcada como tal', R.tiraEnC, (R.tipos || '(sin registros)')]
+      /* ── INVERTIDA POR P9 (1.6) ──────────────────────────────────────────────────────
+         La tira pasa a dibujar SOLO lo que NO tiene casilla. Esta fija VOLVIO a su casilla al
+         reabrir el estudio, asi que ya se ve en la grilla de la biblioteca y repetirla aca es
+         lo que el medico reporto como que la misma cosa aparecia dos veces. Lo que se exige es
+         que el REGISTRO siga en disco --o sea que no se perdio nada-- y que la tira no lo
+         repita. */
+      ['la fija guardada sigue en disco y la tira NO la repite, porque ya tiene casilla',
+        R.tiraEnCp9 === true, 'tipos=' + (R.tipos || '(sin registros)') + ' tira=' + R.tiraRepiteC]
     ] };
   })();
 `);
@@ -30393,6 +30400,45 @@ caso('TC-234', 'Tira unificada: un icono por tipo, el MP4 no se mide y cada clic
         R.videoNoAbrioVisor = !(_cineDatos && _cineDatos.loops);
       } else { R.videoRechazado = 'sin video'; R.videoNoAbrioVisor = 'sin video'; }
       if (_medFijaOn) medFijaToggle();
+
+      /* ══ P9 (1.6) ADAPTA ESTE CASO, Y LO DEJA CON LAS DOS MITADES ═══════════════════════
+         La tira pasa a mostrar SOLO lo que NO tiene casilla: una fija, un video o una tabla de
+         medidas que ocupan un slot ya se ven en la grilla de la biblioteca, y dibujarlas otra
+         vez aca es lo que hacia que una sola cosa apareciera tres veces --el medico lo reporto
+         con esas tres palabras--. Las condiciones de arriba quedan INVERTIDAS (la tira no los
+         repite) y las que miden el icono, la nota y el clic se mudan a esta segunda fase, donde
+         los mismos archivos YA NO tienen casilla y la tira si los dibuja.
+         Se vacian los slots DESPUES de las comprobaciones de la grilla, no antes: esas miden el
+         ruteo del modo medicion sobre una casilla y sin casilla no medirian nada. */
+      /* Los ORIGINALES DICOM se escriben en imgPersistir, y este caso guardo el estudio
+         ANTES de importar, asi que hay que persistirlos a mano para que la tira tenga que
+         dibujar. Y los slots se sacan con imgRemove, no con imgVaciar: esa funcion suelta
+         ademas el uuid del estudio y la tira se quedaria sin estudio del que leer. */
+      const uuidP9 = _imgUuidActual;
+      try { await medFijasPersistir(uuidP9); } catch (e) { R.p9Persist = String(e); }
+      for (let i9 = imgSlots.length - 1; i9 >= 0; i9--) if (imgSlots[i9]) imgRemove(null, i9);
+      await esperar(250);
+      await cineStripRender(); await esperar(700);
+      const cards2 = [...cont.querySelectorAll('[data-strip-i]')];
+      /* Se reusa tx de arriba: una expresion regular escrita aca adentro NO sobrevive al
+         template literal --la barra invertida se pierde y /\\s+/ queda en /s+/, que reemplaza
+         todas las eses por espacios--. Esta casa lo tiene documentado y lo pague igual. */
+      R.p9Tarjetas = cards2.length;
+      R.p9Titulo = (cont.textContent || '').indexOf('Archivos del estudio') >= 0;
+      R.p9Dicom = cards2.filter(c => tx(c).indexOf('📏') >= 0).length;
+      R.p9Escala = cards2.filter(c => tx(c).indexOf('escala del archivo') >= 0).length;
+      R.p9Manual = cards2.filter(c => tx(c).indexOf('calibraci') >= 0).length;
+      R.p9Borrar = cards2.filter(c => c.querySelector('.cine-borrar')).length;
+      R.p9Txts = cards2.map(tx).join(' || ').slice(0, 260);
+      const cD = cards2.filter(c => tx(c).indexOf('calibraci') >= 0)[0];
+      if (cD) {
+        cD.querySelector('.cine-abrir').click();
+        await esperar(1400);
+        R.p9Visor = !!(typeof _cineDatos !== 'undefined' && _cineDatos && _cineDatos.loops);
+        R.p9Regiones = R.p9Visor ? (_cineDatos.loops[0].d.regiones || []).length : -1;
+        try { cineCerrar(); } catch (e) {}
+        await esperar(300);
+      }
     } catch (e) {
       R.err = String(e && e.message || e);
     } finally {
@@ -30410,25 +30456,28 @@ caso('TC-234', 'Tira unificada: un icono por tipo, el MP4 no se mide y cada clic
     return { extra: [
       ['sin excepciones',                             !R.err, R.err],
       ['DENOMINADOR: entraron los archivos',          R.slots === esperado, 'slots=' + R.slots + ' esperado=' + esperado],
-      ['el titulo dice ARCHIVOS del estudio',         R.titulo === true, R.titulo],
       ['y el titulo viejo no sobrevive',              R.tituloViejo === false, R.tituloViejo],
-      ['una tarjeta por archivo',                     R.nTarjetas === esperado, 'tarjetas=' + R.nTarjetas],
-      ['el JPG va con el icono de imagen',            R.iconoImagen === 1, 'imagen=' + R.iconoImagen],
-      ['el MP4 con el de video',                      R.hayMp4 ? R.iconoVideo === 1 : true, 'video=' + R.iconoVideo],
-      ['los DICOM con el de DICOM',                   R.iconoDicom === 2, 'dicom=' + R.iconoDicom],
-      ['el MP4 lleva el disclaimer',                  R.hayMp4 ? R.disclaimer === true : true, R.disclaimer],
-      ['el DICOM con region dice escala del archivo', R.conEscalaArchivo === 1, 'auto=' + R.conEscalaArchivo],
-      ['y el que no la trae, calibracion manual',     R.conCalibManual === 2, 'manual=' + R.conCalibManual],
+      /* ── INVERTIDAS POR P9 (1.6): lo que tiene casilla NO se repite en la tira ───────── */
+      ['P9 1.6: lo que ya tiene casilla NO se repite en la tira', R.nTarjetas === 0,
+                                                      'tarjetas=' + R.nTarjetas + ' (slots=' + R.slots + ')'],
+      ['el JPG con casilla no se dibuja dos veces',   R.iconoImagen === 0, 'imagen=' + R.iconoImagen],
+      ['el MP4 con casilla tampoco',                  R.iconoVideo === 0, 'video=' + R.iconoVideo],
+      ['los DICOM con casilla tampoco',               R.iconoDicom === 0, 'dicom=' + R.iconoDicom],
+      /* ── Y LA SEGUNDA MITAD: sin casilla, la tira SI los dibuja, con su icono y su nota ─ */
+      ['el titulo dice ARCHIVOS del estudio',         R.p9Titulo === true, R.p9Titulo],
+      ['sin casilla, la tira dibuja los DICOM guardados', R.p9Dicom === 2,
+                                                      'dicom=' + R.p9Dicom + ' tarjetas=' + R.p9Tarjetas],
+      ['el DICOM con region dice escala del archivo', R.p9Escala === 1, 'auto=' + R.p9Escala + ' txts=' + R.p9Txts],
+      ['y el que no la trae, calibracion manual',     R.p9Manual === 1, 'manual=' + R.p9Manual],
       /* Pinaba «el ✕ SOLO donde hay registro en disco», que era el inventario del dia en que
          se escribio y dejaba sin forma de quitar una foto importada con el guardado apagado.
          Hoy el invariante es que NINGUNA tarjeta quede sin su ✕; que borre lo que corresponde
          en cada caso lo fija TC-242. */
-      ['el ✕ va en TODAS las tarjetas',               R.borrar === R.nTarjetas,
-                                                      'borrar=' + R.borrar + ' de ' + R.nTarjetas],
+      ['el ✕ va en TODAS las tarjetas',               R.p9Borrar === R.p9Tarjetas && R.p9Tarjetas > 0,
+                                                      'borrar=' + R.p9Borrar + ' de ' + R.p9Tarjetas],
       ['ningun atributo de evento en la tira',        R.sinHandlerInline === true, R.sinHandlerInline],
-      ['clic en la imagen abre el visor SIN regiones', R.visorPorImagen === true && R.regionesImagen === 0,
-                                                       'visor=' + R.visorPorImagen + ' regiones=' + R.regionesImagen],
-      ['clic en el video abre el reproductor',        R.hayMp4 ? R.modalVideo === 1 : true, 'modal=' + R.modalVideo],
+      ['clic en una fija de la tira abre el visor SIN regiones', R.p9Visor === true && R.p9Regiones === 0,
+                                                       'visor=' + R.p9Visor + ' regiones=' + R.p9Regiones],
       ['la grilla abre la imagen para calibrar',      R.gridAbreImagen === true, R.gridAbreImagen],
       ['y NO la rechaza con el motivo viejo',         R.gridNoRechaza === true, R.gridNoRechaza],
       ['un video SI se rechaza desde la grilla',      R.videoRechazado === true || R.videoRechazado === 'sin video', R.videoRechazado],
@@ -31688,6 +31737,7 @@ caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada
          ataria el caso a cuantas se importaron en vez de a que clases existen. */
       const unicas = l => [...new Set(l)].sort().join(',');
       R.clases = unicas(cs.map(clase));
+      R.enSlotRepetida = cs.some(c => c.getAttribute('data-cine-id') === idEnSlot);
       R.todasConX = cs.length > 0 && cs.every(c => c.querySelector('.cine-borrar'));
       R.conPdf = unicas(cs.filter(c => c.querySelector('.cine-alpdf')).map(clase));
       R.sinPdf = unicas(cs.filter(c => !c.querySelector('.cine-alpdf')).map(clase));
@@ -31777,7 +31827,16 @@ caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada
     }
     return { extra: [
       ['sin excepciones',                          !R.err, R.err],
-      ['DENOMINADOR: las cuatro clases de tarjeta', R.clases === 'cine,dicom,doc,imagen', R.clases],
+      /* ── ADAPTADO POR P9 (1.6) ──────────────────────────────────────────────────────
+         La tira pasa a dibujar SOLO lo que NO tiene casilla, porque la grilla de la biblioteca
+         ya dibuja las casillas y el medico veia la misma cosa dos y tres veces. La clase
+         imagen --la tarjeta de un slot sin registro en disco-- deja de existir por eso, y la
+         condicion se INVIERTE: la escena sigue armando una foto en slot y una fija que esta en
+         los dos lados, y lo que se exige es que NINGUNA de las dos se repita aca. */
+      ['DENOMINADOR: las tres clases que NO tienen casilla', R.clases === 'cine,dicom,doc', R.clases],
+      ['P9 1.6: lo que tiene casilla NO se repite en la tira',
+                                                   R.clases.indexOf('imagen') < 0 && R.enSlotRepetida === false,
+                                                   'clases=' + R.clases + ' repetida=' + R.enSlotRepetida],
       ['el ✕ va en TODAS las tarjetas',            R.todasConX === true, R.todasConX],
       ['el 📄 va en la imagen de disco y el documento', R.conPdf === 'dicom,doc', R.conPdf],
       /* El video NO se ejerce aca: exige un MP4 real y comparte rama con el cineloop en el
@@ -31785,7 +31844,7 @@ caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada
       /* «dicom» esta en las DOS listas a proposito, y es la condicion entera: la fija de disco
          SIN slot lleva 📄 y la que YA ocupa un slot no. Si las dos lo llevaran, el informe
          saldria con la misma ecografia dos veces. */
-      ['y NO en cineloop ni en lo que ya esta en un slot', R.sinPdf === 'cine,dicom,imagen', R.sinPdf],
+      ['y NO en cineloop',                        R.sinPdf === 'cine', R.sinPdf],
       ['area tactil 44 px en los dos botones',     R.hitX === '44x44' && R.hitPdf === '44x44',
                                                    'x=' + R.hitX + ' pdf=' + R.hitPdf],
       ['y el disco que se VE mide 20 px',          R.discoX === '20x20' && R.discoPdf === '20x20',
@@ -31794,12 +31853,13 @@ caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada
                                                    R.esqPdf >= 0 && R.esqPdf <= 10 &&
                                                    R.topX >= 0 && R.topX <= 10,
                                                    'der=' + R.esqX + ' izq=' + R.esqPdf + ' top=' + R.topX],
-      ['el ✕ de la tarjeta que esta en un slot existe', R.haySoloSlot === true, R.haySoloSlot],
+      /* INVERTIDA: ya no hay tarjetas solo-slot en la tira. Esa imagen vive en la grilla de la
+         biblioteca y su ✕ --el que borra de todos lados-- lo fija TC-980. */
+      ['ya no quedan tarjetas de lo que tiene casilla', R.haySoloSlot === false, R.haySoloSlot],
       ['ningun atributo de evento en la tira',     R.sinHandlerInline === true, R.sinHandlerInline],
       ['el 📄 manda UNA imagen al informe',        R.pdf_slots === 1, R.pdf_slots],
       ['y NO la saca de la biblioteca',            R.pdf_bib === 0, R.pdf_bib],
-      ['el ✕ de una tarjeta sin disco saca el slot', R.ss_slots === -1, R.ss_slots],
-      ['y no toca la biblioteca',                  R.ss_bib === 0, R.ss_bib],
+
       ['TAREA 3: el input acepta varios archivos', R.inputMultiple === true, R.inputMultiple],
       ['y tres archivos de UNA llamada entran los tres', R.slotsTrasImportar === 3, R.slotsTrasImportar],
       ['TAREA 2: borrar del slot no toca la biblioteca',
@@ -32492,9 +32552,16 @@ caso('TC-247', 'Biblioteca: arrastrar al espacio de la grilla, y el aviso al cer
       ['DENOMINADOR: el arrastre de verdad se solto', R.solto, R.solto],
       ['LLEGA AL ESPACIO QUE SE SEÑALO',              R.cayoEnEl1, R.cayoEnEl1],
       ['y no a otro',                                 R.noCayoEnOtro, R.noCayoEnOtro],
-      ['DENOMINADOR: hay mas de una tarjeta',         R.nTarjetas >= 2, R.nTarjetas],
+      /* ── INVERTIDA POR P9 (1.6) ──────────────────────────────────────────────────────
+         Despues del arrastre la tarjeta OCUPA una casilla, y desde esta tanda la tira no
+         dibuja lo que ya tiene casilla: la biblioteca es la grilla mas la tira, y cada cosa
+         aparece exactamente una vez. El invariante viejo --«lo que ya ocupa un slot no se
+         arrastra, y lo dice con draggable=false»-- deja de ser alcanzable porque esa tarjeta no
+         se dibuja; lo reemplaza este, que es mas fuerte: no se repite. */
+      ['P9 1.6: la tarjeta que paso a ocupar una casilla YA NO se repite en la tira',
+                                                     R.nTarjetas === 0, R.nTarjetas],
       ['todas declaran si se arrastran o no',         R.ningunaSinDeclarar, R.ningunaSinDeclarar],
-      ['y lo que no va al informe dice que NO',       R.algunaNoArrastrable, R.algunaNoArrastrable],
+
       ['DENOMINADOR: hay datos sin guardar',          R.hayDatosAhora, R.hayDatosAhora],
       ['CERRAR LA PESTAÑA avisa con datos',           R.avisaConDatos, R.avisaConDatos],
       ['DENOMINADOR: despues no queda nada',          R.sinDatos, R.sinDatos],
@@ -155478,8 +155545,14 @@ caso('TC-978', 'P8 1.1: todo lo que llega --cable y pendrive-- entra a la BIBLIO
       /* -- C - EL RENGLON DE CUENTA DICE LAS DOS COSAS ---------------------------------- */
       const ct = (EL('img-cuenta') || {}).textContent || '';
       R.cuenta = ct;
-      ex.push(['(C1) el renglon dice cuantas hay y cuantas salen',
-        ct.indexOf('3 en la biblioteca') >= 0 && ct.indexOf('0 en el PDF') >= 0, 'txt=' + ct]);
+      /* P9 (1.5) ADAPTA ESTA CONDICION: el renglon pasa a decir las fijas y los cines por
+         separado --«3 imagenes fijas y 0 cines en la biblioteca»--, porque en P8 contaba solo
+         las fijas y un estudio con cuarenta y un cineloops decia «3 en la biblioteca». Lo que
+         se exige sigue siendo lo mismo, con la forma nueva, y se agrega que nombre los cines:
+         asi la condicion falla si alguien vuelve a contar una sola de las dos cosas. */
+      ex.push(['(C1) el renglon dice cuantas fijas, cuantos cines y cuantas salen',
+        ct.indexOf('3 imágenes fijas') >= 0 && ct.indexOf('0 cines en la biblioteca') >= 0 &&
+        ct.indexOf('0 en el PDF') >= 0, 'txt=' + ct]);
       /* -- D - CONTROL NEGATIVO: UN ESQUEMA ES UN GESTO EXPLICITO Y ENTRA INCLUIDO ------- */
       const cc = document.createElement('canvas'); cc.width = 10; cc.height = 10;
       cc.getContext('2d').fillRect(0, 0, 10, 10);
@@ -155625,8 +155698,28 @@ caso('TC-980', 'P8 1.2: borrar de la biblioteca PREGUNTA y la saca tambien del P
       return new File([u], 'p8.jpg', { type: 'image/jpeg' });
     };
     const vivas = () => imgSlots.filter(s => s && s.dataURL).length;
-    const confOrig = window.confirm;
+    /* ══ ADAPTADO POR P9 (1.3) ═══════════════════════════════════════════════════════════
+       La ✕ de la biblioteca dejo de abrir un confirm NATIVO y abre el cartel propio de la app
+       (borrConfirmar, marca data-borr-conf), por orden expresa: ninguna ruta nueva ni de
+       prueba abre un dialogo del navegador. La condicion no se afloja --se sigue exigiendo que
+       PREGUNTE, que con «cancelar» no borre nada y que el texto mande a la otra ✕-- y se mide
+       sobre el cartel real, apretando su boton.
+       ⚠️ LA ESPERA VA ACOTADA: la promesa de ese cartel SOLO la resuelve un clic, asi que un
+       caso que no encuentre el boton se colgaria para siempre en vez de dar un rojo. Es la
+       leccion que la tanda EQ pago con una hora y media clavada en el lote 18. */
     let preguntas = 0, textoConf = '';
+    const cartel = () => document.querySelector('[data-borr-conf]');
+    const responder = async (si) => {
+      for (let i = 0; i < 40 && !cartel(); i++) await esp(50);
+      const c = cartel();
+      if (!c) return false;
+      preguntas++; textoConf = (c.textContent || '');
+      const bs = [].slice.call(c.querySelectorAll('button'));
+      const b = bs.filter(x => (x.textContent || '').toLowerCase().indexOf(si ? 'eliminar' : 'cancelar') >= 0)[0];
+      if (!b) { try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (e) {} return false; }
+      b.click();
+      return true;
+    };
     try {
       imgVaciar(); await esp(60);
       showTab('imagenes'); await esp(80);
@@ -155641,25 +155734,28 @@ caso('TC-980', 'P8 1.2: borrar de la biblioteca PREGUNTA y la saca tambien del P
       ex.push(['(0) DENOMINADOR: las dos estan en la biblioteca Y en el PDF',
         vivas() === 2 && R.denomEnPdf === 2, 'slots=' + vivas() + ' enPdf=' + R.denomEnPdf]);
       /* -- A - CON «CANCELAR» NO BORRA NADA -------------------------------------------- */
-      window.confirm = function (t) { preguntas++; textoConf = String(t); return false; };
       const cel = document.querySelector('#img-grid > div[data-idx="' + i0 + '"]');
       const eq = cel ? cel.querySelector('button[title="Eliminar"]') : null;
       R.aHayX = !!eq;
       if (eq) eq.click();
-      await esp(150);
+      R.aRespondio = await responder(false);
+      await esp(250);
       R.aPreguntas = preguntas; R.aSlots = vivas(); R.aEnPdf = infMinCapturas().length;
       ex.push(['(A1) la ✕ roja PREGUNTA y con «cancelar» no borra ni saca del PDF',
         R.aHayX && preguntas === 1 && R.aSlots === 2 && R.aEnPdf === 2,
         'x=' + R.aHayX + ' preg=' + preguntas + ' slots=' + R.aSlots + ' enPdf=' + R.aEnPdf]);
-      ex.push(['(A2) y la pregunta manda a la pastilla para el caso de solo sacarla del PDF',
-        textoConf.indexOf('biblioteca') >= 0 && textoConf.indexOf('pastilla') >= 0,
-        'txt=' + textoConf.slice(0, 120)]);
+      ex.push(['(A2) la pregunta dice LA CANTIDAD y manda a la otra ✕ para solo sacarla del PDF',
+        textoConf.indexOf('1 imagen') >= 0 && textoConf.indexOf('biblioteca') >= 0 &&
+        (textoConf.indexOf('✕ roja') >= 0 || textoConf.indexOf('pastilla') >= 0),
+        'txt=' + textoConf.slice(0, 200)]);
+      ex.push(['(A3) y es un cartel PROPIO, no un dialogo del navegador',
+        R.aRespondio === true, 'respondio=' + R.aRespondio]);
       /* -- B - CON «SI» SE VA DE LA BIBLIOTECA **Y** DEL PDF --------------------------- */
-      window.confirm = function () { return true; };
       const cel2 = document.querySelector('#img-grid > div[data-idx="' + i0 + '"]');
       const eq2 = cel2 ? cel2.querySelector('button[title="Eliminar"]') : null;
       if (eq2) eq2.click();
-      await esp(200);
+      await responder(true);
+      await esp(300);
       R.bSlots = vivas(); R.bEnPdf = infMinCapturas().length;
       ex.push(['(B1) borrar de la biblioteca la saca TAMBIEN del PDF y de las miniaturas',
         R.bSlots === 1 && R.bEnPdf === 1,
@@ -155672,11 +155768,14 @@ caso('TC-980', 'P8 1.2: borrar de la biblioteca PREGUNTA y la saca tambien del P
       const n0 = vivas(); preguntas = 0;
       imgRemove(null, imgSlots.findIndex(s => s && s.dataURL));
       await esp(140);
-      R.cSlots = vivas(); R.cPreg = preguntas;
+      R.cSlots = vivas(); R.cPreg = preguntas + (cartel() ? 1 : 0);
       ex.push(['(C1) imgRemove sigue borrando sin preguntar: es la puerta programatica',
         R.cSlots === n0 - 1 && R.cPreg === 0, 'slots=' + n0 + '->' + R.cSlots + ' preg=' + R.cPreg]);
     } finally {
-      window.toast = toastOrig; window.confirm = confOrig;
+      window.toast = toastOrig;
+      /* Lo propio y nada mas: un barrido de todo [role=dialog] le arranca al documento el nodo
+         de otro modal que no es de este caso. */
+      try { const c9 = cartel(); if (c9 && c9.parentNode) c9.parentNode.removeChild(c9); } catch (e) {}
       try { imgVaciar(); } catch (e) {}
     }
     return { extra: ex, diag: R };
@@ -157295,6 +157394,248 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
       ['y el censo de controles con id es identico antes y despues',
         R.censoAntes === R.censoDespues, R.censoAntes === R.censoDespues]
     ] };
+  })();
+`);
+
+/* ══ P9 · TAREA 1 · EL MODELO DE IMAGENES DEL MEDICO ═══════════════════════════════════════
+   El medico probo el modelo de P8 --una sola grilla con una pastilla por celda-- en Windows y
+   pidio el suyo: arriba lo que va al PDF, abajo la biblioteca con todo. Los tres casos de abajo
+   caen contra bada886 por su denominador: ahi no existe imgPdfRender. */
+caso('TC-992', 'P9 1.1 a 1.3: dos secciones --arriba lo que va al PDF, abajo la biblioteca--, la de arriba ES la lista de las miniaturas del Informe, y la ✕ de arriba SOLO saca del PDF', `
+  return (async () => {
+    if (typeof window.imgPdfRender !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la grilla del PDF', false, 'no existe imgPdfRender']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast; window.toast = () => {};
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p9_' + color.slice(1) + '.jpg', { type: 'image/jpeg' });
+    };
+    const celdasPdf = () => [].slice.call(document.querySelectorAll('#img-pdf-grid > div[data-idx]'));
+    try {
+      imgVaciar(); await esp(80);
+      showTab('imagenes'); await esp(120);
+      const gP = document.getElementById('img-pdf-grid'), gB = document.getElementById('img-grid');
+      R.hayDos = !!(gP && gB);
+      R.pdfArriba = !!(gP && gB && (gP.compareDocumentPosition(gB) & Node.DOCUMENT_POSITION_FOLLOWING));
+      ex.push(['(A1) DENOMINADOR: existen las dos grillas y la del PDF va ARRIBA de la biblioteca',
+        R.hayDos && R.pdfArriba, 'dos=' + R.hayDos + ' arriba=' + R.pdfArriba]);
+      R.vacio = ((document.querySelector('#img-pdf-grid [data-pdf-vacio]') || {}).textContent || '');
+      ex.push(['(A2) con el estudio recien abierto la de arriba esta VACIA y lo dice con palabras',
+        celdasPdf().length === 0 && R.vacio.indexOf('Arrastr') >= 0, 'celdas=' + celdasPdf().length + ' txt=' + R.vacio.slice(0, 60)]);
+
+      await mediosImportar([jpg('#c02020'), jpg('#20c020')], undefined, 'ceibolink');
+      await esp(250);
+      const idxs = imgSlots.map((s, i) => (s && s.dataURL) ? i : -1).filter(i => i >= 0);
+      if (idxs.length < 2) return { extra: [['DENOMINADOR: entraron dos imagenes', false, 'entraron ' + idxs.length]] };
+      R.bPdf = celdasPdf().length;
+      R.bBib = [].slice.call(document.querySelectorAll('#img-grid > div[data-idx]'))
+                 .filter(c => c.querySelector('img')).length;
+      ex.push(['(B1) lo que llega del ecografo esta en la BIBLIOTECA y NO en la grilla del PDF',
+        R.bPdf === 0 && R.bBib === 2, 'pdf=' + R.bPdf + ' bib=' + R.bBib]);
+
+      imgTogglePdf(null, idxs[0]); await esp(200);
+      R.cPdf = celdasPdf().map(c => c.dataset.idx).join(',');
+      R.cMin = infMinCapturas().map(c => String(c.i)).join(',');
+      ex.push(['(B2) la grilla de arriba ES la misma lista que las miniaturas del Informe',
+        R.cPdf === R.cMin && R.cPdf === String(idxs[0]), 'pdf=[' + R.cPdf + '] minis=[' + R.cMin + ']']);
+
+      const bx = document.querySelector('#img-pdf-grid [data-pdf-quitar]');
+      R.hayX = !!bx;
+      if (bx) bx.click();
+      await esp(250);
+      R.dPdf = infMinCapturas().length;
+      R.dSlots = imgSlots.filter(s => s && s.dataURL).length;
+      ex.push(['(C1) la ✕ roja de ARRIBA solo saca del PDF: la imagen sigue en la biblioteca',
+        R.hayX && R.dPdf === 0 && R.dSlots === 2,
+        'x=' + R.hayX + ' enPdf=' + R.dPdf + ' slots=' + R.dSlots]);
+      R.dCartel = !!document.querySelector('[data-borr-conf]');
+      ex.push(['(C2) CONTROL NEGATIVO: no pregunta nada, porque no borra nada',
+        R.dCartel === false, 'cartel=' + R.dCartel]);
+      R.dTitulo = (bx ? (bx.getAttribute('title') || '') : '');
+      ex.push(['(C3) y su titulo dice que no borra, que es lo que la distingue de la de abajo',
+        R.dTitulo.indexOf('no se borra') >= 0 || R.dTitulo.indexOf('Sacar del PDF') >= 0, 'title=' + R.dTitulo]);
+    } finally {
+      window.toast = toastOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-993', 'P9 1.4 y 1.5: lo que llega solo va SOLO a la biblioteca y lo que pone el medico a mano va tambien al PDF; un video nunca sale; y el renglon cuenta fijas y cines por separado', `
+  return (async () => {
+    if (typeof window.imgCuentaPintar !== 'function' || typeof window._imgCinesEnBiblioteca !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el contador de P9', false, 'falta imgCuentaPintar']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast; window.toast = () => {};
+    const blobJpg = (color) => new Promise(res => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      c.toBlob(b => res(b), 'image/jpeg', 0.9);
+    });
+    const fileJpg = (color, nom) => blobJpg(color).then(b => new File([b], nom, { type: 'image/jpeg' }));
+    try {
+      imgVaciar(); await esp(80);
+      showTab('imagenes'); await esp(120);
+      /* -- A - POR LA PUERTA DEL ECOGRAFO: SOLO A LA BIBLIOTECA ------------------------ */
+      await mediosImportar([await fileJpg('#c02020', 'p9a.jpg')], undefined, 'ceibolink');
+      await esp(250);
+      const iA = imgSlots.findIndex(s => s && s.dataURL);
+      R.aNoPdf = iA >= 0 ? !!imgSlots[iA].noPdf : 'NO ESTA';
+      ex.push(['(A1) lo que llega del ecografo nace FUERA del PDF', R.aNoPdf === true, 'noPdf=' + R.aNoPdf]);
+      /* -- B - A MANO: TAMBIEN AL PDF --------------------------------------------------- */
+      const nAntes = infMinCapturas().length;
+      await imgCompressLoad(await blobJpg('#2020c0'), -1, 'mano');
+      await esp(250);
+      R.bEnPdf = infMinCapturas().length;
+      ex.push(['(B1) lo que el medico pone a mano entra TAMBIEN al PDF',
+        R.bEnPdf === nAntes + 1, 'enPdf=' + nAntes + '->' + R.bEnPdf]);
+      /* CONTROL NEGATIVO: la MISMA puerta sin la marca sigue naciendo fuera del PDF. */
+      await imgCompressLoad(await blobJpg('#20a0a0'), -1, 'visor');
+      await esp(250);
+      R.cEnPdf = infMinCapturas().length;
+      ex.push(['(B2) CONTROL NEGATIVO: la captura del visor, por la misma puerta, NO entra al PDF',
+        R.cEnPdf === R.bEnPdf, 'enPdf=' + R.bEnPdf + '->' + R.cEnPdf]);
+      /* -- C - UN VIDEO NUNCA SALE EN EL PDF -------------------------------------------- */
+      /* Se AGREGA una casilla en vez de buscar una vacia: con tres imagenes ya entradas puede
+         no quedar ninguna, y entonces el bloque C mediria sobre un video que no existe --un
+         denominador vacio que se lee igual que «el video no sale en el PDF»--. */
+      const iV = imgSlots.length;
+      imgSlots.push({ dataURL: imgSlots[iA].dataURL, ampliada: false, calidad: 'media',
+                      videoId: 'p9-video-falso', videoNombre: 'clip' });
+      imgSlotCount = imgSlots.length;
+      imgRender(); await esp(200);
+      R.dHayVideo = !!(imgSlots[iV] && imgSlots[iV].videoId);
+      ex.push(['(C0) DENOMINADOR: la casilla de video existe', R.dHayVideo === true, 'hay=' + R.dHayVideo]);
+      R.dVideoEnPdf = infMinCapturas().filter(c => c.i === iV).length;
+      R.dVideoEnGrilla = [].slice.call(document.querySelectorAll('#img-pdf-grid > div[data-idx]'))
+                           .filter(c => c.dataset.idx === String(iV)).length;
+      ex.push(['(C1) un video nunca sale en el PDF ni se dibuja en la grilla de arriba',
+        R.dVideoEnPdf === 0 && R.dVideoEnGrilla === 0,
+        'enPdf=' + R.dVideoEnPdf + ' grilla=' + R.dVideoEnGrilla]);
+      /* -- D - EL RENGLON CUENTA FIJAS Y CINES POR SEPARADO ----------------------------- */
+      imgCuentaPintar();
+      const ct = (document.getElementById('img-cuenta') || {}).textContent || '';
+      R.cuenta = ct;
+      R.cines = _imgCinesEnBiblioteca();
+      ex.push(['(D1) el renglon dice cuantas fijas, cuantos cines y cuantas van al PDF',
+        ct.indexOf('3 imágenes fijas') >= 0 && ct.indexOf('1 cine') >= 0 &&
+        ct.indexOf('en el PDF') >= 0, 'txt=' + ct]);
+      ex.push(['(D2) y el video cuenta como cine, no como imagen fija', R.cines === 1, 'cines=' + R.cines]);
+    } finally {
+      window.toast = toastOrig;
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-994', 'P9 1.6 a 1.8: una medicion guardada deja UN solo elemento en la biblioteca, el clic abre el visor desde las DOS grillas, el doble clic marca «ampliada» con su palabra, y los textos cortos estan', `
+  return (async () => {
+    if (typeof window.imgPdfRender !== 'function' || typeof CeiboCine === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene la grilla del PDF y CeiboCine', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    let togglePrevio = null, estudioId = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esp(250);
+      __t.set('nombre', 'P9 TAREA UNO'); __t.set('ci', '95590994');
+      const g = await __t.guardar(); estudioId = g.estudioId;
+      await esp(900);
+      __t.reabrir(estudioId); await esp(1600);
+      showTab('imagenes'); await esp(150);
+      /* -- A - UNA MEDICION GUARDADA ES **UN** ELEMENTO -------------------------------- */
+      const cv = document.createElement('canvas'); cv.width = 300; cv.height = 200;
+      const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, 300, 200);
+      const rec = await _docGuardarEnBiblioteca(cv, 'Tabla P9');
+      await esp(700);
+      const idDoc = rec && rec.id;
+      const tarjetas = () => [].slice.call(document.querySelectorAll('#cine-strip [data-strip-i]'));
+      R.aTarjetas = tarjetas().length;
+      R.aSlots = imgSlots.filter(s => s && s.dataURL).length;
+      ex.push(['(A1) guardar una medicion deja UNA tarjeta en la biblioteca y ninguna casilla',
+        R.aTarjetas === 1 && R.aSlots === 0, 'tarjetas=' + R.aTarjetas + ' slots=' + R.aSlots]);
+      /* -- B - Y AL MANDARLA AL PDF SIGUE SIENDO **UNA** ------------------------------- */
+      const bp = document.querySelector('#cine-strip .cine-alpdf');
+      R.bHayPdf = !!bp;
+      if (bp) bp.click();
+      for (let i = 0; i < 70 && imgSlots.filter(s => s && s.dataURL).length === 0; i++) await esp(100);
+      await esp(900);
+      R.bSlots = imgSlots.filter(s => s && s.dataURL).length;
+      R.bTarjetas = tarjetas().length;
+      R.bEnPdf = infMinCapturas().length;
+      R.bDocId = (imgSlots.filter(s => s && s._docId)[0] || {})._docId || '';
+      ex.push(['(B1) mandarla al PDF NO la duplica: una casilla y CERO tarjetas repetidas',
+        R.bSlots === 1 && R.bTarjetas === 0,
+        'slots=' + R.bSlots + ' tarjetas=' + R.bTarjetas]);
+      ex.push(['(B2) el 📄 de verdad la manda al PDF --en P8 nacia fuera y el boton mentia--',
+        R.bEnPdf === 1, 'enPdf=' + R.bEnPdf]);
+      ex.push(['(B3) y el vinculo con su registro queda sellado en la casilla',
+        !!idDoc && R.bDocId === idDoc, 'docId=' + R.bDocId.slice(0, 8) + ' id=' + String(idDoc).slice(0, 8)]);
+      /* -- C - 1.7 · EL DOBLE CLIC MARCA «AMPLIADA» Y LA PALABRA SE VE ----------------- */
+      const iS = imgSlots.findIndex(s => s && s.dataURL);
+      imgToggleAmpliar(iS); await esp(200);
+      const celPdf = document.querySelector('#img-pdf-grid > div[data-idx="' + iS + '"]');
+      const celBib = document.querySelector('#img-grid > div[data-idx="' + iS + '"]');
+      R.cAmp = !!imgSlots[iS].ampliada;
+      R.cTxtPdf = celPdf ? (celPdf.textContent || '') : '';
+      R.cTxtBib = celBib ? (celBib.textContent || '') : '';
+      ex.push(['(C1) la marca de ampliada dice LA PALABRA en las dos grillas',
+        R.cAmp && R.cTxtPdf.indexOf('AMPLIADA') >= 0 && R.cTxtBib.indexOf('AMPLIADA') >= 0,
+        'amp=' + R.cAmp + ' pdf=' + (R.cTxtPdf.indexOf('AMPLIADA') >= 0) + ' bib=' + (R.cTxtBib.indexOf('AMPLIADA') >= 0)]);
+      /* -- D - 1.7 · EL CLIC ABRE EL VISOR DESDE LAS DOS GRILLAS ----------------------- */
+      const abre = async (sel) => {
+        try { cineCerrar(); } catch (e) {}
+        await esp(250);
+        const im = document.querySelector(sel + ' > div[data-idx="' + iS + '"] img');
+        if (!im) return 'sin celda';
+        im.click();
+        for (let i = 0; i < 40; i++) { await esp(100);
+          if (typeof _cineDatos !== 'undefined' && _cineDatos && _cineDatos.loops) break; }
+        const ok = !!(typeof _cineDatos !== 'undefined' && _cineDatos && _cineDatos.loops);
+        try { cineCerrar(); } catch (e) {}
+        await esp(250);
+        return ok;
+      };
+      R.dBib = await abre('#img-grid');
+      R.dPdf = await abre('#img-pdf-grid');
+      ex.push(['(D1) un clic abre el visor desde la biblioteca Y desde la grilla del PDF',
+        R.dBib === true && R.dPdf === true, 'bib=' + R.dBib + ' pdf=' + R.dPdf]);
+      /* -- E - 1.8 · LOS TEXTOS CORTOS ------------------------------------------------- */
+      const tab = document.getElementById('tab-imagenes');
+      const txt = tab ? (tab.textContent || '') : '';
+      R.eArriba = txt.indexOf('Imágenes que van al PDF') >= 0;
+      R.eAbajo = txt.indexOf('Biblioteca de imágenes del estudio') >= 0;
+      R.eViejo = txt.indexOf('Acá vive todo lo que llega') >= 0;
+      ex.push(['(E1) los dos titulos estan y el parrafo largo de P8 ya no',
+        R.eArriba && R.eAbajo && R.eViejo === false,
+        'arriba=' + R.eArriba + ' abajo=' + R.eAbajo + ' viejo=' + R.eViejo]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try { cineCerrar(); } catch (e) {}
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
   })();
 `);
 
