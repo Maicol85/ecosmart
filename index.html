@@ -150995,14 +150995,25 @@ function _medPintar() {
      si el eje quedó torcido o el ápex escorzado, se ve en cómo caen las rayas. Un numero
      solo no deja revisar nada. */
   if (_medHerr === 'simpson' && _simp) {
-    /* `ocultar` lo pone el cambio de cuadro: el trazado confirmado SIGUE GUARDADO, pero deja
-       de dibujarse para no confundirlo con el contorno del cuadro que se está viendo ahora.
-       Un contorno de diástole superpuesto a un cuadro de sístole invita a creer que el
-       trazado se hizo sobre esa imagen. */
-    const ultimo = _simp.pares[_simp.vista][_simp.fase === 'd' ? 's' : 'd'];
-    const tr = _simp.pendiente || (_simp.ocultar ? null : ultimo);
+    /* ══ P11 (2.3) — SE DIBUJA LO QUE SE ESTA TRAZANDO, Y NADA MAS ═══════════════════════
+       ⚠️ ACA VIVIA EL CONTORNO DE AYUDA QUE EL MEDICO PIDIO SACAR, y era esta linea:
+          const ultimo = _simp.pares[_simp.vista][_simp.fase === 'd' ? 's' : 'd'];
+       o sea el contorno confirmado de la fase CONTRARIA a la que toca. Al confirmar la
+       diastole, `_simpAceptar` da vuelta la fase a sistole y pone `ocultar` en falso, asi que
+       el contorno de la diastole quedaba dibujado en verde mientras el medico empezaba la
+       sistole — «pasa siempre», que es exactamente lo que reporto. Medido en la linea base: con
+       la fase en sistole, el par de diastole puesto y `ocultar` en falso, se dibujaba.
+       Hoy se dibuja SOLO `pendiente`, o sea el contorno que se esta trazando.
+       ⚠️ NO CAMBIA NINGUN CALCULO NI NINGUN RESULTADO: los confirmados siguen guardados en
+       `_simp.pares` y los sigue leyendo `_simpCalcular`. Lo unico que cambia es que no se
+       pintan. Verificado midiendo los volumenes y la FEVI antes y despues.
+       ⚠️ `ocultar` SE SIGUE ESCRIBIENDO y queda declarado: ya no decide nada en este dibujo
+       —era su unico lector en este archivo— pero tres condiciones del suite la miden, y es la
+       bandera que dice «el cambio de cuadro escondio lo confirmado». Borrarla seria sacar un
+       estado que la bateria usa para distinguir ocultar de borrar. */
+    const tr = _simp.pendiente;
     if (tr) {
-      const col = _simp.pendiente ? '#fbbf24' : '#22d36a';
+      const col = '#fbbf24';
       cx.strokeStyle = col; cx.fillStyle = col;
       cx.beginPath(); cx.moveTo(tr.pts[0].x, tr.pts[0].y);
       for (let i = 1; i < tr.pts.length; i++) cx.lineTo(tr.pts[i].x, tr.pts[i].y);
