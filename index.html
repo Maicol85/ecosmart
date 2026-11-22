@@ -23871,7 +23871,15 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
            ningún destino fuera del visor, así que «se olvidó de volver» dejó de ser posible. -->
       <div id="med-fija-aviso" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;
            padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
-      <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+      <!-- ══ P13 (2b) — LAS FIJAS EN MINIATURA CHICA ════════════════════════════════════
+           Dos columnas fijas con la imagen hasta 220 px de alto: con mas de veinte imagenes
+           cada una ocupaba media pantalla y la biblioteca dejaba de poder recorrerse, que es lo
+           que el medico reporto. Pasa a una grilla que se llena sola con celdas de 128 px de
+           ancho minimo, o sea cinco o seis por fila en escritorio y dos en celular, con el alto
+           de la imagen acotado en la celda (ver `imgRender`).
+           ⚠️ `auto-fill` Y NO `auto-fit`: con `auto-fit` y una sola imagen la celda se estira a
+           todo el ancho y la miniatura vuelve a ser enorme. -->
+      <div id="img-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;"></div>
 
       <!-- ⚠️ ACÁ VIVÍA EL OVERLAY CON EL PANEL DE ESTUDIOS DE ORTHANC, Y SE ELIMINÓ
            (ECO-CONECTOR-1) junto con su botón, su filtro por nombre y fecha y las cuatro
@@ -142627,11 +142635,12 @@ function imgRender(){
     const amp = !!(slot && slot.ampliada);
     const cell = document.createElement('div');
     cell.dataset.idx = idx;
-    cell.style.cssText = 'position:relative;border:1.5px '+(slot?'solid':'dashed')+' '+(amp?'var(--accent)':'var(--border)')+';border-radius:10px;background:var(--bg2);min-height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(amp?'box-shadow:0 0 0 2px var(--accent);':'')+(imgSwapSel===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
+    /* P13 (2b) — la celda baja de 150 a 104 px de alto minimo. Ver la nota del contenedor. */
+    cell.style.cssText = 'position:relative;border:1.5px '+(slot?'solid':'dashed')+' '+(amp?'var(--accent)':'var(--border)')+';border-radius:10px;background:var(--bg2);min-height:104px;display:flex;align-items:center;justify-content:center;overflow:hidden;'+(amp?'box-shadow:0 0 0 2px var(--accent);':'')+(imgSwapSel===idx?'outline:2px dashed var(--accent2);outline-offset:2px;':'');
     if (slot){
       cell.setAttribute('draggable','true');
       cell.innerHTML =
-        '<img src="'+(_imgSrcOK(slot.dataURL)?slot.dataURL:'')+'" loading="lazy" style="max-width:100%;max-height:220px;display:block;pointer-events:none;" alt="'+(_imgSrcOK(slot.dataURL)?('imagen '+(idx+1)):'Imagen '+(idx+1)+' no se puede mostrar: formato no admitido')+'" title="'+(_imgSrcOK(slot.dataURL)?'':'Formato de imagen no admitido')+'">'
+        '<img src="'+(_imgSrcOK(slot.dataURL)?slot.dataURL:'')+'" loading="lazy" style="max-width:100%;max-height:120px;display:block;pointer-events:none;" alt="'+(_imgSrcOK(slot.dataURL)?('imagen '+(idx+1)):'Imagen '+(idx+1)+' no se puede mostrar: formato no admitido')+'" title="'+(_imgSrcOK(slot.dataURL)?'':'Formato de imagen no admitido')+'">'
         + (amp ? '<span style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;pointer-events:none;">AMPLIADA</span>' : '')
         /* Badge de VIDEO. El slot muestra el primer cuadro; sin la marca se ve igual que una
            foto y nadie sabe que hay un reproductor detrás. Dice además que no sale en el PDF,
@@ -147257,39 +147266,81 @@ window.cineMaxActivo = cineMaxActivo;
    ⚠️ NO SE PREGUNTA NADA. El aviso «hay mediciones del estudio anterior, limpiar o conservar»
    (`avisoImg`) existe para el caso en que el cajon acumula; con la tabla vaciandose al abrir no
    hay nada que preguntar y preguntarlo seria un cuadro que se aprende a cerrar sin leer. */
-function _cineSoltarAlAbrir() {
+/* La clave de lo ULTIMO que se abrio en el visor, para saber si lo que llega es otro video.
+   Vive fuera de la vista a proposito: tiene que sobrevivir a `cineCerrar`, que suelta `datos`. */
+let _cineClaveAbierta = '';
+function _cineSoltarAlAbrir(loops, puerta) {
+  /* ⚠️ SOLO SI EL VIDEO ES OTRO, Y ESTO CORRIGE UN PRIMER INTENTO QUE ROMPIA UNA PROMESA DE LA
+     APP. La orden dice «al abrir un video NUEVO», y vaciar en cada `_cineAbrir` se llevaba
+     tambien el caso de CERRAR Y VOLVER A ABRIR EL MISMO: la ✕ del visor declara, con todas las
+     letras y por eso no pide confirmacion, que «lo medido se conserva». Con el vaciado
+     incondicional, cerrar y reabrir perdia los trazados, la tabla y la diana sin una palabra —o
+     sea convertia esa ✕ en la trampa que su propio comentario dice que no es.
+     La identidad del cineloop la da `_cineClave`: nombre, cuadros, peso y hash de los primeros
+     4 KB del primer fragmento. Es el mismo dueño con el que P9 (3.1) deduplica la cola y el
+     disco, asi que «es el mismo archivo» significa aca exactamente lo que significa alla.
+     Falla hacia SOLTAR: sin clave —un loop sin fragmentos— se vacia, que es el lado que el
+     medico pidio. */
+  try {
+    const nue = (loops && loops.length && typeof _cineClave === 'function') ? _cineClave(loops[0]) : '';
+    /* ⚠️ SE COMPARA CONTRA LA CLAVE DE LO ULTIMO QUE SE ABRIO Y NO CONTRA `_vistaA.datos`, Y LO
+       DESTAPO MEDIR: `cineCerrar` SUELTA `datos` —son vistas sobre el ArrayBuffer del archivo
+       entero, o sea los 17 MB de un cineloop— asi que despues de cerrar el visor no queda nada
+       con que comparar y el camino de «cerrar y reabrir el mismo» vaciaba igual. Medido: lo
+       medido pasaba de 9,1 a null al reabrir el MISMO cineloop. La clave es un texto corto y no
+       retiene un solo byte de pixel. */
+    if (nue && _cineClaveAbierta && nue === _cineClaveAbierta) return;
+  } catch (e) {}
   /* La vista B primero: su panel hay que quitarlo antes de cargar el cineloop nuevo. */
   try { if (_vistaB) vistaCerrarUna(_vistaB); } catch (e) { console.error('abrir/cerrarB', e); }
-  /* Las sesiones de las mediciones por vista. `medCambioDeImagen` suelta lo pendiente pero
-     CONSERVA los pares confirmados —el metodo exige cambiar de cuadro— y eso es correcto dentro
-     de una imagen; al abrir otra no queda nada a que pertenezcan. */
-  try {
-    _vTodas().forEach(V => {
-      V.simp = null; V.strain = null; V.lars = null; V.vd = null;
-      V.medPorCuadro = null; V.medCuadroClave = null; V.medCuadroPend = false;
-      V.medLineas = []; V.medAreas = []; V.medVels = []; V.medTiempos = []; V.medVtis = [];
-      V.medPuntos = []; V.medTrazo = null;
-      V.medCalib = null; V.medCalibrando = false;
-      V.medCalibVel = null; V.medCalibrandoVel = false; V.medCalVelP0 = null;
-      V.medEtiqAuto = '';
-    });
-  } catch (e) { console.error('abrir/soltar vistas', e); }
-  /* Y los dos cajones, que son de modulo. Se usan sus dueños —los mismos que el boton
-     «Limpiar»— y no una asignacion a mano: ellos deciden que se borra y que se conserva (la
-     estructura abierta) y repintan las dos tablas. Guarda `typeof` porque viven en otros
-     bloques `<script>`. */
-  try { if (typeof _dopLimpiar === 'function') _dopLimpiar(); } catch (e) {}
-  try { if (typeof _d2Limpiar === 'function') _d2Limpiar(); } catch (e) {}
+  /* ⚠️ LAS CUATRO SESIONES DE MEDICION **NO** SE SUELTAN, Y ESTO CORRIGE UN PRIMER INTENTO MIO
+     QUE ROMPIA EL BIPLANO. La primera version vaciaba `simp`, `strain`, `lars` y `vd` de todas
+     las vistas, y eso destruye el metodo: la apical de cuatro camaras y la de dos son DOS
+     CINELOOPS DISTINTOS, asi que el Simpson biplano, el SGL por territorios, el LARS por tres
+     contornos y el strain del VD EXIGEN cruzar imagenes — `medSimpsonSegundaVista` existe
+     justamente para cambiar de cineloop y trazar la otra apical. Medido: puso en rojo a TC-192
+     («la sesion sobrevive»), TC-200, TC-201, TC-204 («CONSERVA el LARS medido») y TC-205
+     («cerrar el visor CONSERVA la sesion»), tres de ellos con un TypeError sobre la sesion que
+     acababa de borrar.
+     Lo que el medico nombro es la TABLA —«aparecio SIVd 9,1 mm sin dibujo y sin escala»— y eso
+     son los dos cajones, que es lo que se vacia aca abajo. Las sesiones tienen ya su propio
+     mecanismo correcto: `medCambioDeImagen` suelta el trazado sin confirmar, esconde lo
+     confirmado y levanta `avisoImagen`, que es el aviso que le dice al medico que lo que hay es
+     de otra imagen. Declarado en P13-c.
+     Lo dibujado de cada vista tampoco se toca aca: `_cineCargarLoop` cambia `#cine-cual` y su
+     observador llama a `medCambioDeImagen`, que ya borra lineas, areas, velocidades, tiempos,
+     VTI, el almacen por cuadro y las dos calibraciones. Repetirlo aca seria un segundo dueño de
+     la misma limpieza. */
+  /* ══ LOS DOS CAJONES SE VACIAN SOLO EN LAS TRES PUERTAS QUE LA ORDEN NOMBRA ════════════════
+     La orden dice «al abrir un video nuevo (Vista previa, biblioteca, imagenes guardadas)», y
+     esas tres son las puertas en que el medico elige UN archivo a mano. La IMPORTACION del
+     pendrive —`dcmImgImportar`, que abre el visor con un lote entero— no esta en la lista, y ahi
+     la acumulacion es la conducta declarada y clinicamente necesaria: el VTI del TSVI y el de la
+     valvula aortica se miden en planos distintos, o sea en imagenes distintas del mismo lote, y
+     de eso sale la AVA por continuidad.
+     ⚠️ ESTO ES UNA DECISION MIA SOBRE EL ALCANCE Y QUEDA DECLARADA EN P13-b, con lo que costaria
+     cada lado: vaciar tambien en la importacion pone en rojo a TC-249, TC-251 y TC-256, que son
+     los tres casos que fijan esa acumulacion, y le saca al medico la continuidad entre dos
+     imagenes del mismo estudio. No vaciar en las tres puertas es el defecto que reporto.
+     Se usan los dueños del boton «Limpiar» y no una asignacion a mano: ellos deciden que se
+     borra y que se conserva —la estructura abierta— y repintan las dos tablas. Guarda `typeof`
+     porque viven en otros bloques `<script>`. */
+  if (puerta === 'bib') {
+    try { if (typeof _dopLimpiar === 'function') _dopLimpiar(); } catch (e) {}
+    try { if (typeof _d2Limpiar === 'function') _d2Limpiar(); } catch (e) {}
+  }
 }
 window._cineSoltarAlAbrir = _cineSoltarAlAbrir;
 
-function _cineAbrir(loops) {
+function _cineAbrir(loops, puerta) {
   _V = _vistaA;
   _cineDetener();
   /* P13 (1j) — un video nuevo arranca limpio. Va ANTES de cargar los datos nuevos: adentro se
      cierra la vista B, y cerrarla despues de cargar dejaria el cineloop nuevo montado sobre un
-     panel que se esta por quitar. */
-  _cineSoltarAlAbrir();
+     panel que se esta por quitar. Recibe los loops para poder preguntar si es OTRO video. */
+  _cineSoltarAlAbrir(loops, puerta);
+  try { _cineClaveAbierta = (loops && loops.length && typeof _cineClave === 'function')
+    ? _cineClave(loops[0]) : ''; } catch (e) { _cineClaveAbierta = ''; }
   _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
   /* ⚠️ MEDIR-4a — LA MARCA DE «VISTA DE IMAGEN FIJA» SE SUELTA ACA. El objeto de la vista A
      sobrevive a cerrar y reabrir el visor, asi que una marca que quedara puesta dejaria el
@@ -155425,7 +155476,7 @@ function medFijaClic(ev) {
           'Se abre igual: en el visor podés calibrar la escala de distancia a mano con ' +
           '«Recalibrar».\n\n' + MED_COMO_CALIBRAR_VEL);
   }
-  _cineAbrir([fija]);
+  _cineAbrir([fija], 'bib');
 }
 
 /* ── Medir sobre una imagen SIN escala (JPG, PNG, BMP) ──────────────────────────────────
@@ -155472,7 +155523,7 @@ async function medImagenAbrir(idx) {
   if (!dim.w || !dim.h) { toast('❌ Este navegador no pudo abrir la imagen'); return false; }
   _cineAbrir([{ nombre: 'Imagen del estudio · sin escala DICOM', cuadros: 1,
                 d: { frags: [bytes], cols: dim.w, filas: dim.h, msCuadro: 0,
-                     fabricante: '', modelo: '', regiones: [] } }]);
+                     fabricante: '', modelo: '', regiones: [] } }], 'bib');
   return true;
 }
 window.medImagenAbrir = medImagenAbrir;
@@ -155483,7 +155534,7 @@ async function medFijaAbrirGuardada(id) {
   if (!r) { toast('❌ No se pudo leer la imagen guardada'); return; }
   const l = _cineDesdeRegistro(r);
   l.nombre = (r.nombre || '') ;
-  _cineAbrir([l]);
+  _cineAbrir([l], 'bib');
 }
 window.medFijaAbrirGuardada = medFijaAbrirGuardada;
 
@@ -159826,7 +159877,7 @@ window._cineLoopDeDisco = _cineLoopDeDisco;
 async function cineAbrirGuardado(id) {
   const loop = await _cineLoopDeDisco(id);
   if (!loop) { toast('❌ No se pudo leer el cineloop guardado'); return; }
-  _cineAbrir([loop]);
+  _cineAbrir([loop], 'bib');
 }
 window.cineAbrirGuardado = cineAbrirGuardado;
 
@@ -160138,7 +160189,35 @@ async function cineStripRender() {
         '⚠️ Los videos MP4 son sólo para documentación — las mediciones deben realizarse sobre imágenes ' +
         'del ecógrafo.</div>'
       : '') +
-    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + fichas.map(tarjeta).join('') + '</div>';
+    /* ══ P13 (TAREA 2) — ORDEN FIJO Y SIN MEZCLAR: LAS FIJAS PRIMERO, LOS CINELOOPS AL FINAL
+       Orden del medico: «arriba lo que va al PDF; en el medio las imagenes fijas (incluidas las
+       capturas); abajo los cineloops». Arriba es `#img-pdf-grid` y el medio es la grilla de la
+       biblioteca mas ESTA tira, que desde P9 (1.6) dibuja «lo que NO tiene casilla».
+       ⚠️ ESO ES LO QUE PONIA LA CAPTURA ABAJO CON LOS CINELOOPS, y era el punto 2a: una captura
+       entra por `_capturaALaBiblioteca` -> `_bibGuardarJpeg`, o sea al disco del estudio y SIN
+       casilla, asi que caia en esta tira — y la tira dibujaba todo en una sola grilla, con los
+       cineloops entre medio. Partirla en dos grupos es lo que la separa, y no hace falta tocar
+       ni la captura ni el guardado.
+       ⚠️ EL REPARTO SALE DE LA CLASE DE CADA FICHA, que es el dueño que ya decide su icono: los
+       cineloops son `cine` y `cinepend` —guardado y adjuntado sin guardar— y todo lo demas
+       —`dicom`, `imagen`, `video`, `doc`— es una fija. Con una segunda lista escrita al lado,
+       el dia que aparezca otra clase caeria en el grupo equivocado sin que nada avise.
+       ⚠️ CADA GRUPO SE DIBUJA SOLO SI TIENE ALGO: un rotulo sobre una grilla vacia dice que
+       falta algo que no falta. */
+    (function () {
+      const esCine = f => f && (f.clase === 'cine' || f.clase === 'cinepend');
+      const fijas = fichas.filter(f => !esCine(f));
+      const cines = fichas.filter(esCine);
+      const rot = t => '<div style="font-size:11px;color:var(--text2);font-weight:700;' +
+        'letter-spacing:.3px;text-transform:uppercase;margin:4px 0 6px;">' + t + '</div>';
+      const grilla = fs => '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        fs.map(tarjeta).join('') + '</div>';
+      let h = '';
+      if (fijas.length) h += rot('Imágenes fijas') + grilla(fijas);
+      if (cines.length) h += (fijas.length ? '<div style="height:10px;"></div>' : '') +
+        rot('Cineloops') + grilla(cines);
+      return h;
+    })();
   /* El oyente de la grilla se registra acá: el arrastre sólo puede empezar en esta tira, así que
      si la tira no se dibujó tampoco hay nada que soltar. Es idempotente. */
   _bibDndObservar();
@@ -160159,7 +160238,7 @@ async function cineStripRender() {
          No hay nada que leer del disco porque todavía no se escribió nada. */
       if (f.clase === 'cinepend') {
         const pl = ((typeof _cinePendientes !== 'undefined') ? _cinePendientes : [])[f.pend];
-        if (pl && pl.loop) { _cineAbrir([pl.loop]); return; }
+        if (pl && pl.loop) { _cineAbrir([pl.loop], 'bib'); return; }
         toast('❌ Ese cineloop ya no está en memoria');
         return;
       }
@@ -160167,7 +160246,7 @@ async function cineStripRender() {
          guardado con el toggle apagado— se lee del disco. Y una imagen sin escala se abre para
          calibrar a mano. */
       if (f.clase === 'dicom') {
-        if (f.id && _medFijas[f.id]) { _cineAbrir([_medFijas[f.id]]); return; }
+        if (f.id && _medFijas[f.id]) { _cineAbrir([_medFijas[f.id]], 'bib'); return; }
         if (f.id && f.deDisco) { medFijaAbrirGuardada(f.id); return; }
       }
       if (typeof f.idx === 'number') { medImagenAbrir(f.idx); return; }
@@ -188816,7 +188895,7 @@ async function clnkPrevAbrir(id, nombre, fila) {
   }
   var cl = _dcmClasificar(d, String(nombre || 'imagen'));
   if (cl.rechazo) { if (typeof toast === 'function') toast('❌ ' + cl.rechazo); return false; }
-  if (cl.loop) { _cineAbrir([cl.loop]); _clnkPrevTapar(); return true; }
+  if (cl.loop) { _cineAbrir([cl.loop], 'bib'); _clnkPrevTapar(); return true; }
   var du = '';
   try { du = await dstDataURL(cl.fija.jpeg, 'image/jpeg'); } catch (e) { du = ''; }
   if (!du) { if (typeof toast === 'function') toast('❌ No se pudo mostrar esa imagen'); return false; }
@@ -189985,7 +190064,7 @@ async function clnkbVer(idEnvio, clase, k) {
       if (typeof toast === 'function') toast('❌ No se pudo leer ese cineloop');
       return false;
     }
-    _cineAbrir([loop]);
+    _cineAbrir([loop], 'bib');
     return true;
   }
   var im = (reg.imgs || [])[k];
