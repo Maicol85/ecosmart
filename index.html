@@ -126614,11 +126614,14 @@ function igSelTodas(on) {
     const cine = th.dataset.igCine || '';
     const ya = _igSelPos(uuid, idx, cine) >= 0;
     if (ya === !!on) return;
+    /* ⚠️ `true` = SIN REPINTAR. Ver la nota de `igSelToggle`: el repintado va UNA sola vez,
+       abajo, y es la diferencia entre 57 reconstrucciones de la grilla y una. */
     igSelToggle({ uuid: uuid, idx: idx, n: parseInt(th.dataset.igN, 10),
                   cineId: cine, video: th.dataset.igVideo === '1',
-                  esquema: th.dataset.igEsq === '1', nombre: th.dataset.igNom || '' });
+                  esquema: th.dataset.igEsq === '1', nombre: th.dataset.igNom || '' }, true);
     n++;
   });
+  if (n && typeof renderInformesGuardados === 'function') renderInformesGuardados();
   igSelRes(n ? ((on ? 'Marcadas ' : 'Desmarcadas ') + n + ' de las ' + ths.length +
                 ' que están a la vista. Un mes plegado no entra: abrilo y volvé a tocar «Todas».')
              : (on ? 'Ya estaban todas marcadas.' : 'No había ninguna marcada.'));
@@ -126626,7 +126629,14 @@ function igSelTodas(on) {
 }
 window.igSelTodas = igSelTodas;
 
-function igSelToggle(it) {
+/* ══ P9 · 4.1 · POR QUE LA PAGINA SE CAIA AL MARCAR TODO ═══════════════════════════════════
+   ⚠️ ESTA FUNCION REPINTA **LA LISTA ENTERA DE GUARDADOS** EN CADA ITEM. Con un toque suelto eso
+   cuesta nada; con «☑ Todas» sobre 57 miniaturas son **57 repintados completos** de la grilla,
+   cada uno reconstruyendo las celdas, rearmando el IntersectionObserver y volviendo a pintar
+   miniaturas: trabajo cuadratico, y es lo que tiraba la pestaña. El medico lo reporto como un
+   problema de memoria de los videos, y las miniaturas de video no tenian nada que ver.
+   `sinPintar` deja mover la seleccion sin tocar el DOM; el que llama repinta UNA vez al final. */
+function igSelToggle(it, sinPintar) {
   if (!it) return false;
   const pos = _igSelPos(it.uuid, it.idx, it.cineId);
   if (pos >= 0) _igSel.splice(pos, 1);
@@ -126634,6 +126644,7 @@ function igSelToggle(it) {
     _igSel.push({ uuid: it.uuid, idx: it.idx, cineId: it.cineId || '', n: it.n || 0,
                   video: !!it.video, esquema: !!it.esquema, nombre: String(it.nombre || '') });
   }
+  if (sinPintar === true) return true;
   igSelRes('');
   if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
   return true;
@@ -126788,6 +126799,16 @@ function igImgIORearmar() {
 function igImgPintarMiniatura(d) {
   if (!d || d.dataset.igCargada === '1') return;
   d.dataset.igCargada = '1';
+  /* P9 · 4.1 · un CINELOOP trae su poster en el dataset y no pasa por `igImgBlobs`: esa funcion
+     lee los `dataURL` de un ESTUDIO y un cineloop no es un slot de ese estudio. */
+  if (d.dataset.igPoster) {
+    const pim = document.createElement('img');
+    pim.src = d.dataset.igPoster;
+    pim.alt = ''; pim.loading = 'lazy'; pim.decoding = 'async';
+    d.insertBefore(pim, d.firstChild);
+    try { delete d.dataset.igPoster; } catch (e) {}   // no se retiene el dataURL en el atributo
+    return;
+  }
   const uuid = d.dataset.igUuid, idx = parseInt(d.dataset.igIdx, 10);
   igImgBlobs(uuid).then(imgs => {
     const sl = (imgs && imgs[idx]) ? imgs[idx] : null;
@@ -126833,12 +126854,14 @@ function igImgLlenarMes(grupo) {
       b.title = 'Cineloop · ' + (it.cuadros || 0) + ' cuadros' +
                 (it.bytes ? ' · ' + dstMB(it.bytes) : '') + ' · ' + quien;
       b.setAttribute('aria-label', 'Abrir el cineloop de ' + quien);
-      if (it.poster) {
-        const pim = document.createElement('img');
-        pim.src = it.poster; pim.alt = '';
-        pim.loading = 'lazy'; pim.decoding = 'async';
-        b.insertBefore(pim, b.firstChild);
-      } else b.classList.add('vacia');
+      /* ⚠️ P9 · 4.1 · EL POSTER SE PINTA AL ENTRAR EN LA VISTA, igual que una fija. Hasta hoy se
+         le ponia el `src` a los 57 de golpe al abrir la galeria: cada uno es un dataURL que el
+         navegador tiene que decodificar, y con el mes abierto eso son 57 decodificaciones en el
+         hilo principal antes de que la pantalla responda. El poster viaja en el `dataset` --son
+         ~1 KB cada uno, medido-- y lo pone `igImgPintarMiniatura`, que es el mismo dueño que
+         pinta las fijas y el que el IntersectionObserver llama. */
+      if (it.poster) b.dataset.igPoster = String(it.poster);
+      else b.classList.add('vacia');
       const et = document.createElement('span');
       et.className = 'ig-img-n';
       et.textContent = '🎞';
@@ -126859,7 +126882,14 @@ function igImgLlenarMes(grupo) {
       de2.appendChild(mk);
       pie2.appendChild(iz2); pie2.appendChild(de2);
       b.appendChild(pie2);
+      /* ⚠️ P9 · 4.1 · LA MARCA DE «ELEGIDA» TAMBIEN ACA. Esta rama volvia ANTES de
+         `igImgAdornar`, asi que un cineloop se podia elegir y no mostraba la tilde --«Marcadas 57
+         de 57» con veintidos sin marca-- y su entrada nacia sin tipo ni nombre. La estrella y el
+         orden del PPT NO se le ponen: un cineloop no tiene slot donde escribir la estrella y no
+         entra al mazo. */
+      igSelAdornar(b, it);
       grid.appendChild(b);
+      if (io) io.observe(b); else igImgPintarMiniatura(b);
       return;
     }
     b.title = 'Imagen ' + it.n + ' · ' + quien;
@@ -126908,6 +126938,36 @@ function igImgLlenarMes(grupo) {
    control enfocable DENTRO de un <button> es marcado inválido y el lector de pantalla anuncia
    dos controles para una sola celda. El camino de teclado es Enter sobre la miniatura, que abre
    el visor, y ahí la estrella es un <button> propio de 44 px con su nota. */
+/* ══ P9 · 4.1 · LA MARCA DE «ELEGIDA», PARA LAS DOS CLASES DE CELDA ════════════════════════
+   ⚠️ ESTE BLOQUE VIVIA DENTRO DE `igImgAdornar`, QUE **LA CELDA DE UN CINELOOP NUNCA LLAMA**: esa
+   rama hace su `appendChild` y vuelve antes. O sea que un cineloop se podia elegir --su
+   `data-ig-cine` esta puesto, asi que «Todas» lo marcaba y el contador lo contaba-- y NO mostraba
+   la tilde: el medico leia «Marcadas 57 de 57» con veintidos miniaturas sin marca. Es lo que
+   reporto. Y le faltaban ademas `data-ig-video` y `data-ig-nom`, asi que la entrada de la
+   seleccion de un cineloop nacia sin su tipo y sin su nombre.
+   Sale a su propia funcion y la llaman las DOS ramas: con el bloque copiado, la tilde volveria a
+   quedarse en una sola el dia que cambie. */
+function igSelAdornar(boton, it) {
+  if (!_igElegir) return boton;
+  /* El dataset lleva lo que el toque necesita para armar la entrada de la selección sin volver
+     a buscar el item: la grilla se reconstruye en cada pintado, así que guardar una referencia
+     al objeto no serviría. */
+  boton.dataset.igVideo = it.video ? '1' : '0';
+  boton.dataset.igEsq = it.esquema ? '1' : '0';
+  boton.dataset.igNom = String(it.nombre || '');
+  if (_igSelPos(it.uuid, it.idx, it.cineId || '') >= 0) {
+    boton.classList.add('sel');
+    const o2 = document.createElement('span');
+    o2.className = 'ig-img-ord';
+    o2.textContent = '✓';
+    o2.title = 'Elegida';
+    const izq2 = boton.querySelector('.ig-img-pie > span:first-child');
+    (izq2 || boton).appendChild(o2);
+  }
+  return boton;
+}
+window.igSelAdornar = igSelAdornar;
+
 function igImgAdornar(boton, it) {
   const st = document.createElement('span');
   st.className = 'ig-img-st' + (it.star ? '' : ' off');
@@ -126939,23 +126999,7 @@ function igImgAdornar(boton, it) {
      un ✓ y no un número porque acá el orden no significa nada —eliminar, copiar y exportar tratan
      la selección como un conjunto—, y un número invitaría a leerlo como una segunda numeración de
      la imagen, que es el motivo por el que el globo del mazo no existe fuera de ese modo. */
-  if (_igElegir) {
-    /* El dataset lleva lo que el toque necesita para armar la entrada de la selección sin volver
-       a buscar el item: la grilla se reconstruye en cada pintado, así que guardar una referencia
-       al objeto no serviría. */
-    boton.dataset.igVideo = it.video ? '1' : '0';
-    boton.dataset.igEsq = it.esquema ? '1' : '0';
-    boton.dataset.igNom = String(it.nombre || '');
-    if (_igSelPos(it.uuid, it.idx, it.cineId || '') >= 0) {
-      boton.classList.add('sel');
-      const o2 = document.createElement('span');
-      o2.className = 'ig-img-ord';
-      o2.textContent = '✓';
-      o2.title = 'Elegida';
-      const izq2 = boton.querySelector('.ig-img-pie > span:first-child');
-      (izq2 || boton).appendChild(o2);
-    }
-  }
+  igSelAdornar(boton, it);
   if (it.star && it.nota) {
     const nb = document.createElement('span');
     nb.className = 'ig-img-nb';
@@ -184096,7 +184140,14 @@ function _clnkFecha(iso) {
   } catch (e) { return s; }
 }
 
-async function clnkLeerEquipos() {
+/* ⚠️ P9 · 4.2 · `forzar` SALTEA LA REGLA 1, Y HACE FALTA. La regla 1 --con el foco adentro de la
+   tarjeta no se toca nada-- es la que arreglo «no se puede escribir el apodo», y vale para la
+   lectura de FONDO. Pero despues de apretar «Guardar apodo», «Separar» o «Unir» el foco esta en
+   el boton, que esta ADENTRO de la tarjeta: la regla postergaba el repintado y el medico tenia
+   que apretar «Actualizar» para ver su propio cambio. Es lo que reporto.
+   Con `forzar` la lectura que nace de un gesto SI repinta --y sigue conservando lo abierto, el
+   borrador y el foco, que es la regla 3-- mientras el sondeo sigue sin molestar. */
+async function clnkLeerEquipos(forzar) {
   var cont = document.getElementById('cfg-clnk-equipos');
   var det = document.getElementById('cfg-clnk-det-equipos');
   if (!cont) return;
@@ -184136,7 +184187,7 @@ async function clnkLeerEquipos() {
   }), (_clnkConexDirs || []).map(function (x) {
     return [String(x && x.direccion), String(x && x.tipo || '')];
   }), clnkEqGrupos(), !!_clnkVersionVieja]);
-  if (_clnkEscribiendo() || _clnkFocoEn(cont)) return;          // regla 1
+  if (!forzar && (_clnkEscribiendo() || _clnkFocoEn(cont))) return;          // regla 1
   if (firma === _clnkEqFirma && cont.firstChild) return;        // regla 2
   _clnkEqFirma = firma;
   var _st = _clnkEstadoPanel(cont);                            // regla 3
@@ -184399,8 +184450,18 @@ function clnkEqConexion(ip) {
     if (t === 'cable') hayCable = true;
     else if (t === 'wifi') hayWifi = true;
   });
-  if (hayCable === hayWifi) return '';     // ninguna, o las dos: no se puede saber
-  return hayWifi ? 'red del router' : 'por el cable';
+  /* ══ P9 · 4.3 · DECISION EXPRESA DEL MEDICO (2026-11-22) ═════════════════════════════════
+     Pidio que la direccion del cable diga **«cable directo»** --hasta hoy decia «por el cable»--
+     y que lo que no se puede deducir diga **«tipo no determinado»** en vez de quedar en blanco.
+     ⚠️ ESTO REVIERTE EL REPARO QUE LA TANDA EQ DEJO ESCRITO ARRIBA (EQ-b), y queda dicho: lo que
+     esta app sabe es por QUE INTERFAZ entro la direccion, no si ese cable va derecho al ecografo
+     o a un switch con un router detras. Con un router en el medio, «cable directo» es falso. El
+     medico lo pidio igual y es su decision; el reparo vive ahora en el `title` de la fila, donde
+     se lee al pasar por encima.
+     Y «tipo no determinado» es mejor que el blanco anterior por un motivo medible: una fila sin
+     rotulo y una fila que no se pudo deducir se veian IGUAL. */
+  if (hayCable === hayWifi) return 'tipo no determinado';   // ninguna, o las dos
+  return hayWifi ? 'red del router' : 'cable directo';
 }
 window.clnkEqConexion = clnkEqConexion;
 
@@ -184774,7 +184835,7 @@ async function clnkAccionEquipo(id, acc) {
   if (acc === 'separar') {
     clnkEqGrupoFijar(id, 'id:' + id);
     if (typeof toast === 'function') toast('Esta dirección queda como otro equipo');
-    clnkLeerEquipos();
+    clnkLeerEquipos(true);        // P9 · 4.2 · es un gesto: se ve al instante
     return;
   }
   if (acc === 'unir') {
@@ -184817,7 +184878,7 @@ async function clnkAccionEquipo(id, acc) {
     /* Guardado: el borrador ya no manda, o el campo se quedaria con lo tecleado para siempre. */
     ids.forEach(function (k) { _clnkApodoOlvidar(k); });
     if (typeof toast === 'function') toast(v ? '✅ Apodo guardado' : '✅ Apodo quitado');
-    clnkLeerEquipos();
+    clnkLeerEquipos(true);        // P9 · 4.2 · es un gesto: se ve al instante
     return;
   }
   if (acc === 'olvidar') {
@@ -184845,7 +184906,7 @@ async function clnkAccionEquipo(id, acc) {
     toast(acc === 'permitir' ? '✅ Equipo permitido'
         : acc === 'bloquear' ? '🚫 Equipo bloqueado' : 'Equipo olvidado');
   }
-  clnkLeerEquipos();
+  clnkLeerEquipos(true);          // P9 · 4.2 · es un gesto: se ve al instante
   /* El medico acaba de decidir algo: la lectura es consecuencia de SU gesto, asi que el flash de
      «Preguntando…» es la respuesta a lo que apreto y no una pestañada de fondo. */
   clnkLeerEstado(true);

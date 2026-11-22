@@ -230,6 +230,21 @@ const PRELUDIO = `
          diagnostico que no apunta a su propia causa. El caso que lo NECESITA --TC-998-- lo
          siembra el mismo. */
       try { localStorage.removeItem('ett_clnk_vistas'); window._clnkVistas = null; } catch (e) {}
+      /* ══ P9 · EL CARTEL PROPIO DE BORRADO, QUE TAPA LA PAGINA ENTERA ══════════════════════
+         El overlay de borrConfirmar es position:fixed con z-index 760 y su promesa SOLO la
+         resuelve un clic: un caso que lo abre y no lo contesta deja a los que siguen midiendo
+         debajo de el --elementFromPoint devuelve el overlay, asi que «ninguna opcion del menu es
+         alcanzable»-- y al que cuenta dialogos le suma uno ajeno. Lo pagaron TC-905 y TC-990.
+         Se saca SOLO lo propio: un barrido de todo [role=dialog] le arranca al documento el nodo
+         de indic-card, que es la leccion de la tanda EQ. */
+      try { document.querySelectorAll('[data-borr-conf]').forEach(function (o) {
+              if (o && o.parentNode) o.parentNode.removeChild(o); }); } catch (e) {}
+      /* Y la tarjeta de CeiboLink fuera de la vista: clnkPanelALaVista mide la CAJA del nodo,
+         asi que un caso que deja abierta la pestaña Config le rompe el denominador al siguiente
+         que necesita el panel escondido (TC-873 y TC-964). */
+      try { if (typeof showTab === 'function' &&
+                document.getElementById('tab-config') &&
+                document.getElementById('tab-config').classList.contains('active')) showTab('informe'); } catch (e) {}
       try { if (typeof vistaBCerrar === 'function' && _vistaB) vistaBCerrar(); } catch (e) {}
       try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
       /* Los dos overlays position:fixed que NO son del visor y que igual tapan el documento
@@ -158094,6 +158109,355 @@ caso('TC-999', 'P9 3.5: el cartel de «llegaron mas» dice DOS oraciones cortas 
     const t2 = _clnkAvisoTexto(g2, 'VINNO', 'a las 23:43');
     ex.push(['(B1) CONTROL NEGATIVO: sin repetidas ni envio parcial, el texto de siempre',
       t2.indexOf('VINNO') >= 0 && t2.indexOf('esperando') < 0, 'txt=' + t2]);
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-1001', 'P9 4.4: el cartel que se termina EN PANTALLA tambien se achica a la burbuja al cerrarlo con la equis, la primera vez y sin tocar nada mas', `
+  return (async () => {
+    if (typeof window.clnkBurbuja !== 'function' || typeof window.clnkTandaCerrar !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene la burbuja y el cierre de tanda', false, '']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    const EL = id => document.getElementById(id);
+    const BU = () => EL('clnk-burbuja');
+    const bVis = () => { const b = BU(); return !!(b && b.style.display !== 'none' && b.offsetWidth > 0); };
+    const cartel = () => !!(EL('clnkav-ov') && EL('clnkav-ov').style.display !== 'none');
+    const tit = () => String((EL('clnkav-title') || {}).textContent || '');
+    const cue = () => String((EL('clnkav-cuerpo') || {}).textContent || '');
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 1, escena: 'vacio' });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = EL('cfg-clnk-codigo');
+      if (!inp) return { extra: [['DENOMINADOR: el campo del codigo existe', false, '']] };
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      if (!clnkVinculado()) return { extra: [['DENOMINADOR: se vinculo', false, '']] };
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      window._clnkTanda = null; window._clnkTandaCerradaPorMedico = false;
+      /* -- A - LA TANDA ESTA ABIERTA Y EL CARTEL LO DICE ------------------------------- */
+      await ctl({ escena: 'silencioMas' });
+      await _clnkSondear(true); await esp(1200);
+      R.aCartel = cartel(); R.aTit = tit();
+      R.aSinBurbuja = !bVis();
+      ex.push(['(A1) DENOMINADOR: con la tanda abierta sale el cartel de «estan llegando» y no hay burbuja',
+        R.aCartel === true && R.aTit.indexOf('Están llegando') >= 0 && R.aSinBurbuja === true,
+        'cartel=' + R.aCartel + ' tit=' + R.aTit + ' sinBur=' + R.aSinBurbuja]);
+      /* -- B - LA TANDA TERMINA **CON EL CARTEL EN PANTALLA** -------------------------- */
+      await ctl({ escena: 'silencio' });
+      await _clnkSondear(true); await esp(1600);
+      R.bCartel = cartel(); R.bTit = tit(); R.bCue = cue();
+      R.bListo = R.bCue.indexOf('Listo') >= 0 || R.bTit.indexOf('Llegaron') >= 0;
+      ex.push(['(B1) DENOMINADOR: el cartel pasa a su forma final sin que el medico toque nada',
+        R.bCartel === true && R.bListo === true,
+        'cartel=' + R.bCartel + ' tit=' + R.bTit + ' cuerpo=' + R.bCue.slice(0, 90)]);
+      /* -- C - Y LA EQUIS LO ACHICA A LA BURBUJA, LA PRIMERA VEZ ---------------------- */
+      const x = EL('clnkav-x');
+      R.cHayX = !!x;
+      if (x) x.click();
+      await esp(400);
+      R.cCartelSeFue = !cartel();
+      R.cBur = bVis();
+      R.cTxt = BU() ? String(BU().textContent || '') : '';
+      ex.push(['(C1) al cerrarlo con la equis queda la burbuja, sin tocar nada mas',
+        R.cHayX && R.cCartelSeFue === true && R.cBur === true,
+        'x=' + R.cHayX + ' seFue=' + R.cCartelSeFue + ' burbuja=' + R.cBur + ' txt=' + R.cTxt.slice(0, 70)]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkBurbujaOcultar(); } catch (e) {}
+      try { clnkToggle(false); } catch (e) {}
+      try {
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+      } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      try { applyViewMode(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+/* ══ P9 · TAREA 4 · PANTALLA Y MEMORIA ═════════════════════════════════════════════════════ */
+caso('TC-1000', 'P9 4.1: «Todas» en la galeria repinta UNA vez y no 57 --que es lo que tiraba la pagina--, un cineloop elegido muestra su tilde, y el cartel de eliminar nombra fijas y cines por separado', `
+  return (async () => {
+    if (typeof window.igSelTodas !== 'function' || typeof window.igSelAdornar !== 'function' ||
+        typeof CeiboCine === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene igSelTodas y igSelAdornar', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    let togglePrevio = null, estudioId = null, uuid = null;
+    const renderOrig = window.renderInformesGuardados;
+    let pintadas = 0;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p9g.jpg', { type: 'image/jpeg' });
+    };
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esp(250);
+      __t.set('nombre', 'P9 GALERIA'); __t.set('ci', '95591000');
+      const g = await __t.guardar(); estudioId = g.estudioId;
+      await esp(900);
+      __t.reabrir(estudioId); await esp(1600);
+      const inf = getInformes().filter(i => i.estudioId === estudioId)[0];
+      uuid = inf && inf.uuid;
+      await mediosImportar([jpg('#c02020'), jpg('#20c020'), jpg('#2020c0')], undefined, 'ceibolink');
+      await esp(350);
+      await imgPersistir(uuid); await esp(800);
+      /* Y UN CINELOOP, que es la mitad del punto: el medico vio «Marcadas 57 de 57» con las
+         miniaturas de video sin marca. */
+      const n3 = 3, datos = new Uint8Array(JPG.length * n3), offs = new Int32Array(n3);
+      for (let i = 0; i < n3; i++) { offs[i] = i * JPG.length; datos.set(JPG, i * JPG.length); }
+      const poster = (() => { const c = document.createElement('canvas'); c.width = 20; c.height = 15;
+        c.getContext('2d').fillRect(0, 0, 20, 15); return c.toDataURL('image/jpeg', 0.5); })();
+      /* ⚠️ EL CAMPO tipo:'loop' HACE FALTA: CeiboCine.indice() --que es lo que la galeria lee-- devuelve
+         SOLO los de ese tipo, porque esa base guarda tambien el original de cada fija DICOM, que
+         ya esta en la galeria por su slot. Sin el campo, el cineloop existe y la galeria no lo ve. */
+      await CeiboCine.guardar({ id: _uuidNuevo(), uuid: uuid, nombre: 'apical 4c', cuadros: n3,
+        tipo: 'loop', ms: 40, cols: 200, filas: 160, poster: poster, datos: datos, offs: offs,
+        bytes: datos.length, regiones: [], ts: new Date().toISOString() });
+      await esp(200);
+      await esp(60);
+      try { showTab('guardados'); } catch (e) {}
+      if (typeof igVistaCambiar === 'function') igVistaCambiar('img');
+      igImgInvalidar();
+      await igImgIndiceCargar();
+      await esp(400);
+      igElegirModo(true);
+      await esp(250);
+      /* ⚠️ LOS MESES NACEN PLEGADOS Y SUS MINIATURAS SE CONSTRUYEN AL ABRIRLOS: sin esto no hay
+         una sola miniatura y el denominador mide un hueco. Es la misma trampa del display:none
+         sin geometria que esta casa documenta. */
+      [].slice.call(document.querySelectorAll('.ig-mes-grupo.cerrado .ig-mes'))
+        .forEach(function (b) { try { igImgMesToggle(b); } catch (e) {} });
+      await esp(500);
+      const ths = () => [].slice.call(document.querySelectorAll('.ig-img-th'));
+      R.aMin = ths().length;
+      R.aCines = ths().filter(t => t.dataset.igCine).length;
+      ex.push(['(A1) DENOMINADOR: la galeria muestra las tres fijas y el cineloop',
+        R.aMin >= 4 && R.aCines === 1, 'minis=' + R.aMin + ' cines=' + R.aCines]);
+      /* -- B - «TODAS» REPINTA **UNA** VEZ ------------------------------------------- */
+      window.renderInformesGuardados = function () { pintadas++; return renderOrig.apply(this, arguments); };
+      pintadas = 0;
+      const n = igSelTodas(true);
+      await esp(600);
+      R.bMarcadas = n; R.bPintadas = pintadas;
+      ex.push(['(B1) marca las cuatro y repinta la lista UNA sola vez, no una por miniatura',
+        R.bMarcadas >= 4 && R.bPintadas === 1,
+        'marcadas=' + R.bMarcadas + ' repintados=' + R.bPintadas]);
+      /* CONTROL NEGATIVO: un toque suelto sigue repintando, que es lo que mantiene la pantalla
+         al dia cuando el medico elige de a una. */
+      pintadas = 0;
+      igSelToggle({ uuid: uuid, idx: 0, n: 1, cineId: '', video: false, esquema: false, nombre: '' });
+      await esp(250);
+      R.bUno = pintadas;
+      ex.push(['(B2) CONTROL NEGATIVO: un toque suelto si repinta', R.bUno === 1, 'repintados=' + R.bUno]);
+      /* -- C - EL CINELOOP ELEGIDO MUESTRA SU TILDE ---------------------------------- */
+      igSelTodas(true);
+      await esp(500);
+      const cel = ths().filter(t => t.dataset.igCine)[0];
+      R.cSel = !!(cel && cel.classList.contains('sel'));
+      R.cTilde = !!(cel && cel.querySelector('.ig-img-ord'));
+      R.cDataset = !!(cel && cel.dataset.igVideo === '1');
+      ex.push(['(C1) la celda del cineloop queda marcada, con su tilde y con su tipo en el dataset',
+        R.cSel && R.cTilde && R.cDataset,
+        'sel=' + R.cSel + ' tilde=' + R.cTilde + ' video=' + R.cDataset]);
+      /* -- D - LA CUENTA NOMBRA FIJAS Y CINES POR SEPARADO --------------------------- */
+      R.dTxt = igSelCuenta().txt;
+      ex.push(['(D1) el cartel de eliminar nombra las fijas y los cines por separado',
+        R.dTxt.indexOf('imágenes') >= 0 && R.dTxt.indexOf('cineloop') >= 0, 'txt=' + R.dTxt]);
+      /* -- E - EL POSTER DEL CINELOOP SE PINTA EN DIFERIDO --------------------------- */
+      R.ePintado = !!(cel && cel.querySelector('img'));
+      ex.push(['(E1) y su miniatura se pinta --en diferido, por el mismo dueño que las fijas--',
+        R.ePintado === true, 'img=' + R.ePintado]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.renderInformesGuardados = renderOrig;
+      window.toast = toastOrig; window.alert = alertOrig;
+      try { igElegirModo(false); } catch (e) {}
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-1002', 'P9 4.2: el panel de CeiboLink se pone al dia despues de un gesto del medico aunque el foco siga adentro de la tarjeta, y la lectura de fondo sigue sin molestar', `
+  return (async () => {
+    if (typeof window.clnkLeerEquipos !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene clnkLeerEquipos', false, 'falta']] };
+    }
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast; window.toast = () => {};
+    const confOrig = window.confirm; window.confirm = () => true;
+    const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+    try {
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      localStorage.removeItem('ett_ceibolink_token');
+      clnkToggle(true);
+      await ctl({ reset: true, equipos: 2 });
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (!inp) return { extra: [['DENOMINADOR: el campo del codigo existe', false, '']] };
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(1000);
+      const det = document.getElementById('cfg-clnk-det-equipos');
+      if (det) { try { det.open = true; } catch (e) {} }
+      await clnkLeerEquipos(true);
+      await esp(500);
+      /* ⚠️ TODOS los <details> abiertos: con la seccion plegada el campo del apodo no tiene caja
+         y focus() no hace nada --activeElement se queda en BODY-- asi que el denominador mediria
+         sobre un campo que nadie enfoco. Esta casa ya lo pago en la tanda EQ. */
+      document.querySelectorAll('#cfg-clnk-equipos details, #cfg-clnk-det-equipos')
+        .forEach(function (d) { try { d.open = true; } catch (e) {} });
+      await esp(250);
+      const cont = document.getElementById('cfg-clnk-equipos');
+      R.hayCont = !!(cont && cont.children.length);
+      if (!R.hayCont) return { extra: [['DENOMINADOR: la lista de equipos esta pintada', false,
+        'hijos=' + (cont ? cont.children.length : 'sin nodo')]] };
+      /* Se marca el contenedor: si se repinta, la marca desaparece. Es la unica forma de medir
+         «se repinto» sin depender de que algo del contenido cambie. */
+      /* ⚠️ LA MARCA VA EN UN **HIJO** Y NO EN EL CONTENEDOR: el repintado hace
+         cont.textContent = '' , que se lleva los hijos y DEJA los atributos del contenedor. Con
+         la marca puesta arriba, «se repinto» y «no se repinto» daban lo mismo. */
+      const marcar = () => { const h = document.getElementById('cfg-clnk-equipos').firstElementChild;
+                             if (h) h.setAttribute('data-p9-marca', '1'); return !!h; };
+      const siguePuesta = () => !!document.querySelector('#cfg-clnk-equipos [data-p9-marca]');
+      /* -- A - CON EL FOCO ADENTRO, LA LECTURA DE FONDO NO TOCA NADA ------------------ */
+      const campo = cont.querySelector('[data-clnk-apodo]');
+      R.hayCampo = !!campo;
+      if (campo) campo.focus();
+      R.foco = !!(campo && document.activeElement === campo);
+      /* ⚠️ Y HAY QUE CAMBIAR ALGO DE VERDAD: la regla 2 --con la misma lista no se escribe un
+         solo nodo-- vale igual con el repintado forzado, y hace bien. Separar una direccion
+         cambia los grupos, que entran en la firma. Es el gesto del medico. */
+      const idEq = campo ? String(campo.getAttribute('data-clnk-apodo') || '') : '';
+      if (idEq) clnkEqGrupoFijar(idEq, 'id:' + idEq);
+      marcar();
+      await clnkLeerEquipos();
+      await esp(400);
+      R.aMarca = siguePuesta();
+      ex.push(['(A1) DENOMINADOR: el campo del apodo esta y tiene el foco',
+        R.hayCampo && R.foco, 'campo=' + R.hayCampo + ' foco=' + R.foco]);
+      ex.push(['(A2) con el foco adentro y algo cambiado, la lectura de FONDO no repinta --es la regla que arreglo el apodo--',
+        R.aMarca === true, 'marca sigue=' + R.aMarca]);
+      /* -- B - PERO UN GESTO DEL MEDICO SI --------------------------------------------- */
+      const c2 = document.getElementById('cfg-clnk-equipos').querySelector('[data-clnk-apodo]');
+      if (c2) c2.focus();
+      marcar();
+      await clnkLeerEquipos(true);
+      await esp(400);
+      R.bMarca = siguePuesta();
+      ex.push(['(B1) y un GESTO del medico repinta igual, aunque el foco siga adentro de la tarjeta',
+        R.bMarca === false, 'marca sigue=' + R.bMarca]);
+      /* -- C - Y LOS TRES GESTOS QUE NO PASAN POR EL PUENTE LO PIDEN FORZADO ----------- */
+      const src = String(window.clnkAccionEquipo || '');
+      R.cForzados = (src.match(/clnkLeerEquipos\\(true\\)/g) || []).length;
+      ex.push(['(C1) los gestos de separar, apodo y las acciones del puente piden el repintado forzado',
+        R.cForzados >= 3, 'forzados=' + R.cForzados]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { const c = document.getElementById('cfg-clnk-equipos');
+            if (c) c.removeAttribute('data-p9-marca'); } catch (e) {}
+      try { clnkToggle(false); } catch (e) {}
+      try {
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+      } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      try { applyViewMode(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-1003', 'P9 4.3: la direccion del cable dice «cable directo» y la que no se puede deducir dice «tipo no determinado»', `
+  return (async () => {
+    if (typeof window.clnkEqConexion !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene clnkEqConexion', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const prev = window._clnkConexDirs;
+    try {
+      /* UNA interfaz de cable y UNA de Wi-Fi, en redes distintas: es el escenario del medico. */
+      window._clnkConexDirs = [{ direccion: '192.168.1.10', tipo: 'cable' },
+                               { direccion: '192.168.5.10', tipo: 'wifi' }];
+      R.cable = clnkEqConexion('192.168.1.77');
+      R.wifi = clnkEqConexion('192.168.5.77');
+      R.auto = clnkEqConexion('169.254.3.4');
+      R.nada = clnkEqConexion('10.9.9.9');
+      R.propia = clnkEqConexion('127.0.0.1');
+      ex.push(['(A1) la direccion que entro por una interfaz de CABLE dice «cable directo»',
+        R.cable === 'cable directo', 'cable=' + R.cable]);
+      ex.push(['(A2) la del Wi-Fi sigue diciendo «red del router»',
+        R.wifi === 'red del router', 'wifi=' + R.wifi]);
+      ex.push(['(A3) una 169.254 sigue siendo cable directo con certeza',
+        R.auto === 'cable directo', 'auto=' + R.auto]);
+      ex.push(['(B1) y la que no empareja con ninguna dice «tipo no determinado», no queda en blanco',
+        R.nada === 'tipo no determinado', 'nada=[' + R.nada + ']']);
+      /* CONTROL NEGATIVO: una direccion de esta computadora no es un ecografo y sigue
+         contestando lo suyo. */
+      ex.push(['(B2) CONTROL NEGATIVO: una direccion de esta computadora no cambia',
+        R.propia === 'esta computadora', 'propia=' + R.propia]);
+      /* Y con DOS interfaces de tipos distintos en la MISMA red tampoco se puede saber. */
+      window._clnkConexDirs = [{ direccion: '192.168.1.10', tipo: 'cable' },
+                               { direccion: '192.168.1.11', tipo: 'wifi' }];
+      R.ambas = clnkEqConexion('192.168.1.77');
+      ex.push(['(B3) con dos interfaces de tipos distintos en la misma red, tampoco se afirma',
+        R.ambas === 'tipo no determinado', 'ambas=[' + R.ambas + ']']);
+    } finally {
+      window._clnkConexDirs = prev;
+    }
     return { extra: ex, diag: R };
   })();
 `);
