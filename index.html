@@ -145222,6 +145222,19 @@ function _vNueva(pfx, rot) {
        con el valor que el medico tipeo en la A y la escala saldria de dos imagenes distintas.
        Guarda `{ y, cms }` — la altura en pixeles de imagen y el valor ya convertido a cm/s. */
     medCalVelP0: null,
+    /* ══ P11 (2.2) — LAS MEDIDAS QUEDAN ATADAS AL CUADRO DONDE SE HICIERON ══════════════════
+       Hasta esta tanda cambiar de cuadro las BORRABA —medido: una regla puesta en el cuadro 1
+       desaparecia al pasar al 3 y no volvia al regresar—, y el motivo escrito era correcto para
+       la mitad del problema: una regla dibujada sobre OTRO cuadro invita a creer que se trazo
+       ahi. Lo que faltaba es que volvieran al volver.
+       `medPorCuadro` las guarda por cineloop y cuadro: la clave es `<indice del loop>:<cuadro>`.
+       ⚠️ LA CALIBRACION NO ENTRA, ni la manual ni la de velocidad: es de la IMAGEN y no del
+       cuadro, y guardarla por cuadro la haria aparecer y desaparecer con las flechas.
+       ⚠️ LAS DOS AREAS DEL VD TAMPOCO: sobreviven al cambio de cuadro por decision de MEDIR-5
+       (A8), porque el FAC se mide en dos cuadros distintos, igual que el Simpson. Guardarlas
+       por cuadro las sacaria de pantalla justo cuando el metodo pide mirarlas juntas.
+       ⚠️ ES POR VISTA, como las cinco colecciones que guarda. */
+    medPorCuadro: null, medCuadroClave: null,
     medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
     lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false,
@@ -145313,6 +145326,7 @@ window._medSello = _medSello;
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
     _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel',
     _medCalVelP0:'medCalVelP0', _strain:'strain',
+    _medPorCuadro:'medPorCuadro', _medCuadroClave:'medCuadroClave',
     _medEtiqueta:'medEtiqueta', _medEtiqAuto:'medEtiqAuto',
     _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
   };
@@ -147175,6 +147189,42 @@ function _cineAbrir(loops) {
       ev.stopImmediatePropagation(); ev.preventDefault();
       cineMaxToggle();
     }, true);
+    /* ══ P11 (2.1) — LAS FLECHAS PASAN DE CUADRO SIEMPRE ══════════════════════════════════
+       ⚠️ LA CAUSA ESTABA MEDIDA Y ERA QUE NO HABIA NINGUN OYENTE: este archivo no tenia un solo
+       `keydown` para el visor, y las flechas «funcionaban» porque el deslizador es un
+       `<input type=range>` y el navegador se las atiende CUANDO ESTA ENFOCADO. Por eso se
+       perdian despues de medir —el clic en el canvas le saca el foco— y despues de tocar
+       Reproducir, y por eso volvian al tocar la barra. Medido en la linea base, con teclado de
+       verdad: recien abierto el visor el foco esta en el BODY y la flecha NO movia el cuadro,
+       ni antes ni despues de medir ni despues de reproducir; solo con el deslizador enfocado
+       pasaba del cuadro 2 al 3.
+       ⚠️ ES UN OYENTE DEL DOCUMENTO Y NO DEL OVERLAY, porque el foco puede estar en el `body`
+       —ahi esta al abrir— y un oyente colgado del overlay no recibe nada: el `body` no es su
+       descendiente. Eso es «de raiz»: no se le devuelve el foco al deslizador a escondidas, que
+       era el otro arreglo posible y deja la tecla atada a que nadie mas tome el foco.
+       ⚠️ VA EN BURBUJA Y CEDE EN CUATRO CASOS, que son los que evitan robarle la tecla a otro:
+         · con una capa que tape la pantalla —los cuadros propios del visor— no se toca;
+         · si alguien ya la atendio (`defaultPrevented`), tampoco: es el caso del DESLIZADOR, que
+           la atiende nativo. Sin esto el cuadro avanzaria DOS veces por tecla;
+         · con el foco en un campo de texto o en un desplegable no se toca: ahi la flecha mueve
+           el cursor o la opcion, y el visor tiene el campo de la etiqueta;
+         · con una tecla modificada tampoco, que son atajos del navegador.
+       Mueve el cuadro de la vista CON FOCO, que con una sola vista es la unica. */
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      if (ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      const o = document.getElementById('cine-ov');
+      if (!o || o.style.display === 'none') return;
+      if (_cineCapaEncima()) return;
+      const a = document.activeElement;
+      if (a) {
+        const tag = (a.tagName || '').toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || a.isContentEditable) return;
+      }
+      ev.preventDefault();
+      const V = _vFocoVista();
+      _vCon(V, () => cineCuadro(ev.key === 'ArrowLeft' ? -1 : 1));
+    });
     _vCablear(_vistaA);
     /* ══ MEDIR-1 — LOS CUATRO PANELES SE MUDAN A LA COLUMNA DERECHA ═══════════════════════
        ⚠️ MEDIR-4 — YA NO SON CUATRO, SON DOS. `cine-biplano` y `cine-simp-uni` se quedan DONDE
@@ -153391,9 +153441,15 @@ function _medObservar() {
   const num = _medEl('cine-num'), cual = _medEl('cine-cual'), ov = _medEl('cine-ov');
   if (!num || !cual || !ov) return;
   _medUltimoCuadro = num.textContent || '';
+  /* P11 (2.2) — la clave del cuadro en que arranca, para que el PRIMER cambio sepa bajo que
+     clave guardar lo que ya estaba medido. */
+  _medCuadroClave = _medClaveCuadro(V);
   new MutationObserver(() => _vCon(V, () => {
     const t = num.textContent || '';
-    if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; medReset(); }
+    /* P11 (2.2) — `_medCuadroCambio` en vez de `medReset` pelado: guarda lo del cuadro que se
+       deja y repone lo de este. Adentro llama a `medReset`, asi que todo lo que esa funcion
+       decide sobre las sesiones sigue pasando igual. */
+    if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; _medCuadroCambio(); }
   })).observe(num, { childList:true, characterData:true, subtree:true });
   /* Cambió el cineloop de ESTA vista: NO se apaga la medición, se cambia de imagen. */
   new MutationObserver(() => _vCon(V, medCambioDeImagen))
@@ -153527,6 +153583,75 @@ window.medRecalibrar = medRecalibrar;
    lo que se midió. La calibración manual SÍ se conserva — es una propiedad de la imagen, no
    del cuadro, y hacerla de nuevo en cada avance sería insufrible.
    Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
+/* ══ P11 (2.2) — EL ALMACEN POR CUADRO ════════════════════════════════════════════════════════
+   Tres funciones y un dueño: `_medCuadroCambio` es el unico que las llama, y lo llama el
+   observador de `#cine-num`, o sea el unico lugar que sabe que se cambio de cuadro.
+
+   ⚠️ `medReset` NO SE TOCA, y es deliberado: la llaman DIECINUEVE casos del suite para armar sus
+   escenas, y ademas sigue siendo el reseteo correcto de «se cambio de cuadro» —lo que cambia es
+   que ahora, antes de resetear, se GUARDA, y despues se REPONE lo de este cuadro—. Reusarla es
+   ademas lo que hace que las sesiones de Simpson, strain, LARS y VD sigan avisando exactamente
+   igual: esa logica vive en un solo lugar.
+
+   LO QUE NO ENTRA AL ALMACEN, y por que:
+     · la LINEA DE CALIBRACION — es de la imagen, no del cuadro;
+     · las dos AREAS DEL VD — sobreviven al cambio de cuadro desde MEDIR-5 (A8), porque el FAC se
+       mide en telediastole y telesistole y el metodo EXIGE moverse entre cuadros.
+   Las dos cosas las conserva `medReset`, asi que alcanza con no duplicarlas: se guarda y se
+   repone lo que ella tira. */
+function _medClaveCuadro(V) {
+  const D = V && V.datos;
+  if (!D) return null;
+  return (D.i | 0) + ':' + (D.cuadro | 0);
+}
+function _medCuadroGuardar(V, clave) {
+  if (!V || !clave) return;
+  try {
+    if (!V.medPorCuadro) V.medPorCuadro = Object.create(null);
+    const kd = (typeof _MED_EST_VD_D !== 'undefined') ? _MED_EST_VD_D : null;
+    const ks = (typeof _MED_EST_VD_S !== 'undefined') ? _MED_EST_VD_S : null;
+    const esVD = a => !!(a && kd && ks && (a.est === kd || a.est === ks));
+    const g = {
+      lineas:  (V.medLineas  || []).filter(l => l && !l.calibracion),
+      areas:   (V.medAreas   || []).filter(a => !esVD(a)),
+      vels:    (V.medVels    || []).slice(),
+      tiempos: (V.medTiempos || []).slice(),
+      vtis:    (V.medVtis    || []).slice()
+    };
+    /* Un cuadro sin nada medido no deja entrada: asi el almacen de un cineloop de 160 cuadros
+       pesa lo que el medico de verdad midio y no 160 objetos vacios. */
+    if (!g.lineas.length && !g.areas.length && !g.vels.length && !g.tiempos.length && !g.vtis.length)
+      delete V.medPorCuadro[clave];
+    else V.medPorCuadro[clave] = g;
+  } catch (e) { console.error('cuadro/guardar', e); }
+}
+function _medCuadroRestaurar(V, clave) {
+  if (!V || !clave || !V.medPorCuadro) return false;
+  const g = V.medPorCuadro[clave];
+  if (!g) return false;
+  try {
+    /* Se CONCATENA sobre lo que `medReset` conservo —la calibracion y las areas del VD— en vez
+       de reemplazar: reemplazando se perderia la calibracion de la imagen. */
+    V.medLineas  = (V.medLineas || []).concat(g.lineas);
+    V.medAreas   = (V.medAreas  || []).concat(g.areas);
+    V.medVels    = g.vels.slice();
+    V.medTiempos = g.tiempos.slice();
+    V.medVtis    = g.vtis.slice();
+    return true;
+  } catch (e) { console.error('cuadro/restaurar', e); return false; }
+}
+function _medCuadroCambio() {
+  const V = _V;
+  _medCuadroGuardar(V, V.medCuadroClave || null);
+  medReset();
+  V.medCuadroClave = _medClaveCuadro(V);
+  const vino = _medCuadroRestaurar(V, V.medCuadroClave);
+  /* Se repinta solo si hubo algo que reponer: `medReset` ya repinto el estado vacio. */
+  if (vino && _medOn) { _medPintar(); _medEstado(); }
+}
+window._medCuadroCambio = _medCuadroCambio;
+window._medClaveCuadro = _medClaveCuadro;
+
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
   /* El VTI SÍ se borra al cambiar de cuadro, a diferencia de Simpson: una envolvente es de ESE
@@ -153627,6 +153752,11 @@ function _medAutoCalibrar() {
 
 function medCambioDeImagen() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
+  /* P11 (2.2) — y el almacen por cuadro, que es de la imagen que se deja: sus claves son
+     `<loop>:<cuadro>` y el loop nuevo arranca en el cuadro 0, asi que sin soltarlo las medidas
+     del cineloop anterior reaparecerian sobre la imagen nueva. Es la misma razon por la que se
+     suelta la calibracion. */
+  _medPorCuadro = null; _medCuadroClave = _medClaveCuadro(_V);
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   _medCalibVel = null; _medCalibrandoVel = false;  // ídem la de velocidad
   /* P10 — el aviso de escala dudosa vuelve a estar disponible con la imagen nueva. Pegado a la
@@ -153680,6 +153810,7 @@ window.medCambioDeImagen = medCambioDeImagen;
    La contrapartida está cubierta en `_cineAbrir`: al reabrir se compara el estudio y, si es
    otro paciente, se sueltan. Sin esa mitad, conservar sería una fuga entre pacientes. */
 function medCerrarVisor() {
+  _medPorCuadro = null; _medCuadroClave = null;   // P11 (2.2)
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medCalibVel = null; _medCalibrandoVel = false; _medCalVelP0 = null;   // MEDIR-3
   _medGrupo = _MED_GRUPO_DEF;
@@ -153698,6 +153829,7 @@ function medCerrarVisor() {
 window.medCerrarVisor = medCerrarVisor;
 
 function medApagar() {
+  _medPorCuadro = null; _medCuadroClave = null;   // P11 (2.2)
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medCalibVel = null; _medCalibrandoVel = false; _medCalVelP0 = null;   // MEDIR-3
   _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
