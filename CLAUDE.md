@@ -168,6 +168,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
 | **Tocar la ESCALA DE VELOCIDAD de un Doppler espectral** —la fila de la línea de cero, el chequeo de coherencia, el cuadro propio de calibración con su unidad, o la marca de de dónde salió la escala en cada fila— | `docs/mapa/p10-escala-velocidad.md` |
+| **Tocar los DOS TAMAÑOS del visor** —el alto disponible de la imagen (`--cine-imgh`), el encaje en el envoltorio, el interruptor de la columna de medidas, la mudanza de la barra en pantalla completa, los botoncitos pegados a la imagen, la vista con foco, el Esc que sale del tamaño—, **las FLECHAS DEL TECLADO**, **las MEDIDAS POR CUADRO** o **el contorno de ayuda del Simpson** | `docs/mapa/p11-visor-tamanios-cuadros.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
@@ -295,7 +296,29 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,82 MB / 191.470 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **P10** (la escala de velocidad de un Doppler espectral), sobre el árbol ya sellado: sello **`v20261121-2349`**, md5 **`7edbbe06`**.
+  sin frameworks. Hoy **13,86 MB / 192.021 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P11** (los dos tamaños del visor, el teclado y las medidas por cuadro), sobre el árbol ya sellado: sello **`v20261122-1044`**, md5 **`0de4570e`**.
+  El diff de P11 son **594 líneas agregadas y 43 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `1d7caeb` **sobre el árbol ya sellado**, de las que **265 son código
+  de verdad**, 319 comentario y 10 en blanco — las 594 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos en el marcado: el único `<input` que el
+  diff muestra está **dentro de un comentario** —el que explica que el deslizador es un
+  `input type=range` y que por eso las flechas se perdían—, así que **cero campos guardados
+  nuevos** y las **457** columnas quietas, medido con TC-135, TC-479, TC-824 y TC-831 en verde.
+  **Y CERO cortes clínicos, cero fórmulas y cero umbrales.**
+  **DIEZ ids nuevos, los diez creados por el JS con el prefijo de su vista** —`cine-encab`,
+  `cine-barra-casa`, `cine-barra-slot`, `cine-col`, `cine-imgtr`, `cine-imgbr`, `cine-imgbl`,
+  `cine-pan`, `cine-fprev` y `cine-fnext`—, y **ninguno de los diez cae en ninguno de los
+  veintitrés barridos por sufijo o prefijo de id del archivo**, verificado uno por uno: ninguno
+  termina en `-aviso`, `-badge`, `-arrow` ni `-ref-fuente`, y ninguno arranca con los nueve
+  prefijos que `limpiarCampos` barre. El único id que el diff muestra en el marcado,
+  `eco-build-sello`, ya existía y reaparece porque el sello cambió.
+  ⚠️ **POR QUINCUAGÉSIMA OCTAVA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 1d7caeb:index.html` da **191.470**
+  líneas, **13.820.280** bytes y el md5 **`7edbbe06`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,82 MB / 191.470 al cierre de la tanda **P10**, sello `v20261121-2349`, md5 `7edbbe06`.)
   El diff de P10 son **443 líneas agregadas y 41 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `13af3de` **sobre el árbol ya sellado**, de las que **295 son código
   de verdad**, 123 comentario y 25 en blanco — las 443 cierran exacto, y el filtro lleva el estado
@@ -1631,6 +1654,203 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda P11 (2026-11-22) — los dos tamaños del visor, el teclado y las medidas por cuadro.**
+TRES tareas (la 3 era sólo reportar) y CUATRO commits. Sello **`v20261122-1044`**, md5
+**`0de4570e`**, **192.021** líneas. Línea base **`1d7caeb`**, el cierre de la tanda P10.
+**Sin push: lo corre Maicol.** **El puente CeiboLink NO se tocó**, y ningún punto lo necesitaba.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
+`<input>`, `<select>` y `<textarea>` nuevos en el marcado —el único `<input` del diff está dentro
+de un **comentario**—, que deja todo esto fuera del censo del estudio y del Excel **por
+construcción**: cero campos guardados nuevos y las **457** columnas quietas.
+
+⚠️ **LAS CINCO COSAS QUE SE ENCONTRARON MIDIENDO, ANTES DE TOCAR UNA LÍNEA**, y dos de ellas
+cambiaron qué había que hacer. La sonda es `scripts/_probe_p11_0.mjs`, y lo primero que hizo fue
+corregir su propia medición: **con 900 px de alto en los tres anchos la imagen queda SIEMPRE
+acotada por la altura y el ancho de sobra parece imposible de usar** — un monitor de 2560 es de
+1440 de alto, no de 900. Con el alto real de cada pantalla:
+
+1. **LA IMAGEN NO CRECÍA, Y LA CAUSA ES ESTRUCTURAL.** El tope del alto vivía en el **canvas**, y
+   un canvas es un elemento **reemplazado**: un tope sólo puede **ACHICARLO**, porque su tamaño de
+   partida es el del mapa de bits. Con la caja más grande que la imagen el navegador la deja como
+   está. Medido: a 1920×1080 y a 2560×1440 la imagen salía en sus **1016×708** con **422** y
+   **962 px de negro al costado**, o sea el **40 % del ancho** de la pantalla y el **49 % del
+   alto**. Eso es, literalmente, «la imagen queda chica con mucho espacio vacío».
+2. **EL ALTO DISPONIBLE VIVÍA ESCRITO EN CUATRO LUGARES CON TRES VALORES DISTINTOS**: `66vh` en
+   el estilo en línea del canvas, `56vh` **dos veces** dentro de `_cineRecorteAplicar` —el camino
+   CON recorte— y `calc(94vh - 190px)` en la media query. Con tres valores, **cuánto medía la
+   imagen dependía de si el recorte había llegado**.
+3. **EN PANTALLA COMPLETA EL MODAL SE DESPLAZABA 114 px** a 1440×900: el reproductor quedaba
+   **abajo del borde** de la pantalla.
+4. **Esc CERRABA EL VISOR** estando maximizado —el oyente genérico del bloque de accesibilidad
+   busca el diálogo modal visible y le aprieta el botón cuyo texto empareje `/cerrar|✕/`, y
+   `#cine-ov` lleva `role=dialog` y `aria-modal` porque ese mismo bloque se los pone— y encima
+   dejaba la clase `cine-max` puesta, así que **el visor siguiente abría maximizado** sin que
+   nadie lo hubiera pedido.
+5. **LAS FLECHAS DEL TECLADO NO FUNCIONABAN NUNCA, y es peor que lo reportado.** No había **un
+   solo `keydown`** para el visor en todo el archivo: «funcionaban» porque el deslizador es un
+   `<input type="range">` y el navegador se las atiende **cuando está enfocado**. Medido con
+   teclado de verdad: **recién abierto el visor el foco está en el `BODY` y la flecha NO movía el
+   cuadro**, ni antes de medir, ni después, ni después de reproducir; sólo con el deslizador
+   enfocado pasaba del cuadro 2 al 3.
+
+**TAREA 1 · LOS DOS TAMAÑOS.** `--cine-imgh` pasa a ser el **dueño único** del alto disponible y
+el **ENVOLTORIO** (`cine-recorte`) pasa a ser la caja de encaje en los **dos** caminos de
+`_cineRecorteAplicar`: `width:100%` acotado por la variable y por la proporción, con
+`aspect-ratio`, y el canvas la **llena**. Así crece y así se achica, con un solo número y sin
+inventar ninguno.
+⚠️ **Y NO SE TOCA NADA DE LA MEDICIÓN, que es la invariante del módulo**: el canvas sigue midiendo
+`cols × filas` en **píxeles de imagen** —no se escribe `cv.width` ni `cv.height`—, `_medPunto`
+divide por `cv.width / r.width` y `_medPintar` calza el overlay contra la caja medida. Una escala
+uniforme, hacia arriba o hacia abajo, es transparente para las dos. **Y la precisión del clic
+MEJORA**: con la imagen más grande, un píxel de pantalla cubre menos imagen.
+**Lo medido**, Chrome, los tres tamaños con su alto real:
+
+| | antes | después |
+|---|---|---|
+| Normal 1440×900 | 941×656 | 941×656 (ahí ya llenaba) |
+| Normal 1920×1080 | 1016×708 · negro 422 | **1184×825** · negro 254 |
+| Normal 2560×1440 | 1016×708 (40 %×49 %) | **1670×1164** (65 %×81 %) |
+| Completa 1440×900 | 1016×708 · desplaza 114 | **1018×709** · desplaza **0** |
+| Completa 1920×1080 | 1016×708 (53 %×66 %) | **1325×923** (69 %×86 %) |
+| Completa 2560×1440 | 1016×708 (40 %×49 %) | **1841×1283** (72 %×89 %) |
+
+⚠️ **ESO REVIERTE M3-c POR ORDEN EXPRESA, y queda declarado en P11-a**: MEDIR-3 decidió que una
+imagen más chica que la caja **no** se amplía, y el punto 1.2 pide lo contrario con todas las
+letras. El costo es que una imagen chica se ve interpolada; lo que **no** cuesta es precisión.
+
+**1.2 · PANTALLA COMPLETA.** La reserva baja de 190 a **157 px**, que es la suma **medida** de lo
+que queda alrededor de la imagen una vez que la barra y el «Capturar» se mudan a la columna, el
+encabezado de la vista y la línea de ayuda se esconden y el bloque de calculados se va a la
+columna (`_vSlotSync`). **Desplazamiento CERO en los tres tamaños.** La columna queda **pegada a
+la derecha, estática y sin solapar un píxel** de la imagen —medido: solape 0— y gana un
+**interruptor** (`cinePanelToggle`, clase `cine-sinpanel`) que la esconde **sin tocar `medOn`**:
+se sigue midiendo, con la herramienta elegida, lo medido intacto y el canvas de trazos con su
+oyente.
+⚠️ **EL INTERRUPTOR VIVE SOBRE LA IMAGEN Y NO DENTRO DE LA COLUMNA**, y es la única forma de que
+la columna se pueda **volver** a mostrar: un botón metido adentro de lo que se esconde se esconde
+con ello. El punto 1.4 no lo enumera; se declara en **P11-e**.
+
+**1.3 y 1.4 · UNA COLUMNA CON DOS VISTAS, Y LA BARRA A LA COLUMNA.** `_vMaxSync` es el dueño único
+de las cuatro mudanzas, y **ninguna reemite un nodo**: viaja el MISMO elemento, con su id, sus
+oyentes y lo que el médico tenga tipeado. La barra va a `cine-barra-slot` de **su** columna,
+«Capturar» al racimo de **su** imagen, el botón de tamaño al racimo de la vista con **foco**, y la
+columna de la vista **sin** foco se esconde.
+⚠️ **«ACTIVA» NO SE PODÍA SABER, y por eso hay `_vFoco`**: `_V` es transitorio —`_vCon` repone la
+anterior en su `finally`— así que fuera de un gesto vale siempre `_vistaA`. El foco lo escribe un
+**`pointerdown`** sobre el panel, que es el gesto real: un clic que arranca un trazado no llega
+nunca a `click`. Falla **abierto**: sin foco anotado es la A, que es lo de hoy.
+⚠️ **Y «CAPTURAR» VUELVE A SU LUGAR Y NO AL FINAL**: se inserta **antes de `cine-cerrar-v`**, que
+es su vecino de siempre, porque el orden de la barra lo miden tres casos del suite.
+
+**1.5 · LOS BOTONCITOS PEGADOS A LA IMAGEN.** Tres racimos **dentro de `cine-recorte`**: arriba a
+la derecha el tamaño —ahí se **MUDA** `cine-maxi`, no hay botón nuevo: dos botones para la misma
+acción dejarían dos `aria-pressed` que pueden discrepar— y el interruptor de la columna; abajo a
+la derecha **cuadro anterior y siguiente**; abajo a la izquierda, «Capturar» en pantalla completa.
+Se ven de **26 px** y se tocan en **44**, la receta de PANT-2, con fondo negro semitransparente
+porque se pintan **encima de la ecografía**, que no cambia de color con el tema de la app.
+⚠️ **VAN DENTRO DEL RECORTE Y NO DEL LIENZO**, y es lo único que los deja «pegados a la imagen»:
+el lienzo es la **columna** y es más ancho que la imagen —990 contra 941 a 1440 px, 1978 contra
+1016 a 2560—, así que un racimo anclado ahí queda flotando en el negro. **El precio, declarado en
+P11-d**: los tres cuadrados de 44 px son área de botón y no de medición mientras se mide. Son las
+esquinas.
+⚠️ **Y `cineCuadro` ES NUEVA Y NO ES `cineLoop`**: mueve el **cuadro** dentro del cineloop abierto,
+no el cineloop de la importación, y **ACOTA** en vez de dar la vuelta — el médico busca la
+telediástole y la telesístole, y saltar del último al primero le hace perder el que estaba mirando.
+
+**1.6 · Esc SALE DEL TAMAÑO.** El oyente va en **CAPTURA** y no en burbuja, y es la única forma: el
+genérico del bloque de accesibilidad es de burbuja y está registrado en el arranque de la app, o
+sea ANTES. Y por eso hay que **cederle el paso a lo que esté encima**: `_cineCapaEncima()` pregunta
+por la capa, y falla **cerrado**.
+⚠️ **EL CULPABLE QUE ENCONTRÓ MEDIR FUE `#toast`.** La primera guarda preguntaba por cualquier cosa
+fija y visible por encima de la capa 400: el toast vive en la **999**, es `position:fixed`, está
+**siempre** en el documento y conserva su caja medible aunque no muestre nada. Con el toast
+contando como «capa encima», Escape **NUNCA** salía de pantalla completa y el arreglo no hacía
+nada. Hoy la guarda exige que la capa **CUBRA la pantalla**, que es lo que un cartel que tapa
+hace y un toast no. **En tamaño Normal no cambia nada**: ahí Escape sigue cerrando el visor.
+**Medido:** el primer Esc restaura, deja el visor abierto y las medidas y sus milímetros
+**idénticos**; el segundo cierra.
+
+**TAREA 2.1 · LAS FLECHAS, ARREGLADAS DE RAÍZ.** Un oyente de `keydown` en el **DOCUMENTO** —no en
+el overlay: al abrir, el foco está en el `body`, que no es su descendiente— que mueve el cuadro de
+la vista con foco. **De raíz** quiere decir sin devolverle el foco al deslizador a escondidas, que
+era el otro arreglo posible y deja la tecla atada a que nadie más tome el foco. Cede en **cuatro**
+casos: una capa que tape la pantalla, un evento **ya atendido** (`defaultPrevented`, que es el caso
+del **deslizador** y sin eso el cuadro avanzaría **DOS** veces por tecla), el foco en un campo de
+texto o un desplegable, y las teclas con modificador. **Medido con teclado real, los seis
+escenarios**: recién abierto 0→1; después de medir 1→2; después de reproducir 0→1; con el
+deslizador enfocado 1→2, **UN** paso y no dos; con el campo de la etiqueta enfocado **no se mueve**;
+ArrowLeft 2→1.
+
+**TAREA 2.2 · LAS MEDIDAS QUEDAN ATADAS A SU CUADRO.** `medPorCuadro` las guarda por cineloop y
+cuadro, con la clave `<loop>:<cuadro>`. El observador de `#cine-num` llama a `_medCuadroCambio`,
+que **guarda** lo del cuadro que se deja, llama a `medReset` y **repone** lo de este cuadro.
+⚠️ **`medReset` NO SE TOCA, y es deliberado**: la llaman **diecinueve** casos del suite para armar
+sus escenas y además sigue siendo el reseteo correcto. Reusarla es lo que hace que las sesiones de
+Simpson, strain, LARS y VD sigan avisando **exactamente igual**: esa lógica vive en un solo lugar.
+**NO entran al almacén** la línea de **calibración** —es de la imagen, no del cuadro— ni las dos
+**áreas del VD**, que sobreviven al cambio de cuadro desde MEDIR-5 (A8) porque el FAC se mide en
+dos cuadros; las dos las conserva `medReset`, así que alcanza con no duplicarlas. Un cuadro sin
+nada medido **no deja entrada**. Se suelta al cambiar de imagen, al apagar la medición y al cerrar.
+**Medido:** 100,23 mm en el cuadro 0 → al 3 queda vacío con la clave `0:0` guardada → 200,08 en el
+3 → al volver al 0 reaparece **sólo** la de 100,23 → al volver al 3 **sólo** la de 200,08 → cambiar
+de imagen suelta el almacén.
+
+**TAREA 2.3 · EL SIMPSON SIN EL CONTORNO DE AYUDA.** `_medPintar` dibujaba el contorno confirmado
+de la fase **CONTRARIA** a la que toca, y al confirmar la diástole `_simpAceptar` da vuelta la fase
+a sístole y pone `ocultar` en falso: el contorno de la diástole quedaba pintado en verde mientras
+el médico empezaba la sístole. Hoy se dibuja **sólo** `_simp.pendiente`.
+**Medido por PÍXELES y con su control positivo**: en la escena exacta la línea base pinta **4235
+px** de tinta y este árbol **CERO**; con un trazado pendiente los dos pintan 4235, que es el
+denominador que prueba que la sonda ve un contorno cuando hay uno. **Cero cálculos movidos**: los
+confirmados siguen en `_simp.pares`.
+
+**TAREA 3 · SÓLO REPORTAR, Y LAS DOS COSAS QUEDARON MEDIDAS.** **3.1**: «+ Vista» pide el estudio
+guardado porque su lista sale de `CeiboCine.listar(uuid)`, o sea del **disco del estudio**, y sin
+uuid no hay nada que listar; permitirlo cuesta una **segunda fuente** —los loops en memoria—, una
+miniatura **sin** `poster` y un camino de apertura propio: 60 a 80 líneas más su caso → **P11-f**,
+**no se tocó**. **3.2**: el **modo mínimo YA ESTÁ HECHO** desde el 2026-10-01 (clase `cine-min`,
+derivada de `medOn`), y medido al abrir el visor hay **nueve** controles a la vista que pasan a
+**29** al tocar «Medir»; **no choca** con este diseño, porque lo que P11 pone sobre la imagen es
+navegación y tamaño, no medición → **P11-g**, **no se tocó**.
+
+⚠️ **UN DEFECTO REAL DE ESTA TANDA, DESTAPADO POR SUS PROPIOS CASOS Y CORREGIDO (P11-h).** Desde el
+punto 1.5 `cine-maxi` **vive dentro del panel** de la vista con foco, y `vistaCerrarUna` quita ese
+panel: **se lo llevaba puesto** y el visor quedaba sin forma de cambiar de tamaño hasta cerrarlo y
+volver a abrirlo. Hoy `_vMaxSync` corre **antes** del `removeChild`.
+
+**COBERTURA: OCHO casos nuevos, TC-1009 a TC-1016**, uno por punto, y los ocho caen **0/8 contra
+`1d7caeb`** con el mismo archivo de casos y sólo el `index.html` distinto, **por sus condiciones y
+NINGUNO por excepción** — eso último costó tres guardas, porque contra la línea base `cine-pan`,
+los racimos y el accesor `_medPorCuadro` no existen. **DOS casos adaptados, TC-250 y TC-257**, los
+dos por la misma causa del navegador: `MouseEventInit.clientX` está declarado `long`, así que un
+clic sintético **se trunca** al píxel de pantalla entero, y con la imagen llenando su caja un píxel
+de pantalla ya no es un píxel de imagen. TC-257 pasa a clickear en píxeles de **imagen** —la
+inversa exacta de `_medPunto`— y a tolerar 0,3 mm; TC-250 cambia una **igualdad exacta de
+flotantes** por una tolerancia. Declarados en **P11-b**.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
+
+⚠️ **DOS TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios comentarios**
+en el cuerpo de un caso, por trigésima primera tanda seguida: **cinco** veces. Lo que lo previene
+es el guardián que cuenta los acentos graves del cuerpo de cada caso y exige **dos** antes de
+insertar — y que abortó una inserción. (2) **Una colisión de nombres entre una función y un accesor
+de la vista**: `_medCuadroClave` era a la vez el accesor que el MAPA de `_vNueva` define con
+`Object.defineProperty` y el nombre de la función que calcula la clave, o sea **dos dueños de la
+misma propiedad de `window`**. La función pasó a `_medClaveCuadro`.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por decimonovena tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en las
+tres tareas y su verificación. Este archivo pesa más de 600 KB.
+
+Lo declarado, en **P11-a** a **P11-i**; el mapa, en `docs/mapa/p11-visor-tamanios-cuadros.md`; las
+fichas de los ocho casos, en `docs/mapa/tests-fichas-1009.md`; la guía manual para la Mac y para
+Windows, en `docs/GUIA_PRUEBA_P11.md` (**43** pasos); las sondas, en `scripts/_probe_p11_0.mjs`
+(la línea base), `scripts/_probe_p11a.mjs` (la tarea 1 en dos motores), `scripts/_probe_p11b.mjs`
+(las flechas con teclado real y las medidas por cuadro) y `scripts/_probe_p11c.mjs` (el contorno
+del Simpson, por píxeles); el corredor de lotes, en `scripts/_lotes_p11.sh`.
 
 **La tanda P10 (2026-11-21) — la escala de velocidad de un Doppler espectral.** DOS tareas,
 CINCO commits. Sello **`v20261121-2349`**, md5 **`7edbbe06`**, **191.470** líneas. Línea base

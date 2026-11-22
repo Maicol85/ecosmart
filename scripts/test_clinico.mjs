@@ -159044,6 +159044,617 @@ caso('TC-1008', 'P10: el caso del VINNO reproducido, y el chequeo de coherencia 
   })();
 `);
 
+caso('TC-1009', 'P11 (1.1 y 1.2): la imagen LLENA su caja en los dos caminos -- sin recorte y con recorte-- sin dejar negro adentro y sin tocar un pixel de la medicion', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const W = el => el ? Math.round(el.getBoundingClientRect().width) : -1;
+    const H = el => el ? Math.round(el.getBoundingClientRect().height) : -1;
+    const jpg = new Uint8Array([255,216,255,217]);
+    /* ⚠️ EL FIXTURE ES CHICO A PROPOSITO: 200x150. En la ventana del arnes el alto disponible
+       ronda los 300 px, asi que una imagen de 600 px de ancho se ACHICA y el encaje no se puede
+       ver; una de 200 tiene que CRECER, que es lo que esta tanda vino a conseguir. */
+    const mk = n => ({ nombre:n, cuadros:4, d:{ frags:[jpg,jpg,jpg,jpg], cols:200, filas:150,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-9')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    const cv = $('cine-cv'), env = $('cine-recorte'), lienzo = $('cine-lienzo');
+    R.hay = !!(cv && env && lienzo);
+    /* DENOMINADOR: la caja que le toca es MAS GRANDE que la imagen de origen. Sin esto, «llena
+       su caja» se cumpliria sobre una imagen que ya la llenaba. */
+    R.cajaMayor = R.hay && W(lienzo) > 200;
+    R.anchoPintado = W(cv); R.altoPintado = H(cv);
+    R.crecio = R.anchoPintado > 205;
+    /* Y la proporcion se conserva: 200/150 = 1,3333 */
+    R.prop = (R.altoPintado > 0) ? (R.anchoPintado / R.altoPintado) : 0;
+    R.propBien = Math.abs(R.prop - 200/150) < 0.02;
+    /* Cero negro ADENTRO del recorte: el envoltorio tiene el tamanio de la imagen */
+    R.negroDentro = W(env) - R.anchoPintado;
+    R.sinNegroDentro = Math.abs(R.negroDentro) <= 1;
+    /* ⚠️ LA INVARIANTE DE LA MEDICION: el canvas sigue en PIXELES DE IMAGEN. Si esto cambia, la
+       calibracion y las reglas se corren sobre la anatomia sin ningun error. */
+    R.bitmap = cv ? (cv.width + 'x' + cv.height) : '(no)';
+    R.bitmapIntacto = R.bitmap === '200x150';
+    /* El dueño unico del alto disponible existe y resuelve */
+    R.imgh = R.hay ? getComputedStyle($('cine-ov')).getPropertyValue('--cine-imgh').trim() : '';
+    R.hayVariable = R.imgh.length > 0;
+    /* ── EL MISMO ENCAJE CON RECORTE PUESTO ── el otro camino de _cineRecorteAplicar */
+    const L = _cineDatos.loops[0];
+    L.recorte = { w:200, h:150, cw:160, ch:120, x0:20, y0:15 };
+    _cineRecorteAplicar(_vistaA);
+    await esperar(260);
+    R.recAncho = W(env); R.recAlto = H(env);
+    R.recProp = (R.recAlto > 0) ? (R.recAncho / R.recAlto) : 0;
+    R.conRecorteCrece = R.recAncho > 165;
+    R.conRecortePropBien = Math.abs(R.recProp - 160/120) < 0.03;
+    /* el canvas sigue siendo mas ancho que su ventana: eso ES el recorte */
+    R.canvasDesborda = W(cv) > R.recAncho + 0.5;
+    L.recorte = null; _cineRecorteAplicar(_vistaA);
+    await esperar(200);
+    R.vuelve = Math.abs(W(env) - W(cv)) <= 1;
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['la caja es mas grande que la imagen de origen (denominador)', R.cajaMayor === true, 'lienzo=' + W(lienzo) + ' imagen=200'],
+      ['SIN RECORTE la imagen crece y llena su caja', R.crecio === true, R.anchoPintado + 'x' + R.altoPintado],
+      ['y conserva la proporcion', R.propBien === true, R.prop.toFixed(4)],
+      ['cero negro adentro del recorte', R.sinNegroDentro === true, 'dif=' + R.negroDentro],
+      ['el canvas sigue en PIXELES DE IMAGEN', R.bitmapIntacto === true, R.bitmap],
+      ['--cine-imgh es el dueño unico y resuelve', R.hayVariable === true, R.imgh],
+      ['CON RECORTE tambien crece', R.conRecorteCrece === true, R.recAncho + 'x' + R.recAlto],
+      ['y con la proporcion del recorte', R.conRecortePropBien === true, R.recProp.toFixed(4)],
+      ['con recorte el canvas desborda su ventana (eso es el recorte)', R.canvasDesborda === true, W(cv) + ' > ' + R.recAncho],
+      ['al sacar el recorte vuelve a calzar', R.vuelve === true, W(env) + ' vs ' + W(cv)]
+    ] };
+  })();
+`);
+
+caso('TC-1010', 'P11 (1.2): el interruptor esconde la columna de medidas y SE SIGUE MIDIENDO -- y solo se ofrece en pantalla completa', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:4, d:{ frags:[jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-10')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    medHerramienta('dist');
+    await esperar(200);
+    /* Una medida sembrada por la puerta del arreglo: lo que se prueba es que NO se pierde. */
+    _medLineas.push(_medSello({ ax:10, ay:10, bx:110, by:10, mm:50 }));
+    _medPintar();
+    const col = $('cine-col');
+    const disp = () => col ? getComputedStyle(col).display : '(no)';
+    R.hayBoton = !!$('cine-pan');
+    R.hayFn = typeof window.cinePanelToggle === 'function';
+    /* ⚠️ TODO LO QUE SIGUE VA CON GUARDA, y no es defensivo de mas: contra la linea base ni el
+       boton ni la columna existen, y un acceso pelado tira un TypeError que se lleva el caso por
+       EXCEPCION en vez de por sus condiciones — lo que esta casa prohibe desde TC-827. */
+    const tocar = id => { const e = $(id); if (e) e.click(); return !!e; };
+    /* En tamanio Normal el interruptor NO se ofrece: el 1.2 lo pide para pantalla completa */
+    R.normalEscondido = R.hayBoton && getComputedStyle($('cine-pan')).display === 'none';
+    R.denomBoton = R.hayBoton;
+    /* DENOMINADOR: la columna esta a la vista antes de tocar nada */
+    R.antes = disp();
+    R.denom = R.antes !== 'none';
+    tocar('cine-maxi');
+    await esperar(420);
+    R.enMaxVisible = R.hayBoton && getComputedStyle($('cine-pan')).display !== 'none';
+    R.maxAntes = disp();
+    tocar('cine-pan');
+    await esperar(380);
+    R.escondida = disp() === 'none';
+    /* LA MITAD QUE IMPORTA: se sigue midiendo */
+    R.medOnSigue = !!_medOn;
+    R.herrSigue = _medHerr === 'dist';
+    R.lineasSiguen = _medLineas.filter(l => !l.calibracion).length === 1;
+    R.canvasVivo = (function () { const c = $('cine-med');
+      return !!(c && c.style.display !== 'none' && typeof c.onclick === 'function'); })();
+    R.aria = $('cine-pan') ? $('cine-pan').getAttribute('aria-pressed') : '(no existe)';
+    tocar('cine-pan');
+    await esperar(360);
+    R.vuelve = disp() !== 'none';
+    R.ariaVuelve = $('cine-pan') ? $('cine-pan').getAttribute('aria-pressed') : '(no existe)';
+    try { if (cineMaxActivo()) tocar('cine-maxi'); } catch (e) {}
+    await esperar(200);
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['existen el boton y su funcion', R.hayBoton && R.hayFn, R.hayBoton + '/' + R.hayFn],
+      ['en tamanio Normal NO se ofrece', R.normalEscondido === true, R.normalEscondido],
+      ['en pantalla completa SI se ofrece', R.enMaxVisible === true, R.enMaxVisible],
+      ['la columna estaba a la vista (denominador)', R.denom === true, R.antes],
+      ['el boton la esconde', R.escondida === true, R.maxAntes + ' -> ' + disp()],
+      ['y SE SIGUE MIDIENDO: la medicion sigue encendida', R.medOnSigue === true, R.medOnSigue],
+      ['con la herramienta elegida', R.herrSigue === true, _medHerr],
+      ['y sin perder lo medido', R.lineasSiguen === true, _medLineas.length],
+      ['el canvas de trazos sigue vivo y con su oyente', R.canvasVivo === true, R.canvasVivo],
+      ['el boton dice su estado por aria-pressed', R.aria === 'true' && R.ariaVuelve === 'false', R.aria + ' -> ' + R.ariaVuelve],
+      ['y el segundo toque la devuelve', R.vuelve === true, R.vuelve]
+    ] };
+  })();
+`);
+
+caso('TC-1011', 'P11 (1.3 y 1.4): en pantalla completa la barra va a la columna y Capturar sobre la imagen, y con dos vistas queda UNA columna -- la de la vista con foco', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:4, d:{ frags:[jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-11')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    const dentro = (id, cont) => { const e = $(id), c = $(cont); return !!(e && c && c.contains(e)); };
+    /* DENOMINADOR: en tamanio Normal la barra esta en su casa y Capturar en la barra */
+    R.normalBarraCasa = dentro('cine-grp-med', 'cine-barra-casa');
+    R.normalCapEnBarra = dentro('cine-cap', 'cine-grp-med');
+    R.rotNormal = (function () { const b = $('cine-grp-med'); if (!b) return '';
+      return Array.from(b.querySelectorAll('button')).map(x => (x.id || '')).join(','); })();
+    $('cine-maxi').click();
+    await esperar(460);
+    R.maxBarraEnCol = dentro('cine-grp-med', 'cine-barra-slot');
+    R.maxCapEnImagen = dentro('cine-cap', 'cine-imgbl');
+    /* y la barra sigue DENTRO de su panel, que es lo que TC-322 y otros miden */
+    R.sigueEnSuPanel = !!($('cine-grp-med') &&
+      $('cine-grp-med').closest('[id$="cine-panel"]') === $('cine-panel'));
+    /* ── DOS VISTAS ── montadas como lo hace TC-257: sin disco y sin selector */
+    const cont = $('cine-paneles');
+    if (!_vistaB && typeof _vNueva === 'function') {
+      const VB = _vNueva('b-','B'); _vMontarPanel(cont,'b-'); _vistaB = VB; _vCablear(VB);
+      VB.datos = _vistaA.datos; _vActivarMedicion(VB);
+      /* El camino real —vistaBAbrir— termina llamando a _vAccionesSync, que es quien pone la
+         clase de dos vistas y sincroniza las columnas. Montando el panel a mano hay que llamarlo
+         igual, o se mide un layout de UNA vista con dos paneles puestos. */
+      try { _vAccionesSync(); } catch (e) {}
+      await esperar(380);
+    }
+    R.hayB = !!_vistaB;
+    const cols = () => Array.from(document.querySelectorAll('#cine-paneles .cine-col-der'))
+      .map(c => c.id + ':' + getComputedStyle(c).display);
+    R.colsMax = cols().join(' | ');
+    R.unaSola = cols().filter(x => x.indexOf(':none') < 0).length === 1;
+    R.focoEsA = (typeof _vFocoVista === 'function') ? (_vFocoVista() === _vistaA) : null;
+    /* El foco se mueve con el gesto real: un pointerdown sobre el panel de la B */
+    const pb = $('b-cine-panel');
+    if (pb) pb.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true }));
+    await esperar(420);
+    R.colsTrasFoco = cols().join(' | ');
+    R.sigueUnaSola = cols().filter(x => x.indexOf(':none') < 0).length === 1;
+    R.laDeLaB = cols().filter(x => x.indexOf(':none') < 0)[0] === 'b-cine-col:flex';
+    R.focoEsB = (typeof _vFocoVista === 'function') ? (_vFocoVista() === _vistaB) : null;
+    R.maxiEnB = dentro('cine-maxi', 'b-cine-imgtr');
+    /* cero ids duplicados en el visor */
+    R.dup = (function () { const v = Object.create(null), d = [];
+      const ov = $('cine-ov'); if (!ov) return 'no';
+      ov.querySelectorAll('[id]').forEach(e => { if (v[e.id]) { if (d.indexOf(e.id) < 0) d.push(e.id); } else v[e.id] = 1; });
+      return d.join(','); })();
+    /* y volver a Normal devuelve TODO a su lugar, con Capturar en su posicion de la barra */
+    $('cine-maxi').click();
+    await esperar(460);
+    R.vueltaBarra = dentro('cine-grp-med', 'cine-barra-casa');
+    R.vueltaCap = dentro('cine-cap', 'cine-grp-med');
+    R.rotVuelta = (function () { const b = $('cine-grp-med'); if (!b) return '';
+      return Array.from(b.querySelectorAll('button')).map(x => (x.id || '')).join(','); })();
+    R.mismoOrden = R.rotVuelta === R.rotNormal;
+    R.dosColsEnNormal = cols().filter(x => x.indexOf(':none') < 0).length === 2;
+    try { if (_vistaB) vistaCerrarUna(_vistaB); } catch (e) {}
+    await esperar(260);
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['en Normal la barra esta en su casa (denominador)', R.normalBarraCasa === true, R.normalBarraCasa],
+      ['y Capturar en la barra (denominador)', R.normalCapEnBarra === true, R.normalCapEnBarra],
+      ['EN PANTALLA COMPLETA la barra va a la columna', R.maxBarraEnCol === true, R.maxBarraEnCol],
+      ['y Capturar al racimo de la imagen', R.maxCapEnImagen === true, R.maxCapEnImagen],
+      ['la barra sigue dentro de SU panel', R.sigueEnSuPanel === true, R.sigueEnSuPanel],
+      ['se montaron las dos vistas (denominador)', R.hayB === true, R.hayB],
+      ['con dos vistas queda UNA sola columna', R.unaSola === true, R.colsMax],
+      ['tocar la vista B le pasa el foco', R.focoEsB === true, R.focoEsA + ' -> ' + R.focoEsB],
+      ['y la columna que queda es la de la B', R.sigueUnaSola && R.laDeLaB, R.colsTrasFoco],
+      ['el boton de tamanio viaja a la imagen de la B', R.maxiEnB === true, R.maxiEnB],
+      ['cero ids duplicados en el visor', R.dup === '', R.dup],
+      ['volver a Normal devuelve la barra a su casa', R.vueltaBarra === true, R.vueltaBarra],
+      ['y Capturar a su posicion en la barra', R.vueltaCap && R.mismoOrden, R.rotVuelta],
+      ['y en Normal se ven las DOS columnas', R.dosColsEnNormal === true, cols().join(' | ')]
+    ] };
+  })();
+`);
+
+caso('TC-1012', 'P11 (1.5): los tres racimos pegados a la imagen -- sin texto, 44 px de area tactil-- y las flechas mueven el CUADRO y no el cineloop', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const reg = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+    const mk = n => ({ nombre:n, cuadros:6, d:{ frags:[jpg,jpg,jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[reg] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    /* DOS cineloops: asi se puede distinguir «mueve el cuadro» de «mueve el cineloop» */
+    _cineAbrir([mk('uno'), mk('dos')]);
+    await esperar(600);
+    const rec = $('cine-recorte');
+    /* ⚠️ CON GUARDA, por lo mismo que TC-1010: contra la linea base los racimos no existen y un
+       acceso pelado tira un TypeError que se lleva el caso por EXCEPCION. */
+    const caja = el => { if (!el) return { x:0, y:0, w:-1, h:-1, r:0, b:0 };
+      const r = el.getBoundingClientRect();
+      return { x:r.x, y:r.y, w:Math.round(r.width), h:Math.round(r.height), r:r.right, b:r.bottom }; };
+    const tocar = id => { const e = $(id); if (e) e.click(); return !!e; };
+    R.hayRacimos = ['cine-imgtr','cine-imgbr','cine-imgbl'].every(id => !!$(id));
+    R.dentroDelRecorte = R.hayRacimos && !!rec && ['cine-imgtr','cine-imgbr','cine-imgbl']
+      .every(id => !!$(id) && rec.contains($(id)));
+    /* 44 px de area tactil y CERO texto: el glifo entra en el span y mide un caracter */
+    /* ⚠️ SOLO LOS QUE SE VEN: el interruptor de la columna vive en el racimo de arriba y en
+       tamanio Normal no se ofrece —el punto 1.2 lo pide para pantalla completa—, asi que mide
+       0x0 y exigirle 44 seria exigirle que se vea. Que este escondido en Normal lo fija TC-1010.
+       El filtro lleva su propio denominador: si quedaran cero botones, «todos miden 44» se
+       cumpliria sobre nada. */
+    const bs = (R.hayRacimos ? Array.from($('cine-imgtr').querySelectorAll('button'))
+      .concat(Array.from($('cine-imgbr').querySelectorAll('button'))) : [])
+      .filter(b => { const c = b.getBoundingClientRect(); return c.width > 0 && c.height > 0; });
+    R.cajas = bs.map(b => { const c = caja(b); return c.w + 'x' + c.h; }).join(',');
+    R.todos44 = bs.length > 0 && bs.every(b => { const c = caja(b); return c.w === 44 && c.h === 44; });
+    R.textos = bs.map(b => (b.textContent || '').trim()).join('|');
+    R.sinTexto = bs.every(b => (b.textContent || '').trim().length <= 2);
+    R.conTitulo = bs.every(b => (b.getAttribute('title') || '').length > 3);
+    /* el de tamanio es el cine-maxi MUDADO, no un boton nuevo */
+    R.maxiMudado = !!($('cine-maxi') && $('cine-imgtr') && $('cine-imgtr').contains($('cine-maxi')));
+    R.unSoloMaxi = document.querySelectorAll('#cine-ov [id="cine-maxi"]').length === 1;
+    /* arriba a la derecha y abajo a la derecha, de verdad */
+    const cr = caja(rec);
+    const ctr = caja($('cine-imgtr')), cbr = caja($('cine-imgbr'));
+    R.trArriba = Math.abs(ctr.y - cr.y) <= 2 && Math.abs(ctr.r - cr.r) <= 2;
+    R.brAbajo = Math.abs(cbr.b - cr.b) <= 2 && Math.abs(cbr.r - cr.r) <= 2;
+    /* ── LAS FLECHAS MUEVEN EL CUADRO ── */
+    R.loopAntes = _cineDatos.i;
+    R.cuadroAntes = _cineDatos.cuadro;
+    R.hayFlechas = tocar('cine-fnext'); await esperar(260);
+    R.cuadroTrasNext = _cineDatos.cuadro;
+    R.loopTrasNext = _cineDatos.i;
+    tocar('cine-fprev'); await esperar(260);
+    R.cuadroTrasPrev = _cineDatos.cuadro;
+    /* y ACOTA: en el cuadro 0 el anterior no da la vuelta */
+    tocar('cine-fprev'); await esperar(240);
+    R.noDaLaVuelta = _cineDatos.cuadro === 0;
+    /* ni en el ultimo */
+    for (let i = 0; i < 9; i++) { tocar('cine-fnext'); await esperar(90); }
+    await esperar(200);
+    R.topeArriba = _cineDatos.cuadro === 5;
+    R.loopIntacto = _cineDatos.i === R.loopAntes;
+    /* ⚠️ LOS DIAGNOSTICOS SE GUARDAN ANTES DE CERRAR: cineCerrar suelta _cineDatos, y la lista
+       de condiciones se evalua DESPUES del cierre — leerlo ahi tira un TypeError que se lleva el
+       caso entero por EXCEPCION en vez de por sus condiciones. */
+    R.cuadroFinal = _cineDatos.cuadro;
+    R.loopFinal = _cineDatos.i;
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['los tres racimos existen y viven DENTRO del recorte', R.hayRacimos && R.dentroDelRecorte, R.hayRacimos + '/' + R.dentroDelRecorte],
+      ['hay botones a la vista en los racimos (denominador)', bs.length >= 3, bs.length],
+      ['44 x 44 px de area tactil', R.todos44 === true, R.cajas],
+      ['sin texto: un solo glifo', R.sinTexto === true, R.textos],
+      ['y con su titulo, que es lo que dice que hacen', R.conTitulo === true, R.conTitulo],
+      ['el de tamanio es cine-maxi MUDADO y hay uno solo', R.maxiMudado && R.unSoloMaxi, R.maxiMudado + '/' + R.unSoloMaxi],
+      ['arriba a la derecha de la imagen', R.trArriba === true, R.trArriba],
+      ['y las flechas abajo a la derecha', R.brAbajo === true, R.brAbajo],
+      ['existen las flechas de cuadro (denominador)', R.hayFlechas === true, R.hayFlechas],
+      ['la flecha siguiente mueve el CUADRO', R.cuadroTrasNext === R.cuadroAntes + 1, R.cuadroAntes + ' -> ' + R.cuadroTrasNext],
+      ['y NO el cineloop', R.loopTrasNext === R.loopAntes, R.loopAntes + ' -> ' + R.loopTrasNext],
+      ['la anterior vuelve', R.cuadroTrasPrev === R.cuadroAntes, R.cuadroTrasPrev],
+      ['en el primero no da la vuelta', R.noDaLaVuelta === true, R.noDaLaVuelta],
+      ['ni pasa del ultimo', R.topeArriba === true, R.cuadroFinal],
+      ['y el cineloop sigue siendo el mismo', R.loopIntacto === true, R.loopFinal]
+    ] };
+  })();
+`);
+
+caso('TC-1013', 'P11 (1.6): cambiar de tamanio no pierde lo medido y el milimetro queda EXACTO, y Esc sale del tamanio sin cerrar el visor', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:4, d:{ frags:[jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-13')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    medHerramienta('dist');
+    await esperar(180);
+    /* La medida se da con el GESTO REAL, en pixeles de IMAGEN: dos clics sobre el canvas */
+    const cv = $('cine-med');
+    const clic = (x,y) => { const r = cv.getBoundingClientRect();
+      const k = (cv.width && r.width) ? (r.width / cv.width) : 1;
+      cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.left+x*k,clientY:r.top+y*k})); };
+    clic(100,100); await esperar(140); clic(300,100); await esperar(260);
+    const lin = () => _medLineas.filter(l => !l.calibracion);
+    R.denom = lin().length === 1;
+    R.mmAntes = R.denom ? lin()[0].mm : null;
+    R.anchoAntes = Math.round($('cine-cv').getBoundingClientRect().width);
+    R.topeAntes = getComputedStyle($('cine-modal')).maxWidth;
+    $('cine-maxi').click();
+    await esperar(480);
+    R.enMax = cineMaxActivo();
+    R.anchoEnMax = Math.round($('cine-cv').getBoundingClientRect().width);
+    /* ⚠️ EL DENOMINADOR NO PUEDE SER «LA IMAGEN CAMBIO DE TAMANIO», Y ESTA MEDIDO: la ventana
+       del arnes mide 756x469, asi que el alto disponible pasa de 66vh (309) a 100vh-157 (312) y
+       la imagen se queda en 371 px en los dos tamanios. Es la leccion de TC-244: un denominador
+       que deja de morder no se afloja, se cambia por uno que mida lo mismo en cualquier ventana.
+       Lo que define el cambio de tamanio es el TOPE del modal, que pasa de 1500 px a ninguno.
+       Los PIXELES en 1440x900, 1920x1080 y 2560x1440 los mide scripts/_probe_p11a.mjs. */
+    R.topeEnMax = getComputedStyle($('cine-modal')).maxWidth;
+    R.mmEnMax = lin().length ? lin()[0].mm : null;
+    R.mmExacto = R.mmAntes !== null && R.mmEnMax === R.mmAntes;
+    R.nLineas = lin().length === 1;
+    R.medOn = !!_medOn; R.herr = _medHerr === 'dist';
+    /* el overlay de trazos sigue CALZADO sobre la imagen: eso es «los puntos quedan exactos» */
+    R.calce = (function () { const b = $('cine-cv'), m = $('cine-med');
+      if (!b || !m) return 'faltan'; const q = b.getBoundingClientRect(), p = m.getBoundingClientRect();
+      return Math.round(p.left-q.left) + ',' + Math.round(p.top-q.top) + ' ' +
+             Math.round(p.width-q.width) + 'x' + Math.round(p.height-q.height); })();
+    R.calzado = R.calce === '0,0 0x0';
+    /* ── Esc ── el primero sale del tamanio; el segundo cierra */
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true, cancelable:true }));
+    await esperar(420);
+    R.trasUnoMax = cineMaxActivo();
+    R.trasUnoAbierto = !!($('cine-ov') && $('cine-ov').style.display !== 'none');
+    R.trasUnoMm = lin().length ? lin()[0].mm : null;
+    R.conservaTrasEsc = R.trasUnoMm === R.mmAntes;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true, cancelable:true }));
+    await esperar(420);
+    R.trasDosAbierto = !!($('cine-ov') && $('cine-ov').style.display !== 'none');
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['habia UNA medida antes de cambiar de tamanio (denominador)', R.denom === true, R.mmAntes],
+      ['el marco cambio de tamanio (denominador)', R.enMax === true && R.topeEnMax !== R.topeAntes, R.topeAntes + ' -> ' + R.topeEnMax],
+      ['y el milimetro guardado es IDENTICO', R.mmExacto === true, R.mmAntes + ' / ' + R.mmEnMax],
+      ['no se perdio ninguna medida', R.nLineas === true, lin().length],
+      ['la medicion sigue encendida y con su herramienta', R.medOn && R.herr, R.medOn + '/' + _medHerr],
+      ['el overlay de trazos sigue calzado sobre la imagen', R.calzado === true, R.calce],
+      ['el primer Esc SALE de pantalla completa', R.enMax === true && R.trasUnoMax === false, R.enMax + ' -> ' + R.trasUnoMax],
+      ['y NO cierra el visor', R.trasUnoAbierto === true, R.trasUnoAbierto],
+      ['ni pierde lo medido', R.conservaTrasEsc === true, R.trasUnoMm],
+      ['el segundo Esc si cierra', R.trasDosAbierto === false, R.trasDosAbierto]
+    ] };
+  })();
+`);
+
+caso('TC-1014', 'P11 (2.1): las flechas del teclado pasan de cuadro SIEMPRE -- recien abierto, despues de medir y despues de reproducir-- y ceden con un campo de texto enfocado', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:8, d:{ frags:[jpg,jpg,jpg,jpg,jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-14')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    const tecla = async k => { document.dispatchEvent(new KeyboardEvent('keydown',
+      { key:k, bubbles:true, cancelable:true })); await esperar(300); };
+    const cuadro = () => _cineDatos ? _cineDatos.cuadro : null;
+    /* ── (a) RECIEN ABIERTO: el foco esta en el body, que es donde el defecto se veia ── */
+    document.body.focus();
+    try { document.activeElement.blur(); } catch (e) {}
+    await esperar(120);
+    R.focoA = document.activeElement ? (document.activeElement.id || document.activeElement.tagName) : 'null';
+    R.aAntes = cuadro(); await tecla('ArrowRight'); R.aDespues = cuadro();
+    R.a = R.aDespues === R.aAntes + 1;
+    /* ── (b) DESPUES DE MEDIR: el clic en el canvas le saca el foco al deslizador ── */
+    medHerramienta('dist');
+    await esperar(160);
+    const cv = $('cine-med');
+    const clic = (x,y) => { const r = cv.getBoundingClientRect();
+      const k = (cv.width && r.width) ? (r.width / cv.width) : 1;
+      cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.left+x*k,clientY:r.top+y*k})); };
+    clic(100,100); await esperar(140); clic(300,100); await esperar(240);
+    R.bAntes = cuadro(); await tecla('ArrowRight'); R.bDespues = cuadro();
+    R.b = R.bDespues === R.bAntes + 1;
+    /* ── (c) DESPUES DE REPRODUCIR ── */
+    $('cine-play').click(); await esperar(260); $('cine-play').click(); await esperar(220);
+    R.cAntes = cuadro(); await tecla('ArrowRight'); R.cDespues = cuadro();
+    R.c = R.cDespues === R.cAntes + 1;
+    /* ── (d) PARA ATRAS ── */
+    R.dAntes = cuadro(); await tecla('ArrowLeft'); R.dDespues = cuadro();
+    R.d = R.dDespues === R.dAntes - 1;
+    /* ── (e) CON UN CAMPO DE TEXTO ENFOCADO NO SE TOCA: ahi la flecha mueve el cursor ── */
+    const et = $('cine-cap-etiq');
+    if (et) et.focus();
+    await esperar(160);
+    R.focoE = document.activeElement ? (document.activeElement.id || '') : '';
+    R.eAntes = cuadro(); await tecla('ArrowRight'); R.eDespues = cuadro();
+    R.e = R.eDespues === R.eAntes;
+    try { if (et) et.blur(); } catch (e) {}
+    await esperar(120);
+    /* ── (f) CON UNA TECLA MODIFICADA TAMPOCO: son atajos del navegador ── */
+    R.fAntes = cuadro();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowRight', ctrlKey:true, bubbles:true, cancelable:true }));
+    await esperar(260);
+    R.f = cuadro() === R.fAntes;
+    /* ── (g) CON EL VISOR CERRADO LA FLECHA NO HACE NADA: control negativo ── */
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    await esperar(300);
+    R.gAntes = _cineDatos ? _cineDatos.cuadro : null;
+    await tecla('ArrowRight');
+    R.g = (_cineDatos ? _cineDatos.cuadro : null) === R.gAntes;
+    return { extra: [
+      ['recien abierto el foco esta en el body (denominador)', R.focoA === 'BODY', R.focoA],
+      ['y la flecha pasa de cuadro', R.a === true, R.aAntes + ' -> ' + R.aDespues],
+      ['despues de MEDIR tambien', R.b === true, R.bAntes + ' -> ' + R.bDespues],
+      ['despues de REPRODUCIR tambien', R.c === true, R.cAntes + ' -> ' + R.cDespues],
+      ['y para atras', R.d === true, R.dAntes + ' -> ' + R.dDespues],
+      ['con el campo de la etiqueta enfocado (denominador)', R.focoE === 'cine-cap-etiq', R.focoE],
+      ['la flecha NO mueve el cuadro', R.e === true, R.eAntes + ' -> ' + R.eDespues],
+      ['con una tecla modificada tampoco', R.f === true, R.fAntes],
+      ['y con el visor cerrado no hace nada', R.g === true, R.gAntes]
+    ] };
+  })();
+`);
+
+caso('TC-1015', 'P11 (2.2): lo medido queda atado a su cuadro -- vuelve al volver, no se mezcla, la calibracion y las areas del VD no entran, y el almacen se suelta con la imagen', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:6, d:{ frags:[jpg,jpg,jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-15')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    medHerramienta('dist');
+    await esperar(180);
+    const ir = async n => { _vCon(_vistaA, () => cineIr(n)); await esperar(360); };
+    const lin = () => _medLineas.filter(l => !l.calibracion).map(l => Math.round(l.mm * 10) / 10);
+    /* ⚠️ CON GUARDA DE typeof: contra la linea base el accesor no existe y un acceso pelado
+       tira un ReferenceError que se lleva el caso por EXCEPCION. */
+    const alm = () => (typeof _medPorCuadro !== 'undefined') ? _medPorCuadro : null;
+    const claves = () => alm() ? Object.keys(alm()).sort().join(',') : '(ninguna)';
+    await ir(0);
+    _medLineas.push(_medSello({ ax:0, ay:0, bx:100, by:0, mm:50 }));
+    _medPintar();
+    R.c0 = lin().join(',');
+    R.denom = R.c0 === '50';
+    await ir(3);
+    R.c3vacio = lin().join(',');
+    R.vacioEnOtroCuadro = R.c3vacio === '';
+    R.claveGuardada = claves();
+    _medLineas.push(_medSello({ ax:0, ay:0, bx:200, by:0, mm:100 }));
+    _medPintar();
+    R.c3 = lin().join(',');
+    await ir(0);
+    R.vuelta0 = lin().join(',');
+    R.volvio = R.vuelta0 === '50';
+    await ir(3);
+    R.vuelta3 = lin().join(',');
+    R.volvio3 = R.vuelta3 === '100';
+    R.noSeMezclan = R.volvio && R.volvio3;
+    /* ── LA CALIBRACION NO ENTRA: es de la imagen ── */
+    await ir(0);
+    _medLineas.push(_medSello({ ax:0, ay:0, bx:50, by:0, mm:25, calibracion:true }));
+    _medPintar();
+    await ir(2);
+    R.calibSobrevive = _medLineas.filter(l => l.calibracion).length === 1;
+    R.calibNoEnAlmacen = (function () {
+      const A = alm(); if (!A) return false;
+      return Object.keys(A).every(k => (A[k].lineas || []).every(l => !l.calibracion)); })();
+    /* ── LAS DOS AREAS DEL VD SOBREVIVEN (MEDIR-5 A8) y no entran al almacen ── */
+    if (typeof _MED_EST_VD_D !== 'undefined' && typeof _MED_EST_VD_S !== 'undefined') {
+      await ir(1);
+      _medAreas.push(_medSello({ pts:[{x:0,y:0}], cm2:20, est:_MED_EST_VD_D }));
+      _medAreas.push(_medSello({ pts:[{x:0,y:0}], cm2:12, est:_MED_EST_VD_S }));
+      await ir(4);
+      R.vdSobrevive = _medAreas.length === 2;
+      R.vdNoEnAlmacen = !!alm() && Object.keys(alm()).every(k => (alm()[k].areas || []).length === 0);
+    } else { R.vdSobrevive = null; R.vdNoEnAlmacen = null; }
+    /* ── CAMBIAR DE IMAGEN SUELTA EL ALMACEN ── */
+    _vCon(_vistaA, medCambioDeImagen);
+    await esperar(320);
+    R.trasImagen = claves();
+    R.suelta = R.trasImagen === '(ninguna)' && lin().length === 0;
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['habia una medida en el cuadro 0 (denominador)', R.denom === true, R.c0],
+      ['en otro cuadro no se ve', R.vacioEnOtroCuadro === true, R.c3vacio],
+      ['y la del cuadro 0 queda guardada con su clave', R.claveGuardada === '0:0', R.claveGuardada],
+      ['al volver al cuadro 0 REAPARECE', R.volvio === true, R.vuelta0],
+      ['al volver al 3 reaparece la de ESE cuadro', R.volvio3 === true, R.vuelta3],
+      ['y las dos no se mezclan', R.noSeMezclan === true, R.vuelta0 + ' / ' + R.vuelta3],
+      ['la linea de CALIBRACION sobrevive al cambio de cuadro', R.calibSobrevive === true, R.calibSobrevive],
+      ['y no entra al almacen por cuadro', R.calibNoEnAlmacen === true, R.calibNoEnAlmacen],
+      ['las dos areas del VD sobreviven', R.vdSobrevive === true, R.vdSobrevive],
+      ['y tampoco entran al almacen', R.vdNoEnAlmacen === true, R.vdNoEnAlmacen],
+      ['cambiar de imagen suelta el almacen', R.suelta === true, R.trasImagen]
+    ] };
+  })();
+`);
+
+caso('TC-1016', 'P11 (2.3): el Simpson no dibuja el contorno de la diastole al empezar la sistole, y lo confirmado sigue guardado', `
+  return (async () => {
+    const R = {};
+    /* Cada caso define su propio esperar: en este archivo no hay uno global. */
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const $ = id => document.getElementById(id);
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:4, d:{ frags:[jpg,jpg,jpg,jpg], cols:600, filas:500,
+      msCuadro:40, regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 }] } });
+    try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+    try { imgVaciar(); } catch (e) {}
+    _cineAbrir([mk('P11-16')]);
+    await esperar(600);
+    if (!_medOn) medToggle();
+    await esperar(320);
+    _vCon(_vistaA, () => medHerramienta('simpson'));
+    await esperar(260);
+    R.sesion = !!_simp;
+    if (!R.sesion) return { extra: [['hay sesion de Simpson (denominador)', false, 'no se creo _simp']] };
+    const cv = $('cine-med');
+    const tinta = () => { const d = cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++; return n; };
+    const pts = []; for (let i = 0; i < 14; i++) pts.push({ x:150 + i*20, y:120 + (i%4)*30 });
+    const tr = { pts:pts, eje:{ M:{x:150,y:120}, apex:{x:300,y:420}, ux:0.4, uy:0.9, L:300 },
+                 diam:new Array(20).fill(40), vol:60, imagen:'fix',
+                 diamCm:new Array(20).fill(2), Lcm:6 };
+    /* LA ESCENA EXACTA QUE EL MEDICO DESCRIBE: la diastole confirmada y la fase en sistole */
+    _simp.pares[_simp.vista].d = tr;
+    _simp.fase = 's'; _simp.pendiente = null; _simp.ocultar = false;
+    _medPintar(); await esperar(200);
+    R.conDiastole = tinta();
+    /* CONTROL POSITIVO: un trazado PENDIENTE si se dibuja. Sin esto, un cero se lee igual que
+       un canvas vacio y la condicion pasaria sin haber medido nada. */
+    _simp.pendiente = tr; _medPintar(); await esperar(200);
+    R.conPendiente = tinta();
+    _simp.pendiente = null; _medPintar(); await esperar(200);
+    R.sinPendiente = tinta();
+    /* Y LO CONFIRMADO SIGUE GUARDADO: no se borro nada, solo dejo de pintarse */
+    R.pares = _simp.pares.reduce((n,p) => n + (p.d?1:0) + (p.s?1:0), 0);
+    R.faseIntacta = _simp.fase === 's';
+    R.fase = _simp.fase;
+    /* la bandera sigue existiendo, que es lo que TC-191 mide */
+    R.banderaExiste = ('ocultar' in _simp);
+    /* ⚠️ Y SE CIERRA DESPUES DE GUARDAR LOS DIAGNOSTICOS: medApagar pone _simp en null, y la
+       lista de condiciones se evalua despues — leerlo ahi tira un TypeError. */
+    try { medApagar(); cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['hay sesion de Simpson (denominador)', R.sesion === true, R.sesion],
+      ['un trazado PENDIENTE si se dibuja (control positivo)', R.conPendiente > 500, R.conPendiente + ' px'],
+      ['con la diastole confirmada y la fase en sistole NO se dibuja nada', R.conDiastole === 0, R.conDiastole + ' px'],
+      ['ni al soltar el pendiente', R.sinPendiente === 0, R.sinPendiente + ' px'],
+      ['lo confirmado sigue guardado', R.pares === 1, R.pares],
+      ['y la fase no se movio', R.faseIntacta === true, R.fase],
+      ['la bandera ocultar sigue existiendo', R.banderaExiste === true, R.banderaExiste]
+    ] };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la

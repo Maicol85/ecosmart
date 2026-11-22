@@ -1,3 +1,16 @@
+#!/usr/bin/env node
+/**
+ * _probe_p11c.mjs - TAREA 2.3 de la tanda P11: el contorno de ayuda del Simpson.
+ *
+ * Mide POR PIXELES y no por estado, que es la unica forma de ver un dibujo: se arma la escena
+ * exacta que el medico describe -la diastole ya confirmada y la fase en sistole- y se cuenta la
+ * tinta del canvas de medicion. Con su CONTROL POSITIVO al lado (un trazado pendiente SI se
+ * dibuja), porque un cero sin denominador se lee igual que un canvas vacio.
+ *
+ * Contra la linea base pinta 4235 px; contra este arbol, CERO.
+ *
+ *     node scripts/_probe_p11c.mjs <ruta-absoluta/index.html>
+ */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, extname, dirname } from 'node:path';

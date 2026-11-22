@@ -19291,3 +19291,109 @@ los dos motores y el sello.
   fila, y ninguna guía publica una escala que combine los cuatro signos de la insuficiencia
   pulmonar en un grado. Las dos cosas ya estaban declaradas en el código (`QV_ECOSMART` y
   `IP_CRIT_FUENTE`); lo que cambia es que ahora también se leen en Referencias.
+
+## Tanda P11 (2026-11-22) — lo declarado
+
+- **P11-a · LA IMAGEN SE AMPLÍA, Y ESO REVIERTE M3-c POR ORDEN EXPRESA.** MEDIR-3 declaró que
+  «un archivo más chico que la caja NO se amplía, y es a propósito: interpolar píxeles que el
+  ecógrafo no midió es hacerle zoom». El punto **1.2** de P11 pide lo contrario con todas las
+  letras —«la imagen ocupa todo el alto disponible»— y el **1.1** pide «imagen más grande». Se
+  aplica en los dos tamaños y **queda revertido**, con su costo: una imagen más chica que la caja
+  se ve **interpolada**, o sea más borrosa.
+  **Lo que NO cuesta, y está medido:** la precisión de la medición no se degrada, **mejora**. Las
+  coordenadas salen en píxeles de IMAGEN (`_medPunto` divide por `cv.width / r.width`), así que una
+  escala uniforme es transparente; y con la imagen más grande, un píxel de pantalla cubre MENOS
+  imagen, o sea que el clic es más fino. El único efecto medible de la escala es la **puntería del
+  clic sintético** de la batería, que el navegador trunca al píxel entero —ver P11-b—.
+
+- **P11-b · DOS CASOS ADAPTADOS, Y LOS DOS POR LA MISMA CAUSA DEL NAVEGADOR.** `TC-257` daba por
+  sentado que **un píxel de pantalla es un píxel de imagen**, o sea que el canvas se dibuja en su
+  tamaño natural; con el fixture de 200 px y la imagen llenando su caja, eso dejó de valer y daba
+  **4,845 mm donde esperaba 48,5**. Pasa a clickear en píxeles de **imagen** —la inversa exacta de
+  `_medPunto`— y a tolerar **0,3 mm** de puntería, porque `MouseEventInit.clientX` está declarado
+  `long` y un clic sintético **se trunca** al píxel de pantalla entero: la exactitud sólo sería
+  posible si la escala fuera un número entero. `TC-250` cambió una **igualdad exacta de flotantes**
+  (`(psap15 − psap5) === 10`) por una tolerancia: la resta daba `10.000000000000002`. Las dos
+  adaptaciones quedan en el lugar donde vive cada condición, con su motivo.
+
+- **P11-c · EN TAMAÑO NORMAL EL MODAL SIGUE DESPLAZÁNDOSE MIENTRAS SE MIDE, Y ES UNA DECISIÓN.**
+  El cromo real alrededor de la imagen con la medición prendida son **293 px** —la línea de ayuda
+  y el bloque de calculados suman 80 al encenderla: medido, la columna izquierda pasa de 879 a
+  964 px— y `--cine-imgh` reserva **190**, que es el número que la línea base ya usaba. Por eso el
+  modal se desplaza: **116 px a 1440×900 en la línea base** y 117 en este árbol, o sea lo mismo.
+  Bajar la reserva a 293 lo arreglaría al precio de **achicar la imagen 100 px** en la pantalla del
+  médico, que es lo contrario del punto 1.1. Se conserva el trato que esta casa ya tenía: el modal
+  es `overflow:auto` y su propio comentario lo declara como «feo pero mejor que recortar sin
+  salida». **En pantalla completa el desplazamiento es CERO en los tres tamaños**, que es donde el
+  pedido lo exige.
+  **Lo que falta para cerrarlo:** decidir si el bloque de calculados y la línea de ayuda se mudan a
+  la columna **también** en Normal, como ya hacen en pantalla completa. Eso liberaría los 80 px y
+  dejaría el desplazamiento en cero sin tocar el tamaño de la imagen. **Lo decide el médico**: el
+  precio es que los calculados dejan de estar «debajo de la imagen», que es justo lo que MEDIR-6
+  (A1) pidió.
+
+- **P11-d · LOS CUATRO RINCONES DE LA IMAGEN SON ÁREA DE BOTÓN MIENTRAS SE MIDE.** Los racimos del
+  punto 1.5 viven **dentro** de `cine-recorte`, que lleva `overflow:hidden`, así que tienen que
+  caer dentro de la imagen: tres cuadrados de 44 px (arriba a la derecha, abajo a la derecha y
+  —en pantalla completa— abajo a la izquierda) reciben el clic antes que el canvas de medición. Son
+  las esquinas, donde la ecografía casi nunca lleva anatomía. La alternativa —sacarlos afuera del
+  recorte— los desprende de la imagen, que es justo lo que el pedido no quiere: el lienzo es más
+  ancho que la imagen (990 contra 941 a 1440 px, 1978 contra 1016 a 2560) y un racimo anclado ahí
+  queda flotando en el negro.
+
+- **P11-e · EL INTERRUPTOR DE LA COLUMNA VIVE SOBRE LA IMAGEN, Y EL PUNTO 1.4 NO LO ENUMERA.**
+  El 1.2 pide «un botón para esconderla» y el 1.4 enumera lo que queda sobre la imagen sin
+  nombrarlo. Vive ahí porque es **la única forma de volver a mostrarla**: un botón metido adentro
+  de lo que se esconde se esconde con ello. Se declara en vez de dejarlo pasar.
+
+- **P11-f · «+ VISTA» SIGUE PIDIENDO EL ESTUDIO GUARDADO: por qué, y qué costaría permitirlo
+  (punto 3.1, SÓLO reportar).**
+  **Por qué es así.** La lista de la segunda vista sale de **`CeiboCine.listar(uuid)`**, o sea de
+  los cineloops y las imágenes **guardados** en IndexedDB **atados al uuid del estudio**, y el
+  cineloop se abre con `_cineLoopDeDisco(rec.id)`. En Vista previa y en «Imágenes sin estudio» no
+  hay uuid —medido: `_imgUuidActual` vale `null`— así que **no hay nada que listar**, y
+  `_vElegirLoop` lo dice: «Guardá el estudio antes de abrir una segunda vista: los cineloops se
+  listan por estudio». **No es un olvido: es la consecuencia de que la fuente sea el disco del
+  estudio.**
+  **Qué costaría permitirlo.** Hace falta una **segunda fuente** para el selector. La más barata ya
+  está en memoria: `_cineDatos.loops`, los cineloops de la importación en curso (medido: 1 con un
+  archivo, y la fila de ‹ › del reproductor ya los recorre). Eso implica (a) que `_vElegirLoop`
+  acepte una fuente alternativa en vez de llamar siempre a `CeiboCine.listar`; (b) que el picker
+  pueda dibujar una miniatura **sin** `poster` —los registros del disco lo traen, un loop en
+  memoria no— o sea sacar un cuadro y codificarlo; (c) que el camino de apertura tome el objeto en
+  memoria en vez de `_cineLoopDeDisco`. Son unas **60 a 80 líneas** repartidas en `_vElegirLoop`,
+  `_vPickerLoop` y un concepto nuevo de «fuente», más su caso. **El límite de lo que se gana:** con
+  una sola imagen importada no hay nada que comparar, así que sirve con una importación de dos o
+  más, o con la bandeja de «Imágenes sin estudio».
+  **NO SE TOCÓ**, que es lo que el punto 3.1 manda.
+
+- **P11-g · EL «MODO MÍNIMO» DEL VISOR YA ESTÁ HECHO, DESDE EL 2026-10-01 (punto 3.2, SÓLO
+  reportar).** La clase es `cine-min`, la pone `_vModoSync` derivándola de `medOn` —no hay un
+  booleano paralelo— y la hoja de estilos esconde todo lo demás. **Medido al abrir el visor**, los
+  controles a la vista son **nueve**: la ✕ del modal, «📏 Medir», «📸 Capturar», «✕ Cerrar vista»,
+  la flechita de tamaño, las dos flechitas de cuadro, «▶ Reproducir» y el deslizador. Al tocar
+  «Medir» pasan a **29**.
+  **Dos precisiones sobre la lista del pendiente**, que decía «sólo Reproducir, Medir y Capturar»:
+  (a) el modo mínimo deja además los **dos controles de cierre** —la ✕ del modal y «✕ Cerrar
+  vista»—, que son salidas y no herramientas; (b) P11 le agrega la **flechita de tamaño** y las
+  **dos de cuadro**. **No choca con este diseño:** lo que P11 pone sobre la imagen es navegación y
+  tamaño, no medición, así que pertenece al mínimo con el mismo criterio que el deslizador.
+  **NO SE TOCÓ.**
+
+- **P11-h · UN DEFECTO REAL DE ESTA TANDA, DESTAPADO POR SUS PROPIOS CASOS Y CORREGIDO.** Desde el
+  punto 1.5 el botón de tamaño (`cine-maxi`) **vive dentro del panel** de la vista con foco, y
+  `vistaCerrarUna` quita ese panel: se lo llevaba puesto y el visor quedaba **sin forma de cambiar
+  de tamaño** hasta cerrarlo y volver a abrirlo. Medido: el caso siguiente reventaba con «Cannot
+  read properties of null (reading 'click')» sobre `cine-maxi`. Hoy `_vMaxSync` corre **antes** del
+  `removeChild`, con `_vistaB` ya en `null`, así que el botón se muda al racimo de la vista que
+  queda; y el foco se suelta si era el de la vista que se va.
+
+- **P11-i · DOS TRAMPAS DE ESCRITURA QUE ESTA TANDA PAGÓ, LAS DOS DE ESTA CASA.** (1) El **acento
+  grave dentro de mis propios comentarios** en el cuerpo de un caso, **cinco veces** —en TC-250, en
+  TC-257 dos veces, en el preludio de los ocho casos nuevos y en TC-1015—. Lo que lo previene es
+  contar los acentos graves del cuerpo de cada caso y exigir **dos** antes de insertar, que es el
+  guardián que esta tanda usó para los ocho nuevos y que abortó una inserción. (2) **Una colisión
+  de nombres entre una función y un accesor de la vista:** `_medCuadroClave` era a la vez el nombre
+  del accesor que el MAPA de `_vNueva` define con `Object.defineProperty` y el de la función que
+  calcula la clave — dos dueños de la misma propiedad de `window`. La función pasó a llamarse
+  `_medClaveCuadro`.

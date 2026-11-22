@@ -154166,6 +154166,21 @@ function vistaCerrarUna(V) {
   _vistaB = null;
   _V = otra;
   try { _vSlotSync(); } catch (e) {}
+  /* ══ P11 — EL BOTON DE TAMANIO SE RESCATA ANTES DE DESTRUIR EL PANEL ══════════════════════
+     ⚠️ ESTE ERA UN DEFECTO REAL DE P11 Y LO DESTAPARON SUS PROPIOS CASOS: desde el punto 1.5 el
+     boton de tamanio (`cine-maxi`) VIVE dentro del racimo de la imagen de la vista con foco, o
+     sea dentro de su panel. Cerrando esa vista, la linea de abajo se lo llevaba puesto: el nodo
+     salia del documento y `_vMaxSync` ya no tenia nada que mudar, asi que el visor se quedaba
+     SIN forma de cambiar de tamanio hasta cerrarlo y volver a abrirlo. Medido: el caso siguiente
+     reventaba con «Cannot read properties of null (reading 'click')» sobre `cine-maxi`.
+     `_vMaxSync` corre ACA, con `_vistaB` ya en null y `_V` en la vista que queda, asi que
+     `_vFocoVista` devuelve la sobreviviente —la cerrada ya no esta en `_vTodas()`— y el boton se
+     muda a SU racimo antes de que el panel desaparezca.
+     ⚠️ Y EL FOCO SE SUELTA SI ERA EL DE LA VISTA QUE SE VA: dejarlo apuntando a un objeto que ya
+     no esta en `_vTodas()` no rompe nada hoy —el ayudante falla hacia la A— pero deja un estado
+     que no se puede leer. */
+  if (_vFoco === V) _vFoco = null;
+  try { _vMaxSync(); } catch (e) { console.error('cerrar/maxsync', e); }
   const p = document.getElementById(V.pfx + 'cine-panel');
   if (p && p.parentNode) p.parentNode.removeChild(p);
   _vCerrarVistaResto();
@@ -183253,8 +183268,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261121-2349';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795315745181;                 /* eco-build-ms */
+const ECO_BUILD    = '20261122-1044';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795355054475;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -183340,7 +183355,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261121-2349</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261122-1044</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

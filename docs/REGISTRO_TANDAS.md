@@ -4253,3 +4253,75 @@ commit pusheado, que era además `origin/main`.
   ese atributo daba CERO sobre una ficha que tiene diecisiete.
 - **«fuera de la tabla» no es «en el resumen»**: `ref-pop` tiene un ⓘ **preexistente** después de la
   tabla, así que la medición hubo que acotarla al contenedor del resumen.
+
+## Tanda P11 (2026-11-22) — el visor: dos tamaños, el teclado y las medidas por cuadro
+
+Sello **`v20261122-1044`**, md5 **`0de4570e`**, **192.021** líneas. Línea base **`1d7caeb`** (el
+cierre de P10). Commits: `4668089` (tarea 1), `91b3268` (2.1 y 2.2), `5e8d3da` (2.3) y el de
+documentación. **Sin push: lo corre Maicol.** El puente CeiboLink **no se tocó**.
+
+**Nada clínico se movió:** cero cortes, cero umbrales, cero fórmulas, cero campos guardados
+nuevos y las **457** columnas de Excel quietas (TC-135, TC-479, TC-824 y TC-831 en verde). Un solo
+`<input>` aparece en el diff y está **dentro de un comentario**.
+
+### Las cinco cosas que se encontraron midiendo, antes de tocar una línea
+
+- **La imagen no crecía, y la causa es estructural.** El tope del alto vivía en el **canvas**, y un
+  canvas es un elemento reemplazado: un tope sólo puede **achicarlo**. A 1920×1080 y a 2560×1440
+  la imagen salía en sus **1016×708** con 422 y 962 px de negro al costado — el 40 % del ancho de
+  la pantalla y el 49 % del alto.
+- **El alto disponible vivía escrito en CUATRO lugares con TRES valores** (66vh en línea, 56vh dos
+  veces en `_cineRecorteAplicar` y `calc(94vh − 190px)` en la media query), así que cuánto medía la
+  imagen dependía de si el recorte había llegado.
+- **En pantalla completa el modal se desplazaba 114 px** a 1440×900: el reproductor quedaba abajo
+  del borde.
+- **Esc CERRABA el visor** estando maximizado —el oyente genérico del bloque de accesibilidad
+  busca el diálogo modal visible y le aprieta el botón que empareje `/cerrar|✕/`— y encima dejaba
+  la clase puesta, así que el visor siguiente abría maximizado sin que nadie lo pidiera.
+- **Las flechas del teclado NO FUNCIONABAN NUNCA.** No había un solo `keydown` para el visor:
+  «funcionaban» porque el deslizador es un `input type=range` y el navegador se las atiende cuando
+  está enfocado. Medido con teclado de verdad: recién abierto el visor el foco está en el `BODY` y
+  la flecha no movía el cuadro, ni antes de medir, ni después, ni después de reproducir.
+
+### Lo que la tanda hizo, con su número
+
+| | antes | después |
+|---|---|---|
+| Normal 1920×1080 | 1016×708 · negro 422 | **1184×825** · negro 254 |
+| Normal 2560×1440 | 1016×708 (40 %×49 %) | **1670×1164** (65 %×81 %) |
+| Completa 1440×900 | 1016×708 · desplaza 114 | **1018×709** · desplaza **0** |
+| Completa 1920×1080 | 1016×708 (53 %×66 %) | **1325×923** (69 %×86 %) |
+| Completa 2560×1440 | 1016×708 (40 %×49 %) | **1841×1283** (72 %×89 %) |
+
+Más: la columna se esconde con un botón **sin dejar de medir**; con dos vistas en pantalla completa
+queda **una** columna, la de la vista con foco, que se mueve con un `pointerdown`; la barra pasa a
+la columna y «Capturar» a la imagen; tres racimos de botoncitos pegados a la imagen; Esc sale del
+tamaño y el segundo Esc cierra; las medidas quedan atadas a su cuadro y **vuelven**; y el Simpson
+dejó de dibujar el contorno de la diástole al empezar la sístole —medido por píxeles: **4235 → 0**,
+con su control positivo—.
+
+### Las trampas que esta tanda pagó
+
+- **El acento grave dentro de mis propios comentarios en el cuerpo de un caso**, por trigésima
+  primera tanda seguida: **cinco** veces. Lo que lo previene es el guardián que cuenta los acentos
+  graves del cuerpo de cada caso y exige **dos** antes de insertar — y que abortó una inserción.
+- **Una colisión de nombres entre una función y un accesor de la vista:** `_medCuadroClave` era a
+  la vez el accesor que el MAPA de `_vNueva` define con `Object.defineProperty` y el nombre de la
+  función que calcula la clave. La función pasó a `_medClaveCuadro`.
+- **`#toast` contaba como «capa encima».** La primera guarda del Escape preguntaba por elementos
+  fijos y visibles por encima de la capa 400: el toast vive en la 999, está siempre en el documento
+  y conserva su caja. Con eso Escape **nunca** salía de pantalla completa y el arreglo no hacía
+  nada. Hoy la guarda exige que la capa **cubra la pantalla**.
+- **Tres casos nuevos caían contra la línea base por EXCEPCIÓN y no por sus condiciones**, que es
+  lo que esta casa prohíbe desde TC-827: allá `cine-pan`, los racimos y el accesor `_medPorCuadro`
+  no existen. Se cerró con guardas.
+- **Los diagnósticos leídos después del cierre.** `medApagar` pone `_simp` en `null` y `cineCerrar`
+  suelta `_cineDatos`, y la lista de condiciones se evalúa **después**: leerlos ahí tira un
+  `TypeError` que se lleva el caso entero.
+- **Un denominador que dejó de morder.** TC-1013 exigía que «la imagen cambie de tamaño» al
+  maximizar, y en la ventana del arnés (756×469) el alto disponible pasa de 309 a 312 px: la imagen
+  se queda en 371 en los dos tamaños. Es la lección de TC-244 — se cambió por el **tope del
+  modal**, que mide lo mismo en cualquier ventana.
+- **Un servidor de sonda que manda la cabecera antes de leer el archivo** revienta con
+  `ERR_HTTP_HEADERS_SENT` en cuanto falta un archivo, y mata la sonda entera. Lo pagó medir contra
+  un árbol de comparación que sólo tiene el `index.html`.
