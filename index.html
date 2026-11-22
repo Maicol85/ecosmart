@@ -146299,6 +146299,284 @@ try {
 
    ⚠️ NO SE TOCA NI UN CORTE NI UNA BANDA: esta funcion solo reparte en celdas lo que las dos
    `_*Filas` ya devolvian, igual que en MEDIR-2. */
+/* ══ P13 (TAREA 4) — EL CIRCULO ROJO/VERDE: EL PASAJE VISOR <-> APP ═════════════════════════
+   Diseño decidido por el medico, y la premisa de su punto (g) quedo REPRODUCIDA: el visor NO
+   leia los diametros cargados a mano. Medido en el bloque 0 con 20 en `diam_tsvi` y 25 en
+   `tsvd_diametro`: `_d2Valor('vi.tsvi')` daba **null** y la fila de la tabla decia «Diam TSVI —».
+   Los dos cajones tienen su propio estado (`_dop`, `_d2`) y nunca leian el formulario; lo unico
+   que cruzaba eran TRES escrituras puntuales —`medVtiCargar`, `medVtiDiametro` y el boton de la
+   FEVI del Simpson—. Asi que la respuesta a (g) es: el visor no los leia, y la nota del informe
+   de P11 que decia que si estaba equivocada.
+
+   LA REGLA, en una linea: **los campos de la app son el unico lugar del dato**, y el circulo
+   dice si la fila del visor y el campo coinciden.
+
+     · VERDE  el campo del informe tiene este valor. Tocarlo lo BORRA del informe (punto c): el
+              numero queda en la tabla del visor y el circulo pasa a rojo.
+     · ROJO   no coinciden. Puede ser que el campo este vacio —asi nace, punto a— o que la
+              medicion nueva difiera de la que esta cargada (punto b). Tocarlo pregunta
+              «¿sustituir 20 por 22?» y recien ahi escribe.
+     · sin circulo  esta fila no tiene contraparte en la app, asi que no hay nada que comparar.
+
+   ⚠️ MEDIR NUNCA ESCRIBE EN LA APP, que es la invariante del punto b. La tabla del visor sigue
+   siendo un anotador —su descargo lo dice desde MEDIR-1— y el unico camino al informe es el
+   circulo, con su pregunta. Lo fija el caso censando el campo antes y despues de medir.
+
+   ⚠️ EL ESTADO ES DERIVADO Y NO SE GUARDA EN NINGUNA PARTE, y de eso sale el punto (d) gratis:
+   si el medico cambia el campo del informe a mano, la proxima vez que el visor dibuje la fila la
+   comparacion da distinto y el circulo esta rojo. Con una bandera guardada habria que acordarse
+   de invalidarla en cada camino que escribe un campo —son decenas— y el primero que se olvide
+   deja un circulo verde sobre dos numeros que ya no coinciden.
+
+   ⚠️ EL PAR visor<->app SALE DE LAS *DOS TABLAS DE BANDAS QUE YA EXISTEN*, y no de una tercera
+   lista. `_D2_BANDA_DE` y `_DOP_BANDA_DE` mapean cada campo del visor al campo del informe cuyo
+   rango le presta, y su propia regla —escrita al lado de las dos— es «prestar SOLO donde la
+   pregunta es la MISMA»: cada entrada lleva el comentario «misma medicion que el campo del
+   informe». O sea que ya son, verificado campo por campo, el mapa que esto necesita. Con una
+   lista nueva habria dos mapas del mismo par y el dia que uno se corrija el otro queda viejo.
+   ⚠️ Y ESO DECIDE TAMBIEN LAS UNIDADES: una banda prestada solo tiene sentido si las dos puntas
+   estan en la misma unidad —si no, rechazaria mediciones legitimas, que es lo que esa regla
+   persigue—, asi que el par heredado ya trae la unidad verificada. Las filas SIN banda prestada
+   se quedan sin circulo a proposito: ahi la unidad no esta verificada y escribir un numero en un
+   campo clinico con la unidad equivocada es el peor error posible. Declarado en P13-e. */
+function _medAppCampo(campo) {
+  if (!campo) return null;
+  try { if (typeof _D2_BANDA_DE !== 'undefined' && _D2_BANDA_DE[campo]) return _D2_BANDA_DE[campo]; } catch (e) {}
+  try { if (typeof _DOP_BANDA_DE !== 'undefined' && _DOP_BANDA_DE[campo]) return _DOP_BANDA_DE[campo]; } catch (e) {}
+  return null;
+}
+window._medAppCampo = _medAppCampo;
+
+/* El valor que el campo del informe tiene AHORA. Se lee del DOM y no de una copia: el campo es
+   el dueño del dato y cualquier camino de la app puede haberlo cambiado hace un segundo. */
+function _medAppNum(campo) {
+  const id = _medAppCampo(campo);
+  if (!id) return null;
+  try {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const v = parseFloat(String(el.value == null ? '' : el.value).replace(',', '.'));
+    return isFinite(v) ? v : null;
+  } catch (e) { return null; }
+}
+window._medAppNum = _medAppNum;
+
+/* Escribe el campo del informe por el MISMO camino que `medVtiDiametro` usa desde MEDIR-1: el
+   `value` y un evento `input`, que es lo que dispara los espejos, los recalculos y el
+   autoguardado. Sin el evento el numero queda en la pantalla y ningun derivado se entera. */
+function _medAppEscribir(campo, v) {
+  const id = _medAppCampo(campo);
+  if (!id || v == null || !isFinite(v)) return false;
+  try {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.value = Number(v).toFixed(1);
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    return true;
+  } catch (e) { return false; }
+}
+function _medAppBorrar(campo) {
+  const id = _medAppCampo(campo);
+  if (!id) return false;
+  try {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.value = '';
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    return true;
+  } catch (e) { return false; }
+}
+window._medAppEscribir = _medAppEscribir;
+window._medAppBorrar = _medAppBorrar;
+
+/* El estado del circulo de una fila. `null` quiere decir «esta fila no lleva circulo».
+   Se compara con UN decimal, que es con el que las dos puntas publican: el campo del informe lo
+   escribe `toFixed(1)` y la fila del visor tambien, asi que comparar en crudo marcaria en rojo
+   dos numeros que el medico ve iguales. */
+function _medCircEstado(campo, visorVal) {
+  if (!_medAppCampo(campo)) return null;
+  const r1 = x => (x == null || !isFinite(x)) ? null : Math.round(Number(x) * 10) / 10;
+  const app = r1(_medAppNum(campo));
+  const vis = r1(visorVal);
+  if (app == null) return { ok: false, app: null, vis: vis, caso: vis == null ? 'vacio' : 'cargar' };
+  if (vis == null) return { ok: true, app: app, vis: null, caso: 'solo-app' };
+  return (app === vis)
+    ? { ok: true,  app: app, vis: vis, caso: 'igual' }
+    : { ok: false, app: app, vis: vis, caso: 'difiere' };
+}
+window._medCircEstado = _medCircEstado;
+
+/* El rotulo con el que se le habla al medico de esta fila. Sale de los dueños que ya rotulan la
+   tabla, para que la pregunta nombre la fila con las mismas palabras que la pantalla. */
+function _medCircRot(campo) {
+  try { if (typeof _D2_ROT !== 'undefined' && _D2_ROT[campo]) return _D2_ROT[campo]; } catch (e) {}
+  try { if (typeof _DOP_ROT !== 'undefined' && _DOP_ROT[campo]) return _DOP_ROT[campo]; } catch (e) {}
+  return campo;
+}
+
+/* El circulo, como boton. Se ve de 14 px y se toca en 44 por la clase `med-fbot`, que ya trae
+   esa area medida con su `::after` absoluto —asi la fila sigue midiendo 44 px de alto y dos
+   areas de filas consecutivas no se encimAN (la cuenta de MEDIR-3)—. El color va en el relleno
+   del circulito y ADEMAS en el `aria-label` y el `title`: un estado que vive solo en un color no
+   lo lee un lector de pantalla ni un medico con un deficit de rojo-verde. */
+function _medCircHTML(campo, visorVal) {
+  const e = _medCircEstado(campo, visorVal);
+  if (!e) return '';
+  const rot = _medCircRot(campo);
+  const tip = e.ok
+    ? ('En el informe: ' + e.app.toFixed(1) + '. Tocá para BORRARLO del informe (el número queda acá).')
+    : (e.caso === 'vacio'
+        ? ('El informe no tiene ' + rot + ' cargado. Medí o escribí el número y después tocá acá.')
+        : e.caso === 'cargar'
+          ? ('Tocá para cargar ' + e.vis.toFixed(1) + ' en el informe.')
+          : ('El informe tiene ' + e.app.toFixed(1) + ' y acá hay ' + e.vis.toFixed(1) +
+             '. Tocá para sustituirlo.'));
+  const col = e.ok ? 'var(--green)' : 'var(--red)';
+  return '<button type="button" class="btn btn-ghost med-fbot" ' +
+    'style="padding:0 2px;background:none;border:none;" ' +
+    'data-med-circ="' + escHtml(campo) + '" ' +
+    'data-med-circ-v="' + (e.vis == null ? '' : String(e.vis)) + '" ' +
+    'aria-pressed="' + (e.ok ? 'true' : 'false') + '" ' +
+    'title="' + escHtml(tip) + '" aria-label="' + escHtml(rot + ' — ' + tip) + '">' +
+    '<span style="display:block;width:14px;height:14px;border-radius:50%;background:' + col + ';' +
+    'border:1px solid var(--border);"></span></button>';
+}
+window._medCircHTML = _medCircHTML;
+
+/* La linea chica que dice que hay cargado en el informe cuando no coincide (punto b). */
+function _medCircNota(campo, visorVal) {
+  const e = _medCircEstado(campo, visorVal);
+  if (!e || e.ok || e.app == null) return '';
+  return '<div style="font-size:9px;color:var(--text2);font-weight:400;white-space:nowrap;">' +
+    'en la app: ' + escHtml(e.app.toFixed(1)) + '</div>';
+}
+
+/* ══ TOCAR EL CIRCULO ════════════════════════════════════════════════════════════════════════
+   Las tres acciones del pedido, y ninguna otra. Es `async` porque la sustitucion PREGUNTA, con
+   el cartel propio de P12 —no un `confirm` nativo: el visor es un modal y un dialogo del
+   navegador encima de el es lo que esta casa ya retiro de 65 lugares—. */
+async function medCircTocar(campo) {
+  const e = _medCircEstado(campo, _medCircValDe(campo));
+  if (!e) return;
+  const rot = _medCircRot(campo);
+  if (e.ok) {
+    /* (c) VERDE -> ROJO: lo saca del informe y lo deja en la tabla del visor. No pregunta, que
+       es el gesto que el medico describio, y se puede deshacer tocando otra vez. Lo que NO puede
+       pasar en silencio es que se haya ido: se dice. */
+    if (_medAppBorrar(campo) && typeof toast === 'function')
+      toast('🔴 ' + rot + ' se borró del informe. El número queda acá, en la tabla del visor.');
+  } else if (e.caso === 'cargar') {
+    if (_medAppEscribir(campo, e.vis) && typeof toast === 'function')
+      toast('🟢 ' + rot + ' = ' + e.vis.toFixed(1) + ' cargado en el informe.');
+  } else if (e.caso === 'difiere') {
+    let ok = true;
+    try {
+      if (typeof preguntaProp === 'function') {
+        ok = await preguntaProp('¿Sustituir el valor del informe?',
+          ['El informe tiene ' + rot + ' = ' + e.app.toFixed(1) + '.',
+           'Acá hay ' + e.vis.toFixed(1) + '. Si sustituís, el informe se queda con el nuevo.'],
+          'Sí, sustituir', 'btn-primary');
+      }
+    } catch (x) { ok = false; }
+    if (!ok) return;
+    if (_medAppEscribir(campo, e.vis) && typeof toast === 'function')
+      toast('🟢 ' + rot + ' = ' + e.vis.toFixed(1) + ' — sustituido en el informe.');
+  } else {
+    if (typeof toast === 'function')
+      toast('El informe no tiene ' + rot + '. Medilo o escribilo acá y volvé a tocar el círculo.');
+    return;
+  }
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (x) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (x) {}
+}
+window.medCircTocar = medCircTocar;
+
+/* El valor que la fila del visor tiene AHORA, preguntandole al cajon que la publica. Se resuelve
+   al tocar y no se lee del atributo: entre el repintado y el clic el medico puede haber medido. */
+function _medCircValDe(campo) {
+  try { if (typeof _d2Valor === 'function' && _medAppCampo(campo)) {
+    const v = _d2Valor(campo); if (v != null) return v; } } catch (e) {}
+  try {
+    if (typeof _dopEstado === 'function') {
+      const p = String(campo).split('.');
+      const E = _dopEstado();
+      if (E && E[p[0]] && E[p[0]][p[1]] != null) return E[p[0]][p[1]];
+    }
+  } catch (e) {}
+  return null;
+}
+
+/* UN solo oyente delegado, en el documento y una sola vez: las dos tablas se reconstruyen por
+   `innerHTML` en cada medicion, asi que enganchar por boton acumularia uno por repintado. */
+let _medCircPuesto = false;
+function _medCircObservar() {
+  if (_medCircPuesto) return;
+  _medCircPuesto = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-med-circ]') : null;
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    medCircTocar(b.getAttribute('data-med-circ'));
+  }, true);
+}
+window._medCircObservar = _medCircObservar;
+
+/* ══ (a) AL ABRIR EL VISOR, CADA FILA MUESTRA LO QUE YA ESTA EN LA APP ══════════════════════
+   Se CEBA el cajon desde los campos del informe: lo que el campo tiene pasa a la fila, con el
+   origen marcado «app». Asi la tabla nace mostrando el dato del estudio en verde, que es el
+   punto (a) literal, y ademas los derivados —la AVA por continuidad, el E/e', el Qp/Qs— se
+   calculan desde el arranque en vez de esperar a que el medico vuelva a medir lo que ya habia
+   cargado.
+   ⚠️ NO PISA NADA: solo escribe en las filas que estan VACIAS. Una medicion del visor sin cargar
+   al informe es justo la que el circulo rojo esta señalando, y cebarla encima la destruiria.
+   ⚠️ EL ORIGEN ES «app» Y NO «A»: la marca de procedencia por fila existe para distinguir de
+   QUE vista salio un numero, y este no salio de ninguna — salio del formulario. */
+function _medCebarDesdeApp() {
+  let n = 0;
+  const cebar = (tabla, poner, valor, marcar) => {
+    if (!tabla) return;
+    for (const campo in tabla) {
+      try {
+        if (valor(campo) != null) continue;
+        const v = _medAppNum(campo);
+        if (v == null) continue;
+        if (poner(campo, v)) { n++; try { marcar(campo, 'app'); } catch (e) {} }
+      } catch (e) {}
+    }
+  };
+  try {
+    if (typeof _D2_BANDA_DE !== 'undefined' && typeof _d2Poner === 'function')
+      cebar(_D2_BANDA_DE, _d2Poner, _d2Valor, _d2MarcarOrigen);
+  } catch (e) {}
+  /* El cajon Doppler no expone un `poner`: su escritura vive dentro de `_dopCapturar`. Se escribe
+     por el mismo camino que esa funcion —`hasOwnProperty` y `_dopNormalizar`— y no con una
+     asignacion pelada: la guarda de `hasOwnProperty` es la que impide acuñar una propiedad nueva
+     con un campo mal escrito (el defecto que `dopCorregir` aprendio a la mala) y la banda es la
+     que impide meter en el cajon un valor que el formulario tenga mal tipeado. */
+  try {
+    if (typeof _DOP_BANDA_DE !== 'undefined' && typeof _dopEstado === 'function') {
+      const E = _dopEstado();
+      for (const campo in _DOP_BANDA_DE) {
+        try {
+          const q = String(campo).split('.');
+          if (!(E[q[0]] && Object.prototype.hasOwnProperty.call(E[q[0]], q[1]))) continue;
+          if (E[q[0]][q[1]] != null) continue;
+          const v0 = _medAppNum(campo);
+          if (v0 == null) continue;
+          const v = (typeof _dopNormalizar === 'function') ? _dopNormalizar(campo, v0) : v0;
+          if (v == null) continue;
+          E[q[0]][q[1]] = v; n++;
+          try { if (typeof _dopMarcarOrigen === 'function') _dopMarcarOrigen(campo, 'app'); } catch (e) {}
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
+  return n;
+}
+window._medCebarDesdeApp = _medCebarDesdeApp;
+
 function _medTablaHTML(filas, pfx, destino, sueltas) {
   const esc = escHtml;
   const TH = 'padding:3px 5px;font-size:9px;font-weight:700;letter-spacing:.4px;' +
@@ -146366,9 +146644,13 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
     }
     /* El VALOR en 17 px y la UNIDAD en 9,5: es el «numeros grandes y letra chica» del pedido, y
        la unidad va DENTRO de la misma celda para no gastar una columna en tres caracteres. */
+    /* P13 (TAREA 4, punto b) — el numero NUEVO en rojo cuando no coincide con el informe. */
+    const _cEst = calc ? null : _medCircEstado(f[3], f[1]);
+    const _rojo = !!(_cEst && !_cEst.ok && _cEst.caso === 'difiere');
     const valTxt = (f[1] == null)
       ? '<span style="font-size:15px;color:var(--text2);">—</span>'
-      : '<span style="font-size:17px;font-weight:700;letter-spacing:-.2px;">' + esc(f[1]) + '</span>' +
+      : '<span style="font-size:17px;font-weight:700;letter-spacing:-.2px;' +
+        (_rojo ? 'color:var(--red);' : '') + '">' + esc(f[1]) + '</span>' +
         (f[2] ? '<span style="font-size:9.5px;color:var(--text2);margin-left:2px;">' + esc(f[2]) + '</span>' : '');
     /* ══ MEDIR-5 (B2) — EL NUMERO SE TOCA Y SE ESCRIBE A MANO ═══════════════════════════════
        El valor de una fila medible pasa a ser un BOTON que abre la misma escritura a mano que
@@ -146395,10 +146677,25 @@ function _medTablaHTML(filas, pfx, destino, sueltas) {
          encimados sobre 13 botones. 22 + 11 + 11 = 44 EXACTOS, que es el minimo que las separa
          sin encimarlas — la misma cuenta que MEDIR-2 hizo para el selector (28 + 16) y la misma
          trampa, pagada en el otro eje. */
+      /* ══ P13 (TAREA 4) — EL CIRCULO VA AL PRINCIPIO DE LA CELDA DEL NOMBRE ════════════
+         ⚠️ NO EN LA CELDA DE ACCIONES, Y ESTA MEDIDO POR QUE: esa celda es el 34 % de la tabla
+         —106 px con la columna en 380— y ya tiene dos botones de 44 px de area tactil, que es
+         exactamente lo que entra. Un tercero la hace ENVOLVER, y una fila envuelta pasa de 45 a
+         89 px de alto: la cuenta que MEDIR-5 (B2) hizo por un pixel. La celda del nombre es el
+         46 % y su texto ya envuelve, asi que un circulito de 14 px entra sin mover nada.
+         Y ahi significa lo que tiene que significar: es el estado de ESTA medida en el informe. */
       '<td style="padding:11px 5px;color:var(--text2);white-space:normal;word-break:break-word;' +
-        'line-height:1.25;">' + esc(f[0]) + '</td>' +
-      '<td style="padding:11px 5px;text-align:right;white-space:nowrap;' +
-        'font-variant-numeric:tabular-nums;">' + val + '</td>' +
+        'line-height:1.25;">' +
+        (calc ? '' : _medCircHTML(f[3], f[1])) + esc(f[0]) + '</td>' +
+      /* ⚠️ `white-space` PASA A `normal` CUANDO HAY NOTA: con `nowrap` la linea «en la app: 20»
+         no puede caer debajo del numero y ensancha la celda, que es `table-layout:fixed` — o sea
+         que el numero se recorta en silencio. Sin nota se queda como estaba. */
+      (function () {
+        const nota = calc ? '' : _medCircNota(f[3], f[1]);
+        return '<td style="padding:11px 5px;text-align:right;' +
+          (nota ? '' : 'white-space:nowrap;') +
+          'font-variant-numeric:tabular-nums;">' + val + nota + '</td>';
+      })() +
       '<td style="padding:11px 5px;"><span class="med-fbots" ' +
         'style="display:flex;flex-wrap:wrap;column-gap:3px;align-items:center;">' + acc +
         '</span></td>' +
@@ -147341,6 +147638,8 @@ function _cineAbrir(loops, puerta) {
   _cineSoltarAlAbrir(loops, puerta);
   try { _cineClaveAbierta = (loops && loops.length && typeof _cineClave === 'function')
     ? _cineClave(loops[0]) : ''; } catch (e) { _cineClaveAbierta = ''; }
+  /* P13 (TAREA 4, punto a) — el oyente del circulo, una sola vez en el documento. */
+  try { if (typeof _medCircObservar === 'function') _medCircObservar(); } catch (e) {}
   _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
   /* ⚠️ MEDIR-4a — LA MARCA DE «VISTA DE IMAGEN FIJA» SE SUELTA ACA. El objeto de la vista A
      sobrevive a cerrar y reabrir el visor, asi que una marca que quedara puesta dejaria el
@@ -147686,6 +147985,14 @@ function _cineAbrir(loops, puerta) {
      Imágenes, o sea detrás del overlay, y sus botones «medir» volverían a ser inalcanzables. */
   try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
   try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
+  /* ══ P13 (TAREA 4, punto a) — LA TABLA NACE MOSTRANDO LO QUE YA ESTA EN LA APP ═════════════
+     Va DESPUES de los dos repintados y al final de la puerta unica del visor: `_medCebarDesdeApp`
+     escribe en los dos cajones y vuelve a repintarlos, asi que ponerlo antes dibujaria dos veces.
+     Y va aca y no en cada camino porque esta funcion es la puerta de los cuatro
+     (`dcmImgImportar`, `medImagenAbrir`, `medFijaAbrirGuardada`, `cineAbrirGuardado`): con una
+     llamada por camino, el primero que se agregue sin acordarse abre el visor con la tabla vacia
+     sobre un estudio que tiene los datos cargados — que es el defecto (g) que el medico reporto. */
+  try { if (typeof _medCebarDesdeApp === 'function') _medCebarDesdeApp(); } catch (e) {}
 }
 
 /* Deja la vista sin sesiones de medición. Es lo que `medApagar` hacía SIEMPRE y ahora sólo
@@ -152907,9 +153214,15 @@ function _vtiPanel() {
          r.faltan.join('</b>, <b>') + '</b>.';
     const reg = _vtiUltimaRegla();
     if (reg != null && (_vtiNum('diam_tsvi') == null || _vtiNum('tsvd_diametro') == null)) {
-      h += ' Última distancia medida: <b>' + reg.toFixed(1) + ' mm</b> — ' +
-           '<button type="button" class="btn btn-ghost" data-vti-diam="tsvi" style="padding:1px 6px;font-size:10px;">usar como Ø TSVI</button> ' +
-           '<button type="button" class="btn btn-ghost" data-vti-diam="tsvd" style="padding:1px 6px;font-size:10px;">usar como Ø TSVD</button>';
+      /* ⚠️ LAPIDA P13 (4f) — «usar como Ø TSVI» y «usar como Ø TSVD» SE RETIRAN POR ORDEN DEL
+         MEDICO: los reemplaza el circulo. Eran la unica forma que tenia el visor de escribir un
+         diametro en el informe, y escribian SIN preguntar —`medVtiDiametro` pisaba el campo de
+         una— que es justo lo que el punto (b) prohibe. Hoy la ultima distancia medida cae en su
+         fila del cajon 2D (Diam TSVI o Diam TSVD) y de ahi al informe por el circulo, con su
+         pregunta si ya habia un valor cargado.
+         `medVtiDiametro` NO se toca y queda expuesta: la llaman dos casos del suite. */
+      h += ' Última distancia medida: <b>' + reg.toFixed(1) + ' mm</b> — cargala en su fila del ' +
+           'cajón 2D y tocá el círculo para que pase al informe.';
     }
     h += '</div>';
     return h;
