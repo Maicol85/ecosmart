@@ -22872,7 +22872,15 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
       R.esCms = vr.uy === DCMIMG_UNI_CMS;
       R.dyNegativo = vr.dy < 0;                       // arriba de la linea = positivo
       R.ceroDeclarado = (vr.rvy || 0) === 0;
-      R.baseFueraDelRecuadro = !(vr.y0 <= vr.ry0 && vr.ry0 <= vr.y1);
+      /* P10 - LA FILA DEL CERO ES y0 + ry0, no ry0. Lo dice el estandar (PS3.3 C.8.5.5:
+         ReferencePixelY0 es un desplazamiento desde RegionLocationMinY0) y lo confirman las 138
+         regiones de velocidad del pendrive: leido asi el cero cae dentro del recuadro en las
+         138, y leido como fila absoluta en 71. */
+      R.baseY = _dcmImgBaseY(vr);
+      R.baseEsSuma = R.baseY === vr.y0 + vr.ry0;
+      R.baseNoEsRy0 = (vr.y0 !== 0) ? (R.baseY !== vr.ry0) : null;
+      R.baseDentroDelRecuadro = (vr.y0 <= R.baseY && R.baseY <= vr.y1);
+      R.baseFueraDelRecuadro = !R.baseDentroDelRecuadro;
 
       /* ── EL PIXEL DE REFERENCIA ES SL: CON SIGNO ──
          (0018,6022) tiene VR = SL. Leerlo sin signo convierte un -25 en 4.294.967.271 y la
@@ -22912,7 +22920,12 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
         R.slConSigno = R.parseoSL === -25;
         /* y con ese cero por encima del recuadro, un punto adentro da una velocidad sensata */
         R.velConSLNeg = rs.length === 1 ? _dcmImgVelocidadEn(rs[0], 100) : null;
-        R.velSensata = rs.length === 1 && Math.abs(R.velConSLNeg - (100 - (-25)) * -0.5) < 1e-12;
+        /* P10: con y0=100 y ry0=-25 la fila del cero es 75, o sea 25 px POR ENCIMA del borde
+           de arriba del recuadro. Antes se esperaba (100 - (-25)) * -0,5 = -62,5, que leia la
+           ry0 cruda como fila. */
+        R.baseSL = rs.length === 1 ? _dcmImgBaseY(rs[0]) : null;
+        R.baseSLok = R.baseSL === 75;
+        R.velSensata = rs.length === 1 && Math.abs(R.velConSLNeg - (100 - 75) * -0.5) < 1e-12;
       }
 
       __t.limpiar(); imgVaciar();
@@ -22936,17 +22949,21 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
 
       /* ── ANCLA 1: en el pixel de referencia la velocidad es CERO ──
          Se llama a la funcion directo para que la cuantizacion del clic no ensucie el cero. */
-      R.enLaBase = _dcmImgVelocidadEn(vr, vr.ry0);
+      R.enLaBase = _dcmImgVelocidadEn(vr, R.baseY);
+      /* INVERTIDA (P10): leer en la ry0 CRUDA ya NO da cero, y de eso depende que esta
+         condicion discrimine en vez de cumplirse de las dos formas. */
+      R.enLaRy0Cruda = _dcmImgVelocidadEn(vr, vr.ry0);
+      R.ry0CrudaNoEsCero = (vr.y0 !== 0) ? (Math.abs(R.enLaRy0Cruda) > 1e-9) : null;
       R.baseEsCero = Math.abs(R.enLaBase) < 1e-12;
       /* ── ANCLA 2: linealidad exacta ── */
-      R.a100 = _dcmImgVelocidadEn(vr, vr.ry0 + 100);
+      R.a100 = _dcmImgVelocidadEn(vr, R.baseY + 100);
       R.linealOK = Math.abs(R.a100 - 100 * vr.dy) < 1e-12;
       /* ── ANCLA 3: el signo sale del archivo ── */
-      R.arribaPositivo = _dcmImgVelocidadEn(vr, vr.ry0 - 50) > 0;
-      R.abajoNegativo  = _dcmImgVelocidadEn(vr, vr.ry0 + 50) < 0;
+      R.arribaPositivo = _dcmImgVelocidadEn(vr, R.baseY - 50) > 0;
+      R.abajoNegativo  = _dcmImgVelocidadEn(vr, R.baseY + 50) < 0;
 
       /* ── clic real dentro de la region de velocidad ── */
-      const yMed = Math.round((Math.max(vr.y0, Math.min(vr.y1, vr.ry0)) + vr.y1) / 2);
+      const yMed = Math.round((Math.max(vr.y0, Math.min(vr.y1, R.baseY)) + vr.y1) / 2);
       const xMed = Math.round((vr.x0 + vr.x1) / 2);
       dichos.length = 0;
       clic(xMed, yMed);
@@ -23071,6 +23088,13 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
       ['PhysicalDeltaY es NEGATIVO (arriba = positivo)', R.dyNegativo, R.dy],
       ['la herramienta Velocidad se activa',             R.herrVel, R.herrVel],
       ['y la barra muestra la escala del archivo',       R.barraDiceEscala, R.barra.slice(0,70)],
+      /* P10 - las tres condiciones de la fila del cero. La segunda esta INVERTIDA respecto
+         de lo que este caso afirmaba antes: la ry0 cruda ya NO es la fila del cero. */
+      ['P10: la fila del cero es RegionLocationMinY0 + ReferencePixelY0', R.baseEsSuma === true, R.baseY],
+      ['P10: y NO es la ry0 cruda', R.baseNoEsRy0 !== false, R.baseY + ' vs ' + R.ry0],
+      ['P10: leida asi, el cero cae DENTRO del recuadro', R.baseDentroDelRecuadro === true,
+                                                       R.baseY + ' en ' + vr.y0 + '..' + vr.y1],
+      ['P10: y en la ry0 cruda la velocidad YA NO es cero', R.ry0CrudaNoEsCero !== false, R.enLaRy0Cruda],
       ['EN EL PIXEL DE REFERENCIA LA VELOCIDAD ES CERO', R.baseEsCero, R.enLaBase],
       ['la escala es lineal: 100 px son 100 x dy',       R.linealOK, (R.a100||0).toFixed(4) + ' vs ' + (100*(R.dy||0)).toFixed(4)],
       ['arriba de la linea da positivo',                 R.arribaPositivo, R.arribaPositivo],
@@ -23712,12 +23736,28 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
 
       /* En el PIXEL DE REFERENCIA la velocidad tiene que dar exactamente cero. Es la unica
          verificacion que no depende de leer la escala dibujada. */
-      R.enElCero = _dcmImgVelocidadEn(espectral, espectral.ry0);
+      /* P10 - LA FILA DEL CERO ES y0 + ry0. Con y0=217 y ry0=56 la base cae en 273, o sea
+         DENTRO del recuadro 217..659; leida como fila absoluta caia en 56, 161 px por encima
+         del borde de arriba, que es la clase de defecto que esta tanda corrigio. */
+      R.baseY = _dcmImgBaseY(espectral);
+      R.baseEsSuma = R.baseY === 273;
+      R.baseDentro = R.baseY > espectral.y0 && R.baseY < espectral.y1;
+      R.enElCero = _dcmImgVelocidadEn(espectral, R.baseY);
+      R.enLaRy0Cruda = _dcmImgVelocidadEn(espectral, espectral.ry0);
+      R.ry0CrudaNoEsCero = Math.abs(R.enLaRy0Cruda) > 1;
+      /* Y el chequeo de coherencia NO dispara con la lectura buena, y SI con la vieja. */
+      R.escDudosaBuena = _dcmImgEscalaVelDudosa(espectral);
+      /* La lectura VIEJA ponia el cero en la fila 56 con el recuadro en 217..659. Se simula
+         corriendo la ry0 para que la base caiga ahi, y NO poniendo y0 en cero: eso moveria
+         tambien el recuadro y el cero volveria a caer adentro -- o sea que el chequeo diria
+         que no hay nada que objetar sobre el caso que vino a detectar. */
+      R.escDudosaVieja = _dcmImgEscalaVelDudosa(
+        Object.assign({}, espectral, { ry0: 56 - espectral.y0 }));
       /* Y a N pixeles, exactamente N * dy. */
-      R.a300px = _dcmImgVelocidadEn(espectral, espectral.ry0 + 300);
+      R.a300px = _dcmImgVelocidadEn(espectral, R.baseY + 300);
       R.a300ok = Math.abs(R.a300px - 300 * espectral.dy) < 1e-9;
       /* El -403 del reporte es alcanzable y es correcto: esta DENTRO del recuadro visible. */
-      const yDe403 = espectral.ry0 + (-403 / espectral.dy);
+      const yDe403 = R.baseY + (-403 / espectral.dy);
       R.y403Dentro = yDe403 > espectral.y0 && yDe403 < espectral.y1;
       R.v403 = _dcmImgVelocidadEn(espectral, Math.round(yDe403));
 
@@ -23772,16 +23812,44 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
          m/s— con los dos valores escritos: 0 y 1.0. El resultado esperado NO cambia: 1 cm/s por
          pixel y el cero en y=400, o sea que las cuatro condiciones de abajo siguen midiendo lo
          mismo. */
-      let _nP = 0;
-      window.prompt = () => (_nP++ === 0 ? '0' : '1.0');   // m/s, uno por marca
+      /* ⚠️ ADAPTADO EN P10 (2.3): EL VALOR YA NO SE PIDE CON UN prompt NATIVO sino con un
+         cuadro propio de EcoSmart, que ademas trae el selector de unidad. El gesto es el real:
+         se espera a que el cuadro aparezca, se escribe en su campo y se aprieta su boton.
+         ⚠️ Y SE ESPIA window.prompt PARA EXIGIR QUE NO SE LLAME NUNCA -condicion INVERTIDA-:
+         asi este caso falla por los dos lados, tanto si el cuadro propio no sale como si
+         vuelve el dialogo del navegador. */
+      let _nP = 0, _usoPrompt = false;
+      window.prompt = () => { _usoPrompt = true; return null; };
+      const respCal = async (txt, uni) => {
+        for (let i = 0; i < 80; i++) {
+          if (document.querySelector('[data-med-calvel="inp"]')) break;
+          await new Promise(r => setTimeout(r, 40));
+        }
+        const inp = document.querySelector('[data-med-calvel="inp"]');
+        if (!inp) return false;
+        _nP++;
+        inp.value = String(txt);
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        if (uni != null) {
+          const sel = document.querySelector('[data-med-calvel="uni"]');
+          sel.value = String(uni);
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        document.querySelector('[data-med-calvel="ok"]').click();
+        await new Promise(r => setTimeout(r, 80));
+        return true;
+      };
       const yBase = 400, yMarca = 300;
       clic(cxm, yBase);
+      R.cuadroPropio1 = await respCal('0');
       await new Promise(r => setTimeout(r, 120));
       R.baseMarcada = _medPuntos.length === 1;
       R.pidioElPrimerValor = _nP === 1;       // el valor se pide en el acto, no al final
       clic(cxm, yMarca);
+      R.cuadroPropio2 = await respCal('1.0');
       await new Promise(r => setTimeout(r, 160));
       R.pidioLosDos = _nP === 2;
+      R.sinPromptNativo = !_usoPrompt;
       R.calibro = !!_medCalibVel;
       R.factor = _medCalibVel && _medCalibVel.cmsPorPx;
       R.factorOk = Math.abs(R.factor - 1) < 1e-9;         // 100 cm/s en 100 px = 1 cm/s por px
@@ -23868,10 +23936,15 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
          la calibracion se RECHAZA —«las dos marcas tienen el mismo valor»— y el estado se queda
          en «calibrando», con lo que las dos condiciones de abajo median sobre una calibracion que
          nunca se completo. */
-      let _nP2 = 0;
-      window.prompt = () => (_nP2++ === 0 ? '0' : '0.5');
-      clic(cxm, 400); await new Promise(r => setTimeout(r, 110));
-      clic(cxm, 300); await new Promise(r => setTimeout(r, 160));
+      /* P10 - LA SEGUNDA CALIBRACION VA EN CM/S, con el selector del cuadro: 0 y 50 cm/s dan
+         la MISMA escala que 0 y 0,5 m/s daban antes. Es lo que prueba que la unidad se
+         convierte en un solo lugar y que el selector no es un adorno. */
+      clic(cxm, 400); await respCal('0', 1);
+      await new Promise(r => setTimeout(r, 110));
+      clic(cxm, 300); await respCal('50', 1);
+      await new Promise(r => setTimeout(r, 160));
+      R.enCmsOk = !!_medCalibVel && Math.abs(_medCalibVel.cmsPorPx - 0.5) < 0.08;
+      R.sinPromptNativo2 = !_usoPrompt;
       R.avisaQuePisa = /pisando la escala que trae el archivo/.test(document.getElementById('cine-med-barra').innerHTML);
       R.botonRecalibrar = (document.getElementById('cine-med-recal')||{}).textContent;
 
@@ -23879,6 +23952,20 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
     } finally { window.alert = alertOrig; window.prompt = promptOrig; }
 
     return { extra: [
+      /* P10 - la fila del cero y el chequeo de coherencia. Dos estan INVERTIDAS respecto de lo
+         que este caso afirmaba: la ry0 cruda ya NO es la fila del cero, y el cuadro propio
+         reemplaza al prompt del navegador. */
+      ['P10: la fila del cero es y0 + ry0 (273, no 56)', R.baseEsSuma === true, R.baseY],
+      ['P10: y cae DENTRO del recuadro 217..659',  R.baseDentro === true, R.baseY],
+      ['P10: en la ry0 cruda la velocidad YA NO es cero', R.ry0CrudaNoEsCero === true, R.enLaRy0Cruda],
+      ['P10: con la lectura buena NO avisa escala dudosa', R.escDudosaBuena === null, R.escDudosaBuena],
+      ['P10: con la lectura vieja SI avisaria',     !!R.escDudosaVieja, String(R.escDudosaVieja).slice(0,60)],
+      ['P10: el valor se pide con un cuadro PROPIO', R.cuadroPropio1 === true && R.cuadroPropio2 === true,
+                                                   R.cuadroPropio1 + '/' + R.cuadroPropio2],
+      ['P10: y NUNCA con el prompt del navegador',  R.sinPromptNativo === true && R.sinPromptNativo2 === true,
+                                                   R.sinPromptNativo + '/' + R.sinPromptNativo2],
+      ['P10: 0 y 50 CM/S dan la misma escala que 0 y 0,5 m/s', R.enCmsOk === true,
+                                                   _medCalibVel && _medCalibVel.cmsPorPx],
       ['en el pixel de referencia la velocidad es CERO', Math.abs(R.enElCero) < 1e-12, R.enElCero],
       ['y a N pixeles es exactamente N x dy',           R.a300ok, R.a300px],
       ['-403 cm/s cae DENTRO del recuadro (no esta roto)', R.y403Dentro, R.v403],
@@ -158473,6 +158560,370 @@ caso('TC-1003', 'P9 4.3: la direccion del cable dice «cable directo» y la que 
       window._clnkConexDirs = prev;
     }
     return { extra: ex, diag: R };
+  })();
+`);
+/* ══ P10 · TC-1004 a TC-1008 — LA ESCALA DE VELOCIDAD DE UN DOPPLER ESPECTRAL ════════════════
+   El defecto que los abre: un PW de TSVI del VINNO daba VTI 136,7 cm y Vmax 5,06 m/s contra los
+   21,66 cm del ecografo. La causa, medida y no supuesta, esta en docs/INVENTARIO_P10.md:
+   _dcmImgVelocidadEn leia (0018,6022) ReferencePixelY0 como una fila ABSOLUTA de la imagen, y el
+   estandar dice que es un desplazamiento RELATIVO a RegionLocationMinY0 (0018,601A).
+   Los cinco casos cubren lo que el pedido enumera: escala bien leida, escala ausente, unidad en
+   otra escala, calibracion manual, y el caso del VINNO reproducido de punta a punta.          */
+
+caso('TC-1004', 'P10: la fila del cero es y0 + ry0, medido sobre las regiones REALES del pendrive', `
+  return (async () => {
+    const D = ${JSON.stringify(DOP_VEL)};
+    if (!D) return { extra: [[
+      'hace falta un archivo con trazo espectral en cm/s', false, 'no se encontro: quedo SIN verificar']] };
+    const bin = atob(D.b64); const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const d0 = _dcmImgLeer(u.buffer);
+    const vel = (d0.regiones || []).filter(_dcmImgRegionVelocidad);
+    const R = {};
+    /* DENOMINADOR: sin una region de velocidad no hay nada que medir, y contar cero sobre nada
+       se lee igual que «todo bien». */
+    R.nRegs = (d0.regiones || []).length;
+    R.nVel = vel.length;
+    if (!R.nVel) return { extra: [['el archivo declara al menos una region de velocidad', false,
+      R.nRegs + ' regiones, ninguna con el eje Y en cm/s']] };
+
+    const v = vel[0];
+    R.y0 = v.y0; R.ry0 = v.ry0; R.y1 = v.y1; R.dy = v.dy;
+    R.baseY = _dcmImgBaseY(v);
+    R.esSuma = R.baseY === v.y0 + v.ry0;
+    /* La condicion que DISCRIMINA: con y0 distinto de cero, la fila buena y la ry0 cruda no son
+       la misma, asi que esto se pone rojo si alguien vuelve a leerla como absoluta. */
+    R.y0NoEsCero = v.y0 > 0;
+    R.noEsRy0 = R.baseY !== v.ry0;
+    R.enLaBaseEsCero = Math.abs(_dcmImgVelocidadEn(v, R.baseY)) < 1e-12;
+    R.enLaRy0NoEsCero = Math.abs(_dcmImgVelocidadEn(v, v.ry0)) > 1e-9;
+    /* Y el invariante clinico: en las 138 regiones de velocidad del pendrive el cero cae DENTRO
+       del recuadro leido asi, y en 71 leido como absoluto. */
+    let dentroBien = 0, dentroMal = 0;
+    vel.forEach(r => {
+      const b = _dcmImgBaseY(r);
+      if (b >= r.y0 && b <= r.y1) dentroBien++;
+      if (r.ry0 >= r.y0 && r.ry0 <= r.y1) dentroMal++;
+    });
+    R.dentroBien = dentroBien; R.dentroMal = dentroMal;
+    R.todasDentro = dentroBien === vel.length;
+    /* El offset que metia la lectura vieja, en cm/s: es el tamanio del error. */
+    R.offset = Math.abs(v.y0 * v.dy);
+    R.offsetGrande = R.offset > 10;
+    /* La linealidad y el signo NO se movieron: salen del archivo. */
+    R.lineal = Math.abs(_dcmImgVelocidadEn(v, R.baseY + 100) - 100 * v.dy) < 1e-12;
+    R.arribaPositivo = _dcmImgVelocidadEn(v, R.baseY - 50) > 0;
+    /* Y el eje del TIEMPO no se toca: es una diferencia, el pixel de referencia se cancela. */
+    R.ms = _dcmImgMsEntre(v, 100, 200);
+    R.msOk = Math.abs(R.ms - 100 * v.dx * 1000) < 1e-9;
+    return { extra: [
+      ['el archivo trae regiones de velocidad (denominador)', R.nVel > 0, R.nVel + ' de ' + R.nRegs],
+      ['la fila del cero es RegionLocationMinY0 + ReferencePixelY0', R.esSuma === true, R.baseY],
+      ['y en este archivo NO es la ry0 cruda', R.y0NoEsCero && R.noEsRy0, R.baseY + ' vs ' + R.ry0],
+      ['en esa fila la velocidad es exactamente CERO', R.enLaBaseEsCero === true, R.baseY],
+      ['y en la ry0 cruda ya NO es cero', R.enLaRy0NoEsCero === true, R.ry0],
+      ['el cero cae DENTRO del recuadro en TODAS las regiones', R.todasDentro === true,
+                                              R.dentroBien + '/' + R.nVel + ' bien, ' + R.dentroMal + ' leidas como absolutas'],
+      ['el error que metia la lectura vieja es grande (cm/s)', R.offsetGrande === true, R.offset.toFixed(1)],
+      ['la escala sigue siendo lineal y con el signo del archivo', R.lineal && R.arribaPositivo, R.dy],
+      ['y el eje del TIEMPO no se movio', R.msOk === true, R.ms]
+    ] };
+  })();
+`);
+
+caso('TC-1005', 'P10: sin escala de velocidad no sale un VTI, y el mensaje manda a calibrar', `
+  return (async () => {
+    const R = {};
+    const reg = (o) => Object.assign({ tipo:3, x0:50, y0:200, x1:900, y1:700,
+                                       rx0:850, ry0:150, rvx:0, rvy:0,
+                                       dx:0.004, dy:-0.9, ux:4, uy:7 }, o || {});
+    const pts = [];
+    for (let i = 0; i <= 40; i++) pts.push({ x: 100 + i * 4, y: 350 + i });
+    const orig = window._medRegs;
+    const calPrev = _medCalibVel;
+    try {
+      _medCalibVel = null;
+      /* DENOMINADOR: con la region completa el VTI SI sale. Sin esto, un rechazo en los tres
+         escenarios de abajo se leeria igual que una herramienta rota. */
+      window._medRegs = () => [reg()];
+      const ok = _vtiDe(pts);
+      R.conEscalaSale = ok.ok === true;
+      R.vtiBueno = ok.ok ? ok.cm : ok.motivo;
+      /* 1 - SIN NINGUNA REGION: no hay eje de tiempo, y ese no se puede calibrar a mano. */
+      window._medRegs = () => [];
+      const a = _vtiDe(pts);
+      R.sinRegionRechaza = a.ok === false;
+      R.sinRegionDice = String(a.motivo || '');
+      R.sinRegionNombraEscala = R.sinRegionDice.indexOf('escala') >= 0;
+      /* 2 - CON TIEMPO Y SIN VELOCIDAD: el mensaje tiene que decir que falta la de velocidad y
+         ofrecer calibrarla, no mandar a revisar el trazo. */
+      window._medRegs = () => [reg({ uy: 99, ry0: 150 })];
+      const b = _vtiDe(pts);
+      R.sinVelRechaza = b.ok === false;
+      R.sinVelDice = String(b.motivo || '');
+      R.sinVelOfreceCalibrar = R.sinVelDice.indexOf('Calibrar vel.') >= 0;
+      /* 3 - CON VELOCIDAD Y SIN TIEMPO: el mensaje tiene que decir que esa NO se puede calibrar. */
+      window._medRegs = () => [reg({ ux: 3 })];
+      const c = _vtiDe(pts);
+      R.sinTiempoRechaza = c.ok === false;
+      R.sinTiempoDice = String(c.motivo || '');
+      R.sinTiempoLoDice = R.sinTiempoDice.indexOf('no se puede calibrar') >= 0;
+      /* 4 - MODO M: los dos ejes declarados, pero el vertical en centimetros. */
+      window._medRegs = () => [reg({ uy: DCMIMG_UNI_CM })];
+      const d = _vtiDe(pts);
+      R.modoMRechaza = d.ok === false;
+      R.modoMDice = String(d.motivo || '').indexOf('modo M') >= 0;
+    } finally { window._medRegs = orig; _medCalibVel = calPrev; }
+    return { extra: [
+      ['con la escala completa el VTI SI sale (denominador)', R.conEscalaSale === true, R.vtiBueno],
+      ['sin ninguna region no sale un VTI', R.sinRegionRechaza === true, R.sinRegionDice.slice(0,70)],
+      ['y el mensaje nombra la escala', R.sinRegionNombraEscala === true, R.sinRegionDice.slice(0,70)],
+      ['con tiempo y sin velocidad, tampoco', R.sinVelRechaza === true, R.sinVelDice.slice(0,70)],
+      ['y ahi ofrece calibrarla a mano', R.sinVelOfreceCalibrar === true, R.sinVelDice.slice(0,90)],
+      ['con velocidad y sin tiempo, tampoco', R.sinTiempoRechaza === true, R.sinTiempoDice.slice(0,70)],
+      ['y dice que ESA no se puede calibrar', R.sinTiempoLoDice === true, R.sinTiempoDice.slice(0,90)],
+      ['sobre un modo M no sale un VTI', R.modoMRechaza && R.modoMDice, R.modoMDice]
+    ] };
+  })();
+`);
+
+caso('TC-1006', 'P10: la unidad se elige y se convierte en un solo lugar (m/s y cm/s dan lo mismo)', `
+  return (async () => {
+    const R = {};
+    const q = s => document.querySelector(s);
+    const esperaCuadro = async () => {
+      for (let i = 0; i < 80; i++) { if (q('[data-med-calvel="inp"]')) return true;
+        await new Promise(r => setTimeout(r, 40)); }
+      return false;
+    };
+    const pedir = async (txt, uni) => {
+      const pr = _medCalPedirVel('una marca');
+      if (!await esperaCuadro()) return 'no salio el cuadro';
+      const inp = q('[data-med-calvel="inp"]');
+      inp.value = String(txt); inp.dispatchEvent(new Event('input', { bubbles: true }));
+      if (uni != null) { const s2 = q('[data-med-calvel="uni"]');
+        s2.value = String(uni); s2.dispatchEvent(new Event('change', { bubbles: true })); }
+      q('[data-med-calvel="ok"]').click();
+      return await pr;
+    };
+    /* DENOMINADOR: el cuadro existe y trae las dos unidades. Sin esto, dos conversiones que dan
+       lo mismo pueden ser dos veces el mismo camino. */
+    const pr0 = _medCalPedirVel('x');
+    R.hayCuadro = await esperaCuadro();
+    R.unidades = R.hayCuadro
+      ? Array.from(q('[data-med-calvel="uni"]').options).map(o => o.textContent).join(',') : '';
+    R.dosUnidades = R.unidades === 'm/s,cm/s';
+    R.porOmisionMs = R.hayCuadro &&
+      q('[data-med-calvel="uni"]').options[q('[data-med-calvel="uni"]').selectedIndex].textContent === 'm/s';
+    R.arrancaVacio = R.hayCuadro && q('[data-med-calvel="inp"]').value === '';
+    R.okApagado = R.hayCuadro && q('[data-med-calvel="ok"]').disabled === true;
+    if (R.hayCuadro) q('[data-med-calvel="no"]').click();
+    R.cancelaNull = (await pr0) === null;
+    R.noDejaNodo = !q('[data-med-calvel="ov"]');
+
+    R.enMs = await pedir('1.5', 0);        // 1,5 m/s
+    R.enCms = await pedir('150', 1);       // 150 cm/s -> el MISMO numero interno
+    R.mismoNumero = R.enMs === 150 && R.enCms === 150;
+    R.cero = await pedir('0', 0);
+    R.aceptaCero = R.cero === 0;
+    R.negativo = await pedir('-0.5', 0);
+    R.aceptaNegativo = R.negativo === -50;
+    R.coma = await pedir('1,5', 0);        // coma decimal
+    R.aceptaComa = R.coma === 150;
+    /* Y una region con el eje vertical en CENTIMETROS no es velocidad por mas que tenga escala. */
+    const mm = { tipo:3, x0:50, y0:200, x1:900, y1:700, rx0:850, ry0:150, rvx:0, rvy:0,
+                 dx:0.004, dy:-0.02, ux:4, uy: DCMIMG_UNI_CM };
+    R.cmNoEsVelocidad = _dcmImgRegionVelocidad(mm) === false;
+    R.cmSiEsTiempo = _dcmImgRegionTiempo(mm) === true;
+    return { extra: [
+      ['el cuadro propio sale y trae las dos unidades (denominador)', R.hayCuadro && R.dosUnidades, R.unidades],
+      ['m/s es la unidad por omision', R.porOmisionMs === true, R.porOmisionMs],
+      ['el campo arranca vacio y el boton apagado', R.arrancaVacio && R.okApagado, R.arrancaVacio],
+      ['cancelar devuelve null y no deja nodo', R.cancelaNull && R.noDejaNodo, R.cancelaNull],
+      ['1,5 m/s y 150 cm/s dan el MISMO numero interno', R.mismoNumero === true, R.enMs + ' y ' + R.enCms],
+      ['acepta el cero', R.aceptaCero === true, R.cero],
+      ['acepta un valor negativo', R.aceptaNegativo === true, R.negativo],
+      ['acepta la coma decimal', R.aceptaComa === true, R.coma],
+      ['un eje vertical en cm NO es velocidad', R.cmNoEsVelocidad === true, R.cmNoEsVelocidad],
+      ['pero su eje horizontal sigue siendo tiempo', R.cmSiEsTiempo === true, R.cmSiEsTiempo]
+    ] };
+  })();
+`);
+
+caso('TC-1007', 'P10: la calibracion manual manda sobre el archivo, se marca en la fila y no sobrevive a la imagen', `
+  return (async () => {
+    const R = {};
+    const reg = { tipo:3, x0:50, y0:200, x1:900, y1:700, rx0:850, ry0:150, rvx:0, rvy:0,
+                  dx:0.004, dy:-0.5, ux:4, uy:7 };
+    const pts = [];
+    for (let i = 0; i <= 40; i++) pts.push({ x: 100 + i * 4, y: 360 + i * 2 });
+    const orig = window._medRegs;
+    const calPrev = _medCalibVel;
+    try {
+      window._medRegs = () => [reg];
+      /* DENOMINADOR: con la escala del archivo sale un VTI, y la fila lo declara asi. */
+      _medCalibVel = null;
+      const a = _vtiDe(pts);
+      R.conArchivo = a.ok === true;
+      R.vtiArchivo = a.ok ? a.cm : a.motivo;
+      R.archivoNoEsManual = a.ok && a.velManual === false;
+      /* LA CALIBRACION MANUAL MANDA: el doble de escala da el doble de VTI y el doble de pico. */
+      _medCalibVel = { y0: _dcmImgBaseY(reg), cmsPorPx: 1 };      // el doble de la del archivo
+      const b = _vtiDe(pts);
+      R.conManual = b.ok === true;
+      R.vtiManual = b.ok ? b.cm : b.motivo;
+      R.esElDoble = a.ok && b.ok && Math.abs(b.cm - 2 * a.cm) < 1e-9;
+      R.picoEsElDoble = a.ok && b.ok && Math.abs(b.picoCms - 2 * a.picoCms) < 1e-9;
+      R.marcadaManual = b.ok && b.velManual === true;
+      /* El eje del TIEMPO no se calibra: los ms son los mismos con las dos escalas. */
+      R.msIguales = a.ok && b.ok && Math.abs(a.ms - b.ms) < 1e-9;
+      /* Y la fila del panel lo DICE, en las dos. */
+      const vPrev = _medVtis;
+      _medVtis = [
+        { cm: a.cm, ms: a.ms, picoCms: a.picoCms, gradMax: a.gradMax, gradMedio: a.gradMedio,
+          velManual: false, escalaDudosa: null, pts: [] },
+        { cm: b.cm, ms: b.ms, picoCms: b.picoCms, gradMax: b.gradMax, gradMedio: b.gradMedio,
+          velManual: true, escalaDudosa: null, pts: [] }
+      ];
+      const h = _vtiPanel();
+      R.filaDiceArchivo = h.indexOf('escala del archivo') >= 0;
+      R.filaDiceMano = h.indexOf('escala vel. a mano') >= 0;
+      /* La procedencia llega hasta el boton que escribe en el informe. Ese bloque solo se
+         dibuja con el Qp/Qs COMPLETO -- es donde vive el boton--, asi que hay que darle los dos
+         diametros y los dos roles: con uno solo el panel sale antes por la rama de "falta". */
+      const dI = document.getElementById('diam_tsvi'), dD = document.getElementById('tsvd_diametro');
+      const dIv = dI ? dI.value : null, dDv = dD ? dD.value : null;
+      if (dI) dI.value = '20';
+      if (dD) dD.value = '22';
+      _medVtis[0].rol = 'tsvd';
+      _medVtis[1].rol = 'tsvi';
+      const h2 = _vtiPanel();
+      R.hayBotonCargar = h2.indexOf('cine-vti-cargar') >= 0;
+      R.avisaAlCargar = h2.indexOf('escala puesta a mano') >= 0;
+      if (dI) dI.value = dIv;
+      if (dD) dD.value = dDv;
+      _medVtis = vPrev;
+      /* LA FRASE TIENE UN SOLO DUENIO. */
+      R.frase = _medCalVelFrase();
+      R.fraseDiceAMano = R.frase.indexOf('calibrada a mano') >= 0;
+      R.fraseDiceCero = R.frase.indexOf('cero en y=') >= 0;
+      /* Y NO SOBREVIVE A UN CAMBIO DE IMAGEN. Es la conducta de hoy, declarada en P10-b: la
+         calibracion vive en la vista del visor y no se persiste con el estudio. */
+      medCambioDeImagen();
+      R.muereAlCambiar = !_medCalibVel;
+      R.fraseVacia = _medCalVelFrase() === '';
+    } finally { window._medRegs = orig; _medCalibVel = calPrev; }
+    return { extra: [
+      ['con la escala del archivo sale un VTI (denominador)', R.conArchivo === true, R.vtiArchivo],
+      ['y la medicion queda marcada como NO manual', R.archivoNoEsManual === true, R.archivoNoEsManual],
+      ['la calibracion manual manda: el doble de escala da el doble de VTI', R.esElDoble === true,
+                                              R.vtiArchivo + ' -> ' + R.vtiManual],
+      ['y el doble de pico', R.picoEsElDoble === true, R.picoEsElDoble],
+      ['la medicion queda marcada como manual', R.marcadaManual === true, R.marcadaManual],
+      ['los ms NO cambian: el eje del tiempo no se calibra', R.msIguales === true, R.msIguales],
+      ['la fila del panel dice ESCALA DEL ARCHIVO', R.filaDiceArchivo === true, R.filaDiceArchivo],
+      ['y la otra dice ESCALA A MANO', R.filaDiceMano === true, R.filaDiceMano],
+      ['el boton de cargar al informe esta (denominador)', R.hayBotonCargar === true, R.hayBotonCargar],
+      ['y avisa al cargar los VTI al informe', R.avisaAlCargar === true, R.avisaAlCargar],
+      ['la frase de la escala tiene un solo duenio', R.fraseDiceAMano && R.fraseDiceCero, R.frase.slice(0,70)],
+      ['y no sobrevive a un cambio de imagen (P10-b)', R.muereAlCambiar && R.fraseVacia, R.muereAlCambiar]
+    ] };
+  })();
+`);
+
+caso('TC-1008', 'P10: el caso del VINNO reproducido, y el chequeo de coherencia que lo habria avisado', `
+  return (async () => {
+    const R = {};
+    const q = s => document.querySelector(s);
+    /* El recuadro espectral que la cuenta del caso implica: arranca en la fila 400 con
+       dy -0,9425, o sea un offset de 400 x 0,9425 = 377 cm/s leido como fila absoluta.
+       La envolvente es de UN latido: pico 1,29 m/s, 305 ms y media/pico 0,55, que es la forma
+       que sale de los numeros del equipo (21,66 / 0,305 = 71 cm/s de media). */
+    const rv = { tipo:3, x0:50, y0:400, x1:900, y1:760, rx0:850, ry0:10, rvx:0, rvy:0,
+                 dx:0.0047, dy:-0.9425, ux:4, uy:7 };
+    const base = _dcmImgBaseY(rv);
+    R.offsetViejo = Math.abs((base - rv.ry0) * rv.dy);
+    R.offsetEs377 = Math.abs(R.offsetViejo - 377) < 1.5;
+    const nseg = 400, dur = 0.305, pxTot = Math.round(dur / rv.dx);
+    const medPico = k => { let a = 0;
+      for (let i = 0; i <= nseg; i++) a += Math.pow(Math.sin(Math.PI * i / nseg), k);
+      return a / (nseg + 1); };
+    let kLo = 0.5, kHi = 6;
+    for (let it = 0; it < 60; it++) { const km = (kLo + kHi) / 2;
+      if (medPico(km) > 0.55) kLo = km; else kHi = km; }
+    const kExp = (kLo + kHi) / 2;
+    R.mediaPico = medPico(kExp);
+    const pts = [];
+    for (let i = 0; i <= nseg; i++) { const f = i / nseg;
+      const vcms = 129 * Math.pow(Math.sin(Math.PI * f), kExp);
+      pts.push({ x: 100 + f * pxTot, y: base + vcms / Math.abs(rv.dy) }); }
+    const orig = window._medRegs;
+    const calPrev = _medCalibVel;
+    try {
+      _medCalibVel = null;
+      /* LECTURA NUEVA */
+      window._medRegs = () => [rv];
+      const bueno = _vtiDe(pts);
+      R.okBueno = bueno.ok === true;
+      R.vtiBueno = bueno.ok ? bueno.cm : bueno.motivo;
+      R.picoBueno = bueno.ok ? bueno.picoCms / 100 : null;
+      R.msBueno = bueno.ok ? bueno.ms : null;
+      R.cercaDelEquipo = bueno.ok && Math.abs(bueno.cm - 21.66) / 21.66 < 0.05;   // 5 %
+      R.picoCreible = bueno.ok && R.picoBueno > 0.5 && R.picoBueno < 2.5;
+      R.msCreible = bueno.ok && R.msBueno > 250 && R.msBueno < 400;
+      R.sinAvisoBueno = bueno.ok && bueno.escalaDudosa == null;
+      /* LECTURA VIEJA, simulada corriendo la ry0 para que el cero caiga en la fila 10. */
+      const rViejo = Object.assign({}, rv, { ry0: rv.ry0 - rv.y0 });
+      window._medRegs = () => [rViejo];
+      const malo = _vtiDe(pts);
+      R.okMalo = malo.ok === true;
+      R.vtiMalo = malo.ok ? malo.cm : malo.motivo;
+      R.picoMalo = malo.ok ? malo.picoCms / 100 : null;
+      R.reproduce = malo.ok && Math.abs(malo.cm - 136.7) < 3 && Math.abs(R.picoMalo - 5.06) < 0.1;
+      /* EL CHEQUEO DE COHERENCIA: no dice nada sobre la lectura buena, y SI sobre la vieja. */
+      R.dudosaBuena = _dcmImgEscalaVelDudosa(rv);
+      R.dudosaVieja = _dcmImgEscalaVelDudosa(rViejo);
+      R.avisaSoloEnLaVieja = R.dudosaBuena === null && !!R.dudosaVieja;
+      R.filaDudosa = malo.ok ? malo.escalaDudosa : null;
+      R.marcaLaFila = !!R.filaDudosa;
+      /* Y EL CARTEL ES PROPIO, no un alert, sale UNA vez y ofrece calibrar a mano. */
+      window._medEscDudAvisado = false;
+      const alertOrig = window.alert; let usoAlert = false;
+      window.alert = () => { usoAlert = true; };
+      try {
+        _medEscalaCartel('motivo');
+        await new Promise(r => setTimeout(r, 60));
+        R.hayCartel = !!q('[data-med-escdud="ov"]');
+        R.cartelDice = R.hayCartel &&
+          (q('[data-med-escdud="ov"]').textContent || '').indexOf('no se pudo leer bien') >= 0;
+        R.ofreceCalibrar = !!q('[data-med-escdud="cal"]');
+        R.sinAlert = !usoAlert;
+        if (R.hayCartel) q('[data-med-escdud="ok"]').click();
+        await new Promise(r => setTimeout(r, 40));
+        R.seVa = !q('[data-med-escdud="ov"]');
+        _medEscalaCartel('otro');
+        await new Promise(r => setTimeout(r, 40));
+        R.unaSolaVez = !q('[data-med-escdud="ov"]');
+      } finally { window.alert = alertOrig; }
+    } finally { window._medRegs = orig; _medCalibVel = calPrev; }
+    return { extra: [
+      ['la envolvente del caso tiene media/pico 0,55 (denominador)',
+                                      Math.abs(R.mediaPico - 0.55) < 0.005, R.mediaPico],
+      ['el offset que metia la lectura vieja son 377 cm/s', R.offsetEs377 === true, R.offsetViejo],
+      ['la lectura VIEJA reproduce los numeros del medico (136,7 cm y 5,06 m/s)',
+                                      R.reproduce === true, R.vtiMalo + ' cm y ' + R.picoMalo + ' m/s'],
+      ['la lectura NUEVA da el VTI del ecografo (21,66 cm, menos de 5 %)',
+                                      R.cercaDelEquipo === true, R.vtiBueno],
+      ['y un pico creible para un TSVI', R.picoCreible === true, R.picoBueno],
+      ['con el mismo tiempo, que no se movio', R.msCreible === true, R.msBueno],
+      ['el chequeo de coherencia NO dice nada de la lectura buena', R.sinAvisoBueno === true, R.dudosaBuena],
+      ['y SI de la vieja', R.avisaSoloEnLaVieja === true, String(R.dudosaVieja).slice(0,60)],
+      ['y esa medicion queda marcada en su fila', R.marcaLaFila === true, String(R.filaDudosa).slice(0,50)],
+      ['el aviso es un cartel PROPIO, no un alert', R.hayCartel && R.sinAlert, R.hayCartel],
+      ['dice que la escala no se pudo leer bien', R.cartelDice === true, R.cartelDice],
+      ['ofrece calibrar a mano', R.ofreceCalibrar === true, R.ofreceCalibrar],
+      ['se cierra y no vuelve en la misma imagen', R.seVa && R.unaSolaVez, R.unaSolaVez]
+    ] };
   })();
 `);
 
