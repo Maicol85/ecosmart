@@ -167,6 +167,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la BURBUJA que queda al cerrar un cartel TERMINADO, la VENTANA DE SILENCIO de la app con su pestillo, la CADENCIA del sondeo ocioso, los CINCO botones del cartel de la tanda —los tres apagados y los dos vivos—, los NOMBRES que un dato tiene en el ecógrafo, las MINIATURAS de «Imágenes sin estudio» con el borrado de a una, o el mensaje de MEDIR una fija** | `docs/mapa/p7-burbuja-silencio-botones.md` |
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
+| **Tocar un CARTEL PROPIO de la app** —el aviso de un botón, la pregunta de sí/no o el cuadro que pide un valor—, **la escala de VELOCIDAD que se perdía al RECARGAR la página**, la **receta de la calibración manual**, o **las REPETIDAS del cartel de llegada de CeiboLink** con su botón «(0)» | `docs/mapa/p12-carteles-escala-repetidas.md` · los 41 diálogos nativos que quedan, en `docs/CENSO_DIALOGOS_P12.md` |
 | **Tocar la ESCALA DE VELOCIDAD de un Doppler espectral** —la fila de la línea de cero, el chequeo de coherencia, el cuadro propio de calibración con su unidad, o la marca de de dónde salió la escala en cada fila— | `docs/mapa/p10-escala-velocidad.md` |
 | **Tocar los DOS TAMAÑOS del visor** —el alto disponible de la imagen (`--cine-imgh`), el encaje en el envoltorio, el interruptor de la columna de medidas, la mudanza de la barra en pantalla completa, los botoncitos pegados a la imagen, la vista con foco, el Esc que sale del tamaño—, **las FLECHAS DEL TECLADO**, **las MEDIDAS POR CUADRO** o **el contorno de ayuda del Simpson** | `docs/mapa/p11-visor-tamanios-cuadros.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
@@ -296,7 +297,26 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,86 MB / 192.021 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P11** (los dos tamaños del visor, el teclado y las medidas por cuadro), sobre el árbol ya sellado: sello **`v20261122-1044`**, md5 **`0de4570e`**.
+  sin frameworks. Hoy **13,89 MB / 192.438 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P12** (el cartel propio, la escala de velocidad que se perdía al recargar y las repetidas de CeiboLink), sobre el árbol ya sellado: sello **`v20261122-1436`**, md5 **`ae874798`**.
+  El diff de P12 son **605 líneas agregadas y 188 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `921b72b` **sobre el árbol ya sellado**, de las que **413 son código
+  de verdad**, 169 comentario y 23 en blanco — las 605 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos en el marcado: los tres controles que esta
+  tanda agrega —el campo de `pedirProp` y los de los dos cuadros que ya existían— los crea el JS
+  y **ninguno lleva `id`**, que es lo que los deja fuera del censo del estudio y del Excel **por
+  construcción**: **cero campos guardados nuevos** y las **457** columnas quietas, medido con
+  TC-135, TC-479, TC-824 y TC-831 en verde.
+  **Y CERO cortes clínicos, cero fórmulas y cero umbrales.**
+  **CERO ids nuevos en el marcado**: el único que el diff muestra, `eco-build-sello`, ya existía y
+  reaparece porque el sello cambió. Lo nuevo son **marcas de atributo** —`data-ped-prop`— y
+  **ninguna cae en ninguno de los veintitrés barridos por sufijo o prefijo de id del archivo**.
+  ⚠️ **POR QUINCUAGÉSIMA NOVENA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 921b72b:index.html` da **192.021**
+  líneas, **13.859.558** bytes y el md5 **`0de4570e`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,86 MB / 192.021 al cierre de la tanda **P11** (los dos tamaños del visor, el teclado y las medidas por cuadro), sello **`v20261122-1044`**, md5 **`0de4570e`**.)
   El diff de P11 son **594 líneas agregadas y 43 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `1d7caeb` **sobre el árbol ya sellado**, de las que **265 son código
   de verdad**, 319 comentario y 10 en blanco — las 594 cierran exacto, y el filtro lleva el estado
@@ -1654,6 +1674,225 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda P12 (2026-11-22) — el cartel propio, la escala de velocidad que se perdía al recargar
+y las repetidas de CeiboLink.** CUATRO tareas (la 4 era sólo reportar) y SIETE commits. Sello
+**`v20261122-1436`**, md5 **`ae874798`**, **192.438** líneas. Línea base **`921b72b`**, el cierre
+de la tanda P11. **Sin push: lo corre Maicol.** **El puente CeiboLink NO se tocó**, y lo único
+que cambia de su lado es **cuándo** EcoSmart le manda un DELETE que ya sabía mandar.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
+`<input>`, `<select>` y `<textarea>` nuevos en el marcado, que deja todo esto fuera del censo del
+estudio y del Excel **por construcción**: cero campos guardados nuevos y las **457** columnas
+quietas.
+
+**TAREA 1.1 · EL CENSO: 106 → 41.** Contado separando código de comentario **con el estado del
+comentario de bloque**, que es lo que de verdad los separa en este archivo —un `grep` a secas
+marca cientos de comentarios que nombran un `alert` para explicar por qué NO se usa, y es la misma
+trampa que PANT-3 y PANT-13 documentan—. Las **65** convertidas son las de los tres flujos que el
+pedido acota; **las 41 que quedan están listadas una por una, con su función dueña, su pantalla y
+el costo de convertirlas, en `docs/CENSO_DIALOGOS_P12.md`**, que es lo que el punto 1.3 manda.
+
+**TAREA 1.2 · TRES PRIMITIVOS, Y UN SOLO MOLDE POR CLASE.** No se agregó ningún cartel nuevo: lo
+que se hizo fue darle un dueño único a cada clase y dejar el nombre viejo como **alias de una
+línea**. `avisoProp(titulo, texto)` es el `_medAviso` de P10 —el molde no tiene nada de la
+medición—; `preguntaProp(titulo, parrafos, rotuloSi, claseSi)` es el `borrConfirmar` de la tanda
+EQ con un cuarto argumento; y `pedirProp(titulo, texto, inicial, pista)` es nuevo y reemplaza a
+los dos `prompt` de los cajones de medición.
+⚠️ **LAS MARCAS NO SE CAMBIARON** —`data-med-aviso` y `data-borr-conf`—, y es deliberado: son por
+donde los casos encuentran cada cartel, y una marca nueva dejaría dos formas de buscar lo mismo.
+Un cartel, una marca.
+⚠️ **EL CUARTO ARGUMENTO HACÍA FALTA**: hasta P11 ese cartel era sólo para borrados y el botón era
+`btn-danger` fijo. P12 lo usa para decisiones que **no destruyen nada** —«¿Usar calidad
+original?», «¿Copiar al estudio de…?»— y ahí el rojo dice algo falso: le pinta de peligro una
+acción que no lo es, y el médico aprende a desconfiar del rojo. El rojo sigue siendo el valor por
+omisión, así que los veinte llamadores de antes no cambian de aspecto.
+⚠️ **EN `pedirProp` LA CADENA VACÍA ES UN VALOR VÁLIDO Y NO UNA CANCELACIÓN**, igual que en
+`prompt`: en los dos cajones «vacío borra», así que confundirla con cancelar le quitaría al médico
+la única forma de borrar un valor desde el teclado. Por eso su botón **no** se deshabilita con el
+campo vacío, al revés que los dos cuadros de calibración de P10.
+⚠️ **NINGUNO DE LOS TRES LLEVA UN SOLO `id`**: el censo del estudio y el Excel recorren
+`input[id]` y `select[id]`, así que un campo con id entraría a las 457 columnas por existir.
+
+**LOS CUATRO CASOS QUE MAICOL CONFIRMÓ**, cada uno con su comentario en el lugar: «La envolvente
+necesita al menos tres puntos» en `_medAreaUp`, «pasar a calidad original» en `imgSetCalidad`,
+«borrar varias imágenes» en `igSelEliminar` y «descartar lo que llegó» en `clnkDescartar`.
+
+**DOS CONTRATOS QUE NO SE ROMPIERON, Y CÓMO.** (1) **`_simpEscribirFEVI` devuelve `true` si
+escribió**, y de eso cuelgan las dos marcas `integrada` de MEDIR-4b (C2) **y una condición de la
+batería que la llama directo**: volverla `async` convertiría ese booleano en una promesa —siempre
+verdadera— y la marca quedaría puesta aunque el médico dijera que no, o sea un «ya está en el
+informe» sobre un campo que no se tocó. La pregunta salió a **`_simpPisarFEVIOK`**, su dueño
+único, que la hacen los **dos** llamadores; la escritura queda sincrónica y sin diálogo. (2)
+**`_simpPisarFEVIOK` y `medStrainElegirVista` devuelven SINCRÓNICAMENTE cuando no hay nada que
+preguntar**, y una promesa sólo cuando sí: con el campo vacío —el caso normal— integrar sigue
+siendo una operación sincrónica de punta a punta, así que los **cuatro** sitios de la batería que
+llaman a `medSimpsonIntegrar` y leen el campo en la línea siguiente no se enteran. El llamador
+distingue los dos casos con `=== true`.
+
+**PEDIR Y APLICAR QUEDAN SEPARADOS** en `dopCorregir`, `d2Corregir`, `imgSetCalidad`,
+`medSimpsonLimpiarTabla` y `medStrainLimpiar`: el valor que vuelve del cartel recorre
+**exactamente** el mismo camino que recorría el del `prompt` —la misma banda, el mismo
+normalizador, la misma marca de origen «mano»—. Con el cuerpo copiado en las dos ramas, el día que
+cambie la escritura una quedaría vieja.
+
+**Y EL `alert` DE `_dstAviso` FUERA DE UNA TANDA DEJA DE SERLO.** Es el que colgó una corrida de
+31 casos en P8 y que esta casa tiene escrito en su propia memoria: un caso que no lo sustituye se
+queda esperando un clic que nadie da.
+
+**TAREA 3.1 · QUÉ SE ENCONTRÓ, Y ERA ESTRUCTURAL.** `_cineRegistro` —el que arma lo que se escribe
+en `ceibomed_cine`— copiaba **NUEVE** campos de cada región y la región tiene **TRECE**. Los
+cuatro que faltaban son el **píxel de referencia** y su valor físico: `rx0`, `ry0`, `rvx`, `rvy`.
+Y de `ry0` cuelga la fila de la línea de cero, que es lo único que convierte una altura en una
+velocidad —P10 lo dejó escrito en `_dcmImgBaseY`—.
+**ESO EXPLICA LAS TRES MITADES DEL SÍNTOMA, y cada una sale de su propio predicado**: los **mm**
+se conservaban porque `_dcmImgRegionMedible` sólo necesita `dx, dy, ux, uy`; el **tiempo** se
+conservaba porque `_dcmImgRegionTiempo` sólo necesita `ux, dx`; y la **velocidad** se perdía
+porque `_dcmImgRegionVelocidad` exige además `ry0 != null && isFinite(ry0)` y `y0`.
+Y era el **único** camino de vuelta: `_cineDesdeRegistro` es el que consumen `medFijasRestaurar`
+—o sea recargar la página con una fija Doppler guardada— y la reapertura de un cineloop del
+estudio. **No es un borde: es TODA imagen Doppler que vuelva del disco.**
+
+**MEDIDO ANTES DE TOCAR UNA LÍNEA** (`scripts/_probe_p12_0.mjs`), sobre el viaje de ida y vuelta
+por este mismo registro: **ANTES** `velocidad:true, vti:true, baseY:600`; **DESPUÉS**
+`velocidad:false, vti:false, baseY:NaN`, con `rvx, rvy, rx0, ry0` listados como perdidos. **El
+tiempo daba `true` en los dos lados**, que es el control que separa los tres ejes.
+
+**MEDIDO DESPUÉS, DE PUNTA A PUNTA Y CON SUS DOS CONTROLES** (`scripts/_probe_p12_vti.mjs`): el
+mismo trazo da **43,2042 cm de VTI, pico 113,1 cm/s y gradiente máximo 5,116644 mmHg ANTES Y
+DESPUÉS del viaje**, las cinco cifras idénticas a seis decimales. **CONTROL POSITIVO**: con el
+registro recortado a los nueve campos de antes de P12 el VTI **falla**, así que dos «ok» iguales
+no pueden venir de que la sonda no mida nada. **CONTROL NEGATIVO**: una región 2D mide distancia
+antes y después con su `dx` y `dy` **idénticos** — los mm no se tocaron.
+
+⚠️ **NO HAY MIGRACIÓN NI LA NECESITA**, y sale del propio predicado: un registro escrito antes de
+P12 no trae `ry0` y `_dcmImgRegionVelocidad` lo rechaza, o sea que sigue diciendo «acá no se mide
+velocidad» —el lado seguro, y lo que hace hoy—. Lo que esta lista evita es que calcule una base
+**equivocada**. Un estudio viejo recupera su escala en cuanto se vuelva a guardar.
+⚠️ **LOS CUATRO SON NÚMEROS DEL ENCABEZADO Y NO LLEVAN NADA DEL PACIENTE**: coordenadas de píxel y
+valores de eje, ~40 bytes por región, dentro del registro de `ceibomed_cine` como ya vivían los
+otros nueve.
+
+**TAREA 3.3 · LA RECETA, CON UN SOLO DUEÑO** (`MED_CAL_VEL_RECETA` y `MED_CAL_VEL_RECETA2`),
+leída por el panel guía y por el cartel de «todavía no se puede medir acá».
+⚠️ **EL PEDIDO CONTRADECÍA LO QUE MEDIR-3 DEJÓ ESCRITO, Y SE RESOLVIÓ SIN QUITARLE NADA A LA
+APP.** MEDIR-3 sacó a propósito la obligación de marcar la línea de base —«el cero NO se marca: se
+CALCULA de los dos valores»— porque la base **no siempre entra en el recuadro del trazo**, y
+exigirla dejaba sin calibrar justo los archivos donde hace falta. Así que «Marcá el cero y otro
+punto» queda como **la forma recomendada** —es la más fácil de explicar y el cero es un valor que
+el cuadro acepta explícitamente— y la verdad de que sirven dos puntos cualesquiera queda en una
+oración aparte. **No se reintroduce ninguna obligación.** Declarado en **P12-d**.
+Y la instrucción **ya no dice «en m/s»**: la unidad se elige en el mismo cuadro desde P10 (2.5),
+así que fijarla en la guía ponía a las dos superficies diciendo cosas distintas del mismo gesto.
+El cuadro de cada marca nombra ahora el cero donde el médico lo va a leer.
+
+**TAREA 3.4 · `MED_COMO_CALIBRAR_VEL`**, la frase que dice **qué hacer**, leída por **CUATRO**
+lugares: el aviso de la herramienta Velocidad, el de VTI, el rechazo de `_vtiDe` y el de una fija
+sin escala. Va en el bloque de `<script>` **más temprano** de los tres que la leen: un `const` de
+nivel superior vive en el entorno léxico global y se alcanza por su nombre pelado desde los
+bloques de **después**, pero no desde los de **antes**.
+⚠️ **NOMBRA EL CONTROL POR EL RÓTULO QUE EL MÉDICO LEE y ahí se aparta de la letra del pedido**: el
+pedido dice «tocar la regla» y el botón dice **«Calibrar vel.»** —la 📏 de esta app es la
+herramienta **Distancia**, no ésta—. Mandarlo a buscar una regla sería mandarlo a un botón que no
+existe. Declarado en **P12-c**. **Y no se cambia de modo solo**, por orden expresa.
+
+**TAREA 2 · LAS TRES CARAS SON UN SOLO DEFECTO.** `sigue(g.idsNuevos)` adjuntaba las nuevas y las
+repetidas **se quedaban en el puente**, así que el sondeo siguiente —o recargar la página— las
+volvía a ofrecer; y con cero nuevas el botón decía «Agregar sólo las nuevas» **a secas, sin
+número**, así que el médico quedaba en un cartel sin salida y sin nada que le explicara por qué.
+**2.1 y 2.2** se cierran con **`_clnkBorrarEnPuente(ids, conProgreso)`**, el dueño único del
+borrado en CeiboLink: el cuerpo estaba **dentro** de `clnkDescartar`, pegado a su confirmación, y
+con el cuerpo copiado el día que cambie la regla de qué se olvida y qué se anota uno de los dos
+quedaría viejo —y eso es justo la parte delicada: `_clnkAvisadas` y el registro persistido—.
+**2.3**: el número se dice **siempre**, también cuando es cero. **2.4**: el registro persistente
+de ids ya vistos **no se tocó** —se lee con `_clnkVistaDe` y se escribe con `_clnkVistasMarcar`,
+las dos de P9—.
+⚠️ **NO SE PREGUNTA DOS VECES**: elegir «sólo las nuevas» **ES** la decisión sobre las repetidas,
+así que el consentimiento ya está dado. Lo que hacía falta es que el cartel lo **diga antes** de
+que el médico apriete, y lo dice.
+⚠️ **Y BORRARLAS NO PIERDE NADA**, que es lo que lo hace seguro: una repetida está, por definición
+del registro `ett_clnk_vistas`, en un estudio, en un estudio guardado, en «Imágenes sin estudio» o
+ya descartada. La copia del puente es la de más.
+⚠️ **EL ORDEN**: primero se abre la pregunta de destino de las nuevas y **después** se borran las
+repetidas, en segundo plano y **sin progreso en el modal** —ahí ya está la pregunta que el médico
+contesta—. Y **no se espera el borrado** para seguir: un puente que no responde no puede bloquear
+lo que el médico pidió. **El grupo recortado lo arma `sigue`, recibido por parámetro**, que es el
+mismo que usa «todas igual»: con dos cuerpos, el cartel de destino podría contar una cosa por un
+botón y otra por el otro.
+⚠️ **UN DEFECTO QUE LA MEDICIÓN DESTAPÓ Y LA LECTURA NO**: la aclaración de «se descartan» iba
+**antes** de `clnkAvisoAbrir` y **`_clnkAvisoTexto` LA PISABA** —esa función se evalúa como
+**argumento** de la apertura, o sea después de cualquier asignación de arriba, y reescribe
+`g.avSub` con el equipo y la hora—. Es la misma clase de defecto que el prompt 6 pagó con el orden
+de «rearmar primero y el título después». Hoy se agrega **después** de abrir.
+
+**LO MEDIDO DE LA TAREA 2** (`scripts/_probe_p12_t2.mjs`), tres escenas contra el conector falso:
+con **1 nueva y 2 repetidas** el botón dice «(1)», el cuerpo dice «las 2 repetidas se descartan de
+CeiboLink: no quedan esperando», y en el puente **ANTES** `[img_p1, img_p2, img_p3]` y **DESPUÉS**
+de apretar **`[img_p3]`** —las dos repetidas borradas, la nueva esperando su destino— con las dos
+marcadas `descartada` en el registro persistido; con **0 nuevas** el botón dice
+**«✅ Agregar sólo las nuevas (0)»**, `disabled`, **opacidad computada 0,45** y título «No hay
+ninguna nueva: todas las que llegaron ya las tenés», y apretarlo **no pierde nada**: las tres
+siguen en el puente; y el **CONTROL NEGATIVO** con las tres nuevas da `nRepes 0`, la pregunta de
+«qué agregar» no se abre y no se habla de descartar.
+
+**TAREA 4 · SÓLO REPORTE, Y DOS DE LAS TRES PREMISAS RESULTARON FALSAS.**
+⚠️ **4.1 · LA FLECHA NO ES UN DEFECTO DE LA FLECHA: ES LA MISMA CAUSA QUE 3.1.** Medido en cinco
+escenarios (`scripts/_probe_p12_t4.mjs`): con la imagen **FRESCA** y la escala del archivo da ↑
+arriba de la base (+94,25 cm/s) y ↓ abajo (−94,25), o sea **correcto**; con la escala **manual**
+también, que es lo que el médico reportó. El ↑ que vio abajo de la línea sale del registro
+**viejo**: sin `ry0`, `_dcmImgBaseY` da `NaN`, `cms` da `NaN` y **`NaN < 0` es FALSO**, así que el
+ternario cae **siempre** en ↑ —en los dos lados—. Con el registro de hoy vuelve a dar ↑/↓. Queda
+**CERRADO por el arreglo de la TAREA 3** y no se toca una línea más: el pedido dice «corregí sólo
+si queda demostrado», y lo demostrado es que ya está corregido. El único caso que **sería** un
+defecto de la flecha es un archivo con `dy` **positivo**, y ninguno de los que esta casa midió lo
+declara: las 132 regiones del pendrive tienen `dy < 0`.
+⚠️ **4.2 · LA PREMISA ES FALSA EN LA TABLA DEL VISOR Y CIERTA UN PASO DESPUÉS.** Medido
+(`scripts/_probe_p12_t42.mjs`): la tabla publica las **dos** marcas distintas a la vez —«escala
+del archivo» y «escala vel. a mano»— más el renglón ámbar arriba del botón que carga al informe.
+Lo que **sí** se pierde es al **cargar**: `medVtiCargar` no menciona `velManual` y **no existe**
+ningún campo gemelo donde viva la procedencia (`itv_tsvi_origen` no existe). **No se agrega la
+marca**, que es lo que el pedido manda. → **P12-e**
+⚠️ **4.3 · LA PREMISA ES FALSA EN SUS DOS MITADES, Y ES MEJOR DE LO QUE EL PEDIDO SUPONE.**
+Medido: con los diámetros puestos en los campos de la app, lo que `_vtiQpQs` declara que falta son
+**sólo los dos VTI** —ni el diámetro del TSVI ni el del TSVD—, o sea que **el visor SÍ lee los de
+la app**; y `medVtiDiametro` escribe a **esos mismos campos**. El pasaje es **bidireccional por un
+dueño único**, que son los campos del informe. **No se cambia nada.** → **P12-f**
+**4.4 · la lista exacta de los rojos** está más abajo, en la línea base de esta tanda.
+
+**COBERTURA: SEIS casos nuevos, TC-1017 a TC-1022**, uno por corrección, y los seis caen
+**0/6 contra `921b72b`** con el mismo archivo de casos y sólo el `index.html` distinto, verificado
+en un worktree, **por sus CONDICIONES y NINGUNO por excepción**. Cada rojo nombra su causa: los
+tres primitivos que no existen y los nativos que **sí** se llaman; la región que vuelve con nueve
+campos y la base en **NaN** con el VTI en «43,2042 vs null»; las tres imágenes **todavía en el
+puente** sin quedar marcadas; el botón **sin el `(0)`**; la receta que no existe; y la flecha
+diciendo **«arriba / arriba»** en los dos lados, que es el defecto del médico reproducido en un
+caso. **Los controles pasan en los DOS árboles** —no aparecen entre los rojos— y eso es lo que
+prueba que las sondas distinguen escenarios en vez de decir que sí a todo.
+
+⚠️ **TRES TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios comentarios**
+en el cuerpo de un caso, por trigésima segunda tanda seguida: **seis** veces, y lo que las cazó
+fue el **guardián de `scripts/_insertar_p12.py`**, que las cuenta y **aborta antes de tocar el
+runner** — abortó de verdad. (2) **Una medición sobre un denominador vacío**: la primera corrida de
+la sonda de la TAREA 2 dio `vinculado:false` y midió **nada** —el conector falso se controla por
+`/_control` y la vinculación necesita el código en su campo más `clnkVincular()`, porque el token
+es de EcoSmart y `vinculado:true` del falso no alcanza—. (3) **Un parámetro que el falso no
+nombra así**: el token vive en `ett_ceibolink_token` y no en `ett_clnk_token`, así que el
+inventario del puente volvía `null` y `repesBorradas` se calculaba sobre una lista vacía, que se
+lee igual que «se borraron».
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en las
+cuatro tareas y su verificación. Este archivo pesa más de 620 KB.
+
+Lo declarado, en **P12-a** a **P12-g**; el mapa, en
+`docs/mapa/p12-carteles-escala-repetidas.md`; el censo de los 41 diálogos que quedan, en
+`docs/CENSO_DIALOGOS_P12.md`; las fichas de los seis casos, en `docs/mapa/tests-fichas-1017.md`;
+la guía manual para la Mac y para Windows, en `docs/GUIA_PRUEBA_P12.md` (**15** pasos); las
+sondas, en `scripts/_probe_p12_0.mjs` (la línea base del viaje), `scripts/_probe_p12_vti.mjs` (el
+VTI de punta a punta), `scripts/_probe_p12_t2.mjs` (la TAREA 2 contra el conector falso),
+`scripts/_probe_p12_t4.mjs` (la flecha) y `scripts/_probe_p12_t42.mjs` (4.2 y 4.3); el insertador
+con su guardián, en `scripts/_insertar_p12.py`; el corredor de lotes, en
+`scripts/_lotes_p12.sh`.
 
 **La tanda P11 (2026-11-22) — los dos tamaños del visor, el teclado y las medidas por cuadro.**
 TRES tareas (la 3 era sólo reportar) y CUATRO commits. Sello **`v20261122-1044`**, md5

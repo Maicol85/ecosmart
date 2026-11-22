@@ -4339,3 +4339,70 @@ errores de consola y de página en los dos motores**.
 - **Un servidor de sonda que manda la cabecera antes de leer el archivo** revienta con
   `ERR_HTTP_HEADERS_SENT` en cuanto falta un archivo, y mata la sonda entera. Lo pagó medir contra
   un árbol de comparación que sólo tiene el `index.html`.
+
+---
+
+## P12 (2026-11-22) — el cartel propio, la escala de velocidad que se perdía y las repetidas
+
+**Sello** `v20261122-1436` · **md5** `ae874798` · **192.438** líneas · **línea base** `921b72b`
+**Commits:** siete. **Sin push: lo corre Maicol.** **El puente CeiboLink no se tocó.**
+
+**Qué se hizo.** CUATRO tareas; la 4 era sólo reportar.
+
+1. **El censo de las ventanas nativas: 106 → 41.** Las 65 de los tres flujos que el pedido acota
+   —visor de imágenes y cineloop, biblioteca de imágenes, cartel de llegada de CeiboLink— pasan a
+   cartel propio. Las 41 que quedan están listadas una por una en `docs/CENSO_DIALOGOS_P12.md`,
+   que es lo que el punto 1.3 manda.
+2. **Tres primitivos y un solo molde por clase**, sin inventar ningún cartel: `avisoProp` (el
+   `_medAviso` de P10, renombrado al dueño único), `preguntaProp` (el `borrConfirmar` de la tanda
+   EQ, con un cuarto argumento para la clase del botón del sí) y `pedirProp`, nuevo, que reemplaza
+   a los dos `prompt` de los cajones de medición. Los dos nombres viejos quedan como alias de una
+   línea y **las marcas no se cambiaron**.
+3. **La escala de velocidad sobrevive a recargar la página.** `_cineRegistro` copiaba nueve de los
+   trece campos de cada región y dejaba afuera el píxel de referencia.
+4. **Las repetidas de CeiboLink se descartan solas y el botón dice «(0)».**
+5. **Cuatro puntos de solo reporte**, de los cuales **dos premisas resultaron falsas**.
+
+**Lo que esta tanda deja medido y no supuesto.**
+
+- El defecto de la escala: **antes** del viaje por el registro `velocidad:true, vti:true,
+  baseY:600`; **después** `velocidad:false, vti:false, baseY:NaN`. El **tiempo** daba `true` en
+  los dos lados, que es el control que separa los tres ejes.
+- El mismo trazo da **43,2042 cm de VTI, pico 113,1 cm/s y gradiente máximo 5,116644 mmHg** antes
+  y después del arreglo, las cinco cifras idénticas a seis decimales, con control positivo (el
+  registro de nueve campos **falla**) y negativo (la escala 2D en mm sobrevive con su `dx` y `dy`
+  idénticos).
+- La TAREA 2 contra el conector falso: con 1 nueva y 2 repetidas, el puente pasa de
+  `[p1, p2, p3]` a **`[p3]`**, y las dos repetidas quedan marcadas `descartada` en el registro
+  persistido. Con 0 nuevas, el botón dice **«(0)»**, está `disabled` y su opacidad computada es
+  **0,45**.
+
+**Las trampas que pagó.**
+
+- **El acento grave dentro de mis propios comentarios en el cuerpo de un caso**, por trigésima
+  segunda tanda seguida: **seis** veces. Lo que las cazó fue el **guardián** de
+  `scripts/_insertar_p12.py`, que las cuenta y **aborta antes de tocar el runner**. Abortó de
+  verdad, y eso es lo que lo hace valer.
+- **Un denominador vacío en la primera corrida de la sonda de la TAREA 2.** Dio
+  `vinculado:false` y midió **nada**: el conector falso se controla por `/_control` —no por un
+  endpoint de escenas— y la vinculación necesita el código **en su campo** más `clnkVincular()`,
+  porque el token es de EcoSmart y `vinculado:true` del falso no alcanza. Es la lección que
+  ECO-CONECTOR-5 ya dejó escrita.
+- **Una clave con el nombre equivocado.** El token vive en `ett_ceibolink_token` y no en
+  `ett_clnk_token`, así que el inventario del puente volvía `null` y `repesBorradas` se calculaba
+  sobre una lista **vacía** — que se lee igual que «se borraron». Un cero sobre nada.
+- **Una asignación que un argumento pisaba.** La aclaración de «las repetidas se descartan» iba
+  **antes** de `clnkAvisoAbrir`, y `_clnkAvisoTexto` —que se evalúa como **argumento** de esa
+  llamada, o sea después— reescribe `g.avSub` con el equipo y la hora. Lo destapó la medición y no
+  la lectura. Es la misma clase de defecto que el prompt 6 pagó con el orden de «rearmar primero
+  y el título después».
+- **Una duplicación que me hice yo y corregí en el acto**: `_clnkSoloNuevas` arrancó con su propia
+  copia del armado del grupo recortado, que es exactamente lo que el comentario de al lado
+  prohíbe. Pasó a recibir `sigue` por parámetro.
+- **Dos cierres de llave de menos** al convertir `cfgBorrarTodasImagenes` y el borrado del envío de
+  la bandeja: los cazó `check_js_inline.py`, que es el único que ve que el navegador descartaría
+  el bloque **entero** en silencio.
+
+**Lo que NO se hizo, y por qué.** Las 41 ventanas nativas que quedan, por el punto 1.3. La marca
+de procedencia de la escala en el campo del informe (4.2) y el pasaje de los diámetros (4.3), por
+ser de solo reporte. La mudanza de «Estado vigente» a `docs/archivo/`, por vigésima tanda seguida.

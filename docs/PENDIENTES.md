@@ -19397,3 +19397,81 @@ los dos motores y el sello.
   del accesor que el MAPA de `_vNueva` define con `Object.defineProperty` y el de la función que
   calcula la clave — dos dueños de la misma propiedad de `window`. La función pasó a llamarse
   `_medClaveCuadro`.
+
+## Tanda P12 (2026-11-22) — lo declarado
+
+- **P12-a · LOS 41 DIÁLOGOS NATIVOS QUE QUEDAN, Y EL ORDEN MÁS BARATO PARA CONVERTIRLOS.** El
+  punto 1.3 del pedido dice que las que queden fuera de los tres flujos **no** se conviertan y se
+  dejen listadas. Están los 41, uno por uno, con su línea, su tipo, su función dueña, la pantalla
+  donde el médico los encuentra y el costo de cada grupo, en **`docs/CENSO_DIALOGOS_P12.md`**.
+  **Lo que cuesta no está en el producto**: los tres primitivos ya existen y un
+  `alert(x) → avisoProp(t, x)` no cambia ningún contrato. Está en **adaptar los casos de la
+  batería** que sustituyen el diálogo nativo para capturar su mensaje: medido, **156 casos
+  distintos** lo hacen. El orden más barato arranca por los **tres del panel de equipos de
+  CeiboLink**, que ya son `async` y son destructivos —así que `borrConfirmar` con su rojo les
+  calza exacto—, y sigue por los **tres «la biblioteca PDF está cargando»**, que antes del cartel
+  piden un dueño único porque hoy el mismo texto vive en tres lugares. **Lo decide el médico.**
+
+- **P12-b · LOS TRES `prompt` DE CONFIGURACIÓN SIGUEN SIENDO NATIVOS, Y SON LOS QUE MÁS SE USAN.**
+  `cfgEditCentro` y los tres de `cfgEditMedico` piden el nombre del centro, el nombre del médico,
+  la matrícula y la especialidad, o sea **los cuatro valores que van a la cabecera de todo
+  documento firmado**. Convertirlos con `pedirProp` es mecánico. Lo que hay que **decidir** es si
+  el nombre y la matrícula merecen validación en pantalla: hoy un nombre vacío se acepta y se
+  corrige después, y un documento firmado sin matrícula es un problema distinto del de la forma
+  del cartel. Quedan fuera por el punto 1.3.
+
+- **P12-c · LA FRASE DEL «QUÉ HACER» NOMBRA EL BOTÓN POR SU RÓTULO Y NO «LA REGLA».** El pedido
+  (3.4) dice que el mensaje mande a «ir a Velocidad y tocar la regla». **El botón se llama
+  «Calibrar vel.» y no lleva ningún icono de regla**: la 📏 de esta aplicación es la herramienta
+  **Distancia**. Censado: cero apariciones de 📏 o 📐 en el control de calibración. Mandar al
+  médico a buscar una regla sería mandarlo a un botón que no existe, así que
+  `MED_COMO_CALIBRAR_VEL` nombra el control por el rótulo que el médico **lee**. Si el médico
+  prefiere que el botón lleve una regla, eso es cambiarle el rótulo a un control que tres casos
+  miden, y es otra decisión.
+
+- **P12-d · «MARCÁ EL CERO Y OTRO PUNTO» ES LA FORMA RECOMENDADA, NO UNA OBLIGACIÓN.** El pedido
+  (3.3) pide que la instrucción diga eso «claramente». **MEDIR-3 sacó a propósito la obligación de
+  marcar la línea de base** y lo dejó escrito con todas las letras: «desde esta tanda el cero NO
+  se marca: se CALCULA de los dos valores», porque la base **no siempre entra en el recuadro del
+  trazo** —y exigirla dejaba sin calibrar justo los archivos donde la calibración manual hace
+  falta—. P10 lo repitió en `_medCalPedirVel`. Reintroducir la obligación sería deshacer eso.
+  La solución: la receta que el médico pidió queda como **la forma recomendada** —es la más fácil
+  de explicar y de ejecutar, y el cuadro acepta el 0 explícitamente— y la verdad de que sirven dos
+  puntos cualesquiera queda en una oración aparte (`MED_CAL_VEL_RECETA2`). **Nadie pierde una
+  capacidad.** Si el médico quiere que el cero sea obligatorio de verdad, hay que decidir qué pasa
+  con los archivos cuya base cae fuera del recuadro.
+
+- **P12-e · LA PROCEDENCIA DE LA ESCALA NO VIAJA AL CAMPO DEL INFORME, Y NO SE AGREGÓ.** Punto
+  4.2, que era de **solo reporte**. Medido: **la tabla del visor SÍ publica las dos marcas
+  distintas** —«escala del archivo» y «escala vel. a mano»— y, además, un renglón ámbar arriba del
+  botón «→ Cargar los VTI en el informe» que dice cuántas de las dos envolventes asignadas salieron
+  de una escala puesta a mano. O sea que **la premisa del pedido es falsa en la tabla del visor**.
+  Lo que **sí** se pierde es un paso después: `medVtiCargar` escribe `el.value = val.toFixed(1)` en
+  `itv_tsvi` y `vti_tsvd` y **nada más** —no menciona `velManual` y no existe ningún campo gemelo
+  donde viva la procedencia—, así que de ahí en adelante los dos VTI son dos números y nada dice
+  con qué eje se midieron.
+  **Lo que costaría mantener la marca**: un campo guardado nuevo por cada VTI —o una marca en el
+  objeto del estudio— más su columna de Excel si tiene que sobrevivir a la reimportación, más
+  decidir si el **informe firmado** publica «VTI 22,4 cm (escala calibrada a mano)», que es
+  contenido clínico y lo decide el médico. **No se agregó**, que es lo que el punto 4.2 manda.
+
+- **P12-f · EL PASAJE DE LOS DIÁMETROS VISOR ↔ APP YA ES BIDIRECCIONAL, POR UN DUEÑO ÚNICO.**
+  Punto 4.3, que era de **solo reporte**, y **la premisa es falsa en sus dos mitades**. Medido:
+  `_vtiQpQs` lee `_vtiNum('diam_tsvi')` y `_vtiNum('tsvd_diametro')`, o sea **los campos del
+  informe**, así que **el visor SÍ lee los diámetros cargados en la app** —con los dos puestos, lo
+  que declara que falta son sólo los dos VTI—; y `medVtiDiametro` escribe a **esos mismos campos**,
+  así que la app SÍ lee lo que se escribe en el visor. **No hay dos copias del dato**: hay una, y
+  vive donde ese dato vive.
+  **De dónde sale la confusión**: el panel del visor dice «falta el diámetro del TSVI» hasta que el
+  campo tiene valor, y ese campo vive en **otra pestaña** de la app —no al lado del visor—, así que
+  el médico no tiene cómo saber que ya lo cargó. **Lo que costaría que sea más claro**: el panel
+  podría decir **de dónde** sale cada diámetro que sí tiene y **en qué pestaña** está el que falta
+  —dos líneas, leyendo el rótulo del campo, sin tocar un cálculo— y el botón «usar como Ø TSVI»
+  podría decir que escribe en el informe, que es lo que ya hace. **No se cambió nada**, que es lo
+  que el punto 4.3 manda. **Lo decide el médico.**
+
+- **P12-g · LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` SIGUE SIN HACERSE**, por vigésima
+  tanda seguida. `CLAUDE.md` pesa más de **620 KB** —unos 170k tokens— y su primera regla manda
+  leerlo entero, así que consume más de la mitad de una ventana antes de empezar a trabajar. Lo
+  que hay que mudar hoy es todo lo anterior a **P10**, o sea de **P9 hacia atrás**. Es media hora
+  de `sed` y deja el archivo en el tamaño que la regla de la LIMPIEZA-1 promete.
