@@ -157639,6 +157639,228 @@ caso('TC-994', 'P9 1.6 a 1.8: una medicion guardada deja UN solo elemento en la 
   })();
 `);
 
+/* ══ P9 · TAREA 2 · GUARDAR, REABRIR Y EXPORTAR ════════════════════════════════════════════
+   El medico midio tres sintomas --el PDF de un guardado salia con TODAS las imagenes, una
+   imagen sacada del papel volvia, y un reenvio del ecografo duplicaba-- y los tres salen del
+   MISMO defecto: el repoblado de imgSlots de la reimpresion copiaba tres campos y tiraba
+   noPdf, _srcKey, videoId y esquema. */
+caso('TC-995', 'P9 2.1 a 2.3: el PDF de un estudio guardado respeta lo que el medico marco --la reimpresion conserva la marca, el video sigue siendo video-- y guardar, cerrar, reabrir y exportar da siempre lo mismo que la grilla', `
+  return (async () => {
+    /* ⚠️ EL DENOMINADOR PIDE **SOLO** CeiboImg, y es a proposito: lo que este caso mide --que el
+       PDF de un estudio guardado respete lo que el medico marco-- es medible en el arbol
+       ANTERIOR, donde falla por la condicion (C0) y no por un denominador. Pedir ademas la
+       grilla nueva lo haria caer por «no existe» y no probaria el defecto. */
+    if (typeof CeiboImg === 'undefined') {
+      return { extra: [['DENOMINADOR: este navegador tiene CeiboImg', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    let togglePrevio = null, estudioId = null, uuid = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const jpg = (color) => {
+      const c = document.createElement('canvas'); c.width = 24; c.height = 18;
+      const x = c.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, 24, 18);
+      const du = c.toDataURL('image/jpeg', 0.9);
+      const u = Uint8Array.from(atob(du.split(',')[1]), ch => ch.charCodeAt(0));
+      return new File([u], 'p9_' + color.slice(1) + '.jpg', { type: 'image/jpeg' });
+    };
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esp(250);
+      __t.set('nombre', 'P9 DOS UNO'); __t.set('ci', '95590995');
+      const g = await __t.guardar(); estudioId = g.estudioId;
+      await esp(900);
+      __t.reabrir(estudioId); await esp(1600);
+      showTab('imagenes'); await esp(150);
+      await mediosImportar([jpg('#c02020'), jpg('#20c020'), jpg('#2020c0'), jpg('#c0c020')],
+                           undefined, 'ceibolink');
+      await esp(400);
+      const idxs = imgSlots.map((s, i) => (s && s.dataURL) ? i : -1).filter(i => i >= 0);
+      if (idxs.length < 4) return { extra: [['DENOMINADOR: entraron las cuatro imagenes', false, 'entraron ' + idxs.length]] };
+      /* El medico manda DOS al PDF y deja DOS afuera: es el escenario exacto del reporte. */
+      imgTogglePdf(null, idxs[0]); imgTogglePdf(null, idxs[1]);
+      await esp(250);
+      R.aGrilla = infMinCapturas().length;
+      ex.push(['(A1) DENOMINADOR: dos de cuatro estan marcadas para el PDF', R.aGrilla === 2, 'enPdf=' + R.aGrilla]);
+      /* ⚠️ NO SE LLAMA A __t.guardar() OTRA VEZ: ese helper pone _ettEditandoId en null, asi
+         que el segundo guardado crea un estudio NUEVO con otro uuid y las imagenes se irian
+         ahi --el caso medira sobre el uuid del primero y veria cero--. Lo que guarda las
+         imagenes de un estudio ya guardado es imgPersistir, que es lo que guardarInforme llama
+         con el uuid del estudio. */
+      const inf = getInformes().filter(i => i.estudioId === estudioId)[0];
+      uuid = inf && inf.uuid;
+      R.hayUuid = !!uuid;
+      await imgPersistir(uuid); await esp(900);
+      const guard = await CeiboImg.leer(uuid);
+      R.aDisco = (guard || []).length;
+      R.aDiscoNoPdf = (guard || []).filter(s => s && s.noPdf).length;
+      ex.push(['(A2) las cuatro quedan en disco y DOS con la marca de que no van al papel',
+        R.aDisco === 4 && R.aDiscoNoPdf === 2, 'disco=' + R.aDisco + ' noPdf=' + R.aDiscoNoPdf]);
+
+      /* -- B - CERRAR Y REABRIR: LA DECISION SOBREVIVE (2.2) --------------------------- */
+      __t.limpiar(); imgVaciar(); await esp(400);
+      __t.reabrir(estudioId); await esp(1800);
+      R.bSlots = imgSlots.filter(s => s && s.dataURL).length;
+      R.bEnPdf = infMinCapturas().length;
+      R.bGrillaArriba = document.querySelectorAll('#img-pdf-grid > div[data-idx]').length;
+      ex.push(['(B1) al reabrir siguen las cuatro y SOLO dos en el PDF',
+        R.bSlots === 4 && R.bEnPdf === 2,
+        'slots=' + R.bSlots + ' enPdf=' + R.bEnPdf]);
+      ex.push(['(B1b) y la grilla de arriba muestra esas dos',
+        R.bGrillaArriba === 2, 'grilla=' + R.bGrillaArriba]);
+
+      /* -- C - EXPORTAR DESDE GUARDADOS **SIN** REGENERAR (2.1) ------------------------ */
+      /* Se mide el repoblado que usa el emisor del PDF, que es lo que fallaba: se lee por uuid
+         y se arma el mismo objeto que _pdfDeInformeGuardadoArmar pone en imgSlots. */
+      const leidas = await CeiboImg.leer(uuid);
+      const repobladas = (leidas || []).filter(s => s && window._imgSrcOK !== undefined ? true : true);
+      R.cTotal = (leidas || []).length;
+      R.cSaldrian = (leidas || []).filter(s => !s.noPdf && !s.videoId).length;
+      ex.push(['(C1) lo que el PDF de un guardado va a imprimir son DOS, no las cuatro',
+        R.cSaldrian === 2 && R.cTotal === 4, 'imprime=' + R.cSaldrian + ' de ' + R.cTotal]);
+      /* Y el camino de verdad: se genera el PDF del estudio guardado y se cuentan sus imagenes. */
+      /* ⚠️ SE CUENTAN **LAS MIAS** Y NO TODAS LAS LLAMADAS A addImage: el PDF dibuja el logo
+         del centro y los diagramas por el mismo metodo, asi que el total no discrimina nada.
+         Se guardan los cuatro dataURL de las casillas y se cuenta cuantos de ESOS entraron.
+         Con el defecto --el repoblado que tiraba noPdf-- este numero era 4. */
+      const mias = imgSlots.filter(s0 => s0 && s0.dataURL).map(s0 => s0.dataURL);
+      const jsPDFReal = window.jspdf && window.jspdf.jsPDF;
+      R.cHayJs = !!jsPDFReal;
+      if (jsPDFReal) {
+        let total = 0, mias2 = 0;
+        const Env = function (...a) {
+          const d = new jsPDFReal(...a);
+          const ai = d.addImage.bind(d);
+          d.addImage = function (...b) {
+            try { total++; if (mias.indexOf(b[0]) >= 0) mias2++; } catch (e) {}
+            return ai(...b);
+          };
+          d.save = function () { return d; };
+          return d;
+        };
+        Env.API = jsPDFReal.API;
+        window.jspdf.jsPDF = Env;
+        try {
+          pdfDeInformeGuardado(getInformes().filter(i => i.estudioId === estudioId)[0].id, 'guardar');
+          for (let i = 0; i < 150 && total === 0; i++) await esp(100);
+          await esp(2500);
+        } finally { window.jspdf.jsPDF = jsPDFReal; }
+        R.cImgsPdf = total; R.cMiasPdf = mias2;
+      }
+      ex.push(['(C0) el PDF del estudio guardado imprime SOLO las dos marcadas, no las cuatro',
+        R.cHayJs === false || R.cMiasPdf === 2,
+        'mias=' + R.cMiasPdf + ' de 4 · total addImage=' + R.cImgsPdf]);
+      /* El PDF dibuja ademas el logo y los diagramas, asi que lo que se exige es que el numero
+         sea el de la grilla y NO el del disco: con el defecto, este camino emitia las cuatro. */
+      R.cSlotsTrasExportar = imgSlots.filter(s => s && s.dataURL).length;
+      R.cEnPdfTrasExportar = infMinCapturas().length;
+      ex.push(['(C2) y despues de exportar el formulario queda como estaba: cuatro y dos',
+        R.cSlotsTrasExportar === 4 && R.cEnPdfTrasExportar === 2,
+        'slots=' + R.cSlotsTrasExportar + ' enPdf=' + R.cEnPdfTrasExportar]);
+
+      /* -- D - GUARDAR OTRA VEZ NO PIERDE LA MARCA (el 2.2 por la otra puerta) --------- */
+      await imgPersistir(uuid); await esp(900);
+      const g2 = await CeiboImg.leer(uuid);
+      R.dNoPdf = (g2 || []).filter(s => s && s.noPdf).length;
+      R.dSrcKey = (g2 || []).filter(s => s && typeof s._srcKey === 'string' && s._srcKey).length;
+      ex.push(['(D1) volver a guardar conserva la marca --y la clave de archivo, que es de lo que depende no duplicar--',
+        R.dNoPdf === 2 && R.dSrcKey === 4, 'noPdf=' + R.dNoPdf + ' srcKey=' + R.dSrcKey]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-996', 'P9 2.5: los cineloops que se guardan con el estudio siguen estando al cerrarlo y reabrirlo, y la tira los vuelve a mostrar', `
+  return (async () => {
+    if (typeof CeiboCine === 'undefined') {
+      return { extra: [['DENOMINADOR: este navegador tiene CeiboCine', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, alertOrig = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    let togglePrevio = null, estudioId = null, uuid = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esp(250);
+      __t.set('nombre', 'P9 CINES'); __t.set('ci', '95590996');
+      const g = await __t.guardar(); estudioId = g.estudioId;
+      await esp(900);
+      __t.reabrir(estudioId); await esp(1600);
+      const inf = getInformes().filter(i => i.estudioId === estudioId)[0];
+      uuid = inf && inf.uuid;
+      R.hayUuid = !!uuid;
+      /* Se escribe el cineloop por la MISMA puerta que usa el guardado del estudio: un
+         registro de tres cuadros bajo el uuid del estudio abierto. */
+      const n = 3, datos = new Uint8Array(JPG.length * n), offs = new Int32Array(n);
+      for (let i = 0; i < n; i++) { offs[i] = i * JPG.length; datos.set(JPG, i * JPG.length); }
+      await CeiboCine.guardar({ id: _uuidNuevo(), uuid: uuid, nombre: 'apical 4c', cuadros: n,
+        ms: 40, cols: 200, filas: 160, poster: '', datos: datos, offs: offs,
+        bytes: datos.length, regiones: [], ts: new Date().toISOString() });
+      await cineStripRender(); await esp(600);
+      R.aCines = (await CeiboCine.listar(uuid)).length;
+      R.aTarjetas = document.querySelectorAll('#cine-strip [data-strip-i]').length;
+      ex.push(['(A1) DENOMINADOR: el cineloop quedo bajo el uuid del estudio y la tira lo muestra',
+        R.hayUuid && R.aCines === 1 && R.aTarjetas === 1,
+        'uuid=' + R.hayUuid + ' cines=' + R.aCines + ' tarjetas=' + R.aTarjetas]);
+      /* -- GUARDAR, CERRAR Y REABRIR -------------------------------------------------- */
+      await __t.guardar(); await esp(1300);
+      __t.limpiar(); imgVaciar(); await esp(500);
+      __t.reabrir(estudioId); await esp(1900);
+      const inf2 = getInformes().filter(i => i.estudioId === estudioId)[0];
+      R.uuidIgual = !!(inf2 && inf2.uuid === uuid);
+      R.bCines = (await CeiboCine.listar(uuid)).length;
+      /* Un turno del bucle de eventos antes de showTab: esa funcion lee el window.event GLOBAL
+         y justo despues de una escritura en IndexedDB ese global es el success de la
+         transaccion, cuyo target no tiene classList (P30-d, preexistente y declarado). */
+      await esp(80);
+      try { showTab('imagenes'); } catch (e) { R.showTab = String(e && e.message || e); }
+      await esp(900);
+      /* ⚠️ SE MIDE **ANTES** DE PEDIR EL REPINTADO A MANO. El reporte del medico dice que al
+         reabrir los cines no estan; si el dato esta en disco y lo que falta es que la tira se
+         vuelva a dibujar sola, llamar al repintador aca lo taparia y el caso pasaria sobre el
+         defecto. */
+      R.bTarjetasSolas = document.querySelectorAll('#cine-strip [data-strip-i]').length;
+      await cineStripRender(); await esp(700);
+      R.bTarjetas = document.querySelectorAll('#cine-strip [data-strip-i]').length;
+      R.bCuenta = (document.getElementById('img-cuenta') || {}).textContent || '';
+      ex.push(['(B1) el uuid del estudio NO cambia al guardarlo otra vez',
+        R.uuidIgual === true, 'igual=' + R.uuidIgual]);
+      ex.push(['(B2) el cineloop sigue asociado al estudio y la tira lo vuelve a mostrar',
+        R.bCines === 1 && R.bTarjetas === 1, 'cines=' + R.bCines + ' tarjetas=' + R.bTarjetas]);
+      ex.push(['(B2b) y se dibuja SOLA al reabrir, sin que nadie pida el repintado',
+        R.bTarjetasSolas === 1, 'solas=' + R.bTarjetasSolas]);
+      ex.push(['(B3) y el renglon de la biblioteca lo cuenta como cine',
+        R.bCuenta.indexOf('1 cine') >= 0, 'txt=' + R.bCuenta]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
 try {
   const s = await servir(); servidor = s.srv;
   /* El conector falso de CeiboLink. En `try` aparte: si no puede escuchar, los casos de la

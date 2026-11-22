@@ -138260,9 +138260,37 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        doc.getImageProperties sin try/catch, así que un dataURL que jsPDF no procese deja el
        botón mudo. Se conserva `calidad` —igual que imgRestaurar— para que el selector no lea
        undefined si alguien lo toca en la ventana de generación. */
+    /* ══ P9 · 2.1 y 2.2 · ACA ESTABA EL DEFECTO GRAVE, Y ERA UNA ALLOWLIST CORTA ═════════
+       ⚠️ ESTE REPOBLADO COPIABA **TRES** CAMPOS --`dataURL`, `ampliada` y `calidad`-- y tiraba
+       todo lo demas. Como `generarPDFReal` lee el `imgSlots` VIVO, eso significaba que el PDF
+       exportado desde la lista de Guardados salia con **TODAS** las imagenes guardadas:
+       `noPdf` --la marca de «esta no va al informe»-- no viajaba, y `!!undefined` es `false`.
+       Es exactamente lo que el medico midio: 4 imagenes en el papel en vez de las 2 que habia
+       marcado, y «Regenerar Informe» lo arreglaba porque ese camino vuelve a usar los slots
+       vivos, que si tienen la marca.
+       ⚠️ Y NO ERA SOLO EL PDF. Esta ventana deja los slots asi hasta que la restauracion los
+       repone, y en el medio el medico puede guardar: ahi `imgPersistir` escribe en disco slots
+       SIN `noPdf` y SIN `_srcKey`, o sea que (a) la decision de sacarla del papel se perdia
+       para siempre --el 2.2 del reporte-- y (b) la deduplicacion por archivo se quedaba sin
+       clave y un reenvio completo del ecografo volvia a entrar entero --el 2.4--. Un solo
+       defecto explica los tres sintomas.
+       ⚠️ TAMPOCO VIAJABAN `videoId` NI `esquema`: un video se reimprimia como FOTO --con un
+       cuadro que nadie eligio-- y un esquema de la app como una captura mas.
+       LA LISTA ES LA MISMA QUE LA DE `imgRestaurar`, a proposito: son los dos caminos que
+       repueblan `imgSlots` desde el disco, y el dia que uno gane un campo tiene que ganarlo el
+       otro. Es la leccion que el D-11 pago con `data-espejo` y AJ1-g con `noPdf`. */
     (_pdfImgsEstudio || []).forEach(s => {
       if (s && _imgSrcOK(s.dataURL)) imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada,
-        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media') });
+        calidad: (typeof s.calidad === 'string' ? s.calidad : 'media'),
+        noPdf: !!s.noPdf,
+        esquema: !!s.esquema,
+        star: !!s.star,
+        nota: (typeof s.nota === 'string' ? s.nota : undefined),
+        _dcmId: (s._dcmId || undefined),
+        _docId: (s._docId || undefined),
+        _srcKey: (typeof s._srcKey === 'string' ? s._srcKey : undefined),
+        videoId: (s.videoId || undefined),
+        videoNombre: (s.videoNombre || undefined) });
     });
     while (imgSlots.length < 2) imgSlots.push(null);
     /* imgSlotCount y imgRender, igual que imgRestaurar. Sin ellos la grilla EN PANTALLA seguía
@@ -154878,6 +154906,7 @@ async function _cinePendientesPersistir(uuid) {
      número de escritos, con lo que «escribí 2 de 3» y «escribí 2 de 2» eran el mismo valor —y en
      el primero confirmar borraría del conector un cineloop que no quedó en ninguna parte. */
   _cineFallosUltimo = 0;
+  const _fallidos = [];
   for (const p of cola) {
     try {
       let poster = '';
@@ -154888,14 +154917,44 @@ async function _cinePendientesPersistir(uuid) {
         if (url) poster = await _imgComprimir(url, 'mini');
       } catch (e) { poster = ''; }
       const r2 = await CeiboCine.guardar(_cineRegistro(uuid, p.loop, poster));
-      if (r2 && r2.ok) n++; else _cineFallosUltimo++;
-    } catch (e) { _cineFallosUltimo++; }
+      if (r2 && r2.ok) n++; else { _cineFallosUltimo++; _fallidos.push(p); }
+    } catch (e) { _cineFallosUltimo++; _fallidos.push(p); }
   }
   if (n) {
     try { await _cinePersistir(); } catch (e) {}
     try { await cineStripRender(); } catch (e) {}
     if (typeof toast === 'function')
       toast('✅ ' + n + ' cineloop(s) guardado(s) con el estudio');
+  }
+  /* ══ P9 · 2.5 · UN CINELOOP QUE NO SE PUDO ESCRIBIR **SE DICE**, Y SE VUELVE A LA COLA ═════
+     ⚠️ ESTE CAMINO ERA SILENCIOSO: la cola se vacia arriba --a proposito, para no dejar
+     reintentos infinitos-- y los fallos solo se publicaban en `_cineFallosUltimo`, que lo lee la
+     confirmacion a CeiboLink y nadie mas. Con `n === 0` no salia ni el toast de exito: el medico
+     apretaba Guardar, no veia nada, y el cineloop no estaba en ninguna parte. Es el modo de
+     falla mas probable del sintoma que el medico reporto --«los cines desaparecen al guardar y
+     reabrir»-- porque el camino que lo dispara es justamente el que un lote grande recorre: sin
+     espacio, `CeiboCine.guardar` devuelve `ok:false`.
+     ⚠️ LO QUE FALLO VUELVE A LA COLA. Reintentar es decision del medico --el proximo Guardar lo
+     vuelve a intentar-- y no un bucle: si no hay espacio seguira fallando y seguira diciendolo,
+     que es infinitamente mejor que perderlo en silencio. Lo que la nota de arriba evita --un
+     reintento AUTOMATICO sin fin-- se mantiene: nada reintenta solo.
+     ⚠️ Y EL AVISO NO ES UN TOAST: un toast se desvanece, y el sondeo de CeiboLink repinta cada
+     cuatro segundos. Es el cartel propio de la app, que se queda hasta que el medico lo cierra. */
+  if (_fallidos.length) {
+    _cinePendientes = _cinePendientes.concat(_fallidos);
+    const _mb = _fallidos.reduce(function (a, q) {
+      let b = 0; try { (q.loop.d.frags || []).forEach(function (f) { b += f.length; }); } catch (e) {}
+      return a + b; }, 0);
+    const _qué = _fallidos.length === 1 ? '1 cineloop' : _fallidos.length + ' cineloops';
+    if (typeof borrConfirmar === 'function') {
+      borrConfirmar('No se pudieron guardar ' + _qué,
+        ['El estudio se guardó, pero ' + _qué + ' (' + _cineMB(_mb) + ') no entró en este dispositivo.',
+         'Lo más probable es que no haya espacio. Siguen acá, en la biblioteca del estudio y marcados «sin guardar»: el próximo «Guardar» los vuelve a intentar.',
+         'Para hacer lugar: ⚙️ Config → «🖼️ Imágenes del estudio» tiene el espacio usado y el botón para borrar imágenes guardadas.'],
+        'Entendido');
+    } else if (typeof toast === 'function') {
+      toast('⚠️ ' + _qué + ' no se pudo guardar: puede no haber espacio');
+    }
   }
   return n;
 }
