@@ -151962,7 +151962,16 @@ function _vtiPanel() {
     /* La escala manual se DECLARA en cada fila y no una vez al pie: las envolventes trazadas
        antes y después de recalibrar conviven en la misma lista, y sin la marca por fila dos
        números de escalas distintas se leen como dos mediciones comparables. */
-    const esc = v.velManual ? ' <span style="color:var(--orange);" title="La escala de velocidad la calibró el médico a mano; el eje del tiempo sale del archivo.">· escala vel. manual</span>' : '';
+    /* P10 (2.4 y 2.5) — DE DÓNDE SALIÓ LA ESCALA SE DICE SIEMPRE, no sólo cuando es manual.
+       Antes la ausencia de la marca significaba «del archivo», y una ausencia no se lee: una
+       fila sin marca y una fila de una versión vieja que no la traía se ven igual. Hoy las tres
+       posibilidades tienen su texto y la dudosa además su color. */
+    const esc = v.escalaDudosa
+      ? ' <span style="color:var(--orange);" title="' + escHtml(MED_ESC_DUDOSA + ' ' + v.escalaDudosa) +
+        '">· ⚠️ escala dudosa</span>'
+      : v.velManual
+        ? ' <span style="color:var(--orange);" title="La escala de velocidad la calibró el médico a mano; el eje del tiempo sale del archivo.">· escala vel. a mano</span>'
+        : ' <span style="color:var(--text2);" title="La escala de velocidad y la del tiempo salen de la región que declara el archivo DICOM.">· escala del archivo</span>';
     /* ⚠️ LÁPIDA DE `rot`, la marca «· TSVI» / «· TSVD» que esta fila imprimía al lado de los ms.
        Esta lista hoy trae SÓLO las libres, así que esa marca era, por construcción, siempre la
        cadena vacía: el estado que describía se dibuja en el renglón compacto de arriba. */
@@ -152003,6 +152012,20 @@ function _vtiPanel() {
        '<div style="font-size:11px;color:var(--text);margin-top:2px;">' + escHtml(r.interp) + '</div>' +
        '<div style="font-size:10px;color:var(--text2);margin-top:3px;">TSVD ' + r.dD + ' mm × ' +
        r.vD.toFixed(1) + ' cm  /  TSVI ' + r.dI + ' mm × ' + r.vI.toFixed(1) + ' cm</div>' +
+       /* P10 (2.4) — LA PROCEDENCIA DE LA ESCALA VIAJA HASTA EL BOTÓN QUE ESCRIBE EN EL INFORME.
+          Es el último lugar donde el médico la puede ver: de ahí en adelante los VTI son dos
+          números en dos campos y nada dice con qué eje se midieron. Se mira sobre las DOS
+          envolventes asignadas, que son las que se cargan. */
+       (function () {
+         const asig = (_medVtis || []).filter(x => x.rol === 'tsvi' || x.rol === 'tsvd');
+         const dud = asig.filter(x => x.escalaDudosa).length;
+         const man = asig.filter(x => !x.escalaDudosa && x.velManual).length;
+         if (!dud && !man) return '';
+         return '<div style="font-size:10px;color:var(--orange);margin-top:5px;">' +
+           (dud ? '⚠️ ' + dud + ' de estas envolventes se midió con una <b>escala de velocidad dudosa</b>. ' : '') +
+           (man ? (dud ? 'Y ' : '') + man + ' con la <b>escala puesta a mano</b>. ' : '') +
+           'El VTI que se cargue al informe hereda esa escala.</div>';
+       })() +
        '<button type="button" class="btn btn-primary" id="cine-vti-cargar" style="padding:4px 10px;font-size:11px;margin-top:6px;">→ Cargar los VTI en el informe</button>' +
        '<div style="font-size:9.5px;color:var(--text2);margin-top:5px;">' + escHtml(_VTI_DISC) + '</div>' +
        '<div style="font-size:9.5px;color:var(--text2);margin-top:3px;">Se cargan los <b>VTI</b>, no el cociente: ' +
@@ -152131,8 +152154,10 @@ function _medEstado() {
       txt = '<b>Calibrando la velocidad:</b> marcá dos puntos del eje y escribí su valor.' +
             (_medCalVelP0 ? ' <b style="color:#fbbf24;">Falta la segunda marca.</b>' : '');
     } else if (_medCalibVel) {
-      txt = 'Escala de velocidad <b>calibrada a mano</b>: ' + _medCalibVel.cmsPorPx.toFixed(4) +
-            ' cm/s por píxel, con el cero en y=' + _medCalibVel.y0.toFixed(0) + '.' +
+      /* P10 (2.4) — la frase sale de `_medCalVelFrase`, el dueño único, con la negrita puesta
+         acá. Con el texto escrito en los dos lugares, la confirmación del momento y el panel
+         podrían decir dos escalas distintas de la misma calibración. */
+      txt = escHtml(_medCalVelFrase()).replace('calibrada a mano', '<b>calibrada a mano</b>') +
             (vr.length ? ' <b style="color:#fbbf24;">Está pisando la escala que trae el archivo.</b>' : '');
     } else if (vr.length) {
       /* ⚠️ CON LA ESCALA DEL ARCHIVO NO SE PIDE CALIBRACION MANUAL, que es el pedido literal, y
@@ -152339,7 +152364,7 @@ function _medEstado() {
    Bernoulli simplificada, ΔP = 4·V², con V en m/s — por eso los cm/s se dividen por 100
    antes de elevar al cuadrado. Se usa el VALOR ABSOLUTO: un jet que se aleja del transductor
    da velocidad negativa y su gradiente es el mismo, el signo sólo dice la dirección. */
-function _medVelClic(ev) {
+async function _medVelClic(ev) {
   const cv = _medEl('cine-med');
   const p = _medPunto(ev, cv);
   if (!p) return;
@@ -152356,38 +152381,52 @@ function _medVelClic(ev) {
      ⚠️ SI EL SEGUNDO PUNTO NO SIRVE, EL PRIMERO SE CONSERVA: el valor ya tipeado no se vuelve a
      pedir. Con el estado entero descartado, cada rechazo costaba dos prompts de nuevo. */
   if (_medCalibrandoVel) {
-    const pedir = cual => {
-      const txt = prompt('¿Cuánto vale ' + cual + '?\n\nEscribí el valor del eje en m/s (por ' +
-        'ejemplo 1.0, o 0.5). Puede ser cualquiera de los dos: con dos valores la aplicación ' +
-        'saca la escala Y dónde está el cero.', '');
-      if (txt === null) return null;
-      const v = parseFloat(String(txt).trim().replace(',', '.'));
-      if (!isFinite(v)) { alert('Ese valor no se entiende: escribí un número en m/s, por ejemplo 1.0.'); return null; }
-      return v * 100;                                  // m/s → cm/s, la unidad interna
-    };
+    /* ⚠️ P10 (2.3) — LA VISTA SE CAPTURA ANTES DEL `await` Y SE VUELVE A ENTRAR EN ELLA PARA
+       ESCRIBIR. `cv.onclick` va envuelto en `_vBind`, cuyo `finally` repone la vista anterior en
+       cuanto la parte SINCRÓNICA vuelve: con un `await` en el medio, todo lo de abajo correría
+       con `_V` apuntando otra vez a `_vistaA`, así que calibrar en la vista B escribiría en la A.
+       Con el `prompt` nativo el problema no existía porque bloqueaba el hilo — es el precio de
+       haberlo cambiado, y es la misma trampa que `_medClic` y «Listo» del Simpson ya pagaron.
+       ⚠️ Y SE VUELVE A MIRAR `_medCalibrandoVel` DESPUÉS DEL `await`: si mientras el cuadro
+       estaba abierto la imagen cambió, `medCambioDeImagen` ya lo puso en falso y el valor que el
+       médico acaba de escribir es de una imagen que ya no está. Falla hacia NO calibrar. */
+    const V = _V;
     if (!_medCalVelP0) {
-      const v0 = pedir('esta primera marca');
-      if (v0 === null) { _medPintar(); _medEstado(); return; }
-      _medCalVelP0 = { y: p.y, cms: v0 };
-      _medPuntos = [p];
-      _medPintar(); _medEstado(); return;
+      const v0 = await _medCalPedirVel('esta primera marca');
+      _vCon(V, () => {
+        if (v0 === null || !_medCalibrandoVel) { _medPintar(); _medEstado(); return; }
+        _medCalVelP0 = { y: p.y, cms: v0 };
+        _medPuntos = [p];
+        _medPintar(); _medEstado();
+      });
+      return;
     }
     if (Math.abs(p.y - _medCalVelP0.y) < 5) {
-      alert('Las dos marcas están casi a la misma altura: separalas más.');
+      _medAviso('Marcas demasiado juntas',
+                'Las dos marcas están casi a la misma altura: separalas más. Con cuatro píxeles ' +
+                'de por medio la escala sale de un error de pulso.');
       _medPintar(); _medEstado(); return;
     }
-    const v1 = pedir('esta segunda marca');
-    if (v1 === null) { _medPintar(); _medEstado(); return; }
-    const cal = _medCalVelDos(_medCalVelP0.y, _medCalVelP0.cms, p.y, v1);
-    if (!cal) {
-      alert('Las dos marcas tienen el mismo valor: con eso no sale una escala.');
-      _medPintar(); _medEstado(); return;
-    }
-    _medCalibVel = cal;
-    _medCalibrandoVel = false;
-    _medCalVelP0 = null;
-    _medPuntos = [];
-    _medPintar(); _medEstado();
+    /* SI EL SEGUNDO VALOR NO SIRVE, EL PRIMERO SE CONSERVA: el valor ya tipeado no se vuelve a
+       pedir. Con el estado entero descartado, cada rechazo costaba dos cuadros de nuevo. */
+    const v1 = await _medCalPedirVel('esta segunda marca');
+    _vCon(V, () => {
+      if (v1 === null || !_medCalibrandoVel) { _medPintar(); _medEstado(); return; }
+      const cal = _medCalVelDos(_medCalVelP0.y, _medCalVelP0.cms, p.y, v1);
+      if (!cal) {
+        _medAviso('Los dos valores son iguales',
+                  'Las dos marcas tienen el mismo valor: con eso no sale una escala. Volvé a ' +
+                  'marcar la segunda y escribí un valor distinto del primero.');
+        _medPintar(); _medEstado(); return;
+      }
+      _medCalibVel = cal;
+      _medCalibrandoVel = false;
+      _medCalVelP0 = null;
+      _medPuntos = [];
+      _medPintar(); _medEstado();
+      /* La confirmación del momento, con el MISMO dueño que la del panel guía. */
+      if (typeof toast === 'function') toast('📐 ' + _medCalVelFrase());
+    });
     return;
   }
 
@@ -152677,6 +152716,195 @@ function _medEscalaCartel(motivo) {
   try { bok.focus(); } catch (e) {}
 }
 window._medEscalaCartel = _medEscalaCartel;
+
+/* ══ P10 (2.3) — AVISO CORTO, PROPIO, DE UN SOLO BOTÓN ═══════════════════════════════════════
+   Reemplaza a los `alert` del camino de calibración de velocidad. Mismo molde que los otros dos
+   cuadros de este bloque: se crea y se destruye, Escape cortado en captura, texto por
+   `textContent`, y NO devuelve una promesa — es un aviso, no una decisión. */
+function _medAviso(titulo, texto) {
+  const ov = document.createElement('div');
+  ov.setAttribute('data-med-aviso', 'ov');
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+    'display:flex;align-items:center;justify-content:center;padding:18px;';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+    'max-width:360px;width:100%;padding:16px 18px;box-shadow:0 18px 48px rgba(0,0,0,.5);';
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:6px;';
+  h.textContent = String(titulo || '');
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;';
+  sub.textContent = String(texto || '');
+  const fbot = document.createElement('div');
+  fbot.style.cssText = 'display:flex;justify-content:flex-end;margin-top:12px;';
+  const bok = document.createElement('button');
+  bok.type = 'button'; bok.className = 'btn btn-primary';
+  bok.setAttribute('data-med-aviso', 'ok');
+  bok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+  bok.textContent = 'Entendido';
+  fbot.appendChild(bok);
+  caja.appendChild(h); caja.appendChild(sub); caja.appendChild(fbot);
+  ov.appendChild(caja);
+  let cerrado = false;
+  const cerrar = () => {
+    if (cerrado) return;
+    cerrado = true;
+    document.removeEventListener('keydown', esc, true);
+    try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+  };
+  const esc = ev => {
+    if (ev.key !== 'Escape') return;
+    ev.stopImmediatePropagation(); ev.stopPropagation();
+    cerrar();
+  };
+  bok.addEventListener('click', cerrar);
+  ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(); });
+  document.addEventListener('keydown', esc, true);
+  document.body.appendChild(ov);
+  try { bok.focus(); } catch (e) {}
+}
+window._medAviso = _medAviso;
+
+/* ══ P10 (2.3 y 2.5) — EL VALOR DE UNA MARCA DEL EJE, CON SU UNIDAD ═══════════════════════════
+
+   Reemplaza al `prompt` nativo de MEDIR-3. Mismo molde que `_medCalPedirMm`: campo SIN valor
+   puesto de antemano, botón deshabilitado hasta que haya un número, Enter acepta, Escape
+   cancela cortado en captura, y se destruye al cerrarse.
+
+   ⚠️ LA UNIDAD SE ELIGE Y SE VE (punto 2.5). El `prompt` viejo pedía m/s y nada más, así que
+   quien lee la regla del equipo en cm/s —que es la mitad de los equipos— tenía que dividir de
+   cabeza por 100 antes de tipear, y un error ahí es un factor 100 en el VTI. Acá el selector
+   está al lado del número y la conversión a cm/s —la unidad interna de todo este bloque— vive
+   en UN solo lugar, el `return`.
+
+   ⚠️ SE PREGUNTA EL VALOR DE CADA MARCA Y NO «LA DISTANCIA ENTRE LAS DOS», y es una diferencia
+   que importa: de dos valores salen la escala **y la posición del cero**, y una velocidad sin el
+   cero no se puede calcular —no es la diferencia entre dos puntos marcados, es la altura de UNO
+   sobre la base—. Con la diferencia sola habría que pedir además dónde está el cero, que es
+   justamente lo que MEDIR-3 sacó porque la base no siempre entra en el recuadro.
+
+   Devuelve CM/S, o null si el médico canceló. */
+const MED_CAL_UNIS = [{ u: 'm/s', f: 100 }, { u: 'cm/s', f: 1 }];
+
+function _medCalPedirVel(cual) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.setAttribute('data-med-calvel', 'ov');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:460;' +
+      'display:flex;align-items:center;justify-content:center;padding:18px;';
+    const caja = document.createElement('div');
+    caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+      'max-width:380px;width:100%;padding:16px 18px;box-shadow:0 18px 48px rgba(0,0,0,.5);';
+    const h = document.createElement('div');
+    h.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:6px;';
+    h.textContent = 'Escala de velocidad';
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;';
+    sub.textContent = '¿Cuánto vale ' + String(cual || 'esta marca') + ' en el eje de velocidad ' +
+      'de la imagen? Con dos marcas y sus dos valores la aplicación saca la escala y dónde está el cero.';
+    const fila = document.createElement('div');
+    fila.style.cssText = 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = '';
+    inp.setAttribute('inputmode', 'decimal');
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    inp.setAttribute('maxlength', '8');
+    inp.setAttribute('data-med-calvel', 'inp');
+    inp.setAttribute('aria-label', 'Valor de la marca en el eje de velocidad');
+    inp.style.cssText = 'width:110px;font-size:14px;text-align:center;';
+    /* ⚠️ EL SELECTOR VA SIN `id`, y eso es lo que lo deja fuera del censo del estudio y del Excel
+       POR CONSTRUCCIÓN: los dos recorren `input[id]` / `select[id]`. Es el mismo recurso que el
+       cuadro de los milímetros y el selector de cineloop. */
+    const sel = document.createElement('select');
+    sel.setAttribute('data-med-calvel', 'uni');
+    sel.setAttribute('aria-label', 'Unidad del valor');
+    sel.style.cssText = 'font-size:13px;font-weight:700;min-height:44px;';
+    MED_CAL_UNIS.forEach((o, i) => {
+      const op = document.createElement('option');
+      op.value = String(i); op.textContent = o.u;
+      sel.appendChild(op);
+    });
+    sel.value = '0';                                   // m/s por omisión, que es lo que había
+    fila.appendChild(inp); fila.appendChild(sel);
+    const pista = document.createElement('div');
+    pista.style.cssText = 'font-size:10.5px;color:var(--text2);margin:6px 0 0;';
+    pista.textContent = '1 m/s = 100 cm/s';
+    const fbot = document.createElement('div');
+    fbot.style.cssText = 'display:flex;justify-content:flex-end;gap:7px;margin-top:12px;flex-wrap:wrap;';
+    const bno = document.createElement('button');
+    bno.type = 'button'; bno.className = 'btn btn-ghost';
+    bno.setAttribute('data-med-calvel', 'no');
+    bno.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bno.textContent = 'Cancelar';
+    const bok = document.createElement('button');
+    bok.type = 'button'; bok.className = 'btn btn-primary';
+    bok.setAttribute('data-med-calvel', 'ok');
+    bok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bok.textContent = 'Usar este valor';
+    fbot.appendChild(bno); fbot.appendChild(bok);
+    caja.appendChild(h); caja.appendChild(sub); caja.appendChild(fila);
+    caja.appendChild(pista); caja.appendChild(fbot);
+    ov.appendChild(caja);
+    /* El valor, leído en UN solo lugar. Se admite el CERO y se admite un NEGATIVO: una marca del
+       eje puede ser la propia línea de base, o estar del lado de abajo. Lo único que no sirve es
+       que no haya número. */
+    const val = () => {
+      const v = parseFloat(String(inp.value || '').trim().replace(',', '.'));
+      return isFinite(v) ? v : null;
+    };
+    const cms = () => {
+      const v = val();
+      if (v === null) return null;
+      const u = MED_CAL_UNIS[Number(sel.value) || 0] || MED_CAL_UNIS[0];
+      return v * u.f;
+    };
+    const sync = () => { bok.disabled = (val() === null); };
+    let cerrado = false;
+    const cerrar = (v) => {
+      if (cerrado) return;
+      cerrado = true;
+      document.removeEventListener('keydown', esc, true);
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      resolve(v);
+    };
+    const esc = ev => {
+      if (ev.key !== 'Escape') return;
+      ev.stopImmediatePropagation(); ev.stopPropagation();
+      cerrar(null);
+    };
+    inp.addEventListener('input', sync);
+    inp.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const v = cms();
+      if (v !== null) cerrar(v);
+    });
+    bok.addEventListener('click', () => { const v = cms(); if (v !== null) cerrar(v); });
+    bno.addEventListener('click', () => cerrar(null));
+    ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(null); });
+    document.addEventListener('keydown', esc, true);
+    document.body.appendChild(ov);
+    sync();
+    try { inp.focus(); } catch (e) {}
+  });
+}
+window._medCalPedirVel = _medCalPedirVel;
+
+/* P10 (2.4) — LA FRASE DE LA ESCALA DE VELOCIDAD, CON UN DUEÑO ÚNICO. La dicen la confirmación
+   del momento y el panel guía cada vez que el médico vuelve a medir. Con dos textos escritos a
+   mano, el día que cambie lo que se publica uno de los dos queda viejo. */
+function _medCalVelFrase() {
+  if (!_medCalibVel) return '';
+  return 'Escala de velocidad calibrada a mano: ' + _medCalibVel.cmsPorPx.toFixed(4) +
+         ' cm/s por píxel, con el cero en y=' + _medCalibVel.y0.toFixed(0) + '.';
+}
+window._medCalVelFrase = _medCalVelFrase;
 
 /* ══ PUNTO 1d — LA CONFIRMACION, EN UN SOLO LUGAR ════════════════════════════════════════════
    Un dueño unico para la frase: la dice el aviso del momento en que se calibra Y el panel guia
