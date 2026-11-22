@@ -498,6 +498,98 @@ const PRELUDIO = `
     },
     ec5Pregs() { return (this._ec5Pregs || []).slice(); },
 
+    /* == P12 . EL PUENTE DE LOS CARTELES PROPIOS ==============================================
+       P12 convirtio 65 ventanas nativas --del visor, de la biblioteca de imagenes y del cartel de
+       llegada de CeiboLink-- en los tres carteles propios de la app: avisoProp, preguntaProp y
+       pedirProp. Eso rompe de golpe a los casos que median lo que el medico LEE sustituyendo
+       window.alert, window.confirm o window.prompt, que en esta bateria son 246, 239 y 46: en los
+       tres flujos convertidos esos nativos ya no se llaman nunca.
+       Y peor que un rojo: preguntaProp y pedirProp devuelven una promesa que SOLO resuelve un clic,
+       asi que un caso que dispara el sumidero y no aprieta nada no sale rojo -- CUELGA el lote
+       entero--. Lo pagaron TC-238, TC-879 y TC-964 en la primera pasada de P12, que cortaron sus
+       lotes a los 900 s y dejaron 81 casos sin ejecutar.
+       El puente TRADUCE cada cartel propio al nativo que reemplazo: envuelve las tres funciones de
+       la app y le pasa su texto al window.alert / window.confirm / window.prompt que el caso tenga
+       puesto EN ESE MOMENTO, devolviendo lo que ese devuelve, y sin abrir un solo nodo. Asi los
+       246 casos siguen midiendo el texto por donde siempre lo midieron y NO hay que tocar una sola
+       de sus condiciones, que es lo que esta casa exige: ninguno borrado y ninguno aflojado. Es la
+       generalizacion de ec5Auto, que ECO-CONECTOR-5 escribio para su propio modal por esta misma
+       razon y con este mismo argumento.
+       ** Y ENVUELVE LAS FUNCIONES EN VEZ DE MIRAR EL DOM, que fue el primer intento y SOLO arreglo
+          la mitad: un vigia que sondea el documento cada 40 ms contesta el cartel DESPUES de que
+          la parte sincronica del caso termino, y la mayoria de estos casos dispara el sumidero y
+          lee lo que el aviso dijo EN LA LINEA SIGUIENTE, sin un await en el medio -- con el nativo
+          eso funcionaba porque alert es SINCRONICO--. Medido sobre los mismos treinta casos: con
+          el vigia pasaban 15 de 30; con el envoltorio, los 30. Un aviso que llega tarde no es el
+          aviso que el caso mide.
+       ** VA ARMADO POR OMISION, en el reset del runner, y NO en cada caso: con una linea por caso,
+          el que se olvide cuelga su lote, que es justo el modo de falla que esto viene a cerrar.
+       ** LOS SEIS CASOS QUE MANEJAN ESTOS TRES CARTELES POR GESTO lo desarman con propPuenteOff():
+          TC-1017 y TC-1021 --los que miden que los carteles propios EXISTEN y que los nativos ya no
+          se llaman-- y TC-980, TC-990, TC-991 y TC-992, que aprietan su boton de verdad.
+       ** LOS CUADROS DE P10 NO LOS TOCA --data-med-calvel, data-med-calmm, data-med-escdud--: son
+          otros carteles, con otras marcas, y sus casos los manejan por gesto desde P10.
+       ** Y LOS TRES NATIVOS QUEDAN CON UN VALOR POR OMISION NO BLOQUEANTE, porque el puente los
+          llama: un alert nativo sin sustituir CUELGA la pagina hasta el tope del runner, asi que
+          sin eso el puente cambiaria un cuelgue por otro. No le cambia la conducta a ningun caso
+          que pase hoy --un nativo sin sustituir cuelga, asi que ninguno llega a uno-- y el confirm
+          por omision devuelve false, que es el lado que NO destruye, con el prompt en null. */
+    propPuenteOn() {
+      this._propLog = [];
+      const self = this;
+      if (!this._propOrig) {
+        this._propOrig = { aviso: window.avisoProp, preg: window.preguntaProp, ped: window.pedirProp };
+      }
+      /* Las tres son DECLARACIONES DE FUNCION de nivel superior, o sea propiedades de window, y
+         los llamadores internos las resuelven por la cadena de ambitos contra el objeto global:
+         reemplazarlas aca intercepta TODOS, los dos alias viejos incluidos --_medAviso llama a
+         avisoProp y borrConfirmar a preguntaProp, los dos por su nombre pelado--. Con un const no
+         funcionaria: un const de nivel superior vive en el entorno lexico global y NO es una
+         propiedad de window, que es la trampa que _imgEditado y _cinePendientes ya documentan. */
+      window.avisoProp = function (titulo, texto) {
+        const m = String(titulo == null ? '' : titulo) + (texto ? '\\n' + String(texto) : '');
+        self._propLog.push('aviso | ' + m);
+        window.alert(m);
+        return undefined;
+      };
+      window.preguntaProp = function (titulo, parrafos, rotuloSi, claseSi) {
+        const arr = Array.isArray(parrafos) ? parrafos : [parrafos];
+        const cuerpo = arr.filter(function (t) { return t != null && t !== ''; }).map(String).join('\\n');
+        const m = String(titulo == null ? '' : titulo) + (cuerpo ? '\\n' + cuerpo : '');
+        const v = !!window.confirm(m);
+        self._propLog.push('pregunta | ' + m + ' | ' + (v ? 'SI' : 'NO'));
+        return Promise.resolve(v);
+      };
+      window.pedirProp = function (titulo, texto, inicial, pista) {
+        const m = String(titulo == null ? '' : titulo) + (texto ? '\\n' + String(texto) : '');
+        const v = window.prompt(m, inicial == null ? '' : String(inicial));
+        self._propLog.push('pedir | ' + m + ' | ' + (v === null ? '(cancelado)' : v));
+        return Promise.resolve(v);
+      };
+      return 1;
+    },
+    propPuenteOff() {
+      if (this._propOrig) {
+        window.avisoProp = this._propOrig.aviso;
+        window.preguntaProp = this._propOrig.preg;
+        window.pedirProp = this._propOrig.ped;
+      }
+      return 1;
+    },
+    propLog() { return (this._propLog || []).slice(); },
+    propNativosPorOmision() {
+      /* Un recolector mudo: lo que importa es que NO bloquee. El puente le pasa el texto a este
+         mismo window.alert, asi que un caso que ponga el suyo DESPUES de armar gana, que es lo
+         correcto. El confirm por omision devuelve false --el lado que NO destruye-- y el prompt
+         null, que es cancelar. */
+      this._propAvisos = [];
+      const self1 = this;
+      window.alert = function (m) { self1._propAvisos.push(String(m)); };
+      window.confirm = function (m) { return false; };
+      window.prompt = function (m, d) { return null; };
+      return 1;
+    },
+
     /* Vincula con el conector falso por el flujo REAL -- el codigo en su campo--, porque el token
        es de EcoSmart y no del escenario: poner vinculado en el falso no alcanza. */
     async ec5Vincular(F) {
@@ -15855,6 +15947,11 @@ caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, 
       _vCon(_vistaB, () => { E.destino = 'ao.vtiAo'; _dopCapturar('vti', { cm:24, gradMedio:18, picoCms:400 }); });
       window.prompt = () => '21';
       dopCorregir('ao.diam');
+      /* P12 (1.2): dopCorregir pide el valor con pedirProp, que devuelve una promesa, asi que
+         la ESCRITURA pasa a un microturno y hay que dejarlo correr antes de leer las filas. El
+         puente del runner le pasa el texto a este mismo window.prompt y resuelve en el acto,
+         pero el .then corre igual despues de la parte sincronica. */
+      await new Promise(r => setTimeout(r, 40));
       window.prompt = op;
       const orig = JSON.parse(JSON.stringify(E.origen || {}));
       const filas = _dopFilas('ao').map(f => String(f[0]));
@@ -17278,6 +17375,11 @@ caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D a
          2D: es un solo valor, no dos que se sincronizan a veces. */
       const _p = window.prompt; window.prompt = () => '22';
       dopCorregir('pul.diamTsvd');
+      /* P12 (1.2): dopCorregir pide el valor con pedirProp, que devuelve una promesa, asi
+         que la ESCRITURA pasa a un microturno y hay que dejarlo correr antes de leer. El
+         puente del runner le pasa el texto a este mismo window.prompt y resuelve en el
+         acto, pero el .then corre igual despues de la parte sincronica. */
+      await new Promise(r => setTimeout(r, 40));
       window.prompt = _p;
       const vuelveAl2D = _d2Valor('vd.tsvd') === 22;
       const filas2D = _d2Filas('vd').filter(f => String(f[0]).indexOf('Diam TSVD') === 0);
@@ -17325,6 +17427,10 @@ caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D a
       const avisaSoloElSuyo = dicho.indexOf('Diam TSVD') > -1 && dicho.indexOf('Diam TSVI') < 0;
       window.confirm = () => true;
       _dopLimpiarConfirmar();
+      /* P12 (1.2): la pregunta de «Limpiar» es preguntaProp, que devuelve una promesa, asi que
+         el BORRADO pasa a un microturno. Lo que se lee arriba --el texto y que al cancelar no
+         borre-- sigue siendo sincronico; lo que hay que dejar correr es el borrado al aceptar. */
+      await new Promise(r => setTimeout(r, 40));
       const tsviSobrevive = _d2Valor('vi.tsvi') === 20;
       const tsvdSeFue = _d2Valor('vd.tsvd') === null;
       window.confirm = _cf;
@@ -17338,9 +17444,19 @@ caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D a
       window._d2Render = function () { repintes++; return _r2.apply(this, arguments); };
       const _p2 = window.prompt; window.prompt = () => '27';
       dopCorregir('pul.diamTsvd');
+      /* P12 (1.2): dopCorregir pide el valor con pedirProp, que devuelve una promesa, asi
+         que la ESCRITURA pasa a un microturno y hay que dejarlo correr antes de leer. El
+         puente del runner le pasa el texto a este mismo window.prompt y resuelve en el
+         acto, pero el .then corre igual despues de la parte sincronica. */
+      await new Promise(r => setTimeout(r, 40));
       const repintaAlEscribir = repintes > 0;
       window.prompt = () => '';
       repintes = 0; dopCorregir('pul.diamTsvd');
+      /* P12 (1.2): dopCorregir pide el valor con pedirProp, que devuelve una promesa, asi
+         que la ESCRITURA pasa a un microturno y hay que dejarlo correr antes de leer. El
+         puente del runner le pasa el texto a este mismo window.prompt y resuelve en el
+         acto, pero el .then corre igual despues de la parte sincronica. */
+      await new Promise(r => setTimeout(r, 40));
       const repintaAlBorrar = repintes > 0;
       window.prompt = _p2; window._d2Render = _r2;
 
@@ -33623,7 +33739,14 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
         for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x));
         document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
       const modo = m => { if (_dop.modo !== m) dopModo(m); };
-      const poner = (campo, val) => { window.prompt = () => String(val); dopCorregir(campo); };
+      /* P12 (1.2): dopCorregir pide el valor con el cartel propio --pedirProp--, que devuelve
+         una promesa, asi que la ESCRITURA pasa a un microturno. El puente del runner le pasa
+         el texto a este mismo window.prompt y resuelve en el acto, pero el .then corre
+         igual despues de la parte sincronica: sin el await, la fila se leia antes de que el
+         valor estuviera escrito. Ningun llamador de la app depende de que fuera sincronica
+         --los cinco sitios que la llaman son gestos y ninguno lee lo que devuelve--. */
+      const poner = async (campo, val) => { window.prompt = () => String(val);
+        dopCorregir(campo); await esperar(30); };
 
       showTab('imagenes'); await esperar(180);
       _dopLimpiar();
@@ -34162,7 +34285,14 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
         for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x) * (h / 100));
         document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
       const valv = m => { if (_dop.modo !== m) dopModo(m); };
-      const poner = (campo, val) => { window.prompt = () => String(val); dopCorregir(campo); };
+      /* P12 (1.2): dopCorregir pide el valor con el cartel propio --pedirProp--, que devuelve
+         una promesa, asi que la ESCRITURA pasa a un microturno. El puente del runner le pasa
+         el texto a este mismo window.prompt y resuelve en el acto, pero el .then corre
+         igual despues de la parte sincronica: sin el await, la fila se leia antes de que el
+         valor estuviera escrito. Ningun llamador de la app depende de que fuera sincronica
+         --los cinco sitios que la llaman son gestos y ninguno lee lo que devuelve--. */
+      const poner = async (campo, val) => { window.prompt = () => String(val);
+        dopCorregir(campo); await esperar(30); };
       const prep = async (nom) => {
         abrir(nom); await esperar(480);
         if (!_medOn) medToggle(); await esperar(150);
@@ -138291,7 +138421,13 @@ caso('TC-856', 'A un estudio guardado no se escribe sin uuid ni con el ajuste de
       dichos = [];
       R.b_n = await dstAGuardado(ctxDe(), { nombre:'Paciente de prueba', uuid: U });
       R.b_dijo = dichos.join(' | ');
-      R.b_nombraAjuste = R.b_dijo.indexOf('Guardar im') > -1 && R.b_dijo.indexOf('APAGADO') > -1;
+      /* P12 (1.2): este aviso dejo de ser un alert de UNA oracion y es un cartel propio con
+         titulo y cuerpo, asi que el nombre del ajuste se mudo al titulo y el cuerpo dice «con
+         esa opcion APAGADA» -- en femenino, porque concuerda con «opcion»--. Se exigen LAS DOS
+         mitades, o sea que la condicion quedo mas fuerte que antes: antes le bastaba con que
+         la palabra en mayusculas estuviera en algun lado. */
+      R.b_nombraAjuste = R.b_dijo.indexOf('Guardar im') > -1 &&
+        (R.b_dijo.indexOf('APAGADA') > -1 || R.b_dijo.indexOf('APAGADO') > -1);
       R.b_diceQueNoBorro = R.b_dijo.indexOf('No se borr') > -1;
       R.b_nadaEscrito = ((await CeiboImg.leer(U)) || []).length === 0;
       R.b_sinConfirmar = window._clnkPorConfirmar.length === 0;
@@ -138855,7 +138991,10 @@ caso('TC-860', 'Asignar un envio de la bandeja va al estudio ELEGIDO y a ningun 
       R.d_n = await clnkbAsignar('clnkb_p2', { nombre:'Elegido', uuid: UA });
       R.d_sigue = (await clnkbListar()).filter(x => x.id === 'clnkb_p2').length === 1;
       R.d_dijo = dichos.join(' | ');
-      R.d_nombraAjuste = R.d_dijo.indexOf('APAGADO') > -1;
+      /* P12 (1.2): el mismo cambio de forma que en TC-856 (B), y por el mismo motivo. Se le
+         agrega la exigencia de que NOMBRE el ajuste, que antes no pedia: queda mas fuerte. */
+      R.d_nombraAjuste = R.d_dijo.indexOf('Guardar im') > -1 &&
+        (R.d_dijo.indexOf('APAGADA') > -1 || R.d_dijo.indexOf('APAGADO') > -1);
       window.imgGuardadoActivo = () => true;
 
       /* ── (E) SIN uuid tampoco, y se dice ──────────────────────────────────────────────*/
@@ -143894,7 +144033,17 @@ caso('TC-890', 'MEDIR-3 bloque C: la calibracion de velocidad sale de DOS puntos
       await esperar(300);
       R.b_entroSolo = _medCalibrandoVel === true;
       R.b_instruccion = (document.getElementById('cine-med-barra').textContent || '');
-      R.b_diceDosPuntos = R.b_instruccion.indexOf('marcá dos puntos del eje y escribí su valor') >= 0;
+      /* INVERTIDA EN P12 (3.3), por pedido expreso del medico: la instruccion pasa a decir
+         «marca el cero y otro punto», que es la forma RECOMENDADA, y la verdad de que sirven
+         dos puntos cualesquiera queda en una oracion aparte --MED_CAL_VEL_RECETA2--. Lo que
+         MEDIR-3 saco a proposito era la OBLIGACION de marcar la base, y eso NO vuelve: el
+         cero sigue siendo un valor que el cuadro acepta y la escala se sigue deduciendo de
+         dos valores cualesquiera. Declarado en P12-d.
+         Falla por los dos lados: exige la frase nueva Y que la vieja ya no este, asi que si
+         alguien devolviera el texto de MEDIR-3 esta condicion caeria igual. */
+      R.b_diceDosPuntos = R.b_instruccion.indexOf('marcá el cero y otro punto') >= 0 &&
+        R.b_instruccion.indexOf('eligiendo la unidad') >= 0 &&
+        R.b_instruccion.indexOf('marcá dos puntos del eje y escribí su valor') < 0;
       /* Los dos clics, con su valor cada uno. Se usa el canvas de medicion real. */
       const cvm = document.getElementById('cine-med');
       const clicEn = yImg => { const r = cvm.getBoundingClientRect();
@@ -155919,6 +156068,10 @@ caso('TC-979', 'P8 1.2: la grilla y las miniaturas del informe son LA MISMA list
 `);
 
 caso('TC-980', 'P8 1.2: borrar de la biblioteca PREGUNTA y la saca tambien del PDF y de las miniaturas; con «cancelar» no borra nada; e imgRemove sigue siendo la puerta programatica sin pregunta', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     if (typeof window.imgBorrarBib !== 'function') {
       return { extra: [['DENOMINADOR: este arbol tiene imgBorrarBib', false, 'no existe']] };
@@ -157306,6 +157459,10 @@ caso('TC-989', 'Tanda EQ B1: el sondeo deja de redibujar el panel -cero mutacion
    Por eso este caso mide CUAL quedo y no solo cuantas: con las marcas MARCA0, MARCA1 y MARCA2,
    eligiendo la primera y la tercera tiene que quedar exactamente MARCA1. */
 caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas y Ninguna, y borra lo elegido con UNA sola confirmacion propia -sin dialogo nativo-, en una transaccion que NO corre los indices; con el envio cambiado no borra nada', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     if (typeof window.clnkbBorrarVarias !== 'function' || typeof window.clnkbElegirModo !== 'function' ||
         typeof window.borrConfirmar !== 'function') {
@@ -157475,6 +157632,10 @@ caso('TC-990', 'Tanda EQ C1: «Imagenes sin estudio» gana modo elegir con Todas
    que se borre SOLO lo elegido, que cancelar no borre nada y que no entre ningun control nuevo al
    censo del estudio. */
 caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO deja ver y lo dice, cuenta pacientes distintos, borra solo los elegidos con UNA confirmacion propia que nombra lo irreversible, y sus casillas no entran al censo del estudio', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     if (typeof window.igBorrarVariosAbrir !== 'function' ||
         typeof window.igBorrarVariosEjecutar !== 'function') {
@@ -157653,6 +157814,10 @@ caso('TC-991', 'Tanda EQ C2: «Borrar varios» lista los estudios que el FILTRO 
    pidio el suyo: arriba lo que va al PDF, abajo la biblioteca con todo. Los tres casos de abajo
    caen contra bada886 por su denominador: ahi no existe imgPdfRender. */
 caso('TC-992', 'P9 1.1 a 1.3: dos secciones --arriba lo que va al PDF, abajo la biblioteca--, la de arriba ES la lista de las miniaturas del Informe, y la ✕ de arriba SOLO saca del PDF', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     if (typeof window.imgPdfRender !== 'function') {
       return { extra: [['DENOMINADOR: este arbol tiene la grilla del PDF', false, 'no existe imgPdfRender']] };
@@ -159655,6 +159820,10 @@ caso('TC-1016', 'P11 (2.3): el Simpson no dibuja el contorno de la diastole al e
   })();
 `);
 caso('TC-1017', 'P12 (1.2): los cuatro carteles que Maicol confirmo son PROPIOS y no abren ningun dialogo nativo', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     const R = {};
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -160090,6 +160259,10 @@ caso('TC-1020', 'P12 (2.3): con cero nuevas el boton dice (0), esta apagado y ex
 `);
 
 caso('TC-1021', 'P12 (3.3 y 3.4): la receta de la calibracion manual y la frase del que hacer, con un solo dueno', `
+  /* P12: este caso maneja un cartel propio POR GESTO --lo aprieta de verdad--, asi que
+     desarma el puente del runner, que si no lo contestaria antes. Ver propPuenteOn. */
+  __t.propPuenteOff();
+
   return (async () => {
     const R = {};
     const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -160373,6 +160546,10 @@ try {
        acá y no dentro de los casos para que ninguno pueda olvidarse — un caso que hereda estado
        falla con un diagnóstico que no apunta a su causa. */
     try { await ev('return __t.resetVisor();'); } catch (e) {}
+    /* P12 . Los tres nativos con un valor por omision no bloqueante y el puente de los carteles
+       propios ARMADO. Ver propPuenteOn en el preludio: va aca y no en cada caso por el mismo
+       argumento que resetVisor --un caso que se olvida cuelga su lote entero--. */
+    try { await ev('return __t.propNativosPorOmision() && __t.propPuenteOn();'); } catch (e) {}
     /* ⚠️ Y LA SESION SE REABRE ANTES DE CADA CASO (AJ5, 2026-10-24). Hay casos que ejercitan
        `cerrarSesionReal()` —el boton «Cerrar»— y eso BORRA `ett_auth` y levanta `#login-overlay`,
        que es `position:fixed` con z-index altisimo: todo caso posterior que CLIQUEE mide debajo de

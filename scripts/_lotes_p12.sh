@@ -83,7 +83,7 @@ grep -oE "caso\('TC-[A-Z0-9-]+'" "$RAIZ/scripts/test_clinico.mjs" \
   | sed "s/caso('//;s/'//" | sort -u > "$LISTA"
 
 : > "$LOG"
-echo "== SUITE COMPLETA en lotes de 55 - tanda P11 ==" | tee -a "$LOG"
+echo "== SUITE COMPLETA en lotes de 55 - tanda P12 ==" | tee -a "$LOG"
 echo "  md5 de index.html al abrir: $MD5A" | tee -a "$LOG"
 echo "  pendrive: $PEN" | tee -a "$LOG"
 TOTAL=$(grep -c . "$LISTA")
@@ -165,5 +165,7 @@ echo "== CIERRE ==" | tee -a "$LOG"
 echo "  ejecutados en los lotes $DESDE a $HASTA: $EJEC" | tee -a "$LOG"
 echo "  md5 al cerrar: $MD5B (identico: $([ "$MD5A" = "$MD5B" ] && echo SI || echo NO))" | tee -a "$LOG"
 echo "  ROJOS de todos los lotes:" | tee -a "$LOG"
-grep -E '^  TC-.* ✗$' "$LOG" | sed 's/ .*/ /' | sort -u | tee -a "$LOG"
+# ** EL sed HEREDADO IMPRIMIA LA LISTA EN BLANCO: las lineas arrancan con DOS espacios, asi que
+#    's/ .*/ /' borra desde el primero y deja un espacio. Se recorta por campo con awk.
+grep -E '^  TC-.* ✗$' "$LOG" | awk '{print "   " $1}' | sort -u | tee -a "$LOG"
 echo "  verdes: $(grep -cE '^  TC-.* ✓$' "$LOG")  rojos: $(grep -cE '^  TC-.* ✗$' "$LOG")" | tee -a "$LOG"
