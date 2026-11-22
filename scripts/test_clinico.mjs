@@ -239,6 +239,25 @@ const PRELUDIO = `
          de indic-card, que es la leccion de la tanda EQ. */
       try { document.querySelectorAll('[data-borr-conf]').forEach(function (o) {
               if (o && o.parentNode) o.parentNode.removeChild(o); }); } catch (e) {}
+      /* ══ P10 · LOS TRES CUADROS PROPIOS DEL VISOR, POR LA MISMA RAZON EXACTA ══════════════
+         Los tres son position:fixed con inset:0 y z-index 460, o sea que tapan el documento
+         ENTERO, y el de la calibracion de velocidad --data-med-calvel-- devuelve una promesa que
+         SOLO resuelve un clic. Un caso que lo abre y no lo contesta deja a los que siguen en su
+         lote midiendo debajo: elementFromPoint devuelve el overlay y un arrastre informa «nada
+         bajo el puntero». Lo pagaron TC-905 y TC-939 en la primera pasada de P10 -los dos pasan
+         contra el arbol anterior y los dos fallaban DESPUES de TC-890 en la misma seleccion-,
+         y la causa no se parecia en nada a lo que sus diagnosticos decian.
+         Se saca SOLO lo propio, por sus tres marcas, por la leccion de la tanda EQ: un barrido
+         de todo [role=dialog] le arranca al documento el nodo de indic-card. */
+      try { ['[data-med-calvel]', '[data-med-escdud]', '[data-med-aviso]'].forEach(function (sel) {
+              document.querySelectorAll(sel).forEach(function (o) {
+                const ov = o.closest ? o.closest('[role=dialog]') : null;
+                const n2 = ov || o;
+                if (n2 && n2.parentNode) n2.parentNode.removeChild(n2); });
+            }); } catch (e) {}
+      /* Y la marca del aviso de escala dudosa, que es por IMAGEN: sin reponerla, el primer caso
+         que lo dispare se lo gasta para todos los que vengan despues en el lote. */
+      try { window._medEscDudAvisado = false; } catch (e) {}
       /* Y la tarjeta de CeiboLink fuera de la vista: clnkPanelALaVista mide la CAJA del nodo,
          asi que un caso que deja abierta la pestaña Config le rompe el denominador al siguiente
          que necesita el panel escondido (TC-873 y TC-964). */
@@ -143828,9 +143847,42 @@ caso('TC-890', 'MEDIR-3 bloque C: la calibracion de velocidad sale de DOS puntos
           clientX: Math.round(r.left + r.width / 2),
           clientY: Math.round(r.top + yImg * (r.height / cvm.height)) });
         cvm.dispatchEvent(ev); };
-      let np = 0;
-      window.prompt = () => (np++ === 0 ? '0.5' : '1.0');
-      clicEn(400); await esperar(200);
+      /* ⚠️ ADAPTADO EN P10 (2.3): EL VALOR YA NO SE PIDE CON UN prompt NATIVO sino con un cuadro
+         propio de EcoSmart (marca data-med-calvel), que ademas trae el selector de unidad. El
+         gesto es el real: se espera a que el cuadro aparezca, se escribe en su campo y se aprieta
+         su boton.
+         ⚠️ Y HAY QUE CONTESTARLO SIEMPRE, no solo para que el caso pase: su promesa la resuelve
+         UN CLIC, y el overlay es position:fixed con inset:0, asi que dejarlo abierto tapa el
+         documento ENTERO para todos los casos que sigan en el lote. En la primera pasada de P10
+         eso puso rojos a TC-905 y a TC-939, que pasan contra el arbol anterior, con diagnosticos
+         -«ninguna opcion es alcanzable», «nada bajo el puntero»- que no se parecian a la causa.
+         El reset del runner lo barre igual, por si un caso futuro se olvida.
+         ⚠️ Y SE ESPIA window.prompt PARA EXIGIR QUE NO SE LLAME NUNCA: asi este bloque falla por
+         los dos lados, tanto si el cuadro propio no sale como si vuelve el del navegador. */
+      let np = 0, usoPromptNativo = false;
+      window.prompt = () => { usoPromptNativo = true; return null; };
+      const respVel = async (txt, uni) => {
+        for (let i = 0; i < 80; i++) {
+          if (document.querySelector('[data-med-calvel="inp"]')) break;
+          await esperar(40);
+        }
+        const inp = document.querySelector('[data-med-calvel="inp"]');
+        if (!inp) return false;
+        np++;
+        inp.value = String(txt);
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        if (uni != null) {
+          const sel = document.querySelector('[data-med-calvel="uni"]');
+          sel.value = String(uni);
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        document.querySelector('[data-med-calvel="ok"]').click();
+        await esperar(80);
+        return true;
+      };
+      clicEn(400);
+      R.b_cuadro1 = await respVel('0.5');
+      await esperar(200);
       R.b_pidioUno = np === 1;
       /* ⚠️ SE LEE POR window Y NO PELADO: contra la linea base esta variable NO EXISTE, y un acceso
          pelado tira ReferenceError que se lleva el caso ENTERO —la condicion «sin excepciones»
@@ -143839,8 +143891,12 @@ caso('TC-890', 'MEDIR-3 bloque C: la calibracion de velocidad sale de DOS puntos
          devuelve undefined sin lanzar, y en el arbol nuevo resuelve el MISMO accesor, porque
          vive en window por defineProperty. */
       R.b_primeraMarca = !!window._medCalVelP0;
-      clicEn(300); await esperar(240);
+      clicEn(300);
+      R.b_cuadro2 = await respVel('1.0');
+      await esperar(240);
       R.b_pidioDos = np === 2;
+      R.b_sinPromptNativo = !usoPromptNativo;
+      R.b_noQuedaCuadro = !document.querySelector('[data-med-calvel="ov"]');
       R.b_calibro = !!_medCalibVel;
       R.b_k = _medCalibVel ? _medCalibVel.cmsPorPx : null;
       R.b_y0 = _medCalibVel ? Math.round(_medCalibVel.y0) : null;
@@ -143913,6 +143969,12 @@ caso('TC-890', 'MEDIR-3 bloque C: la calibracion de velocidad sale de DOS puntos
       ['(B) la instruccion es la del pedido',              R.b_diceDosPuntos === true, String(R.b_instruccion).slice(0,110)],
       ['(B) pide el valor de la PRIMERA marca en el acto', R.b_pidioUno && R.b_primeraMarca, R.b_pidioUno + '/' + R.b_primeraMarca],
       ['(B) y el de la segunda despues',                   R.b_pidioDos === true, R.b_pidioDos],
+      /* P10 - INVERTIDAS: el valor se pide con un cuadro PROPIO y NUNCA con el prompt del
+         navegador, y el cuadro no queda abierto tapando el documento. */
+      ['(B) P10: los dos valores se piden con un cuadro PROPIO', R.b_cuadro1 === true && R.b_cuadro2 === true,
+                                                          R.b_cuadro1 + '/' + R.b_cuadro2],
+      ['(B) P10: y NUNCA con el prompt del navegador',     R.b_sinPromptNativo === true, R.b_sinPromptNativo],
+      ['(B) P10: y no queda ningun cuadro abierto',        R.b_noQuedaCuadro === true, R.b_noQuedaCuadro],
       ['(B) con eso queda calibrada',                      R.b_calibro === true, 'k=' + R.b_k + ' y0=' + R.b_y0],
       ['(B) sale del modo calibracion y suelta la marca',  R.b_salioDeCalibrar && R.b_sueltaLaMarca, R.b_salioDeCalibrar + '/' + R.b_sueltaLaMarca],
       ['(B) y en el cero la velocidad es cero',            R.b_escalaCoherente === true, R.b_escalaCoherente],
