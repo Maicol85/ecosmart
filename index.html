@@ -187388,16 +187388,44 @@ function _clnkPreguntarQue(g, nom) {
     g2.nNuevas = 0;              // el texto del destino no vuelve a hablar de «nuevas»
     _clnkAvisoArmarAcciones(g2);
   };
+  var nR = (g.idsRepes || []).length;
   var bots = [
-    { txt: '✅ Agregar sólo las nuevas' + (nN ? ' (' + nN + ')' : ''),
-      fn: function () { if (nN) sigue(g.idsNuevos); } },
+    /* ══ P12 · TAREA 2.3 · EL NUMERO SE DICE SIEMPRE, TAMBIEN CUANDO ES CERO ═══════════════
+       ⚠️ ESTE ERA EL DEFECTO. El rotulo era `' (' + nN + ')'` SOLO si `nN` era distinto de cero,
+       asi que con cero nuevas el boton decia «Agregar solo las nuevas» a secas: prometia algo y
+       no habia forma de saber que no habia ninguna. Es literalmente lo que el medico reporto
+       --«toca y no hace nada, sin explicar»--. El `(0)` es la explicacion. */
+    { txt: '✅ Agregar sólo las nuevas (' + nN + ')',
+      fn: function () { if (nN) _clnkSoloNuevas(g, sigue); } },
     { txt: '📥 Agregar todas igual (' + g.ids.length + ')',
       fn: function () { sigue(g.ids); } },
     { txt: '🗑 Descartar',
       fn: function () { _clnkAvisoGrupo = null; clnkDescartar(g.ids.slice()); } }
   ];
+  /* ══ P12 · TAREA 2.1 · LAS REPETIDAS SE DESCARTAN SOLAS, Y EL CARTEL LO DICE ANTES ════════
+       El pedido: «si el medico elige agregar solo las nuevas, las repetidas se descartan solas
+       y NO quedan esperando». Hasta hoy `sigue(g.idsNuevos)` adjuntaba las nuevas y las
+       repetidas se quedaban en el puente, asi que el sondeo siguiente --o recargar la pagina--
+       las volvia a ofrecer, y con cero nuevas el medico quedaba en un cartel sin salida. Las
+       tres caras que el medico reporto --2.1, 2.2 y 2.3-- son ESTE defecto.
+       ⚠️ NO SE PREGUNTA DOS VECES. Elegir «solo las nuevas» ES la decision sobre las repetidas,
+       asi que el consentimiento ya esta dado; lo que hace falta es que el cartel lo DIGA antes
+       de que el medico apriete, y para eso esta esta linea en el cuerpo del cartel.
+       ⚠️ Y BORRARLAS NO PIERDE NADA, que es lo que lo hace seguro: una repetida esta, por
+       definicion del registro de `ett_clnk_vistas`, en un estudio, en un estudio guardado, en
+       «Imagenes sin estudio» o ya descartada. La copia del puente es la de mas. */
   var ok = clnkAvisoAbrir('Llegaron imágenes del ecógrafo',
                           _clnkAvisoTexto(g, nom, _clnkCuando(g.primero)), bots);
+  /* ⚠️ LA ACLARACION SE AGREGA **DESPUES** DE ABRIR, Y LO DESTAPO LA MEDICION Y NO LA LECTURA.
+     Puesta antes, `_clnkAvisoTexto` la PISABA: esa funcion se evalua como ARGUMENTO de la
+     apertura --o sea despues de cualquier asignacion de arriba-- y reescribe `g.avSub` con el
+     equipo y la hora. Es la misma clase de defecto que el prompt 6 pago con el orden de «rearmar
+     primero y el titulo despues». */
+  if (ok && nR) {
+    g.avSub = (g.avSub ? g.avSub + ' ' : '') +
+      'Si elegís «sólo las nuevas», ' + (nR === 1 ? 'la repetida se descarta' : 'las ' + nR + ' repetidas se descartan') +
+      ' de CeiboLink: no quedan esperando.';
+  }
   if (ok) {
     if (g.avSub) { var cu = clnkAvisoCuerpo();
       if (cu) { cu.textContent = g.avSub;
@@ -187412,6 +187440,36 @@ function _clnkPreguntarQue(g, nom) {
   return ok;
 }
 window._clnkPreguntarQue = _clnkPreguntarQue;
+
+/* ══ P12 · TAREA 2.1 · «SOLO LAS NUEVAS»: ADJUNTA LAS NUEVAS Y DESCARTA LAS REPETIDAS ════════
+   ⚠️ EL ORDEN IMPORTA Y NO ES ARBITRARIO: PRIMERO se abre la pregunta de destino de las nuevas
+   y DESPUES se borran las repetidas, en segundo plano. Al revés, el médico se quedaría mirando
+   una pantalla quieta mientras corren N borrados de red de 8 s de espera cada uno, sin saber qué
+   está pasando — y el cartel de destino es lo que tiene que ver.
+   ⚠️ SIN PROGRESO EN EL MODAL (`conProgreso` en falso): ahí ya está la pregunta de destino, y
+   escribirle «Descartando 2 de 5…» encima le taparía al médico la pregunta que está contestando.
+   ⚠️ Y NO SE ESPERA EL BORRADO para seguir: lo que el médico pidió es adjuntar las nuevas, y un
+   puente que no responde no puede bloquear eso. Lo que falle se dice en un toast y vuelve a
+   ofrecerse en el sondeo siguiente, que es el lado seguro.
+   ⚠️ LA LISTA SE COPIA ANTES, porque `sigue` arma un grupo nuevo y repasa los repartos. */
+function _clnkSoloNuevas(g, sigue) {
+  var repes = (g.idsRepes || []).slice();
+  /* ⚠️ EL GRUPO RECORTADO LO ARMA `sigue`, QUE ES EL MISMO QUE USA «todas igual»: recibirlo por
+     parámetro en vez de volver a escribirlo es lo que impide que el cartel de destino cuente
+     una cosa por un botón y otra por el otro. */
+  sigue((g.idsNuevos || []).slice());
+  if (!repes.length) return;
+  _clnkBorrarEnPuente(repes, false).then(function (r) {
+    if (typeof toast === 'function') {
+      if (r.mal) toast('⚠️ ' + r.ok + ' de ' + repes.length + ' repetida(s) descartada(s); ' +
+                       r.mal + ' no se pudo borrar de CeiboLink');
+      else if (r.ok) toast('🗑 ' + r.ok + (r.ok === 1 ? ' repetida descartada' : ' repetidas descartadas') +
+                           ' de CeiboLink');
+    }
+    try { clnkRefrescar(); } catch (e) {}
+  }).catch(function () {});
+}
+window._clnkSoloNuevas = _clnkSoloNuevas;
 window.clnkRevisarImagenes = clnkRevisarImagenes;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -188839,20 +188897,26 @@ window.clnkConfirmarPersistidas = clnkConfirmarPersistidas;
    CON CONFIRMACIÓN Y DICIENDO QUE NO SE RECUPERAN. Es la única salida del aviso que destruye
    algo, y lo destruye en una máquina que el médico no administra: si se equivoca, la imagen hay
    que volver a mandarla desde el ecógrafo —suponiendo que todavía esté ahí—. */
-async function clnkDescartar(ids) {
+/* ══ P12 · TAREA 2 · EL BORRADO EN EL PUENTE, CON UN SOLO DUENO ══════════════════════════════
+   El cuerpo que borra en CeiboLink estaba DENTRO de `clnkDescartar`, pegado a su confirmacion.
+   La tarea 2.1 necesita el mismo borrado SIN una segunda pregunta --el medico ya decidio al
+   elegir «solo las nuevas»-- y con el cuerpo copiado en los dos lugares el dia que cambie la
+   regla de que se olvida y que se anota, uno de los dos quedaria viejo. Y lo que se olvida y se
+   anota es justo la parte delicada: `_clnkAvisadas` y el registro persistido.
+
+   `conProgreso` existe porque los dos caminos pintan distinto: el de `clnkDescartar` tiene el
+   modal abierto y escribe «Descartando 2 de 5…» ahi; el de «solo las nuevas» corre MIENTRAS el
+   cartel de destino ya esta en pantalla, asi que escribir ahi le taparia al medico la pregunta
+   que esta contestando.
+   Devuelve `{ok, mal, corto}` --`corto` es «el aviso dejo de estar vigente»--. */
+async function _clnkBorrarEnPuente(ids, conProgreso) {
   var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
-  if (!l.length) { clnkAvisoCerrar(); return 0; }
-  /* ⚠️ P12 · T1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «descartar lo que llegó». */
-  if (!(await borrConfirmar('¿Descartar ' + l.length + (l.length === 1 ? ' imagen' : ' imágenes') + '?',
-      ['Se borran de CeiboLink y NO SE PUEDEN RECUPERAR.',
-       'Para volver a tenerlas habría que mandarlas de nuevo desde el ecógrafo.'],
-      'Descartar'))) return 0;
   var ok = 0, mal = 0;
   for (var i = 0; i < l.length; i++) {
-    clnkAvisoProgreso('Descartando ' + (i + 1) + ' de ' + l.length + '…');
+    if (conProgreso) clnkAvisoProgreso('Descartando ' + (i + 1) + ' de ' + l.length + '…');
     var r = await clnkPedir('/v1/imagenes/' + encodeURIComponent(l[i]),
                             { metodo: 'DELETE', conToken: true, espera: 8000 });
-    if (!r.vigente) { clnkAvisoCerrar(); return ok; }
+    if (!r.vigente) return { ok: ok, mal: mal, corto: true };
     if (r.ok || r.estado === 404) {
       ok++;
       /* ══ BLOQUE D · SE OLVIDA EL ID QUE SE ACABA DE DESTRUIR ════════════════════════════
@@ -188868,6 +188932,21 @@ async function clnkDescartar(ids) {
       if (typeof _clnkVistasMarcar === 'function') _clnkVistasMarcar([l[i]], 'descartada');
     } else mal++;
   }
+  return { ok: ok, mal: mal, corto: false };
+}
+window._clnkBorrarEnPuente = _clnkBorrarEnPuente;
+
+async function clnkDescartar(ids) {
+  var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!l.length) { clnkAvisoCerrar(); return 0; }
+  /* ⚠️ P12 · T1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «descartar lo que llegó». */
+  if (!(await borrConfirmar('¿Descartar ' + l.length + (l.length === 1 ? ' imagen' : ' imágenes') + '?',
+      ['Se borran de CeiboLink y NO SE PUEDEN RECUPERAR.',
+       'Para volver a tenerlas habría que mandarlas de nuevo desde el ecógrafo.'],
+      'Descartar'))) return 0;
+  var _r = await _clnkBorrarEnPuente(l, true);
+  var ok = _r.ok, mal = _r.mal;
+  if (_r.corto) { clnkAvisoCerrar(); return ok; }
   clnkAvisoCerrar();
   if (typeof toast === 'function') {
     toast(mal ? ('⚠️ ' + ok + ' de ' + l.length + ' descartada(s); ' + mal + ' no se pudo borrar')
