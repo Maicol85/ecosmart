@@ -159654,6 +159654,599 @@ caso('TC-1016', 'P11 (2.3): el Simpson no dibuja el contorno de la diastole al e
     ] };
   })();
 `);
+caso('TC-1017', 'P12 (1.2): los cuatro carteles que Maicol confirmo son PROPIOS y no abren ningun dialogo nativo', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    /* Todo acceso va por un ayudante CON GUARDA: contra la linea base los tres primitivos no
+       existen, y un acceso pelado tiraria ReferenceError -- el caso saldria rojo por EXCEPCION
+       y las condiciones de abajo no llegarian a evaluarse. Es la leccion de TC-827. */
+    const hay = n => { try { return typeof window[n] === 'function'; } catch (e) { return false; } };
+    R.hayAvisoProp = hay('avisoProp');
+    R.hayPreguntaProp = hay('preguntaProp');
+    R.hayPedirProp = hay('pedirProp');
+    /* Los dos alias historicos SIGUEN existiendo: veintitantos llamadores y nueve casos los
+       nombran, asi que si uno desaparece este caso tiene que ponerse rojo. */
+    R.aliasMedAviso = hay('_medAviso');
+    R.aliasBorrConfirmar = hay('borrConfirmar');
+
+    /* ── LOS CUATRO CARTELES QUE MAICOL CONFIRMO NO ABREN UN DIALOGO NATIVO ──────────────────
+       Se ESPIA alert/confirm/prompt en vez de sustituirlos por algo que conteste: lo que se
+       mide es que NO se llamen. */
+    const aO = window.alert, cO = window.confirm, pO = window.prompt;
+    const nat = [];
+    window.alert = m => { nat.push('alert'); };
+    window.confirm = m => { nat.push('confirm'); return false; };
+    window.prompt = m => { nat.push('prompt'); return null; };
+    const cerrarCarteles = () => {
+      ['[data-med-aviso="ov"]', '[data-borr-conf]', '[data-ped-prop="ov"]'].forEach(sel => {
+        document.querySelectorAll(sel).forEach(n => { try { n.remove(); } catch (e) {} });
+      });
+    };
+    try {
+      /* (1) LA ENVOLVENTE CON MENOS DE TRES PUNTOS -- el cartel que el medico nombro. */
+      const jpg = new Uint8Array([255,216,255,217]);
+      const espectral = { ux:4, uy:7, dx:0.002, dy:-0.9425, x0:100, y0:400, x1:900, y1:800,
+                          tipo:3, rx0:0, ry0:200, rvx:0, rvy:0 };
+      try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+      _cineAbrir([{ nombre:'P12-vti', cuadros:1,
+                    d:{ frags:[jpg], cols:1016, filas:708, msCuadro:0, regiones:[espectral] } }]);
+      await esperar(600);
+      if (!_medOn) medToggle();
+      await esperar(300);
+      _vCon(_vistaA, () => medHerramienta('vti'));
+      await esperar(250);
+      nat.length = 0;
+      cerrarCarteles();
+      /* DOS puntos: por debajo del minimo de tres, que es lo que dispara el motivo. */
+      _vCon(_vistaA, () => { try { _medTrazo = [{x:300,y:650},{x:320,y:660}]; _medAreaUp(); } catch (e) {} });
+      await esperar(260);
+      const c1 = document.querySelector('[data-med-aviso="ov"]');
+      R.envolventeCartelPropio = !!c1;
+      R.envolventeTexto = c1 ? String(c1.textContent || '') : '';
+      R.envolventeDiceTresPuntos = R.envolventeTexto.indexOf('tres puntos') > -1;
+      R.envolventeSinNativo = (nat.length === 0);
+      cerrarCarteles();
+      try { cineCerrar(); } catch (e) {}
+      await esperar(220);
+
+      /* (2) «PASAR A CALIDAD ORIGINAL» -- imgSetCalidad con un _orig puesto. */
+      nat.length = 0;
+      try { imgVaciar(); } catch (e) {}
+      const du = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB/9sAQwEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB/8AAEQgAAQABAwEiAAIRAQMRAf/EABQAAQAAAAAAAAAAAAAAAAAAAAr/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJQA/9k=';
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: du, _orig: du, calidad: 'media', ampliada: false, origen: 'estudio' });
+      try { imgRender(); } catch (e) {}
+      await esperar(200);
+      let pr = null;
+      try { pr = imgSetCalidad(0, 'orig'); } catch (e) { R.errCal = String(e && e.message); }
+      await esperar(300);
+      const c2 = document.querySelector('[data-borr-conf]');
+      R.calidadCartelPropio = !!c2;
+      R.calidadTexto = c2 ? String(c2.textContent || '') : '';
+      R.calidadDiceOriginal = R.calidadTexto.indexOf('calidad original') > -1;
+      R.calidadSinNativo = (nat.length === 0);
+      /* El boton del SI NO es rojo: subir la resolucion no destruye nada. */
+      const bSi2 = c2 ? [].slice.call(c2.querySelectorAll('button'))
+        .filter(b => String(b.textContent || '').indexOf('calidad original') > -1)[0] : null;
+      R.calidadBotonNoEsRojo = !!(bSi2 && !bSi2.classList.contains('btn-danger'));
+      if (c2) { const bNo = [].slice.call(c2.querySelectorAll('button'))
+        .filter(b => String(b.textContent || '').trim() === 'Cancelar')[0];
+        if (bNo) bNo.click(); }
+      try { if (pr && pr.then) await pr; } catch (e) {}
+      await esperar(160);
+      cerrarCarteles();
+
+      /* (3) EL PROMPT DE CORREGIR UN VALOR DEL CAJON DOPPLER pasa a pedirProp. */
+      nat.length = 0;
+      try { dopModo('ao'); } catch (e) {}
+      await esperar(120);
+      try { dopCorregir('ao.diam'); } catch (e) { R.errDop = String(e && e.message); }
+      await esperar(260);
+      const c3 = document.querySelector('[data-ped-prop="ov"]');
+      R.dopPedirPropio = !!c3;
+      R.dopSinNativo = (nat.length === 0);
+      R.dopTieneCampo = !!(c3 && c3.querySelector('[data-ped-prop="inp"]'));
+      cerrarCarteles();
+    } finally {
+      window.alert = aO; window.confirm = cO; window.prompt = pO;
+      cerrarCarteles();
+      try { cineCerrar(); } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['(A1) existe avisoProp, el dueno unico del aviso propio', R.hayAvisoProp === true, String(R.hayAvisoProp)],
+      ['(A2) existe preguntaProp, el dueno unico de la pregunta propia', R.hayPreguntaProp === true, String(R.hayPreguntaProp)],
+      ['(A3) existe pedirProp, el cartel que pide un valor', R.hayPedirProp === true, String(R.hayPedirProp)],
+      ['(A4) el alias _medAviso sigue existiendo', R.aliasMedAviso === true, String(R.aliasMedAviso)],
+      ['(A5) el alias borrConfirmar sigue existiendo', R.aliasBorrConfirmar === true, String(R.aliasBorrConfirmar)],
+      ['(B1) la envolvente corta abre un cartel PROPIO', R.envolventeCartelPropio === true, R.envolventeTexto.slice(0,90)],
+      ['(B2) y ese cartel dice «tres puntos»', R.envolventeDiceTresPuntos === true, R.envolventeTexto.slice(0,90)],
+      ['(B3) y NO se llamo a ningun dialogo nativo', R.envolventeSinNativo === true, 'nativos=' + String(R.envolventeSinNativo)],
+      ['(C1) «calidad original» abre un cartel PROPIO', R.calidadCartelPropio === true, R.calidadTexto.slice(0,90)],
+      ['(C2) y dice «calidad original»', R.calidadDiceOriginal === true, R.calidadTexto.slice(0,90)],
+      ['(C3) y su boton del SI no es rojo: no destruye nada', R.calidadBotonNoEsRojo === true, String(R.calidadBotonNoEsRojo)],
+      ['(C4) y NO se llamo a ningun dialogo nativo', R.calidadSinNativo === true, String(R.calidadSinNativo)],
+      ['(D1) corregir un valor del cajon Doppler abre pedirProp', R.dopPedirPropio === true, String(R.dopPedirPropio)],
+      ['(D2) con su campo de texto', R.dopTieneCampo === true, String(R.dopTieneCampo)],
+      ['(D3) y sin ningun prompt nativo', R.dopSinNativo === true, String(R.dopSinNativo)]
+    ] };
+  })();
+`);
+
+caso('TC-1018', 'P12 (3.1): la escala de velocidad sobrevive al viaje por el registro, y el VTI sale identico', `
+  return (async () => {
+    const R = {};
+    /* Acceso con guarda: contra la linea base los cuatro campos no viajan, pero las funciones
+       SI existen -- lo que cambia es la lista de la allowlist--. Aun asi se guarda todo. */
+    const f = n => { try { return (typeof window[n] === 'function') ? window[n] : null; } catch (e) { return null; } };
+    const _CR = f('_cineRegistro'), _CD = f('_cineDesdeRegistro');
+    const _RV = f('_dcmImgRegionVelocidad'), _RM = f('_dcmImgRegionMedible');
+    const _RT = f('_dcmImgRegionTiempo'), _RVTI = f('_dcmImgRegionVti');
+    const _BY = f('_dcmImgBaseY'), _VTI = f('_vtiDe');
+    if (!_CR || !_CD || !_RV || !_BY || !_VTI) {
+      return { extra: [['DENOMINADOR: las seis funciones del registro y del VTI existen', false,
+        'falta alguna']] };
+    }
+    /* Region espectral con los numeros del encabezado del caso del VINNO. Ningun dato de ningun
+       paciente: son coordenadas de pixel y escalas de eje. Cero en la fila 600. */
+    const reg = { tipo:3, x0:100, y0:400, x1:900, y1:800, ux:4, uy:7, dx:0.002, dy:-0.9425,
+                  rx0:0, ry0:200, rvx:0, rvy:0 };
+    const loop = { nombre:'P12-reg', cuadros:1,
+                   d:{ frags:[new Uint8Array([1])], cols:1016, filas:708, msCuadro:0,
+                       regiones:[reg] } };
+    let rv = null;
+    try { rv = _CD(_CR('uuid-p12', loop, '', 'id-p12')).d.regiones[0]; }
+    catch (e) { return { extra: [['DENOMINADOR: el viaje por el registro no tiro', false,
+      String(e && e.message)]] }; }
+
+    R.camposVuelven = Object.keys(rv).slice().sort().join(',');
+    R.tieneRy0 = ('ry0' in rv) && isFinite(rv.ry0);
+    R.tieneRvy = ('rvy' in rv);
+    R.tieneRx0 = ('rx0' in rv);
+    R.tieneRvx = ('rvx' in rv);
+    R.baseAntes = _BY(reg);
+    R.baseDespues = _BY(rv);
+    R.velAntes = !!_RV(reg);
+    R.velDespues = !!_RV(rv);
+    R.vtiAntes = !!(_RVTI && _RVTI(reg));
+    R.vtiDespues = !!(_RVTI && _RVTI(rv));
+    /* CONTROL: el eje del TIEMPO sobrevivia tambien ANTES de P12 -- es lo que separa los tres
+       ejes y lo que prueba que la sonda no esta midiendo «todo bien» de arriba. */
+    R.tiempoAntes = !!(_RT && _RT(reg));
+    R.tiempoDespues = !!(_RT && _RT(rv));
+
+    /* ── EL VTI DE PUNTA A PUNTA: EL MISMO TRAZO, ANTES Y DESPUES DEL VIAJE ─────────────── */
+    const pts = [];
+    for (let i = 0; i <= 60; i++) {
+      pts.push({ x: 200 + i * 5, y: Math.round(600 + Math.sin(Math.PI * i / 60) * 120) });
+    }
+    const regsO = window._medRegs, calO = window._medCalibVel;
+    const medir = rr => { window._medRegs = () => [rr];
+      try { window._medCalibVel = null; } catch (e) {}
+      try { return _VTI(pts); } catch (e) { return { ok:false, motivo:'ERR' }; } };
+    let a = null, b = null, viejo = null;
+    try {
+      a = medir(reg);
+      b = medir(rv);
+      /* CONTROL POSITIVO: con el registro recortado a los NUEVE campos de antes de P12 el VTI
+         tiene que FALLAR. Sin esto, dos «ok» iguales podrian venir de que no se mide nada. */
+      const v9 = {};
+      ['tipo','x0','y0','x1','y1','ux','uy','dx','dy'].forEach(k => { v9[k] = rv[k]; });
+      viejo = medir(v9);
+    } finally {
+      window._medRegs = regsO;
+      try { window._medCalibVel = calO; } catch (e) {}
+    }
+    const n6 = v => (typeof v === 'number' && isFinite(v)) ? Number(v.toFixed(6)) : null;
+    R.vtiAntesOK = !!(a && a.ok);
+    R.vtiDespuesOK = !!(b && b.ok);
+    R.cmAntes = a && a.ok ? n6(a.cm) : null;
+    R.cmDespues = b && b.ok ? n6(b.cm) : null;
+    R.picoAntes = a && a.ok ? n6(a.picoCms) : null;
+    R.picoDespues = b && b.ok ? n6(b.picoCms) : null;
+    R.gradAntes = a && a.ok ? n6(a.gradMax) : null;
+    R.gradDespues = b && b.ok ? n6(b.gradMax) : null;
+    R.identicos = (R.vtiAntesOK && R.vtiDespuesOK &&
+                   R.cmAntes === R.cmDespues && R.picoAntes === R.picoDespues &&
+                   R.gradAntes === R.gradDespues);
+    R.registroViejoFalla = !!(viejo && viejo.ok === false);
+
+    /* ── CONTROL NEGATIVO: una region 2D. Su escala de DISTANCIA sobrevivia desde siempre, y
+          tiene que seguir sobreviviendo IGUAL: es lo que prueba que los mm no se tocaron. ── */
+    const reg2 = { tipo:1, x0:0, y0:0, x1:500, y1:500, ux:3, uy:3, dx:0.0312, dy:0.0312 };
+    let rv2 = null;
+    try { rv2 = _CD(_CR('u2-p12', { nombre:'2d', cuadros:1,
+      d:{ frags:[new Uint8Array([1])], cols:500, filas:500, msCuadro:0, regiones:[reg2] } },
+      '', 'id2-p12')).d.regiones[0]; } catch (e) {}
+    R.mmAntes = !!(_RM && _RM(reg2));
+    R.mmDespues = !!(rv2 && _RM && _RM(rv2));
+    R.mmEscalaIgual = !!(rv2 && rv2.dx === reg2.dx && rv2.dy === reg2.dy);
+
+    return { extra: [
+      ['(A1) la region vuelve del registro con los CUATRO campos del pixel de referencia',
+        R.tieneRy0 && R.tieneRvy && R.tieneRx0 && R.tieneRvx, R.camposVuelven],
+      ['(A2) y la fila del cero es la MISMA antes y despues (600)',
+        R.baseAntes === 600 && R.baseDespues === 600,
+        'antes=' + String(R.baseAntes) + ' despues=' + String(R.baseDespues)],
+      ['(B1) se puede medir VELOCIDAD antes del viaje (denominador)', R.velAntes === true, String(R.velAntes)],
+      ['(B2) y TAMBIEN despues -- es el defecto que P12 cierra', R.velDespues === true, String(R.velDespues)],
+      ['(B3) se puede medir VTI despues del viaje', R.vtiDespues === true, String(R.vtiDespues)],
+      ['(C1) CONTROL: el eje del TIEMPO sobrevive, y sobrevivia antes', R.tiempoAntes === true && R.tiempoDespues === true,
+        'antes=' + String(R.tiempoAntes) + ' despues=' + String(R.tiempoDespues)],
+      ['(D1) el MISMO trazo da el mismo VTI antes y despues', R.identicos === true,
+        'cm ' + String(R.cmAntes) + ' vs ' + String(R.cmDespues) +
+        ' · pico ' + String(R.picoAntes) + ' vs ' + String(R.picoDespues) +
+        ' · grad ' + String(R.gradAntes) + ' vs ' + String(R.gradDespues)],
+      ['(D2) CONTROL POSITIVO: con el registro de NUEVE campos el VTI falla', R.registroViejoFalla === true,
+        String(R.registroViejoFalla)],
+      ['(E1) CONTROL NEGATIVO: la escala 2D en mm sobrevive igual que siempre',
+        R.mmAntes === true && R.mmDespues === true && R.mmEscalaIgual === true,
+        'antes=' + String(R.mmAntes) + ' despues=' + String(R.mmDespues) + ' igual=' + String(R.mmEscalaIgual)]
+    ] };
+  })();
+`);
+
+caso('TC-1019', 'P12 (2.1 y 2.2): con «solo las nuevas» las repetidas se descartan solas y quedan marcadas', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false,
+      'no hay __CLNK_FAKE.base']] };
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const vistasOrig = localStorage.getItem('ett_clnk_vistas');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    try {
+      const ctl = o => fetch(F.base + '/_control', { method:'POST',
+        headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      const vinc = await __t.ec5Vincular(F);
+      R.vinculado = vinc === true;
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      const tok = () => localStorage.getItem('ett_ceibolink_token') || '';
+      const enPuente = async () => {
+        const d = await fetch(F.base + '/v1/imagenes', { headers:{ Authorization:'Bearer ' + tok() } })
+          .then(r => r.json()).catch(() => null);
+        return (d && d.imagenes) ? d.imagenes.map(i => String(i.id)).sort() : null;
+      };
+      const t0 = Date.now() - 9 * 60000;
+      const iso = ms => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+      const EQ = { id:'eq_p12a', estado:'autorizado', aet:'VINNO', ip:'169.254.11.5',
+                   nombre_para_mostrar:'VINNO', apodo:null, imagenes:3, ultimo_envio: iso(t0) };
+      const im = (id, dt) => ({ id:id, equipo:'eq_p12a', recibida: iso(t0 + dt), bytes:570,
+                                tipo:'imagen', modalidad:'US', vista:null, origen:'dicom',
+                                formato:'dicom', se_puede_ver:true });
+      const bot = k => document.getElementById('clnkav-b' + k);
+      const cuerpo = () => { const c = document.getElementById('clnkav-cuerpo');
+                             return c ? String(c.textContent || '') : ''; };
+      const sembrar = o => {
+        try { localStorage.setItem('ett_clnk_vistas', JSON.stringify(o)); } catch (e) {}
+        try { window._clnkVistas = null; } catch (e) {}
+        try { if (window._clnkAvisadas)
+          Object.keys(_clnkAvisadas).forEach(k => { delete _clnkAvisadas[k]; }); } catch (e) {}
+      };
+      /* UNA nueva y DOS ya vistas. Los ids son propios de este caso: el aviso no vuelve por las
+         MISMAS imagenes en la sesion, y los mil casos corren en UNA pagina. */
+      sembrar({ img_z12a:{ d:'guardado', t:Date.now() }, img_z12b:{ d:'estudio', t:Date.now() } });
+      await ctl({ reset:true, equipos:[EQ],
+                  imagenes:[im('img_z12a',0), im('img_z12b',8000), im('img_z12c',16000)] });
+      await esperar(260);
+      try { await clnkRevisarImagenes(true); } catch (e) { R.errRev = String(e && e.message); }
+      await esperar(520);
+      const g = window._clnkAvisoGrupo;
+      R.nNuevos = g ? (g.idsNuevos || []).length : null;
+      R.nRepes = g ? (g.idsRepes || []).length : null;
+      R.rot1 = bot(1) ? String(bot(1).textContent || '') : '(no hay)';
+      R.cuerpo = cuerpo();
+      R.diceQueSeDescartan = R.cuerpo.indexOf('se descart') > -1;
+      R.puenteAntes = await enPuente();
+      try { bot(1).click(); } catch (e) { R.errClic = String(e && e.message); }
+      await esperar(2400);
+      R.puenteDespues = await enPuente();
+      const q = R.puenteDespues || [];
+      R.repesBorradas = (q.indexOf('img_z12a') < 0 && q.indexOf('img_z12b') < 0);
+      R.nuevaSigueEnPuente = (q.indexOf('img_z12c') >= 0);
+      R.marcadaA = (typeof _clnkVistaDe === 'function') && _clnkVistaDe('img_z12a') === 'descartada';
+      R.marcadaB = (typeof _clnkVistaDe === 'function') && _clnkVistaDe('img_z12b') === 'descartada';
+      R.hayDueno = (typeof window._clnkBorrarEnPuente === 'function');
+      try { clnkAvisoCerrar(); } catch (e) {}
+    } finally {
+      window.toast = toastOrig;
+      try { clnkAvisoCerrar(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+      else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+      else localStorage.setItem('ett_ceibolink_on', onOrig);
+      if (vistasOrig === null) localStorage.removeItem('ett_clnk_vistas');
+      else localStorage.setItem('ett_clnk_vistas', vistasOrig);
+      try { window._clnkVistas = null; } catch (e) {}
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+      else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+    }
+    const j = a => (a === null ? '(no se pudo leer)' : a.join(','));
+    return { extra: [
+      ['(A1) existe el dueno unico del borrado en el puente', R.hayDueno === true, String(R.hayDueno)],
+      ['(A2) el reparto da 1 nueva y 2 repetidas (denominador)',
+        R.nNuevos === 1 && R.nRepes === 2, 'nuevas=' + String(R.nNuevos) + ' repes=' + String(R.nRepes)],
+      ['(B1) el boton dice el numero de nuevas', String(R.rot1).indexOf('(1)') > -1, R.rot1],
+      ['(B2) y el cartel DICE que las repetidas se descartan', R.diceQueSeDescartan === true,
+        String(R.cuerpo).slice(0, 140)],
+      ['(C1) las TRES estaban en el puente antes (denominador)',
+        (R.puenteAntes || []).length === 3, j(R.puenteAntes)],
+      ['(C2) tras «solo las nuevas», las dos repetidas YA NO estan en el puente',
+        R.repesBorradas === true, j(R.puenteDespues)],
+      ['(C3) y la NUEVA sigue ahi, esperando su destino', R.nuevaSigueEnPuente === true, j(R.puenteDespues)],
+      ['(D1) las dos repetidas quedan marcadas «descartada» en el registro persistido -- es lo que hace que no vuelvan al recargar',
+        R.marcadaA === true && R.marcadaB === true,
+        'a=' + String(R.marcadaA) + ' b=' + String(R.marcadaB)]
+    ] };
+  })();
+`);
+
+caso('TC-1020', 'P12 (2.3): con cero nuevas el boton dice (0), esta apagado y explica por que', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const F = window.__CLNK_FAKE;
+    if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const tkOrig = localStorage.getItem('ett_ceibolink_token');
+    const vistasOrig = localStorage.getItem('ett_clnk_vistas');
+    const baseOrig = window.__clnkBaseTest;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    try {
+      const ctl = o => fetch(F.base + '/_control', { method:'POST',
+        headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      R.vinculado = (await __t.ec5Vincular(F)) === true;
+      if (!R.vinculado) return { extra: [['DENOMINADOR: se vinculo con el conector falso', false, '']] };
+      const tok = () => localStorage.getItem('ett_ceibolink_token') || '';
+      const enPuente = async () => {
+        const d = await fetch(F.base + '/v1/imagenes', { headers:{ Authorization:'Bearer ' + tok() } })
+          .then(r => r.json()).catch(() => null);
+        return (d && d.imagenes) ? d.imagenes.map(i => String(i.id)).sort() : null;
+      };
+      const t0 = Date.now() - 9 * 60000;
+      const iso = ms => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+      const EQ = { id:'eq_p12b', estado:'autorizado', aet:'VINNO', ip:'169.254.11.5',
+                   nombre_para_mostrar:'VINNO', apodo:null, imagenes:3, ultimo_envio: iso(t0) };
+      const im = (id, dt) => ({ id:id, equipo:'eq_p12b', recibida: iso(t0 + dt), bytes:570,
+                                tipo:'imagen', modalidad:'US', vista:null, origen:'dicom',
+                                formato:'dicom', se_puede_ver:true });
+      const bot = k => document.getElementById('clnkav-b' + k);
+      const sembrar = o => {
+        try { localStorage.setItem('ett_clnk_vistas', JSON.stringify(o)); } catch (e) {}
+        try { window._clnkVistas = null; } catch (e) {}
+        try { if (window._clnkAvisadas)
+          Object.keys(_clnkAvisadas).forEach(k => { delete _clnkAvisadas[k]; }); } catch (e) {}
+      };
+      /* CERO nuevas: las tres ya vistas. Ids propios de este caso. */
+      sembrar({ img_y12a:{ d:'guardado', t:Date.now() }, img_y12b:{ d:'estudio', t:Date.now() },
+                img_y12c:{ d:'bandeja', t:Date.now() } });
+      await ctl({ reset:true, equipos:[EQ],
+                  imagenes:[im('img_y12a',0), im('img_y12b',8000), im('img_y12c',16000)] });
+      await esperar(260);
+      try { await clnkRevisarImagenes(true); } catch (e) { R.errRev = String(e && e.message); }
+      await esperar(520);
+      const g = window._clnkAvisoGrupo;
+      R.nNuevos = g ? (g.idsNuevos || []).length : null;
+      R.nRepes = g ? (g.idsRepes || []).length : null;
+      const b1 = bot(1);
+      R.rot1 = b1 ? String(b1.textContent || '') : '(no hay)';
+      R.diceCero = R.rot1.indexOf('(0)') > -1;
+      R.disabled = !!(b1 && b1.disabled);
+      R.claseOff = !!(b1 && b1.classList.contains('clnk-av-off'));
+      R.titulo = b1 ? String(b1.title || '') : '';
+      R.tituloExplica = R.titulo.length > 10;
+      R.opacidad = b1 ? (function () { try { return getComputedStyle(b1).opacity; } catch (e) { return null; } })() : null;
+      R.seVeApagado = (R.opacidad !== null && parseFloat(R.opacidad) < 0.9);
+      /* Y apretarlo NO PIERDE NADA: las tres siguen en el puente. */
+      R.puenteAntes = await enPuente();
+      try { if (b1) b1.click(); } catch (e) {}
+      await esperar(900);
+      R.puenteDespues = await enPuente();
+      R.noPerdioNada = ((R.puenteDespues || []).length === 3);
+      /* CONTROL NEGATIVO: el segundo boton -- «todas igual» -- NO esta apagado. */
+      const b2 = bot(2);
+      R.rot2 = b2 ? String(b2.textContent || '') : '(no hay)';
+      R.b2NoApagado = !!(b2 && !b2.disabled && !b2.classList.contains('clnk-av-off'));
+      try { clnkAvisoCerrar(); } catch (e) {}
+    } finally {
+      window.toast = toastOrig;
+      try { clnkAvisoCerrar(); } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      if (tkOrig === null) localStorage.removeItem('ett_ceibolink_token');
+      else localStorage.setItem('ett_ceibolink_token', tkOrig);
+      if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+      else localStorage.setItem('ett_ceibolink_on', onOrig);
+      if (vistasOrig === null) localStorage.removeItem('ett_clnk_vistas');
+      else localStorage.setItem('ett_clnk_vistas', vistasOrig);
+      try { window._clnkVistas = null; } catch (e) {}
+      if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+      else localStorage.setItem('ett_view_mode', modoOrig);
+      try { applyViewMode(); } catch (e) {}
+    }
+    return { extra: [
+      ['(A1) el reparto da CERO nuevas y TRES repetidas (denominador)',
+        R.nNuevos === 0 && R.nRepes === 3, 'nuevas=' + String(R.nNuevos) + ' repes=' + String(R.nRepes)],
+      ['(B1) el boton dice «(0)» -- era lo que faltaba', R.diceCero === true, R.rot1],
+      ['(B2) y esta deshabilitado de verdad', R.disabled === true, String(R.disabled)],
+      ['(B3) y se VE apagado: opacidad por debajo de 0,9', R.seVeApagado === true, String(R.opacidad)],
+      ['(B4) y su titulo explica por que', R.tituloExplica === true, R.titulo.slice(0, 90)],
+      ['(C1) apretarlo no pierde nada: las tres siguen en el puente', R.noPerdioNada === true,
+        (R.puenteDespues || []).join(',')],
+      ['(D1) CONTROL NEGATIVO: «todas igual» NO esta apagado', R.b2NoApagado === true, R.rot2]
+    ] };
+  })();
+`);
+
+caso('TC-1021', 'P12 (3.3 y 3.4): la receta de la calibracion manual y la frase del que hacer, con un solo dueno', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const leer = n => { try { return window[n]; } catch (e) { return undefined; } };
+    const RECETA = leer('MED_CAL_VEL_RECETA');
+    const RECETA2 = leer('MED_CAL_VEL_RECETA2');
+    const COMO = leer('MED_COMO_CALIBRAR_VEL');
+    R.hayReceta = (typeof RECETA === 'string' && RECETA.length > 20);
+    R.hayReceta2 = (typeof RECETA2 === 'string' && RECETA2.length > 20);
+    R.hayComo = (typeof COMO === 'string' && COMO.length > 20);
+    /* T3.3: la receta nombra el cero Y la unidad, que es lo que el pedido pide. */
+    R.recetaNombraElCero = R.hayReceta && RECETA.indexOf('el cero') > -1;
+    R.recetaNombraLaUnidad = R.hayReceta && RECETA.indexOf('m/s') > -1 && RECETA.indexOf('cm/s') > -1;
+    /* Y la segunda oracion conserva la verdad de MEDIR-3: sirven dos puntos cualesquiera. */
+    R.receta2DiceCualesquiera = R.hayReceta2 && RECETA2.indexOf('cualesquiera') > -1;
+    /* T3.4: la frase del QUE HACER nombra el control por el rotulo que el medico lee. */
+    R.comoNombraElBoton = R.hayComo && COMO.indexOf('Calibrar vel.') > -1;
+    R.comoDiceQueHacer = R.hayComo && COMO.indexOf('Qué hacer') > -1;
+
+    const jpg = new Uint8Array([255,216,255,217]);
+    /* Region espectral SIN escala de velocidad: eje Y en cm/s pero sin pixel de referencia, que
+       es el caso que el medico reporto -- la zona es espectral y el archivo no declara su eje. */
+    const sinVel = { ux:4, uy:7, dx:0.002, dy:-0.9425, x0:100, y0:400, x1:900, y1:800, tipo:3 };
+    const aO = window.alert;
+    const nat = [];
+    window.alert = () => { nat.push(1); };
+    const cerrar = () => { document.querySelectorAll('[data-med-aviso="ov"]')
+      .forEach(n => { try { n.remove(); } catch (e) {} }); };
+    try {
+      try { if (typeof __t === 'object' && __t && __t.limpiar) __t.limpiar(); } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+      _cineAbrir([{ nombre:'P12-sinvel', cuadros:1,
+                    d:{ frags:[jpg], cols:1016, filas:708, msCuadro:0, regiones:[sinVel] } }]);
+      await esperar(600);
+      if (!_medOn) medToggle();
+      await esperar(300);
+      cerrar();
+      /* La herramienta Velocidad sobre un punto DENTRO de la zona: la zona existe y no declara
+         su escala de velocidad, asi que es la rama que el pedido 3.4 nombra. */
+      _vCon(_vistaA, () => medHerramienta('vel'));
+      await esperar(260);
+      /* Se apaga la calibracion automatica para llegar a la rama del aviso: con cero regiones
+         medibles la app entra sola en modo calibrar, y aca SI hay region. */
+      try { window._medCalibrandoVel = false; } catch (e) {}
+      nat.length = 0;
+      const cv = document.getElementById('cine-med');
+      R.hayLienzo = !!cv;
+      if (cv) {
+        const r = cv.getBoundingClientRect();
+        const ex = r.left + r.width * 0.5, ey = r.top + r.height * 0.5;
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX:ex, clientY:ey }));
+      }
+      await esperar(420);
+      const c = document.querySelector('[data-med-aviso="ov"]');
+      R.cartelPropio = !!c;
+      R.texto = c ? String(c.textContent || '') : '';
+      R.diceQueHacer = R.texto.indexOf('Calibrar vel.') > -1;
+      R.sinNativo = (nat.length === 0);
+      cerrar();
+    } finally {
+      window.alert = aO;
+      cerrar();
+      try { cineCerrar(); } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+    }
+    /* El panel guia tambien sale de la receta, y no de un texto propio: se mide que la cadena
+       de la receta ESTE dentro de lo que el panel emitiria. Se compara en minuscula porque el
+       panel baja la primera letra para encadenarla despues de los dos puntos. */
+    const baj = s => (typeof s === 'string') ? s.charAt(0).toLowerCase() + s.slice(1) : '';
+    R.recetaEncadenable = R.hayReceta && baj(RECETA).charAt(0) === 'm';
+    return { extra: [
+      ['(A1) existe la receta de la calibracion manual, con dueno unico', R.hayReceta === true, String(RECETA).slice(0,80)],
+      ['(A2) y nombra EL CERO, que es lo que el medico pidio', R.recetaNombraElCero === true, String(RECETA).slice(0,120)],
+      ['(A3) y deja elegir la unidad: nombra m/s y cm/s', R.recetaNombraLaUnidad === true, String(RECETA).slice(0,140)],
+      ['(A4) y la segunda oracion conserva que sirven dos puntos CUALESQUIERA (MEDIR-3)',
+        R.receta2DiceCualesquiera === true, String(RECETA2).slice(0,120)],
+      ['(B1) existe la frase del QUE HACER cuando falta la escala', R.hayComo === true, String(COMO).slice(0,80)],
+      ['(B2) y dice «Que hacer»', R.comoDiceQueHacer === true, String(COMO).slice(0,60)],
+      ['(B3) y nombra el control por el rotulo que el medico LEE: «Calibrar vel.»',
+        R.comoNombraElBoton === true, String(COMO).slice(0,140)],
+      ['(C1) hay lienzo de medicion (denominador)', R.hayLienzo === true, String(R.hayLienzo)],
+      ['(C2) una zona espectral sin escala de velocidad abre un cartel PROPIO',
+        R.cartelPropio === true, R.texto.slice(0,110)],
+      ['(C3) y ese cartel DICE que hacer: nombra «Calibrar vel.»', R.diceQueHacer === true, R.texto.slice(0,160)],
+      ['(C4) y no se llamo a ningun alert nativo', R.sinNativo === true, String(R.sinNativo)]
+    ] };
+  })();
+`);
+
+caso('TC-1022', 'P12 (4.1): la flecha de la velocidad es correcta con imagen fresca y despues del viaje', `
+  return (async () => {
+    const R = {};
+    const f = n => { try { return (typeof window[n] === 'function') ? window[n] : null; } catch (e) { return null; } };
+    const _VEL = f('_dcmImgVelocidadEn'), _BY = f('_dcmImgBaseY');
+    const _CR = f('_cineRegistro'), _CD = f('_cineDesdeRegistro');
+    const _CALDOS = f('_medCalVelDos'), _CAL = f('_medVelCalEn');
+    if (!_VEL || !_BY || !_CR || !_CD) {
+      return { extra: [['DENOMINADOR: las cuatro funciones existen', false, 'falta alguna']] };
+    }
+    /* La flecha se dibuja con (v.cms menor que 0 ? abajo : arriba), asi que lo que se mide es
+       el SIGNO que cada camino produce. */
+    const flecha = cms => (cms < 0 ? 'abajo' : 'arriba');
+    const reg = { tipo:3, x0:100, y0:400, x1:900, y1:800, ux:4, uy:7, dx:0.002, dy:-0.9425,
+                  rx0:0, ry0:200, rvx:0, rvy:0 };
+    const base = _BY(reg);
+    R.base = base;
+    const arr = base - 100, aba = base + 100;
+
+    /* (A) IMAGEN FRESCA, escala del archivo. Es el escenario que el pedido manda verificar. */
+    const a1 = _VEL(reg, arr), a2 = _VEL(reg, aba);
+    R.frescoArriba = flecha(a1); R.frescoAbajo = flecha(a2);
+    R.frescoCorrecto = (R.frescoArriba === 'arriba' && R.frescoAbajo === 'abajo');
+
+    /* (B) LA MISMA REGION DESPUES DEL VIAJE POR EL REGISTRO. Antes de P12 volvia sin ry0, la
+       base daba NaN y -- porque NaN menor que 0 es FALSO -- la flecha caia SIEMPRE en arriba. */
+    let rv = null;
+    try { rv = _CD(_CR('u-p12f', { nombre:'f', cuadros:1,
+      d:{ frags:[new Uint8Array([1])], cols:1016, filas:708, msCuadro:0, regiones:[reg] } },
+      '', 'id-p12f')).d.regiones[0]; } catch (e) {}
+    R.baseTrasViaje = rv ? _BY(rv) : null;
+    const b1 = rv ? _VEL(rv, arr) : NaN, b2 = rv ? _VEL(rv, aba) : NaN;
+    R.viajeArriba = flecha(b1); R.viajeAbajo = flecha(b2);
+    R.viajeCorrecto = (R.viajeArriba === 'arriba' && R.viajeAbajo === 'abajo');
+
+    /* (C) CONTROL POSITIVO DE LA SONDA: con la region recortada a los NUEVE campos de antes de
+       P12, la flecha tiene que decir ARRIBA en los DOS lados. Sin este control, dos aciertos
+       podrian venir de que la sonda no distingue nada. */
+    const v9 = {};
+    ['tipo','x0','y0','x1','y1','ux','uy','dx','dy'].forEach(k => { if (rv) v9[k] = rv[k]; });
+    const c1 = _VEL(v9, arr), c2 = _VEL(v9, aba);
+    R.nueveArriba = flecha(c1); R.nueveAbajo = flecha(c2);
+    R.nueveLasDosArriba = (R.nueveArriba === 'arriba' && R.nueveAbajo === 'arriba');
+    R.nueveBaseEsNaN = !isFinite(_BY(v9));
+
+    /* (D) CONTROL: con la escala MANUAL la flecha ya funcionaba, y tiene que seguir. */
+    let cal = null;
+    try { cal = _CALDOS ? _CALDOS(500, 100, 700, -100) : null; } catch (e) {}
+    const d1 = (cal && _CAL) ? _CAL(cal, arr) : NaN, d2 = (cal && _CAL) ? _CAL(cal, aba) : NaN;
+    R.manualArriba = flecha(d1); R.manualAbajo = flecha(d2);
+    R.manualCorrecto = (cal && R.manualArriba === 'arriba' && R.manualAbajo === 'abajo');
+
+    return { extra: [
+      ['(A1) con la imagen FRESCA y la escala del archivo la flecha es correcta: arriba/abajo',
+        R.frescoCorrecto === true, R.frescoArriba + ' / ' + R.frescoAbajo],
+      ['(B1) la fila del cero sobrevive al viaje por el registro', R.baseTrasViaje === 600, String(R.baseTrasViaje)],
+      ['(B2) y la flecha sigue siendo correcta DESPUES del viaje', R.viajeCorrecto === true,
+        R.viajeArriba + ' / ' + R.viajeAbajo],
+      ['(C1) CONTROL POSITIVO: con la region de NUEVE campos la base no es un numero',
+        R.nueveBaseEsNaN === true, String(R.nueveBaseEsNaN)],
+      ['(C2) CONTROL POSITIVO: y ahi la flecha dice ARRIBA en los DOS lados -- el defecto que el medico vio',
+        R.nueveLasDosArriba === true, R.nueveArriba + ' / ' + R.nueveAbajo],
+      ['(D1) CONTROL: con la escala manual la flecha es correcta, y lo era desde antes',
+        R.manualCorrecto === true, R.manualArriba + ' / ' + R.manualAbajo]
+    ] };
+  })();
+`);
+
 
 try {
   const s = await servir(); servidor = s.srv;
