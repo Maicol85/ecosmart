@@ -74947,13 +74947,15 @@ function cfgBorrarTodasImagenes() {
   if (typeof CeiboImg === 'undefined') return;
   CeiboImg.uso().then(u => {
     if (!u.estudios) { if (typeof toast === 'function') toast('No hay imágenes guardadas'); return; }
-    if (!confirm('¿Borrar las imágenes guardadas de ' + u.estudios + ' estudio(s)?\n\n' +
-                 'Esto no se puede deshacer. Si querés conservarlas, exportá antes un backup con el nivel\n' +
-                 '«Informes + imágenes» o «Backup completo».\n' +
-                 'Los estudios y sus datos no se tocan.')) return;
-    CeiboImg.borrarTodo().then(ok => {
-      if (typeof toast === 'function') toast(ok ? '🗑️ Imágenes guardadas eliminadas' : '❌ No se pudieron borrar las imágenes');
-      imgStorageRender();
+    borrConfirmar('¿Borrar las imágenes guardadas de ' + u.estudios + ' estudio(s)?',
+      ['Esto no se puede deshacer.',
+       'Si querés conservarlas, exportá antes un backup con el nivel «Informes + imágenes» o «Backup completo».',
+       'Los estudios y sus datos no se tocan.'], 'Borrar todas').then(si => {
+      if (!si) return;
+      CeiboImg.borrarTodo().then(ok => {
+        if (typeof toast === 'function') toast(ok ? '🗑️ Imágenes guardadas eliminadas' : '❌ No se pudieron borrar las imágenes');
+        imgStorageRender();
+      });
     });
   });
 }
@@ -127755,11 +127757,12 @@ async function igSelEliminar(lista) {
     ? ('el estudio de ' + orig[0])
     : (orig.length + ' estudios distintos (' + orig.slice(0, 3).join(', ') +
        (orig.length > 3 ? ' y más' : '') + ')');
-  if (typeof confirm === 'function' && !confirm(
-      '¿Borrar ' + c.txt + ' de ' + quien + '?\n\n' +
-      'Se borra SOLO lo que elegiste. No se toca el estudio, ni sus datos, ni su informe, ni sus ' +
-      'otras imágenes, ni las copias que estas imágenes tengan en otros estudios.\n\n' +
-      'NO SE PUEDE DESHACER. Lo que borres deja de salir en el PDF de ese estudio.')) return 0;
+  /* ⚠️ P12 · T1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «borrar varias imágenes». */
+  if (!(await borrConfirmar('¿Borrar ' + c.txt + ' de ' + quien + '?',
+      ['Se borra SOLO lo que elegiste. No se toca el estudio, ni sus datos, ni su informe, ni sus ' +
+       'otras imágenes, ni las copias que estas imágenes tengan en otros estudios.',
+       'NO SE PUEDE DESHACER. Lo que borres deja de salir en el PDF de ese estudio.'],
+      'Borrar'))) return 0;
   const porUuid = new Map();
   const cines = [];
   L.forEach(e => {
@@ -127998,10 +128001,10 @@ async function igSelAGuardado(lista) {
     const cual = String(inf.nombre || 'ese estudio');
     const fech = inf.fecha_estudio ? String(inf.fecha_estudio).split('-').reverse().join('/') : 'sin fecha';
     const de = (orig.length === 1) ? ('el estudio de ' + orig[0]) : (orig.length + ' estudios');
-    if (typeof confirm === 'function' && !confirm(
-        'De ' + de + ' al estudio de ' + cual + ' (' + fech + '): ' + c.txt + '.\n\n' +
-        'Se COPIAN: el original queda donde está. Se agregan al final y no se cambia ningún dato ' +
-        'del paciente de ese estudio.')) return;
+    if (!(await preguntaProp('¿Copiar al estudio de ' + cual + ' (' + fech + ')?',
+        ['De ' + de + ': ' + c.txt + '.',
+         'Se COPIAN: el original queda donde está. Se agregan al final y no se cambia ningún dato ' +
+         'del paciente de ese estudio.'], 'Copiar', 'btn-primary'))) return;
     const j = await _igSelJuntar(L);
     let nF = 0, nL = 0, mb = 0;
     const fallos = [];
@@ -128337,13 +128340,16 @@ function igVisorAdjuntar() {
          clnkAvisoCerrar();
          var hay = false;
          try { hay = (typeof _hayAlgoSinGuardar === 'function') && _hayAlgoSinGuardar(); } catch (e) { hay = true; }
-         if (hay && typeof confirm === 'function' &&
-             !confirm('El estudio que tenés abierto tiene cambios SIN GUARDAR.\n\n' +
-                      'Empezar uno nuevo los descarta. ¿Seguir?')) return;
-         try { if (typeof neContinuarSinGuardar === 'function') neContinuarSinGuardar(); } catch (e) {}
          /* Después de limpiar, el formulario está vacío y la copia entra como su primera imagen:
             al guardar, ese estudio nace con ella. */
-         igSelAlAbierto(uno);
+         var seguir = function () {
+           try { if (typeof neContinuarSinGuardar === 'function') neContinuarSinGuardar(); } catch (e) {}
+           igSelAlAbierto(uno);
+         };
+         if (!hay) { seguir(); return; }
+         borrConfirmar('El estudio que tenés abierto tiene cambios SIN GUARDAR',
+           ['Empezar uno nuevo los descarta.'], 'Descartar y seguir')
+           .then(function (si) { if (si) seguir(); });
        } },
      { txt: 'Cancelar', fn: function () { clnkAvisoCerrar(); } }]);
 }
@@ -143093,6 +143099,12 @@ function imgSetCalidad(idx, cal){
      empujarlo a media sería un cambio que no pidió y que además ocupa más. imgRender redibuja
      desde slot.calidad, que no se tocó, así que el radio del navegador vuelve solo a su lugar. */
   if (cal === 'orig') {
+    /* ⚠️ P12 · T1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «pasar a calidad original». Era un
+       `confirm` nativo, y el comentario de abajo lo justificaba diciendo que «es el patrón de la
+       app para lo destructivo o costoso (eliminarInforme, limpiarTodosInformes,
+       cfgBorrarTodasImagenes)». Esa premisa ya no vale: los tres ejemplos que nombra son de
+       Configuración y de Guardados, y los dos de imágenes están convertidos en esta misma tanda.
+       El patrón de la app pasó a ser el cartel propio. */
     const _peso = _fmtMB;   // el mismo formateo que la barra de Config, no una copia
     const txt = _peso(slot._orig.length * 0.75);
     /* El total acumulado, no sólo esta imagen: con seis ecografías salen seis confirms de «~4 MB»
@@ -143108,13 +143120,22 @@ function imgSetCalidad(idx, cal){
     const dest = (imgGuardadoActivo() && _uuidValido(_imgUuidActual))
       ? 'Se guarda en este dispositivo y sale a esa resolución en el PDF.'
       : 'Sale a esa resolución en el PDF.';
-    if (!confirm('Esta imagen pesa ~' + txt + '. ' + dest +
-                 '\n\nTotal de las imágenes del estudio: ~' + _peso(totalTrasCambio) +
-                 '.\n\n¿Usar calidad original?')) {
-      imgRender();
-      return Promise.resolve(false);
-    }
+    return preguntaProp('¿Usar calidad original?',
+      ['Esta imagen pesa ~' + txt + '. ' + dest,
+       'Total de las imágenes del estudio: ~' + _peso(totalTrasCambio) + '.'],
+      'Usar calidad original', 'btn-primary').then(si => {
+        if (!si) { imgRender(); return false; }
+        return _imgSetCalidadYa(idx, cal, slot);
+      });
   }
+  return _imgSetCalidadYa(idx, cal, slot);
+}
+
+/* El cuerpo que comprime y escribe. Sale aparte porque la rama de «original» ahora espera un
+   clic: con el cuerpo copiado en las dos ramas, el día que cambie la escritura una quedaría
+   vieja. Recibe el `slot` que el llamador ya resolvió, para no volver a leerlo de un índice que
+   pudo correrse mientras el cartel estaba abierto. */
+function _imgSetCalidadYa(idx, cal, slot) {
   const gen = _imgGen;                       // ver nota de _imgGen en imgRestaurar
   const fuente = slot._orig || slot.dataURL;
   return _imgComprimir(fuente, cal).then(url => {
@@ -143602,6 +143623,22 @@ function _vtiVelCmsEn(r0, y) {
   return _medCalibVel ? _medVelCalEn(_medCalibVel, y) : _dcmImgVelocidadEn(r0, y);
 }
 
+/* ══ P12 · TAREA 3.4 · LA FRASE QUE DICE QUE HACER CUANDO FALTA LA ESCALA ════════════════════
+   Vive en UNA constante porque la dicen CUATRO lugares: el aviso de la herramienta Velocidad,
+   el de la de VTI, el rechazo de `_vtiDe` y el de una imagen fija sin escala. Con la frase
+   escrita cuatro veces, el dia que el boton cambie de rotulo tres quedarian mandando a apretar
+   algo que ya no se llama asi.
+   ⚠️ NOMBRA EL CONTROL POR EL ROTULO QUE EL MEDICO LEE, y ahi se aparta de la letra del pedido:
+   el pedido dice «tocar la regla» y el boton dice **«Calibrar vel.»** --la 📏 de esta app es la
+   herramienta Distancia, no esta--. Mandarlo a buscar una regla seria mandarlo a un boton que
+   no existe. Declarado en P12-c.
+   ⚠️ Y NO SE CAMBIA DE MODO SOLO, por orden expresa del pedido: la frase dice que hacer y el
+   gesto lo da el medico. */
+const MED_COMO_CALIBRAR_VEL =
+  'Qué hacer: elegí la herramienta «Vel.» en la barra de medición y tocá «Calibrar vel.». ' +
+  'Después marcá dos puntos del eje de velocidad de la imagen y escribí cuánto vale cada uno.';
+window.MED_COMO_CALIBRAR_VEL = MED_COMO_CALIBRAR_VEL;
+
 /* Bernoulli simplificada, con v en m/s. DEUDA DECLARADA: la misma expresión está escrita en las
    dos ramas de `_medVelClic` (la manual y la del archivo). No se unificaron acá porque el pedido
    acotaba a no tocar el módulo de velocidad; queda anotado para que la próxima que mueva esta
@@ -143673,7 +143710,8 @@ function _vtiDe(pts) {
     if (!tiempoOK) {
       return { ok:false, motivo:'Esta zona declara la escala de velocidad pero no la del tiempo, y el VTI necesita las dos.\n\nLa del tiempo no se puede calibrar a mano: la tiene que traer el archivo.' };
     }
-    return { ok:false, motivo:'Esta zona no declara escala de velocidad, así que no se puede integrar acá.\n\nSi el archivo no la trae, calibrala con «Calibrar vel.» y volvé a trazar.' };
+    return { ok:false, motivo:'Esta zona no declara escala de velocidad, así que no se puede integrar acá.\n\n' +
+      MED_COMO_CALIBRAR_VEL + '\n\nDespués volvé a trazar la envolvente.' };
   }
   /* ⚠️ EL GRADIENTE MEDIO ES EL PROMEDIO DE 4v² EN EL TIEMPO, NO 4×(v media)². No es lo mismo y
      la diferencia no es chica: por la desigualdad de Jensen sobre una función convexa, la
@@ -143703,7 +143741,8 @@ function _vtiDe(pts) {
        movió: lo que cambia es que antes mandaba a revisar el trazo y nada más, y la mitad de las
        veces el trazo está bien y lo que está mal es el eje. */
     return { ok:false, motivo:'El VTI sale en ' + cm.toFixed(1) + ' cm, que no es un valor posible.\n\nRevisá que hayas recorrido la envolvente de un solo latido y dentro del trazo espectral.' +
-      (_medCalibVel ? '' : '\n\nSi el trazo está bien, la escala de velocidad de esta imagen puede estar mal leída: usá «Calibrar vel.» y volvé a trazar.') };
+      (_medCalibVel ? '' : '\n\nSi el trazo está bien, la escala de velocidad de esta imagen puede estar mal leída.\n\n' +
+        MED_COMO_CALIBRAR_VEL + '\n\nDespués volvé a trazar la envolvente.') };
   }
   /* El PICO, que es lo que el médico reconoce de un vistazo y sirve para verificar el trazo. */
   let pico = 0;
@@ -148207,7 +148246,7 @@ function _medAreaUp() {
      contorno se cierra con la recta del anillo mitral, que es lo que define el eje largo. */
   if (_medHerr === 'simpson') {
     const motivo = _simpAceptar(pts);
-    if (motivo) { alert(motivo); _simp.pendiente = null; }
+    if (motivo) { avisoProp('No se pudo tomar el contorno', motivo); _simp.pendiente = null; }
     _medPintar(); _medEstado();
     return;
   }
@@ -148215,7 +148254,7 @@ function _medAreaUp() {
      como área. El cierre se dibuja pero no se mide — ver la nota del módulo. */
   if (_medHerr === 'vd') {
     const motivo = _vdAceptar(pts);
-    if (motivo) { alert(motivo); _vd.pendiente = null; }
+    if (motivo) { avisoProp('No se pudo tomar el contorno', motivo); _vd.pendiente = null; }
     _medPintar(); _medEstado();
     return;
   }
@@ -148224,7 +148263,10 @@ function _medAreaUp() {
      un tramo por la línea de base que ya está contado en la integral. */
   if (_medHerr === 'vti') {
     const r = _vtiDe(pts);
-    if (!r.ok) { alert(r.motivo); _medPintar(); _medEstado(); return; }
+    /* ⚠️ P12 · TAREA 1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «La envolvente necesita al
+       menos tres puntos». Era un `alert` nativo, que en una Mac sale con el nombre del archivo
+       arriba y un botón del sistema, en el medio de una medición. */
+    if (!r.ok) { avisoProp('No se pudo medir la envolvente', r.motivo); _medPintar(); _medEstado(); return; }
     /* SE GUARDA LA MEDICIÓN ENTERA, no tres de sus seis campos. El gradiente y la marca de
        escala salen del MISMO trazo que el VTI, así que recalcularlos después sería una segunda
        derivación del mismo hecho — y `velManual` ni siquiera se podría reconstruir, porque la
@@ -148244,20 +148286,20 @@ function _medAreaUp() {
   }
   if (_medHerr === 'lars') {
     const motivo = _larsAceptar(pts);
-    if (motivo) { alert(motivo); _lars.pendiente = null; }
+    if (motivo) { avisoProp('No se pudo tomar el contorno', motivo); _lars.pendiente = null; }
     _medPintar(); _medEstado();
     return;
   }
   if (_medHerr === 'strain') {
     const motivo = _strainAceptar(pts);
-    if (motivo) { alert(motivo); _strain.pendiente = null; }
+    if (motivo) { avisoProp('No se pudo tomar el contorno', motivo); _strain.pendiente = null; }
     _medPintar(); _medEstado();
     return;
   }
   /* El contorno se cierra solo: el médico recorre el borde y suelta, no tiene que volver
      exactamente al punto de partida. */
   const v = _medAreaValidar(pts);
-  if (!v.ok) { alert(v.motivo); _medPintar(); return; }
+  if (!v.ok) { avisoProp('No se pudo medir el área', v.motivo); _medPintar(); return; }
   const px2 = _medShoelacePx(pts);
   if (px2 < 9) { _medPintar(); return; }       // un clic suelto o un temblor: no es un contorno
   /* MEDIR-2: el contorno se queda con la estructura que estaba elegida. Sin estructura se
@@ -148487,8 +148529,16 @@ window._simpGuardado = _simpGuardado;
 
 /* Borra la tabla: lo guardado con el estudio Y la sesion en curso. Pide confirmacion porque lo
    guardado puede venir de otra sesion y no se puede deshacer. */
+/* ⚠️ P12 · T1.2 · DEVUELVE UNA PROMESA. Nadie leía su retorno —el botón entra por
+   `_simpEnDestino`, que no lo mira— así que el cambio no rompe ningún contrato; se devuelve
+   igual para que un caso pueda esperar a que el borrado termine en vez de adivinar un `setTimeout`. */
 function medSimpsonLimpiarTabla() {
-  if (!confirm('¿Borrar la tabla de resultados de Simpson?\n\nSe borra la que está guardada con el estudio y también los trazados de esta sesión. No se puede deshacer.')) return;
+  return preguntaProp('¿Borrar la tabla de resultados de Simpson?',
+    ['Se borra la que está guardada con el estudio y también los trazados de esta sesión.',
+     'No se puede deshacer.'], 'Borrar').then(si => { if (si) _medSimpsonLimpiarTablaYa(); });
+}
+
+function _medSimpsonLimpiarTablaYa() {
   const el = document.getElementById('simpson_manual');
   if (el) el.value = '';
   /* ══ MEDIR-5 (A2) — LIMPIAR ALCANZA A LAS DOS VISTAS, NO SOLO A LA DEL DESTINO ═══════════
@@ -148630,7 +148680,7 @@ function _simpAceptar(pts) {
 }
 
 function medSimpsonConfirmar() {
-  if (!_simp || !_simp.pendiente) { alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, de un lado del anillo mitral al otro.'); return; }
+  if (!_simp || !_simp.pendiente) { avisoProp('Falta el contorno', 'Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, de un lado del anillo mitral al otro.'); return; }
   _simp.pares[_simp.vista][_simp.fase] = _simp.pendiente;
   _simp.pendiente = null;
   _simp.avisoCuadro = false; _simp.ocultar = false;
@@ -148694,10 +148744,15 @@ function _simpEscribirFEVI(fevi) {
   if (!el) { toast('❌ No se encontró el campo FEVI'); return false; }
   const nuevo = fevi.toFixed(0);
   const previo = String(el.value || '').trim();
-  /* No se pisa un valor cargado sin avisar: es el mismo criterio que usa el importador DICOM
-     con «Este estudio ya tiene X guardado». */
-  if (previo && previo !== nuevo &&
-      !confirm('El campo FEVI ya tiene ' + previo + ' %.\n\n¿Reemplazarlo por ' + nuevo + ' % (Simpson biplano)?')) return false;
+  /* ⚠️ P12 · T1.2 · LA PREGUNTA SALIÓ DE ACÁ Y VIVE EN `_simpPisarFEVIOK`, y NO es un descuido.
+     Esta función tiene un contrato que alguien LEE: devuelve `true` si escribió, y de eso
+     cuelgan las dos marcas `integrada` de MEDIR-4b (C2) y una condición de la batería que la
+     llama directo. Un cartel propio devuelve una promesa, así que volverla `async` convertiría
+     ese booleano en una promesa —siempre verdadera— y la marca quedaría puesta aunque el médico
+     dijera que no: un «ya está en el informe» sobre un campo que no se tocó.
+     Así que la pregunta se hizo explícita y la hacen LOS DOS llamadores, por su dueño único; acá
+     queda la escritura, sincrónica y sin diálogo. Los dos únicos caminos del producto pasan por
+     la pregunta, censados. */
   el.value = nuevo;
   el.dispatchEvent(new Event('input', { bubbles:true }));
   el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -148707,11 +148762,40 @@ function _simpEscribirFEVI(fevi) {
   return true;
 }
 
+/* ══ P12 · T1.2 · ¿SE PUEDE PISAR LA FEVI QUE YA ESTÁ CARGADA? ════════════════════════════════
+   Dueño único de la pregunta, para los DOS llamadores que escriben la FEVI del Simpson.
+
+   ⚠️ DEVUELVE `true` SINCRÓNICAMENTE CUANDO NO HAY NADA QUE PREGUNTAR, y una promesa sólo en el
+   caso en que de verdad hay que preguntar. No es una comodidad: con el campo vacío —que es el
+   caso normal— integrar sigue siendo una operación sincrónica de punta a punta, así que el
+   panel, la marca `integrada` y los cuatro sitios de la batería que llaman a `medSimpsonIntegrar`
+   y leen el campo en la línea siguiente siguen funcionando igual. Lo único que se vuelve
+   asíncrono es pisar un valor cargado, que es lo que necesita un cartel.
+   El llamador distingue los dos casos con `=== true`. */
+function _simpPisarFEVIOK(fevi) {
+  const el = document.getElementById('fevi');
+  if (!el) return true;                       // sin campo no hay nada que pisar; ya avisa el escritor
+  const nuevo = Number(fevi).toFixed(0);
+  const previo = String(el.value || '').trim();
+  if (!previo || previo === nuevo) return true;
+  /* Mismo criterio que el importador DICOM con «Este estudio ya tiene X guardado». */
+  return preguntaProp('El campo FEVI ya tiene un valor',
+    ['El campo FEVI ya tiene ' + previo + ' %.',
+     '¿Reemplazarlo por ' + nuevo + ' % (Simpson biplano)?'],
+    'Reemplazar', 'btn-primary');
+}
+window._simpPisarFEVIOK = _simpPisarFEVIOK;
+
 function medSimpsonIntegrar() {
   if (!_simp || !_simp.res || !_simp.res.bi) return;
-  if (!_simpEscribirFEVI(_simp.res.fevi)) return;
-  _simp.integrada = true;
-  _medEstado();
+  const g = _simpPisarFEVIOK(_simp.res.fevi);
+  const seguir = () => {
+    if (!_simpEscribirFEVI(_simp.res.fevi)) return;
+    _simp.integrada = true;
+    _medEstado();
+  };
+  if (g === true) { seguir(); return; }
+  g.then(si => { if (si) seguir(); });
 }
 window.medSimpsonIntegrar = medSimpsonIntegrar;
 
@@ -149010,11 +149094,11 @@ function medStrainConfirmar() {
      Lo que sigue siendo obligatorio es haber elegido el cineloop —sin imagen no hay escala— y
      haber trazado algo. */
   if (!_strain || !_strain.loopListo) {
-    alert('Elegí primero el cineloop.');
+    avisoProp('Falta elegir el cineloop', 'Elegí primero el cineloop en la lista de arriba.');
     return;
   }
   if (!_strain.pendiente) {
-    alert('Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, ' +
+    avisoProp('Falta el contorno', 'Trazá primero el contorno: mantené apretado y recorré el borde del ventrículo, ' +
           ((_strain && _strVista(_strain.vista) && _strVista(_strain.vista).orden) ||
            'del anillo INFEROSEPTAL, por el ápex, al anillo ANTEROLATERAL') + '.');
     return;
@@ -149507,7 +149591,7 @@ function medStrainElegirLoop(k) {
     if (_cineDatos && _cineDatos.i !== o.idx) { _cineDetener(); _cineDatos.i = o.idx; _cineCargarLoop(); }
   } else {
     const L = _cineDesdeRegistro(o.rec);
-    if (!L) { alert('Ese cineloop no se pudo leer del disco.'); return; }
+    if (!L) { avisoProp('No se pudo leer', 'Ese cineloop no se pudo leer del disco.'); return; }
     /* Se AGREGA a los abiertos en vez de reemplazarlos: el médico puede querer volver al que
        tenía, y reemplazar la lista perdería los demás sin avisar. */
     _cineDetener();
@@ -149532,8 +149616,18 @@ function medStrainElegirVista(v) {
   if (S.d || S.s) {
     var T = _strain.vistas[v];
     var pisa = (S.d && T.d) || (S.s && T.s);
-    if (pisa && !confirm('La vista ' + v.toUpperCase() + ' ya tiene un contorno guardado. ' +
-                         '¿Reemplazarlo por el que acabás de trazar?')) return;
+    /* ⚠️ P12 · T1.2 · CON ALGO QUE PISAR, LA FUNCIÓN SE VUELVE ASÍNCRONA Y SE REENTRA.
+       Es el mismo recurso que `_simpPisarFEVIOK`: el camino normal —la vista vacía— sigue
+       sincrónico de punta a punta, así que los cuatro sitios de la batería que la llaman y
+       miran `_strain` en la línea siguiente no se enteran. Sólo pisar espera un clic.
+       Se reentra con `pisa` ya resuelto en falso, y no se duplica el traspaso: con el cuerpo
+       copiado en las dos ramas, el día que el traspaso cambie una quedaría vieja. */
+    if (pisa) {
+      preguntaProp('La vista ' + v.toUpperCase() + ' ya tiene un contorno guardado',
+        ['¿Reemplazarlo por el que acabás de trazar?'], 'Reemplazar', 'btn-primary')
+        .then(si => { if (!si) return; T.d = null; T.s = null; medStrainElegirVista(v); });
+      return;
+    }
     if (S.d) { T.d = S.d; S.d = null; }
     if (S.s) { T.s = S.s; S.s = null; }
   }
@@ -149672,7 +149766,7 @@ function _strain3Clic(ev) {
   /* La compuerta 2D se aplica en el BORDE, punto por punto: si el primero cae sobre Doppler,
      decirlo ahí es mejor que dejar marcar tres y rechazar al final. */
   const e = _medEscalaEn(p);
-  if (!e.ok) { alert(e.motivo); return; }
+  if (!e.ok) { avisoProp('No se pudo marcar el punto', e.motivo); return; }
   _strain.pts3.push({ x:p.x, y:p.y });
   if (_strain.pts3.length === 3) _strain.ctrl = _strCtrlIniciales(_strain.pts3);
   _medPintar(); _medEstado();
@@ -149684,7 +149778,7 @@ function medStrain3Confirmar() {
   if (!_strain || !_strain.ctrl || _strain.ctrl.length < 2) return;
   const pts = _strSpline(_strain.ctrl, _STR_DENS);    // la MISMA curva que se está viendo
   const motivo = _strainAceptar(pts);
-  if (motivo) { alert(motivo); _strain.pendiente = null; _medPintar(); _medEstado(); return; }
+  if (motivo) { avisoProp('No se pudo tomar el contorno', motivo); _strain.pendiente = null; _medPintar(); _medEstado(); return; }
   medStrainConfirmar();
   _strain.pts3 = []; _strain.ctrl = []; _strain.arrastrando = null;
   _medPintar(); _medEstado();
@@ -149990,7 +150084,12 @@ window.medStrainBullsBiblioteca = medStrainBullsBiblioteca;
 
 /* Borra el strain: lo guardado con el estudio y la sesión en curso. */
 function medStrainLimpiar() {
-  if (!confirm('¿Borrar el bull\u2019s eye y las mediciones de strain?\n\nSe borra lo guardado con el estudio y también los trazados de esta sesión. No se puede deshacer.')) return;
+  return preguntaProp('¿Borrar el bull\u2019s eye y las mediciones de strain?',
+    ['Se borra lo guardado con el estudio y también los trazados de esta sesión.',
+     'No se puede deshacer.'], 'Borrar').then(si => { if (si) _medStrainLimpiarYa(); });
+}
+
+function _medStrainLimpiarYa() {
   const el = document.getElementById('strain_manual');
   if (el) el.value = '';
   if (typeof medStrainReiniciar === 'function') { try { medStrainReiniciar(); } catch (e) {} }
@@ -150084,7 +150183,7 @@ function _larsAceptar(pts) {
 
 function medLarsConfirmar() {
   if (!_lars || !_lars.pendiente) {
-    alert('Trazá primero el contorno interno de la aurícula izquierda: mantené apretado y recorré la pared.');
+    avisoProp('Falta el contorno', 'Trazá primero el contorno interno de la aurícula izquierda: mantené apretado y recorré la pared.');
     return;
   }
   _lars.trazos[_LARS_PASOS[_lars.paso].k] = _lars.pendiente;
@@ -150145,7 +150244,7 @@ function _vdAceptar(pts) {
 
 function medVdConfirmar() {
   if (!_vd || !_vd.pendiente) {
-    alert('Trazá primero la pared libre del VD: mantené apretado y recorré del anillo tricuspídeo lateral, por el ápex del VD, hasta el anillo septal.');
+    avisoProp('Falta el contorno', 'Trazá primero la pared libre del VD: mantené apretado y recorré del anillo tricuspídeo lateral, por el ápex del VD, hasta el anillo septal.');
     return;
   }
   _vd.trazos[_vd.fase] = _vd.pendiente;
@@ -152894,18 +152993,28 @@ async function _medVelClic(ev) {
   }
 
   if (!r) {
-    alert('Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de velocidad.\n\nSi este archivo no trae escala, usá «Calibrar velocidad».');
+    avisoProp('Sin escala de velocidad en ese punto',
+      'Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de velocidad.\n\n' +
+      MED_COMO_CALIBRAR_VEL);
     return;
   }
   if (!_dcmImgRegionVelocidad(r)) {
     /* Se distingue el 2D del modo M: son dos motivos distintos y mandan a hacer dos cosas
        distintas. Decir «no es Doppler» en los dos casos sería falso en uno de ellos. */
     if (_dcmImgRegionMedible(r)) {
-      alert('Esta herramienta es para Doppler.\n\nAcá los dos ejes son distancia: usá 📏 Distancia para medir en la imagen 2D.');
+      avisoProp('Acá no se mide velocidad',
+        'Esta herramienta es para Doppler.\n\nAcá los dos ejes son distancia: usá 📏 Distancia para medir en la imagen 2D.');
     } else if (r.uy === DCMIMG_UNI_CM) {
-      alert('Este trazo tiene el eje vertical en CENTÍMETROS, no en cm/s: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nUna velocidad medida acá sería en realidad una distancia.');
+      avisoProp('Es un modo M, no un Doppler',
+        'Este trazo tiene el eje vertical en CENTÍMETROS, no en cm/s: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nUna velocidad medida acá sería en realidad una distancia.');
     } else {
-      alert('Esta zona no declara una escala de velocidad, así que no se puede medir acá.');
+      /* ⚠️ P12 · TAREA 3.4 · ACÁ FALTABA EL «QUÉ HACER», y es el caso que el médico reportó: la
+         zona ES espectral pero el archivo no declara su escala de velocidad, que es exactamente
+         lo que la calibración manual viene a reemplazar. El mensaje decía que no se podía medir
+         y se quedaba ahí. */
+      avisoProp('Esta imagen no declara su escala de velocidad',
+        'Esta zona no declara una escala de velocidad, así que no se puede medir con la del archivo.\n\n' +
+        MED_COMO_CALIBRAR_VEL);
     }
     return;
   }
@@ -152942,7 +153051,11 @@ function _medTiempoClic(ev) {
   const r = _dcmImgRegionEn(regs, p.x, p.y);
   if (!r || !_dcmImgRegionTiempo(r)) {
     _medPuntos = [];
-    alert(!r
+    /* ⚠️ ACÁ NO SE OFRECE CALIBRAR, a diferencia de la velocidad: el eje del TIEMPO no se puede
+       fijar a mano en esta app —lo tiene que declarar el archivo— así que ofrecerlo mandaría a
+       un camino que no existe. Es la misma asimetría que `_vtiDe` ya declara. */
+    avisoProp(!r ? 'Sin escala de tiempo en ese punto' : 'Acá el eje horizontal no es tiempo',
+      !r
       ? 'Ese punto cae fuera de las zonas que el equipo declara, así que no hay escala de tiempo.'
       : 'Acá el eje horizontal NO es tiempo: esta zona mide distancia en los dos ejes.\n\n' +
         'El tiempo se mide sobre un trazo espectral o un modo M, donde el eje horizontal son segundos.');
@@ -152952,7 +153065,8 @@ function _medTiempoClic(ev) {
   if (!_medPuntos.length) { _medPuntos.push({ x:p.x, y:p.y, r }); _medPintar(); return; }
   const a = _medPuntos[0]; _medPuntos = [];
   if (a.r !== r || Math.abs(a.r.dx - r.dx) > 1e-15) {
-    alert('Los dos puntos caen en zonas con escalas de tiempo distintas, así que el intervalo no sería válido. Marcalos dentro de la misma zona.');
+    avisoProp('Los dos puntos no comparten la escala',
+      'Los dos puntos caen en zonas con escalas de tiempo distintas, así que el intervalo no sería válido. Marcalos dentro de la misma zona.');
     _medPintar(); return;
   }
   const ms = _dcmImgMsEntre(r, a.x, p.x);
@@ -153168,8 +153282,19 @@ window._medEscalaCartel = _medEscalaCartel;
 /* ══ P10 (2.3) — AVISO CORTO, PROPIO, DE UN SOLO BOTÓN ═══════════════════════════════════════
    Reemplaza a los `alert` del camino de calibración de velocidad. Mismo molde que los otros dos
    cuadros de este bloque: se crea y se destruye, Escape cortado en captura, texto por
-   `textContent`, y NO devuelve una promesa — es un aviso, no una decisión. */
-function _medAviso(titulo, texto) {
+   `textContent`, y NO devuelve una promesa — es un aviso, no una decisión.
+
+   ══ P12 · TAREA 1.2 · AHORA ES EL DUEÑO ÚNICO DEL AVISO PROPIO DE TODA LA APP ════════════════
+   Nació en el visor y se llamaba `_medAviso`, pero el molde no tiene nada de la medición: es
+   «un título, un texto y Entendido». P12 lo usa además en la biblioteca de imágenes y en el
+   cartel de llegada de CeiboLink, así que pasa a llamarse `avisoProp` y `_medAviso` queda como
+   ALIAS — hay veintitantos llamadores viejos con ese nombre y nueve casos de la batería que
+   buscan el cartel por su marca.
+   ⚠️ LA MARCA `data-med-aviso` NO SE CAMBIA, y es deliberado: es por donde los casos encuentran
+   este cartel, y una marca nueva dejaría dos formas de buscar lo mismo. Un cartel, una marca.
+   ⚠️ Y NO DEVUELVE UNA PROMESA, también deliberado: un aviso no es una decisión. Una promesa que
+   sólo un clic resuelve es lo que colgó la pasada de la tanda EQ hora y media en el lote 18. */
+function avisoProp(titulo, texto) {
   const ov = document.createElement('div');
   ov.setAttribute('data-med-aviso', 'ov');
   ov.setAttribute('role', 'dialog');
@@ -153213,6 +153338,106 @@ function _medAviso(titulo, texto) {
   document.body.appendChild(ov);
   try { bok.focus(); } catch (e) {}
 }
+window.avisoProp = avisoProp;
+
+/* ══ P12 · TAREA 1.2 · PEDIR UN VALOR, CON CARTEL PROPIO ══════════════════════════════════════
+   El tercer primitivo del cartel propio, y el que reemplaza a los `prompt` nativos de los dos
+   cajones de medición. Mismo molde que `_medCalPedirMm` y `_medCalPedirVel`: se crea y se
+   destruye, Escape cortado en captura, Enter acepta, todo por `textContent`.
+
+   Devuelve la CADENA que el médico escribió —sin normalizar nada: la normalización y la banda
+   son del llamador, que es el que sabe de qué campo se trata— o `null` si canceló. Es el mismo
+   contrato que `prompt`, así que los llamadores no cambian de lógica: cambian de forma de pedir.
+
+   ⚠️ LA CADENA VACÍA ES UN VALOR VÁLIDO Y NO UNA CANCELACIÓN, igual que en `prompt`: en los dos
+   cajones «vacío borra», así que confundirla con cancelar le quitaría al médico la única forma
+   de borrar un valor desde el teclado. Por eso el botón NO se deshabilita cuando no hay texto
+   —al revés que en los dos cuadros de calibración, donde un campo vacío no significa nada— y el
+   pie lo dice.
+   ⚠️ NI UN `id` EN SUS NODOS: el censo del estudio y el Excel recorren `input[id]`, así que un
+   campo con id entraría a las 457 columnas por existir. Se alcanza por `data-ped-prop`. */
+function pedirProp(titulo, texto, inicial, pista) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.setAttribute('data-ped-prop', 'ov');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', String(titulo || 'Valor'));
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:760;' +
+      'display:flex;align-items:center;justify-content:center;padding:18px;';
+    const caja = document.createElement('div');
+    caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+      'max-width:400px;width:100%;padding:16px 18px;box-shadow:0 18px 48px rgba(0,0,0,.5);';
+    const h = document.createElement('div');
+    h.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:6px;';
+    h.textContent = String(titulo || '');
+    caja.appendChild(h);
+    if (texto) {
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;';
+      sub.textContent = String(texto);
+      caja.appendChild(sub);
+    }
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = (inicial == null ? '' : String(inicial));
+    inp.setAttribute('inputmode', 'decimal');
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    inp.setAttribute('maxlength', '12');
+    inp.setAttribute('data-ped-prop', 'inp');
+    inp.setAttribute('aria-label', String(titulo || 'Valor'));
+    inp.style.cssText = 'width:130px;font-size:14px;text-align:center;';
+    caja.appendChild(inp);
+    const pie = document.createElement('div');
+    pie.style.cssText = 'font-size:10.5px;color:var(--text2);margin:6px 0 0;';
+    pie.textContent = String(pista || 'Dejalo vacío para borrar el valor.');
+    caja.appendChild(pie);
+    const fbot = document.createElement('div');
+    fbot.style.cssText = 'display:flex;justify-content:flex-end;gap:7px;margin-top:12px;flex-wrap:wrap;';
+    const bno = document.createElement('button');
+    bno.type = 'button'; bno.className = 'btn btn-ghost';
+    bno.setAttribute('data-ped-prop', 'no');
+    bno.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bno.textContent = 'Cancelar';
+    const bok = document.createElement('button');
+    bok.type = 'button'; bok.className = 'btn btn-primary';
+    bok.setAttribute('data-ped-prop', 'ok');
+    bok.style.cssText = 'padding:5px 16px;font-size:11.5px;min-height:44px;';
+    bok.textContent = 'Guardar';
+    fbot.appendChild(bno); fbot.appendChild(bok);
+    caja.appendChild(fbot);
+    ov.appendChild(caja);
+    let cerrado = false;
+    const cerrar = v => {
+      if (cerrado) return;
+      cerrado = true;
+      document.removeEventListener('keydown', esc, true);
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      resolve(v);
+    };
+    const esc = ev => {
+      if (ev.key !== 'Escape') return;
+      ev.stopImmediatePropagation(); ev.stopPropagation();
+      cerrar(null);
+    };
+    inp.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      cerrar(String(inp.value));
+    });
+    bok.addEventListener('click', () => cerrar(String(inp.value)));
+    bno.addEventListener('click', () => cerrar(null));
+    ov.addEventListener('click', ev => { if (ev.target === ov) cerrar(null); });
+    document.addEventListener('keydown', esc, true);
+    document.body.appendChild(ov);
+    try { inp.focus(); inp.select(); } catch (e) {}
+  });
+}
+window.pedirProp = pedirProp;
+/* Alias histórico. El nombre `_medAviso` lo usan los llamadores del visor y los casos; el dueño
+   es `avisoProp`. Se deja como una delegación de una línea y no como una copia. */
+function _medAviso(titulo, texto) { return avisoProp(titulo, texto); }
 window._medAviso = _medAviso;
 
 /* ══ P10 (2.3 y 2.5) — EL VALOR DE UNA MARCA DEL EJE, CON SU UNIDAD ═══════════════════════════
@@ -153405,8 +153630,8 @@ async function _medClic(ev) {
   /* La escala se resuelve en LOS DOS extremos. Con una sola punta, una línea que arranca en
      el 2D y termina en el trazo Doppler de abajo daría un número prolijo y equivocado. */
   const ea = _medEscalaEn(a), eb = _medEscalaEn(p);
-  if (!ea.ok) { alert(ea.motivo); _medPintar(); return; }
-  if (!eb.ok) { alert(eb.motivo); _medPintar(); return; }
+  if (!ea.ok) { avisoProp('No se pudo medir', ea.motivo); _medPintar(); return; }
+  if (!eb.ok) { avisoProp('No se pudo medir', eb.motivo); _medPintar(); return; }
   /* Se comparan las ESCALAS, no la identidad de las regiones. Comparar identidad parecía lo
      prolijo y bloqueaba una medición legítima y frecuente: en los 296 archivos del pendrive
      el recuadro de color se superpone al 2D CON LA MISMA ESCALA —ni uno solo tiene dos zonas
@@ -153414,7 +153639,7 @@ async function _medClic(ev) {
      y quedaba rechazado. Lo que hay que impedir es que los milímetros de una punta valgan
      distinto que los de la otra. */
   if (Math.abs(ea.mmPorPx - eb.mmPorPx) > 1e-12) {
-    alert('Los dos extremos caen en zonas con escalas distintas (' +
+    avisoProp('Los dos extremos no comparten la escala', 'Los dos extremos caen en zonas con escalas distintas (' +
           ea.mmPorPx.toFixed(4) + ' y ' + eb.mmPorPx.toFixed(4) + ' mm por píxel). ' +
           'La medición no sería válida: marcá los dos puntos dentro de la misma zona.');
     _medPintar(); return;
@@ -154036,7 +154261,7 @@ window._vPickerLoop = _vPickerLoop;
 
 async function _vElegirLoop(V) {
   const uuid = (typeof _imgUuidActual !== 'undefined' && _imgUuidActual) || null;
-  if (!uuid) { alert('Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
+  if (!uuid) { avisoProp('Falta guardar el estudio', 'Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
   let lista = [];
   try { lista = await CeiboCine.listar(uuid); } catch (e) { lista = []; }
   /* ⚠️ MEDIR-4a (bloque C) — LAS FIJAS ENTRAN; LOS DOCUMENTOS NO. Hasta MEDIR-3 el filtro
@@ -154047,7 +154272,7 @@ async function _vElegirLoop(V) {
      le puede medir distancia, area y Doppler segun su region, y lo unico que no admite es el
      Simpson. Por orden del medico se ofrecen las dos. */
   lista = (lista || []).filter(r => r && r.tipo !== 'doc');
-  if (!lista.length) { alert('Este estudio no tiene cineloops ni imágenes guardadas para abrir en la segunda vista.'); return false; }
+  if (!lista.length) { avisoProp('No hay nada que abrir', 'Este estudio no tiene cineloops ni imágenes guardadas para abrir en la segunda vista.'); return false; }
   /* ⚠️ ERA UN CUADRO DE TEXTO DEL NAVEGADOR CON UN MENÚ NUMERADO, y elegir un cineloop así
      es elegir a ciegas:
      el nombre que trae el registro es el del archivo del ecógrafo —un UID, casi siempre— así
@@ -154067,7 +154292,7 @@ async function _vElegirLoop(V) {
   if (!rec) return false;
   /* MISMA ruta que la tira: `_cineLoopDeDisco`. Lo único que cambia es dónde se abre. */
   const loop = await _cineLoopDeDisco(rec.id);
-  if (!loop) { alert('Esa imagen no se pudo leer del disco.'); return false; }
+  if (!loop) { avisoProp('No se pudo leer', 'Esa imagen no se pudo leer del disco.'); return false; }
   _vCon(V, () => {
     V.datos = { loops: [loop], i: 0, cuadro: 0, timer: null };
     /* LA MARCA DE LA VISTA, puesta en el UNICO borde por donde entra una fija elegida. Con la
@@ -154478,11 +154703,19 @@ function _vBiplanoPintar() {
        esta puerta —la del cruce A × B— nunca ponía la bandera que la otra sí ponía.
        Se marcan LAS DOS porque el número salió de las dos: con una sola, cerrar esa vista
        dejaría la otra diciendo que no se integró algo que sí se integró. */
-    if (_simpEscribirFEVI(D.fevi)) {
-      if (_vistaA.simp) _vistaA.simp.integrada = true;
-      if (_vistaB && _vistaB.simp) _vistaB.simp.integrada = true;
-    }
-    _vBiplanoPintar();
+    const marcar = () => {
+      if (_simpEscribirFEVI(D.fevi)) {
+        if (_vistaA.simp) _vistaA.simp.integrada = true;
+        if (_vistaB && _vistaB.simp) _vistaB.simp.integrada = true;
+      }
+      _vBiplanoPintar();
+    };
+    /* La misma puerta que `medSimpsonIntegrar`, por su dueño único: con la pregunta escrita en
+       los dos lugares, una podría pisar sin preguntar y la otra no, sobre el mismo campo del
+       informe firmado — que es exactamente lo que el comentario de MEDIR-4b vino a evitar. */
+    const g = _simpPisarFEVIOK(D.fevi);
+    if (g === true) { marcar(); return; }
+    g.then(si => { if (si) marcar(); else _vBiplanoPintar(); });
   };
 }
 window._vBiplanoPintar = _vBiplanoPintar;
@@ -154755,7 +154988,7 @@ function medFijaClic(ev) {
      agrega es el MOTIVO correcto — «una foto no dice cuántos milímetros mide un píxel» sobre un
      video suena a que le falta un dato, y lo que pasa es que el método no aplica. */
   if (slot.videoId) {
-    alert('Un video MP4 no se puede medir.\n\n' +
+    avisoProp('Un video MP4 no se puede medir',
           'Los videos son sólo para documentación: no traen escala ni metadatos del ecógrafo. ' +
           'Las mediciones clínicas requieren archivos DICOM.\n\n' +
           'Si necesitás medir sobre esa imagen, capturá el cuadro desde el reproductor y usá un ' +
@@ -154774,8 +155007,10 @@ function medFijaClic(ev) {
      manual, que es lo que separa esto de afirmar una escala que no está. */
   if (!fija) { medImagenAbrir(idx); return; }
   if (!(fija.d.regiones || []).filter(_dcmImgRegionMedible).length) {
-    alert('Esta imagen viene de un DICOM pero el archivo no declara la escala.\n\n' +
-          'Se abre igual: en el visor podés calibrar a mano con «Recalibrar».');
+    avisoProp('El archivo no declara la escala',
+          'Esta imagen viene de un DICOM pero el archivo no declara la escala.\n\n' +
+          'Se abre igual: en el visor podés calibrar la escala de distancia a mano con ' +
+          '«Recalibrar».\n\n' + MED_COMO_CALIBRAR_VEL);
   }
   _cineAbrir([fija]);
 }
@@ -155167,19 +155402,19 @@ function _videoAvisar() {
   try { visto = sessionStorage.getItem(_VIDEO_AVISO_KEY) === '1'; } catch (e) { visto = false; }
   if (visto) { if (typeof toast === 'function') toast('🎬 ' + VIDEO_AVISO_TXT); return; }
   try { sessionStorage.setItem(_VIDEO_AVISO_KEY, '1'); } catch (e) {}
-  alert(VIDEO_AVISO_TXT);
+  avisoProp('Sobre los videos', VIDEO_AVISO_TXT);
 }
 
 /* Carga un video en un slot. Devuelve el índice ocupado, o -1. */
 async function videoCargarEnSlot(file, destino) {
   const mb = file.size / 1048576;
   if (mb > VIDEO_AVISO_MB &&
-      !confirm('Este video pesa ' + mb.toFixed(1) + ' MB.\n\n' +
+      !(await preguntaProp('Este video pesa ' + mb.toFixed(1) + ' MB', [
                'Los videos ocupan mucho almacenamiento y el navegador puede desalojarlos si el ' +
-               'disco se llena. ¿Guardarlo igual?')) return -1;
+               'disco se llena.', '¿Guardarlo igual?'], 'Guardar igual', 'btn-primary'))) return -1;
   const info = await _videoPoster(file);
   if (!info) {
-    alert('No se pudo leer este video.\n\nEl archivo tiene la marca de un MP4/MOV pero este ' +
+    avisoProp('No se pudo leer el video', 'El archivo tiene la marca de un MP4/MOV pero este ' +
           'navegador no puede decodificarlo — puede ser el códec. Probá convertirlo a H.264.');
     return -1;
   }
@@ -155253,7 +155488,7 @@ function videoAbrir(idx) {
   if (!slot || !slot.videoId) return;
   const rec = _videoBlobs[slot.videoId];
   if (!rec || !rec.blob) {
-    alert('El video de este slot no está cargado en esta sesión.\n\n' +
+    avisoProp('El video no está en esta sesión', 'El video de este slot no está cargado en esta sesión.\n\n' +
           'Se guarda con el estudio, pero para reproducirlo hay que reabrir el estudio: al ' +
           'volver se lee del almacenamiento del navegador.');
     return;
@@ -156023,21 +156258,22 @@ async function cineGuardarActual() {
       toast('📌 Se guarda al guardar el estudio — todavía no tiene uno');
       return false;
     }
-    alert('El cineloop no se puede guardar todavía.\n\n' + puede.motivo);
+    avisoProp('Todavía no se puede guardar', puede.motivo);
     return false;
   }
 
   const bytes = loop.d.frags.reduce((a, f) => a + f.length, 0);
   if (bytes > CINE_AVISO_MB * 1048576) {
-    if (!confirm('Este cineloop pesa ' + _cineMB(bytes) + ', más de ' + CINE_AVISO_MB + ' MB.\n\n' +
-                 'Se guarda en este dispositivo y ocupa ese espacio hasta que lo borres.\n\n¿Guardarlo igual?')) return false;
+    if (!(await preguntaProp('Este cineloop pesa ' + _cineMB(bytes), ['Pesa más de ' + CINE_AVISO_MB + ' MB.',
+                 'Se guarda en este dispositivo y ocupa ese espacio hasta que lo borres.',
+                 '¿Guardarlo igual?'], 'Guardar igual', 'btn-primary'))) return false;
   }
   /* Se mira la cuota ANTES de escribir. Si no entra, el mensaje lo dice con los números; sin
      esto el fallo llega como un QuotaExceededError seco y parece que la app se rompió. */
   try {
     const c = await CeiboImg.cuota();
     if (c.total && (c.usado + bytes) > c.total * 0.95) {
-      alert('No hay espacio suficiente en este dispositivo.\n\n' +
+      avisoProp('No hay espacio suficiente', 'No hay espacio suficiente en este dispositivo.\n\n' +
             'El cineloop pesa ' + _cineMB(bytes) + ' y el navegador tiene ' +
             _cineMB(Math.max(0, c.total - c.usado)) + ' libres de ' + _cineMB(c.total) + '.\n\n' +
             'Borrá cineloops o imágenes guardadas desde ⚙️ Config y volvé a intentar.');
@@ -156057,10 +156293,10 @@ async function cineGuardarActual() {
   const r = await CeiboCine.guardar(rec);
   if (!r.ok) {
     const esCuota = /quota/i.test(r.err || '');
-    alert(esCuota
+    avisoProp('No se pudo guardar el cineloop', (esCuota
       ? 'No se pudo guardar: el navegador se quedó sin espacio (' + _cineMB(bytes) + ' no entran).\n\n' +
         'Borrá cineloops o imágenes guardadas desde ⚙️ Config y volvé a intentar.'
-      : 'No se pudo guardar el cineloop en este dispositivo.\n\nMotivo: ' + (r.err || 'desconocido'));
+      : 'No se pudo guardar el cineloop en este dispositivo.\n\nMotivo: ' + (r.err || 'desconocido')));
     return false;
   }
   const perm = await _cinePersistir();
@@ -156165,7 +156401,7 @@ async function _docGuardarEnBiblioteca(cv, nombre, meta) {
   if (!r.ok) {
     /* El motivo de la compuerta va como `alert` —es accionable: encender el toggle, guardar el
        estudio— y el resto como toast. Un «no se pudo» sin el motivo manda a adivinar. */
-    if (bytes && bytes.length) alert('Todavía no se puede guardar en el estudio.\n\n' + r.motivo);
+    if (bytes && bytes.length) avisoProp('Todavía no se puede guardar en el estudio', r.motivo);
     else toast('❌ No se pudo generar la imagen');
     return false;
   }
@@ -156531,11 +156767,10 @@ function _dopLimpiarConfirmar() {
   const otras = _DOP_GRUPOS_DATO.filter(g => g !== gAct && _dopValvConDatos(g)).length;
   const quedan = otras
     ? '\n\nLas otras ' + otras + ' estructura(s) con mediciones NO se tocan.' : '';
-  const ok = (typeof confirm === 'function')
-    ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.' + extra + quedan + '\n\n' +
-              'Esto no se puede deshacer. ¿Limpiar?')
-    : true;
-  if (ok) _dopLimpiarGrupo(gAct);
+  return preguntaProp('¿Limpiar las mediciones de esta estructura?',
+    ['Se borran las mediciones de: ' + con.join(', ') + '.' + extra + quedan,
+     'Esto no se puede deshacer.'], 'Limpiar')
+    .then(si => { if (si) _dopLimpiarGrupo(gAct); });
 }
 window._dopLimpiarConfirmar = _dopLimpiarConfirmar;
 
@@ -156993,10 +157228,23 @@ function dopCorregir(campo) {
   if (!obj) return;
   const actual = obj[p[1]];
   const b = _dopBanda(campo);
-  const txt = prompt('Valor para ' + (_DOP_ROT[campo] || p[1]) +
-                     (b ? ' (' + b[0] + '–' + b[1] + ')' : '') + ' — vacío borra:',
-                     actual == null ? '' : String(actual));
+  /* ⚠️ P12 · T1.2 · PEDIR Y APLICAR QUEDAN SEPARADOS, Y EL CUERPO QUE APLICA NO SE DUPLICA: el
+     valor que vuelve del cartel recorre exactamente el mismo camino que recorría el del `prompt`
+     —la misma banda, el mismo normalizador, la misma marca de origen «mano»—. Con el cuerpo
+     copiado, escribir un valor por el cartel y por el teclado podrían no comportarse igual, que
+     es justo lo que el comentario de abajo vino a evitar. */
+  pedirProp('Valor para ' + (_DOP_ROT[campo] || p[1]),
+            (b ? 'Entre ' + b[0] + ' y ' + b[1] + '.' : ''),
+            actual == null ? '' : String(actual))
+    .then(txt => _dopCorregirAplicar(campo, txt));
+}
+
+function _dopCorregirAplicar(campo, txt) {
   if (txt === null) return;
+  const E = _dopEstado();
+  const p = campo.split('.');
+  const obj = (E[p[0]] && Object.prototype.hasOwnProperty.call(E[p[0]], p[1])) ? E[p[0]] : null;
+  if (!obj) return;
   const t = String(txt).trim().replace(',', '.');
   if (t === '') { obj[p[1]] = null; delete E.origen[campo]; _dopRender(); _dopRepintarAjeno(campo); return; }
   /* ⚠️ MISMO BORDE QUE LA MEDICIÓN: módulo y banda. Sin esto, escribir un valor y medirlo daban
@@ -158425,10 +158673,17 @@ function d2Corregir(campo) {
   const r = _d2Ref(campo);
   if (!r) return;
   const b = _d2Banda(campo);
-  const txt = prompt('Valor en mm para ' + (_D2_ROT[campo] || campo) +
-                     (b ? ' (' + b[0] + '–' + b[1] + ')' : '') + ' — vacío borra:',
-                     r.obj[r.k] == null ? '' : String(r.obj[r.k]));
+  /* Pedir y aplicar separados, por el mismo motivo que `dopCorregir`. */
+  pedirProp('Valor en mm para ' + (_D2_ROT[campo] || campo),
+            (b ? 'Entre ' + b[0] + ' y ' + b[1] + ' mm.' : ''),
+            r.obj[r.k] == null ? '' : String(r.obj[r.k]))
+    .then(txt => _d2CorregirAplicar(campo, txt));
+}
+
+function _d2CorregirAplicar(campo, txt) {
   if (txt === null) return;
+  const r = _d2Ref(campo);
+  if (!r) return;
   const t = String(txt).trim().replace(',', '.');
   if (t === '') { _d2Poner(campo, null); _d2BorrarOrigen(campo); _d2Render(); return; }
   const v = _d2Normalizar(campo, t);
@@ -158935,8 +159190,9 @@ function _d2LimpiarConfirmar() {
   const extra = ajenos.length ? '\n\nTambién borra ' + ajenos.join(' y ') + '.' : '';
   const otras = _D2_GRUPOS_DATO.filter(g => g !== gAct && _d2GrupoConDatos(g)).length;
   const quedan = otras ? '\n\nLas otras ' + otras + ' estructura(s) con mediciones NO se tocan.' : '';
-  if (!confirm('¿Borrar las mediciones 2D de ' + con + '?' + extra + quedan)) return;
-  _d2LimpiarGrupo(gAct);
+  return preguntaProp('¿Borrar las mediciones 2D de ' + con + '?',
+    [(extra + quedan).trim() || 'Esto no se puede deshacer.'], 'Borrar')
+    .then(si => { if (si) _d2LimpiarGrupo(gAct); });
 }
 
 /* Oyente delegado en el CONTENEDOR, registrado una sola vez y recordando el NODO: mismo patrón y
@@ -159116,8 +159372,10 @@ window.cineAbrirGuardado = cineAbrirGuardado;
 async function cineBorrarGuardado(id) {
   const r = await CeiboCine.leer(id);
   if (!r) { toast('❌ No se encontró ese cineloop'); return; }
-  if (!confirm('¿Eliminar el cineloop de ' + r.cuadros + ' cuadros (' + _cineMB(r.bytes || 0) + ')?\n\n' +
-               'Se libera ese espacio en este dispositivo. Los cuadros que ya capturaste a las imágenes del estudio NO se tocan.')) return;
+  if (!(await preguntaProp('¿Eliminar el cineloop de ' + r.cuadros + ' cuadros (' + _cineMB(r.bytes || 0) + ')?',
+               ['Se libera ese espacio en este dispositivo.',
+                'Los cuadros que ya capturaste a las imágenes del estudio NO se tocan.'],
+               'Eliminar'))) return;
   const ok = await CeiboCine.borrar(id);
   await cineStripRender();
   toast(ok ? '🗑️ Cineloop eliminado' : '❌ No se pudo eliminar');
@@ -159145,19 +159403,22 @@ async function _bibBorrar(f) {
               : r.tipo === 'doc' ? ('el documento «' + (r.nombre || 'sin nombre') + '»')
               : 'la imagen original';
     const enSlot = (typeof f.idx === 'number');
-    if (!confirm('¿Eliminar ' + qué + ' (' + _cineMB(r.bytes || 0) + ') de los archivos del estudio?\n\n' +
-                 (enSlot
+    if (!(await preguntaProp('¿Eliminar ' + qué + ' (' + _cineMB(r.bytes || 0) + ') de los archivos del estudio?',
+                 [enSlot
                    ? 'Se libera ese espacio en este dispositivo. La imagen SIGUE en la grilla y en el PDF; ' +
                      'lo que se pierde es el original, o sea la escala para medirla.'
-                   : 'Se libera ese espacio en este dispositivo. Lo que ya mandaste al informe NO se toca.'))) return;
+                   : 'Se libera ese espacio en este dispositivo. Lo que ya mandaste al informe NO se toca.'],
+                 'Eliminar'))) return;
     const ok = await CeiboCine.borrar(f.id);
     await cineStripRender();
     toast(ok ? '🗑️ Eliminado de los archivos del estudio' : '❌ No se pudo eliminar');
     return;
   }
   if (typeof f.idx !== 'number') { toast('❌ No se pudo identificar ese archivo'); return; }
-  if (!confirm('Este archivo sólo está en la grilla de imágenes del estudio: no hay copia ' +
-               'guardada en este dispositivo.\n\n¿Eliminarlo? Deja de salir en el informe.')) return;
+  if (!(await preguntaProp('¿Eliminar este archivo?',
+               ['Este archivo sólo está en la grilla de imágenes del estudio: no hay copia ' +
+                'guardada en este dispositivo.',
+                'Deja de salir en el informe.'], 'Eliminar'))) return;
   imgRemove(null, f.idx);
   await cineStripRender();
   toast('🗑️ Eliminado — ya no sale en el informe');
@@ -159452,15 +159713,15 @@ async function cineStripRender() {
       toast('❌ No se pudo abrir este archivo');
     };
     /* `stopPropagation` en los dos: los botones se superponen a `.cine-abrir`, así que sin
-       frenar el evento un ✕ abriría además el visor detrás del `confirm`. */
-    if (borrar) borrar.onclick = ev => {
+       frenar el evento un ✕ abriría además el visor detrás del cartel. */
+    if (borrar) borrar.onclick = async ev => {
       ev.stopPropagation();
       /* Un pendiente no está en ningún lado todavía: sacarlo es sacarlo de la cola, y eso no
          borra nada de disco. `_bibBorrar` no sabría qué borrar. */
       if (f.clase === 'cinepend') {
-        if (typeof confirm === 'function' &&
-            !confirm('¿Quitar este cineloop del estudio?\n\nTodavía no se guardó, así que no se ' +
-                     'borra nada de este dispositivo. Si vino del ecógrafo, sigue esperando en CeiboLink.')) return;
+        if (!(await preguntaProp('¿Quitar este cineloop del estudio?',
+              ['Todavía no se guardó, así que no se borra nada de este dispositivo.',
+               'Si vino del ecógrafo, sigue esperando en CeiboLink.'], 'Quitar'))) return;
         try { _cineSacarPendiente(f.pend); } catch (e) {}
         cineStripRender();
         return;
@@ -185437,7 +185698,7 @@ window.clnkEqConexion = clnkEqConexion;
    ella.
    ⚠️ TODO ENTRA POR `textContent`: los parrafos pueden traer un nombre de paciente o un nombre de
    equipo, que los escribio una persona. */
-function borrConfirmar(titulo, parrafos, rotuloSi) {
+function preguntaProp(titulo, parrafos, rotuloSi, claseSi) {
   return new Promise(function (resolver) {
     var ov, cerrado = false;
     var fin = function (v) {
@@ -185482,7 +185743,13 @@ function borrConfirmar(titulo, parrafos, rotuloSi) {
       var fila = document.createElement('div');
       fila.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;';
       var bSi = document.createElement('button');
-      bSi.type = 'button'; bSi.className = 'btn btn-danger';
+      /* ══ P12 · LA CLASE DEL BOTÓN DEL SÍ ES UN ARGUMENTO, CON EL ROJO POR OMISIÓN ═════════
+         Hasta P11 este cartel era sólo para borrados, así que el botón era `btn-danger` fijo.
+         P12 lo usa además para decisiones que NO destruyen nada —«¿Usar calidad original?»,
+         «¿Agregar sólo las nuevas?»— y ahí el rojo dice algo falso: le pinta de peligro una
+         acción que no lo es, y el médico aprende a desconfiar del rojo. El rojo sigue siendo
+         el valor por omisión, así que los llamadores de antes no cambian de aspecto. */
+      bSi.type = 'button'; bSi.className = 'btn ' + (claseSi || 'btn-danger');
       bSi.style.cssText = 'flex:1;justify-content:center;';
       bSi.textContent = String(rotuloSi || 'Borrar');
       bSi.addEventListener('click', function () { fin(true); });
@@ -185503,6 +185770,14 @@ function borrConfirmar(titulo, parrafos, rotuloSi) {
       try { bNo.focus(); } catch (e) {}
     } catch (e) { fin(false); }
   });
+}
+window.preguntaProp = preguntaProp;
+/* Alias histórico, con el rojo de siempre. `borrConfirmar` nació en la tanda EQ para los
+   borrados de varios y la llaman más de veinte sitios y varios casos; el dueño es
+   `preguntaProp`. Delegación de una línea, no una copia: con dos cuerpos, el día que el cartel
+   necesite un paso más uno de los dos quedaría sin él. */
+function borrConfirmar(titulo, parrafos, rotuloSi) {
+  return preguntaProp(titulo, parrafos, rotuloSi, 'btn-danger');
 }
 window.borrConfirmar = borrConfirmar;
 
@@ -188502,10 +188777,11 @@ window.clnkConfirmarPersistidas = clnkConfirmarPersistidas;
 async function clnkDescartar(ids) {
   var l = (Array.isArray(ids) ? ids : []).filter(Boolean);
   if (!l.length) { clnkAvisoCerrar(); return 0; }
-  if (typeof confirm === 'function' &&
-      !confirm('¿Descartar ' + l.length + (l.length === 1 ? ' imagen' : ' imágenes') + '?\n\n' +
-               'Se borran de CeiboLink y NO SE PUEDEN RECUPERAR. Para volver a tenerlas habría ' +
-               'que mandarlas de nuevo desde el ecógrafo.')) return 0;
+  /* ⚠️ P12 · T1.2 · ÉSTE ES EL CARTEL QUE EL MÉDICO NOMBRÓ: «descartar lo que llegó». */
+  if (!(await borrConfirmar('¿Descartar ' + l.length + (l.length === 1 ? ' imagen' : ' imágenes') + '?',
+      ['Se borran de CeiboLink y NO SE PUEDEN RECUPERAR.',
+       'Para volver a tenerlas habría que mandarlas de nuevo desde el ecógrafo.'],
+      'Descartar'))) return 0;
   var ok = 0, mal = 0;
   for (var i = 0; i < l.length; i++) {
     clnkAvisoProgreso('Descartando ' + (i + 1) + ' de ' + l.length + '…');
@@ -189239,10 +189515,9 @@ function _clnkbVerFija(idEnvio, dataURL, k, total, equipo) {
     bU.type = 'button'; bU.className = 'btn btn-ghost';
     bU.setAttribute('data-clnkb-borrar-una', '1');
     bU.onclick = async function () {
-      if (typeof confirm === 'function' &&
-          !confirm('¿Borrar la imagen ' + (k + 1) + ' de ' + total + ' de este envío?\n\n' +
-                   'Se borra de «Sin estudio» y NO SE PUEDE RECUPERAR. Las demás del envío ' +
-                   'quedan donde están.')) return;
+      if (!(await borrConfirmar('¿Borrar la imagen ' + (k + 1) + ' de ' + total + ' de este envío?',
+          ['Se borra de «Sin estudio» y NO SE PUEDE RECUPERAR.',
+           'Las demás del envío quedan donde están.'], 'Borrar'))) return;
       var r = await clnkbBorrarUna(idEnvio, 'img', k);
       _clnkbVerCerrar();
       if (typeof toast === 'function') {
@@ -189332,10 +189607,9 @@ async function clnkbAsignarPreguntar(id) {
            var cual = String((inf && inf.nombre) || 'ese estudio');
            var fech = (inf && inf.fecha_estudio)
              ? String(inf.fecha_estudio).split('-').reverse().join('/') : 'sin fecha';
-           if (typeof confirm === 'function' &&
-               !confirm('¿Agregar ' + cuenta + ' al estudio de ' + cual + ' (' + fech + ')?\n\n' +
-                        'Se agregan al final. No se cambia ningún dato del paciente de ese estudio.')) return;
-           clnkbAsignar(id, inf);
+           preguntaProp('¿Agregar ' + cuenta + ' al estudio de ' + cual + ' (' + fech + ')?',
+             ['Se agregan al final. No se cambia ningún dato del paciente de ese estudio.'],
+             'Agregar', 'btn-primary').then(function (si) { if (si) clnkbAsignar(id, inf); });
          });
        } },
      { txt: 'Cancelar', fn: function () { clnkAvisoCerrar(); } }]);
@@ -189381,20 +189655,17 @@ async function clnkbAsignar(id, inf) {
     var uuid = String(inf.uuid || '');
     if (!_uuidValido(uuid)) {
       clnkAvisoCerrar();
-      if (typeof alert === 'function') {
-        alert('Ese estudio guardado no tiene identificador de imágenes. Abrilo una vez desde ' +
-              'Guardados y volvé a intentar: al abrirlo se le asigna uno.\n\n' +
-              'No se movió nada: el envío sigue en «Sin estudio».');
-      }
+      avisoProp('Ese estudio no tiene identificador de imágenes',
+        'Abrilo una vez desde Guardados y volvé a intentar: al abrirlo se le asigna uno.\n\n' +
+        'No se movió nada: el envío sigue en «Sin estudio».');
       return 0;
     }
     if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
       clnkAvisoCerrar();
-      if (typeof alert === 'function') {
-        alert('No se puede asignar a un estudio guardado con «Guardar imágenes con los estudios» ' +
-              'APAGADO: nada se escribiría en este dispositivo.\n\nActivalo en ⚙️ Config y volvé a ' +
-              'intentar. No se movió nada: el envío sigue en «Sin estudio».');
-      }
+      avisoProp('«Guardar imágenes con los estudios» está apagado',
+        'No se puede asignar a un estudio guardado con esa opción APAGADA: nada se escribiría en ' +
+        'este dispositivo.\n\nActivalo en ⚙️ Config y volvé a intentar. No se movió nada: el ' +
+        'envío sigue en «Sin estudio».');
       return 0;
     }
     if (imgs.length) {
@@ -189420,9 +189691,10 @@ async function clnkbAsignar(id, inf) {
       ? ('✅ ' + n + ' archivo(s) asignados' + (alAbierto ? ' al estudio abierto' : ' a «' + String(inf.nombre || '') + '»'))
       : ('⚠️ Entraron ' + n + ' de ' + (imgs.length + loops.length) + ' — el envío se queda en «Sin estudio»'));
   }
-  if (fallos.length && typeof alert === 'function') {
-    alert('No se pudo asignar todo:\n\n' + fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
-          '\n\nEl envío sigue en «Sin estudio» para que lo puedas volver a intentar.');
+  if (fallos.length) {
+    avisoProp('No se pudo asignar todo',
+      fallos.slice(0, 8).map(function (x) { return '· ' + x; }).join('\n\n') +
+      '\n\nEl envío sigue en «Sin estudio» para que lo puedas volver a intentar.');
   }
   try { await igBandejaRender(); } catch (e) {}
   try { await clnkbRender(); } catch (e) {}
@@ -189443,16 +189715,18 @@ if (!window._clnkbCableado) {
     ev.preventDefault();
     var id = b.getAttribute('data-clnkb-borrar') || '';
     if (!id) return;
-    if (typeof confirm === 'function' &&
-        !confirm('¿Borrar este envío de imágenes sin estudio?\n\n' +
-                 'Es la última copia: ya no están en CeiboLink. No se pueden recuperar.')) return;
-    clnkbBorrar(id).then(function () {
-      if (typeof toast === 'function') toast('🗑 Envío borrado');
-      clnkbRender();
-      /* Las DOS pantallas que muestran la bandeja se repintan: la de la pestaña Imágenes y el
-         bloque «Sin estudio» de Guardados. Con una sola, la otra seguiría ofreciendo un botón
-         «Asignar» sobre un envío que ya no existe. */
-      try { if (typeof igBandejaRender === 'function') igBandejaRender(); } catch (e) {}
+    borrConfirmar('¿Borrar este envío de imágenes sin estudio?',
+      ['Es la última copia: ya no están en CeiboLink.',
+       'No se pueden recuperar.'], 'Borrar').then(function (si) {
+      if (!si) return;
+      clnkbBorrar(id).then(function () {
+        if (typeof toast === 'function') toast('🗑 Envío borrado');
+        clnkbRender();
+        /* Las DOS pantallas que muestran la bandeja se repintan: la de la pestaña Imágenes y el
+           bloque «Sin estudio» de Guardados. Con una sola, la otra seguiría ofreciendo un botón
+           «Asignar» sobre un envío que ya no existe. */
+        try { if (typeof igBandejaRender === 'function') igBandejaRender(); } catch (e) {}
+      });
     });
   });
 }
@@ -190045,7 +190319,10 @@ function _dstAviso(txt) {
   var t = String(txt || '');
   if (!t) return false;
   if (_dstJuntando) { _dstMsgs.push(t); return true; }
-  if (typeof alert === 'function') alert(t);
+  /* ⚠️ P12 · T1.2 · ACÁ VIVÍA UN `alert` NATIVO, Y ES EL QUE COLGÓ UNA CORRIDA DE 31 CASOS EN
+     P8: un caso que no lo sustituye se queda esperando un clic que nadie da. Pasa al cartel
+     propio, que ningún caso necesita sustituir. */
+  avisoProp('Sobre las imágenes que llegaron', t);
   return true;
 }
 window._dstAviso = _dstAviso;
@@ -190408,24 +190685,20 @@ async function dstAGuardado(ctx, inf) {
   var uuid = String(inf.uuid || '');
   if (!_uuidValido(uuid)) {
     clnkAvisoCerrar();
-    if (typeof alert === 'function') {
-      alert('Ese estudio guardado no tiene identificador de imágenes, así que no se le puede ' +
-            'adjuntar nada sin arriesgar que las imágenes terminen en otro.\n\n' +
-            'Abrilo una vez desde Guardados y volvé a intentar: al abrirlo se le asigna uno.' +
-            (ctx.origen === 'ceibolink'
-              ? '\n\nMientras tanto las imágenes siguen esperando en CeiboLink.' : ''));
-    }
+    avisoProp('Ese estudio no tiene identificador de imágenes',
+      'No se le puede adjuntar nada sin arriesgar que las imágenes terminen en otro.\n\n' +
+      'Abrilo una vez desde Guardados y volvé a intentar: al abrirlo se le asigna uno.' +
+      (ctx.origen === 'ceibolink'
+        ? '\n\nMientras tanto las imágenes siguen esperando en CeiboLink.' : ''));
     return 0;
   }
   if (typeof imgGuardadoActivo === 'function' && !imgGuardadoActivo()) {
     clnkAvisoCerrar();
-    if (typeof alert === 'function') {
-      alert('No se puede adjuntar a un estudio guardado con «Guardar imágenes con los estudios» ' +
-            'APAGADO: nada se escribiría en este dispositivo.\n\n' +
-            'Activalo en ⚙️ Config y volvé a intentar.' +
-            (ctx.origen === 'ceibolink'
-              ? '\n\nNo se borró nada: las imágenes siguen esperando en CeiboLink.' : ''));
-    }
+    avisoProp('«Guardar imágenes con los estudios» está apagado',
+      'No se puede adjuntar a un estudio guardado con esa opción APAGADA: nada se escribiría en ' +
+      'este dispositivo.\n\nActivalo en ⚙️ Config y volvé a intentar.' +
+      (ctx.origen === 'ceibolink'
+        ? '\n\nNo se borró nada: las imágenes siguen esperando en CeiboLink.' : ''));
     return 0;
   }
   _dstJuntarAbrir();                                   // una tanda (decisión 4)
@@ -190804,13 +191077,13 @@ function dstPreguntar(ctx) {
           var cual = String((inf && inf.nombre) || 'ese estudio');
           var fech = (inf && inf.fecha_estudio)
             ? String(inf.fecha_estudio).split('-').reverse().join('/') : 'sin fecha';
-          if (typeof confirm === 'function' &&
-              !confirm('¿Agregar ' + cuenta + ' al estudio de ' + cual + ' (' + fech + ')?\n\n' +
-                       'Se agregan al final. No se cambia ningún dato del paciente de ese estudio.')) {
-            return;
-          }
-          _decidio();
-          dstAGuardado(ctx, inf);
+          preguntaProp('¿Agregar ' + cuenta + ' al estudio de ' + cual + ' (' + fech + ')?',
+            ['Se agregan al final. No se cambia ningún dato del paciente de ese estudio.'],
+            'Agregar', 'btn-primary').then(function (si) {
+              if (!si) return;
+              _decidio();
+              dstAGuardado(ctx, inf);
+            });
         });
       } },
     { txt: '🖼 Adjuntar a imágenes guardadas',
