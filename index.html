@@ -318,9 +318,59 @@
     max-height: 100% !important; height: 100% !important;
     border-radius: 0 !important;
   }
-  /* El lienzo deja de estar atado a `56vh` cuando la ventana es la pantalla: ahi el limite lo
-     pone la columna, no una fraccion del alto del navegador. */
-  #cine-ov.cine-max [id$="cine-cv"] { max-height: none !important; }
+  /* ⚠️ LAPIDA — `#cine-ov.cine-max [id$="cine-cv"] { max-height: none }` (MEDIR-1). Soltaba el
+     tope del canvas en pantalla completa, y por eso ahi la imagen se quedaba en su tamanio de
+     origen sin llenar nada: sin tope no hay nada que la haga crecer. El tope de pantalla
+     completa es hoy `--cine-imgh` con su `- 124px`, y lo ejerce el envoltorio. */
+
+  /* ══ P11 (1.5) — LOS RACIMOS DE BOTONCITOS SOBRE LA IMAGEN ════════════════════════════════
+     ⚠️ SE VEN DE 26 px Y SE TOCAN EN 44, que es la regla fija de esta casa desde PANT-2: el area
+     la da el propio boton y lo que se pinta es el `span` de adentro. Nunca un margen negativo ni
+     un `min-height` por debajo de 44.
+     ⚠️ EL FONDO ES NEGRO SEMITRANSPARENTE Y NO `var(--bg3)`, y no es estetico: estos botones se
+     pintan ENCIMA de la ecografia, que es casi negra con estructuras claras, asi que un fondo
+     que siga al tema desaparece en el modo Dia sobre una imagen clara. El borde blanco al 35 %
+     y el glifo blanco dan 8,6:1 sobre el negro de la imagen y se leen en los dos temas, que es
+     lo unico que importa aca: el tema de la app no cambia el color de una ecografia.
+     ⚠️ `z-index:3` PORQUE EL CANVAS DE MEDICION ES `position:absolute` Y ESTA DESPUES: sin esto,
+     la capa de trazos queda encima y los botones no reciben el clic. */
+  #cine-ov .cine-imgbtns { position: absolute; display: flex; gap: 2px; z-index: 3; }
+  #cine-ov .cine-imgbtns-tr { top: 0; right: 0; }
+  #cine-ov .cine-imgbtns-br { bottom: 0; right: 0; }
+  #cine-ov .cine-imgbtns-bl { bottom: 0; left: 0; }
+  #cine-ov .cine-imgb {
+    width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0;
+    background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #cine-ov .cine-imgb > span {
+    display: block; width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.38);
+    color: #fff; font-size: 14px; line-height: 24px; text-align: center;
+  }
+  #cine-ov .cine-imgb:hover > span,
+  #cine-ov .cine-imgb:focus-visible > span { background: rgba(0,0,0,.85); }
+  /* ══ P11 (1.2) — EL INTERRUPTOR DE LA COLUMNA, SOLO EN PANTALLA COMPLETA ══════════════════
+     ⚠️ VIVE SOBRE LA IMAGEN Y NO DENTRO DE LA COLUMNA, y es la unica forma de que la columna se
+     pueda VOLVER a mostrar: un boton metido adentro de lo que se esconde se esconde con ello.
+     El punto 1.4 enumera lo que queda sobre la imagen y este no esta en la lista; se declara.
+     En tamanio Normal no se emite: el 1.2 lo pide para pantalla completa. */
+  #cine-ov:not(.cine-max) .cine-pan-btn { display: none !important; }
+  #cine-ov.cine-sinpanel .cine-col-der { display: none !important; }
+  /* ══ P11 (1.3) — CON DOS VISTAS EN PANTALLA COMPLETA, UNA SOLA COLUMNA ════════════════════
+     La de la vista que tiene el foco. La clase la pone `_vMaxSync` sobre la columna de la OTRA;
+     `display:none` y no un ancho cero, porque asi la imagen se queda con el ancho de verdad y
+     los controles de la columna escondida salen del orden de tabulacion. */
+  #cine-ov .cine-col-der.cine-col-off { display: none !important; }
+  /* En pantalla completa el encabezado de la vista —el rotulo y el nombre del cineloop— se
+     esconde con UNA vista: no es un control, es una etiqueta, y su alto es alto que la imagen
+     puede usar. Con DOS vistas se queda, porque ahi el rotulo es lo que dice cual es cual. */
+  #cine-ov.cine-max #cine-paneles:not(.cine-2v) [id$="cine-encab"] { display: none !important; }
+  /* Y la linea de ayuda —«N cuadros, navega y captura…»— tampoco: es una instruccion, no un
+     dato del estudio, y su alto es alto que la imagen puede usar. En tamanio Normal se queda.
+     El bloque de calculados NO se esconde: eso seria perder numeros medidos. Se MUDA a la
+     columna, y lo hace `_vSlotSync`. */
+  #cine-ov.cine-max [id$="cine-ayuda"] { display: none !important; }
 
   /* ── LA BARRA UNICA ──────────────────────────────────────────────────────────────────────
      ⚠️ UN SOLO FORMATO PARA TODOS: esquinas RECTAS y el MISMO ancho, que es el pedido literal.
@@ -454,9 +504,41 @@
      maximizado pasa a toda la pantalla: las dos acotaciones de abajo tienen que seguir a ese
      numero, y con el 94 escrito a mano en tres lugares bastaba con que uno quedara viejo para
      que el modal volviera a desplazarse sin que nadie supiera cual de los tres mentia. */
-  #cine-ov { --cine-h: 94vh; }
+  #cine-ov { --cine-h: 94vh; --cine-imgh: 66vh; }
   #cine-ov.cine-max { --cine-h: 100vh; }
+  /* ══ P11 (1.1 y 1.2) — EL ALTO DISPONIBLE DE LA IMAGEN, EN UNA SOLA VARIABLE ══════════════
+     ⚠️ ESTE ES EL NUMERO QUE DECIDE EL TAMANIO DE LA IMAGEN, y hasta esta tanda vivia escrito
+     en CUATRO lugares con TRES valores distintos: `66vh` en el estilo en linea del canvas,
+     `56vh` dos veces dentro de `_cineRecorteAplicar` —el camino CON recorte—, y
+     `calc(var(--cine-h) - 190px)` en la media query de 1100 px. Con tres valores, cual mandaba
+     dependia de si el cineloop estaba medido o no, y nadie podia decir cuanto media la imagen.
+     Hoy manda esta variable y la leen los dos caminos.
+     POR QUE `66vh` COMO BASE: es el valor del estilo en linea, o sea lo que gobierna por debajo
+     de 1100 px, donde la columna de medidas se apila debajo de la imagen y una imagen mas alta
+     significa mas desplazamiento en el celular. No se toca.
+     POR QUE `- 190px` A PARTIR DE 1100: son el cromo que rodea a la imagen dentro del modal,
+     medido —encabezado del modal 44 + 8 de margen, encabezado de la vista ~19 + 5, la barra 44 +
+     2, el reproductor 44 + 5, la linea de ayuda ~14 y los 16+16 de relleno del modal—. Es el
+     mismo numero que MEDIR-3 derivo y verifico midiendo `modalScrollY`.
+     POR QUE EN PANTALLA COMPLETA SON `- 157px` Y NO 190: ahi la imagen se queda SOLA con su
+     reproductor, y los 157 px son la suma MEDIDA de lo que queda —encabezado del modal 44 + 8,
+     relleno del modal 16 + 16, el hueco de 5 y el reproductor de 44, mas los dos huecos del
+     panel—. Las cuatro cosas que en tamanio Normal rodean a la imagen se van: la barra y el
+     «Capturar» a la columna (1.4), el encabezado de la vista se esconde con una vista, la linea
+     de ayuda se esconde, y el bloque de calculados se muda a la columna. Por eso el numero es
+     FIJO y no depende de si se esta midiendo: en Normal la ayuda y los calculados aparecen al
+     prender la medicion y suman 80 px —medido: la columna izquierda pasa de 879 a 964—, y un
+     tope que no lo contemple hace que la imagen cambie de tamanio al tocar «Medir».
+     ⚠️ EN NORMAL EL NUMERO SIGUE SIENDO 190, QUE ES EL DE LA LINEA BASE, y se declara por que:
+     el cromo real con la medicion prendida son 293 px, asi que con 190 el modal se desplaza
+     —medido en la linea base, 116 px a 1440x900—. Bajarlo a 293 arreglaria el desplazamiento al
+     precio de ACHICAR la imagen 100 px en la pantalla del medico, que es lo contrario de lo que
+     el punto 1.1 pide. Se conserva el trato que esta casa ya tenia: el modal es `overflow:auto`
+     y lo que no entra se desplaza, que su propio comentario declara como «feo pero mejor que
+     recortar sin salida». */
   @media (min-width: 1100px) {
+    #cine-ov { --cine-imgh: calc(var(--cine-h) - 190px); }
+    #cine-ov.cine-max { --cine-imgh: calc(var(--cine-h) - 157px); }
     #cine-ov .cine-fila { flex-wrap: nowrap !important; }
     /* ⚠️ LA COLUMNA SE ACOTA Y SE LLEVA SU PROPIO DESPLAZAMIENTO, que es el punto 3 del pedido:
        la imagen, la reproduccion y la tabla tienen que entrar JUNTAS sin mover la ventana, y la
@@ -500,7 +582,14 @@
        ⚠️ MEDIR-3 — 230 → 190 px: la imagen gana 40 px de alto (punto A1). El numero se verifica
        midiendo `modalScrollY` en los ocho cruces, que es la unica forma de saber si una resta de
        estas sigue valiendo — la leccion que MEDIR-1 dejo escrita sobre este mismo calc. */
-    #cine-ov [id$="cine-cv"] { max-height: calc(var(--cine-h) - 190px) !important; }
+    /* ⚠️ LAPIDA — ACA VIVIA `[id$="cine-cv"] { max-height: calc(var(--cine-h) - 190px) }`, y el
+       tope se MUDO AL ENVOLTORIO (`cine-recorte`), que es quien lo escribe `_cineRecorteAplicar`
+       leyendo `--cine-imgh`. El motivo es que un tope en el CANVAS solo puede ACHICAR: un canvas
+       es un elemento reemplazado y su tamanio de partida es el del mapa de bits, asi que con la
+       caja mas grande que la imagen el navegador no la agranda y el resto queda vacio — medido
+       en la linea base de esta tanda: a 2560x1440 la imagen salia en sus 1016x708 de origen, o
+       sea el 40 % del ancho y el 49 % del alto, con 962 px de negro al costado. Con el tope en
+       el envoltorio y el canvas llenandolo, la imagen OCUPA la caja en los dos sentidos. */
   }
   /* ══ MEDIR-5 (A3 y A4) — EL LIENZO NO SE ENCOGE, Y ESTA ES LA CAUSA QUE «TAPABA» ═══════════
      ⚠️ ESTO ES LO QUE DE VERDAD TAPABA LOS BOTONES Y LA BARRA DEL VIDEO, y es PREEXISTENTE:
@@ -145248,6 +145337,12 @@ function _cineFps(d) {
    control a la vista A y olvidarse de la B da un panel que se ve bien y al que le falta un
    botón — el modo de falla mudo de siempre. */
 function _vPanelHTML(p, esB) {
+  /* P11 (1.5) — un boton de los chicos: 44 px de area tactil con 26 px de glifo pintado, que es
+     la receta de esta casa para «se ve chico y se toca en 44» (PANT-2). El glifo entra como
+     entidad y el titulo por `escHtml`: no hay un solo dato del paciente en esta funcion. */
+  const ibtn = (id, glifo, tip, cls) => '<button type="button" class="cine-imgb ' + (cls || '') +
+    '" id="' + p + id + '" title="' + escHtml(tip) + '" aria-label="' + escHtml(tip) + '">' +
+    '<span>' + glifo + '</span></button>';
   const btn = (id, cls, txt, extra, tip) => '<button type="button" class="btn ' + cls + '" id="' + p + id +
     '" style="padding:3px 9px;font-size:10.5px;' + (extra || '') + '"' +
     (tip ? ' title="' + escHtml(tip) + '"' : '') + '>' + txt + '</button>';
@@ -145256,7 +145351,7 @@ function _vPanelHTML(p, esB) {
      herramientas y esconderla detrás de un toggle repite el problema que este cambio cierra. */
   return '<div id="' + p + 'cine-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
       /* Encabezado */
-      '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
+      '<div id="' + p + 'cine-encab" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
         '<b style="font-size:11px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
         '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
         /* ⚠️ MEDIR-4 — EL «CERRAR VISTA» SE FUE DE ACA A LA BARRA, Y ES LO QUE CIERRA LOS 30 px.
@@ -145287,6 +145382,14 @@ function _vPanelHTML(p, esB) {
          aplica al ALTO. La barra habria crecido hasta comerse la columna en cuanto se abriera
          la vista B. El tratamiento de `btn-ghost` que si habia que conservar se reescribio en
          la hoja contra `.cine-barra`; las otras tres quedaron con lapida. */
+      /* ══ P11 (1.4) — LA BARRA VIVE EN UNA RANURA, PORQUE EN PANTALLA COMPLETA SE MUDA ══════
+         En pantalla completa los botones de la barra pasan a la columna derecha y arriba de la
+         imagen quedan solo los racimos chicos, «Capturar» y el reproductor, que es el pedido
+         literal. La barra es UN NODO que viaja —no dos barras, una por modo—: con dos barras,
+         el dia que se agregue un boton a una se olvida en la otra, que es el modo de falla que
+         este archivo ya pago con la barra de la vista B. `_vMaxSync` la manda a una ranura o a
+         la otra y los ids, los oyentes y lo tipeado en la etiqueta viajan con ella. */
+      '<div id="' + p + 'cine-barra-casa">' +
       '<div class="cine-barra" id="' + p + 'cine-grp-med" style="margin-bottom:2px;">' +
         /* ⚠️ VUELVE A SER LA COMPUERTA, Y EN LOS DOS SENTIDOS. Nació como entrada, pasó a ser
            sólo salida —y por eso nacía oculto— y desde el modo mínimo (2026-10-01) es un
@@ -145359,6 +145462,7 @@ function _vPanelHTML(p, esB) {
             'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
         '</span>' +
       '</div>' +
+      '</div>' +
       /* ZONA 1 (imagen) + ZONA 3 (reproductor) a la IZQUIERDA; el panel de medicion a la
          DERECHA. El corte lo pone la media query de `cine-col-der` sobre la VENTANA: a 1100 px o
          mas van lado a lado, y por debajo el panel se apila debajo de la imagen. */
@@ -145390,8 +145494,35 @@ function _vPanelHTML(p, esB) {
             'display:flex;align-items:center;justify-content:center;min-height:200px;">' +
             '<div id="' + p + 'cine-recorte" style="position:relative;overflow:hidden;line-height:0;' +
               'background:#000;border-radius:8px;">' +
-              '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:66vh;display:block;"></canvas>' +
+              /* P11 — el tope de ALTO sale de `--cine-imgh`, que es el dueño unico. Este valor en linea es
+                 solo el de partida: `_cineRecorteAplicar` lo reescribe en cuanto hay un cineloop, y los
+                 dos caminos de esa funcion mudaron el encaje al ENVOLTORIO. */
+              '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:var(--cine-imgh);display:block;"></canvas>' +
               '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+              /* ══ P11 (1.5) — LOS BOTONCITOS PEGADOS A LA IMAGEN ════════════════════════════
+                 Chicos, discretos, SIN TEXTO y solo con una flecha, que es el pedido literal:
+                 tamanio arriba a la derecha, cuadro anterior y siguiente abajo a la derecha.
+                 ⚠️ VAN DENTRO DE `cine-recorte` Y NO DEL LIENZO, y es lo unico que los deja
+                 «pegados a la imagen»: el lienzo es la COLUMNA y es mas ancho que la imagen
+                 —medido en la linea base: 990 contra 941 a 1440 px, y 1978 contra 1016 a 2560—,
+                 asi que un racimo anclado al lienzo queda flotando en el negro. El recorte tiene
+                 el tamanio de la imagen por construccion.
+                 ⚠️ EL PRECIO, DECLARADO: el recorte lleva `overflow:hidden`, asi que los racimos
+                 tienen que caer DENTRO de la imagen, y mientras se mide esos cuadrados de 44 px
+                 son area de boton y no de medicion. Son las esquinas, donde la ecografia casi
+                 nunca lleva anatomia; la alternativa —sacarlos afuera— los desprende de la
+                 imagen, que es justo lo que el pedido no quiere.
+                 ⚠️ EL DE TAMANIO ES UNA RANURA Y NO UN BOTON NUEVO: ahi se muda `cine-maxi`, que
+                 es el que ya existe y el que el suite aprieta. Dos botones para la misma accion
+                 dejarian dos `aria-pressed` que pueden discrepar. */
+              '<div class="cine-imgbtns cine-imgbtns-tr" id="' + p + 'cine-imgtr">' +
+                ibtn('cine-pan', '&#187;', 'Esconder la columna de medidas y darle todo el ancho a la imagen', 'cine-pan-btn') +
+              '</div>' +
+              '<div class="cine-imgbtns cine-imgbtns-br" id="' + p + 'cine-imgbr">' +
+                ibtn('cine-fprev', '&#8249;', 'Cuadro anterior', '') +
+                ibtn('cine-fnext', '&#8250;', 'Cuadro siguiente', '') +
+              '</div>' +
+              '<div class="cine-imgbtns cine-imgbtns-bl" id="' + p + 'cine-imgbl"></div>' +
             '</div>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
@@ -145433,7 +145564,11 @@ function _vPanelHTML(p, esB) {
            «2D / Doppler / M» siempre a la vista, y lo que se desplaza es el panel guia y la
            ranura de los cajones. Los dos ids se conservan —de ellos cuelgan la regla del modo
            minimo, `_medEl` y los casos—; lo que cambia es que hay un envoltorio en medio. */
-        '<div class="cine-col-der">' +
+        '<div class="cine-col-der" id="' + p + 'cine-col">' +
+          /* P11 (1.4) — la ranura a la que `_vMaxSync` muda la barra en pantalla completa. Va
+             ARRIBA del selector y FUERA del scroller: la barra son acciones y tienen que estar
+             siempre a la vista, igual que el selector de herramientas. */
+          '<div id="' + p + 'cine-barra-slot" style="display:flex;flex-direction:column;min-width:0;"></div>' +
           '<div id="' + p + 'cine-side" style="display:flex;flex-direction:column;gap:4px;min-width:0;"></div>' +
           '<div class="cine-der-scroll">' +
             '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
@@ -146433,7 +146568,17 @@ function _vSlotSync() {
     const cc = document.getElementById('cine-calc');
     if (cc) {
       const ancho = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1280;
-      if (ancho >= 1024) {
+      const _ovm = document.getElementById('cine-ov');
+      const _max = !!(_ovm && _ovm.classList.contains('cine-max'));
+      if (_max) {
+        /* ══ P11 (1.2) — EN PANTALLA COMPLETA LOS CALCULADOS VAN A LA COLUMNA ════════════════
+           Debajo de la imagen suman 66 px de cromo —medido— y ahi el pedido quiere la imagen con
+           todo el alto disponible. No se esconden: son numeros medidos, y esconderlos seria
+           perderlos. Van a la ranura de la columna, al lado de la tabla de medidas, que es donde
+           ya viven los dos cajones. */
+        mudar('cine-calc', dueno(V => V && V.medGrupo === 'dop'), 'cine-der-slot');
+        cc.classList.remove('cine-calc-enpanel');
+      } else if (ancho >= 1024) {
         mudar('cine-calc', dueno(V => V && V.medGrupo === 'dop'), 'cine-calc-slot');
         cc.classList.add('cine-calc-enpanel');
       } else {
@@ -146466,6 +146611,29 @@ function _vCablear(V) {
   on('cine-cap',     () => (typeof medCapturar === 'function') ? medCapturar() : cineCapturar());
   on('cine-prev',    () => cineLoop(-1));
   on('cine-next',    () => cineLoop(1));
+  /* P11 (1.5) — las flechas de CUADRO del racimo de abajo a la derecha. Van por `on`, o sea
+     envueltas en `_vBind`: mueven el cuadro de SU vista y `cineCuadro` resuelve contra `_V`. */
+  on('cine-fprev',   () => cineCuadro(-1));
+  on('cine-fnext',   () => cineCuadro(1));
+  /* ⚠️ EL INTERRUPTOR DE LA COLUMNA **NO** VA ENVUELTO, y no es un olvido: esconder la columna
+     es del VISOR y no de una vista, igual que maximizar. Envuelto, el `finally` de `_vBind`
+     repondria la vista anterior y la funcion igual tocaria la clase del overlay — o sea que la
+     envoltura no agrega nada y sugiere que el estado es por vista. */
+  const bpan = q('cine-pan');
+  if (bpan) bpan.onclick = cinePanelToggle;
+  /* ══ P11 (1.3) — EL FOCO DE VISTA SE ANOTA CON EL GESTO REAL ═══════════════════════════════
+     `pointerdown` y no `click`: el medico «entra» a una vista al apoyar el dedo o el boton, y
+     un clic que arranca un trazado no llega nunca a `click`. Se registra sobre el PANEL —no
+     sobre el canvas— para que tocar la columna o la barra de esa vista tambien la enfoque.
+     ⚠️ NO SE REPINTA SI NO CAMBIO: `_vMaxSync` mueve nodos, y moverlos en cada `pointerdown`
+     le quitaria el foco de teclado a lo que el medico acaba de tocar. */
+  const pan = q('cine-panel');
+  if (pan) pan.addEventListener('pointerdown', () => {
+    if (_vFoco === V) return;
+    _vFoco = V;
+    try { _vMaxSync(); } catch (e) {}
+    try { _vReencajar(); } catch (e) {}
+  }, true);
   const sl = q('cine-slider');
   if (sl) sl.oninput = _vBind(V, () => { _cineDetener(); cineIr(+sl.value); });
   /* ⚠️ MEDIR-4 — SE CABLEA EN LAS DOS VISTAS, Y *SIN* `_vBind`. El `on` de arriba envuelve en
@@ -146582,6 +146750,36 @@ window._vToggleSync = _vToggleSync;
    volver a agrandar en cada cineloop. Es lo contrario que `cine-min`, que SIEMPRE vuelve: aquel
    es el modo de trabajo —y abrir midiendo taparia la imagen—, este es el tamaño del marco.
    Queda declarado porque son dos criterios opuestos sobre el mismo overlay. */
+/* ¿Hay una capa fija y visible POR ENCIMA del visor? Es la guarda del Escape de P11: el visor
+   vive en la capa 400 y sus propios cuadros en la 460, la 401 y la 402.
+   Falla CERRADO —devuelve `true` ante cualquier duda— porque el lado seguro es NO interceptar
+   Escape: ahi vale la conducta de siempre y no se pierde ninguna salida. */
+function _cineCapaEncima() {
+  try {
+    const hijos = document.body.children;
+    for (let i = 0; i < hijos.length; i++) {
+      const n = hijos[i];
+      if (!n || n.id === 'cine-ov' || n.nodeType !== 1) continue;
+      const cs = getComputedStyle(n);
+      if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') continue;
+      const z = parseInt(cs.zIndex, 10);
+      if (!isFinite(z) || z <= 400) continue;
+      if (cs.pointerEvents === 'none') continue;
+      const r = n.getBoundingClientRect();
+      /* ⚠️ TIENE QUE CUBRIR LA PANTALLA, Y ESTO LO ENCONTRO MEDIR: con la condicion anterior
+         —fija, visible y por encima de 400— el culpable era **`#toast`**, que vive en la capa
+         999, es `position:fixed`, esta siempre en el documento y conserva su caja medible aunque
+         no se este mostrando nada. Con el toast contando como «capa encima», Escape NUNCA salia
+         de pantalla completa y el visor se cerraba igual que antes: el arreglo no hacia nada.
+         Un cartel que tapa es un cartel que ocupa la pantalla —los cinco cuadros propios del
+         visor son `position:fixed;inset:0`—, asi que la pregunta es si la cubre. */
+      if (r.width >= window.innerWidth * 0.9 && r.height >= window.innerHeight * 0.9) return true;
+    }
+  } catch (e) { return true; }
+  return false;
+}
+window._cineCapaEncima = _cineCapaEncima;
+
 function cineMaxActivo() {
   const ov = document.getElementById('cine-ov');
   return !!(ov && ov.classList.contains('cine-max'));
@@ -146597,28 +146795,151 @@ function cineMaxSync() {
   const ico = document.getElementById('cine-maxi-ico');
   /* `textContent` y no `innerHTML`: es un glifo, y esta casa no abre una ruta de marcado para
      escribir un caracter. */
-  if (ico) ico.textContent = on ? '⤡' : '⛶';
+  /* P11 (1.5) — los DOS glifos son flechas: el pedido dice «solo con flecha y sin texto», y el
+     ⛶ anterior no es una flecha. El titulo y el `aria-label` siguen diciendo que hace. */
+  if (ico) ico.textContent = on ? '⤡' : '⤢';
 }
+/* ══ P11 — LA VISTA CON FOCO, Y POR QUE HACE FALTA ═══════════════════════════════════════
+   El punto 1.3 pide que en pantalla completa con dos vistas haya UNA sola columna, la de la
+   vista activa. «Activa» no se podia saber: `_V` es transitorio —`_vCon` repone la anterior en
+   su `finally`— asi que fuera de un gesto vale siempre `_vistaA`. Esto es la vista con la que
+   el medico interactuo por ultima vez, y lo escribe un `pointerdown` sobre su panel, que es el
+   gesto real.
+   Falla ABIERTO: sin foco anotado —o con la vista cerrada— es la A, que es lo de hoy. */
+let _vFoco = null;
+function _vFocoVista() {
+  try { return (_vFoco && _vTodas().indexOf(_vFoco) >= 0) ? _vFoco : _vistaA; }
+  catch (e) { return _vistaA; }
+}
+window._vFocoVista = _vFocoVista;
+
+/* Reencaja la imagen de las dos vistas y recalza los trazos. Lo llaman los TRES gestos que
+   cambian la caja de la imagen: el tamanio, el interruptor de la columna y la mudanza de la
+   barra. Un solo dueño: con la cuenta repetida, el dia que cambie el orden de las dos llamadas
+   una de las tres quedaria con las reglas corridas sobre la anatomia y sin ningun error.
+   ⚠️ `_cineRecorteAplicar` RECIBE SU VISTA POR PARAMETRO y no la resuelve contra `_V`, asi que
+   va pelada; `_medPintar` si resuelve contra `_V` y va envuelta. Es la misma distincion que
+   `cineMaxToggle` ya traia escrita. */
+function _vReencajar() {
+  [_vistaA, _vistaB].forEach(V => {
+    if (!V) return;
+    try { if (typeof _cineRecorteAplicar === 'function') _cineRecorteAplicar(V); }
+    catch (e) { console.error('reencajar/recorte', e); }
+    try { if (typeof _medPintar === 'function') _vCon(V, _medPintar); }
+    catch (e) { console.error('reencajar/pintar', e); }
+  });
+}
+window._vReencajar = _vReencajar;
+
+/* ══ P11 (1.2, 1.3 y 1.4) — QUE SE MUEVE EN PANTALLA COMPLETA ════════════════════════════════
+   UN solo dueño de las cuatro mudanzas, y ninguna de ellas reemite un nodo: todo lo que viaja
+   es el MISMO elemento, con su id, sus oyentes y lo que el medico tenga tipeado adentro.
+     1. el boton de tamanio va al racimo de arriba a la derecha de la imagen de la vista con
+        foco (1.5), en los DOS tamanios;
+     2. en pantalla completa la barra de botones de cada vista va a la ranura de SU columna, y
+        «Capturar» al racimo de abajo a la izquierda de SU imagen (1.4);
+     3. en pantalla completa y con dos vistas, la columna de la vista SIN foco se esconde (1.3);
+     4. el glifo y el titulo del interruptor de la columna se derivan de la clase, que es el
+        unico estado — la misma regla con la que `cineMaxSync` deriva el suyo.
+   ⚠️ CADA MUDANZA PREGUNTA SI YA ESTA EN DESTINO: mover un nodo que contiene al elemento
+   ENFOCADO le quita el foco, y esta funcion corre en cada cambio de tamanio y de foco. */
+function _vMaxSync() {
+  const ov = document.getElementById('cine-ov');
+  if (!ov) return;
+  const max = ov.classList.contains('cine-max');
+  const foco = _vFocoVista();
+  const tr = document.getElementById(((foco && foco.pfx) || '') + 'cine-imgtr');
+  const maxi = document.getElementById('cine-maxi');
+  if (tr && maxi && maxi.parentElement !== tr) tr.insertBefore(maxi, tr.firstChild);
+  _vTodas().forEach(V => {
+    const q = id => document.getElementById((V.pfx || '') + id);
+    const barra = q('cine-grp-med'), casa = q('cine-barra-casa'), slot = q('cine-barra-slot');
+    const cap = q('cine-cap'), bl = q('cine-imgbl'), cerrarv = q('cine-cerrar-v');
+    if (barra) {
+      const dest = max ? slot : casa;
+      if (dest && barra.parentElement !== dest) dest.appendChild(barra);
+    }
+    if (cap) {
+      if (max) { if (bl && cap.parentElement !== bl) bl.appendChild(cap); }
+      else if (barra && cap.parentElement !== barra) {
+        /* ⚠️ VUELVE A SU LUGAR Y NO AL FINAL: el orden de la barra lo miden tres casos del
+           suite, y «Capturar» va entre «Guardar» y «✕ Cerrar vista». Se inserta ANTES de
+           `cine-cerrar-v`, que es su vecino de siempre, y no por un indice. */
+        if (cerrarv && cerrarv.parentElement === barra) barra.insertBefore(cap, cerrarv);
+        else barra.appendChild(cap);
+      }
+    }
+    const col = q('cine-col');
+    if (col) col.classList.toggle('cine-col-off', !!(max && _vistaB && V !== foco));
+  });
+  /* Los cajones y el bloque de calculados los reparte `_vSlotSync`, que ahora tambien mira el
+     tamanio: con el bloque en su ranura de debajo de la imagen, los 153 px de reserva de
+     pantalla completa no alcanzarian y el reproductor quedaria fuera de la pantalla. */
+  try { if (typeof _vSlotSync === 'function') _vSlotSync(); } catch (e) {}
+  const sinpanel = ov.classList.contains('cine-sinpanel');
+  _vTodas().forEach(V => {
+    const b = document.getElementById((V.pfx || '') + 'cine-pan');
+    if (!b) return;
+    const sp = b.querySelector('span');
+    if (sp) sp.textContent = sinpanel ? '\u00AB' : '\u00BB';
+    b.title = sinpanel
+      ? 'Volver a mostrar la columna de medidas'
+      : 'Esconder la columna de medidas y darle todo el ancho a la imagen';
+    b.setAttribute('aria-label', b.title);
+    b.setAttribute('aria-pressed', sinpanel ? 'true' : 'false');
+  });
+}
+window._vMaxSync = _vMaxSync;
+
+/* ══ P11 (1.2) — ESCONDER LA COLUMNA SIN DEJAR DE MEDIR ══════════════════════════════════════
+   ⚠️ NO TOCA `medOn` NI NINGUNA HERRAMIENTA, que es la mitad del pedido: «al esconderla se puede
+   seguir midiendo». Lo unico que cambia es el `display` de la columna, asi que los oyentes del
+   canvas, la calibracion, la herramienta elegida y las sesiones de Simpson siguen donde estaban.
+   El estado es la CLASE del overlay y no un booleano, por la misma razon que `cine-max` y
+   `cine-min`: un booleano paralelo puede quedar en desacuerdo con lo que la pantalla muestra. */
+function cinePanelToggle() {
+  const ov = document.getElementById('cine-ov');
+  if (!ov) return;
+  ov.classList.toggle('cine-sinpanel');
+  _vMaxSync();
+  _vReencajar();
+}
+window.cinePanelToggle = cinePanelToggle;
+
+/* ══ P11 (1.5) — UN CUADRO ATRAS Y UN CUADRO ADELANTE ════════════════════════════════════════
+   ⚠️ NO ES LO MISMO QUE `cineLoop`, que pasa al cineloop SIGUIENTE de la importacion: esto
+   mueve el CUADRO dentro del cineloop abierto, que es lo que las flechas del teclado hacen con
+   el deslizador. El paso se ACOTA y no da la vuelta: el medico busca la telediastole y la
+   telesistole, y un salto del ultimo cuadro al primero le hace perder el que estaba mirando.
+   Se pausa antes, por el mismo motivo que `medToggle`: marcar un punto sobre un cineloop
+   corriendo es marcarlo en un cuadro y el otro en el siguiente. */
+function cineCuadro(paso) {
+  const V = _V, D = V.datos;
+  if (!D) return;
+  const L = D.loops[D.i];
+  if (!L) return;
+  _cineDetener();
+  cineIr(Math.max(0, Math.min(L.cuadros - 1, (D.cuadro | 0) + (paso | 0))));
+}
+window.cineCuadro = cineCuadro;
+
 function cineMaxToggle() {
   const ov = document.getElementById('cine-ov');
   if (!ov) return;
   ov.classList.toggle('cine-max');
   cineMaxSync();
+  /* P11 — la mudanza de la barra, de «Capturar» y de la columna va ANTES de reencajar: el alto
+     disponible de la imagen depende de cuanto cromo quedo arriba, y `--cine-imgh` ya lo
+     descuenta. Reencajando primero, la imagen se mediria contra el layout viejo. */
+  try { _vMaxSync(); } catch (e) { console.error('maxi/sync', e); }
   /* El canvas se escala contra el tamaño de su caja, asi que al cambiar el marco hay que
      repintar: sin esto la imagen queda del tamaño viejo dentro del marco nuevo, y las reglas
      de medicion —que se posicionan contra el canvas— quedan corridas sobre la imagen.
-     ⚠️ `_cineRecorteAplicar` RECIBE SU VISTA POR PARAMETRO y no la resuelve contra `_V`: lee
-     `V.pfx` en su primera linea. Escrito como `_vCon(_vistaA, _cineRecorteAplicar)` —que fue el
-     primer intento— le llega `undefined`, el `TypeError` cae en este `catch` y el recorte NO se
-     reaplica, en silencio. `_medPintar` si resuelve contra `_V`, asi que ese va envuelto.
-     Las dos vistas, porque maximizar cambia el ancho de las dos. */
-  [_vistaA, _vistaB].forEach(V => {
-    if (!V) return;
-    try { if (typeof _cineRecorteAplicar === 'function') _cineRecorteAplicar(V); }
-    catch (e) { console.error('maxi/recorte', e); }
-    try { if (typeof _medPintar === 'function') _vCon(V, _medPintar); }
-    catch (e) { console.error('maxi/pintar', e); }
-  });
+     ⚠️ P11 — EL BUCLE QUE VIVIA ACA ES HOY `_vReencajar`, el dueño unico de las TRES puertas que
+     cambian la caja de la imagen (el tamanio, el interruptor de la columna y la mudanza de la
+     barra). Lo que decia este comentario sobre el parametro de `_cineRecorteAplicar` y la
+     envoltura de `_medPintar` se mudo con el. */
+  _vReencajar();
 }
 window.cineMaxToggle = cineMaxToggle;
 window.cineMaxActivo = cineMaxActivo;
@@ -146720,14 +147041,18 @@ function _cineAbrir(loops) {
              con lo que la pantalla muestra — la leccion que este archivo ya documenta para
              `medOn`. El rotulo, el titulo y el `aria-pressed` los escribe `cineMaxSync`, que es
              el unico que los toca. */
+          /* ⚠️ P11 (1.5) — SIN `margin-left:auto`: este boton se MUDA al racimo de arriba a la
+             derecha de la imagen (`_vMaxSync`), y ahi un margen automatico lo empujaria a la
+             derecha del interruptor de la columna, o sea al reves del orden pedido. El hueco del
+             encabezado se lo lleva ahora la ✕, que es el unico que queda de los dos. */
           '<button type="button" id="cine-maxi" aria-pressed="false" title="Maximizar el visor" ' +
-            'style="margin-left:auto;width:44px;height:44px;padding:0;background:none;border:none;' +
+            'style="width:44px;height:44px;padding:0;background:none;border:none;' +
             'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
             '<span id="cine-maxi-ico" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
             'border:1px solid var(--border);color:var(--text);font-size:13px;line-height:24px;' +
             'text-align:center;">⛶</span></button>' +
           '<button type="button" id="cine-cerrar-todo" title="Cerrar el visor — lo medido se conserva" ' +
-            'style="width:44px;height:44px;padding:0;background:none;border:none;' +
+            'style="margin-left:auto;width:44px;height:44px;padding:0;background:none;border:none;' +
             'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
             '<span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
             'border:1px solid var(--border);color:var(--text);font-size:14px;line-height:24px;' +
@@ -146824,6 +147149,32 @@ function _cineAbrir(loops) {
     ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
     ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
+    /* ══ P11 (1.6) — ESC SALE DE PANTALLA COMPLETA, Y NO CIERRA EL VISOR ═══════════════════
+       Medido en la linea base: con el visor maximizado, Escape lo CERRABA —el oyente generico
+       del bloque de accesibilidad busca el dialogo modal visible y le aprieta el boton cuyo
+       texto empareje /cerrar|✕/, y `#cine-ov` lleva `role=dialog` y `aria-modal` porque ese
+       mismo bloque se los pone— y encima dejaba la clase `cine-max` puesta, asi que el visor
+       siguiente abria maximizado sin que nadie lo hubiera pedido.
+       ⚠️ VA EN CAPTURA Y NO EN BURBUJA, y es la unica forma: el oyente generico es de BURBUJA y
+       esta registrado en el arranque de la app, o sea ANTES que este, asi que en burbuja correria
+       primero y el visor ya estaria cerrado.
+       ⚠️ Y POR ESO HAY QUE CEDERLE EL PASO A LO QUE ESTE ENCIMA. Los cuadros propios del visor
+       —los dos de calibracion, el de escala dudosa, el aviso y el globo ⓘ— viven en la capa 460
+       y cortan Escape en captura, pero se registran DESPUES que este, asi que sin la guarda este
+       oyente se comeria el Escape que a ellos les toca. La guarda pregunta por la CAPA: cualquier
+       cosa fija y visible por encima de 400 manda. Falla CERRADO: con una excepcion no se toca
+       Escape y vale la conducta de siempre.
+       En tamanio Normal NO se toca nada: ahi Escape sigue cerrando el visor, que es lo de hoy y
+       lo que el pedido no cambia. */
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      const o = document.getElementById('cine-ov');
+      if (!o || o.style.display === 'none') return;
+      if (!o.classList.contains('cine-max')) return;
+      if (_cineCapaEncima()) return;
+      ev.stopImmediatePropagation(); ev.preventDefault();
+      cineMaxToggle();
+    }, true);
     _vCablear(_vistaA);
     /* ══ MEDIR-1 — LOS CUATRO PANELES SE MUDAN A LA COLUMNA DERECHA ═══════════════════════
        ⚠️ MEDIR-4 — YA NO SON CUATRO, SON DOS. `cine-biplano` y `cine-simp-uni` se quedan DONDE
@@ -146854,6 +147205,10 @@ function _cineAbrir(loops) {
      maximizado sobrevive al cierre (ver `cineMaxToggle`), asi que al reabrir el boton tiene que
      decir «Restaurar» y no «Maximizar». */
   try { cineMaxSync(); } catch (e) {}
+  /* P11 — y la mudanza de nodos, por lo mismo: el estado maximizado sobrevive al cierre, asi que
+     al reabrir la barra tiene que estar en la columna y el boton de tamanio pegado a la imagen
+     de la vista que se acaba de montar. Va DESPUES de `cineMaxSync` porque lee la clase. */
+  try { _vMaxSync(); } catch (e) {}
   /* ⚠️ LAS SESIONES SOBREVIVEN AL CIERRE, ASÍ QUE ACÁ HAY QUE MIRAR DE QUÉ ESTUDIO SON.
      Hasta que el ✕ conservó lo medido, la fuga era imposible por accidente: el observador del
      overlay llamaba a `medApagar` y se llevaba puesto todo. Desde que se conserva, un strain
@@ -147224,20 +147579,52 @@ function _cineRecorteAplicar(V) {
   const D = V.datos, L = D && D.loops[D.i];
   const R = L && L.recorte;
   if (!R || cv.width !== R.w || cv.height !== R.h) {
-    /* Sin recorte —o con un canvas que todavía no es el del loop medido— se vuelve al layout
-       de siempre: el envoltorio se desarma y el canvas manda de nuevo. */
-    env.style.aspectRatio = ''; env.style.width = '';
-    env.style.maxWidth = ''; env.style.maxHeight = ''; env.style.minHeight = '';
+    /* ══ P11 (1.1 y 1.2) — SIN RECORTE EL ENVOLTORIO TAMBIEN ES LA CAJA DE ENCAJE ════════════
+       ⚠️ HASTA ACA ESTE CAMINO DEJABA MANDAR AL CANVAS (`max-width:100%` + `max-height:56vh`), y
+       eso es lo que hacia que la imagen no creciera: un canvas es un elemento REEMPLAZADO, asi
+       que un tope solo puede ACHICARLO —su tamanio de partida es el del mapa de bits— y con la
+       caja mas grande que la imagen el navegador la deja en su tamanio de origen. Medido en la
+       linea base: a 1920x1080 y a 2560x1440 la imagen salia en 1016x708 con 422 y 962 px de
+       negro al costado, el 40 % del ancho de la pantalla y el 49 % del alto.
+       Hoy los DOS caminos son iguales: el ENVOLTORIO es la caja —`width:100%` acotado por
+       `--cine-imgh` y por la proporcion— y el canvas la LLENA. Asi crece y asi se achica, con
+       la proporcion garantizada por `aspect-ratio` y sin un solo numero nuevo.
+       ⚠️ Y NO SE TOCA NADA DE LA MEDICION, que es la invariante de este modulo: el canvas sigue
+       midiendo `cols x filas` en PIXELES —no se cambia `cv.width` ni `cv.height`—, `_medPunto`
+       divide por `cv.width / r.width` y `_medPintar` calza el overlay contra la caja medida del
+       canvas. Una escala uniforme, hacia arriba o hacia abajo, es transparente para las dos.
+       ⚠️ SOLO SE ENCAJA CON UN CINELOOP ABIERTO: en el estado vacio el canvas trae los 300x150
+       de fabrica y una caja al ancho del lienzo con esa proporcion seria una franja negra de
+       2:1. Sin datos se vuelve al layout de siempre. */
+    const _hay = !!(D && L && cv.width > 0 && cv.height > 0);
+    if (!_hay) {
+      env.style.aspectRatio = ''; env.style.width = '';
+      env.style.maxWidth = ''; env.style.maxHeight = ''; env.style.minHeight = '';
+      cv.style.position = ''; cv.style.left = ''; cv.style.top = '';
+      cv.style.width = ''; cv.style.height = '';
+      cv.style.maxWidth = '100%'; cv.style.maxHeight = 'var(--cine-imgh)';
+      recalzar();
+      return;
+    }
+    env.style.aspectRatio = cv.width + ' / ' + cv.height;
+    env.style.width = '100%';
+    env.style.maxWidth = 'calc(var(--cine-imgh) * ' + (cv.width / cv.height).toFixed(6) + ')';
+    env.style.maxHeight = 'var(--cine-imgh)';
+    env.style.minHeight = '';
     cv.style.position = ''; cv.style.left = ''; cv.style.top = '';
-    cv.style.width = ''; cv.style.height = '';
-    cv.style.maxWidth = '100%'; cv.style.maxHeight = '56vh';
+    cv.style.width = '100%'; cv.style.height = 'auto';
+    cv.style.maxWidth = 'none'; cv.style.maxHeight = 'none';
     recalzar();
     return;
   }
   env.style.aspectRatio = R.cw + ' / ' + R.ch;
   env.style.width = '100%';
-  env.style.maxWidth = 'calc(56vh * ' + (R.cw / R.ch).toFixed(6) + ')';
-  env.style.maxHeight = '56vh';
+  /* P11 — el `56vh` que vivia escrito aca y en la linea de abajo pasa a `--cine-imgh`, que es
+     el dueño unico del alto disponible de la imagen. Era el tercero de los tres valores que
+     gobernaban el mismo numero: con el cineloop medido la imagen topaba en 56vh y sin medir en
+     66vh, o sea que la imagen cambiaba de tamanio segun si el recorte habia llegado. */
+  env.style.maxWidth = 'calc(var(--cine-imgh) * ' + (R.cw / R.ch).toFixed(6) + ')';
+  env.style.maxHeight = 'var(--cine-imgh)';
   /* ⚠️ DECLARADO: LA ALTURA DEL ENVOLTORIO DEPENDE POR COMPLETO DE `aspect-ratio`. Con el
      recorte puesto el canvas es `position:absolute`, así que el envoltorio se queda sin hijos en
      flujo. Si `aspect-ratio` no aplicara, la altura sería 0 y la imagen desaparecería ENTERA —
@@ -153570,6 +153957,12 @@ function _vAccionesSync() {
      `vistaAlternarMobil` y el oyente de `resize` ya hacen esto mismo y con el mismo comentario;
      ésta era la tercera función que mueve el layout y la única que no repintaba. */
   if (antes !== ahora && typeof _vRepintarOverlays === 'function') setTimeout(_vRepintarOverlays, 0);
+  /* ══ P11 (1.3) — ABRIR O CERRAR UNA VISTA CAMBIA QUE COLUMNAS SE VEN ══════════════════════
+     Esta funcion es la que las DOS puertas —`vistaBAbrir` y `vistaCerrarUna`— llaman al final,
+     asi que es el lugar donde el sincronizador se engancha una sola vez. Sin esto, cerrar la
+     vista que NO tenia el foco dejaba su columna escondida sobre un panel que ya no existe, y
+     abrir la segunda vista en pantalla completa dejaba las DOS columnas a la vista. */
+  try { if (typeof _vMaxSync === 'function') _vMaxSync(); } catch (e) {}
 }
 async function vistaBAbrir() {
   if (_vistaB) { await _vElegirLoop(_vistaB); return; }

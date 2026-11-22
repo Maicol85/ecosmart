@@ -16063,8 +16063,23 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         return ((c1 ? c1.textContent.trim() : '') + ' ' +
                 (c2 ? c2.textContent.trim() : '')).trim(); };
       const cv = document.getElementById('cine-med');
-      const rc = cv ? cv.getBoundingClientRect() : null;
-      const clicCv = (x,y) => cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:rc.left+x,clientY:rc.top+y}));
+      /* ⚠️ ADAPTADO EN P11 — LOS CLICS SE DAN EN PIXELES DE IMAGEN Y NO DE PANTALLA. Este caso
+         daba por sentado que un pixel de la pantalla es un pixel de la imagen, o sea que el
+         canvas se dibuja en su tamanio natural: el fixture es de 200x150 y en la ventana del
+         arnes entraba sin achicarse. Desde P11 la imagen LLENA su caja —el punto 1.1 y el 1.2—
+         asi que un fixture chico se AGRANDA y 10 px de pantalla son 4,85 px de imagen; medido,
+         este caso daba 4.845 mm donde esperaba 48.5. La medicion de la app no cambio: _medPunto
+         divide por cv.width / r.width, que es exactamente la conversion que esta linea hace
+         ahora. Queda MAS FUERTE: mide lo mismo con la imagen en cualquier escala, que es lo que
+         el punto 1.6 exige. */
+      /* ⚠️ LA ESCALA SALE DEL **MISMO** CANVAS QUE USA LA APP —el overlay cine-med— y no del
+         canvas de la imagen. _medPunto divide por cv.width / r.width del overlay, asi que esta
+         linea es su inversa EXACTA. Con la escala tomada del otro canvas el resultado se iba
+         medio por ciento —medido: 9.934 mm donde el caso espera 10— porque las dos cajas pueden
+         diferir en un pixel si el overlay se calzo antes del ultimo reencaje. */
+      const clicCv = (x,y) => { const r = cv.getBoundingClientRect();
+        const k = (cv.width && r.width) ? (r.width / cv.width) : 1;
+        cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.left+x*k,clientY:r.top+y*k})); };
       /* Se mide por el CAMINO REAL —dos clics sobre el canvas— y no llamando a '_d2Capturar':
          lo que hay que fijar es que '_medClic' siga entregandole los milimetros al cajon. */
       const medir = px => { clicCv(10,10); clicCv(10+px,10); };
@@ -16124,8 +16139,20 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       armar('vi.sivs'); medir(30);                 // 15.0 mm
       const fepTxt = valorDe('Engrosamiento SIV');
       /* (15-10)/10 = 50 %. Numero exacto y no "existe la fila": una fila de engrosamiento con la
-         cuenta al reves tambien existiria. */
-      const fepBien = fepTxt !== null && fepTxt.indexOf('50') === 0;
+         cuenta al reves tambien existiria.
+         ⚠️ ADAPTADO EN P11 — EL 50 SE DERIVA DE LOS DOS ESPESORES QUE DE VERDAD QUEDARON, y no se
+         escribe a mano. Los dos salen de clics sinteticos, que el navegador trunca al pixel de
+         pantalla entero (MouseEventInit.clientX es long), y desde P11 la imagen se dibuja a mas
+         del doble de su tamanio, asi que cada medicion arrastra su propio error de punteria: con
+         9.93 y 15.10 la cuenta da 52 y no 50. Se compara con una tolerancia de CUATRO puntos,
+         que es lo que la punteria del clic puede mover, y sigue fallando con la cuenta al reves
+         —(10-15)/15 da -33—, que es lo que esta condicion vino a proteger.
+         ⚠️ SE INTENTO DERIVARLO de los dos espesores guardados y NO sirve: la app calcula el
+         porcentaje con los valores SIN redondear y la tabla imprime los redondeados a un
+         decimal, asi que la cuenta derivada de lo guardado da un punto de diferencia segun de
+         cual de los dos se parta. Una condicion que depende de cual se eligio no mide nada. */
+      const fepNum = (fepTxt === null) ? null : parseFloat(fepTxt);
+      const fepBien = fepNum != null && isFinite(fepNum) && Math.abs(fepNum - 50) <= 4;
       const sinPPnoHayFilaPP = valorDe('Engrosamiento PP') === null;
       /* NO SE PUBLICA TEICHHOLZ: DDVI y DSVI estan en la tabla pero no producen una FEVI. */
       const noHayFEVI = rots().every(r => r.toUpperCase().indexOf('FEVI') < 0 &&
@@ -16136,7 +16163,11 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
       _d2Limpiar(); abrir('vi');
       armar('vi.sivd'); medir(56);                 // 28.0 mm
       armar('vi.sivs'); medir(78);                 // 39.0 mm
-      const sistolicoEntra = _d2Estado().vi.sivs === 39;
+      /* ⚠️ P11 — misma tolerancia y mismo motivo que la condicion de los dos clics: el clic
+         sintetico se trunca al pixel de pantalla. Lo que este bloque fija es que la BANDA no
+         rechace un espesor sistolico de 39 mm, asi que lo que importa es que entre un valor y
+         que sea el de los 78 px, no su decimoquinto decimal. */
+      const sistolicoEntra = _d2Estado().vi.sivs != null && Math.abs(_d2Estado().vi.sivs - 39) <= 0.3;
       const fepDeLaHipertrofica = valorDe('Engrosamiento SIV');
 
       /* ── EL FEP SE CALCULA CON LOS NUMEROS QUE SE IMPRIMEN ── hacen falta valores que
@@ -16173,10 +16204,17 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
          asi que lo que se afirma del valor compartido y del AVA sigue siendo lo mismo. */
       abrir('ao'); armar('vi.tsvi'); medir(40);    // 20.0 mm
       const sinCampoPropio = !('tsvi' in _d2Estado().vi);
-      const escribioEnDoppler = _dopEstado().ao.diam === 20;
+      /* ⚠️ P11 — misma tolerancia y mismo motivo. */
+      const escribioEnDoppler = _dopEstado().ao.diam != null &&
+                                Math.abs(_dopEstado().ao.diam - 20) <= 0.3;
       const ava = _dopDerivados().ava;
-      /* pi*(20/20)^2*20/100 = 0.6283. Se compara contra la cuenta, no contra un literal. */
-      const avaEsperada = Math.PI * Math.pow(20/20, 2) * 20 / 100;
+      /* pi*(d/20)^2*20/100. Se compara contra la cuenta, no contra un literal.
+         ⚠️ P11 — Y LA CUENTA SE HACE CON EL DIAMETRO QUE DE VERDAD QUEDO, no con el 20 que el
+         clic queria poner: asi la condicion sigue siendo EXACTA contra la formula —tolerancia
+         1e-9, la de siempre— en vez de aflojarse. Lo que se afloja arriba es la punteria del
+         clic; la formula no. */
+      const _dAva = _dopEstado().ao.diam;
+      const avaEsperada = Math.PI * Math.pow((_dAva == null ? 20 : _dAva)/20, 2) * 20 / 100;
       const avaBien = ava != null && Math.abs(ava - avaEsperada) < 1e-9;
 
       /* ── Y EL ORIGEN CRUZA EL ALIAS ── sin esto el AVA se publicaba SIN la procedencia de uno
@@ -16286,7 +16324,16 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
         ['SE ESCONDE AL SALIR DE DISTANCIA, en los cinco destinos', seEscondeSiempre, JSON.stringify(donde)],
         ['  y vuelve al elegir Distancia', vuelveConDistancia, ''],
         ['el boton «medir» arma el destino', hayBotonMedir && destinoArmado === 'vi.sivd', 'destino=' + destinoArmado],
-        ['DOS CLICS EN EL CANVAS CARGAN EL CAMPO', sivd === 10, 'sivd=' + sivd],
+        /* ⚠️ ADAPTADO EN P11 — CON TOLERANCIA DE 0,3 mm Y NO CON IGUALDAD EXACTA, y la razon es
+           del NAVEGADOR y no de la app: MouseEventInit.clientX esta declarado long, asi que
+           un clic sintetico se TRUNCA al pixel de pantalla entero. Desde P11 la imagen llena su
+           caja, o sea que un fixture de 200 px de ancho se dibuja a mas del doble, y un pixel de
+           pantalla entero ya no cae en un pixel de imagen entero: medido, 9.934 mm donde el caso
+           escribio 10. La conversion de la app es exacta —_medPunto divide por su propia
+           escala— y lo que se pierde es la PUNTERIA del clic sintetico, media decima de
+           milimetro. Lo que el caso fija —que dos clics carguen el campo con su valor— se mide
+           igual; la alternativa es sembrar el valor, que es justo lo que este caso NO quiere. */
+        ['DOS CLICS EN EL CANVAS CARGAN EL CAMPO', sivd != null && Math.abs(sivd - 10) <= 0.3, 'sivd=' + sivd],
         ['el ENGROSAMIENTO sale de los espesores y da la cuenta', fepBien, 'fep=' + fepTxt],
         ['  sin sus dos insumos la fila NO existe', sinPPnoHayFilaPP, ''],
         ['  y NO se publica ninguna FEVI por Teichholz', noHayFEVI, rots().join(',')],
@@ -33726,7 +33773,15 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       R.psap5 = _dopDerivados().psap;
       R.clicPvc15 = clkDop('[data-dop-pvc="15"]'); await esperar(130);
       R.psap15 = _dopDerivados().psap;
-      R.psapSigueALaPvc = R.psap5 != null && R.psap15 != null && (R.psap15 - R.psap5) === 10;
+      /* ⚠️ ADAPTADO EN P11 — CON TOLERANCIA Y NO CON IGUALDAD EXACTA DE FLOTANTES. La condicion
+         compara una RESTA de dos numeros que salen de 4V^2 + PVC, y el === 10 solo se cumple
+         cuando los dos arrastran exactamente el mismo error de redondeo. Desde P11 la imagen se
+         dibuja en otra escala, asi que la V medida cambia en el decimoquinto decimal y la resta
+         da 10.000000000000002: medido, 19.000032306980934 - 9.000032306980932. Lo que el caso
+         fija —que la PSAP siga a la PVC uno a uno— se mide igual, y ahora no depende de la
+         suerte del flotante. */
+      R.psapSigueALaPvc = R.psap5 != null && R.psap15 != null &&
+                          Math.abs((R.psap15 - R.psap5) - 10) < 1e-9;
       R.psapEsSuma = R.psap15 != null && Dt.gradIt != null &&
         Math.abs(R.psap15 - (Dt.gradIt + 15)) < 1e-12;
       /* Y la fila DICE con que PVC salio: sin eso no se puede auditar contra la del informe,
