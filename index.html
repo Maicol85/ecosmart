@@ -143634,9 +143634,36 @@ function _vtiVelCmsEn(r0, y) {
    no existe. Declarado en P12-c.
    ⚠️ Y NO SE CAMBIA DE MODO SOLO, por orden expresa del pedido: la frase dice que hacer y el
    gesto lo da el medico. */
+/* ══ P12 · TAREA 3.3 · LA RECETA DE LA CALIBRACION MANUAL ════════════════════════════════════
+   El pedido dice que la instruccion «debe decir claramente: Marca el cero y otro punto».
+
+   ⚠️ ESO CONTRADECIA LO QUE MEDIR-3 DEJO ESCRITO, Y SE RESOLVIO SIN QUITARLE NADA A LA APP.
+   MEDIR-3 saco a proposito la obligacion de marcar la linea de base --«desde esta tanda el cero
+   NO se marca: se CALCULA de los dos valores»-- porque la base no siempre entra en el recuadro
+   del trazo, y exigirla dejaba sin calibrar justo los archivos donde hace falta. P10 lo repitio
+   en `_medCalPedirVel`: de dos valores salen la escala Y la posicion del cero.
+   Asi que la receta que el medico pidio queda como LA FORMA RECOMENDADA --es la mas facil de
+   explicar y de ejecutar, y el cero es un valor que el cuadro acepta explicitamente-- y la
+   verdad de que sirven dos puntos cualesquiera queda detras, en una oracion aparte. No se
+   reintroduce ninguna obligacion: el que no tenga la base a la vista sigue pudiendo calibrar.
+   Declarado en P12-d.
+
+   ⚠️ Y YA NO DICE «en m/s»: la unidad SE ELIGE en el mismo cuadro desde P10 (2.5), asi que
+   fijarla en la instruccion ponia a las dos superficies diciendo cosas distintas sobre el mismo
+   gesto --la guia mandaba a tipear m/s y el cuadro ofrecia las dos--. Eso es TAREA 3.3 tambien:
+   «dejar elegir la unidad en el mismo cartel». */
+const MED_CAL_VEL_RECETA =
+  'Marcá el cero y otro punto del eje de velocidad, y escribí cuánto vale cada uno eligiendo ' +
+  'la unidad (m/s o cm/s) en el mismo cuadro.';
+const MED_CAL_VEL_RECETA2 =
+  'También sirven dos puntos cualesquiera del eje: con sus dos valores la aplicación deduce la ' +
+  'escala y dónde está el cero.';
+window.MED_CAL_VEL_RECETA = MED_CAL_VEL_RECETA;
+window.MED_CAL_VEL_RECETA2 = MED_CAL_VEL_RECETA2;
+
 const MED_COMO_CALIBRAR_VEL =
   'Qué hacer: elegí la herramienta «Vel.» en la barra de medición y tocá «Calibrar vel.». ' +
-  'Después marcá dos puntos del eje de velocidad de la imagen y escribí cuánto vale cada uno.';
+  'Después, ' + MED_CAL_VEL_RECETA.charAt(0).toLowerCase() + MED_CAL_VEL_RECETA.slice(1);
 window.MED_COMO_CALIBRAR_VEL = MED_COMO_CALIBRAR_VEL;
 
 /* Bernoulli simplificada, con v en m/s. DEUDA DECLARADA: la misma expresión está escrita en las
@@ -145950,9 +145977,8 @@ function _medCalFalta(h) {
       if (!hayVel) return {
         eje: 'vel',
         txts: ['Esta imagen no trae la escala de velocidad, así que todavía no se puede medir acá.',
-               'Marcá DOS puntos sobre el eje de velocidad del espectro y escribí cuánto vale cada uno ' +
-               'en <b>m/s</b> —dos valores cualesquiera; no hace falta que uno sea el cero—. Con esos ' +
-               'dos la aplicación deduce la escala y dónde está el cero.',
+               escHtml(MED_CAL_VEL_RECETA),
+               escHtml(MED_CAL_VEL_RECETA2),
                'La escala queda guardada para esta imagen: no hay que repetirla en cada medición.'],
         accion: 'vel'
       };
@@ -152698,7 +152724,10 @@ function _medEstado() {
        NO se marca: se CALCULA de los dos valores. Dejar la instruccion vieja seria mandar al
        medico a hacer un gesto que la aplicacion ya no necesita. */
     if (_medCalibrandoVel) {
-      txt = '<b>Calibrando la velocidad:</b> marcá dos puntos del eje y escribí su valor.' +
+      /* P12 (3.3): la receta sale de su dueño único, así que el panel y el globo no pueden
+         decir dos gestos distintos para la misma calibración. */
+      txt = '<b>Calibrando la velocidad:</b> ' +
+            escHtml(MED_CAL_VEL_RECETA.charAt(0).toLowerCase() + MED_CAL_VEL_RECETA.slice(1)) +
             (_medCalVelP0 ? ' <b style="color:#fbbf24;">Falta la segunda marca.</b>' : '');
     } else if (_medCalibVel) {
       /* P10 (2.4) — la frase sale de `_medCalVelFrase`, el dueño único, con la negrita puesta
@@ -153477,8 +153506,11 @@ function _medCalPedirVel(cual) {
     h.textContent = 'Escala de velocidad';
     const sub = document.createElement('div');
     sub.style.cssText = 'font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;';
+    /* P12 (3.3): se nombra el cero en el punto exacto de entrada. Es la receta que el médico
+       pidió, dicha donde la va a leer: el que marcó la línea de base ahora sabe qué escribir. */
     sub.textContent = '¿Cuánto vale ' + String(cual || 'esta marca') + ' en el eje de velocidad ' +
-      'de la imagen? Con dos marcas y sus dos valores la aplicación saca la escala y dónde está el cero.';
+      'de la imagen? Si marcaste la línea de cero, escribí 0. Con dos marcas y sus dos valores ' +
+      'la aplicación saca la escala y dónde está el cero.';
     const fila = document.createElement('div');
     fila.style.cssText = 'display:flex;align-items:center;gap:7px;flex-wrap:wrap;';
     const inp = document.createElement('input');
@@ -156044,9 +156076,42 @@ function _cineRegistro(uuid, loop, poster, idFijo) {
     ms: loop.d.msCuadro || 0, cols: loop.d.cols || 0, filas: loop.d.filas || 0,
     /* Las regiones viajan con el cineloop: son números, no llevan nada del paciente, y sin
        ellas un loop reabierto desde el disco no se podría medir — habría que recalibrar a
-       mano algo que el equipo ya dejó escrito. */
+       mano algo que el equipo ya dejó escrito.
+
+       ══ P12 · TAREA 3.1 · ACÁ SE PERDÍA LA ESCALA DE VELOCIDAD AL RECARGAR ══════════════════
+       ⚠️ ESTA LISTA TENÍA NUEVE CAMPOS Y LA REGIÓN TIENE TRECE. Los cuatro que faltaban son el
+       PÍXEL DE REFERENCIA y su valor físico: `rx0`, `ry0`, `rvx` y `rvy`. Y de `ry0` cuelga la
+       fila de la línea de cero, que es lo único que convierte una altura en una velocidad —P10
+       lo dejó escrito en `_dcmImgBaseY`—.
+
+       ESO EXPLICA EXACTAMENTE LO QUE EL MÉDICO REPORTÓ, y las tres mitades del síntoma:
+         · la escala 2D en mm SE CONSERVA, porque `_dcmImgRegionMedible` sólo necesita
+           `dx, dy, ux, uy`, y los cuatro viajaban;
+         · la del TIEMPO SE CONSERVA, porque `_dcmImgRegionTiempo` sólo necesita `ux, dx`;
+         · la de VELOCIDAD SE PERDÍA, porque `_dcmImgRegionVelocidad` exige además
+           `ry0 != null && isFinite(ry0)` y `y0`, y `ry0` no estaba en esta lista.
+       Medido con `scripts/_probe_p12_0.mjs` sobre el viaje de ida y vuelta de una región
+       espectral por este mismo registro, antes de tocar una línea: ANTES del viaje
+       `velocidad:true, vti:true, baseY:600`; DESPUÉS `velocidad:false, vti:false, baseY:NaN`,
+       con `rvx, rvy, rx0, ry0` listados como perdidos. El tiempo salía `true` en los dos lados.
+
+       ⚠️ Y ERA EL ÚNICO CAMINO: `_cineDesdeRegistro` es el que consumen `medFijasRestaurar` —o
+       sea recargar la página con una fija Doppler guardada— y la reapertura de un cineloop del
+       estudio. No es un caso de borde: es TODA imagen Doppler que vuelva del disco.
+
+       ⚠️ NO HAY MIGRACIÓN NI LA NECESITA, y eso sale del predicado: un registro escrito antes de
+       P12 no trae `ry0`, y `_dcmImgRegionVelocidad` lo rechaza por `ry0 != null` — o sea que
+       sigue diciendo «acá no se mide velocidad», que es exactamente lo que hace hoy y es el lado
+       seguro. Lo que NO puede pasar —y esta lista lo evita— es que calcule una base equivocada.
+       Un estudio viejo recupera su escala en cuanto se vuelva a guardar.
+
+       ⚠️ LOS CUATRO SON NÚMEROS DEL ENCABEZADO Y NO LLEVAN NADA DEL PACIENTE, igual que los
+       nueve que ya viajaban: son coordenadas de píxel y valores de eje. Son ~40 bytes por
+       región. NI UN CAMPO DEL ESTUDIO NI UNA COLUMNA DE EXCEL: viven dentro del registro de
+       `ceibomed_cine`, como ya vivían los otros nueve. */
     regiones: (loop.d.regiones || []).map(r => ({ tipo:r.tipo, x0:r.x0, y0:r.y0, x1:r.x1, y1:r.y1,
-                                                  ux:r.ux, uy:r.uy, dx:r.dx, dy:r.dy })),
+                                                  ux:r.ux, uy:r.uy, dx:r.dx, dy:r.dy,
+                                                  rx0:r.rx0, ry0:r.ry0, rvx:r.rvx, rvy:r.rvy })),
     poster: poster || '', datos, offs, bytes: total, ts: new Date().toISOString()
   };
 }
