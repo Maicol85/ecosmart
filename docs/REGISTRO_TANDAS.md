@@ -20,6 +20,12 @@ nuevo, tres opciones con su costo), **P10-c** (la guarda de duración del trazo,
 nuevo, heredado de P8-a), **P10-d** (un trazo rechazado deja la fila vieja a la vista) y **P10-a**
 (falta el `.dcm` del VINNO para confirmar el número exacto del caso).
 
+**Línea base.** Suite **1006/1016** en 19 lotes en una sola pasada sobre el árbol sellado, con
+los 1016 ejecutados, md5 idéntico y el pendrive verificado 21 veces; el lote 17 rehecho con el
+archivo de casos final da **54/55**, o sea un estado real de **1009/1016** con siete rojos:
+TC-182, TC-376, TC-406, TC-551, TC-706, TC-889 y TC-899, los siete declarados y ninguno nuevo.
+Semgrep 126/0, sin huérfanos nuevos, celular 38 ALTA.
+
 **Qué cerró.** **P8-a**.
 
 

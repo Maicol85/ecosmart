@@ -1751,6 +1751,37 @@ llama nunca** —espiado—, y que **0 y 50 cm/s** dan la misma escala que 0 y 0
 con el mismo archivo de casos y sólo el `index.html` distinto. Es el **P5-a** que esta casa ya
 declara, sensible al lote.
 
+**LÍNEA BASE AL CIERRE: suite 1006/1016**, en **DIECINUEVE** lotes cubriendo los **1016 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada
+sobre el árbol sellado, con los **1016 ejecutados**, el md5 de `index.html` **idéntico** antes y
+después (`7edbbe06`), el pendrive `DISK_IMG` verificado **veintiuna** veces leyendo DICOMDIR con
+sus **343** archivos de `GEMS_IMG`, **ningún lote cortado por tiempo** y **ningún archivo del
+repositorio tocado mientras corría** —el sello y los documentos se escribieron ANTES, que es la
+lección que PANT-20 y el cierre de P6-j pagaron con TC-753 en rojo con razón—.
+
+Los **diez** rojos de esa pasada: **seis conocidos** —TC-182, TC-376, TC-406, TC-551, TC-706 y
+TC-889, los dos últimos verdes aislados— y **CUATRO que eran MÍOS, los cuatro del lote 17 y los
+cuatro con UNA sola causa**. ⚠️ **TC-890 —el caso de MEDIR-3 de la calibración de velocidad—
+sustituía `window.prompt`, que desde esta tanda ya no se llama: el cuadro propio quedaba ABIERTO
+esperando un clic, y su overlay es `position:fixed` con `inset:0`, así que tapaba el documento
+ENTERO para todos los casos que seguían en su lote.** Eso puso rojos a **TC-905 y TC-939**, los
+dos con diagnósticos que no se parecían a la causa —«ninguna opción es alcanzable», «nada bajo el
+puntero»— y los dos pasando contra el árbol anterior. Cerrado en **dos** lugares: TC-890 pasa a
+manejar el cuadro propio con el gesto real y gana tres condiciones **INVERTIDAS** —que el valor se
+pida con un cuadro propio, que `window.prompt` **no** se llame nunca y que no quede ningún cuadro
+abierto—, y el **reset del runner** barre los tres cuadros de P10 por sus marcas propias, por si
+un caso futuro se olvida.
+**Lote 17 rehecho entero con el archivo de casos final: 54/55**, con el md5 del árbol idéntico al
+abrir y al cerrar. No se rehizo la pasada completa y se declara con su motivo: **`index.html` no
+cambió** y lo único que se movió fue el archivo de casos — el mismo criterio con que la 3A, el
+prompt 4 y P9 no rehicieron la suya. **El estado real es 1009/1016.**
+⚠️ **EL ROJO QUE QUEDA EN EL LOTE 17 ES TC-899, Y NO ES DE ESTA TANDA, medido de la forma que esta
+casa manda**: pasa **1/1 corrido aislado**, y corrido **en su lote contra `13af3de`** —con el
+mismo archivo de casos y sólo el `index.html` distinto— **falla igual**. Es uno de los diez de
+sensibilidad de lote que MEDIR-5 ya declara.
+⚠️ **Y TC-187 SALIÓ VERDE en la pasada**, que es lo que **P5-a** describe: falla con `--solo` por
+cuatro condiciones de su primer bloque y en su lote pasa. **TC-903 también salió verde.**
+
 **VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
 **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
 
