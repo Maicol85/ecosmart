@@ -148517,6 +148517,30 @@ function _cineCargarLoop() {
     L.cuadros + ' cuadros — navegá y capturá el cuadro que querés incluir en el informe. ' +
     'Arranca en pausa. Sólo el cuadro que captures va al PDF; el cineloop no se guarda. ' +
     'Velocidad: ' + v.fps.toFixed(1) + ' cuadros/s (' + v.fuente + ').';
+  /* ⚠️ UNA CALIBRACION A MEDIO HACER ES DE LA IMAGEN QUE SE DEJA, Y SE SUELTA ACA Y DE FORMA
+     SINCRONICA. `medCambioDeImagen` ya lo hacia, pero lo dispara el observador de `#cine-cual`,
+     que es un MutationObserver: llega un turno DESPUES de que esta funcion vuelva. Lo destapo la
+     sonda de la TAREA 3: con la herramienta VTI dejada en modo calibrar sobre una imagen sin
+     escala, abrir otra imagen CON escala y elegir Velocidad seguia en modo calibrar
+     —`conEscalaDelArchivo` daba verdadero— porque el reseteo todavia no habia corrido. En la
+     mano del medico el observador llega antes que su clic, asi que el defecto es dificil de ver;
+     colgar la correccion de ese orden es justo lo que esta casa no hace.
+     ⚠️ NO SE TOCA `medCalibVel`: eso es la escala YA fijada y la repone la linea de abajo. Lo que
+     se suelta es el MODO de calibrar y su primera marca. */
+  try { V.medCalibrandoVel = false; V.medCalVelP0 = null; } catch (e) {}
+  /* ══ P13 (3.2) — Y SE REPONE LA ESCALA DE VELOCIDAD QUE EL MEDICO FIJO PARA ESTA IMAGEN ════
+     Va ACA porque esta funcion es el unico lugar que corre en los dos caminos en que la imagen
+     cambia —`_cineAbrir` y `cineLoop`— y porque corre DESPUES de que `medCambioDeImagen` la
+     haya soltado: esa funcion la borra por diseño («la calibracion es de la imagen que se
+     deja») y reponerla antes seria que la borrara de nuevo.
+     ⚠️ SE LLAMA EN DIFERIDO, un turno del bucle de eventos: `medCambioDeImagen` lo dispara el
+     observador de `#cine-cual`, que es un MutationObserver —o sea asincrono— y el texto de ese
+     nodo lo escribe esta misma funcion unas lineas mas arriba. Reponer de forma sincrona aca
+     dejaria que el observador borrara la escala un instante despues. */
+  try { setTimeout(function () { try { _vCon(V, function () {
+    if (typeof _medCalVelRestaurar === 'function' && _medCalVelRestaurar(V)) {
+      try { if (typeof _medEstado === 'function' && _medOn) _medEstado(); } catch (e) {}
+    } }); } catch (e) {} }, 60); } catch (e) {}
   const pv = q('cine-prev'), nx = q('cine-next');
   if (pv) pv.style.display = D.loops.length > 1 ? '' : 'none';
   if (nx) nx.style.display = D.loops.length > 1 ? '' : 'none';
@@ -151707,11 +151731,24 @@ function medHerramienta(h) {
      modo M ofrecía calibrar una escala de velocidad sobre un eje de DISTANCIA, y el número
      habría salido plausible. Ahí la respuesta correcta es el aviso que explica qué es ese
      trazo, no una calibración. Lo cazó TC-193, que ya vigilaba ese aviso. */
-  if (_medHerr === 'vel' && !_medCalibVel && !_medRegs().length) _medCalibrandoVel = true;
+  /* ══ P13 (TAREA 3.3) — SI FALTA LA ESCALA DE VELOCIDAD, SE ENTRA SOLO A CALIBRAR ═══════════
+     La orden deja elegir entre «avisar claro» y «pasar solo a calibrar», y la elegida es la
+     SEGUNDA porque es la mas simple de las dos medida en lineas y en gestos: el aviso ya existe
+     —`MED_COMO_CALIBRAR_VEL`, el dueño unico que P12 dejo— y agregar uno nuevo seria un texto
+     mas que mantener, mientras que entrar en calibracion es reusar `_medCalibrandoVel`, que es
+     el mismo mecanismo que la escala de DISTANCIA usa desde siempre. Y le ahorra un gesto al
+     medico: el aviso le dice que toque «Calibrar vel.», o sea un toque mas.
+     ⚠️ SE AMPLIA A `vti`, que es lo que el pedido nombra junto con Velocidad, y el predicado se
+     amplia de «la imagen no declara NINGUNA region» a «no declara NINGUNA DE VELOCIDAD» — con la
+     excepcion del modo M, que sigue yendo por el aviso. Ver `_medEscalaVelFalta`. */
+  if ((_medHerr === 'vel' || _medHerr === 'vti') && _medEscalaVelFalta()) _medCalibrandoVel = true;
   /* ⚠️ MEDIR-3 — Y SU PRIMERA MARCA CON ELLA. Sin esto, empezar a calibrar, cambiar de
      herramienta y volver combinaba el segundo clic con un valor tipeado antes de cambiar — la
      misma fuga que este archivo ya pago con `data-pop-mano` y con `_clnkPorConfirmar`. */
-  if (_medHerr !== 'vel') { _medCalibrandoVel = false; _medCalVelP0 = null; }
+  /* ⚠️ `vti` ENTRA EN ESTA GUARDA, Y NO ESTABA: con solo `!== 'vel'`, la linea de arriba ponia
+     `_medCalibrandoVel` en verdadero para la herramienta VTI y esta lo apagaba un renglon
+     despues. Medido: `sinRegion_vti` daba FALSO mientras `sinRegion_vel` daba verdadero. */
+  if (_medHerr !== 'vel' && _medHerr !== 'vti') { _medCalibrandoVel = false; _medCalVelP0 = null; }
   const cv = _medEl('cine-med');
   if (cv) {
     /* Las herramientas no pueden escuchar a la vez: el `mouseup` de un arrastre dispara
@@ -153711,6 +153748,10 @@ async function _medVelClic(ev) {
       _medCalibrandoVel = false;
       _medCalVelP0 = null;
       _medPuntos = [];
+      /* P13 (3.2) — y se guarda, atada a este archivo y a este estudio. Va ACA, en el unico
+         punto del archivo que escribe `_medCalibVel` con una escala valida: con la persistencia
+         colgada del panel o de un boton, una escala fijada por otro camino no se guardaria. */
+      try { _medCalVelPersistir(V); } catch (e) {}
       _medPintar(); _medEstado();
       /* La confirmación del momento, con el MISMO dueño que la del panel guía. */
       if (typeof toast === 'function') toast('📐 ' + _medCalVelFrase());
@@ -154560,6 +154601,128 @@ window.medBorrarUna = medBorrarUna;
 /* Entra en modo calibración de velocidad. Se ofrece siempre con la herramienta de velocidad
    activa —no sólo cuando falta la escala— porque el médico puede ver que la del archivo está
    mal; pero sólo se ACTIVA sola cuando el archivo no trae ninguna. */
+/* ══ P13 (TAREA 3, prioridad 2) — LA CALIBRACION MANUAL DE VELOCIDAD SE CONSERVA ═══════════════
+   P10-b la dejo declarada y sin hacer, con este motivo: «`medCambioDeImagen` la borra por diseño
+   y persistirla exige una CLAVE ESTABLE POR IMAGEN, y el visor abre imagenes por CUATRO puertas
+   de las cuales solo una tiene hoy un identificador que llegue a `_cineAbrir`». La clave que
+   faltaba la trajo P9 (3.1) y P13 la volvio a usar para el 1j: **`_cineClave`** —nombre, cuadros,
+   peso y hash FNV-1a de los primeros 4 KB del primer fragmento—, que identifica el ARCHIVO por su
+   contenido y funciona por las cuatro puertas, porque no depende de ningun id.
+
+   LA CLAVE ES `<uuid del estudio>|<clave del archivo>`, y las dos mitades hacen falta: la del
+   archivo porque la escala es de ESA imagen, y la del estudio porque «se conserva con el estudio»
+   es lo que el medico pidio — dos estudios distintos pueden tener el mismo archivo y la escala que
+   el medico fijo en uno no tiene por que valer en el otro.
+   ⚠️ SIN ESTUDIO GUARDADO la mitad del uuid es `sin-estudio`, asi que la escala se conserva
+   mientras se trabaja y NO se mezcla con la de ningun estudio guardado.
+   ⚠️ «SI SE RECALIBRA, QUEDA SIEMPRE LA ULTIMA» sale gratis: es un mapa por clave y se escribe
+   pisando. No hay historial que elegir.
+   ⚠️ LO QUE SE GUARDA SON DOS NUMEROS —la escala y el cero— mas la hora, y CERO datos del
+   paciente: la clave va HASHEADA, asi que ni el nombre del archivo del ecografo entra. Ver la
+   nota de `_medCalVelClaveDe`, que es un defecto que la sonda encontro. El tope de 300 entradas
+   corta por lo mas viejo.
+   ⚠️ NO VIAJA EN EL EXPORT DEL ESTUDIO, y queda declarado en P13-d: el respaldo exporta los
+   estudios y los medios de IndexedDB y no recorre `localStorage`. Meterla en el registro del
+   cineloop si viajaria, al precio de reescribir ese registro en IndexedDB en cada calibracion.
+   ⚠️ Y LA CALIBRACION DE DISTANCIA NO SE PERSISTE, a proposito: el pedido nombra la de velocidad,
+   y la de distancia tiene su propio flujo con su cuadro de milimetros. Declarado tambien. */
+const MED_CALVEL_LS = 'ett_med_calvel';
+const MED_CALVEL_TOPE = 300;
+/* ⚠️ LA CLAVE SE *HASHEA*, Y ESTO LO DESTAPO LA SONDA: `_cineClave` empieza por el NOMBRE del
+   archivo (`nombre|cuadros|bytes|hash`), asi que la primera version guardaba ese nombre en
+   `localStorage` — y el nombre de un archivo que el medico importa a mano puede llevar el del
+   paciente. Choca de frente con la regla de la casa: «localStorage no guarda datos clinicos
+   sensibles sin cifrar». Medido: la sonda encontro «P13-T3» dentro de la clave almacenada.
+   Hoy lo que se guarda es el FNV-1a de la clave entera, o sea ocho hexadecimales de los que no
+   se puede sacar el nombre. La identidad sigue siendo la misma —el mismo archivo da la misma
+   clave— y el uuid del estudio es un identificador opaco de la propia app. */
+function _medCalVelHash(t) {
+  let h = 0x811c9dc5;
+  const s0 = String(t == null ? '' : t);
+  for (let i = 0; i < s0.length; i++) {
+    h ^= s0.charCodeAt(i) & 0xff;
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return h.toString(16);
+}
+function _medCalVelClaveDe(V) {
+  try {
+    const W = V || _V;
+    const D = W && W.datos;
+    const L = D && D.loops && D.loops[D.i];
+    if (!L || typeof _cineClave !== 'function') return '';
+    const k = _cineClave(L);
+    if (!k) return '';
+    const u = (typeof _imgUuidActual !== 'undefined' && _imgUuidActual)
+      ? String(_imgUuidActual) : 'sin-estudio';
+    return _medCalVelHash(u + '|' + k);
+  } catch (e) { return ''; }
+}
+function _medCalVelTodo() {
+  try { const o = JSON.parse(localStorage.getItem(MED_CALVEL_LS) || '{}'); 
+        return (o && typeof o === 'object') ? o : {}; } catch (e) { return {}; }
+}
+function _medCalVelPersistir(V) {
+  try {
+    const k = _medCalVelClaveDe(V);
+    const cal = (V || _V).medCalibVel;
+    if (!k || !cal) return false;
+    const o = _medCalVelTodo();
+    o[k] = { cms: cal.cmsPorPx, y0: cal.y0, t: Date.now() };
+    /* El tope corta por lo mas viejo, que es lo que impide que esto crezca sin fin. */
+    const ks = Object.keys(o);
+    if (ks.length > MED_CALVEL_TOPE) {
+      ks.sort((a, b) => (o[a].t || 0) - (o[b].t || 0));
+      for (let i = 0; i < ks.length - MED_CALVEL_TOPE; i++) delete o[ks[i]];
+    }
+    localStorage.setItem(MED_CALVEL_LS, JSON.stringify(o));
+    return true;
+  } catch (e) { return false; }
+}
+window._medCalVelPersistir = _medCalVelPersistir;
+/* Repone la escala guardada de ESTA imagen. Devuelve si repuso algo, para el caso.
+   ⚠️ NO PISA UNA CALIBRACION EN CURSO NI UNA YA PUESTA: la del medico de ahora manda. */
+function _medCalVelRestaurar(V) {
+  try {
+    const W = V || _V;
+    if (W.medCalibVel || W.medCalibrandoVel) return false;
+    const k = _medCalVelClaveDe(W);
+    if (!k) return false;
+    const e = _medCalVelTodo()[k];
+    if (!e || !isFinite(e.cms) || !isFinite(e.y0)) return false;
+    W.medCalibVel = { cmsPorPx: e.cms, y0: e.y0 };
+    return true;
+  } catch (e) { return false; }
+}
+window._medCalVelRestaurar = _medCalVelRestaurar;
+
+/* ¿Falta la escala de velocidad para esta imagen? (punto 3.3)
+   Falla CERRADO —devuelve falso ante cualquier duda— porque el lado seguro es NO entrar solo en
+   calibracion: ahi vale la conducta de siempre, que es el aviso. */
+function _medEscalaVelFalta() {
+  try {
+    if (_medCalibVel) return false;
+    const rs = (typeof _medRegs === 'function') ? _medRegs() : null;
+    if (!rs) return false;
+    if (!rs.length) return true;                          // ninguna region declarada
+    if (rs.some(_dcmImgRegionVelocidad)) return false;     // la trae el archivo
+    /* ⚠️ UN MODO M NO SE CALIBRA, y es la trampa que el comentario de `medHerramienta` ya
+       documenta: ahi el eje vertical es DISTANCIA, asi que ofrecer calibrar una escala de
+       velocidad daria un numero plausible y sin significado. La respuesta correcta es el aviso
+       que explica que es ese trazo, y ese aviso ya existe. */
+    if (typeof _medVelBloqueadaM === 'function' && _medVelBloqueadaM()) return false;
+    /* ⚠️ Y UNA IMAGEN 2D TAMPOCO, Y ESTO TAMBIEN LO DESTAPO LA SONDA: `sobre2D` daba VERDADERO
+       —entraba a calibrar una escala de velocidad sobre una imagen donde los DOS ejes son
+       distancia—. `_medVelBloqueadaM` no la cubre a proposito: su propio comentario declara que
+       no bloquea el 2D, porque ahi la herramienta se sigue ofreciendo y el mensaje explica que
+       es para Doppler. Una region con los dos ejes en cm es exactamente lo que
+       `_dcmImgRegionMedible` reconoce. */
+    if (typeof _dcmImgRegionMedible === 'function' && rs.some(_dcmImgRegionMedible)) return false;
+    return true;
+  } catch (e) { return false; }
+}
+window._medEscalaVelFalta = _medEscalaVelFalta;
+
 function medCalibrarVelocidad() {
   _medCalibVel = null; _medCalibrandoVel = true;
   _medCalVelP0 = null;        // MEDIR-3: entrar a calibrar descarta una marca a medio hacer
