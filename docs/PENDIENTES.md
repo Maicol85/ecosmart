@@ -19475,3 +19475,38 @@ los dos motores y el sello.
   leerlo entero, así que consume más de la mitad de una ventana antes de empezar a trabajar. Lo
   que hay que mudar hoy es todo lo anterior a **P10**, o sea de **P9 hacia atrás**. Es media hora
   de `sed` y deja el archivo en el tamaño que la regla de la LIMPIEZA-1 promete.
+
+- **P12-h · EL PUENTE DE LOS CARTELES PROPIOS, Y LO QUE CUESTA.** La TAREA 1.2 convirtió 65
+  ventanas nativas en los tres carteles propios, y eso rompió de golpe **treinta** casos maduros
+  que medían lo que el médico LEE sustituyendo `window.alert`, `window.confirm` o `window.prompt`
+  —en esta batería hay **246**, **239** y **46** sustituciones—, y **colgó tres lotes**: TC-238,
+  TC-879 y TC-964 esperaban una promesa que sólo un clic resuelve, así que no salieron rojos sino
+  que cortaron su lote a los 900 s y dejaron **81 casos sin ejecutar**.
+  Lo que lo cierra es un **puente en el arnés** —`__t.propPuenteOn()`, armado por omisión en el
+  reset del runner— que **envuelve** las tres funciones de la app y le pasa su texto al nativo que
+  el caso tenga sustituido en ese momento, devolviendo lo que ése devuelve. Así los 246 casos
+  siguen midiendo por donde siempre midieron y **no se tocó una sola de sus condiciones**.
+  **Lo que cuesta, declarado:** en esos 246 casos la batería ya **no distingue** si el mensaje
+  salió de un cartel propio o de un nativo. Lo que lo guarda es **TC-1017**, que desarma el puente
+  y exige que los tres carteles propios EXISTAN y que los tres nativos **no se llamen nunca**; los
+  otros cinco que manejan estos carteles por gesto —TC-1021, TC-980, TC-990, TC-991 y TC-992— lo
+  desarman también. Los cuadros de P10 no los toca: son otras marcas y sus casos los manejan por
+  gesto desde P10.
+  **Y lo que se adaptó, con su motivo, son SEIS casos y ninguna condición aflojada:** TC-856 y
+  TC-860 porque el aviso dejó de ser un `alert` de una oración y el nombre del ajuste se mudó al
+  título —las dos quedaron **más fuertes**, exigiendo las dos mitades—; y TC-256, TC-264, TC-250 y
+  TC-251 porque `dopCorregir`, `d2Corregir` y `_dopLimpiarConfirmar` pasaron a **escribir en un
+  microturno** y esos casos leían la fila en la línea siguiente. **Ningún llamador de la app
+  depende de que fueran sincrónicas**, medido: los cinco sitios que las llaman son gestos y
+  ninguno lee lo que devuelven.
+
+- **P12-i · EL PRIMER PUENTE MIRABA EL DOM Y SÓLO ARREGLÓ LA MITAD, y queda escrito.** Un vigía
+  que sondea el documento cada 40 ms y aprieta el botón del cartel contesta **después** de que la
+  parte sincrónica del caso terminó, y la mayoría de estos casos dispara el sumidero y lee lo que
+  el aviso dijo **en la línea siguiente** —con el nativo eso funcionaba porque `alert` es
+  sincrónico—. Medido sobre los mismos treinta casos: con el vigía pasaban **15 de 30**; con el
+  envoltorio, los **30**. Un aviso que llega tarde no es el aviso que el caso mide.
+  Y el envoltorio sólo funciona porque las tres son **declaraciones de función** de nivel
+  superior, o sea propiedades de `window`, y los llamadores internos las resuelven contra el
+  objeto global: con un `const` no habría funcionado, que es la trampa que `_imgEditado` y
+  `_cinePendientes` ya documentan.

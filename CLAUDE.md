@@ -1884,15 +1884,89 @@ lee igual que «se borraron».
 seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en las
 cuatro tareas y su verificación. Este archivo pesa más de 620 KB.
 
-Lo declarado, en **P12-a** a **P12-g**; el mapa, en
+⚠️ **Y LA PRIMERA PASADA COMPLETA DESTAPÓ QUE LA CONVERSIÓN DE LA TAREA 1 ROMPÍA TREINTA CASOS
+MADUROS Y COLGABA TRES LOTES.** Dio **949 de 1030 ejecutados** con **37 rojos** y los lotes **4, 17
+y 18 cortados por tiempo** a los 900 s: TC-238, TC-879 y TC-964 esperaban una promesa que **sólo un
+clic resuelve**, así que no salían rojos —cortaban su lote y dejaban **81 casos sin ejecutar**—. La
+causa de los otros treinta es una sola y está medida: medían lo que el médico LEE sustituyendo
+`window.alert`, `window.confirm` o `window.prompt` —en esta batería hay **246**, **239** y **46**
+sustituciones— y en los tres flujos convertidos esos nativos ya no se llaman nunca.
+Lo cierra un **puente en el arnés** —`__t.propPuenteOn()`, armado por omisión en el reset del
+runner— que **envuelve** las tres funciones de la app y le pasa su texto al nativo que el caso tenga
+sustituido en ese momento, devolviendo lo que ése devuelve. Así los 246 siguen midiendo por donde
+siempre midieron y **no se tocó una sola de sus condiciones**. Es la generalización de `ec5Auto`.
+⚠️ **Y ENVUELVE LAS FUNCIONES EN VEZ DE MIRAR EL DOM, que fue el primer intento y sólo arregló la
+mitad**: un vigía que sondea cada 40 ms contesta **después** de la parte sincrónica del caso, y la
+mayoría lee lo que el aviso dijo **en la línea siguiente** —con el nativo eso funcionaba porque
+`alert` es sincrónico—. Medido sobre los mismos treinta: con el vigía **15 de 30**; con el
+envoltorio, los **30**. Sólo funciona porque las tres son **declaraciones de función** de nivel
+superior, o sea propiedades de `window`: con un `const` no lo habría hecho.
+**Lo que cuesta, declarado**: en esos 246 casos la batería ya **no distingue** si el mensaje salió
+de un cartel propio o de un nativo. Lo que lo guarda es **TC-1017**, que desarma el puente y exige
+que los tres carteles propios existan y que los nativos **no se llamen nunca**; los otros cinco que
+los manejan por gesto —TC-1021, TC-980, TC-990, TC-991 y TC-992— lo desarman también.
+
+**SEIS CASOS ADAPTADOS, NINGUNO AFLOJADO Y DOS MÁS FUERTES.** **TC-856** y **TC-860** porque el
+aviso dejó de ser un `alert` de una oración y el nombre del ajuste se mudó al título, con el cuerpo
+diciendo «con esa opción **APAGADA**» —en femenino, porque concuerda con «opción»—: las dos pasan a
+exigir **las dos mitades**, y a TC-860 se le agrega la exigencia de que NOMBRE el ajuste, que antes
+no pedía. **TC-256**, **TC-264**, **TC-250** y **TC-251** porque `dopCorregir`, `d2Corregir` y
+`_dopLimpiarConfirmar` pasaron a **escribir en un microturno** y esos casos leían la fila en la
+línea siguiente. ⚠️ **Ningún llamador de la app depende de que fueran sincrónicas**, y está
+medido: los cinco sitios que las llaman son gestos y ninguno lee lo que devuelven.
+Y **TC-890 INVERTIDO**, que es consecuencia autorizada de la TAREA 3.3: afirmaba la instrucción de
+MEDIR-3 —«marcá dos puntos del eje»— y hoy exige la frase nueva **y** que la vieja ya no esté, así
+que falla por los dos lados.
+
+**LÍNEA BASE AL CIERRE: suite 1023/1030**, en **DIECINUEVE** lotes cubriendo los **1030 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol sellado, con los **1030 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`ae874798`), el pendrive `DISK_IMG` verificado **veintiuna** veces leyendo DICOMDIR con sus **343**
+archivos de `GEMS_IMG`, **ningún lote cortado por tiempo** y **ningún archivo del repositorio
+tocado mientras corría**.
+Los **SIETE** rojos son **TC-376**, **TC-406**, **TC-557**, **TC-562**, **TC-706** y **TC-899**, los
+seis que esta casa declara, más **TC-227**, que **no estaba en ninguna lista** y queda
+caracterizado: falla **idéntico contra `921b72b`** —mismo lote, mismo archivo de casos, sólo el
+`index.html` distinto, **54/55 de los dos lados** y las **mismas cinco condiciones** con su
+denominador en falso, «la captura no produjo una imagen»—, así que es **preexistente**.
+**La pasada dio 1022/1030 con ocho**, y el octavo era **TC-890**, que era mío: **su lote, el 17, se
+rehizo entero con el archivo de casos final y dio 54/55** —el único rojo es TC-899, declarado, que
+pasa aislado— con el md5 del árbol idéntico al abrir y al cerrar. No se rehizo la pasada completa y
+se declara con su motivo: **`index.html` no cambió** y lo único que se movió fue el archivo de
+casos, que es el mismo criterio con que la 3A, el prompt 4, P9 y P10 no rehicieron la suya.
+**Y los seis casos nuevos vuelven a caer 0/6 contra `921b72b` con el archivo de casos FINAL**, por
+condiciones y ninguno por excepción.
+
+**CHROME Y WEBKIT COINCIDEN EN LOS OCHO CRUCES** (dos motores × 1440 y 1280 px × los dos temas
+**reales**, puestos con `ett_theme` más `loadTheme()` y **devueltos** por la sonda), con **UNA sola
+firma de valores por (ancho, tema) e idéntica entre motores** y **CERO errores de consola y de
+página en los dos**: el aviso con **un** botón de **44 px** enfocado en «Entendido» y su tarjeta de
+360×129 dentro de la pantalla; la pregunta con **dos** de 44, **«Cancelar» primero y enfocado** y el
+botón del sí **azul** —la decisión del cuarto argumento—; el cuadro que pide un valor con su campo
+**sin `id`**, enfocado, su valor inicial y el botón **aceptando el vacío**; la escala con **13
+campos y base 600 antes y después**, velocidad y tiempo medibles de los dos lados y la flecha
+**↑ arriba / ↓ abajo**; los cinco textos de la receta y del «qué hacer»; el botón diciendo
+**«✅ Agregar sólo las nuevas (0)»** con `disabled`, **opacidad 0,45** y su motivo en el título,
+con el segundo botón **sin** apagar; **cero** carteles abiertos al cerrar y **cero** desplazamiento
+horizontal.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+⚠️ **Y LOS 109 IDS DUPLICADOS DEL DOCUMENTO SON PREEXISTENTES**: el mismo **109** en los ocho
+cruces de los **DOS** árboles, con el detector de dos árboles diciendo **NO** en `921b72b` y **SÍ**
+en el vivo. Lo que los tres carteles de P12 garantizan es que **no agregan ninguno** —ninguno de
+sus nodos lleva `id`—, que es otra cosa; el comentario de la sonda afirmaba «cero» y queda
+corregido.
+
+Lo declarado, en **P12-a** a **P12-i**; el mapa, en
 `docs/mapa/p12-carteles-escala-repetidas.md`; el censo de los 41 diálogos que quedan, en
 `docs/CENSO_DIALOGOS_P12.md`; las fichas de los seis casos, en `docs/mapa/tests-fichas-1017.md`;
 la guía manual para la Mac y para Windows, en `docs/GUIA_PRUEBA_P12.md` (**15** pasos); las
 sondas, en `scripts/_probe_p12_0.mjs` (la línea base del viaje), `scripts/_probe_p12_vti.mjs` (el
 VTI de punta a punta), `scripts/_probe_p12_t2.mjs` (la TAREA 2 contra el conector falso),
 `scripts/_probe_p12_t4.mjs` (la flecha) y `scripts/_probe_p12_t42.mjs` (4.2 y 4.3); el insertador
-con su guardián, en `scripts/_insertar_p12.py`; el corredor de lotes, en
-`scripts/_lotes_p12.sh`.
+con su guardián, en `scripts/_insertar_p12.py`; la sonda de dos motores, en
+`scripts/_probe_p12dos.mjs` con su cuerpo aparte; el corredor de lotes, en
+`scripts/_lotes_p12.sh`, que gana el rótulo de su tanda y la corrección de su línea de rojos
+—el `sed` heredado la imprimía EN BLANCO, porque las líneas arrancan con dos espacios—.
 
 **La tanda P11 (2026-11-22) — los dos tamaños del visor, el teclado y las medidas por cuadro.**
 TRES tareas (la 3 era sólo reportar) y CUATRO commits. Sello **`v20261122-1044`**, md5

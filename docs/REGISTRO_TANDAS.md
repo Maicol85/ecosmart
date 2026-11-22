@@ -4403,6 +4403,39 @@ errores de consola y de página en los dos motores**.
   la bandeja: los cazó `check_js_inline.py`, que es el único que ve que el navegador descartaría
   el bloque **entero** en silencio.
 
+**El puente de los carteles propios, y el defecto de método que lo obligó.** La primera pasada
+completa dio **949 de 1030 ejecutados** con **37 rojos** y **tres lotes cortados por tiempo**
+—TC-238, TC-879 y TC-964 esperaban una promesa que sólo un clic resuelve, así que no salían rojos:
+cortaban su lote y dejaban **81 casos sin ejecutar**—. Los otros treinta medían lo que el médico
+LEE sustituyendo un nativo, y en esta batería hay **246** sustituciones de `window.alert`, **239**
+de `window.confirm` y **46** de `window.prompt`.
+Lo cierra `__t.propPuenteOn()`, armado por omisión en el reset del runner: **envuelve** las tres
+funciones de la app y le pasa su texto al nativo que el caso tenga sustituido en ese momento. Así
+los 246 siguen midiendo por donde siempre midieron y **no se tocó una sola de sus condiciones**.
+⚠️ **El primer intento miró el DOM y sólo arregló la mitad**: un vigía que sondea cada 40 ms
+contesta **después** de la parte sincrónica del caso, y la mayoría lee lo que el aviso dijo en la
+línea siguiente. Medido sobre los mismos treinta: con el vigía **15 de 30**; con el envoltorio,
+los **30**.
+⚠️ **Y el `\n` de una cadena dentro del preludio hay que escribirlo `\\n`**: el preludio es un
+template literal, así que el escape lo procesa JS al armar el texto que va al navegador y queda un
+salto de línea real **dentro de una cadena de comillas simples** —`SyntaxError` en el arranque, con
+el suite sin correr un solo caso—.
+
+**Seis casos adaptados y uno invertido, ninguno aflojado.** TC-856 y TC-860 por la reestructuración
+del aviso en título y cuerpo —las dos quedaron **más fuertes**—; TC-256, TC-264, TC-250 y TC-251
+porque `dopCorregir`, `d2Corregir` y `_dopLimpiarConfirmar` pasaron a escribir en un **microturno**;
+y **TC-890 invertido**, que afirmaba la instrucción de MEDIR-3 que la TAREA 3.3 reescribió.
+**Ningún llamador de la app depende de que esas tres fueran sincrónicas**, medido: los cinco sitios
+que las llaman son gestos y ninguno lee lo que devuelven.
+
+**La línea base.** Suite **1023/1030** en diecinueve lotes, los 1030 ejecutados, md5 idéntico antes
+y después (`ae874798`), pendrive verificado veintiuna veces con sus 343 archivos y **ningún lote
+cortado**. Los siete rojos son TC-376, TC-406, TC-557, TC-562, TC-706 y TC-899 —los declarados— más
+**TC-227**, que queda caracterizado y es **preexistente**: falla idéntico contra `921b72b`, 54/55 de
+los dos lados y las mismas cinco condiciones con su denominador en falso. Chrome y WebKit coinciden
+en los **ocho** cruces con cero errores de consola y de página, y los **109 ids duplicados** del
+documento son idénticos en los dos árboles, o sea preexistentes.
+
 **Lo que NO se hizo, y por qué.** Las 41 ventanas nativas que quedan, por el punto 1.3. La marca
 de procedencia de la escala en el campo del informe (4.2) y el pasaje de los diámetros (4.3), por
 ser de solo reporte. La mudanza de «Estado vigente» a `docs/archivo/`, por vigésima tanda seguida.

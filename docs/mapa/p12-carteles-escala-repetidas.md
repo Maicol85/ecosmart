@@ -206,6 +206,64 @@ Sondas: `scripts/_probe_p12_t4.mjs` (la flecha en cinco escenarios) y
 
 ---
 
+## 6 · El puente de los carteles propios en el arnés — `__t.propPuenteOn`
+
+Convertir 65 ventanas nativas en carteles propios **rompe la batería por dos puertas a la vez**, y
+las dos están medidas:
+
+| | cuánto | qué pasa |
+|---|---|---|
+| casos que sustituyen `window.alert` | **246** | el texto que medían ya no llega |
+| `window.confirm` | **239** | lo mismo, y además |
+| `window.prompt` | **46** | lo mismo |
+| casos que **colgaron** su lote | **3** | TC-238, TC-879, TC-964 |
+
+Lo segundo es peor que un rojo: `preguntaProp` y `pedirProp` devuelven una promesa que **sólo un
+clic resuelve**, así que un caso que dispara el sumidero y no aprieta nada no falla — **cuelga el
+lote entero**. En la primera pasada de P12 cortaron los lotes 4, 17 y 18 a los 900 s y dejaron
+**81 casos sin ejecutar**.
+
+**El puente traduce cada cartel propio al nativo que reemplazó.** `propPuenteOn()` envuelve
+`window.avisoProp`, `window.preguntaProp` y `window.pedirProp`, le pasa su texto al nativo que el
+caso tenga sustituido **en ese momento**, devuelve lo que ése devuelve y **no abre un solo nodo**.
+Así los 246 casos siguen midiendo por donde siempre midieron y **no se tocó una sola de sus
+condiciones**. Es la generalización de `ec5Auto`, que ECO-CONECTOR-5 escribió para su propio modal
+por esta misma razón.
+
+⚠️ **ENVUELVE LAS FUNCIONES Y NO MIRA EL DOM, y el primer intento lo probó**: un vigía que sondea
+cada 40 ms contesta **después** de la parte sincrónica del caso, y la mayoría de estos casos lee lo
+que el aviso dijo **en la línea siguiente** —con el nativo eso funcionaba porque `alert` es
+sincrónico—. Medido sobre los mismos treinta: con el vigía **15 de 30**; con el envoltorio, los
+**30**.
+
+⚠️ **Y SÓLO FUNCIONA PORQUE LAS TRES SON DECLARACIONES DE FUNCIÓN** de nivel superior, o sea
+propiedades de `window`: los llamadores internos las resuelven contra el objeto global, así que
+reemplazarlas intercepta **todos**, los dos alias viejos incluidos —`_medAviso` llama a `avisoProp`
+y `borrConfirmar` a `preguntaProp`, los dos por su nombre pelado—. Con un `const` no funcionaría.
+
+**Va armado por omisión en el reset del runner**, y no en cada caso: con una línea por caso, el que
+se olvide cuelga su lote. Y los **tres nativos quedan con un valor por omisión no bloqueante**
+—`alert` recolecta, `confirm` devuelve `false` (el lado que no destruye) y `prompt` `null`—, porque
+el puente los llama y un nativo sin sustituir cuelga la página.
+
+**Los seis que lo desarman con `propPuenteOff()`**, porque manejan estos carteles **por gesto**:
+TC-1017 y TC-1021 —los que miden que los carteles propios existen y que los nativos ya no se
+llaman— y TC-980, TC-990, TC-991 y TC-992, que aprietan su botón de verdad.
+
+**Lo que cuesta, declarado en P12-h**: en esos 246 casos la batería ya no distingue si el mensaje
+salió de un cartel propio o de un nativo. Lo que lo guarda es **TC-1017**.
+
+### Lo que hubo que adaptar, y por qué queda más fuerte
+
+- **TC-856 (B)** y **TC-860 (D)**: el aviso dejó de ser un `alert` de una oración; el nombre del
+  ajuste se mudó al **título** y el cuerpo dice «con esa opción **APAGADA**» —en femenino, porque
+  concuerda con «opción»—. Las dos condiciones pasan a exigir **las dos mitades**, o sea que
+  quedaron más fuertes: antes a TC-860 le bastaba con la palabra en mayúsculas en cualquier lado.
+- **TC-256**, **TC-264**, **TC-250** y **TC-251**: `dopCorregir`, `d2Corregir` y
+  `_dopLimpiarConfirmar` pasaron a **escribir en un microturno**, y esos casos leían la fila en la
+  línea siguiente. Se les deja correr el turno. **Ningún llamador de la app depende de que fueran
+  sincrónicas**, medido: los cinco sitios que las llaman son gestos y ninguno lee lo que devuelven.
+
 ## Cobertura
 
 **TC-1017 a TC-1022**, uno por corrección, los seis cayendo **0/6 contra `921b72b`** por sus
