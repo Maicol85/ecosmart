@@ -1723,6 +1723,28 @@ Lo pagaron **TC-966, TC-990, TC-964, TC-873 y TC-905**, y se cierra en el **rese
 además saca el cartel propio que haya quedado abierto y devuelve la pestaña Config— y no en cada
 caso, por el mismo argumento de siempre.
 
+**LÍNEA BASE AL CIERRE: suite 1004/1011**, en **DIECINUEVE** lotes cubriendo los **1011 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada
+sobre el árbol sellado, con los **1011 ejecutados**, el md5 de `index.html` **idéntico** antes y
+después (`d6a7d8dd`), el pendrive `DISK_IMG` verificado **veintiuna** veces leyendo DICOMDIR con
+sus **343** archivos de `GEMS_IMG`, **ningún lote cortado por tiempo** y **ningún archivo del
+repositorio tocado mientras corría** —el sello y los documentos se escribieron ANTES, que es la
+lección que PANT-20 y el cierre de P6-j pagaron con TC-753 en rojo con razón—.
+La pasada dio **1002/1011** con **nueve** rojos; **dos eran míos y son consecuencia autorizada**:
+**TC-985**, cuyas dos condiciones del tipo de conexión las **invierte el punto 4.3** por decisión
+del médico, y **TC-978**, que fijaba el **número** de cines del renglón y ese número lo publica la
+tira, que lo deriva también de la **cola** de lo adjuntado sin guardar —y esa cola sobrevive a
+«Nuevo estudio» por diseño—, así que contaba el cine que le dejaba el caso de al lado; hoy exige
+que el renglón los **nombre**, que es lo que este caso mide. **Su lote, el 18, se rehizo entero
+con el archivo de casos final: 55/55**, con el md5 del árbol idéntico al abrir y al cerrar. No se
+rehizo la pasada completa y se declara con su motivo: **`index.html` no cambió** y lo único que se
+movió fue el archivo de casos — el mismo criterio con que la 3A y el prompt 4 no rehicieron la
+suya.
+Los **siete** que quedan son **TC-182, TC-376, TC-406, TC-551 y TC-903** —los cinco que esta casa
+declara conocidos— más **TC-706 y TC-889**, los dos preexistentes y sensibles al lote que las
+tandas PANT-32 y P8 ya declaran: **los dos pasan 1/1 corridos aislados**. **Ningún rojo nuevo**, y
+los doce casos nuevos y los ocho adaptados en verde.
+
 **VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
 **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
 **Las tres zonas, seleccionadas por el cuerpo de cada caso y no a ojo:** imágenes **113/119** →

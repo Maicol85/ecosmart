@@ -32,6 +32,14 @@ a propósito. **Ocho adaptados**, con quince condiciones invertidas: TC-234, TC-
 TC-978, TC-980, TC-988 y TC-791/TC-899 (lote). El reset del runner limpia el registro de P9, el
 cartel propio y la pestaña Config: cinco casos de CeiboLink lo pagaron.
 
+**Línea base al cierre: suite 1004/1011**, los 1011 ejecutados en diecinueve lotes, en UNA sola
+pasada sobre el árbol sellado, md5 idéntico antes y después, pendrive verificado veintiuna veces y
+ningún lote cortado. La pasada dio 1002 con nueve rojos; **dos eran míos y son consecuencia
+autorizada** —TC-985, invertido por el punto 4.3, y TC-978, que fijaba el número de cines y ese
+número depende de la cola de lo adjuntado sin guardar— y su lote, el 18, se rehizo entero: 55/55.
+Los siete que quedan son los cinco conocidos más TC-706 y TC-889, preexistentes y **verdes
+aislados**.
+
 **Seguridad.** Semgrep **126 WARNING / 0 ERROR** (línea base exacta), sin huérfanos nuevos, celular
 **38 ALTA** (línea base exacta), 17/17 bloques de JS inline parsean, **cero** `eval`/`new Function`,
 **un** `innerHTML` y es la cadena vacía, **cero** controles nuevos → cero campos guardados y las

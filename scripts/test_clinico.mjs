@@ -155576,8 +155576,14 @@ caso('TC-978', 'P8 1.1: todo lo que llega --cable y pendrive-- entra a la BIBLIO
          las fijas y un estudio con cuarenta y un cineloops decia «3 en la biblioteca». Lo que
          se exige sigue siendo lo mismo, con la forma nueva, y se agrega que nombre los cines:
          asi la condicion falla si alguien vuelve a contar una sola de las dos cosas. */
-      ex.push(['(C1) el renglon dice cuantas fijas, cuantos cines y cuantas salen',
-        ct.indexOf('3 imágenes fijas') >= 0 && ct.indexOf('0 cines en la biblioteca') >= 0 &&
+      /* ⚠️ NO SE FIJA EL NUMERO DE CINES, y es a proposito: lo publica la tira, que lo deriva
+         tambien de la COLA de lo adjuntado sin guardar, y esa cola sobrevive a «Nuevo estudio»
+         por diseño --el aviso de cineloops pendientes depende de ella--. O sea que un caso
+         anterior del mismo lote puede dejar uno ahi y este contaria el cine del de al lado: lo
+         pago la pasada completa. Lo que este caso mide es la regla de P8 --todo lo que llega
+         entra a la biblioteca y nada sale en el PDF-- y que el renglon NOMBRE las dos cosas. */
+      ex.push(['(C1) el renglon dice cuantas fijas, nombra los cines y dice cuantas salen',
+        ct.indexOf('3 imágenes fijas') >= 0 && ct.indexOf('cine') >= 0 &&
         ct.indexOf('0 en el PDF') >= 0, 'txt=' + ct]);
       /* -- D - CONTROL NEGATIVO: UN ESQUEMA ES UN GESTO EXPLICITO Y ENTRA INCLUIDO ------- */
       const cc = document.createElement('canvas'); cc.width = 10; cc.height = 10;
@@ -156365,10 +156371,18 @@ caso('TC-985', 'Tanda EQ A1: el VINNO duplicado se ve como UN renglon con sus do
         R.aLoop === 'esta computadora' && R.aLoop6 === 'esta computadora' &&
         R.aLink === 'cable directo' && R.aRouter === 'red del router',
         'loop=' + R.aLoop + ' link=' + R.aLink + ' router=' + R.aRouter],
-      ['por la red de una interfaz de cable dice «por el cable» y NO «cable directo»: un cable puede ir a un switch',
-        R.aCable === 'por el cable', R.aCable],
-      ['y si no empareja ninguna direccion de esta computadora, NO se dice nada',
-        R.aAjena === '' && R.aVacia === '', 'ajena=' + R.aAjena + ' vacia=' + R.aVacia],
+      /* ── LAS DOS INVERTIDAS POR P9 (4.3), POR DECISION EXPRESA DEL MEDICO ──────────────
+         Pidio que la direccion del cable diga «cable directo» --EQ-b decia lo contrario, y su
+         reparo sigue siendo cierto: un cable puede ir a un switch y con un router en el medio
+         la frase es falsa-- y que lo que no se puede deducir diga «tipo no determinado» en vez
+         de quedar en blanco, porque una fila sin rotulo y una que no se pudo deducir se veian
+         IGUAL. Las dos condiciones se dan vuelta: siguen midiendo lo mismo, con lo que el
+         medico decidio. Declarado en P9-c. */
+      ['por la red de una interfaz de cable dice «cable directo» (decision del medico, P9 4.3)',
+        R.aCable === 'cable directo', R.aCable],
+      ['y si no empareja ninguna direccion de esta computadora dice «tipo no determinado»',
+        R.aAjena === 'tipo no determinado' && R.aVacia === '',
+        'ajena=' + R.aAjena + ' vacia=[' + R.aVacia + ']'],
       ['DENOMINADOR: el puente manda TRES equipos y la lista dibuja DOS renglones',
         R.bFilas === 2, R.bFilas],
       ['el renglon del VINNO dice que tiene DOS direcciones', R.bDosDir, R.bDosDir],
