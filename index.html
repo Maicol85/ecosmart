@@ -585,7 +585,29 @@
      recortar sin salida». */
   @media (min-width: 1100px) {
     #cine-ov { --cine-imgh: calc(var(--cine-h) - 190px); }
-    #cine-ov.cine-max { --cine-imgh: calc(var(--cine-h) - 157px); }
+    /* ══ 13-B (3a) — EN PANTALLA COMPLETA LA RESERVA BAJA DE 157 A 137 px ═════════════════════
+       Medido a 1920x1080 con UNA vista: el cromo real que queda arriba y abajo de la imagen son
+       el encabezado del modal (44) con su margen (8), el relleno del modal (16+16), el hueco de
+       5 y el reproductor (44) = 133 px. Los 157 de P11 incluian el encabezado de la VISTA, que
+       con una sola vista se esconde en pantalla completa. Los 20 px de diferencia son 20 px de
+       imagen: a 1080 de alto la imagen pasa de 923 a 943, y la medicion confirma que el modal
+       sigue sin desplazarse.
+       ⚠️ CON DOS VISTAS LA RESERVA SUBE A 185, Y ESO NO ES UN NUMERO INVENTADO: ahi el encabezado
+       de la vista NO se esconde —es lo que dice cual es cual— y desde el 1b lleva el «✕ Cerrar
+       vista», o sea 44 px medidos con su piso tactil. 133 + 44 + 8 de hueco = 185. Con 137 el
+       modal se desplazaria, que es exactamente lo que el 3a manda evitar.
+       La variable se escribe sobre `#cine-paneles` porque las variables de CSS se HEREDAN: el
+       canvas es su descendiente y la lee igual. */
+    #cine-ov.cine-max { --cine-imgh: calc(var(--cine-h) - 145px); }
+    #cine-ov.cine-max #cine-paneles.cine-2v { --cine-imgh: calc(var(--cine-h) - 185px); }
+    /* ⚠️ EL PIE DE «Sincronizar» SE ESCONDE EN PANTALLA COMPLETA CON UNA VISTA, y es lo que
+       permite bajar la reserva: ese boton solo existe con dos vistas —`vistaBAbrir` le pone el
+       `display`— pero su FILA conserva su `margin-top:12px` y ocupa 12 px igual. Es la misma
+       clase de hallazgo que el comentario de MEDIR-3 ya documenta para esos 12 px.
+       Se decide por `cine-con-b`, la clase que `_vToggleSync` pone sobre el overlay cuando hay
+       segunda vista, porque el pie es HERMANO de `#cine-paneles` y no se puede seleccionar por la
+       clase de aquel. */
+    #cine-ov.cine-max:not(.cine-con-b) #cine-pie { display: none !important; }
     #cine-ov .cine-fila { flex-wrap: nowrap !important; }
     /* ⚠️ LA COLUMNA SE ACOTA Y SE LLEVA SU PROPIO DESPLAZAMIENTO, que es el punto 3 del pedido:
        la imagen, la reproduccion y la tabla tienen que entrar JUNTAS sin mover la ventana, y la
@@ -147344,6 +147366,9 @@ function _cineCapaEncima() {
 }
 window._cineCapaEncima = _cineCapaEncima;
 
+/* Lo que la pagina tenia en `overflow` antes de que el visor se maximizara. `null` = no se
+   toco. Ver la nota de `cineMaxToggle`. */
+let _cineBodyOv = null;
 function cineMaxActivo() {
   const ov = document.getElementById('cine-ov');
   return !!(ov && ov.classList.contains('cine-max'));
@@ -147521,6 +147546,32 @@ function cineMaxToggle() {
      recuperarla salvo cerrar el visor. Es la otra mitad del 1h, y el dueño del tamaño es el
      unico lugar donde se puede ejercer. Lo ve tambien el Escape de P11, que entra por aca. */
   if (!ov.classList.contains('cine-max')) ov.classList.remove('cine-sinpanel');
+  /* ══ 13-B (3a) — LA BARRA DE DESPLAZAMIENTO QUE EL MEDICO VIO ES LA DE LA PAGINA DE ATRAS ═══
+     Medido a 1920x1080: con el visor en pantalla completa `cine-modal` NO se desplaza
+     —`modalScrollY` en 0— y lo que si desplaza son 94 px del DOCUMENTO, que es la pestaña que
+     esta debajo del overlay. El overlay es `position:fixed;inset:0`, asi que tapa la pagina
+     pero no le quita su desplazamiento: la barra de la derecha es de esa pagina y en pantalla
+     completa no lleva a ninguna parte.
+     Se bloquea mientras el visor esta maximizado y se repone EXACTAMENTE lo que habia —no un
+     `''` a secas—: la pestaña puede tener su propio `overflow` puesto y pisarlo dejaria la
+     pagina sin desplazarse despues de cerrar el visor.
+     ⚠️ SOLO EN PANTALLA COMPLETA: en tamaño Normal el visor no tapa la pagina entera y bloquear
+     ahi le quitaria al medico el desplazamiento de lo que si puede ver. */
+  try {
+    /* ⚠️ SE BLOQUEAN LOS DOS —`documentElement` y `body`— porque cual de los dos es el elemento
+       que desplaza depende del documento, y acertar uno solo deja la barra puesta. Se guardan
+       los dos valores viejos y se reponen los dos. */
+    if (ov.classList.contains('cine-max')) {
+      if (_cineBodyOv == null) _cineBodyOv = {
+        b: document.body.style.overflow || '', h: document.documentElement.style.overflow || '' };
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else if (_cineBodyOv != null) {
+      document.body.style.overflow = _cineBodyOv.b;
+      document.documentElement.style.overflow = _cineBodyOv.h;
+      _cineBodyOv = null;
+    }
+  } catch (e) {}
   cineMaxSync();
   /* P11 — la mudanza de la barra, de «Capturar» y de la columna va ANTES de reencajar: el alto
      disponible de la imagen depende de cuanto cromo quedo arriba, y `--cine-imgh` ya lo
@@ -147829,7 +147880,9 @@ function _cineAbrir(loops, puerta) {
            DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
            responder — que es exactamente el defecto que la barra de la vista B ya pagó una vez.
            Queda sólo «Sincronizar», que es del par de vistas y no de ninguna de las dos. */
-        '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
+        /* 13-B (3a) — el pie lleva id para poder esconderlo en pantalla completa con una vista:
+           su boton nace `display:none` pero la FILA ocupa sus 12 px de margen igual. */
+        '<div id="cine-pie" style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
           '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
         '</div>' +
       '</div>';
@@ -148609,6 +148662,10 @@ function cineCerrar() {
      archivo entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
+  /* 13-B (3a) — y el desplazamiento de la pagina vuelve: el visor se puede cerrar estando
+     maximizado, y ahi `cineMaxToggle` no corre. Sin esto la pestaña quedaria sin desplazarse. */
+  try { if (_cineBodyOv != null) { document.body.style.overflow = _cineBodyOv.b;
+    document.documentElement.style.overflow = _cineBodyOv.h; _cineBodyOv = null; } } catch (e) {}
   /* PUNTO 2 — si este visor se abrio desde la vista previa de CeiboLink, el cartel estaba
      escondido debajo: vuelve ahora, con sus cinco botones intactos. No hace nada si no fue el
      caso, y nada si el aviso se cerro de verdad mientras tanto. */
@@ -187971,11 +188028,29 @@ function _clnkAvisoTexto(g, nom, cuando) {
        las trato como nuevas. Ahora el reparto sale de `_clnkRepartir`, que es el MISMO que usan
        los tres botones: la cuenta del cartel y lo que cada boton agrega no pueden discrepar. */
     if (g.nYaEstaban > 0) {
-      t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) + ': ' +
+      /* ══ 13-B (1a) — EL NUMERO DE ARRIBA ES EL DE LAS QUE LLEGARON **AHORA** ════════════════
+         ⚠️ ESTE ERA EL SEGUNDO DEFECTO DEL PUNTO (a): el medico mando DOS y el cartel decia
+         «Llegaron 9 cineloops», porque `g.ids.length` es TODO lo que el puente tiene esperando
+         —incluido lo que quedo de envios anteriores—. Lo que llego ahora lo cuenta
+         `_clnkLlegaronAhora` comparando contra el sondeo anterior, y el total esperando se dice
+         en una segunda oracion, que es el mismo reparto que la rama de «nuevas» de arriba.
+         ⚠️ CON SUS TIPOS, no con los del envio entero: `dstCuenta` arma «2 imagenes y 1
+         cineloop», asi que pasarle el numero de ahora con los tipos del total diria «llegaron 2»
+         describiendo nueve. Es la misma leccion que la tanda EQ dejo escrita en `_clnkNuevas`.
+         ⚠️ SI NO SE SABE CUANTAS LLEGARON AHORA —el camino forzado, o el primer sondeo— se cae al
+         total, que es la conducta anterior. */
+      var _ah = (g.nAhora > 0 && g.nAhora < g.ids.length) ? g.nAhora : 0;
+      var _ta = g.tiposAhora || { fija: 0, loop: 0, informe: 0, noVer: 0 };
+      var _cab = _ah
+        ? ('Llegaron ' + dstCuenta(_ah, _ta.fija, _ta.loop, _ta.informe, _ta.noVer) + ': ')
+        : ('Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) + ': ');
+      t = _cab +
           (g.idsNuevos.length
             ? (g.idsNuevos.length + (g.idsNuevos.length === 1 ? ' nueva y ' : ' nuevas y ') +
                g.nYaEstaban + ' que ' + _clnkRepesTexto(g) + '.')
-            : ('ninguna nueva — ' + _clnkRepesTexto(g) + '.'));
+            : ('0 nuevas — ' + _clnkRepesTexto(g) + '.'));
+      if (_ah) t += ' Hay ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
+                    ' esperando.';
       g.avSub = 'Del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
     }
   }
@@ -188036,6 +188111,38 @@ window._clnkClase = _clnkClase;
    «Mas tarde» no se puede perder porque despues llego otra. Lo que evita que algo entre dos veces
    es la deduplicacion por archivo de la PARTE 1 —nombre mas hash del contenido, persistida en
    `_srcKey`—, no un recorte de lo que se ofrece. */
+/* ══ 13-B · TAREA 1 · QUE IDS TENIA EL PUENTE EN EL SONDEO ANTERIOR ═════════════════════════
+   ⚠️ ESTO ES LO QUE FALTABA, Y ES LA CAUSA DEL PUNTO (a). El filtro de `clnkRevisarImagenes`
+   pedia «al menos una imagen sin avisar» (`_clnkAvisadas`), asi que un envio cuyas imagenes el
+   medico YA habia visto en esta sesion quedaba filtrado y el cartel no salia NUNCA: solo
+   aparecia al apretar «Ver lo que espera», que llama forzado e ignora esa lista. Es literalmente
+   lo que reporto.
+   «Avisada» y «llego ahora» son dos preguntas distintas, y hacen falta las dos: la primera evita
+   repetir el mismo cartel en cada sondeo, la segunda es la que dice que el ecografo acaba de
+   mandar algo. Este registro contesta la segunda comparando el juego de ids del sondeo con el
+   del anterior.
+   ⚠️ EN MEMORIA, igual que `_clnkAvisadas` y `_clnkDescartadas`, y por el mismo motivo: en disco
+   haria que recargar la pagina dejara de avisar de lo que esta esperando.
+   ⚠️ EN EL PRIMER SONDEO ESTA VACIO, asi que todo cuenta como «llego ahora» — que es lo correcto:
+   la app acaba de arrancar y lo que hay esperando es, para ella, lo que acaba de llegar. */
+var _clnkEnPuente = Object.create(null);
+
+/* Cuantas del grupo NO estaban en el sondeo anterior, y de que tipo. Es el numero que el cartel
+   dice: el medico mando DOS y el cartel decia «Llegaron 9 cineloops» porque contaba todo lo que
+   estaba esperando. */
+function _clnkLlegaronAhora(g) {
+  var c = { fija: 0, loop: 0, informe: 0, noVer: 0 };
+  var n = 0;
+  (g.ids || []).forEach(function (id) { if (!_clnkEnPuente[id]) n++; });
+  (g.imagenes || []).forEach(function (i) {
+    if (i && !_clnkEnPuente[String(i.id)]) c[_clnkClase(i)]++;
+  });
+  g.nAhora = n;
+  g.tiposAhora = c;
+  return g;
+}
+window._clnkLlegaronAhora = _clnkLlegaronAhora;
+
 function _clnkNuevas(g) {
   var c = { fija: 0, loop: 0, informe: 0, noVer: 0 };
   var n = 0;
@@ -188078,6 +188185,16 @@ async function clnkRevisarImagenes(forzar) {
   var lista = (r.datos && Array.isArray(r.datos.imagenes)) ? r.datos.imagenes : [];
   var tandas = (r.datos && Array.isArray(r.datos.tandas)) ? r.datos.tandas : null;
   var todos = clnkAgrupar(lista, tandas).map(_clnkTipos).map(_clnkRepetidas);
+  /* 13-B (1a) — cuantas de cada grupo NO estaban en el sondeo anterior. Se cuenta ANTES de
+     actualizar el registro, por el mismo motivo que `_clnkNuevas` se cuenta antes de marcar. */
+  todos.forEach(_clnkLlegaronAhora);
+  /* Y el registro se pone al dia con TODO lo que el puente tiene ahora, aunque despues no se
+     abra ningun cartel: lo que esta en esta lista ya no «acaba de llegar». */
+  try {
+    var _np = Object.create(null);
+    todos.forEach(function (g0) { (g0.ids || []).forEach(function (id) { _np[id] = true; }); });
+    _clnkEnPuente = _np;
+  } catch (e) {}
 
   /* ── ACTUALIZAR EL CARTEL ABIERTO ─────────────────────────────────────────────────────
      El grupo que corresponde es el del MISMO equipo que contiene alguno de los ids que el
@@ -188115,7 +188232,14 @@ async function clnkRevisarImagenes(forzar) {
     if (!clnkGrupoListo(g)) return false;
     /* Un grupo se avisa si tiene AL MENOS UNA imagen sin avisar. Con «ninguna avisada», una
        imagen nueva que cae dentro de la ventana de un envío ya avisado no se avisaría nunca. */
-    return g.ids.some(function (id) { return !_clnkAvisadas[id]; });
+    if (g.ids.some(function (id) { return !_clnkAvisadas[id]; })) return true;
+    /* ══ 13-B (1a) — O SI ACABA DE LLEGAR ALGO, aunque todo esté ya avisado ══════════════════
+       Es el defecto que el médico reportó con el VINNO por cable: mandó dos imágenes que ya
+       había enviado antes, estaban las dos en `_clnkAvisadas` de esta misma sesión, y el cartel
+       no salió — sólo apareció al abrir «N esperando» en Configuración, que llama forzado.
+       «Ya la avisé una vez» no es «no acaba de llegar»: el ecógrafo mandó algo y el médico tiene
+       que enterarse, aunque la respuesta sea que no hay ninguna nueva. */
+    return g.nAhora > 0;
   });
   if (!grupos.length) return false;
   await _clnkCargarNombresEq();
@@ -188187,8 +188311,25 @@ function _clnkPreguntarQue(g, nom) {
       fn: function () { if (nN) _clnkSoloNuevas(g, sigue); } },
     { txt: '📥 Agregar todas igual (' + g.ids.length + ')',
       fn: function () { sigue(g.ids); } },
+    /* ══ 13-B (1e) — CON CERO NUEVAS, «DESCARTAR» NO CAMBIA NADA ══════════════════════════
+       Decision del medico, y acotada a ESTE caso: «lo que ya estaba esperando sigue esperando
+       hasta que se guarde el estudio». Con alguna nueva, «Descartar» sigue siendo el de P12 —
+       borra del puente lo que llego, que es lo que ese boton promete—.
+       ⚠️ Y NO VUELVE A OFRECERSE EN EL SONDEO SIGUIENTE, que es lo que hace que «no cambia nada»
+       no signifique «el cartel vuelve cada cuatro segundos»: las dos quedan marcadas en
+       `_clnkAvisadas` y ya estan en `_clnkEnPuente`, asi que no cumplen ninguna de las dos
+       condiciones del filtro. */
     { txt: '🗑 Descartar',
-      fn: function () { _clnkAvisoGrupo = null; clnkDescartar(g.ids.slice()); } }
+      fn: function () {
+        _clnkAvisoGrupo = null;
+        if (!nN) {
+          try { clnkAvisoCerrar(false); } catch (e) {}
+          if (typeof toast === 'function')
+            toast('Nada cambió: lo que estaba esperando en CeiboLink sigue esperando.');
+          return;
+        }
+        clnkDescartar(g.ids.slice());
+      } }
   ];
   /* ══ P12 · TAREA 2.1 · LAS REPETIDAS SE DESCARTAN SOLAS, Y EL CARTEL LO DICE ANTES ════════
        El pedido: «si el medico elige agregar solo las nuevas, las repetidas se descartan solas
