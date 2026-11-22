@@ -1,3 +1,28 @@
+## P10 — la escala de velocidad de un Doppler espectral (2026-11-21)
+
+**Sello** `v20261121-2349` · **md5** `7edbbe06` · **191.470** líneas · línea base `13af3de`.
+**Sin push.**
+
+**Commits:** `cdbcbed` (bloque 1, la causa — no toca `index.html`) · `7a4c759` (bloque 2, la
+lectura corregida y el chequeo de coherencia) · `5bdf125` (bloques 4 y 5, la calibración sin
+prompt nativo y de dónde salió la escala) · `1dc80a5` (cobertura) · `0dfdb2d` (sello).
+
+**Qué hizo.** `_dcmImgVelocidadEn` leía `ReferencePixelY0` (0018,6022) como una fila absoluta de
+la imagen; el estándar dice que es un desplazamiento relativo a `RegionLocationMinY0` (0018,601A).
+Eso metía un offset constante de `y0 · dy` cm/s en **toda** velocidad del visor —de 22,8 a 292,1
+cm/s en el pendrive, mediana 110,1— y con él la Vmax, los dos gradientes y el VTI. Corregido con
+`_dcmImgBaseY`, el dueño único de la fila del cero. Más: el chequeo de coherencia que avisa cuando
+el cero cae fuera del recuadro, la calibración manual con cuadro propio y selector de unidad, y la
+marca de procedencia de la escala en cada fila.
+
+**Qué dejó pendiente.** **P10-b** (la calibración no se guarda con el estudio: hace falta un campo
+nuevo, tres opciones con su costo), **P10-c** (la guarda de duración del trazo, corte clínico
+nuevo, heredado de P8-a), **P10-d** (un trazo rechazado deja la fila vieja a la vista) y **P10-a**
+(falta el `.dcm` del VINNO para confirmar el número exacto del caso).
+
+**Qué cerró.** **P8-a**.
+
+
 ## Tanda P9 — el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla (2026-11-22)
 
 **Sello** `v20261121-2158` · **md5** `d6a7d8dd` · **191.068** líneas · línea base `bada886`

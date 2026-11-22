@@ -167,6 +167,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la BURBUJA que queda al cerrar un cartel TERMINADO, la VENTANA DE SILENCIO de la app con su pestillo, la CADENCIA del sondeo ocioso, los CINCO botones del cartel de la tanda —los tres apagados y los dos vivos—, los NOMBRES que un dato tiene en el ecógrafo, las MINIATURAS de «Imágenes sin estudio» con el borrado de a una, o el mensaje de MEDIR una fija** | `docs/mapa/p7-burbuja-silencio-botones.md` |
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
+| **Tocar la ESCALA DE VELOCIDAD de un Doppler espectral** —la fila de la línea de cero, el chequeo de coherencia, el cuadro propio de calibración con su unidad, o la marca de de dónde salió la escala en cada fila— | `docs/mapa/p10-escala-velocidad.md` |
 | **Tocar la TABLA DE MEDIDAS del visor** —sus cinco columnas, el armador único de los dos cajones, las filas calculadas o «Borrar»—, **los NOMBRES del Doppler pulmonar** —la «Vmax pulmonar» fundida o las dos de la insuficiencia—, **el ÁREA por estructura (AI y AD)**, **Simpson en mL/m²**, o **la COMUNIDAD DE DESARROLLO DE IA bloqueada** —su estado único, su nombre único, el cartel, los dos botones o el bloque de Configuración— | `docs/mapa/medir2-tabla-anahi.md` |
 | **Tocar la PREGUNTA DE DESTINO de las imágenes** —sus cuatro salidas, el selector de estudio guardado, la entrada del pendrive—, **el CINELOOP que se guarda solo con el estudio**, la TIRA con lo adjuntado «sin guardar», la CONFIRMACIÓN a CeiboLink de un estudio de solo cineloop, la BANDEJA con el cineloop entero y su asignación, o el **DICOM SIN COMPRIMIR** con su tope | `docs/mapa/ec3-destino-unico.md` |
 | **Tocar «VER LO QUE ESPERA», el PANEL que se actualiza solo, la FECHA del aviso, los DIÁLOGOS PROPIOS con sus dos pesos, el UMBRAL que se deriva de la memoria del equipo, la VISTA PREVIA, o el MODO ELEGIR de la galería** —eliminar, adjuntar, exportar, importar y «Desde imágenes guardadas»— | `docs/mapa/ec5-previa-galeria.md` |
@@ -294,7 +295,27 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,80 MB / 191.068 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P9** (el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla), sobre el árbol ya sellado: sello **`v20261121-2158`**, md5 **`d6a7d8dd`**.
+  sin frameworks. Hoy **13,82 MB / 191.470 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **P10** (la escala de velocidad de un Doppler espectral), sobre el árbol ya sellado: sello **`v20261121-2349`**, md5 **`7edbbe06`**.
+  El diff de P10 son **443 líneas agregadas y 41 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `13af3de` **sobre el árbol ya sellado**, de las que **295 son código
+  de verdad**, 123 comentario y 25 en blanco — las 443 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO `<input>`, `<select>` y `<textarea>` nuevos EN EL MARCADO**: los **dos** controles que
+  esta tanda agrega —el campo y el selector de unidad del cuadro de calibración— los crea el JS y
+  **ninguno lleva `id`**, que es lo que los deja fuera del censo del estudio y del Excel **por
+  construcción**: **cero campos guardados nuevos** y las **457** columnas quietas.
+  **CERO ids nuevos en el marcado**: el único que el diff muestra, `eco-build-sello`, ya existía y
+  reaparece porque el sello cambió. Lo nuevo son **atributos** —`data-med-calvel`,
+  `data-med-escdud` y `data-med-aviso`—, ninguno de los cuales cae en ninguno de los veintitrés
+  barridos por sufijo o prefijo de id del archivo.
+  **Y CERO cortes clínicos, cero fórmulas y cero umbrales**: la banda de VTI (0,5–150 cm) no se
+  movió y lo único que cambia en ella es su mensaje.
+  ⚠️ **POR QUINCUAGÉSIMA SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show 13af3de:index.html` da **191.068**
+  líneas, **13.796.659** bytes y el md5 **`d6a7d8dd`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,80 MB / 191.068 al cierre de la tanda **P9**, sello **`v20261121-2158`**, md5 **`d6a7d8dd`**.)
   El diff de P9 son **798 líneas agregadas y 101 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `bada886` **sobre el árbol ya sellado**, de las que **454 son código
   de verdad**, 328 comentario y 16 en blanco — las 798 cierran exacto, y el filtro lleva el estado
@@ -1610,6 +1631,146 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda P10 (2026-11-21) — la escala de velocidad de un Doppler espectral.** DOS tareas,
+CINCO commits. Sello **`v20261121-2349`**, md5 **`7edbbe06`**, **191.470** líneas. Línea base
+**`13af3de`**, el cierre de la tanda P9. **Sin push: lo corre Maicol.** **El puente NO se tocó**,
+y ningún punto lo necesitaba.
+
+⚠️ **EL DEFECTO ERA LA LÍNEA DE CERO, Y ESTO CORRIGE A P8-a.** Un PW de TSVI del VINNO daba
+**VTI 136,7 cm y Vmax 5,06 m/s** contra los **21,66 cm** del ecógrafo. `_dcmImgVelocidadEn` leía
+**`ReferencePixelY0` (0018,6022) como una fila ABSOLUTA de la imagen**, y el estándar dice que es
+un desplazamiento **RELATIVO a `RegionLocationMinY0` (0018,601A)** — PS3.3 C.8.5.5, aclarado por
+el Supplement 84 (2004); para una región Doppler ese píxel **es** la línea de cero velocidad.
+**P8-a había descartado el eje de velocidad** con este argumento: «como el panel publica además
+la Vmax y el médico no la reportó mal, la escala de velocidad está bien». Esa premisa cayó, y con
+ella sus dos candidatas —trazo de varios latidos y `PhysicalDeltaX` del VINNO—, porque **las dos
+exigen que el eje del tiempo esté mal y los 305 ms son plausibles**.
+
+**LA MEDICIÓN QUE LO DECIDE**, con `scripts/_probe_p10regs.mjs` sobre el pendrive (solo lectura):
+320 archivos **GE Vivid iq**, **484 regiones**, **138 con el eje Y en cm/s**.
+
+| | lectura **RELATIVA** (la del estándar) | lectura **ABSOLUTA** (la de la app hasta hoy) |
+|---|---|---|
+| `ry0` cae dentro del recuadro | **138 / 138** | 71 / 138 |
+| el cero de velocidad cae dentro del recuadro | **138 / 138** | 71 / 138 |
+| `rx0` cae en un borde del recuadro | **97 / 138** (el ancho exacto) | 0 / 138 |
+
+Y un caso que lo decide **solo, sin estadística**: un **Doppler tisular** del pendrive
+(`dy = −0,1119`) da **±25 cm/s con la base centrada** leído relativo, y **0 a −49 cm/s con la base
+pegada al borde de arriba** leído absoluto — ahí la e′ y la a′ **no se podrían medir**. Ningún
+equipo dibuja un tisular así.
+
+**QUÉ AFECTABA**: un **offset constante de `y0 · dy` cm/s en TODA velocidad del visor**, que
+arrastraba la Vmax, los dos gradientes —`4V²`, o sea el error entra **al cuadrado**—, el VTI
+(`offset × tiempo`) y la línea punteada que el visor dibuja hasta la base. En este pendrive va de
+**22,8 a 292,1 cm/s, mediana 110,1 (1,1 m/s)**. **NO afectaba el eje del tiempo** —`_dcmImgMsEntre`
+usa una **diferencia** y el píxel de referencia se cancela— ni las distancias 2D.
+
+**LA CUENTA DEL CASO CIERRA, Y LA REPRODUCCIÓN TAMBIÉN.** Con el tiempo intacto,
+`136,7 = 21,66 + C·0,305` → **C = 377 cm/s**, y entonces `Vmax_real = 1,29 m/s` con velocidad
+media 0,71 → **media/pico = 0,55**, la forma típica de una envolvente de tracto de salida. La
+hipótesis de «escala mal leída por 6,31×» daría **media/pico 0,885**, una envolvente casi cuadrada
+que no existe. Reproducido en el navegador con un recuadro que arranca en la fila 400 con
+`dy = −0,9425` y una envolvente de un latido de esa forma: **lectura vieja 136,9 cm, 5,06 m/s y
+306 ms** —el médico reportó 136,7 / 5,06 / 305— y **lectura nueva 21,73 cm**, contra los **21,66**
+del equipo: un **0,3 %**.
+
+**2.1 · `_dcmImgBaseY(r)` ES EL DUEÑO ÚNICO DE LA FILA DEL CERO** y devuelve `y0 + ry0`. Lo leen
+`_dcmImgVelocidadEn`, el chequeo de coherencia y la fila que el visor guarda para dibujar la línea
+hasta la base — con la cuenta escrita en tres lugares, el día que cambie uno de los tres queda
+viejo, y **el dibujo confirmaría el error en vez de delatarlo**. `_dcmImgRegionVelocidad` exige
+además `isFinite(r.y0)`: sin ella, un archivo roto que omita ese tag (Tipo 1, obligatorio) caería
+en una fila cero corrida por el alto entero del recuadro en vez de en «acá no se mide velocidad».
+
+**2.2 · EL CHEQUEO DE COHERENCIA ES EL DETECTOR DE ESTA MISMA CLASE DE DEFECTO.**
+`_dcmImgEscalaVelDudosa(r)` avisa cuando el cero que declara el archivo cae **fuera del recuadro
+del trazo**: con la lectura vieja disparaba en **67 de 138** regiones del pendrive y en el caso del
+VINNO; con la corregida, en **NINGUNA de las 138**.
+⚠️ **AVISA Y NO RECHAZA**, y es deliberado: un equipo **puede** correr la base fuera del recuadro
+para ganar rango en un flujo de un solo sentido, y ahí sería un falso positivo. Rechazar le
+sacaría al médico una medición buena; avisar le deja el número, la marca por fila y el camino a
+calibrar a mano, que es lo que el pedido pide. Declarado en **P10-f**.
+Y el mensaje de la **banda de VTI (0,5–150 cm, que NO se movió)** pasa a nombrar la escala y a
+ofrecer calibrarla: antes mandaba a revisar el trazo y nada más, y la mitad de las veces el trazo
+está bien y lo que está mal es el eje.
+
+**2.3 · LA CALIBRACIÓN MANUAL SALE DEL `prompt` NATIVO.** Se retiran el `prompt` y los tres
+`alert` de ese camino. En su lugar, **tres cuadros propios** con el molde de `_medCalPedirMm`
+—se crean y se destruyen, Escape cortado **en captura**, todo por `textContent`—:
+`_medCalPedirVel(cual)` (devuelve cm/s o `null`), `_medEscalaCartel(motivo)` y
+`_medAviso(titulo, texto)`.
+⚠️ **LOS DOS ÚLTIMOS NO DEVUELVEN UNA PROMESA, a propósito**: la medición ya está hecha y guardada
+cuando salen. Una promesa que sólo un clic resuelve es lo que colgó la pasada de la tanda EQ hora
+y media en el lote 18.
+⚠️ **`_medVelClic` PASA A `async`, Y ESO TRAE LA TRAMPA DE `_vBind`**: la vista se captura ANTES
+del `await` y se vuelve a entrar en ella con `_vCon`, porque su `finally` repone la vista anterior
+en cuanto vuelve la parte sincrónica — sin eso, **calibrar en la vista B escribiría en la A**. Con
+el `prompt` nativo el problema no existía porque bloqueaba el hilo: es el precio de haberlo
+cambiado, y es la misma trampa que `_medClic` y «Listo» del Simpson ya pagaron. Y se vuelve a
+mirar `_medCalibrandoVel` **después** del `await`: si la imagen cambió, **falla hacia NO calibrar**.
+⚠️ **SE PREGUNTA EL VALOR DE CADA MARCA Y NO «LA DISTANCIA ENTRE LAS DOS»**, que es lo que el
+pedido decía, y queda declarado: de dos valores salen la escala **y la posición del cero**, y una
+velocidad sin el cero no se puede calcular —no es la diferencia entre dos puntos marcados, es la
+altura de **uno** sobre la base—.
+
+**2.5 · LA UNIDAD SE ELIGE Y SE VE.** El cuadro trae un selector **m/s o cm/s** al lado del
+número, con m/s por omisión. El `prompt` viejo pedía m/s y nada más, así que quien lee la regla
+del equipo en cm/s tenía que dividir de cabeza por 100 — y un error ahí es un **factor 100** en el
+VTI. La conversión a cm/s vive en **un solo lugar**. Medido: **1,5 m/s y 150 cm/s dan el mismo
+número interno**.
+⚠️ **NI EL CAMPO NI EL SELECTOR LLEVAN `id`**, y eso es lo que los deja fuera del censo del
+estudio y del Excel **por construcción**: los dos recorren `input[id]` y `select[id]`.
+
+**2.4 · DE DÓNDE SALIÓ LA ESCALA SE DICE SIEMPRE.** Cada fila del panel de VTI publica
+**«escala del archivo»**, **«escala vel. a mano»** o **«⚠️ escala dudosa»**. Antes la ausencia de
+la marca significaba «del archivo», **y una ausencia no se lee**: una fila sin marca y una fila de
+una versión vieja que no la traía se ven igual. Y la procedencia **viaja hasta el botón que carga
+los VTI al informe**, que es el último lugar donde el médico la puede ver. `_medCalVelFrase()`
+pasa a ser el dueño único de la frase de la escala, que dicen la confirmación del momento y el
+panel guía.
+⚠️ **LO QUE NO SE HIZO: la calibración NO se guarda con el estudio**, y se declara con su motivo
+en **P10-b**. `_medCalibVel` vive en la vista del visor y `medCambioDeImagen` la borra, por diseño
+desde MEDIR-1; persistirla exige una **clave estable por imagen**, y el visor abre imágenes por
+**cuatro puertas** de las cuales **sólo una** tiene hoy un identificador que llegue a `_cineAbrir`.
+Las tres opciones, con lo que cuesta cada una, están en P10-b. **La decisión es del médico.**
+
+**COBERTURA: CINCO casos nuevos, TC-1004 a TC-1008** —escala bien leída sobre las regiones
+**reales** del pendrive, escala ausente en sus cuatro formas, unidad en otra escala, calibración
+manual, y el caso del VINNO de punta a punta—. **CUATRO de los cinco caen contra `13af3de`** con
+el mismo archivo de casos; **TC-1005 pasa en los dos y se declara** (**P10-e**): la app ya
+rechazaba sin escala y los dos mensajes ya ofrecían calibrar, así que es una **guarda de
+regresión** y no lo que discrimina.
+**DOS casos adaptados, los dos con condiciones INVERTIDAS y los dos cayendo contra la línea
+base**: **TC-193** (cuatro condiciones nuevas: la fila del cero es `y0 + ry0`, no es la `ry0`
+cruda, cae dentro del recuadro, y en la `ry0` cruda la velocidad **ya no** es cero) y **TC-197**
+(ocho, entre ellas que el valor se pide con un **cuadro propio** y que `window.prompt` **no se
+llama nunca** —espiado—, y que **0 y 50 cm/s** dan la misma escala que 0 y 0,5 m/s daban antes).
+
+⚠️ **TC-187 SALE ROJO Y NO ES DE ESTA TANDA, y está medido**: falla **idéntico** contra `13af3de`
+con el mismo archivo de casos y sólo el `index.html` distinto. Es el **P5-a** que esta casa ya
+declara, sensible al lote.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
+
+⚠️ **DOS TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios comentarios**,
+por trigesimoséptima tanda seguida: **tres** veces en el cuerpo de TC-197, y lo cazó
+`node --check`. Los cinco casos nuevos se escribieron en un archivo aparte y los insertó un
+guardián que **cuenta** los acentos graves y **aborta** antes de tocar nada. (2) **Una medición
+que simulaba la lectura vieja poniendo `y0` en cero**, que movía **también el recuadro** y dejaba
+el cero cayendo adentro — o sea que el chequeo decía que no había nada que objetar **sobre el caso
+que vino a detectar**. Se simula corriendo la `ry0`, no el recuadro.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por decimoctava tanda
+seguida: la orden no la pedía y el presupuesto se fue en las dos tareas y su verificación.
+
+Lo declarado, en **P10-a** a **P10-g** —con **P8-a CERRADO** por esta tanda, y su guarda de
+duración y su aviso de trazo rechazado movidos a **P10-c** y **P10-d**—; el mapa, en
+`docs/mapa/p10-escala-velocidad.md`; el inventario de la causa, en `docs/INVENTARIO_P10.md`; la
+guía manual para la Mac y para Windows, en `docs/GUIA_PRUEBA_P10.md`; las sondas, en
+`scripts/_probe_p10regs.mjs` (el censo del pendrive), `scripts/_probe_p10.mjs` (la reproducción
+del caso) y `scripts/_probe_p10b.mjs` (los cuadros propios y las marcas).
 
 **La tanda P9 (2026-11-22) — el modelo de imágenes del médico, guardar/reabrir/exportar, los
 duplicados y la pantalla.** CUATRO tareas, CUATRO commits (uno por tarea). Sello

@@ -40,6 +40,92 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## P10 — la escala de velocidad de un Doppler espectral (2026-11-21)
+
+### P10-a · ✅ LO QUE SE HIZO, y lo que hace falta para cerrar el caso del VINNO del todo
+
+La causa está **medida y corregida** y el caso **reproducido** (TC-1008). Lo único que falta es
+confirmación: **un `.dcm` del VINNO** —el PW de TSVI del caso— para comprobar el número exacto.
+En el pendrive no hay ninguno: las 484 regiones son todas **GE Vivid iq**, y el repositorio
+tampoco tiene uno.
+
+**La corrección NO depende de ese archivo**: la regla está verificada contra 138 regiones reales
+y contra el texto del estándar.
+
+### P10-b · ⚠️ DECISIÓN DE MAICOL · la calibración manual de velocidad NO se guarda con el estudio
+
+El punto 2.4 pedía que la procedencia de la escala «se guarde con el estudio sin agregar campos
+nuevos al modelo de datos clínico más allá de lo estrictamente necesario, y si hace falta uno,
+reportalo». **Hace falta uno, y por eso no se hizo.**
+
+**Lo que SÍ se hizo** y no necesita ningún campo: la procedencia se **ve** en los cuatro lugares
+donde el médico lee el número —el panel guía, la fila de cada envolvente, la fila de cada
+velocidad y el renglón arriba del botón que carga los VTI al informe—.
+
+**Lo que no se puede hacer sin un campo nuevo.** `_medCalibVel` vive en la **vista del visor** y
+`medCambioDeImagen` la borra, por diseño desde MEDIR-1. Persistirla exige una clave estable por
+imagen, y **el visor abre imágenes por cuatro puertas** —el cineloop de disco (que sí trae un
+`id` de `CeiboCine`), un slot de la biblioteca, el pendrive y la tira—, de las cuales **sólo una**
+tiene hoy un identificador estable que llegue hasta `_cineAbrir`.
+
+**Las tres opciones, con lo que cuesta cada una:**
+
+1. **Guardarla con la imagen, en `CeiboImg`**, como ya viajan `noPdf` y `_srcKey`. **No es un
+   campo del estudio ni una columna de Excel**, son unos 40 bytes por imagen, y un registro viejo
+   que no la traiga simplemente no la repone. **Es la opción correcta.** Lo que cuesta: hacer que
+   el `id` de la imagen llegue a `_cineAbrir` por las cuatro puertas, que es el trabajo de verdad.
+2. **Guardarla en `localStorage` por estudio + nombre de archivo.** Barato, pero **no viaja en el
+   respaldo** ni al exportar el estudio: el médico que reabre en otra máquina no la tiene.
+3. **No guardarla** —lo de hoy—. El costo: si el médico calibró a mano, reabrir el estudio
+   significa volver a calibrar. Lo que NO pasa es que un número quede con una escala que ya no
+   está, porque las mediciones del visor tampoco sobreviven.
+
+**Lo fija TC-1007**, que mide que hoy la calibración muere al cambiar de imagen: el día que se
+implemente, ese caso se pone rojo y hay que invertir su condición.
+
+### P10-c · ⚠️ DECISIÓN DE MAICOL · falta una guarda de duración del trazo (heredado de P8-a)
+
+**La app no tiene ninguna guarda de duración.** Si el médico recorre la envolvente de varios
+latidos, el VTI los suma todos y la banda de plausibilidad (0,5–150 cm) admite **seis**. Hoy el
+único discriminador está en pantalla: los **ms** que la fila imprime.
+
+**Es un corte clínico nuevo**, así que lo decide Maicol. Las dos preguntas:
+1. ¿Qué duración máxima? (un tiempo de eyección no pasa de unos 400 ms; un llenado diastólico a
+   frecuencias bajas puede ser más largo)
+2. ¿Rechaza como la banda, o publica con una salvedad en la fila, como la escala dudosa?
+
+### P10-d · ⚠️ ABIERTO · un trazo rechazado deja la fila vieja a la vista sin decirlo
+
+Heredado de P8-a y **sigue sin hacerse**: cuando un trazo se rechaza —por la banda o por la
+escala—, el médico ve el rechazo y una fila con un número, y los lee juntos. La fila es de **otro**
+trazo. No necesita ninguna decisión clínica; necesita una línea en el mensaje del rechazo.
+
+### P10-e · ⚠️ DECLARADO · TC-1005 pasa en los dos árboles
+
+El caso de «la escala ausente» **pasa también contra `13af3de`**, y se declara en vez de
+presentarlo como si discriminara: la app **ya** rechazaba el VTI sin escala, y los dos mensajes
+—el de «falta la de velocidad» y el de «la del tiempo no se puede calibrar»— **ya** decían lo que
+el caso exige. Es una **guarda de regresión** sobre una conducta que ya estaba bien, no la prueba
+del cambio. Los otros cuatro casos nuevos caen 0/4 contra la línea base.
+
+### P10-f · ⚠️ DECLARADO · el aviso de escala dudosa puede ser un falso positivo
+
+`_dcmImgEscalaVelDudosa` dispara cuando el cero que declara el archivo cae **fuera del recuadro
+del trazo**. Un equipo **puede** correr la línea de base fuera del recuadro a propósito para ganar
+rango en un flujo de un solo sentido, y ahí el aviso sale sobre una escala que está bien.
+
+**Por eso avisa y no rechaza**, y por eso la medición queda guardada con su marca: el costo de un
+falso positivo es un cartel de más, y el de un falso negativo es un VTI inventado en un informe
+firmado. **Sobre los 320 archivos del pendrive no sale ni una vez.**
+
+### P10-g · ⚠️ DECLARADO · los `prompt` y `alert` que quedan en el visor
+
+Esta tanda sacó el `prompt` nativo y los tres `alert` **del camino de calibración de velocidad**,
+que es lo que tocaba. **El resto del visor sigue con `alert`** —los rechazos de medición, el aviso
+de que una imagen no se pudo leer— y el cajón Doppler y el 2D siguen con `prompt` para corregir un
+valor a mano (`dopCorregir`, `d2Corregir`). **No se tocaron a propósito**: son preexistentes, los
+sustituyen una veintena de casos de la batería, y cambiarlos es una tanda propia.
+
 ## P9 — el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla (2026-11-22)
 
 Línea base `bada886`; sello **`v20261121-2158`**, md5 `d6a7d8dd`. Cuatro commits, uno por tarea.
@@ -351,7 +437,33 @@ pasada, o el caso sale rojo con razón**. Con la documentación al día, **TC-75
 > El inventario medido está en `docs/INVENTARIO_P8.md`; el mapa, en
 > `docs/mapa/p8-biblioteca-pdf.md`; la guía manual para Windows, en `docs/GUIA_PRUEBA_P8.md`.
 
-### P8-a · ⚠️ ABIERTO Y SOLO REPORTADO · el VTI de una fija Doppler del VINNO: 136,7 cm contra los 21,66 del equipo
+### P8-a · ✅ RESUELTO por la tanda P10 (2026-11-21) · el VTI de una fija Doppler del VINNO: 136,7 cm contra los 21,66 del equipo
+
+⚠️ **LA CAUSA ESTABA EN EL EJE DE VELOCIDAD, Y ESTA ENTRADA LA HABÍA DESCARTADO.** El
+argumento era: «como el panel publica además la Vmax y el médico no la reportó mal, la escala
+de velocidad está bien». **Esa premisa cayó**: el médico reporta ahora **Vmax 5,06 m/s** y dice
+que no es creíble en un TSVI. Las **dos candidatas** de abajo —trazo de varios latidos y
+`PhysicalDeltaX` del VINNO— quedan **descartadas**, porque las dos exigen que el eje del
+**tiempo** esté mal y los 305 ms son plausibles.
+
+**La causa real, medida:** `_dcmImgVelocidadEn` leía `ReferencePixelY0` (0018,6022) como una
+**fila absoluta** de la imagen, y el estándar dice que es un desplazamiento **relativo** a
+`RegionLocationMinY0` (0018,601A). Eso metía un offset constante de `y0 · dy` cm/s en toda
+velocidad. Todo en `docs/INVENTARIO_P10.md`; el mapa, en `docs/mapa/p10-escala-velocidad.md`.
+
+**Reproducido**: con la lectura vieja, **136,9 cm y 5,06 m/s**; con la corregida, **21,73 cm**
+contra los 21,66 del equipo (0,3 %). Lo fija **TC-1008**.
+
+**Lo que SIGUE abierto de esta entrada** es la **guarda de duración del trazo** —si el médico
+recorre varios latidos, el VTI suma todos y la app no lo dice—, que es un **corte clínico
+nuevo** y lo decide Maicol. Las dos preguntas siguen siendo: (1) ¿qué duración máxima?
+(2) ¿rechaza como la banda, o publica con una salvedad? Se movió a **P10-c**.
+
+**Y la mejora que no necesitaba decisión sigue sin hacerse:** cuando un trazo se rechaza,
+decir que la fila de arriba es de **otro** trazo. Se movió a **P10-d**.
+
+#### Lo que esta entrada decía cuando estaba abierta (se conserva, no se reescribe)
+
 
 **La causa NO está cerrada, y no se tocó una línea de cálculo.** Lo medido y leído entero:
 
