@@ -163,6 +163,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar el «WHAT IF» de la estenosis aórtica**: el botón y su azul, las cuatro situaciones, el globo, el panel flotante con su arrastre, las fórmulas del flujo y del gradiente, el área que se abre con el flujo, o lo que le hace al dibujo 2D | `docs/mapa/pant37-what-if.md` |
 | **Tocar la ALINEACIÓN de las dos vistas del visor** —la plantilla única de barra, el «✕ Cerrar vista» de cada vista, el prefijo libre, la columna de 340 px con su corte de 1369 px—, **el RESULTADO integrado abajo y centrado**, **la TABLA que se muda a la columna de la vista activa**, **«+ Vista» con IMÁGENES FIJAS** —su marca, la deduplicación por nombre/cuadros/bytes o los homónimos distinguidos— o **el SIMPSON bloqueado en una vista de imagen fija** | `docs/mapa/medir4a-vistas-cierre.md` |
 | **Tocar el PANEL del visor** —el negro de los costados, el tope del modal, el selector FIJO con su scroller—, **la TABLA de una medida por fila** con su valor grande, **el GLOBO ⓘ del panel de medición**, **el orden del VI o el Diam TSVI en Aorta**, **los BOTONES de la barra y su contraste**, **la CALIBRACIÓN DE VELOCIDAD con dos valores** con su línea del cero y el modo M, **el FAC del VD** o **la banda de «Vmax pulmonar»** | `docs/mapa/medir3-panel-botones-calibracion.md` |
+| **Tocar la BIBLIOTECA de imágenes o la GRILLA DEL PDF de la pestaña Imágenes** —las dos secciones, la ✕ de arriba contra la de abajo, con qué marca nace una imagen, el contador de fijas y cines, la tira que no repite lo que ya tiene casilla—, **el REPOBLADO de la reimpresión**, **la deduplicación de CINELOOPS**, **el registro de lo que ya entró y el cartel de las tres opciones**, o **la galería de «Imágenes guardadas» que se caía al marcar todo** | `docs/mapa/p9-biblioteca-pdf-duplicados.md` |
 | **Tocar la BURBUJA que queda al cerrar un cartel TERMINADO, la VENTANA DE SILENCIO de la app con su pestillo, la CADENCIA del sondeo ocioso, los CINCO botones del cartel de la tanda —los tres apagados y los dos vivos—, los NOMBRES que un dato tiene en el ecógrafo, las MINIATURAS de «Imágenes sin estudio» con el borrado de a una, o el mensaje de MEDIR una fija** | `docs/mapa/p7-burbuja-silencio-botones.md` |
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
@@ -293,7 +294,27 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,75 MB / 190.371 líneas**, medido con `wc -c` y `wc -l` el 2026-11-21 al cierre de la tanda **EQ** (los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios), sobre el árbol ya sellado: sello **`v20261121-1813`**, md5 **`7b8c4739`**.
+  sin frameworks. Hoy **13,80 MB / 191.068 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P9** (el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla), sobre el árbol ya sellado: sello **`v20261121-2158`**, md5 **`d6a7d8dd`**.
+  El diff de P9 son **798 líneas agregadas y 101 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `bada886` **sobre el árbol ya sellado**, de las que **454 son código
+  de verdad**, 328 comentario y 16 en blanco — las 798 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y **UNA** sola
+  aparición de `innerHTML` en el diff, que es **`g.innerHTML = ''`** —la cadena vacía, con la que
+  la grilla nueva se limpia antes de repintar—: Semgrep queda en su línea base exacta de 126.
+  **CERO `<input>`, `<select>` y `<textarea>` nuevos en el marcado**, que es lo que deja todo esto
+  fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y
+  las **457** columnas quietas. **Y cero cortes clínicos, cero fórmulas y cero umbrales.**
+  **DOS ids nuevos en el marcado** —`img-pdf-grid` e `img-pdf-cnt`—, y **ninguno de los dos cae en
+  ninguno de los veintitrés barridos por sufijo o prefijo de id del archivo** (13 `id$=` y 10
+  `id^=`), verificado uno por uno. Los otros tres que el diff muestra ya existían:
+  `img-pdf-todas` e `img-pdf-ninguna` **se mudaron** de la fila de slots a la sección de arriba, y
+  `eco-build-sello` reaparece porque el sello cambió.
+  ⚠️ **POR QUINCUAGÉSIMA SEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se
+  verificó de las dos formas que esta casa manda: `git show bada886:index.html` da **190.371**
+  líneas, **13.748.183** bytes y el md5 **`7b8c4739`**, los tres idénticos a lo que el renglón
+  decía, y el sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,75 MB / 190.371 al cierre de la tanda **EQ**, sello **`v20261121-1813`**, md5 **`7b8c4739`**.)
   ⚠️ **ES EL TERCER SELLO DE LA TANDA Y LOS DOS ANTERIORES NO VALEN COMO LÍNEA BASE**: el primero,
   `v20261121-1600` con md5 `68ec4373` y 190.359 líneas, es el de la pasada que se colgó en el lote
   18; después entró `c6a4357` —el «Cancelar» del cartel de Unir— sin resellar, y este tercero
@@ -1589,6 +1610,146 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda P9 (2026-11-22) — el modelo de imágenes del médico, guardar/reabrir/exportar, los
+duplicados y la pantalla.** CUATRO tareas, CUATRO commits (uno por tarea). Sello
+**`v20261121-2158`**, md5 **`d6a7d8dd`**, **191.068** líneas. Línea base **`bada886`**, el cierre
+de la tanda EQ. **Sin push: lo corre Maicol.** **El puente NO se tocó**, y ningún punto lo
+necesitaba.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas. Y **CERO**
+`<input>`, `<select>` y `<textarea>` nuevos, que deja todo esto fuera del censo del estudio y del
+Excel **por construcción**: cero campos guardados nuevos y las **457** columnas quietas.
+
+**TAREA 1 · EL MODELO DEL MÉDICO.** Probó el de P8 —una sola grilla con una pastilla por celda— en
+Windows y pidió el suyo. **Arriba** «📄 Imágenes que van al PDF» (`#img-pdf-grid`, nueva) y
+**abajo** «🗂 Biblioteca de imágenes del estudio». Las dos leen el MISMO `imgSlots` con el MISMO
+predicado (`_imgEnPdf`) y las repinta el MISMO dueño (`imgRender`), así que **no pueden decir cosas
+distintas**; y la de arriba sale de `infMinCapturas()`, o sea que **ES** la lista de las miniaturas
+del Informe por construcción y no por una promesa.
+- **La ✕ de ARRIBA sólo saca del PDF** y no pregunta nada; **la de ABAJO elimina**, con cartel
+  **propio** que dice la cantidad —se retira el `confirm` nativo por orden expresa— y se lleva
+  además el **original DICOM** y el **registro de la tabla de medidas** que cuelguen de esa
+  casilla: «de la biblioteca y de todos lados».
+- **Lo que el médico pone a mano va TAMBIÉN al PDF**: cuarto origen `'mano'` decidido en la puerta
+  **única** (`imgCompressLoad`) y no en cada llamador — el «＋ Agregar imagen», la foto del
+  celular, el pegado y el **📄** de una tarjeta de la biblioteca. Todo lo demás sigue naciendo
+  fuera. Un video nunca sale, y si se lo arrastra arriba **se lo dice** en vez de no hacer nada.
+- **El renglón cuenta «N imágenes fijas y M cines»**: la cuenta de cines la publica la tira —es la
+  única que la sabe, lee IndexedDB— y el renglón salió a `imgCuentaPintar` porque la tira **no
+  puede llamar a `imgRender`**: hay un `MutationObserver` sobre `#img-grid` que vuelve a disparar la
+  tira y las dos se llamarían en círculo.
+- ⚠️ **UN SOLO ELEMENTO POR COSA (1.6): la tira pasa a dibujar SOLO lo que NO tiene casilla.** Una
+  tabla de medidas aparecía **tres** veces —su casilla, su ficha de slot y su registro de disco— y
+  el médico lo reportó con esas tres palabras. El vínculo se sella en `_docId`, que se persiste en
+  las **dos** allowlists. Y una fija **sin** casilla ahora dice si trae escala: esa nota se habría
+  perdido al dejar de dibujarse las fichas de los slots.
+- El clic abre el visor **desde las dos grillas** —un solo envoltorio parametrizado por el
+  contenedor, no una copia— y el doble clic marca «ampliada», que ahora **dice la palabra** en las
+  dos y no sólo un reborde de color.
+
+**TAREA 2 · UN SOLO DEFECTO EXPLICABA LOS TRES SÍNTOMAS, Y ERA UNA ALLOWLIST CORTA.** El repoblado
+de `imgSlots` de la reimpresión —el camino de «Exportar PDF» desde Guardados— copiaba **tres**
+campos y tiraba todo lo demás. Como `generarPDFReal` lee el `imgSlots` **vivo**, el PDF de un
+estudio guardado salía con **TODAS** las imágenes: `noPdf` no viajaba y `!!undefined` es `false`.
+**Medido instrumentando `addImage` y contando sólo las imágenes del caso: 4 de 4 contra `bada886`
+y 2 de 4 hoy**, que es lo que el médico marcó. Y no era sólo el PDF: esa ventana deja los slots así
+hasta que la restauración los repone, y en el medio el médico puede guardar — ahí `imgPersistir`
+escribía en disco slots sin `noPdf` (la decisión de sacar una imagen del papel se perdía **para
+siempre**: el 2.2) y sin `_srcKey` (la deduplicación se quedaba sin clave y un reenvío volvía a
+entrar entero: el 2.4). Tampoco viajaban `videoId` ni `esquema`: un video se reimprimía como
+**foto**. **La allowlist es ahora la misma que la de `imgRestaurar`**, a propósito.
+⚠️ **2.5 NO SE REPRODUCE, y se declara en vez de inventar un arreglo** (**P9-a**): TC-996 mide que
+el cineloop queda bajo el uuid del estudio, que el **uuid no cambia** al guardar otra vez
+—«Sobreescribir» lo conserva— y que la tira lo vuelve a dibujar **sola**. Lo que SÍ se encontró es
+el camino silencioso más probable: `_cinePendientesPersistir` vacía la cola **antes** de escribir y
+los fallos sólo se publicaban donde nadie los lee; con `n === 0` no salía ni el toast. Hoy lo que
+falló **vuelve a la cola** y se avisa con el cartel propio, que no se desvanece.
+
+**TAREA 3 · DUPLICADOS Y CARTEL DE LLEGADA.**
+- **3.1** · `_cineClave` —nombre, cuadros, peso y hash de los primeros 4 KB del primer fragmento—
+  y se usa en los DOS lugares donde puede entrar un repetido: la **cola** (el puente entrega un
+  objeto nuevo por cartel) y el **disco** (el caso del médico: guardar, cerrar, reabrir y
+  reenviar). Lo que no se vuelve a escribir **se dice**.
+- **3.2** · `ett_clnk_vistas` guarda el **ID DEL PUENTE** y nada más —se deriva del contenido, o
+  sea que el mismo archivo reenviado vuelve con el mismo id: es la regla 3.6— con su destino, tope
+  de 4.000 y **cero datos del paciente**. La alternativa, comparar el hash de cada imagen de cada
+  estudio, obligaría a leer de IndexedDB **todos** los `dataURL` de **todos** los pacientes para
+  contestar una pregunta de pantalla: cientos de MB, que es justo el problema del punto 4.1.
+- **3.3** · con repetidas el cartel pregunta **qué** agregar —«solo las nuevas (N)» primera,
+  «todas igual (M)» y «Descartar»— y después el destino de siempre; con todas repetidas lo dice y
+  el primer botón queda **apagado diciendo por qué**. **No** se usa la pregunta anidada que
+  espera: al sondeo lo dejaría parado mientras el médico piensa.
+- **3.4** · los tres números que el médico leyó **no estaban mal**: la vista previa y la burbuja
+  salen de `/v1/imagenes` y el chip del panel de `/v1/estado`, que cuenta **todo**, incluidas las
+  de un equipo sin autorizar —que §P8 dice que NO se publican en la lista—. El chip no decía **qué**
+  contaba; ahora lo dice. El número no se cambia.
+- **3.5** · «Llegó 1 imagen nueva. Hay 3 imágenes esperando.», y el equipo, la hora y la
+  aclaración bajan a una segunda línea más chica.
+
+**TAREA 4 · PANTALLA Y MEMORIA.**
+- **4.1** · ⚠️ **LA PÁGINA SE CAÍA AL MARCAR TODO Y NO ERA LA MEMORIA DE LOS VIDEOS**:
+  `igSelToggle` repinta **la lista entera de Guardados en cada ítem**, así que «☑ Todas» sobre 57
+  miniaturas eran **57 repintados completos** —trabajo cuadrático—. Hoy la selección se mueve sin
+  tocar el DOM y se repinta **una** vez. Y la **tilde del cineloop**: el bloque del modo elegir
+  vivía dentro de `igImgAdornar`, **que la celda de un cineloop nunca llama** —esa rama vuelve
+  antes—, así que se podía elegir y no mostraba la marca: «Marcadas 57 de 57» con veintidós sin
+  marca. Salió a `igSelAdornar` y la llaman las dos ramas. El póster pasa a pintarse **en
+  diferido**, por el mismo dueño que las fijas.
+- **4.2** · el panel no se refrescaba tras un gesto por la **regla 1 de la tanda EQ** (con el foco
+  adentro de la tarjeta no se repinta): después de «Guardar apodo» el foco está en el **botón**,
+  que está adentro. `clnkLeerEquipos(forzar)` saltea **sólo** esa regla; la regla 2 sigue valiendo.
+- **4.3** · por **decisión expresa del médico**, «cable directo» y «tipo no determinado». ⚠️ Esto
+  **revierte el reparo de EQ-b** y queda dicho: la app sabe por qué **interfaz** entró, no si el
+  cable va derecho al ecógrafo o a un switch con un router detrás (**P9-c**).
+- ⚠️ **4.4 NO SE REPRODUCE** (**P9-b**): TC-1001 recorre el camino exacto —tanda abierta con su
+  cartel, termina sola, y la ✕— y la burbuja aparece la primera vez. **Ese caso pasa también contra
+  `bada886`**, o sea que ya era correcto; queda como guarda del camino que TC-971 no cubría.
+- **4.5** · auditoría y propuesta, **sin implementar compresión**:
+  `docs/AUDITORIA_MEMORIA_P9.md`. **EL HALLAZGO**: el renglón de la barra junta **dos mediciones**
+  —el porcentaje es del **origen entero** y los MB son **sólo** del almacén de fijas—, así que
+  «5 % · 1,7 MB usado» con 516 MB de contenido es exacto y a la vez incomprensible: los cineloops
+  son el 99,7 % del espacio y **no entran en el número que se lee**.
+
+**COBERTURA: DOCE casos nuevos, TC-992 a TC-1003.** Once caen contra `bada886` con el mismo
+archivo de casos; **TC-1001 pasa en los dos a propósito** y eso es su hallazgo. **OCHO adaptados**,
+con quince condiciones **INVERTIDAS** y su motivo escrito donde vive cada una: TC-234 (la tira no
+repite lo que tiene casilla, más una segunda fase que mide el icono y la nota cuando NO la tiene),
+TC-242, TC-185, TC-247, TC-978, TC-980 (pasa a responder el **cartel propio**, con la espera
+**acotada**: esa promesa sólo la resuelve un clic), TC-988 y TC-28 ya adaptados en su momento.
+⚠️ **Y EL REGISTRO DE 3.2 ATRAVIESA LOS CASOS, porque vive en disco a propósito**: la batería corre
+los mil en UNA página, así que un caso que descarta un envío le deja al siguiente sus ids marcados.
+Lo pagaron **TC-966, TC-990, TC-964, TC-873 y TC-905**, y se cierra en el **reset del runner** —que
+además saca el cartel propio que haya quedado abierto y devuelve la pestaña Config— y no en cada
+caso, por el mismo argumento de siempre.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta.
+**Las tres zonas, seleccionadas por el cuerpo de cada caso y no a ojo:** imágenes **113/119** →
+los seis rojos en cero (dos consecuencia autorizada, uno mío, tres preexistentes verdes aislados);
+reimpresión y persistencia **35/37** → los dos preexistentes; CeiboLink **83/87** → los cuatro
+cerrados por el reset.
+
+⚠️ **CUATRO TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios
+comentarios**, por trigesimosexta tanda seguida: **nueve** veces, y el guardián que cuenta los
+acentos graves del cuerpo antes de insertar cazó las de los casos nuevos. (2) **Una expresión
+regular escrita dentro del cuerpo de un caso NO sobrevive al template**: la barra invertida se
+pierde y el patrón de espacios queda en «s», o sea que **reemplaza todas las eses por espacios**
+—«con_escala» se leía «con_e cala»— y el caso daba un rojo sobre una app que se portaba bien; se
+cerró **reusando** el normalizador que el caso ya tenía. (3) **La marca para medir «se repintó»
+iba en el CONTENEDOR**, y el repintado hace `textContent = ''`, que se lleva los hijos y **deja**
+los atributos: «se repintó» y «no se repintó» daban lo mismo. (4) **`__t.guardar()` dos veces crea
+un estudio NUEVO** —pone `_ettEditandoId` en null—, así que el caso medía sobre el uuid del primero
+y veía cero.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por decimoséptima tanda
+seguida, y **ya es un problema medible**: este archivo pesa más de 580 KB y leerlo entero, que es
+lo que su primera regla manda, consume más de la mitad de una ventana antes de empezar.
+
+Lo declarado, en **P9-a** a **P9-g**; el mapa, en `docs/mapa/p9-biblioteca-pdf-duplicados.md`; las
+fichas, en `docs/mapa/tests-fichas-992.md`; la auditoría de memoria, en
+`docs/AUDITORIA_MEMORIA_P9.md`; la guía manual para la Mac y para Windows, en
+`docs/GUIA_PRUEBA_P9.md`.
 
 **La tanda EQ (2026-11-21) — los equipos de CeiboLink, el panel que no se redibuja y el borrado de
 a varios.** TRES partes (A, B y C) y SIETE commits. Sello **`v20261121-1813`**, md5

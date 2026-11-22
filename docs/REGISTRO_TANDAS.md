@@ -1,3 +1,47 @@
+## Tanda P9 — el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla (2026-11-22)
+
+**Sello** `v20261121-2158` · **md5** `d6a7d8dd` · **191.068** líneas · línea base `bada886`
+(cierre de la tanda EQ) · **sin push**. Cuatro commits, uno por tarea: `82a1d89`, `a081ac6`,
+`7714f16`, `83c80cb`.
+
+**Qué se hizo.** **T1** · el modelo del médico: arriba «Imágenes que van al PDF» (grilla nueva,
+que ES la lista de las miniaturas del Informe) y abajo la biblioteca con todo; la ✕ de arriba sólo
+saca del PDF y la de abajo elimina con cartel **propio** y se lleva lo que cuelga de la casilla; lo
+que el médico pone **a mano** nace también en el PDF; el renglón cuenta fijas y cines por separado;
+y la tira deja de repetir lo que ya tiene casilla, que es lo que hacía que una tabla de medidas
+apareciera **tres** veces. **T2** · el defecto grave: el repoblado de la reimpresión copiaba tres
+campos y tiraba `noPdf`, `_srcKey`, `videoId` y `esquema` — **un solo defecto explicaba los tres
+síntomas** (4 imágenes en vez de 2, la marca que volvía, y el reenvío que duplicaba). **T3** · un
+registro persistido de lo que ya entró (`ett_clnk_vistas`, sólo ids), los cineloops deduplicados por
+contenido en la cola y en el disco, el cartel con las tres opciones y el texto corto. **T4** · la
+galería que se caía al marcar todo (**57 repintados**, no la memoria de los videos), la tilde del
+cineloop, el panel que se pone al día tras un gesto, «cable directo» y «tipo no determinado», y la
+auditoría de memoria.
+
+**Lo medido contra la línea base, que es lo que prueba el defecto grave:** envolviendo `addImage` y
+contando **sólo las imágenes del caso**, el PDF de un estudio guardado emite **4 de 4** en
+`bada886` y **2 de 4** hoy.
+
+**Dos reportes NO SE REPRODUJERON y se declaran**: los cineloops que desaparecen al guardar y
+reabrir (**P9-a**) y la burbuja que no aparece la primera vez (**P9-b**, cuyo caso pasa también
+contra la base). Lo que sí se encontró en el primero —el camino silencioso de un cineloop que no se
+pudo escribir— quedó cerrado.
+
+**Cobertura.** TC-992 a TC-1003 nuevos (doce); once caen contra `bada886` y TC-1001 pasa en los dos
+a propósito. **Ocho adaptados**, con quince condiciones invertidas: TC-234, TC-242, TC-185, TC-247,
+TC-978, TC-980, TC-988 y TC-791/TC-899 (lote). El reset del runner limpia el registro de P9, el
+cartel propio y la pestaña Config: cinco casos de CeiboLink lo pagaron.
+
+**Seguridad.** Semgrep **126 WARNING / 0 ERROR** (línea base exacta), sin huérfanos nuevos, celular
+**38 ALTA** (línea base exacta), 17/17 bloques de JS inline parsean, **cero** `eval`/`new Function`,
+**un** `innerHTML` y es la cadena vacía, **cero** controles nuevos → cero campos guardados y las
+**457** columnas quietas.
+
+**Pendiente para Maicol:** el `git push`, y las decisiones de **P9-a** a **P9-g** —entre ellas las
+cuatro propuestas de memoria de `docs/AUDITORIA_MEMORIA_P9.md`—.
+
+---
+
 ## Tanda EQ — los equipos de CeiboLink, el panel que no se redibuja y el borrado de a varios (2026-11-21)
 
 **Sello** `v20261121-1813` · **md5** `7b8c4739` · **190.371** líneas · línea base `77196c5`

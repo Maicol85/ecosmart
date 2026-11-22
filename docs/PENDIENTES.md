@@ -40,6 +40,83 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## P9 — el modelo de imágenes del médico, guardar/reabrir/exportar, los duplicados y la pantalla (2026-11-22)
+
+Línea base `bada886`; sello **`v20261121-2158`**, md5 `d6a7d8dd`. Cuatro commits, uno por tarea.
+Mapa: `docs/mapa/p9-biblioteca-pdf-duplicados.md`. Guía: `docs/GUIA_PRUEBA_P9.md`.
+
+### P9-a · 2.5 · Los cineloops que «desaparecen al guardar y reabrir» NO SE REPRODUJERON
+
+**Qué se midió.** TC-996: con el toggle de guardado encendido, un cineloop escrito bajo el uuid del
+estudio sigue ahí después de guardar, cerrar y reabrir; el **uuid no cambia** al guardar otra vez
+—«Sobreescribir» lo conserva, verificado leyendo `guardarInforme`— y la tira lo vuelve a dibujar
+**sola**, sin que nadie pida el repintado. Contra `bada886` ese caso cae **sólo** por el renglón
+nuevo de la cuenta.
+
+**Qué sí se encontró y se cerró.** El camino silencioso más probable del síntoma:
+`_cinePendientesPersistir` vacía la cola **antes** de escribir —a propósito, para no dejar
+reintentos infinitos— y los fallos sólo se publicaban en `_cineFallosUltimo`, que lo lee la
+confirmación a CeiboLink y nadie más; con `n === 0` no salía ni el toast de éxito. Con un lote de
+87 MB, `CeiboCine.guardar` devolviendo `ok:false` por espacio deja al médico apretando Guardar sin
+ver nada y sin el cineloop en ninguna parte. Hoy lo que falló **vuelve a la cola** y se avisa con el
+cartel propio, que no se desvanece.
+
+**Lo que falta para cerrarlo de verdad:** el dato del médico. Qué decía el aviso al guardar (si
+decía algo), si el espacio estaba cerca del tope, y si los cineloops que vio en «Imágenes guardadas»
+eran los del estudio o los del pendrive. Con eso se puede apuntar la prueba.
+
+### P9-b · 4.4 · La burbuja que no aparece la primera vez NO SE REPRODUJO
+
+TC-1001 recorre el camino exacto del reporte —tanda **abierta** con su cartel en pantalla, la tanda
+termina **sola**, y la ✕— y la burbuja aparece la primera vez sin tocar nada más. **Ese caso pasa
+también contra `bada886`**, o sea que el comportamiento ya era correcto antes de esta tanda. Queda
+como guarda de regresión del camino que TC-971 no cubría.
+
+**Lo que no se pudo ejercitar:** un estado previo de la sesión del médico que no quedó registrado
+—por ejemplo haber cerrado antes el cartel de una tanda abierta, que pone
+`_clnkTandaCerradaPorMedico`—. Si vuelve a pasar, lo que hay que anotar es **qué se hizo antes** en
+esa misma sesión.
+
+### P9-c · 4.3 · «cable directo» revierte el reparo de EQ-b, y es decisión del médico
+
+La tanda EQ dejó escrito que **no** se dice «cable directo» por una interfaz de cable, porque un
+cable puede ir a un switch y con un router en el medio la frase es **falsa** justo en la fila donde
+el médico decide. El médico pidió decirlo igual. Está hecho; el reparo vive en el código y en la
+guía. **Si alguna vez un envío entra «por el cable» a través de un router, esa fila va a mentir.**
+
+### P9-d · El registro de lo que ya entró tiene tope y no sabe de otros dispositivos
+
+`ett_clnk_vistas` guarda hasta **4.000** ids y tira los más viejos por fecha. Un médico que supere
+eso pierde la memoria de lo **más antiguo**, que es el lado seguro: lo peor que pasa es que una
+imagen de hace meses se ofrezca como nueva. Y es **por navegador**: lo adjuntado en la Mac no se
+reconoce como repetido en Windows. Para eso haría falta que el dato viaje, o sea Supabase.
+
+### P9-e · Lo que quedó SIN HACER de este prompt
+
+1. **Nada de la Tarea 1 a la 4 quedó sin hacer**, salvo lo declarado en P9-a y P9-b, que son dos
+   reportes que no se reprodujeron.
+2. El punto **4.5 es auditoría y propuesta por orden expresa**, y así quedó:
+   `docs/AUDITORIA_MEMORIA_P9.md`. **No se implementó ninguna compresión.** Las cuatro propuestas
+   —`storage.persist()`, la barra honesta con aviso al 80 %, el respaldo en una carpeta y los dos
+   campos para Supabase— **esperan decisión del médico**.
+
+### P9-f · Rutas que siguen abriendo un diálogo nativo (preexistentes)
+
+La orden prohíbe diálogos nativos en **rutas nuevas o de prueba**. Las de esta tanda no abren
+ninguno —`imgBorrarBib` pasó al cartel propio y los avisos nuevos también—, pero quedan
+preexistentes: `_bibBorrar`, `cineBorrarGuardado`, `igSelEliminar`, el `confirm` de «Olvidar» y
+«Bloquear» de un equipo, y `_dcmCrudoPreguntar`. Ninguna se tocó. ⚠️ **Y cada una es una trampa para
+la batería**: un caso que la recorra y no sustituya `confirm` cuelga la corrida entera esperando un
+clic.
+
+### P9-g · La barra de espacio sigue juntando dos mediciones
+
+Es el hallazgo del punto 1 de la auditoría y **no se arregló**, porque arreglarlo es la propuesta
+4.2 de ese documento y la orden pedía sólo auditar. El renglón visible mezcla el **porcentaje del
+origen entero** con los **MB de las imágenes fijas**: «5 % · 1,7 MB usado» con 516 MB de contenido.
+
+---
+
 ## PROMPT 6 — la tanda, la burbuja, los formatos del buzón y los datos del ecógrafo (2026-11-20)
 
 ### P6-a · Con DOS equipos mandando a la vez, el cartel sigue a la tanda MÁS NUEVA y la otra espera
