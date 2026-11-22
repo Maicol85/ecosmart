@@ -154882,9 +154882,35 @@ function _cineSacarPendiente(i) {
 }
 window._cineSacarPendiente = _cineSacarPendiente;
 
+/* ══ P9 · 3.1 · LA CLAVE DE UN CINELOOP, PARA NO DUPLICARLO ════════════════════════════════
+   Las fijas no se duplican desde P8 porque `imgCompressLoad` compara `_srcKey` --nombre mas hash
+   del contenido--. Los cineloops no tenian NINGUNA guarda, y el medico lo midio: tres se volvian
+   seis y despues nueve, porque cada cartel del puente ofrece TODO lo acumulado y no solo lo nuevo.
+   La clave se arma con el nombre, la cantidad de cuadros, el peso total y un hash del PRIMER
+   fragmento: los cuatro juntos son lo que distingue dos cineloops del mismo estudio, y no cuesta
+   recorrer los 102 cuadros de uno de 7 MB para saber si ya esta. */
+function _cineClave(loop) {
+  if (!loop || !loop.d || !loop.d.frags || !loop.d.frags.length) return '';
+  var fr = loop.d.frags, by = 0;
+  for (var i = 0; i < fr.length; i++) by += fr[i].length;
+  var h = 0x811c9dc5, f0 = fr[0], tope = Math.min(f0.length, 4096);
+  for (var k = 0; k < tope; k++) {
+    h ^= f0[k];
+    h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+  }
+  return String(loop.nombre || '') + '|' + fr.length + '|' + by + '|' + h.toString(16);
+}
+window._cineClave = _cineClave;
+
 function _cineEncolar(loop) {
   if (!loop || !loop.d) return false;
   if (_cinePendientes.some(p => p.loop === loop)) return false;
+  /* ⚠️ P9 · 3.1 · Y TAMPOCO POR CONTENIDO: el mismo objeto no entra dos veces desde siempre,
+     pero el puente entrega un objeto NUEVO en cada cartel para el mismo archivo. Sin esto, dos
+     carteles seguidos antes de guardar dejaban el cineloop dos veces en la cola --y dos veces en
+     disco al guardar--. */
+  var cl = _cineClave(loop);
+  if (cl && _cinePendientes.some(p => _cineClave(p.loop) === cl)) return false;
   _cinePendientes.push({ loop: loop, nombre: String(loop.nombre || '') });
   return true;
 }
@@ -154907,7 +154933,29 @@ async function _cinePendientesPersistir(uuid) {
      el primero confirmar borraría del conector un cineloop que no quedó en ninguna parte. */
   _cineFallosUltimo = 0;
   const _fallidos = [];
+  /* ══ P9 · 3.1 · LO QUE YA ESTA EN DISCO NO SE VUELVE A ESCRIBIR ═══════════════════════════
+     Es la otra mitad de la deduplicacion de cineloops, y es la que cubre el caso del medico:
+     guardar, cerrar, reabrir y REENVIAR desde el ecografo. Ahi la cola arranca vacia --asi que
+     la guarda de `_cineEncolar` no ve nada-- y lo que ya esta es el REGISTRO en IndexedDB. Se
+     compara por la misma clave, derivada del registro con el mismo molde.
+     ⚠️ SI LA LISTA NO SE PUEDE LEER NO SE DEDUPLICA: escribir un duplicado cuesta espacio y se
+     ve; no escribir el unico cineloop del estudio por un fallo de lectura cuesta la imagen. */
+  var _yaEnDisco = Object.create(null);
+  try {
+    var _rs = await CeiboCine.listar(uuid) || [];
+    _rs.forEach(function (r) {
+      if (!r || r.tipo === 'doc') return;
+      var lp = null;
+      try { lp = _cineDesdeRegistro(r); } catch (e) { lp = null; }
+      var k = lp ? _cineClave(lp) : '';
+      if (k) _yaEnDisco[k] = true;
+    });
+  } catch (e) { _yaEnDisco = Object.create(null); }
+  var _dups = 0;
   for (const p of cola) {
+    var _cl = _cineClave(p.loop);
+    if (_cl && _yaEnDisco[_cl]) { _dups++; continue; }
+    if (_cl) _yaEnDisco[_cl] = true;
     try {
       let poster = '';
       try {
@@ -154926,6 +154974,10 @@ async function _cinePendientesPersistir(uuid) {
     if (typeof toast === 'function')
       toast('✅ ' + n + ' cineloop(s) guardado(s) con el estudio');
   }
+  /* P9 · 3.1 · se DICE cuantos no se volvieron a escribir: sin esto, «guarde tres y quedo uno»
+     se lee como que se perdieron dos. */
+  if (_dups && typeof toast === 'function')
+    toast('ℹ ' + _dups + ' cineloop(s) ya estaban guardados en este estudio: no se duplicaron');
   /* ══ P9 · 2.5 · UN CINELOOP QUE NO SE PUDO ESCRIBIR **SE DICE**, Y SE VUELVE A LA COLA ═════
      ⚠️ ESTE CAMINO ERA SILENCIOSO: la cola se vacia arriba --a proposito, para no dejar
      reintentos infinitos-- y los fallos solo se publicaban en `_cineFallosUltimo`, que lo lee la
@@ -183662,7 +183714,18 @@ async function clnkLeerEstado(porMedico) {
     var fila = _clnkNodo('div', 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;');
     var pend = Number(d.imagenes_pendientes) || 0;
     var esp = Number(d.equipos_esperando) || 0;
-    _clnkChip(fila, pend ? _clnkPlural(pend, 'imagen esperando', 'imágenes esperando')
+    /* ══ P9 · 3.4 · UNA SOLA CUENTA, Y DICE QUE CUENTA ════════════════════════════════════
+       El medico leyo TRES numeros distintos para lo mismo: «6 esperando» en este panel, «3» en
+       la vista previa y «Llegaron 3 archivos» en la burbuja. Los dos ultimos salen de la MISMA
+       lista --`/v1/imagenes`, que es lo que se puede ver y adjuntar-- y este sale de
+       `/v1/estado`, que cuenta TODO lo que el conector tiene guardado, incluidas las imagenes de
+       un equipo que todavia no se autorizo: §P8 dice con todas las letras que esas NO se
+       publican en la lista. O sea que los numeros no estaban mal: este chip no decia QUE contaba.
+       ⚠️ NO SE CAMBIA EL NUMERO. Pedir la lista desde el panel seria bajar el inventario del
+       conector quince veces por minuto --el sondeo corre cada cuatro segundos-- y §P8 pide
+       justamente lo contrario. Lo que se agrega es la frase que lo vuelve coherente. */
+    _clnkChip(fila, pend ? (_clnkPlural(pend, 'imagen esperando', 'imágenes esperando') +
+                            (esp > 0 ? ' (incluye las de los equipos por decidir)' : ''))
                          : 'sin imágenes esperando', pend > 0);
     _clnkChip(fila, esp ? _clnkPlural(esp, 'equipo por decidir', 'equipos por decidir')
                         : 'sin equipos por decidir', esp > 0);
@@ -185490,6 +185553,97 @@ var _clnkAvisadas = Object.create(null);
    medico que descarto algo el lunes seguiria leyendo «ya las habias descartado» un mes despues. */
 var _clnkDescartadas = Object.create(null);
 
+/* ══ P9 · 3.2 · LO QUE YA ENTRO, RECONOCIDO CONTRA **TODO** LO GUARDADO ════════════════════
+   EL DEFECTO QUE CIERRA. Hasta hoy la unica memoria de lo que ya habia pasado por el cartel
+   eran `_clnkAvisadas` y `_clnkDescartadas`, las dos EN MEMORIA: el medico reenvio desde el
+   ecografo dos imagenes que ya habia adjuntado a «Imagenes guardadas» y el cartel las trato
+   como nuevas. Y recargar la pagina borraba hasta esas dos.
+
+   ⚠️ SE GUARDA EL **ID DEL PUENTE** Y NADA MAS, y eso es lo que lo hace barato y lo que lo hace
+   correcto a la vez: el contrato dice que el id se deriva del CONTENIDO del archivo, asi que el
+   mismo archivo reenviado vuelve con el mismo id --es la regla 3.6, que esta tanda no toca-- y
+   una lista de ids son unas decenas de bytes cada uno. La alternativa --recorrer todos los
+   estudios guardados comparando el hash de cada imagen-- obligaria a LEER de IndexedDB todos
+   los `dataURL` de todos los pacientes para contestar una pregunta de pantalla: cientos de MB
+   en memoria, que es justo el problema que el punto 4.1 de este mismo prompt reporta.
+
+   ⚠️ NO GUARDA UN SOLO DATO DEL PACIENTE: ni nombre, ni documento, ni el archivo. Solo el id
+   que el puente invento y en que destino quedo.
+
+   ⚠️ Y TIENE TOPE. Con 4.000 entradas --unos 200 KB en el peor caso-- se tiran las mas viejas
+   por fecha. Un medico que supere eso pierde la memoria de lo MAS ANTIGUO, que es el lado
+   seguro: lo peor que pasa es que una imagen de hace meses se ofrezca como nueva. */
+var CLNK_VISTAS_KEY = 'ett_clnk_vistas';
+var CLNK_VISTAS_MAX = 4000;
+var CLNK_VISTA_TXT = {
+  estudio:    'ya las tenías en un estudio',
+  guardado:   'ya las tenías en un estudio guardado',
+  bandeja:    'ya estaban en «Imágenes sin estudio»',
+  descartada: 'ya las habías descartado'
+};
+var _clnkVistas = null;
+function _clnkVistasLeer() {
+  if (_clnkVistas) return _clnkVistas;
+  var o = null;
+  try { o = JSON.parse(localStorage.getItem(CLNK_VISTAS_KEY) || '{}'); } catch (e) { o = null; }
+  /* Falla CERRADO: con el almacen corrupto se arranca vacio --todo se ofrece como nuevo-- en
+     vez de tirar. Ofrecer de mas cuesta un duplicado que el medico ve; tirar deja el cartel
+     sin salir. */
+  _clnkVistas = (o && typeof o === 'object' && !Array.isArray(o)) ? o : Object.create(null);
+  return _clnkVistas;
+}
+function _clnkVistaDe(id) {
+  var o = _clnkVistasLeer(), e = o[String(id)];
+  return (e && typeof e.d === 'string') ? e.d : '';
+}
+window._clnkVistaDe = _clnkVistaDe;
+function _clnkVistasMarcar(ids, destino) {
+  if (!ids || !ids.length || !destino) return 0;
+  var o = _clnkVistasLeer(), n = 0, t = Date.now();
+  ids.forEach(function (id) {
+    var k = String(id || ''); if (!k) return;
+    o[k] = { d: String(destino), t: t }; n++;
+  });
+  var claves = Object.keys(o);
+  if (claves.length > CLNK_VISTAS_MAX) {
+    claves.sort(function (a, b) { return (o[a].t || 0) - (o[b].t || 0); });
+    claves.slice(0, claves.length - CLNK_VISTAS_MAX).forEach(function (k) { delete o[k]; });
+  }
+  try { localStorage.setItem(CLNK_VISTAS_KEY, JSON.stringify(o)); } catch (e) {}
+  return n;
+}
+window._clnkVistasMarcar = _clnkVistasMarcar;
+
+/* Reparte los ids de un grupo en NUEVOS y REPETIDOS, con el detalle de donde quedo cada
+   repetido. Es la cuenta UNICA que el cartel publica (punto 3.4): el panel de Configuracion,
+   la vista previa y la burbuja salen todos de este mismo reparto. */
+function _clnkRepartir(g) {
+  var nuevos = [], repes = [], donde = Object.create(null);
+  (g.ids || []).forEach(function (id) {
+    var d = _clnkVistaDe(id);
+    if (d) { repes.push(id); donde[d] = (donde[d] || 0) + 1; }
+    else nuevos.push(id);
+  });
+  g.idsNuevos = nuevos;
+  g.idsRepes = repes;
+  g.repesDonde = donde;
+  g.nYaEstaban = repes.length;
+  return g;
+}
+window._clnkRepartir = _clnkRepartir;
+
+/* La frase de «y cuantas ya tenias, y donde». Un solo destino se nombra; con dos o mas se
+   dice el numero y se enumeran los lugares, sin inventar un orden de importancia. */
+function _clnkRepesTexto(g) {
+  var ds = Object.keys(g.repesDonde || {});
+  if (!ds.length) return '';
+  if (ds.length === 1) return CLNK_VISTA_TXT[ds[0]] || 'ya las tenías';
+  return 'ya las tenías: ' + ds.map(function (d) {
+    return g.repesDonde[d] + ' ' + (CLNK_VISTA_TXT[d] || d).replace(/^ya (las|estaban) /, '');
+  }).join(' y ');
+}
+window._clnkRepesTexto = _clnkRepesTexto;
+
 /* ══════════════════════════════════════════════════════════════════════════════════════════════
    BLOQUE J · LA REGLA VIEJA: CONTRA UN PUENTE 1.3.x SE ESPERA A QUE EL LOTE CIERRE
    ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -185654,14 +185808,34 @@ function _clnkAvisoTexto(g, nom, cuando) {
      corresponde es el del envio entero. Y «más» en vez de «nuevas» porque `dstCuenta` ya trae su
      singular: «1 imagen más» se lee bien y «1 imagen nuevas» no. */
   if (g.nNuevas > 0 && g.nNuevas < g.ids.length) {
+    /* ══ P9 · 3.5 · DOS ORACIONES CORTAS, Y EL RESTO A LA LINEA DE ABAJO ═════════════════════
+       ⚠️ ESTE TEXTO MEZCLABA CUATRO IDEAS EN UNA ORACION --cuantas llegaron, de que equipo, a
+       que hora, cuantas hay en total y que lo ya adjuntado no se repite-- y el medico lo
+       reporto. Lo que queda arriba es lo que decide: «Llego 1 imagen nueva. Hay 3 esperando.»
+       El equipo, la hora y la aclaracion de que nada se duplica viven en `g.avSub`, que el
+       cartel pinta en el cuerpo, mas chico. */
     var tn = g.tiposNuevas || { fija: 0, loop: 0, informe: 0, noVer: 0 };
-    t = 'Llegaron ' + dstCuenta(g.nNuevas, tn.fija, tn.loop, tn.informe, tn.noVer) +
-        ' más del equipo ' + nom + (cuando ? ' ' + cuando : '') + '. En total hay ' +
-        dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
-        ' esperando de este envío: lo que ya adjuntaste no se vuelve a agregar.';
+    t = 'Llegó ' + dstCuenta(g.nNuevas, tn.fija, tn.loop, tn.informe, tn.noVer) + ' nueva. ' +
+        'Hay ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) + ' esperando.';
+    if (g.nNuevas !== 1) t = 'Llegaron ' + dstCuenta(g.nNuevas, tn.fija, tn.loop, tn.informe, tn.noVer) +
+        ' nuevas. Hay ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) + ' esperando.';
+    g.avSub = 'Del equipo ' + nom + (cuando ? ' ' + cuando : '') +
+              '. Lo que ya adjuntaste no se vuelve a agregar.';
   } else {
     t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) +
         ' del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
+    /* ══ P9 · 3.3 y 3.4 · UNA SOLA CUENTA, Y DICE DONDE ESTAN LAS REPETIDAS ══════════════════
+       El medico reenvio dos imagenes que ya habia adjuntado a «Imagenes guardadas» y el cartel
+       las trato como nuevas. Ahora el reparto sale de `_clnkRepartir`, que es el MISMO que usan
+       los tres botones: la cuenta del cartel y lo que cada boton agrega no pueden discrepar. */
+    if (g.nYaEstaban > 0) {
+      t = 'Llegaron ' + dstCuenta(g.ids.length, g.nFijas, g.nLoops, g.nInformes, g.nNoVer) + ': ' +
+          (g.idsNuevos.length
+            ? (g.idsNuevos.length + (g.idsNuevos.length === 1 ? ' nueva y ' : ' nuevas y ') +
+               g.nYaEstaban + ' que ' + _clnkRepesTexto(g) + '.')
+            : ('ninguna nueva — ' + _clnkRepesTexto(g) + '.'));
+      g.avSub = 'Del equipo ' + nom + (cuando ? ' ' + cuando : '') + '.';
+    }
   }
   /* ══ BLOQUE D · LAS QUE EL MEDICO YA HABIA DESCARTADO ══════════════════════════════════════
      El puente deriva el `id` del contenido, asi que el MISMO archivo re-enviado vuelve con el
@@ -185817,6 +185991,16 @@ async function clnkRevisarImagenes(forzar) {
    que el conector lo valida pero no lo escapa, y validar no es escapar. */
 function _clnkAvisoArmarAcciones(g) {
   var nom = _clnkNombreEq[g.equipo] || g.equipo || 'el ecógrafo';
+  /* ══ P9 · 3.3 · CON REPETIDAS, PRIMERO SE PREGUNTA QUE AGREGAR ═══════════════════════════
+     Son dos decisiones distintas --QUE agregar y DONDE-- y el modal tiene cinco ranuras ya
+     ocupadas por los destinos, la vista previa y descartar: no hay lugar para meter las tres
+     opciones nuevas al lado. Asi que con repetidas se pregunta esto PRIMERO y despues el
+     destino de siempre; sin repetidas no cambia nada y el cartel es el que el medico ya conoce.
+     ⚠️ NO SE USA `clnkAvisoPreguntar` --la pregunta anidada que espera--: a `clnkRevisarImagenes`
+     la espera el sondeo, y una promesa que solo un clic resuelve lo dejaria parado mientras el
+     medico piensa. Es la misma leccion que la tanda EQ dejo escrita para el equipo nuevo. */
+  _clnkRepartir(g);
+  if (g.nYaEstaban > 0 && !g.p9Elegido) return _clnkPreguntarQue(g, nom);
   return dstPreguntar({
     origen: 'ceibolink',
     equipo: g.equipo,
@@ -185828,9 +186012,52 @@ function _clnkAvisoArmarAcciones(g) {
     nFijas: g.nFijas, nLoops: g.nLoops,
     cancelar: false,
     titulo: 'Llegaron imágenes del ecógrafo',
-    texto: _clnkAvisoTexto(g, nom, _clnkCuando(g.primero))
+    texto: _clnkAvisoTexto(g, nom, _clnkCuando(g.primero)),
+    sub: g.avSub || ''
   });
 }
+
+/* Las tres opciones del punto 3.3. «Agregar solo las nuevas» va PRIMERA --es la marcada por
+   defecto en el pedido-- y queda apagada, con su motivo en el titulo, cuando no hay ninguna
+   nueva: un boton que no puede hacer nada tiene que decir por que, no desaparecer. */
+function _clnkPreguntarQue(g, nom) {
+  var nN = g.idsNuevos.length;
+  var sigue = function (ids) {
+    /* Se arma un grupo NUEVO con los ids elegidos y se recuentan sus tipos: con el grupo entero
+       y una lista recortada, el cartel de destino diria «3 imagenes» y adjuntaria una. */
+    var g2 = { equipo: g.equipo, ids: ids.slice(), primero: g.primero,
+               imagenes: (g.imagenes || []).filter(function (i) {
+                 return i && ids.indexOf(String(i.id)) >= 0; }),
+               p9Elegido: true };
+    _clnkTipos(g2);
+    _clnkRepartir(g2);
+    g2.nNuevas = 0;              // el texto del destino no vuelve a hablar de «nuevas»
+    _clnkAvisoArmarAcciones(g2);
+  };
+  var bots = [
+    { txt: '✅ Agregar sólo las nuevas' + (nN ? ' (' + nN + ')' : ''),
+      fn: function () { if (nN) sigue(g.idsNuevos); } },
+    { txt: '📥 Agregar todas igual (' + g.ids.length + ')',
+      fn: function () { sigue(g.ids); } },
+    { txt: '🗑 Descartar',
+      fn: function () { _clnkAvisoGrupo = null; clnkDescartar(g.ids.slice()); } }
+  ];
+  var ok = clnkAvisoAbrir('Llegaron imágenes del ecógrafo',
+                          _clnkAvisoTexto(g, nom, _clnkCuando(g.primero)), bots);
+  if (ok) {
+    if (g.avSub) { var cu = clnkAvisoCuerpo();
+      if (cu) { cu.textContent = g.avSub;
+                cu.style.cssText = 'display:block;font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:2px;'; } }
+    if (!nN) {
+      var b0 = document.getElementById('clnkav-' + CLNK_AV_BOTONES[0]);
+      if (b0) { b0.disabled = true; b0.classList.add('clnk-av-off');
+                b0.setAttribute('aria-disabled', 'true');
+                b0.title = 'No hay ninguna nueva: todas las que llegaron ya las tenés.'; }
+    }
+  }
+  return ok;
+}
+window._clnkPreguntarQue = _clnkPreguntarQue;
 window.clnkRevisarImagenes = clnkRevisarImagenes;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -187281,6 +187508,9 @@ async function clnkDescartar(ids) {
          ahi haria que el sondeo siguiente volviera a avisar de algo que el medico ya decidio. */
       try { delete _clnkAvisadas[l[i]]; } catch (e) {}
       _clnkDescartadas[l[i]] = true;
+      /* P9 · 3.2 · y en el registro persistido: `_clnkDescartadas` vive en memoria, asi que sin
+         esto recargar la pagina borraba la unica memoria de lo que el medico habia descartado. */
+      if (typeof _clnkVistasMarcar === 'function') _clnkVistasMarcar([l[i]], 'descartada');
     } else mal++;
   }
   clnkAvisoCerrar();
@@ -189096,6 +189326,11 @@ async function dstAlActual(ctx) {
     const det = (r && Array.isArray(r.res) && r.res[0]) ? r.res[0] : null;
     if (det && det.ok) {
       if (ctx.origen === 'ceibolink' && l[i].id) _clnkPorConfirmar.push(l[i].id);
+      /* P9 · 3.2 · QUEDA ANOTADO QUE ESTE ID YA ENTRO, y en que destino. Es lo que hace que un
+         reenvio del ecografo --mismo contenido, mismo id-- se reconozca como repetido en la
+         sesion siguiente y despues de recargar la pagina. Se anota SOLO lo que de verdad entro:
+         el veredicto por archivo es la condicion, igual que para confirmar. */
+      if (l[i].id && typeof _clnkVistasMarcar === 'function') _clnkVistasMarcar([l[i].id], 'estudio');
       ok++;
     } else {
       esperando++;
@@ -189288,6 +189523,9 @@ async function dstAGuardado(ctx, inf) {
     if (n) {
       ok += n;
       fijas.forEach(function (x) { if (x.id) confirmar.push(x.id); });
+      /* P9 · 3.2 · el destino donde quedo, para poder decirselo al medico la proxima vez. */
+      if (typeof _clnkVistasMarcar === 'function')
+        _clnkVistasMarcar(fijas.map(function (x) { return x.id; }).filter(Boolean), 'guardado');
     } else {
       fallos.push('las ' + fijas.length + ' imagen(es) fijas no se pudieron escribir en este dispositivo' +
                   (ctx.origen === 'ceibolink' ? '. Siguen esperando en CeiboLink.' : ''));
@@ -189434,6 +189672,10 @@ async function dstABandeja(ctx) {
   if (ctx.origen === 'ceibolink') {
     imgs.forEach(function (x) { if (x.clnkId) _clnkPorConfirmar.push(x.clnkId); });
     loops.forEach(function (x) { if (x.clnkId) _clnkPorConfirmar.push(x.clnkId); });
+    /* P9 · 3.2 · lo mismo para la bandeja: «ya estaban en Imagenes sin estudio». */
+    if (typeof _clnkVistasMarcar === 'function')
+      _clnkVistasMarcar(imgs.map(function (x) { return x.clnkId; })
+                        .concat(loops.map(function (x) { return x.clnkId; })).filter(Boolean), 'bandeja');
     try { await clnkConfirmarPersistidas(); } catch (e) {}
   }
   if (typeof toast === 'function') {
@@ -189592,6 +189834,15 @@ function dstPreguntar(ctx) {
                                              String(b.txt).indexOf('Cancelar') > -1; });
   }
   var _ok = clnkAvisoAbrir(ctx.titulo || 'Imágenes', texto, bots);
+  /* ══ P9 · 3.5 · LA SEGUNDA LINEA, MAS CHICA ══════════════════════════════════════════════
+     El equipo, la hora y las aclaraciones van ACA y no en la oracion de arriba. Se pinta antes
+     que la tarjeta de los formatos que no se ven, que usa el mismo cuerpo: con el orden al
+     revés, esa tarjeta se perdía. */
+  if (_ok && ctx.sub) {
+    var _cu = clnkAvisoCuerpo();
+    if (_cu) { _cu.textContent = String(ctx.sub);
+               _cu.style.cssText = 'display:block;font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:2px;'; }
+  }
   if (_ok && _nv) clnkNoVerTarjeta(clnkAvisoCuerpo(), _pv, _soloNoVer);
   return _ok;
 }

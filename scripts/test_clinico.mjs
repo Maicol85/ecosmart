@@ -219,6 +219,17 @@ const PRELUDIO = `
 
        Cada paso va en su try: si uno falla, los demas tienen que correr igual. */
     resetVisor() {
+      /* ══ P9 (3.2) · EL REGISTRO DE LO QUE YA ENTRO, QUE AHORA VIVE EN DISCO ════════════════
+         La clave ett_clnk_vistas es persistente a proposito --es lo que hace que un reenvio del
+         ecografo se reconozca despues de recargar la pagina-- y por eso ATRAVIESA los casos: la
+         bateria corre los 1000 en UNA sola pagina, asi que un caso que descarta un envio le deja
+         al siguiente sus ids marcados y el cartel le ofrece «3 nuevas y 2 que ya tenias» donde
+         ese caso esperaba el cartel de destino. Lo pagaron TC-966, TC-990 y TC-964.
+         Va en el reset del runner y no en cada caso, por el mismo argumento que todo lo de aca:
+         con una linea por caso, el que se olvide hereda el estado del anterior y falla con un
+         diagnostico que no apunta a su propia causa. El caso que lo NECESITA --TC-998-- lo
+         siembra el mismo. */
+      try { localStorage.removeItem('ett_clnk_vistas'); window._clnkVistas = null; } catch (e) {}
       try { if (typeof vistaBCerrar === 'function' && _vistaB) vistaBCerrar(); } catch (e) {}
       try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
       /* Los dos overlays position:fixed que NO son del visor y que igual tapan el documento
@@ -156773,12 +156784,18 @@ caso('TC-988', 'Tanda EQ A5: cuando una imagen llega tarde, el segundo cartel cu
       R.bAbrio = await clnkRevisarImagenes();
       await esp(500);
       R.bTexto = cuerpo();
-      R.bDiceUna = R.bTexto.indexOf('1 imagen más') >= 0;
-      R.bDiceTotal = R.bTexto.indexOf('En total hay') >= 0 &&
-                     (R.bTexto.indexOf('3 imágenes esperando') >= 0 ||
-                      R.bTexto.indexOf('3 imagenes esperando') >= 0);
+      /* ── ADAPTADO POR P9 (3.5) ──────────────────────────────────────────────────────────
+         El texto pasa a DOS oraciones cortas --«Llego 1 imagen nueva. Hay 3 imagenes
+         esperando.»-- y el equipo, la hora y la aclaracion de que lo ya adjuntado no se vuelve a
+         agregar bajan a la linea de abajo, mas chica, que es el cuerpo del cartel. El medico
+         reporto que ese texto mezclaba cuatro ideas en una oracion. Lo que se exige es lo mismo,
+         repartido: la oracion sigue diciendo UNA y el total, y la aclaracion se busca en el
+         cuerpo en vez de en la oracion. */
+      R.bSub = (document.getElementById('clnkav-cuerpo') || {}).textContent || '';
+      R.bDiceUna = R.bTexto.indexOf('1 imagen nueva') >= 0;
+      R.bDiceTotal = R.bTexto.indexOf('Hay 3 imágenes esperando') >= 0;
       R.bNoDiceTres = R.bTexto.indexOf('Llegaron 3') === -1;
-      R.bDiceQueNoDuplica = R.bTexto.indexOf('no se vuelve a agregar') >= 0;
+      R.bDiceQueNoDuplica = R.bSub.indexOf('no se vuelve a agregar') >= 0;
       /* Y el cartel sigue ofreciendo el ENVIO ENTERO: lo que evita el duplicado es la
          deduplicacion por archivo de la PARTE 1, no recortar lo que se ofrece. */
       R.bGrupoEntero = window._clnkAvisoGrupo ? window._clnkAvisoGrupo.ids.length : -1;
@@ -156833,7 +156850,8 @@ caso('TC-988', 'Tanda EQ A5: cuando una imagen llega tarde, el segundo cartel cu
         R.bAbrio === true && R.bDiceUna && R.bNoDiceTres, R.bTexto.slice(0, 110)],
       ['y dice el total del envio, para que no parezca que las otras desaparecieron',
         R.bDiceTotal, R.bTexto.slice(0, 160)],
-      ['y dice que lo ya adjuntado no se vuelve a agregar', R.bDiceQueNoDuplica, R.bDiceQueNoDuplica],
+      ['y dice que lo ya adjuntado no se vuelve a agregar, en la linea de abajo',
+        R.bDiceQueNoDuplica, 'sub=' + String(R.bSub).slice(0, 120)],
       ['el cartel sigue ofreciendo el ENVIO ENTERO: lo que evita el duplicado es la deduplicacion por archivo, no recortar lo que se ofrece',
         R.bGrupoEntero === 3, R.bGrupoEntero],
       ['el camino forzado -«Ver lo que espera»- dice el TOTAL: ahi no hay «nuevas» porque se ignora lo ya avisado',
@@ -157857,6 +157875,225 @@ caso('TC-996', 'P9 2.5: los cineloops que se guardan con el estudio siguen estan
       if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
       try { imgVaciar(); } catch (e) {}
     }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+/* ══ P9 · TAREA 3 · DUPLICADOS Y CARTEL DE LLEGADA ═════════════════════════════════════════
+   El medico midio tres cosas con el VINNO real: los cineloops se duplicaban siempre (3 -> 6 ->
+   9), el cartel trataba como nuevas dos imagenes que el ya habia adjuntado a «Imagenes
+   guardadas», y habia tres cuentas distintas para lo mismo. */
+caso('TC-997', 'P9 3.1: un cineloop no entra dos veces --ni a la cola ni al disco-- y se dice cuantos no se volvieron a escribir', `
+  return (async () => {
+    if (typeof window._cineClave !== 'function' || typeof CeiboCine === 'undefined') {
+      return { extra: [['DENOMINADOR: este arbol tiene la clave de cineloop', false, 'falta _cineClave']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, alertOrig = window.alert;
+    const dichos = [];
+    window.toast = m => { dichos.push(String(m)); };
+    window.alert = () => {};
+    let togglePrevio = null, estudioId = null, uuid = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,217]);
+    const loop = (nom) => ({ nombre: nom, cuadros: 3,
+      d: { frags: [JPG, JPG, JPG], msCuadro: 40, cols: 200, filas: 160, regiones: [] } });
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esp(250);
+      __t.set('nombre', 'P9 TRES UNO'); __t.set('ci', '95590997');
+      const g = await __t.guardar(); estudioId = g.estudioId;
+      await esp(900);
+      __t.reabrir(estudioId); await esp(1600);
+      const inf = getInformes().filter(i => i.estudioId === estudioId)[0];
+      uuid = inf && inf.uuid;
+      /* -- A - LA COLA NO ACEPTA DOS VECES EL MISMO CONTENIDO -------------------------- */
+      const l1 = loop('apical 4c'), l2 = loop('apical 4c');
+      R.aClaveIgual = _cineClave(l1) === _cineClave(l2) && !!_cineClave(l1);
+      const e1 = _cineEncolar(l1), e2 = _cineEncolar(l2);
+      R.aEnc1 = e1; R.aEnc2 = e2;
+      ex.push(['(A1) dos objetos distintos con el MISMO contenido dan la misma clave',
+        R.aClaveIgual === true, 'clave=' + _cineClave(l1)]);
+      ex.push(['(A2) el segundo no entra a la cola: el puente entrega un objeto nuevo por cartel',
+        R.aEnc1 === true && R.aEnc2 === false, 'enc1=' + R.aEnc1 + ' enc2=' + R.aEnc2]);
+      /* CONTROL NEGATIVO: otro contenido SI entra. */
+      const l3 = loop('apical 2c');
+      R.aEnc3 = _cineEncolar(l3);
+      ex.push(['(A3) CONTROL NEGATIVO: un cineloop distinto si entra',
+        R.aEnc3 === true, 'enc3=' + R.aEnc3]);
+      /* -- B - AL GUARDAR QUEDAN DOS, NO TRES ----------------------------------------- */
+      const n1 = await _cinePendientesPersistir(uuid);
+      await esp(600);
+      R.bEscritos = n1;
+      R.bEnDisco = (await CeiboCine.listar(uuid)).filter(r => r.cuadros > 1).length;
+      ex.push(['(B1) se escriben DOS cineloops, no tres', R.bEscritos === 2 && R.bEnDisco === 2,
+        'escritos=' + R.bEscritos + ' disco=' + R.bEnDisco]);
+      /* -- C - REENVIAR DESPUES DE GUARDAR NO DUPLICA --------------------------------- */
+      dichos.length = 0;
+      const l4 = loop('apical 4c');
+      R.cEnc = _cineEncolar(l4);
+      const n2 = await _cinePendientesPersistir(uuid);
+      await esp(600);
+      R.cEscritos = n2;
+      R.cEnDisco = (await CeiboCine.listar(uuid)).filter(r => r.cuadros > 1).length;
+      R.cDijo = dichos.some(d => d.indexOf('ya estaban guardados') >= 0);
+      ex.push(['(C1) con la cola vacia el reenvio entra a la cola --no hay con que compararlo--',
+        R.cEnc === true, 'enc=' + R.cEnc]);
+      ex.push(['(C2) pero NO se vuelve a escribir: el disco sigue en dos',
+        R.cEscritos === 0 && R.cEnDisco === 2,
+        'escritos=' + R.cEscritos + ' disco=' + R.cEnDisco]);
+      ex.push(['(C3) y se DICE, para que «guarde uno y quedo cero» no se lea como una perdida',
+        R.cDijo === true, 'dijo=' + dichos.join(' | ').slice(0, 140)]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-998', 'P9 3.2 a 3.4: el cartel reconoce lo que ya entro --contra todo lo guardado y despues de recargar-- , dice cuantas son nuevas y donde estan las otras, y ofrece las tres opciones', `
+  return (async () => {
+    if (typeof window._clnkVistasMarcar !== 'function' || typeof window._clnkPreguntarQue !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene el registro de P9', false, 'falta _clnkVistasMarcar']] };
+    }
+    const R = {}; const ex = [];
+    const esp = ms => new Promise(r => setTimeout(r, ms));
+    const toastOrig = window.toast, confOrig = window.confirm;
+    window.toast = () => {}; window.confirm = () => true;
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const onOrig = localStorage.getItem('ett_ceibolink_on');
+    const vistasOrig = localStorage.getItem('ett_clnk_vistas');
+    const baseOrig = window.__clnkBaseTest;
+    try {
+      const F = window.__CLNK_FAKE;
+      if (!F || !F.base) return { extra: [['DENOMINADOR: el conector falso arranco', false, '']] };
+      const ctl = (o) => fetch(F.base + '/_control', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }).then(r => r.json());
+      await ctl({ reset: true });
+      await ctl({ escena: 'p9tres' });
+      window.__clnkBaseTest = F.base;
+      localStorage.setItem('ett_view_mode', 'avanzado');
+      applyViewMode();
+      clnkToggle(true);
+      showTab('config'); cfgOnShow();
+      await esp(400);
+      const inp = document.getElementById('cfg-clnk-codigo');
+      if (!inp) return { extra: [['DENOMINADOR: el campo del codigo existe', false, '']] };
+      inp.value = String(F.codigo); clnkCodigoInput(inp);
+      await clnkVincular();
+      await esp(900);
+      /* -- A - DOS DE LAS TRES YA ENTRARON, Y EL REGISTRO LO SABE ---------------------- */
+      localStorage.removeItem('ett_clnk_vistas');
+      window._clnkVistas = null;
+      _clnkVistasMarcar(['img_p1'], 'guardado');
+      _clnkVistasMarcar(['img_p2'], 'descartada');
+      R.aLee = _clnkVistaDe('img_p1') + ',' + _clnkVistaDe('img_p2') + ',' + (_clnkVistaDe('img_p3') || '-');
+      ex.push(['(A1) el registro dice en que destino quedo cada id, y el que no entro queda vacio',
+        R.aLee === 'guardado,descartada,-', 'lee=' + R.aLee]);
+      /* ⚠️ Y SOBREVIVE A RECARGAR: se olvida la cache en memoria y se vuelve a leer del disco,
+         que es la mitad del pedido que _clnkDescartadas no cumplia. */
+      window._clnkVistas = null;
+      R.aTrasRecargar = _clnkVistaDe('img_p1');
+      ex.push(['(A2) y sobrevive a recargar la pagina: esta en disco, no en memoria',
+        R.aTrasRecargar === 'guardado', 'tras=' + R.aTrasRecargar]);
+      /* -- B - EL CARTEL DICE LAS DOS CUENTAS Y OFRECE LAS TRES OPCIONES -------------- */
+      const abrio = await clnkRevisarImagenes(true);
+      await esp(600);
+      R.bAbrio = abrio;
+      const txt = () => (document.getElementById('clnkav-txt') || {}).textContent || '';
+      const bots = () => ['b1','b2','b3','b4','b5'].map(k => {
+        const b = document.getElementById('clnkav-' + k);
+        return (b && b.style.display !== 'none') ? (b.textContent || '') : ''; }).filter(Boolean);
+      R.bTxt = txt(); R.bBots = bots().join(' | ');
+      ex.push(['(B1) el cartel dice cuantas llegaron, cuantas son nuevas y donde estan las otras',
+        R.bTxt.indexOf('1 nueva') >= 0 && R.bTxt.indexOf('2 que') >= 0 &&
+        (R.bTxt.indexOf('estudio guardado') >= 0 || R.bTxt.indexOf('descartado') >= 0),
+        'txt=' + R.bTxt]);
+      ex.push(['(B2) y ofrece las TRES opciones, con «solo las nuevas» primera',
+        /^✅ Agregar sólo las nuevas \\(1\\)/.test(R.bBots) &&
+        R.bBots.indexOf('Agregar todas igual (3)') >= 0 && R.bBots.indexOf('Descartar') >= 0,
+        'bots=' + R.bBots]);
+      /* -- C - «SOLO LAS NUEVAS» PASA A LA PREGUNTA DE DESTINO CON **UNA** ------------- */
+      const b1 = document.getElementById('clnkav-b1');
+      if (b1) b1.click();
+      await esp(700);
+      R.cTxt = txt(); R.cBots = bots().join(' | ');
+      ex.push(['(C1) elegir «solo las nuevas» lleva a la pregunta de destino con UNA sola imagen',
+        R.cTxt.indexOf('1 imagen') >= 0 && R.cBots.indexOf('Adjuntar al estudio actual') >= 0,
+        'txt=' + R.cTxt + ' bots=' + R.cBots]);
+      /* -- D - CON TODAS REPETIDAS SE DICE Y «SOLO LAS NUEVAS» NO PUEDE HACER NADA ----- */
+      clnkAvisoCerrar(); await esp(200);
+      _clnkVistasMarcar(['img_p3'], 'estudio');
+      await clnkRevisarImagenes(true);
+      await esp(600);
+      R.dTxt = txt();
+      const bd = document.getElementById('clnkav-b1');
+      R.dApagado = !!(bd && bd.disabled === true);
+      R.dMotivo = bd ? (bd.getAttribute('title') || '') : '';
+      ex.push(['(D1) con todas repetidas lo dice claro y no inventa un numero de nuevas',
+        R.dTxt.indexOf('ninguna nueva') >= 0, 'txt=' + R.dTxt]);
+      ex.push(['(D2) y «solo las nuevas» queda apagado DICIENDO por que, en vez de desaparecer',
+        R.dApagado === true && R.dMotivo.indexOf('ninguna nueva') >= 0,
+        'apagado=' + R.dApagado + ' motivo=' + R.dMotivo]);
+    } catch (e) {
+      ex.push(['sin excepciones', false, String(e && e.message || e)]);
+    } finally {
+      window.toast = toastOrig; window.confirm = confOrig;
+      try { clnkAvisoCerrar(); } catch (e) {}
+      try { clnkToggle(false); } catch (e) {}
+      try {
+        if (vistasOrig === null) localStorage.removeItem('ett_clnk_vistas');
+        else localStorage.setItem('ett_clnk_vistas', vistasOrig);
+        window._clnkVistas = null;
+        if (modoOrig === null) localStorage.removeItem('ett_view_mode');
+        else localStorage.setItem('ett_view_mode', modoOrig);
+        if (onOrig === null) localStorage.removeItem('ett_ceibolink_on');
+        else localStorage.setItem('ett_ceibolink_on', onOrig);
+      } catch (e) {}
+      window.__clnkBaseTest = baseOrig;
+      try { applyViewMode(); } catch (e) {}
+    }
+    return { extra: ex, diag: R };
+  })();
+`);
+
+caso('TC-999', 'P9 3.5: el cartel de «llegaron mas» dice DOS oraciones cortas y el resto va a la linea de abajo, mas chica', `
+  return (async () => {
+    if (typeof window._clnkAvisoTexto !== 'function' && typeof _clnkAvisoTexto !== 'function') {
+      return { extra: [['DENOMINADOR: este arbol tiene _clnkAvisoTexto', false, 'falta']] };
+    }
+    const R = {}; const ex = [];
+    const g = { equipo: 'eq_x', ids: ['a','b','c'], nFijas: 3, nLoops: 0, nInformes: 0, nNoVer: 0,
+                nNuevas: 1, tiposNuevas: { fija: 1, loop: 0, informe: 0, noVer: 0 },
+                nRepetidas: 0, enCuarentena: 0, idsNuevos: ['c'], idsRepes: [], repesDonde: {},
+                nYaEstaban: 0 };
+    const t = _clnkAvisoTexto(g, 'VINNO', 'a las 23:43');
+    R.txt = t; R.sub = g.avSub || '';
+    /* El viejo decia las cuatro ideas en UNA oracion: cuantas, de que equipo, a que hora, el
+       total y que lo ya adjuntado no se repite. */
+    ex.push(['(A1) la oracion principal dice lo que llego y lo que espera, y NADA mas',
+      t.indexOf('1 imagen nueva') >= 0 && t.indexOf('3 imágenes') >= 0 &&
+      t.indexOf('VINNO') < 0 && t.indexOf('23:43') < 0 && t.indexOf('no se vuelve a agregar') < 0,
+      'txt=' + t]);
+    ex.push(['(A2) y el equipo, la hora y la aclaracion van a la linea de abajo',
+      R.sub.indexOf('VINNO') >= 0 && R.sub.indexOf('23:43') >= 0 &&
+      R.sub.indexOf('no se vuelve a agregar') >= 0, 'sub=' + R.sub]);
+    /* CONTROL NEGATIVO: sin nuevas parciales el texto es el de siempre, con el equipo adentro. */
+    const g2 = { equipo: 'eq_x', ids: ['a','b'], nFijas: 2, nLoops: 0, nInformes: 0, nNoVer: 0,
+                 nNuevas: 2, nRepetidas: 0, enCuarentena: 0,
+                 idsNuevos: ['a','b'], idsRepes: [], repesDonde: {}, nYaEstaban: 0 };
+    const t2 = _clnkAvisoTexto(g2, 'VINNO', 'a las 23:43');
+    ex.push(['(B1) CONTROL NEGATIVO: sin repetidas ni envio parcial, el texto de siempre',
+      t2.indexOf('VINNO') >= 0 && t2.indexOf('esperando') < 0, 'txt=' + t2]);
     return { extra: ex, diag: R };
   })();
 `);

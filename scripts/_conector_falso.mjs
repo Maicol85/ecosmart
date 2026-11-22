@@ -293,6 +293,15 @@ function escenas() {
       img('img_n5', 'eq_3f8a1c', iso(t0), 'video',
           dicomNativo({ filas: 32, cols: 32, cuadros: 5 })),
     ],
+    /* ══ P9 · TRES FIJAS CON IDS PROPIOS, PARA EL REPARTO EN NUEVAS Y REPETIDAS ═══════
+       Ids que no aparecen en ninguna otra escena, por la razon de siempre: el aviso no vuelve
+       por las mismas imagenes en la misma sesion y la bateria corre los casos en UNA pagina,
+       asi que reusar una escena da un rojo sobre una app que se porta bien. */
+    p9tres: () => [
+      img('img_p1', 'eq_3f8a1c', iso(t0 + 112000), 'imagen', uno),
+      img('img_p2', 'eq_3f8a1c', iso(t0 + 113000), 'imagen', uno),
+      img('img_p3', 'eq_3f8a1c', iso(t0 + 114000), 'imagen', uno),
+    ],
     /* UN ENVIO MIXTO: dos fijas y un cineloop del mismo equipo, dentro de la ventana. Es la
        escena de la decision 11 -- un solo aviso con la cuenta POR TIPO. */
     mixto: () => [
