@@ -268,8 +268,17 @@
   /* ══ MODO MÍNIMO DEL VISOR ════════════════════════════════════════════════════════════════
      Al abrir un cineloop o una imagen se ven SOLO cuatro cosas: Reproducir con su barra y su
      contador, 📸 Capturar, 📏 Medir y la ✕ de arriba. Todo lo demás —las nueve herramientas, la
-     calibración, el guardado, la etiqueta, los cajones 2D y Doppler, el panel guía, el biplano y
-     la tabla de Simpson— aparece al tocar Medir. Decisión de Maicol (2026-10-01).
+     calibración, la etiqueta, los cajones 2D y Doppler, el panel guía, el biplano y la tabla de
+     Simpson— aparece al tocar Medir. Decisión de Maicol (2026-10-01).
+
+     ⚠️ P13 (1a) — «➕ Vista» Y «Cerrar» SALEN DE ESTA LISTA, POR ORDEN DEL MÉDICO. Vivían acá
+     con la clase `cine-grp-vista`, así que el visor recién abierto no ofrecía ninguna forma de
+     montar la segunda vista hasta tocar «Medir» —medido en el bloque 0: `addB` y `cerrar` en
+     FALSO con el visor abierto y en VERDADERO después de medir—. Son controles del MODAL y la
+     orden es que estén «siempre arriba, se esté midiendo o no». La clase se conserva: de ella
+     cuelga el agrupamiento y tres condiciones del suite, que pasan a exigir lo contrario.
+     ⚠️ Y `cine-guardar` SALE DE LA LISTA PORQUE EL BOTÓN YA NO EXISTE (1i): el cineloop entra a
+     la biblioteca por su cola y el estudio se decide desde Guardados. Ver `_vPanelHTML`.
 
      ⚠️ LA CLASE SE DERIVA, NO SE GUARDA: la pone `_vModoSync` desde `¿alguna vista tiene
      `medOn`?`, que es el estado que YA existía y que ya gobernaba el canvas de trazos. Un
@@ -294,11 +303,9 @@
   #cine-ov.cine-min [id$="cine-ayuda"],
   #cine-ov.cine-min [id$="cine-med-recal"],
   #cine-ov.cine-min [id$="cine-med-borrar"],
-  #cine-ov.cine-min [id$="cine-guardar"],
   #cine-ov.cine-min [id$="cine-med-cap"],
   #cine-ov.cine-min [id$="cine-med-barra"],
   #cine-ov.cine-min .cine-etiq,
-  #cine-ov.cine-min .cine-grp-vista,
   #cine-ov.cine-min .cine-sep,
   #cine-ov.cine-min #cine-biplano,
   #cine-ov.cine-min #cine-simp-uni,
@@ -342,6 +349,14 @@
     width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0;
     background: none; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
+    /* ══ P13 (1l) — MANTENER APRETADO CON EL DEDO NO SELECCIONA NI ABRE EL MENU DEL SISTEMA
+       `touch-action:none` evita que el navegador interprete el dedo quieto como el comienzo de
+       un desplazamiento y le mande el evento a la pagina en vez de al boton; `user-select:none`
+       y `-webkit-touch-callout:none` sacan la seleccion de texto y el menu contextual que iOS
+       abre al sostener. Sin las tres, mantener apretada la flecha selecciona la imagen y la
+       repeticion se corta sola. */
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
   #cine-ov .cine-imgb > span {
     display: block; width: 26px; height: 26px; border-radius: 50%;
@@ -355,8 +370,40 @@
      pueda VOLVER a mostrar: un boton metido adentro de lo que se esconde se esconde con ello.
      El punto 1.4 enumera lo que queda sobre la imagen y este no esta en la lista; se declara.
      En tamanio Normal no se emite: el 1.2 lo pide para pantalla completa. */
-  #cine-ov:not(.cine-max) .cine-pan-btn { display: none !important; }
+  /* ══ P13 (1h) — EL BOTÓN DE LA COLUMNA, SIEMPRE VISIBLE MIENTRAS LA COLUMNA ESTÉ ESCONDIDA
+     Hasta P12 este botón se emitía SÓLO en pantalla completa —medido en el bloque 0: `display`
+     computado en `none` con el visor en tamaño Normal—, así que una columna escondida que
+     sobreviviera a salir de pantalla completa quedaba sin ninguna forma de volver. La orden es
+     que el botón esté «siempre visible mientras esté escondida, también en Normal».
+     ⚠️ SE ESCONDE SÓLO CUANDO NO HAY NADA QUE DESESCONDER: en Normal con la columna a la vista
+     no se emite, que es lo de hoy y lo que deja la imagen limpia. Con la columna escondida —en
+     Normal o en pantalla completa— se ve siempre. Un botón que aparece sólo cuando sirve.
+     ⚠️ Y SALIR DE PANTALLA COMPLETA DEVUELVE LA COLUMNA, que es la otra mitad del 1h: lo hace
+     `cineMaxToggle`, el dueño único del tamaño, y no esta hoja. */
+  #cine-ov:not(.cine-max):not(.cine-sinpanel) .cine-pan-btn { display: none !important; }
   #cine-ov.cine-sinpanel .cine-col-der { display: none !important; }
+  /* ══ P13 (1a) — CON UNA SOLA VISTA NO HAY «✕ Cerrar vista» ════════════════════════════════
+     Con una vista, ese botón hace exactamente lo que hace «Cerrar» del encabezado —cierra el
+     visor— así que es el «Cerrar duplicado de abajo» que la orden manda sacar. La clase
+     `cine-con-b` la pone `_vToggleSync` cuando hay segunda vista, derivada del DOM.
+     ⚠️ SE ESCONDE, NO SE RETIRA: con dos vistas tiene que haber uno por vista (1b), y seis
+     condiciones del suite lo buscan por su id. */
+  #cine-ov:not(.cine-con-b) [id$="cine-cerrar-v"] { display: none !important; }
+  /* ══ P13 (1e) — PANTALLA COMPLETA CON DOS VISTAS: UNA GRANDE Y UNA AL COSTADO ══════════════
+     La vista elegida se lleva el ancho y su columna de medidas; la otra queda al costado y más
+     chica, con su propio botón de tamaño. Hasta P12 las dos repartían el ancho a la mitad y la
+     que NO tenía columna era la que salía MÁS GRANDE —medido en el bloque 0: 697×486 la vista
+     sin columna contra 349×243 la que la tenía—, o sea justo al revés de lo que se mira.
+     Las clases las pone `_vMaxSync`, que ya decide cuál es la vista con foco.
+     ⚠️ EL ANCHO DE LA CHICA ES UN `clamp` Y NO UN PORCENTAJE PELADO: en una pantalla de 2560 un
+     22 % son 563 px de miniatura y en una de 1280 son 281; el tope de 320 px la mantiene como
+     referencia y el piso de 180 la deja legible. */
+  #cine-ov.cine-max #cine-paneles.cine-2v > .cine-v-grande { flex: 1 1 auto !important; min-width: 0; }
+  #cine-ov.cine-max #cine-paneles.cine-2v > .cine-v-chica {
+    flex: 0 0 clamp(180px, 22%, 320px) !important; min-width: 0;
+  }
+  /* La chica no tiene columna, así que su interruptor de columna no tiene nada que esconder. */
+  #cine-ov.cine-max .cine-v-chica .cine-pan-btn { display: none !important; }
   /* ══ P11 (1.3) — CON DOS VISTAS EN PANTALLA COMPLETA, UNA SOLA COLUMNA ════════════════════
      La de la vista que tiene el foco. La clase la pone `_vMaxSync` sobre la columna de la OTRA;
      `display:none` y no un ancho cero, porque asi la imagen se queda con el ancho de verdad y
@@ -145431,9 +145478,29 @@ function _vPanelHTML(p, esB) {
      herramientas y esconderla detrás de un toggle repite el problema que este cambio cierra. */
   return '<div id="' + p + 'cine-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
       /* Encabezado */
-      '<div id="' + p + 'cine-encab" style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">' +
-        '<b style="font-size:11px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
+      '<div id="' + p + 'cine-encab" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+        /* ══ P13 (1c) — EL ROTULO LLEVA ID PORQUE LA LETRA LA DECIDE LA POSICION ═══════════
+           Hasta P12 la letra se fijaba al montar el panel (`esB ? 'B' : 'A'`) y no se volvia a
+           tocar, asi que cerrando la vista de la izquierda la que quedaba —a la izquierda—
+           seguia diciendo «Vista B»: medido en el bloque 0, `rotA:'B'` con un solo panel en
+           x:31. La letra la escribe ahora `_vRotularPorPosicion`, su dueño unico. El valor de
+           partida sigue saliendo de `esB` para que el panel nazca con algo escrito. */
+        '<b id="' + p + 'cine-rot" style="font-size:11px;color:var(--text2);">Vista ' + (esB ? 'B' : 'A') + '</b>' +
         '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
+        /* ══ P13 (1b) — «✕ Cerrar vista» VUELVE AL ENCABEZADO, Y AHORA SI CORRESPONDE ════════
+           La orden es «un solo Cerrar vista por vista, siempre en el mismo lugar, en Normal y en
+           Pantalla completa». En la barra no podia cumplirse: desde P11 la barra se MUDA a la
+           columna en pantalla completa, asi que el boton cambiaba de lugar con el tamaño.
+           ⚠️ MEDIR-4 LO HABIA SACADO DE ACA POR UNA ASIMETRIA QUE YA NO EXISTE: entonces el
+           encabezado llevaba el boton SOLO en la vista B, asi que su piso tactil de 44 px hacia
+           ese encabezado 30 px mas alto que el de la A. Hoy sale de la plantilla UNICA, o sea
+           que los dos encabezados lo tienen y los dos crecen igual — medido en los dos anchos.
+           ⚠️ `align-items` PASA DE `baseline` A `center` por lo mismo: con un boton de 44 px
+           dentro, alinear por la linea base de los textos deja el rotulo pegado al borde. */
+        '<span style="margin-left:auto;display:flex;align-items:center;">' +
+        btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', '',
+            'Cierra esta vista. La que queda pasa a ser la vista A. Lo medido se conserva.') +
+        '</span>' +
         /* ⚠️ MEDIR-4 — EL «CERRAR VISTA» SE FUE DE ACA A LA BARRA, Y ES LO QUE CIERRA LOS 30 px.
            Hasta MEDIR-3 este encabezado llevaba el boton SOLO en la vista B, con
            `margin-left:auto`. Medido en los doce cruces del bloque 0: eso hacia el encabezado de
@@ -145496,8 +145563,14 @@ function _vPanelHTML(p, esB) {
            `overflow:hidden` el rotulo se recorta en silencio, que es peor que un boton mas ancho:
            un texto cortado a la mitad no se puede leer y nada avisa. La clase `cine-b-ancho` le
            da el ancho que el texto necesita, medido, y el alto sigue siendo 44 px como los demas. */
-        btn('cine-guardar', 'btn-primary cine-b-alto cine-b-ancho', '💾 Guardar el cineloop en el estudio', '',
-            'Guarda el cineloop completo en este dispositivo, dentro del estudio abierto.') +
+        /* ⚠️ LAPIDA P13 (1i) — «💾 Guardar el cineloop en el estudio» SE RETIRA POR ORDEN DEL
+           MEDICO. Su motivo: el cineloop ya entra a la biblioteca por su cola
+           (`_cineEncolar`, ECO-CONECTOR-3) y a que estudio va se decide desde Guardados, asi
+           que el boton ofrecia una tercera forma de hacer lo que ya pasa solo — y la unica que
+           podia fallar en silencio con el ajuste de guardado apagado.
+           ⚠️ `cineGuardarActual` NO SE TOCA Y SIGUE EXPUESTA: la llaman la cola y dos casos del
+           suite, y retirarla seria sacar una funcion que el pedido no manda sacar. Lo que se va
+           es la puerta de la barra. Su regla del modo minimo tambien se retiro de la hoja. */
         /* ══ MEDIR-5 (C1) — UN SOLO «CAPTURAR», QUE CAPTURA LO QUE SE VE ════════════════════
            ⚠️ «📸 Capturar + medicion» SE RETIRA y su conducta pasa a este boton, que ahora decide
            por lo que hay EN PANTALLA: sin mediciones dibujadas captura el cuadro pelado a
@@ -145528,8 +145601,9 @@ function _vPanelHTML(p, esB) {
            SEIS de la B: medido, a 1280 y a 1180 la A envolvia en tres lineas y la B en dos, o sea
            38 px de diferencia de alto. Sacarlos de la barra es lo que deja las dos con la misma
            cuenta de botones; ninguno pierde su funcion ni su id. */
-        btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', '',
-            'Cierra esta vista. Si es la única abierta, cierra el visor. Lo medido se conserva.') +
+        /* ⚠️ LAPIDA P13 (1b) — «✕ Cerrar vista» SE MUDO AL ENCABEZADO DE ESTA MISMA VISTA, que
+           es el unico lugar que NO cambia con el tamaño: esta barra viaja a la columna en
+           pantalla completa. Conserva su id, su funcion y su cableado. */
         /* ⚠️ EL ROTULO VA ARRIBA Y EL CAMPO DEBAJO, dentro de una celda del ancho de un boton:
            con la etiqueta y el campo en LINEA, su ancho minimo fija el de toda la barra. Es la
            misma medicion que la columna de acciones ya habia pagado. */
@@ -145595,7 +145669,23 @@ function _vPanelHTML(p, esB) {
                  ⚠️ EL DE TAMANIO ES UNA RANURA Y NO UN BOTON NUEVO: ahi se muda `cine-maxi`, que
                  es el que ya existe y el que el suite aprieta. Dos botones para la misma accion
                  dejarian dos `aria-pressed` que pueden discrepar. */
+              /* ══ P13 (1d) — CADA VISTA CON SU PROPIO BOTON DE TAMAÑO ════════════════════
+                 Hasta P12 habia UNO SOLO en todo el documento —medido en el bloque 0:
+                 `maxiN:1`— que `_vMaxSync` MUDABA al racimo de la vista con foco, asi que con
+                 dos vistas la otra no tenia ninguno y «a veces solo en la izquierda» era
+                 literal. Ahora sale de la plantilla UNICA, prefijado, o sea uno por vista y
+                 siempre visible.
+                 ⚠️ CONSERVA EL ID `cine-maxi` PARA LA VISTA A: de ese nombre cuelgan
+                 `cineMaxSync`, su icono y los casos que lo aprietan. La vista B es
+                 `b-cine-maxi`.
+                 ⚠️ Y YA NO SE MUDA: eso es lo que cierra P11-h por construccion —cerrar la
+                 vista con foco se llevaba puesto el unico boton de tamaño—. El glifo y el
+                 `aria-pressed` los escribe `cineMaxSync` sobre TODOS, que es lo que impide que
+                 dos botones de la misma accion digan cosas distintas. */
               '<div class="cine-imgbtns cine-imgbtns-tr" id="' + p + 'cine-imgtr">' +
+                '<button type="button" class="cine-imgb" id="' + p + 'cine-maxi" aria-pressed="false" ' +
+                  'title="Maximizar el visor" aria-label="Maximizar el visor">' +
+                  '<span id="' + p + 'cine-maxi-ico">\u2922</span></button>' +
                 ibtn('cine-pan', '&#187;', 'Esconder la columna de medidas y darle todo el ancho a la imagen', 'cine-pan-btn') +
               '</div>' +
               '<div class="cine-imgbtns cine-imgbtns-br" id="' + p + 'cine-imgbr">' +
@@ -146620,8 +146710,32 @@ function _vSlotSync() {
   const mudar = (id, V, ranura) => {
     const n = document.getElementById(id);
     if (!n) return;
+    const rn = ranura || 'cine-der-slot';
+    /* ══ P13 (1g) — LA TABLA QUEDA FIJA JUNTO A SU VISOR ══════════════════════════════════
+       Orden del medico: «no salta de una imagen a la otra al tocar Medir (por ejemplo TAPSE)».
+       Medido en el bloque 0: con el TAPSE armado en la vista A la tabla vivia en
+       `cine-der-slot`, y bastaba con que la vista B eligiera la herramienta Distancia para que
+       se mudara a `b-cine-der-slot` — o sea el numero recien medido en la imagen de la
+       izquierda apareciendo al lado de la imagen de la derecha.
+       Desde esta tanda la mudanza es PEGAJOSA: si el cajon ya esta en la ranura de una vista que
+       existe y SE VE, se queda ahi. Se mueve solo cuando su vista se cierra o deja de verse
+       —el layout angosto muestra una vista por vez— o cuando nunca estuvo en ninguna.
+       ⚠️ ESTO NO PARTE LA TABLA EN DOS, que es lo que MEDIR-4a midio y descarto: `_dop` y `_d2`
+       son estado de MODULO a proposito, porque la ecuacion de continuidad necesita insumos de
+       planos distintos. La procedencia de cada fila la sigue diciendo su marca «· A» / «· B»,
+       que es como se distinguen sin partirla. */
+    try {
+      const cur = n.parentElement;
+      if (cur && cur.id && cur.id.length >= rn.length &&
+          cur.id.slice(cur.id.length - rn.length) === rn) {
+        const pcur = cur.id.slice(0, cur.id.length - rn.length);
+        const Vc = (typeof _vTodas === 'function')
+          ? _vTodas().filter(x => x && x.pfx === pcur)[0] : null;
+        if (Vc && _vVisible(Vc)) return;
+      }
+    } catch (e) {}
     const p = (V && V.pfx) ? V.pfx : ((_V && _V.pfx) ? _V.pfx : '');
-    const slot = document.getElementById(p + (ranura || 'cine-der-slot'));
+    const slot = document.getElementById(p + rn);
     if (slot && n.parentElement !== slot) slot.appendChild(n);
   };
   mudar('cine-dop-slot', dueno(V => V && V.medGrupo === 'dop'));
@@ -146671,6 +146785,63 @@ function _vSlotSync() {
 }
 window._vSlotSync = _vSlotSync;
 
+/* ══ P13 (1l) — MANTENER APRETADA LA FLECHA PASA LOS CUADROS DE SEGUIDO ══════════════════════
+   A la velocidad que declara el archivo —`_cineFps(L.d).ms`, el mismo dueño que usa el
+   reproductor— con una pausa corta al principio, como la repeticion de una tecla, y parando al
+   soltar. El paso sigue ACOTADO: `cineCuadro` no da la vuelta, asi que al llegar al ultimo
+   cuadro la repeticion deja de mover nada en vez de volver al primero.
+
+   ⚠️ LA CADENCIA SE LEE EN CADA TURNO Y NO AL EMPEZAR: el medico puede pasar a otro cineloop
+   —`cine-prev`/`cine-next`— mientras sostiene la flecha, y el archivo nuevo puede declarar otra
+   velocidad. Con la cadencia fijada al apretar, la repeticion seguiria a 40 ms sobre un archivo
+   de 90.
+
+   ⚠️ EL PRIMER PASO LO DA `pointerdown` Y EL `click` QUE LE SIGUE SE CONSUME. Con los dos
+   activos, un toque simple movia DOS cuadros: `pointerdown` y despues `click`. El `onclick` se
+   conserva porque es el unico camino del TECLADO —Enter y Espacio sobre un boton enfocado no
+   disparan `pointerdown`— asi que no se puede reemplazar por el puntero.
+
+   ⚠️ `setPointerCapture` ES LO QUE HACE QUE SOLTAR AFUERA PARE: sin el, arrastrar el dedo fuera
+   del boton deja de mandarle eventos y la repeticion no recibe nunca su `pointerup`, o sea que
+   sigue corriendo sola. Se para ademas con `pointercancel` —el gesto que el sistema se lleva—,
+   con la ventana perdiendo el foco y al cambiar de pestaña. */
+function _vRepetirCuadro(el, V) {
+  if (!el || el._p13rep) return;
+  el._p13rep = true;
+  const paso = el.id.indexOf('fprev') >= 0 ? -1 : 1;
+  let demora = null, bucle = null, conPuntero = false;
+  const ms = () => {
+    try {
+      const D = V && V.datos; const L = D && D.loops[D.i];
+      const v = (L && typeof _cineFps === 'function') ? _cineFps(L.d) : null;
+      return (v && isFinite(v.ms)) ? Math.max(20, Math.round(v.ms)) : 40;
+    } catch (e) { return 40; }
+  };
+  const mover = () => { try { _vCon(V, () => cineCuadro(paso)); } catch (e) {} };
+  const parar = () => {
+    if (demora) { clearTimeout(demora); demora = null; }
+    if (bucle) { clearInterval(bucle); bucle = null; }
+  };
+  el.addEventListener('pointerdown', ev => {
+    if (ev.button != null && ev.button !== 0) return;
+    ev.preventDefault();          // sin esto el dedo sostenido selecciona la imagen
+    conPuntero = true;
+    try { el.setPointerCapture(ev.pointerId); } catch (e) {}
+    parar();
+    mover();
+    demora = setTimeout(() => { demora = null; bucle = setInterval(mover, ms()); }, 420);
+  });
+  ['pointerup', 'pointercancel'].forEach(k => el.addEventListener(k, parar));
+  el.addEventListener('click', ev => {
+    /* El click que sigue a un pointerdown ya movio su cuadro: se consume. El del teclado no
+       pasa por aca con la marca puesta, asi que sigue moviendo. */
+    if (conPuntero) { conPuntero = false; ev.preventDefault(); ev.stopImmediatePropagation(); }
+  }, true);
+  window.addEventListener('blur', parar);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) parar(); });
+}
+window._vRepetirCuadro = _vRepetirCuadro;
+
 function _vCablear(V) {
   const q = id => document.getElementById(V.pfx + id);
   const on = (id, fn) => { const e = q(id); if (e) e.onclick = _vBind(V, fn); };
@@ -146694,6 +146865,14 @@ function _vCablear(V) {
      envueltas en `_vBind`: mueven el cuadro de SU vista y `cineCuadro` resuelve contra `_V`. */
   on('cine-fprev',   () => cineCuadro(-1));
   on('cine-fnext',   () => cineCuadro(1));
+  /* P13 (1l) — y pasan los cuadros de seguido mientras se las mantenga apretadas. */
+  _vRepetirCuadro(q('cine-fprev'), V);
+  _vRepetirCuadro(q('cine-fnext'), V);
+  /* P13 (1d) — el boton de tamaño de ESTA vista. Va SIN `_vBind` por lo mismo que el
+     interruptor de la columna: el tamaño es del VISOR y no de una vista, asi que envolverlo
+     repondria la vista anterior sin que la funcion lea `_V` para nada. */
+  const bmx = q('cine-maxi');
+  if (bmx) bmx.onclick = cineMaxToggle;
   /* ⚠️ EL INTERRUPTOR DE LA COLUMNA **NO** VA ENVUELTO, y no es un olvido: esconder la columna
      es del VISOR y no de una vista, igual que maximizar. Envuelto, el `finally` de `_vBind`
      repondria la vista anterior y la funcion igual tocaria la clase del overlay — o sea que la
@@ -146863,20 +147042,29 @@ function cineMaxActivo() {
   const ov = document.getElementById('cine-ov');
   return !!(ov && ov.classList.contains('cine-max'));
 }
+/* ══ P13 (1d) — UN DUEÑO QUE ESCRIBE *TODOS* LOS BOTONES DE TAMAÑO ═══════════════════════════
+   Desde esta tanda hay uno por vista, asi que escribir «el» boton por su id dejaria al de la
+   otra vista con el glifo y el `aria-pressed` del estado anterior — dos controles de la misma
+   accion diciendo cosas distintas, que es la objecion con la que P11 justifico tener uno solo.
+   Se recorren por sufijo de id, que es como esta casa alcanza a los dos paneles. */
 function cineMaxSync() {
   const ov = document.getElementById('cine-ov');
   if (!ov) return;
-  const b = document.getElementById('cine-maxi');
-  if (!b) return;
   const on = cineMaxActivo();
-  b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  b.title = on ? 'Restaurar el tamaño del visor' : 'Maximizar el visor';
-  const ico = document.getElementById('cine-maxi-ico');
+  const bs = document.querySelectorAll('#cine-ov [id$="cine-maxi"]');
+  if (!bs.length) return;
+  const tit = on ? 'Restaurar el tamaño del visor' : 'Maximizar el visor';
+  Array.prototype.forEach.call(bs, b => {
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.title = tit;
+    b.setAttribute('aria-label', tit);
+  });
   /* `textContent` y no `innerHTML`: es un glifo, y esta casa no abre una ruta de marcado para
      escribir un caracter. */
   /* P11 (1.5) — los DOS glifos son flechas: el pedido dice «solo con flecha y sin texto», y el
      ⛶ anterior no es una flecha. El titulo y el `aria-label` siguen diciendo que hace. */
-  if (ico) ico.textContent = on ? '⤡' : '⤢';
+  Array.prototype.forEach.call(document.querySelectorAll('#cine-ov [id$="cine-maxi-ico"]'),
+    ico => { ico.textContent = on ? '⤡' : '⤢'; });
 }
 /* ══ P11 — LA VISTA CON FOCO, Y POR QUE HACE FALTA ═══════════════════════════════════════
    El punto 1.3 pide que en pantalla completa con dos vistas haya UNA sola columna, la de la
@@ -146927,9 +147115,9 @@ function _vMaxSync() {
   if (!ov) return;
   const max = ov.classList.contains('cine-max');
   const foco = _vFocoVista();
-  const tr = document.getElementById(((foco && foco.pfx) || '') + 'cine-imgtr');
-  const maxi = document.getElementById('cine-maxi');
-  if (tr && maxi && maxi.parentElement !== tr) tr.insertBefore(maxi, tr.firstChild);
+  /* ⚠️ P13 (1d) — EL BOTON DE TAMAÑO YA NO SE MUDA: hay uno por vista y lo emite la plantilla.
+     Lo que vivia aca era `tr.insertBefore(maxi, tr.firstChild)`, que lo llevaba al racimo de la
+     vista con foco — o sea que la otra vista no tenia ninguno. Ver `_vPanelHTML`. */
   _vTodas().forEach(V => {
     const q = id => document.getElementById((V.pfx || '') + id);
     const barra = q('cine-grp-med'), casa = q('cine-barra-casa'), slot = q('cine-barra-slot');
@@ -146950,6 +147138,20 @@ function _vMaxSync() {
     }
     const col = q('cine-col');
     if (col) col.classList.toggle('cine-col-off', !!(max && _vistaB && V !== foco));
+    /* ══ P13 (1e) — LA ELEGIDA GRANDE, LA OTRA AL COSTADO Y MAS CHICA ═══════════════════════
+       Las dos clases van sobre el PANEL y el reparto lo hace la hoja. Hasta P12 las dos vistas
+       repartian el ancho por igual (`flex:1` cada una) y la que se quedaba SIN columna salia
+       mas grande, porque tenia todo el ancho de su mitad: medido en el bloque 0, 697×486 la
+       vista sin columna contra 349×243 la que la tenia, o sea al reves de lo que se mira.
+       ⚠️ SE PONEN SOLO EN PANTALLA COMPLETA Y CON DOS VISTAS: en tamaño Normal las dos tienen
+       su columna y su mitad, que es lo que el 1f pide alineado. Fuera de ese caso las dos
+       clases se retiran, asi que una vista que se cierre no deja la otra encogida. */
+    const pan2 = q('cine-panel');
+    if (pan2) {
+      const dos = !!_vistaB;
+      pan2.classList.toggle('cine-v-grande', !!(max && dos && V === foco));
+      pan2.classList.toggle('cine-v-chica',  !!(max && dos && V !== foco));
+    }
   });
   /* Los cajones y el bloque de calculados los reparte `_vSlotSync`, que ahora tambien mira el
      tamanio: con el bloque en su ranura de debajo de la imagen, los 153 px de reserva de
@@ -147006,6 +147208,13 @@ function cineMaxToggle() {
   const ov = document.getElementById('cine-ov');
   if (!ov) return;
   ov.classList.toggle('cine-max');
+  /* ══ P13 (1h) — SALIR DE PANTALLA COMPLETA DEVUELVE LA COLUMNA DE MEDIDAS ══════════════════
+     Esconder la columna es una funcion de pantalla completa —ahi es donde la imagen necesita
+     todo el ancho— y hasta P12 la clase sobrevivia al volver a tamaño Normal, donde el boton
+     para desesconderla no se emitia: la columna quedaba invisible y sin ninguna forma de
+     recuperarla salvo cerrar el visor. Es la otra mitad del 1h, y el dueño del tamaño es el
+     unico lugar donde se puede ejercer. Lo ve tambien el Escape de P11, que entra por aca. */
+  if (!ov.classList.contains('cine-max')) ov.classList.remove('cine-sinpanel');
   cineMaxSync();
   /* P11 — la mudanza de la barra, de «Capturar» y de la columna va ANTES de reencajar: el alto
      disponible de la imagen depende de cuanto cromo quedo arriba, y `--cine-imgh` ya lo
@@ -147023,9 +147232,64 @@ function cineMaxToggle() {
 window.cineMaxToggle = cineMaxToggle;
 window.cineMaxActivo = cineMaxActivo;
 
+/* ══ P13 (1j) — UN VIDEO NUEVO ARRANCA LIMPIO Y CON UNA SOLA VISTA ═══════════════════════════
+   Orden del medico: «al abrir un video nuevo (Vista previa, biblioteca, imagenes guardadas)
+   empezar siempre con UNA sola vista, sin vistas fantasma y con la tabla vacia: no debe
+   arrastrar medidas del video anterior». Lo que el vio fue una vista derecha negra con
+   «Reproducir» que no hacia nada, y un «SIVd 9,1 mm» sin dibujo y sin escala.
+
+   Las dos mitades tienen causas distintas y las dos estan medidas:
+     · la vista fantasma, porque `_cineAbrir` ponia `_V = _vistaA` y cargaba el cineloop nuevo
+       SIN cerrar la vista B, que se quedaba con el panel montado y los datos de la importacion
+       anterior;
+     · la medida arrastrada, porque `_dop` y `_d2` son estado de MODULO que sobrevive a cambiar
+       de imagen a proposito —su propio comentario lo declara: «el cajon acumula entre imagenes,
+       la ecuacion de continuidad lo exige»— y la sesion de Simpson tampoco se suelta: medido en
+       el bloque 0, `simp` seguia con sus DOS pares despues de abrir otro cineloop.
+
+   ⚠️ ESTO REVIERTE, POR ORDEN EXPRESA, LA PARTE DE ESA DECISION QUE CRUZABA DOS IMPORTACIONES, Y
+   SE DECLARA LO QUE CUESTA: el VTI del TSVI y el de la valvula aortica se miden en planos
+   distintos, asi que si el medico los tiene en DOS importaciones separadas, abrir la segunda ya
+   no conserva el primero. Lo que sigue funcionando es el camino para el que ese flujo existe:
+   dentro de UNA importacion, `cineLoop` pasa de un cineloop a otro y NO entra por aca, y para
+   dos imagenes a la vez esta la segunda vista. Declarado en P13-b.
+
+   ⚠️ NO SE PREGUNTA NADA. El aviso «hay mediciones del estudio anterior, limpiar o conservar»
+   (`avisoImg`) existe para el caso en que el cajon acumula; con la tabla vaciandose al abrir no
+   hay nada que preguntar y preguntarlo seria un cuadro que se aprende a cerrar sin leer. */
+function _cineSoltarAlAbrir() {
+  /* La vista B primero: su panel hay que quitarlo antes de cargar el cineloop nuevo. */
+  try { if (_vistaB) vistaCerrarUna(_vistaB); } catch (e) { console.error('abrir/cerrarB', e); }
+  /* Las sesiones de las mediciones por vista. `medCambioDeImagen` suelta lo pendiente pero
+     CONSERVA los pares confirmados —el metodo exige cambiar de cuadro— y eso es correcto dentro
+     de una imagen; al abrir otra no queda nada a que pertenezcan. */
+  try {
+    _vTodas().forEach(V => {
+      V.simp = null; V.strain = null; V.lars = null; V.vd = null;
+      V.medPorCuadro = null; V.medCuadroClave = null; V.medCuadroPend = false;
+      V.medLineas = []; V.medAreas = []; V.medVels = []; V.medTiempos = []; V.medVtis = [];
+      V.medPuntos = []; V.medTrazo = null;
+      V.medCalib = null; V.medCalibrando = false;
+      V.medCalibVel = null; V.medCalibrandoVel = false; V.medCalVelP0 = null;
+      V.medEtiqAuto = '';
+    });
+  } catch (e) { console.error('abrir/soltar vistas', e); }
+  /* Y los dos cajones, que son de modulo. Se usan sus dueños —los mismos que el boton
+     «Limpiar»— y no una asignacion a mano: ellos deciden que se borra y que se conserva (la
+     estructura abierta) y repintan las dos tablas. Guarda `typeof` porque viven en otros
+     bloques `<script>`. */
+  try { if (typeof _dopLimpiar === 'function') _dopLimpiar(); } catch (e) {}
+  try { if (typeof _d2Limpiar === 'function') _d2Limpiar(); } catch (e) {}
+}
+window._cineSoltarAlAbrir = _cineSoltarAlAbrir;
+
 function _cineAbrir(loops) {
   _V = _vistaA;
   _cineDetener();
+  /* P13 (1j) — un video nuevo arranca limpio. Va ANTES de cargar los datos nuevos: adentro se
+     cierra la vista B, y cerrarla despues de cargar dejaria el cineloop nuevo montado sobre un
+     panel que se esta por quitar. */
+  _cineSoltarAlAbrir();
   _cineDatos = { loops, i: 0, cuadro: 0, timer: null };
   /* ⚠️ MEDIR-4a — LA MARCA DE «VISTA DE IMAGEN FIJA» SE SUELTA ACA. El objeto de la vista A
      sobrevive a cerrar y reabrir el visor, asi que una marca que quedara puesta dejaria el
@@ -147124,12 +147388,10 @@ function _cineAbrir(loops) {
              derecha de la imagen (`_vMaxSync`), y ahi un margen automatico lo empujaria a la
              derecha del interruptor de la columna, o sea al reves del orden pedido. El hueco del
              encabezado se lo lleva ahora la ✕, que es el unico que queda de los dos. */
-          '<button type="button" id="cine-maxi" aria-pressed="false" title="Maximizar el visor" ' +
-            'style="width:44px;height:44px;padding:0;background:none;border:none;' +
-            'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
-            '<span id="cine-maxi-ico" style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
-            'border:1px solid var(--border);color:var(--text);font-size:13px;line-height:24px;' +
-            'text-align:center;">⛶</span></button>' +
+          /* ⚠️ LAPIDA P13 (1d) — EL BOTON DE TAMAÑO DEL ENCABEZADO SE RETIRO. Desde P11 vivia
+             aca y `_vMaxSync` lo MUDABA al racimo de la imagen de la vista con foco, asi que
+             habia uno solo para las dos vistas. Hoy lo emite `_vPanelHTML`, uno por vista y
+             prefijado, y ya no se muda: ver la nota de `cine-imgtr`. */
           '<button type="button" id="cine-cerrar-todo" title="Cerrar el visor — lo medido se conserva" ' +
             'style="margin-left:auto;width:44px;height:44px;padding:0;background:none;border:none;' +
             'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
@@ -147224,7 +147486,6 @@ function _cineAbrir(loops) {
     document.body.appendChild(ov);
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
     ov.querySelector('#cine-cerrar-todo').onclick = cineCerrar;
-    ov.querySelector('#cine-maxi').onclick   = cineMaxToggle;
     ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
     ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
@@ -147906,6 +148167,15 @@ function _cineDetener() {
   if (V.datos && V.datos.timer) { clearInterval(V.datos.timer); V.datos.timer = null; }
   const b = document.getElementById(V.pfx + 'cine-play');
   if (b) b.textContent = '▶ Reproducir';
+  /* ══ P13 (1k) — LA CUENTA DEL CUADRO QUE QUEDO PENDIENTE SE HACE AL PARAR ══════════════════
+     El observador de `#cine-num` la saltea mientras el cineloop corre (ver `_medObservar`), asi
+     que al parar hay que hacerla UNA vez: sin esto, el cuadro en el que el medico deja la
+     reproduccion quedaria con la clave del cuadro de donde arranco, y la proxima flecha
+     guardaria las medidas de este cuadro bajo la clave de aquel.
+     Va al FINAL y con guarda: esta funcion la llaman trece sitios y un `ReferenceError` aca
+     dejaria el reproductor sin forma de pararse. */
+  try { if (V.medCuadroPend) { V.medCuadroPend = false;
+    if (typeof _medCuadroCambio === 'function') _vCon(V, _medCuadroCambio); } } catch (e) {}
 }
 
 function cineToggle() {
@@ -151136,9 +151406,30 @@ function _medPintar() {
        —era su unico lector en este archivo— pero tres condiciones del suite la miden, y es la
        bandera que dice «el cambio de cuadro escondio lo confirmado». Borrarla seria sacar un
        estado que la bateria usa para distinguir ocultar de borrar. */
-    const tr = _simp.pendiente;
+    /* ══ P13 (1m) — LOS CONTORNOS CONFIRMADOS SE VEN, Y NO SE REABRE EL DEFECTO DE P11 ══════
+       ⚠️ ERA UNA REGRESION DE P11 Y ESTA MEDIDA: aquella tanda saco de aca el contorno de la
+       fase CONTRARIA —que se dibujaba mientras el medico empezaba la otra, con razon— y lo que
+       quedo fue «se dibuja SOLO pendiente». Con el par completo no hay nada pendiente, asi que
+       al tocar «Listo» no se veia NINGUNO: medido en el bloque 0, `pares:2` y **cero** pixeles
+       de tinta en el canvas de medicion.
+       Hoy se dibuja lo que se esta trazando y, cuando no hay nada trazandose, el contorno
+       CONFIRMADO DE LA FASE QUE SE ESTA MIRANDO. Eso es lo que lo distingue del defecto de P11:
+       aquello mostraba la fase contraria a la que toca, esto muestra la que toca. Al confirmar
+       la diastole `medSimpsonConfirmar` da vuelta la fase a sistole, cuyo casillero esta vacio,
+       asi que ahi sigue sin dibujarse nada — la escena exacta que P11 midio en cero.
+       ⚠️ RESPETA `ocultar`, que es la bandera que dice «el cambio de cuadro escondio lo
+       confirmado»: un contorno trazado en otro cuadro no se dibuja sobre este, que es la regla
+       que `medReset` viene ejerciendo desde antes.
+       ⚠️ Y EL COLOR LOS DISTINGUE: ambar lo que se esta trazando, verde lo confirmado. Es el
+       mismo verde con el que el strain dibuja su diastole confirmada.
+       ⚠️ CERO CALCULOS TOCADOS: los pares siguen donde estaban y los sigue leyendo
+       `_simpCalcular`. Lo unico que cambia es que se pintan. */
+    const _trPend = _simp.pendiente;
+    const _trConf = (!_trPend && !_simp.ocultar && _simp.pares && _simp.pares[_simp.vista])
+      ? _simp.pares[_simp.vista][_simp.fase] : null;
+    const tr = _trPend || _trConf;
     if (tr) {
-      const col = '#fbbf24';
+      const col = _trPend ? '#fbbf24' : '#34d399';
       cx.strokeStyle = col; cx.fillStyle = col;
       cx.beginPath(); cx.moveTo(tr.pts[0].x, tr.pts[0].y);
       for (let i = 1; i < tr.pts.length; i++) cx.lineTo(tr.pts[i].x, tr.pts[i].y);
@@ -153717,7 +154008,25 @@ function _medObservar() {
     /* P11 (2.2) — `_medCuadroCambio` en vez de `medReset` pelado: guarda lo del cuadro que se
        deja y repone lo de este. Adentro llama a `medReset`, asi que todo lo que esa funcion
        decide sobre las sesiones sigue pasando igual. */
-    if (t !== _medUltimoCuadro) { _medUltimoCuadro = t; _medCuadroCambio(); }
+    if (t === _medUltimoCuadro) return;
+    _medUltimoCuadro = t;
+    /* ══ P13 (1k) — MIENTRAS EL CINELOOP CORRE NO SE RECONSTRUYE NADA POR CUADRO ════════════
+       ⚠️ ESTA ERA LA CAUSA DE LA TRABA, Y ESTA MEDIDA. Este observador dispara en CADA `cineIr`,
+       o sea en cada cuadro, y `_medCuadroCambio` llama a `medReset`, que llama a `_medEstado`,
+       que reescribe por `innerHTML` el panel guia y las DOS tablas. A los 25 cuadros por segundo
+       que declara el archivo eso son 25 reconstrucciones del DOM por segundo y por vista: con
+       dos cineloops reproduciendose a la vez —los 593 y 102 cuadros del reporte— son 50, y una
+       tabla que se reemplaza cincuenta veces por segundo parpadea y no se puede desplazar,
+       porque el nodo sobre el que esta el dedo deja de existir.
+       Mientras el cineloop de ESTA vista esta corriendo no hay nada que guardar ni que reponer:
+       medir sobre un cineloop en marcha ya es imposible —`medToggle` lo pausa— y los cuadros
+       pasan solos. Se anota que quedo pendiente y la cuenta se hace UNA vez al parar, que es
+       donde `_cineDetener` es el dueño unico.
+       ⚠️ SE PREGUNTA POR EL TEMPORIZADOR DE *ESTA* VISTA y no por uno global: con dos vistas,
+       una puede estar corriendo y la otra quieta, y la quieta tiene que seguir guardando y
+       reponiendo sus medidas cuadro por cuadro como hasta hoy. */
+    try { if (V.datos && V.datos.timer) { V.medCuadroPend = true; return; } } catch (e) {}
+    _medCuadroCambio();
   })).observe(num, { childList:true, characterData:true, subtree:true });
   /* Cambió el cineloop de ESTA vista: NO se apaga la medición, se cambia de imagen. */
   new MutationObserver(() => _vCon(V, medCambioDeImagen))
@@ -154343,12 +154652,84 @@ async function _vElegirLoop(V) {
    dos montadas, y la imagen de B quedaba tan chica que un trazo de 120 px se leía 116,1.
    Derivado del DOM no hay forma de que «hay dos vistas» y «la clase está puesta» discrepen: es
    la misma regla que el predicado del botón CC deriva de `closest('.sacc')` y no de un mapa. */
+/* ══ P13 (1c) — LA LETRA DE CADA VISTA SALE DE SU POSICION ════════════════════════════════════
+   Orden del medico: «la vista de la izquierda es siempre A y la de la derecha siempre B; si se
+   cierra una, la que queda pasa a ser A; una vista nueva entra a la derecha como B».
+
+   Hasta P12 la letra se fijaba al MONTAR el panel y no se volvia a tocar, asi que cerrar la
+   vista de la izquierda dejaba a la sobreviviente —que pasa a estar a la izquierda— diciendo
+   «Vista B». Medido en el bloque 0: con un solo panel en x:31, `rotA` daba 'B'. Era la decision
+   provisoria que MEDIR-4a declaro en M4a-a, y esta orden la cierra.
+
+   ⚠️ LA POSICION SE LEE DEL DOM Y NO DE `_vistaA`/`_vistaB`: esas dos variables son «la primera»
+   y «la segunda», no «la izquierda» y «la derecha» —cerrando la A, la B pasa a ser `_vistaA` sin
+   moverse de lugar—. El orden del DOM dentro de `#cine-paneles` ES el orden visual, y es la
+   misma regla con la que `_vAccionesSync` deriva su clase de contar paneles en vez de leer
+   `_vistaB`.
+
+   ⚠️ EL PREFIJO DE LOS IDS *NO* SE TOCA, y es deliberado: MEDIR-4a decidio no renombrarlos
+   —«seria cirugia sobre una treintena de nodos y sobre los casos que los buscan»— y ese
+   argumento sigue valiendo entero. Lo que sigue a la posicion es la LETRA que se lee, no el
+   nombre interno. O sea que la vista de la izquierda puede ser «Vista A» con ids `b-`, que es
+   invisible para el medico y verificable para el suite.
+
+   ⚠️ Y SI LA LETRA CAMBIA, SE REMAPEAN LAS PROCEDENCIAS YA ANOTADAS. De `rot` cuelga la marca
+   «· A» / «· B» de cada fila medida (`_dopSufOrigen` y `_d2SufOrigen`), que se guarda como la
+   LETRA y no como una referencia a la vista. Sin el remapeo, renombrar la vista haria que una
+   medicion ya tomada dijera que salio de otra imagen — que es exactamente la objecion con la que
+   MEDIR-4a se nego a tocar `rot`. Con el remapeo la procedencia sigue siendo verdadera. */
+function _vRotularPorPosicion() {
+  try {
+    const cont = document.getElementById('cine-paneles');
+    if (!cont) return;
+    const paneles = cont.querySelectorAll('[id$="cine-panel"]');
+    const LETRAS = ['A', 'B'];
+    const cambios = Object.create(null);
+    const vistas = (typeof _vTodas === 'function') ? _vTodas() : [];
+    const n = Math.min(paneles.length, LETRAS.length);
+    for (let i = 0; i < n; i++) {
+      const id = paneles[i].id;
+      const pfx = id.slice(0, id.length - 'cine-panel'.length);
+      const V = vistas.filter(x => x && x.pfx === pfx)[0];
+      const nueva = LETRAS[i];
+      if (V && V.rot !== nueva) { if (V.rot) cambios[V.rot] = nueva; V.rot = nueva; }
+      const b = document.getElementById(pfx + 'cine-rot');
+      if (b) b.textContent = 'Vista ' + nueva;
+    }
+    if (Object.keys(cambios).length) _vRemapOrigenes(cambios);
+  } catch (e) { console.error('rotular por posicion', e); }
+}
+window._vRotularPorPosicion = _vRotularPorPosicion;
+
+/* Cambia la LETRA anotada en las procedencias de los dos cajones, en UNA pasada y sobre una
+   foto de los valores viejos: con dos pasadas, un intercambio A↔B aplicaria el segundo cambio
+   sobre el resultado del primero y las dos filas terminarian diciendo lo mismo.
+   Los dos cajones viven en OTROS bloques `<script>`, asi que se los alcanza con guarda: este
+   archivo ya se quedo sin JavaScript dos veces por un bloque que dejo de parsear, y un
+   `ReferenceError` aca se llevaria puesto el rotulado entero. */
+function _vRemapOrigenes(mapa) {
+  const remap = E => {
+    if (!E || !E.origen) return;
+    const o = E.origen, pares = [];
+    for (const k in o) pares.push([k, o[k]]);
+    pares.forEach(par => { const v = par[1]; if (v && mapa[v]) o[par[0]] = mapa[v]; });
+  };
+  try { if (typeof _dopEstado === 'function') remap(_dopEstado()); } catch (e) {}
+  try { if (typeof _d2Estado === 'function') remap(_d2Estado()); } catch (e) {}
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
+}
+window._vRemapOrigenes = _vRemapOrigenes;
+
 function _vAccionesSync() {
   const c = document.getElementById('cine-paneles');
   if (!c) return;
   const antes = c.classList.contains('cine-2v');
   const ahora = c.querySelectorAll('[id$="cine-panel"]').length > 1;
   c.classList.toggle('cine-2v', ahora);
+  /* P13 (1c) — la letra sigue a la posicion, y esta funcion es el unico lugar que corre en los
+     DOS momentos en que la posicion puede cambiar: al montar un panel y al quitarlo. */
+  try { _vRotularPorPosicion(); } catch (e) {}
   /* ⚠️ SI EL LAYOUT SE MOVIÓ, HAY QUE RECALZAR LAS MEDICIONES. `_medPintar` calza el canvas de
      trazos leyendo el rect de la imagen EN EL MOMENTO de pintar, así que todo lo que cambie el
      ancho mostrado deja los contornos fuera de lugar hasta el próximo repintado. Poner o sacar
@@ -157813,9 +158194,12 @@ function _dopGrupoAbiertoEnAlguna() {
     return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop';
   } catch (e) { return false; }
 }
+/* P13 (1g) — y lo mismo para el cajon Doppler, por el mismo motivo y con el mismo criterio: un
+   cajon con valores no desaparece porque el medico cambie de herramienta. Ver `_d2Visible`. */
 function _dopVisible() {
   if (!_dopHayVisor()) return false;
-  return _dopGrupoAbiertoEnAlguna();
+  if (_dopGrupoAbiertoEnAlguna()) return true;
+  try { return (typeof _dopHayValores === 'function') ? _dopHayValores() : false; } catch (e) { return false; }
 }
 
 /* ══ MEDIR-3 — LOS TEXTOS DEL GLOBO ⓘ DEL CAJON DOPPLER (punto A4) ═══════════════════════════
@@ -158959,9 +159343,21 @@ function _d2HerrEnAlguna() {
     return typeof _medHerr !== 'undefined' && _medHerr === 'dist';
   } catch (e) { return false; }
 }
+/* ══ P13 (1g) — LA TABLA NO SE ESCONDE MIENTRAS SE MIDE ══════════════════════════════════════
+   Orden del medico: «la tabla de medidas queda fija junto a su visor: no se esconde mientras se
+   mide (solo marca la fila que se esta midiendo)». Hasta P12 este cajon aparecia unicamente con
+   la herramienta Distancia activa en alguna vista, asi que pasar a Velocidad para medir un VTI
+   se llevaba de pantalla el TAPSE recien medido: el numero seguia guardado y el medico no tenia
+   forma de verlo sin volver a Distancia.
+   Desde esta tanda, un cajon CON VALORES se queda a la vista con cualquier herramienta. La fila
+   que se esta midiendo se distingue por su marca, que `_medTablaHTML` ya pinta con el `destino`.
+   ⚠️ EL MODO MINIMO SIGUE MANDANDO: la regla `#cine-ov.cine-min #d2-cajon` de la hoja lo esconde
+   con la medicion apagada, asi que el visor sigue abriendo limpio. Esto decide que pasa DENTRO
+   del modo de medicion, que es lo que la orden acota. */
 function _d2Visible() {
   if (typeof _dopHayVisor !== 'function' || !_dopHayVisor()) return false;
-  return _d2HerrEnAlguna();
+  if (_d2HerrEnAlguna()) return true;
+  try { return _d2HayValores(); } catch (e) { return false; }
 }
 window._d2Visible = _d2Visible;
 
