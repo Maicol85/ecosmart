@@ -1645,6 +1645,38 @@ impecable.
   local y basta pushear después: **no** hay que rehacer nada ni reescribir historia.
   En esta red **el puerto 22 de GitHub está bloqueado**; HTTPS y `ssh.github.com:443` sí responden.
 
+### Punto de retorno de lo que está publicado
+
+**La rama que publica GitHub Pages es `main`**, con la raíz del repositorio como origen y
+`ecosmart.ceibomed.com` como dominio — verificado con `gh api repos/Maicol85/ecosmart/pages`
+(`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
+sale publicado.
+
+⚠️ **PUNTO DE RETORNO VIGENTE: `c047112`**, el cierre de la tanda **P12** —sello `v20261122-1436`,
+md5 `ae874798`, 192.438 líneas—. Es lo que la página servía antes de publicar **P13 + P13-B**
+(sello `v20261122-2251`, md5 `8524699a`), y son **once** commits de diferencia.
+
+**Para volver atrás SIN reescribir historia** —que es la única forma permitida acá: nada de
+`push --force`, nada de `reset`, porque lo publicado ya lo bajó un navegador—:
+
+```bash
+git revert --no-commit c047112..main && git commit -m "Revertir P13 + P13-B: volver al arbol de c047112" && git push origin main
+```
+
+**Verificado antes de publicar, en un worktree aparte y sin tocar `main`**: ese revert deja el
+árbol **idéntico byte por byte** a `c047112` —`index.html` con md5 `ae874798` y **cero** archivos
+distintos del árbol base—, y deja los once commits en la historia con un duodécimo que los deshace.
+
+Y si lo que hay que volver atrás es **sólo lo que la página sirve** y no la documentación:
+
+```bash
+git checkout c047112 -- index.html version.json && git commit -m "Volver index.html y version.json a c047112" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección de la tanda se
+pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
 ---
 
 ## SEGURIDAD
