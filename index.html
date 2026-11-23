@@ -1722,6 +1722,9 @@
   /* El pie de la tarjeta: el interruptor y, desde PR6-3, los dos botones de copiar. */
   .cuad-pie { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start;
               margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); }
+  /* Los dos botones de copiar: chicos y discretos, pero con su piso tactil de 44 px. */
+  .cuad-copias { display:inline-flex; gap:6px; flex:0 0 auto; }
+  .cuad-copia { min-width:44px; min-height:44px; padding:0 10px; font-size:15px; line-height:1; }
   .cuad-rv { flex:1 1 320px; min-width:0; display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center;
              margin:0; padding:6px 8px; border:1px solid var(--border); border-radius:8px;
              cursor:pointer; }
@@ -6655,6 +6658,20 @@ window.cerrarSesionReal = cerrarSesionReal;
          existe justamente para eso. Un caso que mide el producto no se afloja por una decisión
          de maquetado que se puede tomar al revés. -->
     <div class="cuad-pie">
+      <!-- LOS DOS BOTONES DE COPIAR (PR6-3). Chicos, discretos, con icono y su explicacion al
+           pasar el mouse. El `title` y el `aria-label` dicen lo mismo con palabras, que es la
+           regla de esta casa: un icono solo no se lee.
+           ⚠️ LA COPIA NO DEPENDE DE LOS CUADROS QUITADOS NI MOVIDOS, y eso es POR CONSTRUCCION y
+           no por una guarda: `cuadTexto()` arma su indice con `cuadDefs()` —los DOCE, sin
+           filtrar— y no con `cuadVisibles()`, que es la que aplica el orden y los quitados. -->
+      <span class="cuad-copias">
+        <button type="button" class="btn btn-ghost cuad-copia" onclick="cuadCopiarDatos()"
+          title="Copiar los datos numéricos del estudio como texto, para pegarlos en otro sistema. No lleva datos del paciente."
+          aria-label="Copiar los datos numéricos del estudio como texto, para pegarlos en otro sistema. No lleva datos del paciente.">🔢</button>
+        <button type="button" class="btn btn-ghost cuad-copia" onclick="cuadCopiarInforme()"
+          title="Copiar el informe con su EN SUMA, tal cual salen en el informe."
+          aria-label="Copiar el informe con su EN SUMA, tal cual salen en el informe.">📋</button>
+      </span>
         <!-- «☐ Incluir resumen de válvulas» — DISCRETO, APAGADO DE FÁBRICA Y SOLO EN MEMORIA (PR6-2).
              ⚠️ ES UN `<label>` QUE ENVUELVE LA CASILLA Y NO UN `for=`: así el área de toque es el
              renglón entero —texto incluido— y no los 13 px de la casilla, que es la receta que esta
@@ -81035,6 +81052,292 @@ function cuadDefs() {
 /* ¿Este cuadro tiene algo que dibujar? La MISMA regla que el papel aplicaba con su filtro: alguna
    fila con valor, o alguna línea de válvula. La nota del asterisco NO cuenta: sin filas no hay
    asterisco que explicar. */
+/* ══ EL TEXTO «TIPO WORD» ══════════════════════════════════════════════════════════════════════
+   Decisión de Maicol (PR6-3, 23/11/2026) y su motivo: copiar los números al sistema informático
+   del sanatorio, donde hoy los tipea a mano.
+
+   ⚠️ UNA FUNCIÓN ÚNICA, Y DE ELLA CUELGAN LOS DOS BOTONES Y EL NOVENO ESTILO DE PDF. Con dos
+   armadores, el texto que el médico copia y el que el papel imprime podrían divergir el día que
+   un renglón cambie de orden.
+
+   ⚠️ LOS VALORES SALEN DEL ÍNDICE DE `cuadDefs()`, NO DE UNA SEGUNDA LECTURA DE LOS CAMPOS, y es
+   la decisión de fondo de esta tanda. Reescribir acá `vPdf('tapse',' mm')` sería la segunda
+   derivación del mismo dato: el día que una fila cambie de unidad, de banda de plausibilidad o de
+   marca de «revisar», el cuadro del PDF y este texto publicarían dos números distintos del MISMO
+   estudio. Tomando el valor ya armado por el cuadro eso es imposible por construcción, y además
+   hace MEDIBLE la regla de completitud: `cuadTextoFaltan()` compara los dos conjuntos.
+
+   ⚠️ LO QUE NO ENTRA, por orden expresa: los HALLAZGOS de válvula —«IM leve», «EM no
+   significativa», la morfología, el grado— y el texto del informe. Sí entran la geometría
+   ventricular y los derivados de ese tipo, que son clasificaciones de un número medido. El cuadro
+   «Otros» queda afuera entero: su única línea son pericardio, masas, pulmón y variantes
+   anatómicas, que son hallazgos y no medidas. Declarado en PENDIENTES -> PR6-d. */
+
+/* Los rótulos de los cuadros que son un HALLAZGO y no una medida. Se comparan por rótulo porque
+   es lo que el cuadro publica; la lista es cerrada y `cuadTextoFaltan()` delata a cualquiera que
+   quede afuera de las dos. */
+const CW_NO_MEDIDA = Object.freeze(['Morf.', 'IM', 'IAo', 'IT', 'EA grado', 'EM grado',
+                                    'ET grado', 'Notas']);
+/* Los cuadros de los que este texto NO toma nada. `otros` son hallazgos; `gc` y los demás sí
+   entran, repartidos por la tabla de abajo. */
+const CW_CUAD_FUERA = Object.freeze(['otros']);
+
+/* Una pieza «Etiqueta: valor». Se omite SOLA sin valor, así que el texto nunca publica un rótulo
+   pelado ni un «—». La unidad ya viene dentro del valor que armó el cuadro. */
+function _cwPz(lbl, val) {
+  if (val == null) return null;
+  const s = String(val).trim();
+  if (!s || s === '—' || s === '-') return null;
+  return lbl ? (lbl + ': ' + s) : s;
+}
+/* Una línea: las piezas separadas por « - », como la planilla de papel del médico. Sin piezas
+   devuelve null y la línea no sale. */
+function _cwLinea(piezas) {
+  const vivas = (piezas || []).filter(function (p) { return p != null && String(p).trim() !== ''; });
+  return vivas.length ? vivas.join(' - ') : null;
+}
+
+/* El índice de los doce cuadros: `id|rotulo` -> valor, saltando los hallazgos y el cuadro
+   «Otros». Lleva además el conjunto de claves con valor, que es el denominador de la
+   completitud. */
+function _cwIndice() {
+  const ix = Object.create(null);
+  let defs = [];
+  try { defs = cuadDefs(); } catch (e) { defs = []; }
+  defs.forEach(function (d) {
+    if (!d || CW_CUAD_FUERA.indexOf(d.id) >= 0) return;
+    (d.items || []).concat(d.items2 || []).forEach(function (i) {
+      if (!i || i.val == null) return;
+      if (CW_NO_MEDIDA.indexOf(i.lbl) >= 0) return;
+      const s = String(i.val).trim();
+      if (!s) return;
+      ix[d.id + '|' + i.lbl] = s;
+    });
+  });
+  return ix;
+}
+/* Y el índice de las tres secciones de válvula —la fila que PR6-2 reusó—, que es de donde salen
+   la cuantificación de la insuficiencia y las áreas. MISMO dueño que el resumen del PDF: si esa
+   fila cambia de campo, este texto cambia con ella. */
+function _cwIndiceValv() {
+  const ix = Object.create(null);
+  let defs = [];
+  try { defs = cuadResumenValvDefs(); } catch (e) { defs = []; }
+  defs.forEach(function (d) {
+    if (!d) return;
+    (d.items || []).forEach(function (i) {
+      if (!i || i.val == null) return;
+      if (CW_NO_MEDIDA.indexOf(i.lbl) >= 0) return;
+      const s = String(i.val).trim();
+      if (!s) return;
+      ix[d.id + '|' + i.lbl] = s;
+    });
+  });
+  return ix;
+}
+
+/* ══ EL ORDEN. Es el de la planilla de papel del médico, y vive en UN solo lugar ══════════════
+   Cada sección es `{tit, lineas:[[ [rotulo, clave], ... ], ...]}`. La clave es `cuadroId|rotulo`
+   del índice de arriba; el rótulo es el que se imprime, y se escribe sólo cuando difiere del que
+   el cuadro usa —así las abreviaturas siguen siendo las de la aplicación y no las de un ejemplo—.
+   ⚠️ LAS SECCIONES VAN EN ESTE ORDEN Y NO EN EL DE `cuadDefs()`: la orden lo fija expresamente
+   —Aorta, AI, VI, VD, AD y VCI, y después DOPPLER—, y no coincide con el orden de los cuadros. */
+const CW_SECS = Object.freeze([
+  { tit:'Aorta', lineas:[
+      [['SV','ao|SV'], ['ST','ao|ST'], ['Ao asc','ao|Ao asc'],
+       ['Cayado','ao|Cayado'], ['Ao desc','ao|Ao desc']] ] },
+  { tit:'Aurícula izquierda', lineas:[
+      [['AP','ai|Diám. AP'], ['área','ai|Área AI'],
+       ['volumen','ai|Volumen AI'], ['volumen indexado','ai|Vol. indexado']] ] },
+  { tit:'Ventrículo izquierdo', lineas:[
+      [['SIV','viest|SIV'], ['DDVI','viest|DDVI'], ['DSVI','viest|DSVI'], ['PP','viest|PP']],
+      [['FEVI','visis|FEVI'], ['FA','visis|FA'], ['SGL','visis|SGL']],
+      [['Masa idx','visis|Masa idx'], ['RWT','visis|RWT']],
+      [['Geometría','visis|Geometria']],
+      /* ⚠️ ESTE RENGLÓN Y EL SIGUIENTE NO ESTÁN EN LA LISTA DE LA ORDEN, y entran por la REGLA DE
+         COMPLETITUD: son campos numéricos que HOY salen en los cuadros del PDF -los dos volúmenes
+         indexados y el volumen latido en «VI - Estructura» y «VI - Función sistólica», y el gasto
+         cardíaco entero en su propio cuadro- y la orden manda ubicarlos en el renglón más afín de
+         su sección y listarlos en el reporte. El gasto cardíaco es el gasto del VENTRÍCULO
+         IZQUIERDO, así que su sección afín es ésta. Listados en PR6-e. */
+      [['VDFVI idx','viest|VDFVI idx'], ['VSFVI idx','viest|VSFVI idx'],
+       ['Vol. latido','visis|Vol. lat.']],
+      [['Vol. sistólico','gc|Vol. sistól.'], ['VLI','gc|VLI'],
+       ['GC','gc|GC'], ['IC','gc|IC']] ] },
+  { tit:'Ventrículo derecho', lineas:[
+      [['TAP','vd|TAP'], ['TAPSE','vd|TAPSE'], ["S'","vd|S'"],
+       ['basal','vd|Diám. basal'], ['medio','vd|Diám. medio'], ['longitudinal','vd|Longitud']],
+      /* Completitud: la FAC, la FEVD y la relación VD/VI salen hoy en el cuadro del VD. */
+      [['FAC','vd|FAC'], ['FEVD','vd|FEVD'], ['VD/VI','vd|VD/VI']] ] },
+  { tit:'Aurícula derecha y VCI', lineas:[
+      [['área AD','advci|Área AD'], ['VCI','advci|Diám. VCI'],
+       ['colapso','advci|Colapso VCI']],
+      /* Completitud: la PmAD y el VEXUS salen hoy en el cuadro de AD/VCI. */
+      [['PmAD','advci|PmAD'], ['VEXUS','advci|VEXUS']] ] }
+]);
+
+/* El bloque DOPPLER: su título propio y tres sub-secciones. Las claves con prefijo `RV|` salen
+   del índice de la fila de válvulas y no de los doce cuadros. */
+const CW_DOPPLER_TIT = 'DOPPLER';
+/* Resuelve UNA clave contra los tres indices. El prefijo dice de donde sale, y hay tres porque
+   hay tres duenos distintos: los doce cuadros, la fila de valvulas y los dos derivados que no
+   tienen fila propia en ningun cuadro. */
+function _cwVal(clave, ix, ixv, CX) {
+  if (clave.indexOf('RV|') === 0) return ixv[clave.slice(3)];
+  if (clave.indexOf('CX|') === 0) return CX ? CX[clave.slice(3)] : null;
+  if (clave.indexOf('CW|') === 0) {
+    /* ⚠️ LAS DOS VELOCIDADES DE LA INSUFICIENCIA PULMONAR NO TIENEN FILA EN NINGUN CUADRO: el
+       cuadro «Tricuspide / Pulmonar» las consume como INSUMO de la PAPm y la PAPd y no las
+       publica. La orden las pide por su nombre, asi que salen por `vPdf` -el mismo lector con
+       banda de plausibilidad que usan todas las filas del papel- y con la unidad que su propio
+       rotulo declara en la pantalla. Es lo UNICO de este texto que no sale de un cuadro, y por
+       eso va con su prefijo propio en vez de disimularse entre las claves de cuadro. */
+    if (clave === 'CW|ipVmax') { try { return vPdf('ip_vmax', ' m/s'); } catch (e) { return null; } }
+    if (clave === 'CW|ipVtd')  { try { return vPdf('ip_vtd',  ' m/s'); } catch (e) { return null; } }
+    /* ⚠️ LAS CUATRO DE ABAJO VAN POR LA FORMA «valor (metodo)» Y NO POR LA DE «METODO: valor», y
+       no es estetica: con `imEroaPdfVal()` el texto salia «ORE: Cont: 28.0 mm2» —dos etiquetas
+       pegadas—, que es ilegible justo en la linea que el medico va a pegar en el sistema del
+       sanatorio. Es la MISMA distincion que la tanda CUADROS documenta: `_imMetodoPdfPartes` es
+       el dueno y devuelve las PARTES; `_imMetodoPdfVal` y `_cuadMetTxt` son dos FORMAS del mismo
+       dato. Se reusa `_cuadMetTxt`, que es el formateador de las lineas de valvula del papel, asi
+       que no hay un tercer formato que pueda divergir. */
+    if (clave === 'CW|ore')  { try { return _cuadMetTxt(_imMetodoPdfPartes('eroa-val', 'im_eroa_cont', ' mm²', 1)); } catch (e) { return null; } }
+    if (clave === 'CW|volr') { try { return _cuadMetTxt(_imMetodoPdfPartes('volr-val', 'vr_cont', ' ml', 1)); } catch (e) { return null; } }
+    if (clave === 'CW|fr')   { try { return _cuadMetTxt(_imMetodoPdfPartes('freg-val', 'im_fr_cont', '%', 0)); } catch (e) { return null; } }
+    if (clave === 'CW|avm')  { return _cwAvmTxt(); }
+    return null;
+  }
+  return ix[clave];
+}
+
+/* ⚠️ `emAvmPdfPartes()` DEVUELVE OTRA FORMA QUE `_imMetodoPdfPartes()`, Y LO ENCONTRO LA SONDA:
+   aquella da `{met, val}` y esta da `{met, txt}` con el prefijo del metodo YA PUESTO adentro del
+   texto. Pasada por `_cuadMetTxt` -que lee `x.val`- salia «undefined (THP)» sobre un area que si
+   estaba medida. Asi que este adaptador emite la MISMA forma «valor (metodo)» desde la otra:
+   saca el prefijo solo cuando el texto arranca EXACTAMENTE con el del metodo, y si no deja el
+   texto tal cual.
+   ⚠️ Y ESE «si no» NO ES DEFENSIVO, ES LA REGLA DE SU DUENO: su propio comentario declara que al
+   texto de «no evaluable» NO se le pone prefijo, porque ya nombra el campo —«THP: no evaluable
+   (THP fuera de rango)» era el defecto que ese dueno vino a cerrar—. Sacar un prefijo que no
+   esta a ciegas le comeria las primeras letras a esa frase. */
+function _cwAvmTxt() {
+  let partes = [];
+  try { partes = emAvmPdfPartes() || []; } catch (e) { return null; }
+  if (!partes.length) return null;
+  return partes.map(function (p) {
+    const t = String(p && p.txt || ''), pref = String(p && p.met || '') + ': ';
+    return (p && p.met && t.indexOf(pref) === 0)
+      ? (t.slice(pref.length) + ' (' + p.met + ')') : t;
+  }).filter(Boolean).join(' \u00b7 ') || null;
+}
+
+/* ══ EL TEXTO, ARMADO ══════════════════════════════════════════════════════════════════════════
+   Devuelve `[{tit, lineas:[str]}]`. Una seccion sin una sola linea con datos NO SALE, y una
+   linea sin una sola pieza tampoco: es la regla de la orden -«solo lo que esta cargado»-.
+   El titulo DOPPLER sale solo si alguna de sus tres sub-secciones tiene algo. */
+function cuadTextoSecs() {
+  const ix = _cwIndice(), ixv = _cwIndiceValv();
+  let CX = null;
+  try { CX = cuadCtx(); } catch (e) { CX = null; }
+  const armar = function (sec) {
+    const lineas = [];
+    (sec.lineas || []).forEach(function (grupo) {
+      const l = _cwLinea(grupo.map(function (par) {
+        /* La TERCERA posicion es la unidad, y es OPCIONAL: solo la necesitan los valores crudos
+           de `cuadCtx` -el AVA-, porque los de los cuadros ya la traen puesta adentro. */
+        const v = _cwVal(par[1], ix, ixv, CX);
+        return _cwPz(par[0], (v != null && par[2]) ? (String(v) + par[2]) : v);
+      }));
+      if (l) lineas.push(l);
+    });
+    return lineas.length ? { tit: sec.tit, lineas: lineas } : null;
+  };
+  const out = [];
+  CW_SECS.forEach(function (s) { const a = armar(s); if (a) out.push(a); });
+  const dop = [];
+  CW_SECS_DOP.forEach(function (s) { const a = armar(s); if (a) dop.push(a); });
+  if (dop.length) {
+    out.push({ tit: CW_DOPPLER_TIT, lineas: [], soloTitulo: true });
+    dop.forEach(function (d) { out.push(d); });
+  }
+  return out;
+}
+window.cuadTextoSecs = cuadTextoSecs;
+
+/* El texto llano. Un titulo por seccion y debajo sus lineas, una por renglon. El noveno estilo
+   de PDF consume `cuadTextoSecs()` directo para poder poner los titulos en negrita y subrayados;
+   los dos botones de copiar consumen ESTA, que es la misma cosa en texto plano. */
+function cuadTexto() {
+  const partes = [];
+  cuadTextoSecs().forEach(function (s) {
+    partes.push(s.tit + ':');
+    (s.lineas || []).forEach(function (l) { partes.push('  ' + l); });
+  });
+  return partes.join('\n');
+}
+window.cuadTexto = cuadTexto;
+
+/* ══ LA REGLA DE COMPLETITUD, MEDIBLE ══════════════════════════════════════════════════════════
+   «Todo campo numerico cargado que hoy sale en los cuadros del PDF debe salir en este texto».
+   Esta funcion la MIDE: devuelve las claves del indice de cuadros que tienen valor y NO aparecen
+   en ninguna tabla de orden. Con el formulario poblado tiene que dar CERO, y si alguien agrega
+   una fila a un cuadro sin ubicarla acá, la delata.
+   ⚠️ NO SE COMPARA EL TEXTO FINAL SINO LAS CLAVES, y es a proposito: una pieza puede faltar del
+   texto porque ese paciente no tiene el dato -lo correcto- o porque nadie la ubico -el defecto-,
+   y comparando cadenas las dos cosas se leen igual. */
+function cuadTextoFaltan() {
+  const usadas = Object.create(null);
+  const anotar = function (secs) {
+    secs.forEach(function (s) { (s.lineas || []).forEach(function (g) {
+      g.forEach(function (par) { usadas[par[1]] = true; }); }); });
+  };
+  anotar(CW_SECS); anotar(CW_SECS_DOP);
+  const ix = _cwIndice();
+  return Object.keys(ix).filter(function (k) { return !usadas[k]; });
+}
+window.cuadTextoFaltan = cuadTextoFaltan;
+
+const CW_SECS_DOP = Object.freeze([
+  { tit:'Válvula mitral', lineas:[
+      [['onda E','vm|Onda E'], ['onda A','vm|Onda A'], ['E/A','vm|E/A']],
+      [['THP','vm|THP'], ['área','CW|avm']],
+      [['TDE','vm|TDE'], ['TRIV','vm|TRIV']],
+      [["e' septal","dti|e' septal"], ["e' lateral","dti|e' lateral"],
+       ["e' promedio","dti|e' prom."], ["E/e'","dti|E/e'"]],
+      /* Completitud: los cinco de la VENA PULMONAR salen hoy en la sub-columna derecha del
+         cuadro mitral. Van en su propio renglón y no mezclados con el Doppler transmitral,
+         que es como el cuadro los separa. */
+      [['dur. A mitral','vm|Dur. A mit.'], ['S/D pulmonar','vm|S/D pulm.'],
+       ['dur. Ar','vm|Dur. Ar'], ['veloc. Ar','vm|Veloc. Ar'], ['Ar-A','vm|Ar-A']],
+      /* La CUANTIFICACIÓN de la insuficiencia, en el orden que la orden fija: vena contracta,
+         ORE, volumen regurgitante y lo que la app tenga -acá, la fracción regurgitante-. */
+      [['vena contracta','RV|rv_vm|VC IM'], ['ORE','CW|ore'],
+       ['volumen regurgitante','CW|volr'], ['FR','CW|fr']],
+      /* El AVm por THP es OTRA cosa que el area de la linea de arriba -esa es la del metodo
+         elegido- y el cuadro mitral la publica aparte, asi que la completitud la exige. */
+      [['DVI','RV|rv_vm|DVI'], ['AVm por THP','vm|AVm THP']] ] },
+  { tit:'Válvula aórtica', lineas:[
+      [['V.Max','va|V. máx Ao'], ['G.Max','va|G. máx'], ['G.medio','va|G. medio']],
+      [['Ø TSVI','ao|Ø TSVI'], ['VTI-TSVI','va|VTI TSVI'], ['VTI-VAo','va|VTI Vao']],
+      /* ⚠️ EL AVA SALE DE `cuadCtx` Y NO DE LA FILA DE VALVULAS, y la diferencia es la COMPUERTA
+         y no el numero: los dos leen `CX.avaC`, el mismo dueno, pero la fila de valvulas la gatea
+         por `eaReal` -tiene que haber un grado de estenosis consignado- y este texto no. Es una
+         MEDICION, no un grado: con el area calculada y sin grado puesto, la fila del resumen se
+         calla y el texto publicaba el AVA indexado SIN el AVA, que es peor que las dos cosas.
+         Medido en el caso normal: antes salia «DVI - AVA idx» y hoy salen los tres. */
+      [['DVI','va|DVI'], ['AVA','CX|avaC', ' cm2'], ['AVA idx','CX|avaIdx']],
+      [['vena contracta','RV|rv_va|VC IAo'], ['THP','RV|rv_va|THP'],
+       ['AT','RV|rv_va|AT']] ] },
+  { tit:'Válvula tricúspide y pulmonar', lineas:[
+      [['V.Max IT','trip|V. máx IT'], ['gradiente AD-VD','trip|Grad. IT'], ['PSAP','trip|PSAP']],
+      [['V.Max VP','trip|V. máx VP'], ['gradiente VP','trip|G. máx VP']],
+      [['V.Max Pd de IP','CW|ipVmax'], ['PMAP por IP','trip|PAPm (IP)'],
+       ['V.Max Td de IP','CW|ipVtd'], ['PDAP por IP','trip|PAPd (IP)']],
+      /* Completitud: la PAP media consignada y el DVI de la prótesis pulmonar salen hoy en el
+         cuadro «Tricúspide / Pulmonar». */
+      [['PAP media','trip|PAP media'], ['DVI VP','trip|DVI VP']],
+      [['vena contracta','RV|rv_vt|VC IT'], ['DVI','RV|rv_vt|DVI']] ] }
+]);
 /* ══ LA FILA DE VÁLVULAS, REUSADA Y NO REESCRITA (PR6-2, 23/11/2026) ══════════════════════════
    ⚠️ ESTO NO ES CÓDIGO NUEVO: son las tres secciones de válvula del BLOQUE 5 que la tanda CUADROS
    (commit `f5a4e19`) retiró del papel, recuperadas de `f5a4e19^` y con los MISMOS campos, los
@@ -81287,6 +81590,89 @@ function cuadRestablecer() { cuadReset(); cuadPintar(); }
 /* El interruptor del resumen de valvulas. NO repinta la grilla: el resumen no es uno de los doce
    cuadros y no se muestra en la tarjeta —lo que la tarjeta configura es el ORDEN y los QUITADOS—.
    Lo unico que mueve es lo que el PDF publica, y eso se mide generando el PDF. */
+
+/* ══ COPIAR AL PORTAPAPELES (PR6-3) ════════════════════════════════════════════════════════════
+   Las DOS vias, en este orden: `navigator.clipboard`, que exige contexto seguro y activacion de
+   usuario y falla mas de lo que parece, y el `<textarea>` oculto con `execCommand`. Si fallan las
+   dos SE DICE y se deja el texto SELECCIONABLE: un boton de copiar que no copia y no avisa hace
+   que el medico pegue en el sistema del sanatorio lo que habia antes en el portapapeles.
+   ⚠️ ESTO DUPLICA LA MECANICA DEL COPIADOR DE CeiboLink, Y ES DELIBERADO. Aquel es un oyente
+   delegado por `data-clnk-copiar` que mete el VALOR COPIADO en el toast —sirve para una direccion
+   IP de quince caracteres y no para un texto de treinta renglones— y vive dentro del modulo del
+   conector, que esta tanda tiene prohibido tocar. Lo que se repite son ocho lineas de API del
+   navegador, no un criterio clinico ni un dato. Declarado en PENDIENTES -> PR6-f.
+   ⚠️ EL AVISO ES MINIMO Y NO DICE EL TEXTO: lo copiado son los datos de un paciente. */
+function _cuadCopiar(txt, queCosa) {
+  const t = String(txt == null ? '' : txt);
+  if (!t.trim()) { if (typeof toast === 'function') toast('No hay nada que copiar.'); return false; }
+  const ok = function () { if (typeof toast === 'function') toast('\u2705 Copiado'); };
+  const porTextarea = function () {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-2000px;left:-2000px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, t.length);
+      const bien = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!bien;
+    } catch (e) { return false; }
+  };
+  /* La ULTIMA red: un cuadro propio con el texto ya seleccionado, para copiarlo a mano. No es un
+     mensaje de error: es el texto, que es lo que el medico vino a buscar. */
+  const aMano = function () {
+    try {
+      const ov = document.createElement('div');
+      ov.setAttribute('data-cuad-copia-mano', '');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:760;background:rgba(0,0,0,.55);'
+        + 'display:flex;align-items:center;justify-content:center;padding:16px;';
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;'
+        + 'padding:12px;max-width:760px;width:100%;display:flex;flex-direction:column;gap:8px;';
+      const p = document.createElement('p');
+      p.style.cssText = 'margin:0;font-size:11.5px;color:var(--text2);';
+      p.textContent = 'El navegador no dejó copiar. El texto está seleccionado: copialo a mano.';
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.readOnly = true;
+      ta.style.cssText = 'width:100%;min-height:40vh;font-family:ui-monospace,monospace;font-size:11px;';
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn btn-ghost'; b.textContent = 'Cerrar';
+      b.onclick = function () { try { document.body.removeChild(ov) } catch (e) {} };
+      card.appendChild(p); card.appendChild(ta); card.appendChild(b);
+      ov.appendChild(card); document.body.appendChild(ov);
+      ta.focus(); ta.select();
+      return true;
+    } catch (e) { if (typeof toast === 'function') toast('\u26a0\ufe0f No se pudo copiar.'); return false; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(ok)
+      .catch(function () { if (porTextarea()) ok(); else aMano(); });
+    return true;
+  }
+  if (porTextarea()) { ok(); return true; }
+  return aMano();
+}
+window._cuadCopiar = _cuadCopiar;
+
+/* (1) LOS DATOS NUMERICOS. Sin datos del paciente: `cuadTexto()` no toca el nombre, la edad ni el
+   documento, y el censo de lo que publica son los rotulos de los cuadros. */
+function cuadCopiarDatos() { return _cuadCopiar(cuadTexto(), 'datos'); }
+window.cuadCopiarDatos = cuadCopiarDatos;
+
+/* (2) EL INFORME CON SU EN SUMA, tal cual salen en el informe. Con el EN SUMA vacio va SOLO el
+   informe —y sin el rotulo «EN SUMA», que si no quedaria un encabezado sin cuerpo—. */
+function cuadInformeTexto() {
+  const inf = String((document.getElementById('informe_texto') || {}).value || '').trim();
+  const suma = String((document.getElementById('en_suma') || {}).value || '').trim();
+  if (!inf && !suma) return '';
+  if (!suma) return inf;
+  if (!inf) return 'EN SUMA:\n' + suma;
+  return inf + '\n\nEN SUMA:\n' + suma;
+}
+window.cuadInformeTexto = cuadInformeTexto;
+function cuadCopiarInforme() { return _cuadCopiar(cuadInformeTexto(), 'informe'); }
+window.cuadCopiarInforme = cuadCopiarInforme;
+
 function cuadResumenValvToggle(on) { _cuadResumenValv = (on === true); }
 window.cuadResumenValvToggle = cuadResumenValvToggle;
 window.cuadQuitar = cuadQuitar; window.cuadRecuperar = cuadRecuperar;
