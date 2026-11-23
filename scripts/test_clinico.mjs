@@ -14460,8 +14460,19 @@ caso('TC-160', 'El color del header manda en todo el PDF y las plantillas no lo 
    Por eso el caso enumera los CONTROLES, no las tarjetas: contar siete no distingue una tarjeta
    completa de una vaciada que conserva su titulo. */
 caso('TC-161', 'Config no pierde ninguna de sus secciones ni sus controles', `
+  var R161_pintorAnahi = false;
   return (async () => {
     const tab = document.getElementById('tab-config');
+    /* ⚠️ EL TITULO DE LA TARJETA DE LA COMUNIDAD DE DESARROLLO LO ESCRIBE EL JS, NO EL MARCADO, Y
+       ESTA CONDICION NO TENIA DENOMINADOR. _anahiSyncTodo corre en DOMContentLoaded y es
+       idempotente -lo declara su propio comentario-, asi que el caso leia a veces ANTES de que
+       pintara y daba rojo con el titulo en blanco sobre un Config perfectamente sano: medido 4 de
+       7 pasadas en el arbol de PR6 contra 4 de 4 en el anterior, con la misma tarjeta -la septima-
+       vacia las tres veces. Llamarlo aca no afloja nada: lo que esta condicion vigila es que
+       NINGUNA tarjeta se quede sin titulo, no que la secuencia de carga haya terminado. Y para
+       que sacar el pintor siga saliendo rojo, se agrega abajo la condicion de que exista. */
+    R161_pintorAnahi = typeof window._anahiSyncTodo === 'function';
+    try { if (R161_pintorAnahi) _anahiSyncTodo(); } catch (e) {}
     const cards = Array.from(document.querySelectorAll('#tab-config .cfg-card'));
     const titulos = cards.map(c => ((c.querySelector('.cfg-sec-title') || {}).textContent || '').trim());
     const grid = document.querySelector('#tab-config .cfg-grid');
@@ -14511,12 +14522,17 @@ caso('TC-161', 'Config no pierde ninguna de sus secciones ni sus controles', `
       ['la grilla de Config existe',                    !!grid],
       ['no se perdio ninguna de las ocho secciones',    perdidas.length === 0, perdidas.join(', ') || titulos.join(' | ')],
       ['y cada tarjeta del DOM es una seccion de verdad', cards.length >= YA_ESTABAN.length, cards.length],
+      ['el pintor del titulo de la tarjeta de la comunidad de desarrollo existe', R161_pintorAnahi === true, String(R161_pintorAnahi)],
       ['cada una tiene su titulo',                      titulos.every(t => t.length > 0), titulos.join(' | ')],
       ['ninguna quedo vacia',                           vacias === 0, vacias],
       ['Medicos sigue teniendo tarjeta propia',         titulos.some(t => t.indexOf('Médicos') > -1), titulos.join(' | ')],
       ['no falta ningun control',                       faltan.length === 0, faltan.join(', ')],
       ['y todos siguen dentro de la tab',               fuera.length === 0, fuera.join(', ')],
-      ['las ocho plantillas de PDF siguen ofreciendose', opciones === 8, opciones],
+      /* ADAPTADO EN PR6 (23/11/2026): eran OCHO y la tanda agrego el noveno, «Tipo Word». El
+         numero sale del catalogo PDF_PLANTILLAS, que es la unica fuente de verdad de que ids son
+         validos -lo usan el selector y el despachador del PDF-, asi que este conteo sigue siendo
+         lo que vigila: que el selector ofrezca TODAS las que el catalogo declara. */
+      ['las nueve plantillas de PDF siguen ofreciendose', opciones === 9, opciones],
       ['el formato de nombre de archivo conserva sus cinco opciones', !!fmt && fmt.options.length === 5, fmt && fmt.options.length]
     ] };
   })();
@@ -149862,7 +149878,15 @@ caso('TC-935', 'CUADROS (A): se elimina del PDF la fila de cuadros de valvulas -
        mas abajo, que exige CERO filas de valvula en el papel. */
     R.swApagado = (typeof cuadResumenValvOn === 'function') ? (cuadResumenValvOn() === false) : 'NO';
     /* (3) EL PDF DE VERDAD, EN LOS OCHO ESTILOS: ni un rastro de los cuatro cuadros de valvula. */
+    /* ⚠️ SON LOS OCHO ESTILOS DE CUADROS, Y «tipoword» NO ENTRA A PROPOSITO. El noveno estilo
+       que PR6 agrego reemplaza los doce cuadros por el texto tipo Word, asi que la condicion de
+       abajo -«con el cuadro del gasto»- fallaria sobre un estilo que se porta BIEN. Su cuerpo lo
+       mide su propio caso. Lo que SI se exige aca es que el catalogo tenga los NUEVE: asi este
+       caso se pone rojo si alguien agrega un decimo estilo de cuadros sin probarlo. */
     const EST = ['clasico','moderno','minimalista','academico','compacto','elegante','bicolor','institucional'];
+    R.catalogo = (typeof PDF_PLANTILLAS !== 'undefined') ? PDF_PLANTILLAS.length : -1;
+    R.sinCuadros = (typeof PDF_PLANTILLAS !== 'undefined')
+      ? PDF_PLANTILLAS.map(p => p.id).filter(i => EST.indexOf(i) < 0).join(',') : 'NO';
     const mal = [];
     EST.forEach(e => {
       try { if (typeof setPdfPlantilla === 'function') setPdfPlantilla(e); } catch (x) {}
@@ -149887,7 +149911,9 @@ caso('TC-935', 'CUADROS (A): se elimina del PDF la fila de cuadros de valvulas -
        R.llamadas === 3, String(R.llamadas)],
     ['y la del resumen de valvulas esta detras del interruptor', R.conCompuerta === true, String(R.conCompuerta)],
     ['DENOMINADOR: el interruptor del resumen esta APAGADO', R.swApagado === true, String(R.swApagado)],
-    ['DENOMINADOR: se probaron los OCHO estilos', R.estilos === 8, String(R.estilos)],
+    ['DENOMINADOR: se probaron los OCHO estilos de cuadros', R.estilos === 8, String(R.estilos)],
+    ['y el catalogo tiene NUEVE: el unico que queda afuera es Tipo Word, que no dibuja cuadros',
+       R.catalogo === 9 && R.sinCuadros === 'tipoword', R.catalogo + ' / ' + R.sinCuadros],
     ['y en los ocho el PDF sale sin la fila de valvulas y con el cuadro del gasto', R.mal === '', R.mal]
   ] };
 `);

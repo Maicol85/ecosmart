@@ -83310,6 +83310,10 @@ function generarPDFReal(_aj) {
   _PLANTILLAS_FN.minimalista = _hdrMinimalista; _PLANTILLAS_FN.academico = _hdrAcademico;
   _PLANTILLAS_FN.compacto = _hdrCompacto;  _PLANTILLAS_FN.elegante      = _hdrElegante;
   _PLANTILLAS_FN.bicolor  = _hdrBicolor;   _PLANTILLAS_FN.institucional = _hdrInstitucional;
+  /* «Tipo Word» usa el encabezado CLÁSICO, por orden expresa —«mismo encabezado, pie y firma que
+     usan los otros estilos»—. Se apunta a la misma función y no se escribe una copia: así el día
+     que el clásico cambie, este estilo cambia con él. Lo que ese estilo reemplaza es el CUERPO. */
+  _PLANTILLAS_FN.tipoword = _hdrClasico;
   // `_plantillaId` se lee arriba, junto a TEMA: lo usan el encabezado Y las tablas.
 
   /* La `y` que devuelve la plantilla se VALIDA, no se confía. Es el único acoplamiento entre el
@@ -83385,6 +83389,64 @@ function generarPDFReal(_aj) {
      completa, así que una fila que no entra pasa entera a la hoja siguiente y ningún cuadro se
      corta entre dos hojas. Las hojas se llenan en orden, sin huecos. */
   (function () {
+    /* ══ EL NOVENO ESTILO: «Tipo Word» (PR6-4, 23/11/2026) ════════════════════════════════════
+       En lugar de los doce cuadros va el texto de `cuadTextoSecs()` —el MISMO que copian los dos
+       botones de la tarjeta y que arma `cuadTexto()`: una sola función, así que el papel y el
+       portapapeles no pueden decir cosas distintas—, con los títulos de sección en NEGRITA y
+       SUBRAYADOS y UNA LÍNEA POR RENGLÓN.
+       ⚠️ ES TEXTO DE VERDAD Y NO UNA IMAGEN: cada renglón entra por `doc.text`, así que se
+       selecciona y se copia desde el PDF. Nada acá dibuja un canvas ni llama a `addImage`.
+       ⚠️ UNA LÍNEA POR `doc.text` Y NO UN PÁRRAFO ENVUELTO, y es lo que la orden pide con todas
+       las letras —«cada sección en su línea, para que al copiar desde el PDF las líneas queden
+       separadas»—: un `splitTextToSize` sobre la sección entera las pegaría al copiar. Si un
+       renglón no entra en el ancho se parte, y las partes van con sangría para que se lea que
+       siguen al anterior.
+       ⚠️ NO LLEVA EL RESUMEN DE VÁLVULAS, por orden expresa, y la compuerta vive ACÁ: este camino
+       devuelve antes de llegar a la línea que lo dibuja, así que el interruptor de la tarjeta no
+       lo alcanza por construcción y no por una segunda guarda que alguien pueda olvidar.
+       ⚠️ TODO PASA POR `_sanML`: ésta es la única ruta de PDF sin saneador, y un solo carácter
+       fuera de WinAnsi —una raya larga pegada desde Word, un «≥»— convierte la CADENA ENTERA a
+       UTF-16 y esa línea sale ilegible. Los valores vienen de los cuadros, que ya traen «mm²» y
+       «·», los dos dentro de WinAnsi; lo que esto ataja es lo que el médico escribió a mano. */
+    if (_plantillaId === 'tipoword') {
+      let _secs = [];
+      try { _secs = cuadTextoSecs(); } catch (_e) { _secs = []; }
+      _secs.forEach(function (s) {
+        /* El título: negrita, subrayado y con su propio aire. El subrayado es un rectángulo fino
+           del ancho del texto medido —no del ancho de la caja—, que es lo que lo hace parecer
+           subrayado y no una barra de sección. */
+        checkPage(_IL * 2);
+        y += _aire(2);
+        if (_TBL.infSerif) { doc.setFont('times', 'bold'); doc.setFontSize(9 * _FS); }
+        else { doc.setFont('helvetica', 'bold'); doc.setFontSize(9 * _FS); }
+        /* ⚠️ `_C('TEXTO')` NO EXISTE: ese resolvedor sólo conoce los centinelas TEMA* y devuelve
+           lo que no reconoce TAL CUAL, así que `tc('T','E','X')` pintaba un color basura. Lo
+           delató el censo —era la única aparición de ese centinela en todo el archivo—. Se usan
+           los dos colores que la plantilla ya declara: el de rótulo de tabla para el título y el
+           del informe para el cuerpo. `_TBL` cae en `clasico` para este estilo, que es el que su
+           encabezado usa. */
+        { const tcol = _C(_TBL.lblCol); if (tcol) tc(tcol[0], tcol[1], tcol[2]); }
+        const _tit = _sanML(s.tit);
+        doc.text(_tit, mL + 2, y);
+        { let _w = 0; try { _w = doc.getTextWidth(_tit); } catch (_e2) { _w = 0; }
+          if (_w > 0) doc.rect(mL + 2, y + 0.9, _w, 0.35, 'F'); }
+        y += _IL;
+        /* Las líneas: tipografía del cuerpo, una por renglón. */
+        if (_TBL.infSerif) { doc.setFont('times', 'normal'); doc.setFontSize(8.5 * _FS); }
+        else { doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5 * _FS); }
+        { const ccol = _C(_TBL.infCol); if (ccol) tc(ccol[0], ccol[1], ccol[2]); }
+        (s.lineas || []).forEach(function (l) {
+          const _ls = doc.splitTextToSize(_sanML(l), pgW - 8);
+          _ls.forEach(function (ln, _k) {
+            checkPage(_IL + 0.5);
+            doc.text(ln, mL + (_k ? 8 : 4), y);
+            y += _IL;
+          });
+        });
+      });
+      y += _aire(2);
+      return;
+    }
     const _defs = cuadVisibles();
     let _i = 0;
     cuadFilas(_defs.length).forEach(function (k) {
@@ -119245,12 +119307,39 @@ const PDF_PLANTILLAS = [
   { id:'compacto',     nom:'Compacto',     desc:'Todo en una línea, filas apretadas, sin bordes.' },
   { id:'elegante',     nom:'Elegante',     desc:'Serif, fondo tenue entre dos filetes finos.' },
   { id:'bicolor',      nom:'Bicolor',      desc:'Tu color del PDF más un segundo color a elección.' },
-  { id:'institucional',nom:'Institucional',desc:'Logo grande centrado y todo en el color del centro.' }
+  { id:'institucional',nom:'Institucional',desc:'Logo grande centrado y todo en el color del centro.' },
+  /* ⚠️ EL NOVENO ES EL ÚNICO QUE CAMBIA EL CUERPO Y NO SÓLO EL ENCABEZADO, y eso contradice el
+     comentario de arriba —«cambian SÓLO el encabezado»—, así que queda dicho acá y no se descubre
+     leyendo el emisor. «Tipo Word» usa el encabezado CLÁSICO, el mismo pie y la misma firma que
+     los otros ocho, y lo que reemplaza son los doce cuadros: en su lugar va el texto de
+     `cuadTextoSecs()`, con los títulos de sección en negrita y subrayados y una línea por
+     renglón, para que al copiar desde el PDF las líneas queden separadas.
+     Su descripción lo DICE, porque el médico elige por esa frase. */
+  { id:'tipoword',    nom:'Tipo Word',    desc:'Los datos como texto en vez de cuadros, para copiar y pegar.' }
 ];
 /* Miniaturas: siluetas, no texto legible. Se dibuja la HOJA (rectángulo blanco) y encima las
    formas del encabezado, para que se lea como «así va a salir el papel» y no como un ícono.
    Todo literal de este archivo: nada de acá viene de un dato del estudio. */
+/* La miniatura de «Tipo Word» no lleva ningún token de color a propósito, como las otras tres
+   sin color: lo que ese estilo cambia es el CUERPO, y la silueta tiene que leerse como «renglones
+   de texto» y no como «cajas». Se dibuja el encabezado clásico de arriba —que es el que usa— y
+   debajo títulos subrayados con sus renglones. */
 const _PLTZ_SVG = Object.assign(Object.create(null), {
+  tipoword: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
+    <rect x="0" y="0" width="148" height="16" fill="%A%"/>
+    <rect x="44" y="5" width="56" height="4" rx="1" fill="#ffffff"/>
+    <rect x="8" y="23" width="30" height="3" rx="1" fill="#111111"/>
+    <rect x="8" y="27.4" width="30" height="0.7" fill="#111111"/>
+    <g fill="#bfbfbf"><rect x="8" y="31" width="124" height="2.2" rx="1"/></g>
+    <rect x="8" y="39" width="38" height="3" rx="1" fill="#111111"/>
+    <rect x="8" y="43.4" width="38" height="0.7" fill="#111111"/>
+    <g fill="#bfbfbf"><rect x="8" y="47" width="118" height="2.2" rx="1"/>
+      <rect x="8" y="52" width="104" height="2.2" rx="1"/></g>
+    <rect x="8" y="60" width="26" height="3" rx="1" fill="#111111"/>
+    <rect x="8" y="64.4" width="26" height="0.7" fill="#111111"/>
+    <g fill="#bfbfbf"><rect x="8" y="68" width="112" height="2.2" rx="1"/>
+      <rect x="8" y="73" width="96" height="2.2" rx="1"/>
+      <rect x="8" y="78" width="120" height="2.2" rx="1"/></g>`,
   clasico: `<rect x="0" y="0" width="148" height="84" fill="#ffffff"/>
     <rect x="0" y="0" width="148" height="20" fill="%A%"/>
     <path d="M0 11 H30 l3 -6 l3 12 l3 -6 H60 l3 -3 l3 3 H148" fill="none" stroke="%A15%" stroke-width="1.1"/>

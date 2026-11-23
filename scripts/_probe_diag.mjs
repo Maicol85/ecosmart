@@ -1,0 +1,23 @@
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { join, extname, dirname } from 'node:path';
+const _pw = (await import(process.env.HOME + '/.pwtmp/node_modules/playwright/index.js')).default;
+const FILE = process.argv[2], CUERPO = await readFile(process.argv[3], 'utf8');
+const raiz = dirname(FILE), nom = FILE.slice(raiz.length + 1);
+const MIME = { '.html':'text/html; charset=utf-8', '.js':'text/javascript', '.css':'text/css' };
+const { srv, port } = await new Promise(res => { const s = createServer(async (req, rq) => {
+  try { const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/,'') || nom;
+    const p = join(raiz, rel); const cuerpo = await readFile(p);
+    rq.writeHead(200,{'Content-Type':MIME[extname(p)]||'application/octet-stream'}).end(cuerpo);
+  } catch { rq.writeHead(404).end('no'); } });
+  s.listen(0,'127.0.0.1',()=>res({srv:s,port:s.address().port})); });
+const nav = await _pw.chromium.launch({ channel:'chrome' });
+const pg = await (await nav.newContext({viewport:{width:1440,height:900}})).newPage();
+pg.on('pageerror', e => console.log('PAGEERROR', String(e.message).slice(0,200)));
+await pg.goto('http://127.0.0.1:'+port+'/'+nom, {waitUntil:'load'});
+await pg.waitForTimeout(1500);
+await pg.evaluate(() => { const o=document.getElementById('login-overlay'); if(o)o.style.display='none';
+  try { showTab('config'); } catch(e){} try { cfgOnShow(); } catch(e){} });
+await pg.waitForTimeout(400);
+console.log(JSON.stringify(await pg.evaluate(CUERPO), null, 1));
+await nav.close(); srv.close(); process.exit(0);
