@@ -18,6 +18,25 @@ función o de constante.
 | El botón de tamaño, uno por vista | `_vPanelHTML` → `cine-imgtr`; el estado lo escribe `cineMaxSync` sobre **todos** |
 | En pantalla completa, la elegida grande y la otra al costado | clases `cine-v-grande` / `cine-v-chica`, puestas por `_vMaxSync` |
 | La tabla no salta de columna | la guarda **pegajosa** de `mudar`, dentro de `_vSlotSync` |
+
+### La pegajosidad vale sólo cuando el empate es real
+
+`mudar(id, V, ranura, pred)` recibe desde P13 un cuarto argumento: el **predicado de dueño**. La
+guarda se queda donde está **únicamente** si la vista que hoy aloja el cajón **también** cumple ese
+predicado, o sea si también tiene esa herramienta abierta.
+
+- **Las dos vistas midiendo lo mismo** → las dos son dueñas posibles → el cajón **no se mueve**.
+  Es el salto que el médico reportó en el punto 1g: con el TAPSE medido en la izquierda, bastaba
+  que la derecha eligiera Distancia para que la tabla se mudara a su columna.
+- **Una sola candidata** → la anfitriona de ahora no cumple el predicado → el cajón **viaja** a la
+  columna de la vista que sí lo tiene abierto. Es **MEDIR-5 (A1)**, y sin esta condición volvía su
+  defecto: la vista A con DOS tablas y la B con ninguna.
+- **Sin predicado** —el bloque de calculados cuando nadie mide en Doppler— la guarda es la de
+  antes, que es lo que necesita para quedarse debajo de cualquier imagen.
+
+⚠️ Lo destapó **TC-899** en la pasada completa, no la lectura: pasa contra `c047112` y salía rojo
+acá con `panelD2` en 'A' y las tablas en 2/0. **Antes de tocar esta guarda, correr TC-899 y
+TC-1023 juntos**: uno fija que el cajón viaja y el otro que no salta.
 | …y con valores no se esconde | `_d2Visible` y `_dopVisible` |
 | El interruptor de la columna, mientras esté escondida | `#cine-ov:not(.cine-max):not(.cine-sinpanel) .cine-pan-btn` |
 | Salir de pantalla completa devuelve la columna | `cineMaxToggle` |

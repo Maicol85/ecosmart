@@ -298,10 +298,10 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,96 MB / 193.541 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P13 + P13-B** (el orden del visor, la biblioteca, la calibración manual de velocidad, el círculo rojo/verde y los tres hallazgos de Windows), sobre el árbol ya sellado: sello **`v20261122-2142`**, md5 **`67fa26f6`**.
-  El diff de P13 son **1.167 líneas agregadas y 64 quitadas** en `index.html`, medido con
-  `git diff --numstat` contra `c047112` **sobre el árbol ya sellado**, de las que **536 son código
-  de verdad**, 595 comentario y 36 en blanco — las 1.167 cierran exacto, y el filtro lleva el
+  sin frameworks. Hoy **13,96 MB / 193.554 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P13 + P13-B** (el orden del visor, la biblioteca, la calibración manual de velocidad, el círculo rojo/verde y los tres hallazgos de Windows), sobre el árbol ya sellado: sello **`v20261122-2251`**, md5 **`8524699a`**.
+  El diff de P13 son **1.185 líneas agregadas y 69 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `c047112` **sobre el árbol ya sellado**, de las que **544 son código
+  de verdad**, 605 comentario y 36 en blanco — las 1.185 cierran exacto, y el filtro lleva el
   estado del comentario de bloque, que es lo que de verdad separa código de prosa.
   Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de `innerHTML` en
   el diff son los comentarios que declaran por qué el oyente del círculo va delegado y qué
@@ -1703,8 +1703,8 @@ impecable.
 
 **La tanda P13 + P13-B (2026-11-22) — el orden del visor, la biblioteca, la calibración manual de
 velocidad, el círculo rojo/verde y los tres hallazgos de Windows.** CUATRO tareas del P13 (la 5 era
-sólo informe) y TRES del P13-B, con SEIS commits. Sello **`v20261122-2142`**, md5 **`67fa26f6`**,
-**193.541** líneas. Línea base **`c047112`**, el cierre de la tanda P12. **Sin push: lo corre
+sólo informe) y TRES del P13-B, con OCHO commits. Sello **`v20261122-2251`**, md5 **`8524699a`**,
+**193.554** líneas. Línea base **`c047112`**, el cierre de la tanda P12. **Sin push: lo corre
 Maicol.** **El puente CeiboLink NO se tocó**, y la tarea 1 del 13-B no lo necesitaba.
 
 **NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas —el VTI de
@@ -1749,6 +1749,17 @@ y lo vuelve a insertar en la otra columna, así que reflowa **todo lo que está 
 videos** y hace imposible desplazar. Es un reflow del DOM y no trabajo de la máquina, así que pasa
 igual en Windows. Lo cierran las dos piezas de la tarea 1: la guarda del observador mientras el
 cineloop corre (1k) y la mudanza **pegajosa** de los cajones (1g).
+
+⚠️ **Y LA PEGAJOSIDAD VALE SÓLO CUANDO EL EMPATE ES REAL, QUE LO DESTAPÓ LA SUITE COMPLETA Y NO LA
+LECTURA.** Escrita a secas —«si el cajón ya está en la columna de una vista que existe y se ve, se
+queda»— reintroducía el defecto que **MEDIR-5 (A1)** había cerrado: con la vista A en Doppler y la
+B en Distancia, el cajón del VD **medido en la B** se quedaba en la columna de la **A**, que
+mostraba DOS tablas mientras la B no mostraba ninguna. Lo marcó **TC-899**, que pasa contra
+`c047112` y salía rojo acá por **sus condiciones** —`panelD2` daba 'A' y las tablas 2/0—. Las dos
+órdenes se cumplen a la vez pidiendo que el anfitrión de ahora sea **también un dueño posible**:
+con las dos vistas midiendo lo mismo el cajón se queda donde está —que es el salto que el médico
+reportó— y con una sola candidata viaja a su columna, que es A1. El árbol se reselló por esto, de
+`v20261122-2142` a **`v20261122-2251`**, y todo lo que se mide se mide sobre ESTE.
 
 **EL CÍRCULO (tarea 4) ESTÁ MEDIDO PUNTO POR PUNTO Y CON SU CONTROL NEGATIVO**: la fila nace con el
 20 de la app en **verde**; medir 22 deja el censo de **todos** los controles del formulario

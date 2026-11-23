@@ -144694,7 +144694,16 @@ caso('TC-893', 'MEDIR-4a bloque A4: cada vista cierra SOLO la suya -- cerrando l
       R.b_desdeB = dondeTabla();
       _vCon(_vistaA, () => _d2Render()); await esperar(180);
       R.b_vuelveA = dondeTabla();
-      R.b_sigueALaVista = R.b_desdeA === 'cine-panel' && R.b_desdeB === 'b-cine-panel' && R.b_vuelveA === 'cine-panel';
+      /* INVERTIDA EN P13 por el punto 1g, que es una orden expresa: la tabla QUEDA FIJA al
+         lado de su visor y NO salta de columna al tocar Medir en la otra vista. MEDIR-4a la
+         hacia mudarse a la columna de la vista que se media (M4a-c) y eso es justamente lo que
+         el medico reporto. La mudanza sigue existiendo --la tabla tiene que estar dentro del
+         panel de una vista viva, y por eso se rescata cuando su panel se destruye-- pero es
+         PEGAJOSA: si ya esta en la ranura de una vista que existe y se ve, no se mueve.
+         Falla por los dos lados: contra el arbol anterior salta, y si alguien le saca la
+         pegajosidad vuelve a saltar. */
+      R.b_noSalta = R.b_desdeA === 'cine-panel' && R.b_desdeB === 'cine-panel' && R.b_vuelveA === 'cine-panel';
+      R.b_enUnPanel = ['cine-panel','b-cine-panel'].indexOf(R.b_desdeB) >= 0;
 
       /* ── (C) SE CIERRA LA A: LA B QUEDA COMO UNICA VISTA Y EL VISOR SIGUE ABIERTO ──
          Con el gesto real. Hasta MEDIR-3 el boton de la A decia «Cerrar» y se llevaba el visor
@@ -144713,7 +144722,23 @@ caso('TC-893', 'MEDIR-4a bloque A4: cada vista cierra SOLO la suya -- cerrando l
       /* La tabla NO se fue con el panel destruido, y conserva las dos medidas con su marca. */
       R.c_tablaDonde = dondeTabla();
       R.c_filas = filasConValor().join(' || ');
-      R.c_conservaLasDos = R.c_filas.indexOf('TAPSE · A') >= 0 && R.c_filas.indexOf('VD basal · B') >= 0;
+      /* ADAPTADA EN P13 por el punto 1c, que es una orden expresa: las letras van POR POSICION
+         y la vista que queda pasa a ser la A. Las filas ya medidas se remapean con ella --si no,
+         una fila diria que salio de una vista «B» que el medico no tiene en pantalla-- , asi que
+         al cerrar la A las dos filas quedan con el MISMO origen y la marca deja de escribirse,
+         que es lo que la marca hace desde MEDIR-4a cuando hay un solo origen. Lo que no puede
+         perderse son los dos VALORES, y eso es lo que se exige aca. Mas una condicion nueva que
+         falla contra el arbol anterior: ninguna fila puede reclamar una letra que no tiene
+         ninguna vista abierta. */
+      R.c_conservaLosDos = R.c_filas.indexOf('TAPSE') >= 0 && R.c_filas.indexOf('18.0') >= 0 &&
+                           R.c_filas.indexOf('VD basal') >= 0 && R.c_filas.indexOf('52.0') >= 0;
+      R.c_letras = (function () {
+        const hay = {}; (_d2 && _d2.origen ? Object.keys(_d2.origen) : []).forEach(k => { hay[_d2.origen[k]] = 1; });
+        return Object.keys(hay).sort().join(','); })();
+      R.c_abiertas = (typeof _vTodas === 'function' ? _vTodas() : []).map(V => V.rot).sort().join(',');
+      R.c_sinLetraHuerfana = (function () {
+        const ab = (typeof _vTodas === 'function' ? _vTodas() : []).map(V => V.rot);
+        return (R.c_letras ? R.c_letras.split(',') : []).every(l => ab.indexOf(l) >= 0); })();
       R.c_dup = dup().length;
 
       /* ── (D) LA QUE SE ABRE DESPUES TOMA EL PREFIJO LIBRE ──
@@ -144754,8 +144779,9 @@ caso('TC-893', 'MEDIR-4a bloque A4: cada vista cierra SOLO la suya -- cerrando l
       ['(A) DENOMINADOR: las dos vistas montadas',          R.a_dosVistas === 2, R.a_dosVistas],
       ['(A) la medida de la A dice «· A»',                  R.a_tapseA === true, R.a_filas2],
       ['(A) y la de la B dice «· B»',                       R.a_basalB === true, R.a_filas2],
-      ['(B) la tabla va a la columna de la vista que se mide', R.b_sigueALaVista === true,
+      ['(B) la tabla NO salta de columna al medir en la otra vista (1g)', R.b_noSalta === true,
                                                             R.b_desdeA + ' > ' + R.b_desdeB + ' > ' + R.b_vuelveA],
+      ['(B) y sigue dentro del panel de una vista',         R.b_enUnPanel === true, R.b_desdeB],
       ['(C) la vista A tiene su propio «Cerrar vista»',     R.c_botonA === true, R.c_botonA],
       ['(C) y cerrandola el visor SIGUE abierto',           R.c_visorAbierto === true, R.c_visorAbierto],
       ['(C) con la B como unica vista',                     R.c_unSoloPanel === true, R.c_paneles],
@@ -144763,7 +144789,10 @@ caso('TC-893', 'MEDIR-4a bloque A4: cada vista cierra SOLO la suya -- cerrando l
                                                             R.c_pfxActiva + '/' + R.c_rotActiva + '/sinB=' + R.c_sinB],
       ['(C) y el layout vuelve a una sola vista',           R.c_clase2v === false, R.c_clase2v],
       ['(C) la tabla NO se fue con el panel destruido',     R.c_tablaDonde === 'b-cine-panel', R.c_tablaDonde],
-      ['(C) y conserva las DOS medidas con su marca',       R.c_conservaLasDos === true, R.c_filas],
+      ['(C) y conserva los DOS valores medidos',            R.c_conservaLosDos === true, R.c_filas],
+      ['(C) sin que ninguna fila reclame una letra sin vista abierta (1c)',
+                                                            R.c_sinLetraHuerfana === true,
+                                                            'filas=' + R.c_letras + ' abiertas=' + R.c_abiertas],
       ['(C) sin ids duplicados',                            R.c_dup === 0, R.c_dup],
       ['(D) la vista que se abre despues toma el prefijo libre', R.d_pfxNueva === '' && R.d_rotNueva === 'A',
                                                             R.d_pfxNueva + '/' + R.d_rotNueva],
@@ -145958,6 +145987,18 @@ caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el caj
         R.panelDop = panelDe('cine-dop-slot');
         R.tablasA = document.querySelectorAll('#cine-panel .cine-col-der table').length;
         R.tablasB = document.querySelectorAll('#b-cine-panel .cine-col-der table').length;
+        /* Diagnostico: con «1/0» a secas no se sabe si el cajon no llego a la columna de la B o
+           si llego vacio, que son dos defectos distintos. */
+        R.dbg = (function () {
+          const pa = id => { const n = document.getElementById(id);
+            return n ? (n.parentElement ? (n.parentElement.id || '(sin id)') : '(suelto)') : 'no-existe'; };
+          const tn = id => { const n = document.getElementById(id); return n ? n.querySelectorAll('table').length : -1; };
+          const sb = document.getElementById('b-cine-der-slot');
+          const cb = document.querySelector('#b-cine-panel .cine-col-der');
+          return 'd2=' + pa('d2-cajon') + '(' + tn('d2-cajon') + ') dop=' + pa('cine-dop-slot') +
+                 '(' + tn('cine-dop-slot') + ') slotB-en-colB=' + !!(sb && cb && cb.contains(sb)) +
+                 ' colB=' + (cb ? cb.id : 'no');
+        })();
       }
       /* ── A2: «Limpiar» alcanza a las dos sesiones ── */
       _vCon(_vistaA, () => medHerramienta('simpson'));
@@ -146027,7 +146068,7 @@ caso('TC-899', 'MEDIR-5 A1 y A2: con dos vistas midiendo cosas distintas, el caj
                                                               R.panelD2 === 'B', R.panelD2],
       ['A1: y el Doppler en la de la OTRA',                   R.panelDop === 'A', R.panelDop],
       ['A1: UNA tabla en cada columna, no dos en una',        R.tablasA === 1 && R.tablasB === 1,
-                                                              R.tablasA + '/' + R.tablasB],
+                                                              R.tablasA + '/' + R.tablasB + ' · ' + R.dbg],
       ['DENOMINADOR: el cajon 2D se ve con Distancia',        R.d2Visible === true, R.d2Visible],
       ['con una sola vista, el cajon va a la columna de la A', R.unaVistaD2 === 'A', R.unaVistaD2],
       ['DENOMINADOR: habia una fila viva antes de limpiar',   R.vivasAntes > 0, R.vivasAntes],
@@ -158507,7 +158548,13 @@ caso('TC-998', 'P9 3.2 a 3.4: el cartel reconoce lo que ya entro --contra todo l
       R.dApagado = !!(bd && bd.disabled === true);
       R.dMotivo = bd ? (bd.getAttribute('title') || '') : '';
       ex.push(['(D1) con todas repetidas lo dice claro y no inventa un numero de nuevas',
-        R.dTxt.indexOf('ninguna nueva') >= 0, 'txt=' + R.dTxt]);
+        R.dTxt.indexOf('0 nuevas') >= 0 && R.dTxt.indexOf('1 imagen') >= 0 &&
+        R.dTxt.indexOf('ninguna nueva') < 0, 'txt=' + R.dTxt]);
+      /* INVERTIDA EN P13 por la TAREA 1 del prompt 13-B, que es una orden expresa: el cuerpo
+         dice CUANTAS LLEGARON AHORA y que de esas hay 0 nuevas, en vez de «ninguna nueva» a
+         secas --que no decia cuantas eran y hacia que el medico leyera el total de lo que
+         esperaba como si fuera lo que acababa de mandar--. El motivo del boton apagado SIGUE
+         diciendo «ninguna nueva», y eso lo mide (D2). Falla por los dos lados. */
       ex.push(['(D2) y «solo las nuevas» queda apagado DICIENDO por que, en vez de desaparecer',
         R.dApagado === true && R.dMotivo.indexOf('ninguna nueva') >= 0,
         'apagado=' + R.dApagado + ' motivo=' + R.dMotivo]);
@@ -159472,7 +159519,28 @@ caso('TC-1011', 'P11 (1.3 y 1.4): en pantalla completa la barra va a la columna 
     R.sigueUnaSola = cols().filter(x => x.indexOf(':none') < 0).length === 1;
     R.laDeLaB = cols().filter(x => x.indexOf(':none') < 0)[0] === 'b-cine-col:flex';
     R.focoEsB = (typeof _vFocoVista === 'function') ? (_vFocoVista() === _vistaB) : null;
-    R.maxiEnB = dentro('cine-maxi', 'b-cine-imgtr');
+    /* INVERTIDA EN P13 por el punto 1d, que es una orden expresa: el boton de tamanio YA NO
+       VIAJA. Desde esta tanda cada vista emite el suyo --'cine-maxi' y 'b-cine-maxi', cada uno
+       en el racimo de SU imagen-- y los dos se ven SIEMPRE, que es lo que la orden pide: con un
+       solo boton que se mudaba al racimo de la vista con foco, la vista sin foco no tenia como
+       cambiar de tamanio. La condicion falla por los DOS lados: contra el arbol anterior
+       'b-cine-maxi' no existe, y si alguien vuelve al boton que viaja, uno de los dos racimos
+       queda vacio. */
+    R.maxiEnA = dentro('cine-maxi', 'cine-imgtr');
+    R.maxiEnB = dentro('b-cine-maxi', 'b-cine-imgtr');
+    R.maxiDosNodos = (function () { const x = $('cine-maxi'), y = $('b-cine-maxi');
+      return !!(x && y && x !== y); })();
+    /* Se mide el DISPLAY PROPIO de cada boton y no su geometria: la ventana del arnes mide
+       756 px, o sea DENTRO del rango donde el visor muestra UNA vista por vez, asi que el panel
+       de la B no tiene caja y el boton de la B daria 0x0 por el ancho de la ventana y no porque
+       una regla lo esconda. Lo que el punto 1d exige es que cada vista EMITA el suyo y que
+       ninguna regla lo oculte, y eso es lo que se mide. Forzar el layout ancho con
+       __t.anchoDesktop() deja estilos en linea con !important que sobreviven al caso y le
+       cambian la escena al siguiente -- lo documenta TC-885. */
+    R.maxiLosDosSeVen = (function () {
+      const vis = e => !!(e && getComputedStyle(e).display !== 'none' &&
+                          getComputedStyle(e).visibility !== 'hidden');
+      return vis($('cine-maxi')) && vis($('b-cine-maxi')); })();
     /* cero ids duplicados en el visor */
     R.dup = (function () { const v = Object.create(null), d = [];
       const ov = $('cine-ov'); if (!ov) return 'no';
@@ -159500,7 +159568,11 @@ caso('TC-1011', 'P11 (1.3 y 1.4): en pantalla completa la barra va a la columna 
       ['con dos vistas queda UNA sola columna', R.unaSola === true, R.colsMax],
       ['tocar la vista B le pasa el foco', R.focoEsB === true, R.focoEsA + ' -> ' + R.focoEsB],
       ['y la columna que queda es la de la B', R.sigueUnaSola && R.laDeLaB, R.colsTrasFoco],
-      ['el boton de tamanio viaja a la imagen de la B', R.maxiEnB === true, R.maxiEnB],
+      ['cada vista tiene SU boton de tamanio, en el racimo de su imagen (1d)',
+        R.maxiEnA === true && R.maxiEnB === true, R.maxiEnA + '/' + R.maxiEnB],
+      ['y son DOS nodos distintos, los dos a la vista',
+        R.maxiDosNodos === true && R.maxiLosDosSeVen === true,
+        R.maxiDosNodos + '/' + R.maxiLosDosSeVen],
       ['cero ids duplicados en el visor', R.dup === '', R.dup],
       ['volver a Normal devuelve la barra a su casa', R.vueltaBarra === true, R.vueltaBarra],
       ['y Capturar a su posicion en la barra', R.vueltaCap && R.mismoOrden, R.rotVuelta],

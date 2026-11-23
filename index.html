@@ -147039,7 +147039,7 @@ function _vSlotSync() {
       return (vs.indexOf(_V) >= 0) ? _V : vs[0];
     } catch (e) { return _V; }
   };
-  const mudar = (id, V, ranura) => {
+  const mudar = (id, V, ranura, pred) => {
     const n = document.getElementById(id);
     if (!n) return;
     const rn = ranura || 'cine-der-slot';
@@ -147063,15 +147063,28 @@ function _vSlotSync() {
         const pcur = cur.id.slice(0, cur.id.length - rn.length);
         const Vc = (typeof _vTodas === 'function')
           ? _vTodas().filter(x => x && x.pfx === pcur)[0] : null;
-        if (Vc && _vVisible(Vc)) return;
+        /* ⚠️ LA PEGAJOSIDAD VALE SOLO CUANDO EL EMPATE ES REAL, y esto lo destapo TC-899 de
+           MEDIR-5 al cerrar la tanda: con el guardia pegado a secas, un cajon que ya estaba en
+           la columna de la vista A se quedaba ahi aunque la A NO lo tuviera abierto y la B SI
+           —o sea volvia el defecto que MEDIR-5 (A1) habia cerrado: la A con DOS tablas y la B
+           con NINGUNA—. La orden del punto 1g es que la tabla no SALTE entre imagenes al tocar
+           Medir, y eso pasa cuando las DOS vistas tienen la misma herramienta abierta y el
+           desempate lo hacia la vista que estaba renderizando.
+           Las dos cosas se cumplen a la vez pidiendo que el anfitrion de ahora sea TAMBIEN un
+           dueño posible: con las dos midiendo lo mismo se queda donde esta (no salta), y con una
+           sola candidata viaja a su columna (A1). Sin predicado, la pegajosidad es la de antes,
+           que es lo que necesita el bloque de calculados cuando nadie mide en Doppler. */
+        if (Vc && _vVisible(Vc) && (typeof pred !== 'function' || pred(Vc))) return;
       }
     } catch (e) {}
     const p = (V && V.pfx) ? V.pfx : ((_V && _V.pfx) ? _V.pfx : '');
     const slot = document.getElementById(p + rn);
     if (slot && n.parentElement !== slot) slot.appendChild(n);
   };
-  mudar('cine-dop-slot', dueno(V => V && V.medGrupo === 'dop'));
-  mudar('d2-cajon',      dueno(V => V && V.medHerr === 'dist'));
+  const _esDop  = V => !!(V && V.medGrupo === 'dop');
+  const _esDist = V => !!(V && V.medHerr === 'dist');
+  mudar('cine-dop-slot', dueno(_esDop),  null, _esDop);
+  mudar('d2-cajon',      dueno(_esDist), null, _esDist);
   /* ══ A1 (MEDIR-6) — LOS CALCULADOS VIAJAN A LA COLUMNA DE SU IMAGEN ═══════════════════════
      Mismo mecanismo y mismo dueño que el cajón Doppler, porque los números de ese bloque salen
      de `_dop`: el AVA, la AVM y los cocientes son de la válvula que ese cajón tiene abierta, así
@@ -147101,10 +147114,10 @@ function _vSlotSync() {
            todo el alto disponible. No se esconden: son numeros medidos, y esconderlos seria
            perderlos. Van a la ranura de la columna, al lado de la tabla de medidas, que es donde
            ya viven los dos cajones. */
-        mudar('cine-calc', dueno(V => V && V.medGrupo === 'dop'), 'cine-der-slot');
+        mudar('cine-calc', dueno(_esDop), 'cine-der-slot', _esDop);
         cc.classList.remove('cine-calc-enpanel');
       } else if (ancho >= 1024) {
-        mudar('cine-calc', dueno(V => V && V.medGrupo === 'dop'), 'cine-calc-slot');
+        mudar('cine-calc', dueno(_esDop), 'cine-calc-slot', _esDop);
         cc.classList.add('cine-calc-enpanel');
       } else {
         const modal = document.getElementById('cine-modal');
@@ -184613,8 +184626,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261122-2142';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795394554298;                 /* eco-build-ms */
+const ECO_BUILD    = '20261122-2251';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795398708267;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -184700,7 +184713,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261122-2142</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261122-2251</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

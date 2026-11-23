@@ -51,7 +51,7 @@ cd "$(dirname "$0")/.." || exit 1
 RAIZ=$(pwd -P)
 
 PEN=${ECO_PENDRIVE:-/Volumes/DISK_IMG}
-LISTA=/tmp/claude-501/casos_lista_p12.txt
+LISTA=/tmp/claude-501/casos_lista_p13.txt
 LOG=/tmp/p13.log
 mkdir -p /tmp/claude-501
 MD5A=$(md5 -q "$RAIZ/index.html")
