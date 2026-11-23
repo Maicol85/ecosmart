@@ -122,6 +122,15 @@ MUT = [
  ('18 vuelve la cola de la medicion del TSVI', 'TC-1034',
   "        inf.push(`Estenosis aórtica severa por AVA con bajo gradiente y flujo normal${_d}.` + _cercaDelBorde);",
   "        inf.push(`Estenosis aórtica severa por AVA con bajo gradiente y flujo normal${_d}. `\n          + `Considerar medición incorrecta del TSVI o pseudo-severidad.` + _cercaDelBorde);"),
+
+ # ── TC-516 adaptado · que la (h5) afinada SIGA detectando una nota interna ─────
+ # La adaptacion de PR5 saco TODO y FIXME de la expresion insensible a mayusculas, porque
+ # emparejaban con «metodos» y con «sobre todo». Esta mutacion mete un TODO DE VERDAD en el
+ # bloque nuevo de la ficha de aorta y exige que el caso lo cace: sin ella, «el caso quedo mas
+ # fuerte» seria una afirmacion sin medir.
+ ('19 DE MAS: una nota interna de verdad en la ficha nueva de aorta', 'TC-516',
+  "    txt: 'La poblaci",
+  "    txt: 'TODO: revisar con Maicol. La poblaci"),
 ]
 
 def correr(caso):

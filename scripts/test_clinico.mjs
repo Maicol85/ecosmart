@@ -87168,8 +87168,22 @@ caso('TC-516', 'Tanda AJ1: los cortes del VD pasan a la version de MAYO de la AS
     rEa.indexOf('EAE/ASE 2009') > -1 && rEa.indexOf('Tabla 3') > -1
       && rEa.indexOf('folio 10') > -1 && rEa.indexOf('AHA/ACC') > -1,
     rEa.indexOf('EAE/ASE 2009') > -1 ? 'ok' : rEa.slice(0, 160)]);
+  /* ADAPTADO EN PR5 (23/11/2026), Y EL CASO QUEDA MAS FUERTE Y NO MAS DEBIL. El patron llevaba
+     TODO y FIXME DENTRO de la expresion con la bandera de insensibilidad a mayusculas, asi que
+     emparejaba con cualquier palabra castellana que CONTENGA «todo»: medido sobre el texto de
+     las cuatro fichas, los dos unicos hits eran «meTODOs de indexacion» y «sobre TODO en
+     tamanos corporales bajos», las dos de la cita literal de la recomendacion 5.4 de la ESC
+     2024 que PR5 agrego a la ficha de aorta, y ninguna es una nota interna. Hoy las dos MARCAS
+     se buscan SENSIBLES A MAYUSCULAS -una nota interna se escribe «TODO», nunca «metodo»- y las
+     tres FRASES en castellano conservan su bandera. Se usa indexOf y no un limite de palabra
+     porque la barra invertida no sobrevive al template literal del cuerpo de un caso, que es la
+     trampa que P12 y P13 ya pagaron. */
+  const _h5 = rIa + rIm + rAo + rEa;
   ex.push(['(h5) NINGUNA ficha nueva lleva nota interna, duda ni reserva (repositorio PUBLICO)',
-    !/pendiente de|por verificar con|TODO|FIXME|revisar con Maicol/i.test(rIa + rIm + rAo + rEa), '']);
+    !/pendiente de|por verificar con|revisar con Maicol/i.test(_h5)
+      && _h5.indexOf('TODO') === -1 && _h5.indexOf('FIXME') === -1,
+    'frases=' + /pendiente de|por verificar con|revisar con Maicol/i.test(_h5)
+      + ' TODO=' + (_h5.indexOf('TODO') > -1) + ' FIXME=' + (_h5.indexOf('FIXME') > -1)]);
 
   /* ══ (i) ESTUDIOS GUARDADOS, «NUEVO ESTUDIO» Y EL CAMPO NUEVO ══════════════════════════ */
   limpio(); __t.set('nombre', 'TC516G'); __t.set('ia_rev_dur', 'holo');
