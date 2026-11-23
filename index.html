@@ -7530,6 +7530,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="fg">
             <label>Ao sinusal (mm)</label>
             <input type="number" id="ao_sin" placeholder="mm" oninput="aoRaizSync('aivi');taviAoSync('ao','ao_sin');calcAorta()">
+            <!-- EL VALOR ESPERADO DE LOS SENOS (PR5, 2026-11-23). Nace ESCONDIDO y lo llena
+                 aorEspPintar desde calcAorta. Es un <div> y NO un control: el censo del estudio
+                 y el Excel recorren input[id] y select[id], asi que un campo con id entraria a
+                 las 457 columnas por existir. El id no termina en -aviso, -badge, -arrow ni
+                 -ref-fuente y no arranca con ninguno de los nueve prefijos que limpiarCampos
+                 barre, verificado uno por uno. -->
+            <div id="ao-esp" style="font-size:10.5px;color:var(--text2);margin-top:4px;line-height:1.35;display:none;"></div>
           </div>
           <div class="fg">
             <label>Ao sinotubular (mm)</label>
@@ -31271,6 +31278,149 @@ window.AO_FIG5 = AO_FIG5;
 const AO_ST_MM  = Object.freeze({ M: AO_FIG5.st.M,  F: AO_FIG5.st.F });
 const AO_TUB_MM = Object.freeze({ M: AO_FIG5.tub.M, F: AO_FIG5.tub.F });
 window.AO_ST_MM = AO_ST_MM; window.AO_TUB_MM = AO_TUB_MM;
+
+/* == EL VALOR ESPERADO DE LOS SENOS DE VALSALVA (PR5, commit 1, 2026-11-23) =================
+   DECISION DE MAICOL DEL 20/11: el nomograma de Devereux 2012 se aplica SOLO a los senos de
+   Valsalva. Los otros cuatro segmentos -union sinotubular, ascendente, cayado y descendente-
+   siguen con sus valores ABSOLUTOS y no se toca nada de lo que hay hoy: ni un corte, ni un
+   operador, ni un rotulo, ni un voto.
+
+   Devereux RB y col., Am J Cardiol 2012;110:1189-94. Lo verificado EN IMAGEN por la tanda
+   MARFAN-1, hoja por hoja, y que esta tanda REUSA en vez de volver a tipear:
+     - POBLACION, titulo y abstract: 1.207 individuos aparentemente normales de 15 anos o mas,
+       sin obesidad, hipertension ni diabetes.
+     - TECNICA, hoja 3: diametro medido EN DIASTOLE por la convencion de BORDE DE ATAQUE, en
+       paraesternal eje largo, al maximo diametro paralelo al plano del anillo.
+     - SUPERFICIE CORPORAL, hoja 2: DuBois y DuBois.
+     - ECUACION, hoja 1 (abstract) y hoja 13 (Tabla 1), que COINCIDEN:
+           senos (cm) = 2.423 + 0.090 x (edad/10) + 0.461 x BSA - 0.267 x sexo   [1=M, 2=F]
+       El abstract la escribe por ANO (0.009) y la Tabla 1 por DECADA (0.090): es el mismo
+       numero, 0.090/10 = 0.0090.
+     - DESVIO, hoja 4: SEE 0.261 cm para el modelo con BSA.
+   El criterio de la ORDEN: por encima de lo esperado = medido - esperado > 1,96 x SEE, que son
+   5,1156 mm. Y Z = (medido - esperado) / SEE, el mismo Z que la tarjeta de Marfan publica.
+
+   ADVERTENCIA 1 - LA ECUACION TIENE UN SOLO DUENO, Y ESTA TANDA LO CREO MOVIENDOLA ACA. Vivia
+   escrita DENTRO de mfsZCalc, que es el Z de la raiz de la tarjeta de Marfan; desde hoy esa
+   funcion la LLAMA. Con la cuenta escrita dos veces, el dia que un coeficiente se afine la
+   pantalla de aorta y la tarjeta de Marfan publicarian dos esperados del mismo paciente, y dos
+   Z distintos a dos pestanas de distancia. El SEE, el Z y la edad minima tambien tienen su
+   dueno aca, y MFS_Z_SEE y MFS_Z_EDAD_MIN los LEEN: su VALOR no se movio -0.261 y 15-.
+
+   ADVERTENCIA 2 - LA SUPERFICIE CORPORAL ES LA DEL ARTICULO -DuBois- Y NO getBSA, QUE ES
+   MOSTELLER, y esto se aparta de la letra de la orden A PROPOSITO. Dos motivos, los dos
+   medidos. (a) Con getBSA el esperado de la pantalla de aorta y el Z de la tarjeta de Marfan
+   saldrian de DOS superficies distintas del MISMO paciente, que es justo lo que la advertencia
+   de arriba viene a evitar. (b) El precio de la decision es invisible: entre las dos formulas
+   el esperado cambia de 0,02 a 0,07 mm en los cinco pares de peso y talla medidos, o sea menos
+   que la decima de milimetro que se publica. getBSA NO SE TOCA: la usan el indice cardiaco, la
+   masa indexada y diez calculos mas. Declarado en PENDIENTES -> PR5-b.
+
+   ADVERTENCIA 3 - NO GRADUA NADA Y NO MUEVE UN SOLO VOTO. El grado del seno de Valsalva lo
+   sigue decidiendo aoSegGrado con AO_DIL_MM -40 mm en el varon y 36 en la mujer- y su segunda
+   puerta por indice de dimension aortica. Esto es una lectura DESCRIPTIVA que se publica al
+   lado, y no entra en ninguna capsula, en ningun badge y en ningun EN SUMA.
+
+   ADVERTENCIA 4 - CONVIVE CON EL NOMOGRAMA QUE EL GLOBO YA PUBLICA, que es de OTRA fuente
+   -ASE/EACVI 2015 (Lang), Figura 13, que reimprime a Roman 1989- y que vive solo dentro del
+   globo. NO se retira: retirar contenido clinico es decision del medico. Declarado en
+   PENDIENTES -> PR5-a.
+
+   ADVERTENCIA 5 - POR DEBAJO DE 15 ANOS NO SE CALCULA, Y LA PANTALLA NO DICE NADA. Extrapolar
+   fuera del rango de un modelo normativo es inventar un valor, y los nomogramas pediatricos son
+   otra fuente. Lo mismo sin sexo, sin peso o sin talla: la orden pide que no aparezca nada
+   nuevo, y la pantalla ya tiene su cartel naranja para el sexo que falta.
+
+   ADVERTENCIA 6 - NO ESCRIBE NINGUN CAMPO. Devuelve un objeto y se publica; es la regla que el
+   D-9, el D-10 y el D-11 pagaron tres veces. Cero input, select y textarea nuevos. */
+const AOR_DEV_SEE      = 0.261;   /* hoja 4: el desvio del modelo con superficie corporal */
+const AOR_DEV_Z        = 1.96;    /* el criterio de la orden: 1,96 x SEE */
+const AOR_DEV_EDAD_MIN = 15;      /* el articulo declara su poblacion en 15 anos o mas */
+window.AOR_DEV_SEE = AOR_DEV_SEE; window.AOR_DEV_Z = AOR_DEV_Z;
+window.AOR_DEV_EDAD_MIN = AOR_DEV_EDAD_MIN;
+/* La superficie corporal de DuBois y DuBois, con la talla en cm y el peso en kg. Es el dueno
+   unico: mfsZBsaDuBois la lee. */
+function aorBsaDuBois(peso, talla) {
+  if (!(peso > 0) || !(talla > 0)) return null;
+  return 0.007184 * Math.pow(talla, 0.725) * Math.pow(peso, 0.425);
+}
+window.aorBsaDuBois = aorBsaDuBois;
+/* LA ECUACION, PURA Y EXPUESTA, para que un caso de prueba pueda verificarla con la superficie
+   corporal EXACTA y no a traves de un peso y una talla que la aproximan. la edad en anos,
+   la superficie en m2 y el sexo como 'M' o 'F'; devuelve CENTIMETROS, que es la unidad del articulo. */
+function aorPredSenosCm(edad, bsa, sx) {
+  if (!(edad >= 0) || !(bsa > 0)) return null;
+  if (sx !== 'M' && sx !== 'F') return null;
+  return 2.423 + 0.090 * (edad / 10) + 0.461 * bsa - 0.267 * (sx === 'M' ? 1 : 2);
+}
+window.aorPredSenosCm = aorPredSenosCm;
+/* La lectura de ESTE paciente. Devuelve null cuando el calculo no aplica, y entonces no se publica
+   nada en ninguna superficie. Con un objeto de campos lee un estudio guardado, con la misma firma que
+   getBSA y que mfsZCalc. */
+function aorEspSenos(src) {
+  const nv = function (id) {
+    const r = src ? src[id] : (document.getElementById(id) || {}).value;
+    if (r === undefined || r === null || String(r).trim() === '') return null;
+    const n = parseFloat(String(r).replace(',', '.'));
+    return isFinite(n) ? n : null;
+  };
+  let sx = src ? src.sexo : (document.getElementById('sexo') || {}).value;
+  sx = String(sx === undefined || sx === null ? '' : sx).trim();
+  const edad = nv('edad'), peso = nv('peso'), talla = nv('talla');
+  if (edad == null || (sx !== 'M' && sx !== 'F')) return null;
+  if (edad < AOR_DEV_EDAD_MIN) return null;
+  const bsa = aorBsaDuBois(peso, talla);
+  if (bsa == null) return null;
+  const predCm = aorPredSenosCm(edad, bsa, sx);
+  if (predCm == null) return null;
+  /* EL DIAMETRO ENTRA POR LA MISMA VENTANA DE PLAUSIBILIDAD QUE LA CAPSULA DE AL LADO.
+     vPlaus de ao_sin es el dueno que decide si un valor es legible -10 a 90 mm, de AO_SEGS-, y
+     sin esa puerta un 900 mm tipeado produciria una diferencia que el informe FIRMADO publica.
+     Con el valor fuera de rango se devuelve el esperado y nada mas: el esperado no depende del
+     diametro, y la capsula de al lado ya dice que hay que verificar la medicion. */
+  const p = (typeof vPlaus === 'function') ? vPlaus('ao_sin') : null;
+  const medMm = (p && p.val != null && !p.fuera) ? p.val : null;
+  const espMm = predCm * 10;
+  const limMm = (predCm + AOR_DEV_Z * AOR_DEV_SEE) * 10;
+  return { espMm: espMm, limMm: limMm, bsa: bsa, predCm: predCm, medMm: medMm,
+           z:         medMm == null ? null : (medMm / 10 - predCm) / AOR_DEV_SEE,
+           difMm:     medMm == null ? null : medMm - espMm,
+           porEncima: medMm == null ? null : (medMm - espMm) > (AOR_DEV_Z * AOR_DEV_SEE * 10) };
+}
+window.aorEspSenos = aorEspSenos;
+/* UN DECIMAL Y UN SOLO DUENO, con la coma de esta aplicacion: la pantalla, el informe y el PDF
+   publican el MISMO numero. Es exactamente lo que aoIdaTxt hace para el indice de dimension
+   aortica, y por el mismo motivo -que el papel y la pantalla no puedan decir dos cifras-. */
+function aorEspMmTxt(mm) {
+  if (mm == null || !isFinite(mm)) return null;
+  return (Math.round(mm * 10) / 10).toFixed(1).replace('.', ',');
+}
+window.aorEspMmTxt = aorEspMmTxt;
+/* El Z con el MISMO formato que la tarjeta de Marfan -signo y dos decimales-: dos Z del mismo
+   paciente escritos distinto en la misma aplicacion se leen como un error. */
+function aorEspZTxt(z) {
+  if (z == null || !isFinite(z)) return null;
+  return (z >= 0 ? '+' : '') + Math.abs(Math.round(z * 100) / 100).toFixed(2).replace('.', ',');
+}
+window.aorEspZTxt = aorEspZTxt;
+/* LA LINEA DE PANTALLA, debajo del campo de los senos. DESCRIPTIVA: sin color de alarma, sin
+   badge, sin la palabra dilatada y sin nombrar ninguna guia -eso vive en el globo-.
+   El nodo se ESCONDE cuando el calculo no aplica, y se escribe por textContent. */
+function aorEspPintar() {
+  const el = document.getElementById('ao-esp');
+  if (!el) return;
+  const r = aorEspSenos(null);
+  if (!r) { el.textContent = ''; el.style.display = 'none'; return; }
+  let t = 'Esperado para edad, sexo y superficie corporal: ' + aorEspMmTxt(r.espMm) + ' mm';
+  if (r.z != null) {
+    t += ' \u00b7 medido ' + aorEspMmTxt(r.medMm) + ' mm, '
+       + (r.difMm >= 0 ? '+' : '\u2212') + aorEspMmTxt(Math.abs(r.difMm)) + ' mm (z '
+       + aorEspZTxt(r.z) + ')';
+  }
+  el.textContent = t;
+  el.style.display = '';
+}
+window.aorEspPintar = aorEspPintar;
 /* Bandas por segmento. La línea de NORMALIDAD sale de AO_REF y el resto son los grados:
      ao_sin / ao_tub → normal ≤40 · leve 41-45 · moderada 46-50 · severa >50
      ao_st           → normal ≤38 · leve 39-44 · moderada 45-49 · severa ≥50
@@ -32869,6 +33019,12 @@ function calcAorta() {
     refSync(idSpan, badge(m.grado === 'fuera' ? 'red' : AO_BADGE_COLOR[m.grado], txt)
       + (sg.ecosmart && m.grado !== 'fuera' ? ' ' + badge('gray', 'Criterio de EcoSmart') : ''));
   });
+  /* EL ESPERADO DE LOS SENOS, en su propio nodo (PR5, 2026-11-23). Va aca y no en un espejo
+     porque depende de CUATRO campos de tres pestanas distintas -edad, sexo, peso y talla- mas
+     el diametro, y calcAorta es el unico pintor que ya corre cuando cualquiera de ellos cambia.
+     LLAMADA PELADA: si la funcion no existiera, un typeof la dejaria callada en silencio y la
+     linea desapareceria sin que nada lo senale. */
+  aorEspPintar();
 }
 
 /* ¿Marca dilatación el diámetro AP? Predicado compartido por la cápsula, el informe y el PDF: con
@@ -55890,6 +56046,102 @@ function evTarjetaCoa() {
   return fr;
 }
 window.evTarjetaCoa = evTarjetaCoa;
+/* == LAS TRES POSTURAS SOBRE EL VALOR ESPERADO DE LOS SENOS (PR5, commit 1, 2026-11-23) =====
+   UN SOLO DUENO para los bloques de texto, leido por el globo del campo de senos y por la
+   entrada de Referencias: con dos copias, el dia que una cifra se afine el medico leeria dos
+   folios distintos del mismo dato en dos pantallas de la misma aplicacion.
+
+   CADA FUENTE EN SU PROPIA ORACION Y POR LO QUE ELLA DICE. Ninguno de estos textos dice que dos
+   fuentes difieren, ni las compara, ni afirma que algo no se encontro: es la regla fija del
+   04/11. Y el folio y la clase van ACA y no en el papel, que es la regla R2.
+
+   LAS TRES LEIDAS EN EL PDF DE LA BIBLIOTECA POR ESTA SESION, y cada folio comprobado por su
+   propia regla ademas del contenido:
+     - Devereux 2012, manuscrito de 14 hojas, que se cita por HOJA con su pie impreso -su pie
+       dice «Devereux et al. Page N», o sea la numeracion del manuscrito y no la de la revista-.
+       Hoja 2: «The present reference population included individuals who were non-obese,
+       normotensive, non-diabetic and free of clinically overt cardiovascular disease or aortic
+       valve disease», y la Introduccion: «it is uncertain whether use of BSA as the measure of
+       body size under-recognizes aortic dilatation in obese individuals». Hoja 1: «Among 1,207
+       apparently normal individuals >=15 years old». Hoja 4: el SEE de 0,261 cm y el criterio de
+       1,96 SEE. Hoja 13, Tabla 1: los cuatro coeficientes, con «Male -0.267» y «Female -0.534»,
+       que es exactamente el termino -0.267 x sexo con 1 = varon y 2 = mujer.
+     - ESC 2024 de aorta, edicion INGLESA, regla de folio folio = hoja + 3537, comprobada en los
+       CUATRO folios de la orden: 3562 en la hoja 25, 3565 en la 28, 3566 en la 29 y 3603 en la
+       66. Es la misma regla con la que este archivo ya cita la Figura 5 en el folio 3563.
+     - ACC/AHA 2022 de aorta (Isselbacher), regla de folio folio = «e» + hoja + 333: e344 en la
+       hoja 11, e345 en la 12 y e350 en la 17.
+
+   ADVERTENCIA - EL ARTICULO TAMBIEN PUBLICA UNA GRADUACION POR Z Y NO SE IMPLEMENTO. La hoja 4
+   dice: «For convenience, mild, moderate and severe aortic dilatation can be recognized by
+   positive z-score values from these models of 1.97-3.0, 3.01-4.0 and >4.0». La orden no la
+   pide, esta aplicacion no gradua el seno de Valsalva con este calculo y graduar es decision
+   del medico. Declarado en PENDIENTES -> PR5-c.
+   ADVERTENCIA - EL 0,261 APARECE DOS VECES EN EL ARTICULO Y SON DOS COSAS DISTINTAS: en la
+   Tabla 1 es el error estandar del INTERCEPTO y en la hoja 4 es el error estandar de la
+   ESTIMACION, que es el que se usa. Coinciden por casualidad. */
+const AOR_DEV_EVID = Object.freeze([
+  Object.freeze({ rot: 'De d\u00f3nde sale el c\u00e1lculo',
+    txt: 'Devereux RB y col., Am J Cardiol 2012;110:1189-94. La ecuaci\u00f3n sale de 1.207 individuos '
+       + 'aparentemente normales de 15 a\u00f1os o m\u00e1s, que no ten\u00edan obesidad, hipertensi\u00f3n ni diabetes, '
+       + 'y cuyo di\u00e1metro se midi\u00f3 de borde anterior a borde anterior en telediástole. Predice el '
+       + 'di\u00e1metro de los senos de Valsalva a partir de la edad, el sexo y la superficie corporal, y '
+       + 'reconoce dilataci\u00f3n cuando lo medido supera a lo esperado en m\u00e1s de 1,96 veces el error '
+       + 'est\u00e1ndar de la estimaci\u00f3n, que es 0,261 cm (hojas 2, 4 y 13 del manuscrito).' }),
+  Object.freeze({ rot: 'Criterio de EcoSmart',
+    txt: 'Usar este c\u00e1lculo como ayuda en pantalla y publicar el valor esperado en el informe es '
+       + 'una decisi\u00f3n de esta aplicaci\u00f3n. El grado del seno de Valsalva no lo decide este '
+       + 'n\u00famero: lo decide el corte por sexo que publica la c\u00e1psula de al lado, con su segunda '
+       + 'puerta por \u00edndice de dimensi\u00f3n a\u00f3rtica. Por debajo de los 15 a\u00f1os no se calcula, porque '
+       + 'esa es la edad m\u00ednima de la poblaci\u00f3n del estudio.' }),
+  Object.freeze({ rot: 'Lo que dice la ESC 2024',
+    txt: 'Los di\u00e1metros a\u00f3rticos se miden de borde anterior a borde anterior en telediástole '
+       + '(apartado 5.4.1, folio 3562; Clase I \u00b7 Nivel C, Tabla 4, folio 3566). Considerar indexar '
+       + 'el di\u00e1metro a la superficie corporal junto con nomogramas, c\u00e1lculo de z-score u otros '
+       + 'm\u00e9todos de indexaci\u00f3n, sobre todo en tama\u00f1os corporales bajos (recomendaci\u00f3n 5.4, '
+       + 'Clase IIa \u00b7 Nivel B, Tabla 3, folio 3565). Define la dilataci\u00f3n a\u00f3rtica como un '
+       + 'di\u00e1metro por encima de 2 desviaciones est\u00e1ndar del esperado para la edad, el sexo y el '
+       + 'tama\u00f1o corporal (folio 3603). Y se\u00f1ala que corregir por superficie corporal puede '
+       + 'subestimar la dilataci\u00f3n en el paciente con sobrepeso (folio 3603).' }),
+  Object.freeze({ rot: 'Lo que dice la ACC/AHA 2022',
+    txt: 'Publica umbrales absolutos de di\u00e1metro, y se\u00f1ala que est\u00e1n pensados para quien tiene '
+       + 'talla y superficie corporal promedio: en personas notablemente m\u00e1s bajas o m\u00e1s altas esos '
+       + 'di\u00e1metros se ajustan (folios e344 y e345). Es razonable indexar una ra\u00edz o una aorta '
+       + 'ascendente dilatadas a la talla o a la superficie corporal en el informe, para ayudar a '
+       + 'estimar el riesgo (Clase 2a \u00b7 Nivel C-LD, folio e350). Es razonable medir la aorta de '
+       + 'borde anterior a borde anterior, perpendicular al eje del flujo (Clase 2a, folio e350). '
+       + 'Y se\u00f1ala que el z-score no se usa t\u00edpicamente en el adulto (folio e344).' }),
+  Object.freeze({ rot: 'Lo que este c\u00e1lculo no cubre',
+    txt: 'La poblaci\u00f3n del estudio de Devereux no incluy\u00f3 personas con obesidad, y el propio '
+       + 'art\u00edculo se\u00f1ala que no se sabe si usar la superficie corporal como medida del tama\u00f1o '
+       + 'corporal subestima la dilataci\u00f3n a\u00f3rtica en ellas (hoja 2).' })
+]);
+window.AOR_DEV_EVID = AOR_DEV_EVID;
+/* El pintor comun. El argumento conPaciente agrega ARRIBA la lectura de este paciente, que es lo que
+   distingue al globo -que esta al lado del campo- de la entrada de Referencias, que es material
+   de consulta y no habla de nadie. */
+function _aorDevEvidPintar(fr, conPaciente) {
+  fr.appendChild(_evDiv('ev-rot', 'Valor esperado de los senos de Valsalva',
+    { 'data-ev-rot': 'ao-dev' }));
+  if (conPaciente) {
+    const r = (typeof aorEspSenos === 'function') ? aorEspSenos(null) : null;
+    if (r) {
+      let t = 'En este paciente el valor esperado es de ' + aorEspMmTxt(r.espMm)
+            + ' mm, y por encima de ' + aorEspMmTxt(r.limMm) + ' mm queda por encima de lo esperado.';
+      if (r.z != null) t += ' Lo medido son ' + aorEspMmTxt(r.medMm) + ' mm (z ' + aorEspZTxt(r.z) + ').';
+      fr.appendChild(_evDiv('ev-cat', t, { 'data-ev-cat': 'ao-dev' }));
+    } else {
+      fr.appendChild(_evDiv('ev-avi', 'El valor esperado necesita la edad \u2014de 15 a\u00f1os o m\u00e1s\u2014, '
+        + 'el sexo, el peso y la talla.', { 'data-ev-aviso': 'ao-dev' }));
+    }
+  }
+  AOR_DEV_EVID.forEach(function (b) {
+    fr.appendChild(_evDiv('ev-rot', b.rot));
+    fr.appendChild(_evDiv('ev-cat', b.txt));
+  });
+}
+window._aorDevEvidPintar = _aorDevEvidPintar;
+
 function evTarjetaAo() {
   const fr = document.createDocumentFragment();
   const h = document.createElement('h4');
@@ -56010,6 +56262,10 @@ function evTarjetaAo() {
      corte de dilatacion, que es de la ESC 2024 y se cita en su propia linea. Un pie que dijera
      «Fuente:» sin mas le atribuiria las dos a la primera. El texto sale de la ficha `AOR-002`,
      asi que no se puede desincronizar del registro. */
+  /* EL VALOR ESPERADO POR DEVEREUX 2012 Y LAS TRES POSTURAS (PR5, 2026-11-23). Va DESPUES
+     del corte de dilatacion y ANTES del pie, porque el pie nombra la fuente del RANGO -que
+     es la ASE/EACVI 2015- y cada bloque de abajo trae la suya adentro. */
+  _aorDevEvidPintar(fr, true);
   const _fteRango = (typeof evFuenteLinea === 'function') ? evFuenteLinea('AOR-002') : '';
   /* El punto final lo pone esta linea y no la ficha: `fuente_una_linea` es un dato del registro
      y las otras seis tarjetas lo imprimen sin puntuacion, por el pie que comparten. */
@@ -56265,6 +56521,13 @@ function evRefPintar(id) {
     });
     host.appendChild(_evDiv('ev-fte', 'En las tres, y es el diámetro esperado de los senos en centímetros y x la superficie corporal en metros cuadrados; el rango esperado es la ecuación más y menos 1,96 veces el error estándar. El gráfico es propio: la figura original no se reproduce.',
       { 'data-ev-fuente': 'ao-nota' }));
+    /* EL VALOR ESPERADO POR DEVEREUX 2012 Y LAS TRES POSTURAS (PR5, 2026-11-23). El MISMO dueno
+       que el globo del campo de senos, con el bloque del paciente APAGADO: Referencias es
+       material de consulta y no habla de nadie en particular.
+       Va DESPUES de los tres nomogramas y ANTES de la bibliografia, que cierra la entrada. */
+    { const _fr = document.createDocumentFragment();
+      _aorDevEvidPintar(_fr, false);
+      host.appendChild(_fr); }
     host.appendChild(B.nodo);
     host.dataset.evPintado = '1';
   }
@@ -67917,6 +68180,33 @@ function generarInforme(opts) {
           suma.push('Dilatación ' + _n + ' (' + _v + ').');
         }
       });
+    }
+  }
+
+  /* == EL ESPERADO DE LOS SENOS DE VALSALVA EN EL PAPEL (PR5, commit 1, 2026-11-23) =========
+     UNA SOLA ORACION, y va al informe y al PDF por el MISMO lugar: el PDF imprime el texto de
+     informe_texto, asi que un solo push cubre las dos superficies y no pueden divergir.
+
+     ORACION PROPIA Y NO UNA CLAUSULA DE LAS CINCO RAMAS DE ARRIBA, por dos motivos. (1) La
+     regla fija del 03/11: el informe va en oraciones separadas, una por tema. (2) El seno se
+     nombra en CINCO redacciones distintas segun lo que haya cargado -fuera de rango, calibre
+     normal, sin clasificar por falta de sexo, dilatado y la union con la bicuspide-, asi que
+     enchufar el parentesis en cada una serian cinco copias del mismo texto y la que se olvide
+     es la que se ve.
+
+     NO VA AL EN SUMA, por orden expresa: se emite con inf.push y nunca con suma.push.
+     DESCRIPTIVA: no dice dilatada, no nombra ninguna guia, no lleva folio y no recomienda nada.
+     Eso vive en el globo y en Referencias, que es la regla R2.
+     SOLO CUANDO EL CALCULO APLICA, y eso incluye tener el diametro medido y dentro de su
+     ventana de plausibilidad: sin diametro no hay nada que comparar, y el esperado solo -sin el
+     medido al lado- en un informe firmado es un numero sin pregunta.
+     EL NUMERO SALE DE aorEspMmTxt, el mismo dueno que escribe la linea de pantalla, para que el
+     papel y la pantalla no puedan publicar dos cifras del mismo esperado. */
+  {
+    const _esp = (typeof aorEspSenos === 'function') ? aorEspSenos(null) : null;
+    if (_esp && _esp.medMm != null) {
+      inf.push('Senos de Valsalva ' + aorEspMmTxt(_esp.medMm) + ' mm (esperado '
+        + aorEspMmTxt(_esp.espMm) + ' mm para edad, sexo y superficie corporal).');
     }
   }
 
@@ -93298,12 +93588,14 @@ window.mfsZManual = mfsZManual;
    diez calculos mas.
    ⚠️ NO ESCRIBE NADA. Devuelve un objeto y ya: el campo manual solo lo llena el medico con el
    boton. Es la regla que el D-9, el D-10 y el D-11 pagaron tres veces. */
-var MFS_Z_EDAD_MIN = 15;              /* el articulo declara su poblacion en 15 anos o mas */
-var MFS_Z_SEE      = 0.261;           /* hoja 4: el desvio del modelo con BSA */
-function mfsZBsaDuBois(peso, talla) {
-  if (!(peso > 0) || !(talla > 0)) return null;
-  return 0.007184 * Math.pow(talla, 0.725) * Math.pow(peso, 0.425);
-}
+/* DESDE PR5 (2026-11-23) LOS TRES NUMEROS Y LA FORMULA DE LA SUPERFICIE TIENEN UN SOLO DUENO,
+   y vive en la zona de AORTA: AOR_DEV_EDAD_MIN, AOR_DEV_SEE y aorBsaDuBois. Estos tres nombres
+   se CONSERVAN porque los leen las siete reglas, la tarjeta y la bateria, pero ya no escriben
+   el numero: con el 0.261 tipeado dos veces, el dia que se afine, la pantalla de aorta y esta
+   tarjeta publicarian dos Z del mismo paciente. Los VALORES no se movieron. */
+var MFS_Z_EDAD_MIN = AOR_DEV_EDAD_MIN;
+var MFS_Z_SEE      = AOR_DEV_SEE;
+function mfsZBsaDuBois(peso, talla) { return aorBsaDuBois(peso, talla); }
 function mfsZCalc(src) {
   var nv = function (id) {
     var r = src ? src[id] : (document.getElementById(id) || {}).value;
@@ -93327,7 +93619,10 @@ function mfsZCalc(src) {
   if (edad < MFS_Z_EDAD_MIN) return { z: null, falta: [], menor: true };
   var bsa = mfsZBsaDuBois(peso, talla);
   if (bsa == null) return { z: null, falta: ['el peso y la talla'], menor: false };
-  var pred = 2.423 + 0.090 * (edad / 10) + 0.461 * bsa - 0.267 * (sx === 'M' ? 1 : 2);
+  /* LA ECUACION SALE DE SU DUENO UNICO (PR5, 2026-11-23): aorPredSenosCm, en la zona de
+     aorta, que es la que publica el esperado de los senos en la pantalla y en el papel. */
+  var pred = aorPredSenosCm(edad, bsa, sx);
+  if (pred == null) return { z: null, falta: falta, menor: false };
   var z = (mm / 10 - pred) / MFS_Z_SEE;
   return { z: z, falta: [], menor: false, bsa: bsa, pred: pred };
 }
