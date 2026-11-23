@@ -1889,22 +1889,52 @@ distinto, **por sus condiciones y NINGUNO por excepción**.
 ⚠️ **Eso último costó una guarda**: la primera versión de TC-1030 accedía a `aorEspSenos` pelado y
 contra la línea base tiraba `ReferenceError`, que **se lleva el caso entero** y deja las condiciones
 de abajo sin evaluar — un rojo que no apunta a su causa. Es la lección de TC-827.
-**18/18 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
-vivo idéntico antes y después, y las **18** anclas verificadas **ANTES** de correr. Cada mutación
-declara **su** caso, con al menos **dos por grupo nuevo**. **Tres de las dieciocho no revierten
-nada: la aplican DE MÁS**, porque las condiciones que las matan son **controles negativos**, y un
-control negativo que ninguna mutación puede romper no prueba nada.
+**19/19 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, sobre el árbol
+**ya sellado** (md5 `3ebd3272`), con las **19** anclas verificadas **ANTES** de correr y el md5 del
+vivo idéntico antes y después. Cada mutación declara **su** caso, con al menos **dos por grupo
+nuevo**. **Cuatro de las diecinueve no revierten nada: la aplican DE MÁS**, porque las condiciones
+que las matan son **controles negativos**, y un control negativo que ninguna mutación puede romper
+no prueba nada.
+⚠️ **EL PRIMER BARRIDO DIO 17/18, Y LA QUE SOBREVIVIÓ ESTABA MAL ESCRITA.** La 17 cambiaba «bajo
+gradiente.» por «bajo gradiente de todas formas.», o sea le **agregaba** palabras sin quitar la
+frase que la condición (C4) busca: era **equivalente**. Reescrita para que quite la descripción
+entera, muere.
+⚠️ **Y EL ANCLA DE LA 19 NO EMPAREJABA POR LAS SECUENCIAS DE ESCAPE**: el texto de las fichas lleva
+`\u00f3` **literal** en el archivo, y una cadena de Python con un solo backslash lo **decodifica**,
+así que daba x0 — que se lee igual que «no hay nada que mutar». Hoy ese ancla no lleva ninguna
+secuencia de escape. Es la misma clase de trampa que PANT-19 pagó con siete anclas.
 ⚠️ **Y la 03 no puede ser «`MFS_Z_SEE = 0.261` escrito a mano»**: eso sería **equivalente**, porque
 la condición compara los VALORES y los dos darían 0,261. Para cubrir el dueño único hay que moverle
 el valor.
 
 **VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
-riesgo**: los **406** casos cuyo cuerpo toca la aorta, el informe narrativo, el EN SUMA, el
-PDF o Referencias, seleccionados por el **patrón de su propio cuerpo** y no a ojo. Los demás **no
-se ejecutaron**, y se declara.
-**@@LOTES@@**
+riesgo**: los **400** casos cuyo cuerpo toca la aorta, el informe narrativo, el EN SUMA, el PDF o
+Referencias, seleccionados por el **patrón de su propio cuerpo** y no a ojo
+—`scripts/_lotes_pr5.sh`—. Los demás **no se ejecutaron**, y se declara.
+**398/400 en NUEVE lotes**, en UNA sola pasada sobre el árbol sellado, con el md5 de `index.html`
+**idéntico** antes y después (`3ebd3272`). El **lote 9**, que es el de los seis casos nuevos, dio
+**40/40**.
+Los rojos son **TC-376** y **TC-406**, los **dos de siempre** que esta casa declara en cada tanda y
+que fallan igual **corridos aislados**. **TC-182** salió rojo en su lote y **pasa 1/1 aislado**: es
+el intermitente que este archivo ya declara.
+⚠️ **Y EL CUARTO ROJO ERA MÍO, lo destapó la corrida de lotes y NO mi censo, y era un defecto del
+DETECTOR y no de la ficha.** La condición (h5) de **TC-516** —«ninguna ficha nueva lleva nota
+interna, duda ni reserva»— llevaba `TODO` y `FIXME` **dentro** de una expresión insensible a
+mayúsculas, así que emparejaba con cualquier palabra castellana que **contenga** «todo». Medido
+sobre el texto de las cuatro fichas que ese bloque lee: los dos únicos hits eran **«meTODOs de
+indexación»** y **«sobre TODO en tamaños corporales bajos»**, las dos de la **cita literal** de la
+recomendación 5.4 de la ESC 2024, y ninguna es una nota interna. **Y el texto no se puede
+reformular**: la orden manda que cada cifra y cada folio queden tal cual.
+**Adaptado y MÁS FUERTE, no más débil**: las dos **marcas** pasan a buscarse **sensibles a
+mayúsculas** —una nota interna se escribe «TODO», nunca «método»—, las tres **frases** en
+castellano conservan su bandera, y el diagnóstico pasa a decir **cuál** de los tres disparó. **La
+mutación 19 lo prueba**: mete un «TODO: revisar con Maicol» de verdad en el bloque nuevo y exige
+que el caso lo cace. **Su lote se rehizo entero con el archivo de casos final: 45/45.**
+⚠️ **Es la ÚNICA adaptación de la tanda**, y queda con su antes y su después.
 **Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
-nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: @@CEL@@**.
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta, medido con la máquina sola —y ninguno es de esta
+tanda: son los `input.ind-chk` de los acordeones de Evidencia, que es el **M5-n** que decide el
+médico—.
 
 ⚠️ **TRES TRAMPAS QUE ESTA TANDA PAGÓ, LAS TRES DE ESTA CASA.** (1) El **acento grave dentro de mis
 propios comentarios**, por trigésima cuarta tanda seguida: **doce** veces, en los dos bloques de

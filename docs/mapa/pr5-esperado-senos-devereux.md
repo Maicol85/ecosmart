@@ -247,8 +247,9 @@ de la guía dicen 2025, y el «2026» del pie de las hojas interiores es el año
 contra la línea base tiraba `ReferenceError`, que **se lleva el caso entero** y deja las
 condiciones de abajo sin evaluar — un rojo que no apunta a su causa. Es la lección de TC-827.
 
-El barrido es `scripts/_mut_pr5.py`, con `--anclas` para verificar que las **18** emparejan **antes**
-de correr. **Tres de las dieciocho no revierten nada: la aplican de más** —la 07, la 08 y la 15—,
+El barrido es `scripts/_mut_pr5.py`, con `--anclas` para verificar que las **19** emparejan **antes**
+de correr: **19/19 muertas** sobre el árbol ya sellado. **Cuatro de las diecinueve no revierten
+nada: la aplican de más** —la 07, la 08, la 15 y la 19—,
 porque las condiciones que las matan son **controles negativos**, y un control negativo que ninguna
 mutación puede romper no prueba nada.
 ⚠️ **La 03 no puede ser «`MFS_Z_SEE = 0.261` escrito a mano»**: sería **equivalente**, porque la

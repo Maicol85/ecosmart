@@ -4519,8 +4519,17 @@ contenido de las tres colas **no estaba** (**PR5-d**); y los ocho límites de la
 el reporte de solo lectura de la tanda (**PR5-e**).
 
 **Cobertura.** **TC-1029 a TC-1034**, los seis cayendo **0/6 contra `b005504`** por sus condiciones
-y **ninguno por excepción**. **MUTACIONES** mutaciones dirigidas, en un worktree y nunca sobre el
-árbol vivo, con las **18** anclas verificadas antes de correr.
+y **ninguno por excepción**. **19/19 mutaciones dirigidas muertas**, en un worktree y nunca sobre el árbol vivo, sobre el
+árbol ya sellado y con las **19** anclas verificadas antes de correr.
+
+**La suite completa NO se corrió, por orden expresa.** Los **lotes de riesgo** —los **400** casos
+cuyo cuerpo toca la aorta, el informe, el EN SUMA, el PDF o Referencias, seleccionados por el
+patrón de su propio cuerpo— dieron **398/400** en nueve lotes, con el lote de los casos nuevos en
+**40/40**. Los rojos son **TC-376** y **TC-406**, los dos de siempre, y **TC-182**, que pasa
+aislado. El cuarto, **TC-516**, era mío: su detector de notas internas emparejaba «meTODOs» y
+«sobre TODO» de la cita de la ESC 2024; adaptado y **más fuerte**, su lote rehecho da **45/45**.
+**Semgrep 126/0**, sin huérfanos nuevos, **17 de 17** bloques de JS inline parsean y **celular 38
+ALTA**, las cuatro la línea base exacta.
 
 **Mapa:** `docs/mapa/pr5-esperado-senos-devereux.md` · **fichas:**
 `docs/mapa/tests-fichas-1029.md` · **guía manual:** `docs/GUIA_PRUEBA_PR5.md` (17 pasos) ·
