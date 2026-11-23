@@ -4439,3 +4439,38 @@ documento son idénticos en los dos árboles, o sea preexistentes.
 **Lo que NO se hizo, y por qué.** Las 41 ventanas nativas que quedan, por el punto 1.3. La marca
 de procedencia de la escala en el campo del informe (4.2) y el pasaje de los diámetros (4.3), por
 ser de solo reporte. La mudanza de «Estado vigente» a `docs/archivo/`, por vigésima tanda seguida.
+
+---
+
+## Tanda P13 + P13-B — el visor, la biblioteca, la calibración y el círculo (2026-11-22)
+
+Sello **`v20261122-2142`**, md5 **`67fa26f6`**, **193.541** líneas. Línea base **`c047112`**.
+Seis commits: `26b52c8` (tarea 1) · `cdfc823` (tarea 2 y el alcance del 1j) · `add3a95` (tarea 4) ·
+`a53b8d8` (13-B 1, 2 y 3) · `ff32241` (tarea 3) · `2b1afad` (cobertura) · `92ef990` (sello y
+documentación). **Sin push: lo corre Maicol.**
+
+**El bloque 0 reprodujo nueve hallazgos antes de tocar una línea**, y dos cambiaron qué había que
+hacer: el 4g desmintió mi propio informe de P11 —el visor **no** leía los campos de la app— y el
+1m resultó una **regresión de P11 (2.3)**, con cero píxeles de tinta en el par completo.
+
+**Lo hecho.** Tarea 1: los trece puntos del orden y la estructura del visor, con el 1j acotado tres
+veces por medición (las sesiones no se sueltan; sólo las tres puertas que la orden nombra; y no al
+reabrir el mismo video). Tarea 2: la tira partida en «Imágenes fijas» y «Cineloops», y la miniatura
+chica. Tarea 3: la calibración manual de velocidad persistida por `_cineClave` —cierra P10-b— y la
+entrada automática a calibrar. Tarea 4: el círculo rojo/verde como único pasaje al informe, con el
+par visor ↔ app derivado de las dos tablas de bandas. 13-B: el cartel con solo repetidas, la causa
+cuantificada de la traba y el alto en el monitor grande.
+
+**La causa de la traba, cuantificada.** Mutaciones del DOM fuera de la imagen y mudanzas de nodo,
+en dos segundos a 1920×1080: un cineloop **407 / 3** en la base contra **1 / 0** hoy; dos
+cineloops **1396 / 297** contra **2 / 0**. Los 297 re-parentings por dos segundos son lo que
+reflowa todo lo que está debajo de los videos y lo que explica que con uno no pase.
+
+**Cobertura.** TC-1023 a TC-1028, los seis cayendo **0/6** contra la base por **67** condiciones.
+Siete adaptados, cinco con condiciones invertidas; TC-888 quedó más fuerte.
+
+**Lo que NO se hizo, y por qué.** El punto 5 entero es informe. De la tarea 4, los VTI
+«reservados» (P13-g): sacarlos exige decidir por dónde entran al informe los dos VTI del Qp/Qs. La
+nota de procedencia en el campo del informe (P13-f): no existe campo donde vivir. La idea de la
+columna izquierda del 13-B (3b): no aplicada, como pidió. La mudanza de «Estado vigente» a
+`docs/archivo/`, por vigésima primera tanda seguida.
