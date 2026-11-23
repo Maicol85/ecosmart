@@ -330,3 +330,24 @@ un campo nuevo (`mfs_diseccion_raiz`). Las dos cosas alimentan sólo las siete r
 tarjeta, y ninguna llega al papel.
 
 → `docs/mapa/marfan1-ghent.md` §3 · `docs/PENDIENTES.md` → **MF1-a**.
+
+---
+
+## → La tanda PR5 (2026-11-23)
+
+Lo que PR5 movió de esta zona está en **`docs/mapa/pr5-esperado-senos-devereux.md`**:
+
+- el **valor esperado de los senos de Valsalva** por Devereux 2012 —en pantalla, en una oración del
+  informe que el PDF imprime por el mismo lugar, y en cinco bloques de evidencia en el globo y en
+  Referencias—, con `aorPredSenosCm` como **dueño único de la ecuación**, que `mfsZCalc` pasó a
+  consumir junto con el desvío, la edad mínima y la superficie de DuBois;
+- las **tres colas** del bloque de bajo flujo / bajo gradiente de la estenosis aórtica —el score de
+  calcio por TAC, la medición del TSVI y el repaso de las integrales— **retiradas del papel**, que
+  cierra **PR4-b**; y la línea de **discordancia de grado**, que **no** es de ese bloque y **no se
+  tocó**;
+- el folio del umbral del **cor triatriatum**, de **e164** a **e165**, en el texto de apoyo de la
+  recomendación 5 y sin clase propia.
+
+**Ningún corte, operador ni voto de esta zona se movió**: lo fija TC-1030 (D1) para la cápsula del
+seno y TC-1034 (C1) para los números del paréntesis del bajo gradiente. Lo declarado, en
+`docs/PENDIENTES.md` → **PR5-a** a **PR5-h**.

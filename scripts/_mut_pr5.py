@@ -111,9 +111,13 @@ MUT = [
   "        inf.push(`Estenosis aórtica severa por AVA, de bajo flujo y bajo gradiente paradojal${_d}.` + _cercaDelBorde);",
   "        inf.push(`Estenosis aórtica severa por AVA, de bajo flujo y bajo gradiente paradojal${_d}. `\n          + `Considerar score de calcio valvular por TAC para confirmar severidad.` + _cercaDelBorde);"),
 
+ # MAL ESCRITA EN EL PRIMER BARRIDO Y REESCRITA: cambiaba «bajo gradiente.» por «bajo gradiente de
+ # todas formas.», o sea le AGREGABA palabras sin quitar la frase que la condicion busca -«No
+ # configura la forma cl...»-, asi que era EQUIVALENTE y sobrevivio. Hoy quita la descripcion
+ # entera, que es lo que (C4) vigila.
  ('17 se cae la descripcion «No configura la forma clasica», que SI se conserva', 'TC-1034',
-  "          + `bajo gradiente.` + _cercaDelBorde);",
-  "          + `bajo gradiente de todas formas.` + _cercaDelBorde);"),
+  "          + `sin bajo flujo por volumen latido indexado. No configura la forma cl\u00e1sica de bajo flujo / `",
+  "          + `sin bajo flujo por volumen latido indexado. `"),
 
  ('18 vuelve la cola de la medicion del TSVI', 'TC-1034',
   "        inf.push(`Estenosis aórtica severa por AVA con bajo gradiente y flujo normal${_d}.` + _cercaDelBorde);",

@@ -12696,3 +12696,88 @@ globo lo dice con autor y año, y sin folios en pantalla.
 | El mismo strain, en el informe firmado | por debajo de 15 % decía «disfunción sistólica» **sin grado** | gradúa **moderada** y **severa** | la misma fila | 17/11/2026 |
 | Alcoholización septal previa en el HCM Risk-SCD | **exclusión**: apagaba el score | **salvedad**: el score se publica con su nota | orden de Maicol | 17/11/2026 |
 | Gradiente medio de la prótesis mitral, lectura del 5,0 | el solapamiento sólo en un comentario del código | declarado en el globo, con sensibilidad y especificidad | ASE 2024 (Zoghbi), Tablas 11 y 12, folios 27 y 28 | 17/11/2026 |
+
+---
+
+## La tanda PR5 (2026-11-23) — lo releído en los PDF de la biblioteca
+
+Tres documentos releídos por esta sesión, **cada folio comprobado por su regla además de por su
+contenido**. Nada de esto se retipeó de memoria.
+
+### Devereux RB y col., *Am J Cardiol* 2012;110:1189-94 — el valor esperado de los senos
+
+**Se cita por HOJA con su pie impreso.** El PDF de la biblioteca es el **manuscrito** de catorce
+hojas y su pie dice «Devereux et al. Page N»: la numeración del manuscrito, no la de la revista,
+que son seis páginas. Es la misma regla que MARFAN-1 fijó.
+
+| Dato | Hoja | Texto literal |
+|---|---|---|
+| Población | 1 | «Among **1,207** apparently normal individuals ≥15 years old (54% female)» |
+| Criterios de la población | 2 | «individuals who were **non-obese, normotensive, non-diabetic** and free of clinically overt cardiovascular disease or aortic valve disease» |
+| La salvedad de la obesidad | 2 (Introducción) | «it is **uncertain whether use of BSA as the measure of body size under-recognizes aortic dilatation in obese individuals**» |
+| Superficie corporal | 2 | DuBois y DuBois |
+| Técnica | 3 | diámetro en **diástole** por la convención de **borde de ataque**, en paraesternal eje largo, al máximo diámetro paralelo al plano del anillo |
+| El desvío | 4 | «The standard errors of the estimate, upon which calculation of z-scores is based, were **0.261** and 0.215 cm» — 0,261 es el del modelo con superficie |
+| El criterio | 4 | «Aortic dilatation can be recognized when the difference between observed **sinuses of Valsalva** diameter and the value predicted for age, gender and body size **>1.96 standard errors of the estimate**» |
+| La ecuación | 13, Tabla 1 | Intercept **2.423** · Age (decade) **0.090** · Body Surface Area (m2) **0.461** · Gender Male **−0.267** / Female **−0.534** |
+
+⚠️ **Los dos coeficientes del sexo SON el término `−0,267 × sexo` con 1 = varón y 2 = mujer**, que
+es la forma en que la aplicación lo aplica desde MARFAN-1: −0,267 × 1 = −0,267 y −0,267 × 2 =
+−0,534, los dos valores impresos. Coinciden exactamente.
+
+⚠️ **EL 0,261 APARECE DOS VECES Y SON DOS COSAS DISTINTAS.** En la **Tabla 1** es el **error
+estándar del INTERCEPTO** (columna SE) y en la **hoja 4** es el **error estándar de la
+ESTIMACIÓN**, que es el que se usa para el Z. Coinciden por casualidad, y por eso el código cita la
+hoja 4 y no la Tabla 1.
+
+⚠️ **EL ARTÍCULO PUBLICA UNA GRADUACIÓN POR Z QUE NO SE IMPLEMENTÓ.** Hoja 4: «For convenience,
+mild, moderate and severe aortic dilatation can be recognized by positive z-score values from these
+models of **1.97–3.0, 3.01–4.0 and >4.0**, following a previously-reported convention». Declarado en
+**PR5-c**; esta aplicación no gradúa el seno con este cálculo.
+
+### ESC 2024 de aorta, edición inglesa — regla de folio: folio = hoja + 3537
+
+Comprobada en los **cuatro** folios de la orden, y es la misma con la que este archivo ya cita la
+Figura 5 en el folio 3563 (hoja 26).
+
+| Folio | Hoja | Qué dice |
+|---|---|---|
+| **3562** | 25 | apartado 5.4.1 — «sured using the **leading-to-leading edge** method during **end-diastole**» |
+| **3565** | 28 | recomendación 5.4 — «age, sex, and body surface, use **nomograms or z-score** calculation for-…» y «of nomograms, z-scores, or **other indexing methods**» (Clase IIa · Nivel B, Tabla 3) |
+| **3566** | 29 | Tabla 4 — «the **leading-to-leading edge convention** in …» (Clase I · Nivel C) |
+| **3603** | 66 | «Aortic dilatation … is defined as an aortic diameter **>2 standard deviations** of … (z-score >2)» y «correcting for BSA can lead to **underestimation in overweight patients**, therefore a correction for height (aortic height index) is becoming more popular» |
+
+⚠️ **Y ESA MISMA HOJA 66 CONFIRMA DOS NÚMEROS QUE LA APLICACIÓN YA USA**: «in females at **>36
+mm**» y «an indexed diameter/BSA (aortic size index) **>22 mm/m2**», que son exactamente
+`AO_DIL_MM.F` y `AO_IDA_MAX`.
+
+### ACC/AHA 2022 de aorta (Isselbacher) — regla de folio: folio = «e» + hoja + 333
+
+| Folio | Hoja | Qué dice |
+|---|---|---|
+| **e344** | 11 | los umbrales «are intended for those whose height, body surface area …» y en quien es «shorter or taller than average, these diameters need to …»; y «z-scores are limited, so the **z-score is not typically used** to …» |
+| **e345** | 12 | la continuación de esa discusión, con el índice de tamaño aórtico y el índice de altura |
+| **e350** | 17 | **2a** — «it is reasonable that a **dilated root or ascending aorta be indexed to patient height or BSA in the report**, to aid in clinical risk …»; y **2a** — «it is reasonable to measure the aorta from **leading-edge to leading-edge, perpendicular** …» |
+
+### ACC/AHA de congénitas del adulto (Gurvitz) — el folio del cor triatriatum
+
+El umbral del **gradiente medio estimado por la membrana por encima de 15 mmHg** vive en el folio
+**e165** (hoja 51), en el **texto de apoyo de la recomendación 5** —resección en el asintomático
+con obstrucción grave, **clase 2a · nivel C-LD**—, y **no tiene clase ni nivel propios**: la clase
+es de la recomendación, no del número. Con síntomas por obstrucción la resección es **clase 1 ·
+nivel B-NR** (recomendación 3, folio **e163**). La ficha decía **e164** y queda corregida.
+**El nombre de la guía NO se tocó**: sigue siendo «ACC/AHA 2025», que es lo que la regla fija del
+2026-11-06 de `CLAUDE.md` manda.
+
+### Cambios de evidencia
+
+| Qué | Antes | Después | Fuente | Fecha |
+|---|---|---|---|---|
+| Valor esperado de los senos de Valsalva en pantalla | no existía | línea descriptiva con el esperado, la diferencia y el z | Devereux 2012, hojas 2, 4 y 13 | 23/11/2026 |
+| El mismo esperado en el informe y en el PDF | no existía | **una** oración entre paréntesis; nada en el EN SUMA | la misma | 23/11/2026 |
+| La ecuación de Devereux | escrita **dentro** de `mfsZCalc` | **un solo dueño**, `aorPredSenosCm`, que Marfan consume | la misma | 23/11/2026 |
+| Las tres posturas sobre indexar el diámetro aórtico | sólo el nomograma de la ASE 2015 en el globo | los cinco bloques con Devereux 2012, ESC 2024 y ACC/AHA 2022, con sus nueve folios | las tres de arriba | 23/11/2026 |
+| Score de calcio valvular por TAC en el informe | «Considerar score de calcio valvular por TAC para confirmar severidad.» | **retirado** del papel | orden de Maicol | 23/11/2026 |
+| Medición incorrecta del TSVI en el informe | «Considerar medición incorrecta del TSVI o pseudo-severidad.» | **retirada** del papel | orden de Maicol | 23/11/2026 |
+| Repaso de las integrales en el informe | «revisar el diámetro del tracto de salida y el trazado de las integrales…» | **retirado**; se conserva «No configura la forma clásica» | orden de Maicol | 23/11/2026 |
+| Folio del umbral del cor triatriatum | e164 | **e165**, en el texto de apoyo de la recomendación 5, sin clase propia | ACC/AHA de congénitas, folio e165 | 23/11/2026 |

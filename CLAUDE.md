@@ -79,6 +79,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Buscar un CORTE o una BANDA de plausibilidad** de cualquier válvula, con su fuente | `docs/mapa/valvulas-constantes.md` |
 | **Tocar la MARCA DE MANUAL de una pastilla, el selector binario de la estenosis mitral, el VIOLETA de «Significativa», el VTI de entrada tricuspídeo, la CASILLA DE PISA de «Incluir en el informe» o lo que «Nuevo estudio» deja vivo** | `docs/mapa/valvulas-manual-binario.md` |
 | **Tocar la COARTACIÓN en el papel** —el dueño único `coaPapel`, la aposición de la situación, el recuadro «Según la guía» del PDF o la fila del PPT—, **el guardado de los DIAGRAMAS con el estudio**, el valor por omisión de «Guardar imágenes con los estudios», **la ✕ que sobrevive (`noPdf`)**, **la orejuela que «a veces salía y a veces no»**, el ⓘ de la fila de miniaturas, **los tres ⓘ del TRIV** o el BARRIDO del papel | `docs/mapa/aj2-coartacion-diagramas.md` |
+| **Tocar el VALOR ESPERADO de los senos de Valsalva** —la ecuación de Devereux 2012 con su dueño único, la superficie de DuBois frente a `getBSA`, la línea de pantalla, la oración del informe y del PDF, o los cinco bloques con las tres posturas en el globo y en Referencias—, **las TRES COLAS del bloque de bajo flujo / bajo gradiente** que salieron del papel, o el **folio e165 del cor triatriatum** | `docs/mapa/pr5-esperado-senos-devereux.md` |
 | **Tocar un CORTE DE SEGMENTO AÓRTICO de la Figura 5** —la unión sinotubular o la aorta ascendente por sexo, la frase «por encima del límite superior de lo normal», el chip del cayado y la descendente con su globo, la coartación en el EN SUMA, los tres textos de su pantalla, o los cinco umbrales de la Tabla 68 con sus nueve factores en tres estados | `docs/mapa/ao2-segmentos-bicuspide.md` |
 | **Tocar las CÚSPIDES de la bicúspide, sus SEIS dibujos o la animación de la apertura** | `docs/mapa/vab-cuspides-dibujos.md` |
 | **Tocar el CRITERIO DE DILATACIÓN DE LA RAÍZ AÓRTICA** —el corte por sexo, el índice de dimensión aórtica, el dueño `aoSegRef`/`aoSegIda`/`aoSegDil`, el globo ⓘ, el cruce entre las pantallas de BICÚSPIDE y de COARTACIÓN, o lo que la tanda AJ4 tocó de la Evidencia de la VAB | `docs/mapa/aj4-raiz-aortica.md` |
@@ -298,7 +299,29 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,96 MB / 193.554 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P13 + P13-B** (el orden del visor, la biblioteca, la calibración manual de velocidad, el círculo rojo/verde y los tres hallazgos de Windows), sobre el árbol ya sellado: sello **`v20261122-2251`**, md5 **`8524699a`**.
+  sin frameworks. Hoy **13,99 MB / 193.873 líneas**, medido con `wc -c` y `wc -l` el 2026-11-23 al cierre de la tanda **PR5** (el valor esperado de los senos de Valsalva, las tres colas del bloque de bajo flujo / bajo gradiente y el folio del cor triatriatum), sobre el árbol ya sellado: sello **`v20261123-0743`**, md5 **`3ebd3272`**.
+  El diff de PR5 son **342 líneas agregadas y 23 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `b005504` **sobre el árbol ya sellado**, de las que **174 son código
+  de verdad**, 153 comentario y 15 en blanco — las 342 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos: eso es lo que deja todo esto fuera del
+  censo del estudio y del Excel **por construcción**, con **cero campos guardados nuevos** y las
+  **457** columnas quietas.
+  **UN solo id nuevo en el marcado** —`ao-esp`, el nodo de la línea del valor esperado, que es un
+  `div` y no un control—; el otro que el diff muestra, `eco-build-sello`, ya existía y reaparece
+  porque el sello cambió. **No cae en ninguno de los veintitrés barridos destructivos por sufijo o
+  prefijo de id del archivo**, verificado uno por uno: no termina en `-aviso`, `-badge`, `-arrow`
+  ni `-ref-fuente`, y no arranca con ninguno de los nueve prefijos que `limpiarCampos` barre.
+  **Y CERO cortes clínicos, cero umbrales y cero fórmulas de severidad movidos**: lo que entra es
+  un cálculo **descriptivo** que no vota en ninguna cápsula —medido: con 42 mm en un varón la
+  pastilla del seno sigue diciendo «Dilatada (≥40mm)»— y lo que sale son tres indicaciones de
+  estudio del informe, sin perder un solo número medido.
+  ⚠️ **POR SEXAGÉSIMA PRIMERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show b005504:index.html` da **193.554** líneas,
+  **13.964.072** bytes y el md5 **`8524699a`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,96 MB / 193.554 al cierre de la tanda **P13 + P13-B** (el orden del visor, la biblioteca, la calibración manual de velocidad, el círculo rojo/verde y los tres hallazgos de Windows), sello **`v20261122-2251`**, md5 **`8524699a`**.)
   El diff de P13 son **1.185 líneas agregadas y 69 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `c047112` **sobre el árbol ya sellado**, de las que **544 son código
   de verdad**, 605 comentario y 36 en blanco — las 1.185 cierran exacto, y el filtro lleva el
@@ -1732,6 +1755,184 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR5 (2026-11-23) — el valor esperado de los senos de Valsalva, las tres colas del
+bloque BF/BG y el folio del cor triatriatum.** CUATRO tareas (la 4 era sólo reportar) y CINCO
+commits. Sello **`v20261123-0743`**, md5 **`3ebd3272`**, **193.873** líneas. Línea base **`b005504`**,
+el cierre de P13 + P13-B. **Sin push: lo corre Maicol.**
+
+**NADA DE LO QUE LA APLICACIÓN YA GRADUABA SE MOVIÓ, y es medible**: cero cortes, cero umbrales,
+cero fórmulas de severidad. Lo que entra es un **cálculo descriptivo nuevo** —el valor esperado de
+los senos de Valsalva— que no vota en ninguna cápsula, y lo que sale son **tres indicaciones de
+estudio** del informe. Y **CERO** `<input>`, `<select>` y `<textarea>` nuevos, que deja todo esto
+fuera del censo del estudio y del Excel **por construcción**: **cero campos guardados nuevos** y
+las **457** columnas quietas.
+
+⚠️ **LA TAREA 0-b ENCONTRÓ QUE MEDIA TAREA 1 YA ESTABA HECHA, Y ESO CAMBIÓ CÓMO SE HIZO.** La
+**ecuación de Devereux 2012 ya vivía en el archivo**, escrita dentro de `mfsZCalc` —el Z de la raíz
+de la tarjeta de Marfan—, verificada **en imagen** hoja por hoja por la tanda MARFAN-1, con su SEE
+de 0,261, su edad mínima de 15 y su superficie de **DuBois** calculada aparte a propósito. Y
+**ya leía el campo de los senos** (`ao_sin`). Lo que no existía era publicarla: junto al campo, en
+el papel y en el globo. Así que esta tanda **no la volvió a tipear**: le creó un **dueño único**
+—`aorPredSenosCm`— y `mfsZCalc` pasó a consumirlo, igual que `MFS_Z_SEE`, `MFS_Z_EDAD_MIN` y
+`mfsZBsaDuBois`, que **conservan su nombre** y ya no escriben el número. **Sus valores no se
+movieron** —0,261 y 15—, y lo fija TC-1029 (C1) contra el literal.
+**Medido: el Z de aorta y el Z de Marfan son el MISMO número** sobre el mismo paciente, **+2,65232**
+por las dos puertas. Con la cuenta escrita dos veces, el día que un coeficiente se afine la pantalla
+de aorta y la tarjeta de Marfan publicarían dos esperados del mismo paciente.
+
+⚠️ **Y ENCONTRÓ UN SEGUNDO NOMOGRAMA DE LOS SENOS QUE YA ESTABA, DE OTRA FUENTE.** El globo
+`ao-card` publica desde la tanda M1 el nomograma de la **ASE/EACVI 2015** (Lang, Figura 13, folio
+32, que reimprime a Roman 1989), con sus **tres** gráficos por estrato de edad y sus bandas de
+ecuación ± 1,96 × SEE. **No se retiró**: retirar contenido clínico es decisión del médico. Así que
+hoy el globo publica **dos** lecturas del mismo diámetro, cada una con su fuente, y pueden
+discrepar —una estratifica la edad en tres tramos y la otra la mete como variable continua—.
+Declarado en **PR5-a**, con las tres opciones y lo que cuesta cada una.
+
+**LA ECUACIÓN, CON SUS CUATRO NÚMEROS MEDIDOS.** `senos (cm) = 2,423 + 0,090 × (edad/10) + 0,461 ×
+BSA − 0,267 × sexo`, con 1 = varón y 2 = mujer; SEE **0,261 cm**; por encima de lo esperado =
+medido − esperado > **1,96 × SEE**, que son **5,1156 mm**. Verificada en la **hoja 13** del
+manuscrito: Intercept **2.423**, Age (decade) **0.090**, Body Surface Area **0.461**, Gender Male
+**−0.267** y Female **−0.534** —los dos coeficientes del sexo **son** el término `−0,267 × sexo`—.
+Los cuatro números de la orden, medidos: varón de 50 años y 1,9 m² → **34,8190 mm** con límite
+**39,9346**; mujer de 50 y 1,6 m² → **30,7660** con límite **35,8816**. Lo publicado son **34,8** y
+**30,8**, con **un decimal** y un solo dueño de formato, que es lo que `aoIdaTxt` ya hace para el
+índice de dimensión aórtica y por el mismo motivo.
+
+⚠️ **LA SUPERFICIE CORPORAL ES LA DEL ARTÍCULO —DuBois— Y NO `getBSA`, QUE ES MOSTELLER, Y ESO SE
+APARTA DE LA LETRA DE LA ORDEN A PROPÓSITO.** Dos motivos, los dos medidos: con `getBSA` el
+esperado de aorta y el Z de Marfan saldrían de **dos superficies distintas del mismo paciente**; y
+el precio de la decisión es **invisible** —entre las dos fórmulas el esperado cambia de **0,02 a
+0,07 mm** en los cinco pares de peso y talla probados, menos que la décima que se publica—.
+**`getBSA` NO SE TOCA**: la usan el índice cardíaco, la masa indexada y diez cálculos más.
+Declarado en **PR5-b**.
+
+**LAS TRES SUPERFICIES.** En **pantalla**, un nodo propio debajo del campo: «Esperado para edad,
+sexo y superficie corporal: 35,1 mm · medido 42,0 mm, +6,9 mm (z +2,65)», descriptivo, sin color de
+alarma y sin nombrar ninguna guía. En el **informe**, **UNA** oración —«Senos de Valsalva 42,0 mm
+(esperado 35,1 mm para edad, sexo y superficie corporal).»— que **el PDF imprime por el mismo
+lugar**, porque lee `informe_texto`: un solo emisor para las dos superficies. **NADA en el EN
+SUMA.** Y en el **globo ⓘ** y en **Referencias → Aorta**, los cinco bloques con las tres posturas,
+leídos del **mismo** dueño; el globo agrega la lectura de **este** paciente y Referencias no,
+porque es material de consulta.
+⚠️ **ES UNA ORACIÓN PROPIA Y NO UNA CLÁUSULA DE LAS CINCO RAMAS DEL BLOQUE DE AORTA**, por la regla
+fija del 03/11 —el informe va en oraciones separadas— y porque el seno se nombra en **cinco**
+redacciones distintas según lo que haya cargado: enchufar el paréntesis en cada una serían cinco
+copias y la que se olvide es la que se ve.
+⚠️ **Y EL NODO ES UN `div` Y NO UN CONTROL**: el censo del estudio y el Excel recorren `input[id]`
+y `select[id]`, así que un campo con id entraría a las 457 columnas por existir. Su id no termina
+en `-aviso`, `-badge`, `-arrow` ni `-ref-fuente` y no arranca con ninguno de los nueve prefijos que
+`limpiarCampos` barre, verificado uno por uno.
+
+**CUÁNDO NO SE PUBLICA NADA.** Sin edad, sin sexo, sin peso o sin talla, y por debajo de **15
+años**, no aparece nada —**y ningún texto de «falta tal dato»**, que es lo que la orden pide—. Los
+15 **exactos** sí se calculan: es el piso de la población del estudio. El **diámetro** no está en
+esa lista: sin él sale el esperado y no la diferencia. Y el diámetro entra por **la misma ventana
+de plausibilidad que la cápsula de al lado**, así que un 900 mm tipeado no produce una diferencia
+que el informe firmado publique.
+⚠️ **ESTO NO GRADÚA NADA Y NO MUEVE UN SOLO VOTO**: lo fija TC-1030 (D1), con 42 mm en un varón la
+cápsula sigue diciendo «Dilatada (≥40mm)».
+
+**LOS NUEVE FOLIOS DE LA ORDEN, COMPROBADOS POR SU REGLA ADEMÁS DE POR SU CONTENIDO**, releyendo
+los PDF de la biblioteca: la **ESC 2024 de aorta** en edición inglesa con `folio = hoja + 3537`
+—3562 en la hoja 25, 3565 en la 28, 3566 en la 29 y 3603 en la 66, la misma regla con la que este
+archivo ya cita la Figura 5 en el 3563—, y la **ACC/AHA 2022** (Isselbacher) con
+`folio = «e» + hoja + 333` —e344 en la 11, e345 en la 12 y e350 en la 17—. Y de Devereux, la
+población «non-obese, normotensive, non-diabetic» de la hoja 2, su salvedad de que no se sabe si la
+superficie corporal subestima la dilatación en el obeso, los 1.207 de la hoja 1 y el SEE y el
+criterio de 1,96 de la hoja 4.
+⚠️ **EL 0,261 APARECE DOS VECES EN EL ARTÍCULO Y SON DOS COSAS DISTINTAS**: en la Tabla 1 es el
+error estándar del **intercepto** y en la hoja 4 el de la **estimación**, que es el que se usa.
+Coinciden por casualidad, y por eso el código cita la hoja 4.
+⚠️ **Y EL ARTÍCULO PUBLICA UNA GRADUACIÓN POR Z QUE NO SE IMPLEMENTÓ** —leve 1,97 a 3,0, moderada
+3,01 a 4,0 y severa por encima de 4,0—: la orden no la pide, esta aplicación no gradúa el seno con
+este cálculo y graduar es decisión del médico. **PR5-c**.
+
+**LAS TRES COLAS DEL BLOQUE BF/BG SALEN DEL PAPEL, y PR4-b queda CERRADO.** El score de calcio
+valvular por TAC, la medición incorrecta del TSVI y el repaso de las integrales velocidad-tiempo,
+cada una con su lápida en su rama. **Se conserva** «No configura la forma clásica de bajo flujo /
+bajo gradiente», que es DESCRIPCIÓN y es lo único que distingue esa rama de la clásica, y el aviso
+de proximidad al umbral de 50 %, que es una salvedad sobre la medición y no una conducta.
+**NINGÚN NÚMERO MEDIDO DESAPARECE**, medido en las **cuatro** ramas: el paréntesis sigue publicando
+el AVA, el AVA indexada, la Vmax, el gradiente medio, el índice adimensional, el volumen latido
+indexado y la FEVI.
+⚠️ **LA LÍNEA DE DISCORDANCIA DE GRADO NO ES DE ESTE BLOQUE Y NO SE TOCÓ**: «Revisar el diámetro
+del tracto de salida y el trazado de las integrales velocidad-tiempo.» vive **fuera**, con su
+propia puerta —la pastilla que no coincide con las mediciones **sin** escenario discordante—. TC-1034
+(D1) la monta y exige que siga en pie.
+⚠️ **Y LAS TRES, A DIFERENCIA DE LA DE LA DOBUTAMINA DE PR4, NO TIENEN SU CONTENIDO EN LA
+EVIDENCIA.** Censado: ninguna de las tres aparece en una sección del panel ni en una ficha de
+Referencias. Se retiran igual porque es orden expresa, y **no se escriben en la Evidencia**: eso es
+contenido clínico nuevo y lo decide el médico. **PR5-d**.
+⚠️ **EL VOLUMEN LATIDO SE RECALCULA DEL TSVI Y PISA `vol_lat`** —es el volumen latido automático—,
+así que montar las cuatro ramas de verdad exige mover el **área del tracto** y su integral y
+mantener el área valvular severa eligiendo la integral aórtica. Medido: 20 mm y 15 cm con 59 → AVA
+0,80 y volumen latido indexado **24 ml/m²**; 24 mm y 16 cm con 90 → AVA 0,80 y **37**.
+
+**EL FOLIO DEL COR TRIATRIATUM PASA DE e164 A e165**, que es donde vive: en el **texto de apoyo de
+la recomendación 5** —resección en el asintomático con obstrucción grave, clase 2a · nivel C-LD—, y
+**sin clase ni nivel propios**: la clase es de la recomendación, no del número. El globo lo dice
+ahora, y su línea de fuente gana los folios **e163 a e165** y **195 y 196**, que es el único lugar
+donde esta casa publica un folio.
+⚠️ **NO HABÍA NINGUNA CLASE PEGADA AL 15, y se verificó midiendo la ORACIÓN que lo contiene y no
+una ventana de caracteres**: con 80 a cada lado se captura el «clase 2a, nivel B-NR» de la oración
+**anterior**, que es la de la recomendación diagnóstica del transesofágico y **tiene que quedar**.
+Es (B1) de TC-1033, con (C1) como control de que esa clase sigue.
+⚠️ **EL AUTOR Y EL AÑO NO SE TOCARON**: la ficha sigue diciendo «ACC/AHA 2025 (Gurvitz)», que es lo
+que la **regla fija del 2026-11-06** de este archivo manda —el título oficial impreso y el
+copyright dicen 2025, y el «2026» del pie de las hojas interiores es el año del número de
+*Circulation*—.
+
+**COBERTURA: SEIS casos nuevos, TC-1029 a TC-1034**, uno por punto de la verificación que la orden
+pide, y los seis caen **0/6 contra `b005504`** con el mismo archivo de casos y sólo el `index.html`
+distinto, **por sus condiciones y NINGUNO por excepción**.
+⚠️ **Eso último costó una guarda**: la primera versión de TC-1030 accedía a `aorEspSenos` pelado y
+contra la línea base tiraba `ReferenceError`, que **se lleva el caso entero** y deja las condiciones
+de abajo sin evaluar — un rojo que no apunta a su causa. Es la lección de TC-827.
+**18/18 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo idéntico antes y después, y las **18** anclas verificadas **ANTES** de correr. Cada mutación
+declara **su** caso, con al menos **dos por grupo nuevo**. **Tres de las dieciocho no revierten
+nada: la aplican DE MÁS**, porque las condiciones que las matan son **controles negativos**, y un
+control negativo que ninguna mutación puede romper no prueba nada.
+⚠️ **Y la 03 no puede ser «`MFS_Z_SEE = 0.261` escrito a mano»**: eso sería **equivalente**, porque
+la condición compara los VALORES y los dos darían 0,261. Para cubrir el dueño único hay que moverle
+el valor.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo**: los **406** casos cuyo cuerpo toca la aorta, el informe narrativo, el EN SUMA, el
+PDF o Referencias, seleccionados por el **patrón de su propio cuerpo** y no a ojo. Los demás **no
+se ejecutaron**, y se declara.
+**@@LOTES@@**
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: @@CEL@@**.
+
+⚠️ **TRES TRAMPAS QUE ESTA TANDA PAGÓ, LAS TRES DE ESTA CASA.** (1) El **acento grave dentro de mis
+propios comentarios**, por trigésima cuarta tanda seguida: **doce** veces, en los dos bloques de
+código y en el de evidencia, y las doce las cazó el guardián que cuenta el delta de acentos graves
+y **aborta antes de escribir el archivo** —abortó de verdad, dos veces—. (2) **La trampa del
+TOGGLE**: `secToggle` llamado a secas **cierra** la sección si ya estaba abierta, así que la primera
+medición del globo dio **0 caracteres** sobre un globo que sí funciona; se asegura el estado por
+`aria-expanded`. (3) **`showTab` revienta con «reading classList»** cuando el `window.event` global
+es el `success` de una transacción de IndexedDB —es **P30-d**, preexistente—, así que la pestaña se
+abre **clickeando su botón**; y el nombre de la pestaña es **`ai-vi`** y no `aivi`, que costó otra
+corrida.
+
+⚠️ **EL ÁRBOL NO ESTABA LIMPIO AL ABRIR Y LA TANDA SIGUIÓ, declarado en PR5-h**: había **un**
+archivo sin rastrear, `docs/PAUSA_MEDIR-2.md`, cuyo propio encabezado dice «PAUSA CERRADA EL
+2026-11-14». Verificado antes de seguir: `git diff` y `git diff --cached` vacíos, `index.html` sin
+modificar y **ningún** proceso de arnés corriendo. El archivo **no se tocó ni se agregó a ningún
+commit**.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima segunda tanda
+seguida: la orden no la pedía y el presupuesto se fue en las cuatro tareas y su verificación. Este
+archivo pesa más de 680 KB. Lo que hay que mudar hoy es todo lo anterior a **P13**.
+
+Lo declarado, en **PR5-a** a **PR5-h** —con **PR4-b CERRADO**—; el mapa, en
+`docs/mapa/pr5-esperado-senos-devereux.md`; las fichas, en `docs/mapa/tests-fichas-1029.md`; la
+guía manual, en `docs/GUIA_PRUEBA_PR5.md` (**17** pasos); las sondas, en `scripts/_probe_pr5.mjs`
+(la ecuación, la pantalla, el papel, el globo y Referencias) y `scripts/_probe_pr5b.mjs` (las
+cuatro ramas del BF/BG y el cor triatriatum), cada una con su cuerpo aparte; el barrido, en
+`scripts/_mut_pr5.py`; el corredor de lotes, en `scripts/_lotes_pr5.sh`.
 
 **La tanda P13 + P13-B (2026-11-22) — el orden del visor, la biblioteca, la calibración manual de
 velocidad, el círculo rojo/verde y los tres hallazgos de Windows.** CUATRO tareas del P13 (la 5 era

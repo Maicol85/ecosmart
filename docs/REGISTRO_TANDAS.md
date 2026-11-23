@@ -4490,3 +4490,39 @@ tema) y cero errores.
 nota de procedencia en el campo del informe (P13-f): no existe campo donde vivir. La idea de la
 columna izquierda del 13-B (3b): no aplicada, como pidió. La mudanza de «Estado vigente» a
 `docs/archivo/`, por vigésima primera tanda seguida.
+
+---
+
+## PR5 — el valor esperado de los senos de Valsalva, las tres colas del BF/BG y el folio del cor triatriatum (2026-11-23)
+
+**Sello** `v20261123-0743` · **md5** `3ebd3272` · **193.873** líneas · línea base `b005504`.
+**Sin push.**
+
+**Commits:** `276cb7f` (TAREA 1: el dueño único de la ecuación, la pantalla, el papel, el globo y
+Referencias) · `958ac1d` (TAREAS 2 y 3: las tres colas y el folio e165) · el de cobertura · el del
+sello y la documentación.
+
+**Qué hizo.** **(1)** El **valor esperado de los senos de Valsalva** por Devereux 2012, sólo para
+ese segmento: en pantalla junto al campo, en una oración del informe que el PDF imprime por el
+mismo lugar, y en cinco bloques de evidencia con las tres posturas —Devereux 2012, ESC 2024 y
+ACC/AHA 2022— en el globo y en Referencias. **La ecuación ya estaba en el archivo**, dentro del Z
+de la raíz de la tarjeta de Marfan: esta tanda le creó un **dueño único** y Marfan pasó a
+consumirlo, igual que el desvío, la edad mínima y la superficie de DuBois. **(2)** Las **tres
+colas** del bloque de bajo flujo / bajo gradiente que PR4 había dejado declaradas en **PR4-b**
+salieron del papel, y ese ítem queda **cerrado**. **(3)** El folio del umbral del **cor
+triatriatum** pasó de **e164** a **e165**, donde vive: en el texto de apoyo de la recomendación 5.
+
+**Lo que NO se tocó, y se declara.** El nomograma de la ASE/EACVI 2015 que el globo ya publicaba
+(**PR5-a**); `getBSA`, que es Mosteller, mientras este cálculo usa DuBois con dos motivos medidos
+(**PR5-b**); la graduación por Z que el propio artículo publica (**PR5-c**); la Evidencia, donde el
+contenido de las tres colas **no estaba** (**PR5-d**); y los ocho límites de la Figura 5, que son
+el reporte de solo lectura de la tanda (**PR5-e**).
+
+**Cobertura.** **TC-1029 a TC-1034**, los seis cayendo **0/6 contra `b005504`** por sus condiciones
+y **ninguno por excepción**. **MUTACIONES** mutaciones dirigidas, en un worktree y nunca sobre el
+árbol vivo, con las **18** anclas verificadas antes de correr.
+
+**Mapa:** `docs/mapa/pr5-esperado-senos-devereux.md` · **fichas:**
+`docs/mapa/tests-fichas-1029.md` · **guía manual:** `docs/GUIA_PRUEBA_PR5.md` (17 pasos) ·
+**sondas:** `scripts/_probe_pr5.mjs` y `scripts/_probe_pr5b.mjs` (cada una con su cuerpo aparte) ·
+**barrido:** `scripts/_mut_pr5.py`.

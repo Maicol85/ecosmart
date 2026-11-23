@@ -19231,6 +19231,12 @@ los dos motores y el sello.
   de dar la severidad por establecida.» (FEVI reducida con volumen latido normal). Más la cola de
   proximidad al umbral de 50 %, que pide confirmar la fracción por Simpson biplano. **Retirar texto
   clínico es decisión del médico**, así que se reportan y se esperan.
+  ⚠️ **[CERRADO 2026-11-23 · tanda PR5]** Las **tres** salieron del papel por orden expresa,
+  cada una con su lápida en su rama, y lo fija **TC-1034** en las cuatro ramas del bloque. **La
+  cola de proximidad al umbral de 50 % NO salió y no era una de las tres**: es una salvedad sobre
+  la medición y no una conducta, así que se conserva. Y lo que esta tanda encontró al retirarlas
+  está en **PR5-d**: a diferencia de la de la dobutamina, el contenido de las tres **no está en
+  la Evidencia**.
 
 - **PR4-c · El punto 4 NO se implementó porque la fuente no coincide, y ya estaba declarado.** La
   Tabla 1 de la ASE 2025 (hoja 5, folio **145**, comprobado en el pie impreso «Mukherjee, M et al |
@@ -19610,3 +19616,122 @@ El arreglo es del caso —envolver ese `_d2Render()` en `_vCon(_vistaB, …)`—
 tanda porque toca un caso maduro de MEDIR-5 que la orden no nombra. **Lo que si se agrego es su
 diagnostico**: con «1/0» a secas no se distinguia «el cajon no llego a la columna de la B» de «llego
 vacio», que son dos defectos distintos, y hoy el caso lo dice.
+
+---
+
+## Tanda PR5 (2026-11-23) — el valor esperado de los senos de Valsalva, las tres colas del BF/BG y el folio del cor triatriatum
+
+> Mapa: **`docs/mapa/pr5-esperado-senos-devereux.md`**. Línea base **`b005504`** (cierre de
+> P13 + P13-B, sello `v20261122-2251`, md5 `8524699a`). Fichas de los casos en
+> `docs/mapa/tests-fichas-1029.md`.
+
+### PR5-a · El nomograma de la ASE/EACVI 2015 se queda, y conviven DOS lecturas del mismo seno
+
+**La premisa de la TAREA 0-b resultó parcialmente falsa**: ya había un **nomograma de los senos de
+Valsalva** en la aplicación, pero de **otra fuente** —ASE/EACVI 2015 (Lang), **Figura 13**, folio
+32, que reimprime a Roman 1989—, con sus **tres** gráficos por estrato de edad, sus bandas de
+ecuación ± 1,96 × SEE y su lectura «dentro / por encima / por debajo del rango esperado». Vive
+**sólo dentro del globo** `ao-card` (`AOR_NOMO`, `aorNomoLectura`, `_evNomoSvg`), no está junto al
+campo y no llega al papel.
+
+Esta tanda **no lo retiró**: retirar contenido clínico es decisión del médico. Así que el globo
+publica ahora **dos** lecturas del mismo diámetro —el nomograma de 2015 arriba y el esperado de
+Devereux 2012 abajo, cada uno con su fuente—, y las dos pueden discrepar, porque una estratifica la
+edad en tres tramos y la otra la mete como variable continua.
+
+**Lo que el médico decide**: si las dos se quedan, si el nomograma de 2015 sale del globo, o si
+sale el de Devereux de ahí y queda sólo en la pantalla y en el papel. Son tres líneas en
+`evTarjetaAo`.
+
+### PR5-b · La superficie corporal de este cálculo es DuBois y no la de la aplicación, y se aparta de la letra de la orden
+
+La orden dice «usá la superficie corporal que ya usa la aplicación». `getBSA()` es **Mosteller**
+—`sqrt(peso × talla / 3600)`— y este cálculo usa **DuBois**, que es la del artículo normativo.
+**Dos motivos, los dos medidos.**
+
+1. La ecuación de Devereux **ya estaba** en la aplicación —en `mfsZCalc`, el Z de la raíz de la
+   tarjeta de Marfan— y **ya usaba DuBois a propósito**, con su motivo escrito desde MARFAN-1. Con
+   `getBSA` el esperado de la pantalla de aorta y el Z de Marfan saldrían de **dos superficies
+   distintas del mismo paciente**, y los dos Z del mismo paciente serían dos números distintos a
+   dos pestañas de distancia.
+2. **El precio es invisible**: entre las dos fórmulas el esperado cambia de **0,02 a 0,07 mm** en
+   los cinco pares de peso y talla medidos (80/175, 75/172, 70/170, 60/160 y 55/158), o sea menos
+   que la décima de milímetro que se publica.
+
+**`getBSA` NO SE TOCÓ.** Si el médico prefiere Mosteller, es **una línea** en `aorEspSenos` —y
+entonces conviene moverla también en `mfsZCalc`, para que los dos Z sigan coincidiendo—.
+
+### PR5-c · El artículo publica una graduación por Z y NO se implementó
+
+La hoja 4 de Devereux 2012 dice, textual: «For convenience, mild, moderate and severe aortic
+dilatation can be recognized by positive z-score values from these models of **1.97–3.0, 3.01–4.0
+and >4.0**, following a previously-reported convention». La orden **no la pide**, esta aplicación
+**no gradúa** el seno de Valsalva con este cálculo —lo gradúa `aoSegGrado` con `AO_DIL_MM`— y
+graduar es decisión del médico. **No se escribió en ninguna superficie**, ni siquiera en el globo.
+
+### PR5-d · El contenido de las tres colas retiradas NO está en la Evidencia
+
+La regla fija de esta casa dice que antes de retirar algo del papel hay que verificar que su
+contenido esté en la Evidencia con su fuente, y que si no está hay que **parar y reportarlo**. Se
+verificó, y **ninguna de las tres está**:
+
+- el **score de calcio valvular por TAC** para confirmar la severidad de una estenosis aórtica no
+  aparece en ninguna sección del panel de Evidencia ni en ninguna ficha de Referencias (censado
+  por «tomograf», «por TAC», «puntaje de calcio», «score de calcio» y «calcium score» fuera de
+  comentarios);
+- la **revisión del TSVI mal medido** tampoco;
+- el **repaso de las integrales velocidad-tiempo** tampoco.
+
+**Las tres se retiraron igual, porque es orden expresa**, y **no se escribieron en la Evidencia**:
+eso es contenido clínico nuevo y lo decide el médico. (La de la dobutamina que PR4 retiró **sí**
+tenía su contenido en la Evidencia, en la nota del estadio D2 de la Tabla 7 de la ACC/AHA 2020.)
+
+**Lo que el médico decide**: si esos tres contenidos entran al panel de Evidencia de la estenosis
+aórtica con su fuente, o si se quedan fuera de la aplicación.
+
+### PR5-e · Los ocho límites de la Figura 5: dos segmentos sin correspondencia y uno sin campo
+
+Es el **reporte de solo lectura** de la TAREA 1, y nada se tocó. La aplicación tiene **cinco**
+campos de aorta torácica y la Figura 5 de la ESC 2024 publica **ocho** tramos:
+
+| Tramo (Figura 5, folio 3563) | Guía: varón / mujer | Campo de la app | Lo que la app aplica HOY | ¿Un solo corte? |
+|---|---|---|---|---|
+| Seno de Valsalva | 40 / 34 | `ao_sin` | **40 / 36** (`AO_DIL_MM`, apartado 9.2.1.1), más la segunda puerta por índice (> 22 mm/m²) | no, por sexo |
+| Unión sinotubular | 38 / 33 | `ao_st` | **38 / 33** (`AO_ST_MM`, la Figura 5 misma) | no, por sexo |
+| Aorta ascendente | 40 / 36 | `ao_tub` | **40 / 36** (`AO_TUB_MM`, la Figura 5 misma) | no, por sexo |
+| Cayado proximal | 37 / 34 | `diam_cayado` (**uno** para los dos tramos) | **40 para los dos sexos**, criterio propio declarado con el chip | **sí, uno solo** |
+| Cayado medio | 34 / 31 | idem | idem | **sí, uno solo** |
+| Descendente proximal | 29 / 26 | `diam_ao_toracica` (**uno** para los dos tramos) | **35 para los dos sexos**, criterio propio declarado con el chip | **sí, uno solo** |
+| Descendente distal | 23 / 20 | idem | idem | **sí, uno solo** |
+| Aorta abdominal | 23 / 19 | **no hay campo** | — | — |
+
+**Tres cosas que esto deja a la vista, y ninguna se tocó.**
+1. **El seno usa 36 mm en la mujer y la Figura 5 publica 34.** Es la decisión vigente del médico
+   (AJ4-1): el 36 sale del apartado 9.2.1.1 de la misma guía. Ya estaba declarado en el comentario
+   de `AO_DIL_MM` y en `FUENTES.md`.
+2. **El cayado y la descendente tienen UN corte para los dos sexos y sin ajuste por tamaño ni
+   edad**, porque la guía parte cada uno en **dos** tramos con números distintos y la aplicación lo
+   mide en **un** campo: elegir uno sería decidir por el médico cuál se midió. Los ocho valores los
+   publica el globo ⓘ de cada fila.
+3. **La aorta abdominal no se mide en esta aplicación.**
+
+### PR5-f · El botón ⓘ del campo de senos mide 16 × 12 px en la ventana del arnés
+
+Medido al verificar el globo: el botón `[data-vinfo="ao-card"]` mide **16 × 12 px**. Es
+**preexistente** y no es de esta tanda: su piso táctil de 44 px lo pone la `@media` de puntero
+grueso que PANT-24 agregó, que en la ventana del arnés no aplica. No se tocó y queda anotado.
+
+### PR5-g · La mudanza de «Estado vigente» a `docs/archivo/` tampoco se hizo
+
+Por **vigésima segunda** tanda seguida, y se declara en vez de dejarlo pasar: la orden no la pedía
+y el presupuesto se fue en las cuatro tareas y su verificación. `CLAUDE.md` pesa más de **680 KB**.
+Lo que hay que mudar hoy es todo lo anterior a **P13**, o sea de **P12 hacia atrás**.
+
+### PR5-h · El árbol no estaba limpio al abrir, y se declara en vez de parar
+
+La TAREA 0-a manda parar si `git status` no está limpio. Al abrir había **un** archivo sin
+rastrear: **`docs/PAUSA_MEDIR-2.md`**, cuyo propio encabezado dice «PAUSA CERRADA EL 2026-11-14»
+—o sea el residuo de una pausa cerrada hace nueve días—. Verificado antes de seguir: `git diff` y
+`git diff --cached` **vacíos**, `index.html` sin modificar, y **ningún** proceso de arnés
+(`test_clinico`, `_probe_`, `cdp.mjs`) corriendo. Sin trabajo a medio hacer y sin otra sesión sobre
+`index.html`, la tanda siguió y el archivo **no se tocó ni se agregó a ningún commit**.
