@@ -161311,6 +161311,457 @@ caso('TC-1028', 'P13-B: el cartel sale cuando llegan SOLO repetidas y cuenta las
 `);
 
 
+/* ══ PR5 · TC-1029 a TC-1034 (2026-11-23) ══════════════════════════════════════════════════
+   Los seis casos de la tanda PR5: el valor esperado de los senos de Valsalva por Devereux
+   2012 (TAREA 1), las tres colas del bloque BF/BG (TAREA 2) y el folio del cor triatriatum
+   (TAREA 3).
+   ⚠️ NINGUNO USA UNA EXPRESION REGULAR CON BARRA INVERTIDA: el cuerpo de un caso es un
+   template literal y la barra no sobrevive -el patron de espacios llega como la letra «s»-,
+   que es la trampa que P12 y P13 pagaron. Todo va con indexOf. */
+
+caso('TC-1029', 'PR5 TAREA 1: la ecuacion de Devereux 2012 da 34,8 mm con limite 39,9 en el varon de 50 anos y superficie 1,9, y 30,8 con limite 35,9 en la mujer de 50 y 1,6; y la ecuacion, el desvio y la superficie de DuBois tienen UN solo dueno', `
+  const R = {};
+  R.hayEcu = typeof aorPredSenosCm === 'function';
+  R.haySee = typeof AOR_DEV_SEE !== 'undefined' && typeof AOR_DEV_Z !== 'undefined';
+  R.hayEdadMin = typeof AOR_DEV_EDAD_MIN !== 'undefined';
+  if (R.hayEcu && R.haySee) {
+    const mm = (e, b, s) => Math.round(aorPredSenosCm(e, b, s) * 10 * 10000) / 10000;
+    const lim = (e, b, s) => Math.round((aorPredSenosCm(e, b, s) + AOR_DEV_Z * AOR_DEV_SEE) * 10 * 10000) / 10000;
+    R.vEsp = mm(50, 1.9, 'M');  R.vLim = lim(50, 1.9, 'M');
+    R.mEsp = mm(50, 1.6, 'F');  R.mLim = lim(50, 1.6, 'F');
+    /* Lo que la pantalla y el papel publican: UN decimal, por su dueno unico. */
+    R.vEspTxt = aorEspMmTxt(aorPredSenosCm(50, 1.9, 'M') * 10);
+    R.mEspTxt = aorEspMmTxt(aorPredSenosCm(50, 1.6, 'F') * 10);
+    R.margenMm = Math.round(AOR_DEV_Z * AOR_DEV_SEE * 10 * 10000) / 10000;
+    /* El termino del sexo: la Tabla 1 imprime «Male -0.267» y «Female -0.534», o sea que la
+       diferencia entre los dos sexos con la MISMA edad y superficie es exactamente 0,267 cm. */
+    R.difSexoMm = Math.round((aorPredSenosCm(50, 1.9, 'M') - aorPredSenosCm(50, 1.9, 'F')) * 10 * 10000) / 10000;
+    /* Y la edad: 0,090 cm por decada, o sea 0,9 mm cada diez anos. */
+    R.difDecadaMm = Math.round((aorPredSenosCm(60, 1.9, 'M') - aorPredSenosCm(50, 1.9, 'M')) * 10 * 10000) / 10000;
+    /* Sin sexo o sin superficie la ecuacion no inventa un valor. */
+    R.sinSexo = aorPredSenosCm(50, 1.9, '');
+    R.sinBsa = aorPredSenosCm(50, 0, 'M');
+  }
+  /* UN SOLO DUENO: el Z de la tarjeta de Marfan sale de la MISMA ecuacion y del MISMO desvio,
+     y la superficie de DuBois de la MISMA funcion. */
+  R.seeCompartido = (typeof MFS_Z_SEE !== 'undefined' && typeof AOR_DEV_SEE !== 'undefined')
+    && MFS_Z_SEE === AOR_DEV_SEE;
+  R.edadMinCompartida = (typeof MFS_Z_EDAD_MIN !== 'undefined' && typeof AOR_DEV_EDAD_MIN !== 'undefined')
+    && MFS_Z_EDAD_MIN === AOR_DEV_EDAD_MIN;
+  R.duboisCompartido = (typeof aorBsaDuBois === 'function' && typeof mfsZBsaDuBois === 'function')
+    && aorBsaDuBois(70, 170) === mfsZBsaDuBois(70, 170);
+  /* Y los valores NO se movieron: 0,261 cm y 15 anos. */
+  R.seeVal = (typeof AOR_DEV_SEE !== 'undefined') ? AOR_DEV_SEE : 'NO';
+  R.edadMinVal = (typeof AOR_DEV_EDAD_MIN !== 'undefined') ? AOR_DEV_EDAD_MIN : 'NO';
+  /* El Z del paciente sale igual por las dos puertas: aorta y Marfan. */
+  __t.limpiar();
+  __t.set('sexo', 'M'); __t.set('edad', '50'); __t.set('peso', '80'); __t.set('talla', '175');
+  __t.set('ao_sin', '42');
+  const A = (typeof aorEspSenos === 'function') ? aorEspSenos(null) : null;
+  const M = (typeof mfsZCalc === 'function') ? mfsZCalc(null) : null;
+  R.zAorta = (A && A.z != null) ? Math.round(A.z * 100000) / 100000 : 'NO';
+  R.zMarfan = (M && M.z != null) ? Math.round(M.z * 100000) / 100000 : 'NO';
+  R.zIgual = (R.zAorta !== 'NO' && R.zMarfan !== 'NO') && R.zAorta === R.zMarfan;
+
+  return { extra: [
+    ['(A0) DENOMINADOR: existen la ecuacion, el desvio y la edad minima',
+      R.hayEcu && R.haySee && R.hayEdadMin, 'ecu=' + R.hayEcu + ' see=' + R.haySee + ' edad=' + R.hayEdadMin],
+    ['(A1) varon de 50 anos y superficie 1,9: esperado 34,8190 mm', R.vEsp === 34.819, String(R.vEsp)],
+    ['(A2) y su limite es 39,9346 mm', R.vLim === 39.9346, String(R.vLim)],
+    ['(A3) mujer de 50 anos y superficie 1,6: esperado 30,7660 mm', R.mEsp === 30.766, String(R.mEsp)],
+    ['(A4) y su limite es 35,8816 mm', R.mLim === 35.8816, String(R.mLim)],
+    ['(A5) lo que se publica son 34,8 y 30,8 mm, con UN decimal',
+      R.vEspTxt === '34,8' && R.mEspTxt === '30,8', R.vEspTxt + ' / ' + R.mEspTxt],
+    ['(A6) el margen de 1,96 x SEE son 5,1156 mm', R.margenMm === 5.1156, String(R.margenMm)],
+    ['(B1) el termino del sexo vale 2,67 mm, que es el «Male -0.267 / Female -0.534» de la Tabla 1',
+      R.difSexoMm === 2.67, String(R.difSexoMm)],
+    ['(B2) y la edad suma 0,9 mm por decada', R.difDecadaMm === 0.9, String(R.difDecadaMm)],
+    ['(B3) sin sexo o sin superficie la ecuacion devuelve null',
+      R.sinSexo === null && R.sinBsa === null, String(R.sinSexo) + ' / ' + String(R.sinBsa)],
+    ['(C1) el desvio vale 0,261 y la edad minima 15, sin moverse',
+      R.seeVal === 0.261 && R.edadMinVal === 15, R.seeVal + ' / ' + R.edadMinVal],
+    ['(C2) UN DUENO: el desvio y la edad minima de Marfan son los mismos objetos de valor',
+      R.seeCompartido === true && R.edadMinCompartida === true,
+      'see=' + R.seeCompartido + ' edad=' + R.edadMinCompartida],
+    ['(C3) UN DUENO: la superficie de DuBois sale de la misma funcion', R.duboisCompartido === true,
+      String(R.duboisCompartido)],
+    ['(C4) y el Z de aorta y el de Marfan son el MISMO numero sobre el mismo paciente',
+      R.zIgual === true, R.zAorta + ' vs ' + R.zMarfan]
+  ] };
+`);
+
+caso('TC-1030', 'PR5 TAREA 1: la linea del esperado no aparece con edad menor de 15, sin sexo ni sin superficie corporal, y la capsula del seno de Valsalva no se mueve', `
+  const R = {};
+  const lin = () => { const e = document.getElementById('ao-esp');
+    if (!e) return 'SIN NODO';
+    return (getComputedStyle(e).display === 'none' || !e.textContent) ? '' : e.textContent; };
+  R.hayNodo = !!document.getElementById('ao-esp');
+  R.hayPintor = typeof aorEspPintar === 'function';
+  /* TODO ACCESO VA POR AYUDANTES CON GUARDA, y no es un adorno: contra un arbol donde estas
+     funciones no existen un acceso pelado tira ReferenceError, que se lleva el caso ENTERO y
+     deja las condiciones de abajo sin evaluar -- o sea un rojo que no apunta a su causa. Es la
+     leccion que TC-827 dejo escrita en PANT-37. */
+  const ESP = () => (typeof aorEspSenos === 'function') ? aorEspSenos(null) : 'SIN FN';
+  const PINTAR = () => { if (typeof calcAorta === 'function') calcAorta(); };
+
+  /* DENOMINADOR: con los cuatro datos la linea SI aparece y nombra el esperado. */
+  __t.limpiar();
+  __t.set('sexo', 'M'); __t.set('edad', '50'); __t.set('peso', '80'); __t.set('talla', '175');
+  __t.set('ao_sin', '42'); PINTAR();
+  R.conTodo = lin();
+  R.conTodoDice = R.conTodo.indexOf('Esperado para edad, sexo y superficie corporal') >= 0;
+  R.conTodoZ = R.conTodo.indexOf('(z ') >= 0;
+  /* Y la capsula del seno sigue diciendo lo de siempre: este calculo NO gradua. */
+  { const c = document.getElementById('ao-interp'); R.capsula = c ? c.textContent.trim() : 'SIN NODO'; }
+  R.capsulaIntacta = R.capsula.indexOf('Dilatada') >= 0 && R.capsula.indexOf('40') >= 0;
+
+  /* (1) edad por debajo de 15. */
+  __t.set('edad', '14'); PINTAR();
+  R.edad14 = lin();
+  R.obj14 = ESP();
+  /* (2) sin sexo. */
+  __t.set('edad', '50'); __t.set('sexo', ''); PINTAR();
+  R.sinSexo = lin();
+  R.objSinSexo = ESP();
+  /* (3) sin superficie corporal. */
+  __t.set('sexo', 'M'); __t.set('peso', ''); __t.set('talla', ''); PINTAR();
+  R.sinSC = lin();
+  R.objSinSC = ESP();
+  /* Y en los tres, NINGUN texto de «falta tal dato»: la orden pide que no aparezca nada. */
+  R.ningunFalta = [R.edad14, R.sinSexo, R.sinSC].every(t => t === '');
+  /* (4) con los cuatro datos pero SIN diametro: el esperado si sale, la diferencia no. */
+  __t.set('peso', '80'); __t.set('talla', '175'); __t.set('ao_sin', ''); PINTAR();
+  R.sinDiam = lin();
+  R.sinDiamEsperado = R.sinDiam.indexOf('Esperado para edad') >= 0;
+  R.sinDiamSinZ = R.sinDiam.indexOf('(z ') < 0;
+  /* (5) 15 anos EXACTOS si se calculan: es el piso de la poblacion del estudio. */
+  __t.set('edad', '15'); __t.set('ao_sin', '30'); PINTAR();
+  R.edad15 = lin() !== '';
+  /* (6) un diametro fuera de rango plausible no produce una diferencia. */
+  __t.set('edad', '50'); __t.set('ao_sin', '900'); PINTAR();
+  R.fuera = lin();
+  R.fueraSinZ = R.fuera.indexOf('(z ') < 0 && R.fuera.indexOf('Esperado para edad') >= 0;
+
+  return { extra: [
+    ['(A0) DENOMINADOR: el nodo de la linea y su pintor existen', R.hayNodo && R.hayPintor,
+      'nodo=' + R.hayNodo + ' pintor=' + R.hayPintor],
+    ['(A1) DENOMINADOR: con los cuatro datos la linea sale y nombra el esperado',
+      R.conTodoDice === true, R.conTodo.slice(0, 120)],
+    ['(A2) y trae la diferencia con lo medido, en z', R.conTodoZ === true, R.conTodo.slice(0, 140)],
+    ['(B1) con edad 14 no aparece nada', R.edad14 === '' && (R.obj14 === null), '[' + R.edad14 + ']'],
+    ['(B2) sin sexo no aparece nada', R.sinSexo === '' && (R.objSinSexo === null), '[' + R.sinSexo + ']'],
+    ['(B3) sin peso ni talla no aparece nada', R.sinSC === '' && (R.objSinSC === null), '[' + R.sinSC + ']'],
+    ['(B4) y en los tres NO hay ningun texto de dato faltante', R.ningunFalta === true,
+      [R.edad14, R.sinSexo, R.sinSC].join(' | ')],
+    ['(C1) a los 15 anos EXACTOS si se calcula', R.edad15 === true, String(R.edad15)],
+    ['(C2) sin el diametro sale el esperado y NO la diferencia',
+      R.sinDiamEsperado === true && R.sinDiamSinZ === true, R.sinDiam.slice(0, 120)],
+    ['(C3) un diametro fuera de rango plausible no produce diferencia', R.fueraSinZ === true,
+      R.fuera.slice(0, 120)],
+    ['(D1) la capsula del seno NO se movio: sigue graduando con su corte por sexo',
+      R.capsulaIntacta === true, R.capsula]
+  ] };
+`);
+
+caso('TC-1031', 'PR5 TAREA 1: la frase del esperado sale en el informe Y en el PDF, una sola vez, solo cuando el calculo aplica, y NUNCA en el EN SUMA', `
+  return (async () => {
+  const R = {};
+  const FR = 'esperado ';
+  const inf = () => (document.getElementById('informe_texto') || {}).value || '';
+  const suma = () => (document.getElementById('en_suma') || {}).value || '';
+  const cuenta = (t) => t.split('\\n').filter(l => l.indexOf(FR) >= 0).length;
+
+  /* (A) La escena que aplica. */
+  __t.limpiar();
+  __t.set('sexo', 'M'); __t.set('edad', '50'); __t.set('peso', '80'); __t.set('talla', '175');
+  __t.set('ao_sin', '42'); calcAorta();
+  generarInforme();
+  R.nInforme = cuenta(inf());
+  R.frase = inf().split('\\n').filter(l => l.indexOf(FR) >= 0)[0] || '';
+  R.diceSenos = R.frase.indexOf('Senos de Valsalva 42,0 mm') === 0;
+  R.diceEsperado = R.frase.indexOf('(esperado 35,1 mm para edad, sexo y superficie corporal)') >= 0;
+  R.nSuma = cuenta(suma());
+  /* Ni una guia, ni un folio, ni una clase, ni la palabra dilatada en la frase. */
+  R.papelLimpio = ['folio', 'Devereux', 'ESC', 'ACC/AHA', 'Clase', 'z-score', 'dilatad']
+    .filter(x => R.frase.indexOf(x) >= 0);
+
+  /* (B) EL PDF DE VERDAD. Se envuelve el CONSTRUCTOR de jsPDF y se intercepta text(), que es
+     por donde pasa cada cadena que se dibuja. La envoltura se instala y se restaura ACA: la
+     bateria corre los mil casos en UNA pagina y un caso que la deja puesta rompe a los
+     veintitres que tambien la usan, que es la leccion que P8 dejo escrita. */
+  let textos = [];
+  R.pdfErr = null;
+  if (typeof window.jspdf !== 'undefined') {
+    const Orig = window.jspdf.jsPDF;
+    window.jspdf.jsPDF = function () {
+      const d = new Orig(arguments[0]);
+      const t0 = d.text.bind(d);
+      d.text = function (txt) {
+        try { textos.push(Array.isArray(txt) ? txt.join(' ') : String(txt)); } catch (e) {}
+        return t0.apply(d, arguments);
+      };
+      d.save = function () { return d; };
+      return d;
+    };
+    window.jspdf.jsPDF.prototype = Orig.prototype;
+    try { await generarPDFReal(); } catch (e) { R.pdfErr = e && e.message; }
+    window.jspdf.jsPDF = Orig;
+  } else { R.pdfErr = 'NO HAY jsPDF'; }
+  R.nTextosPdf = textos.length;
+  const todoPdf = textos.join(' | ');
+  R.pdfTieneFrase = todoPdf.indexOf('esperado 35,1 mm para edad, sexo y superficie corporal') >= 0;
+
+  /* (C) CONTROL NEGATIVO: sin sexo la frase no sale por ninguna de las dos superficies. */
+  __t.set('sexo', ''); calcAorta(); generarInforme();
+  R.sinSexoInforme = cuenta(inf());
+  let textos2 = [];
+  if (typeof window.jspdf !== 'undefined' && !R.pdfErr) {
+    const Orig2 = window.jspdf.jsPDF;
+    window.jspdf.jsPDF = function () {
+      const d = new Orig2(arguments[0]);
+      const t0 = d.text.bind(d);
+      d.text = function (txt) { try { textos2.push(Array.isArray(txt) ? txt.join(' ') : String(txt)); } catch (e) {} return t0.apply(d, arguments); };
+      d.save = function () { return d; };
+      return d;
+    };
+    window.jspdf.jsPDF.prototype = Orig2.prototype;
+    try { await generarPDFReal(); } catch (e) {}
+    window.jspdf.jsPDF = Orig2;
+  }
+  R.sinSexoPdf = textos2.join(' | ').indexOf('esperado ') >= 0;
+
+  return { extra: [
+    ['(A1) el informe trae la frase UNA sola vez', R.nInforme === 1, String(R.nInforme)],
+    ['(A2) y nombra los senos con su diametro', R.diceSenos === true, R.frase.slice(0, 140)],
+    ['(A3) con el esperado entre parentesis', R.diceEsperado === true, R.frase.slice(0, 160)],
+    ['(A4) el EN SUMA NO la trae', R.nSuma === 0, String(R.nSuma)],
+    ['(A5) y la frase no nombra ninguna guia, folio, clase ni la palabra dilatada',
+      R.papelLimpio.length === 0, R.papelLimpio.join(',') || 'limpia'],
+    ['(B0) DENOMINADOR: el PDF se genero y dibujo texto', R.pdfErr === null && R.nTextosPdf > 20,
+      'err=' + R.pdfErr + ' textos=' + R.nTextosPdf],
+    ['(B1) el PDF imprime la frase del esperado', R.pdfTieneFrase === true, String(R.pdfTieneFrase)],
+    ['(C1) CONTROL NEGATIVO: sin sexo no sale en el informe', R.sinSexoInforme === 0, String(R.sinSexoInforme)],
+    ['(C2) CONTROL NEGATIVO: ni en el PDF', R.sinSexoPdf === false, String(R.sinSexoPdf)]
+  ] };
+  })();
+`);
+
+caso('TC-1032', 'PR5 TAREA 1: el globo del campo de senos y la entrada de Referencias publican las TRES posturas con sus cifras y folios tal cual, del mismo dueno, y ninguno de esos folios llega al papel', `
+  const R = {};
+  /* Las cifras y los folios que la orden exige TAL CUAL. */
+  const EXIG = ['1.207', 'borde anterior a borde anterior', '1,96', '0,261 cm',
+    'folio 3562', 'folio 3566', 'folio 3565', 'folio 3603', 'Clase I', 'Nivel C',
+    'Clase IIa', 'Nivel B', 'e344', 'e345', 'folio e350', 'Clase 2a', 'C-LD',
+    'Criterio de EcoSmart', 'no incluy'];
+  const ROTS = ['De d\\u00f3nde sale el c\\u00e1lculo', 'Criterio de EcoSmart', 'Lo que dice la ESC 2024',
+    'Lo que dice la ACC/AHA 2022', 'Lo que este c\\u00e1lculo no cubre'];
+
+  /* (A) EL DUENO UNICO. */
+  R.hayDueno = typeof AOR_DEV_EVID !== 'undefined' && AOR_DEV_EVID.length === 5;
+  R.hayPintor = typeof _aorDevEvidPintar === 'function';
+  const dueno = R.hayDueno ? AOR_DEV_EVID.map(b => b.rot + ' ' + b.txt).join(' ') : '';
+  R.faltanEnDueno = EXIG.filter(x => dueno.indexOf(x) < 0);
+  R.rotsDueno = R.hayDueno ? AOR_DEV_EVID.map(b => b.rot) : [];
+  R.rotsOk = ROTS.every((r, i) => R.rotsDueno[i] === r);
+
+  /* (B) EL GLOBO. La pestana se abre CLICKEANDO su boton y no llamando a showTab: esa funcion
+     lee el window.event global y revienta con «reading classList» cuando ese global es el
+     success de una transaccion de IndexedDB, que es P30-d, preexistente y declarada. */
+  __t.limpiar();
+  __t.set('sexo', 'M'); __t.set('edad', '50'); __t.set('peso', '80'); __t.set('talla', '175');
+  __t.set('ao_sin', '42'); calcAorta();
+  { const tb = document.querySelector('[onclick*="showTab(' + "'ai-vi'" + '"]');
+    if (tb) tb.click(); }
+  /* secToggle es un TOGGLE: se ASEGURA el estado por aria-expanded, que es el denominador. */
+  { const h = document.querySelector('[onclick*="secToggle(' + "'aorta'" + '"]');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    R.secAbierta = h ? h.getAttribute('aria-expanded') : 'SIN HDR'; }
+  { const b = document.querySelector('[data-vinfo="ao-card"]');
+    R.hayBoton = !!b;
+    if (b) { b.click();
+      const c = document.getElementById('vinfo-card');
+      R.globo = c ? c.textContent : '';
+      b.click(); } else R.globo = ''; }
+  R.faltanEnGlobo = EXIG.filter(x => (R.globo || '').indexOf(x) < 0);
+  /* Y el globo, a diferencia de Referencias, dice el esperado DE ESTE paciente. */
+  R.globoDicePaciente = (R.globo || '').indexOf('En este paciente el valor esperado es de 35,1 mm') >= 0;
+
+  /* (C) REFERENCIAS. */
+  if (typeof evRefPintar === 'function') { try { evRefPintar('ao2'); } catch (e) { R.refErr = String(e).slice(0,120); } }
+  { const h = document.getElementById('ref-ao2-cuerpo'); R.refs = h ? h.textContent : ''; }
+  R.faltanEnRefs = EXIG.filter(x => (R.refs || '').indexOf(x) < 0);
+  /* Referencias es material de consulta y NO habla de nadie. */
+  R.refsSinPaciente = (R.refs || '').indexOf('En este paciente') < 0;
+
+  /* (D) NINGUNO DE ESOS FOLIOS LLEGA AL PAPEL. */
+  generarInforme();
+  const papel = ((document.getElementById('informe_texto') || {}).value || '')
+    + ' ' + ((document.getElementById('en_suma') || {}).value || '');
+  R.enPapel = ['folio', '3562', '3565', '3566', '3603', 'e344', 'e350', 'Devereux',
+    'ESC 2024', 'ACC/AHA', 'Clase', 'Nivel'].filter(x => papel.indexOf(x) >= 0);
+
+  return { extra: [
+    ['(A0) DENOMINADOR: el dueno unico tiene sus CINCO bloques y su pintor',
+      R.hayDueno === true && R.hayPintor === true, 'dueno=' + R.hayDueno + ' pintor=' + R.hayPintor],
+    ['(A1) los cinco rotulos, en su orden', R.rotsOk === true, (R.rotsDueno || []).join(' | ')],
+    ['(A2) y las 19 cifras y folios de la orden estan en el dueno', R.faltanEnDueno.length === 0,
+      R.faltanEnDueno.join(',') || 'ninguna falta'],
+    ['(B0) DENOMINADOR: la seccion de aorta esta abierta y el globo existe',
+      R.secAbierta === 'true' && R.hayBoton === true, 'sec=' + R.secAbierta + ' btn=' + R.hayBoton],
+    ['(B1) el globo publica las 19 cifras y folios', R.faltanEnGlobo.length === 0,
+      R.faltanEnGlobo.join(',') || 'ninguna falta'],
+    ['(B2) y dice el esperado de ESTE paciente', R.globoDicePaciente === true,
+      (R.globo || '').slice(0, 0) + String(R.globoDicePaciente)],
+    ['(C1) Referencias publica las mismas 19', R.faltanEnRefs.length === 0,
+      R.faltanEnRefs.join(',') || 'ninguna falta'],
+    ['(C2) y NO habla de este paciente', R.refsSinPaciente === true, String(R.refsSinPaciente)],
+    ['(D1) ninguna guia, folio ni clase llega al informe ni al EN SUMA', R.enPapel.length === 0,
+      R.enPapel.join(',') || 'papel limpio']
+  ] };
+`);
+
+caso('TC-1033', 'PR5 TAREA 3: la ficha del cor triatriatum cita el folio e165, ya no el e164, el umbral del gradiente medio no lleva clase pegada, y el autor y el anio no se tocaron', `
+  const R = {};
+  const F = (typeof VINFO !== 'undefined') ? VINFO['otr-cortri'] : null;
+  R.hayFicha = !!F;
+  if (F) {
+    const todo = (F.tit || '') + ' ' + (F.lee || '') + ' ' + (F.fuente || '') + ' ' + (F.ojo || '');
+    R.e165 = todo.indexOf('e165') >= 0;
+    R.e164 = todo.indexOf('e164') >= 0;
+    R.rango = todo.indexOf('e163 a e165') >= 0;
+    R.autor = (F.fuente || '').indexOf('ACC/AHA 2025 (Gurvitz)') >= 0;
+    R.ase = (F.fuente || '').indexOf('ASE 2019 (Puchalski)') >= 0;
+    /* LA ORACION del 15 mmHg, y no una ventana de caracteres: con 80 a cada lado se captura el
+       «clase 2a, nivel B-NR» de la oracion ANTERIOR, que es la de la recomendacion diagnostica
+       del transesofagico y tiene que QUEDAR. */
+    const i = todo.indexOf('15 mmHg');
+    R.hay15 = i >= 0;
+    let vent = '';
+    if (i >= 0) { const ini = todo.lastIndexOf('. ', i), fin = todo.indexOf('. ', i);
+      vent = todo.slice(ini < 0 ? 0 : ini + 2, fin < 0 ? todo.length : fin + 1); }
+    R.oracion15 = vent;
+    R.clasePegada = ['clase 1', 'clase 2a', 'clase 2b', 'Clase 1', 'Clase 2a', 'Clase 2b',
+      'B-NR', 'C-LD', 'B-R', 'nivel B', 'nivel C', 'Nivel B', 'Nivel C'].filter(x => vent.indexOf(x) >= 0);
+    R.diceSinClase = vent.indexOf('no lleva clase ni nivel propios') >= 0;
+    R.diceApoyo = vent.indexOf('texto de apoyo') >= 0;
+    R.diceE165 = vent.indexOf('e165') >= 0;
+    R.diceUmbralPropuesto = vent.indexOf('UMBRAL PROPUESTO PREVIAMENTE') >= 0;
+    /* LO QUE SE CONSERVA: la clase de la recomendacion diagnostica del transesofagico. */
+    R.clase2aEte = (F.ojo || '').indexOf('clase 2a, nivel B-NR') >= 0;
+    /* Y la aplicacion sigue sin graduar: ni un numero cableado. */
+    R.noGradua = (F.ojo || '').indexOf('no grad') >= 0
+      && (F.ojo || '').indexOf('ning\\u00fan criterio de reparaci\\u00f3n') >= 0;
+    R.sinTipos = (F.ojo || '').indexOf('ninguna de las dos fuentes lo clasifica por tipos') >= 0;
+  }
+  /* Y nada de esto llega al papel. */
+  __t.limpiar(); __t.set('otr_var_cortri', '1');
+  generarInforme();
+  const papel = ((document.getElementById('informe_texto') || {}).value || '')
+    + ' ' + ((document.getElementById('en_suma') || {}).value || '');
+  R.enPapel = ['e165', 'e163', 'folio', 'clase 2a', 'Gurvitz', '15 mmHg'].filter(x => papel.indexOf(x) >= 0);
+
+  return { extra: [
+    ['(A0) DENOMINADOR: la ficha existe y nombra el umbral de 15 mmHg',
+      R.hayFicha === true && R.hay15 === true, 'ficha=' + R.hayFicha + ' 15=' + R.hay15],
+    ['(A1) cita el folio e165', R.e165 === true, String(R.e165)],
+    ['(A2) y ya NO cita el e164', R.e164 === false, String(R.e164)],
+    ['(A3) la linea de fuente publica el rango e163 a e165', R.rango === true, String(R.rango)],
+    ['(B1) la oracion del 15 mmHg NO lleva ninguna clase ni nivel pegados',
+      R.clasePegada.length === 0, R.clasePegada.join(',') || 'ninguna'],
+    ['(B2) y dice que ese umbral no lleva clase ni nivel propios', R.diceSinClase === true,
+      R.oracion15.slice(0, 200)],
+    ['(B3) lo ubica en el texto de apoyo, con su folio', R.diceApoyo === true && R.diceE165 === true,
+      'apoyo=' + R.diceApoyo + ' e165=' + R.diceE165],
+    ['(B4) y lo sigue enmarcando como un umbral propuesto previamente',
+      R.diceUmbralPropuesto === true, String(R.diceUmbralPropuesto)],
+    ['(C1) SE CONSERVA la clase 2a nivel B-NR de la recomendacion del transesofagico',
+      R.clase2aEte === true, String(R.clase2aEte)],
+    ['(C2) el autor y el anio no se tocaron: ACC/AHA 2025 (Gurvitz) y ASE 2019 (Puchalski)',
+      R.autor === true && R.ase === true, 'accaha=' + R.autor + ' ase=' + R.ase],
+    ['(C3) la aplicacion sigue sin graduar el cor triatriatum ni publicar tipos',
+      R.noGradua === true && R.sinTipos === true, 'gradua=' + R.noGradua + ' tipos=' + R.sinTipos],
+    ['(D1) ni el folio ni la clase ni el umbral llegan al papel', R.enPapel.length === 0,
+      R.enPapel.join(',') || 'papel limpio']
+  ] };
+`);
+
+caso('TC-1034', 'PR5 TAREA 2: las tres colas del bloque BF/BG -el score de calcio por TAC, la medicion del TSVI y el repaso de las integrales- no estan en el informe ni en el EN SUMA en ninguna de las cuatro ramas, sin perder un solo numero, y la linea de discordancia de grado sigue en pie', `
+  const R = { ramas: [] };
+  const inf = () => (document.getElementById('informe_texto') || {}).value || '';
+  const suma = () => (document.getElementById('en_suma') || {}).value || '';
+  const COLAS = { calcio: 'score de calcio', tsvi: 'Considerar medici',
+                  integrales: 'integrales velocidad-tiempo' };
+  /* EL VOLUMEN LATIDO SE RECALCULA DEL TSVI Y PISA LO QUE SE ESCRIBA EN vol_lat -es el volumen
+     latido automatico-, asi que el flujo se mueve con el area del tracto y su integral, y el
+     area valvular se mantiene severa eligiendo la integral aortica. Medido:
+       bajo flujo   -> 20 mm y 15 cm -> volumen latido 47,1 ml, indexado 24 ml/m2
+       flujo normal -> 24 mm y 16 cm -> volumen latido 72,4 ml, indexado 37 ml/m2
+     y en los dos el area sale 0,80 cm2 con la integral aortica en 59 y en 90 cm. */
+  const base = (bajo) => {
+    __t.limpiar();
+    __t.set('sexo', 'M'); __t.set('edad', '70'); __t.set('peso', '80'); __t.set('talla', '175');
+    __t.set('diam_tsvi', bajo ? '20' : '24');
+    __t.set('itv_tsvi', bajo ? '15' : '16');
+    __t.set('itv_ao', bajo ? '59' : '90');
+    __t.set('gmedio_ao', '28'); __t.set('vmax_ao', '3.4'); __t.set('ea_grado', 'severa');
+  };
+  [{ s: 'bfbg_paradojal', f: '60', b: true },
+   { s: 'bg_flujo_normal', f: '60', b: false },
+   { s: 'bfbg_clasica_flujo_normal', f: '40', b: false },
+   { s: 'bfbg_clasica', f: '40', b: true }].forEach((E) => {
+    base(E.b); __t.set('fevi', E.f);
+    const esc = (typeof eaEscenario === 'function') ? eaEscenario() : null;
+    generarInforme();
+    const linea = inf().split('\\n').filter(l => l.indexOf('Estenosis a') === 0).join(' || ');
+    R.ramas.push({
+      pedido: E.s, real: esc ? esc.sub : 'SIN EVALUADOR',
+      hayOracion: linea.length > 0, linea: linea.slice(0, 260),
+      colasInf: Object.keys(COLAS).filter(k => inf().indexOf(COLAS[k]) >= 0),
+      colasSuma: Object.keys(COLAS).filter(k => suma().indexOf(COLAS[k]) >= 0),
+      faltanNum: ['0.80', '3.4', '28', E.f + '%'].filter(n => linea.indexOf(n) < 0)
+    });
+  });
+  R.subsOk = R.ramas.every(x => x.real === x.pedido);
+  R.todasConOracion = R.ramas.every(x => x.hayOracion === true);
+  R.colasEnInf = R.ramas.reduce((a, x) => a.concat(x.colasInf), []);
+  R.colasEnSuma = R.ramas.reduce((a, x) => a.concat(x.colasSuma), []);
+  R.numerosPerdidos = R.ramas.reduce((a, x) => a.concat(x.faltanNum), []);
+  /* LO QUE SE CONSERVA, rama por rama. */
+  const L = (s) => (R.ramas.filter(x => x.pedido === s)[0] || {}).linea || '';
+  R.diceParadojal = L('bfbg_paradojal').indexOf('paradojal') >= 0;
+  R.diceFlujoNormal = L('bg_flujo_normal').indexOf('flujo normal') >= 0;
+  R.diceNoClasica = L('bfbg_clasica_flujo_normal').indexOf('No configura la forma cl') >= 0;
+  R.diceClasica = L('bfbg_clasica').indexOf('BF/BG cl') >= 0;
+  /* LA LINEA DE DISCORDANCIA DE GRADO NO ES DE ESTE BLOQUE Y NO SE TOCO: su puerta es la
+     pastilla que no coincide con las mediciones, con el escenario NO discordante. */
+  base(true); __t.set('gmedio_ao', '55'); __t.set('vmax_ao', '4.6'); __t.set('fevi', '60');
+  __t.set('ea_grado', 'moderada');
+  generarInforme();
+  R.lineaDisc = inf().split('\\n').filter(l => l.indexOf('no coincide con las mediciones') >= 0)[0] || '';
+  R.discEnPie = R.lineaDisc.indexOf('Revisar el di') >= 0
+    && R.lineaDisc.indexOf('integrales velocidad-tiempo') >= 0;
+
+  return { extra: [
+    ['(A0) DENOMINADOR: las cuatro ramas se montaron de verdad', R.subsOk === true,
+      R.ramas.map(x => x.pedido + '=' + x.real).join(' | ')],
+    ['(A1) DENOMINADOR: las cuatro escriben su oracion en el informe', R.todasConOracion === true,
+      R.ramas.map(x => x.hayOracion).join(',')],
+    ['(B1) ninguna de las tres colas queda en el informe', R.colasEnInf.length === 0,
+      R.colasEnInf.join(',') || 'ninguna'],
+    ['(B2) ni en el EN SUMA', R.colasEnSuma.length === 0, R.colasEnSuma.join(',') || 'ninguna'],
+    ['(C1) NINGUN numero medido desaparece en las cuatro ramas', R.numerosPerdidos.length === 0,
+      R.numerosPerdidos.join(',') || 'ninguno'],
+    ['(C2) SE CONSERVA «paradojal» en su rama', R.diceParadojal === true, L('bfbg_paradojal').slice(0, 150)],
+    ['(C3) SE CONSERVA «flujo normal» en su rama', R.diceFlujoNormal === true, L('bg_flujo_normal').slice(0, 150)],
+    ['(C4) SE CONSERVA «No configura la forma clasica», que es la descripcion de esa rama',
+      R.diceNoClasica === true, L('bfbg_clasica_flujo_normal').slice(0, 200)],
+    ['(C5) y la rama clasica sigue nombrandose', R.diceClasica === true, L('bfbg_clasica').slice(0, 150)],
+    ['(D1) la linea de DISCORDANCIA DE GRADO no es de este bloque y sigue en pie',
+      R.discEnPie === true, R.lineaDisc.slice(0, 240)]
+  ] };
+`);
+
+
 
 try {
   const s = await servir(); servidor = s.srv;
