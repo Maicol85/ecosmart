@@ -161789,8 +161789,40 @@ caso('TC-1034', 'PR5 TAREA 2: las tres colas del bloque BF/BG -el score de calci
   __t.set('ea_grado', 'moderada');
   generarInforme();
   R.lineaDisc = inf().split('\\n').filter(l => l.indexOf('no coincide con las mediciones') >= 0)[0] || '';
-  R.discEnPie = R.lineaDisc.indexOf('Revisar el di') >= 0
-    && R.lineaDisc.indexOf('integrales velocidad-tiempo') >= 0;
+  /* ⚠️ INVERTIDO EN PR6 (23/11/2026). ANTES exigia que la frase «Revisar el diametro del tracto
+     de salida y el trazado de las integrales velocidad-tiempo» SIGUIERA EN PIE -esa linea no era
+     del bloque de bajo flujo / bajo gradiente que PR4 y PR5 vaciaron, asi que este caso la
+     protegia-. La decision de Maicol del 23/11 la saca tambien: el informe FIRMADO no dice que
+     hacer. Hoy se exige lo CONTRARIO -que NO este, en el informe, en el EN SUMA y en el PDF- mas
+     que la DESCRIPCION siga entera, asi que el caso falla por los DOS lados: si la frase vuelve,
+     y si al sacarla se perdio el grado consignado o los numeros que lo desmienten.
+     A diferencia de las tres colas de PR5, esta SI tiene su contenido en la Evidencia: es la
+     cuarta nota que PR6 le agrego a la seccion de estenosis aortica, con su hoja y su folio, y
+     la mide TC-1038. */
+  R.discSinFrase = R.lineaDisc.indexOf('Revisar el di') < 0
+    && R.lineaDisc.indexOf('integrales velocidad-tiempo') < 0;
+  R.discEnSuma = (function () { try {
+    const sm = String((document.getElementById('en_suma') || {}).value || '');
+    return sm.indexOf('Revisar el di') < 0 && sm.indexOf('integrales velocidad-tiempo') < 0;
+  } catch (e) { return false } })();
+  /* La DESCRIPCION entera: el grado consignado, los numeros y el grado que les correspondia. */
+  R.discDescribe = R.lineaDisc.indexOf('(moderada)') >= 0
+    && R.lineaDisc.indexOf('AVA 0.80') >= 0 && R.lineaDisc.indexOf('severa') >= 0;
+  /* Y EN EL PDF, generado de verdad. Se busca en ASCII: el papel va en WinAnsi. */
+  R.discPdf = (function () {
+    let cap = null;
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return 'SIN jsPDF';
+    window.jspdf.jsPDF = function (o) { const d = new J(o);
+      d.save = function () { try { cap = this.output('datauristring') } catch (e) {} return this };
+      return d; };
+    try { _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    if (!cap) return 'SIN PDF';
+    let b = null; try { b = atob(String(cap).split(',')[1]) } catch (e) { return 'SIN PDF' }
+    return (b.indexOf('metro del tracto de salida') < 0)
+        && (b.indexOf('no coincide con las mediciones') >= 0);
+  })();
 
   return { extra: [
     ['(A0) DENOMINADOR: las cuatro ramas se montaron de verdad', R.subsOk === true,
@@ -161807,8 +161839,12 @@ caso('TC-1034', 'PR5 TAREA 2: las tres colas del bloque BF/BG -el score de calci
     ['(C4) SE CONSERVA «No configura la forma clasica», que es la descripcion de esa rama',
       R.diceNoClasica === true, L('bfbg_clasica_flujo_normal').slice(0, 200)],
     ['(C5) y la rama clasica sigue nombrandose', R.diceClasica === true, L('bfbg_clasica').slice(0, 150)],
-    ['(D1) la linea de DISCORDANCIA DE GRADO no es de este bloque y sigue en pie',
-      R.discEnPie === true, R.lineaDisc.slice(0, 240)]
+    ['(D1) INVERTIDO EN PR6: la frase del TSVI ya NO sale en el informe',
+      R.discSinFrase === true, R.lineaDisc.slice(0, 240)],
+    ['(D2) ni en el EN SUMA', R.discEnSuma === true, String(R.discEnSuma)],
+    ['(D3) ni en el PDF, que sigue describiendo la discordancia', R.discPdf === true, String(R.discPdf)],
+    ['(D4) y la DESCRIPCION queda entera: el grado consignado, sus numeros y el que corresponderia',
+      R.discDescribe === true, R.lineaDisc.slice(0, 240)]
   ] };
 `);
 

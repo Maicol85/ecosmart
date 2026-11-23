@@ -67072,9 +67072,17 @@ function generarInforme(opts) {
        lista, pero quien lee el informe corrido tiene que encontrarla al lado de la oración que
        nombra el grado, no tres párrafos después. */
     if (_eaR && _eaR.discordanciaGrado && !_eaDiscordante) {
+      /* SE FUE «Revisar el diámetro del tracto de salida y el trazado de las integrales
+         velocidad-tiempo.» (PR6-5, 23/11/2026, decisión de Maicol): el informe FIRMADO no dice
+         qué hacer. La DESCRIPCIÓN se queda entera —el grado consignado, los números que lo
+         desmienten y el grado que les correspondería—, que es lo único que el papel afirma.
+         ⚠️ A DIFERENCIA DE LAS TRES COLAS DE PR5, ESTA SÍ TIENE SU CONTENIDO EN LA EVIDENCIA, y
+         es la cuarta nota que esta misma tanda le agregó a la sección de estenosis aórtica, con
+         su guía, su hoja y su folio. Ver `_indEA`.
+         ⚠️ Y EL AVISO DE PANTALLA NO SE TOCÓ, por orden expresa: la cápsula y su recuadro siguen
+         diciendo que el grado no coincide. Lo que sale es la indicación, del papel. */
       inf.push(`El grado de estenosis aórtica consignado (${_eaR.grado}) no coincide con las mediciones `
-        + `del estudio${eaDatosTxt(_eaR, false)}, que corresponderían a estenosis ${_eaR.esperado}. `
-        + `Revisar el diámetro del tracto de salida y el trazado de las integrales velocidad-tiempo.`);
+        + `del estudio${eaDatosTxt(_eaR, false)}, que corresponderían a estenosis ${_eaR.esperado}.`);
     }
 
     /* ══ LA FUGA PARAVALVULAR DE LA PRÓTESIS QUIRÚRGICA (PRO-B3, 2026-10-17) ══════════════
@@ -95419,7 +95427,12 @@ const IND_REFS = Object.freeze([
          'Patients With Valvular Heart Disease. Circulation 2021;143:e72-e227. ' +
          'doi:10.1161/CIR.0000000000000923. Tabla 17 «Stages of Chronic Primary MR», p. e121; ' +
          'recomendaciones de intervención en la insuficiencia mitral primaria, p. e124; ' +
-         'Tabla 16 «Stages of MS», p. e113; recomendaciones de estenosis mitral reumática, p. e116.' },
+         'Tabla 16 «Stages of MS», p. e113; recomendaciones de estenosis mitral reumática, p. e116. ' +
+         'ESTENOSIS AÓRTICA (añadido en PR6, 2026-11-23, leído en imagen con el folio comprobado ' +
+         'en el pie impreso de cada hoja): recomendación 5 de la sección 3.2 —score de calcio ' +
+         'valvular por tomografía en el bajo flujo / bajo gradiente, Clase 2a · Nivel B-NR—, ' +
+         'hoja 19 del PDF, p. e90; el cociente entre la velocidad del tracto de salida y la ' +
+         'aórtica y los errores del área calculada, hoja 21 del PDF, p. e92.' },
   /* ── AÑADIDAS 2026-09-30 PARA LA ESTENOSIS MITRAL, las dos leídas en texto completo.
      La de Baumgartner porque es la ÚNICA fuente primaria verificada que gradúa la estenosis mitral
      en leve / moderada / severa: es la escala que la pantalla del estudio viene usando y que hasta
@@ -99128,7 +99141,55 @@ function _indEA(){
          eso cambia la conducta y el lector puede tener la edición anterior en la cabeza. */
       'Un AVA de exactamente 1,00 cm² es severa: el corte de la guía es «≤ 1,0», no «< 1,0».',
       'Los tres criterios pueden discordar, y el bajo flujo con bajo gradiente no se cierra con estos tres números. El subtipo y la discordancia los resuelve la tarjeta de estenosis aórtica, de donde este panel los toma.',
-      'La calcificación por tomografía —más de 2000 unidades Agatston en el varón, más de 1200 en la mujer— es criterio DIAGNÓSTICO de severidad y no lleva clase. Como criterio de intervención cuenta sólo junto a una progresión de la Vmax de 0,3 m/s por año o más, dentro de la Clase IIa · Nivel B del asintomático.',
+      /* El folio de los dos umbrales lo gana en PR6-5: los publica la nota c de la Figura 7 de la
+         guía europea, leída en imagen con su folio comprobado en el encabezado impreso. El texto
+         clínico no se tocó. */
+      'La calcificación por tomografía —más de 2000 unidades Agatston en el varón, más de 1200 en la mujer (hoja 32, folio 4666)— es criterio DIAGNÓSTICO de severidad y no lleva clase. Como criterio de intervención cuenta sólo junto a una progresión de la Vmax de 0,3 m/s por año o más, dentro de la Clase IIa · Nivel B del asintomático.',
+      /* ══ LOS CUATRO CONTENIDOS DE PR6-5 (decisión de Maicol, 23/11/2026) ════════════════════
+         Los tres primeros son el contenido de las tres colas que PR5 retiró del informe firmado y
+         que esa tanda declaró SIN contraparte en la Evidencia (PR5-d). El cuarto es el de la
+         frase de la discordancia de grado, que esta tanda retira del papel.
+         ⚠️ REDACCIÓN DESCRIPTIVA Y CADA FUENTE EN SU PROPIA ORACIÓN, por la regla fija del
+         2026-11-04: ningún texto dice que dos fuentes no coinciden, ni las compara, ni afirma lo
+         que una no dice. Cuando las dos hablan del mismo punto, cada una se cita por lo que ella
+         misma dice, con su hoja y su folio.
+         ⚠️ EL FOLIO VA EN EL TEXTO DE LA NOTA Y ESO ES UNA EXCEPCIÓN ACORDADA de esta tanda: la
+         regla general de esta casa manda el folio a la línea de fuente, y las dos entradas de
+         bibliografía lo ganan también ahí. Acá va porque cada nota cita un folio DISTINTO del
+         mismo documento y la línea de fuente es común a la sección.
+         ⚠️ LOS UMBRALES DEL SCORE DE CALCIO NO SE REPITEN: ya están en la nota de más arriba, que
+         en esta tanda gana su folio. Escribirlos otra vez serían dos cifras del mismo corte en la
+         misma sección, que es cómo una se queda vieja. */
+      { txt:'En la forma de bajo flujo y bajo gradiente con fracción de eyección conservada '
+          + '—la paradojal—, la guía americana considera razonable medir el score de calcio '
+          + 'valvular por tomografía para precisar la severidad: Clase 2a · Nivel B-NR, para los '
+          + 'estadios D2 y D3 (hoja 19, folio e90). La guía europea, en su evaluación integrada '
+          + 'por imagen, dice que la evidencia disponible se refiere a pacientes con fracción de '
+          + 'eyección conservada, y que según los síntomas esa evaluación puede complementarse '
+          + 'con el score de calcio valvular por tomografía (hoja 30, folio 4664).',
+        refs:['ahaVc2020', 'esc2025vc'] },
+      { txt:'Con área pequeña, gradiente bajo y fracción de eyección conservada, la guía europea '
+          + 'dice que las explicaciones distintas de una estenosis severa son frecuentes y deben '
+          + 'excluirse con cuidado, y nombra entre ellas los errores de medición, la presión '
+          + 'arterial no controlada y las condiciones que bajan el volumen latido (hoja 36, folio '
+          + '4670). La guía americana dice que el cociente entre la velocidad del tracto de salida '
+          + 'y la aórtica es independiente del tamaño corporal y elimina los errores del área '
+          + 'calculada que vienen de medir el diámetro o el área del tracto de salida (hoja 21, '
+          + 'folio e92).',
+        refs:['esc2025vc', 'ahaVc2020'] },
+      { txt:'Cuando el área es severa y el gradiente no lo es con fracción de eyección reducida y '
+          + 'sin bajo flujo, la guía europea arranca su evaluación integrada por imagen '
+          + 'confirmando las mediciones, y en particular verificando el diámetro del tracto de '
+          + 'salida y la interrogación Doppler desde varias ventanas (hoja 30, folio 4664).',
+        refs:['esc2025vc'] },
+      { txt:'Cuando el grado consignado no coincide con las mediciones del estudio, el primer paso '
+          + 'de esa misma evaluación integrada es el que aplica: la guía europea pide confirmar las '
+          + 'mediciones, y en particular verificar el diámetro del tracto de salida y la '
+          + 'interrogación Doppler desde varias ventanas (hoja 30, folio 4664). Esa guía clasifica '
+          + 'la estenosis aórtica por el estado de flujo cuando hay discordancia entre los '
+          + 'parámetros ecocardiográficos (hoja 29, folio 4663).',
+        refs:['esc2025vc'] },
+
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
