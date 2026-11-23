@@ -319,6 +319,18 @@
      `padding` del overlay. Un estilo en linea le gana a la hoja sin importar la especificidad,
      asi que sin `!important` la clase aplicaria y la ventana seguiria midiendo 1180 px: es el
      mismo defecto que este archivo ya documenta para `[hidden]` y para el modo minimo. */
+  /* ══ 13-B (3a) — EL PIE DE «Sincronizar» SE ESCONDE EN PANTALLA COMPLETA CON UNA VISTA ══════
+     Es lo que permite bajar la reserva de alto: ese boton solo existe con dos vistas
+     —`vistaBAbrir` le pone el `display`— pero su FILA conserva su `margin-top:12px` y ocupa 12 px
+     igual. Es la misma clase de hallazgo que el comentario de MEDIR-3 ya documenta para esos
+     12 px. Se decide por `cine-con-b`, la clase que `_vToggleSync` pone sobre el overlay cuando
+     hay segunda vista, porque el pie es HERMANO de `#cine-paneles` y no se puede seleccionar por
+     la clase de aquel.
+     ⚠️ VA FUERA DE LA MEDIA QUERY DE 1100 px, Y LA PRIMERA VERSION LA PUSO ADENTRO: ahi la regla
+     no aplicaba por debajo de ese ancho, y lo destapo TC-1028 —la ventana del arnes mide 756—.
+     Esconder el pie en pantalla completa no depende del ancho: el boton no existe con una vista
+     en ningun ancho. */
+  #cine-ov.cine-max:not(.cine-con-b) #cine-pie { display: none !important; }
   #cine-ov.cine-max { padding: 0 !important; }
   #cine-ov.cine-max > #cine-modal {
     max-width: none !important; width: 100% !important;
@@ -600,14 +612,6 @@
        canvas es su descendiente y la lee igual. */
     #cine-ov.cine-max { --cine-imgh: calc(var(--cine-h) - 145px); }
     #cine-ov.cine-max #cine-paneles.cine-2v { --cine-imgh: calc(var(--cine-h) - 185px); }
-    /* ⚠️ EL PIE DE «Sincronizar» SE ESCONDE EN PANTALLA COMPLETA CON UNA VISTA, y es lo que
-       permite bajar la reserva: ese boton solo existe con dos vistas —`vistaBAbrir` le pone el
-       `display`— pero su FILA conserva su `margin-top:12px` y ocupa 12 px igual. Es la misma
-       clase de hallazgo que el comentario de MEDIR-3 ya documenta para esos 12 px.
-       Se decide por `cine-con-b`, la clase que `_vToggleSync` pone sobre el overlay cuando hay
-       segunda vista, porque el pie es HERMANO de `#cine-paneles` y no se puede seleccionar por la
-       clase de aquel. */
-    #cine-ov.cine-max:not(.cine-con-b) #cine-pie { display: none !important; }
     #cine-ov .cine-fila { flex-wrap: nowrap !important; }
     /* ⚠️ LA COLUMNA SE ACOTA Y SE LLEVA SU PROPIO DESPLAZAMIENTO, que es el punto 3 del pedido:
        la imagen, la reproduccion y la tabla tienen que entrar JUNTAS sin mover la ventana, y la
@@ -148527,7 +148531,14 @@ function _cineCargarLoop() {
      colgar la correccion de ese orden es justo lo que esta casa no hace.
      ⚠️ NO SE TOCA `medCalibVel`: eso es la escala YA fijada y la repone la linea de abajo. Lo que
      se suelta es el MODO de calibrar y su primera marca. */
-  try { V.medCalibrandoVel = false; V.medCalVelP0 = null; } catch (e) {}
+  /* ⚠️ Y LA ESCALA YA FIJADA TAMBIEN SE SUELTA ACA, DE FORMA SINCRONICA, Y ESTO LO DESTAPO UN
+     CASO: `medCambioDeImagen` la borra, pero lo dispara el observador de `#cine-cual`, asi que
+     entre esta funcion y ese borrado hay una ventana en la que la reposicion diferida de abajo
+     puede correr, no encontrar entrada para la imagen NUEVA y dejar puesta la escala de la
+     ANTERIOR — que despues el observador borra, o no, segun quien llegue primero. Medido: el
+     control «otra imagen NO hereda la escala» daba 0,5 en vez de null. Soltandola aca la
+     conducta deja de depender de ese orden: se suelta y se repone, en ese orden y siempre. */
+  try { V.medCalibVel = null; V.medCalibrandoVel = false; V.medCalVelP0 = null; } catch (e) {}
   /* ══ P13 (3.2) — Y SE REPONE LA ESCALA DE VELOCIDAD QUE EL MEDICO FIJO PARA ESTA IMAGEN ════
      Va ACA porque esta funcion es el unico lugar que corre en los dos caminos en que la imagen
      cambia —`_cineAbrir` y `cineLoop`— y porque corre DESPUES de que `medCambioDeImagen` la

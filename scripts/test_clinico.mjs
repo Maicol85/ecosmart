@@ -16005,8 +16005,18 @@ caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, 
       for (let i=0;i<3 && _vistaA.medGrupo==='dop';i++) document.getElementById('cine-g-dop').click();
       for (let i=0;i<3 && _vistaB.medGrupo!=='dop';i++) document.getElementById('b-cine-g-dop').click();
       const soloBabierto = cajon() && _vistaA.medGrupo !== 'dop';
+      /* ⚠️ ADAPTADO EN P13 (1g): por orden del medico un cajon CON VALORES no se esconde al
+         cambiar de herramienta ni al cerrar una vista —«la tabla de medidas queda fija junto a su
+         visor»—. Lo que este bloque mide de verdad sigue siendo que el cajon no quede COLGADO del
+         panel que se destruyo: se exige que siga en el documento y dentro de la vista que
+         SOBREVIVE. La escena tiene valores sembrados, asi que el denominador es explicito. */
+      const _cajNodo = document.getElementById('dop-cajon');
+      const _habiaValores = _dopHayValores();
       vistaBCerrar();
-      const cerrarBnoDejaPegado = !cajon() && _dopVisible() === false;
+      const _sigueEnElDoc = !!(_cajNodo && document.body.contains(_cajNodo));
+      const _enLaQueQueda = !!(_cajNodo && _cajNodo.closest('[id$="cine-panel"]') ===
+                               document.getElementById((_vistaA.pfx || '') + 'cine-panel'));
+      const cerrarBnoDejaPegado = _habiaValores && _sigueEnElDoc && _enLaQueQueda;
       /* se repone la vista B para lo que sigue */
       const VB2 = _vNueva('b-','B'); _vMontarPanel(document.getElementById('cine-paneles'),'b-');
       _vistaB = VB2; _vCablear(VB2); VB2.datos = _vistaA.datos; _vActivarMedicion(VB2);
@@ -31052,8 +31062,14 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       R.minCerrar  = rend('cine-cerrar');
       /* Y NO quedan enfocables con Tab: display:none los saca del orden de tabulacion.
          Se comprueba por offsetParent, que es null justo cuando el elemento no se renderiza. */
-      R.minNoFocusables = ['cine-med-recal','cine-guardar','cine-add-b','cine-cerrar']
+      /* ⚠️ ADAPTADO EN P13 (1a y 1i): cine-add-b y cine-cerrar YA NO se esconden —son
+         controles del modal y la orden es que esten «siempre arriba, se este midiendo o no»— y
+         cine-guardar no existe. Los que siguen escondidos son los de MEDICION. */
+      R.minNoFocusables = ['cine-med-recal','cine-med-borrar']
         .every(id => { const e = document.getElementById(id); return !!e && e.offsetParent === null; });
+      /* Y los dos del modal SI quedan enfocables, que es la otra mitad del 1a. */
+      R.minVistaFocusable = ['cine-add-b','cine-cerrar']
+        .every(id => { const e = document.getElementById(id); return !!e && e.offsetParent !== null; });
 
       if (!_medOn) medToggle();
       await esperar(300);
@@ -31163,21 +31179,29 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
                                                       R.minRot.indexOf('Salir') < 0 &&
                                                       R.minPressed === 'false',
                                                       'rot=' + R.minRot + ' pressed=' + R.minPressed],
+      /* ⚠️ ADAPTADO EN P13 (1a y 1i): de esta condicion sale minGuardar —el boton se
+         retiro— y los dos del modal, que pasan a su propia condicion INVERTIDA. Lo que sigue
+         escondido en modo minimo es lo de MEDICION, que es lo que esta condicion dice. */
       ['y NO se ve nada de medicion',                 R.minSide === false && R.minAyuda === false &&
-                                                      R.minRecal === false && R.minGuardar === false &&
-                                                      R.minAddB === false &&
-                                                      R.minCerrar === false && R.minEtiq === false,
+                                                      R.minRecal === false && R.minEtiq === false,
                                                       'side=' + R.minSide + ' ayuda=' + R.minAyuda +
-                                                      ' recal=' + R.minRecal + ' guardar=' + R.minGuardar +
-                                                      ' addB=' + R.minAddB +
-                                                      ' cerrar=' + R.minCerrar + ' etiq=' + R.minEtiq],
+                                                      ' recal=' + R.minRecal + ' etiq=' + R.minEtiq],
+      /* ⚠️ INVERTIDA EN P13 (1a): antes se exigia que «+ Vista» y «Cerrar» estuvieran
+         ESCONDIDOS en modo minimo, y era el defecto que el medico reporto —el visor recien
+         abierto no ofrecia ninguna forma de montar la segunda vista hasta tocar «Medir»—. Hoy se
+         exige lo contrario, asi que el caso falla por los dos lados. */
+      ['P13 1a: «+ Vista» y «Cerrar» SE VEN sin estar midiendo',
+                                                      R.minAddB === true && R.minCerrar === true,
+                                                      'addB=' + R.minAddB + ' cerrar=' + R.minCerrar],
+      ['P13 1i: y el boton de guardar el cineloop NO existe', R.minGuardar === 'NO EXISTE' || R.minGuardar === false,
+                                                      String(R.minGuardar)],
       ['los escondidos NO quedan enfocables con Tab',  R.minNoFocusables === true, R.minNoFocusables],
+      ['P13 1a: y los dos del modal SI quedan enfocables', R.minVistaFocusable === true, R.minVistaFocusable],
+      /* ⚠️ ADAPTADO EN P13 (1i): sale medGuardar, que es un boton que ya no existe. */
       ['MEDICION: la clase se saca y aparece todo',    R.medClase === false && R.medSide === true &&
-                                                      R.medAyuda === true && R.medGuardar === true &&
-                                                      R.medEtiq === true,
+                                                      R.medAyuda === true && R.medEtiq === true,
                                                       'clase=' + R.medClase + ' side=' + R.medSide +
-                                                      ' ayuda=' + R.medAyuda + ' guardar=' + R.medGuardar +
-                                                      ' etiq=' + R.medEtiq],
+                                                      ' ayuda=' + R.medAyuda + ' etiq=' + R.medEtiq],
       ['y el boton pasa a «Salir» y queda apretado',   R.medRot.indexOf('Salir') >= 0 &&
                                                       R.medPressed === 'true',
                                                       'rot=' + R.medRot + ' pressed=' + R.medPressed],
@@ -138611,9 +138635,15 @@ caso('TC-857', 'El cineloop se guarda ENTERO y solo con el estudio, sin ningun b
       ['(C) DENOMINADOR: la tarjeta tiene su boton',        R.c_hayBoton, R.c_hayBoton],
       ['(C) se reabre desde la tira',                       R.c_abrio === true, R.c_abrio],
       ['(C) y es EL MISMO cineloop, el de memoria',         R.c_mismoLoop === true, R.c_mismoLoop],
-      ['(D) el boton de guardar del visor EXISTE',          R.d_existe, R.d_existe],
+      /* ⚠️ INVERTIDO EN P13 (1i): el boton «Guardar el cineloop en el estudio» SE RETIRO por
+         orden del medico. Su motivo esta en _vPanelHTML: el cineloop ya entra a la biblioteca
+         por su cola y a que estudio va se decide desde Guardados, asi que ese boton ofrecia una
+         tercera forma de hacer lo que ya pasa solo. Las dos condiciones de abajo exigian que
+         EXISTIERA y que estuviera ESCONDIDO en modo minimo; hoy exigen que NO exista, asi que
+         el caso falla por los dos lados. cineGuardarActual sigue expuesta y la sigue midiendo
+         el bloque (A). */
+      ['(D) P13 1i: el boton de guardar del visor YA NO EXISTE', R.d_existe === false, R.d_existe],
       ['(D) y el visor abre en modo minimo',                R.d_visorEnMinimo, R.d_visorEnMinimo],
-      ['(D) que lo deja ESCONDIDO: nadie lo ve',            R.d_escondido, R.d_escondido],
       ['(E) DENOMINADOR: la tarjeta tiene su cruz',         R.e_hayX, R.e_hayX],
       ['(F) importar un cineloop lo ENCOLA solo, sin apretar nada', R.f_encoloSolo === true, R.f_encoloSolo],
       ['(F) y la tira lo muestra en el acto',               R.f_tiraLoMuestra, R.f_tiraLoMuestra],
@@ -143692,7 +143722,13 @@ caso('TC-887', 'MEDIR-3 bloques A1 y A2: la imagen gana ancho y alto y el negro 
       ['(A7) DENOMINADOR: el VI muestra su DDVI en 52',     R.c_vi52 === true, R.c_vi52],
       ['(A7) al cambiar de estructura, la anterior se va',  R.c_anteriorDesaparece === true, R.c_rotsVci],
       ['(A7) y al volver REAPARECE con su valor',           R.c_restaura === true, R.c_valVuelta],
-      ['(A7) pasando a Doppler, el cajon 2D se oculta',     R.c_ocultoEnDop === true, R.c_ocultoEnDop],
+      /* ⚠️ INVERTIDO EN P13 (1g): por orden del medico, «la tabla de medidas queda fija junto a
+         su visor: no se esconde mientras se mide». Un cajon CON VALORES se queda a la vista con
+         cualquier herramienta — antes pasar a Velocidad para medir un VTI se llevaba de pantalla
+         el TAPSE recien medido. La condicion exigia que se ocultara; hoy exige lo contrario, asi
+         que falla por los dos lados. */
+      ['(A7) P13 1g: pasando a Doppler el cajon 2D SIGUE a la vista con su valor',
+                                                           R.c_ocultoEnDop === false, R.c_ocultoEnDop],
       ['(A7) y al volver trae el valor puesto',             R.c_vuelveConValor === true, R.c_vuelveConValor]
     ] };
   })();
@@ -143728,10 +143764,14 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
          todos, que es lo que la condicion de al lado fija. Asi que se exige un ancho igual para
          TODOS MENOS ese, y que ese sea exactamente el ancho de la excepcion: el caso se pone
          rojo tanto si otro boton se desalinea como si la excepcion se cuela en un tercero. */
-      const _wsSinGuardar = M.filter(x => x.id !== 'cine-guardar').map(x => x.w);
-      R.mismoAncho = _wsSinGuardar.length > 0 &&
-        Math.max.apply(null, _wsSinGuardar) - Math.min.apply(null, _wsSinGuardar) <= 1 &&
-        (M.filter(x => x.id === 'cine-guardar')[0] || {}).w === 196;
+      /* ⚠️ ADAPTADO EN P13 (1i): LA EXCEPCION DE ANCHO SE FUE CON SU BOTON. cine-guardar era el
+         unico de la barra que no medi­a 118 px —196, la excepcion declarada en M5-h— y al
+         retirarlo la regla vuelve a ser la de MEDIR-3 sin excepciones: TODOS iguales. La
+         condicion queda MAS FUERTE que antes, porque ya no hay ninguno exento. */
+      const _ws = M.map(x => x.w);
+      R.mismoAncho = _ws.length > 0 &&
+        Math.max.apply(null, _ws) - Math.min.apply(null, _ws) <= 1 &&
+        M.filter(x => x.id === 'cine-guardar').length === 0;
       /* ⚠️ «LA MISMA FILA» SOLO SE PUEDE EXIGIR SI ENTRAN, y en la ventana del arnes —756 px—
          ocho botones de 118 px NO entran: envuelven, que es la conducta correcta y no un defecto.
          Asi que la condicion lleva su DENOMINADOR: una sola fila cuando el ancho alcanza, y
@@ -143781,10 +143821,12 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
          queda. cine-med-cap se retiro, y con el nodo ausente las dos condiciones de abajo
          salian en falso sin medir nada. */
       const gu = document.getElementById('cine-guardar'), cp = document.getElementById('cine-cap');
-      R.accionesGrises = !!gu && !!cp && !esAzul(getComputedStyle(gu).backgroundColor) &&
-                                          !esAzul(getComputedStyle(cp).backgroundColor);
-      R.accionesMismoAlto = !!gu && !!cp &&
-        Math.abs(Math.round(gu.getBoundingClientRect().height) - R.alto) <= 1 &&
+      /* ⚠️ ADAPTADO EN P13 (1i): cine-guardar ya no existe, asi que la accion que queda por
+         medir es cine-cap. Con el nodo ausente las dos condiciones salian en falso SIN medir
+         nada, que es peor que no medirlas: se exige ademas que el retirado no este. */
+      R.guardarSeFue = !gu;
+      R.accionesGrises = !gu && !!cp && !esAzul(getComputedStyle(cp).backgroundColor);
+      R.accionesMismoAlto = !gu && !!cp &&
         Math.abs(Math.round(cp.getBoundingClientRect().height) - R.alto) <= 1;
       /* CONTROL NEGATIVO: con el modo APAGADO no queda NINGUN azul. */
       document.getElementById('cine-medir').click();
@@ -143834,7 +143876,12 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
          ancho, misma fila, un solo azul y el contraste— se sigue midiendo igual.
          Que los dos que salieron no vivan en ninguna barra lo fija TC-892. */
       /* ⚠️ ADAPTADO EN MEDIR-5 (C1): «Capturar + medicion» se retiro y la barra quedo en SEIS. */
-      ['DENOMINADOR: la barra tiene sus seis botones (C1)', R.n === 6, R.n],
+      /* ⚠️ ADAPTADO EN P13: la barra queda en CUATRO. Salio «Guardar el cineloop» (1i, se
+         retiro) y salio «Cerrar vista» (1b, se mudo al ENCABEZADO de su vista, que es el unico
+         lugar que no cambia con el tamanio — la barra viaja a la columna en pantalla completa).
+         Todo lo que este caso mide de verdad —mismo alto, mismo ancho, misma fila, un solo azul y
+         el contraste— se sigue midiendo igual. */
+      ['DENOMINADOR: la barra tiene sus cuatro botones (P13 1b y 1i)', R.n === 4, R.n],
       ['todos del MISMO alto',                             R.mismoAlto === true, 'min=' + R.alto + ' max=' + R.altoMax],
       ['y del mismo ancho',                                R.mismoAncho === true, R.detalle],
       ['en la MISMA fila cuando el ancho alcanza',         R.mismaFila === true,
@@ -143845,7 +143892,8 @@ caso('TC-888', 'MEDIR-3 bloque B (ADAPTADO en MEDIR-4a: SIETE botones, no ocho):
       ['el ancho NO crece con la pantalla (fijo en px)',   R.noCreceConLaPantalla === true,
                                                            'acotado=' + R.anchoTrasAcotar],
       ['AZUL solo el modo prendido',                       R.soloElModo === true, R.azulesPrendido],
-      ['las dos acciones que eran azules quedan grises',   R.accionesGrises === true, R.accionesGrises],
+      ['P13 1i: el boton de guardar ya no esta en la barra', R.guardarSeFue === true, R.guardarSeFue],
+      ['la accion que era azul queda gris',                R.accionesGrises === true, R.accionesGrises],
       ['y con el mismo alto que las demas',                R.accionesMismoAlto === true, R.accionesMismoAlto],
       ['CONTROL: con el modo apagado NO hay ningun azul',  R.ningunoApagado === true, R.azulesApagado],
       ['los ocho contrastan 4,5:1 o mas',                  R.contrasteOk === true, R.contrastes],
@@ -144489,7 +144537,12 @@ caso('TC-892', 'MEDIR-4a bloque A2: UNA sola plantilla de barra para las dos vis
       const idxDe = el => el ? [].slice.call(el.parentElement.querySelectorAll('button')).indexOf(el) : -1;
       R.e_idxA = idxDe(cvA); R.e_idxB = idxDe(cvB);
       R.e_mismoLugar = R.e_idxA >= 0 && R.e_idxA === R.e_idxB;
-      R.e_losDosEnBarra = !!(cvA && cvA.closest('.cine-barra')) && !!(cvB && cvB.closest('.cine-barra'));
+      /* ⚠️ ADAPTADO EN P13 (1b): ya no viven en la barra sino en el ENCABEZADO de su vista, que
+         es el unico lugar que no se muda con el tamanio. Se exige que los DOS esten ahi y que
+         NINGUNO quede en una barra, o sea las dos mitades. */
+      R.e_losDosEnBarra = !!(cvA && cvA.closest('[id$="cine-encab"]')) &&
+                          !!(cvB && cvB.closest('[id$="cine-encab"]')) &&
+                          !(cvA && cvA.closest('.cine-barra')) && !(cvB && cvB.closest('.cine-barra'));
 
       /* ── (F) «+ Vista» Y «Cerrar»: FUERA DE TODA BARRA Y UNA SOLA VEZ ──
          Los ids pelados se conservan y las dos funciones siguen cableadas: es lo que la orden
@@ -144521,9 +144574,14 @@ caso('TC-892', 'MEDIR-4a bloque A2: UNA sola plantilla de barra para las dos vis
       ['sin excepciones',                                   !R.err, R.err],
       ['(A) DENOMINADOR: el visor abre en modo minimo',     R.a_minClase === true, R.a_minClase],
       ['(A) y ahi «Medir» SI se ve',                        R.a_minMedir === true, R.a_minMedir],
-      ['(A) «+ Vista» sigue escondido en modo minimo',      R.a_minAddB === false, R.a_minAddB],
-      ['(A) «Cerrar» tambien',                              R.a_minCerrar === false, R.a_minCerrar],
-      ['(A) y los dos fuera del orden de tabulacion',        R.a_minNoTab === true, R.a_minNoTab],
+      /* ⚠️ LAS TRES INVERTIDAS EN P13 (1a): «+ Vista» y «Cerrar» pasan a estar SIEMPRE arriba,
+         se este midiendo o no, que es la orden del medico — el visor recien abierto no ofrecia
+         ninguna forma de montar la segunda vista hasta tocar «Medir». Antes se exigia que
+         estuvieran escondidos y fuera del orden de tabulacion; hoy se exige lo contrario, asi que
+         el caso falla por los dos lados. Que no vivan en ninguna BARRA lo sigue midiendo (F). */
+      ['(A) P13 1a: «+ Vista» SE VE en modo minimo',         R.a_minAddB === true, R.a_minAddB],
+      ['(A) «Cerrar» tambien',                               R.a_minCerrar === true, R.a_minCerrar],
+      ['(A) y los dos QUEDAN en el orden de tabulacion',     R.a_minNoTab === false, R.a_minNoTab],
       ['(A) con la medicion encendida los dos reaparecen',   R.a_medAddB === true && R.a_medCerrar === true,
                                                              R.a_medAddB + '/' + R.a_medCerrar],
       ['(B) DENOMINADOR: las dos vistas montadas',          R.b_dosPaneles === 2 && R.b_hayB === true,
@@ -144533,11 +144591,20 @@ caso('TC-892', 'MEDIR-4a bloque A2: UNA sola plantilla de barra para las dos vis
       ['(C) DENOMINADOR: a 756 px el visor muestra UNA vista a la vez', R.c_unaSolaALaVez === true,
                                                              'A=' + R.c_panelAVisible + ' B=' + R.c_panelBVisible],
       ['(C) y los botones de la que se ve miden 44 px exactos', R.c_todos44 === true, R.c_altos],
-      ['(D) los dos encabezados SIN botones',                R.d_ningunBoton === true, R.d_botEncA + '/' + R.d_botEncB],
+      /* ⚠️ INVERTIDA EN P13 (1b): «✕ Cerrar vista» VUELVE al encabezado de su vista, porque es
+         el unico lugar que no cambia con el tamanio —la barra se muda a la columna en pantalla
+         completa—. La asimetria de 30 px por la que MEDIR-4 lo saco de ahi ya no existe: sale de
+         la plantilla UNICA, asi que los dos encabezados tienen EXACTAMENTE UNO y crecen igual.
+         Eso es lo que se exige ahora, y es mas fuerte que «ninguno»: un boton en uno solo pone el
+         caso en rojo igual. */
+      ['(D) P13 1b: los dos encabezados con UN boton, el mismo',
+                                                            R.d_botEncA === 1 && R.d_botEncB === 1,
+                                                            R.d_botEncA + '/' + R.d_botEncB],
       ['(E) «Cerrar vista» en las DOS vistas',               R.e_enA === true && R.e_enB === true, R.e_enA + '/' + R.e_enB],
       ['(E) con el mismo rotulo',                            R.e_mismoRot === true, R.e_rotA + ' vs ' + R.e_rotB],
       ['(E) en el mismo lugar de la barra',                  R.e_mismoLugar === true, R.e_idxA + '/' + R.e_idxB],
-      ['(E) y las dos DENTRO de la barra',                   R.e_losDosEnBarra === true, R.e_losDosEnBarra],
+      ['(E) P13 1b: y las dos en el ENCABEZADO, ninguna en una barra',
+                                                            R.e_losDosEnBarra === true, R.e_losDosEnBarra],
       ['(F) «+ Vista» ya no vive en ninguna barra',          R.f_addBEnBarra === false, R.f_addBEnBarra],
       ['(F) «Cerrar» tampoco',                               R.f_cerrarEnBarra === false, R.f_cerrarEnBarra],
       ['(F) y cada uno existe UNA sola vez',                 R.f_nAddB === 1 && R.f_nCerrar === 1, R.f_nAddB + '/' + R.f_nCerrar],
@@ -145207,7 +145274,7 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
       /* ⚠️ ADAPTADO EN MEDIR-5 (C1): la barra quedo en SEIS botones al retirarse «Capturar +
          medicion». Lo que este caso afirma sigue siendo lo mismo —que la barra de dos pasos del
          Simpson NO le cambia el numero de botones a la barra de la vista— con el numero de hoy. */
-      R.a3_barraSiete = !!(R.barraDespues && R.barraDespues.n === 6);
+      R.a3_barraCuatro = !!(R.barraDespues && R.barraDespues.n === 4);
 
       /* ── EL TRAZADO, CON EL GESTO REAL ── */
       const cv = document.getElementById('cine-med');
@@ -145329,7 +145396,9 @@ caso('TC-896', 'MEDIR-4b bloque A: la ventana del Simpson queda resuelta al ABRI
                                                                    R.feviMono + ' -> ' + R.feviTrasRehacer],
       ['(A3) los dos pasos y el «Listo» miden 44 px',              R.a3_todos44 === true, R.a3_altos + ' | ' + R.a3_altoListo],
       ['(A3) UN solo paso lleva el acento',                        R.a3_conAcento === 1, R.a3_conAcento],
-      ['(A3) la barra de la vista sigue con SEIS botones (C1)',    R.a3_barraSiete === true, R.barraDespues && R.barraDespues.n],
+      /* ⚠️ ADAPTADO EN P13: CUATRO. Ver la nota de TC-888. Lo que este bloque mide es que la
+         barra NO SE MUEVE al confirmar un contorno, y eso se sigue midiendo. */
+      ['(A3) la barra de la vista sigue con CUATRO botones (P13)',  R.a3_barraCuatro === true, R.barraDespues && R.barraDespues.n],
       ['(A3) y no cambio de alto ni de orden',                     R.a3_barraIntacta === true,
                                                                    (R.barraAntes && R.barraAntes.alto) + ' -> ' + (R.barraDespues && R.barraDespues.alto)],
       ['(A1) DENOMINADOR: la segunda ventana se pide con el par completo', R.sv_vista === 1, R.sv_vista],
@@ -160419,6 +160488,756 @@ caso('TC-1022', 'P12 (4.1): la flecha de la velocidad es correcta con imagen fre
     ] };
   })();
 `);
+
+caso('TC-1023', 'P13 (1a a 1i): el visor arranca con «+ Vista» y «Cerrar» arriba, un «Cerrar vista» y un boton de tamanio POR VISTA en el encabezado y la imagen, la letra sale de la POSICION, la tabla no salta de columna y la columna escondida se puede volver a mostrar', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    const ok = [];
+    try {
+      __t.limpiar(); imgVaciar();
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const mk = n => ({ nombre:n, cuadros:3, d:{ frags:[jpg,jpg,jpg], cols:1016, filas:708, msCuadro:40, regiones:[R2D] } });
+      const vis = el => { if (!el) return false; const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+        const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      const $ = id => document.getElementById(id);
+  
+      _cineAbrir([mk('P13-1023')]);
+      await esperar(() => !!_cineDatos, 80);
+      await new Promise(r => setTimeout(r, 220));
+  
+      /* ── (1a) el visor ARRANCA en modo minimo y los dos controles del modal SE VEN ── */
+      R.a_min = $('cine-ov').classList.contains('cine-min');
+      R.a_addB = vis($('cine-add-b'));
+      R.a_cerrar = vis($('cine-cerrar'));
+      /* ── (1a) y con UNA vista no hay «Cerrar vista»: ahi duplica a «Cerrar» ── */
+      R.a_cerrarVunaVista = vis($('cine-cerrar-v'));
+      /* ── (1i) el boton de guardar el cineloop no existe ── */
+      R.i_guardar = !!$('cine-guardar');
+      /* ── (1h) el interruptor de la columna NO se ofrece con la columna a la vista... ── */
+      R.h_panConColumna = vis($('cine-pan'));
+      /* ...y SI con la columna escondida, tambien en tamanio Normal */
+      cinePanelToggle();
+      await new Promise(r => setTimeout(r, 160));
+      R.h_sinpanel = $('cine-ov').classList.contains('cine-sinpanel');
+      R.h_panSinColumna = vis($('cine-pan'));
+      /* ── (1h) y salir de pantalla completa DEVUELVE la columna ── */
+      cineMaxToggle(); await new Promise(r => setTimeout(r, 200));
+      cineMaxToggle(); await new Promise(r => setTimeout(r, 200));
+      R.h_vuelveLaColumna = !$('cine-ov').classList.contains('cine-sinpanel');
+  
+      /* ── DOS vistas, montadas a mano: vistaBAbrir pide el estudio guardado (es el camino de
+         TC-199) y sin el la medicion saldria sobre dos vistas que nunca se abrieron ── */
+      const cont = $('cine-paneles');
+      const libre = (_vistaA && _vistaA.pfx === 'b-') ? { p:'', r:'A' } : { p:'b-', r:'B' };
+      const VB = _vNueva(libre.p, libre.r);
+      _vMontarPanel(cont, libre.p);
+      _vistaB = VB; _vCablear(VB);
+      _vCon(VB, () => { VB.datos = { loops:[mk('P13-1023-B')], i:0, cuadro:0, timer:null }; _cineCargarLoop(); });
+      _vAccionesSync(); _vToggleSync();
+      /* ⚠️ LA VENTANA DEL ARNES MIDE 756 px Y AHI LA APP MUESTRA UNA VISTA POR VEZ, asi que
+         sin esto el panel de la B esta en display:none y todo lo que se mida de el da 0x0 —
+         que se lee igual que «el boton no esta». Es el ayudante que usan TC-893 y TC-895. */
+      __t.anchoDesktop();
+      await new Promise(r => setTimeout(r, 260));
+      R.dos = !!_vistaB;
+  
+      /* ── (1b) UN «Cerrar vista» por vista, y en el ENCABEZADO de cada una ── */
+      const cvA = $((_vistaA.pfx || '') + 'cine-cerrar-v');
+      const cvB = $((_vistaB.pfx || '') + 'cine-cerrar-v');
+      /* No por geometria: a este ancho el panel de la vista escondida mide 0x0 y eso no dice
+         nada del boton. Lo que la condicion afirma es que CADA vista tiene el suyo y que la
+         regla de «una sola vista» no se los esconde. La geometria la mide la sonda de dos
+         motores. */
+      R.b_losDos = !!cvA && !!cvB && getComputedStyle(cvA).display !== 'none' &&
+                   getComputedStyle(cvB).display !== 'none';
+      R.b_enEncab = !!(cvA && cvA.closest('[id$="cine-encab"]')) && !!(cvB && cvB.closest('[id$="cine-encab"]'));
+      R.b_ningunoEnBarra = !(cvA && cvA.closest('.cine-barra')) && !(cvB && cvB.closest('.cine-barra'));
+      /* ── (1d) un boton de tamanio POR VISTA, los dos a la vista y en su racimo ── */
+      const mxA = $((_vistaA.pfx || '') + 'cine-maxi'), mxB = $((_vistaB.pfx || '') + 'cine-maxi');
+      R.d_dosBotones = document.querySelectorAll('#cine-ov [id$="cine-maxi"]').length === 2;
+      R.d_losDosSeVen = !!mxA && !!mxB && getComputedStyle(mxA).display !== 'none' &&
+                        getComputedStyle(mxB).display !== 'none';
+      R.d_enSuRacimo = !!(mxA && mxA.closest('[id$="cine-imgtr"]')) && !!(mxB && mxB.closest('[id$="cine-imgtr"]'));
+      /* ── (1c) la letra sale de la POSICION: la de la izquierda es A ── */
+      const rotDe = pfx => { const b = $((pfx || '') + 'cine-rot'); return b ? (b.textContent || '').trim() : ''; };
+      const paneles = [].slice.call(cont.querySelectorAll('[id$="cine-panel"]'));
+      const izq = paneles[0] ? paneles[0].id.replace('cine-panel', '') : null;
+      R.c_izquierdaEsA = rotDe(izq) === 'Vista A';
+      R.c_derechaEsB = rotDe(paneles[1] ? paneles[1].id.replace('cine-panel','') : null) === 'Vista B';
+  
+      /* ── (1g) la tabla NO salta de columna al tocar Medir en la otra vista ── */
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); d2Modo('vd'); _d2Poner('vd.tapse', 19); _d2Render(); });
+      await new Promise(r => setTimeout(r, 200));
+      const padreDe = () => { const n = $('d2-cajon'); return n && n.parentElement ? n.parentElement.id : null; };
+      R.g_padreTrasMedirEnA = padreDe();
+      _vCon(_vistaB, () => { if (!_medOn) medToggle(); medHerramienta('dist'); });
+      await new Promise(r => setTimeout(r, 260));
+      R.g_padreTrasMedirEnB = padreDe();
+      R.g_noSalto = R.g_padreTrasMedirEnA === R.g_padreTrasMedirEnB;
+      /* ── (1g) y con VALORES no se esconde al pasar a Doppler ── */
+      _vCon(_vistaA, () => { medHerramienta('vel'); });
+      _vCon(_vistaB, () => { medHerramienta('vel'); });
+      await new Promise(r => setTimeout(r, 260));
+      R.g_sigueConValores = vis($('d2-cajon'));
+      R.g_habiaValor = _d2Valor('vd.tapse') === 19;
+  
+      /* ── (1c) cerrando la de la IZQUIERDA, la que queda pasa a ser A ── */
+      const Vizq = (izq === (_vistaA.pfx || '')) ? _vistaA : _vistaB;
+      const pfxQueQueda = (Vizq === _vistaA) ? (_vistaB.pfx || '') : (_vistaA.pfx || '');
+      vistaCerrarUna(Vizq);
+      await new Promise(r => setTimeout(r, 300));
+      R.c_trasCerrarLaIzquierda = rotDe(pfxQueQueda);
+      R.c_quedaUna = !_vistaB;
+      /* ── (1d) y la que sobrevive conserva SU boton de tamanio ── */
+      R.d_sobrevive = (function () { const b = $(pfxQueQueda + 'cine-maxi');
+        return !!b && getComputedStyle(b).display !== 'none'; })();
+    } catch (e) { R.err = String((e && e.message) || e); }
+    /* ⚠️ SE RESTITUYE EL VISOR A SU ESTADO DE FABRICA, Y NO ES OPCIONAL: este caso cierra la
+       vista de la IZQUIERDA, que es la del prefijo vacio, asi que al terminar el unico panel
+       montado es el de prefijo b- y los ids pelados -cine-cv, cine-med, cine-fnext- NO EXISTEN.
+       Los casos que siguen en el lote los buscan por su nombre pelado y revientan con «null»: lo
+       pago este mismo lote. Es la misma leccion que TC-955 dejo escrita para el panel de
+       Evidencia. */
+    try {
+      /* ⚠️ Y LOS TRES NODOS DE LA COLUMNA SE RESCATAN ANTES DE QUITAR LOS PANELES: desde el
+         1g viven DENTRO del panel de su vista, asi que un removeChild se los lleva puestos — y
+         el overlay se construye UNA sola vez, o sea que no vuelven nunca. Medido: el cajon 2D
+         desaparecia del documento y TC-1027 media sobre una tabla que no existia. */
+      const _modalRes = document.getElementById('cine-modal');
+      if (_modalRes) ['d2-cajon', 'cine-dop-slot', 'cine-calc'].forEach(id => {
+        const n = document.getElementById(id); if (n) _modalRes.appendChild(n); });
+      const cc = document.getElementById('cine-paneles');
+      if (cc && !document.getElementById('cine-panel')) {
+        [].slice.call(cc.querySelectorAll('[id$="cine-panel"]')).forEach(pp => { if (pp.parentNode) pp.parentNode.removeChild(pp); });
+        _vistaA = _vNueva('', 'A'); _vistaB = null; _V = _vistaA;
+        _vMontarPanel(cc, ''); _vCablear(_vistaA);
+        _vAccionesSync(); _vToggleSync();
+      }
+    } catch (e) {}
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: el visor abre en modo minimo',           R.a_min === true, R.a_min],
+      ['(1a) «+ Vista» SE VE sin estar midiendo',             R.a_addB === true, R.a_addB],
+      ['(1a) y «Cerrar» tambien',                             R.a_cerrar === true, R.a_cerrar],
+      ['(1a) con UNA vista NO hay «Cerrar vista» duplicado',   R.a_cerrarVunaVista === false, R.a_cerrarVunaVista],
+      ['(1i) el boton de guardar el cineloop NO existe',       R.i_guardar === false, R.i_guardar],
+      ['(1h) con la columna a la vista el interruptor no se ofrece', R.h_panConColumna === false, R.h_panConColumna],
+      ['(1h) DENOMINADOR: la columna queda escondida',         R.h_sinpanel === true, R.h_sinpanel],
+      ['(1h) y ahi el interruptor SE VE, tambien en Normal',   R.h_panSinColumna === true, R.h_panSinColumna],
+      ['(1h) salir de pantalla completa devuelve la columna',  R.h_vuelveLaColumna === true, R.h_vuelveLaColumna],
+      ['DENOMINADOR: las dos vistas montadas',                R.dos === true, R.dos],
+      ['(1b) un «Cerrar vista» por vista, los dos a la vista', R.b_losDos === true, R.b_losDos],
+      ['(1b) los dos en el ENCABEZADO de su vista',            R.b_enEncab === true, R.b_enEncab],
+      ['(1b) y ninguno en una barra, que se muda con el tamanio', R.b_ningunoEnBarra === true, R.b_ningunoEnBarra],
+      ['(1d) DOS botones de tamanio, uno por vista',            R.d_dosBotones === true, R.d_dosBotones],
+      ['(1d) los dos a la vista',                               R.d_losDosSeVen === true, R.d_losDosSeVen],
+      ['(1d) cada uno en el racimo de SU imagen',               R.d_enSuRacimo === true, R.d_enSuRacimo],
+      ['(1c) la vista de la IZQUIERDA es la A',                 R.c_izquierdaEsA === true, R.c_izquierdaEsA],
+      ['(1c) y la de la derecha la B',                          R.c_derechaEsB === true, R.c_derechaEsB],
+      ['(1g) DENOMINADOR: la tabla tiene un valor medido',      R.g_habiaValor === true, _d2Valor('vd.tapse')],
+      ['(1g) la tabla NO salta de columna al medir en la otra', R.g_noSalto === true,
+                                                               R.g_padreTrasMedirEnA + ' -> ' + R.g_padreTrasMedirEnB],
+      ['(1g) y con valores no se esconde al pasar a Doppler',   R.g_sigueConValores === true, R.g_sigueConValores],
+      ['(1c) cerrando la IZQUIERDA, la que queda pasa a ser A', R.c_trasCerrarLaIzquierda === 'Vista A',
+                                                               R.c_trasCerrarLaIzquierda],
+      ['(1c) DENOMINADOR: quedo una sola vista',                R.c_quedaUna === true, R.c_quedaUna],
+      ['(1d) y conserva SU boton de tamanio',                   R.d_sobrevive === true, R.d_sobrevive]
+    ] };
+  })();
+`);
+
+caso('TC-1024', 'P13 (1j, 1k, 1l y 1m): abrir otro video desde la biblioteca deja la tabla vacia y UNA sola vista pero NO borra la sesion de Simpson, reabrir el MISMO no pierde nada, el observador del cuadro no reconstruye nada mientras el cineloop corre, las flechas repiten a la cadencia del archivo y los contornos confirmados del Simpson SE VEN', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    try {
+      __t.limpiar(); imgVaciar();
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const mk = (n, c) => { const fr = []; for (let i = 0; i < (c || 3); i++) fr.push(jpg);
+        return { nombre:n, cuadros:fr.length, d:{ frags:fr, cols:1016, filas:708, msCuadro:40, regiones:[R2D] } }; };
+      const esp = ms => new Promise(r => setTimeout(r, ms));
+  
+      /* ── (1j) la tabla se vacia al abrir OTRO video por la puerta de la BIBLIOTECA ── */
+      const L1 = mk('P13-1024-uno');
+      _cineAbrir([L1], 'bib');
+      await esperar(() => !!_cineDatos, 80);
+      await esp(200);
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); d2Modo('vi'); _d2Poner('vi.sivd', 9.1); _d2Render(); });
+      await esp(200);
+      R.j_sembrado = _d2Valor('vi.sivd');
+      /* reabrir el MISMO no pierde nada: la ✕ del visor promete que lo medido se conserva */
+      cineCerrar(); await esp(160);
+      _cineAbrir([L1], 'bib'); await esp(260);
+      R.j_mismoVideo = _d2Valor('vi.sivd');
+      /* otro video por la biblioteca: la tabla queda vacia */
+      _cineAbrir([mk('P13-1024-dos', 4)], 'bib'); await esp(300);
+      R.j_otroVideo = _d2Valor('vi.sivd');
+      /* CONTROL: por la puerta de la IMPORTACION el cajon sigue acumulando, que es de lo que
+         depende la ecuacion de continuidad entre dos planos del mismo lote */
+      _vCon(_vistaA, () => { d2Modo('vi'); _d2Poner('vi.sivd', 9.1); _d2Render(); });
+      await esp(160);
+      _cineAbrir([mk('P13-1024-tres', 5)]); await esp(300);
+      R.j_CONTROL_importacion = _d2Valor('vi.sivd');
+      /* ── (1j) y UNA sola vista, sin fantasmas ── */
+      const cont = document.getElementById('cine-paneles');
+      const VB = _vNueva('b-', 'B'); _vMontarPanel(cont, 'b-');
+      _vistaB = VB; _vCablear(VB);
+      _vCon(VB, () => { VB.datos = { loops:[mk('P13-1024-B')], i:0, cuadro:0, timer:null }; _cineCargarLoop(); });
+      _vAccionesSync();
+      await esp(200);
+      R.j_dosAntes = cont.querySelectorAll('[id$="cine-panel"]').length;
+      _cineAbrir([mk('P13-1024-cuatro', 3)], 'bib'); await esp(320);
+      R.j_panelesDespues = cont.querySelectorAll('[id$="cine-panel"]').length;
+      R.j_sinVistaB = !_vistaB;
+  
+      /* ── (1j) LAS SESIONES NO SE SUELTAN: el biplano exige dos imagenes ── */
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); medHerramienta('simpson'); });
+      await esp(200);
+      R.j_haySesion = !!_vistaA.simp;
+      _cineAbrir([mk('P13-1024-cinco', 3)], 'bib'); await esp(300);
+      R.j_sesionSobrevive = !!_vistaA.simp;
+  
+      /* ── (1k) el observador del cuadro no reconstruye nada mientras el cineloop CORRE ── */
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); d2Modo('vi'); _d2Poner('vi.ddvi', 52); _d2Render(); });
+      await esp(200);
+      const modal = document.getElementById('cine-modal');
+      let mut = 0;
+      const obs = new MutationObserver(recs => { recs.forEach(r => {
+        let p = r.target, dentro = false;
+        for (let k = 0; k < 8 && p; k++) { const id = p.id || '';
+          if (id.indexOf('cine-recorte') >= 0 || id.indexOf('cine-num') >= 0 || id.indexOf('cine-slider') >= 0) { dentro = true; break; }
+          p = p.parentElement; }
+        if (!dentro) mut++; }); });
+      obs.observe(modal, { childList:true, characterData:true, subtree:true, attributes:true });
+      _vCon(_vistaA, cineToggle);
+      await esp(900);
+      R.k_cuadroAvanzo = (_vistaA.datos.cuadro | 0) >= 0;
+      _vCon(_vistaA, _cineDetener);
+      obs.disconnect();
+      await esp(160);
+      R.k_mutaciones = mut;
+      /* y al parar, la cuenta pendiente se hace UNA vez */
+      R.k_pendienteCerrado = !_vistaA.medCuadroPend;
+  
+      /* ── (1l) la repeticion existe y lee la cadencia DEL ARCHIVO ── */
+      R.l_hayFn = typeof _vRepetirCuadro === 'function';
+      R.l_marcada = !!(document.getElementById('cine-fnext') || {})._p13rep;
+      R.l_fps = _cineFps(_vistaA.datos.loops[0].d).ms;
+  
+      /* ── (1m) los contornos confirmados del Simpson SE VEN ── */
+      const cv = document.getElementById('cine-med');
+      const tinta = () => { try { const g = cv.getContext('2d');
+        const d = g.getImageData(0, 0, cv.width, cv.height).data;
+        let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 20) n++; return n; } catch (e) { return -1; } };
+      const ac = (x, y) => { const r = cv.getBoundingClientRect();
+        return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
+      const tri = (cx, yb, W, H) => { const p = [], paso = 12, x0 = cx - W/2, x1 = cx + W/2, ya = yb - H;
+        const n1 = Math.ceil(Math.hypot(W/2, H) / paso);
+        for (let i = 0; i <= n1; i++) p.push({ x: x0 + (cx-x0)*i/n1, y: yb + (ya-yb)*i/n1 });
+        for (let i = 1; i <= n1; i++) p.push({ x: cx + (x1-cx)*i/n1, y: ya + (yb-ya)*i/n1 });
+        return p.map(q => ({ x: Math.round(q.x), y: Math.round(q.y) })); };
+      const trazar = async pts => {
+        cv.dispatchEvent(new MouseEvent('mousedown', Object.assign({ bubbles:true }, ac(pts[0].x, pts[0].y))));
+        for (let i = 1; i < pts.length; i++)
+          cv.dispatchEvent(new MouseEvent('mousemove', Object.assign({ bubbles:true }, ac(pts[i].x, pts[i].y))));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        const z = pts[pts.length-1];
+        cv.dispatchEvent(new MouseEvent('click', Object.assign({ bubbles:true }, ac(z.x, z.y))));
+        await esp(140);
+      };
+      _vCon(_vistaA, () => { medHerramienta('simpson'); });
+      await esp(160);
+      await trazar(tri(300, 450, 200, 300));
+      R.m_trazando = tinta();
+      _vCon(_vistaA, () => { medSimpsonConfirmar(); });
+      await esp(200);
+      /* CONTROL de P11: confirmada la diastole, la fase pasa a sistole y NO se dibuja nada */
+      R.m_trasConfirmarD = tinta();
+      R.m_fase = _vistaA.simp.fase;
+      await trazar(tri(300, 450, 120, 300));
+      _vCon(_vistaA, () => { medSimpsonConfirmar(); });
+      await esp(240);
+      R.m_trasListo = tinta();
+      R.m_fevi = _vistaA.simp.res ? _vistaA.simp.res.fevi : null;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['(1j) DENOMINADOR: la tabla tenia 9,1',                 R.j_sembrado === 9.1, R.j_sembrado],
+      ['(1j) reabrir el MISMO video no pierde lo medido',       R.j_mismoVideo === 9.1, R.j_mismoVideo],
+      ['(1j) abrir OTRO desde la biblioteca deja la tabla vacia', R.j_otroVideo == null, R.j_otroVideo],
+      ['(1j) CONTROL: la importacion sigue acumulando',         R.j_CONTROL_importacion === 9.1, R.j_CONTROL_importacion],
+      ['(1j) DENOMINADOR: habia dos paneles montados',          R.j_dosAntes === 2, R.j_dosAntes],
+      ['(1j) y abrir otro video deja UNA sola vista',            R.j_panelesDespues === 1 && R.j_sinVistaB === true,
+                                                                R.j_panelesDespues + '/' + R.j_sinVistaB],
+      ['(1j) DENOMINADOR: habia sesion de Simpson',             R.j_haySesion === true, R.j_haySesion],
+      ['(1j) y la sesion SOBREVIVE: el biplano exige dos imagenes', R.j_sesionSobrevive === true, R.j_sesionSobrevive],
+      ['(1k) DENOMINADOR: el cineloop corrio',                  R.k_cuadroAvanzo === true, R.k_cuadroAvanzo],
+      ['(1k) y no reconstruyo nada debajo de los videos',        R.k_mutaciones <= 8, R.k_mutaciones],
+      ['(1k) la cuenta pendiente se cierra al parar',            R.k_pendienteCerrado === true, R.k_pendienteCerrado],
+      ['(1l) la repeticion de cuadro existe y esta cableada',    R.l_hayFn === true && R.l_marcada === true,
+                                                                R.l_hayFn + '/' + R.l_marcada],
+      ['(1l) y la cadencia sale del archivo',                    R.l_fps === 40, R.l_fps],
+      ['(1m) DENOMINADOR: el contorno que se traza se dibuja',   R.m_trazando > 500, R.m_trazando],
+      ['(1m) CONTROL P11: confirmada la diastole NO se dibuja la contraria', R.m_trasConfirmarD === 0,
+                                                                R.m_trasConfirmarD + ' fase=' + R.m_fase],
+      ['(1m) y con el par completo los contornos SE VEN',        R.m_trasListo > 500, R.m_trasListo],
+      ['(1m) sin mover el calculo: la FEVI sale',                R.m_fevi != null && R.m_fevi > 0, R.m_fevi]
+    ] };
+  })();
+`);
+
+caso('TC-1025', 'P13 (TAREA 2): la biblioteca ordena sin mezclar —las imagenes fijas y los cineloops en grupos propios, los cineloops al final— y las fijas van en miniatura chica', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    try {
+      __t.limpiar(); imgVaciar();
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      const esp = ms => new Promise(r => setTimeout(r, ms));
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const mk = (n, c) => { const fr = []; for (let i = 0; i < (c || 2); i++) fr.push(jpg);
+        return { nombre:n, cuadros:fr.length, d:{ frags:fr, cols:1016, filas:708, msCuadro:40, regiones:[R2D] } }; };
+  
+      /* El estudio guardado: la tira lista por uuid, y sin uuid no dibuja nada de disco — o sea
+         que la medicion saldria sobre una tira vacia. */
+      __t.set('nombre', 'PRUEBA P13');
+      __t.set('documento', '1023456');
+      const gu = await __t.guardar();
+      R.guardado = !!(gu && gu.ok);
+      R.uuid = !!_imgUuidActual;
+  
+      /* Un cineloop en la cola —se dibuja como cineloop sin guardar— y una fija en un slot. */
+      const L = mk('P13-1025-cine', 3);
+      _cineAbrir([L]);
+      await esperar(() => !!_cineDatos, 80);
+      await esp(200);
+      _cineEncolar(L);
+      await esp(200);
+      if (typeof cineStripRender === 'function') await cineStripRender();
+      await esp(500);
+  
+      const strip = document.getElementById('cine-strip');
+      R.hayTira = !!strip;
+      const rotulos = [];
+      if (strip) [].slice.call(strip.children).forEach(ch => {
+        const t = (ch.textContent || '').trim();
+        if (t === 'Imágenes fijas' || t === 'Cineloops') rotulos.push(t);
+      });
+      R.rotulos = rotulos.join('|');
+      R.diceCineloops = rotulos.indexOf('Cineloops') >= 0;
+      /* Los cineloops van AL FINAL: si los dos grupos existen, «Cineloops» va despues. */
+      R.cinesAlFinal = (rotulos.length < 2) || (rotulos.indexOf('Cineloops') > rotulos.indexOf('Imágenes fijas'));
+      R.fichas = strip ? strip.querySelectorAll('[data-strip-i],[data-cine-id]').length : 0;
+  
+      /* (2b) la miniatura chica: la grilla se llena sola y la celda no pasa de 104 px */
+      showTab('imagenes');
+      await esp(300);
+      /* ⚠️ DENOMINADOR: sin una imagen en la grilla no hay ningun <img> que medir, y la
+         condicion del tamanio daria vacio — que se lee igual que «la miniatura es enorme». Se
+         siembra una de verdad con un canvas, que es sincronico. */
+      try {
+        const cnv = document.createElement('canvas'); cnv.width = 8; cnv.height = 6;
+        const gg = cnv.getContext('2d'); gg.fillStyle = '#345678'; gg.fillRect(0, 0, 8, 6);
+        imgSlots[0] = { dataURL: cnv.toDataURL('image/jpeg', 0.9) };
+        imgRender();
+      } catch (e) {}
+      await esp(260);
+      const g = document.getElementById('img-grid');
+      R.hayGrilla = !!g;
+      const cs = g ? getComputedStyle(g) : null;
+      R.plantilla = cs ? cs.gridTemplateColumns : '';
+      R.cols = cs ? cs.gridTemplateColumns.split(' ').filter(x => x).length : 0;
+      R.celdaMinH = (function () { const c = g ? g.querySelector('div[data-idx]') : null;
+        return c ? getComputedStyle(c).minHeight : ''; })();
+      R.imgMaxH = (function () { const c = g ? g.querySelector('div[data-idx] img') : null;
+        return c ? getComputedStyle(c).maxHeight : ''; })();
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                     !R.err, R.err],
+      ['DENOMINADOR: el estudio se guardo y tiene uuid',      R.guardado === true && R.uuid === true,
+                                                              R.guardado + '/' + R.uuid],
+      ['DENOMINADOR: la tira dibuja al menos una ficha',      R.fichas >= 1, R.fichas],
+      ['la tira declara el grupo «Cineloops»',                R.diceCineloops === true, R.rotulos],
+      ['y los cineloops van DESPUES de las imagenes fijas',   R.cinesAlFinal === true, R.rotulos],
+      ['(2b) la grilla de la biblioteca se llena sola',        /auto-fill|repeat|px/.test(R.plantilla) && R.cols >= 2,
+                                                              R.cols + ' · ' + String(R.plantilla).slice(0, 60)],
+      ['(2b) la celda no pasa de 104 px de alto minimo',       R.celdaMinH === '104px', R.celdaMinH],
+      ['(2b) y la miniatura no pasa de 120 px',                R.imgMaxH === '120px', R.imgMaxH]
+    ] };
+  })();
+`);
+
+caso('TC-1026', 'P13 (TAREA 3): la calibracion MANUAL de velocidad se conserva con el estudio y queda la ultima, sin un solo dato del paciente en disco; y si falta la escala, Velocidad y VTI entran SOLOS a calibrar —no sobre un modo M ni sobre una 2D—', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    try {
+      __t.limpiar(); imgVaciar();
+      try { localStorage.removeItem('ett_med_calvel'); } catch (e) {}
+      const esp = ms => new Promise(r => setTimeout(r, ms));
+      const jpg = new Uint8Array([255,216,255,217]);
+      const RDOP = { ux:4, uy:7, dx:0.004, dy:-0.9425, x0:0, y0:200, x1:600, y1:700,
+                     rx0:0, ry0:400, rvx:0, rvy:0, tipo:3 };
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const MM  = { ux:4, uy:3, dx:0.004, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:2 };
+      const mk = (n, regs) => ({ nombre:n, cuadros:2, d:{ frags:[jpg,jpg], cols:1016, filas:708,
+        msCuadro:40, regiones:regs } });
+  
+      /* ── el VTI con la escala DEL ARCHIVO: ninguna formula se movio ── */
+      _cineAbrir([mk('P13-1026-dop', [RDOP])]);
+      await esperar(() => !!_cineDatos, 80);
+      await esp(200);
+      const r0 = _vistaA.datos.loops[0].d.regiones[0];
+      R.v_base = _dcmImgBaseY(r0);
+      const pts = [];
+      for (let i = 0; i <= 40; i++) pts.push({ x: 100 + i * 8, y: R.v_base - (i <= 20 ? i * 5 : (40 - i) * 5) });
+      const v = _vtiDe(pts);
+      R.v_ok = !!(v && v.ok);
+      R.v_cm = v && v.cm != null ? Number(v.cm.toFixed(6)) : null;
+      R.v_pico = v && v.picoCms != null ? Number(v.picoCms.toFixed(6)) : null;
+      R.v_grad = v && v.gradMax != null ? Number(v.gradMax.toFixed(6)) : null;
+  
+      /* ── (3.3) sin region, Velocidad y VTI entran SOLOS a calibrar ── */
+      _cineAbrir([mk('P13-1026-sinreg', [])]);
+      await esp(220);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { medHerramienta('vel'); });
+      R.a_vel = !!_vistaA.medCalibrandoVel;
+      _vCon(_vistaA, () => { medHerramienta('dist'); medHerramienta('vti'); });
+      R.a_vti = !!_vistaA.medCalibrandoVel;
+      /* CONTROL POSITIVO: con la escala del archivo NO entra */
+      _cineAbrir([mk('P13-1026-dop2', [RDOP])]);
+      await esp(260);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { medHerramienta('vel'); });
+      R.a_conEscala = !!_vistaA.medCalibrandoVel;
+      /* CONTROL: sobre un modo M no se calibra —el eje Y es DISTANCIA— y la herramienta cae */
+      _cineAbrir([mk('P13-1026-modoM', [MM])]);
+      await esp(260);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { medHerramienta('vel'); });
+      R.a_modoM = !!_vistaA.medCalibrandoVel;
+      R.a_herrModoM = _vistaA.medHerr;
+      /* CONTROL: sobre una 2D tampoco */
+      _cineAbrir([mk('P13-1026-2d', [R2D])]);
+      await esp(260);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { medHerramienta('vel'); });
+      R.a_2d = !!_vistaA.medCalibrandoVel;
+  
+      /* ── (3.2) la escala manual se conserva, y queda la ULTIMA ── */
+      const L = mk('P13-1026-manual', []);
+      _cineAbrir([L]);
+      await esp(260);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { _vistaA.medCalibVel = _medCalVelDos(500, 0, 400, 100); _medCalVelPersistir(_vistaA); });
+      R.p_fijada = _vistaA.medCalibVel ? _vistaA.medCalibVel.cmsPorPx : null;
+      cineCerrar(); await esp(200);
+      _cineAbrir([L]); await esp(400);
+      R.p_trasReabrir = _vistaA.medCalibVel ? _vistaA.medCalibVel.cmsPorPx : null;
+      _vCon(_vistaA, () => { _vistaA.medCalibVel = _medCalVelDos(500, 0, 300, 100); _medCalVelPersistir(_vistaA); });
+      R.p_segunda = _vistaA.medCalibVel.cmsPorPx;
+      cineCerrar(); await esp(200);
+      _cineAbrir([L]); await esp(400);
+      R.p_ultima = _vistaA.medCalibVel ? _vistaA.medCalibVel.cmsPorPx : null;
+      /* CONTROL NEGATIVO: otra imagen NO hereda la escala */
+      _cineAbrir([mk('P13-1026-otra', [])]); await esp(400);
+      R.p_otra = _vistaA.medCalibVel ? _vistaA.medCalibVel.cmsPorPx : null;
+      /* y en disco no queda un solo dato del paciente: la clave va hasheada */
+      const guardado = localStorage.getItem('ett_med_calvel') || '';
+      R.p_sinNombre = guardado.indexOf('P13-1026') < 0 && guardado.indexOf('PRUEBA') < 0;
+      R.p_hayAlgo = guardado.length > 10;
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: la region declara su cero en la fila 600', R.v_base === 600, R.v_base],
+      ['el VTI del archivo da 60,32 cm, exacto',                R.v_ok === true && R.v_cm === 60.32, R.v_cm],
+      ['su pico, 94,25 cm/s',                                   R.v_pico === 94.25, R.v_pico],
+      ['y su gradiente maximo, 3,553225 mmHg',                  R.v_grad === 3.553225, R.v_grad],
+      ['(3.3) sin escala, Velocidad entra SOLA a calibrar',     R.a_vel === true, R.a_vel],
+      ['(3.3) y VTI tambien',                                   R.a_vti === true, R.a_vti],
+      ['(3.3) CONTROL: con la escala del archivo NO entra',     R.a_conEscala === false, R.a_conEscala],
+      ['(3.3) CONTROL: sobre un modo M no se calibra',          R.a_modoM === false, R.a_modoM],
+      ['(3.3) y ahi la herramienta cae a Distancia',            R.a_herrModoM === 'dist', R.a_herrModoM],
+      ['(3.3) CONTROL: sobre una imagen 2D tampoco',            R.a_2d === false, R.a_2d],
+      ['(3.2) DENOMINADOR: la escala manual queda fijada',      R.p_fijada === 1, R.p_fijada],
+      ['(3.2) y sobrevive a cerrar y reabrir el visor',          R.p_trasReabrir === 1, R.p_trasReabrir],
+      ['(3.2) recalibrada, queda la ULTIMA',                     R.p_segunda === 0.5 && R.p_ultima === 0.5,
+                                                                R.p_segunda + ' -> ' + R.p_ultima],
+      ['(3.2) CONTROL: otra imagen NO la hereda',                R.p_otra == null, R.p_otra],
+      ['(3.2) DENOMINADOR: algo quedo guardado',                 R.p_hayAlgo === true, R.p_hayAlgo],
+      ['(3.2) y en disco NO hay un solo dato del paciente',      R.p_sinNombre === true, R.p_sinNombre]
+    ] };
+  })();
+`);
+
+caso('TC-1027', 'P13 (TAREA 4): el circulo rojo/verde es el UNICO pasaje al informe —la fila nace con lo que la app tiene, medir no escribe nada, sustituir PREGUNTA, el verde borra el campo y un cambio a mano lo pone rojo—, y una fila sin contraparte no lleva circulo', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    const confirmReal = window.confirm;
+    try {
+      __t.limpiar(); imgVaciar();
+      /* ⚠️ SE DESARMA EL PUENTE DE LOS CARTELES PROPIOS, que el runner arma por omision desde
+         P12: ese puente le pasa el texto de preguntaProp al confirm NATIVO que el caso tenga
+         sustituido, y este caso mide el CARTEL —que exista, que nombre los dos numeros y que
+         no escriba el campo mientras pregunta—, asi que necesita el de verdad. Es lo que hacen
+         los seis casos que manejan estos carteles por gesto. Ver propPuenteOn. */
+      __t.propPuenteOff();
+      const esp = ms => new Promise(r => setTimeout(r, ms));
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const mk = n => ({ nombre:n, cuadros:2, d:{ frags:[jpg,jpg], cols:1016, filas:708, msCuadro:40, regiones:[R2D] } });
+      const campo = () => { const e = document.getElementById('diam_tsvi'); return e ? String(e.value) : 'NO EXISTE'; };
+      /* ⚠️ SE RECORRE EN VEZ DE ARMAR UN SELECTOR DE ATRIBUTO: la clave lleva un PUNTO
+         (vi.tsvi) y un selector concatenado con un valor que no se controla es justo lo que
+         esta casa no hace. */
+      const circ = c => [].slice.call(document.querySelectorAll('[data-med-circ]'))
+        .filter(b => b.getAttribute('data-med-circ') === c)[0] || null;
+      const estado = c => { const b = circ(c); return b ? b.getAttribute('aria-pressed') : 'sin circulo'; };
+      /* ⚠️ SIN EXPRESION REGULAR: la barra invertida NO sobrevive al template literal del
+         cuerpo de un caso, asi que el patron de espacios llega como la letra «s» y REEMPLAZA
+         LAS ESES — el diagnostico de esta tanda imprimio «Seno  de Val alva». */
+      const norm = t => { let o = '', ultEsp = false;
+        for (let k = 0; k < t.length; k++) { const ch = t.charCodeAt(k);
+          if (ch === 32 || ch === 9 || ch === 10 || ch === 13 || ch === 160) { if (!ultEsp) { o += ' '; ultEsp = true; } }
+          else { o += t[k]; ultEsp = false; } }
+        return o.trim(); };
+      const filaTxt = c => { const b = circ(c); const tr = b ? b.closest('tr') : null;
+        return tr ? norm(tr.textContent || '') : ''; };
+      const censo = () => [].slice.call(document.querySelectorAll('input[id], select[id], textarea[id]'))
+        .map(e => e.id + '=' + String(e.value)).join('|');
+  
+      /* (g) el diametro se carga A MANO en la app, ANTES de abrir el visor */
+      __t.set('diam_tsvi', '20');
+      await esp(240);
+      R.appAntes = campo();
+  
+      _cineAbrir([mk('P13-1027')]);
+      await esperar(() => !!_cineDatos, 80);
+      await esp(240);
+      if (!_medOn) medToggle();
+      _vCon(_vistaA, () => { d2Modo('ao'); });
+      await esp(240);
+  
+      /* (a) la fila nace con lo que la app tiene, en VERDE */
+    R.a_valorEnLaFila = _d2Valor('vi.tsvi');
+      R.a_circulo = estado('vi.tsvi');
+  
+      /* (e) se mide 22 y la app NO se toca: el censo del formulario queda IDENTICO */
+      const censoAntes = censo();
+      _vCon(_vistaA, () => { d2Armar('vi.tsvi'); _d2Capturar(22); });
+      await esp(300);
+      R.e_censoIgual = censo() === censoAntes;
+      R.e_app = campo();
+  
+      /* (b) la fila muestra el nuevo en ROJO con el viejo en chico */
+      R.b_valor = _d2Valor('vi.tsvi');
+      R.b_circulo = estado('vi.tsvi');
+      R.b_diceEnLaApp = filaTxt('vi.tsvi').indexOf('en la app: 20') >= 0;
+  
+      /* (b) tocar el circulo PREGUNTA, y la app sigue vieja mientras pregunta */
+      const p = medCircTocar('vi.tsvi');
+      await esp(320);
+      const cartel = [].slice.call(document.querySelectorAll('div')).filter(d => {
+        try { const cs = getComputedStyle(d);
+          return cs.position === 'fixed' && cs.display !== 'none' && (d.textContent || '').indexOf('ustituir') >= 0;
+        } catch (x) { return false; } })[0] || null;
+      R.b_huboCartel = !!cartel;
+      R.b_appMientras = campo();
+      R.b_cartelDiceLosDos = !!cartel && (cartel.textContent || '').indexOf('20.0') >= 0 &&
+                                          (cartel.textContent || '').indexOf('22.0') >= 0;
+      if (cartel) {
+        const si = [].slice.call(cartel.querySelectorAll('button'))
+          .filter(b => (b.textContent || '').indexOf('sustituir') >= 0)[0];
+        if (si) si.click();
+      }
+      await esp(420);
+      try { await p; } catch (x) {}
+      await esp(220);
+      R.b_appDespues = campo();
+      R.b_circuloDespues = estado('vi.tsvi');
+  
+      /* (c) tocar el verde BORRA el campo y deja el numero en el visor */
+      await medCircTocar('vi.tsvi');
+      await esp(380);
+      R.c_app = campo();
+      R.c_visorSigue = _d2Valor('vi.tsvi');
+      R.c_circulo = estado('vi.tsvi');
+  
+      /* (d) el campo cambia a mano y el circulo pasa a rojo */
+      __t.set('diam_tsvi', '22');
+      await esp(200);
+      _d2Render();
+      R.d_igual = estado('vi.tsvi');
+      __t.set('diam_tsvi', '31');
+      await esp(200);
+      _d2Render();
+      R.d_distinto = estado('vi.tsvi');
+      R.d_dice31 = filaTxt('vi.tsvi').indexOf('en la app: 31') >= 0;
+  
+      /* (f) los dos botones viejos se retiraron */
+      R.f_botones = document.querySelectorAll('[data-vti-diam]').length;
+  
+      /* CONTROL: una fila SIN contraparte en la app no lleva circulo */
+      _vCon(_vistaA, () => { d2Modo('vd'); });
+      await esp(240);
+      R.ctrl_tapseLleva = !!circ('vd.tapse');
+      R.ctrl_vdMedioNoLleva = !circ('vd.medio');
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { window.confirm = confirmReal; } catch (e) {}
+    try { __t.propPuenteOn(); } catch (e) {}
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                        !R.err, R.err],
+      ['DENOMINADOR: el informe tenia el diametro en 20',        R.appAntes === '20', R.appAntes],
+    ['(a) la fila NACE con el valor de la app',                 R.a_valorEnLaFila === 20, R.a_valorEnLaFila],
+      ['(a) y su circulo esta en VERDE',                          R.a_circulo === 'true', R.a_circulo],
+      ['(e) medir NO escribe nada: el censo del formulario es identico', R.e_censoIgual === true, R.e_censoIgual],
+      ['(e) y el campo sigue en 20',                              R.e_app === '20', R.e_app],
+      ['(b) la fila muestra el 22 medido',                        R.b_valor === 22, R.b_valor],
+      ['(b) con el circulo en ROJO',                              R.b_circulo === 'false', R.b_circulo],
+      ['(b) y el viejo en chico: «en la app: 20»',                R.b_diceEnLaApp === true, R.b_diceEnLaApp],
+      ['(b) tocar el circulo PREGUNTA con un cartel propio',      R.b_huboCartel === true, R.b_huboCartel],
+      ['(b) el cartel nombra los DOS numeros',                    R.b_cartelDiceLosDos === true, R.b_cartelDiceLosDos],
+      ['(b) y el campo sigue viejo MIENTRAS pregunta',            R.b_appMientras === '20', R.b_appMientras],
+      ['(b) recien al aceptar el campo pasa a 22',                R.b_appDespues === '22.0', R.b_appDespues],
+      ['(b) y el circulo queda verde',                            R.b_circuloDespues === 'true', R.b_circuloDespues],
+      ['(c) tocar el verde BORRA el campo del informe',           R.c_app === '', JSON.stringify(R.c_app)],
+      ['(c) y el numero queda en la tabla del visor',             R.c_visorSigue === 22, R.c_visorSigue],
+      ['(c) con el circulo de vuelta en rojo',                    R.c_circulo === 'false', R.c_circulo],
+      ['(d) con el mismo valor a mano el circulo es verde',       R.d_igual === 'true', R.d_igual],
+      ['(d) y cambiandolo a mano pasa a ROJO',                    R.d_distinto === 'false', R.d_distinto],
+      ['(d) diciendo lo que hay en la app',                       R.d_dice31 === true, R.d_dice31],
+      ['(f) los dos botones «usar como Ø TSVI/TSVD» se retiraron', R.f_botones === 0, R.f_botones],
+      ['CONTROL: el TAPSE lleva circulo',                         R.ctrl_tapseLleva === true, R.ctrl_tapseLleva],
+      ['CONTROL: y el VD medio, sin contraparte, NO lo lleva',    R.ctrl_vdMedioNoLleva === true, R.ctrl_vdMedioNoLleva]
+    ] };
+  })();
+`);
+
+caso('TC-1028', 'P13-B: el cartel sale cuando llegan SOLO repetidas y cuenta las de AHORA con 0 nuevas; y en pantalla completa la reserva de alto baja a 145 px con una vista y sube a 185 con dos, con la pagina de atras sin desplazarse', `
+  return (async () => {
+  /* Cada caso define su propio ayudante de espera: no hay uno global en este archivo. */
+  const esperar = async (c, n) => { for (let i=0;i<(n||80);i++) { if (c()) return true; await new Promise(r=>setTimeout(r,60)); } return c(); };
+    const R = {};
+    try {
+      __t.limpiar(); imgVaciar();
+      const esp = ms => new Promise(r => setTimeout(r, ms));
+  
+      /* ── 13-B (1a): el registro de lo que el puente tenia en el sondeo anterior ── */
+      R.hayRegistro = typeof _clnkLlegaronAhora === 'function';
+      const g1 = { equipo:'eq1', ids:['a','b','c'], imagenes:[
+        { id:'a', tipo:'video' }, { id:'b', tipo:'video' }, { id:'c', tipo:'video' }], primero: Date.now() };
+      /* en el primer sondeo TODO cuenta como llegado ahora */
+      _clnkEnPuente = Object.create(null);
+      _clnkLlegaronAhora(g1);
+      R.primerSondeo = g1.nAhora;
+      /* con los tres ya vistos, nada llego ahora */
+      _clnkEnPuente = { a:true, b:true, c:true };
+      _clnkLlegaronAhora(g1);
+      R.nadaNuevo = g1.nAhora;
+      /* y con dos mas, llegaron DOS —no cinco— */
+      const g2 = { equipo:'eq1', ids:['a','b','c','d','e'], imagenes:[
+        { id:'a', tipo:'video' }, { id:'b', tipo:'video' }, { id:'c', tipo:'video' },
+        { id:'d', tipo:'video' }, { id:'e', tipo:'video' }], primero: Date.now() };
+      _clnkLlegaronAhora(g2);
+      R.llegaronDos = g2.nAhora;
+      R.tiposAhora = g2.tiposAhora ? g2.tiposAhora.loop : null;
+  
+      /* el texto: «Llegaron 2 cineloops: 0 nuevas ... Hay 5 esperando.» */
+      _clnkTipos(g2);
+      g2.nNuevas = 0;
+      g2.nYaEstaban = 5; g2.idsNuevos = []; g2.idsRepes = g2.ids.slice();
+      const t = _clnkAvisoTexto(g2, 'VINNO', '');
+      R.texto = String(t).slice(0, 160);
+      R.diceDos = /Llegaron 2/.test(t);
+      R.diceCeroNuevas = t.indexOf('0 nuevas') >= 0;
+      R.diceCincoEsperando = /Hay 5/.test(t);
+  
+      /* ── 13-B (3a): la reserva de alto en pantalla completa ── */
+      const jpg = new Uint8Array([255,216,255,217]);
+      const R2D = { ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:600, y1:500, tipo:1 };
+      const mk = n => ({ nombre:n, cuadros:2, d:{ frags:[jpg,jpg], cols:1016, filas:708, msCuadro:40, regiones:[R2D] } });
+      /* Por la puerta de la BIBLIOTECA, que cierra la vista B: el pie de «Sincronizar» solo
+         se esconde con UNA vista, y un caso anterior puede haber dejado la segunda montada. */
+      _cineAbrir([mk('P13-1028')], 'bib');
+      _vToggleSync();
+      await esperar(() => !!_cineDatos, 80);
+      await esp(240);
+      const ov = document.getElementById('cine-ov');
+      /* ⚠️ LA RESERVA SE LEE DE LA HOJA Y NO DE LA GEOMETRIA: vive en una media query de
+         1100 px y la ventana del arnes mide 756, asi que el valor calculado del canvas no la
+         refleja. Es el recurso con el que TC-894 mide el corte de 1369 px. */
+      const reglas = (function () { let t = '';
+        try { [].slice.call(document.styleSheets).forEach(h => {
+          try { [].slice.call(h.cssRules).forEach(r => { t += r.cssText + ' '; }); } catch (e) {} });
+        } catch (e) {}
+        return t; })();
+      const leer = () => reglas;
+      cineMaxToggle();
+      await esp(320);
+      R.max = ov.classList.contains('cine-max');
+      R.reservaUna = leer();
+      R.bodyBloqueado = getComputedStyle(document.body).overflow === 'hidden' ||
+                        getComputedStyle(document.documentElement).overflow === 'hidden';
+      R.pieEscondido = (function () { const e = document.getElementById('cine-pie');
+        return !!e && getComputedStyle(e).display === 'none'; })();
+      R.pieDiag = (function () { const e = document.getElementById('cine-pie');
+        return { existe: !!e, disp: e ? getComputedStyle(e).display : 'n/d',
+                 conB: ov.classList.contains('cine-con-b'), max: ov.classList.contains('cine-max'),
+                 hayB: !!_vistaB }; })();
+      /* con DOS vistas la reserva sube: el encabezado de la vista no se esconde */
+      const cont = document.getElementById('cine-paneles');
+      const VB = _vNueva('b-', 'B'); _vMontarPanel(cont, 'b-');
+      _vistaB = VB; _vCablear(VB);
+      _vCon(VB, () => { VB.datos = { loops:[mk('P13-1028-B')], i:0, cuadro:0, timer:null }; _cineCargarLoop(); });
+      _vAccionesSync(); _vToggleSync();
+      await esp(320);
+      R.reservaDos = leer();
+      cineMaxToggle();
+      await esp(300);
+      R.bodyRepuesto = getComputedStyle(document.body).overflow !== 'hidden' ||
+                       getComputedStyle(document.documentElement).overflow !== 'hidden';
+    } catch (e) { R.err = String((e && e.message) || e); }
+    try { if (_vistaB) vistaCerrarUna(_vistaB); } catch (e) {}
+    try { cineCerrar(); } catch (e) {}
+    return { extra: [
+      ['sin excepciones',                                      !R.err, R.err],
+      ['DENOMINADOR: el registro de lo que llego ahora existe', R.hayRegistro === true, R.hayRegistro],
+      ['(1a) en el primer sondeo todo cuenta como llegado',     R.primerSondeo === 3, R.primerSondeo],
+      ['(1a) con todo ya visto, nada llego ahora',              R.nadaNuevo === 0, R.nadaNuevo],
+      ['(1a) y con dos mas, llegaron DOS y no cinco',           R.llegaronDos === 2, R.llegaronDos],
+      ['(1a) con sus tipos, no los del envio entero',           R.tiposAhora === 2, R.tiposAhora],
+      ['(1a) el cartel dice «Llegaron 2»',                      R.diceDos === true, R.texto],
+      ['(1a) que no hay ninguna nueva',                         R.diceCeroNuevas === true, R.texto],
+      ['(1a) y cuantas hay esperando, aparte',                  R.diceCincoEsperando === true, R.texto],
+      ['DENOMINADOR: el visor esta en pantalla completa',       R.max === true, R.max],
+      ['(3a) con UNA vista la reserva es 145 px',               String(R.reservaUna).indexOf('145px') >= 0, R.reservaUna],
+      ['(3a) y el pie de «Sincronizar» no ocupa su margen',     R.pieEscondido === true, JSON.stringify(R.pieDiag)],
+      ['(3a) DENOMINADOR: la regla se decide con UNA vista',    R.pieDiag && R.pieDiag.conB === false && R.pieDiag.max === true,
+                                                               JSON.stringify(R.pieDiag)],
+      ['(3a) con DOS vistas sube a 185 px',                     String(R.reservaDos).indexOf('185px') >= 0, R.reservaDos],
+      ['(3a) la pagina de atras no se desplaza',                R.bodyBloqueado === true, R.bodyBloqueado],
+      ['(3a) y al salir se repone',                             R.bodyRepuesto === true, R.bodyRepuesto]
+    ] };
+  })();
+`);
+
 
 
 try {
