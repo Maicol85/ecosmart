@@ -1,6 +1,6 @@
 # Guía de prueba manual — tanda PR5 (2026-11-23)
 
-> Dieciséis pasos. Sello **`v20261123-SELLO`**. Abrí `index.html` en Chrome.
+> Diecisiete pasos. Sello **`v20261123-0743`**. Abrí `index.html` en Chrome.
 > Lo que esta tanda tocó: el valor esperado de los senos de Valsalva, las tres colas del bloque
 > de bajo flujo / bajo gradiente de la estenosis aórtica, y el folio del cor triatriatum.
 
