@@ -167,6 +167,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar la BURBUJA que queda al cerrar un cartel TERMINADO, la VENTANA DE SILENCIO de la app con su pestillo, la CADENCIA del sondeo ocioso, los CINCO botones del cartel de la tanda —los tres apagados y los dos vivos—, los NOMBRES que un dato tiene en el ecógrafo, las MINIATURAS de «Imágenes sin estudio» con el borrado de a una, o el mensaje de MEDIR una fija** | `docs/mapa/p7-burbuja-silencio-botones.md` |
 | **Tocar el CARTEL que sale con la PRIMERA imagen, la BURBUJA de abajo a la derecha, el texto que cuenta imágenes, cineloops, informes y los que no se pueden ver, las imágenes REPETIDAS, el ruteo por FORMATO de la vista previa y del visor, la tarjeta de los formatos que no se ven, los DATOS PARA EL ECÓGRAFO con su rótulo de cable o Wi-Fi y su carpeta compartida, el umbral de ESPACIO del puente, los NOMBRES de la fila de Permitir, o la COMPATIBILIDAD con un puente 1.3.x** | `docs/mapa/p6-tanda-burbuja-formatos.md` |
 | **Tocar la CALIBRACIÓN DE DISTANCIA a mano** —su unidad, el cuadro que pide los milímetros, su campo sin valor puesto, la pista «1 cm = 10 mm» o la confirmación «Escala fijada»—, **el CARTEL de la vista previa de CeiboLink que tapaba el visor**, **la frase de la dirección probable**, **el mensaje de la vinculación que quedaba pegado** o **«Ir al estudio» desde una imagen de la galería** | `docs/mapa/p5-calibracion-capas-navegacion.md` |
+| **Tocar el ORDEN o la ESTRUCTURA del visor** —«+ Vista» y «Cerrar» arriba, el «Cerrar vista» y el botón de tamaño por vista, la letra por POSICIÓN, la tabla que no salta de columna, el interruptor de la columna, el vaciado al abrir otro video, la repetición de las flechas de cuadro o los contornos del Simpson—, **el ORDEN de la BIBLIOTECA** (fijas y cineloops), **la CALIBRACIÓN MANUAL de velocidad que se conserva**, **el CÍRCULO rojo/verde del pasaje visor ↔ app**, o **el cartel de CeiboLink cuando llegan SOLO repetidas** | `docs/mapa/p13-visor-circulo-biblioteca.md` |
 | **Tocar un CARTEL PROPIO de la app** —el aviso de un botón, la pregunta de sí/no o el cuadro que pide un valor—, **la escala de VELOCIDAD que se perdía al RECARGAR la página**, la **receta de la calibración manual**, o **las REPETIDAS del cartel de llegada de CeiboLink** con su botón «(0)» | `docs/mapa/p12-carteles-escala-repetidas.md` · los 41 diálogos nativos que quedan, en `docs/CENSO_DIALOGOS_P12.md` |
 | **Tocar la ESCALA DE VELOCIDAD de un Doppler espectral** —la fila de la línea de cero, el chequeo de coherencia, el cuadro propio de calibración con su unidad, o la marca de de dónde salió la escala en cada fila— | `docs/mapa/p10-escala-velocidad.md` |
 | **Tocar los DOS TAMAÑOS del visor** —el alto disponible de la imagen (`--cine-imgh`), el encaje en el envoltorio, el interruptor de la columna de medidas, la mudanza de la barra en pantalla completa, los botoncitos pegados a la imagen, la vista con foco, el Esc que sale del tamaño—, **las FLECHAS DEL TECLADO**, **las MEDIDAS POR CUADRO** o **el contorno de ayuda del Simpson** | `docs/mapa/p11-visor-tamanios-cuadros.md` |
@@ -297,7 +298,32 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,89 MB / 192.438 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P12** (el cartel propio, la escala de velocidad que se perdía al recargar y las repetidas de CeiboLink), sobre el árbol ya sellado: sello **`v20261122-1436`**, md5 **`ae874798`**.
+  sin frameworks. Hoy **13,96 MB / 193.541 líneas**, medido con `wc -c` y `wc -l` el 2026-11-22 al cierre de la tanda **P13 + P13-B** (el orden del visor, la biblioteca, la calibración manual de velocidad, el círculo rojo/verde y los tres hallazgos de Windows), sobre el árbol ya sellado: sello **`v20261122-2142`**, md5 **`67fa26f6`**.
+  El diff de P13 son **1.167 líneas agregadas y 64 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `c047112` **sobre el árbol ya sellado**, de las que **536 son código
+  de verdad**, 595 comentario y 36 en blanco — las 1.167 cierran exacto, y el filtro lleva el
+  estado del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —las DOS apariciones de `innerHTML` en
+  el diff son los comentarios que declaran por qué el oyente del círculo va delegado y qué
+  reconstruía el observador del cuadro—, **CERO** claves y contraseñas, y **CERO** `<input>`,
+  `<select>` y `<textarea>` nuevos en el marcado: eso es lo que deja todo esto fuera del censo del
+  estudio y del Excel **por construcción**, con **cero campos guardados nuevos** y las **457**
+  columnas quietas. **Y CERO cortes clínicos, cero fórmulas y cero umbrales**: el VTI de prueba da
+  **60,32 cm**, pico **94,25 cm/s** y gradiente máximo **3,553225 mmHg**, los tres idénticos en los
+  dos árboles.
+  **UN solo id nuevo en el marcado** —`cine-pie`, el pie de «Sincronizar», que necesita id para
+  poder esconderse—; los otros dos que el diff muestra, `eco-build-sello` e `img-grid`, ya
+  existían. Los demás los crea la plantilla por vista —`cine-rot`, `cine-maxi` y `cine-maxi-ico`,
+  con su prefijo— y **ninguno de los siete cae en ninguno de los barridos destructivos por sufijo
+  o prefijo de id del archivo**, verificado uno por uno: ninguno termina en `-aviso`, `-badge`,
+  `-arrow` ni `-ref-fuente`, y ninguno arranca con los nueve prefijos que `limpiarCampos` barre.
+  Los dos sufijos `cine-maxi` y `cine-maxi-ico` que el barrido sí encuentra son los que
+  `cineMaxSync` usa a propósito para escribir TODOS los botones de tamaño.
+  ⚠️ **POR SEXAGÉSIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó de las
+  dos formas que esta casa manda: `git show c047112:index.html` da **192.438** líneas,
+  **13.887.145** bytes y el md5 **`ae874798`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,89 MB / 192.438 al cierre de la tanda **P12**, sello **`v20261122-1436`**, md5 **`ae874798`**.)
   El diff de P12 son **605 líneas agregadas y 188 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `921b72b` **sobre el árbol ya sellado**, de las que **413 son código
   de verdad**, 169 comentario y 23 en blanco — las 605 cierran exacto, y el filtro lleva el estado
@@ -1674,6 +1700,118 @@ impecable.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda P13 + P13-B (2026-11-22) — el orden del visor, la biblioteca, la calibración manual de
+velocidad, el círculo rojo/verde y los tres hallazgos de Windows.** CUATRO tareas del P13 (la 5 era
+sólo informe) y TRES del P13-B, con SEIS commits. Sello **`v20261122-2142`**, md5 **`67fa26f6`**,
+**193.541** líneas. Línea base **`c047112`**, el cierre de la tanda P12. **Sin push: lo corre
+Maicol.** **El puente CeiboLink NO se tocó**, y la tarea 1 del 13-B no lo necesitaba.
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas —el VTI de
+prueba da **60,32 cm**, pico **94,25 cm/s** y gradiente máximo **3,553225 mmHg**, los tres
+idénticos en los dos árboles— y **CERO** `<input>`, `<select>` y `<textarea>` nuevos en el marcado,
+que deja todo esto fuera del censo del estudio y del Excel **por construcción**: cero campos
+guardados nuevos y las **457** columnas quietas.
+
+**EL BLOQUE 0 REPRODUJO NUEVE DE LOS HALLAZGOS ANTES DE TOCAR UNA LÍNEA** (`_probe_p13_0.mjs`), y
+dos de ellos cambiaron qué había que hacer: **1a** —«+ Vista» y «Cerrar» en FALSO con el visor
+abierto y en VERDADERO después de medir, porque la clase `cine-grp-vista` estaba en la lista del
+modo mínimo—; **1c** —cerrando la de la izquierda, `rotA` daba 'B' con un solo panel en x:31—;
+**1d** —`maxiN:1`, UN botón de tamaño en todo el documento, que `_vMaxSync` mudaba—; **1e** —en
+pantalla completa la vista SIN columna salía 697×486 contra 349×243 la que la tenía, al revés de lo
+que se mira—; **1g** —la tabla saltaba de `cine-der-slot` a `b-cine-der-slot` con sólo tocar Medir
+en la otra vista—; **1h** —el botón de la columna no se emitía en Normal y `cine-sinpanel`
+sobrevivía a salir de pantalla completa—; **1j**; **1m** —REGRESIÓN DE P11 (2.3): con el par
+completo, **cero** píxeles de tinta—; y **4g**, que es el que corrige mi propio informe de P11: con
+20 en `diam_tsvi`, `_d2Valor('vi.tsvi')` daba **null** y la fila decía «Diam TSVI —». **El visor NO
+leía los campos de la app.**
+
+**EL 1j SE ACOTÓ TRES VECES, Y LAS TRES POR MEDICIÓN.** (1) Las cuatro **sesiones** de medición no
+se sueltan: el Simpson biplano, el SGL por territorios, el LARS y el strain del VD cruzan DOS
+cineloops **por método**, y soltarlas puso en rojo a TC-192, TC-200, TC-201, TC-204 y TC-205, tres
+con un `TypeError` sobre la sesión recién borrada. Lo que el médico nombró es la TABLA. (2) Se
+vacía **sólo en las tres puertas que la orden nombra** —Vista previa, biblioteca e imágenes
+guardadas, ocho llamadas—: la importación del pendrive no está en su lista y ahí la acumulación es
+la conducta declarada de la que sale la AVA por continuidad, con tres casos que la fijan. Declarado
+en **P13-b**, y el cambio es una línea si el médico quiere lo otro. (3) No se vacía **al reabrir el
+mismo video**: la ✕ declara, y por eso no pide confirmación, que «lo medido se conserva». La
+identidad la da `_cineClave` y se compara contra `_cineClaveAbierta` y **no** contra
+`_vistaA.datos`, que `cineCerrar` suelta — medido, lo medido pasaba de 9,1 a null al reabrir el
+MISMO cineloop.
+
+**LA CAUSA DE LA TRABA (1k), CUANTIFICADA, Y EL DATO NUEVO DEL 13-B ENCAJA EXACTO.** Contando las
+mutaciones del DOM que caen FUERA de la imagen y del contador, y las veces que un cajón CAMBIA DE
+PADRE, a 1920×1080 y en dos segundos: con **un** cineloop, 407 mutaciones y **3** mudanzas en la
+base contra **1** y **0** hoy; con **dos**, **1396** y **297** contra **2** y **0**. Eso es «con
+uno no pasa y con dos sí»: con uno había churn de texto dentro de nodos **quietos**, con dos hay
+**297 re-parentings en dos segundos** —unos 150 por segundo—, y cada uno saca el nodo del documento
+y lo vuelve a insertar en la otra columna, así que reflowa **todo lo que está debajo de los
+videos** y hace imposible desplazar. Es un reflow del DOM y no trabajo de la máquina, así que pasa
+igual en Windows. Lo cierran las dos piezas de la tarea 1: la guarda del observador mientras el
+cineloop corre (1k) y la mudanza **pegajosa** de los cajones (1g).
+
+**EL CÍRCULO (tarea 4) ESTÁ MEDIDO PUNTO POR PUNTO Y CON SU CONTROL NEGATIVO**: la fila nace con el
+20 de la app en **verde**; medir 22 deja el censo de **todos** los controles del formulario
+**idéntico** y el campo en «20»; la fila pasa a 22,0 en **rojo** con «en la app: 20,0»; tocar el
+círculo abre el cartel propio que nombra los dos números con el campo **todavía en 20 mientras
+pregunta**, y al aceptar pasa a «22.0» y a verde; tocar el verde deja el campo **vacío** con el 22
+en el visor; cambiarlo a mano a 31 lo pone rojo; y `vd.medio`, sin contraparte en la app, **no
+lleva círculo**.
+⚠️ **EL PAR visor ↔ app SALE DE LAS DOS TABLAS DE BANDAS QUE YA EXISTÍAN**, cuya regla es «prestar
+sólo donde la pregunta es la MISMA» — y de ahí sale, verificada, también la UNIDAD. Las filas sin
+banda prestada no llevan círculo a propósito (**P13-e**).
+
+**LA CALIBRACIÓN MANUAL DE VELOCIDAD CIERRA P10-b.** La clave que faltaba es `_cineClave`, que
+identifica el ARCHIVO por su contenido y funciona por las cuatro puertas. Medido: la escala fijada
+sobrevive a cerrar y reabrir, recalibrada queda **la última**, y **otra imagen no la hereda**.
+⚠️ **CUATRO DEFECTOS MÍOS QUE LA SONDA DESTAPÓ**: el **nombre del archivo quedaba en
+`localStorage`** —choca con la regla de la casa, y hoy la clave va hasheada—; `vti` no entraba a
+calibrar porque la línea siguiente lo apagaba; una imagen **2D** entraba a calibrar una escala de
+velocidad sobre dos ejes de distancia; y una calibración a medio hacer sobrevivía al cambio de
+imagen, porque `medCambioDeImagen` la suelta desde un MutationObserver.
+
+**EL 13-B.** (1) El cartel **no salía** con solo repetidas porque el filtro pedía «al menos una sin
+avisar», y **contaba todo lo que esperaba** —«Llegaron 9» con dos mandadas—: nace `_clnkEnPuente` y
+el número de arriba sale de `_clnkLlegaronAhora`, con el total en una segunda oración. «Descartar»
+con cero nuevas no borra nada (**P13-h**). (3) Lo que el médico vio en el monitor grande era el
+caso de **dos vistas**, que el 1e arregló —de 937×653 la vista sin columna a **1206×840** la
+elegida—; la reserva de alto baja a **145 px** con una vista —y sube a **185** con dos, porque ahí
+el encabezado no se esconde y lleva el «✕ Cerrar vista»—, con la imagen en **935 px**, el **87 %**
+de la pantalla y **cero** desplazamiento del modal; y **la barra de desplazamiento no era del
+visor**: eran 94 px del DOCUMENTO, la pestaña debajo del overlay, que ahora se bloquea.
+⚠️ **137 FUE DEMASIADO Y LA MEDICIÓN LO DIJO**: el modal empezó a desplazarse 20 px.
+
+**COBERTURA: SEIS casos nuevos, TC-1023 a TC-1028**, uno por tarea, y los seis caen **0/6 contra
+`c047112`** con el mismo archivo de casos y sólo el `index.html` distinto, por **67** condiciones.
+**SIETE casos adaptados**, ninguno aflojado y **cinco con condiciones INVERTIDAS**: TC-236, TC-256,
+TC-857, TC-887, TC-888 —que quedó **más fuerte**: al retirarse `cine-guardar` se fue la única
+excepción de ancho de la barra, así que la regla vuelve a ser «todos iguales» sin exentos—, TC-892
+y TC-896.
+
+⚠️ **CINCO TRAMPAS QUE ESTA TANDA PAGÓ.** (1) El **acento grave dentro de mis propios
+comentarios**, por trigésima tercera tanda seguida: **nueve** veces; lo cierra
+`scripts/_insertar_p13.py`, que ABORTA si encuentra uno y revierte si el destino no parsea — abortó
+de verdad. (2) La **barra invertida de una expresión regular** no sobrevive al template del cuerpo
+de un caso: el patrón de espacios llegó como la letra «s» y el diagnóstico imprimió «Seno  de Val
+alva». (3) La **ventana del arnés mide 756 px** y ahí la app muestra una vista por vez, así que el
+panel de la B da 0×0 — se usa `__t.anchoDesktop()` y, donde no alcanza, se mide el `display`
+propio. (4) **Una regla de CSS dentro de una media query no aplica en la ventana del arnés**: la
+del pie de «Sincronizar» estaba dentro de la de 1100 px y TC-1028 la encontró. (5) **NUEVA: un caso
+que cierra la vista A deja el visor con los ids `b-` y se lo deja a los que siguen en su lote** —y
+si además quita los paneles a mano, se lleva puestos los tres nodos de la columna, que desde el 1g
+viven adentro—. Lo pagaron TC-1024, TC-1027 y TC-1028.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima primera tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en las
+siete tareas y su verificación. Este archivo pesa más de 640 KB. Lo que hay que mudar hoy es todo
+lo anterior a **P12**, o sea de **P11 hacia atrás**.
+
+Lo declarado, en **P13-a** a **P13-i**; el mapa, en `docs/mapa/p13-visor-circulo-biblioteca.md`; la
+guía manual para la Mac y para Windows, en `docs/GUIA_PRUEBA_P13.md` (**61** pasos); las sondas, en
+`scripts/_probe_p13_0.mjs` (el bloque 0), `scripts/_probe_p13_t2.mjs` (la biblioteca y las tres
+puertas del 1j), `scripts/_probe_p13_t3.mjs` (el VTI y la calibración), `scripts/_probe_p13_t4.mjs`
+(el círculo), `scripts/_probe_p13b.mjs` (la traba y el alto a 1920) y `scripts/_probe_p13dos.mjs`
+(los dos motores); el insertador con su guardián, en `scripts/_insertar_p13.py`.
 
 **La tanda P12 (2026-11-22) — el cartel propio, la escala de velocidad que se perdía al recargar
 y las repetidas de CeiboLink.** CUATRO tareas (la 4 era sólo reportar) y SIETE commits. Sello

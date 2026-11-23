@@ -19510,3 +19510,75 @@ los dos motores y el sello.
   superior, o sea propiedades de `window`, y los llamadores internos las resuelven contra el
   objeto global: con un `const` no habría funcionado, que es la trampa que `_imgEditado` y
   `_cinePendientes` ya documentan.
+
+---
+
+## P13 y P13-B — el visor, la biblioteca, la calibracion y el circulo (2026-11-22)
+
+### P13-a · DECISION DEL MEDICO · el «Cerrar vista» de una sola vista
+Con UNA vista abierta, «✕ Cerrar vista» hace exactamente lo que hace «Cerrar» del encabezado
+—cierra el visor—, asi que se **esconde**: es el «Cerrar duplicado de abajo» que el punto 1a manda
+sacar. El boton no se retira: con dos vistas tiene que haber uno por vista (1b) y seis condiciones
+del suite lo buscan por su id. **Si preferis que con una vista tambien se vea, es una linea de
+CSS.**
+
+### P13-b · DECISION DEL MEDICO · el alcance del 1j: la importacion del pendrive
+El punto 1j nombra TRES puertas —Vista previa, biblioteca e imagenes guardadas— y la tabla se
+vacia en esas tres. La **importacion del pendrive** no esta en la lista y ahi el cajon **sigue
+acumulando**, que es la conducta declarada desde el 2026-09-24: el VTI del TSVI y el de la valvula
+aortica se miden en planos distintos, o sea en dos imagenes del mismo lote, y de eso sale la AVA
+por continuidad. Vaciar tambien ahi pone en rojo a TC-249, TC-251 y TC-256 —los tres casos que
+fijan esa acumulacion— y le saca al medico la continuidad entre dos imagenes del mismo estudio.
+**El cambio es una linea: sacar la condicion `puerta === 'bib'` de `_cineSoltarAlAbrir`.** Decidilo
+vos.
+
+### P13-c · DECLARADO · las cuatro sesiones de medicion sobreviven al cambio de imagen
+El Simpson biplano, el SGL por territorios, el LARS por tres contornos y el strain del VD **exigen
+cruzar dos imagenes** —la apical de cuatro camaras y la de dos son dos cineloops distintos, y
+`medSimpsonSegundaVista` existe justamente para eso—, asi que al abrir otro video **no** se
+sueltan. Lo que el 1j vacia es la TABLA, que es lo que el medico nombro («SIVd 9,1 mm sin dibujo y
+sin escala»). Las sesiones ya avisan por su cuenta: `medCambioDeImagen` suelta lo pendiente,
+esconde lo confirmado y levanta `avisoImagen`.
+
+### P13-d · DECLARADO · la calibracion manual no viaja en el export del estudio
+Se guarda en `localStorage` bajo `ett_med_calvel`, con la clave hasheada y sin un solo dato del
+paciente, y sobrevive a recargar la pagina y a reabrir la imagen. **No entra en el export ni en el
+backup**, porque el respaldo exporta los estudios y los medios de IndexedDB y no recorre
+`localStorage`. Meterla en el registro del cineloop si viajaria, al precio de reescribir ese
+registro en IndexedDB en cada calibracion. **Decidilo vos.**
+Y la calibracion de **DISTANCIA** no se persiste: el pedido nombra la de velocidad.
+
+### P13-e · DECLARADO · que filas llevan circulo, y por que las otras no
+El par visor ↔ campo del informe sale de `_D2_BANDA_DE` y `_DOP_BANDA_DE`, cuyas entradas llevan
+el comentario «misma medicion que el campo del informe» y cuya regla es **prestar la banda solo
+donde la pregunta es la MISMA**. De ahi sale, verificada, tambien la UNIDAD: una banda prestada
+solo tiene sentido si las dos puntas estan en la misma unidad. Las filas **sin** banda prestada
+—`vi.sivs`, `vi.pps`, `vd.medio`, `vd.longit`, `ao.cayado`, `ao.descend`, `ao.abdominal`, y las dos
+velocidades de la insuficiencia pulmonar— **no llevan circulo**: ahi la unidad no esta verificada y
+escribir un numero en un campo clinico con la unidad equivocada es el peor error posible.
+**Si querés que alguna de esas filas llegue al informe, hay que declarar su campo y su unidad: es
+una decision clinica.**
+
+### P13-f · PARA DECIDIR · la nota «escala vel. a mano» no llega al campo del informe
+P12-e ya lo midio: no existe ningun campo gemelo donde viva la procedencia (`itv_tsvi_origen` no
+existe). La marca se ve en la fila del visor, en el renglon de arriba del boton que carga al
+informe y en la tabla que se guarda en la biblioteca, **pero el campo del informe no la lleva**.
+Las dos opciones, con su costo: (1) un campo nuevo por VTI, que es una columna de Excel y un campo
+guardado; (2) una oracion en el informe, que es contenido clinico. **Las dos las decidis vos.**
+
+### P13-g · PARA DECIDIR · los VTI «reservados» del panel
+El punto 4f pide sacar «los botones usar como Ø TSVI/TSVD» —hecho— **y los VTI reservados**. Lo
+segundo es el mecanismo de asignacion por rol (`→ TSVI`, `→ TSVD`, `✕ liberar`), del que cuelga
+`medVtiCargar` y el mensaje de «para el Qp/Qs falta…». Sacarlo exige decidir **por donde entran al
+informe los dos VTI del cociente**: hoy el camino que lo reemplazaria es armar la fila
+`ao.vtiTsvi` / `pul.vtiPul` del cajon Doppler y tocar su circulo. Es una cadena de cuatro
+funciones y un caso maduro (TC-907). **No lo toque: decidilo vos.**
+
+### P13-h · DECLARADO · «Descartar» con cero nuevas no borra del puente
+Decision del 13-B (1e), acotada a ese caso: con alguna nueva, «Descartar» sigue siendo el de P12 y
+borra del puente lo que llego. Con cero nuevas no cambia nada y lo que estaba esperando sigue
+esperando. No vuelve a ofrecerse en el sondeo siguiente porque ya no cumple ninguna de las dos
+condiciones del filtro.
+
+### P13-i · SOLO INFORME · la columna izquierda para «+ Vista» y «Cerrar» (13-B, 3b)
+**No aplicada, como pediste.** Lo que ganaria y lo que costaria esta en el informe de la tanda.
