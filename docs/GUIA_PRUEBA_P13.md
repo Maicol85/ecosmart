@@ -3,7 +3,7 @@
 Pasos cortos, numerados y en criollo. Andan igual en la Mac y en Windows; donde cambia algo, lo
 dice. **Nada de esto necesita el pendrive ni CeiboLink real salvo donde se aclara.**
 
-Sello de esta tanda: **`v20261122-2142`**. Se ve abajo a la derecha, en el pie.
+Sello de esta tanda: **`v20261122-2251`**. Se ve abajo a la derecha, en el pie.
 
 ---
 

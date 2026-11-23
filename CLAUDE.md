@@ -1817,7 +1817,40 @@ seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presup
 siete tareas y su verificación. Este archivo pesa más de 640 KB. Lo que hay que mudar hoy es todo
 lo anterior a **P12**, o sea de **P11 hacia atrás**.
 
-Lo declarado, en **P13-a** a **P13-i**; el mapa, en `docs/mapa/p13-visor-circulo-biblioteca.md`; la
+**LÍNEA BASE AL CIERRE: suite 1026/1036**, en **DIECINUEVE** lotes cubriendo los **1036 casos
+distintos** —contados con el patrón COMPLETO del id, **cero duplicados**—, en UNA sola pasada sobre
+el árbol resellado, con los **1036 ejecutados**, el md5 de `index.html` **idéntico** antes y después
+(`8524699a`), el pendrive `DISK_IMG` verificado **veintiuna** veces leyendo DICOMDIR con sus **343**
+archivos de `GEMS_IMG`, **ningún lote cortado por tiempo** y **ningún archivo del repositorio tocado
+mientras corría**.
+Los **DIEZ** rojos son **TC-376** y **TC-406**, los dos de siempre; **TC-574**, que falla
+**idéntico contra `c047112`** con el mismo archivo de casos y sólo el `index.html` distinto —es la
+carga diferida de three.js, **preexistente**—; y **SIETE de sensibilidad de lote que pasan 7/7
+corridos aislados**: TC-182, TC-551, TC-557, TC-562, TC-621, TC-706 y TC-899, los seis primeros ya
+declarados y TC-621 declarado ahora. **NINGÚN rojo de esta tanda**, y **TC-227 —uno de los siete de
+la línea base— salió VERDE**.
+⚠️ **ES LA SEGUNDA PASADA, Y LA PRIMERA NO SE INFORMA PORQUE EL ÁRBOL CAMBIÓ DESPUÉS.** Aquella dio
+**1023/1036** con **TRECE** rojos y **TRES eran míos**: TC-1011 y TC-998, consecuencia autorizada de
+1d y de la tarea 1 del 13-B, que quedaron con su condición **INVERTIDA**; y **TC-899**, que era un
+**defecto de verdad** —la pegajosidad sin la condición de empate— y se arregló en el producto. Esta
+casa no informa un número de una pasada hecha sobre otro árbol.
+
+**VERIFICACIÓN. Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.**
+**17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta, medido con la
+máquina sola.
+**CHROME Y WEBKIT COINCIDEN EN LOS DIECISÉIS CRUCES** (dos motores × 1920, 1440, 1280 y 390 px × los
+dos temas **reales**, puestos con `ett_theme` más `loadTheme()` y **devueltos** por la sonda: ocho
+«día» y ocho «noche»), con **UNA sola firma de valores por (ancho, tema) e idéntica entre motores**
+y **CERO errores de consola y de página en los dos**: «➕ Vista» y «Cerrar» en el encabezado, **DOS**
+«Cerrar vista» y **DOS** botones de tamaño los dos a la vista, los rótulos «Vista A» y «Vista B» por
+posición, el círculo en **44 px** de área táctil con su fila de **45**, la reserva en
+`calc(100vh - 145px)` con una vista y `calc(100vh - 185px)` con dos, el pie oculto, el cuerpo y el
+documento con `overflow:hidden` mientras dura la pantalla completa, y a **1920×1080** la imagen en
+**1342×935** —el **87 %** del alto— con **desplazamiento CERO**.
+⚠️ **WebKit de Playwright no es Safari, y se declara.** Chrome va por el del sistema.
+
+Lo declarado, en **P13-a** a **P13-k**; el mapa, en `docs/mapa/p13-visor-circulo-biblioteca.md`; el
+informe de la TAREA 5, en `docs/INFORME_P13_TAREA5.md`; la
 guía manual para la Mac y para Windows, en `docs/GUIA_PRUEBA_P13.md` (**61** pasos); las sondas, en
 `scripts/_probe_p13_0.mjs` (el bloque 0), `scripts/_probe_p13_t2.mjs` (la biblioteca y las tres
 puertas del 1j), `scripts/_probe_p13_t3.mjs` (el VTI y la calibración), `scripts/_probe_p13_t4.mjs`

@@ -1,6 +1,6 @@
 # Mapa — tanda P13 y P13-B (2026-11-22)
 
-Sello **`v20261122-2142`**, md5 **`67fa26f6`**, **193.541** líneas. Línea base **`c047112`**.
+Sello **`v20261122-2251`**, md5 **`8524699a`**, **193.554** líneas. Línea base **`c047112`**.
 Armado sobre ese commit: **no guarda números de línea** a propósito. Se busca por nombre de
 función o de constante.
 

@@ -19582,3 +19582,31 @@ condiciones del filtro.
 
 ### P13-i · SOLO INFORME · la columna izquierda para «+ Vista» y «Cerrar» (13-B, 3b)
 **No aplicada, como pediste.** Lo que ganaria y lo que costaria esta en el informe de la tanda.
+
+### P13-j · DECLARADO · el desplazamiento que la sonda de dos motores ve a 1440 y a 1280
+La sonda `_probe_p13dos.mjs` informa, en su bloque `Max1`, **142 px** de desplazamiento del modal a
+1440×900 y **242** a 1280×800, con **0 a 1920×1080** —que es el tamanio del que habla el 13-B—.
+**Una escena limpia NO lo reproduce**, y esta medido: abriendo el visor, entrando en pantalla
+completa y midiendo, con la tabla del VD poblada con cinco filas, el modal desplaza **0 a 1440** en
+el arbol vivo **y en `c047112`**, con la imagen en 1018x709 en los dos. Tambien da 0 con la columna
+escondida y despues de entrar y salir de pantalla completa.
+Lo que la sonda mide ahi es su propia escena acumulada —ya midio el circulo, toco el interruptor de
+la columna y entro y salio dos veces—, no un estado al que el medico llegue de una. **No se toco
+nada**: queda declarado para que el numero no se lea como una regresion, y para que la proxima
+tanda que mire ese bloque sepa que su denominador no es una escena limpia.
+
+### P13-k · DECLARADO · TC-899 llama a `_d2Render()` fuera de `_vCon`, y por eso es sensible al lote
+**Es un defecto del CASO y no del producto, y es preexistente.** La escena de A1 pone la vista A en
+Doppler y la B en Distancia, siembra `vd.basal` dentro de `_vCon(_vistaB, …)` y despues llama a
+`_d2Render()` **suelto**, o sea con `_V` resuelto en la vista A, que no tiene esa herramienta
+abierta. Que el cajon llegue poblado depende de que el repintado por rebote de la siembra alcance a
+dispararse dentro de los 360 ms de espera, y eso cambia con la carga de la maquina: corrido aislado
+el caso pasa, y en su lote sale rojo con `d2=b-cine-der-slot(0)` —el cajon en la columna correcta y
+**vacio**—.
+Medido de las dos formas que esta casa manda: el **mismo lote** contra `c047112`, con el mismo
+archivo de casos y solo el `index.html` distinto, da el **mismo** diagnostico. Y el caso **pasa
+1/1** aislado en los dos arboles.
+El arreglo es del caso —envolver ese `_d2Render()` en `_vCon(_vistaB, …)`— y no se hizo en esta
+tanda porque toca un caso maduro de MEDIR-5 que la orden no nombra. **Lo que si se agrego es su
+diagnostico**: con «1/0» a secas no se distinguia «el cajon no llego a la columna de la B» de «llego
+vacio», que son dos defectos distintos, y hoy el caso lo dice.

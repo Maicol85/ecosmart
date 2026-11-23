@@ -4444,7 +4444,7 @@ ser de solo reporte. La mudanza de «Estado vigente» a `docs/archivo/`, por vig
 
 ## Tanda P13 + P13-B — el visor, la biblioteca, la calibración y el círculo (2026-11-22)
 
-Sello **`v20261122-2142`**, md5 **`67fa26f6`**, **193.541** líneas. Línea base **`c047112`**.
+Sello **`v20261122-2251`**, md5 **`8524699a`**, **193.554** líneas. Línea base **`c047112`**.
 Seis commits: `26b52c8` (tarea 1) · `cdfc823` (tarea 2 y el alcance del 1j) · `add3a95` (tarea 4) ·
 `a53b8d8` (13-B 1, 2 y 3) · `ff32241` (tarea 3) · `2b1afad` (cobertura) · `92ef990` (sello y
 documentación). **Sin push: lo corre Maicol.**
@@ -4467,7 +4467,23 @@ cineloops **1396 / 297** contra **2 / 0**. Los 297 re-parentings por dos segundo
 reflowa todo lo que está debajo de los videos y lo que explica que con uno no pase.
 
 **Cobertura.** TC-1023 a TC-1028, los seis cayendo **0/6** contra la base por **67** condiciones.
-Siete adaptados, cinco con condiciones invertidas; TC-888 quedó más fuerte.
+**DIEZ** adaptados, **ocho** con condiciones invertidas; TC-888 quedó más fuerte. Los tres últimos
+—TC-1011, TC-893 y TC-998— los destapó la pasada completa y no el censo, y los tres caen contra la
+base.
+
+**Y la pasada completa destapó un defecto de verdad.** La guarda pegajosa del 1g, escrita a secas,
+reintroducía lo que MEDIR-5 (A1) había cerrado: con la vista A en Doppler y la B en Distancia, el
+cajón del VD medido en la B se quedaba en la columna de la A. Lo marcó **TC-899**, que pasa contra
+`c047112`. El arreglo cumple las dos órdenes: la pegajosidad vale **sólo cuando el empate es real**
+—cuando la vista que hoy aloja el cajón también tiene esa herramienta abierta—. El árbol se reselló
+y la suite se rehizo entera sobre el nuevo.
+
+**Verificación.** Suite **1026/1036** en diecinueve lotes, una sola pasada, md5 idéntico antes y
+después, pendrive verificado veintiuna veces y ningún lote cortado por tiempo; los diez rojos son
+los dos de siempre, **TC-574** —que falla idéntico contra la base— y **siete** de sensibilidad de
+lote que pasan 7/7 aislados. Semgrep **126/0**, sin huérfanos nuevos, **17/17** bloques inline,
+celular **38 ALTA** y los **dieciséis cruces** de Chrome y WebKit con una sola firma por (ancho,
+tema) y cero errores.
 
 **Lo que NO se hizo, y por qué.** El punto 5 entero es informe. De la tarea 4, los VTI
 «reservados» (P13-g): sacarlos exige decidir por dónde entran al informe los dos VTI del Qp/Qs. La
