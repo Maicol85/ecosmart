@@ -149849,9 +149849,18 @@ caso('TC-935', 'CUADROS (A): se elimina del PDF la fila de cuadros de valvulas -
     /* (2) UNA sola llamada al dibujante dentro del generador: un estilo que armara sus propios
        cuadros tendria la suya. En el arbol anterior habia CINCO. */
     const src = (typeof generarPDFReal === 'function') ? String(generarPDFReal) : '';
-    /* Son DOS apariciones: la declaracion de la funcion y su UNICA llamada. En el arbol
-       anterior eran SEIS -- la declaracion y los cinco literales. */
+    /* ADAPTADO EN PR6 (23/11/2026), Y QUEDA MAS FUERTE. Eran DOS apariciones -- la declaracion
+       y su unica llamada --; la tanda PR6 agrego el RESUMEN DE VALVULAS, que es una segunda
+       llamada al MISMO dibujante, asi que hoy son TRES. Lo que este caso vino a cerrar no cambia:
+       ningun estilo arma sus propios cuadros. Y se le suma una condicion NUEVA que la version
+       anterior no pedia: que esa segunda llamada este DETRAS del interruptor, o sea que con el
+       apagado el papel no pueda publicar la fila. Asi el caso falla por los dos lados -- si
+       alguien agrega una tercera llamada suelta, y si alguien le saca la compuerta. */
     R.llamadas = _cont(src, 'drawTablaCompacta(');
+    R.conCompuerta = src.indexOf('cuadResumenValvOn()') > -1;
+    /* El interruptor arranca APAGADO: es el denominador de la condicion de los ocho estilos de
+       mas abajo, que exige CERO filas de valvula en el papel. */
+    R.swApagado = (typeof cuadResumenValvOn === 'function') ? (cuadResumenValvOn() === false) : 'NO';
     /* (3) EL PDF DE VERDAD, EN LOS OCHO ESTILOS: ni un rastro de los cuatro cuadros de valvula. */
     const EST = ['clasico','moderno','minimalista','academico','compacto','elegante','bicolor','institucional'];
     const mal = [];
@@ -149874,8 +149883,10 @@ caso('TC-935', 'CUADROS (A): se elimina del PDF la fila de cuadros de valvulas -
     ['y no es un valor de referencia: es la frecuencia del gasto',
        R.refs === 'gc:con FC de 72 lpm', R.refs],
     ['cero celdas con un corte de normalidad o una escala de severidad', R.refsCorte === 0, R.refs],
-    ['UNA sola llamada al dibujante de tablas, no cinco: la declaracion mas una',
-       R.llamadas === 2, String(R.llamadas)],
+    ['UNA sola llamada al dibujante por cada fila, no cinco literales: la declaracion, los doce cuadros y el resumen de valvulas',
+       R.llamadas === 3, String(R.llamadas)],
+    ['y la del resumen de valvulas esta detras del interruptor', R.conCompuerta === true, String(R.conCompuerta)],
+    ['DENOMINADOR: el interruptor del resumen esta APAGADO', R.swApagado === true, String(R.swApagado)],
     ['DENOMINADOR: se probaron los OCHO estilos', R.estilos === 8, String(R.estilos)],
     ['y en los ocho el PDF sale sin la fila de valvulas y con el cuadro del gasto', R.mal === '', R.mal]
   ] };

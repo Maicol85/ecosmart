@@ -1715,6 +1715,19 @@
   #cuad-card h3 { margin:0; font-size:15px; }
   .cuad-hdr { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
   .cuad-nota { font-size:11px; color:var(--text2); margin:0 0 10px; line-height:1.5; }
+  /* El interruptor del resumen de valvulas (PR6-2). DISCRETO: tipografia del cuerpo, sin color de
+     acento y sin recuadro llamativo. El renglon entero es el area de toque porque el `<label>`
+     envuelve la casilla, y la casilla lleva su piso tactil de 44 px A MANO: la regla global de
+     esta hoja empareja `button, [role=button], .btn, [onclick]` y un `input` no es ninguno. */
+  /* El pie de la tarjeta: el interruptor y, desde PR6-3, los dos botones de copiar. */
+  .cuad-pie { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start;
+              margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); }
+  .cuad-rv { flex:1 1 320px; min-width:0; display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center;
+             margin:0; padding:6px 8px; border:1px solid var(--border); border-radius:8px;
+             cursor:pointer; }
+  .cuad-rv input { min-width:44px; min-height:44px; margin:0; cursor:pointer; }
+  .cuad-rv > span { font-size:11.5px; font-weight:600; }
+  .cuad-rv > small { grid-column:2; font-size:10px; color:var(--text2); line-height:1.45; }
   /* ⚠️ SEIS COLUMNAS Y NO TRES, y es lo que hace posible la regla de la última fila SIN cambiar de
      contenedor: tres cuadros ocupan 2 columnas cada uno, dos ocupan 3 y uno solo ocupa las 6. Con
      una grilla de tres no hay forma de partir una fila en mitades.
@@ -6634,6 +6647,29 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="cuad-franja" id="cuad-franja" hidden>
       <div class="cuad-franja-tit" id="cuad-franja-tit">Quitados del informe</div>
       <div class="cuad-chips" id="cuad-chips"></div>
+    </div>
+    <!-- ⚠️ EL PIE DE LA TARJETA VA DEBAJO DE LA GRILLA, Y NO ES UNA PREFERENCIA: puesto ARRIBA,
+         el interruptor empujaba la grilla 75 px hacia abajo y el cuadro de destino del arrastre
+         caía debajo del pliegue de la ventana del arnés (756x469), donde elementFromPoint
+         devuelve null. Lo marcó TC-939 con su propio denominador —«NADA BAJO EL PUNTERO»—, que
+         existe justamente para eso. Un caso que mide el producto no se afloja por una decisión
+         de maquetado que se puede tomar al revés. -->
+    <div class="cuad-pie">
+        <!-- «☐ Incluir resumen de válvulas» — DISCRETO, APAGADO DE FÁBRICA Y SOLO EN MEMORIA (PR6-2).
+             ⚠️ ES UN `<label>` QUE ENVUELVE LA CASILLA Y NO UN `for=`: así el área de toque es el
+             renglón entero —texto incluido— y no los 13 px de la casilla, que es la receta que esta
+             casa ya usó para las casillas de PPT del Laboratorio. La casilla lleva además su piso
+             táctil de 44 px por CSS, porque la regla global empareja `button, [role=button], .btn…`
+             y un `input` no es ninguno de ésos.
+             ⚠️ Y NO LLEVA `id`: el censo del estudio y el Excel recorren `input[id]` y `select[id]`,
+             así que una casilla con id entraría a las 457 columnas por existir y «Nuevo estudio» le
+             escribiría su `checked` guardado. Se alcanza por `data-cuad-rv`. -->
+        <label class="cuad-rv" data-cuad-rv>
+          <input type="checkbox" onchange="cuadResumenValvToggle(this.checked)">
+          <span>Incluir resumen de válvulas</span>
+          <small>Un cuadro por válvula con sus alteraciones, velocidades y gradientes. Vale para todos
+            los estudios mientras la app esté abierta; al cerrarla o recargarla vuelve a apagado.</small>
+      </label>
     </div>
   </div>
 </div>
@@ -80410,6 +80446,21 @@ const CUAD_IDS = Object.freeze(['ao','ai','advci','viest','visis','vd','vm','dti
    Por la misma razón no se toca `cargarEstudioPorId`, que limpia antes de poblar. */
 let _cuadQuit = [];      // ids quitados a mano en la tarjeta
 let _cuadOrden = null;   // null = el orden de arranque
+/* ══ EL RESUMEN DE VÁLVULAS — SOLO EN MEMORIA Y APAGADO DE FÁBRICA (PR6-2, 23/11/2026) ════════
+   Decisión de Maicol: con el interruptor encendido, TODOS los estudios que se generen mientras la
+   app esté abierta salen con la fila de válvulas; al cerrar o recargar vuelve a apagado.
+   ⚠️ NO VA A `localStorage` NI AL GUARDADO DEL ESTUDIO, Y LAS DOS COSAS ESTÁN PEDIDAS. En
+   `localStorage` sobreviviría al cierre, que es justo lo contrario de lo que la orden fija; en el
+   estudio viajaría pegado a un paciente y una reimpresión de hace un mes saldría con una fila que
+   ese informe firmado nunca tuvo.
+   ⚠️ Y NO ENTRA EN `cuadReset`, o sea que «Restablecer» NO lo apaga. Ese botón restablece el
+   ORDEN y los QUITADOS, que es lo que la tarjeta configura; el interruptor es una INCLUSIÓN y ya
+   dice su estado en su propia casilla. Tampoco entra en `cuadPersonalizado`: el punto de aviso
+   existe porque un cuadro quitado y olvidado saca un estudio SIN un dato, y esto AGREGA datos, que
+   no tiene esa consecuencia. Declarado en PENDIENTES -> PR6-b. */
+let _cuadResumenValv = false;
+function cuadResumenValvOn() { return _cuadResumenValv === true; }
+window.cuadResumenValvOn = cuadResumenValvOn;
 /* Vuelve al orden de fábrica: los doce cuadros en el orden de `CUAD_IDS`. Su ÚNICO llamador es
    el botón «Restablecer» de la tarjeta. */
 function cuadReset() { _cuadQuit = []; _cuadOrden = null; }
@@ -80984,6 +81035,89 @@ function cuadDefs() {
 /* ¿Este cuadro tiene algo que dibujar? La MISMA regla que el papel aplicaba con su filtro: alguna
    fila con valor, o alguna línea de válvula. La nota del asterisco NO cuenta: sin filas no hay
    asterisco que explicar. */
+/* ══ LA FILA DE VÁLVULAS, REUSADA Y NO REESCRITA (PR6-2, 23/11/2026) ══════════════════════════
+   ⚠️ ESTO NO ES CÓDIGO NUEVO: son las tres secciones de válvula del BLOQUE 5 que la tanda CUADROS
+   (commit `f5a4e19`) retiró del papel, recuperadas de `f5a4e19^` y con los MISMOS campos, los
+   mismos rótulos y las mismas guardas. No se inventó una fila: la orden de PR6 dice reutilizar la
+   que había, y la que había es ésta.
+   ⚠️ TRES DIFERENCIAS CONTRA LA ORIGINAL, Y LAS TRES SON DELIBERADAS.
+   1. SIN LA COLUMNA `ref`. La tanda CUADROS retiró del papel TODOS los valores de referencia por
+      orden expresa, y dejó una sola `ref` viva en todo el documento —la frecuencia del gasto
+      cardíaco—. Devolverlos acá desharía esa orden en silencio. La fila publica las MEDICIONES.
+   2. SIN LA SECCIÓN «Otros». Era la cuarta columna de la fila original y hoy es el cuadro número
+      doce (`otros`), con su pericardio, sus masas, su pulmón y sus variantes. Incluirla de nuevo
+      sería la segunda escritura del mismo hallazgo en el mismo papel firmado.
+   3. SIN LA FILA «EROA IT». `it_eroa` NO EXISTE como campo —lo declara `docs/PENDIENTES.md` ->
+      CUAD-b— y esa fila nunca publicó un número en ningún PDF. Cablearlo agregaría un dato al
+      papel, que es contenido clínico y lo decide el médico.
+   ⚠️ NO REPITE LO QUE LAS LÍNEAS DE VÁLVULA YA PUBLICAN, y eso no se puede evitar: las líneas de
+   `cuadLineasVM`/`VA`/`TriPulm` salen de los mismos campos. Es la consecuencia aceptada de la
+   orden —un RESUMEN de válvulas junto a los cuadros—, y por eso viene apagado de fábrica.
+   Declarado en PENDIENTES -> PR6-c. */
+/* ⚠️ `_cap` NO SE PUEDE USAR ACÁ, Y LO ENCONTRÓ LA SONDA Y NO LA LECTURA: es un `const` LOCAL de
+   `generarPDFReal` —la fila original vivía adentro de esa función, que es por lo que ahí sí lo
+   veía—, así que desde afuera tira «_cap is not defined» y el `try` de la prueba lo convertía en
+   una lista VACÍA, o sea en «el resumen no tiene datos». Se declara el equivalente al lado de los
+   otros ayudantes `_cuad*` en vez de exportar el de adentro: ese `_cap` lo usan veinte filas más
+   del papel y moverlo de ámbito es tocar el emisor del PDF. Es una mayúscula inicial, no un
+   criterio clínico: duplicar la expresión no puede divergir en un corte. */
+function _cuadCap(s) { return s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s; }
+function cuadResumenValvDefs() {
+  const CX = cuadCtx();
+  const GT = CX.GT, imG = CX.imG, iaG = CX.iaG, itG = CX.itG;
+  const eaReal = sv('ea_grado') && sv('ea_grado') !== 'sin' && sv('ea_grado') !== 'normal'
+               && sv('ea_grado') !== '—' && sv('ea_grado').trim() !== '';
+  const defs = [];
+  defs.push({ id:'rv_vm', titulo:'Válvula Mitral', items:[
+    { lbl:'Morf.',    val: sv('vm_morf') || null },
+    { lbl:'IM',       val: imG ? GT[imG] : null },
+    { lbl:'VC IM',    val: vPdf('im_vc', ' mm') },
+    { lbl:'EROA',     val: imEroaPdfVal() },
+    { lbl:'Vol.R',    val: imVolrPdfVal() },
+    { lbl:'FR',       val: imFrPdfVal() },
+    { lbl:'EM grado', val: (sv('em_grado') && sv('em_grado') !== 'sin') ? emGradoVis(sv('em_grado')) : null },
+    { lbl:'AVm',      val: emAvmPdfVal() },
+    /* La misma guarda por morfología de la fila original: el campo se esconde al elegir una
+       morfología que no es prótesis, pero el VALOR queda, así que sin esto el papel
+       imprimía un DVI sobre una válvula que dice «Normal». */
+    { lbl:'DVI',      val: (function () {
+        try { const _p = vmProtEOA(); if (_p.esProt && _p.dvi != null) return _p.dvi.toFixed(2); } catch (e) {}
+        return _protPdf('vm_morf', 'vm_dvi', '', 2); })() },
+    { lbl:'Notas',    val: sv('vm_notas') || null }
+  ]});
+  defs.push({ id:'rv_va', titulo:'Válvula Aórtica', items:[
+    { lbl:'Morf.',     val: sv('va_morf') || null },
+    { lbl:'EA grado',  val: (eaReal && !eaGradoNoPublica(sv('va_morf'))) ? _cuadCap(sv('ea_grado')) : null },
+    { lbl:'AVA',       val: (eaReal && CX.avaC) ? CX.avaC + ' cm2' : null },
+    { lbl:'V. max',    val: eaReal ? vPdf('vmax_ao', ' m/s') : null },
+    { lbl:'G. medio',  val: eaReal ? vPdf('gmedio_ao', ' mmHg') : null },
+    { lbl:'IAo',       val: iaG ? GT[iaG] : null },
+    { lbl:'VC IAo',    val: vPdf('ia_vc', ' mm') },
+    { lbl:'THP',       val: vPdf('ia_pht', ' ms') },
+    { lbl:'AT',        val: _protPdf('va_morf', 'va_at', ' ms', 0) },
+    { lbl:'Notas',     val: sv('va_notas') || null }
+  ]});
+  defs.push({ id:'rv_vt', titulo:'Válvula Tricúspide', items:[
+    { lbl:'Morf.',       val: sv('vt_morf') || null },
+    { lbl:'IT',          val: itG ? GT[itG] : null },
+    /* Se excluyen el token viejo Y el nuevo: un estudio legado leído por una ruta que no pasa
+       por `_migrarCamposLegacy` imprimiría «ET grado: Sin estenosis», que es afirmar
+       una valoración donde no hubo respuesta. */
+    { lbl:'ET grado',    val: (function () { const g = sv('et_grado');
+        return (g && g !== 'Sin estenosis' && g !== 'sin') ? g : null; })() },
+    { lbl:'VC IT',       val: vPdf('it_vc', ' mm') },
+    { lbl:'Grad. VD-AD', val: CX.gradIT },
+    { lbl:'PSAP',        val: vPdf('psap_calc', ' mmHg') },
+    /* ⚠️ NO HAY FILA «Notas» EN LA TRICÚSPIDE, Y NO ES UNA OMISIÓN: `vt_notas` NO EXISTE
+       como campo. La fila original tampoco la tenía; la agregué por simetría con la mitral y la
+       aórtica y el censo de ids la devolvió en CERO. `sv()` de un campo que no existe da cadena
+       vacía, así que la fila nunca se habría impreso —un nombre de campo fantasma es exactamente
+       cómo el próximo pase lo «arregla» cableando un control que nadie pidió—. */
+    { lbl:'DVI',         val: _protPdf('vt_morf', 'vt_dvi', '', 2) }
+  ]});
+  return defs.filter(cuadConDatos);
+}
+window.cuadResumenValvDefs = cuadResumenValvDefs;
 function cuadConDatos(d) {
   if (!d) return false;
   const hay = arr => (arr || []).some(i => i && i.val != null && String(i.val).trim() !== '');
@@ -81150,6 +81284,11 @@ window.cuadPintar = cuadPintar;
 function cuadQuitar(id) { if (_cuadQuit.indexOf(id) < 0) _cuadQuit.push(id); cuadPintar(); }
 function cuadRecuperar(id) { _cuadQuit = _cuadQuit.filter(x => x !== id); cuadPintar(); }
 function cuadRestablecer() { cuadReset(); cuadPintar(); }
+/* El interruptor del resumen de valvulas. NO repinta la grilla: el resumen no es uno de los doce
+   cuadros y no se muestra en la tarjeta —lo que la tarjeta configura es el ORDEN y los QUITADOS—.
+   Lo unico que mueve es lo que el PDF publica, y eso se mide generando el PDF. */
+function cuadResumenValvToggle(on) { _cuadResumenValv = (on === true); }
+window.cuadResumenValvToggle = cuadResumenValvToggle;
 window.cuadQuitar = cuadQuitar; window.cuadRecuperar = cuadRecuperar;
 window.cuadRestablecer = cuadRestablecer;
 /* ══ EL ARRASTRE, CON EVENTOS DE PUNTERO ══════════════════════════════════════════════════════
@@ -82866,6 +83005,24 @@ function generarPDFReal(_aj) {
       drawTablaCompacta(_defs.slice(_i, _i + k));
       _i += k;
     });
+    /* ══ EL RESUMEN DE VÁLVULAS, SI EL MÉDICO LO PRENDIÓ (PR6-2, 23/11/2026) ══════════════
+       Va DESPUÉS de los doce cuadros y es su propia fila, con el MISMO `drawTablaCompacta` y el
+       MISMO reparto de `cuadFilas`, así que no se corta entre dos hojas y sale igual en las nueve
+       plantillas por construcción —ninguna arma sus propios cuadros—.
+       ⚠️ APAGADO, ESTO NO EMITE UNA SOLA OPERACIÓN DE DIBUJO, y es lo que hace que el PDF quede
+       EXACTAMENTE como hoy: la guarda está antes de pedir las definiciones, así que ni se evalúan.
+       ⚠️ EL ESTILO «Tipo Word» LO IGNORA, por orden expresa, y la compuerta vive allá —no acá—:
+       ese estilo no llega a esta línea porque arma su cuerpo entero por otro camino. */
+    if (cuadResumenValvOn()) {
+      const _rv = cuadResumenValvDefs();
+      if (_rv.length) {
+        let _j = 0;
+        cuadFilas(_rv.length).forEach(function (k) {
+          drawTablaCompacta(_rv.slice(_j, _j + k));
+          _j += k;
+        });
+      }
+    }
   })();
 
   // ════════════════════════════════════════════════════════════
